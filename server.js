@@ -4,6 +4,7 @@ const os = require('os');
 const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
+const { Worker } = require('worker_threads');
 const anh = require('./anhaenge');
 // Eine Quelle fuer die Versionsnummer: die package.json. Die fuehrende Null
 // sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
@@ -28,6 +29,12 @@ const sharp = require('sharp');
    trotzdem die halbe Kernzahl des Wirts. Ob daraus mehr wird -- das Lesen der
    cgroup-Grenze --, ist eine Frage fuer 0.19.2 und nicht fuer diese Runde. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
+/* DIE BILDABLEITUNGEN STEHEN SEIT 0.19.3 IN bilder.js und nicht mehr hier.
+   Der Grund ist nicht Ordnung, sondern EINE Wahrheit ueber die Ablage: der
+   Bestandslauf faehrt seit dieser Runde in einem eigenen Thread und braucht
+   dieselbe Umwandlung wie der Anfrageweg (Stolperstein 47). Gerufen wird
+   dasselbe wie vorher, nur aus einer Datei daneben. */
+const { makeVariants, PNG_MAGIE_HEX, istPNG, legeBildAb } = require('./bilder');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
@@ -287,97 +294,6 @@ const putUserSetting = (benutzerId, k, wert) => {
   putUserSettingS.run(benutzerId, k, wert);
 };
 
-/* ================= Bildableitungen =================
-   DIE INSTANZ HAT ZWEI BILDWEGE, UND SIE SPEICHERN VERSCHIEDEN. Das ist keine
-   Nachlaessigkeit, sondern eine Entscheidung; sie steht hier, weil sie sonst
-   nur im Quelltext beider Wege zu finden waere:
-
-     Weg                          was in der Datenbank landet
-     ---------------------------  ------------------------------------------
-     Foto am Eintrag (photos)     DAS ORIGINAL (ein PNG als WebP, siehe
-                                  legeBildAb() weiter unten), dazu 1600px-
-                                  und 400px-JPEG
-     Bild im Kommentar            NUR 1600px- und 400px-JPEG --
-     (comment_images)             KEIN ORIGINAL
-
-   WARUM DAS KOMMENTARBILD KEINS BEKOMMT, und es bleibt dabei: am Eintrag hat
-   das Original einen Zweck -- das Vollbild zeigt es. Im Kommentar gibt es kein
-   Vollbild in diesem Sinn, und die meisten Bilder fallen genau dort an. Ein
-   Original je Kommentarbild vergroesserte die Datenbank an der Stelle, an der
-   sie ohnehin am schnellsten waechst, und niemand saehe es je an.
-
-   WAS DARAUS FOLGT UND GEMESSEN IST: das Kommentarbild summiert sich beim
-   wiederholten Ein- und Ausspielen, denn der Import kodiert das gespeicherte
-   JPEG erneut als JPEG (kein Original, aus dem er neu rechnen koennte). Die
-   Zahlen dazu: MAE 0,06 nach einer Runde, 0,10 nach sechs -- es laeuft aus
-   statt davonzulaufen, und die ERSTE Kodierung kostet mit 1,89 ohnehin ein
-   Vielfaches davon. Am Foto passiert das nicht: dort schreibt der Import das
-   Original byte-genau zurueck und rechnet thumb/medium neu daraus.
-   KEIN HANDLUNGSBEDARF -- aber wer es entdeckt, soll die Zahlen daneben
-   finden und es nicht fuer schlimmer halten, als es ist. */
-const VARIANTS = { thumb: { px: 400, q: 78 }, medium: { px: 1600, q: 84 } };
-async function makeVariants(buf) {
-  const out = {};
-  for (const [name, v] of Object.entries(VARIANTS)) {
-    try {
-      out[name] = await sharp(buf, { failOn: 'none' }).rotate()
-        .resize(v.px, v.px, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();
-    } catch { out[name] = null; }
-  }
-  return out;
-}
-
-/* ================= Die Ablage des Originals =================
-   679 VON 1032 BILDERN LAGEN ALS PNG IM ORIGINAL -- 435,7 MB von 568,9 MB des
-   ganzen Bildbestands. Es sind Bildschirmfotos: der Browser legt die
-   Zwischenablage als PNG ab, und der Server hat sie unveraendert gespeichert.
-   Als WebP im Verfahren `nearLossless` werden daraus 161,9 MB.
-
-   UND DIE VORHERSAGE HAT GEHALTEN. Der Lauf ist am echten Bestand gefahren:
-   679 von 679 umgestellt, 272,1 MB gespart -- die umgestellten Bilder belegen
-   danach 435,7 - 272,1 = 163,6 MB gegen vorhergesagte 161,9 MB, ABWEICHUNG
-   1,0 %. Eine Messung, die sich bestaetigt, ist so berichtenswert wie eine,
-   die es nicht tut.
-
-   DIESER ABSATZ IST AUSDRUECKLICH KEINE ENTSTEHUNGSGESCHICHTE, sondern eine
-   zurueckgenommene Entscheidung, die sonst wiederkaeme (Stolperstein 201):
-   Fahrplan und Sammelblatt fuehrten bis zum 1. September 2026 den Satz „das
-   Original wird nicht angefasst" -- so halten es Immich, Nextcloud Photos und
-   Piwigo, und fuer eine KAMERAAUFNAHME ist das richtig. Dieser Bestand
-   besteht zu 92 % aus Bildschirmfotos; ein Bildschirmfoto hat kein Negativ
-   und ist selbst schon eine Ableitung.
-
-   WARUM `nearLossless` UND NICHT `quality`. WebP hat zwei Bitstroeme: VP8
-   (verlustbehaftet) und VP8L (verlustfrei). `quality: 90…100` faehrt den
-   ersten und franst an harten Kanten aus -- gemessen beschaedigt `quality: 100`
-   DIESELBEN elf von hundert Bildern mit DERSELBEN Abweichung wie `quality: 90`;
-   eine hoehere Guete aendert daran nichts, es ist eine Frage des Verfahrens.
-   `nearLossless` faehrt den zweiten: es glaettet vor dem verlustfreien
-   Kodieren dort, wo man es nicht sieht. `quality` steuert dabei NICHT die
-   Bildguete, sondern wie stark geglaettet wird.
-
-   WARUM 60. Der Gewinn viertelt sich mit jedem Schritt (34,2 → 20,5 → 6,9 →
-   1,4 MB), die groesste Abweichung verdoppelt sich (1 → 2 → 4 → 8 von 255).
-   Bei 60 kreuzen sich die Kurven. Und `nearLossless` 60 schlaegt das rein
-   Verlustfreie deutlich: 161,9 gegen 216,6 MB.
-
-   WER DIE ABWAEGUNG ANDERS TRIFFT, setzt hier `nearLossless: true` mit
-   `quality: 100` (dann wird gar nicht geglaettet) und zahlt 55 MB. Beides ist
-   vertretbar; entschieden ist 60. */
-const WEBP_ABLAGE = { nearLossless: true, quality: 60, effort: 4 };
-
-/* DIE ERKENNUNG GEHT UEBER DIE ERSTEN ACHT BYTES, nicht ueber den gemeldeten
-   Typ: ein Byte-Vergleich kostet nichts, und er glaubt dem Browser nicht auf
-   sein Wort. Dieselbe Haltung wie bei der Auslieferung, die den Kopf ebenfalls
-   aus den Bytes setzt. Der String daneben ist DERSELBE Wert in der Form,
-   in der SQLite ihn liefert (hex(substr(data,1,8))) -- eine zweite Stelle mit
-   einer zweiten Schreibweise liefe auseinander. */
-const PNG_MAGIE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const PNG_MAGIE_HEX = PNG_MAGIE.toString('hex').toUpperCase();
-const istPNG = (buf) =>
-  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIE);
-
 /* WELCHER SCHLUESSEL AUF DER FORMATZEILE DER KARTE STEHT -- die Zuordnung von
    mime_type auf den Schluessel steht HIER UND NUR HIER. Die Oberflaeche kennt
    nur noch die Schluessel und die Namen dazu (BILDFORMATE in public/app.js);
@@ -399,47 +315,6 @@ const formatAusMime = (m) => BILD_MIME_FORMAT[String(m || '').trim().toLowerCase
    „Alle PNG nach WebP umstellen" nach, was in der anderen Stellung entstanden
    ist. Genau deshalb ist er billig. */
 const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;
-
-/* WAS WIRKLICH IN photos.data GEHT. Ein PNG wird ein WebP, alles andere bleibt,
-   wie es ist.
-
-   JPEG, GIF UND VORHANDENES WEBP WERDEN NICHT ANGEFASST, und jedes aus einem
-   eigenen Grund:
-     JPEG  eine Neukodierung waere verlustbehaftet, und die Ausrichtung haengt
-           an den EXIF-Daten, die makeVariants() ueber .rotate() liest.
-     GIF   sharp liest ohne `animated: true` nur die erste Seite. Eine
-           Umwandlung verloere die Bewegung, und zwar still.
-     WebP  ist schon da, wo es hinsoll.
-   BMP steht gar nicht zur Frage: RASTER_FORMATE fuehrt es nicht, der Upload
-   wird abgewiesen.
-
-   DER RUECKFALL IST NICHT ZIERDE. WebP kann hoechstens 16383 px je Kante --
-   bei 16384 wirft sharp „Processed image is too large for the WebP format".
-   Und ein PNG, das nach der Umwandlung GROESSER waere, bleibt PNG; gemessen
-   kommt das vor. In beiden Faellen liegt danach die unveraenderte Vorlage da.
-
-   `mime_type` MUSS MITGEZOGEN WERDEN. Sonst laege WebP unter dem Namen
-   `image/png` in der Tabelle, und der naechste Export truege die Luege weiter.
-   (Die Auslieferung selbst faellt darauf nicht herein -- sie liest die
-   ersten Bytes --, aber eine falsche Spalte bleibt eine falsche Spalte.)
-
-   AUSDRUECKLICH OHNE `failOn: 'none'`, anders als makeVariants(): eine
-   Vorlage, an der sharp etwas zu beanstanden hat, soll hier NICHT halb
-   umgewandelt werden. Sie faellt in den Rueckfall und bleibt unberuehrt --
-   bei einer Ableitung ist ein Rest besser als nichts, beim Original nicht. */
-async function legeBildAb(buf, gemeldeterTyp) {
-  if (!istPNG(buf)) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
-  try {
-    const webp = await sharp(buf).webp(WEBP_ABLAGE).toBuffer();
-    if (webp.length < buf.length)
-      return { data: webp, mime: 'image/webp', umgewandelt: true };
-  } catch (e) {
-    // Laut ins Protokoll, still in der Antwort: das Bild ist gespeichert, nur
-    // eben als PNG. Wer es wissen will, sieht es an der Formatzeile der Karte.
-    console.error('[Kriterion] PNG blieb PNG:', e.message);
-  }
-  return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
-}
 
 /* ---- Den vorhandenen Bestand nachziehen ----
    DIES WAR ALS WIRTSSKRIPT `bilder.js` GEPLANT, in der Bauform von zugang.js
@@ -501,51 +376,53 @@ const qVideoExportBytes = db.prepare(`
   SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) AS n
     FROM photos WHERE art IS ?`);
 
-/* GEARBEITET WIRD WIE IN backfillVariants(): Zeile fuer Zeile, 30 ms Pause
-   dazwischen, damit der Server ansprechbar bleibt. Das Vorbild steht schon da
-   und hat dieselbe Aufgabe.
-   JE BILD EINE EIGENE TRANSAKTION -- und dafuer steht hier bewusst KEIN
-   db.transaction() um das einzelne UPDATE: eine einzelne Anweisung IST in
-   SQLite ihre eigene Transaktion. Eine Klammer darum sagte, es geschehe mehr
-   als eines, und das waere unwahr.
-   WAS AUSDRUECKLICH NICHT PASSIERT: thumb und medium werden NICHT neu
-   gerechnet. Sie sind aus demselben Bild entstanden und bleiben gueltig; ein
-   Neurechnen kostete Zeit und aenderte nichts. */
-async function stelleBestandUm(zeilen) {
-  const hole = db.prepare('SELECT data FROM photos WHERE id = ?');
-  const schreib = db.prepare('UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');
-  for (const { id } of zeilen) {
-    try {
-      const z = hole.get(id);
-      // Die Zeile kann waehrend des Laufs geloescht oder schon umgestellt
-      // worden sein. Beides ist kein Fehler -- nur nichts zu tun.
-      if (z && istPNG(z.data)) {
-        const ab = await legeBildAb(z.data, 'image/png');
-        if (ab.umgewandelt) {
-          schreib.run(ab.mime, ab.data, id);
-          umstellung.umgestellt++;
-          umstellung.gespart += z.data.length - ab.data.length;
-        } else umstellung.geblieben++;
-      }
-    } catch (e) {
-      // EINE ZEILE REISST DEN LAUF NICHT AB. Sie bleibt, wie sie ist, wird
-      // gezaehlt und genannt -- dieselbe Regel wie beim Nachruesten der
-      // Vorschaubilder.
-      umstellung.geblieben++;
-      console.error(`[Kriterion] Foto ${id} nicht umgestellt:`, e.message);
-    }
-    umstellung.erledigt++;
-    await new Promise(r => setTimeout(r, 30));
-  }
-  umstellung.laeuft = false;
-  /* reclaim() DANACH. Ohne ihn waechst die Datei erst und schrumpft nie: die
-     alten Blobs geben ihre Seiten frei, aber SQLite gibt sie ohne
-     incremental_vacuum nicht ans Dateisystem zurueck. Dieselbe Ueberlegung
-     wie beim Papierkorb. */
-  reclaim();
-  console.log(`[Kriterion] Bildumstellung fertig: ${umstellung.umgestellt} von ` +
-    `${umstellung.gesamt} umgestellt, ${umstellung.geblieben} blieben PNG, ` +
-    `${umstellung.gespart} Bytes gespart.`);
+/* ================= DER BESTANDSLAUF IN EINEM EIGENEN THREAD — 0.19.3 =========
+
+   DIE SCHLEIFEN SELBST STEHEN IN bestandslauf.js, und die Begruendung mit
+   ihren Messungen steht dort im Kopf. Hier steht nur, was der Haupt-Thread
+   damit zu tun hat: den Thread erzeugen, seine Meldungen entgegennehmen und
+   ihn beim Herunterfahren mitnehmen.
+
+   EIN THREAD JE LAUF, danach beendet. Kein Threadpool, kein Dauerlaeufer: das
+   Nachruesten laeuft einmal beim Start, die Umstellung auf Knopfdruck. Die
+   19 ms Verbindungsaufbau und die 76 ms fuer sharp fallen dabei einmal an;
+   ein Dauerlaeufer hielte dafuer eine zweite Verbindung auf die Datenbank
+   offen, solange der Server laeuft.
+
+   DER LAUFENDE THREAD STEHT IN EINER VARIABLEN, und zwar aus genau einem
+   Grund: SIGTERM muss ihn beenden koennen, BEVOR db.close() die WAL-Datei
+   kuerzt. Ein Thread, der in eine Datei schreibt, deren WAL gerade
+   verschwindet, ist der eine Fall, den diese Runde neu einbringt. */
+let bestandsThread = null;
+
+/* DER PFAD STEHT AN EINER STELLE, und das ist keine Ordnungsliebe: der
+   Fingerprint liest ihn ein zweites Mal. Ein Modul, das NUR im Thread lebt,
+   steht in der `require.cache` des Haupt-Threads nicht -- der Server fuehrt
+   es aus, und der abgeleitete Dateisatz saehe es trotzdem nicht. Ein
+   Fingerprint, der eine ausgelieferte Datei nicht kennt, ist eine halbe
+   Aussage. Beide lesen deshalb DIESE Zeile, und eine Pruefung haelt sie
+   gegeneinander. */
+const BESTANDSLAUF = path.join(__dirname, 'bestandslauf.js');
+
+/* EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB -- dieselbe Regel wie
+   heute fuer eine einzelne Zeile. Was hier ankommt, ist alles, was die
+   Schleife NICHT schon selbst abgefangen hat; der Lauf ist dann zu Ende, der
+   Rest des Servers steht.
+   `umstellung.laeuft` FAELLT DABEI AUF false, und nicht der ganze Stand auf
+   null: die Karte soll sehen, wie weit er gekommen ist. */
+function starteBestandsThread(aufgabe, zeilen, fertig) {
+  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen } });
+  bestandsThread = w;
+  /* DER STAND WIRD ERSETZT UND NICHT FORTGESCHRIEBEN. Der Thread meldet je
+     Zeile den GANZEN Stand; eine Zunahme muesste hier aufaddiert werden, und
+     dann haengt die Zahl an der Vollstaendigkeit der Meldungsfolge. */
+  w.on('message', (m) => { if (m && m.art === 'stand') umstellung = m.stand; });
+  w.on('error', (e) => {
+    if (umstellung) umstellung.laeuft = false;
+    console.error(`[Kriterion] Bestandslauf (${aufgabe}) abgebrochen:`, e.message);
+  });
+  w.on('exit', () => { bestandsThread = null; if (fertig) fertig(); });
+  return w;
 }
 
 /* ================= Speicherpflege ================= */
@@ -4307,15 +4184,15 @@ app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bild
                  umgestellt: 0, geblieben: 0, gespart: 0 };
   console.log(`[Kriterion] Bildumstellung gestartet: ${zeilen.length} PNG.`);
   res.status(202).json(umstellungsStand());
-  /* OHNE await UND MIT EIGENEM catch: die Antwort ist schon hinaus, ein
-     geworfener Fehler faende hier keinen Empfaenger mehr -- und eine
-     unbehandelte Zusage nimmt in Node den ganzen Server mit. Der Lauf faengt
-     jede einzelne Zeile schon selbst ab; dieses Netz gilt dem, was daneben
-     schiefgehen kann. */
-  stelleBestandUm(zeilen).catch(e => {
-    umstellung.laeuft = false;
-    console.error('[Kriterion] Bildumstellung abgebrochen:', e.message);
-  });
+  /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
+     laeuft die Schleife nicht mehr hier, sondern in bestandslauf.js. Was der
+     Aufrufer bekommt, ist unveraendert: 202 mit dem Anfangsstand, und der
+     Fortschritt geht weiter als Feld in /api/stats.
+     DAS NETZ GEGEN DAS, WAS DANEBEN SCHIEFGEHEN KANN, HAENGT JETZT AM THREAD
+     (worker.on('error') in starteBestandsThread) statt an einem catch: eine
+     unbehandelte Zusage naehme in Node den ganzen Server mit, ein Fehler im
+     Thread nimmt nur den Lauf. */
+  starteBestandsThread('umstellung', zeilen);
 });
 
 /* ================= Das Austauschformat =================
@@ -5758,29 +5635,29 @@ app.use((err, req, res, next) => {
    sharp liefe darauf in einen Fehler, beide Varianten kaemen leer zurueck und
    das vorhandene Standbild waere ueberschrieben. Die Zeile bliebe ausserdem
    bei jedem Start aufs Neue faellig. Und der Kernsatz gilt auch hier: der
-   Server oeffnet nie ein Video. Das Standbild kommt vom Browser. */
-async function backfillVariants() {
-  const pending = db.prepare(
+   Server oeffnet nie ein Video. Das Standbild kommt vom Browser.
+
+   DIE SCHLEIFE SELBST LAEUFT SEIT 0.19.3 IM THREAD (bestandslauf.js) --
+   dieselbe Bauform und derselbe Grund wie bei der Umstellung: sie liest und
+   schreibt Blobs, und better-sqlite3 ist synchron.
+   DIE FRAGE, OB ES ETWAS ZU TUN GIBT, BLEIBT HIER. Ohne sie entstuende bei
+   jedem Start ein Thread fuer eine leere Liste -- 19 ms fuer die Verbindung
+   und 76 ms fuer sharp, fuer nichts. */
+function ruesteVorschaubilderNach() {
+  const offen = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND art != 'video'").all();
-  if (!pending.length) return;
-  console.log(`[Kriterion] Erzeuge Vorschaubilder für ${pending.length} Foto(s) ...`);
-  const get = db.prepare('SELECT data FROM photos WHERE id = ?');
-  const upd = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
-  let done = 0;
-  for (const { id } of pending) {
-    try {
-      const row = get.get(id);
-      if (!row) continue;
-      const v = await makeVariants(row.data);
-      upd.run(v.thumb, v.medium, id);
-      done++;
-    } catch (e) { console.error(`[Kriterion] Foto ${id} übersprungen:`, e.message); }
-    await new Promise(r => setTimeout(r, 30));
-  }
-  console.log(`[Kriterion] ${done} Vorschaubild(er) erzeugt.`);
+  if (!offen.length) return maintainStorage();
+  /* maintainStorage() ERST DANACH, und deshalb steht es hier im Abschluss und
+     nicht in einer Kette daneben: es fasst die ganze Datei an (beim ersten Mal
+     ein VACUUM) und darf nicht neben der Schleife laufen. */
+  starteBestandsThread('vorschaubilder', offen, maintainStorage);
 }
 
-async function maintainStorage() {
+/* NICHT MEHR `async` SEIT 0.19.3, und das ist keine Kosmetik: nichts darin ist
+   asynchron, und seit dieser Runde wird es als ABSCHLUSS eines Threads
+   gerufen. Eine Zusage, die dort geworfen wuerde, faende keinen Empfaenger
+   mehr -- und eine unbehandelte Zusage nimmt in Node den ganzen Server mit. */
+function maintainStorage() {
   if (db.pragma('auto_vacuum', { simple: true }) !== 2) {
     db.pragma('auto_vacuum = INCREMENTAL');
     db.exec('VACUUM');
@@ -5822,7 +5699,15 @@ function dateienUnter(verzeichnis) {
 function bildeFingerprint() {
   const ausgefuehrt = Object.keys(require.cache).filter(f =>
     f.startsWith(__dirname + path.sep) && !f.split(path.sep).includes('node_modules'));
-  const liste = [...new Set([...ausgefuehrt, ...dateienUnter(path.join(__dirname, 'public'))])]
+  /* UND DIE DATEI, DIE NUR IM THREAD LEBT -- 0.19.3. bestandslauf.js wird
+     nicht requiret, sondern an `new Worker` gereicht; es steht deshalb in
+     keiner require.cache des Haupt-Threads und fiele aus der Ableitung
+     heraus. DER SERVER FUEHRT ES TROTZDEM AUS, und genau das ist der Massstab
+     dieser Liste. Es ist KEINE zweite, gepflegte Liste: gelesen wird
+     dieselbe Konstante, mit der der Thread erzeugt wird, und eine Pruefung
+     haelt beide gegeneinander. */
+  const liste = [...new Set([...ausgefuehrt, BESTANDSLAUF,
+                             ...dateienUnter(path.join(__dirname, 'public'))])]
     .map(f => path.relative(__dirname, f).split(path.sep).join('/'))
     .sort();
   const h = crypto.createHash('sha256');
@@ -5849,6 +5734,14 @@ const FINGERPRINT = bildeFingerprint();
    Der Abschluss darf nichts werfen -- wer beendet, ist nicht mehr zu retten. */
 for (const zeichen of ['SIGTERM', 'SIGINT']) {
   process.on(zeichen, () => {
+    /* ERST DER THREAD, DANN DIE DATEI -- 0.19.3. Laeuft ein Bestandslauf,
+       schreibt er in dieselbe Datei; wer ihre WAL kuerzt, waehrend er
+       schreibt, tut genau das, wogegen dieser Abschluss gebaut ist.
+       terminate() OHNE await: der Abschluss darf nicht warten, und ein
+       beendeter Thread schreibt keine Zeile mehr. Die halb umgestellte Zeile,
+       die er gerade in der Hand hatte, bleibt PNG -- der Knopf holt sie beim
+       naechsten Lauf nach, und genau dafuer ist er nie endgueltig. */
+    try { if (bestandsThread) bestandsThread.terminate(); } catch {}
     try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
     process.exit(0);
   });
@@ -5909,5 +5802,10 @@ app.listen(PORT, () => {
         'Ruecksetzlinks stehen wie bisher im Verwaltungsbereich zum Kopieren.');
     }
   }
-  setTimeout(() => backfillVariants().then(maintainStorage).catch(e => console.error(e)), 1500);
+  /* DAS NACHRUESTEN UND DIE SPEICHERPFLEGE, 1500 ms nach dem Horchen. Die
+     Kette aus .then() ist weggefallen, weil die Schleife nicht mehr hier
+     laeuft: ruesteVorschaubilderNach() gibt maintainStorage als Abschluss an
+     den Thread weiter und ruft es selbst, wenn es gar nichts nachzuruesten
+     gibt. Der Fehlerfall haengt am Thread (worker.on('error')). */
+  setTimeout(ruesteVorschaubilderNach, 1500);
 });

@@ -348,8 +348,8 @@ erwarteter Namen.
 Container (`docker compose exec kriterion sh`):
 
 ```bash
-for f in anhaenge.js auth.js db.js keys.js mail.js package.json server.js \
-         zweifaktor.js public/*; do
+for f in anhaenge.js auth.js bestandslauf.js bilder.js db.js keys.js mail.js \
+         package.json server.js zweifaktor.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```

@@ -1,6 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+/* IM NEBEN-THREAD BLEIBT ES STILL -- 0.19.3. Der Bestandslauf oeffnet seit
+   dieser Runde eine EIGENE Verbindung und laedt dabei denselben Schluessel
+   denselben Weg (er reist ausdruecklich NICHT ueber workerData). Die Ansagen
+   darueber gelten aber dem Betreiber und nicht dem Lauf: der Schluesselhinweis
+   ist ein halber Bildschirm, und er staende bei jedem Umstellungslauf ein
+   zweites Mal im Containerprotokoll. Wer ihn einmal gelesen hat, liest ihn
+   beim zweiten Mal nicht besser.
+   ES IST DER EINE SCHALTER, DEN DIESE RUNDE BRAUCHT: alles Uebrige, was beim
+   Oeffnen laeuft, ist doppelt ausfuehrbar (siehe db.js). */
+const { isMainThread } = require('worker_threads');
 
 // Genau 64 Hex-Zeichen -- an EINER Stelle, weil die Frage an dreien gestellt
 // wird: beim Laden, beim Erzeugen und beim Nachziehen der Ablage.
@@ -16,7 +26,7 @@ function loadKey(dataDir) {
     if (!HEX_MUSTER.test(clean)) {
       throw new Error('ENCRYPTION_KEY muss genau 64 Hex-Zeichen lang sein (erzeugen mit: openssl rand -hex 32)');
     }
-    console.log('[Kriterion] Schluessel aus ENCRYPTION_KEY geladen.');
+    if (isMainThread) console.log('[Kriterion] Schluessel aus ENCRYPTION_KEY geladen.');
     return { hex: clean.toLowerCase(), fromEnv: true };
   }
 
@@ -29,12 +39,13 @@ function loadKey(dataDir) {
 
   const hex = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(keyPath, hex, { mode: 0o600 });
-  console.log('[Kriterion] Neuer Schluessel erzeugt.');
+  if (isMainThread) console.log('[Kriterion] Neuer Schluessel erzeugt.');
   warnKeyBesideData();
   return { hex, fromEnv: false };
 }
 
 function warnKeyBesideData() {
+  if (!isMainThread) return;
   console.warn(
     '\n' +
     '  ------------------------------------------------------------------\n' +
