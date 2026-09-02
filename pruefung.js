@@ -17094,16 +17094,24 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Es gibt einen Index auf photos(art)',
       /CREATE INDEX IF NOT EXISTS idx_photos_art ON photos\(art\)/.test(dbQuelle),
       (dbQuelle.match(/CREATE INDEX[^\n]*photos\(art[^\n]*/) || ['(kein Index)'])[0]);
-    /* UND ER STEHT HINTER SEINER MIGRATION, nicht in der DDL. `photos.art`
-       kommt erst mit migration0850(); eine Datenbank aus 0.8.40 traegt die
-       Spalte nicht, und ein CREATE INDEX in der DDL liefe dort beim OEFFNEN
-       der Datei auf „no such column: art" -- also bevor der Server startet.
-       GEFUNDEN HAT DAS DER PRUEFSTAND an der nachgebauten Datenbank aus 0.8.40
-       (Stolperstein 281). */
-    pruefe('Und er steht hinter der Migration, die seine Spalte anlegt',
-      dbQuelle.indexOf('idx_photos_art') > dbQuelle.indexOf('// ENDE MIGRATION 0.8.50'),
-      `Index bei ${dbQuelle.indexOf('idx_photos_art')}, Migration endet bei ` +
-      `${dbQuelle.indexOf('// ENDE MIGRATION 0.8.50')}`);
+    /* UND BEIDE INDIZES STEHEN HINTER DER LETZTEN MIGRATION, nicht in der DDL.
+       `photos.art` kommt erst mit migration0850(), `photos.zoom` erst mit
+       migration0190(); eine aeltere Datenbank traegt sie nicht, und ein
+       CREATE INDEX weiter oben liefe beim OEFFNEN der Datei auf „no such
+       column" -- also bevor der Server startet.
+       GEFUNDEN HAT DAS DER PRUEFSTAND, und zwar ZWEIMAL: der erste Anlauf
+       stellte den Index in die DDL (scheiterte an `art` aus 0.8.40), der
+       zweite hinter migration0850() -- und scheiterte am `zoom` aus 0.19.0
+       (Stolperstein 281).
+       GEPRUEFT WIRD GEGEN DIE LETZTE MIGRATION UND NICHT GEGEN EINE BESTIMMTE:
+       so bleibt die Zusage richtig, wenn eine weitere dazukommt. */
+    const letzteMigration = Math.max(
+      ...(dbQuelle.match(/\/\/ ENDE MIGRATION [\d.]+/g) || [])
+        .map(m => dbQuelle.lastIndexOf(m)));
+    const zuFrueh = ['idx_photos_art', 'idx_photos_kachel']
+      .filter(n => dbQuelle.indexOf(`CREATE INDEX IF NOT EXISTS ${n}`) < letzteMigration);
+    pruefe('Und beide Indizes stehen hinter der letzten Migration',
+      zuFrueh.length === 0, zuFrueh.join(' · ') || `letzte Migration bei ${letzteMigration}`);
     /* 2. GEFRAGT WIRD MIT `IS ?` UND NICHT MIT `!= 'video'`. Eine Ungleichheit
        schlaegt den Index aus -- gemessen 1334 ms gegen 0,5 ms. Das ist die
        Zeile, die beim naechsten Umbau am leichtesten zurueckfaellt. */
@@ -17132,6 +17140,38 @@ const freigabeHaupt = (zweck, ziel = null) =>
       einzeilig.includes('...austauschTeile(null, { mitDateien: true })') &&
       einzeilig.includes('fotos: Math.round(exportFotoBytes * 4 / 3)'),
       (einzeilig.match(/\.\.\.austauschTeile\(null[^,]*,[^)]*\)/) || ['(nicht gefunden)'])[0]);
+    /* 5. DIE UEBERSICHT LIEST IHRE FOTOS AUS EINEM DECKENDEN INDEX, und die
+       Spaltenliste steht an EINER Stelle. Sieben der zehn Spalten stehen in
+       `photos` hinter den Blobs; fehlt auch nur eine im Index, faellt SQLite
+       auf idx_photos_item zurueck und liest wieder den Satz -- still, ohne
+       dass irgendetwas rot wuerde (Stolperstein 279).
+       GEMESSEN (400 Eintraege, 400 Fotos, 312 MB): N Abfragen aus dem Satz
+       9,3 ms, N aus dem Index 3,0 ms, EINE aus dem Index 1,6 ms. */
+    const spalten = (einzeilig.match(/const PHOTO_SPALTEN = '([^']+)'/) || [])[1] || '';
+    const indexSpalten = ((dbQuelle.replace(/\s+/g, ' ')
+      .match(/idx_photos_kachel ON photos\(([^)]+)\)/) || [])[1] || '');
+    const alsListe = (t) => t.split(',').map(x => x.trim()).filter(Boolean);
+    pruefe('Die Spaltenliste der Fotoabfrage steht an einer Stelle',
+      alsListe(spalten).length === 10, spalten || '(nicht gefunden)');
+    /* GLEICHE MENGE, NICHT GLEICHE FOLGE: der Index darf anders sortiert sein
+       -- er MUSS nur jede Spalte tragen, die die Abfrage liest. */
+    pruefe('Und der deckende Index traegt genau diese Spalten',
+      alsListe(spalten).length > 0 &&
+      alsListe(spalten).every(x => alsListe(indexSpalten).includes(x)) &&
+      alsListe(indexSpalten).every(x => alsListe(spalten).includes(x)),
+      `Abfrage: ${spalten} · Index: ${indexSpalten}`);
+    /* UND DIE UEBERSICHT FRAGT EINMAL STATT JE EINTRAG. Ohne diese Zeile
+       bliebe gruen, wer den Index anlegt und die Schleife stehen laesst. */
+    pruefe('Die Uebersicht holt die Fotos in einer Abfrage',
+      einzeilig.includes('const qAlleFotos = db.prepare(') &&
+      einzeilig.includes('const ph = fotosJe.get(it.id) || [];'),
+      (einzeilig.match(/const ph = [^;]*/) || ['(nicht gefunden)'])[0]);
+    /* UND detail() BENUTZT WEITER DIESELBEN SPALTEN. Zwei Fotolisten mit
+       verschiedenen Feldern waeren zwei Wahrheiten ueber dasselbe Foto -- die
+       Kachel truege ein anderes als der Eintrag (Stolperstein 47). */
+    pruefe('Und die Einzelabfrage liest dieselben Spalten',
+      einzeilig.includes('const qPhotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos WHERE item_id = ?'),
+      (einzeilig.match(/const qPhotos = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* DER KNOPF DAGEGEN SUCHT WEITER AM INHALT -- er laeuft nur auf Verlangen.
        Ohne diese Zeile bliebe gruen, wer beide auf die Spalte umstellt, und
        dann schriebe der Lauf Zeilen um, die gar keine PNG sind. */
@@ -19200,10 +19240,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Zeile bekommen hat; 347 auf den Abschnitt, der jetzt „Installation"
      heisst. Ein Rueckbau, der ins Leere greift, ist stumm und verfaelscht die
      Tabelle (Stolperstein 192). */
-  /* 478 SEIT 0.19.2: ACHT neue, ab Nummer 480 -- einer am Index, einer an
+  /* 481 SEIT 0.19.2: ELF neue, ab Nummer 480 -- einer am Index, einer an
      seiner Lage hinter der Migration, einer an der Gleichheit, einer an der
      zweiten Exportfrage, zwei am Spielraum des Ausschnitts, einer am
-     gekuerzten Dialog und einer an der abgebauten Uebersetzung (487).
+     gekuerzten Dialog, einer an der abgebauten Uebersetzung (487) und DREI an
+     der Uebersicht (488 bis 490: der deckende Index, eine fehlende Spalte
+     darin, und die Frage je Eintrag statt einmal).
      SECHS VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
      201): 455, 472 und 473 zeigten auf die beiden Dialogtexte, 460 und 461 auf
      die umgebaute Aufteilung, 479 auf die Berichtigung im Quelltext.
@@ -19212,7 +19254,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Runde abgebaut worden. **Ein Rueckbau auf etwas, das es nicht mehr gibt,
      laesst sich nicht mitnehmen: er hat keinen Ort mehr.** An ihre Stelle
      tritt 487, der die Tafel WIEDER EINBAUT -- dieselbe Sache, andersherum. */
-  pruefe('Es sind genau 478 Rueckbauten', gpListe.length === 478, `${gpListe.length}`);
+  pruefe('Es sind genau 481 Rueckbauten', gpListe.length === 481, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

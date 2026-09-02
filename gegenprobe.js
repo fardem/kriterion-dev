@@ -4299,7 +4299,7 @@ const RUECKBAUTEN = [
     suche: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);",
     ersatz: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);\n" +
             "CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art);",
-    erwartet: 'MIGRATION 0.8.50 — ENTFAELLT MIT 1.0'
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
     /* GEFRAGT WIRD WIEDER MIT EINER UNGLEICHHEIT. Sie sieht richtig aus und
@@ -4361,6 +4361,36 @@ const RUECKBAUTEN = [
     suche: "  const gewuenscht = ausDerAdresse;",
     ersatz: "  const gewuenscht = { anlage: 'installation', instanz: 'installation' }[ausDerAdresse] || ausDerAdresse;",
     erwartet: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
+  },
+
+  {
+    /* DER DECKENDE INDEX FUER DIE UEBERSICHT FAELLT WEG. Sie liest dann sieben
+       Spalten wieder aus dem Satz, und der steht in Overflow-Seiten --
+       gemessen 6,3 statt 1,6 ms bei 400 Fotos. */
+    nr: '488', name: 'Der deckende Index fuer die Uebersicht faellt weg',
+    datei: 'db.js',
+    suche: "db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_kachel",
+    ersatz: "db.exec(`SELECT 1 -- (",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* EINE SPALTE FEHLT IM INDEX -- und das genuegt: SQLite faellt auf
+       idx_photos_item zurueck und liest wieder den Satz. Der Index steht da,
+       sieht richtig aus und deckt nichts mehr. */
+    nr: '489', name: 'Dem deckenden Index fehlt eine Spalte',
+    datei: 'db.js',
+    suche: "zoom, created_at, art, dauer)`);",
+    ersatz: "zoom, art, dauer)`);",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DIE UEBERSICHT FRAGT WIEDER JE EINTRAG. Der Index bleibt, der Gewinn
+       halbiert sich -- 3,0 statt 1,6 ms. */
+    nr: '490', name: 'Die Uebersicht fragt die Fotos wieder je Eintrag',
+    datei: 'server.js',
+    suche: "    const ph = fotosJe.get(it.id) || [];",
+    ersatz: "    const ph = qPhotos.all(it.id);",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
