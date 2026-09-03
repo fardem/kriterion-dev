@@ -8843,7 +8843,17 @@ function ruesteSicherungAus(geholt) {
       box.innerHTML = `<div class="warn-box">${esc(d.grund || 'Es ist kein Sicherungsort eingerichtet.')}</div>`;
       return;
     }
-    /* „Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
+    /* DIESE KARTE SAGT SEIT 0.20.0 NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG.
+       Die Zeile „Dateien am Ort" (die Zahl der Kopien und wie viele davon mit
+       dem alten Schluessel liegen) ist mit dem ersten Feldbefund
+       herausgefallen: die Karte „Alte Sicherungen" daneben listet ab jetzt
+       ALLE Kopien mit Nummer, Datum und Groesse, und dieselbe Auskunft an zwei
+       Stellen ist eine zu viel (Stolperstein 47). Aus dem Betrieb: „im Fenster
+       ‚Sicherungen' nur Info ueber die letzte Sicherung."
+       DER KASTEN ZUM SCHLUESSELWECHSEL BLEIBT. Er ist keine Auflistung,
+       sondern die Warnung, dass ein alter Schluessel noch gebraucht wird --
+       und in seiner schaerfsten Lage sagt er etwas ueber die JUENGSTE Kopie.
+       „Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
        Schlüssel in der Datenbank. Der Preis steht hier: ist der Ort nicht
        erreichbar, sagt die Karte GENAU DAS statt einer Zahl — eine Zahl aus
        einem Merker wäre in genau diesem Fall die Lüge. */
@@ -8855,9 +8865,7 @@ function ruesteSicherungAus(geholt) {
         : (letzte
           ? `<div class="kv"><span class="k">Letzte Sicherung</span><span class="v">vor ${letzte.tageHer} ${letzte.tageHer === 1 ? 'Tag' : 'Tagen'}</span></div>
              <div class="kv"><span class="k">Datei</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
-             <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>
-             <div class="kv"><span class="k">Dateien am Ort</span><span class="v">${d.zahl || 0}${
-               d.veraltet ? ` <strong class="sich-alt">· ${d.veraltet} mit dem alten Schlüssel</strong>` : ''}</span></div>`
+             <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>`
           : `<p class="desc" style="margin:0 0 12px">An diesem Ort liegt noch keine Sicherung.</p>`));
 
     /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt,
@@ -9006,10 +9014,16 @@ function ruesteSicherungAus(geholt) {
 function karteAufraeumen() {
   return `<div class="sys-card">
         <h3>Alte Sicherungen</h3>
-        <p class="desc"><strong>Jede Kopie ist so groß wie die ganze Datenbank.</strong>
-          Diese Karte entfernt alte Kopien am eingestellten Sicherungsort — ohne Shell auf
-          dem Wirt. Angefasst wird ausschließlich, was <code>kriterion-….sqlite</code> heißt;
-          eine fremde Datei im Ordner bleibt liegen.</p>
+        ${/* ZWEI SAETZE, UND JEDER TRAEGT EINE TATSACHE: dass es weg ist, und
+             was ueberhaupt in Frage kommt. Die Fassung bis zum ersten
+             Feldbefund erklaerte dazu, warum der Schalter auf aus steht und was
+             nach einer gescheiterten Sicherung geschieht -- richtig, aber am
+             Bildschirm zu viel. Aus dem Betrieb: „der Text vom GUI muss so kurz
+             wie moeglich sein und dennoch muss zu verstehen sein, was gemeint
+             ist." */''}
+        <p class="desc">Entfernt alte Sicherungen am Sicherungsort —
+          <strong>unwiderruflich</strong>. Gelöscht wird nur, was dem Namensschema der
+          Installation entspricht.</p>
         <div id="aufraeumen-box"></div>
       </div>`;
 }
@@ -9033,9 +9047,8 @@ function ruesteAufraeumenAus(geholt) {
        Schalter, der nie greifen kann, verspricht etwas und haelt es nie -- und
        die Karte darueber nennt den Weg zum Einhaengepunkt ohnehin schon. */
     if (!d.eingerichtet) {
-      box.innerHTML = `<div class="warn-box">Es ist kein Sicherungsort eingerichtet — solange
-        keiner dasteht, gibt es auch nichts wegzuräumen. Die Karte <strong>Sicherung</strong>
-        darüber sagt, wie er eingehängt wird.</div>`;
+      box.innerHTML = `<div class="warn-box">Es ist kein Sicherungsort eingerichtet — die Karte
+        <strong>Sicherung</strong> darüber sagt, wie er eingehängt wird.</div>`;
       return;
     }
     const gB = (a.grenzen && a.grenzen.behalten) || { min: 1, max: 20, vorgabe: 3 };
@@ -9043,92 +9056,101 @@ function ruesteAufraeumenAus(geholt) {
     const behalten = Number.isInteger(a.behalten) ? a.behalten : gB.vorgabe;
     const tage = Number.isInteger(a.tage) ? a.tage : gT.vorgabe;
 
-    /* DIE LISTE BEKOMMT DENSELBEN DECKEL WIE JEDE LISTE IM SYSTEMBEREICH --
-       `.manage-list` deckelt bei zehn Zeilen (seit 0.17.3). Ein Ordner mit
-       vierzig Kopien darf die Seite nicht aufziehen, und eine eigene Zahl
-       daneben waere eine zweite Wahrheit ueber dasselbe Mass. */
-    const liste = (zeilen) => `<div class="manage-list">${zeilen.map(z => `
-      <div class="mrow"><span class="mname"><code>${esc(z.datei)}</code></span>
-        <span class="pk-meta">${esc(fmtDate(z.am))} · ${z.tageHer === 1
-          ? 'vor 1 Tag' : `vor ${z.tageHer} Tagen`} · ${esc(fmtBytes(z.bytes))}</span></div>`).join('')}</div>`;
+    /* DIE LISTE ALLER SICHERUNGEN -- juengste zuerst, nummeriert, NUR ZUM
+       ANSEHEN. Es gibt keinen Knopf je Zeile, und das ist entschieden: eine
+       einzelne Kopie per Klick zu loeschen waere die Loeschroute mit
+       Dateinamen, und die gibt es ausdruecklich nicht (Stolperstein 300).
 
+       KEIN DATEINAME IN DER ZEILE, und dabei geht nichts verloren: der Name IST
+       die Zeitmarke (`kriterion-<Datum>-<Uhrzeit>.sqlite`), und die Zeile nennt
+       Datum und Uhrzeit. Aus dem Betrieb: „dann aber braucht es nicht die
+       vollen Namen, sondern einfach Nummer, Datum, Groesse."
+
+       DIE NUMMER LAEUFT VON DER JUENGSTEN (1) ZUR AELTESTEN -- so, wie die
+       Mindestzahl zaehlt. Damit liest sich „mindestens 3 behalten" unmittelbar
+       an der Liste ab: was faellt, steht ab Nummer 4.
+
+       DER DECKEL LIEGT BEI FUENF ZEILEN (`#auf-liste` im Stilblatt) und nicht
+       bei den zehn der uebrigen Systemlisten: diese Liste steht MITTEN in ihrer
+       Karte, unter ihr stehen die Zusammenfassung und beide Knoepfe. Ein Ordner
+       mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
+       und dieselbe Begruendung wie bei `#ex-teil-liste`. */
+    const zeile = (z) => {
+      const marke = z.faellt ? '<span class="auf-marke weg">löschen</span>'
+                  : z.veraltet ? '<span class="auf-marke alt">alter Schlüssel</span>' : '';
+      return `<div class="mrow">
+        <span class="mname">#${z.nr} · ${esc(fmtDate(z.am))}</span>${marke}
+        <span class="mcount">${z.tageHer === 1 ? 'vor 1 Tag' : `vor ${z.tageHer} Tagen`} · ${
+          esc(fmtBytes(z.bytes))}</span></div>`;
+    };
+    const alle = Array.isArray(a.dateien) ? a.dateien : [];
     const treffer = Array.isArray(a.treffer) ? a.treffer : [];
-    /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Liste ohne
-       Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server, weil
-       ihn dort die Regel selbst kennt. */
-    const vorschau = !a.erreichbar
-      ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler ||
-           'Der Zielort ist nicht erreichbar — was dort liegt, ist von hier aus nicht zu sehen.')}</div>`
-      : (treffer.length
-        ? `<p class="desc" style="margin:0 0 6px"><strong>${treffer.length} ${treffer.length === 1
-             ? 'Kopie würde' : 'Kopien würden'} fallen</strong> — ${esc(fmtBytes(a.bytes || 0))}
-             ${treffer.length === 1 ? 'wird' : 'werden'} frei.</p>
-           ${liste(treffer)}`
-        : `<p class="desc" style="margin:0 0 6px"><strong>Die Regel trifft nichts.</strong>
-             ${esc(a.grund || '')}</p>`);
-
-    /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL STEHEN GETRENNT, mit eigener
-       Zahl, eigener Summe und eigenem Knopf: sie sind nicht entbehrlich,
-       sondern etwas anderes. Wer den alten Schluessel noch hat, kommt an sie
-       heran; wer ihn nicht mehr hat, hat ohnehin nichts verloren.
-       EINE AUTOMATISCHE REGEL ENTFERNT UEBERFLUESSIGES, NICHT FREMDES --
-       deshalb fasst die Regel sie gar nicht an, und deshalb steht hier ein
-       zweiter, ausdruecklicher Weg. */
     const altZahl = Number(a.altZahl) || 0;
+
+    const liste = !a.erreichbar
+      ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler ||
+           'Der Zielort ist nicht erreichbar.')}</div>`
+      : (alle.length
+        ? `<div class="label" style="margin:0 0 6px">Sicherungen (${alle.length})</div>
+           <div class="manage-list" id="auf-liste">${alle.map(zeile).join('')}</div>`
+        : `<p class="hint hint-sm" style="margin:2px 2px 0">Am Sicherungsort liegt noch
+             keine Sicherung.</p>`);
+
+    /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und in
+       ihr steht die Zahl, die Summe und sonst nichts. Die Dateien selbst sind
+       in der Liste darueber mit `löschen` markiert; sie ein zweites Mal
+       aufzuzaehlen waere dieselbe Auskunft an zwei Stellen.
+       TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
+       Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server. */
+    const stand = !a.erreichbar ? '' : (treffer.length
+      ? `<p class="desc" style="margin:10px 0 6px"><strong>${treffer.length} ${
+           treffer.length === 1 ? 'Sicherung wird' : 'Sicherungen werden'} gelöscht</strong> —
+           ${esc(fmtBytes(a.bytes || 0))} frei.</p>`
+      : `<p class="desc" style="margin:10px 0 6px">Es wird nichts gelöscht. ${
+           esc(a.grund || '')}</p>`);
+
+    /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: eigene Zahl, eigene Summe,
+       eigener Knopf. Die Regel fasst sie nicht an -- sie sind nicht
+       entbehrlich, sondern etwas anderes. */
     const veraltet = !altZahl ? '' : `
       <div class="sys-teil"></div>
-      <p class="desc" style="margin:0 0 6px"><strong>${altZahl} ${altZahl === 1
-        ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>
-        (${esc(fmtBytes(a.altBytes || 0))}). ${altZahl === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich nur
-        mit dem <strong>alten</strong> Schlüssel. <strong>Die Regel fasst sie nicht an</strong> —
-        wegräumen lassen sie sich nur hier, ausdrücklich und getrennt.</p>
-      ${liste(Array.isArray(a.altDateien) ? a.altDateien : [])}
-      <div class="row-in" style="margin-top:10px">
+      <p class="desc" style="margin:0 0 8px"><strong>${altZahl} ${altZahl === 1
+        ? 'Sicherung öffnet' : 'Sicherungen öffnen'} sich nur mit dem alten Schlüssel</strong>
+        (${esc(fmtBytes(a.altBytes || 0))}). Die Regel lässt ${altZahl === 1 ? 'sie' : 'sie'}
+        liegen.</p>
+      <div class="row-in">
         <button class="btn btn-sm" id="auf-alt">${altZahl} ${altZahl === 1
-          ? 'veraltete Kopie' : 'veraltete Kopien'} entfernen</button>
+          ? 'Sicherung' : 'Sicherungen'} mit altem Schlüssel löschen</button>
       </div>`;
 
     box.innerHTML = `
-      ${/* DIE REGEL IN EINEM SATZ, und zwar bevor der Schalter kommt: wer ihn
-           umlegt, soll wissen, was er einschaltet. */''}
-      <p class="desc" style="margin:0 0 12px"><strong>Zwei Bedingungen, und beide müssen
-        zutreffen:</strong> eine Kopie fällt nur, wenn sie <em>nicht unter den jüngsten</em>
-        <strong>${behalten}</strong> ist <em>und</em> älter als <strong>${tage}</strong>
-        ${tage === 1 ? 'Tag' : 'Tage'}. Die Zahl ist der Boden, das Alter die Schere.</p>
       <label class="ex-files"><input type="checkbox" id="auf-schalter"${a.an ? ' checked' : ''}>
-        Nach jeder gelungenen Sicherung aufräumen</label>
-      ${/* WARUM ER AUF AUS STEHT, GEHOERT AN DEN SCHALTER und nicht in die
-           Dokumentation: eine geloeschte Sicherung holt nichts zurueck. Und
-           dass nach einer GESCHEITERTEN Sicherung nicht aufgeraeumt wird, ist
-           die Zusage, die hier am meisten wert ist. */''}
-      <p class="hint hint-sm" style="margin:6px 2px 0">Er steht auf <strong>aus</strong>, und das
-        ist Absicht: eine gelöschte Sicherung holt nichts zurück. Aufgeräumt wird
-        <strong>nur im Anschluss an eine Sicherung, die gelungen ist</strong> — schlägt sie fehl,
-        bleibt jede Kopie liegen.</p>
+        Nach jeder erfolgreichen Sicherung aufräumen</label>
+      ${/* WAS DER HAKEN TUT, IN EINEM HALBEN SATZ. Ohne ihn ist der Knopf der
+           einzige Weg -- das ist die ganze Auskunft, die er braucht. */''}
+      <p class="hint hint-sm" style="margin:6px 2px 0">Ohne Häkchen nur auf Knopfdruck.</p>
       <div class="sys-teil"></div>
-      <div class="field"><label for="auf-behalten">Immer behalten</label>
-        <p class="desc" style="margin:0 0 6px">Die jüngsten Kopien fasst die Regel nie an —
-          <em>der Boden</em>. ${gB.min} bis ${gB.max}, Vorgabe ${gB.vorgabe}.</p>
+      <div class="field"><label for="auf-behalten">Mindestens behalten</label>
+        <p class="desc" style="margin:0 0 6px">So viele Sicherungen bleiben immer liegen.
+          ${gB.min} bis ${gB.max}.</p>
         <input class="input" id="auf-behalten" type="number" inputmode="numeric"
           min="${gB.min}" max="${gB.max}" step="1" value="${behalten}"></div>
-      <div class="field"><label for="auf-tage">Erst löschen ab</label>
-        <p class="desc" style="margin:0 0 6px">So alt muss eine Kopie mindestens sein —
-          <em>die Schere</em>, in Tagen. ${gT.min} bis ${gT.max}, Vorgabe ${gT.vorgabe}.</p>
+      <div class="field"><label for="auf-tage">Löschen ab Alter (Tage)</label>
+        <p class="desc" style="margin:0 0 6px">Erst danach darf eine Sicherung gelöscht werden —
+          und nur, wenn mehr als ${behalten} liegen. ${gT.min} bis ${gT.max}.</p>
         <input class="input" id="auf-tage" type="number" inputmode="numeric"
           min="${gT.min}" max="${gT.max}" step="1" value="${tage}"></div>
       <div class="sys-teil"></div>
-      ${vorschau}
-      <div class="row-in" style="margin-top:10px">
-        <button class="btn btn-accent btn-sm" id="auf-los"${treffer.length ? '' : ' disabled'}>Regel
-          jetzt anwenden</button>
+      ${liste}
+      ${stand}
+      <div class="row-in">
+        <button class="btn btn-accent btn-sm" id="auf-los"${treffer.length ? '' : ' disabled'}>Jetzt
+          löschen</button>
       </div>
       ${veraltet}`;
 
-    /* --- Der Schalter. DERSELBE HELFER WIE BEI DEN ANLEGEN-SCHALTERN waere
-       hier falsch: der steht in ruesteVerwaltungAus() und kennt diese Karte
-       nicht. Die Bauform ist dieselbe -- bei einem Fehlschlag geht die
-       Stellung zurueck, sonst zeigte der Bildschirm etwas anderes an, als der
-       Server haelt. */
+    /* --- Der Schalter. Bei einem Fehlschlag geht die Stellung zurueck --
+       sonst zeigte der Bildschirm etwas anderes an, als der Server haelt. */
     amElement('auf-schalter', (el) => {
       el.onchange = async () => {
         const vorher = !el.checked;
@@ -9143,10 +9165,9 @@ function ruesteAufraeumenAus(geholt) {
 
     /* --- Die beiden Zahlenfelder. ZWEI EREIGNISSE AN DEMSELBEN FELD, und sie
        tun zwei verschiedene Dinge:
-         `input`  -- die VORSCHAU wird neu gerechnet, und zwar am Server, mit
-                     den Werten aus der Abfrage. Gespeichert wird dabei nichts
-                     und geloescht erst recht nichts. Wer die Zahl von 3 auf 1
-                     stellt, sieht sofort, was das kostet.
+         `input`  -- die LISTE wird neu gerechnet, und zwar am Server. Gespeichert
+                     wird dabei nichts und geloescht erst recht nichts. Wer die
+                     Zahl von 3 auf 1 stellt, sieht sofort, was das kostet.
          `change` -- der Wert wird GESPEICHERT (beim Verlassen des Feldes oder
                      mit der Eingabetaste). Ein eigener Speicherknopf waere ein
                      dritter Knopf auf einer Karte, die mit zwei auskommt.
@@ -9165,7 +9186,7 @@ function ruesteAufraeumenAus(geholt) {
       let frisch;
       try {
         frisch = await api('GET', `/api/sicherung?behalten=${w.behalten}&tage=${w.tage}`);
-      } catch { return; }   // eine Zahl ausserhalb der Grenzen: die Vorschau bleibt stehen
+      } catch { return; }   // eine Zahl ausserhalb der Grenzen: die Liste bleibt stehen
       /* NUR DIE JUENGSTE ANTWORT ZAEHLT. Wer schnell tippt, hat mehrere
          Abrufe unterwegs, und sie koennen in beliebiger Reihenfolge
          ankommen -- ohne diese Frage stuende womoeglich das Ergebnis der
@@ -9196,7 +9217,7 @@ function ruesteAufraeumenAus(geholt) {
        Vorgang, der Bytes unwiderruflich entfernt -- und beide gehen durch
        DIESELBE Route, unterschieden durch ein Feld im Rumpf.
        DER DIALOG NENNT DIE ZAHL UND DIE BYTES und beschoenigt nichts. Dass die
-       Route KEINE Dateinamen entgegennimmt, hat einen Preis: zwischen Vorschau
+       Route KEINE Dateinamen entgegennimmt, hat einen Preis: zwischen Anzeige
        und Knopfdruck kann sich der Ordner geaendert haben. Die Antwort nennt
        deshalb, was WIRKLICH geloescht wurde, und die Karte zeichnet sich
        daraus neu. */
@@ -9208,28 +9229,27 @@ function ruesteAufraeumenAus(geholt) {
       geholt.sicherung = { ...geholt.sicherung, erreichbar: r.erreichbar, letzte: r.letzte,
                            zahl: r.zahl, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
                            aufraeumen: { ...(geholt.sicherung || {}).aufraeumen, ...r.aufraeumen } };
-      toast(`${r.weg} ${r.weg === 1 ? 'Kopie' : 'Kopien'} entfernt (${fmtBytes(r.bytes)} frei)` +
-            `${r.nicht ? ` — ${r.nicht} nicht` : ''}`);
-      /* DIE NACHBARKARTE ZEIGT DIE ZAHL DER DATEIEN AM ORT, und die ist jetzt
-         eine andere. Zwei Staende nebeneinander stehen zu lassen waere genau
+      toast(`${r.weg} ${r.weg === 1 ? 'Sicherung' : 'Sicherungen'} gelöscht (${
+        fmtBytes(r.bytes)} frei)${r.nicht ? ` — ${r.nicht} nicht` : ''}`);
+      /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
+         andere sein. Zwei Staende nebeneinander stehen zu lassen waere genau
          die zweite Wahrheit, gegen die diese Runde gebaut ist -- also die
          GANZE Karte neu, dieselbe Bauform wie bei der Bildumstellung. */
       renderSystem();
     };
     amElement('auf-los', (knopf) => {
-      knopf.onclick = () => raeume('regel', 'Regel jetzt anwenden',
-        `${treffer.length} ${treffer.length === 1 ? 'Kopie' : 'Kopien'} ` +
-        `(${fmtBytes(a.bytes || 0)}) ${treffer.length === 1 ? 'wird' : 'werden'} entfernt. ` +
-        `Es gibt dafür keinen Papierkorb — zurück führt nichts. ` +
-        `Welche Dateien fallen, rechnet der Server im Augenblick des Löschens noch einmal aus; ` +
-        `hat sich der Ordner seit der Vorschau geändert, nennt die Antwort, was wirklich weg ist.`);
+      knopf.onclick = () => raeume('regel', 'Sicherungen löschen',
+        `${treffer.length} ${treffer.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
+        `(${fmtBytes(a.bytes || 0)}) ${treffer.length === 1 ? 'wird' : 'werden'} gelöscht. ` +
+        `Zurück führt nichts. Welche es sind, rechnet der Server im Augenblick des Löschens ` +
+        `noch einmal aus; die Antwort nennt, was wirklich weg ist.`);
     });
     amElement('auf-alt', (knopf) => {
-      knopf.onclick = () => raeume('veraltet', 'Veraltete Kopien entfernen',
-        `${altZahl} ${altZahl === 1 ? 'Kopie' : 'Kopien'} von vor dem Schlüsselwechsel ` +
-        `(${fmtBytes(a.altBytes || 0)}) ${altZahl === 1 ? 'wird' : 'werden'} entfernt. ` +
-        `${altZahl === 1 ? 'Sie lässt' : 'Sie lassen'} sich nur mit dem alten Schlüssel öffnen. ` +
-        `Hast du ihn noch und brauchst ${altZahl === 1 ? 'sie' : 'sie'} — dann jetzt nicht löschen.`);
+      knopf.onclick = () => raeume('veraltet', 'Sicherungen mit altem Schlüssel löschen',
+        `${altZahl} ${altZahl === 1 ? 'Sicherung' : 'Sicherungen'} von vor dem ` +
+        `Schlüsselwechsel (${fmtBytes(a.altBytes || 0)}) ${altZahl === 1 ? 'wird' : 'werden'} ` +
+        `gelöscht. ${altZahl === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich nur mit dem alten ` +
+        `Schlüssel — hast du ihn noch, dann jetzt nicht löschen.`);
     });
   }
 

@@ -6004,7 +6004,7 @@ const aufraeumZeile = (d, jetzt) => ({
    Summe: sie sind nicht entbehrlich, sondern etwas anderes. */
 function aufraeumVorschau(pfad, behalten, tage) {
   const dateien = sicherungsListe(pfad);
-  if (dateien === null) return { erreichbar: false, treffer: [], bytes: 0, grund: '' };
+  if (dateien === null) return { erreichbar: false, dateien: [], treffer: [], bytes: 0, grund: '' };
   const marke = wechselMarke();
   const jetzt = Date.now();
   const alt = marke ? dateien.filter(d => d.zeit < marke.ms) : [];
@@ -6028,8 +6028,28 @@ function aufraeumVorschau(pfad, behalten, tage) {
       grund = `Die älteste ist ${her} ${her === 1 ? 'Tag' : 'Tage'} alt.`;
     }
   }
+  /* DIE VOLLSTAENDIGE LISTE, JUENGSTE ZUERST UND NUMMERIERT. Sie ist die
+     Auskunft, die es bis 0.20.0 nirgends gab: die Karte "Sicherung" nannte die
+     juengste Kopie und die ZAHL der Dateien am Ort, mehr nicht.
+     DIE NUMMER LAEUFT VON DER JUENGSTEN (1) ZUR AELTESTEN -- so, wie der Boden
+     der Regel zaehlt. Damit liest sich "mindestens 3 behalten" unmittelbar an
+     der Liste ab: was faellt, steht ab Nummer 4.
+     JE ZEILE ZWEI MARKEN, und sie sagen Verschiedenes:
+       faellt   -- die Regel wuerde sie bei den EINGESTELLTEN Werten entfernen.
+       veraltet -- sie stammt von vor dem Schluesselwechsel. Die Regel fasst sie
+                   nicht an; wegraeumen lassen sie sich nur ausdruecklich.
+     BEIDE KOENNEN NICHT ZUGLEICH GELTEN -- regelTreffer() laesst die veralteten
+     gar nicht erst durch. Die Karte darf sich darauf verlassen, und der
+     Pruefstand haelt es fest. */
+  const treffNamen = new Set(treffer.map(d => d.name));
+  const altMs = marke ? marke.ms : null;
   return {
     erreichbar: true,
+    dateien: dateien.map((d, i) => ({
+      ...aufraeumZeile(d, jetzt), nr: i + 1,
+      faellt: treffNamen.has(d.name),
+      veraltet: altMs != null && d.zeit < altMs
+    })),
     treffer: treffer.map(d => aufraeumZeile(d, jetzt)),
     bytes: treffer.reduce((n, d) => n + d.bytes, 0),
     grund,

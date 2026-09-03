@@ -29,6 +29,28 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.20.1] - 2026-09-03
+
+> **NICHTS ZU TUN — außer im Browser einmal hart neu zu laden.** Keine
+> Datenbankstufe, keine Migration, kein neuer Index; das Austauschformat bleibt
+> 12. **Die Regel, die Knöpfe und deine Einstellungen bleiben, wie sie sind** —
+> es ändert sich nur, was die Karte zeigt und wie viel sie dazu schreibt.
+>
+> **DIE KARTE „ALTE SICHERUNGEN" LISTET JETZT ALLE SICHERUNGEN.** Jüngste
+> zuerst, durchnummeriert, mit Datum, Alter und Größe; ab der sechsten Zeile
+> rollt die Liste. **Gelöscht wird darin nichts** — die Liste ist zum Ansehen,
+> und welche Sicherung beim nächsten Lauf fällt, steht als Marke an ihrer Zeile.
+>
+> **DIE KARTE „SICHERUNG" ZEIGT DAFÜR NUR NOCH DIE LETZTE SICHERUNG.** Die
+> Zeile „Dateien am Ort" ist heraus: die Liste daneben sagt es vollständig.
+
+- Added: Die Karte „Alte Sicherungen" listet alle Sicherungen — Nummer, Datum, Alter und Größe, jüngste zuerst
+- Added: Ab der sechsten Zeile rollt die Liste, statt die Karte aufzuziehen
+- Added: An jeder Zeile steht, ob sie beim nächsten Lauf gelöscht wird oder nur mit dem alten Schlüssel zu öffnen ist
+- Changed: Die Texte auf der Karte sind deutlich kürzer — dieselbe Aussage, weniger Worte
+- Changed: Die Felder heißen „Mindestens behalten" und „Löschen ab Alter (Tage)"
+- Changed: Die Karte „Sicherung" zeigt nur noch die letzte Sicherung; die Zeile „Dateien am Ort" ist entfallen
+
 ## [0.20.0] - 2026-09-03
 
 > **ES KOMMT EIN SCHALTER DAZU, DER DATEIEN ENTFERNT — UND ER STEHT AUF AUS.**

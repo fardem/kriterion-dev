@@ -5267,18 +5267,56 @@ const RUECKBAUTEN = [
        Knopf, der zuverlaessig nichts tut, sieht aus wie ein Fehler. */
     nr: '565', name: 'Der Knopf ist auch ohne Treffer bedienbar',
     datei: 'public/app.js',
-    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>Regel",
-    ersatz: "id=\"auf-los\">Regel",
+    // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
+    // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
+    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>Jetzt",
+    ersatz: "id=\"auf-los\">Jetzt",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
     /* DIE LISTE VERLIERT DEN GEMEINSAMEN DECKEL. Ein Ordner mit vierzig Kopien
        zieht die Seite auf -- zehn Zeilen sind das Mass jeder Liste im
        Systembereich, seit 0.17.3. */
-    nr: '566', name: 'Die Vorschauliste bekommt keinen Deckel',
+    nr: '566', name: 'Die Sicherungsliste bekommt keinen Deckel',
+    datei: 'public/style.css',
+    /* MITGEGANGEN mit 0.20.1 (Stolperstein 201) -- UND IN EINE ANDERE DATEI
+       GEWANDERT. Bis 0.20.0 nahm er der Liste ihre Klasse in `public/app.js`;
+       seit 0.20.1 hat sie ihren EIGENEN Deckel von fuenf Zeilen als Regel im
+       Stilblatt, und die ist die Sache. Die Zusage ist dieselbe geblieben:
+       eine Liste ohne Deckel zieht die Karte auf. */
+    suche: '#auf-liste { flex: none; max-height: 13.98rem; }',
+    ersatz: '#auf-liste { flex: none; }',
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DIE LISTE FAELLT GANZ WEG -- und mit ihr die Auskunft, um die es im
+       Feldbefund zu 0.20.0 ueberhaupt ging: welche Sicherungen liegen da, wie
+       alt und wie gross. Die Zahl in der Ueberschrift bleibt stehen; ohne die
+       Zeilen ist sie eine Behauptung. */
+    nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
     datei: 'public/app.js',
-    suche: '    const liste = (zeilen) => `<div class="manage-list">',
-    ersatz: '    const liste = (zeilen) => `<div class="auf-liste">',
+    suche: '           <div class="manage-list" id="auf-liste">${alle.map(zeile).join(\'\')}</div>`',
+    ersatz: '           <div class="manage-list" id="auf-liste"></div>`',
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DIE NUMMER LAEUFT VON DER AELTESTEN AN. Damit steht die juengste Kopie
+       als letzte Nummer da, und „mindestens 3 behalten" liesse sich an der
+       Liste nicht mehr ablesen -- was faellt, stuende dann ganz oben. */
+    nr: '568', name: 'Die Nummern laufen von der aeltesten zur juengsten',
+    datei: 'server.js',
+    suche: '      ...aufraeumZeile(d, jetzt), nr: i + 1,',
+    ersatz: '      ...aufraeumZeile(d, jetzt), nr: dateien.length - i,',
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DIE MARKE „LOESCHEN" FAELLT VON DER ZEILE. Die Liste sagt dann, was
+       daliegt, aber nicht mehr, was gleich fehlt -- und die Karte hat ausser
+       der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
+    nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
+    datei: 'public/app.js',
+    suche: "      const marke = z.faellt ? '<span class=\"auf-marke weg\">löschen</span>'",
+    ersatz: "      const marke = z.faellt ? ''",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
 
@@ -5332,6 +5370,25 @@ const RUECKBAUTEN = [
     suche: '    server.close(() => r());',
     ersatz: '    r();',
     erwartet: 'Keine Prueflage laesst ihren Server zurueck'
+  },
+  /* ---- 0.20.1: der Bericht ueber einen abgerissenen Lauf ---- */
+  {
+    /* BEIDE ZEILEN GEHOEREN ZUSAMMEN, und deshalb gibt es zwei Rueckbauten:
+       einen auf das AUFHEBEN des Grundes und einen auf das DRUCKEN. Faellt nur
+       das Drucken weg, steht der Grund im Ergebnis und niemand sieht ihn --
+       genau die Lage, in der Rueckbau 568 seinen Abriss unerklaert liess. */
+    nr: 'W15', name: 'Der Bericht druckt die letzten Zeilen eines Abrisses nicht mehr',
+    datei: 'gegenprobe.js',
+    suche: '      for (const z of e.schwanz || []) console.log(`     \u2502 ${z}`);',
+    ersatz: '      for (const z of []) console.log(`     \u2502 ${z}`);',
+    erwartet: 'Die Gegenproben greifen'
+  },
+  {
+    nr: 'W16', name: 'Der Leser hebt die letzten Zeilen gar nicht erst auf',
+    datei: 'gegenprobe.js',
+    suche: "    schwanz: ausgabe.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
+    ersatz: '    schwanz: []',
+    erwartet: 'Die Gegenproben greifen'
   }
 ];
 
@@ -5483,7 +5540,22 @@ function leseLauf(ausgabe) {
     durchgelaufen: Boolean(schluss),
     bestanden: schluss ? Number(schluss[1]) : null,
     gesamt: schluss ? Number(schluss[2]) : null,
-    abriss: abriss ? abriss[1] : null
+    abriss: abriss ? abriss[1] : null,
+    /* DIE LETZTEN ZEILEN DER AUSGABE -- damit ein ABGERISSENER Lauf sagen
+       kann, WARUM er abriss. Der Treiber faengt stdout UND stderr ein und warf
+       den Grund bis 0.20.1 weg: die Tabelle zeigte die roten Punkte davor und
+       dahinter „Rueckgabewert 1", eine Zahl ohne jede Auskunft. Genau daran
+       ist bei Rueckbau 568 eine Stunde vergangen (Stolperstein 301).
+       ZWEI WEGE ENDEN OHNE SCHLUSSBLOCK, und nur EINER schreibt eine Zeile,
+       die dieser Leser kennt: der aeussere Fang druckt „Prueflauf
+       abgebrochen: ...". Ein unbehandeltes Ereignis ausserhalb der
+       abgewarteten Kette druckt gar nichts davon -- Node legt Meldung und
+       Aufrufweg auf stderr und geht mit 1. Fuer diesen zweiten Weg ist der
+       Schwanz die EINZIGE Auskunft.
+       ZWANZIG ZEILEN, LEERE WEGGELASSEN: eine unbehandelte Meldung von Node
+       ist rund zwoelf Zeilen lang, und davor sollen noch ein paar Zeilen des
+       Laufs stehen, damit man sieht, WO er stand. */
+    schwanz: ausgabe.split('\n').map(z => z.trimEnd()).filter(z => z).slice(-20)
   };
 }
 
@@ -5587,9 +5659,14 @@ function schreibeTabelle(ergebnisse) {
   for (const e of ergebnisse) {
     console.log(`**${e.nr} — ${e.name}** (${e.datei}, Spur ${e.spur}, ${e.sekunden}s)`);
     if (e.fehler) { console.log(`  RÜCKBAU GESCHEITERT: ${e.fehler}\n`); continue; }
-    if (!e.durchgelaufen)
+    if (!e.durchgelaufen) {
       console.log(`  LAUF ABGERISSEN: ${e.abriss || `Rückgabewert ${e.code}`}`);
-    else
+      /* UND DARUNTER DIE LETZTEN ZEILEN, DIE ER GEDRUCKT HAT. Ein Abriss ohne
+         Grund schickt den Leser auf eine Suche nach nichts: der Grund liegt in
+         der eingefangenen Ausgabe, und dorthin kommt niemand mehr, denn die
+         Kopie ist beim Aufraeumen weg. Deshalb steht er hier. */
+      for (const z of e.schwanz || []) console.log(`     │ ${z}`);
+    } else
       console.log(`  ${e.bestanden} von ${e.gesamt} bestanden, erwartet in „${e.erwartet}"`);
     if (!e.inhaltlichRot?.length && e.durchgelaufen)
       console.log('  STUMM — kein einziger roter Punkt. Das ist ein FUND und gehört untersucht.');
@@ -5650,7 +5727,7 @@ const passtRueckbau = (r, argument) => {
    passtRueckbau EBENSO: die Regel, welches Argument welchen Rueckbau meint,
    laesst sich damit an gestellten Faellen nachsehen, statt Minuten lang einen
    Lauf zu fahren, um zu sehen, WAS er gefahren hat. */
-module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau };
+module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau, schreibeTabelle };
 if (require.main !== module) return;
 
 (async function haupt() {

@@ -6326,6 +6326,58 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und der Ordner ist danach unveraendert',
       auDa().length === 11, auDa().join(' · '));
   }
+
+  /* --- DIE VOLLSTAENDIGE LISTE IN DER ANTWORT -- das Feld, aus dem die Karte
+     ihre Liste zeichnet, seit 0.20.1.
+
+     GEFUNDEN HAT DIESE LUECKE DER STUMME RUECKBAU 568: er dreht die
+     Nummerierung in `server.js` um, und KEINE EINZIGE Pruefung wurde rot. Der
+     Grund ist Stolperstein 102 in Reinform -- die Oberflaechengruppe zaehlt die
+     Nummern am MOCK, und der rechnet sie selbst; die ECHTE Antwort sah niemand
+     an. **Jedes Feld, das die Karte liest, gehoert an der echten Antwort
+     geprueft.** --- */
+  {
+    const r = await auRuf('cookie-au-anna', 'GET', '/api/sicherung');
+    const liste = r.inhalt?.aufraeumen?.dateien || [];
+    pruefe('Die Antwort traegt die vollstaendige Liste der Sicherungen',
+      liste.length === 7, `${liste.length} Eintraege, 7 erwartet`);
+    /* JUENGSTE ZUERST, UND NUMMER 1 IST SIE -- dieselbe Richtung, in der die
+       Mindestzahl zaehlt. Liefe sie andersherum, stuende das Gefaehrliche oben,
+       und „mindestens 3 behalten" waere an der Liste nicht mehr ablesbar. */
+    pruefe('Die Nummern laufen von 1 bis 7',
+      gleich(liste.map(z => z.nr), [1, 2, 3, 4, 5, 6, 7]),
+      JSON.stringify(liste.map(z => z.nr)));
+    pruefe('Und Nummer 1 ist die JUENGSTE',
+      liste[0]?.tageHer === 0 && liste[liste.length - 1]?.tageHer === 200,
+      JSON.stringify(liste.map(z => z.tageHer)));
+    // Und die Reihenfolge ist wirklich nach Alter geordnet und nicht zufaellig.
+    pruefe('Die Liste ist nach Alter geordnet',
+      liste.every((z, i) => i === 0 || liste[i - 1].tageHer <= z.tageHer),
+      JSON.stringify(liste.map(z => z.tageHer)));
+    pruefe('Je Eintrag Datum, Alter und Groesse',
+      liste.every(z => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(z.am) &&
+        Number.isInteger(z.tageHer) && z.bytes > 0),
+      JSON.stringify(liste[0]));
+    /* DIE MARKE `faellt` STEHT AN GENAU DEN DREI EINTRAEGEN, die die Regel
+       trifft -- gegen die Trefferliste daneben gehalten. Zwei Felder ueber
+       dieselbe Frage duerfen sich nicht widersprechen (Stolperstein 47). */
+    pruefe('Die Marke `faellt` steht an genau den Kopien, die die Regel trifft',
+      gleich(liste.filter(z => z.faellt).map(z => z.datei).sort(), AU_FALLEN),
+      liste.filter(z => z.faellt).map(z => z.datei).join(' · '));
+    pruefe('Und ohne Schluesselwechsel traegt keine die Marke `veraltet`',
+      liste.every(z => z.veraltet === false), JSON.stringify(liste.map(z => z.veraltet)));
+    /* UND KEIN DATEINAME FEHLT IN DER ANTWORT: die Karte zeigt ihn nicht mehr,
+       die Antwort traegt ihn trotzdem -- er ist die einzige Angabe, an der sich
+       ein Eintrag ueber zwei Abrufe hinweg wiedererkennen laesst. */
+    pruefe('Jeder Eintrag traegt seinen Dateinamen, auch wenn die Karte ihn nicht zeigt',
+      liste.every(z => /^kriterion-.+\.sqlite$/.test(z.datei)),
+      JSON.stringify(liste.map(z => z.datei).slice(0, 2)));
+    // Und die fremden Dinge im Ordner stehen NICHT darin.
+    pruefe('Und nichts Fremdes steht in der Liste',
+      !liste.some(z => /notizen|\.bak|unterordner|verweis/.test(z.datei)),
+      liste.map(z => z.datei).join(' · '));
+  }
+
   /* EIN ANDERER WERT RECHNET SIE NEU, OHNE ETWAS ZU SPEICHERN. Wer die Zahl
      von 3 auf 1 stellt, sieht sofort, was das kostet. */
   {
@@ -20844,7 +20896,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
      zeigte auf EIGENTUEMER_SCHLUESSEL, und die Liste traegt seit dieser Runde
      vier Schluessel statt einem. Er nimmt weiterhin genau `bilderUmwandeln`
      heraus. KEINER IST WEGGEFALLEN. */
-  pruefe('Es sind genau 558 Rueckbauten', gpListe.length === 558, `${gpListe.length}`);
+  /* 561 SEIT 0.20.1: DREI neue, 567 bis 569 -- die Liste faellt ganz weg, die
+     Nummern laufen andersherum, und die Marke „loeschen" faellt von der Zeile.
+     DREI SIND MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 563 und
+     565 zeigten auf Zeilen, die diese Runde umgebaut hat, und **566 ist dabei in
+     eine andere Datei gewandert** -- der Deckel der Liste ist seit 0.20.1 eine
+     Regel im Stilblatt und keine Klasse im Markup. Seine Zusage ist dieselbe
+     geblieben. KEINER IST WEGGEFALLEN. */
+  pruefe('Es sind genau 563 Rueckbauten', gpListe.length === 563, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -20928,6 +20987,51 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gpEigeneGruppe.rot.length === 2 && gpEigeneGruppe.inhaltlichRot.length === 1 &&
     gpEigeneGruppe.inhaltlichRot[0].name === 'Eine Nummer als Argument greift NICHT in die Namen hinein',
     JSON.stringify(gpEigeneGruppe.inhaltlichRot));
+
+  /* ---- EIN ABGERISSENER LAUF MUSS SAGEN, WARUM -- 0.20.1.
+     DER BEFUND: Rueckbau 568 riss beim ersten Anlauf nach 79 Sekunden ab, und
+     der Bericht sagte „Rueckgabewert 1" -- eine Zahl ohne jede Auskunft. Der
+     Grund lag in der eingefangenen Ausgabe (der Treiber faengt stdout UND
+     stderr ein), gedruckt hat er ihn nicht, und die Kopie ist beim Aufraeumen
+     weg. Damit war die Ursache nicht mehr feststellbar: eine Stunde Suche, an
+     deren Ende kein Befund stand, sondern nur die Gewissheit, dass das
+     Werkzeug ihn weggeworfen hatte (Stolperstein 301).
+     ZWEI WEGE ENDEN OHNE SCHLUSSBLOCK, und nur EINER schreibt eine Zeile, die
+     der Leser kennt: der aeussere Fang druckt „Prueflauf abgebrochen: ...".
+     Ein unbehandeltes Ereignis ausserhalb der abgewarteten Kette druckt davon
+     nichts -- Node legt Meldung und Aufrufweg auf stderr und geht mit 1.
+     Fuer diesen zweiten Weg ist der Schwanz die einzige Auskunft. ---- */
+  const gpAbriss = gpLese([
+    '── Alte Sicherungen aufraeumen: der echte Ordner ─────',
+    '  ✓ Sieben Kopien liegen im Ordner',
+    '  ✗ Die Nummern laufen von 1 bis 7',
+    'node:events:497',
+    '      throw er;',
+    'Error: listen EADDRINUSE: address already in use 127.0.0.1:6110'
+  ].join('\n'));
+  pruefe('Ein Lauf ohne Schlussblock gilt als abgerissen',
+    gpAbriss.durchgelaufen === false && gpAbriss.abriss === null,
+    JSON.stringify([gpAbriss.durchgelaufen, gpAbriss.abriss]));
+  pruefe('Und er hebt die letzten Zeilen auf, damit der Grund lesbar bleibt',
+    gpAbriss.schwanz?.includes('Error: listen EADDRINUSE: address already in use 127.0.0.1:6110'),
+    JSON.stringify(gpAbriss.schwanz));
+  /* UND DER BERICHT MUSS SIE AUCH DRUCKEN. Ein Schwanz, den nur der Leser
+     kennt, hilft niemandem: gelesen wird die Tabelle. Gemessen wird deshalb an
+     der ECHTEN Ausgabe der echten Berichtsfunktion und nicht am Quelltext --
+     ein Suchmuster ueber den Quelltext bliebe gruen, wenn die Schleife zwar
+     dasteht, aber ueber die falsche Liste laeuft. */
+  const gpTabelle = require('./gegenprobe').schreibeTabelle;
+  const gedruckt = [];
+  const echtesLog = console.log;
+  console.log = (...teile) => gedruckt.push(teile.join(' '));
+  try {
+    gpTabelle([{ nr: '568', name: 'Ein Rueckbau', datei: 'server.js', spur: 0,
+                 sekunden: 79, code: 1, ...gpAbriss }]);
+  } finally { console.log = echtesLog; }
+  pruefe('Und der Bericht druckt sie unter den Abriss',
+    gedruckt.some(z => z.includes('LAUF ABGERISSEN')) &&
+    gedruckt.some(z => z.includes('EADDRINUSE')),
+    JSON.stringify(gedruckt.filter(z => /ABGERISSEN|│/.test(z))));
 
   /* ---- WELCHES ARGUMENT WELCHEN RUECKBAU MEINT -- 0.16.0.
      DER BEFUND: `node gegenprobe.js 2 256` fuhr neben Rueckbau 256 auch die 83
@@ -22098,6 +22202,15 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
                  tage: { vorgabe: 30, min: 7, max: 365 } },
       erreichbar: true, treffer: [], bytes: 0,
       grund: 'Alle 2 Kopien sind unter den jüngsten 3.',
+      /* DIE VOLLSTAENDIGE LISTE -- in der Vorgabelage die beiden Kopien, die
+         `zahl: 2` daneben behauptet. Eine leere Liste neben einer Zahl waeren
+         zwei Wahrheiten ueber denselben Ort. */
+      dateien: [
+        { nr: 1, datei: 'kriterion-2026-08-20-03-00-00.sqlite', am: '2026-08-20 03:00:00',
+          tageHer: 3, bytes: 52428800, faellt: false, veraltet: false },
+        { nr: 2, datei: 'kriterion-2026-08-13-03-00-00.sqlite', am: '2026-08-13 03:00:00',
+          tageHer: 10, bytes: 52428800, faellt: false, veraltet: false }
+      ],
       altZahl: 0, altBytes: 0, altDateien: []
     }
   };
@@ -22718,9 +22831,17 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       }
       const behalten = b === null ? sicherung.aufraeumen.behalten : b;
       const tage = t === null ? sicherung.aufraeumen.tage : t;
-      //          der Boden                        die Schere
+      //          die Mindestzahl                  das Alter
       const treffer = aufraeumKopien.slice(behalten).filter(z => z.tageHer > tage);
+      /* DIE VOLLSTAENDIGE LISTE MIT NUMMER UND MARKEN, wie der echte Server sie
+         liefert -- juengste zuerst. Ohne sie zeichnete die Karte hier eine
+         leere Liste, und jede Zusage darauf waere trivial wahr
+         (Stolperstein 81). */
+      const namen = new Set(treffer.map(z => z.datei));
+      const alteNamen = new Set((sicherung.aufraeumen.altDateien || []).map(z => z.datei));
       return gib({ ...sicherung, aufraeumen: { ...sicherung.aufraeumen, behalten, tage,
+        dateien: aufraeumKopien.map((z, i) => ({ ...z, nr: i + 1,
+          faellt: namen.has(z.datei), veraltet: alteNamen.has(z.datei) })),
         treffer, bytes: treffer.reduce((n, z) => n + z.bytes, 0),
         grund: treffer.length ? '' : (aufraeumKopien.length <= behalten
           ? `Alle ${aufraeumKopien.length} Kopien sind unter den jüngsten ${behalten}.`
@@ -31445,8 +31566,17 @@ async function pruefeOberflaeche() {
     pruefe('Und wo der alte Wert zu finden ist',
       /kam er aus der \.env/.test(teilsRot) && /Passwortspeicher/.test(teilsRot),
       teilsRot.slice(0, 400));
-    pruefe('Die Zeile "Dateien am Ort" nennt die alten eigens',
-      /2 mit dem alten Schlüssel/.test(siText(teils)), siText(teils).slice(0, 400));
+    /* DIE ZEILE „DATEIEN AM ORT" IST MIT 0.20.1 AUS DIESER KARTE HERAUS -- und
+       die Pruefung darauf wird UMGEDREHT statt geloescht (Stolperstein 74).
+       Bis 0.20.0 nannte sie die Zahl der Kopien und wie viele davon mit dem
+       alten Schluessel liegen. Seit 0.20.1 listet die Karte „Alte Sicherungen"
+       daneben ALLE Kopien mit Nummer, Datum, Groesse und ihren Marken, und
+       dieselbe Auskunft an zwei Stellen ist eine zu viel (Stolperstein 47).
+       DER KASTEN ZUM SCHLUESSELWECHSEL BLEIBT und wird darueber geprueft: er
+       ist keine Auflistung, sondern die Warnung, dass ein alter Schluessel noch
+       gebraucht wird. */
+    pruefe('Die Zeile "Dateien am Ort" steht nicht mehr in dieser Karte',
+      !/Dateien am Ort/.test(siText(teils)), siText(teils).slice(0, 400));
 
     // Genau eine alte Kopie -- die Einzahl gehoert geprueft, sonst steht dort
     // "1 Kopien stammen".
@@ -31634,13 +31764,21 @@ async function pruefeOberflaeche() {
   const afKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Alte Sicherungen');
   const afText = (d) => String(afKarte(d)?.textContent || '').replace(/\s+/g, ' ').trim();
-  /* DIE KOPIEN DER PRUEFLAGE: fuenf am Ort, juengste zuerst. Mit Boden 3 und
-     Schere 30 treffen es die beiden aeltesten.
+  const afZeilen = (d) => [...(d.w.document.querySelectorAll('#auf-liste .mrow') || [])]
+    .map(z => z.textContent.replace(/\s+/g, ' ').trim());
+  const afKnoepfe = (d) => d.w.document.querySelectorAll('#auf-liste button').length;
+  /* DAS STILBLATT ALS TEXT. Der Deckel ist eine Regel im Stilblatt und keine
+     gerechnete Hoehe -- jsdom rechnet kein Layout, und eine Pruefung auf
+     `offsetHeight` waere hier immer null. Dieselbe Bauform wie bei den
+     uebrigen Zusagen ueber Masse (Stolperstein 41). */
+  const afStil = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+  /* DIE KOPIEN DER PRUEFLAGE: fuenf am Ort, juengste zuerst. Mit Mindestzahl 3
+     und Alter 30 treffen es die beiden aeltesten.
      DIE DRITTE IST 35 TAGE ALT UND DAMIT ALT GENUG -- sie faellt trotzdem
-     nicht, weil der Boden sie deckt. Genau daran laesst sich unten zeigen,
-     dass ein anderer Boden die Vorschau WIRKLICH aendert: mit 2 statt 3 sind
-     es drei Dateien. Eine Lage, in der jede Stellung dieselbe Zahl ergibt,
-     belegte darueber nichts (Stolperstein 90). */
+     nicht, weil die Mindestzahl sie deckt. Genau daran laesst sich unten
+     zeigen, dass eine andere Mindestzahl die Liste WIRKLICH aendert: mit 2
+     statt 3 sind es drei Dateien. Eine Lage, in der jede Stellung dieselbe Zahl
+     ergibt, belegte darueber nichts (Stolperstein 90). */
   const AF_KOPIEN = [
     { datei: 'kriterion-2026-09-03-10-00-00.sqlite', am: '2026-09-03 10:00:00', tageHer: 0, bytes: 52428800 },
     { datei: 'kriterion-2026-09-02-10-00-00.sqlite', am: '2026-09-02 10:00:00', tageHer: 1, bytes: 52428800 },
@@ -31648,6 +31786,16 @@ async function pruefeOberflaeche() {
     { datei: 'kriterion-2026-07-25-10-00-00.sqlite', am: '2026-07-25 10:00:00', tageHer: 40, bytes: 52428800 },
     { datei: 'kriterion-2026-07-05-10-00-00.sqlite', am: '2026-07-05 10:00:00', tageHer: 60, bytes: 52428800 }
   ];
+  /* DIE LISTE WIE DER SERVER SIE LIEFERT: Nummer von der juengsten an, und je
+     Zeile die beiden Marken. `faellt` und `veraltet` schliessen sich aus --
+     die Regel laesst die veralteten gar nicht erst durch. */
+  const afDateien = (behalten = 3, tage = 30, altNamen = []) => {
+    const alt = new Set(altNamen);
+    const treffer = new Set(AF_KOPIEN.slice(behalten)
+      .filter(z => z.tageHer > tage && !alt.has(z.datei)).map(z => z.datei));
+    return AF_KOPIEN.map((z, i) => ({ ...z, nr: i + 1,
+      faellt: treffer.has(z.datei), veraltet: alt.has(z.datei) }));
+  };
   const afStand = (zusatz = {}, aufraeumZusatz = {}) => ({
     eingerichtet: true, wurzel: '/sicherung', ort: 'taeglich', pfad: '/sicherung/taeglich',
     imArbeitsverzeichnis: false, dbBytes: 52428800, dauerSekunden: 1, erreichbar: true, zahl: 5,
@@ -31658,7 +31806,7 @@ async function pruefeOberflaeche() {
       an: false, behalten: 3, tage: 30,
       grenzen: { behalten: { vorgabe: 3, min: 1, max: 20 },
                  tage: { vorgabe: 30, min: 7, max: 365 } },
-      erreichbar: true, treffer: AF_KOPIEN.slice(3),
+      erreichbar: true, dateien: afDateien(), treffer: AF_KOPIEN.slice(3),
       bytes: AF_KOPIEN.slice(3).reduce((n, k) => n + k.bytes, 0),
       grund: '', altZahl: 0, altBytes: 0, altDateien: [], ...aufraeumZusatz
     },
@@ -31670,19 +31818,84 @@ async function pruefeOberflaeche() {
 
   const afEig = await afSystem();
   pruefe('Die Karte steht da', !!afKarte(afEig), afEig.w.document.body.innerHTML.slice(0, 200));
-  /* DER SCHALTER STEHT AUF AUS, und das ist die Zusage der Runde: was nicht
-     umkehrbar ist, wird nicht stillschweigend eingeschaltet. */
+
+  /* --- DIE LISTE ALLER SICHERUNGEN. Sie ist der Gegenstand des Feldbefunds:
+     bis dahin nannte die Karte „Sicherung" die juengste Kopie und die ZAHL,
+     und die vollstaendige Liste stand nirgends. --- */
+  pruefe('Die Karte listet ALLE Sicherungen',
+    afZeilen(afEig).length === AF_KOPIEN.length,
+    `${afZeilen(afEig).length} Zeilen, ${AF_KOPIEN.length} erwartet`);
+  pruefe('Und nennt ihre Zahl in der Ueberschrift',
+    /Sicherungen \(5\)/.test(afText(afEig)), afText(afEig).slice(0, 300));
+  /* DIE NUMMER LAEUFT VON DER JUENGSTEN (1) ZUR AELTESTEN -- so, wie die
+     Mindestzahl zaehlt. Ohne diese Richtung liesse sich „mindestens 3
+     behalten" an der Liste nicht ablesen. */
+  pruefe('Die Nummern laufen von der juengsten zur aeltesten',
+    gleich(afZeilen(afEig).map(z => (z.match(/^#(\d+)/) || [])[1]),
+           ['1', '2', '3', '4', '5']),
+    afZeilen(afEig).map(z => (z.match(/^#(\d+)/) || [])[1]).join(' '));
+  pruefe('Je Zeile Datum, Alter und Groesse',
+    /^#1 · 03\.09\.2026, \d{2}:\d{2}.*vor 0 Tagen · 50,0 MB$/.test(afZeilen(afEig)[0]),
+    afZeilen(afEig)[0]);
+  /* KEIN DATEINAME IN DER ZEILE, und dabei geht nichts verloren: der Name IST
+     die Zeitmarke, und die Zeile nennt Datum und Uhrzeit. */
+  pruefe('Und kein Dateiname',
+    !/kriterion-/.test(afZeilen(afEig).join(' ')), afZeilen(afEig).join(' · ').slice(0, 200));
+  /* NUR ZUM ANSEHEN: kein Knopf je Zeile. Eine einzelne Kopie per Klick zu
+     loeschen waere die Loeschroute mit Dateinamen (Stolperstein 300). */
+  pruefe('Und kein Knopf in einer Zeile -- die Liste ist nur zum Ansehen',
+    afKnoepfe(afEig) === 0, `${afKnoepfe(afEig)} Knoepfe in der Liste`);
+  /* DIE MARKE SAGT, WELCHE ZEILE FAELLT -- an der Zeile und nicht in einer
+     zweiten Liste darunter. Dieselbe Auskunft an zwei Stellen ist eine zu
+     viel (Stolperstein 47). */
+  pruefe('Die Zeilen, die die Regel trifft, sind markiert',
+    gleich(afZeilen(afEig).filter(z => /LÖSCHEN|löschen/i.test(z)).map(z => (z.match(/^#(\d+)/) || [])[1]),
+           ['4', '5']),
+    afZeilen(afEig).filter(z => /löschen/i.test(z)).join(' · '));
+  pruefe('Und die drei jüngsten sind es nicht',
+    afZeilen(afEig).slice(0, 3).every(z => !/löschen/i.test(z)),
+    afZeilen(afEig).slice(0, 3).join(' · '));
+  /* DER DECKEL LIEGT BEI FUENF ZEILEN und nicht bei den zehn der uebrigen
+     Systemlisten: die Liste steht MITTEN in ihrer Karte, unter ihr stehen die
+     Zusammenfassung und beide Knoepfe. Geprueft wird die REGEL im Stilblatt
+     und nicht eine gerechnete Hoehe -- jsdom rechnet kein Layout. */
+  pruefe('Die Liste traegt ihren eigenen Deckel von fuenf Zeilen',
+    !!afEig.w.document.getElementById('auf-liste') &&
+    /#auf-liste \{ flex: none; max-height: 13\.98rem; \}/.test(afStil),
+    (afStil.match(/#auf-liste[^\n]*/) || ['(keine Regel)'])[0]);
+  pruefe('Und die Rechnung dahinter steht im Stilblatt',
+    /5 x 41,92 \/ 15 = 13,973/.test(afStil), 'die Rechnung fehlt');
+
+  /* --- DER SCHALTER UND DIE BEIDEN FELDER, mit den kurzen Texten. --- */
   pruefe('Der Schalter steht auf aus',
     afEig.w.document.getElementById('auf-schalter')?.checked === false,
     JSON.stringify(afEig.w.document.getElementById('auf-schalter')?.checked));
-  pruefe('Und die Karte sagt, warum er auf aus steht',
-    /eine gelöschte Sicherung holt nichts zurück/i.test(afText(afEig)), afText(afEig).slice(0, 400));
-  pruefe('Und dass nach einer gescheiterten Sicherung nichts geschieht',
-    /nur im Anschluss an eine Sicherung, die gelungen ist/.test(afText(afEig)),
-    afText(afEig).slice(0, 600));
-  /* DIE BEIDEN FELDER TRAGEN DIE VORGABEN UND DIE GRENZEN DES SERVERS. `min`
-     und `max` stehen daran, aber sie sind eine Bitte -- die Klemme steht am
-     Server, und das ist oben an der echten Route geprueft. */
+  pruefe('Und sagt in einem halben Satz, was ohne Haken gilt',
+    /Ohne Häkchen nur auf Knopfdruck\./.test(afText(afEig)), afText(afEig).slice(0, 400));
+  /* ZWEI TATSACHEN IM KOPFTEXT, UND SONST NICHTS: dass es weg ist, und was
+     ueberhaupt in Frage kommt. Aus dem Betrieb: der Bildschirmtext war zu
+     lang, und dass der Schalter „mit Absicht" auf aus steht, interessiert
+     niemanden. */
+  pruefe('Der Kopftext sagt, dass es unwiderruflich ist',
+    /unwiderruflich/.test(afText(afEig)), afText(afEig).slice(0, 300));
+  pruefe('Und dass nur das Namensschema der Installation gelöscht wird',
+    /nur, was dem Namensschema der Installation entspricht/.test(afText(afEig)),
+    afText(afEig).slice(0, 300));
+  /* UND DIE SAETZE, DIE MIT DEM FELDBEFUND GEFALLEN SIND, STEHEN NICHT MEHR DA.
+     Die Verneinung gehoert neben die Zusagen darueber und nicht an ihre Stelle
+     (Stolperstein 156): eine Karte, die den kurzen UND den langen Satz traegt,
+     ist nicht kuerzer geworden. */
+  pruefe('Die Begruendung des Schalters steht nicht mehr auf der Karte',
+    !/das ist Absicht/.test(afText(afEig)) && !/holt nichts zurück/.test(afText(afEig)),
+    afText(afEig).slice(0, 400));
+  pruefe('Und von einer fremden Datei ist keine Rede mehr',
+    !/fremde Datei/.test(afText(afEig)), afText(afEig).slice(0, 300));
+  /* „BODEN" UND „SCHERE" SIND BILDER DES PROJEKTS UND KEIN BILDSCHIRMTEXT.
+     Aus dem Betrieb: „das spricht man hier nicht." Sie tragen die Begruendung
+     im Projektstand und in den Kommentaren weiter -- am Bildschirm nicht. */
+  pruefe('Weder „Boden" noch „Schere" stehen am Bildschirm',
+    !/\bBoden\b/.test(afText(afEig)) && !/\bSchere\b/.test(afText(afEig)),
+    afText(afEig).slice(0, 500));
   const afB = () => afEig.w.document.getElementById('auf-behalten');
   const afT = () => afEig.w.document.getElementById('auf-tage');
   pruefe('Die beiden Felder tragen die Vorgaben 3 und 30',
@@ -31693,31 +31906,23 @@ async function pruefeOberflaeche() {
     afT()?.getAttribute('min') === '7' && afT()?.getAttribute('max') === '365',
     JSON.stringify([afB()?.getAttribute('min'), afB()?.getAttribute('max'),
                     afT()?.getAttribute('min'), afT()?.getAttribute('max')]));
-  pruefe('Die Felder heissen im Klartext und nicht N und X',
-    /Immer behalten/.test(afText(afEig)) && /Erst löschen ab/.test(afText(afEig)) &&
-    !/\bN\b/.test(afText(afEig)), afText(afEig).slice(0, 500));
-  /* DIE VORSCHAU NENNT DIE DATEIEN NAMENTLICH, mit Datum und Groesse. */
-  pruefe('Die Vorschau nennt die beiden Dateien namentlich',
-    /kriterion-2026-07-25-10-00-00\.sqlite/.test(afText(afEig)) &&
-    /kriterion-2026-07-05-10-00-00\.sqlite/.test(afText(afEig)), afText(afEig).slice(0, 900));
-  pruefe('Und zu jeder Datum, Alter und Groesse',
-    /25\.07\.2026/.test(afText(afEig)) && /vor 40 Tagen/.test(afText(afEig)) &&
-    /50,0 MB/.test(afText(afEig)), afText(afEig).slice(0, 900));
-  pruefe('Und was das an Platz freigaebe',
-    /100,0 MB/.test(afText(afEig)), afText(afEig).slice(0, 900));
-  /* UND DIE JUENGSTEN DREI STEHEN NICHT DARIN -- auch die dritte nicht,
-     obwohl sie mit 35 Tagen alt genug waere: der Boden deckt sie. Das ist die
-     eine Haelfte der Regel, die sich in der Oberflaeche sehen laesst. */
-  pruefe('Und dass die juengsten drei nicht darunter sind',
-    !/kriterion-2026-09-0[23]-10-00-00\.sqlite/.test(afText(afEig)) &&
-    !/kriterion-2026-07-30-10-00-00\.sqlite/.test(afText(afEig)), afText(afEig).slice(0, 900));
-  /* DIESELBE LISTE UND DERSELBE DECKEL WIE JEDE LISTE IM SYSTEMBEREICH -- zehn
-     Zeilen, seit 0.17.3. Eine eigene Zahl daneben waere eine zweite Wahrheit
-     ueber dasselbe Mass. */
-  pruefe('Die Liste traegt den gemeinsamen Deckel der Systemlisten',
-    !!afKarte(afEig)?.querySelector('.manage-list') &&
-    afKarte(afEig).querySelectorAll('.manage-list .mrow').length === 2,
-    `${afKarte(afEig)?.querySelectorAll('.manage-list .mrow').length} Zeilen`);
+  /* DIE BESCHRIFTUNGEN SAGEN, WAS DAS FELD TUT, und nicht, wie das Bild dazu
+     heisst. Und die VORGABE steht nicht daneben: sie steht im Feld. */
+  pruefe('Die Beschriftungen heissen „Mindestens behalten" und „Löschen ab Alter (Tage)"',
+    /Mindestens behalten/.test(afText(afEig)) && /Löschen ab Alter \(Tage\)/.test(afText(afEig)),
+    afText(afEig).slice(0, 500));
+  pruefe('Und keine nennt ihre Vorgabe ein zweites Mal',
+    !/Vorgabe/.test(afText(afEig)), afText(afEig).slice(0, 600));
+  /* DAS ALTERSFELD ERKLAERT SICH MIT DER LEBENDEN MINDESTZAHL. „Nach diesen
+     Tagen darf geloescht werden, wenn mehr als 3 liegen" -- die 3 kommt aus
+     dem Feld darueber und nicht aus dem Text. */
+  pruefe('Das Altersfeld nennt die lebende Mindestzahl',
+    /nur, wenn mehr als 3 liegen/.test(afText(afEig)), afText(afEig).slice(0, 700));
+
+  /* --- WAS DIE REGEL TRIFFT: eine Zeile unter der Liste. --- */
+  pruefe('Unter der Liste steht, wie viele fallen und was frei wird',
+    /2 Sicherungen werden gelöscht — 100,0 MB frei\./.test(afText(afEig)),
+    afText(afEig).slice(0, 900));
   pruefe('Der Knopf steht da und ist bedienbar',
     afEig.w.document.getElementById('auf-los')?.disabled === false,
     JSON.stringify(afEig.w.document.getElementById('auf-los')?.disabled));
@@ -31726,40 +31931,65 @@ async function pruefeOberflaeche() {
   pruefe('Und der zweite Knopf steht nicht da, wenn es nichts Veraltetes gibt',
     !afEig.w.document.getElementById('auf-alt'), 'der Knopf steht da');
 
-  /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Liste ohne
+  /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
      Erklaerung sieht aus wie ein Fehler. Und der Knopf ist dann tot. */
   {
-    const d = await afSystem({}, { treffer: [], bytes: 0,
-      grund: 'Alle 3 Kopien sind unter den jüngsten 3.' });
+    const d = await afSystem({}, { treffer: [], bytes: 0, dateien: afDateien(20, 30),
+      grund: 'Alle 5 Kopien sind unter den jüngsten 20.' });
     pruefe('Trifft die Regel nichts, sagt die Karte das mit dem Grund',
-      /Die Regel trifft nichts\./.test(afText(d)) &&
-      /Alle 3 Kopien sind unter den jüngsten 3\./.test(afText(d)), afText(d).slice(0, 600));
+      /Es wird nichts gelöscht\. Alle 5 Kopien sind unter den jüngsten 20\./.test(afText(d)),
+      afText(d).slice(0, 600));
     pruefe('Und der Knopf ist dann nicht bedienbar',
       d.w.document.getElementById('auf-los')?.disabled === true,
       JSON.stringify(d.w.document.getElementById('auf-los')?.disabled));
+    /* UND DIE LISTE STEHT TROTZDEM DA, ohne eine einzige Marke. Sie ist die
+       Auskunft ueber den Ort und nicht die Ankuendigung eines Laufs. */
+    pruefe('Die Liste steht auch dann da, ohne Marke',
+      afZeilen(d).length === 5 && afZeilen(d).every(z => !/löschen/i.test(z)),
+      afZeilen(d).join(' · '));
   }
-  /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL STEHEN GETRENNT, mit eigener
-     Zahl, eigener Summe und eigenem Knopf. */
+  /* LIEGT NICHTS DA, SAGT DIE KARTE GENAU DAS -- statt einer leeren Liste. */
   {
+    const d = await afSystem({ zahl: 0, letzte: null },
+      { dateien: [], treffer: [], bytes: 0, grund: 'An diesem Ort liegt noch keine Sicherung.' });
+    pruefe('Ohne eine einzige Sicherung sagt die Karte das',
+      /Am Sicherungsort liegt noch keine Sicherung\./.test(afText(d)), afText(d).slice(0, 400));
+    pruefe('Und es steht keine leere Liste da',
+      !d.w.document.getElementById('auf-liste'), 'die Liste steht da');
+  }
+  /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: in derselben Liste markiert, mit
+     eigener Zahl, eigener Summe und eigenem Knopf darunter. */
+  {
+    const altNamen = AF_KOPIEN.slice(3).map(z => z.datei);
     const d = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 2 },
-      { altZahl: 2, altBytes: 104857600, altDateien: AF_KOPIEN.slice(3) });
-    pruefe('Die veralteten Kopien stehen getrennt, mit eigener Zahl und Summe',
-      /2 Kopien stammen von vor dem Schlüsselwechsel/.test(afText(d)) &&
-      /100,0 MB/.test(afText(d)), afText(d).slice(0, 900));
-    pruefe('Und die Karte sagt, dass die Regel sie nicht anfasst',
-      /Die Regel fasst sie nicht an/.test(afText(d)), afText(d).slice(0, 900));
+      { altZahl: 2, altBytes: 104857600, altDateien: AF_KOPIEN.slice(3),
+        treffer: [], bytes: 0, dateien: afDateien(3, 30, altNamen),
+        grund: 'Keine der 5 Kopien stammt von nach dem Schlüsselwechsel.' });
+    pruefe('Die veralteten Kopien bekommen ihre eigene Marke in der Liste',
+      gleich(afZeilen(d).filter(z => /ALTER SCHLÜSSEL|alter Schlüssel/i.test(z))
+               .map(z => (z.match(/^#(\d+)/) || [])[1]), ['4', '5']),
+      afZeilen(d).join(' · '));
+    pruefe('Und keine Zeile traegt beide Marken',
+      afZeilen(d).every(z => !(/löschen/i.test(z) && /alter Schlüssel/i.test(z))),
+      afZeilen(d).join(' · '));
+    pruefe('Darunter stehen ihre Zahl und ihre Summe',
+      /2 Sicherungen öffnen sich nur mit dem alten Schlüssel \(100,0 MB\)/.test(afText(d)),
+      afText(d).slice(0, 900));
+    pruefe('Und die Karte sagt, dass die Regel sie liegen lässt',
+      /Die Regel lässt sie liegen\./.test(afText(d)), afText(d).slice(0, 900));
     pruefe('Und sie bekommen einen eigenen Knopf',
-      /veraltete Kopien entfernen/.test(
+      /2 Sicherungen mit altem Schlüssel löschen/.test(
         d.w.document.getElementById('auf-alt')?.textContent || ''),
       d.w.document.getElementById('auf-alt')?.textContent);
-    // Die Einzahl gehoert geprueft, sonst steht dort "1 Kopien stammen".
+    // Die Einzahl gehoert geprueft, sonst steht dort "1 Sicherungen oeffnen".
     const eine = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 1 },
-      { altZahl: 1, altBytes: 52428800, altDateien: AF_KOPIEN.slice(4) });
+      { altZahl: 1, altBytes: 52428800, altDateien: AF_KOPIEN.slice(4),
+        dateien: afDateien(3, 30, [AF_KOPIEN[4].datei]) });
     pruefe('Bei genau einer steht die Einzahl da',
-      /1 Kopie stammt von vor dem Schlüsselwechsel/.test(afText(eine)) &&
-      /1 veraltete Kopie entfernen/.test(
+      /1 Sicherung öffnet sich nur mit dem alten Schlüssel/.test(afText(eine)) &&
+      /1 Sicherung mit altem Schlüssel löschen/.test(
         eine.w.document.getElementById('auf-alt')?.textContent || ''),
-      afText(eine).slice(0, 600));
+      afText(eine).slice(0, 700));
   }
   /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS: ein
      Schalter, der nie greifen kann, verspricht etwas und haelt es nie. */
@@ -31774,8 +32004,8 @@ async function pruefeOberflaeche() {
       'der Schalter steht da');
   }
 
-  /* --- DIE VORSCHAU RECHNET BEI JEDER AENDERUNG NEU, UND SIE LOESCHT DABEI
-     NICHTS. Wer die Zahl von 3 auf 1 stellt, sieht sofort, was das kostet. --- */
+  /* --- DIE LISTE RECHNET BEI JEDER AENDERUNG NEU, UND SIE LOESCHT DABEI
+     NICHTS. Wer die Zahl von 3 auf 2 stellt, sieht sofort, was das kostet. --- */
   {
     const d = await afSystem();
     /* JEDER GRIFF AUF EINEN KNOTEN IST ABGEFANGEN. Faellt die Karte weg — und
@@ -31787,17 +32017,17 @@ async function pruefeOberflaeche() {
       ?.dispatchEvent(new d.w.Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     const gefragt = d.gesendet.filter(x => String(x.url).startsWith('/api/sicherung?'));
-    pruefe('Eine Aenderung am Feld fragt die Vorschau neu am Server',
+    pruefe('Eine Aenderung am Feld fragt den Stand neu am Server',
       gefragt.length === 1 && /behalten=2/.test(gefragt[0].url) &&
       (gefragt[0].methode || 'GET') === 'GET',
       d.gesendet.slice(-3).map(x => `${x.methode || 'GET'} ${x.url}`).join(' · '));
     /* UND SIE RECHNET DIE REGEL NICHT SELBST NACH: gefragt wird der Server,
        und gezeichnet wird, was zurueckkommt. Eine zweite Fassung der Regel im
        Browser waere eine zweite Wahrheit darueber, was gleich passiert. */
-    pruefe('Und die Vorschau zeigt danach drei Dateien statt zwei',
-      d.w.document.querySelectorAll('#aufraeumen-box .manage-list .mrow').length === 3 &&
-      /kriterion-2026-07-30-10-00-00\.sqlite/.test(afText(d)),
-      `${d.w.document.querySelectorAll('#aufraeumen-box .manage-list .mrow').length} Zeilen`);
+    pruefe('Und danach sind drei Zeilen markiert statt zwei',
+      afZeilen(d).filter(z => /löschen/i.test(z)).length === 3 &&
+      afZeilen(d).length === 5,
+      afZeilen(d).join(' · '));
     pruefe('Und gespeichert wurde dabei nichts',
       !d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/settings') &&
       !d.gesendet.some(x => x.url === '/api/sicherung/aufraeumen'),
@@ -31835,9 +32065,9 @@ async function pruefeOberflaeche() {
     pruefe('Der Knopf fragt erst nach dem Passwort',
       !!d.w.document.getElementById('best-pass'), 'kein Bestaetigungsfenster');
     pruefe('Und der Dialog nennt Zahl und Bytes und sagt, dass nichts zurueckfuehrt',
-      /2 Kopien \(100,0 MB\) werden entfernt/.test(
+      /2 Sicherungen \(100,0 MB\) werden gelöscht/.test(
         d.w.document.querySelector('.modal')?.textContent || '') &&
-      /keinen Papierkorb/.test(d.w.document.querySelector('.modal')?.textContent || ''),
+      /Zurück führt nichts/.test(d.w.document.querySelector('.modal')?.textContent || ''),
       d.w.document.querySelector('.modal')?.textContent?.slice(0, 400));
     await bestaetigeImDom(d, 'egal', true);
     pruefe('Ein Abbruch schickt nichts an den Server',
@@ -31854,7 +32084,7 @@ async function pruefeOberflaeche() {
     await bestaetigeImDom(d);
     await new Promise(r => setTimeout(r, 120));
     const raus = d.gesendet.filter(x => x.url === '/api/sicherung/aufraeumen');
-    pruefe('Mit Bestaetigung geht das Aufraeumen hinaus',
+    pruefe('Mit Bestaetigung geht das Loeschen hinaus',
       raus.length === 1 && raus[0].methode === 'POST' && raus[0].koerper?.art === 'regel',
       d.gesendet.slice(-3).map(x => `${x.methode} ${x.url} ${JSON.stringify(x.koerper)}`).join(' · '));
     /* DER RUMPF TRAEGT DIE ART UND SONST NICHTS. Am Server steht dieselbe
@@ -31863,8 +32093,8 @@ async function pruefeOberflaeche() {
     pruefe('Und der Rumpf traegt genau ein Feld, und das ist die Art',
       gleich(Object.keys(raus[0]?.koerper || {}), ['art']),
       JSON.stringify(raus[0]?.koerper));
-    pruefe('Eine Meldung nennt, wie viele wirklich entfernt wurden',
-      /2 Kopien entfernt/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+    pruefe('Eine Meldung nennt, wie viele wirklich geloescht wurden',
+      /2 Sicherungen gelöscht/.test(d.w.document.querySelector('.toast')?.textContent || ''),
       d.w.document.querySelector('.toast')?.textContent);
   }
 
