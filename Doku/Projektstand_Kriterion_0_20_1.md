@@ -438,9 +438,9 @@ Worten.* **Nach dem Einspielen im Browser einmal hart neu laden.**
 Prüfungen**, 558 Rückbauten.
 *0.20.0 baut eine Hälfte fertig, die von Anfang an fehlte: Kriterion schrieb
 Sicherungen und entfernte keine. Die Regel hat zwei Bedingungen — nicht unter
-den N jüngsten UND älter als X Tage —, die Vorschau nennt vorher namentlich,
-was fallen würde, und der Schalter steht auf AUS. Aufgeräumt wird
-ausschließlich im Anschluss an eine Sicherung, die gelungen ist.*
+den N jüngsten UND älter als X Tage —, die Karte sagt vorher, was fällt, und
+der Schalter steht auf AUS. Aufgeräumt wird ausschließlich im Anschluss an
+eine Sicherung, die gelungen ist.* **Im Feld bestätigt.**
 **MINOR — KEINE DATENBANKSTUFE, KEIN BESTANDSLAUF.**
 
 > **GESICHERT WERDEN MUSS VOR DEM EINSPIELEN NICHTS.** *Kein
@@ -3819,12 +3819,15 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
   PNG-Datei holt der Knopf in der Gegenrichtung zurück, eine gelöschte Sicherung
   holt nichts zurück.* **Die Vorgabe folgt der Umkehrbarkeit, nicht der
   Bequemlichkeit.**
-- **Wo es keinen Papierkorb geben kann, ist die Vorschau der Ersatz.** Für eine
+- **Wo es keinen Papierkorb geben kann, ist die Anzeige der Ersatz.** Für eine
   600-MB-Datei wäre ein Papierkorb sinnlos — der Platz ist ja der Grund.
-  **Dann nennt die Oberfläche VORHER namentlich, was fallen würde**, mit Datum
-  und Größe; *ohne Vorschau ist es eine Wette.* Und **trifft die Regel nichts,
-  steht der Grund daneben** — eine leere Liste ohne Erklärung sieht aus wie ein
+  **Dann sagt die Oberfläche VORHER, was fällt**, mit Datum, Alter und Größe;
+  *ohne diese Anzeige ist es eine Wette.* Und **trifft die Regel nichts, steht
+  der Grund daneben** — eine leere Aussage ohne Erklärung sieht aus wie ein
   Fehler.
+  *0.20.0 zeigte dafür genau die Dateien, die die Regel treffen würde; **seit
+  0.20.1 ist es die vollständige Liste mit einer Marke an der betroffenen
+  Zeile** — der Grund steht in der Regel darunter.*
 - **Aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die GELUNGEN
   ist.** *Sonst räumt die Installation genau in dem Augenblick auf, in dem sie
   keine neue Kopie zustande bringt.* **Gebaut ist das als Bauform und nicht als

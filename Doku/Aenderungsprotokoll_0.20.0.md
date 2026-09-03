@@ -511,5 +511,13 @@ trägt sie ein zweites Mal. **`public/` gehört dazu** (Stolperstein 158).
 **Abgeholt von einer laufenden Instanz** über `GET /api/stats` und nicht
 nachgerechnet: `12421721` bei Version `0.20.0`.
 
-> **IM FELD NOCH NICHT BESTÄTIGT.** Der Sollwert steht hier; was die laufende
-> Installation meldet, gehört daneben, sobald sie es gemeldet hat.
+> **IM FELD BESTÄTIGT.** Die laufende Installation hat am 3. September 2026
+> `12421721` gemeldet — genau den Sollwert. *Der Dateisatz auf dem Wirt ist
+> also der, der gemeint war.*
+>
+> **DER RUNDLAUF HAT DREI BEFUNDE GEBRACHT, und alle drei betreffen die
+> Oberfläche:** die vollständige Liste der Sicherungen stand nirgends, der
+> Bildschirmtext war zu lang, und „Boden" und „Schere" gehören nicht auf den
+> Bildschirm. **Sie sind 0.20.1.** *An der Regel selbst, an der Löschroute, an
+> den Grenzen, am Protokolleintrag und am Anschluss an die Sicherung hat der
+> Rundlauf nichts gefunden.*

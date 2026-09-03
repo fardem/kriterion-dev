@@ -6326,6 +6326,58 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und der Ordner ist danach unveraendert',
       auDa().length === 11, auDa().join(' · '));
   }
+
+  /* --- DIE VOLLSTAENDIGE LISTE IN DER ANTWORT -- das Feld, aus dem die Karte
+     ihre Liste zeichnet, seit 0.20.1.
+
+     GEFUNDEN HAT DIESE LUECKE DER STUMME RUECKBAU 568: er dreht die
+     Nummerierung in `server.js` um, und KEINE EINZIGE Pruefung wurde rot. Der
+     Grund ist Stolperstein 102 in Reinform -- die Oberflaechengruppe zaehlt die
+     Nummern am MOCK, und der rechnet sie selbst; die ECHTE Antwort sah niemand
+     an. **Jedes Feld, das die Karte liest, gehoert an der echten Antwort
+     geprueft.** --- */
+  {
+    const r = await auRuf('cookie-au-anna', 'GET', '/api/sicherung');
+    const liste = r.inhalt?.aufraeumen?.dateien || [];
+    pruefe('Die Antwort traegt die vollstaendige Liste der Sicherungen',
+      liste.length === 7, `${liste.length} Eintraege, 7 erwartet`);
+    /* JUENGSTE ZUERST, UND NUMMER 1 IST SIE -- dieselbe Richtung, in der die
+       Mindestzahl zaehlt. Liefe sie andersherum, stuende das Gefaehrliche oben,
+       und „mindestens 3 behalten" waere an der Liste nicht mehr ablesbar. */
+    pruefe('Die Nummern laufen von 1 bis 7',
+      gleich(liste.map(z => z.nr), [1, 2, 3, 4, 5, 6, 7]),
+      JSON.stringify(liste.map(z => z.nr)));
+    pruefe('Und Nummer 1 ist die JUENGSTE',
+      liste[0]?.tageHer === 0 && liste[liste.length - 1]?.tageHer === 200,
+      JSON.stringify(liste.map(z => z.tageHer)));
+    // Und die Reihenfolge ist wirklich nach Alter geordnet und nicht zufaellig.
+    pruefe('Die Liste ist nach Alter geordnet',
+      liste.every((z, i) => i === 0 || liste[i - 1].tageHer <= z.tageHer),
+      JSON.stringify(liste.map(z => z.tageHer)));
+    pruefe('Je Eintrag Datum, Alter und Groesse',
+      liste.every(z => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(z.am) &&
+        Number.isInteger(z.tageHer) && z.bytes > 0),
+      JSON.stringify(liste[0]));
+    /* DIE MARKE `faellt` STEHT AN GENAU DEN DREI EINTRAEGEN, die die Regel
+       trifft -- gegen die Trefferliste daneben gehalten. Zwei Felder ueber
+       dieselbe Frage duerfen sich nicht widersprechen (Stolperstein 47). */
+    pruefe('Die Marke `faellt` steht an genau den Kopien, die die Regel trifft',
+      gleich(liste.filter(z => z.faellt).map(z => z.datei).sort(), AU_FALLEN),
+      liste.filter(z => z.faellt).map(z => z.datei).join(' · '));
+    pruefe('Und ohne Schluesselwechsel traegt keine die Marke `veraltet`',
+      liste.every(z => z.veraltet === false), JSON.stringify(liste.map(z => z.veraltet)));
+    /* UND KEIN DATEINAME FEHLT IN DER ANTWORT: die Karte zeigt ihn nicht mehr,
+       die Antwort traegt ihn trotzdem -- er ist die einzige Angabe, an der sich
+       ein Eintrag ueber zwei Abrufe hinweg wiedererkennen laesst. */
+    pruefe('Jeder Eintrag traegt seinen Dateinamen, auch wenn die Karte ihn nicht zeigt',
+      liste.every(z => /^kriterion-.+\.sqlite$/.test(z.datei)),
+      JSON.stringify(liste.map(z => z.datei).slice(0, 2)));
+    // Und die fremden Dinge im Ordner stehen NICHT darin.
+    pruefe('Und nichts Fremdes steht in der Liste',
+      !liste.some(z => /notizen|\.bak|unterordner|verweis/.test(z.datei)),
+      liste.map(z => z.datei).join(' · '));
+  }
+
   /* EIN ANDERER WERT RECHNET SIE NEU, OHNE ETWAS ZU SPEICHERN. Wer die Zahl
      von 3 auf 1 stellt, sieht sofort, was das kostet. */
   {

@@ -220,7 +220,7 @@ entschieden und hat seinen Ort.*
 |---|---|
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
-| **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — Teil (c) des Punktes ist trotzdem billig und empfohlen)* |
+| **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
 | **eingetragen als 0.22.0** | **5, 6** |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
@@ -1231,9 +1231,17 @@ Eintrag in `F_ROUTEN`.** Für **(a)** und **(b)** zusätzlich `POST /api/sicheru
 den Wiederherstellungsweg in der README und `SICHERUNG_MUSTER`. **Kein Schema
 in keinem der drei Fälle.**
 
-> **KEINE NUMMER.** Der Betreiber hat 0.22.0 vorgeschlagen; **die Zahl ist
-> vergeben** — dort steht die wählbare Bildablage (Punkt 6 samt den Ableitungen
-> aus Punkt 5). *Nach Regel 3 dieses Blatts wird hier gesammelt und später in
-> einem Zug zugeordnet; die Nummer entscheidet der Betreiber.* **Teil (c) ist
-> klein genug, um in einer Runde mitzufahren, die ohnehin an der Karte
-> arbeitet.**
+> **TEIL (c) IST MIT 0.20.1 GEBAUT** — noch am Tag, an dem dieser Punkt
+> entstanden ist. Die Karte „Alte Sicherungen" listet ab jetzt **alle**
+> Sicherungen mit **Nummer, Datum, Alter und Größe**, jüngste zuerst, Deckel bei
+> fünf Zeilen; die Karte „Sicherung" sagt dafür nur noch etwas über die
+> **letzte**. *Was gebaut wurde, steht im Änderungsprotokoll 0.20.1.* **Er ist
+> in einer Runde mitgefahren, die ohnehin an der Karte gearbeitet hat** — genau
+> wie es hier stand.
+>
+> **(a) UND (b) BLEIBEN OHNE NUMMER.** Der Betreiber hat 0.22.0 vorgeschlagen;
+> **die Zahl ist vergeben** — dort steht die wählbare Bildablage (Punkt 6 samt
+> den Ableitungen aus Punkt 5). *Nach Regel 3 dieses Blatts wird hier gesammelt
+> und später in einem Zug zugeordnet; die Nummer entscheidet der Betreiber.*
+> **Und der Kern des Punktes bleibt, wie die Messung ihn gefunden hat: eine
+> verschlüsselte Sicherung lässt sich nicht packen.**
