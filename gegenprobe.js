@@ -3893,11 +3893,16 @@ const RUECKBAUTEN = [
   },
   {
     /* Der Schalter faellt aus der Eigentuemerliste und wird damit gewoehnliche
-       Adminsache. Er bestimmt, wie die ganze Instanz ablegt. */
+       Adminsache. Er bestimmt, wie die ganze Instanz ablegt.
+       DER SUCHTEXT IST MIT 0.20.0 MITGEGANGEN, nicht geloescht (Stolperstein
+       201): die Liste traegt seit dieser Runde vier Schluessel statt einem.
+       Der Rueckbau nimmt weiterhin GENAU `bilderUmwandeln` heraus und laesst
+       die drei neuen stehen -- sonst pruefte er nicht mehr dasselbe. */
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     datei: 'server.js',
-    suche: "const EIGENTUEMER_SCHLUESSEL = ['bilderUmwandeln'];",
-    ersatz: "const EIGENTUEMER_SCHLUESSEL = [];",
+    suche: "const EIGENTUEMER_SCHLUESSEL = ['bilderUmwandeln',\n" +
+           "                                'sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];",
+    ersatz: "const EIGENTUEMER_SCHLUESSEL = ['sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];",
     erwartet: 'Die Bildablage: die Rechte'
   },
   {
@@ -5011,6 +5016,270 @@ const RUECKBAUTEN = [
     suche: "    box.innerHTML = '';\n    item.photos.forEach((p, i) => {",
     ersatz: "    box.innerHTML = '';\n    [].forEach((p, i) => {",
     erwartet: 'Die Ansicht kann fort sein — 0.19.6'
+  },
+
+  /* ---- Alte Sicherungen aufraeumen -- 0.20.0 ----
+     DIE REGEL HAT ZWEI BEDINGUNGEN, und die beiden ersten Rueckbauten nehmen je
+     eine davon weg. Sie sind die wichtigsten der Runde: jede einzelne Bedingung
+     ist ausgerechnet in der Lage falsch, in der sie gebraucht wird
+     (Stolperstein 299), und ohne diese beiden belegte die Tafel nichts darueber,
+     dass wirklich BEIDE zutreffen muessen. */
+  {
+    /* NUR NOCH DAS ALTER -- der Boden faellt weg. Eine Installation, an der ein
+       halbes Jahr nicht gesichert wurde, verliert damit ALLE Kopien auf einen
+       Schlag, genau dann, wenn sie die einzigen sind. */
+    nr: '544', name: 'Die Regel kennt nur das Alter -- der Boden faellt weg',
+    datei: 'server.js',
+    suche: "  return brauchbar.slice(behalten).filter(d => d.zeit < grenze);",
+    ersatz: "  return brauchbar.filter(d => d.zeit < grenze);",
+    erwartet: 'Die Aufraeumregel an der Tafel'
+  },
+  {
+    /* NUR NOCH DIE ZAHL -- die Schere faellt weg. Wer an einem Nachmittag
+       viermal auf den Knopf drueckt, wirft damit die Kopie vom Vormonat weg,
+       obwohl nichts alt ist. */
+    nr: '545', name: 'Die Regel kennt nur die Zahl -- die Schere faellt weg',
+    datei: 'server.js',
+    suche: "  return brauchbar.slice(behalten).filter(d => d.zeit < grenze);",
+    ersatz: "  return brauchbar.slice(behalten);",
+    erwartet: 'Die Aufraeumregel an der Tafel'
+  },
+  {
+    /* DIE MUSTERPRUEFUNG FAELLT WEG -- und mit ihr die Zusage, um die es in
+       dieser Runde am meisten geht: eine fremde Datei im Sicherungsordner wird
+       angefasst. Getauscht wird die KONSTANTE und nicht eine der beiden
+       Abfragen: nur so faellt sie an BEIDEN Stellen zugleich, und genau das ist
+       die Lage, in der `notizen.txt` wirklich verschwindet. */
+    nr: '546', name: 'Die Musterpruefung faellt weg -- die fremde Datei faellt mit',
+    datei: 'server.js',
+    suche: "const SICHERUNG_MUSTER = /^kriterion-.+\\.sqlite$/;",
+    ersatz: "const SICHERUNG_MUSTER = /./;",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* DIE ZWEITE MUSTERPRUEFUNG, unmittelbar vor dem unlink. Sie ist bei
+       heilem Muster keine Verdopplung, sondern die Klemme an der Stelle, an
+       der der Fehler wehtut: wer entferneSicherungen() je von woanders her
+       ruft, kommt an ihr nicht vorbei. AM VERHALTEN ALLEIN WAERE SIE STUMM --
+       die Namen kommen heute aus sicherungsListe() und sind laengst geprueft;
+       rot wird deshalb der Waechter ueber den Quelltext. */
+    nr: '547', name: 'Die zweite Musterpruefung vor dem unlink faellt weg',
+    datei: 'server.js',
+    suche: "    if (kurz !== String(n) || !SICHERUNG_MUSTER.test(kurz)) { geblieben.push(kurz); continue; }",
+    ersatz: "    if (false) { geblieben.push(kurz); continue; }",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* EIN SYMLINK WIRD ZUR SICHERUNG. statSync folgt dem Verweis und meldet
+       die Datei am anderen Ende als regulaer; lstatSync sieht den Verweis
+       selbst. Der Verweis im Prueflauf zeigt aus dem Ordner heraus -- und sein
+       Ziel ist eigens alt, sonst deckte ihn der Boden. */
+    nr: '548', name: 'Die Liste folgt dem Symlink statt ihn zu sehen',
+    datei: 'server.js',
+    suche: "      const st = fs.lstatSync(path.join(pfad, n));",
+    ersatz: "      const st = fs.statSync(path.join(pfad, n));",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* DASSELBE AM ENTFERNEN. Am Verhalten allein bliebe es stumm, solange die
+       Liste darueber heil ist -- rot wird der Waechter ueber den Quelltext,
+       und das ist hier die richtige Stelle: die beiden Fragen stehen
+       absichtlich zweimal da. */
+    nr: '549', name: 'Das Entfernen folgt dem Symlink',
+    datei: 'server.js',
+    suche: "      const st = fs.lstatSync(voll);",
+    ersatz: "      const st = fs.statSync(voll);",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* DER BODEN ZAEHLT WIEDER ALLE KOPIEN -- Entscheidung 5 faellt. Drei
+       Kopien, von denen zwei vor dem Schluesselwechsel entstanden sind, sind in
+       Wahrheit eine; wer sie mitzaehlt, raeumt die einzige brauchbare weg. */
+    nr: '550', name: 'Der Boden zaehlt auch die veralteten Kopien mit',
+    datei: 'server.js',
+    suche: "    .filter(d => wechselMs == null || d.zeit >= wechselMs)",
+    ersatz: "    .filter(() => true)",
+    erwartet: 'Die Aufraeumregel an der Tafel'
+  },
+  {
+    /* NACH EINER GESCHEITERTEN SICHERUNG WIRD DOCH AUFGERAEUMT -- der Aufruf
+       wandert vor den Fehlerausgang. Genau das ist die wichtigste Zeile der
+       Runde: sonst raeumt die Installation in dem Augenblick auf, in dem sie
+       keine neue Kopie zustande bringt. */
+    nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
+    datei: 'server.js',
+    suche: "  if (fs.existsSync(datei))\n" +
+           "    return res.status(409).json({ error: 'In dieser Sekunde liegt dort schon eine Sicherung.' });",
+    ersatz: "  if (fs.existsSync(datei)) {\n" +
+            "    const r = aufraeumStand();\n" +
+            "    if (r.an) entferneSicherungen(ziel.pfad, regelTreffer(sicherungsListe(ziel.pfad) || [],\n" +
+            "      r.behalten, r.tage, Date.now(), (wechselMarke() || {}).ms ?? null).map(d => d.name));\n" +
+            "    return res.status(409).json({ error: 'In dieser Sekunde liegt dort schon eine Sicherung.' });\n" +
+            "  }",
+    erwartet: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
+  },
+  {
+    /* DAS AUFRAEUMEN REISST DIE GELUNGENE SICHERUNG MIT -- genau der Fehler aus
+       0.19.6 (Stolperstein 298): aus einem geglueckten Vorgang wird eine rote
+       Meldung. Der Rueckbau nimmt dem `catch` seine Wirkung UND setzt einen
+       Ausgang dahinter; einer von beiden allein bliebe stumm, weil im Prueflauf
+       nichts wirft. */
+    nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
+    datei: 'server.js',
+    suche: "    console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);\n" +
+           "    aufgeraeumt = { weg: 0, nicht: 0, bytes: 0, gescheitert: true };\n" +
+           "  }",
+    ersatz: "    throw e;\n" +
+            "  }\n" +
+            "  if (aufgeraeumt && aufgeraeumt.weg)\n" +
+            "    return res.status(500).json({ error: 'Die Sicherung ist gescheitert.' });",
+    erwartet: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
+  },
+  {
+    /* DER SCHALTER STEHT WIEDER AUF AN, wenn nichts dasteht -- die Abweichung
+       von `bilderUmwandeln` faellt weg. Eine umgewandelte PNG-Datei holt der
+       Knopf in der Gegenrichtung zurueck; eine geloeschte Sicherung holt
+       nichts zurueck. */
+    nr: '553', name: 'Der Schalter steht bei einer frischen Installation auf AN',
+    datei: 'server.js',
+    suche: "    an: getSetting('sicherungAufraeumen', false) === true,",
+    ersatz: "    an: getSetting('sicherungAufraeumen', true) !== false,",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* DIE GRENZEN HALTEN NICHT MEHR AM SERVER. `min`/`max` im HTML bleibt
+       stehen -- und ist eine Bitte, keine Klemme: ein Feld, in das jemand 0
+       schreiben kann, ist eine Falle. */
+    nr: '554', name: 'Die Grenzen der beiden Werte halten nicht mehr am Server',
+    datei: 'server.js',
+    suche: "  if (!Number.isInteger(n) || n < spanne.min || n > spanne.max)",
+    ersatz: "  if (false)",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* DIE VORSCHAU RECHNET MIT ANDEREN WERTEN ALS DAS LOESCHEN -- zwei
+       Wahrheiten darueber, was gleich passiert (Stolperstein 47). Die Vorschau
+       verliert damit genau das, wofuer es sie gibt. */
+    nr: '555', name: 'Die Vorschau rechnet mit einem anderen Boden als das Loeschen',
+    datei: 'server.js',
+    suche: "  const treffer = regelTreffer(dateien, behalten, tage, jetzt, marke ? marke.ms : null);",
+    ersatz: "  const treffer = regelTreffer(dateien, Math.max(1, behalten - 1), tage, jetzt,\n" +
+            "                               marke ? marke.ms : null);",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* DIE LOESCHROUTE NIMMT EINEN DATEINAMEN ENTGEGEN -- die gefaehrlichste
+       Route der Anwendung, und sie waere es auch mit Pruefung: die Pruefung
+       stuende einen Handgriff davon entfernt, vergessen zu werden
+       (Stolperstein 300). */
+    nr: '556', name: 'Die Loeschroute nimmt einen Dateinamen aus dem Rumpf',
+    datei: 'server.js',
+    suche: "  const art = String(req.body?.art || '');",
+    ersatz: "  const art = String(req.body?.art || '');\n" +
+            "  if (req.body?.datei) {\n" +
+            "    const einzeln = entferneSicherungen(ziel.pfad, [req.body.datei]);\n" +
+            "    return res.json({ ok: true, art, weg: einzeln.weg, nicht: einzeln.geblieben.length,\n" +
+            "                      bytes: einzeln.bytes, ...letzteSicherung(ziel.pfad) });\n" +
+            "  }",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    nr: '557', name: 'Das Aufraeumen laeuft ohne zweite Bestaetigung',
+    datei: 'server.js',
+    suche: "app.post('/api/sicherung/aufraeumen', nurEigentuemer,\n" +
+           "         zweiteBestaetigungNoetig('sicherung'), (req, res) => {",
+    ersatz: "app.post('/api/sicherung/aufraeumen', nurEigentuemer, (req, res) => {",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* DIE ROUTE FAELLT AUF nurAdmin. Sie entfernt Dateien vom Dateisystem des
+       Wirts und liegt damit in derselben Zeile wie Export, Import und
+       Sicherung -- beim Eigentuemer. */
+    nr: '558', name: 'Ein gewoehnlicher Admin darf alte Sicherungen entfernen',
+    datei: 'server.js',
+    suche: "app.post('/api/sicherung/aufraeumen', nurEigentuemer,\n" +
+           "         zweiteBestaetigungNoetig('sicherung'), (req, res) => {",
+    ersatz: "app.post('/api/sicherung/aufraeumen', nurAdmin,\n" +
+            "         zweiteBestaetigungNoetig('sicherung'), (req, res) => {",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* KEINE ZEILE MEHR IM SICHERHEITSPROTOKOLL. Eine Loeschung, die keine Spur
+       hinterlaesst, ist die, nach der hinterher niemand suchen kann. */
+    nr: '559', name: 'Die entfernten Kopien stehen in keinem Protokoll mehr',
+    datei: 'server.js',
+    suche: "  for (let i = 0; i < zahl; i++) auth.protokolliere('sicherung.weg', { wer });",
+    ersatz: "  for (let i = 0; i < 0; i++) auth.protokolliere('sicherung.weg', { wer });",
+    erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
+  },
+  {
+    /* DER VORGANG FAELLT AUS DER GRUPPE `bestand`. Er stuende dann unter keiner
+       Ansicht des Filters -- ausser unter "alle", und dort sucht ihn niemand. */
+    nr: '560', name: 'Der Vorgang sicherung.weg steht in keiner Gruppe',
+    datei: 'auth.js',
+    suche: "  bestand: ['export', 'import', 'sicherung', 'sicherung.weg', 'schluessel']",
+    ersatz: "  bestand: ['export', 'import', 'sicherung', 'schluessel']",
+    erwartet: 'Das Sicherheitsprotokoll: die Gruppen des Filters'
+  },
+  {
+    /* DIE ZWANZIGSTE KARTE FAELLT WEG. Ohne sie gibt es die Bedienung gar
+       nicht -- der Schalter, die beiden Felder, die Vorschau und beide
+       Knoepfe stehen darauf. */
+    nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
+    datei: 'public/app.js',
+    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,\n" +
+           "    markup: karteAufraeumen,   ausruesten: ruesteAufraeumenAus },",
+    ersatz: "",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    /* SIE STEHT BEIM ADMIN STATT BEIM EIGENTUEMER -- dieselbe Klemme wie die
+       Karte "Sicherung" daneben faellt damit weg. */
+    nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
+    datei: 'public/app.js',
+    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,",
+    ersatz: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => ADMIN,",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    /* DIE VORSCHAU RECHNET NICHT MEHR NEU. Wer die Zahl von 3 auf 1 stellt,
+       sieht dann nicht mehr, was das kostet -- und die Karte zeigt eine
+       Vorschau zu Werten, die gar nicht mehr dastehen. */
+    nr: '563', name: 'Eine Aenderung am Feld rechnet die Vorschau nicht neu',
+    datei: 'public/app.js',
+    suche: "        el.oninput = vorschauNeu;",
+    ersatz: "        el.oninput = null;",
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DIE KARTE SCHICKT DIE DATEINAMEN MIT. Der Server nimmt sie nicht
+       entgegen -- aber eine Oberflaeche, die sie schickt, ist der erste
+       Handgriff zu einer Route, die sie liest. */
+    nr: '564', name: 'Die Karte schickt die Dateinamen an die Loeschroute mit',
+    datei: 'public/app.js',
+    suche: "      try { r = await api('POST', '/api/sicherung/aufraeumen', { art }); }",
+    ersatz: "      try { r = await api('POST', '/api/sicherung/aufraeumen',\n" +
+            "        { art, dateien: (a.treffer || []).map(t => t.datei) }); }",
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DER KNOPF IST AUCH DANN BEDIENBAR, WENN DIE REGEL NICHTS TRIFFT. Ein
+       Knopf, der zuverlaessig nichts tut, sieht aus wie ein Fehler. */
+    nr: '565', name: 'Der Knopf ist auch ohne Treffer bedienbar',
+    datei: 'public/app.js',
+    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>Regel",
+    ersatz: "id=\"auf-los\">Regel",
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DIE LISTE VERLIERT DEN GEMEINSAMEN DECKEL. Ein Ordner mit vierzig Kopien
+       zieht die Seite auf -- zehn Zeilen sind das Mass jeder Liste im
+       Systembereich, seit 0.17.3. */
+    nr: '566', name: 'Die Vorschauliste bekommt keinen Deckel',
+    datei: 'public/app.js',
+    suche: '    const liste = (zeilen) => `<div class="manage-list">',
+    ersatz: '    const liste = (zeilen) => `<div class="auf-liste">',
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
