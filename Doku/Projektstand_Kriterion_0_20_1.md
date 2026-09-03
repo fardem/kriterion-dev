@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 55 · Stand 3. September 2026 · gebaut: Version 0.20.0**
+**Kompakte Übergabe · Revision 56 · Stand 3. September 2026 · gebaut: Version 0.20.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,26 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.20.1 in einem Satz: die Karte listet die Sicherungen, und der Text wird
+kurz.** *PATCH — die Installation kann danach nichts, was sie vorher nicht
+konnte: dieselbe Regel, dieselben Knöpfe, dieselben Dateien fallen. Sie sagt nur
+mehr und mit weniger Worten.* **Drei Befunde aus dem Betrieb, unmittelbar nach
+dem Einspielen von 0.20.0.** *Erstens:* **die vollständige Liste stand
+nirgends** — die Karte „Sicherung" nannte die jüngste Kopie und die **Zahl** der
+Dateien am Ort, die Karte „Alte Sicherungen" nur die, die die Regel treffen
+würde. **Jetzt listet sie ALLE**: jüngste zuerst, **nummeriert**, mit Datum,
+Alter und Größe, Deckel bei **fünf** Zeilen, der Rest rollt. **Nur zum Ansehen —
+kein Knopf je Zeile** (eine einzelne Kopie per Klick wäre die Löschroute mit
+Dateinamen, Stolperstein 300). *Zweitens:* **der Bildschirmtext war zu lang.**
+*„Der Text vom GUI muss so kurz wie möglich sein und dennoch muss zu verstehen
+sein, was gemeint ist."* Geblieben sind zwei Tatsachen — **unwiderruflich**, und
+**nur das Namensschema der Installation**. *Drittens:* **„Boden" und „Schere"
+sind vom Bildschirm herunter** — sie sind Bilder des Projekts und kein
+Bildschirmtext; die Begründung tragen sie in Abschnitt 5.3 und in den
+Kommentaren weiter. **Und die Karte „Sicherung" sagt nur noch etwas über die
+LETZTE Sicherung**; der Kasten zum Schlüsselwechsel bleibt, denn er ist eine
+Warnung und keine Auflistung.
 
 **0.20.0 in einem Satz: alte Sicherungen lassen sich entfernen, ohne dass
 jemand eine Shell öffnet.** *MINOR — die Installation kann danach etwas, was sie
@@ -405,8 +425,17 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.20.0** — Fingerprint **`12421721`**, **5374
-Prüfungen**, **558 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.20.1** — Fingerprint **`c67a13f9`**, **5391
+Prüfungen**, **561 Rückbauten in der Liste** (Abschnitt 8).
+*0.20.1 ist die Nacharbeit an 0.20.0 aus drei Feldbefunden: die Karte listet ab
+jetzt alle Sicherungen mit Nummer, Datum und Größe, der Bildschirmtext ist
+kurz, und „Boden" und „Schere" stehen dort nicht mehr.*
+**PATCH — KEINE DATENBANKSTUFE, KEIN BESTANDSLAUF.** *Dieselbe Regel, dieselben
+Knöpfe, dieselben Dateien fallen; die Karte sagt nur mehr und mit weniger
+Worten.* **Nach dem Einspielen im Browser einmal hart neu laden.**
+
+**Davor: 0.20.0** — Fingerprint **`12421721`**, **5374
+Prüfungen**, 558 Rückbauten.
 *0.20.0 baut eine Hälfte fertig, die von Anfang an fehlte: Kriterion schrieb
 Sicherungen und entfernte keine. Die Regel hat zwei Bedingungen — nicht unter
 den N jüngsten UND älter als X Tage —, die Vorschau nennt vorher namentlich,
@@ -1244,7 +1273,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.20.0** | **`12421721`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5374 |
+| **0.20.1** | **`c67a13f9`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5391 |
+| 0.20.0 | `12421721` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**; die drei Befunde daraus sind 0.20.1)* | 5374 |
 | 0.19.6 | `109cd457` *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5246 |
 | 0.19.5 | `f228a06d` *(am 3. September 2026 im Feld bestätigt — der Befund zu dieser Runde ist 0.19.6)* | 5237 |
 | 0.19.4 | `03e3b818` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**)* | 5207 |
@@ -2996,6 +3026,18 @@ verschlüsselt sind** — und der Kasten steht nur da, wenn er etwas zu sagen ha
 und hinterlässt keine Datei, die Änderungszeit einer Kopie ist dagegen die Sache
 selbst.*
 
+> **SEIT 0.20.1 SAGT DIESE KARTE NUR NOCH ETWAS ÜBER DIE LETZTE SICHERUNG.** Die
+> Zeile *„Dateien am Ort"* — die Zahl der Kopien und wie viele davon mit dem
+> alten Schlüssel liegen — ist herausgefallen: **die Karte „Alte Sicherungen"
+> daneben listet ab jetzt ALLE Kopien** mit Nummer, Datum, Größe und ihren
+> Marken, und dieselbe Auskunft an zwei Stellen ist eine zu viel (Stolperstein
+> 47). *Damit fällt auch die „Brücke zwischen beiden Karten", die der Auftrag
+> zu 0.20.0 in dieser Zeile gesehen hat — sie ist überflüssig geworden, weil
+> die Nachbarkarte die vollständige Auskunft trägt.*
+> **DER KASTEN ZUM SCHLÜSSELWECHSEL BLEIBT.** Er ist keine Auflistung, sondern
+> die Warnung, dass ein alter Schlüssel noch gebraucht wird — und in seiner
+> schärfsten Lage sagt er etwas über die **jüngste** Kopie.
+
 **Der Sicherungsort ist zweistufig** — die Wurzel aus `SICHERUNG_DIR`, ein
 Unterverzeichnis darunter aus der Oberfläche, geprüft am **aufgelösten** Pfad.
 `GET /api/sicherung` sagt über `imArbeitsverzeichnis`, ob die Wurzel im
@@ -3016,7 +3058,8 @@ reine Funktion an genau einer Stelle**; Vorschau und Löschen rufen dieselbe.
 | Vorgabe des Schalters | **AUS.** *Eine gelöschte Sicherung holt nichts zurück* |
 | Was angefasst wird | ausschließlich, was auf `SICHERUNG_MUSTER` passt, nur im geprüften Ordner, **nie in Unterverzeichnissen**, und nur, was `lstatSync` als reguläre Datei meldet — **ein Symlink ist keine Sicherung** |
 | Kopien von vor dem Wechsel | **fasst die Regel gar nicht an**, und der Boden zählt sie nicht mit. *Wegräumen lassen sie sich über denselben Knopf, aber ausdrücklich und getrennt* |
-| Vorschau | nennt vorher namentlich, was fallen würde, mit Datum, Alter und Größe; **trifft sie nichts, nennt sie den Grund** |
+| Die Liste | **alle** Sicherungen am Ort, jüngste zuerst, **nummeriert**, mit Datum, Alter und Größe — Deckel bei **fünf** Zeilen, der Rest rollt. **Nur zum Ansehen: kein Knopf je Zeile.** Je Zeile eine Marke — *löschen* (die Regel trifft sie) oder *alter Schlüssel* |
+| Was fällt | eine Zeile darunter: Zahl und freigegebene Bytes. **Trifft die Regel nichts, steht der Grund da** |
 | Route | `POST /api/sicherung/aufraeumen`, `nurEigentuemer`, zweitbestätigt — **sie nimmt keine Dateinamen entgegen** |
 | Protokoll | **eine Zeile `sicherung.weg` je entfernter Kopie**, ohne Namen und ohne Pfad |
 
@@ -3791,6 +3834,20 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
   Angabe NEBEN der Sicherung, kein Ersatz für sie (Stolperstein 298).
 - **Eine Route, die Dateien entfernt, nimmt keine Dateinamen entgegen**
   (Stolperstein 300). Die Auflage für alles Weitere steht in Abschnitt 11.
+- **„Boden" und „Schere" sind Bilder DIESES PAPIERS und kein Bildschirmtext**
+  (seit 0.20.1, aus dem Betrieb: *„das spricht man hier nicht"*). Sie tragen
+  hier und in den Kommentaren die Begründung, warum die Regel zwei Bedingungen
+  hat; **am Bildschirm heißen sie „Mindestens behalten" und „Löschen ab
+  Alter"** — was das Feld tut, nicht wie das Bild dazu heißt. *Dieselbe
+  Trennlinie wie bei Abschnitt 5.6: eine Oberfläche sagt, WAS IST, nicht, warum
+  es so gebaut wurde.*
+- **Wo es keinen Papierkorb gibt, zeigt die Oberfläche den ganzen Bestand und
+  nicht nur, was fällt** (seit 0.20.1). *Die erste Fassung zeigte genau die
+  Dateien, die die Regel treffen würde — richtig, und trotzdem zu wenig: wer
+  wissen will, ob er löschen darf, will sehen, WAS DALIEGT.* **Die Liste nennt
+  alle, nummeriert von der jüngsten an, und markiert an der Zeile, welche
+  fällt.** *Die Nummer läuft in derselben Richtung wie die Mindestzahl — damit
+  liest sich „mindestens 3 behalten" unmittelbar an der Liste ab.*
 
 ### 5.4 Schema, Daten und Austauschformat
 
@@ -8151,10 +8208,19 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5374 von 5374 bestanden** (0.20.0) — **128 neue, keine
-weggefallen.** *0.19.6 davor brachte neun.*
+**Stand: 5391 von 5391 bestanden** (0.20.1) — **17 neue, keine
+weggefallen.** *0.20.0 davor brachte 128.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **558** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **561** Rückbauten.
+
+| Gruppe (0.20.1) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Die Karte „Alte Sicherungen" in der Oberfläche** | 20 | **37** | **Die Liste ist der Gegenstand.** Belegt wird: sie führt **alle** Sicherungen und nennt ihre Zahl in der Überschrift; die **Nummern laufen von der jüngsten (1) zur ältesten**; je Zeile stehen Datum, Alter und Größe **und kein Dateiname**; **kein Knopf in einer Zeile** — die Liste ist nur zum Ansehen; die Zeilen, die die Regel trifft, sind **markiert**, die drei jüngsten nicht; **keine Zeile trägt beide Marken**; der Deckel ist die Regel `#auf-liste` im Stilblatt samt ihrer Rechnung. Dazu die kurzen Texte: *„Ohne Häkchen nur auf Knopfdruck."*, **unwiderruflich**, **nur das Namensschema** — und die **Verneinungen** daneben: die Begründung des Schalters, der Satz über die fremde Datei, das Wort **„Vorgabe"** und **„Boden"/„Schere"** stehen nicht mehr am Bildschirm |
+| **Die Sicherung in der Oberfläche** | 52 | **52** | **eine umgedrehte Zusage statt einer gelöschten** (Stolperstein 74): die Zeile *„Dateien am Ort"* stand bis 0.20.0 in dieser Karte und wird jetzt daran geprüft, dass sie **nicht mehr** dasteht |
+| **zusammen** | **5374** | **5391** | **+17** |
+
+**Und die Runde davor, zum Vergleich — 5374 von 5374 bestanden** (0.20.0) —
+**128 neue, keine weggefallen.**
 
 | Gruppe (0.20.0) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -8697,6 +8763,16 @@ Rückbauten.*
   darunter ein **Symlink**, der aus der Wurzel herausführt. „Letzte Sicherung"
   folgt dem **Dateisystem**. Und die Probe, dass `db.backup()` kein zweiter Weg
   ist.
+- **Die Karte „Alte Sicherungen"** *(0.20.1)*: die **Liste** ist der
+  Gegenstand — alle Sicherungen, **nummeriert von der jüngsten an**, mit Datum,
+  Alter und Größe und **ohne Dateinamen**; **kein Knopf in einer Zeile**; die
+  Zeilen, die die Regel trifft, sind **markiert**, und **keine trägt beide
+  Marken**. *Der Deckel wird an der REGEL im Stilblatt geprüft und nicht an
+  einer gerechneten Höhe — jsdom rechnet kein Layout.* **Und die Verneinungen
+  stehen daneben:** die Begründung des Schalters, der Satz über die fremde
+  Datei, das Wort „Vorgabe" und die beiden Bilder „Boden"/„Schere" dürfen am
+  Bildschirm **nicht** mehr auftauchen. *Eine Karte, die den kurzen UND den
+  langen Satz trägt, ist nicht kürzer geworden.*
 - **Das Aufräumen alter Sicherungen** *(0.20.0)*: **zweigeteilt und
   ausdrücklich so.** Die **Regel** wird an einer **Tafel** geprüft — die echte
   Funktion wird aus `server.js` herausgeschnitten und gelaufen; sie bekommt
@@ -9035,6 +9111,7 @@ eine Buchführung.*
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
 | **0.19.5** | **Der Ausschnitt wird eingerechnet (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
+| **0.20.1** | **Die Karte listet die Sicherungen (17 netto: 5374 → 5391)** | **drei neue (558 → 561, Nummern 567 bis 569); DREI nachgezogen (563, 565 — und **566 in eine andere Datei**: der Deckel der Liste ist seit dieser Runde eine Regel im Stilblatt und keine Klasse im Markup); GEGENPROBEN_0_20_1** | — |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell (128 netto: 5246 → 5374)** | **dreiundzwanzig neue (535 → 558, Nummern 544 bis 566); EINER nachgezogen (437 — `EIGENTUEMER_SCHLUESSEL` trägt jetzt vier Schlüssel statt einem); **24 gefahren** (die 23 neuen und der nachgezogene 437), **KEINER stumm**; **einer riss beim ersten Mal den Lauf ab** (561 — die Prüflage fasste Knoten ohne Klemme an, Stolperstein 161) und ist nach der Berichtigung mit 38 roten Punkten nachgefahren** | **Stolpersteine 299 und 300** |
 | **0.19.6** | **Die Ansicht kann fort sein (9 netto: 5237 → 5246)** | **drei neue (532 → 535, Nummern 541 bis 543); SECHS nachgezogen (516, 517, 532 bis 535 — sie zeigten auf Zeilen, in denen das Wort „backen" stand); 3 gefahren, KEINER stumm** | **Stolperstein 298** |
 
@@ -9052,15 +9129,26 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.20.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Vier Handgriffe, und
-  sie sind die Runde:* **(a)** die Karte **„Alte Sicherungen"** öffnen — der
-  Schalter muss auf **aus** stehen, die Felder auf **3** und **30**; **(b)** die
-  **Vorschau** lesen und einen der beiden Werte verstellen — sie muss sich
-  sofort ändern, **ohne dass etwas gespeichert oder gelöscht wird**; **(c)**
-  eine **fremde Datei** in den Sicherungsordner legen und den Knopf drücken —
-  **sie muss liegen bleiben**; **(d)** die **Zeile im Sicherheitsprotokoll**
-  nachsehen (Gruppe „Bestand"), eine je entfernter Kopie, **ohne Dateinamen**.
-  *Die Befehle dazu stehen im Chat der Runde, nicht hier.*
+- **0.20.1 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Drei Handgriffe:*
+  **(a)** die Karte **„Alte Sicherungen"** öffnen — die **Liste** muss alle
+  Sicherungen führen, **#1 die jüngste**, mit Datum, Alter und Größe, und ab
+  der sechsten Zeile rollen; **(b)** die Mindestzahl verstellen — die Marken
+  **`löschen`** müssen sofort mitwandern, **ohne dass etwas gespeichert oder
+  gelöscht wird**; **(c)** die Karte **„Sicherung"** ansehen — sie darf **keine
+  Zeile „Dateien am Ort"** mehr tragen. *Die Befehle dazu stehen im Chat der
+  Runde, nicht hier.*
+- **0.20.0 IST IM FELD BESTÄTIGT** — die laufende Installation hat am
+  3. September 2026 den Fingerprint **`12421721`** gemeldet, also genau den
+  Sollwert. **Die drei Befunde aus diesem Rundlauf sind 0.20.1**, und sie
+  betrafen alle die Oberfläche: die fehlende Liste, der zu lange Text und die
+  beiden Bilder „Boden" und „Schere". *An der Regel selbst und an der
+  Löschroute hat der Rundlauf nichts gefunden.*
+- **DIE VIER HANDGRIFFE AUS 0.20.0 SIND DAMIT NOCH NICHT ALLE GEFAHREN.**
+  *Offen bleibt das Wichtigste:* **eine fremde Datei in den Sicherungsordner
+  legen, den Knopf drücken und nachsehen, dass sie liegen bleibt** — und die
+  **Zeile im Sicherheitsprotokoll** (Gruppe „Bestand"), eine je entfernter
+  Kopie, **ohne Dateinamen**. *Der Prüfstand belegt beides an einem echten
+  Ordner; der Feldbeleg fehlt.*
 - **ANGEFANGENE KOPIEN (`*.wird`) BLEIBEN LIEGEN.** Sie entstehen nur, wenn der
   Server mitten im `VACUUM INTO` stirbt; sie fallen aus `SICHERUNG_MUSTER`, und
   **eine Regel, die zwei Muster kennt, ist zwei Regeln.** *Der Fall gehört
@@ -9670,6 +9758,39 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.20.1 — „Die Karte listet die Sicherungen"
+
+**PATCH · 3. September 2026 · drei Befunde aus dem Betrieb, unmittelbar nach
+dem Einspielen von 0.20.0** *(Fingerprint `12421721`, im Feld bestätigt).*
+*Angefasst sind `server.js`, `public/app.js`, `public/style.css`, `pruefung.js`,
+`gegenprobe.js`, `package.json`, `package-lock.json` und die Papiere.* **KEINE
+DATENBANKSTUFE, KEIN BESTANDSLAUF, KEINE NEUE ROUTE, KEINE NEUE KARTE.**
+Austauschformat **12**, `F_ROUTEN` **71**, neun Zwecke der zweiten Bestätigung,
+einundzwanzig Vorgänge, zwanzig Karten, neun ausgelieferte Module.
+
+| # | Was | Warum |
+|---|---|---|
+| **1** | **Die Karte listet ALLE Sicherungen** | Bis 0.20.0 nannte die Karte „Sicherung" die **jüngste** Kopie und die **Zahl** der Dateien am Ort, die Karte „Alte Sicherungen" nur die, die die Regel treffen würde. **Die vollständige Liste stand nirgends.** Jetzt: jüngste zuerst, **nummeriert**, mit Datum, Alter und Größe |
+| **2** | **Die Nummer läuft von der jüngsten (1) zur ältesten** | So, wie die Mindestzahl zählt. *Damit liest sich „mindestens 3 behalten" unmittelbar an der Liste ab: was fällt, steht ab Nummer 4* |
+| **3** | **Nur zum Ansehen — kein Knopf je Zeile** | Eine einzelne Kopie per Klick zu löschen wäre die Löschroute mit Dateinamen, und die gibt es ausdrücklich nicht (Stolperstein 300). *Was fällt, sagt eine **Marke** an der Zeile: `löschen` rot, `alter Schlüssel` gedämpft* |
+| **4** | **Kein Dateiname in der Zeile** | *Und dabei geht nichts verloren: der Name IST die Zeitmarke (`kriterion-<Datum>-<Uhrzeit>.sqlite`), und die Zeile nennt Datum und Uhrzeit.* Aus dem Betrieb: *„dann aber braucht es nicht die vollen Namen, sondern einfach Nummer, Datum, Größe"* |
+| **5** | **Der Deckel liegt bei FÜNF Zeilen**, nicht bei den zehn der übrigen Systemlisten | Die Liste steht **mitten** in ihrer Karte — unter ihr die Summenzeile, der Löschknopf und die Kopien mit dem alten Schlüssel samt eigenem Knopf. *Dieselbe Ausnahme und dieselbe Begründung wie bei `#ex-teil-liste`; die Zahl kommt aus dem Betrieb* |
+| **6** | **Der Bildschirmtext wird kurz** | *„Der Text vom GUI muss so kurz wie möglich sein und dennoch muss zu verstehen sein, was gemeint ist."* Heraus sind: die Begründung des Schalters *(„das ist Absicht")*, der Satz über die gescheiterte Sicherung, der Satz über die fremde Datei und das Wort **„Vorgabe"**. **Geblieben sind zwei Tatsachen: unwiderruflich, und nur das Namensschema der Installation** |
+| **7** | **Die Felder heißen, was sie tun** | „Mindestens behalten" und „Löschen ab Alter (Tage)". *Das Altersfeld erklärt sich mit der **lebenden** Mindestzahl: „nur, wenn mehr als 3 liegen" — die 3 kommt aus dem Feld darüber und nicht aus dem Text* |
+| **8** | **„Boden" und „Schere" sind vom Bildschirm herunter** | *„Boden und Schere sind Begriffe, die hier nicht benutzt werden. Das spricht man hier nicht."* **Sie bleiben in Abschnitt 5.3 und in den Kommentaren** — dort tragen sie die Begründung, warum die Regel zwei Bedingungen hat. *Dieselbe Trennlinie wie in 5.6: eine Oberfläche sagt, WAS IST, nicht, warum es so gebaut wurde* |
+| **9** | **Die Karte „Sicherung" sagt nur noch etwas über die LETZTE Sicherung** | Die Zeile *„Dateien am Ort"* ist heraus. **Damit fällt die „Brücke zwischen beiden Karten", die der Auftrag zu 0.20.0 in ihr gesehen hat** — sie ist überflüssig geworden, weil die Nachbarkarte die vollständige Auskunft trägt. *Der Kasten zum Schlüsselwechsel bleibt: er ist eine Warnung, keine Auflistung* |
+
+**Prüfstand: 5391 von 5391** — **17 neue**, keine weggefallen.
+**Drei neue Rückbauten** (558 → 561, Nummern 567 bis 569), **drei
+nachgezogen** (563, 565 — und **566 in eine andere Datei**).
+**Kein neuer Stolperstein:** die Runde nimmt Text weg und stellt eine Liste
+dazu; die Lehren daraus stehen als Regeln in Abschnitt 5.3.
+
+**Was offen blieb:** unverändert das aus 0.20.0 — angefangene Kopien
+(`*.wird`), das Löschen einer einzelnen Kopie per Klick *(bewusst nicht
+gebaut)* und Punkt 9 des Sammelblatts *(Sicherungen gepackt ablegen — in der
+gewünschten Form gemessen und nicht empfohlen)*.
 
 ### 0.20.0 — „Alte Sicherungen aufräumen — ohne Shell"
 
@@ -11295,6 +11416,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.19.3** | Bestandsläufe verlassen den Anfrageweg | **GEBAUT am 2. September 2026.** Vier Punkte, und keiner davon ist neu: der Umstellungslauf und das Nachrüsten der Vorschaubilder ziehen in einen **eigenen Thread** (`bilder.js` und `bestandslauf.js` sind dazugekommen), die Übersichtsschleife fragt **einmal statt vierhundertmal** (3200 Abfragen je Abruf werden 405) und holt nicht mehr, was sie nicht zeigt (die Testtage der **Liste** sind schmal, von den Links wird nur gezählt, `qTags` nennt seine Spalten), und die **letzten acht „Instanz"** im Bildschirmtext heißen „Installation". **Gemessen: 133 → 0,9 ms Verspätung des Haupt-Threads im 95. Perzentil, die Route 43 → 24 ms, die Antwort 484 → 348 kB.** *`testStats` bleibt ausdrücklich ungebündelt — gebündelt ist es langsamer.* **Stand vor jeder Runde mit einem Bestandslauf**, und das gilt für 0.19.4 und 0.21.0 weiter. *PATCH* | nein | — |
 | **0.19.5** | Der Ausschnitt wird eingerechnet, nicht gezogen | **GEBAUT am 3. September 2026.** Der Bildausschnitt entsteht ab jetzt am **Server** und wird in `thumb` eingerechnet statt im Browser aus ihm gezogen; `focus_x`, `focus_y` und `zoom` werden damit vom Auftrag an den Browser zum **Rezept** für die Ableitung. **Die Kachel ist danach quadratisch (512 × 512) und von der Weite des Ausschnitts unabhängig** — bei `zoom` 235 gab der gezogene Weg 0,73 Quellpunkte je Anzeigepunkt, der eingerechnete gibt 5,88. **Der CSS-Zuschnitt fällt im selben Zug weg**, sonst würde zweimal geschnitten. Dazu: die Bildadresse trägt ein `?v=` mit `length(thumb)` *(ohne das sähe der Betreiber seinen neuen Ausschnitt bis zu 24 Stunden lang nicht)*, das Speichern des Ausschnitts erzeugt die Kachel neu und **antwortet erst danach**, und der Bestandslauf erneuert den vorhandenen Bestand mit — **Videozeilen aus ihrem `medium`.** **Gemessen: die Kachel wird in Summe 34,2 % kleiner**, das Erzeugen kostet 157 ms im Median und die ganze Route 494 bis 873 ms. **Damit kehrt diese Runde eine Entscheidung aus 0.19.4 um** — mit Datum und Grund im Änderungsprotokoll. *PATCH: dieselben Knöpfe, derselbe Ausschnitt, dieselbe Bedienung — die Kachel zeigt ihn nur scharf* | nein | — |
 | **0.19.4** | Die Kachel zeigt, was das Original hergibt | **GEBAUT am 3. September 2026, im Feld bestätigt.** `thumb` war 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle. **Gemessen in Chromium: die breiteste Kachel ist 299 CSS-px** (`.shell` hört bei 1300 px auf), auf einem 2×-Bildschirm 598, auf einem Telefon bei dPR 3 513 — **heute lieferte `thumb` 225.** Die Tafel `VARIANTS` nennt jeder Ableitung jetzt eine **Kiste** aus kurzer Kante und Deckel auf der langen: `thumb` 512/1280, `medium` unverändert 1600/1600. **Der Byte-Faktor IST der Bildpunkt-Faktor**, auf 3 % genau — 400 kostet das 3,06fache, 512 das 5,05fache, 640 das 7,78fache; **512 deckt das Telefon ganz und lässt am 2×-Desktop 1,17fach übrig, gegen 2,66fach vorher.** Dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht und nach einem Durchgang von selbst endet. *PATCH: dieselben Knöpfe, dieselben Bilder, dieselbe Antwort — die Kachel ist nur scharf* | nein | — |
+| **0.20.1** | **Die Karte listet die Sicherungen** | **GEBAUT am 3. September 2026.** *(Drei Befunde aus dem Betrieb, unmittelbar nach dem Einspielen von 0.20.0 — nicht aus dem Sammelblatt.)* **Die vollständige Liste der Sicherungen stand nirgends:** die Karte „Sicherung" nannte die jüngste Kopie und die Zahl, die Karte „Alte Sicherungen" nur die, die die Regel treffen würde. **Jetzt listet sie alle** — jüngste zuerst, nummeriert, mit Datum, Alter und Größe, Deckel bei fünf Zeilen, **nur zum Ansehen**. Dazu: **der Bildschirmtext wird kurz** *(„so kurz wie möglich und dennoch zu verstehen")*, **„Boden" und „Schere" sind vom Bildschirm herunter**, und die Karte „Sicherung" sagt nur noch etwas über die letzte Sicherung. *PATCH: dieselbe Regel, dieselben Knöpfe, dieselben Dateien fallen* | nein | — |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | **GEBAUT am 3. September 2026.** *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; am 3. September 2026 zugeordnet — der Fahrplan ist dabei nicht gerückt.)* **Kriterion schrieb Sicherungen und entfernte keine** — wegräumen ließ sich nichts, und dafür brauchte es eine Shell auf dem Wirt. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere (Stolperstein 299). Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht**, ein Knopf hinter der zweiten Bestätigung, ein zweiter, ausdrücklicher Weg für die Kopien von vor dem Schlüsselwechsel, und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Die Löschroute nimmt keine Dateinamen entgegen** (Stolperstein 300), und aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die **gelungen** ist. **Eine zwanzigste Karte** — ein Löschknopf gehört nicht unter den Sicherungsknopf. *MINOR* — `F_ROUTEN` **70 → 71**, ein **neunter** Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung** | nein | — |
 | **0.21.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, **am 3. September 2026 gerückt** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.22.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, **am 3. September 2026 gerückt**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
