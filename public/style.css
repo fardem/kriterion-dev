@@ -1345,6 +1345,29 @@ mark {
    den Import aus dem Blick, und ein Bestand von zwanzig Gigabyte ergibt
    siebzig Zeilen. */
 #ex-teil-liste { flex: none; max-height: 280px; }
+
+/* DIE ZWEITE AUSNAHME, UND SIE HAT DIESELBE BEGRUENDUNG -- 0.20.0. Die Liste
+   der Sicherungen steht MITTEN in ihrer Karte: unter ihr stehen die Zeile
+   „n Sicherungen werden geloescht", der Loeschknopf und, wenn welche daliegen,
+   die Kopien mit dem alten Schluessel samt eigenem Knopf. Bei zehn Zeilen
+   schoebe ein Ordner mit vierzig Kopien beides aus dem Blick.
+   13.98rem SIND FUENF ZEILEN: eine `.mrow` misst mit Innenabstand und dem
+   Abstand zur naechsten 41,92 Pixel, die Wurzelschrift steht auf 15 --
+   5 x 41,92 / 15 = 13,973. IN rem UND NICHT IN PIXELN, weil die Oberflaeche
+   ihre Schrift von 80 bis 120 Prozent stellt.
+   FUENF UND NICHT ZEHN, und die Zahl kommt aus dem Betrieb: „wenn vorhanden
+   bis 5, der Rest dann durch einen Scrollbalken ansehbar."
+   DER WEG UEBER DIE NUMMER wie bei den beiden Listen darueber. */
+#auf-liste { flex: none; max-height: 13.98rem; }
+/* DIE MARKE AN EINER ZEILE DER SICHERUNGSLISTE -- „loeschen" oder „alter
+   Schluessel". Sie steht zwischen Datum und Groesse und schrumpft nicht: was
+   sie sagt, ist die Aussage der Zeile.
+   ZWEI FARBEN FUER ZWEI VERSCHIEDENE DINGE: rot heisst „faellt beim naechsten
+   Lauf", gedaempft heisst „liegt hier und die Regel fasst sie nicht an". Eine
+   Farbe fuer beides waere die Verwechslung, gegen die diese Karte gebaut ist. */
+.mrow .auf-marke { flex-shrink: 0; font-size: .7rem; letter-spacing: .03em; text-transform: uppercase; }
+.mrow .auf-marke.weg { color: var(--red); }
+.mrow .auf-marke.alt { color: var(--faint); }
 .mrow { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-sm); background: var(--surface-2); margin-bottom: 5px; border: 1px solid transparent; }
 .mrow:hover { border-color: var(--line); }
 .mrow .mname { flex: 1; min-width: 0; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

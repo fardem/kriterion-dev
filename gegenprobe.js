@@ -5267,18 +5267,56 @@ const RUECKBAUTEN = [
        Knopf, der zuverlaessig nichts tut, sieht aus wie ein Fehler. */
     nr: '565', name: 'Der Knopf ist auch ohne Treffer bedienbar',
     datei: 'public/app.js',
-    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>Regel",
-    ersatz: "id=\"auf-los\">Regel",
+    // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
+    // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
+    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>Jetzt",
+    ersatz: "id=\"auf-los\">Jetzt",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
     /* DIE LISTE VERLIERT DEN GEMEINSAMEN DECKEL. Ein Ordner mit vierzig Kopien
        zieht die Seite auf -- zehn Zeilen sind das Mass jeder Liste im
        Systembereich, seit 0.17.3. */
-    nr: '566', name: 'Die Vorschauliste bekommt keinen Deckel',
+    nr: '566', name: 'Die Sicherungsliste bekommt keinen Deckel',
+    datei: 'public/style.css',
+    /* MITGEGANGEN mit 0.20.1 (Stolperstein 201) -- UND IN EINE ANDERE DATEI
+       GEWANDERT. Bis 0.20.0 nahm er der Liste ihre Klasse in `public/app.js`;
+       seit 0.20.1 hat sie ihren EIGENEN Deckel von fuenf Zeilen als Regel im
+       Stilblatt, und die ist die Sache. Die Zusage ist dieselbe geblieben:
+       eine Liste ohne Deckel zieht die Karte auf. */
+    suche: '#auf-liste { flex: none; max-height: 13.98rem; }',
+    ersatz: '#auf-liste { flex: none; }',
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DIE LISTE FAELLT GANZ WEG -- und mit ihr die Auskunft, um die es im
+       Feldbefund zu 0.20.0 ueberhaupt ging: welche Sicherungen liegen da, wie
+       alt und wie gross. Die Zahl in der Ueberschrift bleibt stehen; ohne die
+       Zeilen ist sie eine Behauptung. */
+    nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
     datei: 'public/app.js',
-    suche: '    const liste = (zeilen) => `<div class="manage-list">',
-    ersatz: '    const liste = (zeilen) => `<div class="auf-liste">',
+    suche: '           <div class="manage-list" id="auf-liste">${alle.map(zeile).join(\'\')}</div>`',
+    ersatz: '           <div class="manage-list" id="auf-liste"></div>`',
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DIE NUMMER LAEUFT VON DER AELTESTEN AN. Damit steht die juengste Kopie
+       als letzte Nummer da, und „mindestens 3 behalten" liesse sich an der
+       Liste nicht mehr ablesen -- was faellt, stuende dann ganz oben. */
+    nr: '568', name: 'Die Nummern laufen von der aeltesten zur juengsten',
+    datei: 'server.js',
+    suche: '      ...aufraeumZeile(d, jetzt), nr: i + 1,',
+    ersatz: '      ...aufraeumZeile(d, jetzt), nr: dateien.length - i,',
+    erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+  },
+  {
+    /* DIE MARKE „LOESCHEN" FAELLT VON DER ZEILE. Die Liste sagt dann, was
+       daliegt, aber nicht mehr, was gleich fehlt -- und die Karte hat ausser
+       der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
+    nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
+    datei: 'public/app.js',
+    suche: "      const marke = z.faellt ? '<span class=\"auf-marke weg\">löschen</span>'",
+    ersatz: "      const marke = z.faellt ? ''",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
 
