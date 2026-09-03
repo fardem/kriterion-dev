@@ -1013,49 +1013,53 @@ async function sendeFormular(pfad, formular) {
 }
 
 /* ================= Der Ausschnitt der Vorschau =================
-   DREI WERTE ALS EIN STIL. Zugeschnitten wird nichts: die Datei bleibt, wie
-   sie ist. Die beiden Prozentwerte verschieben das sichtbare Fenster der
-   quadratischen Vorschau (object-position), der dritte zieht es enger.
-   FEHLENDE WERTE (aeltere Fotos, eine Antwort ohne das Feld) landen in der
-   Mitte und auf dem weitesten Ausschnitt -- also genau dort, wo sie bis
-   0.18.1 immer lagen.
 
-   DER ZOOM GEHT ALS EIGENSCHAFT `--zoom` HINAUS UND NICHT ALS transform.
-   Der Grund steht im Stylesheet: `.card:hover .card-img img` skaliert die
-   Kachel beim Ueberfahren um 1,03. Ein transform HIER waere ein Inline-Stil
-   und schluege jede Regel von dort -- der zugezogene Ausschnitt naehme der
-   Uebersicht ihre Bewegung weg, und zwar nur an den Kacheln, an denen jemand
-   den Ausschnitt eingestellt hat. Als Eigenschaft rechnet das Stylesheet
-   beides zusammen.
+   ER WIRD SEIT 0.19.5 NICHT MEHR HIER GERECHNET. Bis 0.19.4 stand an dieser
+   Stelle `ausschnitt(p)`: es machte aus den drei Werten einen Inline-Stil --
+   `object-position` fuer den Punkt und `--zoom` fuer die Weite -- und der
+   Browser schnitt die Kachel selbst zu. DAS IST WEGGEFALLEN, weil der Server
+   den Ausschnitt jetzt in die Kachel BACKT. Wer beides tut, schneidet zweimal:
+   die gebackene Kachel IST schon das sichtbare Quadrat, und ein zweiter
+   Zuschnitt darauf zeigte einen Ausschnitt des Ausschnitts.
 
-   UND DER VERGROESSERUNGSPUNKT GEHT MIT, seit 0.19.1. `transform-origin` steht
-   auf DEMSELBEN Punkt wie `object-position`. Ohne ihn verankert `scale()` in
-   der Mitte: man saehe erst den object-position-Ausschnitt und DAVON nochmal
-   den mittigen Teil, und je enger man zieht, desto weiter sind die Raender
-   weg. GEMESSEN IN ECHTEM CHROMIUM (Kachel 313 x 313, Zoom 250 %, Fokuspunkt
-   in eine Ecke): von der gewaehlten Bildecke war in allen vier Richtungen
-   0,0 % zu sehen; mit `transform-origin` sind es 30,7 % oben und 15,4 % unten.
-   Das ist Stolperstein 276.
+   WAS DIE DREI WERTE JETZT SIND: das Rezept fuer die Ableitung, nicht mehr
+   eine Anweisung an den Browser. Sie stehen unveraendert in denselben drei
+   Spalten, in derselben Spanne und mit derselben Genauigkeit -- gelesen
+   werden sie nur noch an EINER Stelle, naemlich im Editor unten, der den
+   Rahmen darueber zeichnet.
 
-   ER DARF MIT HINAUS, DER ZOOM NICHT: `transform-origin` IST KEIN `transform`
-   und schlaegt deshalb die Ueberfahrregel nicht (Stolperstein 272). Gerechnet
-   wird der Zoom weiter im Stilblatt.
+   WAS DER BROWSER STATTDESSEN BRAUCHT, ist die FASSUNG der Kachel: die
+   Adresse `/api/photos/<n>/raw?size=thumb` liefert seit dieser Runde bei
+   gleichem Namen einen anderen Inhalt, und sie wird mit
+   `Cache-Control: private, max-age=86400` ausgeliefert. Ohne ein Merkmal an
+   der Adresse saehe der Betreiber seinen neuen Ausschnitt bis zu 24 Stunden
+   lang nicht. Es haengt in bildQuelle() an der Adresse und nirgends sonst. */
 
-   EINE FUNKTION UND NICHT ZWEI: `fokus()` hiess sie bis 0.18.1 und lieferte
-   nur die object-position. Zwei Funktionen -- eine fuer den Punkt, eine fuer
-   die Weite -- waeren zwei Wahrheiten ueber denselben Ausschnitt, und die
-   Aufrufstelle, die die zweite vergisst, saehe von aussen richtig aus. */
-function ausschnitt(p) {
-  // Vorsicht: Number(null) ist 0, nicht NaN -- deshalb erst auf eine Zahl
-  // pruefen und nicht bloss umwandeln. Sonst rutscht ein fehlender Wert in
-  // die Ecke oben links statt in die Mitte.
-  const z = (v, vorgabe) => (typeof v === 'number' && Number.isFinite(v) ? v : vorgabe);
-  // EIN Wertepaar, zweimal ausgegeben -- nicht zweimal gerechnet. Zwei
-  // Rechenwege liefen frueher oder spaeter auseinander, und dann zoege die
-  // Vergroesserung an einem anderen Punkt als der Ausschnitt.
-  const x = z(p && p.focus_x, 50), y = z(p && p.focus_y, 50);
-  return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%;` +
-         `--zoom:${z(p && p.zoom, 100) / 100}`;
+/* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ----
+
+   SIE STEHT ZWEIMAL, UND DAS IST DER PUNKT. Diese Funktion ist Zeichen fuer
+   Zeichen dieselbe wie `zuschnittKiste()` in bilder.js: der Browser muss den
+   Rahmen live zeichnen, der Server muss backen, und zwischen beiden liegt
+   HTTP -- eine gemeinsame Fassung gibt es nicht. Also steht sie auf jeder
+   Seite in GENAU EINER Funktion und nicht verstreut, und der Pruefstand haelt
+   beide gegeneinander (Stolperstein 293). Eine Abweichung zeigt sich sonst
+   als ein Bild, das falsch ist statt fehlt.
+
+   DIE RECHNUNG, UND SIE IST DIE DER KACHEL:
+     die Kachel ist quadratisch und zeigt die kurze Seite ganz -- `seite`;
+     der Zoom verkuerzt das Sichtbare auf `seite / z` -- `kante`;
+     die beiden Prozentwerte legen dieses Quadrat linear auf den Weg
+     `breite - kante` bzw. `hoehe - kante`.
+   BEI zoom = 100 IST `kante === seite`, und die Rechnung ist Zeichen fuer
+   Zeichen die von 0.18.1.
+
+   OHNE RUNDUNG: der Rahmen im Editor braucht Bruchteile eines Bildpunkts, um
+   ruckelfrei zu ziehen. Gerundet wird nur dort, wo sharp ganze Zahlen
+   verlangt -- im Server, in schnittRechteck(). */
+function zuschnittKiste(breite, hoehe, fx, fy, zoom) {
+  const seite = Math.min(breite, hoehe);   // was die Kachel bei zoom 100 zeigt
+  const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
+  return { links: fx / 100 * (breite - eng), oben: fy / 100 * (hoehe - eng), kante: eng };
 }
 
 /* ================= Tagwolken ================= */
@@ -2961,8 +2965,7 @@ function card(it) {
 
   a.innerHTML = `
     <div class="card-img">
-      ${it.mainPhoto ? `<img src="/api/photos/${it.mainPhoto.id}/raw?size=thumb" alt="" loading="lazy"
-        style="${ausschnitt(it.mainPhoto)}">` : ICON_PH}
+      ${it.mainPhoto ? `<img src="${bildQuelle(it.mainPhoto, 'thumb')}" alt="" loading="lazy">` : ICON_PH}
       ${badges.length ? `<div class="card-badges">${badges.join('')}</div>` : ''}
       ${it.favorite ? `<div class="card-pin" title="Favorit">★</div>` : ''}
       ${istVideo(it.mainPhoto) ? `<div class="card-spielmarke" title="Video">▶</div>` : ''}
@@ -3395,10 +3398,27 @@ let lightboxOpen = false;
 // Adresse eines Bildes. Fotos am Eintrag haben ein unveraendertes Original,
 // Kommentarbilder nicht -- dort ist die gespeicherte Variante schon die
 // groesste, und der Zoom entfaellt.
+/* DIE EINE STELLE, AN DER EINE BILDADRESSE ENTSTEHT -- und seit 0.19.5 auch
+   die einzige, die die FASSUNG anhaengt. Bis dahin bauten die Kachel der
+   Uebersicht und der Streifen am Eintrag ihre Adresse selbst zusammen; drei
+   Stellen fuer dieselbe Adresse sind zwei zu viel, und die dritte haette das
+   `?v=` vergessen (Stolperstein 47).
+
+   `?v=` TRAEGT `length(thumb)` und haengt NUR an der Kachel. Die Kachel ist
+   die einzige Ableitung, deren INHALT sich unter derselben Adresse aendert --
+   `medium` wird nicht geschnitten und bleibt Bild fuer Bild dasselbe, und das
+   Original wird ohnehin nie angefasst. Ein `?v=` an allen dreien wuerde
+   Zwischenspeicher verwerfen, die noch gueltig sind.
+   FEHLT DIE FASSUNG, STEHT SIE NICHT DA. Eine aeltere Antwort ohne das Feld
+   (oder ein Kommentarbild, das gar keine hat) bekommt die Adresse wie bisher
+   -- und damit genau das Verhalten bis 0.19.4, nicht `?v=undefined`. */
 function bildQuelle(p, groesse) {
   if (p.quelle === 'kommentar')
     return `/api/comment-images/${p.id}/raw${groesse === 'thumb' ? '?size=thumb' : ''}`;
-  return `/api/photos/${p.id}/raw${groesse ? `?size=${groesse}` : ''}`;
+  if (!groesse) return `/api/photos/${p.id}/raw`;
+  const f = Number(p.fassung);
+  const fassung = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
+  return `/api/photos/${p.id}/raw?size=${groesse}${fassung}`;
 }
 // Woran die Oberflaeche ein Video erkennt: an art aus der Antwort, an nichts
 // sonst. Kein Raten am ausgelieferten Typ, keine zweite Wahrheit.
@@ -4138,33 +4158,27 @@ async function renderDetail(id, begriffAdresse) {
        und genau er macht den sichtbaren Ausschnitt kleiner und damit den
        Spielraum groesser.
 
-       DIE RECHNUNG, UND SIE IST DIE DER KACHEL:
-         die Kachel ist quadratisch und zeigt mit `object-fit: cover` die
-         kurze Seite ganz -- `seite`;
-         `transform: scale(z)` verkuerzt das Sichtbare auf `seite / z` -- `eng`;
-         `object-position: X%` und `transform-origin: X%` zusammen legen diesen
-         Ausschnitt linear auf den Weg `breite - eng`.
-       Nachgerechnet: der sichtbare Bereich in Bildpunkten beginnt bei
-       `(X/100) * (breite - eng)` und ist `eng` breit. BEI zoom = 100 IST
-       `eng === seite`, und die Rechnung ist Zeichen fuer Zeichen die alte --
-       diese Runde nimmt also nichts weg, sie ergaenzt den Zoom.
-
-       WARUM DAS OHNE `transform-origin` GAR NICHT GINGE: mit ihm folgt der
-       Vergroesserungspunkt dem eingestellten Punkt, ohne ihn saesse er in der
-       Mitte. Beide Haelften gehoeren zusammen -- die eine ohne die andere
-       zeigt etwas anderes als die Kachel (Stolperstein 276). */
+       DIE RECHNUNG SELBST STEHT SEIT 0.19.5 IN `zuschnittKiste()` GANZ OBEN,
+       und der Grund steht dort: der Server rechnet sie ein zweites Mal, um die
+       Kachel zu backen, und der Pruefstand haelt beide gegeneinander
+       (Stolperstein 293). Hier bleibt nur, was der EDITOR daraus macht -- die
+       Lage des Rahmens auf dem Bildschirm und der Spielraum fuer den Zeiger.
+       WAS SICH AM RAHMEN NICHT GEAENDERT HAT: er zeigt genau das Quadrat, das
+       der Server ausschneidet. Bis 0.19.4 war das eine Behauptung ueber zwei
+       CSS-Eigenschaften; seit dieser Runde ist es dasselbe Rechteck, das in
+       `extract()` geht. */
     const masse = () => {
       const f = flaeche();
-      const seite = Math.min(f.breite, f.hoehe);   // was die Kachel bei zoom 100 zeigt
-      const eng = seite * 100 / zoom;              // was sie beim eingestellten Zoom zeigt
-      return { f, seite, eng, spielX: f.breite - eng, spielY: f.hoehe - eng };
+      const k = zuschnittKiste(f.breite, f.hoehe, fx, fy, zoom);
+      return { f, eng: k.kante, links: k.links, oben: k.oben,
+               spielX: f.breite - k.kante, spielY: f.hoehe - k.kante };
     };
 
     const zeichne = () => {
-      const { f, eng, spielX, spielY } = masse();
+      const { f, eng, links, oben } = masse();
       const vr = v.getBoundingClientRect();
-      rahmen.style.left = (f.links - vr.left + spielX * fx / 100) + 'px';
-      rahmen.style.top = (f.oben - vr.top + spielY * fy / 100) + 'px';
+      rahmen.style.left = (f.links - vr.left + links) + 'px';
+      rahmen.style.top = (f.oben - vr.top + oben) + 'px';
       rahmen.style.width = eng + 'px';
       rahmen.style.height = eng + 'px';
     };
@@ -4243,7 +4257,7 @@ async function renderDetail(id, begriffAdresse) {
       // wenn die Dauer bekannt ist, die Laenge daneben.
       const laenge = istVideo(p) ? dauerText(p.dauer) : '';
       const wort = istVideo(p) ? 'Video' : 'Foto';
-      t.innerHTML = `<img src="/api/photos/${p.id}/raw?size=thumb" alt="" style="${ausschnitt(p)}">` +
+      t.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
         (istVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
         (laenge ? `<span class="dauer">${laenge}</span>` : '') +
         `<span class="num">${i + 1}</span><span class="del" title="${wort} löschen">✕</span>`;
@@ -8447,12 +8461,18 @@ function geometrieZeile(g) {
   if (!g) return '';
   if (g.laeuft)
     return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">Vorschaubilder ` +
-           `werden nachgezogen — ${g.erledigt} von ${g.gesamt} …</p>`;
+           `werden gebacken — ${g.erledigt} von ${g.gesamt} …</p>`;
   if (!g.nachgezogen && !g.uebersprungen) return '';
+  /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN -- 0.19.5. Bis 0.19.4 wurde die
+     Kachel groesser (512 statt 400 auf der kurzen Kante), und die Zeile sagte
+     deshalb nur „mehr". Gebacken wird sie in der Regel KLEINER: gemessen
+     -34,2 % ueber zwoelf Seitenverhaeltnisse, beim Panorama dagegen mehr.
+     Eine Zeile, die nur eine Richtung kennt, verschwiege die haeufigere. */
+  const d = g.zugenommen || 0;
   return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">Vorschaubilder ` +
-         `nachgezogen: ${g.nachgezogen} von ${g.geprueft} geprüften` +
+         `gebacken: ${g.nachgezogen} von ${g.geprueft} geprüften` +
          (g.uebersprungen ? `, ${g.uebersprungen} übersprungen` : '') +
-         (g.zugenommen > 0 ? ` — ${fmtBytes(g.zugenommen)} mehr` : '') + `.</p>`;
+         (d ? ` — ${fmtBytes(Math.abs(d))} ${d > 0 ? 'mehr' : 'weniger'}` : '') + `.</p>`;
 }
 
 /* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
@@ -8592,8 +8612,9 @@ function karteBildablage(geholt) {
         <h3>Bildablage</h3>
         <p class="desc">Die <strong>Originale</strong> der Fotos am
           ${esc(V.sacheEinzahl)}, nach Format. Die beiden Ableitungen sind immer JPEG und
-          stehen hier nicht: die kleine misst 512 px auf der <em>kurzen</em> Kante, weil die
-          Kachel quadratisch zuschneidet, die große 1600 px auf der <em>langen</em>.</p>
+          stehen hier nicht: die kleine ist <em>512 × 512</em> und trägt den eingestellten
+          Bildausschnitt bereits eingebacken, die große 1600 px auf der <em>langen</em> Kante
+          und ungeschnitten.</p>
         ${zeilen.length ? zeilen.map(f => {
           const z = bf[f.schluessel];
           return `<div class="kv"><span class="k">${f.name}${

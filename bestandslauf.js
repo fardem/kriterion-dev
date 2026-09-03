@@ -3,8 +3,10 @@
    WAS HIER LAEUFT UND WARUM ES NICHT MEHR IM HAUPT-THREAD LAEUFT.
    DREI Schleifen fahren ueber den ganzen Bildbestand: die Umstellung von PNG
    auf WebP (auf Knopfdruck), das Nachruesten fehlender Vorschaubilder und --
-   seit 0.19.4 -- das Nachziehen der Vorschaubilder auf die neue Geometrie
-   (beide einmal beim Start). Die ersten beiden lasen bis 0.19.2 im
+   seit 0.19.4 -- das Backen der Kacheln (beide einmal beim Start). Seit
+   0.19.5 kommt eine VIERTE Aufgabe dazu, und sie ist keine Schleife: EINE
+   Zeile, gerufen beim Speichern des Ausschnitts. Warum auch sie hier faehrt
+   und nicht im Haupt-Thread, steht als Messung bei backeEineKachel(). Die ersten beiden lasen bis 0.19.2 im
    Haupt-Thread eine halbe Megabyte Blob, wandelten sie um und schrieben sie
    zurueck --
    `better-sqlite3` ist SYNCHRON, und jede seiner Zeilen haelt die
@@ -68,7 +70,7 @@ const sharp = require('sharp');
    Kontingent). Gemessen laedt sharp im Thread in 76 ms. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
 const { db } = require('./db');
-const { makeVariants, istPNG, legeBildAb, istAlteAbleitung } = require('./bilder');
+const { makeVariants, istPNG, legeBildAb, istOhneZuschnitt } = require('./bilder');
 
 /* WIE DER STAND ZURUECKREIST -- EINE MELDUNG JE ZEILE, UND SIE TRAEGT DEN
    GANZEN STAND.
@@ -147,6 +149,37 @@ async function stelleBestandUm(zeilen) {
     `${stand.gespart} Bytes gespart.`);
 }
 
+/* ---- WORAUS EINE ZEILE IHRE KACHEL BACKT -- 0.19.5 ----
+
+   ZWEI SCHLEIFEN UND EINE ROUTE FRAGEN DASSELBE, also steht es einmal.
+   `zuschnittAus()` macht aus den drei Spalten das Rezept, `vorlageAus()`
+   sagt, aus welchem Blob gebacken wird.
+
+   AM FOTO IST DIE VORLAGE `data` -- das Original. AM VIDEO STEHT DORT DIE
+   VIDEODATEI, und der Kernsatz gilt weiter: der Server oeffnet nie ein
+   Video. Seine Vorlage ist `medium`, die Ableitung seines Standbilds; das
+   Standbild selbst kommt vom Browser und liegt nirgends mehr.
+   WAS DAS KOSTET, UND ES GEHOERT GENANNT: die Videokachel entsteht damit aus
+   einem JPEG, das schon eines war -- eine zweite Kodierung. Sie faellt EINMAL
+   an (danach ist die Kachel quadratisch und der Lauf laesst sie in Ruhe), und
+   sie kauft zwei Dinge: bei `zoom > 100` zeigt die Kachel wieder den
+   eingestellten Ausschnitt (ohne sie zeigte sie nach dieser Runde den
+   Mittenschnitt, denn der CSS-Zuschnitt ist weg), und bei `zoom = 100` faellt
+   sie von 910 x 512 auf 512 x 512 -- dasselbe Bild, weniger Bytes.
+   IHRE KANTE FAELLT DABEI UNTER 512, wenn eng gezogen wird: aus einem
+   1600 x 900 grossen `medium` wird bei `zoom` 235 eine 383er Kachel. Das ist
+   weniger als die 512 eines Fotos und immer noch mehr, als heute zu sehen
+   ist. Mehr gibt die Zeile nicht her.
+
+   `medium` WIRD AM VIDEO NICHT MITGESCHRIEBEN. makeVariants() rechnet es
+   zwar, aber es entstuende aus sich selbst -- eine dritte JPEG-Kodierung
+   desselben Standbilds, die kein Bildpunkt besser wird. Eine Ableitung, die
+   schlechter ist als die alte, gibt es nicht. */
+const istVideoZeile = (z) => z && z.art === 'video';
+const vorlageAus = (z) => (istVideoZeile(z) ? z.medium : z.data);
+const zuschnittAus = (z) => ({ fx: Number(z.focus_x), fy: Number(z.focus_y),
+                               zoom: Number(z.zoom) });
+
 /* ---- Die fehlenden Vorschaubilder nachruesten ----
    AUSDRUECKLICH NUR BILDER. Eine Videozeile traegt in data die Videodatei --
    sharp liefe darauf in einen Fehler, beide Varianten kaemen leer zurueck und
@@ -158,14 +191,19 @@ async function stelleBestandUm(zeilen) {
    leere Liste. */
 async function ruesteVorschaubilderNach(zeilen) {
   console.log(`[Kriterion] Erzeuge Vorschaubilder für ${zeilen.length} Foto(s) ...`);
-  const get = db.prepare('SELECT data FROM photos WHERE id = ?');
+  /* DER ZUSCHNITT GEHT MIT -- 0.19.5. Eine Zeile, der die Ableitung fehlt,
+     traegt ihre drei Zahlen trotzdem (sie stehen in eigenen Spalten und nicht
+     im Bild); ohne sie entstuende hier eine ungeschnittene Kachel, die der
+     Lauf gleich danach ein zweites Mal anfassen muesste. */
+  const get = db.prepare(
+    'SELECT data, art, medium, focus_x, focus_y, zoom FROM photos WHERE id = ?');
   const upd = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
   let done = 0;
   for (const { id } of zeilen) {
     try {
       const row = get.get(id);
       if (!row) continue;
-      const v = await makeVariants(row.data);
+      const v = await makeVariants(row.data, zuschnittAus(row));
       upd.run(v.thumb, v.medium, id);
       done++;
     } catch (e) { console.error(`[Kriterion] Foto ${id} übersprungen:`, e.message); }
@@ -174,7 +212,7 @@ async function ruesteVorschaubilderNach(zeilen) {
   console.log(`[Kriterion] ${done} Vorschaubild(er) erzeugt.`);
 }
 
-/* ---- Die Vorschaubilder mit der neuen Geometrie nachziehen -- 0.19.4 ----
+/* ---- Die Kacheln backen -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt --
 
    DIE DRITTE AUFGABE, UND SIE IST DIE ERSTE, DIE ETWAS ERSETZT statt etwas
    zu ergaenzen. Das Nachruesten fuellt leere Spalten, die Umstellung
@@ -183,16 +221,40 @@ async function ruesteVorschaubilderNach(zeilen) {
    zusteht: eine Meldung je Zeile, reclaim() am Ende und ein Fehler, der die
    Zeile kostet und nicht den Lauf.
 
-   WAS DER HAUPT-THREAD SCHICKT, SIND DIE NUMMERN ALLER FOTOZEILEN MIT EINER
+   SIE IST ERWEITERT UND NICHT VERDOPPELT -- 0.19.5. Bis 0.19.4 zog sie die
+   Ableitung auf die neue Geometrie nach; ab jetzt BACKT sie den eingestellten
+   Ausschnitt hinein. Es ist dieselbe Schleife, dieselbe Aufgabe (`geometrie`)
+   und dieselbe Fortschrittszeile: was sich geaendert hat, ist die Frage, wann
+   eine Zeile faellig ist, und was makeVariants() mitbekommt.
+   WARUM SIE MIT DIESER RUNDE EIN ZWEITES MAL UEBER DEN BESTAND FAEHRT: der
+   CSS-Zuschnitt im Browser faellt in derselben Runde weg. Eine Zeile mit
+   `zoom > 100` zeigte danach den falschen Ausschnitt, und zwar sofort nach
+   dem Einspielen. Wer nur eine der beiden Haelften baut, schneidet zweimal
+   oder gar nicht.
+
+   WARUM AUCH DIE ZEILEN MIT `zoom = 100` MITKOMMEN, obwohl sich an ihrem
+   BILD nichts aendert: erstens, weil die Frage sonst kein Festpunkt waere --
+   „quadratisch" ist eine Zusage ueber die Kachel und nicht ueber die Zeile,
+   und eine Regel mit zwei Zweigen faellt an der ersten kleinen Vorlage
+   zurueck. Zweitens, weil es Bytes SPART: gemessen an 36 nachgebauten
+   Vorlagen in zwoelf Seitenverhaeltnissen faellt die Summe der Kacheln um
+   34,2 % (im Mittel 34,8 -> 22,9 kB). Bei 16:9 sind es -44 %, bei 21:9 -58 %,
+   an den beiden Kameras des Bestands -26 bzw. -33 %.
+   DIE EINE AUSNAHME IST DAS PANORAMA, und sie gehoert genannt: ein 32:9-Foto
+   lag als 1280 x 180 (230k Bildpunkte) und wird 512 x 512 (262k) -- gemessen
+   zwischen -10 % und +116 %, je nachdem, wie viel Struktur darin steckt.
+   ES IST TROTZDEM RICHTIG: seine Kachel war bis heute um das 1,66fache
+   hochgezogen (180 Bildpunkte auf 299 CSS-Punkte), und danach ist sie scharf.
+
+   WAS DER HAUPT-THREAD SCHICKT, SIND DIE NUMMERN ALLER ZEILEN MIT EINER
    ABLEITUNG -- nicht die der faelligen. Das ist die eine Abweichung vom
-   Auftrag, und sie steht auf einer Messung: die Nummern zu holen kostet
-   0,5 ms, aber die 1032 `thumb` zu lesen und sharp nach ihren Massen zu
-   fragen kostet 275 bis 314 ms. Im Haupt-Thread waere das das Doppelte
+   Auftrag 0.19.4, und sie steht auf einer Messung: die Nummern zu holen
+   kostet 0,5 ms, aber die 1032 `thumb` zu lesen und sharp nach ihren Massen
+   zu fragen kostet 275 bis 314 ms. Im Haupt-Thread waere das das Doppelte
    dessen, was 0.19.3 gerade weggeraeumt hat (133 ms im 95. Perzentil), und
    zwar bei jedem Start. HIER kostet es nichts, was jemand merkt.
    DER PREIS DAVON IST EHRLICH ZU NENNEN: ein Thread entsteht auch dann, wenn
    nichts zu tun ist -- 19 ms Verbindung und 76 ms sharp, einmal je Start.
-   Gegen 275 ms im Haupt-Thread ist das der bessere Handel.
 
    ZWEIMAL WIRD GEZAEHLT, UND DAS IST KEINE DOPPELUNG: `geprueft` sind die
    Zeilen, deren Kopf gelesen wurde, `nachgezogen` die, die wirklich eine
@@ -200,16 +262,19 @@ async function ruesteVorschaubilderNach(zeilen) {
    ist der Normalfall nach dem ersten Durchgang -- und er sagt das dann auch,
    statt „1032 erledigt" zu melden.
 
-   `medium` WIRD MITGESCHRIEBEN UND AENDERT SICH NICHT. makeVariants() rechnet
-   beide Ableitungen, und ein zweiter Weg, der nur `thumb` schreibt, waere
-   eine zweite Wahrheit ueber die Ableitung (Stolperstein 47). Was
+   `medium` WIRD AM FOTO MITGESCHRIEBEN UND AENDERT SICH NICHT. makeVariants()
+   rechnet beide Ableitungen, und ein zweiter Weg, der nur `thumb` schreibt,
+   waere eine zweite Wahrheit ueber die Ableitung (Stolperstein 47). Was
    herauskommt, ist fuer `medium` dasselbe Bild wie vorher -- die Kiste ist
-   dort unveraendert. */
-async function zieheVorschaubilderNach(zeilen) {
+   dort unveraendert, und geschnitten wird es ausdruecklich nicht.
+   AM VIDEO WIRD ES NICHT MITGESCHRIEBEN, und der Grund steht oben bei
+   vorlageAus(): dort IST `medium` die Vorlage, und es aus sich selbst neu zu
+   kodieren machte es nur schlechter. */
+async function backeKacheln(zeilen) {
   const stand = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
                   geprueft: 0, nachgezogen: 0, uebersprungen: 0, zugenommen: 0 };
-  const hole = db.prepare('SELECT data, thumb FROM photos WHERE id = ?');
-  const schreib = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
+  const hole = db.prepare(
+    'SELECT data, thumb, medium, art, focus_x, focus_y, zoom FROM photos WHERE id = ?');
   for (const { id } of zeilen) {
     try {
       const z = hole.get(id);
@@ -218,19 +283,10 @@ async function zieheVorschaubilderNach(zeilen) {
          des Nachruestens und nicht dieses Laufs. */
       if (z && z.thumb) {
         stand.geprueft++;
-        if (await istAlteAbleitung(z.thumb)) {
-          const v = await makeVariants(z.data);
-          /* NUR SCHREIBEN, WENN WIRKLICH ETWAS HERAUSKAM. Kommt `thumb` leer
-             zurueck -- eine Vorlage, an der sharp scheitert --, stuende sonst
-             danach NULL in einer Spalte, die vorher ein Bild trug, und die
-             Zeile waere beim naechsten Start ein Fall fuers Nachruesten.
-             Eine Ableitung, die schlechter ist als keine, gibt es nicht;
-             eine, die schlechter ist als die alte, schon. */
-          if (v.thumb) {
-            schreib.run(v.thumb, v.medium || null, id);
-            stand.nachgezogen++;
-            stand.zugenommen += v.thumb.length - z.thumb.length;
-          } else stand.uebersprungen++;
+        if (await istOhneZuschnitt(z.thumb)) {
+          const gewachsen = await backeZeile(id, z);
+          if (gewachsen === null) stand.uebersprungen++;
+          else { stand.nachgezogen++; stand.zugenommen += gewachsen; }
         }
       }
     } catch (e) {
@@ -247,14 +303,110 @@ async function zieheVorschaubilderNach(zeilen) {
   stand.laeuft = false;
   /* reclaim() AUS DEMSELBEN GRUND WIE BEI DER UMSTELLUNG: jede ersetzte
      Ableitung gibt ihre alten Seiten frei, und ohne incremental_vacuum gibt
-     SQLite sie nicht ans Dateisystem zurueck. Dass der neue `thumb` groesser
-     ist als der alte, aendert daran nichts -- die Datei waechst dann eben um
-     die Zunahme und nicht um die Summe aus alt und neu. */
+     SQLite sie nicht ans Dateisystem zurueck. Ob der neue `thumb` groesser
+     oder kleiner ist als der alte, aendert daran nichts -- die Datei waechst
+     oder schrumpft dann eben um die Differenz und nicht um die Summe. */
   reclaim();
   melde(stand);
-  console.log(`[Kriterion] Vorschaubilder nachgezogen: ${stand.nachgezogen} von ` +
+  console.log(`[Kriterion] Kacheln gebacken: ${stand.nachgezogen} von ` +
     `${stand.geprueft} geprüften Zeilen, ${stand.uebersprungen} übersprungen, ` +
     `${stand.zugenommen} Bytes mehr.`);
+}
+
+/* ---- EINE ZEILE BACKEN -- die Stelle, an der beide Rufer zusammenkommen ---
+
+   DIE SCHLEIFE OBEN RUFT SIE JE FAELLIGER ZEILE, DIE AUFGABE `zuschnitt`
+   GENAU EINMAL. Zwei Fassungen davon liefen frueher oder spaeter auseinander,
+   und die eine schriebe dann etwas anderes als die andere (Stolperstein 47).
+
+   ZURUECK KOMMT DIE DIFFERENZ IN BYTES ODER null. `null` heisst „nicht
+   geschrieben" und ist kein Fehler, sondern das Ergebnis: eine Vorlage, an
+   der sharp scheitert, darf die vorhandene Kachel NICHT ersetzen -- danach
+   stuende NULL in einer Spalte, die vorher ein Bild trug, und die Zeile waere
+   beim naechsten Start ein Fall fuers Nachruesten. Eine Ableitung, die
+   schlechter ist als keine, gibt es nicht; eine, die schlechter ist als die
+   alte, schon.
+
+   DIE VIDEOZEILE BEKOMMT NUR IHRE KACHEL. Ihr `medium` ist die Vorlage --
+   siehe vorlageAus() weiter oben. */
+const schreibBeide = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
+const schreibKachel = db.prepare('UPDATE photos SET thumb = ? WHERE id = ?');
+async function backeZeile(id, z) {
+  const vorlage = vorlageAus(z);
+  if (!vorlage) return null;
+  const v = await makeVariants(vorlage, zuschnittAus(z));
+  if (!v.thumb) return null;
+  if (istVideoZeile(z)) schreibKachel.run(v.thumb, id);
+  else schreibBeide.run(v.thumb, v.medium || null, id);
+  return v.thumb.length - (z.thumb ? z.thumb.length : 0);
+}
+
+/* ---- Die vierte Aufgabe: EINE Zeile, auf ausdruecklichen Knopfdruck -- 0.19.5
+
+   WARUM SIE UEBERHAUPT IN DEN THREAD GEHT, und das ist eine Messung und kein
+   Geschmack. Der Auftrag setzt die Grenze bei rund 150 ms: darunter lohnt der
+   Thread seine 19 ms Verbindung und 76 ms sharp nicht, darueber schon.
+
+   ERSTENS DAS BACKEN SELBST. Gemessen an fuenf Vorlagen in den Massen und
+   Bytes des echten Bestands (5,4 bis 12,7 MB, 4032x3024 und 6192x4128), je
+   fuenf Durchgaenge, vier Kerne: rotate + extract + resize + mozjpeg kostet
+   im Median 157,3 ms und im 95. Perzentil 247,0 ms. Ohne den Zuschnitt sind
+   es 113,4 / 189,5 ms -- der Zuschnitt kostet also nicht das Kodieren,
+   sondern das DEKODIEREN: `extract` nimmt libjpeg sein Shrink-on-Load, mit
+   dem es sonst gleich in 1/2, 1/4 oder 1/8 der Masse dekodiert. Am teuersten
+   ist deshalb `zoom = 100`, wo der Ausschnitt am groessten ist -- nicht
+   `zoom = 400`.
+
+   ZWEITENS, UND DAS IST DER GROESSERE POSTEN: DAS ZURUECKSCHREIBEN. An einer
+   frisch geoeffneten, verschluesselten Datei mit 12,7-MB-Originalen:
+
+     sharp laden          51,9 ms      Blob lesen (12,7 MB)   67,4 ms
+     db-Modul laden        2,6 ms      backen                175,4 ms
+     Datei oeffnen         3,2 ms      Kachel schreiben      473,7 ms
+                                       ------------------------------
+                                       zusammen              774,5 ms
+
+   473,7 ms fuer 20 kB Kachel -- WEIL SQLITE DEN GANZEN SATZ NEU SCHREIBT und
+   der das Original traegt. Nachgemessen an fuenf Groessen in einer warmen
+   Datei: 1,3 ms bei 0,05 MB, 2,8 bei 0,5, 8,7 bei 2, 23,4 bei 6 und 48,2 bei
+   12,7 MB -- linear in der Groesse des ORIGINALS und nicht in der der Kachel.
+   Der Rest bis 473,7 ms ist der kalte Seitencache: `cache_size` steht auf
+   2 MB, ein 12,7-MB-Satz passt nicht hinein und wird zum Schreiben ein
+   zweites Mal gelesen und entschluesselt.
+   UND DESHALB WIRD `medium` MITGESCHRIEBEN UND NICHT GESPART: `SET thumb` und
+   `SET thumb, medium` kosten dasselbe (48,2 gegen 49,2 ms bei 12,7 MB). Ein
+   zweiter Schreibweg fuer den Einzelfall waere eine zweite Wahrheit fuer
+   1 ms.
+
+   AN DER ROUTE GEMESSEN, also von der Anfrage bis zur Antwort: 494 bis 873 ms
+   ueber fuenfzehn Faelle. DER MEDIAN LIEGT WEIT UEBER DER GRENZE -- also
+   Thread, und zwar nicht knapp. Dieselbe Lesart wie in 0.19.3: der Median
+   sagt nichts, das 95. Perzentil sagt alles. Im Haupt-Thread staende die
+   Event Loop dafuer fuenfmal so lange wie die 133 ms, die 0.19.3 gerade
+   freigeraeumt hat.
+
+   GEMESSEN UND VERWORFEN: den Zuschnitt NACH der Skalierung zu nehmen (das
+   ganze Bild so skalieren, dass der Ausschnitt genau 512 traegt, dann
+   herausschneiden) haelt das Shrink-on-Load und kostet im Median 148,7 ms --
+   also fast dasselbe, denn bei weitem Ausschnitt spart es und bei engem
+   skaliert es das ganze Bild unnoetig gross. Die Bytes sind auf 0,5 % gleich.
+   Es waere eine zweite Rechnung mit zwei zusaetzlichen Rundungen fuer nichts.
+
+   DER STAND REIST HIER NICHT ZURUECK. Es gibt keine Karte, die ihn zeigte --
+   der Benutzer wartet vor einem Knopf und nicht vor einer Fortschrittszeile.
+   Gemeldet wird das Ergebnis, damit der Haupt-Thread weiss, ob er die
+   Antwort mit einer neuen Fassung beschriften darf. */
+async function backeEineKachel(zeilen) {
+  const id = zeilen && zeilen[0] && zeilen[0].id;
+  const z = id ? db.prepare(
+    'SELECT data, thumb, medium, art, focus_x, focus_y, zoom FROM photos WHERE id = ?')
+    .get(id) : null;
+  let ok = false;
+  if (z) {
+    try { ok = await backeZeile(id, z) !== null; }
+    catch (e) { console.error(`[Kriterion] Kachel ${id} nicht gebacken:`, e.message); }
+  }
+  parentPort.postMessage({ art: 'gebacken', id, ok });
 }
 
 /* DIESELBE SPEICHERPFLEGE WIE IN server.js, und sie steht in beiden Dateien:
@@ -278,7 +430,8 @@ function reclaim() {
 (async () => {
   if (workerData.aufgabe === 'umstellung') await stelleBestandUm(workerData.zeilen);
   else if (workerData.aufgabe === 'vorschaubilder') await ruesteVorschaubilderNach(workerData.zeilen);
-  else if (workerData.aufgabe === 'geometrie') await zieheVorschaubilderNach(workerData.zeilen);
+  else if (workerData.aufgabe === 'geometrie') await backeKacheln(workerData.zeilen);
+  else if (workerData.aufgabe === 'zuschnitt') await backeEineKachel(workerData.zeilen);
   else throw new Error(`Unbekannte Aufgabe: ${workerData.aufgabe}`);
   db.close();
   parentPort.close();

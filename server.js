@@ -374,31 +374,33 @@ const bestandsStand = (aufgabe) =>
 const qOffenePNG = db.prepare(
   "SELECT id FROM photos WHERE art != 'video' AND hex(substr(data,1,8)) = ?");
 
-/* WELCHE ZEILEN DAS NACHZIEHEN DER GEOMETRIE ANSIEHT -- 0.19.4.
-   ALLE BILDZEILEN, UND NICHT DIE FAELLIGEN. Ob eine Zeile faellig ist, sagt
-   erst der Kopf ihres `thumb`, und der steht nicht in der Reichweite von SQL.
+/* WELCHE ZEILEN DAS BACKEN DER KACHELN ANSIEHT -- 0.19.4, erweitert 0.19.5.
+   ALLE ZEILEN, UND NICHT DIE FAELLIGEN. Ob eine Zeile faellig ist, sagt erst
+   der Kopf ihres `thumb`, und der steht nicht in der Reichweite von SQL.
    Diese Abfrage waehlt deshalb GROSSZUEGIG aus und ueberlaesst dem Thread die
    eigentliche Frage; was das kostet, steht dort.
-   `art != 'video'` UND NICHT `art IS 'bild'`, obwohl db.js daneben schreibt,
-   dass nur die zweite Form idx_photos_art nimmt. DREI GRUENDE, und der erste
-   ist eine Messung: an 1052 Zeilen und 669 MB kosten beide dasselbe (0,4 bis
-   0,5 ms) -- gelesen werden hier nur Nummern, und der Index bringt ihnen
-   nichts. Der zweite ist der wichtigere: `art` traegt laut Schema 'bild' oder
-   'video', ABER DER IMPORT SCHREIBT DEN WERT AUS DER AUSTAUSCHDATEI
-   UNGEPRUEFT DURCH. Eine Auswahl auf 'bild' verschwiege jede Zeile mit einem
-   dritten Wort -- und der Pruefstand legt seit 0.19.3 Zeilen mit `art =
-   'foto'` an, an einer Stelle, an der es niemandem aufgefallen ist. Eine
-   Migration, die Zeilen still auslaesst, ist schlechter als eine, die
-   0,1 ms laenger braucht. Der dritte: qOffenePNG und das Nachruesten fragen
-   beide so, und drei Abfragen ueber dieselbe Menge sollen nicht drei
-   verschiedene Mengen meinen (Stolperstein 47).
+
+   OHNE JEDE BEDINGUNG SEIT 0.19.5, und das ist die Aenderung. Bis 0.19.4
+   stand hier `art != 'video'`, weil eine Videozeile in `data` die Videodatei
+   traegt und es fuer sie keine Vorlage gab. DIE HAT SIE DOCH: ihr `medium`
+   ist die Ableitung ihres Standbilds, und daraus laesst sich die Kachel
+   backen (siehe vorlageAus() in bestandslauf.js). Sie MUSS es sogar -- der
+   CSS-Zuschnitt faellt in dieser Runde weg, und eine Videokachel mit
+   `zoom > 100` zeigte danach den Mittenschnitt statt des eingestellten
+   Ausschnitts. Der Ausschnitteditor ist am Video offen, Schieber
+   eingeschlossen; was er einstellt, muss auch zu sehen sein.
+   DAMIT FAELLT AUCH DER GRUND WEG, DIE ART UEBERHAUPT ZU FRAGEN. Eine
+   Bedingung, die nichts mehr ausschliesst, ist eine Zeile, die beim naechsten
+   Lesen erklaert werden muss. Die anderen beiden Abfragen (qOffenePNG und das
+   Nachruesten) behalten ihr `art != 'video'`: dort GIBT es keine Vorlage --
+   umgestellt wird `data`, und das ist am Video die Videodatei.
    UND AUSDRUECKLICH OHNE `thumb IS NOT NULL`, obwohl es die Auswahl genauer
-   machte: dieselbe Messung sagt 12,9 ms kalt -- der Satz selbst muss dafuer
-   angefasst werden, und der Haupt-Thread ist genau das, was 0.19.1 und 0.19.2
+   machte: gemessen 12,9 ms kalt -- der Satz selbst muss dafuer angefasst
+   werden, und der Haupt-Thread ist genau das, was 0.19.1 und 0.19.2
    freigeraeumt haben. Eine Zeile ohne `thumb` ueberspringt der Thread von
    selbst; sie ist Sache des Nachruestens, das unmittelbar davor gelaufen
    ist. */
-const qBildZeilen = db.prepare("SELECT id FROM photos WHERE art != 'video'");
+const qKachelZeilen = db.prepare('SELECT id FROM photos');
 
 /* ---- DIE VIER ABFRAGEN DER BESTANDSKARTE ----
    VORBEREITET UND NICHT JE ANFRAGE GEBAUT: sie laufen bei jedem Zeichnen des
@@ -2363,13 +2365,58 @@ function qComments(itemId, benutzerId, karte) {
 // die beiden Felder zeichnete sie ins Leere. Sie haengen damit an detail() UND
 // an /api/items (mainPhoto).
 const PHOTO_SPALTEN = 'id, item_id, mime_type, focus_x, focus_y, zoom, sort_order, created_at, art, dauer';
-const qPhotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
+/* ---- DIE FASSUNG DER KACHEL -- 0.19.5 -------------------------------------
+
+   SIE STEHT NEBEN DER LISTE UND NICHT IN IHR, und das hat einen Grund: die
+   Liste darueber ist ZUGLEICH die Spaltenliste des deckenden Index
+   `idx_photos_kachel`, und `length(thumb)` laesst sich nicht indizieren. Wer
+   sie in PHOTO_SPALTEN schriebe, brauchte einen Index mit einer Spalte, die
+   es nicht gibt -- und eine Pruefung, die beide gegeneinander haelt, wuerde
+   rot, ohne dass etwas falsch waere.
+
+   WOZU SIE UEBERHAUPT DA IST -- UND SIE IST KEINE KUER, SONDERN VORAUSSETZUNG.
+   Die Auslieferung setzt `Cache-Control: private, max-age=86400`
+   (anhaenge.js, gerufen mit maxAge: 86400 an /api/photos/:id/raw). Solange
+   der Eintrag frisch ist, FRAGT DER BROWSER GAR NICHT ERST NACH; der schwache
+   ETag von Express wird erst geprueft, wenn er abgelaufen ist. Bis 0.19.4 fiel
+   das nicht auf, weil der Ausschnitt im Browser gerechnet wurde und die
+   Kachel sich sofort aenderte. GEBACKEN AENDERT SICH DER INHALT UNTER
+   DERSELBEN ADRESSE -- der Betreiber saehe seinen neuen Ausschnitt bis zu
+   24 Stunden lang nicht. Die Oberflaeche haengt den Wert deshalb als `?v=` an
+   die Bildadresse; er ist keine Angabe ueber das BILD, sondern ueber seine
+   FASSUNG.
+
+   WARUM `length()` UND NICHT `substr()` -- GEMESSEN, an einer echten
+   verschluesselten Datei mit 1032 Fotozeilen und 754 MB:
+
+     heute (deckender Index)          kalt    2,2 ms   warm    1,9 ms
+     + length(thumb)                  kalt   17,1 ms   warm    2,9 ms
+     + hex(substr(thumb,1,1))         kalt 1859,0 ms   warm 1796,2 ms
+     + length(thumb), OHNE den Index  kalt 2457,8 ms   warm 2449,0 ms
+
+   `length()` auf einem Blob hat in SQLite seine Abkuerzung -- die Laenge steht
+   im Satzkopf, und der liegt am Anfang des Satzes. `substr()` hatte sie nie
+   (0.19.1, hier an einer zweiten Stelle bestaetigt): es liest den Inhalt, und
+   damit die Overflow-Ketten, und damit ihre Entschluesselung.
+   DER INDEX VERLIERT SEINE DECKUNG UND BLEIBT TROTZDEM DER GEWINN. Im
+   Abfrageplan steht danach „SCAN photos USING INDEX" statt „USING COVERING
+   INDEX": SQLite holt neun Spalten weiter aus dem Index und geht fuer die
+   Laenge einmal an den Satzkopf. Ohne den Index kostete dieselbe Abfrage das
+   140fache, weil `art` und `dauer` HINTER den Blobs stehen (0.19.2).
+
+   ZWEI VERSCHIEDENE KACHELN KOENNEN ZUFAELLIG GLEICH LANG SEIN. Das ist
+   hingenommen und ausdruecklich benannt: der Wert ist ein Cache-Schluessel und
+   sonst nichts. Dass DIESELBE Zeile nach einem Neuschnitt exakt dieselbe
+   Laenge traegt, ist unwahrscheinlich genug -- und wenn doch, zeigt der
+   Browser eine Kachel, die er ohnehin schon hatte. */
+const PHOTO_FASSUNG = 'length(thumb) AS fassung';
+const qPhotos = db.prepare(`SELECT ${PHOTO_SPALTEN}, ${PHOTO_FASSUNG} FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 /* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- die Uebersicht ruft sie,
    detail() ruft die Zeile darueber. DIE SPALTENLISTE STEHT AN EINER STELLE:
    liefe sie auseinander, traege die Kachel ein anderes Foto als der Eintrag.
    UND SIE IST ZUGLEICH DIE LISTE DES INDEX `idx_photos_kachel` -- fehlt dort
    eine, faellt der Index still aus. Eine Pruefung haelt beide gegeneinander. */
-const qAlleFotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos ORDER BY item_id, sort_order, id`);
+const qAlleFotos = db.prepare(`SELECT ${PHOTO_SPALTEN}, ${PHOTO_FASSUNG} FROM photos ORDER BY item_id, sort_order, id`);
 /* `t.*` IST SEIT 0.19.3 EINE SPALTENLISTE, und das ist eine Wegnahme mit
    Nachweis: ein Schlagwort traegt id, name und created_at, und `created_at`
    wird in public/app.js an einem Schlagwort NIRGENDS gelesen -- nachgesehen,
@@ -3445,7 +3492,7 @@ app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40
          um 2 von 255 ab --, aber ein zweites Dekodieren waere Arbeit ohne
          Ertrag, und die Ausrichtung (.rotate()) liest EXIF, das in der
          WebP-Fassung nicht mehr steht. */
-      const v = await makeVariants(f.buffer);
+      const v = await makeVariants(f.buffer, VORGABE_ZUSCHNITT);
       /* STRG+V UND DATEIAUSWAHL SIND HIER DERSELBE WEG, und das ist Absicht:
          in `req.files` steht eine Datei und sonst nichts -- der Server kann
          die beiden gar nicht unterscheiden, und ein Feld im Formular waere
@@ -3516,7 +3563,12 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
       // gespeichert und angezeigt, nie tragend. Unsinniges wird zu NULL.
       const d = Math.round(Number(req.body.dauer));
       const dauer = Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null;
-      const v = await makeVariants(standbild.buffer);
+      /* AUCH DAS STANDBILD WIRD GEBACKEN -- 0.19.5, mit den Vorgaben. Die
+         Videokachel wird mit `object-fit: cover` gezeigt wie jede andere;
+         eine ungeschnittene truege die Kachel, die der Bestandslauf beim
+         naechsten Start ohnehin ersetzt. `medium` bleibt ungeschnitten und
+         ist der Poster des Abspielers. */
+      const v = await makeVariants(standbild.buffer, VORGABE_ZUSCHNITT);
       /* Kaeme hier nichts heraus, bliebe die Zeile OHNE Standbild -- und zwar
          dauerhaft: das Nachruesten beim Start laesst Videozeilen aus, weil es
          sonst aus der Videodatei ableiten wuerde. Ein Foto in derselben Lage
@@ -3601,10 +3653,66 @@ function anzeigeWert(name, roh) {
   return Math.min(g.max, Math.max(g.min, Math.round(n * f) / f));
 }
 
-/* Ausschnitt eines Fotos. Drei Zahlen, sonst nichts -- DAS BILD SELBST WIRD
-   NIE VERAENDERT: die beiden Prozentwerte verschieben das sichtbare Fenster
-   (object-position), der dritte zieht es enger (transform: scale). Es wird
-   nichts geschnitten und nichts neu gerechnet.
+/* DIE VORGABE ALS ZUSCHNITT -- 0.19.5. Ein frisch hochgeladenes Foto hat noch
+   keine Zeile in der Tabelle und damit keine drei Werte; gebacken wird es
+   trotzdem, und zwar mit genau den Vorgaben, die die Spalten gleich danach
+   tragen. Die Zahlen stehen deshalb NICHT ein zweites Mal hier, sondern
+   kommen aus ANZEIGEWERTE -- sonst liefe die Vorgabe des Uploads gegen die
+   Vorgabe der Spalte. */
+const VORGABE_ZUSCHNITT = { fx: ANZEIGEWERTE.focus_x.vorgabe,
+                            fy: ANZEIGEWERTE.focus_y.vorgabe,
+                            zoom: ANZEIGEWERTE.zoom.vorgabe };
+
+/* ---- DIE KACHEL WIRD NACH DEM SPEICHERN NEU GEBACKEN -- 0.19.5 ------------
+
+   BIS 0.19.4 SCHRIEB DIESE ROUTE DREI ZAHLEN UND WAR FERTIG. Der Ausschnitt
+   entstand im Browser, die Kachel aenderte sich sofort. Seit dieser Runde
+   steckt er IM BILD -- ohne diesen Schritt zeigte die Uebersicht den alten
+   Schnitt, bis irgendwann etwas anderes die Zeile anfasst.
+
+   DIE ANTWORT WARTET DARAUF, und das ist die Entscheidung. Anders als beim
+   Bestandslauf ist hier kein 202 angebracht: es ist EINE Zeile, der Benutzer
+   wartet davor, und eine Kachel, die „gleich" richtig wird, ist schlechter
+   als eine, die es beim Zurueckkommen ist.
+   GEBACKEN WIRD IM THREAD, und das ist eine Messung -- sie steht bei
+   backeEineKachel() in bestandslauf.js: das Backen 157,3 ms im Median und
+   247,0 ms im 95. Perzentil, das Zurueckschreiben der Kachel noch einmal bis
+   zu 473,7 ms (SQLite schreibt den ganzen Satz neu, und der traegt das
+   Original). AN DIESER ROUTE GEMESSEN: 494 bis 873 ms von der Anfrage bis zur
+   Antwort. Die Grenze des Auftrags liegt bei rund 150 ms -- im Haupt-Thread
+   staende die Event Loop dafuer fuenfmal so lange wie die 133 ms, die 0.19.3
+   freigeraeumt hat.
+
+   SCHLAEGT DAS BACKEN FEHL, IST DER AUSSCHNITT TROTZDEM GESPEICHERT und die
+   Zeile behaelt ihre alte Kachel. Dieselbe Regel wie ueberall: eine
+   Ableitung, die schlechter ist als die alte, gibt es nicht. Deshalb steht
+   das UPDATE der drei Zahlen VOR dem Thread und nicht danach.
+
+   UND DIE ANTWORT KOMMT AUF JEDEN FALL. Ein Thread, der haengt, haenge sonst
+   die Anfrage mit -- und ein Browser, der auf eine Antwort wartet, die nie
+   kommt, ist schlechter als eine Kachel, die eine Fassung zu alt ist. Die
+   Frist ist mit 15 Sekunden das Siebzehnfache dessen, was die Route im
+   schlechtesten gemessenen Fall braucht (873 ms); wer sie erreicht, hat kein
+   Zeitproblem, sondern ein anderes. Dieselbe Haltung wie bei der aeusseren
+   Schranke ueber dem Mailversand.
+   ZWEIMAL ANTWORTEN GEHT NICHT: `einmal()` haelt es fest. Ein zweites
+   res.json() waere ERR_HTTP_HEADERS_SENT und naehme den Server mit. */
+const BACKFRIST_MS = 15000;
+function backeKachelNeu(id, fertig) {
+  let raus = false;
+  const einmal = () => { if (!raus) { raus = true; clearTimeout(uhr); fertig(); } };
+  const uhr = setTimeout(einmal, BACKFRIST_MS);
+  /* DIE UHR DARF DEN PROZESS NICHT AM LEBEN HALTEN: sie ist eine Schranke und
+     kein Termin. Ohne unref() haengt ein Herunterfahren bis zu 15 Sekunden. */
+  uhr.unref?.();
+  try { starteBestandsThread('zuschnitt', [{ id: Number(id) }], einmal); }
+  catch (e) { console.error('[Kriterion] Kachel nicht gebacken:', e.message); einmal(); }
+}
+
+/* Ausschnitt eines Fotos. Drei Zahlen -- und seit 0.19.5 eine neue Kachel
+   daraus. DAS BILD SELBST WIRD NIE VERAENDERT: `data` bleibt unberuehrt, und
+   genau deshalb bleibt der Ausschnitt jederzeit aenderbar. Was neu gerechnet
+   wird, ist allein die Ableitung `thumb`.
    EINE ROUTE UND KEINE ZWEITE FUER DEN ZOOM. Er wird an derselben Stelle
    eingestellt wie der Fokuspunkt, er gehoert derselben Zeile, und eine zweite
    schreibende Route liesse F_ROUTEN wachsen, ohne dass es etwas Neues zu
@@ -3636,7 +3744,11 @@ app.put('/api/photos/:id/focus', (req, res) => {
   db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')
     .run(x, y, z, req.params.id);
   touch.run(p.item_id);
-  res.json(detail(p.item_id, req.benutzer.id));
+  /* ERST BACKEN, DANN ANTWORTEN. detail() steht IM Abschluss und nicht
+     davor: es liest `length(thumb)` als Fassung mit, und die soll die NEUE
+     sein -- sonst zeigte der Browser die alte Kachel unter der alten Adresse
+     weiter, und der ganze Schritt waere umsonst. */
+  backeKachelNeu(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));
 });
 
 /* ---- Anhaenge ----
@@ -5018,7 +5130,16 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
          durch sharp lesen oder fehlt es, wird die Zeile uebergangen und
          genannt -- dieselbe Regel wie beim Hochladen. */
       const vorlage = istVideo ? bytesAus(p, 'standbild', bytesQuelle) : buf;
-      const v = vorlage ? await makeVariants(vorlage) : { thumb: null, medium: null };
+      /* DER ZUSCHNITT AUS DER DATEI GEHT IN DIE ABLEITUNG -- 0.19.5. Er wird
+         eine Zeile tiefer ohnehin gelesen; ohne ihn HIER truege jede
+         eingespielte Zeile eine ungeschnittene Kachel, und der Bestandslauf
+         muesste sie beim naechsten Start ein zweites Mal anfassen -- an einem
+         Bestand, den gerade jemand eingespielt hat, ist das der ganze
+         Bestand. */
+      const im = (name, roh) => anzeigeWert(name, roh) ?? ANZEIGEWERTE[name].vorgabe;
+      const zuschnitt = { fx: im('focus_x', p.focus_x), fy: im('focus_y', p.focus_y),
+                          zoom: im('zoom', p.zoom) };
+      const v = vorlage ? await makeVariants(vorlage, zuschnitt) : { thumb: null, medium: null };
       // Dieselbe Schaerfe wie beim Hochladen: fehlt EINE der beiden
       // Varianten, wird die Zeile nicht angelegt. Das Nachruesten beim Start
       // holt sie an einer Videozeile nicht nach.
@@ -5030,14 +5151,12 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
          mit der der Fokuspunkt seinerzeit eingefuehrt wurde, und sie ist der
          Grund, warum hier keine Fallunterscheidung nach Formatnummer steht --
          entschieden wird ueber das Vorhandensein der Felder. */
-      const im = (name, roh) => anzeigeWert(name, roh) ?? ANZEIGEWERTE[name].vorgabe;
       // Die Dauer ist eine Angabe wie der gemeldete Typ, und sie wird
       // genauso beschnitten wie beim Hochladen.
       const d = Math.round(Number(p.dauer));
       photos.push({ mime: p.mime_type || (istVideo ? 'video/mp4' : 'image/jpeg'),
                     buf, thumb: v.thumb, medium: v.medium,
-                    fx: im('focus_x', p.focus_x), fy: im('focus_y', p.focus_y),
-                    zoom: im('zoom', p.zoom),
+                    fx: zuschnitt.fx, fy: zuschnitt.fy, zoom: zuschnitt.zoom,
                     art: istVideo ? 'video' : 'bild',
                     dauer: istVideo && Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null });
     }
@@ -5857,7 +5976,7 @@ app.use((err, req, res, next) => {
 function ruesteVorschaubilderNach() {
   const offen = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND art != 'video'").all();
-  if (!offen.length) return zieheGeometrieNach();
+  if (!offen.length) return backeKacheln();
   /* maintainStorage() ERST DANACH, und deshalb steht es hier im Abschluss und
      nicht in einer Kette daneben: es fasst die ganze Datei an (beim ersten Mal
      ein VACUUM) und darf nicht neben der Schleife laufen.
@@ -5866,14 +5985,14 @@ function ruesteVorschaubilderNach() {
      schrieben beide in `photos`, und der Stand fuer die Karte ist EINE
      Variable -- der zweite ueberschriebe den ersten, und die Karte zeigte
      abwechselnd zwei Laeufe (Stolperstein 47). */
-  starteBestandsThread('vorschaubilder', offen, zieheGeometrieNach);
+  starteBestandsThread('vorschaubilder', offen, backeKacheln);
 }
 
-/* DIE VORSCHAUBILDER AUF DIE NEUE GEOMETRIE NACHZIEHEN -- 0.19.4.
+/* DIE KACHELN BACKEN -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt.
    NACH DEM NACHRUESTEN UND NICHT DAVOR: eine Zeile, der `thumb` fehlt, hat
-   keine Geometrie, an der sich etwas ablesen liesse. Erst fuellen, dann
-   nachziehen -- und was das Nachruesten erzeugt, traegt die neue Geometrie
-   ohnehin schon, weil beide dieselbe makeVariants() rufen.
+   keine Kachel, an der sich etwas ablesen liesse. Erst fuellen, dann backen --
+   und was das Nachruesten erzeugt, ist ohnehin schon gebacken, weil beide
+   dieselbe makeVariants() mit demselben Zuschnitt rufen.
 
    ES LAEUFT BEI JEDEM START UND NICHT AUF KNOPFDRUCK, und das ist die
    Entscheidung aus Abschnitt 1c des Auftrags. Sie faellt an einer Messung:
@@ -5885,8 +6004,8 @@ function ruesteVorschaubilderNach() {
    Verbindung und 76 ms sharp, und danach 275 ms Lesen im Leerlauf. Das ist
    der Preis dafuer, dass kein Merker in der Datenbank steht -- und der
    Merker waere eine Schemaaenderung. */
-function zieheGeometrieNach() {
-  const zeilen = qBildZeilen.all();
+function backeKacheln() {
+  const zeilen = qKachelZeilen.all();
   if (!zeilen.length) return maintainStorage();
   starteBestandsThread('geometrie', zeilen, maintainStorage);
 }
