@@ -374,7 +374,7 @@ const bestandsStand = (aufgabe) =>
 const qOffenePNG = db.prepare(
   "SELECT id FROM photos WHERE art != 'video' AND hex(substr(data,1,8)) = ?");
 
-/* WELCHE ZEILEN DAS BACKEN DER KACHELN ANSIEHT -- 0.19.4, erweitert 0.19.5.
+/* WELCHE ZEILEN DAS ERNEUERN DER KACHELN ANSIEHT -- 0.19.4, erweitert 0.19.5.
    ALLE ZEILEN, UND NICHT DIE FAELLIGEN. Ob eine Zeile faellig ist, sagt erst
    der Kopf ihres `thumb`, und der steht nicht in der Reichweite von SQL.
    Diese Abfrage waehlt deshalb GROSSZUEGIG aus und ueberlaesst dem Thread die
@@ -384,7 +384,7 @@ const qOffenePNG = db.prepare(
    stand hier `art != 'video'`, weil eine Videozeile in `data` die Videodatei
    traegt und es fuer sie keine Vorlage gab. DIE HAT SIE DOCH: ihr `medium`
    ist die Ableitung ihres Standbilds, und daraus laesst sich die Kachel
-   backen (siehe vorlageAus() in bestandslauf.js). Sie MUSS es sogar -- der
+   erzeugen (siehe vorlageAus() in bestandslauf.js). Sie MUSS es sogar -- der
    CSS-Zuschnitt faellt in dieser Runde weg, und eine Videokachel mit
    `zoom > 100` zeigte danach den Mittenschnitt statt des eingestellten
    Ausschnitts. Der Ausschnitteditor ist am Video offen, Schieber
@@ -2380,7 +2380,7 @@ const PHOTO_SPALTEN = 'id, item_id, mime_type, focus_x, focus_y, zoom, sort_orde
    der Eintrag frisch ist, FRAGT DER BROWSER GAR NICHT ERST NACH; der schwache
    ETag von Express wird erst geprueft, wenn er abgelaufen ist. Bis 0.19.4 fiel
    das nicht auf, weil der Ausschnitt im Browser gerechnet wurde und die
-   Kachel sich sofort aenderte. GEBACKEN AENDERT SICH DER INHALT UNTER
+   Kachel sich sofort aenderte. EINGERECHNET AENDERT SICH DER INHALT UNTER
    DERSELBEN ADRESSE -- der Betreiber saehe seinen neuen Ausschnitt bis zu
    24 Stunden lang nicht. Die Oberflaeche haengt den Wert deshalb als `?v=` an
    die Bildadresse; er ist keine Angabe ueber das BILD, sondern ueber seine
@@ -3563,7 +3563,7 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
       // gespeichert und angezeigt, nie tragend. Unsinniges wird zu NULL.
       const d = Math.round(Number(req.body.dauer));
       const dauer = Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null;
-      /* AUCH DAS STANDBILD WIRD GEBACKEN -- 0.19.5, mit den Vorgaben. Die
+      /* AUCH DAS STANDBILD WIRD ZUGESCHNITTEN -- 0.19.5, mit den Vorgaben. Die
          Videokachel wird mit `object-fit: cover` gezeigt wie jede andere;
          eine ungeschnittene truege die Kachel, die der Bestandslauf beim
          naechsten Start ohnehin ersetzt. `medium` bleibt ungeschnitten und
@@ -3654,7 +3654,7 @@ function anzeigeWert(name, roh) {
 }
 
 /* DIE VORGABE ALS ZUSCHNITT -- 0.19.5. Ein frisch hochgeladenes Foto hat noch
-   keine Zeile in der Tabelle und damit keine drei Werte; gebacken wird es
+   keine Zeile in der Tabelle und damit keine drei Werte; erzeugt wird es
    trotzdem, und zwar mit genau den Vorgaben, die die Spalten gleich danach
    tragen. Die Zahlen stehen deshalb NICHT ein zweites Mal hier, sondern
    kommen aus ANZEIGEWERTE -- sonst liefe die Vorgabe des Uploads gegen die
@@ -3663,7 +3663,7 @@ const VORGABE_ZUSCHNITT = { fx: ANZEIGEWERTE.focus_x.vorgabe,
                             fy: ANZEIGEWERTE.focus_y.vorgabe,
                             zoom: ANZEIGEWERTE.zoom.vorgabe };
 
-/* ---- DIE KACHEL WIRD NACH DEM SPEICHERN NEU GEBACKEN -- 0.19.5 ------------
+/* ---- DIE KACHEL WIRD NACH DEM SPEICHERN NEU ERZEUGT -- 0.19.5 ------------
 
    BIS 0.19.4 SCHRIEB DIESE ROUTE DREI ZAHLEN UND WAR FERTIG. Der Ausschnitt
    entstand im Browser, die Kachel aenderte sich sofort. Seit dieser Runde
@@ -3674,8 +3674,8 @@ const VORGABE_ZUSCHNITT = { fx: ANZEIGEWERTE.focus_x.vorgabe,
    Bestandslauf ist hier kein 202 angebracht: es ist EINE Zeile, der Benutzer
    wartet davor, und eine Kachel, die „gleich" richtig wird, ist schlechter
    als eine, die es beim Zurueckkommen ist.
-   GEBACKEN WIRD IM THREAD, und das ist eine Messung -- sie steht bei
-   backeEineKachel() in bestandslauf.js: das Backen 157,3 ms im Median und
+   ERZEUGT WIRD IM THREAD, und das ist eine Messung -- sie steht bei
+   erneuereEineKachel() in bestandslauf.js: das Erzeugen 157,3 ms im Median und
    247,0 ms im 95. Perzentil, das Zurueckschreiben der Kachel noch einmal bis
    zu 473,7 ms (SQLite schreibt den ganzen Satz neu, und der traegt das
    Original). AN DIESER ROUTE GEMESSEN: 494 bis 873 ms von der Anfrage bis zur
@@ -3683,7 +3683,7 @@ const VORGABE_ZUSCHNITT = { fx: ANZEIGEWERTE.focus_x.vorgabe,
    staende die Event Loop dafuer fuenfmal so lange wie die 133 ms, die 0.19.3
    freigeraeumt hat.
 
-   SCHLAEGT DAS BACKEN FEHL, IST DER AUSSCHNITT TROTZDEM GESPEICHERT und die
+   SCHLAEGT DAS ERZEUGEN FEHL, IST DER AUSSCHNITT TROTZDEM GESPEICHERT und die
    Zeile behaelt ihre alte Kachel. Dieselbe Regel wie ueberall: eine
    Ableitung, die schlechter ist als die alte, gibt es nicht. Deshalb steht
    das UPDATE der drei Zahlen VOR dem Thread und nicht danach.
@@ -3697,16 +3697,16 @@ const VORGABE_ZUSCHNITT = { fx: ANZEIGEWERTE.focus_x.vorgabe,
    Schranke ueber dem Mailversand.
    ZWEIMAL ANTWORTEN GEHT NICHT: `einmal()` haelt es fest. Ein zweites
    res.json() waere ERR_HTTP_HEADERS_SENT und naehme den Server mit. */
-const BACKFRIST_MS = 15000;
-function backeKachelNeu(id, fertig) {
+const ERNEUERUNGSFRIST_MS = 15000;
+function erneuereKachel(id, fertig) {
   let raus = false;
   const einmal = () => { if (!raus) { raus = true; clearTimeout(uhr); fertig(); } };
-  const uhr = setTimeout(einmal, BACKFRIST_MS);
+  const uhr = setTimeout(einmal, ERNEUERUNGSFRIST_MS);
   /* DIE UHR DARF DEN PROZESS NICHT AM LEBEN HALTEN: sie ist eine Schranke und
      kein Termin. Ohne unref() haengt ein Herunterfahren bis zu 15 Sekunden. */
   uhr.unref?.();
   try { starteBestandsThread('zuschnitt', [{ id: Number(id) }], einmal); }
-  catch (e) { console.error('[Kriterion] Kachel nicht gebacken:', e.message); einmal(); }
+  catch (e) { console.error('[Kriterion] Kachel nicht erneuert:', e.message); einmal(); }
 }
 
 /* Ausschnitt eines Fotos. Drei Zahlen -- und seit 0.19.5 eine neue Kachel
@@ -3744,11 +3744,11 @@ app.put('/api/photos/:id/focus', (req, res) => {
   db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')
     .run(x, y, z, req.params.id);
   touch.run(p.item_id);
-  /* ERST BACKEN, DANN ANTWORTEN. detail() steht IM Abschluss und nicht
+  /* ERST ERZEUGEN, DANN ANTWORTEN. detail() steht IM Abschluss und nicht
      davor: es liest `length(thumb)` als Fassung mit, und die soll die NEUE
      sein -- sonst zeigte der Browser die alte Kachel unter der alten Adresse
      weiter, und der ganze Schritt waere umsonst. */
-  backeKachelNeu(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));
+  erneuereKachel(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));
 });
 
 /* ---- Anhaenge ----
@@ -5976,7 +5976,7 @@ app.use((err, req, res, next) => {
 function ruesteVorschaubilderNach() {
   const offen = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND art != 'video'").all();
-  if (!offen.length) return backeKacheln();
+  if (!offen.length) return erneuereKacheln();
   /* maintainStorage() ERST DANACH, und deshalb steht es hier im Abschluss und
      nicht in einer Kette daneben: es fasst die ganze Datei an (beim ersten Mal
      ein VACUUM) und darf nicht neben der Schleife laufen.
@@ -5985,13 +5985,13 @@ function ruesteVorschaubilderNach() {
      schrieben beide in `photos`, und der Stand fuer die Karte ist EINE
      Variable -- der zweite ueberschriebe den ersten, und die Karte zeigte
      abwechselnd zwei Laeufe (Stolperstein 47). */
-  starteBestandsThread('vorschaubilder', offen, backeKacheln);
+  starteBestandsThread('vorschaubilder', offen, erneuereKacheln);
 }
 
-/* DIE KACHELN BACKEN -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt.
+/* DIE KACHELN ERNEUERN -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt.
    NACH DEM NACHRUESTEN UND NICHT DAVOR: eine Zeile, der `thumb` fehlt, hat
-   keine Kachel, an der sich etwas ablesen liesse. Erst fuellen, dann backen --
-   und was das Nachruesten erzeugt, ist ohnehin schon gebacken, weil beide
+   keine Kachel, an der sich etwas ablesen liesse. Erst fuellen, dann erneuern --
+   und was das Nachruesten erzeugt, ist ohnehin schon zugeschnitten, weil beide
    dieselbe makeVariants() mit demselben Zuschnitt rufen.
 
    ES LAEUFT BEI JEDEM START UND NICHT AUF KNOPFDRUCK, und das ist die
@@ -6004,7 +6004,7 @@ function ruesteVorschaubilderNach() {
    Verbindung und 76 ms sharp, und danach 275 ms Lesen im Leerlauf. Das ist
    der Preis dafuer, dass kein Merker in der Datenbank steht -- und der
    Merker waere eine Schemaaenderung. */
-function backeKacheln() {
+function erneuereKacheln() {
   const zeilen = qKachelZeilen.all();
   if (!zeilen.length) return maintainStorage();
   starteBestandsThread('geometrie', zeilen, maintainStorage);

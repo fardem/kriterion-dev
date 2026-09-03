@@ -492,13 +492,13 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
 }
 /* DER ENGERE AUSSCHNITT WIRD SEIT 0.19.5 NICHT MEHR HIER GEZOGEN, SONDERN
-   GEBACKEN. Von 0.19.0 bis 0.19.4 stand hier `transform: scale(var(--zoom))`
+   ZUGESCHNITTEN. Von 0.19.0 bis 0.19.4 stand hier `transform: scale(var(--zoom))`
    und am Bild ein `object-position` aus app.js; der Server liefert seit dieser
    Runde eine Kachel, die den eingestellten Ausschnitt SCHON IST. Beides
    zusammen schnitte zweimal -- man saehe einen Ausschnitt des Ausschnitts.
-   WARUM DER GEBACKENE WEG BESSER IST, in Quellpunkten je Anzeigepunkt auf der
+   WARUM DER ZUGESCHNITTENE WEG BESSER IST, in Quellpunkten je Anzeigepunkt auf der
    299 px breiten Kachel: bei `zoom` 235 gab der gezogene 0,73x (also 1,37fach
-   HOCHGEZOGEN), der gebackene gibt 5,88x -- und zwar unabhaengig davon, wie
+   HOCHGEZOGEN), der zugeschnittene gibt 5,88x -- und zwar unabhaengig davon, wie
    eng gezogen wird.
    `object-fit: cover` BLEIBT STEHEN UND IST LEERLAUF: ein Quadrat in einem
    quadratischen Behaelter hat nichts zu beschneiden. Es bleibt, weil die

@@ -29,6 +29,23 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.19.6] - 2026-09-03
+
+> **NICHTS ZU TUN — außer im Browser einmal hart neu zu laden.** Keine
+> Datenbankstufe, keine Migration, kein neuer Index, kein Nachziehen von
+> Vorschaubildern; das Austauschformat bleibt 12.
+>
+> **DIE ROTE MELDUNG BEIM ZURÜCKGEHEN IST WEG.** Wer einen Bildausschnitt
+> gespeichert und sofort auf die Übersicht geklickt hat, bekam unten einen
+> roten Kasten — *„can't access property innerHTML"*. **Gespeichert war der
+> Ausschnitt dabei jedes Mal**; die Meldung war falsch, nicht der Vorgang.
+> *Jetzt steht dort die Bestätigung, die auch sonst dort steht.*
+
+- Fixed: Keine rote Fehlermeldung mehr, wenn man direkt nach dem Speichern eines Bildausschnitts zur Übersicht zurückgeht — der Ausschnitt war dabei immer gespeichert
+- Fixed: Dasselbe beim Löschen und beim Hochladen von Bildern und Videos — auch dort wird die Ansicht nicht mehr angefasst, wenn sie schon fort ist
+- Changed: Die Bestätigung „Bildausschnitt gespeichert" erscheint jetzt auch dann, wenn die Ansicht schon gewechselt ist
+- Changed: Die Karte „Bildablage" meldet „Vorschaubilder erneuert" statt „gebacken" — dasselbe Wort steht jetzt im ganzen Projekt
+
 ## [0.19.5] - 2026-09-03
 
 > **BEIM ERSTEN START RECHNET KRITERION ALLE VORSCHAUBILDER EIN ZWEITES MAL

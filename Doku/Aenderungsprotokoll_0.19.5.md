@@ -1,4 +1,4 @@
-# Änderungsprotokoll 0.19.5 — „Der Ausschnitt wird gebacken, nicht gezogen"
+# Änderungsprotokoll 0.19.5 — „Der Ausschnitt wird eingerechnet, nicht gezogen"
 
 **PATCH · 3. September 2026 · eine Entscheidung aus 0.19.4 wird umgekehrt, und
 zwar in beiden Hälften zugleich.** *Angefasst sind `bilder.js`,
@@ -53,18 +53,18 @@ genau benennbaren Grund: sie galt, solange der Browser den Ausschnitt aus dem
 ganzen `thumb` zog.** Diese Runde nimmt ihm das weg. **Beides gehört in
 dieselbe Runde, oder keines von beidem** — wer serverseitig schneidet und den
 CSS-Zoom stehen lässt, schneidet zweimal; wer den CSS-Zoom entfernt und nicht
-backt, zeigt den Mittenschnitt.
+schneidet, zeigt den Mittenschnitt.
 
 **Was es bringt, in Quellpunkten je Anzeigepunkt** auf der 299 px breiten
 Kachel (die Kachelbreite ist aus 0.19.4, in Chromium gemessen):
 
-| | `thumb` + CSS-Zoom (bis 0.19.4) | gebacken (ab 0.19.5) |
+| | `thumb` + CSS-Zoom (bis 0.19.4) | eingerechnet (ab 0.19.5) |
 |---|---|---|
 | `zoom` 100 | 1,71× | 1,71× |
 | **`zoom` 235** | **0,73× — 1,37fach hochgezogen** | **5,88×** |
 | `zoom` 400 | 0,43× — 2,34fach | 5,88× |
 
-**Der gebackene Weg ist von der Weite des Ausschnitts unabhängig.** *Das ist
+**Der eingerechnete Weg ist von der Weite des Ausschnitts unabhängig.** *Das ist
 der ganze Punkt.*
 
 > **`focus_x`, `focus_y` UND `zoom` BLEIBEN, WIE SIE SIND** — Spanne,
@@ -110,7 +110,7 @@ das ganze Bild unnötig groß.
 
 ### Und was daneben noch kostet — die Aufschlüsselung
 
-**DAS BACKEN IST NICHT DER GRÖSSTE POSTEN.** An einer frisch geöffneten,
+**DAS ERZEUGEN IST NICHT DER GRÖSSTE POSTEN.** An einer frisch geöffneten,
 verschlüsselten Datei mit 12,7-MB-Originalen — also genau der Lage, die der
 Thread vorfindet:
 
@@ -120,7 +120,7 @@ Thread vorfindet:
 | `db.js` laden | 2,6 ms |
 | Datei öffnen | 3,2 ms |
 | Blob lesen (12,7 MB) | 67,4 ms |
-| backen | 175,4 ms |
+| erzeugen | 175,4 ms |
 | **Kachel schreiben** | **473,7 ms** |
 | **zusammen** | **774,5 ms** |
 
@@ -147,29 +147,29 @@ eine zweite Wahrheit.
 **AN DER ROUTE GEMESSEN**, an einem echten Server mit echter verschlüsselter
 Datenbank, von der Anfrage bis zur Antwort, fünfzehn Fälle: **494 bis 873 ms.**
 
-**Die Grenze des Auftrags liegt bei rund 150 ms. Der Median des Backens liegt
+**Die Grenze des Auftrags liegt bei rund 150 ms. Der Median des Erzeugens liegt
 darüber, das 95. Perzentil deutlich, und die Route als Ganzes um ein
 Vielfaches. → ÜBER `starteBestandsThread`.** *Dieselbe Lesart wie in 0.19.3:
 der Median sagt nichts, das 95. Perzentil sagt alles. Im Haupt-Thread stünde
 die Event Loop fünfmal so lange wie die 133 ms, die 0.19.3 gerade freigeräumt
 hat.*
 
-### B. Was die gebackene Kachel an Bytes kostet
+### B. Was die zugeschnittene Kachel an Bytes kostet
 
 **AUFBAU.** 36 nachgebaute Vorlagen: **zwölf Seitenverhältnisse** (die beiden
 Kameras des Bestands, vier Bildschirmformate, quadratisch, 21:9, 32:9, Telefon
 hochkant) × **drei Rauschstufen**. Gemessen wird `length(thumb)` der heutigen
-Ableitung gegen die gebackene bei `zoom` 100. **Auch hier: nachgebaut, nicht
+Ableitung gegen die zugeschnittene bei `zoom` 100. **Auch hier: nachgebaut, nicht
 der echte Bestand.**
 
-| | heute | gebacken | |
+| | heute | eingerechnet | |
 |---|---|---|---|
 | **Summe (36)** | **1252,0 kB** | **824,2 kB** | **−34,2 %** |
 | **Mittel** | **34,8 kB** | **22,9 kB** | |
 
 Je Form, über die drei Rauschstufen gemittelt:
 
-| Form | heute | gebacken | Δ |
+| Form | heute | eingerechnet | Δ |
 |---|---|---|---|
 | 16:9 (1080p / 1440p / 4K) | `910 × 512` | `512 × 512` | **−44 %** |
 | 21:9 | `1223 × 512` | `512 × 512` | **−58 %** |
@@ -230,13 +230,13 @@ Kachel, die sich sofort ändert statt nach 24 Stunden.**
 
 | # | Was | Womit belegt |
 |---|---|---|
-| **1** | **`zuschnittKiste(breite, hoehe, fx, fy, zoom)`** — die Rechnung des Ausschnitts, ohne Rundung | `seite = min(b,h)` · `kante = seite · 100 / zoom` · `links = fx/100 · (b − kante)`. **Sie steht ZWEIMAL** — hier und in `public/app.js` —, und das lässt sich nicht vermeiden: der Browser zeichnet den Rahmen live, der Server backt, dazwischen liegt HTTP. **Der Prüfstand hält beide über 140 Wertepaare gegeneinander** (Stolperstein 293) |
-| **2** | `makeVariants(buf, **zuschnitt**)` — ein Argument mehr, kein zweiter Weg | Ist er gesetzt, wird `thumb` daraus gebacken; ist er es nicht, bleibt alles wie in 0.19.4. *Ein zweiter Ableitungsweg daneben wäre eine zweite Wahrheit (Stolperstein 47).* Ohne Zuschnitt gerufen wird an einer Zeile, deren Maße sich nicht lesen lassen |
+| **1** | **`zuschnittKiste(breite, hoehe, fx, fy, zoom)`** — die Rechnung des Ausschnitts, ohne Rundung | `seite = min(b,h)` · `kante = seite · 100 / zoom` · `links = fx/100 · (b − kante)`. **Sie steht ZWEIMAL** — hier und in `public/app.js` —, und das lässt sich nicht vermeiden: der Browser zeichnet den Rahmen live, der Server schneidet, dazwischen liegt HTTP. **Der Prüfstand hält beide über 140 Wertepaare gegeneinander** (Stolperstein 293) |
+| **2** | `makeVariants(buf, **zuschnitt**)` — ein Argument mehr, kein zweiter Weg | Ist er gesetzt, wird `thumb` daraus eingerechnet; ist er es nicht, bleibt alles wie in 0.19.4. *Ein zweiter Ableitungsweg daneben wäre eine zweite Wahrheit (Stolperstein 47).* Ohne Zuschnitt gerufen wird an einer Zeile, deren Maße sich nicht lesen lassen |
 | **3** | Die Tafel `VARIANTS` trägt **`schneidet`** | `thumb: { …, schneidet: true }`, `medium: { …, schneidet: false }`. **`medium` WIRD NICHT GESCHNITTEN** — es wird mit `contain` gezeigt, also ganz, und der Editor zeichnet den Rahmen darauf. *Die Unterscheidung steht in der Tafel und nicht als `if (name === 'thumb')` in der Schleife* |
 | **4** | **`schnittRechteck()` rechnet in den GEDREHTEN Maßen** | `extract()` tut es, `metadata()` meldet die gespeicherten — **und `metadata()` NACH `.rotate()` im selben Rohr meldet ebenfalls die gespeicherten.** *Nachgemessen: 4032 × 3024 mit Ausrichtung 6 → das erzeugte Bild ist 3024 × 4032; eine Marke, die gespeichert oben links lag, findet sich bei `fx = 100, fy = 0` und in keiner anderen Ecke.* Stolperstein 288 an einer zweiten Stelle — **und diesmal wirft es nicht, es schneidet daneben** |
 | **5** | Die Kiste wird **gegen den Rand geklammert**, erst die Kante, dann die Ecke | Ein Zuschnitt an der Bildecke (`fx = 100`) ragt nach dem Runden sonst einen Bildpunkt über den Rand, und `sharp` quittiert das mit einem Fehler. *Die Kachel entstünde gar nicht.* |
 | **6** | **`withoutEnlargement` bleibt** | Ist der Ausschnitt kleiner als 512, bleibt die Kachel kleiner. *Es kostete Bytes und trüge keinen Bildpunkt mehr; der Browser zieht sie beim Anzeigen ohnehin auf, und das Ergebnis ist Bildpunkt für Bildpunkt dasselbe.* Gemessen: `1920 × 1080` bei `zoom` 400 ergibt **270 × 270** |
-| **7** | Die Fälligkeitsfrage heißt jetzt **„ist die Kachel quadratisch?"** | `traegtAlteGeometrie` (lange Kante genau 400) reichte nicht mehr: eine Zeile mit `zoom = 235` und 512er kurzer Kante trägt die Geometrie aus 0.19.4 und braucht trotzdem einen Schnitt. **Eine gebackene Kachel IST quadratisch, eine ungeschnittene nur, wenn die Vorlage es war** — „gebacken" und „quadratisch" fallen zusammen, ohne Merkerspalte |
+| **7** | Die Fälligkeitsfrage heißt jetzt **„ist die Kachel quadratisch?"** | `traegtAlteGeometrie` (lange Kante genau 400) reichte nicht mehr: eine Zeile mit `zoom = 235` und 512er kurzer Kante trägt die Geometrie aus 0.19.4 und braucht trotzdem einen Schnitt. **Eine zugeschnittene Kachel IST quadratisch, eine ungeschnittene nur, wenn die Vorlage es war** — „eingerechnet" und „quadratisch" fallen zusammen, ohne Merkerspalte |
 | **8** | **Der Deckel von 1280 bleibt in der Tafel** | Er gilt nur noch für die ungeschnittene Ableitung — eine quadratische Kachel hat keine Kante, die davonlaufen könnte. *Er bleibt, weil `makeVariants()` auch ohne Zuschnitt gerufen wird* |
 
 **`ALTE_THUMB_KANTE` ist weggefallen** — die 400 beschrieb den Zustand, den
@@ -246,29 +246,29 @@ Kachel, die sich sofort ändert statt nach 24 Stunden.**
 
 | # | Was | Womit belegt |
 |---|---|---|
-| **1** | Die Aufgabe **`geometrie`** backt jetzt den Ausschnitt hinein | Dieselbe Schleife, dieselbe Fortschrittszeile, dieselbe Aufgabenkennung. **Was sich geändert hat, ist die Frage nach der Fälligkeit und das zweite Argument an `makeVariants()`** |
+| **1** | Die Aufgabe **`geometrie`** schneidet jetzt den Ausschnitt hinein | Dieselbe Schleife, dieselbe Fortschrittszeile, dieselbe Aufgabenkennung. **Was sich geändert hat, ist die Frage nach der Fälligkeit und das zweite Argument an `makeVariants()`** |
 | **2** | **`vorlageAus()` / `zuschnittAus()`** — eine Wahrheit für beide Schleifen und die Route | Am Foto ist die Vorlage `data`, **am Video `medium`**: in `data` steht die Videodatei, und der Kernsatz gilt weiter — *der Server öffnet nie ein Video* |
 | **3** | **Auch die Zeilen mit `zoom = 100` kommen mit** | Zwei Gründe, und beide sind gemessen: **die Frage wäre sonst kein Festpunkt** (eine Regel mit zwei Zweigen fällt an der ersten kleinen Vorlage zurück), und **es spart 34,2 % der Kachelbytes** |
 | **4** | **`backeZeile()`** — die Stelle, an der beide Rufer zusammenkommen | Die Schleife ruft sie je fälliger Zeile, die neue Aufgabe genau einmal. *Zurück kommt die Differenz in Bytes oder `null`; `null` heißt „nicht geschrieben" und ist kein Fehler* |
-| **5** | Die **vierte Aufgabe `zuschnitt`** — eine Zeile, auf ausdrücklichen Knopfdruck | Sie meldet `{ art: 'gebacken', id, ok }` zurück; einen Stand meldet sie nicht, denn es gibt keine Karte, die ihn zeigte |
+| **5** | Die **vierte Aufgabe `zuschnitt`** — eine Zeile, auf ausdrücklichen Knopfdruck | Sie meldet `{ art: 'eingerechnet', id, ok }` zurück; einen Stand meldet sie nicht, denn es gibt keine Karte, die ihn zeigte |
 | **6** | Am Video wird **nur `thumb`** geschrieben | Sein `medium` IST die Vorlage; es aus sich selbst neu zu kodieren machte es nur schlechter. *Am Foto wird `medium` mitgeschrieben — der Unterschied kostet 1 ms* |
 
 ### `server.js`
 
 | # | Was | Womit belegt |
 |---|---|---|
-| **1** | **`PUT /api/photos/:id/focus` backt die Kachel neu, und die Antwort wartet darauf** | Kein 202: es ist eine Zeile, der Benutzer wartet davor, und eine Kachel, die „gleich" richtig wird, ist schlechter als eine, die es beim Zurückkommen ist. **`detail()` steht IM Abschluss** — es liest die Fassung mit, und die soll die neue sein |
-| **2** | **Schlägt das Backen fehl, ist der Ausschnitt trotzdem gespeichert** | Das `UPDATE` der drei Zahlen steht VOR dem Thread. *Die Zeile behält ihre alte Kachel — eine Ableitung, die schlechter ist als die alte, gibt es nicht* |
+| **1** | **`PUT /api/photos/:id/focus` erzeugt die Kachel neu, und die Antwort wartet darauf** | Kein 202: es ist eine Zeile, der Benutzer wartet davor, und eine Kachel, die „gleich" richtig wird, ist schlechter als eine, die es beim Zurückkommen ist. **`detail()` steht IM Abschluss** — es liest die Fassung mit, und die soll die neue sein |
+| **2** | **Schlägt das Erzeugen fehl, ist der Ausschnitt trotzdem gespeichert** | Das `UPDATE` der drei Zahlen steht VOR dem Thread. *Die Zeile behält ihre alte Kachel — eine Ableitung, die schlechter ist als die alte, gibt es nicht* |
 | **3** | Eine **Frist von 15 Sekunden** über dem Thread | Ein Thread, der hängt, hängte sonst die Anfrage mit. **Das Siebzehnfache des schlechtesten gemessenen Falls (873 ms)**; die Uhr trägt `unref()`, sonst hinge ein Herunterfahren daran |
 | **4** | **`PHOTO_FASSUNG = 'length(thumb) AS fassung'`** — neben der Spaltenliste, nicht in ihr | `PHOTO_SPALTEN` ist zugleich die Spaltenliste des deckenden Index, und `length(thumb)` lässt sich nicht indizieren. *Die Messung dazu steht oben unter 1C* |
-| **5** | **`qKachelZeilen` hat keine Bedingung mehr** | Bis 0.19.4 stand dort `art != 'video'`. **Die Videozeile hat sehr wohl eine Vorlage**, und sie braucht das Backen, weil der CSS-Zuschnitt wegfällt. *Die anderen beiden Abfragen behalten ihr `art != 'video'`: dort wird `data` umgestellt, und das ist am Video die Videodatei* |
-| **6** | Hochladen, Videoupload und **Einspielen backen mit** | Sonst trüge jede frisch angelegte Zeile eine ungeschnittene Kachel, bis der Bestandslauf beim nächsten Start darüberfährt — *an einem gerade eingespielten Bestand ist das der ganze Bestand* |
+| **5** | **`qKachelZeilen` hat keine Bedingung mehr** | Bis 0.19.4 stand dort `art != 'video'`. **Die Videozeile hat sehr wohl eine Vorlage**, und sie braucht das Erzeugen, weil der CSS-Zuschnitt wegfällt. *Die anderen beiden Abfragen behalten ihr `art != 'video'`: dort wird `data` umgestellt, und das ist am Video die Videodatei* |
+| **6** | Hochladen, Videoupload und **Einspielen erzeugen mit** | Sonst trüge jede frisch angelegte Zeile eine ungeschnittene Kachel, bis der Bestandslauf beim nächsten Start darüberfährt — *an einem gerade eingespielten Bestand ist das der ganze Bestand* |
 
 ### `public/app.js` und `public/style.css` — der Zuschnitt fällt im Browser weg
 
 | Stelle | bis 0.19.4 | ab 0.19.5 |
 |---|---|---|
-| `.card-img img` | `cover` + `object-position` + `transform: scale(var(--zoom))` | die gebackene Kachel **ist** das sichtbare Quadrat; `cover` wird zum Leerlauf und **bleibt trotzdem stehen** |
+| `.card-img img` | `cover` + `object-position` + `transform: scale(var(--zoom))` | die zugeschnittene Kachel **ist** das sichtbare Quadrat; `cover` wird zum Leerlauf und **bleibt trotzdem stehen** |
 | `.thumb img` | dasselbe | dasselbe |
 | `.card:hover .card-img img` | `scale(calc(var(--zoom, 1) * 1.03))` | `scale(1.03)` — **die drei Prozent bleiben** |
 | auf dem Telefon | `scale(var(--zoom, 1))` | `transform: none` — *jetzt darf dort `none` stehen* |
@@ -304,7 +304,7 @@ skaliert (transform: scale) … Kein Neurechnen, keine zweite Fassung"* am Zoom.
 Ausschnitt.** Er setzte `ausschnitt()` gar nicht und zeigte einen Mittenschnitt
 — *nicht aus einem Grund, sondern weil es dort niemand nachgetragen hat.*
 
-**MIT EINER GEBACKENEN KACHEL ZEIGT ER DEN EINGESTELLTEN AUSSCHNITT MIT.**
+**MIT EINER ZUGESCHNITTENEN KACHEL ZEIGT ER DEN EINGESTELLTEN AUSSCHNITT MIT.**
 
 > **ENTSCHIEDEN: ja, und es ist eine Verbesserung** — eine Kachel, ein Bild,
 > überall dasselbe. **Aber es ist eine Verhaltensänderung und keine
@@ -334,7 +334,7 @@ Ausschnittmodus zeigt der Betrachter das Standbild statt des Abspielers, und
 deshalb `zoom > 100` tragen** — und hätte nach dem Wegfall des CSS-Zuschnitts
 den Mittenschnitt gezeigt, obwohl der Editor etwas anderes einstellt.
 
-**GEBAUT: die Videokachel wird aus `medium` gebacken.** Das ist die Ableitung
+**GEBAUT: die Videokachel wird aus `medium` erzeugt.** Das ist die Ableitung
 ihres Standbilds; das Standbild selbst kommt vom Browser und liegt nirgends
 mehr. **Was das kostet, gehört genannt:** eine zweite JPEG-Kodierung, einmalig.
 **Was es kauft:** bei `zoom > 100` zeigt die Kachel wieder den eingestellten
@@ -348,7 +348,7 @@ Bild, weniger Bytes. **Ihre Kante fällt bei engem Ausschnitt unter 512**
 
 293. **EINE REGEL, DIE AUF BEIDEN SEITEN DER LEITUNG GEBRAUCHT WIRD, STEHT
     ZWEIMAL — UND MUSS DESHALB GEGENEINANDER GEPRÜFT WERDEN.** Der Browser
-    zeichnet den Rahmen live, der Server backt ihn, und dazwischen liegt HTTP;
+    zeichnet den Rahmen live, der Server schneidet ihn, und dazwischen liegt HTTP;
     eine gemeinsame Fassung gibt es nicht. **Also steht sie auf jeder Seite in
     GENAU EINER Funktion, und der Prüfstand hält beide gegeneinander** — im
     Fall des Ausschnitts über 140 Wertepaare aus sieben Bildmaßen, vier
@@ -387,7 +387,7 @@ Bild, weniger Bytes. **Ihre Kante fällt bei engem Ausschnitt unter 512**
 297. **EIN MERKMAL, DAS „SCHON BEARBEITET" VON „NOCH NICHT" TRENNT, MUSS OHNE
     DIE VORLAGE AUSKOMMEN — sonst ist die Auswahl kein Festpunkt.** „Ist die
     Kachel quadratisch und hat sie die Zielkante?" wäre die naheliegende Frage
-    gewesen und genau der Fehler: **mit `withoutEnlargement` ist eine gebackene
+    gewesen und genau der Fehler: **mit `withoutEnlargement` ist eine zugeschnittene
     Kachel kleiner als die Zielkante, sobald der Ausschnitt es ist** (kleines
     Original, enger Ausschnitt), und sie fiele bei jedem Start zurück in die
     Auswahl. *Gefragt wird deshalb nur nach dem, was das Verfahren
@@ -407,9 +407,9 @@ Bild, weniger Bytes. **Ihre Kante fällt bei engem Ausschnitt unter 512**
 
 | Bereich | Nummern |
 |---|---|
-| Das Backen selbst | 523 (die Tafel schneidet nicht), 524 (`medium` wird mitgeschnitten), 525 (gespeicherte statt gedrehte Maße), 526 (Kiste ohne Klammer am Rand), 527 (Hochrechnen auf die Zielkante), 530 (der Lauf backt ohne Zuschnitt) |
+| Das Erzeugen selbst | 523 (die Tafel schneidet nicht), 524 (`medium` wird mitgeschnitten), 525 (gespeicherte statt gedrehte Maße), 526 (Kiste ohne Klammer am Rand), 527 (Hochrechnen auf die Zielkante), 530 (der Lauf schneidet ohne Zuschnitt) |
 | Die Rufer | 528 (Hochladen), 529 (Einspielen), 531 (Videovorlage aus `data`), 532 (die vierte Aufgabe fehlt) |
-| Die Route | 533 (das Ergebnis reist nicht zurück), 534 (sie backt nicht), 535 (sie wartet nicht) |
+| Die Route | 533 (das Ergebnis reist nicht zurück), 534 (sie schneidet nicht), 535 (sie wartet nicht) |
 | Die Fassung | 536 (die Spalte), 537 (die Adresse) |
 | Die zweite Hälfte | 538 (**der CSS-Zuschnitt kommt zurück** — es wird zweimal geschnitten), 539 (die Rechnung im Browser läuft der im Server davon) |
 | Die Karte | 540 (die Fortschrittszeile kennt nur eine Richtung — sie sagte „mehr", wo Platz frei geworden ist) |
@@ -458,13 +458,13 @@ rund 390 Sekunden.**
 | 525 | Der Zuschnitt rechnet in den gespeicherten Maßen | „Der Zuschnitt rechnet in den GEDREHTEN Maßen — die Marke liegt rechts oben" |
 | **526** | Die Zuschnittkiste wird nicht gegen den Rand geklammert | **75 in 11 Gruppen** — `sharp` wirft, und die halbe Videostrecke fällt mit |
 | 527 | Ein zu kleiner Ausschnitt wird hochgerechnet | 5 in 4 Gruppen, darunter „Ein kleines Bild wird nicht vergrößert" |
-| 528 | Beim Hochladen wird die Kachel nicht gebacken | „Ein frisch hochgeladenes 16:9-Foto trägt eine quadratische 512er Kachel" |
-| **529** | **Beim Einspielen wird die Kachel nicht gebacken** | **STUMM — ein FUND.** *Lücke geschlossen, nachgefahren* |
-| 530 | Der Bestandslauf backt ohne Zuschnitt | 13 in 3 Gruppen |
-| 531 | Die Videozeile backt aus der Videodatei | 7 in 3 Gruppen, darunter „Die Videokachel ist aus ihrem `medium` gebacken" |
+| 528 | Beim Hochladen wird die Kachel nicht eingerechnet | „Ein frisch hochgeladenes 16:9-Foto trägt eine quadratische 512er Kachel" |
+| **529** | **Beim Einspielen wird die Kachel nicht eingerechnet** | **STUMM — ein FUND.** *Lücke geschlossen, nachgefahren* |
+| 530 | Der Bestandslauf schneidet ohne Zuschnitt | 13 in 3 Gruppen |
+| 531 | Die Videozeile schneidet aus der Videodatei | 7 in 3 Gruppen, darunter „Die Videokachel ist aus ihrem `medium` eingerechnet" |
 | 532 | Der Thread kennt die Aufgabe `zuschnitt` nicht | 11 in 3 Gruppen |
-| 533 | Das Ergebnis der einzelnen Zeile wird nicht gemeldet | „Die einzelne Zeile wird gebacken und das Ergebnis gemeldet", „Eine Zeile, die es nicht gibt, meldet `ok:false` und wirft nicht" |
-| 534 | Das Speichern backt die Kachel nicht neu | 8 in 2 Gruppen |
+| 533 | Das Ergebnis der einzelnen Zeile wird nicht gemeldet | „Die einzelne Zeile wird eingerechnet und das Ergebnis gemeldet", „Eine Zeile, die es nicht gibt, meldet `ok:false` und wirft nicht" |
+| 534 | Das Speichern schneidet die Kachel nicht neu | 8 in 2 Gruppen |
 | 535 | Die Antwort kommt, bevor die Kachel steht | 8 in 2 Gruppen, darunter „Und die Fassung in der Antwort ist die der NEUEN Kachel" |
 | 536 | Die Fassung fällt aus der Fotoabfrage | 6 in 3 Gruppen, darunter „Die Fassung steht neben der Spaltenliste und nicht in ihr" |
 | 537 | Die Bildadresse trägt die Fassung nicht mehr | „Die Kachel-Adresse entsteht nur in `bildQuelle()`", „Dafür trägt ihre Adresse die Fassung der Kachel" |
@@ -475,7 +475,7 @@ rund 390 Sekunden.**
 
 | # | Rückbau | Namentlich rot |
 |---|---|---|
-| **529** | Beim Einspielen wird die Kachel nicht gebacken | **„Der Import backt den Ausschnitt in die Kachel"** — *nicht mehr stumm* |
+| **529** | Beim Einspielen wird die Kachel nicht eingerechnet | **„Der Import schneidet den Ausschnitt in die Kachel"** — *nicht mehr stumm* |
 | **540** | Die Fortschrittszeile kennt nur eine Richtung | **„Und wenn die Kacheln kleiner geworden sind, sagt sie ‚weniger'"** |
 
 **Zwei gefahren, null stumm.** *Die Grundlage stand dabei bei 5237 von 5237.*
@@ -495,10 +495,10 @@ rund 390 Sekunden.**
 
 * **„Die Ableitung folgt der Anzeige — 0.19.4"** prüft ihre Zusagen jetzt an
   `makeVariants()` selbst statt über den Server. **Das ist kein Rückzug,
-  sondern die Folge der Runde:** der Anfrageweg liefert eine gebackene Kachel,
+  sondern die Folge der Runde:** der Anfrageweg liefert eine zugeschnittene Kachel,
   und die ist immer quadratisch. *Die Zusagen gelten der ungeschnittenen
   Ableitung, und die muss dieselbe bleiben.*
-* **„Der Ausschnitt wird gebacken — 0.19.5"** ist neu. **Die Vorlagen sind
+* **„Der Ausschnitt steckt in der Kachel — 0.19.5"** ist neu. **Die Vorlagen sind
   nicht einfarbig:** wo der Ausschnitt SITZT, lässt sich an einer einfarbigen
   Fläche gar nicht zeigen. Jede Vorlage trägt vier verschieden gefärbte
   Viertel; welches die Kachel zeigt, sagt ihr Mittelwert.
@@ -507,7 +507,7 @@ rund 390 Sekunden.**
 
 | Gruppe | vorher | nachher |
 |---|---|---|
-| **Der Ausschnitt wird gebacken — 0.19.5** *(neu)* | — | **27** |
+| **Der Ausschnitt steckt in der Kachel — 0.19.5** *(neu)* | — | **27** |
 | Die Ableitung folgt der Anzeige — 0.19.4 | 15 | **13** |
 | Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3 | 45 | **49** |
 | Fokuspunkt in der Oberflaeche | 35 | **34** |
@@ -544,7 +544,7 @@ Gegenprobe** — sie schließen die Lücke, die Rückbau 529 stumm aufgedeckt ha
 - **Die quadratische Vorlage** wird von der Fälligkeitsfrage nicht erkannt
   (Stolperstein 297). *Sie heilt sich beim nächsten Speichern ihres
   Ausschnitts; im Bestand kommt sie nicht vor.*
-- **`reclaim()` am Ende des Backens hat keine Gegenprobe, die greift**
+- **`reclaim()` am Ende des Erzeugens hat keine Gegenprobe, die greift**
   (Rückbau 516, erwartet stumm). *Dieselbe Lücke besteht seit 0.19.3 an der
   Umstellung.*
 - **Der volle Gegenprobenlauf** über alle Rückbauten — rund vierzig Stunden.
@@ -555,7 +555,7 @@ Gegenprobe** — sie schließen die Lücke, die Rückbau 529 stumm aufgedeckt ha
   hochgezogen.** *Daran ändert diese Runde nichts.*
 - **Ein Hinweis im Editor, wenn der Ausschnitt enger gezogen wird, als die
   Vorlage hergibt.** *Verworfen mit Zahlen (Abschnitt 7g des Auftrags); der
-  Server kennt nach dem Backen die Größe des Ausschnitts und könnte es sagen.*
+  Server kennt nach dem Erzeugen die Größe des Ausschnitts und könnte es sagen.*
 - **Die Wartezeit beim Speichern des Ausschnitts liegt bei 494 bis 873 ms**,
   und drei Viertel davon sind das Zurückschreiben des Satzes (Stolperstein
   296). *Kürzer würde es nur mit den Blobs in einer eigenen Tabelle — und das

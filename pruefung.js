@@ -17273,7 +17273,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
      GEPRUEFT WIRD SEIT 0.19.5 AN makeVariants() SELBST UND NICHT MEHR UEBER
      DEN SERVER, und das ist kein Rueckzug, sondern die Folge der Runde: der
-     Anfrageweg liefert seit 0.19.5 eine GEBACKENE Kachel, und die ist immer
+     Anfrageweg liefert seit 0.19.5 eine ZUGESCHNITTENE Kachel, und die ist immer
      quadratisch. Die Zusagen dieser Gruppe gelten der UNGESCHNITTENEN
      Ableitung -- sie entsteht, wo kein Zuschnitt mitgegeben wird oder die
      Masse der Vorlage sich nicht lesen lassen, und sie muss dort dieselbe
@@ -17364,9 +17364,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
       /medium:\s*\{ kurz: 1600, lang: 1600, q: 84, schneidet: false \}/.test(quGeoBilder),
       (quGeoBilder.match(/const VARIANTS = \{[\s\S]{0,180}/) || ['(nicht gefunden)'])[0]);
     pruefe('Und die Schleife wählt ohne Verzweigung je Ableitung',
-      /const gebacken = v\.schneidet && schnitt;/.test(quGeoBilder) &&
+      /const geschnitten = v\.schneidet && schnitt;/.test(quGeoBilder) &&
       !/if \([^)]*name === 'thumb'/.test(quGeoBilder),
-      (quGeoBilder.match(/const gebacken = [^\n]*/) || ['(nicht gefunden)'])[0]);
+      (quGeoBilder.match(/const geschnitten = [^\n]*/) || ['(nicht gefunden)'])[0]);
 
     /* 9. WELCHE KANTE DIE KURZE IST, SAGT DER KOPF -- UND ER SAGT ES NICHT
        ALLEIN. `metadata()` liefert die Masse so, wie sie in der Datei stehen;
@@ -17386,7 +17386,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     }
 
     /* 9a. UND DIE UHR VERFOLGT BEIDE LAEUFE. Sie koennen sich ueberschneiden:
-       das Backen faengt 1500 ms nach dem Start an, und wer in genau diesem
+       das Erneuern faengt 1500 ms nach dem Start an, und wer in genau diesem
        Augenblick den Umstellungsknopf drueckt, hat beide. Eine zweite Uhr
        fragte /api/stats ein zweites Mal ab -- genau die Selbstblockade, die
        0.19.1 gemessen hat. AM QUELLTEXT geprueft, weil ein Taktgeber in jsdom
@@ -17406,7 +17406,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
 
   /* ---------------------------------------------------------------- */
-  gruppe('Der Ausschnitt wird gebacken — 0.19.5');
+  gruppe('Der Ausschnitt steckt in der Kachel — 0.19.5');
 
   /* WAS DIESE GRUPPE BELEGT, IN EINEM SATZ: der Ausschnitt steckt ab jetzt IM
      BILD und nicht mehr im Stilblatt. Das ist keine Angabe, die in einer
@@ -17464,7 +17464,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       return `gemischt (${f})`;
     };
 
-    /* 1. EIN FRISCH HOCHGELADENES FOTO TRAEGT SCHON EINE GEBACKENE KACHEL.
+    /* 1. EIN FRISCH HOCHGELADENES FOTO TRAEGT SCHON EINE ZUGESCHNITTENE KACHEL.
        Bis 0.19.4 lag dort 910 x 512 und der Browser schnitt zu; jetzt ist die
        Kachel das sichtbare Quadrat. */
     const foto = await legeAn('viertel.png', await geviertelt(1920, 1080));
@@ -17490,7 +17490,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         JSON.stringify(karte && karte.mainPhoto && karte.mainPhoto.fassung));
     }
 
-    /* 3. DAS SPEICHERN DES AUSSCHNITTS BACKT DIE KACHEL NEU, UND DIE ANTWORT
+    /* 3. DAS SPEICHERN DES AUSSCHNITTS ERZEUGT DIE KACHEL NEU, UND DIE ANTWORT
        WARTET DARAUF. Ohne das zeigte die Uebersicht den alten Schnitt, bis
        irgendwann etwas anderes die Zeile anfasst -- und die Antwort truege
        eine Fassung, die es noch gar nicht gibt. */
@@ -17571,7 +17571,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     }
 
     /* 7. DIE BEIDEN RECHNUNGEN, GEGENEINANDER GEHALTEN. Sie stehen zweimal --
-       im Browser fuer den Rahmen, im Server fuers Backen --, und zwischen
+       im Browser fuer den Rahmen, im Server fuers Schneiden --, und zwischen
        ihnen liegt HTTP. Ohne diesen Vergleich laufen sie beim naechsten
        Anfassen auseinander, und niemand merkt es: die Kachel zeigt ja ein
        Bild, nur das falsche (Stolperstein 293).
@@ -17605,9 +17605,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     /* 8. DIE FRAGE, MIT DER DER BESTANDSLAUF SEINE ZEILEN FINDET, ALS REGEL --
        ohne Bild und ohne Datenbank. Sie ist ein FESTPUNKT: was der Lauf
-       erzeugt hat, darf nicht wieder in seine Auswahl fallen, sonst backt er
+       erzeugt hat, darf nicht wieder in seine Auswahl fallen, sonst schneidet er
        bei jedem Start denselben Bestand neu (Stolperstein 290).
-       EINE GEBACKENE KACHEL IST QUADRATISCH -- das ist die ganze Regel, und
+       EINE ZUGESCHNITTENE KACHEL IST QUADRATISCH -- das ist die ganze Regel, und
        sie haelt auch dort, wo die Zielkante NICHT erreicht wird. */
     {
       const { traegtKeinenZuschnitt } = require('./bilder');
@@ -17616,16 +17616,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
         [{ width: 910, height: 512 }, true,  'die ungeschnittene Ableitung aus 0.19.4'],
         [{ width: 1280, height: 180 }, true, 'das Panorama am Deckel'],
         [{ width: 300, height: 200 }, true,  'ein kleines Bild, ungeschnitten'],
-        [{ width: 512, height: 512 }, false, 'die gebackene Kachel'],
-        [{ width: 270, height: 270 }, false, 'die gebackene Kachel unter der Zielkante'],
+        [{ width: 512, height: 512 }, false, 'die zugeschnittene Kachel'],
+        [{ width: 270, height: 270 }, false, 'die zugeschnittene Kachel unter der Zielkante'],
         [{ width: 85,  height: 85  }, false, 'ein enger Ausschnitt aus kleiner Vorlage'],
         [null, true, 'kein lesbarer Kopf']
       ];
       const daneben = faelle.filter(([m, s]) => traegtKeinenZuschnitt(m) !== s)
         .map(([m, , w]) => `${m ? m.width + 'x' + m.height : 'null'} (${w})`);
-      pruefe('Die Regel trennt gebackene von ungeschnittenen Kacheln an allen acht Fällen',
+      pruefe('Die Regel trennt zugeschnittene von ungeschnittenen Kacheln an allen acht Fällen',
         daneben.length === 0, daneben.join(' · '));
-      pruefe('Und sie ist ein Festpunkt: was gebacken ist, fällt nicht zurück',
+      pruefe('Und sie ist ein Festpunkt: was zugeschnitten ist, fällt nicht zurück',
         !traegtKeinenZuschnitt({ width: 512, height: 512 }) &&
         !traegtKeinenZuschnitt({ width: 270, height: 270 }),
         'quadratisch = fertig');
@@ -17676,7 +17676,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         (anhQ.match(/[^\n]*private, max-age[^\n]*/) || ['(nicht gefunden)'])[0]);
     }
 
-    /* 11. UND DIE VIDEOKACHEL WIRD AUS `medium` GEBACKEN. In `data` steht die
+    /* 11. UND DIE VIDEOKACHEL ENTSTEHT AUS `medium`. In `data` steht die
        Videodatei -- der Server oeffnet nie ein Video. Ohne diesen Weg zeigte
        eine Videokachel mit `zoom > 100` nach dieser Runde den Mittenschnitt,
        obwohl der Editor am Video offen ist und etwas anderes einstellt. */
@@ -17687,14 +17687,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
       const liste = ((antwort.inhalt || {}).photos) || [];
       const video = liste.find(p2 => p2.art === 'video');
       if (!video) {
-        uebergehe('Die Videokachel wird aus `medium` gebacken', 'kein Video angelegt');
+        uebergehe('Die Videokachel entsteht aus `medium`', 'kein Video angelegt');
       } else {
         const kv0 = await kachel(video.id);
-        pruefe('Ein frisch hochgeladenes Video trägt eine gebackene Kachel',
+        pruefe('Ein frisch hochgeladenes Video trägt eine zugeschnittene Kachel',
           kv0.masse === '512x512', `${kv0.masse} statt 512x512`);
         await ruf('PUT', `/api/photos/${video.id}/focus`, { x: 0, y: 0, zoom: 400 });
         const kv = await kachel(video.id);
-        pruefe('Und das Speichern des Ausschnitts backt sie aus dem Standbild neu',
+        pruefe('Und das Speichern des Ausschnitts erzeugt sie aus dem Standbild neu',
           ecke(kv.farbe) === 'links oben', ecke(kv.farbe));
         /* SEIN `medium` BLEIBT DABEI STEHEN. Es IST die Vorlage -- es aus
            sich selbst neu zu kodieren machte es nur schlechter. */
@@ -17705,7 +17705,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       }
     }
 
-    /* 12. UND DER IMPORT BACKT MIT. Die drei Zahlen kommen aus der Datei, und
+    /* 12. UND DER IMPORT SCHNEIDET MIT. Die drei Zahlen kommen aus der Datei, und
        die Kachel muss sie zeigen. Ohne das trüge JEDE eingespielte Zeile eine
        ungeschnittene Kachel, bis der Bestandslauf beim nächsten Start
        darüberfährt — an einem gerade eingespielten Bestand ist das der ganze
@@ -17730,12 +17730,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
         foto2.focus_x === 0 && foto2.focus_y === 0 && foto2.zoom === 400,
         JSON.stringify({ x: foto2.focus_x, y: foto2.focus_y, z: foto2.zoom }));
       if (!foto2.id) {
-        uebergehe('Der Import backt den Ausschnitt in die Kachel', 'kein Foto angelegt');
+        uebergehe('Der Import rechnet den Ausschnitt in die Kachel', 'kein Foto angelegt');
       } else {
         const ki = await kachel(foto2.id);
         /* 900 kurze Kante bei zoom 400 sind 225 -- und der Punkt 0/0 zeigt in
            die linke obere Ecke, also auf das rote Viertel. */
-        pruefe('Der Import backt den Ausschnitt in die Kachel',
+        pruefe('Der Import rechnet den Ausschnitt in die Kachel',
           ki.masse === '225x225' && ecke(ki.farbe) === 'links oben',
           `${ki.masse} · ${ecke(ki.farbe)}`);
         pruefe('Und die Fassung steht auch an der eingespielten Zeile',
@@ -20059,11 +20059,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Suchtext haette danach zweimal gepasst und der Rueckbau waere abgebrochen.
      KEINER IST WEGGEFALLEN. */
   /* 532 SEIT 0.19.5: ACHTZEHN neue, alle in der Reihe ab 523 -- sechs am
-     Backen selbst (die Tafel schneidet nicht mehr, `medium` wird
+     Erzeugen selbst (die Tafel schneidet nicht mehr, `medium` wird
      mitgeschnitten, die gespeicherten statt der gedrehten Masse, die Kiste
      ohne Klammer am Rand, das Hochrechnen auf die Zielkante und der Lauf ohne
      Zuschnitt), vier an den Rufern (Hochladen, Einspielen, Videovorlage und
-     die fehlende vierte Aufgabe), drei an der Route (sie backt nicht, sie
+     die fehlende vierte Aufgabe), drei an der Route (sie schneidet nicht, sie
      wartet nicht, die Meldung reist nicht zurueck), drei an der Fassung (die
      Spalte, die Adresse) und der Rechnung im Browser, und einer, der den
      CSS-Zuschnitt ZURUECKHOLT -- damit auch die zweite Haelfte der Runde eine
@@ -20081,7 +20081,17 @@ const freigabeHaupt = (zweck, ziel = null) =>
      dem Stilblatt genommen und setzt sie jetzt WIEDER -- ein zurueckgenommener
      Beschluss laesst eine Spur zurueck, sonst kommt er wieder.
      KEINER IST WEGGEFALLEN. */
-  pruefe('Es sind genau 532 Rueckbauten', gpListe.length === 532, `${gpListe.length}`);
+  /* 535 SEIT 0.19.6: DREI neue, 541 bis 543 -- zwei nehmen je einer
+     Zeichenfunktion die Wache weg (Streifen und Betrachter), und der dritte
+     nimmt nicht die Wache, sondern DAS, WAS SIE BEWACHT: der Streifen zeichnet
+     gar keine Kachel mehr. Ohne ihn bliebe gruen, wer die Wache zum
+     Ausschalter macht -- eine Zusage „keine rote Meldung" ist an einer
+     Funktion, die nichts tut, trivial wahr (Stolperstein 298).
+     SECHS VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
+     201): 516, 517, 532, 533, 534 und 535 zeigten auf Zeilen, in denen das
+     Wort „backen" stand -- die Zeilen gibt es unveraendert, nur heissen sie
+     jetzt anders. KEINER IST WEGGEFALLEN. */
+  pruefe('Es sind genau 535 Rueckbauten', gpListe.length === 535, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -26529,13 +26539,13 @@ async function pruefeOberflaeche() {
   /* DIE DREI WERTE SIND KEIN STIL MEHR -- 0.19.5. Bis 0.18.1 hiess die
      Funktion fokus() und lieferte die object-position; von 0.19.0 bis 0.19.4
      hiess sie ausschnitt() und trug Weite und Vergroesserungspunkt daneben.
-     SEIT 0.19.5 GIBT ES SIE NICHT MEHR: der Server backt den Ausschnitt in
+     SEIT 0.19.5 GIBT ES SIE NICHT MEHR: der Server rechnet den Ausschnitt in
      die Kachel, und ein zweiter Zuschnitt im Browser zeigte einen Ausschnitt
      des Ausschnitts.
      WAS AN IHRE STELLE GETRETEN IST, sind zwei Dinge: `zuschnittKiste()`
      rechnet den Ausschnitt fuer den RAHMEN im Editor (und wird vom Pruefstand
      gegen die gleichnamige Funktion in bilder.js gehalten -- siehe die Gruppe
-     „Der Ausschnitt wird gebacken"), und `bildQuelle()` haengt die FASSUNG an
+     „Der Ausschnitt steckt in der Kachel"), und `bildQuelle()` haengt die FASSUNG an
      die Adresse. */
   pruefe('ausschnitt() gibt es nicht mehr', typeof wb.ausschnitt === 'undefined',
     typeof wb.ausschnitt);
@@ -26746,6 +26756,110 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 20));
   pruefe('Und oeffnet wieder das Vollbild', !!wb.document.querySelector('.lightbox'));
   wb.document.querySelectorAll('.lightbox, .backdrop').forEach(e => e.remove());
+
+  /* ================= Die Ansicht kann fort sein — 0.19.6 =================
+     DER BEFUND AUS DEM FELD, wortgleich gemeldet: „ich bekomme eine rote
+     Fehlermeldung unten wenn ich auf Overview zurueck gehe -- can't access
+     property innerHTML ... der Fehler kommt immer wenn ich Ausschnitt
+     veraendere (400 %) und direkt in die Uebersicht gehe."
+
+     WAS DAHINTERSTAND: die Route wartet auf die neue Kachel (494 bis 873 ms
+     gemessen, siehe die Gruppe „Der Ausschnitt steckt in der Kachel"). Wer in
+     dieser Zeit auf die Uebersicht geht, laesst `drawThumbs()` in eine Seite
+     zeichnen, die es nicht mehr gibt: `document.getElementById('thumbs')` gab
+     null, `box.innerHTML` warf, und der Wurf landete im `catch` des
+     Speicherwegs -- also wurde ein GEGLUECKTER Vorgang als roter Fehler
+     gemeldet (Stolperstein 298).
+
+     WARUM 400 PROZENT DEN FEHLER SO ZUVERLAESSIG ZEIGT: je enger der
+     Ausschnitt, desto weniger nuetzt libjpeg sein Shrink-on-Load -- der
+     teuerste Fall ist der weiteste Zoom, und das Fenster zum Wegklicken ist
+     dann am groessten. Der Fehler ist also kein Zufall gewesen, sondern die
+     Bedienung, die am laengsten wartet.
+
+     GEPRUEFT WIRD DER ECHTE WEG UND NICHT EIN NACHGESTELLTES DOM: der Ruf
+     wird angehalten, die Adresse wechselt wirklich, `route()` zeichnet die
+     Uebersicht, und erst DANN kommt die Antwort zurueck. Ein Prueflauf, der
+     nur `#app` leert, belegte die Reihenfolge nicht, um die es geht. */
+  gruppe('Die Ansicht kann fort sein — 0.19.6');
+  {
+    const fortDom = baueDom(JSDOM, { hash: '#/item/1' });
+    const wf = fortDom.w;
+    await new Promise(r => setTimeout(r, 120));
+    const vfF = wf.document.querySelector('.vfocus');
+    /* ERST DIE PRUEFLAGE, DANN DIE ZUSAGE. Ohne diese Zeile waere „keine rote
+       Meldung" trivial wahr, sobald der Ausschnittmodus gar nicht erst
+       aufgeht (Stolperstein 161). */
+    pruefe('Die Prueflage steht: der Betrachter hat seinen Ausschnittschalter', !!vfF);
+    vfF?.onclick();
+    await new Promise(r => setTimeout(r, 20));
+    const schF = wf.document.querySelector('#vzoom-schieber');
+    pruefe('Und den Schieber fuer die Weite', !!schF);
+
+    /* DER RUF WIRD ANGEHALTEN -- genau hier liegt das Zeitfenster, in dem der
+       Benutzer wegklickt. `loesen` gibt ihn frei, sobald die Uebersicht
+       steht. */
+    const echtF = wf.fetch;
+    let loesen = null;
+    wf.fetch = (url, opt = {}) => (/\/focus$/.test(url)
+      ? new Promise(r => { loesen = () => r(echtF(url, opt)); })
+      : echtF(url, opt));
+    if (schF) {
+      schF.value = '400';
+      schF.dispatchEvent(new wf.Event('change', { bubbles: true }));
+    }
+    await new Promise(r => setTimeout(r, 20));
+    pruefe('Das Speichern des engsten Ausschnitts ist unterwegs und noch unbeantwortet',
+      typeof loesen === 'function', String(loesen));
+
+    // Und jetzt geht der Benutzer zurueck -- ueber die Adresse, wie im Feld.
+    wf.location.hash = '#/';
+    await new Promise(r => setTimeout(r, 120));
+    pruefe('Die Uebersicht steht und der Bilderstreifen ist fort',
+      !wf.document.getElementById('thumbs') && !wf.document.getElementById('viewer'),
+      wf.document.getElementById('thumbs') ? 'Streifen noch da' : 'Betrachter noch da');
+
+    // Erst jetzt kommt die Antwort zurueck.
+    loesen?.();
+    await new Promise(r => setTimeout(r, 120));
+    const meldungen = [...wf.document.querySelectorAll('.toast')];
+    pruefe('Keine rote Meldung, wenn die Antwort in eine fortgegangene Ansicht faellt',
+      !meldungen.some(t => t.classList.contains('err')),
+      meldungen.map(t => `${t.className}: ${t.textContent}`).join(' | ') || '(keine Meldung)');
+    /* UND DIE ZUSAGE STEHT TROTZDEM DA. Sie ist die eigentliche Auskunft: der
+       Ausschnitt IST gespeichert, und eine Bestaetigung, die genau dann
+       ausbleibt, wenn man nicht hingesehen hat, waere keine. */
+    pruefe('Und die Zusage „gespeichert" steht trotzdem da',
+      meldungen.some(t => /gespeichert/.test(t.textContent)),
+      meldungen.map(t => t.textContent).join(' | ') || '(keine Meldung)');
+    wf.close();
+  }
+
+  /* DIE GEGENPROBE ZUR WACHE: bei STEHENDER Ansicht zeichnet der Streifen
+     wirklich. Ohne sie bliebe gruen, wer `drawThumbs()` einfach leer laesst --
+     die Wache waere dann keine Wache, sondern ein Ausschalter. */
+  {
+    const stehtDom = baueDom(JSDOM, { hash: '#/item/1' });
+    const ws = stehtDom.w;
+    await new Promise(r => setTimeout(r, 120));
+    const streifen = ws.document.querySelectorAll('#thumbs .thumb');
+    pruefe('Bei stehender Ansicht zeichnet der Streifen seine Kacheln',
+      streifen.length > 0, `${streifen.length} Kacheln`);
+    ws.close();
+  }
+
+  /* UND BEIDE ZEICHENWEGE DER BILDSPALTE TRAGEN DIE WACHE. Der Betrachter
+     laesst sich im Prueflauf nicht so leicht in denselben Wettlauf bringen
+     (er haengt am Loeschen und am Hochladen statt am Schieber), und genau
+     deshalb steht seine Zusage hier am Quelltext: fehlt die Zeile, faellt sie
+     -- nicht erst im Feld. */
+  {
+    const quApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const wache = (id, v) => new RegExp(
+      `const ${v} = document\\.getElementById\\('${id}'\\);[\\s\\S]{0,1200}?if \\(!${v}\\) return;`).test(quApp);
+    pruefe('Der Betrachter fragt erst, ob seine Ansicht noch steht', wache('viewer', 'v'));
+    pruefe('Und der Bilderstreifen ebenso', wache('thumbs', 'box'));
+  }
 
   /* ================= Tags am Testtag ================= */
   gruppe('Die Stapelordnung — 0.19.1');
@@ -30293,14 +30407,14 @@ async function pruefeOberflaeche() {
                           nachgezogen: 825, uebersprungen: 2, zugenommen: 61341696 } });
     await sysAbschnitt(geoFertig.w, 'datenbank');
     const geoZeile = geoFertig.w.document.getElementById('geo-lauf')?.textContent || '';
-    pruefe('Nach dem Backen sagt die Zeile, was herauskam',
+    pruefe('Nach dem Erneuern sagt die Zeile, was herauskam',
       /825 von 1032/.test(geoZeile) && /2 übersprungen/.test(geoZeile) &&
       /58,5 MB mehr/.test(geoZeile), geoZeile);
     geoFertig.w.close();
 
     /* UND SIE KENNT BEIDE RICHTUNGEN -- 0.19.5. Bis 0.19.4 wurde die Kachel
        GROESSER (512 statt 400 auf der kurzen Kante), und die Zeile sagte
-       deshalb nur „mehr". Gebacken wird sie in der Regel KLEINER: gemessen
+       deshalb nur „mehr". Zugeschnitten wird sie in der Regel KLEINER: gemessen
        -34,2 % ueber zwoelf Seitenverhaeltnisse. Eine Zeile, die nur eine
        Richtung kennt, verschwiege den haeufigeren Fall -- und zwar in genau
        der Zahl, an der der Betreiber ablesen will, was der Lauf gebracht
@@ -30329,13 +30443,13 @@ async function pruefeOberflaeche() {
        stand bis 0.19.3 mit „400 px und 1600 px" da -- eine Angabe, die 0.19.4
        falsch gemacht hat.
        SEIT 0.19.5 NENNT SIE KEINE KANTE MEHR, SONDERN EIN QUADRAT: die kleine
-       Ableitung ist 512 x 512 und traegt den Ausschnitt eingebacken. Die
+       Ableitung ist 512 x 512 und traegt den Ausschnitt eingerechnet. Die
        grosse nennt weiter ihre lange Kante -- sie wird nicht geschnitten, und
        genau das steht auch da. */
     {
       const t = (baKarte(geoLeer)?.textContent || '').replace(/\s+/g, ' ');
       pruefe('Die Karte nennt das Quadrat der kleinen Ableitung und den Ausschnitt darin',
-        /512 × 512/.test(t) && /Bildausschnitt bereits eingebacken/.test(t) &&
+        /512 × 512/.test(t) && /Bildausschnitt bereits eingerechnet/.test(t) &&
         /1600 px auf der langen/.test(t) && /ungeschnitten/.test(t) &&
         !/400 px/.test(t), t.slice(0, 320));
     }
@@ -36965,18 +37079,18 @@ async function pruefeBestandslauf() {
   pruefe('Und keine einzige seiner Schreibungen wurde abgewiesen',
     nb.abgewiesen === 0, JSON.stringify(nb));
 
-  /* ---- Die Kacheln backen, aus dem Thread — 0.19.4, erweitert 0.19.5 ----
+  /* ---- Die Kacheln erneuern, aus dem Thread — 0.19.4, erweitert 0.19.5 ----
      DER LAUF, DEN 0.19.4 EINGEBRACHT HAT. Er ist die erste der drei Aufgaben,
      die eine GUELTIGE Ableitung durch eine bessere ersetzt: das Nachruesten
      fuellt leere Spalten, die Umstellung verschiebt ein Format.
-     SEIT 0.19.5 BACKT ER DEN AUSSCHNITT HINEIN, statt nur die Geometrie
+     SEIT 0.19.5 RECHNET ER DEN AUSSCHNITT HINEIN, statt nur die Geometrie
      nachzuziehen -- dieselbe Aufgabe, dieselbe Schleife, eine andere Frage
      nach der Faelligkeit.
      DIE AUSGANGSLAGE WIRD EIGENS GEBAUT: hier liegen Zeilen mit einem
      16:9-Original und einem `thumb` der Regel bis 0.19.3, so wie sie in einer
      Instanz von vor diesen beiden Runden stehen. Die sechs Zeilen von oben
      sind dagegen durch das Nachruesten gelaufen und tragen deshalb bereits
-     eine gebackene -- also quadratische -- Kachel. */
+     eine zugeschnittene -- also quadratische -- Kachel. */
   {
     const gross = await sharp({ create: { width: 1920, height: 1080, channels: 3,
       background: { r: 200, g: 40, b: 60 } } }).jpeg().toBuffer();
@@ -37016,7 +37130,7 @@ async function pruefeBestandslauf() {
        welche Zeilen der Lauf ueberhaupt sieht (Stolperstein 47).
        SIE HAT SEIT 0.19.5 KEINE BEDINGUNG MEHR: die Videozeile traegt in
        `medium` die Ableitung ihres Standbilds, und daraus laesst sich ihre
-       Kachel sehr wohl backen. Sie MUSS es auch -- der CSS-Zuschnitt ist weg,
+       Kachel sehr wohl erzeugen. Sie MUSS es auch -- der CSS-Zuschnitt ist weg,
        und der Ausschnitteditor ist am Video offen. */
     const AUSWAHL = 'SELECT id FROM photos';
     const serverGeo = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
@@ -37033,7 +37147,7 @@ async function pruefeBestandslauf() {
       bildZeilen.length === ZEILEN + ALT + 1, `${bildZeilen.length} statt ${ZEILEN + ALT + 1}`);
 
     const geo = await fahre('geometrie', bildZeilen);
-    pruefe('Der Thread backt die Kacheln und endet sauber',
+    pruefe('Der Thread erneuert die Kacheln und endet sauber',
       geo.code === 0 && geo.fehler === null,
       `Rueckgabe ${geo.code}: ${geo.fehler && geo.fehler.message}`);
     /* JE ZEILE EINE MELDUNG, DAZU DIE EINE AM ENDE -- wie bei der Umstellung.
@@ -37044,12 +37158,12 @@ async function pruefeBestandslauf() {
     const gStand = (geo.staende[geo.staende.length - 1] || {}).stand || {};
     /* ZWEIMAL WIRD GEZAEHLT, UND DAS IST KEINE DOPPELUNG: `geprueft` sind die
        Zeilen, deren Kopf gelesen wurde, `nachgezogen` die, die wirklich eine
-       neue Kachel bekommen haben. Ein Lauf, der 1032 prueft und 0 backt,
+       neue Kachel bekommen haben. Ein Lauf, der 1032 prueft und 0 erneuert,
        ist der Normalfall nach dem ersten Durchgang.
-       GEBACKEN WERDEN DIE VIER ALTEN ZEILEN UND DIE VIDEOZEILE -- die sechs
+       ERNEUERT WERDEN DIE VIER ALTEN ZEILEN UND DIE VIDEOZEILE -- die sechs
        kleinen sind durchs Nachruesten gelaufen und tragen laengst eine
        quadratische Kachel. */
-    pruefe('Und backt genau die vier alten Zeilen und die Videozeile',
+    pruefe('Und erneuert genau die vier alten Zeilen und die Videozeile',
       gStand.laeuft === false && gStand.nachgezogen === ALT + 1 &&
       gStand.geprueft === ZEILEN + ALT + 1,
       JSON.stringify(gStand));
@@ -37075,7 +37189,7 @@ async function pruefeBestandslauf() {
       const alteDa = neue.filter(m => m === '400x225');
       pruefe('Danach traegt keine Zeile mehr die alte Geometrie',
         alteDa.length === 0, JSON.stringify(neue));
-      pruefe('Und die vier tragen jetzt eine gebackene 512x512-Kachel',
+      pruefe('Und die vier tragen jetzt eine zugeschnittene 512x512-Kachel',
         neue.filter(m => m === '512x512').length === ALT, JSON.stringify(neue));
       /* `medium` IST DABEI UNVERAENDERT -- nicht „sieht gleich aus", sondern
          byte-genau. Es wird mit `object-fit: contain` gezeigt, und dafuer ist
@@ -37087,7 +37201,7 @@ async function pruefeBestandslauf() {
       /* DIE VIDEOZEILE HAT IHRE KACHEL AUS `medium` BEKOMMEN -- und `medium`
          SELBST steht unveraendert da. Es IST die Vorlage; es aus sich selbst
          neu zu kodieren machte es nur schlechter. */
-      pruefe('Die Videokachel ist aus ihrem `medium` gebacken',
+      pruefe('Die Videokachel ist aus ihrem `medium` erzeugt',
         video && video.thumb && (await masse(video.thumb)) === '512x512',
         video && video.thumb ? await masse(video.thumb) : '(leer)');
       pruefe('Und ihr `medium` steht byte-genau unveraendert da',
@@ -37121,8 +37235,8 @@ async function pruefeBestandslauf() {
         `${JSON.stringify(rStand)} · ${neu && neu.thumb ? await masse(neu.thumb).catch(() => '(unlesbar)') : '(leer)'}`);
     }
 
-    /* UND DER ZWEITE LAUF BACKT NICHTS MEHR. Der Lauf faehrt bei JEDEM
-       Start; waere seine Frage kein Festpunkt, backte er denselben Bestand
+    /* UND DER ZWEITE LAUF ERNEUERT NICHTS MEHR. Der Lauf faehrt bei JEDEM
+       Start; waere seine Frage kein Festpunkt, erneuerte er denselben Bestand
        jedes Mal neu -- und die Datenbank waechst bei jedem Neustart.
        GEPRUEFT WIRD EINE ZEILE MEHR ALS BEIM ERSTEN MAL: die Zeile mit dem
        kaputten `thumb` ist inzwischen dazugekommen. */
@@ -37130,14 +37244,14 @@ async function pruefeBestandslauf() {
       const d = oeffne(); const r = d.prepare(AUSWAHL).all(); d.close(); return r;
     })());
     const nStand = (nochmal.staende[nochmal.staende.length - 1] || {}).stand || {};
-    pruefe('Ein zweiter Lauf backt nichts mehr — die Frage ist ein Festpunkt',
+    pruefe('Ein zweiter Lauf erneuert nichts mehr — die Frage ist ein Festpunkt',
       nStand.nachgezogen === 0 && nStand.geprueft === ZEILEN + ALT + 2,
       JSON.stringify(nStand));
 
     /* ---- Die vierte Aufgabe: EINE Zeile, auf ausdruecklichen Knopfdruck ----
        Sie faehrt denselben Weg wie die Schleife und schreibt dieselbe Spalte;
        was sie unterscheidet, ist der Rufer. Belegt wird, dass sie WIRKLICH
-       backt und ihr Ergebnis meldet -- der Haupt-Thread haengt seine Antwort
+       erneuert und ihr Ergebnis meldet -- der Haupt-Thread haengt seine Antwort
        daran. */
     {
       const eine = bildZeilen[bildZeilen.length - 1];
@@ -37149,8 +37263,8 @@ async function pruefeBestandslauf() {
       const d1 = oeffne();
       const nachher = d1.prepare('SELECT thumb FROM photos WHERE id = ?').get(eine.id).thumb;
       d1.close();
-      const meldung = einzeln.staende.find(m => m && m.art === 'gebacken') || {};
-      pruefe('Die einzelne Zeile wird gebacken und das Ergebnis gemeldet',
+      const meldung = einzeln.staende.find(m => m && m.art === 'erneuert') || {};
+      pruefe('Die einzelne Zeile wird erneuert und das Ergebnis gemeldet',
         einzeln.code === 0 && meldung.ok === true && meldung.id === eine.id,
         JSON.stringify(meldung));
       pruefe('Und die Kachel ist danach eine andere',
@@ -37159,7 +37273,7 @@ async function pruefeBestandslauf() {
          Der Haupt-Thread antwortet dann mit der alten Fassung -- eine
          Ableitung, die schlechter ist als die alte, gibt es nicht. */
       const leer = await fahre('zuschnitt', [{ id: 999999 }]);
-      const lm = leer.staende.find(m => m && m.art === 'gebacken') || {};
+      const lm = leer.staende.find(m => m && m.art === 'erneuert') || {};
       pruefe('Eine Zeile, die es nicht gibt, meldet ok:false und wirft nicht',
         leer.code === 0 && leer.fehler === null && lm.ok === false,
         `${leer.code} · ${JSON.stringify(lm)}`);
@@ -37199,10 +37313,10 @@ async function pruefeBestandslauf() {
       (blServer.match(/UPDATE photos SET thumb[^\n]*/) || ['(nicht mehr im Server — richtig)'])[0]);
     /* 2. UND DER SERVER RUFT SIE UEBER EINEN THREAD. Alle VIER Aufgaben seit
        0.19.5, nicht drei: die Umstellung auf Knopfdruck, das Nachruesten beim
-       Start, das Backen der Kacheln dahinter -- und die EINZELNE Zeile beim
+       Start, das Erneuern der Kacheln dahinter -- und die EINZELNE Zeile beim
        Speichern des Ausschnitts.
        DIE KETTE DER DREI STARTAUFGABEN WIRD MITGEPRUEFT und nicht nur die Zahl
-       der Aufrufe: das Nachruesten gibt `backeKacheln` weiter, das Backen
+       der Aufrufe: das Nachruesten gibt `erneuereKacheln` weiter, das Erneuern
        `maintainStorage`. Wer sie nebeneinander startet statt hintereinander,
        hat zwei Threads auf derselben Tabelle und EINEN Stand je Aufgabe -- die
        Karte zeigte abwechselnd zwei Laeufe.
@@ -37211,15 +37325,15 @@ async function pruefeBestandslauf() {
        Antwort an den Browser. */
     pruefe('Und der Server startet fuer alle vier Aufgaben einen Thread',
       einzeilig(blServer).includes("starteBestandsThread('umstellung', zeilen)") &&
-      einzeilig(blServer).includes("starteBestandsThread('vorschaubilder', offen, backeKacheln)") &&
+      einzeilig(blServer).includes("starteBestandsThread('vorschaubilder', offen, erneuereKacheln)") &&
       einzeilig(blServer).includes("starteBestandsThread('geometrie', zeilen, maintainStorage)") &&
       einzeilig(blServer).includes("starteBestandsThread('zuschnitt', [{ id: Number(id) }], einmal)"),
       (blServer.match(/starteBestandsThread\([^)]*\)/g) || []).join(' · ') || '(nicht gefunden)');
     /* UND DIE KETTE HAELT AUCH, WENN EIN GLIED NICHTS ZU TUN HAT. Ohne diese
-       beiden Zeilen bliebe das Backen aus, sobald kein Vorschaubild fehlt --
+       beiden Zeilen bliebe das Erneuern aus, sobald kein Vorschaubild fehlt --
        also in jeder Instanz nach dem ersten Start. */
     pruefe('Und jedes Glied ruft das naechste selbst, wenn es nichts zu tun gibt',
-      /if \(!offen\.length\) return backeKacheln\(\);/.test(blServer) &&
+      /if \(!offen\.length\) return erneuereKacheln\(\);/.test(blServer) &&
       /if \(!zeilen\.length\) return maintainStorage\(\);/.test(blServer),
       (blServer.match(/if \(!offen\.length\)[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 3. DER PFAD STEHT AN EINER STELLE, und der Fingerprint liest dieselbe.

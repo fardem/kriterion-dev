@@ -1018,8 +1018,8 @@ async function sendeFormular(pfad, formular) {
    Stelle `ausschnitt(p)`: es machte aus den drei Werten einen Inline-Stil --
    `object-position` fuer den Punkt und `--zoom` fuer die Weite -- und der
    Browser schnitt die Kachel selbst zu. DAS IST WEGGEFALLEN, weil der Server
-   den Ausschnitt jetzt in die Kachel BACKT. Wer beides tut, schneidet zweimal:
-   die gebackene Kachel IST schon das sichtbare Quadrat, und ein zweiter
+   den Ausschnitt jetzt in die Kachel RECHNET. Wer beides tut, schneidet zweimal:
+   die zugeschnittene Kachel IST schon das sichtbare Quadrat, und ein zweiter
    Zuschnitt darauf zeigte einen Ausschnitt des Ausschnitts.
 
    WAS DIE DREI WERTE JETZT SIND: das Rezept fuer die Ableitung, nicht mehr
@@ -1039,7 +1039,7 @@ async function sendeFormular(pfad, formular) {
 
    SIE STEHT ZWEIMAL, UND DAS IST DER PUNKT. Diese Funktion ist Zeichen fuer
    Zeichen dieselbe wie `zuschnittKiste()` in bilder.js: der Browser muss den
-   Rahmen live zeichnen, der Server muss backen, und zwischen beiden liegt
+   Rahmen live zeichnen, der Server muss erzeugen, und zwischen beiden liegt
    HTTP -- eine gemeinsame Fassung gibt es nicht. Also steht sie auf jeder
    Seite in GENAU EINER Funktion und nicht verstreut, und der Pruefstand haelt
    beide gegeneinander (Stolperstein 293). Eine Abweichung zeigt sich sonst
@@ -4019,6 +4019,19 @@ async function renderDetail(id, begriffAdresse) {
 
   function drawViewer() {
     const v = document.getElementById('viewer');
+    /* DIE ANSICHT KANN FORT SEIN -- 0.19.6. Wer den Ausschnitt speichert und
+       waehrend der Wartezeit auf die Uebersicht geht, laesst diese Funktion in
+       eine Seite zeichnen, die es nicht mehr gibt: `getElementById` gibt dann
+       null, und die naechste Zeile warf „can't access property ... is null".
+       Der Wurf landete im `catch` des Aufrufers und wurde dort zur ROTEN
+       MELDUNG -- also zu einer Fehlermeldung ueber einen Vorgang, der in
+       Wahrheit geglueckt war (Stolperstein 298).
+       DIE WACHE STEHT HIER UND NICHT AN DEN SECHS AUFRUFSTELLEN: alle sechs
+       stehen hinter einem await, und die siebte kaeme ungeschuetzt dazu.
+       Dieselbe Regel wie bei zeichneZugaenge() -- nur dass dort ein gehaltener
+       Knoten auf isConnected geprueft wird und hier ein frisch gesuchter auf
+       sein Dasein. */
+    if (!v) return;
     // Der Betrachter bleibt bei jedem Neuzeichnen dasselbe Element; innerHTML
     // ersetzt nur die Kinder. Zeigerbehandler und Kennzeichnung des
     // Ausschnittmodus haengen aber an ihm selbst und muessen von Hand weg --
@@ -4160,7 +4173,7 @@ async function renderDetail(id, begriffAdresse) {
 
        DIE RECHNUNG SELBST STEHT SEIT 0.19.5 IN `zuschnittKiste()` GANZ OBEN,
        und der Grund steht dort: der Server rechnet sie ein zweites Mal, um die
-       Kachel zu backen, und der Pruefstand haelt beide gegeneinander
+       Kachel zu erzeugen, und der Pruefstand haelt beide gegeneinander
        (Stolperstein 293). Hier bleibt nur, was der EDITOR daraus macht -- die
        Lage des Rahmens auf dem Bildschirm und der Spielraum fuer den Zeiger.
        WAS SICH AM RAHMEN NICHT GEAENDERT HAT: er zeigt genau das Quadrat, das
@@ -4222,6 +4235,13 @@ async function renderDetail(id, begriffAdresse) {
         toast('Bildausschnitt gespeichert');
       } catch (e) { toast(e.message, true); }
     };
+    /* DIE MELDUNG KOMMT AUCH DANN, WENN DIE ANSICHT SCHON FORT IST -- 0.19.6,
+       und das ist die Entscheidung und kein Versehen. Die Route wartet auf die
+       neue Kachel (494 bis 873 ms gemessen); wer in dieser Zeit auf die
+       Uebersicht geht, hat trotzdem gespeichert, und eine Zusage, die genau
+       dann verschwiegen wird, wenn man nicht hingesehen hat, ist keine.
+       DER TOAST HAENGT AM `body` UND NICHT AN DER ANSICHT -- er ueberlebt den
+       Wechsel von sich aus; der Streifen darunter zeichnet nicht mehr. */
     v.onpointerup = () => {
       if (!zieht) return;
       zieht = false;
@@ -4248,6 +4268,11 @@ async function renderDetail(id, begriffAdresse) {
 
   function drawThumbs() {
     const box = document.getElementById('thumbs');
+    // Dieselbe Wache wie im Betrachter, aus demselben Grund: der Streifen wird
+    // nach jedem Speichern neu gezeichnet, und gespeichert wird hinter einem
+    // await. Ohne sie war der Fehler AN DIESER ZEILE zu sehen -- sie war die
+    // erste, die den fehlenden Knoten anfasste.
+    if (!box) return;
     box.innerHTML = '';
     item.photos.forEach((p, i) => {
       const t = document.createElement('div');
@@ -8461,16 +8486,16 @@ function geometrieZeile(g) {
   if (!g) return '';
   if (g.laeuft)
     return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">Vorschaubilder ` +
-           `werden gebacken — ${g.erledigt} von ${g.gesamt} …</p>`;
+           `werden erneuert — ${g.erledigt} von ${g.gesamt} …</p>`;
   if (!g.nachgezogen && !g.uebersprungen) return '';
   /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN -- 0.19.5. Bis 0.19.4 wurde die
      Kachel groesser (512 statt 400 auf der kurzen Kante), und die Zeile sagte
-     deshalb nur „mehr". Gebacken wird sie in der Regel KLEINER: gemessen
+     deshalb nur „mehr". Zugeschnitten wird sie in der Regel KLEINER: gemessen
      -34,2 % ueber zwoelf Seitenverhaeltnisse, beim Panorama dagegen mehr.
      Eine Zeile, die nur eine Richtung kennt, verschwiege die haeufigere. */
   const d = g.zugenommen || 0;
   return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">Vorschaubilder ` +
-         `gebacken: ${g.nachgezogen} von ${g.geprueft} geprüften` +
+         `erneuert: ${g.nachgezogen} von ${g.geprueft} geprüften` +
          (g.uebersprungen ? `, ${g.uebersprungen} übersprungen` : '') +
          (d ? ` — ${fmtBytes(Math.abs(d))} ${d > 0 ? 'mehr' : 'weniger'}` : '') + `.</p>`;
 }
@@ -8613,7 +8638,7 @@ function karteBildablage(geholt) {
         <p class="desc">Die <strong>Originale</strong> der Fotos am
           ${esc(V.sacheEinzahl)}, nach Format. Die beiden Ableitungen sind immer JPEG und
           stehen hier nicht: die kleine ist <em>512 × 512</em> und trägt den eingestellten
-          Bildausschnitt bereits eingebacken, die große 1600 px auf der <em>langen</em> Kante
+          Bildausschnitt bereits eingerechnet, die große 1600 px auf der <em>langen</em> Kante
           und ungeschnitten.</p>
         ${zeilen.length ? zeilen.map(f => {
           const z = bf[f.schluessel];

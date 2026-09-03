@@ -174,7 +174,7 @@ CREATE TABLE IF NOT EXISTS photos (
   -- focus_y und mit derselben Zusicherung: DAS ORIGINAL BLEIBT GANZ.
   -- Bis 0.19.4 stand hier weiter: „die Anzeige skaliert (transform: scale) und
   -- der Behaelter beschneidet. Kein Neurechnen, keine zweite Fassung."
-  -- SEIT 0.19.5 WIRD SEHR WOHL NEU GERECHNET: der Server backt den Ausschnitt
+  -- SEIT 0.19.5 WIRD SEHR WOHL NEU GERECHNET: der Server rechnet den Ausschnitt
   -- in thumb, und die Anzeige skaliert nichts mehr. Eine ZWEITE FASSUNG gibt
   -- es trotzdem nicht -- es ist dieselbe Spalte, neu abgeleitet.
   --
