@@ -3910,7 +3910,7 @@ const RUECKBAUTEN = [
   {
     nr: '439', name: 'Zweimal druecken startet zwei Laeufe',
     datei: 'server.js',
-    suche: "  if (umstellung && umstellung.laeuft)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
+    suche: "  if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
     ersatz: "  if (false)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3920,8 +3920,8 @@ const RUECKBAUTEN = [
        sein Ende wartet, laeuft in ihre Grenze. */
     nr: '440', name: 'Der Fortschritt steht nicht mehr in den Kennzahlen',
     datei: 'server.js',
-    suche: "const umstellungsStand = () => umstellung && { ...umstellung };",
-    ersatz: "const umstellungsStand = () => null;",
+    suche: "const bestandsStand = (aufgabe) =>\n  bestandsStaende[aufgabe] && { ...bestandsStaende[aufgabe] };",
+    ersatz: "const bestandsStand = () => null;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4418,8 +4418,12 @@ const RUECKBAUTEN = [
        Ergebnis aendert sich nichts, an der Auskunft alles. */
     nr: '491', name: 'Der Thread meldet seinen Stand erst am Ende',
     datei: 'bestandslauf.js',
-    suche: "    stand.erledigt++;\n    melde(stand);",
-    ersatz: "    stand.erledigt++;",
+    /* DIE ZEILE DANACH GEHOERT SEIT 0.19.4 ZUM SUCHTEXT: dieselben zwei
+       Zeilen stehen jetzt auch in der dritten Schleife, und ein Suchtext, der
+       zweimal passt, bricht den Rueckbau ab (Stolperstein 201 -- mitziehen,
+       nicht loeschen). Das Nachziehen bekommt seinen eigenen Rueckbau. */
+    suche: "    stand.erledigt++;\n    melde(stand);\n    await new Promise(r => setTimeout(r, 30));",
+    ersatz: "    stand.erledigt++;\n    await new Promise(r => setTimeout(r, 30));",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4429,7 +4433,7 @@ const RUECKBAUTEN = [
        Grenze. */
     nr: '492', name: 'Der Haupt-Thread hoert die Meldungen des Threads nicht mehr',
     datei: 'server.js',
-    suche: "  w.on('message', (m) => { if (m && m.art === 'stand') umstellung = m.stand; });",
+    suche: "  w.on('message', (m) => { if (m && m.art === 'stand') bestandsStaende[aufgabe] = m.stand; });",
     ersatz: "  w.on('message', () => {});",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4460,8 +4464,8 @@ const RUECKBAUTEN = [
        mit 409 abgewiesen, obwohl gar nichts mehr laeuft. */
     nr: '495', name: 'Ein Fehler im Thread laesst den Lauf auf „laeuft" stehen',
     datei: 'server.js',
-    suche: "    if (umstellung) umstellung.laeuft = false;",
-    ersatz: "    if (false) umstellung.laeuft = false;",
+    suche: "    if (bestandsStaende[aufgabe]) bestandsStaende[aufgabe].laeuft = false;",
+    ersatz: "    if (false) bestandsStaende[aufgabe].laeuft = false;",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4565,6 +4569,195 @@ const RUECKBAUTEN = [
     suche: "          Ohne Mailzugang läuft die Installation vollständig",
     ersatz: "          Ohne Mailzugang läuft die Instanz vollständig",
     erwartet: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
+  },
+
+  /* ---- 0.19.4: die Ableitung folgt der Anzeige ----
+     ZEHN RUECKBAUTEN AN DER GEOMETRIE UND SIEBEN AM LAUF, und sie sind
+     absichtlich klein geschnitten: die Runde aendert eine ZAHL in einer Tafel,
+     und ein Rueckbau, der die ganze Tafel umwirft, sagte nur, dass irgendetwas
+     an den Ableitungen haengt. */
+  {
+    /* DIE KURZE KANTE STEHT WIEDER AUF 400. Der Deckel bleibt, damit genau
+       diese eine Zahl gemessen wird und nicht zwei zugleich. */
+    nr: '506', name: 'Die kurze Kante des thumb steht wieder auf 400',
+    datei: 'bilder.js',
+    suche: "  thumb:  { kurz: 512,  lang: 1280, q: 78 },",
+    ersatz: "  thumb:  { kurz: 400,  lang: 1280, q: 78 },",
+    erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
+  },
+  {
+    /* DER DECKEL FAELLT WEG. Ohne ihn kennt die kurze Kante keine obere
+       Grenze fuer die lange: ein Bildschirmfoto ueber zwei Monitore wird zur
+       groessten Ableitung der Tabelle -- groesser als sein eigenes `medium`. */
+    nr: '507', name: 'Der Deckel auf der langen Kante faellt weg',
+    datei: 'bilder.js',
+    suche: "lang: 1280, q: 78 }",
+    ersatz: "lang: 99999, q: 78 }",
+    erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
+  },
+  {
+    /* `medium` WIRD BEHANDELT WIE `thumb`. Es wird mit `object-fit: contain`
+       gezeigt, und dafuer ist die LANGE Kante die richtige -- wer beide
+       Ableitungen „der Ordnung halber" gleich behandelt, macht `medium`
+       schlechter und die Datenbank groesser. */
+    nr: '508', name: 'medium bekommt dieselbe Kiste wie thumb',
+    datei: 'bilder.js',
+    suche: "  medium: { kurz: 1600, lang: 1600, q: 84 }",
+    ersatz: "  medium: { kurz: 512, lang: 1280, q: 84 }",
+    erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
+  },
+  {
+    /* DER EXIF-VERMERK ZAEHLT NICHT MEHR MIT. `metadata()` liefert die Masse
+       so, wie sie in der Datei stehen; `.rotate()` dreht danach. Ein
+       hochkantes Bild mit Ausrichtung 6 bekommt damit die Kiste hochkant und
+       kommt quer heraus -- mit 1280 auf der kurzen Kante. */
+    nr: '509', name: 'Der EXIF-Vermerk zaehlt bei der Kante nicht mehr mit',
+    datei: 'bilder.js',
+    suche: "  const gedreht = m && m.orientation >= 5;",
+    ersatz: "  const gedreht = false;",
+    erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
+  },
+  {
+    /* DER KOPF WIRD GAR NICHT ERST GELESEN. Die Kiste liegt dann immer quer,
+       und jedes hochkante Bild bekommt 512 auf der LANGEN statt auf der
+       kurzen Kante. */
+    nr: '510', name: 'Der Kopf wird nicht gelesen -- die Kiste liegt immer quer',
+    datei: 'bilder.js',
+    suche: "  try { quer = istQuer(await sharp(buf, { failOn: 'none' }).metadata()); } catch {}",
+    ersatz: "  // der Kopf bleibt ungelesen",
+    erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
+  },
+  {
+    /* DIE ALTE GEOMETRIE WIRD AN DER KURZEN KANTE ERKANNT. Das klingt
+       richtiger und ist es nicht: der Lauf zoege damit auch das kleine Bild
+       und das Panorama mit, und beide kaemen unveraendert heraus -- also bei
+       JEDEM Start aufs Neue. Die Abfrage waere kein Festpunkt mehr. */
+    nr: '511', name: 'Die alte Geometrie wird an der kurzen Kante erkannt',
+    datei: 'bilder.js',
+    suche: "  return Math.max(masse.width, masse.height) === ALTE_THUMB_KANTE &&\n         Math.min(masse.width, masse.height) < VARIANTS.thumb.kurz;",
+    ersatz: "  return Math.min(masse.width, masse.height) < VARIANTS.thumb.kurz;",
+    erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
+  },
+  {
+    /* EIN UNLESBARER `thumb` GILT WIEDER ALS FERTIG. Die Zeile bleibt damit
+       fuer immer kaputt: das Nachruesten sucht `thumb IS NULL` und sieht
+       einen kaputten `thumb` gar nicht an. */
+    nr: '512', name: 'Ein unlesbarer thumb bleibt liegen',
+    datei: 'bilder.js',
+    suche: "  catch { return true; }",
+    ersatz: "  catch { return false; }",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DER LAUF FASST JEDE GEPRUEFTE ZEILE AN. Er leitet damit auch die
+       Zeilen neu ab, die laengst richtig liegen -- bei jedem Start, mit dem
+       vollen Preis fuer das Lesen des Originals. */
+    nr: '513', name: 'Der Lauf zieht jede Zeile nach, nicht nur die faelligen',
+    datei: 'bestandslauf.js',
+    suche: "        if (await istAlteAbleitung(z.thumb)) {",
+    ersatz: "        if (true) {",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DER LAUF SCHREIBT AUCH EINE LEERE ABLEITUNG. Danach steht NULL in einer
+       Spalte, die vorher ein Bild trug -- eine Videozeile verliert so ihr
+       Standbild, und zwar still. */
+    nr: '514', name: 'Der Lauf schreibt auch, wenn die Ableitung leer zurueckkommt',
+    datei: 'bestandslauf.js',
+    suche: "          if (v.thumb) {",
+    ersatz: "          if (true) {",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DER STAND REIST ERST AM ENDE ZURUECK -- dasselbe wie Rueckbau 491, eine
+       Schleife weiter. Die Karte im Systembereich fragt alle 1500 ms und
+       saehe waehrend des ganzen Laufs dieselbe Null. */
+    nr: '515', name: 'Das Nachziehen meldet seinen Stand erst am Ende',
+    datei: 'bestandslauf.js',
+    suche: "    stand.erledigt++;\n    melde(stand);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
+    ersatz: "    stand.erledigt++;\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DAS NACHZIEHEN GIBT SEINE SEITEN NICHT FREI. Die alten Ableitungen
+       geben ihre Seiten frei, aber SQLite gibt sie ohne incremental_vacuum
+       nicht ans Dateisystem zurueck.
+       ERWARTET STUMM, UND DAS IST EIN OFFENER PUNKT UND KEINE FORMALIE: die
+       Wirkung von reclaim() ist eine DATEIGROESSE, und in dieser Runde
+       waechst die Datei ohnehin -- die freigegebenen Seiten werden von den
+       groesseren Ableitungen sofort wieder belegt. Nachgesehen, nicht
+       vermutet: die WAL-Datei ist nach dem Lauf in beiden Faellen weg, weil
+       db.close() ebenfalls einen Punkt setzt. Dieselbe Luecke steht seit
+       0.19.3 an der Umstellung; sie ist im Aenderungsprotokoll als
+       Offengebliebenes benannt. */
+    nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
+    datei: 'bestandslauf.js',
+    suche: "  reclaim();\n  melde(stand);\n  console.log(`[Kriterion] Vorschaubilder nachgezogen:",
+    ersatz: "  melde(stand);\n  console.log(`[Kriterion] Vorschaubilder nachgezogen:",
+    erwartet: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
+  },
+  {
+    /* DIE KETTE BRICHT. Das Nachziehen laeuft danach nur noch, wenn beim
+       Start zufaellig ein Vorschaubild fehlt -- also in keiner Instanz nach
+       ihrem ersten Start. */
+    nr: '517', name: 'Das Nachziehen wird beim Start nicht mehr gerufen',
+    datei: 'server.js',
+    suche: "  if (!offen.length) return zieheGeometrieNach();",
+    ersatz: "  if (!offen.length) return maintainStorage();",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DIE AUSWAHL VERENGT SICH AUF EIN WORT. `art` traegt laut Schema 'bild'
+       oder 'video' -- aber der Import schreibt den Wert aus der
+       Austauschdatei ungeprueft durch, und der Pruefstand legt seit 0.19.3
+       Zeilen mit `art = 'foto'` an. Die verengte Abfrage laesst sie still
+       liegen. */
+    nr: '518', name: 'Die Auswahl des Nachziehens verengt sich auf ein Wort',
+    datei: 'server.js',
+    suche: "const qBildZeilen = db.prepare(\"SELECT id FROM photos WHERE art != 'video'\");",
+    ersatz: "const qBildZeilen = db.prepare(\"SELECT id FROM photos WHERE art IS 'bild'\");",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DIE FORTSCHRITTSZEILE DES NACHZIEHENS FAELLT AUS DER KARTE. Der Lauf
+       dauert am echten Bestand Minuten und laesst die Datenbank um zig
+       Megabyte wachsen -- ohne die Zeile geschieht das ohne jedes Zeichen. */
+    nr: '519', name: 'Die Fortschrittszeile des Nachziehens faellt aus der Karte',
+    datei: 'public/app.js',
+    suche: "        ${geometrieZeile(stats.geometrie)}",
+    ersatz: "",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* DIE ZEILE STEHT AUCH OHNE FUND DA. Der Lauf faehrt bei JEDEM Start und
+       findet nach dem ersten Durchgang nichts mehr; die Zeile „0 von 1032
+       nachgezogen" staende von da an fuer immer in der Karte und erklaerte
+       einen Vorgang, den niemand angestossen hat. */
+    nr: '520', name: 'Die Zeile des Nachziehens steht auch ohne Fund da',
+    datei: 'public/app.js',
+    suche: "  if (!g.nachgezogen && !g.uebersprungen) return '';",
+    ersatz: "  if (false) return '';",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* DIE UHR VERFOLGT NUR NOCH DIE UMSTELLUNG. Die Zeile des Nachziehens
+       bliebe damit auf ihrem ersten Stand stehen, bis jemand den
+       Systembereich neu aufbaut. */
+    nr: '521', name: 'Die Uhr verfolgt nur noch die Umstellung',
+    datei: 'public/app.js',
+    suche: "  { feld: 'geometrie', id: 'geo-lauf',",
+    ersatz: "  { feld: 'gibtsnicht', id: 'gibtsnicht',",
+    erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
+  },
+  {
+    /* DIE KARTE NENNT WIEDER „400 px UND 1600 px". Die Angabe war bis 0.19.3
+       richtig und ist es seit dieser Runde nicht mehr -- und sie verschweigt
+       das, worauf es ankommt: WELCHE Kante die Zahl traegt. */
+    nr: '522', name: 'Die Karte nennt wieder 400 px, ohne die Kante zu sagen',
+    datei: 'public/app.js',
+    suche: "die kleine misst 512 px auf der <em>kurzen</em> Kante, weil die",
+    ersatz: "die beiden Ableitungen (400 px und 1600 px) stehen hier nicht, und zwar",
+    erwartet: 'Die Bildablage in der Oberflaeche'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */

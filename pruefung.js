@@ -17253,6 +17253,185 @@ const freigabeHaupt = (zweck, ziel = null) =>
   if (baImpItem) await ruf('DELETE', `/api/items/${baImpItem.id}`);
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Ableitung folgt der Anzeige — 0.19.4');
+
+  /* WAS HIER BELEGT WIRD, UND WARUM ES OHNE PIXEL NICHT GEHT. Die Runde
+     aendert eine GEOMETRIE, und eine Geometrie steht in keiner Antwort: die
+     Kachel sieht vorher wie nachher gleich aus, nur schaerfer. Belegt wird
+     deshalb am abgelegten Bild -- hochgeladen ueber den gewoehnlichen Weg,
+     zurueckgeholt ueber die Auslieferung, und die Masse kommen von sharp.
+
+     DIE VORLAGEN SIND EINFARBIGE FLAECHEN und keine Fotos: gemessen wird die
+     GROESSE, nicht die Guete, und eine Flaeche kodiert in Millisekunden. */
+  {
+    const geo = (await ruf('POST', '/api/items', { title: 'Geometrie' })).inhalt;
+    const flaeche = (b, h) => sharp({ create: { width: b, height: h, channels: 3,
+      background: { r: 30, g: 90, b: 200 } } }).png().toBuffer();
+    const masseVon = async (fotoId, groesse) => {
+      const a = await fetch(`${BASIS}/api/photos/${fotoId}/raw?size=${groesse}`,
+        { headers: { cookie: cookie } });
+      const m = await sharp(Buffer.from(await a.arrayBuffer())).metadata();
+      return { b: m.width, h: m.height };
+    };
+    /* EIN FOTO HINEIN, SEINE NUMMER HERAUS -- und ein leeres Objekt, wenn der
+       Upload scheitert. Ohne diese Klammer risse ein Rueckbau am Upload den
+       ganzen Lauf ab, statt eine Zusage rot zu faerben (Stolperstein 161). */
+    const legeAn = async (name, buf) => {
+      const antwort = await sendeMultipart(`/api/items/${geo.id}/photos`, 'photos',
+        [{ name, typ: 'image/png', inhalt: buf }]);
+      const liste = Array.isArray(antwort.inhalt && antwort.inhalt.photos)
+        ? antwort.inhalt.photos : [];
+      return liste[liste.length - 1] || {};
+    };
+
+    /* 1. DER FEHLER, DEN DIESE RUNDE ZURUECKBAUT. Ein 16:9-Bildschirmfoto
+       hatte als `thumb` 400 x 225 -- die Kachel schneidet quadratisch zu und
+       forderte 299. Jetzt traegt die KURZE Kante die Zahl. */
+    const quer = await legeAn('quer.png', await flaeche(1920, 1080));
+    const querThumb = await masseVon(quer.id, 'thumb');
+    pruefe('Ein 16:9-Bild bekommt seine KURZE Kante auf 512',
+      querThumb.h === 512 && querThumb.b === 910,
+      `${querThumb.b}x${querThumb.h} statt 910x512`);
+    /* 2. UND `medium` IST NICHT ANGEFASST. Es wird mit `object-fit: contain`
+       gezeigt, und dafuer ist die LANGE Kante die richtige. Wer beide
+       Ableitungen „der Ordnung halber" gleich behandelt, macht `medium`
+       schlechter und die Datenbank groesser. */
+    const querMedium = await masseVon(quer.id, 'medium');
+    pruefe('Und `medium` bleibt bei 1600 auf der LANGEN Kante',
+      querMedium.b === 1600 && querMedium.h === 900,
+      `${querMedium.b}x${querMedium.h} statt 1600x900`);
+    /* 3. HOCHFORMAT. Die Kiste dreht mit -- sonst laege die 512 auf der
+       langen Kante und die kurze bekaeme 288. */
+    const hoch = await legeAn('hoch.png', await flaeche(1080, 1920));
+    const hochThumb = await masseVon(hoch.id, 'thumb');
+    pruefe('Ein hochkantes Bild bekommt seine kurze Kante ebenso',
+      hochThumb.b === 512 && hochThumb.h === 910,
+      `${hochThumb.b}x${hochThumb.h} statt 512x910`);
+    /* 4. DER DECKEL. Ohne ihn kennt `fit: 'outside'` keine obere Grenze fuer
+       die lange Kante: ein Bildschirmfoto ueber zwei Monitore ergaebe
+       3641 x 512 und waere die GROESSTE Ableitung der Tabelle -- groesser als
+       sein eigenes `medium`. */
+    const breit = await legeAn('breit.png', await flaeche(7680, 1080));
+    const breitThumb = await masseVon(breit.id, 'thumb');
+    pruefe('Ein 32:9-Bild stoesst an den Deckel von 1280 auf der langen Kante',
+      breitThumb.b === 1280 && breitThumb.h < 512,
+      `${breitThumb.b}x${breitThumb.h}`);
+    /* 5. UND ES WIRD DABEI NICHT GESCHNITTEN. Der Ausschnitt entsteht im
+       Browser aus dem Fokuspunkt; ein am Server beschnittenes `thumb` naehme
+       ihm seine Flaeche, und der eingestellte Ausschnitt zeigte danach etwas
+       anderes. Das Seitenverhaeltnis muss deshalb stehen bleiben. */
+    pruefe('Und behält dabei sein Seitenverhältnis — die Ableitung schneidet nicht',
+      Math.abs((breitThumb.b / breitThumb.h) - (7680 / 1080)) < 0.02,
+      `${(breitThumb.b / breitThumb.h).toFixed(2)}:1 statt ${(7680 / 1080).toFixed(2)}:1`);
+    /* 6. UND EIN KLEINES BILD WIRD NICHT AUFGEBLASEN. `withoutEnlargement`
+       gilt weiter -- eine Ableitung, die groesser ist als ihre Vorlage,
+       kostet Platz und traegt keine Bildpunkte mehr. */
+    const klein = await legeAn('klein.png', await flaeche(300, 200));
+    const kleinThumb = await masseVon(klein.id, 'thumb');
+    pruefe('Ein kleines Bild wird nicht vergrößert',
+      kleinThumb.b === 300 && kleinThumb.h === 200,
+      `${kleinThumb.b}x${kleinThumb.h} statt 300x200`);
+
+    /* 7. DIE REGEL IM STYLESHEET, GEGEN DIE DIE ABLEITUNG GEBAUT IST. Sie ist
+       der Grund fuer die ganze Runde und steht sonst nirgends nachpruefbar:
+       jede Stelle, die `object-fit: cover` setzt, braucht die kurze Kante.
+       Aendert jemand eine davon auf `contain`, ist die Ableitung dort ab
+       diesem Augenblick die falsche -- und ohne diese Zeile faellt es nicht
+       auf. */
+    const cssGeo = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const mitCover = ['.card-img img', '.thumb img', '.cmt-img img', '.lb-thumb img'];
+    const fehlend = mitCover.filter(w => {
+      const r = new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+        ' \\{[^}]*object-fit: cover');
+      return !r.test(cssGeo);
+    });
+    pruefe('Alle vier Stellen, die ein Vorschaubild zeigen, schneiden mit cover zu',
+      fehlend.length === 0, `ohne cover: ${JSON.stringify(fehlend)}`);
+    pruefe('Und die beiden, die `medium` zeigen, passen mit contain ein',
+      /\.viewer img \{[^}]*object-fit: contain/.test(cssGeo) &&
+      /\.lb-stage img \{[^}]*object-fit: contain/.test(cssGeo),
+      (cssGeo.match(/\.viewer img \{[^}]*\}/) || ['(keine Regel)'])[0]);
+
+    /* 8. DIE TAFEL TRAEGT DIE UNTERSCHEIDUNG UND KEIN `if` IN DER SCHLEIFE.
+       Eine Ableitung, die ihre Regel in einer Verzweigung versteckt, ist beim
+       naechsten Lesen eine Suche. */
+    const quGeoBilder = fs.readFileSync(path.join(__dirname, 'bilder.js'), 'utf8');
+    pruefe('Die Tafel nennt jeder Ableitung ihre Kiste aus kurzer und langer Kante',
+      /thumb:\s*\{ kurz: 512,\s*lang: 1280, q: 78 \}/.test(quGeoBilder) &&
+      /medium:\s*\{ kurz: 1600, lang: 1600, q: 84 \}/.test(quGeoBilder),
+      (quGeoBilder.match(/const VARIANTS = \{[\s\S]{0,140}/) || ['(nicht gefunden)'])[0]);
+    pruefe('Und die Schleife wählt ohne Verzweigung je Ableitung',
+      /\.resize\(quer \? v\.lang : v\.kurz, quer \? v\.kurz : v\.lang,/.test(quGeoBilder) &&
+      !/if \([^)]*name === 'thumb'/.test(quGeoBilder),
+      (quGeoBilder.match(/\.resize\([^\n]*/) || ['(nicht gefunden)'])[0]);
+
+    /* 9. WELCHE KANTE DIE KURZE IST, SAGT DER KOPF -- UND ER SAGT ES NICHT
+       ALLEIN. `metadata()` liefert die Masse so, wie sie in der Datei stehen;
+       `.rotate()` dreht danach nach dem EXIF-Vermerk, und die Ausrichtungen
+       5 bis 8 vertauschen dabei Breite und Hoehe. Wer den Vermerk nicht
+       mitzaehlt, legt die Kiste hochkant an ein Bild, das quer herauskommt.
+       DIE VORLAGE IST EIN JPEG: nur dort traegt sharp den Vermerk ein. */
+    {
+      const rohHoch = await sharp({ create: { width: 600, height: 1200, channels: 3,
+        background: { r: 200, g: 80, b: 20 } } }).jpeg().toBuffer();
+      const mitVermerk = await sharp(rohHoch).withMetadata({ orientation: 6 }).toBuffer();
+      const antwort = await sendeMultipart(`/api/items/${geo.id}/photos`, 'photos',
+        [{ name: 'gedreht.jpg', typ: 'image/jpeg', inhalt: mitVermerk }]);
+      const liste = Array.isArray(antwort.inhalt && antwort.inhalt.photos)
+        ? antwort.inhalt.photos : [];
+      const gedreht = liste[liste.length - 1] || {};
+      const m = await masseVon(gedreht.id, 'thumb');
+      pruefe('Der EXIF-Vermerk zählt mit: ein gedrehtes Bild bekommt die richtige Kiste',
+        m.h === 512 && m.b === 1024, `${m.b}x${m.h} statt 1024x512`);
+    }
+
+    /* 9a. UND DIE UHR VERFOLGT BEIDE LAEUFE. Sie koennen sich ueberschneiden:
+       das Nachziehen faengt 1500 ms nach dem Start an, und wer in genau
+       diesem Augenblick den Umstellungsknopf drueckt, hat beide. Eine zweite
+       Uhr fragte /api/stats ein zweites Mal ab -- genau die Selbstblockade,
+       die 0.19.1 gemessen hat. AM QUELLTEXT geprueft, weil ein Taktgeber in
+       jsdom nichts hinterlaesst, woran sich das ablesen liesse. */
+    const quGeoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    pruefe('Die Uhr verfolgt beide Läufe und nicht nur die Umstellung',
+      /const BESTANDSLAEUFE = \[/.test(quGeoApp) &&
+      /feld: 'umstellung', id: 'bild-lauf'/.test(quGeoApp) &&
+      /feld: 'geometrie', id: 'geo-lauf'/.test(quGeoApp) &&
+      /BESTANDSLAEUFE\.some\(l => geholt\.stats\[l\.feld\] && geholt\.stats\[l\.feld\]\.laeuft\)/
+        .test(quGeoApp),
+      (quGeoApp.match(/const BESTANDSLAEUFE = \[[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
+    pruefe('Und es gibt genau eine Uhr für beide',
+      (quGeoApp.match(/setInterval\(async \(\) => \{\s*\n\s*if \(!BESTANDSLAEUFE/g) || []).length === 1 &&
+      !/function verfolgeUmstellung\(/.test(quGeoApp),
+      (quGeoApp.match(/function verfolge\w+\(/g) || []).join(' · '));
+
+    /* 10. DIE ABFRAGE, MIT DER DER BESTANDSLAUF SEINE ZEILEN FINDET, ALS
+       REGEL -- ohne Bild und ohne Datenbank. Sie ist ein FESTPUNKT: was der
+       Lauf erzeugt hat, darf nicht wieder in seine Auswahl fallen, sonst
+       leitet er bei jedem Start denselben Bestand neu ab. */
+    const { traegtAlteGeometrie } = require('./bilder');
+    const faelle = [
+      [{ width: 400, height: 225 }, true,  'der alte thumb eines 16:9-Bildes'],
+      [{ width: 400, height: 400 }, true,  'der alte thumb eines quadratischen Bildes'],
+      [{ width: 400, height: 56 },  true,  'der alte thumb eines 32:9-Bildes'],
+      [{ width: 910, height: 512 }, false, 'der neue thumb eines 16:9-Bildes'],
+      [{ width: 1280, height: 180 }, false, 'der neue thumb am Deckel'],
+      [{ width: 300, height: 200 }, false, 'ein kleines Bild, unter beiden Regeln gleich'],
+      [{ width: 512, height: 512 }, false, 'der neue thumb eines quadratischen Bildes']
+    ];
+    const daneben = faelle.filter(([m, s]) => traegtAlteGeometrie(m) !== s)
+      .map(([m, , w]) => `${m.width}x${m.height} (${w})`);
+    pruefe('Die Regel trennt alte von neuer Geometrie an allen sieben Fällen',
+      daneben.length === 0, daneben.join(' · '));
+    pruefe('Und sie ist ein Festpunkt: was der Lauf erzeugt, fällt nicht zurück',
+      !traegtAlteGeometrie(querThumb.b ? { width: querThumb.b, height: querThumb.h } : null) &&
+      !traegtAlteGeometrie({ width: breitThumb.b, height: breitThumb.h }) &&
+      !traegtAlteGeometrie({ width: kleinThumb.b, height: kleinThumb.h }),
+      `${querThumb.b}x${querThumb.h} · ${breitThumb.b}x${breitThumb.h} · ${kleinThumb.b}x${kleinThumb.h}`);
+
+    await ruf('DELETE', `/api/items/${geo.id}`);
+  }
+
+  /* ---------------------------------------------------------------- */
   gruppe('Berichte und angepinnte Kommentare');
 
   const km = (await ruf('POST', '/api/items', { title: 'Kommentarprobe' })).inhalt;
@@ -19546,7 +19725,24 @@ const freigabeHaupt = (zweck, ziel = null) =>
      der Testtage in der Uebersichtsschleife, die jetzt anders lautet.
      KEINER IST WEGGEFALLEN: diese Runde hat nichts abgebaut, sie hat
      verschoben. */
-  pruefe('Es sind genau 497 Rueckbauten', gpListe.length === 497, `${gpListe.length}`);
+  /* 514 SEIT 0.19.4: SIEBZEHN neue, alle in der Reihe ab 506 -- sieben an der
+     Geometrie selbst (die kurze Kante, der Deckel, `medium`, der EXIF-Vermerk,
+     der ungelesene Kopf, die Erkennung an der falschen Kante und der
+     unlesbare `thumb`), vier am Lauf (jede Zeile statt der faelligen, die
+     leere Ableitung, die Meldung je Zeile und die Seiten, die er nicht
+     freigibt), zwei am Server (die gebrochene Kette und die verengte Auswahl)
+     und vier an der Oberflaeche (die Fortschrittszeile, ihre Gegenlage, die
+     Uhr und die Angabe in der Karte).
+     EINER IST ERWARTET STUMM, und er steht ausdruecklich mit dieser Angabe da
+     (516): die Wirkung von reclaim() ist eine Dateigroesse, und die waechst in
+     dieser Runde ohnehin. Es ist ein offener Punkt und keine Formalie.
+     FUENF VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
+     201): 439, 440, 492 und 495 zeigten auf den Stand der Umstellung, der
+     jetzt je Aufgabe steht; 491 zeigte auf die Meldung je Zeile, und dieselben
+     zwei Zeilen stehen seit dieser Runde in einer zweiten Schleife -- sein
+     Suchtext haette danach zweimal gepasst und der Rueckbau waere abgebrochen.
+     KEINER IST WEGGEFALLEN. */
+  pruefe('Es sind genau 514 Rueckbauten', gpListe.length === 514, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -20588,6 +20784,9 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
      liegt keines mehr da (er ist es nicht), und ein Lauf ist unterwegs. */
   statsBildFormate = undefined,
   statsUmstellung = null,
+  /* DER ZWEITE BESTANDSLAUF, seit 0.19.4 -- eigenes Feld und nicht dasselbe:
+     die Karte muss auseinanderhalten koennen, welcher der beiden laeuft. */
+  statsGeometrie = null,
   bilderUmwandeln = true,
   zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false, suchBremsen = null,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }],
@@ -21783,6 +21982,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
               webp: { anzahl: 2, bytes: 65536 } }
           : statsBildFormate,
         umstellung: statsUmstellung,
+        geometrie: statsGeometrie,
         /* DIE VERFAHREN, seit 0.16.0 -- dieselben Werte, die db.js aus der
            geoeffneten Datei abliest. STELLBAR AUF null: eine Antwort ohne sie
            ist die Lage, in der der Abschnitt in der Karte gar nicht dastehen
@@ -29733,7 +29933,64 @@ async function pruefeOberflaeche() {
     pruefe('Nach einem Lauf sagt die Zeile, was herauskam',
       /11 von 12/.test(fertigZeile) && /1 blieben PNG/.test(fertigZeile) &&
       /4,0 MB gespart/.test(fertigZeile), fertigZeile);
+    /* UND DIE ZEILE DES ZWEITEN LAUFS STEHT NICHT DA, wenn keiner lief. Ohne
+       diese Gegenlage waere „sie steht da" nicht von „sie steht immer da" zu
+       unterscheiden (Stolperstein 81). */
+    pruefe('Und die Zeile des Nachziehens steht daneben nicht',
+      !baFertig.w.document.getElementById('geo-lauf'),
+      baFertig.w.document.getElementById('geo-lauf')?.textContent);
     baFertig.w.close();
+
+    /* ---- DAS NACHZIEHEN DER GEOMETRIE — 0.19.4 ----
+       ES IST EIN ZWEITER LAUF UND NICHT DERSELBE: er faehrt bei jedem Start,
+       die Umstellung auf Knopfdruck. Stuenden beide in einem Feld, saehe die
+       Karte bei jedem Start „Umstellung laeuft" und der Knopf waere tot. */
+    const geoLauf = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { statsGeometrie: { laeuft: true, gesamt: 1032, erledigt: 40, geprueft: 40,
+                          nachgezogen: 31, uebersprungen: 0, zugenommen: 1000 } });
+    await sysAbschnitt(geoLauf.w, 'datenbank');
+    pruefe('Waehrend des Nachziehens zeigt die Karte seinen Fortschritt',
+      /40 von 1032/.test(geoLauf.w.document.getElementById('geo-lauf')?.textContent || ''),
+      geoLauf.w.document.getElementById('geo-lauf')?.textContent);
+    /* UND DER UMSTELLUNGSKNOPF BLEIBT BEDIENBAR. Genau das waere weg, wenn
+       beide Laeufe in demselben Feld staenden. */
+    pruefe('Und der Umstellungsknopf bleibt dabei bedienbar',
+      geoLauf.w.document.getElementById('bild-um')?.disabled === false,
+      String(geoLauf.w.document.getElementById('bild-um')?.disabled));
+    geoLauf.w.close();
+
+    // Und durch: die Zeile sagt, was herauskam.
+    const geoFertig = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { statsGeometrie: { laeuft: false, gesamt: 1032, erledigt: 1032, geprueft: 1032,
+                          nachgezogen: 825, uebersprungen: 2, zugenommen: 61341696 } });
+    await sysAbschnitt(geoFertig.w, 'datenbank');
+    const geoZeile = geoFertig.w.document.getElementById('geo-lauf')?.textContent || '';
+    pruefe('Nach dem Nachziehen sagt die Zeile, was herauskam',
+      /825 von 1032/.test(geoZeile) && /2 übersprungen/.test(geoZeile) &&
+      /58,5 MB mehr/.test(geoZeile), geoZeile);
+    geoFertig.w.close();
+
+    /* UND SIE STEHT NICHT DA, WENN ES NICHTS ZU SAGEN GAB. Der Lauf faehrt
+       bei JEDEM Start und findet nach dem ersten Durchgang nichts mehr; eine
+       Zeile „0 nachgezogen" staende von da an fuer immer in der Karte. */
+    const geoLeer = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { statsGeometrie: { laeuft: false, gesamt: 1032, erledigt: 1032, geprueft: 1032,
+                          nachgezogen: 0, uebersprungen: 0, zugenommen: 0 } });
+    await sysAbschnitt(geoLeer.w, 'datenbank');
+    pruefe('Ein Lauf ohne Fund hinterlaesst keine Zeile',
+      !geoLeer.w.document.getElementById('geo-lauf'),
+      geoLeer.w.document.getElementById('geo-lauf')?.textContent);
+    /* UND DIE KARTE SAGT, WELCHE MASSE DIE BEIDEN ABLEITUNGEN TRAGEN. Sie
+       stand bis 0.19.3 mit „400 px und 1600 px" da -- eine Angabe, die diese
+       Runde falsch gemacht hat. Und sie nennt nicht nur die Zahl, sondern die
+       KANTE: genau darin steckt der Fehler, den die Runde zurueckbaut. */
+    {
+      const t = (baKarte(geoLeer)?.textContent || '').replace(/\s+/g, ' ');
+      pruefe('Die Karte nennt die kurze Kante der kleinen Ableitung',
+        /512 px auf der kurzen Kante/.test(t) && /1600 px auf der langen/.test(t) &&
+        !/400 px/.test(t), t.slice(0, 320));
+    }
+    geoLeer.w.close();
 
     /* ---- UND WER SIE NICHT BEDIENEN DARF ----
        Der Admin ohne Eigentuemerrolle sieht die ZAHLEN -- sie stehen hinter
@@ -36359,6 +36616,161 @@ async function pruefeBestandslauf() {
   pruefe('Und keine einzige seiner Schreibungen wurde abgewiesen',
     nb.abgewiesen === 0, JSON.stringify(nb));
 
+  /* ---- Die Geometrie nachziehen, aus dem Thread — 0.19.4 ----
+     DER LAUF, DEN DIESE RUNDE EINBRINGT. Er ist die erste der drei Aufgaben,
+     die eine GUELTIGE Ableitung durch eine bessere ersetzt: das Nachruesten
+     fuellt leere Spalten, die Umstellung verschiebt ein Format.
+     DIE AUSGANGSLAGE WIRD EIGENS GEBAUT, und das ist kein Umweg: die sechs
+     Zeilen von oben tragen laengst die neue Geometrie -- ihre Vorlage ist
+     240 x 160, und die vergroessert keine Regel. Hier liegen deshalb Zeilen
+     mit einem 16:9-Original und einem `thumb` der ALTEN Regel, so wie sie in
+     einer Instanz von vor dieser Runde stehen. */
+  {
+    const gross = await sharp({ create: { width: 1920, height: 1080, channels: 3,
+      background: { r: 200, g: 40, b: 60 } } }).jpeg().toBuffer();
+    const altThumb = await sharp(gross).resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 78, mozjpeg: true }).toBuffer();
+    const altMedium = await sharp(gross).resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 84, mozjpeg: true }).toBuffer();
+    const ALT = 4;
+    let videoId = null;
+    {
+      const d = oeffne();
+      const item = d.prepare("INSERT INTO items (title) VALUES ('Alte Geometrie')").run().lastInsertRowid;
+      const ins = d.prepare("INSERT INTO photos (item_id, data, mime_type, thumb, medium, art, dauer) " +
+        "VALUES (?,?,?,?,?,?,?)");
+      /* `art` STEHT HIER AUF 'bild' UND OBEN IN DERSELBEN GRUPPE AUF 'foto'.
+         Das ist kein Versehen, sondern der Fall, der die Abfrage im Server
+         entschieden hat: das Schema kennt zwei Werte, der Import schreibt den
+         Wert aus der Austauschdatei aber ungeprueft durch. Eine Auswahl auf
+         `art IS 'bild'` liesse die sechs Zeilen von oben still liegen -- und
+         genau das ist beim Bauen dieser Runde passiert. */
+      for (let i = 0; i < ALT; i++) ins.run(item, gross, 'image/jpeg', altThumb, altMedium, 'bild', null);
+      /* EINE VIDEOZEILE MIT DEMSELBEN alten `thumb`. In `data` steht dort die
+         Videodatei, und der Server oeffnet nie ein Video -- makeVariants()
+         kommt daran leer zurueck. Sie faehrt hier ABSICHTLICH mit, obwohl die
+         Abfrage im Server sie gar nicht erst auswaehlt: belegt wird, dass das
+         vorhandene Standbild auch dann stehen bleibt, wenn sie es doch tut. */
+      videoId = ins.run(item, Buffer.from('ftypisom-kein-bild'), 'video/mp4',
+        altThumb, altMedium, 'video', 7).lastInsertRowid;
+      d.close();
+    }
+    const masse = async (buf) => { const m = await sharp(buf).metadata(); return `${m.width}x${m.height}`; };
+    pruefe('Der Aufbau steht: vier Zeilen tragen die alte Geometrie',
+      (await masse(altThumb)) === '400x225', await masse(altThumb));
+
+    /* DIE AUSWAHL KOMMT AUS DERSELBEN ABFRAGE WIE IM SERVER -- wortgleich.
+       Eine eigene Abfrage im Prueflauf waere eine zweite Wahrheit darueber,
+       welche Zeilen der Lauf ueberhaupt sieht (Stolperstein 47). */
+    const AUSWAHL = "SELECT id FROM photos WHERE art != 'video'";
+    const serverGeo = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    pruefe('Und der Server waehlt seine Zeilen mit genau dieser Abfrage',
+      serverGeo.includes(`const qBildZeilen = db.prepare("${AUSWAHL}");`),
+      (serverGeo.match(/const qBildZeilen = [^\n]*/) || ['(nicht gefunden)'])[0]);
+    const bildZeilen = (() => { const d = oeffne(); const r = d.prepare(AUSWAHL).all(); d.close(); return r; })();
+    pruefe('Die Videozeile steht nicht in der Auswahl',
+      !bildZeilen.some(z => z.id === videoId), `${bildZeilen.length} Zeilen`);
+    /* UND DIE SECHS ZEILEN MIT DEM DRITTEN WORT STEHEN SEHR WOHL DARIN. Ohne
+       diese Zeile bliebe gruen, wer die Auswahl auf `art IS 'bild'` verengt --
+       sie faende dann genau die vier, die dieser Block selbst anlegt. */
+    pruefe('Und die Zeilen mit einem dritten Wort in `art` stehen darin',
+      bildZeilen.length === ZEILEN + ALT, `${bildZeilen.length} statt ${ZEILEN + ALT}`);
+
+    /* GEFAHREN WIRD MIT DER VIDEOZEILE DAZU -- siehe oben. */
+    const geo = await fahre('geometrie', [...bildZeilen, { id: videoId }]);
+    pruefe('Der Thread zieht die Geometrie nach und endet sauber',
+      geo.code === 0 && geo.fehler === null,
+      `Rueckgabe ${geo.code}: ${geo.fehler && geo.fehler.message}`);
+    /* JE ZEILE EINE MELDUNG, DAZU DIE EINE AM ENDE -- wie bei der Umstellung.
+       Die Karte fragt alle 1500 ms; eine Meldung erst am Schluss liesse sie
+       waehrend des ganzen Laufs dieselbe Null zeigen. */
+    pruefe('Und meldet je Zeile einmal, dazu einmal am Ende',
+      geo.staende.length === ZEILEN + ALT + 2, `${geo.staende.length} Meldungen`);
+    const gStand = (geo.staende[geo.staende.length - 1] || {}).stand || {};
+    /* ZWEIMAL WIRD GEZAEHLT, UND DAS IST KEINE DOPPELUNG: `geprueft` sind die
+       Zeilen, deren Kopf gelesen wurde, `nachgezogen` die, die wirklich eine
+       neue Ableitung bekommen haben. Ein Lauf, der 1032 prueft und 0
+       nachzieht, ist der Normalfall nach dem ersten Durchgang. */
+    pruefe('Und zieht genau die vier nach, die die alte Geometrie tragen',
+      gStand.laeuft === false && gStand.nachgezogen === ALT &&
+      gStand.geprueft === ZEILEN + ALT + 1 && gStand.zugenommen > 0,
+      JSON.stringify(gStand));
+    /* DIE SECHS ZEILEN VON OBEN SIND GEPRUEFT UND NICHT ANGEFASST WORDEN.
+       Ihre Vorlage ist 240 x 160, und die vergroessert keine der beiden
+       Regeln -- sie tragen die neue Geometrie also, ohne je angefasst worden
+       zu sein. Ohne diese Zeile bliebe gruen, wer sie mitzieht und dabei
+       nichts aendert ausser der Rechenzeit. */
+    pruefe('Und laesst die sechs kleinen Bilder in Ruhe',
+      gStand.geprueft - gStand.nachgezogen - gStand.uebersprungen === ZEILEN,
+      JSON.stringify(gStand));
+    /* DIE VIDEOZEILE IST DABEI UEBERSPRUNGEN WORDEN UND HAT IHR STANDBILD
+       BEHALTEN. Ohne die Klammer um `v.thumb` staende danach NULL in einer
+       Spalte, die vorher ein Bild trug -- eine Ableitung, die schlechter ist
+       als die alte. */
+    pruefe('Die Videozeile wurde uebersprungen und nicht geleert',
+      gStand.uebersprungen === 1, JSON.stringify(gStand));
+    {
+      const d = oeffne();
+      const zeilen = d.prepare("SELECT id, thumb, medium FROM photos WHERE art IS 'bild' " +
+        'AND length(thumb) > ? ORDER BY id').all(0);
+      const video = d.prepare('SELECT thumb, medium FROM photos WHERE id = ?').get(videoId);
+      d.close();
+      const neue = [];
+      for (const z of zeilen) if (z.thumb) neue.push(await masse(z.thumb));
+      const alteDa = neue.filter(m => m === '400x225');
+      pruefe('Danach traegt keine Zeile mehr die alte Geometrie',
+        alteDa.length === 0, JSON.stringify(neue));
+      pruefe('Und die vier tragen jetzt 910x512',
+        neue.filter(m => m === '910x512').length === ALT, JSON.stringify(neue));
+      /* `medium` IST DABEI UNVERAENDERT -- nicht „sieht gleich aus", sondern
+         byte-genau. Es wird mit `object-fit: contain` gezeigt, und dafuer ist
+         1600 auf der langen Kante richtig. Wer beide Ableitungen gleich
+         behandelt, macht `medium` schlechter. */
+      const mediumGleich = zeilen.filter(z => z.medium && z.medium.equals(altMedium)).length;
+      pruefe('Und `medium` ist dabei byte-genau dasselbe geblieben',
+        mediumGleich === ALT, `${mediumGleich} von ${ALT} unveraendert`);
+      pruefe('Das Standbild der Videozeile steht unveraendert da',
+        video && video.thumb && video.thumb.equals(altThumb) &&
+        video.medium && video.medium.equals(altMedium),
+        video && video.thumb ? await masse(video.thumb) : '(leer)');
+    }
+
+    /* EIN `thumb`, DEN SHARP NICHT LESEN KANN, GILT ALS ALT UND WIRD ERSETZT.
+       Er wird nicht aus dem `thumb` gerechnet, sondern aus dem Original --
+       wer die Frage nicht beantworten kann, verliert also nichts und gewinnt
+       eine Zeile zurueck, die sonst niemand repariert: das Nachruesten sucht
+       `thumb IS NULL` und sieht einen kaputten `thumb` gar nicht an. */
+    {
+      let kaputtId = null;
+      {
+        const d = oeffne();
+        const item = d.prepare("INSERT INTO items (title) VALUES ('Kaputter thumb')").run().lastInsertRowid;
+        kaputtId = d.prepare("INSERT INTO photos (item_id, data, mime_type, thumb, medium, art) " +
+          "VALUES (?,?,?,?,?,'bild')")
+          .run(item, gross, 'image/jpeg', Buffer.from('kein Bild, nur Text'), altMedium).lastInsertRowid;
+        d.close();
+      }
+      const rep = await fahre('geometrie', [{ id: kaputtId }]);
+      const rStand = (rep.staende[rep.staende.length - 1] || {}).stand || {};
+      const d = oeffne();
+      const neu = d.prepare('SELECT thumb FROM photos WHERE id = ?').get(kaputtId);
+      d.close();
+      pruefe('Ein unlesbarer thumb wird aus dem Original ersetzt',
+        rStand.nachgezogen === 1 && neu && neu.thumb &&
+        (await masse(neu.thumb)) === '910x512',
+        `${JSON.stringify(rStand)} · ${neu && neu.thumb ? await masse(neu.thumb).catch(() => '(unlesbar)') : '(leer)'}`);
+    }
+
+    /* UND DER ZWEITE LAUF ZIEHT NICHTS MEHR NACH. Der Lauf faehrt bei JEDEM
+       Start; waere seine Abfrage kein Festpunkt, leitete er denselben Bestand
+       jedes Mal neu ab -- und die Datenbank waechst bei jedem Neustart. */
+    const nochmal = await fahre('geometrie', [...bildZeilen, { id: videoId }]);
+    const nStand = (nochmal.staende[nochmal.staende.length - 1] || {}).stand || {};
+    pruefe('Ein zweiter Lauf zieht nichts mehr nach — die Abfrage ist ein Festpunkt',
+      nStand.nachgezogen === 0 && nStand.geprueft === ZEILEN + ALT + 1,
+      JSON.stringify(nStand));
+  }
+
   /* ---- Ein Fehler im Thread kommt als Fehler an ----
      Er reisst den Server NICHT ab: server.js faengt ihn in worker.on('error'),
      setzt umstellung.laeuft auf false und laesst den Rest stehen. Hier wird
@@ -36390,12 +36802,26 @@ async function pruefeBestandslauf() {
       !/for \(const \{ id \} of zeilen\)/.test(blServer) &&
       !/UPDATE photos SET thumb = \?, medium = \? WHERE id = \?/.test(blServer),
       (blServer.match(/UPDATE photos SET thumb[^\n]*/) || ['(nicht mehr im Server — richtig)'])[0]);
-    /* 2. UND DER SERVER RUFT SIE UEBER EINEN THREAD. Beide Aufgaben, nicht
-       eine: die Umstellung auf Knopfdruck und das Nachruesten beim Start. */
-    pruefe('Und der Server startet fuer beide Aufgaben einen Thread',
+    /* 2. UND DER SERVER RUFT SIE UEBER EINEN THREAD. Alle DREI Aufgaben seit
+       0.19.4, nicht zwei: die Umstellung auf Knopfdruck, das Nachruesten beim
+       Start und das Nachziehen der Geometrie dahinter.
+       DIE KETTE WIRD MITGEPRUEFT und nicht nur die Zahl der Aufrufe: das
+       Nachruesten gibt `zieheGeometrieNach` weiter, das Nachziehen
+       `maintainStorage`. Wer die drei nebeneinander startet statt
+       hintereinander, hat zwei Threads auf derselben Tabelle und EINEN Stand
+       je Aufgabe -- die Karte zeigte abwechselnd zwei Laeufe. */
+    pruefe('Und der Server startet fuer alle drei Aufgaben einen Thread',
       einzeilig(blServer).includes("starteBestandsThread('umstellung', zeilen)") &&
-      einzeilig(blServer).includes("starteBestandsThread('vorschaubilder', offen, maintainStorage)"),
+      einzeilig(blServer).includes("starteBestandsThread('vorschaubilder', offen, zieheGeometrieNach)") &&
+      einzeilig(blServer).includes("starteBestandsThread('geometrie', zeilen, maintainStorage)"),
       (blServer.match(/starteBestandsThread\([^)]*\)/g) || []).join(' · ') || '(nicht gefunden)');
+    /* UND DIE KETTE HAELT AUCH, WENN EIN GLIED NICHTS ZU TUN HAT. Ohne diese
+       beiden Zeilen bliebe das Nachziehen aus, sobald kein Vorschaubild
+       fehlt -- also in jeder Instanz nach dem ersten Start. */
+    pruefe('Und jedes Glied ruft das naechste selbst, wenn es nichts zu tun gibt',
+      /if \(!offen\.length\) return zieheGeometrieNach\(\);/.test(blServer) &&
+      /if \(!zeilen\.length\) return maintainStorage\(\);/.test(blServer),
+      (blServer.match(/if \(!offen\.length\)[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 3. DER PFAD STEHT AN EINER STELLE, und der Fingerprint liest dieselbe.
        Zwei Zeilen mit demselben Dateinamen liefen bei der naechsten
        Umbenennung auseinander -- und der Fingerprint kennte dann eine
@@ -36440,11 +36866,13 @@ async function pruefeBestandslauf() {
        gezeigt: sie suchte irgendwo im Handler nach `umstellung.laeuft = false`
        -- und Rueckbau 495 setzt genau davor ein `if (false)`. Der Rueckbau
        blieb STUMM. Gesucht wird deshalb die GANZE Zeile samt ihrer Klemme:
-       ohne `if (umstellung)` wuerde der Handler bei einem Fehler VOR dem
+       ohne die Klemme wuerde der Handler bei einem Fehler VOR dem
        ersten Lauf selbst werfen (Stolperstein 81 -- erst der Gegenstand, dann
-       die Aussage darueber). */
+       die Aussage darueber).
+       SEIT 0.19.4 STEHT DER STAND JE AUFGABE, und die Zeile greift ihn ueber
+       denselben Namen, mit dem der Thread erzeugt wurde. */
     pruefe('Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen',
-      /w\.on\('error', \(e\) => \{\s*\n\s*if \(umstellung\) umstellung\.laeuft = false;\s*\n\s*console\.error\(/
+      /w\.on\('error', \(e\) => \{\s*\n\s*if \(bestandsStaende\[aufgabe\]\) bestandsStaende\[aufgabe\]\.laeuft = false;\s*\n\s*console\.error\(/
         .test(blServer),
       (blServer.match(/w\.on\('error'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     /* 7. UND ER WIRD JE LAUF ERZEUGT UND DANACH BEENDET -- kein Threadpool,
@@ -36476,7 +36904,7 @@ async function pruefeBestandslauf() {
        -- beim ersten Mal ein VACUUM -- und gehoert nicht neben die Schleife. */
     pruefe('maintainStorage bleibt im Haupt-Thread',
       /db\.exec\('VACUUM'\);/.test(blServer) && !/db\.exec\('VACUUM'\)/.test(blLauf) &&
-      /starteBestandsThread\('vorschaubilder', offen, maintainStorage\);/.test(blServer),
+      /starteBestandsThread\('geometrie', zeilen, maintainStorage\);/.test(blServer),
       (blLauf.match(/db\.exec\('VACUUM'\)/) || ['(kein VACUUM im Thread — richtig)'])[0]);
     /* 11. UND db.js FUEHRT BEIM OEFFNEN NICHTS AUS, WAS ZWEIMAL SCHADET. Der
        Thread requiret es ein zweites Mal; ein VACUUM oder ein CREATE TABLE
