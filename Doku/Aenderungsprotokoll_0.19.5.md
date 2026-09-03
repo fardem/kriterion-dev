@@ -402,8 +402,8 @@ Bild, weniger Bytes. **Ihre Kante fällt bei engem Ausschnitt unter 512**
 
 ## 6. Der Gegenprobenlauf
 
-**Rückbauten vorher: 514, höchste Nummer 522. Nachher: 531, höchste Nummer
-539.** *Siebzehn neue, alle in der Reihe ab 523.*
+**Rückbauten vorher: 514, höchste Nummer 522. Nachher: 532, höchste Nummer
+540.** *Achtzehn neue, alle in der Reihe ab 523.*
 
 | Bereich | Nummern |
 |---|---|
@@ -412,6 +412,7 @@ Bild, weniger Bytes. **Ihre Kante fällt bei engem Ausschnitt unter 512**
 | Die Route | 533 (das Ergebnis reist nicht zurück), 534 (sie backt nicht), 535 (sie wartet nicht) |
 | Die Fassung | 536 (die Spalte), 537 (die Adresse) |
 | Die zweite Hälfte | 538 (**der CSS-Zuschnitt kommt zurück** — es wird zweimal geschnitten), 539 (die Rechnung im Browser läuft der im Server davon) |
+| Die Karte | 540 (die Fortschrittszeile kennt nur eine Richtung — sie sagte „mehr", wo Platz frei geworden ist) |
 
 **ELF VORHANDENE SIND MITGEGANGEN statt gelöscht zu werden** (Stolperstein
 201): 446, 483, 506 bis 508, 510, 511, 513, 514, 516 bis 518 und 522 zeigten
@@ -428,15 +429,60 @@ Stilblatt genommen und setzt sie jetzt wieder ein.
 
 **KEINER IST WEGGEFALLEN.**
 
-*Der volle Gegenprobenlauf über alle 531 Rückbauten steht weiter aus — er
-dauert rund vierzig Stunden.* **Gefahren ist die Teilmenge dieser Runde**; die
-Tabelle steht unten.
+*Der volle Gegenprobenlauf über alle 532 Rückbauten steht weiter aus — er
+dauert rund vierzig Stunden.* **Gefahren ist die Teilmenge dieser Runde:
+einundzwanzig Rückbauten in drei Nebenspuren, je ein vollständiger Prüflauf von
+rund 390 Sekunden.**
+
+> **EINUNDZWANZIG GEFAHREN, EINER STUMM — UND DER EINE IST EIN FUND.**
+> **Rückbau 529** nimmt dem Import seinen Zuschnitt: eine eingespielte Zeile
+> trägt danach eine ungeschnittene Kachel, und **kein einziger Punkt wurde
+> rot.** *An einem gerade eingespielten Bestand ist das der ganze Bestand, und
+> bis der Bestandslauf darüberfährt, liegt ein Neustart dazwischen.*
+> **Die Lücke ist geschlossen:** vier neue Prüfungen spielen ein Foto mit
+> `focus_x` 0, `focus_y` 0 und `zoom` 400 ein und sehen nach, dass die Kachel
+> danach **225 × 225** misst (900 kurze Kante durch vier) und **das rote
+> Viertel links oben** zeigt — und dass die Fassung an der eingespielten Zeile
+> steht. *Nachgefahren, jetzt rot.*
+> **Das ist der Sinn der Gegenprobe** (Stolperstein 274): ein stummer Rückbau
+> ist die Stelle, an der der Prüfstand wegsieht.
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 449 | Der Zoom kommt nicht in den Zuschnitt | 8 Prüfungen in 3 Gruppen, darunter „Nach dem Speichern zeigt die Kachel die gewählte Ecke" |
+| 453 | Die Überfahrregel hängt wieder am Ausschnitt | 4 in 3 Gruppen, darunter „Im Stylesheet steht kein `--zoom` mehr" |
+| 464 | Der Zuschnitt verliert eine seiner beiden Achsen | „Die gegenüberliegende Ecke ebenso", „Beide Rechnungen kommen auf denselben Ausschnitt — 140 Fälle" |
+| 465 | Der Zuschnitt sitzt in der Mitte statt auf dem Fokuspunkt | 5 in 2 Gruppen, darunter „Der Zuschnitt rechnet in den GEDREHTEN Maßen" |
+| **523** | Die Kachel wird wieder ungeschnitten abgeleitet | **18 in 4 Gruppen** — die ganze Runde hängt daran |
+| 524 | `medium` wird mitgeschnitten | 5 in 4 Gruppen, darunter „`medium` bleibt ungeschnitten" und „byte-genau dasselbe geblieben" |
+| 525 | Der Zuschnitt rechnet in den gespeicherten Maßen | „Der Zuschnitt rechnet in den GEDREHTEN Maßen — die Marke liegt rechts oben" |
+| **526** | Die Zuschnittkiste wird nicht gegen den Rand geklammert | **75 in 11 Gruppen** — `sharp` wirft, und die halbe Videostrecke fällt mit |
+| 527 | Ein zu kleiner Ausschnitt wird hochgerechnet | 5 in 4 Gruppen, darunter „Ein kleines Bild wird nicht vergrößert" |
+| 528 | Beim Hochladen wird die Kachel nicht gebacken | „Ein frisch hochgeladenes 16:9-Foto trägt eine quadratische 512er Kachel" |
+| **529** | **Beim Einspielen wird die Kachel nicht gebacken** | **STUMM — ein FUND.** *Lücke geschlossen, nachgefahren* |
+| 530 | Der Bestandslauf backt ohne Zuschnitt | 13 in 3 Gruppen |
+| 531 | Die Videozeile backt aus der Videodatei | 7 in 3 Gruppen, darunter „Die Videokachel ist aus ihrem `medium` gebacken" |
+| 532 | Der Thread kennt die Aufgabe `zuschnitt` nicht | 11 in 3 Gruppen |
+| 533 | Das Ergebnis der einzelnen Zeile wird nicht gemeldet | „Die einzelne Zeile wird gebacken und das Ergebnis gemeldet", „Eine Zeile, die es nicht gibt, meldet `ok:false` und wirft nicht" |
+| 534 | Das Speichern backt die Kachel nicht neu | 8 in 2 Gruppen |
+| 535 | Die Antwort kommt, bevor die Kachel steht | 8 in 2 Gruppen, darunter „Und die Fassung in der Antwort ist die der NEUEN Kachel" |
+| 536 | Die Fassung fällt aus der Fotoabfrage | 6 in 3 Gruppen, darunter „Die Fassung steht neben der Spaltenliste und nicht in ihr" |
+| 537 | Die Bildadresse trägt die Fassung nicht mehr | „Die Kachel-Adresse entsteht nur in `bildQuelle()`", „Dafür trägt ihre Adresse die Fassung der Kachel" |
+| 538 | Der Zuschnitt im Browser kommt zurück | „Im Stylesheet steht kein `--zoom` mehr", „Und an der Vorschaukachel ebenso wenig" |
+| 539 | Die Rechnung im Browser läuft der im Server davon | 5 in 3 Gruppen, darunter „Beide Rechnungen kommen auf denselben Ausschnitt — 140 Fälle" und „Der Rahmen wird beim Zuziehen kleiner" |
+
+**NACHGEFAHREN NACH DEM SCHLIESSEN DER LÜCKE:** GEGENPROBE_NACHLAUF
+
+> **`Jeder Suchtext kommt in seiner Datei genau einmal vor` wird bei JEDEM
+> gefahrenen Rückbau rot** — er hat seinen Suchtext gerade ersetzt. *Die
+> Tabelle zählt ihn deshalb nicht mit; genau daran ist Rückbau 265 in 0.15.0
+> durchgerutscht (Stolperstein 213).*
 
 ---
 
 ## 7. Prüfstand
 
-**Vorher: 5207 Prüfungen. Nachher: 5232 — fünfundzwanzig netto.**
+**Vorher: 5207 Prüfungen. Nachher: 5237 — dreißig netto.**
 
 *Zwei Gruppen sind umgeschrieben, eine ist neu:*
 
@@ -454,18 +500,21 @@ Tabelle steht unten.
 
 | Gruppe | vorher | nachher |
 |---|---|---|
-| **Der Ausschnitt wird gebacken — 0.19.5** *(neu)* | — | **23** |
+| **Der Ausschnitt wird gebacken — 0.19.5** *(neu)* | — | **27** |
 | Die Ableitung folgt der Anzeige — 0.19.4 | 15 | **13** |
 | Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3 | 45 | **49** |
 | Fokuspunkt in der Oberflaeche | 35 | **34** |
-| Die Bildablage in der Oberflaeche | 39 | **39** |
+| Die Bildablage in der Oberflaeche | 39 | **40** |
 | Die Bestandskarte fragt einmal *(die Fassung neben der Spaltenliste)* | — | **+1** |
-| **zusammen** | **5207** | **5232** |
+| **zusammen** | **5207** | **5237** |
 
 *Die 13 der 0.19.4-Gruppe sind zwei weniger als vorher, und das ist kein
 Verlust: das Seitenverhältnis der ungeschnittenen Ableitung ist ohne Server
 eine Rechnung und keine Messung, und die zweite Zeile dazu war ihre eigene
 Wiederholung.*
+
+*Die 27 der neuen Gruppe sind 23 aus dem Bauen und **vier aus der
+Gegenprobe** — sie schließen die Lücke, die Rückbau 529 stumm aufgedeckt hat.*
 
 ---
 

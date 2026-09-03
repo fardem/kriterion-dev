@@ -376,8 +376,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.5** — Fingerprint **`FINGERPRINT_FOLGT`**, **5232
-Prüfungen**, **531 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.19.5** — Fingerprint **`FINGERPRINT_FOLGT`**, **5237
+Prüfungen**, **532 Rückbauten in der Liste** (Abschnitt 8).
 *0.19.5 kehrt eine Entscheidung aus 0.19.4 um: der Bildausschnitt wird ab jetzt
 am Server in die Kachel **gebacken** statt im Browser aus ihr gezogen. Die
 Kachel ist danach quadratisch, 512 × 512, und zeigt genau das, was eingestellt
@@ -1183,7 +1183,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.5** | **`FINGERPRINT_FOLGT`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5232 |
+| **0.19.5** | **`FINGERPRINT_FOLGT`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5237 |
 | 0.19.4 | `03e3b818` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**)* | 5207 |
 | 0.19.3 | `cdbe0925` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5170 |
 | 0.19.2 | `0cdc709d` *(nie einzeln im Feld gelaufen — auf dem Wirt lief `f4f8a479`, also 0.19.2 ohne ihre zweite Hälfte; die fehlende Hälfte ist mit 0.19.3 mitgereist)* | 5108 |
@@ -7931,20 +7931,20 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5232 von 5232 bestanden** (0.19.5) — **25 neue, keine
+**Stand: 5237 von 5237 bestanden** (0.19.5) — **30 neue, keine
 weggefallen.** *0.19.4 davor brachte siebenunddreißig.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **531** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **532** Rückbauten.
 
 | Gruppe (0.19.5) | vorher | nachher | wofür |
 |---|---|---|---|
-| **Der Ausschnitt wird gebacken — 0.19.5** *(neu)* | — | **23** | **Die Vorlagen sind hier nicht einfarbig, und das ist der Unterschied zur Gruppe darunter:** wo der Ausschnitt SITZT, lässt sich an einer einfarbigen Fläche gar nicht zeigen. Jede Vorlage trägt **vier verschieden gefärbte Viertel**; welches die Kachel zeigt, sagt ihr Mittelwert. Belegt wird, dass ein frisch hochgeladenes 16:9-Foto eine **quadratische 512er Kachel** trägt und bei den Vorgabewerten die Mitte zeigt, dass die **Fassung** an der Fotozeile **und** am Hauptbild der Übersicht steht, dass das Speichern des Ausschnitts **die gewählte Ecke** in die Kachel backt und **die Antwort die NEUE Fassung trägt**, dass die **gegenüberliegende Ecke** überhaupt entsteht *(ohne die Klammer in `schnittRechteck()` wirft `sharp` dort)*, dass **`medium` ungeschnitten** bleibt, dass ein Ausschnitt unter der Zielkante **nicht hochgerechnet** wird und eine große Vorlage sie **auch bei `zoom` 400 erreicht**, dass der Zuschnitt **in den GEDREHTEN Maßen** rechnet *(eine Marke, die gespeichert oben links lag, findet sich nach dem Drehen oben rechts)*, dass **beide Rechnungen** — Browser und Server — über **140 Wertepaare** übereinstimmen, dass die Fälligkeitsfrage ein **Festpunkt** ist, dass der Zuschnitt **im Browser weg** ist und die Adresse die Fassung **an einer Stelle** bekommt, und dass die **Videokachel aus `medium`** gebacken wird, während ihr `medium` unverändert stehen bleibt |
+| **Der Ausschnitt wird gebacken — 0.19.5** *(neu)* | — | **27** | **Die Vorlagen sind hier nicht einfarbig, und das ist der Unterschied zur Gruppe darunter:** wo der Ausschnitt SITZT, lässt sich an einer einfarbigen Fläche gar nicht zeigen. Jede Vorlage trägt **vier verschieden gefärbte Viertel**; welches die Kachel zeigt, sagt ihr Mittelwert. Belegt wird, dass ein frisch hochgeladenes 16:9-Foto eine **quadratische 512er Kachel** trägt und bei den Vorgabewerten die Mitte zeigt, dass die **Fassung** an der Fotozeile **und** am Hauptbild der Übersicht steht, dass das Speichern des Ausschnitts **die gewählte Ecke** in die Kachel backt und **die Antwort die NEUE Fassung trägt**, dass die **gegenüberliegende Ecke** überhaupt entsteht *(ohne die Klammer in `schnittRechteck()` wirft `sharp` dort)*, dass **`medium` ungeschnitten** bleibt, dass ein Ausschnitt unter der Zielkante **nicht hochgerechnet** wird und eine große Vorlage sie **auch bei `zoom` 400 erreicht**, dass der Zuschnitt **in den GEDREHTEN Maßen** rechnet *(eine Marke, die gespeichert oben links lag, findet sich nach dem Drehen oben rechts)*, dass **beide Rechnungen** — Browser und Server — über **140 Wertepaare** übereinstimmen, dass die Fälligkeitsfrage ein **Festpunkt** ist, dass der Zuschnitt **im Browser weg** ist und die Adresse die Fassung **an einer Stelle** bekommt, und dass die **Videokachel aus `medium`** gebacken wird, während ihr `medium` unverändert stehen bleibt |
 | **Die Ableitung folgt der Anzeige — 0.19.4** | 15 | **13** | **umgeschrieben, nicht gekürzt.** Sie prüft ihre Zusagen jetzt an `makeVariants()` selbst statt über den Server — *kein Rückzug, sondern die Folge der Runde:* der Anfrageweg liefert eine gebackene Kachel, und die ist immer quadratisch. **Die Zusagen gelten der UNGESCHNITTENEN Ableitung, und die muss dieselbe bleiben.** Zwei Zeilen sind dabei zusammengefallen, weil das Seitenverhältnis ohne Zuschnitt eine Rechnung ist und keine Messung |
 | **Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3** | 45 | **49** | **fünf neue** für die vierte Aufgabe und das Backen: die einzelne Zeile wird gebacken und **meldet ihr Ergebnis**, eine Zeile, die es nicht gibt, meldet `ok: false` **und wirft nicht**, die Videozeile ist **nicht mehr übersprungen**, sondern **aus ihrem `medium` gebacken**, ihr `medium` steht **byte-genau** unverändert da, und der Server startet jetzt für **vier** Aufgaben einen Thread |
 | **Fokuspunkt in der Oberflaeche** | 35 | **34** | **umgekehrt, nicht erweitert.** Bis 0.19.4 war zu belegen, DASS das Stilblatt `--zoom` liest; jetzt ist die Zusage die umgekehrte — **es darf nicht wieder da sein**, sonst wird zweimal geschnitten. Dazu: `ausschnitt()` gibt es **nicht mehr**, `zuschnittKiste()` rechnet an seiner Stelle, die Karte trägt **keine `object-position`** mehr, **dafür die Fassung in der Adresse** — und **ohne Fassung steht sie nicht da** statt `?v=undefined` |
-| **Die Bildablage in der Oberflaeche** | 39 | **39** | die Karte nennt jetzt das **Quadrat** der kleinen Ableitung und den Ausschnitt darin statt einer Kante |
+| **Die Bildablage in der Oberflaeche** | 39 | **40** | die Karte nennt jetzt das **Quadrat** der kleinen Ableitung und den Ausschnitt darin statt einer Kante — **und die Fortschrittszeile kennt beide Richtungen**: gebacken wird die Kachel in der Regel kleiner, und eine Zeile, die nur „mehr" sagen kann, zeigte in die falsche Richtung |
 | **Die Bestandskarte fragt einmal** | | **+1** | die **Fassung steht NEBEN der Spaltenliste und nicht in ihr** — `length(thumb)` lässt sich nicht indizieren, und `PHOTO_SPALTEN` ist zugleich die Spaltenliste des deckenden Index |
-| **zusammen** | **5207** | **5232** | **+25** |
+| **zusammen** | **5207** | **5237** | **+30** |
 
 > **DIE DREI MESSUNGEN, DIE DIESE RUNDE ENTSCHIEDEN HABEN, STEHEN NICHT ALS
 > PRÜFUNG DA** — dieselbe Lage wie in 0.19.4. *Was der Zuschnitt kostet (157 ms
@@ -8768,7 +8768,7 @@ eine Buchführung.*
 | **0.19.2** | **Was 0.19.1 nur zur Hälfte getroffen hat (4 netto: 5104 → 5108)** | **elf neue (472 → 481, Nummern 480 bis 490); sechs nachgezogen, ZWEI weggefallen (346 und 459 — die Tafel, die sie zurückbauten, gibt es nicht mehr); NICHT GEFAHREN** | **Stolpersteine 279 bis 281** |
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
-| **0.19.5** | **Der Ausschnitt wird gebacken (25 netto: 5207 → 5232)** | **siebzehn neue (514 → 531, Nummern 523 bis 539); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren** | **Stolpersteine 293 bis 297** |
+| **0.19.5** | **Der Ausschnitt wird gebacken (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
