@@ -565,7 +565,7 @@ Gegenprobe** — sie schließen die Lücke, die Rückbau 529 stumm aufgedeckt ha
 
 ## 9. Der Fingerprint
 
-**0.19.5 — Fingerprint `FINGERPRINT_FOLGT`**
+**0.19.5 — Fingerprint `f228a06d`**
 
 *Zuletzt gebildet, nach der letzten Änderung an einer ausgelieferten Datei — die
 Versionsnummer in `package.json` eingeschlossen, und `package-lock.json` trägt

@@ -376,7 +376,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.5** — Fingerprint **`FINGERPRINT_FOLGT`**, **5237
+**Gebaut ist 0.19.5** — Fingerprint **`f228a06d`**, **5237
 Prüfungen**, **532 Rückbauten in der Liste** (Abschnitt 8).
 *0.19.5 kehrt eine Entscheidung aus 0.19.4 um: der Bildausschnitt wird ab jetzt
 am Server in die Kachel **gebacken** statt im Browser aus ihr gezogen. Die
@@ -1183,7 +1183,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.5** | **`FINGERPRINT_FOLGT`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5237 |
+| **0.19.5** | **`f228a06d`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5237 |
 | 0.19.4 | `03e3b818` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**)* | 5207 |
 | 0.19.3 | `cdbe0925` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5170 |
 | 0.19.2 | `0cdc709d` *(nie einzeln im Feld gelaufen — auf dem Wirt lief `f4f8a479`, also 0.19.2 ohne ihre zweite Hälfte; die fehlende Hälfte ist mit 0.19.3 mitgereist)* | 5108 |
