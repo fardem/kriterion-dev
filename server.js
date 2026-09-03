@@ -4703,7 +4703,7 @@ app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bild
 // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
 // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
 // Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle.
-const AUSTAUSCH_FORMAT = 12;
+const AUSTAUSCH_FORMAT = 13;
 
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
 // hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
@@ -4879,7 +4879,7 @@ function exportUmschlag(items) {
   // Zusaetzliches Feld, damit die Kriterienreihenfolge den Export ueberlebt.
   // Bestehende Feldnamen bleiben unveraendert, aeltere Dateien ohne dieses
   // Feld lassen sich weiterhin einspielen.
-  const kritZeilen = db.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all();
+  const kritZeilen = db.prepare('SELECT name, gewicht, phase FROM rating_criteria ORDER BY sort_order, id').all();
   /* Die Gewichte kommen als EIGENES Feld daneben, criteria bleibt eine Liste
      von Namen: auf Objekte umgestellt liefe eine aeltere Instanz durch String()
      und bekaeme ein Kriterium namens "[object Object]". Ein zusaetzliches
@@ -4887,8 +4887,16 @@ function exportUmschlag(items) {
      NUR ABWEICHUNGEN -- ein Kriterium mit Gewicht 1 taucht gar nicht auf. */
   const criteriaGewichte = {};
   for (const c of kritZeilen) if (c.gewicht !== 1) criteriaGewichte[c.name] = c.gewicht;
+  /* UND DIE PHASE IM SELBEN MUSTER -- 0.21.0, ein drittes Feld neben den
+     beiden. NUR ABWEICHUNGEN: ein Kriterium des Kastens „nachher" taucht gar
+     nicht auf, so wie ein Gewicht von 1 nicht auftaucht.
+     EINE DATEI OHNE VORHER-KRITERIEN SIEHT DAMIT AUS WIE BISHER, plus einer
+     Formatnummer -- und eine aeltere Instanz uebergeht das zusaetzliche Feld
+     wortlos, genau wie seinerzeit criteriaGewichte. */
+  const criteriaPhase = {};
+  for (const c of kritZeilen) if (c.phase !== 'nachher') criteriaPhase[c.name] = c.phase;
   return { exported_at: new Date().toISOString(), title, version: AUSTAUSCH_FORMAT,
-           criteria: kritZeilen.map(c => c.name), criteriaGewichte, items };
+           criteria: kritZeilen.map(c => c.name), criteriaGewichte, criteriaPhase, items };
 }
 
 // Der Dateiname einer Exportdatei. Aus dem Titel der Instanz, damit zwei
@@ -5104,11 +5112,17 @@ function austauschPlan(schalter, zielWunsch) {
    hundert Bytes, und genau deshalb steht er hier und wird nicht geschaetzt. */
 function austauschUmschlagRahmen() {
   const title = getSetting('title_app', 'Kriterion');
-  const kritZeilen = db.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all();
+  const kritZeilen = db.prepare('SELECT name, gewicht, phase FROM rating_criteria ORDER BY sort_order, id').all();
   return JSON.stringify({ exported_at: new Date().toISOString(), title, version: AUSTAUSCH_FORMAT,
                           criteria: kritZeilen.map(c => c.name),
                           criteriaGewichte: Object.fromEntries(
                             kritZeilen.filter(c => c.gewicht !== 1).map(c => [c.name, c.gewicht])),
+                          // Der Rahmen misst, was der Umschlag KOSTET -- also
+                          // gehoert das dritte Feld hier genauso hinein wie in
+                          // die Datei. Ohne es faellt die Messung je Teil um
+                          // die Vorher-Kriterien zu niedrig aus.
+                          criteriaPhase: Object.fromEntries(
+                            kritZeilen.filter(c => c.phase !== 'nachher').map(c => [c.name, c.phase])),
                           items: [] }).length;
 }
 
@@ -5406,6 +5420,59 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
     }
   }
 
+  /* DIE KAESTEN AUS DER DATEI, im selben Muster wie die Gewichte darueber --
+     0.21.0. Ein Kriterium OHNE Eintrag in criteriaPhase ist 'nachher'; damit
+     ist jede Datei aus einem aelteren Format ohne Sonderweg lesbar, und
+     nirgends steht eine Fallunterscheidung nach Formatnummer.
+     EIN UNSINNIGER WERT FAELLT AUF 'nachher' und bricht nichts ab -- dieselbe
+     Haltung wie beim ungueltigen Gewicht. Er sagt nichts, was diese
+     Installation nicht schon annimmt. */
+  const dateiPhasen = new Map();
+  const rohPhasen = payload.criteriaPhase;
+  if (rohPhasen && typeof rohPhasen === 'object' && !Array.isArray(rohPhasen)) {
+    for (const [name, roh] of Object.entries(rohPhasen)) {
+      const sauber = String(name || '').trim();
+      if (!sauber || !PHASEN.includes(roh)) continue;
+      dateiPhasen.set(sauber.toLowerCase(), roh);
+    }
+  }
+  const phaseAus = (name) =>
+    dateiPhasen.get(String(name).trim().toLowerCase()) || PHASE_VORGABE;
+
+  /* DER KONFLIKT UEBER DIE KAESTEN HINWEG, UND ER WIRD VOR DEM ERSTEN
+     SCHREIBEN ABGEWIESEN -- 0.21.0.
+     Traegt die Datei ein Kriterium, das es hier unter DEMSELBEN NAMEN im
+     ANDEREN Kasten gibt, ist das eine Absage mit Meldung, die das Kriterium
+     nennt. NICHT still in den vorhandenen Kasten einspielen: die Sterne
+     landeten dann im falschen Durchschnitt, und die Datei sagte etwas anderes
+     als die Installation.
+     VOR DER TRANSAKTION UND NICHT IN IHR: ein Rollback raeumte die Zeilen zwar
+     weg, aber die Absage soll GAR KEINE Schreibung ausloesen -- auch keine,
+     die gleich wieder zurueckgenommen wird. Beim ersetzenden Import waeren die
+     drei DELETEs eine Zeile weiter unten sonst schon gelaufen.
+     GEPRUEFT WIRD GEGEN DEN BESTAND, DER NACH DEM MODUS UEBRIG BLEIBT: beim
+     ERSETZENDEN Import faellt rating_criteria nicht (die drei DELETEs treffen
+     items, product_categories und tags), also gilt derselbe Vergleich fuer
+     beide Modi.
+     GESUCHT WIRD UEBER COLLATE NOCASE -- so, wie critByName() gleich sucht.
+     Eine Absage nach anderer Regel als die Zuordnung waere keine. */
+  const qPhaseVon = db.prepare('SELECT name, phase FROM rating_criteria WHERE name = ? COLLATE NOCASE');
+  const konflikte = [];
+  for (const name of Array.isArray(payload.criteria) ? payload.criteria : []) {
+    const clean = String(name || '').trim();
+    if (!clean) continue;
+    const da = qPhaseVon.get(clean);
+    if (da && da.phase !== phaseAus(clean)) konflikte.push(da.name);
+  }
+  if (konflikte.length) {
+    const e = new Error(
+      `${konflikte.length === 1 ? 'Dieses Kriterium steht' : 'Diese Kriterien stehen'} in der Datei ` +
+      `in einem anderen Kasten als hier: ${konflikte.join(', ')}. ` +
+      `Ein Name gehört zu genau einem Kasten. Es wurde nichts eingespielt.`);
+    e.absage = true;
+    throw e;
+  }
+
   // Ein einziger Vorgang: bricht etwas ab, bleibt der Bestand unveraendert.
   db.transaction(() => {
     if (modus === 'replace') {
@@ -5438,8 +5505,12 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
       // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
       const g = dateiGewichte.get(String(name).trim().toLowerCase());
-      return db.prepare('INSERT INTO rating_criteria (name, sort_order, gewicht) VALUES (?, ?, ?)')
-        .run(name, pos, g === undefined ? 1.0 : g).lastInsertRowid;
+      /* UND SEINEN KASTEN AUS DER DATEI, sonst 'nachher'. Ein VORHANDENES
+         behaelt den seinen -- so wie es sein Gewicht behaelt; anders als beim
+         Gewicht kann es hier aber gar nicht abweichen, denn die Absage
+         darueber hat den Fall schon abgefangen. */
+      return db.prepare('INSERT INTO rating_criteria (name, sort_order, gewicht, phase) VALUES (?, ?, ?, ?)')
+        .run(name, pos, g === undefined ? 1.0 : g, phaseAus(name)).lastInsertRowid;
     };
 
     // Kriterien vorab in der Reihenfolge der Datei anlegen. Vorhandene
@@ -5655,7 +5726,14 @@ app.post('/api/import', nurEigentuemer, zweiteBestaetigungNoetig('import'),
     const { neueIds, ...antwort } = await spieleEin(payload, req.benutzer.id, mode);
     auth.protokolliere('import', { wer: req.benutzer.id, merkmal: mode });
     res.json(antwort);
-  } catch (e) { next(e); }
+  } catch (e) {
+    /* EINE ABSAGE AUS spieleEin() IST KEIN FEHLER DER INSTANZ, sondern eine
+       Auskunft ueber die Datei -- sie geht als 400 mit Meldung hinaus und
+       nicht als 500 durch das Auffangnetz. Sie faellt VOR der ersten
+       Schreibung; der Bestand ist unveraendert. */
+    if (e && e.absage) return res.status(400).json({ error: e.message });
+    next(e);
+  }
 });
 
 
@@ -5801,7 +5879,14 @@ app.post('/api/papierkorb/:id/wiederherstellen', nurEigentuemer, async (req, res
     db.prepare('DELETE FROM papierkorb WHERE id = ?').run(z.id);
     reclaim();
     res.json({ ...ergebnis, itemId: ergebnis.neueIds[0] ?? null, titel: z.titel });
-  } catch (e) { next(e); }
+  } catch (e) {
+    /* DERSELBE WEG WIE AM IMPORT. Er kann hier nur greifen, wenn ein Kriterium
+       nach dem Loeschen des Eintrags geloescht und im anderen Kasten neu
+       angelegt wurde -- selten, aber genau dann soll die Zeile liegen bleiben
+       und der Grund dastehen, statt eines 500. */
+    if (e && e.absage) return res.status(400).json({ error: e.message });
+    next(e);
+  }
 });
 
 // Endgueltig entfernen. Dieselbe Rechtezeile wie das Wiederherstellen: wer
