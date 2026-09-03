@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 54 · Stand 3. September 2026 · gebaut: Version 0.19.6**
+**Kompakte Übergabe · Revision 55 · Stand 3. September 2026 · gebaut: Version 0.20.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,26 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.20.0 in einem Satz: alte Sicherungen lassen sich entfernen, ohne dass
+jemand eine Shell öffnet.** *MINOR — die Installation kann danach etwas, was sie
+vorher nicht konnte.* **Die Regel hat ZWEI Bedingungen, und beide müssen
+zutreffen:** *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl
+ist der Boden, das Alter die Schere. **Jede einzelne Bedingung ist ausgerechnet
+in der Lage falsch, in der sie gebraucht wird** (Stolperstein 299): nur das
+Alter verliert bei einer lange nicht gesicherten Installation *alle* Kopien auf
+einen Schlag, nur die Zahl wirft die Kopie vom Vormonat weg, wenn jemand an
+einem Nachmittag viermal auf den Knopf drückt. **Dazu eine Vorschau, bevor
+etwas geschieht** — sie ist der Ersatz für den Papierkorb, den es für eine
+600-MB-Datei nicht gibt —, **ein Schalter, der auf AUS steht** (eine gelöschte
+Sicherung holt nichts zurück), **ein Knopf hinter der zweiten Bestätigung** und
+**eine zwanzigste Karte** im Systembereich. **Aufgeräumt wird ausschließlich im
+Anschluss an eine Sicherung, die GELUNGEN ist** — sonst räumt die Installation
+genau in dem Augenblick auf, in dem sie keine neue Kopie zustande bringt.
+**Die Löschroute nimmt keine Dateinamen entgegen** (Stolperstein 300). *Keine
+Datenbankstufe: zwei Werte und ein Schalter in `settings`, sonst nichts an der
+Datenbank. Und kein Bestandslauf — beim ersten Start nach dem Einspielen
+geschieht nichts von selbst.*
 
 **0.19.6 in einem Satz: die Ansicht kann fort sein, und die Instanz weiß es
 jetzt.** *PATCH, aus dem Feld gemeldet: wer einen Bildausschnitt speicherte und
@@ -385,8 +405,32 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.6** — Fingerprint **`109cd457`**, **5246
-Prüfungen**, **535 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.20.0** — Fingerprint **`FINGERPRINT_0_20_0`**, **5374
+Prüfungen**, **558 Rückbauten in der Liste** (Abschnitt 8).
+*0.20.0 baut eine Hälfte fertig, die von Anfang an fehlte: Kriterion schrieb
+Sicherungen und entfernte keine. Die Regel hat zwei Bedingungen — nicht unter
+den N jüngsten UND älter als X Tage —, die Vorschau nennt vorher namentlich,
+was fallen würde, und der Schalter steht auf AUS. Aufgeräumt wird
+ausschließlich im Anschluss an eine Sicherung, die gelungen ist.*
+**MINOR — KEINE DATENBANKSTUFE, KEIN BESTANDSLAUF.**
+
+> **GESICHERT WERDEN MUSS VOR DEM EINSPIELEN NICHTS.** *Kein
+> Migrationsblock, keine Schemaänderung, kein neuer Index, das Austauschformat
+> bleibt 12; die neun ausgelieferten Module bleiben neun, und keine Datei kommt
+> dazu.* **Zwei Werte und ein Schalter in `settings`, sonst nichts an der
+> Datenbank** — und die drei entstehen erst, wenn jemand sie setzt: was nicht
+> dasteht, gilt als Vorgabe (3, 30) und der Schalter als **aus**.
+> **BEIM ERSTEN START GESCHIEHT NICHTS VON SELBST.** Es gibt keinen
+> Bestandslauf und keine Zeitsteuerung; aufgeräumt wird im Anschluss an eine
+> Sicherung oder auf Knopfdruck — sonst nie.
+
+> **DER BETREIBER MUSS EINE SACHE WISSEN: der Schalter steht auf AUS, und das
+> ist Absicht.** Wer will, dass alte Kopien im Anschluss an jede Sicherung
+> fallen, legt ihn in der Karte **„Alte Sicherungen"** um. *Bis dahin ändert
+> sich am Sicherungsordner nichts.*
+
+**Davor: 0.19.6** — Fingerprint **`109cd457`**, **5246
+Prüfungen**, 535 Rückbauten.
 *0.19.6 schließt ein Zeitfenster, das 0.19.5 aufgemacht hat: die Route wartet
 auf die neue Kachel, und wer in dieser Zeit die Ansicht wechselte, ließ die
 Instanz in eine Seite zeichnen, die es nicht mehr gab. Betrachter und
@@ -1200,7 +1244,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.6** | **`109cd457`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5246 |
+| **0.20.0** | **`FINGERPRINT_0_20_0`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5374 |
+| 0.19.6 | `109cd457` *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5246 |
 | 0.19.5 | `f228a06d` *(am 3. September 2026 im Feld bestätigt — der Befund zu dieser Runde ist 0.19.6)* | 5237 |
 | 0.19.4 | `03e3b818` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**)* | 5207 |
 | 0.19.3 | `cdbe0925` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5170 |
@@ -1784,8 +1829,8 @@ anklickbarer Verweis — auf einem Telefon öffnet der die App unmittelbar.
 
 ### Die zweite Bestätigung — seit 0.8.90
 
-**Was die Instanz als Ganzes trifft, wird ein zweites Mal bestätigt.** Sieben
-Wege über sechs Routen verlangen das Passwort des Angemeldeten noch einmal:
+**Was die Instanz als Ganzes trifft, wird ein zweites Mal bestätigt.** Neun
+Wege über acht Routen verlangen das Passwort des Angemeldeten noch einmal:
 
 | Weg | Route |
 |---|---|
@@ -1796,15 +1841,25 @@ Wege über sechs Routen verlangen das Passwort des Angemeldeten noch einmal:
 | Link erzeugen | `POST /api/users/:id/token` |
 | Zugang entfernen | `DELETE /api/users/:id` |
 | Mailzugang setzen | `PUT /api/mail` *(seit 0.9.0)* |
+| Bildablage umstellen | `POST /api/bilder/umstellen` *(seit 0.19.0)* |
+| Alte Sicherungen entfernen | `POST /api/sicherung/aufraeumen` *(seit 0.20.0)* |
 
-*`BESTAETIGUNG_ZWECKE` hat damit **sieben** Einträge.* **Der Schlüsselwechsel
+> **DIE BEIDEN JÜNGSTEN SIND DIE EINZIGEN, DIE BYTES ENTFERNEN statt Rechte
+> oder Zugänge zu verschieben** — und für beide gibt es keinen Papierkorb und
+> keinen Rückweg. **`sicherung` geht dabei eine Stufe weiter als `bilder`:** er
+> nimmt **ganze Dateien vom Dateisystem des Wirts**. *Der Zweck deckt beide Wege
+> der einen Route — die Regel anwenden und die veralteten Kopien wegräumen;
+> beide entfernen Dateien, und der Unterschied ist, WELCHE.*
+
+*`BESTAETIGUNG_ZWECKE` hat damit **neun** Einträge.* **Der Schlüsselwechsel
 kommt ausdrücklich nicht dazu** — er läuft seit 0.8.91 auf dem Wirt und kennt
 die zweite Bestätigung nicht; *Zugriff auf den Wirt ist die Berechtigung.* **Und
 die Testmail ebenso wenig:** sie verschickt an die **eigene** Adresse und
 übergibt nichts. *Die Zahl stand in Revision 19 und im Änderungsprotokoll 0.8.90
 falsch bei „sieben über sechs" und wurde mit 0.8.91 auf sechs über fünf
-berichtigt; mit `PUT /api/mail` aus 0.9.0 sind es wieder sieben über sechs —
-diesmal nachgezählt (Stolperstein 137).*
+berichtigt; mit `PUT /api/mail` aus 0.9.0 sind es wieder sieben über sechs, mit
+0.19.0 acht über sieben und mit 0.20.0 neun über acht — jedes Mal nachgezählt
+und im Prüfstand ausdrücklich geprüft (Stolperstein 137).*
 
 | | |
 |---|---|
@@ -1845,11 +1900,25 @@ Bewertung, keine Note.
 | Weg hinaus | **nur die Frist** — es gibt keine Löschroute |
 | Wie gefunden wird | **sechs Ansichten** an der Karte, seit 0.13.0 |
 
-**Zwanzig Vorgänge** (`VORGAENGE`): Anmeldung gelungen/gescheitert, Bestätigung
-gescheitert, Zugang angelegt, Rolle vergeben, Zugang gesperrt/freigegeben,
-fremdes Passwort gesetzt, Zugang entfernt, eigener Zugang geändert, Link
-erzeugt, Link eingelöst, Anfrage freigeschaltet, Anfrage abgelehnt, zweiter
-Faktor an/aus/wieder, Export, Import, Sicherung, Schlüssel gewechselt.
+**Einundzwanzig Vorgänge** (`VORGAENGE`): Anmeldung gelungen/gescheitert,
+Bestätigung gescheitert, Zugang angelegt, Rolle vergeben, Zugang
+gesperrt/freigegeben, fremdes Passwort gesetzt, Zugang entfernt, eigener Zugang
+geändert, Link erzeugt, Link eingelöst, Anfrage freigeschaltet, Anfrage
+abgelehnt, zweiter Faktor an/aus/wieder, Export, Import, Sicherung, **alte
+Sicherung entfernt** *(0.20.0)*, Schlüssel gewechselt.
+
+> **`sicherung.weg` STEHT NEBEN `sicherung` UND NICHT AN SEINER STELLE:** das
+> eine legt eine Kopie an, das andere wirft welche weg, und die beiden Vorgänge
+> sind gegenläufig. **Er schreibt EINE ZEILE JE ENTFERNTER KOPIE** — vier
+> entfernte Kopien sind vier Zeilen. *Das ist keine Notlösung: die ZAHL gehört
+> ins Protokoll, eine Spalte dafür gibt es aber nicht (`wer` und `ziel` sind
+> Benutzernummern mit Fremdschlüssel, `merkmal` ist eine geschlossene Liste ohne
+> Ziffern, und Freitext gibt es hier ausdrücklich nicht). Damit ist die Zahl die
+> Zeilenzahl — dieselbe Aussage in der Form, die die Tabelle trägt, und die
+> einzige, die sich hinterher wirklich zählen lässt.* **Kein Dateiname, kein
+> Pfad, keine Bytes:** das Protokoll hält Vorgänge fest, keine Orte auf dem
+> Wirt. Die freigegebenen Bytes stehen in der Antwort und im Containerprotokoll,
+> und **`MERKMALE` bleibt bei vierzehn.**
 **Vierzehn Merkmale** (`MERKMALE`), alle aus einer geschlossenen Liste im
 Quelltext. *`teil` kam mit 0.13.0 dazu, als Nachlese zu einem Befund: 0.12.4
 schrieb `teil 1/5` in diese Spalte, das ist kein Wert aus der Liste, und
@@ -2039,6 +2108,8 @@ oder Sprache — und das entscheidet, wem sie gehört.**
 | `zeitleiste` — ein/aus | `schluesselGewechseltAm` — Marke des Wechsels *(0.8.91)* |
 | `suchNamen` — Zahl der Anbieternamen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
 | | `bilderUmwandeln` *(0.19.0 — **beim Eigentümer**, nicht beim Admin)* |
+| | `sicherungOrt` — das Unterverzeichnis der Sicherung *(0.8.70)* |
+| | `sicherungAufraeumen`, `sicherungBehalten`, `sicherungTage` *(0.20.0 — **beim Eigentümer**, nicht beim Admin)* |
 
 > **NEUN WAREN ES BIS 0.16.0: `zuletztGesehen`, der Bezugspunkt für „Neu
 > seit …", ist mit 0.17.0 weggefallen.** Die Pille ist gestrichen, und ein
@@ -2055,15 +2126,26 @@ oder Sprache — und das entscheidet, wem sie gehört.**
 > persönlichen Schlüssel aus der globalen Tabelle heraushält. *Heute ruft ihn
 > niemand; wer ihn je wieder einbaut, muss ihn in die Liste zurücknehmen.*
 
-**`mailzugang` und `bilderUmwandeln` sind die beiden Zeilen in `settings`, die
-NICHT dem Admin gehören** — und damit die Ausnahmen von „global heißt
-Adminsache". *`mailzugang` geht über eine eigene Route (`PUT /api/mail`),
-`bilderUmwandeln` über `PUT /api/settings` wie jede andere Einstellung.*
+**`mailzugang`, `sicherungOrt`, `bilderUmwandeln` und die drei Schlüssel der
+Aufräumregel sind die Zeilen in `settings`, die NICHT dem Admin gehören** — und
+damit die Ausnahmen von „global heißt Adminsache". *`mailzugang` und
+`sicherungOrt` gehen über eigene Routen (`PUT /api/mail`,
+`PUT /api/sicherung/ort`), `bilderUmwandeln` und die drei aus 0.20.0 über
+`PUT /api/settings` wie jede andere Einstellung.*
+
+> **DIE DREI AUS 0.20.0 STEHEN IN DER DATENBANK UND NICHT IN DER `.env`** —
+> Abschnitt 11: *eine Einstellung, die dem Betreiber gehört, gehört in die
+> Datenbank.* **Und sie entstehen erst, wenn jemand sie setzt:** abgeleitet beim
+> Lesen, ohne Migrationscode. Was nicht dasteht, gilt als Vorgabe — **3**, **30**
+> und der Schalter als **aus**. *Ein Wert außerhalb der Grenzen fällt auch beim
+> LESEN auf die Vorgabe zurück und weitet die Regel nicht: die Klemme steht an
+> der Stelle, an der der Fehler wehtut.*
 
 > **DARAUS FOLGT EIN DRITTER RANG IN `PUT /api/settings`, seit 0.19.0.** Bis
 > 0.18.1 kannte die Route zwei Hälften: was in `PERSOENLICHE_SCHLUESSEL` steht,
 > ist persönlich, **alles Übrige ist Adminsache** — abgeleitet, nicht
-> aufgezählt. **`EIGENTUEMER_SCHLUESSEL` steht jetzt als zweite Liste daneben**,
+> aufgezählt. **`EIGENTUEMER_SCHLUESSEL` steht jetzt als zweite Liste daneben**
+> *(seit 0.20.0 mit **vier** Schlüsseln statt einem)*,
 > und die Ableitung bleibt: was in **keiner** der beiden Listen steht, ist
 > weiterhin Adminsache. *Als Liste und nicht als `if`, aus demselben Grund wie
 > oben: der zweite Schlüssel dieser Art steht dann daneben und nicht als zweite
@@ -2152,7 +2234,11 @@ Falle des ganzen Projekts.** Jede Sicherung von vorher bleibt mit dem **alten**
 Schlüssel verschlüsselt — sie ist nicht kaputt, sie braucht nur einen anderen
 Schlüssel. Dagegen stehen drei Dinge zusammen: die **Marke** in `settings`, die
 **rote Markierung jeder älteren Kopie** in der Karte „Sicherung" und der
-**auskommentierte alte Wert** in der `.env`. *Der JSON-Export bleibt davon
+**auskommentierte alte Wert** in der `.env`. **Seit 0.20.0 kommt ein viertes
+dazu: die Aufräumregel fasst diese Kopien gar nicht an** — sie sind nicht
+entbehrlich, sondern etwas anderes, und ihr Boden zählt sie nicht mit.
+*Wegräumen lassen sie sich in der Karte „Alte Sicherungen", aber ausdrücklich
+und getrennt: eine automatische Regel entfernt Überflüssiges, nicht Fremdes.* *Der JSON-Export bleibt davon
 unberührt: er braucht keinen Schlüssel und ist damit der einzige Rückweg ohne
 Schlüsselverwaltung.*
 
@@ -2699,7 +2785,7 @@ wirklich von selbst, drei mussten gebaut werden — und an der neuen Route
 andere, was der Browser nicht abspielt. **Die ehrliche Antwort darauf ist der
 Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 
-### Systembereich — neunzehn Karten in fünf Abschnitten, und sie hängen an der Rolle
+### Systembereich — zwanzig Karten in fünf Abschnitten, und sie hängen an der Rolle
 
 > **SEIT 0.16.0 IN FÜNF ABSCHNITTEN MIT EIGENER ADRESSE.** Die Zuordnung folgt
 > der **Rechteleiter**: was jedem gehört, steht vorn, was nur der Eigentümer
@@ -2710,7 +2796,7 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 > | **Persönlich** | `#/system/persoenlich` | Zugang, Meine Sitzungen, Darstellung |
 > | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
 > | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
-> | **Datenbank** | `#/system/datenbank` | Kennzahlen, **Bildablage**, Sicherung, Export und Import |
+> | **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildablage, Sicherung, **Alte Sicherungen**, Export und Import |
 > | **Installation** | `#/system/installation` | Titel |
 >
 > **SEIT 0.19.1 HEISST DER FÜNFTE ABSCHNITT „INSTALLATION".** Er hieß bis
@@ -2780,12 +2866,32 @@ Eigentümer die beiden Knöpfe sieht.
 
 **Dem Eigentümer zusätzlich:** Export mit/ohne Fotos, mit eigenem Häkchen für
 Dateien und eines für **Videos**, Import (ersetzen oder zusammenführen), die
-Karte **„Sicherung"**, das **„Sicherheitsprotokoll"**, die Karte
+Karte **„Sicherung"**, **seit 0.20.0 die Karte „Alte Sicherungen"** daneben,
+das **„Sicherheitsprotokoll"**, die Karte
 **„Mailversand"** — und **seit 0.19.1 die Bedienung in der eigenen Karte
 „Bildablage"**: der Schalter „PNG-Originale beim Hereinkommen umwandeln" und der
 Knopf „Alle PNG nach WebP umstellen". *Die Zahlen darüber sieht jeder Admin;
 bedienen darf sie nur der Eigentümer — ein Knopf, der zuverlässig 403 erzeugt,
 sieht aus wie ein Fehler.*
+
+> **ZWANZIG KARTEN SEIT 0.20.0, und „Alte Sicherungen" ist die zwanzigste.**
+> Sie steht im Abschnitt „Datenbank" **unmittelbar hinter „Sicherung"** — die
+> Reihenfolge ist geprüft und nicht zufällig — und trägt `EIGENTUEMER` wie ihre
+> Nachbarin. **Geprüft wurde zuerst, ob es in die vorhandene Karte passt; es
+> passt nicht.** *Nachgesehen, nicht vermutet:* die Karte „Sicherung" trägt bis
+> zu **drei** Zustandskästen, **vier** Kennzahlzeilen, das Feld für den Zielort
+> mit eigenem Knopf und den Sicherungsknopf; ihre Zeichenfunktion ist mit rund
+> 140 Zeilen die längste des Abschnitts. **Dazu kämen ein Schalter, zwei
+> Zahlenfelder, eine Dateiliste mit Datum und Größe und zwei weitere Knöpfe.**
+> **Und der zweite Grund wiegt schwerer als der erste: EIN LÖSCHKNOPF GEHÖRT
+> NICHT UNTER DEN SICHERUNGSKNOPF.** Die beiden Vorgänge sind gegenläufig — der
+> eine legt eine Kopie an, der andere wirft welche weg — und stünden
+> untereinander in derselben Kachel. *Die Verwechslung wäre nicht
+> wiedergutzumachen.*
+> **DIE KARTE „SICHERUNG" BLEIBT DABEI, WIE SIE IST:** kein Verweis, kein
+> zweiter Schalter, keine zweite Zahl. Sie sagt weiterhin, wie viele Dateien am
+> Ort liegen — *diese Zeile ist die Brücke zwischen beiden Karten und stand
+> schon da.*
 
 > **NEUNZEHN KARTEN SEIT 0.19.1, und die Bildablage ist die neunzehnte.**
 > 0.19.0 hatte sie in „Kennzahlen" gesetzt und ausdrücklich geschrieben, es
@@ -2896,6 +3002,23 @@ Unterverzeichnis darunter aus der Oberfläche, geprüft am **aufgelösten** Pfad
 Projektverzeichnis liegt; die Karte macht daraus einen roten oder grünen Kasten.
 **Benannt, nicht verboten** — der Riegel gegen den Ort **im Datenverzeichnis**
 bleibt eine Absage, der Ort im Arbeitsverzeichnis wird erlaubt und angezeigt.
+
+**Alte Sicherungen wegräumen** (seit 0.20.0, eigene Karte „Alte Sicherungen"):
+**bis dahin schrieb Kriterion Kopien und entfernte keine** — wegräumen ging nur
+mit einer Shell auf dem Wirt. **Die Regel hat zwei Bedingungen, und beide müssen
+zutreffen:** *nicht unter den N jüngsten **und** älter als X Tage* (Vorgaben
+**3** und **30**, Grenzen 1–20 und 7–365, beide am Server). **Sie steht als
+reine Funktion an genau einer Stelle**; Vorschau und Löschen rufen dieselbe.
+
+| | |
+|---|---|
+| Wann sie greift | **nur im Anschluss an eine Sicherung, die GELUNGEN ist** — oder auf Knopfdruck. Keine Zeitsteuerung |
+| Vorgabe des Schalters | **AUS.** *Eine gelöschte Sicherung holt nichts zurück* |
+| Was angefasst wird | ausschließlich, was auf `SICHERUNG_MUSTER` passt, nur im geprüften Ordner, **nie in Unterverzeichnissen**, und nur, was `lstatSync` als reguläre Datei meldet — **ein Symlink ist keine Sicherung** |
+| Kopien von vor dem Wechsel | **fasst die Regel gar nicht an**, und der Boden zählt sie nicht mit. *Wegräumen lassen sie sich über denselben Knopf, aber ausdrücklich und getrennt* |
+| Vorschau | nennt vorher namentlich, was fallen würde, mit Datum, Alter und Größe; **trifft sie nichts, nennt sie den Grund** |
+| Route | `POST /api/sicherung/aufraeumen`, `nurEigentuemer`, zweitbestätigt — **sie nimmt keine Dateinamen entgegen** |
+| Protokoll | **eine Zeile `sicherung.weg` je entfernter Kopie**, ohne Namen und ohne Pfad |
 
 **Einen einzelnen Eintrag als Datei** (seit 0.8.70): `GET /api/items/:id/export`
 liefert dieselbe Form wie der volle Export, nur mit einem Eintrag —
@@ -3629,6 +3752,45 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
   0.9.0 braucht der Versand sie** — beim Verschicken gibt es keinen Browser zu
   fragen. *Aus dem `Host`-Kopf wird in keinem der beiden Fälle etwas
   abgeleitet.*
+
+#### Eine Löschregel hat zwei Bedingungen, und der Schalter davor steht auf AUS (0.20.0)
+
+- **Gelöscht wird eine Sicherung nur, wenn sie BEIDES ist: nicht unter den N
+  jüngsten UND älter als X Tage.** *Die Zahl ist der Boden, das Alter ist die
+  Schere.* **Jede einzelne Bedingung ist ausgerechnet in der Lage falsch, in der
+  sie gebraucht wird** (Stolperstein 299) — deshalb ist die Entscheidung nicht,
+  welche der beiden es sein soll, sondern dass es beide sind. *Wer je eine
+  zweite Aufbewahrungsregel baut — für Exportdateien, für Protokollzeilen, für
+  was auch immer —, fängt bei diesem Satz an.*
+- **Die Regel steht an genau EINER Stelle, und die ist eine reine Funktion.**
+  `regelTreffer()` bekommt die Dateiliste, die beiden Werte, `jetzt` und die
+  Marke des Schlüsselwechsels; sie berührt weder Uhr noch Dateisystem.
+  **Vorschau und Löschen rufen dieselbe** — zwei Fassungen wären zwei Wahrheiten
+  darüber, was gleich passiert (Stolperstein 47), und die Vorschau verlöre genau
+  das, wofür es sie gibt. *Und weil sie rein ist, wird sie an einer **Tafel**
+  geprüft und nicht an einem Ordner: eine Prüfung, die auf echte dreißig Tage
+  wartet, gibt es nicht.*
+- **Was nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet.** Der
+  Schalter der Aufräumregel steht auf **AUS** — und das ist die ausdrückliche
+  Abweichung von `bilderUmwandeln`, dessen Vorgabe **an** ist: *eine umgewandelte
+  PNG-Datei holt der Knopf in der Gegenrichtung zurück, eine gelöschte Sicherung
+  holt nichts zurück.* **Die Vorgabe folgt der Umkehrbarkeit, nicht der
+  Bequemlichkeit.**
+- **Wo es keinen Papierkorb geben kann, ist die Vorschau der Ersatz.** Für eine
+  600-MB-Datei wäre ein Papierkorb sinnlos — der Platz ist ja der Grund.
+  **Dann nennt die Oberfläche VORHER namentlich, was fallen würde**, mit Datum
+  und Größe; *ohne Vorschau ist es eine Wette.* Und **trifft die Regel nichts,
+  steht der Grund daneben** — eine leere Liste ohne Erklärung sieht aus wie ein
+  Fehler.
+- **Aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die GELUNGEN
+  ist.** *Sonst räumt die Installation genau in dem Augenblick auf, in dem sie
+  keine neue Kopie zustande bringt.* **Gebaut ist das als Bauform und nicht als
+  Sorgfalt:** der Aufruf steht am Ende der Route, jeder Fehlerausgang liegt
+  davor — *und das gehört im Quelltext benannt, sonst zieht ihn der Nächste nach
+  vorn.* **Er hängt dabei in seinem eigenen `try`**: was er meldet, ist eine
+  Angabe NEBEN der Sicherung, kein Ersatz für sie (Stolperstein 298).
+- **Eine Route, die Dateien entfernt, nimmt keine Dateinamen entgegen**
+  (Stolperstein 300). Die Auflage für alles Weitere steht in Abschnitt 11.
 
 ### 5.4 Schema, Daten und Austauschformat
 
@@ -7951,6 +8113,31 @@ Version, in der sie entstanden sind.*
     braucht ihre Gegenprobe an der STEHENDEN Ansicht**, sonst ist sie kein
     Wächter, sondern ein Ausschalter (Rückbau 543).
 
+299. **EINE LÖSCHREGEL BRAUCHT ZWEI BEDINGUNGEN; JEDE EINZELNE IST IN GENAU DER
+    LAGE FALSCH, IN DER SIE GEBRAUCHT WIRD.** *Nur „älter als X Tage":* eine
+    Installation, an der ein halbes Jahr nicht gesichert wurde, verliert **alle**
+    Kopien auf einen Schlag — genau dann, wenn sie die einzigen sind. *Nur „die
+    letzten N":* wer an einem Nachmittag viermal auf den Knopf drückt, wirft die
+    Kopie vom Vormonat weg, obwohl nichts alt ist. **Beide zusammen decken sich
+    gegenseitig ab: die Zahl ist der Boden, das Alter ist die Schere** — eine
+    Kopie fällt nur, wenn sie entbehrlich **und** alt ist. *Der Fehler ist nicht,
+    die falsche Bedingung zu wählen; der Fehler ist, sich für EINE zu
+    entscheiden. Beide Rückbauten dazu (544 und 545) nehmen je eine weg, und
+    beide sind rot.*
+
+300. **EINE ROUTE, DER MAN SAGEN KANN, WAS SIE LÖSCHEN SOLL, IST AUCH MIT PRÜFUNG
+    DIE GEFÄHRLICHSTE DER ANWENDUNG.** *Nicht, weil die Prüfung heute fehlte —
+    sondern weil sie einen Handgriff davon entfernt steht, vergessen zu werden.*
+    **Der Ausweg ist baulich und nicht sorgfältig:** die Route bekommt die **Art**
+    des Vorgangs, und welche Dateien fallen, rechnet der Server im selben
+    Augenblick selbst aus. **Der Preis gehört benannt und angenommen:** zwischen
+    Vorschau und Knopfdruck kann sich der Ordner geändert haben, und dann fällt
+    etwas anderes als angezeigt — *deshalb nennt die Antwort, was WIRKLICH
+    gelöscht wurde, und die Karte zeichnet sich daraus neu.* **Und die zweite
+    Prüfung desselben Namens unmittelbar vor dem `unlink` ist keine
+    Verdopplung**, sondern die Klemme an der Stelle, an der der Fehler wehtut:
+    wer die Funktion je von woanders her ruft, kommt an ihr nicht vorbei.
+
 ---
 
 ## 7. Prüfstand
@@ -7964,10 +8151,22 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5246 von 5246 bestanden** (0.19.6) — **neun neue, keine
-weggefallen.** *0.19.5 davor brachte dreißig.*
+**Stand: 5374 von 5374 bestanden** (0.20.0) — **128 neue, keine
+weggefallen.** *0.19.6 davor brachte neun.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **535** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **558** Rückbauten.
+
+| Gruppe (0.20.0) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Die Aufräumregel an der Tafel** *(neu)* | — | **16** | **Die ECHTE Regel, an einer Tafel und nicht an einem Ordner.** `regelTreffer()` wird aus `server.js` **herausgeschnitten und gelaufen** — von Klammer zu Klammer mit `indexOf`, dieselbe Bauform wie bei `F_ROUTEN`; dass der Schnitt gegriffen hat und die Funktion **genau einmal** dasteht, wird zuerst geprüft (Stolperstein 81). Sie bekommt `jetzt` und die Marke des Wechsels als **Argument** und berührt weder Uhr noch Dateisystem — *eine Prüfung, die auf echte dreißig Tage wartet, gibt es nicht.* **Sieben Lagen:** nichts da · weniger als N · genau N · mehr als N, aber alle jung · mehr als N und die ältesten alt · alle alt, aber unter dem Boden · **N Kopien mit welchen von vor dem Schlüsselwechsel** (hier fällt nichts). Dazu die Gegenlage darüber *(über dem Boden fällt die alte brauchbare, die veralteten nicht)*, der Fall **ohne** Wechsel, die **scharfe Grenze der Schere** (genau X Tage fällt nicht, eine Sekunde älter schon), der **Boden von eins** und die **ungeordnete Liste** — samt der Zusage, dass die hereingegebene Liste unangetastet bleibt |
+| **Alte Sicherungen aufräumen: der echte Ordner** *(neu)* | — | **72** | **Und der Ordner wird echt angelegt.** Sieben Kopien, `fs.utimesSync` setzt das Alter, **zwei Namen lügen absichtlich in beide Richtungen** *(ein Name von heute mit 200 Tagen Alter, ein Name von 2020 mit null)* — das Alter kommt aus `mtimeMs` und nicht aus dem Dateinamen. Daneben liegen **`notizen.txt`, `kriterion-alt.sqlite.bak`, ein Unterverzeichnis und ein Symlink aus dem Ordner heraus**, alle vier **alt**, damit ein Fehler an der Musterprüfung wirklich wehtut. Belegt wird: die Vorschau nennt genau die drei, die die Regel trifft, mit Datum, Alter und Größe; **sie hat dabei nichts gelöscht**; ein anderer Wert rechnet sie neu, **ohne zu speichern**; trifft sie nichts, steht der **Grund** da; die **Grenzen halten am Server** (0, 999, „drei", `null`, 2,5 — abgewiesen, bevor irgendetwas gelöscht wird, und der Wert innerhalb der Grenzen geht durch); **ohne zweite Bestätigung 403 mit dem Zweck im Namen**; ein gewöhnlicher Admin kommt **auch mit Freigabe** nicht durch; **ein Rumpf mit Dateinamen ändert am Ergebnis nichts**; was die Regel nannte, ist weg und **alles andere namentlich noch da**; der Protokolleintrag steht da — **eine Zeile je Kopie, ohne Namen, ohne Pfad, ohne Merkmal**; und die **veralteten Kopien** stehen getrennt und fallen nur über den zweiten, ausdrücklichen Weg |
+| **Alte Sicherungen aufräumen: der Anschluss an die Sicherung** *(neu)* | — | **20** | **Beide Hälften des Schalters, und die gescheiterte Sicherung dazwischen.** Bei ausgeschaltetem Schalter räumt die Sicherung nichts weg; eingeschaltet räumt sie genau die drei weg, die die Regel nennt. **Die Sicherung wird deterministisch zum Scheitern gebracht** — die Namen der nächsten vier Sekunden werden vorgelegt, die Route antwortet mit **409**, und der Ordner bleibt dabei **schreibbar**: ein Aufräumen vor dem Fehlerausgang könnte hier also sehr wohl löschen. *Belegt wird nicht nur, dass alles liegen bleibt, sondern dass der Aufruf **gar nicht erst gelaufen** ist — `entferneSicherungen()` meldet jede Datei, die es nicht wegbekommt, und im neuen Teil des Containerprotokolls steht nichts davon.* Dazu **fünf Zusagen am Quelltext**, die sich am Verhalten nicht vollständig belegen lassen: der Aufruf steht **hinter** `renameSync` und `statSync`, **hinter ihm kein Fehlerausgang mehr**, er hängt **in seinem eigenen `try`**, die Löschroute liest aus dem Rumpf **genau ein Feld**, und das Entfernen prüft **jeden Namen noch einmal** und fragt mit `lstatSync` |
+| **Die Karte „Alte Sicherungen" in der Oberfläche** *(neu)* | — | **20** | Der Schalter steht **auf aus** und sagt warum; die Felder tragen **Vorgaben und Grenzen des Servers** und heißen im Klartext statt „N" und „X"; die Vorschau nennt die Dateien **namentlich** mit Datum, Alter und Größe, und was frei würde; **die jüngsten drei stehen nicht darin** — auch die dritte nicht, obwohl sie mit 35 Tagen alt genug wäre; die Liste trägt den **gemeinsamen Deckel** der Systemlisten; trifft die Regel nichts, steht der Grund da **und der Knopf ist tot**; die veralteten Kopien stehen **getrennt** mit eigenem Knopf, in Einzahl und Mehrzahl; ohne eingerichteten Ort sagt die Karte genau das **und sonst nichts**; eine Änderung am Feld fragt die Vorschau **am Server** neu und speichert dabei nichts, **erst das Verlassen des Feldes speichert**; und der Knopf ist **ohne zweite Bestätigung nicht bedienbar** — der Rumpf trägt danach **genau ein Feld**, und das ist die Art |
+| **Die Zahlen, die mitgezogen sind** | — | — | `F_ROUTEN` **70 → 71**, die Zwecke der zweiten Bestätigung **acht → neun** *(der neunte heißt `sicherung`)*, die Vorgänge **zwanzig → einundzwanzig** *(`sicherung.weg`)*, die Karten **neunzehn → zwanzig** — **und „Alte Sicherungen" steht unmittelbar hinter „Sicherung"**, namentlich geprüft |
+| **zusammen** | **5246** | **5374** | **+128** |
+
+**Und die Runde davor, zum Vergleich — 5246 von 5246 bestanden** (0.19.6) —
+**neun neue, keine weggefallen.**
 
 | Gruppe (0.19.6) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -8498,6 +8697,24 @@ Rückbauten.*
   darunter ein **Symlink**, der aus der Wurzel herausführt. „Letzte Sicherung"
   folgt dem **Dateisystem**. Und die Probe, dass `db.backup()` kein zweiter Weg
   ist.
+- **Das Aufräumen alter Sicherungen** *(0.20.0)*: **zweigeteilt und
+  ausdrücklich so.** Die **Regel** wird an einer **Tafel** geprüft — die echte
+  Funktion wird aus `server.js` herausgeschnitten und gelaufen; sie bekommt
+  `jetzt` und die Marke des Wechsels als Argument, also braucht sie weder Uhr
+  noch Ordner. *Eine Prüfung, die auf echte dreißig Tage wartet, gibt es
+  nicht.* **Der Ordner wird daneben ECHT angelegt** — sieben Kopien, das Alter
+  über `fs.utimesSync`, **zwei Namen lügen absichtlich in beide Richtungen**
+  (ein Name von heute mit 200 Tagen Alter, ein Name von 2020 mit null). Daneben
+  liegen `notizen.txt`, `kriterion-alt.sqlite.bak`, ein **Unterverzeichnis** und
+  ein **Symlink** aus dem Ordner heraus — **alle vier alt**, damit ein Fehler an
+  der Musterprüfung wirklich wehtut. Belegt wird, dass die Vorschau **dieselben**
+  Dateien nennt, die das Löschen entfernt, dass **alles andere namentlich noch
+  da** ist, dass die **Grenzen am Server halten**, dass ein **Rumpf mit
+  Dateinamen am Ergebnis nichts ändert**, und dass **nach einer gescheiterten
+  Sicherung nicht aufgeräumt wird** — *Letzteres an einer Sicherung, die
+  deterministisch mit 409 scheitert, in einem Ordner, der dabei schreibbar
+  bleibt; belegt wird nicht nur, dass alles liegen bleibt, sondern dass der
+  Aufruf gar nicht erst gelaufen ist.*
 - **Der Schlüsselwechsel:** an echten, verschlüsselten Instanzen, ohne Server —
   gewechselt wird bei angehaltener Instanz, und genau so läuft die Prüfung. Der
   **Abbruch mit `kill -9`** braucht eine Instanz, an der der Wechsel messbar
@@ -8818,6 +9035,7 @@ eine Buchführung.*
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
 | **0.19.5** | **Der Ausschnitt wird eingerechnet (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
+| **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell (128 netto: 5246 → 5374)** | **dreiundzwanzig neue (535 → 558, Nummern 544 bis 566); EINER nachgezogen (437 — `EIGENTUEMER_SCHLUESSEL` trägt jetzt vier Schlüssel statt einem); GEGENPROBEN_0_20_0** | **Stolpersteine 299 und 300** |
 | **0.19.6** | **Die Ansicht kann fort sein (9 netto: 5237 → 5246)** | **drei neue (532 → 535, Nummern 541 bis 543); SECHS nachgezogen (516, 517, 532 bis 535 — sie zeigten auf Zeilen, in denen das Wort „backen" stand); 3 gefahren, KEINER stumm** | **Stolperstein 298** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
@@ -8834,6 +9052,31 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.20.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Vier Handgriffe, und
+  sie sind die Runde:* **(a)** die Karte **„Alte Sicherungen"** öffnen — der
+  Schalter muss auf **aus** stehen, die Felder auf **3** und **30**; **(b)** die
+  **Vorschau** lesen und einen der beiden Werte verstellen — sie muss sich
+  sofort ändern, **ohne dass etwas gespeichert oder gelöscht wird**; **(c)**
+  eine **fremde Datei** in den Sicherungsordner legen und den Knopf drücken —
+  **sie muss liegen bleiben**; **(d)** die **Zeile im Sicherheitsprotokoll**
+  nachsehen (Gruppe „Bestand"), eine je entfernter Kopie, **ohne Dateinamen**.
+  *Die Befehle dazu stehen im Chat der Runde, nicht hier.*
+- **ANGEFANGENE KOPIEN (`*.wird`) BLEIBEN LIEGEN.** Sie entstehen nur, wenn der
+  Server mitten im `VACUUM INTO` stirbt; sie fallen aus `SICHERUNG_MUSTER`, und
+  **eine Regel, die zwei Muster kennt, ist zwei Regeln.** *Der Fall gehört
+  benannt und bleibt offen: wer eine solche Datei loswerden will, hat die
+  Shell.* **Wichtig ist, was dabei baulich schon wahr ist:** eine halbfertige
+  Kopie trägt NIE den endgültigen Namen und kann deshalb selbst dann nicht als
+  fertige Sicherung gelesen werden, wenn niemand sie wegräumt.
+- **EINE EINZELNE KOPIE PER KLICK ZU LÖSCHEN IST BEWUSST NICHT GEBAUT.** Das
+  wäre die Route mit Dateinamen, die Stolperstein 300 ausschließt. *Wer eine
+  bestimmte Kopie loswerden will, hat die Shell — und diese Runde ändert daran
+  nichts.*
+- **WIE VIEL PLATZ DIE REGEL IM ECHTEN BESTAND FREIGIBT, IST NICHT GEMESSEN.**
+  *Die Rechnung ist trivial — jede Kopie ist so groß wie die Datenbank —, aber
+  wie viele Kopien am Wirt liegen und wie alt sie sind, weiß nur die laufende
+  Installation.* **Die Vorschau in der Karte ist genau die Antwort darauf**, und
+  sie steht dort ohne Zutun.
 - **DIE ÜBRIGEN ZEICHENWEGE DER DETAILANSICHT TRAGEN DIE WACHE AUS 0.19.6
   NICHT.** Betrachter und Bilderstreifen fragen seit dieser Runde, ob ihre
   Ansicht noch steht (Stolperstein 298); **Kommentare, Anhänge, Links,
@@ -8852,7 +9095,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   sichtbare Rest desselben Fensters, das 0.19.6 geschlossen hat**, und er
   gehört benannt, solange er nicht gebaut ist.
 
-- **0.19.5 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Vier Handgriffe, und
+- **0.19.5 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN** *(unverändert offen —
+  0.20.0 fasst nichts davon an).* *Vier Handgriffe, und
   sie sind die Runde:* **(a)** das **Hauptbild des Hohem** ansehen
   (`zoom = 235`) — es muss **scharf** sein; **(b)** den **Ausschnitt verstellen
   und speichern** — die Kachel zeigt den neuen Schnitt **sofort**, ohne hartes
@@ -9426,6 +9670,57 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.20.0 — „Alte Sicherungen aufräumen — ohne Shell"
+
+**MINOR · 3. September 2026 · ein Wunsch aus dem Betrieb vom 2. September,
+Punkt 8 des Sammelblatts.** *Angefasst sind `server.js`, `auth.js`,
+`public/app.js`, `pruefung.js`, `gegenprobe.js`, `package.json`,
+`package-lock.json` und die Papiere.* **KEINE DATENBANKSTUFE UND KEIN
+BESTANDSLAUF** — kein Migrationsblock, keine Schemaänderung, kein neuer Index,
+Austauschformat **12**, acht Migrationsblöcke, neun ausgelieferte Module, keine
+neue Abhängigkeit. **Was sich bewegt: `F_ROUTEN` 70 → 71, die Zwecke der
+zweiten Bestätigung acht → neun, die Vorgänge zwanzig → einundzwanzig, die
+Karten neunzehn → zwanzig.**
+
+> **DER BEFUND, WORTGLEICH AUS DEM BETRIEB:** *„wie löscht man ohne Shell zu
+> nutzen alte Sicherungen?"* — **Die Antwort lautete: gar nicht.**
+> `POST /api/sicherung` legte eine Datei ab, die Karte zeigte seit 0.16.0 die
+> jüngste Kopie, ihre Zahl und die veralteten — **wegräumen ließ sich nichts.**
+> *Es war kein Fehler und keine falsche Zusage: es fehlte eine Hälfte, die von
+> Anfang an nicht gebaut wurde.* **Und jede Kopie ist so groß wie die ganze
+> Datenbank:** bei rund 570 MB Bildbestand ist die zehnte Sicherung ein halbes
+> Dutzend Gigabyte.
+
+| # | Was | Warum |
+|---|---|---|
+| **1** | **Die Regel hat ZWEI Bedingungen, und beide müssen zutreffen** | *Nicht unter den N jüngsten **und** älter als X Tage.* **Die Zahl ist der Boden, das Alter die Schere** — eine Kopie fällt nur, wenn sie entbehrlich **und** alt ist. *Jede einzelne Bedingung ist ausgerechnet in der Lage falsch, in der sie gebraucht wird* (Stolperstein 299) |
+| **2** | **Sie steht an genau EINER Stelle, und die ist eine reine Funktion** | `regelTreffer()` bekommt eine Dateiliste, die beiden Werte, `jetzt` und die Marke des Schlüsselwechsels — und liefert die zu löschenden Namen. **Vorschau und Löschen rufen dieselbe.** *Zwei Fassungen wären zwei Wahrheiten darüber, was gleich passiert (Stolperstein 47), und die Vorschau verlöre genau das, wofür es sie gibt.* **Weil sie weder Uhr noch Dateisystem berührt, ist sie an einer Tafel prüfbar** |
+| **3** | **Die halbe Arbeit lag schon da** | `letzteSicherung()` las den Ordner bereits, prüfte jeden Namen gegen `SICHERUNG_MUSTER`, holte Größe und Zeitpunkt und sortierte nach Alter. **Das ist zu `sicherungsListe()` herausgezogen** — die Liste wird nicht ein zweites Mal aufgebaut. *Dabei ist `statSync` zu `lstatSync` geworden: **ein Symlink ist keine Sicherung**, und `statSync` folgte dem Verweis und meldete die Datei am anderen Ende als regulär* |
+| **4** | **Eine Vorschau, bevor irgendetwas geschieht** | Sie nennt namentlich, welche Dateien die Regel treffen würde, mit Datum, Alter und Größe, und was das an Platz freigäbe. **Sie ist der Ersatz für den Papierkorb** — für eine 600-MB-Datei wäre der sinnlos, der Platz ist ja der Grund. *Sie steht immer da, auch bei ausgeschaltetem Schalter; trifft die Regel nichts, nennt sie den Grund in einem halben Satz — eine leere Liste ohne Erklärung sieht aus wie ein Fehler* |
+| **5** | **Der Schalter steht auf AUS** | *Das ist die Abweichung von `bilderUmwandeln`, und sie hat einen Grund:* eine umgewandelte PNG-Datei holt der Knopf in der Gegenrichtung zurück — **eine gelöschte Sicherung holt nichts zurück.** Was nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet |
+| **6** | **Aufgeräumt wird nur nach einer Sicherung, die GELUNGEN ist** | *Die wichtigste Zeile der Runde.* Der Aufruf steht am **Ende** von `POST /api/sicherung`, nach `rename` und nach `statSync` — jeder Fehlerausgang liegt davor. **Sonst räumt die Installation genau in dem Augenblick auf, in dem sie keine neue Kopie zustande bringt.** *Und er hängt in seinem eigenen `try`: wer eine gelungene Kopie mit einem Fehler beantwortet, macht aus einem geglückten Vorgang eine rote Meldung — genau der Fehler aus 0.19.6 (Stolperstein 298)* |
+| **7** | **Die Löschroute nimmt keine Dateinamen entgegen** | `POST /api/sicherung/aufraeumen` bekommt die **Art** (`regel` oder `veraltet`) und sonst nichts; welche Dateien fallen, rechnet der Server im selben Augenblick selbst aus. *Eine Löschroute, der man sagen kann, WAS sie löschen soll, wäre die gefährlichste der Anwendung — auch mit Prüfung* (Stolperstein 300). **Der Preis ist benannt: die Antwort nennt, was WIRKLICH gelöscht wurde** |
+| **8** | **Angefasst wird nur, was auf `SICHERUNG_MUSTER` passt** | Nur im geprüften Ordner, **nie in Unterverzeichnissen**, und nur, was `lstatSync` als reguläre Datei meldet. *Der Ordner kommt aus `getSetting('sicherungOrt')` und geht durch `pruefeOrt()` — dieselbe Prüfung wie beim Schreiben, dieselbe Funktion.* **Jeder Name wird unmittelbar vor dem `unlink` noch einmal gegen das Muster gehalten** — keine Verdopplung, sondern die Klemme an der Stelle, an der der Fehler wehtut |
+| **9** | **Der Boden zählt nur die Kopien nach dem Schlüsselwechsel** | *Drei Kopien, von denen zwei vor dem Wechsel entstanden sind, sind in Wahrheit eine.* Bei dieser Lage fällt gar nichts — **das ist die sichere Seite.** Die veralteten fasst die Regel überhaupt nicht an; **wegräumen lassen sie sich über denselben Knopf, aber ausdrücklich und getrennt** *(eine automatische Regel entfernt Überflüssiges, nicht Fremdes)* |
+| **10** | **Eine zwanzigste Karte** | „Alte Sicherungen", Abschnitt „Datenbank", unmittelbar hinter „Sicherung", `EIGENTUEMER`. *Geprüft wurde zuerst, ob es in die vorhandene Karte passt — es passt nicht.* **Und der zweite Grund wiegt schwerer: ein Löschknopf gehört nicht unter den Sicherungsknopf.** Die beiden Vorgänge sind gegenläufig, und die Verwechslung wäre nicht wiedergutzumachen. *Die Karte „Sicherung" bleibt unverändert* |
+| **11** | **Die Grenzen stehen am Server** | N von **1 bis 20** (Vorgabe 3), X von **7 bis 365** Tagen (Vorgabe 30). *Ein Feld, in das jemand 0 schreiben kann, ist eine Falle — und `min`/`max` im HTML ist eine Bitte, keine Klemme.* **Ein Wert außerhalb wird abgewiesen, bevor irgendetwas gelöscht wird**, und die Karte sagt, warum |
+| **12** | **Jede Löschung geht ins Sicherheitsprotokoll** | Neuer Vorgang `sicherung.weg`, in der Gruppe `bestand`, **eine Zeile je entfernter Kopie**. *Damit ist die Zahl die Zeilenzahl: eine Spalte dafür gibt es nicht, `MERKMALE` ist eine geschlossene Liste ohne Ziffern und bleibt bei vierzehn.* **Kein Freitext, kein Dateiname, kein Pfad** — das Protokoll hält Vorgänge fest, keine Orte auf dem Wirt. Die freigegebenen Bytes stehen in der Antwort und im Containerprotokoll |
+
+**Was ausdrücklich NICHT gebaut ist:** **keine Zeitsteuerung** *(Kriterion hat
+keinen Scheduler und bekommt für diese eine Sache keinen)*, **kein Aufräumen
+von `*.wird`-Dateien** *(sie fallen aus dem Muster, und eine Regel, die zwei
+Muster kennt, ist zwei Regeln)*, **kein Löschen einzelner Kopien per Klick**
+*(das wäre die Route mit Dateinamen)*, **kein Verschieben und kein zweiter
+Ort**, und **nichts an `VACUUM INTO` selbst.**
+
+**Prüfstand: 5374 von 5374** — **128 neue**, keine weggefallen.
+**Dreiundzwanzig neue Rückbauten** (535 → 558, Nummern 544 bis 566), **einer
+nachgezogen** (437). **Zwei neue Stolpersteine: 299 und 300.**
+
+**Was offen blieb:** angefangene Kopien (`*.wird`) bleiben liegen, eine
+einzelne Kopie per Klick zu löschen ist bewusst nicht gebaut — beides in
+Abschnitt 8.
 
 ### 0.19.6 — „Die Ansicht kann fort sein"
 
@@ -11000,7 +11295,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.19.3** | Bestandsläufe verlassen den Anfrageweg | **GEBAUT am 2. September 2026.** Vier Punkte, und keiner davon ist neu: der Umstellungslauf und das Nachrüsten der Vorschaubilder ziehen in einen **eigenen Thread** (`bilder.js` und `bestandslauf.js` sind dazugekommen), die Übersichtsschleife fragt **einmal statt vierhundertmal** (3200 Abfragen je Abruf werden 405) und holt nicht mehr, was sie nicht zeigt (die Testtage der **Liste** sind schmal, von den Links wird nur gezählt, `qTags` nennt seine Spalten), und die **letzten acht „Instanz"** im Bildschirmtext heißen „Installation". **Gemessen: 133 → 0,9 ms Verspätung des Haupt-Threads im 95. Perzentil, die Route 43 → 24 ms, die Antwort 484 → 348 kB.** *`testStats` bleibt ausdrücklich ungebündelt — gebündelt ist es langsamer.* **Stand vor jeder Runde mit einem Bestandslauf**, und das gilt für 0.19.4 und 0.21.0 weiter. *PATCH* | nein | — |
 | **0.19.5** | Der Ausschnitt wird eingerechnet, nicht gezogen | **GEBAUT am 3. September 2026.** Der Bildausschnitt entsteht ab jetzt am **Server** und wird in `thumb` eingerechnet statt im Browser aus ihm gezogen; `focus_x`, `focus_y` und `zoom` werden damit vom Auftrag an den Browser zum **Rezept** für die Ableitung. **Die Kachel ist danach quadratisch (512 × 512) und von der Weite des Ausschnitts unabhängig** — bei `zoom` 235 gab der gezogene Weg 0,73 Quellpunkte je Anzeigepunkt, der eingerechnete gibt 5,88. **Der CSS-Zuschnitt fällt im selben Zug weg**, sonst würde zweimal geschnitten. Dazu: die Bildadresse trägt ein `?v=` mit `length(thumb)` *(ohne das sähe der Betreiber seinen neuen Ausschnitt bis zu 24 Stunden lang nicht)*, das Speichern des Ausschnitts erzeugt die Kachel neu und **antwortet erst danach**, und der Bestandslauf erneuert den vorhandenen Bestand mit — **Videozeilen aus ihrem `medium`.** **Gemessen: die Kachel wird in Summe 34,2 % kleiner**, das Erzeugen kostet 157 ms im Median und die ganze Route 494 bis 873 ms. **Damit kehrt diese Runde eine Entscheidung aus 0.19.4 um** — mit Datum und Grund im Änderungsprotokoll. *PATCH: dieselben Knöpfe, derselbe Ausschnitt, dieselbe Bedienung — die Kachel zeigt ihn nur scharf* | nein | — |
 | **0.19.4** | Die Kachel zeigt, was das Original hergibt | **GEBAUT am 3. September 2026, im Feld bestätigt.** `thumb` war 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle. **Gemessen in Chromium: die breiteste Kachel ist 299 CSS-px** (`.shell` hört bei 1300 px auf), auf einem 2×-Bildschirm 598, auf einem Telefon bei dPR 3 513 — **heute lieferte `thumb` 225.** Die Tafel `VARIANTS` nennt jeder Ableitung jetzt eine **Kiste** aus kurzer Kante und Deckel auf der langen: `thumb` 512/1280, `medium` unverändert 1600/1600. **Der Byte-Faktor IST der Bildpunkt-Faktor**, auf 3 % genau — 400 kostet das 3,06fache, 512 das 5,05fache, 640 das 7,78fache; **512 deckt das Telefon ganz und lässt am 2×-Desktop 1,17fach übrig, gegen 2,66fach vorher.** Dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht und nach einem Durchgang von selbst endet. *PATCH: dieselben Knöpfe, dieselben Bilder, dieselbe Antwort — die Kachel ist nur scharf* | nein | — |
-| **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; **am 3. September 2026 zugeordnet**, und alles dahinter rückt um eine Stelle.)* **Kriterion schreibt Sicherungen, aber es entfernt keine** — `POST /api/sicherung` legt eine Datei ab, wegräumen lässt sich nichts, und dafür braucht es heute eine Shell auf dem Wirt. **Jede Kopie ist so groß wie die ganze Datenbank**; bei rund 570 MB Bildbestand ist die zehnte ein halbes Dutzend Gigabyte. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere. Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht** (eine gelöschte Sicherung holt nichts zurück), ein Knopf hinter der zweiten Bestätigung, und ein Eintrag im Sicherheitsprotokoll. **Angefasst wird ausschließlich, was auf `SICHERUNG_MUSTER` passt**, und die Kopien von vor dem Schlüsselwechsel fasst die Regel gar nicht an. *MINOR* — neue Route (`F_ROUTEN` 70 → 71) und ein neunter Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung.** Ausarbeitung in 10a | nein | — |
+| **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | **GEBAUT am 3. September 2026.** *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; am 3. September 2026 zugeordnet — der Fahrplan ist dabei nicht gerückt.)* **Kriterion schrieb Sicherungen und entfernte keine** — wegräumen ließ sich nichts, und dafür brauchte es eine Shell auf dem Wirt. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere (Stolperstein 299). Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht**, ein Knopf hinter der zweiten Bestätigung, ein zweiter, ausdrücklicher Weg für die Kopien von vor dem Schlüsselwechsel, und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Die Löschroute nimmt keine Dateinamen entgegen** (Stolperstein 300), und aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die **gelungen** ist. **Eine zwanzigste Karte** — ein Löschknopf gehört nicht unter den Sicherungsknopf. *MINOR* — `F_ROUTEN` **70 → 71**, ein **neunter** Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung** | nein | — |
 | **0.21.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, **am 3. September 2026 gerückt** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.22.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, **am 3. September 2026 gerückt**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.23.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0, dann 0.22.0 vorgemerkt — **die Nummer ist vorläufig**; das siebte Rücken am 3. September 2026.)* Migrationscode raus — **jetzt acht Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
@@ -12057,137 +12352,22 @@ weich, und sie kostete die Maße des Originals, die in keiner Antwort stehen.*
 Wartezeit von 494 bis 873 ms beim Speichern, und ein **Hinweis** im Editor,
 wenn der Ausschnitt enger gezogen wird, als die Vorlage hergibt.
 
-### 0.20.0 — „Alte Sicherungen aufräumen — ohne Shell" · *MINOR*
-
-**Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026.**
-**Am 3. September 2026 zugeordnet** — damit steht er nach Regel 3 des
-Sammelblatts nicht mehr dort, sondern hier. *Alles dahinter ist um eine Stelle
-gerückt; der Grund steht in Abschnitt 10, beim siebten Rücken.*
-
-**Art:** Bauwunsch · **Claude:** empfohlen · **Draußen üblich:** ja — jede
-Sicherungslösung kennt eine Aufbewahrungsregel („retention"), und praktisch
-alle bauen sie aus **zwei** Bedingungen: einer Mindestzahl und einem Alter.
-
-### Woher
-
-Aus dem Betrieb, **2. September 2026**, unmittelbar nach dem Einspielen von
-0.19.3: *„wie löscht man ohne Shell zu nutzen alte Sicherungen?"*
-
-### Was auffiel
-
-**Kriterion schreibt Sicherungen, aber es entfernt keine.** `POST
-/api/sicherung` legt eine Datei `kriterion-<Zeitmarke>.sqlite` im
-Sicherungsordner ab; die Karte zeigt seit 0.16.0 die **jüngste** Kopie, ihre
-**Zahl** und wie viele davon **vor dem letzten Schlüsselwechsel** entstanden
-sind. **Wegräumen lässt sich nichts** — dafür braucht es heute eine Shell auf
-dem Wirt, und genau die soll ein Betreiber für den Alltag nicht brauchen.
-
-**Und jede Kopie ist so groß wie die ganze Datenbank.** *Bei rund 570 MB
-Bildbestand ist die zehnte Sicherung ein halbes Dutzend Gigabyte —* **und mit
-0.19.4 ist die Datenbank gerade gewachsen.**
-
-### Was es nicht ist
-
-**Kein Fehler.** Es ist keine falsche Zusage und keine kaputte Funktion — es
-fehlt eine Hälfte, die von Anfang an nicht gebaut wurde. *Ein Wunsch, der als
-Fehler abgeheftet wird, drängelt sich in die falsche Runde.*
-
-**Und ausdrücklich keine Zeitsteuerung.** Kriterion hat keinen Scheduler und
-soll für diese eine Sache keinen bekommen. **Was hier gebaut wird, läuft im
-Anschluss an eine Sicherung** — an dem einen Augenblick, in dem sicher
-feststeht, dass eine frische, vollständige Kopie da ist.
-
-### Was gebaut werden könnte
-
-**a) DIE REGEL — zwei Bedingungen, und beide müssen zutreffen.** *Das ist der
-Kern des Vorschlags; alles andere hängt daran.*
-
-> **Gelöscht wird eine Kopie nur, wenn sie BEIDES ist:
-> nicht unter den N jüngsten UND älter als X Tage.**
-
-*Vorschlag für die Vorgaben: **N = 3**, **X = 30**.*
-
-**Warum beide und nicht eine:**
-
-| nur „älter als 30 Tage" | nur „die letzten 3" |
-|---|---|
-| Eine Installation, an der ein halbes Jahr nicht gesichert wurde, verliert **alle** Kopien auf einen Schlag — genau dann, wenn sie die einzigen sind. | Wer an einem Nachmittag viermal auf den Knopf drückt, wirft damit die Kopie vom Vormonat weg, obwohl nichts alt ist. |
-
-**Zusammen decken sie sich gegenseitig ab:** die Zahl ist der **Boden**, das
-Alter ist die **Schere**. *Eine Kopie fällt nur, wenn sie entbehrlich **und**
-alt ist.*
-
-**b) EINE VORSCHAU, BEVOR ETWAS GESCHIEHT.** Die Karte nennt namentlich, welche
-Dateien die Regel treffen würde, mit Datum und Größe, und was das an Platz
-freigäbe. **Ohne Vorschau ist es eine Wette.**
-
-**c) DER SCHALTER, UND ER STEHT AUF AUS.** *Das ist die Abweichung von
-`bilderUmwandeln`, und sie hat einen Grund:* eine umgewandelte PNG-Datei holt
-der Knopf in der Gegenrichtung zurück — **eine gelöschte Sicherung holt nichts
-zurück.** Was nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet.
-*Die Karte fragt einmal deutlich; wer will, schaltet ein.*
-
-**d) UND EIN KNOPF DANEBEN, der die Regel EINMAL anwendet** — für den, der
-nicht dauerhaft einschalten will. **Hinter der zweiten Bestätigung**, wie jeder
-Vorgang, der Bytes unwiderruflich entfernt.
-
-**e) DIE KOPIEN VON VOR DEM SCHLÜSSELWECHSEL FASST DIE REGEL NICHT AN.** *Sie
-lassen sich mit dem heutigen Schlüssel gar nicht öffnen — die Karte sagt das
-seit 0.16.0 und zählt sie.* **Sie sind nicht entbehrlich, sondern etwas
-anderes:** wer den alten Schlüssel noch hat, kommt an sie heran, und wer ihn
-nicht mehr hat, hat ohnehin nichts verloren. **Eine automatische Regel entfernt
-Überflüssiges, nicht Fremdes.** *Wegräumen lassen sie sich über denselben Knopf
-— aber ausdrücklich und einzeln, nicht nebenbei.*
-
-**f) JEDE LÖSCHUNG GEHT INS SICHERHEITSPROTOKOLL**, mit Zahl und freigegebenen
-Bytes — neben dem `sicherung`-Eintrag, den es schon gibt.
-
-### Offene Entscheidungen
-
-**Diese fünf beantwortet der Auftrag der Runde und nicht dieser Eintrag.**
-
-1. **Sind N und X einstellbar oder fest?** *Einstellbar heißt zwei Felder in
-   der Karte und zwei Werte in `settings`; fest heißt eine Zeile im Quelltext
-   und keine Bedienfrage.* **Vorschlag: einstellbar, aber mit engen Grenzen**
-   — N von 1 bis 20, X von 7 bis 365. *Ein Feld, in das jemand 0 schreiben
-   kann, ist eine Falle.*
-2. **Löschen oder in einen Papierkorb schieben?** *Kriterion hat einen
-   Papierkorb für Einträge. Für eine 600-MB-Datei wäre er sinnlos — der Platz
-   ist ja der Grund.* **Vorschlag: löschen, und die Vorschau ist der Ersatz für
-   den Papierkorb.**
-3. **Läuft die Regel auch, wenn eine Sicherung fehlschlägt?** **Nein**, und das
-   ist die wichtigste Zeile des ganzen Punktes: *aufgeräumt wird nur nach einer
-   Sicherung, die gelungen ist.* Sonst räumt die Installation genau in dem
-   Augenblick auf, in dem sie keine neue Kopie zustande bringt.
-4. **Was, wenn im Ordner fremde Dateien liegen?** **Angefasst wird
-   ausschließlich, was auf `SICHERUNG_MUSTER` passt** (`kriterion-*.sqlite`),
-   nur im geprüften Ordner, nie in Unterverzeichnissen. *Der Pfad geht durch
-   dieselbe Prüfung wie beim Schreiben — eine Löschroute, die sich auf ein
-   anderes Verzeichnis lenken lässt, wäre die gefährlichste Route der
-   Anwendung.*
-5. **Zählt der Boden alle Kopien oder nur die brauchbaren?** *Drei Kopien, von
-   denen zwei vor dem Schlüsselwechsel entstanden sind, sind in Wahrheit eine.*
-   **Vorschlag: der Boden zählt nur Kopien nach dem Wechsel** — dann wird bei
-   dieser Lage gar nichts gelöscht, und das ist die sichere Seite.
-
-### Was es anfasst
-
-`server.js` (eine Route, die Regel, der Aufruf nach `POST /api/sicherung`),
-`public/app.js` und `public/style.css` (Vorschau, Schalter, Knopf in der Karte
-„Sicherung"), dazu `F_ROUTEN` **70 → 71** und die Zwecke der zweiten
-Bestätigung **acht → neun**. **Kein Schema** — die zwei Werte gehören in
-`settings`. **Kein Bestandslauf**, keine Migration, kein neues Austauschformat,
-keine neue ausgelieferte Datei.
-
-> **DIE HÄLFTE DER ARBEIT LIEGT SCHON DA.** `letzteSicherung()` liest den
-> Ordner bereits, prüft jede Datei gegen `SICHERUNG_MUSTER`, holt Größe und
-> Zeitpunkt und sortiert nach Alter — **die Regel ist ein Filter über genau
-> dieser Liste.** *Was fehlt, ist das Löschen, die Vorschau und die Bedienung.*
-
-> **WARUM ES EIN MINOR IST UND KEIN PATCH.** Der Maßstab aus Abschnitt 5.1:
-> *kann die Installation danach etwas, was sie vorher nicht konnte?* **Sie
-> kann — alte Sicherungen entfernen, ohne dass jemand eine Shell öffnet.**
-> Dazu eine neue Route und ein neunter Zweck der zweiten Bestätigung.
+> **DER 0.20.0-EINTRAG IST MIT DIESER RUNDE HERAUSGEFALLEN — er ist gebaut.**
+> *So ist dieser Abschnitt gemeint: er trägt die Ausarbeitung, solange sie
+> gebraucht wird; was gebaut ist, steht in Abschnitt 9, und was von ihm als
+> **Regel** weitergilt, in Abschnitt 5 und Abschnitt 11.*
+> **Was von ihm geblieben ist, und wo:**
+> * die **zwei Bedingungen** und dass jede einzelne in genau der Lage falsch
+>   ist, in der sie gebraucht wird → **Stolperstein 299**;
+> * **eine Löschroute nimmt keine Dateinamen entgegen** → **Stolperstein 300**
+>   und die Auflage in **Abschnitt 11**;
+> * der **Schalter auf AUS** und dass nur nach einer **gelungenen** Sicherung
+>   aufgeräumt wird → **Abschnitt 9, Punkte 5 und 6**;
+> * die **zwanzigste Karte** samt der Begründung, warum sie nicht in die
+>   vorhandene passt → **Abschnitt 4, „Systembereich"**.
+> **Die fünf offenen Entscheidungen, die hier standen, sind beantwortet** — im
+> Auftrag der Runde und im Änderungsprotokoll 0.20.0, jede mit ihrer
+> Begründung.
 
 ---
 
@@ -12271,7 +12451,11 @@ keine mehr.*
 
 - **Wer eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` ein** — sonst
   wird der Lauf namentlich rot, und genau das ist der Zweck. Die Liste (aktuell
-  **69** Routen) ist die Stelle, an der die Rechtefrage gestellt wird.
+  **71** Routen) ist die Stelle, an der die Rechtefrage gestellt wird.
+  *Die Zahl stand hier bis 0.19.6 auf **69** und war damit zwei Runden alt —
+  0.19.0 hatte sie auf 70 gebracht, 0.20.0 auf 71. Sie ist mit 0.20.0
+  berichtigt; im Prüfstand stand sie die ganze Zeit richtig, und genau darum
+  wird sie dort geprüft und hier nur genannt (Stolperstein 137).*
   **Ein lesender Endpunkt steht dort nicht, auch mit Wächter nicht.**
   *Die Zahl wird seit 0.8.40 ausdrücklich geprüft — nicht nur die
   Übereinstimmung der Liste mit dem Quelltext (Stolperstein 137).*
@@ -12315,6 +12499,17 @@ keine mehr.*
   0.8.70). Positivliste zuerst, `realpathSync` danach. *Wer eine zweite Stelle
   baut, nimmt `pruefeOrt()` zum Vorbild und schreibt die Regel nicht ein zweites
   Mal hin.*
+- **Eine Route, die Dateien ENTFERNT, nimmt keine Dateinamen entgegen** (seit
+  0.20.0, Stolperstein 300). Sie bekommt die **Art** des Vorgangs, und welche
+  Dateien fallen, rechnet der Server im selben Augenblick selbst aus. *Eine
+  Löschroute, der man sagen kann, WAS sie löschen soll, ist die gefährlichste
+  Route der Anwendung — und sie wäre es auch mit Prüfung: die Prüfung stünde
+  einen Handgriff davon entfernt, vergessen zu werden.* **Der Preis gehört
+  benannt:** zwischen Vorschau und Knopfdruck kann sich der Ordner geändert
+  haben; **die Antwort nennt deshalb, was WIRKLICH gelöscht wurde**, und die
+  Karte zeichnet sich daraus neu. *Gebaut ist es an
+  `POST /api/sicherung/aufraeumen`; wer einen zweiten Löschweg auf das
+  Dateisystem baut, nimmt ihn zum Vorbild.*
 - **Wer eine Ansicht ergänzt, holt ihren Bestand beim Aufbau** (seit 0.8.70,
   Stolperstein 118).
 - **Der Cookiename ist kein fester String — und seit 0.13.0 sind es zwei.** Wer
