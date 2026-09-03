@@ -471,7 +471,14 @@ rund 390 Sekunden.**
 | 538 | Der Zuschnitt im Browser kommt zurück | „Im Stylesheet steht kein `--zoom` mehr", „Und an der Vorschaukachel ebenso wenig" |
 | 539 | Die Rechnung im Browser läuft der im Server davon | 5 in 3 Gruppen, darunter „Beide Rechnungen kommen auf denselben Ausschnitt — 140 Fälle" und „Der Rahmen wird beim Zuziehen kleiner" |
 
-**NACHGEFAHREN NACH DEM SCHLIESSEN DER LÜCKE:** GEGENPROBE_NACHLAUF
+**NACHGEFAHREN, in zwei Nebenspuren, je 384 s:**
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| **529** | Beim Einspielen wird die Kachel nicht gebacken | **„Der Import backt den Ausschnitt in die Kachel"** — *nicht mehr stumm* |
+| **540** | Die Fortschrittszeile kennt nur eine Richtung | **„Und wenn die Kacheln kleiner geworden sind, sagt sie ‚weniger'"** |
+
+**Zwei gefahren, null stumm.** *Die Grundlage stand dabei bei 5237 von 5237.*
 
 > **`Jeder Suchtext kommt in seiner Datei genau einmal vor` wird bei JEDEM
 > gefahrenen Rückbau rot** — er hat seinen Suchtext gerade ersetzt. *Die
