@@ -253,6 +253,24 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   -- REAL und nicht Hundertstel als INTEGER: eine Umrechnung an jeder
   -- Lesestelle vergisst irgendwann jemand. photos.focus_x geht denselben Weg.
   gewicht REAL NOT NULL DEFAULT 1.0,
+  -- ZU WELCHEM KASTEN DIESES KRITERIUM GEHOERT -- 0.21.0. 'vorher' heisst
+  -- Potenzial (die Einschaetzung vor dem Test), 'nachher' heisst Bewertung
+  -- (das Urteil danach). Zwei Werte, und sonst keiner.
+  -- DEUTSCH, weil der Sprachwaechter mitliest -- und weil die Werte in SELECTs
+  -- stehen, die jemand liest.
+  -- KEIN CHECK an dieser Stelle, aus demselben Grund wie bei gewicht darueber:
+  -- die Menge der Werte stuende sonst zweimal, hier und in PHASEN im Server,
+  -- und die zweite meldete sich nicht als Absage mit Meldung, sondern als
+  -- abgebrochene Schreibung. PHASEN steht genau einmal, in server.js.
+  -- DEFAULT 'nachher', und die Bestandszeilen bekommen ihn aus dem DEFAULT,
+  -- nicht aus einem UPDATE (Migration 0.21.0): jeder andere Wert aenderte beim
+  -- Einspielen still saemtliche Gesamtschnitte. Was heute Kriterium ist, ist
+  -- Bewertungskriterium.
+  -- UNIQUE(name) BLEIBT GLOBAL und wandert nicht auf (name, phase): ein Name,
+  -- ein Kasten. Die Einschraenkung zu aendern hiesse Tabellenneubau (SQLite
+  -- kennt kein ALTER CONSTRAINT), und „Wunsch" in beiden Kaesten waere fuer
+  -- den Benutzer ohnehin ein Raetsel.
+  phase TEXT NOT NULL DEFAULT 'nachher',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -980,6 +998,39 @@ function migration0190() {
 migration0190();
 // ENDE MIGRATION 0.19.0
 
+// MIGRATION 0.21.0 — ENTFAELLT MIT 1.0
+/* DAS KRITERIUM BEKOMMT SEINEN KASTEN. Die Spalte phase steht in der DDL,
+   aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
+   (Stolperstein 13) -- ein Bestand aus 0.8.40 bis 0.20.1 traegt
+   rating_criteria ohne sie. Deshalb ueberhaupt dieser Block.
+   DIE BESTANDSZEILEN BEKOMMEN 'nachher', und zwar aus dem DEFAULT der Spalte,
+   nicht aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit
+   NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. Dieselbe Regel wie
+   bei gewicht in Migration 0.8.40, und derselbe Grund: jeder andere Wert
+   aenderte beim Einspielen still saemtliche Gesamtschnitte. Was heute
+   Kriterium ist, ist Bewertungskriterium. Punkt.
+   DIE VORGABE TRAEGT DAMIT KEINE BEHAUPTUNG, SONDERN DEN BISHERIGEN ZUSTAND
+   -- dieselbe Ueberlegung wie bei zoom in 0.19.0 und ausdruecklich nicht die
+   von gesetzt_am in 0.16.0, wo jeder nachgetragene Wert eine Erfindung
+   gewesen waere.
+   'nachher' IST EINE KONSTANTE Vorgabe, und nur solche nimmt ALTER TABLE ADD
+   COLUMN in SQLite an (Stolperstein 105).
+   Einmalig, wiederholbar und im Normalfall stumm: gefragt wird PRAGMA
+   table_info, nicht ein Merker. Zu 1.0 faellt der Block weg, die Spalte in der
+   DDL bleibt. */
+function migration0210() {
+  const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
+  if (spalten.includes('phase')) return 0;
+  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT 'nachher'");
+  const n = db.prepare("SELECT COUNT(*) AS n FROM rating_criteria WHERE phase = 'nachher'").get().n;
+  console.log(`[Kriterion] rating_criteria um phase ergaenzt (Migration auf 0.21.0); ` +
+    `${n} ${n === 1 ? 'Kriterium steht' : 'Kriterien stehen'} auf 'nachher' und ` +
+    `${n === 1 ? 'zaehlt' : 'zaehlen'} damit weiter in die Bewertung.`);
+  return 1;
+}
+migration0210();
+// ENDE MIGRATION 0.21.0
+
 /* ================= DIE INDIZES AUF NACHGERUESTETE SPALTEN =================
    SIE STEHEN HIER UNTEN UND NICHT IN DER DDL, und der Grund ist ein Befund des
    Pruefstands -- zweimal derselbe, in zwei Stufen.
@@ -1174,4 +1225,6 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // MIGRATION 0.16.0 — ENTFAELLT MIT 1.0
                    migration0160,
                    // MIGRATION 0.19.0 — ENTFAELLT MIT 1.0
-                   migration0190 };
+                   migration0190,
+                   // MIGRATION 0.21.0 — ENTFAELLT MIT 1.0
+                   migration0210 };
