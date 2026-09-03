@@ -109,17 +109,17 @@ const sharp = require('sharp');
    Der Satz ist NICHT geloescht, sondern umgedreht, mit Datum und Grund
    (Stolperstein 201).
 
-   DIE KACHEL WIRD GEBACKEN, NICHT GEZOGEN. `focus_x`, `focus_y` und `zoom`
+   DIE KACHEL WIRD ZUGESCHNITTEN, NICHT GEZOGEN. `focus_x`, `focus_y` und `zoom`
    sind damit kein Auftrag mehr an den Browser, sondern das REZEPT fuer diese
    Ableitung. Das Original bleibt unangetastet; die drei Zahlen sagen, wie neu
-   zu backen ist, und deshalb bleibt der Ausschnitt jederzeit aenderbar.
+   zu schneiden ist, und deshalb bleibt der Ausschnitt jederzeit aenderbar.
    WAS ES BRINGT, IN QUELLPUNKTEN JE ANZEIGEPUNKT auf der 299 px breiten
    Kachel: bei `zoom` 100 gaben beide Wege 1,71x; bei `zoom` 235 gab der alte
-   0,73x -- also 1,37fach HOCHGEZOGEN --, der gebackene gibt 5,88x, und zwar
+   0,73x -- also 1,37fach HOCHGEZOGEN --, der zugeschnittene gibt 5,88x, und zwar
    unabhaengig davon, wie eng gezogen wird.
 
    DER DECKEL AUF DER LANGEN KANTE GILT NUR NOCH FUER DIE UNGESCHNITTENE
-   ABLEITUNG. Eine gebackene Kachel ist quadratisch -- da kann keine Kante
+   ABLEITUNG. Eine zugeschnittene Kachel ist quadratisch -- da kann keine Kante
    davonlaufen. Die 1280 stehen trotzdem in der Tafel, denn `makeVariants()`
    wird auch ohne Zuschnitt gerufen (der Bestandslauf an einer Zeile ohne
    lesbare Masse, und jeder kuenftige Rufer).
@@ -135,7 +135,7 @@ const VARIANTS = {
 /* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ----
 
    SIE STEHT ZWEIMAL, UND DAS IST DER PUNKT. Der Browser muss den Rahmen im
-   Editor live zeichnen, der Server muss die Kachel backen, und zwischen
+   Editor live zeichnen, der Server muss die Kachel erzeugen, und zwischen
    beiden liegt HTTP -- eine gemeinsame Fassung gibt es nicht. Also steht sie
    auf jeder Seite in GENAU EINER Funktion (`zuschnittKiste()` hier und
    dieselbe in public/app.js) und nicht verstreut, UND DER PRUEFSTAND HAELT
@@ -233,7 +233,7 @@ function schnittRechteck(masse, zuschnitt) {
    Kante -- also die alte Regel mit der neuen Zahl, und nicht etwa eine
    ueberdimensionierte Ableitung. Wenn schon daneben, dann nach unten. */
 /* DER ZUSCHNITT IST EIN ARGUMENT UND KEIN ZWEITER WEG -- 0.19.5. Ist er
-   gesetzt (`{ fx, fy, zoom }`), wird `thumb` daraus gebacken; ist er es
+   gesetzt (`{ fx, fy, zoom }`), wird `thumb` daraus geschnitten; ist er es
    nicht, bleibt alles wie in 0.19.4. Eine zweite Ableitungsfunktion daneben
    waere eine zweite Wahrheit ueber dieselbe Sache (Stolperstein 47) -- es ist
    dieselbe Funktion mit einem Argument mehr.
@@ -258,10 +258,10 @@ async function makeVariants(buf, zuschnitt) {
          Kiste zweimal die kurze Kante. Eine Verzweigung auf den NAMEN der
          Ableitung stuende als zweite Wahrheit neben der Tafel. */
       const roh = sharp(buf, { failOn: 'none' }).rotate();
-      const gebacken = v.schneidet && schnitt;
-      out[name] = await (gebacken ? roh.extract(schnitt) : roh)
-        .resize(gebacken ? v.kurz : (quer ? v.lang : v.kurz),
-                gebacken ? v.kurz : (quer ? v.kurz : v.lang),
+      const geschnitten = v.schneidet && schnitt;
+      out[name] = await (geschnitten ? roh.extract(schnitt) : roh)
+        .resize(geschnitten ? v.kurz : (quer ? v.lang : v.kurz),
+                geschnitten ? v.kurz : (quer ? v.kurz : v.lang),
                 { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();
     } catch { out[name] = null; }
@@ -283,10 +283,10 @@ async function makeVariants(buf, zuschnitt) {
    kurzen Kante traegt die Geometrie aus 0.19.4 und braucht trotzdem einen
    Schnitt. AB JETZT LAUTET SIE: IST DIE KACHEL QUADRATISCH?
 
-   WARUM DAS DIE RICHTIGE FRAGE IST, IN EINEM SATZ: eine gebackene Kachel IST
+   WARUM DAS DIE RICHTIGE FRAGE IST, IN EINEM SATZ: eine zugeschnittene Kachel IST
    quadratisch -- der Zuschnitt ist ein Quadrat, und `fit: 'inside'` auf eine
    quadratische Kiste laesst sie eines. Eine ungeschnittene ist es nur, wenn
-   die Vorlage es war. „Gebacken" und „quadratisch" fallen damit zusammen, und
+   die Vorlage es war. „Zugeschnitten" und „quadratisch" fallen damit zusammen, und
    zwar OHNE Merkerspalte.
 
    UND SIE IST EIN FESTPUNKT, ohne die Ausnahme, die 0.19.4 noch hatte
@@ -305,10 +305,10 @@ async function makeVariants(buf, zuschnitt) {
 
    DER EINE FALL, DEN SIE NICHT SIEHT, und er gehoert hierher und nicht in
    eine Fussnote: EINE QUADRATISCHE VORLAGE. Ihr ungeschnittener `thumb` ist
-   512 x 512 und damit von einem gebackenen nicht zu unterscheiden. Bei
+   512 x 512 und damit von einem zugeschnittenen nicht zu unterscheiden. Bei
    `zoom = 100` macht das nichts -- beide Wege liefern dasselbe Bild. Bei
    `zoom > 100` bleibt ihre Kachel weich, bis jemand ihren Ausschnitt das
-   naechste Mal speichert; dann backt die Route sie (server.js). Der Preis,
+   naechste Mal speichert; dann schneidet die Route sie (server.js). Der Preis,
    das zu erkennen, waere ein Kopf-Lesen des ORIGINALS je Zeile und Start --
    die 275-ms-Klasse aus 0.19.4 --, und der Fall kommt im Bestand nicht vor:
    unter 89 Fotos ist kein quadratisches.

@@ -3,10 +3,10 @@
    WAS HIER LAEUFT UND WARUM ES NICHT MEHR IM HAUPT-THREAD LAEUFT.
    DREI Schleifen fahren ueber den ganzen Bildbestand: die Umstellung von PNG
    auf WebP (auf Knopfdruck), das Nachruesten fehlender Vorschaubilder und --
-   seit 0.19.4 -- das Backen der Kacheln (beide einmal beim Start). Seit
+   seit 0.19.4 -- das Erneuern der Kacheln (beide einmal beim Start). Seit
    0.19.5 kommt eine VIERTE Aufgabe dazu, und sie ist keine Schleife: EINE
    Zeile, gerufen beim Speichern des Ausschnitts. Warum auch sie hier faehrt
-   und nicht im Haupt-Thread, steht als Messung bei backeEineKachel(). Die ersten beiden lasen bis 0.19.2 im
+   und nicht im Haupt-Thread, steht als Messung bei erneuereEineKachel(). Die ersten beiden lasen bis 0.19.2 im
    Haupt-Thread eine halbe Megabyte Blob, wandelten sie um und schrieben sie
    zurueck --
    `better-sqlite3` ist SYNCHRON, und jede seiner Zeilen haelt die
@@ -149,11 +149,11 @@ async function stelleBestandUm(zeilen) {
     `${stand.gespart} Bytes gespart.`);
 }
 
-/* ---- WORAUS EINE ZEILE IHRE KACHEL BACKT -- 0.19.5 ----
+/* ---- WORAUS EINE ZEILE IHRE KACHEL ENTSTEHT -- 0.19.5 ----
 
    ZWEI SCHLEIFEN UND EINE ROUTE FRAGEN DASSELBE, also steht es einmal.
    `zuschnittAus()` macht aus den drei Spalten das Rezept, `vorlageAus()`
-   sagt, aus welchem Blob gebacken wird.
+   sagt, aus welchem Blob sie erzeugt wird.
 
    AM FOTO IST DIE VORLAGE `data` -- das Original. AM VIDEO STEHT DORT DIE
    VIDEODATEI, und der Kernsatz gilt weiter: der Server oeffnet nie ein
@@ -212,7 +212,7 @@ async function ruesteVorschaubilderNach(zeilen) {
   console.log(`[Kriterion] ${done} Vorschaubild(er) erzeugt.`);
 }
 
-/* ---- Die Kacheln backen -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt --
+/* ---- Die Kacheln erneuern -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt --
 
    DIE DRITTE AUFGABE, UND SIE IST DIE ERSTE, DIE ETWAS ERSETZT statt etwas
    zu ergaenzen. Das Nachruesten fuellt leere Spalten, die Umstellung
@@ -222,7 +222,7 @@ async function ruesteVorschaubilderNach(zeilen) {
    Zeile kostet und nicht den Lauf.
 
    SIE IST ERWEITERT UND NICHT VERDOPPELT -- 0.19.5. Bis 0.19.4 zog sie die
-   Ableitung auf die neue Geometrie nach; ab jetzt BACKT sie den eingestellten
+   Ableitung auf die neue Geometrie nach; ab jetzt RECHNET sie den eingestellten
    Ausschnitt hinein. Es ist dieselbe Schleife, dieselbe Aufgabe (`geometrie`)
    und dieselbe Fortschrittszeile: was sich geaendert hat, ist die Frage, wann
    eine Zeile faellig ist, und was makeVariants() mitbekommt.
@@ -270,7 +270,7 @@ async function ruesteVorschaubilderNach(zeilen) {
    AM VIDEO WIRD ES NICHT MITGESCHRIEBEN, und der Grund steht oben bei
    vorlageAus(): dort IST `medium` die Vorlage, und es aus sich selbst neu zu
    kodieren machte es nur schlechter. */
-async function backeKacheln(zeilen) {
+async function erneuereKacheln(zeilen) {
   const stand = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
                   geprueft: 0, nachgezogen: 0, uebersprungen: 0, zugenommen: 0 };
   const hole = db.prepare(
@@ -284,7 +284,7 @@ async function backeKacheln(zeilen) {
       if (z && z.thumb) {
         stand.geprueft++;
         if (await istOhneZuschnitt(z.thumb)) {
-          const gewachsen = await backeZeile(id, z);
+          const gewachsen = await erneuereZeile(id, z);
           if (gewachsen === null) stand.uebersprungen++;
           else { stand.nachgezogen++; stand.zugenommen += gewachsen; }
         }
@@ -308,12 +308,12 @@ async function backeKacheln(zeilen) {
      oder schrumpft dann eben um die Differenz und nicht um die Summe. */
   reclaim();
   melde(stand);
-  console.log(`[Kriterion] Kacheln gebacken: ${stand.nachgezogen} von ` +
+  console.log(`[Kriterion] Kacheln erneuert: ${stand.nachgezogen} von ` +
     `${stand.geprueft} geprüften Zeilen, ${stand.uebersprungen} übersprungen, ` +
     `${stand.zugenommen} Bytes mehr.`);
 }
 
-/* ---- EINE ZEILE BACKEN -- die Stelle, an der beide Rufer zusammenkommen ---
+/* ---- EINE ZEILE ERNEUERN -- die Stelle, an der beide Rufer zusammenkommen ---
 
    DIE SCHLEIFE OBEN RUFT SIE JE FAELLIGER ZEILE, DIE AUFGABE `zuschnitt`
    GENAU EINMAL. Zwei Fassungen davon liefen frueher oder spaeter auseinander,
@@ -331,7 +331,7 @@ async function backeKacheln(zeilen) {
    siehe vorlageAus() weiter oben. */
 const schreibBeide = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
 const schreibKachel = db.prepare('UPDATE photos SET thumb = ? WHERE id = ?');
-async function backeZeile(id, z) {
+async function erneuereZeile(id, z) {
   const vorlage = vorlageAus(z);
   if (!vorlage) return null;
   const v = await makeVariants(vorlage, zuschnittAus(z));
@@ -347,7 +347,7 @@ async function backeZeile(id, z) {
    Geschmack. Der Auftrag setzt die Grenze bei rund 150 ms: darunter lohnt der
    Thread seine 19 ms Verbindung und 76 ms sharp nicht, darueber schon.
 
-   ERSTENS DAS BACKEN SELBST. Gemessen an fuenf Vorlagen in den Massen und
+   ERSTENS DAS ERZEUGEN SELBST. Gemessen an fuenf Vorlagen in den Massen und
    Bytes des echten Bestands (5,4 bis 12,7 MB, 4032x3024 und 6192x4128), je
    fuenf Durchgaenge, vier Kerne: rotate + extract + resize + mozjpeg kostet
    im Median 157,3 ms und im 95. Perzentil 247,0 ms. Ohne den Zuschnitt sind
@@ -361,7 +361,7 @@ async function backeZeile(id, z) {
    frisch geoeffneten, verschluesselten Datei mit 12,7-MB-Originalen:
 
      sharp laden          51,9 ms      Blob lesen (12,7 MB)   67,4 ms
-     db-Modul laden        2,6 ms      backen                175,4 ms
+     db-Modul laden        2,6 ms      erzeugen              175,4 ms
      Datei oeffnen         3,2 ms      Kachel schreiben      473,7 ms
                                        ------------------------------
                                        zusammen              774,5 ms
@@ -396,17 +396,17 @@ async function backeZeile(id, z) {
    der Benutzer wartet vor einem Knopf und nicht vor einer Fortschrittszeile.
    Gemeldet wird das Ergebnis, damit der Haupt-Thread weiss, ob er die
    Antwort mit einer neuen Fassung beschriften darf. */
-async function backeEineKachel(zeilen) {
+async function erneuereEineKachel(zeilen) {
   const id = zeilen && zeilen[0] && zeilen[0].id;
   const z = id ? db.prepare(
     'SELECT data, thumb, medium, art, focus_x, focus_y, zoom FROM photos WHERE id = ?')
     .get(id) : null;
   let ok = false;
   if (z) {
-    try { ok = await backeZeile(id, z) !== null; }
-    catch (e) { console.error(`[Kriterion] Kachel ${id} nicht gebacken:`, e.message); }
+    try { ok = await erneuereZeile(id, z) !== null; }
+    catch (e) { console.error(`[Kriterion] Kachel ${id} nicht erneuert:`, e.message); }
   }
-  parentPort.postMessage({ art: 'gebacken', id, ok });
+  parentPort.postMessage({ art: 'erneuert', id, ok });
 }
 
 /* DIESELBE SPEICHERPFLEGE WIE IN server.js, und sie steht in beiden Dateien:
@@ -430,8 +430,8 @@ function reclaim() {
 (async () => {
   if (workerData.aufgabe === 'umstellung') await stelleBestandUm(workerData.zeilen);
   else if (workerData.aufgabe === 'vorschaubilder') await ruesteVorschaubilderNach(workerData.zeilen);
-  else if (workerData.aufgabe === 'geometrie') await backeKacheln(workerData.zeilen);
-  else if (workerData.aufgabe === 'zuschnitt') await backeEineKachel(workerData.zeilen);
+  else if (workerData.aufgabe === 'geometrie') await erneuereKacheln(workerData.zeilen);
+  else if (workerData.aufgabe === 'zuschnitt') await erneuereEineKachel(workerData.zeilen);
   else throw new Error(`Unbekannte Aufgabe: ${workerData.aufgabe}`);
   db.close();
   parentPort.close();
