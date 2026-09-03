@@ -20019,7 +20019,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      zwei Zeilen stehen seit dieser Runde in einer zweiten Schleife -- sein
      Suchtext haette danach zweimal gepasst und der Rueckbau waere abgebrochen.
      KEINER IST WEGGEFALLEN. */
-  /* 531 SEIT 0.19.5: SIEBZEHN neue, alle in der Reihe ab 523 -- sechs am
+  /* 532 SEIT 0.19.5: ACHTZEHN neue, alle in der Reihe ab 523 -- sechs am
      Backen selbst (die Tafel schneidet nicht mehr, `medium` wird
      mitgeschnitten, die gespeicherten statt der gedrehten Masse, die Kiste
      ohne Klammer am Rand, das Hochrechnen auf die Zielkante und der Lauf ohne
@@ -20028,7 +20028,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      wartet nicht, die Meldung reist nicht zurueck), drei an der Fassung (die
      Spalte, die Adresse) und der Rechnung im Browser, und einer, der den
      CSS-Zuschnitt ZURUECKHOLT -- damit auch die zweite Haelfte der Runde eine
-     Gegenprobe hat.
+     Gegenprobe hat -- und einer (540) an der Fortschrittszeile, die seit
+     dieser Runde in BEIDE Richtungen zeigen muss.
      ELF VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
      201): 446 zeigte auf den eingespielten Ausschnitt, 483 auf die Masse im
      Editor, 506 bis 508, 510, 511, 513, 514, 516 bis 518 und 522 auf Zeilen,
@@ -20041,7 +20042,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      dem Stilblatt genommen und setzt sie jetzt WIEDER -- ein zurueckgenommener
      Beschluss laesst eine Spur zurueck, sonst kommt er wieder.
      KEINER IST WEGGEFALLEN. */
-  pruefe('Es sind genau 531 Rueckbauten', gpListe.length === 531, `${gpListe.length}`);
+  pruefe('Es sind genau 532 Rueckbauten', gpListe.length === 532, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -30253,10 +30254,27 @@ async function pruefeOberflaeche() {
                           nachgezogen: 825, uebersprungen: 2, zugenommen: 61341696 } });
     await sysAbschnitt(geoFertig.w, 'datenbank');
     const geoZeile = geoFertig.w.document.getElementById('geo-lauf')?.textContent || '';
-    pruefe('Nach dem Nachziehen sagt die Zeile, was herauskam',
+    pruefe('Nach dem Backen sagt die Zeile, was herauskam',
       /825 von 1032/.test(geoZeile) && /2 übersprungen/.test(geoZeile) &&
       /58,5 MB mehr/.test(geoZeile), geoZeile);
     geoFertig.w.close();
+
+    /* UND SIE KENNT BEIDE RICHTUNGEN -- 0.19.5. Bis 0.19.4 wurde die Kachel
+       GROESSER (512 statt 400 auf der kurzen Kante), und die Zeile sagte
+       deshalb nur „mehr". Gebacken wird sie in der Regel KLEINER: gemessen
+       -34,2 % ueber zwoelf Seitenverhaeltnisse. Eine Zeile, die nur eine
+       Richtung kennt, verschwiege den haeufigeren Fall -- und zwar in genau
+       der Zahl, an der der Betreiber ablesen will, was der Lauf gebracht
+       hat. */
+    const geoKleiner = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { statsGeometrie: { laeuft: false, gesamt: 1032, erledigt: 1032, geprueft: 1032,
+                          nachgezogen: 825, uebersprungen: 0, zugenommen: -20971520 } });
+    await sysAbschnitt(geoKleiner.w, 'datenbank');
+    const geoKleinerZeile = geoKleiner.w.document.getElementById('geo-lauf')?.textContent || '';
+    pruefe('Und wenn die Kacheln kleiner geworden sind, sagt sie „weniger"',
+      /20,0 MB weniger/.test(geoKleinerZeile) && !/mehr/.test(geoKleinerZeile),
+      geoKleinerZeile);
+    geoKleiner.w.close();
 
     /* UND SIE STEHT NICHT DA, WENN ES NICHTS ZU SAGEN GAB. Der Lauf faehrt
        bei JEDEM Start und findet nach dem ersten Durchgang nichts mehr; eine

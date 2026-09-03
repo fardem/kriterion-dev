@@ -280,6 +280,22 @@ Kachel, die sich sofort ändert statt nach 24 Stunden.**
 eine Zeile, deren Maße sich nicht lesen ließen, trägt eine ungeschnittene
 Ableitung, und ohne `cover` verzerrte sie dort.
 
+### `db.js` — die Kommentare am Schema
+
+**Zwei Sätze im Schema waren nach dieser Runde falsch** und sind umgedreht
+statt gelöscht (Stolperstein 201): *„Schneidet nichts weg … die beiden Werte
+verschieben nur das sichtbare Fenster"* am Fokuspunkt und *„die Anzeige
+skaliert (transform: scale) … Kein Neurechnen, keine zweite Fassung"* am Zoom.
+**Was von beiden gilt, ist der tragende Teil: das ORIGINAL bleibt ganz.**
+
+> **UND EIN BEFUND BEIM BAUEN, der hier steht, weil er den Server gekostet
+> hätte.** Das ganze Schema ist **EIN Template-String**, und die Kommentare
+> darin sind SQL-Kommentare. *Der übrige Quelltext dieses Projekts setzt
+> Bezeichner in Kommentaren gewohnheitsmäßig in Backticks* — **hier drin
+> beendet ein Backtick den String**, aus der DDL wird Quelltext, und der Server
+> startet nicht mehr. **Gefunden hat es `node --check`, bevor es jemand anderes
+> tat.** *Über dem Schema steht seither eine Zeile, die es sagt.*
+
 ---
 
 ## 3. Die Entscheidung zu `.lb-thumb` — eine Verhaltensänderung, ausdrücklich

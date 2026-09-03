@@ -67,6 +67,14 @@ function verfahren() {
   };
 }
 
+/* KEIN BACKTICK IN DIESEM STRING -- auch nicht in einem SQL-Kommentar.
+   Das ganze Schema ist EIN Template-String, und ein Backtick beendet ihn:
+   aus der DDL wird dann Quelltext, und der Server startet nicht mehr. Der
+   uebrige Quelltext dieses Projekts setzt Bezeichner in Kommentaren
+   gewohnheitsmaessig in Backticks -- hier drin darf das nicht sein.
+   NACHGESEHEN UND NICHT VERMUTET: beim Nachziehen der Kommentare zu 0.19.5 ist
+   genau das passiert, und `node --check` hat es gefunden, bevor es jemand
+   anderes tat. */
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS product_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,9 +154,14 @@ CREATE TABLE IF NOT EXISTS photos (
   -- Zwei Stellen fuer dieselbe Liste laufen auseinander.
   art TEXT NOT NULL DEFAULT 'bild',   -- 'bild' | 'video'
   dauer INTEGER,                      -- Sekunden, nur bei Video
-  -- Fokuspunkt in Prozent. Schneidet nichts weg: die Datei bleibt unangetastet,
-  -- die beiden Werte verschieben nur das sichtbare Fenster der quadratischen
-  -- Vorschau (object-position).
+  -- Fokuspunkt in Prozent. DAS ORIGINAL BLEIBT UNANGETASTET; geschnitten wird
+  -- ausschliesslich die Ableitung thumb, und zwar seit 0.19.5 am Server.
+  -- Bis 0.19.4 stand hier: „Schneidet nichts weg ... die beiden Werte
+  -- verschieben nur das sichtbare Fenster der quadratischen Vorschau
+  -- (object-position)." Der erste Halbsatz galt fuer die DATEI und gilt
+  -- weiter; der zweite beschrieb den Weg, und der ist ein anderer geworden
+  -- (Stolperstein 201). DIE DREI WERTE SIND DAS REZEPT fuer die Kachel --
+  -- deshalb ist der Ausschnitt jederzeit aenderbar.
   focus_x REAL NOT NULL DEFAULT 50,
   focus_y REAL NOT NULL DEFAULT 50,
   -- Der dritte Wert dieser Art heisst zoom und steht GANZ UNTEN, nicht hier.
@@ -158,9 +171,12 @@ CREATE TABLE IF NOT EXISTS photos (
   -- WIE ENG DAS FENSTER SITZT, in Prozent. 100 heisst "so weit wie das Bild
   -- hergibt" -- also genau das, was bis 0.18.1 die einzige Moeglichkeit war;
   -- 400 heisst viermal so nah. Der dritte Wert derselben Art wie focus_x und
-  -- focus_y und mit derselben Zusicherung: ES WIRD NICHTS GESCHNITTEN. Die
-  -- Datei bleibt ganz, die Anzeige skaliert (transform: scale) und der
-  -- Behaelter beschneidet. Kein Neurechnen, keine zweite Fassung.
+  -- focus_y und mit derselben Zusicherung: DAS ORIGINAL BLEIBT GANZ.
+  -- Bis 0.19.4 stand hier weiter: „die Anzeige skaliert (transform: scale) und
+  -- der Behaelter beschneidet. Kein Neurechnen, keine zweite Fassung."
+  -- SEIT 0.19.5 WIRD SEHR WOHL NEU GERECHNET: der Server backt den Ausschnitt
+  -- in thumb, und die Anzeige skaliert nichts mehr. Eine ZWEITE FASSUNG gibt
+  -- es trotzdem nicht -- es ist dieselbe Spalte, neu abgeleitet.
   --
   -- WARUM ER HIER UNTEN STEHT UND NICHT NEBEN focus_y, wo er hingehoerte:
   -- ALTER TABLE ADD COLUMN haengt eine Spalte IMMER HINTEN AN. Stuende sie in

@@ -4963,6 +4963,18 @@ const RUECKBAUTEN = [
     ersatz: "  const eng = seite;                       // was sie beim eingestellten Zoom zeigt",
     erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
   },
+  {
+    /* DIE FORTSCHRITTSZEILE KENNT NUR NOCH EINE RICHTUNG. Bis 0.19.4 wurde die
+       Kachel groesser, und „mehr" war immer richtig; gebacken wird sie in der
+       Regel kleiner. Danach staende in der Karte „20 MB mehr", wo 20 MB frei
+       geworden sind -- eine Zahl, die in die falsche Richtung zeigt, ist
+       schlechter als keine. */
+    nr: '540', name: 'Die Fortschrittszeile kennt nur eine Richtung',
+    datei: 'public/app.js',
+    suche: "${d > 0 ? 'mehr' : 'weniger'}",
+    ersatz: "mehr",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
