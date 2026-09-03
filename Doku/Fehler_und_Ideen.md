@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 28. August 2026, nach der Zuordnung**
+**Das Sammelblatt · Stand 3. September 2026, nach der zweiten Zuordnung**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -35,6 +35,11 @@ entfällt der Einwand"), nie als eigener Punkt.*
 angewandt worden: **dreizehn ausgearbeitete Punkte und zehn Zeilen aus Teil II
 sind an diesem Tag fortgezogen**, mitsamt ihrer Ausarbeitung, in Abschnitt 10a
 des Projektstands. Die Tabelle am Anfang von Teil I sagt, wohin.*
+*Am **3. September 2026** ist sie zum zweiten Mal angewandt worden, und diesmal
+auf einen einzigen Punkt: **Punkt 8** („Alte Sicherungen aufräumen — ohne
+Shell") ist als **0.20.0** fortgezogen, mitsamt seiner Ausarbeitung. **Eine
+Zuordnung muss keine dreizehn umfassen** — sie muss nur in einem Zug
+geschehen und ihren Grund nennen.*
 *Mitgezogen ist dabei auch, was an einem Punkt **ausdrücklich nicht** gebaut
 werden soll — für einen Auftrag ist die Grenze der Runde so bindend wie ihr
 Inhalt.*
@@ -133,13 +138,19 @@ beim Bauen vergessen hat.**
 
 # Teil I — Ausgearbeitete Punkte
 
-## Was am 28. August 2026 eine Nummer bekommen hat
+## Was eine Nummer bekommen hat
 
-**Dreizehn ausgearbeitete Punkte und zehn Zeilen aus Teil II sind an diesem Tag
-Runden zugeordnet worden.** Nach Regel 3 stehen sie damit **nicht mehr hier**,
+**Am 28. August 2026 sind dreizehn ausgearbeitete Punkte und zehn Zeilen aus
+Teil II Runden zugeordnet worden; am 3. September 2026 kam Punkt 8 dazu.**
+Nach Regel 3 stehen sie damit **nicht mehr hier**,
 sondern im Fahrplan — Projektstand, **Abschnitt 10a**, dort mit ihrer
 vollständigen Ausarbeitung. *Diese Tabelle sagt nur, wohin sie gegangen sind;
 sie ist ein Wegweiser und kein zweiter Eintrag.*
+
+> **DIE NUMMERN IN DIESER TABELLE SIND DIE VON HEUTE UND NICHT DIE VON DAMALS.**
+> Am 3. September 2026 ist alles hinter 0.19.4 um eine Stelle gerückt, weil
+> Punkt 8 die 0.20.0 bekommen hat. *Wo eine Zeile eine frühere Nummer trug,
+> steht sie daneben — gestrichen wird keine (Stolperstein 201).*
 
 | Runde | Was daraus geworden ist |
 |---|---|
@@ -157,12 +168,16 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.17.5** *PATCH* — **GEBAUT am 31. August 2026** | **Nichts aus diesem Blatt.** Zwei Befunde aus dem Rundlauf mit 0.17.4, gemeldet mit Bildern und **mit dem Fingerprint daneben** (`d3113d62`). **Der erste ist der Befund aus 0.17.2, endlich gefunden:** `max-height: max-content` klemmt die Forderung einer kurzen Liste nicht überall — in Chromium schon, in der laufenden Instanz nicht, und dort forderte JEDE Liste ihre zehn Zeilen, auch die leere. *Gemessen: „Zugänge" 728 gegen 498 px, der Papierkorb leer rund 570 gegen 225.* **Der zweite:** der Name im Sicherheitsprotokoll stand in jeder Zeile woanders, weil jede Zeile ihr eigenes Raster war. **Was gebaut wurde, steht im Änderungsprotokoll 0.17.5.** *Beide Punkte sind gebaut; nichts ist hierher zurückgekommen.* ***Zwei Zusagen sind zurückgenommen:*** *dass eine Liste die Höhe einer höheren Nachbarin ausnutzt, und dass der Deckel „eine Forderung und keine Grenze" sei — beide hingen an demselben Schlüsselwort.* ***Die Lehre steht als Stolperstein 257:*** *ein Befund, den man nicht nachstellen kann, ist nicht erledigt, sondern unerklärt — und der Unterschied zwischen Meldung und Messung ist der Fund.* |
 | **0.18.0** *MINOR* *(war 0.17.0)* — **GEBAUT am 1. September 2026** | **Die Suche schärfen — Trefferkontext und Hervorhebung.** *Der älteste Punkt dieses Blatts, aufgefallen am 27. August 2026 und dreimal übersprungen.* Eine Zeile an der Kachel nennt die Quelle und zeigt den Ausschnitt mit der Fundstelle darin, in einer festen Folge, die bei dem beginnt, was die Kachel nicht zeigt; der Begriff ist hervorgehoben und steht in der Adresse des geöffneten Treffers. **Was gebaut wurde, steht im Änderungsprotokoll 0.18.0.** *Teil (a) und (c) sind gebaut, dazu die offene Frage nach der Adresse — mit „ja" beantwortet.* ***Was liegen bleibt, steht als eigener Punkt unten: der Suchbereich als Häkchen (b).*** ***Eine Abweichung:*** *Titel und Beschreibung der Detailansicht tragen keine Marke — beide sind Eingabefelder, und in ein `<input>` lässt sich kein Element hängen (Stolperstein 263).* ***Und zwei Behauptungen der Ausarbeitung haben nicht getragen:*** *die Antwort ist nicht umsonst zu haben — SQLite bricht die ODER-Kette beim ersten Treffer ab (Stolperstein 260) —, und die schmalste Kachel ist nicht 240, sondern 173 px breit (Stolperstein 261).* |
 | **0.19.0** *MINOR, Schema* *(war 0.18.0)* — **GEBAUT am 1. September 2026** | **Die Bildablage.** *Punkt 15 dieses Blatts, aufgefallen am 28. August 2026 aus der Frage nach der Größe der Datenbank; am 30. August um den engeren Ausschnitt und das Bildformat erweitert.* **Gemessen an der echten Instanz: 679 der 1032 Bilder lagen als PNG im Original, 435,7 von 568,9 MB — als WebP `nearLossless` 60 werden daraus 161,9 MB, bei einer größten Abweichung von 2 von 255 und null von hundert Bildern mit sichtbarer Kante.** Gebaut sind: die Umwandlung beim Hereinkommen samt Schalter (Vorgabe an, nur der Eigentümer), der **Knopf**, der den vorhandenen Bestand nachzieht, der **engere Ausschnitt** (`photos.zoom`, achter Migrationsblock, Austauschformat 12), die aufgeschriebene **Asymmetrie der beiden Bildwege** und die zusammengelegte Kennzahlenabfrage. **Was gebaut wurde, steht im Änderungsprotokoll 0.19.0.** ***Diese Runde hebt eine Einschätzung dieses Blatts auf:*** *„Claude: nicht empfohlen für (a)" und „das Original wird nicht angefasst" galten vor der Messung und gelten für eine **Kameraaufnahme**; dieser Bestand besteht zu 92 % aus **Bildschirmfotos**, und die haben kein Negativ. Die Aufhebung steht mit ihrem Grund in Abschnitt 10a und am Quelltext — sie ist nicht gelöscht.* ***Was liegen bleibt, steht als eigene Zeile unten: die Ableitungen auf WebP.*** ***Und ein Befund aus dem Bauen:*** *die `effort`-Leiter ließ sich nicht am echten Bestand messen, und an erzeugtem Material hängt die Antwort vom Material ab (Stolperstein 270).* |
-| **0.20.0** *MINOR* *(neu, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
-| **0.21.0** *MINOR* *(war 0.19.0, Nummer vorläufig)* | Bereinigung — der Bruch |
+| **0.19.4** *PATCH* — **GEBAUT am 3. September 2026** | **Die Vorschaubilder werden zu klein gerechnet.** *Punkt 7 dieses Blatts, aufgefallen beim Messen zu 0.19.1 am 2. September 2026.* `thumb` war 400 px auf der **langen** Kante und wird ausschließlich mit `object-fit: cover` gezeigt — **wer einschneidet, braucht die kurze.** Gebaut ist die Ableitungsregel als **Kiste** aus kurzer Kante und Deckel (`thumb` 512/1280, `medium` unverändert), dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht. **Was gebaut wurde, steht im Änderungsprotokoll 0.19.4.** ***Zwei Zahlen der Ausarbeitung haben nicht getragen:*** *die Kachel ist nicht 313, sondern **299 CSS-px** breit, und es sind **1032** Bilder und nicht 1034.* ***Und zwei Dinge sind mit Begründung NICHT nachgezogen worden:*** *die Videokacheln (es gibt keine Vorlage mehr) und der Bestand an Kommentarbildern (`.cmt-img` ist 86 × 86 px — der alte `thumb` deckte das bei dPR 1 und 2 ganz).* |
+| **0.20.0** *MINOR* *(neu am 3. September 2026)* | **Alte Sicherungen aufräumen — ohne Shell.** *Punkt 8 dieses Blatts, aufgefallen im Betrieb am 2. September 2026.* **Er hat als erster Punkt seit dem 28. August wieder eine Nummer bekommen, und alles dahinter ist um eine Stelle gerückt** — die Oberfläche eingeschlossen, die sechsmal in Folge nicht gerückt worden war. *Ausarbeitung: Projektstand, Abschnitt 10a; der Grund für die Nummer steht in Abschnitt 10, beim siebten Rücken.* |
+| **0.21.0** *MINOR* *(war 0.20.0, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
+| **0.22.0** *MINOR* *(war 0.21.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
+| **0.23.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
-**Was hier bleibt, bleibt aus einem Grund:** die fünf Punkte unten haben
+**Was hier bleibt, bleibt aus einem Grund:** die sechs Punkte unten haben
 **keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — zwei sind
-`nicht empfohlen`, drei sind `später`. *Punkt 4 ist am 1. September 2026
+`nicht empfohlen`, drei sind `später`, und einer wartet auf die Runde, in der
+über die Verfahren entschieden wird. *Punkt 4 ist am 1. September 2026
 dazugekommen: er ist der Teil von Punkt 1, den 0.18.0 mit Begründung liegen
 gelassen hat.* *Punkt 5 ist am selben Tag dazugekommen: er ist der Teil von
 Punkt 15, den 0.19.0 liegen lässt — **und sein Grund ist ein anderer als
@@ -170,26 +185,32 @@ vorher.*** *Ein Sammelblatt, in dem nur noch das Verworfene
 steht, sieht mager aus. Es ist trotzdem der richtige Zustand: alles Übrige ist
 entschieden und hat seinen Ort.*
 
+> **AM 3. SEPTEMBER 2026 SIND ZWEI PUNKTE VON HIER FORTGEZOGEN, und zwar auf
+> zwei verschiedenen Wegen.** **Punkt 7** („Die Vorschaubilder werden zu klein
+> gerechnet") ist **gebaut** — nach Regel 2 steht er damit nicht mehr hier,
+> sondern im Änderungsprotokoll 0.19.4 und im Projektstand. **Punkt 8** („Alte
+> Sicherungen aufräumen — ohne Shell") hat **eine Nummer bekommen** — nach
+> Regel 3 steht er damit nicht mehr hier, sondern im Fahrplan, mit seiner
+> vollständigen Ausarbeitung in Abschnitt 10a. *Ein Punkt wandert von hier in
+> den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.*
+
 ---
 
 ## Übersicht nach Art
 
 | Art | Punkte in Teil I |
 |---|---|
-| **Fehler** | **7** *(der einzige davor, der Export, ist 0.12.3 geworden)* |
+| **Fehler** | — *(der letzte, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden)* |
 | **Verbesserung** | — |
 | **Neue Funktion** | 1, 2, 3, 4, **6** |
 | **Design** | — |
 | **Verbesserung** *(nachgetragen)* | 5 |
-| **Bauwunsch** *(nachgetragen)* | **8** |
 
 | Einschätzung | Punkte |
 |---|---|
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
-| **empfohlen, noch ohne Nummer** | **8** |
-| **eingetragen als 0.21.0** | **5, 6** |
-| **eingetragen als 0.19.4** | **7** |
+| **eingetragen als 0.22.0** | **5, 6** |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
 
@@ -482,11 +503,17 @@ gespeicherten Ansichten, Prüfungen, Gegenproben, README. **Kein Schema.**
 ## 5. Die Ableitungen auf WebP — was von Punkt 15 liegen geblieben ist
 
 > **STAND 2. SEPTEMBER 2026: er hat eine Nummer bekommen.** Die Ableitungen
-> gehen in **0.21.0** mit — in derselben Runde, die über die Verfahren der
-> Bildablage entscheidet. *Ein Durchgang über den Bestand statt zwei.*
-> **Und der Grund, warum er überhaupt drängt, hat sich noch einmal geschärft:**
-> die Vorschaukachel rechnet ihr Bild ohnehin hoch (siehe Punkt 7 und die
-> Runde 0.19.4), und was man dabei sieht, ist ein JPEG q84.
+> gehen in **0.22.0** mit *(bis zum 3. September 2026 als 0.21.0 geführt;
+> gerückt, weil Punkt 8 die 0.20.0 bekommen hat)* — in derselben Runde, die
+> über die Verfahren der Bildablage entscheidet. *Ein Durchgang über den
+> Bestand statt zwei.*
+> **DER GRUND, WARUM ER DRÄNGT, IST MIT 0.19.4 EIN ANDERER GEWORDEN.** Bis
+> dahin lautete er: die Vorschaukachel rechnet ihr Bild ohnehin hoch, und was
+> man dabei sieht, ist ein JPEG q84. **Das Hochrechnen ist mit 0.19.4 weg** —
+> *geblieben ist, dass die Ableitungen JPEG sind, und das ist jetzt der ganze
+> Punkt.* **Und sie sind seither größer:** der `thumb` trägt das 3,06fache an
+> Bytes eines 16:9-Bildes, und genau daran wäre ein sparsameres Verfahren mehr
+> wert als vorher.
 
 **Ausgelöst von 0.19.0** — *und der Punkt steht hier, weil sein GRUND sich mit
 jener Runde geändert hat.*
@@ -1083,182 +1110,6 @@ gegen die Wahl, gehört aber in die Abwägung.*
 `legeBildAb()`, die Kachel „Bildablage" (ab 0.19.1 eine eigene), der
 Umstellungslauf, die zweite Bestätigung. **Kein Schema.**
 
-> **EINGETRAGEN ALS 0.21.0**, zusammen mit den Ableitungen aus Punkt 5.
-
----
-
-## 7. Die Vorschaubilder werden zu klein gerechnet
-
-**Art:** Fehler · **Claude:** empfohlen · **Draußen üblich:** ja — jede
-Fotoverwaltung leitet nach der **kurzen** Kante ab, wenn die Kachel quadratisch
-ist.
-
-### Woher
-
-Aus dem Messen zu 0.19.1, **2. September 2026**. Aufgefallen ist es beim
-Nachrechnen des engeren Ausschnitts: die Kachel zieht das Bild größer, als das
-Vorschaubild hergibt.
-
-### Was auffiel
-
-**`thumb` ist 400 px auf der LANGEN Kante, die Kachel ist quadratisch und
-fordert die KURZE.** Ein Bildschirmfoto im Verhältnis 16:9 hat als `thumb` also
-400 × 225 Bildpunkte, und die Kachel braucht 313 × 313:
-
-| | Faktor |
-|---|---|
-| 16:9 auf einer Kachel von 313 px | **1,39×** hochgerechnet |
-| dasselbe auf einem 2×-Bildschirm | **2,78×** |
-| dazu der engere Ausschnitt bei 250 % | **3,48×** |
-
-**Das ist keine Anzeigefrage, sondern die Ableitungsregel.** Sie ist seit dem
-ersten Tag so, und sie fällt erst auf, seit die Kachel den Ausschnitt enger
-ziehen kann.
-
-### Was es NICHT ist
-
-**Kein Fehler des engeren Ausschnitts.** Der Zoom macht die Unschärfe nur
-sichtbarer; sie ist auch ohne ihn da. **Und keine Frage des Formats** — ob die
-Ableitung JPEG bleibt oder WebP wird, entscheidet die Runde über die Verfahren
-(Punkt 5 und Punkt 6). *Die Geometrie hängt an keinem Verfahren.*
-
-### Was gebaut werden könnte
-
-Die Ableitungsregel auf die **kurze** Kante umstellen und die vorhandenen
-**1034** Vorschaubilder neu ableiten.
-
-### Was es anfasst
-
-`makeVariants()`, ein Bestandslauf über alle Bilder. **Kein Schema.**
-
-> **EINGETRAGEN ALS 0.19.4** *(bis zum 2. September 2026 als 0.19.3 geführt;
-> gerückt, weil 0.19.2 dazwischenkam)*, und ausdrücklich NICHT zusammen mit den
-> Verfahren: die Geometrie ist ein Fehler und wartet nicht auf eine
-> Entscheidung. **Sie steht aber hinter 0.19.3** — der Lauf über 1034 Bilder
-> hat im Anfrageweg nichts verloren.
-
----
-
-## 8. Alte Sicherungen aufräumen — ohne Shell
-
-**Art:** Bauwunsch · **Claude:** empfohlen · **Draußen üblich:** ja — jede
-Sicherungslösung kennt eine Aufbewahrungsregel („retention"), und praktisch
-alle bauen sie aus **zwei** Bedingungen: eine Mindestzahl und ein Alter.
-
-### Woher
-
-Aus dem Betrieb, **2. September 2026**, unmittelbar nach dem Einspielen von
-0.19.3: *„wie löscht man ohne Shell zu nutzen alte Sicherungen?"*
-
-### Was auffiel
-
-**Kriterion schreibt Sicherungen, aber es entfernt keine.** `POST
-/api/sicherung` legt eine Datei `kriterion-<Zeitmarke>.sqlite` im
-Sicherungsordner ab; die Karte zeigt seit 0.16.0 die **jüngste** Kopie, ihre
-**Zahl** und wie viele davon **vor dem letzten Schlüsselwechsel** entstanden
-sind. **Wegräumen lässt sich nichts** — dafür braucht es heute eine Shell auf
-dem Wirt, und genau die soll ein Betreiber für den Alltag nicht brauchen.
-
-**Und jede Kopie ist so groß wie die ganze Datenbank.** *Bei heute rund
-570 MB Bildbestand ist die zehnte Sicherung ein halbes Dutzend Gigabyte.*
-
-### Was es nicht ist
-
-**Kein Fehler.** Es ist keine falsche Zusage und keine kaputte Funktion — es
-fehlt eine Hälfte, die von Anfang an nicht gebaut wurde. *Ein Wunsch, der als
-Fehler abgeheftet wird, drängelt sich in die falsche Runde.*
-
-**Und ausdrücklich keine Zeitsteuerung.** Kriterion hat keinen Scheduler und
-soll für diese eine Sache keinen bekommen. **Was hier gebaut wird, läuft im
-Anschluss an eine Sicherung** — an dem einen Augenblick, in dem sicher
-feststeht, dass eine frische, vollständige Kopie da ist.
-
-### Was gebaut werden könnte
-
-**a) DIE REGEL — zwei Bedingungen, und beide müssen zutreffen.** *Das ist der
-Kern des Vorschlags; alles andere hängt daran.*
-
-> **Gelöscht wird eine Kopie nur, wenn sie BEIDES ist:
-> nicht unter den N jüngsten UND älter als X Tage.**
-
-*Vorschlag für die Vorgaben: **N = 3**, **X = 30**.*
-
-**Warum beide und nicht eine:**
-
-| nur „älter als 30 Tage" | nur „die letzten 3" |
-|---|---|
-| Eine Installation, an der ein halbes Jahr nicht gesichert wurde, verliert **alle** Kopien auf einen Schlag — genau dann, wenn sie die einzigen sind. | Wer an einem Nachmittag viermal auf den Knopf drückt, wirft damit die Kopie vom Vormonat weg, obwohl nichts alt ist. |
-
-**Zusammen decken sie sich gegenseitig ab:** die Zahl ist der **Boden**, das
-Alter ist die **Schere**. *Eine Kopie fällt nur, wenn sie entbehrlich **und**
-alt ist.*
-
-**b) EINE VORSCHAU, BEVOR ETWAS GESCHIEHT.** Die Karte nennt namentlich, welche
-Dateien die Regel treffen würde, mit Datum und Größe, und was das an Platz
-freigäbe. **Ohne Vorschau ist es eine Wette.**
-
-**c) DER SCHALTER, UND ER STEHT AUF AUS.** *Das ist die Abweichung von
-`bilderUmwandeln`, und sie hat einen Grund:* eine umgewandelte PNG-Datei holt
-der Knopf in der Gegenrichtung zurück — **eine gelöschte Sicherung holt
-nichts zurück.** Was nicht umkehrbar ist, wird nicht stillschweigend
-eingeschaltet. *Die Karte fragt einmal deutlich; wer will, schaltet ein.*
-
-**d) UND EIN KNOPF DANEBEN, der die Regel EINMAL anwendet** — für den, der
-nicht dauerhaft einschalten will. **Hinter der zweiten Bestätigung**, wie jeder
-Vorgang, der Bytes unwiderruflich entfernt.
-
-**e) DIE KOPIEN VON VOR DEM SCHLÜSSELWECHSEL FASST DIE REGEL NICHT AN.** *Sie
-lassen sich mit dem heutigen Schlüssel gar nicht öffnen — die Karte sagt das
-seit 0.16.0 und zählt sie.* **Sie sind nicht entbehrlich, sondern etwas
-anderes:** wer den alten Schlüssel noch hat, kommt an sie heran, und wer ihn
-nicht mehr hat, hat ohnehin nichts verloren. **Eine automatische Regel entfernt
-Überflüssiges, nicht Fremdes.** *Wegräumen lassen sie sich über denselben Knopf
-— aber ausdrücklich und einzeln, nicht nebenbei.*
-
-**f) JEDE LÖSCHUNG GEHT INS SICHERHEITSPROTOKOLL**, mit Zahl und
-freigegebenen Bytes — neben dem `sicherung`-Eintrag, den es schon gibt.
-
-### Offene Entscheidungen
-
-1. **Sind N und X einstellbar oder fest?** *Einstellbar heißt zwei Felder in
-   der Karte und zwei Werte in `settings`; fest heißt eine Zeile im Quelltext
-   und keine Bedienfrage.* **Vorschlag: einstellbar, aber mit engen Grenzen**
-   — N von 1 bis 20, X von 7 bis 365. *Ein Feld, in das jemand 0 schreiben
-   kann, ist eine Falle.*
-2. **Löschen oder in einen Papierkorb schieben?** *Kriterion hat einen
-   Papierkorb für Einträge. Für eine 600-MB-Datei wäre er sinnlos — der Platz
-   ist ja der Grund.* **Vorschlag: löschen, und die Vorschau ist der Ersatz für
-   den Papierkorb.**
-3. **Läuft die Regel auch, wenn eine Sicherung fehlschlägt?** **Nein**, und das
-   ist die wichtigste Zeile des ganzen Punktes: *aufgeräumt wird nur nach einer
-   Sicherung, die gelungen ist.* Sonst räumt die Installation genau in dem
-   Augenblick auf, in dem sie keine neue Kopie zustande bringt.
-4. **Was, wenn im Ordner fremde Dateien liegen?** **Angefasst wird
-   ausschließlich, was auf `SICHERUNG_MUSTER` passt** (`kriterion-*.sqlite`),
-   nur im geprüften Ordner, nie in Unterverzeichnissen. *Der Pfad geht durch
-   dieselbe Prüfung wie beim Schreiben — eine Löschroute, die sich auf ein
-   anderes Verzeichnis lenken lässt, wäre die gefährlichste Route der
-   Anwendung.*
-5. **Zählt der Boden alle Kopien oder nur die brauchbaren?** *Drei Kopien, von
-   denen zwei vor dem Schlüsselwechsel entstanden sind, sind in Wahrheit eine.*
-   **Vorschlag: der Boden zählt nur Kopien nach dem Wechsel** — dann wird bei
-   dieser Lage gar nichts gelöscht, und das ist die sichere Seite.
-
-### Was es anfasst
-
-`server.js` (eine Route, die Regel, der Aufruf nach `POST /api/sicherung`),
-`public/app.js` und `public/style.css` (Vorschau, Schalter, Knopf in der Karte
-„Sicherung"), dazu `F_ROUTEN` **70 → 71** und die Zwecke der zweiten
-Bestätigung **acht → neun**. **Kein Schema** — die zwei Werte gehören in
-`settings`. **Kein Bestandslauf**, keine Migration, kein neues Austauschformat.
-
-> **DIE HÄLFTE DER ARBEIT LIEGT SCHON DA.** `letzteSicherung()` liest den
-> Ordner bereits, prüft jede Datei gegen `SICHERUNG_MUSTER`, holt Größe und
-> Zeitpunkt und sortiert nach Alter — **die Regel ist ein Filter über genau
-> dieser Liste.** *Was fehlt, ist das Löschen, die Vorschau und die Bedienung.*
-
-> **EINGETRAGEN OHNE NUMMER**, wie jeder neue Punkt. **Es ist ein MINOR**
-> (neue Route, neuer Zweck der zweiten Bestätigung), und es passt in keine der
-> vorgemerkten Runden: 0.20.0 ist die Oberfläche, 0.21.0 die Bildablage, 0.22.0
-> die Bereinigung. *Es ist klein genug für eine eigene kleine MINOR-Runde und
-> hängt an nichts — es kann jederzeit dazwischen.*
+> **EINGETRAGEN ALS 0.22.0** *(bis zum 3. September 2026 als 0.21.0 geführt;
+> gerückt, weil Punkt 8 die 0.20.0 bekommen hat)*, zusammen mit den Ableitungen
+> aus Punkt 5.
