@@ -17705,6 +17705,45 @@ const freigabeHaupt = (zweck, ziel = null) =>
       }
     }
 
+    /* 12. UND DER IMPORT BACKT MIT. Die drei Zahlen kommen aus der Datei, und
+       die Kachel muss sie zeigen. Ohne das trüge JEDE eingespielte Zeile eine
+       ungeschnittene Kachel, bis der Bestandslauf beim nächsten Start
+       darüberfährt — an einem gerade eingespielten Bestand ist das der ganze
+       Bestand, und dazwischen liegt ein Neustart.
+       GEFUNDEN HAT DIESE LUECKE DIE GEGENPROBE: Rueckbau 529 nimmt dem Import
+       seinen Zuschnitt und kam beim ersten Lauf STUMM zurueck. Ein stummer
+       Rueckbau ist ein Fund und keine Formalie -- er ist die Stelle, an der
+       der Pruefstand wegsieht (Stolperstein 274). */
+    {
+      const roh = await geviertelt(1200, 900);
+      const imp = await sendeImport({ version: 12, title: 'Zuschnittprobe', items: [
+        { title: 'Eingespielt mit Ausschnitt',
+          photos: [{ mime_type: 'image/png', focus_x: 0, focus_y: 0, zoom: 400,
+                     data_base64: roh.toString('base64') }] }
+      ] }, 'merge');
+      pruefe('Ein Foto mit Ausschnitt lässt sich einspielen',
+        imp.status === 200, JSON.stringify(imp.inhalt));
+      const liste = (await ruf('GET', '/api/items')).inhalt || [];
+      const eingespielt = liste.find(i => i.title === 'Eingespielt mit Ausschnitt');
+      const foto2 = (eingespielt || {}).mainPhoto || {};
+      pruefe('Und die drei Zahlen kommen an',
+        foto2.focus_x === 0 && foto2.focus_y === 0 && foto2.zoom === 400,
+        JSON.stringify({ x: foto2.focus_x, y: foto2.focus_y, z: foto2.zoom }));
+      if (!foto2.id) {
+        uebergehe('Der Import backt den Ausschnitt in die Kachel', 'kein Foto angelegt');
+      } else {
+        const ki = await kachel(foto2.id);
+        /* 900 kurze Kante bei zoom 400 sind 225 -- und der Punkt 0/0 zeigt in
+           die linke obere Ecke, also auf das rote Viertel. */
+        pruefe('Der Import backt den Ausschnitt in die Kachel',
+          ki.masse === '225x225' && ecke(ki.farbe) === 'links oben',
+          `${ki.masse} · ${ecke(ki.farbe)}`);
+        pruefe('Und die Fassung steht auch an der eingespielten Zeile',
+          foto2.fassung === ki.bytes, `${foto2.fassung} gegen ${ki.bytes} Bytes`);
+      }
+      if (eingespielt) await ruf('DELETE', `/api/items/${eingespielt.id}`);
+    }
+
     await ruf('DELETE', `/api/items/${zu.id}`);
   }
 
