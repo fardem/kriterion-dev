@@ -44,6 +44,7 @@ jemand eine Shell öffnet.** Dazu kommt eine neue schreibende Route
 Bestandslauf, keine neue ausgelieferte Datei, keine neue Abhängigkeit.** Die
 beiden Werte der Regel gehören in `settings` — *Abschnitt 11: eine Einstellung,
 die dem Betreiber gehört, gehört in die Datenbank und nicht in die `.env`.*
+**Was sich bewegt, ist die Kartenzahl: neunzehn werden zwanzig** (Abschnitt 3).
 
 ---
 
@@ -93,21 +94,77 @@ dem Muster** — sie werden in dieser Runde nicht angefasst (Abschnitt 7).
 
 ---
 
-## 3. Die Vorschau — bevor irgendetwas geschieht
+## 3. Wo das sitzt — eine zwanzigste Karte
 
-**Die Karte „Sicherung" nennt namentlich, welche Dateien die Regel treffen
-würde, mit Datum und Größe, und was das an Platz freigäbe.** *Ohne Vorschau ist
-es eine Wette.*
+**IM SYSTEMBEREICH, ABSCHNITT „DATENBANK", UNMITTELBAR HINTER DER KARTE
+„SICHERUNG".** Dort steht alles, was mit der Datenbank selbst zu tun hat:
+Kennzahlen, Bildablage, Sicherung, Export.
+
+**GEPRÜFT WURDE ZUERST, OB ES IN DIE VORHANDENE KARTE PASST — es passt nicht.**
+*Nachgesehen, nicht vermutet:* die Karte „Sicherung" trägt heute schon bis zu
+**drei** Zustandskästen (Ortlage rot/grün, veraltete Kopien, kein passender
+Schlüssel), **vier** Kennzahlzeilen, das Feld für den Zielort mit eigenem Knopf
+und den Sicherungsknopf; ihre Zeichenfunktion ist mit rund 140 Zeilen die
+längste des Abschnitts. **Dazu kämen jetzt ein Schalter, zwei Zahlenfelder, eine
+Dateiliste mit Datum und Größe und zwei weitere Knöpfe.**
+
+**DAS PROJEKT HAT DIESE FRAGE SCHON EINMAL ENTSCHIEDEN, UND ZWAR SO:** in
+0.19.1 war *„die Karte Kennzahlen ist zu groß geworden — die Bildablage bekommt
+eine eigene Kachel, damit sind es neunzehn."* **Hier gilt derselbe Satz, und es
+kommt ein zweiter dazu:**
+
+> **EIN LÖSCHKNOPF GEHÖRT NICHT UNTER DEN SICHERUNGSKNOPF.** Die beiden
+> Vorgänge sind gegenläufig — der eine legt eine Kopie an, der andere wirft
+> welche weg —, und sie stünden untereinander in derselben Kachel. *Die
+> Verwechslung wäre nicht wiedergutzumachen.*
+
+**Die neue Karte heißt „Alte Sicherungen"**, Schlüssel `aufraeumen`, Abschnitt
+`datenbank`, sichtbar für **`EIGENTUEMER`** — dieselbe Klemme wie an der Karte
+daneben. *Keine neue Adresse und kein neuer Abschnitt: sie hängt an
+`#/system/datenbank` wie ihre Nachbarn.*
+
+**WAS DARAUS FOLGT UND IM AUFTRAG STEHEN MUSS:** `ALLE_KARTEN` wächst von 19 auf
+**20**, und der Prüfstand hält die Zahl namentlich fest *(„Und es sind wirklich
+neunzehn")* — **die Zusage wird mitgezogen, nicht umgangen.** Dazu die
+Kartenliste der README an zwei Stellen und die Kartenzahl im Projektstand.
+
+### Was auf der Karte steht
+
+**a) DIE BEIDEN WERTE, EINSTELLBAR.** Zwei Zahlenfelder mit Beschriftung im
+Klartext — *nicht „N" und „X", sondern das, was sie bedeuten:*
+
+| Feld | Bedeutung | Grenzen | Vorgabe |
+|---|---|---|---|
+| **„Immer behalten"** | die jüngsten **N** Kopien fasst die Regel nie an — *der Boden* | 1 bis 20 | **3** |
+| **„Erst löschen ab"** | eine Kopie muss älter als **X** Tage sein — *die Schere* | 7 bis 365 Tage | **30** |
+
+**Die Grenzen stehen am Server und nicht nur im Eingabefeld** (Entscheidung 1).
+*Ein Feld, in das jemand 0 schreiben kann, ist eine Falle — und `min`/`max` im
+HTML ist eine Bitte, keine Klemme.* **Ein Wert außerhalb der Grenzen wird
+abgewiesen, bevor irgendetwas gelöscht wird**, und die Karte sagt, warum.
+
+**b) DIE VORSCHAU — bevor irgendetwas geschieht.** Die Karte nennt namentlich,
+welche Dateien die Regel treffen würde, mit Datum und Größe, und was das an
+Platz freigäbe. *Ohne Vorschau ist es eine Wette.*
 
 - **Sie steht immer da**, auch wenn der Schalter aus ist — sie ist die Auskunft
   darüber, was die Regel bei den eingestellten Werten bedeutet.
-- **Trifft die Regel nichts, sagt sie das** und nennt den Grund in einem
-  halben Satz: *„Alle 3 Kopien sind unter den jüngsten 3."* / *„Die älteste ist
-  12 Tage alt."* **Eine leere Liste ohne Erklärung sieht aus wie ein Fehler.**
-- **Kopien von vor dem Schlüsselwechsel stehen getrennt**, mit ihrer eigenen
-  Zahl und Summe — *sie sind nicht entbehrlich, sondern etwas anderes.*
-- Die Werte N und X sind in derselben Karte einstellbar; **jede Änderung
-  rechnet die Vorschau neu**, ohne dass etwas gelöscht wird.
+- **Jede Änderung an einem der beiden Felder rechnet sie neu**, ohne dass etwas
+  gelöscht wird. *Wer die Zahl von 3 auf 1 stellt, sieht sofort, was das
+  kostet.*
+- **Trifft die Regel nichts, sagt sie das** und nennt den Grund in einem halben
+  Satz: *„Alle 3 Kopien sind unter den jüngsten 3."* / *„Die älteste ist 12 Tage
+  alt."* **Eine leere Liste ohne Erklärung sieht aus wie ein Fehler.**
+- **Kopien von vor dem Schlüsselwechsel stehen getrennt**, mit eigener Zahl und
+  Summe — *sie sind nicht entbehrlich, sondern etwas anderes.*
+- **Die Liste bekommt denselben Deckel wie jede Liste im Systembereich** (zehn
+  Zeilen, seit 0.17.3) — ein Ordner mit vierzig Kopien darf die Seite nicht
+  aufziehen.
+
+**c) UND DIE KARTE „SICHERUNG" BLEIBT, WIE SIE IST.** *Kein Verweis, kein
+zweiter Schalter, keine zweite Zahl.* **Sie sagt weiterhin, wie viele Dateien am
+Ort liegen** — diese Zeile ist die Brücke zwischen beiden Karten und steht schon
+da.
 
 ---
 
@@ -119,6 +176,9 @@ der Knopf in der Gegenrichtung zurück — **eine gelöschte Sicherung holt nich
 zurück.** **Was nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet.**
 Steht er an, wendet die Installation die Regel **im Anschluss an jede gelungene
 Sicherung** an.
+
+**Schalter und Knöpfe sitzen auf der neuen Karte aus Abschnitt 3**, nicht auf
+der Karte „Sicherung".
 
 **b) DER KNOPF — die Regel einmal anwenden**, für den, der nicht dauerhaft
 einschalten will. **Hinter der zweiten Bestätigung**, wie jeder Vorgang, der
@@ -247,9 +307,22 @@ wartet, gibt es nicht.* Belegt wird an ihm:
 10. **Die Grenzen halten am Server**: N = 0, X = 3, N = 999, `"drei"`, `null`
     werden abgewiesen, und zwar bevor irgendetwas gelöscht wird.
 
-**In der Oberfläche:** die Karte zeigt die Vorschau, der Schalter steht bei
-einer frischen Installation **auf AUS**, die beiden Felder tragen die Vorgaben,
-und der Knopf ist ohne Bestätigung nicht bedienbar.
+**In der Oberfläche:**
+
+- **Es sind jetzt zwanzig Karten** — die Zusage im Prüfstand wird mitgezogen,
+  nicht umgangen, und die Eigentümerin sieht alle zwanzig.
+- **Ein gewöhnlicher Admin sieht die neue Karte nicht** *(sie trägt
+  `EIGENTUEMER`, wie die Karte „Sicherung" daneben)*, und ein gewöhnlicher
+  Benutzer bekommt den Abschnitt „Datenbank" ohnehin nicht.
+- **Sie steht im Abschnitt „Datenbank", hinter „Sicherung"** — die Reihenfolge
+  ist geprüft, nicht zufällig.
+- **Der Schalter steht bei einer frischen Installation auf AUS**, und die
+  beiden Felder tragen die Vorgaben 3 und 30.
+- **Die Vorschau nennt dieselben Dateien, die das Löschen entfernt** — dieselbe
+  Funktion, an derselben Lage gegeneinander gehalten (Punkt 9 oben).
+- **Der Knopf ist ohne zweite Bestätigung nicht bedienbar.**
+- **Die Karte „Sicherung" ist unverändert** — dieselben Zeilen wie vorher,
+  namentlich nachgesehen.
 
 ---
 
@@ -277,6 +350,10 @@ und der Knopf ist ohne Bestätigung nicht bedienbar.
   und `POST /api/sicherung` zeigt.
 * **Der Prüfstand wächst von 5246**, die Rückbauliste von **535** (höchste
   Nummer 543).
+* **Neunzehn Karten werden zwanzig** — `ALLE_KARTEN` in `public/app.js`, die
+  Zusage im Prüfstand *(„Und es sind wirklich neunzehn")* und die Kartenzahl in
+  den Papieren. *Eine Zahl, die an vier Stellen steht, läuft auseinander, wenn
+  eine davon vergessen wird.*
 * **`F_ROUTEN` 70 → 71**, die Zahl steht im Prüfstand ausdrücklich und wird
   dort mitgezogen. *Die Zeile „aktuell 69 Routen" in Abschnitt 11 des
   Projektstands ist veraltet und gehört bei dieser Gelegenheit berichtigt.*
@@ -333,6 +410,12 @@ und der Knopf ist ohne Bestätigung nicht bedienbar.
   **Beide sagen bisher nichts darüber, was mit einer Kopie geschieht, wenn die
   nächste entsteht — weil bisher nichts geschah.** *Keine neue Datei, also kein
   neuer Eintrag im Fingerprint-Handgriff.*
+* **UND DIE KARTENLISTE DER README AN ZWEI STELLEN:** die Abschnittstabelle
+  *(„Datenbank | `#/system/datenbank` | Kennzahlen, Bildablage, Sicherung,
+  Export und Import")* und die Aufzählung der Karten darunter, in der jede Karte
+  ihren Absatz hat. **Die neue Karte bekommt beides.**
+* **DIE KARTENZAHL IM PROJEKTSTAND** — „neunzehn Karten" steht im Kopf, im
+  Betriebsstand und in der Versionsgeschichte.
 * **DAS KONZEPTPAPIER UND DAS VIDEOPAPIER WERDEN NICHT ANGEFASST.**
 * **`Doku/Auftrag_0.19.5.md` fällt mit diesem Auftrag weg** — *es liegt immer
   nur einer im Repo.* **Dieser hier fällt weg, wenn der nächste geschrieben
