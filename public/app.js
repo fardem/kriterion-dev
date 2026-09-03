@@ -151,7 +151,19 @@ function splitUrl(u) {
   } catch { return { dom: u, path: '' }; }
 }
 
-// Sterne-Widget. Skala ist ueberall fest 1-5.
+/* Sterne-Widget. Skala ist ueberall fest 1-5.
+   HINTER DEM FUENFTEN STERN EIN SECHSTER PLATZ MIT EINEM × -- 0.21.0, und nur
+   dort, wo es etwas zurueckzusetzen gibt (also bei `onReset`). Die Testtage
+   und jede reine Lesestelle rufen ohne, und die bekommen keinen sechsten
+   Platz.
+   ER IST IMMER IM DOKUMENT UND NUR SICHTBAR, WENN value > 0 -- ueber
+   `visibility` und nicht ueber `display`. Der Unterschied ist der ganze Punkt:
+   `display: none` naehme dem × seinen Platz, und die Sterne rutschten beim
+   ERSTEN Stern nach links. Genau diesen Sprung schafft dieselbe Runde eine
+   Spalte weiter rechts ab; ihn hier neu einzubauen waere absurd.
+   BIS 0.20.1 STAND DAS ZURUECKSETZEN AUF EINEM DOPPELKLICK, angekuendigt in
+   einem `title` -- also einem Hinweis, den kein Telefon je zeigt. Ein
+   sichtbarer Weg statt einem versteckten: beides faellt weg. */
 function stars(value, onPick, onReset) {
   const w = document.createElement('span');
   w.className = 'stars';
@@ -162,19 +174,35 @@ function stars(value, onPick, onReset) {
     s.dataset.v = i;
     w.appendChild(s);
   }
+  // Das Vorschauleuchten geht ueber die STERNE und nicht ueber alle Kinder --
+  // sonst faerbte das × als sechstes Kind mit, sobald jemand darueberfaehrt.
+  const sterne = () => [...w.querySelectorAll('.star')];
   w.addEventListener('mouseover', e => {
     if (!e.target.dataset.v) return;
     const h = +e.target.dataset.v;
-    [...w.children].forEach((s, i) => s.classList.toggle('on', i < h));
+    sterne().forEach((s, i) => s.classList.toggle('on', i < h));
   });
   w.addEventListener('mouseleave', () => {
-    [...w.children].forEach((s, i) => s.classList.toggle('on', i < value));
+    sterne().forEach((s, i) => s.classList.toggle('on', i < value));
   });
   w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });
   if (onReset) {
-    // Auch hier trifft der Doppelklick nur die eigene Zeile.
-    w.title = 'Doppelklick setzt meine Bewertung zurück';
-    w.addEventListener('dblclick', e => { e.preventDefault(); onReset(); });
+    const x = document.createElement('span');
+    x.className = 'sdel';
+    x.textContent = '×';
+    // „Meine" braucht kein Wort: das × steht an MEINEN Sternen, und die
+    // Durchschnittszelle daneben bleibt, was sie ist. Bei einem einzigen
+    // Zugang stellt sich die Frage ohnehin nicht.
+    x.title = 'Meine Sterne hier entfernen';
+    /* UNSICHTBAR UEBER EINE KLASSE UND NICHT UEBER `hidden`: `hidden` ist
+       `display: none` und naehme dem × seinen Platz. Die Klasse setzt
+       `visibility: hidden` -- der Platz bleibt, und mit ihm die Stelle, an der
+       die Sterne enden. Nebenbei nimmt `visibility` das × auch aus der
+       Tastaturreihenfolge und aus dem Vorleseprogramm, ohne das Raster zu
+       bewegen. */
+    if (!(value > 0)) x.classList.add('leer');
+    x.onclick = (e) => { e.preventDefault(); e.stopPropagation(); onReset(); };
+    w.appendChild(x);
   }
   return w;
 }
@@ -803,9 +831,21 @@ async function showEinladung(schluessel) {
 // Kommentare in der schmalen Spalte oder eine Kategorieauswahl über die volle
 // Breite wären schlechter als jede Vorgabe.
 const BLOCK_VORGABE = {
-  seite: ['kategorie', 'tags', 'bewertung'],
+  // Vorher steht vor nachher -- geschaetzt wird, bevor bewertet wird. Dieselbe
+  // Liste wie BLOCK_VORGABE.seite im Server; wer eine gespeicherte Reihenfolge
+  // hat, bekommt den neuen Block ueber ordneBereich() hinten angehaengt und
+  // kann ihn ziehen.
+  seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
   unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
 };
+/* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN `zu`
+   -- 0.21.0. Fuer sie entscheidet der Zustand des Eintrags; die Begruendung
+   steht bei BLICK weiter unten. Dieselbe Liste wie im Server, und aus
+   demselben Grund gefiltert: ein gespeichertes `bewertung` aus einer aelteren
+   Fassung faellt still heraus. */
+const BLOECKE_OHNE_ZU = ['potenzial', 'bewertung'];
+const ZU_BLOECKE = [...BLOCK_VORGABE.seite, ...BLOCK_VORGABE.unten]
+  .filter(k => !BLOECKE_OHNE_ZU.includes(k));
 let BLOECKE = { seite: [...BLOCK_VORGABE.seite], unten: [...BLOCK_VORGABE.unten], zu: [] };
 
 // Unbekannte Namen fliegen raus, fehlende hängen sich in der Vorgabereihenfolge
@@ -819,8 +859,7 @@ function uebernimmBloecke(roh) {
   BLOECKE = {
     seite: ordneBereich(roh && roh.seite, BLOCK_VORGABE.seite),
     unten: ordneBereich(roh && roh.unten, BLOCK_VORGABE.unten),
-    zu: (roh && Array.isArray(roh.zu) ? roh.zu : [])
-      .filter(k => [...BLOCK_VORGABE.seite, ...BLOCK_VORGABE.unten].includes(k))
+    zu: (roh && Array.isArray(roh.zu) ? roh.zu : []).filter(k => ZU_BLOECKE.includes(k))
   };
 }
 
@@ -882,6 +921,14 @@ function blockZusammenfassung(name, item) {
     case 'kategorie': return item.category ? item.category.name : 'keine';
     case 'tags': return String(item.tags.length);
     case 'bewertung': return item.avgRating ? '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') : 'keine Wertung';
+    /* NICHT „keine Wertung" -- das ist der Text des ANDEREN Kastens, und zwei
+       gleiche Texte an zwei Koepfen waeren ein Raetsel fuer den, der nur die
+       Koepfe sieht. Der Potenzialkasten steht an einem getesteten Eintrag
+       zugeklappt da, und genau dann ist diese Zeile alles, was von ihm zu
+       sehen ist: „Potenzial (⌀ 4,2)" -- so sieht man nach einem halben Jahr,
+       ob das, was man am meisten wollte, auch das Beste war. */
+    case 'potenzial': return item.potenzialRating
+      ? '⌀ ' + item.potenzialRating.toFixed(1).replace('.', ',') : 'keine Sterne';
     case 'beschreibung': {
       const t = (item.description || '').trim().replace(/\s+/g, ' ');
       if (!t) return 'leer';
@@ -899,6 +946,38 @@ function blockZusammenfassung(name, item) {
     case 'kommentare': return '';
     default: return '';
   }
+}
+
+/* WELCHE BLOECKE GERADE OFFEN STEHEN, OBWOHL DIE REGEL SIE ZUKLAPPEN WUERDE
+   -- und umgekehrt. 0.21.0.
+   EINE MENGE IM SPEICHER DER SEITE UND KEINE EINSTELLUNG: sie wird beim
+   Oeffnen eines anderen Eintrags geleert. Ein Klick auf einen der beiden
+   Sternkoepfe ist ein BLICK und kein Befehl -- er gilt, bis man den Eintrag
+   verlaesst.
+   WARUM NICHT GESPEICHERT: eine gespeicherte Einstellung gilt fuer ALLE
+   Eintraege zugleich. „Ich klappe an Eintrag 12 den Potenzialkasten auf"
+   hiesse dann „an allen Eintraegen offen", und beim naechsten Eintrag stuende
+   der falsche Kasten offen, ohne dass jemand wuesste, warum. Was vom EINTRAG
+   abhaengt, darf nicht in einer Einstellung stehen, die fuer alle gilt.
+   NUR DIE BEIDEN STERNKAESTEN. Jeder andere Block behaelt seinen gespeicherten
+   Einklappzustand -- der haengt an keinem Merkmal des Eintrags. */
+let BLICK = new Set();
+
+/* WAS DIE REGEL SAGT, WENN NIEMAND GEKLICKT HAT -- 0.21.0.
+   ungetestet -> Potenzial offen, Bewertung zu; getestet -> umgekehrt. Der
+   ZUSTAND des Eintrags entscheidet, nicht eine Einstellung.
+   DIE EINE AUSNAHME AUS RUECKSICHT AUF DEN BESTAND: traegt ein UNGETESTETER
+   Eintrag aus alten Zeiten schon Bewertungssterne, steht der Bewertungskasten
+   offen. Vorhandene Daten schlagen die Regel; nichts wird vor jemandem
+   versteckt, der es eingetragen hat.
+   GEZAEHLT WIRD `value > 0` ODER `avg != null` -- also MEINE Sterne oder die
+   irgendeines anderen. Nur die eigenen zu fragen versteckte fremde. */
+const hatSterne = (item, phase) => (item.ratings || [])
+  .some(r => r.phase === phase && (r.value > 0 || r.avg != null));
+
+function zuNachZustand(name, item) {
+  if (name === 'potenzial') return !!item.tested;
+  return !item.tested && !hatSterne(item, 'nachher');
 }
 
 // Wird nach jedem Neuzeichnen aufgerufen und muss deshalb mehrfach ausführbar
@@ -923,7 +1002,13 @@ function ruesteBloeckeAus(item) {
       kopf.classList.add('block-head-x');
     }
 
-    const zu = BLOECKE.zu.includes(name);
+    /* FUER GENAU ZWEI BLOECKE ENTSCHEIDET DER ZUSTAND UND NICHT DIE
+       EINSTELLUNG -- 0.21.0. Ein Klick kehrt die Regel fuer diesen Eintrag um
+       (BLICK), er speichert sie nicht. */
+    const nachZustand = BLOECKE_OHNE_ZU.includes(name);
+    const zu = nachZustand
+      ? (BLICK.has(name) ? !zuNachZustand(name, item) : zuNachZustand(name, item))
+      : BLOECKE.zu.includes(name);
     block.classList.toggle('zu', zu);
     kopf.querySelector('.bcaret').textContent = zu ? '▸' : '▾';
     const summe = kopf.querySelector('.bsumme');
@@ -936,8 +1021,15 @@ function ruesteBloeckeAus(item) {
     // nebenbei das Einklappen aus.
     kopf.onclick = (e) => {
       if (e.target.closest('button, input, select, a, .bgrip')) return;
-      BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];
-      speichereBloecke();
+      if (nachZustand) {
+        /* KEIN speichereBloecke(), KEIN PUT /api/settings -- der Klick ist ein
+           Blick. Umgeschaltet wird eine Menge im Speicher der Seite, und die
+           gilt bis zum Verlassen des Eintrags. */
+        if (BLICK.has(name)) BLICK.delete(name); else BLICK.add(name);
+      } else {
+        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];
+        speichereBloecke();
+      }
       ruesteBloeckeAus(item);
       // Was eingeklappt war, konnte nicht gemessen werden -- die Wolke im
       // Tagblock hat deshalb keine Zeilenbegrenzung. Jetzt steht sie im
@@ -1111,13 +1203,23 @@ let wolkeNeuzeichnen = null;
 // geschrieben, dass weder Beiwort noch Fall vorkommt -- sonst muesste man das
 // Geschlecht des eingetragenen Wortes kennen. Merksatz: Plural im Nominativ
 // und Akkusativ ist immer sicher; Dativ Plural und Singular meiden.
+/* DIE VORGABE DES VOKABULARS -- DIESELBE LISTE WIE VOKABULAR_VORGABE IM
+   SERVER, und das ist keine Doppelung ohne Grund: sie steht hier, damit die
+   Oberflaeche schon VOR dem ersten Abruf beschriftet ist. Der Server bleibt
+   die Wahrheit; was er liefert, ueberschreibt.
+   WER HIER EIN WORT VERGISST, MERKT ES ERST IM SYSTEMBEREICH: das Feld in der
+   Vokabularkarte stuende dann leer, solange der gespeicherte Satz es nicht
+   nennt -- und ein gespeicherter Satz nennt genau die Woerter, die schon
+   einmal jemand gesetzt hat. Genau das ist mit `potenzial` beim Bauen von
+   0.21.0 passiert. */
 let V = {
   sacheEinzahl: 'Eintrag', sacheMehrzahl: 'Einträge',
   merkmalJa: 'Getestet', merkmalNein: 'Ungetestet',
   zeitpunktEinzahl: 'Testtag', zeitpunktMehrzahl: 'Testtage',
   berichtEinzahl: 'Bericht', berichtMehrzahl: 'Berichte',
   aufgabeEinzahl: 'Aufgabe', aufgabeMehrzahl: 'Aufgaben',
-  aufgabeErledigt: 'Erledigt'
+  aufgabeErledigt: 'Erledigt',
+  potenzial: 'Potenzial'
 };
 
 // Weiterschaltung des Aufgabenknopfes: Notiz -> Aufgabe -> erledigt -> Notiz.
@@ -1855,6 +1957,14 @@ function visibleItems(filter) {
       case 'updated_asc': return a.updated_at.localeCompare(b.updated_at);
       case 'rating_desc': return (b.avgRating ?? -1) - (a.avgRating ?? -1);
       case 'rating_asc':  return (a.avgRating ?? 99) - (b.avgRating ?? 99);
+      /* SPIEGELBILD DER BEIDEN DARUEBER -- 0.21.0, mit denselben zwei
+         Ersatzwerten und aus demselben Grund: -1 in der einen Richtung und 99
+         in der anderen stellen die Eintraege OHNE Zahl in BEIDEN Richtungen
+         hinten an. Wer nach Potenzial sortiert, sucht die Kandidaten mit einer
+         Einschaetzung -- die ohne stehen nicht dazwischen, gleich wie herum
+         gefragt wird. */
+      case 'potenzial_desc': return (b.potenzialRating ?? -1) - (a.potenzialRating ?? -1);
+      case 'potenzial_asc':  return (a.potenzialRating ?? 99) - (b.potenzialRating ?? 99);
       case 'title_asc':   return a.title.localeCompare(b.title, 'de');
       case 'tests_desc':  return byTest(a, b, 'testCount', 'desc');
       case 'tests_asc':   return byTest(a, b, 'testCount', 'asc');
@@ -2597,6 +2707,14 @@ function drawFilters() {
     <optgroup label="Bewertung">
       <option value="rating_desc">Bewertung (hoch → niedrig)</option>
       <option value="rating_asc">Bewertung (niedrig → hoch)</option>
+      ${/* DIREKT HINTER DEN BEIDEN BEWERTUNGSEINTRAEGEN -- sie beantworten
+           dieselbe Art Frage, nur fuer den anderen Kasten.
+           DAS WORT KOMMT AUS DEM VOKABULAR und steht in der Klammer daneben,
+           nie darin verbaut: „Potenzial (hoch → niedrig)". `V` ist hier
+           geladen -- ladeEinstellungen() laeuft vor route(), und drawFilters()
+           haengt daran. */''}
+      <option value="potenzial_desc">${esc(V.potenzial)} (hoch → niedrig)</option>
+      <option value="potenzial_asc">${esc(V.potenzial)} (niedrig → hoch)</option>
       <option value="title_asc">Titel (A → Z)</option>
     </optgroup>
     <optgroup label="Verlauf">
@@ -2979,8 +3097,17 @@ function card(it) {
       ${testLine}
       <div class="card-foot">
         <span class="card-meta-l">
-          ${it.avgRating ? `<span class="rating-inline"><span class="dot">★</span>${it.avgRating.toFixed(1).replace('.', ',')}</span>`
-                         : `<span class="hint hint-sm">keine Wertung</span>`}
+          ${/* EINE KACHEL, EINE ZAHL -- 0.21.0. Bei einem GETESTETEN Eintrag die
+               Bewertung („★ 3,8"), bei einem UNGETESTETEN das Potenzial
+               („◆ 4,2"). Die andere steht im Kopf des zugeklappten Kastens am
+               Eintrag; die Kachel ist zu klein fuer zwei.
+               EIN ANDERES ZEICHEN, UND DAS IST DER PUNKT: sonst hielte jemand
+               4,2 Potenzial fuer 4,2 Qualitaet. Der `title` sagt dazu, welche
+               der beiden Zahlen dasteht -- mit dem Wort aus dem Vokabular.
+               FEHLT DIE JEWEILIGE ZAHL, STEHT DER HINWEIS DA -- und er nennt,
+               was fehlt: an einem ungetesteten Eintrag fehlt keine „Wertung",
+               sondern die Einschaetzung. */''}
+          ${kachelZahl(it)}
           ${it.linkCount ? `<span class="link-count">${it.linkCount} Links</span>` : ''}
         </span>
         <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="Zum Vergleich auswählen">✓</button>
@@ -3005,6 +3132,29 @@ function card(it) {
     drawBody();
   });
   return a;
+}
+
+/* DIE ZAHL AUF DER KACHEL -- 0.21.0. Sie steht hier und nicht in der Vorlage
+   darueber, weil sie drei Dinge zugleich entscheidet (welches Zeichen, welche
+   Zahl, welcher Hinweis, wenn keine da ist) und in einem String
+   unleserlich wuerde.
+   DAS ZEICHEN ◆ IST NICHT ★, damit niemand 4,2 Potenzial fuer 4,2 Qualitaet
+   haelt. Es traegt eine eigene Klasse und keine eigene Farbe: Gold bleibt der
+   Bewertung. */
+function kachelZahl(it) {
+  const potenzial = !it.tested;
+  const wert = potenzial ? it.potenzialRating : it.avgRating;
+  /* „keine Sterne" UND NICHT „keine <Vokabelwort>sterne": das Wort aus dem
+     Vokabular wird nirgends zu einem Wort verbaut -- „Erwartungsterne" haette
+     kein Fugen-s, und der Quelltext kennt keins. Es ist derselbe Text wie im
+     Kopf des Potenzialkastens, und er unterscheidet sich vom „keine Wertung"
+     der Bewertung: zwei gleiche Texte fuer zwei verschiedene Kaesten waeren
+     ein Raetsel. */
+  if (!wert) return `<span class="hint hint-sm">${potenzial ? 'keine Sterne' : 'keine Wertung'}</span>`;
+  const zeichen = potenzial ? '◆' : '★';
+  const wort = potenzial ? V.potenzial : 'Bewertung';
+  return `<span class="rating-inline${potenzial ? ' potenzial' : ''}" title="${esc(wort)}">` +
+    `<span class="dot">${zeichen}</span>${wert.toFixed(1).replace('.', ',')}</span>`;
 }
 
 function drawCompareBar() {
@@ -3257,16 +3407,28 @@ async function renderCompare() {
   try { items = await Promise.all(ids.map(id => api('GET', `/api/items/${id}`))); }
   catch (e) { toast(e.message, true); location.hash = '#/'; return; }
 
+  /* ZWEI GRUPPEN VON ZEILEN -- 0.21.0: erst die Vorher-Kriterien, dann die
+     Nachher-Kriterien, jede mit ihrer eigenen Kopfzahl und einer Trennzeile,
+     die das Wort traegt. Die Namen sind ueber beide Kaesten eindeutig
+     (UNIQUE(name) ist global), also kann ein Name nur in einer Gruppe stehen.
+     ERSTE NENNUNG GEWINNT, wie bisher -- fuer den Namen, das Gewicht UND die
+     Phase: alle drei gehoeren dem Kriterium und nicht dem Eintrag, sie sind
+     global dieselben, gleich aus welchem Eintrag die Zeile stammt. */
   const names = [];
-  /* Das Gewicht gehoert dem KRITERIUM, nicht der Spalte: die Kriterienzeilen
-     tragen den Namen einmal je Zeile, die Spalten sind die Eintraege. Die
-     Marke steht deshalb einmal an der Zeilenbeschriftung und nicht je Spalte.
-     Erste Nennung gewinnt, wie beim Namen -- global ist das Gewicht ohnehin
-     dasselbe, gleich aus welchem Eintrag die Zeile stammt. */
   const gewichte = new Map();
+  const phasen = new Map();
   items.forEach(i => i.ratings.forEach(r => {
-    if (!names.includes(r.name)) { names.push(r.name); gewichte.set(r.name, r.gewicht); }
+    if (!names.includes(r.name)) {
+      names.push(r.name); gewichte.set(r.name, r.gewicht); phasen.set(r.name, r.phase);
+    }
   }));
+  // Die beiden Gruppen, in der Reihenfolge der Kaesten am Eintrag: vorher,
+  // dann nachher. Eine leere Gruppe zeichnet gar nichts -- eine Trennzeile
+  // ueber nichts waere eine Ueberschrift ohne Inhalt.
+  const GRUPPEN = [
+    { phase: 'vorher',  wort: () => V.potenzial, schnitt: 'potenzialRating' },
+    { phase: 'nachher', wort: () => 'Bewertung', schnitt: 'avgRating' }
+  ].map(g => ({ ...g, namen: names.filter(n => phasen.get(n) === g.phase) }));
 
   /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie linksOffen und
      wolkeOffen. Der Umschalter ist eine Linse auf dieselben Daten und darf
@@ -3309,9 +3471,15 @@ async function renderCompare() {
      Werten laege.
      ES SIND UND BLEIBEN GENAU ZWEI RECHENSTELLEN. Die Kachel der Uebersicht
      liest avgRating vom Server, und dabei bleibt es. */
-  const eigenerSchnitt = (it) => {
+  /* MIT DER PHASE ALS ARGUMENT -- 0.21.0. Es bleibt die EINZIGE zweite
+     Rechenstelle im Browser, und sie rechnet weiter nur das, was der Server
+     nicht liefern kann: den Schnitt ueber MEINE eigenen Sterne. Neu ist
+     allein, dass sie ihn je Kasten bildet -- eine Zahl aus beiden Mengen waere
+     genau die Vermischung, die diese Runde abschafft. */
+  const eigenerSchnitt = (it, phase) => {
     let zaehler = 0, nenner = 0;
     for (const r of it.ratings) {
+      if (r.phase !== phase) continue;
       if (r.value > 0) { zaehler += r.value * r.gewicht; nenner += r.gewicht; }
     }
     if (!nenner) return null;
@@ -3325,7 +3493,10 @@ async function renderCompare() {
     if (!r) return 0;
     return nurMeine ? r.value : (r.avg || 0);
   };
-  const schnittVon = (it) => (nurMeine ? eigenerSchnitt(it) : it.avgRating);
+  // Der Schnitt DER GRUPPE: in der Stellung „alle" die Zahl vom Server, in der
+  // Stellung „meine" die eigene -- beide je Kasten, nie ueber beide.
+  const schnittVon = (it, gruppe) =>
+    (nurMeine ? eigenerSchnitt(it, gruppe.phase) : it[gruppe.schnitt]);
   const zeitpunkteVon = (it) => (nurMeine
     ? (it.testDays || []).filter(t => t.mine).length
     : (it.testCount || 0));
@@ -3361,28 +3532,38 @@ async function renderCompare() {
     items.forEach(it => {
       const col = document.createElement('div');
       col.className = 'cmp-col';
-      const rows = names.map(n => {
-        const v = wertVon(it, n);
-        const best = v > 0 && v === bestOf(n);
-        // Die Marke ×1,5 an der Zeilenbeschriftung, abgeleitet wie ueberall:
-        // bei Gewicht 1 steht dort nichts.
-        const marke = gewichtMarke(gewichte.get(n));
-        return `<div class="cmp-crit"><span class="cn">${esc(n)}${
-            marke ? ` <span class="cgew" title="Gewicht im Gesamtschnitt">${esc(marke)}</span>` : ''}</span>
-          <span class="${best ? 'cmp-best' : ''}">${v > 0 ? alsZahl(v) + ' / 5' : '–'}</span></div>`;
+      /* JE GRUPPE EINE TRENNZEILE MIT DEM WORT UND DER KOPFZAHL DIESES
+         KASTENS, darunter seine Kriterienzeilen. Eine leere Gruppe zeichnet
+         gar nichts: eine Ueberschrift ueber null Zeilen sagt nichts.
+         EIN EINTRAG OHNE STERNE IN EINER GRUPPE ZEIGT DORT EINEN STRICH und
+         keine 0 -- „nicht eingeschaetzt" ist etwas anderes als „schlecht
+         eingeschaetzt". Das galt fuer die Kriterienzeilen schon; hier gilt es
+         auch fuer die Kopfzahl der Gruppe. */
+      const gruppen = GRUPPEN.filter(g => g.namen.length).map(g => {
+        const schnitt = schnittVon(it, g);
+        const kopf = `<div class="cmp-gruppe"><span class="cn">${esc(g.wort())}</span>
+          <span>${schnitt ? '⌀ ' + schnitt.toFixed(1).replace('.', ',') : '–'}</span></div>`;
+        return kopf + g.namen.map(n => {
+          const v = wertVon(it, n);
+          const best = v > 0 && v === bestOf(n);
+          // Die Marke ×1,5 an der Zeilenbeschriftung, abgeleitet wie ueberall:
+          // bei Gewicht 1 steht dort nichts.
+          const marke = gewichtMarke(gewichte.get(n));
+          return `<div class="cmp-crit"><span class="cn">${esc(n)}${
+              marke ? ` <span class="cgew" title="Gewicht im Gesamtschnitt">${esc(marke)}</span>` : ''}</span>
+            <span class="${best ? 'cmp-best' : ''}">${v > 0 ? alsZahl(v) + ' / 5' : '–'}</span></div>`;
+        }).join('');
       }).join('');
       const zahl = zeitpunkteVon(it);
       const testRow = `<div class="cmp-crit" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
         <span class="cn">${esc(V.zeitpunktMehrzahl)}</span>
         <span class="${zahl && zahl === bestTest ? 'cmp-best' : ''}">${zahl || '–'}</span></div>`;
-      const schnitt = schnittVon(it);
       col.innerHTML = `
         <div class="cimg">${it.photos[0] ? `<img src="/api/photos/${it.photos[0].id}/raw?size=medium" alt="">` : ''}</div>
         <div class="cbody">
           ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
           <h3>${esc(it.title)}</h3>
-          <div class="hint cmp-schnitt" style="margin-bottom:10px">${schnitt ? '★ ' + schnitt.toFixed(1).replace('.', ',') + ' Durchschnitt' : 'keine Wertung'}</div>
-          ${rows}${testRow}
+          ${gruppen}${testRow}
           <div style="margin-top:12px"><a href="#/item/${it.id}" class="btn btn-sm" style="width:100%">Öffnen</a></div>
         </div>`;
       cg.appendChild(col);
@@ -3801,6 +3982,12 @@ function sparkline(days) {
 
 /* ================= Detailansicht ================= */
 async function renderDetail(id, begriffAdresse) {
+  /* DER BLICK GILT FUER EINEN EINTRAG UND ENDET MIT IHM -- 0.21.0. Wer an
+     Eintrag 12 den Potenzialkasten aufgeklappt hat, hat das an Eintrag 12
+     getan; an Eintrag 13 gilt wieder die Regel. Genau das unterscheidet den
+     Blick von einer Einstellung, und deshalb steht die Leerung hier, am
+     Eingang der Ansicht, und nicht an einer der Stellen, die sie verlassen. */
+  BLICK.clear();
   /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND -- und danach
      stehen beide gleich. Aus der Adresse kommt er nach einem Neuladen und aus
      einem weitergegebenen Link; aus dem Zustand kommt er auf jedem Weg in
@@ -3921,11 +4108,29 @@ async function renderDetail(id, begriffAdresse) {
           <div class="pills cloud" id="tagcloud"></div>
         </div>
 
+        ${/* ZWEI STERNKAESTEN, DIESELBE BAUFORM -- 0.21.0. Oben das Potenzial
+             (die Einschaetzung VOR dem Test), darunter die Bewertung (das
+             Urteil DANACH). Vorher steht vor nachher, und die Anordnung sagt
+             es; ziehen laesst sich beides wie jeder andere Block.
+             DIE KOEPFE SIND KURZ UND IN BEIDEN GLEICH: Beschriftung, Kopfzahl
+             mit Erklaerknopf, und fuer den Admin bei mehreren Benutzern
+             „Stimmen" -- der Name der Route und der Name der Sache im Dialog,
+             ein Wort. Auf dem Telefon eine Zeile.
+             KEIN KNOPF ZUM ZURUECKSETZEN, IN KEINEM DER BEIDEN. „Meine
+             Bewertung zuruecksetzen" brach auf dem Telefon den Blockkopf in
+             drei Zeilen und tat nichts, was das × an der Zeile nicht besser
+             tut. */''}
+        <div class="block" data-block="potenzial">
+          <div class="block-head"><span class="label">${esc(V.potenzial)}</span>
+            <span class="hint" id="phead"></span>
+            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="pwho">Stimmen</button>` : ''}</div>
+          <div id="potenzial-ratings"></div>
+        </div>
+
         <div class="block" data-block="bewertung">
           <div class="block-head"><span class="label">Bewertung</span>
             <span class="hint" id="rhead"></span>
-            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="rwho">Wer hat bewertet</button>` : ''}
-            <button class="btn btn-ghost btn-sm" id="reset-r">Meine Bewertung zurücksetzen</button></div>
+            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="rwho">Stimmen</button>` : ''}</div>
           <div id="ratings"></div>
         </div>
         </div>
@@ -4636,7 +4841,19 @@ async function renderDetail(id, begriffAdresse) {
     } catch (e) { toast(e.message, true); }
   }
   document.getElementById('sw-test').onclick = async () => {
-    try { item = await api('PUT', `/api/items/${id}`, { tested: !item.tested }); drawSwitches(); drawTestDays(); }
+    try {
+      item = await api('PUT', `/api/items/${id}`, { tested: !item.tested });
+      /* DER SCHALTER LEERT DEN BLICK -- 0.21.0. Nach dem Umlegen soll der
+         Kasten offen stehen, den die Regel meint: „Getestet" ein -> Bewertung
+         auf, Potenzial zu; wieder aus -> umgekehrt. Ein Blick, den jemand VOR
+         dem Umlegen geworfen hat, kehrte die neue Regel sonst gleich wieder um
+         -- und der Klick auf den Schalter saehe aus, als haette er nichts
+         getan.
+         GELOESCHT WIRD NICHTS: die Sterne beider Kaesten bleiben, wo sie sind,
+         und die Zahl des zugeklappten steht in seinem Kopf. */
+      BLICK.clear();
+      drawSwitches(); drawTestDays(); drawRatings();
+    }
     catch (e) { toast(e.message, true); }   // Sperre wird serverseitig begruendet
   };
   document.getElementById('sw-rej').onclick = async () => {
@@ -4864,9 +5081,30 @@ async function renderDetail(id, begriffAdresse) {
     newtagEl.addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
   }
 
-  /* ---- Bewertung ---- */
-  function drawRatings() {
-    const box = document.getElementById('ratings');
+  /* ---- Die beiden Sternkaesten ----
+     EIN ZEICHNER MIT EINER PHASE, NICHT ZWEI ZEICHNER. Zwei waeren zwei
+     Wahrheiten ueber dieselbe Zeile: was am × haengt, wie die Klammer ab zwei
+     Stimmen aussieht, wann der Strich steht -- all das muesste zweimal
+     stimmen, und beim naechsten Griff nur einmal geaendert werden.
+     WAS DIE PHASE ENTSCHEIDET, IST DREIERLEI: welche Zeilen aus `item.ratings`
+     genommen werden, aus welchem Feld die Kopfzahl kommt (`avgRating` gegen
+     `potenzialRating`) und welcher Rechenweg am Erklaerknopf haengt. Sonst
+     nichts.
+     GERECHNET WIRD HIER NICHTS. Beide Kopfzahlen und beide Rechenwege kommen
+     vom Server; der Browser filtert und schreibt hin. */
+  const KAESTEN = [
+    { phase: 'nachher', box: 'ratings',           kopf: 'rhead', knopf: 'gew-auf',
+      wer: 'rwho', schnitt: 'avgRating',       weg: 'rechenweg' },
+    { phase: 'vorher',  box: 'potenzial-ratings', kopf: 'phead', knopf: 'pgew-auf',
+      wer: 'pwho', schnitt: 'potenzialRating', weg: 'potenzialRechenweg' }
+  ];
+
+  function drawRatings() { for (const k of KAESTEN) zeichneKasten(k); ruesteBloeckeAus(item); }
+
+  function zeichneKasten(kasten) {
+    const box = document.getElementById(kasten.box);
+    if (!box) return;
+    const zeilen = item.ratings.filter(r => r.phase === kasten.phase);
     /* DER KASTEN IST DAS RASTER, nicht die einzelne Zeile: eine Spalte kann
        sich nur dann an ihrer breitesten Zelle ausrichten, wenn alle Zellen im
        SELBEN Raster liegen. Die Klasse steht hier und nicht im Aufbau
@@ -4882,13 +5120,16 @@ async function renderDetail(id, begriffAdresse) {
     // Angelegt wird im Systembereich: ein neues Kriterium erscheint an
     // JEDEM Eintrag, das ist eine redaktionelle Entscheidung und keine
     // Notiz am Eintrag.
-    box.innerHTML = item.ratings.length ? ''
+    // DER TEXT GILT IN BEIDEN KAESTEN, und er zaehlt die Zeilen DIESES Kastens:
+    // wer nur Bewertungskriterien angelegt hat, hat im Potenzialkasten
+    // tatsaechlich noch keine.
+    box.innerHTML = zeilen.length ? ''
       : `<span class="hint">Noch keine Kriterien. Angelegt werden sie im Systembereich.</span>`;
     // Die Kopfzahl neben der Beschriftung: erst je Kriterium ueber alle, dann
     // ueber die Kriterien -- also genau das Mittel der Zahlen, die rechts in
     // den Zeilen stehen. Damit ist sie nachvollziehbar, sobald beide zugleich
     // sichtbar sind.
-    const kopf = document.getElementById('rhead');
+    const kopf = document.getElementById(kasten.kopf);
     /* DAS WORT "gewichtet" IST ABGELEITET, kein Schalter und keine Einstellung
        -- dieselbe Bauform wie die Durchschnittsspalte, die bei einem einzigen
        Zugang entfaellt. Sind alle Gewichte 1, steht dort genau das, was vor
@@ -4897,7 +5138,7 @@ async function renderDetail(id, begriffAdresse) {
        mit Gewicht 1,5, das an diesem Eintrag niemand bewertet hat, geht in die
        Rechnung gar nicht ein. Das Wort stuende dann an einer Zahl, an der
        keine Gewichtung stattgefunden hat. */
-    const gewichtetGerechnet = item.ratings
+    const gewichtetGerechnet = zeilen
       .some(r => (r.value > 0 || r.avg != null) && Number(r.gewicht) !== 1);
     /* DIE KOPFZAHL IST SEIT 0.16.0 EIN KNOPF, und er fuehrt zur eigenen
        Rechnung dieses Eintrags. „⌀ 4,2 gewichtet" war zwar richtig, hat sich
@@ -4910,20 +5151,24 @@ async function renderDetail(id, begriffAdresse) {
        OHNE ZAHL KEIN KNOPF: an einem Eintrag ohne Bewertung gaebe es nichts zu
        erklaeren, und ein Knopf, der ein leeres Fenster oeffnet, ist einer zu
        viel. */
+    const zahl = item[kasten.schnitt];
     if (kopf) {
       kopf.textContent = '';
-      if (item.avgRating) {
+      if (zahl) {
         const b = document.createElement('button');
         b.className = 'link-btn gew-auf';
-        b.id = 'gew-auf';
-        b.textContent = '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') +
+        b.id = kasten.knopf;
+        b.textContent = '⌀ ' + zahl.toFixed(1).replace('.', ',') +
           (gewichtetGerechnet ? ' gewichtet' : '');
         b.title = 'Wie diese Zahl zustande kommt';
-        b.onclick = zeigeRechnung;
+        // DER ERKLAERKNOPF BEKOMMT DEN RECHENWEG SEINES KASTENS. Beide kommen
+        // aus derselben Rechnung im Server; hier wird nur der richtige
+        // angehaengt.
+        b.onclick = () => zeigeRechnung(kasten);
         kopf.appendChild(b);
       }
     }
-    item.ratings.forEach(r => {
+    zeilen.forEach(r => {
       const row = document.createElement('div');
       row.className = 'rrow';
       const n = document.createElement('span');
@@ -4945,7 +5190,13 @@ async function renderDetail(id, begriffAdresse) {
         try { item = await api('PUT', `/api/items/${id}/ratings`, { criterionId: r.criterion_id, value: v }); drawRatings(); }
         catch (err) { toast(err.message, true); }
       });
-      const s = stars(r.value, set, () => { set(0); toast(`Meine Bewertung für „${r.name}" zurückgesetzt`); });
+      /* DAS ZURUECKSETZEN GEHT UEBER `PUT` MIT 0 und nicht ueber einen eigenen
+         Weg: `Math.max(0, ...)` im Server nimmt die Null seit jeher an, und
+         eine Zeile mit 0 ist keine Stimme. Die Sammelroute dahinter ist mit
+         0.21.0 weggefallen.
+         DIE MELDUNG IST PHASENNEUTRAL: sie gilt in beiden Kaesten, und
+         „Bewertung" waere im Potenzialkasten das falsche Wort. */
+      const s = stars(r.value, set, () => { set(0); toast(`Meine Sterne bei „${r.name}" entfernt`); });
       // Kein Loeschkreuz in dieser Zeile. Ein Kriterium zu
       // loeschen wirkt auf ALLE Eintraege und nimmt vergebene Sterne mit -- eine
       // globale Folge, die hier eine Zeigerbreite neben dem Sterne-Widget lag,
@@ -5000,7 +5251,20 @@ async function renderDetail(id, begriffAdresse) {
              wegfaellt, ist die Zahl auf dem Bildschirm und nicht die Auskunft. */
           a.textContent = r.count > 1 ? `⌀ ${schnitt} (${r.count})` : `⌀ ${schnitt}`;
           a.title = `Durchschnitt ${schnitt} aus ${stimmen}`;
-        } else a.textContent = '';
+        } else {
+          /* EIN STRICH, SOLANGE NIEMAND BEWERTET HAT -- 0.21.0. Bis 0.20.1
+             stand hier nichts, mit der Begruendung, neben fuenf leeren Sternen
+             waere ein Satz dieselbe Aussage zweimal. Das stimmt fuer einen
+             SATZ; ein Strich ist keiner, sondern der Platz, der der Zahl
+             gehoert -- und er sagt „noch niemand".
+             DER TITEL SAGT ES IN WORTEN, wie an der Zahl daneben auch: ein
+             Zeichen allein liest kein Vorleseprogramm vor.
+             Die Breite haengt nicht an ihm: die Spalte traegt seit dieser
+             Runde eine gemessene Mindestbreite (style.css). Der Strich ist
+             die Auskunft, nicht der Platzhalter. */
+          a.textContent = '–';
+          a.title = 'noch niemand';
+        }
         row.append(a);
       }
       box.appendChild(row);
@@ -5009,15 +5273,13 @@ async function renderDetail(id, begriffAdresse) {
          eigenen Wert und den Schnitt, mehr soll eine Bewertung nicht aussagen.
          Die Liste ruft der Admin über den Knopf im Blockkopf auf. */
     });
-    ruesteBloeckeAus(item);
   }
-  // Der Ruecksetzer meint ausschliesslich die EIGENEN Werte -- das tut er
-  // serverseitig ohnehin, die Beschriftung sagt es dazu.
-  // "Alle zurücksetzen" liest sich im Mehrbenutzerbetrieb wie "alle loeschen".
-  // Der Wortlaut bleibt bei einem wie bei zehn Zugaengen derselbe: eine
-  // Beschriftung, die mit der Zahl der Zugaenge umspringt, waere eine zweite
-  // Wahrheit ueber denselben Knopf.
-  /* ---- Wer hat bewertet: die Ansicht des Admins ----
+  /* ---- „Stimmen": die Ansicht des Admins ----
+     SIE HIESS BIS 0.20.1 „Wer hat bewertet". Der Knopf traegt seit 0.21.0 den
+     Namen der Route und den Namen der Sache im Dialog: EIN WORT. Es steht in
+     BEIDEN Kastenkoepfen gleich -- „Wer hat bewertet" waere im
+     Potenzialkasten das falsche Wort, und zwei verschiedene Beschriftungen
+     fuer dieselbe Ansicht waeren zwei Namen fuer eine Sache.
      Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile: die
      Angabe geht sonst an jeden. Sie ist eine eigene Ansicht, die der Admin
      ausdrücklich aufruft — und zugleich der LÖSCHWEG für eine fremde
@@ -5044,8 +5306,13 @@ async function renderDetail(id, begriffAdresse) {
     return (Number.isFinite(z) ? z : 0).toString().replace('.', ',');
   };
 
-  function zeigeRechnung() {
-    const weg = item.rechenweg;
+  /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0. Die Aufstellung gibt es zweimal,
+     einmal je Kopfzahl, und sie liest beide Male denselben Bau: `rechenweg`
+     fuer die Bewertung, `potenzialRechenweg` fuer das Potenzial. Beide
+     entstehen im Server IN gesamtSchnitt(), also in derselben Schleife wie die
+     Zahl darueber. Zwei Kaesten, ein Fenster. */
+  function zeigeRechnung(kasten) {
+    const weg = item[kasten.weg];
     // Ohne Aufstellung kein Kasten. Sie fehlt nur, wenn nichts bewertet ist --
     // dann steht aber auch keine Kopfzahl da, an der man klicken koennte.
     if (!weg || !Array.isArray(weg.zeilen) || !weg.zeilen.length)
@@ -5127,7 +5394,8 @@ async function renderDetail(id, begriffAdresse) {
         Kriterium, an dem niemand Sterne vergeben hat, geht gar nicht ein.
         <strong>Gerundet wird genau einmal</strong>, ganz am Ende — die Zahlen oben sind für
         die Anzeige auf zwei Stellen gekürzt, gerechnet wird ungekürzt.
-        Die Gewichte stellt der Admin im Systembereich unter <strong>Bewertungskriterien</strong> ein.</p>
+        Die Gewichte stellt der Admin im Systembereich unter <strong>${esc(
+          kasten.phase === 'vorher' ? `${V.potenzial}: Kriterien` : 'Bewertungskriterien')}</strong> ein.</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
            steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
            eine Auskunft ueber nichts.
@@ -5157,13 +5425,18 @@ async function renderDetail(id, begriffAdresse) {
     bd.onclick = e => { if (e.target === bd) zu(); };
   }
 
-  async function zeigeStimmen() {
+  /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0, wie die Rechnung darueber. EIN
+     ABRUF liefert die Stimmen aller Kriterien; welche das Fenster zeigt,
+     entscheidet der Kasten, aus dem geklickt wurde. Eine zweite Route je
+     Kasten waere eine Route mehr fuer nichts -- die Antwort ist dieselbe. */
+  async function zeigeStimmen(kasten) {
     let liste;
     try { liste = await api('GET', `/api/items/${id}/stimmen`); }
     catch (e) { return toast(e.message, true); }
+    const titel = kasten.phase === 'vorher' ? `Stimmen — ${V.potenzial}` : 'Stimmen — Bewertung';
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal" id="stimmen-modal"><h2>Wer hat bewertet</h2>
+    bd.innerHTML = `<div class="modal" id="stimmen-modal"><h2>${esc(titel)}</h2>
       <p>Diese Liste sieht nur der Admin. Eine fremde Bewertung lässt sich hier
          entfernen — die Note ändert niemand.</p>
       <div class="stimmliste" id="stimmliste"></div>
@@ -5191,7 +5464,10 @@ async function renderDetail(id, begriffAdresse) {
       // Nummern, Werte und Verfasser. Zwei Quellen für denselben Namen wären
       // zwei Wahrheiten.
       let etwas = false;
-      item.ratings.forEach(r => {
+      // NUR DIE ZEILEN DIESES KASTENS. Der Abruf kennt keine Phase; das Fenster
+      // gehoert aber zu einem der beiden Koepfe, und was darin steht, muss zu
+      // dem Kopf passen, aus dem es aufgegangen ist.
+      item.ratings.filter(r => r.phase === kasten.phase).forEach(r => {
         const stimmen = je.get(r.criterion_id) || [];
         // Ein Kriterium ohne Stimme bekommt gar keine Zeile -- eine leere
         // Liste unter einem Namen sagt nichts.
@@ -5238,17 +5514,19 @@ async function renderDetail(id, begriffAdresse) {
     }
   }
   // Der Knopf steht nur beim Admin ab zwei Zugängen; ohne ihn gibt es hier
-  // nichts anzuhängen.
-  const rwhoEl = document.getElementById('rwho');
-  if (rwhoEl) rwhoEl.onclick = zeigeStimmen;
-
-  document.getElementById('reset-r').onclick = async () => {
-    if (!await confirmBox('Meine Bewertung zurücksetzen?',
-      'Meine Sterne werden hier geleert. Fremde Bewertungen und die Kriterien selbst bleiben bestehen.',
-      'Zurücksetzen')) return;
-    try { item = await api('DELETE', `/api/items/${id}/ratings`); drawRatings(); toast('Meine Bewertung zurückgesetzt'); }
-    catch (e) { toast(e.message, true); }
-  };
+  // nichts anzuhängen. ZWEI KOEPFE, ZWEI KNOEPFE, EINE SCHLEIFE.
+  for (const k of KAESTEN) {
+    const el = document.getElementById(k.wer);
+    if (el) el.onclick = () => zeigeStimmen(k);
+  }
+  /* HIER HING BIS 0.20.1 DER KNOPF „Meine Bewertung zuruecksetzen" -- samt
+     confirmBox und samt `DELETE /api/items/:id/ratings` dahinter. Beides ist
+     mit 0.21.0 weg: das Zuruecksetzen sitzt an der ZEILE, als sichtbares ×
+     hinter den eigenen fuenf Sternen, und geht ueber `PUT` mit `value: 0`.
+     WER ALLES LEEREN WILL, TIPPT DREI- BIS FUENFMAL -- bei einer Handlung, die
+     selten ist und sich durch erneutes Setzen ohnehin heilt. Dafuer gibt es
+     keinen zweiten, versteckten Weg mehr und keinen Kopf, der auf dem Telefon
+     in drei Zeilen bricht. */
 
   /* ---- Testtage ---- */
   function drawTestDays() {
@@ -6124,7 +6402,17 @@ const SYS_KARTEN = [
   { schluessel: 'tags',         abschnitt: 'bestand', sichtbar: () => true,
     markup: karteTags,         ausruesten: ruesteTagsAus },
   { schluessel: 'kriterien',    abschnitt: 'bestand', sichtbar: () => true,
-    markup: karteKriterien,    ausruesten: ruesteKriterienAus },
+    markup: () => karteKriterien('nachher'),
+    ausruesten: (g) => ruesteKriterienAus(g, 'nachher') },
+  /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. Sichtbar
+     fuer alle, bedienbar fuer den Admin, wie die Nachbarkarte: die Namen sind
+     die Auswahl, aus der jeder am Eintrag schoepft.
+     ZWEI KARTEN, EINE MASCHINE: dieselbe `manage-list`, derselbe Eintrag
+     `crit`, dasselbe Ziehen, dasselbe Gewichtsfeld. Nur die Liste ist nach
+     Phase gefiltert, und `POST` schickt die Phase mit. */
+  { schluessel: 'potenzialkriterien', abschnitt: 'bestand', sichtbar: () => true,
+    markup: () => karteKriterien('vorher'),
+    ausruesten: (g) => ruesteKriterienAus(g, 'vorher') },
   { schluessel: 'vokabular',    abschnitt: 'bestand', sichtbar: () => ADMIN,
     markup: karteVokabular,    ausruesten: ruesteVokabularAus },
   { schluessel: 'links',        abschnitt: 'bestand', sichtbar: () => true,
@@ -6741,10 +7029,35 @@ function ruesteTagsAus(geholt) {
 }
 
 /* ---- Karte „Bewertungskriterien" — Abschnitt „Bestand" ---- */
-function karteKriterien() {
+/* EINE FUNKTION FUER BEIDE KARTEN -- 0.21.0. Was sich unterscheidet, ist der
+   Titel, der einleitende Satz und die Kennungen der beiden Elemente darin;
+   alles andere ist dieselbe Maschine. Zwei Funktionen waeren zwei Wahrheiten
+   ueber dieselbe Liste, und die zweite ginge beim naechsten Griff vergessen.
+   DER TITEL DER NEUEN KARTE IST `${V.potenzial}: Kriterien` -- MIT
+   DOPPELPUNKT und nicht zusammengesetzt: das Wort aus dem Vokabular wird
+   nirgends zu einem Wort verbaut. Die Karte „Bewertungskriterien" behaelt
+   ihren Namen -- „Bewertung" steht nicht im Vokabular. */
+const KRIT_KARTE = {
+  nachher: { liste: 'mcrits',  feld: 'newcrit',  knopf: 'newcrit-b' },
+  vorher:  { liste: 'mpcrits', feld: 'newpcrit', knopf: 'newpcrit-b' }
+};
+
+function karteKriterien(phase) {
+  const vorher = phase === 'vorher';
+  const k = KRIT_KARTE[phase];
   return `<div class="sys-card">
-        <h3>Bewertungskriterien</h3>
-        <p class="desc">${ADMIN
+        <h3>${vorher ? esc(V.potenzial) + ': Kriterien' : 'Bewertungskriterien'}</h3>
+        ${vorher ? `<p class="desc">Sterne <strong>vor</strong> dem Test — welche Idee ist als
+             Nächstes dran? Die Zahl daraus fließt in einen <strong>eigenen Durchschnitt</strong>
+             und berührt die Bewertung nicht: kein Stern von hier zählt dort mit, und umgekehrt.
+             ${ADMIN
+               ? `Anlegen, umbenennen, löschen und <strong>per Ziehen sortieren</strong> — wie nebenan.`
+               : `Die Liste pflegt der Admin.`}</p>
+           <p class="desc"><strong>Zwei oder drei Kriterien reichen.</strong> Mehr macht die
+             Einschätzung langsamer, nicht besser — sie soll in zehn Sekunden gehen.
+             Vorschläge: <em>Wunsch</em> (Gewicht 1,5), <em>Nutzen</em>, <em>Machbarkeit</em>.
+             ${ADMIN ? `Das ist ein Rat und kein Verbot; angelegt wird hier nichts von selbst.` : ''}</p>`
+          : `<p class="desc">${ADMIN
           ? `Anlegen, umbenennen, löschen und <strong>per Ziehen sortieren</strong> — mit Maus
              oder Finger. Die Reihenfolge gilt für Detailansicht und Vergleich gleichermaßen.
              Ein neues Kriterium erscheint sofort an allen ${esc(V.sacheMehrzahl)}, ein gelöschtes
@@ -6752,8 +7065,8 @@ function karteKriterien() {
              ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`
           : `Die Kriterienliste pflegt der Admin. Die Reihenfolge gilt für Detailansicht und
              Vergleich gleichermaßen; die Zahl nennt, an wie vielen ${esc(V.sacheMehrzahl)}
-             Sterne vergeben sind.`}</p>
-        <div class="manage-list" id="mcrits"></div>
+             Sterne vergeben sind.`}</p>`}
+        <div class="manage-list" id="${k.liste}"></div>
         <p class="desc" style="margin:10px 0 0">Das <strong>Gewicht</strong> bestimmt, wie stark ein
           Kriterium in den Gesamtschnitt eingeht. Bei 1 zählen alle gleich. ${ADMIN
             ? `Möglich ist 0,2 bis 2 — die Vorschläge sind nur die häufigsten Werte.`
@@ -6767,28 +7080,39 @@ function karteKriterien() {
              ueberhaupt sichtbar wird. Ohne sie bliebe er da und waere nur nicht auffindbar.
              Sie kostet eine Zeile und der Server merkt davon nichts -- alles zwischen 0,2 und 2
              laesst sich ohnehin eintippen. -->
-        <datalist id="gewichtsug">
+        ${/* DIE VORSCHLAGSLISTE STEHT NUR EINMAL IM DOKUMENT -- sie gehoert
+             keiner der beiden Karten, sondern dem Gewichtsfeld, und zwei
+             `datalist` mit derselben Kennung waeren zwei Knoten fuer einen
+             Verweis. Die zweite Karte liegt hinter der ersten; ihre
+             Gewichtsfelder finden die eine. */''}
+        ${vorher ? '' : `<datalist id="gewichtsug">
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
-        </datalist>
+        </datalist>`}
         ${ADMIN ? `<div class="row-in" style="margin-top:12px">
-          <input class="input input-sm" id="newcrit" placeholder="Neues Kriterium" style="padding:8px 11px">
-          <button class="btn btn-sm" id="newcrit-b">+ Anlegen</button>
+          <input class="input input-sm" id="${k.feld}" placeholder="Neues Kriterium" style="padding:8px 11px">
+          <button class="btn btn-sm" id="${k.knopf}">+ Anlegen</button>
         </div>` : ''}
       </div>`;
 }
-function ruesteKriterienAus(geholt) {
-  verwaltungsListe('mcrits', geholt.crits, 'crit', geholt);
+function ruesteKriterienAus(geholt, phase) {
+  const k = KRIT_KARTE[phase];
+  // NUR DIE ZEILEN DIESES KASTENS. Die Antwort von /api/criteria traegt beide
+  // und ist nach sort_order, id sortiert -- gefiltert bleibt jede Karte in
+  // sich richtig geordnet, ohne dass irgendwo eine zweite Ordnung stuende.
+  verwaltungsListe(k.liste, geholt.crits.filter(c => c.phase === phase), 'crit', geholt);
   // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
   // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
-  const critFeld = document.getElementById('newcrit');
+  const critFeld = document.getElementById(k.feld);
   if (critFeld) {
     const addCrit = async () => {
       const name = critFeld.value.trim();
       if (!name) return;
-      try { await api('POST', '/api/criteria', { name }); critFeld.value = ''; toast('Kriterium angelegt'); verwaltungNeu(geholt); }
+      // DIE PHASE SCHICKT DIE KARTE MIT. Ohne sie legte die zweite Karte
+      // Bewertungskriterien an -- der Server hat die Vorgabe 'nachher'.
+      try { await api('POST', '/api/criteria', { name, phase }); critFeld.value = ''; toast('Kriterium angelegt'); verwaltungNeu(geholt); }
       catch (e) { toast(e.message, true); }
     };
-    document.getElementById('newcrit-b').onclick = addCrit;
+    document.getElementById(k.knopf).onclick = addCrit;
     critFeld.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
 }
@@ -6954,7 +7278,12 @@ function ruesteKriterienAus(geholt) {
   function zeichneVerwaltung(geholt) {
     verwaltungsListe('mcats', geholt.cats, 'cat', geholt);
     verwaltungsListe('mtags', geholt.tags, 'tag', geholt);
-    verwaltungsListe('mcrits', geholt.crits, 'crit', geholt);
+    // BEIDE KRITERIENLISTEN, aus DERSELBEN Antwort. verwaltungsListe() haengt
+    // sich an einen Kasten, den es nicht gibt, gar nicht erst an -- wer nur
+    // eine der beiden Karten offen hat, bekommt nur diese gezeichnet.
+    for (const phase of Object.keys(KRIT_KARTE))
+      verwaltungsListe(KRIT_KARTE[phase].liste,
+        geholt.crits.filter(c => c.phase === phase), 'crit', geholt);
   }
   async function verwaltungNeu(geholt) {
     [geholt.cats, geholt.tags, geholt.crits] = await Promise.all([
@@ -6994,6 +7323,14 @@ function karteVokabular() {
             <input class="input input-sm" id="v10" maxlength="40" value="${esc(V.aufgabeMehrzahl)}"></div>
           <div class="field"><label>Aufgabe, erledigt</label>
             <input class="input input-sm" id="v11" maxlength="40" value="${esc(V.aufgabeErledigt)}"></div>
+          ${/* DAS WORT FUER DEN ERSTEN STERNKASTEN -- 0.21.0. Es steht am
+               Blockkopf des Eintrags, in den beiden Sortiereintraegen und im
+               Titel der Karte „Potenzial: Kriterien"; ein Umbenennen wirkt an
+               allen drei Stellen zugleich.
+               NIE ZUSAMMENGESETZT: Doppelpunkt, Klammer oder Leerzeichen --
+               „Erwartungkriterien" haette kein Fugen-s. */''}
+          <div class="field"><label>Sterne vor dem Test</label>
+            <input class="input input-sm" id="v12" maxlength="40" value="${esc(V.potenzial)}"></div>
         </div>
         <div class="vok-probe" id="vprobe"></div>
         <div class="row-in" style="margin-top:12px">
@@ -7016,7 +7353,8 @@ function ruesteVokabularAus() {
     berichtMehrzahl: document.getElementById('v8').value,
     aufgabeEinzahl: document.getElementById('v9').value,
     aufgabeMehrzahl: document.getElementById('v10').value,
-    aufgabeErledigt: document.getElementById('v11').value
+    aufgabeErledigt: document.getElementById('v11').value,
+    potenzial: document.getElementById('v12').value
   });
   function drawProbe() {
     const w = vFelder();
@@ -7031,6 +7369,7 @@ function ruesteVokabularAus() {
     const a1 = w.aufgabeEinzahl.trim() || V.aufgabeEinzahl;
     const am = w.aufgabeMehrzahl.trim() || V.aufgabeMehrzahl;
     const ae = w.aufgabeErledigt.trim() || V.aufgabeErledigt;
+    const po = w.potenzial.trim() || V.potenzial;
     document.getElementById('vprobe').innerHTML =
       `<span class="label">Probe</span>
        <span>+ ${esc(s1)}</span><span>${esc(s1)} löschen?</span><span>7 ${esc(sm)}</span>
@@ -7038,12 +7377,16 @@ function ruesteVokabularAus() {
        <span>1 ${esc(z1)}</span><span>3 ${esc(zm)}</span>
        <span>Als ${esc(b1)} markieren</span><span>2 ${esc(bm)}</span>
        <span>Als ${esc(a1)} markieren</span><span>4 ${esc(am)}</span>
-       <span>Auf „${esc(ae)}" setzen</span>`;
+       <span>Auf „${esc(ae)}" setzen</span>
+       ${/* DIE PROBE ZEIGT DAS WORT SO, WIE ES SPAETER STEHT -- getrennt und
+            nie verbaut. Wer „Erwartung" eintippt, sieht hier „Erwartung:
+            Kriterien" und nicht „Erwartungkriterien". */''}
+       <span>${esc(po)}: Kriterien</span><span>${esc(po)} (hoch → niedrig)</span>`;
   }
   // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
   // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
   // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
-  ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11'].forEach(id =>
+  ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12'].forEach(id =>
     amElement(id, feld => feld.addEventListener('input', drawProbe)));
   if (document.getElementById('vprobe')) drawProbe();
 
@@ -7057,7 +7400,7 @@ function ruesteVokabularAus() {
   });
   amElement('vreset', vreset => vreset.onclick = async () => {
     if (!await confirmBox('Vorgaben wiederherstellen?',
-      'Die elf Wörter werden auf Eintrag/Einträge, Getestet/Ungetestet, Testtag/Testtage, Bericht/Berichte, Aufgabe/Aufgaben und Erledigt zurückgesetzt.',
+      'Die zwölf Wörter werden auf Eintrag/Einträge, Getestet/Ungetestet, Testtag/Testtage, Bericht/Berichte, Aufgabe/Aufgaben, Erledigt und Potenzial zurückgesetzt.',
       'Zurücksetzen')) return;
     try {
       const leer = { sacheEinzahl: '', sacheMehrzahl: '', merkmalJa: '',
