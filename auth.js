@@ -1056,7 +1056,7 @@ const entferneAnfrage = (id) =>
    HAT -- und ausdruecklich nichts darueber, was jemand GESAGT hat. Die
    Begruendung zu Spalten und Grenzen steht am Schema in db.js.
 
-   ZWANZIG VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
+   EINUNDZWANZIG VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
    steht, steht mit Begruendung im Aenderungsprotokoll seiner Runde -- eine
    stillschweigend weggelassene Zeile waere von einer entschiedenen nicht zu
    unterscheiden.
@@ -1109,7 +1109,20 @@ const VORGAENGE = [
      KEIN NEUES MERKMAL -- 'an' und 'aus' tragen den Betroffenen als wer UND
      als ziel. MERKMALE bleibt bei dreizehn. */
   'zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder',
-  'export', 'import', 'sicherung', 'schluessel'
+  /* 'sicherung.weg' -- eine entfernte alte Sicherung, seit 0.20.0. Sie steht
+     NEBEN 'sicherung' und nicht an seiner Stelle: das eine legt eine Kopie an,
+     das andere wirft welche weg, und die beiden Vorgaenge sind gegenlaeufig.
+     EINE ZEILE JE ENTFERNTER KOPIE. Die ZAHL der entfernten Kopien gehoert ins
+     Protokoll, eine Spalte dafuer gibt es aber nicht -- `wer` und `ziel` sind
+     Benutzernummern, `merkmal` ist eine geschlossene Liste ohne Ziffern, und
+     Freitext gibt es hier ausdruecklich nicht. Damit ist die Zahl die
+     ZEILENZAHL, und das ist dieselbe Aussage in der Form, die die Tabelle
+     traegt.
+     KEIN DATEINAME, KEIN PFAD, KEINE BYTES: das Protokoll haelt Vorgaenge
+     fest, keine Orte auf dem Wirt -- dieselbe Regel wie beim
+     `sicherung`-Eintrag daneben. Die freigegebenen Bytes stehen in der Antwort
+     und im Containerprotokoll. MERKMALE bleibt deshalb bei vierzehn. */
+  'export', 'import', 'sicherung', 'sicherung.weg', 'schluessel'
 ];
 /* Die geschlossene Liste fuer merkmal. NICHTS ausserhalb davon kommt in die
    Tabelle -- damit ist "kein Freitext von aussen" baulich wahr und nicht bloss
@@ -1211,7 +1224,10 @@ const PROTOKOLL_GRUPPEN = {
              'zugang.weg', 'zugang.selbst', 'link.neu', 'link.ein',
              'anfrage.frei', 'anfrage.ab'],
   zweifaktor: ['zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder'],
-  bestand: ['export', 'import', 'sicherung', 'schluessel']
+  // 'sicherung.weg' steht in DERSELBEN Gruppe wie 'sicherung': wer nachsieht,
+  // was mit dem Bestand geschehen ist, sucht das Anlegen und das Wegraeumen
+  // einer Kopie am selben Ort.
+  bestand: ['export', 'import', 'sicherung', 'sicherung.weg', 'schluessel']
 };
 
 const PROT_SPALTEN =
@@ -1296,9 +1312,16 @@ const FREIGABE_MS = 120 * 1000;
    Papierkorb und keinen Rueckweg -- die Rueckfahrkarte ist die Sicherung des
    Datenverzeichnisses. Genau deshalb steht er hier und nicht bloss hinter
    nurEigentuemer.
+   'sicherung' kommt mit 0.20.0 dazu und ist der ZWEITE, der Bytes entfernt --
+   und der erste, der GANZE DATEIEN vom Dateisystem des Wirts nimmt. Eine
+   geloeschte Sicherung holt nichts zurueck: es gibt keinen Papierkorb dafuer,
+   und die Vorschau in der Karte ist der Ersatz. Der Zweck deckt beide Wege der
+   einen Route -- die Regel einmal anwenden und die veralteten Kopien
+   wegraeumen; beide entfernen Dateien, und der Unterschied ist, WELCHE.
    Die Zahl steht im Projektstand und wird dort nachgezaehlt, nicht
    abgeschrieben -- Stolperstein 137. */
-const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link', 'mail', 'bilder'];
+const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link', 'mail',
+                             'bilder', 'sicherung'];
 /* DER SCHLUESSEL IST DIE GANZE BINDUNG: Sitzungstoken, Zweck und Ziel. Ein
    einziger Platz je Sitzung waere eine stille Falle -- eine Anfrage, die zwei
    Zwecke braucht (Rolle UND Passwort in einem Rumpf), verloere mit dem ersten

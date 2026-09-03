@@ -271,8 +271,16 @@ const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 
    ALS LISTE UND NICHT ALS `if`, aus demselben Grund wie oben: der zweite
    Schluessel dieser Art steht dann daneben und nicht als zweite Verzweigung.
    DIE ABLEITUNG BLEIBT: was weder hier noch oben steht, ist weiterhin
-   Adminsache. */
-const EIGENTUEMER_SCHLUESSEL = ['bilderUmwandeln'];
+   Adminsache.
+   VIER SEIT 0.20.0, vorher einer. Die drei neuen sind die Aufraeumregel der
+   Sicherungen: der Schalter und die beiden Werte. Sie gehen denselben Weg wie
+   `bilderUmwandeln` -- eine eigene schreibende Route liesse F_ROUTEN wachsen,
+   ohne dass es etwas Neues zu bewachen gaebe, und die Karte steht ohnehin
+   hinter `nurEigentuemer`. Genau dafuer war diese Liste angelegt: "der zweite
+   Schluessel dieser Art steht dann daneben und nicht als zweite
+   Verzweigung." */
+const EIGENTUEMER_SCHLUESSEL = ['bilderUmwandeln',
+                                'sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -874,7 +882,7 @@ function nurEigentuemer(req, res, next) {
    WAS DIE INSTANZ ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
    Verteidigt wird gegen eine FREMDE OFFENE SITZUNG.
 
-   ACHT WEGE UEBER SIEBEN ROUTEN, und PUT /api/users/:id traegt zwei davon:
+   NEUN WEGE UEBER ACHT ROUTEN, und PUT /api/users/:id traegt zwei davon:
      export     GET    /api/export
      import     POST   /api/import
      rolle      PUT    /api/users/:id   (nur wenn rolle im Rumpf steht)
@@ -883,6 +891,7 @@ function nurEigentuemer(req, res, next) {
      link       POST   /api/users/:id/token
      mail       PUT    /api/mail
      bilder     POST   /api/bilder/umstellen
+     sicherung  POST   /api/sicherung/aufraeumen
 
    AUSDRUECKLICH NICHT DAHINTER: Sperren und Freigeben (umkehrbar), das
    Anlegen eines Zugangs (es nimmt niemandem etwas) und POST /api/setup (dort
@@ -1910,6 +1919,22 @@ app.put('/api/settings', (req, res) => {
   if (nurDemEigentuemer.length && !istEigentuemer(req))
     return res.status(403).json({ error: VERWEIGERT_EIGEN });
 
+  /* DIE BEIDEN WERTE DER AUFRAEUMREGEL WERDEN HIER GEPRUEFT UND ERST WEITER
+     UNTEN GESCHRIEBEN -- aus demselben Grund wie die Ansichten darunter: eine
+     Absage, die schon etwas geschrieben hat, waere schlimmer als gar keine.
+     DIE GRENZEN STEHEN AM SERVER UND NICHT NUR IM EINGABEFELD (Entscheidung 1
+     der Runde 0.20.0): `min`/`max` im HTML ist eine Bitte, keine Klemme.
+     GEPRUEFT MIT DERSELBEN FUNKTION WIE DIE VORSCHAU UND DAS LOESCHEN -- eine
+     zweite Spanne daneben liefe auseinander. */
+  const regelWerte = {};
+  for (const [k, spanne, was] of [['sicherungBehalten', AUFRAEUM_BEHALTEN, 'Immer behalten'],
+                                  ['sicherungTage', AUFRAEUM_TAGE, 'Erst löschen ab']]) {
+    if (req.body[k] === undefined) continue;
+    const g = pruefeRegelwert(req.body[k], spanne, was);
+    if (g.fehler) return res.status(400).json({ error: g.fehler });
+    regelWerte[k] = g.wert;
+  }
+
   /* DIE ANSICHTEN WERDEN HIER GEPRUEFT UND ERST WEITER UNTEN GESCHRIEBEN --
      VOR dem ersten putUserSetting: eine Absage, die `filters` schon
      geschrieben hat, waere schlimmer als gar keine.
@@ -2059,6 +2084,13 @@ app.put('/api/settings', (req, res) => {
      EINER Zeile (EIGENTUEMER_SCHLUESSEL) und nicht hier ein zweites Mal. */
   if (req.body.bilderUmwandeln !== undefined)
     putSetting.run('bilderUmwandeln', JSON.stringify(!!req.body.bilderUmwandeln));
+  /* DIE AUFRAEUMREGEL DER SICHERUNGEN, 0.20.0 -- derselbe Weg, dieselbe
+     Rechtezeile (EIGENTUEMER_SCHLUESSEL ganz oben), und die beiden Zahlen
+     sind oben schon geprueft. DER SCHALTER STEHT AUF AUS, wenn nichts
+     dasteht: abgeleitet beim Lesen in aufraeumStand(), ohne Migrationscode. */
+  if (req.body.sicherungAufraeumen !== undefined)
+    putSetting.run('sicherungAufraeumen', JSON.stringify(!!req.body.sicherungAufraeumen));
+  for (const [k, v] of Object.entries(regelWerte)) putSetting.run(k, JSON.stringify(v));
   res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vokabular: vokabular(),
              ansichten: ansichten(req.benutzer.id), ansichtenDeckel: ANSICHTEN_DECKEL,
              schrift: schriftgroesse(req.benutzer.id), bloecke: bloecke(req.benutzer.id),
@@ -5695,6 +5727,29 @@ const SICHERUNG_DIR = (process.env.SICHERUNG_DIR || '').trim();
 // schlimmer ist als eine zu hohe.
 const SICHERUNG_MS_JE_MB = 20;
 const SICHERUNG_MUSTER = /^kriterion-.+\.sqlite$/;
+/* --- Die Aufraeumregel: ZWEI BEDINGUNGEN, und beide muessen zutreffen ---
+   Geloescht wird eine Kopie nur, wenn sie BEIDES ist: nicht unter den N
+   juengsten UND aelter als X Tage.
+
+   WARUM BEIDE UND NICHT EINE -- jede einzelne ist ausgerechnet in der Lage
+   falsch, in der sie gebraucht wird (Stolperstein 299):
+     nur "aelter als X Tage" -- eine Installation, an der ein halbes Jahr nicht
+       gesichert wurde, verliert ALLE Kopien auf einen Schlag, genau dann, wenn
+       sie die einzigen sind.
+     nur "die letzten N"     -- wer an einem Nachmittag viermal auf den Knopf
+       drueckt, wirft die Kopie vom Vormonat weg, obwohl nichts alt ist.
+   DIE ZAHL IST DER BODEN, DAS ALTER IST DIE SCHERE.
+
+   DIE GRENZEN STEHEN HIER UND NICHT NUR IM EINGABEFELD: `min`/`max` im HTML
+   ist eine Bitte, keine Klemme. Ein Feld, in das jemand 0 schreiben kann, ist
+   eine Falle -- ein Boden von 0 hiesse "alles darf fallen".
+   VORGABE DES SCHALTERS IST AUS, und das ist die Abweichung von
+   `bilderUmwandeln`: eine umgewandelte PNG-Datei holt der Knopf in der
+   Gegenrichtung zurueck, eine geloeschte Sicherung holt nichts zurueck. Was
+   nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet. */
+const AUFRAEUM_BEHALTEN = { vorgabe: 3, min: 1, max: 20 };
+const AUFRAEUM_TAGE = { vorgabe: 30, min: 7, max: 365 };
+const TAG_MS = 86400000;
 // Positivliste statt Liste des Verbotenen: JEDES Segment faengt mit einem
 // Buchstaben oder einer Ziffer an. Damit sind '..', '.', ein fuehrender
 // Schraegstrich, ein Laufwerksbuchstabe und ein Gegenschraegstrich gar nicht
@@ -5805,27 +5860,53 @@ function wechselMarke() {
   return Number.isFinite(ms) ? { am: roh, ms } : null;
 }
 
-function letzteSicherung(pfad) {
-  const marke = wechselMarke();
-  const gewechseltAm = marke ? marke.am : null;
+/* DIE LISTE DER KOPIEN AM ORT -- EINMAL AUFGEBAUT UND VON DREIEN GENUTZT.
+   Bis 0.19.6 stand sie mitten in letzteSicherung(), wurde dort ausgewertet und
+   wieder weggeworfen. Seit 0.20.0 brauchen die Vorschau und das Loeschen genau
+   dieselbe Liste; ein zweiter Aufbau daneben waere eine zweite Wahrheit
+   darueber, was am Ort liegt (Stolperstein 47).
+
+   DREI KLEMMEN, UND JEDE HAELT EINE ANDERE FRAGE:
+     SICHERUNG_MUSTER  -- nur, was `kriterion-<...>.sqlite` heisst. Eine fremde
+                          Datei im Ordner ist keine Sicherung. Angefangene
+                          Kopien (`*.wird`) fallen ohnehin heraus.
+     kein readdir in die Tiefe -- ein Unterverzeichnis wird nicht betreten.
+     lstatSync + isFile()      -- EIN SYMLINK IST KEINE SICHERUNG. Mit statSync
+                          folgte die Frage dem Verweis und meldete die Datei am
+                          anderen Ende als regulaer; lstatSync sieht den Verweis
+                          selbst, und der ist keine regulaere Datei.
+   SORTIERT WIRD JUENGSTE ZUERST -- der Boden der Regel zaehlt von vorn.
+   DAS ALTER KOMMT AUS `mtimeMs` UND NICHT AUS DEM DATEINAMEN: der Name traegt
+   zwar eine Zeitmarke, aber er ist von aussen gestaltbar; die Angabe des
+   Dateisystems ist es nicht. */
+function sicherungsListe(pfad) {
   let namen;
   try { namen = fs.readdirSync(pfad); }
-  catch { return { erreichbar: false, letzte: null, zahl: 0, gewechseltAm, veraltet: 0 }; }
+  catch { return null; }
   const dateien = [];
   for (const n of namen) {
     if (!SICHERUNG_MUSTER.test(n)) continue;
     try {
-      const st = fs.statSync(path.join(pfad, n));
+      const st = fs.lstatSync(path.join(pfad, n));
       if (st.isFile()) dateien.push({ name: n, zeit: st.mtimeMs, bytes: st.size });
     } catch { /* eine Datei, die zwischen readdir und stat verschwindet */ }
   }
+  dateien.sort((a, b) => b.zeit - a.zeit);
+  return dateien;
+}
+
+function letzteSicherung(pfad) {
+  const marke = wechselMarke();
+  const gewechseltAm = marke ? marke.am : null;
+  const dateien = sicherungsListe(pfad);
+  if (dateien === null)
+    return { erreichbar: false, letzte: null, zahl: 0, gewechseltAm, veraltet: 0 };
   // Ohne Wechsel ist KEINE Kopie veraltet -- und nicht etwa jede. Der
   // Unterschied zwischen "es gab keinen Wechsel" und "alle sind veraltet" ist
   // genau der, den diese Zeile haelt.
   const veraltet = marke ? dateien.filter(d => d.zeit < marke.ms).length : 0;
   if (!dateien.length)
     return { erreichbar: true, letzte: null, zahl: 0, gewechseltAm, veraltet: 0 };
-  dateien.sort((a, b) => b.zeit - a.zeit);
   const j = dateien[0];
   return { erreichbar: true, zahl: dateien.length, gewechseltAm, veraltet, letzte: {
     datei: j.name, bytes: j.bytes,
@@ -5838,6 +5919,173 @@ function letzteSicherung(pfad) {
     // ueberhaupt keine brauchbare da, und das ist die schaerfste Lage.
     veraltet: Boolean(marke && j.zeit < marke.ms)
   } };
+}
+
+/* ================= Alte Sicherungen aufraeumen -- 0.20.0 =================
+
+   DIE REGEL STEHT AN GENAU EINER STELLE, und sie ist eine REINE FUNKTION: sie
+   bekommt eine Dateiliste und die beiden Werte und liefert die zu loeschenden
+   Namen. Die Vorschau und das Loeschen rufen dieselbe -- zwei Fassungen waeren
+   zwei Wahrheiten darueber, was gleich passiert (Stolperstein 47), und die
+   Vorschau verloere genau das, wofuer es sie gibt.
+
+   SIE BERUEHRT WEDER DAS DATEISYSTEM NOCH DIE UHR: `jetzt` und `wechselMs`
+   kommen als Argument herein. Nur so ist sie an einer TAFEL zu pruefen statt
+   an einem Ordner -- und eine Pruefung, die auf echte dreissig Tage wartet,
+   gibt es nicht.
+
+   DER BODEN ZAEHLT NUR DIE KOPIEN NACH DEM SCHLUESSELWECHSEL (Entscheidung 5).
+   Drei Kopien, von denen zwei vor dem Wechsel entstanden sind, sind in
+   Wahrheit eine; bei dieser Lage faellt dann gar nichts, und das ist die
+   sichere Seite. Die Kopien von VOR dem Wechsel fasst die Regel ueberhaupt
+   nicht an -- sie sind nicht entbehrlich, sondern etwas anderes, und fuer sie
+   gibt es den zweiten, ausdruecklichen Weg.
+   OHNE WECHSEL ZAEHLEN ALLE: `wechselMs` ist dann null, und die Filterzeile
+   laesst jede Kopie durch. Der Unterschied zwischen "es gab keinen Wechsel"
+   und "alle sind veraltet" ist derselbe wie in letzteSicherung() darueber. */
+function regelTreffer(dateien, behalten, tage, jetzt, wechselMs) {
+  const brauchbar = dateien
+    .filter(d => wechselMs == null || d.zeit >= wechselMs)
+    .sort((a, b) => b.zeit - a.zeit);
+  const grenze = jetzt - tage * TAG_MS;
+  //          der Boden                    die Schere
+  return brauchbar.slice(behalten).filter(d => d.zeit < grenze);
+}
+
+/* Die beiden Werte, geprueft. EINE Stelle fuer beide Wege -- den Schreibweg
+   ueber PUT /api/settings und den Leseweg der Regel: stuende die Spanne an
+   zwei Orten, liefe sie auseinander.
+   `null`, `"drei"` UND EIN BRUCH WERDEN ABGEWIESEN und nicht stillschweigend
+   gerundet: eine Zahl, die der Server anders liest, als sie eingetippt wurde,
+   ist schlimmer als eine Absage. */
+function pruefeRegelwert(roh, spanne, was) {
+  const n = Number(roh);
+  if (!Number.isInteger(n) || n < spanne.min || n > spanne.max)
+    return { fehler: `${was} muss eine ganze Zahl von ${spanne.min} bis ${spanne.max} sein.` };
+  return { wert: n };
+}
+
+/* Der eingestellte Stand der Regel. ABGELEITET BEIM LESEN, ohne
+   Migrationscode: was nicht in settings steht, gilt als Vorgabe -- und der
+   Schalter gilt als AUS.
+   GEPRUEFT AUCH BEIM LESEN: ein von Hand in die Tabelle geschriebener Wert
+   ausserhalb der Grenzen faellt hier auf die Vorgabe zurueck und weitet die
+   Regel nicht. Die Klemme steht an der Stelle, an der der Fehler wehtut. */
+function aufraeumStand() {
+  const b = pruefeRegelwert(getSetting('sicherungBehalten', AUFRAEUM_BEHALTEN.vorgabe),
+                            AUFRAEUM_BEHALTEN, 'Immer behalten');
+  const t = pruefeRegelwert(getSetting('sicherungTage', AUFRAEUM_TAGE.vorgabe),
+                            AUFRAEUM_TAGE, 'Erst löschen ab');
+  return {
+    an: getSetting('sicherungAufraeumen', false) === true,
+    behalten: b.fehler ? AUFRAEUM_BEHALTEN.vorgabe : b.wert,
+    tage: t.fehler ? AUFRAEUM_TAGE.vorgabe : t.wert
+  };
+}
+
+/* Eine Zeile der Vorschau: dieselbe Schreibweise wie jeder Zeitstempel der
+   Instanz, damit die Oberflaeche genau einen Weg hat, daraus ein Datum zu
+   machen. */
+const aufraeumZeile = (d, jetzt) => ({
+  datei: d.name, bytes: d.bytes,
+  am: new Date(d.zeit).toISOString().slice(0, 19).replace('T', ' '),
+  tageHer: Math.max(0, Math.floor((jetzt - d.zeit) / TAG_MS))
+});
+
+/* DIE VORSCHAU -- sie steht immer da, auch wenn der Schalter aus ist: sie ist
+   die Auskunft darueber, was die Regel bei den eingestellten Werten bedeutet.
+   OHNE VORSCHAU IST ES EINE WETTE, und sie ist der Ersatz fuer den
+   Papierkorb, den es hier ausdruecklich nicht gibt (Entscheidung 2).
+
+   TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DANEBEN -- eine leere Liste ohne
+   Erklaerung sieht aus wie ein Fehler. Der Grund ist ein halber Satz und
+   nennt die Zahl, um die es geht.
+   DIE KOPIEN VON VOR DEM WECHSEL STEHEN GETRENNT, mit eigener Zahl und
+   Summe: sie sind nicht entbehrlich, sondern etwas anderes. */
+function aufraeumVorschau(pfad, behalten, tage) {
+  const dateien = sicherungsListe(pfad);
+  if (dateien === null) return { erreichbar: false, treffer: [], bytes: 0, grund: '' };
+  const marke = wechselMarke();
+  const jetzt = Date.now();
+  const alt = marke ? dateien.filter(d => d.zeit < marke.ms) : [];
+  const brauchbar = marke ? dateien.filter(d => d.zeit >= marke.ms) : dateien;
+  const treffer = regelTreffer(dateien, behalten, tage, jetzt, marke ? marke.ms : null);
+  let grund = '';
+  if (!treffer.length) {
+    if (!dateien.length) grund = 'An diesem Ort liegt noch keine Sicherung.';
+    else if (!brauchbar.length)
+      grund = `Keine der ${dateien.length} ${dateien.length === 1 ? 'Kopie' : 'Kopien'} ` +
+              'stammt von nach dem Schlüsselwechsel.';
+    else if (brauchbar.length <= behalten)
+      grund = `Alle ${brauchbar.length} ${brauchbar.length === 1 ? 'Kopie' : 'Kopien'} ` +
+              `sind unter den jüngsten ${behalten}.`;
+    else {
+      // Die AELTESTE der Kopien, die der Boden nicht mehr deckt -- sie ist die,
+      // die als naechste faellt, und ihr Alter ist die Auskunft, auf die es
+      // ankommt.
+      const naechste = brauchbar[brauchbar.length - 1];
+      const her = Math.max(0, Math.floor((jetzt - naechste.zeit) / TAG_MS));
+      grund = `Die älteste ist ${her} ${her === 1 ? 'Tag' : 'Tage'} alt.`;
+    }
+  }
+  return {
+    erreichbar: true,
+    treffer: treffer.map(d => aufraeumZeile(d, jetzt)),
+    bytes: treffer.reduce((n, d) => n + d.bytes, 0),
+    grund,
+    altZahl: alt.length,
+    altBytes: alt.reduce((n, d) => n + d.bytes, 0),
+    altDateien: alt.map(d => aufraeumZeile(d, jetzt))
+  };
+}
+
+/* DAS LOESCHEN. Es bekommt den GEPRUEFTEN Ordner und die Liste der Namen, die
+   die Regel eben genannt hat -- und haelt jeden Namen unmittelbar davor noch
+   einmal gegen SICHERUNG_MUSTER und gegen `basename`. Zwei Pruefungen
+   desselben Namens sind hier keine Verdopplung, sondern die Klemme an der
+   Stelle, an der der Fehler wehtut: wer diese Funktion je von einer anderen
+   Aufrufstelle her ruft, kommt an ihr nicht vorbei.
+
+   WAS `unlink` NICHT SCHAFFT, HAELT DEN REST NICHT AUF. Eine Datei, die
+   zwischen Auflisten und Loeschen verschwindet oder sich sperrt, wird gezaehlt
+   und gemeldet -- die Antwort sagt "4 entfernt, 1 nicht", und der Grund steht
+   im Protokoll des Containers, nicht in der Antwort (fester Text wie ueberall
+   bei einem Fehler des Servers). */
+/* EINE ZEILE JE ENTFERNTER KOPIE, und das ist eine Entscheidung.
+   Die Zahl der entfernten Kopien GEHOERT ins Sicherheitsprotokoll -- eine
+   Spalte dafuer gibt es aber nicht: `wer` und `ziel` sind Benutzernummern mit
+   Fremdschluessel, `merkmal` ist eine geschlossene Liste ohne Ziffern
+   (MERKMALE bleibt bei vierzehn), und Freitext gibt es in dieser Tabelle
+   ausdruecklich nicht. Eine neue Spalte waere ein Schemaschritt, und diese
+   Runde ist ausdruecklich keiner.
+   DAMIT IST DIE ZAHL DIE ZEILENZAHL: vier entfernte Kopien sind vier Zeilen.
+   Das ist keine Notloesung, sondern dieselbe Aussage in der Form, die die
+   Tabelle traegt -- und die einzige, die sich hinterher wirklich zaehlen
+   laesst.
+   DIE FREIGEGEBENEN BYTES STEHEN NICHT DARIN, sondern in der Antwort und in
+   der Zeile im Containerprotokoll. */
+const protokolliereEntfernt = (wer, zahl) => {
+  for (let i = 0; i < zahl; i++) auth.protokolliere('sicherung.weg', { wer });
+};
+
+function entferneSicherungen(ordner, namen) {
+  let weg = 0, bytes = 0;
+  const geblieben = [];
+  for (const n of namen) {
+    const kurz = path.basename(String(n));
+    if (kurz !== String(n) || !SICHERUNG_MUSTER.test(kurz)) { geblieben.push(kurz); continue; }
+    const voll = path.join(ordner, kurz);
+    try {
+      const st = fs.lstatSync(voll);
+      if (!st.isFile()) { geblieben.push(kurz); continue; }
+      fs.unlinkSync(voll);
+      weg++; bytes += st.size;
+    } catch (e) {
+      geblieben.push(kurz);
+      console.error(`[Kriterion] Sicherung ${kurz} nicht entfernt: ${e.message}`);
+    }
+  }
+  return { weg, bytes, geblieben };
 }
 
 // Lesend, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht trotzdem
@@ -5859,20 +6107,48 @@ app.get('/api/sicherung', nurEigentuemer, (req, res) => {
      und die ist dann ehrlich null statt geraten. */
   const marke = wechselMarke();
   const gewechseltAm = marke ? marke.am : null;
+  /* DIE VORSCHAU RECHNET MIT DEN WERTEN AUS DER ABFRAGE, WENN WELCHE
+     DASTEHEN, und sonst mit den eingestellten. So rechnet jede Aenderung an
+     einem der beiden Felder die Vorschau neu, OHNE dass etwas gespeichert oder
+     geloescht wird -- wer die Zahl von 3 auf 1 stellt, sieht sofort, was das
+     kostet.
+     GEPRUEFT WIRD AUCH HIER, und zwar mit derselben Funktion wie auf dem
+     Schreibweg: eine Vorschau, die 0 anstandslos rechnet, sagte etwas ueber
+     eine Regel, die es nicht gibt.
+     LESEND BLEIBT LESEND -- diese Route schreibt nichts, auch die Werte aus
+     der Abfrage nicht. */
+  const stand = aufraeumStand();
+  let behalten = stand.behalten, tage = stand.tage;
+  if (req.query.behalten !== undefined) {
+    const g = pruefeRegelwert(req.query.behalten, AUFRAEUM_BEHALTEN, 'Immer behalten');
+    if (g.fehler) return res.status(400).json({ error: g.fehler });
+    behalten = g.wert;
+  }
+  if (req.query.tage !== undefined) {
+    const g = pruefeRegelwert(req.query.tage, AUFRAEUM_TAGE, 'Erst löschen ab');
+    if (g.fehler) return res.status(400).json({ error: g.fehler });
+    tage = g.wert;
+  }
+  /* DIE GRENZEN GEHEN MIT HINAUS. Die Karte schreibt sie an ihre beiden
+     Felder, statt sie ein zweites Mal zu kennen -- eine Zahl, die an zwei
+     Orten steht, laeuft auseinander (Stolperstein 137). */
+  const regel = { ...stand, behalten, tage,
+                  grenzen: { behalten: AUFRAEUM_BEHALTEN, tage: AUFRAEUM_TAGE } };
   if (!lage.ein) return res.json({ eingerichtet: false, grund: lage.grund, ort,
                                    dbBytes, dauerSekunden: dauer, erreichbar: false, letzte: null,
-                                   gewechseltAm, veraltet: 0 });
+                                   gewechseltAm, veraltet: 0, aufraeumen: regel });
   const ziel = pruefeOrt(ort);
   if (ziel.fehler) return res.json({ eingerichtet: true, wurzel: lage.wurzel, ort,
                                      imArbeitsverzeichnis: lage.imArbeitsverzeichnis,
                                      fehler: ziel.fehler, dbBytes, dauerSekunden: dauer,
                                      erreichbar: false, letzte: null,
-                                     gewechseltAm, veraltet: 0 });
+                                     gewechseltAm, veraltet: 0, aufraeumen: regel });
   // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
   // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
   res.json({ eingerichtet: true, wurzel: lage.wurzel, ort, pfad: ziel.pfad,
              imArbeitsverzeichnis: lage.imArbeitsverzeichnis,
-             dbBytes, dauerSekunden: dauer, ...letzteSicherung(ziel.pfad) });
+             dbBytes, dauerSekunden: dauer, ...letzteSicherung(ziel.pfad),
+             aufraeumen: { ...regel, ...aufraeumVorschau(ziel.pfad, behalten, tage) } });
 });
 
 /* Der Ort ist eine Einstellung der INSTANZ und gehoert damit in settings, nicht
@@ -5934,8 +6210,130 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
   // Export. Der Pfad steht NICHT in der Zeile: das Protokoll haelt Vorgaenge
   // fest, keine Orte auf dem Wirt.
   auth.protokolliere('sicherung', { wer: req.benutzer.id });
+  /* ---- DAS AUFRAEUMEN, UND ZWAR HIER UND NIRGENDS SONST ----
+     DER AUFRUF STEHT AM ENDE DIESER ROUTE, NACH dem `rename` und nach
+     `statSync` -- an dem einen Augenblick, in dem feststeht, dass eine
+     frische, vollstaendige Kopie da ist.
+     SCHLAEGT DIE SICHERUNG FEHL, WIRD NICHT AUFGERAEUMT (Entscheidung 3), und
+     das ist die wichtigste Zeile der Runde: sonst raeumt die Installation
+     genau in dem Augenblick auf, in dem sie keine neue Kopie zustande bringt.
+     Der Weg dorthin verlaesst die Route vorher ueber `return res.status(500)`
+     -- es genuegt also, den Aufruf ans Ende zu setzen. DAS IST KEINE
+     NACHLAESSIGKEIT, SONDERN DIE BAUFORM, und sie gehoert deshalb hier
+     benannt: wer den Aufruf je vor das `try` zieht, hebt die Entscheidung auf.
+
+     UND DAS AUFRAEUMEN DARF DIE SICHERUNG NICHT MITREISSEN. Wer eine gelungene
+     Kopie mit einem Fehler beantwortet, macht aus einem geglueckten Vorgang
+     eine rote Meldung -- genau der Fehler aus 0.19.6 (Stolperstein 298).
+     Der Aufruf steht deshalb in seinem eigenen `try`, und was er meldet, ist
+     eine Angabe NEBEN der Sicherung, kein Ersatz fuer sie.
+     ES GESCHIEHT NUR BEI EINGESCHALTETEM SCHALTER, und der steht auf AUS. */
+  let aufgeraeumt = null;
+  try {
+    const regel = aufraeumStand();
+    if (regel.an) {
+      const treffer = regelTreffer(sicherungsListe(ziel.pfad) || [], regel.behalten, regel.tage,
+                                   Date.now(), (wechselMarke() || {}).ms ?? null);
+      if (treffer.length) {
+        const raus = entferneSicherungen(ziel.pfad, treffer.map(d => d.name));
+        aufgeraeumt = { weg: raus.weg, nicht: raus.geblieben.length, bytes: raus.bytes };
+        if (raus.weg) {
+          console.log(`[Kriterion] Alte Sicherungen entfernt: ${raus.weg} ` +
+            `(${raus.bytes} Bytes frei)` +
+            `${raus.geblieben.length ? `, ${raus.geblieben.length} nicht` : ''}.`);
+          protokolliereEntfernt(req.benutzer.id, raus.weg);
+        }
+      }
+    }
+  } catch (e) {
+    // Die Sicherung ist gelungen; dieser Fehler ist eine Angabe daneben und
+    // darf die Antwort nicht in eine Absage verwandeln.
+    console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);
+    aufgeraeumt = { weg: 0, nicht: 0, bytes: 0, gescheitert: true };
+  }
   res.json({ ok: true, datei: path.basename(datei), pfad: ziel.pfad, bytes, ms,
-             ...letzteSicherung(ziel.pfad) });
+             ...letzteSicherung(ziel.pfad), aufgeraeumt });
+});
+
+/* ---- DIE LOESCHROUTE ----------------------------------------------------
+   POST /api/sicherung/aufraeumen -- die einundsiebzigste schreibende Route.
+   Beim Eigentuemer und zweitbestaetigt, dieselbe Zeile wie Export, Import,
+   Sicherung und die Bildumstellung: sie entfernt Bytes unwiderruflich.
+
+   DIE ROUTE NIMMT KEINE DATEINAMEN ENTGEGEN. NIE.
+   Sie bekommt die ART und sonst nichts; WELCHE Dateien fallen, rechnet der
+   Server im selben Augenblick selbst aus. Eine Loeschroute, der man sagen
+   kann, WAS sie loeschen soll, ist die gefaehrlichste Route der Anwendung --
+   und sie waere es auch dann, wenn heute jeder Name geprueft wuerde: die
+   Pruefung stuende einen Handgriff davon entfernt, vergessen zu werden
+   (Stolperstein 300).
+   DER PREIS IST BENANNT UND ANGENOMMEN: zwischen Vorschau und Knopfdruck kann
+   sich der Ordner geaendert haben, und dann faellt etwas anderes als
+   angezeigt. DIE ANTWORT NENNT DESHALB, WAS WIRKLICH GELOESCHT WURDE, und die
+   Karte zeichnet sich daraus neu.
+
+   ZWEI WEGE, EINE ROUTE, unterschieden durch ein Feld im Rumpf:
+     art: 'regel'    -- die Regel einmal anwenden.
+     art: 'veraltet' -- ALLE Kopien von vor dem Schluesselwechsel und NICHTS
+                        SONST. Ausdruecklich und getrennt: eine automatische
+                        Regel entfernt Ueberfluessiges, nicht Fremdes.
+   Zwei Routen fuer dasselbe Loeschen waeren zwei Stellen, an denen die
+   Pfadpruefung stehen muss.
+
+   DER ORDNER KOMMT AUS getSetting('sicherungOrt') UND GEHT DURCH pruefeOrt()
+   -- dieselbe Pruefung wie beim Schreiben, dieselbe Funktion, kein zweites Mal
+   hingeschrieben: Positivliste zuerst, `realpathSync` danach. */
+app.post('/api/sicherung/aufraeumen', nurEigentuemer,
+         zweiteBestaetigungNoetig('sicherung'), (req, res) => {
+  const lage = sicherungLage();
+  if (!lage.ein) return res.status(400).json({ error: lage.grund });
+  const ziel = pruefeOrt(getSetting('sicherungOrt', ''));
+  if (ziel.fehler) return res.status(400).json({ error: ziel.fehler });
+  const art = String(req.body?.art || '');
+  if (art !== 'regel' && art !== 'veraltet')
+    return res.status(400).json({ error: 'Diese Art des Aufräumens gibt es nicht.' });
+  const dateien = sicherungsListe(ziel.pfad);
+  if (dateien === null)
+    return res.status(400).json({ error: 'Der Zielort ist nicht erreichbar.' });
+  const marke = wechselMarke();
+  /* DIE GRENZEN HALTEN, BEVOR IRGENDETWAS GELOESCHT WIRD. Die Werte kommen aus
+     settings und nicht aus dem Rumpf; steht dort einer ausserhalb der Spanne,
+     ist das eine Absage und keine stille Rundung. */
+  let treffer;
+  if (art === 'veraltet') {
+    if (!marke) return res.status(400).json({
+      error: 'Es gibt keinen Schlüsselwechsel — damit auch keine veralteten Kopien.' });
+    treffer = dateien.filter(d => d.zeit < marke.ms);
+  } else {
+    const b = pruefeRegelwert(getSetting('sicherungBehalten', AUFRAEUM_BEHALTEN.vorgabe),
+                              AUFRAEUM_BEHALTEN, 'Immer behalten');
+    if (b.fehler) return res.status(400).json({ error: b.fehler });
+    const t = pruefeRegelwert(getSetting('sicherungTage', AUFRAEUM_TAGE.vorgabe),
+                              AUFRAEUM_TAGE, 'Erst löschen ab');
+    if (t.fehler) return res.status(400).json({ error: t.fehler });
+    treffer = regelTreffer(dateien, b.wert, t.wert, Date.now(), marke ? marke.ms : null);
+  }
+  const raus = entferneSicherungen(ziel.pfad, treffer.map(d => d.name));
+  if (raus.weg) {
+    console.log(`[Kriterion] Alte Sicherungen entfernt (${art}): ${raus.weg} ` +
+      `(${raus.bytes} Bytes frei)${raus.geblieben.length ? `, ${raus.geblieben.length} nicht` : ''}.`);
+    /* NUR DIE ZAHL INS SICHERHEITSPROTOKOLL. Kein Freitext, kein Dateiname,
+       kein Pfad -- das Protokoll haelt Vorgaenge fest, keine Orte auf dem Wirt
+       (dieselbe Regel wie beim `sicherung`-Eintrag daneben). DIE
+       FREIGEGEBENEN BYTES GEHOEREN NICHT IN DIE TABELLE, sondern in die
+       Antwort und in die Zeile darueber: MERKMALE ist eine geschlossene Liste
+       und bleibt bei vierzehn. */
+    protokolliereEntfernt(req.benutzer.id, raus.weg);
+  }
+  /* DIE ANTWORT NENNT, WAS WIRKLICH GELOESCHT WURDE, und traegt die Vorschau
+     frisch daneben: die Karte zeichnet sich daraus neu, statt ihren alten
+     Stand fortzuschreiben. */
+  const nach = aufraeumStand();
+  res.json({ ok: true, art, weg: raus.weg, nicht: raus.geblieben.length, bytes: raus.bytes,
+             ...letzteSicherung(ziel.pfad),
+             aufraeumen: { ...nach,
+                           grenzen: { behalten: AUFRAEUM_BEHALTEN, tage: AUFRAEUM_TAGE },
+                           ...aufraeumVorschau(ziel.pfad, nach.behalten, nach.tage) } });
 });
 
 // Einmal beim Start ins Protokoll -- wer den Ort falsch stehen hat, sieht es
