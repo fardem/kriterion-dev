@@ -31778,9 +31778,13 @@ async function pruefeOberflaeche() {
      NICHTS. Wer die Zahl von 3 auf 1 stellt, sieht sofort, was das kostet. --- */
   {
     const d = await afSystem();
+    /* JEDER GRIFF AUF EINEN KNOTEN IST ABGEFANGEN. Faellt die Karte weg — und
+       genau das tut Rueckbau 561 —, sollen die Zeilen darunter ROT werden und
+       nicht der Lauf abreissen (Stolpersteine 103 und 161). Ein Rueckbau, der
+       den Lauf abreisst, belegt nichts. */
     setzeFeld(d.w.document, 'auf-behalten', '2');
     d.w.document.getElementById('auf-behalten')
-      .dispatchEvent(new d.w.Event('input', { bubbles: true }));
+      ?.dispatchEvent(new d.w.Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     const gefragt = d.gesendet.filter(x => String(x.url).startsWith('/api/sicherung?'));
     pruefe('Eine Aenderung am Feld fragt die Vorschau neu am Server',
@@ -31801,7 +31805,7 @@ async function pruefeOberflaeche() {
     /* ERST DAS VERLASSEN DES FELDES SPEICHERT. Ein eigener Speicherknopf waere
        ein dritter Knopf auf einer Karte, die mit zwei auskommt. */
     d.w.document.getElementById('auf-behalten')
-      .dispatchEvent(new d.w.Event('change', { bubbles: true }));
+      ?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Erst das Verlassen des Feldes speichert den Wert',
       d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/settings' &&
@@ -31812,9 +31816,9 @@ async function pruefeOberflaeche() {
      Route -- dieselbe Bauform wie der Schalter der Bildablage. --- */
   {
     const d = await afSystem();
-    d.w.document.getElementById('auf-schalter').checked = true;
-    d.w.document.getElementById('auf-schalter')
-      .dispatchEvent(new d.w.Event('change', { bubbles: true }));
+    const afS = d.w.document.getElementById('auf-schalter');
+    if (afS) afS.checked = true;
+    afS?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Schalter geht ueber PUT /api/settings hinaus',
       d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/settings' &&
@@ -31826,7 +31830,7 @@ async function pruefeOberflaeche() {
   {
     const d = await afSystem();
     d.w.document.getElementById('auf-los')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Knopf fragt erst nach dem Passwort',
       !!d.w.document.getElementById('best-pass'), 'kein Bestaetigungsfenster');
@@ -31845,7 +31849,7 @@ async function pruefeOberflaeche() {
   {
     const d = await afSystem();
     d.w.document.getElementById('auf-los')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     await bestaetigeImDom(d);
     await new Promise(r => setTimeout(r, 120));
