@@ -141,7 +141,8 @@ beim Bauen vergessen hat.**
 ## Was eine Nummer bekommen hat
 
 **Am 28. August 2026 sind dreizehn ausgearbeitete Punkte und zehn Zeilen aus
-Teil II Runden zugeordnet worden; am 3. September 2026 kam Punkt 8 dazu.**
+Teil II Runden zugeordnet worden; am 3. September 2026 kam Punkt 8 dazu — und
+mit der eingeschobenen 0.21.0 eine Runde, die hier nie gestanden hat.**
 Nach Regel 3 stehen sie damit **nicht mehr hier**,
 sondern im Fahrplan — Projektstand, **Abschnitt 10a**, dort mit ihrer
 vollständigen Ausarbeitung. *Diese Tabelle sagt nur, wohin sie gegangen sind;
@@ -151,6 +152,15 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 > Am 3. September 2026 ist alles hinter 0.19.4 um eine Stelle gerückt, weil
 > Punkt 8 die 0.20.0 bekommen hat. *Wo eine Zeile eine frühere Nummer trug,
 > steht sie daneben — gestrichen wird keine (Stolperstein 201).*
+>
+> **UND NOCH AM SELBEN TAG EIN ZWEITES MAL — MIT EINER NEUEN REGEL DAHINTER.**
+> Die eingeschobene 0.21.0 („Vor dem Test schätzt man …") hat alles dahinter
+> ein weiteres Mal gerückt, **und diesmal nicht bloß um eins: zwischen zwei
+> geplanten Runden bleibt ab jetzt eine Nummer frei.** *Der Fahrplan ist seit
+> 0.12.0 achtmal gerückt worden, jedes Mal um den ganzen Rest, weil kein Platz
+> für eine eingeschobene Runde war. Eine freie Nummer je Zwischenraum lässt die
+> nächste dort Platz finden, ohne dass sich dahinter etwas bewegt.* **Die Regel
+> und der neue Fahrplan stehen im Projektstand, Abschnitt 10.**
 
 | Runde | Was daraus geworden ist |
 |---|---|
@@ -170,9 +180,10 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.19.0** *MINOR, Schema* *(war 0.18.0)* — **GEBAUT am 1. September 2026** | **Die Bildablage.** *Punkt 15 dieses Blatts, aufgefallen am 28. August 2026 aus der Frage nach der Größe der Datenbank; am 30. August um den engeren Ausschnitt und das Bildformat erweitert.* **Gemessen an der echten Instanz: 679 der 1032 Bilder lagen als PNG im Original, 435,7 von 568,9 MB — als WebP `nearLossless` 60 werden daraus 161,9 MB, bei einer größten Abweichung von 2 von 255 und null von hundert Bildern mit sichtbarer Kante.** Gebaut sind: die Umwandlung beim Hereinkommen samt Schalter (Vorgabe an, nur der Eigentümer), der **Knopf**, der den vorhandenen Bestand nachzieht, der **engere Ausschnitt** (`photos.zoom`, achter Migrationsblock, Austauschformat 12), die aufgeschriebene **Asymmetrie der beiden Bildwege** und die zusammengelegte Kennzahlenabfrage. **Was gebaut wurde, steht im Änderungsprotokoll 0.19.0.** ***Diese Runde hebt eine Einschätzung dieses Blatts auf:*** *„Claude: nicht empfohlen für (a)" und „das Original wird nicht angefasst" galten vor der Messung und gelten für eine **Kameraaufnahme**; dieser Bestand besteht zu 92 % aus **Bildschirmfotos**, und die haben kein Negativ. Die Aufhebung steht mit ihrem Grund in Abschnitt 10a und am Quelltext — sie ist nicht gelöscht.* ***Was liegen bleibt, steht als eigene Zeile unten: die Ableitungen auf WebP.*** ***Und ein Befund aus dem Bauen:*** *die `effort`-Leiter ließ sich nicht am echten Bestand messen, und an erzeugtem Material hängt die Antwort vom Material ab (Stolperstein 270).* |
 | **0.19.4** *PATCH* — **GEBAUT am 3. September 2026** | **Die Vorschaubilder werden zu klein gerechnet.** *Punkt 7 dieses Blatts, aufgefallen beim Messen zu 0.19.1 am 2. September 2026.* `thumb` war 400 px auf der **langen** Kante und wird ausschließlich mit `object-fit: cover` gezeigt — **wer einschneidet, braucht die kurze.** Gebaut ist die Ableitungsregel als **Kiste** aus kurzer Kante und Deckel (`thumb` 512/1280, `medium` unverändert), dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht. **Was gebaut wurde, steht im Änderungsprotokoll 0.19.4.** ***Zwei Zahlen der Ausarbeitung haben nicht getragen:*** *die Kachel ist nicht 313, sondern **299 CSS-px** breit, und es sind **1032** Bilder und nicht 1034.* ***Und zwei Dinge sind mit Begründung NICHT nachgezogen worden:*** *die Videokacheln (es gibt keine Vorlage mehr) und der Bestand an Kommentarbildern (`.cmt-img` ist 86 × 86 px — der alte `thumb` deckte das bei dPR 1 und 2 ganz).* |
 | **0.20.0** *MINOR* — **GEBAUT am 3. September 2026** | **Alte Sicherungen aufräumen — ohne Shell.** *Punkt 8 dieses Blatts, aufgefallen im Betrieb am 2. September 2026; am selben Tag zugeordnet — er hat als erster Punkt seit dem 28. August wieder eine Nummer bekommen, und alles dahinter ist um eine Stelle gerückt.* Gebaut ist die Regel aus **zwei** Bedingungen (*nicht unter den N jüngsten **und** älter als X Tage*), die **Vorschau** vor dem Löschen, der Schalter auf **AUS**, ein Knopf hinter der zweiten Bestätigung, ein **zweiter, ausdrücklicher Weg** für die Kopien von vor dem Schlüsselwechsel, eine **zwanzigste Karte** und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Was gebaut wurde, steht im Änderungsprotokoll 0.20.0.** *Alle fünf offenen Entscheidungen sind beantwortet — jede mit ihrer Begründung.* ***Zwei Zahlen der Ausarbeitung haben nicht getragen:*** *`MERKMALE` steht bei **vierzehn** und nicht bei dreizehn, und die Zeile über die Routenzahl in Abschnitt 11 des Projektstands war zwei Runden alt — beides ist berichtigt.* ***Und eine Angabe ist eine Entscheidung geworden:*** *„mit der Zahl der entfernten Kopien" ins Protokoll heißt **eine Zeile je Kopie** — eine Spalte für eine Zahl gibt es dort nicht, und die Runde ist ausdrücklich keine Datenbankstufe.* |
-| **0.21.0** *MINOR* *(war 0.20.0, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
-| **0.22.0** *MINOR* *(war 0.21.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
-| **0.23.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, Nummer vorläufig)* | Bereinigung — der Bruch |
+| **0.21.0** *MINOR, Schema* — **GEBAUT am 3. September 2026** | **„Vor dem Test schätzt man, nach dem Test bewertet man" — der zweite Sternkasten.** *Nichts aus diesem Blatt: der Punkt ist am 3. September 2026 aus dem Betrieb gekommen und noch am selben Tag als Konzeptpapier (`Doku/Konzept_Potenzial.md`) und als eingeschobene Runde gebaut worden — er hat hier nie gestanden.* Gebaut sind: die Spalte `rating_criteria.phase` (**neunter Migrationsblock**, Austauschformat **13**), zwei Durchschnitte, die einander **baulich** nicht berühren, eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs — und `DELETE /api/items/:id/ratings` **fällt** (`F_ROUTEN` 71 → 70). **Was gebaut wurde, steht im Änderungsprotokoll 0.21.0.** ***Und eine Regel für den Fahrplan ist dabei entstanden:*** *zwischen zwei geplanten Runden bleibt ab jetzt eine Nummer frei — der Fahrplan ist seit 0.12.0 achtmal gerückt, und jedes Mal um den ganzen Rest.* |
+| **0.22.0** *MINOR* *(war 0.20.0, dann 0.21.0, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
+| **0.24.0** *MINOR* *(war 0.21.0, dann 0.22.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
+| **0.26.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
 **Was hier bleibt, bleibt aus einem Grund:** die **sieben** Punkte unten haben
 **keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — zwei sind

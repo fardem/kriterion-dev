@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 56 · Stand 3. September 2026 · gebaut: Version 0.20.1**
+**Kompakte Übergabe · Revision 57 · Stand 3. September 2026 · gebaut: Version 0.21.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,31 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.21.0 in einem Satz: ein Eintrag hat ab jetzt ZWEI Sternkästen, und ihre
+Durchschnitte berühren einander nicht.** *MINOR — die Installation kann danach
+etwas, was sie vorher nicht konnte: ungetestete Einträge nach **Potenzial**
+sortieren, und Ideen einschätzen, ohne die Bewertung zu verderben.* **Ein
+Eintrag mit `tested = 0` ist eine Idee, ein gesehenes Modell, ein Vorhaben —
+und die einzige Zahl, die er bisher bekommen konnte, war die Bewertung.** *Die
+Bewertung ist aber die Antwort auf „wie gut war es", und ein Stern an einer Idee
+beantwortet eine andere Frage: „wie sehr will ich es". Wer Ideen mit den
+vorhandenen Kriterien bewertet, mischt zwei Fragen in einen Durchschnitt, und
+niemand sieht es der Zahl an* (Stolperstein 47, in seiner reinsten Form).
+**Diese Runde gibt der zweiten Frage ihren eigenen Kasten:** ein Kriterium weiß
+ab jetzt, ob es *vorher* oder *nachher* gilt (`rating_criteria.phase`,
+**neunter Migrationsblock**). **Der Rest ist die vorhandene Mechanik, ein
+zweites Mal angewandt** — Sterne, Gewichte, Durchschnitt, Kopfzahl, Erklärung,
+Vergleich, Systemkarte. *Kein zweiter Sternmechanismus, keine zweite Tabelle,
+keine zweite Rechnung.* **Die Trennung ist baulich:** die Menge wird nach Phase
+geschnitten, **bevor** die Rechnung sie sieht, und es gibt keine Stelle, an der
+beide Mengen zugleich in einer Rechnung stehen. **Dazu zwei Handgriffe an
+derselben Sternzeile, weil beide Kästen sie bekommen:** das **×** an den
+eigenen Sternen ersetzt den langen Kopfknopf *(und `DELETE
+/api/items/:id/ratings` fällt mit ihm)*, und die Durchschnittsspalte hat ihre
+**gemessene** Breite von Anfang an — die Sterne springen beim ersten Stern nicht
+mehr nach links. **Das Wort „Potenzial" steht im Vokabular** und ist änderbar.
+*Was ausdrücklich NICHT gebaut wurde, steht im Änderungsprotokoll 0.21.0.*
 
 **0.20.1 in einem Satz: die Karte listet die Sicherungen, und der Text wird
 kurz.** *PATCH — die Installation kann danach nichts, was sie vorher nicht
@@ -378,6 +403,7 @@ Abschnitt 9.
 | `README.md` | die **Bedienung und der Betrieb**: einrichten, sichern, einspielen, wer was darf |
 | `Doku/Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` | die **Herleitung** des abgearbeiteten Stufenplans — Historie, geschlossen |
 | `Doku/Konzept_Video_und_grosse_Dateien.md` | **Teil II, große Dateien bis 2 GB** — noch nicht gebaut |
+| `Doku/Konzept_Potenzial.md` | die **Herleitung** der beiden Sternkästen (0.21.0) — Recherche, verworfene Wege, Regeln. *Es bleibt, wie es geschrieben wurde: wo die Bauform am Ende davon abweicht, berichtet das Änderungsprotokoll — das Konzept wird nicht nachträglich passend gemacht.* |
 | `Doku/Fehler_und_Ideen.md` | **Alles Offene: Befunde, Fehler und Ideen.** *Im Gespräch „das Sammelblatt" — ein Papier dieses Namens gibt es nicht.* Es ersetzt seit Revision 26 `Roadmap.md` und `Ideen_und_Vorschlaege.md`. **Was gebaut ist, steht dort nicht mehr** (Abschnitt 12) |
 | `Doku/Auftrag_<Version>.md` | der Auftrag der **laufenden** Runde; er fällt weg, sobald die nächste beginnt |
 
@@ -425,14 +451,33 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.20.1** — Fingerprint **`c67a13f9`**, **5403
+**Gebaut ist 0.21.0** — Fingerprint **`FINGERPRINT_0210`**, **PRUEFZAHL_0210
+Prüfungen**, **RUECKBAU_0210 Rückbauten in der Liste** (Abschnitt 8).
+*0.21.0 gibt jedem Eintrag einen zweiten Sternkasten — „Potenzial", die
+Einschätzung VOR dem Test — mit eigenen Kriterien, eigenen Gewichten und einem
+eigenen Durchschnitt, der die Bewertung nicht berührt.*
+**MINOR — DATENBANKSTUFE, KEIN BESTANDSLAUF.** *Ein Migrationsblock mehr, eine
+Spalte mit `DEFAULT`; alle vorhandenen Kriterien stehen danach auf `nachher`
+und zählen weiter in die Bewertung. **Sicherung vor dem Einspielen.***
+**Austauschformat 13, `F_ROUTEN` 70** *(eine Route ist weggefallen)*,
+**einundzwanzig Karten, neun Migrationsblöcke, zwölf Vokabelwörter.**
+**Nach dem Einspielen im Browser einmal hart neu laden.**
+
+> **DER RÜCKWEG AUF 0.20.1 BLEIBT TECHNISCH OFFEN** — `ADD COLUMN` mit
+> `DEFAULT` stört keine ältere Fassung. *Dort zählten Sterne aus dem
+> Potenzialkasten aber wieder in die Bewertung mit, und die zweite
+> Kriterienkarte gäbe es nicht.* **Eine Sicherung vor dem Einspielen, wie bei
+> jeder Stufe.**
+
+**Davor: 0.20.1** — Fingerprint **`c67a13f9`**, **5403
 Prüfungen**, **563 Rückbauten in der Liste** (Abschnitt 8).
 *0.20.1 ist die Nacharbeit an 0.20.0 aus drei Feldbefunden: die Karte listet ab
 jetzt alle Sicherungen mit Nummer, Datum und Größe, der Bildschirmtext ist
 kurz, und „Boden" und „Schere" stehen dort nicht mehr.*
 **PATCH — KEINE DATENBANKSTUFE, KEIN BESTANDSLAUF.** *Dieselbe Regel, dieselben
 Knöpfe, dieselben Dateien fallen; die Karte sagt nur mehr und mit weniger
-Worten.* **Nach dem Einspielen im Browser einmal hart neu laden.**
+Worten.* **Im Feld bestätigt am 3. September 2026** — die laufende Installation
+hat `c67a13f9` gemeldet, genau den Sollwert.
 
 **Davor: 0.20.0** — Fingerprint **`12421721`**, **5374
 Prüfungen**, 558 Rückbauten.
@@ -2545,10 +2590,30 @@ bleiben Datum und Verfasser stehen** — „Abgelehnt am 14.03.2026 von Anna" is
 weiterhin wahr, nur der Grund fehlt. **Und wer entfernt hat, wird dabei nicht
 ihr Verfasser**: Anna darf danach eine neue schreiben, der Admin nicht.
 
+**ZWEI STERNKÄSTEN JE EINTRAG** (seit 0.21.0): **Potenzial** — die Einschätzung
+*vor* dem Test — und **Bewertung** *danach*. Jeder hat **eigene Kriterien,
+eigene Gewichte und einen eigenen Durchschnitt**, und die beiden **berühren
+einander nicht**: die Menge wird nach `rating_criteria.phase` geschnitten,
+*bevor* die Rechnung sie sieht, und `gesamtSchnitt()` läuft zweimal über
+zwei getrennte Mengen. **Welcher Kasten offen steht, entscheidet der Zustand des
+Eintrags** — ungetestet: Potenzial; getestet: Bewertung —, und ein Klick auf die
+Kopfzeile gilt nur für diesen Eintrag. *Der Potenzialkasten ist leer, bis der
+Admin Kriterien dafür anlegt; bis dahin sieht der Eintrag aus wie zuvor.* **Das
+Wort „Potenzial" steht im Vokabular.**
+
 **Die Bewertung sagt nur den eigenen Wert und den Schnitt** (seit 0.8.6). Wer
 welchen Wert vergeben hat, sieht der **Admin in einer eigenen Ansicht**, die er
-über „Wer hat bewertet" im Blockkopf aufruft; dort entfernt er auch eine fremde
+über **„Stimmen"** im Kopf des jeweiligen Kastens aufruft *(bis 0.20.1 hieß der
+Knopf „Wer hat bewertet"; seit 0.21.0 steht er in beiden Köpfen und trägt
+deshalb ein Wort, das zu beiden passt)*; dort entfernt er auch eine fremde
 Bewertung. Die Note ändert er nicht.
+
+**Zurückgesetzt wird an der ZEILE** (seit 0.21.0): hinter den eigenen fünf
+Sternen steht ein **×**, sobald dort ein Stern gesetzt ist. *Der lange Knopf im
+Blockkopf und der versteckte Doppelklick sind weggefallen — zwei Wege für eine
+Sache, und der brauchbare war der versteckte.* **Die Durchschnittsspalte hat
+ihre Breite von Anfang an** und zeigt einen **Strich**, solange niemand bewertet
+hat; damit springen die Sternzeilen beim ersten Stern nicht mehr nach links.
 
 **Jedes Kriterium hat ein Gewicht** (seit 0.8.40), zwischen **0,2 und 2**,
 eingestellt vom Admin. Der Gesamtschnitt ist der **gewichtete Mittelwert** über
@@ -2815,7 +2880,7 @@ wirklich von selbst, drei mussten gebaut werden — und an der neuen Route
 andere, was der Browser nicht abspielt. **Die ehrliche Antwort darauf ist der
 Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 
-### Systembereich — zwanzig Karten in fünf Abschnitten, und sie hängen an der Rolle
+### Systembereich — einundzwanzig Karten in fünf Abschnitten, und sie hängen an der Rolle
 
 > **SEIT 0.16.0 IN FÜNF ABSCHNITTEN MIT EIGENER ADRESSE.** Die Zuordnung folgt
 > der **Rechteleiter**: was jedem gehört, steht vorn, was nur der Eigentümer
@@ -2824,7 +2889,7 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 > | Abschnitt | Adresse | Karten |
 > |---|---|---|
 > | **Persönlich** | `#/system/persoenlich` | Zugang, Meine Sitzungen, Darstellung |
-> | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
+> | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, **Potenzial: Kriterien**, Vokabular, Links, Suchanbieter, Papierkorb |
 > | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
 > | **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildablage, Sicherung, **Alte Sicherungen**, Export und Import |
 > | **Installation** | `#/system/installation` | Titel |
@@ -4307,6 +4372,29 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   **DIES IST EINE WEGNAHME AN EINER ÖFFENTLICHEN ANTWORT** — vor 1.0.0 erlaubt,
   aber benannt: sie steht im CHANGELOG mit Kasten. *Eine Prüfung hält Kachel und
   Eintrag Feld für Feld gegeneinander.*
+- **`DELETE /api/items/:id/ratings` GIBT ES NICHT MEHR** *(seit 0.21.0)*. Sie
+  war der Weg hinter dem Knopf „Meine Bewertung zurücksetzen" und leerte alle
+  eigenen Sterne eines Eintrags auf einmal. **Zurückgesetzt wird ab jetzt an der
+  ZEILE**, über ein × an den eigenen Sternen, und das läuft über `PUT` mit
+  `value: 0` — *den Weg gibt es seit jeher:* `Math.max(0, …)` in `PUT`, und eine
+  Zeile mit 0 ist keine Stimme. **Eine Route ohne Weg vom Bildschirm ist tot,
+  und tote Wege gibt es hier nicht.**
+  **DIES IST DIE ZWEITE WEGNAHME AN EINER ÖFFENTLICHEN ANTWORT** — vor 1.0.0
+  erlaubt, und wie die erste benannt: sie steht im CHANGELOG mit Kasten, und
+  `F_ROUTEN` ist **71 → 70**. *Wer sie von außen ruft, bekommt 404; eine Prüfung
+  hält das fest, und der Prüfstand fährt den einen verbliebenen Weg an einer
+  echten Datenbank mit zwei Bewertern.*
+- **DIE ANTWORT TRÄGT ZWEI KOPFZAHLEN UND ZWEI RECHENWEGE** *(seit 0.21.0)*:
+  `avgRating`/`rechenweg` für die Bewertung, **`potenzialRating`/
+  `potenzialRechenweg`** daneben — in der Übersicht wie im Detail. **Die
+  Sternzeilen tragen `phase` mit**; der Browser filtert danach und rechnet
+  nichts. *Das ist eine Erweiterung und keine Wegnahme: was vorher in der
+  Antwort stand, steht Zeichen für Zeichen weiter da.*
+  **BEIDE ZAHLEN STEHEN NEBENEINANDER, AUCH AN EINEM GETESTETEN EINTRAG.**
+  *Welche die Kachel zeigt, entscheidet der Browser; welche es GIBT, entscheidet
+  der Bestand — eine Antwort, die je nach `tested` mal die eine und mal die
+  andere trüge, machte aus dem Sortieren nach Potenzial eine Sortierung über
+  eine lückenhafte Menge.*
 - **DIE ÜBERSICHT FRAGT EINMAL, NICHT JE EINTRAG** *(seit 0.19.2 für die Fotos,
   seit 0.19.3 für fünf weitere)*. Schlagworte, Linkzahl, Anhangzahl,
   Kriterienschnitte und Kategorien werden **einmal für die ganze Liste** geholt
@@ -4444,9 +4532,41 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   „3,4 · 1" ist keine Information. Abgeleitet aus `benutzerZahl`, und **die
   Schwelle steht ausschließlich in der Oberfläche** (`mehrereBenutzer()`) — der
   Server liefert die Zahl und trifft keine Entscheidung darüber.
+- **Wo es sie gibt, hat sie ihre Breite von Anfang an** (seit 0.21.0). Bis
+  0.20.1 richtete sie sich allein nach der breitesten Zahl der Liste — und war
+  **null Pixel breit, solange niemand bewertet hatte**. Der erste Stern ließ sie
+  aufgehen, und **alle Sternzeilen rutschten nach links, ausgerechnet unter dem
+  Finger, der gerade getippt hatte.** *Sie richtet sich weiter nach der
+  breitesten Zahl, fällt aber nicht mehr unter die Hausform **„⌀ 4,2 (9)"**:
+  **4,34rem**, gemessen in der Festbreitenschrift — 65,03 px bei Schriftstufe
+  100 und 77,98 px bei 120. In `rem` und nicht in Pixeln, weil die Installation
+  ihre Schrift von 80 bis 120 Prozent stellt.* **Ab zehn Stimmen wächst die
+  Spalte einmal — benannt und hingenommen.**
+- **Die leere Durchschnittszelle zeigt einen Strich** (seit 0.21.0). *Bis
+  0.20.1 stand dort nichts, mit der Begründung, neben fünf leeren Sternen wäre
+  ein Satz dieselbe Aussage zweimal.* **Das gilt für einen Satz — ein Strich ist
+  keiner, sondern der Platz, der der Zahl gehört**, und er sagt „noch
+  niemand" *(im `title`, für das Vorleseprogramm)*. Der Widerruf steht am
+  Stylesheet neben dem alten Satz.
 - **Der Rücksetzer heißt „Meine Bewertung zurücksetzen", immer** (seit 0.7.0).
   *Eine Beschriftung, die mit der Zahl der Zugänge umspringt, wäre eine zweite
   Wahrheit über denselben Knopf.*
+  > **DIESER KNOPF IST MIT 0.21.0 WEGGEFALLEN, und der Satz bleibt stehen,
+  > damit die Wegnahme einen Gegenstand hat** (Stolperstein 201). Es gab **zwei
+  > Wege zum Zurücksetzen, einen zu langen und einen unsichtbaren**: den
+  > Kopfknopf (auf dem Telefon drei Zeilen) und einen **Doppelklick** auf die
+  > Sternzeile, angekündigt in einem `title`, den kein Telefon je zeigt. *Zwei
+  > Wege für eine Sache, und der brauchbare war der versteckte.*
+  > **Geblieben ist einer, und er ist sichtbar: ein × hinter den eigenen fünf
+  > Sternen**, sobald in dieser Zeile ein Stern steht. Es läuft über `PUT` mit
+  > `value: 0` — den Weg gibt es seit jeher —, und **die Route dahinter
+  > (`DELETE /api/items/:id/ratings`) ist mit weggefallen**: eine Route ohne
+  > Weg vom Bildschirm ist tot. *Damit entfällt auch die Frage, wie ein
+  > Sammel-Zurücksetzen den jeweils anderen Kasten verschont: es gibt keins
+  > mehr.*
+  > **„Meine" braucht kein Wort mehr:** das × steht an *meinen* Sternen. **Die
+  > Meldung ist phasenneutral** — *„Meine Sterne bei „Wunsch" entfernt"* —,
+  > denn „Bewertung" wäre im Potenzialkasten das falsche Wort.
 - **Eigene Testtage sind gefüllt, fremde ein Ring** (seit 0.7.0). **Kein neuer
   Farbkanal** — Gold bleibt Gold, unterschieden wird über die Füllung. Die Linie
   der Verlaufskurve läuft weiter über alle: sie ist der Verlauf des Eintrags,
@@ -4475,6 +4595,74 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   *Sortieren lag schon vorher dort: im Bewertungsblock liegt in derselben Zeile
   das Sterne-Widget mit Klick und Doppelklick, und eine Ziehschwelle daneben
   führt zu genau der Kollision aus Stolperstein 5.*
+  **Seit 0.21.0 gilt das für ZWEI Karten** — *Bewertungskriterien* und
+  *Potenzial: Kriterien* —, und beide laufen über **dieselbe Maschine**:
+  dieselbe `manage-list`, derselbe Eintrag `crit`, dieselben vier Routen. *Nur
+  die Liste ist nach Phase gefiltert, und `POST` schickt die Phase mit.*
+
+### Die beiden Sternkästen — 0.21.0
+
+- **Ein Kriterium gehört zu genau einem Kasten, und der steht mit dem Anlegen
+  fest** (`rating_criteria.phase`, `vorher` oder `nachher`). **Ein späterer
+  Wechsel wird ABGEWIESEN (400) und nicht still übergangen:** *ein übergangenes
+  Feld sieht für den Aufrufer aus wie ein gesetztes.* Der Grund gegen den
+  Wechsel selbst: er trüge vergebene Sterne von einem Durchschnitt in den
+  anderen, und zwar **still** — beide Kopfzahlen änderten sich, ohne dass
+  irgendwo eine Bewertung angefasst worden wäre. *Löschen und neu anlegen tut
+  dasselbe **sichtbar**: die Sterne gehen dabei mit.*
+- **Die Trennung ist BAULICH und nicht per Absprache.** Zähler und Nenner eines
+  Kastens entstehen in **derselben Schleife aus derselben Menge**, und die Menge
+  ist **nach Phase geschnitten, bevor die Schleife sie sieht** (`karteJePhase()`
+  in `server.js`). *Es gibt keinen Schalter, der einen Vorher-Stern in die
+  Bewertung ließe, weil es keine Stelle gibt, an der beide Mengen zugleich in
+  einer Rechnung stehen.* **Gerechnet wird beide Male durch dasselbe
+  `gesamtSchnitt()`** — kein zweiter Rechenweg, keine Fallunterscheidung in ihm.
+- **`UNIQUE(name)` BLEIBT GLOBAL: ein Name, ein Kasten.** *Die Einschränkung zu
+  ändern hieße Tabellenneubau (SQLite kennt kein `ALTER CONSTRAINT`), und
+  „Wunsch" in beiden Kästen wäre für den Benutzer ohnehin ein Rätsel.*
+- **`ratings` wird nicht angefasst.** Ein Stern ist ein Stern; zu welchem Kasten
+  er gehört, sagt sein Kriterium. *Eine Phase an der Sternzeile wäre eine zweite
+  Wahrheit über dieselbe Sache.*
+- **Die Menge der Werte steht genau einmal, als `PHASEN` in `server.js`** — und
+  **ausdrücklich nicht als `CHECK` an der Spalte**: sie stünde sonst zweimal,
+  und die zweite meldete sich nicht als Absage mit Meldung, sondern als
+  abgebrochene Schreibung. *Dieselbe Überlegung wie bei `GEWICHT_MIN`/`_MAX`.*
+- **Welcher Kasten offen steht, entscheidet der ZUSTAND des Eintrags und nicht
+  die Einstellung.** *Ungetestet → Potenzial offen; getestet → Bewertung offen.*
+  **Ein Klick auf die Kopfzeile ist ein Blick und kein Befehl:** er schaltet
+  `BLICK`, eine Menge im Speicher der Seite, und gilt bis zum Verlassen des
+  Eintrags — **kein `PUT /api/settings`.** *Der Grund ist die Reichweite: eine
+  gespeicherte Einstellung gilt für **alle** Einträge zugleich, ein Zustand für
+  **einen**. „Ich klappe an Eintrag 12 den Potenzialkasten auf" hieße sonst „an
+  allen Einträgen offen".* **Die beiden Kästen fallen deshalb aus `bloecke.zu`
+  heraus** — auch ein gespeichertes `bewertung` aus einer älteren Fassung, still
+  und gewollt. **Vorhandene Daten schlagen die Regel:** trägt ein ungetesteter
+  Eintrag schon Bewertungssterne, steht der Bewertungskasten offen. *Nichts wird
+  vor jemandem versteckt, der es eingetragen hat.*
+- **Die Glocke zählt beide Kästen als „Bewertungen".** Sie fragt *hat jemand
+  etwas beigetragen?* und nicht *in welchem Kasten?* — ein Vorher-Stern ist ein
+  Beitrag. **Das Wort „Bewertungen" in ihrem Text bleibt.** *Wer das trennen
+  will, braucht eine dritte Zahl in der Antwort; das ist eine eigene Runde.*
+- **Eine Kachel zeigt EINE Zahl, nicht zwei** — bei `tested` die Bewertung
+  („★ 3,8"), sonst das Potenzial („◆ 4,2"). **Ein anderes Zeichen, damit
+  niemand 4,2 Potenzial für 4,2 Qualität hält.** *Die andere Zahl steht im Kopf
+  des zugeklappten Kastens; die Kachel ist zu klein für zwei.*
+- **Das Wort „Potenzial" steht im Vokabular und wird nirgends zusammengesetzt.**
+  *Doppelpunkt, Klammer oder Leerzeichen — nie ein Kompositum:
+  „Erwartungkriterien" hat kein Fugen-s, und der Quelltext kennt keins.*
+  **DAS VOKABULAR HAT ZWEI VORGABELISTEN, und beide müssen jedes Wort kennen:**
+  `VOKABULAR_VORGABE` in `server.js` (die Wahrheit) und `V` in `public/app.js`
+  (damit die Oberfläche schon **vor** dem ersten Abruf beschriftet ist). *Was
+  der Server liefert, überschreibt.* **Wer in der zweiten ein Wort vergisst,
+  merkt es nicht am Blockkopf, sondern erst in der Vokabularkarte:** das Feld
+  steht leer, solange der gespeicherte Satz das Wort nicht nennt. *Genau das ist
+  beim Bauen von 0.21.0 passiert und vom Prüfstand gefunden worden.*
+- **Es gibt keine vorgefertigten Kriterien und keine vorgefertigte Ansicht.**
+  Die Karte **schlägt vor** (*Wunsch* mit Gewicht 1,5, *Nutzen*,
+  *Machbarkeit*) und legt nicht an; die Ansicht „Als Nächstes" speichert der
+  Benutzer selbst. *Kriterion legt keine erfundenen Daten an — dieselbe Regel
+  wie bei den Bewertungskriterien seit dem ersten Tag.* **Ein Rat und kein
+  Deckel:** die Zahl der Kriterien ist nicht begrenzt.
 - **Wer welchen Wert vergeben hat, sieht nur der Admin** (seit 0.8.6). Nimmt den
   sichtbaren Teil der Stimmenliste aus 0.8.2 **ausdrücklich** zurück: die
   Sternzeile zeigt den **eigenen Wert und den Schnitt**, mehr soll eine Bewertung
@@ -8214,6 +8402,52 @@ Version, in der sie entstanden sind.*
     „sorgfältiger hinsehen", sondern baulich: wer eine Ausgabe einfängt, druckt
     sie beim Abbruch auch.**
 
+302. **EIN KASTEN JE FRAGE.** *Zwei Fragen in einem Durchschnitt sind
+    Stolperstein 47 in Reinform — und man sieht es der Zahl nicht an, weil sie
+    plausibel aussieht.* **„Wie gut war es" und „wie sehr will ich es" sind
+    zwei Fragen**, und wer die eine mit den Kriterien der anderen beantwortet,
+    bekommt eine Zahl, die keine der beiden meint. *Der Befund war nicht, dass
+    jemand falsch rechnete — es war, dass die Installation gar keinen Ort für
+    die zweite Frage hatte, und der Benutzer sich deshalb den einzigen nahm,
+    den es gab.* **Die Antwort ist ein zweiter Kasten und keine zweite Rechnung:
+    dieselbe Mechanik, zweimal angewandt, über zwei Mengen, die einander nicht
+    berühren.**
+
+303. **DER ZUSTAND ENTSCHEIDET DIE VORGABE, DIE EINSTELLUNG NICHT.** *Eine
+    gespeicherte Einstellung gilt für **alle** Einträge zugleich; was vom
+    **einzelnen** Eintrag abhängt, darf nicht in ihr stehen.* **Der
+    Einklappzustand der beiden Sternkästen hing bis 0.20.1 an `bloecke.zu` —
+    einer persönlichen Einstellung.** *„Ich klappe an Eintrag 12 den
+    Potenzialkasten auf" hieße damit „an allen Einträgen offen", und beim
+    nächsten Eintrag stünde der falsche Kasten offen, ohne dass jemand wüsste,
+    warum.* **Die Unterscheidung ist die Reichweite und nicht die
+    Speicherung:** was für alle gilt, gehört in die Einstellung; was von einem
+    Eintrag abhängt, in eine Regel; und ein Klick, der beides ändern soll, ist
+    ein **Blick** — er gilt, bis man den Eintrag verlässt.
+
+304. **EIN ÜBERGANGENES FELD SIEHT FÜR DEN AUFRUFER AUS WIE EIN GESETZTES.**
+    *Wer `phase` an `PUT /api/criteria/:id` schickt und eine 200 mit dem
+    unveränderten Kriterium zurückbekommt, liest daraus „es hat geklappt".*
+    **Deshalb 400 mit Meldung und nicht Stillschweigen** — auch dort, wo das
+    Feld aus gutem Grund unveränderlich ist. *Der Unterschied zum Beschneiden
+    (Sternwert, Fokuspunkt, Zoom) ist die Herkunft: die kommen aus einem
+    Bedienelement, das nichts anderes senden **kann**; ein Feld im Rumpf hat
+    jemand geschrieben, weil er etwas meinte.* **Die Absage nennt außerdem den
+    Weg, der bleibt** — löschen und neu anlegen —, und was er kostet: die
+    Sterne gehen sichtbar mit.
+
+305. **ZWISCHEN ZWEI GEPLANTEN RUNDEN BLEIBT EINE NUMMER FREI.** *Der Fahrplan
+    ist seit 0.12.0 achtmal gerückt worden, und jedes Mal um den ganzen Rest,
+    weil kein Platz für eine eingeschobene Runde war.* **Jedes Rücken kostet
+    dieselbe Arbeit an denselben Stellen** — Fahrplan, Sammelblatt,
+    Änderungsprotokolle, die Sätze, die aufeinander verweisen — **und jedes Mal
+    wird eine davon vergessen.** *Eine freie Nummer je Zwischenraum lässt die
+    nächste eingeschobene Runde dort Platz finden, ohne dass sich dahinter
+    etwas bewegt.* **SemVer verlangt keine lückenlosen Nummern**, und die
+    Installation darf mit jeder Nummer herausgehen (Abschnitt 5.1). *Ist ein
+    Zwischenraum belegt, rückt der Rest so, dass die Lücken wieder da sind —
+    das ist ein Rücken statt acht.*
+
 ---
 
 ## 7. Prüfstand
@@ -9800,10 +10034,50 @@ in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstof
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
 
+### 0.21.0 — „Vor dem Test schätzt man, nach dem Test bewertet man"
+
+**MINOR · 3. September 2026 · eine eingeschobene Runde aus dem Betrieb**
+*(0.20.1 mit Fingerprint `c67a13f9` ist im Feld bestätigt).* *Angefasst sind
+`db.js`, `server.js`, `public/app.js`, `public/style.css`, `pruefung.js`,
+`gegenprobe.js`, `package.json`, `package-lock.json` und die Papiere.*
+**DATENBANKSTUFE — SICHERUNG VOR DEM EINSPIELEN.** Austauschformat **13**,
+`F_ROUTEN` **70**, neun Zwecke der zweiten Bestätigung, einundzwanzig Vorgänge,
+**einundzwanzig Karten**, **neun Migrationsblöcke**, neun ausgelieferte Module,
+**zwölf Vokabelwörter**.
+
+**WAS DIE INSTALLATION DANACH KANN, WAS SIE VORHER NICHT KONNTE:** ungetestete
+Einträge nach **Potenzial** sortieren, und Ideen einschätzen, ohne die Bewertung
+zu verderben. *Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige
+Zahl, die er bekommen konnte, war die Bewertung. Die beantwortet aber „wie gut
+war es", und ein Stern an einer Idee beantwortet „wie sehr will ich es".*
+
+**Gebaut ist:** die Spalte `rating_criteria.phase` (`vorher`/`nachher`, Vorgabe
+`nachher`, **neunter Migrationsblock**); **zwei Durchschnitte, die einander
+baulich nicht berühren** — die Menge wird nach Phase geschnitten, *bevor*
+`gesamtSchnitt()` sie sieht, und die Funktion selbst kennt keine Phase; ein
+zweiter Sternkasten im Eintrag mit **demselben Zeichner**; der Einklappzustand
+der beiden Kästen **nach dem Zustand des Eintrags** statt nach der Einstellung;
+zwei Sortiereinträge; „◆" statt „★" auf der Kachel einer Idee; zwei Gruppen im
+Vergleich; eine **einundzwanzigste Karte**; das **zwölfte Vokabelwort**; und an
+der Sternzeile das **×** statt des Kopfknopfs samt der **gemessenen**
+Mindestbreite der Durchschnittsspalte (4,34rem = „⌀ 4,2 (9)").
+
+**Weggefallen:** `DELETE /api/items/:id/ratings`, der Knopf „Meine Bewertung
+zurücksetzen", der Doppelklick auf die Sterne und sein Hover-Text. *Eine
+Wegnahme an einer öffentlichen Antwort — vor 1.0.0 erlaubt, benannt in
+Abschnitt 5.5 und im CHANGELOG mit Kasten.*
+
+**Was ausdrücklich NICHT gebaut wurde**, steht im Änderungsprotokoll 0.21.0:
+kein zweiter Sternmechanismus, kein Wechsel der Phase nach dem Anlegen, keine
+vorgefertigten Kriterien, keine Worte an den Sternen, kein Deckel auf ihrer
+Zahl, keine Glocke je Kasten, kein Verstecken, keine zwei Zahlen auf der Kachel,
+keine zweite Rechnung im Browser.
+
 ### 0.20.1 — „Die Karte listet die Sicherungen"
 
 **PATCH · 3. September 2026 · drei Befunde aus dem Betrieb, unmittelbar nach
-dem Einspielen von 0.20.0** *(Fingerprint `12421721`, im Feld bestätigt).*
+dem Einspielen von 0.20.0** *(Fingerprint `12421721`, im Feld bestätigt;
+0.20.1 selbst ist am 3. September 2026 mit `c67a13f9` bestätigt worden).*
 *Angefasst sind `server.js`, `public/app.js`, `public/style.css`, `pruefung.js`,
 `gegenprobe.js`, `package.json`, `package-lock.json` und die Papiere.* **KEINE
 DATENBANKSTUFE, KEIN BESTANDSLAUF, KEINE NEUE ROUTE, KEINE NEUE KARTE.**
@@ -11471,23 +11745,54 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.19.4** | Die Kachel zeigt, was das Original hergibt | **GEBAUT am 3. September 2026, im Feld bestätigt.** `thumb` war 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle. **Gemessen in Chromium: die breiteste Kachel ist 299 CSS-px** (`.shell` hört bei 1300 px auf), auf einem 2×-Bildschirm 598, auf einem Telefon bei dPR 3 513 — **heute lieferte `thumb` 225.** Die Tafel `VARIANTS` nennt jeder Ableitung jetzt eine **Kiste** aus kurzer Kante und Deckel auf der langen: `thumb` 512/1280, `medium` unverändert 1600/1600. **Der Byte-Faktor IST der Bildpunkt-Faktor**, auf 3 % genau — 400 kostet das 3,06fache, 512 das 5,05fache, 640 das 7,78fache; **512 deckt das Telefon ganz und lässt am 2×-Desktop 1,17fach übrig, gegen 2,66fach vorher.** Dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht und nach einem Durchgang von selbst endet. *PATCH: dieselben Knöpfe, dieselben Bilder, dieselbe Antwort — die Kachel ist nur scharf* | nein | — |
 | **0.20.1** | **Die Karte listet die Sicherungen** | **GEBAUT am 3. September 2026.** *(Drei Befunde aus dem Betrieb, unmittelbar nach dem Einspielen von 0.20.0 — nicht aus dem Sammelblatt.)* **Die vollständige Liste der Sicherungen stand nirgends:** die Karte „Sicherung" nannte die jüngste Kopie und die Zahl, die Karte „Alte Sicherungen" nur die, die die Regel treffen würde. **Jetzt listet sie alle** — jüngste zuerst, nummeriert, mit Datum, Alter und Größe, Deckel bei fünf Zeilen, **nur zum Ansehen**. Dazu: **der Bildschirmtext wird kurz** *(„so kurz wie möglich und dennoch zu verstehen")*, **„Boden" und „Schere" sind vom Bildschirm herunter**, und die Karte „Sicherung" sagt nur noch etwas über die letzte Sicherung. *PATCH: dieselbe Regel, dieselben Knöpfe, dieselben Dateien fallen* | nein | — |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | **GEBAUT am 3. September 2026.** *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; am 3. September 2026 zugeordnet — der Fahrplan ist dabei nicht gerückt.)* **Kriterion schrieb Sicherungen und entfernte keine** — wegräumen ließ sich nichts, und dafür brauchte es eine Shell auf dem Wirt. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere (Stolperstein 299). Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht**, ein Knopf hinter der zweiten Bestätigung, ein zweiter, ausdrücklicher Weg für die Kopien von vor dem Schlüsselwechsel, und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Die Löschroute nimmt keine Dateinamen entgegen** (Stolperstein 300), und aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die **gelungen** ist. **Eine zwanzigste Karte** — ein Löschknopf gehört nicht unter den Sicherungsknopf. *MINOR* — `F_ROUTEN` **70 → 71**, ein **neunter** Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung** | nein | — |
-| **0.21.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, **am 3. September 2026 gerückt** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
-| **0.22.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, **am 3. September 2026 gerückt**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
-| **0.23.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0, dann 0.22.0 vorgemerkt — **die Nummer ist vorläufig**; das siebte Rücken am 3. September 2026.)* Migrationscode raus — **jetzt acht Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
-| **0.23.x** | Die Kommentare werden knapp | *(Neu am 31. August 2026, **am 3. September 2026 von 0.22.x gerückt** — **keine geplante Nummer, sondern die nächste freie PATCH-Zahl nach der Bereinigung**; dieselbe Bauform wie die 0.12.x-Zeile darüber.)* **Fast dreißig Prozent des Quelltextes sind Kommentar** — 16.281 von 54.822 Zeilen, `zweifaktor.js` zu 52 %, `auth.js` zu 46 %, `server.js` zu 44 %. **Was das Offensichtliche wiederholt, geht; was eine ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger stehen.** *PATCH: die Instanz kann danach nichts, was sie vorher nicht konnte. Der Fingerprint verschiebt sich, sonst nichts.* **Nach der Bereinigung und nicht davor** — sie löscht ganze Blöcke samt ihren Kommentaren, und wer vorher schneidet, schneidet zweimal. Einzelheiten in 10a | nein | — |
-| **0.24.0** | **Mehrsprachigkeit** | *(Neu am 2. September 2026 als 0.23.0, **am 3. September 2026 gerückt** — nur eingetragen, nicht ausgearbeitet.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Nach der Oberfläche und nach der Bereinigung** — wer Texte herauszieht, die gleich darauf umbenannt oder gelöscht werden, zieht sie zweimal heraus. *MINOR* | nein | — |
-| **0.30.0** | **Code-Effizienz** | *(Neu am 2. September 2026 — **nur eingetragen, nicht ausgearbeitet**.)* Leichen und ineffizienten Code durchgehen und verbessern. **Gebaut mit Claude Fable 5.1 und ultracode; die Projektbesprechung dazu mit Opus 5 und ultracode.** Nach der Bereinigung, damit sie keinen toten Code mitschleppt | offen | — |
+| **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 3. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
+| **0.22.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und **noch am selben Tag auf 0.22.0** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
+| **0.23.0** | *frei* | **Die erste Nummer nach der neuen Regel.** Sie bleibt leer, damit die nächste eingeschobene Runde hier Platz findet, ohne dass sich dahinter etwas bewegt | — | — |
+| **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
+| **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
+| **0.26.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0 vorgemerkt — **die Nummer ist vorläufig**; das **achte** Rücken am 3. September 2026, und das letzte um den ganzen Rest.)* Migrationscode raus — **jetzt neun Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.26.x** | Die Kommentare werden knapp | *(Neu am 31. August 2026, am 3. September 2026 von 0.22.x auf 0.23.x und **noch am selben Tag auf 0.26.x gerückt** — **keine geplante Nummer, sondern die nächste freie PATCH-Zahl nach der Bereinigung**; dieselbe Bauform wie die 0.12.x-Zeile darüber. **Eine PATCH-Zahl belegt keinen Zwischenraum** — die Regel gilt den geplanten MINOR-Runden.)* **Fast dreißig Prozent des Quelltextes sind Kommentar** — 16.281 von 54.822 Zeilen, `zweifaktor.js` zu 52 %, `auth.js` zu 46 %, `server.js` zu 44 %. **Was das Offensichtliche wiederholt, geht; was eine ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger stehen.** *PATCH: die Installation kann danach nichts, was sie vorher nicht konnte. Der Fingerprint verschiebt sich, sonst nichts.* **Nach der Bereinigung und nicht davor** — sie löscht ganze Blöcke samt ihren Kommentaren, und wer vorher schneidet, schneidet zweimal. Einzelheiten in 10a | nein | — |
+| **0.27.0** | *frei* | Dritter Zwischenraum nach derselben Regel | — | — |
+| **0.28.0** | **Mehrsprachigkeit** | *(Neu am 2. September 2026 als 0.23.0, am 3. September 2026 auf 0.24.0 gerückt und **noch am selben Tag auf 0.28.0** — nur eingetragen, nicht ausgearbeitet.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Nach der Oberfläche und nach der Bereinigung** — wer Texte herauszieht, die gleich darauf umbenannt oder gelöscht werden, zieht sie zweimal heraus. *MINOR* | nein | — |
+| **0.29.0** | *frei* | Vierter Zwischenraum nach derselben Regel | — | — |
+| **0.30.0** | **Code-Effizienz** | *(Neu am 2. September 2026 — **nur eingetragen, nicht ausgearbeitet**. **Diese Zahl ist nicht gerückt**: sie stand schon frei, und der Takt aus einer geplanten und einer freien Runde trifft sie genau.)* Leichen und ineffizienten Code durchgehen und verbessern. **Gebaut mit Claude Fable 5.1 und ultracode; die Projektbesprechung dazu mit Opus 5 und ultracode.** Nach der Bereinigung, damit sie keinen toten Code mitschleppt | offen | — |
+
+> **ZWISCHEN ZWEI GEPLANTEN RUNDEN BLEIBT AB JETZT EINE NUMMER FREI — die Regel
+> ist am 3. September 2026 entstanden, beim achten Rücken.**
+>
+> **Der Fahrplan ist seit 0.12.0 ACHTMAL gerückt worden, und jedes Mal um den
+> ganzen Rest**, weil kein Platz für eine eingeschobene Runde war. *Eine freie
+> Nummer je Zwischenraum lässt die nächste eingeschobene Runde dort Platz
+> finden, ohne dass sich dahinter etwas bewegt.* **Ist ein Zwischenraum belegt,
+> rückt der Rest so, dass die Lücken wieder da sind.**
+>
+> **SemVer verlangt keine lückenlosen Nummern**, und Abschnitt 5.1 sagt es seit
+> langem: *die Installation darf mit jeder Nummer herausgehen.* **Was künftig
+> eingeschoben wird, nimmt die nächste freie Nummer und rückt nichts.**
+>
+> *Die Regel gilt den geplanten **MINOR**-Runden. Eine PATCH-Zahl (0.26.x)
+> belegt keinen Zwischenraum: sie hängt an ihrer MINOR-Runde und ist keine
+> eigene Planstelle.*
 
 > **DIE REIHENFOLGE DER NÄCHSTEN RUNDEN IST NICHT BELIEBIG.** Die Gründe stehen
 > hier und nicht im Auftrag — ein Auftrag wird beim Schreiben des nächsten
 > weggeworfen, und was darin stand, wäre dann weg.
 >
 > * **0.19.3 steht vor jeder Runde mit einem Bestandslauf.** 0.19.4, 0.19.5 und
->   0.22.0 fahren alle drei über alle Bilder; ohne sie hielte jede einzelne
->   davon die Installation wieder für Stunden an. *0.19.4 ist im Feld bestätigt,
->   0.19.5 ist gebaut und hat es im Feld zu belegen; für 0.22.0 gilt der Satz
->   weiter.*
-> * **Die Ableitungen auf WebP fahren in 0.22.0 mit und nicht in 0.19.4 oder
+>   die wählbare Bildablage (**heute 0.24.0**) fahren alle drei über alle
+>   Bilder; ohne sie hielte jede einzelne davon die Installation wieder für
+>   Stunden an. *0.19.4 ist im Feld bestätigt, 0.19.5 ist gebaut und hat es im
+>   Feld zu belegen; für 0.24.0 gilt der Satz weiter.*
+> * **DIESE RUNDE — 0.21.0 — IST VOR DIE OBERFLÄCHE UND VOR DIE BEREINIGUNG
+>   GESCHOBEN WORDEN, und beides hat einen Grund.** *Vor die Oberfläche:* sie
+>   fasst den Bewertungsblock an, den „Die Oberfläche wird ruhiger" umgestaltet
+>   — **wer erst umgestaltet und dann einen zweiten Block danebenstellt,
+>   gestaltet zweimal** (dieselbe Rechnung wie bei der Mehrsprachigkeit). *Vor
+>   die Bereinigung:* sie bringt einen Migrationsblock, und die Bereinigung baut
+>   die Blöcke aus. *Hinter 0.20.0:* die klemmte — eine Installation, die
+>   Sicherungen schreibt und keine entfernt, füllt ihre Platte; diese Runde
+>   klemmt nicht.
+> * **Die Ableitungen auf WebP fahren in 0.24.0 mit und nicht in 0.19.4 oder
 >   0.19.5.** Dort wird ohnehin über Verfahren entschieden, und beides zusammen
 >   ist **ein** Durchgang über den Bestand statt zwei. *Die thumb-GEOMETRIE
 >   gehörte dagegen nach 0.19.4 und der ZUSCHNITT nach 0.19.5: beides waren
