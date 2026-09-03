@@ -1406,7 +1406,7 @@ der Eigentümer sieht, hinten.
 | **Persönlich** | `#/system/persoenlich` | Zugang, Meine Sitzungen, Darstellung |
 | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
 | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
-| **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildablage, Sicherung, Export und Import |
+| **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildablage, Sicherung, Alte Sicherungen, Export und Import |
 | **Installation** | `#/system/installation` | Titel |
 
 **Die Adresse ist der ganze Punkt.** Ohne sie lässt sich keine Einstellung
@@ -1571,6 +1571,22 @@ Listen.
   keine der beiden Lagen — eine Sicherung am falschen Ort ist besser als
   keine. **markiert sie außerdem jede Kopie rot, die noch mit dem
   alten Schlüssel verschlüsselt ist** — falls je gewechselt wurde.
+- **Alte Sicherungen** *(Eigentümer)*: **entfernt alte Kopien am eingestellten
+  Sicherungsort — ohne Shell auf dem Wirt.** Die Regel hat **zwei Bedingungen,
+  und beide müssen zutreffen:** eine Kopie fällt nur, wenn sie *nicht unter den
+  jüngsten N* ist **und** *älter als X Tage* — die Zahl ist der Boden, das Alter
+  die Schere. Beide Werte lassen sich einstellen (**1 bis 20**, Vorgabe 3, und
+  **7 bis 365 Tage**, Vorgabe 30); die Grenzen hält der Server. **Die Karte
+  zeigt vorher namentlich, welche Dateien fallen würden**, mit Datum, Alter und
+  Größe, und was das an Platz freigäbe — *jede Änderung an einem der Werte
+  rechnet die Vorschau neu, ohne dass etwas gelöscht wird.* **Der Schalter
+  „Nach jeder gelungenen Sicherung aufräumen" steht auf AUS**, und das ist
+  Absicht: eine gelöschte Sicherung holt nichts zurück. Daneben ein **Knopf**,
+  der die Regel einmal anwendet, hinter der Passwortabfrage. **Angefasst wird
+  ausschließlich, was `kriterion-….sqlite` heißt** — eine fremde Datei im Ordner
+  bleibt liegen, ein Unterverzeichnis wird nicht betreten, und ein Symlink ist
+  keine Sicherung. **Kopien von vor einem Schlüsselwechsel fasst die Regel gar
+  nicht an**; für sie gibt es einen eigenen, ausdrücklichen Knopf.
 - **Papierkorb** *(Admin sieht, Eigentümer handelt;)*: was in den
   letzten dreißig Tagen gelöscht wurde, mit Titel, Datum, Löschendem, der
   verbleibenden Frist und der Größe. **„Zurückholen"** legt einen **neuen**
@@ -2086,6 +2102,44 @@ verschlüsselt sind**, falls je gewechselt wurde: jede Kopie, die älter ist als
 der Wechsel, wird rot markiert. Ist auch die jüngste älter, sagt die Karte, dass
 überhaupt keine zum heutigen Schlüssel passt — dann gehört sofort neu gesichert.
 Einzelheiten im Abschnitt „Den Schlüssel wechseln".
+
+**Alte Kopien lassen sich entfernen, ohne dass du eine Shell öffnest.**
+*Jede Kopie ist so groß wie die ganze Datenbank; bei 570 MB Bildbestand ist die
+zehnte ein halbes Dutzend Gigabyte.* Zuständig ist die Karte **„Alte
+Sicherungen"** neben der Sicherungskarte.
+
+> **Die Regel hat zwei Bedingungen, und beide müssen zutreffen: eine Kopie
+> fällt nur, wenn sie NICHT unter den jüngsten N ist UND älter als X Tage.**
+> Die Zahl ist der **Boden**, das Alter ist die **Schere**. *Jede einzelne für
+> sich wäre in genau der Lage falsch, in der man sie braucht: „nur älter als 30
+> Tage" nähme einer Installation, an der ein halbes Jahr nicht gesichert wurde,
+> **alle** Kopien auf einmal — und „nur die letzten drei" wirft die Kopie vom
+> Vormonat weg, wenn jemand an einem Nachmittag viermal auf den Knopf drückt.*
+
+**Was du wissen musst, bevor du den Schalter umlegst:**
+
+- **Er steht auf AUS, und das ist Absicht.** Eine gelöschte Sicherung holt
+  nichts zurück; was nicht umkehrbar ist, schaltet die Installation nicht
+  stillschweigend ein. **Bis du ihn umlegst, ändert sich an deinem
+  Sicherungsordner nichts.**
+- **Aufgeräumt wird nur im Anschluss an eine Sicherung, die GELUNGEN ist** —
+  oder auf Knopfdruck. **Eine Zeitsteuerung gibt es nicht.** *Schlägt die
+  Sicherung fehl, bleibt jede Kopie liegen: sonst räumte die Installation genau
+  in dem Augenblick auf, in dem sie keine neue Kopie zustande bringt.*
+- **Die Karte zeigt VORHER, welche Dateien fallen würden** — namentlich, mit
+  Datum, Alter und Größe, und was das an Platz freigäbe. *Einen Papierkorb gibt
+  es dafür nicht; für eine 600-MB-Datei wäre er sinnlos — der Platz ist ja der
+  Grund. Die Vorschau ist der Ersatz.*
+- **Angefasst wird ausschließlich, was `kriterion-….sqlite` heißt**, nur im
+  eingestellten Ordner, **nie in Unterverzeichnissen**, und nur, was wirklich
+  eine Datei ist — ein Symlink ist keine Sicherung. **Eine fremde Datei, die du
+  dort ablegst, bleibt liegen.**
+- **Kopien von vor einem Schlüsselwechsel fasst die Regel gar nicht an.** *Sie
+  sind nicht entbehrlich, sondern etwas anderes: wer den alten Schlüssel noch
+  hat, kommt an sie heran.* Sie stehen in der Karte getrennt, mit eigener Zahl
+  und eigener Summe, und haben einen **eigenen** Knopf.
+- **Jede Löschung steht im Sicherheitsprotokoll**, unter „Bestand" — eine Zeile
+  je entfernter Kopie, **ohne Dateinamen und ohne Pfad**.
 
 **Der Zielort wird eingehängt, nicht eingetippt.** Die `docker-compose.yml`
 bringt ihn mit:

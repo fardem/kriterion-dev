@@ -6100,6 +6100,10 @@ const amElement = (id, tu) => { const el = document.getElementById(id); if (el) 
    Behandler. Eine Karte ohne Behandler laesst `ausruesten` weg, und eine leere
    Funktion daneben waere eine Zeile, die behauptet, es gaebe dort etwas zu tun.
    "Kennzahlen" ist wieder die einzige ohne: sie zeigt nur Zahlen.
+   ZWANZIG SEIT 0.20.0, vorher neunzehn. "Alte Sicherungen" kommt dazu und
+   steht hinter "Sicherung" -- die Begruendung steht an ihrer Zeile unten, und
+   es ist DERSELBE Satz wie bei der Bildablage eine Runde vorher: die Karte
+   daneben war zu gross geworden.
    NEUNZEHN SEIT 0.19.1, vorher achtzehn. Die Bildablage hat "Kennzahlen"
    verlassen und eine eigene bekommen -- nicht, weil etwas dazugekommen waere,
    sondern weil die Karte darunter zu gross geworden war. 0.19.0 hat sie
@@ -6145,6 +6149,18 @@ const SYS_KARTEN = [
     markup: karteBildablage,   ausruesten: ruesteBildablageAus },
   { schluessel: 'sicherung',    abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
     markup: karteSicherung,    ausruesten: ruesteSicherungAus },
+  /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und nicht
+     zufaellig: die eine Karte legt Kopien an, die andere raeumt sie weg.
+     DIESELBE KLEMME WIE DIE KARTE DANEBEN -- `EIGENTUEMER`.
+     WARUM SIE NICHT IN DIE VORHANDENE PASST: die Karte "Sicherung" traegt
+     heute schon bis zu drei Zustandskaesten, vier Kennzahlzeilen, das Feld
+     fuer den Zielort mit eigenem Knopf und den Sicherungsknopf. Dazu kaemen
+     ein Schalter, zwei Zahlenfelder, eine Dateiliste und zwei weitere Knoepfe.
+     UND EIN LOESCHKNOPF GEHOERT NICHT UNTER DEN SICHERUNGSKNOPF: die beiden
+     Vorgaenge sind gegenlaeufig und stuenden untereinander in derselben
+     Kachel -- die Verwechslung waere nicht wiedergutzumachen. */
+  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
+    markup: karteAufraeumen,   ausruesten: ruesteAufraeumenAus },
   { schluessel: 'export',       abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
     markup: karteExport,       ausruesten: ruesteExportAus },
 
@@ -7963,6 +7979,11 @@ function ruesteProtokollAus(geholt) {
     'export': 'Export gezogen',
     'import': 'Import eingespielt',
     'sicherung': 'Sicherung geschrieben',
+    /* EINE ZEILE JE ENTFERNTER KOPIE, deshalb der Singular: vier entfernte
+       Kopien sind vier Zeilen. Die Zahl steht damit in der Tabelle, ohne dass
+       es eine Spalte dafuer braeuchte -- die Begruendung steht in auth.js an
+       der Liste. */
+    'sicherung.weg': 'Alte Sicherung entfernt',
     // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
     // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
     // gewechselt wird auf dem Wirt.
@@ -8032,7 +8053,7 @@ function ruesteProtokollAus(geholt) {
     anmeldungen: 'Gelungene Anmeldungen',
     zugaenge: 'Angelegt, gesperrt, entfernt, Rollen, Links und Anfragen',
     zweifaktor: 'Ein- und ausgeschaltet, verbrauchte Wiederherstellungscodes',
-    bestand: 'Export, Import, Sicherung und Schlüsselwechsel'
+    bestand: 'Export, Import, Sicherung, entfernte Kopien und Schlüsselwechsel'
   };
   // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
   // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
@@ -8931,7 +8952,26 @@ function ruesteSicherungAus(geholt) {
         const r = await api('POST', '/api/sicherung');
         geholt.sicherung = { ...geholt.sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
                       gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
-        toast(`Sicherung geschrieben: ${r.datei} (${fmtBytes(r.bytes)})`);
+        /* EINE MELDUNG UND NICHT ZWEI: toast() raeumt die vorige weg, zwei
+           hintereinander hiessen also, die erste zu verschlucken. Das
+           Aufraeumen ist eine Angabe NEBEN der Sicherung und steht deshalb im
+           selben Satz dahinter. */
+        toast(`Sicherung geschrieben: ${r.datei} (${fmtBytes(r.bytes)})` +
+              (r.aufgeraeumt && r.aufgeraeumt.weg
+                ? ` · ${r.aufgeraeumt.weg} alte ${r.aufgeraeumt.weg === 1 ? 'Kopie' : 'Kopien'} ` +
+                  `entfernt, ${fmtBytes(r.aufgeraeumt.bytes)} frei`
+                : ''));
+        /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU --
+           dieselbe Bauform wie bei der Bildumstellung, und aus demselben
+           Grund: die Nachbarkarte "Alte Sicherungen" traegt dann eine
+           Vorschau auf Dateien, die es nicht mehr gibt, und zwei Staende
+           nebeneinander sind einer zu viel. DIESE KARTE SELBST AENDERT SICH
+           DABEI NICHT -- sie zeichnet dieselben Zeilen, nur eben aus einer
+           frisch geholten Antwort.
+           OHNE AUFGERAEUMTE KOPIE bleibt es beim Neuzeichnen dieser einen
+           Karte: ein Neuaufbau des ganzen Bereichs leerte die Felder daneben
+           (derselbe Grund wie beim Papierkorb). */
+        if (r.aufgeraeumt && r.aufgeraeumt.weg) return renderSystem();
         drawSicherung(geholt);
       } catch (err) {
         toast(err.message, true);
@@ -8939,6 +8979,258 @@ function ruesteSicherungAus(geholt) {
         knopf.textContent = 'Jetzt sichern';
       }
     };
+  }
+
+
+/* ---- Karte „Alte Sicherungen" — Abschnitt „Datenbank", seit 0.20.0 ----
+
+   SIE STEHT HINTER "SICHERUNG" UND NICHT DARIN. Die Begruendung steht an ihrer
+   Zeile in SYS_KARTEN; hier steht, was auf ihr zu sehen ist.
+
+   DREI TEILE, UND SIE HABEN EINE REIHENFOLGE:
+     1. die REGEL -- der Schalter und die beiden Werte. Was gilt.
+     2. die VORSCHAU -- was die Regel bei diesen Werten JETZT treffen wuerde.
+     3. die KNOEPFE -- die Regel einmal anwenden, und getrennt davon die
+        veralteten Kopien wegraeumen.
+   Wer von oben nach unten liest, weiss vor dem ersten Knopf, was er tut.
+
+   DIE VORSCHAU STEHT IMMER DA, auch wenn der Schalter aus ist: sie ist die
+   Auskunft darueber, was die Regel bei den eingestellten Werten bedeutet, und
+   nicht die Ankuendigung eines Laufs. OHNE VORSCHAU IST ES EINE WETTE.
+
+   DIE REGEL RECHNET DER SERVER, AUCH FUER DIE VORSCHAU. Die Karte schickt die
+   beiden Werte als Abfrage an GET /api/sicherung und zeichnet, was
+   zurueckkommt -- sie rechnet nichts selbst nach. Eine zweite Fassung der
+   Regel im Browser waere eine zweite Wahrheit darueber, was gleich passiert
+   (Stolperstein 47), und die Vorschau verloere genau das, wofuer es sie gibt. */
+function karteAufraeumen() {
+  return `<div class="sys-card">
+        <h3>Alte Sicherungen</h3>
+        <p class="desc"><strong>Jede Kopie ist so groß wie die ganze Datenbank.</strong>
+          Diese Karte entfernt alte Kopien am eingestellten Sicherungsort — ohne Shell auf
+          dem Wirt. Angefasst wird ausschließlich, was <code>kriterion-….sqlite</code> heißt;
+          eine fremde Datei im Ordner bleibt liegen.</p>
+        <div id="aufraeumen-box"></div>
+      </div>`;
+}
+function ruesteAufraeumenAus(geholt) {
+  drawAufraeumen(geholt);
+}
+
+  /* --- Alte Sicherungen ---
+     Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
+     wie bei der Karte "Sicherung" daneben. Nach jedem Loeschen traegt die
+     Antwort den neuen Stand samt frischer Vorschau, und die Karte zeichnet
+     sich daraus neu.
+     JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
+     und nicht der Lauf abreissen. */
+  function drawAufraeumen(geholt) {
+    const box = document.getElementById('aufraeumen-box');
+    if (!box) return;
+    const d = geholt.sicherung || {};
+    const a = d.aufraeumen || {};
+    /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS. Ein
+       Schalter, der nie greifen kann, verspricht etwas und haelt es nie -- und
+       die Karte darueber nennt den Weg zum Einhaengepunkt ohnehin schon. */
+    if (!d.eingerichtet) {
+      box.innerHTML = `<div class="warn-box">Es ist kein Sicherungsort eingerichtet — solange
+        keiner dasteht, gibt es auch nichts wegzuräumen. Die Karte <strong>Sicherung</strong>
+        darüber sagt, wie er eingehängt wird.</div>`;
+      return;
+    }
+    const gB = (a.grenzen && a.grenzen.behalten) || { min: 1, max: 20, vorgabe: 3 };
+    const gT = (a.grenzen && a.grenzen.tage) || { min: 7, max: 365, vorgabe: 30 };
+    const behalten = Number.isInteger(a.behalten) ? a.behalten : gB.vorgabe;
+    const tage = Number.isInteger(a.tage) ? a.tage : gT.vorgabe;
+
+    /* DIE LISTE BEKOMMT DENSELBEN DECKEL WIE JEDE LISTE IM SYSTEMBEREICH --
+       `.manage-list` deckelt bei zehn Zeilen (seit 0.17.3). Ein Ordner mit
+       vierzig Kopien darf die Seite nicht aufziehen, und eine eigene Zahl
+       daneben waere eine zweite Wahrheit ueber dasselbe Mass. */
+    const liste = (zeilen) => `<div class="manage-list">${zeilen.map(z => `
+      <div class="mrow"><span class="mname"><code>${esc(z.datei)}</code></span>
+        <span class="pk-meta">${esc(fmtDate(z.am))} · ${z.tageHer === 1
+          ? 'vor 1 Tag' : `vor ${z.tageHer} Tagen`} · ${esc(fmtBytes(z.bytes))}</span></div>`).join('')}</div>`;
+
+    const treffer = Array.isArray(a.treffer) ? a.treffer : [];
+    /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Liste ohne
+       Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server, weil
+       ihn dort die Regel selbst kennt. */
+    const vorschau = !a.erreichbar
+      ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler ||
+           'Der Zielort ist nicht erreichbar — was dort liegt, ist von hier aus nicht zu sehen.')}</div>`
+      : (treffer.length
+        ? `<p class="desc" style="margin:0 0 6px"><strong>${treffer.length} ${treffer.length === 1
+             ? 'Kopie würde' : 'Kopien würden'} fallen</strong> — ${esc(fmtBytes(a.bytes || 0))}
+             ${treffer.length === 1 ? 'wird' : 'werden'} frei.</p>
+           ${liste(treffer)}`
+        : `<p class="desc" style="margin:0 0 6px"><strong>Die Regel trifft nichts.</strong>
+             ${esc(a.grund || '')}</p>`);
+
+    /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL STEHEN GETRENNT, mit eigener
+       Zahl, eigener Summe und eigenem Knopf: sie sind nicht entbehrlich,
+       sondern etwas anderes. Wer den alten Schluessel noch hat, kommt an sie
+       heran; wer ihn nicht mehr hat, hat ohnehin nichts verloren.
+       EINE AUTOMATISCHE REGEL ENTFERNT UEBERFLUESSIGES, NICHT FREMDES --
+       deshalb fasst die Regel sie gar nicht an, und deshalb steht hier ein
+       zweiter, ausdruecklicher Weg. */
+    const altZahl = Number(a.altZahl) || 0;
+    const veraltet = !altZahl ? '' : `
+      <div class="sys-teil"></div>
+      <p class="desc" style="margin:0 0 6px"><strong>${altZahl} ${altZahl === 1
+        ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>
+        (${esc(fmtBytes(a.altBytes || 0))}). ${altZahl === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich nur
+        mit dem <strong>alten</strong> Schlüssel. <strong>Die Regel fasst sie nicht an</strong> —
+        wegräumen lassen sie sich nur hier, ausdrücklich und getrennt.</p>
+      ${liste(Array.isArray(a.altDateien) ? a.altDateien : [])}
+      <div class="row-in" style="margin-top:10px">
+        <button class="btn btn-sm" id="auf-alt">${altZahl} ${altZahl === 1
+          ? 'veraltete Kopie' : 'veraltete Kopien'} entfernen</button>
+      </div>`;
+
+    box.innerHTML = `
+      ${/* DIE REGEL IN EINEM SATZ, und zwar bevor der Schalter kommt: wer ihn
+           umlegt, soll wissen, was er einschaltet. */''}
+      <p class="desc" style="margin:0 0 12px"><strong>Zwei Bedingungen, und beide müssen
+        zutreffen:</strong> eine Kopie fällt nur, wenn sie <em>nicht unter den jüngsten</em>
+        <strong>${behalten}</strong> ist <em>und</em> älter als <strong>${tage}</strong>
+        ${tage === 1 ? 'Tag' : 'Tage'}. Die Zahl ist der Boden, das Alter die Schere.</p>
+      <label class="ex-files"><input type="checkbox" id="auf-schalter"${a.an ? ' checked' : ''}>
+        Nach jeder gelungenen Sicherung aufräumen</label>
+      ${/* WARUM ER AUF AUS STEHT, GEHOERT AN DEN SCHALTER und nicht in die
+           Dokumentation: eine geloeschte Sicherung holt nichts zurueck. Und
+           dass nach einer GESCHEITERTEN Sicherung nicht aufgeraeumt wird, ist
+           die Zusage, die hier am meisten wert ist. */''}
+      <p class="hint hint-sm" style="margin:6px 2px 0">Er steht auf <strong>aus</strong>, und das
+        ist Absicht: eine gelöschte Sicherung holt nichts zurück. Aufgeräumt wird
+        <strong>nur im Anschluss an eine Sicherung, die gelungen ist</strong> — schlägt sie fehl,
+        bleibt jede Kopie liegen.</p>
+      <div class="sys-teil"></div>
+      <div class="field"><label for="auf-behalten">Immer behalten</label>
+        <p class="desc" style="margin:0 0 6px">Die jüngsten Kopien fasst die Regel nie an —
+          <em>der Boden</em>. ${gB.min} bis ${gB.max}, Vorgabe ${gB.vorgabe}.</p>
+        <input class="input" id="auf-behalten" type="number" inputmode="numeric"
+          min="${gB.min}" max="${gB.max}" step="1" value="${behalten}"></div>
+      <div class="field"><label for="auf-tage">Erst löschen ab</label>
+        <p class="desc" style="margin:0 0 6px">So alt muss eine Kopie mindestens sein —
+          <em>die Schere</em>, in Tagen. ${gT.min} bis ${gT.max}, Vorgabe ${gT.vorgabe}.</p>
+        <input class="input" id="auf-tage" type="number" inputmode="numeric"
+          min="${gT.min}" max="${gT.max}" step="1" value="${tage}"></div>
+      <div class="sys-teil"></div>
+      ${vorschau}
+      <div class="row-in" style="margin-top:10px">
+        <button class="btn btn-accent btn-sm" id="auf-los"${treffer.length ? '' : ' disabled'}>Regel
+          jetzt anwenden</button>
+      </div>
+      ${veraltet}`;
+
+    /* --- Der Schalter. DERSELBE HELFER WIE BEI DEN ANLEGEN-SCHALTERN waere
+       hier falsch: der steht in ruesteVerwaltungAus() und kennt diese Karte
+       nicht. Die Bauform ist dieselbe -- bei einem Fehlschlag geht die
+       Stellung zurueck, sonst zeigte der Bildschirm etwas anderes an, als der
+       Server haelt. */
+    amElement('auf-schalter', (el) => {
+      el.onchange = async () => {
+        const vorher = !el.checked;
+        try {
+          await api('PUT', '/api/settings', { sicherungAufraeumen: el.checked });
+          geholt.sicherung = { ...geholt.sicherung,
+                               aufraeumen: { ...a, an: el.checked } };
+          toast(el.checked ? 'Aufräumen eingeschaltet' : 'Aufräumen ausgeschaltet');
+        } catch (e) { el.checked = vorher; toast(e.message, true); }
+      };
+    });
+
+    /* --- Die beiden Zahlenfelder. ZWEI EREIGNISSE AN DEMSELBEN FELD, und sie
+       tun zwei verschiedene Dinge:
+         `input`  -- die VORSCHAU wird neu gerechnet, und zwar am Server, mit
+                     den Werten aus der Abfrage. Gespeichert wird dabei nichts
+                     und geloescht erst recht nichts. Wer die Zahl von 3 auf 1
+                     stellt, sieht sofort, was das kostet.
+         `change` -- der Wert wird GESPEICHERT (beim Verlassen des Feldes oder
+                     mit der Eingabetaste). Ein eigener Speicherknopf waere ein
+                     dritter Knopf auf einer Karte, die mit zwei auskommt.
+       DIE GRENZEN HALTEN AM SERVER. `min` und `max` stehen an den Feldern, aber
+       sie sind eine Bitte und keine Klemme -- die Absage kommt vom Server, und
+       die Karte sagt, warum. */
+    const werte = () => ({
+      behalten: Number(document.getElementById('auf-behalten')?.value),
+      tage: Number(document.getElementById('auf-tage')?.value)
+    });
+    let vorschauLauf = 0;
+    const vorschauNeu = async () => {
+      const w = werte();
+      if (!Number.isInteger(w.behalten) || !Number.isInteger(w.tage)) return;
+      const lauf = ++vorschauLauf;
+      let frisch;
+      try {
+        frisch = await api('GET', `/api/sicherung?behalten=${w.behalten}&tage=${w.tage}`);
+      } catch { return; }   // eine Zahl ausserhalb der Grenzen: die Vorschau bleibt stehen
+      /* NUR DIE JUENGSTE ANTWORT ZAEHLT. Wer schnell tippt, hat mehrere
+         Abrufe unterwegs, und sie koennen in beliebiger Reihenfolge
+         ankommen -- ohne diese Frage stuende womoeglich das Ergebnis der
+         vorletzten Eingabe da (dieselbe Ueberlegung wie bei der Wache aus
+         0.19.6: die Ansicht kann fort sein). */
+      if (lauf !== vorschauLauf) return;
+      if (!document.getElementById('aufraeumen-box')) return;
+      geholt.sicherung = frisch;
+      drawAufraeumen(geholt);
+    };
+    for (const [id, schluessel] of [['auf-behalten', 'sicherungBehalten'],
+                                    ['auf-tage', 'sicherungTage']])
+      amElement(id, (el) => {
+        el.oninput = vorschauNeu;
+        el.onchange = async () => {
+          const n = Number(el.value);
+          try {
+            await api('PUT', '/api/settings', { [schluessel]: n });
+            geholt.sicherung = { ...geholt.sicherung,
+                                 aufraeumen: { ...(geholt.sicherung || {}).aufraeumen,
+                                               [id === 'auf-behalten' ? 'behalten' : 'tage']: n } };
+            toast('Gespeichert');
+          } catch (e) { toast(e.message, true); }
+        };
+      });
+
+    /* --- Die beiden Knoepfe. BEIDE HINTER DER ZWEITEN BESTAETIGUNG, wie jeder
+       Vorgang, der Bytes unwiderruflich entfernt -- und beide gehen durch
+       DIESELBE Route, unterschieden durch ein Feld im Rumpf.
+       DER DIALOG NENNT DIE ZAHL UND DIE BYTES und beschoenigt nichts. Dass die
+       Route KEINE Dateinamen entgegennimmt, hat einen Preis: zwischen Vorschau
+       und Knopfdruck kann sich der Ordner geaendert haben. Die Antwort nennt
+       deshalb, was WIRKLICH geloescht wurde, und die Karte zeichnet sich
+       daraus neu. */
+    const raeume = async (art, titel, was) => {
+      if (!(await zweiteBestaetigung('sicherung', null, titel, was))) return;
+      let r;
+      try { r = await api('POST', '/api/sicherung/aufraeumen', { art }); }
+      catch (e) { return toast(e.message, true); }
+      geholt.sicherung = { ...geholt.sicherung, erreichbar: r.erreichbar, letzte: r.letzte,
+                           zahl: r.zahl, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
+                           aufraeumen: { ...(geholt.sicherung || {}).aufraeumen, ...r.aufraeumen } };
+      toast(`${r.weg} ${r.weg === 1 ? 'Kopie' : 'Kopien'} entfernt (${fmtBytes(r.bytes)} frei)` +
+            `${r.nicht ? ` — ${r.nicht} nicht` : ''}`);
+      /* DIE NACHBARKARTE ZEIGT DIE ZAHL DER DATEIEN AM ORT, und die ist jetzt
+         eine andere. Zwei Staende nebeneinander stehen zu lassen waere genau
+         die zweite Wahrheit, gegen die diese Runde gebaut ist -- also die
+         GANZE Karte neu, dieselbe Bauform wie bei der Bildumstellung. */
+      renderSystem();
+    };
+    amElement('auf-los', (knopf) => {
+      knopf.onclick = () => raeume('regel', 'Regel jetzt anwenden',
+        `${treffer.length} ${treffer.length === 1 ? 'Kopie' : 'Kopien'} ` +
+        `(${fmtBytes(a.bytes || 0)}) ${treffer.length === 1 ? 'wird' : 'werden'} entfernt. ` +
+        `Es gibt dafür keinen Papierkorb — zurück führt nichts. ` +
+        `Welche Dateien fallen, rechnet der Server im Augenblick des Löschens noch einmal aus; ` +
+        `hat sich der Ordner seit der Vorschau geändert, nennt die Antwort, was wirklich weg ist.`);
+    });
+    amElement('auf-alt', (knopf) => {
+      knopf.onclick = () => raeume('veraltet', 'Veraltete Kopien entfernen',
+        `${altZahl} ${altZahl === 1 ? 'Kopie' : 'Kopien'} von vor dem Schlüsselwechsel ` +
+        `(${fmtBytes(a.altBytes || 0)}) ${altZahl === 1 ? 'wird' : 'werden'} entfernt. ` +
+        `${altZahl === 1 ? 'Sie lässt' : 'Sie lassen'} sich nur mit dem alten Schlüssel öffnen. ` +
+        `Hast du ihn noch und brauchst ${altZahl === 1 ? 'sie' : 'sie'} — dann jetzt nicht löschen.`);
+    });
   }
 
 

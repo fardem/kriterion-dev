@@ -169,21 +169,31 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.18.0** *MINOR* *(war 0.17.0)* — **GEBAUT am 1. September 2026** | **Die Suche schärfen — Trefferkontext und Hervorhebung.** *Der älteste Punkt dieses Blatts, aufgefallen am 27. August 2026 und dreimal übersprungen.* Eine Zeile an der Kachel nennt die Quelle und zeigt den Ausschnitt mit der Fundstelle darin, in einer festen Folge, die bei dem beginnt, was die Kachel nicht zeigt; der Begriff ist hervorgehoben und steht in der Adresse des geöffneten Treffers. **Was gebaut wurde, steht im Änderungsprotokoll 0.18.0.** *Teil (a) und (c) sind gebaut, dazu die offene Frage nach der Adresse — mit „ja" beantwortet.* ***Was liegen bleibt, steht als eigener Punkt unten: der Suchbereich als Häkchen (b).*** ***Eine Abweichung:*** *Titel und Beschreibung der Detailansicht tragen keine Marke — beide sind Eingabefelder, und in ein `<input>` lässt sich kein Element hängen (Stolperstein 263).* ***Und zwei Behauptungen der Ausarbeitung haben nicht getragen:*** *die Antwort ist nicht umsonst zu haben — SQLite bricht die ODER-Kette beim ersten Treffer ab (Stolperstein 260) —, und die schmalste Kachel ist nicht 240, sondern 173 px breit (Stolperstein 261).* |
 | **0.19.0** *MINOR, Schema* *(war 0.18.0)* — **GEBAUT am 1. September 2026** | **Die Bildablage.** *Punkt 15 dieses Blatts, aufgefallen am 28. August 2026 aus der Frage nach der Größe der Datenbank; am 30. August um den engeren Ausschnitt und das Bildformat erweitert.* **Gemessen an der echten Instanz: 679 der 1032 Bilder lagen als PNG im Original, 435,7 von 568,9 MB — als WebP `nearLossless` 60 werden daraus 161,9 MB, bei einer größten Abweichung von 2 von 255 und null von hundert Bildern mit sichtbarer Kante.** Gebaut sind: die Umwandlung beim Hereinkommen samt Schalter (Vorgabe an, nur der Eigentümer), der **Knopf**, der den vorhandenen Bestand nachzieht, der **engere Ausschnitt** (`photos.zoom`, achter Migrationsblock, Austauschformat 12), die aufgeschriebene **Asymmetrie der beiden Bildwege** und die zusammengelegte Kennzahlenabfrage. **Was gebaut wurde, steht im Änderungsprotokoll 0.19.0.** ***Diese Runde hebt eine Einschätzung dieses Blatts auf:*** *„Claude: nicht empfohlen für (a)" und „das Original wird nicht angefasst" galten vor der Messung und gelten für eine **Kameraaufnahme**; dieser Bestand besteht zu 92 % aus **Bildschirmfotos**, und die haben kein Negativ. Die Aufhebung steht mit ihrem Grund in Abschnitt 10a und am Quelltext — sie ist nicht gelöscht.* ***Was liegen bleibt, steht als eigene Zeile unten: die Ableitungen auf WebP.*** ***Und ein Befund aus dem Bauen:*** *die `effort`-Leiter ließ sich nicht am echten Bestand messen, und an erzeugtem Material hängt die Antwort vom Material ab (Stolperstein 270).* |
 | **0.19.4** *PATCH* — **GEBAUT am 3. September 2026** | **Die Vorschaubilder werden zu klein gerechnet.** *Punkt 7 dieses Blatts, aufgefallen beim Messen zu 0.19.1 am 2. September 2026.* `thumb` war 400 px auf der **langen** Kante und wird ausschließlich mit `object-fit: cover` gezeigt — **wer einschneidet, braucht die kurze.** Gebaut ist die Ableitungsregel als **Kiste** aus kurzer Kante und Deckel (`thumb` 512/1280, `medium` unverändert), dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht. **Was gebaut wurde, steht im Änderungsprotokoll 0.19.4.** ***Zwei Zahlen der Ausarbeitung haben nicht getragen:*** *die Kachel ist nicht 313, sondern **299 CSS-px** breit, und es sind **1032** Bilder und nicht 1034.* ***Und zwei Dinge sind mit Begründung NICHT nachgezogen worden:*** *die Videokacheln (es gibt keine Vorlage mehr) und der Bestand an Kommentarbildern (`.cmt-img` ist 86 × 86 px — der alte `thumb` deckte das bei dPR 1 und 2 ganz).* |
-| **0.20.0** *MINOR* *(neu am 3. September 2026)* | **Alte Sicherungen aufräumen — ohne Shell.** *Punkt 8 dieses Blatts, aufgefallen im Betrieb am 2. September 2026.* **Er hat als erster Punkt seit dem 28. August wieder eine Nummer bekommen, und alles dahinter ist um eine Stelle gerückt** — die Oberfläche eingeschlossen, die sechsmal in Folge nicht gerückt worden war. *Ausarbeitung: Projektstand, Abschnitt 10a; der Grund für die Nummer steht in Abschnitt 10, beim siebten Rücken.* |
+| **0.20.0** *MINOR* — **GEBAUT am 3. September 2026** | **Alte Sicherungen aufräumen — ohne Shell.** *Punkt 8 dieses Blatts, aufgefallen im Betrieb am 2. September 2026; am selben Tag zugeordnet — er hat als erster Punkt seit dem 28. August wieder eine Nummer bekommen, und alles dahinter ist um eine Stelle gerückt.* Gebaut ist die Regel aus **zwei** Bedingungen (*nicht unter den N jüngsten **und** älter als X Tage*), die **Vorschau** vor dem Löschen, der Schalter auf **AUS**, ein Knopf hinter der zweiten Bestätigung, ein **zweiter, ausdrücklicher Weg** für die Kopien von vor dem Schlüsselwechsel, eine **zwanzigste Karte** und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Was gebaut wurde, steht im Änderungsprotokoll 0.20.0.** *Alle fünf offenen Entscheidungen sind beantwortet — jede mit ihrer Begründung.* ***Zwei Zahlen der Ausarbeitung haben nicht getragen:*** *`MERKMALE` steht bei **vierzehn** und nicht bei dreizehn, und die Zeile über die Routenzahl in Abschnitt 11 des Projektstands war zwei Runden alt — beides ist berichtigt.* ***Und eine Angabe ist eine Entscheidung geworden:*** *„mit der Zahl der entfernten Kopien" ins Protokoll heißt **eine Zeile je Kopie** — eine Spalte für eine Zahl gibt es dort nicht, und die Runde ist ausdrücklich keine Datenbankstufe.* |
 | **0.21.0** *MINOR* *(war 0.20.0, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
 | **0.22.0** *MINOR* *(war 0.21.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
 | **0.23.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
-**Was hier bleibt, bleibt aus einem Grund:** die sechs Punkte unten haben
+**Was hier bleibt, bleibt aus einem Grund:** die **sieben** Punkte unten haben
 **keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — zwei sind
-`nicht empfohlen`, drei sind `später`, und einer wartet auf die Runde, in der
-über die Verfahren entschieden wird. *Punkt 4 ist am 1. September 2026
+`nicht empfohlen`, drei sind `später`, einer wartet auf die Runde, in der über
+die Verfahren entschieden wird, **und einer ist am 3. September 2026
+dazugekommen: Punkt 9, die gepackte Sicherung** — *sein Kern ist gemessen und
+trägt nicht, sein kleinster Teil ist empfohlen.* *Punkt 4 ist am 1. September 2026
 dazugekommen: er ist der Teil von Punkt 1, den 0.18.0 mit Begründung liegen
 gelassen hat.* *Punkt 5 ist am selben Tag dazugekommen: er ist der Teil von
 Punkt 15, den 0.19.0 liegen lässt — **und sein Grund ist ein anderer als
 vorher.*** *Ein Sammelblatt, in dem nur noch das Verworfene
 steht, sieht mager aus. Es ist trotzdem der richtige Zustand: alles Übrige ist
 entschieden und hat seinen Ort.*
+
+> **PUNKT 8 IST INZWISCHEN GEBAUT.** Er hat am 3. September 2026 die 0.20.0
+> bekommen und ist am selben Tag gebaut worden — *ein Punkt wandert von hier in
+> den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.* **Seine
+> Ausarbeitung ist mit der Runde aus Abschnitt 10a herausgefallen**, weil sie
+> gebaut ist; was von ihr als **Regel** weitergilt, steht im Projektstand in
+> Abschnitt 5.3 und Abschnitt 11, und die Lehre daraus als **Stolperstein 299
+> und 300**.
 
 > **AM 3. SEPTEMBER 2026 SIND ZWEI PUNKTE VON HIER FORTGEZOGEN, und zwar auf
 > zwei verschiedenen Wegen.** **Punkt 7** („Die Vorschaubilder werden zu klein
@@ -202,7 +212,7 @@ entschieden und hat seinen Ort.*
 |---|---|
 | **Fehler** | — *(der letzte, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden)* |
 | **Verbesserung** | — |
-| **Neue Funktion** | 1, 2, 3, 4, **6** |
+| **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
 | **Design** | — |
 | **Verbesserung** *(nachgetragen)* | 5 |
 
@@ -210,6 +220,7 @@ entschieden und hat seinen Ort.*
 |---|---|
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
+| **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — Teil (c) des Punktes ist trotzdem billig und empfohlen)* |
 | **eingetragen als 0.22.0** | **5, 6** |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
@@ -1113,3 +1124,116 @@ Umstellungslauf, die zweite Bestätigung. **Kein Schema.**
 > **EINGETRAGEN ALS 0.22.0** *(bis zum 3. September 2026 als 0.21.0 geführt;
 > gerückt, weil Punkt 8 die 0.20.0 bekommen hat)*, zusammen mit den Ableitungen
 > aus Punkt 5.
+
+---
+
+## 9. Sicherungen gepackt ablegen — und die Liste zieht um
+
+**Aus dem Betrieb, 3. September 2026**, unmittelbar während 0.20.0 gebaut
+wurde.
+
+> **Art: Neue Funktion** · **Claude: nicht empfohlen in der gewünschten Form** —
+> *und der Grund ist gemessen, nicht vermutet:* **eine verschlüsselte Sicherung
+> lässt sich nicht packen.**
+> **Draußen üblich:** ja, praktisch jede Sicherungslösung packt — *aber sie
+> packt VOR dem Verschlüsseln, nicht danach.* Genau darin liegt der Unterschied.
+
+### Woher
+
+Wortgleich aus dem Betrieb: *„Wenn eine Sicherung angelegt wird, werden sie
+gepackt gelagert. Im Pack-Archiv haben sie noch den Original-Namen. Der Name,
+wie er jetzt für das nackte Archiv festgelegt wird, wird für die gepackte Datei
+verwendet."* Dazu zwei weitere Wünsche: **die einzelne Auflistung der
+Sicherungen soll nicht mehr oben bei „Sicherung erstellen" stehen, sondern in
+der neuen Karte**, und sie soll **je Sicherung nennen, wann sie entstand und
+wie groß das gepackte Archiv ist.** Und die Frage: **welches Packverfahren —
+Zip, RAR, tar oder etwas anderes?**
+
+### Was gemessen wurde
+
+**An zwei nachgebauten Datenbanken mit identischem Inhalt, je rund 60 MB,
+`VACUUM INTO` wie im Betrieb** *(Node 22, `zlib` aus dem Standard — also ohne
+neue Abhängigkeit)*:
+
+| Verfahren | verschlüsselt *(wie Kriterion)* | unverschlüsselt *(Vergleich)* |
+|---|---|---|
+| gzip −6 | **100,0 %** · 1693 ms | **0,5 %** · 173 ms |
+| gzip −1 | **100,0 %** · 1564 ms | 0,9 % · 58 ms |
+| zstd −3 | **100,0 %** · 97 ms | **0,1 %** · 21 ms |
+| zstd −1 | **100,0 %** · 82 ms | 0,1 % · 13 ms |
+| brotli −11 | **100,0 %** · 59.915 ms | 0,1 % · 9405 ms |
+| brotli −4 | **100,0 %** · 315 ms | 0,1 % · 76 ms |
+
+**Derselbe Inhalt, einmal verschlüsselt und einmal nicht: 100,0 % gegen 0,1 %.**
+*gzip macht die verschlüsselte Datei sogar um wenige Kilobyte **größer**.*
+
+### Was auffiel — und warum es so ist
+
+**SQLCipher verschlüsselt jede Seite einzeln mit AES-256 und eigenem IV.** Das
+Ergebnis ist von Zufall statistisch nicht zu unterscheiden, und **in Zufall
+findet kein Packer eine Wiederholung.** *Nur die ersten 16 Bytes der Datei sind
+Klartext — das Salz.* **Ein Packer kann daran nichts gewinnen, egal welcher.**
+
+**Und der zweite Grund kommt dazu:** selbst *unverschlüsselt* wäre der Gewinn
+an dieser Datenbank klein — **rund 570 der 620 MB sind Bildbytes, und die sind
+als WebP oder JPEG schon gepackt.** Die 0,1 % in der Tabelle stehen für einen
+nachgebauten Bestand aus reinem Text; der echte liegt weit darüber.
+
+### Was es nicht ist
+
+**Kein Fehler.** Und **kein Widerspruch zur Erwartung des Betreibers** — die
+Erwartung ist völlig richtig, sie gilt nur für die Reihenfolge *packen, dann
+verschlüsseln*, und die hat `VACUUM INTO` nicht: es schreibt die Kopie
+**verschlüsselt** heraus, in einem Zug.
+
+### Was gebaut werden könnte — drei Wege, und zwei davon sind teuer
+
+**a) EIN CONTAINER OHNE KOMPRESSION — nur für den Namen.** `tar` ohne Packer
+oder `zip` mit „stored". **Bringt null Bytes**, erfüllt aber den Wunsch nach
+*einem* Archiv, das den Originalnamen innen trägt. *Kostet: eine zweite volle
+Kopie auf der Platte während des Schreibens, und einen Handgriff mehr beim
+Wiederherstellen.* **Ehrlich benannt ist das eine Verpackung und keine
+Ersparnis.**
+
+**b) PACKEN VOR DEM VERSCHLÜSSELN — der einzige Weg, der wirklich spart.**
+`VACUUM INTO` in eine **unverschlüsselte** Zwischendatei, packen, mit eigenem
+Schlüssel verschlüsseln. **Drei harte Kosten:** die Zwischendatei liegt
+**unverschlüsselt** auf der Platte — genau das, was die ganze Bauform
+verhindert; es entsteht ein **eigenes Dateiformat** mit eigenem
+Wiederherstellungsweg *(die README beschreibt heute „Datei zurückkopieren, Ende")*;
+und die Schlüsselverwaltung bekommt einen zweiten Ort. *Der Gewinn wäre bei
+diesem Bestand trotzdem klein — siehe oben.*
+
+**c) DIE LISTE UMZIEHEN UND JE KOPIE DATUM UND GRÖSSE NENNEN.** **Das ist der
+Teil des Wunsches, der billig ist und etwas bringt** — und **die Hälfte davon
+steht seit 0.20.0 schon da:** die Karte „Alte Sicherungen" listet die Kopien,
+die die Regel treffen würde, mit **Datum, Alter und Größe**, und die veralteten
+getrennt daneben. **Was fehlt, ist die vollständige Liste** — heute nennt die
+Karte „Sicherung" nur die **jüngste** Kopie und die **Zahl** der Dateien am Ort.
+*Das ist eine Zeichenfrage, kein Format und keine Route: `sicherungsListe()`
+liefert die vollständige Liste bereits.*
+
+### Empfehlung
+
+**(c) bauen, (a) nur wenn der Betreiber die Verpackung ausdrücklich will, (b)
+nicht.** *Und wenn je gepackt wird, dann mit **zstd** und nicht mit Zip, RAR
+oder gzip:* es steckt seit Node 22.15 in `zlib` und braucht damit **keine neue
+Abhängigkeit**, es ist in der Messung **zwanzigmal schneller als gzip** bei
+gleichem oder besserem Ergebnis, und brotli ist auf höchster Stufe mit fast
+einer Minute je Sicherung unbrauchbar. **RAR fällt ohnehin aus:** der Packer ist
+unfrei und wäre eine Fremdbinärdatei im Image.
+
+### Was es anfasst
+
+Für **(c)**: `drawSicherung()` bzw. die Karte „Alte Sicherungen" in
+`public/app.js` und ein Feld mehr in `GET /api/sicherung` — **lesend, also kein
+Eintrag in `F_ROUTEN`.** Für **(a)** und **(b)** zusätzlich `POST /api/sicherung`,
+den Wiederherstellungsweg in der README und `SICHERUNG_MUSTER`. **Kein Schema
+in keinem der drei Fälle.**
+
+> **KEINE NUMMER.** Der Betreiber hat 0.22.0 vorgeschlagen; **die Zahl ist
+> vergeben** — dort steht die wählbare Bildablage (Punkt 6 samt den Ableitungen
+> aus Punkt 5). *Nach Regel 3 dieses Blatts wird hier gesammelt und später in
+> einem Zug zugeordnet; die Nummer entscheidet der Betreiber.* **Teil (c) ist
+> klein genug, um in einer Runde mitzufahren, die ohnehin an der Karte
+> arbeitet.**

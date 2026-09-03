@@ -6021,6 +6021,708 @@ const freigabeHaupt = (zweck, ziel = null) =>
   fs.rmSync(siDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Aufraeumregel an der Tafel');
+
+  /* DIE REGEL AN EINER TAFEL -- und zwar die ECHTE Regel und nicht ihre
+     Nacherzaehlung. Herausgeschnitten wird von Klammer zu Klammer mit indexOf,
+     ausdruecklich OHNE zusammengesetztes Muster (dieselbe Bauform wie bei
+     F_ROUTEN), und gelaufen wird die herausgeschnittene Funktion selbst.
+
+     WARUM AN EINER TAFEL UND NICHT AN EINEM ORDNER: regelTreffer() bekommt
+     `jetzt` und die Marke des Schluesselwechsels als ARGUMENT und beruehrt
+     weder die Uhr noch das Dateisystem. Genau das macht sie hier pruefbar --
+     eine Pruefung, die auf echte dreissig Tage wartet, gibt es nicht. Der
+     echte Ordner kommt in der Gruppe darunter und mit eigenen Zusagen.
+
+     DASS DER SCHNITT GEGRIFFEN HAT, WIRD ZUERST GEPRUEFT: eine Tafel ueber eine
+     Funktion, die es nicht gibt, waere gruen und belegte nichts
+     (Stolperstein 81). Und TAG_MS wird MITGESCHNITTEN statt hier ein zweites
+     Mal getippt -- zwei Zahlen an zwei Orten laufen auseinander. */
+  const auQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+  const auSchnitt = (kopf) => {
+    const von = auQuelle.indexOf(kopf);
+    if (von < 0) return '';
+    const bis = auQuelle.indexOf('\n}\n', von);
+    return bis < 0 ? '' : auQuelle.slice(von, bis + 2);
+  };
+  const auTagMs = (auQuelle.match(/^const TAG_MS = (\d+);$/m) || [])[1] || '';
+  const auRegelQuelle = auSchnitt('function regelTreffer(');
+  pruefe('Die Regel steht in server.js als eine Funktion',
+    auRegelQuelle.length > 100 && auTagMs === '86400000',
+    `${auRegelQuelle.length} Zeichen, TAG_MS ${JSON.stringify(auTagMs)}`);
+  /* UND SIE STEHT GENAU EINMAL. Zwei Fassungen waeren zwei Wahrheiten darueber,
+     was gleich passiert (Stolperstein 47), und die Vorschau verloere genau
+     das, wofuer es sie gibt. */
+  pruefe('Und zwar genau einmal',
+    (auQuelle.match(/function regelTreffer\(/g) || []).length === 1,
+    `${(auQuelle.match(/function regelTreffer\(/g) || []).length} Stellen`);
+  const regelTreffer = auRegelQuelle
+    // eslint-disable-next-line no-new-func
+    ? new Function(`const TAG_MS = ${auTagMs};\n${auRegelQuelle}\nreturn regelTreffer;`)()
+    : () => { throw new Error('regelTreffer nicht gefunden'); };
+
+  /* DIE TAFEL. Eine feste Uhrzeit statt Date.now(): so heisst "vor 40 Tagen"
+     in jeder Zeile dasselbe, und der Lauf ist von der Sekunde unabhaengig, in
+     der er faehrt. */
+  const auJetzt = Date.parse('2026-09-03T12:00:00Z');
+  const auTag = 86400000;
+  const auVor = (tage) => auJetzt - tage * auTag;
+  /* DIE NAMEN SIND ABSICHTLICH IRREFUEHREND, und zwar in BEIDE Richtungen: eine
+     Datei mit dem Namen von heute und dem Alter von 400 Tagen, und eine mit
+     dem Namen von 2020 und dem Alter von null Tagen. DAS ALTER KOMMT AUS
+     `mtimeMs` UND NICHT AUS DEM DATEINAMEN -- der Name traegt zwar eine
+     Zeitmarke, aber er ist von aussen gestaltbar; die Angabe des Dateisystems
+     ist es nicht. Ohne diese beiden Zeilen belegte die Tafel darueber nichts. */
+  const auK = (name, tage) => ({ name, zeit: auVor(tage), bytes: 1000 + tage });
+  const auNamen = (liste) => liste.map(d => d.name).sort();
+  /* SIEBEN LAGEN, und keine ist entbehrlich: jede einzelne Bedingung der Regel
+     ist ausgerechnet in einer davon falsch. */
+  const auLagen = [
+    { was: 'nichts da', dateien: [], erwartet: [] },
+    { was: 'weniger als N Kopien, und beide jung',
+      dateien: [auK('a.sqlite', 1), auK('b.sqlite', 2)], erwartet: [] },
+    { was: 'genau N Kopien, zwei davon alt',
+      dateien: [auK('a.sqlite', 1), auK('b.sqlite', 40), auK('c.sqlite', 80)], erwartet: [] },
+    { was: 'mehr als N, aber alle jung',
+      dateien: [auK('a.sqlite', 0), auK('b.sqlite', 1), auK('c.sqlite', 2),
+                auK('d.sqlite', 3), auK('e.sqlite', 4)], erwartet: [] },
+    { was: 'mehr als N und die aeltesten alt',
+      dateien: [auK('a.sqlite', 0), auK('b.sqlite', 1), auK('c.sqlite', 2),
+                auK('d.sqlite', 60), auK('e.sqlite', 400)],
+      erwartet: ['d.sqlite', 'e.sqlite'] },
+    { was: 'alle alt, aber unter dem Boden',
+      dateien: [auK('a.sqlite', 300), auK('b.sqlite', 301), auK('c.sqlite', 302)],
+      erwartet: [] },
+    /* DIE LAGE AUS ENTSCHEIDUNG 5, und hier darf NICHTS fallen: drei Kopien,
+       von denen zwei vor dem Wechsel entstanden sind, sind in Wahrheit eine.
+       Der Boden zaehlt nur die brauchbaren, und die veralteten fasst die Regel
+       ueberhaupt nicht an. */
+    { was: 'N Kopien, von denen zwei vor dem Schluesselwechsel liegen',
+      dateien: [auK('a.sqlite', 1), auK('b.sqlite', 2), auK('c.sqlite', 3),
+                auK('alt1.sqlite', 200), auK('alt2.sqlite', 300)],
+      wechsel: auVor(100), erwartet: [] }
+  ];
+  for (const l of auLagen) {
+    const raus = regelTreffer(l.dateien, 3, 30, auJetzt, l.wechsel ?? null);
+    pruefe(`Die Regel bei ${l.was}: ${l.erwartet.length ? l.erwartet.join(' + ') : 'nichts faellt'}`,
+      gleich(auNamen(raus), l.erwartet.slice().sort()),
+      `geliefert: ${auNamen(raus).join(' ') || '—'}`);
+  }
+  /* UND DIE GEGENLAGE ZUR SIEBTEN: liegen MEHR brauchbare Kopien da als der
+     Boden deckt, fallen die alten davon -- die veralteten aber weiterhin
+     nicht. Ohne diese Zeile belegte die siebte nur, dass ueberhaupt nichts
+     faellt (Stolperstein 81). */
+  {
+    const dateien = [auK('a.sqlite', 1), auK('b.sqlite', 2), auK('c.sqlite', 3),
+                     auK('d.sqlite', 90), auK('alt1.sqlite', 200), auK('alt2.sqlite', 300)];
+    const raus = regelTreffer(dateien, 3, 30, auJetzt, auVor(100));
+    pruefe('Ueber dem Boden faellt die alte brauchbare Kopie -- die veralteten nicht',
+      gleich(auNamen(raus), ['d.sqlite']), auNamen(raus).join(' ') || '—');
+  }
+  /* OHNE WECHSEL ZAEHLEN ALLE. Der Unterschied zwischen "es gab keinen Wechsel"
+     und "alle sind veraltet" ist genau der, den die Filterzeile haelt: mit
+     `null` liegen dieselben sechs Dateien da, und drei davon fallen. */
+  {
+    const dateien = [auK('a.sqlite', 1), auK('b.sqlite', 2), auK('c.sqlite', 3),
+                     auK('d.sqlite', 90), auK('alt1.sqlite', 200), auK('alt2.sqlite', 300)];
+    const raus = regelTreffer(dateien, 3, 30, auJetzt, null);
+    pruefe('Ohne Schluesselwechsel zaehlen alle Kopien mit',
+      gleich(auNamen(raus), ['alt1.sqlite', 'alt2.sqlite', 'd.sqlite']),
+      auNamen(raus).join(' ') || '—');
+  }
+  /* DIE GRENZE DER SCHERE IST SCHARF: "aelter ALS X Tage". Eine Kopie, die
+     genau X Tage alt ist, faellt NICHT -- und eine Sekunde aelter faellt sie.
+     Ein Vergleich mit <= stuende hier rot. */
+  {
+    const grenz = [auK('a.sqlite', 0), auK('b.sqlite', 1), auK('c.sqlite', 2),
+                   { name: 'genau.sqlite', zeit: auVor(30), bytes: 1 }];
+    pruefe('Genau X Tage alt faellt nicht',
+      gleich(auNamen(regelTreffer(grenz, 3, 30, auJetzt, null)), []),
+      auNamen(regelTreffer(grenz, 3, 30, auJetzt, null)).join(' ') || '—');
+    const drueber = grenz.map(d => d.name === 'genau.sqlite'
+      ? { ...d, zeit: d.zeit - 1000 } : d);
+    pruefe('Eine Sekunde aelter faellt sie',
+      gleich(auNamen(regelTreffer(drueber, 3, 30, auJetzt, null)), ['genau.sqlite']),
+      auNamen(regelTreffer(drueber, 3, 30, auJetzt, null)).join(' ') || '—');
+  }
+  /* DER BODEN VON EINS ist die engste erlaubte Stellung, und sie ist die, bei
+     der ein Fehler am meisten kostet: die juengste Kopie muss auch dann
+     stehenbleiben, wenn sie selbst alt ist. */
+  {
+    const alle = [auK('a.sqlite', 100), auK('b.sqlite', 200), auK('c.sqlite', 300)];
+    pruefe('Der Boden von eins laesst die juengste stehen, auch wenn sie alt ist',
+      gleich(auNamen(regelTreffer(alle, 1, 30, auJetzt, null)), ['b.sqlite', 'c.sqlite']),
+      auNamen(regelTreffer(alle, 1, 30, auJetzt, null)).join(' ') || '—');
+  }
+  /* DIE REGEL SORTIERT SELBST. Kaeme sie ungeordnet herein und zaehlte den
+     Boden von vorn, traefe sie die falschen -- und mit einer bereits
+     sortierten Liste faellt das nie auf. */
+  {
+    const wirr = [auK('c.sqlite', 2), auK('e.sqlite', 400), auK('a.sqlite', 0),
+                  auK('d.sqlite', 60), auK('b.sqlite', 1)];
+    pruefe('Eine ungeordnete Liste ergibt dasselbe Ergebnis',
+      gleich(auNamen(regelTreffer(wirr, 3, 30, auJetzt, null)), ['d.sqlite', 'e.sqlite']),
+      auNamen(regelTreffer(wirr, 3, 30, auJetzt, null)).join(' ') || '—');
+    /* UND SIE LAESST DIE HEREINGEGEBENE LISTE IN RUHE. Ein `sort()` auf dem
+       Argument aenderte die Reihenfolge beim Aufrufer -- und der ruft mit
+       derselben Liste gleich noch letzteSicherung() auf. */
+    pruefe('Und die hereingegebene Liste bleibt unangetastet',
+      gleich(wirr.map(d => d.name),
+             ['c.sqlite', 'e.sqlite', 'a.sqlite', 'd.sqlite', 'b.sqlite']),
+      wirr.map(d => d.name).join(' '));
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Alte Sicherungen aufraeumen: der echte Ordner');
+
+  /* UND DER ORDNER WIRD ECHT ANGELEGT. Wegwerfverzeichnis, echte Dateien,
+     `fs.utimesSync` setzt das Alter -- eine Pruefung, die auf echte dreissig
+     Tage wartet, gibt es nicht.
+     WAS HIER BELEGT WIRD UND AN DER TAFEL DARUEBER NICHT: dass die Regel den
+     RICHTIGEN Ordner liest, dass sie NUR ihn liest, dass die genannten Dateien
+     danach wirklich weg sind und alles andere wirklich noch da. */
+  const auWurzel = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-aufraeumort-'));
+  const auOrdner = path.join(auWurzel, 'kopien');
+  fs.mkdirSync(auOrdner);
+  /* EIN ZIEL AUSSERHALB DER WURZEL, auf das gleich ein Symlink IM Ordner
+     zeigt. Ein Symlink ist keine Sicherung -- und diese Datei ist die, an der
+     sich das belegen laesst: bliebe sie liegen, waere die Zusage wahr; waere
+     sie weg, haette das Aufraeumen aus dem Ordner herausgegriffen. */
+  const auAussen = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-aufraeumfremd-'));
+  const auAussenDatei = path.join(auAussen, 'kriterion-fremd.sqlite');
+  fs.writeFileSync(auAussenDatei, 'diese Datei liegt ausserhalb und bleibt liegen');
+
+  const auDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-aufraeumen-'));
+  const AU_WORT = 'aufraeum-passwort-' + crypto.randomBytes(4).toString('hex');
+  {
+    kurzlauf(`require('./db'); console.log('da');`, auDir);
+    const d = oeffne(path.join(auDir, 'katalog.sqlite'));
+    for (const n of ['anna', 'bert', 'carla'])
+      d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(n, 'x');
+    for (const [t, u] of [['cookie-au-anna', 1], ['cookie-au-bert', 2], ['cookie-au-carla', 3]])
+      d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
+    d.prepare("INSERT INTO settings (key, value) VALUES ('sicherungOrt', ?)").run('"kopien"');
+    d.close();
+  }
+  setzePasswortImBestand(auDir, 'anna', AU_WORT);
+  const AU = starteWeiterenServer(auDir, { SICHERUNG_DIR: auWurzel }, 4300);
+  await AU.bereit;
+  /* bert BEKOMMT DIE ADMINROLLE ERST JETZT -- ohne ihn waere "Eigentuemer" von
+     "Admin" gar nicht zu unterscheiden (Stolperstein 73). UND ERST NACH DEM
+     START: das Auffangnetz in db.js macht den aeltesten Zugang MIT RECHTEN zum
+     Eigentuemer; stuende bert beim Start schon als Admin da, waere ER es
+     geworden und nicht anna. */
+  {
+    const d = oeffne(path.join(auDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    d.prepare("UPDATE users SET role = 'admin' WHERE username = 'bert'").run();
+    d.close();
+  }
+
+  const auRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(AU.basis + pfad, opt);
+    let inhalt = null;
+    try { inhalt = await a.json(); } catch {}
+    return { status: a.status, inhalt };
+  };
+  // Eine Freigabe holen. Sie wird VERBRAUCHT -- vor jedem Aufruf eine neue.
+  const auFrei = (cookieWert = 'cookie-au-anna') =>
+    auRuf(cookieWert, 'POST', '/api/bestaetigung',
+          { passwort: AU_WORT, zweck: 'sicherung', ziel: null });
+
+  const AU_TAG = 86400000;
+  const auLege = (name, tage) => {
+    const p = path.join(auOrdner, name);
+    fs.writeFileSync(p, `Kopie ${name}`);
+    const s = (Date.now() - tage * AU_TAG) / 1000;
+    fs.utimesSync(p, s, s);
+    return name;
+  };
+  const auDa = () => fs.readdirSync(auOrdner).sort();
+  const auSetzeLage = () => {
+    for (const n of fs.readdirSync(auOrdner)) {
+      const p = path.join(auOrdner, n);
+      fs.rmSync(p, { recursive: true, force: true });
+    }
+    /* SIEBEN KOPIEN, UND ZWEI NAMEN LUEGEN ABSICHTLICH: `…2026-09-03-23-59-59`
+       sieht nach heute aus und ist 400 Tage alt, `…2020-01-01-00-00-00` sieht
+       nach vorgestern aus und ist von heute. DAS ALTER KOMMT AUS `mtimeMs` UND
+       NICHT AUS DEM DATEINAMEN -- ohne diese beiden Zeilen bliebe gruen, wer
+       die Zeitmarke aus dem Namen liest. */
+    auLege('kriterion-2026-09-03-10-00-00.sqlite', 0);
+    auLege('kriterion-2020-01-01-00-00-00.sqlite', 0);
+    auLege('kriterion-2026-09-02-10-00-00.sqlite', 1);
+    auLege('kriterion-2026-09-01-10-00-00.sqlite', 2);
+    auLege('kriterion-2026-07-25-10-00-00.sqlite', 40);
+    auLege('kriterion-2026-07-05-10-00-00.sqlite', 60);
+    auLege('kriterion-2026-09-03-23-59-59.sqlite', 200);
+    /* UND DAS, WAS NICHT ANGEFASST WERDEN DARF -- vier Dinge, und jedes stellt
+       eine andere Frage:
+         notizen.txt                 -- passt gar nicht auf das Muster
+         kriterion-alt.sqlite.bak    -- faengt richtig an und endet falsch
+         unterordner/                -- ein Verzeichnis wird nicht betreten
+         kriterion-verweis.sqlite    -- ein Symlink ist keine Sicherung */
+    /* UND SIE SIND ALLE ALT. Das ist kein Beiwerk: waeren sie frisch, deckte
+       sie der Boden der Regel, und „die fremde Datei ueberlebt" waere auch
+       dann wahr, wenn die Musterpruefung ganz fehlte. Erst als ALTE Dateien
+       jenseits des Bodens sind sie die Lage, in der ein Fehler wehtut -- und
+       erst dann faerbt ein Rueckbau an der Musterpruefung diese Gruppe rot. */
+    const alt = (Date.now() - 900 * AU_TAG) / 1000;
+    fs.writeFileSync(path.join(auOrdner, 'notizen.txt'), 'von Hand abgelegt');
+    fs.utimesSync(path.join(auOrdner, 'notizen.txt'), alt, alt);
+    fs.writeFileSync(path.join(auOrdner, 'kriterion-alt.sqlite.bak'), 'eine Sicherung der Sicherung');
+    fs.utimesSync(path.join(auOrdner, 'kriterion-alt.sqlite.bak'), alt, alt);
+    fs.mkdirSync(path.join(auOrdner, 'unterordner'));
+    fs.writeFileSync(path.join(auOrdner, 'unterordner', 'kriterion-tief.sqlite'), 'eine Etage tiefer');
+    fs.utimesSync(path.join(auOrdner, 'unterordner', 'kriterion-tief.sqlite'), alt, alt);
+    /* DER SYMLINK UND SEIN ZIEL SIND BEIDE ALT -- aus demselben Grund. Wer
+       statt `lstatSync` mit `statSync` fragt, sieht das Alter des ZIELS; ist
+       das frisch, deckt der Boden den Verweis, und der Fehler bliebe stumm. */
+    fs.utimesSync(auAussenDatei, alt, alt);
+    fs.symlinkSync(auAussenDatei, path.join(auOrdner, 'kriterion-verweis.sqlite'));
+    fs.lutimesSync(path.join(auOrdner, 'kriterion-verweis.sqlite'), alt, alt);
+  };
+  const AU_FALLEN = ['kriterion-2026-07-05-10-00-00.sqlite',
+                     'kriterion-2026-07-25-10-00-00.sqlite',
+                     'kriterion-2026-09-03-23-59-59.sqlite'];
+  const AU_BLEIBEN = ['kriterion-2020-01-01-00-00-00.sqlite',
+                      'kriterion-2026-09-01-10-00-00.sqlite',
+                      'kriterion-2026-09-02-10-00-00.sqlite',
+                      'kriterion-2026-09-03-10-00-00.sqlite',
+                      'kriterion-alt.sqlite.bak', 'kriterion-verweis.sqlite',
+                      'notizen.txt', 'unterordner'];
+  auSetzeLage();
+
+  /* --- DIE VORSCHAU. Sie steht IMMER da, auch mit ausgeschaltetem Schalter --
+     sie ist die Auskunft darueber, was die Regel bei diesen Werten bedeutet. */
+  {
+    const r = await auRuf('cookie-au-anna', 'GET', '/api/sicherung');
+    const a = r.inhalt?.aufraeumen || {};
+    pruefe('Der Schalter steht bei einer frischen Installation auf AUS',
+      a.an === false, JSON.stringify(a.an));
+    pruefe('Und die beiden Werte tragen die Vorgaben 3 und 30',
+      a.behalten === 3 && a.tage === 30, JSON.stringify([a.behalten, a.tage]));
+    pruefe('Die Grenzen kommen vom Server: 1 bis 20 und 7 bis 365',
+      a.grenzen?.behalten?.min === 1 && a.grenzen?.behalten?.max === 20 &&
+      a.grenzen?.tage?.min === 7 && a.grenzen?.tage?.max === 365,
+      JSON.stringify(a.grenzen));
+    pruefe('Die Vorschau nennt genau die drei Kopien, die die Regel trifft',
+      gleich((a.treffer || []).map(t => t.datei).sort(), AU_FALLEN),
+      (a.treffer || []).map(t => t.datei).join(' · '));
+    pruefe('Und sie nennt zu jeder Datum, Alter und Groesse',
+      (a.treffer || []).every(t => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(t.am) &&
+        Number.isInteger(t.tageHer) && t.tageHer > 30 && t.bytes > 0),
+      JSON.stringify(a.treffer));
+    pruefe('Und die Summe der Bytes, die frei wuerden',
+      a.bytes === (a.treffer || []).reduce((n, t) => n + t.bytes, 0) && a.bytes > 0,
+      JSON.stringify(a.bytes));
+    /* DIE VORSCHAU HAT NICHTS GELOESCHT. Ohne diese Zeile belegte die Gruppe
+       nichts ueber den Satz, der sie traegt: sehen, bevor etwas geschieht. */
+    pruefe('Und der Ordner ist danach unveraendert',
+      auDa().length === 11, auDa().join(' · '));
+  }
+  /* EIN ANDERER WERT RECHNET SIE NEU, OHNE ETWAS ZU SPEICHERN. Wer die Zahl
+     von 3 auf 1 stellt, sieht sofort, was das kostet. */
+  {
+    /* EIN HOEHERER BODEN NIMMT DER REGEL EINE KOPIE WEG. Mit 5 statt 3 faellt
+       die vierzig Tage alte nicht mehr -- die Vorschau sagt sofort, was die
+       Stellung kostet, und sie sagt es AN DENSELBEN DATEIEN. */
+    const eng = await auRuf('cookie-au-anna', 'GET', '/api/sicherung?behalten=5&tage=30');
+    const a = eng.inhalt?.aufraeumen || {};
+    pruefe('Mit Boden 5 treffen es nur noch zwei Kopien',
+      gleich((a.treffer || []).map(t => t.datei).sort(),
+             ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-09-03-23-59-59.sqlite']),
+      (a.treffer || []).map(t => t.datei).join(' · '));
+    /* UND GESPEICHERT WURDE DABEI NICHTS -- der naechste Abruf ohne Abfrage
+       steht wieder auf 3 und 30. Eine Vorschau, die nebenbei die Einstellung
+       verstellt, waere die schlimmste Ueberraschung dieser Karte. */
+    const zurueck = await auRuf('cookie-au-anna', 'GET', '/api/sicherung');
+    pruefe('Und gespeichert hat die Vorschau dabei nichts',
+      zurueck.inhalt?.aufraeumen?.behalten === 3 && zurueck.inhalt?.aufraeumen?.tage === 30,
+      JSON.stringify([zurueck.inhalt?.aufraeumen?.behalten, zurueck.inhalt?.aufraeumen?.tage]));
+    pruefe('Und der Ordner ist auch danach unveraendert',
+      auDa().length === 11, auDa().join(' · '));
+  }
+  /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA. Eine leere Liste ohne
+     Erklaerung sieht aus wie ein Fehler -- und die beiden Gruende sind
+     verschieden, weil die beiden Bedingungen verschieden sind. */
+  {
+    const weit = await auRuf('cookie-au-anna', 'GET', '/api/sicherung?behalten=20&tage=30');
+    pruefe('Deckt der Boden alles, sagt der Grund genau das',
+      (weit.inhalt?.aufraeumen?.treffer || []).length === 0 &&
+      /unter den jüngsten 20/.test(weit.inhalt?.aufraeumen?.grund || ''),
+      weit.inhalt?.aufraeumen?.grund);
+    const spaet = await auRuf('cookie-au-anna', 'GET', '/api/sicherung?behalten=3&tage=365');
+    pruefe('Ist nichts alt genug, nennt der Grund das Alter der aeltesten',
+      (spaet.inhalt?.aufraeumen?.treffer || []).length === 0 &&
+      /^Die älteste ist 20[01] Tage alt\.$/.test(spaet.inhalt?.aufraeumen?.grund || ''),
+      spaet.inhalt?.aufraeumen?.grund);
+  }
+
+  /* --- DIE GRENZEN HALTEN AM SERVER, und zwar BEVOR irgendetwas geloescht
+     wird. `min`/`max` im HTML ist eine Bitte, keine Klemme. --- */
+  {
+    const vorher = auDa();
+    for (const [feld, wert] of [['behalten', 0], ['behalten', 999], ['behalten', '"drei"'],
+                                ['tage', 3], ['tage', 4000], ['tage', 2.5]]) {
+      const q = `/api/sicherung?${feld}=${encodeURIComponent(String(wert).replace(/"/g, ''))}`;
+      const r = await auRuf('cookie-au-anna', 'GET', q);
+      pruefe(`Die Vorschau weist ${feld} = ${wert} ab`,
+        r.status === 400 && /ganze Zahl von/.test(r.inhalt?.error || ''),
+        `Status ${r.status} · ${JSON.stringify(r.inhalt)}`);
+    }
+    for (const [schluessel, wert] of [['sicherungBehalten', 0], ['sicherungBehalten', 21],
+                                      ['sicherungBehalten', 'drei'], ['sicherungBehalten', null],
+                                      ['sicherungTage', 3], ['sicherungTage', 366],
+                                      ['sicherungTage', 30.5]]) {
+      const r = await auRuf('cookie-au-anna', 'PUT', '/api/settings', { [schluessel]: wert });
+      pruefe(`Und das Speichern weist ${schluessel} = ${JSON.stringify(wert)} ab`,
+        r.status === 400 && /ganze Zahl von/.test(r.inhalt?.error || ''),
+        `Status ${r.status} · ${JSON.stringify(r.inhalt)}`);
+    }
+    pruefe('Und nach allen Absagen liegt jede Datei noch da',
+      gleich(auDa(), vorher), auDa().join(' · '));
+    const stand = await auRuf('cookie-au-anna', 'GET', '/api/sicherung');
+    pruefe('Und die eingestellten Werte stehen unveraendert auf 3 und 30',
+      stand.inhalt?.aufraeumen?.behalten === 3 && stand.inhalt?.aufraeumen?.tage === 30,
+      JSON.stringify(stand.inhalt?.aufraeumen));
+    // Die Gegenlage: ein Wert INNERHALB der Grenzen geht durch. Ohne sie
+    // bliebe die Reihe darueber auch dann gruen, wenn die Route jeden Wert
+    // abwiese (Stolperstein 81).
+    const gut = await auRuf('cookie-au-anna', 'PUT', '/api/settings',
+      { sicherungBehalten: 4, sicherungTage: 45 });
+    pruefe('Ein Wert innerhalb der Grenzen geht dagegen durch',
+      gut.status === 200, `Status ${gut.status} · ${JSON.stringify(gut.inhalt)}`);
+    await auRuf('cookie-au-anna', 'PUT', '/api/settings',
+      { sicherungBehalten: 3, sicherungTage: 30 });
+  }
+
+  /* --- DIE RECHTE UND DIE ZWEITE BESTAETIGUNG. Zu jeder Verweigerung die
+     Nachschau, dass wirklich nichts geloescht wurde. --- */
+  {
+    const vorher = auDa();
+    const ohne = await auRuf('cookie-au-anna', 'POST', '/api/sicherung/aufraeumen', { art: 'regel' });
+    pruefe('Ohne zweite Bestaetigung antwortet die Route mit 403',
+      ohne.status === 403, `Status ${ohne.status} · ${JSON.stringify(ohne.inhalt)}`);
+    pruefe('Und der Zweck heisst in der Absage beim Namen',
+      ohne.inhalt?.bestaetigung === 'sicherung', JSON.stringify(ohne.inhalt));
+    for (const [wer, name] of [['cookie-au-carla', 'Ein gewoehnlicher Benutzer'],
+                               ['cookie-au-bert', 'Ein Admin ohne Eigentuemerrolle']]) {
+      const r = await auRuf(wer, 'POST', '/api/sicherung/aufraeumen', { art: 'regel' });
+      pruefe(`${name} bekommt die Route nicht`, r.status === 403, `Status ${r.status}`);
+      // Und er kommt auch nicht an die Freigabe: der Zweck steht ihm zu, die
+      // Route nicht -- ohne diese Zeile bliebe offen, ob nur die Reihenfolge
+      // der beiden Klemmen die Absage erzeugt hat.
+      const frei = await auRuf(wer, 'POST', '/api/bestaetigung',
+        { passwort: AU_WORT, zweck: 'sicherung', ziel: null });
+      const nochmal = await auRuf(wer, 'POST', '/api/sicherung/aufraeumen', { art: 'regel' });
+      pruefe(`${name} kommt auch mit Freigabe nicht durch`,
+        nochmal.status === 403, `Freigabe ${frei.status}, Route ${nochmal.status}`);
+    }
+    pruefe('Und nach allen Absagen liegt jede Datei noch da',
+      gleich(auDa(), vorher), auDa().join(' · '));
+  }
+  /* --- DIE ROUTE NIMMT KEINE DATEINAMEN ENTGEGEN. Der Rumpf traegt einen, und
+     er aendert am Ergebnis nichts -- weder greift er heraus noch verschont er
+     etwas. Die Zusage steht damit am VERHALTEN; am Quelltext steht sie in der
+     Gruppe darunter noch einmal. --- */
+  {
+    await auFrei();
+    const r = await auRuf('cookie-au-anna', 'POST', '/api/sicherung/aufraeumen',
+      { art: 'regel', datei: '../../etc/passwd', dateien: ['notizen.txt'],
+        ordner: '/etc', name: 'kriterion-2026-09-03-10-00-00.sqlite' });
+    pruefe('Ein Rumpf mit Dateinamen aendert am Ergebnis nichts',
+      r.status === 200 && r.inhalt?.weg === 3,
+      `Status ${r.status} · ${JSON.stringify(r.inhalt?.weg)}`);
+    /* WAS DIE REGEL GENANNT HAT, IST WEG -- und ALLES ANDERE IST NOCH DA,
+       namentlich nachgesehen. Die fremde Datei, die Datei mit dem fast
+       richtigen Namen, das Unterverzeichnis und der Symlink stehen einzeln
+       darunter: eine Sammelzahl sagte nicht, WELCHES Stueck gefallen ist. */
+    pruefe('Was die Regel genannt hat, ist weg -- und alles andere ist noch da',
+      gleich(auDa(), AU_BLEIBEN), auDa().join(' · '));
+    for (const [n, warum] of [['notizen.txt', 'passt gar nicht auf das Muster'],
+                              ['kriterion-alt.sqlite.bak', 'endet falsch'],
+                              ['unterordner', 'ist ein Verzeichnis'],
+                              ['kriterion-verweis.sqlite', 'ist ein Symlink']])
+      pruefe(`„${n}" ueberlebt den Lauf (${warum})`,
+        fs.existsSync(path.join(auOrdner, n)), `${n} ist weg`);
+    pruefe('Das Unterverzeichnis wird nicht betreten',
+      fs.existsSync(path.join(auOrdner, 'unterordner', 'kriterion-tief.sqlite')),
+      'die Datei eine Etage tiefer ist weg');
+    pruefe('Und die Datei, auf die der Symlink zeigt, liegt unberuehrt ausserhalb',
+      fs.existsSync(auAussenDatei) &&
+      fs.readFileSync(auAussenDatei, 'utf8').startsWith('diese Datei liegt ausserhalb'),
+      'die Datei ausserhalb ist weg oder veraendert');
+    /* DIE VORSCHAU UND DAS LOESCHEN SAGEN DASSELBE -- an derselben Lage
+       gegeneinander gehalten: die Vorschau nannte drei Namen, drei sind
+       gefallen, und es sind dieselben. */
+    pruefe('Die Vorschau und das Loeschen sagen dasselbe',
+      AU_FALLEN.every(n => !fs.existsSync(path.join(auOrdner, n))) &&
+      r.inhalt?.weg === AU_FALLEN.length,
+      `${r.inhalt?.weg} entfernt, ${AU_FALLEN.length} angekuendigt`);
+    pruefe('Und die Antwort nennt die freigegebenen Bytes',
+      Number.isInteger(r.inhalt?.bytes) && r.inhalt.bytes > 0 && r.inhalt?.nicht === 0,
+      JSON.stringify([r.inhalt?.bytes, r.inhalt?.nicht]));
+    /* UND DIE ANTWORT TRAEGT DIE FRISCHE VORSCHAU. Die Karte zeichnet sich
+       daraus neu; stuende dort der alte Stand, zeigte sie Dateien, die es
+       nicht mehr gibt. */
+    pruefe('Und die frische Vorschau daneben ist leer',
+      (r.inhalt?.aufraeumen?.treffer || []).length === 0 &&
+      !!r.inhalt?.aufraeumen?.grund, JSON.stringify(r.inhalt?.aufraeumen?.grund));
+    /* EIN ZWEITER LAUF FINDET NICHTS MEHR und sagt das mit 0 statt mit einem
+       Fehler -- ein Aufraeumen, das nichts zu tun hat, ist kein Fehlschlag. */
+    await auFrei();
+    const zweiter = await auRuf('cookie-au-anna', 'POST', '/api/sicherung/aufraeumen', { art: 'regel' });
+    pruefe('Ein zweiter Lauf entfernt nichts mehr und sagt es mit 0',
+      zweiter.status === 200 && zweiter.inhalt?.weg === 0, JSON.stringify(zweiter.inhalt?.weg));
+  }
+  /* --- DAS SICHERHEITSPROTOKOLL. EINE ZEILE JE ENTFERNTER KOPIE, ohne
+     Dateinamen und ohne Pfad. --- */
+  {
+    const d = oeffne(path.join(auDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    const zeilen = d.prepare("SELECT * FROM sicherheitsprotokoll WHERE was = 'sicherung.weg'").all();
+    d.close();
+    pruefe('Das Protokoll traegt eine Zeile je entfernter Kopie',
+      zeilen.length === 3, `${zeilen.length} Zeilen`);
+    pruefe('Und jede nennt den Handelnden',
+      zeilen.every(z => z.wer === 1), JSON.stringify(zeilen.map(z => z.wer)));
+    /* KEIN DATEINAME, KEIN PFAD, KEIN MERKMAL. Das Protokoll haelt Vorgaenge
+       fest, keine Orte auf dem Wirt -- dieselbe Regel wie beim
+       `sicherung`-Eintrag daneben. */
+    pruefe('Und keine traegt ein Merkmal, ein Ziel oder gar einen Namen',
+      zeilen.every(z => z.merkmal === null && z.ziel === null) &&
+      !JSON.stringify(zeilen).includes('kriterion-') &&
+      !JSON.stringify(zeilen).includes(auOrdner),
+      JSON.stringify(zeilen));
+  }
+  /* --- DIE VERALTETEN KOPIEN: ein zweiter Weg, ausdruecklich und getrennt.
+     Die Regel fasst sie nicht an, dieser Knopf raeumt sie ALLE weg -- und
+     nichts sonst. --- */
+  {
+    auSetzeLage();
+    /* DIE MARKE DES SCHLUESSELWECHSELS wird in die laufende Instanz
+       geschrieben: wechselMarke() liest sie bei jeder Anfrage neu, ein
+       Neustart ist also nicht noetig. Sie liegt 100 Tage zurueck -- damit ist
+       genau die 400 Tage alte Kopie veraltet und keine andere. */
+    {
+      const d = oeffne(path.join(auDir, 'katalog.sqlite'));
+      d.pragma('busy_timeout = 4000');
+      const marke = new Date(Date.now() - 100 * AU_TAG).toISOString().slice(0, 19).replace('T', ' ');
+      d.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ' +
+                'ON CONFLICT(key) DO UPDATE SET value = excluded.value')
+        .run('schluesselGewechseltAm', JSON.stringify(marke));
+      d.close();
+    }
+    const r = await auRuf('cookie-au-anna', 'GET', '/api/sicherung');
+    const a = r.inhalt?.aufraeumen || {};
+    pruefe('Die veralteten Kopien stehen getrennt, mit eigener Zahl und Summe',
+      a.altZahl === 1 && a.altBytes > 0 &&
+      gleich((a.altDateien || []).map(x => x.datei), ['kriterion-2026-09-03-23-59-59.sqlite']),
+      JSON.stringify([a.altZahl, a.altBytes, (a.altDateien || []).map(x => x.datei)]));
+    /* UND DIE REGEL FASST SIE NICHT AN. Vorher trafen es drei Kopien; jetzt
+       ist eine davon veraltet, und die Regel nennt nur noch die beiden
+       anderen -- der Boden zaehlt nur die brauchbaren (Entscheidung 5). */
+    pruefe('Und die Regel nennt sie nicht mehr',
+      gleich((a.treffer || []).map(x => x.datei).sort(),
+             ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-07-25-10-00-00.sqlite']),
+      (a.treffer || []).map(x => x.datei).join(' · '));
+    await auFrei();
+    const weg = await auRuf('cookie-au-anna', 'POST', '/api/sicherung/aufraeumen', { art: 'veraltet' });
+    pruefe('Der zweite Weg entfernt genau die veraltete Kopie',
+      weg.status === 200 && weg.inhalt?.weg === 1 &&
+      !fs.existsSync(path.join(auOrdner, 'kriterion-2026-09-03-23-59-59.sqlite')),
+      `Status ${weg.status} · ${JSON.stringify(weg.inhalt?.weg)}`);
+    pruefe('Und nichts sonst -- die beiden alten brauchbaren liegen noch da',
+      ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-07-25-10-00-00.sqlite']
+        .every(n => fs.existsSync(path.join(auOrdner, n))),
+      auDa().join(' · '));
+    // Und eine Art, die es nicht gibt, ist eine Absage -- kein stiller Lauf
+    // nach der Regel.
+    await auFrei();
+    const falsch = await auRuf('cookie-au-anna', 'POST', '/api/sicherung/aufraeumen', { art: 'alles' });
+    pruefe('Eine Art, die es nicht gibt, ist eine Absage',
+      falsch.status === 400 && /Art des Aufräumens/.test(falsch.inhalt?.error || ''),
+      `Status ${falsch.status} · ${JSON.stringify(falsch.inhalt)}`);
+    await auFrei();
+    const ohneArt = await auRuf('cookie-au-anna', 'POST', '/api/sicherung/aufraeumen', {});
+    pruefe('Und ein Rumpf ohne Art ebenso',
+      ohneArt.status === 400, `Status ${ohneArt.status}`);
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Alte Sicherungen aufraeumen: der Anschluss an die Sicherung');
+
+  /* AUFGERAEUMT WIRD IM ANSCHLUSS AN EINE SICHERUNG, DIE GELUNGEN IST -- und
+     nur, wenn der Schalter an ist. Beide Haelften bekommen ihre eigene Lage:
+     ohne die erste bliebe offen, ob der Schalter ueberhaupt wirkt, ohne die
+     zweite, ob er sich abschalten laesst (Stolperstein 81). */
+  {
+    auSetzeLage();
+    // Die Marke des Wechsels wieder weg: sie gehoert zur Gruppe darueber.
+    {
+      const d = oeffne(path.join(auDir, 'katalog.sqlite'));
+      d.pragma('busy_timeout = 4000');
+      d.prepare("DELETE FROM settings WHERE key = 'schluesselGewechseltAm'").run();
+      d.close();
+    }
+    const vorher = auDa().length;
+    const aus = await auRuf('cookie-au-anna', 'POST', '/api/sicherung');
+    pruefe('Bei ausgeschaltetem Schalter raeumt die Sicherung nichts weg',
+      aus.status === 200 && aus.inhalt?.aufgeraeumt === null &&
+      auDa().length === vorher + 1,
+      `Status ${aus.status} · ${JSON.stringify(aus.inhalt?.aufgeraeumt)} · ${auDa().length} Dateien`);
+    // Die eben geschriebene Kopie wieder weg -- sie ist die juengste und
+    // verschoebe sonst den Boden der naechsten Lage.
+    for (const n of auDa())
+      if (/^kriterion-/.test(n) && !AU_BLEIBEN.includes(n) && !AU_FALLEN.includes(n))
+        fs.rmSync(path.join(auOrdner, n));
+
+    await auRuf('cookie-au-anna', 'PUT', '/api/settings', { sicherungAufraeumen: true });
+    const an = await auRuf('cookie-au-anna', 'GET', '/api/sicherung');
+    pruefe('Der Schalter laesst sich einschalten und steht dann an',
+      an.inhalt?.aufraeumen?.an === true, JSON.stringify(an.inhalt?.aufraeumen?.an));
+
+    /* --- NACH EINER GESCHEITERTEN SICHERUNG WIRD NICHT AUFGERAEUMT
+       (Entscheidung 3) -- die wichtigste Zeile der Runde.
+       DIE SICHERUNG WIRD DETERMINISTISCH ZUM SCHEITERN GEBRACHT: der Name
+       traegt Datum und Uhrzeit auf die Sekunde, und liegt dort schon eine
+       Datei, antwortet die Route mit 409. Vorgelegt werden die Namen der
+       naechsten vier Sekunden -- damit trifft es die Route in jedem Fall,
+       ohne dass der Lauf auf eine Sekundengrenze warten muesste.
+       DER ORDNER BLEIBT DABEI SCHREIBBAR. Ein Rueckbau, der das Aufraeumen vor
+       den Fehlerausgang zoege, koennte hier also sehr wohl loeschen -- und
+       genau deshalb belegt diese Lage etwas. */
+    const auZeitname = (ms) =>
+      'kriterion-' + new Date(ms).toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.sqlite';
+    const auSperren = [];
+    for (let i = 0; i <= 3; i++) {
+      const n = auZeitname(Date.now() + i * 1000);
+      if (auSperren.includes(n)) continue;
+      fs.writeFileSync(path.join(auOrdner, n), 'belegt diese Sekunde');
+      auSperren.push(n);
+    }
+    const vorFehl = auDa();
+    /* NUR DER NEUE TEIL DES CONTAINERPROTOKOLLS ZAEHLT: weiter oben in dieser
+       Gruppe ist schon einmal auf Knopfdruck aufgeraeumt worden, und die Zeile
+       davon steht laengst darin. Ein Waechter ueber das GANZE Protokoll waere
+       hier von vornherein rot und belegte nichts. */
+    const vorFehlLog = AU.protokoll().length;
+    const fehl = await auRuf('cookie-au-anna', 'POST', '/api/sicherung');
+    pruefe('Die Sicherung scheitert, weil die Sekunde schon belegt ist',
+      fehl.status === 409, `Status ${fehl.status} · ${JSON.stringify(fehl.inhalt)}`);
+    pruefe('Nach einer gescheiterten Sicherung wird nicht aufgeraeumt',
+      gleich(auDa(), vorFehl), auDa().join(' · '));
+    /* UND ES WURDE NICHT EINMAL VERSUCHT. entferneSicherungen() meldet jede
+       Datei, die es nicht wegbekommt, ins Containerprotokoll -- steht dort
+       nichts, ist der Aufruf gar nicht gelaufen. Ohne diese Zeile waere „es
+       liegt noch alles da" auch dann wahr, wenn das Loeschen nur gescheitert
+       ist. */
+    pruefe('Und der Aufruf ist dabei gar nicht erst gelaufen',
+      !/Alte Sicherungen entfernt/.test(AU.protokoll().slice(vorFehlLog)) &&
+      !/nicht entfernt/.test(AU.protokoll().slice(vorFehlLog)),
+      AU.protokoll().slice(vorFehlLog).trim() || '(nichts neu)');
+    for (const n of auSperren) fs.rmSync(path.join(auOrdner, n), { force: true });
+
+    /* --- UND NACH EINER GELUNGENEN SICHERUNG WIRD AUFGERAEUMT. Die Gegenlage
+       zur Zeile darueber: ohne sie bliebe „es wird nicht aufgeraeumt" auch
+       dann gruen, wenn nie aufgeraeumt wuerde. --- */
+    await new Promise(r => setTimeout(r, 1100));
+    const ok = await auRuf('cookie-au-anna', 'POST', '/api/sicherung');
+    pruefe('Nach einer gelungenen Sicherung raeumt der Anschluss auf',
+      ok.status === 200 && ok.inhalt?.aufgeraeumt?.weg === 3,
+      `Status ${ok.status} · ${JSON.stringify(ok.inhalt?.aufgeraeumt)}`);
+    pruefe('Und zwar genau die drei, die die Regel nennt',
+      AU_FALLEN.every(n => !fs.existsSync(path.join(auOrdner, n))) &&
+      ['notizen.txt', 'kriterion-alt.sqlite.bak', 'unterordner', 'kriterion-verweis.sqlite']
+        .every(n => fs.existsSync(path.join(auOrdner, n))),
+      auDa().join(' · '));
+    /* DAS AUFRAEUMEN REISST DIE SICHERUNG NICHT MIT: die Antwort ist die einer
+       gelungenen Sicherung, und was das Aufraeumen meldet, steht NEBEN ihr
+       (Stolperstein 298). */
+    pruefe('Und die Antwort bleibt die einer gelungenen Sicherung',
+      ok.inhalt?.ok === true && /^kriterion-.+\.sqlite$/.test(ok.inhalt?.datei || '') &&
+      ok.inhalt?.bytes > 0, JSON.stringify(ok.inhalt?.datei));
+    pruefe('Die Zeile im Containerprotokoll nennt Zahl und freigegebene Bytes',
+      /\[Kriterion\] Alte Sicherungen entfernt: 3 \(\d+ Bytes frei\)\./.test(AU.protokoll()),
+      (AU.protokoll().match(/\[Kriterion\] Alte Sicherungen entfernt.*/g) || []).join(' · '));
+    pruefe('Und sie nennt keinen Dateinamen und keinen Pfad',
+      !(AU.protokoll().match(/\[Kriterion\] Alte Sicherungen entfernt.*/g) || [])
+        .some(z => z.includes('kriterion-') || z.includes(auOrdner)),
+      (AU.protokoll().match(/\[Kriterion\] Alte Sicherungen entfernt.*/g) || []).join(' · '));
+  }
+
+  /* --- UND DIE ZUSAGEN AM QUELLTEXT. Zwei davon lassen sich am Verhalten
+     nicht vollstaendig belegen: dass der Aufruf am ENDE der Route steht (jeder
+     Fehlerausgang liegt davor), und dass er in seinem EIGENEN `try` haengt.
+     Beides steht deshalb zusaetzlich hier -- dieselbe Bauform wie bei der
+     Route ohne Dateinamen. --- */
+  {
+    const von = auQuelle.indexOf("app.post('/api/sicherung', nurEigentuemer");
+    const bis = auQuelle.indexOf("app.post('/api/sicherung/aufraeumen'");
+    const rumpf = von >= 0 && bis > von ? auQuelle.slice(von, bis) : '';
+    pruefe('Die Route POST /api/sicherung steht im Quelltext',
+      rumpf.length > 500, `${rumpf.length} Zeichen`);
+    const auRegelZeile = 'const regel = aufraeumStand();';
+    const aufrufAn = rumpf.indexOf(auRegelZeile);
+    pruefe('Der Aufruf des Aufraeumens steht darin genau einmal',
+      aufrufAn >= 0 && rumpf.indexOf('aufraeumStand()', aufrufAn + auRegelZeile.length) < 0,
+      `Stelle ${aufrufAn}, weitere bei ${rumpf.indexOf('aufraeumStand()', aufrufAn + auRegelZeile.length)}`);
+    /* KEIN FEHLERAUSGANG HINTER IHM. Genau daran haengt Entscheidung 3: der
+       Weg zu einer gescheiterten Sicherung verlaesst die Route vorher, es
+       genuegt also, den Aufruf ans Ende zu setzen. Wer ihn nach vorn zieht
+       oder einen Ausgang dahinter setzt, wird hier rot. */
+    pruefe('Und hinter ihm steht kein Fehlerausgang mehr',
+      !/return res\.status\((4|5)\d\d\)/.test(rumpf.slice(aufrufAn)),
+      (rumpf.slice(aufrufAn).match(/return res\.status\(\d+\)/g) || []).join(' · '));
+    pruefe('Er steht hinter dem Umbenennen und hinter statSync',
+      rumpf.indexOf('fs.renameSync(werdend, datei);') < aufrufAn &&
+      rumpf.indexOf('bytes = fs.statSync(datei).size;') < aufrufAn,
+      `rename ${rumpf.indexOf('fs.renameSync(werdend, datei);')}, Aufruf ${aufrufAn}`);
+    pruefe('Und er haengt in seinem eigenen try',
+      /let aufgeraeumt = null;\n  try \{\n    const regel = aufraeumStand\(\);/.test(rumpf),
+      (rumpf.match(/let aufgeraeumt[^\n]*\n[^\n]*\n[^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* UND DIE LOESCHROUTE LIEST AUS DEM RUMPF NUR DIE ART. Ein zweiter Zugriff
+       auf req.body waere die Stelle, an der ein Dateiname hereinkaeme -- und
+       er stuende einen Handgriff davon entfernt, ungeprueft zu bleiben. */
+    const lVon = auQuelle.indexOf("app.post('/api/sicherung/aufraeumen'");
+    const lBis = auQuelle.indexOf('\n});', lVon);
+    const lRumpf = lVon >= 0 && lBis > lVon ? auQuelle.slice(lVon, lBis) : '';
+    const lZugriffe = lRumpf.match(/req\.body[^\n]*/g) || [];
+    pruefe('Die Loeschroute liest aus dem Rumpf genau ein Feld, und das ist die Art',
+      lRumpf.length > 500 && lZugriffe.length === 1 &&
+      lZugriffe[0].startsWith("req.body?.art || ''"),
+      JSON.stringify(lZugriffe));
+    /* UND SIE HAELT JEDEN NAMEN NOCH EINMAL GEGEN DAS MUSTER, unmittelbar vor
+       dem unlink. Zwei Pruefungen desselben Namens sind hier keine
+       Verdopplung, sondern die Klemme an der Stelle, an der der Fehler
+       wehtut. */
+    const eVon = auQuelle.indexOf('function entferneSicherungen(');
+    const eBis = auQuelle.indexOf('\n}\n', eVon);
+    const eRumpf = eVon >= 0 ? auQuelle.slice(eVon, eBis) : '';
+    pruefe('Und das Entfernen prueft jeden Namen unmittelbar davor noch einmal',
+      /const kurz = path\.basename\(String\(n\)\);/.test(eRumpf) &&
+      /if \(kurz !== String\(n\) \|\| !SICHERUNG_MUSTER\.test\(kurz\)\)/.test(eRumpf) &&
+      eRumpf.indexOf('SICHERUNG_MUSTER.test(kurz)') < eRumpf.indexOf('fs.unlinkSync('),
+      (eRumpf.match(/SICHERUNG_MUSTER[^\n]*/) || ['(nicht gefunden)'])[0]);
+    // UND ES FOLGT KEINEM SYMLINK: lstatSync sieht den Verweis selbst, statSync
+    // saehe die Datei am anderen Ende und meldete sie als regulaer.
+    pruefe('Und es fragt mit lstatSync statt mit statSync',
+      /fs\.lstatSync\(voll\)/.test(eRumpf) && !/fs\.statSync\(/.test(eRumpf),
+      (eRumpf.match(/fs\.l?statSync\([^\n]*/) || ['(nicht gefunden)'])[0]);
+  }
+
+  await AU.stopp();
+  fs.rmSync(auWurzel, { recursive: true, force: true });
+  fs.rmSync(auAussen, { recursive: true, force: true });
+  fs.rmSync(auDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
   gruppe('Rechte am Eintrag');
 
   /* Drei Zugaenge, drei fertige Sitzungen. Eine Rechteschicht laesst
@@ -13238,7 +13940,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
        PUT /api/settings wie jede andere Einstellung; der Fortschritt des
        Laufs ist ein Feld in GET /api/stats und damit lesend. Eine neue Spalte
        ist erst recht keine Route. */
-    ['POST',   '/api/bilder/umstellen',          'nurEigentuemer, zweitbestaetigt']
+    ['POST',   '/api/bilder/umstellen',          'nurEigentuemer, zweitbestaetigt'],
+    /* Das Aufraeumen alter Sicherungen, 0.20.0 -- die einundsiebzigste. Beim
+       Eigentuemer und zweitbestaetigt, dieselbe Zeile wie Export, Import,
+       Sicherung und die Bildumstellung: sie entfernt Bytes unwiderruflich,
+       und zwar ganze Dateien vom Dateisystem des Wirts.
+       EINE ROUTE FUER BEIDE WEGE -- die Regel anwenden und die veralteten
+       Kopien wegraeumen; unterschieden werden sie durch ein Feld im Rumpf.
+       Zwei Routen fuer dasselbe Loeschen waeren zwei Stellen, an denen die
+       Pfadpruefung stehen muss.
+       DER SCHALTER UND DIE BEIDEN WERTE BEKOMMEN AUSDRUECKLICH KEINE ROUTE.
+       Sie gehen ueber PUT /api/settings wie jede andere Einstellung; die
+       Vorschau ist ein Feld in GET /api/sicherung und damit lesend. */
+    ['POST',   '/api/sicherung/aufraeumen',      'nurEigentuemer, zweitbestaetigt']
   ];
 
   function schreibendeRouten(text) {
@@ -13317,8 +14031,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ueber PUT /api/photos/:id/focus -- dieselbe Route, ein Feld mehr, und
      ihre Rechtezeile hat sich nicht verschoben. Wer aus einem davon eine
      eigene schreibende Route machte, wird hier namentlich rot. */
-  pruefe('Und es sind jetzt genau 70 schreibende Routen',
-    F_ROUTEN.length === 70 && fGefunden.length === 70,
+  /* 0.20.0 bewegt sie um EINE: 70 werden 71 -- POST /api/sicherung/aufraeumen.
+     UND DREI DINGE DIESER RUNDE BEWEGEN SIE AUSDRUECKLICH NICHT: der Schalter
+     und die beiden Werte der Aufraeumregel gehen ueber PUT /api/settings, das
+     es laengst gibt; die Vorschau ist ein Feld in GET /api/sicherung und damit
+     lesend wie eh und je; und der Anschluss an die Sicherung ist ein Aufruf am
+     Ende von POST /api/sicherung -- dieselbe Route, ein Aufruf mehr, und ihre
+     Rechtezeile hat sich nicht verschoben. Wer aus einem davon eine eigene
+     schreibende Route machte, wird hier namentlich rot. */
+  pruefe('Und es sind jetzt genau 71 schreibende Routen',
+    F_ROUTEN.length === 71 && fGefunden.length === 71,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
      dieselbe Bauform wie F_ROUTEN und aus demselben Grund (Stolperstein 137):
@@ -13336,8 +14058,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `console.log(JSON.stringify({ VORGAENGE: a.VORGAENGE, MERKMALE: a.MERKMALE,` +
     ` BESTAETIGUNG_ZWECKE: a.BESTAETIGUNG_ZWECKE }));`, fAuthDir));
   fs.rmSync(fAuthDir, { recursive: true, force: true });
-  pruefe('Es sind genau zwanzig Vorgaenge im Sicherheitsprotokoll',
-    fAuth.VORGAENGE.length === 20, `${fAuth.VORGAENGE.length}: ${fAuth.VORGAENGE.join(' ')}`);
+  pruefe('Es sind genau einundzwanzig Vorgaenge im Sicherheitsprotokoll',
+    fAuth.VORGAENGE.length === 21, `${fAuth.VORGAENGE.length}: ${fAuth.VORGAENGE.join(' ')}`);
+  /* DER EINUNDZWANZIGSTE, seit 0.20.0. Er steht NEBEN 'sicherung' und nicht an
+     seiner Stelle: das eine legt eine Kopie an, das andere wirft welche weg.
+     UND ER TRAEGT KEIN MERKMAL -- die Zahl der entfernten Kopien ist die
+     ZEILENZAHL, weil es fuer sie keine Spalte gibt. MERKMALE bleibt bei
+     vierzehn, und die Verneinung steht hier neben der Zahl darueber und nicht
+     an ihrer Stelle (Stolperstein 156). */
+  pruefe('Und der einundzwanzigste heisst sicherung.weg',
+    fAuth.VORGAENGE.includes('sicherung.weg'), fAuth.VORGAENGE.join(' '));
   pruefe('Und die beiden aus 0.9.1 heissen anfrage.frei und anfrage.ab',
     fAuth.VORGAENGE.includes('anfrage.frei') && fAuth.VORGAENGE.includes('anfrage.ab'),
     fAuth.VORGAENGE.join(' '));
@@ -13368,14 +14098,20 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und das vierzehnte heisst "teil" und traegt keine Nummer',
     fAuth.MERKMALE.includes('teil') && !fAuth.MERKMALE.some(m => /\d/.test(m)),
     fAuth.MERKMALE.join(' '));
-  /* ACHT SEIT 0.19.0, vorher sieben. Der achte heisst 'bilder' und ist der
-     einzige der Liste, der BYTES UEBERSCHREIBT statt Rechte oder Zugaenge zu
-     verschieben -- und der einzige ohne Rueckweg: es gibt keinen Papierkorb
-     fuer Bildbytes. */
-  pruefe('Und bei acht Zwecken der zweiten Bestaetigung',
-    fAuth.BESTAETIGUNG_ZWECKE.length === 8, fAuth.BESTAETIGUNG_ZWECKE.join(' '));
+  /* ACHT SEIT 0.19.0, vorher sieben. Der achte heisst 'bilder' und war bis
+     0.20.0 der einzige der Liste, der BYTES UEBERSCHREIBT statt Rechte oder
+     Zugaenge zu verschieben -- und der einzige ohne Rueckweg: es gibt keinen
+     Papierkorb fuer Bildbytes.
+     NEUN SEIT 0.20.0. Der neunte heisst 'sicherung' und geht eine Stufe
+     weiter: er entfernt GANZE DATEIEN vom Dateisystem des Wirts. Auch fuer
+     sie gibt es keinen Papierkorb -- die Vorschau in der Karte ist der
+     Ersatz. */
+  pruefe('Und bei neun Zwecken der zweiten Bestaetigung',
+    fAuth.BESTAETIGUNG_ZWECKE.length === 9, fAuth.BESTAETIGUNG_ZWECKE.join(' '));
   pruefe('Und der achte heisst bilder',
     fAuth.BESTAETIGUNG_ZWECKE[7] === 'bilder', fAuth.BESTAETIGUNG_ZWECKE.join(' '));
+  pruefe('Und der neunte heisst sicherung',
+    fAuth.BESTAETIGUNG_ZWECKE[8] === 'sicherung', fAuth.BESTAETIGUNG_ZWECKE.join(' '));
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
   const ZWEIT_WORT = 'zweiteBestaetigung';
@@ -20091,7 +20827,24 @@ const freigabeHaupt = (zweck, ziel = null) =>
      201): 516, 517, 532, 533, 534 und 535 zeigten auf Zeilen, in denen das
      Wort „backen" stand -- die Zeilen gibt es unveraendert, nur heissen sie
      jetzt anders. KEINER IST WEGGEFALLEN. */
-  pruefe('Es sind genau 535 Rueckbauten', gpListe.length === 535, `${gpListe.length}`);
+  /* 558 SEIT 0.20.0: DREIUNDZWANZIG neue, 544 bis 566. Die beiden ersten sind
+     die wichtigsten der ganzen Runde -- sie nehmen der Regel je EINE ihrer
+     zwei Bedingungen weg (544 den Boden, 545 die Schere), und jede einzelne
+     ist ausgerechnet in der Lage falsch, in der sie gebraucht wird
+     (Stolperstein 299). Dazu 546, der die Musterpruefung an der KONSTANTEN
+     nimmt und damit an beiden Stellen zugleich -- nur so faellt die fremde
+     Datei im Sicherungsordner wirklich --, 551, der nach einer GESCHEITERTEN
+     Sicherung doch aufraeumt, und 552, der aus einer gelungenen Sicherung eine
+     rote Meldung macht (Stolperstein 298).
+     ZWEI SIND AUSDRUECKLICH AUF DEN QUELLTEXTWAECHTER GEMUENZT (547 und 549):
+     die zweite Musterpruefung und das zweite `lstatSync` stehen absichtlich
+     doppelt da, und am Verhalten allein waeren sie stumm, solange die erste
+     Stelle heil ist. Das gehoert benannt und nicht als Fund gelesen.
+     EINER IST MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 437
+     zeigte auf EIGENTUEMER_SCHLUESSEL, und die Liste traegt seit dieser Runde
+     vier Schluessel statt einem. Er nimmt weiterhin genau `bilderUmwandeln`
+     heraus. KEINER IST WEGGEFALLEN. */
+  pruefe('Es sind genau 558 Rueckbauten', gpListe.length === 558, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -21124,7 +21877,7 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false, offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false, offenBestand = null, papierkorbBestand = null, sicherungStand = null, sicherungKopien = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
   tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null, statsExport = null,
   statsVerfahren = undefined,
@@ -21331,8 +22084,31 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
               am: '2026-08-20 03:00:00', tageHer: 3, veraltet: false },
     // Seit 0.8.91: die Vorgabe ist "nie gewechselt". Die drei Lagen des
     // Wechsels bekommen ihre eigenen Aufbauten in der Gruppe darunter.
-    gewechseltAm: null, veraltet: 0
+    gewechseltAm: null, veraltet: 0,
+    /* DIE AUFRAEUMREGEL, seit 0.20.0. VORGABE: Schalter AUS, 3 und 30, und die
+       Regel trifft nichts -- genau die Lage einer frischen Installation. Die
+       Lagen mit Treffern und mit veralteten Kopien bekommen ihre eigenen
+       Aufbauten in der Gruppe darunter (Stolperstein 81: zu jedem "nichts da"
+       gehoert das "und so sieht es mit etwas aus" daneben).
+       DIE GRENZEN KOMMEN VOM SERVER, auch im Mock: die Karte schreibt sie an
+       ihre Felder, statt sie ein zweites Mal zu kennen. */
+    aufraeumen: {
+      an: false, behalten: 3, tage: 30,
+      grenzen: { behalten: { vorgabe: 3, min: 1, max: 20 },
+                 tage: { vorgabe: 30, min: 7, max: 365 } },
+      erreichbar: true, treffer: [], bytes: 0,
+      grund: 'Alle 2 Kopien sind unter den jüngsten 3.',
+      altZahl: 0, altBytes: 0, altDateien: []
+    }
   };
+  /* DIE KOPIEN AM ORT -- die Liste, aus der der Mock seine Vorschau WIRKLICH
+     rechnet. Ein Mock, der auf jede Abfrage denselben Stand zurueckgaebe,
+     machte "die Vorschau rechnet neu" von "die Vorschau blieb stehen"
+     ununterscheidbar (Stolperstein 90). Die Regel selbst wird am ECHTEN
+     Server geprueft; hier geht es um die Oberflaeche -- dass sie fragt, dass
+     sie zeichnet, was zurueckkommt, und dass sie dabei nichts loescht.
+     JUENGSTE ZUERST, wie beim echten Server: der Boden zaehlt von vorn. */
+  const aufraeumKopien = (sicherungKopien || []).slice();
   const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   /* Die dreistellige Stimmenzahl der zweiten Kriterienzeile. Sie steht als
      Zahl an EINER Stelle: `count` in der Zeile und die Laenge der Stimmliste
@@ -21916,10 +22692,70 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     }
     /* Die Sicherung. Sie steht hinter dem EIGENTUEMER, und der Mock macht das
        mit -- antwortete er jedem mit 200, waere die Rolle unpruefbar. */
-    if (url === '/api/sicherung' && (opt.method || 'GET') === 'GET') {
+    if (String(url).split('?')[0] === '/api/sicherung' && (opt.method || 'GET') === 'GET') {
       if (einstellungen.istEigentuemer === false)
         return gib({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
-      return gib(sicherung);
+      /* DIE VORSCHAU RECHNET WIRKLICH -- und zwar aus den Werten der ABFRAGE,
+         wie der echte Server. Sonst blieben "die Karte fragt neu" und "die
+         Karte behauptet" ununterscheidbar (Stolperstein 90).
+         DIE GRENZEN HALTEN AUCH IM MOCK: eine Zahl ausserhalb ist eine Absage
+         mit 400, denn genau daran haengt die Zusage, dass die Karte den
+         Fehlschlag anzeigt und ihre Vorschau stehen laesst. */
+      const q = String(url).split('?')[1] || '';
+      const zahlAus = (n) => {
+        const m = q.match(new RegExp(`(?:^|&)${n}=([^&]*)`));
+        return m ? Number(decodeURIComponent(m[1])) : null;
+      };
+      const gr = sicherung.aufraeumen && sicherung.aufraeumen.grenzen;
+      if (!gr || !q) return gib(sicherung);
+      const b = zahlAus('behalten'), t = zahlAus('tage');
+      for (const [wert, spanne, was] of [[b, gr.behalten, 'Immer behalten'],
+                                         [t, gr.tage, 'Erst löschen ab']]) {
+        if (wert === null) continue;
+        if (!Number.isInteger(wert) || wert < spanne.min || wert > spanne.max)
+          return gib({ error: `${was} muss eine ganze Zahl von ${spanne.min} bis ` +
+                              `${spanne.max} sein.` }, 400);
+      }
+      const behalten = b === null ? sicherung.aufraeumen.behalten : b;
+      const tage = t === null ? sicherung.aufraeumen.tage : t;
+      //          der Boden                        die Schere
+      const treffer = aufraeumKopien.slice(behalten).filter(z => z.tageHer > tage);
+      return gib({ ...sicherung, aufraeumen: { ...sicherung.aufraeumen, behalten, tage,
+        treffer, bytes: treffer.reduce((n, z) => n + z.bytes, 0),
+        grund: treffer.length ? '' : (aufraeumKopien.length <= behalten
+          ? `Alle ${aufraeumKopien.length} Kopien sind unter den jüngsten ${behalten}.`
+          : `Die älteste ist ${aufraeumKopien[aufraeumKopien.length - 1].tageHer} Tage alt.`) } });
+    }
+    /* Und der Loeschweg. Er aendert den Stand WIRKLICH: die getroffenen
+       Kopien fallen aus der Liste, und die Antwort traegt die frische
+       Vorschau -- sonst blieben "die Karte zeichnet sich neu" und "die Karte
+       blieb stehen" ununterscheidbar (Stolperstein 90).
+       ER NIMMT KEINE DATEINAMEN ENTGEGEN, genau wie der echte: was im Rumpf
+       steht, ist die Art und sonst nichts. */
+    if (url === '/api/sicherung/aufraeumen' && opt.method === 'POST') {
+      if (einstellungen.istEigentuemer === false)
+        return gib({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
+      const k = JSON.parse(opt.body || '{}');
+      if (k.art !== 'regel' && k.art !== 'veraltet')
+        return gib({ error: 'Diese Art des Aufräumens gibt es nicht.' }, 400);
+      const a = sicherung.aufraeumen || {};
+      const fallen = k.art === 'veraltet'
+        ? (a.altDateien || [])
+        : aufraeumKopien.slice(a.behalten).filter(z => z.tageHer > a.tage);
+      const namen = new Set(fallen.map(z => z.datei));
+      for (let i = aufraeumKopien.length - 1; i >= 0; i--)
+        if (namen.has(aufraeumKopien[i].datei)) aufraeumKopien.splice(i, 1);
+      const bytes = fallen.reduce((n, z) => n + z.bytes, 0);
+      sicherung.zahl = Math.max(0, (sicherung.zahl || 0) - fallen.length);
+      if (k.art === 'veraltet') { sicherung.veraltet = 0; a.altZahl = 0; a.altBytes = 0;
+                                  a.altDateien = []; }
+      sicherung.aufraeumen = { ...a, treffer: [], bytes: 0,
+                               grund: 'Alle Kopien sind unter den jüngsten ' + a.behalten + '.' };
+      return gib({ ok: true, art: k.art, weg: fallen.length, nicht: 0, bytes,
+                   erreichbar: true, zahl: sicherung.zahl, letzte: sicherung.letzte,
+                   gewechseltAm: sicherung.gewechseltAm ?? null,
+                   veraltet: sicherung.veraltet ?? 0,
+                   aufraeumen: sicherung.aufraeumen });
     }
     /* Und die beiden Schreibwege, die ihren Stand WIRKLICH aendern
        (Stolperstein 90): ein Mock, der stur denselben Stand zurueckgaebe,
@@ -21945,10 +22781,14 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       sicherung.zahl = (sicherung.zahl || 0) + 1;
       sicherung.letzte = { datei, bytes: 52428800, am: '2026-08-23 19:00:00', tageHer: 0 };
       sicherung.erreichbar = true;
+      /* `aufgeraeumt` STEHT AUSDRUECKLICH DA UND IST null: der Schalter der
+         Prueflage ist aus, also hat der Anschluss nichts getan. Ein fehlendes
+         Feld waere von "nichts getan" nicht zu unterscheiden, und die Karte
+         entscheidet daran, ob sie den ganzen Bereich neu zeichnet. */
       return gib({ ok: true, datei, pfad: sicherung.pfad, bytes: 52428800, ms: 512,
                    erreichbar: true, zahl: sicherung.zahl, letzte: sicherung.letzte,
                    gewechseltAm: sicherung.gewechseltAm ?? null,
-                   veraltet: sicherung.veraltet ?? 0 });
+                   veraltet: sicherung.veraltet ?? 0, aufgeraeumt: null });
     }
     /* Und die beiden Wege, die den Bestand WIRKLICH aendern (Stolperstein 90):
        ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe Liste
@@ -27144,18 +27984,31 @@ async function pruefeOberflaeche() {
      steht neben ihr im Abschnitt "Datenbank". Es ist KEINE neue Funktion --
      dieselben Zahlen, derselbe Schalter, derselbe Knopf --, sondern eine Karte,
      die zu gross geworden war. */
+  /* ZWANZIG SEIT 0.20.0: "Alte Sicherungen" kommt dazu und steht UNMITTELBAR
+     HINTER "Sicherung". Es ist derselbe Satz wie bei der Bildablage eine
+     Runde vorher -- die Karte daneben war zu gross geworden --, und ein
+     zweiter kommt dazu: ein Loeschknopf gehoert nicht unter den
+     Sicherungsknopf. Die beiden Vorgaenge sind gegenlaeufig und stuenden
+     untereinander in derselben Kachel. */
   const ALLE_KARTEN = [
     'Zugang', 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertungskriterien', 'Vokabular', 'Links', 'Suchanbieter', 'Papierkorb',
     'Zugänge', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
-    'Kennzahlen', 'Bildablage', 'Sicherung', 'Export und Import',
+    'Kennzahlen', 'Bildablage', 'Sicherung', 'Alte Sicherungen', 'Export und Import',
     'Titel'];
-  pruefe('Die Eigentuemerin sieht alle neunzehn Karten',
+  pruefe('Die Eigentuemerin sieht alle zwanzig Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTEN: eine Karte, die still
   // verschwindet, faellt sonst niemandem auf.
-  pruefe('Und es sind wirklich neunzehn', ALLE_KARTEN.length === 19 && kEig.length === 19,
+  pruefe('Und es sind wirklich zwanzig', ALLE_KARTEN.length === 20 && kEig.length === 20,
     `${ALLE_KARTEN.length} erwartet, ${kEig.length} gezeichnet`);
+  /* UND SIE STEHT HINTER "SICHERUNG" -- die Reihenfolge ist geprueft und nicht
+     zufaellig. Die Zeile darueber vergleicht die ganze Liste und faerbt sich
+     auch bei einer Verschiebung; diese hier sagt, WELCHE Nachbarschaft
+     gemeint war, und bleibt lesbar, wenn spaeter eine Karte davor dazukommt. */
+  pruefe('Und "Alte Sicherungen" steht unmittelbar hinter "Sicherung"',
+    kEig.indexOf('Alte Sicherungen') === kEig.indexOf('Sicherung') + 1,
+    `Sicherung: ${kEig.indexOf('Sicherung')} · Alte Sicherungen: ${kEig.indexOf('Alte Sicherungen')}`);
   // Und keine steht zweimal -- eine Karte, die in zwei Abschnitten haengt,
   // faellt an der Summe sonst gar nicht auf.
   pruefe('Und keine Karte steht in zwei Abschnitten',
@@ -27244,7 +28097,8 @@ async function pruefeOberflaeche() {
       kAdm.includes(karte) && !kUser.includes(karte),
       `Admin: ${kAdm.includes(karte)} · Benutzer: ${kUser.includes(karte)}`);
   }
-  for (const karte of ['Export und Import', 'Sicherung', 'Sicherheitsprotokoll', 'Mailversand']) {
+  for (const karte of ['Export und Import', 'Sicherung', 'Alte Sicherungen',
+                       'Sicherheitsprotokoll', 'Mailversand']) {
     pruefe(`Die Karte "${karte}" steht nur beim Eigentuemer`,
       kEig.includes(karte) && !kAdm.includes(karte) && !kUser.includes(karte),
       `Eigentuemer: ${kEig.includes(karte)} · Admin: ${kAdm.includes(karte)}`);
@@ -27266,7 +28120,7 @@ async function pruefeOberflaeche() {
   const kAus = (await sysDurchgang(rAus)).karten;
   pruefe('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kAus.includes('Anfragen'), kAus.join(' · '));
-  pruefe('Und es sind auch dann neunzehn', kAus.length === 19 && gleich(kAus, ALLE_KARTEN),
+  pruefe('Und es sind auch dann zwanzig', kAus.length === 20 && gleich(kAus, ALLE_KARTEN),
     `${kAus.length} gezeichnet`);
   // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
   await sysAbschnitt(rAus.w, 'zugaenge');
@@ -28097,8 +28951,8 @@ async function pruefeOberflaeche() {
      einen zeigt. Waere hier nur der offene gezaehlt, stuende die Zahl drei da
      und die Pruefung belegte nichts ueber die uebrigen sechzehn. */
   const zkAlle = (await sysDurchgang(zkAus)).karten;
-  pruefe('Und die Zahl der Karten bleibt bei neunzehn',
-    zkAlle.length === 19, `${zkAlle.length}: ${zkAlle.join(' · ')}`);
+  pruefe('Und die Zahl der Karten bleibt bei zwanzig',
+    zkAlle.length === 20, `${zkAlle.length}: ${zkAlle.join(' · ')}`);
   await sysAbschnitt(zkAus.w, 'persoenlich');
   /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
      einem Knopf, den man erst druecken muss. */
@@ -30769,6 +31623,251 @@ async function pruefeOberflaeche() {
       d.w.document.getElementById('sich-ort')?.value);
   }
 
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Karte „Alte Sicherungen" in der Oberflaeche');
+
+  /* SIE STEHT IM ABSCHNITT „DATENBANK", HINTER „SICHERUNG" -- die Reihenfolge
+     ist geprueft und nicht zufaellig. Dass es zwanzig Karten sind und welche
+     davon dem Eigentuemer allein gehoeren, steht in der Gruppe „Der
+     Systembereich nach Rolle"; hier geht es um das, was AUF der Karte steht. */
+  const afKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Alte Sicherungen');
+  const afText = (d) => String(afKarte(d)?.textContent || '').replace(/\s+/g, ' ').trim();
+  /* DIE KOPIEN DER PRUEFLAGE: fuenf am Ort, juengste zuerst. Mit Boden 3 und
+     Schere 30 treffen es die beiden aeltesten.
+     DIE DRITTE IST 35 TAGE ALT UND DAMIT ALT GENUG -- sie faellt trotzdem
+     nicht, weil der Boden sie deckt. Genau daran laesst sich unten zeigen,
+     dass ein anderer Boden die Vorschau WIRKLICH aendert: mit 2 statt 3 sind
+     es drei Dateien. Eine Lage, in der jede Stellung dieselbe Zahl ergibt,
+     belegte darueber nichts (Stolperstein 90). */
+  const AF_KOPIEN = [
+    { datei: 'kriterion-2026-09-03-10-00-00.sqlite', am: '2026-09-03 10:00:00', tageHer: 0, bytes: 52428800 },
+    { datei: 'kriterion-2026-09-02-10-00-00.sqlite', am: '2026-09-02 10:00:00', tageHer: 1, bytes: 52428800 },
+    { datei: 'kriterion-2026-07-30-10-00-00.sqlite', am: '2026-07-30 10:00:00', tageHer: 35, bytes: 52428800 },
+    { datei: 'kriterion-2026-07-25-10-00-00.sqlite', am: '2026-07-25 10:00:00', tageHer: 40, bytes: 52428800 },
+    { datei: 'kriterion-2026-07-05-10-00-00.sqlite', am: '2026-07-05 10:00:00', tageHer: 60, bytes: 52428800 }
+  ];
+  const afStand = (zusatz = {}, aufraeumZusatz = {}) => ({
+    eingerichtet: true, wurzel: '/sicherung', ort: 'taeglich', pfad: '/sicherung/taeglich',
+    imArbeitsverzeichnis: false, dbBytes: 52428800, dauerSekunden: 1, erreichbar: true, zahl: 5,
+    letzte: { datei: AF_KOPIEN[0].datei, bytes: 52428800, am: AF_KOPIEN[0].am,
+              tageHer: 0, veraltet: false },
+    gewechseltAm: null, veraltet: 0,
+    aufraeumen: {
+      an: false, behalten: 3, tage: 30,
+      grenzen: { behalten: { vorgabe: 3, min: 1, max: 20 },
+                 tage: { vorgabe: 30, min: 7, max: 365 } },
+      erreichbar: true, treffer: AF_KOPIEN.slice(3),
+      bytes: AF_KOPIEN.slice(3).reduce((n, k) => n + k.bytes, 0),
+      grund: '', altZahl: 0, altBytes: 0, altDateien: [], ...aufraeumZusatz
+    },
+    ...zusatz
+  });
+  const afSystem = (zusatz = {}, aufraeumZusatz = {}) =>
+    siSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: afStand(zusatz, aufraeumZusatz), sicherungKopien: AF_KOPIEN });
+
+  const afEig = await afSystem();
+  pruefe('Die Karte steht da', !!afKarte(afEig), afEig.w.document.body.innerHTML.slice(0, 200));
+  /* DER SCHALTER STEHT AUF AUS, und das ist die Zusage der Runde: was nicht
+     umkehrbar ist, wird nicht stillschweigend eingeschaltet. */
+  pruefe('Der Schalter steht auf aus',
+    afEig.w.document.getElementById('auf-schalter')?.checked === false,
+    JSON.stringify(afEig.w.document.getElementById('auf-schalter')?.checked));
+  pruefe('Und die Karte sagt, warum er auf aus steht',
+    /eine gelöschte Sicherung holt nichts zurück/i.test(afText(afEig)), afText(afEig).slice(0, 400));
+  pruefe('Und dass nach einer gescheiterten Sicherung nichts geschieht',
+    /nur im Anschluss an eine Sicherung, die gelungen ist/.test(afText(afEig)),
+    afText(afEig).slice(0, 600));
+  /* DIE BEIDEN FELDER TRAGEN DIE VORGABEN UND DIE GRENZEN DES SERVERS. `min`
+     und `max` stehen daran, aber sie sind eine Bitte -- die Klemme steht am
+     Server, und das ist oben an der echten Route geprueft. */
+  const afB = () => afEig.w.document.getElementById('auf-behalten');
+  const afT = () => afEig.w.document.getElementById('auf-tage');
+  pruefe('Die beiden Felder tragen die Vorgaben 3 und 30',
+    afB()?.value === '3' && afT()?.value === '30',
+    JSON.stringify([afB()?.value, afT()?.value]));
+  pruefe('Und die Grenzen des Servers stehen an ihnen',
+    afB()?.getAttribute('min') === '1' && afB()?.getAttribute('max') === '20' &&
+    afT()?.getAttribute('min') === '7' && afT()?.getAttribute('max') === '365',
+    JSON.stringify([afB()?.getAttribute('min'), afB()?.getAttribute('max'),
+                    afT()?.getAttribute('min'), afT()?.getAttribute('max')]));
+  pruefe('Die Felder heissen im Klartext und nicht N und X',
+    /Immer behalten/.test(afText(afEig)) && /Erst löschen ab/.test(afText(afEig)) &&
+    !/\bN\b/.test(afText(afEig)), afText(afEig).slice(0, 500));
+  /* DIE VORSCHAU NENNT DIE DATEIEN NAMENTLICH, mit Datum und Groesse. */
+  pruefe('Die Vorschau nennt die beiden Dateien namentlich',
+    /kriterion-2026-07-25-10-00-00\.sqlite/.test(afText(afEig)) &&
+    /kriterion-2026-07-05-10-00-00\.sqlite/.test(afText(afEig)), afText(afEig).slice(0, 900));
+  pruefe('Und zu jeder Datum, Alter und Groesse',
+    /25\.07\.2026/.test(afText(afEig)) && /vor 40 Tagen/.test(afText(afEig)) &&
+    /50,0 MB/.test(afText(afEig)), afText(afEig).slice(0, 900));
+  pruefe('Und was das an Platz freigaebe',
+    /100,0 MB/.test(afText(afEig)), afText(afEig).slice(0, 900));
+  /* UND DIE JUENGSTEN DREI STEHEN NICHT DARIN -- auch die dritte nicht,
+     obwohl sie mit 35 Tagen alt genug waere: der Boden deckt sie. Das ist die
+     eine Haelfte der Regel, die sich in der Oberflaeche sehen laesst. */
+  pruefe('Und dass die juengsten drei nicht darunter sind',
+    !/kriterion-2026-09-0[23]-10-00-00\.sqlite/.test(afText(afEig)) &&
+    !/kriterion-2026-07-30-10-00-00\.sqlite/.test(afText(afEig)), afText(afEig).slice(0, 900));
+  /* DIESELBE LISTE UND DERSELBE DECKEL WIE JEDE LISTE IM SYSTEMBEREICH -- zehn
+     Zeilen, seit 0.17.3. Eine eigene Zahl daneben waere eine zweite Wahrheit
+     ueber dasselbe Mass. */
+  pruefe('Die Liste traegt den gemeinsamen Deckel der Systemlisten',
+    !!afKarte(afEig)?.querySelector('.manage-list') &&
+    afKarte(afEig).querySelectorAll('.manage-list .mrow').length === 2,
+    `${afKarte(afEig)?.querySelectorAll('.manage-list .mrow').length} Zeilen`);
+  pruefe('Der Knopf steht da und ist bedienbar',
+    afEig.w.document.getElementById('auf-los')?.disabled === false,
+    JSON.stringify(afEig.w.document.getElementById('auf-los')?.disabled));
+  /* OHNE VERALTETE KOPIEN GIBT ES DEN ZWEITEN KNOPF NICHT. Ein Knopf, der
+     zuverlaessig nichts tut, sieht aus wie ein Fehler. */
+  pruefe('Und der zweite Knopf steht nicht da, wenn es nichts Veraltetes gibt',
+    !afEig.w.document.getElementById('auf-alt'), 'der Knopf steht da');
+
+  /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Liste ohne
+     Erklaerung sieht aus wie ein Fehler. Und der Knopf ist dann tot. */
+  {
+    const d = await afSystem({}, { treffer: [], bytes: 0,
+      grund: 'Alle 3 Kopien sind unter den jüngsten 3.' });
+    pruefe('Trifft die Regel nichts, sagt die Karte das mit dem Grund',
+      /Die Regel trifft nichts\./.test(afText(d)) &&
+      /Alle 3 Kopien sind unter den jüngsten 3\./.test(afText(d)), afText(d).slice(0, 600));
+    pruefe('Und der Knopf ist dann nicht bedienbar',
+      d.w.document.getElementById('auf-los')?.disabled === true,
+      JSON.stringify(d.w.document.getElementById('auf-los')?.disabled));
+  }
+  /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL STEHEN GETRENNT, mit eigener
+     Zahl, eigener Summe und eigenem Knopf. */
+  {
+    const d = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 2 },
+      { altZahl: 2, altBytes: 104857600, altDateien: AF_KOPIEN.slice(3) });
+    pruefe('Die veralteten Kopien stehen getrennt, mit eigener Zahl und Summe',
+      /2 Kopien stammen von vor dem Schlüsselwechsel/.test(afText(d)) &&
+      /100,0 MB/.test(afText(d)), afText(d).slice(0, 900));
+    pruefe('Und die Karte sagt, dass die Regel sie nicht anfasst',
+      /Die Regel fasst sie nicht an/.test(afText(d)), afText(d).slice(0, 900));
+    pruefe('Und sie bekommen einen eigenen Knopf',
+      /veraltete Kopien entfernen/.test(
+        d.w.document.getElementById('auf-alt')?.textContent || ''),
+      d.w.document.getElementById('auf-alt')?.textContent);
+    // Die Einzahl gehoert geprueft, sonst steht dort "1 Kopien stammen".
+    const eine = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 1 },
+      { altZahl: 1, altBytes: 52428800, altDateien: AF_KOPIEN.slice(4) });
+    pruefe('Bei genau einer steht die Einzahl da',
+      /1 Kopie stammt von vor dem Schlüsselwechsel/.test(afText(eine)) &&
+      /1 veraltete Kopie entfernen/.test(
+        eine.w.document.getElementById('auf-alt')?.textContent || ''),
+      afText(eine).slice(0, 600));
+  }
+  /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS: ein
+     Schalter, der nie greifen kann, verspricht etwas und haelt es nie. */
+  {
+    const d = await afSystem({ eingerichtet: false,
+      grund: 'Es ist kein Sicherungsort eingerichtet.' });
+    pruefe('Ohne eingerichteten Ort steht die Karte trotzdem da', !!afKarte(d));
+    pruefe('Und sagt, warum sie nichts zu tun hat',
+      /kein Sicherungsort eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
+    pruefe('Der Schalter steht dann gar nicht erst da',
+      !d.w.document.getElementById('auf-schalter') && !d.w.document.getElementById('auf-los'),
+      'der Schalter steht da');
+  }
+
+  /* --- DIE VORSCHAU RECHNET BEI JEDER AENDERUNG NEU, UND SIE LOESCHT DABEI
+     NICHTS. Wer die Zahl von 3 auf 1 stellt, sieht sofort, was das kostet. --- */
+  {
+    const d = await afSystem();
+    /* JEDER GRIFF AUF EINEN KNOTEN IST ABGEFANGEN. Faellt die Karte weg — und
+       genau das tut Rueckbau 561 —, sollen die Zeilen darunter ROT werden und
+       nicht der Lauf abreissen (Stolpersteine 103 und 161). Ein Rueckbau, der
+       den Lauf abreisst, belegt nichts. */
+    setzeFeld(d.w.document, 'auf-behalten', '2');
+    d.w.document.getElementById('auf-behalten')
+      ?.dispatchEvent(new d.w.Event('input', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    const gefragt = d.gesendet.filter(x => String(x.url).startsWith('/api/sicherung?'));
+    pruefe('Eine Aenderung am Feld fragt die Vorschau neu am Server',
+      gefragt.length === 1 && /behalten=2/.test(gefragt[0].url) &&
+      (gefragt[0].methode || 'GET') === 'GET',
+      d.gesendet.slice(-3).map(x => `${x.methode || 'GET'} ${x.url}`).join(' · '));
+    /* UND SIE RECHNET DIE REGEL NICHT SELBST NACH: gefragt wird der Server,
+       und gezeichnet wird, was zurueckkommt. Eine zweite Fassung der Regel im
+       Browser waere eine zweite Wahrheit darueber, was gleich passiert. */
+    pruefe('Und die Vorschau zeigt danach drei Dateien statt zwei',
+      d.w.document.querySelectorAll('#aufraeumen-box .manage-list .mrow').length === 3 &&
+      /kriterion-2026-07-30-10-00-00\.sqlite/.test(afText(d)),
+      `${d.w.document.querySelectorAll('#aufraeumen-box .manage-list .mrow').length} Zeilen`);
+    pruefe('Und gespeichert wurde dabei nichts',
+      !d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/settings') &&
+      !d.gesendet.some(x => x.url === '/api/sicherung/aufraeumen'),
+      d.gesendet.slice(-4).map(x => `${x.methode || 'GET'} ${x.url}`).join(' · '));
+    /* ERST DAS VERLASSEN DES FELDES SPEICHERT. Ein eigener Speicherknopf waere
+       ein dritter Knopf auf einer Karte, die mit zwei auskommt. */
+    d.w.document.getElementById('auf-behalten')
+      ?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Erst das Verlassen des Feldes speichert den Wert',
+      d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/settings' &&
+        x.koerper?.sicherungBehalten === 2),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url} ${JSON.stringify(x.koerper)}`).join(' · '));
+  }
+  /* --- DER SCHALTER GEHT UEBER PUT /api/settings und bekommt keine eigene
+     Route -- dieselbe Bauform wie der Schalter der Bildablage. --- */
+  {
+    const d = await afSystem();
+    const afS = d.w.document.getElementById('auf-schalter');
+    if (afS) afS.checked = true;
+    afS?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Der Schalter geht ueber PUT /api/settings hinaus',
+      d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/settings' &&
+        x.koerper?.sicherungAufraeumen === true),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url} ${JSON.stringify(x.koerper)}`).join(' · '));
+  }
+  /* --- DER KNOPF IST OHNE ZWEITE BESTAETIGUNG NICHT BEDIENBAR. Ein Abbruch
+     im Dialog schickt gar nichts. --- */
+  {
+    const d = await afSystem();
+    d.w.document.getElementById('auf-los')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Der Knopf fragt erst nach dem Passwort',
+      !!d.w.document.getElementById('best-pass'), 'kein Bestaetigungsfenster');
+    pruefe('Und der Dialog nennt Zahl und Bytes und sagt, dass nichts zurueckfuehrt',
+      /2 Kopien \(100,0 MB\) werden entfernt/.test(
+        d.w.document.querySelector('.modal')?.textContent || '') &&
+      /keinen Papierkorb/.test(d.w.document.querySelector('.modal')?.textContent || ''),
+      d.w.document.querySelector('.modal')?.textContent?.slice(0, 400));
+    await bestaetigeImDom(d, 'egal', true);
+    pruefe('Ein Abbruch schickt nichts an den Server',
+      !d.gesendet.some(x => x.url === '/api/sicherung/aufraeumen'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+  }
+  /* --- UND MIT BESTAETIGUNG GEHT ES HINAUS: die Art im Rumpf, kein
+     Dateiname. --- */
+  {
+    const d = await afSystem();
+    d.w.document.getElementById('auf-los')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    await bestaetigeImDom(d);
+    await new Promise(r => setTimeout(r, 120));
+    const raus = d.gesendet.filter(x => x.url === '/api/sicherung/aufraeumen');
+    pruefe('Mit Bestaetigung geht das Aufraeumen hinaus',
+      raus.length === 1 && raus[0].methode === 'POST' && raus[0].koerper?.art === 'regel',
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url} ${JSON.stringify(x.koerper)}`).join(' · '));
+    /* DER RUMPF TRAEGT DIE ART UND SONST NICHTS. Am Server steht dieselbe
+       Zusage noch einmal -- hier steht sie fuer die Oberflaeche: sie schickt
+       gar keinen Namen erst hin. */
+    pruefe('Und der Rumpf traegt genau ein Feld, und das ist die Art',
+      gleich(Object.keys(raus[0]?.koerper || {}), ['art']),
+      JSON.stringify(raus[0]?.koerper));
+    pruefe('Eine Meldung nennt, wie viele wirklich entfernt wurden',
+      /2 Kopien entfernt/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      d.w.document.querySelector('.toast')?.textContent);
+  }
+
   /* ================= Vergleich: meine / alle ================= */
   /* ================= Das Gewicht in der Oberflaeche ================= */
   gruppe('Das Gewicht am Eintrag');
@@ -31805,7 +32904,7 @@ async function pruefeOberflaeche() {
 
   /* SIE STEHEN BEI DEN FILTERN und nicht in einer eigenen Karte: wer eine
      Ansicht sucht, sucht sie dort, wo die Filter stehen. Es bleibt bei
-     neunzehn Karten im Systembereich. */
+     zwanzig Karten im Systembereich. */
   pruefe('Die Ansichten stehen in der Filterzeile', !!ansZeile(), 'keine Zeile „Ansichten"');
   pruefe('Und die Zeile steht auch leer da, mit dem Knopf zum Speichern',
     ansPillen().length === 1 && /Ansicht speichern/.test(ansPillen()[0]),

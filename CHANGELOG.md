@@ -29,6 +29,39 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.20.0] - 2026-09-03
+
+> **ES KOMMT EIN SCHALTER DAZU, DER DATEIEN ENTFERNT — UND ER STEHT AUF AUS.**
+> Kriterion kann ab jetzt alte Sicherungen wegräumen; **bis du den Schalter in
+> der neuen Karte „Alte Sicherungen" umlegst, geschieht das nicht.** *Beim
+> ersten Start nach dem Einspielen passiert nichts von selbst.*
+>
+> **DIE REGEL HAT ZWEI BEDINGUNGEN, UND BEIDE MÜSSEN ZUTREFFEN:** eine Kopie
+> fällt nur, wenn sie **nicht unter den jüngsten drei** ist **und** **älter als
+> 30 Tage**. Beide Zahlen lassen sich einstellen. *Die Karte zeigt vorher
+> namentlich, welche Dateien fallen würden — mit Datum, Alter und Größe.*
+> **Einen Papierkorb gibt es dafür nicht:** eine gelöschte Sicherung ist weg.
+>
+> **AUFGERÄUMT WIRD NUR NACH EINER SICHERUNG, DIE GELUNGEN IST** — oder auf
+> Knopfdruck. **Eine Zeitsteuerung gibt es nicht.**
+>
+> **DEINE EIGENEN DATEIEN IM SICHERUNGSORDNER BLEIBEN LIEGEN.** Angefasst wird
+> ausschließlich, was `kriterion-….sqlite` heißt; Unterverzeichnisse werden
+> nicht betreten. **Kopien von vor einem Schlüsselwechsel fasst die Regel gar
+> nicht an** — für die gibt es einen eigenen Knopf.
+>
+> **Keine Datenbankstufe, keine Migration, kein neuer Index**, das
+> Austauschformat bleibt 12.
+
+- Added: Alte Sicherungen lassen sich jetzt über die Oberfläche entfernen — bisher ging das nur mit einer Shell auf dem Wirt
+- Added: Neue Karte „Alte Sicherungen" im Systembereich unter „Datenbank", beim Eigentümer
+- Added: Eine Vorschau nennt vorher namentlich, welche Kopien fallen würden, mit Datum, Alter und Größe — und was das an Platz freigibt
+- Added: Ein Schalter räumt im Anschluss an jede gelungene Sicherung auf; er steht auf aus
+- Added: Ein Knopf wendet die Regel einmal an, hinter der Passwortabfrage
+- Added: Ein zweiter Knopf entfernt die Kopien von vor einem Schlüsselwechsel — ausdrücklich und getrennt
+- Added: Jede entfernte Kopie steht im Sicherheitsprotokoll unter „Bestand", ohne Dateinamen
+- Changed: Die Karte „Sicherung" bleibt unverändert — sie legt Kopien an, die neue Karte räumt sie weg
+
 ## [0.19.6] - 2026-09-03
 
 > **NICHTS ZU TUN — außer im Browser einmal hart neu zu laden.** Keine
