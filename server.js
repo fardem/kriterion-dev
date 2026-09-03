@@ -1616,17 +1616,49 @@ const VOKABULAR_VORGABE = {
   zeitpunktEinzahl: 'Testtag', zeitpunktMehrzahl: 'Testtage',
   berichtEinzahl: 'Bericht', berichtMehrzahl: 'Berichte',
   aufgabeEinzahl: 'Aufgabe', aufgabeMehrzahl: 'Aufgaben',
-  aufgabeErledigt: 'Erledigt'
+  aufgabeErledigt: 'Erledigt',
+  /* DAS WORT FUER DEN ZWEITEN STERNKASTEN -- 0.21.0. Es steht hier und nicht
+     im Quelltext der Oberflaeche, weil es dasselbe Recht hat wie „Eintrag"
+     oder „Testtag": wer lieber „Erwartung" oder „Einschaetzung" sagt, stellt
+     es in der Vokabularkarte um.
+     ES WIRD NIRGENDS ZU EINEM WORT VERBAUT. „Potenzialkriterien" ginge,
+     „Erwartungkriterien" nicht -- das Fugen-s kennt der Quelltext nicht.
+     Ueberall also getrennt: „Potenzial: Kriterien", „Potenzial (hoch →
+     niedrig)".
+     PUT /api/settings saeubert ueber Object.keys(VOKABULAR_VORGABE) -- das
+     neue Wort laeuft dort ohne eine weitere Zeile mit. */
+  potenzial: 'Potenzial'
 };
 const SCHRIFT_STUFEN = [80, 90, 100, 110, 120];
 
 // Anordnung und Einklappzustand der Bloecke in der Detailansicht. Verschoben
 // wird nur innerhalb des jeweiligen Bereichs, deshalb zwei getrennte Listen.
 const BLOCK_VORGABE = {
-  seite: ['kategorie', 'tags', 'bewertung'],
+  // VORHER STEHT VOR NACHHER: geschaetzt wird, bevor bewertet wird, und die
+  // Anordnung sagt es. Wer eine gespeicherte Reihenfolge hat, bekommt den
+  // neuen Block ueber ordneBereich() hinten angehaengt -- die vorhandene
+  // Regel, und sie bleibt. Ziehen laesst er sich wie jeder andere.
+  seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
   unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
 };
 const ALLE_BLOECKE = [...BLOCK_VORGABE.seite, ...BLOCK_VORGABE.unten];
+
+/* WELCHE BLOECKE IHREN EINKLAPPZUSTAND NICHT MEHR SPEICHERN -- 0.21.0.
+   Fuer die beiden Sternkaesten entscheidet ab jetzt der ZUSTAND DES EINTRAGS,
+   welcher offen steht: ungetestet -> Potenzial offen, getestet -> Bewertung
+   offen. Ein Klick auf die Kopfzeile ist ein Blick und kein Befehl; er gilt,
+   bis man den Eintrag verlaesst.
+   DER GRUND IST DIE REICHWEITE: eine gespeicherte Einstellung gilt fuer ALLE
+   Eintraege zugleich, ein Zustand fuer EINEN. „Ich klappe an Eintrag 12 den
+   Potenzialkasten auf" hiesse sonst „an allen Eintraegen offen", und beim
+   naechsten Eintrag stuende der falsche Kasten offen, ohne dass jemand
+   wuesste, warum.
+   EIN GESPEICHERTES `bewertung` AUS EINER AELTEREN FASSUNG FAELLT DAMIT STILL
+   HERAUS -- gewollt: es ist eine Verhaltensaenderung, sie steht im
+   Aenderungsprotokoll, und wer den Bewertungsblock heute dauerhaft zugeklappt
+   hat, sieht ihn an getesteten Eintraegen wieder offen. */
+const BLOECKE_OHNE_ZU = ['potenzial', 'bewertung'];
+const ZU_BLOECKE = ALLE_BLOECKE.filter(k => !BLOECKE_OHNE_ZU.includes(k));
 
 // Unbekanntes fliegt raus, Fehlendes haengt sich in der Vorgabereihenfolge
 // hinten an -- ein spaeter hinzugekommener Block taucht so von selbst auf.
@@ -1643,7 +1675,7 @@ function bloecke(benutzerId) {
   return {
     seite: ordneBereich(g.seite, BLOCK_VORGABE.seite),
     unten: ordneBereich(g.unten, BLOCK_VORGABE.unten),
-    zu: (Array.isArray(g.zu) ? g.zu : []).filter(k => ALLE_BLOECKE.includes(k))
+    zu: (Array.isArray(g.zu) ? g.zu : []).filter(k => ZU_BLOECKE.includes(k))
   };
 }
 
@@ -1999,7 +2031,7 @@ app.put('/api/settings', (req, res) => {
     putUserSetting(req.benutzer.id, 'bloecke', JSON.stringify({
       seite: ordneBereich(ein.seite, BLOCK_VORGABE.seite),
       unten: ordneBereich(ein.unten, BLOCK_VORGABE.unten),
-      zu: (Array.isArray(ein.zu) ? ein.zu : []).filter(k => ALLE_BLOECKE.includes(k))
+      zu: (Array.isArray(ein.zu) ? ein.zu : []).filter(k => ZU_BLOECKE.includes(k))
     }));
   }
   if (req.body.linkZeilen !== undefined) {
@@ -2117,6 +2149,18 @@ app.put('/api/settings', (req, res) => {
    In der Schnittstelle steht eine ZAHL, kein Text. */
 const GEWICHT_MIN = 0.2, GEWICHT_MAX = 2.0;
 
+/* ZU WELCHEM KASTEN EIN KRITERIUM GEHOEREN KANN -- 0.21.0. 'vorher' ist das
+   Potenzial (die Einschaetzung, bevor etwas ausprobiert wurde), 'nachher' die
+   Bewertung (das Urteil danach).
+   DIE LISTE STEHT GENAU EINMAL, HIER UND NICHT AUCH IN db.js. Ein CHECK an der
+   Spalte truege dieselbe Menge ein zweites Mal, und die zweite meldete sich
+   nicht als Absage mit Meldung, sondern als abgebrochene Schreibung --
+   dieselbe Ueberlegung wie bei GEWICHT_MIN/GEWICHT_MAX eine Zeile darueber.
+   DEUTSCH, UND NICHT 'before'/'after': die Werte stehen in SELECTs, die
+   jemand liest, und der Sprachwaechter liest mit. */
+const PHASEN = ['vorher', 'nachher'];
+const PHASE_VORGABE = 'nachher';
+
 /* ABGEWIESEN WIRD, WAS ETWAS ANDERES BEDEUTET -- GERUNDET WIRD, WAS DASSELBE
    BEDEUTET. Wer 5 eintippt, meint 5; den Wert still auf 2 zu ziehen hiesse,
    eine andere Aussage zu speichern als die eingegebene. 1,234 und 1,23 sind
@@ -2147,8 +2191,12 @@ const zahl = (n) => String(n).replace('.', ',');
 // value > 0 bleibt: ein zurueckgesetztes Kriterium ist keine Verwendung.
 // gewicht steht mit in der Liste -- ohne die Angabe stuende im Eingabefeld bei
 // jedem Neuaufbau wieder die Vorgabe.
+// phase steht mit in der Liste -- die Oberflaeche teilt sie danach in ihre
+// beiden Karten. Die Reihenfolge bleibt sort_order, id ueber BEIDE Kaesten:
+// wer je Phase filtert, bekommt sie damit in sich richtig sortiert, ohne dass
+// hier eine zweite Ordnung stuende.
 const qCriteria = db.prepare(`
-  SELECT c.id, c.name, c.sort_order, c.gewicht, c.created_at,
+  SELECT c.id, c.name, c.sort_order, c.gewicht, c.phase, c.created_at,
          (SELECT COUNT(DISTINCT r.item_id) FROM ratings r
            WHERE r.criterion_id = c.id AND r.value > 0) AS usage_count
   FROM rating_criteria c ORDER BY c.sort_order, c.id`);
@@ -2169,10 +2217,22 @@ app.get('/api/criteria', (req, res) => res.json(qCriteria.all()));
 app.post('/api/criteria', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'Name fehlt' });
+  /* DIE PHASE IST FREIWILLIG UND HAT DIE VORGABE 'nachher' -- so legt die
+     Karte „Bewertungskriterien" weiter an, ohne ein Feld mitzuschicken.
+     ETWAS ANDERES ALS DIE ZWEI WERTE IST EINE ABSAGE MIT MELDUNG und nicht
+     ein stilles Zurechtbiegen: wer 'spaeter' schickt, meint etwas, das es
+     nicht gibt, und ein auf 'nachher' gebogenes Kriterium stuende danach im
+     falschen Kasten, ohne dass es jemand saehe. */
+  const phase = req.body.phase === undefined ? PHASE_VORGABE : String(req.body.phase);
+  if (!PHASEN.includes(phase))
+    return res.status(400).json({ error: `Der Kasten muss „${PHASEN.join('" oder „')}" sein.` });
+  // UNIQUE(name) IST GLOBAL: ein Name, ein Kasten. Die Frage kennt deshalb
+  // keine Phase -- „Wunsch" gibt es einmal oder gar nicht.
   if (db.prepare('SELECT 1 FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name))
     return res.status(409).json({ error: 'Dieses Kriterium gibt es bereits.' });
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
-  const i = db.prepare('INSERT INTO rating_criteria (name, sort_order) VALUES (?, ?)').run(name, pos);
+  const i = db.prepare('INSERT INTO rating_criteria (name, sort_order, phase) VALUES (?, ?, ?)')
+    .run(name, pos, phase);
   res.status(201).json(db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(i.lastInsertRowid));
 });
 
@@ -2189,6 +2249,18 @@ app.put('/api/criteria/order', nurAdmin, (req, res) => {
 app.put('/api/criteria/:id', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'Name fehlt' });
+  /* DER KASTEN LAESST SICH NACH DEM ANLEGEN NICHT MEHR WECHSELN, und der
+     Versuch wird ABGEWIESEN und nicht still uebergangen: ein uebergangenes
+     Feld sieht fuer den Aufrufer aus wie ein gesetztes.
+     WARUM ES IHN NICHT GIBT: ein Wechsel truege die vergebenen Sterne von
+     einem Durchschnitt in den anderen -- beide Kopfzahlen aenderten sich, und
+     zwar ohne dass irgendwo eine Bewertung angefasst worden waere. Loeschen
+     und neu anlegen tut dasselbe SICHTBAR: die Sterne gehen dabei mit.
+     DIE PRUEFUNG STEHT VOR JEDER SCHREIBUNG -- die Absage darf nicht auf ein
+     schon umbenanntes Kriterium folgen. */
+  if (req.body.phase !== undefined)
+    return res.status(400).json({ error: 'Der Kasten eines Kriteriums lässt sich nicht ändern. ' +
+      'Löschen und neu anlegen — die Sterne gehen dann sichtbar mit.' });
   if (!db.prepare('SELECT 1 FROM rating_criteria WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: 'Dieses Kriterium gibt es nicht mehr.' });
   const clash = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
@@ -2493,15 +2565,36 @@ const qAlleKategorien = db.prepare('SELECT id, name FROM product_categories');
    Gezaehlt wird ueber Werte > 0: eine zurueckgesetzte Zeile ist keine Stimme. */
 const qSchnittJeKriterium = db.prepare(`
   SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,
-         c.gewicht
+         c.gewicht, c.phase
     FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
    WHERE r.item_id = ? AND r.value > 0
-   GROUP BY r.criterion_id, c.gewicht`);
+   GROUP BY r.criterion_id, c.gewicht, c.phase`);
+
+/* ZWEI KARTEN JE EINTRAG, EINE JE PHASE -- 0.21.0. Und das ist die ganze
+   Trennung zwischen Potenzial und Bewertung: die Menge wird nach Phase
+   geschnitten, BEVOR die Rechnung sie sieht.
+   ES GIBT KEINEN SCHALTER, DER EINEN VORHER-STERN IN DIE BEWERTUNG LIESSE,
+   weil es keine Stelle gibt, an der beide Mengen zugleich in einer Rechnung
+   stehen. Zaehler und Nenner eines Kastens entstehen in DERSELBEN Schleife aus
+   DERSELBEN Menge -- dieselbe bauliche Antwort, mit der gesamtSchnitt() seit
+   jeher verhindert, dass der Nenner aus einer anderen Menge kommt als der
+   Zaehler.
+   EINE ABFRAGE UND NICHT ZWEI: zwei Abfragen mit zwei WHERE-Zusaetzen liefen
+   ueber dieselbe Tabelle und koennten auseinanderlaufen; hier faellt jede
+   Zeile in genau einen der beiden Kaesten, und zwar an einer Stelle. */
+function karteJePhase(zeilen) {
+  const kasten = { vorher: new Map(), nachher: new Map() };
+  for (const z of zeilen) {
+    // Ein unbekannter Wert in der Spalte kaeme nur aus einer Schreibung an
+    // PHASEN vorbei. Er faellt in keinen der beiden Kaesten, statt still im
+    // falschen zu landen.
+    if (kasten[z.phase]) kasten[z.phase].set(z.criterion_id, z);
+  }
+  return kasten;
+}
 
 function schnitteJeKriterium(itemId) {
-  const m = new Map();
-  for (const z of qSchnittJeKriterium.all(itemId)) m.set(z.criterion_id, z);
-  return m;
+  return karteJePhase(qSchnittJeKriterium.all(itemId));
 }
 
 /* DIESELBE ABFRAGE FUER ALLE EINTRAEGE AUF EINMAL -- 0.19.3. Es ist Zeile fuer
@@ -2514,19 +2607,29 @@ function schnitteJeKriterium(itemId) {
    Ergebnis sind es nicht -- eine Pruefung haelt sie gegeneinander. */
 const qSchnittJeKriteriumAlle = db.prepare(`
   SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,
-         c.gewicht
+         c.gewicht, c.phase
     FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
    WHERE r.value > 0
-   GROUP BY r.item_id, r.criterion_id, c.gewicht`);
+   GROUP BY r.item_id, r.criterion_id, c.gewicht, c.phase`);
 
+// Je Eintrag DIESELBEN ZWEI KARTEN wie am einzelnen -- ueber denselben
+// karteJePhase(). Ein zweiter Schnitt nach Phase, hier frisch geschrieben,
+// waere die zweite Wahrheit, die schon die zwei Abfragen vermeiden.
 function schnitteJeEintrag() {
-  const alle = new Map();
+  const roh = new Map();
   for (const z of qSchnittJeKriteriumAlle.all()) {
-    if (!alle.has(z.item_id)) alle.set(z.item_id, new Map());
-    alle.get(z.item_id).set(z.criterion_id, z);
+    if (!roh.has(z.item_id)) roh.set(z.item_id, []);
+    roh.get(z.item_id).push(z);
   }
+  const alle = new Map();
+  for (const [itemId, zeilen] of roh) alle.set(itemId, karteJePhase(zeilen));
   return alle;
 }
+
+// Was ein Eintrag OHNE eine einzige Sternzeile mitbringt -- zwei leere Kaesten.
+// Es steht hier, weil die Uebersicht es fuer jeden Eintrag ohne Bewertung
+// braucht und `new Map()` dort die falsche Gestalt haette.
+const LEERE_KAESTEN = () => ({ vorher: new Map(), nachher: new Map() });
 
 /* Wer welchen Wert vergeben hat -- je Kriterium eine Liste. Wieder eine
    EIGENE Abfrage, Begruendung bei qSchnittJeKriterium. Nur Werte > 0.
@@ -2770,8 +2873,12 @@ function detail(id, benutzerId) {
   // den es veraendert; der Schnitt ueber alle steht daneben in avg und count.
   // gewicht steht an jeder Zeile: die Oberflaeche zeichnet daraus die Marke
   // ×1,5, und der Vergleich rechnet in der Stellung "meine" damit.
+  // DIE PHASE REIST AN DER ZEILE MIT -- 0.21.0. Der Browser teilt die Liste
+  // danach in seine beiden Kaesten; RECHNEN tut er damit nichts (die beiden
+  // Kopfzahlen stehen unten). Eine zweite Abfrage je Kasten waere zweimal
+  // derselbe LEFT JOIN ueber dieselbe Tabelle.
   it.ratings = db.prepare(`
-    SELECT c.id AS criterion_id, c.name, c.gewicht, COALESCE(r.value, 0) AS value
+    SELECT c.id AS criterion_id, c.name, c.gewicht, c.phase, COALESCE(r.value, 0) AS value
     FROM rating_criteria c LEFT JOIN ratings r
       ON r.criterion_id = c.id AND r.item_id = ? AND r.user_id = ?
     ORDER BY c.sort_order, c.id`).all(id, benutzerId);
@@ -2784,7 +2891,10 @@ function detail(id, benutzerId) {
   // bewertet hat, ist mehr, als eine Bewertung aussagen soll. Die Liste holt
   // der Admin ueber GET /api/items/:id/stimmen. avg und count bleiben.
   for (const r of it.ratings) {
-    const z = schnitte.get(r.criterion_id);
+    // Aus dem Kasten, zu dem das Kriterium gehoert. Ein Griff in den anderen
+    // ginge ins Leere -- die beiden Karten teilen keine Kennung.
+    const kasten = schnitte[r.phase];
+    const z = kasten && kasten.get(r.criterion_id);
     r.avg = z ? Math.round(z.schnitt * 10) / 10 : null;
     r.count = z ? z.anzahl : 0;
   }
@@ -2795,9 +2905,19 @@ function detail(id, benutzerId) {
      SIE TRAEGT NICHTS NEUES: Gewicht und Kriterienschnitt stehen ohnehin in
      `ratings`. Neu ist allein, dass Summe, Teiler und das ungerundete Ergebnis
      aus DERSELBEN Schleife kommen wie die Zahl darueber. */
+  /* ZWEIMAL DIESELBE RECHNUNG UEBER ZWEI GETRENNTE MENGEN -- 0.21.0, und das
+     ist die ganze Zweiteilung. Kein zweiter gesamtSchnitt(), kein Schalter in
+     ihm, keine Fallunterscheidung: die Funktion sieht gar nicht, welchen
+     Kasten sie gerade rechnet.
+     UND DER RECHENWEG ENTSTEHT BEIDE MALE IN DER RECHNUNG UND NICHT DANEBEN
+     (Stolperstein 217): die Erklaerung der Kopfzahl gibt es in beiden
+     Kaesten, also braucht sie es auch beide Male. */
   const rechenweg = {};
-  it.avgRating = gesamtSchnitt(schnitte, rechenweg);
+  it.avgRating = gesamtSchnitt(schnitte.nachher, rechenweg);
   it.rechenweg = { ...rechenweg, ergebnis: it.avgRating };
+  const potenzialRechenweg = {};
+  it.potenzialRating = gesamtSchnitt(schnitte.vorher, potenzialRechenweg);
+  it.potenzialRechenweg = { ...potenzialRechenweg, ergebnis: it.potenzialRating };
   Object.assign(it, testStats(id));
   return it;
 }
@@ -3253,7 +3373,14 @@ app.get('/api/items', (req, res) => {
     // Rechenwege fuer die Kachel und die Zeile daneben waeren zwei Wahrheiten
     // ueber dieselbe Zahl. Was sich geaendert hat, ist woher die Karte kommt --
     // nicht, was mit ihr geschieht.
-    it.avgRating = gesamtSchnitt(schnitteJe.get(it.id) || new Map());
+    const kaesten = schnitteJe.get(it.id) || LEERE_KAESTEN();
+    it.avgRating = gesamtSchnitt(kaesten.nachher);
+    /* DIE ZWEITE ZAHL STEHT NEBEN DER ERSTEN UND NICHT STATT IHRER -- auch an
+       einem getesteten Eintrag. Welche die Kachel zeigt, entscheidet der
+       Browser; welche es GIBT, entscheidet der Bestand. Eine Antwort, die je
+       nach `tested` mal die eine und mal die andere traegt, machte aus dem
+       Sortieren nach Potenzial eine Sortierung ueber eine luckenhafte Menge. */
+    it.potenzialRating = gesamtSchnitt(kaesten.vorher);
     Object.assign(it, testStats(it.id));
     /* DIE ZEITLEISTE BRAUCHT DIE TESTTAGE SELBST, nicht nur ihre Anzahl -- und
        dazu, wem sie gehoeren. Ohne sie braucht die Liste sie nicht.
@@ -4075,16 +4202,20 @@ app.put('/api/items/:id/ratings', (req, res) => {
   res.json(detail(req.params.id, req.benutzer.id));
 });
 
-app.delete('/api/items/:id/ratings', (req, res) => {
-  // Zuruecksetzen meint ausschliesslich die EIGENEN Werte. Ohne die
-  // zweite Bedingung raeumte der Knopf im Blockkopf die Bewertungen aller
-  // anderen gleich mit weg -- und zwar wortlos. Die Beschriftung sagt es
-  // dazu: "Meine Bewertung zuruecksetzen".
-  db.prepare('DELETE FROM ratings WHERE item_id = ? AND user_id = ?')
-    .run(req.params.id, req.benutzer.id);
-  touch.run(req.params.id);
-  res.json(detail(req.params.id, req.benutzer.id));
-});
+/* HIER STAND BIS 0.20.1 `DELETE /api/items/:id/ratings` -- das
+   Sammel-Zuruecksetzen hinter dem Knopf „Meine Bewertung zuruecksetzen".
+   ER IST WEG, UND DIE ROUTE MIT IHM. Das Zuruecksetzen sitzt seit 0.21.0 an
+   der ZEILE: ein sichtbares × hinter den eigenen fuenf Sternen, und es geht
+   ueber `PUT` mit `value: 0`. Den Weg gibt es seit jeher -- `Math.max(0, ...)`
+   eine Zeile hoeher, und eine Zeile mit 0 ist keine Stimme.
+   EINE ROUTE OHNE WEG VOM BILDSCHIRM IST TOT, und tote Wege gibt es hier
+   nicht: sie muesste bei jeder Runde mitgeprueft und mitgedacht werden fuer
+   etwas, das niemand mehr ruft.
+   DAMIT ENTFAELLT AUCH DIE FRAGE, wie ein Sammel-Zuruecksetzen den jeweils
+   anderen Kasten verschont -- es gibt keins mehr.
+   DAS IST EINE WEGNAHME AN EINER OEFFENTLICHEN ANTWORT. Vor 1.0.0 ist das
+   erlaubt; sie steht in Abschnitt 5 des Projektstands, und F_ROUTEN ist um
+   eins kleiner. Wer sie von aussen ruft, bekommt 404. */
 
 /* Wer welchen Wert vergeben hat -- die Ansicht des Admins.
    NUR DER ADMIN: wer wie bewertet hat, ist eine Angabe ueber einzelne
