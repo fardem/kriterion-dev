@@ -27,9 +27,9 @@ const sharp = require('sharp');
      Weg                          was in der Datenbank landet
      ---------------------------  ------------------------------------------
      Foto am Eintrag (photos)     DAS ORIGINAL (ein PNG als WebP, siehe
-                                  legeBildAb() weiter unten), dazu 1600px-
-                                  und 400px-JPEG
-     Bild im Kommentar            NUR 1600px- und 400px-JPEG --
+                                  legeBildAb() weiter unten), dazu `medium`
+                                  und `thumb` als JPEG
+     Bild im Kommentar            NUR `medium` und `thumb` --
      (comment_images)             KEIN ORIGINAL
 
    WARUM DAS KOMMENTARBILD KEINS BEKOMMT, und es bleibt dabei: am Eintrag hat
@@ -47,17 +47,170 @@ const sharp = require('sharp');
    Original byte-genau zurueck und rechnet thumb/medium neu daraus.
    KEIN HANDLUNGSBEDARF -- aber wer es entdeckt, soll die Zahlen daneben
    finden und es nicht fuer schlimmer halten, als es ist. */
-const VARIANTS = { thumb: { px: 400, q: 78 }, medium: { px: 1600, q: 84 } };
+/* ---- DIE ABLEITUNGSREGEL FOLGT DER ANZEIGEREGEL -- 0.19.4 ----
+
+   DER FEHLER, DER SEIT DEM ERSTEN TAG DA WAR: `thumb` war 400 Bildpunkte auf
+   der LANGEN Kante. Jede Stelle, die ein `thumb` zeigt, schneidet es mit
+   `object-fit: cover` zu -- und wer einschneidet, braucht die KURZE Kante
+   gross genug. Ein 16:9-Bildschirmfoto lag damit als 400 x 225 in der
+   Tabelle, und die Kachel zog die 225 auf ihre Breite hoch. Immer, auf jedem
+   Geraet, ohne dass irgendetwas rot wurde.
+
+   NACHGESEHEN IM STYLESHEET, und es ist eine Regel und kein Einzelfall:
+     object-fit: cover     Kachel der Uebersicht (.card-img img), Streifen am
+                           Eintrag (.thumb img), Kommentarbild (.cmt-img img),
+                           Streifen im Vollbild (.lb-thumb img)  -> KURZE Kante
+     object-fit: contain   Betrachter am Eintrag (.viewer img), Buehne im
+                           Vollbild (.lb-stage img)              -> LANGE Kante
+   `thumb` wird ausschliesslich mit `cover` gezeigt, `medium` ausschliesslich
+   mit `contain`. DESHALB AENDERT SICH `thumb` UND `medium` AUSDRUECKLICH
+   NICHT: 1600 auf der langen Kante ist fuer `contain` genau richtig, und wer
+   beide Ableitungen „der Ordnung halber" gleich behandelt, macht `medium`
+   schlechter und die Datenbank groesser.
+
+   WARUM 512 UND NICHT 400 ODER 640. Gemessen in Chromium am Stylesheet
+   dieses Stands: die breiteste Kachel ist 299 CSS-Bildpunkte (`.shell` hoert
+   bei 1300 px auf, fuenf Spalten passen nie hinein) -- auf einem
+   2x-Bildschirm sind das 598 Geraetepunkte, auf einem Telefon bei 390 px
+   Fensterbreite und dPR 3 sind es 513. Und was es kostet, ist reine
+   Geometrie: der Byte-Faktor IST auf 3 % genau der Bildpunkt-Faktor, also
+   (lange/kurze Kante) im Quadrat. An 108 16:9-Bildschirmfotos gemessen kostet
+   400 das 3,06fache, 512 das 5,05fache und 640 das 7,78fache des heutigen
+   `thumb`. 512 deckt das Telefon ganz und laesst am 2x-Desktop 1,17fach
+   uebrig -- gegen heute 2,66fach; 640 kaufte diese letzten 17 % mit der
+   Haelfte mehr an Bytes, und die reisen in jeder Sicherung mit.
+
+   DIE TAFEL TRAEGT DIE UNTERSCHEIDUNG UND KEIN `if` IN DER SCHLEIFE. Jede
+   Ableitung nennt eine KISTE: `kurz` ist, worauf die kurze Kante gebracht
+   wird, `lang` der Deckel auf der langen. Was zuerst greift, gewinnt --
+   `fit: 'inside'` auf dieser Kiste rechnet genau das aus. Bei `medium` sind
+   beide Zahlen gleich, und damit greift immer der Deckel: das ist das
+   Verhalten bis 0.19.3, Bild fuer Bild dasselbe.
+
+   DER DECKEL IST DER EIGENTLICHE BAUPUNKT, denn ohne ihn kennt die kurze
+   Kante keine obere Grenze fuer die lange. Ein Bildschirmfoto ueber zwei
+   Monitore (7680 x 1080) ergaebe bei kurzer Kante 512 ein `thumb` von
+   3641 x 512 -- 1864k Bildpunkte gegen 466k eines gewoehnlichen 16:9-`thumb`
+   und mehr als dessen `medium` mit 1440k. Aus der Ableitung, die klein sein
+   soll, wuerde die groesste der Tabelle.
+   WARUM DER DECKEL 1280 HEISST, und beide Grenzen sind gemessen: 21:9 ist
+   das breiteste gewoehnliche Bildschirmformat und ergibt 1214 bzw. 1223 px
+   -- ein Deckel von 1200 schnitte es schon an, 1280 laesst es unberuehrt.
+   Nach oben faellt ein 32:9-Foto bei 1280 auf 1280 x 360 = 461k und liegt
+   damit genau auf dem Mass eines 16:9-`thumb` (466k); bei 1600 waere es mit
+   720k noch das 1,55fache.
+   UND ES WIRD NICHT GESCHNITTEN, SONDERN SKALIERT. Der Ausschnitt entsteht
+   im Browser aus dem Fokuspunkt (`ausschnitt()` in public/app.js); ein am
+   Server beschnittenes `thumb` naehme dem Fokuspunkt seine Flaeche, und der
+   eingestellte Ausschnitt zeigte danach etwas anderes. Deshalb faellt bei
+   einem Panorama die KURZE Kante unter 512 -- das Bild wird kleiner, nicht
+   enger. */
+const VARIANTS = {
+  thumb:  { kurz: 512,  lang: 1280, q: 78 },
+  medium: { kurz: 1600, lang: 1600, q: 84 }
+};
+
+/* WELCHE KANTE DIE KURZE IST, SAGT NUR DAS BILD SELBST -- und der Kopf sagt
+   es nicht allein. `metadata()` liefert die Masse SO, WIE SIE IN DER DATEI
+   STEHEN; `.rotate()` in der Ableitung dreht danach nach dem EXIF-Vermerk,
+   und die Ausrichtungen 5 bis 8 vertauschen dabei Breite und Hoehe.
+   Nachgemessen an einem 600 x 1200 mit Ausrichtung 6: `metadata()` meldet
+   600 x 1200, `.rotate()` liefert 1200 x 600. Wer den Vermerk nicht
+   mitzaehlt, legt die Kiste hochkant an ein Bild, das quer herauskommt --
+   und bekommt eine Ableitung mit 1280 auf der kurzen Kante.
+   `{ autoOrient: true }` HILFT DAGEGEN NICHT: sharp 0.35.3 meldet damit
+   ebenfalls 600 x 1200. Nachgesehen, nicht angenommen. */
+const istQuer = (m) => {
+  const gedreht = m && m.orientation >= 5;
+  const breite = gedreht ? m.height : m.width;
+  const hoehe  = gedreht ? m.width  : m.height;
+  return !(hoehe > breite);
+};
+
+/* DER KOPF WIRD EINMAL GELESEN UND NICHT JE ABLEITUNG. Er kostet gemessen
+   0,23 bis 0,27 ms an einem kleinen JPEG -- sharp liest dafuer den Kopf und
+   dekodiert das Bild nicht.
+   UND WENN ER SICH NICHT LESEN LAESST, GILT QUER. Die Kiste ist dann 1280
+   breit und 512 hoch; ein hochkantes Bild bekaeme darin 512 auf der LANGEN
+   Kante -- also die alte Regel mit der neuen Zahl, und nicht etwa eine
+   ueberdimensionierte Ableitung. Wenn schon daneben, dann nach unten. */
 async function makeVariants(buf) {
   const out = {};
+  let quer = true;
+  try { quer = istQuer(await sharp(buf, { failOn: 'none' }).metadata()); } catch {}
   for (const [name, v] of Object.entries(VARIANTS)) {
     try {
       out[name] = await sharp(buf, { failOn: 'none' }).rotate()
-        .resize(v.px, v.px, { fit: 'inside', withoutEnlargement: true })
+        .resize(quer ? v.lang : v.kurz, quer ? v.kurz : v.lang,
+                { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();
     } catch { out[name] = null; }
   }
   return out;
+}
+
+/* ---- WELCHE ZEILE DER BESTANDSLAUF ANFASST ----
+
+   DIE ZEILE SAGT ES SELBST, UND ZWAR DER `thumb`. Ein Merker in der Datenbank
+   waere eine Schemaaenderung und ausserdem eine zweite Wahrheit ueber
+   dieselbe Sache (Stolperstein 47): die Ableitung liegt ja da, und sie traegt
+   ihre Geometrie im Kopf. Gelesen werden dafuer 10 kB `thumb` und nicht eine
+   halbe Megabyte Original.
+
+   400 STEHT HIER, WEIL ES DIE ALTE REGEL WAR. Die Zahl beschreibt keinen
+   Zustand, den diese Fassung herstellt, sondern einen, den sie vorfindet --
+   deshalb steht sie NICHT in `VARIANTS`, wo sie wie eine dritte Einstellung
+   aussaehe. Sie faellt mit der Bereinigung weg, wie jeder andere
+   Migrationsschritt auch.
+
+   WARUM AUF DIE LANGE KANTE GEZIELT WIRD UND NICHT AUF DIE KURZE.
+   `fit: 'inside'` legt die begrenzende Kante EXAKT auf ihr Mass -- nachgemessen
+   an 1919x1080, 1366x768, 3441x1440, 1000x999 und 7680x1080: die lange Kante
+   des alten `thumb` ist in jedem Fall genau 400. Die kurze dagegen ist jedes
+   Mal eine andere Zahl, und ein „kurze Kante unter 512" faenge auch die zwei
+   Faelle, in denen die NEUE Regel bewusst darunter bleibt:
+     - das kleine Bild. `withoutEnlargement` vergroessert nie; ein Original
+       mit 300 x 200 bleibt 300 x 200 -- unter beiden Regeln dasselbe.
+     - das Panorama. Bei 32:9 greift der Deckel, und die kurze Kante faellt
+       auf 360.
+   Beide traegen die lange Kante NICHT auf 400 (300 bzw. 1280) und bleiben so
+   von selbst draussen. DIE ABFRAGE IST DAMIT EIN FESTPUNKT: was der Lauf
+   angefasst hat, faellt danach nicht wieder in seine Auswahl.
+
+   DER EINE FALL, IN DEM SIE ES NICHT IST, und er gehoert hierher und nicht in
+   eine Fussnote: ein Original, dessen lange Kante GENAU 400 ist. Sein `thumb`
+   sieht aus wie ein alter, ist aber schon der neue -- beide Regeln liefern
+   dafuer dasselbe Bild. Der Lauf leitet ihn bei jedem Start erneut ab, stellt
+   fest, dass sich die Masse nicht geaendert haben, schreibt nicht und zaehlt
+   ihn nicht mit (siehe bestandslauf.js). Es kostet ein kleines Bild je Start,
+   und aufloesen liesse es sich nur mit genau dem Merker, der ausgeschlossen
+   ist. */
+const ALTE_THUMB_KANTE = 400;
+function traegtAlteGeometrie(masse) {
+  if (!masse || !masse.width || !masse.height) return false;
+  return Math.max(masse.width, masse.height) === ALTE_THUMB_KANTE &&
+         Math.min(masse.width, masse.height) < VARIANTS.thumb.kurz;
+}
+
+/* DIE FRAGE AN EINEN GESPEICHERTEN `thumb`, und sie steht HIER und nicht im
+   Bestandslauf: was die Geometrie einer Ableitung ist, weiss diese Datei --
+   dieselbe Ueberlegung, aus der makeVariants() nach 0.19.3 hierher gezogen
+   ist. Eine zweite Fassung im Thread liefe frueher oder spaeter auseinander.
+
+   EIN NICHT LESBARER `thumb` GILT ALS ALT, und das ist eine Entscheidung und
+   keine Nachlaessigkeit. Die Ableitung wird nicht aus dem `thumb` gerechnet,
+   sondern aus dem ORIGINAL -- wer die Frage nicht beantworten kann, verliert
+   also nichts, wenn er sie neu ableitet, und gewinnt eine Zeile zurueck, die
+   sonst niemand repariert: das Nachruesten sucht `thumb IS NULL` und sieht
+   einen kaputten `thumb` nicht an.
+   WAS ES KOSTET, WENN AUCH DAS ORIGINAL KAPUTT IST: die Zeile wird bei jedem
+   Start erneut versucht, kommt leer zurueck und wird uebersprungen. Das ist
+   eine Zeile, deren Bild ohnehin niemand mehr anzeigen kann -- die Instanz
+   hat dann ein groesseres Problem als einen Lauf, der es einmal je Start
+   bemerkt. */
+async function istAlteAbleitung(thumb) {
+  try { return traegtAlteGeometrie(await sharp(thumb, { failOn: 'none' }).metadata()); }
+  catch { return true; }
 }
 
 /* ================= Die Ablage des Originals =================
@@ -152,10 +305,18 @@ async function legeBildAb(buf, gemeldeterTyp) {
 }
 
 /* AUSGEGEBEN WIRD, WAS GERUFEN WIRD, UND SONST NICHTS. `VARIANTS`,
-   `WEBP_ABLAGE` und `PNG_MAGIE` sind die Werte, mit denen die drei Funktionen
-   hier arbeiten -- ausserhalb ruft sie niemand, und eine Ausgabe ohne
-   Empfaenger ist eine Zeile, die beim naechsten Lesen erklaert werden muss.
+   `WEBP_ABLAGE`, `PNG_MAGIE` und `ALTE_THUMB_KANTE` sind die Werte, mit denen
+   die Funktionen hier arbeiten -- ausserhalb ruft sie niemand, und eine
+   Ausgabe ohne Empfaenger ist eine Zeile, die beim naechsten Lesen erklaert
+   werden muss.
+   `istAlteAbleitung` UND `traegtAlteGeometrie` SEIT 0.19.4: der Bestandslauf
+   fragt mit der ersten je Zeile, ob sie noch die Geometrie bis 0.19.3 traegt.
+   Die zweite ist dieselbe Regel OHNE sharp -- der Pruefstand haelt sie gegen
+   Masse, die er selbst hinschreibt, und braucht dafuer kein Bild. Zwei
+   Ausgaenge auf eine Regel, aber nicht zwei Regeln: die erste ruft die
+   zweite.
    `PNG_MAGIE_HEX` STEHT DAGEGEN DABEI: server.js braucht dieselbe Byte-Folge
    in der Schreibweise, in der SQLite sie liefert (hex(substr(data,1,8))), und
    eine zweite Stelle mit einer zweiten Schreibweise liefe auseinander. */
-module.exports = { makeVariants, PNG_MAGIE_HEX, istPNG, legeBildAb };
+module.exports = { makeVariants, PNG_MAGIE_HEX, istPNG, legeBildAb,
+                   istAlteAbleitung, traegtAlteGeometrie };
