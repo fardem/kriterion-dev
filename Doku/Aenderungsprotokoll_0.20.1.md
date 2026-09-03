@@ -201,13 +201,15 @@ hieß *„Die Zeile ‚Dateien am Ort' nennt die alten eigens"* und heißt jetzt
 
 ## 5. Was der Prüfstand dazu sagt
 
-**Vorher 5374, nachher 5391 — 17 neue, keine weggefallen.**
+**Vorher 5374, nachher 5403 — 29 neue, keine weggefallen.**
 
 | Gruppe | vorher | nachher | Wofür |
 |---|---|---|---|
-| **Die Karte „Alte Sicherungen" in der Oberfläche** | 20 | **37** | Die Liste: alle Sicherungen, die Zahl in der Überschrift, **die Nummern von der jüngsten an**, Datum/Alter/Größe je Zeile, **kein Dateiname**, **kein Knopf in einer Zeile**, die Marken an den richtigen Zeilen, **keine Zeile mit beiden Marken**, der Deckel als Regel im Stilblatt samt Rechnung — dazu die kurzen Texte **und die sechs Verneinungen** |
+| **Die Karte „Alte Sicherungen" in der Oberfläche** | 34 | **51** | Die Liste: alle Sicherungen, die Zahl in der Überschrift, **die Nummern von der jüngsten an**, Datum/Alter/Größe je Zeile, **kein Dateiname**, **kein Knopf in einer Zeile**, die Marken an den richtigen Zeilen, **keine Zeile mit beiden Marken**, der Deckel als Regel im Stilblatt samt Rechnung — dazu die kurzen Texte **und die sechs Verneinungen** |
+| **Alte Sicherungen aufräumen: der echte Ordner** | 56 | **65** | **das Feld `dateien` der echten Antwort** — neun Zusagen, nachgerüstet nach dem stummen Rückbau 568 (Abschnitt 5a) |
 | **Die Sicherung in der Oberfläche** | 52 | **52** | eine **umgedrehte** Zusage statt einer gelöschten |
-| **zusammen** | **5374** | **5391** | **+17** |
+| **Die Gegenproben greifen** | 17 | **20** | **ein abgerissener Lauf muss sagen, warum** — nachträglich, aus der eigenen Arbeit dieser Runde (Abschnitt 5b) |
+| **zusammen** | **5374** | **5403** | **+29** |
 
 > **DER DECKEL WIRD AN DER REGEL IM STILBLATT GEPRÜFT UND NICHT AN EINER
 > GERECHNETEN HÖHE.** *jsdom rechnet kein Layout — eine Prüfung auf
@@ -216,9 +218,197 @@ hieß *„Die Zeile ‚Dateien am Ort' nennt die alten eigens"* und heißt jetzt
 > Stilblatt steht — und dass die Rechnung dahinter dort aufgeschrieben ist.**
 > *Die dritte Zeile ist die, die den Wert vor dem nächsten Umbau schützt.*
 
+---
+
+## 5a. Der stumme Rückbau 568 — und was er gefunden hat
+
+**Rückbau 568 dreht die Nummerierung in `server.js` um:** aus `nr: i + 1`
+(jüngste ist 1) wird `nr: dateien.length - i` (älteste ist 1). **Und keine
+einzige Prüfung wurde rot.**
+
+> **EINE GEGENPROBE, DIE KEINE PRÜFUNG ROT MACHT, SAGT NICHT „DER CODE IST
+> RICHTIG", SONDERN „HIER PRÜFT NIEMAND."**
+
+**Der Grund ist Stolperstein 102 in Reinform.** Die Oberflächengruppe prüft die
+Nummern — *„Die Nummern laufen von der jüngsten zur ältesten"* — aber sie
+prüft sie **am Mock**, und der rechnet `nr` selbst. **Die echte Antwort des
+Servers sah niemand an.** *Das Feld `dateien` war damit vollständig ungeprüft:
+sieben Angaben je Eintrag, und keine einzige Zusage darauf.*
+
+**Neun Zusagen sind nachgerüstet, an der ECHTEN Antwort** (Gruppe „Alte
+Sicherungen aufräumen: der echte Ordner", 56 → 65):
+
+1. Die Antwort trägt die **vollständige** Liste — sieben Einträge bei sieben
+   Kopien im Ordner.
+2. Die **Nummern laufen von 1 bis 7**.
+3. **Nummer 1 ist die jüngste** *(sie ist 0 Tage alt, die letzte 200)*.
+4. Die **Reihenfolge** ist wirklich nach Alter geordnet und nicht zufällig.
+5. **Je Eintrag** Datum, Alter und Größe, jedes in seiner Form.
+6. Die Marke **`faellt`** steht an genau den Kopien, die die **Trefferliste**
+   daneben nennt. *Zwei Felder über dieselbe Frage dürfen sich nicht
+   widersprechen (Stolperstein 47).*
+7. **Ohne Schlüsselwechsel** trägt keine die Marke `veraltet`.
+8. **Der Dateiname steht in der Antwort**, auch wenn die Karte ihn nicht zeigt
+   — *er ist die einzige Angabe, an der sich ein Eintrag über zwei Abrufe
+   hinweg wiedererkennen lässt.*
+9. **Nichts Fremdes** steht in der Liste — `notizen.txt`,
+   `kriterion-alt.sqlite.bak`, das Unterverzeichnis und der Symlink nicht.
+
+**Danach wird 568 namentlich rot**, an Zusage 2. *Nachgefahren und belegt —
+wenn auch erst im zweiten Anlauf: der erste riss ab, und das ist Abschnitt 5b.*
+
+> **DAS IST DER ZWEITE FUND DIESER RUNDENFOLGE, DEN DIE GEGENPROBE GEMACHT HAT
+> UND NICHT DER PRÜFSTAND** — der erste war 561 in 0.20.0, der den Lauf abriss.
+> *Beide Male hat der Prüfstand grün gemeldet, und beide Male war das falsch.
+> Genau dafür gibt es die Gegenprobe.*
+
+---
+
+## 5b. Der abgerissene Lauf — und was er über das Werkzeug gesagt hat
+
+**Rückbau 568 wurde nach dem Nachrüsten der neun Zusagen ein zweites Mal
+gefahren, allein. Er wurde namentlich rot — und der Lauf riss nach 79 Sekunden
+ab.** *Der Bericht dazu, vollständig:*
+
+```
+**568 — Die Nummern laufen von der aeltesten zur juengsten** (server.js, Spur 0, 79s)
+  LAUF ABGERISSEN: Rückgabewert 1
+  ── Alte Sicherungen aufraeumen: der echte Ordner
+     ✗ Die Nummern laufen von 1 bis 7
+```
+
+**„Rückgabewert 1" ist keine Auskunft.** *Ein abgerissener Lauf und ein stummer
+Rückbau sehen in der Tabelle beinahe gleich aus, und die Tabelle unterscheidet
+sie seit jeher — aber sie sagt beim Abriss nicht, WORAN er lag.*
+
+### Was nachgestellt und was belegt ist
+
+**Belegt: der Rückbau selbst reißt den Lauf nicht ab.** *Ein voller Lauf mit
+angewandtem 568 in einer eigenen Kopie:* **5398 von 5400 bestanden** — genau
+die beiden erwarteten roten Punkte (*„Die Nummern laufen von 1 bis 7"* und die
+Selbstprobe „Jeder Suchtext kommt in seiner Datei genau einmal vor", die bei
+**jedem** gefahrenen Rückbau rot wird). *Der Lauf blieb ganz.*
+
+**Belegt: die Unterschrift.** *Nachgestellt in einer eigenen kleinen Probe — ein
+`listen()` auf eine belegte Nummer, ohne `on('error')`:* **Rückgabewert 1, die
+bereits gedruckte Ausgabe steht, die Meldung liegt auf stderr, und die Zeile
+„Prüflauf abgebrochen: …" fehlt.** *Genau das Bild, das der Treiber als
+„Rückgabewert 1" gemeldet hat.*
+
+**Wahrscheinlich, aber NICHT belegt: eine Portkollision am SMTP-Empfänger.**
+*Er ist der einzige Horchposten im Prozess selbst — `pruefung.js` hat genau ein
+`.listen(` —, seine Nummern werden **gezählt statt gewürfelt**, und ein
+Empfänger horcht vom Öffnen bis zum Ende des Laufs.* **Zwei Läufe auf derselben
+Maschine mit demselben `PORT_VERSATZ` nehmen sich also zwangsläufig dieselben
+Nummern**, sobald beide so weit sind — und ein `listen()` ohne `on('error')`
+ist genau der zweite Weg von oben. **Gemessen am vollen Lauf: der erste
+Empfänger geht nach 82 Sekunden auf — der Abriss kam nach 79.** *Zu eben dieser
+Zeit lief auf derselben Maschine ein zweiter voller Lauf: die Nachmessung der
+Gruppenzahlen zu 0.20.0.*
+
+**Was fehlt, um daraus einen Befund zu machen:** *ob jener zweite Lauf einen
+Versatz trug.* **Seine Ausgabe druckt die Nummern nicht, und die Kopie ist
+weg** — deshalb steht hier „wahrscheinlich" und nicht „war es".
+
+> **DIESE ZAHL STAND ZWISCHENDURCH FALSCH IM ENTWURF.** *Der erste Versuch, sie
+> zu messen, las die Ausgabe durch eine Röhre — und Node schiebt seine Ausgabe
+> dorthin gebündelt, sodass alle Gruppen denselben Zeitpunkt trugen: 330
+> Sekunden, und die Kollision wäre damit ausgeschlossen gewesen.* **Gemessen
+> ist sie jetzt an der Datei, in die der Lauf schreibt** — 82 Sekunden. *Eine
+> Messung, die den Gegenstand verändert, ist keine (Stolperstein 137).*
+
+> **DARAUS FOLGT EINE BETRIEBSREGEL, ganz gleich ob es diesmal so war: zwei
+> Prüfläufe zugleich auf derselben Maschine brauchen verschiedene
+> `PORT_VERSATZ`.** *Der Gegenprobentreiber hält sich von selbst daran — jede
+> Nebenspur bekommt ihren eigenen. Wer daneben von Hand einen zweiten Lauf
+> startet, setzt ihn selbst.*
+
+**NICHT ERMITTELT: die Ursache selbst.** *Und das ist der eigentliche Befund
+dieser Runde: die Ursache stand in der eingefangenen Ausgabe — der Treiber
+fängt stdout **und** stderr ein —, er hat sie nicht gedruckt, und die Kopie ist
+beim Aufräumen weg. Sie ist nicht mehr feststellbar.*
+
+> **EIN ABBRUCH, DESSEN GRUND EINGEFANGEN UND DANN NICHT GEDRUCKT WIRD, IST
+> SCHLIMMER ALS EINER OHNE GRUND** (Stolperstein 301). *Er sieht aus wie ein
+> Befund und ist eine Sackgasse.*
+
+### Was daraufhin gebaut ist
+
+**`leseLauf()` hebt die letzten zwanzig nichtleeren Zeilen auf, und der Bericht
+druckt sie unter die Abrisszeile.** *Zwei Wege enden ohne Schlussblock, und nur
+einer schreibt eine Zeile, die der Leser kennt:* der äußere Fang schreibt
+*„Prüflauf abgebrochen: …"*; **ein unbehandeltes Ereignis außerhalb der
+abgewarteten Kette schreibt davon nichts** — Node legt Meldung und Aufrufweg
+auf stderr und geht mit 1. *Für diesen zweiten Weg sind die letzten Zeilen die
+einzige Auskunft.*
+
+**Drei Zusagen dazu** in der Gruppe „Die Gegenproben greifen" (17 → 20), **an
+gestellten Ausgaben in Millisekunden statt in Minuten** — dieselbe Bauform wie
+bei den drei Zusagen über „stumm" daneben. **Die dritte misst an der ECHTEN
+Ausgabe der echten Berichtsfunktion und nicht am Quelltext:** *ein Suchmuster
+über den Quelltext bliebe grün, wenn die Schleife zwar dasteht, aber über die
+falsche Liste läuft.*
+
+**Zwei Rückbauten darüber, und beide gehören zusammen:** **W15** nimmt das
+**Drucken** weg, **W16** das **Aufheben**. *Fiele nur das Drucken weg, stünde
+der Grund im Ergebnis und niemand sähe ihn — genau die Lage, in der 568 seinen
+Abriss unerklärt ließ.*
+
+**Was der Bericht jetzt an derselben Stelle sagt** — *an einer GESTELLTEN
+Ausgabe, denn die echte von damals ist weg; die Fehlermeldung darin ist ein
+Beispiel und nicht der ermittelte Grund:*
+
+```
+**568 — Ein Rueckbau** (server.js, Spur 0, 79s)
+  LAUF ABGERISSEN: Rückgabewert 1
+     │ ── Alte Sicherungen aufraeumen: der echte Ordner
+     │   ✓ Sieben Kopien liegen im Ordner
+     │   ✗ Die Nummern laufen von 1 bis 7
+     │ node:events:497
+     │       throw er;
+     │ Error: listen EADDRINUSE: address already in use 127.0.0.1:6110
+```
+
+> **DAS IST EINE WERKZEUGRUNDE UND KEINE VERSIONSRUNDE.** *`gegenprobe.js` und
+> `pruefung.js` werden nicht ausgeliefert und gehen in keinen Fingerprint ein —
+> `c67a13f9` steht unverändert.* **Nur das Werkzeug lernt dazu.**
+
+---
+
 ### Der Gegenprobenlauf
 
-GEGENPROBENTABELLE_0_20_1
+**Acht Rückbauten gefahren, in drei Läufen — und der eine, der beim ersten Mal
+STUMM war, ist der Fund dieser Runde (Abschnitt 5a).** *Jeder gefahrene
+Rückbau macht zusätzlich die Selbstprobe „Jeder Suchtext kommt in seiner Datei
+genau einmal vor" rot — die Kopie trägt ja den ersetzten Text; sie ist in der
+Spalte „rot" nicht mitgezählt.*
+
+**Lauf 1 — die sechs an der Karte**, vier Nebenspuren, am Stand **5391**
+*(vor dem Nachrüsten der neun Zusagen aus Abschnitt 5a)*:
+
+| Nr | Was zurückgebaut wird | rot | Die Zeile, auf die es ankommt |
+|---|---|---|---|
+| **563** | Eine Änderung am Feld rechnet die Vorschau **nicht** neu | **2** | *„Eine Änderung am Feld fragt den Stand neu am Server"* — **nachgezogen**, weil die Karte seit dieser Runde die ganze Liste neu zeichnet und nicht nur die Trefferzahl |
+| **565** | Der Knopf ist auch **ohne Treffer** bedienbar | **1** | *„Und der Knopf ist dann nicht bedienbar"* — **nachgezogen** auf den neuen Knopftext |
+| **566** | Die Sicherungsliste bekommt **keinen Deckel** | **1** | *„Die Liste trägt ihren eigenen Deckel von fünf Zeilen"* — **in eine andere Datei nachgezogen**: der Deckel ist seit dieser Runde eine Regel in `public/style.css` und keine Klasse im Markup |
+| **567** | Die Karte **listet die Sicherungen nicht mehr** | **7** | *„Die Karte listet ALLE Sicherungen"* und die ganze Liste dahinter — **der Rückbau auf den eigentlichen Befund dieser Runde** |
+| **568** | Die Nummern laufen **von der ältesten zur jüngsten** | **STUMM** | **DAS IST DER FUND** — siehe Abschnitt 5a. *Die Nummern wurden am Mock geprüft, und der rechnet sie selbst; die echte Antwort sah niemand an* |
+| **569** | Die Zeilen sagen nicht mehr, **welche gelöscht wird** | **2** | *„Die Zeilen, die die Regel trifft, sind markiert"* — die Marke `löschen` ist die einzige Stelle, an der die Liste die Regel zeigt |
+
+**Lauf 2 — 568 allein**, nach dem Nachrüsten der neun Zusagen, am Stand
+**5400**: **namentlich rot an „Die Nummern laufen von 1 bis 7" — und der Lauf
+riss nach 79 Sekunden ab.** *Das ist Abschnitt 5b.*
+
+**Lauf 3 — 568 noch einmal und die beiden neuen**, drei Nebenspuren, am Stand
+**5403** *(nach dem Bau aus Abschnitt 5b)*:
+
+| Nr | Was zurückgebaut wird | rot | Die Zeile, auf die es ankommt |
+|---|---|---|---|
+| **568** | Die Nummern laufen **von der ältesten zur jüngsten** | **1** | *„Die Nummern laufen von 1 bis 7"* — **5401 von 5403, 452 Sekunden, der Lauf blieb ganz.** *Damit ist der Fund aus Lauf 1 geschlossen und der Abriss aus Lauf 2 nicht wiederaufgetreten* |
+| **W15** | Der Bericht **druckt** die letzten Zeilen eines Abrisses nicht mehr | **1** | *„Und der Bericht druckt sie unter den Abriss"* |
+| **W16** | Der Leser **hebt** die letzten Zeilen gar nicht erst auf | **2** | *„Und er hebt die letzten Zeilen auf, damit der Grund lesbar bleibt"* **und** *„Und der Bericht druckt sie unter den Abriss"* — beide, denn ohne Aufheben ist auch nichts zu drucken |
+
+**Keiner der acht war beim letzten Anlauf stumm.**
 
 ---
 
@@ -237,6 +427,14 @@ GEGENPROBENTABELLE_0_20_1
 
 **Und neu offen:**
 
+- **DIE URSACHE DES ABRISSES VON 79 SEKUNDEN IST NICHT ERMITTELT** und wird es
+  auch nicht mehr: sie stand in der eingefangenen Ausgabe, der Treiber hat sie
+  nicht gedruckt, und die Kopie ist weg (Abschnitt 5b). *Der Verdacht steht dort
+  und ist begründet — eine Portkollision am SMTP-Empfänger, dessen Nummern
+  gezählt statt gewürfelt werden —, aber er ist nicht belegt.* **Was gebaut ist,
+  ist nicht die Erklärung, sondern die Vorkehrung: der nächste Abriss erklärt
+  sich selbst.** *Tritt er wieder auf, steht der Grund in der Tabelle, und dann
+  gehört er hierher zurück.*
 - **DER FELDBELEG ZU 0.20.0 IST NICHT VOLLSTÄNDIG GEFAHREN.** *Der Fingerprint
   ist bestätigt, und die Karte ist gesehen — aber die beiden Handgriffe, auf
   die es am meisten ankommt, fehlen:* **eine eigene Datei in den
@@ -247,4 +445,24 @@ GEGENPROBENTABELLE_0_20_1
 
 ---
 
-FINGERPRINTZEILE_0_20_1
+## 0.20.1 — Fingerprint `c67a13f9`
+
+**ZULETZT GEBILDET**, nach der letzten Änderung an einer ausgelieferten Datei —
+die Versionsnummer in `package.json` eingeschlossen, und `package-lock.json`
+trägt sie ein zweites Mal. **`public/` gehört dazu** (Stolperstein 158).
+
+**Nachgerechnet über denselben Weg, den `GET /api/stats` geht** — die Dateien
+aus `require.cache`, `bestandslauf.js` und alles unter `public/`, SHA-256, die
+ersten acht Stellen: `c67a13f9` bei Version `0.20.1`.
+
+> **DIE WERKZEUGRUNDE DANACH HAT IHN NICHT BEWEGT.** *Der Bericht über einen
+> abgerissenen Lauf (Abschnitt 5b) fasst `gegenprobe.js` und `pruefung.js` an;
+> beide werden nicht ausgeliefert, stehen per `.dockerignore` außerhalb des
+> Images und gehen in keinen Fingerprint ein.* **Nachgerechnet und unverändert.**
+
+> **IM FELD NOCH NICHT BESTÄTIGT.** *Der Sollwert steht hier; die Meldung von
+> der laufenden Installation über `GET /api/stats` steht aus.* **Zusammen mit
+> ihr gehören die beiden Handgriffe nachgeholt, die schon zu 0.20.0 offen
+> geblieben sind** (Abschnitt 6): eine eigene Datei in den Sicherungsordner
+> legen und nachsehen, dass sie liegen bleibt — und die Zeilen im
+> Sicherheitsprotokoll, eine je entfernter Kopie.

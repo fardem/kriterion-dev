@@ -2443,6 +2443,10 @@ Er baut jede geprüfte Sache **probeweise zurück**, in einer eigenen Kopie aus
 namentlich rot gemacht hat. **Ein Rückbau, der keine einzige Prüfung rot macht,
 ist ein Fund** — dann prüft die Prüfung nicht, was sie zu prüfen vorgibt.
 
+**Reißt ein Lauf ab, statt rot zu werden, druckt die Tabelle die letzten Zeilen
+seiner Ausgabe mit.** Die Kopie ist danach weg, und ein Abbruch ohne genannten
+Grund sieht aus wie ein Fund, ist aber eine Sackgasse.
+
 ## Den Schlüssel wechseln
 
 Es gibt genau einen Anlass dafür: **der Schlüssel ist in fremde Hand geraten.**

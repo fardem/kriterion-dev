@@ -353,12 +353,19 @@ liegen — diese Zeile ist die Brücke zwischen beiden Karten und stand schon da
 
 **Vorher 5246, nachher 5374 — 128 neue, keine weggefallen.**
 
+> **DIE VIER GRUPPENZAHLEN IN DIESER TABELLE SIND MIT 0.20.1 BERICHTIGT.** Sie
+> standen als 16 · 72 · 20 · 20 da und waren **geschätzt und nicht gezählt** —
+> die Summe stimmte, die Aufteilung nicht. **Nachgemessen an einem vollen Lauf
+> an genau diesem Stand:** 16 · 56 · 18 · 34, dazu **4** in vorhandenen
+> Gruppen. *Die Bauregel sagt: jede Zahl in den Papieren ist gemessen oder als
+> ungemessen benannt (Stolperstein 137).*
+
 | Gruppe | Prüfungen | Wofür |
 |---|---|---|
 | **Die Aufräumregel an der Tafel** | **16** | Die **echte** Regel: `regelTreffer()` wird aus `server.js` **herausgeschnitten und gelaufen** — von Klammer zu Klammer mit `indexOf`, dieselbe Bauform wie bei `F_ROUTEN`, und `TAG_MS` wird mitgeschnitten statt ein zweites Mal getippt. **Sieben Lagen**, dazu die Gegenlage darüber, der Fall ohne Wechsel, die **scharfe Grenze der Schere**, der **Boden von eins** und die **ungeordnete Liste** |
-| **Alte Sicherungen aufräumen: der echte Ordner** | **72** | Sieben Kopien, `fs.utimesSync` setzt das Alter, zwei Namen lügen absichtlich. Vier Dinge daneben, die nicht angefasst werden dürfen — **alle vier alt**. Vorschau, Grenzen, Rechte, zweite Bestätigung, der Rumpf mit Dateinamen, das Protokoll, die veralteten Kopien |
-| **Alte Sicherungen aufräumen: der Anschluss an die Sicherung** | **20** | Beide Hälften des Schalters, die **deterministisch gescheiterte** Sicherung, und **fünf Zusagen am Quelltext** |
-| **Die Karte „Alte Sicherungen" in der Oberfläche** | **20** | Schalter auf aus, Vorgaben und Grenzen an den Feldern, die Vorschau namentlich, der Deckel, der Grund, die veralteten getrennt, die Vorschau rechnet am Server neu, der Knopf hinter der Bestätigung |
+| **Alte Sicherungen aufräumen: der echte Ordner** | **56** | Sieben Kopien, `fs.utimesSync` setzt das Alter, zwei Namen lügen absichtlich. Vier Dinge daneben, die nicht angefasst werden dürfen — **alle vier alt**. Vorschau, Grenzen, Rechte, zweite Bestätigung, der Rumpf mit Dateinamen, das Protokoll, die veralteten Kopien |
+| **Alte Sicherungen aufräumen: der Anschluss an die Sicherung** | **18** | Beide Hälften des Schalters, die **deterministisch gescheiterte** Sicherung, und **fünf Zusagen am Quelltext** |
+| **Die Karte „Alte Sicherungen" in der Oberfläche** | **34** | Schalter auf aus, Vorgaben und Grenzen an den Feldern, die Vorschau namentlich, der Deckel, der Grund, die veralteten getrennt, die Vorschau rechnet am Server neu, der Knopf hinter der Bestätigung |
 
 **Die vier mitgezogenen Zahlen** stehen dort, wo sie schon standen: `F_ROUTEN`
 **71**, die Zwecke **neun** *(der neunte heißt `sicherung`)*, die Vorgänge

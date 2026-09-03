@@ -425,8 +425,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.20.1** — Fingerprint **`c67a13f9`**, **5391
-Prüfungen**, **561 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.20.1** — Fingerprint **`c67a13f9`**, **5403
+Prüfungen**, **563 Rückbauten in der Liste** (Abschnitt 8).
 *0.20.1 ist die Nacharbeit an 0.20.0 aus drei Feldbefunden: die Karte listet ab
 jetzt alle Sicherungen mit Nummer, Datum und Größe, der Bildschirmtext ist
 kurz, und „Boden" und „Schere" stehen dort nicht mehr.*
@@ -1273,7 +1273,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.20.1** | **`c67a13f9`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5391 |
+| **0.20.1** | **`c67a13f9`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5403 |
 | 0.20.0 | `12421721` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**; die drei Befunde daraus sind 0.20.1)* | 5374 |
 | 0.19.6 | `109cd457` *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5246 |
 | 0.19.5 | `f228a06d` *(am 3. September 2026 im Feld bestätigt — der Befund zu dieser Runde ist 0.19.6)* | 5237 |
@@ -8198,6 +8198,22 @@ Version, in der sie entstanden sind.*
     Verdopplung**, sondern die Klemme an der Stelle, an der der Fehler wehtut:
     wer die Funktion je von woanders her ruft, kommt an ihr nicht vorbei.
 
+301. **EIN ABBRUCH, DESSEN GRUND EINGEFANGEN UND DANN NICHT GEDRUCKT WIRD, IST
+    SCHLIMMER ALS EINER OHNE GRUND.** *Der Gegenprobentreiber fängt stdout
+    **und** stderr ein; gedruckt hat die Tabelle davon nur die roten Punkte und
+    dahinter „Rückgabewert 1" — eine Zahl ohne jede Auskunft.* **Zwei Wege
+    enden ohne Schlussblock, und nur einer schreibt eine Zeile, die der Leser
+    kennt:** der äußere Fang schreibt „Prüflauf abgebrochen: …"; ein
+    unbehandeltes Ereignis **außerhalb der abgewarteten Kette** schreibt davon
+    nichts — Node legt Meldung und Aufrufweg auf stderr und geht mit 1. **Für
+    diesen zweiten Weg sind die letzten Zeilen der Ausgabe die einzige
+    Auskunft — und die Kopie ist beim Aufräumen weg.** *Der Preis war eine
+    Stunde Suche nach einer Ursache, die im Arbeitsspeicher gestanden hatte und
+    weggeworfen worden war; am Ende stand kein Befund, sondern die Gewissheit,
+    dass das Werkzeug ihn nicht mehr hergibt.* **Die Lehre ist nicht
+    „sorgfältiger hinsehen", sondern baulich: wer eine Ausgabe einfängt, druckt
+    sie beim Abbruch auch.**
+
 ---
 
 ## 7. Prüfstand
@@ -8211,16 +8227,38 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5391 von 5391 bestanden** (0.20.1) — **17 neue, keine
+> **ZWEI PRÜFLÄUFE ZUGLEICH AUF DERSELBEN MASCHINE BRAUCHEN VERSCHIEDENE
+> `PORT_VERSATZ`.** *Der SMTP-Empfänger ist der einzige Horchposten im Prozess
+> selbst; seine Nummern werden **gezählt statt gewürfelt** (6110 aufwärts), und
+> er horcht vom Öffnen — nach rund 82 Sekunden — bis zum Ende des Laufs.* **Zwei
+> Läufe mit demselben Versatz nehmen sich also zwangsläufig dieselben Nummern,
+> und `listen()` trägt dort kein `on('error')`: der zweite stirbt mit
+> Rückgabewert 1, und die Meldung steht nur auf stderr.** *Der
+> Gegenprobentreiber hält sich von selbst daran — jede Nebenspur bekommt ihren
+> eigenen Versatz. Wer daneben von Hand einen zweiten Lauf startet, setzt ihn
+> selbst.*
+
+**Stand: 5403 von 5403 bestanden** (0.20.1) — **29 neue, keine
 weggefallen.** *0.20.0 davor brachte 128.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **561** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **563** Rückbauten.
+
+> **DIE VIER GRUPPENZAHLEN ZU 0.20.0 SIND MIT 0.20.1 BERICHTIGT.** Sie standen
+> als 16 · 72 · 20 · 20 da und waren **geschätzt und nicht gezählt** — die
+> Summe stimmte (128), die Aufteilung nicht. **Nachgemessen an einem vollen
+> Lauf am 0.20.0-Stand** (Fingerprint `12421721`, 5374 von 5374): **16 · 56 ·
+> 18 · 34**, dazu **4** in vorhandenen Gruppen. *Genau das verbietet die
+> Bauregel — „jede Zahl in den Papieren ist gemessen oder als ungemessen
+> benannt" —, und genau deshalb steht die Berichtigung hier und nicht
+> stillschweigend im Text (Stolperstein 137).*
 
 | Gruppe (0.20.1) | vorher | nachher | wofür |
 |---|---|---|---|
-| **Die Karte „Alte Sicherungen" in der Oberfläche** | 20 | **37** | **Die Liste ist der Gegenstand.** Belegt wird: sie führt **alle** Sicherungen und nennt ihre Zahl in der Überschrift; die **Nummern laufen von der jüngsten (1) zur ältesten**; je Zeile stehen Datum, Alter und Größe **und kein Dateiname**; **kein Knopf in einer Zeile** — die Liste ist nur zum Ansehen; die Zeilen, die die Regel trifft, sind **markiert**, die drei jüngsten nicht; **keine Zeile trägt beide Marken**; der Deckel ist die Regel `#auf-liste` im Stilblatt samt ihrer Rechnung. Dazu die kurzen Texte: *„Ohne Häkchen nur auf Knopfdruck."*, **unwiderruflich**, **nur das Namensschema** — und die **Verneinungen** daneben: die Begründung des Schalters, der Satz über die fremde Datei, das Wort **„Vorgabe"** und **„Boden"/„Schere"** stehen nicht mehr am Bildschirm |
+| **Die Karte „Alte Sicherungen" in der Oberfläche** | 34 | **51** | **Die Liste ist der Gegenstand.** Belegt wird: sie führt **alle** Sicherungen und nennt ihre Zahl in der Überschrift; die **Nummern laufen von der jüngsten (1) zur ältesten**; je Zeile stehen Datum, Alter und Größe **und kein Dateiname**; **kein Knopf in einer Zeile** — die Liste ist nur zum Ansehen; die Zeilen, die die Regel trifft, sind **markiert**, die drei jüngsten nicht; **keine Zeile trägt beide Marken**; der Deckel ist die Regel `#auf-liste` im Stilblatt samt ihrer Rechnung. Dazu die kurzen Texte: *„Ohne Häkchen nur auf Knopfdruck."*, **unwiderruflich**, **nur das Namensschema** — und die **Verneinungen** daneben: die Begründung des Schalters, der Satz über die fremde Datei, das Wort **„Vorgabe"** und **„Boden"/„Schere"** stehen nicht mehr am Bildschirm |
+| **Alte Sicherungen aufräumen: der echte Ordner** | 56 | **65** | **das Feld `dateien` der echten Antwort** — die Liste ist vollständig, die Nummern laufen von 1 bis 7, **Nummer 1 ist die jüngste**, die Reihenfolge ist nach Alter geordnet, je Eintrag Datum/Alter/Größe, die Marke `faellt` deckt sich mit der Trefferliste daneben, ohne Wechsel trägt keine `veraltet`, der **Dateiname steht in der Antwort** (auch wenn die Karte ihn nicht zeigt) und **nichts Fremdes** steht darin. *Gefunden hat diese Lücke der stumme Rückbau 568 — siehe Abschnitt 8* |
 | **Die Sicherung in der Oberfläche** | 52 | **52** | **eine umgedrehte Zusage statt einer gelöschten** (Stolperstein 74): die Zeile *„Dateien am Ort"* stand bis 0.20.0 in dieser Karte und wird jetzt daran geprüft, dass sie **nicht mehr** dasteht |
-| **zusammen** | **5374** | **5391** | **+17** |
+| **Die Gegenproben greifen** | 17 | **20** | **Ein abgerissener Lauf muss sagen, warum** (Stolperstein 301): ein Lauf ohne Schlussblock gilt als abgerissen, er **hebt die letzten Zeilen auf**, und der **Bericht druckt sie** unter die Abrisszeile. *Gemessen an der echten Ausgabe der echten Berichtsfunktion und nicht am Quelltext — ein Suchmuster bliebe grün, wenn die Schleife zwar dasteht, aber über die falsche Liste läuft* |
+| **zusammen** | **5374** | **5403** | **+29** |
 
 **Und die Runde davor, zum Vergleich — 5374 von 5374 bestanden** (0.20.0) —
 **128 neue, keine weggefallen.**
@@ -8228,10 +8266,10 @@ beschränkt und **nicht** der volle Lauf über alle **561** Rückbauten.
 | Gruppe (0.20.0) | vorher | nachher | wofür |
 |---|---|---|---|
 | **Die Aufräumregel an der Tafel** *(neu)* | — | **16** | **Die ECHTE Regel, an einer Tafel und nicht an einem Ordner.** `regelTreffer()` wird aus `server.js` **herausgeschnitten und gelaufen** — von Klammer zu Klammer mit `indexOf`, dieselbe Bauform wie bei `F_ROUTEN`; dass der Schnitt gegriffen hat und die Funktion **genau einmal** dasteht, wird zuerst geprüft (Stolperstein 81). Sie bekommt `jetzt` und die Marke des Wechsels als **Argument** und berührt weder Uhr noch Dateisystem — *eine Prüfung, die auf echte dreißig Tage wartet, gibt es nicht.* **Sieben Lagen:** nichts da · weniger als N · genau N · mehr als N, aber alle jung · mehr als N und die ältesten alt · alle alt, aber unter dem Boden · **N Kopien mit welchen von vor dem Schlüsselwechsel** (hier fällt nichts). Dazu die Gegenlage darüber *(über dem Boden fällt die alte brauchbare, die veralteten nicht)*, der Fall **ohne** Wechsel, die **scharfe Grenze der Schere** (genau X Tage fällt nicht, eine Sekunde älter schon), der **Boden von eins** und die **ungeordnete Liste** — samt der Zusage, dass die hereingegebene Liste unangetastet bleibt |
-| **Alte Sicherungen aufräumen: der echte Ordner** *(neu)* | — | **72** | **Und der Ordner wird echt angelegt.** Sieben Kopien, `fs.utimesSync` setzt das Alter, **zwei Namen lügen absichtlich in beide Richtungen** *(ein Name von heute mit 200 Tagen Alter, ein Name von 2020 mit null)* — das Alter kommt aus `mtimeMs` und nicht aus dem Dateinamen. Daneben liegen **`notizen.txt`, `kriterion-alt.sqlite.bak`, ein Unterverzeichnis und ein Symlink aus dem Ordner heraus**, alle vier **alt**, damit ein Fehler an der Musterprüfung wirklich wehtut. Belegt wird: die Vorschau nennt genau die drei, die die Regel trifft, mit Datum, Alter und Größe; **sie hat dabei nichts gelöscht**; ein anderer Wert rechnet sie neu, **ohne zu speichern**; trifft sie nichts, steht der **Grund** da; die **Grenzen halten am Server** (0, 999, „drei", `null`, 2,5 — abgewiesen, bevor irgendetwas gelöscht wird, und der Wert innerhalb der Grenzen geht durch); **ohne zweite Bestätigung 403 mit dem Zweck im Namen**; ein gewöhnlicher Admin kommt **auch mit Freigabe** nicht durch; **ein Rumpf mit Dateinamen ändert am Ergebnis nichts**; was die Regel nannte, ist weg und **alles andere namentlich noch da**; der Protokolleintrag steht da — **eine Zeile je Kopie, ohne Namen, ohne Pfad, ohne Merkmal**; und die **veralteten Kopien** stehen getrennt und fallen nur über den zweiten, ausdrücklichen Weg |
-| **Alte Sicherungen aufräumen: der Anschluss an die Sicherung** *(neu)* | — | **20** | **Beide Hälften des Schalters, und die gescheiterte Sicherung dazwischen.** Bei ausgeschaltetem Schalter räumt die Sicherung nichts weg; eingeschaltet räumt sie genau die drei weg, die die Regel nennt. **Die Sicherung wird deterministisch zum Scheitern gebracht** — die Namen der nächsten vier Sekunden werden vorgelegt, die Route antwortet mit **409**, und der Ordner bleibt dabei **schreibbar**: ein Aufräumen vor dem Fehlerausgang könnte hier also sehr wohl löschen. *Belegt wird nicht nur, dass alles liegen bleibt, sondern dass der Aufruf **gar nicht erst gelaufen** ist — `entferneSicherungen()` meldet jede Datei, die es nicht wegbekommt, und im neuen Teil des Containerprotokolls steht nichts davon.* Dazu **fünf Zusagen am Quelltext**, die sich am Verhalten nicht vollständig belegen lassen: der Aufruf steht **hinter** `renameSync` und `statSync`, **hinter ihm kein Fehlerausgang mehr**, er hängt **in seinem eigenen `try`**, die Löschroute liest aus dem Rumpf **genau ein Feld**, und das Entfernen prüft **jeden Namen noch einmal** und fragt mit `lstatSync` |
-| **Die Karte „Alte Sicherungen" in der Oberfläche** *(neu)* | — | **20** | Der Schalter steht **auf aus** und sagt warum; die Felder tragen **Vorgaben und Grenzen des Servers** und heißen im Klartext statt „N" und „X"; die Vorschau nennt die Dateien **namentlich** mit Datum, Alter und Größe, und was frei würde; **die jüngsten drei stehen nicht darin** — auch die dritte nicht, obwohl sie mit 35 Tagen alt genug wäre; die Liste trägt den **gemeinsamen Deckel** der Systemlisten; trifft die Regel nichts, steht der Grund da **und der Knopf ist tot**; die veralteten Kopien stehen **getrennt** mit eigenem Knopf, in Einzahl und Mehrzahl; ohne eingerichteten Ort sagt die Karte genau das **und sonst nichts**; eine Änderung am Feld fragt die Vorschau **am Server** neu und speichert dabei nichts, **erst das Verlassen des Feldes speichert**; und der Knopf ist **ohne zweite Bestätigung nicht bedienbar** — der Rumpf trägt danach **genau ein Feld**, und das ist die Art |
-| **Die Zahlen, die mitgezogen sind** | — | — | `F_ROUTEN` **70 → 71**, die Zwecke der zweiten Bestätigung **acht → neun** *(der neunte heißt `sicherung`)*, die Vorgänge **zwanzig → einundzwanzig** *(`sicherung.weg`)*, die Karten **neunzehn → zwanzig** — **und „Alte Sicherungen" steht unmittelbar hinter „Sicherung"**, namentlich geprüft |
+| **Alte Sicherungen aufräumen: der echte Ordner** *(neu)* | — | **56** | **Und der Ordner wird echt angelegt.** Sieben Kopien, `fs.utimesSync` setzt das Alter, **zwei Namen lügen absichtlich in beide Richtungen** *(ein Name von heute mit 200 Tagen Alter, ein Name von 2020 mit null)* — das Alter kommt aus `mtimeMs` und nicht aus dem Dateinamen. Daneben liegen **`notizen.txt`, `kriterion-alt.sqlite.bak`, ein Unterverzeichnis und ein Symlink aus dem Ordner heraus**, alle vier **alt**, damit ein Fehler an der Musterprüfung wirklich wehtut. Belegt wird: die Vorschau nennt genau die drei, die die Regel trifft, mit Datum, Alter und Größe; **sie hat dabei nichts gelöscht**; ein anderer Wert rechnet sie neu, **ohne zu speichern**; trifft sie nichts, steht der **Grund** da; die **Grenzen halten am Server** (0, 999, „drei", `null`, 2,5 — abgewiesen, bevor irgendetwas gelöscht wird, und der Wert innerhalb der Grenzen geht durch); **ohne zweite Bestätigung 403 mit dem Zweck im Namen**; ein gewöhnlicher Admin kommt **auch mit Freigabe** nicht durch; **ein Rumpf mit Dateinamen ändert am Ergebnis nichts**; was die Regel nannte, ist weg und **alles andere namentlich noch da**; der Protokolleintrag steht da — **eine Zeile je Kopie, ohne Namen, ohne Pfad, ohne Merkmal**; und die **veralteten Kopien** stehen getrennt und fallen nur über den zweiten, ausdrücklichen Weg |
+| **Alte Sicherungen aufräumen: der Anschluss an die Sicherung** *(neu)* | — | **18** | **Beide Hälften des Schalters, und die gescheiterte Sicherung dazwischen.** Bei ausgeschaltetem Schalter räumt die Sicherung nichts weg; eingeschaltet räumt sie genau die drei weg, die die Regel nennt. **Die Sicherung wird deterministisch zum Scheitern gebracht** — die Namen der nächsten vier Sekunden werden vorgelegt, die Route antwortet mit **409**, und der Ordner bleibt dabei **schreibbar**: ein Aufräumen vor dem Fehlerausgang könnte hier also sehr wohl löschen. *Belegt wird nicht nur, dass alles liegen bleibt, sondern dass der Aufruf **gar nicht erst gelaufen** ist — `entferneSicherungen()` meldet jede Datei, die es nicht wegbekommt, und im neuen Teil des Containerprotokolls steht nichts davon.* Dazu **fünf Zusagen am Quelltext**, die sich am Verhalten nicht vollständig belegen lassen: der Aufruf steht **hinter** `renameSync` und `statSync`, **hinter ihm kein Fehlerausgang mehr**, er hängt **in seinem eigenen `try`**, die Löschroute liest aus dem Rumpf **genau ein Feld**, und das Entfernen prüft **jeden Namen noch einmal** und fragt mit `lstatSync` |
+| **Die Karte „Alte Sicherungen" in der Oberfläche** *(neu)* | — | **34** | Der Schalter steht **auf aus** und sagt warum; die Felder tragen **Vorgaben und Grenzen des Servers** und heißen im Klartext statt „N" und „X"; die Vorschau nennt die Dateien **namentlich** mit Datum, Alter und Größe, und was frei würde; **die jüngsten drei stehen nicht darin** — auch die dritte nicht, obwohl sie mit 35 Tagen alt genug wäre; die Liste trägt den **gemeinsamen Deckel** der Systemlisten; trifft die Regel nichts, steht der Grund da **und der Knopf ist tot**; die veralteten Kopien stehen **getrennt** mit eigenem Knopf, in Einzahl und Mehrzahl; ohne eingerichteten Ort sagt die Karte genau das **und sonst nichts**; eine Änderung am Feld fragt die Vorschau **am Server** neu und speichert dabei nichts, **erst das Verlassen des Feldes speichert**; und der Knopf ist **ohne zweite Bestätigung nicht bedienbar** — der Rumpf trägt danach **genau ein Feld**, und das ist die Art |
+| **Die Zahlen, die mitgezogen sind** | — | **4** | `F_ROUTEN` **70 → 71**, die Zwecke der zweiten Bestätigung **acht → neun** *(der neunte heißt `sicherung`)*, die Vorgänge **zwanzig → einundzwanzig** *(`sicherung.weg`)*, die Karten **neunzehn → zwanzig** — **und „Alte Sicherungen" steht unmittelbar hinter „Sicherung"**, namentlich geprüft |
 | **zusammen** | **5246** | **5374** | **+128** |
 
 **Und die Runde davor, zum Vergleich — 5246 von 5246 bestanden** (0.19.6) —
@@ -9114,7 +9152,7 @@ eine Buchführung.*
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
 | **0.19.5** | **Der Ausschnitt wird eingerechnet (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
-| **0.20.1** | **Die Karte listet die Sicherungen (17 netto: 5374 → 5391)** | **drei neue (558 → 561, Nummern 567 bis 569); DREI nachgezogen (563, 565 — und **566 in eine andere Datei**: der Deckel der Liste ist seit dieser Runde eine Regel im Stilblatt und keine Klasse im Markup); GEGENPROBEN_0_20_1** | — |
+| **0.20.1** | **Die Karte listet die Sicherungen (29 netto: 5374 → 5403)** | **fünf neue (558 → 563: 567 bis 569 an der Karte, **W15 und W16 am Gegenprobentreiber**); DREI nachgezogen (563, 565 — und **566 in eine andere Datei**: der Deckel der Liste ist seit dieser Runde eine Regel im Stilblatt und keine Klasse im Markup); **ACHT GEFAHREN in drei Läufen** (563, 565, 566, 567, 568, 569 an der Karte; **W15 und W16** am Treiber), **EINER STUMM: 568** — *die Nummern wurden am Mock geprüft, und der rechnet sie selbst; das Feld `dateien` der echten Antwort war vollständig ungeprüft*. **Neun Zusagen an der echten Antwort nachgerüstet, danach namentlich rot.** *Sein erster Nachlauf riss nach 79 s ab, ohne genannten Grund — daraus ist Stolperstein 301 und der Bau am Treiber geworden; der zweite lief durch (5401 von 5403, 452 s).*** | **Stolperstein 301** |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell (128 netto: 5246 → 5374)** | **dreiundzwanzig neue (535 → 558, Nummern 544 bis 566); EINER nachgezogen (437 — `EIGENTUEMER_SCHLUESSEL` trägt jetzt vier Schlüssel statt einem); **24 gefahren** (die 23 neuen und der nachgezogene 437), **KEINER stumm**; **einer riss beim ersten Mal den Lauf ab** (561 — die Prüflage fasste Knoten ohne Klemme an, Stolperstein 161) und ist nach der Berichtigung mit 38 roten Punkten nachgefahren** | **Stolpersteine 299 und 300** |
 | **0.19.6** | **Die Ansicht kann fort sein (9 netto: 5237 → 5246)** | **drei neue (532 → 535, Nummern 541 bis 543); SECHS nachgezogen (516, 517, 532 bis 535 — sie zeigten auf Zeilen, in denen das Wort „backen" stand); 3 gefahren, KEINER stumm** | **Stolperstein 298** |
 
@@ -9784,16 +9822,28 @@ einundzwanzig Vorgänge, zwanzig Karten, neun ausgelieferte Module.
 | **8** | **„Boden" und „Schere" sind vom Bildschirm herunter** | *„Boden und Schere sind Begriffe, die hier nicht benutzt werden. Das spricht man hier nicht."* **Sie bleiben in Abschnitt 5.3 und in den Kommentaren** — dort tragen sie die Begründung, warum die Regel zwei Bedingungen hat. *Dieselbe Trennlinie wie in 5.6: eine Oberfläche sagt, WAS IST, nicht, warum es so gebaut wurde* |
 | **9** | **Die Karte „Sicherung" sagt nur noch etwas über die LETZTE Sicherung** | Die Zeile *„Dateien am Ort"* ist heraus. **Damit fällt die „Brücke zwischen beiden Karten", die der Auftrag zu 0.20.0 in ihr gesehen hat** — sie ist überflüssig geworden, weil die Nachbarkarte die vollständige Auskunft trägt. *Der Kasten zum Schlüsselwechsel bleibt: er ist eine Warnung, keine Auflistung* |
 
-**Prüfstand: 5391 von 5391** — **17 neue**, keine weggefallen.
-**Drei neue Rückbauten** (558 → 561, Nummern 567 bis 569), **drei
-nachgezogen** (563, 565 — und **566 in eine andere Datei**).
-**Kein neuer Stolperstein:** die Runde nimmt Text weg und stellt eine Liste
-dazu; die Lehren daraus stehen als Regeln in Abschnitt 5.3.
+| **10** | **Ein abgerissener Lauf sagt jetzt, warum er abriss** | *Nachträglich, aus der eigenen Arbeit dieser Runde und nicht aus dem Betrieb.* Der Gegenprobentreiber fing stdout **und** stderr ein und druckte den Grund nicht — beim ersten Anlauf von Rückbau 568 stand da nur „Rückgabewert 1". **`leseLauf()` hebt die letzten zwanzig Zeilen auf, der Bericht druckt sie unter die Abrisszeile** (Stolperstein 301) |
+
+**Prüfstand: 5403 von 5403** — **29 neue**, keine weggefallen.
+**Fünf neue Rückbauten** (558 → 563: **567 bis 569** an der Karte, **W15 und
+W16** am Gegenprobentreiber), **drei nachgezogen** (563, 565 — und **566 in
+eine andere Datei**).
+**Ein neuer Stolperstein: 301** — *ein Abbruch, dessen Grund eingefangen und
+dann nicht gedruckt wird, ist schlimmer als einer ohne Grund.* **Zur Karte
+selbst kam keiner dazu:** die Runde nimmt Text weg und stellt eine Liste dazu;
+die Lehren daraus stehen als Regeln in Abschnitt 5.3.
 
 **Was offen blieb:** unverändert das aus 0.20.0 — angefangene Kopien
 (`*.wird`), das Löschen einer einzelnen Kopie per Klick *(bewusst nicht
 gebaut)* und Punkt 9 des Sammelblatts *(Sicherungen gepackt ablegen — in der
-gewünschten Form gemessen und nicht empfohlen)*.
+gewünschten Form gemessen und nicht empfohlen)*. **Und neu: die Ursache des
+Abrisses von 79 Sekunden bei Rückbau 568 ist nicht ermittelt** und wird es auch
+nicht mehr — sie stand in der eingefangenen Ausgabe, die der Treiber damals
+nicht druckte. *Der Verdacht ist begründet und steht im Änderungsprotokoll: eine
+Portkollision am SMTP-Empfänger, der zu eben dieser Zeit aufgeht und dessen
+Nummern gezählt statt gewürfelt werden. Belegt ist er nicht.* **Gebaut ist nicht
+die Erklärung, sondern die Vorkehrung; tritt der Abriss wieder auf, steht der
+Grund in der Tabelle.**
 
 ### 0.20.0 — „Alte Sicherungen aufräumen — ohne Shell"
 
