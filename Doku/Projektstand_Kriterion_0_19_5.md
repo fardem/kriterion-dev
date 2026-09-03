@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 52 · Stand 3. September 2026 · gebaut: Version 0.19.4**
+**Kompakte Übergabe · Revision 53 · Stand 3. September 2026 · gebaut: Version 0.19.5**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,35 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.19.5 in einem Satz: der Ausschnitt wird gebacken, nicht gezogen.** *PATCH
+— die Installation kann danach nichts, was sie vorher nicht konnte; dieselben
+Knöpfe, derselbe Ausschnitt, dieselbe Bedienung — die Kachel zeigt ihn nur
+scharf.* **Diese Runde kehrt eine Entscheidung aus 0.19.4 um.** Dort stand
+*„die Ableitung skaliert, sie schneidet nicht"*, mit der Begründung, ein am
+Server beschnittenes `thumb` nähme dem Fokuspunkt seine Fläche. **Die
+Begründung galt, solange der Browser den Ausschnitt aus dem ganzen `thumb`
+zog — und genau das fällt in dieser Runde weg.** *Wer serverseitig schneidet
+und den CSS-Zoom stehen lässt, schneidet zweimal; wer den CSS-Zoom entfernt und
+nicht backt, zeigt den Mittenschnitt. Beides gehört in dieselbe Runde.*
+**Der Befund war eine einzige Kachel:** das Hauptbild des Hohem steht auf
+`zoom = 235` und war unscharf, alle zehn anderen Fotos desselben Eintrags
+stehen auf 100 und sind scharf. *Gerechnet in Quellpunkten je Anzeigepunkt auf
+der 299 px breiten Kachel: bei `zoom` 235 gab der gezogene Weg **0,73×** — also
+1,37fach hochgezogen —, der gebackene gibt **5,88×**, und zwar unabhängig
+davon, wie eng gezogen wird.* **`focus_x`, `focus_y` und `zoom` bleiben, wie
+sie sind:** sie hören auf, eine Anweisung an den Browser zu sein, und werden
+das **Rezept** für die Kachel. **Dazu drei Dinge, die daran hängen:** die
+Bildadresse trägt ein `?v=` mit `length(thumb)`, sonst zeigte der Browser den
+neuen Ausschnitt bis zu 24 Stunden lang nicht; das Speichern des Ausschnitts
+backt die Kachel neu und antwortet erst danach; und der Bestandslauf backt den
+vorhandenen Bestand mit. **Gemessen:** die Kachel wird in Summe **34,2 %
+kleiner** (36 Vorlagen in zwölf Seitenverhältnissen), das Backen kostet 157 ms
+im Median und die ganze Route 494 bis 873 ms — *also über die Grenze von
+150 ms und damit in den Thread*. **KEINE DATENBANKSTUFE:** acht
+Migrationsblöcke, Austauschformat **12**, `F_ROUTEN` **70**, neunzehn Karten,
+neun Module — *aber der Lauf überschreibt jede `thumb`-Spalte ein zweites Mal.*
+*Alles Weitere in Abschnitt 2 und Abschnitt 9.*
 
 **0.19.3 in einem Satz: zwei Arbeiten verlassen den Anfrageweg.** *PATCH — die
 Installation kann danach nichts, was sie vorher nicht konnte; dieselben Knöpfe,
@@ -300,7 +329,7 @@ Abschnitt 9.
 | `README.md` | die **Bedienung und der Betrieb**: einrichten, sichern, einspielen, wer was darf |
 | `Doku/Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` | die **Herleitung** des abgearbeiteten Stufenplans — Historie, geschlossen |
 | `Doku/Konzept_Video_und_grosse_Dateien.md` | **Teil II, große Dateien bis 2 GB** — noch nicht gebaut |
-| `Doku/Fehler_und_Ideen.md` | **Befunde, Fehler und Ideen — ohne Nummer.** Das Sammelblatt; es ersetzt seit Revision 26 `Roadmap.md` und `Ideen_und_Vorschlaege.md` |
+| `Doku/Fehler_und_Ideen.md` | **Alles Offene: Befunde, Fehler und Ideen.** *Im Gespräch „das Sammelblatt" — ein Papier dieses Namens gibt es nicht.* Es ersetzt seit Revision 26 `Roadmap.md` und `Ideen_und_Vorschlaege.md`. **Was gebaut ist, steht dort nicht mehr** (Abschnitt 12) |
 | `Doku/Auftrag_<Version>.md` | der Auftrag der **laufenden** Runde; er fällt weg, sobald die nächste beginnt |
 
 ---
@@ -347,14 +376,83 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.4** — Fingerprint **`03e3b818`**, **5207
-Prüfungen**, **514 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.19.5** — Fingerprint **`f228a06d`**, **5237
+Prüfungen**, **532 Rückbauten in der Liste** (Abschnitt 8).
+*0.19.5 kehrt eine Entscheidung aus 0.19.4 um: der Bildausschnitt wird ab jetzt
+am Server in die Kachel **gebacken** statt im Browser aus ihr gezogen. Die
+Kachel ist danach quadratisch, 512 × 512, und zeigt genau das, was eingestellt
+ist — unabhängig davon, wie eng gezogen wird.*
+**PATCH — KEINE DATENBANKSTUFE.**
+
+> **GESICHERT WERDEN MUSS VOR DEM EINSPIELEN NICHTS.** *Kein Migrationsblock,
+> keine Schemaänderung, kein neuer Index, das Austauschformat bleibt 12; die
+> neun ausgelieferten Module bleiben neun, und keine Datei kommt dazu.*
+> **ABER: der Lauf überschreibt jede `thumb`-Spalte — zum zweiten Mal nach
+> 0.19.4.** *Wiederherstellbar aus dem Original und den drei Zahlen `focus_x`,
+> `focus_y`, `zoom`; `photos.data` wird nicht angefasst, und genau deshalb ist
+> es keine Stufe.* **Nach dem Einspielen im Browser einmal hart neu laden.**
+
+> **DIE DATENBANK WIRD DABEI IN DER REGEL KLEINER — und das ist die Umkehr
+> gegenüber 0.19.4.** Gemessen an 36 nachgebauten Vorlagen in zwölf
+> Seitenverhältnissen: **die Summe der Kacheln fällt um 34,2 %** (im Mittel
+> 34,8 → 22,9 kB). *16:9 −44 %, 21:9 −58 %, 3:2 −33 %, 4:3 −26 %, quadratisch
+> −0,4 %.* **Die eine Ausnahme ist das Panorama:** ein 32:9-Foto lag als
+> 1280 × 180 (230k Bildpunkte) und wird 512 × 512 (262k) — zwischen −10 % und
+> **+116 %**, je nachdem, wie viel Struktur darin steckt. *Es ist trotzdem
+> richtig: seine Kachel war bis heute um das 1,66fache hochgezogen.*
+> **Und der enge Ausschnitt kostet:** dieselbe Fläche zeigt mehr Detail und
+> kodiert schlechter — bei `zoom` 235 rund +48 bis +72 % gegen `zoom` 100.
+
+> **DER AUSSCHNITT WIRD BEIM SPEICHERN NEU GEBACKEN, UND DIE ANTWORT WARTET
+> DARAUF.** Kein 202: es ist **eine** Zeile, der Benutzer wartet davor.
+> *Gemessen an der Route, an einem echten Server mit echter verschlüsselter
+> Datenbank: **494 bis 873 ms**.* **Drei Viertel davon sind das Zurückschreiben
+> des Satzes** — SQLite schreibt ihn ganz neu, und er trägt das Original
+> (Stolperstein 296). **Schlägt das Backen fehl, ist der Ausschnitt trotzdem
+> gespeichert** und die Zeile behält ihre alte Kachel.
+
+> **DIE BILDADRESSE TRÄGT EIN `?v=` MIT `length(thumb)`, UND DAS IST KEINE
+> KÜR.** Die Auslieferung setzt `Cache-Control: private, max-age=86400` —
+> solange der Eintrag frisch ist, fragt der Browser gar nicht erst nach.
+> **Gebacken ändert sich der INHALT unter derselben Adresse**, und der
+> Betreiber sähe seinen neuen Ausschnitt bis zu 24 Stunden lang nicht.
+> *Gemessen, was es kostet: die Fotoabfrage verliert damit die Deckung ihres
+> Index und braucht 17,1 statt 2,2 ms kalt, 2,9 statt 1,9 ms warm. `substr()`
+> statt `length()` hätte 1859 ms gekostet — 0.19.1 an einer zweiten Stelle.*
+
+> **DIE VIDEOKACHELN KOMMEN JETZT MIT, anders als in 0.19.4.** Bei
+> `art = 'video'` steht in `data` die Videodatei — **aber `medium` ist die
+> Ableitung ihres Standbilds und damit eine echte Vorlage.** *Der Kernsatz
+> gilt weiter: der Server öffnet nie ein Video.* **Sie müssen mitkommen:** der
+> Ausschnitteditor ist am Video offen, Schieber eingeschlossen, und ohne das
+> Backen zeigte eine Videokachel mit `zoom > 100` nach dieser Runde den
+> Mittenschnitt. *Ihre Kante fällt bei engem Ausschnitt unter 512 — aus einem
+> 1600 × 900 großen `medium` wird bei `zoom` 235 eine 383er Kachel. Mehr gibt
+> die Zeile nicht her.*
+
+> **EINE STELLE ÄNDERT IHR VERHALTEN, und das ist ausdrücklich entschieden:**
+> `.lb-thumb img`, der Streifen im Vollbild, zeigte bis 0.19.4 als einziger
+> **keinen** Ausschnitt — er setzte ihn gar nicht und zeigte einen
+> Mittenschnitt. **Mit einer gebackenen Kachel zeigt er ihn mit.** *Eine
+> Kachel, ein Bild, überall dasselbe; wer es anders wollte, bräuchte eine
+> dritte Ableitung — und das wäre eine Schemaänderung.*
+
+*Davor, am 3. September:* **0.19.4** — Fingerprint **`03e3b818`**, **5207
+Prüfungen**, **514 Rückbauten in der Liste**.
 *0.19.4 baut einen Fehler zurück, der seit dem ersten Tag da war: `thumb` war
 400 Bildpunkte auf der **langen** Kante, und jede Stelle, die ein `thumb`
 zeigt, schneidet es mit `object-fit: cover` zu — wer einschneidet, braucht die
 **kurze**. Ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle, und die
 Kachel zog die 225 auf ihre Breite hoch.*
 **PATCH — KEINE DATENBANKSTUFE.**
+
+> **IM FELD BESTÄTIGT am 3. September 2026.** An der laufenden Installation
+> nachgesehen (13 Einträge, 89 Fotos, 368,7 MB): **jede Fotozeile trägt einen
+> `thumb` mit 512 auf der kurzen Kante, aus dem Original gerechnet** —
+> Sky-Watcher `4032 × 3024` → `512 × 683`, Hohem `6192 × 4128` → `768 × 512`.
+> *Der Verdacht, die Ableitung ziehe von einer kleineren Variante, ist damit
+> widerlegt.* **Und derselbe Blick hat den Befund geliefert, aus dem 0.19.5
+> entstanden ist:** die eine Kachel mit `zoom = 235` war trotzdem unscharf.
 
 > **GESICHERT WERDEN MUSS VOR DEM EINSPIELEN NICHTS.** *Kein Migrationsblock,
 > keine Schemaänderung, kein neuer Index, das Austauschformat bleibt 12; die
@@ -390,11 +488,18 @@ Kachel zog die 225 auf ihre Breite hoch.*
 
 > **DIE KOMMENTARBILDER SIND NICHT NACHGEZOGEN, und der Grund ist gemessen:**
 > `.cmt-img` ist **86 × 86 px, fest** — nicht 299 wie die Kachel der Übersicht.
-> Der heutige `thumb` deckt das bei dPR 1 und 2 vollständig; bei dPR 3 fehlt
-> ihm das 1,15fache, gegen das 2,66fache an der Übersichtskachel. *Ein zweites
-> Kodieren für 1,15fach ist es nicht wert.* **Neu hereinkommende Kommentar-
-> bilder tragen die neue Geometrie trotzdem** — beide Wege rufen dieselbe
-> `makeVariants()`.
+> Der `thumb` bis 0.19.3 deckte das bei dPR 1 und 2 vollständig; bei dPR 3
+> fehlte ihm das 1,15fache, gegen das 2,66fache an der Übersichtskachel. *Ein
+> zweites Kodieren für 1,15fach ist es nicht wert.*
+>
+> > **BERICHTIGT MIT 0.19.5.** Hier stand: *„Neu hereinkommende Kommentar-
+> > bilder tragen die neue Geometrie trotzdem — beide Wege rufen dieselbe
+> > `makeVariants()`."* **Das stimmt nicht und hat nie gestimmt.**
+> > Kommentarbilder gehen durch `kodiereKommentarBild()` in `server.js` und
+> > werden dort mit **1600 auf der langen Kante** (`gross`) und **400 auf der
+> > langen Kante** (`klein`) abgeleitet — eine eigene Rechnung, die
+> > `makeVariants()` nie gerufen hat. *Am Verhalten ändert 0.19.5 dort nichts;
+> > die Aussage ist berichtigt.*
 
 *Davor, am 2. September:* **0.19.3** — Fingerprint **`cdbe0925`**, **5170
 Prüfungen**, **497 Rückbauten in der Liste**.
@@ -1078,7 +1183,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.4** | **`03e3b818`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5207 |
+| **0.19.5** | **`f228a06d`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5237 |
+| 0.19.4 | `03e3b818` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**)* | 5207 |
 | 0.19.3 | `cdbe0925` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5170 |
 | 0.19.2 | `0cdc709d` *(nie einzeln im Feld gelaufen — auf dem Wirt lief `f4f8a479`, also 0.19.2 ohne ihre zweite Hälfte; die fehlende Hälfte ist mit 0.19.3 mitgereist)* | 5108 |
 | 0.19.1 | `b0c4da5b` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5104 |
@@ -2390,12 +2496,38 @@ irgendetwas rot wird. Bis 0.19.3 war es `thumb`, seit dem ersten Tag.*
 > bleibt 21:9 (gemessen 1214 und 1223 px) unberührt, und 32:9 fällt auf
 > 1280 × 360 = 461k — genau auf das Maß eines gewöhnlichen `thumb`.*
 >
-> **UND DIE ABLEITUNG SKALIERT, SIE SCHNEIDET NICHT.** Der Ausschnitt entsteht
-> im Browser aus dem Fokuspunkt (`ausschnitt()` in `public/app.js`); ein am
-> Server beschnittenes `thumb` nähme dem Fokuspunkt seine Fläche, und der
-> eingestellte Ausschnitt zeigte danach etwas anderes. **Bei einem Panorama
-> fällt deshalb die KURZE Kante unter 512** — das Bild wird kleiner, nicht
-> enger.
+> **DIE ABLEITUNG SCHNEIDET — SEIT 0.19.5, UND BIS DAHIN GALT DAS GEGENTEIL.**
+> Hier stand von 0.19.4 bis zum 3. September 2026: *„Und die Ableitung
+> skaliert, sie schneidet nicht"*, mit der Begründung, der Ausschnitt entstehe
+> im Browser aus dem Fokuspunkt, und ein am Server beschnittenes `thumb` nähme
+> ihm seine Fläche. **Der Satz ist nicht gelöscht, sondern umgedreht**
+> (Stolperstein 201), *und der Grund gehört dazu:* **die Begründung galt,
+> solange der Browser den Ausschnitt aus dem ganzen `thumb` zog. Genau das ist
+> mit 0.19.5 weggefallen.**
+>
+> **`thumb` WIRD DAMIT QUADRATISCH: 512 × 512, mit dem eingestellten Ausschnitt
+> darin.** Der Deckel von 1280 gilt nur noch für die **ungeschnittene**
+> Ableitung — eine quadratische Kachel hat keine Kante, die davonlaufen könnte.
+> *Ungeschnitten abgeleitet wird noch, wo kein Zuschnitt mitgegeben wird: an
+> einer Zeile, deren Maße sich nicht lesen lassen.* **Beim Panorama fällt
+> deshalb nicht mehr die kurze Kante unter 512, sondern es wird auf sein
+> mittleres Quadrat geschnitten** — 1280 × 180 wird 512 × 512.
+>
+> **`medium` WIRD NICHT GESCHNITTEN**, und das steht als `schneidet: false` in
+> derselben Tafel: es wird mit `contain` gezeigt, also **ganz**, und der Editor
+> zeichnet den Ausschnittrahmen darauf. *Ein geschnittenes `medium` nähme ihm
+> seine Vorlage.*
+>
+> **DIE RECHNUNG STEHT AUF BEIDEN SEITEN DER LEITUNG, und das lässt sich nicht
+> vermeiden:** der Browser zeichnet den Rahmen live, der Server backt ihn,
+> dazwischen liegt HTTP. **Sie steht deshalb auf jeder Seite in GENAU EINER
+> Funktion** — `zuschnittKiste()` in `bilder.js` und dieselbe in
+> `public/app.js` —, **und der Prüfstand hält beide gegeneinander**
+> (Stolperstein 293).
+>
+> **`extract()` RECHNET IN DEN GEDREHTEN MASSEN**, `metadata()` meldet die
+> gespeicherten — Stolperstein 288 an einer zweiten Stelle, und diesmal wirft
+> es nicht, **es schneidet daneben** (Stolperstein 294).
 >
 > **WELCHE KANTE DIE KURZE IST, SAGT DER KOPF — UND ER SAGT ES NICHT ALLEIN.**
 > `metadata()` liefert die Maße so, wie sie in der Datei stehen; `.rotate()`
@@ -2512,7 +2644,8 @@ Steuerung des Browsers abgespielt, und darin lässt sich springen — die
 Auslieferung beantwortet **Ranges**. **Nichts spielt von selbst los**, und beim
 Blättern wie beim Verlassen wird angehalten. **Kein Zoom am Video:** der zweite
 Klick gehört der Abspielsteuerung. Der Ausschnittmodus bleibt bedienbar und
-zeigt dort das Standbild. Alles davon ist **abgeleitet** aus `art` und `dauer`
+zeigt dort das Standbild — **und seit 0.19.5 zeigt die Videokachel den dort
+eingestellten Ausschnitt auch wirklich**, weil sie aus `medium` gebacken wird. Alles davon ist **abgeleitet** aus `art` und `dauer`
 der Antwort, kein Schalter. **Umkodiert wird nichts**, weder beim Hochladen noch
 beim Ausliefern.
 
@@ -2522,11 +2655,19 @@ Was die vorhandenen Spalten dabei bedeuten:
 | Spalte | bei `art = 'bild'` | bei `art = 'video'` |
 |---|---|---|
 | `data` | das Originalbild | die **Videodatei** |
-| `thumb` | Kachel 400 px | **Standbild** 400 px |
-| `medium` | 1600 px | **Standbild** 1600 px |
-| `focus_x`/`focus_y` | Ausschnitt der Kachel | dasselbe, am Standbild |
+| `thumb` | Kachel **512 × 512, mit eingebackenem Ausschnitt** *(seit 0.19.5)* | dasselbe, **aus `medium` gebacken** |
+| `medium` | 1600 px auf der langen Kante, **nie geschnitten** | **Standbild** 1600 px |
+| `focus_x`/`focus_y` | **Rezept** für den Zuschnitt der Kachel | dasselbe, am Standbild |
 | `zoom` | wie eng der Ausschnitt sitzt | dasselbe, am Standbild |
 | `dauer` | `NULL` | Sekunden |
+
+> **DIE VIDEOZEILE HAT SEIT 0.19.5 EINE ANDERE VORLAGE ALS DIE FOTOZEILE, und
+> das ist der einzige Punkt, an dem die beiden Wege auseinandergehen.** Am Foto
+> wird `thumb` aus `data` gebacken; am Video steht dort die Videodatei, **also
+> aus `medium`** — der Ableitung des Standbilds, das der Browser beim Hochladen
+> mitgeschickt hat. *Der Kernsatz gilt weiter: der Server öffnet nie ein Video.*
+> **Ihr `medium` wird dabei nicht mitgeschrieben:** es IST die Vorlage, und es
+> aus sich selbst neu zu kodieren machte es nur schlechter.
 
 **Damit greift jede vorhandene Regel von selbst** — Rechte, Kaskade,
 Reihenfolge, Fokuspunkt, Verschlüsselung, Sicherung. **Was NICHT von selbst
@@ -4294,10 +4435,19 @@ sucht, und nicht dort, wo sie jemanden aufhält.*
   die Ansicht zumacht und das andere das Bild vernichtet, wären die
   gefährlichste Nachbarschaft der Instanz. *Am Kommentarbild gibt es ihn nicht —
   das wird am Kommentar entfernt.*
-- **Der Fokuspunkt schneidet nichts weg.** Zwei Prozentwerte verschieben nur das
-  sichtbare Fenster der quadratischen Vorschau (`object-position`); die Datei
-  bleibt unangetastet. *Ein einmal weggeschnittener Bildrand wäre
-  unwiederbringlich, ein Prozentwert ist jederzeit korrigierbar.*
+- **Der Fokuspunkt schneidet die ABLEITUNG, nie das Original.** *Bis 0.19.4
+  stand hier: „Der Fokuspunkt schneidet nichts weg. Zwei Prozentwerte
+  verschieben nur das sichtbare Fenster der quadratischen Vorschau
+  (`object-position`)." Seit dem 3. September 2026 gilt der erste Halbsatz
+  nicht mehr — der Satz ist umgedreht und nicht gelöscht (Stolperstein 201).*
+  **Seit 0.19.5 backt der Server den Ausschnitt in `thumb`**; die drei Werte
+  `focus_x`, `focus_y` und `zoom` sind damit das **Rezept** für die Ableitung
+  und keine Anweisung an den Browser mehr. **Der tragende Teil der alten
+  Begründung gilt unverändert weiter: `photos.data` bleibt unangetastet**, und
+  genau deshalb ist der Ausschnitt jederzeit änderbar — *ein einmal
+  weggeschnittener Bildrand wäre unwiederbringlich, ein Prozentwert ist
+  jederzeit korrigierbar, und die Kachel wird aus dem Original neu gebacken.*
+  **`medium` und das Original werden nie geschnitten.**
 - **Vom Kommentarbild wird kein Original aufbewahrt.** Gespeichert wird die
   verkleinerte Variante samt Kachel.
 - **Kommentarbilder liegen in einer eigenen Tabelle**, nicht in `attachments`
@@ -7421,6 +7571,11 @@ Version, in der sie entstanden sind.*
     Ausprobieren am seltensten auf.*
     **Deshalb geht der Wert als EIGENSCHAFT hinaus (`--zoom`), und gerechnet
     wird im Stilblatt** — dort, wo auch die andere Hälfte steht.
+    > **DAS BEISPIEL GIBT ES SEIT 0.19.5 NICHT MEHR, DIE LEHRE SCHON.** Der
+    > Zoom wird seither in die Kachel gebacken; `--zoom` steht in keiner Datei
+    > mehr, und `.card:hover` heißt schlicht `scale(1.03)`. **Wer hier nach der
+    > Zeile sucht, findet sie nicht — der Satz darüber gilt trotzdem für jeden
+    > nächsten Wert, der je Element aus `app.js` kommt.**
 
 273. **`ALTER TABLE ADD COLUMN` hängt eine Spalte IMMER HINTEN AN — wer sie in
     der DDL an ihren logischen Platz stellt, bekommt zwei verschiedene
@@ -7451,6 +7606,13 @@ Version, in der sie entstanden sind.*
     **Gefunden hat es die Gegenprobe und nicht der Prüflauf:** Rückbau 453 kam
     STUMM zurück. *Ein stummer Rückbau ist keine Formalie — er ist die Stelle,
     an der der Prüfstand wegsieht.*
+    > **AUCH HIER IST DER GEGENSTAND SEIT 0.19.5 WEG:** das Stilblatt rechnet
+    > keinen Zoom mehr ein, und Rückbau 453 setzt die Zeile heute WIEDER ein,
+    > statt sie zu nehmen — *dieselbe Zusage, andersherum.* **Die Lehre gilt
+    > unverändert**, und sie hat in dieser Runde ein zweites Beispiel bekommen:
+    > die Rechnung des Ausschnitts steht auf beiden Seiten der Leitung, und
+    > geprüft wird, dass beide dasselbe ergeben (Stolperstein 293).
+
     **Wo ein Wert die Grenze zwischen zwei Dateien überquert — Skript nach
     Stilblatt, Server nach Oberfläche —, gehört an BEIDE Enden eine Prüfung.**
 
@@ -7470,7 +7632,11 @@ Version, in der sie entstanden sind.*
     *Der Ausweg ist `WITH x AS MATERIALIZED (…)`: erst die Länge ziehen, dann
     über eine Zahl gruppieren.*
 
-276. **`transform: scale()` OHNE `transform-origin` SPERRT DIE RÄNDER AUS.** Die
+276. **`transform: scale()` OHNE `transform-origin` SPERRT DIE RÄNDER AUS.**
+    *(Der Gegenstand ist seit 0.19.5 weg — der Ausschnitt wird gebacken, und
+    `transform-origin` steht in keiner Datei mehr. Die Lehre bleibt: wer eine
+    Fläche skaliert und den Ankerpunkt vergisst, zeigt etwas anderes, als er
+    einstellt.)* Die
     Vergrößerung verankert ohne ihn in der **Mitte**; was man sieht, ist erst
     der `object-position`-Ausschnitt und *davon* noch einmal der mittige Teil.
     **Gemessen in echtem Chromium** (Kachel 313 × 313, `object-fit: cover`,
@@ -7698,6 +7864,60 @@ Version, in der sie entstanden sind.*
     denselben Fortschritt gibt es damit nicht mehr (Stolperstein 47), und der
     Schlüssel ist dieselbe Zeichenfolge, mit der der Thread erzeugt wird.*
 
+293. **EINE REGEL, DIE AUF BEIDEN SEITEN DER LEITUNG GEBRAUCHT WIRD, STEHT
+    ZWEIMAL — UND MUSS DESHALB GEGENEINANDER GEPRÜFT WERDEN.** Der Browser
+    zeichnet den Rahmen live, der Server backt ihn, und dazwischen liegt HTTP;
+    eine gemeinsame Fassung gibt es nicht. **Also steht sie auf jeder Seite in
+    GENAU EINER Funktion, und der Prüfstand hält beide gegeneinander** — im
+    Fall des Ausschnitts über 140 Wertepaare aus sieben Bildmaßen, vier
+    Zoomstufen und fünf Punkten. *Ohne diese Zusage laufen sie beim nächsten
+    Anfassen auseinander, und niemand merkt es: die Kachel zeigt ja ein Bild,
+    nur das falsche.*
+
+294. **`extract()` RECHNET IN DEN GEDREHTEN MASSEN, UND SHARP SAGT SIE NICHT.**
+    Stolperstein 288 an einer zweiten Stelle — und diesmal wirft es nicht,
+    **es schneidet daneben.** *Nachgemessen: `metadata()` meldet 4032 × 3024
+    mit Ausrichtung 6, `sharp(x).rotate().metadata()` meldet **ebenfalls**
+    4032 × 3024 — die Eingangsmaße —, und das erzeugte Bild ist 3024 × 4032.*
+    **Die gedrehten Maße gibt es nur über den EXIF-Vermerk selbst.** Wer die
+    Kiste aus den gemeldeten baut, schneidet an der falschen Stelle; bei 3024
+    Breite läge ein `left` von 3500 sogar außerhalb, und dann wirft es doch.
+    *Es trifft den echten Bestand: die fünfzehn Fotos des Sky-Watcher liegen
+    genau so.*
+
+295. **`extract()` NIMMT DER JPEG-DEKODIERUNG IHR SHRINK-ON-LOAD.** libjpeg
+    dekodiert sonst gleich in 1/2, 1/4 oder 1/8 der Maße; mit einem Zuschnitt
+    davor muss es das ganze Bild dekodieren. **Der Zuschnitt kostet damit das
+    DEKODIEREN und nicht das Kodieren — und der teuerste Fall ist der WEITESTE
+    Ausschnitt, nicht der engste.** *Gemessen an einem 6192 × 4128: 247,0 ms
+    bei `zoom` 100 gegen 155,1 ms bei `zoom` 400; ohne Zuschnitt 189,2 ms.*
+    **Wer die Kosten eines Zuschnitts nach der Größe des Ausschnitts schätzt,
+    schätzt in die falsche Richtung.**
+
+296. **EINE SPALTE ZU ÄNDERN SCHREIBT DEN GANZEN SATZ NEU.** Eine 20-kB-Kachel
+    in eine Zeile zu schreiben, die ein 12,7-MB-Original trägt, kostet
+    **473,7 ms an einer frisch geöffneten Datei** und 48,2 ms an einer warmen —
+    **linear in der Größe des ORIGINALS und nicht in der der Kachel.**
+    *`SET thumb` und `SET thumb, medium` kosten dabei dasselbe (48,2 gegen
+    49,2 ms): wer eine Spalte spart, spart nichts.* **Und der kalte Fall ist
+    der Regelfall**, denn `cache_size` steht auf 2 MB — ein großer Satz passt
+    nicht hinein und wird zum Schreiben ein zweites Mal gelesen und
+    entschlüsselt.
+
+297. **EIN MERKMAL, DAS „SCHON BEARBEITET" VON „NOCH NICHT" TRENNT, MUSS OHNE
+    DIE VORLAGE AUSKOMMEN — sonst ist die Auswahl kein Festpunkt.** „Ist die
+    Kachel quadratisch **und hat sie die Zielkante**?" wäre die naheliegende
+    Frage gewesen und genau der Fehler: **mit `withoutEnlargement` ist eine
+    gebackene Kachel kleiner als die Zielkante, sobald der Ausschnitt es ist**
+    (kleines Original, enger Ausschnitt), und sie fiele bei jedem Start zurück
+    in die Auswahl. *Gefragt wird deshalb nur nach dem, was das Verfahren
+    ZWANGSLÄUFIG hinterlässt — ein Quadrat.* **Der Preis ist ein Fall, den die
+    Frage nicht sieht, und er gehört benannt: eine quadratische Vorlage.** Ihre
+    ungeschnittene Kachel ist ebenfalls 512 × 512. *Bei `zoom = 100` macht das
+    nichts — beide Wege liefern dasselbe Bild; bei `zoom > 100` bleibt sie
+    weich, bis jemand ihren Ausschnitt das nächste Mal speichert. Im Bestand
+    ist unter 89 Fotos kein quadratisches.*
+
 ---
 
 ## 7. Prüfstand
@@ -7711,10 +7931,32 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5207 von 5207 bestanden** (0.19.4) — **37 neue, keine weggefallen.**
-*0.19.3 davor brachte zweiundsechzig.*
+**Stand: 5237 von 5237 bestanden** (0.19.5) — **30 neue, keine
+weggefallen.** *0.19.4 davor brachte siebenunddreißig.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **514** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **532** Rückbauten.
+
+| Gruppe (0.19.5) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Der Ausschnitt wird gebacken — 0.19.5** *(neu)* | — | **27** | **Die Vorlagen sind hier nicht einfarbig, und das ist der Unterschied zur Gruppe darunter:** wo der Ausschnitt SITZT, lässt sich an einer einfarbigen Fläche gar nicht zeigen. Jede Vorlage trägt **vier verschieden gefärbte Viertel**; welches die Kachel zeigt, sagt ihr Mittelwert. Belegt wird, dass ein frisch hochgeladenes 16:9-Foto eine **quadratische 512er Kachel** trägt und bei den Vorgabewerten die Mitte zeigt, dass die **Fassung** an der Fotozeile **und** am Hauptbild der Übersicht steht, dass das Speichern des Ausschnitts **die gewählte Ecke** in die Kachel backt und **die Antwort die NEUE Fassung trägt**, dass die **gegenüberliegende Ecke** überhaupt entsteht *(ohne die Klammer in `schnittRechteck()` wirft `sharp` dort)*, dass **`medium` ungeschnitten** bleibt, dass ein Ausschnitt unter der Zielkante **nicht hochgerechnet** wird und eine große Vorlage sie **auch bei `zoom` 400 erreicht**, dass der Zuschnitt **in den GEDREHTEN Maßen** rechnet *(eine Marke, die gespeichert oben links lag, findet sich nach dem Drehen oben rechts)*, dass **beide Rechnungen** — Browser und Server — über **140 Wertepaare** übereinstimmen, dass die Fälligkeitsfrage ein **Festpunkt** ist, dass der Zuschnitt **im Browser weg** ist und die Adresse die Fassung **an einer Stelle** bekommt, und dass die **Videokachel aus `medium`** gebacken wird, während ihr `medium` unverändert stehen bleibt |
+| **Die Ableitung folgt der Anzeige — 0.19.4** | 15 | **13** | **umgeschrieben, nicht gekürzt.** Sie prüft ihre Zusagen jetzt an `makeVariants()` selbst statt über den Server — *kein Rückzug, sondern die Folge der Runde:* der Anfrageweg liefert eine gebackene Kachel, und die ist immer quadratisch. **Die Zusagen gelten der UNGESCHNITTENEN Ableitung, und die muss dieselbe bleiben.** Zwei Zeilen sind dabei zusammengefallen, weil das Seitenverhältnis ohne Zuschnitt eine Rechnung ist und keine Messung |
+| **Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3** | 45 | **49** | **fünf neue** für die vierte Aufgabe und das Backen: die einzelne Zeile wird gebacken und **meldet ihr Ergebnis**, eine Zeile, die es nicht gibt, meldet `ok: false` **und wirft nicht**, die Videozeile ist **nicht mehr übersprungen**, sondern **aus ihrem `medium` gebacken**, ihr `medium` steht **byte-genau** unverändert da, und der Server startet jetzt für **vier** Aufgaben einen Thread |
+| **Fokuspunkt in der Oberflaeche** | 35 | **34** | **umgekehrt, nicht erweitert.** Bis 0.19.4 war zu belegen, DASS das Stilblatt `--zoom` liest; jetzt ist die Zusage die umgekehrte — **es darf nicht wieder da sein**, sonst wird zweimal geschnitten. Dazu: `ausschnitt()` gibt es **nicht mehr**, `zuschnittKiste()` rechnet an seiner Stelle, die Karte trägt **keine `object-position`** mehr, **dafür die Fassung in der Adresse** — und **ohne Fassung steht sie nicht da** statt `?v=undefined` |
+| **Die Bildablage in der Oberflaeche** | 39 | **40** | die Karte nennt jetzt das **Quadrat** der kleinen Ableitung und den Ausschnitt darin statt einer Kante — **und die Fortschrittszeile kennt beide Richtungen**: gebacken wird die Kachel in der Regel kleiner, und eine Zeile, die nur „mehr" sagen kann, zeigte in die falsche Richtung |
+| **Die Bestandskarte fragt einmal** | | **+1** | die **Fassung steht NEBEN der Spaltenliste und nicht in ihr** — `length(thumb)` lässt sich nicht indizieren, und `PHOTO_SPALTEN` ist zugleich die Spaltenliste des deckenden Index |
+| **zusammen** | **5207** | **5237** | **+30** |
+
+> **DIE DREI MESSUNGEN, DIE DIESE RUNDE ENTSCHIEDEN HABEN, STEHEN NICHT ALS
+> PRÜFUNG DA** — dieselbe Lage wie in 0.19.4. *Was der Zuschnitt kostet (157 ms
+> im Median, 247 ms im 95. Perzentil, die Route 494 bis 873 ms), was die
+> gebackene Kachel an Bytes kostet (−34,2 % über 36 Vorlagen) und was
+> `length(thumb)` in der Fotoabfrage kostet (17,1 statt 2,2 ms kalt) — alle
+> drei brauchen Material und Zeit, die ein Prüflauf nicht hat.* **Was hier
+> steht, ist die Geometrie, die daraus folgt.** Der Aufbau aller drei steht im
+> Änderungsprotokoll 0.19.5.
+
+**Und die Runde davor, zum Vergleich — 5207 von 5207 bestanden** (0.19.4) —
+**37 neue, keine weggefallen.**
 
 | Gruppe (0.19.4) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -8522,6 +8764,11 @@ eine Buchführung.*
 | **0.18.1** | **Zehn Zeilen heisst zehn Zeilen dieser Liste (2 netto)** | **einer neu (421 → 422, Nummer 430 — bis 429 ist vergeben, Stolperstein 269); zwei nachgezogen; 3 gefahren, 0 stumm** | **Stolpersteine 267 bis 269** |
 | **0.18.0** | **Die Suche wird nachvollziehbar (104 netto, keine weggefallen)** | **32 neue (389 → 421); ACHT nachgezogen, weil sie auf die Umgebung eines Ausdrucks zeigten statt auf ihn (Stolperstein 264); alle 32 gefahren, 0 stumm — der erste Lauf hatte NEUN Befunde: sechs stumme Rückbauten und drei abgerissene Läufe, alle abgearbeitet** | **Stolpersteine 260 bis 266** |
 | **0.19.0** | **Die Bildablage (136 netto)** | **28 neue (422 → 450, Nummern 431 bis 458); einer nachgezogen (Stolperstein 201: Rückbau 233 zeigt statt auf Formatnummer 11 jetzt auf 12); alle 28 gefahren, 100 rote Punkte, kein abgerissener Lauf, 2 STUMM — einer angekündigt (433, der Größenvergleich ließ sich mit erzeugtem Material nicht herstellen), einer ein Befund (453: der Prüfstand belegte nirgends, dass das Stilblatt den Zoom einrechnet; Lücke geschlossen, nachgefahren, jetzt rot)** | **Stolpersteine 270 bis 274** |
+| **0.19.1** | **Was 0.19.0 falsch gemacht hat (49 netto: 5055 → 5104)** | **22 neue (450 → 472, Nummern 459 bis 479, dazu W13); vier nachgezogen (Stolperstein 201); NICHT GEFAHREN — die Runde endete ohne Gegenprobenlauf** | **Stolpersteine 275 bis 278** |
+| **0.19.2** | **Was 0.19.1 nur zur Hälfte getroffen hat (4 netto: 5104 → 5108)** | **elf neue (472 → 481, Nummern 480 bis 490); sechs nachgezogen, ZWEI weggefallen (346 und 459 — die Tafel, die sie zurückbauten, gibt es nicht mehr); NICHT GEFAHREN** | **Stolpersteine 279 bis 281** |
+| **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
+| **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
+| **0.19.5** | **Der Ausschnitt wird gebacken (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -8537,39 +8784,46 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.19.4 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Vier Handgriffe, und
-  sie sind die Runde:* **(a)** eine **Kachel mit einem 16:9-Bildschirmfoto
-  ansehen** — sie ist scharf, auch mit engerem Ausschnitt; **(b)** den
-  **Streifen am Eintrag** ansehen — dieselbe Schärfe; **(c)** den **Betrachter
-  daneben** — unverändert, `medium` ist nicht angefasst; **(d)** die
-  **Kennzahlen** — `thumb` ist gewachsen, und um wie viel steht im
-  Änderungsprotokoll. *Die Befehle dazu standen im Chat der Runde, nicht hier.*
-- **WIE VIEL DIE DATENBANK WIRKLICH WÄCHST, IST NICHT GEMESSEN** — nur der
-  Faktor je Bild ist es. **Er hängt allein am Seitenverhältnis:** ein
-  quadratisches Bild wächst gar nicht, ein 16:9 auf das 3,06fache. *Die
-  Mischung im echten Bestand kennt nur die laufende Installation.* **Der
-  Betreiber kann seinen eigenen Faktor ausrechnen, ohne etwas abzuleiten** —
-  der Befehl steht im Änderungsprotokoll 0.19.4.
-- **UND DER EINE NACHWEIS, DER SEIT 0.19.1 AUSSTEHT, IST JETZT BILLIG ZU
-  FÜHREN:** der Lauf über den Bestand läuft beim **ersten Start nach dem
-  Einspielen** von selbst. **Dabei in der Übersicht blättern und im
-  Systembereich klicken** — reagiert die Oberfläche durchgehend, ist der Thread
-  aus 0.19.3 im Feld belegt.
-- **DIE KOMMENTARBILDER SIND JETZT GRÖSSER, ALS IHRE ANZEIGE FORDERT.**
-  `.cmt-img` ist 86 × 86 px; ein neu hereinkommendes Kommentarbild bekommt
-  trotzdem 512 auf der kurzen Kante, weil beide Bildwege **eine** Tafel
-  benutzen. *Der Bestand ist mit Begründung nicht nachgezogen worden — für neu
-  Hereinkommendes ist es die Kehrseite derselben Entscheidung.* **Eine dritte
-  Ableitung wäre die Antwort und ist eine eigene Runde mit eigener Messung;
-  gemessen ist bisher nur, was die Anzeige fordert, nicht was der Bestand an
-  Kommentarbildern trägt.**
-- **`reclaim()` AM ENDE DES NACHZIEHENS HAT KEINE GEGENPROBE, DIE GREIFT.**
-  Seine Wirkung ist eine **Dateigröße**, und in dieser Runde wächst die Datei
-  ohnehin — die freigegebenen Seiten werden von den größeren Ableitungen sofort
-  wieder belegt. *Nachgesehen und nicht vermutet: die WAL-Datei ist nach dem
-  Lauf in beiden Fällen weg, weil `db.close()` ebenfalls einen Punkt setzt.*
-  **Rückbau 516 steht mit dieser Angabe als erwartet stumm in der Liste**;
-  dieselbe Lücke besteht seit 0.19.3 an der Umstellung.
+- **0.19.5 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Vier Handgriffe, und
+  sie sind die Runde:* **(a)** das **Hauptbild des Hohem** ansehen
+  (`zoom = 235`) — es muss **scharf** sein; **(b)** den **Ausschnitt verstellen
+  und speichern** — die Kachel zeigt den neuen Schnitt **sofort**, ohne hartes
+  Neuladen; **(c)** den **Streifen am Eintrag** — derselbe Schnitt; **(d)** den
+  **Betrachter daneben** — unverändert das ganze Bild. *Die Befehle dazu stehen
+  im Chat der Runde, nicht hier.*
+- **DIE DREI OFFENEN PUNKTE AUS 0.19.4 SIND GESCHLOSSEN.** *(a)* **Der
+  Feldbeleg ist geführt** — 89 Fotos, 512 auf der kurzen Kante, aus dem
+  Original gerechnet. *(b)* **Der Ausschnitt als Grenze der Kachel** ist der
+  Gegenstand dieser Runde. *(c)* **Der Cache** trägt jetzt ein `?v=` mit
+  `length(thumb)`.
+- **WIE VIEL DIE DATENBANK WIRKLICH SCHRUMPFT, IST NICHT GEMESSEN** — nur der
+  Faktor je Seitenverhältnis ist es (−34,2 % über 36 nachgebaute Vorlagen).
+  *Die Mischung im echten Bestand kennt nur die laufende Installation, und ein
+  Panorama darin kehrte das Vorzeichen um.*
+- **DIE WARTEZEIT BEIM SPEICHERN DES AUSSCHNITTS IST NICHT AM ECHTEN BESTAND
+  GEMESSEN.** *An nachgebauten Vorlagen in seinen Maßen und Bytes: 494 bis
+  873 ms.* **Drei Viertel davon sind das Zurückschreiben des Satzes**
+  (Stolperstein 296) — kürzer würde es nur mit den Blobs in einer eigenen
+  Tabelle, und das ist eine Schemaänderung.
+- **DIE QUADRATISCHE VORLAGE WIRD VON DER FÄLLIGKEITSFRAGE NICHT ERKANNT**
+  (Stolperstein 297). *Ihre ungeschnittene Kachel ist ebenfalls 512 × 512.* Bei
+  `zoom = 100` macht das nichts; bei `zoom > 100` bleibt sie weich, **bis
+  jemand ihren Ausschnitt das nächste Mal speichert** — dann backt die Route
+  sie. *Unter den 89 Fotos des Bestands ist kein quadratisches.*
+- **DIE KOMMENTARBILDER GEHEN EINEN EIGENEN WEG, und das ist mit 0.19.5
+  nachgesehen worden.** Sie werden in `kodiereKommentarBild()` abgeleitet —
+  **1600 und 400 auf der LANGEN Kante** — und haben `makeVariants()` nie
+  gerufen. *Die Papiere aus 0.19.4 behaupteten das Gegenteil; die Aussage ist
+  berichtigt.* **`.cmt-img` ist 86 × 86 px fest**, und 400 auf der langen Kante
+  deckt das bei dPR 1 und 2; bei dPR 3 und einem 16:9-Bild fehlt es. *Eine
+  eigene Runde mit eigener Messung — gemessen ist bisher nur, was die Anzeige
+  fordert, nicht was der Bestand an Kommentarbildern trägt.*
+- **`reclaim()` AM ENDE DES BACKENS HAT KEINE GEGENPROBE, DIE GREIFT.**
+  Seine Wirkung ist eine **Dateigröße**, und die verschiebt sich in dieser
+  Runde in beide Richtungen. *Nachgesehen und nicht vermutet: die WAL-Datei ist
+  nach dem Lauf in beiden Fällen weg, weil `db.close()` ebenfalls einen Punkt
+  setzt.* **Rückbau 516 steht mit dieser Angabe als erwartet stumm in der
+  Liste**; dieselbe Lücke besteht seit 0.19.3 an der Umstellung.
 
 - **0.19.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Acht Handgriffe, und
   sie sind die Runde:* **(a)** ein **Bildschirmfoto mit Strg+V einfügen** — in
@@ -9104,6 +9358,51 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.19.5 — „Der Ausschnitt wird gebacken, nicht gezogen"
+
+**PATCH · 3. September 2026 · eine Entscheidung aus 0.19.4 wird umgekehrt, und
+zwar in beiden Hälften zugleich.** *Angefasst sind `bilder.js`,
+`bestandslauf.js`, `server.js`, `public/app.js`, `public/style.css`,
+`pruefung.js`, `gegenprobe.js`, `package.json` und die Papiere.* **KEINE
+DATENBANKSTUFE** — kein Migrationsblock, keine Schemaänderung, kein neuer
+Index, Austauschformat **12**, `F_ROUTEN` **70**, neun ausgelieferte Module.
+**ABER: der Lauf überschreibt jede `thumb`-Spalte — zum zweiten Mal nach
+0.19.4.**
+
+| # | Was | Womit belegt |
+|---|---|---|
+| **1** | **Die Kachel wird gebacken, nicht gezogen** | `focus_x`, `focus_y` und `zoom` hören auf, eine Anweisung an den Browser zu sein, und werden das **Rezept** für `thumb`. *In Quellpunkten je Anzeigepunkt auf der 299 px breiten Kachel: bei `zoom` 235 gab der gezogene Weg **0,73×** — 1,37fach hochgezogen —, der gebackene gibt **5,88×**, unabhängig von der Weite des Ausschnitts.* **Das Original bleibt unangetastet, und genau deshalb bleibt der Ausschnitt jederzeit änderbar** |
+| **2** | Die **Rechnung steht zweimal** und wird gegeneinander gehalten | Der Browser zeichnet den Rahmen live, der Server backt ihn, dazwischen liegt HTTP — eine gemeinsame Fassung gibt es nicht. **Sie steht deshalb auf jeder Seite in GENAU EINER Funktion** (`zuschnittKiste()`), und der Prüfstand hält beide über **140 Wertepaare** gegeneinander (Stolperstein 293) |
+| **3** | **`extract()` rechnet in den GEDREHTEN Maßen** | `metadata()` meldet die gespeicherten — **und `metadata()` NACH `.rotate()` im selben Rohr ebenfalls.** *Nachgemessen: 4032 × 3024 mit Ausrichtung 6 → das erzeugte Bild ist 3024 × 4032; eine Marke, die gespeichert oben links lag, findet sich bei `fx = 100, fy = 0` und in keiner anderen Ecke.* **Stolperstein 288 an einer zweiten Stelle — und diesmal wirft es nicht, es schneidet daneben** (Stolperstein 294). *Es trifft den echten Bestand: die fünfzehn Fotos des Sky-Watcher liegen genau so* |
+| **4** | Der Zuschnitt ist ein **Argument**, kein zweiter Weg | `makeVariants(buf, zuschnitt)`. Die Tafel `VARIANTS` trägt `schneidet` — **`medium` wird nicht geschnitten**, es wird mit `contain` gezeigt und ist die Vorlage des Editors. *Ein `if (name === 'thumb')` in der Schleife wäre eine zweite Wahrheit neben der Tafel* |
+| **5** | Die Fälligkeitsfrage heißt **„ist die Kachel quadratisch?"** | `traegtAlteGeometrie` (lange Kante genau 400) reichte nicht mehr: eine Zeile mit `zoom = 235` und 512er kurzer Kante trägt die Geometrie aus 0.19.4 **und braucht trotzdem einen Schnitt.** *„Quadratisch **und** Zielkante" wäre der Fehler gewesen — mit `withoutEnlargement` fällt eine gebackene Kachel unter 512, sobald der Ausschnitt es tut, und fiele bei jedem Start zurück in die Auswahl* (Stolperstein 297) |
+| **6** | **Wo gerechnet wird, hat eine Messung entschieden** | Das Backen kostet **157,3 ms im Median und 247,0 ms im 95. Perzentil**, das Zurückschreiben der Kachel noch einmal **bis zu 473,7 ms**, die ganze Route **494 bis 873 ms**. *Die Grenze des Auftrags lag bei rund 150 ms.* **Also Thread, und zwar nicht knapp** — im Haupt-Thread stünde die Event Loop fünfmal so lange wie die 133 ms, die 0.19.3 freigeräumt hat |
+| **7** | Die **Bildadresse trägt die Fassung** | `?v=` mit `length(thumb)`. **Ohne sie sähe der Betreiber seinen neuen Ausschnitt bis zu 24 Stunden lang nicht** (`Cache-Control: private, max-age=86400`). *Gemessen: die Fotoabfrage verliert damit die Deckung ihres Index — 17,1 statt 2,2 ms kalt, 2,9 statt 1,9 ms warm. `substr()` statt `length()` hätte 1859 ms gekostet* |
+| **8** | Der **Zuschnitt fällt im Browser weg** — im selben Zug | `object-position` und `--zoom` verschwinden an `.card-img img` und `.thumb img`; die drei Prozent beim Überfahren bleiben und hängen an nichts mehr. **Sonst würde zweimal geschnitten** |
+| **9** | Die **Videokachel kommt mit** — anders als in 0.19.4 | Ihre Vorlage ist `medium`, die Ableitung ihres Standbilds. **Sie muss mitkommen:** der Ausschnitteditor ist am Video offen, Schieber eingeschlossen. *Ihr `medium` bleibt dabei byte-genau stehen — es IST die Vorlage* |
+| **10** | *Befund beim Bauen:* die **Kachel wird kleiner** | Gemessen an **36 nachgebauten Vorlagen in zwölf Seitenverhältnissen**: die Summe fällt um **34,2 %** (34,8 → 22,9 kB im Mittel). *16:9 −44 %, 21:9 −58 %.* **Die eine Ausnahme ist das Panorama:** 1280 × 180 (230k) wird 512 × 512 (262k) — zwischen −10 % und **+116 %**. *Es ist trotzdem richtig: seine Kachel war bis heute um das 1,66fache hochgezogen* |
+
+> **DIE ZURÜCKGENOMMENE ENTSCHEIDUNG, MIT IHREM GRUND.** 0.19.4 schrieb: *„Die
+> Ableitung skaliert, sie schneidet nicht"* — ein am Server beschnittenes
+> `thumb` nähme dem Fokuspunkt seine Fläche. **Die Begründung galt, solange der
+> Browser den Ausschnitt aus dem ganzen `thumb` zog.** *Wer serverseitig
+> schneidet und den CSS-Zoom stehen lässt, schneidet zweimal; wer den CSS-Zoom
+> entfernt und nicht backt, zeigt den Mittenschnitt.* **Beides gehört in
+> dieselbe Runde, oder keines von beidem.**
+
+> **EINE STELLE ÄNDERT IHR VERHALTEN, UND DAS IST ENTSCHIEDEN.** `.lb-thumb img`
+> — der Streifen im Vollbild — zeigte bis 0.19.4 als einziger **keinen**
+> Ausschnitt. **Mit einer gebackenen Kachel zeigt er ihn mit.** *Eine Kachel,
+> ein Bild, überall dasselbe; wer es anders wollte, bräuchte eine dritte
+> Ableitung — und das wäre eine Schemaänderung.*
+
+> **UND EINE BERICHTIGUNG AN DEN EIGENEN PAPIEREN.** 0.19.4 schrieb: *„Neu
+> hereinkommende Kommentarbilder tragen die neue Geometrie trotzdem — beide
+> Wege rufen dieselbe `makeVariants()`."* **Das stimmt nicht.** Kommentarbilder
+> gehen durch `kodiereKommentarBild()` und werden dort mit **1600 und 400 auf
+> der LANGEN Kante** abgeleitet — eine eigene Rechnung, die `makeVariants()`
+> nie gerufen hat.
 
 ### 0.19.4 — „Die Kachel zeigt, was das Original hergibt"
 
@@ -10606,7 +10905,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.19.1** | Was 0.19.0 falsch gemacht hat | **GEBAUT am 2. September 2026** — im Feld bestätigt (`b0c4da5b`); der Rundlauf hat drei Befunde gebracht, sie sind 0.19.2. Vier belegte Fehler aus 0.19.0 und dem Betrieb: die Bestandskarte liest bei **jedem** Klick jedes Bild (**919 ms gegen 0,2 ms gemessen**, hochgerechnet 2,7 s an der echten Datenbank) — **`SUM(length(data))` verliert seine Abkürzung im `GROUP BY`, und `substr()` auf einem Blob hatte nie eine.** *Und während einer Umstellung wird daraus eine **Selbstblockade**: `verfolgeUmstellung()` fragt dieselbe Abfrage alle 1500 ms ab, was bei 2700 ms Kosten 180 % Auslastung des Haupt-Threads bedeutet — die beste Erklärung für die im Feld gemeldeten Aussetzer*, der engere Ausschnitt erreicht die Bildränder nicht (**in Chromium gemessen: 0,0 % der gewählten Ecke sichtbar**), ein Dialog aus dem Vollbild heraus liegt dahinter (`z-index` 60 gegen 90), und die Karte „Kennzahlen" ist zu groß geworden — **die Bildablage bekommt eine eigene Kachel, damit sind es neunzehn.** Dazu: der Umstellungsknopf warnt vor der Dauer, `sharp.concurrency` wird ausdrücklich gesetzt, **„Instanz" heißt „Installation"**, die `docker-compose.yml` wird zur Vorlage, damit ein Update sie nicht überschreibt — und **drei falsche Angaben in den eigenen Papieren werden berichtigt.** *PATCH: die Installation kann danach nichts, was sie vorher nicht konnte* | nein | — |
 | **0.19.2** | Was 0.19.1 nur zur Hälfte getroffen hat | **GEBAUT am 2. September 2026.** Drei Befunde aus dem Rundlauf mit 0.19.1, zwei davon Nacharbeit an ihr selbst. **Die Bestandskarte war weiter langsam** — 0.19.1 hat die eine von zwei Ursachen behoben; die zweite ist die **Spaltenlage**: `art` steht hinter drei Blobs, und wer sie aus dem Satz liest, liest die Overflow-Ketten mit (**1338,8 ms gegen 0,1 ms aus einem Index**; `MATERIALIZED` hilft dagegen nichts). *Die ganze Route: 4698 ms vorher, 28,6 ms kalt und 4,4 ms warm nachher.* **Der engere Ausschnitt erreichte die Ränder immer noch nicht** — `transform-origin` war richtig und blieb wirkungslos, weil der Betrachter keinen anderen Wert als 50 zuließ. **Und zwei Dialoge sind kurz geworden.** Dazu **zwei berichtigte Zahlen aus 0.19.1** und der Index `idx_photos_art`. *PATCH — ein Index ist keine Datenbankstufe* | nein | — |
 | **0.19.3** | Bestandsläufe verlassen den Anfrageweg | **GEBAUT am 2. September 2026.** Vier Punkte, und keiner davon ist neu: der Umstellungslauf und das Nachrüsten der Vorschaubilder ziehen in einen **eigenen Thread** (`bilder.js` und `bestandslauf.js` sind dazugekommen), die Übersichtsschleife fragt **einmal statt vierhundertmal** (3200 Abfragen je Abruf werden 405) und holt nicht mehr, was sie nicht zeigt (die Testtage der **Liste** sind schmal, von den Links wird nur gezählt, `qTags` nennt seine Spalten), und die **letzten acht „Instanz"** im Bildschirmtext heißen „Installation". **Gemessen: 133 → 0,9 ms Verspätung des Haupt-Threads im 95. Perzentil, die Route 43 → 24 ms, die Antwort 484 → 348 kB.** *`testStats` bleibt ausdrücklich ungebündelt — gebündelt ist es langsamer.* **Stand vor jeder Runde mit einem Bestandslauf**, und das gilt für 0.19.4 und 0.21.0 weiter. *PATCH* | nein | — |
-| **0.19.4** | Die Kachel zeigt, was das Original hergibt | **GEBAUT am 3. September 2026.** `thumb` war 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle. **Gemessen in Chromium: die breiteste Kachel ist 299 CSS-px** (`.shell` hört bei 1300 px auf), auf einem 2×-Bildschirm 598, auf einem Telefon bei dPR 3 513 — **heute lieferte `thumb` 225.** Die Tafel `VARIANTS` nennt jeder Ableitung jetzt eine **Kiste** aus kurzer Kante und Deckel auf der langen: `thumb` 512/1280, `medium` unverändert 1600/1600. **Der Byte-Faktor IST der Bildpunkt-Faktor**, auf 3 % genau — 400 kostet das 3,06fache, 512 das 5,05fache, 640 das 7,78fache; **512 deckt das Telefon ganz und lässt am 2×-Desktop 1,17fach übrig, gegen 2,66fach vorher.** Dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht und nach einem Durchgang von selbst endet. *PATCH: dieselben Knöpfe, dieselben Bilder, dieselbe Antwort — die Kachel ist nur scharf* | nein | — |
+| **0.19.5** | Der Ausschnitt wird gebacken, nicht gezogen | **GEBAUT am 3. September 2026.** Der Bildausschnitt entsteht ab jetzt am **Server** und wird in `thumb` gebacken statt im Browser aus ihm gezogen; `focus_x`, `focus_y` und `zoom` werden damit vom Auftrag an den Browser zum **Rezept** für die Ableitung. **Die Kachel ist danach quadratisch (512 × 512) und von der Weite des Ausschnitts unabhängig** — bei `zoom` 235 gab der gezogene Weg 0,73 Quellpunkte je Anzeigepunkt, der gebackene gibt 5,88. **Der CSS-Zuschnitt fällt im selben Zug weg**, sonst würde zweimal geschnitten. Dazu: die Bildadresse trägt ein `?v=` mit `length(thumb)` *(ohne das sähe der Betreiber seinen neuen Ausschnitt bis zu 24 Stunden lang nicht)*, das Speichern des Ausschnitts backt die Kachel neu und **antwortet erst danach**, und der Bestandslauf backt den vorhandenen Bestand mit — **Videozeilen aus ihrem `medium`.** **Gemessen: die Kachel wird in Summe 34,2 % kleiner**, das Backen kostet 157 ms im Median und die ganze Route 494 bis 873 ms. **Damit kehrt diese Runde eine Entscheidung aus 0.19.4 um** — mit Datum und Grund im Änderungsprotokoll. *PATCH: dieselben Knöpfe, derselbe Ausschnitt, dieselbe Bedienung — die Kachel zeigt ihn nur scharf* | nein | — |
+| **0.19.4** | Die Kachel zeigt, was das Original hergibt | **GEBAUT am 3. September 2026, im Feld bestätigt.** `thumb` war 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle. **Gemessen in Chromium: die breiteste Kachel ist 299 CSS-px** (`.shell` hört bei 1300 px auf), auf einem 2×-Bildschirm 598, auf einem Telefon bei dPR 3 513 — **heute lieferte `thumb` 225.** Die Tafel `VARIANTS` nennt jeder Ableitung jetzt eine **Kiste** aus kurzer Kante und Deckel auf der langen: `thumb` 512/1280, `medium` unverändert 1600/1600. **Der Byte-Faktor IST der Bildpunkt-Faktor**, auf 3 % genau — 400 kostet das 3,06fache, 512 das 5,05fache, 640 das 7,78fache; **512 deckt das Telefon ganz und lässt am 2×-Desktop 1,17fach übrig, gegen 2,66fach vorher.** Dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht und nach einem Durchgang von selbst endet. *PATCH: dieselben Knöpfe, dieselben Bilder, dieselbe Antwort — die Kachel ist nur scharf* | nein | — |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; **am 3. September 2026 zugeordnet**, und alles dahinter rückt um eine Stelle.)* **Kriterion schreibt Sicherungen, aber es entfernt keine** — `POST /api/sicherung` legt eine Datei ab, wegräumen lässt sich nichts, und dafür braucht es heute eine Shell auf dem Wirt. **Jede Kopie ist so groß wie die ganze Datenbank**; bei rund 570 MB Bildbestand ist die zehnte ein halbes Dutzend Gigabyte. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere. Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht** (eine gelöschte Sicherung holt nichts zurück), ein Knopf hinter der zweiten Bestätigung, und ein Eintrag im Sicherheitsprotokoll. **Angefasst wird ausschließlich, was auf `SICHERUNG_MUSTER` passt**, und die Kopien von vor dem Schlüsselwechsel fasst die Regel gar nicht an. *MINOR* — neue Route (`F_ROUTEN` 70 → 71) und ein neunter Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung.** Ausarbeitung in 10a | nein | — |
 | **0.21.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, **am 3. September 2026 gerückt** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.22.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, **am 3. September 2026 gerückt**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
@@ -10619,14 +10919,25 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > hier und nicht im Auftrag — ein Auftrag wird beim Schreiben des nächsten
 > weggeworfen, und was darin stand, wäre dann weg.
 >
-> * **0.19.3 steht vor jeder Runde mit einem Bestandslauf.** 0.19.4 und 0.22.0
->   fahren beide über alle Bilder; ohne sie hielte jede einzelne davon die
->   Installation wieder für Stunden an. *0.19.4 ist gebaut und hat es im Feld
->   zu belegen; für 0.22.0 gilt der Satz weiter.*
-> * **Die Ableitungen auf WebP fahren in 0.22.0 mit und nicht in 0.19.4.** Dort
->   wird ohnehin über Verfahren entschieden, und beides zusammen ist **ein**
->   Durchgang über den Bestand statt zwei. *Die thumb-GEOMETRIE gehörte dagegen
->   nach 0.19.4: sie war ein Fehler und hängt an keinem Verfahren.*
+> * **0.19.3 steht vor jeder Runde mit einem Bestandslauf.** 0.19.4, 0.19.5 und
+>   0.22.0 fahren alle drei über alle Bilder; ohne sie hielte jede einzelne
+>   davon die Installation wieder für Stunden an. *0.19.4 ist im Feld bestätigt,
+>   0.19.5 ist gebaut und hat es im Feld zu belegen; für 0.22.0 gilt der Satz
+>   weiter.*
+> * **Die Ableitungen auf WebP fahren in 0.22.0 mit und nicht in 0.19.4 oder
+>   0.19.5.** Dort wird ohnehin über Verfahren entschieden, und beides zusammen
+>   ist **ein** Durchgang über den Bestand statt zwei. *Die thumb-GEOMETRIE
+>   gehörte dagegen nach 0.19.4 und der ZUSCHNITT nach 0.19.5: beides waren
+>   Fehler und hängen an keinem Verfahren.*
+> * **UND ZWEI BESTANDSLÄUFE HINTEREINANDER SIND EINER ZU VIEL — die Lehre aus
+>   0.19.4 und 0.19.5.** Beide Runden haben jede `thumb`-Spalte überschrieben,
+>   im Abstand eines Tages. *Der Grund war kein Versehen: 0.19.4 hat die
+>   Geometrie gemessen und die Grenze des Ausschnitts ausdrücklich offen
+>   gelassen — und die Kachel wurde erst mit 0.19.5 richtig.* **Wer eine
+>   Ableitung anfasst, misst vorher, was ihre Anzeige wirklich fordert, und
+>   nicht nur, was an ihr falsch ist.**
+> * **0.19.5 IST EINE PATCH-ZAHL UND HAT NICHTS GERÜCKT.** Sie steht vor
+>   0.20.0; nichts dahinter hat sich verschoben.
 > * **0.20.0 hängt an nichts und steht deshalb vorn.** Das Aufräumen der
 >   Sicherungen berührt weder Bilder noch Schema noch Oberfläche im Ganzen —
 >   *eine Route, eine Regel, eine Karte.* **Es steht vorn, weil es klemmt:**
@@ -11627,6 +11938,32 @@ sondern eine neue mit denselben Pixeln)*.
 * **Ob `medium` `nearLossless` werden sollte** — nicht gemessen.
 
 
+### 0.19.5 — „Der Ausschnitt wird gebacken, nicht gezogen" · *PATCH* · **GEBAUT am 3. September 2026**
+
+**Woher:** aus dem Feldbeleg zu 0.19.4. *Die Ableitung zieht am echten Bestand
+vom Original — und trotzdem war genau die eine Kachel unscharf, an der jemand
+den Ausschnitt benutzt hat.*
+
+**Was gebaut wurde:** der Zuschnitt entsteht am Server und nicht mehr im
+Browser. `makeVariants()` bekommt ein optionales Rezept aus `focus_x`,
+`focus_y` und `zoom`, die Tafel `VARIANTS` sagt je Ableitung, ob geschnitten
+wird, und `zuschnittKiste()` steht auf beiden Seiten der Leitung in genau einer
+Funktion. Das Speichern des Ausschnitts backt die Kachel neu und antwortet erst
+danach; der Bestandslauf backt den vorhandenen Bestand mit — **Videozeilen
+eingeschlossen, aus ihrem `medium`.** Die Bildadresse trägt ein `?v=` mit
+`length(thumb)`.
+
+**Was ausdrücklich NICHT gebaut wurde:** kein geschnittenes `medium`, keine
+dritte Ableitung, kein Hochrechnen auf die Zielkante, kein Schwellwert, ab dem
+die Kachel `medium` nimmt, keine Zeitsteuerung und kein Knopf, **und keine
+dynamische Zoom-Kappe je Bild** — *sie greift bei jeder Vorlage mit einer
+kurzen Kante ab 2048 px ohnehin nicht, was danach weich ist, ist physikalisch
+weich, und sie kostete die Maße des Originals, die in keiner Antwort stehen.*
+
+**Was offen blieb:** die quadratische Vorlage (Stolperstein 297), die
+Wartezeit von 494 bis 873 ms beim Speichern, und ein **Hinweis** im Editor,
+wenn der Ausschnitt enger gezogen wird, als die Vorlage hergibt.
+
 ### 0.20.0 — „Alte Sicherungen aufräumen — ohne Shell" · *MINOR*
 
 **Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026.**
@@ -12076,10 +12413,32 @@ keine mehr.*
 - **Ein Papier trägt eine Sache, und nur eines trägt sie.** Was gebaut ist,
   steht in diesem Blatt; was ein Betreiber wissen muss, im Changelog; was
   wirklich gebaut wurde, im Änderungsprotokoll; wie man es bedient, in der
-  README; **was noch offen ist, im Sammelblatt `Doku/Fehler_und_Ideen.md`** —
-  dort ohne Versionsnummer, bis es hier im Fahrplan eine bekommt. **Wer eine
-  Zahl an zwei Orten pflegt, pflegt sie an einem nicht.**
-- **Ein Punkt geht nur in eine Richtung.** Sammelblatt → Fahrplan →
-  Änderungsprotokoll → dieses Blatt. **Rückwärts wandert nichts**, und
-  Erledigtes bleibt im Sammelblatt nicht als durchgestrichene Zeile stehen: *ein
-  gestrichener Punkt sieht beim Lesen aus wie ein offener und wird mitgezählt.*
+  README; **was noch offen ist, in `Doku/Fehler_und_Ideen.md`.** *Das Projekt
+  nennt diese Datei im Gespräch „das Sammelblatt" — ein Papier dieses Namens
+  gibt es nicht, und wo es auf den Ort ankommt, steht deshalb der Dateiname.*
+  **Wer eine Zahl an zwei Orten pflegt, pflegt sie an einem nicht.**
+- **Ein Punkt geht nur in eine Richtung, und am Ende steht er als ERLEDIGT in
+  den Papieren — nicht als gestrichene Zeile in `Doku/Fehler_und_Ideen.md`.**
+  *Berichtigt am 3. September 2026: hier stand „Sammelblatt → Fahrplan →
+  Änderungsprotokoll → dieses Blatt", und das war zu kurz — es sagte nicht,
+  was in `Doku/Fehler_und_Ideen.md` stehen bleibt, und nannte das Papier bei
+  einem Namen, den keine Datei trägt.*
+
+  **Der Weg:** `Doku/Fehler_und_Ideen.md` → Fahrplan (Abschnitt 10, dort
+  bekommt der Punkt seine Versionsnummer und seine Ausarbeitung in 10a) →
+  Änderungsprotokoll der Runde → dieses Blatt. **Rückwärts wandert nichts.**
+
+  **Was in `Doku/Fehler_und_Ideen.md` stehen bleibt, ist ausschließlich
+  Offenes** — genau zweierlei: **Ideen und Befunde, die noch gar keine
+  Versionsnummer haben**, und **Punkte, die eine haben, aber noch nicht gebaut
+  sind.** *Bei den zweiten führt der Fahrplan die Nummer und die Reihenfolge,
+  das Blatt den offenen Punkt; doppelt gepflegt wird dabei nichts.*
+
+  **WAS GEBAUT IST, VERLÄSST DAS BLATT — und taucht in den Papieren wieder auf,
+  die dafür da sind:** *was davon gilt*, hier; *wie es gebaut wurde und was
+  dabei anders kam*, im Änderungsprotokoll seiner Version; *was ein Betreiber
+  wissen muss*, im Changelog. **Nicht als durchgestrichene Zeile im
+  Ideenblatt:** *ein gestrichener Punkt sieht beim Lesen aus wie ein offener und
+  wird mitgezählt.* **Genannt werden darf Gebautes dort trotzdem — aber nur als
+  Begründung an einem offenen Punkt** („das ist mit 0.11.0 erledigt, also
+  entfällt der Einwand"), **nie als eigener Punkt.**

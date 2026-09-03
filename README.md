@@ -1223,8 +1223,11 @@ es zwei, beide im Systembereich einstellbar:
   Rahmen zeigt dabei den künftigen Ausschnitt. Ein Schieber daneben zieht ihn
   **enger** — von „so weit wie das Bild hergibt" bis viermal so nah. Ziehen
   setzt den Punkt, der Schieber die Weite; beides landet in derselben Zeile.
-  Zugeschnitten wird nichts — die Datei bleibt unangetastet, es verschiebt sich
-  nur das sichtbare Fenster.
+  **Das Original bleibt unangetastet** — geschnitten wird ausschließlich die
+  kleine Vorschau, und zwar aus dem Original neu, sobald du speicherst. *Der
+  Ausschnitt ist deshalb jederzeit änderbar; die Kachel ist danach so scharf,
+  wie das Original es hergibt, gleich wie eng du ziehst.* Die Vorschau in der
+  Mitte des Eintrags und das Vollbild zeigen weiter das **ganze** Bild.
 - **Kommentare** tragen zwei unabhängige Merkmale: die **Art** (Notiz, Bericht
   oder Aufgabe) und die **Anpinnung**. Frei kombinierbar. Daraus folgt die
   Reihenfolge: erst Angepinntes, dann Aufgaben, dann Berichte, dann Notizen —
@@ -2045,8 +2048,9 @@ er tut: die PNG-Fassung ist danach weg, und zurück führt nur eine Sicherung de
 Datenverzeichnisses.
 
 Zusätzlich entstehen zwei kleinere Varianten: eine
-Kachel (400 px) für die Übersicht und eine mittlere (1600 px) für Detail- und
-Vollbildansicht. Das kostet rund 7 % mehr Speicher, spart beim Blättern aber
+Kachel (512 × 512, mit dem eingestellten Bildausschnitt darin) für die
+Übersicht und eine mittlere (1600 px auf der langen Kante, ungeschnitten) für
+Detail- und Vollbildansicht. Das kostet rund 7 % mehr Speicher, spart beim Blättern aber
 etwa den Faktor 100 an Datenübertragung. Das Original wird erst geladen, wenn im
 Vollbild gezoomt wird. **Beide Varianten sind JPEG und bleiben es** — das
 Original ist unversehrt, die Anzeige ist es nicht.

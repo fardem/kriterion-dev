@@ -99,16 +99,66 @@ const sharp = require('sharp');
    Nach oben faellt ein 32:9-Foto bei 1280 auf 1280 x 360 = 461k und liegt
    damit genau auf dem Mass eines 16:9-`thumb` (466k); bei 1600 waere es mit
    720k noch das 1,55fache.
-   UND ES WIRD NICHT GESCHNITTEN, SONDERN SKALIERT. Der Ausschnitt entsteht
-   im Browser aus dem Fokuspunkt (`ausschnitt()` in public/app.js); ein am
-   Server beschnittenes `thumb` naehme dem Fokuspunkt seine Flaeche, und der
-   eingestellte Ausschnitt zeigte danach etwas anderes. Deshalb faellt bei
-   einem Panorama die KURZE Kante unter 512 -- das Bild wird kleiner, nicht
-   enger. */
+   ES WIRD GESCHNITTEN, UND ZWAR SEIT 0.19.5 -- DIESER SATZ STAND HIER
+   ANDERSHERUM. Bis 0.19.4 hiess er: „es wird nicht geschnitten, sondern
+   skaliert", mit der Begruendung, ein am Server beschnittenes `thumb` naehme
+   dem Fokuspunkt seine Flaeche. DIE BEGRUENDUNG WAR RICHTIG UND IST ES NICHT
+   MEHR: sie galt, solange der Browser den Ausschnitt aus dem ganzen `thumb`
+   zog. Seit 0.19.5 tut er das nicht mehr -- der Zuschnitt faellt dort weg und
+   entsteht hier. Wer nur eine der beiden Haelften baut, schneidet zweimal.
+   Der Satz ist NICHT geloescht, sondern umgedreht, mit Datum und Grund
+   (Stolperstein 201).
+
+   DIE KACHEL WIRD GEBACKEN, NICHT GEZOGEN. `focus_x`, `focus_y` und `zoom`
+   sind damit kein Auftrag mehr an den Browser, sondern das REZEPT fuer diese
+   Ableitung. Das Original bleibt unangetastet; die drei Zahlen sagen, wie neu
+   zu backen ist, und deshalb bleibt der Ausschnitt jederzeit aenderbar.
+   WAS ES BRINGT, IN QUELLPUNKTEN JE ANZEIGEPUNKT auf der 299 px breiten
+   Kachel: bei `zoom` 100 gaben beide Wege 1,71x; bei `zoom` 235 gab der alte
+   0,73x -- also 1,37fach HOCHGEZOGEN --, der gebackene gibt 5,88x, und zwar
+   unabhaengig davon, wie eng gezogen wird.
+
+   DER DECKEL AUF DER LANGEN KANTE GILT NUR NOCH FUER DIE UNGESCHNITTENE
+   ABLEITUNG. Eine gebackene Kachel ist quadratisch -- da kann keine Kante
+   davonlaufen. Die 1280 stehen trotzdem in der Tafel, denn `makeVariants()`
+   wird auch ohne Zuschnitt gerufen (der Bestandslauf an einer Zeile ohne
+   lesbare Masse, und jeder kuenftige Rufer).
+   `medium` WIRD NICHT GESCHNITTEN, und das steht als `schneidet: false` in
+   der Tafel und nicht als `if` in der Schleife: es wird mit `object-fit:
+   contain` gezeigt, also GANZ, und der Editor zeichnet den Rahmen darauf.
+   Ein geschnittenes `medium` naehme dem Editor seine Vorlage. */
 const VARIANTS = {
-  thumb:  { kurz: 512,  lang: 1280, q: 78 },
-  medium: { kurz: 1600, lang: 1600, q: 84 }
+  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },
+  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }
 };
+
+/* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ----
+
+   SIE STEHT ZWEIMAL, UND DAS IST DER PUNKT. Der Browser muss den Rahmen im
+   Editor live zeichnen, der Server muss die Kachel backen, und zwischen
+   beiden liegt HTTP -- eine gemeinsame Fassung gibt es nicht. Also steht sie
+   auf jeder Seite in GENAU EINER Funktion (`zuschnittKiste()` hier und
+   dieselbe in public/app.js) und nicht verstreut, UND DER PRUEFSTAND HAELT
+   BEIDE GEGENEINANDER: dieselben drei Werte, dieselben Masse, beide
+   Rechnungen, ein Vergleich. Ohne diese Zusage laufen sie beim naechsten
+   Anfassen auseinander, und niemand merkt es -- die Kachel zeigt ja ein Bild,
+   nur das falsche (Stolperstein 293).
+
+   DIE WERTE SIND MASSSTABSFREI, und genau deshalb geht es ueberhaupt:
+   `focus_x` und `focus_y` sind Prozent mit einer Nachkommastelle, `zoom` ist
+   Prozent von 100 bis 400. DER SERVER BRAUCHT DIE GROESSE DER VORSCHAU IM
+   EDITOR GAR NICHT ZU KENNEN.
+
+   GERECHNET WIRD OHNE RUNDUNG. Der Browser braucht Bruchteile eines
+   Bildpunkts, um den Rahmen ruckelfrei zu ziehen; der Server rundet erst
+   dort, wo `sharp` ganze Zahlen verlangt (siehe schnittRechteck()). Wer hier
+   rundete, machte den Vergleich der beiden Seiten unscharf -- und eine
+   Zusage, die auf ein Bildpunkt genau gilt, ist keine. */
+function zuschnittKiste(breite, hoehe, fx, fy, zoom) {
+  const seite = Math.min(breite, hoehe);   // was die Kachel bei zoom 100 zeigt
+  const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
+  return { links: fx / 100 * (breite - eng), oben: fy / 100 * (hoehe - eng), kante: eng };
+}
 
 /* WELCHE KANTE DIE KURZE IST, SAGT NUR DAS BILD SELBST -- und der Kopf sagt
    es nicht allein. `metadata()` liefert die Masse SO, WIE SIE IN DER DATEI
@@ -120,12 +170,60 @@ const VARIANTS = {
    und bekommt eine Ableitung mit 1280 auf der kurzen Kante.
    `{ autoOrient: true }` HILFT DAGEGEN NICHT: sharp 0.35.3 meldet damit
    ebenfalls 600 x 1200. Nachgesehen, nicht angenommen. */
-const istQuer = (m) => {
+function gedrehteMasse(m) {
   const gedreht = m && m.orientation >= 5;
-  const breite = gedreht ? m.height : m.width;
-  const hoehe  = gedreht ? m.width  : m.height;
+  return { breite: gedreht ? m.height : m.width, hoehe: gedreht ? m.width : m.height };
+}
+const istQuer = (m) => {
+  const { breite, hoehe } = gedrehteMasse(m);
   return !(hoehe > breite);
 };
+
+/* ---- DIE FALLE, UND SIE IST GEMESSEN -- 0.19.5 ----
+
+   `extract()` RECHNET IN DEN GEDREHTEN MASSEN, `metadata()` MELDET DIE
+   GESPEICHERTEN. Das ist Stolperstein 288 an einer zweiten Stelle -- und
+   diesmal wirft es nicht einmal, sondern schneidet daneben.
+   NACHGEMESSEN an einem 4032 x 3024 mit EXIF-Ausrichtung 6:
+
+     metadata()                        : 4032x3024, orientation 6
+     sharp(x).rotate().metadata()      : 4032x3024  <- die EINGANGSmasse
+     das von .rotate() ERZEUGTE Bild   : 3024x4032
+     Marke, die im gespeicherten Bild oben links lag, nach dem Drehen also
+     oben RECHTS -- gesucht mit `zoom` 400 in drei Ecken:
+       fx=100 fy=0   (oben rechts) -> gefunden, Mittelwert R171 G11 B11
+       fx=0   fy=0   (oben links)  -> nicht dort (R30 G30 B30)
+       fx=100 fy=100 (unten rechts)-> nicht dort (R30 G30 B30)
+
+   UND SHARP SAGT ES NICHT VON SELBST: `metadata()` NACH `.rotate()` im selben
+   Rohr meldet weiterhin die Eingangsmasse. Die gedrehten Masse gibt es nur
+   ueber den EXIF-Vermerk oder ueber ein fertig erzeugtes Bild -- und das
+   waere ein zweiter Durchgang durch die ganze Vorlage.
+
+   Wer die Kiste aus `metadata().width/height` baut, schneidet an der falschen
+   Stelle -- und bei 3024 Breite laege ein `left` von 3500 sogar AUSSERHALB,
+   was `sharp` mit einem Fehler quittiert. ES TRIFFT DEN ECHTEN BESTAND: die
+   fuenfzehn Fotos des Sky-Watcher liegen genau so.
+
+   GERUNDET WIRD ERST HIER, und zwar in dieser Reihenfolge: erst die Kante,
+   dann die Ecke gegen die Kante. `sharp` verlangt ganze Zahlen und wirft,
+   wenn die Kiste auch nur einen Bildpunkt ueber den Rand ragt; ein Zuschnitt,
+   der an der Ecke des Bildes sitzt (fx = 100), landet nach dem Runden genau
+   dort. Die beiden Klammern sind deshalb keine Vorsicht, sondern die Zusage.
+   EIN Zuschnitt OHNE MASSE GIBT null ZURUECK und keine Kiste auf gut Glueck:
+   ohne die Masse der Vorlage ist jede Ecke geraten, und eine geratene Kachel
+   ist schlechter als eine ungeschnittene. */
+function schnittRechteck(masse, zuschnitt) {
+  if (!masse || !zuschnitt) return null;
+  const { breite, hoehe } = gedrehteMasse(masse);
+  if (!breite || !hoehe) return null;
+  const k = zuschnittKiste(breite, hoehe, zuschnitt.fx, zuschnitt.fy, zuschnitt.zoom);
+  if (!Number.isFinite(k.kante) || !Number.isFinite(k.links) || !Number.isFinite(k.oben)) return null;
+  const kante = Math.max(1, Math.min(breite, hoehe, Math.round(k.kante)));
+  return { left:  Math.max(0, Math.min(breite - kante, Math.round(k.links))),
+           top:   Math.max(0, Math.min(hoehe  - kante, Math.round(k.oben))),
+           width: kante, height: kante };
+}
 
 /* DER KOPF WIRD EINMAL GELESEN UND NICHT JE ABLEITUNG. Er kostet gemessen
    0,23 bis 0,27 ms an einem kleinen JPEG -- sharp liest dafuer den Kopf und
@@ -134,14 +232,36 @@ const istQuer = (m) => {
    breit und 512 hoch; ein hochkantes Bild bekaeme darin 512 auf der LANGEN
    Kante -- also die alte Regel mit der neuen Zahl, und nicht etwa eine
    ueberdimensionierte Ableitung. Wenn schon daneben, dann nach unten. */
-async function makeVariants(buf) {
+/* DER ZUSCHNITT IST EIN ARGUMENT UND KEIN ZWEITER WEG -- 0.19.5. Ist er
+   gesetzt (`{ fx, fy, zoom }`), wird `thumb` daraus gebacken; ist er es
+   nicht, bleibt alles wie in 0.19.4. Eine zweite Ableitungsfunktion daneben
+   waere eine zweite Wahrheit ueber dieselbe Sache (Stolperstein 47) -- es ist
+   dieselbe Funktion mit einem Argument mehr.
+   OHNE ZUSCHNITT RUFEN heisst: das Kommentarbild (es hat weder Fokuspunkt
+   noch Zoom) und jede Zeile, deren Masse sich nicht lesen lassen.
+
+   `withoutEnlargement` BLEIBT, und das ist ausdruecklich entschieden. Ist der
+   ausgeschnittene Bereich kleiner als die Zielkante -- kleines Original,
+   enger Ausschnitt --, wird NICHT hochgerechnet: es kostete Bytes und truege
+   keinen einzigen Bildpunkt mehr, der Browser zieht es beim Anzeigen ohnehin
+   auf, und das Ergebnis ist Bildpunkt fuer Bildpunkt dasselbe. */
+async function makeVariants(buf, zuschnitt) {
   const out = {};
-  let quer = true;
-  try { quer = istQuer(await sharp(buf, { failOn: 'none' }).metadata()); } catch {}
+  let masse = null;
+  try { masse = await sharp(buf, { failOn: 'none' }).metadata(); } catch {}
+  const quer = masse ? istQuer(masse) : true;
+  const schnitt = schnittRechteck(masse, zuschnitt);
   for (const [name, v] of Object.entries(VARIANTS)) {
     try {
-      out[name] = await sharp(buf, { failOn: 'none' }).rotate()
-        .resize(quer ? v.lang : v.kurz, quer ? v.kurz : v.lang,
+      /* DIE TAFEL ENTSCHEIDET, OB GESCHNITTEN WIRD (`schneidet`), UND DIE
+         KISTE FOLGT DARAUS: der Zuschnitt ist quadratisch, also traegt die
+         Kiste zweimal die kurze Kante. Eine Verzweigung auf den NAMEN der
+         Ableitung stuende als zweite Wahrheit neben der Tafel. */
+      const roh = sharp(buf, { failOn: 'none' }).rotate();
+      const gebacken = v.schneidet && schnitt;
+      out[name] = await (gebacken ? roh.extract(schnitt) : roh)
+        .resize(gebacken ? v.kurz : (quer ? v.lang : v.kurz),
+                gebacken ? v.kurz : (quer ? v.kurz : v.lang),
                 { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();
     } catch { out[name] = null; }
@@ -157,59 +277,63 @@ async function makeVariants(buf) {
    ihre Geometrie im Kopf. Gelesen werden dafuer 10 kB `thumb` und nicht eine
    halbe Megabyte Original.
 
-   400 STEHT HIER, WEIL ES DIE ALTE REGEL WAR. Die Zahl beschreibt keinen
-   Zustand, den diese Fassung herstellt, sondern einen, den sie vorfindet --
-   deshalb steht sie NICHT in `VARIANTS`, wo sie wie eine dritte Einstellung
-   aussaehe. Sie faellt mit der Bereinigung weg, wie jeder andere
-   Migrationsschritt auch.
+   DIE FRAGE HAT SICH MIT 0.19.5 GEAENDERT, UND ZWAR AUF EINE EINZIGE.
+   Bis 0.19.4 hiess sie: „traegt die lange Kante genau 400?" -- die alte
+   Regel. Sie reicht nicht mehr: eine Zeile mit `zoom = 235` und einer 512er
+   kurzen Kante traegt die Geometrie aus 0.19.4 und braucht trotzdem einen
+   Schnitt. AB JETZT LAUTET SIE: IST DIE KACHEL QUADRATISCH?
 
-   WARUM AUF DIE LANGE KANTE GEZIELT WIRD UND NICHT AUF DIE KURZE.
-   `fit: 'inside'` legt die begrenzende Kante EXAKT auf ihr Mass -- nachgemessen
-   an 1919x1080, 1366x768, 3441x1440, 1000x999 und 7680x1080: die lange Kante
-   des alten `thumb` ist in jedem Fall genau 400. Die kurze dagegen ist jedes
-   Mal eine andere Zahl, und ein „kurze Kante unter 512" faenge auch die zwei
-   Faelle, in denen die NEUE Regel bewusst darunter bleibt:
-     - das kleine Bild. `withoutEnlargement` vergroessert nie; ein Original
-       mit 300 x 200 bleibt 300 x 200 -- unter beiden Regeln dasselbe.
-     - das Panorama. Bei 32:9 greift der Deckel, und die kurze Kante faellt
-       auf 360.
-   Beide traegen die lange Kante NICHT auf 400 (300 bzw. 1280) und bleiben so
-   von selbst draussen. DIE ABFRAGE IST DAMIT EIN FESTPUNKT: was der Lauf
-   angefasst hat, faellt danach nicht wieder in seine Auswahl.
+   WARUM DAS DIE RICHTIGE FRAGE IST, IN EINEM SATZ: eine gebackene Kachel IST
+   quadratisch -- der Zuschnitt ist ein Quadrat, und `fit: 'inside'` auf eine
+   quadratische Kiste laesst sie eines. Eine ungeschnittene ist es nur, wenn
+   die Vorlage es war. „Gebacken" und „quadratisch" fallen damit zusammen, und
+   zwar OHNE Merkerspalte.
 
-   DER EINE FALL, IN DEM SIE ES NICHT IST, und er gehoert hierher und nicht in
-   eine Fussnote: ein Original, dessen lange Kante GENAU 400 ist. Sein `thumb`
-   sieht aus wie ein alter, ist aber schon der neue -- beide Regeln liefern
-   dafuer dasselbe Bild. Der Lauf leitet ihn bei jedem Start erneut ab, stellt
-   fest, dass sich die Masse nicht geaendert haben, schreibt nicht und zaehlt
-   ihn nicht mit (siehe bestandslauf.js). Es kostet ein kleines Bild je Start,
-   und aufloesen liesse es sich nur mit genau dem Merker, der ausgeschlossen
-   ist. */
-const ALTE_THUMB_KANTE = 400;
-function traegtAlteGeometrie(masse) {
-  if (!masse || !masse.width || !masse.height) return false;
-  return Math.max(masse.width, masse.height) === ALTE_THUMB_KANTE &&
-         Math.min(masse.width, masse.height) < VARIANTS.thumb.kurz;
+   UND SIE IST EIN FESTPUNKT, ohne die Ausnahme, die 0.19.4 noch hatte
+   (Stolperstein 290). Was der Lauf erzeugt, ist quadratisch und faellt nicht
+   wieder in seine Auswahl -- auch dann nicht, wenn die Kante unter 512 bleibt:
+     - das kleine Original. 300 x 200 mit `zoom` 235 ergibt eine 85er Kachel.
+       Quadratisch, also fertig.
+     - das Panorama. 7680 x 1080 bei `zoom` 100 ergibt 512 x 512.
+     - der enge Ausschnitt an einer kleinen Vorlage. Dasselbe.
+   Die alte Regel haette hier „Zielkante nicht erreicht" gesagt und bei jedem
+   Start neu abgeleitet. „Quadratisch" sagt es nicht.
+
+   DIE ALTE REGEL IST DAMIT MIT ENTHALTEN und steht nicht daneben: ein `thumb`
+   aus 0.19.3 misst 400 x 225 und ist nicht quadratisch. Eine Instanz, die von
+   0.19.3 unmittelbar auf 0.19.5 geht, wird in EINEM Durchgang richtig.
+
+   DER EINE FALL, DEN SIE NICHT SIEHT, und er gehoert hierher und nicht in
+   eine Fussnote: EINE QUADRATISCHE VORLAGE. Ihr ungeschnittener `thumb` ist
+   512 x 512 und damit von einem gebackenen nicht zu unterscheiden. Bei
+   `zoom = 100` macht das nichts -- beide Wege liefern dasselbe Bild. Bei
+   `zoom > 100` bleibt ihre Kachel weich, bis jemand ihren Ausschnitt das
+   naechste Mal speichert; dann backt die Route sie (server.js). Der Preis,
+   das zu erkennen, waere ein Kopf-Lesen des ORIGINALS je Zeile und Start --
+   die 275-ms-Klasse aus 0.19.4 --, und der Fall kommt im Bestand nicht vor:
+   unter 89 Fotos ist kein quadratisches.
+
+   EIN NICHT LESBARER `thumb` GILT ALS UNGESCHNITTEN, und das ist eine
+   Entscheidung und keine Nachlaessigkeit. Die Ableitung wird nicht aus dem
+   `thumb` gerechnet, sondern aus dem ORIGINAL -- wer die Frage nicht
+   beantworten kann, verliert also nichts, wenn er neu ableitet, und gewinnt
+   eine Zeile zurueck, die sonst niemand repariert: das Nachruesten sucht
+   `thumb IS NULL` und sieht einen kaputten `thumb` nicht an.
+   WAS ES KOSTET, WENN AUCH DIE VORLAGE KAPUTT IST: die Zeile wird bei jedem
+   Start erneut versucht, kommt leer zurueck und wird uebersprungen. Das ist
+   eine Zeile, deren Bild ohnehin niemand mehr anzeigen kann.
+
+   ZWEI AUSGAENGE AUF EINE REGEL, ABER NICHT ZWEI REGELN: `traegtKeinenZuschnitt`
+   ist die Regel ohne sharp -- der Pruefstand haelt sie gegen Masse, die er
+   selbst hinschreibt, und braucht dafuer kein Bild. `istOhneZuschnitt` liest
+   den Kopf und ruft sie. */
+function traegtKeinenZuschnitt(masse) {
+  if (!masse || !masse.width || !masse.height) return true;
+  return masse.width !== masse.height;
 }
 
-/* DIE FRAGE AN EINEN GESPEICHERTEN `thumb`, und sie steht HIER und nicht im
-   Bestandslauf: was die Geometrie einer Ableitung ist, weiss diese Datei --
-   dieselbe Ueberlegung, aus der makeVariants() nach 0.19.3 hierher gezogen
-   ist. Eine zweite Fassung im Thread liefe frueher oder spaeter auseinander.
-
-   EIN NICHT LESBARER `thumb` GILT ALS ALT, und das ist eine Entscheidung und
-   keine Nachlaessigkeit. Die Ableitung wird nicht aus dem `thumb` gerechnet,
-   sondern aus dem ORIGINAL -- wer die Frage nicht beantworten kann, verliert
-   also nichts, wenn er sie neu ableitet, und gewinnt eine Zeile zurueck, die
-   sonst niemand repariert: das Nachruesten sucht `thumb IS NULL` und sieht
-   einen kaputten `thumb` nicht an.
-   WAS ES KOSTET, WENN AUCH DAS ORIGINAL KAPUTT IST: die Zeile wird bei jedem
-   Start erneut versucht, kommt leer zurueck und wird uebersprungen. Das ist
-   eine Zeile, deren Bild ohnehin niemand mehr anzeigen kann -- die Instanz
-   hat dann ein groesseres Problem als einen Lauf, der es einmal je Start
-   bemerkt. */
-async function istAlteAbleitung(thumb) {
-  try { return traegtAlteGeometrie(await sharp(thumb, { failOn: 'none' }).metadata()); }
+async function istOhneZuschnitt(thumb) {
+  try { return traegtKeinenZuschnitt(await sharp(thumb, { failOn: 'none' }).metadata()); }
   catch { return true; }
 }
 
@@ -305,18 +429,24 @@ async function legeBildAb(buf, gemeldeterTyp) {
 }
 
 /* AUSGEGEBEN WIRD, WAS GERUFEN WIRD, UND SONST NICHTS. `VARIANTS`,
-   `WEBP_ABLAGE`, `PNG_MAGIE` und `ALTE_THUMB_KANTE` sind die Werte, mit denen
-   die Funktionen hier arbeiten -- ausserhalb ruft sie niemand, und eine
-   Ausgabe ohne Empfaenger ist eine Zeile, die beim naechsten Lesen erklaert
-   werden muss.
-   `istAlteAbleitung` UND `traegtAlteGeometrie` SEIT 0.19.4: der Bestandslauf
-   fragt mit der ersten je Zeile, ob sie noch die Geometrie bis 0.19.3 traegt.
-   Die zweite ist dieselbe Regel OHNE sharp -- der Pruefstand haelt sie gegen
-   Masse, die er selbst hinschreibt, und braucht dafuer kein Bild. Zwei
-   Ausgaenge auf eine Regel, aber nicht zwei Regeln: die erste ruft die
-   zweite.
+   `WEBP_ABLAGE` und `PNG_MAGIE` sind die Werte, mit denen die Funktionen hier
+   arbeiten -- ausserhalb ruft sie niemand, und eine Ausgabe ohne Empfaenger
+   ist eine Zeile, die beim naechsten Lesen erklaert werden muss.
+   `ALTE_THUMB_KANTE` IST MIT 0.19.5 WEGGEFALLEN: die 400 beschrieb den
+   Zustand, den 0.19.4 vorfand, und die neue Frage kommt ohne sie aus.
+   `istOhneZuschnitt` UND `traegtKeinenZuschnitt` SEIT 0.19.5 (bis dahin hiessen
+   sie `istAlteAbleitung` und `traegtAlteGeometrie` und stellten die alte
+   Frage): der Bestandslauf fragt mit der ersten je Zeile, ob ihre Kachel noch
+   ungeschnitten ist. Die zweite ist dieselbe Regel OHNE sharp -- der
+   Pruefstand haelt sie gegen Masse, die er selbst hinschreibt, und braucht
+   dafuer kein Bild. Zwei Ausgaenge auf eine Regel, aber nicht zwei Regeln:
+   die erste ruft die zweite.
+   `zuschnittKiste` STEHT DABEI, WEIL SIE ZWEIMAL GEBRAUCHT WIRD: hier von
+   schnittRechteck(), und der Pruefstand haelt sie gegen die gleichnamige
+   Funktion in public/app.js. Ohne diesen Ausgang waere die Zusage aus dem
+   Kopf dieser Datei nicht nachpruefbar (Stolperstein 293).
    `PNG_MAGIE_HEX` STEHT DAGEGEN DABEI: server.js braucht dieselbe Byte-Folge
    in der Schreibweise, in der SQLite sie liefert (hex(substr(data,1,8))), und
    eine zweite Stelle mit einer zweiten Schreibweise liefe auseinander. */
 module.exports = { makeVariants, PNG_MAGIE_HEX, istPNG, legeBildAb,
-                   istAlteAbleitung, traegtAlteGeometrie };
+                   istOhneZuschnitt, traegtKeinenZuschnitt, zuschnittKiste };

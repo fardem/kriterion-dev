@@ -29,6 +29,40 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.19.5] - 2026-09-03
+
+> **BEIM ERSTEN START RECHNET KRITERION ALLE VORSCHAUBILDER EIN ZWEITES MAL
+> NEU** — 0.19.4 hat es schon einmal getan. Das geschieht von selbst, im
+> Hintergrund, und die Karte „Bildablage" zählt dabei mit. *Keine
+> Datenbankstufe, keine Migration, kein neuer Index, das Austauschformat bleibt
+> 12.* **Nach dem Einspielen im Browser einmal hart neu laden.**
+>
+> **DIE DATENBANK WIRD DABEI IN DER REGEL KLEINER.** Ein Vorschaubild ist
+> danach quadratisch und trägt genau das, was die Kachel zeigt — gemessen an
+> zwölf Seitenverhältnissen rund ein Drittel weniger Bytes. *Nur ein sehr
+> breites Panoramabild kann größer werden; dafür ist seine Kachel danach
+> scharf.* **Eine Sicherung vor dem Einspielen schadet nie:** die alten
+> Vorschaubilder sind danach weg. *Sie lassen sich aus den Originalen und den
+> drei gespeicherten Zahlen jederzeit wieder herstellen — deshalb ist es keine
+> Datenbankstufe.*
+>
+> **DER BILDAUSSCHNITT STECKT AB JETZT IM VORSCHAUBILD.** Bisher hat der
+> Browser ihn beim Anzeigen zurechtgezogen; jetzt schneidet der Server ihn
+> hinein. **Für dich ändert sich an der Bedienung nichts** — derselbe Knopf,
+> derselbe Schieber, dasselbe Ergebnis, nur scharf. *Das Original bleibt
+> unangetastet, der Ausschnitt jederzeit änderbar.*
+>
+> **EINE STELLE ZEIGT DANACH MEHR ALS VORHER:** der Bilderstreifen unten im
+> Vollbild hat den eingestellten Ausschnitt bisher als einziger nicht gezeigt.
+> **Jetzt zeigt er ihn mit** — dieselbe Kachel überall.
+
+- Fixed: Eine Kachel mit eingestelltem Bildausschnitt ist scharf — bisher wurde sie umso stärker hochgezogen, je enger der Ausschnitt saß
+- Fixed: Dasselbe gilt für den Bilderstreifen am Eintrag und für den Streifen im Vollbild
+- Fixed: Auch Videokacheln zeigen jetzt den eingestellten Ausschnitt
+- Changed: Ein geänderter Ausschnitt ist sofort zu sehen — bisher konnte der Browser bis zu einen Tag lang die alte Kachel zeigen
+- Changed: Der Bilderstreifen im Vollbild zeigt den Ausschnitt jetzt mit
+- Changed: Die Karte „Bildablage" nennt die neuen Maße des kleinen Vorschaubilds
+
 ## [0.19.4] - 2026-09-03
 
 > **BEIM ERSTEN START RECHNET KRITERION ALLE VORSCHAUBILDER NEU.** Das

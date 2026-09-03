@@ -3972,8 +3972,8 @@ const RUECKBAUTEN = [
   {
     nr: '446', name: 'Der eingespielte Ausschnitt wird verworfen',
     datei: 'server.js',
-    suche: "                    zoom: im('zoom', p.zoom),",
-    ersatz: "                    zoom: ANZEIGEWERTE.zoom.vorgabe,",
+    suche: "                    fx: zuschnitt.fx, fy: zuschnitt.fy, zoom: zuschnitt.zoom,",
+    ersatz: "                    fx: 50, fy: 50, zoom: ANZEIGEWERTE.zoom.vorgabe,",
     erwartet: 'Fokuspunkt der Vorschau'
   },
   {
@@ -3999,11 +3999,15 @@ const RUECKBAUTEN = [
     /* DER ZOOM GEHT NICHT MEHR AN DIE KACHEL. ausschnitt() rechnet ihn
        weiterhin richtig aus und schreibt ihn nirgends hin -- genau der Fall,
        den eine Pruefung an der Funktion allein nicht faende. */
-    nr: '449', name: 'Der Zoom kommt nicht an der Kachel an',
-    datei: 'public/app.js',
-    suche: "         `--zoom:${z(p && p.zoom, 100) / 100}`;",
-    ersatz: "         ``;",
-    erwartet: 'Fokuspunkt in der Oberflaeche'
+    nr: '449', name: 'Der Zoom kommt nicht in den Zuschnitt (bis 0.19.4: nicht an die Kachel)',
+    datei: 'bestandslauf.js',
+    /* MITGEGANGEN MIT 0.19.5, NICHT GELOESCHT (Stolperstein 201). Bis dahin
+       nahm dieser Rueckbau der Kachel ihr `--zoom` -- die Eigenschaft gibt es
+       nicht mehr, der Zuschnitt wird gebacken. Die Zusage ist dieselbe
+       geblieben: der eingestellte Zoom muss ankommen. */
+    suche: "                               zoom: Number(z.zoom) });",
+    ersatz: "                               zoom: 100 });",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
   },
   {
     nr: '450', name: 'Der Schieber fuer die Weite steht nicht mehr im Betrachter',
@@ -4033,11 +4037,15 @@ const RUECKBAUTEN = [
   {
     /* DAS STILBLATT RECHNET DEN ZOOM NICHT MEHR EIN. Der Wert steht an der
        Kachel, und niemand liest ihn (Stolperstein 272, andersherum). */
-    nr: '453', name: 'Das Stilblatt rechnet den Zoom nicht mehr ein',
+    nr: '453', name: 'Die Ueberfahrregel haengt wieder am Ausschnitt',
     datei: 'public/style.css',
-    suche: "transform: scale(var(--zoom, 1)); transition: filter .2s var(--ease), transform .4s var(--ease); }",
-    ersatz: "transition: filter .2s var(--ease), transform .4s var(--ease); }",
-    erwartet: 'Fokuspunkt in der Oberflaeche'
+    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). Bis dahin nahm er dem
+       Stilblatt sein `scale(var(--zoom))`; das gibt es nicht mehr. Er holt es
+       jetzt ZURUECK -- und damit den zweiten Zuschnitt, den diese Runde
+       gerade weggeraeumt hat. */
+    suche: ".card:hover .card-img img { transform: scale(1.03); }",
+    ersatz: ".card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.03)); }",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
   },
   {
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
@@ -4136,21 +4144,26 @@ const RUECKBAUTEN = [
     /* DER VERGROESSERUNGSPUNKT FAELLT WEG. scale() verankert wieder in der
        Mitte, und von der eingestellten Bildecke ist nichts zu sehen --
        gemessen 0,0 % in allen vier Richtungen. */
-    nr: '464', name: 'Der Ausschnitt liefert keinen transform-origin mehr',
-    datei: 'public/app.js',
-    suche: "  return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%;` +",
-    ersatz: "  return `object-position:${x}% ${y}%;` +",
-    erwartet: 'Fokuspunkt in der Oberflaeche'
+    nr: '464', name: 'Der Zuschnitt verliert eine seiner beiden Achsen (bis 0.19.4: transform-origin)',
+    datei: 'bilder.js',
+    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). `transform-origin` gibt es
+       nicht mehr; die Zusage dahinter -- der Ausschnitt folgt dem Fokuspunkt
+       in BEIDEN Richtungen -- gilt unveraendert und steht jetzt hier. */
+    suche: "  return { links: fx / 100 * (breite - eng), oben: fy / 100 * (hoehe - eng), kante: eng };",
+    ersatz: "  return { links: fx / 100 * (breite - eng), oben: 0, kante: eng };",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
   },
   {
     /* ER STEHT DA, ABER AUF DER MITTE. Der gefaehrlichere der beiden: die
        Eigenschaft ist vorhanden, und wer nur nachsieht, OB sie dasteht, findet
        nichts. */
-    nr: '465', name: 'Der Vergroesserungspunkt steht auf der Mitte statt auf dem Fokuspunkt',
-    datei: 'public/app.js',
-    suche: "transform-origin:${x}% ${y}%;",
-    ersatz: "transform-origin:50% 50%;",
-    erwartet: 'Fokuspunkt in der Oberflaeche'
+    nr: '465', name: 'Der Zuschnitt sitzt in der Mitte statt auf dem Fokuspunkt',
+    datei: 'bilder.js',
+    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201): dieselbe Zusage an der
+       Stelle, an der der Ausschnitt jetzt entsteht. */
+    suche: "  const k = zuschnittKiste(breite, hoehe, zuschnitt.fx, zuschnitt.fy, zuschnitt.zoom);",
+    ersatz: "  const k = zuschnittKiste(breite, hoehe, 50, 50, zuschnitt.zoom);",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
   },
   {
     /* DER DIALOG LIEGT WIEDER UNTER DEM VOLLBILD -- der Zustand bis 0.19.1.
@@ -4339,8 +4352,8 @@ const RUECKBAUTEN = [
        auch mit `transform-origin` nie zu erreichen. */
     nr: '483', name: 'Der Spielraum des Ausschnitts rechnet den Zoom nicht ein',
     datei: 'public/app.js',
-    suche: "      return { f, seite, eng, spielX: f.breite - eng, spielY: f.hoehe - eng };",
-    ersatz: "      return { f, seite, eng, spielX: f.breite - seite, spielY: f.hoehe - seite };",
+    suche: "               spielX: f.breite - k.kante, spielY: f.hoehe - k.kante };",
+    ersatz: "               spielX: f.breite - Math.min(f.breite, f.hoehe), spielY: f.hoehe - Math.min(f.breite, f.hoehe) };",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
   {
@@ -4581,8 +4594,8 @@ const RUECKBAUTEN = [
        diese eine Zahl gemessen wird und nicht zwei zugleich. */
     nr: '506', name: 'Die kurze Kante des thumb steht wieder auf 400',
     datei: 'bilder.js',
-    suche: "  thumb:  { kurz: 512,  lang: 1280, q: 78 },",
-    ersatz: "  thumb:  { kurz: 400,  lang: 1280, q: 78 },",
+    suche: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
+    ersatz: "  thumb:  { kurz: 400,  lang: 1280, q: 78, schneidet: true  },",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4591,8 +4604,8 @@ const RUECKBAUTEN = [
        groessten Ableitung der Tabelle -- groesser als sein eigenes `medium`. */
     nr: '507', name: 'Der Deckel auf der langen Kante faellt weg',
     datei: 'bilder.js',
-    suche: "lang: 1280, q: 78 }",
-    ersatz: "lang: 99999, q: 78 }",
+    suche: "lang: 1280, q: 78, schneidet: true  }",
+    ersatz: "lang: 99999, q: 78, schneidet: true  }",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4602,8 +4615,8 @@ const RUECKBAUTEN = [
        schlechter und die Datenbank groesser. */
     nr: '508', name: 'medium bekommt dieselbe Kiste wie thumb',
     datei: 'bilder.js',
-    suche: "  medium: { kurz: 1600, lang: 1600, q: 84 }",
-    ersatz: "  medium: { kurz: 512, lang: 1280, q: 84 }",
+    suche: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
+    ersatz: "  medium: { kurz: 512, lang: 1280, q: 84, schneidet: false }",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4623,8 +4636,8 @@ const RUECKBAUTEN = [
        kurzen Kante. */
     nr: '510', name: 'Der Kopf wird nicht gelesen -- die Kiste liegt immer quer',
     datei: 'bilder.js',
-    suche: "  try { quer = istQuer(await sharp(buf, { failOn: 'none' }).metadata()); } catch {}",
-    ersatz: "  // der Kopf bleibt ungelesen",
+    suche: "  const quer = masse ? istQuer(masse) : true;",
+    ersatz: "  const quer = true;",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4632,11 +4645,17 @@ const RUECKBAUTEN = [
        richtiger und ist es nicht: der Lauf zoege damit auch das kleine Bild
        und das Panorama mit, und beide kaemen unveraendert heraus -- also bei
        JEDEM Start aufs Neue. Die Abfrage waere kein Festpunkt mehr. */
-    nr: '511', name: 'Die alte Geometrie wird an der kurzen Kante erkannt',
+    nr: '511', name: 'Die Faelligkeit wird wieder an der Zielkante erkannt',
     datei: 'bilder.js',
-    suche: "  return Math.max(masse.width, masse.height) === ALTE_THUMB_KANTE &&\n         Math.min(masse.width, masse.height) < VARIANTS.thumb.kurz;",
-    ersatz: "  return Math.min(masse.width, masse.height) < VARIANTS.thumb.kurz;",
-    erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
+    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). Die alte Frage lautete
+       „traegt die lange Kante genau 400?"; sie ist von „ist die Kachel
+       quadratisch?" abgeloest. DIESER RUECKBAU SETZT DIE ZIELKANTE ALS
+       ZWEITE HAELFTE WIEDER EIN -- und genau daran faellt der Festpunkt: eine
+       gebackene Kachel unter 512 (kleines Original, enger Ausschnitt) waere
+       damit bei JEDEM Start wieder faellig. */
+    suche: "  return masse.width !== masse.height;",
+    ersatz: "  return masse.width !== masse.height || masse.width !== VARIANTS.thumb.kurz;",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
   },
   {
     /* EIN UNLESBARER `thumb` GILT WIEDER ALS FERTIG. Die Zeile bleibt damit
@@ -4652,9 +4671,9 @@ const RUECKBAUTEN = [
     /* DER LAUF FASST JEDE GEPRUEFTE ZEILE AN. Er leitet damit auch die
        Zeilen neu ab, die laengst richtig liegen -- bei jedem Start, mit dem
        vollen Preis fuer das Lesen des Originals. */
-    nr: '513', name: 'Der Lauf zieht jede Zeile nach, nicht nur die faelligen',
+    nr: '513', name: 'Der Lauf backt jede Zeile, nicht nur die faelligen',
     datei: 'bestandslauf.js',
-    suche: "        if (await istAlteAbleitung(z.thumb)) {",
+    suche: "        if (await istOhneZuschnitt(z.thumb)) {",
     ersatz: "        if (true) {",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4664,8 +4683,8 @@ const RUECKBAUTEN = [
        Standbild, und zwar still. */
     nr: '514', name: 'Der Lauf schreibt auch, wenn die Ableitung leer zurueckkommt',
     datei: 'bestandslauf.js',
-    suche: "          if (v.thumb) {",
-    ersatz: "          if (true) {",
+    suche: "  if (!v.thumb) return null;",
+    ersatz: "  if (!v.thumb) v.thumb = null;",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4692,8 +4711,8 @@ const RUECKBAUTEN = [
        Offengebliebenes benannt. */
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
     datei: 'bestandslauf.js',
-    suche: "  reclaim();\n  melde(stand);\n  console.log(`[Kriterion] Vorschaubilder nachgezogen:",
-    ersatz: "  melde(stand);\n  console.log(`[Kriterion] Vorschaubilder nachgezogen:",
+    suche: "  reclaim();\n  melde(stand);\n  console.log(`[Kriterion] Kacheln gebacken:",
+    ersatz: "  melde(stand);\n  console.log(`[Kriterion] Kacheln gebacken:",
     erwartet: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
   },
   {
@@ -4702,7 +4721,7 @@ const RUECKBAUTEN = [
        ihrem ersten Start. */
     nr: '517', name: 'Das Nachziehen wird beim Start nicht mehr gerufen',
     datei: 'server.js',
-    suche: "  if (!offen.length) return zieheGeometrieNach();",
+    suche: "  if (!offen.length) return backeKacheln();",
     ersatz: "  if (!offen.length) return maintainStorage();",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4712,10 +4731,10 @@ const RUECKBAUTEN = [
        Austauschdatei ungeprueft durch, und der Pruefstand legt seit 0.19.3
        Zeilen mit `art = 'foto'` an. Die verengte Abfrage laesst sie still
        liegen. */
-    nr: '518', name: 'Die Auswahl des Nachziehens verengt sich auf ein Wort',
+    nr: '518', name: 'Die Auswahl des Backens verengt sich auf ein Wort',
     datei: 'server.js',
-    suche: "const qBildZeilen = db.prepare(\"SELECT id FROM photos WHERE art != 'video'\");",
-    ersatz: "const qBildZeilen = db.prepare(\"SELECT id FROM photos WHERE art IS 'bild'\");",
+    suche: "const qKachelZeilen = db.prepare('SELECT id FROM photos');",
+    ersatz: "const qKachelZeilen = db.prepare(\"SELECT id FROM photos WHERE art IS 'bild'\");",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4755,8 +4774,205 @@ const RUECKBAUTEN = [
        das, worauf es ankommt: WELCHE Kante die Zahl traegt. */
     nr: '522', name: 'Die Karte nennt wieder 400 px, ohne die Kante zu sagen',
     datei: 'public/app.js',
-    suche: "die kleine misst 512 px auf der <em>kurzen</em> Kante, weil die",
+    suche: "die kleine ist <em>512 × 512</em> und trägt den eingestellten",
     ersatz: "die beiden Ableitungen (400 px und 1600 px) stehen hier nicht, und zwar",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+
+  /* ---- Der Ausschnitt wird gebacken -- 0.19.5 ----
+     JEDER RUECKBAU NIMMT GENAU EINE ZUSAGE WEG. Die Runde kehrt eine
+     Entscheidung aus 0.19.4 um -- der Zuschnitt entsteht ab jetzt am Server
+     und nicht mehr im Browser --, und sie besteht aus zwei Haelften, die nur
+     zusammen richtig sind. Deshalb liegen hier Rueckbauten fuer BEIDE Seiten:
+     einer, der das Backen wegnimmt, und einer, der den CSS-Zuschnitt
+     zurueckholt (453, oben mitgegangen). */
+  {
+    /* DIE TAFEL SCHNEIDET NICHT MEHR. `thumb` wird wieder ungeschnitten
+       abgeleitet -- die Kachel ist danach 910 x 512 statt 512 x 512, und der
+       Browser, der sie zurechtzoege, ist weg. */
+    nr: '523', name: 'Die Kachel wird wieder ungeschnitten abgeleitet',
+    datei: 'bilder.js',
+    suche: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
+    ersatz: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: false },",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* `medium` WIRD MITGESCHNITTEN. Es wird mit `object-fit: contain`
+       gezeigt -- ganz --, und der Editor zeichnet den Rahmen darauf. Ein
+       geschnittenes `medium` naehme ihm seine Vorlage. */
+    nr: '524', name: 'medium wird mitgeschnitten',
+    datei: 'bilder.js',
+    suche: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
+    ersatz: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: true }",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DER ZUSCHNITT RECHNET IN DEN GESPEICHERTEN MASSEN. `extract()` rechnet
+       in den GEDREHTEN -- Stolperstein 288 an einer zweiten Stelle. Wer den
+       EXIF-Vermerk nicht mitzaehlt, schneidet an der falschen Stelle, und bei
+       3024 Breite laege ein `left` von 3500 sogar ausserhalb. */
+    nr: '525', name: 'Der Zuschnitt rechnet in den gespeicherten statt in den gedrehten Massen',
+    datei: 'bilder.js',
+    suche: "  const { breite, hoehe } = gedrehteMasse(masse);",
+    ersatz: "  const breite = masse.width, hoehe = masse.height;",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE KISTE WIRD NICHT MEHR GEGEN DEN RAND GEKLAMMERT. Gerundet kann
+       `left + width` einen Bildpunkt ueber den Rand ragen -- sharp quittiert
+       das mit einem Fehler, und die Kachel entsteht gar nicht erst. Trifft
+       genau den Ausschnitt in einer Ecke (fx = 100). */
+    nr: '526', name: 'Die Zuschnittkiste wird nicht gegen den Rand geklammert',
+    datei: 'bilder.js',
+    suche: "  return { left:  Math.max(0, Math.min(breite - kante, Math.round(k.links))),\n           top:   Math.max(0, Math.min(hoehe  - kante, Math.round(k.oben))),",
+    ersatz: "  return { left:  Math.round(k.links) + 1,\n           top:   Math.round(k.oben) + 1,",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* KEIN HOCHRECHNEN MEHR -- umgekehrt: `withoutEnlargement` faellt weg,
+       und ein Ausschnitt unter der Zielkante wird auf 512 aufgeblasen. Es
+       kostete Bytes und truege keinen einzigen Bildpunkt mehr. */
+    nr: '527', name: 'Ein zu kleiner Ausschnitt wird auf die Zielkante hochgerechnet',
+    datei: 'bilder.js',
+    suche: "withoutEnlargement: true })",
+    ersatz: "withoutEnlargement: false })",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DAS FRISCH HOCHGELADENE FOTO WIRD NICHT GEBACKEN. Es traegt danach eine
+       ungeschnittene Kachel, bis der Bestandslauf beim naechsten Start
+       darueberfaehrt -- und der Browser, der sie bis 0.19.4 zurechtzog, ist
+       weg. */
+    nr: '528', name: 'Beim Hochladen wird die Kachel nicht gebacken',
+    datei: 'server.js',
+    suche: "      const v = await makeVariants(f.buffer, VORGABE_ZUSCHNITT);",
+    ersatz: "      const v = await makeVariants(f.buffer);",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DER EINGESPIELTE AUSSCHNITT KOMMT NICHT IN DIE ABLEITUNG. Die drei
+       Zahlen stehen danach richtig in der Zeile, die Kachel zeigt sie aber
+       nicht -- an einem gerade eingespielten Bestand ist das der ganze
+       Bestand. */
+    nr: '529', name: 'Beim Einspielen wird die Kachel nicht gebacken',
+    datei: 'server.js',
+    suche: "      const v = vorlage ? await makeVariants(vorlage, zuschnitt) : { thumb: null, medium: null };",
+    ersatz: "      const v = vorlage ? await makeVariants(vorlage) : { thumb: null, medium: null };",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DER BESTANDSLAUF BACKT OHNE ZUSCHNITT. Er erzeugte damit genau die
+       Ableitung, die 0.19.4 hinterlassen hat -- und die Zeile bliebe bei
+       jedem Start aufs Neue faellig, weil sie nicht quadratisch wird. */
+    nr: '530', name: 'Der Bestandslauf backt ohne Zuschnitt',
+    datei: 'bestandslauf.js',
+    suche: "  const v = await makeVariants(vorlage, zuschnittAus(z));",
+    ersatz: "  const v = await makeVariants(vorlage);",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE VIDEOZEILE BACKT AUS `data`. Dort steht die Videodatei -- sharp
+       kommt daran leer zurueck, die Zeile wird uebersprungen und behaelt ihre
+       ungeschnittene Kachel. Der Kernsatz bleibt: der Server oeffnet nie ein
+       Video. */
+    nr: '531', name: 'Die Videozeile backt aus der Videodatei statt aus ihrem Standbild',
+    datei: 'bestandslauf.js',
+    suche: "const vorlageAus = (z) => (istVideoZeile(z) ? z.medium : z.data);",
+    ersatz: "const vorlageAus = (z) => z.data;",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE VIERTE AUFGABE GIBT ES NICHT MEHR. Der Thread wirft dann
+       „Unbekannte Aufgabe", die Route bekommt ihren Abschluss ueber den
+       Fehlerweg -- und die Kachel bleibt, wie sie war. */
+    nr: '532', name: 'Der Thread kennt die Aufgabe zuschnitt nicht',
+    datei: 'bestandslauf.js',
+    suche: "  else if (workerData.aufgabe === 'zuschnitt') await backeEineKachel(workerData.zeilen);\n",
+    ersatz: "",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DAS ERGEBNIS DER EINZELNEN ZEILE REIST NICHT ZURUECK. Der Haupt-Thread
+       haengt seine Antwort an das Ende des Threads und nicht an diese
+       Meldung -- ohne sie weiss aber niemand, ob wirklich gebacken wurde. */
+    nr: '533', name: 'Das Ergebnis der einzelnen Zeile wird nicht gemeldet',
+    datei: 'bestandslauf.js',
+    suche: "  parentPort.postMessage({ art: 'gebacken', id, ok });",
+    ersatz: "",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE ROUTE BACKT NICHT MEHR. Sie schreibt die drei Zahlen und ist
+       fertig -- wie bis 0.19.4. Die Uebersicht zeigte danach den alten
+       Schnitt, bis irgendwann etwas anderes die Zeile anfasst. */
+    nr: '534', name: 'Das Speichern des Ausschnitts backt die Kachel nicht neu',
+    datei: 'server.js',
+    suche: "  backeKachelNeu(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));",
+    ersatz: "  res.json(detail(p.item_id, req.benutzer.id));",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE ANTWORT WARTET NICHT AUF DIE KACHEL. Die Frist faellt auf null, die
+       Antwort geht sofort hinaus -- und traegt die Fassung der ALTEN Kachel.
+       Der Browser haelt sie damit bis zu 24 Stunden fest. */
+    nr: '535', name: 'Die Antwort kommt, bevor die Kachel steht',
+    datei: 'server.js',
+    suche: "  const uhr = setTimeout(einmal, BACKFRIST_MS);",
+    ersatz: "  const uhr = setTimeout(einmal, 0);",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE FASSUNG STEHT NICHT MEHR AN DER FOTOZEILE. Ohne sie traegt die
+       Adresse kein `?v=`, und `Cache-Control: private, max-age=86400` haelt
+       die alte Kachel fest. */
+    nr: '536', name: 'Die Fassung faellt aus der Fotoabfrage',
+    datei: 'server.js',
+    suche: "const PHOTO_FASSUNG = 'length(thumb) AS fassung';",
+    ersatz: "const PHOTO_FASSUNG = 'NULL AS fassung';",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE ADRESSE TRAEGT DIE FASSUNG NICHT MEHR. Dieselbe Wirkung wie 536,
+       eine Schicht hoeher -- und ohne diesen Rueckbau bliebe gruen, wer die
+       Spalte liefert und sie in der Oberflaeche liegen laesst. */
+    nr: '537', name: 'Die Bildadresse traegt die Fassung nicht mehr',
+    datei: 'public/app.js',
+    suche: "  const fassung = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';",
+    ersatz: "  const fassung = '';",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DER ZUSCHNITT IM BROWSER KOMMT ZURUECK. Ab jetzt wird ZWEIMAL
+       geschnitten -- die gebackene Kachel ist schon das sichtbare Quadrat,
+       und `scale()` darauf zeigt einen Ausschnitt des Ausschnitts. */
+    nr: '538', name: 'Der Zuschnitt im Browser kommt zurueck -- es wird zweimal geschnitten',
+    datei: 'public/style.css',
+    suche: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }",
+    ersatz: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; transform: scale(var(--zoom, 1)); }",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE BEIDEN RECHNUNGEN LAUFEN AUSEINANDER. Der Browser zeichnet den
+       Rahmen ohne den Zoom, der Server backt mit ihm -- der Editor zeigt
+       danach ein anderes Quadrat, als in der Kachel landet. GENAU DAS ist die
+       Gefahr, wegen der die Rechnung auf beiden Seiten in EINER Funktion
+       steht und der Pruefstand sie gegeneinander haelt (Stolperstein 293). */
+    nr: '539', name: 'Die Rechnung im Browser laeuft der im Server davon',
+    datei: 'public/app.js',
+    suche: "  const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt",
+    ersatz: "  const eng = seite;                       // was sie beim eingestellten Zoom zeigt",
+    erwartet: 'Der Ausschnitt wird gebacken — 0.19.5'
+  },
+  {
+    /* DIE FORTSCHRITTSZEILE KENNT NUR NOCH EINE RICHTUNG. Bis 0.19.4 wurde die
+       Kachel groesser, und „mehr" war immer richtig; gebacken wird sie in der
+       Regel kleiner. Danach staende in der Karte „20 MB mehr", wo 20 MB frei
+       geworden sind -- eine Zahl, die in die falsche Richtung zeigt, ist
+       schlechter als keine. */
+    nr: '540', name: 'Die Fortschrittszeile kennt nur eine Richtung',
+    datei: 'public/app.js',
+    suche: "${d > 0 ? 'mehr' : 'weniger'}",
+    ersatz: "mehr",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
 

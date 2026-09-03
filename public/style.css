@@ -491,19 +491,24 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   aspect-ratio: 1/1; background: #0a0c0e;   /* quadratisch, Ausschnitt ueber den Fokuspunkt */
   display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
 }
-/* DER ENGERE AUSSCHNITT, seit 0.19.0. `--zoom` kommt als Inline-Eigenschaft
-   vom Foto (app.js, ausschnitt()); fehlt sie, gilt 1 und damit genau das
-   Verhalten bis 0.18.1. GERECHNET WIRD HIER UND NICHT DORT: ein Inline-
-   transform schluege die Ueberfahrregel eine Zeile tiefer, und die Kachel mit
-   eingestelltem Ausschnitt verloere als einzige ihre Bewegung.
-   WORAN DIESES scale() VERANKERT, STEHT DAGEGEN INLINE: `transform-origin`
-   kommt seit 0.19.1 aus derselben Funktion und traegt denselben Punkt wie
-   `object-position`. Ohne ihn vergroesserte diese Zeile um die MITTE, und von
-   der eingestellten Bildecke waere nichts zu sehen -- gemessen 0,0 % in allen
-   vier Richtungen. Ein `transform-origin` HIER waere die zweite Wahrheit: es
-   kennt den Punkt des Fotos nicht. */
-.card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(var(--zoom, 1)); transition: filter .2s var(--ease), transform .4s var(--ease); }
-.card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.03)); }
+/* DER ENGERE AUSSCHNITT WIRD SEIT 0.19.5 NICHT MEHR HIER GEZOGEN, SONDERN
+   GEBACKEN. Von 0.19.0 bis 0.19.4 stand hier `transform: scale(var(--zoom))`
+   und am Bild ein `object-position` aus app.js; der Server liefert seit dieser
+   Runde eine Kachel, die den eingestellten Ausschnitt SCHON IST. Beides
+   zusammen schnitte zweimal -- man saehe einen Ausschnitt des Ausschnitts.
+   WARUM DER GEBACKENE WEG BESSER IST, in Quellpunkten je Anzeigepunkt auf der
+   299 px breiten Kachel: bei `zoom` 235 gab der gezogene 0,73x (also 1,37fach
+   HOCHGEZOGEN), der gebackene gibt 5,88x -- und zwar unabhaengig davon, wie
+   eng gezogen wird.
+   `object-fit: cover` BLEIBT STEHEN UND IST LEERLAUF: ein Quadrat in einem
+   quadratischen Behaelter hat nichts zu beschneiden. Es bleibt, weil die
+   Kachel auch eine ungeschnittene Ableitung zeigen kann -- eine Zeile, deren
+   Masse sich nicht lesen liessen, und jede Zeile in den Sekunden zwischen
+   Einspielen und erstem Bestandslauf. Ohne `cover` verzerrte sie dort.
+   DIE DREI PROZENT BEIM UEBERFAHREN BLEIBEN, sie haengen nur nicht mehr am
+   Ausschnitt: aus `scale(calc(var(--zoom, 1) * 1.03))` wird `scale(1.03)`. */
+.card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: filter .2s var(--ease), transform .4s var(--ease); }
+.card:hover .card-img img { transform: scale(1.03); }
 .card-img .ph { color: #333b44; }
 .card.rejected .card-img img { filter: grayscale(.85) brightness(.5); }
 .card.rejected .card-title { color: var(--muted); }
@@ -700,7 +705,9 @@ mark {
   border: 2px solid var(--line); position: relative; background: #0a0c0e;
   cursor: grab; transition: border-color .15s var(--ease), transform .14s var(--ease), opacity .14s var(--ease);
 }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; transform: scale(var(--zoom, 1)); }
+/* OHNE `transform` SEIT 0.19.5 -- aus demselben Grund wie an der Kachel der
+   Uebersicht: der Ausschnitt steckt im Bild und nicht mehr im Stilblatt. */
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 .thumb.current { border-color: var(--accent); }
 .thumb.dragging { opacity: .45; transform: scale(.93); cursor: grabbing; }
 .thumb .num { position: absolute; bottom: 0; left: 0; background: rgba(8,10,12,.82); color: var(--text-2); font-family: var(--mono); font-size: .6rem; padding: 1px 5px; border-radius: 0 5px 0 0; }
@@ -2559,10 +2566,11 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      ihre eigene Auswahl wieder weg: das Kaestchen stand auf orange, die Karte
      sah aus wie jede andere. Nachgemessen am Bildschirm, nicht vermutet. */
   .card:hover:not(.picked) { box-shadow: none; border-color: var(--line); }
-  /* Die Ueberfahrvergroesserung faellt weg, der EINGESTELLTE Ausschnitt
-     nicht: `transform: none` naehme ihn mit, und auf dem Telefon saehe
-     dieselbe Kachel anders aus als auf dem Desktop. */
-  .card:hover .card-img img { transform: scale(var(--zoom, 1)); }
+  /* Die Ueberfahrvergroesserung faellt weg. Bis 0.19.4 musste hier
+     `scale(var(--zoom, 1))` stehen statt `none`, weil `none` den
+     EINGESTELLTEN Ausschnitt mitgenommen haette -- seit 0.19.5 steckt der im
+     Bild, und `none` nimmt nur noch das mit, was hier auch gemeint ist. */
+  .card:hover .card-img img { transform: none; }
   .stars .star:hover { transform: none; }
   .pin-btn:hover { transform: none; }
   .zl-punkt:hover { transform: none; opacity: .68; }
