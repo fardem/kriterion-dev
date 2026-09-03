@@ -106,8 +106,9 @@ mehr.*
 
 ## 3. Was der Prüfstand dazu sagt
 
-**EINE NEUE GRUPPE, „Die Ansicht kann fort sein — 0.19.6", MIT ACHT ZUSAGEN.**
-Geprüft wird **der echte Weg** und kein nachgestelltes DOM:
+**EINE NEUE GRUPPE, „Die Ansicht kann fort sein — 0.19.6", MIT NEUN ZUSAGEN.**
+Geprüft wird **der echte Weg** und kein nachgestelltes DOM — die acht Schritte
+darunter tragen sie, die erste Zeile prüft dabei zwei Dinge:
 
 1. Die Prüflage steht überhaupt — Ausschnittschalter und Schieber sind da.
    *Ohne diese beiden Zeilen wäre „keine rote Meldung" trivial wahr, sobald der
@@ -136,6 +137,22 @@ nimmt nicht die Wache weg, sondern das, was sie bewacht.
 | **541** | Der Bilderstreifen fragt nicht, ob seine Ansicht noch steht | Die Ansicht kann fort sein — 0.19.6 |
 | **542** | Der Betrachter fragt nicht, ob seine Ansicht noch steht | dieselbe |
 | **543** | Der Bilderstreifen zeichnet überhaupt keine Kacheln mehr | dieselbe |
+
+### Der Gegenprobenlauf — drei gefahren, keiner stumm
+
+**JEDER DER DREI MACHT NAMENTLICH DIE RICHTIGEN ZUSAGEN ROT.** *Gefahren gegen
+den Stand im Kopf des Zweiges, zwei Nebenspuren, je rund sieben Minuten.*
+
+| Nr. | bestanden | rot geworden |
+|---|---|---|
+| **541** — Streifen ohne Wache | 5242 / 5246 | **„Keine rote Meldung, wenn die Antwort in eine fortgegangene Ansicht fällt"**, „Und die Zusage ‚gespeichert' steht trotzdem da", „Und der Bilderstreifen ebenso" |
+| **542** — Betrachter ohne Wache | 5244 / 5246 | „Der Betrachter fragt erst, ob seine Ansicht noch steht" |
+| **543** — Streifen zeichnet nichts | 5238 / 5246 | „Bei stehender Ansicht zeichnet der Streifen seine Kacheln" **und sechs Zusagen der Gruppe „Videos am Bildschirm"** — *der Beleg, dass die Wache kein Ausschalter ist* |
+
+> **RÜCKBAU 541 IST DER EIGENTLICHE BELEG DIESER RUNDE:** er stellt genau den
+> gemeldeten Fehler wieder her, und die neue Gruppe meldet ihn namentlich —
+> *„Keine rote Meldung …" wird rot, und die Bestätigung fällt mit ihm aus.*
+> **Beides zusammen ist der Befund aus dem Feld, Zeile für Zeile.**
 
 ---
 
