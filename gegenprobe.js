@@ -5370,6 +5370,25 @@ const RUECKBAUTEN = [
     suche: '    server.close(() => r());',
     ersatz: '    r();',
     erwartet: 'Keine Prueflage laesst ihren Server zurueck'
+  },
+  /* ---- 0.20.1: der Bericht ueber einen abgerissenen Lauf ---- */
+  {
+    /* BEIDE ZEILEN GEHOEREN ZUSAMMEN, und deshalb gibt es zwei Rueckbauten:
+       einen auf das AUFHEBEN des Grundes und einen auf das DRUCKEN. Faellt nur
+       das Drucken weg, steht der Grund im Ergebnis und niemand sieht ihn --
+       genau die Lage, in der Rueckbau 568 seinen Abriss unerklaert liess. */
+    nr: 'W15', name: 'Der Bericht druckt die letzten Zeilen eines Abrisses nicht mehr',
+    datei: 'gegenprobe.js',
+    suche: '      for (const z of e.schwanz || []) console.log(`     \u2502 ${z}`);',
+    ersatz: '      for (const z of []) console.log(`     \u2502 ${z}`);',
+    erwartet: 'Die Gegenproben greifen'
+  },
+  {
+    nr: 'W16', name: 'Der Leser hebt die letzten Zeilen gar nicht erst auf',
+    datei: 'gegenprobe.js',
+    suche: "    schwanz: ausgabe.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
+    ersatz: '    schwanz: []',
+    erwartet: 'Die Gegenproben greifen'
   }
 ];
 
@@ -5521,7 +5540,22 @@ function leseLauf(ausgabe) {
     durchgelaufen: Boolean(schluss),
     bestanden: schluss ? Number(schluss[1]) : null,
     gesamt: schluss ? Number(schluss[2]) : null,
-    abriss: abriss ? abriss[1] : null
+    abriss: abriss ? abriss[1] : null,
+    /* DIE LETZTEN ZEILEN DER AUSGABE -- damit ein ABGERISSENER Lauf sagen
+       kann, WARUM er abriss. Der Treiber faengt stdout UND stderr ein und warf
+       den Grund bis 0.20.1 weg: die Tabelle zeigte die roten Punkte davor und
+       dahinter „Rueckgabewert 1", eine Zahl ohne jede Auskunft. Genau daran
+       ist bei Rueckbau 568 eine Stunde vergangen (Stolperstein 301).
+       ZWEI WEGE ENDEN OHNE SCHLUSSBLOCK, und nur EINER schreibt eine Zeile,
+       die dieser Leser kennt: der aeussere Fang druckt „Prueflauf
+       abgebrochen: ...". Ein unbehandeltes Ereignis ausserhalb der
+       abgewarteten Kette druckt gar nichts davon -- Node legt Meldung und
+       Aufrufweg auf stderr und geht mit 1. Fuer diesen zweiten Weg ist der
+       Schwanz die EINZIGE Auskunft.
+       ZWANZIG ZEILEN, LEERE WEGGELASSEN: eine unbehandelte Meldung von Node
+       ist rund zwoelf Zeilen lang, und davor sollen noch ein paar Zeilen des
+       Laufs stehen, damit man sieht, WO er stand. */
+    schwanz: ausgabe.split('\n').map(z => z.trimEnd()).filter(z => z).slice(-20)
   };
 }
 
@@ -5625,9 +5659,14 @@ function schreibeTabelle(ergebnisse) {
   for (const e of ergebnisse) {
     console.log(`**${e.nr} — ${e.name}** (${e.datei}, Spur ${e.spur}, ${e.sekunden}s)`);
     if (e.fehler) { console.log(`  RÜCKBAU GESCHEITERT: ${e.fehler}\n`); continue; }
-    if (!e.durchgelaufen)
+    if (!e.durchgelaufen) {
       console.log(`  LAUF ABGERISSEN: ${e.abriss || `Rückgabewert ${e.code}`}`);
-    else
+      /* UND DARUNTER DIE LETZTEN ZEILEN, DIE ER GEDRUCKT HAT. Ein Abriss ohne
+         Grund schickt den Leser auf eine Suche nach nichts: der Grund liegt in
+         der eingefangenen Ausgabe, und dorthin kommt niemand mehr, denn die
+         Kopie ist beim Aufraeumen weg. Deshalb steht er hier. */
+      for (const z of e.schwanz || []) console.log(`     │ ${z}`);
+    } else
       console.log(`  ${e.bestanden} von ${e.gesamt} bestanden, erwartet in „${e.erwartet}"`);
     if (!e.inhaltlichRot?.length && e.durchgelaufen)
       console.log('  STUMM — kein einziger roter Punkt. Das ist ein FUND und gehört untersucht.');
@@ -5688,7 +5727,7 @@ const passtRueckbau = (r, argument) => {
    passtRueckbau EBENSO: die Regel, welches Argument welchen Rueckbau meint,
    laesst sich damit an gestellten Faellen nachsehen, statt Minuten lang einen
    Lauf zu fahren, um zu sehen, WAS er gefahren hat. */
-module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau };
+module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau, schreibeTabelle };
 if (require.main !== module) return;
 
 (async function haupt() {

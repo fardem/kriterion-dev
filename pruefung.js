@@ -20903,7 +20903,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      eine andere Datei gewandert** -- der Deckel der Liste ist seit 0.20.1 eine
      Regel im Stilblatt und keine Klasse im Markup. Seine Zusage ist dieselbe
      geblieben. KEINER IST WEGGEFALLEN. */
-  pruefe('Es sind genau 561 Rueckbauten', gpListe.length === 561, `${gpListe.length}`);
+  pruefe('Es sind genau 563 Rueckbauten', gpListe.length === 563, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -20987,6 +20987,51 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gpEigeneGruppe.rot.length === 2 && gpEigeneGruppe.inhaltlichRot.length === 1 &&
     gpEigeneGruppe.inhaltlichRot[0].name === 'Eine Nummer als Argument greift NICHT in die Namen hinein',
     JSON.stringify(gpEigeneGruppe.inhaltlichRot));
+
+  /* ---- EIN ABGERISSENER LAUF MUSS SAGEN, WARUM -- 0.20.1.
+     DER BEFUND: Rueckbau 568 riss beim ersten Anlauf nach 79 Sekunden ab, und
+     der Bericht sagte „Rueckgabewert 1" -- eine Zahl ohne jede Auskunft. Der
+     Grund lag in der eingefangenen Ausgabe (der Treiber faengt stdout UND
+     stderr ein), gedruckt hat er ihn nicht, und die Kopie ist beim Aufraeumen
+     weg. Damit war die Ursache nicht mehr feststellbar: eine Stunde Suche, an
+     deren Ende kein Befund stand, sondern nur die Gewissheit, dass das
+     Werkzeug ihn weggeworfen hatte (Stolperstein 301).
+     ZWEI WEGE ENDEN OHNE SCHLUSSBLOCK, und nur EINER schreibt eine Zeile, die
+     der Leser kennt: der aeussere Fang druckt „Prueflauf abgebrochen: ...".
+     Ein unbehandeltes Ereignis ausserhalb der abgewarteten Kette druckt davon
+     nichts -- Node legt Meldung und Aufrufweg auf stderr und geht mit 1.
+     Fuer diesen zweiten Weg ist der Schwanz die einzige Auskunft. ---- */
+  const gpAbriss = gpLese([
+    '── Alte Sicherungen aufraeumen: der echte Ordner ─────',
+    '  ✓ Sieben Kopien liegen im Ordner',
+    '  ✗ Die Nummern laufen von 1 bis 7',
+    'node:events:497',
+    '      throw er;',
+    'Error: listen EADDRINUSE: address already in use 127.0.0.1:6110'
+  ].join('\n'));
+  pruefe('Ein Lauf ohne Schlussblock gilt als abgerissen',
+    gpAbriss.durchgelaufen === false && gpAbriss.abriss === null,
+    JSON.stringify([gpAbriss.durchgelaufen, gpAbriss.abriss]));
+  pruefe('Und er hebt die letzten Zeilen auf, damit der Grund lesbar bleibt',
+    gpAbriss.schwanz?.includes('Error: listen EADDRINUSE: address already in use 127.0.0.1:6110'),
+    JSON.stringify(gpAbriss.schwanz));
+  /* UND DER BERICHT MUSS SIE AUCH DRUCKEN. Ein Schwanz, den nur der Leser
+     kennt, hilft niemandem: gelesen wird die Tabelle. Gemessen wird deshalb an
+     der ECHTEN Ausgabe der echten Berichtsfunktion und nicht am Quelltext --
+     ein Suchmuster ueber den Quelltext bliebe gruen, wenn die Schleife zwar
+     dasteht, aber ueber die falsche Liste laeuft. */
+  const gpTabelle = require('./gegenprobe').schreibeTabelle;
+  const gedruckt = [];
+  const echtesLog = console.log;
+  console.log = (...teile) => gedruckt.push(teile.join(' '));
+  try {
+    gpTabelle([{ nr: '568', name: 'Ein Rueckbau', datei: 'server.js', spur: 0,
+                 sekunden: 79, code: 1, ...gpAbriss }]);
+  } finally { console.log = echtesLog; }
+  pruefe('Und der Bericht druckt sie unter den Abriss',
+    gedruckt.some(z => z.includes('LAUF ABGERISSEN')) &&
+    gedruckt.some(z => z.includes('EADDRINUSE')),
+    JSON.stringify(gedruckt.filter(z => /ABGERISSEN|│/.test(z))));
 
   /* ---- WELCHES ARGUMENT WELCHEN RUECKBAU MEINT -- 0.16.0.
      DER BEFUND: `node gegenprobe.js 2 256` fuhr neben Rueckbau 256 auch die 83
