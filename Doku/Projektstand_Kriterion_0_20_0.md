@@ -405,7 +405,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.20.0** — Fingerprint **`FINGERPRINT_0_20_0`**, **5374
+**Gebaut ist 0.20.0** — Fingerprint **`12421721`**, **5374
 Prüfungen**, **558 Rückbauten in der Liste** (Abschnitt 8).
 *0.20.0 baut eine Hälfte fertig, die von Anfang an fehlte: Kriterion schrieb
 Sicherungen und entfernte keine. Die Regel hat zwei Bedingungen — nicht unter
@@ -1244,7 +1244,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.20.0** | **`FINGERPRINT_0_20_0`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5374 |
+| **0.20.0** | **`12421721`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5374 |
 | 0.19.6 | `109cd457` *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5246 |
 | 0.19.5 | `f228a06d` *(am 3. September 2026 im Feld bestätigt — der Befund zu dieser Runde ist 0.19.6)* | 5237 |
 | 0.19.4 | `03e3b818` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**)* | 5207 |
@@ -9035,7 +9035,7 @@ eine Buchführung.*
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
 | **0.19.5** | **Der Ausschnitt wird eingerechnet (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
-| **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell (128 netto: 5246 → 5374)** | **dreiundzwanzig neue (535 → 558, Nummern 544 bis 566); EINER nachgezogen (437 — `EIGENTUEMER_SCHLUESSEL` trägt jetzt vier Schlüssel statt einem); GEGENPROBEN_0_20_0** | **Stolpersteine 299 und 300** |
+| **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell (128 netto: 5246 → 5374)** | **dreiundzwanzig neue (535 → 558, Nummern 544 bis 566); EINER nachgezogen (437 — `EIGENTUEMER_SCHLUESSEL` trägt jetzt vier Schlüssel statt einem); **24 gefahren** (die 23 neuen und der nachgezogene 437), **KEINER stumm**; **einer riss beim ersten Mal den Lauf ab** (561 — die Prüflage fasste Knoten ohne Klemme an, Stolperstein 161) und ist nach der Berichtigung mit 38 roten Punkten nachgefahren** | **Stolpersteine 299 und 300** |
 | **0.19.6** | **Die Ansicht kann fort sein (9 netto: 5237 → 5246)** | **drei neue (532 → 535, Nummern 541 bis 543); SECHS nachgezogen (516, 517, 532 bis 535 — sie zeigten auf Zeilen, in denen das Wort „backen" stand); 3 gefahren, KEINER stumm** | **Stolperstein 298** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was

@@ -2103,11 +2103,10 @@ der Wechsel, wird rot markiert. Ist auch die jüngste älter, sagt die Karte, da
 überhaupt keine zum heutigen Schlüssel passt — dann gehört sofort neu gesichert.
 Einzelheiten im Abschnitt „Den Schlüssel wechseln".
 
-**Und seit 0.20.0 lassen sich alte Kopien wieder entfernen — ohne Shell.**
-*Vorher gab es dafür keinen Weg über die Oberfläche: Kriterion schrieb
-Sicherungen und räumte keine weg. Jede Kopie ist so groß wie die ganze
-Datenbank; bei 570 MB Bildbestand ist die zehnte ein halbes Dutzend Gigabyte.*
-Zuständig ist die Karte **„Alte Sicherungen"** neben der Sicherungskarte.
+**Alte Kopien lassen sich entfernen, ohne dass du eine Shell öffnest.**
+*Jede Kopie ist so groß wie die ganze Datenbank; bei 570 MB Bildbestand ist die
+zehnte ein halbes Dutzend Gigabyte.* Zuständig ist die Karte **„Alte
+Sicherungen"** neben der Sicherungskarte.
 
 > **Die Regel hat zwei Bedingungen, und beide müssen zutreffen: eine Kopie
 > fällt nur, wenn sie NICHT unter den jüngsten N ist UND älter als X Tage.**

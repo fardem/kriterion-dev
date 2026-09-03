@@ -373,9 +373,56 @@ Sicherungen" steht unmittelbar hinter „Sicherung"**, namentlich geprüft.
 > dass die genannten Dateien danach wirklich weg sind. *Beides zusammen, keines
 > anstelle des anderen.*
 
-### Der Gegenprobenlauf
+### Der Gegenprobenlauf — vierundzwanzig gefahren, KEINER stumm
 
-GEGENPROBENTABELLE_0_20_0
+**Gefahren sind die dreiundzwanzig neuen und der eine nachgezogene (437), in
+vier Nebenspuren.** *Jeder Rückbau macht zusätzlich die Selbstprobe „Jeder
+Suchtext kommt in seiner Datei genau einmal vor" rot — die Kopie trägt ja den
+ersetzten Text; diese Zeile ist in der Spalte „rot" nicht mitgezählt.*
+
+| Nr | Was zurückgebaut wird | rot | Die Zeile, auf die es ankommt |
+|---|---|---|---|
+| **544** | Die Regel kennt **nur das Alter** — der Boden fällt weg | **5** | *„Die Regel bei alle alt, aber unter dem Boden: nichts fällt"* und *„Der Boden von eins lässt die jüngste stehen, auch wenn sie alt ist"* |
+| **545** | Die Regel kennt **nur die Zahl** — die Schere fällt weg | **12** | *„Die Regel bei mehr als N, aber alle jung: nichts fällt"*, *„Genau X Tage alt fällt nicht"* — und im Ordner fällt danach die Kopie von vorgestern |
+| **546** | Die **Musterprüfung** fällt weg (an der Konstanten, also an beiden Stellen zugleich) | **15** | *„`notizen.txt` überlebt den Lauf"* und *„`kriterion-alt.sqlite.bak` überlebt den Lauf"* — **die gefährlichste Frage der Runde, namentlich rot.** *Und eine Zeile aus 0.8.70 schlägt mit an: „Eine liegengebliebene Arbeitsdatei zählt nicht als Sicherung"* |
+| **547** | Die **zweite** Musterprüfung, unmittelbar vor dem `unlink` | **1** | *„Und das Entfernen prüft jeden Namen unmittelbar davor noch einmal"* — **am Verhalten stumm und deshalb am Quelltext geprüft**; die Namen kommen heute aus `sicherungsListe()` und sind dort längst geprüft |
+| **548** | Die **Liste** folgt dem Symlink (`statSync` statt `lstatSync`) | **7** | *„Die Vorschau nennt genau die drei Kopien"* — der Verweis steht danach in der Vorschau |
+| **549** | Das **Entfernen** folgt dem Symlink | **1** | *„Und es fragt mit `lstatSync` statt mit `statSync`"* — dieselbe Lage wie 547, dieselbe Begründung |
+| **550** | Der Boden zählt die **veralteten** Kopien mit | **3** | *„Die Regel bei N Kopien, von denen zwei vor dem Schlüsselwechsel liegen: nichts fällt"* — **Entscheidung 5** |
+| **551** | Nach der **gescheiterten** Sicherung wird doch aufgeräumt | **3** | *„Nach einer gescheiterten Sicherung wird nicht aufgeräumt"* — **Entscheidung 3, die wichtigste Zeile der Runde** |
+| **552** | Das Aufräumen **reißt die gelungene Sicherung mit** | **3** | *„Und die Antwort bleibt die einer gelungenen Sicherung"* und *„Und hinter ihm steht kein Fehlerausgang mehr"* — Stolperstein 298 in derselben Gestalt |
+| **553** | Der Schalter steht bei einer frischen Installation auf **AN** | **3** | *„Der Schalter steht bei einer frischen Installation auf AUS"* und *„Bei ausgeschaltetem Schalter räumt die Sicherung nichts weg"* |
+| **554** | Die **Grenzen** halten nicht mehr am Server | **14** | dreizehn Absagen fallen weg, und *„die eingestellten Werte stehen unverändert auf 3 und 30"* wird rot |
+| **555** | Die **Vorschau** rechnet mit einem anderen Boden als das Löschen | **1** | *„Mit Boden 5 treffen es nur noch zwei Kopien"* — zwei Wahrheiten über dasselbe |
+| **556** | Die Löschroute nimmt einen **Dateinamen** aus dem Rumpf | **7** | *„Ein Rumpf mit Dateinamen ändert am Ergebnis nichts"* **und** *„Die Löschroute liest aus dem Rumpf genau ein Feld"* — Verhalten und Quelltext zugleich |
+| **557** | Das Aufräumen läuft **ohne zweite Bestätigung** | **7** | *„Ohne zweite Bestätigung antwortet die Route mit 403"* — **und ein Wächter aus einer anderen Gruppe schlägt mit an:** *„Jede zweitbestätigte Route ruft die Bestätigung wirklich"* |
+| **558** | Die Route fällt auf **`nurAdmin`** | **1** | *„Jede Route mit benanntem Wächter trägt ihn in der Routenzeile"* — `F_ROUTEN` kennt die Art, und die stimmt danach nicht mehr |
+| **559** | Die entfernten Kopien stehen in **keinem Protokoll** mehr | **1** | *„Das Protokoll trägt eine Zeile je entfernter Kopie"* |
+| **560** | `sicherung.weg` steht in **keiner Gruppe** des Filters | **1** | *„Jeder Vorgang steht in genau einer Gruppe des Filters"* |
+| **561** | Die **Karte** fällt aus dem Systembereich | **38** | *„Und es sind wirklich zwanzig"* und die ganze Oberflächengruppe. **Dieser Rückbau hat den Lauf beim ersten Mal ABGERISSEN** — siehe unten |
+| **562** | Die Karte steht schon beim **Admin** | **1** | *„Die Karte „Alte Sicherungen" steht nur beim Eigentümer"* |
+| **563** | Eine Änderung am Feld rechnet die Vorschau **nicht** neu | **2** | *„Eine Änderung am Feld fragt die Vorschau neu am Server"* |
+| **564** | Die Karte schickt die **Dateinamen** mit | **1** | *„Und der Rumpf trägt genau ein Feld, und das ist die Art"* |
+| **565** | Der Knopf ist auch **ohne Treffer** bedienbar | **1** | *„Und der Knopf ist dann nicht bedienbar"* |
+| **566** | Die Vorschauliste bekommt **keinen Deckel** | **2** | *„Die Liste trägt den gemeinsamen Deckel der Systemlisten"* |
+| **437** | *(nachgezogen)* Der Schalter der Bildablage ist nur noch Adminsache | **3** | unverändert dieselben drei Zeilen wie vor der Runde — **der Suchtext ist mitgegangen, die Zusage nicht** |
+
+> **VIERUNDZWANZIG GEFAHREN, KEINER STUMM.** *Und das ist bei einer Runde mit
+> so vielen Rückbauten nicht selbstverständlich: elf Gegenproben ohne einen
+> einzigen stummen sahen in 0.8.91 nach einem guten Ergebnis aus, und sieben
+> nachgereichte brachten zwei stumme.*
+
+> **EIN FUND, UND ER BETRIFFT DEN PRÜFSTAND SELBST: RÜCKBAU 561 HAT DEN LAUF
+> ABGERISSEN.** Er nimmt die Karte aus `SYS_KARTEN`; **vier Zeilen der
+> Oberflächenprüflage griffen danach auf `null`** —
+> `getElementById('auf-los').dispatchEvent(…)` — und der Lauf endete mit
+> *„Cannot read properties of null"* statt mit roten Punkten. **Ein Rückbau,
+> der den Lauf abreißt, belegt nichts** (Stolperstein 161), und eine Prüflage,
+> die einen Knoten erwartet und nicht bekommt, soll das **sehen** statt daran
+> zu zerbrechen (Stolperstein 103). *Jeder Griff auf einen Knoten der Karte ist
+> jetzt abgefangen; **nachgefahren wurde 561 danach eigens, und er faltet 38
+> Prüfungen rot auf** — der Lauf bleibt dabei ganz.* **Gefunden hat das nicht
+> der Prüfstand, sondern die Gegenprobe** — genau dafür gibt es sie.
 
 ---
 
@@ -455,4 +502,14 @@ liest und nicht den Projektstand.*
 
 ---
 
-FINGERPRINTZEILE_0_20_0
+## 0.20.0 — Fingerprint `12421721`
+
+**ZULETZT GEBILDET**, nach der letzten Änderung an einer ausgelieferten Datei —
+die Versionsnummer in `package.json` eingeschlossen, und `package-lock.json`
+trägt sie ein zweites Mal. **`public/` gehört dazu** (Stolperstein 158).
+
+**Abgeholt von einer laufenden Instanz** über `GET /api/stats` und nicht
+nachgerechnet: `12421721` bei Version `0.20.0`.
+
+> **IM FELD NOCH NICHT BESTÄTIGT.** Der Sollwert steht hier; was die laufende
+> Installation meldet, gehört daneben, sobald sie es gemeldet hat.
