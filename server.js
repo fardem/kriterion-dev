@@ -342,7 +342,18 @@ const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;
    neues mit denselben Pixeln. Ein Knopf, der „zurueck" verspricht und etwas
    anderes liefert, ist schlechter als keiner. Die Rueckfahrkarte ist die
    Sicherung des Datenverzeichnisses, und der Dialog sagt das. */
-let umstellung = null;
+/* EINE ABBILDUNG UND NICHT ZWEI VARIABLEN -- 0.19.4. Bis 0.19.3 gab es genau
+   einen Lauf, der einen Stand meldete, und der stand in `umstellung`. Seit
+   dieser Runde gibt es zwei: die Umstellung auf Knopfdruck und das Nachziehen
+   der Geometrie beim Start. WUERDEN BEIDE IN DIESELBE VARIABLE SCHREIBEN,
+   saehe die Karte bei jedem Start „Umstellung laeuft — 5 von 1032" und der
+   Umstellungsknopf waere tot, obwohl gar keine Umstellung laeuft; POST
+   /api/bilder/umstellen antwortete mit 409. Ein Stand je Aufgabe ist die
+   einzige Form, in der beide gleichzeitig die Wahrheit sagen koennen.
+   DER SCHLUESSEL IST DIE AUFGABE, mit der der Thread erzeugt wird -- dieselbe
+   Zeichenfolge, die bestandslauf.js unten in seiner Verzweigung liest. Eine
+   zweite Liste der Aufgabennamen liefe auseinander. */
+const bestandsStaende = { umstellung: null, geometrie: null };
 
 /* Der Stand fuer /api/stats -- oder null, solange in dieser Laufzeit nie einer
    lief. ER BLEIBT NACH DEM ENDE STEHEN, mit `laeuft: false`: die Karte fragt
@@ -350,7 +361,8 @@ let umstellung = null;
    herauskam. Ein Stand, der im Augenblick des Fertigwerdens auf null
    zurueckspringt, liesse die Karte im Ungewissen -- sie saehe nicht den
    Abschluss, sondern nur das Verschwinden. */
-const umstellungsStand = () => umstellung && { ...umstellung };
+const bestandsStand = (aufgabe) =>
+  bestandsStaende[aufgabe] && { ...bestandsStaende[aufgabe] };
 
 /* WELCHE ZEILEN UEBERHAUPT IN FRAGE KOMMEN -- am INHALT erkannt, mit derselben
    Byte-Folge wie istPNG(). AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die
@@ -361,6 +373,32 @@ const umstellungsStand = () => umstellung && { ...umstellung };
    Lesens und nicht der der Spaltenlage). */
 const qOffenePNG = db.prepare(
   "SELECT id FROM photos WHERE art != 'video' AND hex(substr(data,1,8)) = ?");
+
+/* WELCHE ZEILEN DAS NACHZIEHEN DER GEOMETRIE ANSIEHT -- 0.19.4.
+   ALLE BILDZEILEN, UND NICHT DIE FAELLIGEN. Ob eine Zeile faellig ist, sagt
+   erst der Kopf ihres `thumb`, und der steht nicht in der Reichweite von SQL.
+   Diese Abfrage waehlt deshalb GROSSZUEGIG aus und ueberlaesst dem Thread die
+   eigentliche Frage; was das kostet, steht dort.
+   `art != 'video'` UND NICHT `art IS 'bild'`, obwohl db.js daneben schreibt,
+   dass nur die zweite Form idx_photos_art nimmt. DREI GRUENDE, und der erste
+   ist eine Messung: an 1052 Zeilen und 669 MB kosten beide dasselbe (0,4 bis
+   0,5 ms) -- gelesen werden hier nur Nummern, und der Index bringt ihnen
+   nichts. Der zweite ist der wichtigere: `art` traegt laut Schema 'bild' oder
+   'video', ABER DER IMPORT SCHREIBT DEN WERT AUS DER AUSTAUSCHDATEI
+   UNGEPRUEFT DURCH. Eine Auswahl auf 'bild' verschwiege jede Zeile mit einem
+   dritten Wort -- und der Pruefstand legt seit 0.19.3 Zeilen mit `art =
+   'foto'` an, an einer Stelle, an der es niemandem aufgefallen ist. Eine
+   Migration, die Zeilen still auslaesst, ist schlechter als eine, die
+   0,1 ms laenger braucht. Der dritte: qOffenePNG und das Nachruesten fragen
+   beide so, und drei Abfragen ueber dieselbe Menge sollen nicht drei
+   verschiedene Mengen meinen (Stolperstein 47).
+   UND AUSDRUECKLICH OHNE `thumb IS NOT NULL`, obwohl es die Auswahl genauer
+   machte: dieselbe Messung sagt 12,9 ms kalt -- der Satz selbst muss dafuer
+   angefasst werden, und der Haupt-Thread ist genau das, was 0.19.1 und 0.19.2
+   freigeraeumt haben. Eine Zeile ohne `thumb` ueberspringt der Thread von
+   selbst; sie ist Sache des Nachruestens, das unmittelbar davor gelaufen
+   ist. */
+const qBildZeilen = db.prepare("SELECT id FROM photos WHERE art != 'video'");
 
 /* ---- DIE VIER ABFRAGEN DER BESTANDSKARTE ----
    VORBEREITET UND NICHT JE ANFRAGE GEBAUT: sie laufen bei jedem Zeichnen des
@@ -402,8 +440,8 @@ const qVideoExportBytes = db.prepare(`
    einer laeuft: das Nachruesten faengt 1500 ms nach dem Start an, und wer in
    genau diesem Augenblick den Umstellungsknopf drueckt, hat zwei. Eine
    Variable truege dann nur den zweiten, und der erste schriebe weiter in eine
-   Datei, deren WAL gerade gekuerzt wird. `umstellung.laeuft` faengt das nicht
-   ab -- es bewacht zwei UMSTELLUNGEN und nicht zwei Laeufe. */
+   Datei, deren WAL gerade gekuerzt wird. Der Stand der Umstellung faengt das
+   nicht ab -- er bewacht zwei UMSTELLUNGEN und nicht zwei Laeufe. */
 const bestandsThreads = new Set();
 
 /* DER PFAD STEHT AN EINER STELLE, und das ist keine Ordnungsliebe: der
@@ -419,17 +457,17 @@ const BESTANDSLAUF = path.join(__dirname, 'bestandslauf.js');
    heute fuer eine einzelne Zeile. Was hier ankommt, ist alles, was die
    Schleife NICHT schon selbst abgefangen hat; der Lauf ist dann zu Ende, der
    Rest des Servers steht.
-   `umstellung.laeuft` FAELLT DABEI AUF false, und nicht der ganze Stand auf
-   null: die Karte soll sehen, wie weit er gekommen ist. */
+   `laeuft` FAELLT DABEI AUF false, und nicht der ganze Stand auf null: die
+   Karte soll sehen, wie weit er gekommen ist. */
 function starteBestandsThread(aufgabe, zeilen, fertig) {
   const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen } });
   bestandsThreads.add(w);
   /* DER STAND WIRD ERSETZT UND NICHT FORTGESCHRIEBEN. Der Thread meldet je
      Zeile den GANZEN Stand; eine Zunahme muesste hier aufaddiert werden, und
      dann haengt die Zahl an der Vollstaendigkeit der Meldungsfolge. */
-  w.on('message', (m) => { if (m && m.art === 'stand') umstellung = m.stand; });
+  w.on('message', (m) => { if (m && m.art === 'stand') bestandsStaende[aufgabe] = m.stand; });
   w.on('error', (e) => {
-    if (umstellung) umstellung.laeuft = false;
+    if (bestandsStaende[aufgabe]) bestandsStaende[aufgabe].laeuft = false;
     console.error(`[Kriterion] Bestandslauf (${aufgabe}) abgebrochen:`, e.message);
   });
   w.on('exit', () => { bestandsThreads.delete(w); if (fertig) fertig(); });
@@ -4281,7 +4319,11 @@ app.get('/api/stats', nurAdmin, (req, res) => {
     /* WIE WEIT DIE UMSTELLUNG IST -- ODER null. KEINE ZWEITE ROUTE dafuer:
        die Karte fragt ohnehin die Kennzahlen ab, und ein eigener Endpunkt fuer
        drei Zahlen liefe als zweite Wahrheit ueber denselben Lauf mit. */
-    umstellung: umstellungsStand(),
+    umstellung: bestandsStand('umstellung'),
+    /* DER ZWEITE LAUF SEIT 0.19.4, und er steht als EIGENES Feld daneben und
+       nicht im selben: die Karte muss auseinanderhalten koennen, was gerade
+       laeuft. */
+    geometrie: bestandsStand('geometrie'),
     /* DIE ERWARTETE EXPORTGROESSE, je Schalter getrennt. Sie steht hier als
        AUFTEILUNG und nicht als eine Summe: die Karte darunter hat drei
        Schalter, und wer nur eine Gesamtzahl bekaeme, koennte an keinem
@@ -4346,13 +4388,13 @@ app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bild
      Zeilen taeten der zweiten nichts (nach der ersten ist kein PNG mehr da),
      aber sie liefen doppelt, und der gemeldete Fortschritt waere der der
      zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
-  if (umstellung && umstellung.laeuft)
+  if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)
     return res.status(409).json({ error: 'Die Umstellung läuft schon.' });
   const zeilen = qOffenePNG.all(PNG_MAGIE_HEX);
-  umstellung = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
-                 umgestellt: 0, geblieben: 0, gespart: 0 };
+  bestandsStaende.umstellung = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
+                                 umgestellt: 0, geblieben: 0, gespart: 0 };
   console.log(`[Kriterion] Bildumstellung gestartet: ${zeilen.length} PNG.`);
-  res.status(202).json(umstellungsStand());
+  res.status(202).json(bestandsStand('umstellung'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
      laeuft die Schleife nicht mehr hier, sondern in bestandslauf.js. Was der
      Aufrufer bekommt, ist unveraendert: 202 mit dem Anfangsstand, und der
@@ -5815,11 +5857,38 @@ app.use((err, req, res, next) => {
 function ruesteVorschaubilderNach() {
   const offen = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND art != 'video'").all();
-  if (!offen.length) return maintainStorage();
+  if (!offen.length) return zieheGeometrieNach();
   /* maintainStorage() ERST DANACH, und deshalb steht es hier im Abschluss und
      nicht in einer Kette daneben: es fasst die ganze Datei an (beim ersten Mal
-     ein VACUUM) und darf nicht neben der Schleife laufen. */
-  starteBestandsThread('vorschaubilder', offen, maintainStorage);
+     ein VACUUM) und darf nicht neben der Schleife laufen.
+     SEIT 0.19.4 STEHT DAS NACHZIEHEN DAZWISCHEN, und die drei laufen
+     NACHEINANDER und nicht nebeneinander. Zwei Bestandsthreads gleichzeitig
+     schrieben beide in `photos`, und der Stand fuer die Karte ist EINE
+     Variable -- der zweite ueberschriebe den ersten, und die Karte zeigte
+     abwechselnd zwei Laeufe (Stolperstein 47). */
+  starteBestandsThread('vorschaubilder', offen, zieheGeometrieNach);
+}
+
+/* DIE VORSCHAUBILDER AUF DIE NEUE GEOMETRIE NACHZIEHEN -- 0.19.4.
+   NACH DEM NACHRUESTEN UND NICHT DAVOR: eine Zeile, der `thumb` fehlt, hat
+   keine Geometrie, an der sich etwas ablesen liesse. Erst fuellen, dann
+   nachziehen -- und was das Nachruesten erzeugt, traegt die neue Geometrie
+   ohnehin schon, weil beide dieselbe makeVariants() rufen.
+
+   ES LAEUFT BEI JEDEM START UND NICHT AUF KNOPFDRUCK, und das ist die
+   Entscheidung aus Abschnitt 1c des Auftrags. Sie faellt an einer Messung:
+   die Nummern zu holen kostet den Haupt-Thread 0,5 ms; die Koepfe zu lesen
+   kostet 275 bis 314 ms, und die fallen im THREAD an, wo sie niemanden
+   aufhalten. Ein Knopf waere die Antwort gewesen, wenn die teure Haelfte im
+   Haupt-Thread haette liegen muessen -- sie muss nicht.
+   WAS ES KOSTET, WENN NICHTS ZU TUN IST: ein Thread je Start, 19 ms
+   Verbindung und 76 ms sharp, und danach 275 ms Lesen im Leerlauf. Das ist
+   der Preis dafuer, dass kein Merker in der Datenbank steht -- und der
+   Merker waere eine Schemaaenderung. */
+function zieheGeometrieNach() {
+  const zeilen = qBildZeilen.all();
+  if (!zeilen.length) return maintainStorage();
+  starteBestandsThread('geometrie', zeilen, maintainStorage);
 }
 
 /* NICHT MEHR `async` SEIT 0.19.3, und das ist keine Kosmetik: nichts darin ist
@@ -5971,10 +6040,12 @@ app.listen(PORT, () => {
         'Ruecksetzlinks stehen wie bisher im Verwaltungsbereich zum Kopieren.');
     }
   }
-  /* DAS NACHRUESTEN UND DIE SPEICHERPFLEGE, 1500 ms nach dem Horchen. Die
-     Kette aus .then() ist weggefallen, weil die Schleife nicht mehr hier
-     laeuft: ruesteVorschaubilderNach() gibt maintainStorage als Abschluss an
-     den Thread weiter und ruft es selbst, wenn es gar nichts nachzuruesten
-     gibt. Der Fehlerfall haengt am Thread (worker.on('error')). */
+  /* DAS NACHRUESTEN, DAS NACHZIEHEN UND DIE SPEICHERPFLEGE, 1500 ms nach dem
+     Horchen. Die Kette aus .then() ist weggefallen, weil die Schleifen nicht
+     mehr hier laufen: jeder Schritt gibt den naechsten als Abschluss an den
+     Thread weiter und ruft ihn selbst, wenn es fuer ihn nichts zu tun gibt.
+     Am Ende der Kette steht maintainStorage(). Der Fehlerfall haengt am
+     Thread (worker.on('error')) -- und er beendet die Kette: der Abschluss
+     laeuft am 'exit', und den gibt es auch nach einem Fehler. */
   setTimeout(ruesteVorschaubilderNach, 1500);
 });

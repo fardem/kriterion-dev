@@ -29,6 +29,33 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.19.4] - 2026-09-03
+
+> **BEIM ERSTEN START RECHNET KRITERION ALLE VORSCHAUBILDER NEU.** Das
+> geschieht von selbst, im Hintergrund, und die Karte „Bildablage" zählt dabei
+> mit. *Keine Datenbankstufe, keine Migration, kein neuer Index, das
+> Austauschformat bleibt 12.* **Nach dem Einspielen im Browser einmal hart neu
+> laden.**
+>
+> **DIE DATENBANK WÄCHST DABEI — wie stark, hängt an deinen Bildern.** Ein
+> Vorschaubild trägt jetzt so viele Bildpunkte, wie die Kachel wirklich
+> braucht; bei einem 16:9-Bildschirmfoto ist das rund das Dreifache, bei einem
+> quadratischen Bild ändert sich gar nichts. *Bisher belegten alle
+> Vorschaubilder zusammen wenige Prozent der Datenbank.* **Eine Sicherung vor
+> dem Einspielen schadet nie:** die alten Vorschaubilder sind danach weg. *Sie
+> lassen sich aus den Originalen jederzeit wieder herstellen — deshalb ist es
+> keine Datenbankstufe.*
+>
+> **VIDEOS BEHALTEN IHRE ALTE KACHEL.** Ihr Standbild kommt vom Browser und
+> liegt nicht als Original in der Datenbank; **es gibt nichts, woraus sich neu
+> rechnen ließe.** *Wer eine scharfe Videokachel will, lädt das Video neu hoch.*
+
+- Fixed: Die Kacheln der Übersicht sind scharf — die Vorschaubilder wurden bisher immer hochgerechnet
+- Fixed: Dasselbe gilt für den Bilderstreifen am Eintrag und für das Bild im Vollbild-Streifen
+- Changed: Der vorhandene Bestand wird beim ersten Start nachgezogen; danach passiert nichts mehr
+- Changed: Die Karte „Bildablage" zeigt den Lauf mit und sagt danach, was er gebracht hat
+- Changed: Sie nennt jetzt auch, welche Maße die beiden Vorschaubilder tragen
+
 ## [0.19.3] - 2026-09-02
 
 > **Nichts zu tun.** *Keine Datenbankstufe, keine Migration, kein neuer Index,

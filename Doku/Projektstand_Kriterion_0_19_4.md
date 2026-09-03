@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 51 · Stand 2. September 2026 · gebaut: Version 0.19.3**
+**Kompakte Übergabe · Revision 52 · Stand 3. September 2026 · gebaut: Version 0.19.4**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -347,8 +347,57 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.3** — Fingerprint **`cdbe0925`**, **5170
-Prüfungen**, **497 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.19.4** — Fingerprint **`03e3b818`**, **5207
+Prüfungen**, **514 Rückbauten in der Liste** (Abschnitt 8).
+*0.19.4 baut einen Fehler zurück, der seit dem ersten Tag da war: `thumb` war
+400 Bildpunkte auf der **langen** Kante, und jede Stelle, die ein `thumb`
+zeigt, schneidet es mit `object-fit: cover` zu — wer einschneidet, braucht die
+**kurze**. Ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle, und die
+Kachel zog die 225 auf ihre Breite hoch.*
+**PATCH — KEINE DATENBANKSTUFE.**
+
+> **GESICHERT WERDEN MUSS VOR DEM EINSPIELEN NICHTS.** *Kein Migrationsblock,
+> keine Schemaänderung, kein neuer Index, das Austauschformat bleibt 12; die
+> neun ausgelieferten Module bleiben neun.* **ABER: der Lauf überschreibt jede
+> `thumb`-Spalte.** Die alten Ableitungen sind danach weg — *sie sind aus dem
+> Original wiederherstellbar, und genau deshalb ist es keine Stufe.*
+> **Nach dem Einspielen im Browser einmal hart neu laden.**
+
+> **DIE DATENBANK WÄCHST, UND ZWAR MESSBAR.** Ein `thumb` mit 512 auf der
+> **kurzen** Kante trägt bei 16:9 das 3,16fache an Bildpunkten eines heutigen,
+> und **der Byte-Faktor ist auf 3 % genau der Bildpunkt-Faktor** — gemessen an
+> 180 Bildschirmfotos in drei Seitenverhältnissen. **Wie viel es an der
+> laufenden Installation wird, hängt allein an der Mischung ihrer
+> Seitenverhältnisse, und die ist NICHT gemessen.** *Wäre der Bestand durchweg
+> 16:9, würden aus 14,4 MB rund 72,8 MB. Ein quadratisches Bild wächst gar
+> nicht.* **Der Betreiber kann seinen eigenen Faktor ausrechnen, ohne etwas
+> abzuleiten** — der Befehl steht im Änderungsprotokoll 0.19.4.
+
+> **DER LAUF FÄHRT BEI JEDEM START, und er endet nach einem Durchgang von
+> selbst.** Kein Knopf, kein Merker in der Datenbank: **die Zeile sagt selbst,
+> welche Geometrie sie trägt** — die lange Kante ihres `thumb`. *Gemessen an
+> einer echten verschlüsselten Instanz mit 1032 Fotozeilen: die Nummern zu
+> holen kostet den Haupt-Thread 0,5 ms, die Köpfe zu lesen 275 bis 314 ms —
+> und die fallen im Thread an.* **Nach dem ersten Durchgang prüft er weiter
+> und zieht nichts mehr nach; die Karte sagt dann gar nichts.**
+
+> **DIE VIDEOKACHELN BEHALTEN DIE ALTE GEOMETRIE, und das ist keine Lücke.**
+> Bei `art = 'video'` steht in `data` die Videodatei; `thumb` und `medium` sind
+> aus dem **Standbild** entstanden, das der Browser beim Hochladen
+> mitgeschickt hat. **Es gibt keine Vorlage mehr, aus der sich neu ableiten
+> ließe** — und der Kernsatz gilt weiter: *der Server öffnet nie ein Video.*
+> **Diese Kacheln werden erst scharf, wenn jemand das Video neu hochlädt.**
+
+> **DIE KOMMENTARBILDER SIND NICHT NACHGEZOGEN, und der Grund ist gemessen:**
+> `.cmt-img` ist **86 × 86 px, fest** — nicht 299 wie die Kachel der Übersicht.
+> Der heutige `thumb` deckt das bei dPR 1 und 2 vollständig; bei dPR 3 fehlt
+> ihm das 1,15fache, gegen das 2,66fache an der Übersichtskachel. *Ein zweites
+> Kodieren für 1,15fach ist es nicht wert.* **Neu hereinkommende Kommentar-
+> bilder tragen die neue Geometrie trotzdem** — beide Wege rufen dieselbe
+> `makeVariants()`.
+
+*Davor, am 2. September:* **0.19.3** — Fingerprint **`cdbe0925`**, **5170
+Prüfungen**, **497 Rückbauten in der Liste**.
 *0.19.3 nimmt zwei Arbeiten aus dem Anfrageweg: der Bestandslauf fährt in einem
 eigenen Thread, und die Übersicht fragt einmal statt vierhundertmal und holt
 nicht mehr, was sie nicht zeigt.*
@@ -1029,7 +1078,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.3** | **`cdbe0925`** *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5170 |
+| **0.19.4** | **`03e3b818`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5207 |
+| 0.19.3 | `cdbe0925` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5170 |
 | 0.19.2 | `0cdc709d` *(nie einzeln im Feld gelaufen — auf dem Wirt lief `f4f8a479`, also 0.19.2 ohne ihre zweite Hälfte; die fehlende Hälfte ist mit 0.19.3 mitgereist)* | 5108 |
 | 0.19.1 | `b0c4da5b` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5104 |
 | 0.19.0 | `5fe43053` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5055 |
@@ -2302,11 +2352,85 @@ und **wer zurückholen darf**: nicht der, der hier klickt.
 
 **Bilder:** was hereinkommt, muss seit 0.8.20 ein Rasterbild **sein**, nicht
 bloß so heißen (Abschnitt 5a). Zusätzlich
-Kachel (400 px, ~17 KB) und mittlere Variante (1600 px, ~140 KB). Übersicht
+Kachel (`thumb`) und mittlere Variante (`medium`, 1600 px auf der langen Kante,
+~140 KB). Übersicht
 nutzt die Kachel, Detail und Vollbild die mittlere, erst der Zoom lädt das
-Original. Aufschlag rund 7 %, Ersparnis beim Blättern etwa Faktor 100. Fotos
+Original. Ersparnis beim Blättern etwa Faktor 100. Fotos
 ohne Varianten werden nach dem Start im Hintergrund nachgerüstet —
 **Videozeilen ausdrücklich nicht** (Stolperstein 109).
+
+**DIE ABLEITUNGSREGEL FOLGT DER ANZEIGEREGEL — SEIT 0.19.4, UND DAS IST DIE
+ENTSCHEIDUNG UND NICHT DIE ZAHL.** Es gibt genau zwei Anzeigearten, und jede
+fordert eine andere Kante:
+
+| Anzeige | wo | fordert |
+|---|---|---|
+| `object-fit: cover` | Kachel der Übersicht (`.card-img img`), Streifen am Eintrag (`.thumb img`), Kommentarbild (`.cmt-img img`), Streifen im Vollbild (`.lb-thumb img`) | **die kurze Kante** |
+| `object-fit: contain` | Betrachter am Eintrag (`.viewer img`), Bühne im Vollbild (`.lb-stage img`) | **die lange Kante** |
+
+**`cover` füllt und schneidet ab, `contain` passt ein und lässt Rand.** Wer
+einschneidet, braucht die kurze Kante groß genug; wer einpasst, die lange.
+**`thumb` wird ausschließlich mit `cover` gezeigt, `medium` ausschließlich mit
+`contain`** — deshalb bekommt `thumb` seine Zahl auf der kurzen Kante und
+`medium` behält seine auf der langen. *Wer beide Ableitungen „der Ordnung
+halber" gleich behandelt, macht eine von beiden falsch — und zwar ohne dass
+irgendetwas rot wird. Bis 0.19.3 war es `thumb`, seit dem ersten Tag.*
+
+> **DIE TAFEL `VARIANTS` NENNT JEDER ABLEITUNG EINE KISTE**, nicht eine Zahl:
+> `kurz` ist, worauf die kurze Kante gebracht wird, `lang` der **Deckel** auf
+> der langen. `fit: 'inside'` auf dieser Kiste rechnet beides in einem Zug aus.
+> `thumb` ist **512 / 1280**, `medium` **1600 / 1600** — bei gleichen Zahlen
+> greift immer der Deckel, und das ist das Verhalten bis 0.19.3.
+>
+> **DER DECKEL IST KEINE ZIERDE.** Ohne ihn kennt die kurze Kante keine obere
+> Grenze für die lange: ein Bildschirmfoto über zwei Monitore (7680 × 1080)
+> ergäbe ein `thumb` von 3641 × 512 — **1864k Bildpunkte gegen 466k eines
+> gewöhnlichen 16:9-`thumb`, und mehr als dessen `medium` mit 1440k.** Aus der
+> Ableitung, die klein sein soll, würde die größte der Tabelle. *Bei 1280
+> bleibt 21:9 (gemessen 1214 und 1223 px) unberührt, und 32:9 fällt auf
+> 1280 × 360 = 461k — genau auf das Maß eines gewöhnlichen `thumb`.*
+>
+> **UND DIE ABLEITUNG SKALIERT, SIE SCHNEIDET NICHT.** Der Ausschnitt entsteht
+> im Browser aus dem Fokuspunkt (`ausschnitt()` in `public/app.js`); ein am
+> Server beschnittenes `thumb` nähme dem Fokuspunkt seine Fläche, und der
+> eingestellte Ausschnitt zeigte danach etwas anderes. **Bei einem Panorama
+> fällt deshalb die KURZE Kante unter 512** — das Bild wird kleiner, nicht
+> enger.
+>
+> **WELCHE KANTE DIE KURZE IST, SAGT DER KOPF — UND ER SAGT ES NICHT ALLEIN.**
+> `metadata()` liefert die Maße so, wie sie in der Datei stehen; `.rotate()`
+> dreht danach nach dem EXIF-Vermerk, und die Ausrichtungen **5 bis 8**
+> vertauschen dabei Breite und Höhe. *Nachgemessen an einem 600 × 1200 mit
+> Ausrichtung 6: `metadata()` meldet 600 × 1200, `.rotate()` liefert 1200 × 600
+> — und `{ autoOrient: true }` hilft dagegen nicht.*
+>
+> **WARUM 512 UND NICHT 400 ODER 640.** Gemessen in Chromium am Stylesheet
+> dieses Stands: die breiteste Kachel ist **299 CSS-Bildpunkte** (`.shell` hört
+> bei 1300 px auf, fünf Spalten passen nie hinein), auf einem 2×-Bildschirm
+> **598**, auf einem Telefon bei 390 px Fensterbreite und dPR 3 **513**. Und
+> was es kostet, ist reine Geometrie: **der Byte-Faktor IST auf 3 % genau der
+> Bildpunkt-Faktor**, also (lange/kurze Kante)². *400 kostet das 3,06fache,
+> 512 das 5,05fache, 640 das 7,78fache.* **512 deckt das Telefon ganz und
+> lässt am 2×-Desktop 1,17fach übrig — gegen 2,66fach vorher.**
+
+**DIE VIDEOKACHELN BEHALTEN DIE ALTE GEOMETRIE, und das ist keine Lücke,
+sondern eine Folge der Bauform.** Bei `art = 'video'` steht in `data` die
+Videodatei; `thumb` und `medium` sind aus dem **Standbild** entstanden, das der
+Browser beim Hochladen mitgeschickt hat. **Es gibt keine Vorlage mehr, aus der
+sich neu ableiten ließe** — und der Kernsatz gilt weiter: *der Server öffnet
+nie ein Video.* **Diese Kacheln werden erst scharf, wenn jemand das Video neu
+hochlädt.**
+
+**DIE KOMMENTARBILDER SIND NICHT NACHGEZOGEN WORDEN, und der Grund ist
+gemessen:** `.cmt-img` ist **86 × 86 px, fest** — nicht 299 wie die Kachel der
+Übersicht. Der `thumb` bis 0.19.3 deckte das bei dPR 1 und 2 vollständig; bei
+dPR 3 fehlte ihm das 1,15fache, gegen das 2,66fache an der Übersichtskachel.
+*Ein zweites Kodieren für 1,15fach ist es nicht wert — und ein Original, aus
+dem sich sauber neu ableiten ließe, gibt es dort ausdrücklich nicht.*
+**Neu hereinkommende Kommentarbilder tragen die neue Geometrie trotzdem**,
+weil beide Wege dieselbe `makeVariants()` rufen. *Sie sind damit größer, als
+ihre 86 px fordern; das ist die Kehrseite EINER Tafel für beide Wege und
+steht als offener Punkt in Abschnitt 10.*
 
 **SEIT 0.19.0 WIRD EIN ANKOMMENDES PNG ALS WEBP ABGELEGT.** Bis 0.18.1 blieb
 das Original in jedem Fall unverändert; das gilt weiter für **JPEG, GIF und
@@ -7515,6 +7639,65 @@ Version, in der sie entstanden sind.*
     beiden neuen Dateien nicht gesehen, und in einer davon stand ein Wort aus
     seiner eigenen Sperrliste.*
 
+287. **DIE ABLEITUNGSREGEL FOLGT DER ANZEIGEREGEL.** Wer mit
+    `object-fit: cover` anzeigt, braucht die **kurze** Kante groß genug; wer
+    mit `contain` anzeigt, die **lange**. **Eine Ableitung, die beide gleich
+    behandelt, ist für eine von beiden falsch** — und zwar seit dem ersten Tag
+    und ohne dass irgendetwas rot wird: die Kachel zeigt ja ein Bild, es ist
+    nur unscharf. *`thumb` war 400 px auf der langen Kante und wurde
+    ausschließlich mit `cover` gezeigt; ein 16:9-Bildschirmfoto lag als
+    400 × 225 in der Tabelle, und die Kachel forderte 299.* **Wo eine
+    Ableitung entsteht, gehört die Frage danebengeschrieben, mit welcher
+    Anzeigeart sie gezeigt wird.**
+
+288. **`metadata()` MELDET DIE MASSE DER DATEI, `.rotate()` LIEFERT SIE
+    GEDREHT.** Die EXIF-Ausrichtungen **5 bis 8** vertauschen Breite und Höhe,
+    und `sharp` wendet sie erst in der Pipeline an. **Wer den Kopf fragt,
+    welche Kante die kurze ist, und den Vermerk nicht mitzählt, legt seine
+    Kiste hochkant an ein Bild, das quer herauskommt.** *Nachgemessen an einem
+    600 × 1200 mit Ausrichtung 6: `metadata()` meldet 600 × 1200, `.rotate()`
+    liefert 1200 × 600 — und **`{ autoOrient: true }` ändert daran nichts**,
+    es meldet in sharp 0.35.3 ebenfalls 600 × 1200. Nachgesehen, nicht
+    angenommen.*
+
+289. **SHARP BEACHTET NUR DAS LETZTE `.resize()`.** Zwei hintereinander sind
+    kein Deckel auf dem ersten, sondern eine **Ersetzung** — und still: die
+    Kette wirft nicht, sie liefert das Ergebnis des zweiten. *Beim Messen der
+    Größenleiter zu 0.19.4 sind so drei Zahlen entstanden, die identisch waren
+    und identisch falsch: `resize(400,400,outside)` gefolgt von
+    `resize(1600,1600,inside)` lieferte das unveränderte Original.* **Ein
+    Deckel gehört in dieselbe Kiste wie das Maß** — `fit: 'inside'` auf einer
+    Kiste aus (Deckel, kurze Kante) rechnet beides in einem Zug aus.
+
+290. **EINE MIGRATIONSABFRAGE MUSS EIN FESTPUNKT SEIN: was sie erzeugt, darf
+    nicht wieder in ihre Auswahl fallen.** Sonst leitet der Lauf bei jedem
+    Start denselben Bestand neu ab, und die Datenbank wächst bei jedem
+    Neustart. *„Kurze Kante unter 512" wäre die naheliegende Frage gewesen und
+    genau der Fehler: das kleine Bild bleibt unter beiden Regeln, wie es ist,
+    und beim Panorama greift der Deckel — beide hätten sich ewig
+    wiedergefunden.* **Gefragt wird deshalb nach dem, was die ALTE Regel
+    hinterlassen hat** (die lange Kante ist exakt 400, weil `fit: 'inside'` die
+    begrenzende Kante genau auf ihr Maß legt), **und nicht nach dem, was die
+    neue erzeugen soll.**
+
+291. **`art IS 'bild'` VERSCHWEIGT JEDE ZEILE MIT EINEM DRITTEN WORT.** Das
+    Schema kennt `'bild'` und `'video'` — **aber der Import schreibt den Wert
+    aus der Austauschdatei ungeprüft durch**, und der Prüfstand legt seit
+    0.19.3 Zeilen mit `art = 'foto'` an, ohne dass es jemandem aufgefallen
+    wäre. *Genau daran ist die erste Fassung der Auswahl für 0.19.4
+    hängengeblieben: sie fand vier Zeilen statt zehn.* **Eine Migration, die
+    Zeilen still ausläßt, ist schlechter als eine, die 0,1 ms länger braucht** —
+    und gemessen kosten `art != 'video'` und `art IS 'bild'` an 1052 Zeilen
+    dasselbe, weil dabei nur Nummern gelesen werden.
+
+292. **EIN STAND JE LAUF, NICHT EIN STAND JE ANWENDUNG.** Solange es genau
+    einen Bestandslauf gab, war eine Variable dafür richtig. **Mit dem zweiten
+    wird sie zur Lüge:** die Karte meldete bei jedem Start „Umstellung läuft",
+    der Umstellungsknopf wäre tot, und `POST /api/bilder/umstellen` antwortete
+    mit 409 — für einen Lauf, der etwas ganz anderes tut. *Zwei Wahrheiten über
+    denselben Fortschritt gibt es damit nicht mehr (Stolperstein 47), und der
+    Schlüssel ist dieselbe Zeichenfolge, mit der der Thread erzeugt wird.*
+
 ---
 
 ## 7. Prüfstand
@@ -7528,10 +7711,35 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5170 von 5170 bestanden** (0.19.3) — **62 neue, keine weggefallen.**
-*0.19.2 davor brachte vier netto.*
+**Stand: 5207 von 5207 bestanden** (0.19.4) — **37 neue, keine weggefallen.**
+*0.19.3 davor brachte zweiundsechzig.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **497** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **514** Rückbauten.
+
+| Gruppe (0.19.4) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Die Ableitung folgt der Anzeige — 0.19.4** *(neu)* | — | **15** | **Gemessen wird an echten Bildern und nicht an Zusagen über Quelltext:** ein Bild geht über den gewöhnlichen Weg herein, kommt über die Auslieferung zurück, und die Maße kommen von `sharp`. Belegt wird, dass ein 16:9-Bild seine **kurze** Kante auf 512 bekommt (910 × 512), dass **`medium` bei 1600 auf der langen bleibt**, dass ein hochkantes Bild dieselbe Regel bekommt, dass ein 32:9-Bild **an den Deckel stößt** und dabei **sein Seitenverhältnis behält** — die Ableitung skaliert, sie schneidet nicht —, dass ein kleines Bild **nicht vergrößert** wird und dass der **EXIF-Vermerk mitzählt**. Dazu die Anzeigeregel im Stylesheet, gegen die das Ganze gebaut ist: **alle vier Stellen mit `cover`, beide mit `contain`.** Und die Regel, mit der der Lauf seine Zeilen findet, an sieben Fällen — samt dem Nachweis, dass sie ein **Festpunkt** ist |
+| **Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3** | 29 | **45** | **sechzehn neue** für die dritte Aufgabe. Die Ausgangslage wird eigens gebaut: vier Zeilen mit einem 16:9-Original und einem `thumb` der **alten** Regel, eine Videozeile mit demselben `thumb`, dazu die sechs Zeilen der Vorrunde, die die neue Geometrie schon tragen, **ohne je angefasst worden zu sein**. Belegt wird, dass der Lauf **genau die vier** nachzieht, die sechs kleinen **in Ruhe lässt**, die Videozeile **überspringt statt sie zu leeren**, `medium` **byte-genau** stehen lässt, je Zeile meldet — und dass ein **zweiter Lauf nichts mehr nachzieht**. Dazu: ein **unlesbarer `thumb`** wird aus dem Original ersetzt, der Server wählt seine Zeilen mit **genau der Abfrage**, die hier steht, und die **Kette** aus Nachrüsten → Nachziehen → `maintainStorage()` hält auch dann, wenn ein Glied nichts zu tun hat |
+| **Die Bildablage in der Oberflaeche** | 33 | **39** | **sechs neue** für den zweiten Lauf in der Karte: seine Fortschrittszeile während des Laufs und danach, **die Gegenlage** (ein Lauf ohne Fund hinterlässt keine Zeile — er fährt bei jedem Start), **der Umstellungsknopf bleibt dabei bedienbar** *(genau das wäre weg, wenn beide Läufe in demselben Feld stünden)*, und die Karte nennt jetzt **welche Kante** die Zahl trägt statt „400 px und 1600 px" |
+| **zusammen** | | | **+37** |
+
+> **DIE ZWEI ZAHLEN, DIE DIESE RUNDE ENTSCHIEDEN HABEN, STEHEN NICHT ALS
+> PRÜFUNG DA.** Die Kachelbreite ist in Chromium gemessen, die Größenleiter an
+> 180 Bildschirmfotos — *beides dauert länger als der ganze Prüflauf und hängt
+> an Material, das nicht im Repo liegt.* **Was hier steht, ist die Geometrie,
+> die daraus folgt.** Der Aufbau beider Messungen steht im Änderungsprotokoll
+> 0.19.4.
+
+> **UND EINE ZUSAGE HÄLT EINEN BEFUND FEST, DER ÄLTER IST ALS DIESE RUNDE:**
+> der Prüfstand legt seit 0.19.3 Fotozeilen mit `art = 'foto'` an, und das
+> Schema kennt nur `'bild'` und `'video'`. *Die erste Fassung der Auswahl für
+> den neuen Lauf fand deshalb vier Zeilen statt zehn.* **Die Zeile steht
+> ausdrücklich da** — der Import schreibt den Wert aus der Austauschdatei
+> ungeprüft durch, und eine Auswahl auf `art IS 'bild'` ließe solche Zeilen
+> still liegen (Stolperstein 291).
+
+**Und die Runde davor, zum Vergleich — 5170 von 5170 bestanden** (0.19.3) —
+**62 neue, keine weggefallen.**
 
 | Gruppe (0.19.3) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -8329,6 +8537,40 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.19.4 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Vier Handgriffe, und
+  sie sind die Runde:* **(a)** eine **Kachel mit einem 16:9-Bildschirmfoto
+  ansehen** — sie ist scharf, auch mit engerem Ausschnitt; **(b)** den
+  **Streifen am Eintrag** ansehen — dieselbe Schärfe; **(c)** den **Betrachter
+  daneben** — unverändert, `medium` ist nicht angefasst; **(d)** die
+  **Kennzahlen** — `thumb` ist gewachsen, und um wie viel steht im
+  Änderungsprotokoll. *Die Befehle dazu standen im Chat der Runde, nicht hier.*
+- **WIE VIEL DIE DATENBANK WIRKLICH WÄCHST, IST NICHT GEMESSEN** — nur der
+  Faktor je Bild ist es. **Er hängt allein am Seitenverhältnis:** ein
+  quadratisches Bild wächst gar nicht, ein 16:9 auf das 3,06fache. *Die
+  Mischung im echten Bestand kennt nur die laufende Installation.* **Der
+  Betreiber kann seinen eigenen Faktor ausrechnen, ohne etwas abzuleiten** —
+  der Befehl steht im Änderungsprotokoll 0.19.4.
+- **UND DER EINE NACHWEIS, DER SEIT 0.19.1 AUSSTEHT, IST JETZT BILLIG ZU
+  FÜHREN:** der Lauf über den Bestand läuft beim **ersten Start nach dem
+  Einspielen** von selbst. **Dabei in der Übersicht blättern und im
+  Systembereich klicken** — reagiert die Oberfläche durchgehend, ist der Thread
+  aus 0.19.3 im Feld belegt.
+- **DIE KOMMENTARBILDER SIND JETZT GRÖSSER, ALS IHRE ANZEIGE FORDERT.**
+  `.cmt-img` ist 86 × 86 px; ein neu hereinkommendes Kommentarbild bekommt
+  trotzdem 512 auf der kurzen Kante, weil beide Bildwege **eine** Tafel
+  benutzen. *Der Bestand ist mit Begründung nicht nachgezogen worden — für neu
+  Hereinkommendes ist es die Kehrseite derselben Entscheidung.* **Eine dritte
+  Ableitung wäre die Antwort und ist eine eigene Runde mit eigener Messung;
+  gemessen ist bisher nur, was die Anzeige fordert, nicht was der Bestand an
+  Kommentarbildern trägt.**
+- **`reclaim()` AM ENDE DES NACHZIEHENS HAT KEINE GEGENPROBE, DIE GREIFT.**
+  Seine Wirkung ist eine **Dateigröße**, und in dieser Runde wächst die Datei
+  ohnehin — die freigegebenen Seiten werden von den größeren Ableitungen sofort
+  wieder belegt. *Nachgesehen und nicht vermutet: die WAL-Datei ist nach dem
+  Lauf in beiden Fällen weg, weil `db.close()` ebenfalls einen Punkt setzt.*
+  **Rückbau 516 steht mit dieser Angabe als erwartet stumm in der Liste**;
+  dieselbe Lücke besteht seit 0.19.3 an der Umstellung.
+
 - **0.19.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Acht Handgriffe, und
   sie sind die Runde:* **(a)** ein **Bildschirmfoto mit Strg+V einfügen** — in
   der Datenbank liegt WebP (die Karte zählt es), und der **Text darauf ist im
@@ -8862,6 +9104,46 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.19.4 — „Die Kachel zeigt, was das Original hergibt"
+
+**PATCH · 3. September 2026 · ein Fehler, der seit dem ersten Tag da war,
+und der erste Bestandslauf, der eine gültige Ableitung ersetzt.** *Angefasst
+sind `bilder.js`, `bestandslauf.js`, `server.js`, `public/app.js`,
+`pruefung.js`, `gegenprobe.js`, `package.json` und die Papiere.* **KEINE
+DATENBANKSTUFE** — kein Migrationsblock, keine Schemaänderung, kein neuer
+Index, Austauschformat **12**, `F_ROUTEN` **70**, neun ausgelieferte Module.
+**ABER: der Lauf überschreibt jede `thumb`-Spalte.**
+
+| # | Was | Womit belegt |
+|---|---|---|
+| **1** | Die **Ableitungsregel folgt der Anzeigeregel** | `thumb` war 400 px auf der **langen** Kante und wird ausschließlich mit `object-fit: cover` gezeigt — **wer einschneidet, braucht die kurze.** Ein 16:9-Bildschirmfoto lag als **400 × 225** in der Tabelle. *Gemessen in Chromium am Stylesheet dieses Stands: die breiteste Kachel ist **299 CSS-px** (`.shell` hört bei 1300 px auf, fünf Spalten passen nie hinein), auf einem 2×-Bildschirm **598**, auf einem Telefon bei 390 px und dPR 3 **513**.* **Die 313 px des Auftrags waren zu hoch** (Stolperstein 287) |
+| **2** | Die Tafel `VARIANTS` nennt jeder Ableitung eine **Kiste** | `kurz` ist, worauf die kurze Kante gebracht wird, `lang` der **Deckel** auf der langen; `fit: 'inside'` darauf rechnet beides in einem Zug aus. **`thumb` 512/1280, `medium` unverändert 1600/1600** — die Unterscheidung steht in der Tafel und nicht in einer Verzweigung. *Zwei `.resize()` hintereinander wären kein Deckel gewesen, sondern eine stille Ersetzung (Stolperstein 289).* **Der EXIF-Vermerk zählt mit** — `metadata()` meldet die Maße der Datei, `.rotate()` liefert sie gedreht (Stolperstein 288) |
+| **3** | **512 und nicht 400 oder 640** | Gemessen an **180 Bildschirmfotos in drei Seitenverhältnissen**: **der Byte-Faktor IST auf 3 % genau der Bildpunkt-Faktor**, also (lange/kurze Kante)². *1:1 → 1,00 · 4:3 → 1,78 · 16:9 → 3,06 gegen (16/9)² = 3,17.* **400 kostet das 3,06fache, 512 das 5,05fache, 640 das 7,78fache** eines 16:9-`thumb`. *512 deckt das Telefon ganz und lässt am 2×-Desktop **1,17fach** übrig — gegen **2,66fach** vorher* |
+| **4** | Der **Deckel** von 1280 auf der langen Kante | Ohne ihn kennt die kurze Kante keine obere Grenze für die lange: 7680 × 1080 ergäbe **3641 × 512 = 1864k Bildpunkte** — gegen 466k eines gewöhnlichen 16:9-`thumb` und mehr als dessen `medium` (1440k). *Gemessen: **21:9 liegt bei 1214 und 1223 px** und bleibt bei 1280 unberührt, ein Deckel von 1200 schnitte es schon an; **32:9 fällt auf 1280 × 360 = 461k** — genau auf das Maß eines gewöhnlichen `thumb`.* **Und die Ableitung skaliert, sie schneidet nicht** — beim Panorama fällt die kurze Kante unter 512 |
+| **5** | Die **dritte Aufgabe** für `bestandslauf.js` | Sie fährt bei jedem Start hinter dem Nachrüsten und endet nach einem Durchgang von selbst. **Die Zeile sagt selbst, ob sie fällig ist** — die lange Kante ihres `thumb` ist unter der alten Regel exakt 400, weil `fit: 'inside'` die begrenzende Kante genau auf ihr Maß legt. *Kein Merker: das wäre eine Schemaänderung.* **Die Abfrage ist ein Festpunkt** — was der Lauf erzeugt, fällt nicht wieder hinein (Stolperstein 290) |
+| **6** | **Kein Knopf**, und das ist eine Messung | *An einer echten verschlüsselten Instanz mit 1032 Fotozeilen: die Nummern zu holen kostet **0,5 ms**, die 1032 `thumb` zu lesen **40–45 ms**, die Köpfe zu befragen **232–274 ms** — zusammen **275 bis 314 ms**.* **Im Haupt-Thread wäre das mehr als das Doppelte dessen, was 0.19.3 gerade weggeräumt hat, und zwar bei jedem Start.** Also wählt der Haupt-Thread großzügig aus (0,5 ms) und der Thread entscheidet je Zeile |
+| **7** | Der Stand steht **je Aufgabe** | Bis 0.19.3 gab es einen Lauf, der einen Stand meldete. **Mit dem zweiten wird eine gemeinsame Variable zur Lüge:** die Karte meldete bei jedem Start „Umstellung läuft", der Knopf wäre tot und `POST /api/bilder/umstellen` antwortete mit 409 (Stolperstein 292). *Die Karte bekommt eine zweite Fortschrittszeile, die nur dasteht, wenn es etwas zu sagen gab, und **eine** Uhr verfolgt beide Läufe* |
+| **8** | *Befund beim Bauen:* `art IS 'bild'` **verschweigt Zeilen** | Das Schema kennt `'bild'` und `'video'` — **aber der Import schreibt den Wert aus der Austauschdatei ungeprüft durch**, und der Prüfstand legt seit 0.19.3 Zeilen mit `art = 'foto'` an. *Die erste Fassung der Auswahl fand vier Zeilen statt zehn.* **Gemessen kosten beide Formen an 1052 Zeilen dasselbe**, weil nur Nummern gelesen werden (Stolperstein 291) |
+
+> **WAS AUSDRÜCKLICH NICHT NACHGEZOGEN WORDEN IST, mit Begründung.**
+> **Die Videokacheln** — bei `art = 'video'` steht in `data` die Videodatei,
+> `thumb` und `medium` sind aus dem Standbild des Browsers entstanden, und
+> **es gibt keine Vorlage mehr.** *Sie werden erst scharf, wenn jemand das
+> Video neu hochlädt.* **Die Kommentarbilder** — `.cmt-img` ist **86 × 86 px,
+> fest**; der alte `thumb` deckte das bei dPR 1 und 2 vollständig, bei dPR 3
+> fehlte ihm das **1,15fache** gegen **2,66fach** an der Übersichtskachel.
+> *Ein zweites Kodieren für 1,15fach ist es nicht wert.* **Neu hereinkommende
+> Kommentarbilder tragen die neue Geometrie trotzdem** — beide Wege rufen
+> dieselbe `makeVariants()`.
+
+> **UND EINE ABWEICHUNG VOM AUFTRAG, DIE AUF EINER MESSUNG STEHT.** Der Auftrag
+> sagt: *„Die Auswahl der Zeilen trifft der Haupt-Thread."* **Sie tut es — aber
+> großzügig.** Welche Zeile fällig ist, sagt erst der Kopf ihres `thumb`, und
+> den zu lesen kostet 275 bis 314 ms; im Haupt-Thread wäre das genau das, was
+> 0.19.3 freigeräumt hat. *Der Preis ist ehrlich zu nennen: ein Thread entsteht
+> auch dann, wenn nichts zu tun ist — 19 ms Verbindung und 76 ms `sharp`,
+> einmal je Start.*
 
 ### 0.19.3 — „Bestandsläufe verlassen den Anfrageweg"
 
@@ -10324,41 +10606,51 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.19.1** | Was 0.19.0 falsch gemacht hat | **GEBAUT am 2. September 2026** — im Feld bestätigt (`b0c4da5b`); der Rundlauf hat drei Befunde gebracht, sie sind 0.19.2. Vier belegte Fehler aus 0.19.0 und dem Betrieb: die Bestandskarte liest bei **jedem** Klick jedes Bild (**919 ms gegen 0,2 ms gemessen**, hochgerechnet 2,7 s an der echten Datenbank) — **`SUM(length(data))` verliert seine Abkürzung im `GROUP BY`, und `substr()` auf einem Blob hatte nie eine.** *Und während einer Umstellung wird daraus eine **Selbstblockade**: `verfolgeUmstellung()` fragt dieselbe Abfrage alle 1500 ms ab, was bei 2700 ms Kosten 180 % Auslastung des Haupt-Threads bedeutet — die beste Erklärung für die im Feld gemeldeten Aussetzer*, der engere Ausschnitt erreicht die Bildränder nicht (**in Chromium gemessen: 0,0 % der gewählten Ecke sichtbar**), ein Dialog aus dem Vollbild heraus liegt dahinter (`z-index` 60 gegen 90), und die Karte „Kennzahlen" ist zu groß geworden — **die Bildablage bekommt eine eigene Kachel, damit sind es neunzehn.** Dazu: der Umstellungsknopf warnt vor der Dauer, `sharp.concurrency` wird ausdrücklich gesetzt, **„Instanz" heißt „Installation"**, die `docker-compose.yml` wird zur Vorlage, damit ein Update sie nicht überschreibt — und **drei falsche Angaben in den eigenen Papieren werden berichtigt.** *PATCH: die Installation kann danach nichts, was sie vorher nicht konnte* | nein | — |
 | **0.19.2** | Was 0.19.1 nur zur Hälfte getroffen hat | **GEBAUT am 2. September 2026.** Drei Befunde aus dem Rundlauf mit 0.19.1, zwei davon Nacharbeit an ihr selbst. **Die Bestandskarte war weiter langsam** — 0.19.1 hat die eine von zwei Ursachen behoben; die zweite ist die **Spaltenlage**: `art` steht hinter drei Blobs, und wer sie aus dem Satz liest, liest die Overflow-Ketten mit (**1338,8 ms gegen 0,1 ms aus einem Index**; `MATERIALIZED` hilft dagegen nichts). *Die ganze Route: 4698 ms vorher, 28,6 ms kalt und 4,4 ms warm nachher.* **Der engere Ausschnitt erreichte die Ränder immer noch nicht** — `transform-origin` war richtig und blieb wirkungslos, weil der Betrachter keinen anderen Wert als 50 zuließ. **Und zwei Dialoge sind kurz geworden.** Dazu **zwei berichtigte Zahlen aus 0.19.1** und der Index `idx_photos_art`. *PATCH — ein Index ist keine Datenbankstufe* | nein | — |
 | **0.19.3** | Bestandsläufe verlassen den Anfrageweg | **GEBAUT am 2. September 2026.** Vier Punkte, und keiner davon ist neu: der Umstellungslauf und das Nachrüsten der Vorschaubilder ziehen in einen **eigenen Thread** (`bilder.js` und `bestandslauf.js` sind dazugekommen), die Übersichtsschleife fragt **einmal statt vierhundertmal** (3200 Abfragen je Abruf werden 405) und holt nicht mehr, was sie nicht zeigt (die Testtage der **Liste** sind schmal, von den Links wird nur gezählt, `qTags` nennt seine Spalten), und die **letzten acht „Instanz"** im Bildschirmtext heißen „Installation". **Gemessen: 133 → 0,9 ms Verspätung des Haupt-Threads im 95. Perzentil, die Route 43 → 24 ms, die Antwort 484 → 348 kB.** *`testStats` bleibt ausdrücklich ungebündelt — gebündelt ist es langsamer.* **Stand vor jeder Runde mit einem Bestandslauf**, und das gilt für 0.19.4 und 0.21.0 weiter. *PATCH* | nein | — |
-| **0.19.4** | Die Kachel zeigt, was das Original hergibt | *(Neu am 2. September 2026, **gerückt von 0.19.3**.)* `thumb` ist 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto wird deshalb **immer** 1,39× hochgerechnet, auf einem 2×-Bildschirm 2,78×, mit Zoom 250 % 3,48×. Ableitungsregel ändern **und** 1034 Vorschaubilder neu ableiten. **Nach 0.19.3, damit der Lauf niemanden lahmlegt.** *PATCH* | nein | — |
-| **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig und ausdrücklich NICHT gerückt worden**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
-| **0.21.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
-| **0.22.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0 vorgemerkt — **die Nummer ist vorläufig**.)* Migrationscode raus — **jetzt acht Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
-| **0.22.x** | Die Kommentare werden knapp | *(Neu am 31. August 2026 — **keine geplante Nummer, sondern die nächste freie PATCH-Zahl nach der Bereinigung**; dieselbe Bauform wie die 0.12.x-Zeile darüber.)* **Fast dreißig Prozent des Quelltextes sind Kommentar** — 16.281 von 54.822 Zeilen, `zweifaktor.js` zu 52 %, `auth.js` zu 46 %, `server.js` zu 44 %. **Was das Offensichtliche wiederholt, geht; was eine ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger stehen.** *PATCH: die Instanz kann danach nichts, was sie vorher nicht konnte. Der Fingerprint verschiebt sich, sonst nichts.* **Nach der Bereinigung und nicht davor** — sie löscht ganze Blöcke samt ihren Kommentaren, und wer vorher schneidet, schneidet zweimal. Einzelheiten in 10a | nein | — |
-| **0.23.0** | **Mehrsprachigkeit** | *(Neu am 2. September 2026 — **nur eingetragen, nicht ausgearbeitet**.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Nach der Oberfläche und nach der Bereinigung** — wer Texte herauszieht, die gleich darauf umbenannt oder gelöscht werden, zieht sie zweimal heraus. *MINOR* | nein | — |
+| **0.19.4** | Die Kachel zeigt, was das Original hergibt | **GEBAUT am 3. September 2026.** `thumb` war 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle. **Gemessen in Chromium: die breiteste Kachel ist 299 CSS-px** (`.shell` hört bei 1300 px auf), auf einem 2×-Bildschirm 598, auf einem Telefon bei dPR 3 513 — **heute lieferte `thumb` 225.** Die Tafel `VARIANTS` nennt jeder Ableitung jetzt eine **Kiste** aus kurzer Kante und Deckel auf der langen: `thumb` 512/1280, `medium` unverändert 1600/1600. **Der Byte-Faktor IST der Bildpunkt-Faktor**, auf 3 % genau — 400 kostet das 3,06fache, 512 das 5,05fache, 640 das 7,78fache; **512 deckt das Telefon ganz und lässt am 2×-Desktop 1,17fach übrig, gegen 2,66fach vorher.** Dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht und nach einem Durchgang von selbst endet. *PATCH: dieselben Knöpfe, dieselben Bilder, dieselbe Antwort — die Kachel ist nur scharf* | nein | — |
+| **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; **am 3. September 2026 zugeordnet**, und alles dahinter rückt um eine Stelle.)* **Kriterion schreibt Sicherungen, aber es entfernt keine** — `POST /api/sicherung` legt eine Datei ab, wegräumen lässt sich nichts, und dafür braucht es heute eine Shell auf dem Wirt. **Jede Kopie ist so groß wie die ganze Datenbank**; bei rund 570 MB Bildbestand ist die zehnte ein halbes Dutzend Gigabyte. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere. Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht** (eine gelöschte Sicherung holt nichts zurück), ein Knopf hinter der zweiten Bestätigung, und ein Eintrag im Sicherheitsprotokoll. **Angefasst wird ausschließlich, was auf `SICHERUNG_MUSTER` passt**, und die Kopien von vor dem Schlüsselwechsel fasst die Regel gar nicht an. *MINOR* — neue Route (`F_ROUTEN` 70 → 71) und ein neunter Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung.** Ausarbeitung in 10a | nein | — |
+| **0.21.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, **am 3. September 2026 gerückt** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
+| **0.22.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, **am 3. September 2026 gerückt**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
+| **0.23.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0, dann 0.22.0 vorgemerkt — **die Nummer ist vorläufig**; das siebte Rücken am 3. September 2026.)* Migrationscode raus — **jetzt acht Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.23.x** | Die Kommentare werden knapp | *(Neu am 31. August 2026, **am 3. September 2026 von 0.22.x gerückt** — **keine geplante Nummer, sondern die nächste freie PATCH-Zahl nach der Bereinigung**; dieselbe Bauform wie die 0.12.x-Zeile darüber.)* **Fast dreißig Prozent des Quelltextes sind Kommentar** — 16.281 von 54.822 Zeilen, `zweifaktor.js` zu 52 %, `auth.js` zu 46 %, `server.js` zu 44 %. **Was das Offensichtliche wiederholt, geht; was eine ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger stehen.** *PATCH: die Instanz kann danach nichts, was sie vorher nicht konnte. Der Fingerprint verschiebt sich, sonst nichts.* **Nach der Bereinigung und nicht davor** — sie löscht ganze Blöcke samt ihren Kommentaren, und wer vorher schneidet, schneidet zweimal. Einzelheiten in 10a | nein | — |
+| **0.24.0** | **Mehrsprachigkeit** | *(Neu am 2. September 2026 als 0.23.0, **am 3. September 2026 gerückt** — nur eingetragen, nicht ausgearbeitet.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Nach der Oberfläche und nach der Bereinigung** — wer Texte herauszieht, die gleich darauf umbenannt oder gelöscht werden, zieht sie zweimal heraus. *MINOR* | nein | — |
 | **0.30.0** | **Code-Effizienz** | *(Neu am 2. September 2026 — **nur eingetragen, nicht ausgearbeitet**.)* Leichen und ineffizienten Code durchgehen und verbessern. **Gebaut mit Claude Fable 5.1 und ultracode; die Projektbesprechung dazu mit Opus 5 und ultracode.** Nach der Bereinigung, damit sie keinen toten Code mitschleppt | offen | — |
 
 > **DIE REIHENFOLGE DER NÄCHSTEN RUNDEN IST NICHT BELIEBIG.** Die Gründe stehen
 > hier und nicht im Auftrag — ein Auftrag wird beim Schreiben des nächsten
 > weggeworfen, und was darin stand, wäre dann weg.
 >
-> * **0.19.3 steht vor jeder Runde mit einem Bestandslauf.** 0.19.4 und 0.21.0
+> * **0.19.3 steht vor jeder Runde mit einem Bestandslauf.** 0.19.4 und 0.22.0
 >   fahren beide über alle Bilder; ohne sie hielte jede einzelne davon die
->   Installation wieder für Stunden an.
-> * **0.19.4 bleibt trotzdem früh.** Eine unscharfe Kachel ist jeden Tag zu
->   sehen, die wählbare Ablage ist eine Bequemlichkeit. Nach 0.19.3 kostet ihr
->   Lauf niemanden mehr etwas.
-> * **Die Ableitungen auf WebP fahren in 0.21.0 mit und nicht in 0.19.4.** Dort
+>   Installation wieder für Stunden an. *0.19.4 ist gebaut und hat es im Feld
+>   zu belegen; für 0.22.0 gilt der Satz weiter.*
+> * **Die Ableitungen auf WebP fahren in 0.22.0 mit und nicht in 0.19.4.** Dort
 >   wird ohnehin über Verfahren entschieden, und beides zusammen ist **ein**
->   Durchgang über den Bestand statt zwei. *Die thumb-GEOMETRIE gehört dagegen
->   nach 0.19.4: sie ist ein Fehler und hängt an keinem Verfahren.*
+>   Durchgang über den Bestand statt zwei. *Die thumb-GEOMETRIE gehörte dagegen
+>   nach 0.19.4: sie war ein Fehler und hängt an keinem Verfahren.*
+> * **0.20.0 hängt an nichts und steht deshalb vorn.** Das Aufräumen der
+>   Sicherungen berührt weder Bilder noch Schema noch Oberfläche im Ganzen —
+>   *eine Route, eine Regel, eine Karte.* **Es steht vorn, weil es klemmt:**
+>   eine Installation, die Sicherungen schreibt und keine entfernt, füllt ihre
+>   Platte, und die einzige Abhilfe ist heute eine Shell auf dem Wirt. *Die
+>   Runde, die die Datenbank um zig Megabyte hat wachsen lassen, ist gerade
+>   gebaut worden — das ist kein Zufall in der Reihenfolge, sondern ihr Anlass.*
 > * **Die Mehrsprachigkeit kommt nach der Oberfläche und nach der Bereinigung.**
 >   Wer Texte herauszieht, die gleich darauf umbenannt oder ganz gelöscht
 >   werden, zieht sie zweimal heraus.
 > * **Die Bereinigung kommt vor Mehrsprachigkeit und Code-Effizienz**, damit
 >   keine der beiden toten Code mitschleppt.
 >
-> **UND „DIE OBERFLÄCHE WIRD RUHIGER" IST AUSDRÜCKLICH NICHT GERÜCKT WORDEN.**
-> Sie behält die 0.20.0, weil es keinen Grund gab, sie zu verschieben. *Eine
-> Nummer ohne Grund zu rücken macht den Fahrplan unlesbar — und dieser hier
-> trägt schon sechs begründete Rückungen der Bereinigung.*
+> **UND „DIE OBERFLÄCHE WIRD RUHIGER" IST AM 3. SEPTEMBER 2026 DOCH GERÜCKT
+> WORDEN — auf 0.21.0.** *Bis dahin stand hier das Gegenteil, und der Satz
+> bleibt stehen, weil er richtig war, solange er galt (Stolperstein 201):*
+> „sie behält die 0.20.0, weil es keinen Grund gab, sie zu verschieben."
+> **Jetzt gibt es einen:** Punkt 8 des Sammelblatts hat eine Nummer bekommen,
+> und er ist ein MINOR, der vor die Oberfläche gehört. *Eine Nummer ohne Grund
+> zu rücken macht den Fahrplan unlesbar — eine Nummer MIT Grund nicht zu
+> rücken macht ihn falsch.*
 
 > **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0, DANN 0.17.0, DANN 0.18.0,
-> DANN 0.19.0, DANN 0.21.0 UND HEISST JETZT 0.22.0.** Sie ist kein einziges Mal verschoben worden, weil
+> DANN 0.19.0, DANN 0.21.0, DANN 0.22.0 UND HEISST JETZT 0.23.0.** Sie ist kein einziges Mal verschoben worden, weil
 > jemand sie später wollte —
 > **die Nummer war vorgemerkt und nicht vergeben**, und dazwischen sind Runden
 > geplant worden, die Funktionen bringen und damit nach der eigenen Regel MINOR
@@ -10383,6 +10675,21 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > Oberfläche wird ruhiger" ist dabei ausdrücklich NICHT gerückt worden:** sie
 > behält die 0.20.0, weil es keinen Grund gab, sie zu verschieben, und eine
 > Nummer ohne Grund zu rücken macht den Fahrplan unlesbar.
+>
+> **DAS SIEBTE RÜCKEN, am 3. September 2026, ist das erste, das aus dem
+> SAMMELBLATT kommt und nicht aus einem Gespräch über die Regel.** Punkt 8
+> („Alte Sicherungen aufräumen — ohne Shell") hat seine Nummer bekommen, und
+> **er ist ein MINOR**: eine neue Route und ein neunter Zweck der zweiten
+> Bestätigung. *Dieselbe Rechnung wie bei 0.15.0, 0.17.0 und 0.21.0 — kann die
+> Installation danach etwas, was sie vorher nicht konnte?* **Sie kann: alte
+> Sicherungen entfernen, ohne dass jemand eine Shell öffnet.** Also MINOR, also
+> die nächste freie MINOR-Zahl, also 0.20.0 — **und alles dahinter rückt um
+> eine Stelle**, die Oberfläche eingeschlossen, die sechsmal in Folge nicht
+> gerückt worden war.
+> **WARUM ER VORN STEHT UND NICHT HINTEN:** *er hängt an nichts*, und er klemmt
+> — jede Sicherung ist so groß wie die ganze Datenbank, und die ist mit 0.19.4
+> gerade gewachsen. **Ein Punkt, der klein ist, an nichts hängt und im Betrieb
+> weh tut, ist genau der, der dazwischenpasst.**
 >
 > **UND SIE IST DIESMAL NICHT NUR VERSCHOBEN, SONDERN GEBUNDEN.** 0.14.0 legt
 > drei Spalten an `items` und bringt damit einen **sechsten** markierten
@@ -10925,7 +11232,13 @@ an 0.17.2 selbst.* **Alle vier sind gebaut; was dabei herauskam, steht im
 
 ---
 
-### 0.21.x — „Die Kommentare werden knapp" · *PATCH*
+### 0.23.x — „Die Kommentare werden knapp" · *PATCH*
+
+> **DIESE ÜBERSCHRIFT HIESS BIS ZUM 3. SEPTEMBER 2026 „0.21.x", während die
+> Tabelle in Abschnitt 10 schon „0.22.x" trug.** *Zwei Tabellen über dieselbe
+> Sache dürfen sich nicht widersprechen (Stolperstein 47) — das Rücken der
+> Bereinigung am 2. September ist hier nicht mitgezogen worden.* **Beide
+> stehen jetzt auf 0.23.x.**
 
 *(Neu am 31. August 2026. **Keine geplante Nummer, sondern die nächste freie
 PATCH-Zahl nach der Bereinigung** — dieselbe Bauform wie die 0.12.x-Zeile im
@@ -10969,7 +11282,7 @@ aus derselben Frage: *sagt der Text, was ist, oder erzählt er?*
 > sie sind der Grund, warum eine zurückgenommene Entscheidung nicht in zwei
 > Jahren wiederkommt.
 
-**WARUM NACH DER BEREINIGUNG UND NICHT DAVOR.** 0.21.0 nimmt Migrationscode
+**WARUM NACH DER BEREINIGUNG UND NICHT DAVOR.** 0.23.0 nimmt Migrationscode
 heraus und schreibt die Struktur fest — **sie löscht ganze Blöcke samt ihren
 Kommentaren.** *Wer vorher schneidet, schneidet zweimal.* **Und sie ist die
 eine Runde, in der ein lesbarer Diff wirklich zählt:** ein
@@ -11314,9 +11627,146 @@ sondern eine neue mit denselben Pixeln)*.
 * **Ob `medium` `nearLossless` werden sollte** — nicht gemessen.
 
 
-### 0.20.0 — „Die Oberfläche wird ruhiger" · *MINOR* *(Nummer vorläufig)*
+### 0.20.0 — „Alte Sicherungen aufräumen — ohne Shell" · *MINOR*
+
+**Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026.**
+**Am 3. September 2026 zugeordnet** — damit steht er nach Regel 3 des
+Sammelblatts nicht mehr dort, sondern hier. *Alles dahinter ist um eine Stelle
+gerückt; der Grund steht in Abschnitt 10, beim siebten Rücken.*
+
+**Art:** Bauwunsch · **Claude:** empfohlen · **Draußen üblich:** ja — jede
+Sicherungslösung kennt eine Aufbewahrungsregel („retention"), und praktisch
+alle bauen sie aus **zwei** Bedingungen: einer Mindestzahl und einem Alter.
+
+### Woher
+
+Aus dem Betrieb, **2. September 2026**, unmittelbar nach dem Einspielen von
+0.19.3: *„wie löscht man ohne Shell zu nutzen alte Sicherungen?"*
+
+### Was auffiel
+
+**Kriterion schreibt Sicherungen, aber es entfernt keine.** `POST
+/api/sicherung` legt eine Datei `kriterion-<Zeitmarke>.sqlite` im
+Sicherungsordner ab; die Karte zeigt seit 0.16.0 die **jüngste** Kopie, ihre
+**Zahl** und wie viele davon **vor dem letzten Schlüsselwechsel** entstanden
+sind. **Wegräumen lässt sich nichts** — dafür braucht es heute eine Shell auf
+dem Wirt, und genau die soll ein Betreiber für den Alltag nicht brauchen.
+
+**Und jede Kopie ist so groß wie die ganze Datenbank.** *Bei rund 570 MB
+Bildbestand ist die zehnte Sicherung ein halbes Dutzend Gigabyte —* **und mit
+0.19.4 ist die Datenbank gerade gewachsen.**
+
+### Was es nicht ist
+
+**Kein Fehler.** Es ist keine falsche Zusage und keine kaputte Funktion — es
+fehlt eine Hälfte, die von Anfang an nicht gebaut wurde. *Ein Wunsch, der als
+Fehler abgeheftet wird, drängelt sich in die falsche Runde.*
+
+**Und ausdrücklich keine Zeitsteuerung.** Kriterion hat keinen Scheduler und
+soll für diese eine Sache keinen bekommen. **Was hier gebaut wird, läuft im
+Anschluss an eine Sicherung** — an dem einen Augenblick, in dem sicher
+feststeht, dass eine frische, vollständige Kopie da ist.
+
+### Was gebaut werden könnte
+
+**a) DIE REGEL — zwei Bedingungen, und beide müssen zutreffen.** *Das ist der
+Kern des Vorschlags; alles andere hängt daran.*
+
+> **Gelöscht wird eine Kopie nur, wenn sie BEIDES ist:
+> nicht unter den N jüngsten UND älter als X Tage.**
+
+*Vorschlag für die Vorgaben: **N = 3**, **X = 30**.*
+
+**Warum beide und nicht eine:**
+
+| nur „älter als 30 Tage" | nur „die letzten 3" |
+|---|---|
+| Eine Installation, an der ein halbes Jahr nicht gesichert wurde, verliert **alle** Kopien auf einen Schlag — genau dann, wenn sie die einzigen sind. | Wer an einem Nachmittag viermal auf den Knopf drückt, wirft damit die Kopie vom Vormonat weg, obwohl nichts alt ist. |
+
+**Zusammen decken sie sich gegenseitig ab:** die Zahl ist der **Boden**, das
+Alter ist die **Schere**. *Eine Kopie fällt nur, wenn sie entbehrlich **und**
+alt ist.*
+
+**b) EINE VORSCHAU, BEVOR ETWAS GESCHIEHT.** Die Karte nennt namentlich, welche
+Dateien die Regel treffen würde, mit Datum und Größe, und was das an Platz
+freigäbe. **Ohne Vorschau ist es eine Wette.**
+
+**c) DER SCHALTER, UND ER STEHT AUF AUS.** *Das ist die Abweichung von
+`bilderUmwandeln`, und sie hat einen Grund:* eine umgewandelte PNG-Datei holt
+der Knopf in der Gegenrichtung zurück — **eine gelöschte Sicherung holt nichts
+zurück.** Was nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet.
+*Die Karte fragt einmal deutlich; wer will, schaltet ein.*
+
+**d) UND EIN KNOPF DANEBEN, der die Regel EINMAL anwendet** — für den, der
+nicht dauerhaft einschalten will. **Hinter der zweiten Bestätigung**, wie jeder
+Vorgang, der Bytes unwiderruflich entfernt.
+
+**e) DIE KOPIEN VON VOR DEM SCHLÜSSELWECHSEL FASST DIE REGEL NICHT AN.** *Sie
+lassen sich mit dem heutigen Schlüssel gar nicht öffnen — die Karte sagt das
+seit 0.16.0 und zählt sie.* **Sie sind nicht entbehrlich, sondern etwas
+anderes:** wer den alten Schlüssel noch hat, kommt an sie heran, und wer ihn
+nicht mehr hat, hat ohnehin nichts verloren. **Eine automatische Regel entfernt
+Überflüssiges, nicht Fremdes.** *Wegräumen lassen sie sich über denselben Knopf
+— aber ausdrücklich und einzeln, nicht nebenbei.*
+
+**f) JEDE LÖSCHUNG GEHT INS SICHERHEITSPROTOKOLL**, mit Zahl und freigegebenen
+Bytes — neben dem `sicherung`-Eintrag, den es schon gibt.
+
+### Offene Entscheidungen
+
+**Diese fünf beantwortet der Auftrag der Runde und nicht dieser Eintrag.**
+
+1. **Sind N und X einstellbar oder fest?** *Einstellbar heißt zwei Felder in
+   der Karte und zwei Werte in `settings`; fest heißt eine Zeile im Quelltext
+   und keine Bedienfrage.* **Vorschlag: einstellbar, aber mit engen Grenzen**
+   — N von 1 bis 20, X von 7 bis 365. *Ein Feld, in das jemand 0 schreiben
+   kann, ist eine Falle.*
+2. **Löschen oder in einen Papierkorb schieben?** *Kriterion hat einen
+   Papierkorb für Einträge. Für eine 600-MB-Datei wäre er sinnlos — der Platz
+   ist ja der Grund.* **Vorschlag: löschen, und die Vorschau ist der Ersatz für
+   den Papierkorb.**
+3. **Läuft die Regel auch, wenn eine Sicherung fehlschlägt?** **Nein**, und das
+   ist die wichtigste Zeile des ganzen Punktes: *aufgeräumt wird nur nach einer
+   Sicherung, die gelungen ist.* Sonst räumt die Installation genau in dem
+   Augenblick auf, in dem sie keine neue Kopie zustande bringt.
+4. **Was, wenn im Ordner fremde Dateien liegen?** **Angefasst wird
+   ausschließlich, was auf `SICHERUNG_MUSTER` passt** (`kriterion-*.sqlite`),
+   nur im geprüften Ordner, nie in Unterverzeichnissen. *Der Pfad geht durch
+   dieselbe Prüfung wie beim Schreiben — eine Löschroute, die sich auf ein
+   anderes Verzeichnis lenken lässt, wäre die gefährlichste Route der
+   Anwendung.*
+5. **Zählt der Boden alle Kopien oder nur die brauchbaren?** *Drei Kopien, von
+   denen zwei vor dem Schlüsselwechsel entstanden sind, sind in Wahrheit eine.*
+   **Vorschlag: der Boden zählt nur Kopien nach dem Wechsel** — dann wird bei
+   dieser Lage gar nichts gelöscht, und das ist die sichere Seite.
+
+### Was es anfasst
+
+`server.js` (eine Route, die Regel, der Aufruf nach `POST /api/sicherung`),
+`public/app.js` und `public/style.css` (Vorschau, Schalter, Knopf in der Karte
+„Sicherung"), dazu `F_ROUTEN` **70 → 71** und die Zwecke der zweiten
+Bestätigung **acht → neun**. **Kein Schema** — die zwei Werte gehören in
+`settings`. **Kein Bestandslauf**, keine Migration, kein neues Austauschformat,
+keine neue ausgelieferte Datei.
+
+> **DIE HÄLFTE DER ARBEIT LIEGT SCHON DA.** `letzteSicherung()` liest den
+> Ordner bereits, prüft jede Datei gegen `SICHERUNG_MUSTER`, holt Größe und
+> Zeitpunkt und sortiert nach Alter — **die Regel ist ein Filter über genau
+> dieser Liste.** *Was fehlt, ist das Löschen, die Vorschau und die Bedienung.*
+
+> **WARUM ES EIN MINOR IST UND KEIN PATCH.** Der Maßstab aus Abschnitt 5.1:
+> *kann die Installation danach etwas, was sie vorher nicht konnte?* **Sie
+> kann — alte Sicherungen entfernen, ohne dass jemand eine Shell öffnet.**
+> Dazu eine neue Route und ein neunter Zweck der zweiten Bestätigung.
+
+---
+
+### 0.21.0 — „Die Oberfläche wird ruhiger" · *MINOR* *(Nummer vorläufig)*
 
 **Neu am 30. August 2026, aus dem Betrieb.** *Nichts aus dem Sammelblatt.*
+**Am 3. September 2026 von 0.20.0 auf 0.21.0 gerückt**, weil Punkt 8 des
+Sammelblatts die 0.20.0 bekommen hat. *Der Grund steht in Abschnitt 10, beim
+siebten Rücken.*
 
 ### Woher
 
