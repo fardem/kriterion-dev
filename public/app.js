@@ -8435,6 +8435,26 @@ function umstellungsZeile(u) {
          (u.gespart > 0 ? ` — ${fmtBytes(u.gespart)} gespart` : '') + `.</p>`;
 }
 
+/* Die zweite Fortschrittszeile — 0.19.4, fuer das Nachziehen der Geometrie.
+   EINE EIGENE UND KEINE GETEILTE: die beiden Laeufe zaehlen verschiedene
+   Dinge (umgestellt/geblieben gegen nachgezogen/geprueft), und eine Zeile,
+   die beides ausdruecken soll, sagt am Ende von beidem die Haelfte.
+   SIE STEHT NUR DA, WENN ES ETWAS ZU SAGEN GIBT. Der Lauf faehrt bei JEDEM
+   Start; nach dem ersten Durchgang findet er nichts mehr und meldet
+   „0 nachgezogen". Eine Zeile darueber staende von da an fuer immer in der
+   Karte und erklaerte einen Vorgang, den niemand angestossen hat. */
+function geometrieZeile(g) {
+  if (!g) return '';
+  if (g.laeuft)
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">Vorschaubilder ` +
+           `werden nachgezogen — ${g.erledigt} von ${g.gesamt} …</p>`;
+  if (!g.nachgezogen && !g.uebersprungen) return '';
+  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">Vorschaubilder ` +
+         `nachgezogen: ${g.nachgezogen} von ${g.geprueft} geprüften` +
+         (g.uebersprungen ? `, ${g.uebersprungen} übersprungen` : '') +
+         (g.zugenommen > 0 ? ` — ${fmtBytes(g.zugenommen)} mehr` : '') + `.</p>`;
+}
+
 /* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
    OHNE BEHANDLER, WIEDER. In 0.19.0 trug sie einen -- der Schalter und der
    Knopf der Bildablage sassen darin. Sie sind in 0.19.1 in eine eigene Karte
@@ -8571,8 +8591,9 @@ function karteBildablage(geholt) {
   return `<div class="sys-card">
         <h3>Bildablage</h3>
         <p class="desc">Die <strong>Originale</strong> der Fotos am
-          ${esc(V.sacheEinzahl)}, nach Format. Die beiden Ableitungen (400 px und 1600 px)
-          sind immer JPEG und stehen hier nicht.</p>
+          ${esc(V.sacheEinzahl)}, nach Format. Die beiden Ableitungen sind immer JPEG und
+          stehen hier nicht: die kleine misst 512 px auf der <em>kurzen</em> Kante, weil die
+          Kachel quadratisch zuschneidet, die große 1600 px auf der <em>langen</em>.</p>
         ${zeilen.length ? zeilen.map(f => {
           const z = bf[f.schluessel];
           return `<div class="kv"><span class="k">${f.name}${
@@ -8595,38 +8616,66 @@ function karteBildablage(geholt) {
           <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>Alle PNG nach WebP umstellen</button>
         </div>
         ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">Es liegt kein PNG-Original mehr da.</p>`}
-        ${umstellungsZeile(stats.umstellung)}` : ''}
+        ${umstellungsZeile(stats.umstellung)}
+        ${geometrieZeile(stats.geometrie)}` : ''}
       </div>`;
 }
 
 
-/* DIE UHR, DIE DEM LAUF ZUSIEHT. Sie steht ausserhalb der Karte, weil es
+/* WAS DIE UHR VERFOLGEN KANN -- eine Tafel und keine zweite Uhr.
+   SEIT 0.19.4 GIBT ES ZWEI LAEUFE, UND SIE KOENNEN SICH UEBERSCHNEIDEN: das
+   Nachziehen faengt 1500 ms nach dem Start an, und wer in genau diesem
+   Augenblick den Umstellungsknopf drueckt, hat beide. Eine zweite Uhr fragte
+   /api/stats ein zweites Mal ab -- genau die Selbstblockade, die 0.19.1
+   gemessen hat.
+   JEDE ZEILE HAT IHREN EIGENEN SATZ, weil die beiden Laeufe verschiedene
+   Dinge zaehlen. Was sie teilen, ist der Takt und die Abfrage. */
+const BESTANDSLAEUFE = [
+  { feld: 'umstellung', id: 'bild-lauf',
+    text: (u) => `Umstellung läuft — ${u.erledigt} von ${u.gesamt} …`,
+    fertig: 'Die Bildumstellung ist fertig' },
+  { feld: 'geometrie', id: 'geo-lauf',
+    text: (g) => `Vorschaubilder werden nachgezogen — ${g.erledigt} von ${g.gesamt} …`,
+    fertig: 'Die Vorschaubilder sind nachgezogen' }
+];
+
+/* DIE UHR, DIE DEN LAEUFEN ZUSIEHT. Sie steht ausserhalb der Karte, weil es
    genau EINE geben darf: zwei Uhren auf denselben Lauf fragten doppelt und
    meldeten unabhaengig voneinander „fertig".
-   UND SIE HAELT AN, SOBALD DIE ZEILE NICHT MEHR DASTEHT. Ohne diese Frage
+   UND SIE HAELT AN, SOBALD KEINE ZEILE MEHR DASTEHT. Ohne diese Frage
    liefe sie als herrenlose Zusage weiter, auch wenn der Systembereich laengst
-   verlassen ist (Stolperstein 118). */
-let umstellungsUhr = null;
-function verfolgeUmstellung() {
-  if (umstellungsUhr) return;
-  const halt = () => { clearInterval(umstellungsUhr); umstellungsUhr = null; };
-  umstellungsUhr = setInterval(async () => {
-    const zeile = document.getElementById('bild-lauf');
-    if (!zeile) return halt();
+   verlassen ist (Stolperstein 118).
+   GEMELDET WIRD NUR, WAS DIESE UHR HAT LAUFEN SEHEN. `unterwegs` sammelt die
+   Laeufe, die sie waehrend ihrer Lebenszeit als laufend gesehen hat; nur
+   deren Ende ist eine Nachricht wert. Ohne diese Merkliste truege ein Lauf,
+   der schon vor dem Oeffnen der Karte fertig war, bei jedem Takt seine
+   Fertigmeldung — er steht ja mit `laeuft: false` in der Antwort. */
+let bestandsUhr = null;
+function verfolgeBestandslauf() {
+  if (bestandsUhr) return;
+  const unterwegs = new Set();
+  const halt = () => { clearInterval(bestandsUhr); bestandsUhr = null; };
+  bestandsUhr = setInterval(async () => {
+    if (!BESTANDSLAEUFE.some(l => document.getElementById(l.id))) return halt();
     let s;
     // Ein Fehlschlag haelt an, statt im Sekundentakt weiterzufragen: wer die
     // Sitzung verloren hat, bekommt sonst eine Meldung je Umlauf.
     try { s = await api('GET', '/api/stats'); } catch { return halt(); }
-    const u = s.umstellung;
-    if (!u) return halt();
-    if (u.laeuft) { zeile.textContent = `Umstellung läuft — ${u.erledigt} von ${u.gesamt} …`; return; }
+    const fertig = [];
+    for (const l of BESTANDSLAEUFE) {
+      const zeile = document.getElementById(l.id), stand = s[l.feld];
+      if (!zeile || !stand) continue;
+      if (stand.laeuft) { zeile.textContent = l.text(stand); unterwegs.add(l.feld); }
+      else if (unterwegs.delete(l.feld)) fertig.push(l.fertig);
+    }
+    if (unterwegs.size) return;
     halt();
     /* FERTIG HEISST: DIE GANZE KARTE NEU. Die Aufstellung nach Format ist
        jetzt eine andere, und nur die Fortschrittszeile nachzuziehen hiesse,
        zwei Staende nebeneinander stehen zu lassen -- unten „fertig", darueber
        die alte PNG-Zahl. */
-    toast('Die Bildumstellung ist fertig');
-    renderSystem();
+    for (const t of fertig) toast(t);
+    if (fertig.length) renderSystem();
   }, 1500);
 }
 
@@ -8686,9 +8735,10 @@ function ruesteBildablageAus(geholt) {
   });
 
   // Laeuft beim Oeffnen der Karte schon einer -- weil jemand sie neu geladen
-  // hat oder von woanders zurueckkommt --, wird weitergezaehlt.
-  if (geholt.stats && geholt.stats.umstellung && geholt.stats.umstellung.laeuft)
-    verfolgeUmstellung();
+  // hat, von woanders zurueckkommt oder der Server gerade erst angefangen hat
+  // --, wird weitergezaehlt. Seit 0.19.4 gilt das fuer beide Laeufe.
+  if (geholt.stats && BESTANDSLAEUFE.some(l => geholt.stats[l.feld] && geholt.stats[l.feld].laeuft))
+    verfolgeBestandslauf();
 }
 
 
