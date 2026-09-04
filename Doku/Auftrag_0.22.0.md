@@ -485,6 +485,11 @@ wieder einsetzt.**
   30 Farbwerte ein zweites Mal, die Bedeutungsfarben auf hellem Grund neu abgestimmt,
   `theme-color` je Schema, jedes Foto auf hellem Grund angesehen. **Sie setzt auf den
   Gestaltungsregeln dieser Runde auf** — deshalb steht sie dahinter und nicht daneben.
+  **Vor ihrem Auftrag braucht sie ein eigenes Farbkonzept** (`Doku/Farbkonzept_0_23_0.md`,
+  noch nicht geschrieben) — *eine Farbe lässt sich nicht aus einer anderen ausrechnen;
+  jeder der rund dreißig Werte ist eine eigene Entscheidung.* **Was darin zu entscheiden ist,
+  steht im Projektstand, Abschnitt 10a.** *Das betrifft diese Runde nicht — es steht hier,
+  damit es beim Schreiben des nächsten Auftrags nicht übersehen wird.*
 * **Die Mehrsprachigkeit** (Fahrplan 0.28.0) — sie kommt nach dieser Runde und wegen ihr.
 * **Die Ideen, die stehen geblieben sind:** die Übersicht der Tastenkürzel (N7), die kompakte
   Listenansicht (N11) — *die ist eine Funktion, kein Anstrich, und gehört ins Sammelblatt.*
