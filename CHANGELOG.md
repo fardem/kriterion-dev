@@ -29,7 +29,7 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
-## [0.21.0] - 2026-09-03
+## [0.21.0] - 2026-09-04
 
 > **DIES IST EINE DATENBANKSTUFE — SICHERUNG VOR DEM EINSPIELEN.** Ein
 > Migrationsblock kommt dazu: `rating_criteria` bekommt die Spalte `phase`,

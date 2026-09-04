@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.21.0 — „Vor dem Test schätzt man, nach dem Test bewertet man"
 
-**MINOR · 3. September 2026 · eine eingeschobene Runde aus dem Betrieb.**
+**MINOR · 4. September 2026 · eine eingeschobene Runde aus dem Betrieb.**
 *Angefasst sind `db.js`, `server.js`, `public/app.js`, `public/style.css`,
 `pruefung.js`, `gegenprobe.js`, `package.json`, `package-lock.json` und die
 Papiere.*
@@ -641,6 +641,26 @@ gefundenen entdoppelt, macht aus einer belegten eine freie. Siehe Abschnitt 9a.
 **306. ZWISCHEN ZWEI GEPLANTEN RUNDEN BLEIBT EINE NUMMER FREI.** Siehe
 Abschnitt 7.
 
+*Die folgenden fünf stammen nicht aus dem Bauen, sondern aus dem
+**Gegenprobenlauf am Ende** — Abschnitt 9a erzählt sie der Reihe nach.*
+
+**307. EINE SPALTE, DIE DER SCHLÜSSEL SCHON BESTIMMT, IST IM `GROUP BY`
+STUMM.** Was das Verhalten nicht sieht, macht ein Wächter über den Quelltext
+rot.
+
+**308. WER IMMER AN EINEM GEGENSTAND PRÜFT, PRÜFT DEN WECHSEL NIE.** Wo eine
+Zusage „gilt bis hierhin" lautet, muss die Prüflage über die Grenze hinausgehen.
+
+**309. EIN FEST GESCHRIEBENER WERT IST VON EINEM EINGESETZTEN NICHT ZU
+UNTERSCHEIDEN, SOLANGE BEIDE GLEICH LAUTEN.** Die Prüflage muss ihn umstellen.
+
+**310. EIN LIEGENGEBLIEBENER SERVER MACHT NICHT DEN LAUF KAPUTT, SONDERN DIE
+TABELLE.** Und zwar in die gefährliche Richtung: ein stummer Rückbau sieht aus
+wie ein greifender.
+
+**311. EIN RÜCKBAU, DER EIN FELD WEGNIMMT, REISST DIE KETTE DARAUF AB, STATT
+SIE ROT ZU MACHEN.** Erst das Objekt, dann sein Inhalt.
+
 *Der volle Wortlaut steht im Projektstand, Abschnitt 6.*
 
 ---
@@ -651,7 +671,7 @@ PLATZHALTER_PRUEFSTAND
 
 ---
 
-## 9a. Zwei Befunde aus dem Bauen des Prüfstands selbst
+## 9a. Befunde aus dem Prüfstand und aus dem Gegenprobenlauf
 
 **ERSTENS: DREI NEUE PRÜFLAGEN, DREI BELEGTE PORTBASEN — und aufgefallen ist es
 an einer ganz anderen Stelle.**
@@ -697,6 +717,107 @@ gefunden wurde: **an der Prüflage mit dem unvollständigen eigenen Vokabular** 
 genau der Lage, die seit jeher dafür da ist, dass ein nicht genanntes Wort seine
 Vorgabe zeigt. *Sie hat sich als Erste gefärbt, und zwar an einem leeren Feld in
 der Vokabularkarte, nicht am Blockkopf: der bekommt sein Wort vom Server.*
+
+---
+
+### Und dann hat der Gegenprobenlauf sechs weitere geliefert
+
+*Der erste vollständige Lauf über die vierunddreißig neuen Rückbauten hat
+**sechs stumme** und **einen abgerissenen** zurückgegeben — und obendrein
+gezeigt, dass zwei Zeilen der Tabelle gar nicht von den Rückbauten stammten.
+Alle sind abgearbeitet; die Tabelle in Abschnitt 9 ist die des Nachlaufs.*
+
+**DRITTENS: DAS `GROUP BY` TRUG DIE ZUSAGE NICHT — DAS `SELECT` TRUG SIE.**
+Rückbau **571** nimmt `c.phase` aus dem `GROUP BY` der Abfrage des einzelnen
+Eintrags. Er kam **STUMM** zurück, und das war kein Versehen im Prüfstand,
+sondern eine falsche Annahme im Rückbau selbst.
+
+> **NACHGEMESSEN STATT GERATEN:** an einem eigens gebauten Bestand — fünf
+> Kriterien in beiden Phasen, drei Bewerter je Kriterium — kommen mit und ohne
+> die Spalte im `GROUP BY` **Zeile für Zeile dieselben Werte** heraus.
+> *`criterion_id` bestimmt die Phase eindeutig: ein Kriterium hat genau eine
+> Zeile in `rating_criteria`. Also teilt die Spalte keine Gruppe und legt keine
+> zusammen.* **Die Trennung hängt am `SELECT`** — ohne die Spalte dort kommt
+> die Schnittzeile ohne Phase an, `karteJePhase()` legt sie in **keinen** der
+> beiden Kästen, und beide Durchschnitte fallen auf `null`.
+>
+> **Und für genau diesen Griff gab es keinen Rückbau.** Die Runde hatte für die
+> beiden Schnittabfragen nur den ans `GROUP BY`. **Nachgetragen: 602 und 603.**
+>
+> *Die Zeile im `GROUP BY` bleibt trotzdem stehen* — eine bloße Spalte neben
+> einem Aggregat ist eine **Freundlichkeit von SQLite und kein SQL**; jede
+> strengere Fassung und jede andere Maschine weist sie ab. **Was das Verhalten
+> nicht sieht, macht jetzt ein Wächter über den Quelltext rot** (dieselbe
+> Bauform wie der zweite Musterwächter von 0.20.0, Rückbau 547). *Damit sind
+> 570 und 571 nicht mehr stumm.*
+
+**VIERTENS: DER PRÜFSTAND HAT DEN EINTRAG NIE GEWECHSELT.** Rückbau **593**
+nimmt `BLICK.clear()` am Eingang der Detailansicht weg — der Blick gälte dann
+über Einträge hinweg und wäre in Wahrheit eine Einstellung, die niemand
+speichert. **STUMM.** *Der Grund war eine Lücke und keine Kleinigkeit: **keine
+einzige** Prüflage der Gruppe hat den Eintrag je gewechselt. An einem einzigen
+Eintrag ist ein bleibender Zustand von einem endenden nicht zu unterscheiden.*
+**Nachgetragen ist die Lage, die sie trennt:** an Eintrag 1 klappt ein Blick den
+Potenzialkasten **zu** — gegen die Regel —, dann geht es auf Eintrag 2, eine
+Idee ohne Sterne, wo dieselbe Regel gilt. *Bleibt er zu, hat der Blick den
+Eintrag überlebt.*
+
+**FÜNFTENS: DREI RÜCKBAUTEN SCHEITERTEN AN DER VORGABE.** **597** (die zweite
+Kriterienkarte ohne Filter), **598** (das Anlegen ohne `phase` im Rumpf) und
+**600** (das Wort am Blockkopf fest im Quelltext) kamen alle drei stumm zurück —
+*und alle drei aus demselben Grund:* **die Prüflage trug den Wert, der auch die
+Vorgabe ist.**
+
+> Drei Nachher-Kriterien im Mock — da lässt ein Filter auf `nachher` alles
+> durch. Die Vorgabe des Servers ist `nachher` — da fällt ein fehlendes
+> `phase` im Rumpf nicht auf. Und die Vorgabe des Vokabulars **heißt**
+> „Potenzial" — da ist ein fest geschriebenes Wort von einem eingesetzten nicht
+> zu unterscheiden.
+>
+> **Nachgetragen sind drei Lagen, die den Wert UMSTELLEN:** zwei Kriterien im
+> einen Kasten und eines im anderen; ein Klick in **beiden** Karten mit der
+> Frage, welche Phase im Rumpf steht; und ein eingestelltes Vokabular mit
+> `potenzial: 'Erwartung'` — *das Wort aus dem Konzeptpapier und nicht
+> irgendeines.*
+
+**SECHSTENS: EIN RÜCKBAU HAT DEN LAUF ABGERISSEN, STATT IHN ROT ZU MACHEN.**
+Rückbau **573** nimmt `it.potenzialRechenweg` aus der Antwort. Die Prüfzeile
+darauf lautete `phD.potenzialRechenweg.zeilen.length === 1` — *und die wirft,
+sobald das Objekt fehlt.* **Der Lauf riss ab, und ein abgerissener Lauf belegt
+nichts** (Stolperstein 138). **Berichtigt nach Stolperstein 81:** eine eigene
+Zeile für „stehen beide Rechenwege überhaupt da", und die Zeile darunter greift
+mit `?.` daneben.
+
+**SIEBTENS: ZWEI ZEILEN DER TABELLE STAMMTEN GAR NICHT VON IHREN RÜCKBAUTEN.**
+*Das ist der unangenehmste Befund des Laufs, weil er die Tabelle selbst
+betrifft.*
+
+> **570** stand mit „2 rot" da — beide Punkte lagen im **Mailversand**, in
+> seiner eigenen Gruppe hatte er **keinen einzigen**. **596** stand mit „16 rot"
+> da, davon **fünfzehn** im Mailversand und **einer** — der echte — in seiner
+> eigenen Gruppe.
+>
+> **DIE URSACHE WAREN SIEBEN LIEGENGEBLIEBENE SERVER** aus abgebrochenen Läufen
+> dieser Runde, noch immer an den Ports **6180, 6190, 6203, 6219, 6226, 6233 und
+> 6242** — *mitten im Fenster der Mailgruppe (Basis 6190) und im Fenster
+> darunter (6130).* **Spur 0 fährt ohne Versatz und lief gegen sie**; beide
+> auffälligen Zeilen stammen von Spur 0. *Ein zweiter Server auf demselben Port
+> fällt nicht von selbst auf: die Bereitschaftsprüfung bekommt ja eine Antwort*
+> (Stolperstein 139).
+>
+> **Die Tabelle hat damit in die gefährliche Richtung gelogen:** ein Rückbau
+> ohne einen einzigen Punkt in seiner Gruppe sah aus wie ein greifender. *Ein
+> stummer Rückbau, den man für einen Beleg hält, ist schlimmer als gar keine
+> Tabelle.*
+>
+> **GEBAUT IST DARAUS EIN WÄCHTER IM TREIBER:** `fremdeServer()` geht vor dem
+> ersten Rückbau über `/proc`, findet jeden Prozess, dessen Befehl auf
+> `server.js` oder `pruefung.js` endet, nennt **PID, Datei, `PORT` und
+> Verzeichnis** — und der Lauf **bricht ab**, statt zu warnen. *Keine neue
+> Abhängigkeit: dieselbe `/proc`-Lesung, die das Aufräumen ohnehin benutzt.*
+> **Geprüft wird er am laufenden Prüflauf selbst** — er ist ja einer, und damit
+> hat die Zeile einen Gegenstand statt einer leeren Liste. **Rückbauten 604 und
+> 605.**
 
 ---
 

@@ -5342,12 +5342,22 @@ const RUECKBAUTEN = [
 
   /* ---- 0.21.0: zwei Kaesten, zwei Durchschnitte ---- */
   {
-    /* DER SCHNITT NACH PHASE FAELLT AUS DER ABFRAGE. Damit stehen beide
-       Kaesten wieder in EINER Menge, und der Gesamtschnitt mischt „wie gut war
-       es" mit „wie sehr will ich es" -- Stolperstein 47 in Reinform, und man
-       sieht es der Zahl nicht an.
-       DAS IST DER RUECKBAU ZUR ZENTRALEN ZUSAGE DIESER RUNDE. Er muss rot
-       werden, sonst ist die Trennung nicht baulich, sondern behauptet. */
+    /* DIE PHASE FAELLT AUS DEM GROUP BY DER GEBUENDELTEN ABFRAGE.
+       ERSTER ANLAUF WAR DIESER RUECKBAU ALS DER ZUR ZENTRALEN ZUSAGE GEDACHT
+       -- mit der Begruendung, beide Kaesten stuenden dann wieder in EINER
+       Menge. DAS IST FALSCH, und die Gegenprobe hat es gezeigt: 571, derselbe
+       Griff an der zweiten Fassung, kam STUMM zurueck. Nachgemessen an einem
+       eigens gebauten Bestand (fuenf Kriterien in beiden Phasen, drei Bewerter
+       je Kriterium) kommen mit und ohne diese Spalte im GROUP BY Zeile fuer
+       Zeile DIESELBEN Werte heraus: `criterion_id` bestimmt die Phase
+       eindeutig, also teilt die Spalte keine Gruppe und legt keine zusammen.
+       Die Trennung haengt am SELECT -- das sind die Rueckbauten 602 und 603.
+       WARUM DIE ZEILE TROTZDEM STEHT UND DIESER RUECKBAU BLEIBT: eine blosse
+       Spalte neben einem Aggregat ist eine Freundlichkeit von SQLite und kein
+       SQL. Die Zeile haelt die Abfrage vollstaendig, damit sie es bleibt, wenn
+       jemand sie anderswohin traegt. AM VERHALTEN WAERE SIE STUMM -- rot wird
+       deshalb der Waechter ueber den Quelltext, dieselbe Bauform wie beim
+       zweiten Musterwaechter von 0.20.0 (Rueckbau 547). */
     nr: '570', name: 'Der Gesamtschnitt der Uebersicht kennt die Phase nicht mehr',
     datei: 'server.js',
     suche: '   GROUP BY r.item_id, r.criterion_id, c.gewicht, c.phase`);',
@@ -5357,7 +5367,9 @@ const RUECKBAUTEN = [
   {
     /* DASSELBE AM EINZELNEN EINTRAG. Zwei Fassungen derselben Abfrage, zwei
        Rueckbauten -- faellt nur einer, blieben Uebersicht und Detail
-       verschiedener Meinung, und genau das soll auffallen. */
+       verschiedener Meinung, und genau das soll auffallen.
+       DIESER HIER IST DER, DER STUMM ZURUECKKAM und die Messung ausgeloest
+       hat; die Begruendung steht eine Nummer hoeher. */
     nr: '571', name: 'Der Gesamtschnitt des Eintrags kennt die Phase nicht mehr',
     datei: 'server.js',
     suche: '   GROUP BY r.criterion_id, c.gewicht, c.phase`);',
@@ -5673,6 +5685,59 @@ const RUECKBAUTEN = [
     ersatz: "  aufgabeErledigt: 'Erledigt'\n};",
     erwartet: 'Oberflaeche mit eigenem Vokabular'
   },
+  {
+    /* HIER HAENGT DIE ZENTRALE ZUSAGE DIESER RUNDE -- am SELECT und nicht am
+       GROUP BY. Faellt `c.phase` aus der Spaltenliste, kommt die Schnittzeile
+       ohne Phase an; karteJePhase() legt sie in KEINEN der beiden Kaesten
+       (`kasten[undefined]` gibt es nicht), und beide Durchschnitte fallen auf
+       null. Die Kachel zeigte dann an jedem Eintrag gar keine Zahl mehr.
+       NACHGETRAGEN NACH DER GEGENPROBE: die Runde hatte fuer diese beiden
+       Abfragen nur den Griff ans GROUP BY, und der ist am Verhalten stumm
+       (Rueckbauten 570 und 571). Ein Rueckbau, der die Zusage wirklich
+       herausnimmt, fehlte -- er steht jetzt hier. */
+    nr: '602', name: 'Die gebuendelte Abfrage waehlt die Phase nicht mehr aus',
+    datei: 'server.js',
+    suche: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+           '         c.gewicht, c.phase\n',
+    ersatz: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+            '         c.gewicht\n',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DASSELBE AN DER FASSUNG DES EINZELNEN EINTRAGS. Zwei Fassungen, zwei
+       Rueckbauten: faellt nur einer, blieben Uebersicht und Detail
+       verschiedener Meinung -- und ein Eintrag zeigte in der Liste zwei Zahlen
+       und aufgeschlagen keine. */
+    nr: '603', name: 'Die Abfrage des Eintrags waehlt die Phase nicht mehr aus',
+    datei: 'server.js',
+    suche: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+           '         c.gewicht, c.phase\n',
+    ersatz: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+            '         c.gewicht\n',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DER TREIBER SIEHT NICHT MEHR NACH, OB FREMDE SERVER LAUFEN. Genau die
+       Lage, aus der dieser Waechter entstanden ist: sieben Server aus
+       abgebrochenen Laeufen an den Ports 6180 bis 6242, Spur 0 faehrt ohne
+       Versatz dagegen, und die Tabelle zeigt einen stummen Rueckbau als
+       greifenden. EINE FALSCHE TABELLE IST SCHLIMMER ALS GAR KEINE. */
+    nr: '604', name: 'Der Treiber faehrt los, ohne nach fremden Servern zu sehen',
+    datei: 'gegenprobe.js',
+    suche: '  const fremde = fremdeServer();\n  if (fremde.length) {',
+    ersatz: '  const fremde = [];\n  if (fremde.length) {',
+    erwartet: 'Die Gegenproben greifen'
+  },
+  {
+    /* UND DIE SUCHE SELBST FINDET NUR NOCH EINEN DER BEIDEN NAMEN. Ein
+       liegengebliebener PRUEFLAUF belegt genauso Ports wie ein liegen-
+       gebliebener Server -- er startet ja welche. */
+    nr: '605', name: 'Die Suche nach fremden Servern kennt den Prueflauf nicht mehr',
+    datei: 'gegenprobe.js',
+    suche: "    const skript = teile.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
+    ersatz: "    const skript = teile.find(t => /(^|\\/)server\\.js$/.test(t));",
+    erwartet: 'Die Gegenproben greifen'
+  },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
@@ -5792,6 +5857,51 @@ function prozesseUnter(pfad) {
     let cwd;
     try { cwd = fs.readlinkSync(`/proc/${e}/cwd`); } catch { continue; }
     if (cwd === pfad || cwd.startsWith(pfad + path.sep)) raus.push(Number(e));
+  }
+  return raus;
+}
+
+/* ================= Fremde Server VOR dem Lauf =================
+   DER BEFUND, AUS DEM DIESE FUNKTION ENTSTANDEN IST (0.21.0): sieben Server
+   aus abgebrochenen Laeufen hingen noch an den Ports 6180 bis 6242 -- genau
+   im Fenster der Mailgruppe. Spur 0 faehrt ohne Versatz und lief deshalb
+   gegen sie: ZWEI Rueckbauten bekamen rote Punkte IM MAILVERSAND, an einer
+   Stelle also, mit der sie nichts zu tun haben. Einer davon (570) hatte in
+   seiner eigenen Gruppe KEINEN einzigen -- die Tabelle zeigte ihn trotzdem
+   als „2 rot" und damit als Beleg. SIE HAT GELOGEN, und zwar in die
+   gefaehrliche Richtung: ein stummer Rueckbau sah aus wie ein greifender.
+   EIN ZWEITER SERVER AUF DEMSELBEN PORT FAELLT NICHT VON SELBST AUF (Stolper-
+   stein 139) -- die Bereitschaftspruefung bekommt ja eine Antwort. Deshalb
+   wird hier VOR dem ersten Rueckbau nachgesehen und nicht hinterher gedeutet.
+   GESUCHT WIRD UEBER `/proc`, wie bei prozesseUnter(): keine neue Abhaengig-
+   keit, kein `ps`, und dieselbe Auskunft. Ein Prozess zaehlt als fremd, wenn
+   sein Befehl auf server.js oder pruefung.js endet -- eigene Kinder gibt es zu
+   diesem Zeitpunkt noch keine. */
+function fremdeServer() {
+  const raus = [];
+  let eintraege;
+  try { eintraege = fs.readdirSync('/proc'); } catch { return raus; }
+  for (const e of eintraege) {
+    if (!/^\d+$/.test(e) || Number(e) === process.pid) continue;
+    let zeile;
+    try { zeile = fs.readFileSync(`/proc/${e}/cmdline`, 'utf8'); } catch { continue; }
+    const teile = zeile.split('\0').filter(Boolean);
+    /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. `node pruefung.js sterne` endet
+       auf dem Filterwort -- wer die Zeile daran erkennen will, bekommt dann
+       „sterne" gemeldet und sucht nach etwas, das es nicht gibt. */
+    const skript = teile.find(t => /(^|\/)(server|pruefung)\.js$/.test(t));
+    if (!skript) continue;
+    /* DER PORT AUS DER UMGEBUNG, wenn er dasteht: ohne ihn muesste der Leser
+       raten, welches Fenster belegt ist -- und genau das Raten hat in dieser
+       Runde zwei Stunden gekostet. */
+    let port = '';
+    try {
+      port = (fs.readFileSync(`/proc/${e}/environ`, 'utf8').split('\0')
+        .find(z => z.startsWith('PORT=')) || '').slice(5);
+    } catch { /* ein fremder Prozess muss seine Umgebung nicht hergeben */ }
+    let wo = '';
+    try { wo = fs.readlinkSync(`/proc/${e}/cwd`); } catch { /* ebenso */ }
+    raus.push({ pid: Number(e), port, wo, was: path.basename(skript) });
   }
   return raus;
 }
@@ -6081,7 +6191,10 @@ const passtRueckbau = (r, argument) => {
    passtRueckbau EBENSO: die Regel, welches Argument welchen Rueckbau meint,
    laesst sich damit an gestellten Faellen nachsehen, statt Minuten lang einen
    Lauf zu fahren, um zu sehen, WAS er gefahren hat. */
-module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau, schreibeTabelle };
+/* fremdeServer GEHT EBENFALLS MIT HINAUS: die Regel, was als fremder Server
+   gilt, laesst sich damit am laufenden Prueflauf selbst nachsehen -- er ist
+   ja einer. Ein Waechter, den niemand pruefen kann, ist ein Versprechen. */
+module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau, schreibeTabelle, fremdeServer };
 if (require.main !== module) return;
 
 (async function haupt() {
@@ -6102,6 +6215,21 @@ if (require.main !== module) return;
   if (!liste.length) {
     console.error(`Kein Rueckbau passt auf ${argumente.join(', ')}.`);
     console.error('Vorhanden: ' + RUECKBAUTEN.map(r => r.nr).join(', '));
+    process.exit(1);
+  }
+  /* ERST NACHSEHEN, DANN FAHREN. Ein fremder Server macht nicht den Lauf
+     kaputt, sondern die TABELLE -- und eine falsche Tabelle ist schlimmer als
+     gar keine. Abgebrochen wird deshalb, statt zu warnen: wer eine Warnung
+     ueberliest, liest hinterher Zahlen, die nichts bedeuten. */
+  const fremde = fremdeServer();
+  if (fremde.length) {
+    console.error(`\n${fremde.length} fremde(r) Server laufen noch -- sie belegen Ports, ` +
+                  `auf die die Prueflaeufe warten (Stolperstein 139).`);
+    for (const f of fremde)
+      console.error(`  PID ${f.pid}  ${f.was}${f.port ? `  PORT=${f.port}` : ''}` +
+                    `${f.wo ? `  in ${f.wo}` : ''}`);
+    console.error('\nErst beenden, dann fahren:  kill -9 ' +
+                  fremde.map(f => f.pid).join(' '));
     process.exit(1);
   }
   const stufe = versatzStufe();

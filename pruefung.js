@@ -20649,11 +20649,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* DIE MELDUNG WIRD EINGEFANGEN UND IN EINER ZEILE ZURUECKGEGEBEN --
        kurzlauf() liefert nur die LETZTE Zeile der Ausgabe, und die Meldung des
        Blocks steht davor. Eingefangen wird VOR dem require: db.js fuehrt seine
-       Bloecke beim Laden aus, so wie beim Start der Installation. */
+       Bloecke beim Laden aus, so wie beim Start der Installation.
+       UND DAS EINFANGEN WIRD ZWEIGETEILT -- das ist der Fund des Rueckbaus 581.
+       Der erste Anlauf legte beides in DENSELBEN Topf: was beim Oeffnen
+       geschah und was der ausdrueckliche Aufruf danach tat. Damit blieb die
+       Gruppe auch dann gruen, wenn `migration0210();` in db.js gar nicht mehr
+       gerufen wurde -- der Aufruf HIER holte die Migration nach, und die
+       Meldung stand im Topf. Der Rueckbau war STUMM.
+       JETZT SAGT `OEFFNEN`, was das blosse Laden der Datei getan hat, und
+       `DANACH`, was der ausdrueckliche Aufruf noch fand. Nur das erste belegt,
+       dass der Block beim Start einer Installation wirklich laeuft. */
     const migLauf = () => kurzlauf(
       `const echt = console.log; let g = ''; console.log = (...a) => { g += a.join(' ') + ' | '; };` +
+      `require('./db'); const beimOeffnen = g; g = '';` +
       `const { migration0210 } = require('./db'); const n = migration0210();` +
-      `console.log = echt; console.log('ERG:' + n + ' ' + JSON.stringify(g));`, phMigDir);
+      `console.log = echt; console.log('ERG:' + n + ' OEFFNEN:' + JSON.stringify(beimOeffnen) +` +
+      `' DANACH:' + JSON.stringify(g));`, phMigDir);
     const erst = migLauf();
     const zweit = migLauf();
     const d2 = oeffne(path.join(phMigDir, 'katalog.sqlite'));
@@ -20663,9 +20674,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* DER ERSTE LAUF LEGT SIE AN UND SAGT ES. Die Zeile nennt die Zahl der
        Kriterien, die auf 'nachher' stehen -- ohne sie bliebe der Betreiber
        im Unklaren darueber, was der Block angefasst hat. */
-    pruefe('Der erste Lauf ruestet die Spalte nach und sagt es',
-      /rating_criteria um phase ergaenzt \(Migration auf 0\.21\.0\)/.test(erst) &&
-      /5 Kriterien stehen auf 'nachher'/.test(erst), erst.slice(-500));
+    /* DAS BLOSSE OEFFNEN DER DATEI RUESTET DIE SPALTE NACH UND SAGT ES -- der
+       Block wird beim Laden gerufen, so wie beim Start der Installation. Die
+       Zeile nennt die Zahl der Kriterien, die auf 'nachher' stehen; ohne sie
+       bliebe der Betreiber im Unklaren darueber, was der Block angefasst hat.
+       GEPRUEFT WIRD AN `OEFFNEN` UND NICHT AN DER GANZEN AUSGABE: sonst
+       genuegte der ausdrueckliche Aufruf eine Zeile tiefer, und ein
+       weggefallener Aufruf in db.js faellt nicht mehr auf (Rueckbau 581). */
+    const migOeffnen = (t) => (t.match(/OEFFNEN:("(?:[^"\\]|\\.)*")/) || ['', '""'])[1];
+    pruefe('Schon das Oeffnen der Datei ruestet die Spalte nach und sagt es',
+      /rating_criteria um phase ergaenzt \(Migration auf 0\.21\.0\)/.test(migOeffnen(erst)) &&
+      /5 Kriterien stehen auf 'nachher'/.test(migOeffnen(erst)), erst.slice(-500));
+    /* UND DER AUSDRUECKLICHE AUFRUF DANACH FINDET NICHTS MEHR -- er gibt 0
+       zurueck und schweigt. Das ist die Wiederholbarkeit innerhalb EINES
+       Laufs: der Block fragt PRAGMA table_info und keinen Merker. */
+    pruefe('Und der ausdrueckliche Aufruf danach findet nichts mehr',
+      /ERG:0 /.test(erst) && /DANACH:""/.test(erst), erst.slice(-500));
     /* UND DIE BESTANDSZEILEN STEHEN AUF 'nachher' -- aus dem DEFAULT und
        nicht aus einem UPDATE. Jeder andere Wert aenderte beim Einspielen
        still saemtliche Gesamtschnitte. */
@@ -20676,10 +20700,17 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Bestand steht danach auf nachher',
       alleNachher === 5 && nachher.length === 2 && nachher.every(z => z.phase === 'nachher'),
       `${alleNachher} Kriterien, davon ${JSON.stringify(nachher)}`);
-    /* DER ZWEITE LAUF IST STUMM. Er gibt 0 zurueck und schreibt keine Zeile
-       -- der Block ist wiederholbar, nicht nur einmalig. */
+    /* DER ZWEITE LAUF IST STUMM -- auch schon beim Oeffnen. Er gibt 0 zurueck
+       und schreibt keine Zeile ueber die Spalte: der Block ist wiederholbar,
+       nicht nur einmalig.
+       GEFRAGT WIRD NACH DER MELDUNG UND NICHT NACH EINER LEEREN AUSGABE:
+       db.js sagt bei JEDEM Oeffnen, woher es seinen Schluessel hat, und diese
+       Zeile steht auch im zweiten Lauf da. `OEFFNEN:""` waere also eine
+       Bedingung, die nie zutrifft -- und eine Pruefung, die immer rot ist,
+       wird angepasst statt gelesen. */
     pruefe('Der zweite Lauf ist stumm und aendert nichts',
-      /ERG:0/.test(zweit) && !/um phase ergaenzt/.test(zweit), zweit.slice(-500));
+      /ERG:0/.test(zweit) && !/um phase ergaenzt/.test(zweit) &&
+      !/um phase ergaenzt/.test(migOeffnen(zweit)), zweit.slice(-500));
     fs.rmSync(phMigDir, { recursive: true, force: true });
   }
 
@@ -20766,6 +20797,38 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und in der Uebersicht dieselben beiden Zahlen',
     phL.avgRating === 4 && phL.potenzialRating === 1,
     `avgRating ${phL.avgRating}, potenzialRating ${phL.potenzialRating}`);
+  /* UND BEIDE ABFRAGEN NENNEN DIE PHASE -- im SELECT und im GROUP BY.
+     DAS SELECT TRAEGT DAS VERHALTEN: ohne die Spalte kaeme die Zeile ohne
+     Phase an, karteJePhase() legte sie in keinen der beiden Kaesten, und beide
+     Durchschnitte fielen aus (Rueckbau 574: neun rote Punkte).
+     DAS GROUP BY TRAEGT ES NICHT, und das ist gemessen und nicht vermutet:
+     `criterion_id` bestimmt die Phase eindeutig -- ein Kriterium hat genau eine
+     Zeile in `rating_criteria` --, also kann die Spalte im GROUP BY keine
+     Gruppe teilen und keine zusammenlegen. An einem eigens gebauten Bestand
+     mit fuenf Kriterien in beiden Phasen und drei Bewertern je Kriterium
+     kommen mit und ohne GROUP BY Zeile fuer Zeile dieselben Werte heraus.
+     SQLite laesst die blosse Spalte im SELECT durchgehen und nimmt sie sich
+     aus irgendeiner Zeile der Gruppe -- hier ist es immer dieselbe.
+     WARUM SIE TROTZDEM STEHT: das ist eine Freundlichkeit von SQLite und kein
+     SQL. Jede strengere Fassung und jede andere Maschine weist eine blosse
+     Spalte neben einem Aggregat ab. Die Zeile haelt die Abfrage vollstaendig,
+     damit sie es bleibt, wenn jemand sie anderswohin traegt.
+     UND WEIL DAS VERHALTEN SIE NICHT SIEHT, WIRD HIER DER QUELLTEXT ROT --
+     dieselbe Bauform wie beim zweiten Musterwaechter von 0.20.0 (Rueckbau
+     547). Ohne diese Zeile waeren die Rueckbauten 570 und 571 STUMM. */
+  {
+    const phQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const phAbfrage = (name) =>
+      (phQuelle.match(new RegExp(`const ${name} = db\\.prepare\\(\`([^\`]*)\``)) || ['', ''])[1];
+    const phEinzeln = phAbfrage('qSchnittJeKriterium');
+    const phAlle = phAbfrage('qSchnittJeKriteriumAlle');
+    const nenntPhase = (a) => /SELECT[\s\S]*?\bc\.phase\b[\s\S]*?FROM/.test(a) &&
+                             /GROUP BY[^`]*\bc\.phase\b/.test(a);
+    pruefe('Die Abfrage des Eintrags nennt die Phase im SELECT und im GROUP BY',
+      Boolean(phEinzeln) && nenntPhase(phEinzeln), phEinzeln.replace(/\s+/g, ' ').trim() || '(nicht gefunden)');
+    pruefe('Und die gebuendelte Abfrage der Uebersicht genauso',
+      Boolean(phAlle) && nenntPhase(phAlle), phAlle.replace(/\s+/g, ' ').trim() || '(nicht gefunden)');
+  }
   /* DAS UMLEGEN VON `tested` AENDERT KEINE DER BEIDEN. Nichts wird geloescht,
      nichts umgerechnet -- der Schalter entscheidet nur, welcher Kasten offen
      steht. */
@@ -20775,14 +20838,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
     phNach.avgRating === 4 && phNach.potenzialRating === 1 &&
     phNachL.avgRating === 4 && phNachL.potenzialRating === 1,
     `${phNach.avgRating}/${phNach.potenzialRating} und ${phNachL.avgRating}/${phNachL.potenzialRating}`);
+  /* ERST DAS OBJEKT, DANN SEIN INHALT -- Stolperstein 81, und hier nicht aus
+     Ordnungsliebe: Rueckbau 573 nimmt `it.potenzialRechenweg` aus der Antwort,
+     und die Kette `phD.potenzialRechenweg.zeilen.length` warf daraufhin, statt
+     rot zu werden. Der Lauf riss AB, und ein abgerissener Lauf belegt nichts
+     (Stolperstein 138). Also steht die Frage nach dem Objekt zuerst und
+     alleine, und die Frage nach seinem Inhalt greift mit `?.` daneben. */
+  pruefe('Beide Rechenwege stehen ueberhaupt in der Antwort',
+    Boolean(phD.rechenweg) && Boolean(phD.potenzialRechenweg),
+    `rechenweg ${typeof phD.rechenweg}, potenzialRechenweg ${typeof phD.potenzialRechenweg}`);
   /* UND DIE BEIDEN RECHENWEGE TRAGEN JE NUR IHRE EIGENEN ZEILEN. Ohne diese
      Zeile bliebe die Erklaerung der Kopfzahl auch dann gruen, wenn sie beide
      Mengen aufzaehlte -- die Kopfzahl darueber waere richtig, der Kasten
      darunter falsch. */
   pruefe('Der Rechenweg der Bewertung nennt zwei Zeilen, der des Potenzials eine',
-    phD.rechenweg.zeilen.length === 2 && phD.potenzialRechenweg.zeilen.length === 1 &&
-    phD.potenzialRechenweg.zeilen[0].criterionId === phVorher.inhalt.id,
-    `${phD.rechenweg.zeilen.length} und ${phD.potenzialRechenweg.zeilen.length}`);
+    phD.rechenweg?.zeilen?.length === 2 && phD.potenzialRechenweg?.zeilen?.length === 1 &&
+    phD.potenzialRechenweg?.zeilen?.[0]?.criterionId === phVorher.inhalt.id,
+    `${phD.rechenweg?.zeilen?.length} und ${phD.potenzialRechenweg?.zeilen?.length}`);
   /* UND DIE STERNZEILEN TRAGEN IHRE PHASE MIT -- der Browser filtert danach
      und rechnet nichts. */
   /* Die Prueflage traegt neben den drei hier angelegten die drei Kriterien der
@@ -21314,10 +21386,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
      eine andere Datei gewandert** -- der Deckel der Liste ist seit 0.20.1 eine
      Regel im Stilblatt und keine Klasse im Markup. Seine Zusage ist dieselbe
      geblieben. KEINER IST WEGGEFALLEN. */
-  /* 595 SEIT 0.21.0: zweiunddreissig neue (570 bis 601) fuer die beiden
+  /* 599 SEIT 0.21.0: sechsunddreissig neue (570 bis 605) fuer die beiden
      Sternkaesten, die Sternzeile und die weggenommene Route. Keiner ist
-     weggefallen; fuenf sind mitgegangen statt geloescht (Stolperstein 201). */
-  pruefe('Es sind genau 595 Rueckbauten', gpListe.length === 595, `${gpListe.length}`);
+     weggefallen; fuenf sind mitgegangen statt geloescht (Stolperstein 201).
+     VIER DAVON SIND NACHTRAEGE AUS DER GEGENPROBE SELBST:
+     602 und 603 nehmen die Phase aus dem SELECT der beiden Schnittabfragen --
+     die Runde hatte dort nur den Griff ans GROUP BY (570 und 571), und der
+     ist am Verhalten stumm; die Zusage, an der alles haengt, war ohne
+     Rueckbau. 604 und 605 gehoeren dem Waechter ueber fremde Server, den
+     derselbe Lauf noetig gemacht hat. */
+  pruefe('Es sind genau 599 Rueckbauten', gpListe.length === 599, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -21491,6 +21569,61 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Das Argument 256 waehlt an der echten Liste genau einen Rueckbau',
       gpTreffer.length === 1 && gpTreffer[0] === '256', gpTreffer.join(' '));
   }
+
+  /* ---- KEIN FREMDER SERVER, BEVOR DIE GEGENPROBEN LOSFAHREN -- 0.21.0 ----
+     DER BEFUND: sieben Server aus abgebrochenen Laeufen hingen noch an den
+     Ports 6180 bis 6242, mitten im Fenster der Mailgruppe. Spur 0 faehrt ohne
+     Versatz und lief gegen sie. Zwei Rueckbauten bekamen dadurch rote Punkte
+     IM MAILVERSAND -- und einer davon (570) hatte in seiner EIGENEN Gruppe
+     keinen einzigen. Die Tabelle zeigte ihn trotzdem als „2 rot" und damit als
+     Beleg. SIE HAT IN DIE GEFAEHRLICHE RICHTUNG GELOGEN: ein stummer Rueckbau
+     sah aus wie ein greifender.
+     GEPRUEFT WIRD AM LAUFENDEN PRUEFLAUF SELBST -- er IST ein solcher Prozess,
+     und damit hat diese Zeile einen Gegenstand und ist nicht die Frage, ob
+     eine leere Liste leer ist (Stolperstein 81). */
+  const gpFremd = require('./gegenprobe').fremdeServer;
+  pruefe('Die Suche nach fremden Servern ist von aussen erreichbar',
+    typeof gpFremd === 'function', typeof gpFremd);
+  const gpGefunden = typeof gpFremd === 'function' ? gpFremd() : [];
+  /* DER GEGENSTAND SIND DIE SERVER DIESES LAUFS. Der Hauptserver steht die
+     ganze Zeit da -- damit hat diese Zeile etwas zu finden und ist nicht die
+     Frage, ob eine leere Liste leer ist (Stolperstein 81). */
+  const gpEigener = gpGefunden.find(f => f.was === 'server.js' && f.wo === __dirname);
+  pruefe('Und sie findet die laufenden Server dieses Laufs',
+    Boolean(gpEigener), `${gpGefunden.length} gefunden: ` +
+    gpGefunden.map(f => `${f.pid}:${f.was}`).slice(0, 6).join(' '));
+  /* UND SIE SAGT, WO EINER LIEGT UND AUF WELCHEM PORT. Ohne diese Angaben
+     muesste der Leser raten, welches Fenster belegt ist -- und genau das
+     Raten hat in dieser Runde zwei Stunden gekostet. */
+  pruefe('Und sie nennt zu jedem Fund Verzeichnis und Port',
+    Boolean(gpEigener) && gpEigener.wo === __dirname && /^\d+$/.test(gpEigener.port || ''),
+    JSON.stringify(gpEigener));
+  /* SICH SELBST MELDET SIE NICHT. Der Treiber ist kein fremder Server -- ohne
+     diese Zeile braeche er an sich selbst ab und faende nie einen Rueckbau. */
+  pruefe('Und sich selbst meldet sie nicht',
+    !gpGefunden.some(f => f.pid === process.pid),
+    `eigene Nummer ${process.pid}, gefunden ${gpGefunden.map(f => f.pid).join(' ')}`);
+  /* DER TREIBER RUFT SIE AUCH -- und geht, statt zu warnen. Am Verhalten
+     waere das von hier aus nicht zu sehen: haupt() laeuft nur beim direkten
+     Aufruf, und ein zweiter Gegenprobenlauf aus dem Prueflauf heraus waere
+     genau der Unfug, gegen den diese Zeile gebaut ist. Also der Quelltext --
+     dieselbe Bauform wie beim zweiten Musterwaechter von 0.20.0. */
+  const gpQuelle = fs.readFileSync(path.join(__dirname, 'gegenprobe.js'), 'utf8');
+  const gpEinzeilig = gpQuelle.replace(/\s+/g, ' ');
+  pruefe('Der Treiber sieht vor dem ersten Rueckbau nach und bricht ab',
+    gpEinzeilig.includes('const fremde = fremdeServer(); if (fremde.length) {') &&
+    /if \(fremde\.length\) \{[\s\S]{0,900}?process\.exit\(1\);/.test(gpQuelle) &&
+    gpQuelle.indexOf('const fremde = fremdeServer();') <
+      gpQuelle.indexOf('await fahreAlle(liste, spuren, stufe)'),
+    (gpEinzeilig.match(/const fremde = fremdeServer\(\)[^;]*/) || ['(nicht gefunden)'])[0]);
+  /* UND SIE SUCHT NACH BEIDEN NAMEN. Ein liegengebliebener PRUEFLAUF belegt
+     genauso Ports wie ein liegengebliebener Server -- er startet ja welche.
+     AM VERHALTEN WAERE DAS VON HIER AUS NICHT ZU SEHEN: die Funktion meldet
+     sich selbst nicht, und ob waehrend dieser Zeile ein zweiter Prueflauf
+     laeuft, ist Zufall. Also der Quelltext (Stolperstein 307). */
+  pruefe('Und sie sucht nach beiden Namen -- Server wie Prueflauf',
+    gpQuelle.includes('const skript = teile.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));'),
+    (gpQuelle.match(/const skript = teile\.find[^\n]*/g) || ['(nicht gefunden)']).pop());
 
   /* ================= Die Groesse der Funktionen — 0.16.0 ================
      SIE MISST, SIE WEIST NICHT AB. Eine harte Grenze („keine Funktion ueber
@@ -35899,6 +36032,149 @@ async function pruefeOberflaeche() {
       zkAlt.w.document.querySelector('.block[data-block="bewertung"]')
         ?.classList.contains('zu') === false,
       JSON.stringify(zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.className));
+
+    /* --- DER BLICK ENDET MIT DEM EINTRAG ---
+       NACHGETRAGEN AUS DER GEGENPROBE: Rueckbau 593 nimmt `BLICK.clear()` am
+       Eingang der Detailansicht heraus, und der Lauf blieb GRUEN. Der Grund
+       war eine Luecke und keine Kleinigkeit: keine einzige Prueflage dieser
+       Gruppe hat den Eintrag je GEWECHSELT. Alles darueber spielt an EINEM
+       Eintrag, und an einem Eintrag ist ein bleibender Blick nicht von einem
+       endenden zu unterscheiden.
+       GEBAUT WIRD DER FALL, DER SIE TRENNT: der Blick klappt an Eintrag 1
+       den Potenzialkasten ZU -- gegen die Regel, die ihn an einer Idee offen
+       haelt. Eintrag 2 ist ebenfalls eine Idee ohne Sterne, dort gilt also
+       dieselbe Regel. Bleibt der Kasten nach dem Wechsel zu, hat der Blick
+       den Eintrag ueberlebt und ist in Wahrheit eine Einstellung, die
+       niemand speichert -- die schlechteste Mischung aus beidem. */
+    const zkZweit = {
+      id: 2, title: 'Zweite Idee', description: '', rejected: false, tested: false,
+      favorite: false, category: null, verfasser: null,
+      photos: [], links: [], comments: [], attachments: [], tags: [], testDays: [],
+      /* KEIN EINZIGER STERN IN BEIDEN KAESTEN -- weder eigener noch fremder.
+         Ein Stern im Bewertungskasten hoebe dort die Regel auf (`hatSterne`),
+         und die Prueflage pruefte dann zwei Dinge auf einmal. */
+      ratings: [
+        { criterion_id: 7, name: 'Zuerst', value: 0, gewicht: 1.5, phase: 'nachher', avg: null, count: 0 },
+        { criterion_id: 8, name: 'Dann', value: 0, gewicht: 1, phase: 'nachher', avg: null, count: 0 },
+        { criterion_id: 9, name: 'Zuletzt', value: 0, gewicht: 0.5, phase: 'vorher', avg: null, count: 0 }
+      ],
+      avgRating: null, potenzialRating: null, testCount: 0, testAvg: null, testLast: null,
+      created_at: '2026-08-01 09:00:00', updated_at: '2026-08-01 09:00:00'
+    };
+    const zkWechsel = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      eigeneWerte: [0, 0, 0],
+      stimmspalten: [{ avg: null, count: 0 }, { avg: null, count: 0 }, { avg: null, count: 0 }],
+      ungetestet: true, zweiterEintrag: zkZweit,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const zkWZu = (name) => zkWechsel.w.document
+      .querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
+    pruefe('An Eintrag 1 steht das Potenzial nach der Regel offen',
+      zkWZu('potenzial') === false, JSON.stringify(zkWZu('potenzial')));
+    zkWechsel.w.document.querySelector('.block[data-block="potenzial"] .block-head')
+      ?.dispatchEvent(new zkWechsel.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein Blick klappt es dort gegen die Regel zu',
+      zkWZu('potenzial') === true, JSON.stringify(zkWZu('potenzial')));
+    zkWechsel.w.location.hash = '#/item/2';
+    await new Promise(r => setTimeout(r, 120));
+    /* ERST DAS OBJEKT, DANN SEIN ZUSTAND (Stolperstein 81): steht der Kasten
+       nach dem Wechsel gar nicht da, sagt `undefined === true` dasselbe wie
+       „offen" -- und die Zeile darunter waere gruen, ohne etwas zu belegen. */
+    pruefe('Der zweite Eintrag ist geladen und hat beide Kaesten',
+      Boolean(zkWechsel.w.document.querySelector('.block[data-block="potenzial"]')) &&
+      Boolean(zkWechsel.w.document.querySelector('.block[data-block="bewertung"]')),
+      zkWechsel.w.document.getElementById('title')?.value || '(kein Titel)');
+    pruefe('Und am zweiten Eintrag gilt wieder die Regel -- der Blick ist weg',
+      zkWZu('potenzial') === false && zkWZu('bewertung') === true,
+      JSON.stringify([zkWZu('potenzial'), zkWZu('bewertung')]));
+    zkWechsel.w.close();
+
+    /* --- DIE BEIDEN KRITERIENKARTEN IM SYSTEMBEREICH ---
+       NACHGETRAGEN AUS DER GEGENPROBE: die Rueckbauten 597 und 598 kamen beide
+       STUMM zurueck. Der Grund ist derselbe wie beim Blick, nur an anderer
+       Stelle: die vorhandene Prueflage zur Kriterienkarte laeuft mit DREI
+       Nachher-Kriterien. Ein Filter auf 'nachher' laesst dann alles durch, und
+       ob er ueberhaupt dasteht, ist an dieser Lage nicht zu sehen.
+       GEBAUT WIRD DIE LAGE, DIE IHN SICHTBAR MACHT: zwei Kriterien im einen
+       Kasten, eines im anderen. Erst dann sagt „nur seine Zeilen" etwas. */
+    const zkSys = baueDom(JSDOM, { hash: '', kriterienPhasen: zkPhasen,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    await sysAbschnitt(zkSys.w, 'bestand');
+    const zkKartenNamen = (id) => [...(zkSys.w.document.getElementById(id)
+      ?.querySelectorAll('.mrow .mname') || [])].map(n => n.textContent);
+    /* ERST DIE KAESTEN (Stolperstein 81): stuende die zweite Karte gar nicht
+       da, waeren beide Listen leer, und „nur seine Zeilen" waere gruen. */
+    pruefe('Beide Kriterienkarten stehen im Bestand',
+      Boolean(zkSys.w.document.getElementById('mcrits')) &&
+      Boolean(zkSys.w.document.getElementById('mpcrits')),
+      `mcrits ${Boolean(zkSys.w.document.getElementById('mcrits'))}, ` +
+      `mpcrits ${Boolean(zkSys.w.document.getElementById('mpcrits'))}`);
+    pruefe('Die Bewertungskarte zeigt nur ihre beiden Kriterien',
+      gleich(zkKartenNamen('mcrits'), ['Zuerst', 'Dann']), JSON.stringify(zkKartenNamen('mcrits')));
+    pruefe('Und die Potenzialkarte nur ihr eines',
+      gleich(zkKartenNamen('mpcrits'), ['Zuletzt']), JSON.stringify(zkKartenNamen('mpcrits')));
+    /* UND WAS IN DER ZWEITEN KARTE ANGELEGT WIRD, TRAEGT SEINEN KASTEN MIT.
+       Ohne die Phase im Rumpf legte der Server es nach seiner Vorgabe an --
+       also im FALSCHEN Kasten, und zwar stillschweigend: die Karte zeigte es
+       danach gar nicht mehr, weil sie nach 'vorher' filtert. */
+    const zkPFeld = zkSys.w.document.getElementById('newpcrit');
+    if (zkPFeld) {
+      zkPFeld.value = 'Wunsch';
+      zkSys.w.document.getElementById('newpcrit-b')
+        ?.dispatchEvent(new zkSys.w.MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 60));
+    }
+    const zkAngelegt = zkSys.gesendet
+      .filter(x => x.methode === 'POST' && x.url === '/api/criteria').pop();
+    pruefe('Die Potenzialkarte legt mit der Phase vorher an',
+      zkAngelegt?.koerper?.name === 'Wunsch' && zkAngelegt?.koerper?.phase === 'vorher',
+      JSON.stringify(zkAngelegt));
+    /* DIE GEGENPROBE AN DER ERSTEN KARTE: sie schickt 'nachher' und nicht gar
+       nichts. Beide Karten gehen durch DIESELBE Aufrufstelle -- ohne diese
+       Zeile bliebe gruen, wer dort die Phase fest auf 'vorher' schriebe. */
+    const zkNFeld = zkSys.w.document.getElementById('newcrit');
+    if (zkNFeld) {
+      zkNFeld.value = 'Preis';
+      zkSys.w.document.getElementById('newcrit-b')
+        ?.dispatchEvent(new zkSys.w.MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 60));
+    }
+    const zkAngelegt2 = zkSys.gesendet
+      .filter(x => x.methode === 'POST' && x.url === '/api/criteria').pop();
+    pruefe('Und die Bewertungskarte mit der Phase nachher',
+      zkAngelegt2?.koerper?.name === 'Preis' && zkAngelegt2?.koerper?.phase === 'nachher',
+      JSON.stringify(zkAngelegt2));
+    zkSys.w.close();
+
+    /* --- DAS WORT AM BLOCKKOPF KOMMT AUS DEM VOKABULAR ---
+       NACHGETRAGEN AUS DER GEGENPROBE: Rueckbau 600 schreibt „Potenzial" fest
+       in den Quelltext und kam STUMM zurueck. Kein Wunder -- keine Prueflage
+       hat das Wort je UMGESTELLT, und die Vorgabe heisst genau so. Ein fest
+       geschriebenes Wort ist von einem eingesetzten nicht zu unterscheiden,
+       solange beide gleich lauten (dieselbe Falle wie bei den Kriterienkarten,
+       nur an einem Wort statt an einer Liste).
+       „ERWARTUNG" IST DAS WORT AUS DEM KONZEPT und nicht irgendeines: der
+       Betreiber, der es umstellt, stellt es vermutlich genau darauf um. */
+    const zkWort = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true,
+                       vokabular: { potenzial: 'Erwartung' } } });
+    await new Promise(r => setTimeout(r, 80));
+    const zkKopf = zkWort.w.document
+      .querySelector('.block[data-block="potenzial"] .block-head .label');
+    pruefe('Der Kopf des Potenzialblocks steht ueberhaupt da',
+      Boolean(zkKopf), JSON.stringify(zkKopf?.textContent));
+    pruefe('Und er traegt das eingestellte Wort statt des festen',
+      zkKopf?.textContent === 'Erwartung', JSON.stringify(zkKopf?.textContent));
+    /* UND DER BEWERTUNGSBLOCK BLEIBT, WIE ER HEISST. Ohne diese Zeile bliebe
+       gruen, wer BEIDEN Koepfen dasselbe Wort gaebe. */
+    pruefe('Der Bewertungsblock heisst weiterhin Bewertung',
+      zkWort.w.document
+        .querySelector('.block[data-block="bewertung"] .block-head .label')?.textContent === 'Bewertung',
+      JSON.stringify(zkWort.w.document
+        .querySelector('.block[data-block="bewertung"] .block-head .label')?.textContent));
+    zkWort.w.close();
     zkAlt.w.close();
 
     /* --- Die Kachel --- */

@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 57 · Stand 3. September 2026 · gebaut: Version 0.21.0**
+**Kompakte Übergabe · Revision 57 · Stand 4. September 2026 · gebaut: Version 0.21.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -1318,7 +1318,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.20.1** | **`c67a13f9`** *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5403 |
+| **0.20.1** | **`c67a13f9`** *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5403 |
 | 0.20.0 | `12421721` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**; die drei Befunde daraus sind 0.20.1)* | 5374 |
 | 0.19.6 | `109cd457` *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5246 |
 | 0.19.5 | `f228a06d` *(am 3. September 2026 im Feld bestätigt — der Befund zu dieser Runde ist 0.19.6)* | 5237 |
@@ -8467,6 +8467,60 @@ Version, in der sie entstanden sind.*
     Zwischenraum belegt, rückt der Rest so, dass die Lücken wieder da sind —
     das ist ein Rücken statt acht.*
 
+307. **EINE SPALTE, DIE DER SCHLÜSSEL SCHON BESTIMMT, IST IM `GROUP BY` STUMM.**
+    *In 0.21.0 stand `c.phase` in beiden Schnittabfragen im SELECT **und** im
+    GROUP BY, und der Rückbau zum GROUP BY galt als der zur zentralen Zusage
+    der Runde.* **Er kam STUMM zurück** — und nachgemessen an einem eigens
+    gebauten Bestand (fünf Kriterien in beiden Phasen, drei Bewerter je
+    Kriterium) kommen mit und ohne die Spalte **Zeile für Zeile dieselben
+    Werte** heraus: `criterion_id` bestimmt die Phase eindeutig, also teilt sie
+    keine Gruppe und legt keine zusammen. **Die Zusage hing am SELECT, und
+    dafür gab es keinen Rückbau.**
+    *Die Zeile bleibt trotzdem stehen:* eine bloße Spalte neben einem Aggregat
+    ist eine **Freundlichkeit von SQLite und kein SQL** — jede strengere
+    Fassung und jede andere Maschine weist sie ab. **Was das Verhalten nicht
+    sieht, macht ein Wächter über den Quelltext rot** (dieselbe Bauform wie der
+    zweite Musterwächter von 0.20.0, Rückbau 547).
+
+308. **WER IMMER AN EINEM GEGENSTAND PRÜFT, PRÜFT DEN WECHSEL NIE.** *Der
+    „Blick" der Sternkästen gilt für **einen** Eintrag und endet mit ihm — und
+    der Rückbau, der `BLICK.clear()` am Eingang der Detailansicht wegnimmt, kam
+    **STUMM** zurück.* **Keine einzige Prüflage der Gruppe hat den Eintrag je
+    gewechselt**, und an einem einzigen Eintrag ist ein bleibender Zustand von
+    einem endenden nicht zu unterscheiden. *Wo eine Zusage lautet „gilt bis
+    hierhin", muss die Prüflage über diese Grenze **hinausgehen**.*
+
+309. **EIN FEST GESCHRIEBENER WERT IST VON EINEM EINGESETZTEN NICHT ZU
+    UNTERSCHEIDEN, SOLANGE BEIDE GLEICH LAUTEN.** *Drei Rückbauten aus 0.21.0
+    kamen aus genau diesem Grund stumm zurück:* das Wort am Blockkopf fest
+    statt aus dem Vokabular (die Vorgabe **heißt** „Potenzial"); die zweite
+    Kriterienkarte ohne Filter (die Prüflage trug **drei** Nachher-Kriterien,
+    da lässt ein Filter auf `nachher` alles durch); und das Anlegen ohne
+    `phase` im Rumpf (die Vorgabe des Servers ist **`nachher`**).
+    **Die Prüflage muss den Wert UMSTELLEN** — ein anderes Wort einstellen,
+    beide Kästen besetzen, die andere Phase anlegen. *Sonst prüft sie einen
+    Zufall.*
+
+310. **EIN LIEGENGEBLIEBENER SERVER MACHT NICHT DEN LAUF KAPUTT, SONDERN DIE
+    TABELLE.** *Sieben Server aus abgebrochenen Läufen hingen in 0.21.0 noch an
+    den Ports 6180 bis 6242 — mitten im Fenster der Mailgruppe. Spur 0 fährt
+    ohne Versatz und lief gegen sie.* **Zwei Rückbauten bekamen rote Punkte im
+    Mailversand**, und einer davon hatte in seiner **eigenen** Gruppe keinen
+    einzigen: die Tabelle zeigte ihn als „2 rot" und damit als Beleg. *Sie hat
+    in die gefährliche Richtung gelogen — ein stummer Rückbau sah aus wie ein
+    greifender.* **Deshalb sieht der Treiber seit 0.21.0 VOR dem ersten Rückbau
+    nach und bricht ab**, statt zu warnen (Stolperstein 139 nennt den Grund,
+    warum es sonst niemandem auffällt).
+
+311. **EIN RÜCKBAU, DER EIN FELD WEGNIMMT, REISST DIE KETTE DARAUF AB, STATT
+    SIE ROT ZU MACHEN.** *`phD.potenzialRechenweg.zeilen.length` warf, sobald
+    der Rückbau `it.potenzialRechenweg` aus der Antwort nahm — der Lauf riss
+    ab, und ein abgerissener Lauf belegt nichts* (Stolperstein 138).
+    **Erst das Objekt, dann sein Inhalt** (Stolperstein 81): eine eigene Zeile
+    für „steht es überhaupt da", und die Zeile darunter greift mit `?.`
+    daneben. *Das ist nicht Ordnungsliebe — es ist der Unterschied zwischen
+    einem Beleg und einer Stunde Suche.*
+
 ---
 
 ## 7. Prüfstand
@@ -8514,7 +8568,7 @@ im Image.**
 **Stand: PRUEFZAHL_0210 von PRUEFZAHL_0210 bestanden** (0.21.0) — **PRUEFNEU_0210
 neue, keine weggefallen.** *0.20.1 davor brachte 29, 0.20.0 davor 128.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **595** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **599** Rückbauten.
 
 > **VIER ZUSAGEN SIND MIT 0.21.0 UMGEDREHT STATT GELÖSCHT** (Stolperstein 74),
 > und alle vier an derselben Sternzeile: *„die leere Zelle bleibt leer"* und
@@ -10088,7 +10142,7 @@ weiter.*
 
 ### 0.21.0 — „Vor dem Test schätzt man, nach dem Test bewertet man"
 
-**MINOR · 3. September 2026 · eine eingeschobene Runde aus dem Betrieb**
+**MINOR · 4. September 2026 · eine eingeschobene Runde aus dem Betrieb**
 *(0.20.1 mit Fingerprint `c67a13f9` ist im Feld bestätigt).* *Angefasst sind
 `db.js`, `server.js`, `public/app.js`, `public/style.css`, `pruefung.js`,
 `gegenprobe.js`, `package.json`, `package-lock.json` und die Papiere.*
@@ -11797,7 +11851,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.19.4** | Die Kachel zeigt, was das Original hergibt | **GEBAUT am 3. September 2026, im Feld bestätigt.** `thumb` war 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto lag als 400 × 225 in der Tabelle. **Gemessen in Chromium: die breiteste Kachel ist 299 CSS-px** (`.shell` hört bei 1300 px auf), auf einem 2×-Bildschirm 598, auf einem Telefon bei dPR 3 513 — **heute lieferte `thumb` 225.** Die Tafel `VARIANTS` nennt jeder Ableitung jetzt eine **Kiste** aus kurzer Kante und Deckel auf der langen: `thumb` 512/1280, `medium` unverändert 1600/1600. **Der Byte-Faktor IST der Bildpunkt-Faktor**, auf 3 % genau — 400 kostet das 3,06fache, 512 das 5,05fache, 640 das 7,78fache; **512 deckt das Telefon ganz und lässt am 2×-Desktop 1,17fach übrig, gegen 2,66fach vorher.** Dazu die dritte Aufgabe für `bestandslauf.js`, die den Bestand bei jedem Start nachzieht und nach einem Durchgang von selbst endet. *PATCH: dieselben Knöpfe, dieselben Bilder, dieselbe Antwort — die Kachel ist nur scharf* | nein | — |
 | **0.20.1** | **Die Karte listet die Sicherungen** | **GEBAUT am 3. September 2026.** *(Drei Befunde aus dem Betrieb, unmittelbar nach dem Einspielen von 0.20.0 — nicht aus dem Sammelblatt.)* **Die vollständige Liste der Sicherungen stand nirgends:** die Karte „Sicherung" nannte die jüngste Kopie und die Zahl, die Karte „Alte Sicherungen" nur die, die die Regel treffen würde. **Jetzt listet sie alle** — jüngste zuerst, nummeriert, mit Datum, Alter und Größe, Deckel bei fünf Zeilen, **nur zum Ansehen**. Dazu: **der Bildschirmtext wird kurz** *(„so kurz wie möglich und dennoch zu verstehen")*, **„Boden" und „Schere" sind vom Bildschirm herunter**, und die Karte „Sicherung" sagt nur noch etwas über die letzte Sicherung. *PATCH: dieselbe Regel, dieselben Knöpfe, dieselben Dateien fallen* | nein | — |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | **GEBAUT am 3. September 2026.** *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; am 3. September 2026 zugeordnet — der Fahrplan ist dabei nicht gerückt.)* **Kriterion schrieb Sicherungen und entfernte keine** — wegräumen ließ sich nichts, und dafür brauchte es eine Shell auf dem Wirt. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere (Stolperstein 299). Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht**, ein Knopf hinter der zweiten Bestätigung, ein zweiter, ausdrücklicher Weg für die Kopien von vor dem Schlüsselwechsel, und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Die Löschroute nimmt keine Dateinamen entgegen** (Stolperstein 300), und aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die **gelungen** ist. **Eine zwanzigste Karte** — ein Löschknopf gehört nicht unter den Sicherungsknopf. *MINOR* — `F_ROUTEN` **70 → 71**, ein **neunter** Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung** | nein | — |
-| **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 3. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
+| **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 4. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
 | **0.22.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und **noch am selben Tag auf 0.22.0** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.23.0** | *frei* | **Die erste Nummer nach der neuen Regel.** Sie bleibt leer, damit die nächste eingeschobene Runde hier Platz findet, ohne dass sich dahinter etwas bewegt | — | — |
 | **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
