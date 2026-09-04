@@ -665,6 +665,68 @@ Sterne", der Rechnungsdialog auf ein Drittel gekürzt und ohne den Admin-Satz f�
 **Dialoge.** Alle nach S7. Der Knopf „Eintrag löschen" erscheint nur für die, die es dürfen
 *(E10)* — heute steht er für jeden da, und der Server sagt Nein.
 
+### 6.5a Die Sternzeile — der Rücksetzknopf steht zu nah am fünften Stern
+
+> **AUS DEM BETRIEB AM 4. SEPTEMBER 2026, an der laufenden Installation gemeldet.** *Wortlaut:
+> „der × zum Löschen ist zu nah am Stern, man denkt man klickt da auf den letzten Stern und
+> dann löscht man die Bewertung."* **Der Befund ist nachgemessen und er stimmt.**
+
+**Zwischen dem fünften Stern und dem × liegen zwei Pixel** — `.stars { gap: 2px }`
+(`style.css` Z. 817). Damit steht der am häufigsten geklickte Knopf der ganzen Anwendung
+unmittelbar neben dem, der die Zeile leert. **Und der Klick ist folgenlos zu machen: kein
+Dialog, keine Meldung mit Weg zurück** — die eigenen Sterne dieser Zeile sind weg.
+
+*Es ist keine Nachlässigkeit, sondern die Kehrseite einer richtigen Entscheidung.* 0.21.0 hat
+den langen Knopf „Meine Bewertung zurücksetzen" und den versteckten Doppelklick durch **ein**
+sichtbares Zeichen ersetzt, und es an die eigenen Sterne gesetzt, damit das Wort „meine"
+überflüssig wird: *das × steht an MEINEN Sternen, also sind es meine.* **Der Gedanke trägt
+weiter — nur der Abstand nicht.**
+
+**Beschlossen ist (E15, E16):**
+
+* **Der Knopf wandert ganz nach rechts, hinter die Durchschnittszahl.** Größtmöglicher
+  Abstand zum fünften Stern; ein Fehlklick ist damit praktisch ausgeschlossen.
+* **Er wird ein eigener runder Knopf** (26 px, gedämpft, beim Überfahren `--red-dim` als
+  Fläche und `--red` als Farbe) **mit dem Zeichen ↺** — er sieht damit nicht mehr wie ein
+  sechster Stern aus, und das Zeichen sagt „zurücksetzen" und nicht „löschen" *(zum Wort siehe
+  4.3: meine Sterne werden **entfernt**, nicht gelöscht)*.
+* **Die Meldung bekommt einen Knopf „Rückgängig"**: *„Sterne bei „Qualität" entfernt ·
+  Rückgängig"*. Ein Klick schreibt den alten Wert zurück.
+
+**Drei Dinge muss der Auftrag dabei beachten — alle drei am Quelltext von 0.21.0 geprüft:**
+
+**(1) Der Knopf gehört in eine eigene Rasterspalte, nicht in die Zelle der Zahl.** `.rlist`
+ist ein Raster (`1fr auto auto`), und die Zahlenspalte hat eine gemessene Mindestbreite, damit
+die Sterne aller Zeilen auf einer Linie beginnen (0.21.0). **Steht der Knopf IN dieser Zelle,
+wandert die Zahl, sobald eine Zeile keinen Knopf trägt** — genau der Sprung, den 0.21.0
+abgeschafft hat. Also **vier Spalten** (`1fr auto auto auto`), und der Knopf behält seinen
+Platz auch dort, wo er unsichtbar ist (`visibility`, wie heute).
+
+**(2) Bei einem einzigen Zugang gibt es die Zahlenspalte gar nicht** — `drawRatings()` hängt
+sie dann nicht an, und `.rlist.ohne-schnitt` rechnet mit zwei Spalten. **Dort steht der Knopf
+also wieder unmittelbar neben den Sternen, und der ganze Befund wäre nicht behoben.** Für
+diesen Fall gilt: **mindestens 12 px Abstand zu den Sternen**, aus der Rasterlücke oder aus
+dem Innenabstand des Knopfes.
+
+**(3) Neben der Durchschnittszahl kann der Knopf missverstanden werden** — als lösche er die
+Bewertungen der anderen. *Genau deshalb saß er 0.21.0 an den eigenen Sternen.* Dagegen hilft
+dreierlei, und alle drei gehören dazu: **die Zahl bleibt rechtsbündig und gedämpft** (sie ist
+Auskunft), **der Knopf steht sichtbar abgesetzt dahinter** (eigene Spalte, runde Hoverfläche),
+**und sein Hinweistext sagt es aus:** *„Meine Sterne entfernen"*. **Der Hinweistext ist hier
+keine Zierde, sondern die Auflösung der Zweideutigkeit** — er stand schon in der Anlage als
+Befund (Füllwort „hier"), und aus demselben Grund darf das Wort „Meine" nicht fallen.
+
+**Die Rückgängig-Meldung, technisch:** Das Zurücksetzen ist heute ein `PUT
+/api/items/:id/ratings` mit `value: 0` — **das Zurückschreiben ist derselbe Ruf mit dem alten
+Wert.** Keine neue Route, kein neues Feld, kein Schema. Was dazukommt, ist ein **Knopf in der
+Meldung**: `toast()` trägt heute nur Text. *Die Erweiterung ist klein und wird zunächst an
+genau einer Stelle benutzt — der Auftrag entscheidet, ob sie allgemein gebaut wird oder eng.*
+
+> **UND EINE GRENZE:** „Rückgängig" schreibt **den eigenen alten Wert** zurück und sonst
+> nichts. Es ist kein Verlauf und keine Wiederherstellung — es ist die Umkehr genau des einen
+> Klicks, der die Meldung ausgelöst hat. *Verschwindet die Meldung, ist der Weg zurück das
+> erneute Setzen der Sterne, wie heute.*
+
 ### 6.6 Die Einstellungen (Systembereich)
 
 **Jede Karte hat dieselbe Anatomie:** Titel — ein Satz — „Mehr" (wenn es mehr zu sagen gibt)
@@ -798,7 +860,9 @@ werden hier wiederholt, weil dieses Papier sie sonst zu übersehen scheint.*
 
 ### 9.1 Die Entscheidungen — gestellt und beantwortet
 
-> **BESCHLOSSEN AM 4. SEPTEMBER 2026, im Gespräch mit dem Betreiber.** Die Spalte
+> **BESCHLOSSEN AM 4. SEPTEMBER 2026, im Gespräch mit dem Betreiber.** *E15 und E16 sind
+> dabei aus einem Befund aus dem Betrieb entstanden, der während der Besprechung kam — der
+> Rücksetzknopf der Sternzeile (6.5a).* Die Spalte
 > „beschlossen" trägt die Antwort; wo sie leer ist, steht die Frage noch offen. *Die
 > Empfehlung bleibt daneben stehen, auch wo anders entschieden wurde — eine Entscheidung ohne
 > die verworfene Möglichkeit daneben ist in einem halben Jahr nicht mehr nachvollziehbar.*
@@ -819,6 +883,8 @@ werden hier wiederholt, weil dieses Papier sie sonst zu übersehen scheint.*
 | **E12** | **Ja, leiserer Rand an ruhigen Karten** (`--line-2`) — **am gebauten Stand anzusehen und zurückzunehmen, wenn er nicht trägt.** Das gehört in den Augenschein des Auftrags |
 | **E13** | **Der Kasten mit dem Schlüssel im Klartext gehört dem Eigentümer.** Der Admin sieht stattdessen einen Satz: der Schlüssel liegt noch neben der Datenbank, und der Eigentümer sollte das ändern |
 | **E14** | **„Bewertung" wird Vokabelwort — als Paar: `bewertungEinzahl` und `bewertungMehrzahl`, das 13. und 14. Wort.** *Gegen die Empfehlung dieses Papiers entschieden, und mit gutem Grund: „Potenzial" ist umbenennbar, sein Gegenstück nicht — eine Schieflage, die bei jedem Umbenennen sichtbar wird.* **Was daran hängt, steht in 9.4.** |
+| **E15** | **Der Rücksetzknopf der Sternzeile wandert ganz nach rechts, hinter die Durchschnittszahl** — und wird ein eigener runder Knopf mit Hoverfläche statt eines Zeichens in der Sternreihe. *Am Bild entschieden (`sternzeile_varianten.png`).* **Was dabei zu beachten ist, steht in 6.5a.** |
+| **E16** | **Ein Fehlklick ist reparierbar: die Meldung trägt „Rückgängig".** Nach dem Zurücksetzen steht unten „Sterne bei „Qualität" entfernt · Rückgängig"; ein Klick schreibt den alten Wert zurück |
 | **N6** | **Das helle Farbschema bekommt eine eigene Runde nach 0.22.0** — dafür ist im Fahrplan eine Nummer frei |
 
 **Und hier stehen die Fragen, wie sie gestellt wurden — mit Empfehlung und Gegenrede.** *Sie
@@ -966,7 +1032,8 @@ Route, keine Abhängigkeit, kein Bestandslauf.
    mit Blick durch alle drei Rollen. Dabei die Prüfungen und Rückbauten mitziehen.
 5. **Die Dialoge**: acht Stellen mit `confirm()`/`prompt()` auf `confirmBox`, `nameBox`,
    `passwortFenster` — und das eine neue Fenster für das Löschen eines Benutzers.
-6. **Der Bildstreifen** (G7) und **das Rechteck** (G8).
+6. **Der Bildstreifen** (G7), **das Rechteck** (G8) und **die Sternzeile** (6.5a) — die
+   vierte Rasterspalte, der Knopf, die Meldung mit „Rückgängig".
 7. **Der Prüfstand** (unten), **der Gegenprobenlauf**, **die Papiere**.
 
 ### Der Prüfstand — was er halten muss
@@ -989,6 +1056,12 @@ Route, keine Abhängigkeit, kein Bestandslauf.
   Tabelle im Änderungsprotokoll (4.4).
 * **Neu: die Einstellung `streifen`** — gültige Stufen, Rückfall auf die Vorgabe, Rückbau,
   der eine ungültige Stufe durchlässt und rot wird.
+* **Neu: die Sternzeile** (6.5a). Der Knopf steht in seiner eigenen Spalte; **die Sterne aller
+  Zeilen beginnen an derselben Stelle, auch wenn eine Zeile keinen Knopf trägt** — dieselbe
+  Zusage wie in 0.21.0, nur eine Spalte weiter. Und: **bei einem einzigen Zugang** hat der
+  Knopf trotzdem seinen Abstand. **Rückgängig schreibt den alten Wert zurück** — am gesendeten
+  Rumpf zu prüfen, nicht an der Anzeige. **Ein Rückbau, der den Knopf wieder neben den fünften
+  Stern setzt**, muss rot werden.
 * **Rückbauten**: für jede neue Regel mindestens einer, und einer, der das Milchglas wieder
   einsetzt.
 
