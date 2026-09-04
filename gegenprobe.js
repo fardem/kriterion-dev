@@ -5809,8 +5809,8 @@ const RUECKBAUTEN = [
        Handwahl, die gespeicherte Ansicht und den Ruecksetzer zugleich. */
     nr: '612', name: 'Die Ableitung schlaegt die Handwahl statt umgekehrt',
     datei: 'public/app.js',
-    suche: "  STATUS_VON_HAND ? null : (SORTIERUNG_STATUS[sort] || null);",
-    ersatz: "  (SORTIERUNG_STATUS[sort] || null);",
+    suche: "const statusAusSortierung = (sort) => STATUS_VON_HAND ? null : vorgabeZu(sort);",
+    ersatz: "const statusAusSortierung = (sort) => vorgabeZu(sort);",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5906,6 +5906,19 @@ const RUECKBAUTEN = [
        weicht von der Ruhestellung ab, aber nicht von `all`. Der Ruecksetzer
        stuende nicht da, und einen zweiten Weg zurueck in die Automatik gibt es
        nicht. */
+    /* DIE TABELLE WIRD WIEDER GEWOEHNLICH GEFRAGT. Eine gespeicherte Sortierung,
+       die einen Namen vom Prototyp traegt (`constructor`, `toString`), liefert
+       dann eine FUNKTION: die Ableitung gilt als greifend, und weil eine
+       Funktion weder 'tested' noch 'untested' ist, faellt der Statusfilter
+       still ganz weg -- samt der gespeicherten Wahl. */
+    nr: '623', name: 'Die Vorgabetabelle wird ohne Ruecksicht auf den Prototyp gefragt',
+    datei: 'public/app.js',
+    suche: "  Object.prototype.hasOwnProperty.call(SORTIERUNG_STATUS, sort)\n" +
+           "    ? SORTIERUNG_STATUS[sort] : null;",
+    ersatz: "  SORTIERUNG_STATUS[sort] || null;",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
     nr: '622', name: 'Die Ruhestellung der Statuszeile ist wieder fest „alles"',
     datei: 'public/app.js',
     suche: "  if (statusWirksam(f) !== statusRuhestellung(f)) n++;",

@@ -1580,14 +1580,27 @@ const SORTIERUNG_STATUS = {
    ausdrueckliche Wahl, genau wie ein Klick auf eine Pille. */
 let STATUS_VON_HAND = false;
 
+/* GEFRAGT WIRD MIT hasOwnProperty UND NICHT MIT EINEM GEWOEHNLICHEN ZUGRIFF.
+   `f.sort` kommt aus einer gespeicherten Stellung, und die kann jeden Text
+   tragen -- eine Ansicht aus einer aelteren Fassung ebenso wie einen Wert, den
+   jemand von Hand hineingeschrieben hat. Traefe er einen Namen VOM PROTOTYP
+   (`constructor`, `toString`, `valueOf`), gaebe der gewoehnliche Zugriff eine
+   FUNKTION zurueck: sie ist wahr, die Ableitung griffe also -- und weil eine
+   Funktion weder 'tested' noch 'untested' ist, fiele der Statusfilter STILL
+   ganz weg, samt der gespeicherten Wahl.
+   EIN UNBEKANNTER WERT DARF NICHTS WEGNEHMEN. Dieselbe Regel steht in
+   visibleItems() schon am Schluessel `abgelehnt`, und sie gilt hier genauso. */
+const vorgabeZu = (sort) =>
+  Object.prototype.hasOwnProperty.call(SORTIERUNG_STATUS, sort)
+    ? SORTIERUNG_STATUS[sort] : null;
+
 /* DIE EINE STELLE, AN DER AUS SORTIERUNG UND HANDWAHL EINE VORGABE WIRD.
    Sie liefert den abgeleiteten Wert oder null -- null heisst „hier leitet
    nichts ab", und das ist etwas anderes als „alles anzeigen".
    ZWEI RECHENWEGE FUER DIESELBE FRAGE LIEFEN AUSEINANDER (Stolperstein 47):
    deshalb fragen die Liste (visibleItems) und die Leiste (drawFilters,
    zeichneFilterSchalter) DIESE Funktion und rechnen nicht je selbst. */
-const statusAusSortierung = (sort) =>
-  STATUS_VON_HAND ? null : (SORTIERUNG_STATUS[sort] || null);
+const statusAusSortierung = (sort) => STATUS_VON_HAND ? null : vorgabeZu(sort);
 
 // Was am Ende wirklich filtert: die Ableitung, sonst die gewaehlte Stellung.
 const statusWirksam = (f) => statusAusSortierung(f.sort) || f.tested;
@@ -1601,7 +1614,7 @@ const statusWirksam = (f) => statusAusSortierung(f.sort) || f.tested;
    „alles anzeigen" heisst, nicht mehr in die Automatik zurueck: `all` ist der
    alte Vorgabewert, die Zahl bliebe null, der Ruecksetzer stuende nicht da --
    und einen zweiten Weg heraus gibt es nicht. */
-const statusRuhestellung = (f) => SORTIERUNG_STATUS[f.sort] || FILTER_VORGABE.tested;
+const statusRuhestellung = (f) => vorgabeZu(f.sort) || FILTER_VORGABE.tested;
 const state = {
   items: [], categories: [], tags: [], criteria: [],
   filters: { ...FILTER_VORGABE },

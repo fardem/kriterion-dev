@@ -21395,7 +21395,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ist am Verhalten stumm; die Zusage, an der alles haengt, war ohne
      Rueckbau. 604 und 605 gehoeren dem Waechter ueber fremde Server, den
      derselbe Lauf noetig gemacht hat. */
-  /* 616 SEIT 0.21.1: SIEBZEHN neue (606 bis 622) fuer die eine Aenderung dieser
+  /* 617 SEIT 0.21.1: ACHTZEHN neue (606 bis 623) fuer die eine Aenderung dieser
      Runde -- die Sortierung gibt den Statusfilter vor. Keiner ist weggefallen,
      und KEINER MUSSTE MITGEHEN: die Runde fasst drawFilters() an mehreren
      Stellen an, aber keine davon war der Suchtext eines vorhandenen Rueckbaus.
@@ -21407,10 +21407,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      sind trotzdem zwei: der eine schreibt die Ableitung in die gespeicherte
      Stellung, der andere laesst die Leiste beim Wechsel der Sortierung stehen.
      Verschiedene Zusagen, verschiedene rote Punkte.
+     UND EINER IST MITGEGANGEN STATT GELOESCHT ZU WERDEN (Stolperstein 201):
+     612 zeigte auf den Rumpf von statusAusSortierung(), und der ist beim
+     Haerten des Tabellenzugriffs eine Zeile kuerzer geworden.
      613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
      Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
      behauptet. */
-  pruefe('Es sind genau 616 Rueckbauten', gpListe.length === 616, `${gpListe.length}`);
+  pruefe('Es sind genau 617 Rueckbauten', gpListe.length === 617, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -39134,6 +39137,26 @@ async function pruefeOberflaeche() {
     const d = await ksBaue({ ...ksVorgabe, sort: 'testavg_desc' });
     pruefe('Die Verlaufssortierungen koppeln ausdruecklich NICHT',
       gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+
+  {
+    /* EIN UNBEKANNTER SORTIERWERT NIMMT NICHTS WEG -- und zwar auch dann nicht,
+       wenn er zufaellig ein Name VOM PROTOTYP ist. `f.sort` kommt aus einer
+       gespeicherten Stellung und kann jeden Text tragen; ein gewoehnlicher
+       Zugriff auf die Vorgabetabelle gaebe bei `constructor` eine FUNKTION
+       zurueck, die Ableitung gaelte als greifend, und weil eine Funktion weder
+       'tested' noch 'untested' ist, fiele der Statusfilter STILL ganz weg --
+       samt der gespeicherten Wahl.
+       GEPRUEFT WIRD DESHALB AN EINER LAGE MIT GESETZTEM STATUS: bliebe der
+       Filter weg, staenden vier Eintraege da statt zwei. Eine Lage mit
+       `tested: 'all'` koennte den Unterschied nicht zeigen (Stolperstein 224). */
+    const d = await ksBaue({ ...ksVorgabe, tested: 'tested', sort: 'constructor' });
+    pruefe('Ein Sortierwert vom Prototyp gibt keine Vorgabe her',
+      !d.w.document.getElementById('f-status-woher'),
+      d.w.document.getElementById('f-status-woher')?.textContent);
+    pruefe('Und er nimmt der gespeicherten Wahl nichts weg',
+      gleich(ksTitel(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitel(d)));
     d.w.close();
   }
 
