@@ -462,6 +462,10 @@ und zählen weiter in die Bewertung. **Sicherung vor dem Einspielen.***
 **Austauschformat 13, `F_ROUTEN` 70** *(eine Route ist weggefallen)*,
 **einundzwanzig Karten, neun Migrationsblöcke, zwölf Vokabelwörter.**
 **Nach dem Einspielen im Browser einmal hart neu laden.**
+**Im Feld am 4. September 2026** — die laufende Installation meldet
+`85f4348b`, genau den Sollwert, und der Migrationsblock hat dort **7 Kriterien**
+auf `'nachher'` gestellt. *Der Augenschein an den zwei Kästen steht noch aus
+(Abschnitt 8).*
 
 > **DER RÜCKWEG AUF 0.20.1 BLEIBT TECHNISCH OFFEN** — `ADD COLUMN` mit
 > `DEFAULT` stört keine ältere Fassung. *Dort zählten Sterne aus dem
@@ -1318,7 +1322,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.21.0** | **`85f4348b`** *(gebaut am 4. September 2026 — **im Feld noch nicht bestätigt**)* | 5512 |
+| **0.21.0** | **`85f4348b`** *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5512 |
 | **0.20.1** | **`c67a13f9`** *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5403 |
 | 0.20.0 | `12421721` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**; die drei Befunde daraus sind 0.20.1)* | 5374 |
 | 0.19.6 | `109cd457` *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5246 |
@@ -9541,9 +9545,16 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.21.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Der Sollwert des
-  Fingerprints steht in Abschnitt 2; die Meldung der laufenden Installation
-  über `GET /api/stats` fehlt.* **Und mit ihr die Handgriffe:** ein
+- **0.21.0 IST EINGESPIELT UND ZUR HÄLFTE BESTÄTIGT.** *Die laufende
+  Installation hat am 4. September 2026 **`85f4348b`** gemeldet, genau den
+  Sollwert — es läuft also dateigenau der gebaute Stand.* **Und die Migration
+  hat an ihrem echten Bestand gegriffen:** im Containerprotokoll steht **genau
+  eine** Zeile, *„rating_criteria um phase ergaenzt (Migration auf 0.21.0);
+  **7 Kriterien** stehen auf 'nachher' und zaehlen damit weiter in die
+  Bewertung."* — alle sieben im Bewertungskasten, kein Gesamtschnitt bewegt.
+  **OFFEN BLEIBT DER AUGENSCHEIN.** *Bestätigt sind bisher eine Nummer und eine
+  Protokollzeile; gesehen hat die zwei Kästen noch niemand.* **Die Handgriffe:**
+  ein
   Vorher-Kriterium anlegen, an einem **getesteten** Eintrag einen Stern darauf
   setzen *(`avgRating` bleibt, `potenzialRating` erscheint)*, den Schalter
   „Getestet" umlegen *(die Kästen tauschen offen und zu, die Zahlen bleiben)*,
@@ -9552,12 +9563,12 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   **exportieren und wieder einspielen** *(gleiche Zahlen in beiden Kästen)*.
   *Die Befehle dazu stehen im Chat der Runde, nicht hier.*
   > **AN EINER BESTEHENDEN INSTALLATION IST NACH DEM EINSPIELEN NICHTS
-  > ANDERS** — das ist nachgestellt und nicht behauptet: an einer Datei ohne
-  > die Spalte meldet der Start *„rating_criteria um phase ergaenzt (Migration
-  > auf 0.21.0); N Kriterien stehen auf 'nachher' …"*, **alle** Kriterien
-  > stehen danach im Bewertungskasten, und die Gesamtschnitte sind Ziffer für
-  > Ziffer dieselben wie vorher. **Der Potenzialkasten ist leer, bis der Admin
-  > Kriterien dafür anlegt.**
+  > ANDERS** — und das ist jetzt **am echten Bestand belegt** und nicht mehr
+  > nur im Labor nachgestellt: der Start meldete **genau einmal**
+  > *„rating_criteria um phase ergaenzt (Migration auf 0.21.0); 7 Kriterien
+  > stehen auf 'nachher' …"*, **alle sieben** stehen im Bewertungskasten, und
+  > kein Gesamtschnitt hat sich bewegt. **Der Potenzialkasten ist leer, bis der
+  > Admin Kriterien dafür anlegt.**
 - **0.20.1 IST IM FELD BESTÄTIGT** — die laufende Installation hat am
   3. September 2026 den Fingerprint **`c67a13f9`** gemeldet, genau den
   Sollwert. **Die drei Handgriffe dazu sind damit aber noch nicht gefahren**,
