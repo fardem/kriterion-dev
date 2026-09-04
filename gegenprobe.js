@@ -2152,10 +2152,14 @@ const RUECKBAUTEN = [
        neuen ersetzt: er nimmt der Datei ihre Nummer und laesst alles andere
        stehen. Nur der Zielwert rueckt mit, sonst griffe die Suche ins Leere
        und der Rueckbau saehe aus wie einer, der nichts bewirkt. */
-    nr: '233', name: 'Die Formatnummer bleibt auf 11',
+    /* MITGEGANGEN MIT 0.21.0, nicht geloescht (Stolperstein 201): die
+       Formatnummer steht auf 13, der Rueckbau nimmt sie wie immer um eins
+       zurueck. Was er belegt, ist unveraendert -- dass die Nummer mit dem
+       Format steigt und nicht stehen bleibt. */
+    nr: '233', name: 'Die Formatnummer bleibt auf 12',
     datei: 'server.js',
-    suche: "const AUSTAUSCH_FORMAT = 12;",
-    ersatz: "const AUSTAUSCH_FORMAT = 11;",
+    suche: "const AUSTAUSCH_FORMAT = 13;",
+    ersatz: "const AUSTAUSCH_FORMAT = 12;",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2193,7 +2197,13 @@ const RUECKBAUTEN = [
        Reinform: bei 80 Prozent stimmt es zufaellig, bei 120 klaffen 26 px. */
     nr: '237', name: 'Die Zahlenspalte bekommt ihre feste Mindestbreite zurueck',
     datei: 'public/style.css',
-    suche: "  white-space: nowrap; padding-left: 9px;\n  display: flex; align-items: center; justify-content: flex-end;",
+    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): die Regel hat seit dieser
+       Runde eine Zeile mehr -- die GEMESSENE Mindestbreite. Der Rueckbau
+       ersetzt weiter die ganze Regel durch die alte, geschaetzte Fassung (52
+       feste Pixel und text-align statt flex), und er muss weiter rot werden:
+       52 px reichen fuer „⌀ 4,2 (9)" nicht, und in Pixeln folgt die Spalte der
+       Schriftstufe nicht mehr. */
+    suche: "  white-space: nowrap; padding-left: 9px;\n  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;",
     ersatz: "  white-space: nowrap; padding-left: 9px;\n  min-width: 52px; text-align: right;",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2229,10 +2239,15 @@ const RUECKBAUTEN = [
   {
     /* Die Zahl wandert zurueck in die Sterne. Dann ist sie keine Rasterzelle
        mehr und wieder nur so breit wie ihr eigener Inhalt. */
+    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): der Anker hat sich
+       verschoben, weil die leere Zelle seit dieser Runde einen Strich traegt
+       statt gar nichts. Was der Rueckbau tut, ist unveraendert -- er steckt
+       die Zahl zurueck in die Sternreihe, wo sie nur so breit waere wie ihr
+       eigener Inhalt. */
     nr: '240', name: 'Die Zahl steckt wieder in den Sternen statt im Raster',
     datei: 'public/app.js',
-    suche: "        } else a.textContent = '';\n        row.append(a);",
-    ersatz: "        } else a.textContent = '';\n        acts.append(a);",
+    suche: "        row.append(a);",
+    ersatz: "        acts.append(a);",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
@@ -2582,9 +2597,12 @@ const RUECKBAUTEN = [
     erwartet: 'Export und Import stehen in einer Karte'
   },
   {
+    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): der Erklaerknopf bekommt
+       seit dieser Runde den Kasten mit, zu dem er gehoert -- es gibt ihn
+       zweimal. Was der Rueckbau tut, ist unveraendert. */
     nr: '279', name: 'Die Kopfzahl ist wieder blosser Text',
     datei: 'public/app.js',
-    suche: "        b.onclick = zeigeRechnung;",
+    suche: "        b.onclick = () => zeigeRechnung(kasten);",
     ersatz: "        b.onclick = null;",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -3992,10 +4010,12 @@ const RUECKBAUTEN = [
     erwartet: 'MIGRATION 0.19.0 — ENTFAELLT MIT 1.0'
   },
   {
-    nr: '448', name: 'Die Formatnummer bleibt bei 11, obwohl der Ausschnitt mitgeht',
+    /* MITGEGANGEN MIT 0.21.0, wie 233 -- derselbe Suchtext, eine andere
+       Zusage: dort die Entscheidung, hier die Exportdatei. */
+    nr: '448', name: 'Die Formatnummer bleibt bei 12, obwohl der Ausschnitt mitgeht',
     datei: 'server.js',
-    suche: "const AUSTAUSCH_FORMAT = 12;",
-    ersatz: "const AUSTAUSCH_FORMAT = 11;",
+    suche: "const AUSTAUSCH_FORMAT = 13;",
+    ersatz: "const AUSTAUSCH_FORMAT = 12;",
     erwartet: 'Die Exportdatei'
   },
 
@@ -5320,6 +5340,405 @@ const RUECKBAUTEN = [
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
 
+  /* ---- 0.21.0: zwei Kaesten, zwei Durchschnitte ---- */
+  {
+    /* DIE PHASE FAELLT AUS DEM GROUP BY DER GEBUENDELTEN ABFRAGE.
+       ERSTER ANLAUF WAR DIESER RUECKBAU ALS DER ZUR ZENTRALEN ZUSAGE GEDACHT
+       -- mit der Begruendung, beide Kaesten stuenden dann wieder in EINER
+       Menge. DAS IST FALSCH, und die Gegenprobe hat es gezeigt: 571, derselbe
+       Griff an der zweiten Fassung, kam STUMM zurueck. Nachgemessen an einem
+       eigens gebauten Bestand (fuenf Kriterien in beiden Phasen, drei Bewerter
+       je Kriterium) kommen mit und ohne diese Spalte im GROUP BY Zeile fuer
+       Zeile DIESELBEN Werte heraus: `criterion_id` bestimmt die Phase
+       eindeutig, also teilt die Spalte keine Gruppe und legt keine zusammen.
+       Die Trennung haengt am SELECT -- das sind die Rueckbauten 602 und 603.
+       WARUM DIE ZEILE TROTZDEM STEHT UND DIESER RUECKBAU BLEIBT: eine blosse
+       Spalte neben einem Aggregat ist eine Freundlichkeit von SQLite und kein
+       SQL. Die Zeile haelt die Abfrage vollstaendig, damit sie es bleibt, wenn
+       jemand sie anderswohin traegt. AM VERHALTEN WAERE SIE STUMM -- rot wird
+       deshalb der Waechter ueber den Quelltext, dieselbe Bauform wie beim
+       zweiten Musterwaechter von 0.20.0 (Rueckbau 547). */
+    nr: '570', name: 'Der Gesamtschnitt der Uebersicht kennt die Phase nicht mehr',
+    datei: 'server.js',
+    suche: '   GROUP BY r.item_id, r.criterion_id, c.gewicht, c.phase`);',
+    ersatz: '   GROUP BY r.item_id, r.criterion_id, c.gewicht`);',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DASSELBE AM EINZELNEN EINTRAG. Zwei Fassungen derselben Abfrage, zwei
+       Rueckbauten -- faellt nur einer, blieben Uebersicht und Detail
+       verschiedener Meinung, und genau das soll auffallen.
+       DIESER HIER IST DER, DER STUMM ZURUECKKAM und die Messung ausgeloest
+       hat; die Begruendung steht eine Nummer hoeher. */
+    nr: '571', name: 'Der Gesamtschnitt des Eintrags kennt die Phase nicht mehr',
+    datei: 'server.js',
+    suche: '   GROUP BY r.criterion_id, c.gewicht, c.phase`);',
+    ersatz: '   GROUP BY r.criterion_id, c.gewicht`);',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DIE ZWEITE KOPFZAHL FAELLT AUS DER ANTWORT. Der Kasten stuende dann da
+       und wuesste seine eigene Zahl nicht -- und die Kachel eines ungetesteten
+       Eintrags zeigte nichts. */
+    nr: '572', name: 'potenzialRating faellt aus der Uebersicht',
+    datei: 'server.js',
+    suche: '    it.potenzialRating = gesamtSchnitt(kaesten.vorher);',
+    ersatz: '    it.potenzialRating = null;',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DER ZWEITE RECHENWEG FAELLT. Die Kopfzahl bliebe richtig, die Erklaerung
+       dahinter leer -- genau die Lage, in der eine Zahl dasteht und niemand
+       nachsehen kann, wie sie zustande kommt (Stolperstein 217). */
+    nr: '573', name: 'Der Rechenweg des Potenzials faellt aus der Antwort',
+    datei: 'server.js',
+    suche: '  it.potenzialRechenweg = { ...potenzialRechenweg, ergebnis: it.potenzialRating };',
+    ersatz: '  void potenzialRechenweg;',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DIE PHASE FAELLT VON DER STERNZEILE. Der Browser koennte dann nicht mehr
+       nach Kaesten teilen, und beide Kaesten zeigten alle Zeilen. */
+    nr: '574', name: 'Die Sternzeilen des Details tragen ihre Phase nicht mehr',
+    datei: 'server.js',
+    suche: '    SELECT c.id AS criterion_id, c.name, c.gewicht, c.phase, COALESCE(r.value, 0) AS value',
+    ersatz: '    SELECT c.id AS criterion_id, c.name, c.gewicht, COALESCE(r.value, 0) AS value',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DIE ABSAGE BEIM ANLEGEN FAELLT: jeder Unfug landete dann in der Spalte,
+       und das Kriterium stuende in KEINEM der beiden Kaesten -- die Sterne
+       daran zaehlten nirgends mit, ohne dass es jemand saehe. */
+    nr: '575', name: 'POST /api/criteria nimmt jede Phase an',
+    datei: 'server.js',
+    suche: "  if (!PHASEN.includes(phase))",
+    ersatz: "  if (false)",
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DER KASTEN LAESST SICH DOCH WECHSELN -- still, ueber ein uebergangenes
+       Feld. Genau das ist der Fall, den die Absage verhindert: ein
+       uebergangenes Feld sieht fuer den Aufrufer aus wie ein gesetztes. */
+    nr: '576', name: 'PUT /api/criteria/:id uebergeht die Phase stillschweigend',
+    datei: 'server.js',
+    suche: "  if (req.body.phase !== undefined)",
+    ersatz: "  if (false)",
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DAS DRITTE FELD FAELLT AUS DER EXPORTDATEI. Eine Datei mit
+       Vorher-Kriterien spielte sich dann als lauter Bewertungskriterien ein --
+       und die Sterne landeten im falschen Durchschnitt. */
+    nr: '577', name: 'Der Export nennt die Kaesten nicht mehr',
+    datei: 'server.js',
+    suche: "  for (const c of kritZeilen) if (c.phase !== 'nachher') criteriaPhase[c.name] = c.phase;",
+    ersatz: '  void criteriaPhase;',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DIE ABSAGE BEIM EINSPIELEN FAELLT. Ein Kriterium, das hier im einen und
+       in der Datei im anderen Kasten steht, wuerde dann still in den
+       vorhandenen eingespielt: die Datei sagte etwas anderes als die
+       Installation, und niemand saehe es. */
+    nr: '578', name: 'Der Import spielt ueber die Kaesten hinweg ein',
+    datei: 'server.js',
+    suche: '  if (konflikte.length) {',
+    ersatz: '  if (false) {',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DIE PHASE FAELLT AUS DER KRITERIENLISTE. Die zweite Systemkarte fand
+       ihre Zeilen dann nicht mehr, und die Oberflaeche koennte die beiden
+       Kaesten nicht auseinanderhalten. */
+    nr: '579', name: 'GET /api/criteria liefert die Phase nicht mehr',
+    datei: 'server.js',
+    suche: '  SELECT c.id, c.name, c.sort_order, c.gewicht, c.phase, c.created_at,',
+    ersatz: '  SELECT c.id, c.name, c.sort_order, c.gewicht, c.created_at,',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DIE SPALTE BEKOMMT EINE ANDERE VORGABE. Der Bestand stuende nach dem
+       Einspielen im Kasten „vorher", und saemtliche Gesamtschnitte waeren
+       still weg -- der teuerste denkbare Fehler dieser Runde. */
+    nr: '580', name: 'Die Migration stellt den Bestand auf vorher',
+    datei: 'db.js',
+    suche: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'nachher\'");',
+    ersatz: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'vorher\'");',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DER MIGRATIONSBLOCK LAEUFT NICHT MEHR. Eine Datenbank aus 0.20.1 traegt
+       die Spalte nicht -- CREATE TABLE IF NOT EXISTS ruehrt eine vorhandene
+       Tabelle nicht an (Stolperstein 13) --, und die Installation kaeme nicht
+       hoch. */
+    nr: '581', name: 'Der Migrationsblock 0.21.0 wird nicht mehr gerufen',
+    datei: 'db.js',
+    suche: '\nmigration0210();',
+    ersatz: '\n// migration0210();',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND WIEDER IN `zu`.
+       Damit gaelte ein Klick an EINEM Eintrag fuer ALLE -- genau die Reichweite,
+       die diese Runde ihnen nimmt. */
+    nr: '582', name: 'Die Sternkaesten speichern ihren Einklappzustand wieder',
+    datei: 'server.js',
+    suche: "const ZU_BLOECKE = ALLE_BLOECKE.filter(k => !BLOECKE_OHNE_ZU.includes(k));",
+    ersatz: "const ZU_BLOECKE = ALLE_BLOECKE;",
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+
+  /* ---- 0.21.0: die Sternzeile ---- */
+  {
+    /* DAS × VERLIERT SEINEN PLATZ, WENN ES UNSICHTBAR IST. `hidden` ist
+       `display: none`; damit rutschten die Sterne beim ERSTEN Stern nach links
+       -- genau der Sprung, den dieselbe Runde eine Spalte weiter abschafft. */
+    nr: '583', name: 'Das × verschwindet mit seinem Platz statt nur mit seiner Farbe',
+    datei: 'public/app.js',
+    suche: "    if (!(value > 0)) x.classList.add('leer');",
+    ersatz: "    if (!(value > 0)) x.hidden = true;",
+    erwartet: 'Die Sternzeile — 0.21.0'
+  },
+  {
+    /* DAS × STEHT AN JEDER STERNREIHE, auch an denen ohne Ruecksetzer -- die
+       Testtage und jede Lesestelle. Ein Kreuz, das nichts tut, ist schlimmer
+       als keins. */
+    nr: '584', name: 'Das × steht auch an einer Sternreihe ohne Ruecksetzer',
+    datei: 'public/app.js',
+    suche: '  if (onReset) {\n    const x = document.createElement',
+    ersatz: '  if (true) {\n    const x = document.createElement',
+    erwartet: 'Die Sternzeile — 0.21.0'
+  },
+  {
+    /* DIE LEERE DURCHSCHNITTSZELLE IST WIEDER LEER. Der Strich faellt, und mit
+       ihm die Auskunft „noch niemand". */
+    nr: '585', name: 'Die leere Durchschnittszelle zeigt wieder gar nichts',
+    datei: 'public/app.js',
+    suche: "          a.textContent = '–';\n          a.title = 'noch niemand';",
+    ersatz: "          a.textContent = '';",
+    erwartet: 'Die Sternzeile — 0.21.0'
+  },
+  {
+    /* DIE MINDESTBREITE FAELLT WIEDER WEG. Solange niemand bewertet hat, ist
+       die Spalte null Pixel breit, und der erste Stern laesst sie aufgehen --
+       alle Sternzeilen rutschen nach links, unter dem Finger. */
+    nr: '586', name: 'Die Durchschnittsspalte verliert ihre Mindestbreite wieder',
+    datei: 'public/style.css',
+    suche: '  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;',
+    ersatz: '  display: flex; align-items: center; justify-content: flex-end;',
+    erwartet: 'Die Sternzeile — 0.21.0'
+  },
+
+  /* ---- 0.21.0: die Oberflaeche der beiden Kaesten ---- */
+  {
+    /* DER ZWEITE BLOCK STEHT HINTER DEM ERSTEN statt davor. Geschaetzt wird,
+       BEVOR bewertet wird, und die Anordnung sagt es -- an einer neuen Idee
+       stuende sonst der leere Bewertungskasten oben. */
+    nr: '587', name: 'Der Potenzialblock steht hinter der Bewertung',
+    datei: 'public/app.js',
+    suche: "  seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],",
+    ersatz: "  seite: ['kategorie', 'tags', 'bewertung', 'potenzial'],",
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DER ZEICHNER FILTERT NICHT MEHR. Beide Kaesten zeigten dann ALLE Zeilen
+       -- dieselbe Sternzeile zweimal, in zwei Kaesten, mit zwei verschiedenen
+       Kopfzahlen darueber. */
+    nr: '588', name: 'Der Zeichner zeigt in beiden Kaesten alle Zeilen',
+    datei: 'public/app.js',
+    suche: '    const zeilen = item.ratings.filter(r => r.phase === kasten.phase);',
+    ersatz: '    const zeilen = item.ratings;',
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DER EINKLAPPZUSTAND FOLGT WIEDER DER EINSTELLUNG STATT DEM ZUSTAND.
+       An einer neuen Idee stuende der Bewertungskasten offen und das Potenzial
+       zu -- genau verkehrt herum. */
+    nr: '589', name: 'Die Sternkaesten folgen wieder der gespeicherten Einstellung',
+    datei: 'public/app.js',
+    suche: '    const nachZustand = BLOECKE_OHNE_ZU.includes(name);',
+    ersatz: '    const nachZustand = false;',
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* VORHANDENE DATEN SCHLAGEN DIE REGEL NICHT MEHR. Ein ungetesteter Eintrag
+       aus alten Zeiten mit Bewertungssternen zeigte sie dann nicht -- etwas,
+       das jemand eingetragen hat, waere versteckt. */
+    nr: '590', name: 'Bewertungssterne an einem ungetesteten Eintrag bleiben zugeklappt',
+    datei: 'public/app.js',
+    suche: "  return !item.tested && !hatSterne(item, 'nachher');",
+    ersatz: '  return !item.tested;',
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DER KLICK AUF DEN KOPF SPEICHERT WIEDER. Damit gaelte ein Blick an EINEM
+       Eintrag fuer ALLE, und beim naechsten Eintrag stuende der falsche Kasten
+       offen -- ohne dass jemand wuesste, warum. */
+    nr: '591', name: 'Ein Klick auf den Kastenkopf speichert wieder',
+    datei: 'public/app.js',
+    suche: '        if (BLICK.has(name)) BLICK.delete(name); else BLICK.add(name);',
+    ersatz: "        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];\n        speichereBloecke();",
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DER SCHALTER LEERT DEN BLICK NICHT MEHR. Nach dem Umlegen von „Getestet"
+       stuende der Kasten offen, den man vorher aufgeklappt hatte -- der Klick
+       auf den Schalter saehe aus, als haette er nichts getan. */
+    nr: '592', name: 'Der Schalter „Getestet" leert den Blick nicht mehr',
+    datei: 'public/app.js',
+    suche: '      BLICK.clear();\n      drawSwitches(); drawTestDays(); drawRatings();',
+    ersatz: '      drawSwitches(); drawTestDays(); drawRatings();',
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DER BLICK GILT UEBER EINTRAEGE HINWEG. Er ist dann doch eine
+       Einstellung, nur eine, die niemand speichert -- die schlechteste
+       Mischung aus beidem. */
+    nr: '593', name: 'Der Blick ueberlebt den Wechsel des Eintrags',
+    datei: 'public/app.js',
+    suche: '  BLICK.clear();\n  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
+    ersatz: '  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DIE KACHEL ZEIGT AN EINEM UNGETESTETEN EINTRAG WIEDER DIE BEWERTUNG.
+       Damit stuende dort „★ –" statt „◆ 4,2", und das Sortieren nach Potenzial
+       haette keine sichtbare Entsprechung. */
+    nr: '594', name: 'Die Kachel zeigt an einer Idee wieder die Bewertung',
+    datei: 'public/app.js',
+    suche: '  const wert = potenzial ? it.potenzialRating : it.avgRating;',
+    ersatz: '  const wert = it.avgRating;',
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DAS ZEICHEN IST WIEDER DER STERN. Dann hielte jemand 4,2 Potenzial fuer
+       4,2 Qualitaet -- und die Kachel saehe an einer Idee genauso aus wie an
+       einem geprueften Eintrag. */
+    nr: '595', name: 'Das Potenzial traegt auf der Kachel wieder den Stern',
+    datei: 'public/app.js',
+    suche: "  const zeichen = potenzial ? '◆' : '★';",
+    ersatz: "  const zeichen = '★';",
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DIE SORTIERUNG NACH POTENZIAL STELLT EINTRAEGE OHNE ZAHL NACH VORN.
+       In der Richtung „niedrig → hoch" stuenden dann lauter Eintraege ohne
+       Einschaetzung oben -- die Ansicht „Als Naechstes" waere unbrauchbar. */
+    nr: '596', name: 'Eintraege ohne Potenzialzahl stehen in einer Richtung vorn',
+    datei: 'public/app.js',
+    suche: "      case 'potenzial_asc':  return (a.potenzialRating ?? 99) - (b.potenzialRating ?? 99);",
+    ersatz: "      case 'potenzial_asc':  return (a.potenzialRating ?? 0) - (b.potenzialRating ?? 0);",
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DIE ZWEITE SYSTEMKARTE ZEIGT DIE KRITERIEN DES ANDEREN KASTENS. Beide
+       Karten zeigten dann dieselbe Liste, und wer im Potenzialkasten anlegt,
+       saehe sein Kriterium in beiden. */
+    nr: '597', name: 'Die zweite Kriterienkarte filtert nicht nach Phase',
+    datei: 'public/app.js',
+    suche: "  verwaltungsListe(k.liste, geholt.crits.filter(c => c.phase === phase), 'crit', geholt);",
+    ersatz: "  verwaltungsListe(k.liste, geholt.crits, 'crit', geholt);",
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DIE KARTE SCHICKT DIE PHASE NICHT MIT. Was in der Potenzialkarte
+       angelegt wird, landete als Bewertungskriterium -- der Server hat die
+       Vorgabe 'nachher'. */
+    nr: '598', name: 'Die zweite Kriterienkarte legt im falschen Kasten an',
+    datei: 'public/app.js',
+    suche: "      try { await api('POST', '/api/criteria', { name, phase }); critFeld.value = '';",
+    ersatz: "      try { await api('POST', '/api/criteria', { name }); critFeld.value = '';",
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DER VERGLEICH MISCHT DIE BEIDEN KAESTEN WIEDER. `eigenerSchnitt()`
+       rechnete dann in der Stellung „meine" ueber beide Mengen -- die eine
+       zweite Rechenstelle im Browser waere genau die, die es nicht geben
+       darf. */
+    nr: '599', name: 'Der eigene Schnitt im Vergleich mischt die Kaesten',
+    datei: 'public/app.js',
+    suche: "      if (r.phase !== phase) continue;",
+    ersatz: "      if (false) continue;",
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+  {
+    /* DAS WORT KOMMT NICHT MEHR AUS DEM VOKABULAR. Wer „Erwartung" einstellt,
+       saehe im Blockkopf weiter „Potenzial" -- das Wort stuende wieder im
+       Quelltext. */
+    nr: '600', name: 'Der Blockkopf traegt das Wort aus dem Quelltext',
+    datei: 'public/app.js',
+    suche: '<div class="block-head"><span class="label">${esc(V.potenzial)}</span>',
+    ersatz: '<div class="block-head"><span class="label">Potenzial</span>',
+    erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
+  },
+
+  {
+    /* DIE ZWEITE VORGABELISTE VERLIERT DAS NEUE WORT. `public/app.js` fuehrt
+       eine eigene Vorgabe des Vokabulars -- damit die Oberflaeche schon VOR
+       dem ersten Abruf beschriftet ist. Fehlt dort ein Wort, steht das Feld in
+       der Vokabularkarte leer, solange der gespeicherte Satz es nicht nennt.
+       GENAU DAS IST BEIM BAUEN VON 0.21.0 PASSIERT, und der Pruefstand hat es
+       gefunden -- an der Lage mit dem unvollstaendigen eigenen Vokabular. */
+    nr: '601', name: 'Die Vorgabe der Oberflaeche kennt das neue Wort nicht',
+    datei: 'public/app.js',
+    suche: "  aufgabeErledigt: 'Erledigt',\n  potenzial: 'Potenzial'\n};",
+    ersatz: "  aufgabeErledigt: 'Erledigt'\n};",
+    erwartet: 'Oberflaeche mit eigenem Vokabular'
+  },
+  {
+    /* HIER HAENGT DIE ZENTRALE ZUSAGE DIESER RUNDE -- am SELECT und nicht am
+       GROUP BY. Faellt `c.phase` aus der Spaltenliste, kommt die Schnittzeile
+       ohne Phase an; karteJePhase() legt sie in KEINEN der beiden Kaesten
+       (`kasten[undefined]` gibt es nicht), und beide Durchschnitte fallen auf
+       null. Die Kachel zeigte dann an jedem Eintrag gar keine Zahl mehr.
+       NACHGETRAGEN NACH DER GEGENPROBE: die Runde hatte fuer diese beiden
+       Abfragen nur den Griff ans GROUP BY, und der ist am Verhalten stumm
+       (Rueckbauten 570 und 571). Ein Rueckbau, der die Zusage wirklich
+       herausnimmt, fehlte -- er steht jetzt hier. */
+    nr: '602', name: 'Die gebuendelte Abfrage waehlt die Phase nicht mehr aus',
+    datei: 'server.js',
+    suche: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+           '         c.gewicht, c.phase\n',
+    ersatz: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+            '         c.gewicht\n',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DASSELBE AN DER FASSUNG DES EINZELNEN EINTRAGS. Zwei Fassungen, zwei
+       Rueckbauten: faellt nur einer, blieben Uebersicht und Detail
+       verschiedener Meinung -- und ein Eintrag zeigte in der Liste zwei Zahlen
+       und aufgeschlagen keine. */
+    nr: '603', name: 'Die Abfrage des Eintrags waehlt die Phase nicht mehr aus',
+    datei: 'server.js',
+    suche: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+           '         c.gewicht, c.phase\n',
+    ersatz: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+            '         c.gewicht\n',
+    erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
+  },
+  {
+    /* DER TREIBER SIEHT NICHT MEHR NACH, OB FREMDE SERVER LAUFEN. Genau die
+       Lage, aus der dieser Waechter entstanden ist: sieben Server aus
+       abgebrochenen Laeufen an den Ports 6180 bis 6242, Spur 0 faehrt ohne
+       Versatz dagegen, und die Tabelle zeigt einen stummen Rueckbau als
+       greifenden. EINE FALSCHE TABELLE IST SCHLIMMER ALS GAR KEINE. */
+    nr: '604', name: 'Der Treiber faehrt los, ohne nach fremden Servern zu sehen',
+    datei: 'gegenprobe.js',
+    suche: '  const fremde = fremdeServer();\n  if (fremde.length) {',
+    ersatz: '  const fremde = [];\n  if (fremde.length) {',
+    erwartet: 'Die Gegenproben greifen'
+  },
+  {
+    /* UND DIE SUCHE SELBST FINDET NUR NOCH EINEN DER BEIDEN NAMEN. Ein
+       liegengebliebener PRUEFLAUF belegt genauso Ports wie ein liegen-
+       gebliebener Server -- er startet ja welche. */
+    nr: '605', name: 'Die Suche nach fremden Servern kennt den Prueflauf nicht mehr',
+    datei: 'gegenprobe.js',
+    suche: "    const skript = teile.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
+    ersatz: "    const skript = teile.find(t => /(^|\\/)server\\.js$/.test(t));",
+    erwartet: 'Die Gegenproben greifen'
+  },
+
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     /* DIE DATEILISTE DES SPRACHWAECHTERS VERLIERT DIE BEIDEN NEUEN DATEIEN --
@@ -5438,6 +5857,60 @@ function prozesseUnter(pfad) {
     let cwd;
     try { cwd = fs.readlinkSync(`/proc/${e}/cwd`); } catch { continue; }
     if (cwd === pfad || cwd.startsWith(pfad + path.sep)) raus.push(Number(e));
+  }
+  return raus;
+}
+
+/* ================= Fremde Server VOR dem Lauf =================
+   DER BEFUND, AUS DEM DIESE FUNKTION ENTSTANDEN IST (0.21.0): sieben Server
+   aus abgebrochenen Laeufen hingen noch an den Ports 6180 bis 6242 -- genau
+   im Fenster der Mailgruppe. Spur 0 faehrt ohne Versatz und lief deshalb
+   gegen sie: ZWEI Rueckbauten bekamen rote Punkte IM MAILVERSAND, an einer
+   Stelle also, mit der sie nichts zu tun haben. Einer davon (570) hatte in
+   seiner eigenen Gruppe KEINEN einzigen -- die Tabelle zeigte ihn trotzdem
+   als „2 rot" und damit als Beleg. SIE HAT GELOGEN, und zwar in die
+   gefaehrliche Richtung: ein stummer Rueckbau sah aus wie ein greifender.
+   EIN ZWEITER SERVER AUF DEMSELBEN PORT FAELLT NICHT VON SELBST AUF (Stolper-
+   stein 139) -- die Bereitschaftspruefung bekommt ja eine Antwort. Deshalb
+   wird hier VOR dem ersten Rueckbau nachgesehen und nicht hinterher gedeutet.
+   GESUCHT WIRD UEBER `/proc`, wie bei prozesseUnter(): keine neue Abhaengig-
+   keit, kein `ps`, und dieselbe Auskunft. Ein Prozess zaehlt als fremd, wenn
+   sein Befehl auf server.js oder pruefung.js endet -- eigene Kinder gibt es zu
+   diesem Zeitpunkt noch keine.
+   WAS DIESER WAECHTER NICHT FINDET, und das gehoert dazugesagt: einen Server,
+   den jemand ueber `node -e "require('./server.js')"` startet. Sein Befehl
+   endet nicht auf server.js, und ein Muster ueber den ganzen Aufruf faenge
+   jedes zweite Werkzeug mit. GENAU SO EINER IST BEIM BAUEN DIESER RUNDE
+   entstanden und eine Viertelstunde unbemerkt gelaufen.
+   DIE GRENZE IST HINNEHMBAR, WEIL SIE DEN ECHTEN WEG NICHT BETRIFFT: das
+   Image, `npm start` und der Prueflauf starten alle `node server.js`. Wer von
+   Hand etwas anderes tut, weiss, dass er es getan hat -- und findet seinen
+   Prozess ueber den Port. */
+function fremdeServer() {
+  const raus = [];
+  let eintraege;
+  try { eintraege = fs.readdirSync('/proc'); } catch { return raus; }
+  for (const e of eintraege) {
+    if (!/^\d+$/.test(e) || Number(e) === process.pid) continue;
+    let zeile;
+    try { zeile = fs.readFileSync(`/proc/${e}/cmdline`, 'utf8'); } catch { continue; }
+    const teile = zeile.split('\0').filter(Boolean);
+    /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. `node pruefung.js sterne` endet
+       auf dem Filterwort -- wer die Zeile daran erkennen will, bekommt dann
+       „sterne" gemeldet und sucht nach etwas, das es nicht gibt. */
+    const skript = teile.find(t => /(^|\/)(server|pruefung)\.js$/.test(t));
+    if (!skript) continue;
+    /* DER PORT AUS DER UMGEBUNG, wenn er dasteht: ohne ihn muesste der Leser
+       raten, welches Fenster belegt ist -- und genau das Raten hat in dieser
+       Runde zwei Stunden gekostet. */
+    let port = '';
+    try {
+      port = (fs.readFileSync(`/proc/${e}/environ`, 'utf8').split('\0')
+        .find(z => z.startsWith('PORT=')) || '').slice(5);
+    } catch { /* ein fremder Prozess muss seine Umgebung nicht hergeben */ }
+    let wo = '';
+    try { wo = fs.readlinkSync(`/proc/${e}/cwd`); } catch { /* ebenso */ }
+    raus.push({ pid: Number(e), port, wo, was: path.basename(skript) });
   }
   return raus;
 }
@@ -5727,7 +6200,10 @@ const passtRueckbau = (r, argument) => {
    passtRueckbau EBENSO: die Regel, welches Argument welchen Rueckbau meint,
    laesst sich damit an gestellten Faellen nachsehen, statt Minuten lang einen
    Lauf zu fahren, um zu sehen, WAS er gefahren hat. */
-module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau, schreibeTabelle };
+/* fremdeServer GEHT EBENFALLS MIT HINAUS: die Regel, was als fremder Server
+   gilt, laesst sich damit am laufenden Prueflauf selbst nachsehen -- er ist
+   ja einer. Ein Waechter, den niemand pruefen kann, ist ein Versprechen. */
+module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau, schreibeTabelle, fremdeServer };
 if (require.main !== module) return;
 
 (async function haupt() {
@@ -5748,6 +6224,21 @@ if (require.main !== module) return;
   if (!liste.length) {
     console.error(`Kein Rueckbau passt auf ${argumente.join(', ')}.`);
     console.error('Vorhanden: ' + RUECKBAUTEN.map(r => r.nr).join(', '));
+    process.exit(1);
+  }
+  /* ERST NACHSEHEN, DANN FAHREN. Ein fremder Server macht nicht den Lauf
+     kaputt, sondern die TABELLE -- und eine falsche Tabelle ist schlimmer als
+     gar keine. Abgebrochen wird deshalb, statt zu warnen: wer eine Warnung
+     ueberliest, liest hinterher Zahlen, die nichts bedeuten. */
+  const fremde = fremdeServer();
+  if (fremde.length) {
+    console.error(`\n${fremde.length} fremde(r) Server laufen noch -- sie belegen Ports, ` +
+                  `auf die die Prueflaeufe warten (Stolperstein 139).`);
+    for (const f of fremde)
+      console.error(`  PID ${f.pid}  ${f.was}${f.port ? `  PORT=${f.port}` : ''}` +
+                    `${f.wo ? `  in ${f.wo}` : ''}`);
+    console.error('\nErst beenden, dann fahren:  kill -9 ' +
+                  fremde.map(f => f.pid).join(' '));
     process.exit(1);
   }
   const stufe = versatzStufe();

@@ -619,6 +619,13 @@ mark {
 .card-meta-l { display: flex; align-items: center; gap: 9px; }
 .rating-inline { display: inline-flex; align-items: center; gap: 4px; font-size: .83rem; color: var(--text-2); font-weight: 600; }
 .rating-inline .dot { color: var(--gold); font-size: .8rem; }
+/* DAS ZEICHEN DES POTENZIALS AUF DER KACHEL -- 0.21.0. Ein anderes ZEICHEN
+   (◆ statt ★) und eine gedaempftere Farbe, damit niemand 4,2 Potenzial fuer
+   4,2 Qualitaet haelt.
+   GOLD BLEIBT DER BEWERTUNG. Das ist dieselbe Regel wie bei der
+   Gewichtsmarke und dem × an der Sternzeile: was nicht die Bewertung selbst
+   ist, ist nicht golden. Keine neue Farbe -- --muted gibt es laengst. */
+.rating-inline.potenzial .dot { color: var(--muted); }
 .link-count { font-family: var(--mono); font-size: .7rem; color: var(--faint); }
 .pick-box {
   width: 21px; height: 21px; border-radius: 5px; border: 1.5px solid var(--line);
@@ -807,7 +814,33 @@ mark {
 .row-in .input { flex: 1; min-width: 145px; }
 
 /* ---------- Sterne ---------- */
-.stars { display: inline-flex; gap: 2px; }
+.stars { display: inline-flex; gap: 2px; align-items: center; }
+/* DAS × HINTER DEM FUENFTEN STERN -- 0.21.0. Es setzt meinen Stern in DIESER
+   Zeile zurueck und ersetzt damit zwei Wege auf einmal: den langen Knopf im
+   Blockkopf („Meine Bewertung zuruecksetzen", auf dem Telefon drei Zeilen) und
+   den versteckten Doppelklick auf die Sterne, angekuendigt in einem `title`,
+   den kein Telefon je zeigt.
+   SO BREIT WIE EIN STERN, und das ist keine Zierde: der Platz gehoert ihm auch
+   dann, wenn es nichts zu tun gibt. Deshalb steht die Breite hier und nicht am
+   Inhalt -- ein × ist schmaler als ein ★.
+   GEDAEMPFT UND NICHT GOLDEN: Gold bleibt der Bewertung selbst vorbehalten,
+   wie ueberall in dieser Instanz. Es ist ein Bedienelement, aber ein
+   nachgeordnetes.
+   Ausserhalb der Sternreihe steht es nie -- `stars()` haengt es nur an, wo es
+   etwas zurueckzusetzen gibt. */
+.stars .sdel {
+  width: 1.2rem; text-align: center; cursor: pointer; user-select: none;
+  font-size: 1.05rem; line-height: 1; color: var(--faint);
+  transition: color .12s var(--ease);
+}
+.stars .sdel:hover { color: var(--red); }
+/* KEIN STERN GESETZT -- DAS × VERSCHWINDET, SEIN PLATZ BLEIBT.
+   `visibility` und ausdruecklich NICHT `display: none`: mit `display` naehme es
+   seinen Platz mit, und die fuenf Sterne rutschten beim ERSTEN Stern nach
+   links -- genau der Sprung, den die Spalte daneben in derselben Runde
+   abschafft. `visibility` nimmt es dabei auch aus Tastaturreihenfolge und
+   Vorleseprogramm, ohne das Raster zu bewegen. */
+.stars .sdel.leer { visibility: hidden; }
 .star { font-size: 1.2rem; line-height: 1; color: var(--star-off); transition: color .12s var(--ease), transform .1s var(--ease); }
 .star.on { color: var(--gold); }
 .stars .star { cursor: pointer; }
@@ -868,10 +901,38 @@ mark {
    Rasterluecke: ohne die Zahl gibt es die Zelle gar nicht, und dann soll auch
    kein Abstand danebenstehen.
    HIER STEHT AUSDRUECKLICH KEIN TEXT FUER DIE LEERE ZELLE. Neben fuenf leeren
-   Sternen waere „noch keine Bewertung" dieselbe Aussage zweimal. */
+   Sternen waere „noch keine Bewertung" dieselbe Aussage zweimal.
+
+   >>> BEIDE SAETZE SIND MIT 0.21.0 WIDERRUFEN, und sie bleiben stehen, damit
+   der Widerruf einen Gegenstand hat (Stolperstein 201). Was jetzt gilt:
+
+   (1) DIE MINDESTBREITE IST WIEDER DA, und diesmal gemessen. Der Satz oben
+   stimmte fuer sich -- die Spalte richtet sich nach der breitesten Zahl der
+   LISTE --, uebersah aber den Fall, in dem die Liste GAR KEINE Zahl traegt:
+   dann ist die Spalte null Pixel breit, die Sterne stehen am rechten Rand, und
+   der erste Stern laesst die Spalte aufgehen. ALLE Sternzeilen rutschen dabei
+   nach links, ausgerechnet unter dem Finger, der gerade getippt hat.
+   4,34rem SIND DIE HAUSFORM „⌀ 4,2 (9)": in der Festbreitenschrift gemessen
+   65,03 px bei Schriftstufe 100 (Wurzelschrift 15) und 77,98 px bei Stufe 120
+   (Wurzelschrift 18) -- 65,03 / 15 = 4,335. IN rem UND NICHT IN PIXELN, weil
+   die Instanz ihre Schrift von 80 bis 120 Prozent stellt; dieselbe Ueberlegung
+   wie beim Deckel der Sicherungsliste aus 0.20.1.
+   DIE 9 PIXEL ABSTAND KOMMEN DAZU, denn box-sizing steht global auf
+   border-box: ohne das calc() naehme der Innenabstand der Zahl neun ihrer
+   Pixel weg, und „⌀ 4,2 (9)" braeche um.
+   AB ZEHN STIMMEN WAECHST DIE SPALTE EINMAL -- das ist benannt und
+   hingenommen: wer zehn Bewerter hat, hat andere Sorgen als ein paar
+   Bildpunkte.
+
+   (2) DIE LEERE ZELLE ZEIGT EINEN STRICH. Der alte Satz sagte richtig, dass
+   ein SATZ dort dieselbe Aussage zweimal waere -- ein Strich ist aber kein
+   Satz, sondern der Platz, der der Zahl gehoert, und er sagt „noch niemand".
+   Er steht in app.js, nicht hier: was in einer Zelle steht, entscheidet nicht
+   das Stilblatt. */
 .rrow .ravg {
   font-family: var(--mono); font-size: .8rem; color: var(--muted);
   white-space: nowrap; padding-left: 9px;
+  min-width: calc(4.34rem + 9px);
   display: flex; align-items: center; justify-content: flex-end;
 }
 /* Wer welchen Wert vergeben hat -- unter der Sternzeile, nicht darin. Die
@@ -1129,6 +1190,23 @@ mark {
 .cmp-crit { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line-2); font-size: .87rem; }
 .cmp-crit:last-child { border-bottom: none; }
 .cmp-crit .cn { color: var(--muted); }
+/* DIE TRENNZEILE JE KASTEN -- 0.21.0. Sie traegt das Wort („Potenzial",
+   „Bewertung") und die Kopfzahl DIESES Kastens; darunter stehen seine
+   Kriterienzeilen.
+   BIS 0.20.1 STAND STATTDESSEN EINE EINZIGE ZEILE UEBER DER SPALTE („★ 3,0
+   Durchschnitt"). Mit zwei Kaesten liesse sie offen, welchen der beiden sie
+   meint -- und zwei solche Zeilen uebereinander waeren zwei Ueberschriften
+   ohne Zuordnung. Die Zahl steht jetzt dort, wo ihre Zeilen anfangen.
+   DIESELBE BAUFORM WIE `.cmp-crit`, nur kraeftiger gesetzt und mit einer
+   Linie darueber statt darunter: sie beginnt einen Abschnitt, sie schliesst
+   keinen ab. Der erste bekommt keine -- ueber ihm faengt die Spalte an. */
+.cmp-gruppe {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 0 5px; margin-top: 6px; border-top: 1px solid var(--line);
+  font-size: .87rem; font-weight: 620;
+}
+.cmp-gruppe:first-child { border-top: none; margin-top: 0; padding-top: 4px; }
+.cmp-gruppe .cn { color: var(--text-2); }
 .cmp-best { color: var(--green); font-weight: 700; }
 
 /* ---------- Systembereich ---------- */
@@ -2468,6 +2546,14 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      Zeile aus lauter kurzen Namen, und ein Ziel von 44 Pixeln zwischen zwei
      Namen risse die Zeile auseinander. */
   .rstimme .xdel { padding: 6px 8px; }
+  /* DAS × AN DER STERNZEILE -- 0.21.0. Es sitzt unmittelbar neben dem fuenften
+     Stern: wer es antippt und danebentrifft, vergibt fuenf Sterne, statt
+     seinen zu entfernen. 32 CSS-Bildpunkte sind die Flaeche, unter der das der
+     Normalfall wird.
+     UEBER DIE BREITE UND NICHT UEBER `padding`: das × traegt schon eine
+     Breite (so breit wie ein Stern), und ein Innenabstand kaeme dort obendrauf
+     -- die Sternreihe wuerde breiter, statt dass das Ziel groesser wird. */
+  .stars .sdel { width: 32px; height: 32px; line-height: 32px; }
   .mrow .mact { padding: 9px 11px; }
   .arow .adl { padding: 9px 11px; }
   /* Die beiden am Kommentarkopf hatten ueberhaupt keinen Innenabstand und
@@ -3068,6 +3154,38 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      abgeschnittener Kriterienname waere schlechter als ein zweizeiliger,
      denn die Sterne daneben beziehen sich auf genau ihn. */
   .rrow .rname { min-width: 0; overflow-wrap: anywhere; }
+
+  /* ---- DIE STERNZEILE WIRD ZWEIZEILIG ---- 0.21.0
+     DREI SPALTEN PASSEN HIER NICHT MEHR, seit das × und die Mindestbreite
+     dazugekommen sind: auf 360 CSS-Bildpunkten bleiben dem Kriteriennamen bei
+     Schriftstufe 120 unter hundert, und „Verarbeitungsqualitaet" bricht mitten
+     im Wort -- die Regel eine Zeile darueber (`overflow-wrap: anywhere`) tut
+     genau das, und sie ist immer noch besser als ein abgeschnittener Name.
+     Zwei Zeilen sind besser als beides.
+     DER NAME ALLEIN IN DER ERSTEN ZEILE ueber die ganze Breite, darunter links
+     die Sterne mit ×, rechts der Durchschnitt.
+     DAS MUSTER GIBT ES SCHON: die Stimmenliste setzt den Namen ueber die
+     Sterne (`.stimmzeile .rname { display: block }`). Dieselbe Bauform, damit
+     das Auge nichts Neues lernen muss.
+     DIE TRENNLINIE LIEGT UNTER DER ZWEITEN ZEILE UND NICHT UNTER DEM NAMEN:
+     die Zeile ist `display: contents`, ihre Stuecke sind Rasterzellen, und
+     jedes traegt die Linie selbst (`.rrow > *`). Der Name bekommt sie deshalb
+     hier ausdruecklich weggenommen -- sonst schnitte sie den Namen von seinen
+     eigenen Sternen ab.
+     AUF DEM BREITEN BILDSCHIRM AENDERT SICH NICHTS: drei Spalten wie bisher,
+     plus × und Mindestbreite.
+     UND BEI EINEM EINZIGEN ZUGANG AENDERT SICH AUCH HIER NICHTS. `ohne-schnitt`
+     hat gar keine Durchschnittsspalte, also auch keine Mindestbreite: dem
+     Namen bleibt neben Sternen und × die halbe Breite, und das reicht. Der
+     Befund aus 5.3 ist der DREISPALTIGE Fall, und nur er wird behandelt --
+     eine Zeile umzubrechen, die passt, waere eine Aenderung ohne Grund. */
+  .rlist:not(.ohne-schnitt) { grid-template-columns: auto 1fr; }
+  .rlist:not(.ohne-schnitt) .rrow .rname {
+    grid-column: 1 / -1; border-bottom: none;
+    padding-bottom: 0; padding-right: 0;
+  }
+  .rlist:not(.ohne-schnitt) .rrow .racts,
+  .rlist:not(.ohne-schnitt) .rrow .ravg { padding-top: 4px; }
 
   /* DIE DATEIZEILE UND DIE TESTTAGZEILE brechen um, statt zu quetschen. An
      der Datei hingen sieben Stuecke in einer Zeile; dem Dateinamen blieben

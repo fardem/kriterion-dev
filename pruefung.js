@@ -1873,12 +1873,17 @@ const freigabeHaupt = (zweck, ziel = null) =>
     vorgabe.vokabular.sacheEinzahl === 'Eintrag' && vorgabe.vokabular.zeitpunktMehrzahl === 'Testtage',
     JSON.stringify(vorgabe.vokabular));
   pruefe('Vorgabe der Schriftgroesse ist 100', vorgabe.schrift === 100);
-  /* Die Liste bleibt bei elf Woertern. Nichts bekommt ein neues Vokabelwort,
-     nur weil es auf dem Bildschirm steht -- "Kommentar" etwa ist eine feste
-     Beschriftung und verschiebt sich nicht mit dem Gegenstand. */
-  pruefe('Das Vokabular hat elf Woerter, nicht mehr',
-    Object.keys(vorgabe.vokabular).length === 11,
+  /* Die Liste steht seit 0.21.0 bei ZWOELF Woertern -- `potenzial` ist
+     dazugekommen, das Wort fuer den ersten Sternkasten. Nichts sonst bekommt
+     ein neues Vokabelwort, nur weil es auf dem Bildschirm steht: "Kommentar"
+     etwa ist eine feste Beschriftung und verschiebt sich nicht mit dem
+     Gegenstand, und "Bewertung" steht bewusst NICHT dabei -- der zweite Kasten
+     heisst so, wie er heisst. */
+  pruefe('Das Vokabular hat zwoelf Woerter, nicht mehr',
+    Object.keys(vorgabe.vokabular).length === 12,
     `${Object.keys(vorgabe.vokabular).length}: ${Object.keys(vorgabe.vokabular).join(', ')}`);
+  pruefe('Und das zwoelfte ist das Wort fuer den Potenzialkasten',
+    vorgabe.vokabular.potenzial === 'Potenzial', JSON.stringify(vorgabe.vokabular.potenzial));
 
   const gesetzt = await ruf('PUT', '/api/settings', { vokabular: {
     sacheEinzahl: '  Maschine  ', sacheMehrzahl: 'Maschinen',
@@ -1900,12 +1905,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Geprueft wird am SERVER, nicht gegen die clientseitige Vorgabe: ein
   // Wort, das der Server nicht kennt, taucht in der Karte trotzdem auf,
   // laesst sich aber nicht speichern -- und nur diese Pruefung saehe es.
-  pruefe('Der Server kennt alle elf Vokabeln',
+  pruefe('Der Server kennt alle zwoelf Vokabeln',
     ['sacheEinzahl', 'sacheMehrzahl', 'merkmalJa', 'merkmalNein',
      'zeitpunktEinzahl', 'zeitpunktMehrzahl', 'berichtEinzahl', 'berichtMehrzahl',
-     'aufgabeEinzahl', 'aufgabeMehrzahl', 'aufgabeErledigt'].every(k => k in vorgabe.vokabular) &&
-    Object.keys(vorgabe.vokabular).length === 11,
+     'aufgabeEinzahl', 'aufgabeMehrzahl', 'aufgabeErledigt',
+     'potenzial'].every(k => k in vorgabe.vokabular) &&
+    Object.keys(vorgabe.vokabular).length === 12,
     JSON.stringify(Object.keys(vorgabe.vokabular)));
+  /* UND DAS ZWOELFTE LAESST SICH SETZEN -- 0.21.0. Die Zeile darueber sagt
+     nur, dass der Schluessel BEKANNT ist; ohne diese bliebe sie auch dann
+     gruen, wenn PUT ihn wegwuerfe (Stolperstein 81). */
+  pruefe('Und das Wort fuer den Potenzialkasten laesst sich setzen',
+    (await ruf('PUT', '/api/settings', { vokabular: { potenzial: ' Erwartung ' } }))
+      .inhalt.vokabular.potenzial === 'Erwartung');
+  await ruf('PUT', '/api/settings', { vokabular: { potenzial: '' } });
+  pruefe('Und ein leeres Feld faellt auf die Vorgabe zurueck',
+    (await ruf('GET', '/api/settings')).inhalt.vokabular.potenzial === 'Potenzial',
+    JSON.stringify((await ruf('GET', '/api/settings')).inhalt.vokabular.potenzial));
   pruefe('Auch das Wort fuer erledigt liegt am Server',
     vorgabe.vokabular.aufgabeErledigt === 'Erledigt' &&
     (await ruf('PUT', '/api/settings', { vokabular: { aufgabeErledigt: ' Fertig ' } }))
@@ -2851,8 +2867,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const ohneKommentar = quelle.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const rufe = [...ohneKommentar.matchAll(/detail\(([^)]+)\)/g)]
     .map(m => m[1]).filter(a => a !== 'id, benutzerId');
+  /* VIERUNDZWANZIG SEIT 0.21.0, vorher fuenfundzwanzig: DELETE
+     /api/items/:id/ratings ist weggefallen und mit ihm seine Aufrufstelle.
+     DIE ZAHL STEHT AUSDRUECKLICH DA und wird nicht abgeleitet -- sie ist der
+     Grund, warum eine NEUE Aufrufstelle ohne Benutzer hier auffaellt und nicht
+     erst im Betrieb (Stolperstein 137). */
   pruefe('Keine Aufrufstelle von detail() ohne Benutzer',
-    rufe.length === 25 && rufe.every(a => /,\s*req\.benutzer\.id\s*$/.test(a)),
+    rufe.length === 24 && rufe.every(a => /,\s*req\.benutzer\.id\s*$/.test(a)),
     `${rufe.length} Aufrufe, ohne Benutzer: ` +
     JSON.stringify(rufe.filter(a => !/,\s*req\.benutzer\.id\s*$/.test(a))));
   pruefe('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
@@ -3130,12 +3151,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Und die Blockanordnung, die eine eigene Bauform hat (verschachteltes
   // Objekt statt Zahl) und deshalb eigens geprueft wird.
   await dRuf('cookie-d-eins', 'PUT', '/api/settings',
-    { bloecke: { seite: ['bewertung', 'tags', 'kategorie'], unten: [], zu: ['links'] } });
+    { bloecke: { seite: ['bewertung', 'tags', 'kategorie', 'potenzial'], unten: [], zu: ['links'] } });
   const dBlEins = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt.bloecke;
   const dBlZwei = (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.bloecke;
   pruefe('Die Blockanordnung gehoert dem Benutzer',
-    gleich(dBlEins.seite, ['bewertung', 'tags', 'kategorie']) &&
-    gleich(dBlZwei.seite, ['kategorie', 'tags', 'bewertung']),
+    gleich(dBlEins.seite, ['bewertung', 'tags', 'kategorie', 'potenzial']) &&
+    gleich(dBlZwei.seite, ['kategorie', 'tags', 'potenzial', 'bewertung']),
     JSON.stringify([dBlEins.seite, dBlZwei.seite]));
   pruefe('Und der Einklappzustand mit ihr',
     gleich(dBlEins.zu, ['links']) && gleich(dBlZwei.zu, []),
@@ -3654,7 +3675,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await gSetz('Preis', 1); await gSetz('Kundendienst', 1);
   const eEinsF = mitFreigabe((m, p, k) => eRuf('cookie-e-eins', m, p, k), eWort);
   const gAus = (await eEinsF('GET', '/api/export?photos=0')).inhalt;
-  pruefe('Die Formatnummer steht auf 12', gAus?.version === 12, JSON.stringify(gAus?.version));
+  pruefe('Die Formatnummer steht auf 13', gAus?.version === 13, JSON.stringify(gAus?.version));
   pruefe('criteria bleibt eine Liste von Namen',
     Array.isArray(gAus?.criteria) && gAus.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gAus?.criteria));
@@ -4221,7 +4242,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  pruefe('Die Formatnummer der Datei steht auf 12', e2Aus?.version === 12, JSON.stringify(e2Aus?.version));
+  pruefe('Die Formatnummer der Datei steht auf 13', e2Aus?.version === 13, JSON.stringify(e2Aus?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -5451,7 +5472,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // Dieselbe Nummer wie beim vollen Export: ein Einzelexport ist ein
     // vollstaendiges Paket mit einem Eintrag darin, kein halbes.
     pruefe('Die Formatnummer ist dieselbe wie beim vollen Export',
-      einzeln.inhalt?.version === 12 && voll.inhalt?.version === 12,
+      einzeln.inhalt?.version === 13 && voll.inhalt?.version === 13,
       JSON.stringify([einzeln.inhalt?.version, voll.inhalt?.version]));
     pruefe('Der Umschlag traegt dieselben Felder wie beim vollen Export',
       gleich(Object.keys(einzeln.inhalt || {}).sort(), Object.keys(voll.inhalt || {}).sort()),
@@ -7309,9 +7330,29 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gleich(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2 ORDER BY user_id')
       .map(z => `${z.user_id}/${z.value}`), ['2/5', '3/2']),
     JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2')));
-  await fRuf('cookie-f-carla', 'DELETE', '/api/items/2/ratings');
+  /* ZURUECKGESETZT WIRD SEIT 0.21.0 UEBER `PUT` MIT 0 -- die Sammelroute ist
+     weggefallen. Die Zusage ist dieselbe geblieben und wird an derselben
+     Stelle belegt: es trifft nur die EIGENE Zeile, und zwar baulich (das
+     ON CONFLICT trifft item_id, criterion_id, user_id), ohne jeden Waechter.
+     EINE ZEILE MIT 0 IST KEINE STIMME -- sie bleibt stehen, zaehlt aber
+     nirgends mit; deshalb steht hier `3/0` und nicht das Verschwinden der
+     Zeile. Das ist der Unterschied zum alten DELETE, und er gehoert benannt:
+     `usage_count`, der Gesamtschnitt und die Durchschnittsspalte fragen alle
+     `value > 0`. */
+  await fRuf('cookie-f-carla', 'PUT', '/api/items/2/ratings',
+    { criterionId: fOptikId, value: 0 });
   pruefe('Zuruecksetzen trifft nur die eigenen Zeilen -- ohne jeden Waechter',
-    gleich(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2')
+    gleich(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2 ORDER BY user_id')
+      .map(z => `${z.user_id}/${z.value}`), ['2/5', '3/0']),
+    JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2')));
+  /* UND DIE ALTE ROUTE GIBT ES NICHT MEHR. Ohne diese Zeile bliebe die
+     Wegnahme unbelegt -- sie steht hier und nicht nur in F_ROUTEN, weil sie
+     hier an einer ECHTEN Datenbank mit zwei Bewertern haengt. */
+  pruefe('Und die alte Sammelroute gibt es nicht mehr',
+    (await fRuf('cookie-f-carla', 'DELETE', '/api/items/2/ratings')).status === 404,
+    `Status ${(await fRuf('cookie-f-carla', 'DELETE', '/api/items/2/ratings')).status}`);
+  pruefe('Und die fremde Zeile steht danach unveraendert',
+    gleich(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2 AND value > 0')
       .map(z => `${z.user_id}/${z.value}`), ['2/5']),
     JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2')));
 
@@ -8518,7 +8559,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const agRufF = mitFreigabe((m, p, k) => agRuf('cookie-ag-anna', m, p, k), AG_WORT);
   const agDatei = (await agRufF('GET', '/api/export?fotos=0')).inhalt;
   const agPaket = agDatei?.items?.find(i => i.title === 'Berts Saege');
-  pruefe('Die Formatnummer der Datei steht auf 12', agDatei?.version === 12,
+  pruefe('Die Formatnummer der Datei steht auf 13', agDatei?.version === 13,
     JSON.stringify(agDatei?.version));
   pruefe('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPaket?.rejected_at === agVorher.rejected_at &&
@@ -13757,16 +13798,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
          was gemeint ist, nicht was dasteht). */
       const tBloecke = [...new Set(
         (tQuelle.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
-      pruefe('Es sind genau acht markierte Migrationsbloecke',
-        tBloecke.length === 8, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
-      pruefe('Und alle acht tragen denselben Wortlaut der Marke',
+      pruefe('Es sind genau neun markierte Migrationsbloecke',
+        tBloecke.length === 9, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
+      pruefe('Und alle neun tragen denselben Wortlaut der Marke',
         tBloecke.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBloecke.join(' · '));
-      /* UND DER ACHTE HEISST 0.19.0. Ohne diese Zeile bliebe die Zahl auch
+      /* UND DER NEUNTE HEISST 0.21.0. Ohne diese Zeile bliebe die Zahl auch
          dann gruen, wenn jemand einen Block gegen einen anderen tauscht --
          die Menge stimmte, die Sache waere eine andere. */
       pruefe('Und der achte gehoert zu 0.19.0',
         tBloecke.includes('MIGRATION 0.19.0 — ENTFAELLT MIT 1.0') &&
         /function migration0190\(/.test(tQuelle), tBloecke.join(' · '));
+      pruefe('Und der neunte gehoert zu 0.21.0',
+        tBloecke.includes('MIGRATION 0.21.0 — ENTFAELLT MIT 1.0') &&
+        /function migration0210\(/.test(tQuelle), tBloecke.join(' · '));
       pruefe('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tQuelle) && !/migration0100/.test(tQuelle));
       /* UND KEINEN FUER 0.11.0. Die Runde braucht keinen: die Volltextsuche
@@ -13959,9 +14003,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
     ['POST',   '/api/test-days/:id/tags',        'im Rumpf'],
     ['DELETE', '/api/test-days/:id/tags/:tagId', 'im Rumpf'],
     ['PUT',    '/api/items/:id/ratings',         'offen'],
-    ['DELETE', '/api/items/:id/ratings',         'offen'],
+    /* DELETE /api/items/:id/ratings STEHT HIER NICHT MEHR -- 0.21.0. Das
+       Sammel-Zuruecksetzen ist weggefallen; zurueckgesetzt wird an der ZEILE,
+       ueber PUT mit `value: 0`. Eine Route ohne Weg vom Bildschirm ist tot.
+       Die Absage darauf steht in der Gruppe „Die Sternzeile" und ist eine
+       eigene Pruefung: 404 statt 200. */
     // Die einzige Bewertungsroute MIT Klemme -- hier steht eine fremde Nummer
-    // in der Adresse, die beiden darueber treffen baulich nur die eigene Zeile.
+    // in der Adresse, die eine darueber trifft baulich nur die eigene Zeile.
     ['DELETE', '/api/ratings/:id',               'im Rumpf'],
     ['POST',   '/api/items/:id/comments',        'offen'],
     ['PUT',    '/api/comments/:id',              'im Rumpf'],
@@ -14091,8 +14139,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Ende von POST /api/sicherung -- dieselbe Route, ein Aufruf mehr, und ihre
      Rechtezeile hat sich nicht verschoben. Wer aus einem davon eine eigene
      schreibende Route machte, wird hier namentlich rot. */
-  pruefe('Und es sind jetzt genau 71 schreibende Routen',
-    F_ROUTEN.length === 71 && fGefunden.length === 71,
+  /* 0.21.0 bewegt sie um EINE nach UNTEN: 71 werden 70 -- DELETE
+     /api/items/:id/ratings faellt weg. Das ist eine WEGNAHME an einer
+     oeffentlichen Antwort, vor 1.0.0 erlaubt, und sie steht in Abschnitt 5 des
+     Projektstands. UND ZWEI DINGE DIESER RUNDE BEWEGEN SIE AUSDRUECKLICH
+     NICHT: die Phase am Kriterium geht ueber POST/PUT /api/criteria, die es
+     laengst gibt, und die zweite Kriterienkarte benutzt dieselben vier Wege
+     wie die erste. */
+  pruefe('Und es sind jetzt genau 70 schreibende Routen',
+    F_ROUTEN.length === 70 && fGefunden.length === 70,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
      dieselbe Bauform wie F_ROUTEN und aus demselben Grund (Stolperstein 137):
@@ -14559,7 +14614,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      SPALTE er nachruestet. */
   const fDbQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
   const fMigrationen = (fDbQuelle.match(/function migration0?\d+\(/g) || []);
-  pruefe('Es gibt genau acht Migrationsfunktionen', fMigrationen.length === 8,
+  pruefe('Es gibt genau neun Migrationsfunktionen', fMigrationen.length === 9,
     fMigrationen.join(' · '));
   // Und jede markierte Marke hat ihre Funktion -- eine Marke ohne Block waere
   // eine Ankuendigung, die nichts tut.
@@ -17451,18 +17506,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('Anordnung der Blöcke');
 
   const bl = (await ruf('GET', '/api/settings')).inhalt.bloecke;
+  /* VIER BLOECKE IN DER SEITENSPALTE SEIT 0.21.0 -- `potenzial` ist
+     dazugekommen und steht VOR `bewertung`: geschaetzt wird, bevor bewertet
+     wird. Wer eine gespeicherte Reihenfolge aus einer aelteren Fassung hat,
+     bekommt ihn ueber ordneBereich() hinten angehaengt; das ist die vorhandene
+     Regel und steht drei Pruefungen tiefer. */
   pruefe('Vorgabeanordnung wird geliefert',
-    gleich(bl.seite, ['kategorie', 'tags', 'bewertung']) &&
+    gleich(bl.seite, ['kategorie', 'tags', 'potenzial', 'bewertung']) &&
     gleich(bl.unten, ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']) &&
     gleich(bl.zu, []), JSON.stringify(bl));
 
   const gedreht = await ruf('PUT', '/api/settings', { bloecke: {
-    seite: ['bewertung', 'kategorie', 'tags'],
+    seite: ['bewertung', 'kategorie', 'potenzial', 'tags'],
     unten: ['links', 'beschreibung', 'testtage', 'dateien', 'kommentare'],
     zu: ['links']
   }});
   pruefe('Neue Anordnung wird gespeichert',
-    gleich(gedreht.inhalt.bloecke.seite, ['bewertung', 'kategorie', 'tags']) &&
+    gleich(gedreht.inhalt.bloecke.seite, ['bewertung', 'kategorie', 'potenzial', 'tags']) &&
     gleich(gedreht.inhalt.bloecke.zu, ['links']));
   pruefe('Anordnung überlebt den nächsten Abruf',
     gleich((await ruf('GET', '/api/settings')).inhalt.bloecke.unten,
@@ -17475,12 +17535,26 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const sb = schmutz.inhalt.bloecke;
   pruefe('Fremde Namen fliegen raus', !sb.seite.includes('kommentare') && !sb.seite.includes('quatsch'));
   pruefe('Doppelte Namen fliegen raus', sb.seite.filter(k => k === 'bewertung').length === 1);
+  /* UND `potenzial` HAENGT SICH HINTEN AN -- die Liste, die hineingeht, kennt
+     ihn gar nicht. Genau das ist die Regel, die einen spaeter hinzugekommenen
+     Block von selbst auftauchen laesst, und diese Runde ist ihr erster
+     Anwendungsfall seit langem. */
   pruefe('Fehlende Blöcke hängen sich hinten an',
-    gleich(sb.seite, ['bewertung', 'kategorie', 'tags']) &&
+    gleich(sb.seite, ['bewertung', 'kategorie', 'tags', 'potenzial']) &&
     gleich(sb.unten, ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien']), JSON.stringify(sb));
   pruefe('Unbekannter Einklappzustand wird verworfen', gleich(sb.zu, ['links']));
+  /* UND DIE BEIDEN STERNKAESTEN FALLEN AUS `zu` HERAUS -- 0.21.0. Fuer sie
+     entscheidet der Zustand des Eintrags, nicht die Einstellung; ein
+     gespeichertes `bewertung` aus einer aelteren Fassung faellt still
+     heraus, und das ist gewollt. */
+  const blZu = await ruf('PUT', '/api/settings', { bloecke: {
+    seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
+    unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare'],
+    zu: ['bewertung', 'potenzial', 'links'] } });
+  pruefe('Die beiden Sternkaesten fuehren ihren Einklappzustand nicht mehr',
+    gleich(blZu.inhalt.bloecke.zu, ['links']), JSON.stringify(blZu.inhalt.bloecke.zu));
   await ruf('PUT', '/api/settings', { bloecke: {
-    seite: ['kategorie', 'tags', 'bewertung'],
+    seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
     unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare'], zu: [] } });
 
   /* ---------------------------------------------------------------- */
@@ -20499,6 +20573,386 @@ const freigabeHaupt = (zweck, ziel = null) =>
     (await vaRuf('PUT', '/api/settings',
       { ansichten: [{ name: 'Zweite eigene', q: '', filters: {} }] })).status === 200);
 
+  /* ================================================================
+     Zwei Kaesten, zwei Durchschnitte — 0.21.0
+     ================================================================
+     DIE EINE PRUEFUNG, DIE DIESE RUNDE TRAEGT, steht ganz unten in dieser
+     Gruppe: ein Eintrag mit zwei Nachher-Kriterien (4 und 4) und einem
+     Vorher-Kriterium (1) hat avgRating 4,0 und potenzialRating 1,0 -- in der
+     Uebersicht wie im Detail, und nach dem Umlegen von `tested`
+     unveraendert.
+     EIGENE INSTANZ, und das ist kein Beiwerk: der Bestand des Hauptlaufs
+     traegt drei Bewertungskriterien und Sterne daran; ein Vorher-Kriterium
+     hineinzulegen aenderte jede Zahl, die weiter oben schon geprueft wurde. */
+  gruppe('Zwei Kaesten, zwei Durchschnitte — 0.21.0');
+
+  /* DIE ZWEI WERTE, UND SONST KEINER -- hier ausgeschrieben und nicht aus dem
+     Server gelesen: eine Zahl im Pruefstand ist ein Beleg, eine aus dem
+     Gegenstand gelesene waere ein Echo (Stolperstein 137). */
+  const PHASEN_SOLL = ['vorher', 'nachher'];
+
+  const PH_WORT = 'annas-langes-wort';
+  const phDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-phase-'));
+  const PH = starteWeiterenServer(phDir, {}, 7180);
+  await PH.bereit;
+  await PH.ruf('POST', '/api/setup', { user: 'anna', password: PH_WORT });
+
+  /* Export und Import an einem ZWEITSERVER. Beide brauchen die zweite
+     Bestaetigung, der Import ausserdem multipart -- dieselben zwei Wege wie am
+     Hauptserver, nur mit dem Rufer dieses Servers. Sie stehen hier und nicht
+     oben, weil sie die BASIS des jeweiligen Servers brauchen. */
+  const phExport = async (S) => {
+    await S.ruf('POST', '/api/bestaetigung', { passwort: PH_WORT, zweck: 'export', ziel: null });
+    return (await S.ruf('GET', '/api/export')).inhalt;
+  };
+  const sendeImportAn = async (S, objekt, modus = 'merge') => {
+    await S.ruf('POST', '/api/bestaetigung', { passwort: PH_WORT, zweck: 'import', ziel: null });
+    const grenze = '----pruefung' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, wert, dateiname) =>
+      `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
+      (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
+      `\r\n\r\n${wert}\r\n`;
+    const koerper = teil('mode', modus)
+      + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+    const a = await fetch(S.basis + '/api/import', {
+      method: 'POST',
+      headers: { cookie: S.cookieWert(), 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: koerper
+    });
+    return { status: a.status, inhalt: await a.json().catch(() => null) };
+  };
+
+  /* --- Die Migration ---------------------------------------------------
+     ZWEIMAL HINTEREINANDER, und beim zweiten Mal stumm: der Block fragt
+     PRAGMA table_info und keinen Merker. Gefahren wird er auf einer Datei,
+     der die Spalte VORHER genommen wurde -- ohne diesen Schritt liefe die
+     Pruefung ueber eine Tabelle, die die Spalte ohnehin schon aus der DDL
+     hat, und belegte nichts (Stolperstein 102). */
+  {
+    const phMigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-phase-mig-'));
+    kurzlauf(`require('./db'); console.log('da');`, phMigDir);
+    const d1 = oeffne(path.join(phMigDir, 'katalog.sqlite'));
+    d1.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Alt eins', 0)").run();
+    d1.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Alt zwei', 1)").run();
+    // Die Spalte wieder herausnehmen -- SQLite kann das seit 3.35.
+    d1.exec('ALTER TABLE rating_criteria DROP COLUMN phase');
+    const vorher = d1.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
+    d1.close();
+    pruefe('Die Prueflage traegt die Spalte phase wirklich nicht',
+      !vorher.includes('phase'), vorher.join(', '));
+
+    /* DER ERSTE LAUF IST DAS BLOSSE OEFFNEN DER DATEI -- db.js fuehrt seine
+       Bloecke beim require aus, so wie beim Start der Installation. Ein
+       ausdruecklicher Aufruf DANACH kaeme zu spaet und saehe die Spalte schon
+       (er gaebe 0 zurueck, und die Zeile belegte nichts). Deshalb steht in
+       beiden Laeufen dasselbe: einmal oeffnen, dann fragen. */
+    /* DIE MELDUNG WIRD EINGEFANGEN UND IN EINER ZEILE ZURUECKGEGEBEN --
+       kurzlauf() liefert nur die LETZTE Zeile der Ausgabe, und die Meldung des
+       Blocks steht davor. Eingefangen wird VOR dem require: db.js fuehrt seine
+       Bloecke beim Laden aus, so wie beim Start der Installation.
+       UND DAS EINFANGEN WIRD ZWEIGETEILT -- das ist der Fund des Rueckbaus 581.
+       Der erste Anlauf legte beides in DENSELBEN Topf: was beim Oeffnen
+       geschah und was der ausdrueckliche Aufruf danach tat. Damit blieb die
+       Gruppe auch dann gruen, wenn `migration0210();` in db.js gar nicht mehr
+       gerufen wurde -- der Aufruf HIER holte die Migration nach, und die
+       Meldung stand im Topf. Der Rueckbau war STUMM.
+       JETZT SAGT `OEFFNEN`, was das blosse Laden der Datei getan hat, und
+       `DANACH`, was der ausdrueckliche Aufruf noch fand. Nur das erste belegt,
+       dass der Block beim Start einer Installation wirklich laeuft. */
+    const migLauf = () => kurzlauf(
+      `const echt = console.log; let g = ''; console.log = (...a) => { g += a.join(' ') + ' | '; };` +
+      `require('./db'); const beimOeffnen = g; g = '';` +
+      `const { migration0210 } = require('./db'); const n = migration0210();` +
+      `console.log = echt; console.log('ERG:' + n + ' OEFFNEN:' + JSON.stringify(beimOeffnen) +` +
+      `' DANACH:' + JSON.stringify(g));`, phMigDir);
+    const erst = migLauf();
+    const zweit = migLauf();
+    const d2 = oeffne(path.join(phMigDir, 'katalog.sqlite'));
+    const nachher = d2.prepare("SELECT name, phase FROM rating_criteria WHERE name LIKE 'Alt %' ORDER BY sort_order").all();
+    const alleNachher = d2.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n;
+    d2.close();
+    /* DER ERSTE LAUF LEGT SIE AN UND SAGT ES. Die Zeile nennt die Zahl der
+       Kriterien, die auf 'nachher' stehen -- ohne sie bliebe der Betreiber
+       im Unklaren darueber, was der Block angefasst hat. */
+    /* DAS BLOSSE OEFFNEN DER DATEI RUESTET DIE SPALTE NACH UND SAGT ES -- der
+       Block wird beim Laden gerufen, so wie beim Start der Installation. Die
+       Zeile nennt die Zahl der Kriterien, die auf 'nachher' stehen; ohne sie
+       bliebe der Betreiber im Unklaren darueber, was der Block angefasst hat.
+       GEPRUEFT WIRD AN `OEFFNEN` UND NICHT AN DER GANZEN AUSGABE: sonst
+       genuegte der ausdrueckliche Aufruf eine Zeile tiefer, und ein
+       weggefallener Aufruf in db.js faellt nicht mehr auf (Rueckbau 581). */
+    const migOeffnen = (t) => (t.match(/OEFFNEN:("(?:[^"\\]|\\.)*")/) || ['', '""'])[1];
+    pruefe('Schon das Oeffnen der Datei ruestet die Spalte nach und sagt es',
+      /rating_criteria um phase ergaenzt \(Migration auf 0\.21\.0\)/.test(migOeffnen(erst)) &&
+      /5 Kriterien stehen auf 'nachher'/.test(migOeffnen(erst)), erst.slice(-500));
+    /* UND DER AUSDRUECKLICHE AUFRUF DANACH FINDET NICHTS MEHR -- er gibt 0
+       zurueck und schweigt. Das ist die Wiederholbarkeit innerhalb EINES
+       Laufs: der Block fragt PRAGMA table_info und keinen Merker. */
+    pruefe('Und der ausdrueckliche Aufruf danach findet nichts mehr',
+      /ERG:0 /.test(erst) && /DANACH:""/.test(erst), erst.slice(-500));
+    /* UND DIE BESTANDSZEILEN STEHEN AUF 'nachher' -- aus dem DEFAULT und
+       nicht aus einem UPDATE. Jeder andere Wert aenderte beim Einspielen
+       still saemtliche Gesamtschnitte. */
+    /* DIE PRUEFLAGE TRAEGT FUENF KRITERIEN: die drei der Grundausstattung, die
+       db.js in eine frische Datei legt, und die beiden hier angelegten. Auf
+       'nachher' muessen ALLE stehen -- gezaehlt wird darum beides, die zwei
+       benannten und die Gesamtzahl. */
+    pruefe('Der Bestand steht danach auf nachher',
+      alleNachher === 5 && nachher.length === 2 && nachher.every(z => z.phase === 'nachher'),
+      `${alleNachher} Kriterien, davon ${JSON.stringify(nachher)}`);
+    /* DER ZWEITE LAUF IST STUMM -- auch schon beim Oeffnen. Er gibt 0 zurueck
+       und schreibt keine Zeile ueber die Spalte: der Block ist wiederholbar,
+       nicht nur einmalig.
+       GEFRAGT WIRD NACH DER MELDUNG UND NICHT NACH EINER LEEREN AUSGABE:
+       db.js sagt bei JEDEM Oeffnen, woher es seinen Schluessel hat, und diese
+       Zeile steht auch im zweiten Lauf da. `OEFFNEN:""` waere also eine
+       Bedingung, die nie zutrifft -- und eine Pruefung, die immer rot ist,
+       wird angepasst statt gelesen. */
+    pruefe('Der zweite Lauf ist stumm und aendert nichts',
+      /ERG:0/.test(zweit) && !/um phase ergaenzt/.test(zweit) &&
+      !/um phase ergaenzt/.test(migOeffnen(zweit)), zweit.slice(-500));
+    fs.rmSync(phMigDir, { recursive: true, force: true });
+  }
+
+  /* --- Die Route zum Anlegen ------------------------------------------- */
+  const phVorher = (await PH.ruf('POST', '/api/criteria', { name: 'Wunsch', phase: 'vorher' }));
+  pruefe('Ein Kriterium laesst sich im Kasten „vorher" anlegen',
+    phVorher.status === 201 && phVorher.inhalt.phase === 'vorher',
+    `${phVorher.status} ${JSON.stringify(phVorher.inhalt)}`);
+  const phOhne = (await PH.ruf('POST', '/api/criteria', { name: 'Optik' }));
+  /* OHNE ANGABE GILT 'nachher'. Genau daran haengt, dass die Karte
+     „Bewertungskriterien" weiter anlegt wie bisher, ohne ein Feld
+     mitzuschicken. */
+  pruefe('Ohne Angabe steht es im Kasten „nachher"',
+    phOhne.status === 201 && phOhne.inhalt.phase === 'nachher',
+    `${phOhne.status} ${JSON.stringify(phOhne.inhalt)}`);
+  const phUnfug = (await PH.ruf('POST', '/api/criteria', { name: 'Unfug', phase: 'spaeter' }));
+  /* UNFUG IST EINE ABSAGE MIT MELDUNG und kein stilles Zurechtbiegen: ein auf
+     'nachher' gebogenes Kriterium stuende im falschen Kasten, ohne dass es
+     jemand saehe. */
+  pruefe('Ein anderer Wert ist eine Absage mit Meldung',
+    phUnfug.status === 400 && /Kasten/.test(phUnfug.inhalt.error || ''),
+    `${phUnfug.status} ${JSON.stringify(phUnfug.inhalt)}`);
+  pruefe('Und das Kriterium entsteht dabei nicht',
+    !(await PH.ruf('GET', '/api/criteria')).inhalt.some(c => c.name === 'Unfug'),
+    JSON.stringify((await PH.ruf('GET', '/api/criteria')).inhalt.map(c => c.name)));
+
+  /* --- Der Kasten laesst sich nicht wechseln --------------------------- */
+  const phWechsel = await PH.ruf('PUT', `/api/criteria/${phVorher.inhalt.id}`,
+    { name: 'Wunsch', phase: 'nachher' });
+  pruefe('Der Kasten laesst sich nicht nachtraeglich aendern',
+    phWechsel.status === 400 && /Löschen und neu anlegen/.test(phWechsel.inhalt.error || ''),
+    `${phWechsel.status} ${JSON.stringify(phWechsel.inhalt)}`);
+  /* UND ER STEHT DANACH UNVERAENDERT DA. Eine Absage, die trotzdem schreibt,
+     waere schlimmer als eine stille Uebernahme. */
+  pruefe('Und die Phase steht danach unveraendert',
+    (await PH.ruf('GET', '/api/criteria')).inhalt
+      .find(c => c.id === phVorher.inhalt.id)?.phase === 'vorher',
+    JSON.stringify((await PH.ruf('GET', '/api/criteria')).inhalt));
+  /* EIN UMBENENNEN OHNE DAS FELD GEHT WEITER. Ohne diese Zeile bliebe die
+     Absage darueber auch dann gruen, wenn PUT gar nichts mehr taete
+     (Stolperstein 81). */
+  const phUmbenannt = await PH.ruf('PUT', `/api/criteria/${phOhne.inhalt.id}`, { name: 'Optik neu' });
+  pruefe('Umbenennen ohne das Feld geht weiter',
+    phUmbenannt.status === 200 && phUmbenannt.inhalt.name === 'Optik neu' &&
+    phUmbenannt.inhalt.phase === 'nachher',
+    `${phUmbenannt.status} ${JSON.stringify(phUmbenannt.inhalt)}`);
+
+  /* --- Die Route, die gefallen ist ------------------------------------- */
+  const phItem = (await PH.ruf('POST', '/api/items', { title: 'Der Traeger' })).inhalt;
+  await PH.ruf('PUT', `/api/items/${phItem.id}/ratings`,
+    { criterionId: phOhne.inhalt.id, value: 4 });
+  const phWeg = await PH.ruf('DELETE', `/api/items/${phItem.id}/ratings`);
+  /* 404 UND NICHT 200: die Route ist weg. Das Zuruecksetzen sitzt an der
+     Zeile und laeuft ueber PUT mit `value: 0`. */
+  pruefe('DELETE /api/items/:id/ratings gibt es nicht mehr',
+    phWeg.status === 404, `${phWeg.status}`);
+  /* UND DER STERN STEHT NOCH -- die Absage hat nichts geleert. */
+  pruefe('Und die Sterne stehen danach unveraendert',
+    (await PH.ruf('GET', `/api/items/${phItem.id}`)).inhalt.avgRating === 4,
+    JSON.stringify((await PH.ruf('GET', `/api/items/${phItem.id}`)).inhalt.avgRating));
+  /* DER WEG, DER GEBLIEBEN IST: PUT mit 0. Eine Zeile mit 0 ist keine
+     Stimme, also faellt die Zahl weg. */
+  await PH.ruf('PUT', `/api/items/${phItem.id}/ratings`,
+    { criterionId: phOhne.inhalt.id, value: 0 });
+  pruefe('PUT mit value 0 setzt zurueck',
+    (await PH.ruf('GET', `/api/items/${phItem.id}`)).inhalt.avgRating === null,
+    JSON.stringify((await PH.ruf('GET', `/api/items/${phItem.id}`)).inhalt.avgRating));
+
+  /* --- DIE EINE PRUEFUNG, DIE DIESE RUNDE TRAEGT ------------------------
+     Zwei Nachher-Kriterien mit 4 und 4, ein Vorher-Kriterium mit 1. Die
+     Zahlen sind mit Bedacht so gewaehlt, dass jede Vermischung auffiele:
+     ein gemeinsamer Schnitt ueber alle drei waere 3,0, und 3,0 ist weder 4,0
+     noch 1,0 (Stolperstein 189). */
+  const phZweit = (await PH.ruf('POST', '/api/criteria', { name: 'Haptik' })).inhalt;
+  await PH.ruf('PUT', `/api/items/${phItem.id}/ratings`, { criterionId: phOhne.inhalt.id, value: 4 });
+  await PH.ruf('PUT', `/api/items/${phItem.id}/ratings`, { criterionId: phZweit.id, value: 4 });
+  await PH.ruf('PUT', `/api/items/${phItem.id}/ratings`, { criterionId: phVorher.inhalt.id, value: 1 });
+  const phDetail = () => PH.ruf('GET', `/api/items/${phItem.id}`).then(a => a.inhalt);
+  const phListe = () => PH.ruf('GET', '/api/items').then(a => a.inhalt.find(i => i.id === phItem.id));
+  const phD = await phDetail(), phL = await phListe();
+  pruefe('Im Detail stehen 4,0 und 1,0 nebeneinander',
+    phD.avgRating === 4 && phD.potenzialRating === 1,
+    `avgRating ${phD.avgRating}, potenzialRating ${phD.potenzialRating}`);
+  pruefe('Und in der Uebersicht dieselben beiden Zahlen',
+    phL.avgRating === 4 && phL.potenzialRating === 1,
+    `avgRating ${phL.avgRating}, potenzialRating ${phL.potenzialRating}`);
+  /* UND BEIDE ABFRAGEN NENNEN DIE PHASE -- im SELECT und im GROUP BY.
+     DAS SELECT TRAEGT DAS VERHALTEN: ohne die Spalte kaeme die Zeile ohne
+     Phase an, karteJePhase() legte sie in keinen der beiden Kaesten, und beide
+     Durchschnitte fielen aus (Rueckbau 574: neun rote Punkte).
+     DAS GROUP BY TRAEGT ES NICHT, und das ist gemessen und nicht vermutet:
+     `criterion_id` bestimmt die Phase eindeutig -- ein Kriterium hat genau eine
+     Zeile in `rating_criteria` --, also kann die Spalte im GROUP BY keine
+     Gruppe teilen und keine zusammenlegen. An einem eigens gebauten Bestand
+     mit fuenf Kriterien in beiden Phasen und drei Bewertern je Kriterium
+     kommen mit und ohne GROUP BY Zeile fuer Zeile dieselben Werte heraus.
+     SQLite laesst die blosse Spalte im SELECT durchgehen und nimmt sie sich
+     aus irgendeiner Zeile der Gruppe -- hier ist es immer dieselbe.
+     WARUM SIE TROTZDEM STEHT: das ist eine Freundlichkeit von SQLite und kein
+     SQL. Jede strengere Fassung und jede andere Maschine weist eine blosse
+     Spalte neben einem Aggregat ab. Die Zeile haelt die Abfrage vollstaendig,
+     damit sie es bleibt, wenn jemand sie anderswohin traegt.
+     UND WEIL DAS VERHALTEN SIE NICHT SIEHT, WIRD HIER DER QUELLTEXT ROT --
+     dieselbe Bauform wie beim zweiten Musterwaechter von 0.20.0 (Rueckbau
+     547). Ohne diese Zeile waeren die Rueckbauten 570 und 571 STUMM. */
+  {
+    const phQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const phAbfrage = (name) =>
+      (phQuelle.match(new RegExp(`const ${name} = db\\.prepare\\(\`([^\`]*)\``)) || ['', ''])[1];
+    const phEinzeln = phAbfrage('qSchnittJeKriterium');
+    const phAlle = phAbfrage('qSchnittJeKriteriumAlle');
+    const nenntPhase = (a) => /SELECT[\s\S]*?\bc\.phase\b[\s\S]*?FROM/.test(a) &&
+                             /GROUP BY[^`]*\bc\.phase\b/.test(a);
+    pruefe('Die Abfrage des Eintrags nennt die Phase im SELECT und im GROUP BY',
+      Boolean(phEinzeln) && nenntPhase(phEinzeln), phEinzeln.replace(/\s+/g, ' ').trim() || '(nicht gefunden)');
+    pruefe('Und die gebuendelte Abfrage der Uebersicht genauso',
+      Boolean(phAlle) && nenntPhase(phAlle), phAlle.replace(/\s+/g, ' ').trim() || '(nicht gefunden)');
+  }
+  /* DAS UMLEGEN VON `tested` AENDERT KEINE DER BEIDEN. Nichts wird geloescht,
+     nichts umgerechnet -- der Schalter entscheidet nur, welcher Kasten offen
+     steht. */
+  await PH.ruf('PUT', `/api/items/${phItem.id}`, { tested: false });
+  const phNach = await phDetail(), phNachL = await phListe();
+  pruefe('Nach dem Umlegen von tested stehen beide Zahlen unveraendert',
+    phNach.avgRating === 4 && phNach.potenzialRating === 1 &&
+    phNachL.avgRating === 4 && phNachL.potenzialRating === 1,
+    `${phNach.avgRating}/${phNach.potenzialRating} und ${phNachL.avgRating}/${phNachL.potenzialRating}`);
+  /* ERST DAS OBJEKT, DANN SEIN INHALT -- Stolperstein 81, und hier nicht aus
+     Ordnungsliebe: Rueckbau 573 nimmt `it.potenzialRechenweg` aus der Antwort,
+     und die Kette `phD.potenzialRechenweg.zeilen.length` warf daraufhin, statt
+     rot zu werden. Der Lauf riss AB, und ein abgerissener Lauf belegt nichts
+     (Stolperstein 138). Also steht die Frage nach dem Objekt zuerst und
+     alleine, und die Frage nach seinem Inhalt greift mit `?.` daneben. */
+  pruefe('Beide Rechenwege stehen ueberhaupt in der Antwort',
+    Boolean(phD.rechenweg) && Boolean(phD.potenzialRechenweg),
+    `rechenweg ${typeof phD.rechenweg}, potenzialRechenweg ${typeof phD.potenzialRechenweg}`);
+  /* UND DIE BEIDEN RECHENWEGE TRAGEN JE NUR IHRE EIGENEN ZEILEN. Ohne diese
+     Zeile bliebe die Erklaerung der Kopfzahl auch dann gruen, wenn sie beide
+     Mengen aufzaehlte -- die Kopfzahl darueber waere richtig, der Kasten
+     darunter falsch. */
+  pruefe('Der Rechenweg der Bewertung nennt zwei Zeilen, der des Potenzials eine',
+    phD.rechenweg?.zeilen?.length === 2 && phD.potenzialRechenweg?.zeilen?.length === 1 &&
+    phD.potenzialRechenweg?.zeilen?.[0]?.criterionId === phVorher.inhalt.id,
+    `${phD.rechenweg?.zeilen?.length} und ${phD.potenzialRechenweg?.zeilen?.length}`);
+  /* UND DIE STERNZEILEN TRAGEN IHRE PHASE MIT -- der Browser filtert danach
+     und rechnet nichts. */
+  /* Die Prueflage traegt neben den drei hier angelegten die drei Kriterien der
+     Grundausstattung, die db.js in eine frische Datei legt -- also sechs
+     Zeilen, davon EINE im Kasten „vorher". */
+  pruefe('Jede Sternzeile traegt ihre Phase',
+    phD.ratings.length === 6 &&
+    phD.ratings.every(r => PHASEN_SOLL.includes(r.phase)) &&
+    phD.ratings.filter(r => r.phase === 'vorher').map(r => r.name).join() === 'Wunsch',
+    JSON.stringify(phD.ratings.map(r => `${r.name}:${r.phase}`)));
+
+  /* --- Das Austauschformat --------------------------------------------- */
+  const phEx = await phExport(PH);
+  pruefe('Die Formatnummer steht auf 13', phEx.version === 13, `${phEx.version}`);
+  /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
+     criteriaPhase gar nicht auf. Eine Datei ohne Vorher-Kriterien sieht damit
+     aus wie bisher, plus einer Formatnummer. */
+  pruefe('criteriaPhase nennt nur die Vorher-Kriterien',
+    phEx.criteriaPhase && Object.keys(phEx.criteriaPhase).length === 1 &&
+    phEx.criteriaPhase['Wunsch'] === 'vorher',
+    JSON.stringify(phEx.criteriaPhase));
+
+  /* Eine Datei aus dem VORIGEN Format -- ohne das Feld. Alles darin ist
+     'nachher', ohne Sonderweg und ohne Fallunterscheidung nach Nummer. */
+  const phAltDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-phase-alt-'));
+  const PHA = starteWeiterenServer(phAltDir, {}, 7240);
+  await PHA.bereit;
+  await PHA.ruf('POST', '/api/setup', { user: 'anna', password: PH_WORT });
+  const phAltAntwort = await sendeImportAn(PHA, { version: 12, title: 'Alt',
+    criteria: ['Aus alter Datei'], items: [{ title: 'Alt', ratings: [{ name: 'Aus alter Datei', value: 3 }] }] });
+  pruefe('Eine Datei aus Format 12 spielt sich ein',
+    phAltAntwort.status === 200, `${phAltAntwort.status} ${JSON.stringify(phAltAntwort.inhalt)}`);
+  pruefe('Und alles darin steht auf nachher',
+    (await PHA.ruf('GET', '/api/criteria')).inhalt.every(c => c.phase === 'nachher'),
+    JSON.stringify((await PHA.ruf('GET', '/api/criteria')).inhalt.map(c => `${c.name}:${c.phase}`)));
+
+  /* DER KONFLIKT UEBER DIE KAESTEN HINWEG. „Aus alter Datei" steht hier im
+     Kasten „nachher"; die Datei nennt es als Vorher-Kriterium. */
+  const phVorZeilen = () => {
+    const d = oeffne(path.join(phAltDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    const z = {
+      items: d.prepare('SELECT COUNT(*) n FROM items').get().n,
+      crits: d.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n,
+      ratings: d.prepare('SELECT COUNT(*) n FROM ratings').get().n,
+      tags: d.prepare('SELECT COUNT(*) n FROM tags').get().n,
+      kats: d.prepare('SELECT COUNT(*) n FROM product_categories').get().n
+    };
+    d.close();
+    return z;
+  };
+  const phVor = phVorZeilen();
+  const phKonflikt = await sendeImportAn(PHA, { version: 13, title: 'Streit',
+    criteria: ['Aus alter Datei'], criteriaPhase: { 'Aus alter Datei': 'vorher' },
+    items: [{ title: 'Streit', ratings: [{ name: 'Aus alter Datei', value: 5 }] }] });
+  pruefe('Ein Namenskonflikt ueber die Kaesten hinweg weist ab',
+    phKonflikt.status === 400 && /anderen Kasten/.test(phKonflikt.inhalt.error || '') &&
+    /Aus alter Datei/.test(phKonflikt.inhalt.error || ''),
+    `${phKonflikt.status} ${JSON.stringify(phKonflikt.inhalt)}`);
+  /* UND ZWAR VOR DEM ERSTEN SCHREIBEN: an JEDER Tabelle steht dieselbe
+     Zeilenzahl wie vorher. Eine Absage nach halbem Schreiben waere keine. */
+  const phNachKonflikt = phVorZeilen();
+  pruefe('Und es ist nichts geschrieben worden',
+    JSON.stringify(phVor) === JSON.stringify(phNachKonflikt),
+    `${JSON.stringify(phVor)} gegen ${JSON.stringify(phNachKonflikt)}`);
+
+  /* Und der Rundlauf: exportieren und in eine frische Instanz einspielen --
+     dieselben Zahlen in BEIDEN Kaesten. */
+  const phNeuDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-phase-neu-'));
+  const PHN = starteWeiterenServer(phNeuDir, {}, 7300);
+  await PHN.bereit;
+  await PHN.ruf('POST', '/api/setup', { user: 'anna', password: PH_WORT });
+  const phRund = await sendeImportAn(PHN, phEx);
+  pruefe('Die eigene Exportdatei spielt sich wieder ein',
+    phRund.status === 200, `${phRund.status} ${JSON.stringify(phRund.inhalt)}`);
+  const phRundItem = (await PHN.ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Der Traeger');
+  pruefe('Und beide Zahlen stehen danach wie vorher',
+    phRundItem && phRundItem.avgRating === 4 && phRundItem.potenzialRating === 1,
+    JSON.stringify(phRundItem && [phRundItem.avgRating, phRundItem.potenzialRating]));
+
+  /* --- Die Bloecke ------------------------------------------------------
+     DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN `zu`.
+     Ein gespeichertes `bewertung` aus einer aelteren Fassung faellt still
+     heraus -- gewollt, und die Verhaltensaenderung steht im Protokoll. */
+  const phBl = await PH.ruf('PUT', '/api/settings', { bloecke: {
+    seite: ['kategorie', 'tags', 'potenzial', 'bewertung'], unten: [],
+    zu: ['bewertung', 'potenzial', 'links'] } });
+  pruefe('Ein gespeichertes „bewertung" in zu faellt heraus',
+    gleich(phBl.inhalt.bloecke.zu, ['links']), JSON.stringify(phBl.inhalt.bloecke.zu));
+  pruefe('Der Potenzialblock steht in der Vorgabereihenfolge vor der Bewertung',
+    gleich(phBl.inhalt.bloecke.seite, ['kategorie', 'tags', 'potenzial', 'bewertung']),
+    JSON.stringify(phBl.inhalt.bloecke.seite));
+
+  PH.stopp(); PHA.stopp(); PHN.stopp();
+  fs.rmSync(phDir, { recursive: true, force: true });
+  fs.rmSync(phAltDir, { recursive: true, force: true });
+  fs.rmSync(phNeuDir, { recursive: true, force: true });
+
   /* ---------------------------------------------------------------- */
   await pruefeOberflaeche();
   await pruefeErstanmeldung();
@@ -20614,8 +21068,37 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ERST DER GEGENSTAND (Stolperstein 81): ein Waechter ueber null Basen ist
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
      Prueflage, die still verschwindet, faellt sonst niemandem auf. */
+  /* EINUNDSECHZIG SEIT 0.21.0: die Gruppe „Zwei Kaesten, zwei Durchschnitte"
+     bringt drei eigene Instanzen mit (die Runde selbst, eine fuer die Datei aus
+     dem vorigen Format samt Konflikt, eine frische fuer den Rundlauf ueber
+     Export und Import).
+     IHRE BASEN SIND ZWEIMAL UMGEZOGEN, und beide Male aus demselben Grund.
+     Der erste Anlauf spannte sie mit 20 Abstand -- die Fenster ueberlappten
+     einander, und der dritte Server bekam einen Port, auf dem schon der zweite
+     horchte: seine Einrichtung ging an die falsche Instanz, und der Import
+     antwortete mit 401.
+     DER ZWEITE ANLAUF NAHM 5260, 5320 UND 5380 -- und das waren GENAU DIE DREI
+     BASEN DER MAILGRUPPE. Aufgefallen ist es an fuenfzehn roten Punkten IM
+     MAILVERSAND, also an einer ganz anderen Stelle als der Ursache; allein
+     gefahren blieb die Gruppe gruen. EINE BELEGTE BASIS SIEHT IN DER LISTE WIE
+     EINE FREIE AUS, sobald man doppelte Eintraege wegwirft -- und genau das
+     hatte der Blick auf die Liste getan.
+     DER DRITTE ANLAUF SUCHTE SIE NICHT MEHR VON HAND, sondern rechnete sie aus
+     der Liste aus, die DIESE PRUEFUNG druckt: sie ist die einzige
+     vollstaendige, weil sie aus PRUEFLAGEN kommt und nicht aus einem
+     Suchmuster ueber den Quelltext. Zehn Basen stehen an Aufrufstellen, die
+     ein Suchmuster nicht findet.
+     EIN ZWEITER SERVER AUF DEMSELBEN PORT FAELLT NICHT VON SELBST AUF: die
+     Bereitschaftspruefung bekommt ja eine Antwort (Stolperstein 139). Deshalb
+     steht die Zahl hier ausdruecklich -- sie ist die einzige Stelle, an der
+     eine doppelt vergebene Basis sichtbar wird.
+     7180, 7240 UND 7300 SIND DIE ERSTEN DREI FREIEN FENSTER, und sie liegen am
+     oberen Ende: die Spanne aller Basen misst damit 3460 und bleibt unter dem
+     Versatz von 3500. Wer eine weitere Basis anhaengt, faellt an der Zeile
+     „Der Versatz je Nebenspur ist groesser als die Spanne aller Basen" auf --
+     dort ist dann eine Luecke weiter unten zu nehmen. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 58 && PRUEFLAGEN.length >= 60,
+    pbBasen.length === 61 && PRUEFLAGEN.length >= 60,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
@@ -20903,7 +21386,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
      eine andere Datei gewandert** -- der Deckel der Liste ist seit 0.20.1 eine
      Regel im Stilblatt und keine Klasse im Markup. Seine Zusage ist dieselbe
      geblieben. KEINER IST WEGGEFALLEN. */
-  pruefe('Es sind genau 563 Rueckbauten', gpListe.length === 563, `${gpListe.length}`);
+  /* 599 SEIT 0.21.0: sechsunddreissig neue (570 bis 605) fuer die beiden
+     Sternkaesten, die Sternzeile und die weggenommene Route. Keiner ist
+     weggefallen; fuenf sind mitgegangen statt geloescht (Stolperstein 201).
+     VIER DAVON SIND NACHTRAEGE AUS DER GEGENPROBE SELBST:
+     602 und 603 nehmen die Phase aus dem SELECT der beiden Schnittabfragen --
+     die Runde hatte dort nur den Griff ans GROUP BY (570 und 571), und der
+     ist am Verhalten stumm; die Zusage, an der alles haengt, war ohne
+     Rueckbau. 604 und 605 gehoeren dem Waechter ueber fremde Server, den
+     derselbe Lauf noetig gemacht hat. */
+  pruefe('Es sind genau 599 Rueckbauten', gpListe.length === 599, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -21077,6 +21569,61 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Das Argument 256 waehlt an der echten Liste genau einen Rueckbau',
       gpTreffer.length === 1 && gpTreffer[0] === '256', gpTreffer.join(' '));
   }
+
+  /* ---- KEIN FREMDER SERVER, BEVOR DIE GEGENPROBEN LOSFAHREN -- 0.21.0 ----
+     DER BEFUND: sieben Server aus abgebrochenen Laeufen hingen noch an den
+     Ports 6180 bis 6242, mitten im Fenster der Mailgruppe. Spur 0 faehrt ohne
+     Versatz und lief gegen sie. Zwei Rueckbauten bekamen dadurch rote Punkte
+     IM MAILVERSAND -- und einer davon (570) hatte in seiner EIGENEN Gruppe
+     keinen einzigen. Die Tabelle zeigte ihn trotzdem als „2 rot" und damit als
+     Beleg. SIE HAT IN DIE GEFAEHRLICHE RICHTUNG GELOGEN: ein stummer Rueckbau
+     sah aus wie ein greifender.
+     GEPRUEFT WIRD AM LAUFENDEN PRUEFLAUF SELBST -- er IST ein solcher Prozess,
+     und damit hat diese Zeile einen Gegenstand und ist nicht die Frage, ob
+     eine leere Liste leer ist (Stolperstein 81). */
+  const gpFremd = require('./gegenprobe').fremdeServer;
+  pruefe('Die Suche nach fremden Servern ist von aussen erreichbar',
+    typeof gpFremd === 'function', typeof gpFremd);
+  const gpGefunden = typeof gpFremd === 'function' ? gpFremd() : [];
+  /* DER GEGENSTAND SIND DIE SERVER DIESES LAUFS. Der Hauptserver steht die
+     ganze Zeit da -- damit hat diese Zeile etwas zu finden und ist nicht die
+     Frage, ob eine leere Liste leer ist (Stolperstein 81). */
+  const gpEigener = gpGefunden.find(f => f.was === 'server.js' && f.wo === __dirname);
+  pruefe('Und sie findet die laufenden Server dieses Laufs',
+    Boolean(gpEigener), `${gpGefunden.length} gefunden: ` +
+    gpGefunden.map(f => `${f.pid}:${f.was}`).slice(0, 6).join(' '));
+  /* UND SIE SAGT, WO EINER LIEGT UND AUF WELCHEM PORT. Ohne diese Angaben
+     muesste der Leser raten, welches Fenster belegt ist -- und genau das
+     Raten hat in dieser Runde zwei Stunden gekostet. */
+  pruefe('Und sie nennt zu jedem Fund Verzeichnis und Port',
+    Boolean(gpEigener) && gpEigener.wo === __dirname && /^\d+$/.test(gpEigener.port || ''),
+    JSON.stringify(gpEigener));
+  /* SICH SELBST MELDET SIE NICHT. Der Treiber ist kein fremder Server -- ohne
+     diese Zeile braeche er an sich selbst ab und faende nie einen Rueckbau. */
+  pruefe('Und sich selbst meldet sie nicht',
+    !gpGefunden.some(f => f.pid === process.pid),
+    `eigene Nummer ${process.pid}, gefunden ${gpGefunden.map(f => f.pid).join(' ')}`);
+  /* DER TREIBER RUFT SIE AUCH -- und geht, statt zu warnen. Am Verhalten
+     waere das von hier aus nicht zu sehen: haupt() laeuft nur beim direkten
+     Aufruf, und ein zweiter Gegenprobenlauf aus dem Prueflauf heraus waere
+     genau der Unfug, gegen den diese Zeile gebaut ist. Also der Quelltext --
+     dieselbe Bauform wie beim zweiten Musterwaechter von 0.20.0. */
+  const gpQuelle = fs.readFileSync(path.join(__dirname, 'gegenprobe.js'), 'utf8');
+  const gpEinzeilig = gpQuelle.replace(/\s+/g, ' ');
+  pruefe('Der Treiber sieht vor dem ersten Rueckbau nach und bricht ab',
+    gpEinzeilig.includes('const fremde = fremdeServer(); if (fremde.length) {') &&
+    /if \(fremde\.length\) \{[\s\S]{0,900}?process\.exit\(1\);/.test(gpQuelle) &&
+    gpQuelle.indexOf('const fremde = fremdeServer();') <
+      gpQuelle.indexOf('await fahreAlle(liste, spuren, stufe)'),
+    (gpEinzeilig.match(/const fremde = fremdeServer\(\)[^;]*/) || ['(nicht gefunden)'])[0]);
+  /* UND SIE SUCHT NACH BEIDEN NAMEN. Ein liegengebliebener PRUEFLAUF belegt
+     genauso Ports wie ein liegengebliebener Server -- er startet ja welche.
+     AM VERHALTEN WAERE DAS VON HIER AUS NICHT ZU SEHEN: die Funktion meldet
+     sich selbst nicht, und ob waehrend dieser Zeile ein zweiter Prueflauf
+     laeuft, ist Zufall. Also der Quelltext (Stolperstein 307). */
+  pruefe('Und sie sucht nach beiden Namen -- Server wie Prueflauf',
+    gpQuelle.includes('const skript = teile.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));'),
+    (gpQuelle.match(/const skript = teile\.find[^\n]*/g) || ['(nicht gefunden)']).pop());
 
   /* ================= Die Groesse der Funktionen — 0.16.0 ================
      SIE MISST, SIE WEIST NICHT AB. Eine harte Grenze („keine Funktion ueber
@@ -21981,7 +22528,22 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false, offenBestand = null, papierkorbBestand = null, sicherungStand = null, sicherungKopien = null, sitzungenBestand = null, protokollBestand = null,
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false,
+  /* ZU WELCHEM KASTEN JEDES DER DREI KRITERIEN GEHOERT, seit 0.21.0. Vorgabe
+     sind DREI Nachher-Kriterien -- genau die Lage, in der der Bestand nach der
+     Migration steht, und genau die, in der jede Pruefung von vor dieser Runde
+     ihren Gegenstand behaelt. Wer die zwei Kaesten braucht, stellt hier um;
+     ein fester Wert naehme dem Mock die Lage, fuer die er gebraucht wird. */
+  kriterienPhasen = ['nachher', 'nachher', 'nachher'],
+  /* UND WELCHE ZAHL DER POTENZIALKASTEN DANN TRAEGT. Stellbar, weil „ohne
+     Zahl kein Knopf" auch fuer den zweiten Kasten zu belegen ist. */
+  potenzialWert = undefined,
+  /* OB DER BEISPIELEINTRAG UNGETESTET IST, seit 0.21.0. Vorgabe ist
+     „getestet" -- so stand er hier immer, und jede Pruefung von vor dieser
+     Runde behaelt damit ihren Gegenstand. Der Einklappzustand der beiden
+     Sternkaesten haengt seit 0.21.0 an genau diesem Schalter, und ohne ihn
+     waere die Regel gar nicht zu belegen. */
+  ungetestet = false, offenBestand = null, papierkorbBestand = null, sicherungStand = null, sicherungKopien = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
   tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null, statsExport = null,
   statsVerfahren = undefined,
@@ -22233,9 +22795,12 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   const spalten = stimmspalten || [{ avg: 3.4, count: 5 },
     { avg: 4.1, count: STIMMEN_VIELE }, { avg: null, count: 0 }];
   const kriterien = [
-    { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2, gewicht: kriterienGewichte[0] },
-    { id: 8, name: 'Dann', sort_order: 1, usage_count: 0, gewicht: kriterienGewichte[1] },
-    { id: 9, name: 'Zuletzt', sort_order: 2, usage_count: 1, gewicht: kriterienGewichte[2] }
+    { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2, gewicht: kriterienGewichte[0],
+      phase: kriterienPhasen[0] },
+    { id: 8, name: 'Dann', sort_order: 1, usage_count: 0, gewicht: kriterienGewichte[1],
+      phase: kriterienPhasen[1] },
+    { id: 9, name: 'Zuletzt', sort_order: 2, usage_count: 1, gewicht: kriterienGewichte[2],
+      phase: kriterienPhasen[2] }
   ];
   /* Verfasser im Mock: der falsche Server muss antworten wie der
      echte, sonst verschwindet genau die Pruefung, fuer die er gebaut ist.
@@ -22249,9 +22814,18 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   // 0.8.30 die zweite Stelle in der Linkliste, an der Eingabe als Beschriftung
   // gerendert wird -- die erste sind die Anbieternamen.
   const vBoese = { id: 5, name: 'Verfasser <b id="boese-link">X</b>', geloescht: false };
+  /* DIE KOPFZAHL DES POTENZIALKASTENS -- 0.21.0. Sie ist stellbar und wird
+     NICHT aus den Zeilen gerechnet: der echte Server liefert sie, und der
+     Browser soll sie LESEN. Rechnete der Mock sie nach, koennte er nicht
+     zeigen, dass der Browser es nicht tut (Stolperstein 102).
+     Ohne ein Kriterium im Kasten „vorher" gibt es sie nicht -- null, wie am
+     echten Eintrag. 4,2 ist die Zahl aus dem Konzeptpapier und ausdruecklich
+     eine ANDERE als avgRating. */
+  const potenzialSchnitt = kriterienPhasen.includes('vorher')
+    ? (potenzialWert === undefined ? 4.2 : potenzialWert) : null;
   const beispiel = {
     id: 1, title: 'Beispiel', description: 'Eine Beschreibung.\nZweite Zeile.',
-    rejected: !!ablehnung, tested: true, favorite: false, category: null,
+    rejected: !!ablehnung, tested: !ungetestet, favorite: false, category: null,
     /* Der echte Server liefert die drei Felder IMMER aus -- leer, wenn nichts
        dasteht. Ein Mock, der sie ganz weglaesst, machte "fehlt" von "leer"
        ununterscheidbar und naehme genau die Pruefung weg, fuer die er gebaut
@@ -22381,6 +22955,9 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        einstelligen -- und die dritte Zeile hat gar keine. */
     ratings: kriterien.map((c, i) => ({
       criterion_id: c.id, name: c.name, value: eigeneWerte[i], gewicht: c.gewicht,
+      // DIE PHASE REIST AN DER ZEILE MIT, wie beim echten Server -- der
+      // Browser teilt `ratings` danach in seine beiden Kaesten.
+      phase: c.phase,
       avg: spalten[i].avg, count: spalten[i].count })),
     avgRating: ohneBewertung ? null : 3, testCount: 1, testAvg: 4, testLast: 4,
     /* ---- DER RECHENWEG -- 0.16.0 ------------------------------------------
@@ -22394,7 +22971,13 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        nicht `ergebnis` -- und genau daran faellt es auf (Stolperstein 102). */
     rechenweg: (() => {
       const zeilen = kriterien
-        .map((c, i) => ({ criterionId: c.id, schnitt: spalten[i].avg, gewicht: c.gewicht }))
+        .map((c, i) => ({ criterionId: c.id, schnitt: spalten[i].avg, gewicht: c.gewicht,
+                          phase: c.phase }))
+        // NUR DER KASTEN „nachher" -- wie im echten Server, wo die Menge nach
+        // Phase geschnitten ist, BEVOR gesamtSchnitt() sie sieht. Ein Mock,
+        // der beide Kaesten in einen Weg legte, behauptete genau das, was
+        // diese Runde baulich ausschliesst (Stolperstein 102).
+        .filter(z => z.phase === 'nachher')
         .filter(z => z.schnitt != null)
         .map(z => ({ ...z, produkt: z.schnitt * z.gewicht }));
       const summe = zeilen.reduce((n, z) => n + z.produkt, 0);
@@ -22423,6 +23006,31 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
         gleichSumme, gleichTeiler: zeilen.length,
         gleichRoh: zeilen.length ? gleichSumme / zeilen.length : null,
         gleichErgebnis: gleich };
+    })(),
+    /* ---- DIE ZWEITE KOPFZAHL UND IHR RECHENWEG -- 0.21.0 -------------------
+       WIE DER ECHTE SERVER, und das heisst hier vor allem: aus der ANDEREN
+       Menge, durch DIESELBE Rechnung. Solange kein Kriterium im Kasten
+       „vorher" steht -- die Vorgabe des Mocks --, gibt es keine Zahl und
+       keinen Weg, genau wie an einem Eintrag ohne Vorher-Kriterien.
+       DIE ZAHL IST EINE ANDERE ALS avgRating (3): eine Prueflage, in der beide
+       gleich sind, koennte eine Vermischung gar nicht zeigen
+       (Stolperstein 189). */
+    potenzialRating: potenzialSchnitt,
+    potenzialRechenweg: (() => {
+      const zeilen = kriterien
+        .map((c, i) => ({ criterionId: c.id, schnitt: spalten[i].avg, gewicht: c.gewicht,
+                          phase: c.phase }))
+        .filter(z => z.phase === 'vorher')
+        .filter(z => z.schnitt != null)
+        .map(z => ({ ...z, produkt: z.schnitt * z.gewicht }));
+      const summe = zeilen.reduce((n, z) => n + z.produkt, 0);
+      const teiler = zeilen.reduce((n, z) => n + z.gewicht, 0);
+      const gleichSumme = zeilen.reduce((n, z) => n + z.schnitt, 0);
+      return { zeilen, summe, teiler, roh: teiler ? summe / teiler : null,
+        ergebnis: potenzialSchnitt,
+        gleichSumme, gleichTeiler: zeilen.length,
+        gleichRoh: zeilen.length ? gleichSumme / zeilen.length : null,
+        gleichErgebnis: zeilen.length ? potenzialSchnitt : null };
     })(),
     // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
     // zeichnete die Zeile ins Leere und jede Pruefung darauf waere blind.
@@ -23768,9 +24376,9 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(w3, 'bestand');
 
-  const felder = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11']
+  const felder = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12']
     .map(id => w3.document.getElementById(id));
-  pruefe('Elf Vokabelfelder stehen bereit', felder.every(Boolean),
+  pruefe('Zwoelf Vokabelfelder stehen bereit', felder.every(Boolean),
     felder.map((f, n) => f ? '' : `v${n + 1} fehlt`).filter(Boolean).join(' '));
   pruefe('Felder sind vorbelegt', felder[0].value === 'Maschine' && felder[5].value === 'Sitzungen');
   pruefe('Die Berichtsfelder haben ihre Vorgabe',
@@ -23780,7 +24388,12 @@ async function pruefeOberflaeche() {
     felder[8].value === 'Aufgabe' && felder[9].value === 'Aufgaben',
     `${felder[8].value} / ${felder[9].value}`);
   pruefe('Das Wort für erledigt hat seine Vorgabe', felder[10].value === 'Erledigt', felder[10].value);
-  pruefe('Keine weiteren Felder', !w3.document.getElementById('v12'));
+  /* DAS ZWOELFTE FELD SEIT 0.21.0 -- das Wort fuer den ersten Sternkasten.
+     Es steht in der Karte und traegt seine Vorgabe; die Grenze rueckt damit
+     eine Kennung weiter. */
+  pruefe('Das Wort für den Potenzialkasten steht da und hat seine Vorgabe',
+    felder[11]?.value === 'Potenzial', felder[11]?.value);
+  pruefe('Keine weiteren Felder', !w3.document.getElementById('v13'));
   pruefe('Probe zeigt die aktuellen Woerter',
     w3.document.getElementById('vprobe').textContent.includes('+ Maschine'));
   felder[0].value = 'Objekt';
@@ -24789,6 +25402,10 @@ async function pruefeOberflaeche() {
   /* ================= Blöcke ================= */
   gruppe('Blöcke anordnen und einklappen');
 
+  /* DIE GESPEICHERTE ORDNUNG KENNT `potenzial` NICHT -- so, wie sie bei jedem
+     aussieht, der vor 0.21.0 einmal geschoben hat. Genau das ist der Fall, den
+     ordneBereich() traegt: der neue Block haengt sich HINTEN an, und die drei
+     geschobenen behalten ihre Reihenfolge. */
   const eigeneOrdnung = { filters: null, bloecke: {
     seite: ['bewertung', 'kategorie', 'tags'],
     unten: ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien'],
@@ -24804,7 +25421,8 @@ async function pruefeOberflaeche() {
 
   const namen2 = (sel) => [...wb.document.querySelectorAll(sel + ' > .block')].map(b => b.dataset.block);
   pruefe('Gespeicherte Reihenfolge wird angewandt (Seite)',
-    gleich(namen2('#blocks-seite'), ['bewertung', 'kategorie', 'tags']), JSON.stringify(namen2('#blocks-seite')));
+    gleich(namen2('#blocks-seite'), ['bewertung', 'kategorie', 'tags', 'potenzial']),
+    JSON.stringify(namen2('#blocks-seite')));
   pruefe('Gespeicherte Reihenfolge wird angewandt (unten)',
     gleich(namen2('#blocks-unten'), ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien']),
     JSON.stringify(namen2('#blocks-unten')));
@@ -24828,10 +25446,22 @@ async function pruefeOberflaeche() {
   pruefe('Einklappzustand wird serverseitig gespeichert',
     gespeichertB && gleich(gespeichertB.koerper.bloecke.zu, []), JSON.stringify(gespeichertB && gespeichertB.koerper.bloecke));
 
-  // Knoepfe in der Kopfzeile duerfen nicht einklappen
+  /* Knoepfe in der Kopfzeile duerfen nicht einklappen.
+     GENOMMEN WIRD SEIT 0.21.0 „Stimmen" und nicht mehr „Meine Bewertung
+     zuruecksetzen": den Knopf gibt es nicht mehr, und ein Ziel, das null ist,
+     riss den Lauf ab, statt eine Pruefung rot zu faerben (Stolperstein 103).
+     GENOMMEN WIRD DER ERKLAERKNOPF AN DER KOPFZAHL und nicht „Stimmen": den
+     gibt es nur beim Admin ab zwei Zugaengen, und diese Prueflage faehrt mit
+     einem. Der Erklaerknopf steht dort, sobald eine Kopfzahl dasteht -- und
+     sie steht.
+     ERST DER GEGENSTAND, DANN DIE ZUSAGE (Stolperstein 81): ohne den Knopf
+     bliebe die Zeile darunter gruen, ohne etwas zu belegen. */
   const bewertung = wb.document.querySelector('[data-block="bewertung"]');
   const vorher = bewertung.classList.contains('zu');
-  bewertung.querySelector('.block-head').onclick({ target: wb.document.getElementById('reset-r') });
+  const kopfKnopf = bewertung.querySelector('.block-head button');
+  pruefe('Die Prueflage traegt wirklich einen Knopf in der Kopfzeile', !!kopfKnopf,
+    bewertung.querySelector('.block-head').innerHTML.slice(0, 200));
+  bewertung.querySelector('.block-head').onclick({ target: kopfKnopf });
   pruefe('Knopf in der Kopfzeile klappt nicht mit ein',
     bewertung.classList.contains('zu') === vorher);
   bewertung.querySelector('.block-head').onclick({ target: bewertung.querySelector('.bgrip') });
@@ -24891,18 +25521,23 @@ async function pruefeOberflaeche() {
   wb.document.dispatchEvent(zeiger2('pointermove', 200));
   wb.document.dispatchEvent(zeiger2('pointerup', 200));
   await new Promise(r => setTimeout(r, 20));
+  /* VIER BLOECKE IN DER SEITENSPALTE SEIT 0.21.0 -- der Potenzialblock haengt
+     hinten, weil die gespeicherte Ordnung ihn nicht kennt (ordneBereich). Er
+     zieht mit wie jeder andere; die Zusagen darunter gelten unveraendert. */
   pruefe('Ziehen am Rumpf verschiebt nichts',
-    gleich(namen2('#blocks-seite'), ['bewertung', 'kategorie', 'tags']), JSON.stringify(namen2('#blocks-seite')));
+    gleich(namen2('#blocks-seite'), ['bewertung', 'kategorie', 'tags', 'potenzial']),
+    JSON.stringify(namen2('#blocks-seite')));
 
   seiteBloecke[0].querySelector('.bgrip').dispatchEvent(zeiger2('pointerdown', 0));
   wb.document.dispatchEvent(zeiger2('pointermove', 200));
   wb.document.dispatchEvent(zeiger2('pointerup', 200));
   await new Promise(r => setTimeout(r, 20));
   pruefe('Ziehen am Griff verschiebt den Block',
-    gleich(namen2('#blocks-seite'), ['kategorie', 'tags', 'bewertung']), JSON.stringify(namen2('#blocks-seite')));
+    gleich(namen2('#blocks-seite'), ['kategorie', 'tags', 'bewertung', 'potenzial']),
+    JSON.stringify(namen2('#blocks-seite')));
   const nachZug = bd.gesendet.filter(x => x.koerper && x.koerper.bloecke).pop();
   pruefe('Neue Reihenfolge wird serverseitig gespeichert',
-    nachZug && gleich(nachZug.koerper.bloecke.seite, ['kategorie', 'tags', 'bewertung']),
+    nachZug && gleich(nachZug.koerper.bloecke.seite, ['kategorie', 'tags', 'bewertung', 'potenzial']),
     JSON.stringify(nachZug && nachZug.koerper.bloecke.seite));
   pruefe('Bereiche bleiben getrennt',
     !nachZug.koerper.bloecke.seite.includes('kommentare') &&
@@ -25125,13 +25760,22 @@ async function pruefeOberflaeche() {
     eSpalten[0]?.title === 'Durchschnitt 3,4 aus 5 Stimmen', eSpalten[0]?.title);
   pruefe('Und die zweite Zeile traegt ihren eigenen Klartext',
     eSpalten[1]?.title === 'Durchschnitt 4,1 aus 128 Stimmen', eSpalten[1]?.title);
-  pruefe('Ein Kriterium ohne Stimme bekommt keinen Klartext',
-    !eSpalten[2]?.title, eSpalten[2]?.title);
+  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 hiess die Zeile „Ein
+     Kriterium ohne Stimme bekommt keinen Klartext" -- die Zelle war leer, also
+     gab es nichts zu erklaeren. Seit dieser Runde steht dort ein STRICH, und
+     ein Zeichen allein liest kein Vorleseprogramm vor: der Klartext gehoert
+     dazu, wie an der Zahl daneben. */
+  pruefe('Ein Kriterium ohne Stimme bekommt seinen eigenen Klartext',
+    eSpalten[2]?.title === 'noch niemand', eSpalten[2]?.title);
   pruefe('Der Schnitt steht mit Komma, nicht mit Punkt',
     !eSpalten.some(z => z.textContent.includes('.')),
     JSON.stringify(eSpalten.map(z => z.textContent)));
-  pruefe('Ein Kriterium ohne Stimme bleibt leer statt eine Null zu zeigen',
-    eSpalten[2]?.textContent === '', JSON.stringify(eSpalten[2]?.textContent));
+  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 blieb die Zelle LEER.
+     Sie traegt jetzt einen Strich -- und die Zusage dahinter ist unveraendert:
+     ausdruecklich KEINE NULL. „⌀ 0" waere eine Aussage ueber eine Bewertung,
+     die es nicht gibt; ein Strich sagt „noch niemand". */
+  pruefe('Ein Kriterium ohne Stimme zeigt einen Strich und ausdruecklich keine Null',
+    eSpalten[2]?.textContent === '–', JSON.stringify(eSpalten[2]?.textContent));
   // Die Sterne bleiben die EIGENEN -- 3 von 5, nicht 3,4.
   pruefe('Die Sterne zeigen weiterhin die eigene Bewertung',
     [...eDoc.querySelectorAll('#ratings .rrow')][0]
@@ -25140,9 +25784,21 @@ async function pruefeOberflaeche() {
   pruefe('Der Blockkopf traegt den Gesamtschnitt',
     /⌀\s*3,0/.test(eDoc.getElementById('rhead')?.textContent || ''),
     JSON.stringify(eDoc.getElementById('rhead')?.textContent));
-  pruefe('Der Ruecksetzer sagt, dass er nur meine Werte trifft',
-    /Meine Bewertung/.test(eDoc.getElementById('reset-r')?.textContent || ''),
+  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 hiess die Zeile „Der
+     Ruecksetzer sagt, dass er nur meine Werte trifft" und pruefte den Knopf
+     „Meine Bewertung zuruecksetzen" im Blockkopf. DEN GIBT ES NICHT MEHR --
+     zurueckgesetzt wird an der Zeile, ueber das × an den eigenen Sternen.
+     „Meine" braucht dort kein Wort: das × steht an MEINEN Sternen. */
+  pruefe('Der Kopf traegt keinen Ruecksetzer mehr',
+    !eDoc.getElementById('reset-r'),
     JSON.stringify(eDoc.getElementById('reset-r')?.textContent));
+  /* UND DAS × STEHT AN DER ZEILE, mit dem Klartext dazu. Ohne diese Zeile
+     bliebe die Verneinung darueber gruen, auch wenn es gar keinen Weg mehr
+     gaebe (Stolperstein 81). */
+  pruefe('Dafuer traegt jede Sternzeile ihr ×',
+    [...eDoc.querySelectorAll('#ratings .rrow')].every(z => !!z.querySelector('.sdel')),
+    JSON.stringify([...eDoc.querySelectorAll('#ratings .rrow')]
+      .map(z => !!z.querySelector('.sdel'))));
   // Angelegt wird nicht mehr am Eintrag. Das ist der eigentliche Umzug.
   pruefe('Am Eintrag gibt es kein Anlegefeld fuer Kriterien mehr',
     !eDoc.getElementById('newcrit'), 'newcrit steht noch in der Detailansicht');
@@ -25181,9 +25837,14 @@ async function pruefeOberflaeche() {
      am Aufrufknopf: bei einem einzigen Zugang waere die Ansicht der eigene
      Wert ein zweites Mal. Diese Lage ist Admin -- ohne sie waere die Halbierung
      der Bedingung von "nur der Admin" nicht zu unterscheiden. */
+  /* DIE GEGENPROBE STEHT SEIT 0.21.0 AN DER STERNZEILE und nicht mehr am
+     Ruecksetzer im Kopf -- den gibt es nicht mehr. Sie ist noetig, damit die
+     Verneinung nicht auch dann gruen bliebe, wenn der ganze Block fehlte
+     (Stolperstein 81): der Bewertungsblock steht da, seine Zeilen tragen ihr ×
+     -- nur der Aufruf des Admins fehlt. */
   pruefe('Bei einem Zugang gibt es den Aufruf gar nicht',
     eEinzeln.w.document.getElementById('rwho') === null &&
-    eEinzeln.w.document.getElementById('reset-r') !== null,
+    eEinzeln.w.document.querySelector('#ratings .rrow .sdel') !== null,
     'rwho steht im Blockkopf');
   eEinzeln.w.close();
 
@@ -25465,9 +26126,11 @@ async function pruefeOberflaeche() {
   const eKeinAdmin = baueDom(JSDOM, { hash: '#/item/1',
     einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
+  /* Dieselbe Gegenprobe wie eine Lage weiter oben, und aus demselben Grund
+     seit 0.21.0 an der Sternzeile statt am weggefallenen Ruecksetzer. */
   pruefe('Ohne Adminrolle gibt es den Aufruf gar nicht',
     eKeinAdmin.w.document.getElementById('rwho') === null &&
-    eKeinAdmin.w.document.getElementById('reset-r') !== null,
+    eKeinAdmin.w.document.querySelector('#ratings .rrow .sdel') !== null,
     'rwho steht im Blockkopf');
   // Und die Stimmen werden auch nicht abgerufen. Der Server verweigert es
   // ohnehin -- aber ein Abruf, der zuverlaessig ein 403 erzeugt, waere genau
@@ -28111,18 +28774,31 @@ async function pruefeOberflaeche() {
      zweiter kommt dazu: ein Loeschknopf gehoert nicht unter den
      Sicherungsknopf. Die beiden Vorgaenge sind gegenlaeufig und stuenden
      untereinander in derselben Kachel. */
+  /* EINUNDZWANZIG SEIT 0.21.0: „Potenzial: Kriterien" kommt dazu und steht
+     UNMITTELBAR HINTER „Bewertungskriterien" -- dieselbe Maschine, eine andere
+     Liste. Der Titel traegt das Wort aus dem Vokabular und einen DOPPELPUNKT:
+     zusammengesetzt wird es nirgends. */
   const ALLE_KARTEN = [
     'Zugang', 'Meine Sitzungen', 'Darstellung',
-    'Kategorien', 'Tags', 'Bewertungskriterien', 'Vokabular', 'Links', 'Suchanbieter', 'Papierkorb',
+    'Kategorien', 'Tags', 'Bewertungskriterien', 'Potenzial: Kriterien',
+    'Vokabular', 'Links', 'Suchanbieter', 'Papierkorb',
     'Zugänge', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
     'Kennzahlen', 'Bildablage', 'Sicherung', 'Alte Sicherungen', 'Export und Import',
     'Titel'];
-  pruefe('Die Eigentuemerin sieht alle zwanzig Karten',
+  pruefe('Die Eigentuemerin sieht alle einundzwanzig Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTEN: eine Karte, die still
   // verschwindet, faellt sonst niemandem auf.
-  pruefe('Und es sind wirklich zwanzig', ALLE_KARTEN.length === 20 && kEig.length === 20,
+  pruefe('Und es sind wirklich einundzwanzig', ALLE_KARTEN.length === 21 && kEig.length === 21,
     `${ALLE_KARTEN.length} erwartet, ${kEig.length} gezeichnet`);
+  /* UND DIE ZWEITE KRITERIENKARTE STEHT HINTER DER ERSTEN -- dieselbe
+     Nachbarschaftszusage wie bei „Alte Sicherungen" darunter, und aus
+     demselben Grund: die Zeile darueber faerbt sich auch bei einer
+     Verschiebung, diese hier sagt, WELCHE Nachbarschaft gemeint war. */
+  pruefe('Und "Potenzial: Kriterien" steht unmittelbar hinter "Bewertungskriterien"',
+    kEig.indexOf('Potenzial: Kriterien') === kEig.indexOf('Bewertungskriterien') + 1,
+    `Bewertungskriterien: ${kEig.indexOf('Bewertungskriterien')} · ` +
+    `Potenzial: Kriterien: ${kEig.indexOf('Potenzial: Kriterien')}`);
   /* UND SIE STEHT HINTER "SICHERUNG" -- die Reihenfolge ist geprueft und nicht
      zufaellig. Die Zeile darueber vergleicht die ganze Liste und faerbt sich
      auch bei einer Verschiebung; diese hier sagt, WELCHE Nachbarschaft
@@ -28150,7 +28826,7 @@ async function pruefeOberflaeche() {
   pruefe('Ein gewoehnlicher Benutzer bekommt nur die zwei, die etwas zu zeigen haben',
     gleich(reiterWorte(rUser), ['Persönlich', 'Bestand']), reiterWorte(rUser).join(' · '));
   pruefe('Und kein Abschnitt ist dabei leer',
-    dUser.reiter.length === 2 && kUser.length === 7,
+    dUser.reiter.length === 2 && kUser.length === 8,
     `${dUser.reiter.length} Reiter, ${kUser.length} Karten`);
   // Jeder Reiter traegt eine eigene Adresse -- ohne sie liesse sich keine
   // Einstellung verlinken, und die Zurueck-Taste braeche.
@@ -28201,9 +28877,12 @@ async function pruefeOberflaeche() {
      angezeigten Anbieternamen. Alles Selbstbezug, alles persoenlich. */
   /* SIEBEN SEIT 0.8.80: "Meine Sitzungen" ist persoenlich wie "Zugang" und
      steht deshalb JEDEM -- es ist kein Systembereich fuer Admins. */
-  pruefe('Ein gewoehnlicher Benutzer sieht sieben -- vier persoenliche, drei zum Nachsehen',
+  /* ACHT SEIT 0.21.0: „Potenzial: Kriterien" steht daneben, wie die drei
+     anderen Listen -- sichtbar fuer jeden, bedienbar nur fuer den Admin. Die
+     Namen sind die Auswahl, aus der jeder am Eintrag schoepft. */
+  pruefe('Ein gewoehnlicher Benutzer sieht acht -- vier persoenliche, vier zum Nachsehen',
     gleich(kUser, ['Zugang', 'Meine Sitzungen', 'Darstellung',
-                   'Kategorien', 'Tags', 'Bewertungskriterien', 'Links']),
+                   'Kategorien', 'Tags', 'Bewertungskriterien', 'Potenzial: Kriterien', 'Links']),
     kUser.join(' · '));
 
   /* Punkt fuer Punkt, weil eine Sammelpruefung nicht sagt, WELCHE Karte
@@ -28241,7 +28920,7 @@ async function pruefeOberflaeche() {
   const kAus = (await sysDurchgang(rAus)).karten;
   pruefe('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kAus.includes('Anfragen'), kAus.join(' · '));
-  pruefe('Und es sind auch dann zwanzig', kAus.length === 20 && gleich(kAus, ALLE_KARTEN),
+  pruefe('Und es sind auch dann einundzwanzig', kAus.length === 21 && gleich(kAus, ALLE_KARTEN),
     `${kAus.length} gezeichnet`);
   // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
   await sysAbschnitt(rAus.w, 'zugaenge');
@@ -29072,8 +29751,8 @@ async function pruefeOberflaeche() {
      einen zeigt. Waere hier nur der offene gezaehlt, stuende die Zahl drei da
      und die Pruefung belegte nichts ueber die uebrigen sechzehn. */
   const zkAlle = (await sysDurchgang(zkAus)).karten;
-  pruefe('Und die Zahl der Karten bleibt bei zwanzig',
-    zkAlle.length === 20, `${zkAlle.length}: ${zkAlle.join(' · ')}`);
+  pruefe('Und die Zahl der Karten bleibt bei einundzwanzig',
+    zkAlle.length === 21, `${zkAlle.length}: ${zkAlle.join(' · ')}`);
   await sysAbschnitt(zkAus.w, 'persoenlich');
   /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
      einem Knopf, den man erst druecken muss. */
@@ -32415,12 +33094,16 @@ async function pruefeOberflaeche() {
     /* Die Gewichte stehen wie im Mock: 1,5 · 1 · 0,5. Damit ist die
        Kopfzahl der Stellung "meine" gewichtet 4,6 und ungewichtet 4,5 -- die
        Prueflage unterscheidet die beiden Formeln also wirklich. */
+    /* DIE PHASE STEHT AN JEDER ZEILE, wie beim echten Server -- der Vergleich
+       teilt danach in seine Gruppen. Alle drei stehen im Kasten „nachher": das
+       ist die Lage nach der Migration, und an ihr haengt jede Zusage dieser
+       Gruppe, die aelter ist als 0.21.0. */
     ratings: [
-      { criterion_id: 7, name: 'Zuerst', value: 5, gewicht: 1.5, avg: 2, count: 3 },
-      { criterion_id: 8, name: 'Dann', value: 4, gewicht: 1, avg: 3, count: 2 },
-      { criterion_id: 9, name: 'Zuletzt', value: 0, gewicht: 0.5, avg: null, count: 0 }
+      { criterion_id: 7, name: 'Zuerst', value: 5, gewicht: 1.5, phase: 'nachher', avg: 2, count: 3 },
+      { criterion_id: 8, name: 'Dann', value: 4, gewicht: 1, phase: 'nachher', avg: 3, count: 2 },
+      { criterion_id: 9, name: 'Zuletzt', value: 0, gewicht: 0.5, phase: 'nachher', avg: null, count: 0 }
     ],
-    avgRating: 2.5, testCount: 3, testAvg: 4, testLast: 3
+    avgRating: 2.5, potenzialRating: null, testCount: 3, testAvg: 4, testLast: 3
   };
   const zweiKarten = [
     { id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false, category: null,
@@ -32454,7 +33137,13 @@ async function pruefeOberflaeche() {
   const cmpSpalte = (n) => wVgl.document.querySelectorAll('.cmp-col')[n];
   const cmpZeilen = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-crit')]
     .map(z => z.lastElementChild.textContent.trim());
-  const cmpKopf = (n) => cmpSpalte(n).querySelector('.cmp-schnitt').textContent.trim();
+  /* DIE KOPFZAHL STEHT SEIT 0.21.0 AN DER TRENNZEILE IHRES KASTENS und nicht
+     mehr als einzelne Zeile ueber der Spalte -- mit zwei Kaesten liesse die
+     offen, welchen der beiden sie meint. Diese Prueflage traegt nur
+     Nachher-Kriterien, also gibt es genau eine Gruppe; ihre Zahl steht rechts
+     in der Trennzeile. */
+  const cmpGruppen = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-gruppe')];
+  const cmpKopf = (n) => cmpGruppen(n)[0].lastElementChild.textContent.trim();
   const cmpBeste = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-crit')]
     .map(z => !!z.querySelector('.cmp-best'));
   const cmpSicht = (wert) => wVgl.document.querySelector(`#cmp-sicht [data-sicht="${wert}"]`);
@@ -32472,7 +33161,7 @@ async function pruefeOberflaeche() {
     gleich(cmpZeilen(1), ['2 / 5', '3 / 5', '–', '3']),
     JSON.stringify([cmpZeilen(0), cmpZeilen(1)]));
   pruefe('Und die Kopfzeile denselben Schnitt',
-    gleich([cmpKopf(0), cmpKopf(1)], ['★ 3,0 Durchschnitt', '★ 2,5 Durchschnitt']),
+    gleich([cmpKopf(0), cmpKopf(1)], ['⌀ 3,0', '⌀ 2,5']),
     JSON.stringify([cmpKopf(0), cmpKopf(1)]));
   pruefe('Der beste Wert je Kriterium ist hervorgehoben',
     gleich(cmpBeste(0), [true, true, false, false]) &&
@@ -32505,9 +33194,9 @@ async function pruefeOberflaeche() {
      Rueckbauten dieselbe Punktliste rot -- und dann pruefen sie dieselbe Sache
      (Stolperstein 72). */
   pruefe('Und die Kopfzeile schaltet mit',
-    cmpKopf(1) !== '★ 2,5 Durchschnitt', cmpKopf(1));
+    cmpKopf(1) !== '⌀ 2,5', cmpKopf(1));
   pruefe('Sie zeigt das Mittel der eigenen Werte, ohne die Nullen',
-    gleich([cmpKopf(0), cmpKopf(1)], ['★ 3,0 Durchschnitt', '★ 4,6 Durchschnitt']),
+    gleich([cmpKopf(0), cmpKopf(1)], ['⌀ 3,0', '⌀ 4,6']),
     JSON.stringify([cmpKopf(0), cmpKopf(1)]));
   /* DIE ZWEITE RECHENSTELLE IST EBENSO GEWICHTET WIE DIE ERSTE. Bliebe sie
      ungewichtet, stuende hier 4,5 -- und der Umschalter zeigte zwei Zahlen
@@ -32519,7 +33208,7 @@ async function pruefeOberflaeche() {
   const cmpUngewichtet = (5 + 4) / 2;
   const cmpGewichtet = Math.round(((5 * 1.5 + 4 * 1) / (1.5 + 1)) * 10) / 10;
   pruefe('Die eigene Zahl ist gewichtet, nicht das flache Mittel',
-    cmpKopf(1) === `★ ${cmpGewichtet.toFixed(1).replace('.', ',')} Durchschnitt` &&
+    cmpKopf(1) === `⌀ ${cmpGewichtet.toFixed(1).replace('.', ',')}` &&
     cmpGewichtet !== cmpUngewichtet,
     `${cmpKopf(1)} — gewichtet ${cmpGewichtet}, ungewichtet ${cmpUngewichtet}`);
   /* Der Nenner zaehlt nur die Kriterien, die ICH bewertet habe. "Zuletzt"
@@ -32527,7 +33216,7 @@ async function pruefeOberflaeche() {
      stuende hier 11,5 / 3 = 3,8 -- die eigene Zahl laege unter der ueber alle,
      ohne dass es an den Werten laege. */
   pruefe('Ein Kriterium ohne eigenen Wert bringt sein Gewicht nicht in den Nenner',
-    cmpKopf(1) !== '★ 3,8 Durchschnitt', cmpKopf(1));
+    cmpKopf(1) !== '⌀ 3,8', cmpKopf(1));
   /* Die Marke am Kriterium: ×1,5 und ×0,5 stehen an ihren Zeilen, an der Zeile
      mit Gewicht 1 steht nichts. Ableitung, kein Schalter. */
   const cmpMarken = [...cmpSpalte(0).querySelectorAll('.cmp-crit .cn')]
@@ -32550,6 +33239,55 @@ async function pruefeOberflaeche() {
   pruefe('Die Zeile darueber sagt, was gezeigt wird',
     /eigenen Werte/.test(wVgl.document.getElementById('cmp-hint').textContent),
     wVgl.document.getElementById('cmp-hint').textContent);
+
+  /* ---- ZWEI GRUPPEN, WENN ES ZWEI KAESTEN GIBT -- 0.21.0 ----
+     Die Prueflage darueber traegt nur Nachher-Kriterien, also genau EINE
+     Gruppe. Hier bekommt der erste Eintrag ein Vorher-Kriterium; der zweite
+     behaelt seine drei Nachher-Zeilen. Damit laesst sich beides zeigen: dass
+     die Gruppen entstehen, und dass eine LEERE Gruppe gar nicht gezeichnet
+     wird -- eine Ueberschrift ueber null Zeilen sagt nichts. */
+  const cmpZwei = baueDom(JSDOM, { hash: '', uebersichtItems: zweiKarten,
+    zweiterEintrag: zweit, kriterienPhasen: ['nachher', 'nachher', 'vorher'],
+    einstellungen: { filters: null, benutzerZahl: 3 } });
+  await new Promise(r => setTimeout(r, 100));
+  [...cmpZwei.w.document.querySelectorAll('.pick-box')].forEach(k =>
+    k.dispatchEvent(new cmpZwei.w.MouseEvent('click', { bubbles: true })));
+  await new Promise(r => setTimeout(r, 40));
+  const cmpZweiLeiste = cmpZwei.w.document.querySelector('.cmp-bar .btn');
+  if (cmpZweiLeiste) cmpZweiLeiste.dispatchEvent(new cmpZwei.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 140));
+  const zSpalte = (n) => cmpZwei.w.document.querySelectorAll('.cmp-col')[n];
+  const zGruppen = (n) => [...zSpalte(n).querySelectorAll('.cmp-gruppe')]
+    .map(g => `${g.firstElementChild.textContent.trim()}|${g.lastElementChild.textContent.trim()}`);
+  pruefe('Der Vergleich zeigt zwei Gruppen, vorher vor nachher',
+    gleich(zGruppen(0), ['Potenzial|⌀ 4,2', 'Bewertung|⌀ 3,0']), JSON.stringify(zGruppen(0)));
+  /* UND JEDE GRUPPE TRAEGT NUR IHRE ZEILEN. Ohne diese Zeile bliebe die
+     Ueberschrift richtig und der Inhalt darunter falsch. */
+  const zNamen = [...zSpalte(0).querySelectorAll('.cmp-gruppe, .cmp-crit')]
+    .map(e => (e.classList.contains('cmp-gruppe') ? '# ' : '') +
+              e.firstElementChild.textContent.trim().split(' ')[0]);
+  pruefe('Und unter jeder Trennzeile stehen nur ihre Kriterien',
+    gleich(zNamen, ['# Potenzial', 'Zuletzt', '# Bewertung', 'Zuerst', 'Dann', 'Testtage']),
+    JSON.stringify(zNamen));
+  /* DER ZWEITE EINTRAG HAT KEIN VORHER-KRITERIUM BEWERTET -- seine
+     Potenzialgruppe steht trotzdem da (das Kriterium gibt es), und ihre
+     Kopfzahl ist ein STRICH und keine 0. */
+  pruefe('Ein Eintrag ohne Sterne in einer Gruppe zeigt dort einen Strich',
+    zGruppen(1)[0] === 'Potenzial|–', JSON.stringify(zGruppen(1)));
+  /* UND eigenerSchnitt() MISCHT DIE KAESTEN NICHT. In der Stellung „meine"
+     rechnet der Browser selbst -- die einzige zweite Rechenstelle. Der erste
+     Eintrag traegt in allen drei Zeilen den eigenen Wert 3: die Bewertung
+     gewichtet 3,0 aus zwei Zeilen, das Potenzial 3,0 aus einer. Ueber alle
+     drei zusammen waere es ebenfalls 3,0 -- deshalb sagt die Zahl hier nichts,
+     und geprueft wird der ZWEITE Eintrag: er hat im Potenzialkasten KEINEN
+     eigenen Stern (Zuletzt steht auf 0), also bleibt dort der Strich, waehrend
+     die Bewertung 4,6 zeigt. Eine gemischte Rechnung koennte das nicht. */
+  const zSicht = cmpZwei.w.document.querySelector('#cmp-sicht [data-sicht="meine"]');
+  zSicht.dispatchEvent(new cmpZwei.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('In Stellung „meine" rechnet jede Gruppe fuer sich',
+    gleich(zGruppen(1), ['Potenzial|–', 'Bewertung|⌀ 4,6']), JSON.stringify(zGruppen(1)));
+  cmpZwei.w.close();
 
   /* ANSICHTSZUSTAND, KEINE EINSTELLUNG: der Umschalter schreibt nichts an den
      Server. Ginge er dorthin, waere er eine zweite Wahrheit ueber dieselben
@@ -33709,7 +34447,7 @@ async function pruefeOberflaeche() {
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
   // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   pruefe('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPakete.every(p => p.version === 12), JSON.stringify(tlPakete.map(p => p.version)));
+    tlPakete.every(p => p.version === 13), JSON.stringify(tlPakete.map(p => p.version)));
   pruefe('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPakete.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPakete.flatMap(p => p.items.map(i => i.title))).size === 6,
@@ -34884,8 +35622,13 @@ async function pruefeOberflaeche() {
   const slZahlen = slZeilen.map(z => z.querySelector('.ravg')?.textContent ?? '(keine Zelle)');
   pruefe('Die Prueflage traegt drei Kriterienzeilen',
     slZeilen.length === 3, `${slZeilen.length}`);
+  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 stand hier `=== ''`
+     -- die Zelle war da und leer. Seit dieser Runde traegt sie einen STRICH.
+     Die Zusage dahinter ist unveraendert: die Zelle ist da, auch wo niemand
+     bewertet hat. Was sich geaendert hat, ist ihr Inhalt, und der Grund steht
+     in der Gruppe „Die Sternzeile — 0.21.0". */
   pruefe('Eine davon hat keine Bewertung und traegt trotzdem ihre Zelle',
-    slZahlen[2] === '', JSON.stringify(slZahlen));
+    slZahlen[2] === '–', JSON.stringify(slZahlen));
   pruefe('Und eine traegt eine dreistellige Stimmenzahl',
     /\(\d{3}\)$/.test(slZahlen[1] || ''), JSON.stringify(slZahlen));
   pruefe('Die beiden Zahlen sind wirklich verschieden lang',
@@ -34906,12 +35649,21 @@ async function pruefeOberflaeche() {
   pruefe('Die Zahl steckt ausdruecklich NICHT mehr in den Sternen',
     slZeilen.every(z => !z.querySelector('.racts .ravg')),
     JSON.stringify(slZeilen.map(z => !!z.querySelector('.racts .ravg'))));
-  /* UND KEIN TEXT IN DER LEEREN ZELLE. Neben fuenf leeren Sternen waere
-     "noch keine Bewertung" dieselbe Aussage zweimal -- die Begruendung steht
-     seit jeher im Quelltext daneben und gilt weiter. */
-  pruefe('Die leere Zelle bleibt leer und bekommt keinen Ersatztext',
-    slZahlen[2] === '' && !slZeilen[2]?.querySelector('.ravg')?.title,
+  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74), und der Satz davor bleibt stehen
+     (Stolperstein 201): bis 0.20.1 hiess die Zeile „Die leere Zelle bleibt
+     leer und bekommt keinen Ersatztext", mit der Begruendung, neben fuenf
+     leeren Sternen waere „noch keine Bewertung" dieselbe Aussage zweimal.
+     DAS GILT FUER EINEN SATZ. Ein STRICH ist keiner, sondern der Platz, der
+     der Zahl gehoert -- und er sagt „noch niemand". Der Klartext steht wie an
+     der Zahl daneben im `title`: ein Zeichen allein liest kein Vorleseprogramm
+     vor. */
+  pruefe('Die leere Zelle traegt einen Strich und den Klartext dazu',
+    slZahlen[2] === '–' && slZeilen[2]?.querySelector('.ravg')?.title === 'noch niemand',
     JSON.stringify([slZahlen[2], slZeilen[2]?.querySelector('.ravg')?.title]));
+  /* UND KEINEN SATZ. Die Verneinung von damals gilt weiter und wird deshalb
+     weiter geprueft -- nur an dem, was sie wirklich meinte. */
+  pruefe('Und ausdruecklich keinen Satz',
+    (slZahlen[2] || '').length === 1, JSON.stringify(slZahlen[2]));
   slDom.w.close();
 
   /* DIE REGELN IM STILBLATT. Gepruefft wird die Wirkung und nicht der
@@ -34930,18 +35682,28 @@ async function pruefeOberflaeche() {
     slListe || '(keine Regel)');
   pruefe('Die Zeile ist kein eigener Kasten mehr, sondern gibt ihre Zellen frei',
     /display: contents/.test(slRow), slRow || '(keine Regel)');
-  /* DER KERN: keine Zahl mehr an der Spalte. Weder eine Mindestbreite noch
-     irgendein anderes festes Mass -- die Spalte misst sich an ihrer
-     breitesten Zelle, und das ist der ganze Unterschied zu vorher. */
-  pruefe('Die Zahlenspalte traegt keine Mindestbreite mehr',
-    !/min-width/.test(slAvg), slAvg || '(keine Regel)');
-  /* UND UEBERHAUPT KEINE BREITE. Der Innenabstand bleibt in Pixeln, und das
-     ist richtig: er ist ein Abstand und keine Ausrichtung -- jede Zelle
-     bekommt denselben, bei 80 wie bei 120 Prozent. Das Stilblatt sagt es
-     selbst am Grundmass der Schrift: "Layoutmasse bleiben absichtlich in
-     Pixeln". Was hier nicht mehr stehen darf, ist eine BREITE. */
-  pruefe('Und ueberhaupt keine Breite',
-    !/(^|[^-])width:/.test(slAvg.replace('.rrow .ravg {', '')), slAvg || '(keine Regel)');
+  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74). Bis 0.20.1 stand hier: „keine
+     Zahl mehr an der Spalte, weder eine Mindestbreite noch irgendein anderes
+     festes Mass -- die Spalte misst sich an ihrer breitesten Zelle." Der Satz
+     stimmte fuer sich und uebersah den Fall, in dem die Liste GAR KEINE Zahl
+     traegt: dann ist die Spalte null Pixel breit, und der erste Stern laesst
+     sie aufgehen.
+     SEIT DIESER RUNDE GILT BEIDES: die Spalte misst sich weiter an ihrer
+     breitesten Zelle, faellt aber nicht mehr unter die Hausform „⌀ 4,2 (9)".
+     GEMESSEN UND NICHT GESCHAETZT: 65,03 px bei Schriftstufe 100 (Wurzelschrift
+     15) und 77,98 px bei 120 (Wurzelschrift 18), in der Festbreitenschrift in
+     Chromium -- 65,03 / 15 = 4,335, also 4,34rem. Die 9 px Innenabstand kommen
+     dazu, weil box-sizing global auf border-box steht. */
+  pruefe('Die Zahlenspalte traegt wieder eine Mindestbreite -- und zwar eine gemessene',
+    /min-width: calc\(4\.34rem \+ 9px\)/.test(slAvg), slAvg || '(keine Regel)');
+  /* IN rem UND NICHT IN PIXELN, und das ist der Kern: die Instanz stellt ihre
+     Schrift von 80 bis 120 Prozent. Eine feste Pixelzahl reichte bei 120
+     nicht mehr -- dieselbe Ueberlegung wie beim Deckel der Sicherungsliste
+     (13.98rem, 0.20.1). Der Innenabstand bleibt in Pixeln: er ist ein Abstand
+     und keine Ausrichtung. */
+  pruefe('Und sie steht in rem, damit sie der Schriftstufe folgt',
+    /min-width:[^;]*rem/.test(slAvg) && !/min-width: *\d+px/.test(slAvg),
+    slAvg || '(keine Regel)');
   /* DIE GEGENPROBE ZUR REGEL: dass ueberhaupt noch eine Regel dasteht. Ohne
      sie waeren die beiden Verneinungen darueber gruen an einer Zeile, die es
      gar nicht mehr gibt (Stolperstein 81). */
@@ -35005,6 +35767,480 @@ async function pruefeOberflaeche() {
      kommen als echte Kindknoten aus dem Aufbau, die Spalten aus der Regel im
      Stilblatt, die auf genau diese Klassen zutrifft. Ein Rueckbau, der die
      Klasse setzt und die Regel wegnimmt, wird damit trotzdem rot. */
+  /* ================= Die Sternzeile — 0.21.0 =================
+     Drei Dinge an derselben Zeile, und sie gelten in beiden Kaesten: das ×
+     hinter den fuenf Sternen, der Strich in der leeren Durchschnittszelle und
+     der kurze Kopf. Die Mindestbreite dahinter steht in der Gruppe darueber,
+     wo sie hingehoert -- sie ist eine Regel im Stilblatt. */
+  gruppe('Die Sternzeile — 0.21.0');
+
+  {
+    const szDom = baueDom(JSDOM, { hash: '#/item/1',
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const szDoc = szDom.w.document;
+    const szZeilen = [...szDoc.querySelectorAll('#ratings .rrow')];
+    /* ERST DER GEGENSTAND (Stolperstein 81): die Prueflage braucht eine Zeile
+       MIT eigenem Stern und eine OHNE -- sonst kann sie den Unterschied
+       zwischen sichtbar und unsichtbar gar nicht tragen. Die Vorgabe des
+       Mocks gibt allen dreien den eigenen Wert 3; die dritte wird hier
+       ausdruecklich auf 0 gestellt. */
+    const szNull = baueDom(JSDOM, { hash: '#/item/1', eigeneWerte: [3, 3, 0],
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const szNullZeilen = [...szNull.w.document.querySelectorAll('#ratings .rrow')];
+
+    pruefe('Das × steht in jeder Sternzeile mit Ruecksetzer im Dokument',
+      szZeilen.length === 3 && szZeilen.every(z => !!z.querySelector('.stars .sdel')),
+      JSON.stringify(szZeilen.map(z => !!z.querySelector('.stars .sdel'))));
+    /* BEI EINEM EIGENEN STERN SICHTBAR, BEI KEINEM UNSICHTBAR -- und zwar
+       ueber eine Klasse, die `visibility` setzt, NICHT ueber `hidden`.
+       Der Unterschied ist der ganze Punkt: `hidden` ist `display: none` und
+       naehme dem × seinen Platz; die Sterne rutschten dann beim ERSTEN Stern
+       nach links -- genau der Sprung, den dieselbe Runde abschafft. */
+    pruefe('Bei eigenem Stern ist es sichtbar',
+      szZeilen.slice(0, 2).every(z => !z.querySelector('.sdel').classList.contains('leer')),
+      JSON.stringify(szZeilen.map(z => z.querySelector('.sdel')?.className)));
+    pruefe('Ohne eigenen Stern ist es unsichtbar, behaelt aber seinen Platz',
+      szNullZeilen[2]?.querySelector('.sdel')?.classList.contains('leer') === true &&
+      szNullZeilen[2]?.querySelector('.sdel')?.hidden === false,
+      JSON.stringify([szNullZeilen[2]?.querySelector('.sdel')?.className,
+                      szNullZeilen[2]?.querySelector('.sdel')?.hidden]));
+    /* UND DIE REGEL DAZU IM STILBLATT: `visibility: hidden` und ausdruecklich
+       nicht `display: none`. Ohne diese Zeile bliebe die Zusage darueber auch
+       dann gruen, wenn die Klasse den Platz doch naehme (Stolperstein 223). */
+    const szRegel = regel123('.stars .sdel.leer');
+    pruefe('Und die Regel nimmt ihm die Sichtbarkeit, nicht seinen Platz',
+      /visibility: hidden/.test(szRegel) && !/display: none/.test(szRegel),
+      szRegel || '(keine Regel)');
+    /* SO BREIT WIE EIN STERN. Der Platz gehoert ihm auch dann, wenn es nichts
+       zu tun gibt -- ein × ist schmaler als ein ★. */
+    pruefe('Es ist so breit wie ein Stern',
+      /width: 1\.2rem/.test(regel123('.stars .sdel')), regel123('.stars .sdel') || '(keine Regel)');
+    /* UND AUF DEM FINGER GROESSER, wie die uebrigen Kreuze. Es sitzt
+       unmittelbar neben dem fuenften Stern; wer danebentrifft, vergibt fuenf
+       Sterne, statt seinen zu entfernen. */
+    pruefe('Auf Beruehrungsgeraeten ist die Trefflaeche mindestens 32 Bildpunkte',
+      /\.stars \.sdel \{ width: 32px; height: 32px/.test(css123),
+      (css123.match(/\.stars \.sdel \{[^}]*\}/g) || []).join(' | '));
+
+    /* EIN TIPP SCHICKT `PUT` MIT 0 -- UND NICHTS ANDERES. Das ist die
+       eigentliche Zusage der Wegnahme: die Sammelroute ist weg, und der Weg,
+       der geblieben ist, geht ueber dieselbe Route wie das Setzen. */
+    szDom.gesendet.length = 0;
+    szZeilen[0].querySelector('.sdel')
+      .dispatchEvent(new szDom.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    const szRufe = szDom.gesendet.filter(g => /\/ratings/.test(g.url));
+    pruefe('Ein Tipp auf das × schickt PUT mit value 0 — und nichts anderes',
+      szRufe.length === 1 && szRufe[0].methode === 'PUT' && szRufe[0].koerper?.value === 0 &&
+      szRufe[0].koerper?.criterionId === 7,
+      JSON.stringify(szRufe));
+    pruefe('Und es geht kein DELETE hinaus',
+      !szDom.gesendet.some(g => g.methode === 'DELETE'),
+      JSON.stringify(szDom.gesendet.filter(g => g.methode === 'DELETE')));
+
+    /* DER DOPPELKLICK TUT NICHTS MEHR. Er war der versteckte zweite Weg, mit
+       einem Hinweis, den kein Telefon je zeigt -- beides ist weg. */
+    szDom.gesendet.length = 0;
+    szZeilen[1].querySelector('.stars')
+      .dispatchEvent(new szDom.w.MouseEvent('dblclick', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Ein Doppelklick auf die Sterne tut nichts mehr',
+      szDom.gesendet.length === 0, JSON.stringify(szDom.gesendet));
+    pruefe('Und die Sternreihe traegt keinen Ueberfahrtext mehr',
+      !szZeilen[1].querySelector('.stars').title,
+      JSON.stringify(szZeilen[1].querySelector('.stars').title));
+
+    /* `stars()` OHNE RUECKSETZER HAT KEIN ×. Die Testtage und jede reine
+       Lesestelle rufen ohne -- ein Kreuz, das nichts taete, waere schlimmer
+       als keins. */
+    const szTest = [...szDoc.querySelectorAll('#tstars .stars, .ttag .stars, .tdrow .stars')];
+    pruefe('Eine Sternreihe ohne Ruecksetzer traegt kein ×',
+      szTest.length > 0 && szTest.every(t => !t.querySelector('.sdel')),
+      `${szTest.length} Reihen ohne Ruecksetzer, davon mit ×: ` +
+      szTest.filter(t => t.querySelector('.sdel')).length);
+
+    /* DER KOPF IST KURZ. „Meine Bewertung zuruecksetzen" ist weg -- samt der
+       Route dahinter --, und „Wer hat bewertet" heisst „Stimmen". */
+    pruefe('Die Kopfzeile traegt keinen Knopf zum Zuruecksetzen mehr',
+      !szDoc.getElementById('reset-r') && !szDoc.querySelector('[id$="reset-r"]'),
+      JSON.stringify(szDoc.getElementById('reset-r')?.textContent));
+    pruefe('Und der Knopf des Admins heisst in beiden Koepfen „Stimmen"',
+      szDoc.getElementById('rwho')?.textContent.trim() === 'Stimmen' &&
+      szDoc.getElementById('pwho')?.textContent.trim() === 'Stimmen',
+      JSON.stringify([szDoc.getElementById('rwho')?.textContent,
+                      szDoc.getElementById('pwho')?.textContent]));
+
+    /* UND DIE ZEILE WIRD AUF DEM TELEFON ZWEIZEILIG. Drei Spalten passen auf
+       360 Bildpunkte nicht mehr, seit das × und die Mindestbreite dazugekommen
+       sind. Der Name geht ueber die ganze Breite, darunter Sterne und Zahl;
+       die Trennlinie liegt unter der ZWEITEN Zeile. */
+    const szTel = (css123.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*/) || [''])[0];
+    pruefe('Auf dem Telefon geht der Name ueber die ganze Breite',
+      /\.rlist:not\(\.ohne-schnitt\) \.rrow \.rname \{[^}]*grid-column: 1 \/ -1/.test(szTel),
+      (szTel.match(/\.rlist:not\(\.ohne-schnitt\) \.rrow \.rname \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('Und die Trennlinie liegt nicht unter ihm, sondern unter der zweiten Zeile',
+      /\.rlist:not\(\.ohne-schnitt\) \.rrow \.rname \{[^}]*border-bottom: none/.test(szTel),
+      (szTel.match(/\.rlist:not\(\.ohne-schnitt\) \.rrow \.rname \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /* BEI EINEM EINZIGEN ZUGANG AENDERT SICH NICHTS -- dort gibt es die
+       Durchschnittsspalte gar nicht, also auch keine Mindestbreite, und dem
+       Namen bleibt Platz. Der Befund ist der DREISPALTIGE Fall. */
+    pruefe('Bei einem einzigen Zugang bleibt die Zeile einzeilig',
+      /\.rlist:not\(\.ohne-schnitt\) \{ grid-template-columns: auto 1fr/.test(szTel),
+      (szTel.match(/\.rlist[^{]*\{ grid-template-columns[^}]*\}/g) || []).join(' | '));
+
+    szDom.w.close(); szNull.w.close();
+  }
+
+  /* ================= Zwei Kaesten in der Oberflaeche — 0.21.0 =============
+     Der zweite Sternkasten, der Einklappzustand nach dem Zustand des
+     Eintrags, die Kachel, die Sortierung, der Vergleich und die zweite Karte
+     im Systembereich. */
+  gruppe('Zwei Kaesten in der Oberflaeche — 0.21.0');
+
+  {
+    /* ERST DER GEGENSTAND (Stolperstein 81): eine Prueflage mit einem
+       Kriterium im Kasten „vorher" und zweien im Kasten „nachher". Ohne sie
+       truege keine Zusage darunter einen Fall, auf den sie zutraefe -- die
+       Vorgabe des Mocks kennt nur Bewertungskriterien.
+       DAS VORHER-KRITERIUM STEHT AN DRITTER STELLE, nicht an erster: nur so
+       laesst sich sehen, dass der Zeichner nach PHASE filtert und nicht nach
+       Position. */
+    const zkPhasen = ['nachher', 'nachher', 'vorher'];
+    /* UND DIE DRITTE ZEILE BEKOMMT EINEN SCHNITT. Die Vorgabe des Mocks laesst
+       sie leer -- das ist dort die Lage „ein Kriterium, das niemand bewertet
+       hat" --, und ein Rechenweg ueber null Zeilen gibt es nicht: der
+       Erklaerknopf stuende gar nicht da. Erst der Gegenstand, dann die Zusage
+       (Stolperstein 81). */
+    const zkGetestet = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      stimmspalten: [{ avg: 3.4, count: 5 }, { avg: 4.1, count: 128 }, { avg: 4.2, count: 2 }],
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const zkDoc = zkGetestet.w.document;
+
+    /* DER NEUE BLOCK STEHT VOR DEM BEWERTUNGSBLOCK -- geschaetzt wird, bevor
+       bewertet wird, und die Anordnung sagt es. */
+    const zkNamen = [...zkDoc.querySelectorAll('#blocks-seite .block[data-block]')]
+      .map(b => b.dataset.block);
+    pruefe('Der Potenzialblock steht vor dem Bewertungsblock',
+      zkNamen.indexOf('potenzial') >= 0 &&
+      zkNamen.indexOf('potenzial') < zkNamen.indexOf('bewertung'),
+      JSON.stringify(zkNamen));
+
+    /* JEDER KASTEN ZEIGT NUR SEINE ZEILEN. Zwei Kaesten mit denselben Zeilen
+       waeren dieselbe Sternzeile zweimal, unter zwei verschiedenen
+       Kopfzahlen. */
+    const zkNach = [...zkDoc.querySelectorAll('#ratings .rname')].map(e => e.firstChild.textContent.trim());
+    const zkVor = [...zkDoc.querySelectorAll('#potenzial-ratings .rname')].map(e => e.firstChild.textContent.trim());
+    pruefe('Der Bewertungskasten zeigt nur seine beiden Zeilen',
+      gleich(zkNach, ['Zuerst', 'Dann']), JSON.stringify(zkNach));
+    pruefe('Der Potenzialkasten zeigt nur seine eine',
+      gleich(zkVor, ['Zuletzt']), JSON.stringify(zkVor));
+
+    /* ZWEI KOPFZAHLEN, ZWEI ERKLAERKNOEPFE. Die Zahlen sind verschieden -- 3
+       gegen 4,2 --, sonst koennte die Prueflage eine Vermischung gar nicht
+       zeigen (Stolperstein 189). */
+    pruefe('Jeder Kasten traegt seine eigene Kopfzahl',
+      /⌀ 3,0/.test(zkDoc.getElementById('rhead')?.textContent || '') &&
+      /⌀ 4,2/.test(zkDoc.getElementById('phead')?.textContent || ''),
+      JSON.stringify([zkDoc.getElementById('rhead')?.textContent,
+                      zkDoc.getElementById('phead')?.textContent]));
+    /* UND DER ERKLAERKNOPF ZEIGT DEN RECHENWEG SEINES KASTENS. Ohne diese
+       Zeile bliebe die Kopfzahl richtig und die Erklaerung dahinter falsch
+       (Stolperstein 217). */
+    zkDoc.getElementById('pgew-auf')?.dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const zkRechnung = zkDoc.getElementById('rechnung-modal');
+    const zkRechenZeilen = [...(zkRechnung?.querySelectorAll('.rz[data-krit]') || [])]
+      .map(z => z.querySelector('.rz-name').textContent.trim());
+    pruefe('Der Erklaerknopf des Potenzials zeigt nur dessen Zeile',
+      gleich(zkRechenZeilen, ['Zuletzt']), JSON.stringify(zkRechenZeilen));
+    zkRechnung?.closest('.backdrop')?.remove();
+
+    /* DER EINKLAPPZUSTAND FOLGT DEM ZUSTAND DES EINTRAGS. Der Mockeintrag
+       steht auf `tested: true`: Bewertung offen, Potenzial zu. */
+    const zkZu = (name) => zkDoc.querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
+    pruefe('An einem getesteten Eintrag steht die Bewertung offen und das Potenzial zu',
+      zkZu('bewertung') === false && zkZu('potenzial') === true,
+      JSON.stringify([zkZu('bewertung'), zkZu('potenzial')]));
+    /* UND DIE KURZFASSUNG IM KOPF DES ZUGEKLAPPTEN NENNT SEINE ZAHL -- so
+       sieht man nach einem halben Jahr, ob das, was man am meisten wollte,
+       auch das Beste war. */
+    pruefe('Und der zugeklappte Kopf nennt seine Zahl',
+      /⌀ 4,2/.test(zkDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent || ''),
+      JSON.stringify(zkDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent));
+
+    /* EIN KLICK AUF DEN KOPF IST EIN BLICK UND KEIN BEFEHL: er klappt auf und
+       schickt NICHTS an den Server. Das ist der Unterschied zu jedem anderen
+       Block, und er ist der Kern von Abschnitt 4.3. */
+    zkGetestet.gesendet.length = 0;
+    zkDoc.querySelector('.block[data-block="potenzial"] .block-head')
+      .dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein Klick auf den Kopf klappt auf',
+      zkZu('potenzial') === false, JSON.stringify(zkZu('potenzial')));
+    pruefe('Und loest kein PUT /api/settings aus',
+      !zkGetestet.gesendet.some(g => g.url === '/api/settings'),
+      JSON.stringify(zkGetestet.gesendet));
+    /* DIE GEGENPROBE: ein gewoehnlicher Block speichert weiter. Ohne sie
+       bliebe die Zeile darueber auch dann gruen, wenn gar nichts mehr
+       gespeichert wuerde (Stolperstein 81). */
+    zkGetestet.gesendet.length = 0;
+    zkDoc.querySelector('.block[data-block="tags"] .block-head')
+      .dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein gewoehnlicher Block speichert dagegen weiter',
+      zkGetestet.gesendet.some(g => g.url === '/api/settings' && g.koerper?.bloecke),
+      JSON.stringify(zkGetestet.gesendet.map(g => g.url)));
+    zkGetestet.w.close();
+
+    /* AN EINEM UNGETESTETEN EINTRAG IST ES UMGEKEHRT. */
+    const zkIdee = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      eigeneWerte: [0, 0, 4], stimmspalten: [{ avg: null, count: 0 }, { avg: null, count: 0 }, { avg: 4.2, count: 2 }],
+      ungetestet: true,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const zkIdeeZu = (name) => zkIdee.w.document
+      .querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
+    pruefe('An einer Idee ohne Bewertungssterne steht das Potenzial offen und die Bewertung zu',
+      zkIdeeZu('potenzial') === false && zkIdeeZu('bewertung') === true,
+      JSON.stringify([zkIdeeZu('potenzial'), zkIdeeZu('bewertung')]));
+    /* DER SCHALTER LEERT DEN BLICK. Nach dem Umlegen steht der richtige
+       Kasten offen, ohne dass jemand klickt. */
+    zkIdee.w.document.querySelector('.block[data-block="bewertung"] .block-head')
+      .dispatchEvent(new zkIdee.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein Blick klappt die Bewertung an der Idee auf',
+      zkIdeeZu('bewertung') === false, JSON.stringify(zkIdeeZu('bewertung')));
+    zkIdee.w.document.getElementById('sw-test')
+      .dispatchEvent(new zkIdee.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Der Schalter „Getestet" stellt die Regel wieder her',
+      zkIdeeZu('bewertung') === false && zkIdeeZu('potenzial') === true,
+      JSON.stringify([zkIdeeZu('bewertung'), zkIdeeZu('potenzial')]));
+    zkIdee.w.close();
+
+    /* VORHANDENE DATEN SCHLAGEN DIE REGEL. Ein ungetesteter Eintrag mit
+       Bewertungssternen zeigt sie -- nichts wird vor jemandem versteckt, der
+       es eingetragen hat. */
+    const zkAlt = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      eigeneWerte: [4, 0, 4], ungetestet: true,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Eine Idee MIT Bewertungssternen zeigt sie trotzdem',
+      zkAlt.w.document.querySelector('.block[data-block="bewertung"]')
+        ?.classList.contains('zu') === false,
+      JSON.stringify(zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.className));
+
+    /* --- DER BLICK ENDET MIT DEM EINTRAG ---
+       NACHGETRAGEN AUS DER GEGENPROBE: Rueckbau 593 nimmt `BLICK.clear()` am
+       Eingang der Detailansicht heraus, und der Lauf blieb GRUEN. Der Grund
+       war eine Luecke und keine Kleinigkeit: keine einzige Prueflage dieser
+       Gruppe hat den Eintrag je GEWECHSELT. Alles darueber spielt an EINEM
+       Eintrag, und an einem Eintrag ist ein bleibender Blick nicht von einem
+       endenden zu unterscheiden.
+       GEBAUT WIRD DER FALL, DER SIE TRENNT: der Blick klappt an Eintrag 1
+       den Potenzialkasten ZU -- gegen die Regel, die ihn an einer Idee offen
+       haelt. Eintrag 2 ist ebenfalls eine Idee ohne Sterne, dort gilt also
+       dieselbe Regel. Bleibt der Kasten nach dem Wechsel zu, hat der Blick
+       den Eintrag ueberlebt und ist in Wahrheit eine Einstellung, die
+       niemand speichert -- die schlechteste Mischung aus beidem. */
+    const zkZweit = {
+      id: 2, title: 'Zweite Idee', description: '', rejected: false, tested: false,
+      favorite: false, category: null, verfasser: null,
+      photos: [], links: [], comments: [], attachments: [], tags: [], testDays: [],
+      /* KEIN EINZIGER STERN IN BEIDEN KAESTEN -- weder eigener noch fremder.
+         Ein Stern im Bewertungskasten hoebe dort die Regel auf (`hatSterne`),
+         und die Prueflage pruefte dann zwei Dinge auf einmal. */
+      ratings: [
+        { criterion_id: 7, name: 'Zuerst', value: 0, gewicht: 1.5, phase: 'nachher', avg: null, count: 0 },
+        { criterion_id: 8, name: 'Dann', value: 0, gewicht: 1, phase: 'nachher', avg: null, count: 0 },
+        { criterion_id: 9, name: 'Zuletzt', value: 0, gewicht: 0.5, phase: 'vorher', avg: null, count: 0 }
+      ],
+      avgRating: null, potenzialRating: null, testCount: 0, testAvg: null, testLast: null,
+      created_at: '2026-08-01 09:00:00', updated_at: '2026-08-01 09:00:00'
+    };
+    const zkWechsel = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      eigeneWerte: [0, 0, 0],
+      stimmspalten: [{ avg: null, count: 0 }, { avg: null, count: 0 }, { avg: null, count: 0 }],
+      ungetestet: true, zweiterEintrag: zkZweit,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const zkWZu = (name) => zkWechsel.w.document
+      .querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
+    pruefe('An Eintrag 1 steht das Potenzial nach der Regel offen',
+      zkWZu('potenzial') === false, JSON.stringify(zkWZu('potenzial')));
+    zkWechsel.w.document.querySelector('.block[data-block="potenzial"] .block-head')
+      ?.dispatchEvent(new zkWechsel.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein Blick klappt es dort gegen die Regel zu',
+      zkWZu('potenzial') === true, JSON.stringify(zkWZu('potenzial')));
+    zkWechsel.w.location.hash = '#/item/2';
+    await new Promise(r => setTimeout(r, 120));
+    /* ERST DAS OBJEKT, DANN SEIN ZUSTAND (Stolperstein 81): steht der Kasten
+       nach dem Wechsel gar nicht da, sagt `undefined === true` dasselbe wie
+       „offen" -- und die Zeile darunter waere gruen, ohne etwas zu belegen. */
+    pruefe('Der zweite Eintrag ist geladen und hat beide Kaesten',
+      Boolean(zkWechsel.w.document.querySelector('.block[data-block="potenzial"]')) &&
+      Boolean(zkWechsel.w.document.querySelector('.block[data-block="bewertung"]')),
+      zkWechsel.w.document.getElementById('title')?.value || '(kein Titel)');
+    pruefe('Und am zweiten Eintrag gilt wieder die Regel -- der Blick ist weg',
+      zkWZu('potenzial') === false && zkWZu('bewertung') === true,
+      JSON.stringify([zkWZu('potenzial'), zkWZu('bewertung')]));
+    zkWechsel.w.close();
+
+    /* --- DIE BEIDEN KRITERIENKARTEN IM SYSTEMBEREICH ---
+       NACHGETRAGEN AUS DER GEGENPROBE: die Rueckbauten 597 und 598 kamen beide
+       STUMM zurueck. Der Grund ist derselbe wie beim Blick, nur an anderer
+       Stelle: die vorhandene Prueflage zur Kriterienkarte laeuft mit DREI
+       Nachher-Kriterien. Ein Filter auf 'nachher' laesst dann alles durch, und
+       ob er ueberhaupt dasteht, ist an dieser Lage nicht zu sehen.
+       GEBAUT WIRD DIE LAGE, DIE IHN SICHTBAR MACHT: zwei Kriterien im einen
+       Kasten, eines im anderen. Erst dann sagt „nur seine Zeilen" etwas. */
+    const zkSys = baueDom(JSDOM, { hash: '', kriterienPhasen: zkPhasen,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    await sysAbschnitt(zkSys.w, 'bestand');
+    const zkKartenNamen = (id) => [...(zkSys.w.document.getElementById(id)
+      ?.querySelectorAll('.mrow .mname') || [])].map(n => n.textContent);
+    /* ERST DIE KAESTEN (Stolperstein 81): stuende die zweite Karte gar nicht
+       da, waeren beide Listen leer, und „nur seine Zeilen" waere gruen. */
+    pruefe('Beide Kriterienkarten stehen im Bestand',
+      Boolean(zkSys.w.document.getElementById('mcrits')) &&
+      Boolean(zkSys.w.document.getElementById('mpcrits')),
+      `mcrits ${Boolean(zkSys.w.document.getElementById('mcrits'))}, ` +
+      `mpcrits ${Boolean(zkSys.w.document.getElementById('mpcrits'))}`);
+    pruefe('Die Bewertungskarte zeigt nur ihre beiden Kriterien',
+      gleich(zkKartenNamen('mcrits'), ['Zuerst', 'Dann']), JSON.stringify(zkKartenNamen('mcrits')));
+    pruefe('Und die Potenzialkarte nur ihr eines',
+      gleich(zkKartenNamen('mpcrits'), ['Zuletzt']), JSON.stringify(zkKartenNamen('mpcrits')));
+    /* UND WAS IN DER ZWEITEN KARTE ANGELEGT WIRD, TRAEGT SEINEN KASTEN MIT.
+       Ohne die Phase im Rumpf legte der Server es nach seiner Vorgabe an --
+       also im FALSCHEN Kasten, und zwar stillschweigend: die Karte zeigte es
+       danach gar nicht mehr, weil sie nach 'vorher' filtert. */
+    const zkPFeld = zkSys.w.document.getElementById('newpcrit');
+    if (zkPFeld) {
+      zkPFeld.value = 'Wunsch';
+      zkSys.w.document.getElementById('newpcrit-b')
+        ?.dispatchEvent(new zkSys.w.MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 60));
+    }
+    const zkAngelegt = zkSys.gesendet
+      .filter(x => x.methode === 'POST' && x.url === '/api/criteria').pop();
+    pruefe('Die Potenzialkarte legt mit der Phase vorher an',
+      zkAngelegt?.koerper?.name === 'Wunsch' && zkAngelegt?.koerper?.phase === 'vorher',
+      JSON.stringify(zkAngelegt));
+    /* DIE GEGENPROBE AN DER ERSTEN KARTE: sie schickt 'nachher' und nicht gar
+       nichts. Beide Karten gehen durch DIESELBE Aufrufstelle -- ohne diese
+       Zeile bliebe gruen, wer dort die Phase fest auf 'vorher' schriebe. */
+    const zkNFeld = zkSys.w.document.getElementById('newcrit');
+    if (zkNFeld) {
+      zkNFeld.value = 'Preis';
+      zkSys.w.document.getElementById('newcrit-b')
+        ?.dispatchEvent(new zkSys.w.MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 60));
+    }
+    const zkAngelegt2 = zkSys.gesendet
+      .filter(x => x.methode === 'POST' && x.url === '/api/criteria').pop();
+    pruefe('Und die Bewertungskarte mit der Phase nachher',
+      zkAngelegt2?.koerper?.name === 'Preis' && zkAngelegt2?.koerper?.phase === 'nachher',
+      JSON.stringify(zkAngelegt2));
+    zkSys.w.close();
+
+    /* --- DAS WORT AM BLOCKKOPF KOMMT AUS DEM VOKABULAR ---
+       NACHGETRAGEN AUS DER GEGENPROBE: Rueckbau 600 schreibt „Potenzial" fest
+       in den Quelltext und kam STUMM zurueck. Kein Wunder -- keine Prueflage
+       hat das Wort je UMGESTELLT, und die Vorgabe heisst genau so. Ein fest
+       geschriebenes Wort ist von einem eingesetzten nicht zu unterscheiden,
+       solange beide gleich lauten (dieselbe Falle wie bei den Kriterienkarten,
+       nur an einem Wort statt an einer Liste).
+       „ERWARTUNG" IST DAS WORT AUS DEM KONZEPT und nicht irgendeines: der
+       Betreiber, der es umstellt, stellt es vermutlich genau darauf um. */
+    const zkWort = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true,
+                       vokabular: { potenzial: 'Erwartung' } } });
+    await new Promise(r => setTimeout(r, 80));
+    const zkKopf = zkWort.w.document
+      .querySelector('.block[data-block="potenzial"] .block-head .label');
+    pruefe('Der Kopf des Potenzialblocks steht ueberhaupt da',
+      Boolean(zkKopf), JSON.stringify(zkKopf?.textContent));
+    pruefe('Und er traegt das eingestellte Wort statt des festen',
+      zkKopf?.textContent === 'Erwartung', JSON.stringify(zkKopf?.textContent));
+    /* UND DER BEWERTUNGSBLOCK BLEIBT, WIE ER HEISST. Ohne diese Zeile bliebe
+       gruen, wer BEIDEN Koepfen dasselbe Wort gaebe. */
+    pruefe('Der Bewertungsblock heisst weiterhin Bewertung',
+      zkWort.w.document
+        .querySelector('.block[data-block="bewertung"] .block-head .label')?.textContent === 'Bewertung',
+      JSON.stringify(zkWort.w.document
+        .querySelector('.block[data-block="bewertung"] .block-head .label')?.textContent));
+    zkWort.w.close();
+    zkAlt.w.close();
+
+    /* --- Die Kachel --- */
+    const zkKarten = [
+      { id: 1, title: 'Geprueft', rejected: false, tested: true, favorite: false, category: null,
+        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3.8, potenzialRating: 4.2,
+        testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00' },
+      { id: 2, title: 'Idee', rejected: false, tested: false, favorite: false, category: null,
+        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potenzialRating: 4.2,
+        testCount: 0, testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00' },
+      { id: 3, title: 'Blanko', rejected: false, tested: false, favorite: false, category: null,
+        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potenzialRating: null,
+        testCount: 0, testAvg: null, testLast: null, updated_at: '2026-07-31 10:00:00' }
+    ];
+    const zkUeb = baueDom(JSDOM, { hash: '', uebersichtItems: zkKarten,
+      einstellungen: { filters: null, benutzerZahl: 3 } });
+    await new Promise(r => setTimeout(r, 120));
+    const zkKachel = (n) => [...zkUeb.w.document.querySelectorAll('.card')][n];
+    const zkZahl = (n) => zkKachel(n)?.querySelector('.rating-inline')?.textContent.trim()
+      ?? zkKachel(n)?.querySelector('.card-meta-l .hint')?.textContent.trim();
+    pruefe('Die Kachel eines getesteten Eintrags zeigt ★ und die Bewertung',
+      zkZahl(0) === '★3,8', JSON.stringify(zkZahl(0)));
+    pruefe('Die Kachel einer Idee zeigt ◆ und das Potenzial',
+      zkZahl(1) === '◆4,2', JSON.stringify(zkZahl(1)));
+    /* NIE BEIDES. Der getestete Eintrag traegt eine Potenzialzahl und zeigt
+       sie NICHT -- die Kachel ist zu klein fuer zwei, und die andere steht im
+       Kopf des zugeklappten Kastens. */
+    pruefe('Und nie beides auf derselben Kachel',
+      [...zkUeb.w.document.querySelectorAll('.card')]
+        .every(k => k.querySelectorAll('.rating-inline').length <= 1),
+      JSON.stringify([...zkUeb.w.document.querySelectorAll('.card')]
+        .map(k => k.querySelectorAll('.rating-inline').length)));
+    pruefe('Fehlt die jeweilige Zahl, steht der Hinweis dieses Kastens da',
+      zkZahl(2) === 'keine Sterne', JSON.stringify(zkZahl(2)));
+    /* UND DAS ZEICHEN IST NICHT GOLDEN. Gold bleibt der Bewertung -- sonst
+       hielte jemand 4,2 Potenzial fuer 4,2 Qualitaet. */
+    pruefe('Das Zeichen des Potenzials traegt nicht die Farbe der Bewertung',
+      /var\(--muted\)/.test(regel123('.rating-inline.potenzial .dot')),
+      regel123('.rating-inline.potenzial .dot') || '(keine Regel)');
+
+    /* --- Die Sortierung --- */
+    const zkSort = zkUeb.w.document.getElementById('f-sort');
+    const zkWerte = [...zkSort.options].map(o => o.value);
+    pruefe('Das Auswahlfeld traegt die beiden neuen Eintraege',
+      zkWerte.includes('potenzial_desc') && zkWerte.includes('potenzial_asc'),
+      JSON.stringify(zkWerte));
+    pruefe('Und sie stehen direkt hinter den beiden Bewertungseintraegen',
+      zkWerte.indexOf('potenzial_desc') === zkWerte.indexOf('rating_asc') + 1 &&
+      zkWerte.indexOf('potenzial_asc') === zkWerte.indexOf('potenzial_desc') + 1,
+      JSON.stringify(zkWerte));
+    pruefe('Und sie tragen das Wort aus dem Vokabular',
+      [...zkSort.options].find(o => o.value === 'potenzial_desc')?.textContent
+        === 'Potenzial (hoch → niedrig)',
+      JSON.stringify([...zkSort.options].find(o => o.value === 'potenzial_desc')?.textContent));
+    const zkTitel = () => [...zkUeb.w.document.querySelectorAll('.card-title')].map(t => t.textContent);
+    zkSort.value = 'potenzial_desc'; zkSort.onchange();
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Nach Potenzial absteigend stehen Eintraege ohne Zahl hinten',
+      zkTitel()[2] === 'Blanko', JSON.stringify(zkTitel()));
+    zkSort.value = 'potenzial_asc'; zkSort.onchange();
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Und aufsteigend ebenfalls',
+      zkTitel()[2] === 'Blanko', JSON.stringify(zkTitel()));
+    zkUeb.w.close();
+  }
+
   gruppe('Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0');
 
   /* WIE VIELE SPALTEN EIN KASTEN MIT DIESEN KLASSEN HAT -- GELESEN, nicht
@@ -35111,13 +36347,32 @@ async function pruefeOberflaeche() {
     rz.w.close();
   }
 
-  /* ES GIBT GENAU ZWEI REGELN MIT SPALTENANGABE, und keine davon steht in
-     einer Medienabfrage. Eine dritte -- etwa eine fuer den schmalen Schirm --
-     waere eine zweite Wahrheit ueber dieselbe Zahl, und die neue Zusage
-     darueber saehe sie nicht (Stolperstein 47). */
+  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74), und der alte Satz bleibt stehen,
+     damit der Widerruf einen Gegenstand hat (Stolperstein 201).
+     BIS 0.20.1 HIESS ES: „Es gibt genau ZWEI Regeln mit Spaltenangabe, und
+     keine davon steht in einer Medienabfrage. Eine dritte -- etwa eine fuer
+     den schmalen Schirm -- waere eine zweite Wahrheit ueber dieselbe Zahl."
+     SEIT 0.21.0 GIBT ES DIE DRITTE, und sie ist genau die damals genannte:
+     auf dem Telefon passen drei Spalten nicht mehr, seit das × und die
+     Mindestbreite dazugekommen sind. Der Einwand von damals bleibt richtig und
+     wird deshalb SCHAERFER geprueft statt fallengelassen: die dritte Regel
+     muss INNERHALB der Telefonabfrage stehen und darf den breiten Schirm nicht
+     erreichen. Eine vierte gibt es nach wie vor nicht. */
   const rzRegeln = (css123.match(/\.rlist[^{]*\{[^}]*grid-template-columns[^}]*\}/g) || []);
-  pruefe('Die Spaltenzahl steht an genau zwei Stellen im Stilblatt',
-    rzRegeln.length === 2, JSON.stringify(rzRegeln));
+  pruefe('Die Spaltenzahl steht an genau drei Stellen im Stilblatt',
+    rzRegeln.length === 3, JSON.stringify(rzRegeln));
+  /* UND DIE DRITTE STEHT IM TELEFONABSCHNITT. Gefragt wird nach dem PLATZ im
+     Stilblatt und nicht nach dem Waehler: eine Regel, die richtig aussieht und
+     ausserhalb der Abfrage steht, gaelte auf jedem Schirm. */
+  const rzTelefon = (css123.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{.*$/) || [''])[0];
+  const rzDritte = rzRegeln.find(r => /:not\(\.ohne-schnitt\)/.test(r));
+  pruefe('Und die dritte gilt nur auf dem Telefon',
+    !!rzDritte && rzTelefon.includes(rzDritte), JSON.stringify(rzDritte));
+  /* UND DIE BEIDEN ALLGEMEINEN STEHEN AUSSERHALB -- der alte Satz gilt fuer
+     sie unveraendert weiter. */
+  pruefe('Die beiden allgemeinen stehen weiterhin ausserhalb jeder Medienabfrage',
+    rzRegeln.filter(r => !rzTelefon.includes(r)).length === 2,
+    JSON.stringify(rzRegeln.filter(r => rzTelefon.includes(r))));
   /* UND AUCH DIE REGEL FUER DEN EINEN ZUGANG TRAEGT KEINEN SPALTENABSTAND: er
      risse die Trennlinie in Stuecke, genauso wie an der allgemeinen.
      GEFRAGT WIRD NACH DEM WAEHLER UND NICHT NACH DEM PLATZ: `rzRegeln[1]` waere
@@ -37546,16 +38801,26 @@ async function pruefeOberflaeche() {
     pruefe('Und in keiner Zeile steht eine Klammer um eine Eins',
       !kSpalten.some(z => /\(1\)/.test(z.textContent || '')),
       JSON.stringify(kSpalten.map(z => z.textContent)));
-    pruefe('Ohne Stimme bleibt die Zelle weiterhin ganz leer',
-      kSpalten[2]?.textContent === '', JSON.stringify(kSpalten[2]?.textContent));
+    /* UMGEDREHT MIT 0.21.0 (Stolperstein 74), wie die beiden Schwestern in der
+       Gruppe „Die Sternreihe steht auf einer Linie": bis 0.20.1 blieb die
+       Zelle GANZ LEER, jetzt traegt sie einen Strich. Die Zusage dieser Gruppe
+       ist eine andere und bleibt unveraendert -- hier geht es um die KLAMMER,
+       und ein Strich ist keine. */
+    pruefe('Ohne Stimme steht dort ein Strich und keine Klammer',
+      kSpalten[2]?.textContent === '–', JSON.stringify(kSpalten[2]?.textContent));
     /* UND DER KLARTEXT SAGT WEITERHIN BEIDES -- in der Einzahl, wo es eine
        ist: „aus 1 Stimmen" ist der Fehler, den eine feste Endung macht. */
     pruefe('Der Klartext nennt die eine Stimme trotzdem',
       kSpalten[1]?.title === 'Durchschnitt 4,0 aus 1 Stimme', kSpalten[1]?.title);
     pruefe('Und bei zweien steht dort die Mehrzahl',
       kSpalten[0]?.title === 'Durchschnitt 3,5 aus 2 Stimmen', kSpalten[0]?.title);
-    pruefe('Ein Kriterium ohne Stimme bekommt weiterhin keinen Klartext',
-      !kSpalten[2]?.title, kSpalten[2]?.title);
+    /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): der Strich bekommt seinen eigenen
+       Klartext -- „noch niemand" --, und er nennt ausdruecklich KEINE Stimmen.
+       Das ist die Aussage, um die es dieser Gruppe geht: wo keine Stimme ist,
+       steht keine Zahl. */
+    pruefe('Ein Kriterium ohne Stimme bekommt einen Klartext ohne Stimmenzahl',
+      kSpalten[2]?.title === 'noch niemand' && !/Stimme/.test(kSpalten[2]?.title || ''),
+      kSpalten[2]?.title);
     d.w.close();
   }
 

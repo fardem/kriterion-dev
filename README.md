@@ -144,8 +144,9 @@ Rollenvergabe, der Mailzugang und der Schlüsselwert; alles Weitere steht unter
 | | wo | wofür |
 |---|---|---|
 | **Titel der Installation** | Systembereich, Karte „Darstellung" | zwei frei wählbare Titel: einer über der Anmeldeseite, einer in der Anwendung |
-| **Bewertungskriterien** | Systembereich, Karte „Kriterien" | Name, Reihenfolge, Gewicht — sie erscheinen an jedem Eintrag |
-| **Vokabular** | Systembereich, Karte „Vokabular" | elf Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
+| **Bewertungskriterien** | Systembereich, Karte „Bewertungskriterien" | Name, Reihenfolge, Gewicht — sie erscheinen an jedem Eintrag |
+| **Potenzialkriterien** | Systembereich, Karte „Potenzial: Kriterien" | dasselbe für den Kasten *vor* dem Test — zwei oder drei reichen |
+| **Vokabular** | Systembereich, Karte „Vokabular" | zwölf Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
 | **Weitere Zugänge** | Systembereich, Karte „Zugänge" | anlegen oder über einen Einladungslink einladen |
 | **Mailversand** | Systembereich, Karte „Mailversand" | nur für Einladungs- und Rücksetzlinks; ohne ihn läuft alles weiter |
 | **Sicherungsort** | `docker-compose.yml` | Vorgabe liegt im Projektverzeichnis; die empfohlene Lage ist daneben — siehe „Sichern" |
@@ -1156,10 +1157,16 @@ es zwei, beide im Systembereich einstellbar:
   gerade sichtbaren Einträgen und bleibt unter fünf Testtagen weg.
 - Filter- und Sortierwahl werden serverseitig gespeichert und sind auf jedem
   Gerät gleich.
-- Sortierung nach Änderung, Bewertung, Titel sowie nach Testverlauf: Anzahl der
-  Testtage, Durchschnitt der Tagesnoten und letzte Tagesnote. Einträge ohne
-  Testtage stehen dabei immer am Ende — sie haben keinen niedrigen Wert, sondern
-  gar keinen.
+- Sortierung nach Änderung, Bewertung, **Potenzial**, Titel sowie nach
+  Testverlauf: Anzahl der Testtage, Durchschnitt der Tagesnoten und letzte
+  Tagesnote. Einträge ohne Testtage stehen dabei immer am Ende — sie haben
+  keinen niedrigen Wert, sondern gar keinen. **Dasselbe gilt für die beiden
+  Potenzialeinträge:** wer keine Einschätzung hat, steht in beiden Richtungen
+  hinten.
+- **Die Kachel zeigt eine Zahl, nicht zwei**: bei einem getesteten Eintrag die
+  Bewertung („★ 3,8"), bei einem ungetesteten das Potenzial („◆ 4,2"). *Ein
+  anderes Zeichen, damit niemand 4,2 Potenzial für 4,2 Qualität hält.* Die
+  andere Zahl steht im Kopf des zugeklappten Kastens am Eintrag.
 - **Abgelehnt** steht als eigene Gruppe in der Statuszeile, hinter der
   Beschriftung „Ablehnung": *Alle · Abgelehnt · Nicht abgelehnt*. **Sie lässt
   sich mit dem Teststatus kombinieren** — man lehnt ab, ohne zu testen, und man
@@ -1276,15 +1283,44 @@ es zwei, beide im Systembereich einstellbar:
 - **Bilder in Kommentaren**: bis 6 je Kommentar, anhängen oder mit Strg+V
   einfügen. Jedes Bild wird beim Hochladen neu kodiert — gespeichert wird nur
   die verkleinerte Variante samt Kachel, nicht das Original.
+- **Zwei Sternkästen: „Potenzial" und „Bewertung".** Sie beantworten zwei
+  verschiedene Fragen und **berühren einander nicht** — kein Stern des einen
+  zählt im anderen, und jeder hat eigene Kriterien, eigene Gewichte und einen
+  eigenen Durchschnitt.
+  *Potenzial* fragt **vor** dem Ausprobieren: *lohnt es sich, das als Nächstes
+  zu probieren?* *Bewertung* fragt **danach**: *wie gut war es?* Wer Ideen mit
+  den Bewertungskriterien benotet, mischt beides in einen Durchschnitt, und
+  niemand sieht es der Zahl an.
+  **Welcher Kasten offen steht, entscheidet der Eintrag**: an einem
+  ungetesteten steht *Potenzial* offen und *Bewertung* zugeklappt, an einem
+  getesteten umgekehrt. Der zugeklappte behält seine Zahl im Kopf
+  („Potenzial (⌀ 4,2)"), und ein Klick auf die Kopfzeile klappt ihn auf.
+  **Dieser Klick gilt für diesen Eintrag und wird nicht gespeichert** — eine
+  gespeicherte Einstellung gälte für alle Einträge zugleich, und beim nächsten
+  stünde der falsche Kasten offen. *Versteckt wird nichts: was jemand
+  eingetragen hat, ist immer einen Klick entfernt.*
+  **Der Potenzialkasten ist leer, bis der Admin Kriterien dafür anlegt** — in
+  der Karte *Potenzial: Kriterien* im Systembereich. Bis dahin sieht der
+  Eintrag aus wie zuvor. **Das Wort „Potenzial" steht im Vokabular** und lässt
+  sich umbenennen.
+  *Eine Ausnahme aus Rücksicht auf den Bestand: trägt ein ungetesteter Eintrag
+  schon Bewertungssterne, steht der Bewertungskasten offen. Vorhandene Daten
+  schlagen die Regel.*
 - **Bewertung**: gemeinsame Kriterien, feste Skala 1–5. **Die Sterne sind die
   eigene Bewertung**; sind mehrere Zugänge eingerichtet, steht rechts daneben
-  gedämpft der Schnitt über alle, im Blockkopf die Gesamtzahl.
+  gedämpft der Schnitt über alle, im Blockkopf die Gesamtzahl. **Hat dort noch
+  niemand bewertet, steht ein Strich** — die Spalte hat ihre Breite von
+  Anfang an, damit die Sterne beim ersten Stern nicht nach links springen.
   **Wie viele Stimmen darin stecken, steht in Klammern daneben — aber erst ab
   zweien.** *„⌀ 4,0 (1)" wäre eine Auskunft über nichts: dass jemand bewertet
   hat, sagt schon der Schnitt.* Die vollständige Angabe steht am Überfahren. Der Gesamtschnitt entsteht **erst je Kriterium, dann über die
-  Kriterien**. Ein **Doppelklick auf die Sterne setzt genau dieses Kriterium
-  zurück**, der Knopf oben leert die eigenen Werte für diesen Eintrag — fremde
-  Bewertungen bleiben unberührt.
+  Kriterien**. **Hinter den eigenen fünf Sternen steht ein ×, sobald in dieser
+  Zeile ein Stern gesetzt ist** — ein Tipp darauf entfernt ihn, und das gilt in
+  beiden Kästen. *Dass es der eigene ist, sagt der Platz: das × sitzt an den
+  eigenen Sternen, die Durchschnittszahl daneben bleibt unberührt.* **Einen
+  Knopf, der alle Kriterien auf einmal leert, gibt es nicht** — wer alles
+  zurücksetzen will, tippt drei- bis fünfmal, bei einer Handlung, die selten
+  ist und sich durch erneutes Setzen ohnehin heilt.
   **Kriterien können verschieden schwer wiegen.** Ist an einem Kriterium ein
   Gewicht eingestellt, das von 1 abweicht, steht `×1,5` hinter seinem Namen,
   und im Blockkopf steht neben der Zahl das Wort „gewichtet". Stehen alle
@@ -1312,13 +1348,23 @@ es zwei, beide im Systembereich einstellbar:
   Server. Zwei Rechenwege für dieselbe Zahl liefen früher oder später
   auseinander.*
   **Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile.** Ab zwei
-  Zugängen findet der **Admin** im Blockkopf den Knopf **„Wer hat bewertet"**:
-  er öffnet eine Ansicht mit den Namen je Kriterium, und dort lässt sich eine
-  fremde Bewertung **entfernen** — ändern lässt sie sich nicht. Für alle
+  Zugängen findet der **Admin** in jedem der beiden Kastenköpfe den Knopf
+  **„Stimmen"**: er öffnet eine Ansicht mit den Namen je Kriterium, und dort
+  lässt sich eine fremde Bewertung **entfernen** — ändern lässt sie sich
+  nicht. Für alle
   anderen gibt es den Knopf nicht, und der Server liefert ihnen die Namen auch
   nicht aus.
   **Angelegt, umbenannt, sortiert und gelöscht werden Kriterien
-  ausschließlich im Systembereich und ausschließlich vom Admin.** Ein
+  ausschließlich im Systembereich und ausschließlich vom Admin** — in zwei
+  Karten, eine je Kasten. **Zu welchem Kasten ein Kriterium gehört, steht mit
+  dem Anlegen fest** und lässt sich danach nicht ändern: ein Wechsel trüge
+  vergebene Sterne von einem Durchschnitt in den anderen, und zwar still.
+  *Wer ihn braucht, löscht und legt neu an — dabei gehen die Sterne sichtbar
+  mit.* **Ein Name gehört zu genau einem Kasten**: „Wunsch" gibt es einmal
+  oder gar nicht.
+  **Auf dem Telefon steht der Kriterienname über den Sternen**, in einer
+  eigenen Zeile; darunter links die Sterne mit ×, rechts der Durchschnitt. So
+  bleibt für lange Namen Platz, auch bei großer Schrift. Ein
   neues Kriterium erscheint sofort an jedem Eintrag, ein gelöschtes nimmt
   überall die vergebenen Sterne mit — eine globale Folge, die nicht eine
   Zeigerbreite neben dem Sterne-Widget liegen sollte. Anlegen und Aufräumen
@@ -1404,7 +1450,7 @@ der Eigentümer sieht, hinten.
 | Abschnitt | Adresse | Karten |
 |---|---|---|
 | **Persönlich** | `#/system/persoenlich` | Zugang, Meine Sitzungen, Darstellung |
-| **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
+| **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Potenzialkriterien, Vokabular, Links, Suchanbieter, Papierkorb |
 | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
 | **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildablage, Sicherung, Alte Sicherungen, Export und Import |
 | **Installation** | `#/system/installation` | Titel |
@@ -1466,10 +1512,10 @@ hinein führt.
 tut es schon; ein gemerkter Zustand daneben wäre eine zweite Wahrheit.
 
 **Was man dort sieht, hängt an der Rolle.** Ein gewöhnlicher Benutzer bekommt
-sieben Karten: seinen eigenen **Zugang**, **Meine Sitzungen**, die
-**Darstellung**, die **Links** und die drei Listen **Kategorien**, **Tags** und
-**Bewertungskriterien** — die letzten drei ohne Bedienzeichen, nur zum
-Nachsehen. Alles Übrige steht dem
+acht Karten: seinen eigenen **Zugang**, **Meine Sitzungen**, die
+**Darstellung**, die **Links** und die vier Listen **Kategorien**, **Tags**,
+**Bewertungskriterien** und **Potenzial: Kriterien** — die letzten vier ohne
+Bedienzeichen, nur zum Nachsehen. Alles Übrige steht dem
 **Admin**, Export, Import, Sicherung und **Sicherheitsprotokoll** allein dem
 **Eigentümer**. Der Grund:
 ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein
@@ -1625,6 +1671,12 @@ Listen.
   Reihenfolge gilt für Detailansicht und Vergleich gleichermaßen — im Vergleich
   fällt das oberste Kriterium zuerst ins Auge. Die Zahl nennt die Einträge, bei
   denen Sterne vergeben sind; ein zurückgesetztes Kriterium zählt nicht mit.
+- **Potenzial: Kriterien** — dieselbe Karte für den Kasten *vor* dem Test,
+  gleiche Bedienung, eigene Liste. **Zwei oder drei reichen**: mehr macht die
+  Einschätzung langsamer, nicht besser — sie soll in zehn Sekunden gehen. Die
+  Karte schlägt *Wunsch* (Gewicht 1,5), *Nutzen* und *Machbarkeit* vor;
+  **angelegt wird nichts von selbst.** *Das ist ein Rat und kein Verbot — der
+  Admin darf so viele anlegen, wie er will.*
 
   **Das Gewicht** bestimmt, wie stark ein Kriterium in den Gesamtschnitt
   eingeht. Bei **1** zählen alle gleich — so startet jede Installation, und so
@@ -1891,8 +1943,15 @@ zweite Tipp ausgenommen**: dort *ist* er eine Bedeutung, er zoomt aufs Original.
 
 Kriterion nennt seine Gegenstände von Haus aus „Eintrag", das Merkmal
 „Getestet/Ungetestet" und die Zeitpunkte „Testtag/Testtage". Wer etwas anderes
-sammelt, ändert diese elf Wörter im Systembereich — aus „3 Einträge" wird
-„3 Maschinen", aus „+ Testtag eintragen" wird „+ Sitzung eintragen".
+sammelt, ändert diese zwölf Wörter im Systembereich — aus „3 Einträge" wird
+„3 Maschinen", aus „+ Testtag eintragen" wird „+ Sitzung eintragen". **Das
+zwölfte ist „Potenzial"**, der Name des ersten Sternkastens; wer lieber
+„Erwartung" oder „Einschätzung" sagt, stellt es dort um.
+
+**Ein Wort aus dem Vokabular wird nirgends zu einem Wort verbaut.** Kriterion
+schreibt „Potenzial: Kriterien" und „Potenzial (hoch → niedrig)", nie
+„Potenzialkriterien" — „Erwartungkriterien" hätte kein Fugen-s, und der
+Quelltext kennt keins.
 
 **Nur die Beschriftung ändert sich.** Feldnamen in Datenbank und Exportdatei
 bleiben, wie sie sind; ältere Exportdateien lassen sich weiterhin einspielen,
@@ -1911,7 +1970,7 @@ hält sich an dieselbe Regel:
 - **Unsicher:** jede Einzahl mit Artikel oder Beiwort — „ein neuer Eintrag"
   wird zu „ein neuer Maschine".
 
-Leere Felder fallen auf die Vorgabe zurück, ein Knopf stellt alle elf
+Leere Felder fallen auf die Vorgabe zurück, ein Knopf stellt alle zwölf
 zurück. Eine Probe unter den Feldern zeigt vor dem Speichern, wie die Wörter in
 echten Textbausteinen aussehen.
 
@@ -2262,6 +2321,12 @@ Start eine leere Neuinstallation vermuten.
   Reihenfolge **und Gewicht** (`gewicht`, 0,2 bis 2, Vorgabe 1), Werte je
   Eintrag und je Benutzer. Reihenfolge und Gewicht sind zwei Spalten, weil sie
   zwei Aussagen sind: die eine über die Anzeige, die andere über die Rechnung.
+  **`phase` sagt, zu welchem der beiden Sternkästen ein Kriterium gehört** —
+  `vorher` (Potenzial) oder `nachher` (Bewertung), Vorgabe `nachher`. *Der
+  Name bleibt über beide Kästen hinweg eindeutig: ein Name, ein Kasten.*
+  **`ratings` wird davon nicht berührt** — ein Stern ist ein Stern; zu welchem
+  Kasten er gehört, sagt sein Kriterium. Eine Phase an der Sternzeile wäre eine
+  zweite Wahrheit über dieselbe Sache.
   **`ratings` trägt mit `gesetzt_am` den Zeitpunkt der letzten Setzung** — für
   die Glocke. Er heißt nicht `created_at`, weil die Zeile beim ersten Stern
   entsteht und danach überschrieben wird, und er hat **keinen Vorgabewert**:

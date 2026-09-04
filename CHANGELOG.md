@@ -29,6 +29,51 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.21.0] - 2026-09-04
+
+> **DIES IST EINE DATENBANKSTUFE — SICHERUNG VOR DEM EINSPIELEN.** Ein
+> Migrationsblock kommt dazu: `rating_criteria` bekommt die Spalte `phase`,
+> und **alle vorhandenen Kriterien stehen danach auf „nachher"**, also weiter
+> in der Bewertung. *Es wird nichts umgerechnet und nichts gelöscht; kein
+> Gesamtschnitt ändert sich.* Das Austauschformat rückt auf **13**.
+>
+> **DER RÜCKWEG AUF 0.20.1 BLEIBT TECHNISCH OFFEN** — die zusätzliche Spalte
+> stört eine ältere Fassung nicht. *Dort zählten Sterne aus dem neuen Kasten
+> aber wieder in die Bewertung mit.* **Nach dem Einspielen im Browser einmal
+> hart neu laden.**
+>
+> **JEDER EINTRAG HAT AB JETZT ZWEI STERNKÄSTEN.** Neben „Bewertung" (wie gut
+> war es) steht **„Potenzial"** (wie sehr will ich es) mit **eigenen
+> Kriterien**. Die beiden Durchschnitte **berühren einander nicht** — kein
+> Stern des einen zählt im anderen. **Der Potenzialkasten ist leer, bis du im
+> Systembereich Kriterien dafür anlegst**; bis dahin sieht der Eintrag aus wie
+> bisher.
+>
+> **ZWEI ÄNDERUNGEN AM GEWOHNTEN VERHALTEN.** *Erstens:* der Knopf **„Meine
+> Bewertung zurücksetzen"** ist weg — zurückgesetzt wird jetzt **je Zeile über
+> ein × an den eigenen Sternen**. *Zweitens:* welcher der beiden Sternkästen
+> offen steht, **entscheidet ab jetzt der Eintrag und nicht mehr deine
+> Einstellung** — ungetestet: Potenzial offen; getestet: Bewertung offen. Ein
+> Klick auf die Kopfzeile gilt für diesen Eintrag und wird nicht gespeichert.
+> **Wer den Bewertungsblock bisher dauerhaft zugeklappt hatte, sieht ihn an
+> getesteten Einträgen wieder offen.**
+
+- Added: Zweiter Sternkasten „Potenzial" an jedem Eintrag — eigene Kriterien, eigene Gewichte, eigener Durchschnitt
+- Added: Systemkarte „Potenzial: Kriterien" neben „Bewertungskriterien" — gleiche Bedienung, eigene Liste
+- Added: Sortierung „Potenzial (hoch → niedrig)" und „(niedrig → hoch)"
+- Added: Die Kachel zeigt an ungetesteten Einträgen „◆ 4,2" statt „★ 3,8" — ein anderes Zeichen für eine andere Frage
+- Added: Der Vergleich zeigt zwei Gruppen von Zeilen, je mit eigener Kopfzahl
+- Added: „Potenzial" ist das zwölfte Wort im Vokabular und umbenennbar
+- Added: Ein × an der eigenen Sternzeile setzt genau dieses Kriterium zurück
+- Added: Die Exportdatei trägt das Feld `criteriaPhase`; das Format rückt auf 13
+- Changed: Welcher Sternkasten offen steht, entscheidet der Zustand des Eintrags — nicht mehr die gespeicherte Einstellung
+- Changed: Die leere Durchschnittsspalte zeigt „–" statt nichts, und sie hat ihre Breite von Anfang an — die Sterne springen beim ersten Stern nicht mehr nach links
+- Changed: Auf dem Telefon steht der Kriterienname über den Sternen statt daneben
+- Changed: Der Knopf „Wer hat bewertet" heißt „Stimmen" und steht in beiden Kastenköpfen
+- Removed: Der Knopf „Meine Bewertung zurücksetzen" und die Route `DELETE /api/items/:id/ratings` dahinter
+- Removed: Der Doppelklick auf die Sterne, der ein Kriterium zurücksetzte — samt seinem Hinweistext, den kein Telefon zeigte
+- Fixed: Ein Import, der ein Kriterium unter demselben Namen im anderen Kasten mitbringt, wird abgewiesen, bevor etwas geschrieben ist
+
 ## [0.20.1] - 2026-09-03
 
 > **NICHTS ZU TUN — außer im Browser einmal hart neu zu laden.** Keine
