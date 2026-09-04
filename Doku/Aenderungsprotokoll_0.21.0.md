@@ -698,7 +698,74 @@ genau die Zahl, die im Projektstand für 0.20.1 steht.*
 
 ### Der Gegenprobenlauf
 
-PLATZHALTER_TABELLE
+**36 Rückbauten gefahren, 4 Nebenspuren, Versatz 3500 je Spur — 0 STUMM, 0
+abgerissen, 0 an der Zeitgrenze, 0 überlebende Prozesse.** *Jeder läuft in einer
+eigenen Kopie aus `git archive HEAD`; der Arbeitsbaum wird nicht angefasst.*
+
+> **JEDER DER 36 LÄUFE MELDET DENSELBEN NENNER — 5512.** *Das ist kein
+> Nebensatz, sondern der Beleg, dass alle gegen denselben Stand gefahren sind:
+> zwischen dem sechzehnten und dem siebzehnten Rückbau ist ein Commit an den
+> Papieren dazugekommen, und ein Unterschied am Prüfgegenstand hätte sich hier
+> als zweite Zahl gezeigt.*
+
+> **DIE SELBSTPROBE IST AUS DER TABELLE GESTRICHEN.** *„Jeder Suchtext kommt in
+> seiner Datei genau einmal vor" wird in JEDEM Lauf rot — der Rückbau hat den
+> Suchtext ja gerade ersetzt. Sie sagt nichts über den einzelnen Rückbau und
+> stünde sechsunddreißigmal da.*
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 570 | Der Gesamtschnitt der Uebersicht kennt die Phase nicht mehr | „Und die gebuendelte Abfrage der Uebersicht genauso" |
+| 571 | Der Gesamtschnitt des Eintrags kennt die Phase nicht mehr | „Die Abfrage des Eintrags nennt die Phase im SELECT und im GROUP BY" |
+| 572 | potenzialRating faellt aus der Uebersicht | 4 Prüfungen, darunter „Und in der Uebersicht dieselben beiden Zahlen" (2 Gruppen) |
+| 573 | Der Rechenweg des Potenzials faellt aus der Antwort | „Beide Rechenwege stehen ueberhaupt in der Antwort", „Der Rechenweg der Bewertung nennt zwei Zeilen, der des Potenzials eine" |
+| 574 | Die Sternzeilen des Details tragen ihre Phase nicht mehr | 10 Prüfungen, darunter „Der Schnitt je Kriterium rechnet ueber alle Bewerter" (6 Gruppen) |
+| 575 | POST /api/criteria nimmt jede Phase an | 5 Prüfungen, darunter „Ein anderer Wert ist eine Absage mit Meldung" (2 Gruppen) |
+| 576 | PUT /api/criteria/:id uebergeht die Phase stillschweigend | „Der Kasten laesst sich nicht nachtraeglich aendern" |
+| 577 | Der Export nennt die Kaesten nicht mehr | „criteriaPhase nennt nur die Vorher-Kriterien", „Und beide Zahlen stehen danach wie vorher" |
+| 578 | Der Import spielt ueber die Kaesten hinweg ein | „Ein Namenskonflikt ueber die Kaesten hinweg weist ab", „Und es ist nichts geschrieben worden" |
+| 579 | GET /api/criteria liefert die Phase nicht mehr | „Und die Phase steht danach unveraendert", „Und alles darin steht auf nachher" |
+| 580 | Die Migration stellt den Bestand auf vorher | „Schon das Oeffnen der Datei ruestet die Spalte nach und sagt es", „Der Bestand steht danach auf nachher" |
+| 581 | Der Migrationsblock 0.21.0 wird nicht mehr gerufen | „Schon das Oeffnen der Datei ruestet die Spalte nach und sagt es", „Und der ausdrueckliche Aufruf danach findet nichts mehr" |
+| 582 | Die Sternkaesten speichern ihren Einklappzustand wieder | „Die beiden Sternkaesten fuehren ihren Einklappzustand nicht mehr", „Ein gespeichertes „bewertung" in zu faellt heraus" |
+| 583 | Das × verschwindet mit seinem Platz statt nur mit seiner Farbe | „Ohne eigenen Stern ist es unsichtbar, behaelt aber seinen Platz" |
+| 584 | Das × steht auch an einer Sternreihe ohne Ruecksetzer | „Eine Sternreihe ohne Ruecksetzer traegt kein ×" |
+| 585 | Die leere Durchschnittszelle zeigt wieder gar nichts | 8 Prüfungen, darunter „Ein Kriterium ohne Stimme bekommt seinen eigenen Klartext" (4 Gruppen) |
+| 586 | Die Durchschnittsspalte verliert ihre Mindestbreite wieder | „Die Zahlenspalte traegt wieder eine Mindestbreite -- und zwar eine gemessene", „Und sie steht in rem, damit sie der Schriftstufe folgt" |
+| 587 | Der Potenzialblock steht hinter der Bewertung | „Der Potenzialblock steht vor dem Bewertungsblock" |
+| 588 | Der Zeichner zeigt in beiden Kaesten alle Zeilen | „Der Bewertungskasten zeigt nur seine beiden Zeilen", „Der Potenzialkasten zeigt nur seine eine" |
+| 589 | Die Sternkaesten folgen wieder der gespeicherten Einstellung | 9 Prüfungen, darunter „An einem getesteten Eintrag steht die Bewertung offen und das Potenzial zu" (2 Gruppen) |
+| 590 | Bewertungssterne an einem ungetesteten Eintrag bleiben zugeklappt | „Eine Idee MIT Bewertungssternen zeigt sie trotzdem" |
+| 591 | Ein Klick auf den Kastenkopf speichert wieder | 5 Prüfungen, darunter „Ein Klick auf den Kopf klappt auf" (2 Gruppen) |
+| 592 | Der Schalter „Getestet" leert den Blick nicht mehr | „Der Schalter „Getestet" stellt die Regel wieder her" |
+| 593 | Der Blick ueberlebt den Wechsel des Eintrags | „Und am zweiten Eintrag gilt wieder die Regel -- der Blick ist weg" |
+| 594 | Die Kachel zeigt an einer Idee wieder die Bewertung | „Die Kachel einer Idee zeigt ◆ und das Potenzial" |
+| 595 | Das Potenzial traegt auf der Kachel wieder den Stern | „Die Kachel einer Idee zeigt ◆ und das Potenzial" |
+| 596 | Eintraege ohne Potenzialzahl stehen in einer Richtung vorn | „Und aufsteigend ebenfalls" |
+| 597 | Die zweite Kriterienkarte filtert nicht nach Phase | „Die Bewertungskarte zeigt nur ihre beiden Kriterien", „Und die Potenzialkarte nur ihr eines" |
+| 598 | Die zweite Kriterienkarte legt im falschen Kasten an | „Die Potenzialkarte legt mit der Phase vorher an", „Und die Bewertungskarte mit der Phase nachher" |
+| 599 | Der eigene Schnitt im Vergleich mischt die Kaesten | „In Stellung „meine" rechnet jede Gruppe fuer sich" |
+| 600 | Der Blockkopf traegt das Wort aus dem Quelltext | „Und er traegt das eingestellte Wort statt des festen" |
+| 601 | Die Vorgabe der Oberflaeche kennt das neue Wort nicht | 11 Prüfungen, darunter „Das Wort für den Potenzialkasten steht da und hat seine Vorgabe" (5 Gruppen) |
+| 602 | Die gebuendelte Abfrage waehlt die Phase nicht mehr aus | 9 Prüfungen, darunter „Die Uebersicht rechnet mit demselben Ergebnis" (5 Gruppen) |
+| 603 | Die Abfrage des Eintrags waehlt die Phase nicht mehr aus | 31 Prüfungen, darunter „Der Schnitt rechnet zweistufig ueber alle Bewerter" (9 Gruppen) |
+| 604 | Der Treiber faehrt los, ohne nach fremden Servern zu sehen | „Der Treiber sieht vor dem ersten Rueckbau nach und bricht ab" |
+| 605 | Die Suche nach fremden Servern kennt den Prueflauf nicht mehr | „Und sie sucht nach beiden Namen -- Server wie Prueflauf" |
+
+> **DIE BEIDEN ERSTEN ZEILEN SIND DIE INTERESSANTESTEN.** 570 und 571 werden
+> **nicht am Verhalten rot, sondern am Quelltext** — und das ist kein Mangel,
+> sondern der Befund selbst: die Spalte im `GROUP BY` ändert nachweislich
+> nichts (Abschnitt 9a, drittens). **Was die Zusage wirklich trägt, sind 602
+> und 603** — und die stehen mit **9** und **31** namentlich roten Prüfungen in
+> **fünf** und **neun** Gruppen da. *Ein Rückbau, der die zentrale Zusage
+> herausnimmt, muss weh tun; diese beiden tun es.*
+
+> **UND EIN LAUF ZUVOR SAH ANDERS AUS.** *Der erste vollständige Gegenprobenlauf
+> gab **sechs stumme** und **einen abgerissenen** zurück, und zwei seiner Zeilen
+> stammten gar nicht von ihren Rückbauten.* **Alle sieben sind abgearbeitet**;
+> die Tabelle oben ist die des Nachlaufs, gefahren gegen den Stand, der
+> ausgeliefert wird. *Was dabei gefunden wurde, steht in Abschnitt 9a — es ist
+> der Ertrag dieser Runde, der ohne den Lauf nicht dagewesen wäre.*
 
 ---
 
@@ -879,4 +946,33 @@ betrifft.*
 
 ---
 
-PLATZHALTER_FINGERPRINT
+## 0.21.0 — Fingerprint `85f4348b`
+
+**Gebildet ZULETZT**, nach der letzten Änderung an einer ausgelieferten Datei —
+`package.json` mit ihrer neuen Nummer eingeschlossen, und `package-lock.json`
+trägt sie an zwei Stellen ein zweites Mal. **`public/` gehört dazu**
+(Stolperstein 158).
+
+**Gelesen ist der Wert nicht aus der Ableitung, sondern aus einem laufenden
+Server über `GET /api/stats`** — denselben Weg, den die Installation geht.
+*Drei Starts hintereinander, dreimal `85f4348b`.*
+
+| | |
+|---|---|
+| **Version** | `0.21.0` |
+| **Fingerprint** | **`85f4348b`** |
+| **Prüfungen** | **5512 von 5512** |
+| **Rückbauten** | **599** in der Liste, **36 neue gefahren, 0 stumm** |
+| **Austauschformat** | **13** |
+| **Migrationsblöcke** | **neun** |
+
+> **DIESE RUNDE IST EINE DATENBANKSTUFE.** *Ein Migrationsblock mehr, eine
+> Spalte mit `DEFAULT`, **kein Bestandslauf**.* **Vor dem Einspielen sichern.**
+> Der Rückweg auf 0.20.1 bleibt technisch offen — die zusätzliche Spalte stört
+> eine ältere Fassung nicht —, *aber dort zählen die Vorher-Sterne wieder in die
+> Bewertung mit.* **Nach dem Einspielen im Browser einmal hart neu laden.**
+
+> **MELDET DIE LAUFENDE INSTALLATION ETWAS ANDERES ALS `85f4348b`, liegt auf dem
+> Wirt nicht dieser Stand** — und zwar dateigenau: der Wert deckt jede Datei,
+> die der Server ausführt, samt allem unter `public/`. *Bei 0.9.1 hat genau das
+> eine Datei zu viel auf dem Wirt aufgedeckt (Stolperstein 158).*
