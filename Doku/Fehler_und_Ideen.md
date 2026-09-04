@@ -224,7 +224,7 @@ entschieden und hat seinen Ort.*
 | **Fehler** | — *(der letzte, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden)* |
 | **Verbesserung** | — |
 | **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
-| **Design** | — |
+| **Design** | **10** |
 | **Verbesserung** *(nachgetragen)* | 5 |
 
 | Einschätzung | Punkte |
@@ -232,7 +232,8 @@ entschieden und hat seinen Ort.*
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
 | **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
-| **eingetragen als 0.22.0** | **5, 6** |
+| **eingetragen als 0.22.0** | **5, 6, 10** |
+| **empfohlen** | **10** *(Teil (a) stark empfohlen und für sich allein baubar)* |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
 
@@ -575,6 +576,132 @@ gemessen hat, ist eine Vermutung — dieselbe Regel, an der 0.19.0 selbst hängt
 
 `makeVariants()`, `kodiereKommentarBild()`, die Auslieferung, das Nachrüsten
 beim Start, Prüfungen, Gegenproben, README. **Kein Schema.**
+
+---
+
+## 10. Der Bildstreifen im Eintrag — er nutzt die Breite nicht, und seine Größe ist fest
+
+**0.21.0 hat ihn nicht ausgelöst** — die Reihe steht so, seit es sie gibt; auf
+dem Telefon ist sie mit 0.12.0 umgebaut worden, auf breiten Schirmen nicht.
+
+> **Art: Design** · **Claude: empfohlen** — *Teil (a) ist ein Dreizeiler und
+> beseitigt einen sichtbaren Fehler im Satzbild; Teil (b) benutzt eine Maschine,
+> die schon steht.* **Die Grenze zur neuen Funktion streift Teil (b)**, weil
+> eine Einstellung gespeichert wird — sie wird hier wie die Schriftgröße
+> behandelt, und die gilt als Darstellung.
+> **Draußen üblich:** Bildverwaltungen führen die Kachelgröße als
+> **Ansichtseinstellung**, nicht je Gerät. **Sicher ist das für Adobe
+> Lightroom** — die Rasteransicht hat seit jeher einen Regler für die
+> Kachelgröße, und er gilt für die Ansicht und nicht für den Bildschirm.
+> *Für die freien Verwaltungen (Immich, Nextcloud Photos) ist dasselbe Muster
+> zu erwarten, aber **hier nicht nachgesehen** — wer den Auftrag schreibt,
+> prüft es oder lässt die Zeile weg.* **Getrennte Werte je Gerät sind
+> jedenfalls nirgends bekannt**, und der Grund liegt auf der Hand: niemand
+> pflegt drei Regler für dieselbe Frage.
+
+### Woher
+
+**Aus dem Betrieb am 4. September 2026**, unmittelbar nach dem Einspielen von
+0.21.0. *Nicht aus einer Durchsicht und nicht aus einer Gegenprobe — beim
+Ansehen eines Eintrags mit mehreren Bildern.* **Wortlaut:** *„die erscheinen
+mir manchmal etwas klein."*
+
+### Was auffiel
+
+**Die Reihe unter dem großen Bild verhält sich auf Telefon und Desktop
+verschieden**, und nur eine der beiden Fassungen nutzt die Breite:
+
+```css
+/* überall */      .thumbs { display: flex; flex-wrap: wrap; gap: 7px; }
+                   .thumb  { width: 62px; height: 62px; }
+
+/* nur Telefon */  .thumbs { display: grid;
+                             grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
+                   .thumb  { width: auto; height: auto; aspect-ratio: 1/1; }
+```
+
+**Auf dem Telefon rechnet `auto-fill` die Spalten aus und `1fr` verteilt den
+Rest — die Zeile ist lückenlos.** *Das kam aus dem Auftrag zu 0.12.0, „die
+Breite auszunutzen", und der Kommentar im Stilblatt hält fest, was es am Ziehen
+geändert hat: der tote Streifen rechts, auf dem ein Finger sicher keine Kachel
+griff, ist dort verschwunden.*
+
+**Auf Desktop und Tablett stehen die 62 px fest**, und genau dieser tote
+Streifen liegt dort weiterhin in jeder vollen Zeile. *Die Kacheln sind also
+nicht nur klein — der Platz daneben bleibt ungenutzt, und beides zusammen
+ergibt den Eindruck.*
+
+### Was es nicht ist
+
+**Kein Fehler.** Die Reihe tut, was das Stilblatt sagt; sie sagt es nur auf
+breiten Schirmen anders als auf schmalen. *Ein Wunsch, der als Fehler abgeheftet
+wird, drängelt sich in die falsche Runde.*
+
+**Und ausdrücklich kein Bildproblem.** Die Auflösung reicht mit großem Abstand:
+das gespeicherte `thumb` hat **512 px auf der kurzen Kante**, bei 62 px Anzeige
+und dreifacher Gerätedichte sind das 186 Gerätepunkte — **rund 2,7fach
+überversorgt**. *Bis etwa 150 px Kachelbreite trägt es auch auf einem
+3x-Telefon.* **Es ist also kein Bestandslauf und keine neue Ableitung nötig**,
+solange der Regler dort seine Obergrenze hat.
+
+### Was gebaut werden könnte
+
+**(a) Die Telefonfassung auf alle Schirme hochziehen.** *Stark empfohlen, und
+unabhängig von (b) baubar.* `.thumbs` überall als Raster mit
+`repeat(auto-fill, minmax(…, 1fr))`, `.thumb` mit `aspect-ratio: 1/1`. **Der
+tote Rest verschwindet, und die Kacheln werden dabei von selbst etwas größer**,
+weil `1fr` den übrigen Platz verteilt. *Möglicherweise erledigt das den Punkt
+schon; dann ist (b) eine Bequemlichkeit und keine Abhilfe.*
+
+**(b) Die Mindestgröße einstellbar — wie die Schriftgröße.** *Empfohlen.* Die
+Maschine steht:
+
+```js
+const schriftgroesse = (benutzerId) => {
+  const n = Number(getUserSetting(benutzerId, 'schrift', 100));
+  return SCHRIFT_STUFEN.includes(n) ? n : 100;
+};
+```
+
+**Persönlich je Zugang, feste Stufen, kommt in `/api/settings` mit** — keine
+neue Route, kein Schema. Der Wert setzt eine CSS-Variable, die in
+`minmax(var(--streifen), 1fr)` steht.
+
+**EIN WERT FÜR ALLE DREI GERÄTE, und das ist die eigentliche Entscheidung
+dieses Punktes.** *Die vorhandenen Umbruchpunkte skalieren ihn mit; getrennte
+Werte für Telefon, Tablett und Desktop wären drei Wahrheiten für dieselbe Frage
+(Stolperstein 47) und würden auseinanderlaufen, weil niemand drei Regler
+pflegt.*
+
+### Offene Entscheidungen
+
+1. **Reicht (a) allein?** *Das ist am gebauten Stand zu sehen und nicht vorher
+   zu entscheiden — der Auftrag sollte (a) zuerst bauen und dann fragen.*
+2. **Welche Stufen, und welche Obergrenze?** *Die Obergrenze ist keine
+   Geschmacksfrage: über etwa 150 px verlässt sie die Reserve des `thumb`.
+   Darüber müsste eine neue Ableitung her, und das wäre eine andere Runde.*
+3. **Gilt der Regler auch für das Kartenraster der Übersicht** (`.grid`,
+   heute `minmax(240px | 200px | 150px, 1fr)`)? *Dafür spricht ein Regler statt
+   zweier; dagegen, dass die drei Werte dort gemessen sind und begründet im
+   Stilblatt stehen.* **Nicht mitentschieden — der Punkt hier meint den
+   Streifen im Eintrag.**
+4. **Wo steht der Regler?** *Neben der Schriftgröße in den Einstellungen, oder
+   am Bildbereich selbst.* **Vorschlag: neben der Schriftgröße** — eine Stelle
+   für Darstellungsfragen.
+
+### Was es anfasst
+
+`public/style.css` (die Regel für `.thumbs`/`.thumb` und die zwei
+Umbruchpunkte), für (b) zusätzlich eine Stufenliste und eine Zeile in
+`/api/settings`, dazu das Bedienelement in `public/app.js`. **Prüfungen und
+Gegenproben; README, wenn (b) kommt.**
+
+**Kein Schema, kein Migrationsblock, kein Bestandslauf, `F_ROUTEN` unverändert**
+— die Einstellung reist auf dem vorhandenen `PUT /api/settings` mit.
+
+**Was dagegen spricht:** nichts klemmt, und (a) allein ist so klein, dass es in
+jeder Runde nebenher mitginge. *Genau deshalb gehört es in die Runde, die
+ohnehin das Stilblatt anfasst, und nicht in eine eigene.*
 
 ---
 

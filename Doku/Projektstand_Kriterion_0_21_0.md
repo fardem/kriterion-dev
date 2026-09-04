@@ -11914,7 +11914,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.20.1** | **Die Karte listet die Sicherungen** | **GEBAUT am 3. September 2026.** *(Drei Befunde aus dem Betrieb, unmittelbar nach dem Einspielen von 0.20.0 — nicht aus dem Sammelblatt.)* **Die vollständige Liste der Sicherungen stand nirgends:** die Karte „Sicherung" nannte die jüngste Kopie und die Zahl, die Karte „Alte Sicherungen" nur die, die die Regel treffen würde. **Jetzt listet sie alle** — jüngste zuerst, nummeriert, mit Datum, Alter und Größe, Deckel bei fünf Zeilen, **nur zum Ansehen**. Dazu: **der Bildschirmtext wird kurz** *(„so kurz wie möglich und dennoch zu verstehen")*, **„Boden" und „Schere" sind vom Bildschirm herunter**, und die Karte „Sicherung" sagt nur noch etwas über die letzte Sicherung. *PATCH: dieselbe Regel, dieselben Knöpfe, dieselben Dateien fallen* | nein | — |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | **GEBAUT am 3. September 2026.** *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; am 3. September 2026 zugeordnet — der Fahrplan ist dabei nicht gerückt.)* **Kriterion schrieb Sicherungen und entfernte keine** — wegräumen ließ sich nichts, und dafür brauchte es eine Shell auf dem Wirt. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere (Stolperstein 299). Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht**, ein Knopf hinter der zweiten Bestätigung, ein zweiter, ausdrücklicher Weg für die Kopien von vor dem Schlüsselwechsel, und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Die Löschroute nimmt keine Dateinamen entgegen** (Stolperstein 300), und aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die **gelungen** ist. **Eine zwanzigste Karte** — ein Löschknopf gehört nicht unter den Sicherungsknopf. *MINOR* — `F_ROUTEN` **70 → 71**, ein **neunter** Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung** | nein | — |
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 4. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
-| **0.22.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und **noch am selben Tag auf 0.22.0** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
+| **0.22.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und **noch am selben Tag auf 0.22.0** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 4. September 2026: der Bildstreifen im Eintrag nutzt die Breite, und seine Größe wird einstellbar** *(Punkt 10 des Sammelblatts — ein Regler wie die Schriftgröße, ein Wert für alle drei Geräte, kein Bestandslauf)*. **Und seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.23.0** | *frei* | **Die erste Nummer nach der neuen Regel.** Sie bleibt leer, damit die nächste eingeschobene Runde hier Platz findet, ohne dass sich dahinter etwas bewegt | — | — |
 | **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
@@ -12579,7 +12579,7 @@ an 0.17.2 selbst.* **Alle vier sind gebaut; was dabei herauskam, steht im
 
 ---
 
-### 0.23.x — „Die Kommentare werden knapp" · *PATCH*
+### 0.26.x — „Die Kommentare werden knapp" · *PATCH* *(stand hier bis zum 4. September 2026 als 0.23.x)*
 
 > **DIESE ÜBERSCHRIFT HIESS BIS ZUM 3. SEPTEMBER 2026 „0.21.x", während die
 > Tabelle in Abschnitt 10 schon „0.22.x" trug.** *Zwei Tabellen über dieselbe
@@ -13019,12 +13019,23 @@ wenn der Ausschnitt enger gezogen wird, als die Vorlage hergibt.
 
 ---
 
-### 0.21.0 — „Die Oberfläche wird ruhiger" · *MINOR* *(Nummer vorläufig)*
+### 0.22.0 — „Die Oberfläche wird ruhiger" · *MINOR* *(Nummer vorläufig; stand hier bis zum 4. September 2026 als 0.21.0)*
 
 **Neu am 30. August 2026, aus dem Betrieb.** *Nichts aus dem Sammelblatt.*
 **Am 3. September 2026 von 0.20.0 auf 0.21.0 gerückt**, weil Punkt 8 des
 Sammelblatts die 0.20.0 bekommen hat. *Der Grund steht in Abschnitt 10, beim
-siebten Rücken.*
+siebten Rücken.* **Und am selben Tag ein zweites Mal auf 0.22.0**, weil die
+eingeschobene Runde „Vor dem Test schätzt man …" die 0.21.0 genommen hat.
+
+> **DIESE ÜBERSCHRIFT WAR BEIM ACHTEN RÜCKEN STEHENGEBLIEBEN** — die Tafel in
+> Abschnitt 10 trug schon die 0.22.0, die Ausarbeitung hier noch die 0.21.0.
+> *Aufgefallen am 4. September 2026 beim Eintragen von Punkt 10 des
+> Sammelblatts.* **Dieselbe Stelle, dieselbe Ursache wie bei „Die Kommentare
+> werden knapp" weiter oben** (0.23.x statt 0.26.x) — genau das Vergessen, gegen
+> das Stolperstein 306 die freie Nummer je Zwischenraum gesetzt hat: *jedes
+> Rücken kostet dieselbe Arbeit an denselben Stellen, und jedes Mal wird eine
+> davon vergessen.* **Beide sind berichtigt; die alte Nummer steht daneben und
+> ist nicht gelöscht** (Stolperstein 201).
 
 ### Woher
 
@@ -13053,6 +13064,18 @@ guttun, ohne dass sie ihre Ruhe verliert.*
   einen Anzeigenamen gibt es hier nicht.*
 * **Bewegung nur, wo sie etwas sagt:** die Glocke, wenn etwas Neues da ist; die
   Karte, die gerade gespeichert wurde. **`prefers-reduced-motion` bleibt.**
+* **DER BILDSTREIFEN IM EINTRAG NUTZT DIE BREITE — UND SEINE GRÖSSE WIRD
+  EINSTELLBAR.** *Punkt 10 des Sammelblatts, aus dem Betrieb am 4. September
+  2026.* Heute steht `.thumbs` auf breiten Schirmen als `flex-wrap` mit fest
+  `62 × 62 px`, und rechts in jeder vollen Zeile bleibt ein toter Rest liegen;
+  **auf dem Telefon ist dieselbe Reihe längst ein Raster** mit
+  `minmax(60px, 1fr)` und lückenlos. *Die Telefonfassung gehört auf alle
+  Schirme hochgezogen* — und darüber ein **Regler wie die Schriftgröße**:
+  persönlich je Zugang, feste Stufen, **ein Wert für alle drei Geräte**, weil
+  die vorhandenen Umbruchpunkte ihn mitskalieren. **Kein Bestandslauf:** das
+  gespeicherte `thumb` hat 512 px auf der kurzen Kante und ist bei 62 px
+  Anzeige rund 2,7fach überversorgt; bis etwa 150 px trägt es auch auf einem
+  3x-Telefon. *Die volle Ausarbeitung steht im Sammelblatt, Punkt 10.*
 
 ### Was es ausdrücklich NICHT wird
 
@@ -13075,6 +13098,12 @@ dessen, was nicht mitkommt.*
 **`public/style.css`, und sonst möglichst nichts.** Die farbigen Marken an Rolle
 und Status brauchen dazu zwei Klassen in `public/app.js`. **Kein Schema, keine
 Route, keine neue Abhängigkeit.**
+
+**Der Bildstreifen (Punkt 10) fasst mehr an, aber nicht viel mehr:** neben dem
+Stilblatt eine Stufenliste und eine Zeile in `/api/settings` — **dieselbe
+Maschine wie `schriftgroesse`**, also `getUserSetting` und sonst nichts.
+*`F_ROUTEN` bleibt: die Einstellung reist auf dem vorhandenen `PUT
+/api/settings` mit.* **Kein Schema, kein Migrationsblock, kein Bestandslauf.**
 
 **Und die Runde bekommt eine geschriebene Gestaltungsregel in Abschnitt 5.6**,
 neben Farbe und Marke. *Sonst läuft es beim nächsten Mal wieder auseinander.*
