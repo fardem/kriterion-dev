@@ -5739,6 +5739,203 @@ const RUECKBAUTEN = [
     erwartet: 'Die Gegenproben greifen'
   },
 
+  /* ---- 0.21.1: die Sortierung gibt den Status vor ---- */
+  {
+    /* DIE TABELLE IST DIE GANZE ENTSCHEIDUNG. Ohne sie leitet keine Sortierung
+       mehr etwas ab, und die Runde ist wirkungslos -- die Liste sieht
+       aus wie vor 0.21.1. */
+    nr: '606', name: 'Keine Sortierung gibt mehr einen Status vor',
+    datei: 'public/app.js',
+    suche: "const SORTIERUNG_STATUS = {\n" +
+           "  rating_desc: 'tested',      rating_asc: 'tested',\n" +
+           "  potenzial_desc: 'untested', potenzial_asc: 'untested'\n" +
+           "};",
+    ersatz: "const SORTIERUNG_STATUS = {};",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* NUR DIE HAELFTE DER TABELLE. Ohne diesen Rueckbau bliebe gruen, wer nur
+       die Bewertungsseite baut -- die Potenzialseite ist die, aus der der
+       Befund ueberhaupt kam. */
+    nr: '607', name: 'Nur die Bewertung gibt vor, das Potenzial nicht mehr',
+    datei: 'public/app.js',
+    suche: "  potenzial_desc: 'untested', potenzial_asc: 'untested'\n",
+    ersatz: "",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* UND DIE GEGENRICHTUNG: eine Sortierung, die ausdruecklich NICHT koppeln
+       soll, koppelt doch. Ein Titel sagt nichts ueber den Teststatus. */
+    nr: '608', name: 'Die Titelsortierung koppelt mit',
+    datei: 'public/app.js',
+    suche: "const SORTIERUNG_STATUS = {\n",
+    ersatz: "const SORTIERUNG_STATUS = {\n  title_asc: 'tested',\n",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE VERLAUFSSORTIERUNGEN SIND AUSDRUECKLICH DRAUSSEN (Abschnitt 5 des
+       Auftrags). Sie setzen „getestet" logisch genauso voraus, sind aber eine
+       eigene Gruppe im Auswahlfeld -- diese Runde fasst zwei Gruppen an, nicht
+       drei. Ohne diesen Rueckbau waere das eine Behauptung im Kommentar. */
+    nr: '609', name: 'Die Verlaufssortierungen koppeln mit',
+    datei: 'public/app.js',
+    suche: "const SORTIERUNG_STATUS = {\n  rating_desc:",
+    ersatz: "const SORTIERUNG_STATUS = {\n  testavg_desc: 'tested', testavg_asc: 'tested',\n  tests_desc: 'tested', tests_asc: 'tested',\n  rating_desc:",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE LISTE LIEST WIEDER UNMITTELBAR DIE GEWAEHLTE STELLUNG. Die eine
+       Lesestelle faellt damit weg, und die ganze Ableitung wirkt nirgends
+       mehr -- der groesste Rueckbau dieser Runde. */
+    nr: '610', name: 'Die Liste liest die Ableitung nicht mehr',
+    datei: 'public/app.js',
+    suche: "  const status = statusWirksam(f);",
+    ersatz: "  const status = f.tested;",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE HANDWAHL WIRD NICHT MEHR GEMERKT. Der Klick stellt zwar `tested`,
+       aber die Ableitung schlaegt ihn beim naechsten Zeichnen sofort wieder --
+       genau der Kreis, aus dem niemand mehr herauskaeme (Stolperstein 312). */
+    nr: '611', name: 'Ein Klick auf eine Statuspille gilt nicht mehr als Handwahl',
+    datei: 'public/app.js',
+    suche: "    b.onclick = () => { f.tested = v; STATUS_VON_HAND = true; redraw(); };",
+    ersatz: "    b.onclick = () => { f.tested = v; redraw(); };",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE RANGORDNUNG KIPPT: die Ableitung fragt nicht mehr, ob jemand
+       gewaehlt hat, und schlaegt damit JEDE ausdrueckliche Wahl -- die
+       Handwahl, die gespeicherte Ansicht und den Ruecksetzer zugleich. */
+    nr: '612', name: 'Die Ableitung schlaegt die Handwahl statt umgekehrt',
+    datei: 'public/app.js',
+    suche: "const statusAusSortierung = (sort) => STATUS_VON_HAND ? null : vorgabeZu(sort);",
+    ersatz: "const statusAusSortierung = (sort) => vorgabeZu(sort);",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE ABLEITUNG SCHREIBT SICH IN state.filters -- der Rueckbau, den der
+       Auftrag ausdruecklich verlangt. Er macht aus einem Blick eine
+       Einstellung: was hier hineinlaeuft, faehrt durch saveFilters() an
+       PUT /api/settings hinaus, und nach dem Neuladen stuende ein Filter da,
+       den niemand gesetzt hat (Stolperstein 304 von der anderen Seite).
+       ER MUSS ROT WERDEN, sonst ist Regel 3 nicht baulich, sondern behauptet. */
+    nr: '613', name: 'Die Ableitung wird mitgespeichert',
+    datei: 'public/app.js',
+    suche: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
+    ersatz: "  sel.onchange = () => { f.sort = sel.value;\n" +
+            "    f.tested = statusAusSortierung(sel.value) || f.tested; redraw(); };",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE LEISTE WIRD BEIM WECHSEL DER SORTIERUNG NICHT MEHR MITGEZEICHNET --
+       der Stand vor 0.21.1, als eine Sortierung nur ordnete. Die Liste zeigt
+       dann schon die neue Menge, waehrend die Pillen darueber die alte
+       Stellung behaupten. */
+    nr: '614', name: 'Der Wechsel der Sortierung zeichnet nur noch die Liste',
+    datei: 'public/app.js',
+    suche: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
+    ersatz: "  sel.onchange = () => { f.sort = sel.value; saveFilters(); drawBody(); };",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* EINE GESPEICHERTE ANSICHT IST KEINE AUSDRUECKLICHE WAHL MEHR. Wer
+       „Potenzial" und „alles anzeigen" zusammen gespeichert hat, bekommt sie
+       nicht mehr zurueck -- und genau das darf ein PATCH nicht tun. */
+    nr: '615', name: 'Eine gespeicherte Ansicht schlaegt die Ableitung nicht mehr',
+    datei: 'public/app.js',
+    suche: "  STATUS_VON_HAND = true;\n  state.search = typeof a.q === 'string' ? a.q : '';",
+    ersatz: "  state.search = typeof a.q === 'string' ? a.q : '';",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DER WEG ZURUECK IN DIE AUTOMATIK FAELLT WEG. Der Ruecksetzer raeumt die
+       Filter, aber die Handwahl bleibt stehen -- und es gibt keinen zweiten
+       Weg heraus. */
+    nr: '616', name: 'Der Ruecksetzer stellt die Automatik nicht wieder her',
+    datei: 'public/app.js',
+    suche: "      STATUS_VON_HAND = false;\n      redraw();",
+    ersatz: "      redraw();",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DAS WORT FAELLT WEG. Ein unsichtbarer Automatismus ist ein Fehler, auch
+       wenn er richtig raet -- niemand erfuehre, warum die Liste kuerzer ist. */
+    nr: '617', name: 'Neben den Statuspillen steht nicht mehr, woher sie kommen',
+    datei: 'public/app.js',
+    suche: "  if (vorgabe) {\n    const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');",
+    ersatz: "  if (false) {\n    const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE ABGELEITETE PILLE SIEHT AUS WIE EINE ANGEKLICKTE. Sie behauptet
+       damit eine Einstellung, die niemand vorgenommen hat. */
+    nr: '618', name: 'Die abgeleitete Pille zeichnet sich wie eine gewaehlte',
+    datei: 'public/app.js',
+    suche: "    b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-abgeleitet' : '')\n" +
+           "                                    : (f.tested === v ? ' on' : ''));",
+    ersatz: "    b.className = 'pill' + ((vorgabe ? vorgabe === v : f.tested === v) ? ' on' : '');",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* UND DASSELBE AM STILBLATT: die Klasse steht noch da, aber sie sieht aus
+       wie die gewaehlte. Ein Unterschied, der nur im Markup steht und nicht am
+       Bildschirm, ist keiner. */
+    nr: '619', name: 'Das Stilblatt gibt der abgeleiteten Pille den Fuellgrund der gewaehlten',
+    datei: 'public/style.css',
+    suche: "  border-color: var(--accent); border-style: dashed;",
+    ersatz: "  border-color: var(--accent); background: var(--accent);",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE ABLEITUNG ZAEHLT WIEDER ALS GESETZTER FILTER -- die andere Haelfte
+       der Entscheidung aus Abschnitt 2. Der Ruecksetzer stuende dann auch ohne
+       gesetzten Filter da, und ein Druck darauf stellte die Ableitung gerade
+       wieder her: derselbe Knopf mit derselben Zahl. */
+    nr: '620', name: 'Die Ableitung zaehlt als gesetzter Filter mit',
+    datei: 'public/app.js',
+    suche: "  if (statusWirksam(f) !== statusRuhestellung(f)) n++;",
+    ersatz: "  if (statusWirksam(f) !== statusRuhestellung(f)) n++;\n" +
+            "  if (statusAusSortierung(f.sort)) n++;",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* DIE RUHESTELLUNG IST WIEDER FEST `all` -- der Stand vor 0.21.1, als beides
+       zusammenfiel. Die Zahl ist dann in einer Lage falsch, und zwar in der
+       teuersten: wer bei „Potenzial" ausdruecklich „Alles anzeigen" klickt,
+       weicht von der Ruhestellung ab, aber nicht von `all`. Der Ruecksetzer
+       stuende nicht da, und einen zweiten Weg zurueck in die Automatik gibt es
+       nicht. */
+    /* DIE TABELLE WIRD WIEDER GEWOEHNLICH GEFRAGT. Eine gespeicherte Sortierung,
+       die einen Namen vom Prototyp traegt (`constructor`, `toString`), liefert
+       dann eine FUNKTION: die Ableitung gilt als greifend, und weil eine
+       Funktion weder 'tested' noch 'untested' ist, faellt der Statusfilter
+       still ganz weg -- samt der gespeicherten Wahl. */
+    nr: '623', name: 'Die Vorgabetabelle wird ohne Ruecksicht auf den Prototyp gefragt',
+    datei: 'public/app.js',
+    suche: "  Object.prototype.hasOwnProperty.call(SORTIERUNG_STATUS, sort)\n" +
+           "    ? SORTIERUNG_STATUS[sort] : null;",
+    ersatz: "  SORTIERUNG_STATUS[sort] || null;",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    nr: '622', name: 'Die Ruhestellung der Statuszeile ist wieder fest „alles"',
+    datei: 'public/app.js',
+    suche: "  if (statusWirksam(f) !== statusRuhestellung(f)) n++;",
+    ersatz: "  if (f.tested !== v.tested) n++;",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* UND DER EINGEKLAPPTE SCHALTER SCHWEIGT. Er ist der einzige Ort, der fuer
+       die zugeklappte Leiste noch spricht -- ohne ihn stuende die Ableitung
+       genau dann nirgends dran, wenn man sie am wenigsten sieht. */
+    nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
+    datei: 'public/app.js',
+    suche: "  const woher = statusAusSortierung(state.filters.sort) ? 'folgt der Sortierung' : '';",
+    ersatz: "  const woher = '';",
+    erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     /* DIE DATEILISTE DES SPRACHWAECHTERS VERLIERT DIE BEIDEN NEUEN DATEIEN --

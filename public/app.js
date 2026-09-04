@@ -1523,6 +1523,98 @@ const KATEGORIE_OHNE = 'ohne';
 const FILTER_VORGABE = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                          abgelehnt: 'all', favorit: false,
                          sort: 'updated_desc' };
+
+/* ================= DIE SORTIERUNG GIBT DEN STATUS VOR -- 0.21.1 =================
+   EINE SORTIERUNG BEANTWORTET EINE FRAGE, ABER DIE LISTE ZEIGT NICHT DIE MENGE,
+   IN DER DIESE FRAGE SICH STELLT. Wer nach Bewertung sortiert, fragt „was war
+   gut?" -- und das haben nur getestete Eintraege beantwortet. Wer nach
+   Potenzial sortiert, fragt „was mache ich als Naechstes?" -- und das fragt
+   sich nur an Ideen. Beide Male stand die andere Haelfte des Bestands mit in
+   der Liste und fuellte sie auf.
+
+   DIE SORTIERUNG ENTSCHEIDET DIE VORGABE, DIE HANDWAHL SCHLAEGT SIE. Das ist
+   Stolperstein 303 eine Ansicht weiter -- dort entschied der ZUSTAND eines
+   Eintrags die Vorgabe und die Einstellung nicht; hier entscheidet die
+   Sortierung, und die ausdrueckliche Wahl gewinnt. Dieselbe Bauform, dasselbe
+   Verhaeltnis.
+
+   VIER REGELN, UND KEINE DAVON IST VERHANDELBAR:
+   (1) VORGABE STATT BEFEHL. Nur die vier Sortierungen dieser Tabelle geben
+       etwas vor. Jede andere laesst den Filter in Ruhe -- sie hat keine
+       Vorgabe, nicht die Vorgabe „alles".
+   (2) EINE HANDWAHL HAELT. Ein Klick auf eine der drei Statuspillen gilt, auch
+       gegen die Vorgabe und ueber einen Wechsel der Sortierung hinweg.
+   (3) DIE ABLEITUNG WIRD NICHT GESPEICHERT. saveFilters() schreibt weiterhin
+       die GEWAEHLTE Stellung, nicht die abgeleitete. Wuerde sie mitfahren,
+       stuende nach dem Neuladen ein Filter da, den niemand gesetzt hat -- und
+       wer die Sortierung zuruecknimmt, bliebe auf ihm sitzen, ohne zu wissen,
+       woher er kommt. Ein gesetztes Feld, das niemand gesetzt hat, ist
+       Stolperstein 304 von der anderen Seite gelesen.
+   (4) ES STEHT DRAN. Die abgeleitete Pille sieht anders aus als eine
+       angeklickte, und daneben steht, woher sie kommt. Ein unsichtbarer
+       Automatismus ist ein Fehler, auch wenn er richtig raet.
+
+   NUR IN EINE RICHTUNG. Ein Klick auf „Ungetestet" stellt die Sortierung NICHT
+   auf Potenzial um: zwei Bedienelemente, die sich gegenseitig verstellen, sind
+   ein Kreis, und man kommt aus ihm nicht mehr heraus (Stolperstein 312).
+
+   DIE VERLAUFSSORTIERUNGEN (tests_*, testavg_*, testlast_*) STEHEN
+   AUSDRUECKLICH NICHT HIER. Sie setzen „getestet" logisch genauso voraus --
+   aber sie sind eine eigene Gruppe im Auswahlfeld, und diese Runde fasst zwei
+   Gruppen an, nicht drei. title_asc ebenfalls nicht: ein Titel sagt nichts
+   ueber den Teststatus. */
+const SORTIERUNG_STATUS = {
+  rating_desc: 'tested',      rating_asc: 'tested',
+  potenzial_desc: 'untested', potenzial_asc: 'untested'
+};
+
+/* DER ZWEITE, UNGESPEICHERTE MERKER NEBEN state.filters -- dieselbe Machart wie
+   BLICK weiter oben, und aus demselben Grund daneben statt darin: was in
+   state.filters steht, geht durch saveFilters() hinaus und ist damit
+   gespeichert. Hier steht nur, OB jemand die Statuspille selbst gewaehlt hat.
+   ER UEBERLEBT KEIN NEULADEN, und das ist gewollt: eine frisch aufgebaute Seite
+   hat niemanden, der geklickt haette, also gilt wieder die Vorgabe der
+   Sortierung. Er ueberlebt aber den Wechsel in einen Eintrag und zurueck --
+   drawFilters() zeichnet neu, das Modul bleibt stehen.
+   EINE ANGEWANDTE GESPEICHERTE ANSICHT SETZT IHN EBENFALLS: sie ist eine
+   ausdrueckliche Wahl, genau wie ein Klick auf eine Pille. */
+let STATUS_VON_HAND = false;
+
+/* GEFRAGT WIRD MIT hasOwnProperty UND NICHT MIT EINEM GEWOEHNLICHEN ZUGRIFF.
+   `f.sort` kommt aus einer gespeicherten Stellung, und die kann jeden Text
+   tragen -- eine Ansicht aus einer aelteren Fassung ebenso wie einen Wert, den
+   jemand von Hand hineingeschrieben hat. Traefe er einen Namen VOM PROTOTYP
+   (`constructor`, `toString`, `valueOf`), gaebe der gewoehnliche Zugriff eine
+   FUNKTION zurueck: sie ist wahr, die Ableitung griffe also -- und weil eine
+   Funktion weder 'tested' noch 'untested' ist, fiele der Statusfilter STILL
+   ganz weg, samt der gespeicherten Wahl.
+   EIN UNBEKANNTER WERT DARF NICHTS WEGNEHMEN. Dieselbe Regel steht in
+   visibleItems() schon am Schluessel `abgelehnt`, und sie gilt hier genauso. */
+const vorgabeZu = (sort) =>
+  Object.prototype.hasOwnProperty.call(SORTIERUNG_STATUS, sort)
+    ? SORTIERUNG_STATUS[sort] : null;
+
+/* DIE EINE STELLE, AN DER AUS SORTIERUNG UND HANDWAHL EINE VORGABE WIRD.
+   Sie liefert den abgeleiteten Wert oder null -- null heisst „hier leitet
+   nichts ab", und das ist etwas anderes als „alles anzeigen".
+   ZWEI RECHENWEGE FUER DIESELBE FRAGE LIEFEN AUSEINANDER (Stolperstein 47):
+   deshalb fragen die Liste (visibleItems) und die Leiste (drawFilters,
+   zeichneFilterSchalter) DIESE Funktion und rechnen nicht je selbst. */
+const statusAusSortierung = (sort) => STATUS_VON_HAND ? null : vorgabeZu(sort);
+
+// Was am Ende wirklich filtert: die Ableitung, sonst die gewaehlte Stellung.
+const statusWirksam = (f) => statusAusSortierung(f.sort) || f.tested;
+
+/* WORAUF DIE STATUSZEILE VON SELBST STEHT -- die Ruhestellung. Sie fragt die
+   Tabelle OHNE Ruecksicht auf die Handwahl: „was zeigte die Leiste hier, haette
+   niemand geklickt?"
+   SIE IST DER MASSSTAB FUER filterZahl(), und dafuer wird sie gebraucht. Vor
+   0.21.1 war die Ruhestellung immer `all`; seit dieser Runde haengt sie an der
+   Sortierung, und ohne diese Zeile faende ein Mensch aus einer Handwahl, die
+   „alles anzeigen" heisst, nicht mehr in die Automatik zurueck: `all` ist der
+   alte Vorgabewert, die Zahl bliebe null, der Ruecksetzer stuende nicht da --
+   und einen zweiten Weg heraus gibt es nicht. */
+const statusRuhestellung = (f) => vorgabeZu(f.sort) || FILTER_VORGABE.tested;
 const state = {
   items: [], categories: [], tags: [], criteria: [],
   filters: { ...FILTER_VORGABE },
@@ -1859,6 +1951,13 @@ async function ansichtLoeschen(name) {
    GESUCHT WIRD OHNE Debounce: es ist ein Klick und kein Tippen. */
 function ansichtAnwenden(a) {
   state.filters = filterNormal(a.filters);
+  /* EINE GESPEICHERTE ANSICHT IST EINE AUSDRUECKLICHE WAHL UND SCHLAEGT DIE
+     ABLEITUNG -- 0.21.1, wie eine Handwahl und aus demselben Grund. Sie traegt
+     `sort` und `tested` ZUSAMMEN; wuerde die Sortierung darin den Status
+     ueberschreiben, aenderte sich das Verhalten vorhandener Ansichten still,
+     und das ist genau das, was ein PATCH nicht tun darf. Wer „Potenzial" und
+     „alles anzeigen" zusammen gespeichert hat, bekommt beides zurueck. */
+  STATUS_VON_HAND = true;
   state.search = typeof a.q === 'string' ? a.q : '';
   const feld = document.getElementById('q');
   if (feld) feld.value = state.search;
@@ -1914,8 +2013,15 @@ function visibleItems(filter) {
   // UND ist die Vorgabe: mit zwei Tags will man fast immer den Schnitt
   // ("gruen UND schwer"), nicht die Vereinigung.
   if (f.tagIds.length) out = out.filter(i => passtZuTags(i, f.tagIds, f.tagMode));
-  if (f.tested === 'tested') out = out.filter(i => i.tested);
-  else if (f.tested === 'untested') out = out.filter(i => !i.tested);
+  /* DIE EINE LESESTELLE DER ABLEITUNG -- 0.21.1. Hier stand bis dahin
+     `f.tested` unmittelbar; jetzt fragt die Zeile statusWirksam(), und das ist
+     der einzige Ort, an dem aus Handwahl und Sortierung eine Menge wird. Eine
+     zweite Lesestelle liefe auseinander (Stolperstein 47).
+     GEFRAGT WIRD MIT `f` UND NICHT MIT state.filters: der Parameter dieser
+     Funktion ist die Vorschau, und sie soll dieselbe Rechnung bekommen. */
+  const status = statusWirksam(f);
+  if (status === 'tested') out = out.filter(i => i.tested);
+  else if (status === 'untested') out = out.filter(i => !i.tested);
   /* DIE ABLEHNUNG IST EIN EIGENES MERKMAL und deshalb eine eigene Dreiergruppe
      -- kein vierter Wert von `tested`. Man lehnt ab, OHNE zu testen, und man
      lehnt NACH dem Test ab; beide Merkmale muessen sich kreuzen lassen, und als
@@ -2415,11 +2521,39 @@ function listKeys(e) {
    sie mitzuzaehlen hiesse, eine Vollstaendigkeit in Frage zu stellen, die
    gar nicht angetastet ist.
    Jeder gewaehlte Tag zaehlt einzeln: zwei Tags verkleinern die Menge
-   zweimal, und genau das soll die Zahl sagen. */
+   zweimal, und genau das soll die Zahl sagen.
+
+   DIE ABLEITUNG AUS DER SORTIERUNG ZAEHLT NICHT MIT -- 0.21.1, und das ist eine
+   Entscheidung und keine Formalie. DAFUER SPRACH: die Zahl sagt, wie viele
+   Filter greifen, und die Ableitung greift. DAGEGEN SPRACH ZWEIERLEI, und das
+   zweite gab den Ausschlag.
+   ERSTENS: die Zahl steht auch fuer „wie viel habe ich eingestellt", und
+   eingestellt hat das niemand.
+   ZWEITENS, UND DAS IST BAULICH: dieselbe Zahl traegt der Ruecksetzer
+   („Filter zuruecksetzen (3)"), und der steht NUR da, solange sie groesser als
+   null ist. Zaehlte die Ableitung mit, stuende er auch dann da, wenn sonst
+   nichts gesetzt ist -- und ein Druck darauf raeumte die Ableitung gerade
+   nicht weg, sondern stellte sie wieder her. Der Knopf saesse mit derselben
+   Zahl wieder da, und niemand kaeme aus ihm heraus. Ein Knopf, der nichts
+   bewirkt, ist dieselbe Auskunft ueber nichts wie eine Null am Zaehler.
+   GESAGT WIRD SIE TROTZDEM, nur in Worten statt in einer Zahl: neben den
+   Statuspillen steht „folgt der Sortierung", und am eingeklappten Schalter
+   steht dasselbe. Regel 4 gilt an beiden Orten. */
 function filterZahl() {
   const f = state.filters, v = FILTER_VORGABE;
   let n = 0;
-  if (f.tested !== v.tested) n++;
+  /* GEZAEHLT WIRD DIE ABWEICHUNG VON DER RUHESTELLUNG UND NICHT MEHR VON `all`
+     -- 0.21.1. Beides fiel bis dahin zusammen; seit die Sortierung eine Vorgabe
+     macht, sind es zwei Dinge.
+     DREI LAGEN, UND ALLE DREI FALLEN RICHTIG AUS:
+     die Ableitung greift und niemand hat geklickt -> Ruhestellung, zaehlt NICHT
+     (die Begruendung steht oben);
+     jemand hat „Alles anzeigen" gegen die Ableitung geklickt -> weicht ab,
+     zaehlt EINS -- und genau darueber steht der Ruecksetzer wieder da, der der
+     einzige Weg zurueck in die Automatik ist;
+     keine Ableitung im Spiel -> die Ruhestellung IST `all`, und die Zeile zaehlt
+     wie vor dieser Runde. */
+  if (statusWirksam(f) !== statusRuhestellung(f)) n++;
   // Die Ablehnung zaehlt EIGENS mit und nicht mit dem Teststatus zusammen: sie
   // ist ein zweites Merkmal, und beide zugleich verkleinern die Menge zweimal.
   if (f.abgelehnt !== v.abgelehnt) n++;
@@ -2445,7 +2579,16 @@ function zeichneFilterSchalter() {
   if (!knopf || !box) return;
   const n = filterZahl();
   const zu = box.classList.contains('zu');
-  knopf.querySelector('.fz').textContent = n ? `· ${n} aktiv` : '';
+  /* UND EINGEKLAPPT STEHT AUCH DIE ABLEITUNG DRAN -- 0.21.1. Das Wort neben den
+     Statuspillen ist dann nicht zu sehen, und der Schalter ist der einzige
+     Ort, der fuer die zugeklappte Leiste noch spricht. Regel 4 gilt auch hier.
+     ALS WORT UND NICHT ALS ZAHL: filterZahl() zaehlt die Ableitung
+     ausdruecklich nicht mit (die Begruendung steht dort), und `aktiv` bleibt
+     deshalb an der Zahl haengen -- die Farbe sagt „du hast etwas eingestellt",
+     und eingestellt hat das niemand. */
+  const woher = statusAusSortierung(state.filters.sort) ? 'folgt der Sortierung' : '';
+  knopf.querySelector('.fz').textContent =
+    [n ? `${n} aktiv` : '', woher].filter(Boolean).map(t => `· ${t}`).join(' ');
   knopf.classList.toggle('aktiv', n > 0);
   knopf.setAttribute('aria-expanded', zu ? 'false' : 'true');
   knopf.title = zu ? 'Filter zeigen' : 'Filter einklappen';
@@ -2481,11 +2624,28 @@ function drawFilters() {
   // selbst aus dem Vokabular kommt.
   const r1 = row('Status');
   const g1 = document.createElement('div'); g1.className = 'pills';
+  /* WAS DIE SORTIERUNG GERADE VORGIBT -- 0.21.1, oder null. Gefragt wird
+     dieselbe Funktion, die auch visibleItems() fragt: die Leiste soll nicht
+     ihre eigene Rechnung ueber dieselbe Menge fuehren (Stolperstein 47). */
+  const vorgabe = statusAusSortierung(f.sort);
   [['all','Alles anzeigen'],['tested',V.merkmalJa],['untested',V.merkmalNein]].forEach(([v,l]) => {
     const b = document.createElement('button');
-    b.className = 'pill' + (f.tested === v ? ' on' : '');
+    /* GENAU EINE PILLE IST MARKIERT, UND SIE SAGT IMMER DASSELBE: „so steht die
+       Liste gerade da". Greift die Ableitung, ist es ihre -- die gespeicherte
+       Stellung wirkt in diesem Augenblick nicht, und sie als gesetzt zu
+       zeichnen waere eine Falschaussage ueber die gezeigte Menge.
+       ZWEI VERSCHIEDENE KLASSEN UND NICHT EINE MIT ZUSATZ: `on` heisst
+       „angeklickt", `pill-abgeleitet` heisst „gilt, aber nicht von deiner
+       Hand". Gleich aussehen duerfen sie nicht (Regel 4). */
+    b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-abgeleitet' : '')
+                                    : (f.tested === v ? ' on' : ''));
     b.textContent = l;
-    b.onclick = () => { f.tested = v; redraw(); };
+    if (vorgabe === v) b.title = 'Diese Stellung kommt aus der Sortierung — ' +
+      'ein Klick macht daraus deine eigene Wahl.';
+    /* EIN KLICK IST EINE HANDWAHL, AUCH AUF DIE ABGELEITETE PILLE. Sie ist kein
+       toter Knopf: wer sie drueckt, hat sich entschieden, und die Ableitung
+       endet -- sonst kaeme niemand mehr aus ihr heraus (Stolperstein 312). */
+    b.onclick = () => { f.tested = v; STATUS_VON_HAND = true; redraw(); };
     g1.appendChild(b);
   });
   // Eigener Umschalter, kein vierter Wert der Reihe davor: die drei oben sind
@@ -2509,6 +2669,21 @@ function drawFilters() {
      DIE FILTERZEILE IST DAMIT UM EINE PILLE KUERZER -- die Fortsetzung von
      0.13.0, wo sie 75 px flacher wurde. */
   r1.appendChild(g1);
+
+  /* UND DANEBEN STEHT, WOHER DIE STELLUNG KOMMT -- 0.21.1, Regel 4. Ein
+     unsichtbarer Automatismus ist ein Fehler, auch wenn er richtig raet.
+     DASSELBE BAUTEIL WIE „Ablehnung" UND „Ansichten": eine zweite Beschriftung
+     ohne eigene Spalte, in derselben Zeile. Sie steht NUR da, solange die
+     Ableitung greift -- eine Auskunft ueber nichts ist dieselbe Falle wie eine
+     Null am Zaehler „Offen".
+     DER KLARTEXT NENNT AUCH DEN WEG HINAUS. Das Wort allein sagt, woher es
+     kommt; wie man es wieder loswird, gehoert daneben. */
+  if (vorgabe) {
+    const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');
+    woher.id = 'f-status-woher';
+    woher.title = 'Die Sortierung gibt diesen Filter vor — ein Klick auf eine der drei ' +
+                  'Pillen setzt ihn selbst, „Filter zurücksetzen" gibt die Vorgabe zurück.';
+  }
 
   /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
      KEINE EIGENE ZEILE. Die Zeile heisst "Status", und die Ablehnung ist einer
@@ -2726,7 +2901,11 @@ function drawFilters() {
       <option value="testlast_asc">Letzte Note (niedrig → hoch)</option>
     </optgroup>`;
   sel.value = f.sort;
-  sel.onchange = () => { f.sort = sel.value; saveFilters(); drawBody(); };
+  /* SEIT 0.21.1 WIRD DIE GANZE LEISTE NEU GEZEICHNET UND NICHT NUR DIE LISTE:
+     die Sortierung gibt den Statusfilter vor, und die Statuspillen stehen eine
+     Zeile weiter oben. Vorher genuegte drawBody(), weil eine Sortierung nur
+     ordnete; jetzt aendert sie auch, was die Leiste zeigt. */
+  sel.onchange = () => { f.sort = sel.value; redraw(); };
   r4.appendChild(sel);
 
   /* ---- Die gespeicherten Ansichten ----
@@ -2813,6 +2992,11 @@ function drawFilters() {
          DIE SORTIERUNG WIRD MITGEGEBEN UND NICHT ZURUECKGESETZT, obwohl sie in
          der Vorgabe steht: sie zaehlt auch nicht mit. */
       state.filters = filterNormal({ sort: state.filters.sort });
+      /* UND DIE HANDWAHL FAELLT MIT -- 0.21.1. Er heisst „Filter
+         zuruecksetzen", und die Handwahl ist eine Filterstellung: danach folgt
+         der Statusfilter wieder der Sortierung. Das ist zugleich der Weg
+         zurueck IN die Automatik, und es gibt keinen zweiten. */
+      STATUS_VON_HAND = false;
       redraw();
     };
     rechts5.appendChild(bZurueck);

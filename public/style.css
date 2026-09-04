@@ -415,6 +415,24 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    "Gold ist Bewertung und Favorit, Orange ist Art und Bedienung", und ein
    Filterknopf ist Bedienung. Der Stern steht im Text, nicht in der Farbe. */
 .pill-sep { margin-left: 14px; }
+/* DIE PILLE, DIE AUS DER SORTIERUNG KOMMT -- 0.21.1.
+   SIE WIRKT UND IST TROTZDEM NICHT GEWAEHLT, und genau das muss sie zeigen:
+   die Farbe der Wahl (Orange, wie jedes Bedienelement), aber NICHT ihren
+   Fuellgrund. Gefuellt saehe sie aus wie angeklickt und behauptete eine
+   Einstellung, die niemand vorgenommen hat; gedaempft (`.pill.leer`) saehe sie
+   aus wie ein toter Knopf, und sie ist keiner -- ein Klick darauf ist eine
+   Handwahl und beendet die Vorgabe.
+   DER GESTRICHELTE RAHMEN IST DAS ZEICHEN: derselbe Umriss, andere Linie.
+   KEINE NEUE FARBE -- `--accent` steht schon fuer Bedienung, und Gold bliebe
+   der Bewertung. */
+.pill-abgeleitet {
+  border-color: var(--accent); border-style: dashed;
+  color: var(--accent); font-weight: 620;
+}
+/* Unter dem Zeiger behaelt sie ihre Farbe: `.pill:hover` weiter oben zieht
+   sonst auf die gewoehnliche Textfarbe zurueck, und die Pille saehe beim
+   Ueberfahren aus wie jede andere. */
+.pill-abgeleitet:hover { border-color: var(--accent); color: var(--accent); }
 .pill .n { opacity: .55; margin-left: 4px; font-size: .7rem; }
 /* Das Kreuz an einer gespeicherten Ansicht. Es liegt IM Knopf -- ein Knopf im
    Knopf gibt es in HTML nicht --, ist deshalb ein span und traegt seinen

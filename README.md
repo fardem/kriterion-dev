@@ -1137,6 +1137,23 @@ es zwei, beide im Systembereich einstellbar:
   mit den aktiven Filtern vorn; der Rest klappt auf. Tags, die nur an Testtagen
   hängen, stehen nicht darin — dort lieferten sie null Treffer. Die Suche
   findet sie trotzdem.
+- **Die Sortierung gibt den Statusfilter vor.** Wer nach **Bewertung** sortiert,
+  fragt „was war gut?" — und das haben nur getestete Einträge beantwortet; der
+  Filter steht dann auf **Getestet**. Wer nach **Potenzial** sortiert, fragt
+  „was mache ich als Nächstes?" — das fragt sich nur an Ideen, und der Filter
+  steht auf **Ungetestet**. *Jede andere Sortierung fasst den Filter nicht an;
+  auch die drei nach Testverlauf nicht.*
+  **Die Rangordnung: die Sortierung entscheidet die Vorgabe, die Handwahl
+  schlägt sie.** Ein Klick auf eine der drei Statuspillen gilt — auch gegen die
+  Vorgabe und über einen Wechsel der Sortierung hinweg. *Eine gespeicherte
+  Ansicht ebenso: wer „Potenzial" und „alles anzeigen" zusammen gemerkt hat,
+  bekommt beides zurück.* **Der Weg zurück in die Vorgabe ist „Filter
+  zurücksetzen".**
+  **Man sieht es:** die vorgegebene Pille ist gestrichelt statt ausgefüllt, und
+  daneben steht *„folgt der Sortierung"*; eingeklappt sagt es der Filterschalter.
+  *Gespeichert wird die Vorgabe nicht* — geschrieben wird immer die gewählte
+  Stellung, und ein Neuladen rechnet sie aus der Sortierung neu aus. **Der
+  Filterzähler zählt sie nicht mit:** eingestellt hat sie niemand.
 - **Mehrere Kategorien zugleich**: ein Klick nimmt eine dazu,
   ein zweiter nimmt sie wieder heraus, **„Alle"** räumt die Auswahl weg. **Es
   ist immer ein Oder** — ein Eintrag trägt genau eine Kategorie, ein „und" wäre
@@ -1151,6 +1168,9 @@ es zwei, beide im Systembereich einstellbar:
   **die Sortierung ebenfalls**, und **eine gespeicherte Ansicht wird nicht
   angetastet**. *Zurücksetzen heißt „zeig mir alles", nicht „vergiss, was ich
   mir gemerkt habe".*
+  **Und er nimmt die Handwahl am Statusfilter mit zurück** — danach folgt der
+  Status wieder der Sortierung. *Er heißt „Filter zurücksetzen", und die
+  Handwahl ist eine Filterstellung.*
 - **Zeitleiste der Testtage** zwischen Filterleiste und Kartenraster: waagerecht
   die Zeit, senkrecht die Tagesnote, ein Punkt je Testtag. Überfahren zeigt
   Titel, Datum und Note, ein Klick öffnet den Eintrag. Sie richtet sich nach den
@@ -1821,6 +1841,12 @@ gefiltert wird, und eine Liste, die ohne sichtbaren Grund unvollständig ist, is
 ein Fehler und keine Ansicht. Die Sortierung zählt nicht mit — sie nimmt nichts
 weg, sie ordnet nur. **Der Zustand ist Ansichtszustand und keine Einstellung:**
 beim nächsten Aufruf steht wieder die Vorgabe.
+
+**Eine Ausnahme steht daneben, und zwar in Worten:** gibt die Sortierung den
+Statusfilter vor (Bewertung → Getestet, Potenzial → Ungetestet), nimmt *die*
+sehr wohl etwas weg. Sie **zählt trotzdem nicht mit** — eingestellt hat sie
+niemand —, aber der Schalter sagt sie an: *„· folgt der Sortierung"*. So bleibt
+die Regel, dass eine unvollständige Liste nie ohne sichtbaren Grund dasteht.
 
 Auf einem Tablett steht der Schalter ebenfalls da, die Filter fangen dort aber
 **offen** an. Dort ist Platz, und was vorher sichtbar war, soll nicht ohne Not

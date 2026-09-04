@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 57 · Stand 4. September 2026 · gebaut: Version 0.21.0**
+**Kompakte Übergabe · Revision 58 · Stand 4. September 2026 · gebaut: Version 0.21.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,30 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.21.1 in einem Satz: die Sortierung sagt, wonach du fragst — und der
+Statusfilter hört zu.** *PATCH — die Installation kann danach nichts, was sie
+vorher nicht konnte: dieselben Einträge, dieselben Zahlen, dasselbe Merkmal.
+Was sich ändert, ist die Bedienform — zwei Bedienelemente, die bisher nichts
+voneinander wussten, wissen ab jetzt voneinander.* **Der Befund kam aus dem
+Rundlauf von Hand nach 0.21.0:** eine Sortierung beantwortet eine Frage, aber
+die Liste zeigte nicht die Menge, in der diese Frage sich stellt. *Wer nach
+**Potenzial** sortiert, fragt „was mache ich als Nächstes?" — und das fragt sich
+nur an Ideen; wer nach **Bewertung** sortiert, fragt „was war gut?" — und das
+haben nur getestete Einträge beantwortet.* **Beide Male stand die andere Hälfte
+des Bestands mit in der Liste und füllte sie auf** — bei dreizehn Einträgen
+fällt das nicht auf, bei zweihundert scrollt man an allem vorbei, was längst
+durch ist. **Ab jetzt setzt die Sortierung den Statusfilter als VORGABE**
+(`rating_*` → Getestet, `potenzial_*` → Ungetestet; jede andere Sortierung fasst
+ihn nicht an). **Die Rangordnung ist die von Stolperstein 303, eine Ansicht
+weiter: die Sortierung entscheidet die Vorgabe, die ausdrückliche Wahl schlägt
+sie** — ein Klick auf eine Statuspille und eine angewandte gespeicherte Ansicht
+gelten, auch über einen Wechsel der Sortierung hinweg, und „Filter zurücksetzen"
+ist der Weg zurück in die Automatik. **Die Vorgabe wird NICHT gespeichert**
+(ein gesetztes Feld, das niemand gesetzt hat, ist Stolperstein 304 von der
+anderen Seite) **und NICHT mitgezählt** — gesagt wird sie stattdessen in Worten:
+*„folgt der Sortierung"*, neben den Pillen und am eingeklappten Schalter.
+**Keine Datenbankstufe, keine Migration, keine Route, kein Modul.**
 
 **0.21.0 in einem Satz: ein Eintrag hat ab jetzt ZWEI Sternkästen, und ihre
 Durchschnitte berühren einander nicht.** *MINOR — die Installation kann danach
@@ -451,7 +475,26 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.21.0** — Fingerprint **`85f4348b`**, **5512
+**Gebaut ist 0.21.1** — Fingerprint **`2295870b`**, **5571
+Prüfungen**, **617 Rückbauten in der Liste** (Abschnitt 8).
+*0.21.1 koppelt die Sortierung an den Statusfilter: wer nach Bewertung sortiert,
+bekommt „Getestet" vorgegeben, wer nach Potenzial sortiert „Ungetestet" — als
+**Vorgabe**, die jede Handwahl schlägt.*
+**PATCH — KEINE DATENBANKSTUFE, KEINE MIGRATION, KEIN BESTANDSLAUF, KEINE NEUE
+ROUTE.** *Austauschformat 13, `F_ROUTEN` 70, einundzwanzig Karten, neun
+Migrationsblöcke, neun ausgelieferte Module, zwölf Vokabelwörter — alles
+unverändert.* **Nach dem Einspielen im Browser einmal hart neu laden**
+(`public/app.js` und `public/style.css` haben sich geändert).
+**Die eine Verhaltensänderung, die ein Betreiber merkt:** *wer nach Bewertung
+oder Potenzial sortiert, sieht eine andere Menge als vorher.*
+**Am Wirt noch nicht gesehen** (Abschnitt 8).
+
+> **DER RÜCKWEG AUF 0.21.0 IST OFFEN UND FOLGENLOS.** *Eine ältere Fassung kennt
+> die Kopplung nicht und filtert wie bisher — sie liest dieselbe gespeicherte
+> Stellung, denn geschrieben wird nur die gewählte und nie die abgeleitete.*
+> **Eine Sicherung schadet nie, ist hier aber nicht nötig.**
+
+**Davor: 0.21.0** — Fingerprint **`85f4348b`**, **5512
 Prüfungen**, **599 Rückbauten in der Liste** (Abschnitt 8).
 *0.21.0 gibt jedem Eintrag einen zweiten Sternkasten — „Potenzial", die
 Einschätzung VOR dem Test — mit eigenen Kriterien, eigenen Gewichten und einem
@@ -1322,7 +1365,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.21.0** | **`85f4348b`** *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5512 |
+| **0.21.1** | **`2295870b`** *(gebaut am 4. September 2026; **am Wirt noch nicht gesehen**)* | 5571 |
+| 0.21.0 | `85f4348b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5512 |
 | **0.20.1** | **`c67a13f9`** *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5403 |
 | 0.20.0 | `12421721` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**; die drei Befunde daraus sind 0.20.1)* | 5374 |
 | 0.19.6 | `109cd457` *(gebaut am 3. September 2026 — **im Feld noch nicht bestätigt**)* | 5246 |
@@ -2402,7 +2446,9 @@ Kartenraster; **Zeitleiste** der Testtage über den Karten (waagerecht die Zeit,
 senkrecht die Tagesnote, folgt den Filtern, unter fünf Testtagen ausgeblendet);
 Filter nach Status, Kategorie und Tags (Tagwolke eine Zeile, aufklappbar, nach
 Häufigkeit sortiert, Verknüpfung Und/Oder umschaltbar); Sortierung nach
-Änderung, Bewertung, Titel und drei Testkennzahlen; Vergleich mehrerer Einträge;
+Änderung, Bewertung, Potenzial, Titel und drei Testkennzahlen — **und die
+Sortierung nach Bewertung oder Potenzial gibt seit 0.21.1 den Statusfilter vor**;
+Vergleich mehrerer Einträge;
 **„★ Favoriten"** als eigener, mit jedem Teststatus kombinierbarer Filter.
 Filter- und Sortierwahl werden serverseitig gespeichert.
 
@@ -2431,6 +2477,49 @@ Tagzeile, wo die Wahl echt ist. *Mehrere gewählte Kategorien zählen in der
 Filterzahl als **ein** Filter: jeder Tag verkleinert die Menge, jede Kategorie
 vergrößert sie.* **„Alle" bleibt eine Pille** (Begründung in Abschnitt 5).
 
+**SEIT 0.21.1 GIBT DIE SORTIERUNG DEN STATUSFILTER VOR.** *Eine Sortierung
+beantwortet eine Frage, aber die Liste zeigte nicht die Menge, in der diese
+Frage sich stellt.* **`rating_desc` und `rating_asc` → „Getestet";
+`potenzial_desc` und `potenzial_asc` → „Ungetestet"; jede andere Sortierung
+fasst den Filter nicht an** — sie hat keine Vorgabe, nicht die Vorgabe „alles".
+**Die drei Verlaufssortierungen sind ausdrücklich draußen** (sie setzen
+„getestet" logisch genauso voraus, sind aber eine eigene Gruppe im Auswahlfeld),
+**`title_asc` ebenso** — ein Titel sagt nichts über den Teststatus.
+
+**DIE RANGORDNUNG: die Sortierung entscheidet die Vorgabe, die ausdrückliche
+Wahl schlägt sie.** *Dieselbe Bauform wie Stolperstein 303 eine Ansicht weiter:
+ein abgeleiteter Zustand und eine ausdrückliche Wahl, und die ausdrückliche Wahl
+gewinnt.* **Ein Klick auf eine der drei Statuspillen gilt** — auch gegen die
+Vorgabe und **über einen Wechsel der Sortierung hinweg** —, **und eine
+angewandte gespeicherte Ansicht ebenso**: wer „Potenzial" und „alles anzeigen"
+zusammen gemerkt hat, bekommt beides zurück. *Sonst änderte sich das Verhalten
+vorhandener Ansichten still, und das darf ein PATCH nicht.*
+
+**DIE ABLEITUNG WIRD NICHT GESPEICHERT.** `saveFilters()` schreibt weiterhin die
+**gewählte** Stellung an `PUT /api/settings`. *Würde sie mitfahren, stünde nach
+dem Neuladen ein Filter da, den niemand gesetzt hat — und wer die Sortierung
+zurückstellt, bliebe auf ihm sitzen, ohne zu wissen, woher er kommt* (Stolperstein
+304 von der anderen Seite gelesen). **Gebaut ist sie als zweiter, ungespeicherter
+Merker neben `state.filters`** (`STATUS_VON_HAND`), *dieselbe Machart wie `BLICK`
+aus 0.21.0 und aus demselben Grund daneben statt darin.* **Sie überlebt kein
+Neuladen und wird neu gerechnet; sie überlebt aber den Wechsel in einen Eintrag
+und zurück.**
+
+**UND ES STEHT DRAN.** Die vorgegebene Pille trägt `pill-abgeleitet` —
+**gestrichelter Rahmen in der Farbe der Wahl, ohne deren Füllgrund** —, und
+daneben steht *„folgt der Sortierung"* (dasselbe Bauteil wie „Ablehnung" und
+„Ansichten"). **Eingeklappt sagt es der Filterschalter:** *„· folgt der
+Sortierung"*. *Ein unsichtbarer Automatismus ist ein Fehler, auch wenn er
+richtig rät.* **Ein Klick auf die abgeleitete Pille ist weiterhin eine Handwahl**
+— sie ist kein toter Knopf, und die Kopplung geht **nur in eine Richtung**: ein
+Klick auf „Ungetestet" stellt die Sortierung nicht auf Potenzial um
+(Stolperstein 312).
+
+**GELESEN WIRD DIE ABLEITUNG AN GENAU EINER STELLE** — `statusWirksam()`, das
+`visibleItems()` dort fragt, wo bis 0.21.1 unmittelbar `f.tested` stand. Die
+Leiste fragt dieselbe Funktion; *zwei Rechenwege für dieselbe Menge liefen
+auseinander* (Stolperstein 47).
+
 **Die Filterleiste ist seit 0.13.0 vier Zeilen statt fünf** — bei 1359 px
 Fenster **154 px** statt 229 px, gemessen. Die Tagwolke steht neben ihren
 Verweisen in **einer** Zeile, Sortieren und Ansichten teilen sich eine. **Eine
@@ -2454,6 +2543,15 @@ Funktion, die den Schalter über den Filtern trägt, mit denselben Regeln: die
 Sortierung zählt nicht mit, drei Kategorien zählen als **ein** Filter, jeder Tag
 einzeln. *Eine zweite Zählung daneben wäre eine zweite Wahrheit (Stolperstein
 47); der Prüfstand hält beide Orte gegeneinander.*
+**Seit 0.21.1 zählt sie gegen die RUHESTELLUNG und nicht mehr gegen `all`.**
+*Beides fiel bis dahin zusammen; seit die Sortierung eine Vorgabe macht, sind es
+zwei Dinge.* **Die Vorgabe selbst zählt ausdrücklich NICHT mit** — eingestellt
+hat sie niemand, und sie zu zählen machte den Rücksetzer unbrauchbar: er stünde
+auch ohne gesetzten Filter da, und ein Druck darauf stellte die Vorgabe gerade
+wieder her, mit derselben Zahl. **Eine Handwahl, die von der Vorgabe abweicht,
+zählt dagegen** — *wer bei „Potenzial" auf „Alles anzeigen" klickt, weicht ab,
+auch wenn `all` der alte Vorgabewert ist*, **und genau darüber steht der
+Rücksetzer wieder da: er ist der einzige Weg zurück in die Automatik.**
 **Zurückgesetzt wird auf `FILTER_VORGABE`, und der Weg dorthin ist
 `filterNormal()`** — derselbe wie beim Anwenden einer gespeicherten Ansicht.
 **Die Suche wird ausdrücklich NICHT mitgeräumt:** sie hat ihr eigenes ✕ im
@@ -2464,6 +2562,9 @@ demselben Grund — eine andere Reihenfolge nimmt nichts weg, sie ordnet nur.
 „zeig mir alles", nicht „vergiss, was ich mir gemerkt habe". *Der Filterstand
 fährt über dieselbe `PUT /api/settings` hinaus wie jeder Klick auf eine Pille —
 keine neue Route.*
+**Seit 0.21.1 nimmt er auch die Handwahl am Status mit zurück**, und danach folgt
+der Statusfilter wieder der Sortierung. *Er heißt „Filter zurücksetzen", und die
+Handwahl ist eine Filterstellung.*
 
 **Die Suche läuft seit 0.11.0 im SERVER** (`GET /api/items?q=…`) und nicht mehr
 im Browser. **Sie findet dasselbe wie vorher:** dieselben **sieben Quellen**
@@ -8526,6 +8627,34 @@ Version, in der sie entstanden sind.*
     daneben. *Das ist nicht Ordnungsliebe — es ist der Unterschied zwischen
     einem Beleg und einer Stunde Suche.*
 
+312. **ZWEI BEDIENELEMENTE, DIE SICH GEGENSEITIG VERSTELLEN, SIND EIN KREIS —
+    UND MAN KOMMT AUS IHM NICHT MEHR HERAUS.** *Die Sortierung gibt seit 0.21.1
+    den Statusfilter vor. Die Kopplung geht deshalb **in genau eine Richtung**:
+    ein Klick auf „Ungetestet" stellt die Sortierung NICHT auf Potenzial um.*
+    **Und die Ableitung muss ein Ende haben, das der Mensch selbst herbeiführen
+    kann:** eine Handwahl beendet sie, und ein Weg zurück in die Automatik ist
+    gebaut (der Rücksetzer). *Ohne beides wäre es kein Vorschlag mehr, sondern
+    eine Klemme:* wer die abgeleitete Pille anklickte, bekäme sie beim nächsten
+    Zeichnen wieder — dieselbe Stellung, dieselbe Ursache, kein Ausgang.
+    **Der Weg zurück muss dabei auch dann erreichbar sein, wenn die Handwahl
+    zufällig auf dem alten Vorgabewert steht:** darum zählt `filterZahl()` seit
+    dieser Runde gegen die **Ruhestellung** und nicht gegen `all` — sonst stünde
+    der einzige Ausgang genau in der Lage nicht da, in der er gebraucht wird.
+
+313. **EINE TABELLE, DIE MIT EINEM GESPEICHERTEN WERT GEFRAGT WIRD, MUSS ÜBER
+    `hasOwnProperty` GEFRAGT WERDEN — SONST ANTWORTET DER PROTOTYP.**
+    *`SORTIERUNG_STATUS[f.sort]` gab bei `constructor` oder `toString` eine
+    **Funktion** zurück. Sie ist **wahr**, die Ableitung galt also als greifend
+    — und weil eine Funktion weder `'tested'` noch `'untested'` ist, filterte
+    `visibleItems()` gar nicht mehr.* **Der Statusfilter wäre still ganz
+    weggefallen, samt der gespeicherten Wahl, ohne eine einzige Meldung.**
+    *Der Maßstab ist nicht, ob ein Mensch so etwas eintippt, sondern woher der
+    Schlüssel kommt: aus einer **gespeicherten** Stellung, und die kann jeden
+    Text tragen.* **Die Regel stand schon im Haus** — in `visibleItems()` am
+    Schlüssel `abgelehnt` (*„ein unbekannter Wert darf nichts wegnehmen"*) und
+    in `server.js` am Gruppenfilter des Sicherheitsprotokolls, der genau so
+    fragt. *Sie galt an der neuen Tabelle nur noch nicht.*
+
 ---
 
 ## 7. Prüfstand
@@ -8570,12 +8699,44 @@ im Image.**
 > fällt nicht von selbst auf: die Bereitschaftsprüfung bekommt ja eine Antwort*
 > (Stolperstein 139).
 
-**Stand: 5512 von 5512 bestanden** (0.21.0) — **109
-neue, keine weggefallen.** *0.20.1 davor brachte 29, 0.20.0 davor 128.*
+**Stand: 5571 von 5571 bestanden** (0.21.1) — **59
+neue, keine weggefallen.** *0.21.0 davor brachte 109, 0.20.1 davor 29.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **599** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **617** Rückbauten.
 
-> **VIER ZUSAGEN SIND MIT 0.21.0 UMGEDREHT STATT GELÖSCHT** (Stolperstein 74),
+> **ZWEI ZUSAGEN SIND MIT 0.21.1 UMGEDREHT STATT GELÖSCHT** (Stolperstein 74),
+> und beide aus demselben Grund: sie sehen durch die Kopplung eine andere Menge.
+> *„Ein Favorit ohne Wertung steht bei Bewertungssortierung am Ende"* — der
+> Eintrag ist **ungetestet** und fällt bei `rating_desc` aus der Liste; die Lage
+> stellt ihn jetzt mit einem Klick auf „Alles anzeigen" ausdrücklich her **und
+> belegt die Vorgabe dabei mit**. *„Nach Potenzial absteigend stehen Einträge
+> ohne Zahl hinten"* fragte nach **Platz drei von drei** und fragt jetzt nach dem
+> **letzten** Platz — *das war immer die eigentliche Aussage; die feste Drei war
+> nur ihre damalige Schreibweise.* **Beide Gruppen sind dabei um eine Zeile
+> gewachsen**, und beide neuen Zeilen belegen die Kopplung selbst.
+
+| Gruppe (0.21.1) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Die Sortierung gibt den Status vor — 0.21.1** *(neu)* | — | **57** | **Die ganze Runde**, an einem Bestand mit **beidem** — zwei getestete, zwei ungetestete, jede Hälfte mit zwei verschiedenen Zahlen *(sonst belegt die Zeile nichts, Stolperstein 81)*. Belegt wird: die Vorgabe greift in **allen vier** Sortierungen; `updated_desc`, `title_asc` und `testavg_desc` lassen die Menge stehen *(die Gegenlage — ohne sie bliebe grün, wer ALLEN Sortierungen eine Vorgabe gibt)*; die Handwahl schlägt sie und **hält über zwei Wechsel der Sortierung hinweg**, auch als **engere** Wahl, **und stellt die Sortierung nicht um** (Stolperstein 312); der gesendete Rumpf trägt den **gewählten** und nicht den abgeleiteten Wert *(am Rumpf geprüft, nicht an der Liste)*; ein **zweites Fenster** mit genau der gespeicherten Stellung zeigt dieselbe Menge; eine gespeicherte Ansicht mit „Potenzial" **und** „alles" schlägt die Vorgabe und **gilt danach als die aktive Ansicht**; der Rücksetzer stellt die Automatik wieder her und ist danach selbst weg; das Wort steht dran, trägt `eyebrow-mit`, steht in der Zeile der Pillen und **verschwindet nach einem Klick**; die abgeleitete Pille trägt ihre **eigene** Klasse, ist **nicht** `on`, ist **nicht gedämpft**, bleibt anklickbar, und das Stilblatt zeichnet sie **gestrichelt statt gefüllt**; der Wechsel der Sortierung **zieht die Leiste mit** (Stolperstein 308); und `filterZahl()` **in beide Richtungen** |
+| **Favoriten: Sortierung und Filter** | 22 | **23** | **Umgedreht statt gelöscht** — samt der neuen Zeile, die die Vorgabe vor dem Klick belegt |
+| **Zwei Kästen in der Oberfläche — 0.21.0** | 36 | **37** | dito — samt der neuen Zeile, die die gekürzte Liste erklärt |
+| **zusammen** | **5512** | **5571** | **+59** |
+
+> **BEIDE ZAHLEN SIND GEFAHREN UND NICHT GERECHNET.** *Der Lauf unmittelbar nach
+> dem Bau, aber noch mit dem unveränderten Prüfstand, hat **5512** gemeldet —
+> genau die Zahl, die für 0.21.0 dasteht.* **Die Aufteilung je Gruppe ist aus den
+> Ausgaben beider Läufe gezählt**, nicht geschätzt (Stolperstein 137).
+
+> **DER GEGENPROBENLAUF ZU DIESER RUNDE: 18 von 18, 0 STUMM.** *Vier
+> Nebenspuren, Versatz 3500 je Spur.* **Jeder der achtzehn Läufe meldet
+> denselben Nenner, 5571** — die Zahl ist damit achtzehnmal unabhängig
+> bestätigt. *Die Tabelle mit den namentlich roten Prüfungen steht im
+> Änderungsprotokoll 0.21.1.*
+
+**Und die Runde davor, zum Vergleich — 5512 von 5512 bestanden** (0.21.0) —
+**109 neue, keine weggefallen.**
+
+> **VIER ZUSAGEN WAREN MIT 0.21.0 UMGEDREHT STATT GELÖSCHT WORDEN** (Stolperstein 74),
 > und alle vier an derselben Sternzeile: *„die leere Zelle bleibt leer"* und
 > *„sie bekommt keinen Klartext"* — sie trägt jetzt einen **Strich** samt
 > Klartext; *„die Zahlenspalte trägt keine Mindestbreite mehr"* — sie trägt
@@ -8593,7 +8754,7 @@ beschränkt und **nicht** der volle Lauf über alle **599** Rückbauten.
 | **Zwei Kästen, zwei Durchschnitte — 0.21.0** *(neu)* | — | **33** | **Die Runde am Server.** Der Migrationsblock läuft **zweimal hintereinander** auf einer Datei, der die Spalte **vorher genommen** wurde (`ALTER TABLE … DROP COLUMN`) — ohne diesen Schritt liefe die Prüfung über eine Tabelle, die die Spalte ohnehin aus der DDL hat, und belegte nichts (Stolperstein 102). **Und das Einfangen ist zweigeteilt:** was schon das *Öffnen* der Datei getan hat, und was ein ausdrücklicher Aufruf danach noch findet — nur das erste belegt, dass der Block beim Start einer Installation wirklich läuft *(daran ist Rückbau 581 zuerst stumm geblieben)*. Dazu: beide Durchschnitte nebeneinander in Detail **und** Übersicht, **`tested` ändert keinen von beiden**, die getrennten Rechenwege, die Phase an jeder Sternzeile, die Absage beim Anlegen, die **400 statt Stillschweigen** am `PUT`, das Format **13** mit `criteriaPhase` *(nur Abweichungen)*, eine Datei aus Format 12, **der Namenskonflikt über die Kästen hinweg — abgewiesen, bevor eine einzige Zeile geschrieben ist** — und der Rundlauf über Export und Import. **Und beide Schnittabfragen nennen `c.phase` im `SELECT` und im `GROUP BY`** — die zweite Hälfte am Quelltext, weil das Verhalten sie nicht sieht (Stolperstein 307) |
 | **Zwei Kästen in der Oberfläche — 0.21.0** *(neu)* | — | **36** | **Die Runde im Browser.** Der Potenzialblock steht **vor** der Bewertung; jeder Kasten zeigt **nur seine** Zeilen; welcher offen steht, entscheidet der **Zustand des Eintrags** und nicht die gespeicherte Einstellung; ein Klick auf den Kopf ist ein **Blick** — er klappt auf und schickt **kein** `PUT /api/settings`, während ein gewöhnlicher Block weiter speichert; **und er endet mit dem Eintrag**: an Eintrag 1 gegen die Regel zugeklappt, an Eintrag 2 gilt sie wieder *(Stolperstein 308 — vorher wechselte keine Prüflage den Eintrag)*. Dazu der Schalter „Getestet", die Kachel mit **◆** statt ★, die beiden Sortiereinträge *(ohne Einschätzung steht man in **beiden** Richtungen hinten)*, **beide Kriterienkarten mit ihren eigenen Listen und ihrer eigenen Phase im Rumpf**, und **das Wort am Blockkopf aus einem umgestellten Vokabular** (`potenzial: 'Erwartung'`) — die letzten drei nachgetragen, weil die Prüflage vorher den Wert trug, der auch die Vorgabe ist (Stolperstein 309) |
 | **Die Sternzeile — 0.21.0** *(neu)* | — | **16** | **Das × an der eigenen Sternreihe.** Es steht nur da, wo es einen Rücksetzer gibt; ohne eigenen Stern wird es **unsichtbar, behält aber seinen Platz** (`visibility: hidden`, **nicht** `display: none` — sonst wäre es genau der Sprung, den diese Runde abschafft); die leere Durchschnittszelle zeigt **„–"** samt Klartext statt gar nichts; die Zahlenspalte trägt eine **gemessene** Mindestbreite in `rem` *(4,34 rem + 9 px Innenabstand, in Chromium an „⌀ 4,2 (9)" gemessen)*; und auf dem Telefon steht der Name **über** den Sternen — die dritte Spaltenangabe im Stilblatt liegt **innerhalb** der Telefonabfrage, was eigens geprüft wird |
-| **Die Gegenproben greifen** | 20 | **26** | **Der Wächter über fremde Server** (Stolperstein 310): `fremdeServer()` ist von außen erreichbar, findet die Server dieses Laufs **mit Verzeichnis und Port**, **meldet sich selbst nicht**, sucht nach **beiden** Namen (Server wie Prüflauf), und der Treiber ruft ihn **vor** dem ersten Rückbau und **bricht ab** statt zu warnen. Dazu die Zahl der Rückbauten (**599**) |
+| **Die Gegenproben greifen** *(die Zahl der Rückbauten darin steht mit 0.21.1 auf **617**)* | 20 | **26** | **Der Wächter über fremde Server** (Stolperstein 310): `fremdeServer()` ist von außen erreichbar, findet die Server dieses Laufs **mit Verzeichnis und Port**, **meldet sich selbst nicht**, sucht nach **beiden** Namen (Server wie Prüflauf), und der Treiber ruft ihn **vor** dem ersten Rückbau und **bricht ab** statt zu warnen. Dazu die Zahl der Rückbauten (**599**) |
 | **Der Umschalter der Vergleichsansicht** | 23 | **27** | Zwei Gruppen statt einer Liste, jede mit eigener Kopfzahl — **und eine leere Gruppe wird gar nicht gezeichnet**: eine Überschrift über null Zeilen sagt nichts |
 | **Einstellungen: Vokabular und Schriftgröße** | 19 | **22** | Das **zwölfte** Wort: es steht in der Vorgabe, lässt sich setzen und fällt leer auf die Vorgabe zurück |
 | **Das Raster der Kriterienliste zählt seine Zellen — 0.17.0** | 19 | **21** | Die Spaltenzahl steht jetzt an **drei** Stellen im Stilblatt statt an zwei — *die Zusage ist geschärft, nicht fallengelassen*: die dritte muss **innerhalb** der Telefonabfrage liegen, die beiden anderen außerhalb |
@@ -9526,6 +9687,7 @@ eine Buchführung.*
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
 | **0.19.5** | **Der Ausschnitt wird eingerechnet (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
+| **0.21.1** | **„Die Sortierung sagt, wonach du fragst“ (59 netto: 5512 → 5571)** | **achtzehn neue (599 → 617, Nummern 606 bis 623); EINER nachgezogen (Stolperstein 201: 612 auf den beim Härten gekürzten Rumpf von `statusAusSortierung()`)** — sonst musste keiner mitgehen: die Runde fasst `drawFilters()` an mehreren Stellen an, aber keine davon war der Suchtext eines vorhandenen Rückbaus *(nachgesehen an 384 bis 388 und an 254; 387 greift weiter, weil sein Suchtext bei `redraw()` beginnt und die neue Zeile darüber steht)*. **613 ist der, den der Auftrag ausdrücklich verlangt:** er schreibt die Ableitung **in** `state.filters`. *613 und 614 tragen denselben Suchtext und sind trotzdem zwei — verschiedene Zusagen, verschiedene rote Punkte.* **622 und 623 sind die Nachträge zu den beiden Befunden aus dem Bauen** — die Ruhestellung und der Zugriff auf die Vorgabetabelle, siehe Änderungsprotokoll 0.21.1, Abschnitte 5 und 5a | **Stolpersteine 312 und 313** |
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man“ (109 netto: 5403 → 5512)** | **sechsunddreißig neue (563 → 599, Nummern 570 bis 605); FÜNF nachgezogen (Stolperstein 201: 233 und 448 auf die Formatnummer 13, 237 auf die zusätzliche Zeile im Stilblatt, 240 auf den verschobenen Anker, 279 auf den umgebauten Erklärknopf); **alle 36 gefahren in zwei Läufen, im zweiten 0 stumm** — *der erste gab **SECHS STUMME** und **EINEN ABGERISSENEN** zurück, und zwei seiner Zeilen stammten gar nicht von ihren Rückbauten*. **Alle sieben Befunde sind abgearbeitet:** das `GROUP BY` trug die Zusage nicht (570, 571 — nachgemessen; sie hängt am `SELECT`, und dafür gab es keinen Rückbau → **602 und 603 nachgetragen**), die Migrationsprüflage rief den Block selbst (581), keine Prüflage wechselte je den Eintrag (593), drei Prüflagen trugen den Wert, der auch die Vorgabe ist (597, 598, 600), eine Kette riss den Lauf ab statt rot zu werden (573) — und **sieben liegengebliebene Server** an 6180 bis 6242 färbten auf Spur 0 fünfzehn Punkte im **Mailversand** (→ Wächter `fremdeServer()` im Treiber, **604 und 605**). *Jeder der 36 Läufe des Nachlaufs meldet denselben Nenner, 5512.* | **Stolpersteine 302 bis 311** |
 | **0.20.1** | **Die Karte listet die Sicherungen (29 netto: 5374 → 5403)** | **fünf neue (558 → 563: 567 bis 569 an der Karte, **W15 und W16 am Gegenprobentreiber**); DREI nachgezogen (563, 565 — und **566 in eine andere Datei**: der Deckel der Liste ist seit dieser Runde eine Regel im Stilblatt und keine Klasse im Markup); **ACHT GEFAHREN in drei Läufen** (563, 565, 566, 567, 568, 569 an der Karte; **W15 und W16** am Treiber), **EINER STUMM: 568** — *die Nummern wurden am Mock geprüft, und der rechnet sie selbst; das Feld `dateien` der echten Antwort war vollständig ungeprüft*. **Neun Zusagen an der echten Antwort nachgerüstet, danach namentlich rot.** *Sein erster Nachlauf riss nach 79 s ab, ohne genannten Grund — daraus ist Stolperstein 301 und der Bau am Treiber geworden; der zweite lief durch (5401 von 5403, 452 s).*** | **Stolperstein 301** |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell (128 netto: 5246 → 5374)** | **dreiundzwanzig neue (535 → 558, Nummern 544 bis 566); EINER nachgezogen (437 — `EIGENTUEMER_SCHLUESSEL` trägt jetzt vier Schlüssel statt einem); **24 gefahren** (die 23 neuen und der nachgezogene 437), **KEINER stumm**; **einer riss beim ersten Mal den Lauf ab** (561 — die Prüflage fasste Knoten ohne Klemme an, Stolperstein 161) und ist nach der Berichtigung mit 38 roten Punkten nachgefahren** | **Stolpersteine 299 und 300** |
@@ -9545,6 +9707,33 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.21.1 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Fünf Handgriffe, und
+  sie sind die Runde:* **(a)** **nach Potenzial sortieren** — die Liste zeigt nur
+  noch Ideen, die Pille „Ungetestet" steht **gestrichelt** da, und daneben steht
+  *„folgt der Sortierung"*; **(b)** auf **„Alles anzeigen"** klicken und dann die
+  **Sortierung wechseln** — die Wahl hält, das Wort ist weg, und *„Filter
+  zurücksetzen (1)"* steht da; **(c)** **neu laden** — die Ableitung ist neu
+  gerechnet, die gespeicherte Stellung ist unverändert; **(d)** eine
+  **gespeicherte Ansicht** mit „Potenzial" und „alles" anwenden — sie schlägt die
+  Vorgabe; **(e)** den **Rücksetzer** drücken — die Automatik ist zurück. *Die
+  Befehle dazu stehen im Chat der Runde, nicht hier.*
+- **DER GEGENPROBENLAUF DIESER RUNDE IST GEFAHREN: 18 von 18, 0 STUMM.** *Vier
+  Nebenspuren, Versatz 3500 je Spur, jede Kopie aus `git archive HEAD` am
+  gebauten Stand (`11ecd2a`); jeder der 18 Läufe meldet denselben Nenner,
+  **5571**.* **Die Tabelle steht im Änderungsprotokoll 0.21.1.** *Zwei Einträge
+  sind schmal und genau so gemeint — 609 und 613 färben je **eine** Prüfung
+  rot, aber es sind die richtigen —, und einer ist lehrreich: **608** („die
+  Titelsortierung koppelt mit") färbt **sechs** Gruppen, vier davon ohne jeden
+  Bezug zu dieser Runde. `title_asc` ist die neutrale Sortierung, mit der ein
+  Dutzend älterer Prüflagen arbeitet.*
+- **DER RUNDLAUF VON HAND NACH 0.21.0 HAT GENAU EINEN PUNKT ERGEBEN**, und der
+  ist diese Runde: *die Sortierung nach Bewertung oder Potenzial zeigte die
+  falsche Hälfte des Bestands mit.* **Sonst hat er nichts gebracht** — kein
+  zweiter Befund, kein Fehler, kein Wunsch. *Das ist eine Auskunft und keine
+  Lücke: bei einer Runde von der Größe von 0.21.0 ist ein einziger Befund ein
+  gutes Ergebnis, und er gehört genauso aufgeschrieben wie ein Dutzend.*
+  **Der Punkt ist nie im Sammelblatt gewesen** — er kam am 4. September 2026 aus
+  dem Betrieb und ist unmittelbar in den Auftrag gegangen.
 - **0.21.0 IST EINGESPIELT UND ZUR HÄLFTE BESTÄTIGT.** *Die laufende
   Installation hat am 4. September 2026 **`85f4348b`** gemeldet, genau den
   Sollwert — es läuft also dateigenau der gebaute Stand.* **Und die Migration
@@ -10201,6 +10390,42 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.21.1 — „Die Sortierung sagt, wonach du fragst"
+
+**PATCH · 4. September 2026 · aus dem Rundlauf von Hand nach 0.21.0**
+*(0.21.0 mit Fingerprint `85f4348b` ist im Feld bestätigt).* *Angefasst sind
+`public/app.js`, `public/style.css`, `pruefung.js`, `gegenprobe.js`,
+`package.json`, `package-lock.json` und die Papiere — **`server.js` und `db.js`
+nicht**.* **KEINE DATENBANKSTUFE, KEIN BESTANDSLAUF, KEINE NEUE ROUTE.**
+Austauschformat **13**, `F_ROUTEN` **70**, einundzwanzig Karten, neun
+Migrationsblöcke, neun ausgelieferte Module, zwölf Vokabelwörter — **alles
+unverändert.**
+
+**WAS DIE INSTALLATION DANACH KANN, WAS SIE VORHER NICHT KONNTE: nichts.**
+*Sie sortiert dieselben Einträge nach denselben Zahlen und filtert nach
+demselben Merkmal; was sich ändert, ist die Bedienform.* **Zwei Bedienelemente,
+die bisher nichts voneinander wussten, wissen ab jetzt voneinander.**
+
+**Gebaut ist:** die Sortierung gibt den Statusfilter als **Vorgabe** vor
+(`rating_*` → Getestet, `potenzial_*` → Ungetestet, **jede andere Sortierung
+fasst ihn nicht an**); **die Handwahl und eine angewandte gespeicherte Ansicht
+schlagen die Vorgabe** und halten über einen Wechsel der Sortierung hinweg; der
+**Rücksetzer** ist der Weg zurück in die Automatik; die Ableitung wird **nicht
+gespeichert** (ungespeicherter Merker `STATUS_VON_HAND` neben `state.filters`,
+dieselbe Machart wie `BLICK`) und **nicht mitgezählt**, sondern **in Worten
+gesagt** — die abgeleitete Pille ist gestrichelt statt gefüllt, daneben steht
+*„folgt der Sortierung"*, und eingeklappt sagt es der Filterschalter.
+**Gelesen wird sie an genau einer Stelle** (`statusWirksam()`).
+
+**Die eine Verhaltensänderung, die ein Betreiber merkt:** *wer nach Bewertung
+oder Potenzial sortiert, sieht eine andere Menge als vorher.* **Weggefallen ist
+nichts.**
+
+**Was ausdrücklich NICHT gebaut wurde**, steht im Änderungsprotokoll 0.21.1:
+keine Kopplung an die Verlaufs-Sortierungen und an `title_asc`, keine Kopplung
+in die Gegenrichtung, kein zweiter Filter angefasst, keine Ableitung am Server,
+kein Schalter zum Abschalten.
 
 ### 0.21.0 — „Vor dem Test schätzt man, nach dem Test bewertet man"
 
@@ -11914,6 +12139,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.20.1** | **Die Karte listet die Sicherungen** | **GEBAUT am 3. September 2026.** *(Drei Befunde aus dem Betrieb, unmittelbar nach dem Einspielen von 0.20.0 — nicht aus dem Sammelblatt.)* **Die vollständige Liste der Sicherungen stand nirgends:** die Karte „Sicherung" nannte die jüngste Kopie und die Zahl, die Karte „Alte Sicherungen" nur die, die die Regel treffen würde. **Jetzt listet sie alle** — jüngste zuerst, nummeriert, mit Datum, Alter und Größe, Deckel bei fünf Zeilen, **nur zum Ansehen**. Dazu: **der Bildschirmtext wird kurz** *(„so kurz wie möglich und dennoch zu verstehen")*, **„Boden" und „Schere" sind vom Bildschirm herunter**, und die Karte „Sicherung" sagt nur noch etwas über die letzte Sicherung. *PATCH: dieselbe Regel, dieselben Knöpfe, dieselben Dateien fallen* | nein | — |
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | **GEBAUT am 3. September 2026.** *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; am 3. September 2026 zugeordnet — der Fahrplan ist dabei nicht gerückt.)* **Kriterion schrieb Sicherungen und entfernte keine** — wegräumen ließ sich nichts, und dafür brauchte es eine Shell auf dem Wirt. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere (Stolperstein 299). Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht**, ein Knopf hinter der zweiten Bestätigung, ein zweiter, ausdrücklicher Weg für die Kopien von vor dem Schlüsselwechsel, und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Die Löschroute nimmt keine Dateinamen entgegen** (Stolperstein 300), und aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die **gelungen** ist. **Eine zwanzigste Karte** — ein Löschknopf gehört nicht unter den Sicherungsknopf. *MINOR* — `F_ROUTEN` **70 → 71**, ein **neunter** Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung** | nein | — |
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 4. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
+| **0.21.1** | **„Die Sortierung sagt, wonach du fragst“** | **GEBAUT am 4. September 2026.** *(Aus dem Rundlauf von Hand nach 0.21.0 — dieselbe Herkunft wie 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Der Punkt stand nie im Sammelblatt und nie im Fahrplan: er kam am 4. September 2026 aus dem Betrieb und ist unmittelbar in den Auftrag gegangen.)* **Eine Sortierung beantwortet eine Frage, aber die Liste zeigte nicht die Menge, in der diese Frage sich stellt.** Ab jetzt gibt die Sortierung den Statusfilter als **Vorgabe** vor — `rating_*` → Getestet, `potenzial_*` → Ungetestet, **jede andere Sortierung fasst ihn nicht an**. **Die Handwahl und eine angewandte gespeicherte Ansicht schlagen die Vorgabe** und halten über einen Wechsel der Sortierung hinweg; der Rücksetzer ist der Weg zurück. **Die Ableitung wird nicht gespeichert und nicht mitgezählt, sondern in Worten gesagt.** *Der Fahrplan rückt dadurch nicht — 0.21.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
 | **0.22.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und **noch am selben Tag auf 0.22.0** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 4. September 2026: der Bildstreifen im Eintrag nutzt die Breite, und seine Größe wird einstellbar** *(Punkt 10 des Sammelblatts — ein Regler wie die Schriftgröße, ein Wert für alle drei Geräte, kein Bestandslauf)*. **Und seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.23.0** | *frei* | **Die erste Nummer nach der neuen Regel.** Sie bleibt leer, damit die nächste eingeschobene Runde hier Platz findet, ohne dass sich dahinter etwas bewegt | — | — |
 | **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |

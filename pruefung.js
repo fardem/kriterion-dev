@@ -21395,7 +21395,25 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ist am Verhalten stumm; die Zusage, an der alles haengt, war ohne
      Rueckbau. 604 und 605 gehoeren dem Waechter ueber fremde Server, den
      derselbe Lauf noetig gemacht hat. */
-  pruefe('Es sind genau 599 Rueckbauten', gpListe.length === 599, `${gpListe.length}`);
+  /* 617 SEIT 0.21.1: ACHTZEHN neue (606 bis 623) fuer die eine Aenderung dieser
+     Runde -- die Sortierung gibt den Statusfilter vor. Keiner ist weggefallen,
+     und KEINER MUSSTE MITGEHEN: die Runde fasst drawFilters() an mehreren
+     Stellen an, aber keine davon war der Suchtext eines vorhandenen Rueckbaus.
+     Nachgesehen wurde ausdruecklich an 384 bis 388, die auf den Ruecksetzer
+     zeigen, und an 254, der auf die zweite Beschriftung der Statuszeile zeigt
+     -- 387 greift weiter, weil sein Suchtext bei `redraw()` beginnt und die
+     neue Zeile darueber steht (Stolperstein 201).
+     ZWEI TRAGEN DENSELBEN SUCHTEXT (613 und 614, beide an `sel.onchange`) und
+     sind trotzdem zwei: der eine schreibt die Ableitung in die gespeicherte
+     Stellung, der andere laesst die Leiste beim Wechsel der Sortierung stehen.
+     Verschiedene Zusagen, verschiedene rote Punkte.
+     UND EINER IST MITGEGANGEN STATT GELOESCHT ZU WERDEN (Stolperstein 201):
+     612 zeigte auf den Rumpf von statusAusSortierung(), und der ist beim
+     Haerten des Tabellenzugriffs eine Zeile kuerzer geworden.
+     613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
+     Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
+     behauptet. */
+  pruefe('Es sind genau 617 Rueckbauten', gpListe.length === 617, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -24828,9 +24846,28 @@ async function pruefeOberflaeche() {
     JSON.stringify(favTitelVon(favTitelSort)));
   favTitelSort.w.close();
 
-  // Der eigentliche Fall aus dem Betrieb: ein Favorit ohne Wertung darf bei
-  // absteigender Bewertung NICHT nach oben.
+  /* Der eigentliche Fall aus dem Betrieb: ein Favorit ohne Wertung darf bei
+     absteigender Bewertung NICHT nach oben.
+
+     UMGEDREHT MIT 0.21.1 UND NICHT GELOESCHT (Stolperstein 74). „Bewertung
+     hoch nach niedrig" gibt seit dieser Runde „Getestet" vor, und der Favorit
+     ohne Wertung (id 3) ist UNGETESTET -- er faellt aus der Liste, und die
+     Zusage haette ihren Gegenstand verloren. Die Lage stellt ihn deshalb
+     ausdruecklich her: EIN KLICK AUF „Alles anzeigen" ist eine Handwahl und
+     schlaegt die Vorgabe, danach steht wieder der ganze Bestand da und die
+     Frage nach der REIHENFOLGE ist wieder zu stellen.
+     UND DIE VORGABE SELBST WIRD DABEI MITBELEGT: vor dem Klick zeigt dieselbe
+     Lage nur die getesteten. Ohne diese Zeile bliebe unbelegt, dass der Klick
+     ueberhaupt etwas zu schlagen hatte (Stolperstein 224). */
   const favWert = await favBaue({ tested: 'all', favorit: false, sort: 'rating_desc' });
+  const favVorKlick = favTitelVon(favWert);
+  pruefe('Bei Bewertungssortierung steht ohne Handwahl nur Getestetes da — 0.21.1',
+    gleich(favVorKlick, ['Gamma mit Wertung', 'Beta mit Wertung']),
+    JSON.stringify(favVorKlick));
+  const favAlles = [...favWert.w.document.querySelectorAll('#filters .pill')]
+    .find(b => b.textContent.trim() === 'Alles anzeigen');
+  favAlles?.dispatchEvent(new favWert.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 30));
   const favWertT = favTitelVon(favWert);
   pruefe('Ein Favorit ohne Wertung steht bei Bewertungssortierung am Ende',
     favWertT[favWertT.length - 1] === 'Zeta ohne Wertung', JSON.stringify(favWertT));
@@ -36230,14 +36267,25 @@ async function pruefeOberflaeche() {
         === 'Potenzial (hoch → niedrig)',
       JSON.stringify([...zkSort.options].find(o => o.value === 'potenzial_desc')?.textContent));
     const zkTitel = () => [...zkUeb.w.document.querySelectorAll('.card-title')].map(t => t.textContent);
+    /* UMGEDREHT MIT 0.21.1 UND NICHT GELOESCHT (Stolperstein 74). Die
+       Potenzialsortierung gibt seit dieser Runde „Ungetestet" vor: „Geprueft"
+       faellt aus der Liste, und die Zusage stand vorher auf Platz DREI von
+       drei. Sie fragt jetzt nach dem LETZTEN Platz -- das war immer die
+       eigentliche Aussage („Eintraege ohne Zahl stehen hinten"), die feste Drei
+       war nur ihre damalige Schreibweise.
+       DIE VORGABE SELBST BEKOMMT DABEI IHRE EIGENE ZEILE, sonst bliebe die
+       gekuerzte Liste unerklaert und ein Fehler in der Ableitung saehe aus wie
+       eine Sortierung. */
     zkSort.value = 'potenzial_desc'; zkSort.onchange();
     await new Promise(r => setTimeout(r, 60));
+    pruefe('Nach Potenzial sortiert stehen nur noch die Ungetesteten da — 0.21.1',
+      gleich(zkTitel(), ['Idee', 'Blanko']), JSON.stringify(zkTitel()));
     pruefe('Nach Potenzial absteigend stehen Eintraege ohne Zahl hinten',
-      zkTitel()[2] === 'Blanko', JSON.stringify(zkTitel()));
+      zkTitel()[zkTitel().length - 1] === 'Blanko', JSON.stringify(zkTitel()));
     zkSort.value = 'potenzial_asc'; zkSort.onchange();
     await new Promise(r => setTimeout(r, 60));
     pruefe('Und aufsteigend ebenfalls',
-      zkTitel()[2] === 'Blanko', JSON.stringify(zkTitel()));
+      zkTitel()[zkTitel().length - 1] === 'Blanko', JSON.stringify(zkTitel()));
     zkUeb.w.close();
   }
 
@@ -38968,6 +39016,416 @@ async function pruefeOberflaeche() {
     pruefe('Und sie ist dabei nicht neu geschrieben worden',
       !d.gesendet.slice(anVorher).some(x => x.koerper && 'ansichten' in x.koerper),
       d.gesendet.slice(anVorher).map(x => `${x.methode} ${Object.keys(x.koerper || {}).join('+')}`).join(' · ') || '(nichts)');
+    d.w.close();
+  }
+
+  /* ================= Die Sortierung gibt den Status vor — 0.21.1 ========= */
+  gruppe('Die Sortierung gibt den Status vor — 0.21.1');
+
+  /* DER BEFUND: eine Sortierung beantwortet eine Frage, aber die Liste zeigte
+     nicht die Menge, in der diese Frage sich stellt. Wer nach Bewertung
+     sortiert, fragt „was war gut?" -- und das haben nur getestete Eintraege
+     beantwortet; wer nach Potenzial sortiert, fragt „was mache ich als
+     Naechstes?" -- und das fragt sich nur an Ideen. Beide Male stand die
+     andere Haelfte des Bestands mit in der Liste.
+     DER BESTAND TRAEGT BEIDES, zwei getestete und zwei ungetestete
+     (Stolperstein 81): an einem Bestand aus lauter Ideen belegte „nur Ideen
+     stehen da" gar nichts. Und jede Haelfte traegt ZWEI Eintraege mit
+     verschiedenen Zahlen -- so bleibt neben der Menge auch die Reihenfolge
+     pruefbar. */
+  const ksBestand = [
+    { id: 1, title: 'Geprüft gut', rejected: false, tested: true, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 5, potenzialRating: 2,
+      testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: '2026-08-01 10:00:00' },
+    { id: 2, title: 'Geprüft mau', rejected: false, tested: true, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 2, potenzialRating: 1,
+      testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: '2026-08-02 10:00:00' },
+    { id: 3, title: 'Idee stark', rejected: false, tested: false, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potenzialRating: 5,
+      testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: '2026-08-03 10:00:00' },
+    { id: 4, title: 'Idee schwach', rejected: false, tested: false, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potenzialRating: 1,
+      testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: '2026-08-04 10:00:00' }
+  ];
+  // ALPHABETISCH, weil ksTitel() sortiert: verglichen wird die MENGE und nicht
+  // die Reihenfolge -- die Reihenfolge ist Sache der Sortierpruefungen, und ein
+  // Vergleich, der beides zugleich fragt, sagt bei Rot nicht, welches gemeint
+  // ist.
+  const ksAlle = ['Geprüft gut', 'Geprüft mau', 'Idee schwach', 'Idee stark'];
+  const ksTitel = (d) => [...d.w.document.querySelectorAll('.card .card-title')]
+    .map(e => e.textContent).sort();
+  // `const state` haengt nicht am Fenster: jede Lage bekommt ihr eigenes DOM
+  // mit gespeicherter Stellung -- der echte Weg, wie bei den Favoriten.
+  const ksBaue = async (filters, weiteres = {}) => {
+    const d = baueDom(JSDOM, { uebersichtItems: ksBestand,
+      einstellungen: { filters, ...weiteres } });
+    await new Promise(r => setTimeout(r, 90));
+    return d;
+  };
+  const ksPille = (d, text) => [...d.w.document.querySelectorAll('#filters .pill')]
+    .find(b => b.textContent.trim() === text);
+  /* NEUE BEDIENELEMENTE WERDEN PER dispatchEvent GEDRUECKT -- .click() genuegt
+     nicht, und der Ereignisdurchlauf gehoert dazu. */
+  const ksKlick = async (d, el) => {
+    el?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 50));
+  };
+  // Die Sortierung wird ueber ihr eigenes Bedienelement gestellt und nicht
+  // ueber eine zweite gebaute Lage: nur so ist der WECHSEL geprueft.
+  const ksSortiere = async (d, wert) => {
+    const sel = d.w.document.getElementById('f-sort');
+    if (sel) { sel.value = wert; sel.onchange(); }
+    await new Promise(r => setTimeout(r, 50));
+    return !!sel;
+  };
+  const ksStellung = (d, ab = 0) => {
+    const put = d.gesendet.slice(ab).filter(x => x.methode === 'PUT' && x.url === '/api/settings');
+    return put[put.length - 1]?.koerper?.filters || null;
+  };
+  const ksVorgabe = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
+                      abgelehnt: 'all', favorit: false, sort: 'updated_desc' };
+
+  /* ---- 1. DIE VORGABE GREIFT ---- */
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
+    pruefe('Nach Potenzial absteigend stehen nur die ungetesteten Eintraege da',
+      gleich(ksTitel(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'potenzial_asc' });
+    pruefe('Und aufsteigend ebenso — beide Richtungen fragen dasselbe',
+      gleich(ksTitel(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'rating_desc' });
+    pruefe('Nach Bewertung absteigend stehen nur die getesteten da',
+      gleich(ksTitel(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'rating_asc' });
+    pruefe('Und aufsteigend ebenso',
+      gleich(ksTitel(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+
+  /* ---- 2. UND DIE GEGENLAGE ----
+     JEDE ANDERE SORTIERUNG LAESST DEN FILTER IN RUHE. Ohne diese Zeilen bliebe
+     gruen, wer ALLEN Sortierungen eine Vorgabe gibt -- die Zusagen darueber
+     saehen genauso aus. */
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'updated_desc' });
+    pruefe('„Zuletzt geändert" laesst die Menge, wie sie ist',
+      gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'title_asc' });
+    pruefe('Und die Titelsortierung ebenso — ein Titel sagt nichts ueber den Teststatus',
+      gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+  {
+    /* DIE VERLAUFSSORTIERUNGEN SIND AUSDRUECKLICH NICHT MITGENOMMEN
+       (Abschnitt 5 des Auftrags). Sie setzen „getestet" logisch genauso
+       voraus, sind aber eine eigene Gruppe im Auswahlfeld -- diese Runde fasst
+       zwei Gruppen an, nicht drei. Das steht hier als ZUSAGE und nicht nur als
+       Kommentar: wer sie spaeter mitnimmt, macht hier rot und entscheidet es
+       damit ausdruecklich. */
+    const d = await ksBaue({ ...ksVorgabe, sort: 'testavg_desc' });
+    pruefe('Die Verlaufssortierungen koppeln ausdruecklich NICHT',
+      gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+
+  {
+    /* EIN UNBEKANNTER SORTIERWERT NIMMT NICHTS WEG -- und zwar auch dann nicht,
+       wenn er zufaellig ein Name VOM PROTOTYP ist. `f.sort` kommt aus einer
+       gespeicherten Stellung und kann jeden Text tragen; ein gewoehnlicher
+       Zugriff auf die Vorgabetabelle gaebe bei `constructor` eine FUNKTION
+       zurueck, die Ableitung gaelte als greifend, und weil eine Funktion weder
+       'tested' noch 'untested' ist, fiele der Statusfilter STILL ganz weg --
+       samt der gespeicherten Wahl.
+       GEPRUEFT WIRD DESHALB AN EINER LAGE MIT GESETZTEM STATUS: bliebe der
+       Filter weg, staenden vier Eintraege da statt zwei. Eine Lage mit
+       `tested: 'all'` koennte den Unterschied nicht zeigen (Stolperstein 224). */
+    const d = await ksBaue({ ...ksVorgabe, tested: 'tested', sort: 'constructor' });
+    pruefe('Ein Sortierwert vom Prototyp gibt keine Vorgabe her',
+      !d.w.document.getElementById('f-status-woher'),
+      d.w.document.getElementById('f-status-woher')?.textContent);
+    pruefe('Und er nimmt der gespeicherten Wahl nichts weg',
+      gleich(ksTitel(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitel(d)));
+    d.w.close();
+  }
+
+  /* ---- 3. DIE HANDWAHL SCHLAEGT SIE ----
+     DAS IST DIE ZEILE, AN DER DIE GANZE RUNDE HAENGT. */
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
+    pruefe('Der Aufbau steht: vor dem Klick greift die Vorgabe',
+      ksTitel(d).length === 2, JSON.stringify(ksTitel(d)));
+    await ksKlick(d, ksPille(d, 'Alles anzeigen'));
+    pruefe('Ein Klick auf „Alles anzeigen" schlaegt die Vorgabe',
+      gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    // UND SIE HAELT UEBER EINEN WECHSEL DER SORTIERUNG HINWEG. Ohne diese
+    // Zeile belegte die vorige nur den Augenblick des Klicks.
+    pruefe('Der Wechsel der Sortierung geht ueberhaupt', await ksSortiere(d, 'rating_desc'));
+    pruefe('Und danach zeigt die Liste weiter alles',
+      gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    await ksSortiere(d, 'potenzial_asc');
+    pruefe('Auch beim naechsten Wechsel',
+      gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    /* UND DIE GEGENRICHTUNG DER HANDWAHL: sie muss auch eine ENGERE Stellung
+       halten koennen, nicht nur „alles". Ohne diese Zeile bliebe gruen, wer
+       die Ableitung schon bei jedem Klick auf die erste Pille abschaltet. */
+    await ksKlick(d, ksPille(d, 'Getestet'));
+    pruefe('Auch eine engere Handwahl haelt gegen die Sortierung',
+      gleich(ksTitel(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitel(d)));
+    /* UND KEINE KOPPLUNG IN DIE ANDERE RICHTUNG: ein Klick auf eine Statuspille
+       stellt die Sortierung NICHT um. Zwei Bedienelemente, die sich gegenseitig
+       verstellen, sind ein Kreis (Stolperstein 312). */
+    pruefe('Ein Klick auf eine Statuspille laesst die Sortierung stehen',
+      d.w.document.getElementById('f-sort')?.value === 'potenzial_asc',
+      d.w.document.getElementById('f-sort')?.value);
+    d.w.close();
+  }
+
+  /* ---- 4. DIE ABLEITUNG WIRD NICHT GESPEICHERT ----
+     GEPRUEFT AM GESENDETEN RUMPF UND NICHT AN DER LISTE. Die Liste zeigt
+     dasselbe, ob der Wert abgeleitet oder geschrieben ist -- der Unterschied
+     steht nur in dem, was hinausgeht. */
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'updated_desc' });
+    const ab = d.gesendet.length;
+    await ksSortiere(d, 'potenzial_desc');
+    const raus = ksStellung(d, ab);
+    pruefe('Der Wechsel der Sortierung schreibt ueberhaupt etwas', !!raus,
+      JSON.stringify(d.gesendet.slice(ab).map(x => `${x.methode} ${x.url}`)));
+    pruefe('Und der gesendete Rumpf traegt die gewaehlte Stellung, nicht die abgeleitete',
+      raus?.tested === 'all', JSON.stringify(raus));
+    pruefe('Die neue Sortierung faehrt dabei mit',
+      raus?.sort === 'potenzial_desc', JSON.stringify(raus?.sort));
+    /* UND NACH EINER HANDWAHL STEHT DER GEWAEHLTE WERT DA -- ohne diese Zeile
+       bliebe gruen, wer `tested` gar nicht mehr hinausschickt. */
+    const ab2 = d.gesendet.length;
+    await ksKlick(d, ksPille(d, 'Getestet'));
+    pruefe('Eine Handwahl dagegen faehrt hinaus',
+      ksStellung(d, ab2)?.tested === 'tested', JSON.stringify(ksStellung(d, ab2)));
+    d.w.close();
+  }
+
+  /* ---- 5. UND SIE UEBERLEBT KEIN NEULADEN ----
+     Ein frisch gebautes Fenster mit DERSELBEN gespeicherten Stellung zeigt
+     dieselbe Menge: die Ableitung wird neu gerechnet und nicht aus einem
+     geschriebenen Feld gelesen. Der Merker selbst faengt bei jedem Aufbau
+     wieder bei „niemand hat geklickt" an. */
+  {
+    /* GESTELLT WIRD DIE LAGE WIRKLICH: erst ein Fenster, in dem jemand von Hand
+       „Alles anzeigen" waehlt, dann ein ZWEITES mit genau der Stellung, die
+       daraufhin gespeichert wurde. Ohne das erste Fenster belegte das zweite
+       nur, dass die Vorgabe greift -- und nicht, dass sie eine ueberlebende
+       Handwahl gerade NICHT vorfindet (Stolperstein 224). */
+    const vorher = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
+    await ksKlick(vorher, ksPille(vorher, 'Alles anzeigen'));
+    pruefe('Der Aufbau steht: im ersten Fenster gilt die Handwahl',
+      gleich(ksTitel(vorher), ksAlle), JSON.stringify(ksTitel(vorher)));
+    const gespeichert = ksStellung(vorher);
+    pruefe('Und die gespeicherte Stellung traegt genau dieses „alles"',
+      gespeichert?.tested === 'all' && gespeichert?.sort === 'potenzial_desc',
+      JSON.stringify(gespeichert));
+    vorher.w.close();
+    // DAS ZWEITE FENSTER IST DAS NEULADEN. Der Merker faengt wieder bei
+    // „niemand hat geklickt" an, die Ableitung wird neu gerechnet.
+    const d = await ksBaue(gespeichert);
+    pruefe('Ein frisch gebautes Fenster mit derselben Stellung zeigt dieselbe Menge wie vorher',
+      gleich(ksTitel(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitel(d)));
+    pruefe('Und die Handwahl des anderen Fensters wirkt nicht nach',
+      !!d.w.document.getElementById('f-status-woher'),
+      '(kein Wort — die Ableitung greift nicht)');
+    d.w.close();
+  }
+
+  /* ---- 6. EINE GESPEICHERTE ANSICHT SCHLAEGT SIE ----
+     UND ZWAR EINE, DIE VOR DIESER RUNDE GESPEICHERT WORDEN WAERE: „Potenzial"
+     und „alles anzeigen" zusammen. Sonst aenderte sich das Verhalten
+     vorhandener Ansichten still, und das ist genau das, was ein PATCH nicht
+     tun darf. */
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'updated_desc' },
+      { ansichten: [{ name: 'Alle Ideen', q: '',
+                      filters: { ...ksVorgabe, tested: 'all', sort: 'potenzial_desc' } }] });
+    // Die Pille traegt ihr Loeschkreuz IM Knopf -- der Name steht davor.
+    const ksAnsichtPille = () => [...d.w.document.querySelectorAll('#filters .pill')]
+      .find(b => b.textContent.replace('✕', '').trim() === 'Alle Ideen');
+    const ansicht = ksAnsichtPille();
+    pruefe('Die gespeicherte Ansicht steht in der Leiste', !!ansicht,
+      JSON.stringify([...d.w.document.querySelectorAll('#filters .pill')].map(b => b.textContent)));
+    await ksKlick(d, ansicht);
+    pruefe('Sie stellt ihre Sortierung wirklich ein',
+      d.w.document.getElementById('f-sort')?.value === 'potenzial_desc',
+      d.w.document.getElementById('f-sort')?.value);
+    pruefe('Und ihr „alles anzeigen" schlaegt die Vorgabe der Sortierung',
+      gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    // UND SIE GILT WEITER ALS DIE AKTIVE ANSICHT -- eine Ableitung, die sich
+    // dazwischenschriebe, liesse die Pille sofort wieder ungesetzt aussehen.
+    pruefe('Und sie steht danach als die geltende Ansicht da',
+      ksAnsichtPille()?.classList.contains('on'), ksAnsichtPille()?.className);
+    d.w.close();
+  }
+
+  /* ---- 7. DER RUECKSETZER STELLT DIE AUTOMATIK WIEDER HER ----
+     Er heisst „Filter zuruecksetzen", und die Handwahl ist eine
+     Filterstellung. Es ist der einzige Weg zurueck in die Vorgabe. */
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
+    await ksKlick(d, ksPille(d, 'Alles anzeigen'));
+    pruefe('Der Aufbau steht: nach der Handwahl ist die Vorgabe aus',
+      gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
+    /* UND DER RUECKSETZER STEHT DA. Die Handwahl weicht von der Ruhestellung ab
+       -- sie zeigt „alles", wo die Sortierung „Ungetestet" vorgaebe --, und
+       genau darum zaehlt sie. Ohne diese Zeile faende niemand aus einer
+       Handwahl, die „Alles anzeigen" heisst, in die Automatik zurueck: es gibt
+       keinen zweiten Weg. */
+    const zurueck = d.w.document.getElementById('filter-zurueck');
+    pruefe('Und der Ruecksetzer steht da — die Handwahl weicht von der Ruhestellung ab',
+      zurueck?.textContent === 'Filter zurücksetzen (1)', JSON.stringify(zurueck?.textContent));
+    await ksKlick(d, zurueck);
+    pruefe('Nach dem Zuruecksetzen folgt der Status wieder der Sortierung',
+      gleich(ksTitel(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitel(d)));
+    pruefe('Und die Sortierung selbst bleibt dabei stehen',
+      d.w.document.getElementById('f-sort')?.value === 'potenzial_desc',
+      d.w.document.getElementById('f-sort')?.value);
+    // UND DER KNOPF IST DANACH WEG: die Ruhestellung ist wieder erreicht, und
+    // ein Knopf, der nichts mehr zu tun hat, steht nicht da.
+    pruefe('Und danach ist der Ruecksetzer selbst wieder weg',
+      !d.w.document.getElementById('filter-zurueck'),
+      d.w.document.getElementById('filter-zurueck')?.textContent);
+    pruefe('Und das Wort steht wieder neben den Pillen',
+      !!d.w.document.getElementById('f-status-woher'), '(kein Wort)');
+    d.w.close();
+  }
+
+  /* ---- 8. ES STEHT DRAN ----
+     Ein unsichtbarer Automatismus ist ein Fehler, auch wenn er richtig raet. */
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
+    const wort = d.w.document.getElementById('f-status-woher');
+    pruefe('Neben den Statuspillen steht, woher die Stellung kommt',
+      wort?.textContent === 'folgt der Sortierung', JSON.stringify(wort?.textContent));
+    pruefe('Und es ist eine zweite Beschriftung ohne eigene Spalte',
+      wort?.classList.contains('eyebrow-mit'), wort?.className);
+    pruefe('Es steht in derselben Zeile wie die Statuspillen',
+      wort?.closest('.frow') === ksPille(d, 'Alles anzeigen')?.closest('.frow'),
+      wort?.closest('.frow')?.querySelector('.eyebrow')?.textContent);
+    /* DIE ABGELEITETE PILLE IST VON EINER GEWAEHLTEN ZU UNTERSCHEIDEN -- und
+       zwar an einer EIGENEN Klasse und nicht an derselben mit Zusatz. */
+    const abgeleitet = ksPille(d, 'Ungetestet');
+    pruefe('Die abgeleitete Pille traegt ihre eigene Marke',
+      abgeleitet?.classList.contains('pill-abgeleitet'), abgeleitet?.className);
+    pruefe('Und sie sieht ausdruecklich nicht aus wie eine angeklickte',
+      !abgeleitet?.classList.contains('on'), abgeleitet?.className);
+    pruefe('Auch keine andere Pille steht dabei als gewaehlt da',
+      ![...d.w.document.querySelectorAll('#filters .pill')]
+        .some(b => ['Alles anzeigen', 'Getestet', 'Ungetestet'].includes(b.textContent.trim())
+                   && b.classList.contains('on')),
+      JSON.stringify([...d.w.document.querySelectorAll('#filters .pill')]
+        .map(b => `${b.textContent.trim()}:${b.className}`)));
+    pruefe('Und sie sagt im Klartext, was ein Klick daraus macht',
+      /eigene Wahl/.test(abgeleitet?.title || ''), abgeleitet?.title);
+    /* DAS STILBLATT GIBT IHR DIE FARBE DER WAHL OHNE DEREN FUELLGRUND. Im DOM
+       laesst sich das ohne Layoutberechnung nicht sehen -- geprueft wird
+       deshalb am Stilblatt, wie bei den Loeschkreuzen und dem Favoritenstern. */
+    pruefe('Das Stilblatt zeichnet sie gestrichelt statt gefuellt',
+      /border-style: dashed/.test(regel123('.pill-abgeleitet')) &&
+      !/background:/.test(regel123('.pill-abgeleitet')),
+      regel123('.pill-abgeleitet') || '(keine Regel)');
+    /* UND SIE IST NICHT GEDAEMPFT: ein Klick darauf ist weiterhin eine
+       Handwahl, sie darf also nicht wie ein toter Knopf aussehen. */
+    pruefe('Und sie ist nicht gedaempft wie eine wirkungslose Pille',
+      !/opacity/.test(regel123('.pill-abgeleitet')), regel123('.pill-abgeleitet'));
+    pruefe('Anklickbar bleibt sie', abgeleitet?.disabled !== true, String(abgeleitet?.disabled));
+    await ksKlick(d, abgeleitet);
+    pruefe('Und ein Klick darauf ist eine Handwahl und beendet die Vorgabe',
+      !d.w.document.getElementById('f-status-woher') &&
+      ksPille(d, 'Ungetestet')?.classList.contains('on'),
+      `${d.w.document.getElementById('f-status-woher')?.textContent} · ${ksPille(d, 'Ungetestet')?.className}`);
+    d.w.close();
+  }
+  {
+    // UND OHNE ABLEITUNG STEHT DAS WORT NICHT DA. Eine Auskunft, die immer
+    // dasteht, ist dieselbe Auskunft ueber nichts wie eine Null am Zaehler.
+    const d = await ksBaue({ ...ksVorgabe, sort: 'updated_desc' });
+    pruefe('Ohne Ableitung steht das Wort nicht da',
+      !d.w.document.getElementById('f-status-woher'),
+      d.w.document.getElementById('f-status-woher')?.textContent);
+    pruefe('Und eine von Hand gesetzte Pille zeichnet sich wie immer',
+      ksPille(d, 'Alles anzeigen')?.classList.contains('on') &&
+      !ksPille(d, 'Alles anzeigen')?.classList.contains('pill-abgeleitet'),
+      ksPille(d, 'Alles anzeigen')?.className);
+    d.w.close();
+  }
+  {
+    /* UND DER WECHSEL DER SORTIERUNG ZIEHT DIE LEISTE MIT. Bis 0.21.1 zeichnete
+       `sel.onchange` nur die LISTE neu -- eine Sortierung ordnete ja bloss.
+       Jetzt gibt sie den Statusfilter vor, und die Statuspillen stehen eine
+       Zeile weiter oben: bliebe die Leiste stehen, zeigte sie eine Stellung,
+       die nicht mehr gilt, waehrend die Liste darunter schon die neue zeigt.
+       GEPRUEFT AM WECHSEL UND NICHT AN ZWEI GEBAUTEN LAGEN: nur so ist das
+       Neuzeichnen ueberhaupt im Spiel (Stolperstein 308). */
+    const d = await ksBaue({ ...ksVorgabe, sort: 'updated_desc' });
+    pruefe('Der Aufbau steht: vorher steht kein Wort da',
+      !d.w.document.getElementById('f-status-woher'), '(das Wort steht schon da)');
+    await ksSortiere(d, 'potenzial_desc');
+    pruefe('Nach dem Wechsel der Sortierung steht das Wort da',
+      !!d.w.document.getElementById('f-status-woher'), '(kein Wort)');
+    pruefe('Und die abgeleitete Pille ist mitgezogen',
+      ksPille(d, 'Ungetestet')?.classList.contains('pill-abgeleitet'),
+      ksPille(d, 'Ungetestet')?.className);
+    pruefe('Und „Alles anzeigen" steht nicht mehr als gewaehlt da',
+      !ksPille(d, 'Alles anzeigen')?.classList.contains('on'),
+      ksPille(d, 'Alles anzeigen')?.className);
+    d.w.close();
+  }
+
+  /* ---- 9. WAS filterZahl() ZAEHLT ----
+     DIE ENTSCHEIDUNG DIESER RUNDE: die Ableitung zaehlt NICHT mit. Sie ist
+     baulich und nicht kosmetisch -- dieselbe Zahl traegt der Ruecksetzer, und
+     der steht nur da, solange sie groesser als null ist. Zaehlte die Ableitung
+     mit, stuende er auch ohne gesetzten Filter da, und ein Druck darauf
+     stellte die Ableitung gerade wieder her: derselbe Knopf mit derselben Zahl,
+     und niemand kaeme heraus.
+     GEPRUEFT IN BEIDE RICHTUNGEN, sonst belegt die Zahl nichts. */
+  {
+    const d = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
+    pruefe('Der Aufbau steht: die Ableitung greift wirklich',
+      ksTitel(d).length === 2, JSON.stringify(ksTitel(d)));
+    pruefe('Sie zaehlt trotzdem nicht als gesetzter Filter',
+      !d.w.document.getElementById('filter-zurueck'),
+      d.w.document.getElementById('filter-zurueck')?.textContent);
+    pruefe('Und der Schalter faerbt sich nicht als „etwas eingestellt"',
+      !d.w.document.getElementById('filter-auf')?.classList.contains('aktiv'),
+      d.w.document.getElementById('filter-auf')?.className);
+    /* GESAGT WIRD SIE TROTZDEM, nur in Worten statt in einer Zahl: eingeklappt
+       ist das Wort neben den Pillen nicht zu sehen, und der Schalter ist dann
+       der einzige Ort, der noch spricht. Regel 4 gilt an beiden Orten. */
+    pruefe('Der Schalter sagt sie stattdessen im Wort',
+      d.w.document.querySelector('#filter-auf .fz')?.textContent === '· folgt der Sortierung',
+      JSON.stringify(d.w.document.querySelector('#filter-auf .fz')?.textContent));
+    d.w.close();
+  }
+  {
+    /* UND DIE ANDERE RICHTUNG: ein WIRKLICH gesetzter Filter zaehlt weiter,
+       und zwar EINS und nicht zwei -- die Ableitung steht daneben und schiebt
+       die Zahl nicht hoch. */
+    const d = await ksBaue({ ...ksVorgabe, favorit: true, sort: 'potenzial_desc' });
+    pruefe('Ein wirklich gesetzter Filter zaehlt weiter',
+      d.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)',
+      JSON.stringify(d.w.document.getElementById('filter-zurueck')?.textContent));
+    pruefe('Und die Ableitung schiebt die Zahl nicht hoch',
+      d.w.document.querySelector('#filter-auf .fz')?.textContent === '· 1 aktiv · folgt der Sortierung',
+      JSON.stringify(d.w.document.querySelector('#filter-auf .fz')?.textContent));
     d.w.close();
   }
 }

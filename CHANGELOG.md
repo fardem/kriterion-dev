@@ -29,6 +29,16 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.21.1] - 2026-09-04
+
+- Added: Die Sortierung gibt den Statusfilter vor — Bewertung stellt ihn auf „Getestet", Potenzial auf „Ungetestet"
+- Added: Die vorgegebene Statuspille ist gestrichelt statt ausgefüllt, und daneben steht „folgt der Sortierung"
+- Added: Eingeklappt sagt der Filterschalter dasselbe — „· folgt der Sortierung"
+- Changed: **Wer nach Bewertung oder Potenzial sortiert, sieht ab jetzt eine andere Menge als vorher** — die jeweils andere Hälfte des Bestands steht nicht mehr in der Liste
+- Changed: „Filter zurücksetzen" nimmt auch die Handwahl am Status mit zurück — danach folgt er wieder der Sortierung
+- Changed: Ein Klick auf eine Statuspille und eine angewandte gespeicherte Ansicht schlagen die Vorgabe und halten über den Wechsel der Sortierung hinweg
+- Changed: Die Vorgabe wird nicht gespeichert und nicht mitgezählt — geschrieben und gezählt wird nur, was jemand selbst gesetzt hat
+
 ## [0.21.0] - 2026-09-04
 
 > **DIES IST EINE DATENBANKSTUFE — SICHERUNG VOR DEM EINSPIELEN.** Ein
