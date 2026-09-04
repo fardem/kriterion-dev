@@ -667,7 +667,38 @@ SIE ROT ZU MACHEN.** Erst das Objekt, dann sein Inhalt.
 
 ## 9. Prüfstand und Gegenproben
 
-PLATZHALTER_PRUEFSTAND
+**Vorher 5403, nachher 5512 — 109 neue, keine weggefallen.** *Beide Zahlen sind
+gefahren und nicht gerechnet: der Prüfstand des Standes vor dieser Runde
+(`b74064f`) ist eigens noch einmal gelaufen und hat **5403 von 5403** gemeldet,
+genau die Zahl, die im Projektstand für 0.20.1 steht.*
+
+| Gruppe | vorher | nachher | Wofür |
+|---|---|---|---|
+| **Zwei Kästen, zwei Durchschnitte — 0.21.0** | — | **33** | Die Runde am Server: der Migrationsblock (zweimal hintereinander, beim zweiten Mal stumm, auf einer Datei, der die Spalte **vorher genommen** wurde), beide Durchschnitte nebeneinander, **`tested` ändert keinen von beiden**, die getrennten Rechenwege, die Phase an jeder Sternzeile, die Absage beim Anlegen, die **400 statt Stillschweigen** am `PUT`, das Format **13** mit `criteriaPhase`, eine Datei aus Format 12, **der Namenskonflikt über die Kästen hinweg — abgewiesen, bevor etwas geschrieben ist** — und der Rundlauf über Export und Import |
+| **Zwei Kästen in der Oberfläche — 0.21.0** | — | **36** | Die Runde im Browser: die Reihenfolge der Blöcke, **jeder Kasten zeigt nur seine Zeilen**, die Regel aus dem Zustand statt aus der Einstellung, der **Blick** (ein Klick, der nichts speichert — und **der über den Wechsel des Eintrags hinaus geprüft wird**), der Schalter „Getestet", die Kachel mit **◆**, die beiden Sortiereinträge, **beide Kriterienkarten mit ihren eigenen Listen und ihrer eigenen Phase im Rumpf**, und **das Wort am Blockkopf aus einem umgestellten Vokabular** |
+| **Die Sternzeile — 0.21.0** | — | **16** | Das **×** an der eigenen Sternreihe: es steht nur da, wo es etwas zurückzusetzen gibt, es wird **unsichtbar statt weg** (`visibility`, nicht `display`), die leere Durchschnittszelle zeigt **„–"**, die Zahlenspalte trägt ihre **gemessene** Mindestbreite in `rem`, und auf dem Telefon steht der Name über den Sternen |
+| **Die Gegenproben greifen** | 20 | **26** | **Der Wächter über fremde Server** (Abschnitt 9a, siebtens): er ist von außen erreichbar, findet die Server dieses Laufs mit Verzeichnis und Port, **meldet sich selbst nicht**, und der Treiber ruft ihn **vor** dem ersten Rückbau und bricht ab. Dazu die Zahl der Rückbauten und die beiden Quelltextwächter |
+| **Der Umschalter der Vergleichsansicht** | 23 | **27** | Zwei Gruppen statt einer Liste, jede mit eigener Kopfzahl — und **eine leere Gruppe wird gar nicht gezeichnet** |
+| **Einstellungen: Vokabular und Schriftgröße** | 19 | **22** | Das **zwölfte** Wort: es steht in der Vorgabe, lässt sich setzen und fällt leer auf die Vorgabe zurück |
+| **Das Raster der Kriterienliste zählt seine Zellen — 0.17.0** | 19 | **21** | Die Spaltenzahl steht jetzt an **drei** Stellen im Stilblatt, und die dritte liegt **innerhalb** der Telefonabfrage |
+| **Rechte an Testtagen und Bewertungen** | 16 | **18** | Die weggenommene Route `DELETE /api/items/:id/ratings` — sie ist fort, und das × tut ihre Arbeit je Zeile |
+| **Blöcke anordnen und einklappen** | 23 | **24** | Der neunte Block, und dass die beiden Sternkästen ihren Einklappzustand **nicht** mehr speichern |
+| **Anordnung der Blöcke** | 7 | **8** | Der neunte Block steht in der Liste, an seinem Platz |
+| **Der Systembereich nach Rolle** | 71 | **72** | Die einundzwanzigste Karte |
+| **Mehrbenutzer-Anzeigen in der Oberfläche** | 107 | **108** | Der Knopf „Stimmen" steht in **beiden** Kastenköpfen |
+| **Favorit: der Knopf im Eintrag** | 30 | **31** | — |
+| **Die Sternreihe steht auf einer Linie — 0.14.0** | 18 | **19** | Eine **umgedrehte** Zusage statt einer gelöschten (Stolperstein 74) |
+| **Der zweite Faktor: die Tabellen legen sich selbst an** | 16 | **17** | Der neunte Migrationsblock |
+| **zusammen** | **5403** | **5512** | **+109** |
+
+> **DIE NEUN MIGRATIONSBLÖCKE UND DIE ZWÖLF VOKABELWÖRTER STEHEN
+> AUSDRÜCKLICH ALS ZAHL** — dieselbe Linie wie bei `F_ROUTEN`. *Eine Prüflage,
+> die still verschwindet, fällt sonst niemandem auf.* **Es sind neun Blöcke und
+> zwölf Wörter**; die Zahlen stehen im Prüfstand und nicht nur in diesem Papier.
+
+### Der Gegenprobenlauf
+
+PLATZHALTER_TABELLE
 
 ---
 

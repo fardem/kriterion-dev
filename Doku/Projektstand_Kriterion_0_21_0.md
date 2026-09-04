@@ -451,8 +451,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.21.0** — Fingerprint **`FINGERPRINT_0210`**, **PRUEFZAHL_0210
-Prüfungen**, **RUECKBAU_0210 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.21.0** — Fingerprint **`FINGERPRINT_0210`**, **5512
+Prüfungen**, **599 Rückbauten in der Liste** (Abschnitt 8).
 *0.21.0 gibt jedem Eintrag einen zweiten Sternkasten — „Potenzial", die
 Einschätzung VOR dem Test — mit eigenen Kriterien, eigenen Gewichten und einem
 eigenen Durchschnitt, der die Bewertung nicht berührt.*
@@ -8565,7 +8565,7 @@ im Image.**
 > fällt nicht von selbst auf: die Bereitschaftsprüfung bekommt ja eine Antwort*
 > (Stolperstein 139).
 
-**Stand: PRUEFZAHL_0210 von PRUEFZAHL_0210 bestanden** (0.21.0) — **PRUEFNEU_0210
+**Stand: 5512 von 5512 bestanden** (0.21.0) — **109
 neue, keine weggefallen.** *0.20.1 davor brachte 29, 0.20.0 davor 128.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
 beschränkt und **nicht** der volle Lauf über alle **599** Rückbauten.
@@ -8583,14 +8583,34 @@ beschränkt und **nicht** der volle Lauf über alle **599** Rückbauten.
 > erreicht. *Der Einwand von damals — eine dritte wäre eine zweite Wahrheit —
 > bleibt richtig und wird deshalb schärfer geprüft, nicht fallengelassen.*
 
-> **DIE VIER GRUPPENZAHLEN ZU 0.20.0 SIND MIT 0.20.1 BERICHTIGT.** Sie standen
-> als 16 · 72 · 20 · 20 da und waren **geschätzt und nicht gezählt** — die
-> Summe stimmte (128), die Aufteilung nicht. **Nachgemessen an einem vollen
-> Lauf am 0.20.0-Stand** (Fingerprint `12421721`, 5374 von 5374): **16 · 56 ·
-> 18 · 34**, dazu **4** in vorhandenen Gruppen. *Genau das verbietet die
-> Bauregel — „jede Zahl in den Papieren ist gemessen oder als ungemessen
-> benannt" —, und genau deshalb steht die Berichtigung hier und nicht
-> stillschweigend im Text (Stolperstein 137).*
+| Gruppe (0.21.0) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Zwei Kästen, zwei Durchschnitte — 0.21.0** *(neu)* | — | **33** | **Die Runde am Server.** Der Migrationsblock läuft **zweimal hintereinander** auf einer Datei, der die Spalte **vorher genommen** wurde (`ALTER TABLE … DROP COLUMN`) — ohne diesen Schritt liefe die Prüfung über eine Tabelle, die die Spalte ohnehin aus der DDL hat, und belegte nichts (Stolperstein 102). **Und das Einfangen ist zweigeteilt:** was schon das *Öffnen* der Datei getan hat, und was ein ausdrücklicher Aufruf danach noch findet — nur das erste belegt, dass der Block beim Start einer Installation wirklich läuft *(daran ist Rückbau 581 zuerst stumm geblieben)*. Dazu: beide Durchschnitte nebeneinander in Detail **und** Übersicht, **`tested` ändert keinen von beiden**, die getrennten Rechenwege, die Phase an jeder Sternzeile, die Absage beim Anlegen, die **400 statt Stillschweigen** am `PUT`, das Format **13** mit `criteriaPhase` *(nur Abweichungen)*, eine Datei aus Format 12, **der Namenskonflikt über die Kästen hinweg — abgewiesen, bevor eine einzige Zeile geschrieben ist** — und der Rundlauf über Export und Import. **Und beide Schnittabfragen nennen `c.phase` im `SELECT` und im `GROUP BY`** — die zweite Hälfte am Quelltext, weil das Verhalten sie nicht sieht (Stolperstein 307) |
+| **Zwei Kästen in der Oberfläche — 0.21.0** *(neu)* | — | **36** | **Die Runde im Browser.** Der Potenzialblock steht **vor** der Bewertung; jeder Kasten zeigt **nur seine** Zeilen; welcher offen steht, entscheidet der **Zustand des Eintrags** und nicht die gespeicherte Einstellung; ein Klick auf den Kopf ist ein **Blick** — er klappt auf und schickt **kein** `PUT /api/settings`, während ein gewöhnlicher Block weiter speichert; **und er endet mit dem Eintrag**: an Eintrag 1 gegen die Regel zugeklappt, an Eintrag 2 gilt sie wieder *(Stolperstein 308 — vorher wechselte keine Prüflage den Eintrag)*. Dazu der Schalter „Getestet", die Kachel mit **◆** statt ★, die beiden Sortiereinträge *(ohne Einschätzung steht man in **beiden** Richtungen hinten)*, **beide Kriterienkarten mit ihren eigenen Listen und ihrer eigenen Phase im Rumpf**, und **das Wort am Blockkopf aus einem umgestellten Vokabular** (`potenzial: 'Erwartung'`) — die letzten drei nachgetragen, weil die Prüflage vorher den Wert trug, der auch die Vorgabe ist (Stolperstein 309) |
+| **Die Sternzeile — 0.21.0** *(neu)* | — | **16** | **Das × an der eigenen Sternreihe.** Es steht nur da, wo es einen Rücksetzer gibt; ohne eigenen Stern wird es **unsichtbar, behält aber seinen Platz** (`visibility: hidden`, **nicht** `display: none` — sonst wäre es genau der Sprung, den diese Runde abschafft); die leere Durchschnittszelle zeigt **„–"** samt Klartext statt gar nichts; die Zahlenspalte trägt eine **gemessene** Mindestbreite in `rem` *(4,34 rem + 9 px Innenabstand, in Chromium an „⌀ 4,2 (9)" gemessen)*; und auf dem Telefon steht der Name **über** den Sternen — die dritte Spaltenangabe im Stilblatt liegt **innerhalb** der Telefonabfrage, was eigens geprüft wird |
+| **Die Gegenproben greifen** | 20 | **26** | **Der Wächter über fremde Server** (Stolperstein 310): `fremdeServer()` ist von außen erreichbar, findet die Server dieses Laufs **mit Verzeichnis und Port**, **meldet sich selbst nicht**, sucht nach **beiden** Namen (Server wie Prüflauf), und der Treiber ruft ihn **vor** dem ersten Rückbau und **bricht ab** statt zu warnen. Dazu die Zahl der Rückbauten (**599**) |
+| **Der Umschalter der Vergleichsansicht** | 23 | **27** | Zwei Gruppen statt einer Liste, jede mit eigener Kopfzahl — **und eine leere Gruppe wird gar nicht gezeichnet**: eine Überschrift über null Zeilen sagt nichts |
+| **Einstellungen: Vokabular und Schriftgröße** | 19 | **22** | Das **zwölfte** Wort: es steht in der Vorgabe, lässt sich setzen und fällt leer auf die Vorgabe zurück |
+| **Das Raster der Kriterienliste zählt seine Zellen — 0.17.0** | 19 | **21** | Die Spaltenzahl steht jetzt an **drei** Stellen im Stilblatt statt an zwei — *die Zusage ist geschärft, nicht fallengelassen*: die dritte muss **innerhalb** der Telefonabfrage liegen, die beiden anderen außerhalb |
+| **Rechte an Testtagen und Bewertungen** | 16 | **18** | Die weggenommene Route `DELETE /api/items/:id/ratings` — geprüft wird, dass sie **fehlt**, und dass das × ihre Arbeit je Zeile tut |
+| **Blöcke anordnen und einklappen** | 23 | **24** | Der neunte Block — und dass die beiden Sternkästen ihren Einklappzustand **nicht** mehr in die Einstellung schreiben |
+| **Anordnung der Blöcke** | 7 | **8** | Der neunte Block steht in der Liste, an seinem Platz |
+| **Der Systembereich nach Rolle** | 71 | **72** | Die **einundzwanzigste** Karte |
+| **Mehrbenutzer-Anzeigen in der Oberfläche** | 107 | **108** | Der Knopf „Stimmen" steht in **beiden** Kastenköpfen |
+| **Favorit: der Knopf im Eintrag** | 30 | **31** | — |
+| **Die Sternreihe steht auf einer Linie — 0.14.0** | 18 | **19** | Eine **umgedrehte** Zusage statt einer gelöschten (Stolperstein 74) |
+| **Der zweite Faktor: die Tabellen legen sich selbst an** | 16 | **17** | Der **neunte** Migrationsblock |
+| **zusammen** | **5403** | **5512** | **+109** |
+
+> **BEIDE ZAHLEN SIND GEFAHREN UND NICHT GERECHNET.** *Der Prüfstand des
+> Standes **vor** dieser Runde (`b74064f`) ist eigens noch einmal gelaufen und
+> hat **5403 von 5403** gemeldet — genau die Zahl, die hier für 0.20.1 steht.*
+> **Die Aufteilung je Gruppe ist aus beiden Protokollen gezählt**, nicht
+> geschätzt (Stolperstein 137; siehe den Kasten zu 0.20.0 weiter unten, wo
+> genau das einmal schiefgegangen ist).
+
+**Und die Runde davor, zum Vergleich — 5403 von 5403 bestanden** (0.20.1) —
+**29 neue, keine weggefallen.**
 
 | Gruppe (0.20.1) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -8602,6 +8622,15 @@ beschränkt und **nicht** der volle Lauf über alle **599** Rückbauten.
 
 **Und die Runde davor, zum Vergleich — 5374 von 5374 bestanden** (0.20.0) —
 **128 neue, keine weggefallen.**
+
+> **DIE VIER GRUPPENZAHLEN ZU 0.20.0 SIND MIT 0.20.1 BERICHTIGT.** Sie standen
+> als 16 · 72 · 20 · 20 da und waren **geschätzt und nicht gezählt** — die
+> Summe stimmte (128), die Aufteilung nicht. **Nachgemessen an einem vollen
+> Lauf am 0.20.0-Stand** (Fingerprint `12421721`, 5374 von 5374): **16 · 56 ·
+> 18 · 34**, dazu **4** in vorhandenen Gruppen. *Genau das verbietet die
+> Bauregel — „jede Zahl in den Papieren ist gemessen oder als ungemessen
+> benannt" —, und genau deshalb steht die Berichtigung hier und nicht
+> stillschweigend im Text (Stolperstein 137).*
 
 | Gruppe (0.20.0) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -9510,7 +9539,27 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.20.1 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Drei Handgriffe:*
+- **0.21.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Der Sollwert des
+  Fingerprints steht in Abschnitt 2; die Meldung der laufenden Installation
+  über `GET /api/stats` fehlt.* **Und mit ihr die Handgriffe:** ein
+  Vorher-Kriterium anlegen, an einem **getesteten** Eintrag einen Stern darauf
+  setzen *(`avgRating` bleibt, `potenzialRating` erscheint)*, den Schalter
+  „Getestet" umlegen *(die Kästen tauschen offen und zu, die Zahlen bleiben)*,
+  nach **Potenzial** sortieren, einen Stern über das **×** entfernen *(fünf
+  leere Sterne, und die Spalte daneben bewegt sich nicht)*, einmal
+  **exportieren und wieder einspielen** *(gleiche Zahlen in beiden Kästen)*.
+  *Die Befehle dazu stehen im Chat der Runde, nicht hier.*
+  > **AN EINER BESTEHENDEN INSTALLATION IST NACH DEM EINSPIELEN NICHTS
+  > ANDERS** — das ist nachgestellt und nicht behauptet: an einer Datei ohne
+  > die Spalte meldet der Start *„rating_criteria um phase ergaenzt (Migration
+  > auf 0.21.0); N Kriterien stehen auf 'nachher' …"*, **alle** Kriterien
+  > stehen danach im Bewertungskasten, und die Gesamtschnitte sind Ziffer für
+  > Ziffer dieselben wie vorher. **Der Potenzialkasten ist leer, bis der Admin
+  > Kriterien dafür anlegt.**
+- **0.20.1 IST IM FELD BESTÄTIGT** — die laufende Installation hat am
+  3. September 2026 den Fingerprint **`c67a13f9`** gemeldet, genau den
+  Sollwert. **Die drei Handgriffe dazu sind damit aber noch nicht gefahren**,
+  denn bestätigt ist bisher nur die Nummer: *Drei Handgriffe:*
   **(a)** die Karte **„Alte Sicherungen"** öffnen — die **Liste** muss alle
   Sicherungen führen, **#1 die jüngste**, mit Datum, Alter und Größe, und ab
   der sechsten Zeile rollen; **(b)** die Mindestzahl verstellen — die Marken
