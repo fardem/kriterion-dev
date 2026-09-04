@@ -455,11 +455,11 @@ wieder einsetzt.**
 * **Abschnitt 5.6 bekommt die Gestaltungsregeln G1 bis G8 und die Sprachregeln S1 bis S7 als
   geschriebene Regel** — *sonst läuft es beim nächsten Mal wieder auseinander.* **Das ist keine
   Zugabe, sondern der Grund, warum diese Runde eine Runde ist und kein Anstrich.**
-* **Der Fahrplan:** 0.22.0 ist gebaut und wandert in die Versionsgeschichte. **Die Runde für das
-  helle Farbschema (N6) bekommt ihre Nummer** — *die Regel „zwischen zwei geplanten Runden
-  bleibt eine Nummer frei" ist dabei zu beachten: 0.23.0 ist ein Zwischenraum, und wer ihn
-  belegt, rückt den Rest.* **Die Entscheidung gehört in den Chat und nicht in einen stillen
-  Zusatz.**
+* **Der Fahrplan:** 0.22.0 ist gebaut und wandert in die Versionsgeschichte. **Die Runde
+  dahinter steht schon da** — 0.23.0, „Die Oberfläche wird hell", am 4. September 2026
+  eingetragen. *Dabei ist nichts gerückt, und an der Regel steht seither, welcher ihrer beiden
+  Sätze gilt: die freien Nummern verhindern Nachrücker, also rückt auch das Belegen einer
+  Lücke nichts. Die nächste eingeschobene Runde nimmt 0.25.0.*
 * **README:** die Abschnitte, deren Wörter sich ändern (E1 bis E3, E5 bis E7), der Absatz zum
   Bildstreifen unter „Bedienung", der Absatz zum Rechteck — **und ein eigener Abschnitt „Auf dem
   Server"** für die Handgriffe, die vom Bildschirm hierher ziehen.
@@ -480,9 +480,11 @@ wieder einsetzt.**
 
 ## Was danach offen bleibt
 
-* **Das helle Farbschema (N6)** — beschlossen als eigene Runde, Nummer offen. *Rund 30
-  Farbwerte ein zweites Mal, die Bedeutungsfarben auf hellem Grund neu abgestimmt, `theme-color`
-  je Schema, jedes Foto auf hellem Grund angesehen.*
+* **Das helle Farbschema — 0.23.0, „Die Oberfläche wird hell".** *Am 4. September 2026 in den
+  Fahrplan eingetragen und in Abschnitt 10a ausgearbeitet; es ist dabei nichts gerückt.* Rund
+  30 Farbwerte ein zweites Mal, die Bedeutungsfarben auf hellem Grund neu abgestimmt,
+  `theme-color` je Schema, jedes Foto auf hellem Grund angesehen. **Sie setzt auf den
+  Gestaltungsregeln dieser Runde auf** — deshalb steht sie dahinter und nicht daneben.
 * **Die Mehrsprachigkeit** (Fahrplan 0.28.0) — sie kommt nach dieser Runde und wegen ihr.
 * **Die Ideen, die stehen geblieben sind:** die Übersicht der Tastenkürzel (N7), die kompakte
   Listenansicht (N11) — *die ist eine Funktion, kein Anstrich, und gehört ins Sammelblatt.*

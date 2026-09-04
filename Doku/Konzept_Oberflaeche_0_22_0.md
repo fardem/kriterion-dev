@@ -888,7 +888,7 @@ werden hier wiederholt, weil dieses Papier sie sonst zu übersehen scheint.*
 | **E14** | **„Bewertung" wird Vokabelwort — als Paar: `bewertungEinzahl` und `bewertungMehrzahl`, das 13. und 14. Wort.** *Gegen die Empfehlung dieses Papiers entschieden, und mit gutem Grund: „Potenzial" ist umbenennbar, sein Gegenstück nicht — eine Schieflage, die bei jedem Umbenennen sichtbar wird.* **Was daran hängt, steht in 9.4.** |
 | **E15** | **Der Rücksetzknopf der Sternzeile wandert ganz nach rechts, hinter die Durchschnittszahl** — und wird ein eigener runder Knopf mit Hoverfläche statt eines Zeichens in der Sternreihe. *Am Bild entschieden (`sternzeile_varianten.png`).* **Was dabei zu beachten ist, steht in 6.5a.** |
 | **E16** | **Ein Fehlklick ist reparierbar: die Meldung trägt „Rückgängig".** Nach dem Zurücksetzen steht unten „Sterne bei „Qualität" entfernt · Rückgängig"; ein Klick schreibt den alten Wert zurück |
-| **N6** | **Das helle Farbschema bekommt eine eigene Runde nach 0.22.0** — dafür ist im Fahrplan eine Nummer frei |
+| **N6** | **Das helle Farbschema bekommt eine eigene Runde nach 0.22.0.** *Am 4. September 2026 in den Fahrplan eingetragen: **0.23.0, „Die Oberfläche wird hell"** — die erste der freien Nummern, und es ist nichts gerückt. Die Ausarbeitung steht im Projektstand, Abschnitt 10a.* |
 
 **Und hier stehen die Fragen, wie sie gestellt wurden — mit Empfehlung und Gegenrede.** *Sie
 bleiben stehen, auch wo anders entschieden wurde: eine Entscheidung ohne die Möglichkeit, die
@@ -916,7 +916,10 @@ sie verworfen hat, ist in einem halben Jahr nicht mehr zu beurteilen (Stolperste
 * **Mehrsprachigkeit (Fahrplan 0.28.0).** Sie kommt nach dieser Runde und wegen ihr: wer
   Texte ordnet und je Sache ein Wort hat, zieht sie später in eine Sprachdatei, ohne sie
   zweimal anzufassen. *Diese Runde legt keine Sprachdatei an.*
-* **Das helle Farbschema (N6).** Eigene Runde, freie Nummer.
+* **Das helle Farbschema (N6).** **Eingetragen als 0.23.0, „Die Oberfläche wird hell"** —
+  ausgearbeitet im Projektstand, Abschnitt 10a. *Sie braucht die Gestaltungsregeln, die diese
+  Runde aufschreibt: ein zweites Schema ist nur zu bauen, wenn feststeht, was jede Farbe
+  bedeutet.*
 * **Die Listenansicht (N11), Fälligkeitsdaten an Aufgaben, die Wortgrenzensuche** — Sammelblatt.
 * **Die Kommentare im Quelltext** („Die Kommentare werden knapp", 0.26.x) — dort liegt der
   Ursprung des Kumpeltons, und dort bleibt er, bis die Bereinigung sie schneidet. *Diese
