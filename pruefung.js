@@ -21314,7 +21314,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
      eine andere Datei gewandert** -- der Deckel der Liste ist seit 0.20.1 eine
      Regel im Stilblatt und keine Klasse im Markup. Seine Zusage ist dieselbe
      geblieben. KEINER IST WEGGEFALLEN. */
-  pruefe('Es sind genau 563 Rueckbauten', gpListe.length === 563, `${gpListe.length}`);
+  /* 595 SEIT 0.21.0: zweiunddreissig neue (570 bis 601) fuer die beiden
+     Sternkaesten, die Sternzeile und die weggenommene Route. Keiner ist
+     weggefallen; fuenf sind mitgegangen statt geloescht (Stolperstein 201). */
+  pruefe('Es sind genau 595 Rueckbauten', gpListe.length === 595, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -38522,16 +38525,26 @@ async function pruefeOberflaeche() {
     pruefe('Und in keiner Zeile steht eine Klammer um eine Eins',
       !kSpalten.some(z => /\(1\)/.test(z.textContent || '')),
       JSON.stringify(kSpalten.map(z => z.textContent)));
-    pruefe('Ohne Stimme bleibt die Zelle weiterhin ganz leer',
-      kSpalten[2]?.textContent === '', JSON.stringify(kSpalten[2]?.textContent));
+    /* UMGEDREHT MIT 0.21.0 (Stolperstein 74), wie die beiden Schwestern in der
+       Gruppe „Die Sternreihe steht auf einer Linie": bis 0.20.1 blieb die
+       Zelle GANZ LEER, jetzt traegt sie einen Strich. Die Zusage dieser Gruppe
+       ist eine andere und bleibt unveraendert -- hier geht es um die KLAMMER,
+       und ein Strich ist keine. */
+    pruefe('Ohne Stimme steht dort ein Strich und keine Klammer',
+      kSpalten[2]?.textContent === '–', JSON.stringify(kSpalten[2]?.textContent));
     /* UND DER KLARTEXT SAGT WEITERHIN BEIDES -- in der Einzahl, wo es eine
        ist: „aus 1 Stimmen" ist der Fehler, den eine feste Endung macht. */
     pruefe('Der Klartext nennt die eine Stimme trotzdem',
       kSpalten[1]?.title === 'Durchschnitt 4,0 aus 1 Stimme', kSpalten[1]?.title);
     pruefe('Und bei zweien steht dort die Mehrzahl',
       kSpalten[0]?.title === 'Durchschnitt 3,5 aus 2 Stimmen', kSpalten[0]?.title);
-    pruefe('Ein Kriterium ohne Stimme bekommt weiterhin keinen Klartext',
-      !kSpalten[2]?.title, kSpalten[2]?.title);
+    /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): der Strich bekommt seinen eigenen
+       Klartext -- „noch niemand" --, und er nennt ausdruecklich KEINE Stimmen.
+       Das ist die Aussage, um die es dieser Gruppe geht: wo keine Stimme ist,
+       steht keine Zahl. */
+    pruefe('Ein Kriterium ohne Stimme bekommt einen Klartext ohne Stimmenzahl',
+      kSpalten[2]?.title === 'noch niemand' && !/Stimme/.test(kSpalten[2]?.title || ''),
+      kSpalten[2]?.title);
     d.w.close();
   }
 
