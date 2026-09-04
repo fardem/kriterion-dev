@@ -3,10 +3,12 @@
 **Moderner, aufgeräumter, verständlich — dieselben Funktionen, dieselben Farben, andere
 Worte.** Arbeitstitel der Runde: *0.22.0*, die Nummer steht so im Fahrplan (Projektstand,
 Abschnitt 10) und ist vorläufig.
-*Stand: 4. September 2026, geschrieben gegen Kriterion 0.21.0, während 0.21.1 gebaut wird.
-Alle Zeilenangaben zu `public/app.js` und `public/style.css` gelten für den Stand 0.21.0 und
-sind Orientierung, keine Zusage. Der zugehörige Auftrag wird aus diesem Papier geschrieben:
-`Doku/Auftrag_0.22.0.md`.*
+*Stand: 4. September 2026. Erhoben gegen Kriterion 0.21.0, **nachgezogen auf 0.21.1**
+(Fingerprint `2295870b`, im Feld seit dem 4. September 2026). Die Zeilenangaben zu
+`public/app.js` und `public/style.css` sind auf diesen Stand gerechnet und am Wortlaut
+nachgeprüft; sie bleiben Orientierung und keine Zusage. **Die Texte, die 0.21.1 neu gebracht
+hat, sind geprüft und stehen in der Anlage, Abschnitt C1.** Der zugehörige Auftrag ist aus
+diesem Papier geschrieben: `Doku/Auftrag_0.22.0.md`.*
 
 > **WAS DIESES PAPIER IST UND WAS NICHT.** Es ist die Ausarbeitung der Idee, die seit dem
 > 30. August 2026 im Projektstand steht (Abschnitt 10a, „Die Oberfläche wird ruhiger"),
@@ -72,7 +74,7 @@ Form, und Form ist, was ein Neuling zuerst sieht.**
 ### Erster Befund: sie bewegt sich an den falschen Stellen
 
 **Das Stilblatt kann mehr, als es zeigt.** Kacheln heben sich beim Überfahren um drei Pixel
-und werfen einen Schatten (`.card:hover`, `style.css` Z. 488), ihr Bild wächst um drei
+und werfen einen Schatten (`.card:hover`, `style.css` Z. 506), ihr Bild wächst um drei
 Prozent, jede Kachel blendet sich beim Aufbau ein; der Fokusring ist eigen und orange
 (`:focus-visible`, Z. 161); 48 Übergänge laufen über eine gemeinsame Kurve (`--ease`).
 **Die Übersicht ist also gar nicht unbewegt** — der Eindruck aus dem Projektstand („nichts
@@ -83,14 +85,14 @@ beim Überfahren nichts zurück; Reiter, Blockköpfe und Pillen antworten nur mi
 Randfarbe; die gerade gespeicherte Karte sieht aus wie vorher; die Glocke erscheint, ohne dass
 man es merkt. **Und an zwei Stellen bewegt sich zu viel, gegen die eigene Regel:** die
 Kopfzeile trägt heute Milchglas (`backdrop-filter: blur(10px)`, Z. 309), der Hintergrund jedes
-Dialogs auch (`blur(3px)`, Z. 1830) — genau das, was der Projektstand in seiner Tabelle „Was es
+Dialogs auch (`blur(3px)`, Z. 1848) — genau das, was der Projektstand in seiner Tabelle „Was es
 ausdrücklich NICHT wird" ablehnt, *weil es auf dem Telefon Leistung kostet und Text unruhig
 macht.* Die Regel steht, die Kopfzeile bricht sie.
 
 **Und die Schrift, die am meisten gelesen wird, ist die kleinste.** Jeder Block der
 Detailansicht und jede Beschriftung im Systembereich trägt seine Überschrift als
 `.label` — Monospace, 0,7 rem, Großbuchstaben, gesperrt, in der blassesten Grauabstufung
-(`--faint`, Z. 793). *Das ist die Schrift, mit der ein Neuling sich orientiert: „Kategorie",
+(`--faint`, Z. 811). *Das ist die Schrift, mit der ein Neuling sich orientiert: „Kategorie",
 „Tags", „Bewertung", „Testtage". Sie ist auf einem Telefon bei 100 % Schrift rund neun Pixel
 hoch.*
 
@@ -109,6 +111,7 @@ wo das Problem sitzt:
 | Systembereich: Persönlich, Bestand, Zugänge | ≈ 270 | 58 | zur Hälfte |
 | Systembereich: Anfragen, Protokoll, Mail, Datenbank | ≈ 280 | 65 | **nein** |
 | Servermeldungen (Toasts) | ≈ 175 | ≈ 20 | ja |
+| *neu aus 0.21.1: die Vorgabe des Statusfilters* | *5* | *2* | *ja* |
 
 **Vier Muster kommen immer wieder:**
 
@@ -125,7 +128,7 @@ wo das Problem sitzt:
   der Browser", „Der Schlüssel geht roh in die Datenbank (`PRAGMA key = x'…'`)". **Und vier
   Server-Befehle im Bildschirmtext** (`docker compose exec kriterion node zugang.js …`), einer
   davon **für jeden Benutzer sichtbar**, obwohl kein Benutzer je eine Shell auf dem Server hat
-  (`app.js` Z. 6836).
+  (`app.js` Z. 7020).
 * **Drei Wörter für eine Sache.** Das eigene Konto heißt „Zugang", die anderen Personen
   heißen „Zugang", „Benutzer" und „Grabstein"; eine Sitzung heißt in derselben Karte „Sitzung"
   und „Anmeldung"; die Sicherung heißt „Sicherung" und „Kopie", ihr Ordner „Sicherungsort",
@@ -159,9 +162,9 @@ schon.*
 
 **Und ein Dialog sagt das Gegenteil von dem, was er tut.** Wer einen Benutzer löscht, sieht
 vier Fenster hintereinander; in den ersten beiden heißt „Abbrechen" nicht „abbrechen", sondern
-„seine Einträge behalten und trotzdem weiter löschen" (`app.js` Z. 8026–8044). Ein fremdes
+„seine Einträge behalten und trotzdem weiter löschen" (`app.js` Z. 8210–8228). Ein fremdes
 Passwort wird über das rohe Browserfenster `prompt()` abgefragt und dabei im Klartext gezeigt
-(Z. 8015). **Das sind die zwei Stellen dieses Papiers, die keine Formfrage sind.**
+(Z. 8199). **Das sind die zwei Stellen dieses Papiers, die keine Formfrage sind.**
 
 ---
 
@@ -304,7 +307,7 @@ Der Erklärtext `.desc` einer Karte ist ein Satz. **Kein Text unter 0,78 rem, de
 muss, um zu bedienen.** *Tooltips und Datumszeilen dürfen kleiner bleiben; sie ergänzen.*
 
 **G7 · Der Bildstreifen nutzt die Breite, und seine Größe ist eine Einstellung.** Die
-Telefonfassung (`grid` mit `minmax(60px, 1fr)`, Z. 3297) wird auf alle Schirme gezogen; die
+Telefonfassung (`grid` mit `minmax(60px, 1fr)`, Z. 3315) wird auf alle Schirme gezogen; die
 Mindestgröße kommt aus einer Variablen, die eine Einstellung setzt — persönlich je Zugang,
 feste Stufen, **ein Wert für alle Geräte**, dieselbe Maschine wie die Schriftgröße
 (`getUserSetting`, `PUT /api/settings`). Obergrenze 150 px, weil dort die Reserve des
@@ -346,7 +349,7 @@ Benutzer sieht die Liste und einen Satz, der Admin die Werkzeuge.*
 
 **S6 · Die Vokabelregel bleibt, und sie gilt überall.** Vokabelwörter (`V`) stehen ohne Artikel
 und Beiwort; **vier Tooltips der Filterleiste tragen heute ein hart geschriebenes „Einträge"**
-(Z. 2496, 2598, 2615, 2616) und der Tooltip der Aufgaben ein „1 offene Aufgabe" (Z. 2143) — beides
+(Z. 2656, 2773, 2790, 2791) und der Tooltip der Aufgaben ein „1 offene Aufgabe" (Z. 2249) — beides
 wird über `V` gebaut. **Ab dieser Runde gilt sie auch für „Bewertung": es wird das 13. und 14. Vokabelwort**
 *(E14; was daran hängt, steht in 9.4)* — damit fällt jedes hart geschriebene „Bewertung" und
 „Bewertungen" weg. **Und kein Vokabelwort wird in ein zusammengesetztes Wort verbaut:** aus
@@ -571,17 +574,17 @@ ihn wieder freigeben." (630) bekommen ihre Wörter aus 4.3.
 |---|---|---|
 | Kopfzeile (`.masthead`, Z. 305) | klebt; Verlauf auf `--bg` plus `backdrop-filter: blur(10px)` | deckend `--bg`, Linie darunter; ab 8 px Rollweg Klasse `gerollt` mit `--sh-sm`; kein `blur` |
 | Dialoghintergrund (`.backdrop`, Z. 1830) | Schleier 74 % plus `blur(3px)` | Schleier 78 %, kein `blur` |
-| Kachel beim Überfahren (`.card:hover`, Z. 488) | −3 px, `--sh`, Bild ×1,03 | −2 px, `--sh`, Bild ×1,02 |
+| Kachel beim Überfahren (`.card:hover`, Z. 506) | −3 px, `--sh`, Bild ×1,03 | −2 px, `--sh`, Bild ×1,02 |
 | Listenzeile (`.mrow`, `.trow`, `.arow`) beim Überfahren | keine Antwort (nur `.lrow` hat eine) | Hintergrund `--surface-3`, 150 ms — dieselbe Regel für alle vier |
 | Pille beim Überfahren (`.pill:hover`, Z. 407) | Rand `--accent-line` | Rand plus Hintergrund `--accent-dim`; die gewählte Pille bleibt gefüllt |
 | Fokusring (`:focus-visible`, Z. 161) | 2 px `--accent`, 2 px Abstand | unverändert — aufgeschrieben als Regel G5 |
 | Übergänge (48 Stellen) | 0,10 bis 0,40 s, eine Kurve | Farbe und Rand 150 ms, Bewegung 180 ms, Bild 300 ms; eine Kurve |
-| Blockkopf (`.label`, Z. 793) | Monospace 0,7 rem, `--faint` | Monospace 0,8 rem, `--muted`; Zähler in `--text-2` |
-| Kartenbeschreibung (`.desc`, Z. 1267) | 0,87 rem, mehrere Absätze | 0,87 rem, ein Satz, Rest hinter „Mehr" |
+| Blockkopf (`.label`, Z. 811) | Monospace 0,7 rem, `--faint` | Monospace 0,8 rem, `--muted`; Zähler in `--text-2` |
+| Kartenbeschreibung (`.desc`, Z. 1285) | 0,87 rem, mehrere Absätze | 0,87 rem, ein Satz, Rest hinter „Mehr" |
 | Rolle und Zustand in der Benutzerliste | graue Wörter „Eigentümer", „aktiv" | Marke: Eigentümer gefüllt (`--accent-dim`, Rand `--accent-line`), Admin umrandet, Benutzer neutral; Punkt: aktiv `--green`, gesperrt `--faint`, eingeladen `--accent` |
 | Glocke (`.glocke-punkt`) | Punkt erscheint | Punkt schwillt einmal an (300 ms) und bleibt |
 | gespeicherte Karte | Toast „Gespeichert" | Toast bleibt; der Kartenrand leuchtet einmal `--green-dim` (400 ms) |
-| Bildstreifen (`.thumbs`, Z. 709 / 3297) | breit: `flex`, 62 × 62 px fest; Telefon: Raster `minmax(60px, 1fr)` | überall Raster `minmax(var(--streifen), 1fr)`, `aspect-ratio: 1/1`; `--streifen` aus der Einstellung |
+| Bildstreifen (`.thumbs`, Z. 727 / 3315) | breit: `flex`, 62 × 62 px fest; Telefon: Raster `minmax(60px, 1fr)` | überall Raster `minmax(var(--streifen), 1fr)`, `aspect-ratio: 1/1`; `--streifen` aus der Einstellung |
 | Bildausschnitt (`.viewer.focus-mode`) | Klick setzt Punkt, Schieber setzt Weite | Rechteck aufziehen setzt beides; Schieber bleibt |
 | Zeitleiste (`#zeitleiste`) | Kasten mit Rand und Hintergrund | ohne Rand, nur Linien und Punkte; Höhe wie heute |
 | Filterleiste (`.filters`) | 4 Zeilen | 4 Zeilen, ein Wortlaut (6.3) |
@@ -672,7 +675,7 @@ Sterne", der Rechnungsdialog auf ein Drittel gekürzt und ohne den Admin-Satz f�
 > dann löscht man die Bewertung."* **Der Befund ist nachgemessen und er stimmt.**
 
 **Zwischen dem fünften Stern und dem × liegen zwei Pixel** — `.stars { gap: 2px }`
-(`style.css` Z. 817). Damit steht der am häufigsten geklickte Knopf der ganzen Anwendung
+(`style.css` Z. 835). Damit steht der am häufigsten geklickte Knopf der ganzen Anwendung
 unmittelbar neben dem, der die Zeile leert. **Und der Klick ist folgenlos zu machen: kein
 Dialog, keine Meldung mit Weg zurück** — die eigenen Sterne dieser Zeile sind weg.
 
@@ -1007,6 +1010,20 @@ Wörterbuch, **zwei neue Vokabelwörter für „Bewertung"**, acht Dialoge auf d
 umgestellt, und ein Wächter im Prüfstand, der die Bildschirmtexte liest. Kein Schema, keine
 Route, keine Abhängigkeit, kein Bestandslauf.
 
+### Der Stand, auf dem die Runde aufsetzt
+
+**0.21.1, Fingerprint `2295870b`, im Feld seit dem 4. September 2026.** *Die Zahlen dieses
+Stands — Prüfungen, Rückbauten, Stolpersteine, `F_ROUTEN`, Migrationsblöcke, Austauschformat,
+Karten, Module — stehen im Änderungsprotokoll 0.21.1 und werden von dort übernommen, beim
+Start des Chats und nicht beim Schreiben dieses Papiers.*
+
+> **WAS 0.21.1 FÜR DIESE RUNDE BEDEUTET.** Sie hat `drawFilters()` angefasst und dabei die
+> Statuszeile um eine zweite Beschriftung und eine dritte Pillenform erweitert — **genau die
+> Zeile, die E8 umbaut.** *Kein Widerspruch: E8 nimmt die Tagzeile heraus und lässt die
+> Statuszeile stehen; die Vorgabe aus der Sortierung bleibt, wie 0.21.1 sie gebaut hat.*
+> **Die fünf neuen Texte sind geprüft** (Anlage C1): drei ohne Befund, zwei zu kürzen, und der
+> Rücksetzer sagt seit 0.21.1 nicht mehr die ganze Wahrheit.
+
 ### Was die Runde an den Zahlen ändert
 
 | | diese Runde |
@@ -1105,7 +1122,7 @@ Route, keine Abhängigkeit, kein Bestandslauf.
 
 ## Quellen
 
-* Projektstand Kriterion 0.21.0, Abschnitt 5.6 (Anzeige und Bedienung), Abschnitt 10a
+* Projektstand Kriterion 0.21.1, Abschnitt 5.6 (Anzeige und Bedienung), Abschnitt 10a
   („Die Oberfläche wird ruhiger", mit der Tabelle des Verworfenen), Abschnitt 10 (Fahrplan).
 * Sammelblatt `Doku/Fehler_und_Ideen.md`, Punkt 10 (Der Bildstreifen im Eintrag) und Teil II
   („Dieselbe Art Satz wie in Punkt 2 von 0.17.0 steht an zwölf weiteren Stellen").
