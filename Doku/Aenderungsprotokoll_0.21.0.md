@@ -921,12 +921,18 @@ betrifft.*
 
 ## 10. Was offen geblieben ist
 
-- **DER FELDBELEG ZU DIESER RUNDE STEHT AUS.** *Der Sollwert des Fingerprints
-  steht unten; die Meldung von der laufenden Installation über `GET /api/stats`
-  fehlt.* **Und mit ihr die Handgriffe aus Abschnitt „Am Ende des Chats" des
-  Auftrags** — ein Vorher-Kriterium anlegen, an einem getesteten Eintrag einen
-  Stern setzen, den Schalter umlegen, nach Potenzial sortieren, einen Stern über
-  das × entfernen, exportieren und wieder einspielen.
+- **DER FELDBELEG IST ZUR HÄLFTE DA — DER AUGENSCHEIN FEHLT NOCH.**
+  *Eingespielt am 4. September 2026; die laufende Installation meldet
+  **`85f4348b`**, genau den Sollwert von unten.* **Und die Migration hat an
+  ihrem echten Bestand gegriffen:** genau eine Zeile im Containerprotokoll,
+  *„… **7 Kriterien** stehen auf 'nachher' und zaehlen damit weiter in die
+  Bewertung."* — alle sieben im Bewertungskasten, kein Gesamtschnitt bewegt.
+  **WAS DAMIT BELEGT IST, IST EINE NUMMER UND EINE PROTOKOLLZEILE.** *Gesehen
+  hat die zwei Kästen noch niemand.* **Offen bleiben die Handgriffe aus
+  Abschnitt „Am Ende des Chats" des Auftrags** — ein Vorher-Kriterium anlegen,
+  an einem getesteten Eintrag einen Stern setzen, den Schalter umlegen, nach
+  Potenzial sortieren, einen Stern über das × entfernen, exportieren und wieder
+  einspielen.
 - **DER BLICK VON HAND AUF DIE STERNZEILE FEHLT.** *Die Zahlen aus 5.5 sind in
   Chromium gemessen und mit einer Kontrolle abgesichert; ein Blick am echten
   Bestand auf einem echten Telefon steht aus.*
@@ -976,3 +982,13 @@ Server über `GET /api/stats`** — denselben Weg, den die Installation geht.
 > Wirt nicht dieser Stand** — und zwar dateigenau: der Wert deckt jede Datei,
 > die der Server ausführt, samt allem unter `public/`. *Bei 0.9.1 hat genau das
 > eine Datei zu viel auf dem Wirt aufgedeckt (Stolperstein 158).*
+
+> **IM FELD BESTÄTIGT AM 4. SEPTEMBER 2026.** *Eingespielt auf dem OMV-Wirt; die
+> laufende Installation meldet **`85f4348b`**.* **Und der Migrationsblock hat
+> an ihrem echten Bestand gegriffen** — genau eine Zeile, **7 Kriterien** auf
+> `'nachher'`, alle im Bewertungskasten, kein Gesamtschnitt bewegt.
+> *Der Bau selbst dauerte 424 s; der zweite, gleiche Bau 3,2 s — der teure
+> Layer ist `npm ci`, und der übersetzt `better-sqlite3-multiple-ciphers` aus
+> dem Quelltext. Er wird gecacht, solange `package.json` und
+> `package-lock.json` sich nicht ändern; **diese Runde ändert beide**, also ist
+> der Cache genau einmal kalt.*
