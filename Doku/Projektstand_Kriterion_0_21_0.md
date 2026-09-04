@@ -8436,7 +8436,26 @@ Version, in der sie entstanden sind.*
     Weg, der bleibt** — löschen und neu anlegen —, und was er kostet: die
     Sterne gehen sichtbar mit.
 
-305. **ZWISCHEN ZWEI GEPLANTEN RUNDEN BLEIBT EINE NUMMER FREI.** *Der Fahrplan
+305. **EINE FREIE PORTBASIS WIRD AUSGERECHNET, NICHT GESUCHT — und wer die
+    gefundenen entdoppelt, macht aus einer belegten eine freie.** *Drei neue
+    Prüflagen bekamen in 0.21.0 dreimal hintereinander die falschen Nummern:
+    erst mit **20** Abstand statt 60 (die Fenster überlappten sich selbst),
+    dann auf **genau den drei Basen der Mailgruppe**.* **Beide Male standen die
+    roten Punkte woanders als die Ursache** — beim zweiten Mal **fünfzehn** im
+    **Mailversand**, einer Gruppe, die mit der Runde nichts zu tun hat und
+    allein gefahren grün blieb. *Ein zweiter Server auf demselben Port fällt
+    nicht von selbst auf: die Bereitschaftsprüfung bekommt ja eine Antwort*
+    (Stolperstein 139).
+    **Der Fehler lag im Blick auf die Liste, nicht im Zählen.** Gesucht wurde
+    mit einem Suchmuster über den Quelltext, und die Treffer wurden entdoppelt,
+    bevor jemand sie ansah — *und das Suchmuster war obendrein unvollständig:
+    **zehn** Basen stehen an Aufrufstellen, die es gar nicht findet.*
+    **Die vollständige Liste druckt der Prüfstand selbst**, in der Zeile „Der
+    Lauf hat seine Portbasen vermerkt"; sie kommt aus `PRUEFLAGEN`. *Aus ihr
+    die Lücken rechnen, gegen die Sperrliste von `fetch()` auf **allen vier**
+    Spuren prüfen, und die Spanne gegen `VERSATZ_STUFE` halten.*
+
+306. **ZWISCHEN ZWEI GEPLANTEN RUNDEN BLEIBT EINE NUMMER FREI.** *Der Fahrplan
     ist seit 0.12.0 achtmal gerückt worden, und jedes Mal um den ganzen Rest,
     weil kein Platz für eine eingeschobene Runde war.* **Jedes Rücken kostet
     dieselbe Arbeit an denselben Stellen** — Fahrplan, Sammelblatt,
@@ -8472,10 +8491,43 @@ im Image.**
 > eigenen Versatz. Wer daneben von Hand einen zweiten Lauf startet, setzt ihn
 > selbst.*
 
-**Stand: 5403 von 5403 bestanden** (0.20.1) — **29 neue, keine
-weggefallen.** *0.20.0 davor brachte 128.*
+> **UND EINE FREIE PORTBASIS WIRD AUSGERECHNET, NICHT GESUCHT — die Lehre aus
+> 0.21.0.** Wer eine neue Prüflage anlegt, braucht eine Basis, die **kein
+> anderes 60er-Fenster berührt**. *Ein Suchmuster über den Quelltext genügt
+> dafür nicht:* **zehn Basen stehen an Aufrufstellen, die es nicht findet**
+> (`mailInstanz`, `instanzMitEinstellungen` und andere Hüllen), **und wer die
+> gefundenen entdoppelt, macht aus einer belegten Basis eine freie.**
+>
+> **Die vollständige Liste druckt der Prüfstand selbst**, in der Zeile *„Der
+> Lauf hat seine Portbasen vermerkt"* — sie kommt aus `PRUEFLAGEN` und ist
+> deshalb die einzige, der man trauen kann. *Aus ihr die Lücken rechnen, gegen
+> die Sperrliste von `fetch()` auf **allen vier** Spuren prüfen, und die
+> Spanne gegen `VERSATZ_STUFE` halten.*
+>
+> **WARUM DAS WICHTIG IST: die roten Punkte stehen woanders als die Ursache.**
+> In 0.21.0 hat eine dreifach doppelt vergebene Basis **fünfzehn** Prüfungen im
+> **Mailversand** rot gefärbt — einer Gruppe, die mit der Runde nichts zu tun
+> hat und allein gefahren grün blieb. *Ein zweiter Server auf demselben Port
+> fällt nicht von selbst auf: die Bereitschaftsprüfung bekommt ja eine Antwort*
+> (Stolperstein 139).
+
+**Stand: PRUEFZAHL_0210 von PRUEFZAHL_0210 bestanden** (0.21.0) — **PRUEFNEU_0210
+neue, keine weggefallen.** *0.20.1 davor brachte 29, 0.20.0 davor 128.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **563** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **595** Rückbauten.
+
+> **VIER ZUSAGEN SIND MIT 0.21.0 UMGEDREHT STATT GELÖSCHT** (Stolperstein 74),
+> und alle vier an derselben Sternzeile: *„die leere Zelle bleibt leer"* und
+> *„sie bekommt keinen Klartext"* — sie trägt jetzt einen **Strich** samt
+> Klartext; *„die Zahlenspalte trägt keine Mindestbreite mehr"* — sie trägt
+> wieder eine, diesmal eine **gemessene**, in `rem`; und *„der Rücksetzer sagt,
+> dass er nur meine Werte trifft"* — den Knopf gibt es nicht mehr, geprüft wird
+> jetzt, dass er **fehlt** und das **×** an der Zeile steht.
+> **Eine fünfte ist geschärft statt umgedreht:** *„die Spaltenzahl steht an
+> genau zwei Stellen im Stilblatt"* heißt jetzt **drei** — und dazu, dass die
+> dritte **innerhalb** der Telefonabfrage steht und den breiten Schirm nicht
+> erreicht. *Der Einwand von damals — eine dritte wäre eine zweite Wahrheit —
+> bleibt richtig und wird deshalb schärfer geprüft, nicht fallengelassen.*
 
 > **DIE VIER GRUPPENZAHLEN ZU 0.20.0 SIND MIT 0.20.1 BERICHTIGT.** Sie standen
 > als 16 · 72 · 20 · 20 da und waren **geschätzt und nicht gezählt** — die

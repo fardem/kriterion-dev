@@ -635,7 +635,10 @@ gilt.
 **304. EIN ÜBERGANGENES FELD SIEHT FÜR DEN AUFRUFER AUS WIE EIN GESETZTES.**
 Deshalb 400 statt Stillschweigen beim Versuch, die Phase zu ändern.
 
-**305. ZWISCHEN ZWEI GEPLANTEN RUNDEN BLEIBT EINE NUMMER FREI.** Siehe
+**305. EINE FREIE PORTBASIS WIRD AUSGERECHNET, NICHT GESUCHT.** Und wer die
+gefundenen entdoppelt, macht aus einer belegten eine freie. Siehe Abschnitt 9a.
+
+**306. ZWISCHEN ZWEI GEPLANTEN RUNDEN BLEIBT EINE NUMMER FREI.** Siehe
 Abschnitt 7.
 
 *Der volle Wortlaut steht im Projektstand, Abschnitt 6.*
@@ -645,6 +648,55 @@ Abschnitt 7.
 ## 9. Prüfstand und Gegenproben
 
 PLATZHALTER_PRUEFSTAND
+
+---
+
+## 9a. Zwei Befunde aus dem Bauen des Prüfstands selbst
+
+**ERSTENS: DREI NEUE PRÜFLAGEN, DREI BELEGTE PORTBASEN — und aufgefallen ist es
+an einer ganz anderen Stelle.**
+
+Die neue Gruppe bringt **drei eigene Instanzen** mit: die Runde selbst, eine für
+die Datei aus dem vorigen Format samt Konflikt, und eine frische für den
+Rundlauf über Export und Import. *Der erste Anlauf spannte ihre Basen mit **20**
+Abstand — die Fenster sind aber **60** breit, sie überlappten einander, und der
+dritte Server bekam einen Port, auf dem schon der zweite horchte: seine
+Einrichtung ging an die falsche Instanz, und der Import antwortete mit **401**.*
+
+**Der zweite Anlauf nahm 5260, 5320 und 5380 — und das waren GENAU DIE DREI
+BASEN DER MAILGRUPPE.** *Diesmal färbten sich **fünfzehn** Punkte rot, alle im
+**Mailversand** — also an einer Stelle, die mit dieser Runde nichts zu tun hat
+und die, allein gefahren, grün blieb (116 von 116).*
+
+> **DER FEHLER LAG IM BLICK AUF DIE LISTE, NICHT IM ZÄHLEN.** Gesucht wurde mit
+> einem Suchmuster über den Quelltext, und die gefundenen Basen wurden
+> **entdoppelt**, bevor jemand sie ansah. **Eine belegte Basis sieht dann aus
+> wie eine freie.** *Und das Suchmuster war obendrein unvollständig: **zehn**
+> Basen stehen an Aufrufstellen, die es gar nicht findet.*
+>
+> **Die vollständige Liste druckt der Prüfstand selbst** — die Zeile „Der Lauf
+> hat seine Portbasen vermerkt" nennt sie, und sie kommt aus `PRUEFLAGEN` und
+> nicht aus einem Suchmuster. **Der dritte Anlauf hat die freien Fenster daraus
+> ausgerechnet** statt sie zu suchen: **7180, 7240, 7300** — die ersten drei
+> freien, samt Gegenprobe gegen die Sperrliste von `fetch()` auf allen vier
+> Spuren.
+>
+> **DIE SPANNE ALLER BASEN MISST DAMIT 3460 und bleibt unter dem Versatz von
+> 3500.** *Wer eine weitere Basis anhängt, fällt an der Zeile „Der Versatz je
+> Nebenspur ist größer als die Spanne aller Basen" auf — dort ist dann eine
+> Lücke weiter unten zu nehmen.*
+>
+> **Ein zweiter Server auf demselben Port fällt nicht von selbst auf**: die
+> Bereitschaftsprüfung bekommt ja eine Antwort (Stolperstein 139). *Deshalb
+> steht die Zahl der Basen ausdrücklich im Prüfstand — sie ist die einzige
+> Stelle, an der eine doppelt vergebene Basis sichtbar wird.*
+
+**ZWEITENS: DIE ZWEITE VORGABELISTE DES VOKABULARS.** Sie steht oben in
+Abschnitt 3.5 mit ihrer Begründung; hier gehört nur der Weg dazu, auf dem sie
+gefunden wurde: **an der Prüflage mit dem unvollständigen eigenen Vokabular** —
+genau der Lage, die seit jeher dafür da ist, dass ein nicht genanntes Wort seine
+Vorgabe zeigt. *Sie hat sich als Erste gefärbt, und zwar an einem leeren Feld in
+der Vokabularkarte, nicht am Blockkopf: der bekommt sein Wort vom Server.*
 
 ---
 
