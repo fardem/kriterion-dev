@@ -12141,7 +12141,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 4. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
 | **0.21.1** | **„Die Sortierung sagt, wonach du fragst“** | **GEBAUT am 4. September 2026.** *(Aus dem Rundlauf von Hand nach 0.21.0 — dieselbe Herkunft wie 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Der Punkt stand nie im Sammelblatt und nie im Fahrplan: er kam am 4. September 2026 aus dem Betrieb und ist unmittelbar in den Auftrag gegangen.)* **Eine Sortierung beantwortet eine Frage, aber die Liste zeigte nicht die Menge, in der diese Frage sich stellt.** Ab jetzt gibt die Sortierung den Statusfilter als **Vorgabe** vor — `rating_*` → Getestet, `potenzial_*` → Ungetestet, **jede andere Sortierung fasst ihn nicht an**. **Die Handwahl und eine angewandte gespeicherte Ansicht schlagen die Vorgabe** und halten über einen Wechsel der Sortierung hinweg; der Rücksetzer ist der Weg zurück. **Die Ableitung wird nicht gespeichert und nicht mitgezählt, sondern in Worten gesagt.** *Der Fahrplan rückt dadurch nicht — 0.21.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
 | **0.22.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und **noch am selben Tag auf 0.22.0** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 4. September 2026: der Bildstreifen im Eintrag nutzt die Breite, und seine Größe wird einstellbar** *(Punkt 10 des Sammelblatts — ein Regler wie die Schriftgröße, ein Wert für alle drei Geräte, kein Bestandslauf)*. **Und seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
-| **0.23.0** | *frei* | **Die erste Nummer nach der neuen Regel.** Sie bleibt leer, damit die nächste eingeschobene Runde hier Platz findet, ohne dass sich dahinter etwas bewegt | — | — |
+| **0.23.0** | **Die Oberfläche wird hell** | *(Neu am 4. September 2026, aus der Besprechung zu 0.22.0 — dort als Idee **N6** ausgearbeitet und ausdrücklich **nicht** in jene Runde genommen.)* **Ein zweites Farbschema — hell, umschaltbar, und die Vorgabe bleibt dunkel.** Kriterion ist heute nur dunkel (`color-scheme: dark`, `theme-color #0e1012`); das ist das eine Merkmal, das am Tag und am Tablett zuerst fehlt. **Rund dreißig Farbwerte ein zweites Mal — und die fünf Bedeutungsfarben auf hellem Grund neu abgestimmt, nicht umgerechnet.** *Sie behalten ihre Bedeutung: Gold bleibt Bewertung und Anheftung, Orange Art und Bedienung, Grün erledigt und getestet, Blau die Aufgabe, Rot das Zerstören.* **Die Ausarbeitung steht in Abschnitt 10a — samt dem Vermerk, dass diese Runde vor ihrem Auftrag ein eigenes Farbkonzept braucht** (`Doku/Farbkonzept_0_23_0.md`, noch nicht geschrieben): *eine Farbe lässt sich nicht aus einer anderen ausrechnen.* *MINOR* | nein | — |
 | **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
 | **0.26.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0 vorgemerkt — **die Nummer ist vorläufig**; das **achte** Rücken am 3. September 2026, und das letzte um den ganzen Rest.)* Migrationscode raus — **jetzt neun Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
@@ -12167,6 +12167,24 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > *Die Regel gilt den geplanten **MINOR**-Runden. Eine PATCH-Zahl (0.26.x)
 > belegt keinen Zwischenraum: sie hängt an ihrer MINOR-Runde und ist keine
 > eigene Planstelle.*
+
+> **DER ERSTE ZWISCHENRAUM IST AM 4. SEPTEMBER 2026 BELEGT WORDEN — und es ist
+> nichts gerückt.** „Die Oberfläche wird hell" hat die **0.23.0** genommen.
+>
+> **DIE BEIDEN SÄTZE DER REGEL WIDERSPRECHEN EINANDER, UND HIER IST
+> ENTSCHIEDEN, WELCHER GILT.** *Oben steht „ist ein Zwischenraum belegt, rückt
+> der Rest so, dass die Lücken wieder da sind" — und zwei Absätze weiter „was
+> künftig eingeschoben wird, nimmt die nächste freie Nummer und rückt nichts".*
+> **Es gilt der zweite**, denn er trägt den Zweck der Regel: *die freien Nummern
+> sind da, damit ein Einschub keine Nachrücker verursacht.* Ein Rücken, das die
+> Lücken wiederherstellt, wäre genau der Nachrücker, den sie verhindern sollen.
+>
+> **WAS DAS KOSTET, STEHT HIER UND NICHT IM KLEINGEDRUCKTEN:** zwischen 0.22.0
+> und 0.24.0 ist jetzt keine Lücke mehr. **Die nächste eingeschobene Runde nimmt
+> die nächste freie Nummer — 0.25.0 — und rückt ebenfalls nichts.** *Die
+> Reihenfolge der geplanten Runden bleibt dabei, wie sie ist; eine Nummer sagt,
+> wann eine Runde herausgeht, und nicht, wie wichtig sie ist.*
+
 
 > **DIE REIHENFOLGE DER NÄCHSTEN RUNDEN IST NICHT BELIEBIG.** Die Gründe stehen
 > hier und nicht im Auftrag — ein Auftrag wird beim Schreiben des nächsten
@@ -13337,6 +13355,101 @@ neben Farbe und Marke. *Sonst läuft es beim nächsten Mal wieder auseinander.*
 **Was dagegen spricht:** nichts klemmt. *Es ist eine Runde ohne Not — und
 genau deshalb gehört sie hinter die beiden, die Funktionen bringen, und vor die
 Bereinigung, damit der Bruch nicht auch noch die Optik mitträgt.*
+
+---
+
+### 0.23.0 — „Die Oberfläche wird hell" · *MINOR*
+
+**Neu am 4. September 2026, aus der Besprechung zu 0.22.0.** *Sie stand dort als Idee **N6** auf
+der Tafel der neuen Vorschläge und ist ausdrücklich **nicht** in jene Runde genommen worden —
+die Begründung steht im Konzept, Abschnitt 7 und 9.2: 0.22.0 ist ohnehin die größte Textrunde
+des Projekts, und Farbfehler fallen erst im Betrieb auf.*
+
+**SIE HAT DIE ERSTE DER FREIEN NUMMERN GENOMMEN, UND ES IST NICHTS GERÜCKT.** *Was das für den
+nächsten Einschub bedeutet, steht an der Regel in Abschnitt 10.*
+
+### Woher
+
+**Aus der Frage, was an „Moderne" nach 0.22.0 noch fehlt.** Kriterion ist seit jeher nur
+dunkel: `color-scheme: dark` im Kopf der Seite, `theme-color #0e1012` als Farbe der
+Browserleiste, rund dreißig Farbwerte in `:root`, die alle einen dunklen Grund voraussetzen.
+
+### Was auffiel
+
+**Es ist das einzige verbliebene Merkmal, das ein Benutzer am Tag vermisst** — und das einzige
+aus der Ideentafel, das sich nicht mit einer Handvoll Regeln nachrüsten lässt. *Alles andere
+dort war entweder klein (eigene Zeichen, tabellarische Ziffern, leere Zustände) oder es
+widersprach einer eigenen Regel.*
+
+### Was gebaut werden könnte
+
+* **Ein zweites Farbschema — und die Vorgabe bleibt dunkel.** *Wer nichts einstellt, sieht, was
+  er heute sieht.*
+* **Die Wahl gehört in die Karte „Darstellung"**, neben Schriftgröße und Bildstreifen: **hell ·
+  dunkel · wie das Gerät**. Dieselbe Maschine wie `schrift` und `streifen` — persönlich je
+  Zugang, auf `PUT /api/settings`, keine neue Route.
+* **Die fünf Bedeutungsfarben werden auf hellem Grund neu abgestimmt und nicht umgerechnet.**
+  *Gold auf Weiß ist kaum zu sehen, und Orange als Textfarbe auf Weiß fällt unter jede
+  Lesbarkeitsschwelle.* **Sie behalten ihre Bedeutung und bekommen einen zweiten Wert** — das
+  ist keine neue Farbe, sondern dieselbe Aussage in einem anderen Licht.
+* **`theme-color` folgt dem Schema.** Heute steht der Wert als Zeichenfolge im Kopf der Seite,
+  mit dem ausdrücklichen Vermerk, dass er `--bg` ist und keine zweite Wahrheit sein darf.
+  **Zwei Schemata heißen zwei Werte.**
+
+### Was es ausdrücklich NICHT wird
+
+| was | warum nicht |
+|---|---|
+| **Eine neue Farbfamilie fürs helle Schema** | Die Bedeutungen sind vergeben (5.6). Zwei Schemata sind zwei Werte je Bedeutung, nicht zehn Bedeutungen |
+| **Ein Schalter in der Kopfzeile** | Die Darstellung wird in der Karte „Darstellung" eingestellt, wie Schriftgröße und Bildstreifen — sonst gäbe es zwei Orte für dieselbe Frage |
+| **Ein drittes Schema („Kontrast", „Sepia")** | Ein zweites ist eine Entscheidung; ein drittes ist eine Sammlung |
+| **Nur `prefers-color-scheme` ohne eigene Einstellung** | Wer am hellen Bildschirm dunkel arbeiten will, könnte es dann nicht mehr — die Wahl ist der Punkt |
+
+### Was es anfasst
+
+**`public/style.css`** — die Werte in `:root` **und jede Regel, die eine Farbe fest schreibt,
+statt eine Variable zu benutzen**; **`public/index.html`** (`color-scheme`, `theme-color`);
+**`public/app.js`** (die Einstellung und ihre drei Stufen); **`server.js`** (der Schlüssel bei
+den persönlichen Einstellungen, dieselbe Zeile wie `schrift`). **Kein Schema, keine Route,
+keine Abhängigkeit, kein Bestandslauf.**
+
+**Der Prüfstand bekommt eine Zusage, die es heute nicht gibt:** *keine Farbe steht fest im
+Stilblatt, die eine Bedeutung trägt* — sonst bleibt beim Umschalten ein dunkler Fleck stehen.
+**Dazu der Augenschein je Schema, und zwar an Fotos:** die Kachel hat heute einen fast
+schwarzen Grund, und ein abgelehnter Eintrag wird über `grayscale` und `brightness` gedämpft —
+**beides ist auf hellem Grund neu zu beurteilen.**
+
+### Was vorher noch fehlt: ein Farbkonzept
+
+**DIESE RUNDE BRAUCHT EIN EIGENES PAPIER, BEVOR IHR AUFTRAG GESCHRIEBEN WERDEN KANN**
+— so, wie 0.22.0 ihres hat (`Doku/Konzept_Oberflaeche_0_22_0.md`). *Der Grund ist einfach:
+eine Farbe lässt sich nicht aus einer anderen ausrechnen. Jeder der rund dreißig Werte ist
+eine eigene Entscheidung, und die fällt man einmal in Ruhe und nicht fünfzigmal beim Bauen.*
+**Am 4. September 2026 vermerkt; geschrieben ist es noch nicht.**
+
+**Arbeitsname:** `Doku/Farbkonzept_0_23_0.md`. **Es wird wie dieses Papier in einem
+Vorbereitungschat geschrieben, nicht beim Bauen.**
+
+*Was darin entschieden sein muss, bevor gebaut wird:*
+
+| was | warum es vorher entschieden sein muss |
+|---|---|
+| **Der zweite Wert je Variable** — alle rund dreißig aus `:root`, einzeln benannt | Beim Bauen fällt sonst dreißig Mal dieselbe Frage an, und jede Antwort ist ein Geschmacksurteil ohne Vorlage |
+| **Die fünf Bedeutungsfarben auf hellem Grund** — Gold, Orange, Grün, Blau, Rot | *Gold auf Weiß ist kaum zu sehen, Orange als Textfarbe fällt unter jede Lesbarkeitsschwelle.* Sie behalten ihre Bedeutung und bekommen einen zweiten Wert — welchen, entscheidet das Papier |
+| **Woran Lesbarkeit gemessen wird** — welche Schwelle gilt, und an welchen Paarungen sie geprüft wird (Text auf Grund, Abzeichen auf Kachel, Stern auf Kachel) | Sonst heißt „lesbar" beim Bauen etwas anderes als bei der Abnahme |
+| **Wie umgeschaltet und wo gespeichert wird** — die drei Stufen **hell · dunkel · wie das Gerät**, dieselbe Maschine wie `schrift` und `streifen` | Das ist keine Farbfrage, aber es gehört in dasselbe Papier, weil es die Reihenfolge beim Laden bestimmt |
+| **Was zu sehen ist, bevor die Einstellung geladen ist** | Sonst blitzt beim Öffnen kurz das falsche Schema auf — der bekannteste Fehler dieser Bauart, und er fällt erst im Feld auf |
+| **`theme-color` je Schema** | Heute steht der Wert als Zeichenfolge im Kopf der Seite, mit dem Vermerk, dass er `--bg` ist und keine zweite Wahrheit sein darf. Zwei Schemata heißen zwei Werte |
+| **Die Fotos auf hellem Grund** — der fast schwarze Grund der Kachel, und die Dämpfung eines abgelehnten Eintrags über `grayscale` und `brightness` | Beides ist für dunklen Grund gebaut worden und auf hellem neu zu beurteilen — am Bild, nicht am Zahlenwert |
+| **Die Bestandsaufnahme: wo steht heute eine Farbe fest, statt eine Variable zu benutzen** | *Das ist die eigentliche Arbeitsmenge der Runde, und sie ist heute unbekannt.* Ohne diese Liste ist der Aufwand nicht zu schätzen — und jede übersehene Stelle bleibt beim Umschalten als dunkler Fleck stehen |
+
+> **NICHT IN DAS PAPIER GEHÖRT DIE FRAGE, OB DAS HELLE SCHEMA KOMMT.** *Die ist entschieden;
+> hier steht nur, dass die Entscheidungen darin vor dem Auftrag fallen müssen und nicht
+> während seiner Ausführung.*
+
+**Was dagegen spricht:** nichts klemmt. *Es ist wie 0.22.0 eine Runde ohne Not — und sie gehört
+hinter sie, weil sie auf ihr aufsetzt: was 0.22.0 als Gestaltungsregel aufschreibt (G1 bis G8),
+ist die Grundlage, auf der ein zweites Schema überhaupt zu bauen ist.*
 
 ---
 
