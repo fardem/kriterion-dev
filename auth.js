@@ -217,7 +217,7 @@ function pruefeName(name) {
   const n = String(name || '').trim();
   if (!n) throw new Error('Bitte einen Benutzernamen angeben.');
   if (GRABSTEIN_MUSTER.test(n))
-    throw new Error('Dieser Name ist für gelöschte Zugänge vorgesehen und nicht frei wählbar.');
+    throw new Error('Dieser Name ist reserviert.');
   return n;
 }
 
@@ -373,8 +373,8 @@ async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false
 async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Error('Diesen Zugang gibt es nicht.');
-  if (u.status === 'geloescht') throw new Error('Dieser Zugang ist gelöscht.');
+  if (!u) throw new Error('Diesen Benutzer gibt es nicht.');
+  if (u.status === 'geloescht') throw new Error('Dieser Benutzer ist gelöscht.');
   if (String(neuesPasswort || '').length < PASSWORT_MIN)
     throw new Error(`Das Passwort muss mindestens ${PASSWORT_MIN} Zeichen lang sein.`);
   const hash = await hashePasswort(neuesPasswort);
@@ -387,14 +387,14 @@ async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {
 function setzeRolle(benutzerId, rolle, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Error('Diesen Zugang gibt es nicht.');
-  if (u.status === 'geloescht') throw new Error('Dieser Zugang ist gelöscht.');
+  if (!u) throw new Error('Diesen Benutzer gibt es nicht.');
+  if (u.status === 'geloescht') throw new Error('Dieser Benutzer ist gelöscht.');
   if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');
   // Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
   // noch weiter unten durch Sperren oder Loeschen. Ohne ihn kaeme niemand mehr
   // an Rollen, Export und Import, und der einzige Ausweg waere zugang.js.
   if (u.role === 'eigentuemer' && rolle !== 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer dieser Installation — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer — bitte vorher einen zweiten bestimmen.');
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(rolle, u.id);
   protokolliere('zugang.rolle', { wer: handelt, ziel: u.id, merkmal: rolle });
   return { id: u.id, username: u.username, role: rolle };
@@ -403,12 +403,12 @@ function setzeRolle(benutzerId, rolle, wer) {
 function setzeStatus(benutzerId, status, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Error('Diesen Zugang gibt es nicht.');
-  if (u.status === 'geloescht') throw new Error('Dieser Zugang ist gelöscht.');
+  if (!u) throw new Error('Diesen Benutzer gibt es nicht.');
+  if (u.status === 'geloescht') throw new Error('Dieser Benutzer ist gelöscht.');
   if (status !== 'aktiv' && status !== 'gesperrt')
     throw new Error('Dieser Status lässt sich hier nicht setzen.');
   if (u.role === 'eigentuemer' && status !== 'aktiv' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer dieser Installation — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer — bitte vorher einen zweiten bestimmen.');
   db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, u.id);
   // Erste von zwei Schichten. requireAuth wuerde eine laufende Sitzung ohnehin
   // abweisen; das Wegraeumen haelt die Tabelle sauber und wirkt sofort.
@@ -470,10 +470,10 @@ function zaehleBestand(benutzerId) {
 function entferneZugang(benutzerId, optionen = {}, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Error('Diesen Zugang gibt es nicht.');
-  if (u.status === 'geloescht') throw new Error('Dieser Zugang ist bereits gelöscht.');
+  if (!u) throw new Error('Diesen Benutzer gibt es nicht.');
+  if (u.status === 'geloescht') throw new Error('Dieser Benutzer ist bereits gelöscht.');
   if (u.role === 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer dieser Installation — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer — bitte vorher einen zweiten bestimmen.');
   const zahlen = zaehleBestand(u.id);
   db.transaction(() => {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
@@ -841,8 +841,8 @@ function raeumeTokensAuf() {
 function erzeugeToken(benutzerId, zweck, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Error('Diesen Zugang gibt es nicht.');
-  if (u.status !== 'aktiv') throw new Error('Dieser Zugang ist nicht aktiv.');
+  if (!u) throw new Error('Diesen Benutzer gibt es nicht.');
+  if (u.status !== 'aktiv') throw new Error('Dieser Benutzer ist nicht aktiv.');
   if (!TOKEN_ZWECKE.includes(zweck)) throw new Error('Diesen Zweck gibt es nicht.');
   const klartext = crypto.randomBytes(32).toString('hex');
   db.prepare(
@@ -1664,8 +1664,8 @@ function requireAuth(req, res, next) {
     destroySession(token);
     return res.status(401).json({
       error: benutzer.status === 'geloescht'
-        ? 'Diesen Zugang gibt es nicht mehr.'
-        : 'Dieser Zugang ist gesperrt.'
+        ? 'Dein Konto gibt es nicht mehr.'
+        : 'Dein Konto ist gesperrt.'
     });
   }
   req.benutzer = benutzer;
