@@ -54,20 +54,37 @@ async function api(method, url, body, isForm = false) {
   const res = await fetch(url, opts);
   if (res.status === 401) { showLogin(); throw new Error('Sitzung abgelaufen'); }
   if (!res.ok) {
-    let m = `Fehler (${res.status})`;
+    let m = `Der Server meldet einen Fehler (${res.status}).`;
     try { const j = await res.json(); if (j.error) m = j.error; } catch {}
     throw new Error(m);
   }
   return res.status === 204 ? null : res.json();
 }
 
-function toast(msg, isErr = false) {
+/* `aktion`: { text, tu } -- ein Knopf in der Meldung, 0.22.0 (E16). Eine Meldung
+   mit Knopf steht laenger (sechs Sekunden statt 2,6): wer den Weg zurueck
+   sieht, soll ihn auch erreichen. Allgemein gebaut, zunaechst an genau einer
+   Stelle benutzt -- dem Zuruecksetzen der eigenen Sterne. */
+function toast(msg, isErr = false, aktion = null) {
   document.querySelectorAll('.toast').forEach(t => t.remove());
   const el = document.createElement('div');
-  el.className = 'toast' + (isErr ? ' err' : '');
+  el.className = 'toast' + (isErr ? ' err' : '') + (aktion ? ' mit-knopf' : '');
   el.textContent = msg;
+  const dauer = aktion ? 6000 : 2600;
+  if (aktion) {
+    const trenner = document.createElement('span');
+    trenner.className = 'toast-trenner';
+    trenner.textContent = '·';
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'toast-knopf';
+    b.textContent = aktion.text;
+    b.onclick = () => { el.remove(); aktion.tu(); };
+    el.append(trenner, b);
+    el.style.animationDuration = dauer + 'ms';
+  }
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2600);
+  setTimeout(() => el.remove(), dauer);
 }
 
 const ICON_PH = `<svg class="ph" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3.5 17l5-4.5 3.5 3 3-2.5 5.5 4.5"/></svg>`;
@@ -103,6 +120,37 @@ const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
    traegt ohnehin an jedem Knopf seinen Titel. */
 const ICON_GLOCKE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 5.2-2 6.5-2 6.5h16s-2-1.3-2-6.5"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
+/* DIE ZEICHEN DER ZEILENAKTIONEN -- 0.22.0 (Ideentafel N1). Bis 0.21.1 waren
+   sie Schriftzeichen und ein Emoji (✎ ✕ ↩ ☐ ☑ 🔗 🔑 ⃠ 📌): jedes System
+   zeichnete sie anders, und das Emoji bunt. Jetzt sind sie SVG aus demselben
+   Satz wie Suche, Glocke und Zahnrad -- 24er Raster, Strich 1,8, keine
+   Zeichenschrift, kein CDN: die Installation laeuft ohne Internet.
+   OHNE FESTE BREITE: die Klasse `zg` im Stilblatt setzt 1em, das Zeichen
+   misst sich damit an der Schrift, in der es steht.
+   aria-hidden, weil jeder Knopf seinen Sinn im `title` traegt; ein
+   Vorleseprogramm soll nicht „Grafik" vorlesen. */
+const zeichen = (pfade, staerke = 1.8) =>
+  `<svg class="zg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${staerke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pfade}</svg>`;
+const ICON_KREUZ = zeichen('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
+const ICON_STIFT = zeichen('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/>');
+const ICON_HAKEN = zeichen('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.1);
+const ICON_KASTEN = zeichen('<rect x="4" y="4" width="16" height="16" rx="3"/>');
+const ICON_KASTEN_HAKEN = zeichen('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/>');
+const ICON_WIEDERHER = zeichen('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>');
+/* Das Zeichen „zuruecksetzen" an der Sternzeile -- ein Kreis, der zurueck
+   laeuft, und ausdruecklich kein Kreuz: meine Sterne werden entfernt, nicht
+   geloescht (Woerterbuch, Konzept 4.3). */
+const ICON_ZURUECKSETZEN = zeichen('<path d="M4.5 12a7.5 7.5 0 1 0 2.6-5.7"/><path d="M4 4v5h5"/>');
+const ICON_LINK = zeichen('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/>');
+const ICON_SCHLUESSEL = zeichen('<circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5"/><path d="M17 6.5l2.5 2.5"/><path d="M14.5 9l2 2"/>');
+const ICON_SPERREN = zeichen('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>');
+const ICON_PIN = zeichen('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
+
+/* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT -- 0.22.0 (Ideentafel
+   N3): das vorhandene Platzhalterzeichen ueber dem Satz. Der Satz geht durch
+   esc() -- er ist fest, aber innerHTML ist innerHTML. */
+const leerZustand = (satz) => `<div class="leer-zustand">${ICON_PH}<span class="hint">${esc(satz)}</span></div>`;
+
 /* Die Marke der Instanz. EINE AUSGELIEFERTE DATEI statt eines eingebauten
    SVG: eine Marke gehoert dem Projekt und nicht einer Funktion in app.js --
    wer sie austauscht, tauscht eine Datei aus und fasst keinen Quelltext an.
@@ -164,7 +212,7 @@ function splitUrl(u) {
    BIS 0.20.1 STAND DAS ZURUECKSETZEN AUF EINEM DOPPELKLICK, angekuendigt in
    einem `title` -- also einem Hinweis, den kein Telefon je zeigt. Ein
    sichtbarer Weg statt einem versteckten: beides faellt weg. */
-function stars(value, onPick, onReset) {
+function stars(value, onPick) {
   const w = document.createElement('span');
   w.className = 'stars';
   for (let i = 1; i <= 5; i++) {
@@ -186,25 +234,30 @@ function stars(value, onPick, onReset) {
     sterne().forEach((s, i) => s.classList.toggle('on', i < value));
   });
   w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });
-  if (onReset) {
-    const x = document.createElement('span');
-    x.className = 'sdel';
-    x.textContent = '×';
-    // „Meine" braucht kein Wort: das × steht an MEINEN Sternen, und die
-    // Durchschnittszelle daneben bleibt, was sie ist. Bei einem einzigen
-    // Zugang stellt sich die Frage ohnehin nicht.
-    x.title = 'Meine Sterne hier entfernen';
-    /* UNSICHTBAR UEBER EINE KLASSE UND NICHT UEBER `hidden`: `hidden` ist
-       `display: none` und naehme dem × seinen Platz. Die Klasse setzt
-       `visibility: hidden` -- der Platz bleibt, und mit ihm die Stelle, an der
-       die Sterne enden. Nebenbei nimmt `visibility` das × auch aus der
-       Tastaturreihenfolge und aus dem Vorleseprogramm, ohne das Raster zu
-       bewegen. */
-    if (!(value > 0)) x.classList.add('leer');
-    x.onclick = (e) => { e.preventDefault(); e.stopPropagation(); onReset(); };
-    w.appendChild(x);
-  }
   return w;
+}
+
+/* DER RUECKSETZKNOPF DER STERNZEILE -- 0.22.0 (E15). Bis 0.21.1 stand er als
+   sechster Platz IN der Sternreihe, zwei Bildpunkte hinter dem fuenften
+   Stern; aus dem Betrieb kam: „man denkt, man klickt auf den letzten Stern,
+   und dann loescht man die Bewertung". Jetzt ist er ein eigener runder Knopf
+   mit dem Zeichen ↺ in der LETZTEN Spalte des Rasters, hinter der
+   Durchschnittszahl -- groesstmoeglicher Abstand zum fuenften Stern.
+   DER HINWEISTEXT BEHAELT DAS WORT „Meine": neben der Durchschnittszahl
+   darf er nicht wie ein Loeschknopf fuer fremde Bewertungen gelesen werden.
+   UNSICHTBAR UEBER EINE KLASSE UND NICHT UEBER `hidden`: `hidden` ist
+   `display: none` und naehme dem Knopf seinen Platz; die Klasse setzt
+   `visibility: hidden` -- die Zelle bleibt, das Raster bewegt sich nicht,
+   und der Knopf faellt aus Tastaturreihenfolge und Vorleseprogramm. */
+function zuruecksetzKnopf(value, onReset) {
+  const z = document.createElement('button');
+  z.type = 'button';
+  z.className = 'rzurueck' + (value > 0 ? '' : ' leer');
+  z.innerHTML = ICON_ZURUECKSETZEN;
+  z.title = 'Meine Sterne entfernen';
+  z.setAttribute('aria-label', 'Meine Sterne entfernen');
+  z.onclick = (e) => { e.preventDefault(); e.stopPropagation(); onReset(); };
+  return z;
 }
 
 // Mitwachsendes Textfeld. Der Rahmen muss dazugerechnet werden, weil
@@ -231,13 +284,15 @@ function autoGrow(el) {
   return fit;
 }
 
-function confirmBox(title, text, confirmLabel = 'Löschen') {
+// `art`: die Farbe des Ja-Knopfs -- 'danger' fuer alles, was wegnimmt, 'accent'
+// fuer eine Handlung, die etwas anlegt (Freischalten, Link erzeugen). 0.22.0.
+function confirmBox(title, text, confirmLabel = 'Löschen', art = 'danger') {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p>${esc(text)}</p>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
-      <button class="btn btn-danger" data-yes>${esc(confirmLabel)}</button></div></div>`;
+      <button class="btn btn-${art === 'accent' ? 'accent' : 'danger'}" data-yes>${esc(confirmLabel)}</button></div></div>`;
     document.body.appendChild(bd);
     const done = v => { bd.remove(); resolve(v); };
     bd.querySelector('[data-no]').onclick = () => done(false);
@@ -288,8 +343,8 @@ function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 4
    Liefert true, wenn die Freigabe steht -- der Rufer handelt danach. Bei false
    ist entweder abgebrochen worden oder das Passwort war falsch; die Meldung
    steht dann schon. */
-const BESTAETIGUNG_GRUND = 'Das trifft die ganze Anwendung — deshalb bestätigst du es mit ' +
-  'deinem Passwort.';
+const BESTAETIGUNG_GRUND = 'Diese Änderung betrifft die ganze Anwendung. Bitte mit deinem ' +
+  'Passwort bestätigen.';
 
 /* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
    zweiten Faktor eingeschaltet haben. Wer ihn nicht will, sieht denselben
@@ -315,7 +370,7 @@ function passwortFenster(titel, was, grund, mitCode) {
            EIN FELD FUER BEIDE FORMEN, wie an der Anmeldung: der Server sieht
            der Eingabe an, was gemeint ist (istCodeform gegen istWiederform).
            Deshalb darf die Beschriftung keine von beiden ausschliessen. */''}
-      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>Code des zweiten Faktors</label>
+      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>Zwei-Faktor-Code</label>
         <input class="input" id="best-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
@@ -343,8 +398,8 @@ function passwortFenster(titel, was, grund, mitCode) {
    Frage, die gar nicht gestellt wird, waere Verwirrung ohne Gegenwert. */
 const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
   BESTAETIGUNG_GRUND + (ZWEIFAKTOR
-    ? ' Weil in deinem Profil ein zweiter Faktor eingeschaltet ist, gehört sein Code dazu. ' +
-      'Hast du ihn nicht zur Hand, trägt auch ein Wiederherstellungscode.'
+    ? ' Dein zweiter Faktor ist eingeschaltet — bitte auch den Zwei-Faktor-Code eingeben. ' +
+      'Ein Wiederherstellungscode geht ebenfalls.'
     : ''), ZWEIFAKTOR);
 
 /* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, .
@@ -393,6 +448,83 @@ async function zweiteBestaetigung(zweck, ziel, titel, was) {
   return true;
 }
 
+/* EIN NEUES PASSWORT FUER EINEN ANDEREN -- 0.22.0, und ausdruecklich KEIN
+   prompt(): dort stand das fremde Passwort im Klartext auf dem Bildschirm.
+   Ein Passwortfeld, darueber die Vorgabe und die Folge. Liefert das Passwort
+   oder null bei Abbruch; ein leeres Feld ist ein Abbruch. */
+function neuesPasswortFenster(titel, satz) {
+  return new Promise(resolve => {
+    const bd = document.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2><p>${esc(satz)}</p>
+      <div class="field" style="margin:0"><label for="np-pass">Neues Passwort</label>
+        <input class="input" id="np-pass" type="password" autocomplete="new-password"></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
+      <button class="btn btn-accent" data-yes>Passwort setzen</button></div></div>`;
+    document.body.appendChild(bd);
+    const feld = bd.querySelector('#np-pass');
+    const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
+    const nimm = () => done(feld.value || null);
+    bd.querySelector('[data-no]').onclick = () => done(null);
+    bd.querySelector('[data-yes]').onclick = nimm;
+    bd.onclick = e => { if (e.target === bd) done(null); };
+    const onKey = e => {
+      if (e.key === 'Escape') done(null);
+      else if (e.key === 'Enter' && document.activeElement === feld) nimm();
+    };
+    document.addEventListener('keydown', onKey, true);
+    feld.focus();
+  });
+}
+
+/* DAS FENSTER ZUM LOESCHEN EINES BENUTZERS -- 0.22.0, Bauabschnitt 4. EIN
+   Fenster statt drei confirm() hintereinander, in denen „Abbrechen" nicht
+   abbrach, sondern „stehen lassen und trotzdem weiter loeschen" hiess
+   (Stolperstein 316). Zwei Haekchen mit den Zahlen vom Server, ein Satz zum
+   Sperren als Alternative, zwei Knoepfe -- und „Abbrechen" bricht ab.
+   Ein Haekchen steht nur da, wenn es etwas zu entscheiden gibt: ohne eigene
+   Eintraege gibt es nichts mitzuloeschen.
+   Liefert { eintraege, beitraege } oder null bei Abbruch. */
+function benutzerLoeschenFenster(name, nummer, b) {
+  return new Promise(resolve => {
+    const zaehl = (n, ein, mehr) => (n ? [`${n} ${n === 1 ? ein : mehr}`] : []);
+    const fremdDaran = (b.fremdKommentare || 0) + (b.fremdBewertungen || 0) + (b.fremdTesttage || 0)
+      + (b.fremdLinks || 0) + (b.fremdDateien || 0);
+    const beitraege = [
+      ...zaehl(b.kommentare, 'Kommentar', 'Kommentare'),
+      ...zaehl(b.bewertungen, V.bewertungEinzahl, V.bewertungMehrzahl),
+      ...(b.testtage ? [`${b.testtage} ${vZeit(b.testtage)}`] : []),
+      ...zaehl(b.links, 'Link', 'Links'),
+      ...zaehl(b.dateien, 'Datei', 'Dateien')
+    ];
+    const bd = document.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal" id="benutzer-loeschen"><h2>Benutzer „${esc(name)}" löschen?</h2>
+      <p>Der Name wird frei. Was von „${esc(name)}" bleibt, steht künftig unter „Gelöschter Benutzer ${Number(nummer)}".</p>
+      ${b.eintraege ? `<label class="ex-files"><input type="checkbox" id="bl-eintraege">
+        ${b.eintraege} ${esc(vSache(b.eintraege))} von „${esc(name)}" mitlöschen${fremdDaran
+          ? ` — samt ${fremdDaran} ${fremdDaran === 1 ? 'fremdem Beitrag' : 'fremden Beiträgen'} daran` : ''}</label>` : ''}
+      ${beitraege.length ? `<label class="ex-files"><input type="checkbox" id="bl-beitraege">
+        Beiträge von „${esc(name)}" in ${esc(vSache(2))} anderer Benutzer mitlöschen: ${esc(beitraege.join(', '))}</label>` : ''}
+      <p>Nur vorübergehend aussperren? Dann sperren statt löschen — das ist umkehrbar, und der
+        Name bleibt.</p>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
+      <button class="btn btn-danger" data-yes>Benutzer löschen</button></div></div>`;
+    document.body.appendChild(bd);
+    const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
+    const nimm = () => done({
+      eintraege: !!bd.querySelector('#bl-eintraege')?.checked,
+      beitraege: !!bd.querySelector('#bl-beitraege')?.checked
+    });
+    bd.querySelector('[data-no]').onclick = () => done(null);
+    bd.querySelector('[data-yes]').onclick = nimm;
+    bd.onclick = e => { if (e.target === bd) done(null); };
+    const onKey = e => { if (e.key === 'Escape') done(null); };
+    document.addEventListener('keydown', onKey, true);
+    bd.querySelector('[data-no]').focus();
+  });
+}
+
 // Schreibvorgaenge der Reihe nach abarbeiten. Klick und Doppelklick auf
 // dieselben Sterne loesen mehrere Aufrufe kurz hintereinander aus; ohne
 // Serialisierung kann das Zuruecksetzen vor dem Setzen ankommen.
@@ -429,8 +561,8 @@ function showSetup(errMsg) {
       <input class="input" id="sp" type="password" autocomplete="new-password"></div>
     <div class="field"><label for="sp2">Passwort wiederholen</label>
       <input class="input" id="sp2" type="password" autocomplete="new-password"></div>
-    <p class="sub" style="margin:0 0 4px">Mindestens ${MIN_PASSWORT} Zeichen. Über die
-      Oberfläche gibt es keine Wiederherstellung.</p>
+    <p class="sub" style="margin:0 0 4px">Mindestens ${MIN_PASSWORT} Zeichen. Gut aufbewahren —
+      ein vergessenes Passwort lässt sich hier nicht zurücksetzen.</p>
     <button class="btn btn-accent" id="sb">Einrichten</button>
   </div></div>`;
   document.title = TITLE_PUBLIC;
@@ -488,7 +620,7 @@ function showLogin(errMsg) {
           nichts — sein Passwort wählt er später über den Einladungslink, und
           zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
     ${REGISTRIERUNG ? `<p class="sub anmeld-trenner">Noch keinen Zugang?</p>
-      <button class="btn anmeld-zweitweg" id="l-anfrage">Zugang anfragen</button>` : ''}
+      <button class="btn anmeld-zweitweg" id="l-anfrage">Zugang beantragen</button>` : ''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
   if (REGISTRIERUNG) document.getElementById('l-anfrage').onclick = () => showAnfrage();
@@ -537,17 +669,17 @@ function showZweiterFaktor(ausweis, errMsg) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Noch der zweite Faktor.</p>
+    <p class="sub">Fast geschafft — jetzt den Zwei-Faktor-Code eingeben.</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
     ${/* Nicht "Sechsstelliger Code": hier traegt auch ein Wiederherstellungscode,
          und der hat zehn Zeichen. Die Beschriftung nennt deshalb das Verfahren,
          die Zeile darunter nennt den zweiten Weg. */''}
-    <div class="field"><label for="zf-code">Code des zweiten Faktors</label>
+    <div class="field"><label for="zf-code">Zwei-Faktor-Code</label>
       <input class="input" id="zf-code" inputmode="text" autocomplete="one-time-code"
         autocapitalize="characters" spellcheck="false" maxlength="16"></div>
     <button class="btn btn-accent" id="zf-ab">Anmelden</button>
-    <p class="sub" style="margin:14px 0 0">Telefon nicht zur Hand? Hier trägt auch einer
-      deiner <strong>Wiederherstellungscodes</strong> — jeder von ihnen genau einmal.</p>
+    <p class="sub" style="margin:14px 0 0">Handy nicht zur Hand? Du kannst auch einen
+      <strong>Wiederherstellungscode</strong> eingeben — jeder gilt nur einmal.</p>
   </div></div>`;
   document.title = TITLE_PUBLIC;
   const c = document.getElementById('zf-code'), b = document.getElementById('zf-ab');
@@ -570,7 +702,7 @@ function showZweiterFaktor(ausweis, errMsg) {
            DEN ALTEN AUSWEIS WEITERZUVERWENDEN WÄRE FALSCH: er ist verbraucht,
            auch nach einer Absage. */
         if (j.ausweis) return showZweiterFaktor(j.ausweis, j.error || 'Der Code stimmt nicht.');
-        return showLogin(j.error || 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.');
+        return showLogin(j.error || 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.');
       }
       location.hash = '#/';
       start();
@@ -595,10 +727,10 @@ function showAnfrage(errMsg, werte = {}) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Zugang anfragen. Ein Admin entscheidet darüber — und vorher bestätigst du
-      per E-Mail, dass die Adresse dir gehört.</p>
+    <p class="sub">Zugang beantragen. Du bestätigst zuerst deine E-Mail-Adresse, danach
+      entscheidet ein Admin.</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
-    <div class="field"><label for="an-name">Wunsch-Benutzername</label>
+    <div class="field"><label for="an-name">Gewünschter Benutzername</label>
       <input class="input" id="an-name" autocomplete="username" autocapitalize="off"
         spellcheck="false" maxlength="64" value="${esc(werte.name || '')}"></div>
     <div class="field"><label for="an-mail">E-Mail-Adresse</label>
@@ -691,7 +823,7 @@ async function showBestaetigung(schluessel) {
         ${nochmal ? `<p class="sub">Dein Link ist davon <strong>nicht</strong> betroffen — er gilt
           weiter.</p><button class="btn btn-accent" id="best-neu">Noch einmal versuchen</button>`
           : ''}`}
-      <p class="sub" style="margin:14px 0 0"><a href="#" id="best-zurueck">Zur Anmeldung</a></p>
+      <p class="sub" style="margin:14px 0 0"><a href="#" id="best-zurueck">Zurück zur Anmeldung</a></p>
     </div></div>`;
     const neu = document.getElementById('best-neu');
     if (neu) neu.onclick = () => showBestaetigung(schluessel);
@@ -745,7 +877,7 @@ async function showEinladung(schluessel) {
       location.hash = '#/';
       return showLogin(stand.error || 'Dieser Link gilt nicht mehr.');
     }
-    if (!res.ok) return spaeter(stand.error || 'Der Server hat den Link gerade nicht geprüft.');
+    if (!res.ok) return spaeter(stand.error || 'Der Link konnte gerade nicht geprüft werden.');
   } catch { return spaeter('Server nicht erreichbar.'); }
 
   const min = stand.minPassword || MIN_PASSWORT;
@@ -783,11 +915,10 @@ async function showEinladung(schluessel) {
             genau diesem Aufruf — vorher ist nichts geschehen, egal wie lange
             die Mail im Postfach lag. Wer sie hier nicht liest, erfährt sie
             erst an der Absage, und dann ist es zu spät. */''}
-      <p class="sub" style="margin:0 0 4px">Mindestens ${min} Zeichen. Dieser Link gilt danach
-        nicht mehr, und alle bestehenden Anmeldungen dieses Zugangs werden beendet.
-        ${stand.minuten ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit</strong> —
-        neu laden darfst du darin beliebig oft. Danach brauchst du einen neuen Link vom
-        Admin.` : ''}</p>
+      <p class="sub" style="margin:0 0 4px">Mindestens ${min} Zeichen.
+        ${stand.minuten ? `<strong>Der Link gilt noch ${stand.minuten} Minuten</strong> — danach
+        brauchst du einen neuen vom Admin.` : ''}
+        <br>Nach dem Setzen wirst du auf allen anderen Geräten abgemeldet.</p>
       <button class="btn btn-accent" id="eb">Passwort setzen</button>
     </div></div>`;
 
@@ -880,7 +1011,7 @@ function ordneBloecke() {
 /* Die Zahlen am Kommentarblock. GEBILDET AN EINEM ORT: derselbe Satz steht
    aufgeklappt wie eingeklappt in der Kopfzeile.
 
-       12 Kommentare, davon 3 Berichte und 5 Aufgaben (3 offen, 2 Erledigt)
+       12 Kommentare, davon 3 Berichte und 5 Aufgaben (3 offen)
 
    DAVON, nicht Mittelpunkte: die Zahlen dahinter sind TEILMENGEN, keine
    Summanden. Die Klammer nistet die zweite Ebene ein -- das Erledigte steckt
@@ -890,7 +1021,9 @@ function ordneBloecke() {
    abweichen, eine zweite Zaehlung ueber `kind = 'task'` schon.
    DIE KLAMMER ERSCHEINT NUR, WENN ETWAS ERLEDIGT IST. Sonst stuende dort
    "5 Aufgaben (5 offen)" -- eine Zahl, die nichts hinzufuegt, weil die davor
-   schon dasselbe sagt.
+   schon dasselbe sagt. SEIT 0.22.0 NENNT SIE NUR DIE OFFENEN: „2 Erledigt"
+   war ein Vokabelwort mit grossem Anfangsbuchstaben mitten im Satz, und die
+   Zahl der Erledigten ist die Differenz, die jeder im Kopf hat.
    Eine Gruppe mit null verschwindet ganz, und ohne Kommentare bleibt der
    Hinweis leer.
    DIE NOTIZ BLEIBT UNGENANNT: sie ist der Zustand ohne Markierung.
@@ -910,7 +1043,7 @@ function kommentarZahlen(kommentare) {
   const teile = [];
   if (berichte) teile.push(`${berichte} ${vBericht(berichte)}`);
   if (aufgaben) teile.push(`${aufgaben} ${vAufgabe(aufgaben)}`
-    + (fertig ? ` (${aufgaben - fertig} offen, ${fertig} ${V.aufgabeErledigt})` : ''));
+    + (fertig ? ` (${aufgaben - fertig} offen)` : ''));
   return `${n} ${n === 1 ? 'Kommentar' : 'Kommentare'}`
     + (teile.length ? `, davon ${teile.join(' und ')}` : '');
 }
@@ -920,15 +1053,15 @@ function blockZusammenfassung(name, item) {
   switch (name) {
     case 'kategorie': return item.category ? item.category.name : 'keine';
     case 'tags': return String(item.tags.length);
-    case 'bewertung': return item.avgRating ? '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') : 'keine Wertung';
-    /* NICHT „keine Wertung" -- das ist der Text des ANDEREN Kastens, und zwei
-       gleiche Texte an zwei Koepfen waeren ein Raetsel fuer den, der nur die
-       Koepfe sieht. Der Potenzialkasten steht an einem getesteten Eintrag
+    case 'bewertung': return item.avgRating ? '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') : 'noch nicht bewertet';
+    /* NICHT „noch nicht bewertet" -- das ist der Text des ANDEREN Kastens, und
+       zwei gleiche Texte an zwei Koepfen waeren ein Raetsel fuer den, der nur
+       die Koepfe sieht. Der Potenzialkasten steht an einem getesteten Eintrag
        zugeklappt da, und genau dann ist diese Zeile alles, was von ihm zu
        sehen ist: „Potenzial (⌀ 4,2)" -- so sieht man nach einem halben Jahr,
        ob das, was man am meisten wollte, auch das Beste war. */
     case 'potenzial': return item.potenzialRating
-      ? '⌀ ' + item.potenzialRating.toFixed(1).replace('.', ',') : 'keine Sterne';
+      ? '⌀ ' + item.potenzialRating.toFixed(1).replace('.', ',') : 'noch nicht eingeschätzt';
     case 'beschreibung': {
       const t = (item.description || '').trim().replace(/\s+/g, ' ');
       if (!t) return 'leer';
@@ -1100,7 +1233,7 @@ async function sendeFormular(pfad, formular) {
   const a = await fetch(pfad, { method: 'POST', body: formular, credentials: 'same-origin' });
   const daten = await a.json().catch(() => ({}));
   if (a.status === 401) { showLogin(); throw new Error('Sitzung abgelaufen'); }
-  if (!a.ok) throw new Error(daten.error || 'Fehlgeschlagen');
+  if (!a.ok) throw new Error(daten.error || 'Upload fehlgeschlagen');
   return daten;
 }
 
@@ -1191,6 +1324,12 @@ function begrenzeWolke(box, zeilen) {
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
 const wolkeOffen = { uebersicht: false, detail: false };
+/* OB DER AUFKLAPPER „Weitere Filter" OFFEN STEHT -- 0.22.0 (E8). Nur fuer die
+   Dauer der Sitzung, wie wolkeOffen: keine Einstellung und kein Feld in
+   `filters`. Beim Aufbau steht er ausserdem offen, sobald ein Tagfilter
+   greift -- das entscheidet drawFilters() an Ort und Stelle, nicht dieser
+   Merker. */
+let WEITERE_FILTER_OFFEN = false;
 
 // Wer die Wolke der Detailansicht neu zeichnen kann. Sie laesst sich nur
 // messen, wenn ihr Block offen ist. Modulweit statt als Ereignis am Dokument:
@@ -1219,7 +1358,10 @@ let V = {
   berichtEinzahl: 'Bericht', berichtMehrzahl: 'Berichte',
   aufgabeEinzahl: 'Aufgabe', aufgabeMehrzahl: 'Aufgaben',
   aufgabeErledigt: 'Erledigt',
-  potenzial: 'Potenzial'
+  potenzial: 'Potenzial',
+  // Das Paar fuer den ersten Sternkasten -- 0.22.0 (E14). Wer hier ein Wort
+  // vergisst, sieht das Feld in der Vokabularkarte leer (siehe oben).
+  bewertungEinzahl: 'Bewertung', bewertungMehrzahl: 'Bewertungen'
 };
 
 // Weiterschaltung des Aufgabenknopfes: Notiz -> Aufgabe -> erledigt -> Notiz.
@@ -1261,6 +1403,7 @@ const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);
 const vZeit = (n) => (n === 1 ? V.zeitpunktEinzahl : V.zeitpunktMehrzahl);
 const vBericht = (n) => (n === 1 ? V.berichtEinzahl : V.berichtMehrzahl);
 const vAufgabe = (n) => (n === 1 ? V.aufgabeEinzahl : V.aufgabeMehrzahl);
+const vBewertung = (n) => (n === 1 ? V.bewertungEinzahl : V.bewertungMehrzahl);
 
 /* Aus dem Verfasserobjekt des Servers wird die Beschriftung -- GENAU HIER und
    nirgends sonst, damit die Karte "Zugaenge" und die Beitraege im Eintrag
@@ -1491,6 +1634,16 @@ function wendeSchriftAn() {
   document.documentElement.style.fontSize = (15 * SCHRIFT / 100).toFixed(2) + 'px';
 }
 
+/* DER BILDSTREIFEN -- 0.22.0 (E11). Ein Wert am Wurzelelement, `--streifen`,
+   und das Stilblatt rechnet damit: `.thumbs` ist ueberall ein Raster mit
+   `minmax(var(--streifen), 1fr)`. Die Stufen stehen hier UND im Server; der
+   Server entscheidet, die Karte „Darstellung" zeigt die Liste. */
+let STREIFEN = 80;
+const STREIFEN_STUFEN = [60, 80, 100, 120, 150];
+function wendeStreifenAn() {
+  document.documentElement.style.setProperty('--streifen', STREIFEN + 'px');
+}
+
 /* DER SCHMALE SCHIRM, ALS FRAGE AN DEN BROWSER.
    SIE STEHT WOERTLICH SO AUCH IM STYLESHEET, und das ist die einzige Stelle
    in der ganzen Instanz, an der eine Bedingung zweimal geschrieben steht. Es
@@ -1710,6 +1863,7 @@ async function ladeEinstellungen() {
   if (EINSTELLUNGEN.istEigentuemer !== undefined) EIGENTUEMER = !!EINSTELLUNGEN.istEigentuemer;
   if (EINSTELLUNGEN.vokabular) V = { ...V, ...EINSTELLUNGEN.vokabular };
   if (EINSTELLUNGEN.schrift) SCHRIFT = EINSTELLUNGEN.schrift;
+  if (EINSTELLUNGEN.streifen) STREIFEN = EINSTELLUNGEN.streifen;
   uebernimmBloecke(EINSTELLUNGEN.bloecke);
   if (EINSTELLUNGEN.linkZeilen) LINKZEILEN = EINSTELLUNGEN.linkZeilen;
   if (EINSTELLUNGEN.zeitleiste !== undefined) ZEITLEISTE_AN = EINSTELLUNGEN.zeitleiste !== false;
@@ -1731,6 +1885,7 @@ async function ladeEinstellungen() {
   if (EINSTELLUNGEN.papierkorbTage) PAPIERKORB_TAGE = EINSTELLUNGEN.papierkorbTage;
   ZWEIFAKTOR = EINSTELLUNGEN.zweifaktor === true;
   wendeSchriftAn();
+  wendeStreifenAn();
 }
 
 const saveFilters = () => {
@@ -1925,14 +2080,14 @@ async function ansichtenSchicken(liste) {
 
 async function ansichtSpeichern() {
   if (ANSICHTEN.length >= ANSICHTEN_DECKEL)
-    return toast(`Mehr als ${ANSICHTEN_DECKEL} Ansichten gibt es nicht.`, true);
+    return toast(`Höchstens ${ANSICHTEN_DECKEL} Ansichten — erst eine löschen.`, true);
   const name = await nameBox('Ansicht speichern',
-    'Filter und Suchbegriff werden unter diesem Namen gemerkt.', '', 'Speichern');
+    'Filter und Suchbegriff werden unter diesem Namen gespeichert.', '', 'Speichern');
   if (!name) return;
   // Derselbe Vergleich wie im Server, und aus demselben Grund: der Name ist
   // das Einzige, woran ein Mensch zwei Ansichten auseinanderhaelt.
   if (ANSICHTEN.some(a => a.name.toLowerCase() === name.toLowerCase()))
-    return toast(`„${name}" gibt es schon.`, true);
+    return toast(`Eine Ansicht „${name}" gibt es schon.`, true);
   if (await ansichtenSchicken([...ANSICHTEN, { name, ...ansichtAusZustand() }])) {
     toast('Gespeichert');
     drawFilters();
@@ -2209,7 +2364,7 @@ const offeneGesamt = () => (state.alle || []).reduce((n, i) => n + (Number(i.off
 const neuWorte = (i) => {
   const k = Number(i.neuKommentare) || 0, b = Number(i.neuBewertungen) || 0;
   return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',
-          b ? `${b} ${b === 1 ? 'Bewertung' : 'Bewertungen'}` : ''].filter(Boolean).join(' · ');
+          b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');
 };
 
 /* VON WEM -- 0.17.0. Wer an einem Eintrag war, gehoert neben die Zahl: „3
@@ -2246,7 +2401,7 @@ function zeichneKopfzahlen() {
     el.hidden = !offen;
   });
   amElement('offen', b => b.title = offen
-    ? `${offen} offene ${offen === 1 ? V.aufgabeEinzahl : V.aufgabeMehrzahl}`
+    ? `${offen} ${vAufgabe(offen)} offen`
     : `Offene ${V.aufgabeMehrzahl}`);
   const neu = glockeNeu();
   /* EINE ZAHL IM TITEL, EIN PUNKT AM KNOPF. Der Titel bleibt EINE Zahl, auch
@@ -2255,8 +2410,8 @@ function zeichneKopfzahlen() {
      Liste. */
   amElement('glocke-punkt', el => { el.hidden = !neu; });
   amElement('glocke', b => b.title = neu
-    ? `${neu} seit deinem letzten Blick — Klick zeigt, wo`
-    : 'Nichts Neues seit deinem letzten Blick');
+    ? `${neu} ${neu === 1 ? 'Neuigkeit' : 'Neuigkeiten'} von anderen`
+    : 'Keine Neuigkeiten');
 }
 
 /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke und nicht ihr Beiwerk:
@@ -2277,9 +2432,9 @@ function zeigeGlockentafel() {
     .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title)));
   const bd = document.createElement('div');
   bd.className = 'backdrop';
-  bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>Neu seit deinem letzten Blick</h2>
-    <p>Was seit deinem letzten Blick in diese Tafel dazugekommen ist — Kommentare und
-      Bewertungen <strong>von den anderen</strong>.</p>
+  bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>Neuigkeiten</h2>
+    <p>Neue Kommentare und ${esc(V.bewertungMehrzahl)} <strong>anderer Benutzer</strong>, seit du
+      diese Liste zuletzt geöffnet hast.</p>
     <div class="manage-list" id="glocken-liste"></div>
     <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
   document.body.appendChild(bd);
@@ -2295,7 +2450,7 @@ function zeigeGlockentafel() {
 
   const box = bd.querySelector('#glocken-liste');
   if (!zeilen.length) {
-    box.innerHTML = `<span class="hint">Nichts Neues.</span>`;
+    box.innerHTML = `<span class="hint">Keine Neuigkeiten.</span>`;
   } else for (const it of zeilen) {
     /* EIN LINK UND KEIN KNOPF: er traegt eine Adresse, laesst sich kopieren
        und in einem neuen Fenster oeffnen. Geschlossen wird die Tafel trotzdem
@@ -2336,7 +2491,7 @@ function zeigeGlockentafel() {
 
 /* ================= Übersicht ================= */
 async function renderList() {
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
   try { await loadAll(); }
   catch (e) { if (e.message !== 'Sitzung abgelaufen') app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`; return; }
 
@@ -2347,7 +2502,7 @@ async function renderList() {
       <div class="search-box">
         <span class="ic">${ICON_SEARCH}</span>
         <input class="input" id="q" placeholder="Suchen …" value="${esc(state.search)}">
-        <button class="clr" id="qclr" title="Suche leeren" style="display:none">✕</button>
+        <button class="clr" id="qclr" title="Suche leeren" style="display:none">${ICON_KREUZ}</button>
       </div>
       ${/* DIE VIER, DIE AUF DEM TELEFON HINTER DAS ZEICHEN WANDERN, stehen in
            einem eigenen Behaelter -- und sie stehen dort AUCH auf dem breiten
@@ -2367,11 +2522,10 @@ async function renderList() {
              Zeichenknoepfe -- und damit wandert sie auf dem Telefon ohne ein
              einziges Zutun in die Tafel: ein Markup, zwei Gestalten (0.12.0).
              Eine Glocke nur am Desktop waere eine Weiche nach Geraet.
-             SIE HEISST SEIT 0.17.0 „Neu seit deinem letzten Blick" UND NICHT
-             MEHR „Neu von anderen". Der Name bleibt, auch seit sie mit 0.17.2
-             wieder nur Fremdes meldet: er sagt, WORAUF sich die Auskunft
-             bezieht -- auf den letzten Blick -- und nicht, wer geschrieben
-             hat. Das steht in der Tafel.
+             SIE HEISST SEIT 0.22.0 „Neuigkeiten" -- davor „Neu seit deinem
+             letzten Blick" (0.17.0) und „Neu von anderen" (0.16.x). Wer
+             geschrieben hat und seit wann, steht in der Tafel; der Knopf
+             traegt nur die Zahl.
              SIE STEHT NUR DA, WENN ES EINEN BEZUGSPUNKT GIBT. Vor dem ersten
              Aufbau der Uebersicht weiss die Instanz nicht, was jemand schon
              gesehen hat -- eine Glocke, die dann alles meldet, laeutete beim
@@ -2380,10 +2534,10 @@ async function renderList() {
              DER PUNKT IST EIN EIGENER KNOTEN und kein Text im Knopf: er wird
              beim Zeichnen ein- und ausgeblendet, ohne dass das Zeichen daneben
              neu gebaut wird. */''}
-        ${GLOCKE_GESEHEN ? `<button class="icon-btn glocke" id="glocke" title="Neu seit deinem letzten Blick"
-          aria-label="Neu seit deinem letzten Blick">${ICON_GLOCKE}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">Neu seit deinem letzten Blick</span></button>` : ''}
+        ${GLOCKE_GESEHEN ? `<button class="icon-btn glocke" id="glocke" title="Neuigkeiten"
+          aria-label="Neuigkeiten">${ICON_GLOCKE}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">Neuigkeiten</span></button>` : ''}
         <button class="icon-btn" id="offen" title="Offene ${esc(V.aufgabeMehrzahl)}">${ICON_OFFEN}<span class="offen-zahl" id="offen-zahl" hidden></span><span class="mast-wort">Offene ${esc(V.aufgabeMehrzahl)}</span></button>
-        <button class="icon-btn" id="sys" title="Systembereich">${ICON_SYS}<span class="mast-wort">Systembereich</span></button>
+        <button class="icon-btn" id="sys" title="Einstellungen">${ICON_SYS}<span class="mast-wort">Einstellungen</span></button>
         <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>
         <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>
       </div>
@@ -2411,6 +2565,16 @@ async function renderList() {
   amElement('glocke', b => b.onclick = zeigeGlockentafel);
   zeichneKopfzahlen();
   document.getElementById('sys').onclick = () => { location.hash = '#/system'; };
+  /* DER SCHATTEN DER KOPFZEILE BEIM ROLLEN -- 0.22.0. Sie ist deckend und
+     ohne Milchglas (Gestaltungsregel G3); dass unter ihr etwas liegt, sagt ab
+     acht Bildpunkten Rollweg die Klasse `gerollt`, und das Stilblatt haengt
+     den Schatten daran. Acht und nicht null: beim Aufbau und am oberen Rand
+     soll die Kopfzeile flach auf der Seite liegen. Der Horcher geht beim
+     Verlassen der Ansicht mit den anderen weg. */
+  const rollWaechter = () =>
+    document.querySelector('.masthead')?.classList.toggle('gerollt', (window.scrollY || 0) > 8);
+  window.addEventListener('scroll', rollWaechter, { passive: true });
+  rollWaechter();
   document.getElementById('out').onclick = async () => {
     await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
     showLogin();
@@ -2494,6 +2658,7 @@ async function renderList() {
     document.removeEventListener('keydown', listKeys);
     document.removeEventListener('click', menueDaneben);
     document.removeEventListener('keydown', menueTaste);
+    window.removeEventListener('scroll', rollWaechter);
   }, { once: true });
 
   drawFilters(); drawBody();
@@ -2548,7 +2713,7 @@ function filterZahl() {
      DREI LAGEN, UND ALLE DREI FALLEN RICHTIG AUS:
      die Ableitung greift und niemand hat geklickt -> Ruhestellung, zaehlt NICHT
      (die Begruendung steht oben);
-     jemand hat „Alles anzeigen" gegen die Ableitung geklickt -> weicht ab,
+     jemand hat „Alle" gegen die Ableitung geklickt -> weicht ab,
      zaehlt EINS -- und genau darueber steht der Ruecksetzer wieder da, der der
      einzige Weg zurueck in die Automatik ist;
      keine Ableitung im Spiel -> die Ruhestellung IST `all`, und die Zeile zaehlt
@@ -2591,7 +2756,7 @@ function zeichneFilterSchalter() {
     [n ? `${n} aktiv` : '', woher].filter(Boolean).map(t => `· ${t}`).join(' ');
   knopf.classList.toggle('aktiv', n > 0);
   knopf.setAttribute('aria-expanded', zu ? 'false' : 'true');
-  knopf.title = zu ? 'Filter zeigen' : 'Filter einklappen';
+  knopf.title = zu ? 'Filter anzeigen' : 'Filter ausblenden';
 }
 
 function drawFilters() {
@@ -2601,11 +2766,13 @@ function drawFilters() {
   const f = state.filters;
   const redraw = () => { saveFilters(); drawFilters(); drawBody(); };
 
-  const row = (label) => {
+  // `ziel`: wohin die Zeile kommt -- die Leiste selbst oder, seit 0.22.0,
+  // der Aufklapper „Weitere Filter" fuer die Tagzeile.
+  const row = (label, ziel = box) => {
     const r = document.createElement('div');
     r.className = 'frow';
     r.innerHTML = `<span class="eyebrow">${label}</span>`;
-    box.appendChild(r);
+    ziel.appendChild(r);
     return r;
   };
   /* EINE ZWEITE BESCHRIFTUNG IN DERSELBEN ZEILE -- und sie ist das Gegenstueck
@@ -2628,7 +2795,7 @@ function drawFilters() {
      dieselbe Funktion, die auch visibleItems() fragt: die Leiste soll nicht
      ihre eigene Rechnung ueber dieselbe Menge fuehren (Stolperstein 47). */
   const vorgabe = statusAusSortierung(f.sort);
-  [['all','Alles anzeigen'],['tested',V.merkmalJa],['untested',V.merkmalNein]].forEach(([v,l]) => {
+  [['all','Alle'],['tested',V.merkmalJa],['untested',V.merkmalNein]].forEach(([v,l]) => {
     const b = document.createElement('button');
     /* GENAU EINE PILLE IST MARKIERT, UND SIE SAGT IMMER DASSELBE: „so steht die
        Liste gerade da". Greift die Ableitung, ist es ihre -- die gespeicherte
@@ -2640,8 +2807,7 @@ function drawFilters() {
     b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-abgeleitet' : '')
                                     : (f.tested === v ? ' on' : ''));
     b.textContent = l;
-    if (vorgabe === v) b.title = 'Diese Stellung kommt aus der Sortierung — ' +
-      'ein Klick macht daraus deine eigene Wahl.';
+    if (vorgabe === v) b.title = 'Vorgabe der Sortierung — ein Klick macht daraus deine eigene Wahl.';
     /* EIN KLICK IST EINE HANDWAHL, AUCH AUF DIE ABGELEITETE PILLE. Sie ist kein
        toter Knopf: wer sie drueckt, hat sich entschieden, und die Ableitung
        endet -- sonst kaeme niemand mehr aus ihr heraus (Stolperstein 312). */
@@ -2655,7 +2821,7 @@ function drawFilters() {
   bFav.className = 'pill pill-sep' + (f.favorit ? ' on' : '');
   bFav.id = 'f-fav';
   bFav.textContent = '★ Favoriten';
-  bFav.title = f.favorit ? 'Alle Einträge zeigen' : 'Nur Favoriten zeigen';
+  bFav.title = f.favorit ? `Alle ${V.sacheMehrzahl} zeigen` : 'Nur Favoriten zeigen';
   bFav.onclick = () => { f.favorit = !f.favorit; redraw(); };
   g1.appendChild(bFav);
 
@@ -2681,8 +2847,7 @@ function drawFilters() {
   if (vorgabe) {
     const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');
     woher.id = 'f-status-woher';
-    woher.title = 'Die Sortierung gibt diesen Filter vor — ein Klick auf eine der drei ' +
-                  'Pillen setzt ihn selbst, „Filter zurücksetzen" gibt die Vorgabe zurück.';
+    woher.title = 'Ein Klick auf eine der drei Pillen setzt den Filter selbst.';
   }
 
   /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
@@ -2694,10 +2859,9 @@ function drawFilters() {
      DIE ZEILE TRAEGT DAMIT ACHT PILLEN und darf bei grosser Schrift umbrechen
      -- `flex-wrap: wrap` steht seit 0.13.1 an `.pills`, und der Umbruch ist
      hier erlaubt und kein Fehler.
-     "Alle" HEISST DIE ERSTE PILLE und nicht "Alles anzeigen" wie in der Gruppe
-     davor: dort ist es die Aussage ueber die ganze Liste, hier nur ueber dieses
-     eine Merkmal -- die Kategoriezeile nennt denselben Zustand aus demselben
-     Grund "Alle". */
+     "Alle" HEISST DIE ERSTE PILLE -- seit 0.22.0 in jeder Gruppe der Leiste
+     dasselbe Wort fuer denselben Zustand (Woerterbuch, Konzept 4.3); bis dahin
+     sagte die Statusgruppe "Alles anzeigen". */
   zweiteBeschriftung(r1, 'Ablehnung');
   const g1b = document.createElement('div');
   g1b.className = 'pills'; g1b.id = 'f-abgelehnt';
@@ -2763,7 +2927,7 @@ function drawFilters() {
     b.className = 'pill pill-sep' + (f.categoryIds.includes(KATEGORIE_OHNE) ? ' on' : '');
     b.id = 'f-kat-ohne';
     b.innerHTML = `Ohne<span class="n">${ohneZahl}</span>`;
-    b.title = 'Einträge, die keiner Kategorie zugeordnet sind';
+    b.title = `${V.sacheMehrzahl} ohne Kategorie`;
     b.onclick = () => katUm(KATEGORIE_OHNE);
     g2.appendChild(b);
   }
@@ -2773,15 +2937,32 @@ function drawFilters() {
   // Nur Tags mit mindestens einem Eintrag: Tags, die ausschliesslich an
   // Testtagen haengen, lieferten hier null Treffer. Die Suche findet sie
   // trotzdem.
-  const r3 = row('Tags');
+  /* ---- „Weitere Filter": DIE TAGZEILE HINTER EINEM AUFKLAPPER -- 0.22.0, E8.
+     Allein die Tagzeile wandert dahinter -- sie kostet den Platz (Umschalter,
+     bis zu drei Zeilen Marken, „mehr" und „Tags zurücksetzen"); die Ablehnung
+     bleibt in der Statuszeile.
+     ZWEI REGELN, KEINE VERHANDELBAR: greift ein Tagfilter, steht der Kasten
+     beim Aufbau OFFEN -- ein Filter, der die Liste kuerzt und dabei unsichtbar
+     ist, ist ein Fehler und kein Aufraeumen (dieselbe Ueberlegung wie beim
+     abgeleiteten Status, 0.21.1). Und filterZahl() zaehlt ihn weiter mit.
+     Ein <details> und kein eigener Schalter: der Browser traegt Zustand und
+     Tastatur, und die Tagzeile bleibt eine .frow wie ihre Nachbarn. */
+  const weitere = document.createElement('details');
+  weitere.className = 'weitere-filter';
+  weitere.id = 'f-weitere';
+  weitere.open = WEITERE_FILTER_OFFEN || f.tagIds.length > 0;
+  weitere.innerHTML = `<summary>Weitere Filter</summary>`;
+  weitere.addEventListener('toggle', () => { WEITERE_FILTER_OFFEN = weitere.open; });
+  box.appendChild(weitere);
+  const r3 = row('Tags', weitere);
 
   // Umschalter der Verknuepfung, direkt neben der Beschriftung: er macht
   // sichtbar, warum ein zweiter Tag das Ergebnis verkleinert. Gedaempft,
   // solange weniger als zwei Tags gewaehlt sind.
   const modusBox = document.createElement('div');
   modusBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' ruht');
-  [['and', 'Und', 'Nur Einträge, die alle gewählten Tags tragen'],
-   ['or', 'Oder', 'Einträge, die mindestens einen der gewählten Tags tragen']]
+  [['and', 'Und', `Nur ${V.sacheMehrzahl} mit allen gewählten Tags`],
+   ['or', 'Oder', `${V.sacheMehrzahl} mit mindestens einem der gewählten Tags`]]
     .forEach(([wert, text, erklaerung]) => {
       const b = document.createElement('button');
       b.className = 'pill pill-mode' + (f.tagMode === wert ? ' on' : '');
@@ -2795,7 +2976,7 @@ function drawFilters() {
 
   const g3 = document.createElement('div'); g3.className = 'pills cloud';
   const filterTags = state.tags.filter(t => t.usage_count > 0);
-  if (!filterTags.length) g3.innerHTML = `<span class="hint">noch keine Tags</span>`;
+  if (!filterTags.length) g3.innerHTML = `<span class="hint">Noch keine Tags</span>`;
   // Welche Tags brächten null Treffer, wenn man sie zusätzlich anklickt? Nur
   // im UND-Modus eine Frage -- im ODER-Modus erweitert jeder Klick.
   const leerlauf = new Set();
@@ -2811,7 +2992,7 @@ function drawFilters() {
     const gewaehlt = f.tagIds.includes(t.id);
     b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(t.id) ? ' leer' : '');
     b.textContent = t.name;
-    if (leerlauf.has(t.id)) b.title = 'Zusammen mit der aktuellen Auswahl kein Treffer';
+    if (leerlauf.has(t.id)) b.title = 'Mit der aktuellen Auswahl keine Treffer';
     b.onclick = () => {
       f.tagIds = gewaehlt ? f.tagIds.filter(x => x !== t.id) : [...f.tagIds, t.id];
       redraw();
@@ -2854,7 +3035,7 @@ function drawFilters() {
   }
   if (f.tagIds.length) {
     const c = document.createElement('button');
-    c.className = 'link-btn'; c.textContent = 'zurücksetzen';
+    c.className = 'link-btn'; c.textContent = 'Tags zurücksetzen';
     c.onclick = () => { f.tagIds = []; redraw(); };
     rechts.appendChild(c);
   }
@@ -2875,28 +3056,34 @@ function drawFilters() {
   sel.id = 'f-sort';
   sel.className = 'select';
   sel.innerHTML = `
-    <optgroup label="Änderung">
+    ${/* VIER GRUPPEN SEIT 0.22.0: Allgemein, Bewertung, Potenzial, Verlauf. Der
+         Titel steht bei „Allgemein" und nicht mehr unter der Bewertung, und
+         das Potenzial hat seine eigene Gruppe -- beide Gruppen tragen ihr Wort
+         aus dem Vokabular als Beschriftung. „Verlauf" und nicht „Testverlauf":
+         ein Vokabelwort wird in kein Wort verbaut, und „Test" steckt in
+         „Testtage" (Regel S6).
+         DAS WORT KOMMT AUS DEM VOKABULAR und steht in der Klammer daneben,
+         nie darin verbaut: „Potenzial (hoch → niedrig)". `V` ist hier
+         geladen -- ladeEinstellungen() laeuft vor route(), und drawFilters()
+         haengt daran. */''}
+    <optgroup label="Allgemein">
       <option value="updated_desc">Zuletzt geändert (neu → alt)</option>
       <option value="updated_asc">Zuletzt geändert (alt → neu)</option>
+      <option value="title_asc">Titel (A → Z)</option>
     </optgroup>
-    <optgroup label="Bewertung">
-      <option value="rating_desc">Bewertung (hoch → niedrig)</option>
-      <option value="rating_asc">Bewertung (niedrig → hoch)</option>
-      ${/* DIREKT HINTER DEN BEIDEN BEWERTUNGSEINTRAEGEN -- sie beantworten
-           dieselbe Art Frage, nur fuer den anderen Kasten.
-           DAS WORT KOMMT AUS DEM VOKABULAR und steht in der Klammer daneben,
-           nie darin verbaut: „Potenzial (hoch → niedrig)". `V` ist hier
-           geladen -- ladeEinstellungen() laeuft vor route(), und drawFilters()
-           haengt daran. */''}
+    <optgroup label="${esc(V.bewertungEinzahl)}">
+      <option value="rating_desc">${esc(V.bewertungEinzahl)} (hoch → niedrig)</option>
+      <option value="rating_asc">${esc(V.bewertungEinzahl)} (niedrig → hoch)</option>
+    </optgroup>
+    <optgroup label="${esc(V.potenzial)}">
       <option value="potenzial_desc">${esc(V.potenzial)} (hoch → niedrig)</option>
       <option value="potenzial_asc">${esc(V.potenzial)} (niedrig → hoch)</option>
-      <option value="title_asc">Titel (A → Z)</option>
     </optgroup>
     <optgroup label="Verlauf">
       <option value="tests_desc">${esc(V.zeitpunktMehrzahl)} (viele → wenige)</option>
       <option value="tests_asc">${esc(V.zeitpunktMehrzahl)} (wenige → viele)</option>
-      <option value="testavg_desc">Note ⌀ (hoch → niedrig)</option>
-      <option value="testavg_asc">Note ⌀ (niedrig → hoch)</option>
+      <option value="testavg_desc">Durchschnittsnote (hoch → niedrig)</option>
+      <option value="testavg_asc">Durchschnittsnote (niedrig → hoch)</option>
       <option value="testlast_desc">Letzte Note (hoch → niedrig)</option>
       <option value="testlast_asc">Letzte Note (niedrig → hoch)</option>
     </optgroup>`;
@@ -2930,7 +3117,7 @@ function drawFilters() {
     const gleich = JSON.stringify({ filters: filterNormal(a.filters),
                                     q: typeof a.q === 'string' ? a.q.trim() : '' }) === jetzt;
     b.className = 'pill' + (gleich ? ' on' : '');
-    b.innerHTML = `<span>${esc(a.name)}</span><span class="an-weg" title="Ansicht löschen">✕</span>`;
+    b.innerHTML = `<span>${esc(a.name)}</span><span class="an-weg" title="Ansicht löschen">${ICON_KREUZ}</span>`;
     b.onclick = () => ansichtAnwenden(a);
     // Das Kreuz liegt IM Knopf und muss deshalb den Klick anhalten -- sonst
     // wuerde die Ansicht im selben Zug angewandt und geloescht.
@@ -2944,7 +3131,7 @@ function drawFilters() {
     bNeu.className = 'pill' + (ANSICHTEN.length ? ' pill-sep' : '');
     bNeu.id = 'ansicht-neu';
     bNeu.textContent = '+ Ansicht speichern';
-    bNeu.title = 'Filter und Suchbegriff unter einem Namen merken';
+    bNeu.title = 'Aktuelle Filter und Suche als Ansicht speichern';
     bNeu.onclick = ansichtSpeichern;
     g5.appendChild(bNeu);
   } else {
@@ -2952,7 +3139,7 @@ function drawFilters() {
     // ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein Fehler.
     const hin = document.createElement('span');
     hin.className = 'hint hint-sm';
-    hin.textContent = `${ANSICHTEN_DECKEL} sind das Höchste — eine löschen, dann geht die nächste.`;
+    hin.textContent = `Höchstens ${ANSICHTEN_DECKEL} Ansichten. Für eine neue erst eine löschen.`;
     g5.appendChild(hin);
   }
   r5.appendChild(g5);
@@ -2983,7 +3170,7 @@ function drawFilters() {
     bZurueck.className = 'link-btn';
     bZurueck.id = 'filter-zurueck';
     bZurueck.textContent = `Filter zurücksetzen (${filterGesetzt})`;
-    bZurueck.title = 'Alle Filter auf „alles zeigen" — Suchbegriff und Sortierung bleiben stehen';
+    bZurueck.title = 'Alle Filter zurücksetzen. Suchbegriff und Sortierung bleiben erhalten.';
     bZurueck.onclick = () => {
       /* ZURUECKGESETZT WIRD AUF FILTER_VORGABE und sonst nichts -- und der Weg
          dorthin ist filterNormal(), derselbe wie beim Anwenden einer
@@ -3025,7 +3212,7 @@ function drawBody() {
     let z = `${state.bestand} ${vSache(state.bestand)}` +
       (list.length !== state.bestand ? ` · ${list.length} sichtbar` : '');
     if (state.suchLaeuft) z += ' · sucht …';
-    else if (state.suchFehler) z += ' · Suche nicht erreichbar, gezeigt wird der letzte Stand';
+    else if (state.suchFehler) z += ' · Suche nicht erreichbar — letzter Stand';
     cnt.textContent = z;
   }
 
@@ -3035,13 +3222,14 @@ function drawBody() {
   // Treffer ist kein leerer Bestand, und "Noch nichts erfasst" waere dort die
   // falsche Auskunft. Die Absage darunter ist die richtige.
   if (!state.bestand) {
-    body.innerHTML = `<div class="empty"><h2>Noch nichts erfasst</h2>
-      <p>Oben rechts anlegen — Fotos, Kategorie, Bewertung und ${esc(V.zeitpunktMehrzahl)} folgen danach.</p></div>`;
+    body.innerHTML = `<div class="empty">${ICON_PH}<h2>Noch nichts erfasst</h2>
+      <p>Mit „+ ${esc(V.sacheEinzahl)}" anlegen. Fotos, Kategorie, ${esc(V.bewertungEinzahl)} und
+        ${esc(V.zeitpunktMehrzahl)} kommen danach dazu.</p></div>`;
     return;
   }
   if (!list.length) {
-    body.innerHTML = `<div class="empty"><h2>Keine Treffer</h2>
-      <p>Nichts passt zu dieser Filter- und Suchkombination.</p></div>`;
+    body.innerHTML = `<div class="empty">${ICON_PH}<h2>Keine Treffer</h2>
+      <p>Zu Filter und Suche passt nichts.</p></div>`;
     drawCompareBar();
     return;
   }
@@ -3212,7 +3400,7 @@ const FUND_WORTE = {
   beschreibung: () => 'Beschreibung',
   kommentar: () => 'Kommentar',
   link: () => 'Link',
-  testtag: () => `Tag am ${V.zeitpunktEinzahl}`,
+  testtag: () => `${V.zeitpunktEinzahl} (Tag)`,
   tag: () => 'Tag',
   kategorie: () => 'Kategorie',
   titel: () => 'Titel'
@@ -3249,7 +3437,7 @@ function card(it) {
   const testLine = it.testCount ? `<div class="card-test">
       <span>${it.testCount} ${esc(vZeit(it.testCount))}</span>
       <span class="sep">·</span><span>⌀ ${it.testAvg.toFixed(1).replace('.', ',')}</span>
-      <span class="sep">·</span><span>zuletzt ${it.testLast}</span>
+      <span class="sep">·</span><span>letzte Note ${it.testLast}</span>
     </div>` : '';
 
   /* DIE ZEILE STEHT UNTER DEM TITEL UND UEBER DEN TAGS -- bei dem, was sie
@@ -3292,9 +3480,9 @@ function card(it) {
                was fehlt: an einem ungetesteten Eintrag fehlt keine „Wertung",
                sondern die Einschaetzung. */''}
           ${kachelZahl(it)}
-          ${it.linkCount ? `<span class="link-count">${it.linkCount} Links</span>` : ''}
+          ${it.linkCount ? `<span class="link-count">${it.linkCount} ${it.linkCount === 1 ? 'Link' : 'Links'}</span>` : ''}
         </span>
-        <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="Zum Vergleich auswählen">✓</button>
+        <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="${state.compare.has(it.id) ? 'Aus dem Vergleich nehmen' : 'Zum Vergleich auswählen'}">${ICON_HAKEN}</button>
       </div>
     </div>`;
 
@@ -3328,15 +3516,15 @@ function card(it) {
 function kachelZahl(it) {
   const potenzial = !it.tested;
   const wert = potenzial ? it.potenzialRating : it.avgRating;
-  /* „keine Sterne" UND NICHT „keine <Vokabelwort>sterne": das Wort aus dem
-     Vokabular wird nirgends zu einem Wort verbaut -- „Erwartungsterne" haette
-     kein Fugen-s, und der Quelltext kennt keins. Es ist derselbe Text wie im
-     Kopf des Potenzialkastens, und er unterscheidet sich vom „keine Wertung"
-     der Bewertung: zwei gleiche Texte fuer zwei verschiedene Kaesten waeren
-     ein Raetsel. */
-  if (!wert) return `<span class="hint hint-sm">${potenzial ? 'keine Sterne' : 'keine Wertung'}</span>`;
+  /* „noch nicht eingeschätzt" UND NICHT „keine <Vokabelwort>sterne": das Wort
+     aus dem Vokabular wird nirgends zu einem Wort verbaut. Es ist derselbe
+     Text wie im Kopf des Potenzialkastens, und er unterscheidet sich vom
+     „noch nicht bewertet" der Bewertung: zwei gleiche Texte fuer zwei
+     verschiedene Kaesten waeren ein Raetsel. „keine Sterne" las sich bis
+     0.21.1 wie null Sterne (Konzept 0.22.0, Anhang B und C). */
+  if (!wert) return `<span class="hint hint-sm">${potenzial ? 'noch nicht eingeschätzt' : 'noch nicht bewertet'}</span>`;
   const zeichen = potenzial ? '◆' : '★';
-  const wort = potenzial ? V.potenzial : 'Bewertung';
+  const wort = potenzial ? V.potenzial : V.bewertungEinzahl;
   return `<span class="rating-inline${potenzial ? ' potenzial' : ''}" title="${esc(wort)}">` +
     `<span class="dot">${zeichen}</span>${wert.toFixed(1).replace('.', ',')}</span>`;
 }
@@ -3348,7 +3536,7 @@ function drawCompareBar() {
   bar.className = 'cmp-bar';
   bar.innerHTML = `<span>${state.compare.size} ausgewählt</span>
     <button class="btn btn-sm"${state.compare.size < 2 ? ' disabled' : ''}>Vergleichen</button>
-    <button class="btn-x" title="Auswahl aufheben">✕</button>`;
+    <button class="btn-x" title="Auswahl aufheben">${ICON_KREUZ}</button>`;
   bar.querySelector('.btn').onclick = () => { if (state.compare.size >= 2) location.hash = '#/compare'; };
   bar.querySelector('.btn-x').onclick = () => { state.compare.clear(); drawBody(); };
   document.body.appendChild(bar);
@@ -3417,7 +3605,7 @@ function openCreate() {
     if (!treffer.length) { zeile.innerHTML = ''; return; }
     // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
     // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
-    zeile.innerHTML = 'Ähnlich: ' + treffer
+    zeile.innerHTML = 'Schon vorhanden? Ähnliche Titel: ' + treffer
       .map(it => `<a href="#/item/${it.id}" data-zu>${esc(it.title)}</a>`).join(', ');
     zeile.querySelectorAll('[data-zu]').forEach(a => { a.onclick = () => close(); });
   };
@@ -3447,7 +3635,7 @@ function openCreate() {
    liest hier „Offene Mängel". Deshalb steht in dieser Funktion kein einziges
    der elf einstellbaren Wörter fest. */
 async function renderOffen() {
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
   let zeilen;
   try { zeilen = await api('GET', '/api/offen'); }
   catch (e) {
@@ -3482,7 +3670,7 @@ async function renderOffen() {
       const b = document.createElement('button');
       b.className = 'pill' + (meine === nurMeine ? ' on' : '');
       b.dataset.sicht = meine ? 'meine' : 'alle';
-      b.textContent = meine ? 'meine' : 'alle';
+      b.textContent = meine ? 'Meine' : 'Alle';
       b.onclick = () => { nurMeine = meine; zeichne(); };
       box.appendChild(b);
     });
@@ -3521,7 +3709,7 @@ async function renderOffen() {
     // sind verschieden: gar nichts offen, oder nichts von mir.
     document.getElementById('off-hint').textContent = !sichtbar.length
       ? (zeilen.length ? `Von mir ist nichts offen.`
-                       : `Nichts offen — es warten keine ${V.aufgabeMehrzahl}.`)
+                       : 'Nichts offen.')
       : `${sichtbar.length} ${vAufgabe(sichtbar.length)} offen, gruppiert nach `
         + `${V.sacheEinzahl}.`
         + (mehrereBenutzer() ? (nurMeine ? ' Gezeigt werden die eigenen.'
@@ -3552,7 +3740,8 @@ async function renderOffen() {
         if (z.mine || ADMIN) {
           const haken = document.createElement('button');
           haken.className = 'off-haken';
-          haken.textContent = z.erledigt ? '☑' : '☐';
+          haken.innerHTML = z.erledigt ? ICON_KASTEN_HAKEN : ICON_KASTEN;
+          haken.classList.toggle('on', !!z.erledigt);
           haken.title = z.erledigt ? 'Wieder öffnen'
                                    : `Auf „${V.aufgabeErledigt}" setzen`;
           haken.onclick = () => setzeHaken(z, !z.erledigt);
@@ -3586,7 +3775,7 @@ async function renderOffen() {
 async function renderCompare() {
   const ids = [...state.compare];
   if (ids.length < 2) { location.hash = '#/'; return; }
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
   let items;
   try { items = await Promise.all(ids.map(id => api('GET', `/api/items/${id}`))); }
   catch (e) { toast(e.message, true); location.hash = '#/'; return; }
@@ -3611,7 +3800,7 @@ async function renderCompare() {
   // ueber nichts waere eine Ueberschrift ohne Inhalt.
   const GRUPPEN = [
     { phase: 'vorher',  wort: () => V.potenzial, schnitt: 'potenzialRating' },
-    { phase: 'nachher', wort: () => 'Bewertung', schnitt: 'avgRating' }
+    { phase: 'nachher', wort: () => V.bewertungEinzahl, schnitt: 'avgRating' }
   ].map(g => ({ ...g, namen: names.filter(n => phasen.get(n) === g.phase) }));
 
   /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie linksOffen und
@@ -3694,7 +3883,7 @@ async function renderCompare() {
       const b = document.createElement('button');
       b.className = 'pill' + (meine === nurMeine ? ' on' : '');
       b.dataset.sicht = meine ? 'meine' : 'alle';
-      b.textContent = meine ? 'meine' : 'alle';
+      b.textContent = meine ? 'Meine' : 'Alle';
       b.onclick = () => { nurMeine = meine; zeichne(); };
       box.appendChild(b);
     });
@@ -3706,7 +3895,7 @@ async function renderCompare() {
       `${items.length} ${vSache(items.length)} gegenübergestellt. `
       + `Bester Wert je Kriterium ist hervorgehoben.`
       + (mehrereBenutzer()
-        ? (nurMeine ? ' Gezeigt werden die eigenen Werte.' : ' Gezeigt wird der Schnitt über alle.')
+        ? (nurMeine ? ' Gezeigt werden die eigenen Werte.' : ' Gezeigt wird der Durchschnitt aller Benutzer.')
         : '');
 
     const bestOf = (name) => Math.max(...items.map(o => wertVon(o, name)));
@@ -3734,7 +3923,7 @@ async function renderCompare() {
           // bei Gewicht 1 steht dort nichts.
           const marke = gewichtMarke(gewichte.get(n));
           return `<div class="cmp-crit"><span class="cn">${esc(n)}${
-              marke ? ` <span class="cgew" title="Gewicht im Gesamtschnitt">${esc(marke)}</span>` : ''}</span>
+              marke ? ` <span class="cgew" title="Gewicht im Durchschnitt">${esc(marke)}</span>` : ''}</span>
             <span class="${best ? 'cmp-best' : ''}">${v > 0 ? alsZahl(v) + ' / 5' : '–'}</span></div>`;
         }).join('');
       }).join('');
@@ -3846,7 +4035,7 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
              Instanz. Deshalb traegt er das Papierkorbzeichen und steht vor dem
              Schliessen, nicht daneben. */''}
         ${loeschen ? `<button class="lb-btn weg" title="Löschen">${ICON_PAPIERKORB}</button>` : ''}
-        <button class="lb-btn close" title="Schließen (Esc)">✕</button>
+        <button class="lb-btn close" title="Schließen (Esc)">${ICON_KREUZ}</button>
       </div>
     </div>
     <div class="lb-stage"><img alt="" title="Klick zoomt auf Originalgröße">
@@ -4191,7 +4380,7 @@ async function renderDetail(id, begriffAdresse) {
   if (location.hash !== gewollt &&
       typeof history !== 'undefined' && typeof history.replaceState === 'function')
     history.replaceState(null, '', gewollt);
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
   let item, cats, allTags;
   try {
     [item, cats, allTags] = await Promise.all([
@@ -4199,7 +4388,7 @@ async function renderDetail(id, begriffAdresse) {
     ]);
   } catch (e) {
     if (e.message !== 'Sitzung abgelaufen')
-      app.innerHTML = `<div class="shell"><a href="#/" class="back">← Zurück</a><p class="hint">${esc(V.sacheEinzahl)} nicht gefunden.</p></div>`;
+      app.innerHTML = `<div class="shell"><a href="#/" class="back">← Zurück zur Übersicht</a><p class="hint">${esc(V.sacheEinzahl)} nicht gefunden.</p></div>`;
     return;
   }
   let idx = 0;
@@ -4214,12 +4403,14 @@ async function renderDetail(id, begriffAdresse) {
         <div class="thumbs" id="thumbs"></div>
         <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple>
           Fotos und Videos hinzufügen — mehrere möglich, oder mit Strg+V einfügen</label>
+        ${/* EIN SATZ UND KEIN ABSATZ -- 0.22.0. Bis 0.21.1 standen hier fuenf
+             Saetze (Vollbild, Blaettern, Papierkorb, Standbild): was ein Knopf
+             tut, sagt sein Tooltip. Die Grenze fuer Videos bleibt, weil man
+             sie VOR dem Upload wissen muss (Regel S1: eine Folge, die man
+             kennen muss, darf stehen). */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">
-          Klick aufs Foto öffnet die Vollbildansicht, am Video der Knopf „Vollbild".
-          Blättern mit ← → oder den Pfeilen.
-          Das erste Element ist das Hauptbild; Reihenfolge per Ziehen ändern.
-          Gelöscht wird mit dem Papierkorb über dem Bild.
-          Videos bis 20 MB, als MP4, WebM oder MOV — das Standbild erzeugt der Browser.</p>
+          Das erste Foto ist das Hauptbild — Reihenfolge per Ziehen.
+          Videos bis 20 MB (MP4, WebM, MOV).</p>
       </div>
 
       <div class="meta-col">
@@ -4272,8 +4463,8 @@ async function renderDetail(id, begriffAdresse) {
           <div class="block-head"><span class="label">Kategorie</span></div>
           <div class="row-in">
             <select class="select select-sm" id="cat" style="min-width:148px;padding:9px 11px"></select>
-            ${darfKategorieAnlegen() ? `<input class="input input-sm" id="newcat" placeholder="+ neue Kategorie" style="padding:8px 11px">
-            <button class="btn btn-sm" id="newcat-b">Anlegen</button>` : ''}
+            ${darfKategorieAnlegen() ? `<input class="input input-sm" id="newcat" placeholder="Neue Kategorie, Enter bestätigt" style="padding:8px 11px">
+            <button class="btn btn-sm" id="newcat-b">+ Anlegen</button>` : ''}
           </div>
         </div>
 
@@ -4287,7 +4478,7 @@ async function renderDetail(id, begriffAdresse) {
             <input class="input input-sm" id="newtag" list="tagsug" placeholder="Tag eingeben, Enter bestätigt" style="padding:8px 11px">
             <button class="btn btn-sm" id="newtag-b">+ Hinzufügen</button>
           </div>` : ''}
-          <div class="wolke-kopf"><span class="hint">Vorhandene Tags — Klick vergibt, erneuter Klick nimmt zurück</span>
+          <div class="wolke-kopf"><span class="hint">Vorhandene Tags — Klick setzt, erneuter Klick entfernt</span>
             <button class="link-btn" id="tagcloud-more" hidden>mehr</button></div>
           <div class="pills cloud" id="tagcloud"></div>
         </div>
@@ -4298,8 +4489,8 @@ async function renderDetail(id, begriffAdresse) {
              es; ziehen laesst sich beides wie jeder andere Block.
              DIE KOEPFE SIND KURZ UND IN BEIDEN GLEICH: Beschriftung, Kopfzahl
              mit Erklaerknopf, und fuer den Admin bei mehreren Benutzern
-             „Stimmen" -- der Name der Route und der Name der Sache im Dialog,
-             ein Wort. Auf dem Telefon eine Zeile.
+             „Wer hat bewertet" (E5, 0.22.0; 0.21.0 nannte den Knopf „Stimmen",
+             die Route heisst weiter so). Auf dem Telefon eine Zeile.
              KEIN KNOPF ZUM ZURUECKSETZEN, IN KEINEM DER BEIDEN. „Meine
              Bewertung zuruecksetzen" brach auf dem Telefon den Blockkopf in
              drei Zeilen und tat nichts, was das × an der Zeile nicht besser
@@ -4307,14 +4498,14 @@ async function renderDetail(id, begriffAdresse) {
         <div class="block" data-block="potenzial">
           <div class="block-head"><span class="label">${esc(V.potenzial)}</span>
             <span class="hint" id="phead"></span>
-            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="pwho">Stimmen</button>` : ''}</div>
+            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="pwho">Wer hat bewertet</button>` : ''}</div>
           <div id="potenzial-ratings"></div>
         </div>
 
         <div class="block" data-block="bewertung">
-          <div class="block-head"><span class="label">Bewertung</span>
+          <div class="block-head"><span class="label">${esc(V.bewertungEinzahl)}</span>
             <span class="hint" id="rhead"></span>
-            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="rwho">Stimmen</button>` : ''}</div>
+            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="rwho">Wer hat bewertet</button>` : ''}</div>
           <div id="ratings"></div>
         </div>
         </div>
@@ -4346,7 +4537,7 @@ async function renderDetail(id, begriffAdresse) {
       <div class="row-in">
         <input type="file" id="afile" multiple hidden>
         <button class="btn btn-sm" id="aadd">+ Dateien anhängen</button>
-        <span class="hint">bis 50 MB je Datei, höchstens 20 Stück</span>
+        <span class="hint">bis 50 MB je Datei, höchstens 20 Dateien</span>
       </div>
     </div>
 
@@ -4365,11 +4556,11 @@ async function renderDetail(id, begriffAdresse) {
         <button class="link-btn" id="cjump" title="Zum Schreibfeld springen">+ Kommentar</button></div>
       <div class="cmts" id="cmts"></div>
       <div class="cmt-form">
-        <textarea class="ta" id="ctext" placeholder="Notiz hinterlassen — Bilder mit Strg+V einfügen …"></textarea>
+        <textarea class="ta" id="ctext" placeholder="Kommentar schreiben — Bilder mit Strg+V einfügen …"></textarea>
         <div class="cmt-neu-bilder" id="cneu-imgs"></div>
         <div class="cmt-form-row">
           <span class="marks">
-            <button class="mark pin" id="cpin" title="Anpinnen — steht dann ganz oben">📌</button>
+            <button class="mark pin" id="cpin" title="Anpinnen — steht dann ganz oben">${ICON_PIN}</button>
             <button class="mark art" id="cart"></button>
             <button class="mark aufg" id="caufg"></button>
           </span>
@@ -4380,7 +4571,13 @@ async function renderDetail(id, begriffAdresse) {
     </div>
     </div>
 
-    <div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${esc(V.sacheEinzahl)} löschen</button></div>
+    ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). Der Server laesst
+         nur Verfasser und Admin durch; fuer jeden anderen war der Knopf nie
+         eine Funktion, sondern eine Fehlermeldung auf Vorrat. Dieselbe Weiche
+         wie an den Kreuzen der Link- und Dateizeilen (darfWeg). */''}
+    ${item.mine === true || ADMIN
+      ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${esc(V.sacheEinzahl)} löschen</button></div>`
+      : ''}
   </div>`;
 
   /* ---- Fotos ---- */
@@ -4396,7 +4593,7 @@ async function renderDetail(id, begriffAdresse) {
   async function loescheFoto(foto) {
     if (!foto) return false;
     const wort = istVideo(foto) ? 'Video' : 'Foto';
-    if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird unwiderruflich entfernt.`)) return false;
+    if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird endgültig gelöscht.`)) return false;
     try {
       await api('DELETE', `/api/photos/${foto.id}`);
       item = await api('GET', `/api/items/${id}`);
@@ -4473,9 +4670,9 @@ async function renderDetail(id, begriffAdresse) {
            nicht, und die Bedienung waere dann geraeteabhaengig -- genau das,
            was die Kachelreihe seit 0.12.0 vermeidet. */''}
       ${ausschnittModus && !zeigtVideo ? `<div class="vzoom">
-        <label for="vzoom-schieber">Näher</label>
+        <label for="vzoom-schieber">Zoom</label>
         <input type="range" id="vzoom-schieber" min="100" max="400" step="5"
-          value="${Number(ps[idx].zoom) || 100}" aria-label="Wie eng der Ausschnitt sitzt">
+          value="${Number(ps[idx].zoom) || 100}" aria-label="Zoom des Bildausschnitts">
         <span class="vzoom-wert" id="vzoom-wert">${Math.round(Number(ps[idx].zoom) || 100)} %</span>
       </div>` : ''}
       ${ps.length > 1 ? `<button class="vnav prev" title="Vorheriges (←)">‹</button>
@@ -4602,17 +4799,46 @@ async function renderDetail(id, begriffAdresse) {
       zeichne();
     };
 
-    let zieht = false;
+    /* DAS RECHTECK -- 0.22.0 (E9). Ein Rechteck aufziehen setzt Punkt und Weite
+       in EINER Geste: die laengere Seite des aufgezogenen Rechtecks wird die
+       Kante des Ausschnitts (er ist immer ein Quadrat -- die Kachel auch), aus
+       ihr folgt der Zoom, aus der linken oberen Ecke der Fokuspunkt. Kein
+       neues Feld: focus_x, focus_y und zoom bleiben, wie sie sind, und der
+       Schieber bleibt fuer den Finger und die Feinarbeit.
+       EIN KLICK BLEIBT EIN KLICK: erst ab sechs Bildpunkten Weg ist es ein
+       Rechteck -- darunter setzt der Zeiger wie bisher nur den Punkt. Der
+       Zoom rastet auf die Fuenferstufen des Schiebers, damit beide Wege
+       denselben Wert zeigen. */
+    const begrenzt = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+    const ausRechteck = (a, e) => {
+      const { f } = masse();
+      const x1 = begrenzt(a.x - f.links, 0, f.breite), y1 = begrenzt(a.y - f.oben, 0, f.hoehe);
+      const x2 = begrenzt(e.clientX - f.links, 0, f.breite), y2 = begrenzt(e.clientY - f.oben, 0, f.hoehe);
+      const seite = Math.min(f.breite, f.hoehe);
+      const kante = begrenzt(Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)), seite / 4, seite);
+      zoom = begrenzt(Math.round(seite * 100 / kante / 5) * 5, 100, 400);
+      const eng = seite * 100 / zoom;
+      const spielX = f.breite - eng, spielY = f.hoehe - eng;
+      fx = spielX > 0 ? begrenzt(Math.min(x1, x2) / spielX * 100, 0, 100) : 50;
+      fy = spielY > 0 ? begrenzt(Math.min(y1, y2) / spielY * 100, 0, 100) : 50;
+      zeichne();
+    };
+    let start = null, rechteck = false;
     v.onpointerdown = (e) => {
       // Der Schieber gehoert nicht zur Flaeche, auf der gezogen wird -- ohne
       // ihn in dieser Liste setzte jeder Griff an den Schieber zugleich den
       // Fokuspunkt auf die Stelle, an der der Schieber steht.
       if (e.target.closest('.vfocus, .vnav, .vzoom')) return;
-      zieht = true; ausPunkt(e);
+      start = { x: e.clientX, y: e.clientY }; rechteck = false;
       v.setPointerCapture?.(e.pointerId);
       e.preventDefault();
     };
-    v.onpointermove = (e) => { if (zieht) ausPunkt(e); };
+    v.onpointermove = (e) => {
+      if (!start) return;
+      if (!rechteck && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
+      rechteck = true;
+      ausRechteck(start, e);
+    };
     /* EIN SPEICHERWEG FUER BEIDE BEDIENUNGEN. Ziehen und Schieben setzen
        denselben Ausschnitt und gehen deshalb durch dieselbe Zusage -- zwei
        Aufrufstellen mit zwei Meldungen waeren zwei Wahrheiten darueber, was
@@ -4621,7 +4847,7 @@ async function renderDetail(id, begriffAdresse) {
       try {
         item = await api('PUT', `/api/photos/${foto.id}/focus`, { x: fx, y: fy, zoom });
         drawThumbs();
-        toast('Bildausschnitt gespeichert');
+        toast('Gespeichert');
       } catch (e) { toast(e.message, true); }
     };
     /* DIE MELDUNG KOMMT AUCH DANN, WENN DIE ANSICHT SCHON FORT IST -- 0.19.6,
@@ -4631,9 +4857,10 @@ async function renderDetail(id, begriffAdresse) {
        dann verschwiegen wird, wenn man nicht hingesehen hat, ist keine.
        DER TOAST HAENGT AM `body` UND NICHT AN DER ANSICHT -- er ueberlebt den
        Wechsel von sich aus; der Streifen darunter zeichnet nicht mehr. */
-    v.onpointerup = () => {
-      if (!zieht) return;
-      zieht = false;
+    v.onpointerup = (e) => {
+      if (!start) return;
+      if (rechteck) { ausRechteck(start, e); zeigeZoom(); } else ausPunkt(e);
+      start = null; rechteck = false;
       speichere();
     };
 
@@ -4642,6 +4869,14 @@ async function renderDetail(id, begriffAdresse) {
        Schreibung geschieht einmal am Ende. Ein Aufruf je Zwischenschritt
        schickte bei einem Zug ueber die ganze Leiter sechzig Anfragen. */
     const schieber = v.querySelector('#vzoom-schieber');
+    // Nach einem Rechteck zeigt der Schieber den neuen Zoom -- beide Wege
+    // sagen dieselbe Zahl.
+    const zeigeZoom = () => {
+      if (!schieber) return;
+      schieber.value = String(zoom);
+      const wert = v.querySelector('#vzoom-wert');
+      if (wert) wert.textContent = `${Math.round(zoom)} %`;
+    };
     if (schieber) {
       const wert = v.querySelector('#vzoom-wert');
       schieber.oninput = () => {
@@ -4674,10 +4909,10 @@ async function renderDetail(id, begriffAdresse) {
       t.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
         (istVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
         (laenge ? `<span class="dauer">${laenge}</span>` : '') +
-        `<span class="num">${i + 1}</span><span class="del" title="${wort} löschen">✕</span>`;
+        `<span class="num">${i + 1}</span><span class="del" title="${wort} löschen">${ICON_KREUZ}</span>`;
       t.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
-        if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird unwiderruflich entfernt.`)) return;
+        if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird endgültig gelöscht.`)) return;
         try {
           await api('DELETE', `/api/photos/${p.id}`);
           item = await api('GET', `/api/items/${id}`);
@@ -4734,7 +4969,7 @@ async function renderDetail(id, begriffAdresse) {
       c.width = v.videoWidth; c.height = v.videoHeight;
       c.getContext('2d').drawImage(v, 0, 0);
       const bild = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
-      if (!bild) throw new Error('Aus diesem Video ließ sich kein Standbild ziehen');
+      if (!bild) throw new Error('Aus diesem Video konnte kein Vorschaubild erzeugt werden.');
       return { bild, dauer: Math.round(v.duration) || null };
     } finally { URL.revokeObjectURL(v.src); }
   }
@@ -4757,7 +4992,7 @@ async function renderDetail(id, begriffAdresse) {
         fertig += bilder.length;
       }
       for (const f of videos) {
-        drop.textContent = 'Standbild wird erzeugt …';
+        drop.textContent = 'Vorschaubild wird erzeugt …';
         const { bild, dauer } = await standbild(f);
         drop.textContent = 'wird hochgeladen …';
         const fd = new FormData();
@@ -4768,7 +5003,9 @@ async function renderDetail(id, begriffAdresse) {
         fertig++;
       }
       drawViewer(); drawThumbs();
-      if (fertig) toast(`${fertig} ${fertig === 1 ? 'Element' : 'Elemente'} hinzugefügt`);
+      // „1 Foto", „1 Video", sonst „3 Dateien" -- „Element" sagt niemand.
+      if (fertig) toast(`${fertig} ${fertig === 1 ? (videos.length ? 'Video' : 'Foto')
+        : (videos.length ? (bilder.length ? 'Dateien' : 'Videos') : 'Fotos')} hinzugefügt`);
     } catch (err) {
       toast(err.message, true);
       // Was schon durchging, ist durch -- die Anzeige muss es zeigen.
@@ -4859,7 +5096,7 @@ async function renderDetail(id, begriffAdresse) {
     const t = document.getElementById('sw-test'), r = document.getElementById('sw-rej');
     const locked = item.testDays.length > 0;
     t.className = 'switch' + (item.tested ? ' on-green' : '') + (locked ? ' locked' : '');
-    t.title = locked ? `Solange ${V.zeitpunktMehrzahl} eingetragen sind, lässt sich das nicht zurücknehmen.` : '';
+    t.title = locked ? `Nicht änderbar, solange ${V.zeitpunktMehrzahl} eingetragen sind.` : '';
     document.getElementById('sw-test-t').textContent = item.tested ? V.merkmalJa : V.merkmalNein;
     r.className = 'switch' + (item.rejected ? ' on-red' : '');
     document.getElementById('sw-rej-t').textContent = item.rejected ? 'Abgelehnt' : 'Nicht abgelehnt';
@@ -4981,14 +5218,14 @@ async function renderDetail(id, begriffAdresse) {
     acts.className = 'acts';
     if (zeigeStift) {
       const b = document.createElement('button');
-      b.className = 'mact ed'; b.textContent = '✎';
+      b.className = 'mact ed'; b.innerHTML = ICON_STIFT;
       b.title = grund ? 'Begründung ändern' : 'Begründung schreiben';
       b.onclick = oeffneGrund;
       acts.appendChild(b);
     }
     if (zeigeWeg) {
       const b = document.createElement('button');
-      b.className = 'mact rm'; b.textContent = '✕';
+      b.className = 'mact rm'; b.innerHTML = ICON_KREUZ;
       b.title = 'Begründung entfernen';
       b.onclick = entferneGrund;
       acts.appendChild(b);
@@ -5016,9 +5253,8 @@ async function renderDetail(id, begriffAdresse) {
      Handlung.
      GEFRAGT WIRD VORHER: die Angabe ist danach nirgends wiederherzustellen. */
   async function entferneGrund() {
-    if (!await confirmBox('Begründung entfernen?',
-      'Der Text wird unwiderruflich entfernt. Datum und Verfasser der Ablehnung bleiben stehen.',
-      'Entfernen')) return;
+    if (!await confirmBox('Begründung löschen?',
+      'Der Text wird endgültig gelöscht. Datum und Verfasser der Ablehnung bleiben erhalten.')) return;
     try {
       item = await api('PUT', `/api/items/${id}`, { rejectedGrund: '' });
       grundOffen = false; drawSwitches(); toast('Begründung entfernt');
@@ -5169,7 +5405,7 @@ async function renderDetail(id, begriffAdresse) {
     s.innerHTML = `<option value="">— keine —</option>` + cats.map(c =>
       `<option value="${c.id}"${item.category && item.category.id === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
     s.onchange = async () => {
-      try { item = await api('PUT', `/api/items/${id}`, { productCategoryId: s.value ? +s.value : null }); toast('Kategorie gesetzt'); }
+      try { item = await api('PUT', `/api/items/${id}`, { productCategoryId: s.value ? +s.value : null }); toast('Gespeichert'); }
       catch (e) { toast(e.message, true); }
     };
     ruesteBloeckeAus(item);
@@ -5182,7 +5418,7 @@ async function renderDetail(id, begriffAdresse) {
       const c = await api('POST', '/api/product-categories', { name });
       item = await api('PUT', `/api/items/${id}`, { productCategoryId: c.id });
       cats = await api('GET', '/api/product-categories');
-      el.value = ''; drawCat(); toast('Kategorie gesetzt');
+      el.value = ''; drawCat(); toast('Gespeichert');
     } catch (e) { toast(e.message, true); }
   };
   // Die Behandler haengen nur an tatsaechlich vorhandenen Elementen: steht der
@@ -5196,11 +5432,13 @@ async function renderDetail(id, begriffAdresse) {
   /* ---- Tags ---- */
   function drawTags() {
     const box = document.getElementById('chips');
-    box.innerHTML = item.tags.length ? '' : `<span class="hint">Noch keine Tags.</span>`;
+    // Kein Hinweis, solange die Wolke darunter leer ist: „Noch keine Tags."
+    // direkt ueber „Noch keine Tags angelegt." war derselbe Satz zweimal.
+    box.innerHTML = item.tags.length || !allTags.length ? '' : `<span class="hint">Noch keine Tags.</span>`;
     item.tags.forEach(t => {
       const c = document.createElement('span');
       c.className = 'chip';
-      c.innerHTML = `${esc(t.name)} <button title="Entfernen">✕</button>`;
+      c.innerHTML = `${esc(t.name)} <button title="Entfernen">${ICON_KREUZ}</button>`;
       c.querySelector('button').onclick = async () => {
         try { item = await api('DELETE', `/api/items/${id}/tags/${t.id}`); drawTags(); }
         catch (e) { toast(e.message, true); }
@@ -5227,7 +5465,7 @@ async function renderDetail(id, begriffAdresse) {
       const b = document.createElement('button');
       b.className = 'pill pill-tag' + (vergeben.has(t.id) ? ' on' : '');
       b.innerHTML = `${esc(t.name)}<span class="n">${t.usage_count}</span>`;
-      b.title = vergeben.has(t.id) ? 'Tag wieder entfernen' : 'Tag vergeben';
+      b.title = vergeben.has(t.id) ? 'Tag entfernen' : 'Tag setzen';
       b.onclick = async () => {
         try {
           item = vergeben.has(t.id)
@@ -5308,7 +5546,9 @@ async function renderDetail(id, begriffAdresse) {
     // wer nur Bewertungskriterien angelegt hat, hat im Potenzialkasten
     // tatsaechlich noch keine.
     box.innerHTML = zeilen.length ? ''
-      : `<span class="hint">Noch keine Kriterien. Angelegt werden sie im Systembereich.</span>`;
+      : `<span class="hint">${ADMIN
+          ? 'Noch keine Kriterien — anlegen unter Einstellungen › Bestand.'
+          : 'Noch keine Kriterien.'}</span>`;
     // Die Kopfzahl neben der Beschriftung: erst je Kriterium ueber alle, dann
     // ueber die Kriterien -- also genau das Mittel der Zahlen, die rechts in
     // den Zeilen stehen. Damit ist sie nachvollziehbar, sobald beide zugleich
@@ -5365,7 +5605,7 @@ async function renderDetail(id, begriffAdresse) {
       if (marke) {
         const m = document.createElement('span');
         m.className = 'rgew'; m.textContent = marke;
-        m.title = 'Gewicht im Gesamtschnitt';
+        m.title = 'Gewicht im Durchschnitt';
         n.append(' ', m);
       }
       const acts = document.createElement('div');
@@ -5379,8 +5619,17 @@ async function renderDetail(id, begriffAdresse) {
          eine Zeile mit 0 ist keine Stimme. Die Sammelroute dahinter ist mit
          0.21.0 weggefallen.
          DIE MELDUNG IST PHASENNEUTRAL: sie gilt in beiden Kaesten, und
-         „Bewertung" waere im Potenzialkasten das falsche Wort. */
-      const s = stars(r.value, set, () => { set(0); toast(`Meine Sterne bei „${r.name}" entfernt`); });
+         „Bewertung" waere im Potenzialkasten das falsche Wort.
+         UND SIE TRAEGT „Rückgängig" -- 0.22.0 (E16): ein Klick schreibt den
+         eigenen alten Wert zurueck, derselbe PUT mit dem alten Wert. Es ist
+         kein Verlauf und keine Wiederherstellung, sondern die Umkehr genau
+         des einen Klicks, der die Meldung ausgeloest hat. */
+      const s = stars(r.value, set);
+      const zurueck = zuruecksetzKnopf(r.value, () => {
+        const alt = r.value;
+        set(0);
+        toast(`Sterne bei „${r.name}" entfernt`, false, { text: 'Rückgängig', tu: () => set(alt) });
+      });
       // Kein Loeschkreuz in dieser Zeile. Ein Kriterium zu
       // loeschen wirkt auf ALLE Eintraege und nimmt vergebene Sterne mit -- eine
       // globale Folge, die hier eine Zeigerbreite neben dem Sterne-Widget lag,
@@ -5425,7 +5674,7 @@ async function renderDetail(id, begriffAdresse) {
            Vorleseprogramm vor, und "⌀ 4,2 (3)" bliebe fuer den, der es
            vorgelesen bekommt, eine Folge von Zeichen. */
         if (r.avg) {
-          const stimmen = `${r.count} ${r.count === 1 ? 'Stimme' : 'Stimmen'}`;
+          const stimmen = `${r.count} ${r.count === 1 ? V.bewertungEinzahl : V.bewertungMehrzahl}`;
           const schnitt = r.avg.toFixed(1).replace('.', ',');
           /* DIE KLAMMER ERST AB ZWEI. Sie sagt "so viele Stimmen" und
              beantwortet damit die Frage, wie schwer der Schnitt wiegt -- bei
@@ -5447,10 +5696,19 @@ async function renderDetail(id, begriffAdresse) {
              Runde eine gemessene Mindestbreite (style.css). Der Strich ist
              die Auskunft, nicht der Platzhalter. */
           a.textContent = '–';
-          a.title = 'noch niemand';
+          a.title = 'Noch nicht bewertet';
         }
         row.append(a);
       }
+      /* DIE LETZTE ZELLE DER ZEILE, IN JEDER LAGE: der Ruecksetzknopf in seiner
+         eigenen Rasterspalte -- steckte er in der Zelle der Zahl, wanderte die
+         Zahl, sobald eine Zeile keinen Knopf traegt (Konzept 6.5a). Bei einem
+         einzigen Zugang steht er damit als dritte Zelle hinter den Sternen,
+         und das Stilblatt haelt dort mindestens 12 px Abstand. */
+      const zz = document.createElement('span');
+      zz.className = 'rzz';
+      zz.appendChild(zurueck);
+      row.append(zz);
       box.appendChild(row);
       /* HIER STEHT AUSDRÜCKLICH KEINE STIMMENLISTE. Wer welchen Wert vergeben
          hat, ist eine Angabe über einzelne Personen; die Zeile zeigt den
@@ -5500,7 +5758,7 @@ async function renderDetail(id, begriffAdresse) {
     // Ohne Aufstellung kein Kasten. Sie fehlt nur, wenn nichts bewertet ist --
     // dann steht aber auch keine Kopfzahl da, an der man klicken koennte.
     if (!weg || !Array.isArray(weg.zeilen) || !weg.zeilen.length)
-      return toast('Für diesen Eintrag gibt es noch keine Rechnung.', true);
+      return toast('Noch nichts bewertet.', true);
     const namen = new Map(item.ratings.map(r => [r.criterion_id, r.name]));
     const mitGewicht = weg.zeilen.some(z => Number(z.gewicht) !== 1);
     /* OB DIE GEWICHTUNG UEBERHAUPT ETWAS AENDERT. Verglichen werden die beiden
@@ -5523,22 +5781,20 @@ async function renderDetail(id, begriffAdresse) {
            selbst, gleich unter diesem Satz. Ein Verweis auf das, was der Kasten
            mitbringt, braucht keine Bedingung; eine Bedingung waere eine zweite
            Wahrheit ueber die Zahl der Zugaenge (Stolperstein 47). */''}
-      <p>Die Zahl entsteht in <strong>zwei Schritten</strong>. Zuerst wird je Kriterium der
-        Schnitt über alle Bewertungen gebildet — das sind die Zahlen in der Spalte
-        <strong>Note</strong>.
-        Dann wird über diese Schnitte gemittelt${mitGewicht
-          ? ', und zwar <strong>gewichtet</strong>: jeder Schnitt zählt mit dem Gewicht seines Kriteriums'
-          : '. Alle Gewichte stehen hier auf 1, also zählt jedes Kriterium gleich'}.</p>
+      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium (Spalte
+        <strong>Note</strong>), dann der Durchschnitt darüber${mitGewicht
+          ? ' — jedes Kriterium mit seinem Gewicht'
+          : ' — alle Gewichte stehen auf 1, jedes Kriterium zählt gleich'}.</p>
       <div class="rechnung" id="rechnung">
-        <div class="rz rz-kopf"><span>Kriterium</span><span>Note</span><span>Gewicht</span><span>Produkt</span></div>
+        <div class="rz rz-kopf"><span>Kriterium</span><span>Note</span><span>Gewicht</span><span>Note × Gewicht</span></div>
         ${weg.zeilen.map(z => `<div class="rz" data-krit="${Number(z.criterionId)}">
           <span class="rz-name">${esc(namen.get(z.criterionId) || '—')}</span>
           <span>${esc(gewZahl(z.schnitt))}</span>
           <span>× ${esc(gewZahl(z.gewicht))}</span>
           <span>${esc(gewZahl(z.produkt))}</span></div>`).join('')}
-        <div class="rz rz-summe"><span>Summe der Produkte</span><span></span><span></span>
+        <div class="rz rz-summe"><span>Summe</span><span></span><span></span>
           <span id="rz-summe">${esc(gewZahl(weg.summe))}</span></div>
-        <div class="rz rz-summe"><span>Teiler — Summe der Gewichte</span><span></span><span></span>
+        <div class="rz rz-summe"><span>Geteilt durch (Summe der Gewichte)</span><span></span><span></span>
           <span id="rz-teiler">${esc(gewZahl(weg.teiler))}</span></div>
         <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>
           <span id="rz-ergebnis">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>
@@ -5574,22 +5830,21 @@ async function renderDetail(id, begriffAdresse) {
            steht deshalb vorn. Die Rundung steht daneben und nicht in einem
            eigenen Absatz: beides sagt, wie aus den Zeilen darueber EINE Zahl
            wird. */''}
-      <p>Der <strong>Teiler zählt nur die Kriterien, die auch bewertet sind</strong>. Ein
-        Kriterium, an dem niemand Sterne vergeben hat, geht gar nicht ein.
-        <strong>Gerundet wird genau einmal</strong>, ganz am Ende — die Zahlen oben sind für
-        die Anzeige auf zwei Stellen gekürzt, gerechnet wird ungekürzt.
-        Die Gewichte stellt der Admin im Systembereich unter <strong>${esc(
-          kasten.phase === 'vorher' ? `${V.potenzial}: Kriterien` : 'Bewertungskriterien')}</strong> ein.</p>
+      ${/* ZWEI SAETZE FUER JEDEN, DER DRITTE NUR FUER DEN ADMIN -- 0.22.0. Wo
+           die Gewichte eingestellt werden, liest nur, wer dorthin kommt
+           (Regel S5). */''}
+      <p><strong>Kriterien ohne Sterne zählen nicht mit.</strong> Gerundet wird nur das
+        Endergebnis.${ADMIN ? ` Die Gewichte stellst du unter Einstellungen › Bestand ›
+        <strong>${esc(kasten.phase === 'vorher' ? `${V.potenzial}: Kriterien` : `${V.bewertungEinzahl}: Kriterien`)}</strong> ein.` : ''}</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
            steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
            eine Auskunft ueber nichts.
            DIESER ABSATZ IST DER PUNKT DES GANZEN KASTENS und deshalb der
            einzige, an dem 0.17.3 kein Wort geaendert hat. */''}
       ${mitGewicht ? (gleicheZahl
-        ? `<p id="rz-gleich-satz"><strong>An dieser Zahl ändert die Gewichtung nichts.</strong>
-            Zählte jedes Kriterium gleich, käme dieselbe
-            <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong> heraus — die Gewichte wirken,
-            das Ergebnis fällt nach dem Runden trotzdem gleich aus.</p>`
+        ? `<p id="rz-gleich-satz"><strong>An dieser Zahl ändert die Gewichtung nichts:</strong>
+            ohne Gewichte käme nach dem Runden ebenfalls
+            <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong> heraus.</p>`
         : `<p id="rz-gleich-satz">Zählte jedes Kriterium <strong>gleich</strong>, stünde hier
             <strong>⌀ ${esc(gewZahl(weg.gleichErgebnis))}</strong> statt
             <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong>.
@@ -5617,12 +5872,12 @@ async function renderDetail(id, begriffAdresse) {
     let liste;
     try { liste = await api('GET', `/api/items/${id}/stimmen`); }
     catch (e) { return toast(e.message, true); }
-    const titel = kasten.phase === 'vorher' ? `Stimmen — ${V.potenzial}` : 'Stimmen — Bewertung';
+    const titel = `Wer hat bewertet — ${kasten.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl}`;
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="stimmen-modal"><h2>${esc(titel)}</h2>
-      <p>Diese Liste sieht nur der Admin. Eine fremde Bewertung lässt sich hier
-         entfernen — die Note ändert niemand.</p>
+      <p>Nur für Admins sichtbar. ${esc(V.bewertungMehrzahl)} anderer Benutzer lassen sich hier
+         entfernen, aber nicht ändern.</p>
       <div class="stimmliste" id="stimmliste"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
     document.body.appendChild(bd);
@@ -5675,16 +5930,16 @@ async function renderDetail(id, begriffAdresse) {
           if (!st.mine) {
             const x = document.createElement('button');
             x.className = 'xdel';
-            x.textContent = '✕';
-            x.title = 'Diese Bewertung entfernen';
+            x.innerHTML = ICON_KREUZ;
+            x.title = `${V.bewertungEinzahl} entfernen`;
             x.onclick = async () => {
-              if (!await confirmBox('Fremde Bewertung entfernen?',
-                `Die Bewertung von ${verfasserName(st.verfasser)} für „${r.name}" wird entfernt. ` +
-                `Die Note lässt sich nicht ändern, nur löschen.`, 'Entfernen')) return;
+              if (!await confirmBox(`${V.bewertungEinzahl} entfernen?`,
+                `${V.bewertungEinzahl} von ${verfasserName(st.verfasser)} für „${r.name}" wird entfernt.`,
+                'Entfernen')) return;
               try {
                 item = await api('DELETE', `/api/ratings/${st.id}`);
                 liste = await api('GET', `/api/items/${id}/stimmen`);
-                drawRatings(); zeichneStimmen(); toast('Bewertung entfernt');
+                drawRatings(); zeichneStimmen(); toast(`${V.bewertungEinzahl} entfernt`);
               } catch (e) { toast(e.message, true); }
             };
             s2.appendChild(x);
@@ -5732,7 +5987,7 @@ async function renderDetail(id, begriffAdresse) {
       </div>`;
 
     const list = box.querySelector('#tdays');
-    if (!n) list.innerHTML = `<span class="hint">Noch keine ${esc(V.zeitpunktMehrzahl)}. Jede Zeile ist ein Datum mit einer Gesamtnote.</span>`;
+    if (!n) list.innerHTML = leerZustand(`Noch keine ${V.zeitpunktMehrzahl} — unten Datum und Note eintragen.`);
     item.testDays.forEach(d => {
       const row = document.createElement('div');
       row.className = 'trow';
@@ -5746,9 +6001,9 @@ async function renderDetail(id, begriffAdresse) {
         catch (e) { toast(e.message, true); }
       }));
       const x = document.createElement('button');
-      x.className = 'xdel'; x.textContent = '✕'; x.title = `${V.zeitpunktEinzahl} löschen`;
+      x.className = 'xdel'; x.innerHTML = ICON_KREUZ; x.title = `${V.zeitpunktEinzahl} löschen`;
       x.onclick = async () => {
-        if (!await confirmBox(`${V.zeitpunktEinzahl} löschen?`, `Das Datum ${fmtDay(d.day)} wird entfernt.`)) return;
+        if (!await confirmBox(`${V.zeitpunktEinzahl} löschen?`, `Das Datum ${fmtDay(d.day)} wird gelöscht.`)) return;
         try { item = await api('DELETE', `/api/test-days/${d.id}`); drawTestDays(); drawSwitches(); }
         catch (e) { toast(e.message, true); }
       };
@@ -5761,7 +6016,8 @@ async function renderDetail(id, begriffAdresse) {
       (d.tags || []).forEach(t => {
         const c = document.createElement('span');
         c.className = 'chip chip-xs';
-        c.innerHTML = `${esc(t.name)}<button title="Tag entfernen">✕</button>`;
+        // Mit Namen, damit „Tag" und „Testtag" nicht zusammenfallen (Woerterbuch).
+        c.innerHTML = `${esc(t.name)}<button title="Tag „${esc(t.name)}" entfernen">${ICON_KREUZ}</button>`;
         c.querySelector('button').onclick = async () => {
           try { item = await api('DELETE', `/api/test-days/${d.id}/tags/${t.id}`); drawTestDays(); loadTagList(); }
           catch (e) { toast(e.message, true); }
@@ -5769,7 +6025,7 @@ async function renderDetail(id, begriffAdresse) {
         tagBox.appendChild(c);
       });
       const plus = document.createElement('button');
-      plus.className = 'ttag-add'; plus.textContent = '+'; plus.title = 'Tag hinzufügen';
+      plus.className = 'ttag-add'; plus.textContent = '+'; plus.title = `Tag hinzufügen (${V.zeitpunktEinzahl})`;
       plus.onclick = () => {
         if (tagBox.querySelector('input')) return;
         const inp = document.createElement('input');
@@ -5828,10 +6084,11 @@ async function renderDetail(id, begriffAdresse) {
   /* ---- Links ---- */
   function drawLinks() {
     const box = document.getElementById('links');
-    document.getElementById('lcount').textContent = item.links.length ? `${item.links.length} gespeichert` : '';
+    document.getElementById('lcount').textContent = item.links.length
+      ? `${item.links.length} ${item.links.length === 1 ? 'Link' : 'Links'}` : '';
     box.innerHTML = '';
     if (!item.links.length) {
-      box.innerHTML = `<span class="hint">Noch keine Links. Adressen unten einfügen — ein Wort ohne Adresse wird zur Suche. Die Liste wird bei vielen Zeilen scrollbar.</span>`;
+      box.innerHTML = leerZustand('Noch keine Links. Unten eine Adresse einfügen — oder einen Suchbegriff, dann wird danach gesucht.');
       return;
     }
     item.links.forEach((l, n) => {
@@ -5904,7 +6161,7 @@ async function renderDetail(id, begriffAdresse) {
           unten ? `<span class="lunten">${unten}</span>` : ''
         }</span>
         <span class="go">${suche ? ICON_SEARCH : '↗'}</span>
-        ${darfWeg ? `<button class="xdel" title="${suche ? 'Sucheintrag entfernen' : 'Link entfernen'}">✕</button>` : ''}`;
+        ${darfWeg ? `<button class="xdel" title="${suche ? 'Suchbegriff entfernen' : 'Link entfernen'}">${ICON_KREUZ}</button>` : ''}`;
       /* IN DER LINKLISTE WIRD DIE ADRESSE HERVORGEHOBEN UND NICHT DER
          ANZEIGENAME -- 0.18.0. Gesucht wurde in `links.url`; ein
          hervorgehobener Anbietername, in dem der Begriff gar nicht steht,
@@ -5944,8 +6201,8 @@ async function renderDetail(id, begriffAdresse) {
       // Element risse er den Aufbau der ganzen Liste mit.
       if (darfWeg) row.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
-        if (!await confirmBox(suche ? 'Sucheintrag entfernen?' : 'Link entfernen?',
-          `${suche ? `„${l.url}"` : dom} wird aus der Liste gelöscht.`, 'Entfernen')) return;
+        if (!await confirmBox(suche ? 'Suchbegriff entfernen?' : 'Link entfernen?',
+          `${suche ? `„${l.url}"` : dom} wird aus der Liste entfernt.`, 'Entfernen')) return;
         try { await api('DELETE', `/api/links/${l.id}`); item = await api('GET', `/api/items/${id}`); drawLinks(); }
         catch (err) { toast(err.message, true); }
       };
@@ -5957,7 +6214,9 @@ async function renderDetail(id, begriffAdresse) {
           if (!suche) return window.open(l.url, '_blank', 'noopener,noreferrer');
           // Ohne gueltigen Standard wird nicht ersatzweise woanders gesucht --
           // die Zeile sagt dann, dass nichts eingestellt ist.
-          if (!standard) return toast('Kein gültiger Suchanbieter eingestellt', true);
+          if (!standard) return toast(ADMIN
+            ? 'Keine Suchmaschine eingestellt — siehe Einstellungen › Bestand.'
+            : 'Keine Suchmaschine eingestellt.', true);
           window.open(sucheAdresse(standard.vorlage, l.url), '_blank', 'noopener,noreferrer');
         },
         onDrop: async (children) => {
@@ -6031,11 +6290,11 @@ async function renderDetail(id, begriffAdresse) {
   function drawAtts() {
     const box = document.getElementById('atts');
     const liste = item.attachments || [];
-    document.getElementById('acount').textContent =
-      liste.length ? `${liste.length} · ${groesse(liste.reduce((s2, a) => s2 + a.size, 0))}` : '';
+    document.getElementById('acount').textContent = liste.length
+      ? `${liste.length} ${liste.length === 1 ? 'Datei' : 'Dateien'} · ${groesse(liste.reduce((s2, a) => s2 + a.size, 0))}` : '';
     box.innerHTML = '';
     if (!liste.length) {
-      box.innerHTML = `<span class="hint">Noch keine Dateien. Bilder, PDF und Textdateien lassen sich hier ansehen, alles andere wird heruntergeladen.</span>`;
+      box.innerHTML = leerZustand('Noch keine Dateien. Bilder, PDF und Textdateien lassen sich hier ansehen, alles andere wird heruntergeladen.');
       return;
     }
     liste.forEach(a => {
@@ -6067,12 +6326,12 @@ async function renderDetail(id, begriffAdresse) {
         ${zeigeVon ? `<span class="avon">(${esc(verfasserName(a.verfasser))})</span>` : ''}
         <span class="ago">${kannVorschau ? (offen ? '▾' : '▸') : '↓'}</span>
         <a class="adl" href="/api/attachments/${a.id}/raw" download title="Herunterladen">↓</a>
-        ${darfWeg ? `<button class="xdel" title="Datei entfernen">✕</button>` : ''}`;
+        ${darfWeg ? `<button class="xdel" title="Datei löschen">${ICON_KREUZ}</button>` : ''}`;
 
       // Der Behandler nur dort, wo das Kreuz auch steht.
       if (darfWeg) zeile.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
-        if (!await confirmBox('Datei entfernen?', `„${a.filename}" wird unwiderruflich gelöscht.`)) return;
+        if (!await confirmBox('Datei löschen?', `„${a.filename}" wird endgültig gelöscht.`)) return;
         try { item = await api('DELETE', `/api/attachments/${a.id}`); offeneVorschau.delete(a.id); drawAtts(); }
         catch (e2) { toast(e2.message, true); }
       };
@@ -6111,10 +6370,10 @@ async function renderDetail(id, begriffAdresse) {
       // Einbetten trotzdem verweigern, ist das dann kein Sackgassen-Ergebnis.
       kasten.innerHTML = `<iframe src="/api/attachments/${a.id}/raw?inline=1"
           sandbox="allow-scripts" referrerpolicy="no-referrer" title="${esc(a.filename)}"></iframe>
-        <p class="apdf-hint"><span class="hint">Bleibt das Fenster leer, zeigt der Browser PDF nicht eingebettet an.</span>
+        <p class="apdf-hint"><span class="hint">Bleibt das Fenster leer, kann der Browser das PDF hier nicht anzeigen.</span>
           <a class="abtn" href="/api/attachments/${a.id}/raw?inline=1" target="_blank" rel="noopener noreferrer">In neuem Tab öffnen</a></p>`;
     } else {
-      kasten.innerHTML = `<p class="hint">lädt …</p>`;
+      kasten.innerHTML = `<p class="hint">Lädt …</p>`;
       api('GET', `/api/attachments/${a.id}/preview`).then(v => {
         // Als Text in den DOM gesetzt, nie als Datei ausgeliefert: der
         // Browser interpretiert den Inhalt damit überhaupt nicht.
@@ -6126,7 +6385,7 @@ async function renderDetail(id, begriffAdresse) {
         if (v.gekuerzt) {
           const h = document.createElement('p');
           h.className = 'hint';
-          h.textContent = 'Vorschau gekürzt — die vollständige Datei über „laden".';
+          h.textContent = 'Vorschau gekürzt — die ganze Datei mit ↓ herunterladen.';
           kasten.appendChild(h);
         }
       }).catch(e => { kasten.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
@@ -6147,7 +6406,7 @@ async function renderDetail(id, begriffAdresse) {
       toast('Wird hochgeladen …');
       const r = await fetch(`/api/items/${id}/attachments`, { method: 'POST', body: fd, credentials: 'same-origin' });
       const daten = await r.json();
-      if (!r.ok) throw new Error(daten.error || 'Fehlgeschlagen');
+      if (!r.ok) throw new Error(daten.error || 'Upload fehlgeschlagen');
       item = daten; drawAtts();
       toast(dateien.length === 1 ? 'Datei angehängt' : `${dateien.length} Dateien angehängt`);
     } catch (e2) { toast(e2.message, true); }
@@ -6160,7 +6419,7 @@ async function renderDetail(id, begriffAdresse) {
     // sichtbar -- eingeklappt ist gerade der Moment, in dem man nicht
     // hineinsieht. Gebildet wird er an einem Ort, oben bei kommentarZahlen().
     document.getElementById('ccount').textContent = kommentarZahlen(item.comments);
-    box.innerHTML = item.comments.length ? '' : `<span class="hint">Noch keine Kommentare.</span>`;
+    box.innerHTML = item.comments.length ? '' : leerZustand('Noch keine Kommentare.');
     item.comments.forEach(c => {
       const bericht = c.kind === 'report', aufgabe = c.kind === 'task',
             erledigt = c.kind === 'done';
@@ -6196,10 +6455,12 @@ async function renderDetail(id, begriffAdresse) {
          Pruefung am Quelltext bindet die Beschriftung an sie. */
       el.innerHTML = `<div class="cmt-head">
           ${verwalten ? `<span class="marks">
-            <button class="mark pin${c.pinned ? ' on' : ''}" title="Anpinnen — steht dann ganz oben">📌</button>
-            <button class="mark art${bericht ? ' on' : ''}" title="Als ${esc(V.berichtEinzahl)} markieren">${esc(V.berichtEinzahl)}</button>
+            ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
+                 sagt „aufheben", nicht noch einmal „markieren". */''}
+            <button class="mark pin${c.pinned ? ' on' : ''}" title="${c.pinned ? 'Nicht mehr anpinnen' : 'Anpinnen — steht dann ganz oben'}">${ICON_PIN}</button>
+            <button class="mark art${bericht ? ' on' : ''}" title="${bericht ? `Markierung „${esc(V.berichtEinzahl)}" aufheben` : `Als ${esc(V.berichtEinzahl)} markieren`}">${esc(V.berichtEinzahl)}</button>
             <button class="mark aufg${aufgabe ? ' on' : ''}${erledigt ? ' on fertig' : ''}" title="${
-              erledigt ? 'Zustand zurücksetzen'
+              erledigt ? 'Markierung aufheben'
                        : aufgabe ? `Auf „${esc(V.aufgabeErledigt)}" setzen`
                                  : `Als ${esc(V.aufgabeEinzahl)} markieren`
             }">${esc(erledigt ? V.aufgabeErledigt : V.aufgabeEinzahl)}</button>
@@ -6209,8 +6470,8 @@ async function renderDetail(id, begriffAdresse) {
           }${fmtDate(c.created_at)}${c.updated_at ? ' · bearbeitet' : ''}${
             c.bilderEntfernt ? ` · <span class="cmt-eingriff">${c.bilderEntfernt} ${
               c.bilderEntfernt === 1 ? 'Bild' : 'Bilder'} vom Admin entfernt</span>` : ''}</span>
-          <span class="acts">${meins ? `<button class="mact ed" title="Bearbeiten">✎</button>` : ''
-            }${verwalten ? `<button class="mact rm" title="Löschen">✕</button>` : ''}</span>
+          <span class="acts">${meins ? `<button class="mact ed" title="Bearbeiten">${ICON_STIFT}</button>` : ''
+            }${verwalten ? `<button class="mact rm" title="Löschen">${ICON_KREUZ}</button>` : ''}</span>
         </div>
         <div class="cmt-body"></div>
         <div class="cmt-imgs"></div>`;
@@ -6247,12 +6508,12 @@ async function renderDetail(id, begriffAdresse) {
         const k = document.createElement('div');
         k.className = 'cmt-img';
         k.innerHTML = `<img src="/api/comment-images/${b.id}/raw?size=thumb" alt="" loading="lazy">
-          ${verwalten ? `<button class="del" title="Bild entfernen">✕</button>` : ''}`;
+          ${verwalten ? `<button class="del" title="Bild löschen">${ICON_KREUZ}</button>` : ''}`;
         k.querySelector('img').onclick = () =>
           openLightbox((c.images || []).map(x => ({ id: x.id, quelle: 'kommentar' })), i, item.title);
         if (verwalten) k.querySelector('.del').onclick = async (e) => {
           e.stopPropagation();
-          if (!await confirmBox('Bild entfernen?', 'Dieses Bild wird unwiderruflich gelöscht.')) return;
+          if (!await confirmBox('Bild löschen?', 'Das Bild wird endgültig gelöscht.')) return;
           try { item = await api('DELETE', `/api/comment-images/${b.id}`); drawComments(); }
           catch (err) { toast(err.message, true); }
         };
@@ -6261,7 +6522,7 @@ async function renderDetail(id, begriffAdresse) {
 
       if (verwalten) el.querySelector('.rm').onclick = async () => {
         if (!await confirmBox('Kommentar löschen?',
-          `Dieser Kommentar wird unwiderruflich entfernt.${(c.images || []).length ? ' Die angehängten Bilder gehen mit.' : ''}`)) return;
+          `Der Kommentar wird endgültig gelöscht${(c.images || []).length ? ' — mit allen Bildern' : ''}.`)) return;
         try { await api('DELETE', `/api/comments/${c.id}`); item = await api('GET', `/api/items/${id}`); drawComments(); }
         catch (e) { toast(e.message, true); }
       };
@@ -6305,7 +6566,7 @@ async function renderDetail(id, begriffAdresse) {
         wrap.querySelector('.cancel').onclick = () => drawComments();
         wrap.querySelector('.save').onclick = async () => {
           const v = ta.value.trim();
-          if (!v) return toast('Text fehlt', true);
+          if (!v) return toast('Bitte einen Text eingeben.', true);
           try { item = await api('PUT', `/api/comments/${c.id}`, { text: v }); drawComments(); toast('Gespeichert'); }
           catch (e) { toast(e.message, true); }
         };
@@ -6323,17 +6584,19 @@ async function renderDetail(id, begriffAdresse) {
   let neuAngepinnt = false, neueArt = 'note';
 
   function drawNeuMarken() {
-    document.getElementById('cpin').classList.toggle('on', neuAngepinnt);
+    const pin = document.getElementById('cpin');
+    pin.classList.toggle('on', neuAngepinnt);
+    pin.title = neuAngepinnt ? 'Nicht mehr anpinnen' : 'Anpinnen — steht dann ganz oben';
     const art = document.getElementById('cart');
     art.classList.toggle('on', neueArt === 'report');
     art.textContent = V.berichtEinzahl;
-    art.title = `Als ${V.berichtEinzahl} markieren`;
+    art.title = neueArt === 'report' ? `Markierung „${V.berichtEinzahl}" aufheben` : `Als ${V.berichtEinzahl} markieren`;
     const aufg = document.getElementById('caufg');
     const fertig = neueArt === 'done';
     aufg.classList.toggle('on', neueArt === 'task' || fertig);
     aufg.classList.toggle('fertig', fertig);
     aufg.textContent = fertig ? V.aufgabeErledigt : V.aufgabeEinzahl;
-    aufg.title = fertig ? 'Zustand zurücksetzen'
+    aufg.title = fertig ? 'Markierung aufheben'
       : neueArt === 'task' ? `Auf „${V.aufgabeErledigt}" setzen`
                            : `Als ${V.aufgabeEinzahl} markieren`;
   }
@@ -6344,7 +6607,7 @@ async function renderDetail(id, begriffAdresse) {
       const k = document.createElement('div');
       k.className = 'cmt-img';
       const url = URL.createObjectURL(f);
-      k.innerHTML = `<img src="${url}" alt=""><button class="del" title="Wieder entfernen">✕</button>`;
+      k.innerHTML = `<img src="${url}" alt=""><button class="del" title="Wieder entfernen">${ICON_KREUZ}</button>`;
       // Die erzeugte Adresse wieder freigeben, sobald das Bild steht.
       k.querySelector('img').onload = () => URL.revokeObjectURL(url);
       k.querySelector('.del').onclick = () => { neueBilder.splice(i, 1); drawNeuBilder(); };
@@ -6395,7 +6658,7 @@ async function renderDetail(id, begriffAdresse) {
   document.getElementById('cadd').onclick = async () => {
     const ta = document.getElementById('ctext');
     const v = ta.value.trim();
-    if (!v) return toast('Text fehlt', true);
+    if (!v) return toast('Bitte einen Text eingeben.', true);
     const fd = new FormData();
     fd.append('text', v);
     fd.append('kind', neueArt);
@@ -6415,7 +6678,7 @@ async function renderDetail(id, begriffAdresse) {
      Der fremde Teil steht in einem eigenen Satz, weil er das Neue ist — was
      hier verlorengeht, gehört anderen. Ist nichts Fremdes dabei, fehlt der
      Satz; ein Zugang allein sieht den Dialog deshalb wie vorher. */
-  document.getElementById('del').onclick = async () => {
+  amElement('del', del => del.onclick = async () => {
     let b;
     try { b = await api('GET', `/api/items/${id}/bestand`); }
     catch (e) { return toast(e.message, true); }
@@ -6434,14 +6697,14 @@ async function renderDetail(id, begriffAdresse) {
       ...zaehl(b.eigenLinks, 'Link', 'Links'),
       ...zaehl(b.eigenDateien, 'Datei', 'Dateien'),
       ...zaehl(b.eigenKommentare, 'Kommentar', 'Kommentare'),
-      ...zaehl(b.eigenBewertungen, 'Bewertung', 'Bewertungen'),
+      ...zaehl(b.eigenBewertungen, V.bewertungEinzahl, V.bewertungMehrzahl),
       ...(b.eigenTesttage ? [`${b.eigenTesttage} ${vZeit(b.eigenTesttage)}`] : [])
     ];
     const fremd = [
       ...zaehl(b.fremdLinks, 'Link', 'Links'),
       ...zaehl(b.fremdDateien, 'Datei', 'Dateien'),
       ...zaehl(b.fremdKommentare, 'Kommentar', 'Kommentare'),
-      ...zaehl(b.fremdBewertungen, 'Bewertung', 'Bewertungen'),
+      ...zaehl(b.fremdBewertungen, V.bewertungEinzahl, V.bewertungMehrzahl),
       ...(b.fremdTesttage ? [`${b.fremdTesttage} ${vZeit(b.fremdTesttage)}`] : [])
     ];
 
@@ -6452,15 +6715,15 @@ async function renderDetail(id, begriffAdresse) {
        dabei — es ist nicht der, der hier klickt. */
     const saetze = [`„${item.title}" wird gelöscht.`];
     if (inhalt.length) saetze.push(`Dabei gehen ${inhalt.join(', ')} mit.`);
-    if (eigen.length) saetze.push(`Dazu ${eigen.join(', ')} von mir.`);
+    if (eigen.length) saetze.push(`Außerdem von mir: ${eigen.join(', ')}.`);
     if (fremd.length) saetze.push(`Und von anderen: ${fremd.join(', ')}.`);
-    saetze.push(`Alles davon liegt danach ${PAPIERKORB_TAGE} Tage im Papierkorb; ` +
-      `zurückholen kann es der Eigentümer dieser Installation.`);
+    saetze.push(`Alles landet für ${PAPIERKORB_TAGE} Tage im Papierkorb; ` +
+      `wiederherstellen kann es nur der Eigentümer.`);
 
     if (!await confirmBox(`${V.sacheEinzahl} löschen?`, saetze.join(' '))) return;
     try { await api('DELETE', `/api/items/${id}`); state.compare.delete(id); location.hash = '#/'; }
     catch (e) { toast(e.message, true); }
-  };
+  });
 
   // Ab hier kann das Aufklappen des Tagblocks die Wolke nachmessen lassen.
   wolkeNeuzeichnen = drawWolke;
@@ -6512,7 +6775,9 @@ async function renderDetail(id, begriffAdresse) {
 const SYS_ABSCHNITTE = [
   { schluessel: 'persoenlich',  name: 'Persönlich' },
   { schluessel: 'bestand',      name: 'Bestand' },
-  { schluessel: 'zugaenge',     name: 'Zugänge' },
+  // „Benutzer" seit 0.22.0 (E2); der Schluessel bleibt, ein Bildschirmtext
+  // benennt keine Adresse um.
+  { schluessel: 'zugaenge',     name: 'Benutzer' },
   { schluessel: 'datenbank',    name: 'Datenbank' },
   { schluessel: 'installation', name: 'Installation' }
 ];
@@ -6555,6 +6820,59 @@ const sysAdresse = (schluessel) => `#/system/${schluessel}`;
    Klammer, risse die erste vergessene den ganzen Systembereich mit -- und
    zwar wortlos, weil der Fehler nach dem Setzen von app.innerHTML kaeme. */
 const amElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
+
+/* IN DIE ZWISCHENABLAGE, mit demselben Rueckfall wie am Einladungslink: das
+   Skript darf nicht ueberall an die Ablage, und dann sagt der Toast es. */
+function kopiereText(text, meldung = 'Kopiert') {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => toast(meldung),
+      () => toast('Bitte von Hand kopieren.', true));
+  } else toast('Bitte von Hand kopieren.', true);
+}
+// Ein Horcher fuer alle Kopierknoepfe mit data-kopie -- auch fuer die, die
+// erst spaeter in die Seite kommen (die Wiederherstellungscodes).
+document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('[data-kopie]') : null;
+  if (b) kopiereText(b.dataset.kopie);
+});
+
+/* DER KASTEN „Auf dem Server" -- 0.22.0, Regel S5. Die EINZIGE Stelle, an der
+   ein Server-Befehl am Bildschirm stehen darf, und nur der Eigentuemer sieht
+   ihn: Ueberschrift, ein Satz, der Befehl in Schreibmaschinenschrift mit
+   Kopierknopf. Die Rollenweiche steckt HIER und nicht an jeder Karte -- wer
+   nicht Eigentuemer ist, bekommt einen leeren String. Bis 0.21.1 standen
+   vier solche Befehle im Fliesstext, einen davon sah jeder Benutzer.
+   JEDER AUFRUF STEHT MIT SEINEM BEFEHL AUF EINER ZEILE `serverKasten(`, damit
+   der Pruefstand die Befehle zaehlen und dem Kasten zuordnen kann. */
+function serverKasten(satz, befehl) {
+  if (!EIGENTUEMER) return '';
+  return `<div class="server-kasten"><div class="server-kopf">Auf dem Server</div>
+    <p class="desc">${esc(satz)}</p>
+    <div class="server-zeile"><code>${esc(befehl)}</code><button type="button" class="btn btn-sm"
+      data-kopie="${esc(befehl)}">Kopieren</button></div></div>`;
+}
+
+/* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE -- 0.22.0, Konzept 4.5. Ein
+   Aufklapper unter dem Satz der Karte mit den Folgen, die man kennen muss, um
+   zu entscheiden. Immer eingeklappt beim Aufbau, keine Einstellung dafuer.
+   Kein Tooltip: ein Finger kann nicht ueberfahren. Der Inhalt kommt fertig
+   als Markup, wie der Rest der Karte. */
+const mehr = (html) => `<details class="mehr"><summary>Mehr</summary><div class="mehr-text">${html}</div></details>`;
+
+/* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen (Woerterbuch):
+   der Toast, und die Karte, in der gespeichert wurde, zeigt es 400 ms lang am
+   Rand (Stilblatt 1.2). Die Karte ist die des Elements, das gerade den Fokus
+   hat -- der Knopf, das Feld, die Pille; ohne eine solche bleibt es beim
+   Toast. */
+function gespeichert(el = document.activeElement) {
+  toast('Gespeichert');
+  const karte = el && el.closest ? el.closest('.sys-card') : null;
+  if (!karte) return;
+  karte.classList.remove('gespeichert');
+  void karte.offsetWidth;   // erzwingt den Neustart der Animation
+  karte.classList.add('gespeichert');
+  karte.addEventListener('animationend', () => karte.classList.remove('gespeichert'), { once: true });
+}
 
 
 /* ---- DIE NEUNZEHN KARTEN ----
@@ -6653,7 +6971,7 @@ function sysSichtbareAbschnitte(geholt) {
 
 
 async function renderSystem() {
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
   const geholt = {};
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
@@ -6700,8 +7018,10 @@ async function renderSystem() {
 
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">← Zurück zur Übersicht</a>
-    <h1 class="page-title">System</h1>
-    <p class="hint" style="margin:0 0 16px">Alles, was den Bestand als Ganzes betrifft.</p>
+    <h1 class="page-title">Einstellungen</h1>
+    <p class="hint" style="margin:0 0 16px">${ADMIN
+      ? 'Einstellungen für dein Konto, den Bestand und die Installation.'
+      : 'Einstellungen für dein Konto und den Bestand.'}</p>
     ${/* EIN MARKUP, ZWEI GESTALTEN -- dieselbe Bauform wie das Menue der
          Kopfzeile aus 0.12.0. Auf dem breiten Schirm eine Reihe Reiter, auf
          dem Telefon eine Liste, die in den Abschnitt hinein fuehrt. Kein
@@ -6709,7 +7029,7 @@ async function renderSystem() {
          ES SIND LINKS UND KEINE KNOEPFE. Ein Reiter, der eine Adresse hat,
          laesst sich kopieren, in einem neuen Fenster oeffnen und mit der
          Zurueck-Taste verlassen -- ein Knopf koennte davon nichts. */''}
-    <nav class="sys-reiter" aria-label="Abschnitte des Systembereichs">
+    <nav class="sys-reiter" aria-label="Abschnitte der Einstellungen">
       ${sichtbare.map(a => `<a class="sys-reiter-k${a === offen ? ' on' : ''}"
         href="${sysAdresse(a.schluessel)}" data-abschnitt="${esc(a.schluessel)}"${
         a === offen ? ' aria-current="page"' : ''}>${esc(a.name)}</a>`).join('')}
@@ -6781,10 +7101,8 @@ function ruesteTitelAus() {
 function karteZugang(geholt) {
   const { zugang } = geholt;
   return `<div class="sys-card">
-        <h3>Zugang</h3>
-        <p class="desc">Benutzername und Passwort für die Anmeldung. Zum Ändern ist das
-          bisherige Passwort nötig. Das Passwortfeld leer lassen ändert nur den Namen.
-          Danach fallen alle anderen Anmeldungen — diese hier bleibt bestehen.</p>
+        <h3>Mein Konto</h3>
+        <p class="desc">Benutzername, E-Mail-Adresse und Passwort deines Kontos.</p>
         <div class="field"><label>Benutzername</label>
           <input class="input" id="acc-user" autocomplete="username" autocapitalize="off"
             spellcheck="false" value="${esc(zugang.username || '')}"></div>
@@ -6795,11 +7113,11 @@ function karteZugang(geholt) {
               Sie steht hinter dem bisherigen Passwort wie Name und Passwort
               daneben — aus demselben Grund. */''}
         <div class="field"><label>E-Mail-Adresse <span class="hint">${
-          REGISTRIERUNG ? '(wird gebraucht)' : '(freiwillig)'}</span></label>
+          REGISTRIERUNG ? '(erforderlich)' : '(optional)'}</span></label>
           <input class="input" id="acc-mail" type="email" autocomplete="email"
             autocapitalize="off" spellcheck="false" value="${esc(zugang.email || '')}"
             placeholder="noch keine hinterlegt"></div>
-        <div class="field"><label>Bisheriges Passwort</label>
+        <div class="field"><label>Bisheriges Passwort <span class="hint">(zum Speichern nötig)</span></label>
           <input class="input" id="acc-old" type="password" autocomplete="current-password"></div>
         ${/* DIE VORGABE STEHT AM FELD, FÜR DAS SIE GILT. „Mindestens 10
               Zeichen“ stand bis 0.17.0 im Absatz unter der ADRESSE — dort
@@ -6811,17 +7129,13 @@ function karteZugang(geholt) {
         <div class="field"><label>Neues Passwort wiederholen</label>
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
         <p class="desc" style="margin:0 0 10px">${REGISTRIERUNG
-          ? `<strong>Die Adresse wird gebraucht</strong>, solange die Selbstanmeldung an ist:
-             ohne sie kommt keine Bestätigungsmail an. Sie trägt außerdem den Einladungs- oder
-             Rücksetzlink und die Testmail im Mailversand.`
-          : `Wird für den Einladungs- oder Rücksetzlink per Mail gebraucht und für die Testmail
-             im Mailversand. <strong>Ohne sie steht der Link wie immer zum Kopieren bereit.</strong>`}
-          Über die Oberfläche gibt es keine Wiederherstellung; ${EIGENTUEMER
-            ? `vergessen heißt
-               <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
-               auf dem Server.`
-            : `wer sein Passwort vergessen hat, <strong>wendet sich an den Admin</strong>.`}</p>
-        <button class="btn btn-accent btn-sm" id="acc-save">Zugang ändern</button>
+          ? `<strong>Die Adresse ist erforderlich</strong>, solange die Registrierung erlaubt ist. `
+          : ''}An diese Adresse kann ein Link zum Zurücksetzen des Passworts geschickt werden.
+          Ohne Adresse gibt der Admin den Link persönlich weiter.
+          Nach einem Passwortwechsel werden alle anderen Sitzungen abgemeldet.
+          Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.</p>
+        ${serverKasten('Ein vergessenes Passwort setzt du auf dem Server zurück:', 'docker compose exec kriterion node zugang.js passwort <name>')}
+        <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">Speichern</button>
 
         ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
               — es bleibt bei neunzehn. Hier stehen Name, Passwort
@@ -6856,7 +7170,7 @@ function ruesteZugangAus(geholt) {
       const r = await api('PUT', '/api/account', {
         oldPassword: alt, username: name, newPassword: neu1, email: adresse
       });
-      toast(r.passwortGewechselt ? 'Zugang geändert' : 'Zugang gespeichert');
+      toast(r.passwortGewechselt ? 'Passwort geändert' : 'Gespeichert');
       // Die Kopfzeile nennt den Namen. Ohne diese Zeile stuende dort bis zum
       // naechsten Laden der Seite der alte -- ladeEinstellungen() laeuft nur
       // beim Start.
@@ -6881,11 +7195,11 @@ function ruesteZugangAus(geholt) {
     if (!box || !stand) return;
     box.innerHTML = stand.an ? `
       <div class="zf-zustand zf-an">
-        <strong>Zweiter Faktor: an</strong> — seit ${esc(String(stand.seit || '').slice(0, 10))}.
-        Beim Anmelden fragt die Installation zusätzlich nach dem Code des zweiten Faktors.
+        <strong>Zweiter Faktor: an</strong> — seit ${esc(fmtDate(stand.seit))}.
+        Beim Anmelden wird zusätzlich der Zwei-Faktor-Code abgefragt.
         <div class="zf-codestand">Wiederherstellungscodes:
           <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>${stand.codesOffen <= 2
-            ? ' — <strong>das wird knapp.</strong> Hol dir neue, solange du noch hereinkommst.' : ''}</div>
+            ? ' — <strong>bitte rechtzeitig neue erzeugen.</strong>' : ''}</div>
       </div>
       <div class="row-in" style="margin-top:10px">
         <button class="btn btn-sm" id="zf-neue">Neue Wiederherstellungscodes</button>
@@ -6893,11 +7207,9 @@ function ruesteZugangAus(geholt) {
       </div>` : `
       <div class="zf-zustand zf-aus"><strong>Zweiter Faktor: aus</strong> — zum Anmelden
         genügt dein Passwort.</div>
-      <p class="desc" style="margin:8px 0 10px">Mit zweitem Faktor fragt diese Installation beim
-        Anmelden zusätzlich nach einem sechsstelligen Code aus einer App auf deinem Telefon
-        (Google Authenticator, Aegis, 1Password, iOS-Passwörter). Der Code entsteht
-        <strong>ohne Netz</strong> und ist alle 30 Sekunden ein anderer.
-        <strong>Freiwillig</strong> — und niemand außer dir kann ihn ein- oder ausschalten.</p>
+      <p class="desc" style="margin:8px 0 10px">Mit zweitem Faktor wird beim Anmelden zusätzlich
+        ein sechsstelliger Code aus einer Authenticator-App abgefragt (z. B. Google
+        Authenticator, Aegis, 1Password). Die App braucht dafür kein Internet.</p>
       <button class="btn btn-sm" id="zf-an">Zweiten Faktor einschalten</button>`;
 
     /* Das Passwort wird an ALLEN Wegen verlangt, auch am Einschalten. Beim
@@ -6909,7 +7221,7 @@ function ruesteZugangAus(geholt) {
 
     amElement('zf-an', b => b.onclick = async () => {
       const e = await frag('Zweiten Faktor einschalten',
-        'Zum Anfangen brauchst du dein bisheriges Passwort.', false);
+        'Bitte gib dein Passwort ein.', false);
       if (e === null) return;
       try { zeigeGeheimnis(await api('POST', '/api/zweifaktor/start', { passwort: e.passwort })); }
       catch (err) { toast(err.message, true); }
@@ -6917,20 +7229,20 @@ function ruesteZugangAus(geholt) {
 
     amElement('zf-neue', b => b.onclick = async () => {
       const e = await frag('Neue Wiederherstellungscodes',
-        'Die bisherigen verfallen dabei alle — auch die noch unbenutzten.', true);
+        'Die bisherigen Codes werden ungültig — auch die unbenutzten.', true);
       if (e === null) return;
       try {
         const r = await api('POST', '/api/zweifaktor/codes', e);
         zeichneZweifaktor(r);
         zeigeWiederCodes(r.codes);
-        toast('Neue Wiederherstellungscodes');
+        toast('Neue Wiederherstellungscodes erzeugt');
       } catch (err) { toast(err.message, true); }
     });
 
     amElement('zf-aus', b => b.onclick = async () => {
       const e = await frag('Zweiten Faktor ausschalten',
-        'Danach genügt zum Anmelden wieder dein Passwort allein. Die Wiederherstellungscodes ' +
-        'fallen mit weg.', true);
+        'Danach genügt zum Anmelden wieder dein Passwort. Die Wiederherstellungscodes ' +
+        'werden ungültig.', true);
       if (e === null) return;
       try {
         zeichneZweifaktor(await api('DELETE', '/api/zweifaktor', e));
@@ -6952,23 +7264,21 @@ function ruesteZugangAus(geholt) {
     box.innerHTML = `
       <div class="warn-box zf-einrichten">
         <strong>Schritt 1 — diesen Schlüssel in deine App eintragen.</strong>
-        Er wird <strong>nur dieses eine Mal</strong> angezeigt; danach gibt ihn die Installation
-        nie wieder heraus, auch dir nicht.
+        Er wird <strong>nur dieses eine Mal</strong> angezeigt.
         <div class="zf-schluessel" id="zf-geheim">${esc(d.gruppen)}</div>
         <div class="row-in" style="margin:8px 0 0">
           <button class="btn btn-sm" id="zf-kopie">Schlüssel kopieren</button>
           <a class="btn btn-sm" id="zf-zeile" href="${esc(d.zeile)}">In der App öffnen</a>
         </div>
-        <p class="desc" style="margin:10px 0 0">Am Telefon führt der Knopf rechts unmittelbar
-          in die App. Am Rechner trägst du den Schlüssel von Hand ein — die Leerzeichen
-          gehören nicht dazu.</p>
+        <p class="desc" style="margin:10px 0 0">Auf dem Handy öffnet „In der App öffnen" die App
+          direkt. Am Rechner tippst du den Schlüssel ohne die Leerzeichen ein.</p>
       </div>
       <div class="field" style="margin:12px 0 0"><label for="zf-probe">Schritt 2 — den
         ${d.ziffern}-stelligen Code aus der App eintragen</label>
         <input class="input" id="zf-probe" inputmode="numeric" autocomplete="one-time-code"
           spellcheck="false" maxlength="6"></div>
-      <p class="desc" style="margin:0 0 10px">Erst damit ist der zweite Faktor eingeschaltet —
-        so ist belegt, dass deine App wirklich dasselbe rechnet.</p>
+      <p class="desc" style="margin:0 0 10px">Erst damit ist der zweite Faktor aktiv — so wird
+        geprüft, dass die App richtig eingerichtet ist.</p>
       <div class="row-in">
         <button class="btn btn-accent btn-sm" id="zf-fertig">Einschalten</button>
         <button class="btn btn-ghost btn-sm" id="zf-abbruch">Abbrechen</button>
@@ -7008,12 +7318,14 @@ function ruesteZugangAus(geholt) {
     kasten.id = 'zf-codes';
     kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes — sie werden
       nur dieses eine Mal angezeigt.</strong>
-      Schreib sie auf und leg sie dorthin, wo dein Telefon <strong>nicht</strong> liegt.
-      Jeder von ihnen trägt <strong>genau einmal</strong> und ersetzt dabei den Code aus der App.
+      Bewahre sie getrennt vom Handy auf. Jeder Code gilt <strong>einmal</strong> und ersetzt den
+      Code aus der App.
       <div class="zf-codeliste">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
-      <p class="desc" style="margin:8px 0 0">Sind sie alle verbraucht und das Telefon weg,
-        hilft nur noch <code>docker compose exec kriterion node zugang.js zweifaktor
-        &lt;name&gt;</code> auf dem Server.</p>`;
+      ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER (Stolperstein
+           315). Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
+      <p class="desc" style="margin:8px 0 0">Sind alle Codes verbraucht und das Handy weg, kann
+        der Eigentümer den zweiten Faktor auf dem Server zurücksetzen.</p>
+      ${serverKasten('Den zweiten Faktor eines Benutzers ausschalten:', 'docker compose exec kriterion node zugang.js zweifaktor <name>')}`;
     box.appendChild(kasten);
   }
 
@@ -7022,11 +7334,8 @@ function ruesteZugangAus(geholt) {
 function karteSitzungen() {
   return `<div class="sys-card">
         <h3>Meine Sitzungen</h3>
-        <p class="desc">Wo dieser Zugang überall angemeldet ist. <strong>Was hier nicht
-          steht:</strong> von welchem Gerät. Die Installation speichert weder Adresse noch
-          Browserkennung — das ist so gewollt und bleibt so. Sie kann deshalb
-          <strong>diese</strong> Anmeldung von <strong>allen anderen</strong> trennen, und
-          mehr braucht der Knopf darunter nicht.</p>
+        <p class="desc">Alle Browser und Geräte, in denen dein Konto angemeldet ist. Gerät und
+          Ort werden nicht gespeichert.</p>
         <div class="manage-list" id="msitzungen"></div>
       </div>`;
 }
@@ -7058,16 +7367,16 @@ function ruesteSitzungenAus(geholt) {
       row.className = 'mrow sitz' + (z.diese ? ' sitz-ich' : '');
       row.dataset.kennung = z.kennung || '';
       row.innerHTML = `<span class="mname">${z.diese
-          ? 'Diese Anmeldung <span class="zug-ich">(hier)</span>' : 'Andere Anmeldung'}</span>
+          ? 'Diese Sitzung <span class="zug-ich">(hier)</span>' : 'Andere Sitzung'}</span>
         <span class="sitz-zeit">angemeldet ${esc(fmtDate(z.angemeldetAm))}</span>
         <span class="sitz-zeit">zuletzt gesehen ${esc(fmtDate(z.zuletztGesehen))}</span>`;
       if (!z.diese) {
         const w = dok.createElement('span');
         w.className = 'zug-akt';
-        w.innerHTML = `<button class="mact rm sitz-x" title="Diese Anmeldung beenden">✕</button>`;
+        w.innerHTML = `<button class="mact rm sitz-x" title="Diese Sitzung beenden">${ICON_KREUZ}</button>`;
         row.appendChild(w);
         w.querySelector('.sitz-x').onclick = async () => {
-          try { await api('DELETE', `/api/sessions/${z.kennung}`); toast('Anmeldung beendet'); }
+          try { await api('DELETE', `/api/sessions/${z.kennung}`); toast('Sitzung beendet'); }
           catch (e) { return toast(e.message, true); }
           sitzungenNeu();
         };
@@ -7082,19 +7391,20 @@ function ruesteSitzungenAus(geholt) {
     fuss.className = 'sitz-fuss';
     fuss.innerHTML = andere
       ? `<p class="desc" style="margin:10px 0 8px">${andere === 1
-          ? 'Neben dieser steht <strong>eine weitere</strong> Anmeldung.'
-          : `Neben dieser stehen <strong>${andere} weitere</strong> Anmeldungen.`}
-          Eine Anmeldung läuft nach ${d.tage || 30} Tagen ohne Zugriff von selbst ab.</p>
-         <button class="btn btn-sm" id="sitz-alle">Alle anderen beenden</button>`
-      : `<p class="desc" style="margin:10px 0 0">Dies ist die <strong>einzige</strong> Anmeldung
-          dieses Zugangs.</p>`;
+          ? 'Außer dieser gibt es <strong>eine weitere</strong> Sitzung.'
+          : `Außer dieser gibt es <strong>${andere} weitere</strong> Sitzungen.`}
+          Eine Sitzung läuft nach ${d.tage || 30} Tagen ohne Zugriff von selbst ab.</p>
+         <button class="btn btn-sm" id="sitz-alle">Alle anderen Sitzungen beenden</button>`
+      : `<p class="desc" style="margin:10px 0 0">Dies ist die <strong>einzige</strong> Sitzung
+          deines Kontos.</p>`;
     box.appendChild(fuss);
     const alle = dok.getElementById('sitz-alle');
     if (alle) alle.onclick = async () => {
-      if (!confirm(`Alle anderen Anmeldungen dieses Zugangs beenden? Diese hier bleibt bestehen.`)) return;
+      if (!await confirmBox('Alle anderen Sitzungen beenden?', 'Diese Sitzung bleibt bestehen.', 'Beenden')) return;
       try {
         const r = await api('DELETE', '/api/sessions');
-        toast(`${r && r.beendet ? r.beendet : 0} Anmeldung(en) beendet`);
+        const n = r && r.beendet ? r.beendet : 0;
+        toast(n === 1 ? '1 Sitzung beendet' : `${n} Sitzungen beendet`);
       } catch (e) { return toast(e.message, true); }
       sitzungenNeu();
     };
@@ -7117,28 +7427,32 @@ function karteDarstellung() {
   return `<div class="sys-card">
         <h3>Darstellung</h3>
         <p class="desc">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
-          Gerät. Die Layoutmaße bleiben unverändert — bei sehr großer Schrift wird es an
-          manchen Stellen enger.</p>
+          Gerät. Bei sehr großer Schrift wird es an manchen Stellen eng.</p>
         <div class="pills" id="fsize"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Die Zeitleiste der ${esc(V.zeitpunktMehrzahl)} über dem
-          Kartenraster. Auf kleinen Bildschirmen nimmt sie viel Platz ein.</p>
+        <p class="desc" style="margin:16px 0 8px">Größe der Bilder im Bildstreifen der
+          Detailansicht.</p>
+        <div class="pills" id="streifen"></div>
+
+        <p class="desc" style="margin:16px 0 8px">Zeitleiste der ${esc(V.zeitpunktMehrzahl)} in der
+          Übersicht.</p>
         <label class="ex-files"><input type="checkbox" id="zlan"> Zeitleiste anzeigen</label>
 
-        <p class="desc" style="margin:16px 0 8px">Anordnung und Einklappzustand der Blöcke in der
-          Detailansicht gelten für alle Einträge gemeinsam.</p>
+        <p class="desc" style="margin:16px 0 8px">Reihenfolge und Auf-/Zuklappen der Blöcke gelten
+          für alle ${esc(V.sacheMehrzahl)}.</p>
         <button class="btn btn-ghost btn-sm" id="breset">Standardanordnung wiederherstellen</button>
       </div>`;
 }
 function ruesteDarstellungAus() {
   drawSchrift();
+  drawStreifen();
   /* --- Zeitleiste --- */
   const zl = document.getElementById('zlan');
   zl.checked = ZEITLEISTE_AN;
   zl.onchange = async () => {
     const vorher = ZEITLEISTE_AN;
     ZEITLEISTE_AN = zl.checked;
-    try { await api('PUT', '/api/settings', { zeitleiste: ZEITLEISTE_AN }); toast('Gespeichert'); }
+    try { await api('PUT', '/api/settings', { zeitleiste: ZEITLEISTE_AN }); gespeichert(); }
     catch (e) { ZEITLEISTE_AN = vorher; zl.checked = vorher; toast(e.message, true); }
   };
   amElement('breset', breset => breset.onclick = async () => {
@@ -7164,8 +7478,29 @@ function ruesteDarstellungAus() {
         SCHRIFT = stufe;
         wendeSchriftAn();          // sofort sichtbar, auch wenn das Speichern scheitert
         drawSchrift();
-        try { await api('PUT', '/api/settings', { schrift: stufe }); toast('Schriftgröße gespeichert'); }
+        try { await api('PUT', '/api/settings', { schrift: stufe }); gespeichert(b); }
         catch (e) { SCHRIFT = vorher; wendeSchriftAn(); drawSchrift(); toast(e.message, true); }
+      };
+      box.appendChild(b);
+    });
+  }
+  /* DER BILDSTREIFEN, dieselbe Bauform wie die Schriftgroesse darueber: fuenf
+     Pillen, sofort sichtbar, bei einem Fehlschlag zurueck auf den alten Wert. */
+  function drawStreifen() {
+    const box = document.getElementById('streifen');
+    if (!box) return;
+    box.innerHTML = '';
+    STREIFEN_STUFEN.forEach(stufe => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (STREIFEN === stufe ? ' on' : '');
+      b.textContent = stufe + ' px';
+      b.onclick = async () => {
+        const vorher = STREIFEN;
+        STREIFEN = stufe;
+        wendeStreifenAn();
+        drawStreifen();
+        try { await api('PUT', '/api/settings', { streifen: stufe }); gespeichert(b); }
+        catch (e) { STREIFEN = vorher; wendeStreifenAn(); drawStreifen(); toast(e.message, true); }
       };
       box.appendChild(b);
     });
@@ -7176,13 +7511,15 @@ function ruesteDarstellungAus() {
 function karteKategorien() {
   return `<div class="sys-card">
         <h3>Kategorien</h3>
-        <p class="desc">Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)}
-          erhalten und haben nur keine Kategorie mehr.</p>
+        ${/* WAS HINTER EINER ROLLE LIEGT, WIRD IHR NICHT ERKLAERT (Regel S5): der
+             Benutzer sieht die Liste und einen Satz, der Admin die Werkzeuge. */''}
+        <p class="desc">${ADMIN
+          ? `Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)} erhalten und
+             haben nur keine Kategorie mehr.`
+          : 'Alle Kategorien. Ändern kann sie der Admin.'}</p>
         <div class="manage-list" id="mcats"></div>
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Wer eine <strong>neue</strong> Kategorie
-          anlegen darf. Ohne Häkchen bleibt die Auswahl aus dem Vorhandenen für jeden bestehen —
-          nur die Zeile „+ neue Kategorie" am ${esc(V.sacheEinzahl)} verschwindet. Der Admin legt
-          weiterhin an.</p>
+        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Ohne Häkchen legen nur Admins neue
+          Kategorien an; vorhandene kann weiterhin jeder auswählen.</p>
         <label class="ex-files"><input type="checkbox" id="katfrei">
           Neue Kategorien darf jeder anlegen</label>` : ''}
       </div>`;
@@ -7196,13 +7533,13 @@ function ruesteKategorienAus(geholt) {
 function karteTags() {
   return `<div class="sys-card">
         <h3>Tags</h3>
-        <p class="desc">Umbenennen oder löschen. Ein gelöschter Tag verschwindet überall;
-          die ${esc(V.sacheMehrzahl)} selbst bleiben unberührt.</p>
+        <p class="desc">${ADMIN
+          ? `Umbenennen oder löschen. Ein gelöschter Tag verschwindet überall; die
+             ${esc(V.sacheMehrzahl)} selbst bleiben unberührt.`
+          : 'Alle Tags. Ändern kann sie der Admin.'}</p>
         <div class="manage-list" id="mtags"></div>
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Wer einen <strong>neuen</strong> Tag
-          anlegen darf. Ohne Häkchen bleiben Wolke und Vergabe für jeden bestehen — nur die
-          Eingabezeile am ${esc(V.sacheEinzahl)} verschwindet. Am ${esc(V.zeitpunktEinzahl)} bleibt
-          sie stehen, weil es dort keine Wolke gibt; ein unbekannter Name wird dann abgewiesen.</p>
+        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Ohne Häkchen legen nur Admins neue
+          Tags an; vorhandene kann weiterhin jeder vergeben.</p>
         <label class="ex-files"><input type="checkbox" id="tagfrei">
           Neue Tags darf jeder anlegen</label>` : ''}
       </div>`;
@@ -7219,8 +7556,11 @@ function ruesteTagsAus(geholt) {
    ueber dieselbe Liste, und die zweite ginge beim naechsten Griff vergessen.
    DER TITEL DER NEUEN KARTE IST `${V.potenzial}: Kriterien` -- MIT
    DOPPELPUNKT und nicht zusammengesetzt: das Wort aus dem Vokabular wird
-   nirgends zu einem Wort verbaut. Die Karte „Bewertungskriterien" behaelt
-   ihren Namen -- „Bewertung" steht nicht im Vokabular. */
+   nirgends zu einem Wort verbaut. SEIT 0.22.0 HEISST AUCH DIE ERSTE KARTE SO,
+   „Bewertung: Kriterien" -- „Bewertung" ist seither ein Vokabelwort (E14),
+   und ein Vokabelwort wird nie in ein zusammengesetztes Wort verbaut. Der
+   Kartenschluessel `kriterien` bleibt: ein Bildschirmtext benennt keine
+   Adresse um. */
 const KRIT_KARTE = {
   nachher: { liste: 'mcrits',  feld: 'newcrit',  knopf: 'newcrit-b' },
   vorher:  { liste: 'mpcrits', feld: 'newpcrit', knopf: 'newpcrit-b' }
@@ -7230,32 +7570,28 @@ function karteKriterien(phase) {
   const vorher = phase === 'vorher';
   const k = KRIT_KARTE[phase];
   return `<div class="sys-card">
-        <h3>${vorher ? esc(V.potenzial) + ': Kriterien' : 'Bewertungskriterien'}</h3>
-        ${vorher ? `<p class="desc">Sterne <strong>vor</strong> dem Test — welche Idee ist als
-             Nächstes dran? Die Zahl daraus fließt in einen <strong>eigenen Durchschnitt</strong>
-             und berührt die Bewertung nicht: kein Stern von hier zählt dort mit, und umgekehrt.
-             ${ADMIN
-               ? `Anlegen, umbenennen, löschen und <strong>per Ziehen sortieren</strong> — wie nebenan.`
-               : `Die Liste pflegt der Admin.`}</p>
-           <p class="desc"><strong>Zwei oder drei Kriterien reichen.</strong> Mehr macht die
-             Einschätzung langsamer, nicht besser — sie soll in zehn Sekunden gehen.
-             Vorschläge: <em>Wunsch</em> (Gewicht 1,5), <em>Nutzen</em>, <em>Machbarkeit</em>.
-             ${ADMIN ? `Das ist ein Rat und kein Verbot; angelegt wird hier nichts von selbst.` : ''}</p>`
+        <h3>${esc(vorher ? V.potenzial : V.bewertungEinzahl)}: Kriterien</h3>
+        ${/* EIN SATZ AN DER KARTE, DIE FOLGEN HINTER „Mehr" (Konzept 4.5) -- und der
+             Benutzer liest nur, was er tun kann (Regel S5). */''}
+        ${vorher ? `<p class="desc">Sterne <strong>vor</strong> dem Test: Welche Idee ist als
+             Nächstes dran? Eigener Durchschnitt, unabhängig von „${esc(V.bewertungEinzahl)}".
+             ${ADMIN ? 'Anlegen, umbenennen, löschen, per Ziehen sortieren.' : 'Die Liste pflegt der Admin.'}</p>
+           ${ADMIN ? mehr(`Tipp: Zwei oder drei Kriterien reichen, z. B. <em>Wunsch</em> (Gewicht 1,5),
+             <em>Nutzen</em>, <em>Machbarkeit</em>. Die Reihenfolge gilt in Detailansicht und
+             Vergleich; die Zahl nennt, an wie vielen ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`) : ''}`
           : `<p class="desc">${ADMIN
-          ? `Anlegen, umbenennen, löschen und <strong>per Ziehen sortieren</strong> — mit Maus
-             oder Finger. Die Reihenfolge gilt für Detailansicht und Vergleich gleichermaßen.
-             Ein neues Kriterium erscheint sofort an allen ${esc(V.sacheMehrzahl)}, ein gelöschtes
-             nimmt überall die vergebenen Sterne mit. Die Zahl nennt, an wie vielen
-             ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`
-          : `Die Kriterienliste pflegt der Admin. Die Reihenfolge gilt für Detailansicht und
-             Vergleich gleichermaßen; die Zahl nennt, an wie vielen ${esc(V.sacheMehrzahl)}
-             Sterne vergeben sind.`}</p>`}
+          ? `Anlegen, umbenennen, löschen, per Ziehen sortieren. Löschen entfernt auch alle
+             vergebenen Sterne.`
+          : `Die Kriterienliste pflegt der Admin. Die Zahl nennt, an wie vielen
+             ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`}</p>
+           ${ADMIN ? mehr(`Die Reihenfolge gilt in Detailansicht und Vergleich. Ein neues Kriterium
+             erscheint sofort an allen ${esc(V.sacheMehrzahl)}. Die Zahl nennt, an wie vielen
+             ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`) : ''}`}
         <div class="manage-list" id="${k.liste}"></div>
         <p class="desc" style="margin:10px 0 0">Das <strong>Gewicht</strong> bestimmt, wie stark ein
-          Kriterium in den Gesamtschnitt eingeht. Bei 1 zählen alle gleich. ${ADMIN
+          Kriterium in den Durchschnitt eingeht; bei 1 zählen alle gleich. ${ADMIN
             ? `Möglich ist 0,2 bis 2 — die Vorschläge sind nur die häufigsten Werte.`
-            : `Eingestellt wird es vom Admin; es gilt für alle.`}
-          Der Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.</p>
+            : `Eingestellt wird es vom Admin.`}</p>
         <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
              ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
              tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
@@ -7314,7 +7650,7 @@ function ruesteKriterienAus(geholt, phase) {
     el.onchange = async () => {
       const vorher = lies();
       merke(el.checked);
-      try { await api('PUT', '/api/settings', { [schluessel]: el.checked }); toast('Gespeichert'); }
+      try { await api('PUT', '/api/settings', { [schluessel]: el.checked }); gespeichert(); }
       catch (e) { merke(vorher); el.checked = vorher; toast(e.message, true); }
     };
   };
@@ -7380,17 +7716,17 @@ function ruesteKriterienAus(geholt, phase) {
          statt als Feld, wie bei Name und Zaehler daneben. */
       const gewFeld = art.gewicht
         ? (darf
-          ? `<span class="mgew" title="Gewicht im Gesamtschnitt">×<input class="mgew-feld"
+          ? `<span class="mgew" title="Gewicht im Durchschnitt">×<input class="mgew-feld"
                type="text" inputmode="decimal" list="gewichtsug" aria-label="Gewicht"
                value="${esc(gewichtText(entry.gewicht))}"></span>`
-          : `<span class="mgew mgew-fest" title="Gewicht im Gesamtschnitt">×${esc(gewichtText(entry.gewicht))}</span>`)
+          : `<span class="mgew mgew-fest" title="Gewicht im Durchschnitt">×${esc(gewichtText(entry.gewicht))}</span>`)
         : '';
       row.innerHTML = `${art.sortierbar && darf ? `<span class="grip" title="Zum Sortieren ziehen">⣿</span>` : ''}
         <span class="mname">${esc(entry.name)}</span>
         ${gewFeld}
         <span class="mcount">${esc(art.zaehler ? art.zaehler(entry) : `${entry.usage_count} ${vSache(entry.usage_count)}`)}</span>
-        ${darf ? `<button class="mact ed" title="Umbenennen">✎</button>
-        <button class="mact rm" title="Löschen">✕</button>` : ''}`;
+        ${darf ? `<button class="mact ed" title="Umbenennen">${ICON_STIFT}</button>
+        <button class="mact rm" title="Löschen">${ICON_KREUZ}</button>` : ''}`;
       if (!darf) { box.appendChild(row); return; }
       if (art.sortierbar) {
         // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
@@ -7481,65 +7817,67 @@ function ruesteKriterienAus(geholt, phase) {
 function karteVokabular() {
   return `<div class="sys-card">
         <h3>Vokabular</h3>
-        <p class="desc">Wie die Dinge in der Oberfläche heißen sollen. <strong>Nur die
-          Beschriftung ändert sich</strong> — Datenbank und Exportdateien bleiben unberührt,
-          ältere Exportdateien lassen sich weiterhin einspielen.</p>
+        <p class="desc">Wie die Dinge in der Oberfläche heißen. <strong>Es ändert sich nur die
+          Beschriftung</strong>; Daten und Exporte bleiben gleich.</p>
+        ${/* VIERZEHN FELDER AUS EINER TABELLE -- 0.22.0. Bis 0.21.1 standen die
+             zwoelf Felder dreimal im Quelltext: hier als Markup, in vFelder()
+             als Leser und in ruesteVokabularAus() als Liste der Kennungen.
+             Wer ein Wort ergaenzte, musste es dreimal ergaenzen -- genau so
+             ist beim Bauen von 0.21.0 das Feld fuer „Potenzial" zunaechst
+             leer geblieben. Jetzt steht die Tabelle einmal (VOK_FELDER), und
+             die drei Stellen lesen sie.
+             JEDER FELDNAME NENNT DIE VORGABE: „Sache, Einzahl" allein sagte
+             einem Admin nicht, welches Wort er da umbenennt. */''}
         <div class="vok-grid">
-          <div class="field"><label>Sache, Einzahl</label>
-            <input class="input input-sm" id="v1" maxlength="40" value="${esc(V.sacheEinzahl)}"></div>
-          <div class="field"><label>Sache, Mehrzahl</label>
-            <input class="input input-sm" id="v2" maxlength="40" value="${esc(V.sacheMehrzahl)}"></div>
-          <div class="field"><label>Merkmal erfüllt</label>
-            <input class="input input-sm" id="v3" maxlength="40" value="${esc(V.merkmalJa)}"></div>
-          <div class="field"><label>Merkmal nicht erfüllt</label>
-            <input class="input input-sm" id="v4" maxlength="40" value="${esc(V.merkmalNein)}"></div>
-          <div class="field"><label>Zeitpunkt, Einzahl</label>
-            <input class="input input-sm" id="v5" maxlength="40" value="${esc(V.zeitpunktEinzahl)}"></div>
-          <div class="field"><label>Zeitpunkt, Mehrzahl</label>
-            <input class="input input-sm" id="v6" maxlength="40" value="${esc(V.zeitpunktMehrzahl)}"></div>
-          <div class="field"><label>Bericht, Einzahl</label>
-            <input class="input input-sm" id="v7" maxlength="40" value="${esc(V.berichtEinzahl)}"></div>
-          <div class="field"><label>Bericht, Mehrzahl</label>
-            <input class="input input-sm" id="v8" maxlength="40" value="${esc(V.berichtMehrzahl)}"></div>
-          <div class="field"><label>Aufgabe, Einzahl</label>
-            <input class="input input-sm" id="v9" maxlength="40" value="${esc(V.aufgabeEinzahl)}"></div>
-          <div class="field"><label>Aufgabe, Mehrzahl</label>
-            <input class="input input-sm" id="v10" maxlength="40" value="${esc(V.aufgabeMehrzahl)}"></div>
-          <div class="field"><label>Aufgabe, erledigt</label>
-            <input class="input input-sm" id="v11" maxlength="40" value="${esc(V.aufgabeErledigt)}"></div>
-          ${/* DAS WORT FUER DEN ERSTEN STERNKASTEN -- 0.21.0. Es steht am
-               Blockkopf des Eintrags, in den beiden Sortiereintraegen und im
-               Titel der Karte „Potenzial: Kriterien"; ein Umbenennen wirkt an
-               allen drei Stellen zugleich.
-               NIE ZUSAMMENGESETZT: Doppelpunkt, Klammer oder Leerzeichen --
-               „Erwartungkriterien" haette kein Fugen-s. */''}
-          <div class="field"><label>Sterne vor dem Test</label>
-            <input class="input input-sm" id="v12" maxlength="40" value="${esc(V.potenzial)}"></div>
+          ${VOK_FELDER.map(([id, schluessel, name]) => `<div class="field"><label for="${id}">${esc(name)}
+            <span class="hint">(Vorgabe: ${esc(VOK_VORGABE[schluessel])})</span></label>
+            <input class="input input-sm" id="${id}" maxlength="40" value="${esc(V[schluessel])}"></div>`).join('')}
         </div>
         <div class="vok-probe" id="vprobe"></div>
         <div class="row-in" style="margin-top:12px">
           <button class="btn btn-accent btn-sm" id="vsave">Vokabular speichern</button>
-          <button class="btn btn-ghost btn-sm" id="vreset">Vorgaben</button>
+          <button class="btn btn-ghost btn-sm" id="vreset">Auf Vorgaben zurücksetzen</button>
         </div>
       </div>`;
 }
+/* DIE TABELLE DER VOKABELFELDER: Kennung, Schluessel, Beschriftung. Die
+   Kennungen v1 bis v14 bleiben in der Reihenfolge, in der die Woerter dazu-
+   gekommen sind -- der Pruefstand spricht die Felder darueber an.
+   VOK_VORGABE ist die Vorgabe des Servers, hier ein zweites Mal, weil die
+   Karte sie NENNEN muss („Vorgabe: Eintrag") und der Server sie nur beim
+   Speichern einsetzt. `V` selbst taugt dafuer nicht: es traegt nach dem
+   ersten Abruf das gespeicherte Wort. */
+const VOK_VORGABE = {
+  sacheEinzahl: 'Eintrag', sacheMehrzahl: 'Einträge',
+  merkmalJa: 'Getestet', merkmalNein: 'Ungetestet',
+  zeitpunktEinzahl: 'Testtag', zeitpunktMehrzahl: 'Testtage',
+  berichtEinzahl: 'Bericht', berichtMehrzahl: 'Berichte',
+  aufgabeEinzahl: 'Aufgabe', aufgabeMehrzahl: 'Aufgaben',
+  aufgabeErledigt: 'Erledigt', potenzial: 'Potenzial',
+  bewertungEinzahl: 'Bewertung', bewertungMehrzahl: 'Bewertungen'
+};
+const VOK_FELDER = [
+  ['v1', 'sacheEinzahl', 'Sache, Einzahl'], ['v2', 'sacheMehrzahl', 'Sache, Mehrzahl'],
+  ['v3', 'merkmalJa', 'Merkmal erfüllt'], ['v4', 'merkmalNein', 'Merkmal nicht erfüllt'],
+  ['v5', 'zeitpunktEinzahl', 'Zeitpunkt, Einzahl'], ['v6', 'zeitpunktMehrzahl', 'Zeitpunkt, Mehrzahl'],
+  ['v7', 'berichtEinzahl', 'Bericht, Einzahl'], ['v8', 'berichtMehrzahl', 'Bericht, Mehrzahl'],
+  ['v9', 'aufgabeEinzahl', 'Aufgabe, Einzahl'], ['v10', 'aufgabeMehrzahl', 'Aufgabe, Mehrzahl'],
+  ['v11', 'aufgabeErledigt', 'Aufgabe, erledigt'],
+  /* DAS WORT FUER DEN ZWEITEN STERNKASTEN -- 0.21.0. Es steht am Blockkopf des
+     Eintrags, in den Sortiereintraegen und im Titel der Karte „Potenzial:
+     Kriterien"; ein Umbenennen wirkt an allen Stellen zugleich. NIE
+     ZUSAMMENGESETZT: „Erwartungkriterien" haette kein Fugen-s. */
+  ['v12', 'potenzial', 'Sterne vor dem Test'],
+  /* UND DAS PAAR FUER DEN ERSTEN -- 0.22.0 (E14): Kastenkopf, Sortierung,
+     Vergleich, Kachel, Karte, Glocke und Loeschdialoge lesen es. */
+  ['v13', 'bewertungEinzahl', 'Sterne nach dem Test, Einzahl'],
+  ['v14', 'bewertungMehrzahl', 'Sterne nach dem Test, Mehrzahl']
+];
 function ruesteVokabularAus() {
   // Die Probe zeigt dieselben Textbausteine, die die Oberfläche später
   // benutzt — damit sich Einzahl und Mehrzahl vor dem Speichern prüfen lassen.
-  const vFelder = () => ({
-    sacheEinzahl: document.getElementById('v1').value,
-    sacheMehrzahl: document.getElementById('v2').value,
-    merkmalJa: document.getElementById('v3').value,
-    merkmalNein: document.getElementById('v4').value,
-    zeitpunktEinzahl: document.getElementById('v5').value,
-    zeitpunktMehrzahl: document.getElementById('v6').value,
-    berichtEinzahl: document.getElementById('v7').value,
-    berichtMehrzahl: document.getElementById('v8').value,
-    aufgabeEinzahl: document.getElementById('v9').value,
-    aufgabeMehrzahl: document.getElementById('v10').value,
-    aufgabeErledigt: document.getElementById('v11').value,
-    potenzial: document.getElementById('v12').value
-  });
+  const vFelder = () => Object.fromEntries(VOK_FELDER.map(([id, schluessel]) =>
+    [schluessel, document.getElementById(id).value]));
   function drawProbe() {
     const w = vFelder();
     const s1 = w.sacheEinzahl.trim() || V.sacheEinzahl;
@@ -7554,8 +7892,10 @@ function ruesteVokabularAus() {
     const am = w.aufgabeMehrzahl.trim() || V.aufgabeMehrzahl;
     const ae = w.aufgabeErledigt.trim() || V.aufgabeErledigt;
     const po = w.potenzial.trim() || V.potenzial;
+    const bwe = w.bewertungEinzahl.trim() || V.bewertungEinzahl;
+    const bwm = w.bewertungMehrzahl.trim() || V.bewertungMehrzahl;
     document.getElementById('vprobe').innerHTML =
-      `<span class="label">Probe</span>
+      `<span class="label">Vorschau</span>
        <span>+ ${esc(s1)}</span><span>${esc(s1)} löschen?</span><span>7 ${esc(sm)}</span>
        <span>${esc(ja)} / ${esc(nein)}</span>
        <span>1 ${esc(z1)}</span><span>3 ${esc(zm)}</span>
@@ -7565,12 +7905,13 @@ function ruesteVokabularAus() {
        ${/* DIE PROBE ZEIGT DAS WORT SO, WIE ES SPAETER STEHT -- getrennt und
             nie verbaut. Wer „Erwartung" eintippt, sieht hier „Erwartung:
             Kriterien" und nicht „Erwartungkriterien". */''}
-       <span>${esc(po)}: Kriterien</span><span>${esc(po)} (hoch → niedrig)</span>`;
+       <span>${esc(po)}: Kriterien</span><span>${esc(po)} (hoch → niedrig)</span>
+       <span>${esc(bwe)}: Kriterien</span><span>${esc(bwe)} (hoch → niedrig)</span><span>2 ${esc(bwm)}</span>`;
   }
   // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
   // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
   // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
-  ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12'].forEach(id =>
+  VOK_FELDER.forEach(([id]) =>
     amElement(id, feld => feld.addEventListener('input', drawProbe)));
   if (document.getElementById('vprobe')) drawProbe();
 
@@ -7583,17 +7924,15 @@ function ruesteVokabularAus() {
     } catch (e) { toast(e.message, true); }
   });
   amElement('vreset', vreset => vreset.onclick = async () => {
-    if (!await confirmBox('Vorgaben wiederherstellen?',
-      'Die zwölf Wörter werden auf Eintrag/Einträge, Getestet/Ungetestet, Testtag/Testtage, Bericht/Berichte, Aufgabe/Aufgaben, Erledigt und Potenzial zurückgesetzt.',
+    if (!await confirmBox('Auf Vorgaben zurücksetzen?',
+      'Alle vierzehn Wörter werden auf ihre Vorgaben zurückgesetzt: Eintrag/Einträge, Getestet/Ungetestet, Testtag/Testtage, Bericht/Berichte, Aufgabe/Aufgaben, Erledigt, Potenzial, Bewertung/Bewertungen.',
       'Zurücksetzen')) return;
     try {
-      const leer = { sacheEinzahl: '', sacheMehrzahl: '', merkmalJa: '',
-                     merkmalNein: '', zeitpunktEinzahl: '', zeitpunktMehrzahl: '',
-                     berichtEinzahl: '', berichtMehrzahl: '',
-                     aufgabeEinzahl: '', aufgabeMehrzahl: '', aufgabeErledigt: '' };
+      // Leer heisst Vorgabe: der Server setzt fuer jedes leere Feld sein Wort ein.
+      const leer = Object.fromEntries(Object.keys(VOK_VORGABE).map(k => [k, '']));
       const r = await api('PUT', '/api/settings', { vokabular: leer });
       V = { ...V, ...r.vokabular };
-      toast('Vorgaben wiederhergestellt');
+      toast('Auf Vorgaben zurückgesetzt');
       renderSystem();
     } catch (e) { toast(e.message, true); }
   });
@@ -7608,13 +7947,10 @@ function karteLinks() {
           aufgeklappt werden muss.</p>
         <div class="pills" id="lzeilen"></div>
 
-        <p class="desc sys-teil">Wird in der Linkliste etwas eingetragen, das
-          keine Adresse ist, wird daraus eine <strong>Suche</strong>. Gespeichert bleibt der
-          Rohtext — ein Anbieterwechsel gilt deshalb rückwirkend für alle vorhandenen
-          Suchzeilen. Gefragt wird erst beim Klick, Kriterion selbst ruft niemanden.</p>
-        <p class="desc" style="margin:0 0 8px">Wie viele Anbieternamen unter einer Suchzeile
-          stehen. Gezählt wird der Startanbieter mit; sind weniger in der Auswahl, stehen
-          entsprechend weniger da.</p>
+        <p class="desc sys-teil">Was in der Linkliste keine Adresse ist, wird als
+          <strong>Suche</strong> behandelt; die Suche startet erst beim Klick.</p>
+        <p class="desc" style="margin:0 0 8px">Wie viele Suchmaschinen unter einer Suchzeile
+          angeboten werden.</p>
         <div class="pills" id="snamen"></div>
       </div>`;
 }
@@ -7635,7 +7971,7 @@ function ruesteLinksAus() {
         const vorher = LINKZEILEN;
         LINKZEILEN = n;
         drawLinkZeilen();
-        try { await api('PUT', '/api/settings', { linkZeilen: n }); toast('Gespeichert'); }
+        try { await api('PUT', '/api/settings', { linkZeilen: n }); gespeichert(); }
         catch (e) { LINKZEILEN = vorher; drawLinkZeilen(); toast(e.message, true); }
       };
       box.appendChild(b2);
@@ -7654,7 +7990,7 @@ function ruesteLinksAus() {
         const vorher = SUCHNAMEN;
         SUCHNAMEN = n;
         drawSuchNamen();
-        try { await api('PUT', '/api/settings', { suchNamen: n }); toast('Gespeichert'); }
+        try { await api('PUT', '/api/settings', { suchNamen: n }); gespeichert(); }
         catch (e) { SUCHNAMEN = vorher; drawSuchNamen(); toast(e.message, true); }
       };
       box.appendChild(b3);
@@ -7665,24 +8001,19 @@ function ruesteLinksAus() {
 /* ---- Karte „Suchanbieter" — Abschnitt „Bestand" ---- */
 function karteSuchanbieter() {
   return `<div class="sys-card">
-        <h3>Suchanbieter</h3>
-        <p class="desc">Das Häkchen nimmt einen Anbieter in die Auswahl,
-          <strong>Start</strong> macht ihn zum Ziel des Zeilenklicks. Der Startanbieter steht
-          unter der Suchzeile immer vorn. Beides gilt für alle — die Zahl der angezeigten
-          Namen bestimmt jeder für sich in der Karte „Links".</p>
+        <h3>Suchmaschinen</h3>
+        <p class="desc">Häkchen: steht zur Auswahl. <strong>Standard</strong>: öffnet sich beim
+          Klick auf die Suchzeile.</p>
+        ${mehr(`Beides gilt für alle Benutzer; wie viele Namen unter einer Suchzeile stehen,
+          stellt jeder für sich in der Karte „Links" ein. Der Standard steht immer vorn.`)}
         <div class="sanb-liste" id="sanbieter"></div>
 
-        <p class="desc sys-teil">Bis zu drei eigene Anbieter. <code>%s</code> steht
-          für den Suchtext; erlaubt sind nur <code>http://</code> und <code>https://</code>. Ein
-          Platz zählt erst, wenn Name <em>und</em> Vorlage dastehen. Der Name darf bis zu 20
-          Zeichen lang sein.</p>
+        <p class="desc sys-teil">Bis zu drei eigene: Name (max. 20 Zeichen) und Such-URL mit
+          <code>%s</code> für den Suchtext (<code>http://</code> oder <code>https://</code>).</p>
         <div class="sanb-eigen" id="seigene"></div>
-        <p class="desc" style="margin:8px 0 0">Foreneigene Suchen sind oft schlecht, gedrosselt
-          oder verlangen eine Anmeldung. Zuverlässiger ist eine Suchmaschine, die auf die Domain
-          eingeschränkt wird:<br>
-          <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code><br>
-          Das <code>%3A</code> muss so dastehen — der Doppelpunkt gehört in die Vorlage, nicht in
-          den Suchtext.</p>
+        ${mehr(`Tipp: eine Suchmaschine auf die Domain einschränken —
+          <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>. Das
+          <code>%3A</code> muss so dastehen.`)}
       </div>`;
 }
 function ruesteSuchanbieterAus() {
@@ -7730,14 +8061,14 @@ function ruesteSuchanbieterAus() {
       const st = document.createElement('button');
       st.type = 'button';
       st.className = 'sstart' + (a.standard ? ' on' : '');
-      st.textContent = 'Start';
+      st.textContent = 'Standard';
       st.disabled = !a.vorhanden;
-      st.title = 'Ziel des Zeilenklicks';
+      st.title = 'Beim Klick auf die Suchzeile öffnen';
       // Start nimmt zugleich in die Auswahl auf: ein Startanbieter ausserhalb
       // des Vorrats ist ein Zustand, den es nicht geben darf.
       st.onclick = () => sendeAnbieter(
         { sucheAktiv: [a.schluessel, ...vorratListe().filter(k => k !== a.schluessel)] },
-        'Startanbieter gespeichert');
+        'Gespeichert');
       // Der Name kommt aus dem Verwaltungsbereich und ist freier Text --
       // textContent statt innerHTML, damit Maskierung nicht vergessbar ist.
       const nm = document.createElement('span');
@@ -7778,7 +8109,7 @@ function ruesteSuchanbieterAus() {
       name: document.getElementById(`se-name-${i}`)?.value || '',
       vorlage: document.getElementById(`se-vorlage-${i}`)?.value || ''
     }));
-    return sendeAnbieter({ sucheEigene: liste }, 'Eigene Suchanbieter gespeichert');
+    return sendeAnbieter({ sucheEigene: liste }, 'Gespeichert');
   }
 
 
@@ -7786,11 +8117,9 @@ function ruesteSuchanbieterAus() {
 function kartePapierkorb() {
   return `<div class="sys-card">
         <h3>Papierkorb</h3>
-        <p class="desc">Gelöschte ${esc(V.sacheMehrzahl)} liegen hier <strong>${PAPIERKORB_TAGE} Tage</strong>
-          und lassen sich zurückholen; danach fallen sie heraus. Zurück kommt eine
-          <strong>neue</strong> Nummer mit demselben Inhalt — Fotos, Videos, Dateien, Kommentare,
-          Bewertungen und ${esc(V.zeitpunktMehrzahl)} samt ihren Verfassern.
-          ${EIGENTUEMER ? '' : 'Zurückholen und endgültig entfernen kann der Eigentümer dieser Installation.'}</p>
+        <p class="desc">Gelöschte ${esc(V.sacheMehrzahl)} bleiben hier <strong>${PAPIERKORB_TAGE} Tage</strong>
+          und lassen sich wiederherstellen; danach werden sie endgültig gelöscht.
+          ${EIGENTUEMER ? '' : 'Wiederherstellen und endgültig löschen kann nur der Eigentümer.'}</p>
         <div class="manage-list" id="mpapierkorb"></div>
       </div>`;
 }
@@ -7838,8 +8167,8 @@ function ruestePapierkorbAus(geholt) {
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.
       row.innerHTML = `<span class="mname">${esc(z.titel)}</span>
-        ${EIGENTUEMER ? `<button class="mact pk-back" title="Wiederherstellen">↩ Zurückholen</button>
-        <button class="mact rm pk-weg" title="Endgültig entfernen">✕</button>` : ''}
+        ${EIGENTUEMER ? `<button class="mact pk-back" title="Wiederherstellen">${ICON_WIEDERHER} Wiederherstellen</button>
+        <button class="mact rm pk-weg" title="Endgültig löschen">${ICON_KREUZ}</button>` : ''}
         <span class="pk-meta">${esc(meta.join(' · '))}</span>`;
       box.appendChild(row);
       const zurueck = row.querySelector('.pk-back');
@@ -7849,19 +8178,19 @@ function ruestePapierkorbAus(geholt) {
           // Die unbekannten Verfasser stehen in der Antwort und gehoeren
           // gesagt: sie sind beim Zurueckholen an MICH gefallen.
           const offene = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
-          toast(`„${z.titel}" ist wieder da.` +
-            (offene.length ? ` Unbekannte Verfasser mir zugeordnet: ${offene.join(', ')}.` : ''));
+          toast(`„${z.titel}" wiederhergestellt.` +
+            (offene.length ? ` Beiträge ohne bekannten Verfasser wurden dir zugeordnet: ${offene.join(', ')}.` : ''));
           papierkorbNeu(geholt);
         } catch (e) { toast(e.message, true); }
       };
       const weg = row.querySelector('.pk-weg');
       if (weg) weg.onclick = async () => {
-        if (!await confirmBox('Endgültig entfernen?',
-          `„${z.titel}" wird aus dem Papierkorb entfernt. Danach gibt es keinen Rückweg mehr.`,
-          'Endgültig entfernen')) return;
+        if (!await confirmBox('Endgültig löschen?',
+          `„${z.titel}" wird endgültig gelöscht. Das lässt sich nicht rückgängig machen.`,
+          'Endgültig löschen')) return;
         try {
           await api('DELETE', `/api/papierkorb/${z.id}`);
-          toast('Endgültig entfernt');
+          toast('Endgültig gelöscht');
           papierkorbNeu(geholt);
         } catch (e) { toast(e.message, true); }
       };
@@ -7872,23 +8201,21 @@ function ruestePapierkorbAus(geholt) {
 /* ---- Karte „Zugänge" — Abschnitt „Zugänge" ---- */
 function karteZugaenge() {
   return `<div class="sys-card breit">
-        <h3>Zugänge</h3>
-        <p class="desc">Wer sich anmelden darf. <strong>Sperren ist in den meisten Fällen das,
-          was man eigentlich will</strong> — die Anmeldung wird abgewiesen, die Beiträge bleiben
-          unangetastet stehen, und der Name bleibt vergeben.
-          ${EIGENTUEMER
-            ? `Als Eigentümer dieser Installation vergibst du Rollen und kommst auch an andere Admins.`
-            : `Rollen vergibt der Eigentümer dieser Installation; an einen anderen Admin kommst du nicht.`}</p>
+        <h3>Benutzer</h3>
+        <p class="desc">Alle Benutzer dieser Installation.</p>
+        ${mehr(`<strong>Sperren statt löschen:</strong> Ein gesperrter Benutzer kann sich nicht anmelden,
+          seine Beiträge bleiben. ${EIGENTUEMER
+            ? 'Rollen ändern und Admins bearbeiten kannst nur du als Eigentümer.'
+            : 'Rollen ändern und Admins bearbeiten kann nur der Eigentümer.'}`)}
         <div class="manage-list" id="mzugaenge"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
              nichts geloescht wurde -- gefuellt wird sie von
              zeichneGrabsteinKnopf(), sobald die Liste vom Server da ist. */''}
         <div class="row-in" id="zug-weg-zeile" style="margin-top:8px"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Woher der neue Zugang sein Passwort bekommt,
-          steht als <strong>Wahl im Formular</strong> — das Feld daneben erscheint nur, wenn es
-          auch gilt. Der Weg über den <strong>Link</strong> ist der empfohlene: du erfährst das
-          Passwort nie, und der Link gilt sieben Tage und genau einmal.</p>
+        <p class="desc" style="margin:16px 0 8px">Neuen Benutzer anlegen. Empfohlen: Der Benutzer
+          wählt sein Passwort selbst über einen <strong>Einladungslink</strong> (7 Tage gültig,
+          einmal nutzbar).</p>
         <div class="zug-neu">
           <input class="input input-sm" id="zug-name" placeholder="Benutzername"
             autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -7897,10 +8224,10 @@ function karteZugaenge() {
                 diesem Augenblick noch nicht, also kann sie auch niemand selbst
                 eintragen. Ändern darf sie danach allein der Betroffene, unter
                 „Zugang“. Freiwillig — ohne sie bleibt alles beim Kopieren. */''}
-          <input class="input input-sm" id="zug-mail" type="email" placeholder="E-Mail (freiwillig)"
+          <input class="input input-sm" id="zug-mail" type="email" placeholder="E-Mail (optional)"
             autocomplete="off" autocapitalize="off" spellcheck="false">
           <select class="input input-sm" id="zug-art">
-            <option value="link">Er wählt sein Passwort selbst</option>
+            <option value="link">Benutzer wählt Passwort selbst (per Link)</option>
             <option value="passwort">Ich vergebe das erste Passwort</option>
           </select>
           <input class="input input-sm" id="zug-pass" type="password" placeholder="Erstes Passwort"
@@ -7910,7 +8237,7 @@ function karteZugaenge() {
             <option value="admin">Admin</option>
             <option value="eigentuemer">Eigentümer</option>
           </select>` : ''}
-          <button class="btn btn-accent btn-sm" id="zug-anlegen">+ Anlegen und Link</button>
+          <button class="btn btn-accent btn-sm" id="zug-anlegen">+ Anlegen und Link erzeugen</button>
         </div>
         <div id="zug-link"></div>
 
@@ -7919,12 +8246,10 @@ function karteZugaenge() {
               der Eigentümer. Ein Admin, der nicht Eigentümer ist, verwaltet
               Zugänge über diese Karte und kommt an den Server nicht heran —
               ihm hilft der Name dessen, der es kann. */''}
-        <p class="desc" style="margin:16px 0 0">Passwort vergessen und niemand kommt mehr herein?
-          ${EIGENTUEMER
-            ? `Auf dem Server hilft
-               <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.`
-            : `Der <strong>Eigentümer</strong> kommt am Server daran; über die Oberfläche gibt
-               es diesen Weg nicht.`}</p>
+        ${EIGENTUEMER
+          ? `<div style="margin-top:16px">${serverKasten('Kommt niemand mehr herein, setzt du ein Passwort auf dem Server zurück:', 'docker compose exec kriterion node zugang.js passwort <name>')}</div>`
+          : `<p class="desc" style="margin:16px 0 0">Kommt niemand mehr herein, kann der
+               <strong>Eigentümer</strong> das Passwort auf dem Server zurücksetzen.</p>`}
       </div>`;
 }
 function ruesteZugaengeAus() {
@@ -7950,7 +8275,7 @@ function ruesteZugaengeAus() {
     // Geleert, nicht bloß versteckt: ein Passwort, das man nicht mehr sieht,
     // aber noch mitschickt, wäre die unangenehmste Art von Überraschung.
     if (link) zugPass.value = '';
-    zugAnlegen.textContent = link ? '+ Anlegen und Link' : '+ Anlegen';
+    zugAnlegen.textContent = link ? '+ Anlegen und Link erzeugen' : '+ Anlegen';
   };
   if (zugArt) zugArt.onchange = zugArtGesetzt;
   zugArtGesetzt();
@@ -7970,7 +8295,7 @@ function ruesteZugaengeAus() {
       const d = await api('POST', '/api/users', koerper);
       nameFeld.value = ''; zugPass.value = '';
       if (mailFeld) mailFeld.value = '';
-      toast(einladen ? 'Zugang angelegt — der Link steht unten' : 'Zugang angelegt');
+      toast(einladen ? 'Benutzer angelegt — der Link steht unten' : 'Benutzer angelegt');
       if (einladen) zeigeLink(d);
     } catch (e) { return toast(e.message, true); }
     zeichneZugaenge();
@@ -8005,7 +8330,7 @@ function ruesteZugaengeAus() {
      GEZEIGT und nicht gesetzt -- sie steht in der .env, aus demselben Grund
      wie HINTER_PROXY. */
   const linkHerkunft = (d) => d.linkQuelle === 'einstellung'
-    ? 'aus der Einstellung <code>OEFFENTLICHE_ADRESSE</code>'
+    ? 'aus der Server-Einstellung <code>OEFFENTLICHE_ADRESSE</code>'
     : 'aus deinem Browser';
 
   /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
@@ -8057,12 +8382,10 @@ function ruesteZugaengeAus() {
     const adresse = d.link || baueEinladungsAdresse(d.token);
     box.innerHTML = `<div class="warn-box zug-linkbox" style="margin:12px 0 0">
       <strong>${d.zweck === 'ruecksetzung' ? 'Link zum Zurücksetzen' : 'Einladungslink'}
-      für „${esc(d.username || '')}“ — er wird nur dieses eine Mal angezeigt.</strong>
-      Er ist bis dahin ein <strong>Passwortersatz</strong>: wer ihn hat, kommt herein und setzt
-      das Passwort. Er gilt <strong>${d.tage || 7} Tage</strong> und <strong>genau einmal</strong>;
-      ab dem ersten Öffnen bleiben <strong>${d.minuten || 15} Minuten</strong>, um das Passwort
-      zu setzen.
-      Nach der Weitergabe steht er in einem fremden Verlauf — gib ihn nur dem, für den er ist.
+      für „${esc(d.username || '')}“ — wird nur einmal angezeigt.</strong>
+      Wer den Link hat, kann das Passwort setzen: <strong>${d.tage || 7} Tage</strong> gültig,
+      <strong>einmal</strong> nutzbar, nach dem Öffnen <strong>${d.minuten || 15} Minuten</strong> Zeit.
+      Nur an die richtige Person weitergeben.
       <div class="zug-linkzeile"><input class="input input-sm" id="zug-link-feld" readonly
         value="${esc(adresse)}"><button class="btn btn-sm" id="zug-link-kopie">Kopieren</button></div>
       <p class="zug-linkherkunft" id="zug-link-herkunft">Dieser Link zeigt auf
@@ -8126,8 +8449,16 @@ function ruesteZugaengeAus() {
       const wartet = z.ohnePasswort;
       row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: false }))}${
           selbst ? ' <span class="zug-ich">(du)</span>' : ''}</span>
-        <span class="zug-rolle">${esc(ROLLENWORT[z.role] || z.role)}</span>
-        <span class="zug-status">${esc(STATUSWORT[z.status] || z.status)}${
+        ${/* ROLLE ALS MARKE, ZUSTAND ALS PUNKT -- 0.22.0 (Konzept 6.7). Die Marke
+             ist Form, keine Farbe: gefuellt, umrandet, neutral. Der Punkt
+             nimmt die drei Farben, die „aktiv", „zurueckgenommen" und
+             „wartet auf Bedienung" ohnehin schon bedeuten; an einem Zugang,
+             dessen Passwort noch niemand gesetzt hat, ist er orange und der
+             Hinweistext sagt, dass die Einladung offen ist. Das Wort bleibt
+             daneben stehen: ein Punkt allein liest kein Vorleseprogramm vor. */''}
+        <span class="zug-rolle"><span class="rolle-marke ${esc(z.role)}">${esc(ROLLENWORT[z.role] || z.role)}</span></span>
+        <span class="zug-status" title="${wartet ? 'Einladung offen' : esc(STATUSWORT[z.status] || z.status)}"><span
+          class="zug-punkt ${wartet ? 'eingeladen' : esc(z.status)}"></span>${esc(STATUSWORT[z.status] || z.status)}${
           wartet ? ' <span class="zug-wartet">· noch kein Passwort</span>' : ''}</span>
         <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
       if (darf) {
@@ -8139,12 +8470,12 @@ function ruesteZugaengeAus() {
              <option value="admin"${z.role === 'admin' ? ' selected' : ''}>Admin</option>
              <option value="eigentuemer"${z.role === 'eigentuemer' ? ' selected' : ''}>Eigentümer</option>
            </select>` : ''}
-           <button class="mact zug-s" title="${z.status === 'aktiv' ? 'Sperren' : 'Freigeben'}">${
-             z.status === 'aktiv' ? '⃠' : '✓'}</button>
+           <button class="mact zug-s" title="${z.status === 'aktiv' ? 'Sperren' : 'Entsperren'}">${
+             z.status === 'aktiv' ? ICON_SPERREN : ICON_HAKEN}</button>
            <button class="mact zug-l" title="${z.ohnePasswort ? 'Einladungslink erzeugen'
-             : 'Link zum Zurücksetzen erzeugen'}">🔗</button>
-           <button class="mact zug-p" title="Passwort direkt setzen">🔑</button>
-           <button class="mact rm zug-x" title="Zugang entfernen">✕</button>`;
+             : 'Link zum Zurücksetzen erzeugen'}">${ICON_LINK}</button>
+           <button class="mact zug-p" title="Passwort vorgeben">${ICON_SCHLUESSEL}</button>
+           <button class="mact rm zug-x" title="Benutzer löschen">${ICON_KREUZ}</button>`;
         row.appendChild(werkzeug);
 
         const rolleFeld = werkzeug.querySelector('.zug-r');
@@ -8160,10 +8491,10 @@ function ruesteZugaengeAus() {
 
         werkzeug.querySelector('.zug-s').onclick = async () => {
           const neu = z.status === 'aktiv' ? 'gesperrt' : 'aktiv';
-          if (neu === 'gesperrt' && !confirm(
-            `„${z.username}“ sperren? Die Anmeldung wird abgewiesen und die laufende Sitzung fällt. ` +
-            `Alle Beiträge bleiben stehen.`)) return;
-          try { await api('PUT', `/api/users/${z.id}`, { status: neu }); toast(neu === 'aktiv' ? 'Freigegeben' : 'Gesperrt'); }
+          if (neu === 'gesperrt' && !await confirmBox(`„${z.username}“ sperren?`,
+            'Der Benutzer wird abgemeldet und kann sich nicht mehr anmelden. Alle Beiträge bleiben erhalten.',
+            'Sperren')) return;
+          try { await api('PUT', `/api/users/${z.id}`, { status: neu }); toast(neu === 'aktiv' ? 'Entsperrt' : 'Gesperrt'); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
         };
@@ -8175,25 +8506,23 @@ function ruesteZugaengeAus() {
            danebensteht, ist er der kürzere. */
         werkzeug.querySelector('.zug-l').onclick = async () => {
           const zweck = z.ohnePasswort ? 'einladung' : 'ruecksetzung';
-          if (zweck === 'ruecksetzung' && !confirm(
-            `Link zum Zurücksetzen für „${z.username}“ erzeugen?\n\n` +
-            `Das bisherige Passwort bleibt gültig, bis der Link eingelöst wird. ` +
-            `Ein früher erzeugter Link gilt danach nicht mehr.`)) return;
+          if (zweck === 'ruecksetzung' && !await confirmBox('Link zum Zurücksetzen erzeugen?',
+            `Das bisherige Passwort von „${z.username}“ bleibt gültig, bis der Link eingelöst wird. ` +
+            `Ein früher erzeugter Link gilt danach nicht mehr.`, 'Erzeugen')) return;
           if (!await zweiteBestaetigung('link', z.id,
             zweck === 'ruecksetzung' ? 'Link zum Zurücksetzen' : 'Einladungslink',
-            `Der Link ist ein Passwortersatz auf Zeit für „${z.username}“ — wer ihn hat, ` +
-            `kommt herein und setzt das Passwort.`)) return;
+            `Wer den Link hat, kann das Passwort von „${z.username}“ setzen.`)) return;
           try { zeigeLink(await api('POST', `/api/users/${z.id}/token`, { zweck })); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
         };
 
         werkzeug.querySelector('.zug-p').onclick = async () => {
-          const neu = prompt(`Neues Passwort für „${z.username}“ (mindestens ${MIN_PASSWORT} Zeichen) — ` +
-            `der direkte Weg ohne Link. Alle Sitzungen dieses Zugangs fallen dabei.`);
+          const neu = await neuesPasswortFenster(`Passwort für „${z.username}“ setzen`,
+            `Mindestens ${MIN_PASSWORT} Zeichen. Alle Sitzungen dieses Benutzers werden beendet.`);
           if (neu === null || !neu.trim()) return;
-          if (!await zweiteBestaetigung('passwort', z.id, 'Fremdes Passwort setzen',
-            `„${z.username}“ bekommt ein neues Passwort, und alle seine Anmeldungen fallen.`)) return;
+          if (!await zweiteBestaetigung('passwort', z.id, 'Passwort vorgeben',
+            `„${z.username}“ bekommt ein neues Passwort; alle Sitzungen dieses Benutzers werden beendet.`)) return;
           try { await api('PUT', `/api/users/${z.id}`, { passwort: neu }); toast('Passwort gesetzt'); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
@@ -8203,39 +8532,20 @@ function ruesteZugaengeAus() {
           let b;
           try { b = await api('GET', `/api/users/${z.id}/bestand`); }
           catch (e) { return toast(e.message, true); }
-          // Die Zahlen VOR der Entscheidung, wie bei jeder anderen Loeschabfrage
-          // im Projekt. Ohne sie wuesste niemand, was das erste Haekchen
-          // an fremden Beitraegen mitnimmt.
-          const eintraegeWeg = confirm(
-            `„${z.username}“ entfernen.\n\n` +
-            `Der Zugang wird stillgelegt, der Name wird frei. Seine ${b.eintraege} ${vSache(b.eintraege)} ` +
-            `und seine Beiträge bleiben sichtbar und tragen künftig „Gelöschter Benutzer ${z.id}“.\n\n` +
-            `OK = seine ${b.eintraege} ${vSache(b.eintraege)} MITLÖSCHEN — samt ${b.fremdKommentare} fremden ` +
-            `Kommentaren, ${b.fremdBewertungen} fremden Bewertungen, ${b.fremdTesttage} fremden ` +
-            `${vZeit(b.fremdTesttage)}, ${b.fremdLinks} fremden Links und ${b.fremdDateien} fremden ` +
-            `Dateien daran.\nAbbrechen = stehen lassen.`);
-          const beitraegeWeg = confirm(
-            `Und seine Beiträge in fremden ${vSache(2)}?\n\n` +
-            `${b.kommentare} Kommentare, ${b.bewertungen} Bewertungen, ${b.testtage} ${vZeit(b.testtage)}, ` +
-            `${b.links} Links, ${b.dateien} Dateien.\n\n` +
-            `OK = mitlöschen.\nAbbrechen = stehen lassen.`);
-          /* DER SATZ, DER DEN UMKEHRBAREN WEG NENNT. Bis 0.12.4 sagte der
-             Dialog, dass es nicht rückgängig zu machen ist und dass der Name
-             frei wird -- er sagte NICHT, dass es daneben einen Weg gibt, der
-             beides nicht tut. Die Rückholfrist ist zur Hälfte längst gebaut,
-             sie heißt nur anders: sperren.
-             ER STEHT AN BEIDEN STELLEN, hier und im Passwortfenster darunter --
-             zwei aufeinanderfolgende Fenster, die Verschiedenes sagen, sind
-             schlimmer als eines. */
-          if (!confirm(`„${z.username}“ jetzt entfernen? Das lässt sich nicht rückgängig machen.\n\n` +
-            `Nur vorübergehend aussperren? Dann sperren statt entfernen — das ist umkehrbar, ` +
-            `und der Name bleibt.`)) return;
-          if (!await zweiteBestaetigung('entfernen', z.id, 'Zugang entfernen',
-            `„${z.username}“ wird stillgelegt; der Name wird frei. Nur vorübergehend aussperren? ` +
-            `Dann sperren statt entfernen — das ist umkehrbar, und der Name bleibt.`)) return;
+          /* EIN FENSTER MIT ZWEI HAEKCHEN -- 0.22.0, Bauabschnitt 4. Bis 0.21.1
+             standen hier drei confirm() hintereinander, und in den ersten
+             beiden hiess „Abbrechen" nicht abbrechen, sondern „stehen lassen
+             und trotzdem weiter loeschen" (Stolperstein 316). Die Zahlen
+             stehen VOR der Entscheidung, wie bei jeder Loeschabfrage im
+             Projekt; der Satz zum Sperren nennt den umkehrbaren Weg (seit
+             0.12.4). Danach, wie bisher, die Passwortabfrage. */
+          const wahl = await benutzerLoeschenFenster(z.username, z.id, b);
+          if (!wahl) return;
+          if (!await zweiteBestaetigung('entfernen', z.id, 'Benutzer löschen',
+            `„${z.username}“ wird gelöscht; der Name wird frei. Das lässt sich nicht rückgängig machen.`)) return;
           try {
-            await api('DELETE', `/api/users/${z.id}?eintraege=${eintraegeWeg ? 1 : 0}&beitraege=${beitraegeWeg ? 1 : 0}`);
-            toast('Zugang entfernt');
+            await api('DELETE', `/api/users/${z.id}?eintraege=${wahl.eintraege ? 1 : 0}&beitraege=${wahl.beitraege ? 1 : 0}`);
+            toast('Benutzer gelöscht');
           } catch (e) { toast(e.message, true); }
           zeichneZugaenge();
         };
@@ -8243,7 +8553,7 @@ function ruesteZugaengeAus() {
       box.appendChild(row);
     }
     if (!daten.zugaenge.some(z => z.status !== 'geloescht'))
-      box.innerHTML = `<span class="hint">Kein Zugang.</span>`;
+      box.innerHTML = `<span class="hint">Noch keine Benutzer.</span>`;
     zeichneGrabsteinKnopf();
   }
 
@@ -8264,8 +8574,8 @@ function ruesteZugaengeAus() {
     const b = zeile.ownerDocument.createElement('button');
     b.className = 'btn btn-ghost btn-sm';
     b.id = 'zug-weg-auf';
-    b.textContent = `Gelöschte Zugänge (${n})`;
-    b.title = 'Die Grabsteine der entfernten Zugänge ansehen';
+    b.textContent = `Gelöschte Benutzer (${n})`;
+    b.title = 'Gelöschte Benutzer ansehen';
     b.onclick = zeigeGrabsteine;
     zeile.appendChild(b);
   }
@@ -8274,12 +8584,10 @@ function ruesteZugaengeAus() {
     const dok = document;
     const bd = dok.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>Gelöschte Zugänge</h2>
-      <p>Ein entfernter Zugang wird zum <strong>Grabstein</strong>: der Name ist frei geworden,
-      und was er geschrieben hat, trägt seither „Gelöschter Benutzer &lt;Nummer&gt;“.
-      <strong>Der ursprüngliche Name steht hier nicht</strong> — die Installation bewahrt ihn nirgends
-      auf, denn der Grabstein IST das Löschen. Zurückholen lässt sich ein Zugang nicht;
-      <strong>sperren</strong> ist der umkehrbare Weg.</p>
+    bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>Gelöschte Benutzer</h2>
+      <p>Der Name ist wieder frei und wird nicht gespeichert; ihre Beiträge stehen unter
+      „Gelöschter Benutzer &lt;Nummer&gt;“. Ein gelöschter Benutzer lässt sich nicht
+      wiederherstellen — wer nur aussperren will, <strong>sperrt</strong>.</p>
       <div class="manage-list" id="grabsteinliste"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
     dok.body.appendChild(bd);
@@ -8298,7 +8606,7 @@ function ruesteZugaengeAus() {
     bd.onclick = e => { if (e.target === bd) zu(); };
     const box = bd.querySelector('#grabsteinliste');
     if (!zugGrabsteine.length) {
-      box.innerHTML = `<span class="hint">Es wurde noch kein Zugang entfernt.</span>`;
+      box.innerHTML = `<span class="hint">Es wurde noch kein Benutzer gelöscht.</span>`;
       return;
     }
     for (const z of zugGrabsteine) {
@@ -8321,38 +8629,30 @@ function karteAnfragen(geholt) {
   const { anfragen } = geholt;
   return `<div class="sys-card breit">
         <h3>Anfragen</h3>
-        <p class="desc"><strong>Niemand kommt hier herein, ohne dass ein Admin ihn hereinlässt.</strong>
-          Ist die Selbstanmeldung an, steht auf der Anmeldeseite ein Formular: Wunschname und
-          E-Mail-Adresse, kein Passwort. Wer es abschickt, bekommt zuerst eine Mail und bestätigt
-          damit, dass die Adresse ihm gehört — <strong>erst die bestätigte Anfrage erscheint
-          hier</strong>. Unbestätigte verfallen nach ${anfragen.stunden} Stunden.
-          ${anfragen.an ? '' : '<strong>Zurzeit ist sie aus</strong> — dann legt nur der Admin ' +
-            'Zugänge an, und es fehlt nichts.'}</p>
-        <div class="kv"><span class="k">Selbstanmeldung</span><span class="v" id="anf-zustand">${
+        <p class="desc"><strong>Registrierung:</strong> Wer sich auf der Anmeldeseite mit Name und
+          E-Mail meldet und die Adresse bestätigt, erscheint hier. Ein Admin schaltet frei oder
+          lehnt ab.${anfragen.an ? '' : ' <strong>Zurzeit ist die Registrierung aus.</strong>'}</p>
+        ${mehr(`Unbestätigte Anfragen verfallen nach ${anfragen.stunden} Stunden. <strong>Freischalten</strong>
+          legt einen Benutzer an und erzeugt den Einladungslink. <strong>Ablehnen</strong> entfernt
+          die Anfrage; es geht keine Nachricht hinaus.`)}
+        <div class="kv"><span class="k">Registrierung</span><span class="v" id="anf-zustand">${
           anfragen.an ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>'
         }</span></div>
         <div class="kv"><span class="k">Offene Anfragen</span><span class="v" id="anf-belegt">${
           anfragen.belegt} von höchstens ${anfragen.deckel}</span></div>
         ${anfragen.an && !anfragen.versandBereit ? `<p class="warn-box" id="anf-kaputt" style="margin:10px 0 0">
-          <strong>Der Versand trägt gerade nicht — die Selbstanmeldung bleibt trotzdem an.</strong>
-          ${esc(anfragen.versandGrund)} Solange das so ist, bekommt niemand eine Bestätigungsmail,
-          und es kann keine Anfrage entstehen. Der Schalter wird deshalb <em>nicht</em> von selbst
-          umgelegt: er steht so, wie ihr ihn gestellt habt.</p>` : ''}
+          <strong>Der Mailversand funktioniert gerade nicht — die Registrierung bleibt eingeschaltet,
+          aber niemand kann eine Anfrage stellen.</strong> ${esc(anfragen.versandGrund)}</p>` : ''}
         ${!anfragen.an && !anfragen.versandBereit ? `<p class="desc" id="anf-nichtbereit">
-          <strong>Einschalten geht erst, wenn der Versand steht.</strong>
+          <strong>Einschalten ist erst möglich, wenn der Mailversand eingerichtet ist.</strong>
           ${esc(anfragen.versandGrund)}</p>` : ''}
         <div class="row-in" style="margin-top:10px">
           <button class="btn btn-sm${anfragen.an ? '' : ' btn-accent'}" id="anf-schalter"${
             !anfragen.an && !anfragen.versandBereit ? ' disabled' : ''}>${
-            anfragen.an ? 'Selbstanmeldung ausschalten' : 'Selbstanmeldung einschalten'}</button>
+            anfragen.an ? 'Registrierung ausschalten' : 'Registrierung einschalten'}</button>
         </div>
         <div class="manage-list" id="manfragen" style="margin-top:14px"></div>
         <div id="anf-link"></div>
-        <p class="desc" style="margin:16px 0 0"><strong>Freischalten</strong> legt einen Zugang mit
-          der Rolle <strong>Benutzer</strong> an — nie mit einer anderen — und erzeugt den
-          Einladungslink, über den der Betreffende sein Passwort selbst setzt.
-          <strong>Ablehnen</strong> entfernt die Anfrage; es entsteht kein Zugang, und es geht
-          keine Nachricht hinaus.</p>
       </div>`;
 }
 function ruesteAnfragenAus(geholt) {
@@ -8370,7 +8670,7 @@ function ruesteAnfragenAus(geholt) {
          Admin, der eben umgelegt hat, einen Abschnitt weiter noch die alte
          Lage -- eine zweite Wahrheit, und zwar die falsche. */
       REGISTRIERUNG = !!d.an;
-      toast(neu ? 'Selbstanmeldung eingeschaltet' : 'Selbstanmeldung ausgeschaltet');
+      toast(neu ? 'Registrierung eingeschaltet' : 'Registrierung ausgeschaltet');
       zeichneAnfragen(d);
       const kaputt = document.getElementById('anf-kaputt');
       if (kaputt && (!d.an || d.versandBereit)) kaputt.remove();
@@ -8396,7 +8696,7 @@ function ruesteAnfragenAus(geholt) {
     if (belegt) belegt.textContent = `${stand.belegt} von höchstens ${stand.deckel}`;
     const schalter = document.getElementById('anf-schalter');
     if (schalter) {
-      schalter.textContent = stand.an ? 'Selbstanmeldung ausschalten' : 'Selbstanmeldung einschalten';
+      schalter.textContent = stand.an ? 'Registrierung ausschalten' : 'Registrierung einschalten';
       schalter.disabled = !stand.an && !stand.versandBereit;
     }
     box.innerHTML = '';
@@ -8417,17 +8717,18 @@ function ruesteAnfragenAus(geholt) {
          Systembereich, an der etwas steht, das ein Fremder getippt hat. */
       row.innerHTML = `<span class="mname">${esc(a.username)}</span>
         <span class="zug-rolle">${esc(a.email)}</span>
-        <span class="zug-status">gefragt ${esc(fmtDate(a.created_at))}</span>
+        <span class="zug-status">angefragt ${esc(fmtDate(a.created_at))}</span>
         <span class="mcount">bestätigt ${esc(fmtDate(a.bestaetigt_am))}</span>`;
       const werkzeug = dok.createElement('span');
       werkzeug.className = 'zug-akt';
       werkzeug.innerHTML =
-        `<button class="mact anf-frei" title="Freischalten — legt einen Zugang an">✓</button>
-         <button class="mact rm anf-ab" title="Ablehnen — entfernt die Anfrage">✕</button>`;
+        `<button class="mact anf-frei" title="Freischalten — legt einen Benutzer an">${ICON_HAKEN}</button>
+         <button class="mact rm anf-ab" title="Ablehnen — entfernt die Anfrage">${ICON_KREUZ}</button>`;
       row.appendChild(werkzeug);
       werkzeug.querySelector('.anf-frei').onclick = async () => {
-        if (!confirm(`„${a.username}“ freischalten? Es entsteht ein Zugang mit der Rolle ` +
-          `„Benutzer“, und der Einladungslink geht an ${a.email}.`)) return;
+        if (!await confirmBox(`„${a.username}“ freischalten?`,
+          `Es entsteht ein Benutzer mit der Rolle „Benutzer“; der Einladungslink geht an ${a.email}.`,
+          'Freischalten', 'accent')) return;
         try {
           const d = await api('POST', `/api/anfragen/${a.id}/frei`);
           toast('Freigeschaltet — der Link steht unten');
@@ -8437,8 +8738,8 @@ function ruesteAnfragenAus(geholt) {
         } catch (e) { toast(e.message, true); }
       };
       werkzeug.querySelector('.anf-ab').onclick = async () => {
-        if (!confirm(`Anfrage von „${a.username}“ ablehnen? Die Zeile wird entfernt; ` +
-          `es entsteht kein Zugang, und es geht keine Nachricht hinaus.`)) return;
+        if (!await confirmBox(`Anfrage von „${a.username}“ ablehnen?`,
+          'Die Anfrage wird entfernt; es geht keine Nachricht hinaus.', 'Ablehnen')) return;
         try {
           const d = await api('DELETE', `/api/anfragen/${a.id}`);
           toast('Anfrage abgelehnt');
@@ -8455,13 +8756,10 @@ function karteProtokoll(geholt) {
   const { protokoll } = geholt;
   return `<div class="sys-card breit">
         <h3>Sicherheitsprotokoll</h3>
-        <p class="desc">Wer Zugang hatte und wer diese Installation als Ganzes angefasst hat.
-          <strong>Was hier nicht steht:</strong> was jemand geschrieben oder bewertet hat — das ist
-          kein Änderungsverlauf, und das bleibt so. Ebenso wenig Adresse oder Browserkennung:
-          die Installation speichert beides nicht.</p>
-        <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
-          danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Sicherheitsprotokoll,
-          das sich wegräumen lässt, wäre keins.</p>
+        <p class="desc">Anmeldungen, Benutzer und Eingriffe an der Installation. <strong>Nicht
+          enthalten:</strong> Inhalte, ${esc(V.bewertungMehrzahl)}, IP-Adresse, Browser.</p>
+        <p class="desc">Die Zeilen werden nach <strong>${protokoll.tage} Tagen</strong> automatisch
+          gelöscht; ein Löschen von Hand gibt es nicht.</p>
         ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
              dieser Instanz -- man waehlt, bevor man liest. Gezeichnet wird sie
              aus einer geschlossenen Liste; die Auswahl geht an den Server,
@@ -8486,11 +8784,11 @@ function ruesteProtokollAus(geholt) {
     'anmeldung.ok': 'Angemeldet',
     'anmeldung.fehl': 'Anmeldung gescheitert',
     'bestaetigung.fehl': 'Bestätigung gescheitert',
-    'zugang.neu': 'Zugang angelegt',
+    'zugang.neu': 'Benutzer angelegt',
     'zugang.rolle': 'Rolle vergeben',
     'zugang.passwort': 'Passwort gesetzt',
-    'zugang.weg': 'Zugang entfernt',
-    'zugang.selbst': 'Eigener Zugang geändert',
+    'zugang.weg': 'Benutzer gelöscht',
+    'zugang.selbst': 'Eigenes Konto geändert',
     'link.neu': 'Link erzeugt',
     'link.ein': 'Link eingelöst',
     /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. Sie fielen auf den Rueckfall `|| z.was`
@@ -8498,29 +8796,29 @@ function ruesteProtokollAus(geholt) {
        eines Wortes. Zwanzig Vorgaenge und vierzehn Woerter: der Filter dieser
        Runde macht die Luecke unuebersehbar, gefehlt hat sie seit 0.9.1 und
        0.10.0. */
-    'anfrage.frei': 'Anfrage freigegeben',
+    'anfrage.frei': 'Anfrage freigeschaltet',
     'anfrage.ab': 'Anfrage abgelehnt',
     'zweifaktor.an': 'Zweiter Faktor eingeschaltet',
     'zweifaktor.aus': 'Zweiter Faktor ausgeschaltet',
     'zweifaktor.wieder': 'Wiederherstellungscode verbraucht',
-    'export': 'Export gezogen',
+    'export': 'Export erstellt',
     'import': 'Import eingespielt',
     'sicherung': 'Sicherung geschrieben',
     /* EINE ZEILE JE ENTFERNTER KOPIE, deshalb der Singular: vier entfernte
        Kopien sind vier Zeilen. Die Zahl steht damit in der Tabelle, ohne dass
        es eine Spalte dafuer braeuchte -- die Begruendung steht in auth.js an
        der Liste. */
-    'sicherung.weg': 'Alte Sicherung entfernt',
+    'sicherung.weg': 'Alte Sicherung gelöscht',
     // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
     // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
     // gewechselt wird auf dem Wirt.
     'schluessel': 'Schlüssel gewechselt'
   };
   // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "gesperrt"
-  // und "freigegeben" sind zwei verschiedene Aussagen und sollen auch zwei
+  // und "entsperrt" sind zwei verschiedene Aussagen und sollen auch zwei
   // verschiedene Zeilen sein.
   const vorgangsWort = (z) => z.was === 'zugang.status'
-    ? (z.merkmal === 'aktiv' ? 'Zugang freigegeben' : 'Zugang gesperrt')
+    ? (z.merkmal === 'aktiv' ? 'Benutzer entsperrt' : 'Benutzer gesperrt')
     : (VORGANGSWORT[z.was] || z.was);
   // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
   // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
@@ -8534,7 +8832,7 @@ function ruesteProtokollAus(geholt) {
      es heisst am Server "mehr als eines" und kann Name, Passwort und Adresse
      in jeder Mischung meinen -- "Name und Passwort" behauptete zwei bestimmte.
      'aktiv' UND 'gesperrt' STEHEN HIER AUSDRUECKLICH NICHT: ihr Wort traegt
-     schon der Vorgang ("Zugang gesperrt" / "Zugang freigegeben"), und zweimal
+     schon der Vorgang ("Benutzer gesperrt" / "Benutzer entsperrt"), und zweimal
      dasselbe in einer Zeile ist eines zu viel. Ein Waechter im Pruefstand
      nimmt genau diese beiden aus und verlangt fuer jedes uebrige ein Wort. */
   const MERKMALSWORT = {
@@ -8542,16 +8840,17 @@ function ruesteProtokollAus(geholt) {
     einladung: 'Einladung', ruecksetzung: 'Rücksetzung',
     merge: 'zusammengeführt', replace: 'ersetzend',
     name: 'Name', passwort: 'Passwort', adresse: 'Adresse',
-    beides: 'mehreres', teil: 'in Teilen'
+    beides: 'mehrere Angaben', teil: 'in Teilen'
   };
   const merkmalsWort = (z) => (z.was === 'zugang.status' ? '' : (MERKMALSWORT[z.merkmal] || ''));
 
-  /* WER GEHANDELT HAT. Eine leere Nummer heisst "über zugang.js auf dem Wirt"
-     -- mit genau einer Ausnahme, und die ist am Vorgang zu erkennen: bei einer
-     gescheiterten Anmeldung war niemand angemeldet. */
+  /* WER GEHANDELT HAT. Eine leere Nummer heisst "per Kommandozeile am Server"
+     (zugang.js auf dem Wirt) -- mit genau einer Ausnahme, und die ist am
+     Vorgang zu erkennen: bei einer gescheiterten Anmeldung war niemand
+     angemeldet. */
   const protHandelnder = (z) => {
     if (z.wer != null) return verfasserName({ id: z.wer, name: z.werName, geloescht: z.werName == null });
-    return z.was === 'anmeldung.fehl' ? '—' : 'über zugang.js auf dem Wirt';
+    return z.was === 'anmeldung.fehl' ? '—' : 'per Kommandozeile am Server';
   };
   const protZiel = (z) => {
     if (z.ziel == null) return z.was === 'anmeldung.fehl' ? 'unbekannter Name' : '';
@@ -8570,17 +8869,17 @@ function ruesteProtokollAus(geholt) {
     ['', 'Alle'],
     ['gescheitert', 'Gescheitert'],
     ['anmeldungen', 'Anmeldungen'],
-    ['zugaenge', 'Zugänge'],
+    ['zugaenge', 'Benutzer'],
     ['zweifaktor', 'Zweiter Faktor'],
-    ['bestand', 'Bestand']
+    ['bestand', 'Datenbank']
   ];
   const PROTOKOLL_ANSICHT_HILFE = {
     '': 'Alle Vorgänge, die jüngsten zuerst',
     gescheitert: 'Gescheiterte Anmeldungen und gescheiterte Bestätigungen',
     anmeldungen: 'Gelungene Anmeldungen',
-    zugaenge: 'Angelegt, gesperrt, entfernt, Rollen, Links und Anfragen',
+    zugaenge: 'Benutzer angelegt, gesperrt, gelöscht; Rollen, Links, Anfragen',
     zweifaktor: 'Ein- und ausgeschaltet, verbrauchte Wiederherstellungscodes',
-    bestand: 'Export, Import, Sicherung, entfernte Kopien und Schlüsselwechsel'
+    bestand: 'Export, Import, Sicherung, gelöschte Sicherungen, Schlüsselwechsel'
   };
   // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
   // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
@@ -8597,7 +8896,7 @@ function ruesteProtokollAus(geholt) {
      einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
   function springeZuZugang(id) {
     const zeile = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
-    if (!zeile) return toast('Diesen Zugang gibt es in der Liste nicht mehr.', true);
+    if (!zeile) return toast('Diesen Benutzer gibt es in der Liste nicht mehr.', true);
     zeile.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
     zeile.classList.add('mrow-blitz');
     setTimeout(() => zeile.classList.remove('mrow-blitz'), 1600);
@@ -8619,7 +8918,7 @@ function ruesteProtokollAus(geholt) {
     b.className = 'link-btn prot-sprung';
     b.dataset.mid = String(id);
     b.textContent = text;
-    b.title = 'Zu diesem Zugang springen';
+    b.title = 'Zu diesem Benutzer springen';
     b.onclick = () => springeZuZugang(id);
     feld.appendChild(b);
     return feld;
@@ -8701,7 +9000,16 @@ function ruesteProtokollAus(geholt) {
       zeile.appendChild(protNamensFeld(dok, 'prot-ziel', wen,
         z.ziel != null ? z.ziel : null, '→ '));
       const mfeld = dok.createElement('span');
-      mfeld.className = 'prot-merkmal'; mfeld.textContent = merk || '';
+      mfeld.className = 'prot-merkmal';
+      /* DIESELBE MARKE WIE IN DER BENUTZERLISTE hinter dem Rollenwort -- 0.22.0
+         (Konzept 6.7). Alles andere bleibt Text; die Marke selbst entsteht
+         als Knoten und nicht als Vorlage, der Wortlaut geht durch textContent. */
+      if (merk && ROLLENWORT[z.merkmal]) {
+        const marke = dok.createElement('span');
+        marke.className = 'rolle-marke ' + z.merkmal;
+        marke.textContent = merk;
+        mfeld.appendChild(marke);
+      } else mfeld.textContent = merk || '';
       zeile.appendChild(mfeld);
       box.appendChild(zeile);
     }
@@ -8739,10 +9047,9 @@ function karteMailversand(geholt) {
               ansieht. Bis 0.17.2 stand hier wenigstens „gesetzt" oder „nicht
               gesetzt"; die Zeile ist weg, weil sie dieselbe Frage beantwortete
               wie „Zustand" — der Dialog sagt es jetzt am Feld selbst. */''}
-        <p class="desc"><strong>E-Mail ist eine Bequemlichkeit, keine Voraussetzung.</strong>
-          Ohne Mailzugang läuft die Installation vollständig — Einladungs- und Rücksetzlinks stehen
-          dann wie bisher im Verwaltungsbereich zum Kopieren. Mit Mailzugang gehen sie
-          <em>zusätzlich</em> hinaus; schlägt das fehl, bricht nichts ab.</p>
+        <p class="desc"><strong>E-Mail ist optional.</strong> Ohne Mailzugang zeigt Kriterion
+          Einladungslinks und Links zum Zurücksetzen zum Kopieren an; mit Mailzugang werden sie
+          <em>zusätzlich</em> verschickt.</p>
         <div class="kv"><span class="k">Zustand</span><span class="v">${mailstand.eingerichtet
           ? '<strong class="mail-gut">eingerichtet</strong>'
           : '<strong class="mail-aus">nicht eingerichtet</strong>'}</span></div>
@@ -8772,10 +9079,8 @@ function karteMailversand(geholt) {
         <div class="kv"><span class="k">Zuletzt erfolgreich getestet</span><span class="v">${mailstand.getestetAm
           ? esc(mailstand.getestetAm) : 'noch nie'}</span></div>
         ${mailstand.adresseGesetzt ? '' : `<p class="warn-box" style="margin:10px 0 0">
-          <strong>Ohne <code>OEFFENTLICHE_ADRESSE</code> in der <code>.env</code> wird nichts
-          verschickt.</strong> Der Server wüsste sonst nicht, worauf der Link zeigen soll —
-          und aus dem <code>Host</code>-Kopf darf er es nicht ableiten: über einen gefälschten
-          Kopf ließe sich ein Rücksetzlink auf einen fremden Server umbiegen.</p>`}
+          <strong>Ohne die Server-Einstellung <code>OEFFENTLICHE_ADRESSE</code> wird nichts
+          verschickt:</strong> Der Server braucht sie, um gültige Links zu erzeugen.</p>`}
         ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn noch
               nichts steht, ändern, wenn etwas steht. „Speichern" hieß er bis
               0.17.2 — an einer Karte, in der die Felder schon dastanden. Ein
@@ -8789,7 +9094,7 @@ function karteMailversand(geholt) {
           <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
         </div>
         <p class="desc" style="margin:10px 0 0">Die Testmail geht <strong>ausschließlich an die
-          Adresse deines eigenen Zugangs</strong>. Antwortet der Mailserver nicht, bricht der
+          Adresse deines eigenen Kontos</strong>. Antwortet der Mailserver nicht, bricht der
           Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
         <div id="mail-ergebnis"></div>
       </div>`;
@@ -8807,7 +9112,7 @@ function mailAnbieterZeile(m) {
   const teile = [esc(m.anbieterName || m.anbieter)];
   if (m.server && m.port) {
     teile.push(`${esc(m.server)}:${m.port}`);
-    teile.push(m.sicher ? 'TLS von Anfang an' : 'STARTTLS');
+    teile.push(m.sicher ? 'SSL/TLS' : 'STARTTLS');
   }
   return teile.join(' · ');
 }
@@ -8865,11 +9170,10 @@ function mailDialog(mailstand) {
         <div class="field"><label for="mail-sicher">Verschlüsselung</label>
           <select class="input" id="mail-sicher">
             <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
-            <option value="tls"${mailstand.sicher ? ' selected' : ''}>TLS von Anfang an (meist 465)</option>
+            <option value="tls"${mailstand.sicher ? ' selected' : ''}>SSL/TLS (meist 465)</option>
           </select></div>
-        <p class="desc mail-hinweis">Immer über den SMTP-Zugang eines Anbieters, nie unmittelbar
-          vom Hausanschluss: dort fehlen rDNS und SPF/DKIM, und die Mail landet im besten Fall
-          im Spam.</p>
+        <p class="desc mail-hinweis">Immer über den SMTP-Server eines Anbieters, nicht direkt vom
+          eigenen Internetanschluss — sonst landet die Mail im Spam.</p>
       </div>
       <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
         <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
@@ -8903,7 +9207,7 @@ function mailDialog(mailstand) {
       hinweis.hidden = !(v && v.hinweis);
       festFeld.hidden = !v || eigen;
       if (v && !eigen) bd.querySelector('#mail-fest').textContent =
-        `${v.server} · ${v.port} · ${v.sicher ? 'TLS von Anfang an' : 'STARTTLS'}`;
+        `${v.server} · ${v.port} · ${v.sicher ? 'SSL/TLS' : 'STARTTLS'}`;
       eigenBox.hidden = !eigen;
       for (const id of ['benutzer', 'passwort', 'absender']) feld(id).disabled = !v;
       absenderHinweis.hidden = !v;
@@ -8941,9 +9245,9 @@ function mailDialog(mailstand) {
         passwort: feld('passwort').value,
         absender: feld('absender').value.trim()
       };
-      if (!await zweiteBestaetigung('mail', null, 'Mailzugang setzen',
-        'Über diesen Server läuft künftig JEDE Mail dieser Installation — auch jeder ' +
-        'Link, der ein Passwort setzt.')) return;
+      if (!await zweiteBestaetigung('mail', null, 'Mailzugang speichern',
+        'Über diesen Server laufen künftig alle Mails dieser Installation — auch die Links ' +
+        'zum Passwort-Setzen.')) return;
       try {
         await api('PUT', '/api/mail', koerper);
         toast('Mailzugang gespeichert');
@@ -8984,7 +9288,7 @@ function ruesteMailversandAus(geholt) {
       try {
         const r = await api('POST', '/api/mail/test', {});
         mailErgebnis(r.ok
-          ? `Die Testmail ist an ${r.an} hinausgegangen. Kommt sie an, steht der Versand.`
+          ? `Testmail an ${r.an} gesendet. Kommt sie an, funktioniert der Versand.`
           : `Der Versand ist fehlgeschlagen: ${r.grund}`, r.ok);
         if (r.ok) toast('Testmail verschickt');
       } catch (err) { mailErgebnis(err.message, false); }
@@ -9001,10 +9305,11 @@ function ruesteMailversandAus(geholt) {
    die Zeile erscheint nur, wenn es wirklich etwas gibt, und dann ist sie ein
    Befund und keine Verzierung. */
 const BILDFORMATE = [
-  { schluessel: 'png',     name: 'PNG',     hinweis: 'werden umgestellt' },
-  { schluessel: 'jpeg',    name: 'JPEG',    hinweis: 'bleiben unangetastet' },
-  { schluessel: 'webp',    name: 'WebP',    hinweis: 'liegen schon so' },
-  { schluessel: 'gif',     name: 'GIF',     hinweis: 'bleiben unangetastet' },
+  // Der Hinweis am PNG haengt am Schalter und steht deshalb in der Karte selbst.
+  { schluessel: 'png',     name: 'PNG',     hinweis: '' },
+  { schluessel: 'jpeg',    name: 'JPEG',    hinweis: 'bleibt unverändert' },
+  { schluessel: 'webp',    name: 'WebP',    hinweis: 'Zielformat' },
+  { schluessel: 'gif',     name: 'GIF',     hinweis: 'bleibt unverändert' },
   { schluessel: 'anderes', name: 'Anderes', hinweis: '' }
 ];
 
@@ -9014,10 +9319,10 @@ const BILDFORMATE = [
 function umstellungsZeile(u) {
   if (!u) return '';
   if (u.laeuft)
-    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">Umstellung läuft — ` +
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">Umwandlung läuft — ` +
            `${u.erledigt} von ${u.gesamt} …</p>`;
-  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">Umstellung fertig: ` +
-         `${u.umgestellt} von ${u.gesamt} umgestellt` +
+  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">Umwandlung fertig: ` +
+         `${u.umgestellt} von ${u.gesamt} umgewandelt` +
          (u.geblieben ? `, ${u.geblieben} blieben PNG` : '') +
          (u.gespart > 0 ? ` — ${fmtBytes(u.gespart)} gespart` : '') + `.</p>`;
 }
@@ -9058,8 +9363,8 @@ function karteKennzahlen(geholt) {
   const { stats } = geholt;
   return `<div class="sys-card">
         <h3>Kennzahlen</h3>
-        <p class="desc">Umfang des Bestands, Belegung der Datenbank, Version und Fingerprint
-          der laufenden Dateien — und ganz unten die Verfahren, mit denen gearbeitet wird.</p>
+        <p class="desc">Umfang des Bestands, Größe der Datenbank, Version — unten die
+          eingesetzten Verschlüsselungsverfahren.</p>
         <div class="kv"><span class="k">${esc(V.sacheMehrzahl)}</span><span class="v">${stats.itemCount}</span></div>
         <div class="kv"><span class="k">Fotos</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
         <div class="kv"><span class="k">Videos</span><span class="v">${stats.videoCount} · ${fmtBytes(stats.videoBytes)}</span></div>
@@ -9089,7 +9394,7 @@ function karteKennzahlen(geholt) {
              ALLES EINGERECHNET: Fotos, Videos, Dateien, Kommentarbilder. Am
              Knopf steht darunter, was die eingeschalteten Schalter davon
              wirklich mitnehmen. */''}
-        ${exportGesamt(stats) ? `<div class="kv"><span class="k">Export, alles</span><span class="v">≈ ${fmtBytes(exportGesamt(stats))}</span></div>` : ''}
+        ${exportGesamt(stats) ? `<div class="kv"><span class="k">Exportgröße (alles)</span><span class="v">≈ ${fmtBytes(exportGesamt(stats))}</span></div>` : ''}
         ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
              Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
              Einspielen wird er gegen die Zeile im Aenderungsprotokoll
@@ -9101,14 +9406,20 @@ function karteKennzahlen(geholt) {
              nach dem Einspielen nachsieht, braucht beide, und zwar
              nebeneinander. */''}
         <div class="kv"><span class="k">Version</span><span class="v">${esc(stats.version || '—')}</span></div>
-        <div class="kv"><span class="k">Fingerprint</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
+        <div class="kv"><span class="k">Prüfsumme (Fingerprint)</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
+        ${/* DER KLARTEXTSCHLUESSEL GEHOERT DEM EIGENTUEMER -- 0.22.0 (E13). Der
+             Admin sieht stattdessen einen Satz: der Schluessel liegt noch
+             neben der Datenbank, und der Eigentuemer sollte das aendern. Der
+             Befehl steht im Kasten „Auf dem Server" (Regel S5). */''}
         <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht in dieselbe Sicherung legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
-          : `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.
+          ? `<div class="ok-box">Der Schlüssel kommt aus der Server-Einstellung <code>ENCRYPTION_KEY</code>. <strong><code>.env</code> und <code>data/</code> nie in dieselbe Sicherung legen</strong> — ohne Schlüssel sind die Daten verloren.</div>`
+          : (EIGENTUEMER
+            ? `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.
               <p style="margin:9px 0 6px">Für echten Schutz <strong>diesen</strong> Wert in die <code>.env</code> eintragen — keinen neuen erzeugen, sonst sind die vorhandenen Daten nicht mehr lesbar:</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
-              <p style="margin:8px 0 0">Danach <code>docker compose up -d</code> und im Protokoll „Schlüssel aus ENCRYPTION_KEY geladen" prüfen — <strong>erst dann</strong> <code>data/encryption.key</code> entfernen.</p>
-            </div>`}
+              ${serverKasten('Danach neu starten und im Server-Log „Schlüssel aus ENCRYPTION_KEY geladen“ prüfen — erst dann data/encryption.key löschen:', 'docker compose up -d')}
+            </div>`
+            : `<div class="warn-box"><strong>Der Schlüssel liegt noch neben der Datenbank</strong> (data/encryption.key). Der Eigentümer sollte ihn in die Server-Einstellung <code>ENCRYPTION_KEY</code> übernehmen.</div>`)}
         </div>
         ${/* ---- DIE VERFAHREN ----
              AUS DEM BETRIEB: „was benutzt ihr eigentlich?" Die Antwort stand
@@ -9128,7 +9439,7 @@ function karteKennzahlen(geholt) {
              geoeffnete Datei selbst fragt. Eine Kopie hier liefe beim naechsten
              Wechsel auseinander. */''}
         ${stats.verfahren ? `<div class="sys-teil"></div>
-        <h4 class="sys-unter">Verfahren</h4>
+        <h4 class="sys-unter">Technische Verfahren</h4>
         ${/* SIE HEISST „Verschlüsselung" UND NICHT „Datenbank": eine Zeile mit
              dieser Beschriftung steht in derselben Karte schon — die
              Belegung auf der Platte. Zwei Zeilen mit demselben Wort in einer
@@ -9136,12 +9447,9 @@ function karteKennzahlen(geholt) {
              falsche. */''}
         <div class="kv"><span class="k">Verschlüsselung</span><span class="v">${esc(stats.verfahren.cipher || '—')}</span></div>
         <div class="kv"><span class="k">Schlüssel</span><span class="v">${
-          stats.verfahren.schluesselBits ? `${stats.verfahren.schluesselBits} Bit roh` : '—'}</span></div>
-        <div class="kv"><span class="k">Journal</span><span class="v">${esc(stats.verfahren.journal || '—')}</span></div>
-        <div class="kv"><span class="k">Passwörter</span><span class="v">${esc(stats.verfahren.passwoerter || '—')}</span></div>
-        <p class="desc" style="margin:10px 0 0">Der Schlüssel geht <strong>roh</strong> in die
-          Datenbank (<code>PRAGMA key = x'…'</code>) — ohne Ableitung, weil er kein Passwort ist,
-          sondern schon 256 Zufallsbits trägt.</p>` : ''}
+          stats.verfahren.schluesselBits ? `${stats.verfahren.schluesselBits} Bit (Zufallsschlüssel)` : '—'}</span></div>
+        <div class="kv"><span class="k">Journal (SQLite)</span><span class="v">${esc(stats.verfahren.journal || '—')}</span></div>
+        <div class="kv"><span class="k">Passwörter</span><span class="v">${esc(stats.verfahren.passwoerter || '—')}</span></div>` : ''}
       </div>`;
 }
 
@@ -9182,34 +9490,32 @@ function karteBildablage(geholt) {
   // wie ein Fehler.
   const laeuft = !!(stats.umstellung && stats.umstellung.laeuft);
   return `<div class="sys-card">
-        <h3>Bildablage</h3>
-        <p class="desc">Die <strong>Originale</strong> der Fotos am
-          ${esc(V.sacheEinzahl)}, nach Format. Die beiden Ableitungen sind immer JPEG und
-          stehen hier nicht: die kleine ist <em>512 × 512</em> und trägt den eingestellten
-          Bildausschnitt bereits eingerechnet, die große 1600 px auf der <em>langen</em> Kante
-          und ungeschnitten.</p>
+        <h3>Bildformate</h3>
+        <p class="desc">Original-Fotos nach Format. Die automatisch erzeugten Vorschaubilder
+          (JPEG) sind nicht mitgezählt.</p>
         ${zeilen.length ? zeilen.map(f => {
           const z = bf[f.schluessel];
+          // Der Hinweis am PNG sagt nur dann etwas, wenn die Umwandlung an ist.
+          const hinweis = f.schluessel === 'png'
+            ? (BILDER_UMWANDELN ? 'wird beim Upload zu WebP' : '') : f.hinweis;
           return `<div class="kv"><span class="k">${f.name}${
-            f.hinweis ? ` <span class="zusatz">— ${f.hinweis}</span>` : ''
+            hinweis ? ` <span class="zusatz">— ${hinweis}</span>` : ''
           }</span><span class="v">${z.anzahl} · ${fmtBytes(z.bytes)}</span></div>`;
-        }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">Es liegt noch kein Foto am
-          ${esc(V.sacheEinzahl)}.</p>`}
+        }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">Noch keine Fotos.</p>`}
         ${EIGENTUEMER ? `
         <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="bild-umwandeln">
-          PNG-Originale beim Hereinkommen umwandeln</label>
+          PNG-Fotos beim Upload in WebP umwandeln</label>
         ${/* WAS DER SCHALTER TUT, UND WAS ER NICHT TUT. Der Satz nennt beides:
              ein eingefügtes Bildschirmfoto liegt danach als WebP da, und die
              Güte bleibt dabei erhalten. Ohne Häkchen bleibt jedes PNG
              byte-genau, wie es hereinkam. */''}
-        <p class="hint hint-sm" style="margin:6px 2px 0">Ein mit Strg+V eingefügtes
-          Bildschirmfoto kommt als PNG herein und wird als WebP abgelegt — rund zwei Drittel
-          kleiner, ohne sichtbaren Verlust. JPEG, GIF und vorhandenes WebP bleiben unberührt.
-          Ohne Häkchen bleibt jedes PNG byte-genau so liegen, wie es ankam.</p>
+        <p class="hint hint-sm" style="margin:6px 2px 0">Eingefügte Screenshots (PNG) werden als
+          WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und
+          WebP bleiben unverändert.</p>
         <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>Alle PNG nach WebP umstellen</button>
+          <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>Alle PNG in WebP umwandeln</button>
         </div>
-        ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">Es liegt kein PNG-Original mehr da.</p>`}
+        ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">Keine PNG-Fotos mehr vorhanden.</p>`}
         ${umstellungsZeile(stats.umstellung)}
         ${geometrieZeile(stats.geometrie)}` : ''}
       </div>`;
@@ -9226,11 +9532,11 @@ function karteBildablage(geholt) {
    Dinge zaehlen. Was sie teilen, ist der Takt und die Abfrage. */
 const BESTANDSLAEUFE = [
   { feld: 'umstellung', id: 'bild-lauf',
-    text: (u) => `Umstellung läuft — ${u.erledigt} von ${u.gesamt} …`,
-    fertig: 'Die Bildumstellung ist fertig' },
+    text: (u) => `Umwandlung läuft — ${u.erledigt} von ${u.gesamt} …`,
+    fertig: 'Umwandlung abgeschlossen' },
   { feld: 'geometrie', id: 'geo-lauf',
-    text: (g) => `Vorschaubilder werden nachgezogen — ${g.erledigt} von ${g.gesamt} …`,
-    fertig: 'Die Vorschaubilder sind nachgezogen' }
+    text: (g) => `Vorschaubilder werden erneuert — ${g.erledigt} von ${g.gesamt} …`,
+    fertig: 'Vorschaubilder erneuert' }
 ];
 
 /* DIE UHR, DIE DEN LAEUFEN ZUSIEHT. Sie steht ausserhalb der Karte, weil es
@@ -9308,14 +9614,11 @@ function ruesteBildablageAus(geholt) {
          KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE, aus demselben Grund: sie
          waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
          eine Anzeige, die bei jedem Umlauf springt. */
-      const ok = await zweiteBestaetigung('bilder', null, 'Bildablage umstellen',
-        `${png.anzahl} PNG-Original${png.anzahl === 1 ? '' : 'e'} ` +
-        `(${fmtBytes(png.bytes)}) ${png.anzahl === 1 ? 'wird' : 'werden'} nahezu verlustfrei ` +
-        `zu WebP umgewandelt und ersetzt — erwartet rund ` +
-        `${fmtBytes(Math.round(png.bytes * 0.37))}. Zurück führt nur eine Sicherung des ` +
-        `Datenverzeichnisses, die vorher angelegt wurde. ` +
-        `Wie lange das dauert, lässt sich nicht vorhersagen — plane ein Zeitfenster ein, ` +
-        `das den Betrieb am wenigsten stört (je nach Größe des Bestands bis zu Stunden).`);
+      const ok = await zweiteBestaetigung('bilder', null, 'PNG in WebP umwandeln',
+        `${png.anzahl} PNG-Foto${png.anzahl === 1 ? '' : 's'} (${fmtBytes(png.bytes)}) ` +
+        `${png.anzahl === 1 ? 'wird' : 'werden'} umgewandelt, die Originale ersetzt (danach etwa ` +
+        `${fmtBytes(Math.round(png.bytes * 0.37))}). Rückgängig nur mit einer vorher angelegten ` +
+        `Sicherung. Dauer: Minuten bis Stunden.`);
       if (!ok) return;
       try { await api('POST', '/api/bilder/umstellen', {}); }
       catch (e) { return toast(e.message, true); }
@@ -9340,15 +9643,15 @@ function ruesteBildablageAus(geholt) {
 function karteSicherung() {
   return `<div class="sys-card">
         <h3>Sicherung</h3>
-        <p class="desc"><strong>Der Sicherungsweg</strong> — eine vollständige, verschlüsselte
-          Kopie der Datenbank, samt allem, was der Export nicht mitnimmt. Sie braucht beim
-          Schreiben keinen nennenswerten Arbeitsspeicher, überlebt aber keinen Formatwechsel.</p>
+        <p class="desc"><strong>Sicherung:</strong> vollständige, verschlüsselte
+          Kopie der Datenbank — auch mit dem, was der Export nicht enthält. Lässt sich
+          nur in dieselbe Programmversion zurückspielen.</p>
         ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
              Dokumentation: die Kopie ist ohne .env wertlos. Das ist dieselbe
              Falle, die die README ausfuehrlich beschreibt -- hier steht sie an
              der Stelle, an der jemand sie tatsaechlich tappt. */''}
-        <div class="warn-box" style="margin:0 0 14px"><strong>Die Kopie ist verschlüsselt.</strong>
-          Ohne den Schlüssel aus der <code>.env</code> lässt sie sich nicht öffnen — und beides
+        <div class="warn-box" style="margin:0 0 14px"><strong>Die Sicherung ist verschlüsselt.</strong>
+          Ohne den Schlüssel aus der <code>.env</code> lässt sie sich nicht öffnen — beides
           gehört nicht an denselben Ort.</div>
         <div id="sicherung-box"></div>
       </div>`;
@@ -9367,7 +9670,7 @@ function ruesteSicherungAus(geholt) {
     if (!box) return;
     const d = geholt.sicherung || {};
     if (!d.eingerichtet) {
-      box.innerHTML = `<div class="warn-box">${esc(d.grund || 'Es ist kein Sicherungsort eingerichtet.')}</div>`;
+      box.innerHTML = `<div class="warn-box">${esc(d.grund || 'Es ist kein Sicherungsordner eingerichtet.')}</div>`;
       return;
     }
     /* DIESE KARTE SAGT SEIT 0.20.0 NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG.
@@ -9388,12 +9691,12 @@ function ruesteSicherungAus(geholt) {
     const stand = d.fehler
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler)}</div>`
       : (!d.erreichbar
-        ? `<div class="warn-box" style="margin:0 0 12px">Der Zielort ist nicht erreichbar.</div>`
+        ? `<div class="warn-box" style="margin:0 0 12px">Der Sicherungsordner ist nicht erreichbar.</div>`
         : (letzte
           ? `<div class="kv"><span class="k">Letzte Sicherung</span><span class="v">vor ${letzte.tageHer} ${letzte.tageHer === 1 ? 'Tag' : 'Tagen'}</span></div>
              <div class="kv"><span class="k">Datei</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
              <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>`
-          : `<p class="desc" style="margin:0 0 12px">An diesem Ort liegt noch keine Sicherung.</p>`));
+          : `<p class="desc" style="margin:0 0 12px">Hier gibt es noch keine Sicherung.</p>`));
 
     /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt,
        öffnen sich die Kopien von vorher nur noch mit dem ALTEN. Sie sind nicht
@@ -9410,23 +9713,19 @@ function ruesteSicherungAus(geholt) {
        nennt den Weg, der ihn beim Wechsel genannt hat. */
     const wechsel = !d.gewechseltAm ? '' : (
       letzte && letzte.veraltet
-        ? `<div class="warn-box" style="margin:0 0 12px"><strong>Keine dieser Kopien passt zum
-             heutigen Schlüssel.</strong> Gewechselt wurde am ${esc(fmtDate(d.gewechseltAm))}; auch
-             die jüngste Sicherung ist älter. Sie öffnet sich nur mit dem <strong>alten</strong>
-             Schlüssel — <code>./schluessel.sh</code> hat ihn beim Wechsel genannt und, wenn er aus
-             der <code>.env</code> kam, dort auskommentiert stehen lassen.
-             <strong>Sicher jetzt neu</strong>, dann liegt wieder eine Kopie da, die zur laufenden
-             Installation gehört.</div>`
+        ? `<div class="warn-box" style="margin:0 0 12px"><strong>Keine Sicherung passt zum aktuellen
+             Schlüssel</strong> (gewechselt am ${esc(fmtDate(d.gewechseltAm))}). Ältere Sicherungen
+             öffnen sich nur mit dem alten Schlüssel — bewahre ihn in einem Passwort-Manager auf.
+             <strong>Bitte jetzt neu sichern.</strong></div>`
         : (d.veraltet
           ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
-               ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>
+               ? 'Sicherung stammt' : 'Sicherungen stammen'} von vor dem Schlüsselwechsel</strong>
                (${esc(fmtDate(d.gewechseltAm))}). ${d.veraltet === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich
-               nur mit dem <strong>alten</strong> Schlüssel. <strong>Heb ihn auf</strong> — kam er aus
-               der <code>.env</code>, steht er dort auskommentiert; er gehört in den
-               Passwortspeicher.</div>`
+               nur mit dem <strong>alten</strong> Schlüssel — bewahre ihn in einem Passwort-Manager
+               auf.</div>`
           : `<div class="ok-box" style="margin:0 0 12px">Der Schlüssel wurde am
-               ${esc(fmtDate(d.gewechseltAm))} gewechselt. Alle Kopien an diesem Ort sind
-               jünger und passen zum heutigen Schlüssel.</div>`));
+               ${esc(fmtDate(d.gewechseltAm))} gewechselt. Alle Sicherungen hier sind jünger und
+               passen zum aktuellen Schlüssel.</div>`));
     /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
        ist die Frage, die vor allen anderen steht. Ein Ort im
        Arbeitsverzeichnis ist erlaubt und wird nicht abgewiesen -- er wird
@@ -9434,32 +9733,25 @@ function ruesteSicherungAus(geholt) {
        Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
        sonst liest ihn beim nächsten Umbau niemand mehr. */
     const lage = d.imArbeitsverzeichnis
-      ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>Der Sicherungsort liegt im
-           Arbeitsverzeichnis.</strong> Dringend empfohlen ist er daneben. Er teilt hier das
-           Schicksal des Projektverzeichnisses: beim Einspielen einer neuen Version wird das
-           umbenannt, und die Sicherungen wandern mit — der Weg in der README holt sie eigens
-           zurück. Ein Fehlgriff am Projektordner nähme Original und Sicherung auf einmal,
-           und beide liegen ohnehin auf derselben Platte. Umgestellt wird es in der
-           <code>docker-compose.yml</code>; dort steht, wie.</div>`
-      : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">Der Sicherungsort liegt <strong>außerhalb
-           des Arbeitsverzeichnisses</strong>. So bleibt er unberührt, wenn das
-           Projektverzeichnis beim Einspielen einer neuen Version umbenannt oder ersetzt
-           wird.</div>`;
+      ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>Der Sicherungsordner liegt im
+           Projektordner von Kriterion.</strong> Empfohlen ist ein Ordner außerhalb, am besten auf
+           einer anderen Platte — sonst gehen bei einem Fehler am Projektordner Original und
+           Sicherung zugleich verloren. Einstellung: <code>docker-compose.yml</code>.</div>`
+      : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">Der Sicherungsordner liegt
+           <strong>außerhalb des Projektordners</strong> — so bleibt er bei Updates unberührt.</div>`;
     box.innerHTML = `
       ${lage}
-      <div class="field"><label>Zielort</label>
+      <div class="field"><label>Sicherungsordner</label>
         <p class="desc" style="margin:0 0 6px">Eingerichtet ist <code>${esc(d.wurzel || '')}</code>.
-          Darunter lässt sich ein Unterverzeichnis wählen; es muss dort schon liegen —
-          angelegt wird keines.</p>
-        <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="(der eingerichtete Ort selbst)"
+          Optional ein vorhandener Unterordner:</p>
+        <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="(kein Unterordner)"
           autocapitalize="off" spellcheck="false"></div>
-      <button class="btn btn-sm" id="sich-ort-save">Zielort speichern</button>
+      <button class="btn btn-sm" id="sich-ort-save">Speichern</button>
       <div class="sys-teil"></div>
       ${stand}
       ${wechsel}
-      <p class="desc" style="margin:0 0 10px">Während die Kopie entsteht, <strong>steht die
-        Installation still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
-        ${d.dauerSekunden} Sekunden.</p>
+      <p class="desc" style="margin:0 0 10px">Während der Sicherung ist Kriterion <strong>kurz nicht
+        erreichbar</strong> — bei ${fmtBytes(d.dbBytes)} etwa ${d.dauerSekunden} Sekunden.</p>
       <button class="btn btn-accent btn-sm" id="sich-los">Jetzt sichern</button>`;
 
     document.getElementById('sich-ort-save').onclick = async () => {
@@ -9472,7 +9764,7 @@ function ruesteSicherungAus(geholt) {
         geholt.sicherung = { ...geholt.sicherung, ort: r.ort, pfad: r.pfad, fehler: null,
                       erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
                       gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
-        toast('Zielort gespeichert');
+        gespeichert();
         drawSicherung(geholt);
       } catch (e) { toast(e.message, true); }
     };
@@ -9493,8 +9785,8 @@ function ruesteSicherungAus(geholt) {
            selben Satz dahinter. */
         toast(`Sicherung geschrieben: ${r.datei} (${fmtBytes(r.bytes)})` +
               (r.aufgeraeumt && r.aufgeraeumt.weg
-                ? ` · ${r.aufgeraeumt.weg} alte ${r.aufgeraeumt.weg === 1 ? 'Kopie' : 'Kopien'} ` +
-                  `entfernt, ${fmtBytes(r.aufgeraeumt.bytes)} frei`
+                ? ` · ${r.aufgeraeumt.weg} alte ${r.aufgeraeumt.weg === 1 ? 'Sicherung' : 'Sicherungen'} ` +
+                  `gelöscht, ${fmtBytes(r.aufgeraeumt.bytes)} frei`
                 : ''));
         /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU --
            dieselbe Bauform wie bei der Bildumstellung, und aus demselben
@@ -9548,9 +9840,8 @@ function karteAufraeumen() {
              Bildschirm zu viel. Aus dem Betrieb: „der Text vom GUI muss so kurz
              wie moeglich sein und dennoch muss zu verstehen sein, was gemeint
              ist." */''}
-        <p class="desc">Entfernt alte Sicherungen am Sicherungsort —
-          <strong>unwiderruflich</strong>. Gelöscht wird nur, was dem Namensschema der
-          Installation entspricht.</p>
+        <p class="desc">Löscht alte Sicherungen im Sicherungsordner — <strong>endgültig</strong>.
+          Gelöscht werden nur Sicherungen, die Kriterion selbst angelegt hat.</p>
         <div id="aufraeumen-box"></div>
       </div>`;
 }
@@ -9574,8 +9865,8 @@ function ruesteAufraeumenAus(geholt) {
        Schalter, der nie greifen kann, verspricht etwas und haelt es nie -- und
        die Karte darueber nennt den Weg zum Einhaengepunkt ohnehin schon. */
     if (!d.eingerichtet) {
-      box.innerHTML = `<div class="warn-box">Es ist kein Sicherungsort eingerichtet — die Karte
-        <strong>Sicherung</strong> darüber sagt, wie er eingehängt wird.</div>`;
+      box.innerHTML = `<div class="warn-box">Es ist kein Sicherungsordner eingerichtet (siehe Karte
+        <strong>Sicherung</strong>).</div>`;
       return;
     }
     const gB = (a.grenzen && a.grenzen.behalten) || { min: 1, max: 20, vorgabe: 3 };
@@ -9616,11 +9907,11 @@ function ruesteAufraeumenAus(geholt) {
 
     const liste = !a.erreichbar
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler ||
-           'Der Zielort ist nicht erreichbar.')}</div>`
+           'Der Sicherungsordner ist nicht erreichbar.')}</div>`
       : (alle.length
         ? `<div class="label" style="margin:0 0 6px">Sicherungen (${alle.length})</div>
            <div class="manage-list" id="auf-liste">${alle.map(zeile).join('')}</div>`
-        : `<p class="hint hint-sm" style="margin:2px 2px 0">Am Sicherungsort liegt noch
+        : `<p class="hint hint-sm" style="margin:2px 2px 0">Im Sicherungsordner gibt es noch
              keine Sicherung.</p>`);
 
     /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und in
@@ -9643,8 +9934,7 @@ function ruesteAufraeumenAus(geholt) {
       <div class="sys-teil"></div>
       <p class="desc" style="margin:0 0 8px"><strong>${altZahl} ${altZahl === 1
         ? 'Sicherung öffnet' : 'Sicherungen öffnen'} sich nur mit dem alten Schlüssel</strong>
-        (${esc(fmtBytes(a.altBytes || 0))}). Die Regel lässt ${altZahl === 1 ? 'sie' : 'sie'}
-        liegen.</p>
+        (${esc(fmtBytes(a.altBytes || 0))}). Das automatische Aufräumen löscht sie nicht.</p>
       <div class="row-in">
         <button class="btn btn-sm" id="auf-alt">${altZahl} ${altZahl === 1
           ? 'Sicherung' : 'Sicherungen'} mit altem Schlüssel löschen</button>
@@ -9658,13 +9948,13 @@ function ruesteAufraeumenAus(geholt) {
       <p class="hint hint-sm" style="margin:6px 2px 0">Ohne Häkchen nur auf Knopfdruck.</p>
       <div class="sys-teil"></div>
       <div class="field"><label for="auf-behalten">Mindestens behalten</label>
-        <p class="desc" style="margin:0 0 6px">So viele Sicherungen bleiben immer liegen.
+        <p class="desc" style="margin:0 0 6px">So viele Sicherungen bleiben immer erhalten.
           ${gB.min} bis ${gB.max}.</p>
         <input class="input" id="auf-behalten" type="number" inputmode="numeric"
           min="${gB.min}" max="${gB.max}" step="1" value="${behalten}"></div>
       <div class="field"><label for="auf-tage">Löschen ab Alter (Tage)</label>
         <p class="desc" style="margin:0 0 6px">Erst danach darf eine Sicherung gelöscht werden —
-          und nur, wenn mehr als ${behalten} liegen. ${gT.min} bis ${gT.max}.</p>
+          und nur, wenn mehr als ${behalten} vorhanden sind. ${gT.min} bis ${gT.max}.</p>
         <input class="input" id="auf-tage" type="number" inputmode="numeric"
           min="${gT.min}" max="${gT.max}" step="1" value="${tage}"></div>
       <div class="sys-teil"></div>
@@ -9735,7 +10025,7 @@ function ruesteAufraeumenAus(geholt) {
             geholt.sicherung = { ...geholt.sicherung,
                                  aufraeumen: { ...(geholt.sicherung || {}).aufraeumen,
                                                [id === 'auf-behalten' ? 'behalten' : 'tage']: n } };
-            toast('Gespeichert');
+            gespeichert();
           } catch (e) { toast(e.message, true); }
         };
       });
@@ -9757,7 +10047,7 @@ function ruesteAufraeumenAus(geholt) {
                            zahl: r.zahl, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
                            aufraeumen: { ...(geholt.sicherung || {}).aufraeumen, ...r.aufraeumen } };
       toast(`${r.weg} ${r.weg === 1 ? 'Sicherung' : 'Sicherungen'} gelöscht (${
-        fmtBytes(r.bytes)} frei)${r.nicht ? ` — ${r.nicht} nicht` : ''}`);
+        fmtBytes(r.bytes)} frei)${r.nicht ? ` — ${r.nicht} nicht gelöscht` : ''}`);
       /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
          andere sein. Zwei Staende nebeneinander stehen zu lassen waere genau
          die zweite Wahrheit, gegen die diese Runde gebaut ist -- also die
@@ -9767,16 +10057,14 @@ function ruesteAufraeumenAus(geholt) {
     amElement('auf-los', (knopf) => {
       knopf.onclick = () => raeume('regel', 'Sicherungen löschen',
         `${treffer.length} ${treffer.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
-        `(${fmtBytes(a.bytes || 0)}) ${treffer.length === 1 ? 'wird' : 'werden'} gelöscht. ` +
-        `Zurück führt nichts. Welche es sind, rechnet der Server im Augenblick des Löschens ` +
-        `noch einmal aus; die Antwort nennt, was wirklich weg ist.`);
+        `(${fmtBytes(a.bytes || 0)}) ${treffer.length === 1 ? 'wird' : 'werden'} endgültig gelöscht.`);
     });
     amElement('auf-alt', (knopf) => {
       knopf.onclick = () => raeume('veraltet', 'Sicherungen mit altem Schlüssel löschen',
         `${altZahl} ${altZahl === 1 ? 'Sicherung' : 'Sicherungen'} von vor dem ` +
         `Schlüsselwechsel (${fmtBytes(a.altBytes || 0)}) ${altZahl === 1 ? 'wird' : 'werden'} ` +
-        `gelöscht. ${altZahl === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich nur mit dem alten ` +
-        `Schlüssel — hast du ihn noch, dann jetzt nicht löschen.`);
+        `endgültig gelöscht. ${altZahl === 1 ? 'Sie lässt' : 'Sie lassen'} sich nur mit dem alten ` +
+        `Schlüssel öffnen.`);
     });
   }
 
@@ -9789,12 +10077,10 @@ function karteExport(geholt) {
         ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. Wer
              Export und Sicherung nebeneinander sieht, muss ohne Rueckfrage
              wissen, welche er will. Ein Satz je Karte, und er steht hier. */''}
-        <p class="desc"><strong>Der Austauschweg</strong> — für Umzug, Archiv und die Weitergabe:
-          die Datei überlebt einen Formatwechsel und braucht keinen Schlüssel. Für den Notfall
-          ist die Karte <strong>Sicherung</strong> zuständig.</p>
-        <p class="desc">Schreibt den gesamten Bestand in eine Datei. Mit Fotos wird sie deutlich
-          größer, weil Bilder als Text kodiert werden müssen — rechne mit rund einem Drittel
-          Aufschlag auf ${fmtBytes(stats.photoBytes)}.</p>
+        <p class="desc"><strong>Export:</strong> für Umzug, Archiv und Weitergabe — unverschlüsselt,
+          auch mit späteren Versionen lesbar. Für den Notfall: Karte <strong>Sicherung</strong>.</p>
+        <p class="desc">Schreibt den gesamten Bestand in eine Datei; die erwartete Größe steht an
+          den Knöpfen.</p>
         ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. Sie standen bisher fest im
              Text und rechneten dabei jede fuer sich -- die Haekchen darunter
              aenderten die Datei, aber keine Zahl. Wer beide Haekchen setzte,
@@ -9815,7 +10101,7 @@ function karteExport(geholt) {
         <label class="ex-files"><input type="checkbox" id="ex-videos">
           Videos mitnehmen (+${fmtBytes(stats.export?.videos || 0)})</label>
         ${stats.videoCount ? `<p class="hint hint-sm" style="margin:6px 2px 0">
-          Ohne Häkchen bleiben die Videos zurück; die Einträge nennen sie, die Dateien fehlen.</p>` : ''}
+          Ohne Häkchen werden Videos nicht mitgenommen; es bleibt nur der Verweis darauf.</p>` : ''}
         ${/* DER HINWEIS STEHT VOR DEM KNOPF UND NICHT HINTER DEM ABBRUCH. Ein
              Export, der nach zwei Minuten mit einem Speicherfehler aufgibt,
              sieht aus wie ein kaputtes Programm; er ist aber eine erreichte
@@ -9862,10 +10148,9 @@ function karteExport(geholt) {
              wo sie war: in askImport(). */''}
         <div class="sys-teil"></div>
         <h4 class="sys-unter">Import</h4>
-        <p class="desc">Spielt eine zuvor erzeugte Exportdatei wieder ein. <strong>Der Export
-          liest, der Import schreibt</strong> — je nach Betriebsart führt er zusammen oder
-          <strong>ersetzt den vorhandenen Bestand</strong>. Gefragt wird vor dem Start, und
-          danach ein zweites Mal nach dem Passwort.</p>
+        <p class="desc">Spielt eine Exportdatei ein — entweder zusammenführen oder den
+          <strong>vorhandenen Bestand ersetzen</strong>. Vorher wird nachgefragt und das Passwort
+          verlangt.</p>
         <label class="drop drop-leise" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
           Exportdatei auswählen</label>
       </div>`;
@@ -9901,8 +10186,8 @@ function ruesteExportAus(geholt) {
      der Browser los. */
   const exportLos = async (mitFotos) => {
     if (!await zweiteBestaetigung('export', null, 'Export bestätigen',
-      'Der Export schreibt den gesamten Bestand in eine Datei, die das Haus verlässt — ' +
-      'mit allen Fotos, allen Anhängen und den Namen aller Verfasser.')) return;
+      'Der Export schreibt den gesamten Bestand unverschlüsselt in eine Datei — mit allen ' +
+      'Fotos, Anhängen und Verfassernamen.')) return;
     window.location = `/api/export?photos=${mitFotos ? 1 : 0}` + mitDateien();
   };
 
@@ -9933,17 +10218,13 @@ function ruesteExportAus(geholt) {
       // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
       const auchOhne = ohne > ex.warnAb;
       kasten.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
-        <strong>Export mit Fotos: rund ${esc(fmtBytes(mit))}.</strong>
-        Eine Exportdatei ist ein einziger Text, und der kann nicht größer als
-        ${esc(fmtBytes(ex.string))} werden — ${auchOhne
-          ? `auch ohne Fotos bleiben noch rund ${esc(fmtBytes(ohne))}.`
-          : `ohne Fotos bleiben rund ${esc(fmtBytes(ohne))}.`}
-        <p style="margin:9px 0 0"><strong>Der Weg dafür steht darunter: „In Teilen
-        exportieren".</strong> Jeder Teil ist eine vollständige Exportdatei, und der Import
-        nimmt sie mit „Zusammenführen" wieder auf. Für eine Kopie zum Zurückspielen ist
-        die Karte <strong>Sicherung</strong> der kürzere Weg.</p>
-        <p style="margin:9px 0 0"><strong>Der Knopf oben bleibt trotzdem</strong> — die Zahl
-        ist eine Schätzung, und wer weiß, was er tut, soll es versuchen dürfen.</p></div>`;
+        <strong>Export mit Fotos: rund ${esc(fmtBytes(mit))}</strong> — mehr als die Höchstgröße
+        von ${esc(fmtBytes(ex.string))} je Datei (${auchOhne
+          ? `auch ohne Fotos noch rund ${esc(fmtBytes(ohne))}`
+          : `ohne Fotos rund ${esc(fmtBytes(ohne))}`}).
+        <p style="margin:9px 0 0">Nutze <strong>„In Teilen exportieren"</strong>; jeder Teil ist
+        eine vollständige Exportdatei. Für eine Sicherung ist die Karte
+        <strong>Sicherung</strong> einfacher.</p></div>`;
     });
   }
 
@@ -9983,7 +10264,7 @@ function ruesteExportAus(geholt) {
     kasten.innerHTML = `${zuGross}
       ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${n} ${n === 1 ? 'Teil' : 'Teile'}</strong>,
         je höchstens ${esc(fmtBytes(plan.zielGroesse))}. <strong>Jeder Teil ist eine vollständige
-        Exportdatei</strong> — geschnitten wird zwischen ${esc(V.sacheMehrzahl)}, nie mitten hinein.</p>
+        Exportdatei.</strong></p>
       <div class="manage-list" id="ex-teil-liste">${plan.teile.map(t => `
         <div class="mrow">
           <span class="mname">Teil ${t.nr} — ${t.anzahl} ${t.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
@@ -9998,9 +10279,9 @@ function ruesteExportAus(geholt) {
            WAS EIN MENSCH WISSEN MUSS, sind zwei Dinge: dass EINMAL gefragt
            wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
            Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 6px">Ein Export nimmt den Bestand
-        mit aus dem Haus. Deshalb fragt die Installation einmal nach deinem Passwort${ZWEIFAKTOR
-          ? ' und dem Code deines zweiten Faktors' : ''} — danach lädst du jeden Teil selbst.</p>
+      <p class="hint hint-sm" style="margin:10px 2px 6px">Vor dem Export wird einmal dein
+        Passwort${ZWEIFAKTOR ? ' und der Zwei-Faktor-Code' : ''} abgefragt; danach lädst du jeden
+        Teil einzeln.</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
         Einmal bestätigen, dann ${n === 1 ? 'den Teil' : `alle ${n} Teile`} laden</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
@@ -10032,7 +10313,7 @@ function ruesteExportAus(geholt) {
         window.location = `/api/export?${teilSchalter()}` +
           `&von=${k.dataset.von}&bis=${k.dataset.bis}&teil=${k.dataset.nr}&teile=${n}`;
         k.disabled = true;
-        k.textContent = '✓ geladen';
+        k.innerHTML = `${ICON_HAKEN} geladen`;
       };
     });
   }
@@ -10051,10 +10332,9 @@ async function importGroesseGeprueft(file, grenzen) {
   if (!warnAb || file.size <= warnAb) return true;
   const grenze = grenzen.string;
   return confirmBox('Diese Datei ist sehr groß',
-    `Die Datei misst ${fmtBytes(file.size)}. Zum Einspielen wird sie als ein einziger Text ` +
-    `gelesen, und der kann nicht größer als ${fmtBytes(grenze)} werden — darüber bricht der ` +
-    `Import ab, ohne etwas zu ändern. Für eine vollständige Wiederherstellung ist die ` +
-    `Sicherung der richtige Weg.`,
+    `Die Datei misst ${fmtBytes(file.size)}. Dateien über ${fmtBytes(grenze)} kann der Import ` +
+    `nicht verarbeiten — er bricht ab, ohne etwas zu ändern. Für eine vollständige ` +
+    `Wiederherstellung ist die Sicherung der richtige Weg.`,
     'Trotzdem versuchen');
 }
 
@@ -10107,8 +10387,8 @@ function askImport(file, grenzen) {
         'Der komplette vorhandene Bestand wird vorher gelöscht. Das lässt sich nicht rückgängig machen.', 'Ersetzen')) return;
       if (!await zweiteBestaetigung('import', null, 'Import bestätigen',
         mode === 'replace'
-          ? 'Der ersetzende Import löscht den vorhandenen Bestand und legt Einträge, Kommentare und Bewertungen unter fremden Namen an.'
-          : 'Der Import legt Einträge, Kommentare und Bewertungen unter fremden Namen an.')) return;
+          ? `Der ersetzende Import löscht den vorhandenen Bestand und legt ${V.sacheMehrzahl}, Kommentare und ${V.bewertungMehrzahl} mit den Verfassernamen aus der Datei an.`
+          : `Der Import legt ${V.sacheMehrzahl}, Kommentare und ${V.bewertungMehrzahl} mit den Verfassernamen aus der Datei an.`)) return;
       close();
       const busy = document.createElement('div');
       busy.className = 'backdrop';
@@ -10126,8 +10406,9 @@ function askImport(file, grenzen) {
         /* Nicht abbrechen, melden -- und laut genug, dass es auffaellt: fehlt
            ein Video, kann das naechste Foto zum Hauptbild geworden sein. */
         const fehlend = (r.videosOhneDatei || 0) + (r.videosUnlesbar || 0);
-        if (fehlend) toast(`${fehlend} Video${fehlend === 1 ? '' : 's'} fehlte in der Datei und ` +
-                           `wurde übergangen — steht ein Eintrag jetzt anders da, ist das der Grund.`, true);
+        if (fehlend) toast(fehlend === 1
+          ? '1 Video fehlte in der Datei und wurde übersprungen.'
+          : `${fehlend} Videos fehlten in der Datei und wurden übersprungen.`, true);
         location.hash = '#/';
         if (location.hash === '#/') renderList();
       } catch (e) { busy.remove(); toast(e.message, true); }
