@@ -5876,7 +5876,16 @@ function prozesseUnter(pfad) {
    GESUCHT WIRD UEBER `/proc`, wie bei prozesseUnter(): keine neue Abhaengig-
    keit, kein `ps`, und dieselbe Auskunft. Ein Prozess zaehlt als fremd, wenn
    sein Befehl auf server.js oder pruefung.js endet -- eigene Kinder gibt es zu
-   diesem Zeitpunkt noch keine. */
+   diesem Zeitpunkt noch keine.
+   WAS DIESER WAECHTER NICHT FINDET, und das gehoert dazugesagt: einen Server,
+   den jemand ueber `node -e "require('./server.js')"` startet. Sein Befehl
+   endet nicht auf server.js, und ein Muster ueber den ganzen Aufruf faenge
+   jedes zweite Werkzeug mit. GENAU SO EINER IST BEIM BAUEN DIESER RUNDE
+   entstanden und eine Viertelstunde unbemerkt gelaufen.
+   DIE GRENZE IST HINNEHMBAR, WEIL SIE DEN ECHTEN WEG NICHT BETRIFFT: das
+   Image, `npm start` und der Prueflauf starten alle `node server.js`. Wer von
+   Hand etwas anderes tut, weiss, dass er es getan hat -- und findet seinen
+   Prozess ueber den Port. */
 function fremdeServer() {
   const raus = [];
   let eintraege;
