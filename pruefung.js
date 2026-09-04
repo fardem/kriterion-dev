@@ -1811,9 +1811,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Kasten von 336 Pixeln (Fenster 360) waren es 67 leere Pixel -- ein
      Fuenftel der Breite --, weil die fuenfte Kachel an ZWEI Pixeln scheitert.
      Ein Raster verteilt den Rest IN die Spalten. */
+  /* UMGEDREHT MIT 0.22.0 UND NICHT GELOESCHT (Stolperstein 74): das Raster gilt
+     seither auf ALLEN Schirmen, und die Mindestkante kommt aus der
+     Einstellung `--streifen` (E11) statt aus festen 60 Pixeln. Gesucht wird
+     deshalb in der Grundregel, nicht mehr im Telefonblock. */
   const kachelRaster = (cssEng.match(/\.thumbs \{ display: grid;[^}]*\}/) || [''])[0];
-  pruefe('Die Vorschaureihe steht auf dem Telefon als Raster',
-    /grid-template-columns: repeat\(auto-fill, minmax\(60px, 1fr\)\);/.test(kachelRaster),
+  pruefe('Der Bildstreifen steht auf allen Schirmen als Raster — 0.22.0',
+    /grid-template-columns: repeat\(auto-fill, minmax\(var\(--streifen\), 1fr\)\);/.test(kachelRaster),
     kachelRaster || '(keine Rasterregel)');
   /* auto-fit STATT auto-fill WAERE DER STILLE FEHLER: mit genug Kacheln sehen
      die beiden gleich aus, und bei WENIGEN klappt auto-fit die leeren Spalten
@@ -1825,16 +1829,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
      stuende an der Kachel eine feste Hoehe von 62 neben einer Breite von 72,
      und aus dem Quadrat wuerde ein liegendes Rechteck. */
   pruefe('Und die Kachel gibt dafuer ihre festen Masse ab und bleibt quadratisch',
-    /\.thumb \{ width: auto; height: auto; aspect-ratio: 1\/1; \}/.test(cssEng),
+    /\.thumb \{ width: auto; height: auto; aspect-ratio: 1\/1;/.test(cssEng),
     (cssEng.match(/\.thumb \{ width: auto[^}]*\}/) || ['(keine Regel)'])[0]);
   /* DIE GRUNDREGEL BLEIBT, WIE SIE WAR, und das ist die Gegenrichtung: am
      Schreibtisch aendert sich nichts, und das haengt daran, dass die 62
      Pixel dort unangetastet stehen. Nachgemessen ist es auch -- die
      Eintragsseite ist bei 1100, 1280 und 1440 Pixeln Pixel fuer Pixel
      dieselbe --, aber eine Messung von Hand faerbt nichts rot. */
-  pruefe('Am Schreibtisch bleibt die Kachel bei ihren festen 62 Pixeln',
-    /\.thumb \{ width: 62px; height: 62px;/.test(cssEng),
-    (cssEng.match(/\.thumb \{ width: 62px[^;]*;[^;]*;/) || ['(keine Regel)'])[0]);
+  pruefe('Am Schreibtisch gibt es keine festen 62 Pixel mehr — die Kante kommt aus --streifen (0.22.0)',
+    !/\.thumb \{ width: 62px/.test(cssEng) && /--streifen: 80px;/.test(cssEng),
+    (cssEng.match(/\.thumb \{ width: 62px[^;]*;[^;]*;/) || ['(keine feste Kante — richtig)'])[0]);
+  pruefe('Und der Telefonblock wiederholt das Raster nicht mehr',
+    !/@media[^{]*\{[^@]*\.thumbs \{ display: grid/.test(cssEng.slice(cssEng.indexOf('@media (max-width: 700px)'))),
+    'das Raster steht doppelt');
 
   /* Der Papierkorb am grossen Bild ist der Weg, den das Kreuz freigemacht hat.
      Er steht ABGESETZT von den beiden Knoepfen davor: die stellen etwas ein,
@@ -1873,17 +1880,25 @@ const freigabeHaupt = (zweck, ziel = null) =>
     vorgabe.vokabular.sacheEinzahl === 'Eintrag' && vorgabe.vokabular.zeitpunktMehrzahl === 'Testtage',
     JSON.stringify(vorgabe.vokabular));
   pruefe('Vorgabe der Schriftgroesse ist 100', vorgabe.schrift === 100);
-  /* Die Liste steht seit 0.21.0 bei ZWOELF Woertern -- `potenzial` ist
-     dazugekommen, das Wort fuer den ersten Sternkasten. Nichts sonst bekommt
-     ein neues Vokabelwort, nur weil es auf dem Bildschirm steht: "Kommentar"
-     etwa ist eine feste Beschriftung und verschiebt sich nicht mit dem
-     Gegenstand, und "Bewertung" steht bewusst NICHT dabei -- der zweite Kasten
-     heisst so, wie er heisst. */
-  pruefe('Das Vokabular hat zwoelf Woerter, nicht mehr',
-    Object.keys(vorgabe.vokabular).length === 12,
+  /* Die Liste steht seit 0.22.0 bei VIERZEHN Woertern -- `bewertungEinzahl` und
+     `bewertungMehrzahl` sind dazugekommen (E14), das Paar fuer den zweiten
+     Sternkasten; 0.21.0 hatte ihn bewusst ausgelassen, und die Schieflage
+     (das eine Kastenwort umbenennbar, das andere nicht) war bei jedem
+     Umbenennen sichtbar. Nichts sonst bekommt ein neues Vokabelwort, nur weil
+     es auf dem Bildschirm steht: "Kommentar" etwa ist eine feste Beschriftung
+     und verschiebt sich nicht mit dem Gegenstand.
+     UMGEDREHT MIT 0.22.0 UND NICHT GELOESCHT (Stolperstein 74): bis dahin
+     stand hier „zwoelf, nicht mehr". Die Zahl steht ausdruecklich, wie bei
+     F_ROUTEN -- ein Wort, das still dazukommt oder verschwindet, faellt sonst
+     niemandem auf. */
+  pruefe('Das Vokabular hat vierzehn Woerter, nicht mehr — 0.22.0',
+    Object.keys(vorgabe.vokabular).length === 14,
     `${Object.keys(vorgabe.vokabular).length}: ${Object.keys(vorgabe.vokabular).join(', ')}`);
   pruefe('Und das zwoelfte ist das Wort fuer den Potenzialkasten',
     vorgabe.vokabular.potenzial === 'Potenzial', JSON.stringify(vorgabe.vokabular.potenzial));
+  pruefe('Und das dreizehnte und vierzehnte sind das Paar fuer die Bewertung — 0.22.0',
+    vorgabe.vokabular.bewertungEinzahl === 'Bewertung' && vorgabe.vokabular.bewertungMehrzahl === 'Bewertungen',
+    JSON.stringify([vorgabe.vokabular.bewertungEinzahl, vorgabe.vokabular.bewertungMehrzahl]));
 
   const gesetzt = await ruf('PUT', '/api/settings', { vokabular: {
     sacheEinzahl: '  Maschine  ', sacheMehrzahl: 'Maschinen',
@@ -1905,12 +1920,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Geprueft wird am SERVER, nicht gegen die clientseitige Vorgabe: ein
   // Wort, das der Server nicht kennt, taucht in der Karte trotzdem auf,
   // laesst sich aber nicht speichern -- und nur diese Pruefung saehe es.
-  pruefe('Der Server kennt alle zwoelf Vokabeln',
+  pruefe('Der Server kennt alle vierzehn Vokabeln',
     ['sacheEinzahl', 'sacheMehrzahl', 'merkmalJa', 'merkmalNein',
      'zeitpunktEinzahl', 'zeitpunktMehrzahl', 'berichtEinzahl', 'berichtMehrzahl',
      'aufgabeEinzahl', 'aufgabeMehrzahl', 'aufgabeErledigt',
-     'potenzial'].every(k => k in vorgabe.vokabular) &&
-    Object.keys(vorgabe.vokabular).length === 12,
+     'potenzial', 'bewertungEinzahl', 'bewertungMehrzahl'].every(k => k in vorgabe.vokabular) &&
+    Object.keys(vorgabe.vokabular).length === 14,
     JSON.stringify(Object.keys(vorgabe.vokabular)));
   /* UND DAS ZWOELFTE LAESST SICH SETZEN -- 0.21.0. Die Zeile darueber sagt
      nur, dass der Schluessel BEKANNT ist; ohne diese bliebe sie auch dann
@@ -1922,6 +1937,21 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und ein leeres Feld faellt auf die Vorgabe zurueck',
     (await ruf('GET', '/api/settings')).inhalt.vokabular.potenzial === 'Potenzial',
     JSON.stringify((await ruf('GET', '/api/settings')).inhalt.vokabular.potenzial));
+  /* DAS PAAR FUER DIE BEWERTUNG LAESST SICH SETZEN -- 0.22.0 (E14), beide
+     Haelften, und das leere Feld faellt wie bei jedem anderen Wort auf die
+     Vorgabe zurueck. Ein Rueckbau, der eines der beiden Woerter aus der
+     Vorgabe vergisst, wird hier rot (Gegenprobe 632). */
+  const bwGesetzt = await ruf('PUT', '/api/settings', { vokabular: {
+    bewertungEinzahl: ' Urteil ', bewertungMehrzahl: 'Urteile' } });
+  pruefe('Das Paar fuer die Bewertung laesst sich setzen — 0.22.0',
+    bwGesetzt.inhalt.vokabular.bewertungEinzahl === 'Urteil' &&
+    bwGesetzt.inhalt.vokabular.bewertungMehrzahl === 'Urteile',
+    JSON.stringify([bwGesetzt.inhalt.vokabular.bewertungEinzahl, bwGesetzt.inhalt.vokabular.bewertungMehrzahl]));
+  await ruf('PUT', '/api/settings', { vokabular: { bewertungEinzahl: '', bewertungMehrzahl: ' ' } });
+  const bwZurueck = (await ruf('GET', '/api/settings')).inhalt.vokabular;
+  pruefe('Und leer faellt jede Haelfte auf ihre Vorgabe zurueck',
+    bwZurueck.bewertungEinzahl === 'Bewertung' && bwZurueck.bewertungMehrzahl === 'Bewertungen',
+    JSON.stringify([bwZurueck.bewertungEinzahl, bwZurueck.bewertungMehrzahl]));
   pruefe('Auch das Wort fuer erledigt liegt am Server',
     vorgabe.vokabular.aufgabeErledigt === 'Erledigt' &&
     (await ruf('PUT', '/api/settings', { vokabular: { aufgabeErledigt: ' Fertig ' } }))
@@ -1951,6 +1981,38 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Gueltige Schriftstufe wird gespeichert', stufe.inhalt.schrift === 120);
   pruefe('Filterwahl bleibt daneben bestehen',
     (await ruf('PUT', '/api/settings', { filters: { sort: 'title_asc' } })).inhalt.schrift === 120);
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Einstellung streifen — 0.22.0');
+  /* DIESELBE MASCHINE WIE `schrift` (E11): persoenlich je Zugang, ein Wert
+     fuer alle Geraete, fuenf Stufen, Rueckfall auf die Vorgabe. Erst der
+     Gegenstand (Stolperstein 81): die Vorgabe steht da, bevor irgendwer
+     geschrieben hat -- sonst belegte „faellt zurueck" nichts. */
+  pruefe('Die Vorgabe des Bildstreifens ist 80',
+    (await ruf('GET', '/api/settings')).inhalt.streifen === 80,
+    JSON.stringify((await ruf('GET', '/api/settings')).inhalt.streifen));
+  pruefe('Eine unbekannte Stufe wird abgewiesen',
+    (await ruf('PUT', '/api/settings', { streifen: 90 })).status === 400);
+  pruefe('Ueber 150 ebenso — das Vorschaubild hat nur 512 Bildpunkte',
+    (await ruf('PUT', '/api/settings', { streifen: 200 })).status === 400);
+  pruefe('Text als Stufe wird abgewiesen',
+    (await ruf('PUT', '/api/settings', { streifen: 'gross' })).status === 400);
+  const streifenGesetzt = await ruf('PUT', '/api/settings', { streifen: 120 });
+  pruefe('Eine gueltige Stufe wird gespeichert und zurueckgegeben',
+    streifenGesetzt.status === 200 && streifenGesetzt.inhalt.streifen === 120,
+    JSON.stringify([streifenGesetzt.status, streifenGesetzt.inhalt.streifen]));
+  pruefe('Und sie steht beim naechsten Lesen noch',
+    (await ruf('GET', '/api/settings')).inhalt.streifen === 120);
+  pruefe('Die Schrift daneben bleibt unberuehrt',
+    (await ruf('GET', '/api/settings')).inhalt.schrift === 120);
+  /* ALLE FUENF STUFEN, UND KEINE DAZWISCHEN -- die Liste ausdruecklich, wie
+     bei der Schrift. Ein Rueckbau, der die Schranke lockert (Gegenprobe 631),
+     laesst 90 durch und wird oben rot. */
+  let streifenAlle = true;
+  for (const s of [60, 80, 100, 120, 150])
+    if ((await ruf('PUT', '/api/settings', { streifen: s })).inhalt?.streifen !== s) streifenAlle = false;
+  pruefe('Alle fuenf Stufen 60, 80, 100, 120 und 150 gehen durch', streifenAlle);
+  await ruf('PUT', '/api/settings', { streifen: 80 });
 
   /* ---------------------------------------------------------------- */
   gruppe('Vokabular in den Servermeldungen');
@@ -2938,8 +3000,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      die Zeilen selbst -- und sie waere ein Schema-Eingriff in einer Runde, die
      ausdruecklich keiner ist. */
   const dSoll = ['ansichten', 'bloecke', 'filters', 'glockeGesehen', 'linkZeilen', 'schrift',
-                 'suchNamen', 'zeitleiste'];
-  pruefe('server.js kennt genau die acht persoenlichen Schluessel',
+                 'streifen', 'suchNamen', 'zeitleiste'];
+  pruefe('server.js kennt genau die neun persoenlichen Schluessel — 0.22.0',
     gleich(dListeSrv, dSoll), JSON.stringify(dListeSrv));
   /* UND `zuletztGesehen` STEHT WIRKLICH NIRGENDS MEHR IN server.js -- ausser
      als Vermerk in einem Kommentar. Ohne diese Zeile bliebe die Aufzaehlung
@@ -3038,7 +3100,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   };
 
   await dRuf('cookie-d-eins', 'PUT', '/api/settings',
-    { schrift: 120, linkZeilen: 12, zeitleiste: false, suchNamen: 4 });
+    { schrift: 120, linkZeilen: 12, zeitleiste: false, suchNamen: 4, streifen: 100 });
   await dRuf('cookie-d-zwei', 'PUT', '/api/settings',
     { schrift: 80, linkZeilen: 3, suchNamen: 1 });
   await dRuf('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
@@ -3202,7 +3264,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const dFehlend = dSoll.filter(k => !persoenlichDa(k, 1));
   pruefe('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dFalschGlobal.length === 0, `global gefunden: ${JSON.stringify(dFalschGlobal)}`);
-  pruefe('Alle acht stehen beim Benutzer, der sie gesetzt hat',
+  pruefe('Alle neun stehen beim Benutzer, der sie gesetzt hat — 0.22.0',
     dFehlend.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dFehlend)}`);
   pruefe('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('sucheAktiv') && !persoenlichDa('sucheAktiv', 1),
@@ -5636,12 +5698,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Zu jeder Absage die Nachschau, dass DANACH KEINE DATEI DA LIEGT -- eine
      Absage, nach der trotzdem etwas geschrieben wurde, waere das Schlimmste. */
   const siAbsagen = [
-    ['../raus', 'ein Pfad nach oben', /Unterverzeichnis/],
-    ['/etc', 'ein absoluter Pfad', /Unterverzeichnis/],
-    ['a/../b', 'ein Punktpunkt mitten im Pfad', /Unterverzeichnis/],
-    ['..', 'ein nacktes Punktpunkt', /Unterverzeichnis/],
-    ['taeglich\\weg', 'ein Gegenschraegstrich', /Unterverzeichnis/],
-    ['gibtsnicht', 'ein Verzeichnis, das es nicht gibt', /gibt es unter dem Sicherungsort nicht/],
+    ['../raus', 'ein Pfad nach oben', /Unterordner liegt im eingerichteten Sicherungsordner/],
+    ['/etc', 'ein absoluter Pfad', /Unterordner liegt im eingerichteten Sicherungsordner/],
+    ['a/../b', 'ein Punktpunkt mitten im Pfad', /Unterordner liegt im eingerichteten Sicherungsordner/],
+    ['..', 'ein nacktes Punktpunkt', /Unterordner liegt im eingerichteten Sicherungsordner/],
+    ['taeglich\\weg', 'ein Gegenschraegstrich', /Unterordner liegt im eingerichteten Sicherungsordner/],
+    ['gibtsnicht', 'ein Verzeichnis, das es nicht gibt', /gibt es im Sicherungsordner nicht/],
     ['zeigtAufDaten', 'ein Symlink aus der Wurzel heraus', /führt aus dem/]
   ];
   for (const [ort, was, muster] of siAbsagen) {
@@ -5923,7 +5985,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ein verschwundener Zielort ergibt keine Zahl, sondern eine Ansage',
       r.inhalt?.letzte === null && !!r.inhalt?.fehler, JSON.stringify(r.inhalt));
     pruefe('Und die Ansage spricht',
-      /gibt es unter dem Sicherungsort nicht/.test(r.inhalt?.fehler || ''), r.inhalt?.fehler);
+      /gibt es im Sicherungsordner nicht/.test(r.inhalt?.fehler || ''), r.inhalt?.fehler);
     const los = await siRuf('cookie-si-anna', 'POST', '/api/sicherung');
     pruefe('Und der Knopf laeuft dort nicht ins Leere, sondern sagt ab',
       los.status === 400, `Status ${los.status} · ${JSON.stringify(los.inhalt)}`);
@@ -11305,11 +11367,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Aus vier Zeilen werden drei; alle DREI Auskuenfte bleiben darin: die
        Frist, dass Neuladen unschaedlich ist, und was danach zu tun ist.
        DIE DRITTE HATTE VORHER GAR KEINE PRUEFUNG, und der Rueckbau darauf
-       blieb beim ersten Gegenprobenlauf dieser Runde STUMM. */
+       blieb beim ersten Gegenprobenlauf dieser Runde STUMM.
+       UMGEDREHT MIT 0.22.0 (Anlage H): der Brief nennt die Frist ab dem
+       ersten Oeffnen als „bleiben dir N Minuten" und sagt „Link" dazu. */
     pruefe('Sie sagt, dass Neuladen in der Frist unschaedlich ist',
-      /neu laden darfst du darin beliebig oft/i.test(b1.rumpf), b1.rumpf.slice(0, 400));
+      /bleiben dir \d+ Minuten — neu laden darfst du darin beliebig oft/.test(b1.rumpf), b1.rumpf.slice(0, 400));
     pruefe('Und was danach zu tun ist',
-      /neuen Link vom Admin/.test(b1.rumpf), b1.rumpf.slice(0, 400));
+      /einen neuen Link vom Admin/.test(b1.rumpf), b1.rumpf.slice(0, 400));
     /* UND SIE IST WIRKLICH KUERZER: der Satz, der dasselbe ein zweites Mal
        sagte, steht nicht mehr da. Ohne diese Zeile bliebe die Kuerzung eine
        Behauptung -- die drei Auskuenfte stuenden auch in der alten Fassung. */
@@ -11639,8 +11703,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
        wegnahm, blieb deshalb stumm. Geprueft wird jetzt, was den Weg
        ausmacht: WO die Adresse einzutragen ist. */
     pruefe('Und die Absage nennt den Weg dorthin -- den Ort, nicht nur das Wort',
-      /Systembereich/.test(tOhneAdresse.inhalt?.error || '') &&
-      /„Zugang/.test(tOhneAdresse.inhalt?.error || ''),
+      /Einstellungen/.test(tOhneAdresse.inhalt?.error || '') &&
+      /Mein Konto/.test(tOhneAdresse.inhalt?.error || ''),
       JSON.stringify(tOhneAdresse.inhalt?.error));
     // Jetzt die eigene Adresse setzen -- ueber den eigenen Zugang, wie gebaut.
     const tKonto = await TA.S.ruf('PUT', '/api/account',
@@ -11981,7 +12045,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* ERST DER GEGENSTAND (Stolperstein 81): ein leerer Rumpf waere in allen
        fuenf Lagen gleich und belegte nichts. */
     pruefe('Der Rumpf sagt ueberhaupt etwas -- und nennt den naechsten Schritt',
-      /Postfach/.test(REG_ANTWORT) && /Admin/.test(REG_ANTWORT), REG_ANTWORT.slice(0, 160));
+      /E-Mail/.test(REG_ANTWORT) && /Admin/.test(REG_ANTWORT), REG_ANTWORT.slice(0, 160));
     pruefe('Und er verraet in keiner Lage, welche es war',
       gE.every(([, e]) => !/vergeben|bereits|Deckel|unbekannt|ungültig|ungueltig/i.test(e.roh)),
       REG_ANTWORT.slice(0, 160));
@@ -14806,14 +14870,20 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Der Protokollwaechter sieht alle acht ausgelieferten Dateien an',
     PROT_DATEIEN.length === 8 && PROT_DATEIEN.every(n => fs.existsSync(path.join(__dirname, n))),
     JSON.stringify(PROT_DATEIEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
-  /* ZWEI VORKOMMEN, und beide meinen den Containerlog: die Meldung nach einer
-     gescheiterten Sicherung und der Hinweis in der Kennzahlenkarte, wo nach
-     dem Eintragen des Schluessels nachzusehen ist. Mehr darf es nicht werden. */
-  pruefe('Das alleinstehende Wort steht in genau zwei ausgelieferten Zeilen',
-    fProt.reduce((n, [, k]) => n + k, 0) === 2, fProt.map(([d, n]) => `${d} (${n}x)`).join(' · '));
-  pruefe('Und beide meinen den Containerlog',
-    gleich(fProt.map(([d]) => d).sort(), ['public/app.js', 'server.js']),
-    JSON.stringify(fProt));
+  /* EIN VORKOMMEN SEIT 0.22.0, und es meint den Containerlog: die Meldung nach
+     einer gescheiterten Sicherung in server.js. Der zweite stand bis 0.21.1
+     in der Kennzahlenkarte („im Protokoll … pruefen") und heisst seither am
+     Bildschirm „Server-Log" (Woerterbuch, Konzept 4.3): „Protokoll" bleibt
+     allein dem Sicherheitsprotokoll. UMGEDREHT, NICHT GELOESCHT (Stolperstein
+     74) -- die Zahl steht weiter ausdruecklich. */
+  pruefe('Das alleinstehende Wort steht in genau einer ausgelieferten Zeile — 0.22.0',
+    fProt.reduce((n, [, k]) => n + k, 0) === 1, fProt.map(([d, n]) => `${d} (${n}x)`).join(' · '));
+  pruefe('Und sie meint den Containerlog, in server.js',
+    gleich(fProt.map(([d]) => d), ['server.js']), JSON.stringify(fProt));
+  pruefe('Die Kennzahlenkarte sagt dafuer „Server-Log"',
+    /im Server-Log „Schlüssel aus ENCRYPTION_KEY geladen/.test(
+      fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
+    'die Karte nennt das Server-Log nicht');
   /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein, weil
      er gar keinen Code mehr liest (Stolperstein 106) -- und er darf das lange
      Wort nicht mitzaehlen, sonst waere die Entscheidung wertlos. */
@@ -15139,6 +15209,80 @@ const freigabeHaupt = (zweck, ziel = null) =>
     ('300 MB und 0,5 Sekunden'.match(/\b0\.\d+\.\d+\b/g) || []).length === 0,
     'der Waechter faerbt sich an einer Zahl');
 
+  /* ================= Der Bildschirmtext-Waechter — 0.22.0 =================
+     Der zweite Durchgang: die Texte in Anfuehrungszeichen und Backticks von
+     public/app.js und die error:-Texte der Serverdateien gegen die
+     Verbotsliste aus dem Konzept 0.22.0, Abschnitt 4.3. Der Leser steht oben
+     im Modul (bildschirmtexteVon), die Liste daneben (BILDSCHIRM_VERBOT). */
+  gruppe('Der Bildschirmtext-Waechter — 0.22.0');
+  {
+    /* ERST DER LESER SELBST, an gestellten Faellen: ein Waechter, dessen Leser
+       Kommentare fuer Text haelt, meldet Falsches; einer, der Text fuer Code
+       haelt, meldet nichts. Beides waere ein Waechter, den man abschaltet. */
+    const bt = (s) => bildschirmtexteVon(s).map(t => t.text);
+    pruefe('Der Leser findet Zeichenketten in einfachen und doppelten Anfuehrungszeichen',
+      gleich(bt("toast('Gespeichert'); x = \"Kein Zugang\";"), ['Gespeichert', 'Kein Zugang']),
+      JSON.stringify(bt("toast('Gespeichert'); x = \"Kein Zugang\";")));
+    pruefe('Und die Textteile einer Vorlage, ohne den Code in den Klammern',
+      gleich(bt('a = `<p>Hallo ${esc(V.Kasten)} da</p>`;'), ['<p>Hallo ', ' da</p>']),
+      JSON.stringify(bt('a = `<p>Hallo ${esc(V.Kasten)} da</p>`;')));
+    pruefe('Auch in einer Vorlage, die in einer Vorlage steckt',
+      gleich(bt('a = `Oben ${b ? `Innen ${c}` : \'Sonst\'} unten`;'), ['Oben ', 'Innen ', 'Sonst', ' unten']),
+      JSON.stringify(bt('a = `Oben ${b ? `Innen ${c}` : \'Sonst\'} unten`;')));
+    pruefe('Kommentare liest er nicht — die sind Sache des Sprachwaechters',
+      gleich(bt("// 'Grabstein' im Kommentar\n/* \"Tafel\" */\nx = 'Text';"), ['Text']),
+      JSON.stringify(bt("// 'Grabstein' im Kommentar\n/* \"Tafel\" */\nx = 'Text';")));
+    pruefe('Bezeichner liest er nicht',
+      gleich(bt('const grabstein = tafel(kasten);'), []), JSON.stringify(bt('const grabstein = tafel(kasten);')));
+    pruefe('Ein regulaerer Ausdruck mit Anfuehrungszeichen darin bringt ihn nicht durcheinander',
+      gleich(bt("if (/['\"]/.test(s)) t = 'danach';"), ['danach']),
+      JSON.stringify(bt("if (/['\"]/.test(s)) t = 'danach';")));
+    pruefe('Und er nennt zu jedem Text die Zeile',
+      bildschirmtexteVon("a = 1;\nb = 'zwei';\n").map(t => t.zeile).join() === '2',
+      JSON.stringify(bildschirmtexteVon("a = 1;\nb = 'zwei';\n")));
+    pruefe('Aus einer Serverdatei liest er nur die Texte hinter error:',
+      gleich(servertexteVon("const x = 'kein Text'; res.json({ error: 'Der Kasten fehlt. ' +\n  'Zweiter Satz.' }); y = 'auch nicht';").map(t => t.text),
+             ['Der Kasten fehlt. ', 'Zweiter Satz.']),
+      JSON.stringify(servertexteVon("res.json({ error: 'Der Kasten fehlt. ' +\n  'Zweiter Satz.' });").map(t => t.text)));
+    /* DIE LISTE FINDET, WAS SIE FINDEN SOLL -- und laesst die Ausnahmen in
+       Ruhe. Ohne diese Zeilen bliebe ein Waechter mit leerer Liste gruen
+       (Stolperstein 81). */
+    pruefe('Die Verbotsliste faengt ein Wort aus der Liste',
+      bildschirmVerstoesse([{ text: 'Der Grabstein steht da', zeile: 1 }]).length === 1 &&
+      bildschirmVerstoesse([{ text: 'Neu seit deinem letzten Blick', zeile: 1 }]).length === 1 &&
+      bildschirmVerstoesse([{ text: 'Ein Zugang wird entfernt', zeile: 1 }]).length === 1,
+      'eines der drei Muster greift nicht');
+    pruefe('Und laesst die benannten Ausnahmen durch',
+      bildschirmVerstoesse([{ text: 'Die Note muss zwischen 1 und 5 liegen.', zeile: 1 },
+                            { text: 'Zugang beantragen', zeile: 1 }, { text: 'Noch keinen Zugang?', zeile: 1 },
+                            { text: 'Prüfsumme (Fingerprint)', zeile: 1 },
+                            { text: 'verschlüsselte Kopie der Datenbank', zeile: 1 },
+                            { text: '/api/items/1/ratings', zeile: 1 }]).length === 0,
+      JSON.stringify(bildschirmVerstoesse([{ text: 'Die Note muss zwischen 1 und 5 liegen.', zeile: 1 },
+                            { text: 'Zugang beantragen', zeile: 1 }, { text: 'Noch keinen Zugang?', zeile: 1 },
+                            { text: 'Prüfsumme (Fingerprint)', zeile: 1 },
+                            { text: 'verschlüsselte Kopie der Datenbank', zeile: 1 },
+                            { text: '/api/items/1/ratings', zeile: 1 }])));
+    pruefe('Die Liste traegt mindestens dreissig Zeilen',
+      BILDSCHIRM_VERBOT.length >= 30, `${BILDSCHIRM_VERBOT.length} Zeilen`);
+
+    /* DANN DER GEGENSTAND: app.js traegt Hunderte Bildschirmtexte, sonst
+       belegte „kein Verstoss" nichts. */
+    const btApp = bildschirmtexteVon(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'));
+    pruefe('public/app.js traegt mehr als achthundert lesbare Texte',
+      btApp.filter(t => !istAdresse(t.text)).length > 800, `${btApp.length} Texte`);
+    const btServer = ['server.js', 'auth.js', 'mail.js'].flatMap(d =>
+      servertexteVon(fs.readFileSync(path.join(__dirname, d), 'utf8')).map(t => ({ ...t, datei: d })));
+    pruefe('Und die drei Serverdateien mehr als hundert Meldungen',
+      btServer.length > 100, `${btServer.length} Meldungen`);
+    const vApp = bildschirmVerstoesse(btApp);
+    pruefe('Kein Bildschirmtext in app.js traegt ein Wort der Verbotsliste',
+      vApp.length === 0, vApp.slice(0, 12).join(' · '));
+    const vServer = bildschirmVerstoesse(btServer);
+    pruefe('Keine Servermeldung ebenso',
+      vServer.length === 0, vServer.slice(0, 12).join(' · '));
+  }
+
   /* ================================================================
      Verwaltung, Rollen, Sperren, Grabstein
      ================================================================
@@ -15293,12 +15437,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const gTarnung = await gRuf(gAnna, 'POST', '/api/users',
     { username: 'geloescht-9', passwort: 'ein-langes-tarnwort' });
   pruefe('Ein Name im Grabsteinmuster wird abgewiesen',
-    gTarnung.status === 400 && /gelöschte Zugänge/.test(gTarnung.inhalt?.error || ''),
+    gTarnung.status === 400 && /reserviert/.test(gTarnung.inhalt?.error || ''),
     JSON.stringify(gTarnung.inhalt));
   const gTarnung2 = await gRuf(gBert, 'PUT', '/api/account',
     { oldPassword: 'berts-langes-wort', username: 'geloescht-9', newPassword: '' });
   pruefe('Auch beim blossen Umbenennen des eigenen Zugangs',
-    gTarnung2.status === 400 && /gelöschte Zugänge/.test(gTarnung2.inhalt?.error || ''),
+    gTarnung2.status === 400 && /reserviert/.test(gTarnung2.inhalt?.error || ''),
     JSON.stringify(gTarnung2.inhalt));
 
   /* Die Kernregel der Verwaltung: der Admin ist der Sheriff im Dorf, aber an
@@ -18513,8 +18657,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
          am Ausschnitt -- aus scale(calc(var(--zoom,1) * 1.03)) wird
          scale(1.03). Ohne diese Zeile bliebe gruen, wer die Bewegung
          mitentfernt. */
-      pruefe('Die drei Prozent beim Überfahren bleiben',
-        /\.card:hover \.card-img img \{ transform: scale\(1\.03\); \}/.test(cssZ),
+      // ZWEI PROZENT SEIT 0.22.0 (Stilblatt 1.2: Kacheln −2 px, Bild ×1,02).
+      pruefe('Die zwei Prozent beim Überfahren bleiben — 0.22.0',
+        /\.card:hover \.card-img img \{ transform: scale\(1\.02\); \}/.test(cssZ),
         (cssZ.match(/\.card:hover \.card-img img[^\n]*/) || ['(keine Regel)'])[0]);
     }
 
@@ -20731,7 +20876,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      'nachher' gebogenes Kriterium stuende im falschen Kasten, ohne dass es
      jemand saehe. */
   pruefe('Ein anderer Wert ist eine Absage mit Meldung',
-    phUnfug.status === 400 && /Kasten/.test(phUnfug.inhalt.error || ''),
+    phUnfug.status === 400 && /gehört entweder zu „Potenzial“ oder zu „Bewertung“/.test(phUnfug.inhalt.error || ''),
     `${phUnfug.status} ${JSON.stringify(phUnfug.inhalt)}`);
   pruefe('Und das Kriterium entsteht dabei nicht',
     !(await PH.ruf('GET', '/api/criteria')).inhalt.some(c => c.name === 'Unfug'),
@@ -20741,7 +20886,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const phWechsel = await PH.ruf('PUT', `/api/criteria/${phVorher.inhalt.id}`,
     { name: 'Wunsch', phase: 'nachher' });
   pruefe('Der Kasten laesst sich nicht nachtraeglich aendern',
-    phWechsel.status === 400 && /Löschen und neu anlegen/.test(phWechsel.inhalt.error || ''),
+    phWechsel.status === 400 && /lässt sich später nicht ändern/.test(phWechsel.inhalt.error || ''),
     `${phWechsel.status} ${JSON.stringify(phWechsel.inhalt)}`);
   /* UND ER STEHT DANACH UNVERAENDERT DA. Eine Absage, die trotzdem schreibt,
      waere schlimmer als eine stille Uebernahme. */
@@ -21413,7 +21558,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
      Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
      behauptet. */
-  pruefe('Es sind genau 617 Rueckbauten', gpListe.length === 617, `${gpListe.length}`);
+  /* 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel des
+     Pruefstands und eines, das das Milchglas wieder einsetzt. EINUNDVIERZIG
+     VORHANDENE SIND MITGEGANGEN (Stolperstein 201), fast jeder, der einen
+     Bildschirmtext suchte. */
+  pruefe('Es sind genau 635 Rueckbauten', gpListe.length === 635, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -22505,6 +22654,30 @@ const DOM_PROT_GRUPPEN = (() => {
    Event Loops -- .click() genuegt nicht. Liefert false, wenn gar kein Dialog
    dasteht: eine Prueflage, die ihn erwartet und nicht bekommt, soll das sehen
    statt an einer Null zu zerbrechen (Stolperstein 103). */
+/* DIE RUECKFRAGE AUS confirmBox() BEANTWORTEN -- 0.22.0. Bis 0.21.1 stellten die
+   Prueflagen `w.confirm = () => true`; seit die Oberflaeche kein confirm() mehr
+   ruft (Bauabschnitt 4), waere die Attrappe ein Stellrad ohne Wirkung. Ein
+   Beobachter am Dokument sieht jedes neue Fenster und drueckt den Ja- oder
+   den Nein-Knopf -- aber NUR an Fenstern ohne Eingabefeld: das Passwortfenster
+   und das Loeschfenster mit seinen Haekchen bedient die Prueflage selbst.
+   `mitschrift` sammelt den Wortlaut der beantworteten Fenster, wie es die
+   alte Attrappe mit dem Text von confirm() tat. */
+function stelleBestaetigung(w, ja = true, mitschrift = null) {
+  const beobachter = new w.MutationObserver(() => {
+    for (const bd of w.document.querySelectorAll('.backdrop')) {
+      const modal = bd.querySelector('.modal');
+      if (!modal || modal.querySelector('input, textarea, select') || bd.dataset.gestellt) continue;
+      const knopf = modal.querySelector(ja ? '[data-yes]' : '[data-no]');
+      if (!knopf) continue;
+      bd.dataset.gestellt = '1';
+      if (mitschrift) mitschrift.push(modal.textContent.replace(/\s+/g, ' ').trim());
+      knopf.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    }
+  });
+  beobachter.observe(w.document.body, { childList: true, subtree: true });
+  return beobachter;
+}
+
 async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen = false, code) {
   const feld = d.w.document.getElementById('best-pass');
   if (!feld) return false;
@@ -23994,6 +24167,144 @@ async function sysAbschnitt(w, schluessel) {
    Gezaehlt wird, was im Markup steht.
    DER TEXT GEHOERT DAZU, weil „steht nirgends" sonst nur „steht nicht im
    ersten Abschnitt" hiesse -- und das ist eine andere Aussage. */
+/* ================= Der Bildschirmtext-Waechter: der Leser =================
+   0.22.0. Der Sprachwaechter liest Kommentare und Papiere; dieser zweite
+   Durchgang liest GENAU DAS, WAS DER ERSTE WEGWIRFT -- die Texte in
+   Anfuehrungszeichen und Backticks von public/app.js und die error:-Texte der
+   Serverdateien. Bezeichner sind kein Text und werden nicht gelesen.
+   EIN KLEINER ZERLEGER STATT EINES REGULAEREN AUSDRUCKS: app.js schachtelt
+   Vorlagen in Vorlagen (`${a ? `…` : ''}`), und darin stehen wieder
+   Anfuehrungszeichen -- ein Ausdruck, der „alles zwischen zwei Backticks"
+   nimmt, laese Code als Text und Text als Code. Der Zerleger kennt
+   Kommentare, die drei Arten von Strings, die Klammern in ${…} und
+   regulaere Ausdrucksliterale, und er nennt zu jedem Text seine Zeile.
+   Er steht ausserhalb der Gruppe, weil zwei Gruppen ihn brauchen: der
+   Waechter selbst und die Zaehlung der Server-Befehle im Kasten. */
+function bildschirmtexteVon(src) {
+  const out = [];
+  let i = 0;
+  const n = src.length;
+  const zeile = (pos) => src.slice(0, pos).split('\n').length;
+  // Ein Schraegstrich beginnt ein Ausdrucksliteral, wenn davor kein Wert steht.
+  const regexErlaubt = (pos) => {
+    let j = pos - 1;
+    while (j >= 0 && /\s/.test(src[j])) j--;
+    if (j < 0) return true;
+    return /[(,=:\[!&|?{};+\-*%<>~^]/.test(src[j]) ||
+      /\b(return|typeof|case|in|of|do|else)$/.test(src.slice(Math.max(0, j - 6), j + 1));
+  };
+  // Liest Code; mit `stop` bis zur schliessenden Klammer eines ${…}.
+  function code(stop) {
+    let tiefe = 0;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i + 1] === '/') { while (i < n && src[i] !== '\n') i++; continue; }
+      if (c === '/' && src[i + 1] === '*') { const e = src.indexOf('*/', i + 2); i = e < 0 ? n : e + 2; continue; }
+      if (c === "'" || c === '"') {
+        const start = i; i++; let s = '';
+        while (i < n && src[i] !== c) {
+          if (src[i] === '\\') { s += src[i + 1]; i += 2; continue; }
+          if (src[i] === '\n') break;
+          s += src[i]; i++;
+        }
+        i++; out.push({ text: s, zeile: zeile(start) }); continue;
+      }
+      if (c === '`') { i++; vorlage(); continue; }
+      if (c === '/' && regexErlaubt(i)) {
+        i++; let klasse = false;
+        while (i < n && (klasse || src[i] !== '/') && src[i] !== '\n') {
+          if (src[i] === '\\') { i += 2; continue; }
+          if (src[i] === '[') klasse = true; else if (src[i] === ']') klasse = false;
+          i++;
+        }
+        i++; while (i < n && /[a-z]/.test(src[i])) i++; continue;
+      }
+      if (stop) { if (c === '{') tiefe++; else if (c === '}') { if (tiefe === 0) { i++; return; } tiefe--; } }
+      i++;
+    }
+  }
+  // Liest eine Vorlage: Text bis zum Backtick, ${…} geht zurueck in den Code.
+  function vorlage() {
+    let s = ''; const start = i;
+    while (i < n) {
+      const c = src[i];
+      if (c === '\\') { s += src[i + 1]; i += 2; continue; }
+      if (c === '`') { i++; break; }
+      if (c === '$' && src[i + 1] === '{') {
+        if (s.trim()) out.push({ text: s, zeile: zeile(start) });
+        s = ''; i += 2; code(true); continue;
+      }
+      s += c; i++;
+    }
+    if (s.trim()) out.push({ text: s, zeile: zeile(start) });
+  }
+  code(false);
+  return out;
+}
+/* Die Serverdateien: nur die Texte hinter `error:`, samt Fortsetzungszeilen
+   mit `+`. Alles andere in server.js ist keine Bildschirmsprache. */
+function servertexteVon(src) {
+  const out = [];
+  const re = /error:\s*/g; let m;
+  while ((m = re.exec(src))) {
+    const j = m.index + m[0].length;
+    let ende = j, q = null, tiefe = 0;
+    while (ende < src.length) {
+      const c = src[ende];
+      if (q) { if (c === '\\') { ende += 2; continue; } if (c === q) q = null; ende++; continue; }
+      if (c === "'" || c === '"' || c === '`') { q = c; ende++; continue; }
+      if (c === '{' || c === '(') tiefe++;
+      if (c === '}' || c === ')') { if (tiefe === 0) break; tiefe--; }
+      if (c === ';') break;
+      ende++;
+    }
+    const zeile = src.slice(0, m.index).split('\n').length;
+    for (const t of bildschirmtexteVon(src.slice(j, ende) + ' ')) out.push({ text: t.text, zeile });
+  }
+  return out;
+}
+/* DIE VERBOTSLISTE DER RUNDE 0.22.0 (Konzept, 4.3) -- Woerter, die den
+   Bildschirm verlassen haben. Sie gilt fuer Texte, die ein Mensch am
+   Bildschirm liest; in Kommentaren und Papieren bleiben die Bilder des
+   Projekts erlaubt (dort liest der Sprachwaechter mit seiner eigenen Liste).
+   ZWEI AUSNAHMEN STEHEN IM MUSTER, nicht daneben: „liegen" ist fuer
+   Zahlenbereiche und Daten gewoehnliches Deutsch („zwischen 1 und 5 liegen",
+   „in der Zukunft liegen") und nur fuer „gespeichert sein" verboten; „Kopie
+   der Datenbank" ist die Erklaerung der Sicherung aus dem Woerterbuch selbst.
+   „Zugang" bleibt allein in „Zugang beantragen" und „Noch keinen Zugang?" --
+   dort meint es den Zutritt, nicht die Person (E2, E3). */
+const BILDSCHIRM_VERBOT = [
+  [/\bträgt\b|\btrifft\b|\btragen\b/, 'trägt/trifft (für gilt)'],
+  [/\bfallen\b|\bfällt\b/, 'fallen/fällt (für enden)'],
+  [/\bBlick\b/, 'Blick (für Besuch)'], [/\bTafel\b/, 'Tafel'], [/Grabstein/, 'Grabstein'], [/\bWirt\b/, 'Wirt'],
+  [/Sicherungsweg|Austauschweg/, 'Sicherungsweg/Austauschweg'],
+  [/Haus verlässt|Hausanschluss|aus dem Haus/, 'das Haus'],
+  [/TLS von Anfang an/, 'TLS von Anfang an'], [/Ableitung/, 'Ableitung'], [/nachziehen|nachgezogen/, 'nachziehen'],
+  [/[Hh]ereinkommen/, 'Hereinkommen'],
+  [/\bliegen\b(?<!zwischen [^.]*liegen)(?<!Zukunft liegen)/, 'liegen (für gespeichert sein)'],
+  [/\bProbe\b/, 'Probe (für Vorschau)'], [/\bNäher\b/, 'Näher (für Zoom)'],
+  [/\bElemente?\b/, 'Element (für Foto/Video)'], [/Betriebsart/, 'Betriebsart'], [/Rohtext/, 'Rohtext'],
+  [/\bRechnung\b/, 'Rechnung (für Berechnung)'], [/Zustand zurücksetzen/, 'Zustand zurücksetzen'],
+  [/\bKasten\b/, 'Kasten'], [/Passwortspeicher/, 'Passwortspeicher'], [/\bUmgebung\b/, 'Umgebung'],
+  [/\bgezogen\b/, 'gezogen (für erstellt)'], [/\bStück\b/, 'Stück (für Dateien)'],
+  [/\bBoden\b|\bSchere\b|\bDeckel\b|\bPille\b|\bKiste\b|\bKlemme\b|\bWächter\b|Stolperstein|Rückbau|Bestandslauf|Migrationsblock|Austauschformat/, 'ein Bild des Projekts'],
+  [/Fingerprint(?!\))/, 'Fingerprint ohne Erklärung'],
+  [/Systembereich|Selbstanmeldung|Suchanbieter|Startanbieter|Bildablage|\bStimmen?\b|Gesamtschnitt|Sicherungsort|Zielort|Verwaltungsbereich|Rücksetzlink|Wunsch-Benutzername|Zugänge\b|Bewertungskriterien|Freigeben|Freigegeben|unwiderruflich|stillgelegt|Alles anzeigen|Kopien?\b(?!\s+der\s+Datenbank)/, 'ein Wort, das das Wörterbuch ersetzt hat'],
+  [/\bZugangs?\b(?! beantragen)(?!\?)/, 'Zugang (für Benutzer/Konto)'],
+  [/\b0\.\d+\.\d+\b/, 'eine Versionsnummer'],
+];
+// Adressen und Selektoren sind kein Bildschirmtext: '/api/items', '#/system', '.thumb'.
+const istAdresse = (t) => /^[\/#.][^ ]*$/.test(t.trim());
+function bildschirmVerstoesse(texte) {
+  const out = [];
+  for (const t of texte) {
+    if (istAdresse(t.text)) continue;
+    for (const [re, name] of BILDSCHIRM_VERBOT)
+      if (re.test(t.text)) out.push(`Z. ${t.zeile} [${name}]: ${t.text.trim().replace(/\s+/g, ' ').slice(0, 90)}`);
+  }
+  return out;
+}
+
 async function sysDurchgang(d) {
   const karten = [], stuecke = [];
   const reiter = [...d.w.document.querySelectorAll('.sys-reiter-k')]
@@ -24280,7 +24591,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   const kzVok = wVok.document.getElementById('ccount');
   pruefe('Die Zahlen am Kommentarblock folgen dem Vokabular',
-    kzVok?.textContent === '6 Kommentare, davon 1 Notat und 2 ToDo’s (1 offen, 1 Done)',
+    kzVok?.textContent === '6 Kommentare, davon 1 Notat und 2 ToDo’s (1 offen)',
     kzVok ? kzVok.textContent : '(kein Hinweis)');
   pruefe('„Kommentar" bleibt dabei fest',
     /^6 Kommentare/.test(kzVok?.textContent || '') &&
@@ -24394,9 +24705,10 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(w3, 'bestand');
 
-  const felder = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12']
+  const felder = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14']
     .map(id => w3.document.getElementById(id));
-  pruefe('Zwoelf Vokabelfelder stehen bereit', felder.every(Boolean),
+  // VIERZEHN SEIT 0.22.0 (E14); umgedreht, nicht geloescht (Stolperstein 74).
+  pruefe('Vierzehn Vokabelfelder stehen bereit — 0.22.0', felder.every(Boolean),
     felder.map((f, n) => f ? '' : `v${n + 1} fehlt`).filter(Boolean).join(' '));
   pruefe('Felder sind vorbelegt', felder[0].value === 'Maschine' && felder[5].value === 'Sitzungen');
   pruefe('Die Berichtsfelder haben ihre Vorgabe',
@@ -24411,7 +24723,17 @@ async function pruefeOberflaeche() {
      eine Kennung weiter. */
   pruefe('Das Wort für den Potenzialkasten steht da und hat seine Vorgabe',
     felder[11]?.value === 'Potenzial', felder[11]?.value);
-  pruefe('Keine weiteren Felder', !w3.document.getElementById('v13'));
+  pruefe('Das Paar für die Bewertung steht da und hat seine Vorgabe — 0.22.0',
+    felder[12]?.value === 'Bewertung' && felder[13]?.value === 'Bewertungen',
+    `${felder[12]?.value} / ${felder[13]?.value}`);
+  /* JEDES FELD NENNT SEINE VORGABE -- 0.22.0: „Sache, Einzahl" allein sagte
+     nicht, was dort steht, wenn man das Feld leert. */
+  pruefe('Und jede Beschriftung nennt die Vorgabe',
+    [...w3.document.querySelectorAll('label[for^="v"]')].filter(l => /^v\d+$/.test(l.htmlFor)).length === 14 &&
+    [...w3.document.querySelectorAll('label[for^="v"]')].filter(l => /^v\d+$/.test(l.htmlFor))
+      .every(l => /Vorgabe: /.test(l.textContent)),
+    [...w3.document.querySelectorAll('label[for^="v"]')].map(l => l.textContent.trim()).join(' | '));
+  pruefe('Keine weiteren Felder', !w3.document.getElementById('v15'));
   pruefe('Probe zeigt die aktuellen Woerter',
     w3.document.getElementById('vprobe').textContent.includes('+ Maschine'));
   felder[0].value = 'Objekt';
@@ -24759,7 +25081,7 @@ async function pruefeOberflaeche() {
   pruefe('Gewählte Tags gelten nie als aussichtslos',
     !marke('Grün').classList.contains('leer') && !marke('Schwer').classList.contains('leer'));
   pruefe('Gedämpfte Tags bleiben anklickbar', typeof marke('Leicht').onclick === 'function');
-  pruefe('Ein Hinweis erklärt die Dämpfung', /kein Treffer/i.test(marke('Leicht').title || ''));
+  pruefe('Ein Hinweis erklärt die Dämpfung', /keine Treffer/i.test(marke('Leicht').title || ''));
 
   modus('or').onclick();
   await new Promise(r => setTimeout(r, 20));
@@ -24853,7 +25175,7 @@ async function pruefeOberflaeche() {
      hoch nach niedrig" gibt seit dieser Runde „Getestet" vor, und der Favorit
      ohne Wertung (id 3) ist UNGETESTET -- er faellt aus der Liste, und die
      Zusage haette ihren Gegenstand verloren. Die Lage stellt ihn deshalb
-     ausdruecklich her: EIN KLICK AUF „Alles anzeigen" ist eine Handwahl und
+     ausdruecklich her: EIN KLICK AUF „Alle" (bis 0.21.1 „Alles anzeigen") ist eine Handwahl und
      schlaegt die Vorgabe, danach steht wieder der ganze Bestand da und die
      Frage nach der REIHENFOLGE ist wieder zu stellen.
      UND DIE VORGABE SELBST WIRD DABEI MITBELEGT: vor dem Klick zeigt dieselbe
@@ -24864,8 +25186,10 @@ async function pruefeOberflaeche() {
   pruefe('Bei Bewertungssortierung steht ohne Handwahl nur Getestetes da — 0.21.1',
     gleich(favVorKlick, ['Gamma mit Wertung', 'Beta mit Wertung']),
     JSON.stringify(favVorKlick));
+  // Die erste Pille „Alle" im Dokument ist die der Statusreihe; die der
+  // Ablehnung steht dahinter im Aufklapper.
   const favAlles = [...favWert.w.document.querySelectorAll('#filters .pill')]
-    .find(b => b.textContent.trim() === 'Alles anzeigen');
+    .find(b => b.textContent.trim() === 'Alle');
   favAlles?.dispatchEvent(new favWert.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 30));
   const favWertT = favTitelVon(favWert);
@@ -24965,8 +25289,11 @@ async function pruefeOberflaeche() {
     'die Uebersichtskarte traegt noch den alten Ueberfahrtext');
   pruefe('Der Knopf benennt die naechste Handlung',
     /Als Favorit markieren/.test(appQuelle) && /Favorit entfernen/.test(appQuelle));
+  // DREI SEIT 0.22.0: das Formular, drawNeuMarken() (die Marke nennt seither
+  // auch den Rueckweg „Nicht mehr anpinnen") und die Kommentarliste.
   pruefe('Die Kommentare sprechen vom Anpinnen, nicht vom Favoriten',
-    (appQuelle.match(/Anpinnen — steht dann ganz oben/g) || []).length === 2,
+    (appQuelle.match(/Anpinnen — steht dann ganz oben/g) || []).length === 3 &&
+    (appQuelle.match(/Nicht mehr anpinnen/g) || []).length === 2,
     'die Umbenennung hat die Kommentare mitgenommen -- das sind zwei verschiedene Dinge');
 
   /* ================= Offen: die Ansicht ================= */
@@ -25107,9 +25434,12 @@ async function pruefeOberflaeche() {
   pruefe('Und sie zeichnet sich als erledigt',
     offZeilen(offAdmin)[0].classList.contains('erledigt'),
     offZeilen(offAdmin)[0].className);
+  // SEIT 0.22.0 EIN SVG-ZEICHEN STATT ☐/☑ (Stilblatt N1): der Haken ist am
+  // Zustand `on` und am Zeichen im Kaestchen zu erkennen, nicht am Glyph.
   pruefe('Das Kaestchen zeigt jetzt den Haken',
-    offZeilen(offAdmin)[0].querySelector('.off-haken')?.textContent === '☑',
-    offZeilen(offAdmin)[0].querySelector('.off-haken')?.textContent);
+    offZeilen(offAdmin)[0].querySelector('.off-haken')?.classList.contains('on') === true &&
+    !!offZeilen(offAdmin)[0].querySelector('.off-haken svg.zg'),
+    offZeilen(offAdmin)[0].querySelector('.off-haken')?.outerHTML.slice(0, 120));
 
   offAdmin.gesendet.length = 0;
   offZeilen(offAdmin)[0].querySelector('.off-haken')
@@ -25187,8 +25517,11 @@ async function pruefeOberflaeche() {
 
   const offLeerVok = await offBaue({ offenBestand: [],
     einstellungen: { ...eigenVoll, benutzerZahl: 3 } });
-  pruefe('Auch der leere Satz benutzt das Vokabular',
-    /ToDo’s/.test(offLeerVok.w.document.getElementById('off-hint')?.textContent || ''),
+  /* UMGEDREHT MIT 0.22.0 (Stolperstein 74): der leere Satz heisst „Nichts
+     offen." -- zwei Woerter, und er braucht kein Vokabelwort mehr (Anlage C,
+     Z. 3524: „Ton, doppelt"). Belegt wird, dass er kurz ist und dasteht. */
+  pruefe('Der leere Satz ist kurz und kommt ohne Vokabelwort aus — 0.22.0',
+    (offLeerVok.w.document.getElementById('off-hint')?.textContent || '').trim() === 'Nichts offen.',
     offLeerVok.w.document.getElementById('off-hint')?.textContent);
   offLeerVok.w.close();
 
@@ -25203,7 +25536,7 @@ async function pruefeOberflaeche() {
      traegt sie ohnehin. Das Wort dahinter kommt weiter aus dem Vokabular, und
      es steht in der richtigen Zahlform: eine Aufgabe, zwei Aufgaben. */
   pruefe('Sein Ueberfahrtext kommt aus dem Vokabular',
-    /^\d+ offene Aufgabe$/.test(offKnopf?.title || ''), offKnopf?.title);
+    /^\d+ Aufgabe offen$/.test(offKnopf?.title || ''), offKnopf?.title);
   pruefe('Und der Knopf traegt die Zahl selbst',
     offKopf.w.document.getElementById('offen-zahl')?.textContent === '1',
     offKopf.w.document.getElementById('offen-zahl')?.textContent);
@@ -25306,7 +25639,7 @@ async function pruefeOberflaeche() {
   pruefe('Die Statuszeile traegt sieben Pillen statt acht',
     nsPillen.length === 7, JSON.stringify(nsPillen));
   pruefe('Und alle sieben namentlich',
-    gleich(nsPillen, ['Alles anzeigen', 'Getestet', 'Ungetestet', '★ Favoriten',
+    gleich(nsPillen, ['Alle', 'Getestet', 'Ungetestet', '★ Favoriten',
                       'Alle', 'Abgelehnt', 'Nicht abgelehnt']),
     JSON.stringify(nsPillen));
   nsOhne.w.close();
@@ -25517,7 +25850,7 @@ async function pruefeOberflaeche() {
     `"${kommentare.querySelector('.bsumme').textContent}"`);
   pruefe('Und derselbe volle Satz steht weiterhin in der Kopfzeile',
     kommentare.querySelector('#ccount')?.textContent
-      === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen, 1 Erledigt)',
+      === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen)',
     kommentare.querySelector('#ccount')?.textContent);
   // Wieder aufklappen, damit die Gruppen darunter denselben Aufbau vorfinden.
   kommentare.querySelector('.block-head').onclick({ target: kommentare.querySelector('.label') });
@@ -25794,16 +26127,16 @@ async function pruefeOberflaeche() {
     !eSpalten.some(z => z.textContent.includes('·')),
     JSON.stringify(eSpalten.map(z => z.textContent)));
   pruefe('Das Zeichen wird im Klartext erklaert',
-    eSpalten[0]?.title === 'Durchschnitt 3,4 aus 5 Stimmen', eSpalten[0]?.title);
+    eSpalten[0]?.title === 'Durchschnitt 3,4 aus 5 Bewertungen', eSpalten[0]?.title);
   pruefe('Und die zweite Zeile traegt ihren eigenen Klartext',
-    eSpalten[1]?.title === 'Durchschnitt 4,1 aus 128 Stimmen', eSpalten[1]?.title);
+    eSpalten[1]?.title === 'Durchschnitt 4,1 aus 128 Bewertungen', eSpalten[1]?.title);
   /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 hiess die Zeile „Ein
      Kriterium ohne Stimme bekommt keinen Klartext" -- die Zelle war leer, also
      gab es nichts zu erklaeren. Seit dieser Runde steht dort ein STRICH, und
      ein Zeichen allein liest kein Vorleseprogramm vor: der Klartext gehoert
      dazu, wie an der Zahl daneben. */
-  pruefe('Ein Kriterium ohne Stimme bekommt seinen eigenen Klartext',
-    eSpalten[2]?.title === 'noch niemand', eSpalten[2]?.title);
+  pruefe('Ein Kriterium ohne Bewertung bekommt seinen eigenen Klartext',
+    eSpalten[2]?.title === 'Noch nicht bewertet', eSpalten[2]?.title);
   pruefe('Der Schnitt steht mit Komma, nicht mit Punkt',
     !eSpalten.some(z => z.textContent.includes('.')),
     JSON.stringify(eSpalten.map(z => z.textContent)));
@@ -25832,10 +26165,11 @@ async function pruefeOberflaeche() {
   /* UND DAS × STEHT AN DER ZEILE, mit dem Klartext dazu. Ohne diese Zeile
      bliebe die Verneinung darueber gruen, auch wenn es gar keinen Weg mehr
      gaebe (Stolperstein 81). */
-  pruefe('Dafuer traegt jede Sternzeile ihr ×',
-    [...eDoc.querySelectorAll('#ratings .rrow')].every(z => !!z.querySelector('.sdel')),
+  // SEIT 0.22.0 EIN EIGENER KNOPF IN DER LETZTEN SPALTE statt des × in der Reihe (E15).
+  pruefe('Dafuer traegt jede Sternzeile ihren Ruecksetzknopf',
+    [...eDoc.querySelectorAll('#ratings .rrow')].every(z => !!z.querySelector('.rzz .rzurueck')),
     JSON.stringify([...eDoc.querySelectorAll('#ratings .rrow')]
-      .map(z => !!z.querySelector('.sdel'))));
+      .map(z => !!z.querySelector('.rzz .rzurueck'))));
   // Angelegt wird nicht mehr am Eintrag. Das ist der eigentliche Umzug.
   pruefe('Am Eintrag gibt es kein Anlegefeld fuer Kriterien mehr',
     !eDoc.getElementById('newcrit'), 'newcrit steht noch in der Detailansicht');
@@ -25881,7 +26215,7 @@ async function pruefeOberflaeche() {
      -- nur der Aufruf des Admins fehlt. */
   pruefe('Bei einem Zugang gibt es den Aufruf gar nicht',
     eEinzeln.w.document.getElementById('rwho') === null &&
-    eEinzeln.w.document.querySelector('#ratings .rrow .sdel') !== null,
+    eEinzeln.w.document.querySelector('#ratings .rrow .rzurueck') !== null,
     'rwho steht im Blockkopf');
   eEinzeln.w.close();
 
@@ -26114,8 +26448,8 @@ async function pruefeOberflaeche() {
     pruefe('Das ✕ fragt vorher nach',
       !!eFrage && eFrage !== eAnsicht?.closest('.backdrop'),
       `${eDoc.querySelectorAll('.backdrop').length} Dialoge`);
-    pruefe('Die Frage nennt den Verfasser und sagt, dass nur Loeschen geht',
-      /bert/.test(eFrage?.textContent || '') && /nicht ändern/.test(eFrage?.textContent || ''),
+    pruefe('Die Frage nennt den Verfasser und sagt, was geschieht',
+      /bert/.test(eFrage?.textContent || '') && /wird entfernt/.test(eFrage?.textContent || ''),
       eFrage?.querySelector('p')?.textContent);
     eFrage?.querySelector('[data-yes]')?.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26167,7 +26501,7 @@ async function pruefeOberflaeche() {
      seit 0.21.0 an der Sternzeile statt am weggefallenen Ruecksetzer. */
   pruefe('Ohne Adminrolle gibt es den Aufruf gar nicht',
     eKeinAdmin.w.document.getElementById('rwho') === null &&
-    eKeinAdmin.w.document.querySelector('#ratings .rrow .sdel') !== null,
+    eKeinAdmin.w.document.querySelector('#ratings .rrow .rzurueck') !== null,
     'rwho steht im Blockkopf');
   // Und die Stimmen werden auch nicht abgerufen. Der Server verweigert es
   // ohnehin -- aber ein Abruf, der zuverlaessig ein 403 erzeugt, waere genau
@@ -26200,9 +26534,9 @@ async function pruefeOberflaeche() {
      der es weiter behauptete, sagte etwas Falsches. Die Zahlen bleiben --
      sie sind die eigentliche Auskunft. */
   pruefe('Sein Schlusssatz nennt den Papierkorb samt Frist',
-    /liegt danach 30 Tage im Papierkorb/.test(eDialog), eDialog);
-  pruefe('Und wer zurueckholen darf',
-    /Eigentümer dieser Installation/.test(eDialog), eDialog);
+    /landet für 30 Tage im Papierkorb/.test(eDialog), eDialog);
+  pruefe('Und wer wiederherstellen darf',
+    /wiederherstellen kann es nur der Eigentümer/.test(eDialog), eDialog);
   pruefe('Das Wort "unwiderruflich" steht nicht mehr darin',
     !/unwiderruflich/i.test(eDialog), eDialog);
   /* Seit 0.8.30 die Links, seit 0.8.31 auch die Dateien: was fremd sein kann,
@@ -26210,7 +26544,7 @@ async function pruefeOberflaeche() {
   pruefe('Und weder Links noch Dateien stehen darunter',
     !/Dabei gehen[^.]*Link/.test(eDialog) && !/Dabei gehen[^.]*Datei/.test(eDialog), eDialog);
   pruefe('Und die eigenen Beitraege getrennt',
-    /Dazu 6 Links, 5 Dateien, 2 Kommentare, 1 Bewertung, 1 Testtag von mir/.test(eDialog), eDialog);
+    /Außerdem von mir: 6 Links, 5 Dateien, 2 Kommentare, 1 Bewertung, 1 Testtag\./.test(eDialog), eDialog);
   /* Der eigentliche Gegenstand: was ANDEREN gehoert, steht in einem eigenen
      Satz -- die Kaskade nimmt es mit, und das darf nicht wortlos geschehen. */
   pruefe('Und die fremden in einem eigenen Satz',
@@ -26737,7 +27071,7 @@ async function pruefeOberflaeche() {
     /Suche nach/.test(suchZeile?.title || '') && /Startpage/.test(suchZeile?.title || ''),
     suchZeile?.title);
   pruefe('Auch das Löschkreuz sagt, worum es geht',
-    /Sucheintrag/.test(suchZeile?.querySelector('.xdel')?.getAttribute('title') || ''),
+    /Suchbegriff/.test(suchZeile?.querySelector('.xdel')?.getAttribute('title') || ''),
     suchZeile?.querySelector('.xdel')?.getAttribute('title'));
   // Vorhanden ist nicht sichtbar. Die Einblendregel zaehlt
   // die Zeilenarten einzeln auf -- .lrow steht darin, die Suchzeile ist eine.
@@ -27488,7 +27822,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 90));
   const kZaehl = kzDom.w.document.getElementById('ccount');
   pruefe('Der Kommentarblock traegt seine Zahlen in der Kopfzeile',
-    !!kZaehl && kZaehl.textContent === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen, 1 Erledigt)',
+    !!kZaehl && kZaehl.textContent === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen)',
     kZaehl ? kZaehl.textContent : '(kein Hinweis)');
   pruefe('Und zwar dort, wo Links und Dateien ihren auch tragen',
     !!kZaehl && !!kZaehl.closest('.block-head') &&
@@ -27510,24 +27844,28 @@ async function pruefeOberflaeche() {
     kz('note', 'report') === '2 Kommentare, davon 1 Bericht', kz('note', 'report'));
   pruefe('Ohne Erledigte faellt die Klammer weg',
     kz('note', 'task', 'task') === '3 Kommentare, davon 2 Aufgaben', kz('note', 'task', 'task'));
+  /* DIE KLAMMER NENNT SEIT 0.22.0 NUR DIE OFFENEN: „1 Erledigt" war ein
+     Vokabelwort mit grossem Anfangsbuchstaben mitten im Satz (Anlage B, Z.
+     883). Die Zahl der Erledigten ist die Differenz. Umgedreht, nicht
+     geloescht (Stolperstein 74). */
   pruefe('Das Erledigte steckt IN den Aufgaben, nicht daneben',
-    kz('task', 'task', 'done') === '3 Kommentare, davon 3 Aufgaben (2 offen, 1 Erledigt)',
+    kz('task', 'task', 'done') === '3 Kommentare, davon 3 Aufgaben (2 offen)',
     kz('task', 'task', 'done'));
   pruefe('Ein erledigtes Todo allein ist immer noch eine Aufgabe',
-    kz('done') === '1 Kommentar, davon 1 Aufgabe (0 offen, 1 Erledigt)', kz('done'));
+    kz('done') === '1 Kommentar, davon 1 Aufgabe (0 offen)', kz('done'));
   pruefe('Zwei Gruppen werden mit „und" verbunden, nicht mit einem Mittelpunkt',
     kz('report', 'report', 'task', 'done', 'note')
-      === '5 Kommentare, davon 2 Berichte und 2 Aufgaben (1 offen, 1 Erledigt)',
+      === '5 Kommentare, davon 2 Berichte und 2 Aufgaben (1 offen)',
     kz('report', 'report', 'task', 'done', 'note'));
   /* --- 0.12.3: die Zahl, nach der im Alltag gefragt wird ---
      ABGEZOGEN UND NICHT GEZAEHLT: `aufgaben - fertig` kann von der Summe
      nicht abweichen, eine zweite Zaehlung ueber kind='task' schon. Die
      Prueflage haelt beides zusammen fest. */
-  pruefe('Die offenen Aufgaben stehen voran, vor den erledigten',
-    /\(3 offen, 2 Erledigt\)/.test(kz('task', 'task', 'task', 'done', 'done')),
+  pruefe('Die offenen Aufgaben stehen in der Klammer, die erledigten nicht mehr — 0.22.0',
+    /\(3 offen\)/.test(kz('task', 'task', 'task', 'done', 'done')) && !/Erledigt/.test(kz('task', 'task', 'task', 'done', 'done')),
     kz('task', 'task', 'task', 'done', 'done'));
-  pruefe('Offen und erledigt ergeben zusammen die Zahl davor',
-    kz('task', 'task', 'task', 'done', 'done') === '5 Kommentare, davon 5 Aufgaben (3 offen, 2 Erledigt)',
+  pruefe('Offen und die Zahl davor ergeben die erledigten',
+    kz('task', 'task', 'task', 'done', 'done') === '5 Kommentare, davon 5 Aufgaben (3 offen)',
     kz('task', 'task', 'task', 'done', 'done'));
   pruefe('Ohne Erledigte steht kein „(5 offen)" da — die Zahl davor sagt es schon',
     kz('task', 'task', 'task') === '3 Kommentare, davon 3 Aufgaben',
@@ -28286,7 +28624,7 @@ async function pruefeOberflaeche() {
   /* DIE DREI PROZENT BEIM UEBERFAHREN BLEIBEN, sie haengen nur nicht mehr am
      Ausschnitt. Ohne diese Zeile bliebe gruen, wer die Bewegung mitentfernt. */
   pruefe('Die Ueberfahrvergroesserung bleibt und haengt an nichts mehr',
-    /transform: scale\(1\.03\)/.test(regelAus('.card:hover .card-img img')),
+    /transform: scale\(1\.02\)/.test(regelAus('.card:hover .card-img img')),
     regelAus('.card:hover .card-img img') || '(keine Regel)');
   /* AUF DEM TELEFON FAELLT SIE WEG -- und jetzt darf dort `none` stehen. Bis
      0.19.4 musste es `scale(var(--zoom, 1))` heissen, weil `none` den
@@ -28491,7 +28829,7 @@ async function pruefeOberflaeche() {
        Ausschnitt IST gespeichert, und eine Bestaetigung, die genau dann
        ausbleibt, wenn man nicht hingesehen hat, waere keine. */
     pruefe('Und die Zusage „gespeichert" steht trotzdem da',
-      meldungen.some(t => /gespeichert/.test(t.textContent)),
+      meldungen.some(t => /Gespeichert/.test(t.textContent)),
       meldungen.map(t => t.textContent).join(' | ') || '(keine Meldung)');
     wf.close();
   }
@@ -28815,12 +29153,17 @@ async function pruefeOberflaeche() {
      UNMITTELBAR HINTER „Bewertungskriterien" -- dieselbe Maschine, eine andere
      Liste. Der Titel traegt das Wort aus dem Vokabular und einen DOPPELPUNKT:
      zusammengesetzt wird es nirgends. */
+  /* DIE NAMEN SEIT 0.22.0 (Woerterbuch, Konzept 4.3): „Mein Konto" statt
+     „Zugang" (E2), „Bewertung: Kriterien" statt „Bewertungskriterien" (E14),
+     „Suchmaschinen" statt „Suchanbieter" (E7), „Benutzer" statt „Zugänge"
+     (E2), „Bildformate" statt „Bildablage" (E6). Einundzwanzig bleiben es;
+     umgedreht, nicht geloescht (Stolperstein 74). */
   const ALLE_KARTEN = [
-    'Zugang', 'Meine Sitzungen', 'Darstellung',
-    'Kategorien', 'Tags', 'Bewertungskriterien', 'Potenzial: Kriterien',
-    'Vokabular', 'Links', 'Suchanbieter', 'Papierkorb',
-    'Zugänge', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
-    'Kennzahlen', 'Bildablage', 'Sicherung', 'Alte Sicherungen', 'Export und Import',
+    'Mein Konto', 'Meine Sitzungen', 'Darstellung',
+    'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
+    'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
+    'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
+    'Kennzahlen', 'Bildformate', 'Sicherung', 'Alte Sicherungen', 'Export und Import',
     'Titel'];
   pruefe('Die Eigentuemerin sieht alle einundzwanzig Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
@@ -28832,9 +29175,9 @@ async function pruefeOberflaeche() {
      Nachbarschaftszusage wie bei „Alte Sicherungen" darunter, und aus
      demselben Grund: die Zeile darueber faerbt sich auch bei einer
      Verschiebung, diese hier sagt, WELCHE Nachbarschaft gemeint war. */
-  pruefe('Und "Potenzial: Kriterien" steht unmittelbar hinter "Bewertungskriterien"',
-    kEig.indexOf('Potenzial: Kriterien') === kEig.indexOf('Bewertungskriterien') + 1,
-    `Bewertungskriterien: ${kEig.indexOf('Bewertungskriterien')} · ` +
+  pruefe('Und "Potenzial: Kriterien" steht unmittelbar hinter "Bewertung: Kriterien"',
+    kEig.indexOf('Potenzial: Kriterien') === kEig.indexOf('Bewertung: Kriterien') + 1,
+    `Bewertung: Kriterien: ${kEig.indexOf('Bewertung: Kriterien')} · ` +
     `Potenzial: Kriterien: ${kEig.indexOf('Potenzial: Kriterien')}`);
   /* UND SIE STEHT HINTER "SICHERUNG" -- die Reihenfolge ist geprueft und nicht
      zufaellig. Die Zeile darueber vergleicht die ganze Liste und faerbt sich
@@ -28858,7 +29201,7 @@ async function pruefeOberflaeche() {
   const reiterWorte = (d) => [...d.w.document.querySelectorAll('.sys-reiter-k')]
     .map(a => a.textContent.trim());
   pruefe('Die Eigentuemerin bekommt fuenf Abschnitte',
-    gleich(reiterWorte(rEig), ['Persönlich', 'Bestand', 'Zugänge', 'Datenbank', 'Installation']),
+    gleich(reiterWorte(rEig), ['Persönlich', 'Bestand', 'Benutzer', 'Datenbank', 'Installation']),
     reiterWorte(rEig).join(' · '));
   pruefe('Ein gewoehnlicher Benutzer bekommt nur die zwei, die etwas zu zeigen haben',
     gleich(reiterWorte(rUser), ['Persönlich', 'Bestand']), reiterWorte(rUser).join(' · '));
@@ -28890,7 +29233,7 @@ async function pruefeOberflaeche() {
   await sysAbschnitt(rUser.w, 'datenbank');
   pruefe('Eine Adresse auf einen unsichtbaren Abschnitt faellt auf den ersten zurueck',
     [...rUser.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
-      .map(h => h.textContent.trim())[0] === 'Zugang',
+      .map(h => h.textContent.trim())[0] === 'Mein Konto',
     [...rUser.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
       .map(h => h.textContent.trim()).join(' · '));
   pruefe('Und die Adresse wird dabei nachgezogen',
@@ -28918,8 +29261,8 @@ async function pruefeOberflaeche() {
      anderen Listen -- sichtbar fuer jeden, bedienbar nur fuer den Admin. Die
      Namen sind die Auswahl, aus der jeder am Eintrag schoepft. */
   pruefe('Ein gewoehnlicher Benutzer sieht acht -- vier persoenliche, vier zum Nachsehen',
-    gleich(kUser, ['Zugang', 'Meine Sitzungen', 'Darstellung',
-                   'Kategorien', 'Tags', 'Bewertungskriterien', 'Potenzial: Kriterien', 'Links']),
+    gleich(kUser, ['Mein Konto', 'Meine Sitzungen', 'Darstellung',
+                   'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien', 'Links']),
     kUser.join(' · '));
 
   /* Punkt fuer Punkt, weil eine Sammelpruefung nicht sagt, WELCHE Karte
@@ -28928,7 +29271,7 @@ async function pruefeOberflaeche() {
      Eigentuemerfrage. Dieselbe Bauform wie bei "Kategorien", "Tags" und
      "Bewertungskriterien": die Karte bleibt, die Bedienzeichen verschwinden.
      Dass die Knoepfe dem Admin fehlen, steht in der eigenen Gruppe darunter. */
-  for (const karte of ['Titel', 'Kennzahlen', 'Vokabular', 'Zugänge', 'Suchanbieter', 'Papierkorb',
+  for (const karte of ['Titel', 'Kennzahlen', 'Vokabular', 'Benutzer', 'Suchmaschinen', 'Papierkorb',
                        'Anfragen']) {
     pruefe(`Die Karte "${karte}" steht nur beim Admin`,
       kAdm.includes(karte) && !kUser.includes(karte),
@@ -28985,7 +29328,7 @@ async function pruefeOberflaeche() {
     [...rAusMitZeilen.w.document.querySelectorAll('#manfragen .mrow')].length === 1,
     `${[...rAusMitZeilen.w.document.querySelectorAll('#manfragen .mrow')].length} Zeilen`);
 
-  for (const karte of ['Zugang', 'Meine Sitzungen', 'Darstellung', 'Links']) {
+  for (const karte of ['Mein Konto', 'Meine Sitzungen', 'Darstellung', 'Links']) {
     pruefe(`Die Karte "${karte}" steht jedem, auch ohne Rolle`,
       kUser.includes(karte) && kEig.includes(karte), kUser.join(' · '));
   }
@@ -29020,11 +29363,11 @@ async function pruefeOberflaeche() {
     kAdm.join(' · '));
   pruefe('Sie trägt eine Zeile mit der Beschriftung Fingerprint',
     [...(admKarte?.querySelectorAll('.kv') || [])]
-      .some(z => z.querySelector('.k')?.textContent.trim() === 'Fingerprint'),
+      .some(z => z.querySelector('.k')?.textContent.trim() === 'Prüfsumme (Fingerprint)'),
     [...(admKarte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
   pruefe('Und darin steht der Wert aus der Antwort',
     [...(admKarte?.querySelectorAll('.kv') || [])]
-      .some(z => z.querySelector('.k')?.textContent.trim() === 'Fingerprint' &&
+      .some(z => z.querySelector('.k')?.textContent.trim() === 'Prüfsumme (Fingerprint)' &&
                  z.querySelector('.v')?.textContent.trim() === 'a1b2c3d4'),
     [...(admKarte?.querySelectorAll('.kv .v') || [])].map(v => v.textContent.trim()).join(' · '));
   /* NIRGENDS heisst: in KEINEM Abschnitt. Ein Blick auf den gerade offenen
@@ -29093,8 +29436,8 @@ async function pruefeOberflaeche() {
      wenn die Karte gar nicht mehr da waere (Stolperstein 81). */
   await sysAbschnitt(rUser.w, 'persoenlich');
   const rZugangKarte = [...rUser.w.document.querySelectorAll('.sys-card')]
-    .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugang');
-  pruefe('Die Karte "Zugang" ist ueberhaupt da', !!rZugangKarte);
+    .find(k => k.querySelector('h3')?.textContent.trim() === 'Mein Konto');
+  pruefe('Die Karte "Mein Konto" ist ueberhaupt da', !!rZugangKarte);
   pruefe('Sie nennt AUTH_RESET nicht mehr',
     !!rZugangKarte && !/AUTH_RESET/.test(rZugangKarte.textContent || ''),
     rZugangKarte?.textContent?.slice(0, 200));
@@ -29107,13 +29450,13 @@ async function pruefeOberflaeche() {
     !!rZugangKarte && !/zugang\.js passwort/.test(rZugangKarte.textContent || ''),
     rZugangKarte?.textContent?.slice(0, 300));
   pruefe('Sondern der Satz, der ihm wirklich hilft',
-    !!rZugangKarte && /wendet sich an den Admin/.test(rZugangKarte.textContent || ''),
+    !!rZugangKarte && /Ein Admin kann einen Link zum Zurücksetzen erzeugen/.test(rZugangKarte.textContent || ''),
     rZugangKarte?.textContent?.slice(0, 300));
   {
     await sysAbschnitt(rEig.w, 'persoenlich');
     const eigZugang = [...rEig.w.document.querySelectorAll('.sys-card')]
-      .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugang');
-    pruefe('Beim Eigentuemer steht er sehr wohl',
+      .find(k => k.querySelector('h3')?.textContent.trim() === 'Mein Konto');
+    pruefe('Beim Eigentuemer steht er sehr wohl — im Kasten „Auf dem Server"',
       !!eigZugang && /zugang\.js passwort/.test(eigZugang.textContent || ''),
       eigZugang?.textContent?.slice(0, 300));
   }
@@ -29142,8 +29485,8 @@ async function pruefeOberflaeche() {
      Damit laesst sich „alle" weiterhin an EINER Zeichnung abzaehlen. */
   await sysAbschnitt(rEig.w, 'zugaenge');
   const rKachel = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugänge');
-  pruefe('Die Kachel "Zugaenge" ist da', !!rKachel);
+    .find(k => k.querySelector('h3')?.textContent.trim() === 'Benutzer');
+  pruefe('Die Kachel "Benutzer" ist da', !!rKachel);
   pruefe('Und sie ist als breite Kachel gekennzeichnet',
     !!rKachel && rKachel.classList.contains('breit'),
     rKachel?.className);
@@ -29162,7 +29505,7 @@ async function pruefeOberflaeche() {
   const rBreite = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit')]
     .map(k => k.querySelector('h3')?.textContent.trim());
   pruefe('Als eine von genau vieren, und alle vier namentlich',
-    gleich(rBreite, ['Zugänge', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand']),
+    gleich(rBreite, ['Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand']),
     JSON.stringify(rBreite));
   /* UND KEINE SCHMALE BLEIBT IM ABSCHNITT STEHEN. Ohne diese Zeile bliebe die
      Aufzaehlung darueber auch dann gruen, wenn eine fuenfte Karte dazukaeme,
@@ -29207,11 +29550,11 @@ async function pruefeOberflaeche() {
   pruefe('Die Karte "Links" traegt einen abgesetzten Abschnitt',
     rUser.w.document.querySelectorAll('.sys-card .sys-teil').length > 0,
     `${rUser.w.document.querySelectorAll('.sys-card .sys-teil').length} Abschnitte`);
-  pruefe('Und die Karte "Suchanbieter" ebenfalls',
+  pruefe('Und die Karte "Suchmaschinen" ebenfalls',
     [...rAdm.w.document.querySelectorAll('.sys-card')]
-      .filter(k => k.querySelector('h3')?.textContent.trim() === 'Suchanbieter')
+      .filter(k => k.querySelector('h3')?.textContent.trim() === 'Suchmaschinen')
       .some(k => k.querySelector('.sys-teil')),
-    'kein abgesetzter Abschnitt in der Karte "Suchanbieter"');
+    'kein abgesetzter Abschnitt in der Karte "Suchmaschinen"');
   pruefe('Die Regel dafuer steht ueberhaupt im Stylesheet',
     rRegel('.sys-card .sys-teil').length > 0, '(keine Regel)');
   pruefe('Und sie zieht eine Linie darueber, nicht bloss einen Abstand',
@@ -29271,8 +29614,8 @@ async function pruefeOberflaeche() {
   pruefe('Sie nennt den Mindestwert aus der Antwort',
     /Mindestens 10 Zeichen/.test(eiGut.w.document.body.textContent),
     eiGut.w.document.body.textContent.slice(0, 400));
-  pruefe('Und sie sagt, dass alle bestehenden Anmeldungen fallen',
-    /Anmeldungen dieses Zugangs werden beendet/.test(eiGut.w.document.body.textContent),
+  pruefe('Und sie sagt, dass alle anderen Geraete abgemeldet werden',
+    /auf allen anderen Geräten abgemeldet/.test(eiGut.w.document.body.textContent),
     eiGut.w.document.body.textContent.slice(0, 400));
   /* Und der zweite Anlass: derselbe Weg, anderer Text -- ABGELEITET AUS DEM
      ZUSTAND (hat der Zugang schon ein Passwort), nicht aus dem Zweck. */
@@ -29307,7 +29650,7 @@ async function pruefeOberflaeche() {
      der Absage, und dann ist es zu spaet. Gelesen wird sie aus der ANTWORT
      (Stolperstein 102), nicht aus einer Zahl in der Oberflaeche. */
   pruefe('Die Einladungsseite nennt die Frist ab dem ersten Oeffnen',
-    /15 Minuten Zeit/.test(eiGut.w.document.body.textContent),
+    /gilt noch 15 Minuten/.test(eiGut.w.document.body.textContent),
     eiGut.w.document.body.textContent.slice(0, 600));
   /* GEKUERZT MIT 0.9.1 -- EIN SATZ WENIGER, NICHT EINE AUSKUNFT WENIGER.
      Die Zeile stand ueber drei Saetze und war am Bildschirm zu breit; sie
@@ -29315,11 +29658,14 @@ async function pruefeOberflaeche() {
      dass Neuladen unschaedlich ist, und was danach zu tun ist. Ohne die
      dritte Pruefung koennte eine spaetere Kuerzung genau die eine wegnehmen,
      auf die es ankommt. */
-  pruefe('Und sagt, dass Neuladen in dieser Zeit erlaubt ist',
-    /neu laden darfst du darin beliebig oft/i.test(eiGut.w.document.body.textContent),
+  /* UMGEDREHT MIT 0.22.0: der Satz ueber das Neuladen ist weg (Bauprozess,
+     Anlage A, Z. 786) -- die Seite sagt, was danach gilt: ein neuer Link vom
+     Admin. */
+  pruefe('Und sagt, was nach der Frist zu tun ist',
+    /danach\s+brauchst du einen neuen vom Admin/i.test(eiGut.w.document.body.textContent),
     eiGut.w.document.body.textContent.slice(0, 600));
-  pruefe('Und was danach zu tun ist',
-    /neuen Link vom\s+Admin/.test(eiGut.w.document.body.textContent),
+  pruefe('Und dass das Setzen die anderen Geraete abmeldet — 0.22.0',
+    /Nach dem Setzen wirst du auf allen anderen Geräten abgemeldet/.test(eiGut.w.document.body.textContent),
     eiGut.w.document.body.textContent.slice(0, 600));
   /* UND SIE IST WIRKLICH KUERZER: der dritte Satz ist weg. Ohne diese Zeile
      bliebe die Kuerzung eine Behauptung -- die drei Auskuenfte stuenden auch
@@ -29692,7 +30038,7 @@ async function pruefeOberflaeche() {
      Hinweis darunter nennt den zweiten Weg. */
   const zdLabel = zdMit.w.document.querySelector('label[for="zf-code"]')?.textContent || '';
   pruefe('Die Beschriftung nennt das Verfahren und keine Zeichenzahl',
-    /Code des zweiten Faktors/.test(zdLabel) && !/[Ss]echsstellig/.test(zdLabel), zdLabel);
+    /Zwei-Faktor-Code/.test(zdLabel) && !/[Ss]echsstellig/.test(zdLabel), zdLabel);
   pruefe('Und die Seite spricht nirgends mehr von einer App',
     !/\bApp\b/i.test(zdMit.w.document.querySelector('.login-card')?.textContent || ''),
     (zdMit.w.document.querySelector('.login-card')?.textContent || '').replace(/\s+/g, ' ').slice(0, 200));
@@ -29781,8 +30127,8 @@ async function pruefeOberflaeche() {
   await zkAus.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
   const zkBlock = () => zkAus.w.document.getElementById('zf-block');
-  pruefe('Der Block steht in der Karte "Zugang" und nicht in einer eigenen',
-    Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === 'Zugang',
+  pruefe('Der Block steht in der Karte "Mein Konto" und nicht in einer eigenen',
+    Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === 'Mein Konto',
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
   /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE, seit der Systembereich immer nur
      einen zeigt. Waere hier nur der offene gezaehlt, stuende die Zahl drei da
@@ -29799,8 +30145,9 @@ async function pruefeOberflaeche() {
     Boolean(zkAus.w.document.getElementById('zf-an')), 'der Knopf fehlt');
   pruefe('Zum Ausschalten steht dort keiner',
     !zkAus.w.document.getElementById('zf-aus') && !zkAus.w.document.getElementById('zf-neue'));
-  pruefe('Und der Text nennt die Instanz als vollstaendig ohne ihn',
-    /[Ff]reiwillig/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 300));
+  // 0.22.0: der Absatz ist zwei Saetze lang und sagt, dass die App kein Internet braucht.
+  pruefe('Und der Text sagt, dass die App kein Internet braucht',
+    /kein Internet/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 300));
 
   // Einschalten, Schritt 1: hinter dem bisherigen Passwort.
   await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-an'));
@@ -29854,8 +30201,8 @@ async function pruefeOberflaeche() {
   pruefe('Der Kasten sagt, dass sie nicht wiederkommen',
     /nur dieses eine Mal/.test(zkKasten()?.textContent || ''),
     zkKasten()?.textContent?.slice(0, 140));
-  pruefe('Und wo sie hingehoeren -- nicht dorthin, wo das Telefon liegt',
-    /nicht.*liegt|nicht<\/strong> liegt/.test(zkKasten()?.textContent || ''),
+  pruefe('Und wo sie hingehoeren -- getrennt vom Handy',
+    /getrennt vom Handy/.test(zkKasten()?.textContent || ''),
     zkKasten()?.textContent?.slice(0, 220));
   pruefe('Er nennt den Notweg ueber den Wirt fuer den Fall, dass alles weg ist',
     /zugang\.js zweifaktor/.test(zkKasten()?.textContent || ''),
@@ -29910,11 +30257,12 @@ async function pruefeOberflaeche() {
   await zkKnapp.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
   const zkKnappText = zkKnapp.w.document.getElementById('zf-block')?.textContent || '';
-  pruefe('Bei einem uebrigen Code sagt die Karte, dass es knapp wird',
-    /noch 1 von 8/.test(zkKnappText) && /knapp/.test(zkKnappText),
+  pruefe('Bei einem uebrigen Code bittet die Karte um neue Codes',
+    /noch 1 von 8/.test(zkKnappText) && /rechtzeitig neue erzeugen/.test(zkKnappText),
     zkKnappText.slice(0, 200));
+  // SEIT 0.22.0 DURCH fmtDate: „14.08.2026" statt des ISO-Datums (Anlage F, Z. 6884).
   pruefe('Und nennt den Tag, an dem er eingeschaltet wurde',
-    /2026-08-14/.test(zkKnappText), zkKnappText.slice(0, 120));
+    /14\.08\.2026/.test(zkKnappText) && !/2026-08-14/.test(zkKnappText), zkKnappText.slice(0, 120));
   const zkVoll = baueDom(JSDOM, { hash: '#/system',
     zweifaktorStand: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
   await new Promise(r => setTimeout(r, 60));
@@ -29941,7 +30289,7 @@ async function pruefeOberflaeche() {
      eingeschaltet ist" statt „weil dein Zugang einen zweiten Faktor traegt".
      Dieselbe Zusage, ein anderer Wortlaut (Stolperstein 201). */
   pruefe('Und sagt daneben, warum der Code dazugehoert',
-    /zweiter Faktor eingeschaltet/.test(
+    /zweiter Faktor ist eingeschaltet/.test(
       zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
     zkBest.w.document.querySelector('.modal .desc')?.textContent);
   /* --- 0.12.3: die Beschriftung nennt das VERFAHREN, nicht das Geraet ---
@@ -29954,7 +30302,7 @@ async function pruefeOberflaeche() {
   const zkLabel = [...zkBest.w.document.querySelectorAll('.modal .field label')]
     .map(l => l.textContent);
   pruefe('Das Codefeld nennt das Verfahren',
-    zkLabel.some(t => /Code des zweiten Faktors/.test(t)), JSON.stringify(zkLabel));
+    zkLabel.some(t => /Zwei-Faktor-Code/.test(t)), JSON.stringify(zkLabel));
   pruefe('Und keine Beschriftung im Fenster spricht mehr von einer App',
     !zkLabel.some(t => /App/i.test(t)), JSON.stringify(zkLabel));
   /* IM DIALOG STAND DER ZWEITE WEG BISHER NIRGENDS. An der Anmeldung steht er
@@ -30086,7 +30434,7 @@ async function pruefeOberflaeche() {
   pruefe('Und die Adresse',
     kZeilen[0].textContent.includes('neuling@beispiel.de'), kZeilen[0].textContent);
   pruefe('Und beide Zeitpunkte -- Anfrage und Bestaetigung',
-    /gefragt/.test(kZeilen[0].textContent) && /bestätigt/.test(kZeilen[0].textContent),
+    /angefragt/.test(kZeilen[0].textContent) && /bestätigt/.test(kZeilen[0].textContent),
     kZeilen[0].textContent);
   pruefe('Der Stand gegen den Deckel steht daneben',
     /2 von höchstens 20/.test(kA.w.document.getElementById('anf-belegt')?.textContent || ''),
@@ -30097,7 +30445,7 @@ async function pruefeOberflaeche() {
 
   /* DIE FREISCHALTUNG UEBER EIN ZUGESTELLTES EREIGNIS, und das Bestaetigen
      davor ist gestellt: confirm() gibt es in jsdom nicht von selbst. */
-  kA.w.confirm = () => true;
+  stelleBestaetigung(kA.w, true);
   kZeilen[0].querySelector('.anf-frei')
     .dispatchEvent(new kA.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 80));
@@ -30122,15 +30470,15 @@ async function pruefeOberflaeche() {
   pruefe('Der Einladungslink steht danach in der Karte "Anfragen"',
     kFeld?.value === `https://kriterion.beispiel.de/#/einladung/${'e'.repeat(64)}`,
     kFeld?.value || '(kein Feld)');
-  pruefe('Mit der Warnung, dass er ein Passwortersatz auf Zeit ist',
-    /Passwortersatz/.test(kA.w.document.getElementById('anf-link')?.textContent || ''),
+  pruefe('Mit dem Satz, dass der Link das Passwort setzen kann',
+    /Wer den Link hat, kann das Passwort setzen/.test(kA.w.document.getElementById('anf-link')?.textContent || ''),
     kA.w.document.getElementById('anf-link')?.textContent?.slice(0, 120) || '');
   pruefe('Und es steht nur EIN Linkkasten am Bildschirm',
     kA.w.document.querySelectorAll('#zug-link-feld').length === 1,
     `${kA.w.document.querySelectorAll('#zug-link-feld').length} Kaesten`);
 
   const kAb = await sKarteBau(sKarteStand());
-  kAb.w.confirm = () => true;
+  stelleBestaetigung(kAb.w, true);
   [...kAb.w.document.querySelectorAll('#manfragen .mrow')][1].querySelector('.anf-ab')
     .dispatchEvent(new kAb.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 80));
@@ -30175,7 +30523,7 @@ async function pruefeOberflaeche() {
     /Testmail/.test(kRot.w.document.getElementById('anf-kaputt')?.textContent || ''),
     kRot.w.document.getElementById('anf-kaputt')?.textContent || '');
   pruefe('Und sagt, dass der Schalter trotzdem an bleibt',
-    /bleibt trotzdem an/.test(kRot.w.document.getElementById('anf-kaputt')?.textContent || ''),
+    /bleibt eingeschaltet/.test(kRot.w.document.getElementById('anf-kaputt')?.textContent || ''),
     kRot.w.document.getElementById('anf-kaputt')?.textContent || '');
   pruefe('Der Schalter steht dabei weiterhin auf "an"',
     /an/.test(kRot.w.document.getElementById('anf-zustand')?.textContent || ''),
@@ -30248,9 +30596,9 @@ async function pruefeOberflaeche() {
     msuReihen.filter(r => r.classList.contains('sitz-ich')).length === 1,
     msuReihen.map(r => r.className).join(' · '));
   pruefe('Und sie sagt es auch mit Worten',
-    /Diese Anmeldung/.test(msuText[0]) && /\(hier\)/.test(msuText[0]), msuText[0]);
+    /Diese Sitzung/.test(msuText[0]) && /\(hier\)/.test(msuText[0]), msuText[0]);
   pruefe('Die anderen heissen anders',
-    msuText.slice(1).every(t => /Andere Anmeldung/.test(t)), JSON.stringify(msuText.slice(1)));
+    msuText.slice(1).every(t => /Andere Sitzung/.test(t)), JSON.stringify(msuText.slice(1)));
   /* AN DER EIGENEN STEHT KEIN KREUZ -- man wuerde sich sonst selbst
      hinauswerfen, und der Server weist den Weg ohnehin ab. Erst das
      Vorhandensein der Zeile, dann die Aussage, dass an ihr etwas FEHLT
@@ -30278,7 +30626,7 @@ async function pruefeOberflaeche() {
      sagt das offen -- eine Karte, die mehr behauptet, als sie weiss, waere
      schlimmer als keine. */
   pruefe('Die Karte sagt offen, dass sie das Geraet nicht kennt',
-    /weder Adresse noch\s+Browserkennung/i.test(msKarte(msuEig)?.querySelector('.desc')?.textContent || ''),
+    /Gerät und\s+Ort werden nicht gespeichert/.test(msKarte(msuEig)?.querySelector('.desc')?.textContent || ''),
     msKarte(msuEig)?.querySelector('.desc')?.textContent);
 
   /* DER LEERE FALL -- nur die eigene, mit eigenem Aufbau. */
@@ -30319,7 +30667,7 @@ async function pruefeOberflaeche() {
      Abbruch, der trotzdem loescht, waere der schlimmere Fehler. */
   {
     const d = await msSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.confirm = () => false;
+    const msNein = stelleBestaetigung(d.w, false);
     msKarte(d)?.querySelector('#sitz-alle')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Wer abbricht, beendet nichts',
@@ -30328,7 +30676,8 @@ async function pruefeOberflaeche() {
     pruefe('Und alle drei Zeilen stehen noch da', msReihen(d).length === 3,
       `${msReihen(d).length}`);
 
-    d.w.confirm = () => true;
+    msNein.disconnect();
+    stelleBestaetigung(d.w, true);
     msKarte(d)?.querySelector('#sitz-alle')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Nach der Bestaetigung geht es an den Server',
@@ -30351,10 +30700,11 @@ async function pruefeOberflaeche() {
   }
 
   /* ---------------------------------------------------------------- */
-  gruppe('Der Einladungslink in der Karte Zugaenge');
+  gruppe('Der Einladungslink in der Karte Benutzer');
 
+  // „Benutzer" seit 0.22.0 (E2); der Abschnittsschluessel `zugaenge` bleibt.
   const ziKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Zugänge');
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Benutzer');
   const ziReihen = (d) => [...(ziKarte(d)?.querySelectorAll('#mzugaenge .mrow.zug') || [])];
   const ziSystem = async (rollen, opt = {}) => {
     const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
@@ -30365,7 +30715,7 @@ async function pruefeOberflaeche() {
   };
 
   const ziEig = await ziSystem({ istAdmin: true, istEigentuemer: true });
-  pruefe('Die Karte "Zugänge" steht da', !!ziKarte(ziEig));
+  pruefe('Die Karte "Benutzer" steht da', !!ziKarte(ziEig));
   // Drei lebende Zugaenge; der Grabstein der Prueflage steht seit 0.13.0 im
   // eigenen Fenster und nicht mehr in dieser Liste.
   pruefe('Und sie zeigt ihre Zeilen', ziReihen(ziEig).length === 3, `${ziReihen(ziEig).length}`);
@@ -30418,7 +30768,7 @@ async function pruefeOberflaeche() {
     pruefe('Der Klick oeffnet ein eigenes Fenster', !!zwFenster(), 'kein Fenster');
     const zwReihen = () => [...(zwFenster()?.querySelectorAll('.mrow.zug') || [])];
     pruefe('Darin steht der Grabstein', zwReihen().length === 1 &&
-      /Gelöschter Benutzer 4/.test(zwReihen()[0].textContent), zwFenster()?.textContent);
+      /Gelöschter Benutzer 4/.test(zwReihen()[0]?.textContent || ''), zwFenster()?.textContent);
     /* KEIN WERKZEUG AM GRABSTEIN -- es gibt nichts zu tun, und ein Knopf, der
        zuverlaessig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler. */
     pruefe('Ohne Werkzeug: kein Link, kein Schluessel, kein Entfernen',
@@ -30433,7 +30783,7 @@ async function pruefeOberflaeche() {
        Betrieb ("was nuetzt mir 'Gelöschte 5'"), und die Antwort ist eine
        Entscheidung: der Grabstein IST die Anonymisierung. */
     pruefe('Es sagt, dass der urspruengliche Name nicht aufbewahrt wird',
-      /ursprüngliche Name steht hier nicht/.test(zwFenster()?.textContent || ''),
+      /Der Name ist wieder frei und wird nicht gespeichert/.test(zwFenster()?.textContent || ''),
       zwFenster()?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
     pruefe('Und nennt sperren als den umkehrbaren Weg',
       /sperren/.test(zwFenster()?.textContent || ''),
@@ -30462,7 +30812,7 @@ async function pruefeOberflaeche() {
      -- gebaut aus location, nicht vom Server --, und die Warnung steht daneben. */
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.confirm = () => true;
+    stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -30489,19 +30839,18 @@ async function pruefeOberflaeche() {
     pruefe('Er traegt die vollstaendige Adresse aus dem Ort des Fensters',
       feld?.value === `${d.w.location.origin}${d.w.location.pathname}#/einladung/${'d'.repeat(64)}`,
       feld?.value);
+    /* UMGEDREHT MIT 0.22.0 (Anlage F): der Kasten sagt in drei Saetzen, was der
+       Link kann, wie lange und wie oft er gilt und an wen er geht -- ohne
+       „Passwortersatz" und ohne den „fremden Verlauf". */
+    const zlText = () => (d.w.document.getElementById('zug-link')?.textContent || '').replace(/\s+/g, ' ');
     pruefe('Die Warnung steht daneben, nicht nur im Dokument',
-      /Passwortersatz/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
-      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
+      /Wer den Link hat, kann das Passwort setzen/.test(zlText()), zlText().slice(0, 240));
     pruefe('Sie nennt die Frist und die Einmaligkeit',
-      /7 Tage/.test(d.w.document.getElementById('zug-link')?.textContent || '') &&
-      /genau einmal/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
-      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
-    pruefe('Und dass er nach der Weitergabe in einem fremden Verlauf steht',
-      /fremden Verlauf/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
-      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
+      /7 Tage gültig/.test(zlText()) && /einmal nutzbar/.test(zlText()), zlText().slice(0, 240));
+    pruefe('Und dass er nur an die richtige Person geht — 0.22.0',
+      /Nur an die richtige Person weitergeben/.test(zlText()), zlText().slice(0, 240));
     pruefe('Der Kasten sagt, dass der Link nur dieses eine Mal erscheint',
-      /nur dieses eine Mal/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
-      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
+      /wird nur einmal angezeigt/.test(zlText()), zlText().slice(0, 240));
     // Und die Frist aus 0.9.0, gelesen aus der ANTWORT (Stolperstein 102).
     pruefe('Und er nennt die Frist ab dem ersten Oeffnen',
       /15 Minuten/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
@@ -30519,7 +30868,7 @@ async function pruefeOberflaeche() {
      der Mock rechnet sie nach statt sie zu setzen. */
   const vzLink = async (opt) => {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, opt);
-    d.w.confirm = () => true;
+    stelleBestaetigung(d.w, true);
     // bert TRAEGT eine Adresse, carla nicht -- damit laesst sich der Zweig
     // "keine Adresse hinterlegt" ueberhaupt stellen.
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes(opt.wer || 'bert'));
@@ -30625,8 +30974,8 @@ async function pruefeOberflaeche() {
        nebeneinander; ohne die zweite bliebe die erste auch dann gruen, wenn
        die Oberflaeche jede leere Nummer so beschriftete. */
     pruefe('Die Zeile vom Wirt ist ueberhaupt da', !!spZeile('zugang.passwort'));
-    pruefe('Sie sagt, dass sie ueber zugang.js kam',
-      /zugang\.js auf dem Wirt/.test(spZeile('zugang.passwort')?.textContent || ''),
+    pruefe('Sie sagt, dass sie per Kommandozeile am Server kam — 0.22.0',
+      /per Kommandozeile am Server/.test(spZeile('zugang.passwort')?.textContent || ''),
       spZeile('zugang.passwort')?.textContent?.replace(/\s+/g, ' '));
     pruefe('Die gescheiterte Anmeldung ist ueberhaupt da', !!spZeile('anmeldung.fehl'));
     pruefe('Sie sagt NICHT, dass sie ueber den Wirt kam',
@@ -30639,12 +30988,12 @@ async function pruefeOberflaeche() {
     pruefe('Die Karte nennt die Frist',
       /180 Tage/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 200));
     pruefe('Und sagt, dass es keinen anderen Weg hinaus gibt',
-      /Einen anderen Weg hinaus gibt es nicht/.test(spText(d)),
+      /ein Löschen von Hand gibt es nicht/.test(spText(d)),
       spText(d).replace(/\s+/g, ' ').slice(0, 260));
     pruefe('Sie sagt ausdruecklich, dass sie kein Aenderungsverlauf ist',
-      /kein Änderungsverlauf/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 260));
+      /Nicht\s+enthalten: Inhalte, Bewertungen/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 260));
     pruefe('Und dass weder Adresse noch Browserkennung darin stehen',
-      /Ebenso wenig Adresse oder Browserkennung/.test(spText(d)),
+      /IP-Adresse, Browser/.test(spText(d)),
       spText(d).replace(/\s+/g, ' ').slice(0, 400));
     pruefe('Die Fusszeile nennt die gezeigten und die gesamten Vorgaenge',
       /Die 4 jüngsten von 7 Vorgängen/.test(
@@ -30861,7 +31210,7 @@ async function pruefeOberflaeche() {
   // 1. DER LINK. Der Dialog steht davor, und vorher geht nichts an den Server.
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.confirm = () => true;
+    stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -30871,7 +31220,7 @@ async function pruefeOberflaeche() {
        Dialog sagt, WARUM gefragt wird (Stolperstein 201: umgeschrieben statt
        geloescht). */
     pruefe('Und er sagt, WARUM gefragt wird',
-      /trifft die ganze Anwendung/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
+      /betrifft die ganze Anwendung/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
       zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 220));
     pruefe('Das Feld verbirgt die Eingabe',
       zdDialog(d)?.type === 'password', zdDialog(d)?.type);
@@ -30892,7 +31241,7 @@ async function pruefeOberflaeche() {
   //    die Handlung laeuft NICHT trotzdem.
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.confirm = () => true;
+    stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -30910,7 +31259,7 @@ async function pruefeOberflaeche() {
   //    Knopf die Bestaetigung vergessen hat.
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.confirm = () => true;
+    stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     const feld = zeile?.querySelector('.zug-r');
     if (feld) { feld.value = 'admin'; feld.dispatchEvent(new d.w.Event('change', { bubbles: true })); }
@@ -30931,12 +31280,26 @@ async function pruefeOberflaeche() {
   }
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.confirm = () => true;
-    d.w.prompt = () => 'carlas-neues-langes-wort';
+    stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-p')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
-    pruefe('Vor dem fremden Passwort steht der Dialog', !!zdDialog(d), 'kein Dialog');
+    /* SEIT 0.22.0 KOMMT DAS FREMDE PASSWORT AUS EINEM EIGENEN FENSTER MIT
+       PASSWORTFELD -- nicht mehr aus prompt(), wo es im Klartext stand
+       (Bauabschnitt 4). Erst das Feld, dann die zweite Bestaetigung. */
+    const npFeld = d.w.document.getElementById('np-pass');
+    pruefe('Vor dem fremden Passwort steht ein Fenster mit Passwortfeld — 0.22.0',
+      npFeld?.type === 'password' && /Passwort für „carla“ setzen/.test(npFeld?.closest('.modal')?.textContent || ''),
+      npFeld?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 160) || '(kein Fenster)');
+    pruefe('Und es nennt die Vorgabe und die Folge',
+      /Mindestens 10 Zeichen\. Alle Sitzungen dieses Benutzers werden beendet\./.test(npFeld?.closest('.modal')?.textContent || ''),
+      npFeld?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 200));
+    if (npFeld) {
+      npFeld.value = 'carlas-neues-langes-wort';
+      npFeld.closest('.modal').querySelector('[data-yes]').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 60));
+    }
+    pruefe('Danach steht der Dialog der zweiten Bestaetigung', !!zdDialog(d), 'kein Dialog');
     await bestaetigeImDom(d);
     pruefe('Die Freigabe traegt den Zweck Passwort',
       d.gesendet.find(x => x.url === '/api/bestaetigung')?.koerper?.zweck === 'passwort',
@@ -30947,34 +31310,31 @@ async function pruefeOberflaeche() {
   }
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    // Die Rueckfragen werden mitgeschrieben: seit 0.13.0 steht in der letzten
-    // der Satz, der den umkehrbaren Weg nennt.
-    const zdFragen = [];
-    d.w.confirm = (t) => { zdFragen.push(String(t)); return true; };
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
-    pruefe('Vor dem Entfernen steht der Dialog -- NACH den Rueckfragen',
-      !!zdDialog(d), 'kein Dialog');
-    /* ---- 0.13.0: der Satz gegen die unumkehrbare Fehlbedienung ----
-       Bis 0.12.4 sagte der Dialog, dass es nicht rueckgaengig zu machen ist
-       und dass der Name frei wird -- er sagte NICHT, dass es daneben einen Weg
-       gibt, der beides nicht tut. Der Mechanismus war da; es fehlte der Satz,
-       der ihn nennt.
-       ERST DER GEGENSTAND (Stolperstein 81): ohne Rueckfragen bliebe jede
-       Aussage ueber ihren Wortlaut gruen. */
-    pruefe('Der Aufbau steht: die Rueckfragen sind gestellt worden',
-      zdFragen.length === 3, `${zdFragen.length} Rueckfragen`);
-    const zdLetzte = zdFragen[zdFragen.length - 1] || '';
-    pruefe('Die letzte Rueckfrage nennt den umkehrbaren Weg',
-      /sperren statt entfernen/.test(zdLetzte), zdLetzte.replace(/\n/g, ' | '));
+    /* ---- 0.22.0: EIN FENSTER STATT DREI RUECKFRAGEN (Bauabschnitt 4) ----
+       Bis 0.21.1 stellte der Weg drei confirm() hintereinander, und in den
+       ersten beiden hiess „Abbrechen" nicht abbrechen (Stolperstein 316).
+       Jetzt: ein Fenster mit zwei Haekchen, dem Satz zum Sperren und zwei
+       Knoepfen -- und DANACH die zweite Bestaetigung. Umgedreht, nicht
+       geloescht (Stolperstein 74): die Zusagen von 0.13.0 -- der umkehrbare
+       Weg wird genannt, der Name bleibt -- haengen jetzt an diesem Fenster. */
+    const zdFenster = d.w.document.getElementById('benutzer-loeschen');
+    pruefe('Vor dem Loeschen steht EIN Fenster mit den Haekchen — 0.22.0',
+      !!zdFenster && !zdDialog(d), zdFenster ? 'steht' : 'kein Fenster');
+    const zdText = zdFenster?.textContent.replace(/\s+/g, ' ') || '';
+    pruefe('Es nennt den umkehrbaren Weg',
+      /sperren statt löschen/.test(zdText), zdText.slice(0, 300));
     pruefe('Und sagt, dass er umkehrbar ist und der Name bleibt',
-      /umkehrbar/.test(zdLetzte) && /der Name bleibt/.test(zdLetzte),
-      zdLetzte.replace(/\n/g, ' | '));
-    /* DERSELBE SATZ IM PASSWORTFENSTER DAHINTER. Zwei aufeinanderfolgende
-       Fenster, die Verschiedenes sagen, sind schlimmer als eines. */
-    pruefe('Und das Passwortfenster dahinter sagt dasselbe',
-      /sperren statt entfernen/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
+      /umkehrbar/.test(zdText) && /der Name bleibt/.test(zdText), zdText.slice(0, 300));
+    zdFenster?.querySelector('[data-yes]')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Danach steht der Dialog der zweiten Bestaetigung', !!zdDialog(d), 'kein Dialog');
+    /* DAS PASSWORTFENSTER SAGT, WAS GESCHIEHT UND DASS ES ENDGUELTIG IST --
+       die Rueckgaengig-Formel des Woerterbuchs. */
+    pruefe('Und das Passwortfenster dahinter sagt, dass es endgueltig ist',
+      /Das lässt sich nicht rückgängig machen/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
       zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
     pruefe('Und der Zugang ist bis dahin nicht entfernt',
       !d.gesendet.some(x => x.methode === 'DELETE' && x.url.startsWith('/api/users/3')),
@@ -31001,7 +31361,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 60));
     pruefe('Vor dem Export steht der Dialog', !!zdDialog(d), 'kein Dialog');
     pruefe('Und er nennt, was der Export mitnimmt',
-      /Namen aller Verfasser/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
+      /Verfassernamen/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
       zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 220));
     await bestaetigeImDom(d, 'egal', true);
     pruefe('Nach dem Abbruch wird keine Freigabe geholt',
@@ -31020,7 +31380,7 @@ async function pruefeOberflaeche() {
      Lagen gruen. */
   const oaLink = async (opt) => {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, opt);
-    d.w.confirm = () => true;
+    stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -31192,7 +31552,7 @@ async function pruefeOberflaeche() {
   }
 
   /* ---------------------------------------------------------------- */
-  gruppe('Die eigene Adresse in der Karte „Zugang“');
+  gruppe('Die eigene Adresse in der Karte „Mein Konto“');
 
   /* SIE GEHOERT DEM, DER SIE HAT -- deshalb steht sie hier und nicht in der
      Karte „Zugänge“. Ein Admin, der eine bestehende fremde Adresse umschreiben
@@ -31202,15 +31562,17 @@ async function pruefeOberflaeche() {
   {
     const d = await ziSystem({ istAdmin: false, istEigentuemer: false });
     const feld = d.w.document.getElementById('acc-mail');
-    pruefe('Das Adressfeld steht in der Karte „Zugang“', !!feld, 'kein Feld');
+    pruefe('Das Adressfeld steht in der Karte „Mein Konto“', !!feld, 'kein Feld');
     pruefe('Und es traegt die Adresse aus der Antwort',
       feld?.value === 'chefin@beispiel.de', JSON.stringify(feld?.value));
-    pruefe('Die Karte sagt, dass die Adresse freiwillig ist',
-      /freiwillig/.test(d.w.document.body.textContent), 'kein Hinweis');
-    /* SEIT 0.17.1 KUERZER, und die Zusage ist dieselbe geblieben: ohne Adresse
-       steht der Link wie immer zum Kopieren bereit. */
-    pruefe('Und dass der Link auch ohne sie zum Kopieren bereitsteht',
-      /Ohne sie steht der Link wie immer zum Kopieren bereit/.test(d.w.document.body.textContent),
+    /* UMGEDREHT MIT 0.22.0 (Anlage B): „freiwillig" heisst am Feld „(optional)",
+       und der Satz ueber den Link steht in der Karte „Mailversand", wo die
+       Auskunft hingehoert. Die Karte selbst sagt in einem Satz, was sie
+       enthaelt (Regel S5). */
+    pruefe('Die Karte sagt, dass die Adresse optional ist — 0.22.0',
+      /E-Mail-Adresse \(optional\)/.test(d.w.document.body.textContent.replace(/\s+/g, ' ')), 'kein Hinweis');
+    pruefe('Und sie sagt in einem Satz, was sie enthaelt — 0.22.0',
+      /Benutzername, E-Mail-Adresse und Passwort deines Kontos\./.test(d.w.document.body.textContent),
       d.w.document.body.textContent.slice(0, 100));
   }
   {
@@ -31279,8 +31641,8 @@ async function pruefeOberflaeche() {
     pruefe('Die Karte „Mailversand“ steht da', !!k, 'keine Karte');
     /* DER SATZ, DER UEBER ALLEM STEHT, GEHOERT AN DEN BILDSCHIRM und nicht
        bloss in ein Dokument. */
-    pruefe('Sie sagt, dass E-Mail eine Bequemlichkeit ist',
-      /Bequemlichkeit, keine Voraussetzung/.test(k?.textContent || ''),
+    pruefe('Sie sagt, dass E-Mail optional ist — 0.22.0',
+      /E-Mail ist optional\./.test(k?.textContent || ''),
       k?.textContent?.slice(0, 300));
     pruefe('Sie sagt "eingerichtet"',
       /eingerichtet/.test(k?.textContent || ''), k?.textContent?.slice(0, 300));
@@ -31336,7 +31698,7 @@ async function pruefeOberflaeche() {
       /nicht gesetzt — es wird nicht verschickt/.test(k?.textContent || ''),
       k?.textContent?.slice(0, 600));
     pruefe('Und nennt den Grund',
-      /Host/.test(k?.textContent || '') && /umbiegen/.test(k?.textContent || ''),
+      /braucht sie, um gültige Links zu erzeugen/.test(k?.textContent || ''),
       k?.textContent?.slice(0, 900));
     pruefe('Die Stelle traegt die rote Auszeichnung',
       !!k?.querySelector('.mail-aus'), 'keine Auszeichnung');
@@ -31375,7 +31737,7 @@ async function pruefeOberflaeche() {
     pruefe('Die Begruendung zum fehlenden Adressfeld steht nicht in der Karte',
       !/offener Mailverteiler/.test(t), t.slice(0, 60));
     pruefe('Was die Testmail tut, steht aber weiterhin da',
-      /ausschließlich an die Adresse deines eigenen Zugangs/.test(t), t.slice(-140));
+      /ausschließlich an die Adresse deines eigenen Kontos/.test(t), t.slice(-140));
     d.w.close();
   }
   {
@@ -31397,7 +31759,7 @@ async function pruefeOberflaeche() {
     pruefe('Es gibt auch gar kein Adressfeld daneben',
       !mvKarte(d)?.querySelector('input[type="email"]'), 'ein Adressfeld steht da');
     pruefe('Der Erfolg steht danach in der Karte',
-      /hinausgegangen/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
+      /Testmail an .+ gesendet\. Kommt sie an, funktioniert der Versand\./.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
       d.w.document.getElementById('mail-ergebnis')?.textContent);
     pruefe('Und die Karte sagt, an welche Adresse',
       /chefin@beispiel\.de/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
@@ -31495,13 +31857,13 @@ async function pruefeOberflaeche() {
     /* ER STEHT DORT, WO ER GILT, UND SONST NIRGENDS -- geprueft ueber ALLE
        Absaetze des Dialogs und nicht ueber einen: eine zweite Ausfertigung
        weiter unten faende die Abfrage auf einen einzelnen nicht. */
-    pruefe('Und der Satz zum Hausanschluss steht ausschliesslich bei „Eigener Server“',
+    pruefe('Und der Satz zum Internetanschluss steht ausschliesslich bei „Eigener Server“',
       [...(dlg?.querySelectorAll('p') || [])]
-        .filter(x => /Hausanschluss/.test(x.textContent)).length === 1 &&
+        .filter(x => /Internetanschluss/.test(x.textContent)).length === 1 &&
       [...(dlg?.querySelectorAll('p') || [])]
-        .filter(x => /Hausanschluss/.test(x.textContent)).every(x => x.closest('#mail-eigen')),
+        .filter(x => /Internetanschluss/.test(x.textContent)).every(x => x.closest('#mail-eigen')),
       [...(dlg?.querySelectorAll('p') || [])]
-        .filter(x => /Hausanschluss/.test(x.textContent)).map(x => x.parentElement?.id).join(','));
+        .filter(x => /Internetanschluss/.test(x.textContent)).map(x => x.parentElement?.id).join(','));
 
     /* ---- UND JETZT DIE GEGENRICHTUNG: „Eigener Server" ---- */
     auswahl.value = 'eigen';
@@ -31514,8 +31876,8 @@ async function pruefeOberflaeche() {
       `versteckt=${mdEigen()?.hidden}`);
     pruefe('Und die gelesene Zeile verschwindet dafuer',
       mdFestFeld()?.hidden === true, `versteckt=${mdFestFeld()?.hidden}`);
-    pruefe('Der Satz zum Hausanschluss steht genau dort',
-      /Hausanschluss/.test((mdEigen()?.textContent || '').replace(/\s+/g, ' ')),
+    pruefe('Der Satz zum Internetanschluss steht genau dort',
+      /Internetanschluss/.test((mdEigen()?.textContent || '').replace(/\s+/g, ' ')),
       (mdEigen()?.textContent || '').replace(/\s+/g, ' ').slice(-160));
     pruefe('Und „Eigener Server“ hat keinen Anbieterhinweis',
       mdHinweis()?.hidden === true, `versteckt=${mdHinweis()?.hidden} · ${mdHinweis()?.textContent}`);
@@ -31525,7 +31887,7 @@ async function pruefeOberflaeche() {
     auswahl.value = 'gmail';
     auswahl.dispatchEvent(new d.w.Event('change'));
     pruefe('Ein anderer Anbieter bringt seine eigene feste Zeile mit',
-      mdFest()?.textContent === 'smtp.gmail.com · 465 · TLS von Anfang an', mdFest()?.textContent);
+      mdFest()?.textContent === 'smtp.gmail.com · 465 · SSL/TLS', mdFest()?.textContent);
     pruefe('Und seinen eigenen Hinweis',
       /App-Passwort/.test(mdHinweis()?.textContent || ''), mdHinweis()?.textContent);
     /* „KEIN VERSAND" IST DER DRITTE FALL und nicht die halbe Vorlagenlage:
@@ -31701,7 +32063,7 @@ async function pruefeOberflaeche() {
     pkuAdmReihen.every(r => !r.querySelector('.pk-back') && !r.querySelector('.pk-weg')),
     JSON.stringify(pkuAdmReihen.map(r => r.innerHTML.slice(0, 120))));
   pruefe('Und die Karte sagt ihm, wer es darf',
-    /Eigentümer dieser Installation/.test(pkKarte(pkuAdm)?.querySelector('.desc')?.textContent || ''),
+    /kann nur der Eigentümer/.test(pkKarte(pkuAdm)?.querySelector('.desc')?.textContent || ''),
     pkKarte(pkuAdm)?.querySelector('.desc')?.textContent);
   pruefe('Bei der Eigentuemerin steht dieser Satz NICHT',
     !/Eigentümer dieser Installation/.test(pkKarte(pkuEig)?.querySelector('.desc')?.textContent || ''),
@@ -31721,8 +32083,11 @@ async function pruefeOberflaeche() {
   pruefe('Die Karte benutzt das Vokabular',
     /Gelöschte Maschinen/.test(pkKarte(pkuVok)?.querySelector('.desc')?.textContent || ''),
     pkKarte(pkuVok)?.querySelector('.desc')?.textContent);
-  pruefe('Und auch fuer den Zeitpunkt',
-    /Prüfungen/.test(pkKarte(pkuVok)?.querySelector('.desc')?.textContent || ''),
+  /* UMGEDREHT MIT 0.22.0 (Anlage F): der Satz zum Zeitpunkt ist aus der
+     Karte heraus, und mit ihm das zweite Vokabelwort. Geprueft wird jetzt,
+     dass das Standardwort nicht daneben stehen bleibt. */
+  pruefe('Und das Standardwort steht nicht daneben — 0.22.0',
+    !/Eintr(ag|äge)/.test(pkKarte(pkuVok)?.querySelector('.desc')?.textContent || ''),
     pkKarte(pkuVok)?.querySelector('.desc')?.textContent);
 
   /* DER LEERE FALL, mit eigenem Aufbau. */
@@ -31788,7 +32153,7 @@ async function pruefeOberflaeche() {
     const frage = d.w.document.querySelector('.backdrop .modal');
     pruefe('Das Kreuz fragt zuerst nach', !!frage, d.w.document.body.innerHTML.slice(0, 120));
     pruefe('Und die Frage nennt den Titel und sagt, dass es danach keinen Rueckweg gibt',
-      /Weggeworfenes/.test(frage?.textContent || '') && /keinen Rückweg/.test(frage?.textContent || ''),
+      /Weggeworfenes/.test(frage?.textContent || '') && /nicht rückgängig machen/.test(frage?.textContent || ''),
       frage?.textContent);
     // Erst abbrechen: danach darf NICHTS geschickt worden sein.
     d.w.document.querySelector('.backdrop [data-no]')
@@ -31847,7 +32212,7 @@ async function pruefeOberflaeche() {
       kvZeile('Version')?.querySelector('.v')?.textContent);
     pruefe('Und sie steht unmittelbar vor dem Fingerprint',
       [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim())
-        .join('|').includes('Version|Fingerprint'),
+        .join('|').includes('Version|Prüfsumme (Fingerprint)'),
       [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
     /* GESUCHT WIRD DER ABSCHNITT MIT DEM NAMEN und nicht der erste: seit
        0.19.0 traegt die Karte zwei -- „Bildablage" steht vor „Verfahren".
@@ -31855,7 +32220,7 @@ async function pruefeOberflaeche() {
     const kvUnterschriften = [...(karte?.querySelectorAll('.sys-unter') || [])]
       .map(u => u.textContent.trim());
     pruefe('Ein eigener, untergeordneter Abschnitt nennt die Verfahren',
-      kvUnterschriften.includes('Verfahren'), kvUnterschriften.join(' · '));
+      kvUnterschriften.includes('Technische Verfahren'), kvUnterschriften.join(' · '));
     /* DIE BESCHRIFTUNGEN SIND IN DER KARTE EINDEUTIG -- „Datenbank" steht dort
        schon einmal, fuer die Belegung auf der Platte. Deshalb heisst die Zeile
        der Chiffre „Verschlüsselung"; ohne das griffe die Suche die falsche
@@ -31864,8 +32229,8 @@ async function pruefeOberflaeche() {
       new Set([...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim())).size ===
         (karte?.querySelectorAll('.kv .k') || []).length,
       [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
-    for (const [wort, wert] of [['Verschlüsselung', 'sqlcipher'], ['Schlüssel', '256 Bit roh'],
-                                ['Journal', 'WAL'], ['Passwörter', 'scrypt']]) {
+    for (const [wort, wert] of [['Verschlüsselung', 'sqlcipher'], ['Schlüssel', '256 Bit (Zufallsschlüssel)'],
+                                ['Journal (SQLite)', 'WAL'], ['Passwörter', 'scrypt']]) {
       pruefe(`Die Zeile „${wort}" steht darin und nennt ${wert}`,
         kvZeile(wort)?.querySelector('.v')?.textContent.trim() === wert,
         kvZeile(wort)?.querySelector('.v')?.textContent);
@@ -31885,8 +32250,8 @@ async function pruefeOberflaeche() {
     /* DIE ANGABE SELBST BLEIBT ABER STEHEN -- ohne diese Zeile bliebe die
        Verneinung darueber auch dann gruen, wenn der ganze Absatz verschwaende
        (Stolperstein 81). */
-    pruefe('Der Satz zum rohen Schluessel bleibt dagegen stehen',
-      /256 Zufallsbits/.test(karte?.textContent || ''),
+    pruefe('Der Satz zum Schluessel neben der Datenbank bleibt dagegen stehen — 0.22.0',
+      /liegt (noch )?neben der Datenbank/.test(karte?.textContent || ''),
       karte?.textContent?.replace(/\s+/g, ' ').slice(-260));
     /* UND DIE BEGRUENDUNG STEHT DAFUER IN DER README (Stolperstein 81, wieder
        herum: erst das Vorhandensein am neuen Ort, dann die Verneinung am
@@ -31922,8 +32287,9 @@ async function pruefeOberflaeche() {
      an zwei Orten stuende, waere die zweite Wahrheit (Stolperstein 201: die
      Pruefung der Vorgaengerfassung wird UMGEDREHT statt geloescht). */
   {
+    // SEIT 0.22.0 HEISST DIE KARTE „Bildformate" (E6).
     const baKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-      .find(c => c.querySelector('h3')?.textContent.trim() === 'Bildablage');
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Bildformate');
     const baZeilen = (k) => [...(k?.querySelectorAll('.kv .k') || [])]
       .map(z => z.textContent.trim());
 
@@ -31956,10 +32322,15 @@ async function pruefeOberflaeche() {
        eine Aussage, und sie lenkt von den beiden Zahlen ab, um die es geht. */
     pruefe('Ein Format ohne Bilder steht gar nicht da',
       !baZeilen(kEig).some(z => z.startsWith('GIF')), baZeilen(kEig).join(' · '));
-    pruefe('Und PNG traegt den Zusatz, dass es umgestellt wird',
-      baZeilen(kEig).some(z => /^PNG.*umgestellt/.test(z)), baZeilen(kEig).join(' · '));
-    pruefe('Und JPEG den, dass es unangetastet bleibt',
-      baZeilen(kEig).some(z => /^JPEG.*unangetastet/.test(z)), baZeilen(kEig).join(' · '));
+    /* UMGEDREHT MIT 0.22.0 (Anlage F): der Zusatz am PNG haengt am Schalter --
+       „wird beim Upload zu WebP" steht nur bei eingeschalteter Umwandlung --,
+       und JPEG „bleibt unverändert". */
+    const baSchalterAn = !!kEig?.querySelector('#bild-umwandeln')?.checked;
+    pruefe('Und PNG traegt den Zusatz genau dann, wenn der Schalter an ist — 0.22.0',
+      baZeilen(kEig).some(z => /^PNG/.test(z) && /wird beim Upload zu WebP/.test(z) === baSchalterAn),
+      `Schalter ${baSchalterAn ? 'an' : 'aus'}: ` + baZeilen(kEig).join(' · '));
+    pruefe('Und JPEG den, dass es unveraendert bleibt — 0.22.0',
+      baZeilen(kEig).some(z => /^JPEG.*bleibt unverändert/.test(z)), baZeilen(kEig).join(' · '));
 
     const haken = baEig.w.document.getElementById('bild-umwandeln');
     pruefe('Die Eigentuemerin bekommt den Schalter', !!haken);
@@ -32003,12 +32374,15 @@ async function pruefeOberflaeche() {
        Zeitangabe kommt, gehoert in die Papiere und nicht in einen Dialog.
        VIER ZUSAGEN, UND JEDE HAELT EINE ANDERE HAELFTE: wie viele, was
        geschieht, was danach weg ist, und dass es dauern kann. */
-    pruefe('Und sagt vorher, wie viele Bilder es trifft', /12 PNG-Original/.test(dialogText),
+    /* UMGEDREHT MIT 0.22.0 (Anlage F): vier kurze Saetze -- Zahl und Groesse,
+       was mit den Originalen geschieht und was danach uebrig ist, der einzige
+       Rueckweg, die Dauer ohne Zahl. */
+    pruefe('Und sagt vorher, wie viele Bilder es trifft', /12 PNG-Fotos \(6,0 MB\)/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
-    pruefe('Und dass die Umwandlung nahezu verlustfrei ist',
-      /nahezu verlustfrei/.test(dialogText), dialogText.replace(/\s+/g, ' ').slice(0, 300));
+    pruefe('Und dass die Originale ersetzt werden — 0.22.0',
+      /die Originale ersetzt \(danach etwa/.test(dialogText), dialogText.replace(/\s+/g, ' ').slice(0, 300));
     pruefe('Und dass nur eine vorher angelegte Sicherung zurueckfuehrt',
-      /Sicherung des Datenverzeichnisses, die vorher angelegt wurde/.test(dialogText),
+      /Rückgängig nur mit einer vorher angelegten Sicherung/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
     /* DASS ES DAUERN KANN -- ausdruecklich OHNE Zahl. Der Server kennt sie
        nicht: gemessen 394 ms je Bild an der nachgefahrenen Maschine gegen
@@ -32019,11 +32393,10 @@ async function pruefeOberflaeche() {
        Zeitangabe traegt. Eine Haelfte allein bliebe gruen, wenn die andere
        kippte. */
     pruefe('Und dass sich die Dauer nicht vorhersagen laesst',
-      /lässt sich nicht vorhersagen/.test(dialogText) &&
-      /bis zu Stunden/.test(dialogText),
+      /Dauer: Minuten bis Stunden\./.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 460));
-    pruefe('Und bittet um ein Zeitfenster, das den Betrieb am wenigsten stoert',
-      /Zeitfenster ein, das den Betrieb am wenigsten stört/.test(dialogText),
+    pruefe('Und bittet nicht mehr um ein Zeitfenster — 0.22.0',
+      !/Zeitfenster/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 460));
     /* KEINE ERFUNDENE MINUTENANGABE. Der Dialog nennt Bilder und Bytes -- aber
        keine Dauer in Minuten, Stunden oder Sekunden. */
@@ -32043,7 +32416,7 @@ async function pruefeOberflaeche() {
     pruefe('Ohne PNG ist der Knopf nicht bedienbar',
       baLeer.w.document.getElementById('bild-um')?.disabled === true);
     pruefe('Und die Karte sagt, warum',
-      /kein PNG-Original mehr/.test(baKarte(baLeer)?.textContent || ''),
+      /Keine PNG-Fotos mehr vorhanden/.test(baKarte(baLeer)?.textContent || ''),
       baKarte(baLeer)?.textContent?.replace(/\s+/g, ' ').slice(-200));
     baLeer.w.close();
 
@@ -32139,10 +32512,12 @@ async function pruefeOberflaeche() {
        genau das steht auch da. */
     {
       const t = (baKarte(geoLeer)?.textContent || '').replace(/\s+/g, ' ');
-      pruefe('Die Karte nennt das Quadrat der kleinen Ableitung und den Ausschnitt darin',
-        /512 × 512/.test(t) && /Bildausschnitt bereits eingerechnet/.test(t) &&
-        /1600 px auf der langen/.test(t) && /ungeschnitten/.test(t) &&
-        !/400 px/.test(t), t.slice(0, 320));
+      /* UMGEDREHT MIT 0.22.0 (Anlage F, Regel S5): die Masse der beiden
+         Vorschaubilder sind Bauwissen und stehen im Projektstand, nicht mehr
+         in der Karte. Die Karte sagt nur noch, was sie zaehlt -- und was nicht. */
+      pruefe('Die Karte sagt, dass die Vorschaubilder nicht mitgezaehlt sind — 0.22.0',
+        /Vorschaubilder \(JPEG\) sind nicht mitgezählt/.test(t) &&
+        !/512 × 512/.test(t) && !/1600 px/.test(t), t.slice(0, 320));
     }
     geoLeer.w.close();
 
@@ -32205,8 +32580,8 @@ async function pruefeOberflaeche() {
     siLage(siEig)?.classList.contains('warn-box') === false,
     siLage(siEig)?.className);
   pruefe('Und er sagt, was daran gut ist',
-    /außerhalb/.test(siLage(siEig)?.textContent || '') &&
-    /umbenannt|ersetzt/.test(siLage(siEig)?.textContent || ''),
+    /außerhalb des Projektordners/.test(siLage(siEig)?.textContent || '') &&
+    /bei Updates unberührt/.test(siLage(siEig)?.textContent || ''),
     siLage(siEig)?.textContent);
 
   {
@@ -32218,11 +32593,11 @@ async function pruefeOberflaeche() {
     pruefe('Im Arbeitsverzeichnis ist der Kasten rot', !!kasten &&
       kasten.classList.contains('warn-box') === true &&
       kasten.classList.contains('ok-box') === false, kasten?.className);
-    pruefe('Und er sagt, dass es dringend anders empfohlen ist',
-      /[Dd]ringend empfohlen/.test(kasten?.textContent || ''), kasten?.textContent);
+    pruefe('Und er sagt, dass es anders empfohlen ist — 0.22.0',
+      /Empfohlen ist ein Ordner außerhalb/.test(kasten?.textContent || ''), kasten?.textContent);
     pruefe('Er nennt den Grund und nicht nur das Urteil',
-      /umbenannt/.test(kasten?.textContent || '') &&
-      /Platte/.test(kasten?.textContent || ''), kasten?.textContent);
+      /anderen Platte/.test(kasten?.textContent || '') &&
+      /Original und\s+Sicherung zugleich verloren/.test(kasten?.textContent || ''), kasten?.textContent);
     pruefe('Und er sagt, WO es umgestellt wird',
       /docker-compose\.yml/.test(kasten?.textContent || ''), kasten?.textContent);
     /* DIE KARTE BLEIBT BENUTZBAR. Der Kasten ist eine Auskunft, keine
@@ -32273,14 +32648,14 @@ async function pruefeOberflaeche() {
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 2 }) });
     const teilsRot = siKaesten(teils, 'warn-box').join(' ');
     pruefe('Nach einem Wechsel nennt ein roter Kasten die Zahl der alten Kopien',
-      /2 Kopien stammen von vor dem Schlüsselwechsel/.test(teilsRot), teilsRot.slice(0, 300));
+      /2 Sicherungen stammen von vor dem Schlüsselwechsel/.test(teilsRot), teilsRot.slice(0, 300));
     pruefe('Und er nennt den Zeitpunkt des Wechsels',
       /21\.08\.2026/.test(teilsRot), teilsRot.slice(0, 300));
-    /* WO DER ALTE WERT LIEGT, HAENGT VOM FALL AB. Die Karte behauptet deshalb
-       nicht, er stehe in der .env -- sie sagt "kam er aus der .env" und nennt
-       den Weg, der ihn beim Wechsel genannt hat. Geprueft wird beides. */
+    /* SEIT 0.22.0 (Anlage F) SAGT DER KASTEN NUR NOCH, WOMIT SICH DIE ALTEN
+       OEFFNEN und wohin der alte Schluessel gehoert: in einen Passwort-Manager.
+       Der Absatz ueber .env und Wechselweg war Bauwissen. Geprueft wird beides. */
     pruefe('Und wo der alte Wert zu finden ist',
-      /kam er aus der \.env/.test(teilsRot) && /Passwortspeicher/.test(teilsRot),
+      /nur mit dem alten Schlüssel/.test(teilsRot) && /Passwort-Manager/.test(teilsRot),
       teilsRot.slice(0, 400));
     /* DIE ZEILE „DATEIEN AM ORT" IST MIT 0.20.1 AUS DIESER KARTE HERAUS -- und
        die Pruefung darauf wird UMGEDREHT statt geloescht (Stolperstein 74).
@@ -32299,7 +32674,7 @@ async function pruefeOberflaeche() {
     const eine = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 1 }) });
     pruefe('Bei genau einer alten Kopie steht die Einzahl da',
-      /1 Kopie stammt von vor dem Schlüsselwechsel/.test(siKaesten(eine, 'warn-box').join(' ')),
+      /1 Sicherung stammt von vor dem Schlüsselwechsel/.test(siKaesten(eine, 'warn-box').join(' ')),
       siKaesten(eine, 'warn-box').join(' ').slice(0, 300));
 
     // Alles veraltet -- die schaerfste Lage: es gibt ueberhaupt keine
@@ -32312,11 +32687,11 @@ async function pruefeOberflaeche() {
                   am: '2026-08-20 03:00:00', tageHer: 3, veraltet: true } }) });
     const allesRot = siKaesten(alles, 'warn-box').join(' ');
     pruefe('Ist auch die juengste Kopie aelter, sagt die Karte GENAU DAS',
-      /Keine dieser Kopien passt zum heutigen Schlüssel/.test(allesRot), allesRot.slice(0, 300));
+      /Keine Sicherung passt zum aktuellen Schlüssel/.test(allesRot), allesRot.slice(0, 300));
     pruefe('Und sie sagt, was jetzt zu tun ist',
-      /Sicher jetzt neu/.test(allesRot), allesRot.slice(0, 400));
-    pruefe('Und sie nennt den Weg, der den alten Wert kennt',
-      /schluessel\.sh/.test(allesRot), allesRot.slice(0, 400));
+      /Bitte jetzt neu sichern\./.test(allesRot), allesRot.slice(0, 400));
+    pruefe('Und sie sagt, wohin der alte Schluessel gehoert — 0.22.0',
+      /Passwort-Manager/.test(allesRot), allesRot.slice(0, 400));
 
     // Und die Gegenlage: alle Kopien juenger als der Wechsel -> gruen, mit
     // dem Grund daneben statt eines blossen "alles gut".
@@ -32324,7 +32699,7 @@ async function pruefeOberflaeche() {
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-19 08:00:00', veraltet: 0 }) });
     const gruenKasten = siKaesten(gruen, 'ok-box').join(' ');
     pruefe('Sind alle Kopien juenger als der Wechsel, ist der Kasten gruen',
-      /Alle Kopien an diesem Ort sind jünger/.test(gruenKasten), gruenKasten.slice(0, 400));
+      /Alle Sicherungen hier sind jünger/.test(gruenKasten), gruenKasten.slice(0, 400));
     pruefe('Und im gruenen Fall steht keine Warnung ueber alte Kopien da',
       !/alten Schlüssel/.test(siText(gruen)), siText(gruen).slice(0, 300));
   }
@@ -32337,15 +32712,16 @@ async function pruefeOberflaeche() {
   const siExportKarte = [...siEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Export und Import');
   pruefe('Die Exportkarte ist ueberhaupt da', !!siExportKarte);
-  pruefe('Sie nennt sich den Austauschweg',
-    /Austauschweg/.test(siExportKarte?.textContent || ''), siExportKarte?.textContent?.slice(0, 200));
+  // SEIT 0.22.0 OHNE „Austauschweg" (Verbotsliste): die Karte sagt, wofuer der Export ist.
+  pruefe('Sie sagt, wofuer der Export ist — 0.22.0',
+    /für Umzug, Archiv und Weitergabe/.test(siExportKarte?.textContent || ''), siExportKarte?.textContent?.slice(0, 200));
   pruefe('Und verweist auf die Sicherung',
     /Sicherung/.test(siExportKarte?.textContent || ''), siExportKarte?.textContent?.slice(0, 300));
-  pruefe('Die Sicherungskarte nennt sich der Sicherungsweg',
-    /Sicherungsweg/.test(siKarte(siEig)?.textContent || ''),
+  pruefe('Die Sicherungskarte sagt, was die Sicherung ist — 0.22.0',
+    /vollständige, verschlüsselte\s+Kopie der Datenbank/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 200));
-  pruefe('Und sagt, dass sie keinen Formatwechsel ueberlebt',
-    /Formatwechsel/.test(siKarte(siEig)?.textContent || ''),
+  pruefe('Und sagt, dass sie nur in dieselbe Programmversion zurueckgeht — 0.22.0',
+    /nur in dieselbe Programmversion zurückspielen/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 400));
 
   /* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
@@ -32374,8 +32750,8 @@ async function pruefeOberflaeche() {
      so lange still -- eine Ansage ist besser als ein stiller Stillstand.
      DER BILDSCHIRMTEXT SAGT SEIT 0.19.3 „Installation"; der Kommentar hier
      bleibt, wie er ist -- Kommentare sind kein Bildschirmtext. */
-  pruefe('Die Karte sagt vorher, dass die Installation stillsteht',
-    /steht die\s+Installation still/.test(siKarte(siEig)?.textContent || ''),
+  pruefe('Die Karte sagt vorher, dass Kriterion kurz nicht erreichbar ist — 0.22.0',
+    /ist Kriterion kurz nicht\s+erreichbar/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 700));
   pruefe('Und nennt die erwartete Dauer aus der Antwort',
     /etwa\s+1 Sekunden/.test(siKarte(siEig)?.textContent || ''),
@@ -32592,10 +32968,10 @@ async function pruefeOberflaeche() {
      ueberhaupt in Frage kommt. Aus dem Betrieb: der Bildschirmtext war zu
      lang, und dass der Schalter „mit Absicht" auf aus steht, interessiert
      niemanden. */
-  pruefe('Der Kopftext sagt, dass es unwiderruflich ist',
-    /unwiderruflich/.test(afText(afEig)), afText(afEig).slice(0, 300));
+  pruefe('Der Kopftext sagt, dass es endgueltig ist — 0.22.0',
+    /— endgültig\./.test(afText(afEig)), afText(afEig).slice(0, 300));
   pruefe('Und dass nur das Namensschema der Installation gelöscht wird',
-    /nur, was dem Namensschema der Installation entspricht/.test(afText(afEig)),
+    /nur Sicherungen, die Kriterion selbst angelegt hat/.test(afText(afEig)),
     afText(afEig).slice(0, 300));
   /* UND DIE SAETZE, DIE MIT DEM FELDBEFUND GEFALLEN SIND, STEHEN NICHT MEHR DA.
      Die Verneinung gehoert neben die Zusagen darueber und nicht an ihre Stelle
@@ -32633,7 +33009,7 @@ async function pruefeOberflaeche() {
      Tagen darf geloescht werden, wenn mehr als 3 liegen" -- die 3 kommt aus
      dem Feld darueber und nicht aus dem Text. */
   pruefe('Das Altersfeld nennt die lebende Mindestzahl',
-    /nur, wenn mehr als 3 liegen/.test(afText(afEig)), afText(afEig).slice(0, 700));
+    /nur, wenn mehr als 3 vorhanden sind/.test(afText(afEig)), afText(afEig).slice(0, 700));
 
   /* --- WAS DIE REGEL TRIFFT: eine Zeile unter der Liste. --- */
   pruefe('Unter der Liste steht, wie viele fallen und was frei wird',
@@ -32669,7 +33045,7 @@ async function pruefeOberflaeche() {
     const d = await afSystem({ zahl: 0, letzte: null },
       { dateien: [], treffer: [], bytes: 0, grund: 'An diesem Ort liegt noch keine Sicherung.' });
     pruefe('Ohne eine einzige Sicherung sagt die Karte das',
-      /Am Sicherungsort liegt noch keine Sicherung\./.test(afText(d)), afText(d).slice(0, 400));
+      /Im Sicherungsordner gibt es noch keine Sicherung\./.test(afText(d)), afText(d).slice(0, 400));
     pruefe('Und es steht keine leere Liste da',
       !d.w.document.getElementById('auf-liste'), 'die Liste steht da');
   }
@@ -32691,8 +33067,8 @@ async function pruefeOberflaeche() {
     pruefe('Darunter stehen ihre Zahl und ihre Summe',
       /2 Sicherungen öffnen sich nur mit dem alten Schlüssel \(100,0 MB\)/.test(afText(d)),
       afText(d).slice(0, 900));
-    pruefe('Und die Karte sagt, dass die Regel sie liegen lässt',
-      /Die Regel lässt sie liegen\./.test(afText(d)), afText(d).slice(0, 900));
+    pruefe('Und die Karte sagt, dass das Aufraeumen sie nicht anfasst — 0.22.0',
+      /Das automatische Aufräumen löscht sie nicht\./.test(afText(d)), afText(d).slice(0, 900));
     pruefe('Und sie bekommen einen eigenen Knopf',
       /2 Sicherungen mit altem Schlüssel löschen/.test(
         d.w.document.getElementById('auf-alt')?.textContent || ''),
@@ -32714,7 +33090,7 @@ async function pruefeOberflaeche() {
       grund: 'Es ist kein Sicherungsort eingerichtet.' });
     pruefe('Ohne eingerichteten Ort steht die Karte trotzdem da', !!afKarte(d));
     pruefe('Und sagt, warum sie nichts zu tun hat',
-      /kein Sicherungsort eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
+      /kein Sicherungsordner eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
     pruefe('Der Schalter steht dann gar nicht erst da',
       !d.w.document.getElementById('auf-schalter') && !d.w.document.getElementById('auf-los'),
       'der Schalter steht da');
@@ -32780,10 +33156,9 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Knopf fragt erst nach dem Passwort',
       !!d.w.document.getElementById('best-pass'), 'kein Bestaetigungsfenster');
-    pruefe('Und der Dialog nennt Zahl und Bytes und sagt, dass nichts zurueckfuehrt',
-      /2 Sicherungen \(100,0 MB\) werden gelöscht/.test(
-        d.w.document.querySelector('.modal')?.textContent || '') &&
-      /Zurück führt nichts/.test(d.w.document.querySelector('.modal')?.textContent || ''),
+    pruefe('Und der Dialog nennt Zahl und Bytes und sagt, dass es endgueltig ist — 0.22.0',
+      /2 Sicherungen \(100,0 MB\) werden endgültig gelöscht\./.test(
+        d.w.document.querySelector('.modal')?.textContent || ''),
       d.w.document.querySelector('.modal')?.textContent?.slice(0, 400));
     await bestaetigeImDom(d, 'egal', true);
     pruefe('Ein Abbruch schickt nichts an den Server',
@@ -32937,8 +33312,11 @@ async function pruefeOberflaeche() {
     .map(o => o.value);
   pruefe('Die Vorschlaege reichen unter und ueber 1',
     gleich(gwVorschlaege, ['0,5', '0,8', '1', '1,2', '1,5']), JSON.stringify(gwVorschlaege));
-  pruefe('Die Karte erklaert, was das Gewicht bewirkt',
-    /zwischen\s+1\s+und\s+5/.test(gwSDoc.getElementById('mcrits')?.parentElement?.textContent || ''));
+  /* UMGEDREHT MIT 0.22.0 (Anlage E, Regel S5): die Erklaerung des Gewichts ist
+     aus der Karte heraus -- der Benutzer liest, was er tun kann, und was das
+     Loeschen kostet. */
+  pruefe('Die Karte sagt, was das Loeschen bewirkt — 0.22.0',
+    /Löschen entfernt auch alle\s+vergebenen Sterne/.test(gwSDoc.getElementById('mcrits')?.parentElement?.textContent || ''));
   /* Und die Regeln dazu im Stylesheet -- eine Klassenpruefung allein belegt
      nicht, dass die Klasse etwas bewirkt (Luecke 1 des Pruefstands). Erst auf
      Vorhandensein, dann auf die Eigenschaft (Stolperstein 81). */
@@ -32951,7 +33329,9 @@ async function pruefeOberflaeche() {
        "1,25" nicht mehr. */
     pruefe('Und seine Breite waechst mit der Schriftgroesse mit',
       /width: *[0-9.]+em/.test(gwRegel) && !/width: *[0-9.]+px/.test(gwRegel), gwRegel);
-    const gwMarkeRegel = (gwCss.match(/\.rrow \.rname \.rgew[^{]*\{[^}]*\}/) || [''])[0];
+    // Gesucht wird die EIGENE Regel der Marke: seit 0.22.0 steht derselbe
+    // Waehler auch in der Sammelregel fuer tabular-nums (Bauabschnitt 1).
+    const gwMarkeRegel = (gwCss.match(/\.rrow \.rname \.rgew, \.cmp-crit \.cn \.cgew \{[^}]*\}/) || [''])[0];
     pruefe('Und die Gewichtsmarke ist gedaempft, nicht golden',
       /var\(--faint\)/.test(gwMarkeRegel) && !/--gold/.test(gwMarkeRegel), gwMarkeRegel);
   }
@@ -34014,7 +34394,7 @@ async function pruefeOberflaeche() {
   const adZeile = () => [...ad.document.querySelectorAll('.frow')]
     .find(r => [...r.querySelectorAll('.eyebrow')].some(e => e.textContent === 'Ansichten'));
   pruefe('Aber es steht da, WARUM',
-    /8 sind das Höchste/.test(adZeile()?.textContent || ''),
+    /Höchstens 8 Ansichten/.test(adZeile()?.textContent || ''),
     adZeile()?.textContent || '(keine Zeile)');
   ad.close();
 
@@ -34233,13 +34613,14 @@ async function pruefeOberflaeche() {
   const exKv = [...exW.document.querySelectorAll('.sys-card .kv')]
     .map(z => [z.querySelector('.k')?.textContent, z.querySelector('.v')?.textContent]);
   const exZeile = (name) => (exKv.find(z => z[0] === name) || [])[1];
+  // SEIT 0.22.0 HEISST DIE ZEILE „Exportgröße (alles)" (Anlage F).
   pruefe('Die Kennzahlen nennen die erwartete Exportgroesse',
-    /^≈ /.test(exZeile('Export, alles') || ''), exZeile('Export, alles'));
+    /^≈ /.test(exZeile('Exportgröße (alles)') || ''), exZeile('Exportgröße (alles)'));
   pruefe('Und sie ist die Summe ueber ALLE Teile, nicht die eines Knopfes',
-    exZeile('Export, alles') === '≈ ' + exW.fmtBytes(18 * MB), exZeile('Export, alles'));
+    exZeile('Exportgröße (alles)') === '≈ ' + exW.fmtBytes(18 * MB), exZeile('Exportgröße (alles)'));
   pruefe('Die Datenbankgroesse steht weiterhin daneben — zwei Fragen, zwei Zahlen',
-    typeof exZeile('Datenbank') === 'string' && exZeile('Datenbank') !== exZeile('Export, alles'),
-    JSON.stringify([exZeile('Datenbank'), exZeile('Export, alles')]));
+    typeof exZeile('Datenbank') === 'string' && exZeile('Datenbank') !== exZeile('Exportgröße (alles)'),
+    JSON.stringify([exZeile('Datenbank'), exZeile('Exportgröße (alles)')]));
   pruefe('Und die Kommentarbilder haben endlich ihre eigene Zeile',
     /^3 · /.test(exZeile('Kommentarbilder') || ''), exZeile('Kommentarbilder'));
 
@@ -34299,8 +34680,9 @@ async function pruefeOberflaeche() {
      gepasst haette. */
   pruefe('Der Knopf bleibt trotzdem da und bleibt bedienbar',
     !!exG.document.getElementById('ex-yes') && !exG.document.getElementById('ex-yes').disabled);
-  pruefe('Und die Warnung sagt das auch',
-    /Der Knopf oben bleibt trotzdem/.test(warnText), warnText.slice(0, 260));
+  pruefe('Und die Warnung nennt den Ausweg — 0.22.0',
+    /In Teilen exportieren/.test(warnText) && /jeder Teil ist\s+eine vollständige Exportdatei/.test(warnText),
+    warnText.slice(0, 260));
   /* --- 0.12.4: und sie nennt den Weg, der wirklich hilft ---
      Ein Hinweis, der nur sagt, was NICHT geht, laesst jemanden mit einem
      kaputten Knopf zurueck. Seit 0.12.4 gibt es die Antwort, und sie gehoert
@@ -34318,7 +34700,7 @@ async function pruefeOberflaeche() {
      zweiten Knopf greift, kommt nicht davon. Ohne beide Lagen bliebe die
      Unterscheidung ungeprueft. */
   pruefe('Bleibt der Weg ohne Fotos unter der Marke, nennt die Warnung ihn',
-    /ohne Fotos bleiben rund/.test(warnText) && !/auch ohne Fotos/.test(warnText),
+    /ohne Fotos rund/.test(warnText) && !/auch ohne Fotos/.test(warnText),
     warnText.slice(0, 260));
   const exGHaken = exG.document.getElementById('ex-files');
   exGHaken.checked = true;
@@ -34810,9 +35192,9 @@ async function pruefeOberflaeche() {
     pruefe('Er sagt, dass EINMAL bestätigt wird',
       /Einmal bestätigen, dann/.test(tzApp), 'Knopftext');
     pruefe('Und dass danach jeder Teil selbst geladen wird',
-      /danach lädst du jeden Teil selbst/.test(tzApp), 'Satz über dem Knopf');
-    pruefe('Der Satz darüber nennt den Grund der Frage',
-      /Ein Export nimmt den Bestand\s+mit aus dem Haus/.test(tzApp), 'Grundsatz');
+      /danach lädst du jeden\s+Teil einzeln/.test(tzApp), 'Satz über dem Knopf');
+    pruefe('Der Satz darüber sagt, was vorher abgefragt wird — 0.22.0',
+      /Vor dem Export wird einmal dein\s+Passwort/.test(tzApp), 'Grundsatz');
 
     tzS.stopp();
     fs.rmSync(tzDir, { recursive: true, force: true });
@@ -35070,7 +35452,7 @@ async function pruefeOberflaeche() {
   pruefe('Bei null Treffern ist sie gedaempft',
     flLeerePille?.classList.contains('leer'), flLeerePille?.className);
   pruefe('Und sie sagt, warum',
-    flLeerePille?.title === 'Zusammen mit der aktuellen Auswahl kein Treffer',
+    flLeerePille?.title === 'Mit der aktuellen Auswahl keine Treffer',
     flLeerePille?.title);
   pruefe('Anklickbar bleibt sie', flLeerePille?.disabled !== true, String(flLeerePille?.disabled));
   /* DIE REGEL GILT SEIT 0.13.0 FUER JEDE PILLE und nicht mehr nur fuer Tags --
@@ -35680,8 +36062,10 @@ async function pruefeOberflaeche() {
   pruefe('Der Kasten der Kriterienliste traegt das Raster',
     slKasten?.classList.contains('rlist'), JSON.stringify(slKasten?.className));
   const slKinder = slZeilen.map(z => [...z.children].map(k => k.className));
-  pruefe('Jede Zeile haengt Name, Sterne und Zahl als drei direkte Kinder',
-    slKinder.every(k => k.length === 3 && k[0] === 'rname' && k[1] === 'racts' && k[2] === 'ravg'),
+  /* VIER SEIT 0.22.0 (E15): der Ruecksetzer bekommt seine eigene vierte Zelle
+     `.rzz` rechts neben der Zahl. Umgedreht, nicht geloescht (Stolperstein 74). */
+  pruefe('Jede Zeile haengt Name, Sterne, Zahl und Ruecksetzer als vier direkte Kinder — 0.22.0',
+    slKinder.every(k => k.length === 4 && k[0] === 'rname' && k[1] === 'racts' && k[2] === 'ravg' && k[3] === 'rzz'),
     JSON.stringify(slKinder));
   pruefe('Die Zahl steckt ausdruecklich NICHT mehr in den Sternen',
     slZeilen.every(z => !z.querySelector('.racts .ravg')),
@@ -35691,11 +36075,11 @@ async function pruefeOberflaeche() {
      leer und bekommt keinen Ersatztext", mit der Begruendung, neben fuenf
      leeren Sternen waere „noch keine Bewertung" dieselbe Aussage zweimal.
      DAS GILT FUER EINEN SATZ. Ein STRICH ist keiner, sondern der Platz, der
-     der Zahl gehoert -- und er sagt „noch niemand". Der Klartext steht wie an
-     der Zahl daneben im `title`: ein Zeichen allein liest kein Vorleseprogramm
-     vor. */
+     der Zahl gehoert -- und er sagt „noch niemand" (seit 0.22.0 „Noch nicht
+     bewertet", Anlage C). Der Klartext steht wie an der Zahl daneben im
+     `title`: ein Zeichen allein liest kein Vorleseprogramm vor. */
   pruefe('Die leere Zelle traegt einen Strich und den Klartext dazu',
-    slZahlen[2] === '–' && slZeilen[2]?.querySelector('.ravg')?.title === 'noch niemand',
+    slZahlen[2] === '–' && slZeilen[2]?.querySelector('.ravg')?.title === 'Noch nicht bewertet',
     JSON.stringify([slZahlen[2], slZeilen[2]?.querySelector('.ravg')?.title]));
   /* UND KEINEN SATZ. Die Verneinung von damals gilt weiter und wird deshalb
      weiter geprueft -- nur an dem, was sie wirklich meinte. */
@@ -35827,45 +36211,48 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     const szNullZeilen = [...szNull.w.document.querySelectorAll('#ratings .rrow')];
 
-    pruefe('Das × steht in jeder Sternzeile mit Ruecksetzer im Dokument',
-      szZeilen.length === 3 && szZeilen.every(z => !!z.querySelector('.stars .sdel')),
-      JSON.stringify(szZeilen.map(z => !!z.querySelector('.stars .sdel'))));
+    /* UMGEDREHT MIT 0.22.0 (E15): das × in der Sternreihe ist der runde
+       Ruecksetzer `.rzurueck` in der eigenen vierten Zelle `.rzz` geworden.
+       Die Zusagen von 0.21.0 gelten fuer ihn weiter und haengen jetzt dort. */
+    pruefe('Der Ruecksetzer steht in jeder Sternzeile mit Ruecksetzer im Dokument — 0.22.0',
+      szZeilen.length === 3 && szZeilen.every(z => !!z.querySelector('.rzz .rzurueck')),
+      JSON.stringify(szZeilen.map(z => !!z.querySelector('.rzz .rzurueck'))));
     /* BEI EINEM EIGENEN STERN SICHTBAR, BEI KEINEM UNSICHTBAR -- und zwar
        ueber eine Klasse, die `visibility` setzt, NICHT ueber `hidden`.
        Der Unterschied ist der ganze Punkt: `hidden` ist `display: none` und
        naehme dem × seinen Platz; die Sterne rutschten dann beim ERSTEN Stern
        nach links -- genau der Sprung, den dieselbe Runde abschafft. */
     pruefe('Bei eigenem Stern ist es sichtbar',
-      szZeilen.slice(0, 2).every(z => !z.querySelector('.sdel').classList.contains('leer')),
-      JSON.stringify(szZeilen.map(z => z.querySelector('.sdel')?.className)));
+      szZeilen.slice(0, 2).every(z => !z.querySelector('.rzurueck')?.classList.contains('leer')),
+      JSON.stringify(szZeilen.map(z => z.querySelector('.rzurueck')?.className)));
     pruefe('Ohne eigenen Stern ist es unsichtbar, behaelt aber seinen Platz',
-      szNullZeilen[2]?.querySelector('.sdel')?.classList.contains('leer') === true &&
-      szNullZeilen[2]?.querySelector('.sdel')?.hidden === false,
-      JSON.stringify([szNullZeilen[2]?.querySelector('.sdel')?.className,
-                      szNullZeilen[2]?.querySelector('.sdel')?.hidden]));
+      szNullZeilen[2]?.querySelector('.rzurueck')?.classList.contains('leer') === true &&
+      szNullZeilen[2]?.querySelector('.rzurueck')?.hidden === false,
+      JSON.stringify([szNullZeilen[2]?.querySelector('.rzurueck')?.className,
+                      szNullZeilen[2]?.querySelector('.rzurueck')?.hidden]));
     /* UND DIE REGEL DAZU IM STILBLATT: `visibility: hidden` und ausdruecklich
        nicht `display: none`. Ohne diese Zeile bliebe die Zusage darueber auch
        dann gruen, wenn die Klasse den Platz doch naehme (Stolperstein 223). */
-    const szRegel = regel123('.stars .sdel.leer');
+    const szRegel = regel123('.rzurueck.leer');
     pruefe('Und die Regel nimmt ihm die Sichtbarkeit, nicht seinen Platz',
       /visibility: hidden/.test(szRegel) && !/display: none/.test(szRegel),
       szRegel || '(keine Regel)');
-    /* SO BREIT WIE EIN STERN. Der Platz gehoert ihm auch dann, wenn es nichts
-       zu tun gibt -- ein × ist schmaler als ein ★. */
-    pruefe('Es ist so breit wie ein Stern',
-      /width: 1\.2rem/.test(regel123('.stars .sdel')), regel123('.stars .sdel') || '(keine Regel)');
+    /* EIN RUNDER KNOPF VON 26 BILDPUNKTEN (E15). Der Platz gehoert ihm auch
+       dann, wenn es nichts zu tun gibt. */
+    pruefe('Es ist ein runder Knopf von 26 Bildpunkten — 0.22.0',
+      /width: 26px; height: 26px; border-radius: 50%/.test(regel123('.rzurueck')), regel123('.rzurueck') || '(keine Regel)');
     /* UND AUF DEM FINGER GROESSER, wie die uebrigen Kreuze. Es sitzt
        unmittelbar neben dem fuenften Stern; wer danebentrifft, vergibt fuenf
        Sterne, statt seinen zu entfernen. */
     pruefe('Auf Beruehrungsgeraeten ist die Trefflaeche mindestens 32 Bildpunkte',
-      /\.stars \.sdel \{ width: 32px; height: 32px/.test(css123),
-      (css123.match(/\.stars \.sdel \{[^}]*\}/g) || []).join(' | '));
+      /\.rzurueck \{ width: 32px; height: 32px/.test(css123),
+      (css123.match(/\.rzurueck \{[^}]*\}/g) || []).join(' | '));
 
     /* EIN TIPP SCHICKT `PUT` MIT 0 -- UND NICHTS ANDERES. Das ist die
        eigentliche Zusage der Wegnahme: die Sammelroute ist weg, und der Weg,
        der geblieben ist, geht ueber dieselbe Route wie das Setzen. */
     szDom.gesendet.length = 0;
-    szZeilen[0].querySelector('.sdel')
+    szZeilen[0].querySelector('.rzurueck')
       .dispatchEvent(new szDom.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const szRufe = szDom.gesendet.filter(g => /\/ratings/.test(g.url));
@@ -35894,18 +36281,20 @@ async function pruefeOberflaeche() {
        als keins. */
     const szTest = [...szDoc.querySelectorAll('#tstars .stars, .ttag .stars, .tdrow .stars')];
     pruefe('Eine Sternreihe ohne Ruecksetzer traegt kein ×',
-      szTest.length > 0 && szTest.every(t => !t.querySelector('.sdel')),
-      `${szTest.length} Reihen ohne Ruecksetzer, davon mit ×: ` +
-      szTest.filter(t => t.querySelector('.sdel')).length);
+      szTest.length > 0 && szTest.every(t => !t.querySelector('.rzurueck') && !t.parentElement?.querySelector('.rzurueck')),
+      `${szTest.length} Reihen ohne Ruecksetzer, davon mit Ruecksetzer: ` +
+      szTest.filter(t => t.querySelector('.rzurueck') || t.parentElement?.querySelector('.rzurueck')).length);
 
     /* DER KOPF IST KURZ. „Meine Bewertung zuruecksetzen" ist weg -- samt der
-       Route dahinter --, und „Wer hat bewertet" heisst „Stimmen". */
+       Route dahinter --, und „Wer hat bewertet" hiess ab 0.21.0 „Stimmen".
+       SEIT 0.22.0 HEISST ER WIEDER „Wer hat bewertet" (E5): „Stimmen" stand
+       auf der Verbotsliste, weil es eine Wahl meint und keine Bewertung. */
     pruefe('Die Kopfzeile traegt keinen Knopf zum Zuruecksetzen mehr',
       !szDoc.getElementById('reset-r') && !szDoc.querySelector('[id$="reset-r"]'),
       JSON.stringify(szDoc.getElementById('reset-r')?.textContent));
-    pruefe('Und der Knopf des Admins heisst in beiden Koepfen „Stimmen"',
-      szDoc.getElementById('rwho')?.textContent.trim() === 'Stimmen' &&
-      szDoc.getElementById('pwho')?.textContent.trim() === 'Stimmen',
+    pruefe('Und der Knopf des Admins heisst in beiden Koepfen „Wer hat bewertet" — 0.22.0',
+      szDoc.getElementById('rwho')?.textContent.trim() === 'Wer hat bewertet' &&
+      szDoc.getElementById('pwho')?.textContent.trim() === 'Wer hat bewertet',
       JSON.stringify([szDoc.getElementById('rwho')?.textContent,
                       szDoc.getElementById('pwho')?.textContent]));
 
@@ -36244,8 +36633,9 @@ async function pruefeOberflaeche() {
         .every(k => k.querySelectorAll('.rating-inline').length <= 1),
       JSON.stringify([...zkUeb.w.document.querySelectorAll('.card')]
         .map(k => k.querySelectorAll('.rating-inline').length)));
+    // „keine Sterne" hiess der Hinweis bis 0.21.1; das Woerterbuch sagt „noch nicht eingeschätzt".
     pruefe('Fehlt die jeweilige Zahl, steht der Hinweis dieses Kastens da',
-      zkZahl(2) === 'keine Sterne', JSON.stringify(zkZahl(2)));
+      zkZahl(2) === 'noch nicht eingeschätzt', JSON.stringify(zkZahl(2)));
     /* UND DAS ZEICHEN IST NICHT GOLDEN. Gold bleibt der Bewertung -- sonst
        hielte jemand 4,2 Potenzial fuer 4,2 Qualitaet. */
     pruefe('Das Zeichen des Potenzials traegt nicht die Farbe der Bewertung',
@@ -36385,8 +36775,10 @@ async function pruefeOberflaeche() {
     /* UND DIE ZAHL SELBST, ausdruecklich: sonst bliebe die Zeile darueber
        auch dann gruen, wenn beide Lagen auf zwei Zellen und zwei Spalten
        faellen -- die Durchschnittsspalte waere dann wortlos verschwunden. */
-    pruefe(`Bei ${wort} sind es ${wieViele > 1 ? 'drei' : 'zwei'} Zellen`,
-      rzZellen[0] === (wieViele > 1 ? 3 : 2), `${rzZellen[0]}`);
+    /* VIER UND DREI SEIT 0.22.0 (E15): die Zelle des Ruecksetzers kommt in
+       beiden Lagen dazu. Umgedreht, nicht geloescht (Stolperstein 74). */
+    pruefe(`Bei ${wort} sind es ${wieViele > 1 ? 'vier' : 'drei'} Zellen — 0.22.0`,
+      rzZellen[0] === (wieViele > 1 ? 4 : 3), `${rzZellen[0]}`);
     /* UND DIE KLASSE STEHT NUR DA, WO SIE HINGEHOERT. Ohne diese Zeile bliebe
        „passen zusammen" auch dann gruen, wenn sie immer stuende und die
        Durchschnittszelle mit ihr. */
@@ -36965,7 +37357,7 @@ async function pruefeOberflaeche() {
        Solange das Fenster offen steht, ist nichts hinausgegangen. */
     const ruhFrage = d.w.document.querySelector('.backdrop .modal');
     pruefe('Der Papierkorb fragt erst nach',
-      !!ruhFrage && /Begründung entfernen\?/.test(ruhFrage.textContent || ''),
+      !!ruhFrage && /Begründung löschen\?/.test(ruhFrage.textContent || ''),
       ruhFrage ? ruhFrage.textContent.slice(0, 60) : '(kein Fenster)');
     pruefe('Und schickt vorher nichts',
       !d.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/items/1'),
@@ -37338,10 +37730,11 @@ async function pruefeOberflaeche() {
       dok.getElementById('rz-ergebnis')?.textContent.trim() === '⌀ 3',
       dok.getElementById('rz-ergebnis')?.textContent);
     pruefe('Und der Kasten sagt, dass genau einmal gerundet wird',
-      /Gerundet wird genau einmal/.test(kasten?.textContent || ''),
+      /Gerundet wird nur das\s+Endergebnis/.test(kasten?.textContent || ''),
       kasten?.textContent?.replace(/\s+/g, ' ').slice(0, 200));
+    // Der Weg zu den Gewichten nennt seit 0.22.0 die Karte beim Namen (Anlage D).
     pruefe('Und wo die Gewichte eingestellt werden',
-      /Bewertungskriterien/.test(kasten?.textContent || ''),
+      /Bewertung: Kriterien/.test(kasten?.textContent || ''),
       kasten?.textContent?.replace(/\s+/g, ' ').slice(-200));
 
     /* ---- DER KASTEN ROLLT NICHT MEHR — 0.17.3 ----
@@ -37364,7 +37757,7 @@ async function pruefeOberflaeche() {
     pruefe('Die Begruendung zum Teiler steht nicht mehr da',
       !/nach unten/.test(rgText), rgText.slice(0, 400));
     pruefe('Der Teiler selbst steht weiterhin da',
-      /Teiler zählt nur die Kriterien, die auch bewertet sind/.test(rgText),
+      /Kriterien ohne Sterne zählen nicht mit/.test(rgText),
       rgText.slice(0, 400));
     /* UND DIE BEIDEN ZAHLEN IM STILBLATT. Sie sind die andere Haelfte des
        Punktes: die Zeilen ruecken enger, und der Kasten wird breiter, damit
@@ -37390,7 +37783,7 @@ async function pruefeOberflaeche() {
     pruefe('Der Kasten traegt selbst eine Spalte „Note"',
       rvKopf.includes('Note'), JSON.stringify(rvKopf));
     pruefe('Und der Satz darueber verweist genau auf sie',
-      /in der Spalte\s*Note/.test((kasten?.textContent || '').replace(/\s+/g, ' ')),
+      /\(Spalte Note\)/.test((kasten?.textContent || '').replace(/\s+/g, ' ')),
       (kasten?.textContent || '').replace(/\s+/g, ' ').slice(0, 220));
     pruefe('Und nicht mehr auf die Liste dahinter',
       !/rechts in den Zeilen/.test(kasten?.textContent || ''),
@@ -37588,7 +37981,7 @@ async function pruefeOberflaeche() {
     pruefe('Sondern auf seine eigene Spalte, die auch hier dasteht',
       [...(kasten?.querySelectorAll('.rechnung .rz-kopf span') || [])]
         .map(s => s.textContent.trim()).includes('Note') &&
-      /in der Spalte\s*Note/.test((kasten?.textContent || '').replace(/\s+/g, ' ')),
+      /\(Spalte Note\)/.test((kasten?.textContent || '').replace(/\s+/g, ' ')),
       (kasten?.textContent || '').replace(/\s+/g, ' ').slice(0, 220));
     d.w.close();
   }
@@ -37687,7 +38080,7 @@ async function pruefeOberflaeche() {
        DIE SUMME BILDET DIE OBERFLAECHE, an genau einer Stelle: der Server
        liefert zwei Zahlen und keine Summe. 3 + 1 + 1 + 0 = 5. */
     pruefe('Der Titel des Knopfes nennt die Summe',
-      /^5 seit deinem letzten Blick/.test(dok.getElementById('glocke')?.title || ''),
+      /^5 Neuigkeiten von anderen/.test(dok.getElementById('glocke')?.title || ''),
       dok.getElementById('glocke')?.title);
     pruefe('Und er zaehlt Kommentare und Bewertungen zusammen, nicht doppelt',
       !/10 |8 /.test(dok.getElementById('glocke')?.title || ''),
@@ -37715,7 +38108,7 @@ async function pruefeOberflaeche() {
        ersatzloses Loeschen des Absatzes bliebe sonst gruen. */
     const glSatz = (tafel?.textContent || '').replace(/\s+/g, ' ');
     pruefe('Sie sagt, dass sie die Beitraege der ANDEREN meldet',
-      /Kommentare und Bewertungen von den anderen/.test(glSatz), glSatz.slice(0, 200));
+      /Neue Kommentare und Bewertungen anderer Benutzer/.test(glSatz), glSatz.slice(0, 200));
     pruefe('Und sie verspricht nicht mehr die eigenen mit',
       !/von allen/.test(glSatz) && !/eigenen stehen mit da/.test(glSatz),
       glSatz.slice(0, 200));
@@ -37815,14 +38208,14 @@ async function pruefeOberflaeche() {
       still.w.document.getElementById('glocke-punkt')?.hidden === true,
       String(still.w.document.getElementById('glocke-punkt')?.hidden));
     pruefe('Und ihr Titel sagt es',
-      /Nichts Neues/.test(still.w.document.getElementById('glocke')?.title || ''),
+      /Keine Neuigkeiten/.test(still.w.document.getElementById('glocke')?.title || ''),
       still.w.document.getElementById('glocke')?.title);
     // Und die Tafel bleibt trotzdem erreichbar und sagt, dass nichts da ist.
     still.w.document.getElementById('glocke')
       .dispatchEvent(new still.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Die Tafel sagt es dann auch',
-      /Nichts Neues\./.test(
+      /Keine Neuigkeiten\./.test(
         still.w.document.getElementById('glocken-liste')?.textContent || ''),
       still.w.document.getElementById('glocken-liste')?.textContent);
     still.w.close();
@@ -37938,7 +38331,7 @@ async function pruefeOberflaeche() {
     /* UND IHR TITEL SAGT ES AUCH, statt eine Zahl zu nennen, die es nicht
        gibt. */
     pruefe('Und ihr Titel nennt keine Zahl',
-      dok.getElementById('glocke')?.title === 'Nichts Neues seit deinem letzten Blick',
+      dok.getElementById('glocke')?.title === 'Keine Neuigkeiten',
       JSON.stringify(dok.getElementById('glocke')?.title));
     dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
@@ -38008,7 +38401,7 @@ async function pruefeOberflaeche() {
     const frage = dok.querySelector('.backdrop .modal');
     pruefe('Der Papierkorb fragt zuerst nach', !!frage, dok.body.innerHTML.slice(0, 140));
     pruefe('Und die Frage nennt, was verschwindet',
-      /unwiderruflich entfernt/.test(frage?.textContent || ''), frage?.textContent);
+      /wird endgültig gelöscht/.test(frage?.textContent || ''), frage?.textContent);
     // Abbrechen: es darf nichts hinausgehen und nichts verschwinden.
     dok.querySelector('.backdrop [data-no]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -38075,11 +38468,12 @@ async function pruefeOberflaeche() {
     await sysAbschnitt(d.w, 'persoenlich');
     return d;
   };
+  // SEIT 0.22.0 HEISST DIE KARTE „Mein Konto" (E2).
   const ztKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Zugang');
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Mein Konto');
   {
     const dAus = await zt(false), dAn = await zt(true);
-    pruefe('Die Karte „Zugang" steht in beiden Lagen da',
+    pruefe('Die Karte „Mein Konto" steht in beiden Lagen da',
       !!ztKarte(dAus) && !!ztKarte(dAn),
       `${!!ztKarte(dAus)} / ${!!ztKarte(dAn)}`);
     const tAus = ztKarte(dAus)?.textContent || '', tAn = ztKarte(dAn)?.textContent || '';
@@ -38088,17 +38482,20 @@ async function pruefeOberflaeche() {
        „freiwillig", das an einer ganz anderen Stelle steht. */
     const ztLabel = (d) => d.w.document.getElementById('acc-mail')
       ?.closest('.field')?.querySelector('label')?.textContent || '';
-    pruefe('Ohne Selbstanmeldung steht am Adressfeld „(freiwillig)"',
-      /\(freiwillig\)/.test(ztLabel(dAus)), ztLabel(dAus));
-    pruefe('Mit Selbstanmeldung steht dort „(wird gebraucht)"',
-      /\(wird gebraucht\)/.test(ztLabel(dAn)) && !/freiwillig/.test(ztLabel(dAn)),
+    /* UMGEDREHT MIT 0.22.0 (Anlage B): die Marken heissen „(optional)" und
+       „(erforderlich)", und der Absatz sagt in drei Saetzen, wozu die Adresse
+       dient, was ohne sie geschieht und was ein Passwortwechsel auslöst. */
+    pruefe('Ohne Registrierung steht am Adressfeld „(optional)" — 0.22.0',
+      /\(optional\)/.test(ztLabel(dAus)), ztLabel(dAus));
+    pruefe('Mit Registrierung steht dort „(erforderlich)" — 0.22.0',
+      /\(erforderlich\)/.test(ztLabel(dAn)) && !/optional/.test(ztLabel(dAn)),
       ztLabel(dAn));
-    pruefe('Ohne Selbstanmeldung sagt der Absatz, wofuer die Adresse gebraucht wird',
-      /Einladungs- oder Rücksetzlink per Mail/.test(tAus) &&
-      /Ohne sie steht der Link wie immer zum Kopieren bereit/.test(tAus),
+    pruefe('Ohne Registrierung sagt der Absatz, wofuer die Adresse gebraucht wird',
+      /Link zum Zurücksetzen des Passworts geschickt werden/.test(tAus) &&
+      /Ohne Adresse gibt der Admin den Link persönlich weiter/.test(tAus),
       tAus.slice(0, 260));
-    pruefe('Mit Selbstanmeldung sagt er, dass sie gebraucht WIRD',
-      /Die Adresse wird gebraucht/.test(tAn) && /keine Bestätigungsmail/.test(tAn),
+    pruefe('Mit Registrierung sagt er, dass sie erforderlich IST — 0.22.0',
+      /Die Adresse ist erforderlich/.test(tAn) && /solange die Registrierung erlaubt ist/.test(tAn),
       tAn.slice(0, 260));
     /* UND DIE ALTE BEHAUPTUNG IST WEG. „Ohne sie fehlt nichts" war die Lage,
        die der Satz behauptet hat -- bei eingeschalteter Selbstanmeldung stimmt
@@ -38145,8 +38542,8 @@ async function pruefeOberflaeche() {
     await sysAbschnitt(d.w, 'persoenlich');
     const marke = () => d.w.document.getElementById('acc-mail')
       ?.closest('.field')?.querySelector('label')?.textContent || '';
-    pruefe('Vor dem Umlegen steht am Adressfeld „(freiwillig)"',
-      /\(freiwillig\)/.test(marke()), marke());
+    pruefe('Vor dem Umlegen steht am Adressfeld „(optional)" — 0.22.0',
+      /\(optional\)/.test(marke()), marke());
     await sysAbschnitt(d.w, 'zugaenge');
     d.w.document.getElementById('anf-schalter')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -38155,8 +38552,8 @@ async function pruefeOberflaeche() {
       d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/registrierung/schalter'),
       d.gesendet.slice(-2).map(x => `${x.methode} ${x.url}`).join(' · '));
     await sysAbschnitt(d.w, 'persoenlich');
-    pruefe('Danach steht dort „(wird gebraucht)" -- ohne Neuladen',
-      /\(wird gebraucht\)/.test(marke()), marke());
+    pruefe('Danach steht dort „(erforderlich)" -- ohne Neuladen — 0.22.0',
+      /\(erforderlich\)/.test(marke()), marke());
     d.w.close();
   }
 
@@ -38859,15 +39256,15 @@ async function pruefeOberflaeche() {
     /* UND DER KLARTEXT SAGT WEITERHIN BEIDES -- in der Einzahl, wo es eine
        ist: „aus 1 Stimmen" ist der Fehler, den eine feste Endung macht. */
     pruefe('Der Klartext nennt die eine Stimme trotzdem',
-      kSpalten[1]?.title === 'Durchschnitt 4,0 aus 1 Stimme', kSpalten[1]?.title);
+      kSpalten[1]?.title === 'Durchschnitt 4,0 aus 1 Bewertung', kSpalten[1]?.title);
     pruefe('Und bei zweien steht dort die Mehrzahl',
-      kSpalten[0]?.title === 'Durchschnitt 3,5 aus 2 Stimmen', kSpalten[0]?.title);
+      kSpalten[0]?.title === 'Durchschnitt 3,5 aus 2 Bewertungen', kSpalten[0]?.title);
     /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): der Strich bekommt seinen eigenen
        Klartext -- „noch niemand" --, und er nennt ausdruecklich KEINE Stimmen.
        Das ist die Aussage, um die es dieser Gruppe geht: wo keine Stimme ist,
        steht keine Zahl. */
     pruefe('Ein Kriterium ohne Stimme bekommt einen Klartext ohne Stimmenzahl',
-      kSpalten[2]?.title === 'noch niemand' && !/Stimme/.test(kSpalten[2]?.title || ''),
+      kSpalten[2]?.title === 'Noch nicht bewertet' && !/aus \d/.test(kSpalten[2]?.title || ''),
       kSpalten[2]?.title);
     d.w.close();
   }
@@ -38967,7 +39364,7 @@ async function pruefeOberflaeche() {
       JSON.stringify(jetzt));
     // UND DIE LEISTE ZEIGT ES AUCH: die Pille „Alles anzeigen" steht wieder an.
     const allesPille = [...d.w.document.querySelectorAll('#filters .pill')]
-      .find(b => b.textContent.trim() === 'Alles anzeigen');
+      .find(b => b.textContent.trim() === 'Alle');
     pruefe('Und die Leiste zeigt es',
       allesPille?.classList.contains('on'), allesPille?.className);
     /* DIE SORTIERUNG BLEIBT STEHEN, obwohl sie in FILTER_VORGABE steht: sie
@@ -39166,8 +39563,8 @@ async function pruefeOberflaeche() {
     const d = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
     pruefe('Der Aufbau steht: vor dem Klick greift die Vorgabe',
       ksTitel(d).length === 2, JSON.stringify(ksTitel(d)));
-    await ksKlick(d, ksPille(d, 'Alles anzeigen'));
-    pruefe('Ein Klick auf „Alles anzeigen" schlaegt die Vorgabe',
+    await ksKlick(d, ksPille(d, 'Alle'));
+    pruefe('Ein Klick auf „Alle" schlaegt die Vorgabe',
       gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
     // UND SIE HAELT UEBER EINEN WECHSEL DER SORTIERUNG HINWEG. Ohne diese
     // Zeile belegte die vorige nur den Augenblick des Klicks.
@@ -39228,7 +39625,7 @@ async function pruefeOberflaeche() {
        nur, dass die Vorgabe greift -- und nicht, dass sie eine ueberlebende
        Handwahl gerade NICHT vorfindet (Stolperstein 224). */
     const vorher = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
-    await ksKlick(vorher, ksPille(vorher, 'Alles anzeigen'));
+    await ksKlick(vorher, ksPille(vorher, 'Alle'));
     pruefe('Der Aufbau steht: im ersten Fenster gilt die Handwahl',
       gleich(ksTitel(vorher), ksAlle), JSON.stringify(ksTitel(vorher)));
     const gespeichert = ksStellung(vorher);
@@ -39280,7 +39677,7 @@ async function pruefeOberflaeche() {
      Filterstellung. Es ist der einzige Weg zurueck in die Vorgabe. */
   {
     const d = await ksBaue({ ...ksVorgabe, sort: 'potenzial_desc' });
-    await ksKlick(d, ksPille(d, 'Alles anzeigen'));
+    await ksKlick(d, ksPille(d, 'Alle'));
     pruefe('Der Aufbau steht: nach der Handwahl ist die Vorgabe aus',
       gleich(ksTitel(d), ksAlle), JSON.stringify(ksTitel(d)));
     /* UND DER RUECKSETZER STEHT DA. Die Handwahl weicht von der Ruhestellung ab
@@ -39317,7 +39714,7 @@ async function pruefeOberflaeche() {
     pruefe('Und es ist eine zweite Beschriftung ohne eigene Spalte',
       wort?.classList.contains('eyebrow-mit'), wort?.className);
     pruefe('Es steht in derselben Zeile wie die Statuspillen',
-      wort?.closest('.frow') === ksPille(d, 'Alles anzeigen')?.closest('.frow'),
+      wort?.closest('.frow') === ksPille(d, 'Alle')?.closest('.frow'),
       wort?.closest('.frow')?.querySelector('.eyebrow')?.textContent);
     /* DIE ABGELEITETE PILLE IST VON EINER GEWAEHLTEN ZU UNTERSCHEIDEN -- und
        zwar an einer EIGENEN Klasse und nicht an derselben mit Zusatz. */
@@ -39326,9 +39723,14 @@ async function pruefeOberflaeche() {
       abgeleitet?.classList.contains('pill-abgeleitet'), abgeleitet?.className);
     pruefe('Und sie sieht ausdruecklich nicht aus wie eine angeklickte',
       !abgeleitet?.classList.contains('on'), abgeleitet?.className);
+    // SEIT 0.22.0 HEISST DIE PILLE IN JEDER FILTERGRUPPE „Alle" (Woerterbuch);
+    // gefragt wird deshalb die ERSTE Pillengruppe der Statusreihe -- die
+    // Ablehnungsgruppe steht seit E8 in derselben Reihe, mit ihrem eigenen „Alle".
+    const ksStatusReihe = [...d.w.document.querySelectorAll('#filters .frow')]
+      .find(r => r.querySelector('.eyebrow')?.textContent.trim() === 'Status');
     pruefe('Auch keine andere Pille steht dabei als gewaehlt da',
-      ![...d.w.document.querySelectorAll('#filters .pill')]
-        .some(b => ['Alles anzeigen', 'Getestet', 'Ungetestet'].includes(b.textContent.trim())
+      ![...(ksStatusReihe?.querySelector('.pills')?.querySelectorAll('.pill') || [])]
+        .some(b => ['Alle', 'Getestet', 'Ungetestet'].includes(b.textContent.trim())
                    && b.classList.contains('on')),
       JSON.stringify([...d.w.document.querySelectorAll('#filters .pill')]
         .map(b => `${b.textContent.trim()}:${b.className}`)));
@@ -39361,9 +39763,9 @@ async function pruefeOberflaeche() {
       !d.w.document.getElementById('f-status-woher'),
       d.w.document.getElementById('f-status-woher')?.textContent);
     pruefe('Und eine von Hand gesetzte Pille zeichnet sich wie immer',
-      ksPille(d, 'Alles anzeigen')?.classList.contains('on') &&
-      !ksPille(d, 'Alles anzeigen')?.classList.contains('pill-abgeleitet'),
-      ksPille(d, 'Alles anzeigen')?.className);
+      ksPille(d, 'Alle')?.classList.contains('on') &&
+      !ksPille(d, 'Alle')?.classList.contains('pill-abgeleitet'),
+      ksPille(d, 'Alle')?.className);
     d.w.close();
   }
   {
@@ -39383,9 +39785,9 @@ async function pruefeOberflaeche() {
     pruefe('Und die abgeleitete Pille ist mitgezogen',
       ksPille(d, 'Ungetestet')?.classList.contains('pill-abgeleitet'),
       ksPille(d, 'Ungetestet')?.className);
-    pruefe('Und „Alles anzeigen" steht nicht mehr als gewaehlt da',
-      !ksPille(d, 'Alles anzeigen')?.classList.contains('on'),
-      ksPille(d, 'Alles anzeigen')?.className);
+    pruefe('Und „Alle" steht nicht mehr als gewaehlt da',
+      !ksPille(d, 'Alle')?.classList.contains('on'),
+      ksPille(d, 'Alle')?.className);
     d.w.close();
   }
 
@@ -39427,6 +39829,409 @@ async function pruefeOberflaeche() {
       d.w.document.querySelector('#filter-auf .fz')?.textContent === '· 1 aktiv · folgt der Sortierung',
       JSON.stringify(d.w.document.querySelector('#filter-auf .fz')?.textContent));
     d.w.close();
+  }
+
+  /* ================= Kein Milchglas im Stilblatt — 0.22.0 =================
+     Eine Regelpruefung wie die zu [hidden] aus 0.15.1: die Regel steht seit
+     0.19.x im Projektstand (10a), und das Stilblatt brach sie an neun
+     Stellen. Eine Regel, die im Papier steht und im Stilblatt gebrochen wird,
+     ist keine Regel -- der Pruefstand muss sie kennen (Stolperstein 314). */
+  gruppe('Kein Milchglas im Stilblatt — 0.22.0');
+  {
+    const cssRoh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const cssOhneKommentare = cssRoh.replace(/\/\*[\s\S]*?\*\//g, '');
+    pruefe('backdrop-filter steht in keiner Regel des Stilblatts',
+      !/backdrop-filter/.test(cssOhneKommentare),
+      (cssOhneKommentare.match(/[^\n]*backdrop-filter[^\n]*/g) || []).slice(0, 3).join(' | '));
+    // Erst der Gegenstand: das Wort steht IM Stilblatt -- als Begruendung im
+    // Kommentar an der Kopfzeile. Sonst belegte die Verneinung oben nichts.
+    pruefe('Und die Kopfzeile nennt im Kommentar, warum es fehlt',
+      /backdrop-filter/.test(cssRoh) && /\.masthead \{[^}]*background: var\(--bg\)/.test(css123),
+      regel123('.masthead').slice(0, 200));
+    pruefe('Die Kopfzeile ist deckend und bekommt beim Rollen einen Schatten statt Milchglas',
+      /\.masthead\.gerollt \{ box-shadow: var\(--sh-sm\); \}/.test(css123),
+      regel123('.masthead.gerollt') || '(keine Regel)');
+    pruefe('Der Hintergrund eines Dialogs ist eine deckende Farbe ohne Weichzeichner',
+      /\.backdrop \{[^}]*background: rgba\(6,7,9,\.78\)/.test(css123) && !/\.backdrop \{[^}]*filter/.test(css123),
+      regel123('.backdrop') || '(keine Regel)');
+  }
+
+  /* ================= Keine Browserfenster mehr — 0.22.0 =================
+     Acht Stellen benutzten confirm() und prompt(); alle gehen jetzt durch die
+     eigenen Fenster. Gesucht wird im CODE, nicht in Kommentaren und nicht in
+     Strings -- ein Kommentar darf das Wort nennen, ein Aufruf nicht. */
+  gruppe('Keine Browserfenster mehr — 0.22.0');
+  {
+    const appRoh = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    // Kommentare weg, Inhalte der Strings weg (die Anfuehrungszeichen bleiben).
+    let appCode = appRoh.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+    // Ausgeblendet werden nur Texte, die das gesuchte Wort selbst tragen -- ein
+    // Text wie „Fenster" darf nicht aus dem Bezeichner passwortFenster( fallen.
+    for (const t of bildschirmtexteVon(appRoh)) if (/confirm\(|prompt\(/.test(t.text)) appCode = appCode.split(t.text).join('');
+    const rohe = appCode.match(/(^|[^A-Za-z0-9_.])(confirm|prompt)\(/g) || [];
+    pruefe('public/app.js ruft weder confirm( noch prompt( auf',
+      rohe.length === 0, JSON.stringify(rohe.slice(0, 5)));
+    pruefe('Die eigenen Fenster stehen da und werden gerufen',
+      ['confirmBox(', 'nameBox(', 'passwortFenster(', 'neuesPasswortFenster(', 'benutzerLoeschenFenster(']
+        .every(f => (appCode.split(f).length - 1) >= 2),
+      ['confirmBox(', 'nameBox(', 'passwortFenster(', 'neuesPasswortFenster(', 'benutzerLoeschenFenster(']
+        .map(f => `${f} ${appCode.split(f).length - 1}x`).join(' · '));
+    /* DAS LOESCHFENSTER FUER EINEN BENUTZER: „Abbrechen" bricht ab (Stolperstein
+       316). Bis 0.21.1 hiess „Abbrechen" in den ersten zwei von drei Fenstern
+       „stehen lassen und trotzdem weiter loeschen". Geprueft am Fenster
+       selbst: zwei Haekchen, zwei Knoepfe, und der Abbruch liefert null --
+       kein DELETE geht hinaus. */
+    const blDom = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+    await new Promise(r => setTimeout(r, 60));
+    const blW = blDom.w;
+    const blStand = { eintraege: 5, fremdKommentare: 3, fremdBewertungen: 0, fremdTesttage: 0, fremdLinks: 0, fremdDateien: 0,
+                      kommentare: 2, bewertungen: 1, testtage: 0, links: 0, dateien: 0 };
+    const blP = blW.benutzerLoeschenFenster('bert', 2, blStand);
+    await new Promise(r => setTimeout(r, 20));
+    const blFenster = blW.document.getElementById('benutzer-loeschen');
+    pruefe('Das Loeschfenster fuer einen Benutzer ist EIN Fenster mit Titel „Benutzer „x" löschen?"',
+      blFenster?.querySelector('h2')?.textContent === 'Benutzer „bert" löschen?',
+      JSON.stringify(blFenster?.querySelector('h2')?.textContent));
+    pruefe('Es traegt zwei Haekchen mit den Zahlen vom Server',
+      !!blFenster?.querySelector('#bl-eintraege') && !!blFenster?.querySelector('#bl-beitraege') &&
+      /5 Einträge von „bert" mitlöschen — samt 3 fremden Beiträgen daran/.test(blFenster?.textContent || '') &&
+      /2 Kommentare, 1 Bewertung/.test(blFenster?.textContent || ''),
+      (blFenster?.textContent || '').replace(/\s+/g, ' ').slice(0, 300));
+    pruefe('Und den Satz zum Sperren als Alternative',
+      /sperren statt löschen/.test(blFenster?.textContent || ''), '');
+    pruefe('Zwei Knoepfe: „Abbrechen" und „Benutzer löschen"',
+      blFenster?.querySelector('[data-no]')?.textContent === 'Abbrechen' &&
+      blFenster?.querySelector('[data-yes]')?.textContent === 'Benutzer löschen',
+      JSON.stringify([blFenster?.querySelector('[data-no]')?.textContent, blFenster?.querySelector('[data-yes]')?.textContent]));
+    blFenster.querySelector('[data-no]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
+    pruefe('„Abbrechen" bricht ab: das Fenster liefert null und ist fort',
+      (await blP) === null && !blW.document.getElementById('benutzer-loeschen'), 'es hat weitergemacht');
+    /* UND DIE HAEKCHEN KOMMEN ALS ANTWORT, wenn jemand loescht: das erste
+       gesetzt, das zweite nicht -- genau so, wie es der Aufrufer an die Route
+       weitergibt. */
+    const blP2 = blW.benutzerLoeschenFenster('bert', 2, blStand);
+    await new Promise(r => setTimeout(r, 20));
+    const blF2 = blW.document.getElementById('benutzer-loeschen');
+    blF2.querySelector('#bl-eintraege').checked = true;
+    blF2.querySelector('[data-yes]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
+    pruefe('„Benutzer löschen" liefert die Stellung der beiden Haekchen',
+      gleich(await blP2, { eintraege: true, beitraege: false }), JSON.stringify(await blP2));
+    /* DAS FREMDE PASSWORT KOMMT AUS EINEM PASSWORTFELD und nicht aus prompt():
+       dort stand es im Klartext auf dem Bildschirm. */
+    const npP = blW.neuesPasswortFenster('Passwort für „bert" setzen', 'Mindestens 10 Zeichen.');
+    await new Promise(r => setTimeout(r, 20));
+    const npFeld = blW.document.getElementById('np-pass');
+    pruefe('Das Fenster fuer ein fremdes Passwort hat ein Passwortfeld',
+      npFeld?.type === 'password' && npFeld?.autocomplete === 'new-password', JSON.stringify(npFeld?.type));
+    npFeld.value = 'sehr-geheim-123';
+    npFeld.closest('.modal').querySelector('[data-yes]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
+    pruefe('Und liefert, was eingegeben wurde', (await npP) === 'sehr-geheim-123');
+    blW.close();
+  }
+
+  /* ================= Server-Befehle nur im Kasten — 0.22.0 =================
+     Vier Stellen trugen `docker compose exec …` im Fliesstext, eine davon sah
+     jeder Benutzer (die Wiederherstellungscodes; Stolperstein 315). Jetzt
+     stehen sie im Kasten „Auf dem Server", den nur der Eigentuemer sieht --
+     GEZAEHLT, NICHT GESUCHT: jeder Befehl steht auf seiner eigenen Zeile
+     `serverKasten(`, und die Zahl steht hier ausdruecklich. */
+  gruppe('Server-Befehle nur im Kasten — 0.22.0');
+  {
+    const appRoh = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const appZeilen = appRoh.split('\n');
+    const befehle = bildschirmtexteVon(appRoh).filter(t => /docker compose|zugang\.js/.test(t.text));
+    const imKasten = befehle.filter(t => /serverKasten\(/.test(appZeilen[t.zeile - 1] || ''));
+    pruefe('Jeder Server-Befehl in app.js steht auf einer Zeile serverKasten(',
+      befehle.length > 0 && imKasten.length === befehle.length,
+      befehle.filter(t => !/serverKasten\(/.test(appZeilen[t.zeile - 1] || '')).map(t => `Z. ${t.zeile}: ${t.text.trim()}`).join(' · '));
+    pruefe('Und es sind genau vier: Passwort (Mein Konto), zweiter Faktor, Passwort (Benutzer), Neustart',
+      befehle.length === 4, `${befehle.length}: ` + befehle.map(t => t.text.trim()).join(' · '));
+    pruefe('Der Kasten selbst prueft die Rolle — nicht jede Karte fuer sich',
+      /function serverKasten\(satz, befehl\) \{\s*\n\s*if \(!EIGENTUEMER\) return '';/.test(appRoh),
+      (appRoh.match(/function serverKasten[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+    /* UND AM BILDSCHIRM: der Benutzer und der Admin sehen keinen einzigen
+       Kasten, die Eigentuemerin drei -- Mein Konto, Benutzer, Kennzahlen. */
+    const skRollen = async (rollen) => {
+      const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen } });
+      await new Promise(r => setTimeout(r, 60));
+      await d.w.renderSystem();
+      await new Promise(r => setTimeout(r, 40));
+      const dg = await sysDurchgang(d);
+      let kaesten = 0, vollstaendig = true;
+      for (const adresse of dg.reiter) {
+        d.w.history.replaceState(null, '', adresse);
+        await d.w.renderSystem();
+        await new Promise(r => setTimeout(r, 30));
+        for (const k of d.w.document.querySelectorAll('.server-kasten')) {
+          kaesten++;
+          if (k.querySelector('.server-kopf')?.textContent.trim() !== 'Auf dem Server' ||
+              !/docker compose/.test(k.querySelector('.server-zeile code')?.textContent || '') ||
+              !k.querySelector('.server-zeile button[data-kopie]')) vollstaendig = false;
+        }
+      }
+      d.w.close();
+      return { kaesten, vollstaendig, text: dg.text };
+    };
+    const skUser = await skRollen({ istAdmin: false, istEigentuemer: false });
+    const skAdm = await skRollen({ istAdmin: true, istEigentuemer: false });
+    const skEig = await skRollen({ istAdmin: true, istEigentuemer: true });
+    pruefe('Ein Benutzer sieht keinen Kasten „Auf dem Server" und keinen Befehl',
+      skUser.kaesten === 0 && !/docker compose|zugang\.js/.test(skUser.text), String(skUser.kaesten));
+    pruefe('Ein Admin ebenso wenig',
+      skAdm.kaesten === 0 && !/docker compose|zugang\.js/.test(skAdm.text), String(skAdm.kaesten));
+    pruefe('Die Eigentuemerin sieht drei: Mein Konto, Benutzer und Kennzahlen',
+      skEig.kaesten === 3 && /Auf dem Server/.test(skEig.text), String(skEig.kaesten));
+    pruefe('Und jeder Kasten traegt Ueberschrift, Befehl und Kopierknopf',
+      skEig.vollstaendig && /\.server-zeile code \{/.test(css123) && /\.server-kopf \{/.test(css123),
+      skEig.vollstaendig ? 'Stilregel fehlt' : 'ein Kasten ist unvollstaendig');
+  }
+
+  /* ================= Die Sternzeile — 0.22.0 =================
+     Der Ruecksetzknopf wandert aus der Sternreihe ganz nach rechts, hinter die
+     Durchschnittszahl (E15), und die Meldung traegt „Rückgängig" (E16). Die
+     drei Auflagen aus dem Konzept 6.5a, jede geprueft. */
+  gruppe('Die Sternzeile — 0.22.0');
+  {
+    const stDom = baueDom(JSDOM, { hash: '#/item/1',
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const stDoc = stDom.w.document;
+    const stZeilen = [...stDoc.querySelectorAll('#ratings .rrow')];
+    const stNull = baueDom(JSDOM, { hash: '#/item/1', eigeneWerte: [3, 3, 0],
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const stNullZeilen = [...stNull.w.document.querySelectorAll('#ratings .rrow')];
+    /* (1) EIGENE RASTERSPALTE: jede Zeile hat vier Zellen, die letzte ist die
+       des Knopfs -- auch in der Zeile OHNE eigenen Stern. Steckte er in der
+       Zelle der Zahl, wanderte die Zahl. */
+    pruefe('Jede Sternzeile hat vier Zellen: Name, Sterne, Durchschnitt, Ruecksetzer',
+      stZeilen.length === 3 && stZeilen.every(z => z.children.length === 4 &&
+        z.children[0].classList.contains('rname') && z.children[1].classList.contains('racts') &&
+        z.children[2].classList.contains('ravg') && z.children[3].classList.contains('rzz')),
+      JSON.stringify(stZeilen.map(z => [...z.children].map(c => c.className))));
+    pruefe('Das Raster hat vier Spalten',
+      /\.rlist \{ display: grid; grid-template-columns: 1fr auto auto auto; \}/.test(css123),
+      regel123('.rlist') || '(keine Regel)');
+    pruefe('Der Knopf steht in seiner Zelle, nicht in der Sternreihe',
+      stZeilen.every(z => !!z.querySelector('.rzz > .rzurueck') && !z.querySelector('.stars .rzurueck') &&
+        !z.querySelector('.stars .sdel') && z.querySelectorAll('.stars > *').length === 5),
+      JSON.stringify(stZeilen.map(z => z.querySelectorAll('.stars > *').length)));
+    /* DIE STERNE ALLER ZEILEN BEGINNEN AN DERSELBEN STELLE, auch wenn eine
+       Zeile keinen Knopf traegt: die Zelle bleibt, der Knopf wird unsichtbar
+       ueber `visibility`, nicht ueber `display`. */
+    pruefe('Ohne eigenen Stern ist der Knopf unsichtbar, seine Zelle bleibt',
+      stNullZeilen[2]?.children.length === 4 &&
+      stNullZeilen[2]?.querySelector('.rzurueck')?.classList.contains('leer') === true &&
+      stNullZeilen[2]?.querySelector('.rzurueck')?.hidden === false &&
+      stNullZeilen.slice(0, 2).every(z => !z.querySelector('.rzurueck').classList.contains('leer')),
+      JSON.stringify(stNullZeilen.map(z => z.querySelector('.rzurueck')?.className)));
+    pruefe('Und die Regel nimmt ihm die Sichtbarkeit, nicht seinen Platz',
+      /visibility: hidden/.test(regel123('.rzurueck.leer')) && !/display: none/.test(regel123('.rzurueck.leer')),
+      regel123('.rzurueck.leer') || '(keine Regel)');
+    /* (3) SICHTBAR ABGESETZT: ein runder Knopf mit Hoverflaeche, das Zeichen ↺,
+       und der Hinweistext behaelt das Wort „Meine". */
+    pruefe('Er ist ein runder Knopf mit 26 Bildpunkten und roter Hoverflaeche',
+      /\.rzurueck \{[^}]*width: 26px; height: 26px; border-radius: 50%/.test(css123) &&
+      /\.rzurueck:hover \{ color: var\(--red\); background: var\(--red-dim\); \}/.test(css123),
+      regel123('.rzurueck') || '(keine Regel)');
+    pruefe('Er traegt das Zeichen „zurücksetzen" und nicht ein ×',
+      stZeilen.every(z => !!z.querySelector('.rzurueck svg.zg') && !/×/.test(z.querySelector('.rzurueck').textContent)),
+      stZeilen[0]?.querySelector('.rzurueck')?.innerHTML.slice(0, 80));
+    pruefe('Und sein Hinweistext sagt „Meine Sterne entfernen"',
+      stZeilen.every(z => z.querySelector('.rzurueck').title === 'Meine Sterne entfernen'),
+      JSON.stringify(stZeilen.map(z => z.querySelector('.rzurueck').title)));
+    /* (2) BEI EINEM EINZIGEN ZUGANG GIBT ES DIE ZAHLENSPALTE NICHT -- dort
+       steht der Knopf als dritte Zelle hinter den Sternen und braucht seinen
+       Abstand aus dem Raster: mindestens 12 px. */
+    const stEins = baueDom(JSDOM, { hash: '#/item/1',
+      einstellungen: { filters: null, benutzerZahl: 1, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const stEinsZeilen = [...stEins.w.document.querySelectorAll('#ratings .rrow')];
+    pruefe('Bei einem einzigen Zugang hat die Zeile drei Zellen, die letzte ist der Knopf',
+      stEinsZeilen.length === 3 && stEins.w.document.getElementById('ratings')?.classList.contains('ohne-schnitt') &&
+      stEinsZeilen.every(z => z.children.length === 3 && z.children[2].classList.contains('rzz')),
+      JSON.stringify(stEinsZeilen.map(z => [...z.children].map(c => c.className))));
+    pruefe('Und das Raster rechnet dort mit drei Spalten',
+      /\.rlist\.ohne-schnitt \{ grid-template-columns: 1fr auto auto; \}/.test(css123),
+      regel123('.rlist.ohne-schnitt') || '(keine Regel)');
+    const stAbstand = Number((regel123('.rrow .rzz').match(/padding-left: (\d+)px/) || [])[1]);
+    pruefe('Die Zelle des Knopfs haelt mindestens 12 Bildpunkte Abstand nach links',
+      stAbstand >= 12, regel123('.rrow .rzz') || '(keine Regel)');
+    pruefe('Auf Beruehrungsgeraeten ist die Trefflaeche mindestens 32 Bildpunkte',
+      /\.rzurueck \{ width: 32px; height: 32px; \}/.test(css123),
+      (css123.match(/\.rzurueck \{[^}]*\}/g) || []).join(' | '));
+    /* DER KLICK: PUT MIT 0 -- und die Meldung traegt „Rückgängig", und der
+       Knopf darin schreibt den ALTEN WERT zurueck: derselbe Ruf, derselbe
+       Rumpf, nur mit 3 statt 0. Geprueft am gesendeten Rumpf, nicht an der
+       Anzeige. */
+    stDom.gesendet.length = 0;
+    stZeilen[0].querySelector('.rzurueck').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    const stRufe = stDom.gesendet.filter(g => /\/ratings/.test(g.url));
+    pruefe('Ein Klick auf den Knopf schickt PUT mit value 0 — und nichts anderes',
+      stRufe.length === 1 && stRufe[0].methode === 'PUT' && stRufe[0].koerper?.value === 0 &&
+      stRufe[0].koerper?.criterionId === 7 && !stDom.gesendet.some(g => g.methode === 'DELETE'),
+      JSON.stringify(stRufe));
+    const stToast = stDoc.querySelector('.toast');
+    pruefe('Die Meldung sagt „Sterne bei „Zuerst" entfernt" und traegt den Knopf „Rückgängig"',
+      /^Sterne bei „Zuerst" entfernt/.test(stToast?.textContent || '') &&
+      stToast?.querySelector('.toast-knopf')?.textContent === 'Rückgängig' &&
+      stToast?.classList.contains('mit-knopf'),
+      JSON.stringify(stToast?.textContent));
+    stDom.gesendet.length = 0;
+    stToast.querySelector('.toast-knopf').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    const stZurueck = stDom.gesendet.filter(g => /\/ratings/.test(g.url));
+    pruefe('„Rückgängig" schreibt den alten Wert zurueck: derselbe PUT mit value 3',
+      stZurueck.length === 1 && stZurueck[0].methode === 'PUT' && stZurueck[0].koerper?.value === 3 &&
+      stZurueck[0].koerper?.criterionId === 7,
+      JSON.stringify(stZurueck));
+    pruefe('Und die Meldung ist danach fort', !stDoc.querySelector('.toast'), '');
+    /* DIE MELDUNG MIT KNOPF STEHT LAENGER: sechs Sekunden statt 2,6. */
+    pruefe('Eine Meldung mit Knopf steht sechs Sekunden',
+      /const dauer = aktion \? 6000 : 2600;/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
+      'die Dauer steht nicht so im Quelltext');
+    /* DIE TESTTAGE UND JEDE LESESTELLE BLEIBEN OHNE KNOPF. */
+    const stTest = [...stDoc.querySelectorAll('#tstars .stars, .ttag .stars, .tdrow .stars')];
+    pruefe('Eine Sternreihe ohne Ruecksetzer traegt keinen Knopf',
+      stTest.length > 0 && stTest.every(t => !t.querySelector('.rzurueck') && !t.parentElement.querySelector('.rzurueck')),
+      `${stTest.length} Reihen`);
+    stDom.w.close(); stNull.w.close(); stEins.w.close();
+  }
+
+  /* ================= Der Aufklapper „Weitere Filter" — 0.22.0 =================
+     Hinter ihm wandert allein die Tagzeile (E8). Zwei Regeln, keine
+     verhandelbar: greift ein Tagfilter, steht der Kasten beim Aufbau OFFEN;
+     und filterZahl() zaehlt ihn weiter mit. */
+  gruppe('Der Aufklapper „Weitere Filter" — 0.22.0');
+  {
+    const wfTags = [{ id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
+                    { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 }];
+    const wfFilter = (tagIds) => ({ categoryIds: [], tagIds, tagMode: 'and', tested: 'all',
+                                    abgelehnt: 'all', favorit: false, sort: 'title_asc' });
+    const wfOhne = baueDom(JSDOM, { tags: wfTags, einstellungen: { filters: wfFilter([]) } });
+    await new Promise(r => setTimeout(r, 80));
+    const wfBox = wfOhne.w.document.getElementById('f-weitere');
+    pruefe('Der Aufklapper steht in der Leiste, mit der Beschriftung „Weitere Filter"',
+      wfBox?.tagName === 'DETAILS' && wfBox?.querySelector('summary')?.textContent === 'Weitere Filter',
+      JSON.stringify(wfBox?.querySelector('summary')?.textContent));
+    pruefe('Die Tagzeile steht in ihm — und nur sie',
+      [...wfOhne.w.document.querySelectorAll('#filters .frow')]
+        .filter(z => z.closest('#f-weitere')).map(z => z.querySelector('.eyebrow')?.textContent).join() === 'Tags',
+      [...wfOhne.w.document.querySelectorAll('#filters .frow')]
+        .map(z => (z.closest('#f-weitere') ? 'innen:' : 'aussen:') + z.querySelector('.eyebrow')?.textContent).join(' '));
+    pruefe('Status, Kategorie und Sortieren bleiben sichtbar davor und dahinter',
+      [...wfOhne.w.document.querySelectorAll('#filters .frow')]
+        .filter(z => !z.closest('#f-weitere')).map(z => z.querySelector('.eyebrow')?.textContent).join() === 'Status,Kategorie,Sortieren',
+      [...wfOhne.w.document.querySelectorAll('#filters .frow')].map(z => z.querySelector('.eyebrow')?.textContent).join());
+    pruefe('Ohne Tagfilter steht er beim Aufbau geschlossen',
+      wfBox?.open === false, String(wfBox?.open));
+    pruefe('Die Ablehnung bleibt in der Statuszeile',
+      !!wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.querySelector('.eyebrow') &&
+      wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Status' &&
+      !wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('#f-weitere'),
+      wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.textContent.slice(0, 60));
+    wfOhne.w.close();
+    /* GREIFT EIN TAGFILTER, STEHT ER OFFEN -- ein Filter, der die Liste kuerzt
+       und dabei unsichtbar ist, ist ein Fehler und kein Aufraeumen. */
+    const wfMit = baueDom(JSDOM, { tags: wfTags, einstellungen: { filters: wfFilter([41]) } });
+    await new Promise(r => setTimeout(r, 80));
+    const wfBox2 = wfMit.w.document.getElementById('f-weitere');
+    pruefe('Greift ein Tagfilter, steht er beim Aufbau offen', wfBox2?.open === true, String(wfBox2?.open));
+    pruefe('Und filterZahl() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)',
+      wfMit.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)' &&
+      wfMit.w.document.querySelector('#filter-auf .fz')?.textContent === '· 1 aktiv',
+      JSON.stringify([wfMit.w.document.getElementById('filter-zurueck')?.textContent,
+                      wfMit.w.document.querySelector('#filter-auf .fz')?.textContent]));
+    pruefe('Der Rueckweg in der Tagzeile heisst „Tags zurücksetzen"',
+      [...wfMit.w.document.querySelectorAll('#f-weitere .link-btn')].some(b => b.textContent === 'Tags zurücksetzen'),
+      [...wfMit.w.document.querySelectorAll('#f-weitere .link-btn')].map(b => b.textContent).join(' | '));
+    wfMit.w.close();
+    pruefe('Die Zusammenfassung ist im Stilblatt ohne Browserpfeil und mit eigenem Winkel gesetzt',
+      /\.weitere-filter > summary \{[^}]*list-style: none/.test(css123) &&
+      /\.weitere-filter\[open\] > summary::before \{ transform: rotate\(45deg\); \}/.test(css123),
+      regel123('.weitere-filter > summary') || '(keine Regel)');
+  }
+
+  /* ================= Die Rollenweichen — 0.22.0 =================
+     Was hinter einer Rolle liegt, wird ihr nicht erklaert (Regel S5) -- je
+     Rolle geprueft, nicht nur als Admin: der Loeschknopf am Eintrag (E10),
+     der Schluesselkasten (E13), die Karten „Kategorien" und „Tags". */
+  gruppe('Die Rollenweichen — 0.22.0');
+  {
+    const rwEintrag = async (rollen, meins) => {
+      const d = baueDom(JSDOM, { hash: '#/item/1', eintragMeins: meins,
+        einstellungen: { filters: null, benutzerZahl: 3, ...rollen } });
+      await new Promise(r => setTimeout(r, 80));
+      const da = !!d.w.document.getElementById('del');
+      const danger = d.w.document.querySelectorAll('.danger-row').length;
+      d.w.close();
+      return { da, danger };
+    };
+    const rwFremd = await rwEintrag({ istAdmin: false, istEigentuemer: false }, false);
+    const rwMeins = await rwEintrag({ istAdmin: false, istEigentuemer: false }, true);
+    const rwAdmin = await rwEintrag({ istAdmin: true, istEigentuemer: false }, false);
+    pruefe('Ein Benutzer sieht an einem fremden Eintrag keinen Loeschknopf (E10)',
+      !rwFremd.da && rwFremd.danger === 0, JSON.stringify(rwFremd));
+    pruefe('An seinem eigenen Eintrag steht er da', rwMeins.da, JSON.stringify(rwMeins));
+    pruefe('Und der Admin sieht ihn an jedem Eintrag', rwAdmin.da, JSON.stringify(rwAdmin));
+    /* DER SCHLUESSELKASTEN (E13): der Klartext gehoert dem Eigentuemer; der
+       Admin liest einen Satz. Der Mock haelt den Schluessel neben der
+       Datenbank (keyFromEnv: false) -- nur dann steht der Kasten ueberhaupt da. */
+    const rwSystem = async (rollen, abschnitt) => {
+      const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen } });
+      await new Promise(r => setTimeout(r, 60));
+      await sysAbschnitt(d.w, abschnitt);
+      await new Promise(r => setTimeout(r, 40));
+      return d;
+    };
+    const rwEigK = await rwSystem({ istAdmin: true, istEigentuemer: true }, 'datenbank');
+    const rwAdmK = await rwSystem({ istAdmin: true, istEigentuemer: false }, 'datenbank');
+    pruefe('Die Eigentuemerin sieht den Schluessel im Klartext und den Kasten „Auf dem Server"',
+      !!rwEigK.w.document.getElementById('keyline') &&
+      /ENCRYPTION_KEY=abab/.test(rwEigK.w.document.getElementById('keyline')?.textContent || '') &&
+      !!rwEigK.w.document.querySelector('.server-kasten') &&
+      /docker compose up -d/.test(rwEigK.w.document.querySelector('.server-kasten')?.textContent || ''),
+      rwEigK.w.document.querySelector('.server-kasten')?.textContent.slice(0, 120) || '(kein Kasten)');
+    pruefe('Der Admin sieht statt des Schluessels einen Satz an den Eigentuemer',
+      !rwAdmK.w.document.getElementById('keyline') &&
+      !/ENCRYPTION_KEY=abab/.test(rwAdmK.w.document.getElementById('app')?.textContent || '') &&
+      /Der Eigentümer sollte ihn in die Server-Einstellung/.test(rwAdmK.w.document.getElementById('app')?.textContent || '') &&
+      !rwAdmK.w.document.querySelector('.server-kasten'),
+      (rwAdmK.w.document.querySelector('.warn-box')?.textContent || '').slice(0, 160));
+    rwEigK.w.close(); rwAdmK.w.close();
+    /* KATEGORIEN UND TAGS: der Benutzer sieht die Liste und einen Satz, der
+       Admin die Werkzeuge und ihre Erklaerung. */
+    const rwUserB = await rwSystem({ istAdmin: false, istEigentuemer: false }, 'bestand');
+    const rwAdmB = await rwSystem({ istAdmin: true, istEigentuemer: false }, 'bestand');
+    const karteText = (d, name) => [...d.w.document.querySelectorAll('.sys-card')]
+      .find(k => k.querySelector('h3')?.textContent.trim() === name);
+    const kUserKat = karteText(rwUserB, 'Kategorien'), kUserTag = karteText(rwUserB, 'Tags');
+    const kAdmKat = karteText(rwAdmB, 'Kategorien'), kAdmTag = karteText(rwAdmB, 'Tags');
+    pruefe('Der Benutzer liest an „Kategorien" einen Satz: „Alle Kategorien. Ändern kann sie der Admin."',
+      kUserKat?.querySelector('.desc')?.textContent.trim() === 'Alle Kategorien. Ändern kann sie der Admin.' &&
+      !kUserKat?.querySelector('#katfrei') && !/Umbenennen|Häkchen/.test(kUserKat?.textContent || ''),
+      JSON.stringify(kUserKat?.querySelector('.desc')?.textContent.trim()));
+    pruefe('Und an „Tags" ebenso',
+      kUserTag?.querySelector('.desc')?.textContent.trim() === 'Alle Tags. Ändern kann sie der Admin.' &&
+      !kUserTag?.querySelector('#tagfrei') && !/Umbenennen|Häkchen/.test(kUserTag?.textContent || ''),
+      JSON.stringify(kUserTag?.querySelector('.desc')?.textContent.trim()));
+    pruefe('Der Admin sieht die Werkzeuge: „Umbenennen oder löschen" und den Schalter',
+      /Umbenennen oder löschen/.test(kAdmKat?.querySelector('.desc')?.textContent || '') && !!kAdmKat?.querySelector('#katfrei') &&
+      /Umbenennen oder löschen/.test(kAdmTag?.querySelector('.desc')?.textContent || '') && !!kAdmTag?.querySelector('#tagfrei'),
+      JSON.stringify([kAdmKat?.querySelector('.desc')?.textContent.trim(), !!kAdmKat?.querySelector('#katfrei')]));
+    /* UND DIE LISTE STEHT BEIM BENUTZER TROTZDEM DA: er sieht, was es gibt. */
+    pruefe('Die Liste der Kategorien steht auch beim Benutzer',
+      !!kUserKat?.querySelector('#mcats') && !!kUserTag?.querySelector('#mtags'), '');
+    /* DER KOPF DER EINSTELLUNGEN SAGT JE ROLLE, WAS DRIN IST. */
+    pruefe('Die Seite heisst „Einstellungen", und ihr Satz nennt die Installation nur dem Admin',
+      rwUserB.w.document.querySelector('.page-title')?.textContent === 'Einstellungen' &&
+      rwAdmB.w.document.querySelector('.page-title')?.textContent === 'Einstellungen' &&
+      /dein Konto und den Bestand\./.test(rwUserB.w.document.querySelector('.page-title + .hint')?.textContent || '') &&
+      /den Bestand und die Installation\./.test(rwAdmB.w.document.querySelector('.page-title + .hint')?.textContent || ''),
+      JSON.stringify([rwUserB.w.document.querySelector('.page-title + .hint')?.textContent,
+                      rwAdmB.w.document.querySelector('.page-title + .hint')?.textContent]));
+    rwUserB.w.close(); rwAdmB.w.close();
   }
 }
 
