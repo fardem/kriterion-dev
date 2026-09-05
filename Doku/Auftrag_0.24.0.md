@@ -4,8 +4,8 @@
 Deutsch, und jedes deutsche Wort steht fest im Quelltext — in `app.js`, in den
 Servermeldungen, in den Mails. **In dieser Runde wird jeder dieser Texte aus
 dem Code herausgenommen und in EINE Sprachdatei gelegt** — `de.json` unter
-`public/sprachen/`, oder `de.lang`, wenn der Betreiber es so entscheidet
-(Frage F1). In der Datei stehen **alle Texte der Oberfläche**, die vorkommen,
+`public/sprachen/` (F1, vom Betreiber am 5. September 2026 entschieden). In
+der Datei stehen **alle Texte der Oberfläche**, die vorkommen,
 je Sache ein Schlüssel; der Code kennt nur noch die Schlüssel. **Die
 Anwendung sieht danach genauso aus wie vorher** — das ist die Abnahme. *Was
 der Admin und die Benutzer eingetragen haben — Vokabular, Tags, Kriterien,
@@ -44,7 +44,8 @@ die Abnahme hängt.*
 
 ## Zuerst: acht Fragen, die vor der ersten Zeile geklärt werden
 
-**Kein Bauabschnitt beginnt, bevor die Spalte „Antwort" gefüllt ist.** Die
+**Kein Bauabschnitt beginnt, bevor die Spalte „Antwort" gefüllt ist.** *F1
+ist beantwortet; F2 bis F8 stehen offen.* Die
 Fragen werden **beim Start der Runde im Gespräch** gestellt, beantwortet und
 hier eingetragen — nicht unterwegs (Abschnitt 12 des Projektstands: *vor dem
 Bauen besprechen, Entscheidungen ausdrücklich bestätigen lassen*). Die
@@ -53,7 +54,7 @@ nichts, solange die Antwort fehlt.**
 
 | # | Frage | Vorschlag | Antwort |
 |---|---|---|---|
-| **F1** | **Wie heißt die Sprachdatei, und in welcher Form?** Der Betreiber hat `de.lang` genannt; das Konzept schlägt `de.json` vor (E1) | **`de.json`** — Node und Browser lesen JSON ohne eine Zeile Code; Mehrzahlformen sind Objekte; jeder Editor kennt die Form. *`de.lang` ginge auch:* eine Zeile `schluessel=Text` je Text, ein eigener Leser von rund dreißig Zeilen, die Mehrzahl als zwei Schlüssel (`x.eins`, `x.andere`), und kein Editor hebt sie hervor. **Die Kennung `de` bleibt in beiden Fällen** (ISO 639-1, nicht `deu` oder `ger`) | *offen* |
+| **F1** | **Wie heißt die Sprachdatei, und in welcher Form?** Der Betreiber hat `de.lang` genannt; das Konzept schlägt `de.json` vor (E1) | **`de.json`** — Node und Browser lesen JSON ohne eine Zeile Code; Mehrzahlformen sind Objekte; jeder Editor kennt die Form. *`de.lang` ginge auch:* eine Zeile `schluessel=Text` je Text, ein eigener Leser von rund dreißig Zeilen, die Mehrzahl als zwei Schlüssel (`x.eins`, `x.andere`), und kein Editor hebt sie hervor. **Die Kennung `de` bleibt in beiden Fällen** (ISO 639-1, nicht `deu` oder `ger`) | **`de.json`** — entschieden am 5. September 2026 |
 | **F2** | **Wo liegt sie?** | **`public/sprachen/`** — beide Seiten lesen dieselbe Datei, der Fingerprint deckt sie von selbst ab, keine neue Route (Konzept 3.3) | *offen* |
 | **F3** | **Was wird aus dem Vokabular — den vierzehn Wörtern, die der Admin umbenennt?** Der Betreiber: *es muss in der Sprache bleiben, die der Admin eingestellt hat, auch wenn ein Benutzer die Oberfläche umschaltet* | **Das Vokabular folgt der Installation, nicht dem Benutzer.** Es gibt **einen** Satz von vierzehn Wörtern je Installation; seine Vorgaben kommen aus der Sprachdatei der **Installationssprache** (in dieser Runde `de.json`), die Überschreibungen des Admins bleiben, wie sie sind. *In einer englischen Oberfläche (Stufe 2) steht dann weiter das Wort, das der Admin gewählt hat — wie der Titel der Installation: es sind die Namen der Sache, keine Texte der Oberfläche.* Das Konzept hatte in E9 ein Vokabular je Sprache vorgeschlagen; **der Betreiber hat es in Frage gestellt, und dieser Auftrag folgt ihm** | *offen* |
 | **F4** | **Tags, Kriterien, Kategorien, der Titel, die Einträge, Kommentare — bleiben so?** | **Ja, unverändert.** Inhalt, eingetragen von Menschen, in ihrer Sprache; kein Umzug, keine Übersetzung, in keiner Stufe (E11). *Bestätigen, damit es nie wieder gefragt wird* | *offen* |
