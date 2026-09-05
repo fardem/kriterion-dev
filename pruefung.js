@@ -21691,15 +21691,17 @@ const freigabeHaupt = (zweck, ziel = null) =>
      613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
      Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
      behauptet. */
-  /* 648 SEIT 0.22.1: dreizehn neue (642 bis 654) -- neun fuer die fuenf Gesten
+  /* 649 SEIT 0.22.1: vierzehn neue (642 bis 655) -- zehn fuer die fuenf Gesten
      am Bildausschnitt, zwei fuer die Kopfzahl, zwei fuer den Bewertungskasten
-     vor dem Test. EINER IST MITGEGANGEN (Stolperstein 201): 330, dessen
-     Suchtext auf den Satz im Erklaerkasten zeigt -- der traegt seit dieser
-     Runde zwei Woerter mehr.
+     vor dem Test. Der letzte, 655, ist AUS DER GEGENPROBE ENTSTANDEN: sie hat
+     gezeigt, dass die Rastung ueber den Deckel springen kann.
+     ZWEI SIND MITGEGANGEN (Stolperstein 201): 330, dessen Suchtext auf den
+     Satz im Erklaerkasten zeigt, und 646, dessen Zeile sich beim Beheben
+     genau jenes Fundes verschoben hat.
      DAVOR 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel
      des Pruefstands und eines, das das Milchglas wieder einsetzt; einundvierzig
      vorhandene sind damals mitgegangen. */
-  pruefe('Es sind genau 648 Rueckbauten', gpListe.length === 648, `${gpListe.length}`);
+  pruefe('Es sind genau 649 Rueckbauten', gpListe.length === 649, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -29015,9 +29017,16 @@ async function pruefeOberflaeche() {
     pruefe('Ein Zug an der Ecke aendert die Weite',
       !!eckeRumpf && nachEcke.kante < vorEcke.kante,
       `${vorEcke.kante} → ${nachEcke.kante}`);
+    /* DIE SCHRANKE IST ENG, UND DAS IST EIN FUND AUS DER GEGENPROBE: mit einem
+       halben Bildpunkt Toleranz blieb Rueckbau 646 STUMM — er legt den Rahmen
+       nach der ungerasteten Kante, und der Unterschied betrug in dieser Lage
+       0,148 px. „Bleibt liegen" heisst bleibt liegen: der richtige Weg trifft
+       den Anker EXAKT (l = rechts - eng, also l + eng = rechts), und was hier
+       stehen darf, ist nur das Rauschen der Gleitkommarechnung. */
+    const GENAU = 0.01;
     pruefe('Und die gegenueberliegende Ecke bleibt liegen',
-      Math.abs(nachEcke.links - vorEcke.links) < 0.5 &&
-      Math.abs(nachEcke.oben - vorEcke.oben) < 0.5,
+      Math.abs(nachEcke.links - vorEcke.links) < GENAU &&
+      Math.abs(nachEcke.oben - vorEcke.oben) < GENAU,
       `${vorEcke.links}/${vorEcke.oben} → ${nachEcke.links}/${nachEcke.oben}`);
 
     /* UND DIE ANDERE DIAGONALE -- die Zeile darueber allein belegt zu wenig,
@@ -29041,8 +29050,8 @@ async function pruefeOberflaeche() {
       !!eckeZweiRumpf && nachEckeZwei.kante > vorEckeZwei.kante,
       `${vorEckeZwei.kante} → ${nachEckeZwei.kante}`);
     pruefe('Und die rechte untere Ecke bleibt dabei liegen',
-      Math.abs((nachEckeZwei.links + nachEckeZwei.kante) - festRechts) < 0.5 &&
-      Math.abs((nachEckeZwei.oben + nachEckeZwei.kante) - festUnten) < 0.5,
+      Math.abs((nachEckeZwei.links + nachEckeZwei.kante) - festRechts) < GENAU &&
+      Math.abs((nachEckeZwei.oben + nachEckeZwei.kante) - festUnten) < GENAU,
       `${festRechts}/${festUnten} → ` +
       `${nachEckeZwei.links + nachEckeZwei.kante}/${nachEckeZwei.oben + nachEckeZwei.kante}`);
 
@@ -29066,10 +29075,10 @@ async function pruefeOberflaeche() {
       !!kantRumpf && nachKante.kante > vorKante.kante,
       `${vorKante.kante} → ${nachKante.kante}`);
     pruefe('Die gegenueberliegende Kante bleibt dabei liegen',
-      Math.abs((nachKante.links + nachKante.kante) - rechtsVor) < 0.5,
+      Math.abs((nachKante.links + nachKante.kante) - rechtsVor) < GENAU,
       `${rechtsVor} → ${nachKante.links + nachKante.kante}`);
     pruefe('Und der Mittelpunkt wandert auf ihr nicht',
-      Math.abs((nachKante.oben + nachKante.kante / 2) - mitteYvor) < 0.5,
+      Math.abs((nachKante.oben + nachKante.kante / 2) - mitteYvor) < GENAU,
       `${mitteYvor} → ${nachKante.oben + nachKante.kante / 2}`);
 
     /* --- NICHTS VERLAESST DAS BILD. Ein Zug weit ueber den Rand hinaus. */

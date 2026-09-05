@@ -6163,8 +6163,8 @@ const RUECKBAUTEN = [
        halbe Stufe -- genau die Ecke, die stillstehen soll. */
     nr: '646', name: 'Die feste Ecke wandert wieder mit der Rastung',
     datei: 'public/app.js',
-    suche: "      const eng = seite * 100 / zoom;\n      const { l, o } = lage(eng);",
-    ersatz: "      const eng = seite * 100 / zoom;\n      const { l, o } = lage(k);",
+    suche: "      const { l, o } = lage(eng);\n      setzeLage(l, o);",
+    ersatz: "      const { l, o } = lage(k);\n      setzeLage(l, o);",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6242,6 +6242,17 @@ const RUECKBAUTEN = [
     suche: "        b.title = 'Der Durchschnitt über alle Benutzer — nicht nur der eigene. Wie diese Zahl zustande kommt';",
     ersatz: "        b.title = 'Wie diese Zahl zustande kommt';",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
+  },
+  {
+    /* DIE RASTUNG SPRINGT WIEDER UEBER DEN DECKEL -- 0.22.1, und die Regel ist
+       aus der Gegenprobe zu 646 entstanden: rastet die Kante nach oben ueber
+       den Deckel hinaus, passt der Rahmen nicht mehr an seinen Anker, und die
+       Klemme schiebt ihn ins Bild zurueck. */
+    nr: '655', name: 'Die Rastung springt wieder ueber den Deckel',
+    datei: 'public/app.js',
+    suche: "      if (eng > hoch + 1e-9 && zoom < 400) {",
+    ersatz: "      if (false && eng > hoch + 1e-9 && zoom < 400) {",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
