@@ -314,7 +314,7 @@ mehr.
 
 ---
 
-## 0.22.1 — Fingerprint `PLATZHALTER_FP`
+## 0.22.1 — Fingerprint `53aacd7c`
 
 *Gebildet zuletzt, aus einem laufenden Server über `GET /api/stats`, nach der
 letzten Änderung an einer ausgelieferten Datei — die Versionsnummer in

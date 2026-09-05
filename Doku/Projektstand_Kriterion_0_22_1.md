@@ -475,7 +475,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.22.1** — Fingerprint **`PLATZHALTER_FP`**, **5710
+**Gebaut ist 0.22.1** — Fingerprint **`53aacd7c`**, **5710
 Prüfungen**, **648 Rückbauten in der Liste** (Abschnitt 8).
 *0.22.1 räumt drei Befunde aus dem Rundlauf nach 0.22.0 weg. **Der
 Bildausschnitt bedient sich wie ein Ausschnitt:** außerhalb ziehen zieht einen
@@ -1408,7 +1408,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.22.1** | **`PLATZHALTER_FP`** *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5710 |
+| **0.22.1** | **`53aacd7c`** *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5710 |
 | 0.22.0 | `fd292332` *(am 5. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; die drei Befunde daraus sind 0.22.1)* | 5661 |
 | 0.21.1 | `2295870b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5571 |
 | 0.21.0 | `85f4348b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5512 |
