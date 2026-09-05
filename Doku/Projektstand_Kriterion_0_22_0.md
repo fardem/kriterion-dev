@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 58 · Stand 4. September 2026 · gebaut: Version 0.21.1**
+**Kompakte Übergabe · Revision 59 · Stand 4. September 2026 · gebaut: Version 0.22.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -475,24 +475,37 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.21.1** — Fingerprint **`2295870b`**, **5571
+**Gebaut ist 0.22.0** — Fingerprint **`fd292332`**, **5661
+Prüfungen**, **635 Rückbauten in der Liste** (Abschnitt 8).
+*0.22.0 macht die Oberfläche ruhiger, und sie redet Deutsch: kein Milchglas,
+eine Antwort auf jede Berührung, Marken statt grauer Wörter; rund 250
+Textstellen nach einem Wörterbuch mit sechzehn Entscheidungen (Abschnitt 5.6);
+eigene Fenster statt `confirm()` und `prompt()`; der Bildstreifen als Raster
+mit einstellbarer Größe; der Ausschnitt als Rechteck; der Rücksetzknopf der
+Sternzeile in seiner eigenen Spalte, mit „Rückgängig".*
+**MINOR — KEINE DATENBANKSTUFE, KEINE MIGRATION, KEIN BESTANDSLAUF, KEINE NEUE
+ROUTE.** *Austauschformat 13, `F_ROUTEN` 70, einundzwanzig Karten, neun
+Migrationsblöcke, neun ausgelieferte Module — unverändert; **vierzehn
+Vokabelwörter** (zwölf davor) und **neun persönliche Schlüssel** (acht davor).*
+**Nach dem Einspielen im Browser einmal hart neu laden**
+(`public/app.js` und `public/style.css` haben sich geändert).
+**Was ein Betreiber merkt:** *die Wörter sind andere, der Bildstreifen ist
+einstellbar, und die Sternzeile hat ihren Rücksetzknopf woanders.*
+**Am Wirt noch nicht gesehen** (Abschnitt 8).
+
+> **DER RÜCKWEG AUF 0.21.1 IST OFFEN.** *Eine ältere Fassung kennt die zwei
+> neuen Vokabelwörter nicht und zeigt dort ihre eingebauten Wörter; die
+> Einstellung `streifen` liest sie nicht und lässt sie stehen.* **Umbenannte
+> Wörter bleiben in den Einstellungen stehen und kommen beim nächsten
+> Einspielen zurück.** *Eine Sicherung schadet nie, ist hier aber nicht nötig.*
+
+**Davor: 0.21.1** — Fingerprint **`2295870b`**, **5571
 Prüfungen**, **617 Rückbauten in der Liste** (Abschnitt 8).
 *0.21.1 koppelt die Sortierung an den Statusfilter: wer nach Bewertung sortiert,
 bekommt „Getestet" vorgegeben, wer nach Potenzial sortiert „Ungetestet" — als
-**Vorgabe**, die jede Handwahl schlägt.*
-**PATCH — KEINE DATENBANKSTUFE, KEINE MIGRATION, KEIN BESTANDSLAUF, KEINE NEUE
-ROUTE.** *Austauschformat 13, `F_ROUTEN` 70, einundzwanzig Karten, neun
-Migrationsblöcke, neun ausgelieferte Module, zwölf Vokabelwörter — alles
-unverändert.* **Nach dem Einspielen im Browser einmal hart neu laden**
-(`public/app.js` und `public/style.css` haben sich geändert).
-**Die eine Verhaltensänderung, die ein Betreiber merkt:** *wer nach Bewertung
-oder Potenzial sortiert, sieht eine andere Menge als vorher.*
-**Am Wirt noch nicht gesehen** (Abschnitt 8).
-
-> **DER RÜCKWEG AUF 0.21.0 IST OFFEN UND FOLGENLOS.** *Eine ältere Fassung kennt
-> die Kopplung nicht und filtert wie bisher — sie liest dieselbe gespeicherte
-> Stellung, denn geschrieben wird nur die gewählte und nie die abgeleitete.*
-> **Eine Sicherung schadet nie, ist hier aber nicht nötig.**
+**Vorgabe**, die jede Handwahl schlägt.* **PATCH, keine Datenbankstufe.**
+*Am 4. September 2026 von der laufenden Installation gemeldet — **im Feld
+bestätigt**, genau der Sollwert.*
 
 **Davor: 0.21.0** — Fingerprint **`85f4348b`**, **5512
 Prüfungen**, **599 Rückbauten in der Liste** (Abschnitt 8).
@@ -1365,7 +1378,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.21.1** | **`2295870b`** *(gebaut am 4. September 2026; **am Wirt noch nicht gesehen**)* | 5571 |
+| **0.22.0** | **`fd292332`** *(gebaut am 4. September 2026; **am Wirt noch nicht gesehen**)* | 5661 |
+| 0.21.1 | `2295870b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5571 |
 | 0.21.0 | `85f4348b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5512 |
 | **0.20.1** | **`c67a13f9`** *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5403 |
 | 0.20.0 | `12421721` *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**; die drei Befunde daraus sind 0.20.1)* | 5374 |
@@ -2986,7 +3000,17 @@ wirklich von selbst, drei mussten gebaut werden — und an der neuen Route
 andere, was der Browser nicht abspielt. **Die ehrliche Antwort darauf ist der
 Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 
-### Systembereich — einundzwanzig Karten in fünf Abschnitten, und sie hängen an der Rolle
+### Einstellungen — einundzwanzig Karten in fünf Abschnitten, und sie hängen an der Rolle
+
+> **SEIT 0.22.0 HEISST DER BEREICH HINTER DEM ZAHNRAD „EINSTELLUNGEN"** (E1).
+> Der Reiter und die Karte der Verwaltung heißen „Benutzer", die eigene Karte
+> „Mein Konto" (E2); „Bildformate" statt „Bildablage" (E6), „Suchmaschinen"
+> statt „Suchanbieter" (E7), „Bewertung: Kriterien" statt
+> „Bewertungskriterien" (S6). *Die Adressen bleiben — `#/system/…`,
+> `#/system/zugaenge` — ein Lesezeichen bricht nicht.* **Wo dieses Blatt in
+> seinen älteren Abschnitten „Systembereich", „Zugang", „Zugänge" oder
+> „Bildablage" sagt, meint es dieselben Dinge unter ihrem damaligen Namen**
+> (Stolperstein 201); das Wörterbuch der Runde steht in Abschnitt 5.6.
 
 > **SEIT 0.16.0 IN FÜNF ABSCHNITTEN MIT EIGENER ADRESSE.** Die Zuordnung folgt
 > der **Rechteleiter**: was jedem gehört, steht vorn, was nur der Eigentümer
@@ -2994,10 +3018,10 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 >
 > | Abschnitt | Adresse | Karten |
 > |---|---|---|
-> | **Persönlich** | `#/system/persoenlich` | Zugang, Meine Sitzungen, Darstellung |
-> | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, **Potenzial: Kriterien**, Vokabular, Links, Suchanbieter, Papierkorb |
-> | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
-> | **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildablage, Sicherung, **Alte Sicherungen**, Export und Import |
+> | **Persönlich** | `#/system/persoenlich` | Mein Konto, Meine Sitzungen, Darstellung |
+> | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertung: Kriterien, **Potenzial: Kriterien**, Vokabular, Links, Suchmaschinen, Papierkorb |
+> | **Benutzer** | `#/system/zugaenge` | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
+> | **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildformate, Sicherung, **Alte Sicherungen**, Export und Import |
 > | **Installation** | `#/system/installation` | Titel |
 >
 > **SEIT 0.19.1 HEISST DER FÜNFTE ABSCHNITT „INSTALLATION".** Er hieß bis
@@ -3046,14 +3070,14 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 0.19.0 die Fotos nach Format** —,
 Belegung der Datenbank und der Fingerprint), Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
-**gewichten**, Karte **„Zugänge"** (anlegen mit Passwort oder mit Link, sperren,
+**gewichten**, Karte **„Benutzer"** (bis 0.21.1 „Zugänge"; anlegen mit Passwort oder mit Link, sperren,
 Passwort zurücksetzen direkt oder über einen Link, Rolle wechseln, entfernen —
 **gelöschte Zugänge stehen seit 0.13.0 in einem eigenen Fenster** hinter einem
 Knopf, der ihre Zahl nennt, und **der Löschdialog nennt sperren als den
 umkehrbaren Weg**),
-Karte **„Anfragen"** (der Schalter der Selbstanmeldung, die Liste der
+Karte **„Anfragen"** (der Schalter der Registrierung, die Liste der
 bestätigten Anfragen, je Zeile Freischalten und Ablehnen), Karte
-**„Suchanbieter"** (Vorrat, Startanbieter, drei eigene), **Vokabular** aus elf
+**„Suchmaschinen"** (Vorrat, Standard, drei eigene), **Vokabular** aus vierzehn
 Wörtern und die Karte **„Papierkorb"** — Letztere als Liste, an der nur der
 Eigentümer die beiden Knöpfe sieht.
 
@@ -3070,8 +3094,8 @@ Dateien und eines für **Videos**, Import (ersetzen oder zusammenführen), die
 Karte **„Sicherung"**, **seit 0.20.0 die Karte „Alte Sicherungen"** daneben,
 das **„Sicherheitsprotokoll"**, die Karte
 **„Mailversand"** — und **seit 0.19.1 die Bedienung in der eigenen Karte
-„Bildablage"**: der Schalter „PNG-Originale beim Hereinkommen umwandeln" und der
-Knopf „Alle PNG nach WebP umstellen". *Die Zahlen darüber sieht jeder Admin;
+„Bildformate"** (bis 0.21.1 „Bildablage"): der Schalter „PNG-Fotos beim Upload in
+WebP umwandeln" und der Knopf „Alle PNG in WebP umwandeln". *Die Zahlen darüber sieht jeder Admin;
 bedienen darf sie nur der Eigentümer — ein Knopf, der zuverlässig 403 erzeugt,
 sieht aus wie ein Fehler.*
 
@@ -3123,26 +3147,26 @@ in der README. Näheres in Abschnitt 5.4. **Letztere steht ausdrücklich NICHT b
 die Einladungen verschickt — was er bekommt, ist die Auskunft an der Stelle, an
 der sie ihn angeht: neben dem Link steht, ob etwas hinausging und warum nicht.
 
-**Jedem, auch ohne Rolle:** „Zugang" (eigener Name, Passwort, Adresse und
+**Jedem, auch ohne Rolle:** „Mein Konto" (eigener Name, Passwort, Adresse und
 **der zweite Faktor**), **„Meine Sitzungen"**, „Darstellung" (Schriftgröße in
 fünf Stufen, Zeitleiste, Blockanordnung) und „Links" (sichtbare Zeilen, Zahl der
 angezeigten Anbieternamen). Die Karten „Kategorien", „Tags" und
-„Bewertungskriterien" stehen ebenfalls für jeden — aber als **Liste ohne
+„Bewertung: Kriterien" stehen ebenfalls für jeden — aber als **Liste ohne
 Bedienzeichen**: *wer nicht verwalten darf, darf trotzdem nachsehen.* Das
 Gewicht steht dort als Text statt als Eingabefeld.
 
 > **Der zweite Faktor bekommt ausdrücklich KEINE eigene Karte.** Er steht in
-> „Zugang", wo Name, Passwort und Adresse stehen: wer
-> seinen Zugang sichern will, sucht ihn da, wo sein Zugang steht. Der Zustand
+> „Mein Konto", wo Name, Passwort und Adresse stehen: wer
+> sein Konto sichern will, sucht es da, wo sein Konto steht. Der Zustand
 > steht **ohne Klick** da — „an seit …" oder „aus", dazu „noch 6 von 8", und ab
 > zwei übrigen sagt die Karte deutlich, dass es knapp wird. Gefärbt wird **grün
 > für an und grau für aus**; **kein Rot** — ein ausgeschalteter zweiter Faktor
 > ist kein Fehler, sondern die Vorgabe, und eine Warnung, die immer dasteht,
 > liest niemand mehr.
 
-**Drei breite Kacheln** brauchen die Breite: „Zugänge", „Sicherheitsprotokoll"
+**Drei breite Kacheln** brauchen die Breite: „Benutzer", „Sicherheitsprotokoll"
 und „Anfragen". Sie stehen über `grid-auto-flow: dense` im Raster, ohne feste
-Position. *Seit 0.16.0 stehen alle drei im selben Abschnitt „Zugänge" — und das
+Position. *Seit 0.16.0 stehen alle drei im selben Abschnitt „Benutzer" — und das
 ist kein Zufall: breit ist eine Karte genau dann, wenn sie eine Liste mit vielen
 Spalten je Zeile trägt.*
 
@@ -4885,6 +4909,113 @@ Bauform wie `F_ROUTEN`: *eine Menge bliebe grün, wenn jemand zwanzig neue „se
 **DIE VERSIONSGESCHICHTE IST DAMIT NICHT GESTRICHEN.** Sie steht in Abschnitt 9
 dieses Blattes und in den Änderungsprotokollen — *also dort, wo sie jemand
 sucht, und nicht dort, wo sie jemanden aufhält.*
+
+#### Gestaltungsregeln G1 bis G8 — seit 0.22.0 geschriebene Regel
+
+*(Konzept `Doku/Konzept_Oberflaeche_0_22_0.md`, Abschnitt 4.1; gebaut mit 0.22.0.
+Die ersten drei sind alt und standen hier schon, verteilt; ab hier stehen alle
+acht an einem Ort. Ein Prüfstand, der eine davon nicht kennt, kennt sie nicht —
+G3 hat das mit dem Milchglas vorgeführt, Stolperstein 314.)*
+
+- **G1 · Farben behalten ihre Bedeutung, und es kommt keine dazu.** Gold ist
+  Bewertung und Anheftung, Orange ist Art und Bedienung, Grün ist erledigt und
+  getestet, Blau ist die Aufgabe, Rot ist das Zerstören. **Rollen- und
+  Zustandsmarken werden aus Form gebaut, nicht aus Farbe:** Eigentümer gefüllt
+  (`--accent-dim`, Rand `--accent-line`), Admin umrandet, Benutzer neutral; ein
+  Punkt in Grün (aktiv), Grau (gesperrt) oder Orange (eingeladen).
+- **G2 · Bewegung antwortet, sie unterhält nicht.** Alles, was man anfassen
+  kann, gibt beim Überfahren dieselbe leise Antwort: Rand oder Hintergrund eine
+  Stufe heller, **150 ms**, die Kurve `--ease`; Kacheln heben sich um **zwei**
+  Pixel (`translateY(-2px)`), ihr Bild wächst auf 1,02. **Von selbst bewegen
+  sich genau zwei Dinge:** der Punkt der Glocke, wenn Neues erscheint (einmal,
+  300 ms), und der Rand der Karte, die gerade gespeichert wurde (einmal,
+  400 ms, Grün). `prefers-reduced-motion` schaltet weiterhin alles ab.
+- **G3 · Kein Milchglas.** `backdrop-filter` steht in keiner Regel des
+  Stilblatts; die Kopfzeile ist deckend (`--bg`) und setzt sich beim Rollen mit
+  `--sh-sm` ab (Klasse `gerollt` ab acht Pixel Rollweg); der Dialoghintergrund
+  ist ein Schleier von 78 Prozent ohne `blur`. **Der Prüfstand hält das ganze
+  Stilblatt frei davon**, nicht zwei Zeilen.
+- **G4 · Ein Maßsystem.** Abstände in Vielfachen von 4 px; die drei Radien und
+  drei Schatten werden nur über ihre Variablen benutzt; die Umbruchpunkte (700,
+  860, 1024 px und die Querlage) bleiben.
+- **G5 · Fokus ist überall sichtbar.** Der eigene Fokusring (2 px Orange, 2 px
+  Abstand) ist die eine Regel; wo `outline: none` steht, trägt das Element
+  seinen Schein aus `--accent-dim`.
+- **G6 · Lesbarkeit vor Zierde.** Die Beschriftung `.label` steht in 0,8 rem und
+  `--muted` (bis 0.21.1 0,7 rem und `--faint`), `.eyebrow` in 0,78 rem; die
+  Zähler in den Blockköpfen in `--text-2`; Ziffern in Zahlenspalten sind
+  tabellarisch. **Kein Text unter 0,78 rem, den jemand lesen muss, um zu
+  bedienen.** Der Erklärtext `.desc` einer Karte ist ein Satz; was darüber
+  hinausgeht, steht hinter „Mehr" (nur Admin und Eigentümer).
+- **G7 · Der Bildstreifen nutzt die Breite, und seine Größe ist eine
+  Einstellung.** `.thumbs` ist auf jedem Schirm ein Raster mit
+  `minmax(var(--streifen), 1fr)` und `aspect-ratio: 1/1`; `--streifen` kommt aus
+  der persönlichen Einstellung `streifen` (60 · 80 · 100 · 120 · 150 px, Vorgabe
+  80, **ein Wert für alle Geräte**, dieselbe Maschine wie `schrift`). Obergrenze
+  150 px, weil dort die Reserve des gespeicherten Vorschaubilds endet. Kein
+  Bestandslauf.
+- **G8 · Der Ausschnitt wird als Rechteck gezogen.** Mit der Maus setzt ein
+  aufgezogenes Rechteck Mitte und Zoom in einer Geste (ab sechs Pixel Weg; ein
+  Klick setzt nur den Punkt); der Schieber bleibt als zweiter Weg für Finger
+  und Feinarbeit (E9). Kein neues Feld: `focus_x`, `focus_y` und `zoom`
+  bleiben.
+
+#### Sprachregeln S1 bis S7 — seit 0.22.0 geschriebene Regel
+
+*(Konzept, Abschnitt 4.2 und 4.3. Das Wörterbuch mit den sechzehn
+Entscheidungen E1 bis E16 steht im Änderungsprotokoll 0.22.0; die Verbotsliste
+steht als `BILDSCHIRM_VERBOT` im Prüfstand, und der Bildschirmtext-Wächter
+liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jede
+`error:`-Meldung der Serverdateien dagegen.)*
+
+- **S1 · Ein Text sagt, was ist und was der Klick tut.** Nicht, warum es so
+  gebaut wurde; nicht, was eine frühere Fassung tat. *Die Probe: steht im Satz
+  ein „weil", ein „deshalb", ein „so gewollt", ein „wie bisher" — dann gehört
+  er in die README.* Eine fachliche Warnung ist erlaubt; eine Folge, die man
+  kennen muss, um zu entscheiden, auch.
+- **S2 · IT-Deutsch.** Der Maßstab ist das Wort, das ein deutschsprachiger
+  Anwender im Gespräch sagt — Login, Link, Tag, Upload, Download, Backup,
+  Reset, Screenshot, App, Code, Server, SMTP. **Verboten am Bildschirm sind
+  Übertragungen, die nur im Duden stehen**, und die Bilder des Projekts —
+  Stolperstein, Gegenprobe, Klemme, Wächter, Deckel, Pille, Kiste, Wirt,
+  Grabstein, Tafel —; sie bleiben in den Papieren und Kommentaren.
+- **S3 · Eine Sache, ein Wort.** Einstellungen · Mein Konto · Benutzer ·
+  Registrierung/Anfrage/beantragen · Sitzung · Link zum Zurücksetzen ·
+  Einladungslink · Sperren/Entsperren · Freischalten/Ablehnen · Löschen
+  (endgültig oder Papierkorb, der Satz sagt, welches) · Entfernen (aus einer
+  Liste) · Wiederherstellen · Speichern/Gespeichert · Durchschnitt (⌀ nur vor
+  der Zahl) · Bewertung/Bewertungen (Vokabelwort) · Note · Potenzial · Foto,
+  Video, Vorschaubild · Bildausschnitt, Zoom · Sicherung, Sicherungsordner ·
+  Export/Import, Exportdatei, in Teilen · umwandeln · erneuern · Server-Log ·
+  Neuigkeiten · Suchmaschine, Standard, Such-URL · (erforderlich)/(optional) ·
+  Alle · Kriterion oder Passiv · Server-Einstellung `NAME` · Vorschau · Auf
+  Vorgaben zurücksetzen. Wer ein zweites Wort braucht, ändert das Wörterbuch
+  und alle Stellen.
+- **S4 · Kurz, mit Maß.** Kartenbeschreibung: ein Satz, höchstens 20 Wörter.
+  Tooltip: höchstens acht Wörter. Toast: höchstens fünf. Dialogtext: höchstens
+  zwei Sätze. Fehlermeldung: was nicht ging und, wenn es einen gibt, der nächste
+  Schritt. **Der Benutzerbereich hält diese Maße immer; Admin und Eigentümer
+  dürfen sie hinter „Mehr" überschreiten.**
+- **S5 · Erklärt wird nur, was der Leser tun kann.** Was hinter seiner Rolle
+  liegt, sieht er nicht — weder den Knopf noch die Erklärung dazu (der Knopf
+  „Eintrag löschen" nur für Verfasser und Admin, E10; der Schlüssel im
+  Klartext nur für den Eigentümer, E13; Kategorien und Tags: der Benutzer sieht
+  die Liste und einen Satz, der Admin die Werkzeuge). **Server-Befehle stehen
+  ausschließlich im Kasten „Auf dem Server"** (nur Eigentümer, `serverKasten()`,
+  gezählt: vier) oder in der README (Stolperstein 315).
+- **S6 · Die Vokabelregel gilt überall.** Vokabelwörter (`V`) stehen ohne
+  Artikel und Beiwort, auch in Tooltips; **„Bewertung" ist seit 0.22.0 das 13.
+  und 14. Vokabelwort** (`bewertungEinzahl`, `bewertungMehrzahl`, E14). **Kein
+  Vokabelwort wird in ein zusammengesetztes Wort verbaut:** „Bewertung:
+  Kriterien", nicht „Bewertungskriterien".
+- **S7 · Dialoge folgen einer Form.** Titel: Verb, Objekt, Fragezeichen („Foto
+  löschen?"); ein Satz darunter; der Knopf wiederholt das Verb. **„Abbrechen"
+  bricht immer ab — ohne Ausnahme** (Stolperstein 316). Löschen heißt: die
+  Daten sind danach weg; Entfernen heißt: etwas wird aus einer Liste genommen.
+  **Kein Dialog läuft über `confirm()` oder `prompt()` des Browsers** — alle
+  gehen durch `confirmBox`, `nameBox`, `passwortFenster`,
+  `neuesPasswortFenster` und `benutzerLoeschenFenster`; der Prüfstand sucht die
+  beiden Aufrufe im Code und findet keinen.
 
 #### Farbe und Marke
 
@@ -8655,6 +8786,56 @@ Version, in der sie entstanden sind.*
     in `server.js` am Gruppenfilter des Sicherheitsprotokolls, der genau so
     fragt. *Sie galt an der neuen Tabelle nur noch nicht.*
 
+314. **EINE REGEL, DIE IM PAPIER STEHT UND IM STILBLATT GEBROCHEN WIRD, IST
+    KEINE REGEL — DER PRÜFSTAND MUSS SIE KENNEN.** *„Kein Milchglas" stand seit
+    0.19.x in Abschnitt 10a dieses Blattes, mit Begründung; das Stilblatt trug
+    trotzdem neun `backdrop-filter` — die Kopfzeile, der Dialoghintergrund und
+    sieben kleine Träger auf Fotos.* **Niemand hatte die Regel gebrochen; sie
+    war nur nie geprüft worden, und ein Papier prüft nichts.** *Seit 0.22.0 hält
+    eine Regelprüfung das ganze Stilblatt frei davon, wie `[hidden]` seit
+    0.15.1 — eine Regel ohne Wächter ist eine Absicht.* Dasselbe Muster wie
+    Stolperstein 139 und 243: was eine Zahl oder ein Wort im Papier festhält,
+    braucht eine Zeile im Prüfstand, die rot wird.
+
+315. **EIN TEXT, DEN NUR DIE ROLLE DARÜBER BRAUCHT, GEHÖRT HINTER DEREN
+    KLEMME.** *Vier Stellen der Oberfläche nannten einen Server-Befehl
+    (`docker compose exec …`) im Fließtext einer Karte, und eine davon — die
+    Wiederherstellungscodes — sah jeder Benutzer.* **Wer den Befehl nicht
+    ausführen kann, liest eine Auskunft über den Betrieb und keine Hilfe** —
+    und verliert an derselben Stelle den Satz, der ihm wirklich hülfe. *Seit
+    0.22.0 stehen alle vier in einem Kasten „Auf dem Server", den nur der
+    Eigentümer sieht, und der Prüfstand zählt sie: jeder Befehl auf einer Zeile
+    `serverKasten(`, und es sind genau vier.* Die Regel steht als S5 in 5.6 und
+    reicht über Befehle hinaus: auch die Erklärung eines Knopfes, den eine
+    Rolle nie sieht, ist Text für die Rolle darüber.
+
+316. **„ABBRECHEN" BRICHT AB.** *Der Löschdialog für einen Benutzer stellte bis
+    0.21.1 drei `confirm()` hintereinander: Einträge mitlöschen? Beiträge
+    mitlöschen? Wirklich? — und in den ersten beiden hieß „Abbrechen" nicht
+    abbrechen, sondern „nein, ohne diese Hälfte weiter".* **Ein Knopf, der
+    „Abbrechen" heißt und etwas anderes tut, ist der gefährlichste Knopf der
+    Anwendung: wer ihn aus Vorsicht drückt, löscht.** *Seit 0.22.0 fragt ein
+    Fenster mit zwei Häkchen, und „Abbrechen" liefert null — die Gegenprobe 641
+    zeigt, was ohne diese Zeile geschähe.* Die Regel steht als S7 in 5.6:
+    „Abbrechen" bricht immer ab, ohne Ausnahme; eine Wahl zwischen zwei Wegen ist
+    kein Abbrechen, sondern zwei Knöpfe mit zwei Verben.
+
+317. **WER BELEGT, DASS EIN WEG NICHT MEHR BEGANGEN WIRD, HÄLT DEN ALTEN WEG
+    TROTZDEM GANGBAR — sonst reißt der Rückbau den Lauf ab, statt die Zeile
+    rot zu färben.** *Die Prüflage zum fremden Passwort belegt seit 0.22.0,
+    dass ein Fenster mit Passwortfeld steht und kein `prompt()` mehr gerufen
+    wird. Gestellt war `prompt()` darum nicht mehr — und die Gegenprobe 630,
+    die es wieder einsetzt, lief in jsdom auf `undefined.trim()`: der Lauf
+    riss nach 321 Sekunden ab, ohne eine einzige rote Prüfung (Stolperstein
+    161, zum dritten Mal). Dasselbe bei 637: `filterZahl()` zählte den einen
+    Tag nicht mehr, der Rücksetzknopf stand nicht da, und `.dispatchEvent` an
+    einer Null riss den Lauf nach 374 Sekunden ab (Stolperstein 311).* **Die
+    Prüflage stellt `prompt()` jetzt auf „Abbrechen", und beide Klicks auf den
+    Rücksetzknopf greifen mit `?.`** — *ob der Knopf dasteht, fragt die Zeile
+    darüber schon; so wird das Wiederauftauchen des alten Wegs rot und nicht
+    stumm.* Beide Rückbauten wurden nach der Härtung (`4cab203`) nachgefahren;
+    die Tabelle im Änderungsprotokoll 0.22.0 nennt beide Anläufe.
+
 ---
 
 ## 7. Prüfstand
@@ -8699,10 +8880,58 @@ im Image.**
 > fällt nicht von selbst auf: die Bereitschaftsprüfung bekommt ja eine Antwort*
 > (Stolperstein 139).
 
-**Stand: 5571 von 5571 bestanden** (0.21.1) — **59
-neue, keine weggefallen.** *0.21.0 davor brachte 109, 0.20.1 davor 29.*
+**Stand: 5661 von 5661 bestanden** (0.22.0) — **90
+neue, keine weggefallen.** *0.21.1 davor brachte 59, 0.21.0 davor 109.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **617** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **635** Rückbauten.
+
+> **RUND NEUNZIG ZUSAGEN SIND MIT 0.22.0 UMGEDREHT STATT GELÖSCHT** (Stolperstein
+> 74) — die größte Zahl je Runde, und der Grund ist die Runde selbst: *eine
+> Textrunde ändert genau das, wonach der Prüfstand sucht.* **Keine Zusage ist
+> gefallen.** In **33 Gruppen** hat sich der Wortlaut verschoben — von „Alles
+> anzeigen" zu „Alle", von „Stimmen" zu „Wer hat bewertet", von „(freiwillig)" zu
+> „(optional)", von `.stars .sdel` zur vierten Zelle `.rzz .rzurueck`, von drei
+> Zellen zu vier; **zwei Gruppen tragen einen neuen Namen** („Der Einladungslink
+> in der Karte Benutzer", „Die eigene Adresse in der Karte „Mein Konto""); die
+> Prüflagen beantworten `confirmBox()` seither über `stelleBestaetigung()`
+> statt über eine `confirm`-Attrappe, die nichts mehr träfe. *Die vollständige
+> Liste alt → neu steht im Änderungsprotokoll 0.22.0.*
+
+| Gruppe (0.22.0) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Der Bildschirmtext-Wächter — 0.22.0** *(neu)* | — | **15** | **Der zweite Durchgang des Sprachwächters:** jeder Text in Anführungszeichen und Backticks von `public/app.js` und jede `error:`-Meldung der Serverdateien gegen die Verbotsliste (`BILDSCHIRM_VERBOT`); erst der Leser an gestellten Fällen, dann die Dateien |
+| **Die Sternzeile — 0.22.0** *(neu)* | — | **18** | Der Knopf in seiner eigenen vierten Spalte; **die Sterne aller Zeilen beginnen an derselben Stelle**, auch ohne Knopf; bei einem einzigen Benutzer sein Abstand; **„Rückgängig" schreibt den alten Wert zurück** — am gesendeten Rumpf |
+| **Keine Browserfenster mehr — 0.22.0** *(neu)* | — | **10** | Kein `confirm(` und kein `prompt(` im Code von `app.js`; das Löschfenster ist EIN Fenster mit zwei Häkchen, „Abbrechen" liefert null (Stolperstein 316); das fremde Passwort kommt aus einem Passwortfeld |
+| **Die Rollenweichen — 0.22.0** *(neu)* | — | **10** | Der Löschknopf am Eintrag, der Schlüsselkasten, die Karten „Kategorien" und „Tags" — **je Rolle geprüft**, nicht nur als Admin |
+| **Der Aufklapper „Weitere Filter" — 0.22.0** *(neu)* | — | **9** | Greift ein Tagfilter, steht der Aufklapper beim Aufbau offen; `filterZahl()` zählt ihn weiter mit |
+| **Die Einstellung streifen — 0.22.0** *(neu)* | — | **8** | Gültige Stufen, Rückfall auf 80, Absage einer ungültigen, die Pillen in der Karte „Darstellung" |
+| **Server-Befehle nur im Kasten — 0.22.0** *(neu)* | — | **7** | `docker compose` und `zugang.js` nur auf Zeilen `serverKasten(` — **gezählt: vier**; Benutzer und Admin sehen keinen Kasten, die Eigentümerin drei, jeder mit Überschrift, Befehl und Kopierknopf (Stolperstein 315) |
+| **Kein Milchglas im Stilblatt — 0.22.0** *(neu)* | — | **4** | Eine Regelprüfung wie die zu `[hidden]` aus 0.15.1: kein `backdrop-filter` in einer Regel, die Kopfzeile deckend mit Schatten beim Rollen, der Dialoghintergrund ohne `blur` (Stolperstein 314) |
+| **Einstellungen: Vokabular und Schriftgroesse** | 22 | **25** | **Das Vokabular steht bei vierzehn**, die Zahl ausdrücklich; das Paar für die Bewertung lässt sich setzen und fällt leer auf die Vorgabe zurück |
+| **Favorit: der Knopf im Eintrag** | 31 | **33** | Der Knopf „Eintrag löschen" steht nur bei Verfasser und Admin (E10) |
+| **Die zweite Bestaetigung in der Oberflaeche** | 27 | **29** | Das Passwortfenster für ein fremdes Passwort und das Löschfenster vor der zweiten Bestätigung |
+| **Handy und Tablett: die Staffel der Umbruchpunkte** | 29 | **30** | Der Bildstreifen steht auf allen Schirmen als Raster; der Telefonblock wiederholt es nicht mehr |
+| **Der Waechter ueber den Quelltext** | 105 | **106** | „Protokoll" steht als alleinstehendes Wort nur noch in einer ausgelieferten Zeile; die Kennzahlenkarte sagt „Server-Log" |
+| **zusammen** | **5571** | **5661** | **+90** |
+
+> **BEIDE ZAHLEN SIND GEFAHREN UND NICHT GERECHNET.** *Der volle Lauf am Stand
+> vor dieser Runde hat **5571 von 5571** gemeldet — genau die Zahl, die für
+> 0.21.1 dasteht; der Lauf am gebauten Stand **5661 von 5661**.* **Die
+> Aufteilung je Gruppe ist aus den Ausgaben beider Läufe gezählt**, nicht
+> geschätzt (Stolperstein 137).
+
+> **DER GEGENPROBENLAUF ZU DIESER RUNDE: 18 von 18, 0 STUMM — 630 und 637 im zweiten Anlauf.** *Vier Nebenspuren,
+> Versatz 3500 je Spur, jede Kopie aus `git archive HEAD` am gebauten Stand
+> (`8cb2029`; die Läufe nach den ersten vier nahmen `963eb38`, das nur die
+> Papiere und die Versionsnummer trägt — derselbe Code).* **Zwei Rückbauten,
+> 630 und 637, rissen den Lauf im ersten Anlauf ab, statt eine Prüfung rot
+> zu färben** (Stolperstein 317); *nach der Härtung der beiden Prüflagen
+> (`4cab203`) wurden sie auf zwei Nebenspuren nachgefahren und färben rot.*
+> *Jeder der 18 auswertbaren Läufe meldet denselben Nenner, **5661** — die Zahl ist damit 18-mal unabhängig bestätigt.* *Die Tabelle mit den namentlich roten Prüfungen steht im
+> Änderungsprotokoll 0.22.0, mit beiden Anläufen.*
+
+**Und die Runde davor, zum Vergleich — 5571 von 5571 bestanden** (0.21.1) —
+**59 neue, keine weggefallen.** *0.21.0 davor brachte 109, 0.20.1 davor 29.*
 
 > **ZWEI ZUSAGEN SIND MIT 0.21.1 UMGEDREHT STATT GELÖSCHT** (Stolperstein 74),
 > und beide aus demselben Grund: sie sehen durch die Kopplung eine andere Menge.
@@ -9687,6 +9916,7 @@ eine Buchführung.*
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
 | **0.19.5** | **Der Ausschnitt wird eingerechnet (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
+| **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch" (90 netto: 5571 → 5661)** | **achtzehn neue (617 → 635, Nummern 624 bis 641); 42 nachgezogen (Stolperstein 201 — fast jeder, der einen Bildschirmtext sucht); 18 von 18, 0 STUMM — 630 und 637 im zweiten Anlauf.** | **Stolpersteine 314 bis 317**; rund neunzig Zusagen umgedreht statt gelöscht |
 | **0.21.1** | **„Die Sortierung sagt, wonach du fragst“ (59 netto: 5512 → 5571)** | **achtzehn neue (599 → 617, Nummern 606 bis 623); EINER nachgezogen (Stolperstein 201: 612 auf den beim Härten gekürzten Rumpf von `statusAusSortierung()`)** — sonst musste keiner mitgehen: die Runde fasst `drawFilters()` an mehreren Stellen an, aber keine davon war der Suchtext eines vorhandenen Rückbaus *(nachgesehen an 384 bis 388 und an 254; 387 greift weiter, weil sein Suchtext bei `redraw()` beginnt und die neue Zeile darüber steht)*. **613 ist der, den der Auftrag ausdrücklich verlangt:** er schreibt die Ableitung **in** `state.filters`. *613 und 614 tragen denselben Suchtext und sind trotzdem zwei — verschiedene Zusagen, verschiedene rote Punkte.* **622 und 623 sind die Nachträge zu den beiden Befunden aus dem Bauen** — die Ruhestellung und der Zugriff auf die Vorgabetabelle, siehe Änderungsprotokoll 0.21.1, Abschnitte 5 und 5a | **Stolpersteine 312 und 313** |
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man“ (109 netto: 5403 → 5512)** | **sechsunddreißig neue (563 → 599, Nummern 570 bis 605); FÜNF nachgezogen (Stolperstein 201: 233 und 448 auf die Formatnummer 13, 237 auf die zusätzliche Zeile im Stilblatt, 240 auf den verschobenen Anker, 279 auf den umgebauten Erklärknopf); **alle 36 gefahren in zwei Läufen, im zweiten 0 stumm** — *der erste gab **SECHS STUMME** und **EINEN ABGERISSENEN** zurück, und zwei seiner Zeilen stammten gar nicht von ihren Rückbauten*. **Alle sieben Befunde sind abgearbeitet:** das `GROUP BY` trug die Zusage nicht (570, 571 — nachgemessen; sie hängt am `SELECT`, und dafür gab es keinen Rückbau → **602 und 603 nachgetragen**), die Migrationsprüflage rief den Block selbst (581), keine Prüflage wechselte je den Eintrag (593), drei Prüflagen trugen den Wert, der auch die Vorgabe ist (597, 598, 600), eine Kette riss den Lauf ab statt rot zu werden (573) — und **sieben liegengebliebene Server** an 6180 bis 6242 färbten auf Spur 0 fünfzehn Punkte im **Mailversand** (→ Wächter `fremdeServer()` im Treiber, **604 und 605**). *Jeder der 36 Läufe des Nachlaufs meldet denselben Nenner, 5512.* | **Stolpersteine 302 bis 311** |
 | **0.20.1** | **Die Karte listet die Sicherungen (29 netto: 5374 → 5403)** | **fünf neue (558 → 563: 567 bis 569 an der Karte, **W15 und W16 am Gegenprobentreiber**); DREI nachgezogen (563, 565 — und **566 in eine andere Datei**: der Deckel der Liste ist seit dieser Runde eine Regel im Stilblatt und keine Klasse im Markup); **ACHT GEFAHREN in drei Läufen** (563, 565, 566, 567, 568, 569 an der Karte; **W15 und W16** am Treiber), **EINER STUMM: 568** — *die Nummern wurden am Mock geprüft, und der rechnet sie selbst; das Feld `dateien` der echten Antwort war vollständig ungeprüft*. **Neun Zusagen an der echten Antwort nachgerüstet, danach namentlich rot.** *Sein erster Nachlauf riss nach 79 s ab, ohne genannten Grund — daraus ist Stolperstein 301 und der Bau am Treiber geworden; der zweite lief durch (5401 von 5403, 452 s).*** | **Stolperstein 301** |
@@ -9707,17 +9937,26 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.21.1 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Fünf Handgriffe, und
-  sie sind die Runde:* **(a)** **nach Potenzial sortieren** — die Liste zeigt nur
-  noch Ideen, die Pille „Ungetestet" steht **gestrichelt** da, und daneben steht
-  *„folgt der Sortierung"*; **(b)** auf **„Alles anzeigen"** klicken und dann die
-  **Sortierung wechseln** — die Wahl hält, das Wort ist weg, und *„Filter
-  zurücksetzen (1)"* steht da; **(c)** **neu laden** — die Ableitung ist neu
-  gerechnet, die gespeicherte Stellung ist unverändert; **(d)** eine
-  **gespeicherte Ansicht** mit „Potenzial" und „alles" anwenden — sie schlägt die
-  Vorgabe; **(e)** den **Rücksetzer** drücken — die Automatik ist zurück. *Die
-  Befehle dazu stehen im Chat der Runde, nicht hier.*
-- **DER GEGENPROBENLAUF DIESER RUNDE IST GEFAHREN: 18 von 18, 0 STUMM.** *Vier
+- **0.22.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Fünf Handgriffe, und
+  sie sind die Runde:* **(a)** **die Einstellungen öffnen** — sie heißen so, und
+  der Reiter heißt „Benutzer"; **(b)** **einen Bildstreifen verstellen** (Karte
+  „Darstellung", 60 bis 150 px) — er wirkt sofort und auf jedem Gerät; **(c)**
+  **eine Bewertung zurücksetzen und „Rückgängig" drücken** — der alte Wert steht
+  wieder da, am gesendeten Rumpf nachzulesen; **(d)** **einen Benutzer löschen**
+  — ein Fenster, zwei Häkchen, und „Abbrechen" bricht ab; **(e)** **„Bewertung"
+  im Vokabular umbenennen** — es ändern sich Kastenkopf, Sortierung, Vergleich,
+  Kachel und Karte. *Die Befehle dazu stehen im Chat der Runde, nicht hier.*
+- **0.21.1 IST EINGESPIELT UND BESTÄTIGT.** *Die laufende Installation hat am
+  4. September 2026 **`2295870b`** gemeldet, genau den Sollwert.* Die fünf
+  Handgriffe jener Runde stehen im Änderungsprotokoll 0.21.1.
+- **DER GEGENPROBENLAUF DIESER RUNDE IST GEFAHREN: 18 von 18, 0 STUMM — 630 und 637 im zweiten Anlauf.** *Vier
+  Nebenspuren, Versatz 3500 je Spur, jede Kopie aus `git archive HEAD` am
+  gebauten Stand (`8cb2029`, ab dem fünften Lauf `963eb38` — derselbe Code).
+  Zwei Rückbauten, 630 und 637, rissen den Lauf im ersten Anlauf ab
+  (Stolperstein 317) und wurden nach der Härtung zweier Prüflagen
+  (`4cab203`) nachgefahren.* *Jeder der 18 auswertbaren Läufe meldet denselben Nenner, **5661** — die Zahl ist damit 18-mal unabhängig bestätigt.* **Die Tabelle steht im
+  Änderungsprotokoll 0.22.0, mit beiden Anläufen.**
+- **DER GEGENPROBENLAUF VON 0.21.1 WAR GEFAHREN: 18 von 18, 0 STUMM.** *Vier
   Nebenspuren, Versatz 3500 je Spur, jede Kopie aus `git archive HEAD` am
   gebauten Stand (`11ecd2a`); jeder der 18 Läufe meldet denselben Nenner,
   **5571**.* **Die Tabelle steht im Änderungsprotokoll 0.21.1.** *Zwei Einträge
@@ -10390,6 +10629,57 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.22.0 — „Die Oberfläche wird ruhiger, und sie redet Deutsch"
+
+**MINOR · 4. September 2026 · aus dem Betrieb (30. August 2026), im Gespräch
+mit dem Betreiber zu sechzehn Entscheidungen ausgearbeitet** *(0.21.1 mit
+Fingerprint `2295870b` ist im Feld bestätigt).* *Angefasst sind `public/app.js`,
+`public/style.css`, `server.js`, `auth.js`, `pruefung.js`, `gegenprobe.js`,
+`package.json`, `package-lock.json` und die Papiere — **`db.js` und `mail.js`
+nicht**.* **KEINE DATENBANKSTUFE, KEIN BESTANDSLAUF, KEINE NEUE ROUTE.**
+Austauschformat **13**, `F_ROUTEN` **70**, einundzwanzig Karten, neun
+Migrationsblöcke, neun ausgelieferte Module — unverändert; **vierzehn
+Vokabelwörter** (zwölf davor), **neun persönliche Schlüssel** (acht davor).
+
+**WAS DIE INSTALLATION DANACH KANN, WAS SIE VORHER NICHT KONNTE:** die Größe
+des Bildstreifens einstellen (fünf Stufen, persönlich, ein Wert für alle
+Geräte), den Ausschnitt als Rechteck aufziehen, eine zurückgesetzte Bewertung
+mit „Rückgängig" zurückholen, und „Bewertung" wie „Potenzial" umbenennen.
+*Alles Übrige ist dieselbe Funktion in anderen Worten und mit anderer
+Oberfläche.*
+
+**Gebaut ist, in fünf Bauabschnitten:** **(1)** das Stilblatt — kein
+`backdrop-filter` mehr (neun Stellen), die Kopfzeile deckend mit Schatten beim
+Rollen, eine Hover-Familie (Rand oder Hintergrund eine Stufe heller, 150 ms;
+Kacheln −2 px, Bild ×1,02), Marken für Rolle und Zustand aus Form statt Farbe,
+`.label` 0,8 rem in `--muted`, tabellarische Ziffern, die Zeitleiste ohne
+Kasten, drei eigene SVG-Zeichen, der leisere Rand `--line-2` an ruhigen
+Karten und Blöcken; **(2)** die Vokabelwörter `bewertungEinzahl` und
+`bewertungMehrzahl` (das 13. und 14.); **(3)** rund 250 Textstellen nach dem
+Wörterbuch und den Regeln S1 bis S7 — Einstellungen, Mein Konto, Benutzer,
+Registrierung, Wer hat bewertet, Bildformate, Suchmaschinen, Alle, Neuigkeiten,
+Server-Log —, die Servermeldungen eingeschlossen, jede Kartenbeschreibung ein
+Satz und der Rest hinter „Mehr", Server-Befehle nur im Kasten „Auf dem Server",
+der Klartextschlüssel nur beim Eigentümer, der Knopf „Eintrag löschen" nur bei
+Verfasser und Admin, die Tagzeile hinter dem Aufklapper „Weitere Filter";
+**(4)** die Dialoge — acht Stellen `confirm()`/`prompt()` ersetzt durch
+`confirmBox`, ein Löschfenster mit zwei Häkchen für einen Benutzer, in dem
+„Abbrechen" abbricht, und ein Passwortfeld für ein fremdes Passwort; **(5)** der
+Bildstreifen als Raster `minmax(var(--streifen), 1fr)` auf jedem Schirm mit der
+Einstellung `streifen` (60 · 80 · 100 · 120 · 150, Vorgabe 80), der Ausschnitt
+als Rechteck neben dem Schieber, und die Sternzeile mit vierter Spalte für den
+runden Rücksetzknopf samt „Rückgängig", das den alten Wert per `PUT`
+zurückschreibt.
+
+**Der Prüfstand:** 5661 Prüfungen (5571 davor, +90), neun neue Gruppen —
+der Bildschirmtext-Wächter gegen die Verbotsliste, kein Milchglas, keine
+Browserfenster, Server-Befehle nur im Kasten, die Einstellung `streifen`, das
+Vokabular bei vierzehn, die Sternzeile, der Aufklapper, die Rollenweichen —,
+und rund neunzig Zusagen umgedreht statt gelöscht, weil ihr Wortlaut sich
+geändert hat (Stolperstein 74). **Rückbauten 624 bis 641** (617 → 635), 42
+mitgezogen (Stolperstein 201). **Stolpersteine 314 bis 317.** *Die Tabellen
+stehen im Änderungsprotokoll 0.22.0.*
 
 ### 0.21.1 — „Die Sortierung sagt, wonach du fragst"
 
@@ -12140,7 +12430,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.20.0** | **Alte Sicherungen aufräumen — ohne Shell** | **GEBAUT am 3. September 2026.** *(Punkt 8 des Sammelblatts, aufgefallen im Betrieb am 2. September 2026; am 3. September 2026 zugeordnet — der Fahrplan ist dabei nicht gerückt.)* **Kriterion schrieb Sicherungen und entfernte keine** — wegräumen ließ sich nichts, und dafür brauchte es eine Shell auf dem Wirt. Die Regel hat **zwei** Bedingungen, und beide müssen zutreffen: *nicht unter den N jüngsten **und** älter als X Tage* — die Zahl ist der Boden, das Alter die Schere (Stolperstein 299). Dazu eine **Vorschau, bevor etwas geschieht**, ein Schalter, der **auf AUS steht**, ein Knopf hinter der zweiten Bestätigung, ein zweiter, ausdrücklicher Weg für die Kopien von vor dem Schlüsselwechsel, und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Die Löschroute nimmt keine Dateinamen entgegen** (Stolperstein 300), und aufgeräumt wird ausschließlich im Anschluss an eine Sicherung, die **gelungen** ist. **Eine zwanzigste Karte** — ein Löschknopf gehört nicht unter den Sicherungsknopf. *MINOR* — `F_ROUTEN` **70 → 71**, ein **neunter** Zweck der zweiten Bestätigung. **Kein Schema, kein Bestandslauf, keine Zeitsteuerung** | nein | — |
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 4. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
 | **0.21.1** | **„Die Sortierung sagt, wonach du fragst“** | **GEBAUT am 4. September 2026.** *(Aus dem Rundlauf von Hand nach 0.21.0 — dieselbe Herkunft wie 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Der Punkt stand nie im Sammelblatt und nie im Fahrplan: er kam am 4. September 2026 aus dem Betrieb und ist unmittelbar in den Auftrag gegangen.)* **Eine Sortierung beantwortet eine Frage, aber die Liste zeigte nicht die Menge, in der diese Frage sich stellt.** Ab jetzt gibt die Sortierung den Statusfilter als **Vorgabe** vor — `rating_*` → Getestet, `potenzial_*` → Ungetestet, **jede andere Sortierung fasst ihn nicht an**. **Die Handwahl und eine angewandte gespeicherte Ansicht schlagen die Vorgabe** und halten über einen Wechsel der Sortierung hinweg; der Rücksetzer ist der Weg zurück. **Die Ableitung wird nicht gespeichert und nicht mitgezählt, sondern in Worten gesagt.** *Der Fahrplan rückt dadurch nicht — 0.21.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
-| **0.22.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und **noch am selben Tag auf 0.22.0** — die Nummer ist vorläufig.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 4. September 2026: der Bildstreifen im Eintrag nutzt die Breite, und seine Größe wird einstellbar** *(Punkt 10 des Sammelblatts — ein Regler wie die Schriftgröße, ein Wert für alle drei Geräte, kein Bestandslauf)*. **Und seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
+| **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch"** | **GEBAUT am 4. September 2026.** *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und noch am selben Tag auf 0.22.0; am 4. September 2026 im Gespräch mit dem Betreiber zu sechzehn Entscheidungen ausgearbeitet — Konzept `Doku/Konzept_Oberflaeche_0_22_0.md` samt Anlage.)* Fünf Bauabschnitte: das Stilblatt (kein Milchglas, eine Antwort auf jede Berührung, Marken aus Form), die zwei Vokabelwörter für die Bewertung, rund 250 Textstellen nach einem Wörterbuch, eigene Fenster statt `confirm()` und `prompt()`, und Bildstreifen · Rechteck · Sternzeile (Punkt 10 des Sammelblatts eingeschlossen). **Die Gestaltungs- und Sprachregeln G1 bis G8 und S1 bis S7 stehen seither in Abschnitt 5.6; was gebaut wurde, im Änderungsprotokoll 0.22.0.** *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
 | **0.23.0** | **Die Oberfläche wird hell** | *(Neu am 4. September 2026, aus der Besprechung zu 0.22.0 — dort als Idee **N6** ausgearbeitet und ausdrücklich **nicht** in jene Runde genommen.)* **Ein zweites Farbschema — hell, umschaltbar, und die Vorgabe bleibt dunkel.** Kriterion ist heute nur dunkel (`color-scheme: dark`, `theme-color #0e1012`); das ist das eine Merkmal, das am Tag und am Tablett zuerst fehlt. **Rund dreißig Farbwerte ein zweites Mal — und die fünf Bedeutungsfarben auf hellem Grund neu abgestimmt, nicht umgerechnet.** *Sie behalten ihre Bedeutung: Gold bleibt Bewertung und Anheftung, Orange Art und Bedienung, Grün erledigt und getestet, Blau die Aufgabe, Rot das Zerstören.* **Die Ausarbeitung steht in Abschnitt 10a — samt dem Vermerk, dass diese Runde vor ihrem Auftrag ein eigenes Farbkonzept braucht** (`Doku/Farbkonzept_0_23_0.md`, noch nicht geschrieben): *eine Farbe lässt sich nicht aus einer anderen ausrechnen.* *MINOR* | nein | — |
 | **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
@@ -13260,101 +13550,6 @@ wenn der Ausschnitt enger gezogen wird, als die Vorlage hergibt.
 > **Die fünf offenen Entscheidungen, die hier standen, sind beantwortet** — im
 > Auftrag der Runde und im Änderungsprotokoll 0.20.0, jede mit ihrer
 > Begründung.
-
----
-
-### 0.22.0 — „Die Oberfläche wird ruhiger" · *MINOR* *(Nummer vorläufig; stand hier bis zum 4. September 2026 als 0.21.0)*
-
-**Neu am 30. August 2026, aus dem Betrieb.** *Nichts aus dem Sammelblatt.*
-**Am 3. September 2026 von 0.20.0 auf 0.21.0 gerückt**, weil Punkt 8 des
-Sammelblatts die 0.20.0 bekommen hat. *Der Grund steht in Abschnitt 10, beim
-siebten Rücken.* **Und am selben Tag ein zweites Mal auf 0.22.0**, weil die
-eingeschobene Runde „Vor dem Test schätzt man …" die 0.21.0 genommen hat.
-
-> **DIESE ÜBERSCHRIFT WAR BEIM ACHTEN RÜCKEN STEHENGEBLIEBEN** — die Tafel in
-> Abschnitt 10 trug schon die 0.22.0, die Ausarbeitung hier noch die 0.21.0.
-> *Aufgefallen am 4. September 2026 beim Eintragen von Punkt 10 des
-> Sammelblatts.* **Dieselbe Stelle, dieselbe Ursache wie bei „Die Kommentare
-> werden knapp" weiter oben** (0.23.x statt 0.26.x) — genau das Vergessen, gegen
-> das Stolperstein 306 die freie Nummer je Zwischenraum gesetzt hat: *jedes
-> Rücken kostet dieselbe Arbeit an denselben Stellen, und jedes Mal wird eine
-> davon vergessen.* **Beide sind berichtigt; die alte Nummer steht daneben und
-> ist nicht gelöscht** (Stolperstein 201).
-
-### Woher
-
-**Aus einer fremden Fassung derselben Anwendung** — ein anderes Modell hat auf
-Zuruf eine aufgehübschte Oberfläche gebaut, und der Betreiber hat sie zum
-Vergleich abgelegt (`fardem/kriterium-Gemini`). **Sie dient als Anregung und
-nicht als Vorlage zum Abschreiben** — weder ihre Optik eins zu eins noch
-irgendetwas unter der Haube.
-
-### Was auffiel
-
-**Die Oberfläche ist sachlich, und das ist richtig — aber sie ist auch
-unbewegt.** Nichts hebt sich, nichts antwortet auf einen Zeiger, die Rolle eines
-Zugangs steht als graues Wort neben seinem Namen. *Ein Hauch Moderne würde ihr
-guttun, ohne dass sie ihre Ruhe verliert.*
-
-### Was gebaut werden könnte
-
-* **Karten heben sich beim Überfahren** — zwei Pixel, nicht vier.
-* **Eigene Fokusringe** statt der Vorgabe des Browsers.
-* **Weichere Übergänge an den Dialogen** — ohne Tiefenunschärfe.
-* **Die Kopfzeile setzt sich beim Rollen ab** — mit einem Schatten, nicht mit
-  Milchglas.
-* **Rolle und Status als farbige Marken** in der Zugangsliste statt als graue
-  Wörter. *Die Rollen sind die eigenen — Benutzer, Admin, Eigentümer —, und
-  einen Anzeigenamen gibt es hier nicht.*
-* **Bewegung nur, wo sie etwas sagt:** die Glocke, wenn etwas Neues da ist; die
-  Karte, die gerade gespeichert wurde. **`prefers-reduced-motion` bleibt.**
-* **DER BILDSTREIFEN IM EINTRAG NUTZT DIE BREITE — UND SEINE GRÖSSE WIRD
-  EINSTELLBAR.** *Punkt 10 des Sammelblatts, aus dem Betrieb am 4. September
-  2026.* Heute steht `.thumbs` auf breiten Schirmen als `flex-wrap` mit fest
-  `62 × 62 px`, und rechts in jeder vollen Zeile bleibt ein toter Rest liegen;
-  **auf dem Telefon ist dieselbe Reihe längst ein Raster** mit
-  `minmax(60px, 1fr)` und lückenlos. *Die Telefonfassung gehört auf alle
-  Schirme hochgezogen* — und darüber ein **Regler wie die Schriftgröße**:
-  persönlich je Zugang, feste Stufen, **ein Wert für alle drei Geräte**, weil
-  die vorhandenen Umbruchpunkte ihn mitskalieren. **Kein Bestandslauf:** das
-  gespeicherte `thumb` hat 512 px auf der kurzen Kante und ist bei 62 px
-  Anzeige rund 2,7fach überversorgt; bis etwa 150 px trägt es auch auf einem
-  3x-Telefon. *Die volle Ausarbeitung steht im Sammelblatt, Punkt 10.*
-
-### Was es ausdrücklich NICHT wird
-
-**Jede Zeile hier ist abgelehnt, weil sie einer Regel widerspricht, die sich
-dieses Projekt selbst gegeben hat.** *Das ist der eigentliche Wert dieser
-Ausarbeitung: nicht die Liste dessen, was schön wäre, sondern die Begründung
-dessen, was nicht mitkommt.*
-
-| was | warum nicht |
-|---|---|
-| **Pulsierender Punkt für „AES-GCM 256-Bit"** | Abschnitt 5.6: *eine Oberfläche sagt, WAS IST — nicht, wie sie gebaut ist.* Ein blinkendes Abzeichen für ein Chiffrierverfahren ist Werbung, keine Auskunft |
-| **Versionsnummer in einem Fußdock** | dieselbe Regel; 0.17.0 hat gerade die letzte Versionsnummer aus der Oberfläche genommen |
-| **Milchglas (`backdrop-filter: blur`)** | kostet auf dem Telefon spürbar Leistung und macht Text unruhig. *0.17.0 hat zwei Anzeigefehler auf einem S21 behoben; das ginge in die Gegenrichtung* |
-| **Orange-Verläufe an Knöpfen** | *„Gold ist Bewertung und Anheftung, Orange ist Art und Bedienung"* — und **keine neue Farbe.** Ein Verlauf bringt zwei |
-| **Leuchtende Sterne** | Gold ist schon die Auszeichnung; ein Glühen wäre ein zweiter Kanal für dieselbe Aussage |
-| **Schwebendes Fußdock** | unten sitzt auf dem Telefon bereits die Vergleichsleiste — der Konflikt steht im Sammelblatt |
-
-### Was es anfasst
-
-**`public/style.css`, und sonst möglichst nichts.** Die farbigen Marken an Rolle
-und Status brauchen dazu zwei Klassen in `public/app.js`. **Kein Schema, keine
-Route, keine neue Abhängigkeit.**
-
-**Der Bildstreifen (Punkt 10) fasst mehr an, aber nicht viel mehr:** neben dem
-Stilblatt eine Stufenliste und eine Zeile in `/api/settings` — **dieselbe
-Maschine wie `schriftgroesse`**, also `getUserSetting` und sonst nichts.
-*`F_ROUTEN` bleibt: die Einstellung reist auf dem vorhandenen `PUT
-/api/settings` mit.* **Kein Schema, kein Migrationsblock, kein Bestandslauf.**
-
-**Und die Runde bekommt eine geschriebene Gestaltungsregel in Abschnitt 5.6**,
-neben Farbe und Marke. *Sonst läuft es beim nächsten Mal wieder auseinander.*
-
-**Was dagegen spricht:** nichts klemmt. *Es ist eine Runde ohne Not — und
-genau deshalb gehört sie hinter die beiden, die Funktionen bringen, und vor die
-Bereinigung, damit der Bruch nicht auch noch die Optik mitträgt.*
 
 ---
 

@@ -27,7 +27,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 | **Vergleichen** | mehrere Einträge nebeneinander, Kriterium für Kriterium |
 | **Suchen und filtern** | Volltextsuche über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare — **jede Trefferkachel sagt, wo das Wort steht, und der Begriff ist hervorgehoben**; Filterstellungen lassen sich als **Ansicht** speichern |
 | **Den Überblick behalten** | „Offen" zeigt alle unerledigten Aufgaben über alle Einträge, die **Glocke** alles, was seit dem letzten Blick dazugekommen ist |
-| **Zu mehreren arbeiten** | Zugänge mit drei Rollen; jeder Beitrag trägt seinen Verfasser |
+| **Zu mehreren arbeiten** | Benutzer mit drei Rollen; jeder Beitrag trägt seinen Verfasser |
 | **Sichern** | verschlüsselte Kopie auf Knopfdruck, dazu ein JSON-Export, der ohne Schlüssel auskommt |
 
 ## Ist das etwas für dich?
@@ -114,7 +114,7 @@ startet. Alle Werte dürfen leer bleiben.
 Ohne die Datei bricht `docker compose up` mit
 „no configuration file provided: not found" ab. **Die Vorlage liegt im Repo, die
 Arbeitskopie nicht** — genau wie bei der `.env`, und aus demselben Grund: hier
-stehen der Port, die Einhängung des Sicherungsorts und der Containername, und
+stehen der Port, die Einhängung des Sicherungsordners und der Containername, und
 das sind *deine* Werte. Wer sie in einer verfolgten Datei bearbeitet, verliert
 sie beim nächsten Auspacken des ZIP.
 
@@ -137,24 +137,24 @@ zehn Zeichen, sonst keine Regeln.
 
 **Dieser erste Zugang wird der Eigentümer.** Ihm gehören Export, Import,
 Rollenvergabe, der Mailzugang und der Schlüsselwert; alles Weitere steht unter
-„Rollen und Zugänge".
+„Rollen und Benutzer".
 
 ### Was danach eingerichtet werden kann — und nichts davon muss
 
 | | wo | wofür |
 |---|---|---|
-| **Titel der Installation** | Systembereich, Karte „Darstellung" | zwei frei wählbare Titel: einer über der Anmeldeseite, einer in der Anwendung |
-| **Bewertungskriterien** | Systembereich, Karte „Bewertungskriterien" | Name, Reihenfolge, Gewicht — sie erscheinen an jedem Eintrag |
-| **Potenzialkriterien** | Systembereich, Karte „Potenzial: Kriterien" | dasselbe für den Kasten *vor* dem Test — zwei oder drei reichen |
-| **Vokabular** | Systembereich, Karte „Vokabular" | zwölf Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
-| **Weitere Zugänge** | Systembereich, Karte „Zugänge" | anlegen oder über einen Einladungslink einladen |
-| **Mailversand** | Systembereich, Karte „Mailversand" | nur für Einladungs- und Rücksetzlinks; ohne ihn läuft alles weiter |
-| **Sicherungsort** | `docker-compose.yml` | Vorgabe liegt im Projektverzeichnis; die empfohlene Lage ist daneben — siehe „Sichern" |
+| **Titel der Installation** | Einstellungen › Installation, Karte „Titel" | zwei frei wählbare Titel: einer über der Anmeldeseite, einer in der Anwendung |
+| **Bewertung: Kriterien** | Einstellungen › Bestand, Karte „Bewertung: Kriterien" | Name, Reihenfolge, Gewicht — sie erscheinen an jedem Eintrag |
+| **Potenzial: Kriterien** | Einstellungen › Bestand, Karte „Potenzial: Kriterien" | dasselbe für den Kasten *vor* dem Test — zwei oder drei reichen |
+| **Vokabular** | Einstellungen › Bestand, Karte „Vokabular" | vierzehn Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
+| **Weitere Benutzer** | Einstellungen › Benutzer, Karte „Benutzer" | anlegen oder über einen Einladungslink einladen |
+| **Mailversand** | Einstellungen › Benutzer, Karte „Mailversand" | nur für Einladungslinks und Links zum Zurücksetzen; ohne ihn läuft alles weiter |
+| **Sicherungsordner** | `docker-compose.yml` | Vorgabe liegt im Projektordner; die empfohlene Lage ist daneben — siehe „Sichern" |
 | **Reverse Proxy** | `.env`, `HINTER_PROXY=1` | nur wenn die Installation über einen Proxy und HTTPS nach außen geht. **Der Weg über `http://<server-ip>:3100` bleibt daneben offen** — siehe „Anmeldung" |
 
 ### Wenn niemand mehr hereinkommt
 
-Der gewöhnliche Weg läuft über die Karte „Zugänge": ein Admin erzeugt einen
+Der gewöhnliche Weg läuft über die Karte „Benutzer": ein Admin erzeugt einen
 **Link zum Zurücksetzen**, und der Betreffende wählt sein Passwort selbst.
 Kommt **niemand mehr** herein, hilft der Weg auf dem Server — nicht die `.env`:
 
@@ -183,6 +183,25 @@ zurücksetzen** — `AUTH_RESET`, `AUTH_USER` und `AUTH_PASSWORD` werden nicht
 gelesen. Stehen sie in der `.env`, meldet der Start sie als entfernbar; sie
 enthalten ein Passwort im Klartext und gehören heraus.
 
+## Auf dem Server
+
+**Drei Handgriffe laufen nicht am Bildschirm, sondern auf dem Server** — dort,
+wo `docker compose` läuft. Die Oberfläche nennt sie nur dem **Eigentümer**, in
+vier Kästen „Auf dem Server" mit Kopierknopf; Benutzer und Admins sehen weder
+den Befehl noch eine Erklärung dazu. *Ein Befehl, den man nicht ausführen
+kann, ist keine Hilfe.*
+
+| Handgriff | Befehl | wo der Kasten steht |
+|---|---|---|
+| **Ein vergessenes Passwort zurücksetzen** — wenn kein Admin mehr hereinkommt | `docker compose exec kriterion node zugang.js passwort <name>` | Karte „Mein Konto" und Karte „Benutzer" |
+| **Den zweiten Faktor eines Benutzers ausschalten** — wenn Handy und Wiederherstellungscodes weg sind | `docker compose exec kriterion node zugang.js zweifaktor <name>` | Karte „Mein Konto", beim zweiten Faktor |
+| **Den Schlüssel in die `.env` nehmen** und danach neu starten | `docker compose up -d` | Karte „Kennzahlen", solange der Schlüssel neben der Datenbank liegt |
+
+Die beiden `zugang.js`-Befehle fragen auf dem Server nach, bevor sie etwas
+tun, und stehen danach im Sicherheitsprotokoll als „per Kommandozeile am
+Server". Was `zugang.js` sonst kann (`liste`, `entfernen`, `eigentuemer`),
+steht im Kopf der Datei.
+
 ## Der Schlüssel — bitte einmal aufmerksam lesen
 
 Hier entscheidet sich, ob die Verschlüsselung tatsächlich schützt.
@@ -194,7 +213,7 @@ jemand das Verzeichnis `data` kopiert: Er hat dann Daten und Schlüssel beisamme
 und kann alles lesen.
 
 **Soll eine kopierte Datenbank unlesbar bleiben**, muss der Schlüssel in die
-`.env`. Der Systembereich zeigt den **bereits erzeugten** Wert zum Abschreiben —
+`.env`. Die Einstellungen zeigen dem Eigentümer den **bereits erzeugten** Wert zum Abschreiben (Karte „Kennzahlen") —
 genau diesen eintragen. Keinen neuen erzeugen, solange schon Daten vorhanden
 sind: sie wären danach nicht mehr lesbar.
 
@@ -218,7 +237,7 @@ wie ein Schloss mit danebenliegendem Schlüssel.
 > **Merksatz:** `.env` und `data/` gehören **nicht** in dieselbe Sicherung.
 > Den Schlüssel getrennt aufbewahren, zum Beispiel im Passwortspeicher.
 > **Das gilt auch für die Sicherung auf Knopfdruck:** ihre Kopie ist
-> verschlüsselt und ohne den Schlüssel wertlos — der Zielort ist deshalb nicht
+> verschlüsselt und ohne den Schlüssel wertlos — der Sicherungsordner ist deshalb nicht
 > der Ort für die `.env`.
 
 **Die Kehrseite:** Ohne den Schlüssel sind alle Daten endgültig verloren. Es
@@ -304,8 +323,8 @@ bevor der Container entsteht; kaputt geht dabei nichts.
 > die richtige `.env` aus `kriterion-alt` holen. Zerstört wird nichts, aber der
 > Container läuft bis dahin in einer Neustartschleife.
 
-**Die `mv`-Zeile für die Sicherungen gilt nur, solange der Sicherungsort im
-Projektverzeichnis liegt** — der Auslieferungszustand. Sie holt die vorhandenen
+**Die `mv`-Zeile für die Sicherungen gilt nur, solange der Sicherungsordner im
+Projektordner liegt** — der Auslieferungszustand. Sie holt die vorhandenen
 Kopien aus dem umbenannten Ordner zurück; ohne sie bleiben sie in
 `kriterion-alt` liegen und verschwinden, sobald der weggeräumt wird. Genau davor
 warnt der rote Kasten in der Karte „Sicherung". Liegt der Ort außerhalb, ist die
@@ -335,8 +354,8 @@ Oberfläche sich alt verhält.
 
 **Dafür gibt es den Fingerprint.** Der Server bildet beim Start eine kurze
 Prüfsumme über alles, was er lädt und ausliefert, und meldet sie unter
-`fingerprint` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" im
-Systembereich. Der Sollwert steht zu jeder Version im Änderungsprotokoll
+`fingerprint` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" in
+den Einstellungen (Reiter „Datenbank"). Der Sollwert steht zu jeder Version im Änderungsprotokoll
 (`Doku/Aenderungsprotokoll_<Version>.md`, Zeile „Fingerprint …").
 
 Stimmt er nicht überein, ist der Dateisatz nicht der, der gemeint war — dann
@@ -402,10 +421,10 @@ Tagen ab.
 Nach mehreren Fehlversuchen antwortet die Anmeldung verzögert, nach zehn
 Fehlversuchen von derselben Adresse für einige Minuten gar nicht mehr.
 Gezählt wird zusätzlich je Benutzername — dort wird nur verzögert, nie
-gesperrt: eine harte Namenssperre wäre ein Werkzeug *gegen* fremde Zugänge.
-**Dieselbe Bremse steht vor dem Einlösen eines Einladungs- oder
-Rücksetzlinks** — dort ohne die Hälfte je Benutzername, denn ein Link nennt
-keinen. Was dabei abgewiesen wird — abgelaufen, schon eingelöst, erfunden, oder
+gesperrt: eine harte Namenssperre wäre ein Werkzeug *gegen* fremde Konten.
+**Dieselbe Bremse steht vor dem Einlösen eines Einladungslinks oder eines
+Links zum Zurücksetzen** — dort ohne die Hälfte je Benutzername, denn ein Link
+nennt keinen. Was dabei abgewiesen wird — abgelaufen, schon eingelöst, erfunden, oder
 der Zugang ist gesperrt —, beantwortet die Installation **immer gleich**: „Dieser
 Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern." Der Grund ist
 nicht Geheimniskrämerei, sondern dass in allen vier Fällen dasselbe zu tun
@@ -413,7 +432,7 @@ ist.
 
 **Die zweite Bestätigung greift auch hinter der Anmeldung** — vor
 jedem Weg, der die Installation als Ganzes trifft. Was das ist und warum, steht
-unter „Rollen und Zugänge".
+unter „Rollen und Benutzer".
 
 ### Der zweite Faktor, freiwillig
 
@@ -427,7 +446,7 @@ nichts hinaus** — kein Code per Mail, kein Code per SMS.
 > dieser Funktion nichts. **Und niemand kann ihn für einen anderen ein- oder
 > ausschalten** — auch der Eigentümer nicht.
 
-**Wo er eingeschaltet wird:** im Systembereich, in der Karte **„Zugang"** —
+**Wo er eingeschaltet wird:** in den Einstellungen, in der Karte **„Mein Konto"** —
 dort, wo auch Name, Passwort und Adresse stehen. Der Zustand steht dort ohne
 Klick: „an seit …" oder „aus", dazu die Zahl der übrigen
 Wiederherstellungscodes.
@@ -449,8 +468,8 @@ Wiederherstellungscodes.
 **Ab dann fragt die Anmeldung in zwei Schritten** — erst Passwort, dann Code.
 Ein Code gilt **genau einmal**; Uhren dürfen dabei um eine halbe Minute
 auseinanderlaufen. Dieselbe Frage steht danach auch vor den schweren Wegen
-(Export, Import, Rollen, fremde Passwörter) und beim Einlösen eines
-Rücksetzlinks.
+(Export, Import, Rollen, fremde Passwörter) und beim Einlösen eines Links zum
+Zurücksetzen.
 
 **Die Wiederherstellungscodes — und wohin sie gehören.** Beim Einschalten
 erscheinen **acht** Codes zu je zehn Zeichen. Sie werden **genau einmal**
@@ -481,7 +500,7 @@ fremdes Telefon, und das sperrte den Betroffenen aus.
 *Ein Hinweis zur Sicherung:* die Kopie über die Karte „Sicherung" enthält den
 gesamten Datenbestand und damit auch die Geheimnisse der zweiten Faktoren —
 verschlüsselt, wie Passwörter und Sitzungen auch. Der **JSON-Export** enthält
-sie nicht; er packt Einträge samt Anhängen, keine Zugänge.
+sie nicht; er packt Einträge samt Anhängen, keine Benutzerkonten.
 
 Wird Kriterion über einen Reverse Proxy nach außen gegeben, dann **nur über
 HTTPS** — sonst wandert das Passwort im Klartext durchs Netz. Und dann gehört
@@ -589,29 +608,29 @@ unbegrenzt:
 hält 180 Tage, geprüft beim Start und jedes Mal, wenn die Karte geöffnet wird.
 *Wer dafür eine Rotation sucht, soll sie nicht bauen: es gibt sie schon.*
 
-### Rollen und Zugänge
+### Rollen und Benutzer
 
 Drei Rollen, und sie sind eine Leiter: **Benutzer** < **Admin** <
 **Eigentümer**. Wer die Installation einrichtet, ist ihr Eigentümer; das Recht ist
 eine Rolle und lässt sich vergeben — zwei Leute können sich eine Installation
-teilen. Solange nur **ein** Zugang besteht, ist er alles zugleich, und ihm
+teilen. Solange nur **ein** Benutzer besteht, ist er alles zugleich, und ihm
 verweigert nichts etwas.
 
 - **Benutzer** — schreibt eigene Beiträge: Einträge, Kommentare, Bewertungen,
   Testtage, Favoriten.
 - **Admin** — verwaltet zusätzlich, was an *allen* Einträgen erscheint:
-  Bewertungskriterien, Tags und Kategorien (umbenennen und löschen), beide
-  Titel, Vokabular und die Suchanbieter. Er darf fremde Beiträge **löschen**,
-  aber nicht umschreiben. Und er verwaltet die Zugänge — aber nicht die von
-  Admins oder dem Eigentümer.
+  die Kriterien beider Kästen, Tags und Kategorien (umbenennen und löschen),
+  beide Titel, Vokabular und die Suchmaschinen. Er darf fremde Beiträge
+  **löschen**, aber nicht umschreiben. Und er verwaltet die Benutzer — aber
+  nicht die Admins oder den Eigentümer.
 - **Eigentümer** — alles davon, dazu das, was die Installation als *Ganzes*
   betrifft: **Export**, **Import**, der angezeigte Schlüsselwert und das
   Vergeben von Rollen. Ein Admin ohne Eigentümerrolle kann also keine
   Sicherung ziehen — das ist Absicht.
 
-Verwaltet wird in der Karte **„Zugänge"** im Systembereich (nur für Admins
-sichtbar): anlegen, sperren und freigeben, Passwort zurücksetzen, Rolle
-wechseln, entfernen. Drei Regeln stehen serverseitig fest, nicht nur ausgegraut
+Verwaltet wird in der Karte **„Benutzer"** in den Einstellungen, Reiter
+„Benutzer" (nur für Admins sichtbar): anlegen, sperren und entsperren, Passwort
+zurücksetzen, Rolle wechseln, löschen. Drei Regeln stehen serverseitig fest, nicht nur ausgegraut
 in der Oberfläche:
 
 - **Ein Admin kommt nicht an seinesgleichen.** An einen anderen Admin oder den
@@ -623,17 +642,18 @@ in der Oberfläche:
 
 Sperren wirkt sofort: die laufende Sitzung fällt, die Anmeldung nennt den
 Grund — aber erst nach dem richtigen Passwort, sonst wäre die Meldung ein
-Werkzeug zum Durchprobieren von Namen. Offene Einladungs- und Rücksetzlinke
-dieses Zugangs verfallen dabei mit.
+Werkzeug zum Durchprobieren von Namen. Offene Einladungslinks und Links zum
+Zurücksetzen dieses Benutzers verfallen dabei mit.
 
-#### Einen Zugang anlegen — die Wahl steht im Formular
+#### Einen Benutzer anlegen — die Wahl steht im Formular
 
 Neben dem Namensfeld steht ein Auswahlfeld mit zwei Möglichkeiten. **Es
 bestimmt, was der Knopf daneben tut, und welche Felder überhaupt erscheinen.**
 
-**„Er wählt sein Passwort selbst" — die Vorgabe und der empfohlene Weg.** Es
-gibt kein Passwortfeld; der Knopf heißt **„+ Anlegen und Link"**. Der Zugang
-entsteht **ohne** Passwort, und darunter erscheint ein Link. Den kopierst du
+**„Benutzer wählt Passwort selbst (per Link)" — die Vorgabe und der empfohlene
+Weg.** Es gibt kein Passwortfeld; der Knopf heißt **„+ Anlegen und Link
+erzeugen"**. Der Benutzer entsteht **ohne** Passwort, und darunter erscheint ein
+Link. Den kopierst du
 und gibst ihn dem Betreffenden — mündlich, per Zettel, per Messenger. Wer ihn
 öffnet, wählt sein Passwort selbst und ist danach gleich angemeldet. **Du
 erfährst das Passwort nie.** In der Liste steht bei ihm „noch kein Passwort",
@@ -644,11 +664,11 @@ Passwortfeld, und der Knopf heißt nur noch **„+ Anlegen"**. Der kürzere Weg,
 wenn der andere danebensteht. Wechselst du zurück, verschwindet das Feld
 wieder — und was darin stand, wird geleert.
 
-> **Der Link ist ein Passwortersatz auf Zeit.** Er gilt **sieben Tage** und
-> **genau einmal**; wer ihn in dieser Zeit hat, kommt herein. Nach der
-> Weitergabe steht er in dem Verlauf, über den du ihn geschickt hast — gib ihn
-> nur dem, für den er ist. Er wird **nur ein einziges Mal angezeigt**; ist er
-> weg, erzeugst du einen neuen.
+> **Wer den Link hat, kann das Passwort setzen.** Er gilt **sieben Tage** und
+> **einmal**; wer ihn in dieser Zeit hat, kommt herein. Nach der Weitergabe
+> steht er in dem Verlauf, über den du ihn geschickt hast — gib ihn nur der
+> richtigen Person. Er wird **nur einmal angezeigt**; ist er weg, erzeugst du
+> einen neuen.
 
 **Und eine zweite Frist daneben: ab dem ersten Öffnen bleiben
 fünfzehn Minuten.** Die sieben Tage sind die Frist fürs *Lesen der Mail*, nicht
@@ -660,24 +680,26 @@ geladen werden**; nur der *erste* Aufruf startet die Uhr. Wer die Frist
 verstreichen lässt, holt sich einen neuen Link. Der Zugang selbst bleibt dabei
 stehen und trägt weiter „noch kein Passwort".
 
-Das Feld daneben ist **freiwillig**: trägst du eine **E-Mail-Adresse** ein,
+Das Feld daneben ist **optional**: trägst du eine **E-Mail-Adresse** ein,
 schickt die Installation den Link zusätzlich dorthin — vorausgesetzt, ein Mailzugang
 ist eingerichtet (siehe **Mailversand**). Der Link steht trotzdem zum Kopieren
 da, auch wenn der Versand fehlschlägt. **Ändern darf die Adresse danach allein
-der Betreffende selbst**, im Systembereich unter „Zugang": sie entscheidet,
-wohin sein nächster Rücksetzlink geht, und das gehört nicht in fremde Hand.
+der Betreffende selbst**, in den Einstellungen unter „Mein Konto": sie
+entscheidet, wohin sein nächster Link zum Zurücksetzen geht, und das gehört
+nicht in fremde Hand.
 
-> **WAS DIE KARTE „ZUGANG" DAZU SAGT, RICHTET SICH DANACH, WAS GERADE GILT.**
-> Ist die **Selbstanmeldung aus**, steht am Feld *(freiwillig)*, und darunter:
-> *„Wird für den Einladungs- oder Rücksetzlink per Mail gebraucht und für die
-> Testmail im Mailversand. Ohne sie steht der Link wie immer zum Kopieren
-> bereit."* **Ist sie an, steht dort *(wird gebraucht)*** und der Satz, dass
-> ohne Adresse keine Bestätigungsmail ankommt.
+> **WAS DIE KARTE „MEIN KONTO" DAZU SAGT, RICHTET SICH DANACH, WAS GERADE GILT.**
+> Ist die **Registrierung aus**, steht am Feld *(optional)*, und darunter: *„An
+> diese Adresse kann ein Link zum Zurücksetzen des Passworts geschickt werden.
+> Ohne Adresse gibt der Admin den Link persönlich weiter."* **Ist sie an, steht
+> dort *(erforderlich)*** und der Satz, dass die Adresse erforderlich ist,
+> solange die Registrierung erlaubt ist.
 >
-> **DER WEG ÜBER DEN SERVER STEHT NUR BEIM EIGENTÜMER.** Er ist der Einzige,
-> der in der Regel auch am Wirt sitzt; wer dort nicht hinkommt, liest
-> stattdessen, dass er sich an den Admin wendet. *Ein Befehl, den man nicht
-> ausführen kann, ist keine Hilfe, sondern eine Auskunft über den Betrieb.*
+> **DER WEG ÜBER DEN SERVER STEHT NUR BEIM EIGENTÜMER**, im Kasten „Auf dem
+> Server" (siehe den Abschnitt „Auf dem Server" unten). Er ist der Einzige, der
+> in der Regel auch am Wirt sitzt; wer dort nicht hinkommt, liest stattdessen,
+> dass ein Admin einen Link zum Zurücksetzen erzeugen kann. *Ein Befehl, den man
+> nicht ausführen kann, ist keine Hilfe, sondern eine Auskunft über den Betrieb.*
 > **Die Vorgabe „mindestens 10 Zeichen" steht am Passwortfeld** und nicht im
 > Absatz unter der Adresse, für die sie nicht gilt.
 
@@ -718,12 +740,12 @@ Schema und Rechnername sind Pflicht, ein Pfad ist erlaubt, alles ab `?` und `#`
 wird abgewiesen. **Ein unbrauchbarer Wert bricht den Start nicht ab**: er wird
 im Protokoll gemeldet, und der Browserweg trägt weiter.
 
-**Warum in der `.env` und nicht im Systembereich**, obwohl es dort bequemer
+**Warum in der `.env` und nicht in den Einstellungen**, obwohl es dort bequemer
 wäre: dieselbe Linie wie `HINTER_PROXY` — die Einstellung entscheidet über
 Netzwerkvertrauen, nicht über eine Vorliebe. Ein Admin kommt nicht an einen
 anderen Admin; dürfte er die öffentliche Adresse setzen, zeigte später jede
-verschickte Mail auf seinen Server. Der Systembereich **zeigt** sie, er setzt
-sie nicht.
+verschickte Mail auf seinen Server. Die Einstellungen **zeigen** sie, sie
+setzen sie nicht.
 
 **ist sie Pflicht — für den Versand, nicht für den Start.** Ohne sie
 verschickt die Installation keine Links: der Server wüsste nicht, worauf sie zeigen
@@ -732,20 +754,20 @@ deswegen **nicht** ab, und es fehlt auch nichts — die Links stehen wie bisher
 zum Kopieren da. Die Karte „Mailversand" markiert den fehlenden Wert rot und
 nennt den Grund.
 
-**Und ist sie die Voraussetzung der Selbstanmeldung — nicht eine
+**Und ist sie die Voraussetzung der Registrierung — nicht eine
 Empfehlung daneben, sondern baulich:** der Schalter lässt sich ohne diesen Wert
 gar nicht erst einschalten. Der Grund ist nachgesehen und nicht angenommen: die
 **Testmail enthält keinen Link** und geht auch ohne die öffentliche Adresse
 anstandslos durch. Die Marke des Tests könnte also grün sein, während jede
 Bestätigungsmail ohne brauchbaren Link hinausginge — und genau dann liefe die
-Selbstanmeldung ins Leere. Wer sie nicht setzt, legt Zugänge weiterhin selbst
+Registrierung ins Leere. Wer sie nicht setzt, legt Benutzer weiterhin selbst
 an; es fehlt nichts.
 
 #### Mailversand
 
-**E-Mail ist eine Bequemlichkeit, keine Voraussetzung.** Ohne Mailzugang läuft
-Kriterion vollständig, rein offline, und es fehlt keine Funktion: Einladungs-
-und Rücksetzlinks stehen im Verwaltungsbereich zum Kopieren.
+**E-Mail ist optional.** Ohne Mailzugang läuft Kriterion vollständig, rein
+offline, und es fehlt keine Funktion: Einladungslinks und Links zum
+Zurücksetzen stehen in den Einstellungen zum Kopieren.
 **Wer keinen Mailzugang einträgt, verliert nichts.** Mit Mailzugang
 gehen dieselben Links *zusätzlich* per Mail hinaus; schlägt das fehl, bricht
 nichts ab — im Kasten steht „Versand fehlgeschlagen" samt Grund, und der Link
@@ -765,8 +787,8 @@ Schlüsselwert sehen darf, gewinnt hier nichts dazu. Was der Admin bekommt, ist
 die Auskunft an der Stelle, an der sie ihn angeht: neben dem Link steht, ob
 etwas hinausging und warum nicht.
 
-**Die Karte „Mailversand" zeigt, der Dialog stellt ein.** Im Systembereich
-unter **Zugänge** steht die Karte und sagt in fünf Zeilen, woran man ist:
+**Die Karte „Mailversand" zeigt, der Dialog stellt ein.** In den Einstellungen
+unter **Benutzer** steht die Karte und sagt in fünf Zeilen, woran man ist:
 
 | Zeile | |
 |---|---|
@@ -811,46 +833,46 @@ Drei Hinweise, an denen die meisten Versuche scheitern:
 - **Die Absenderadresse muss zum Konto gehören** — über GMX lässt sich nicht
   als fremde Adresse senden.
 
-Und der Grund für die Vorlagen: **immer über den SMTP-Zugang eines Anbieters,
-nie unmittelbar vom Hausanschluss.** Dort fehlen rDNS und SPF/DKIM, und die
+Und der Grund für die Vorlagen: **immer über den SMTP-Server eines Anbieters,
+nie unmittelbar vom eigenen Internetanschluss.** Dort fehlen rDNS und SPF/DKIM, und die
 Mail landet im besten Fall im Spam. *Dieser Satz steht auch im Dialog — aber
 nur dort, wo er gilt: bei „Eigener Server".*
 
 **Der Testmail-Knopf geht ausschließlich an die Adresse deines eigenen
-Zugangs.** Es gibt kein Adressfeld daneben, und das ist Absicht: ein Knopf, der
+Kontos.** Es gibt kein Adressfeld daneben, und das ist Absicht: ein Knopf, der
 an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer
-Anmeldung. Hast du für deinen Zugang keine Adresse hinterlegt, sagt die Absage
-das und nennt den Weg — Systembereich, Karte „Zugang".
+Anmeldung. Hast du für dein Konto keine Adresse hinterlegt, sagt die Absage das
+und nennt den Weg — Einstellungen, Karte „Mein Konto".
 
 Antwortet der Mailserver nicht, **bricht der Versuch nach zwanzig Sekunden ab**
 und die Antwort kommt trotzdem. Der Token entsteht dabei **zuerst**: der Link
 steht in jedem Fall da, egal was der Mailserver sagt.
 
-#### Selbstanmeldung
+#### Registrierung
 
-**Niemand kommt durch die Selbstanmeldung herein, ohne dass ein Admin ihn
+**Niemand kommt durch die Registrierung herein, ohne dass ein Admin ihn
 hereinlässt.** Das ist der Satz, unter dem alles Weitere steht. Es gibt keine
 Betriebsart, in der ein geklickter Link allein freischaltet — Kriterion ist ein
 Archiv für eine kleine Gruppe, kein Forum.
 
-**Und die Installation läuft ohne all das vollständig.** Ist die Selbstanmeldung aus,
-legt eben nur der Admin Zugänge an. Es fehlt keine Funktion, und der Schalter
+**Und die Installation läuft ohne all das vollständig.** Ist die Registrierung aus,
+legt eben nur der Admin Benutzer an. Es fehlt keine Funktion, und der Schalter
 steht ab Werk auf **aus**.
 
 **Der Weg, vom Formular bis zum Passwort:**
 
 1. **Anfrage.** Auf der Anmeldeseite steht unter „Anmelden" ein zweiter Knopf:
-   **„Zugang anfragen"**, darüber die Frage „Noch keinen Zugang?". Das Formular
-   dahinter hat zwei Felder — Wunschname und E-Mail-Adresse — und **kein
+   **„Zugang beantragen"**, darüber die Frage „Noch keinen Zugang?". Das Formular
+   dahinter hat zwei Felder — Benutzername und E-Mail-Adresse — und **kein
    Passwortfeld**.
 2. **Bestätigungsmail.** Die Installation schickt einen kurzen Link an die
    angegebene Adresse. Er **öffnet keinen Zugang und setzt kein Passwort**; wer
    ihn anklickt, sagt nur „ja, das bin ich". Er gilt **24 Stunden**.
 3. **Warteschlange.** Erst die **bestätigte** Anfrage erscheint beim Admin, in
-   der Karte **„Anfragen"** im Systembereich. Unbestätigte verfallen nach 24
+   der Karte **„Anfragen"** in den Einstellungen. Unbestätigte verfallen nach 24
    Stunden und werden nie angezeigt. **Die Karte steht dort immer** — auch wenn
-   die Selbstanmeldung aus ist; in ihr sitzt schließlich der Schalter.
-4. **Freischalten oder ablehnen.** Beim Freischalten entsteht ein Zugang mit
+   die Registrierung aus ist; in ihr sitzt schließlich der Schalter.
+4. **Freischalten oder ablehnen.** Beim Freischalten entsteht ein Benutzer mit
    der Rolle **Benutzer** — nie mit einer anderen — samt Einladungslink; beim
    Ablehnen verschwindet die Zeile, und es entsteht nichts.
 5. **Passwort setzen.** Über den Einladungslink, auf dem bekannten Weg: sieben
@@ -872,9 +894,9 @@ der Schalter an** — die Karte sagt es in einer roten Zeile. Ein Schalter, der
 sich von selbst umlegt, stünde anders da, als ihr ihn gestellt habt, und
 niemand wüsste, wann das passiert ist.
 
-**Was die Selbstanmeldung nicht preisgibt:** die Antwort auf eine Anfrage sieht
+**Was die Registrierung nicht preisgibt:** die Antwort auf eine Anfrage sieht
 **immer gleich aus** — ob der Name frei war, ob er vergeben ist, ob die Adresse
-schon an einem Zugang hängt, ob gerade zwanzig Anfragen offen sind oder ob der
+schon an einem Konto hängt, ob gerade zwanzig Anfragen offen sind oder ob der
 Schalter aus ist. Andernfalls wäre das Formular ein bequemes Werkzeug, Namen und
 Adressen durchzuprobieren, und zwar ohne Passwort davor. Dazu greift dieselbe
 **Anmeldebremse** wie an der Anmeldung, und höchstens **zwanzig** Anfragen
@@ -886,24 +908,26 @@ verfällt von selbst.
 
 #### Meine Sitzungen
 
-Die Karte **„Meine Sitzungen"** im Systembereich steht **jedem**, auch ohne
-Rolle. Sie zeigt, wo dieser Zugang überall angemeldet ist — wann angemeldet,
-wann zuletzt gesehen, und welche davon die gerade benutzte ist. Der Knopf
-**„Alle anderen beenden"** wirft alle übrigen hinaus; die eigene bleibt.
+Die Karte **„Meine Sitzungen"** in den Einstellungen steht **jedem**, auch ohne
+Rolle. Sie zeigt, wo dein Konto überall angemeldet ist — wann angemeldet, wann
+zuletzt gesehen, und welche davon die gerade benutzte ist. Der Knopf **„Alle
+anderen Sitzungen beenden"** wirft alle übrigen hinaus; die eigene bleibt.
 
 **Was die Karte nicht kann, und sie sagt es selbst:** sie kennt **kein Gerät**.
 Kriterion speichert weder IP-Adresse noch Browserkennung — das ist Absicht und
 passt zu „läuft im eigenen Netz". Was sie beantwortet, ist die Frage, die
 zählt: *stehen hier mehr Anmeldungen, als ich erwarte?* Wenn ja, ist der Knopf
 daneben die Antwort. **Ein Admin sieht hier nur seine eigenen Anmeldungen**,
-nie fremde; wer einen fremden Zugang aussperren muss, sperrt ihn.
+nie fremde; wer ein fremdes Konto aussperren muss, sperrt es.
 
-**Entfernen entwertet, es löscht nicht.** Die Benutzerzeile bleibt mit ihrer
-Nummer stehen, der Name wird freigegeben, und die Beiträge bleiben sichtbar —
-sie tragen künftig „Gelöschter Benutzer 7". Zwei Häkchen im Dialog nehmen auf
-Wunsch die Inhalte mit: *seine Einträge löschen* (nimmt über die Kaskade auch
-fremde Kommentare, Bewertungen und Testtage daran mit — der Dialog nennt die
-Zahlen) und *seine Beiträge in fremden Einträgen löschen*. Sitzungen, offene
+**Einen Benutzer löschen gibt den Namen frei; die Beiträge bleiben.** Die
+Benutzerzeile bleibt mit ihrer Nummer stehen, der Name wird frei, und die
+Beiträge bleiben sichtbar — sie tragen künftig „Gelöschter Benutzer 7". Das
+Fenster fragt **einmal**, mit zwei Häkchen, die auf Wunsch die Inhalte
+mitnehmen: *Einträge von „…" mitlöschen* (nimmt über die Kaskade auch fremde
+Kommentare, Bewertungen und Testtage daran mit — das Fenster nennt die Zahlen)
+und *Beiträge in Einträgen anderer Benutzer mitlöschen*. **„Abbrechen" bricht
+ab**, ohne dass etwas geschieht; danach kommt die zweite Bestätigung. Sitzungen, offene
 Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
 `geloescht-<nummer>` ist als Benutzername gesperrt.
 
@@ -911,25 +935,25 @@ Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
 
 **Was die Installation als Ganzes trifft, wird ein zweites Mal bestätigt.** Vor dem
 Export, dem Import, dem Vergeben einer Rolle, dem Setzen eines fremden
-Passworts, dem Erzeugen eines Links, dem Entfernen eines Zugangs und dem
+Passworts, dem Erzeugen eines Links, dem Löschen eines Benutzers und dem
 **Setzen des Mailzugangs** fragt Kriterion nach **deinem eigenen Passwort**, in
 einem Fenster, das daneben schreibt, warum es fragt.
 
 **Wogegen das schützt, ist nicht der Fremde:** der kommt ohne Passwort gar
 nicht herein. Es schützt gegen eine **fremde offene Anmeldung** — einen
 Bildschirm, der unbeaufsichtigt stehen blieb, einen Rechner, an dem jemand
-anderes sitzt. Beim Ändern des eigenen Zugangs gilt dasselbe Prinzip.
+anderes sitzt. Beim Ändern des eigenen Kontos gilt dasselbe Prinzip.
 
 Die Bestätigung gilt **genau einmal** und **nur für die eine Handlung, für die
-du sie gegeben hast**. Wer drei Zugänge nacheinander entfernt, tippt dreimal.
+du sie gegeben hast**. Wer drei Benutzer nacheinander löscht, tippt dreimal.
 Das ist der Preis, und er ist gewollt. Sie ist außerdem an **die Anmeldung**
-gebunden, an der du gerade sitzt: eine zweite offene Anmeldung desselben
-Zugangs muss selbst bestätigen.
+gebunden, an der du gerade sitzt: eine zweite offene Sitzung desselben
+Kontos muss selbst bestätigen.
 
-**Was ausdrücklich nicht dahinter liegt:** einen Zugang **sperren oder
-freigeben** (das ist umkehrbar), einen Zugang **anlegen** (er ist neu und nimmt
-niemandem etwas), der eigene Zugang (dort ist das bisherige Passwort ohnehin
-Pflicht), die **Testmail** (sie geht an die eigene Adresse und übergibt nichts)
+**Was ausdrücklich nicht dahinter liegt:** einen Benutzer **sperren oder
+entsperren** (das ist umkehrbar), einen Benutzer **anlegen** (er ist neu und
+nimmt niemandem etwas), das eigene Konto (dort ist das bisherige Passwort
+ohnehin Pflicht), die **Testmail** (sie geht an die eigene Adresse und übergibt nichts)
 und alles am Eintrag. **Ein zweiter Faktor ist es nicht** — gefragt
 wird dasselbe Passwort noch einmal.
 
@@ -938,10 +962,10 @@ derselben Adresse ist für einige Minuten Ruhe.
 
 #### Das Sicherheitsprotokoll
 
-Der Systembereich zeigt dem **Eigentümer** eine Karte
+Die Einstellungen zeigen dem **Eigentümer** eine Karte
 **„Sicherheitsprotokoll"**. Sie hält fest, **wer Zugang hatte und wer die
 Installation als Ganzes angefasst hat**: Anmeldungen (gelungen und gescheitert),
-angelegte, gesperrte, freigegebene und entfernte Zugänge, vergebene Rollen,
+angelegte, gesperrte, entsperrte und gelöschte Benutzer, vergebene Rollen,
 gesetzte Passwörter, erzeugte und eingelöste Links, Export, Import,
 Sicherung — und den **Schlüsselwechsel**. Der trägt weder Ziel noch
 Merkmal und keinen Handelnden: gewechselt wird auf dem Wirt. **Die Zeile nennt,
@@ -954,9 +978,9 @@ keine Note. Dieselbe Trennlinie wie überall — was die *Installation* betrifft
 was jemand *gesagt* hat. Ebenso wenig stehen dort **IP-Adresse oder
 Browserkennung**: Kriterion speichert beides nicht, und dabei bleibt es.
 
-Ein entfernter Zugang erscheint auch hier als „Gelöschter Benutzer 7" — der
+Ein gelöschter Benutzer erscheint auch hier als „Gelöschter Benutzer 7" — der
 Name wird nirgends aufbewahrt. Und ein Vorgang über den Server
-(`node zugang.js …`) trägt keinen Handelnden; die Zeile sagt das ausdrücklich.
+(`node zugang.js …`) trägt als Handelnden „per Kommandozeile am Server".
 
 **Die Zeilen bleiben 180 Tage stehen** und werden danach von selbst geräumt.
 **Einen anderen Weg hinaus gibt es nicht** — ein Sicherheitsprotokoll, das sich
@@ -964,14 +988,14 @@ wegräumen lässt, wäre keins. Das Wort meint hier nicht `docker compose logs`;
 das heißt in dieser Anleitung weiterhin schlicht *Protokoll*.
 
 **Über der Liste steht eine Reihe von Ansichten**, jede mit ihrer
-Zahl: **Alle · Gescheitert · Anmeldungen · Zugänge · Zweiter Faktor ·
-Bestand**. Die Karte zeigt die **hundert jüngsten** Zeilen — mit einer Ansicht
+Zahl: **Alle · Gescheitert · Anmeldungen · Benutzer · Zweiter Faktor ·
+Datenbank**. Die Karte zeigt die **hundert jüngsten** Zeilen — mit einer Ansicht
 sind es die hundert jüngsten **dieser Art**, und damit findet man die
 gescheiterten Versuche auch dann, wenn viel anderes dazwischensteht. *„Gescheitert"
 umfasst die gescheiterte Anmeldung und die gescheiterte zweite Bestätigung: in
 beiden Fällen konnte jemand an der Tür nicht belegen, wer er ist.*
-**Die Namen in den Zeilen sind anklickbar** und springen zur Karte „Zugänge".
-Ein getippter Name, der an keinen Zugang traf, steht als „unbekannter Name" da
+**Die Namen in den Zeilen sind anklickbar** und springen zur Karte „Benutzer".
+Ein getippter Name, der an kein Konto traf, steht als „unbekannter Name" da
 und bleibt Text — er wird nirgends gespeichert.
 
 ### Wer was darf
@@ -1038,7 +1062,7 @@ Eintragsverfassers wiederholte der Name nur, was oben am Eintrag ohnehin
 steht, und die Linkliste ist eine Liste vieler kurzer Zeilen — ein Name an
 jeder wäre Rauschen. An der einen fremden ist er die Auskunft: *hier hat
 jemand anderes etwas beigesteuert.*
-**Umgekehrt gelesen heißt das:** steht bei mehreren Zugängen kein Name an
+**Umgekehrt gelesen heißt das:** steht bei mehreren Benutzern kein Name an
 einer solchen Zeile, stammt sie vom Verfasser des Eintrags. Wer mit dem Zeiger
 über der Zeile stehen bleibt, sieht zusätzlich das Datum: „Eingetragen von
 … am …" bzw. „Hochgeladen von … am …". Auf einem Berührbildschirm gibt es kein
@@ -1074,7 +1098,7 @@ einzige Stelle, an der Kriterion einen Eingriff festhält; einen
 
 Der Titel auf der Anmeldeseite ist für jeden sichtbar, der die Adresse aufruft.
 Ein aussagekräftiger Name verrät dort schon, was im Bestand liegt. Deshalb gibt
-es zwei, beide im Systembereich einstellbar:
+es zwei, beide in den Einstellungen einstellbar:
 
 - **Titel vor der Anmeldung** — zurückhaltend wählen (Vorgabe „Bewertungskatalog")
 - **Titel nach der Anmeldung** — die eigentliche Bezeichnung (Vorgabe „Model Bewertungen")
@@ -1233,7 +1257,7 @@ es zwei, beide im Systembereich einstellbar:
   Kopfzeile den Inhalt, etwa „Kommentare (3)". Verschoben wird nur innerhalb des
   jeweiligen Bereichs — die drei Blöcke rechts untereinander, die vier unten
   untereinander. Anordnung und Einklappzustand gelten für alle Einträge
-  gemeinsam und liegen auf dem Server; zurückgesetzt wird im Systembereich.
+  gemeinsam und liegen auf dem Server; zurückgesetzt wird in den Einstellungen.
 - **Tags**: Marken oben mit ✕, darunter eine Wolke aller vorhandenen Tags über
   drei Zeilen. Ein Klick in der Wolke vergibt, ein erneuter nimmt zurück; das ✕
   an der Marke bleibt daneben bestehen — zwei Wege für zwei Absichten.
@@ -1247,9 +1271,11 @@ es zwei, beide im Systembereich einstellbar:
   abgesichert ist.
 - **Bildausschnitt der Vorschau**: Der Schalter „Ausschnitt" über dem Bild legt
   je Foto fest, welcher Teil auf der quadratischen Karte zu sehen ist. Ein
-  Rahmen zeigt dabei den künftigen Ausschnitt. Ein Schieber daneben zieht ihn
-  **enger** — von „so weit wie das Bild hergibt" bis viermal so nah. Ziehen
-  setzt den Punkt, der Schieber die Weite; beides landet in derselben Zeile.
+  Rahmen zeigt dabei den künftigen Ausschnitt. **Mit der Maus ziehst du den
+  Ausschnitt als Rechteck auf** — Mitte und Zoom in einer Geste; ein Klick
+  setzt nur den Punkt. Ein Schieber daneben zieht ihn **enger** — von „so weit
+  wie das Bild hergibt" bis viermal so nah — und bleibt der Weg für den Finger
+  und die Feinarbeit. Beides landet in derselben Zeile.
   **Das Original bleibt unangetastet** — geschnitten wird ausschließlich die
   kleine Vorschau, und zwar aus dem Original neu, sobald du speicherst. *Der
   Ausschnitt ist deshalb jederzeit änderbar; die Kachel ist danach so scharf,
@@ -1320,33 +1346,35 @@ es zwei, beide im Systembereich einstellbar:
   stünde der falsche Kasten offen. *Versteckt wird nichts: was jemand
   eingetragen hat, ist immer einen Klick entfernt.*
   **Der Potenzialkasten ist leer, bis der Admin Kriterien dafür anlegt** — in
-  der Karte *Potenzial: Kriterien* im Systembereich. Bis dahin sieht der
+  der Karte *Potenzial: Kriterien* in den Einstellungen. Bis dahin sieht der
   Eintrag aus wie zuvor. **Das Wort „Potenzial" steht im Vokabular** und lässt
   sich umbenennen.
   *Eine Ausnahme aus Rücksicht auf den Bestand: trägt ein ungetesteter Eintrag
   schon Bewertungssterne, steht der Bewertungskasten offen. Vorhandene Daten
   schlagen die Regel.*
 - **Bewertung**: gemeinsame Kriterien, feste Skala 1–5. **Die Sterne sind die
-  eigene Bewertung**; sind mehrere Zugänge eingerichtet, steht rechts daneben
+  eigene Bewertung**; sind mehrere Benutzer eingerichtet, steht rechts daneben
   gedämpft der Schnitt über alle, im Blockkopf die Gesamtzahl. **Hat dort noch
   niemand bewertet, steht ein Strich** — die Spalte hat ihre Breite von
   Anfang an, damit die Sterne beim ersten Stern nicht nach links springen.
-  **Wie viele Stimmen darin stecken, steht in Klammern daneben — aber erst ab
-  zweien.** *„⌀ 4,0 (1)" wäre eine Auskunft über nichts: dass jemand bewertet
+  **Wie viele Bewertungen darin stecken, steht in Klammern daneben — aber erst
+  ab zweien.** *„⌀ 4,0 (1)" wäre eine Auskunft über nichts: dass jemand bewertet
   hat, sagt schon der Schnitt.* Die vollständige Angabe steht am Überfahren. Der Gesamtschnitt entsteht **erst je Kriterium, dann über die
-  Kriterien**. **Hinter den eigenen fünf Sternen steht ein ×, sobald in dieser
-  Zeile ein Stern gesetzt ist** — ein Tipp darauf entfernt ihn, und das gilt in
-  beiden Kästen. *Dass es der eigene ist, sagt der Platz: das × sitzt an den
-  eigenen Sternen, die Durchschnittszahl daneben bleibt unberührt.* **Einen
-  Knopf, der alle Kriterien auf einmal leert, gibt es nicht** — wer alles
-  zurücksetzen will, tippt drei- bis fünfmal, bei einer Handlung, die selten
-  ist und sich durch erneutes Setzen ohnehin heilt.
+  Kriterien**. **Ganz rechts in der Zeile, hinter der Durchschnittszahl, steht
+  ein runder Rücksetzknopf, sobald in dieser Zeile ein eigener Stern gesetzt
+  ist** — ein Tipp darauf entfernt die eigenen Sterne, in beiden Kästen. *Die
+  Sterne aller Zeilen beginnen an derselben Stelle, ob die Zeile den Knopf
+  trägt oder nicht; die Durchschnittszahl bleibt unberührt.* **Die Meldung
+  darunter trägt „Rückgängig"** — ein Klick darauf schreibt den alten Wert
+  zurück. **Einen Knopf, der alle Kriterien auf einmal leert, gibt es nicht** —
+  wer alles zurücksetzen will, tippt drei- bis fünfmal, bei einer Handlung, die
+  selten ist und sich durch erneutes Setzen ohnehin heilt.
   **Kriterien können verschieden schwer wiegen.** Ist an einem Kriterium ein
   Gewicht eingestellt, das von 1 abweicht, steht `×1,5` hinter seinem Namen,
   und im Blockkopf steht neben der Zahl das Wort „gewichtet". Stehen alle
   Gewichte auf 1 — so, wie eine frische Installation startet —, sieht der Block aus
-  wie zuvor. Eingestellt wird das Gewicht im Systembereich; **der
-  Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.**
+  wie zuvor. Eingestellt wird das Gewicht in den Einstellungen; **der
+  Durchschnitt bleibt in jedem Fall zwischen 1 und 5.**
   **Ein Klick auf die Zahl im Blockkopf öffnet die Rechnung — die dieses
   Eintrags, kein erfundenes Beispiel.** Der Kasten zeigt je
   bewertetem Kriterium eine Zeile mit Note, Gewicht und Produkt, darunter
@@ -1368,14 +1396,14 @@ es zwei, beide im Systembereich einstellbar:
   Server. Zwei Rechenwege für dieselbe Zahl liefen früher oder später
   auseinander.*
   **Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile.** Ab zwei
-  Zugängen findet der **Admin** in jedem der beiden Kastenköpfe den Knopf
-  **„Stimmen"**: er öffnet eine Ansicht mit den Namen je Kriterium, und dort
+  Benutzern findet der **Admin** in jedem der beiden Kastenköpfe den Knopf
+  **„Wer hat bewertet"**: er öffnet eine Ansicht mit den Namen je Kriterium, und dort
   lässt sich eine fremde Bewertung **entfernen** — ändern lässt sie sich
   nicht. Für alle
   anderen gibt es den Knopf nicht, und der Server liefert ihnen die Namen auch
   nicht aus.
   **Angelegt, umbenannt, sortiert und gelöscht werden Kriterien
-  ausschließlich im Systembereich und ausschließlich vom Admin** — in zwei
+  ausschließlich in den Einstellungen und ausschließlich vom Admin** — in zwei
   Karten, eine je Kasten. **Zu welchem Kasten ein Kriterium gehört, steht mit
   dem Anlegen fest** und lässt sich danach nicht ändern: ein Wechsel trüge
   vergebene Sterne von einem Durchschnitt in den anderen, und zwar still.
@@ -1389,7 +1417,7 @@ es zwei, beide im Systembereich einstellbar:
   überall die vergebenen Sterne mit — eine globale Folge, die nicht eine
   Zeigerbreite neben dem Sterne-Widget liegen sollte. Anlegen und Aufräumen
   gehören an dieselbe Stelle.
-  Im Systembereich steht daneben, in wie vielen Einträgen das Kriterium
+  In den Einstellungen steht daneben, in wie vielen Einträgen das Kriterium
   verwendet wird.
 - **„Abgelehnt" ist eine Aussage und kein bloßes Häkchen.** Beim
   Einschalten öffnet sich **sofort** ein Feld für den Grund — eine Zeile,
@@ -1440,13 +1468,13 @@ es zwei, beide im Systembereich einstellbar:
   Liste **abgeschnitten**, nicht scrollbar — der Knopf darunter klappt sie auf.
   Bewusst ohne Favicons — die müssten von fremden Servern geladen werden. **Was keine Adresse ist, wird zur Suche**: ein Wort,
   eine Normbezeichnung, eine Artikelnummer bleibt im Rohzustand stehen und führt
-  beim Klick zum Startanbieter. Solche Zeilen tragen rechts eine
-  Lupe statt des Pfeils und nennen unter dem Text die Anbieter, bei denen sich
-  suchen lässt — der Startanbieter zuerst, dahinter bis zu drei weitere. Jeder
-  Name ist ein eigenes Klickziel: ein Klick darauf sucht bei genau diesem
-  Anbieter. Gespeichert wird
-  nie eine fertige Suchadresse — ein Anbieterwechsel gilt deshalb rückwirkend
-  für alle vorhandenen Suchzeilen.
+  beim Klick zur Standard-Suchmaschine. Solche Zeilen tragen rechts eine
+  Lupe statt des Pfeils und nennen unter dem Text die Suchmaschinen, bei denen
+  sich suchen lässt — die Standard-Suchmaschine zuerst, dahinter bis zu drei
+  weitere. Jeder Name ist ein eigenes Klickziel: ein Klick darauf sucht bei
+  genau dieser Suchmaschine. Gespeichert wird nie eine fertige Suchadresse —
+  ein Wechsel der Suchmaschine gilt deshalb rückwirkend für alle vorhandenen
+  Suchzeilen.
 - Kommentare lassen sich nachträglich bearbeiten und löschen.
 - Löschen von Eintrag, Foto, Video, Kommentar, Link, Datei und Testtag jeweils
   mit Rückfrage. Beim Eintrag wird benannt, was dranhängt — **Fotos und Videos
@@ -1460,19 +1488,20 @@ es zwei, beide im Systembereich einstellbar:
   wie eine volle Exportdatei, nur mit einem Eintrag — samt Fotos, Videos,
   Dateien und Kommentarbildern.
 
-**Systembereich** (Zahnrad in der Kopfzeile)
+**Einstellungen** (Zahnrad in der Kopfzeile)
 
-**Er steht in fünf Abschnitten, und jeder hat eine eigene Adresse.** Neunzehn
-Karten in einer Reihe wären auf dem Telefon eine einzige lange Spalte. Die
+**Sie stehen in fünf Abschnitten, und jeder hat eine eigene Adresse.**
+Einundzwanzig Karten in einer Reihe wären auf dem Telefon eine einzige lange
+Spalte. Die
 Abschnitte folgen der **Rechteleiter**: was jedem gehört, steht vorn, was nur
 der Eigentümer sieht, hinten.
 
 | Abschnitt | Adresse | Karten |
 |---|---|---|
-| **Persönlich** | `#/system/persoenlich` | Zugang, Meine Sitzungen, Darstellung |
-| **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Potenzialkriterien, Vokabular, Links, Suchanbieter, Papierkorb |
-| **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
-| **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildablage, Sicherung, Alte Sicherungen, Export und Import |
+| **Persönlich** | `#/system/persoenlich` | Mein Konto, Meine Sitzungen, Darstellung |
+| **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
+| **Benutzer** | `#/system/zugaenge` | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
+| **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildformate, Sicherung, Alte Sicherungen, Export und Import |
 | **Installation** | `#/system/installation` | Titel |
 
 **Die Adresse ist der ganze Punkt.** Ohne sie lässt sich keine Einstellung
@@ -1496,7 +1525,7 @@ Adresszeile zieht still auf die heutige nach.
 > wie eine gewöhnliche; sie zeigt trotzdem zehn Sitzungen und nicht fünf.
 >
 > **Eine Liste ist so hoch wie ihr Inhalt und rollt, wenn er den Deckel
-> übersteigt.** Tags, Kategorien, Zugänge und das Sicherheitsprotokoll können
+> übersteigt.** Tags, Kategorien, Benutzer und das Sicherheitsprotokoll können
 > beliebig lang werden; ohne Deckel zöge eine einzige Karte die Seite auf
 > fünfzig Zeilen.
 >
@@ -1507,7 +1536,7 @@ Adresszeile zieht still auf die heutige nach.
 > Bereich.*
 >
 > **In einem Fenster gilt kein Deckel** — die Glockentafel und die Liste der
-> gelöschten Zugänge zeigen, was da ist; das Fenster selbst rollt.
+> gelöschten Benutzer zeigen, was da ist; das Fenster selbst rollt.
 >
 > **Auf dem Telefon steht jede Karte allein in ihrer Zeile.** Dort hängt der
 > Deckel am Fenster: eine Liste nimmt höchstens gut sechs Zehntel der
@@ -1558,16 +1587,16 @@ Listen.
   **Welche Fassung welcher Bibliothek das rechnet, steht dort ausdrücklich
   nicht.** Ein Verfahrensname sagt, *wie* gerechnet wird; eine Versionsnummer
   sagt, *welche Lücke passt*.
-- **Zugänge** verwalten — anlegen mit Passwort **oder mit Link**, sperren,
-  Passwort zurücksetzen **direkt oder mit Link**, Rolle wechseln, entfernen;
-  siehe den Abschnitt „Rollen und Zugänge" oben *(Admin)*.
-  **Gelöschte Zugänge stehen in einem eigenen Fenster** hinter dem Knopf
-  „Gelöschte Zugänge (n)" — sie sind kein Zugang mehr, den man verwalten kann,
-  und die Liste bleibt damit kurz. *Der Löschdialog nennt auch den umkehrbaren
+- **Benutzer** verwalten — anlegen mit Passwort **oder mit Link**, sperren,
+  Passwort zurücksetzen **direkt oder mit Link**, Rolle wechseln, löschen;
+  siehe den Abschnitt „Rollen und Benutzer" oben *(Admin)*.
+  **Gelöschte Benutzer stehen in einem eigenen Fenster** hinter dem Knopf
+  „Gelöschte Benutzer (n)" — sie sind kein Konto mehr, das man verwalten kann,
+  und die Liste bleibt damit kurz. *Das Löschfenster nennt auch den umkehrbaren
   Weg: **sperren** weist die Anmeldung ab, lässt aber den Namen und den Bestand
   stehen und lässt sich jederzeit zurücknehmen.*
-- **Meine Sitzungen** — wo dieser Zugang überall angemeldet ist, mit „alle
-  anderen beenden" *(jeder; jeder sieht nur seine eigenen)*
+- **Meine Sitzungen** — wo dein Konto überall angemeldet ist, mit „Alle
+  anderen Sitzungen beenden" *(jeder; jeder sieht nur seine eigenen)*
 - **Sicherheitsprotokoll** *(Eigentümer)*: wer Zugang hatte und
   wer die Installation als Ganzes angefasst hat — 180 Tage lang, ohne einen Weg
   hinaus außer der Frist. Kein Änderungsverlauf, keine Adresse, keine
@@ -1630,14 +1659,14 @@ Listen.
   als dass sie zu diesem Eintrag gehören.
 - **Sicherung** *(Eigentümer)*: eine vollständige, verschlüsselte
   Kopie der Datenbank auf Knopfdruck — siehe den Abschnitt „Sichern" weiter
-  unten. Die Karte nennt den eingerichteten Zielort, das Unterverzeichnis
+  unten. Die Karte nennt den eingerichteten Sicherungsordner, den Unterordner
   darunter, wann zuletzt gesichert wurde und wie lange es dauern wird. **Ganz
-  oben steht, wie der Zielort liegt:** rot, wenn er im Projektverzeichnis
+  oben steht, wie der Sicherungsordner liegt:** rot, wenn er im Projektordner
   liegt, mit dem Grund daneben; grün, wenn er außerhalb liegt. Abgewiesen wird
   keine der beiden Lagen — eine Sicherung am falschen Ort ist besser als
   keine. **markiert sie außerdem jede Kopie rot, die noch mit dem
   alten Schlüssel verschlüsselt ist** — falls je gewechselt wurde.
-- **Alte Sicherungen** *(Eigentümer)*: **listet alle Sicherungen am Zielort und
+- **Alte Sicherungen** *(Eigentümer)*: **listet alle Sicherungen im Sicherungsordner und
   entfernt alte — ohne Shell auf dem Wirt.** Die Liste führt sie mit **Nummer,
   Datum, Alter und Größe**, jüngste zuerst; ab der sechsten Zeile rollt sie.
   **In der Liste wird nichts gelöscht** — an jeder Zeile steht nur, ob sie beim
@@ -1667,18 +1696,19 @@ Listen.
   „Zugang entfernen" mit dem Häkchen *Einträge mitnehmen* und der **ersetzende**
   Import.
 - **Darstellung**: Schriftgröße der Oberfläche in fünf Stufen von 80 % bis
-  120 %, Zeitleiste an oder aus, Standardanordnung der Blöcke — alles
-  serverseitig gespeichert
+  120 %, die Größe der Bilder im Bildstreifen der Detailansicht in fünf Stufen
+  von 60 bis 150 px, Zeitleiste an oder aus, Standardanordnung der Blöcke —
+  alles serverseitig gespeichert, persönlich, und es gilt auf jedem Gerät
 - **Links** *(jeder)*: Zahl der sichtbaren Zeilen, bevor aufgeklappt werden
   muss, und die Zahl der Anbieternamen unter einer Suchzeile — beides
   persönlich, jeder stellt es für sich ein.
-- **Suchanbieter** *(Admin)*: die Anbieter für Zeilen, die keine Adresse sind.
-  Sechs eingebaute
+- **Suchmaschinen** *(Admin)*: die Suchmaschinen für Zeilen, die keine
+  Adresse sind. Sechs eingebaute
   (Google, Bing, DuckDuckGo, Startpage, Brave Search, Ecosia) und bis zu drei
-  eigene mit Name und Vorlage, `%s` als Platzhalter — etwa für ein Forum oder
+  eigene mit Name und Such-URL, `%s` als Platzhalter — etwa für ein Forum oder
   einen Suchdienst im Heimnetz. Erlaubt sind ausschließlich `http://` und
-  `https://`. Ein Häkchen nimmt einen Anbieter in die Auswahl, **Start** macht
-  ihn zum Ziel des Zeilenklicks. Beides gilt für alle — der Admin kuratiert,
+  `https://`. Ein Häkchen nimmt eine Suchmaschine in die Auswahl, **Standard**
+  macht sie zum Ziel des Zeilenklicks. Beides gilt für alle — der Admin kuratiert,
   die Dichte bestimmt jeder für sich.
 - **Vokabular**: wie die Dinge heißen sollen (siehe unten) *(Admin)*
 - **Kategorien und Tags** umbenennen oder löschen, mit Angabe der betroffenen
@@ -1747,7 +1777,7 @@ Höhe frißt, die es gar nicht hat.
 
 Auf dem Telefon stehen dort **zwei Zeilen**: oben Marke, Titel, der Knopf zum
 Anlegen und ein Menüzeichen, darunter die Suche über die volle Breite. Alles
-Übrige — die Glocke, offene Aufgaben, Systembereich, wer angemeldet ist,
+Übrige — die Glocke, offene Aufgaben, Einstellungen, wer angemeldet ist,
 Abmelden — liegt **hinter dem Zeichen**.
 
 **Die Suche bleibt draußen**, weil sie auf einem kleinen Bildschirm das
@@ -1887,13 +1917,15 @@ Das ist kein neuer Gedanke, es ist der vorhandene: *ein Merkmal, ein Zeichen.*
   Finger keine Zerstörung mehr* — sie kann antippen und, nach kurzem Halten,
   verschieben, und sonst nichts. Mit der Maus bleibt das Kreuz an der Kachel, wo
   es war; dort gibt es kein Danebentippen.
-- **Die Vorschaureihe füllt die Breite.** Sie steht als Raster, das seine
-  Spalten selbst auszählt: passen fünf Kacheln hinein, stehen dort fünf; passen
-  nur vier, werden die vier größer. **Links und rechts bleibt derselbe Rand wie
-  überall auf der Seite**, und die Reihe endet bündig unter dem Bild darüber.
-  *Eine feste Kachelbreite ließe auf einem 360 Pixel breiten Telefon einen
-  Streifen rechts liegen — ein Fünftel der Breite, wenn die fünfte Kachel an
-  zwei Pixeln scheitert.* Am Desktop bleibt die Kachel bei 62 Pixeln.
+- **Der Bildstreifen füllt die Breite — auf jedem Schirm.** Er steht als
+  Raster, das seine Spalten selbst auszählt: passen fünf Kacheln hinein, stehen
+  dort fünf; passen nur vier, werden die vier größer. **Links und rechts bleibt
+  derselbe Rand wie überall auf der Seite**, und die Reihe endet bündig unter
+  dem Bild darüber. *Eine feste Kachelbreite ließe auf einem 360 Pixel breiten
+  Telefon einen Streifen rechts liegen — ein Fünftel der Breite, wenn die fünfte
+  Kachel an zwei Pixeln scheitert.* Die Mindestgröße der Kacheln kommt aus der
+  Einstellung in der Karte „Darstellung" — dieselbe für Desktop, Tablett und
+  Telefon.
 - **Eingabefelder fallen nicht unter 16 Pixel.** Darunter zoomt Safari auf dem
   iPhone beim Antippen die ganze Seite heran und wieder heraus tut sie es nicht
   von selbst. Wer die Schrift auf 80 Prozent stellt, bekommt hier deshalb nicht
@@ -1919,9 +1951,9 @@ die Seite — die Listen werden abgeschnitten statt scrollbar gemacht, und der
 Weg zum Rest ist der Aufklappknopf darunter. Ein eigener Bildlauf mitten in der
 Seite fängt sonst die Wischbewegung ab.
 
-*Die Karten im Systembereich sind die Ausnahme, und sie ist begründet:* eine
+*Die Karten in den Einstellungen sind die Ausnahme, und sie ist begründet:* eine
 Liste, die auf hunderte Zeilen wachsen kann, hat dort keinen Aufklappknopf
-unter sich, sondern einen Deckel — siehe „Systembereich".
+unter sich, sondern einen Deckel — siehe „Einstellungen".
 
 Zeilenaktionen sind überall Zeichen (`✎` bearbeiten, `✕` löschen), nicht mal
 Text und mal Zeichen. Auf schmalen Bildschirmen passt Text nicht in die
@@ -1969,10 +2001,12 @@ zweite Tipp ausgenommen**: dort *ist* er eine Bedeutung, er zoomt aufs Original.
 
 Kriterion nennt seine Gegenstände von Haus aus „Eintrag", das Merkmal
 „Getestet/Ungetestet" und die Zeitpunkte „Testtag/Testtage". Wer etwas anderes
-sammelt, ändert diese zwölf Wörter im Systembereich — aus „3 Einträge" wird
-„3 Maschinen", aus „+ Testtag eintragen" wird „+ Sitzung eintragen". **Das
-zwölfte ist „Potenzial"**, der Name des ersten Sternkastens; wer lieber
-„Erwartung" oder „Einschätzung" sagt, stellt es dort um.
+sammelt, ändert diese vierzehn Wörter in den Einstellungen — aus „3 Einträge"
+wird „3 Maschinen", aus „+ Testtag eintragen" wird „+ Sitzung eintragen".
+**Das zwölfte ist „Potenzial"**, der Name des ersten Sternkastens; wer lieber
+„Erwartung" oder „Einschätzung" sagt, stellt es dort um. **Das dreizehnte und
+vierzehnte sind „Bewertung" und „Bewertungen"** — sie ändern den Kastenkopf,
+die Sortierung, den Vergleich, die Kachel und die Karte der Kriterien.
 
 **Ein Wort aus dem Vokabular wird nirgends zu einem Wort verbaut.** Kriterion
 schreibt „Potenzial: Kriterien" und „Potenzial (hoch → niedrig)", nie
@@ -2002,7 +2036,7 @@ echten Textbausteinen aussehen.
 
 ## Schriftgröße
 
-**Die Einstellung im Systembereich vergrößert oder verkleinert die Schrift der
+**Die Einstellung in den Einstellungen vergrößert oder verkleinert die Schrift der
 ganzen Oberfläche**, in fünf Stufen von 80 auf 120 Prozent. **Die Abstände
 gehen nicht mit** — bei 120 % wird es deshalb an einigen Stellen enger, dafür
 verschiebt sich das Gefüge nicht. Die Anmeldeseite
@@ -2140,13 +2174,13 @@ Bildern des echten Bestands gemessen weicht der schlimmste einzelne Farbwert um
 **2 von 255** ab. **JPEG, GIF und vorhandenes WebP bleiben unberührt**, und ein
 PNG, das als WebP größer wäre, bleibt PNG.
 
-Wer das nicht will, schaltet es ab: im Systembereich unter **Datenbank →
-Kennzahlen → Bildablage** steht der Schalter „PNG-Originale beim Hereinkommen
-umwandeln" (Vorgabe an, nur der Eigentümer). Ohne Häkchen bleibt jedes PNG
-byte-genau so liegen, wie es ankam. **Daneben steht ein Knopf, der den
-vorhandenen Bestand nachzieht** — er fragt vorher das Passwort und sagt, was
-er tut: die PNG-Fassung ist danach weg, und zurück führt nur eine Sicherung des
-Datenverzeichnisses.
+Wer das nicht will, schaltet es ab: in den Einstellungen unter **Datenbank →
+Bildformate** steht der Schalter „PNG-Fotos beim Upload in WebP umwandeln"
+(Vorgabe an, nur der Eigentümer). Ohne Häkchen bleibt jedes PNG byte-genau so
+liegen, wie es ankam. **Daneben steht der Knopf „Alle PNG in WebP umwandeln"
+für den vorhandenen Bestand** — er fragt vorher das Passwort und sagt, was er
+tut: die PNG-Fassung ist danach weg, und zurück führt nur eine vorher angelegte
+Sicherung des Datenverzeichnisses.
 
 Zusätzlich entstehen zwei kleinere Varianten: eine
 Kachel (512 × 512, mit dem eingestellten Bildausschnitt darin) für die
@@ -2175,12 +2209,12 @@ Gelöschter Platz wird automatisch freigegeben.
 | **Überlebt einen Formatwechsel** | nein | nein | ja |
 | **Server muss stehen** | nein | ja | nein |
 
-**Die Sicherung auf Knopfdruck** steht im Systembereich beim
+**Die Sicherung auf Knopfdruck** steht in den Einstellungen beim
 Eigentümer. Sie erzeugt über `VACUUM INTO` eine vollständige, verschlüsselte
 Kopie der Datenbank — konsistent, auch während gearbeitet wird. Die Karte nennt
 vorher, wie lange es dauert; **während die Kopie entsteht, steht die Installation
 still** (rund zehn bis zwanzig Millisekunden je Megabyte). Sie zeigt außerdem,
-wann zuletzt gesichert wurde — gelesen wird das am Zielort selbst, nicht aus
+wann zuletzt gesichert wurde — gelesen wird das im Sicherungsordner selbst, nicht aus
 einem Merker in der Datenbank.
 **Und zeigt sie, welche Kopien noch mit dem alten Schlüssel
 verschlüsselt sind**, falls je gewechselt wurde: jede Kopie, die älter ist als
@@ -2227,7 +2261,7 @@ Sicherungen"** neben der Sicherungskarte.
 - **Jede Löschung steht im Sicherheitsprotokoll**, unter „Bestand" — eine Zeile
   je entfernter Kopie, **ohne Dateinamen und ohne Pfad**.
 
-**Der Zielort wird eingehängt, nicht eingetippt.** Die `docker-compose.yml`
+**Der Sicherungsordner wird eingehängt, nicht eingetippt.** Die `docker-compose.yml`
 bringt ihn mit:
 
 ```yaml
@@ -2369,33 +2403,33 @@ Start eine leere Neuinstallation vermuten.
   quadratischen Vorschau. `zoom` ist ein Prozentwert; 100 heißt „so weit wie das
   Bild hergibt". **Es wird nichts geschnitten** — die drei Werte steuern nur die
   Anzeige
-- `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchanbieter
-  (Vorrat, eigene Anbieter, Startanbieter), die beiden Schalter, wer neue
-  Tags und Kategorien anlegen darf, und der Schalter der **Bildablage**.
-  Sache des Admins — der Schalter der Bildablage allerdings nur des
+- `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchmaschinen
+  (Vorrat, eigene, Standard), die beiden Schalter, wer neue
+  Tags und Kategorien anlegen darf, und der Schalter der **Bildformate**.
+  Sache des Admins — der Schalter der Bildformate allerdings nur des
   **Eigentümers**: er bestimmt, wie die ganze Installation künftig ablegt, und
   liegt damit in derselben Zeile wie Export, Sicherung und Schlüssel
-- `user_settings` — die **persönliche** Hälfte, **acht** Schlüssel: die zuletzt
+- `user_settings` — die **persönliche** Hälfte, **neun** Schlüssel: die zuletzt
   benutzte Filterwahl, die **gespeicherten Ansichten**, der Bezugspunkt der
-  **Glocke**, Schriftgröße, Blockanordnung, sichtbare Linkzeilen, Zeitleiste
-  und die Zahl der Anbieternamen. Je Benutzer eine Zeile pro Schlüssel.
+  **Glocke**, Schriftgröße, die Größe der Bilder im Bildstreifen, Blockanordnung,
+  sichtbare Linkzeilen, Zeitleiste und die Zahl der Suchmaschinennamen. Je Benutzer eine Zeile pro Schlüssel.
   *Ein Schlüssel aus einer älteren Fassung, den es nicht mehr gibt, **bleibt
   stehen und wird nicht mehr gelesen** — es gibt dafür keinen Migrationsblock,
   und eine Migration, die persönliche Zeilen löscht, wäre teurer als die Zeilen
   selbst.*
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
-  `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
-  bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen.
+  `eigentuemer`), Adresse, Status und letzte Anmeldung. Gelöschte Benutzer
+  bleiben als Zeile ohne Namen (`status = geloescht`, Name `geloescht-<id>`) stehen.
   **Die Adresse wird überhaupt gefüllt** — beim Anlegen durch den
   Admin, danach nur noch durch den Betreffenden selbst
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer. In der Karte
   **„Meine Sitzungen"** sieht jeder seine eigenen; adressiert werden sie über
   eine **gerechnete Kennung**, nie über den Sitzungsschlüssel selbst
-- `tokens` — Einladungs- und Rücksetzlinke. **Gespeichert ist nur
+- `tokens` — Einladungslinks und Links zum Zurücksetzen. **Gespeichert ist nur
   der SHA-256 des Links, nie er selbst**; dazu Benutzer, Anlass, Ablauf und
   wann er eingelöst wurde. Sieben Tage haltbar, einmal gültig; abgelaufene
   Zeilen räumt die Installation nach dreißig Tagen selbst weg
-- `anfragen` — die **Warteschlange der Selbstanmeldung**:
+- `anfragen` — die **Warteschlange der Registrierung**:
   Wunschname, Adresse, der SHA-256 des Bestätigungslinks und der Zeitpunkt der
   Bestätigung. **Unbestätigte verfallen nach 24 Stunden** und erscheinen beim
   Admin nie; eine bestätigte wartet, so lange es dauert. Höchstens zwanzig
@@ -2443,7 +2477,7 @@ npm test
 Der Prüfstand legt echte Server mit echten, verschlüsselten Datenbanken in
 Wegwerfverzeichnissen an — `./data` bleibt unangetastet, alle Installationen entstehen
 frisch über Einrichtungsseite und Verwaltung. Geprüft werden unter anderem die
-Rechteschicht mit mehreren Zugängen nebeneinander, die Zugangsverwaltung samt
+Rechteschicht mit mehreren Benutzern nebeneinander, die Benutzerverwaltung samt
 `zugang.js` als echtem Prozess, die Kriterienverwaltung samt Reihenfolge **und
 Gewicht**, deren Wirkung auf Detailansicht, Vergleich und Export, die
 Auslieferungsregeln für
@@ -2456,7 +2490,7 @@ Video, Dateien, Kommentaren aller Arten, Bewertungen und Testtagen mehrerer
 Verfasser wird gelöscht, zurückgeholt und Feld für Feld gegen den
 Ausgangsstand gehalten — und **die Sicherung an einer echten Installation**: die
 Kopie entsteht, ist ohne Schlüssel nicht lesbar, mit Schlüssel vollständig, und
-jeder abgewiesene Zielort hinterlässt nachweislich keine Datei.
+jeder abgewiesene Sicherungsordner hinterlässt nachweislich keine Datei.
 **Dazu der Rundlauf des Einladungslinks** — anlegen, Link, Formular,
 Passwort, Anmeldung, und **derselbe Link ein zweites Mal nicht** —, die
 Nachschau, dass der Link selbst in **keiner Spalte keiner Tabelle** steht, die
@@ -2505,7 +2539,7 @@ Kachelzahlen trotzdem stimmen. Am Bildschirm: dass **drei Anschläge hintereinan
 Anfrage** sind, dass der zuletzt getippte Begriff gewinnt, dass das Leeren
 ohne Anfrage auskommt und dass die Liste **stehenbleibt**, wenn die Suche
 scheitert.
-**Dazu die Selbstanmeldung, vom Formular bis zum gesetzten
+**Dazu die Registrierung, vom Formular bis zum gesetzten
 Passwort** — und die schwerste Zusage darin wird **gemessen, nicht behauptet**:
 die fünf Lagen der Anfrage antworten mit demselben Statuscode und demselben
 Rumpf **Byte für Byte**, und **keine davon wartet auf den Mailserver**,
@@ -2609,7 +2643,7 @@ sed -i 's/^    container_name: kriterion$/    container_name: kriterion-probe/' 
 sed -i 's/"3100:3000"/"3199:3000"/' docker-compose.yml
 chmod +x schluessel.sh
 docker compose up -d --build
-# auf http://<server>:3199 anmelden — dieselben Zugänge, derselbe Bestand
+# auf http://<server>:3199 anmelden — dieselben Benutzer, derselbe Bestand
 ./schluessel.sh wechseln
 docker compose logs --tail 30 kriterion
 ```

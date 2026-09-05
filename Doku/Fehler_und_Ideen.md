@@ -144,7 +144,8 @@ beim Bauen vergessen hat.**
 Teil II Runden zugeordnet worden; am 3. September 2026 kam Punkt 8 dazu — und
 mit der eingeschobenen 0.21.0 eine Runde, die hier nie gestanden hat; am
 4. September 2026 kam mit 0.21.1 eine zweite dazu, die ebenfalls nie hier
-stand.**
+stand — und am selben Tag ist Punkt 10 (der Bildstreifen) als Teil von 0.22.0
+fortgezogen und gebaut worden.**
 Nach Regel 3 stehen sie damit **nicht mehr hier**,
 sondern im Fahrplan — Projektstand, **Abschnitt 10a**, dort mit ihrer
 vollständigen Ausarbeitung. *Diese Tabelle sagt nur, wohin sie gegangen sind;
@@ -184,7 +185,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.20.0** *MINOR* — **GEBAUT am 3. September 2026** | **Alte Sicherungen aufräumen — ohne Shell.** *Punkt 8 dieses Blatts, aufgefallen im Betrieb am 2. September 2026; am selben Tag zugeordnet — er hat als erster Punkt seit dem 28. August wieder eine Nummer bekommen, und alles dahinter ist um eine Stelle gerückt.* Gebaut ist die Regel aus **zwei** Bedingungen (*nicht unter den N jüngsten **und** älter als X Tage*), die **Vorschau** vor dem Löschen, der Schalter auf **AUS**, ein Knopf hinter der zweiten Bestätigung, ein **zweiter, ausdrücklicher Weg** für die Kopien von vor dem Schlüsselwechsel, eine **zwanzigste Karte** und eine Zeile im Sicherheitsprotokoll je entfernter Kopie. **Was gebaut wurde, steht im Änderungsprotokoll 0.20.0.** *Alle fünf offenen Entscheidungen sind beantwortet — jede mit ihrer Begründung.* ***Zwei Zahlen der Ausarbeitung haben nicht getragen:*** *`MERKMALE` steht bei **vierzehn** und nicht bei dreizehn, und die Zeile über die Routenzahl in Abschnitt 11 des Projektstands war zwei Runden alt — beides ist berichtigt.* ***Und eine Angabe ist eine Entscheidung geworden:*** *„mit der Zahl der entfernten Kopien" ins Protokoll heißt **eine Zeile je Kopie** — eine Spalte für eine Zahl gibt es dort nicht, und die Runde ist ausdrücklich keine Datenbankstufe.* |
 | **0.21.0** *MINOR, Schema* — **GEBAUT am 4. September 2026** | **„Vor dem Test schätzt man, nach dem Test bewertet man" — der zweite Sternkasten.** *Nichts aus diesem Blatt: der Punkt ist am 3. September 2026 aus dem Betrieb gekommen und noch am selben Tag als Konzeptpapier (`Doku/Konzept_Potenzial.md`) und als eingeschobene Runde gebaut worden — er hat hier nie gestanden.* Gebaut sind: die Spalte `rating_criteria.phase` (**neunter Migrationsblock**, Austauschformat **13**), zwei Durchschnitte, die einander **baulich** nicht berühren, eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs — und `DELETE /api/items/:id/ratings` **fällt** (`F_ROUTEN` 71 → 70). **Was gebaut wurde, steht im Änderungsprotokoll 0.21.0.** ***Und eine Regel für den Fahrplan ist dabei entstanden:*** *zwischen zwei geplanten Runden bleibt ab jetzt eine Nummer frei — der Fahrplan ist seit 0.12.0 achtmal gerückt, und jedes Mal um den ganzen Rest.* |
 | **0.21.1** *PATCH* — **GEBAUT am 4. September 2026** | **„Die Sortierung sagt, wonach du fragst" — die Sortierung gibt den Statusfilter vor.** *Nichts aus diesem Blatt, und er ist auch **nie** hier gewesen: der Punkt kam am 4. September 2026 aus dem Rundlauf von Hand nach 0.21.0 und ist unmittelbar in den Auftrag gegangen.* **Er steht hier trotzdem — diese Tabelle ist der Wegweiser, und ein Punkt, der den Umweg nicht genommen hat, gehört mit genau diesem Vermerk hinein.** Gebaut ist: `rating_*` gibt „Getestet" vor, `potenzial_*` „Ungetestet", **jede andere Sortierung fasst den Filter nicht an**; die **Handwahl** und eine angewandte **gespeicherte Ansicht** schlagen die Vorgabe und halten über einen Wechsel der Sortierung hinweg; der **Rücksetzer** ist der Weg zurück; die Ableitung wird **nicht gespeichert** und **nicht mitgezählt**, sondern **in Worten gesagt**. **Was gebaut wurde, steht im Änderungsprotokoll 0.21.1.** ***Der Fahrplan rückt dadurch nicht*** — *0.21.1 ist eine PATCH-Zahl hinter einer gebauten Runde.* ***Und ein Befund aus dem Bauen:*** *wer bei „Potenzial" auf „Alles anzeigen" klickte, fand nicht mehr in die Automatik zurück — `filterZahl()` verglich gegen `all`, zählte null, und der Rücksetzer stand nicht da. Gezählt wird seither gegen die **Ruhestellung** (Stolperstein 312).* ***Der Rundlauf hat sonst nichts ergeben*** — *kein zweiter Befund, kein Fehler, kein Wunsch.* |
-| **0.22.0** *MINOR* *(war 0.20.0, dann 0.21.0, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
+| **0.22.0** *MINOR* *(war 0.20.0, dann 0.21.0)* — **GEBAUT am 4. September 2026** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch"** — aus dem Betrieb am 30. August 2026, dazu **Punkt 10 dieses Blatts** (der Bildstreifen nutzt die Breite, und seine Größe ist eine Einstellung), am 4. September 2026 zugeordnet und am selben Tag gebaut. *Was gebaut wurde, steht im Änderungsprotokoll 0.22.0; die Gestaltungs- und Sprachregeln der Runde stehen im Projektstand, Abschnitt 5.6.* |
 | **0.24.0** *MINOR* *(war 0.21.0, dann 0.22.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
 | **0.26.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
@@ -200,6 +201,14 @@ Punkt 15, den 0.19.0 liegen lässt — **und sein Grund ist ein anderer als
 vorher.*** *Ein Sammelblatt, in dem nur noch das Verworfene
 steht, sieht mager aus. Es ist trotzdem der richtige Zustand: alles Übrige ist
 entschieden und hat seinen Ort.*
+
+> **PUNKT 10 IST INZWISCHEN GEBAUT.** Er ist am 4. September 2026 in die
+> Runde 0.22.0 aufgenommen und am selben Tag gebaut worden: der Bildstreifen
+> steht auf jedem Schirm als Raster, und seine Mindestgröße ist eine
+> persönliche Einstellung in fünf Stufen (60 bis 150 px, Vorgabe 80). *Nach
+> Regel 2 steht er damit nicht mehr hier* — was gebaut wurde, steht im
+> Änderungsprotokoll 0.22.0, was davon als Regel gilt, im Projektstand in
+> Abschnitt 5.6 (Regel G7).
 
 > **PUNKT 8 IST INZWISCHEN GEBAUT.** Er hat am 3. September 2026 die 0.20.0
 > bekommen und ist am selben Tag gebaut worden — *ein Punkt wandert von hier in
@@ -227,7 +236,7 @@ entschieden und hat seinen Ort.*
 | **Fehler** | — *(der letzte, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden)* |
 | **Verbesserung** | — |
 | **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
-| **Design** | **10** |
+| **Design** | — *(der einzige, der Bildstreifen, ist 0.22.0 geworden)* |
 | **Verbesserung** *(nachgetragen)* | 5 |
 
 | Einschätzung | Punkte |
@@ -235,8 +244,7 @@ entschieden und hat seinen Ort.*
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
 | **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
-| **eingetragen als 0.22.0** | **5, 6, 10** |
-| **empfohlen** | **10** *(Teil (a) stark empfohlen und für sich allein baubar)* |
+| **eingetragen als 0.24.0** | **5, 6** |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
 
@@ -582,132 +590,6 @@ beim Start, Prüfungen, Gegenproben, README. **Kein Schema.**
 
 ---
 
-## 10. Der Bildstreifen im Eintrag — er nutzt die Breite nicht, und seine Größe ist fest
-
-**0.21.0 hat ihn nicht ausgelöst** — die Reihe steht so, seit es sie gibt; auf
-dem Telefon ist sie mit 0.12.0 umgebaut worden, auf breiten Schirmen nicht.
-
-> **Art: Design** · **Claude: empfohlen** — *Teil (a) ist ein Dreizeiler und
-> beseitigt einen sichtbaren Fehler im Satzbild; Teil (b) benutzt eine Maschine,
-> die schon steht.* **Die Grenze zur neuen Funktion streift Teil (b)**, weil
-> eine Einstellung gespeichert wird — sie wird hier wie die Schriftgröße
-> behandelt, und die gilt als Darstellung.
-> **Draußen üblich:** Bildverwaltungen führen die Kachelgröße als
-> **Ansichtseinstellung**, nicht je Gerät. **Sicher ist das für Adobe
-> Lightroom** — die Rasteransicht hat seit jeher einen Regler für die
-> Kachelgröße, und er gilt für die Ansicht und nicht für den Bildschirm.
-> *Für die freien Verwaltungen (Immich, Nextcloud Photos) ist dasselbe Muster
-> zu erwarten, aber **hier nicht nachgesehen** — wer den Auftrag schreibt,
-> prüft es oder lässt die Zeile weg.* **Getrennte Werte je Gerät sind
-> jedenfalls nirgends bekannt**, und der Grund liegt auf der Hand: niemand
-> pflegt drei Regler für dieselbe Frage.
-
-### Woher
-
-**Aus dem Betrieb am 4. September 2026**, unmittelbar nach dem Einspielen von
-0.21.0. *Nicht aus einer Durchsicht und nicht aus einer Gegenprobe — beim
-Ansehen eines Eintrags mit mehreren Bildern.* **Wortlaut:** *„die erscheinen
-mir manchmal etwas klein."*
-
-### Was auffiel
-
-**Die Reihe unter dem großen Bild verhält sich auf Telefon und Desktop
-verschieden**, und nur eine der beiden Fassungen nutzt die Breite:
-
-```css
-/* überall */      .thumbs { display: flex; flex-wrap: wrap; gap: 7px; }
-                   .thumb  { width: 62px; height: 62px; }
-
-/* nur Telefon */  .thumbs { display: grid;
-                             grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
-                   .thumb  { width: auto; height: auto; aspect-ratio: 1/1; }
-```
-
-**Auf dem Telefon rechnet `auto-fill` die Spalten aus und `1fr` verteilt den
-Rest — die Zeile ist lückenlos.** *Das kam aus dem Auftrag zu 0.12.0, „die
-Breite auszunutzen", und der Kommentar im Stilblatt hält fest, was es am Ziehen
-geändert hat: der tote Streifen rechts, auf dem ein Finger sicher keine Kachel
-griff, ist dort verschwunden.*
-
-**Auf Desktop und Tablett stehen die 62 px fest**, und genau dieser tote
-Streifen liegt dort weiterhin in jeder vollen Zeile. *Die Kacheln sind also
-nicht nur klein — der Platz daneben bleibt ungenutzt, und beides zusammen
-ergibt den Eindruck.*
-
-### Was es nicht ist
-
-**Kein Fehler.** Die Reihe tut, was das Stilblatt sagt; sie sagt es nur auf
-breiten Schirmen anders als auf schmalen. *Ein Wunsch, der als Fehler abgeheftet
-wird, drängelt sich in die falsche Runde.*
-
-**Und ausdrücklich kein Bildproblem.** Die Auflösung reicht mit großem Abstand:
-das gespeicherte `thumb` hat **512 px auf der kurzen Kante**, bei 62 px Anzeige
-und dreifacher Gerätedichte sind das 186 Gerätepunkte — **rund 2,7fach
-überversorgt**. *Bis etwa 150 px Kachelbreite trägt es auch auf einem
-3x-Telefon.* **Es ist also kein Bestandslauf und keine neue Ableitung nötig**,
-solange der Regler dort seine Obergrenze hat.
-
-### Was gebaut werden könnte
-
-**(a) Die Telefonfassung auf alle Schirme hochziehen.** *Stark empfohlen, und
-unabhängig von (b) baubar.* `.thumbs` überall als Raster mit
-`repeat(auto-fill, minmax(…, 1fr))`, `.thumb` mit `aspect-ratio: 1/1`. **Der
-tote Rest verschwindet, und die Kacheln werden dabei von selbst etwas größer**,
-weil `1fr` den übrigen Platz verteilt. *Möglicherweise erledigt das den Punkt
-schon; dann ist (b) eine Bequemlichkeit und keine Abhilfe.*
-
-**(b) Die Mindestgröße einstellbar — wie die Schriftgröße.** *Empfohlen.* Die
-Maschine steht:
-
-```js
-const schriftgroesse = (benutzerId) => {
-  const n = Number(getUserSetting(benutzerId, 'schrift', 100));
-  return SCHRIFT_STUFEN.includes(n) ? n : 100;
-};
-```
-
-**Persönlich je Zugang, feste Stufen, kommt in `/api/settings` mit** — keine
-neue Route, kein Schema. Der Wert setzt eine CSS-Variable, die in
-`minmax(var(--streifen), 1fr)` steht.
-
-**EIN WERT FÜR ALLE DREI GERÄTE, und das ist die eigentliche Entscheidung
-dieses Punktes.** *Die vorhandenen Umbruchpunkte skalieren ihn mit; getrennte
-Werte für Telefon, Tablett und Desktop wären drei Wahrheiten für dieselbe Frage
-(Stolperstein 47) und würden auseinanderlaufen, weil niemand drei Regler
-pflegt.*
-
-### Offene Entscheidungen
-
-1. **Reicht (a) allein?** *Das ist am gebauten Stand zu sehen und nicht vorher
-   zu entscheiden — der Auftrag sollte (a) zuerst bauen und dann fragen.*
-2. **Welche Stufen, und welche Obergrenze?** *Die Obergrenze ist keine
-   Geschmacksfrage: über etwa 150 px verlässt sie die Reserve des `thumb`.
-   Darüber müsste eine neue Ableitung her, und das wäre eine andere Runde.*
-3. **Gilt der Regler auch für das Kartenraster der Übersicht** (`.grid`,
-   heute `minmax(240px | 200px | 150px, 1fr)`)? *Dafür spricht ein Regler statt
-   zweier; dagegen, dass die drei Werte dort gemessen sind und begründet im
-   Stilblatt stehen.* **Nicht mitentschieden — der Punkt hier meint den
-   Streifen im Eintrag.**
-4. **Wo steht der Regler?** *Neben der Schriftgröße in den Einstellungen, oder
-   am Bildbereich selbst.* **Vorschlag: neben der Schriftgröße** — eine Stelle
-   für Darstellungsfragen.
-
-### Was es anfasst
-
-`public/style.css` (die Regel für `.thumbs`/`.thumb` und die zwei
-Umbruchpunkte), für (b) zusätzlich eine Stufenliste und eine Zeile in
-`/api/settings`, dazu das Bedienelement in `public/app.js`. **Prüfungen und
-Gegenproben; README, wenn (b) kommt.**
-
-**Kein Schema, kein Migrationsblock, kein Bestandslauf, `F_ROUTEN` unverändert**
-— die Einstellung reist auf dem vorhandenen `PUT /api/settings` mit.
-
-**Was dagegen spricht:** nichts klemmt, und (a) allein ist so klein, dass es in
-jeder Runde nebenher mitginge. *Genau deshalb gehört es in die Runde, die
-ohnehin das Stilblatt anfasst, und nicht in eine eigene.*
-
----
-
 # Teil II — Gesammelt, ohne Ausarbeitung
 
 **Zeilen, keine Punkte.** Wer eine davon bauen will, arbeitet sie vorher in die
@@ -763,6 +645,11 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 - **Dieselbe Art Satz wie in Punkt 2 von 0.17.0 steht an zwölf weiteren
   Stellen in der Oberfläche** *(0.17.0, aus der Durchsicht der Runde —
   nachgesehen und aufgeschrieben, nicht behoben)*.
+  **MIT 0.22.0 ERLEDIGT:** die Textrunde hat jeden Satz am Bildschirm gegen die
+  Sprachregel S1 gehalten (*ein Text sagt, was ist und was der Klick tut — nicht,
+  warum es so gebaut wurde*); die zwölf Stellen sind dabei gestrichen oder in
+  die README gezogen, und der Bildschirmtext-Wächter im Prüfstand hält die
+  Verbotsliste seither fest. *Die Zeile bleibt als Herkunft stehen.*
   **Die Regel steht seit 0.17.0 im Projektstand, Abschnitt 5.6:** eine
   Oberfläche sagt, WAS IST, nicht, warum sie so gebaut wurde. Zwei Stellen sind
   in jener Runde gestrichen worden; **die übrigen sind gefunden, benannt und

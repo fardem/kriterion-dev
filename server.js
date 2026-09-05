@@ -260,8 +260,11 @@ const putSetting = { run: (k, v) => {
    ..." und hat mit ihr keinen Rufer mehr. Vorhandene Zeilen in user_settings
    bleiben stehen und werden nicht gelesen -- eine Migration, die persoenliche
    Zeilen loescht, waere teurer als die Zeilen selbst. */
+/* NEUN SEIT 0.22.0: `streifen` -- die Mindestgroesse der Kacheln im Bildstreifen,
+   persoenlich je Zugang, ein Wert fuer alle Geraete, dieselbe Maschine wie
+   `schrift` (E11). */
 const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen',
-                                'glockeGesehen', 'ansichten'];
+                                'glockeGesehen', 'ansichten', 'streifen'];
 
 /* DER DRITTE RANG IN DERSELBEN ROUTE, seit 0.19.0. Bis dahin kannte
    PUT /api/settings zwei Haelften: was in dieser Liste steht, ist persoenlich,
@@ -552,8 +555,8 @@ app.post('/api/login', async (req, res) => {
   if (benutzer.status !== 'aktiv') {
     return res.status(403).json({
       error: benutzer.status === 'geloescht'
-        ? 'Diesen Zugang gibt es nicht mehr.'
-        : 'Dieser Zugang ist gesperrt. Der Admin kann ihn wieder freigeben.'
+        ? 'Dein Konto gibt es nicht mehr.'
+        : 'Dein Konto ist gesperrt. Ein Admin kann es entsperren.'
     });
   }
   /* DER ZWEITE FAKTOR -- UND HIER, NACH DER PASSWORTPRUEFUNG.
@@ -618,7 +621,7 @@ app.post('/api/login/zwei', async (req, res) => {
   const id = auth.verbraucheAnmeldeAusweis(ausweis);
   if (!id) {
     auth.noteFailure(ip, null);
-    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' });
+    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });
   }
   const zugang = auth.holeZugang(id);
   const name = zugang ? zugang.username : null;
@@ -627,7 +630,7 @@ app.post('/api/login/zwei', async (req, res) => {
      Meldung wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
      belegt und darf deshalb erfahren, woran es liegt. */
   if (!zugang || zugang.status !== 'aktiv') {
-    return res.status(403).json({ error: 'Dieser Zugang ist gesperrt. Der Admin kann ihn wieder freigeben.' });
+    return res.status(403).json({ error: 'Dein Konto ist gesperrt. Ein Admin kann es entsperren.' });
   }
   if (!auth.pruefeZweitenFaktor(id, code)) {
     auth.noteFailure(ip, name);
@@ -792,9 +795,8 @@ app.post('/api/token/einloesen', async (req, res) => {
    SIE IST WAHR IN JEDEM DIESER FAELLE -- "wir haben dir eine Mail geschickt"
    waere in fuenf von sechs Lagen gelogen. */
 const ANFRAGE_ANTWORT = { ok: true, meldung:
-  'Danke. Konnte zu diesen Angaben eine Anfrage entstehen, liegt jetzt eine E-Mail in deinem ' +
-  'Postfach — bestätige darin, dass die Adresse dir gehört. Danach entscheidet ein Admin, ' +
-  'ob ein Zugang angelegt wird.' };
+  'Danke. Wenn zu diesen Angaben eine Anfrage möglich war, hast du jetzt eine E-Mail ' +
+  'bekommen — bitte bestätige darin deine Adresse. Danach entscheidet ein Admin.' };
 
 app.post('/api/registrierung', async (req, res) => {
   if (!await tokenBremseFrei(req, res)) return;
@@ -969,7 +971,7 @@ const qEintragVerfasser = db.prepare('SELECT user_id FROM items WHERE id = ?');
 // true = weitermachen. Bei false ist die Antwort bereits geschrieben.
 function eintragFrei(req, res, itemId) {
   const z = qEintragVerfasser.get(itemId);
-  if (!z) { res.status(404).json({ error: 'Nicht gefunden' }); return false; }
+  if (!z) { res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` }); return false; }
   if (!darfAendern(req, z.user_id)) { res.status(403).json({ error: VERWEIGERT_EINTRAG }); return false; }
   return true;
 }
@@ -1058,10 +1060,10 @@ app.delete('/api/sessions/:kennung', (req, res) => {
   // POST /api/logout -- und einer, nach dem die Oberflaeche weiterliefe, als
   // waere nichts gewesen.
   if (auth.sitzungsKennung(eigener || '') === String(req.params.kennung)) {
-    return res.status(400).json({ error: 'Die eigene Anmeldung wird über „Abmelden“ beendet.' });
+    return res.status(400).json({ error: 'Diese Sitzung beendest du über „Abmelden“.' });
   }
   const n = auth.beendeSitzung(req.benutzer.id, req.params.kennung);
-  if (!n) return res.status(404).json({ error: 'Diese Anmeldung gibt es nicht mehr.' });
+  if (!n) return res.status(404).json({ error: 'Diese Sitzung gibt es nicht mehr.' });
   res.json({ beendet: n });
 });
 
@@ -1286,9 +1288,9 @@ app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
 // die halbe Aenderung schon geschrieben hat, waere schlimmer als keine.
 function zielZugangFrei(req, res, id, selbstErlaubt = false) {
   const ziel = auth.holeZugang(id);
-  if (!ziel) { res.status(404).json({ error: 'Diesen Zugang gibt es nicht.' }); return null; }
+  if (!ziel) { res.status(404).json({ error: 'Diesen Benutzer gibt es nicht.' }); return null; }
   if (ziel.status === 'geloescht') {
-    res.status(400).json({ error: 'Dieser Zugang ist gelöscht.' }); return null;
+    res.status(400).json({ error: 'Dieser Benutzer ist gelöscht.' }); return null;
   }
   if (!selbstErlaubt && ziel.id === req.benutzer.id) {
     res.status(403).json({ error: VERWEIGERT_SELBST_ZUGANG }); return null;
@@ -1314,7 +1316,7 @@ app.get('/api/users', nurAdmin, (req, res) => {
 // Die Zahlen fuer den Loeschdialog. Lesend, deshalb kein Eintrag in F_ROUTEN.
 app.get('/api/users/:id/bestand', nurAdmin, (req, res) => {
   const ziel = auth.holeZugang(req.params.id);
-  if (!ziel) return res.status(404).json({ error: 'Diesen Zugang gibt es nicht.' });
+  if (!ziel) return res.status(404).json({ error: 'Diesen Benutzer gibt es nicht.' });
   res.json({ username: ziel.username, ...auth.zaehleBestand(ziel.id) });
 });
 
@@ -1486,8 +1488,8 @@ app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
   const eigener = auth.holeZugang(req.benutzer.id);
   if (!eigener || !eigener.email) {
     return res.status(400).json({ error:
-      'Für deinen Zugang ist keine E-Mail-Adresse hinterlegt. Trag sie im Systembereich ' +
-      'unter „Zugang“ ein — die Testmail geht ausschließlich an die eigene Adresse.' });
+      'Für dein Konto ist keine E-Mail-Adresse hinterlegt. Trag sie unter Einstellungen › ' +
+      'Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.' });
   }
   const roh = getSetting(mail.SCHLUESSEL, null);
   if (!mail.eingerichtet(roh))
@@ -1545,7 +1547,7 @@ app.put('/api/registrierung/schalter', nurAdmin, (req, res) => {
   if (an) {
     const b = versandBereit();
     if (!b.ok) return res.status(400).json({ error:
-      'Die Selbstanmeldung lässt sich ohne funktionierenden Versand nicht einschalten. ' + b.grund });
+      'Die Registrierung lässt sich ohne funktionierenden Mailversand nicht einschalten. ' + b.grund });
   }
   putSetting.run('registrierung', JSON.stringify(an));
   res.json(anfragenKarte());
@@ -1627,9 +1629,27 @@ const VOKABULAR_VORGABE = {
      niedrig)".
      PUT /api/settings saeubert ueber Object.keys(VOKABULAR_VORGABE) -- das
      neue Wort laeuft dort ohne eine weitere Zeile mit. */
-  potenzial: 'Potenzial'
+  potenzial: 'Potenzial',
+  /* DAS WORT FUER DEN ERSTEN STERNKASTEN, ALS PAAR -- 0.22.0 (Entscheidung
+     E14). Seit 0.21.0 war „Potenzial" umbenennbar und sein Gegenstueck nicht;
+     die Schieflage fiel genau dem auf, der die Umbenennung benutzt. Zwei
+     Woerter und nicht eines, weil beide Zahlformen am Bildschirm stehen
+     („2 Bewertungen", „Bewertung von Anna") -- wie bei sacheEinzahl und
+     sacheMehrzahl.
+     ES WIRD NIRGENDS ZU EINEM WORT VERBAUT, wie potenzial: die Karte heisst
+     „Bewertung: Kriterien" und nicht „Bewertungskriterien". Dasselbe Fugen-s
+     kennt der Quelltext nicht.
+     PUT /api/settings saeubert ueber Object.keys(VOKABULAR_VORGABE) -- die
+     beiden laufen dort ohne eine weitere Zeile mit; die Exportroute nimmt das
+     Vokabular nicht mit, das Austauschformat bleibt 13. */
+  bewertungEinzahl: 'Bewertung', bewertungMehrzahl: 'Bewertungen'
 };
 const SCHRIFT_STUFEN = [80, 90, 100, 110, 120];
+/* DIE STUFEN DES BILDSTREIFENS, IN BILDPUNKTEN -- 0.22.0 (E11). Die Obergrenze
+   150 ist keine Geschmacksfrage: das gespeicherte Vorschaubild hat 512 px auf
+   der kurzen Kante, und darueber verliesse die Anzeige ihre Reserve. Kein
+   Bestandslauf. */
+const STREIFEN_STUFEN = [60, 80, 100, 120, 150];
 
 // Anordnung und Einklappzustand der Bloecke in der Detailansicht. Verschoben
 // wird nur innerhalb des jeweiligen Bereichs, deshalb zwei getrennte Listen.
@@ -1831,6 +1851,11 @@ const schriftgroesse = (benutzerId) => {
   const n = Number(getUserSetting(benutzerId, 'schrift', 100));
   return SCHRIFT_STUFEN.includes(n) ? n : 100;
 };
+// Persoenlich, wie die Schrift: die Kachelgroesse im Bildstreifen (0.22.0).
+const bildstreifen = (benutzerId) => {
+  const n = Number(getUserSetting(benutzerId, 'streifen', 80));
+  return STREIFEN_STUFEN.includes(n) ? n : 80;
+};
 
 /* --- Der Bezugspunkt der Glocke ------------------------------------------
    Persoenlich, wie der Favorit. NULL heisst "noch nie gesetzt", und das ist ein
@@ -1896,6 +1921,7 @@ app.get('/api/settings', (req, res) => res.json({
   ansichtenDeckel: ANSICHTEN_DECKEL,
   vokabular: vokabular(),
   schrift: schriftgroesse(req.benutzer.id),
+  streifen: bildstreifen(req.benutzer.id),
   bloecke: bloecke(req.benutzer.id),
   linkZeilen: linkZeilen(req.benutzer.id),
   zeitleiste: zeitleisteAn(req.benutzer.id),
@@ -1977,7 +2003,7 @@ app.put('/api/settings', (req, res) => {
     const ein = Array.isArray(req.body.ansichten) ? req.body.ansichten : [];
     if (ein.length > ANSICHTEN_DECKEL)
       return res.status(400).json({
-        error: `Mehr als ${ANSICHTEN_DECKEL} gespeicherte Ansichten gibt es nicht.`
+        error: `Höchstens ${ANSICHTEN_DECKEL} gespeicherte Ansichten.`
       });
     const sauber = [];
     const namen = new Set();
@@ -2026,6 +2052,12 @@ app.put('/api/settings', (req, res) => {
       return res.status(400).json({ error: 'Diese Schriftgröße gibt es nicht.' });
     putUserSetting(req.benutzer.id, 'schrift', JSON.stringify(n));
   }
+  if (req.body.streifen !== undefined) {
+    const n = Number(req.body.streifen);
+    if (!STREIFEN_STUFEN.includes(n))
+      return res.status(400).json({ error: 'Diese Größe für den Bildstreifen gibt es nicht.' });
+    putUserSetting(req.benutzer.id, 'streifen', JSON.stringify(n));
+  }
   if (req.body.bloecke !== undefined) {
     const ein = req.body.bloecke || {};
     putUserSetting(req.benutzer.id, 'bloecke', JSON.stringify({
@@ -2073,10 +2105,10 @@ app.put('/api/settings', (req, res) => {
       // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
       // nicht, sonst sucht man den Anbieter spaeter in der Liste.
       if (!name)
-        return res.status(400).json({ error: 'Ein eigener Suchanbieter braucht einen Namen.' });
+        return res.status(400).json({ error: 'Eine eigene Suchmaschine braucht einen Namen.' });
       if (!suchvorlageOk(vorlage))
         return res.status(400).json({
-          error: 'Die Vorlage muss mit http:// oder https:// beginnen und %s als Platzhalter enthalten.'
+          error: 'Die Such-URL muss mit http:// oder https:// beginnen und %s als Platzhalter enthalten.'
         });
       sauber.push({ name, vorlage });
     }
@@ -2097,7 +2129,7 @@ app.put('/api/settings', (req, res) => {
     // Ersatzweise auf den eingebauten ersten zu wechseln waere schlimmer als
     // eine Absage: es hiesse, ab jetzt wortlos woanders zu suchen.
     if (!ein.length)
-      return res.status(400).json({ error: 'Mindestens ein Suchanbieter muss in der Auswahl bleiben.' });
+      return res.status(400).json({ error: 'Mindestens eine Suchmaschine muss in der Auswahl bleiben.' });
     schreibeVorrat(ein[0], ein);
   }
   if (req.body.suchNamen !== undefined) {
@@ -2125,7 +2157,8 @@ app.put('/api/settings', (req, res) => {
   for (const [k, v] of Object.entries(regelWerte)) putSetting.run(k, JSON.stringify(v));
   res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vokabular: vokabular(),
              ansichten: ansichten(req.benutzer.id), ansichtenDeckel: ANSICHTEN_DECKEL,
-             schrift: schriftgroesse(req.benutzer.id), bloecke: bloecke(req.benutzer.id),
+             schrift: schriftgroesse(req.benutzer.id), streifen: bildstreifen(req.benutzer.id),
+             bloecke: bloecke(req.benutzer.id),
              linkZeilen: linkZeilen(req.benutzer.id), zeitleiste: zeitleisteAn(req.benutzer.id),
              suche: suchvorlage(), suchAnbieter: suchAnbieter(),
              suchNamen: suchNamen(req.benutzer.id),
@@ -2216,7 +2249,7 @@ app.get('/api/criteria', (req, res) => res.json(qCriteria.all()));
 // weniger im Anlegeweg, und die Vorgabe steht nur an einer Stelle.
 app.post('/api/criteria', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: 'Name fehlt' });
+  if (!name) return res.status(400).json({ error: 'Bitte einen Namen eingeben.' });
   /* DIE PHASE IST FREIWILLIG UND HAT DIE VORGABE 'nachher' -- so legt die
      Karte „Bewertungskriterien" weiter an, ohne ein Feld mitzuschicken.
      ETWAS ANDERES ALS DIE ZWEI WERTE IST EINE ABSAGE MIT MELDUNG und nicht
@@ -2225,7 +2258,8 @@ app.post('/api/criteria', nurAdmin, (req, res) => {
      falschen Kasten, ohne dass es jemand saehe. */
   const phase = req.body.phase === undefined ? PHASE_VORGABE : String(req.body.phase);
   if (!PHASEN.includes(phase))
-    return res.status(400).json({ error: `Der Kasten muss „${PHASEN.join('" oder „')}" sein.` });
+    return res.status(400).json({ error: `Ein Kriterium gehört entweder zu „${vokabular().potenzial}“ ` +
+      `oder zu „${vokabular().bewertungEinzahl}“.` });
   // UNIQUE(name) IST GLOBAL: ein Name, ein Kasten. Die Frage kennt deshalb
   // keine Phase -- „Wunsch" gibt es einmal oder gar nicht.
   if (db.prepare('SELECT 1 FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name))
@@ -2248,7 +2282,7 @@ app.put('/api/criteria/order', nurAdmin, (req, res) => {
 
 app.put('/api/criteria/:id', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: 'Name fehlt' });
+  if (!name) return res.status(400).json({ error: 'Bitte einen Namen eingeben.' });
   /* DER KASTEN LAESST SICH NACH DEM ANLEGEN NICHT MEHR WECHSELN, und der
      Versuch wird ABGEWIESEN und nicht still uebergangen: ein uebergangenes
      Feld sieht fuer den Aufrufer aus wie ein gesetztes.
@@ -2259,8 +2293,8 @@ app.put('/api/criteria/:id', nurAdmin, (req, res) => {
      DIE PRUEFUNG STEHT VOR JEDER SCHREIBUNG -- die Absage darf nicht auf ein
      schon umbenanntes Kriterium folgen. */
   if (req.body.phase !== undefined)
-    return res.status(400).json({ error: 'Der Kasten eines Kriteriums lässt sich nicht ändern. ' +
-      'Löschen und neu anlegen — die Sterne gehen dann sichtbar mit.' });
+    return res.status(400).json({ error: `Ob ein Kriterium zu ${vokabular().potenzial} oder ` +
+      `${vokabular().bewertungEinzahl} gehört, lässt sich später nicht ändern.` });
   if (!db.prepare('SELECT 1 FROM rating_criteria WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: 'Dieses Kriterium gibt es nicht mehr.' });
   const clash = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
@@ -2296,7 +2330,7 @@ app.get('/api/product-categories', (req, res) => res.json(db.prepare(`
 
 app.post('/api/product-categories', (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: 'Name fehlt' });
+  if (!name) return res.status(400).json({ error: 'Bitte einen Namen eingeben.' });
   const found = db.prepare('SELECT * FROM product_categories WHERE name = ? COLLATE NOCASE').get(name);
   if (found) return res.json(found);
   // HINTER dem Nachschlagen: eine VORHANDENE Kategorie zuzuweisen bleibt fuer
@@ -2313,7 +2347,7 @@ app.post('/api/product-categories', (req, res) => {
 // Schalter kategorienFreiAnlegen, Vorgabe an; zuweisen darf immer jeder.
 app.put('/api/product-categories/:id', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: 'Name fehlt' });
+  if (!name) return res.status(400).json({ error: 'Bitte einen Namen eingeben.' });
   if (!db.prepare('SELECT 1 FROM product_categories WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: 'Diese Kategorie gibt es nicht mehr.' });
   const clash = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE AND id != ?')
@@ -2340,7 +2374,7 @@ app.get('/api/tags', (req, res) => res.json(db.prepare(`
 
 app.put('/api/tags/:id', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: 'Name fehlt' });
+  if (!name) return res.status(400).json({ error: 'Bitte einen Namen eingeben.' });
   if (!db.prepare('SELECT 1 FROM tags WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: 'Diesen Tag gibt es nicht mehr.' });
   const clash = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE AND id != ?').get(name, req.params.id);
@@ -2375,7 +2409,7 @@ function legeTagAn(name) {
 // etwas beizutragen hat, schreibt einen Kommentar.
 app.post('/api/items/:id/tags', nurEintragVerfasser, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: 'Tag-Name fehlt' });
+  if (!name) return res.status(400).json({ error: 'Bitte einen Tag eingeben.' });
   // Erst nachschlagen, dann die Klemme: einen vorhandenen Tag vergibt auch
   // hier jeder, der an den Eintrag darf. Die Wolke im Block bleibt deshalb
   // bedienbar, wenn der Schalter aus ist -- nur die Eingabezeile verschwindet.
@@ -3427,13 +3461,13 @@ app.get('/api/items', (req, res) => {
 
 app.get('/api/items/:id', (req, res) => {
   const it = detail(req.params.id, req.benutzer.id);
-  if (!it) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!it) return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
   res.json(it);
 });
 
 app.post('/api/items', (req, res) => {
   const title = (req.body.title || '').trim();
-  if (!title) return res.status(400).json({ error: 'Titel fehlt' });
+  if (!title) return res.status(400).json({ error: 'Bitte einen Titel eingeben.' });
   // Der Anlegende ist der Verfasser. req.benutzer steht an
   // jedem geschuetzten Endpunkt (auth.js, requireAuth). BEWUSST OHNE ?.: fiele
   // es je weg, soll das mit einem Fehler auffallen und nicht als stille Zeile
@@ -3459,7 +3493,7 @@ const grundText = (v) =>
 
 app.put('/api/items/:id', (req, res) => {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
-  if (!it) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!it) return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
   const b = req.body || {};
 
   /* DIESE ROUTE TRAEGT ZWEI RECHTEKLASSEN IN EINEM RUMPF, und das ist
@@ -3639,7 +3673,7 @@ app.delete('/api/items/:id', nurEintragVerfasser, (req, res) => {
 app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40), async (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-      return res.status(404).json({ error: 'Nicht gefunden' });
+      return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
       .get(req.params.id).m + 1;
     const ins = db.prepare('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
@@ -3702,7 +3736,7 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
   async (req, res, next) => {
     try {
       if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-        return res.status(404).json({ error: 'Nicht gefunden' });
+        return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
       const video = req.files?.video?.[0], standbild = req.files?.standbild?.[0];
       if (!video || !standbild)
         return res.status(400).json({ error: 'Video und Standbild gehören zusammen' });
@@ -3881,12 +3915,12 @@ function erneuereKachel(id, fertig) {
    Beschreibung. */
 app.put('/api/photos/:id/focus', (req, res) => {
   const p = db.prepare('SELECT item_id, zoom FROM photos WHERE id = ?').get(req.params.id);
-  if (!p) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!p) return res.status(404).json({ error: 'Dieses Foto gibt es nicht mehr.' });
   // Die Eintragsnummer kommt erst aus der Kindzeile -- deshalb die
   // zweite Form desselben Aufrufs, nicht eine zweite Regel.
   if (!eintragFrei(req, res, p.item_id)) return;
   const x = anzeigeWert('focus_x', req.body.x), y = anzeigeWert('focus_y', req.body.y);
-  if (x === null || y === null) return res.status(400).json({ error: 'Ungültiger Fokuspunkt' });
+  if (x === null || y === null) return res.status(400).json({ error: 'Dieser Bildausschnitt ist ungültig.' });
   /* DER ZOOM DARF FEHLEN und behaelt dann seinen Wert. Nicht aus Nachsicht
      gegenueber einer aelteren Oberflaeche -- die wird im selben Dateisatz
      ausgeliefert --, sondern weil zwei Bedienungen auf dieselbe Route fuehren:
@@ -3898,7 +3932,7 @@ app.put('/api/photos/:id/focus', (req, res) => {
   let z = p.zoom;
   if (req.body.zoom !== undefined) {
     z = anzeigeWert('zoom', req.body.zoom);
-    if (z === null) return res.status(400).json({ error: 'Ungültiger Bildausschnitt' });
+    if (z === null) return res.status(400).json({ error: 'Dieser Bildausschnitt ist ungültig.' });
   }
   db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')
     .run(x, y, z, req.params.id);
@@ -3926,11 +3960,11 @@ const anhangUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
 app.post('/api/items/:id/attachments', anhangUpload.array('files', ANHANG_ZAHL), (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-      return res.status(404).json({ error: 'Nicht gefunden' });
+      return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
     const da = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(req.params.id).n;
     const neu = (req.files || []).length;
     if (da + neu > ANHANG_ZAHL)
-      return res.status(400).json({ error: `Mehr als ${ANHANG_ZAHL} Dateien je Eintrag sind nicht vorgesehen.` });
+      return res.status(400).json({ error: `Höchstens ${ANHANG_ZAHL} Dateien je ${vokabular().sacheEinzahl}.` });
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
       .get(req.params.id).m + 1;
     const ins = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
@@ -3960,7 +3994,7 @@ app.get('/api/attachments/:id/raw', (req, res) => {
 // ueberhaupt nicht.
 app.get('/api/attachments/:id/preview', (req, res) => {
   const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
-  if (!a) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!a) return res.status(404).json({ error: 'Diese Datei gibt es nicht mehr.' });
   const art = anh.vorschauArt(a.filename);
   if (art === 'text') return res.json({ art, ...anh.textVorschau(a.data) });
   if (art === 'docx') {
@@ -3977,7 +4011,7 @@ app.get('/api/attachments/:id/preview', (req, res) => {
    faengt darfAendern ab -- sie gehoeren dem Admin. */
 app.delete('/api/attachments/:id', (req, res) => {
   const a = db.prepare('SELECT item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
-  if (!a) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!a) return res.status(404).json({ error: 'Diese Datei gibt es nicht mehr.' });
   if (!darfAendern(req, a.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);
   // Sortiernummern lueckenlos halten, wie bei Fotos und Links.
@@ -3999,7 +4033,7 @@ app.put('/api/items/:id/photo-order', nurEintragVerfasser, (req, res) => {
 
 app.delete('/api/photos/:id', (req, res) => {
   const p = db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id);
-  if (!p) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!p) return res.status(404).json({ error: 'Dieses Foto gibt es nicht mehr.' });
   if (!eintragFrei(req, res, p.item_id)) return;
   db.prepare('DELETE FROM photos WHERE id = ?').run(req.params.id);
   const rest = db.prepare('SELECT id FROM photos WHERE item_id = ? ORDER BY sort_order, id').all(p.item_id);
@@ -4046,9 +4080,9 @@ function normalisiereLink(roh) {
    Frage, wer sie loeschen darf. */
 app.post('/api/items/:id/links', (req, res) => {
   const url = normalisiereLink(req.body.url);
-  if (!url) return res.status(400).json({ error: 'Adresse oder Suchbegriff fehlt' });
+  if (!url) return res.status(400).json({ error: 'Bitte eine Adresse oder einen Suchbegriff eingeben.' });
   if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM links WHERE item_id = ?')
     .get(req.params.id).m + 1;
   db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
@@ -4075,7 +4109,7 @@ app.put('/api/items/:id/link-order', nurEintragVerfasser, (req, res) => {
    Link bekommt KEINEN Vermerk -- er ist eine ganze Aussage, die geht. */
 app.delete('/api/links/:id', (req, res) => {
   const l = db.prepare('SELECT * FROM links WHERE id = ?').get(req.params.id);
-  if (!l) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!l) return res.status(404).json({ error: 'Diesen Link gibt es nicht mehr.' });
   if (!darfAendern(req, l.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM links WHERE id = ?').run(req.params.id);
   const rest = db.prepare('SELECT id FROM links WHERE item_id = ? ORDER BY sort_order, id').all(l.item_id);
@@ -4090,11 +4124,11 @@ app.post('/api/items/:id/test-days', (req, res) => {
   const day = String(req.body.day || '').trim();
   const rating = Number(req.body.rating);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return res.status(400).json({ error: 'Ungültiges Datum' });
-  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: 'Note muss zwischen 1 und 5 liegen' });
+  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: 'Die Note muss zwischen 1 und 5 liegen.' });
   const today = new Date().toISOString().slice(0, 10);
   if (day > today) return res.status(400).json({ error: 'Das Datum kann nicht in der Zukunft liegen.' });
   if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
 
   // Der eigene Tag. Zwei Leute am selben Datum sind kein Konflikt,
   // sondern zwei Testtage -- ersetzt wird nur, was einem selbst gehoert, und
@@ -4119,9 +4153,9 @@ app.post('/api/items/:id/test-days', (req, res) => {
 // loeschen ja, umschreiben nein.
 app.put('/api/test-days/:id', (req, res) => {
   const rating = Number(req.body.rating);
-  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: 'Note muss zwischen 1 und 5 liegen' });
+  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: 'Die Note muss zwischen 1 und 5 liegen.' });
   const t = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!t) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!t) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
   if (!nurSelbst(req, t.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('UPDATE test_days SET rating = ? WHERE id = ?').run(rating, req.params.id);
   touch.run(t.item_id);
@@ -4130,7 +4164,7 @@ app.put('/api/test-days/:id', (req, res) => {
 
 app.delete('/api/test-days/:id', (req, res) => {
   const t = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!t) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!t) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
   // Loeschen darf der Admin, aendern nicht -- der Unterschied ist die ganze
   // Regel aus Teil IV.
   if (!darfAendern(req, t.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
@@ -4143,9 +4177,9 @@ app.delete('/api/test-days/:id', (req, res) => {
 // Name legt den Tag auch fuer die Eintraege an.
 app.post('/api/test-days/:id/tags', (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: 'Tag-Name fehlt' });
+  if (!name) return res.status(400).json({ error: 'Bitte einen Tag eingeben.' });
   const t = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!t) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!t) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
   // Ein Tag am Testtag gehoert dem Testtag und teilt dessen
   // Eigentuemer (deshalb hat er keine eigene user_id). "Regen" an
   // einem fremden Testtag zu ergaenzen hiesse, eine fremde Beobachtung
@@ -4168,7 +4202,7 @@ app.post('/api/test-days/:id/tags', (req, res) => {
 
 app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
   const t = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!t) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!t) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
   if (!nurSelbst(req, t.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM test_day_tags WHERE test_day_id = ? AND tag_id = ?').run(t.id, req.params.tagId);
   touch.run(t.item_id);
@@ -4236,7 +4270,7 @@ app.get('/api/items/:id/stimmen', nurAdmin, (req, res) => {
    Aussage der Zeile. Loeschen ja, umschreiben nein. */
 app.delete('/api/ratings/:id', (req, res) => {
   const r = db.prepare('SELECT id, item_id, user_id FROM ratings WHERE id = ?').get(req.params.id);
-  if (!r) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!r) return res.status(404).json({ error: `${vokabular().bewertungEinzahl} nicht gefunden.` });
   if (!darfAendern(req, r.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM ratings WHERE id = ?').run(r.id);
   touch.run(r.item_id);
@@ -4295,9 +4329,9 @@ async function kodiereAlle(dateien) {
 app.post('/api/items/:id/comments', kommentarBildUpload.array('images', BILD_ZAHL), async (req, res, next) => {
   try {
     const text = (req.body.text || '').trim();
-    if (!text) return res.status(400).json({ error: 'Text fehlt' });
+    if (!text) return res.status(400).json({ error: 'Bitte einen Text eingeben.' });
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-      return res.status(404).json({ error: 'Nicht gefunden' });
+      return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
 
     const k = await kodiereAlle(req.files);
     if (k.fehler) return res.status(400).json({ error: k.fehler });
@@ -4316,7 +4350,7 @@ app.post('/api/items/:id/comments', kommentarBildUpload.array('images', BILD_ZAH
 // Kopfzeile schicken nur ihr eigenes Feld, ohne den Text anzufassen.
 app.put('/api/comments/:id', (req, res) => {
   const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
-  if (!c) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!c) return res.status(404).json({ error: 'Diesen Kommentar gibt es nicht mehr.' });
 
   /* DIE ZWEITE ROUTE MIT ZWEI RECHTEKLASSEN IN EINEM RUMPF.
        TEXT          -- nur der Verfasser, AUCH DER ADMIN NICHT.
@@ -4331,7 +4365,7 @@ app.put('/api/comments/:id', (req, res) => {
 
   if (req.body.text !== undefined) {
     const text = String(req.body.text).trim();
-    if (!text) return res.status(400).json({ error: 'Text fehlt' });
+    if (!text) return res.status(400).json({ error: 'Bitte einen Text eingeben.' });
     db.prepare(`UPDATE comments SET text = ?, updated_at = datetime('now') WHERE id = ?`).run(text, c.id);
   }
   // Eine Aenderung der Merkmale ist keine Bearbeitung des Textes und setzt
@@ -4350,7 +4384,7 @@ app.put('/api/comments/:id', (req, res) => {
 app.post('/api/comments/:id/images', kommentarBildUpload.array('images', BILD_ZAHL), async (req, res, next) => {
   try {
     const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
-    if (!c) return res.status(404).json({ error: 'Nicht gefunden' });
+    if (!c) return res.status(404).json({ error: 'Diesen Kommentar gibt es nicht mehr.' });
     // HINZUFUEGEN nur der Verfasser -- ein Bild an einem fremden
     // Kommentar waere ein Zusatz zu einer fremden Aussage. Das Entfernen darf
     // der Admin (siehe die Loeschroute weiter unten); der Unterschied ist
@@ -4358,7 +4392,7 @@ app.post('/api/comments/:id/images', kommentarBildUpload.array('images', BILD_ZA
     if (!nurSelbst(req, c.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
     const da = db.prepare('SELECT COUNT(*) n FROM comment_images WHERE comment_id = ?').get(c.id).n;
     if (da + (req.files || []).length > BILD_ZAHL)
-      return res.status(400).json({ error: `Mehr als ${BILD_ZAHL} Bilder je Kommentar sind nicht vorgesehen.` });
+      return res.status(400).json({ error: `Höchstens ${BILD_ZAHL} Bilder je Kommentar.` });
     const k = await kodiereAlle(req.files);
     if (k.fehler) return res.status(400).json({ error: k.fehler });
     /* Anhaengen IST Bearbeiten -- und hierher kommt nach der Klemme oben nur
@@ -4382,7 +4416,7 @@ app.post('/api/comments/:id/images', kommentarBildUpload.array('images', BILD_ZA
 app.delete('/api/comment-images/:id', (req, res) => {
   const b = db.prepare(`SELECT ci.id, ci.comment_id, c.item_id, c.user_id FROM comment_images ci
                         JOIN comments c ON c.id = ci.comment_id WHERE ci.id = ?`).get(req.params.id);
-  if (!b) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!b) return res.status(404).json({ error: 'Dieses Bild gibt es nicht mehr.' });
   if (!darfAendern(req, b.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM comment_images WHERE id = ?').run(b.id);
   /* HIER GILT GENAU EINES VON BEIDEN, NIE BEIDES UND NIE KEINES -- deshalb
@@ -5247,7 +5281,7 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
  */
 app.get('/api/items/:id/export', nurEigentuemer, (req, res) => {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
-  if (!it) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!it) return res.status(404).json({ error: `${vokabular().sacheEinzahl} nicht gefunden.` });
   const schalter = { mitFotos: true, mitDateien: true, mitVideos: true };
   const gross = austauschBytes(it.id, schalter);
   if (gross > AUSTAUSCH_MAX)
@@ -5863,10 +5897,10 @@ app.get('/api/papierkorb', nurAdmin, (req, res) => {
 app.post('/api/papierkorb/:id/wiederherstellen', nurEigentuemer, async (req, res, next) => {
   try {
     const z = db.prepare('SELECT * FROM papierkorb WHERE id = ?').get(req.params.id);
-    if (!z) return res.status(404).json({ error: 'Nicht gefunden' });
+    if (!z) return res.status(404).json({ error: 'Das gibt es im Papierkorb nicht mehr.' });
     let umschlag;
     try { umschlag = JSON.parse(z.inhalt); }
-    catch { return res.status(500).json({ error: 'Das Paket lässt sich nicht lesen.' }); }
+    catch { return res.status(500).json({ error: 'Das lässt sich aus dem Papierkorb nicht lesen.' }); }
     // Die Bytes kommen aus der Nebentabelle, Zeile fuer Zeile -- nie alle
     // zugleich in einem String. Fehlt eine Nummer, wird die Zeile uebergangen
     // und genannt, wie bei einem Video ohne Datei.
@@ -5894,7 +5928,7 @@ app.post('/api/papierkorb/:id/wiederherstellen', nurEigentuemer, async (req, res
 // ON DELETE CASCADE mit.
 app.delete('/api/papierkorb/:id', nurEigentuemer, (req, res) => {
   const n = db.prepare('DELETE FROM papierkorb WHERE id = ?').run(req.params.id).changes;
-  if (!n) return res.status(404).json({ error: 'Nicht gefunden' });
+  if (!n) return res.status(404).json({ error: 'Das gibt es im Papierkorb nicht mehr.' });
   reclaim();
   res.status(204).end();
 });
@@ -5999,13 +6033,13 @@ const ANWENDUNG_DIR = (() => {
    Neustart bezahlen. Beim Start wird sie einmal ins Protokoll geschrieben. */
 function sicherungLage() {
   if (!SICHERUNG_DIR)
-    return { ein: false, grund: 'Es ist kein Sicherungsort eingerichtet. ' +
+    return { ein: false, grund: 'Es ist kein Sicherungsordner eingerichtet. ' +
       'Die docker-compose.yml hängt ihn ein und benennt ihn als SICHERUNG_DIR — ' +
       'beides gehört zusammen.' };
   let wurzel;
   try { wurzel = fs.realpathSync(SICHERUNG_DIR); }
-  catch { return { ein: false, grund: `Den Sicherungsort ${SICHERUNG_DIR} gibt es nicht. ` +
-    'Er wird nicht angelegt — häng ihn auf dem Wirt ein.' }; }
+  catch { return { ein: false, grund: `Den Sicherungsordner ${SICHERUNG_DIR} gibt es nicht. ` +
+    'Er wird nicht angelegt — häng ihn auf dem Server ein.' }; }
   try { if (!fs.statSync(wurzel).isDirectory())
     return { ein: false, grund: `${SICHERUNG_DIR} ist kein Verzeichnis.` }; }
   catch { return { ein: false, grund: `${SICHERUNG_DIR} ist nicht lesbar.` }; }
@@ -6014,7 +6048,7 @@ function sicherungLage() {
   // EINE SICHERUNG NEBEN DEM ORIGINAL IST KEINE. Beide Richtungen, denn beide
   // sind falsch: der Sicherungsort im Datenverzeichnis und umgekehrt.
   if (liegtIn(wurzel, daten) || liegtIn(daten, wurzel))
-    return { ein: false, grund: 'Der Sicherungsort darf nicht im Datenverzeichnis liegen — ' +
+    return { ein: false, grund: 'Der Sicherungsordner darf nicht im Datenverzeichnis liegen — ' +
       'eine Sicherung neben dem Original ist keine.' };
   return { ein: true, wurzel, imArbeitsverzeichnis: liegtIn(wurzel, ANWENDUNG_DIR) };
 }
@@ -6027,26 +6061,26 @@ function pruefeOrt(roh) {
   if (!lage.ein) return { fehler: lage.grund };
   const s = String(roh == null ? '' : roh).trim();
   if (!s) return { ort: '', pfad: lage.wurzel };
-  if (s.length > 200) return { fehler: 'Der Ort ist zu lang (höchstens 200 Zeichen).' };
+  if (s.length > 200) return { fehler: 'Der Unterordner ist zu lang (höchstens 200 Zeichen).' };
   if (!ORT_MUSTER.test(s))
-    return { fehler: 'Der Ort ist ein Unterverzeichnis des eingerichteten Sicherungsorts. ' +
+    return { fehler: 'Der Unterordner liegt im eingerichteten Sicherungsordner. ' +
       'Erlaubt sind Buchstaben, Ziffern, Leerzeichen, Punkt, Strich, Unterstrich und ' +
       'Schrägstrich; ein führender Schrägstrich und „..“ sind es nicht.' };
   let echt;
   try { echt = fs.realpathSync(path.resolve(lage.wurzel, s)); }
-  catch { return { fehler: `Das Verzeichnis „${s}“ gibt es unter dem Sicherungsort nicht. ` +
-    'Es wird nicht angelegt — leg es auf dem Wirt an.' }; }
+  catch { return { fehler: `Den Unterordner „${s}“ gibt es im Sicherungsordner nicht. ` +
+    'Er wird nicht angelegt — leg ihn auf dem Server an.' }; }
   try { if (!fs.statSync(echt).isDirectory())
     return { fehler: `„${s}“ ist kein Verzeichnis.` }; }
   catch { return { fehler: `„${s}“ ist nicht lesbar.` }; }
   // DIE PRUEFUNG HAENGT AM AUFGELOESTEN PFAD. Erst hier faellt ein Symlink
   // auf, der aus der Wurzel herausfuehrt -- am String saehe er harmlos aus.
   if (!liegtIn(echt, lage.wurzel))
-    return { fehler: `„${s}“ führt aus dem eingerichteten Sicherungsort heraus.` };
+    return { fehler: `„${s}“ führt aus dem eingerichteten Sicherungsordner heraus.` };
   let daten;
   try { daten = fs.realpathSync(DATA_DIR); } catch { daten = path.resolve(DATA_DIR); }
   if (liegtIn(echt, daten))
-    return { fehler: 'Der Sicherungsort darf nicht im Datenverzeichnis liegen — ' +
+    return { fehler: 'Der Sicherungsordner darf nicht im Datenverzeichnis liegen — ' +
       'eine Sicherung neben dem Original ist keine.' };
   return { ort: s, pfad: echt };
 }
@@ -6228,12 +6262,12 @@ function aufraeumVorschau(pfad, behalten, tage) {
   const treffer = regelTreffer(dateien, behalten, tage, jetzt, marke ? marke.ms : null);
   let grund = '';
   if (!treffer.length) {
-    if (!dateien.length) grund = 'An diesem Ort liegt noch keine Sicherung.';
+    if (!dateien.length) grund = 'Hier gibt es noch keine Sicherung.';
     else if (!brauchbar.length)
-      grund = `Keine der ${dateien.length} ${dateien.length === 1 ? 'Kopie' : 'Kopien'} ` +
+      grund = `Keine der ${dateien.length} ${dateien.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
               'stammt von nach dem Schlüsselwechsel.';
     else if (brauchbar.length <= behalten)
-      grund = `Alle ${brauchbar.length} ${brauchbar.length === 1 ? 'Kopie' : 'Kopien'} ` +
+      grund = `Alle ${brauchbar.length} ${brauchbar.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
               `sind unter den jüngsten ${behalten}.`;
     else {
       // Die AELTESTE der Kopien, die der Boden nicht mehr deckt -- sie ist die,
@@ -6412,7 +6446,7 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
   const marke = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
   const datei = path.join(ziel.pfad, `kriterion-${marke}.sqlite`);
   if (fs.existsSync(datei))
-    return res.status(409).json({ error: 'In dieser Sekunde liegt dort schon eine Sicherung.' });
+    return res.status(409).json({ error: 'In dieser Sekunde wurde dort schon eine Sicherung angelegt — bitte noch einmal.' });
   /* GESCHRIEBEN WIRD UNTER EINEM ARBEITSNAMEN, umbenannt wird erst danach.
      Stolperstein 8 verlangt, eine halbfertige Zieldatei nach einem Fehlschlag
      zu entfernen -- das hier ist eine Stufe schaerfer: der Fall entsteht gar
@@ -6530,7 +6564,7 @@ app.post('/api/sicherung/aufraeumen', nurEigentuemer,
     return res.status(400).json({ error: 'Diese Art des Aufräumens gibt es nicht.' });
   const dateien = sicherungsListe(ziel.pfad);
   if (dateien === null)
-    return res.status(400).json({ error: 'Der Zielort ist nicht erreichbar.' });
+    return res.status(400).json({ error: 'Der Sicherungsordner ist nicht erreichbar.' });
   const marke = wechselMarke();
   /* DIE GRENZEN HALTEN, BEVOR IRGENDETWAS GELOESCHT WIRD. Die Werte kommen aus
      settings und nicht aus dem Rumpf; steht dort einer ausserhalb der Spanne,
@@ -6538,7 +6572,7 @@ app.post('/api/sicherung/aufraeumen', nurEigentuemer,
   let treffer;
   if (art === 'veraltet') {
     if (!marke) return res.status(400).json({
-      error: 'Es gibt keinen Schlüsselwechsel — damit auch keine veralteten Kopien.' });
+      error: 'Der Schlüssel wurde nie gewechselt — es gibt keine veralteten Sicherungen.' });
     treffer = dateien.filter(d => d.zeit < marke.ms);
   } else {
     const b = pruefeRegelwert(getSetting('sicherungBehalten', AUFRAEUM_BEHALTEN.vorgabe),
@@ -6590,7 +6624,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use((err, req, res, next) => {
   console.error(err);
   const rang = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
-  if (rang >= 500) return res.status(500).json({ error: 'Im Server ist etwas schiefgegangen.' });
+  if (rang >= 500) return res.status(500).json({ error: 'Auf dem Server ist ein Fehler aufgetreten.' });
   res.status(rang).json({ error: err.message || 'Unbekannter Fehler' });
 });
 
