@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 59 · Stand 4. September 2026 · gebaut: Version 0.22.0**
+**Kompakte Übergabe · Revision 60 · Stand 5. September 2026 · gebaut: Version 0.22.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -475,7 +475,37 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.22.0** — Fingerprint **`fd292332`**, **5661
+**Gebaut ist 0.22.1** — Fingerprint **`PLATZHALTER_FP`**, **5710
+Prüfungen**, **648 Rückbauten in der Liste** (Abschnitt 8).
+*0.22.1 räumt drei Befunde aus dem Rundlauf nach 0.22.0 weg. **Der
+Bildausschnitt bedient sich wie ein Ausschnitt:** außerhalb ziehen zieht einen
+neuen auf, im Rahmen ziehen schiebt ihn, und an vier Ecken und vier Kanten wird
+er größer oder kleiner — die gegenüberliegende Ecke bzw. Kante bleibt liegen,
+und der Zeiger sagt es vorher (Abschnitt 5.6). **Die Kopfzahl eines
+zugeklappten Sternkastens steht nur noch einmal da** und sagt im Titel und im
+Erklärkasten, dass sie der Schnitt über ALLE Benutzer ist. **Und an einem
+ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr** — er ist weg
+statt zugeklappt, und die Route weist eine Bewertung dort ebenfalls ab.*
+**PATCH — KEINE DATENBANKSTUFE, KEINE MIGRATION, KEIN BESTANDSLAUF, KEINE NEUE
+ROUTE, KEINE NEUE KARTE, KEIN NEUES VOKABELWORT.** *Austauschformat 13,
+`F_ROUTEN` 70, einundzwanzig Karten, neun Migrationsblöcke, neun ausgelieferte
+Module, vierzehn Vokabelwörter, neun persönliche Schlüssel — unverändert.*
+**Eine vorhandene Route hat eine Klemme bekommen** (`PUT
+/api/items/:id/ratings`); eine Klemme ist keine neue Route.
+**Nach dem Einspielen im Browser einmal hart neu laden**
+(`public/app.js` und `public/style.css` haben sich geändert).
+**Was ein Betreiber merkt:** *der Ausschnitt lässt sich schieben und an Ecken
+und Kanten ändern, die Kopfzahl steht einmal da, und an ungetesteten Einträgen
+gibt es keinen Bewertungskasten mehr.*
+**Am Wirt noch nicht gesehen** (Abschnitt 8).
+
+> **DER RÜCKWEG AUF 0.22.0 IST OFFEN.** *Eine ältere Fassung zeigt den
+> Bewertungskasten an einem ungetesteten Eintrag wieder und nimmt dort auch
+> wieder Sterne an; die Kopfzahl steht dort wieder zweimal.* **Die Daten sind
+> dieselben — nichts wird umgerechnet, nichts geschrieben.** *Eine Sicherung
+> schadet nie, ist hier aber nicht nötig.*
+
+**Davor: 0.22.0** — Fingerprint **`fd292332`**, **5661
 Prüfungen**, **635 Rückbauten in der Liste** (Abschnitt 8).
 *0.22.0 macht die Oberfläche ruhiger, und sie redet Deutsch: kein Milchglas,
 eine Antwort auf jede Berührung, Marken statt grauer Wörter; rund 250
@@ -4910,7 +4940,9 @@ Bauform wie `F_ROUTEN`: *eine Menge bliebe grün, wenn jemand zwanzig neue „se
 dieses Blattes und in den Änderungsprotokollen — *also dort, wo sie jemand
 sucht, und nicht dort, wo sie jemanden aufhält.*
 
-#### Gestaltungsregeln G1 bis G8 — seit 0.22.0 geschriebene Regel
+#### Gestaltungsregeln G1 bis G11 — seit 0.22.0 geschriebene Regel
+
+*(G9 bis G11 sind mit 0.22.1 dazugekommen.)*
 
 *(Konzept `Doku/Konzept_Oberflaeche_0_22_0.md`, Abschnitt 4.1; gebaut mit 0.22.0.
 Die ersten drei sind alt und standen hier schon, verteilt; ab hier stehen alle
@@ -4958,7 +4990,55 @@ G3 hat das mit dem Milchglas vorgeführt, Stolperstein 314.)*
   aufgezogenes Rechteck Mitte und Zoom in einer Geste (ab sechs Pixel Weg; ein
   Klick setzt nur den Punkt); der Schieber bleibt als zweiter Weg für Finger
   und Feinarbeit (E9). Kein neues Feld: `focus_x`, `focus_y` und `zoom`
-  bleiben.
+  bleiben. ***Mit 0.22.1 verschärft — siehe G9; die eine Geste ist fünf
+  geworden.***
+- **G9 · Der Ausschnitt bedient sich wie ein Ausschnitt.** *(seit 0.22.1, und
+  die Regel nimmt G8 nicht zurück, sondern trennt, was dort auf einem Griff
+  lag.)* **Der ORT der Berührung entscheidet, was die Bewegung tut:**
+
+  | wo die Berührung anfängt | was geschieht |
+  |---|---|
+  | außerhalb des Rahmens | ein **neuer** Rahmen wird aufgezogen; der alte ist fort |
+  | im Rahmen | er wird **geschoben** — `zoom` bleibt unberührt |
+  | auf einer der vier **Ecken** | die Weite ändert sich; **die gegenüberliegende Ecke bleibt liegen** |
+  | auf einer der vier **Kanten** | die Weite ändert sich; **die gegenüberliegende Kante bleibt liegen**, und die andere Achse geht symmetrisch um deren Mitte mit |
+  | Klick ohne Weg | außerhalb: der Punkt wird gesetzt · innerhalb: **nichts** |
+
+  **Acht Griffe, je zwölf Bildpunkte nach innen**, am Rahmen gedeckelt auf ein
+  Viertel seiner Kante — sonst bliebe an einem kleinen Rahmen keine Fläche zum
+  Schieben. **Wo Ecke und Kante einander überlappen, gewinnt die Ecke.**
+  **Der Ausschnitt ist und bleibt ein Quadrat**; es gibt kein Feld für ein
+  Seitenverhältnis, und an einer Ecke folgt die Kante der längeren der beiden
+  Strecken.
+  **Die Rastung auf die Fünferstufen kommt VOR dem Legen des Rahmens** — sonst
+  wanderte der feste Anker um bis zu eine halbe Stufe, also genau die Ecke, die
+  stillstehen soll.
+  **Der Zeiger sagt vor dem Drücken, welche Geste unter ihm liegt** (`move`,
+  `nwse-resize`, `nesw-resize`, `ns-resize`, `ew-resize`, sonst `crosshair`) —
+  das ist G2 an der einzigen Stelle, an der mehrere Dinge unter demselben
+  Zeiger liegen.
+  **Auf dem Finger gibt es die acht Griffe nicht** (E3): eine Zone von zwölf
+  Bildpunkten trifft keine Fingerkuppe; wer den Rahmen antippt, schiebt ihn,
+  und die Weite bleibt beim Schieber.
+  **`.focus-frame` bleibt `pointer-events: none`** — welche Geste gilt,
+  entscheidet `ausschnittGeste()` an den Koordinaten (Stolperstein 320).
+- **G10 · Eine Zahl steht an einer Kopfzeile genau einmal.** *(seit 0.22.1.)*
+  Trägt ein Block eine **Kopfzahl**, trägt er **keine Kurzfassung**; hat er
+  keine, sagt die Kurzfassung, dass noch nichts dasteht — **je Kasten mit
+  eigenem Wort.** *Zwei Anzeigen derselben Zahl sind eine Frage und keine
+  Auskunft (Stolperstein 318); die Regel galt am Kommentarblock seit 0.21.0 und
+  an den zwei Sternkästen nicht.*
+  **Und die Kopfzahl sagt, wessen Zahl sie ist** — „Durchschnitt über alle
+  Benutzer, nicht nur der eigene", im Titel und im Erklärkasten dahinter,
+  **ohne Bedingung auf die Zahl der Zugänge** (Stolperstein 47).
+- **G11 · Vor dem Test steht kein Bewertungskasten da.** *(seit 0.22.1.)* An
+  einem Eintrag mit `tested = 0` ist der Bewertungsblock **ausgeblendet** und
+  nimmt keinen Platz — nicht zugeklappt. **Die eine Ausnahme:** trägt er schon
+  Bewertungssterne (eigene oder fremde), steht er da und offen; vorhandene
+  Daten schlagen die Regel, sonst wären die Sterne unsichtbar und ließen sich
+  nicht mehr entfernen. **Dieselbe Bedingung entscheidet beides** (`hatSterne`),
+  und der Server weist eine Bewertung der Phase `nachher` an einem ungetesteten
+  Eintrag ab — `value: 0` bleibt offen (Stolperstein 321).
 
 #### Sprachregeln S1 bis S7 — seit 0.22.0 geschriebene Regel
 
@@ -8836,6 +8916,46 @@ Version, in der sie entstanden sind.*
     stumm.* Beide Rückbauten wurden nach der Härtung (`4cab203`) nachgefahren;
     die Tabelle im Änderungsprotokoll 0.22.0 nennt beide Anläufe.
 
+318. **ZWEI ANZEIGEN DERSELBEN ZAHL AN EINER KOPFZEILE SIND EINE FRAGE UND
+    KEINE AUSKUNFT.** *Der Kopf des zugeklappten Bewertungskastens trug bis
+    0.22.0 „(⌀ 2,1)" UND daneben „⌀ 2,1 gewichtet". Beide lasen dasselbe Feld
+    (`item.avgRating`) und rundeten gleich — sie konnten sich gar nicht
+    unterscheiden. Wer zwei Zahlen nebeneinander sieht, schließt daraus, dass
+    sie zwei Dinge meinen; die Frage aus dem Betrieb lautete wörtlich „ist das
+    meine Bewertung oder von allen?".* **Die Regel gab es im Haus bereits** —
+    der Kommentarblock trägt seine Zahlen aus genau diesem Grund nicht in der
+    Kurzfassung („beides zugleich wäre derselbe Satz zweimal nebeneinander") —,
+    **sie galt für die zwei Sternkästen nur nicht.** *Seit 0.22.1 fällt die
+    Kurzfassung, solange eine Kopfzahl dasteht; ohne Zahl behält sie ihren
+    Satz.*
+
+319. **EINE BEDIENFORM, DIE ZWEI GRÖSSEN AUF EINEN GRIFF LEGT, HAT KEINE
+    DAVON.** *Das Rechteck aus 0.22.0 setzte Punkt und Weite „in EINER Geste" —
+    das war als Vorzug gedacht und ist der Fehler: es gab keine Geste, die nur
+    die Lage ändert, und keine, die nur die Größe ändert. Wer den vorhandenen
+    Rahmen anfasste, um ihn zu schieben, zog einen neuen auf.* **Seit 0.22.1
+    entscheidet der ORT der Berührung**, welche von fünf Gesten gilt.
+
+320. **EIN RAHMEN, DEN MAN SIEHT UND NICHT ANFASSEN KANN, IST EIN BILD UND KEIN
+    BEDIENELEMENT.** *`.focus-frame` stand seit 0.19.0 auf `pointer-events:
+    none` — richtig, denn er legt einen Schleier über die ganze Fläche
+    (`box-shadow: 0 0 0 9999px`) und finge sonst jeden Klick. Solange aber
+    niemand die Lage des Rahmens abfragte, war er für die Bedienung nicht
+    vorhanden.* **Seit 0.22.1 bleibt er `pointer-events: none`, und welche
+    Geste gilt, wird an den KOORDINATEN entschieden** — in einer eigenen
+    Funktion, die weder Ereignis noch Betrachter kennt und deshalb ohne Zeiger
+    prüfbar ist.
+
+321. **WAS DER BILDSCHIRM NICHT ANBIETET, MUSS DER SERVER ABWEISEN — sonst ist
+    es keine Regel, sondern eine Gewohnheit.** *„Vor dem Test schätzt man, nach
+    dem Test bewertet man" ist der Satz von 0.21.0. Die Oberfläche klappte den
+    Bewertungskasten an einer Idee nur ZU, und `PUT /api/items/:id/ratings`
+    fragte weder nach der Phase noch nach `tested`: ein Klick auf die Kopfzeile
+    genügte, und die Regel war umgangen.* **Seit 0.22.1 versteckt die
+    Oberfläche den Kasten und die Route weist ab** — *mit einer Ausnahme, die
+    keine Lücke ist: `value: 0` bleibt immer offen, denn wegnehmen muss man
+    dürfen.*
+
 ---
 
 ## 7. Prüfstand
@@ -12431,6 +12551,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 4. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
 | **0.21.1** | **„Die Sortierung sagt, wonach du fragst“** | **GEBAUT am 4. September 2026.** *(Aus dem Rundlauf von Hand nach 0.21.0 — dieselbe Herkunft wie 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Der Punkt stand nie im Sammelblatt und nie im Fahrplan: er kam am 4. September 2026 aus dem Betrieb und ist unmittelbar in den Auftrag gegangen.)* **Eine Sortierung beantwortet eine Frage, aber die Liste zeigte nicht die Menge, in der diese Frage sich stellt.** Ab jetzt gibt die Sortierung den Statusfilter als **Vorgabe** vor — `rating_*` → Getestet, `potenzial_*` → Ungetestet, **jede andere Sortierung fasst ihn nicht an**. **Die Handwahl und eine angewandte gespeicherte Ansicht schlagen die Vorgabe** und halten über einen Wechsel der Sortierung hinweg; der Rücksetzer ist der Weg zurück. **Die Ableitung wird nicht gespeichert und nicht mitgezählt, sondern in Worten gesagt.** *Der Fahrplan rückt dadurch nicht — 0.21.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
 | **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch"** | **GEBAUT am 4. September 2026.** *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und noch am selben Tag auf 0.22.0; am 4. September 2026 im Gespräch mit dem Betreiber zu sechzehn Entscheidungen ausgearbeitet — Konzept `Doku/Konzept_Oberflaeche_0_22_0.md` samt Anlage.)* Fünf Bauabschnitte: das Stilblatt (kein Milchglas, eine Antwort auf jede Berührung, Marken aus Form), die zwei Vokabelwörter für die Bewertung, rund 250 Textstellen nach einem Wörterbuch, eigene Fenster statt `confirm()` und `prompt()`, und Bildstreifen · Rechteck · Sternzeile (Punkt 10 des Sammelblatts eingeschlossen). **Die Gestaltungs- und Sprachregeln G1 bis G8 und S1 bis S7 stehen seither in Abschnitt 5.6; was gebaut wurde, im Änderungsprotokoll 0.22.0.** *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
+| **0.22.1** | **„Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da"** | **GEBAUT am 5. September 2026.** *(Aus dem Rundlauf von Hand nach 0.22.0 — dieselbe Herkunft wie 0.21.1 nach 0.21.0, 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Drei Befunde, keiner davon aus dem Sammelblatt und keiner aus dem Fahrplan; sieben Entscheidungen E1 bis E7 hat der Betreiber am 5. September 2026 vor dem Bauen getroffen — Auftrag `Doku/Auftrag_0.22.1.md`.)* **Erstens:** das Rechteck aus 0.22.0 legte Lage und Weite auf EINEN Griff, und wer den Rahmen anfasste, warf ihn weg. Ab jetzt entscheidet der ORT der Berührung — fünf Gesten, acht Griffe, Regel **G9**. **Zweitens:** der Kopf eines zugeklappten Sternkastens trug dieselbe Zahl zweimal; die Kurzfassung fällt, und die Kopfzahl sagt jetzt, dass sie über ALLE Benutzer geht — Regel **G10**. **Drittens:** an einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr, und der Server weist eine Bewertung dort ab — Regel **G11**. *Der Fahrplan rückt dadurch nicht: 0.22.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
 | **0.23.0** | **Die Oberfläche wird hell** | *(Neu am 4. September 2026, aus der Besprechung zu 0.22.0 — dort als Idee **N6** ausgearbeitet und ausdrücklich **nicht** in jene Runde genommen.)* **Ein zweites Farbschema — hell, umschaltbar, und die Vorgabe bleibt dunkel.** Kriterion ist heute nur dunkel (`color-scheme: dark`, `theme-color #0e1012`); das ist das eine Merkmal, das am Tag und am Tablett zuerst fehlt. **Rund dreißig Farbwerte ein zweites Mal — und die fünf Bedeutungsfarben auf hellem Grund neu abgestimmt, nicht umgerechnet.** *Sie behalten ihre Bedeutung: Gold bleibt Bewertung und Anheftung, Orange Art und Bedienung, Grün erledigt und getestet, Blau die Aufgabe, Rot das Zerstören.* **Die Ausarbeitung steht in Abschnitt 10a — samt dem Vermerk, dass diese Runde vor ihrem Auftrag ein eigenes Farbkonzept braucht** (`Doku/Farbkonzept_0_23_0.md`, noch nicht geschrieben): *eine Farbe lässt sich nicht aus einer anderen ausrechnen.* *MINOR* | nein | — |
 | **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |

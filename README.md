@@ -1271,11 +1271,17 @@ es zwei, beide in den Einstellungen einstellbar:
   abgesichert ist.
 - **Bildausschnitt der Vorschau**: Der Schalter „Ausschnitt" über dem Bild legt
   je Foto fest, welcher Teil auf der quadratischen Karte zu sehen ist. Ein
-  Rahmen zeigt dabei den künftigen Ausschnitt. **Mit der Maus ziehst du den
-  Ausschnitt als Rechteck auf** — Mitte und Zoom in einer Geste; ein Klick
-  setzt nur den Punkt. Ein Schieber daneben zieht ihn **enger** — von „so weit
-  wie das Bild hergibt" bis viermal so nah — und bleibt der Weg für den Finger
-  und die Feinarbeit. Beides landet in derselben Zeile.
+  Rahmen zeigt dabei den künftigen Ausschnitt, und er bedient sich wie ein
+  Ausschnitt: **außerhalb ziehen** zieht einen neuen auf, **im Rahmen ziehen**
+  schiebt ihn, und an **seinen vier Ecken und vier Kanten** änderst du die
+  Größe — die gegenüberliegende Ecke beziehungsweise Kante bleibt dabei liegen.
+  Ein Klick außerhalb setzt nur den Punkt; ein Griff in den Rahmen, der sich
+  nicht bewegt, ändert nichts. Der Zeiger sagt vorher, was passiert. Ein
+  Schieber daneben zieht den Ausschnitt **enger** — von „so weit wie das Bild
+  hergibt" bis viermal so nah — und bleibt der Weg für den Finger und die
+  Feinarbeit; **auf dem Telefon schiebst du den Rahmen und stellst die Größe
+  am Schieber.** Alles landet in derselben Zeile.
+  *Der Ausschnitt ist immer ein Quadrat — die Karte ist eines.*
   **Das Original bleibt unangetastet** — geschnitten wird ausschließlich die
   kleine Vorschau, und zwar aus dem Original neu, sobald du speicherst. *Der
   Ausschnitt ist deshalb jederzeit änderbar; die Kachel ist danach so scharf,
@@ -1337,21 +1343,26 @@ es zwei, beide in den Einstellungen einstellbar:
   zu probieren?* *Bewertung* fragt **danach**: *wie gut war es?* Wer Ideen mit
   den Bewertungskriterien benotet, mischt beides in einen Durchschnitt, und
   niemand sieht es der Zahl an.
-  **Welcher Kasten offen steht, entscheidet der Eintrag**: an einem
-  ungetesteten steht *Potenzial* offen und *Bewertung* zugeklappt, an einem
-  getesteten umgekehrt. Der zugeklappte behält seine Zahl im Kopf
-  („Potenzial (⌀ 4,2)"), und ein Klick auf die Kopfzeile klappt ihn auf.
+  **An einem ungetesteten Eintrag gibt es den Bewertungskasten nicht** — vor
+  dem Test wird nicht bewertet, und der Kasten nimmt dort auch keinen Platz.
+  *Der Server weist eine Bewertung an einem ungetesteten Eintrag ebenfalls ab;
+  wegnehmen lässt sich dagegen immer.* Steht der Eintrag auf **getestet**, ist
+  es umgekehrt: die *Bewertung* steht offen, das *Potenzial* zugeklappt. Der
+  zugeklappte Kasten behält seine Zahl im Kopf („⌀ 4,2 gewichtet"), und ein
+  Klick auf die Kopfzeile klappt ihn auf.
   **Dieser Klick gilt für diesen Eintrag und wird nicht gespeichert** — eine
   gespeicherte Einstellung gälte für alle Einträge zugleich, und beim nächsten
-  stünde der falsche Kasten offen. *Versteckt wird nichts: was jemand
-  eingetragen hat, ist immer einen Klick entfernt.*
+  stünde der falsche Kasten offen. *Versteckt wird nichts, was jemand
+  eingetragen hat: der Potenzialkasten ist immer einen Klick entfernt, und der
+  Bewertungskasten steht da, sobald Sterne darin stehen.*
   **Der Potenzialkasten ist leer, bis der Admin Kriterien dafür anlegt** — in
   der Karte *Potenzial: Kriterien* in den Einstellungen. Bis dahin sieht der
   Eintrag aus wie zuvor. **Das Wort „Potenzial" steht im Vokabular** und lässt
   sich umbenennen.
   *Eine Ausnahme aus Rücksicht auf den Bestand: trägt ein ungetesteter Eintrag
-  schon Bewertungssterne, steht der Bewertungskasten offen. Vorhandene Daten
-  schlagen die Regel.*
+  schon Bewertungssterne, steht der Bewertungskasten da — offen. Vorhandene
+  Daten schlagen die Regel; sonst wären vergebene Sterne unsichtbar und ließen
+  sich nicht einmal mehr entfernen.*
 - **Bewertung**: gemeinsame Kriterien, feste Skala 1–5. **Die Sterne sind die
   eigene Bewertung**; sind mehrere Benutzer eingerichtet, steht rechts daneben
   gedämpft der Schnitt über alle, im Blockkopf die Gesamtzahl. **Hat dort noch
@@ -1360,7 +1371,9 @@ es zwei, beide in den Einstellungen einstellbar:
   **Wie viele Bewertungen darin stecken, steht in Klammern daneben — aber erst
   ab zweien.** *„⌀ 4,0 (1)" wäre eine Auskunft über nichts: dass jemand bewertet
   hat, sagt schon der Schnitt.* Die vollständige Angabe steht am Überfahren. Der Gesamtschnitt entsteht **erst je Kriterium, dann über die
-  Kriterien**. **Ganz rechts in der Zeile, hinter der Durchschnittszahl, steht
+  Kriterien** — **und er geht über alle Benutzer, nicht nur über dich**; das
+  sagen der Titel der Kopfzahl und der Erklärkasten dahinter. *Deine eigene
+  Bewertung sind die Sterne links in der Zeile.* **Ganz rechts in der Zeile, hinter der Durchschnittszahl, steht
   ein runder Rücksetzknopf, sobald in dieser Zeile ein eigener Stern gesetzt
   ist** — ein Tipp darauf entfernt die eigenen Sterne, in beiden Kästen. *Die
   Sterne aller Zeilen beginnen an derselben Stelle, ob die Zeile den Knopf

@@ -21691,11 +21691,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
      613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
      Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
      behauptet. */
-  /* 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel des
-     Pruefstands und eines, das das Milchglas wieder einsetzt. EINUNDVIERZIG
-     VORHANDENE SIND MITGEGANGEN (Stolperstein 201), fast jeder, der einen
-     Bildschirmtext suchte. */
-  pruefe('Es sind genau 635 Rueckbauten', gpListe.length === 635, `${gpListe.length}`);
+  /* 648 SEIT 0.22.1: dreizehn neue (642 bis 654) -- neun fuer die fuenf Gesten
+     am Bildausschnitt, zwei fuer die Kopfzahl, zwei fuer den Bewertungskasten
+     vor dem Test. EINER IST MITGEGANGEN (Stolperstein 201): 330, dessen
+     Suchtext auf den Satz im Erklaerkasten zeigt -- der traegt seit dieser
+     Runde zwei Woerter mehr.
+     DAVOR 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel
+     des Pruefstands und eines, das das Milchglas wieder einsetzt; einundvierzig
+     vorhandene sind damals mitgegangen. */
+  pruefe('Es sind genau 648 Rueckbauten', gpListe.length === 648, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

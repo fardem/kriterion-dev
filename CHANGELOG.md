@@ -29,6 +29,18 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.22.1] - 2026-09-05
+
+*Was ein Betreiber merkt: der Bildausschnitt lässt sich schieben und an Ecken und Kanten ändern, die Kopfzahl steht nur noch einmal da, und an ungetesteten Einträgen gibt es keinen Bewertungskasten mehr. Keine Datenbankstufe; nach dem Einspielen im Browser einmal hart neu laden.*
+
+- Changed: **Der Bildausschnitt bedient sich wie ein Ausschnitt** — außerhalb ziehen zieht einen neuen auf, im Rahmen ziehen schiebt ihn, an vier Ecken und vier Kanten wird er größer oder kleiner; die gegenüberliegende Ecke bzw. Kante bleibt dabei liegen
+- Changed: **An einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr** — er ist weg statt zugeklappt und nimmt keinen Platz; der Server weist eine Bewertung dort ebenfalls ab. *Sterne wegnehmen geht weiter, und ein ungetesteter Eintrag mit vorhandenen Sternen zeigt seinen Kasten*
+- Changed: Der Kopf eines zugeklappten Sternkastens zeigt seine Zahl nur noch einmal — bis 0.22.0 stand dort dieselbe Zahl zweimal, „(⌀ 2,1)" und „⌀ 2,1 gewichtet"
+- Added: Die Kopfzahl sagt jetzt, wessen Zahl sie ist — Durchschnitt über alle Benutzer, nicht nur der eigene; im Titel und im Erklärkasten dahinter
+- Added: Der Zeiger sagt vor dem Drücken, welche Geste unter ihm liegt
+- Changed: Ein Griff in den Rahmen, der sich nicht bewegt, ändert nichts mehr; ein Klick außerhalb setzt weiterhin den Punkt
+- Changed: Auf dem Telefon schiebt ein Tipp in den Rahmen ihn, die Größe bleibt beim Schieber
+
 ## [0.22.0] - 2026-09-04
 
 *Was ein Betreiber merkt: die Wörter sind andere, der Bildstreifen ist einstellbar, und die Sternzeile hat ihren Rücksetzknopf woanders. Keine Datenbankstufe; nach dem Einspielen im Browser einmal hart neu laden.*
