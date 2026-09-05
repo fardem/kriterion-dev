@@ -3083,11 +3083,16 @@ const RUECKBAUTEN = [
     erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
   /* DER SATZ ZEIGT WIEDER AUS DEM KASTEN HINAUS -- auf die Durchschnittsspalte
-     der Liste dahinter, die es bei einem einzigen Zugang nicht gibt. */
+     der Liste dahinter, die es bei einem einzigen Zugang nicht gibt.
+     SEIN SUCHTEXT IST MIT 0.22.1 MITGEGANGEN und nicht geloescht (Stolperstein
+     201): der Satz traegt seither „ueber alle Benutzer" (E5). Der Rueckbau
+     nimmt beides zugleich zurueck -- den Verweis nach draussen UND die
+     Auskunft, wessen Zahl es ist; das ist gewollt, denn beides steht in
+     demselben Satz. */
   {
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     datei: 'public/app.js',
-    suche: "      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium (Spalte\n        <strong>Note</strong>), dann der Durchschnitt darüber${mitGewicht",
+    suche: "      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium über alle\n        Benutzer (Spalte <strong>Note</strong>), dann der Durchschnitt darüber${mitGewicht",
     ersatz: "      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium (die Zahlen\n        rechts in den Zeilen), dann der Durchschnitt darüber${mitGewicht",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },

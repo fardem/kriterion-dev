@@ -1053,15 +1053,27 @@ function blockZusammenfassung(name, item) {
   switch (name) {
     case 'kategorie': return item.category ? item.category.name : 'keine';
     case 'tags': return String(item.tags.length);
-    case 'bewertung': return item.avgRating ? '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') : 'noch nicht bewertet';
-    /* NICHT „noch nicht bewertet" -- das ist der Text des ANDEREN Kastens, und
-       zwei gleiche Texte an zwei Koepfen waeren ein Raetsel fuer den, der nur
-       die Koepfe sieht. Der Potenzialkasten steht an einem getesteten Eintrag
-       zugeklappt da, und genau dann ist diese Zeile alles, was von ihm zu
-       sehen ist: „Potenzial (⌀ 4,2)" -- so sieht man nach einem halben Jahr,
-       ob das, was man am meisten wollte, auch das Beste war. */
-    case 'potenzial': return item.potenzialRating
-      ? '⌀ ' + item.potenzialRating.toFixed(1).replace('.', ',') : 'noch nicht eingeschätzt';
+    /* DIE BEIDEN STERNKAESTEN TRAGEN HIER NICHTS, SOBALD SIE EINE ZAHL HABEN
+       -- 0.22.1 (Entscheidung E4).
+       DER BEFUND: bis 0.22.0 stand im Kopf des zugeklappten Bewertungskastens
+       „(⌀ 2,1)" UND daneben „⌀ 2,1 gewichtet". Beide lasen dasselbe Feld und
+       rundeten gleich -- es war zweimal dieselbe Zahl, und die eine trug ein
+       Wort, das die andere nicht trug. Wer zwei Zahlen nebeneinander sieht,
+       schliesst daraus, dass sie zwei Dinge meinen; die Frage „ist das meine
+       oder die von allen" entstand genau hier (Stolperstein 318).
+       WELCHE VON BEIDEN BLEIBT: die Kopfzahl. Sie traegt das Wort „gewichtet",
+       sie sagt im Titel, wessen Zahl sie ist, und sie IST der Knopf zur
+       Rechnung -- sie ist die reichere der beiden.
+       DIE REGEL IST KEINE NEUE. Der Kommentarblock ein paar Zeilen tiefer
+       traegt seine Zahlen aus genau diesem Grund nicht hier: beides zugleich
+       waere derselbe Satz zweimal nebeneinander. Sie galt fuer die zwei
+       Sternkaesten nur nicht, und das war der ganze Fehler.
+       OHNE ZAHL BLEIBT DER SATZ. Dann steht keine Kopfzahl da (ohne Zahl kein
+       Knopf), und der zugeklappte Kasten muss selbst sagen, dass er leer ist
+       -- und zwar JE KASTEN MIT EIGENEM WORT: zwei gleiche Texte an zwei
+       Koepfen waeren ein Raetsel fuer den, der nur die Koepfe sieht. */
+    case 'bewertung': return item.avgRating ? '' : 'noch nicht bewertet';
+    case 'potenzial': return item.potenzialRating ? '' : 'noch nicht eingeschätzt';
     case 'beschreibung': {
       const t = (item.description || '').trim().replace(/\s+/g, ' ');
       if (!t) return 'leer';
@@ -1113,6 +1125,32 @@ function zuNachZustand(name, item) {
   return !item.tested && !hatSterne(item, 'nachher');
 }
 
+/* WELCHER BLOCK AN DIESEM EINTRAG GAR NICHT DASTEHT -- 0.22.1.
+   „Vor dem Test schaetzt man, nach dem Test bewertet man" ist der Satz, mit
+   dem 0.21.0 die zwei Sternkaesten gebaut hat. Die Regel darueber klappte den
+   Bewertungskasten an einem ungetesteten Eintrag aber nur ZU -- und zugeklappt
+   heisst sichtbar: Kopfzeile, Griff, Pfeil, eine Zeile Platz, und ein Klick
+   liess Sterne vergeben. Die Oberflaeche sagte den Satz leise und liess
+   zugleich das Gegenteil zu.
+   SEIT 0.22.1 STEHT ER GAR NICHT DA. Nicht zugeklappt, sondern fort, und er
+   nimmt keinen Platz (`[hidden]` im Stilblatt, seit 0.15.1 EINE Regel ganz
+   oben).
+   DIE EINE AUSNAHME IST DIESELBE WIE IN `zuNachZustand()` (Entscheidung E6):
+   traegt ein ungetesteter Eintrag schon Bewertungssterne -- eigene oder
+   fremde --, steht der Kasten da. Vorhandene Daten schlagen die Regel; ohne
+   die Ausnahme waeren vergebene Sterne unsichtbar UND unerreichbar, denn
+   wegnehmen laesst sich nur, was man sieht.
+   DIESELBE BEDINGUNG WIE OBEN, und zwar buchstaeblich dieselbe: `hatSterne()`
+   entscheidet, OB der Kasten dasteht, und ob er offen steht. Zwei getrennte
+   Abfragen waeren zwei Wahrheiten, und die eine liesse sich aendern, ohne dass
+   die andere mitginge (Stolperstein 47).
+   NUR DER BEWERTUNGSKASTEN. Der Potenzialkasten bleibt an einem getesteten
+   Eintrag stehen: was man vor dem Test wollte, ist nach dem Test die
+   interessantere Haelfte der Frage. */
+function blockWegNachZustand(name, item) {
+  return name === 'bewertung' && !item.tested && !hatSterne(item, 'nachher');
+}
+
 // Wird nach jedem Neuzeichnen aufgerufen und muss deshalb mehrfach ausführbar
 // sein: der Testtagblock etwa schreibt seine Kopfzeile jedes Mal neu.
 function ruesteBloeckeAus(item) {
@@ -1142,6 +1180,12 @@ function ruesteBloeckeAus(item) {
     const zu = nachZustand
       ? (BLICK.has(name) ? !zuNachZustand(name, item) : zuNachZustand(name, item))
       : BLOECKE.zu.includes(name);
+    /* DER BLOCK WIRD AUSGEBLENDET UND NICHT ENTFERNT -- 0.22.1. `#rhead` und
+       `#ratings` bleiben damit im Dokument, und `drawRatings()` braucht keine
+       zweite Wache. Und er wird auch nicht aus `BLOECKE` genommen: die
+       Reihenfolge der Bloecke gilt fuer ALLE Eintraege, und ein Eintrag, an dem
+       ein Block fehlt, darf sie nicht umschreiben. */
+    block.hidden = blockWegNachZustand(name, item);
     block.classList.toggle('zu', zu);
     kopf.querySelector('.bcaret').textContent = zu ? '▸' : '▾';
     const summe = kopf.querySelector('.bsumme');
@@ -1286,6 +1330,58 @@ function zuschnittKiste(breite, hoehe, fx, fy, zoom) {
   const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
   return { links: fx / 100 * (breite - eng), oben: fy / 100 * (hoehe - eng), kante: eng };
 }
+
+/* WELCHE GESTE UNTER EINER BERUEHRUNG LIEGT -- 0.22.1.
+   BIS 0.22.0 GAB ES ZWEI GESTEN UND EINEN EINZIGEN GRIFF: die ganze Flaeche.
+   Ziehen zog IMMER einen neuen Ausschnitt auf, und weil dabei die Ecke den
+   Punkt und die Kantenlaenge die Weite setzte, aenderten sich Lage und Weite
+   in jeder Bewegung zugleich. Wer den vorhandenen Rahmen anfasste, um ihn zu
+   schieben, warf ihn damit weg. Zwei Groessen auf einen Griff -- und deshalb
+   keine davon zuverlaessig (Stolperstein 319).
+   SEIT 0.22.1 HAT DER RAHMEN ACHT GRIFFE (Entscheidung E2): vier Ecken und
+   vier Kanten, je GRIFF Bildpunkte NACH INNEN. Was darin nicht liegt, ist
+   innen „schieben" und aussen „neu".
+   DIE ECKE GEWINNT GEGEN DIE KANTE, wo beide Zonen einander ueberlappen: sie
+   ist die genauere Angabe, und wer in die Ecke zielt, meint die Ecke.
+   DER GRIFF WIRD AM RAHMEN GEDECKELT (kante / 4). Ohne den Deckel deckten die
+   acht Zonen einen kleinen Rahmen vollstaendig ab, und das Schieben -- die
+   haeufigste Geste -- haette keine Flaeche mehr.
+   SIE BEKOMMT KEIN EREIGNIS UND KEINEN BETRACHTER, sondern einen Rahmen und
+   einen Punkt, beide im Bildmass. Nur so ist sie ohne Zeiger zu pruefen --
+   dieselbe Bauform wie `zuschnittKiste()` darueber, und aus demselben Grund:
+   was der Pruefstand nur ueber ein Zeigerereignis erreicht, prueft er nicht. */
+const GRIFF = 12;
+function ausschnittGeste(rahmen, px, py, griff = GRIFF) {
+  const { links, oben, kante } = rahmen;
+  const rechts = links + kante, unten = oben + kante;
+  if (px < links || px > rechts || py < oben || py > unten) return 'neu';
+  const g = Math.min(griff, kante / 4);
+  const w = px - links <= g, o = rechts - px <= g;
+  const n = py - oben <= g, s = unten - py <= g;
+  if (n && w) return 'links-oben';
+  if (n && o) return 'rechts-oben';
+  if (s && w) return 'links-unten';
+  if (s && o) return 'rechts-unten';
+  if (n) return 'oben';
+  if (s) return 'unten';
+  if (w) return 'links';
+  if (o) return 'rechts';
+  return 'schieben';
+}
+
+/* WELCHEN ZEIGER EINE GESTE VERLANGT. Eigene Tafel statt acht Zeilen im
+   Stilblatt: der Zeiger ist die Antwort auf eine Beruehrung (Regel G2 aus
+   0.22.0), und die Antwort haengt an der Geste und nicht am Ort.
+   'neu' steht NICHT darin -- es ist die Ruhestellung, und die traegt das
+   Stylesheet am `.focus-mode` selbst. */
+const GRIFF_ZEIGER = {
+  'links-oben': 'griff-nwse', 'rechts-unten': 'griff-nwse',
+  'rechts-oben': 'griff-nesw', 'links-unten': 'griff-nesw',
+  'oben': 'griff-ns', 'unten': 'griff-ns',
+  'links': 'griff-ew', 'rechts': 'griff-ew',
+  'schieben': 'griff-schieben'
+};
+const GRIFF_KLASSEN = ['griff-nwse', 'griff-nesw', 'griff-ns', 'griff-ew', 'griff-schieben'];
 
 /* ================= Tagwolken ================= */
 // Sortierung: hervorgehobene Tags (aktiver Filter bzw. vergebener Tag) immer
@@ -4623,8 +4719,12 @@ async function renderDetail(id, begriffAdresse) {
     // Ausschnittmodus haengen aber an ihm selbst und muessen von Hand weg --
     // sonst wirkt der verlassene Modus weiter: der Klick aufs Bild speichert
     // dann einen Ausschnitt, statt das Vollbild zu oeffnen.
-    v.onpointerdown = v.onpointermove = v.onpointerup = null;
-    v.classList.remove('focus-mode');
+    /* ALLE FUENF, seit 0.22.1. `pointerleave` und `pointercancel` sind mit den
+       acht Griffen dazugekommen; blieben sie haengen, setzte ein verlassener
+       Modus weiter Zeigerklassen und speicherte bei einem abgebrochenen Zug. */
+    v.onpointerdown = v.onpointermove = v.onpointerup =
+      v.onpointerleave = v.onpointercancel = null;
+    v.classList.remove('focus-mode', ...GRIFF_KLASSEN);
     // Beim Blaettern anhalten, bevor das Element verschwindet -- sonst spielt
     // der Ton der abgeraeumten Zeile noch einen Augenblick weiter.
     v.querySelector('video')?.pause();
@@ -4697,7 +4797,7 @@ async function renderDetail(id, begriffAdresse) {
     v.querySelector('.vfocus').onclick = () => {
       ausschnittModus = !ausschnittModus;
       drawViewer();
-      if (ausschnittModus) toast('Klicken oder ziehen legt den Bildausschnitt fest');
+      if (ausschnittModus) toast('Außerhalb ziehen legt einen neuen Ausschnitt fest; im Rahmen schieben, an Ecke und Kante die Größe ändern');
     };
     /* GELOESCHT WIRD AM GROSSEN BILD, und das ist der Kern dieser Aenderung.
        Vorher sass ein Kreuz auf jeder Vorschaukachel. Auf dem Finger stand es
@@ -4799,50 +4899,116 @@ async function renderDetail(id, begriffAdresse) {
       zeichne();
     };
 
-    /* DAS RECHTECK -- 0.22.0 (E9). Ein Rechteck aufziehen setzt Punkt und Weite
-       in EINER Geste: die laengere Seite des aufgezogenen Rechtecks wird die
-       Kante des Ausschnitts (er ist immer ein Quadrat -- die Kachel auch), aus
-       ihr folgt der Zoom, aus der linken oberen Ecke der Fokuspunkt. Kein
-       neues Feld: focus_x, focus_y und zoom bleiben, wie sie sind, und der
-       Schieber bleibt fuer den Finger und die Feinarbeit.
-       EIN KLICK BLEIBT EIN KLICK: erst ab sechs Bildpunkten Weg ist es ein
-       Rechteck -- darunter setzt der Zeiger wie bisher nur den Punkt. Der
-       Zoom rastet auf die Fuenferstufen des Schiebers, damit beide Wege
-       denselben Wert zeigen. */
+    /* DIE FUENF GESTEN -- 0.22.1, und sie sind der Kern dieser Runde.
+       0.22.0 hat das Rechteck gebaut (E9) und dabei ALLES auf eine Geste
+       gelegt: ziehen hiess neu aufziehen, immer. Ab jetzt entscheidet der
+       ORT der Beruehrung, was die Bewegung tut -- aussen neu aufziehen,
+       innen schieben, an einer der acht Zonen die Weite aendern.
+       WELCHE ZONE ES IST, SAGT `ausschnittGeste()` GANZ OBEN; hier steht nur
+       noch, was daraus folgt. Die Trennung ist Absicht: die Entscheidung ist
+       ohne Zeiger pruefbar, die Ausfuehrung braucht den Betrachter. */
+
     const begrenzt = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
-    const ausRechteck = (a, e) => {
-      const { f } = masse();
-      const x1 = begrenzt(a.x - f.links, 0, f.breite), y1 = begrenzt(a.y - f.oben, 0, f.hoehe);
-      const x2 = begrenzt(e.clientX - f.links, 0, f.breite), y2 = begrenzt(e.clientY - f.oben, 0, f.hoehe);
-      const seite = Math.min(f.breite, f.hoehe);
-      const kante = begrenzt(Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)), seite / 4, seite);
-      zoom = begrenzt(Math.round(seite * 100 / kante / 5) * 5, 100, 400);
-      const eng = seite * 100 / zoom;
+    // Der Rahmen im Bildmass -- dasselbe Rechteck, das `zeichne()` hinlegt.
+    const rahmenKiste = () => { const m = masse(); return { links: m.links, oben: m.oben, kante: m.eng }; };
+    // Zeigerlage im Bildmass. Jede Geste rechnet darin, keine in Bildschirmpunkten.
+    const imBild = (e) => { const f = flaeche(); return { x: e.clientX - f.links, y: e.clientY - f.oben }; };
+
+    /* NUR DIE LAGE, OHNE DIE WEITE ANZURUEHREN. Das Schieben geht durch diesen
+       Weg und nicht durch `setzeKiste()`: die Zusage „schieben aendert die
+       Weite nicht" ist damit baulich erfuellt und haengt nicht daran, dass die
+       Rastung zufaellig denselben Wert zurueckgibt. */
+    const setzeLage = (l, o) => {
+      const f = flaeche();
+      const eng = Math.min(f.breite, f.hoehe) * 100 / zoom;
       const spielX = f.breite - eng, spielY = f.hoehe - eng;
-      fx = spielX > 0 ? begrenzt(Math.min(x1, x2) / spielX * 100, 0, 100) : 50;
-      fy = spielY > 0 ? begrenzt(Math.min(y1, y2) / spielY * 100, 0, 100) : 50;
+      fx = spielX > 0 ? begrenzt(l / spielX * 100, 0, 100) : 50;
+      fy = spielY > 0 ? begrenzt(o / spielY * 100, 0, 100) : 50;
       zeichne();
     };
-    let start = null, rechteck = false;
-    v.onpointerdown = (e) => {
-      // Der Schieber gehoert nicht zur Flaeche, auf der gezogen wird -- ohne
-      // ihn in dieser Liste setzte jeder Griff an den Schieber zugleich den
-      // Fokuspunkt auf die Stelle, an der der Schieber steht.
-      if (e.target.closest('.vfocus, .vnav, .vzoom')) return;
-      start = { x: e.clientX, y: e.clientY }; rechteck = false;
-      v.setPointerCapture?.(e.pointerId);
-      e.preventDefault();
+
+    /* WEITE UND LAGE IN EINEM ZUG -- fuer alle Gesten, die die Kante aendern.
+       DIE RASTUNG KOMMT VOR DER LAGE, und das ist der ganze Kniff: die Kante
+       rastet auf die Fuenferstufen des Schiebers (0.22.0, E9 -- beide Wege
+       zeigen dieselbe Zahl), und ERST DANACH wird der Rahmen an seinen Anker
+       gelegt. Legte man ihn nach der ungerasteten Kante, wanderte die feste
+       Ecke bei jeder Rastung um bis zu eine halbe Stufe -- genau die Ecke, die
+       stillstehen soll.
+       `lage` bekommt deshalb die GERASTETE Kante und antwortet mit der linken
+       oberen Ecke. Jede Geste bringt ihre eigene Lage mit; mehr unterscheidet
+       sie nicht.
+       DER DECKEL HAELT DEN RAHMEN IM BILD, ohne den Anker zu verschieben: er
+       begrenzt die KANTE, nicht die Lage. Ohne ihn schoebe die Klemme in
+       `setzeLage()` den Rahmen zurueck ins Bild -- und damit die feste Ecke. */
+    const setzeKiste = (kanteWunsch, lage, deckel) => {
+      const f = flaeche();
+      const seite = Math.min(f.breite, f.hoehe);
+      const hoch = Math.max(seite / 4, Math.min(seite, deckel ?? seite));
+      const k = begrenzt(kanteWunsch, seite / 4, hoch);
+      zoom = begrenzt(Math.round(seite * 100 / k / 5) * 5, 100, 400);
+      const eng = seite * 100 / zoom;
+      const { l, o } = lage(eng);
+      setzeLage(l, o);
     };
-    v.onpointermove = (e) => {
-      if (!start) return;
-      if (!rechteck && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
-      rechteck = true;
-      ausRechteck(start, e);
+
+    /* DIE ANKER DER ACHT GRIFFE. Je Geste: welche Ecke oder Kante stillsteht,
+       und wohin der Rahmen von dort aus waechst.
+       AN EINER ECKE steht die gegenueberliegende Ecke still.
+       AN EINER KANTE steht die gegenueberliegende Kante still, und die andere
+       Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). Der Rahmen
+       rutscht dabei nicht seitlich weg: sein Mittelpunkt wandert auf der
+       festen Kante nicht, er bleibt in ihrer Mitte. */
+    const zieheGriff = (geste, k, p, f) => {
+      const rechts = k.links + k.kante, unten = k.oben + k.kante;
+      const mitteX = k.links + k.kante / 2, mitteY = k.oben + k.kante / 2;
+      // Wie weit eine Kante nach beiden Seiten reichen darf, ohne dass die
+      // Mitte wandert -- die kleinere Haelfte gibt den Deckel.
+      const umMitte = (m, ganz) => 2 * Math.min(m, ganz - m);
+      switch (geste) {
+        case 'links-oben': return setzeKiste(Math.max(rechts - p.x, unten - p.y),
+          (e) => ({ l: rechts - e, o: unten - e }), Math.min(rechts, unten));
+        case 'rechts-oben': return setzeKiste(Math.max(p.x - k.links, unten - p.y),
+          (e) => ({ l: k.links, o: unten - e }), Math.min(f.breite - k.links, unten));
+        case 'links-unten': return setzeKiste(Math.max(rechts - p.x, p.y - k.oben),
+          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, f.hoehe - k.oben));
+        case 'rechts-unten': return setzeKiste(Math.max(p.x - k.links, p.y - k.oben),
+          (e) => ({ l: k.links, o: k.oben }), Math.min(f.breite - k.links, f.hoehe - k.oben));
+        case 'links': return setzeKiste(rechts - p.x,
+          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, umMitte(mitteY, f.hoehe)));
+        case 'rechts': return setzeKiste(p.x - k.links,
+          (e) => ({ l: k.links, o: mitteY - e / 2 }), Math.min(f.breite - k.links, umMitte(mitteY, f.hoehe)));
+        case 'oben': return setzeKiste(unten - p.y,
+          (e) => ({ l: mitteX - e / 2, o: unten - e }), Math.min(unten, umMitte(mitteX, f.breite)));
+        case 'unten': return setzeKiste(p.y - k.oben,
+          (e) => ({ l: mitteX - e / 2, o: k.oben }), Math.min(f.hoehe - k.oben, umMitte(mitteX, f.breite)));
+      }
     };
-    /* EIN SPEICHERWEG FUER BEIDE BEDIENUNGEN. Ziehen und Schieben setzen
-       denselben Ausschnitt und gehen deshalb durch dieselbe Zusage -- zwei
-       Aufrufstellen mit zwei Meldungen waeren zwei Wahrheiten darueber, was
-       gerade gespeichert wurde. */
+
+    /* EIN NEUES RECHTECK -- das ist die Geste aus 0.22.0, unveraendert in
+       ihrer Rechnung: die laengere Seite des aufgezogenen Rechtecks wird die
+       Kante (der Ausschnitt ist immer ein Quadrat, die Kachel auch), aus der
+       linken oberen Ecke folgt der Punkt. Neu ist allein, dass sie nur noch
+       AUSSERHALB des Rahmens anfaengt. */
+    const ausRechteck = (a, e) => {
+      const f = flaeche();
+      const x1 = begrenzt(a.x - f.links, 0, f.breite), y1 = begrenzt(a.y - f.oben, 0, f.hoehe);
+      const x2 = begrenzt(e.clientX - f.links, 0, f.breite), y2 = begrenzt(e.clientY - f.oben, 0, f.hoehe);
+      setzeKiste(Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)),
+        () => ({ l: Math.min(x1, x2), o: Math.min(y1, y2) }));
+    };
+
+    // Den Rahmen schieben: die Weite bleibt, der Zeiger behaelt seine Stelle
+    // IM Rahmen. Ohne den gemerkten Abstand spraenge der Rahmen beim Anfassen
+    // mit seiner linken oberen Ecke unter den Zeiger.
+    const schiebe = (zug, e) => {
+      const p = imBild(e);
+      setzeLage(zug.kiste.links + (p.x - zug.p0.x), zug.kiste.oben + (p.y - zug.p0.y));
+    };
+
+    /* EIN SPEICHERWEG FUER ALLE GESTEN. Ziehen, Schieben und jeder der acht
+       Griffe setzen denselben Ausschnitt und gehen deshalb durch dieselbe
+       Zusage -- mehrere Aufrufstellen mit mehreren Meldungen waeren mehrere
+       Wahrheiten darueber, was gerade gespeichert wurde. */
     const speichere = async () => {
       try {
         item = await api('PUT', `/api/photos/${foto.id}/focus`, { x: fx, y: fy, zoom });
@@ -4857,11 +5023,76 @@ async function renderDetail(id, begriffAdresse) {
        dann verschwiegen wird, wenn man nicht hingesehen hat, ist keine.
        DER TOAST HAENGT AM `body` UND NICHT AN DER ANSICHT -- er ueberlebt den
        Wechsel von sich aus; der Streifen darunter zeichnet nicht mehr. */
+
+    /* WAS DER ZEIGER ZEIGT, BEVOR JEMAND DRUECKT. Bis 0.22.0 stand die ganze
+       Flaeche auf `crosshair`, und drei verschiedene Dinge lagen unter
+       demselben Zeichen. */
+    const zeigeGriff = (geste) => {
+      v.classList.remove(...GRIFF_KLASSEN);
+      const kl = GRIFF_ZEIGER[geste];
+      if (kl) v.classList.add(kl);
+    };
+
+    /* EIN KLICK BLEIBT EIN KLICK: erst ab sechs Bildpunkten Weg ist es ein
+       Zug -- darunter geschieht ausserhalb dasselbe wie bisher (der Punkt
+       wird gesetzt) und INNERHALB DES RAHMENS NICHTS (Entscheidung E1).
+       Ein Griff in den Rahmen, der sich nicht bewegt, ist ein misslungener
+       Griff, und der darf den Ausschnitt nicht verstellen. */
+    const WEG_MIN = 6;
+    let zug = null;
+    v.onpointerdown = (e) => {
+      // Der Schieber gehoert nicht zur Flaeche, auf der gezogen wird -- ohne
+      // ihn in dieser Liste setzte jeder Griff an den Schieber zugleich den
+      // Fokuspunkt auf die Stelle, an der der Schieber steht.
+      if (e.target.closest('.vfocus, .vnav, .vzoom')) return;
+      const kiste = rahmenKiste(), p0 = imBild(e);
+      let geste = ausschnittGeste(kiste, p0.x, p0.y);
+      /* AUF DEM FINGER GIBT ES DIE ACHT GRIFFE NICHT (Entscheidung E3): eine
+         Zone von zwoelf Bildpunkten trifft keine Fingerkuppe, und ein Weg,
+         der auf dem Telefon danebengeht, ist schlechter als keiner. Wer den
+         Rahmen antippt, schiebt ihn; die Weite bleibt beim Schieber (E9). */
+      if (e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';
+      zug = { geste, x: e.clientX, y: e.clientY, kiste, p0, gezogen: false };
+      v.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+    };
+    const fuehre = (zug, e) => {
+      if (zug.geste === 'neu') return ausRechteck({ x: zug.x, y: zug.y }, e);
+      if (zug.geste === 'schieben') return schiebe(zug, e);
+      return zieheGriff(zug.geste, zug.kiste, imBild(e), flaeche());
+    };
+    v.onpointermove = (e) => {
+      if (!zug) { const p = imBild(e); zeigeGriff(ausschnittGeste(rahmenKiste(), p.x, p.y)); return; }
+      if (!zug.gezogen && Math.hypot(e.clientX - zug.x, e.clientY - zug.y) < WEG_MIN) return;
+      zug.gezogen = true;
+      fuehre(zug, e);
+    };
+    v.onpointerleave = () => { if (!zug) zeigeGriff('neu'); };
     v.onpointerup = (e) => {
-      if (!start) return;
-      if (rechteck) { ausRechteck(start, e); zeigeZoom(); } else ausPunkt(e);
-      start = null; rechteck = false;
+      if (!zug) return;
+      /* DER LETZTE ZUG GEHT DURCH DENSELBEN WEG WIE JEDER ZWISCHENSCHRITT --
+         mit dem Anker vom Anfang der Geste. Ein hier neu gebildeter Anker
+         waere der Rahmen, den die Bewegung gerade hingelegt hat, und der Griff
+         wirkte ein zweites Mal. */
+      const zuletzt = zug;
+      zug = null;
+      if (zuletzt.gezogen) {
+        fuehre(zuletzt, e);
+        if (zuletzt.geste !== 'schieben') zeigeZoom();
+        return speichere();
+      }
+      // Kein Weg: aussen setzt der Klick den Punkt, innen geschieht nichts.
+      if (zuletzt.geste !== 'neu') return;
+      ausPunkt(e);
       speichere();
+    };
+    /* EIN ABGEBROCHENER ZUG SPEICHERT, WAS DASTEHT. Der Rahmen zeigt zu diesem
+       Zeitpunkt bereits den neuen Ausschnitt; ihn unbemerkt zu verwerfen
+       hiesse, dem Bildschirm zu widersprechen. */
+    v.onpointercancel = () => {
+      const gezogen = zug && zug.gezogen;
+      zug = null;
+      if (gezogen) speichere();
     };
 
     /* DER SCHIEBER: `input` zeichnet mit, `change` speichert. Beim Ziehen des
@@ -5584,7 +5815,17 @@ async function renderDetail(id, begriffAdresse) {
         b.id = kasten.knopf;
         b.textContent = '⌀ ' + zahl.toFixed(1).replace('.', ',') +
           (gewichtetGerechnet ? ' gewichtet' : '');
-        b.title = 'Wie diese Zahl zustande kommt';
+        /* DER TITEL SAGT, WESSEN ZAHL DAS IST -- 0.22.1 (E5). Die Zahl ist
+           der Schnitt ueber ALLE, die bewertet haben; die eigenen Sterne
+           stehen links in der Zeile. Bis 0.22.0 stand das nirgends, und die
+           Frage danach kam aus dem Betrieb.
+           OHNE BEDINGUNG AUF DIE ZAHL DER ZUGAENGE: eine Installation mit
+           einem einzigen Benutzer bekaeme sonst einen anderen Satz ueber
+           dieselbe Rechnung (Stolperstein 47). „Ueber alle Benutzer" ist bei
+           einem Benutzer nicht falsch, sondern knapp.
+           UND PHASENNEUTRAL: derselbe Titel steht in beiden Kaesten, und
+           „Bewertung" waere im Potenzialkasten das falsche Wort. */
+        b.title = 'Der Durchschnitt über alle Benutzer — nicht nur der eigene. Wie diese Zahl zustande kommt';
         // DER ERKLAERKNOPF BEKOMMT DEN RECHENWEG SEINES KASTENS. Beide kommen
         // aus derselben Rechnung im Server; hier wird nur der richtige
         // angehaengt.
@@ -5781,8 +6022,13 @@ async function renderDetail(id, begriffAdresse) {
            selbst, gleich unter diesem Satz. Ein Verweis auf das, was der Kasten
            mitbringt, braucht keine Bedingung; eine Bedingung waere eine zweite
            Wahrheit ueber die Zahl der Zugaenge (Stolperstein 47). */''}
-      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium (Spalte
-        <strong>Note</strong>), dann der Durchschnitt darüber${mitGewicht
+      ${/* „UEBER ALLE BENUTZER" -- 0.22.1 (E5). Der Kasten erklaerte die Zahl
+           bis 0.22.0 nur zur Haelfte: er nannte die beiden Schritte und liess
+           offen, ueber WEN der erste geht. Genau das war die Frage aus dem
+           Betrieb. Zwei Woerter, und sie stehen dort, wo die Zahl ohnehin
+           erklaert wird. */''}
+      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium über alle
+        Benutzer (Spalte <strong>Note</strong>), dann der Durchschnitt darüber${mitGewicht
           ? ' — jedes Kriterium mit seinem Gewicht'
           : ' — alle Gewichte stehen auf 1, jedes Kriterium zählt gleich'}.</p>
       <div class="rechnung" id="rechnung">
