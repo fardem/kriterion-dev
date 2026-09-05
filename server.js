@@ -4216,8 +4216,30 @@ app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
 // liesse sich obendrein nicht gegenpruefen.
 // Fremde Bewertungen einzeln zu loeschen laeuft ueber
 // DELETE /api/ratings/:id.
+/* VOR DEM TEST WIRD NICHT BEWERTET -- 0.22.1. Zwei kleine Abfragen fuer eine
+   Klemme, die es bis 0.22.0 nur auf dem Bildschirm gab: dort war der
+   Bewertungskasten am ungetesteten Eintrag zugeklappt, die Route nahm den Wert
+   aber von jedem an. WAS DER BILDSCHIRM NICHT ANBIETET, MUSS DER SERVER
+   ABWEISEN -- sonst ist es keine Regel, sondern eine Gewohnheit. */
+const qKritPhase = db.prepare('SELECT phase FROM rating_criteria WHERE id = ?');
+const qItemGetestet = db.prepare('SELECT tested FROM items WHERE id = ?');
+
 app.put('/api/items/:id/ratings', (req, res) => {
   const v = Math.max(0, Math.min(5, Number(req.body.value) || 0));
+  /* GEPRUEFT WIRD NUR EIN WERT GROESSER NULL. Eine Null nimmt weg, und
+     WEGNEHMEN MUSS IMMER GEHEN: an einem ungetesteten Eintrag mit vorhandenen
+     Sternen steht der Kasten ausdruecklich da (Entscheidung E6), und sein
+     einziger Zweck ist, die Sterne loswerden zu koennen. Eine Klemme, die auch
+     die Null abwiese, sperrte genau den Weg, fuer den der Kasten noch da ist.
+     UND NUR DIE PHASE „nachher". Das Potenzial ist die Frage VOR dem Test --
+     an einem ungetesteten Eintrag ist es die einzige, die sich stellt. */
+  if (v > 0) {
+    const krit = qKritPhase.get(req.body.criterionId);
+    const eintrag = qItemGetestet.get(req.params.id);
+    if (krit && krit.phase === 'nachher' && eintrag && !eintrag.tested)
+      return res.status(400).json({
+        error: 'Vor dem Test wird nicht bewertet — dieser Eintrag steht auf „ungetestet".' });
+  }
   // Die eigene Bewertung. Konfliktziel und UNIQUE in db.js gehoeren
   // zusammen -- siehe die Bemerkung beim Testtag eine Bildschirmseite hoeher.
   /* DER ZEITPUNKT GEHT BEI BEIDEN WEGEN MIT -- beim Anlegen UND beim

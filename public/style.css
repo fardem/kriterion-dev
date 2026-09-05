@@ -2218,6 +2218,21 @@ body.lb-open { overflow: hidden; }
 /* Im Ausschnitt-Modus zieht der Zeiger den Rahmen, statt das Vollbild zu oeffnen. */
 .viewer.focus-mode { cursor: crosshair; touch-action: none; }
 .viewer.focus-mode img { cursor: crosshair; }
+/* WAS DER ZEIGER SAGT, BEVOR JEMAND DRUECKT -- 0.22.1. Am Rahmen liegen acht
+   Griffe, im Rahmen das Schieben und ausserhalb das Aufziehen; ohne diese
+   Zeilen laege ueber allen dreien dasselbe Fadenkreuz, und die Bedienung
+   waere zu erraten statt zu sehen (Regel G2 aus 0.22.0: eine Antwort auf jede
+   Beruehrung).
+   JE ZWEI WAEHLER, WEIL DAS BILD SEINEN ZEIGER SELBST TRAEGT: die Regel eine
+   Zeile hoeher setzt ihn am `img`, und eine Angabe am Betrachter schlaegt sie
+   nicht. Die Klasse steht am Betrachter, weil nur er die Lage kennt.
+   DIE RUHESTELLUNG BLEIBT DAS FADENKREUZ -- sie steht oben und hat deshalb
+   hier keine eigene Zeile. */
+.viewer.focus-mode.griff-schieben, .viewer.focus-mode.griff-schieben img { cursor: move; }
+.viewer.focus-mode.griff-nwse, .viewer.focus-mode.griff-nwse img { cursor: nwse-resize; }
+.viewer.focus-mode.griff-nesw, .viewer.focus-mode.griff-nesw img { cursor: nesw-resize; }
+.viewer.focus-mode.griff-ns, .viewer.focus-mode.griff-ns img { cursor: ns-resize; }
+.viewer.focus-mode.griff-ew, .viewer.focus-mode.griff-ew img { cursor: ew-resize; }
 .focus-frame {
   position: absolute; pointer-events: none; z-index: var(--z-ausschnittrahmen);
   border: 2px solid var(--accent); border-radius: 2px;

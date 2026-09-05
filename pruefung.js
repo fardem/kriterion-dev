@@ -579,6 +579,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     }
     const erster = (await ruf('POST', '/api/items',
       { title: 'Alteintrag', description: 'Erstbestand des Prueflaufs' })).inhalt;
+    /* ER STEHT AUF „getestet" -- seit 0.22.1 muss er das, denn die Route weist
+       eine Bewertung an einem ungetesteten Eintrag ab. Ein neuer Eintrag kommt
+       ungetestet auf die Welt, und der Startbestand des Prueflaufs ist ein
+       Eintrag MIT Sternen: er ist damit gerade der Fall, den die neue Regel
+       meint -- getestet, also bewertet. */
+    await ruf('PUT', `/api/items/${erster.id}`, { tested: true });
     await ruf('PUT', `/api/items/${erster.id}/ratings`, { criterionId: start[0].id, value: 4 });
     // Ein Kriterium mit ausdruecklich 0 Sternen: der Zaehler darf es nicht zaehlen.
     await ruf('PUT', `/api/items/${erster.id}/ratings`, { criterionId: start[1].id, value: 0 });
@@ -3373,7 +3379,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
     for (const [tag, note, u] of [['2024-03-01', 4, 1], ['2024-03-01', 2, 2], ['2024-04-01', 5, 3]])
       d.prepare('INSERT INTO test_days (item_id, day, rating, user_id) VALUES (1, ?, ?, ?)')
         .run(tag, note, u);
-    d.prepare('UPDATE items SET tested = 1 WHERE id = 1').run();
+    /* BEIDE EINTRAEGE STEHEN AUF „getestet" -- Eintrag 2 seit 0.22.1.
+       Er traegt eine Optik-Bewertung, und seit dieser Runde weist die Route
+       eine Bewertung an einem UNGETESTETEN Eintrag ab. Ein Eintrag, der in
+       dieser Lage bewertet wird, ist damit ein getesteter; stuende er weiter
+       auf „ungetestet", pruefte diese Lage einen Zustand, den die Instanz
+       nicht mehr zulaesst. Die Zeilen oben gehen unmittelbar in die Datenbank
+       und sind davon unberuehrt -- sie stellen den Bestand VOR der Regel dar
+       und sollen das auch. */
+    d.prepare('UPDATE items SET tested = 1 WHERE id IN (1, 2)').run();
     d.close();
     return dir;
   }
@@ -3621,6 +3635,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* --- Die zugesicherten Grenzen, unter Last --- */
   const gExtrem = (await eRuf('cookie-e-eins', 'POST', '/api/items', { title: 'Grenzfall' })).inhalt;
+  /* AUF „getestet" -- seit 0.22.1. Ein neuer Eintrag kommt ungetestet auf die
+     Welt, und die Route weist an einem solchen jede Bewertung ab. Diese Lage
+     rechnet die Grenzen des gewichteten Mittels aus und hat mit dem Zustand
+     des Eintrags nichts zu schaffen; ohne diese Zeile schriebe sie keine
+     einzige Stimme, und der Schnitt bliebe null. */
+  await eRuf('cookie-e-eins', 'PUT', `/api/items/${gExtrem.id}`, { tested: true });
   const gWerte = async (paare) => {
     for (const [name, wert] of paare)
       await eRuf('cookie-e-eins', 'PUT', `/api/items/${gExtrem.id}/ratings`,
@@ -3880,6 +3900,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Prueflage findet ein Kriterium, an dem gesetzt werden kann',
     !!zpKritZeile, JSON.stringify(rwSicht.ratings?.map(r => r.name)));
   const zpKrit = zpKritZeile.criterion_id;
+  /* DASS EINTRAG 2 AUF „getestet" STEHT, richtet die Lage selbst ein -- seit
+     0.22.1 muss sie das, denn die Route weist eine Bewertung an einem
+     ungetesteten Eintrag ab. Hier von Hand nachzuhelfen ginge nicht: der
+     Dritte ist nicht der Verfasser und bekaeme 403. */
   await eRuf('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpKrit, value: 4 });
   const zpNeu = zpZeilen('SELECT gesetzt_am FROM ratings WHERE item_id = 2 AND criterion_id = ?', zpKrit);
   pruefe('Eine ueber die Route gesetzte Bewertung traegt ihn',
@@ -7417,6 +7441,46 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gleich(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2 AND value > 0')
       .map(z => `${z.user_id}/${z.value}`), ['2/5']),
     JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2')));
+
+  /* --- VOR DEM TEST WIRD NICHT BEWERTET, UND ZWAR FUER JEDEN — 0.22.1 ---
+     DIE KLEMME KENNT KEINE ROLLE, und genau das ist hier zu belegen: sie ist
+     keine Rechtefrage, sondern eine Aussage ueber den Eintrag. Ein Admin, der
+     an einer Idee bewerten duerfte, machte aus der Regel eine Empfehlung.
+     GEPRUEFT AN DER ECHTEN DATENBANK mit drei Benutzern -- der Nachweis, dass
+     nichts geschrieben wurde, geht an den Zeilen und nicht an der Antwort. */
+  /* EIN EIGENER EINTRAG FUER DIESE FRAGE, und er wird angelegt statt
+     umgeschaltet: „Getestet" laesst sich nicht zuruecknehmen, solange Testtage
+     eingetragen sind (0.13.x), und die beiden Eintraege dieser Lage tragen
+     welche. Ein frisch angelegter Eintrag kommt ungetestet auf die Welt -- er
+     IST die Lage, um die es geht, und braucht keinen Handgriff. */
+  const fIdee = (await fRuf('cookie-f-bert', 'POST', '/api/items', { title: 'Eine Idee' })).inhalt;
+  pruefe('Die Prueflage steht: ein frisch angelegter Eintrag ist ungetestet',
+    fIdee && fIdee.tested === false, JSON.stringify(fIdee && fIdee.tested));
+  const fUngBert = await fRuf('cookie-f-bert', 'PUT', `/api/items/${fIdee.id}/ratings`,
+    { criterionId: fOptikId, value: 4 });
+  const fUngAnna = await fRuf('cookie-f-anna', 'PUT', `/api/items/${fIdee.id}/ratings`,
+    { criterionId: fOptikId, value: 4 });
+  pruefe('Am ungetesteten Eintrag wird der Verfasser abgewiesen',
+    fUngBert.status === 400, `Status ${fUngBert.status} ${JSON.stringify(fUngBert.inhalt?.error)}`);
+  pruefe('Und der Admin ebenso',
+    fUngAnna.status === 400, `Status ${fUngAnna.status} ${JSON.stringify(fUngAnna.inhalt?.error)}`);
+  pruefe('Es steht danach keine einzige Stimme da',
+    fZeilen('SELECT user_id, value FROM ratings WHERE item_id = ?', fIdee.id).length === 0,
+    JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = ?', fIdee.id)));
+  /* WEGNEHMEN BLEIBT OFFEN -- fuer jeden und in jedem Zustand. */
+  const fNullUng = await fRuf('cookie-f-carla', 'PUT', `/api/items/${fIdee.id}/ratings`,
+    { criterionId: fOptikId, value: 0 });
+  pruefe('Wegnehmen bleibt auch am ungetesteten Eintrag offen',
+    fNullUng.status === 200, `Status ${fNullUng.status}`);
+  /* UND DANACH GEHT ES WIEDER. Ohne diese Zeile bliebe gruen, wer die Route
+     ueberhaupt gesperrt haette (Stolperstein 81). */
+  await fRuf('cookie-f-bert', 'PUT', `/api/items/${fIdee.id}`, { tested: true });
+  const fWiederBert = await fRuf('cookie-f-bert', 'PUT', `/api/items/${fIdee.id}/ratings`,
+    { criterionId: fOptikId, value: 4 });
+  pruefe('Und am getesteten Eintrag nimmt die Route wieder an',
+    fWiederBert.status === 200 && fWiederBert.inhalt?.avgRating === 4,
+    `Status ${fWiederBert.status}, avgRating ${fWiederBert.inhalt?.avgRating}`);
+  await fRuf('cookie-f-anna', 'DELETE', `/api/items/${fIdee.id}`);
 
   /* ---------------------------------------------------------------- */
   gruppe('Rechte in der Verwaltung');
@@ -20905,6 +20969,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* --- Die Route, die gefallen ist ------------------------------------- */
   const phItem = (await PH.ruf('POST', '/api/items', { title: 'Der Traeger' })).inhalt;
+  /* ER STEHT AUF „getestet" -- seit 0.22.1. Die Route weist eine Bewertung an
+     einem ungetesteten Eintrag ab, und dieser Traeger bekommt gleich drei.
+     ER BLEIBT ES NICHT: weiter unten wird `tested` ausdruecklich auf false
+     gelegt, und beide Zahlen muessen dann unveraendert dastehen. Genau das ist
+     seit dieser Runde auch die Lage aus Entscheidung E6 -- ein ungetesteter
+     Eintrag MIT Sternen; nichts wird geloescht, und der Kasten bleibt
+     erreichbar. */
+  await PH.ruf('PUT', `/api/items/${phItem.id}`, { tested: true });
   await PH.ruf('PUT', `/api/items/${phItem.id}/ratings`,
     { criterionId: phOhne.inhalt.id, value: 4 });
   const phWeg = await PH.ruf('DELETE', `/api/items/${phItem.id}/ratings`);
@@ -21010,6 +21082,67 @@ const freigabeHaupt = (zweck, ziel = null) =>
     phD.ratings.every(r => PHASEN_SOLL.includes(r.phase)) &&
     phD.ratings.filter(r => r.phase === 'vorher').map(r => r.name).join() === 'Wunsch',
     JSON.stringify(phD.ratings.map(r => `${r.name}:${r.phase}`)));
+
+  /* --- VOR DEM TEST WIRD NICHT BEWERTET — 0.22.1 -----------------------
+     DER BEFUND AUS DEM BETRIEB: an einem ungetesteten Eintrag stand der
+     Bewertungskasten zugeklappt da, und ein Klick liess Sterne vergeben. Die
+     Oberflaeche versteckt ihn seit dieser Runde -- UND DER SERVER WEIST AB.
+     Was der Bildschirm nicht anbietet, muss der Server abweisen, sonst ist es
+     keine Regel, sondern eine Gewohnheit.
+     DIE LAGE IST GERADE DIE RICHTIGE: der Traeger steht seit dem Umlegen oben
+     auf „ungetestet" und traegt trotzdem Bewertungssterne -- genau der Fall
+     aus Entscheidung E6. */
+  {
+    const phBew = (krit, wert) => PH.ruf('PUT', `/api/items/${phItem.id}/ratings`,
+      { criterionId: krit, value: wert });
+    /* ERST DIE PRUEFLAGE. Ohne sie waere jede Absage darunter auch dann
+       „richtig", wenn der Eintrag laengst wieder getestet waere -- und die
+       Zusagen prueften einen Zustand, den es gar nicht gibt (Stolperstein 161). */
+    const phVorLage = await phDetail();
+    pruefe('Die Prueflage steht: ungetestet, und mit Bewertungssternen',
+      !phVorLage.tested && phVorLage.avgRating === 4,
+      `tested ${phVorLage.tested}, avgRating ${phVorLage.avgRating}`);
+
+    const phAbsage = await phBew(phOhne.inhalt.id, 5);
+    pruefe('Eine Bewertung am ungetesteten Eintrag wird abgewiesen',
+      phAbsage.status === 400, `${phAbsage.status} ${JSON.stringify(phAbsage.inhalt)}`);
+    /* UND SIE SAGT, WARUM. Eine Absage ohne Grund ist auf dem Bildschirm ein
+       roter Streifen ohne Auskunft. */
+    pruefe('Und die Absage nennt den Grund',
+      /ungetestet|Vor dem Test/.test(phAbsage.inhalt?.error || ''),
+      JSON.stringify(phAbsage.inhalt));
+    /* EINE ABSAGE, DIE TROTZDEM SCHREIBT, WAERE SCHLIMMER ALS KEINE. */
+    pruefe('Sie hat dabei nichts geschrieben',
+      (await phDetail()).avgRating === 4, JSON.stringify((await phDetail()).avgRating));
+
+    /* DAS POTENZIAL GEHT WEITER -- es ist die Frage VOR dem Test und an einer
+       Idee die einzige, die sich stellt. Ohne diese Zeile bliebe gruen, wer
+       BEIDE Kaesten sperrt. */
+    const phVorherOk = await phBew(phVorher.inhalt.id, 3);
+    pruefe('Das Potenzial laesst sich am ungetesteten Eintrag weiter setzen',
+      phVorherOk.status === 200 && phVorherOk.inhalt.potenzialRating === 3,
+      `${phVorherOk.status}, potenzialRating ${phVorherOk.inhalt?.potenzialRating}`);
+
+    /* UND WEGNEHMEN MUSS IMMER GEHEN. Der Kasten steht an einem ungetesteten
+       Eintrag MIT Sternen ausdruecklich da (E6), und sein einziger Zweck ist,
+       sie loswerden zu koennen. Eine Klemme, die auch die Null abwiese,
+       sperrte genau den Weg, fuer den er noch da ist. */
+    const phNullOk = await phBew(phOhne.inhalt.id, 0);
+    pruefe('Wegnehmen geht auch am ungetesteten Eintrag',
+      phNullOk.status === 200 && phNullOk.inhalt.rechenweg?.zeilen?.length === 1,
+      `${phNullOk.status}, Zeilen ${phNullOk.inhalt?.rechenweg?.zeilen?.length}`);
+
+    /* UND MIT „getestet" IST DER WEG WIEDER OFFEN. Ohne diese Zeile bliebe
+       gruen, wer die Bewertung ueberhaupt gesperrt haette. */
+    await PH.ruf('PUT', `/api/items/${phItem.id}`, { tested: true });
+    const phWiederOk = await phBew(phOhne.inhalt.id, 4);
+    pruefe('Am getesteten Eintrag geht sie wieder',
+      phWiederOk.status === 200 && phWiederOk.inhalt.rechenweg?.zeilen?.length === 2,
+      `${phWiederOk.status}, Zeilen ${phWiederOk.inhalt?.rechenweg?.zeilen?.length}`);
+    // Die Lage wird zurueckgestellt, wie sie vorgefunden wurde.
+    await phBew(phVorher.inhalt.id, 1);
+    await PH.ruf('PUT', `/api/items/${phItem.id}`, { tested: false });
+  }
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
@@ -21558,11 +21691,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
      613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
      Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
      behauptet. */
-  /* 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel des
-     Pruefstands und eines, das das Milchglas wieder einsetzt. EINUNDVIERZIG
-     VORHANDENE SIND MITGEGANGEN (Stolperstein 201), fast jeder, der einen
-     Bildschirmtext suchte. */
-  pruefe('Es sind genau 635 Rueckbauten', gpListe.length === 635, `${gpListe.length}`);
+  /* 648 SEIT 0.22.1: dreizehn neue (642 bis 654) -- neun fuer die fuenf Gesten
+     am Bildausschnitt, zwei fuer die Kopfzahl, zwei fuer den Bewertungskasten
+     vor dem Test. EINER IST MITGEGANGEN (Stolperstein 201): 330, dessen
+     Suchtext auf den Satz im Erklaerkasten zeigt -- der traegt seit dieser
+     Runde zwei Woerter mehr.
+     DAVOR 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel
+     des Pruefstands und eines, das das Milchglas wieder einsetzt; einundvierzig
+     vorhandene sind damals mitgegangen. */
+  pruefe('Es sind genau 648 Rueckbauten', gpListe.length === 648, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -28730,6 +28867,243 @@ async function pruefeOberflaeche() {
   pruefe('Der Schieber ist fuer diese Frage ueberhaupt da', !!schieber);
   pruefe('Ein Griff an den Schieber setzt keinen Fokuspunkt',
     !bd.gesendet.some(g => /\/focus$/.test(g.url)), JSON.stringify(bd.gesendet.map(g => g.url)));
+
+  /* ================= Die fuenf Gesten am Ausschnitt — 0.22.1 =================
+     DER BEFUND AUS DEM BETRIEB, nach dem Einspielen von 0.22.0 gemeldet: das
+     Rechteck „bedient sich nicht wie ein Ausschnitt". 0.22.0 kannte zwei
+     Gesten und einen einzigen Griff -- die ganze Flaeche --, und Ziehen zog
+     IMMER einen neuen Ausschnitt auf. Wer den vorhandenen Rahmen anfasste, um
+     ihn zu schieben, warf ihn damit weg, und Lage und Weite aenderten sich in
+     derselben Bewegung: zwei Groessen auf einen Griff.
+     SEIT 0.22.1 ENTSCHEIDET DER ORT DER BERUEHRUNG. */
+  gruppe('Die fuenf Gesten am Ausschnitt — 0.22.1');
+
+  /* ZUERST DIE ENTSCHEIDUNG SELBST, UND ZWAR OHNE ZEIGER. `ausschnittGeste()`
+     bekommt einen Rahmen und einen Punkt und antwortet mit einem Wort --
+     dieselbe Bauform wie `zuschnittKiste()` und aus demselben Grund: was der
+     Pruefstand nur ueber ein Zeigerereignis erreicht, prueft er nicht. */
+  pruefe('Die Gestenentscheidung steht als eigene Funktion da',
+    typeof wb.ausschnittGeste === 'function', typeof wb.ausschnittGeste);
+  {
+    const gK = { links: 100, oben: 50, kante: 200 };   // 100..300 / 50..250
+    const g = (x, y) => wb.ausschnittGeste(gK, x, y);
+    pruefe('Ausserhalb des Rahmens wird neu aufgezogen',
+      g(50, 150) === 'neu' && g(200, 20) === 'neu' && g(400, 150) === 'neu' && g(200, 400) === 'neu',
+      [g(50, 150), g(200, 20), g(400, 150), g(200, 400)].join(' · '));
+    pruefe('In der Mitte wird geschoben', g(200, 150) === 'schieben', g(200, 150));
+    pruefe('Die vier Ecken tragen ihre vier Namen',
+      g(105, 55) === 'links-oben' && g(295, 55) === 'rechts-oben' &&
+      g(105, 245) === 'links-unten' && g(295, 245) === 'rechts-unten',
+      [g(105, 55), g(295, 55), g(105, 245), g(295, 245)].join(' · '));
+    pruefe('Und die vier Kanten ebenso',
+      g(200, 55) === 'oben' && g(200, 245) === 'unten' &&
+      g(105, 150) === 'links' && g(295, 150) === 'rechts',
+      [g(200, 55), g(200, 245), g(105, 150), g(295, 150)].join(' · '));
+    /* WO ECKE UND KANTE EINANDER UEBERLAPPEN, GEWINNT DIE ECKE. Sie ist die
+       genauere Angabe, und wer in die Ecke zielt, meint die Ecke. */
+    pruefe('Wo Ecke und Kante einander ueberlappen, gewinnt die Ecke',
+      g(108, 58) === 'links-oben', g(108, 58));
+    /* DIE ZONE IST ZWOELF BILDPUNKTE BREIT -- beide Seiten der Grenze, sonst
+       waere „12" nicht belegt, sondern nur „irgendwo am Rand". */
+    pruefe('Die Greifzone ist zwoelf Bildpunkte breit',
+      g(112, 150) === 'links' && g(113, 150) === 'schieben',
+      `${g(112, 150)} / ${g(113, 150)}`);
+    /* UND SIE WIRD AM RAHMEN GEDECKELT (kante / 4). Ohne den Deckel deckten
+       die acht Zonen einen kleinen Rahmen vollstaendig ab, und das Schieben --
+       die haeufigste Geste -- haette keine Flaeche mehr. */
+    const klein = { links: 0, oben: 0, kante: 20 };
+    pruefe('An einem kleinen Rahmen bleibt Flaeche zum Schieben',
+      wb.ausschnittGeste(klein, 10, 10) === 'schieben' &&
+      wb.ausschnittGeste(klein, 2, 2) === 'links-oben',
+      `${wb.ausschnittGeste(klein, 10, 10)} / ${wb.ausschnittGeste(klein, 2, 2)}`);
+  }
+
+  /* --- UND JETZT AM LEBENDEN OBJEKT. Gefahren wird mit echten Zeigerereignissen
+     gegen den echten Betrachter; gerechnet wird in app.js.
+     JSDOM RECHNET KEIN LAYOUT (Stolperstein 106): Betrachter und Bild bekommen
+     dafuer ein gemessenes Rechteck untergeschoben -- 600 x 400 bei einem Bild
+     von 1200 x 800, also eine Bildflaeche von genau 600 x 400 an (0,0). Der
+     Rahmen liegt damit im selben Mass wie der Zeiger, und `style.left` ist
+     unmittelbar die Zahl, um die es geht. */
+  {
+    const betr = wb.document.querySelector('.viewer');
+    const bildEl = wb.document.querySelector('.viewer img');
+    const rechteck = (l, o, b, h) => () => ({ left: l, top: o, width: b, height: h,
+      right: l + b, bottom: o + h, x: l, y: o, toJSON() { return this; } });
+    betr.getBoundingClientRect = rechteck(0, 0, 600, 400);
+    bildEl.getBoundingClientRect = rechteck(0, 0, 600, 400);
+    Object.defineProperty(bildEl, 'naturalWidth', { value: 1200, configurable: true });
+    Object.defineProperty(bildEl, 'naturalHeight', { value: 800, configurable: true });
+
+    const zeiger = (art, x, y, art2) => betr.dispatchEvent(
+      new wb.MouseEvent(art, { bubbles: true, clientX: x, clientY: y, ...(art2 || {}) }));
+    const ziehe = async ([x1, y1], [x2, y2]) => {
+      bd.gesendet.length = 0;
+      zeiger('pointerdown', x1, y1);
+      zeiger('pointermove', x2, y2);
+      zeiger('pointerup', x2, y2);
+      await new Promise(r => setTimeout(r, 30));
+      return bd.gesendet.find(g => /\/focus$/.test(g.url))?.koerper || null;
+    };
+    // Der Rahmen im selben Mass wie der Zeiger.
+    const rahmen = () => {
+      const el = wb.document.querySelector('.focus-frame');
+      const z = (n) => parseFloat(el.style[n]) || 0;
+      return { links: z('left'), oben: z('top'), kante: z('width') };
+    };
+    const mitte = (r) => [r.links + r.kante / 2, r.oben + r.kante / 2];
+
+    /* EIN BEKANNTER AUSGANGSZUSTAND, und zwar ueber die Bedienung selbst: ein
+       neues Rechteck von (60,60) nach (360,360). Es faengt ausserhalb an --
+       (60,60) liegt links oberhalb jedes Rahmens, den der Schieber bei 250 %
+       stehen laesst -- und legt damit die Lage fest, auf die alles Weitere
+       sich bezieht. */
+    zieh(250); zieh(250, 'change');
+    await new Promise(r => setTimeout(r, 20));
+    const neuRumpf = await ziehe([60, 60], [360, 360]);
+    const r0 = rahmen();
+    pruefe('Ein Zug ausserhalb zieht einen neuen Ausschnitt auf',
+      !!neuRumpf && r0.kante > 0, JSON.stringify([neuRumpf, r0]));
+    /* SEINE LINKE OBERE ECKE SITZT, WO DER ZUG ANFING. Die Kante rastet auf die
+       Fuenferstufen des Schiebers (0.22.0, E9) -- die Ecke tut es nicht. */
+    pruefe('Und seine linke obere Ecke sitzt, wo der Zug anfing',
+      Math.abs(r0.links - 60) < 0.5 && Math.abs(r0.oben - 60) < 0.5,
+      `${r0.links} / ${r0.oben}`);
+
+    /* --- SCHIEBEN: die Lage geht, die Weite bleibt.
+       GEPRUEFT AM GESENDETEN RUMPF UND NICHT AN DER ANZEIGE: eine Zahl, die
+       richtig dasteht und falsch gespeichert wird, faellt sonst niemandem auf. */
+    const vorSchieben = rahmen();
+    const [mx, my] = mitte(vorSchieben);
+    const schiebRumpf = await ziehe([mx, my], [mx + 40, my]);
+    const nachSchieben = rahmen();
+    pruefe('Ein Zug IM Rahmen schiebt ihn',
+      Math.abs(nachSchieben.links - (vorSchieben.links + 40)) < 0.5,
+      `${vorSchieben.links} → ${nachSchieben.links}`);
+    /* GEHALTEN WIRD GEGEN DEN ZOOM DAVOR und nicht gegen den des Schiebers:
+       das neue Rechteck hat seine Kante gerastet und den Zoom dabei gesetzt.
+       Die Zusage lautet „das Schieben aendert ihn nicht" -- nicht „er steht
+       auf 250". */
+    pruefe('Und er ruehrt die Weite nicht an',
+      !!schiebRumpf && !!neuRumpf && schiebRumpf.zoom === neuRumpf.zoom &&
+      Math.abs(nachSchieben.kante - vorSchieben.kante) < 0.001,
+      `zoom ${neuRumpf && neuRumpf.zoom} → ${schiebRumpf && schiebRumpf.zoom}, ` +
+      `Kante ${vorSchieben.kante} → ${nachSchieben.kante}`);
+
+    /* --- DIE ECKE: die gegenueberliegende bleibt liegen. */
+    const vorEcke = rahmen();
+    const eckeRumpf = await ziehe(
+      [vorEcke.links + vorEcke.kante - 4, vorEcke.oben + vorEcke.kante - 4],
+      [vorEcke.links + 60, vorEcke.oben + 60]);
+    const nachEcke = rahmen();
+    pruefe('Ein Zug an der Ecke aendert die Weite',
+      !!eckeRumpf && nachEcke.kante < vorEcke.kante,
+      `${vorEcke.kante} → ${nachEcke.kante}`);
+    pruefe('Und die gegenueberliegende Ecke bleibt liegen',
+      Math.abs(nachEcke.links - vorEcke.links) < 0.5 &&
+      Math.abs(nachEcke.oben - vorEcke.oben) < 0.5,
+      `${vorEcke.links}/${vorEcke.oben} → ${nachEcke.links}/${nachEcke.oben}`);
+
+    /* --- DIE KANTE: die gegenueberliegende bleibt liegen, und die andere
+       Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). Der Rahmen
+       rutscht dabei nicht seitlich weg. */
+    /* ZUERST WIEDER EIN MITTLERER RAHMEN. Der Eckzug darueber hat ihn auf
+       seine MINDESTKANTE gebracht (ein Viertel der kurzen Seite, dieselbe
+       Grenze wie Zoom 400) -- von dort aus laesst sich nichts mehr verkleinern,
+       und die Zusage darunter waere trivial gruen. */
+    await ziehe([60, 60], [360, 360]);
+    const vorKante = rahmen();
+    const rechtsVor = vorKante.links + vorKante.kante;
+    const mitteYvor = vorKante.oben + vorKante.kante / 2;
+    // Die linke Kante nach LINKS: der Rahmen wird dabei groesser, und die
+    // rechte Kante muss trotzdem stehenbleiben.
+    const kantRumpf = await ziehe([vorKante.links + 4, mitteYvor],
+      [vorKante.links - 40, mitteYvor]);
+    const nachKante = rahmen();
+    pruefe('Ein Zug an der Kante aendert ebenfalls die Weite',
+      !!kantRumpf && nachKante.kante > vorKante.kante,
+      `${vorKante.kante} → ${nachKante.kante}`);
+    pruefe('Die gegenueberliegende Kante bleibt dabei liegen',
+      Math.abs((nachKante.links + nachKante.kante) - rechtsVor) < 0.5,
+      `${rechtsVor} → ${nachKante.links + nachKante.kante}`);
+    pruefe('Und der Mittelpunkt wandert auf ihr nicht',
+      Math.abs((nachKante.oben + nachKante.kante / 2) - mitteYvor) < 0.5,
+      `${mitteYvor} → ${nachKante.oben + nachKante.kante / 2}`);
+
+    /* --- NICHTS VERLAESST DAS BILD. Ein Zug weit ueber den Rand hinaus. */
+    const weitRumpf = await ziehe(mitte(rahmen()), [5000, 5000]);
+    const nachWeit = rahmen();
+    pruefe('Keine Geste bringt den Rahmen aus dem Bild',
+      nachWeit.links >= -0.5 && nachWeit.oben >= -0.5 &&
+      nachWeit.links + nachWeit.kante <= 600.5 && nachWeit.oben + nachWeit.kante <= 400.5,
+      JSON.stringify(nachWeit));
+    pruefe('Und die gespeicherten Werte bleiben in ihrer Spanne',
+      !!weitRumpf && weitRumpf.x >= 0 && weitRumpf.x <= 100 &&
+      weitRumpf.y >= 0 && weitRumpf.y <= 100 &&
+      weitRumpf.zoom >= 100 && weitRumpf.zoom <= 400,
+      JSON.stringify(weitRumpf));
+
+    /* --- EIN GRIFF OHNE BEWEGUNG (Entscheidung E1). Innen geschieht nichts --
+       ein Griff in den Rahmen, der sich nicht bewegt, ist ein misslungener
+       Griff. Aussen setzt der Klick weiter den Punkt, wie seit 0.19.x. */
+    const vorKlick = rahmen();
+    const [kx, ky] = mitte(vorKlick);
+    const innenRumpf = await ziehe([kx, ky], [kx + 2, ky + 1]);
+    pruefe('Ein Griff IM Rahmen ohne Weg speichert nichts',
+      innenRumpf === null, JSON.stringify(innenRumpf));
+    pruefe('Und er verstellt den Rahmen auch nicht',
+      Math.abs(rahmen().links - vorKlick.links) < 0.001 &&
+      Math.abs(rahmen().kante - vorKlick.kante) < 0.001,
+      `${vorKlick.links}/${vorKlick.kante} → ${rahmen().links}/${rahmen().kante}`);
+    /* DIE ANDERE HAELFTE VON E1, und ohne sie belegte die erste nichts: es
+       koennte auch gar nichts mehr gespeichert werden (Stolperstein 81). */
+    const aussenX = vorKlick.links > 40 ? vorKlick.links / 2
+      : (vorKlick.links + vorKlick.kante + 600) / 2;
+    const aussenRumpf = await ziehe([aussenX, 200], [aussenX + 2, 200]);
+    pruefe('Ein Klick AUSSERHALB setzt dagegen weiter den Punkt',
+      !!aussenRumpf, JSON.stringify(aussenRumpf));
+
+    /* --- WAS DER ZEIGER SAGT, BEVOR JEMAND DRUECKT (Regel G2 aus 0.22.0).
+       Bis 0.22.0 stand ueber allen dreien dasselbe Kreuz. */
+    const r1 = rahmen();
+    const klasse = (x, y) => { zeiger('pointermove', x, y); return betr.className; };
+    pruefe('Ueber dem Rahmen zeigt der Zeiger das Schieben an',
+      /griff-schieben/.test(klasse(...mitte(r1))), klasse(...mitte(r1)));
+    pruefe('An der Ecke zeigt er die Diagonale',
+      /griff-nwse/.test(klasse(r1.links + 4, r1.oben + 4)),
+      klasse(r1.links + 4, r1.oben + 4));
+    pruefe('An der Kante zeigt er die Achse',
+      /griff-ew/.test(klasse(r1.links + 4, r1.oben + r1.kante / 2)),
+      klasse(r1.links + 4, r1.oben + r1.kante / 2));
+    /* DER PUNKT AUSSERHALB WIRD AM AKTUELLEN RAHMEN BESTIMMT. Ein Punkt, der
+       vor drei Gesten ausserhalb lag, kann inzwischen darin liegen -- und die
+       Zusage praefte dann das Gegenteil dessen, was sie behauptet. */
+    const drausX = r1.links > 40 ? r1.links / 2 : (r1.links + r1.kante + 600) / 2;
+    pruefe('Und ausserhalb traegt er keine Griffklasse',
+      !/griff-/.test(klasse(drausX, 200)), `${drausX}: ${klasse(drausX, 200)}`);
+
+    /* --- AUF DEM FINGER GIBT ES DIE ACHT GRIFFE NICHT (Entscheidung E3): eine
+       Zone von zwoelf Bildpunkten trifft keine Fingerkuppe. Wer den Rahmen
+       antippt, SCHIEBT ihn -- die Weite bleibt beim Schieber (0.22.0, E9). */
+    const r2 = rahmen();
+    bd.gesendet.length = 0;
+    zeiger('pointerdown', r2.links + 4, r2.oben + 4, { });
+    // pointerType laesst sich am MouseEvent nicht setzen; er wird gestellt.
+    const tippEreignis = new wb.MouseEvent('pointerdown',
+      { bubbles: true, clientX: r2.links + 4, clientY: r2.oben + 4 });
+    Object.defineProperty(tippEreignis, 'pointerType', { value: 'touch' });
+    zeiger('pointerup', r2.links + 4, r2.oben + 4);
+    await new Promise(r => setTimeout(r, 20));
+    const r3 = rahmen();
+    betr.dispatchEvent(tippEreignis);
+    zeiger('pointermove', r3.links + 44, r3.oben + 4);
+    zeiger('pointerup', r3.links + 44, r3.oben + 4);
+    await new Promise(r => setTimeout(r, 30));
+    const r4 = rahmen();
+    pruefe('Ein Finger an der Ecke schiebt, statt die Weite zu aendern',
+      Math.abs(r4.kante - r3.kante) < 0.001 && r4.links > r3.links,
+      `Kante ${r3.kante} → ${r4.kante}, links ${r3.links} → ${r4.links}`);
+  }
 
   /* --- Verlassen des Modus. Der Betrachter wird beim Neuzeichnen nicht
    * ersetzt, sondern nur sein Inhalt -- was an ihm selbst haengt, ueberlebt.
@@ -36396,12 +36770,57 @@ async function pruefeOberflaeche() {
     pruefe('An einem getesteten Eintrag steht die Bewertung offen und das Potenzial zu',
       zkZu('bewertung') === false && zkZu('potenzial') === true,
       JSON.stringify([zkZu('bewertung'), zkZu('potenzial')]));
-    /* UND DIE KURZFASSUNG IM KOPF DES ZUGEKLAPPTEN NENNT SEINE ZAHL -- so
-       sieht man nach einem halben Jahr, ob das, was man am meisten wollte,
-       auch das Beste war. */
-    pruefe('Und der zugeklappte Kopf nennt seine Zahl',
-      /⌀ 4,2/.test(zkDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent || ''),
-      JSON.stringify(zkDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent));
+    /* DIE KURZFASSUNG IST WEG, UND DIE ZAHL STEHT TROTZDEM DA -- 0.22.1 (E4).
+       DAS IST DIE UMKEHRUNG DER ZUSAGE, die hier bis 0.22.0 stand: „und der
+       zugeklappte Kopf nennt seine Zahl", gemeint war `.bsumme`.
+       DER BEFUND, DER SIE UMGEDREHT HAT: die Kurzfassung UND die Kopfzahl
+       standen zugleich im selben Kopf und lasen dasselbe Feld -- „(⌀ 4,2)"
+       neben „⌀ 4,2 gewichtet", zweimal dieselbe Zahl mit zwei verschiedenen
+       Formen. Wer zwei Zahlen nebeneinander sieht, schliesst daraus, dass sie
+       zwei Dinge meinen (Stolperstein 318).
+       ZWEI HAELFTEN, UND DIE ERSTE ALLEIN BELEGT NICHTS: „keine Kurzfassung"
+       waere auch dann gruen, wenn der ganze Kopf leer bliebe. Erst die zweite
+       sagt, dass die Zahl nicht verschwunden, sondern nur noch einmal da ist. */
+    /* ERST DAS OBJEKT, DANN SEIN INHALT (Stolperstein 81): `?.textContent ||
+       ''` waere auch dann leer, wenn es die Kurzfassung gar nicht mehr gaebe —
+       und die Zusage bliebe gruen, obwohl der ganze Knoten fehlt. */
+    const zkSumme = zkDoc.querySelector('.block[data-block="potenzial"] .bsumme');
+    pruefe('Die Kurzfassung ist als Knoten weiterhin da', !!zkSumme,
+      JSON.stringify(zkDoc.querySelector('.block[data-block="potenzial"] .block-head')?.innerHTML?.slice(0, 120)));
+    pruefe('Der zugeklappte Kopf traegt keine Kurzfassung mehr',
+      !!zkSumme && zkSumme.textContent === '', JSON.stringify(zkSumme && zkSumme.textContent));
+    pruefe('Und die Zahl steht dort trotzdem -- einmal, als Kopfzahl',
+      /⌀ 4,2/.test(zkDoc.getElementById('phead')?.textContent || ''),
+      JSON.stringify(zkDoc.getElementById('phead')?.textContent));
+
+    /* --- DIE KOPFZAHL SAGT, WESSEN ZAHL SIE IST — 0.22.1 (E5) ---
+       DIE FRAGE KAM AUS DEM BETRIEB: „ist das meine Bewertung oder von
+       allen?" Es ist der Schnitt ueber alle, die bewertet haben -- die eigenen
+       Sterne stehen links in der Zeile. Bis 0.22.0 stand das nirgends: weder
+       am Knopf noch im Kasten dahinter.
+       OHNE BEDINGUNG AUF DIE ZAHL DER ZUGAENGE: eine Installation mit einem
+       einzigen Benutzer bekaeme sonst einen anderen Satz ueber dieselbe
+       Rechnung (Stolperstein 47). */
+    pruefe('Die Kopfzahl sagt im Titel, dass sie ueber alle geht',
+      /über alle Benutzer/.test(zkDoc.getElementById('gew-auf')?.title || '') &&
+      /nicht nur der eigene/.test(zkDoc.getElementById('gew-auf')?.title || ''),
+      JSON.stringify(zkDoc.getElementById('gew-auf')?.title));
+    /* UND IN BEIDEN KAESTEN DASSELBE. Ein Titel, der nur an einem der beiden
+       haengt, beantwortet die Frage genau dort nicht, wo sie zuerst auffiel. */
+    pruefe('Und im Potenzialkasten steht derselbe Titel',
+      zkDoc.getElementById('pgew-auf')?.title === zkDoc.getElementById('gew-auf')?.title,
+      JSON.stringify([zkDoc.getElementById('gew-auf')?.title,
+                      zkDoc.getElementById('pgew-auf')?.title]));
+    /* UND DER ERKLAERKASTEN SAGT ES AUCH -- am Ort der Erklaerung. Er nannte
+       bis 0.22.0 die beiden Schritte und liess offen, ueber WEN der erste
+       geht. */
+    zkDoc.getElementById('gew-auf')?.dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const zkErkl = zkDoc.getElementById('rechnung-modal');
+    pruefe('Der Erklaerkasten nennt die Menge, ueber die gerechnet wird',
+      /über alle\s+Benutzer/.test(zkErkl?.textContent || ''),
+      JSON.stringify((zkErkl?.textContent || '').slice(0, 160)));
+    zkErkl?.closest('.backdrop')?.remove();
 
     /* EIN KLICK AUF DEN KOPF IST EIN BLICK UND KEIN BEFEHL: er klappt auf und
        schickt NICHTS an den Server. Das ist der Unterschied zu jedem anderen
@@ -36435,22 +36854,46 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     const zkIdeeZu = (name) => zkIdee.w.document
       .querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
-    pruefe('An einer Idee ohne Bewertungssterne steht das Potenzial offen und die Bewertung zu',
-      zkIdeeZu('potenzial') === false && zkIdeeZu('bewertung') === true,
-      JSON.stringify([zkIdeeZu('potenzial'), zkIdeeZu('bewertung')]));
-    /* DER SCHALTER LEERT DEN BLICK. Nach dem Umlegen steht der richtige
-       Kasten offen, ohne dass jemand klickt. */
-    zkIdee.w.document.querySelector('.block[data-block="bewertung"] .block-head')
+    pruefe('An einer Idee ohne Bewertungssterne steht das Potenzial offen',
+      zkIdeeZu('potenzial') === false, JSON.stringify(zkIdeeZu('potenzial')));
+    /* UND DEN BEWERTUNGSKASTEN GIBT ES DORT GAR NICHT -- 0.22.1, und das ist
+       die Umkehrung der Zusage, die hier bis 0.22.0 stand: „und die Bewertung
+       zu".
+       DER BEFUND, DER SIE UMGEDREHT HAT: zugeklappt heisst sichtbar. Kopfzeile,
+       Griff, Pfeil und eine Zeile Platz standen an jeder Idee da, und EIN
+       KLICK LIESS STERNE VERGEBEN -- obwohl „vor dem Test schaetzt man, nach
+       dem Test bewertet man" seit 0.21.0 der Satz dieser Instanz ist. Sie sagte
+       ihn leise und liess zugleich das Gegenteil zu.
+       GEPRUEFT WIRD DIE EIGENSCHAFT; DASS SIE AUCH WIRKT, haelt die Gruppe
+       „`hidden` muss wirken, und zwar ueberall" weiter unten fest -- die Regel
+       steht seit 0.15.1 EINMAL ganz oben im Stilblatt und traegt `!important`
+       (Stolperstein 212). */
+    const zkIdeeBlock = () => zkIdee.w.document.querySelector('.block[data-block="bewertung"]');
+    pruefe('Und den Bewertungskasten gibt es dort gar nicht',
+      zkIdeeBlock()?.hidden === true,
+      JSON.stringify([!!zkIdeeBlock(), zkIdeeBlock()?.hidden]));
+    /* DER SCHALTER LEERT DEN BLICK. Nach dem Umlegen steht der richtige Kasten
+       offen, ohne dass jemand klickt.
+       DER BLICK WIRD AM POTENZIAL GESETZT UND NICHT MEHR AN DER BEWERTUNG:
+       deren Kopfzeile steht an einer Idee nicht da, und ein Klick auf einen
+       Kasten, den niemand sehen kann, belegte nichts. Die Frage bleibt
+       dieselbe -- ueberlebt ein Blick das Umlegen des Schalters? */
+    zkIdee.w.document.querySelector('.block[data-block="potenzial"] .block-head')
       .dispatchEvent(new zkIdee.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    pruefe('Ein Blick klappt die Bewertung an der Idee auf',
-      zkIdeeZu('bewertung') === false, JSON.stringify(zkIdeeZu('bewertung')));
+    pruefe('Ein Blick klappt das Potenzial an der Idee zu',
+      zkIdeeZu('potenzial') === true, JSON.stringify(zkIdeeZu('potenzial')));
     zkIdee.w.document.getElementById('sw-test')
       .dispatchEvent(new zkIdee.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     pruefe('Der Schalter „Getestet" stellt die Regel wieder her',
       zkIdeeZu('bewertung') === false && zkIdeeZu('potenzial') === true,
       JSON.stringify([zkIdeeZu('bewertung'), zkIdeeZu('potenzial')]));
+    /* UND ER HOLT DEN KASTEN ZURUECK. Ohne diese Zeile bliebe gruen, wer den
+       Bewertungskasten dauerhaft versteckt -- die Zusage darueber fragt nur
+       nach `zu`, und die gilt auch fuer einen Block, den niemand sieht. */
+    pruefe('Und er holt den Bewertungskasten zurueck',
+      zkIdeeBlock()?.hidden === false, JSON.stringify(zkIdeeBlock()?.hidden));
     zkIdee.w.close();
 
     /* VORHANDENE DATEN SCHLAGEN DIE REGEL. Ein ungetesteter Eintrag mit
@@ -36464,6 +36907,38 @@ async function pruefeOberflaeche() {
       zkAlt.w.document.querySelector('.block[data-block="bewertung"]')
         ?.classList.contains('zu') === false,
       JSON.stringify(zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.className));
+    /* UND SIE ZEIGT IHN WIRKLICH -- 0.22.1 (Entscheidung E6). „Offen" allein
+       genuegt seit dieser Runde nicht mehr: ein versteckter Block kann offen
+       sein, und niemand saehe die Sterne. Vorhandene Daten schlagen die Regel;
+       ohne diese Ausnahme waeren vergebene Sterne unsichtbar UND unerreichbar,
+       denn wegnehmen laesst sich nur, was man sieht. */
+    pruefe('Und zwar sichtbar, nicht nur aufgeklappt',
+      zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.hidden === false,
+      JSON.stringify(zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.hidden));
+
+    /* --- OHNE ZAHL BLEIBT DER SATZ — 0.22.1 (E4) ---
+       Die Kurzfassung faellt nur, solange eine KOPFZAHL dasteht. Steht keine
+       („ohne Zahl kein Knopf"), muss der zugeklappte Kasten selbst sagen, dass
+       er leer ist -- sonst stuende dort eine Ueberschrift und weiter nichts.
+       UND JE KASTEN MIT EIGENEM WORT: zwei gleiche Texte an zwei Koepfen
+       waeren ein Raetsel fuer den, der nur die Koepfe sieht.
+       DIE LAGE: ein GETESTETER Eintrag (Potenzial also zugeklappt) mit einem
+       Vorher-Kriterium, das niemand eingeschaetzt hat. */
+    const zkLeer = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      potenzialWert: null, eigeneWerte: [4, 4, 0],
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const zkLeerDoc = zkLeer.w.document;
+    pruefe('Die Prueflage steht: der Potenzialkasten ist zu und hat keine Zahl',
+      zkLeerDoc.querySelector('.block[data-block="potenzial"]')?.classList.contains('zu') === true &&
+      (zkLeerDoc.getElementById('phead')?.textContent || '') === '',
+      JSON.stringify([zkLeerDoc.querySelector('.block[data-block="potenzial"]')?.className,
+                      zkLeerDoc.getElementById('phead')?.textContent]));
+    pruefe('Dann sagt die Kurzfassung, dass noch nichts dasteht',
+      /noch nicht eingeschätzt/.test(
+        zkLeerDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent || ''),
+      JSON.stringify(zkLeerDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent));
+    zkLeer.w.close();
 
     /* --- DER BLICK ENDET MIT DEM EINTRAG ---
        NACHGETRAGEN AUS DER GEGENPROBE: Rueckbau 593 nimmt `BLICK.clear()` am

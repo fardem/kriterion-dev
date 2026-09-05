@@ -8,7 +8,9 @@ Abschnitt 10) und ist vorläufig.
 `public/app.js` und `public/style.css` sind auf diesen Stand gerechnet und am Wortlaut
 nachgeprüft; sie bleiben Orientierung und keine Zusage. **Die Texte, die 0.21.1 neu gebracht
 hat, sind geprüft und stehen in der Anlage, Abschnitt C1.** Der zugehörige Auftrag ist aus
-diesem Papier geschrieben: `Doku/Auftrag_0.22.0.md`.*
+diesem Papier geschrieben worden (`Doku/Auftrag_0.22.0.md`) und **mit dem Auftrag zu
+0.22.1 weggefallen** — es liegt immer nur einer im Repo; was gebaut wurde, steht im
+Änderungsprotokoll 0.22.0.*
 
 > **WAS DIESES PAPIER IST UND WAS NICHT.** Es ist die Ausarbeitung der Idee, die seit dem
 > 30. August 2026 im Projektstand steht (Abschnitt 10a, „Die Oberfläche wird ruhiger"),
