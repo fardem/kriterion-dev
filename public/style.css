@@ -6,6 +6,14 @@
      setzt sie aus der persoenlichen Einstellung (60 bis 150 px, Vorgabe 80);
      der Wert hier ist nur der Rueckfall, bevor die Einstellungen geladen sind. */
   --streifen: 80px;
+  /* WELCHES SCHEMA WIRKLICH GILT, STEHT HIER UND NICHT IM KOPF DER SEITE --
+     0.23.0. Das Meta-Element dort nennt beide (`light dark`) und sagt damit
+     nur, dass die Anwendung mit beidem umgehen kann; welches gerade laeuft,
+     entscheidet der Block. Davon haengen die Bedienelemente des Browsers ab:
+     Auswahlfelder, Rollbalken, Datumswaehler. Bis 0.22.1 stand dafuer eine
+     eigene Zeile an `.select` -- eine Insel fuer ein Element, wo eine Angabe
+     am Wurzelelement die ganze Seite traegt. */
+  color-scheme: dark;
   --bg: #0e1012;
   --surface: #16191c;
   --surface-2: #1c2126;
@@ -319,6 +327,10 @@
    ist es auch gemeint und so ist es am leichtesten zu lesen: im Vollbild
    gelten die Werte, die ueberall gelten, wenn es dunkel ist. */
 [data-thema="hell"] .lightbox {
+  /* Auch hier, und aus demselben Grund: der Bildstreifen des Vollbilds rollt
+     (`overflow-x: auto`), und ein heller Rollbalken auf dunklem Grund waere
+     der letzte Rest des falschen Schemas. */
+  color-scheme: dark;
   --bg: #2b323a;
   --surface: #363e47;
   --surface-2: #3b434c;
@@ -1494,7 +1506,7 @@ mark {
 .test-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px dashed var(--line); }
 .test-add input[type=date] {
   background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm);
-  color: var(--text); padding: 8px 11px; font-size: .87rem; color-scheme: dark;
+  color: var(--text); padding: 8px 11px; font-size: .87rem;
 }
 .test-add input[type=date]:hover { border-color: var(--line-hover); }
 .test-locked { display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: .87rem; }

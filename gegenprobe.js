@@ -1275,8 +1275,8 @@ const RUECKBAUTEN = [
        192). Er nimmt weiterhin genau die Ansichten heraus. */
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
     datei: 'server.js',
-    suche: "                                'glockeGesehen', 'ansichten', 'streifen'];",
-    ersatz: "                                'glockeGesehen', 'streifen'];",
+    suche: "                                'glockeGesehen', 'ansichten', 'streifen', 'thema'];",
+    ersatz: "                                'glockeGesehen', 'streifen', 'thema'];",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
@@ -2639,8 +2639,8 @@ const RUECKBAUTEN = [
        Der Rueckbau nimmt weiterhin genau den Bezugspunkt der Glocke heraus. */
     nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
     datei: 'server.js',
-    suche: "'suchNamen',\n                                'glockeGesehen', 'ansichten', 'streifen'];",
-    ersatz: "'suchNamen',\n                                'ansichten', 'streifen'];",
+    suche: "'suchNamen',\n                                'glockeGesehen', 'ansichten', 'streifen', 'thema'];",
+    ersatz: "'suchNamen',\n                                'ansichten', 'streifen', 'thema'];",
     erwartet: 'Persoenliche Einstellungen'
   },
   {

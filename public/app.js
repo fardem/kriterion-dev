@@ -1740,6 +1740,66 @@ function wendeStreifenAn() {
   document.documentElement.style.setProperty('--streifen', STREIFEN + 'px');
 }
 
+/* ================= DAS FARBSCHEMA -- 0.23.0 =================
+   DREI STUFEN HIER, ZWEI IM STILBLATT. `hell` und `dunkel` sind Werte von
+   `data-thema` am Wurzelelement; `geraet` ist KEINER -- er wird hier
+   aufgeloest und kommt dort nie an. Der Grund steht im Stilblatt am zweiten
+   Block: sonst muesste jeder der vierzig Werte dreimal geschrieben werden.
+   DIE STUFEN STEHEN HIER UND IM SERVER; der Server entscheidet, die Karte
+   „Darstellung" zeigt die Liste -- dieselbe Bauform wie `schrift`. */
+const THEMA_STUFEN = ['hell', 'dunkel', 'geraet'];
+const THEMA_NAMEN = { hell: 'Hell', dunkel: 'Dunkel', geraet: 'Wie das Gerät' };
+const GERAET_HELL = '(prefers-color-scheme: light)';
+/* DER GEMERKTE WERT IST KEINE ZWEITE WAHRHEIT, SONDERN DAS GEDAECHTNIS DER
+   LETZTEN. Der Server bleibt die Wahrheit: ladeEinstellungen() ueberschreibt
+   ihn bei JEDEM Laden, und er wird NIE zurueckgeschickt. Er wird gelesen,
+   damit beim Oeffnen nicht das falsche Schema aufblitzt -- und sonst zu
+   nichts. In einem privaten Fenster wirft der Zugriff selbst, deshalb der
+   Fangarm.
+   DERSELBE SCHLUESSEL STEHT IM KOPF DER SEITE, im Achtzeiler vor dem
+   Stilblatt. Zwei Stellen fuer denselben Namen -- es geht nicht anders: der
+   Achtzeiler laeuft, bevor es diese Datei gibt. */
+const THEMA_MERKER = 'kriterion.thema';
+let THEMA = (() => {
+  try {
+    const t = localStorage.getItem(THEMA_MERKER);
+    return THEMA_STUFEN.includes(t) ? t : 'dunkel';
+  } catch (e) { return 'dunkel'; }
+})();
+const wirksamesThema = () => THEMA === 'geraet'
+  ? (window.matchMedia && window.matchMedia(GERAET_HELL).matches ? 'hell' : 'dunkel')
+  : (THEMA === 'hell' ? 'hell' : 'dunkel');
+/* DIE FARBE DER BROWSERLEISTE WIRD GELESEN UND NICHT ABGESCHRIEBEN. Der Kopf
+   der Seite sagt seit jeher, sie sei `--bg` und duerfe keine zweite Wahrheit
+   sein -- als Zeichenfolge im Meta-Element war sie aber genau das. Zwei
+   Schemata heissen zwei Werte, und beide stehen im Stilblatt: hier wird der
+   gerade gueltige abgeholt. Wer --bg aendert, aendert die Leiste mit, ohne
+   diese Datei anzufassen. */
+function wendeThemaAn() {
+  const wirksam = wirksamesThema();
+  document.documentElement.dataset.thema = wirksam;
+  const leiste = document.querySelector('meta[name="theme-color"]');
+  if (leiste) {
+    const grund = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    if (grund) leiste.setAttribute('content', grund);
+  }
+  try { localStorage.setItem(THEMA_MERKER, THEMA); } catch (e) { /* privates Fenster */ }
+}
+/* SOFORT UND NICHT ERST NACH DEM ABRUF: der Achtzeiler im Kopf setzt
+   `data-thema`, aber er kann die Leistenfarbe nicht kennen -- das Stilblatt
+   gibt es dort noch nicht. Hier gibt es beides. */
+wendeThemaAn();
+/* UND WER „wie das Geraet" gewaehlt hat, folgt ihm OHNE NEULADEN. Der Horcher
+   greift nur in dieser einen Stellung; in den beiden anderen ist die Frage
+   des Geraets nicht gestellt worden. `addListener` als Rueckfall: aeltere
+   Fassungen kennen `addEventListener` an einer Medienabfrage nicht. */
+if (window.matchMedia) {
+  const mq = window.matchMedia(GERAET_HELL);
+  const folge = () => { if (THEMA === 'geraet') wendeThemaAn(); };
+  if (mq.addEventListener) mq.addEventListener('change', folge);
+  else if (mq.addListener) mq.addListener(folge);
+}
+
 /* DER SCHMALE SCHIRM, ALS FRAGE AN DEN BROWSER.
    SIE STEHT WOERTLICH SO AUCH IM STYLESHEET, und das ist die einzige Stelle
    in der ganzen Instanz, an der eine Bedingung zweimal geschrieben steht. Es
@@ -1960,6 +2020,7 @@ async function ladeEinstellungen() {
   if (EINSTELLUNGEN.vokabular) V = { ...V, ...EINSTELLUNGEN.vokabular };
   if (EINSTELLUNGEN.schrift) SCHRIFT = EINSTELLUNGEN.schrift;
   if (EINSTELLUNGEN.streifen) STREIFEN = EINSTELLUNGEN.streifen;
+  if (THEMA_STUFEN.includes(EINSTELLUNGEN.thema)) THEMA = EINSTELLUNGEN.thema;
   uebernimmBloecke(EINSTELLUNGEN.bloecke);
   if (EINSTELLUNGEN.linkZeilen) LINKZEILEN = EINSTELLUNGEN.linkZeilen;
   if (EINSTELLUNGEN.zeitleiste !== undefined) ZEITLEISTE_AN = EINSTELLUNGEN.zeitleiste !== false;
@@ -1982,6 +2043,8 @@ async function ladeEinstellungen() {
   ZWEIFAKTOR = EINSTELLUNGEN.zweifaktor === true;
   wendeSchriftAn();
   wendeStreifenAn();
+  // Berichtigt, was der Achtzeiler im Kopf aus dem Gedaechtnis geraten hat.
+  wendeThemaAn();
 }
 
 const saveFilters = () => {
@@ -7689,7 +7752,11 @@ function ruesteSitzungenAus(geholt) {
 function karteDarstellung() {
   return `<div class="sys-card">
         <h3>Darstellung</h3>
-        <p class="desc">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
+        <p class="desc">Farbschema der Oberfläche. Wirkt sofort und gilt auf jedem Gerät.
+          „Wie das Gerät" folgt der Einstellung des Betriebssystems und wechselt mit ihr.</p>
+        <div class="pills" id="thema"></div>
+
+        <p class="desc" style="margin:16px 0 8px">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
           Gerät. Bei sehr großer Schrift wird es an manchen Stellen eng.</p>
         <div class="pills" id="fsize"></div>
 
@@ -7707,6 +7774,7 @@ function karteDarstellung() {
       </div>`;
 }
 function ruesteDarstellungAus() {
+  drawThema();
   drawSchrift();
   drawStreifen();
   /* --- Zeitleiste --- */
@@ -7728,6 +7796,29 @@ function ruesteDarstellungAus() {
   });
 }
 
+  /* --- Farbschema — 0.23.0, dieselbe Bauform wie die Schriftgröße darunter ---
+     DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. Sofort sichtbar,
+     bei einem Fehlschlag zurück auf den alten Wert — wer das Schema wechselt,
+     sieht es, bevor der Server geantwortet hat. */
+  function drawThema() {
+    const box = document.getElementById('thema');
+    if (!box) return;
+    box.innerHTML = '';
+    THEMA_STUFEN.forEach(stufe => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (THEMA === stufe ? ' on' : '');
+      b.textContent = THEMA_NAMEN[stufe];
+      b.onclick = async () => {
+        const vorher = THEMA;
+        THEMA = stufe;
+        wendeThemaAn();
+        drawThema();
+        try { await api('PUT', '/api/settings', { thema: stufe }); gespeichert(b); }
+        catch (e) { THEMA = vorher; wendeThemaAn(); drawThema(); toast(e.message, true); }
+      };
+      box.appendChild(b);
+    });
+  }
   /* --- Schriftgröße --- */
   function drawSchrift() {
     const box = document.getElementById('fsize');

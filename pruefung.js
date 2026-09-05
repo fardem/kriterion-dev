@@ -2020,6 +2020,34 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Alle fuenf Stufen 60, 80, 100, 120 und 150 gehen durch', streifenAlle);
   await ruf('PUT', '/api/settings', { streifen: 80 });
 
+  /* DAS FARBSCHEMA -- 0.23.0. Dieselbe Maschine wie die beiden darueber: ein
+     Wert je Zugang, ein Wert fuer alle Geraete, drei Stufen, Rueckfall auf die
+     Vorgabe. Erst der Gegenstand (Stolperstein 81): DIE VORGABE IST `dunkel`
+     UND NICHT `geraet` -- wer nichts einstellt, sieht, was er heute sieht. */
+  pruefe('Die Vorgabe des Farbschemas ist dunkel',
+    (await ruf('GET', '/api/settings')).inhalt.thema === 'dunkel',
+    JSON.stringify((await ruf('GET', '/api/settings')).inhalt.thema));
+  pruefe('Ein unbekanntes Schema wird abgewiesen',
+    (await ruf('PUT', '/api/settings', { thema: 'sepia' })).status === 400);
+  pruefe('Und eine Zahl als Schema ebenso',
+    (await ruf('PUT', '/api/settings', { thema: 7 })).status === 400);
+  const themaGesetzt = await ruf('PUT', '/api/settings', { thema: 'hell' });
+  pruefe('Ein gueltiges Schema wird gespeichert und zurueckgegeben',
+    themaGesetzt.status === 200 && themaGesetzt.inhalt.thema === 'hell',
+    JSON.stringify([themaGesetzt.status, themaGesetzt.inhalt.thema]));
+  pruefe('Und es steht beim naechsten Lesen noch',
+    (await ruf('GET', '/api/settings')).inhalt.thema === 'hell');
+  pruefe('Der Bildstreifen daneben bleibt unberuehrt',
+    (await ruf('GET', '/api/settings')).inhalt.streifen === 80);
+  /* ALLE DREI STUFEN, UND KEINE DAZWISCHEN. `geraet` ist ausdruecklich dabei:
+     es ist eine WAHL und kein Rueckfall, und der Server muss sie annehmen --
+     aufgeloest wird sie erst in der Oberflaeche. */
+  let themaAlle = true;
+  for (const s of ['hell', 'dunkel', 'geraet'])
+    if ((await ruf('PUT', '/api/settings', { thema: s })).inhalt?.thema !== s) themaAlle = false;
+  pruefe('Alle drei Stufen hell, dunkel und geraet gehen durch', themaAlle);
+  await ruf('PUT', '/api/settings', { thema: 'dunkel' });
+
   /* ---------------------------------------------------------------- */
   gruppe('Vokabular in den Servermeldungen');
 
@@ -3005,9 +3033,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gelesen. Eine Migration, die persoenliche Zeilen loescht, waere teurer als
      die Zeilen selbst -- und sie waere ein Schema-Eingriff in einer Runde, die
      ausdruecklich keiner ist. */
+  /* ZEHN SEIT 0.23.0: `thema` -- hell, dunkel oder wie das Geraet. Dieselbe
+     Maschine wie `schrift` und `streifen`, und aus demselben Grund
+     persoenlich: es ist eine Aussage ueber die Augen dessen, der hinsieht,
+     und nicht ueber den Bestand. */
   const dSoll = ['ansichten', 'bloecke', 'filters', 'glockeGesehen', 'linkZeilen', 'schrift',
-                 'streifen', 'suchNamen', 'zeitleiste'];
-  pruefe('server.js kennt genau die neun persoenlichen Schluessel — 0.22.0',
+                 'streifen', 'suchNamen', 'thema', 'zeitleiste'];
+  pruefe('server.js kennt genau die zehn persoenlichen Schluessel — 0.23.0',
     gleich(dListeSrv, dSoll), JSON.stringify(dListeSrv));
   /* UND `zuletztGesehen` STEHT WIRKLICH NIRGENDS MEHR IN server.js -- ausser
      als Vermerk in einem Kommentar. Ohne diese Zeile bliebe die Aufzaehlung
@@ -3220,6 +3252,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Objekt statt Zahl) und deshalb eigens geprueft wird.
   await dRuf('cookie-d-eins', 'PUT', '/api/settings',
     { bloecke: { seite: ['bewertung', 'tags', 'kategorie', 'potenzial'], unten: [], zu: ['links'] } });
+  // 0.23.0: das Farbschema gehoert demselben Rang wie Schrift und Bildstreifen.
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings', { thema: 'hell' });
+  await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { thema: 'geraet' });
+  pruefe('Das Farbschema gehoert dem Benutzer',
+    (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt.thema === 'hell' &&
+    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.thema === 'geraet',
+    JSON.stringify([(await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt.thema,
+                    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.thema]));
   const dBlEins = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt.bloecke;
   const dBlZwei = (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.bloecke;
   pruefe('Die Blockanordnung gehoert dem Benutzer',
@@ -3270,7 +3310,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const dFehlend = dSoll.filter(k => !persoenlichDa(k, 1));
   pruefe('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dFalschGlobal.length === 0, `global gefunden: ${JSON.stringify(dFalschGlobal)}`);
-  pruefe('Alle neun stehen beim Benutzer, der sie gesetzt hat — 0.22.0',
+  pruefe('Alle zehn stehen beim Benutzer, der sie gesetzt hat — 0.23.0',
     dFehlend.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dFehlend)}`);
   pruefe('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('sucheAktiv') && !persoenlichDa('sucheAktiv', 1),
@@ -3293,9 +3333,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      WIEDER FUENF SEIT 0.17.0: der Merkzeitpunkt der gestrichenen Pille faellt
      weg. Die Zahl steht hier ausdruecklich und wird nicht aus dSoll
      abgeleitet -- sie zaehlt, was der Zweite WIRKLICH gesetzt hat, und das ist
-     etwas anderes als die Liste der moeglichen Schluessel. */
+     etwas anderes als die Liste der moeglichen Schluessel.
+     SECHS SEIT 0.23.0: das Farbschema kommt dazu. Der Zweite hat `geraet`
+     gesetzt, der Erste `hell` -- verschiedene Werte, und darum geht es. */
   pruefe('Die beiden Benutzer teilen sich keine Zeile',
-    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 5,
+    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 6,
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 2').all()));
   pruefe('Und die gespeicherte Ansicht des Ersten steht nicht beim Zweiten',
     persoenlichDa('ansichten', 1) && !persoenlichDa('ansichten', 2),
@@ -40413,6 +40455,94 @@ async function pruefeOberflaeche() {
         && /--schleier-rgb: *6,\s*7,\s*9/.test(cssRoh)
         && !/\.backdrop \{[^}]*filter/.test(css123),
       regel123('.backdrop') || '(keine Regel)');
+  }
+
+  /* ================= Das Farbschema — 0.23.0 =================
+     Die Maschine, nicht die Farben: wo die Einstellung steht, wie sie ans
+     Wurzelelement kommt, und WAS VOR DEM ERSTEN ANSTRICH ZU SEHEN IST. Der
+     letzte Punkt ist der, der im Feld auffaellt und sonst nirgends. */
+  gruppe('Das Farbschema — 0.23.0');
+  {
+    const tHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+    const tApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const tCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const tBoot = fs.existsSync(path.join(__dirname, 'public', 'thema.js'))
+      ? fs.readFileSync(path.join(__dirname, 'public', 'thema.js'), 'utf8') : null;
+
+    pruefe('Der Vorgriff liegt als eigene Datei public/thema.js', tBoot !== null,
+      tBoot === null ? '(fehlt)' : `${tBoot.length} Zeichen`);
+    /* ALS DATEI UND NICHT INLINE, und das ist keine Geschmacksfrage: die CSP
+       des Servers sagt `script-src 'self'`, und ein Inline-Script wird vom
+       Browser wortlos abgewiesen. Genau so stand er zuerst da. */
+    pruefe('Und nicht als Inline-Script — script-src bleibt streng',
+      !/<script>[\s\S]*?<\/script>/.test(tHtml) && /script-src 'self'/.test(
+        fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')),
+      (tHtml.match(/<script[^>]*>/g) || []).join(' '));
+    /* ER MUSS VOR DEM STILBLATT STEHEN. Danach hat er seinen Zweck verfehlt:
+       der Browser hat dann schon einmal falsch gemalt. */
+    pruefe('Er steht vor dem Stilblatt',
+      tHtml.indexOf('thema.js') > -1
+        && tHtml.indexOf('thema.js') < tHtml.indexOf('href="style.css"'),
+      `thema.js bei ${tHtml.indexOf('thema.js')}, style.css bei ${tHtml.indexOf('href="style.css"')}`);
+    /* UND ER MUSS SYNCHRON LADEN. `defer` oder `async` liessen ihn NACH dem
+       Stilblatt laufen -- die Datei waere da, und das Blitzen auch. */
+    pruefe('Und er laedt synchron, ohne defer und ohne async',
+      /<script src="thema\.js"><\/script>/.test(tHtml),
+      (tHtml.match(/<script[^>]*thema\.js[^>]*>/) || ['(nicht gefunden)'])[0]);
+    /* DER NAME DES SCHLUESSELS STEHT AN ZWEI STELLEN, und es geht nicht
+       anders: thema.js laeuft, bevor es app.js gibt. Also haelt sie eine
+       Pruefung gegeneinander -- sonst laufen sie beim naechsten Umbenennen
+       auseinander, und der Vorgriff liest ins Leere (Stolperstein 47). */
+    const schluesselBoot = (tBoot || '').match(/getItem\('([^']+)'\)/);
+    const schluesselApp = tApp.match(/THEMA_MERKER = '([^']+)'/);
+    pruefe('Der Name des gemerkten Schluessels stimmt in beiden Dateien ueberein',
+      !!schluesselBoot && !!schluesselApp && schluesselBoot[1] === schluesselApp[1],
+      `thema.js: ${schluesselBoot?.[1]} · app.js: ${schluesselApp?.[1]}`);
+    pruefe('Ohne Gedaechtnis steht dunkel da — die Vorgabe, auch vor der Anmeldung',
+      /\? 'hell' : 'dunkel'/.test(tBoot || '') && /catch[\s\S]{0,80}= 'dunkel'/.test(tBoot || ''),
+      tBoot === null ? '(keine Datei)' : 'Rueckfall geprueft');
+
+    /* DAS STILBLATT KENNT ZWEI WERTE UND NICHT DREI. „Wie das Geraet" loest
+       app.js auf; stuende es hier, muesste jeder Wert dreimal geschrieben
+       werden. */
+    pruefe('Das Stilblatt kennt genau einen zweiten Block',
+      (tCss.match(/:root\[data-thema="hell"\]/g) || []).length === 1
+        && !/data-thema="geraet"/.test(tCss),
+      `hell: ${(tCss.match(/:root\[data-thema="hell"\]/g) || []).length} · geraet: ${/data-thema="geraet"/.test(tCss)}`);
+    pruefe('Und der Betrachter bekommt seine eigenen Werte',
+      /\[data-thema="hell"\] \.lightbox \{/.test(tCss),
+      /\[data-thema="hell"\] \.lightbox/.test(tCss) ? 'Insel da' : '(keine Insel)');
+    /* color-scheme GEHOERT DEM BLOCK und nicht mehr einem einzelnen Element:
+       davon haengen Auswahlfelder, Rollbalken und Datumswaehler ab. */
+    pruefe('color-scheme steht in beiden Schemabloecken und nirgends sonst',
+      (tCss.match(/color-scheme: */g) || []).length === 3
+        && /:root \{[\s\S]*?color-scheme: dark/.test(tCss)
+        && /:root\[data-thema="hell"\] \{[\s\S]*?color-scheme: light/.test(tCss),
+      `${(tCss.match(/color-scheme: [a-z]+/g) || []).join(' · ')}`);
+    pruefe('Und der Kopf der Seite nennt beide',
+      /<meta name="color-scheme" content="light dark">/.test(tHtml));
+
+    /* DIE LEISTENFARBE WIRD GELESEN UND NICHT ABGESCHRIEBEN -- sonst waere
+       sie die zweite Wahrheit, vor der der Kopf der Seite seit jeher warnt. */
+    pruefe('Die Farbe der Browserleiste kommt aus --bg und nicht aus einer Abschrift',
+      /getPropertyValue\('--bg'\)/.test(tApp) && /theme-color/.test(tApp),
+      /getPropertyValue\('--bg'\)/.test(tApp) ? 'gelesen' : '(abgeschrieben)');
+    /* „WIE DAS GERAET" FOLGT OHNE NEULADEN -- und nur in dieser Stellung. */
+    pruefe('Der Horcher auf das Geraet greift nur in der Stellung geraet',
+      /THEMA === 'geraet'\) wendeThemaAn\(\)/.test(tApp)
+        && /addEventListener\('change'/.test(tApp),
+      /addEventListener\('change'/.test(tApp) ? 'Horcher da' : '(kein Horcher)');
+    pruefe('Die Karte „Darstellung" traegt die Pillenreihe',
+      /<div class="pills" id="thema"><\/div>/.test(tApp) && /function drawThema\(\)/.test(tApp)
+        && /drawThema\(\);\n  drawSchrift\(\);/.test(tApp),
+      /function drawThema/.test(tApp) ? 'Reihe und Zeichner da' : '(fehlt)');
+    /* DIE STUFEN STEHEN IN BEIDEN DATEIEN UND MUESSEN UEBEREINSTIMMEN --
+       dieselbe Zusicherung wie bei SCHRIFT_STUFEN und STREIFEN_STUFEN. */
+    const stufenApp = (tApp.match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
+    const stufenSrv = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
+      .match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
+    pruefe('Die drei Stufen stehen in app.js und server.js gleich',
+      !!stufenApp && stufenApp === stufenSrv, `app: ${stufenApp} · server: ${stufenSrv}`);
   }
 
   /* ============ Keine feste Farbe im Stilblatt — 0.23.0 ============
