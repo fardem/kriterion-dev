@@ -36781,9 +36781,14 @@ async function pruefeOberflaeche() {
        ZWEI HAELFTEN, UND DIE ERSTE ALLEIN BELEGT NICHTS: „keine Kurzfassung"
        waere auch dann gruen, wenn der ganze Kopf leer bliebe. Erst die zweite
        sagt, dass die Zahl nicht verschwunden, sondern nur noch einmal da ist. */
+    /* ERST DAS OBJEKT, DANN SEIN INHALT (Stolperstein 81): `?.textContent ||
+       ''` waere auch dann leer, wenn es die Kurzfassung gar nicht mehr gaebe —
+       und die Zusage bliebe gruen, obwohl der ganze Knoten fehlt. */
+    const zkSumme = zkDoc.querySelector('.block[data-block="potenzial"] .bsumme');
+    pruefe('Die Kurzfassung ist als Knoten weiterhin da', !!zkSumme,
+      JSON.stringify(zkDoc.querySelector('.block[data-block="potenzial"] .block-head')?.innerHTML?.slice(0, 120)));
     pruefe('Der zugeklappte Kopf traegt keine Kurzfassung mehr',
-      (zkDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent || '') === '',
-      JSON.stringify(zkDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent));
+      !!zkSumme && zkSumme.textContent === '', JSON.stringify(zkSumme && zkSumme.textContent));
     pruefe('Und die Zahl steht dort trotzdem -- einmal, als Kopfzahl',
       /⌀ 4,2/.test(zkDoc.getElementById('phead')?.textContent || ''),
       JSON.stringify(zkDoc.getElementById('phead')?.textContent));

@@ -183,6 +183,34 @@ und der Rahmen als `pointer-events: none`.*
 
 ---
 
+## 3a. Der Augenschein — gefahren, nicht behauptet
+
+**Chromium 1194 am laufenden Server, 1400 × 950, ein Foto von 240 × 160 mit vier
+verschieden gefärbten Vierteln.** *Gefahren wird mit einer echten Maus über
+`page.mouse`; die Lagen sind aus `getBoundingClientRect()` des Rahmens gelesen
+und auf ganze Bildpunkte gerundet.* **Das ist der Teil, den jsdom nicht leisten
+kann** — dort rechnet kein Layout, und die Prüfungen bekommen ein gestelltes
+Rechteck untergeschoben (Stolperstein 106).
+
+| Geste | gemessen | die Zusage dahinter |
+|---|---|---|
+| Rahmen beim Öffnen | `172 / 81`, Kante **383**, bei 100 % | die kurze Seite, mittig |
+| **neu aufgezogen** ab (142, 101) | Rahmen `143 / 102`, Kante 96, 400 % | **die linke obere Ecke sitzt, wo der Zug anfing** (ein Bildpunkt Rundung) |
+| **geschoben** um +40 | links `143 → 183`, **Kante 96 → 96**, **400 % → 400 %** | *das Schieben rührt die Weite nicht an* |
+| **Ecke nach innen** (am engsten Zoom) | links `183 → 183`, oben `102 → 102`, Kante `96 → 96` | *kein Spielraum mehr — die Geste greift, die Grenze hält; der Zeiger stand auf `griff-nwse`* |
+| **Kante links nach außen** | **rechts `279 → 278`**, **Mitte `150 → 150`**, Kante `96 → 134`, 400 % → 285 % | *die gegenüberliegende Kante bleibt liegen, und der Mittelpunkt wandert auf ihr nicht* (Regel 1.3a) |
+| **Ecke nach außen** | Kante `134 → 196`, **feste Ecke `(144, 83) → (144, 83)`** | *die gegenüberliegende Ecke steht still — auf den Bildpunkt* |
+| **Klick im Rahmen ohne Weg** | `144 / 83`, Kante 196 → **unverändert** | Entscheidung **E1** |
+
+**Und der Zeiger sagt es vorher, am echten Element gemessen:** in der Mitte
+`griff-schieben`, an der Ecke `griff-nwse`, an der Kante `griff-ew`, außerhalb
+**keine** Griffklasse.
+
+*Acht Bildschirmfotos sind dabei entstanden; sie liegen nicht im Repo — **keine
+Binärdateien** (Bauregel).*
+
+---
+
 ## 4. Prüfstand und Gegenproben
 
 ### Prüfungen: 5661 → 5710 (+49, gezählt an beiden Läufen)
