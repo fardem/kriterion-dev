@@ -1,10 +1,25 @@
 # Auftrag 0.24.0 — „Das Deutsche wandert in eine eigene Datei"
 
-**Stufe 1 der Mehrsprachigkeit.** Aufsetzend auf **0.23.0, Fingerprint
-`92f7a142`** — der Stand von `main` am 5. September 2026 (`34da9ea`), dazu die
-Papiere aus `8603d0a` (der gerückte Fahrplan und das Konzept). **Derselbe Bau
-läuft am Wirt**, der Augenschein am Wirt ist also aussagekräftig — und er ist
-in dieser Runde die Abnahme.
+**WAS IN DIESER RUNDE PASSIERT, IN EINEM ABSATZ:** Kriterion redet heute
+Deutsch, und jedes deutsche Wort steht fest im Quelltext — in `app.js`, in den
+Servermeldungen, in den Mails. **In dieser Runde wird jeder dieser Texte aus
+dem Code herausgenommen und in EINE Sprachdatei gelegt** — `de.json` unter
+`public/sprachen/`, oder `de.lang`, wenn der Betreiber es so entscheidet
+(Frage F1). In der Datei stehen **alle Texte der Oberfläche**, die vorkommen,
+je Sache ein Schlüssel; der Code kennt nur noch die Schlüssel. **Die
+Anwendung sieht danach genauso aus wie vorher** — das ist die Abnahme. *Was
+der Admin und die Benutzer eingetragen haben — Vokabular, Tags, Kriterien,
+Kategorien, der Titel, die Einträge — ist keine Oberfläche, sondern Inhalt:
+es zieht nicht um und bleibt in der Sprache, in der es eingetragen wurde
+(Fragen F3 und F4).* Englisch und die Wahl der Sprache kommen erst mit
+Stufe 2.
+
+**Stufe 1 der Mehrsprachigkeit — und davor zwei Befunde aus dem Betrieb am
+hellen Schema.** Aufsetzend auf **0.23.0, Fingerprint `92f7a142`** — der Stand
+von `main` am 5. September 2026 (`34da9ea`), dazu die Papiere aus `8603d0a`
+(der gerückte Fahrplan und das Konzept). **Derselbe Bau läuft am Wirt**, der
+Augenschein am Wirt ist also aussagekräftig — und er ist in dieser Runde die
+Abnahme.
 
 **Das Konzept steht und ist vollständig:
 `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`.** *Dieser Auftrag entscheidet keine
@@ -24,6 +39,34 @@ die Abnahme hängt.*
 > Stufe 2; welche Nummer die trägt — die nächste freie MINOR-Zahl oder eine
 > PATCH-Zahl hinter 0.24.0 —, entscheidet der Betreiber an ihrem Auftrag.*
 > **Gebaut wird davon nichts anders.**
+
+---
+
+## Zuerst: acht Fragen, die vor der ersten Zeile geklärt werden
+
+**Kein Bauabschnitt beginnt, bevor die Spalte „Antwort" gefüllt ist.** Die
+Fragen werden **beim Start der Runde im Gespräch** gestellt, beantwortet und
+hier eingetragen — nicht unterwegs (Abschnitt 12 des Projektstands: *vor dem
+Bauen besprechen, Entscheidungen ausdrücklich bestätigen lassen*). Die
+Spalte „Vorschlag" ist der Vorschlag dieses Papiers; **entschieden ist
+nichts, solange die Antwort fehlt.**
+
+| # | Frage | Vorschlag | Antwort |
+|---|---|---|---|
+| **F1** | **Wie heißt die Sprachdatei, und in welcher Form?** Der Betreiber hat `de.lang` genannt; das Konzept schlägt `de.json` vor (E1) | **`de.json`** — Node und Browser lesen JSON ohne eine Zeile Code; Mehrzahlformen sind Objekte; jeder Editor kennt die Form. *`de.lang` ginge auch:* eine Zeile `schluessel=Text` je Text, ein eigener Leser von rund dreißig Zeilen, die Mehrzahl als zwei Schlüssel (`x.eins`, `x.andere`), und kein Editor hebt sie hervor. **Die Kennung `de` bleibt in beiden Fällen** (ISO 639-1, nicht `deu` oder `ger`) | *offen* |
+| **F2** | **Wo liegt sie?** | **`public/sprachen/`** — beide Seiten lesen dieselbe Datei, der Fingerprint deckt sie von selbst ab, keine neue Route (Konzept 3.3) | *offen* |
+| **F3** | **Was wird aus dem Vokabular — den vierzehn Wörtern, die der Admin umbenennt?** Der Betreiber: *es muss in der Sprache bleiben, die der Admin eingestellt hat, auch wenn ein Benutzer die Oberfläche umschaltet* | **Das Vokabular folgt der Installation, nicht dem Benutzer.** Es gibt **einen** Satz von vierzehn Wörtern je Installation; seine Vorgaben kommen aus der Sprachdatei der **Installationssprache** (in dieser Runde `de.json`), die Überschreibungen des Admins bleiben, wie sie sind. *In einer englischen Oberfläche (Stufe 2) steht dann weiter das Wort, das der Admin gewählt hat — wie der Titel der Installation: es sind die Namen der Sache, keine Texte der Oberfläche.* Das Konzept hatte in E9 ein Vokabular je Sprache vorgeschlagen; **der Betreiber hat es in Frage gestellt, und dieser Auftrag folgt ihm** | *offen* |
+| **F4** | **Tags, Kriterien, Kategorien, der Titel, die Einträge, Kommentare — bleiben so?** | **Ja, unverändert.** Inhalt, eingetragen von Menschen, in ihrer Sprache; kein Umzug, keine Übersetzung, in keiner Stufe (E11). *Bestätigen, damit es nie wieder gefragt wird* | *offen* |
+| **F5** | **Was zählt als Text der Oberfläche?** | **Alles, was ein Mensch am Bildschirm oder in einer Mail liest:** `app.js`, die `error`-Meldungen des Servers, was `auth.js` als Fehler wirft, die vier Briefe samt Betreff. **Nicht:** Konsole, `zugang.js`, `schluessel.js`, Kommentare, Papiere, Prüfstand — die bleiben Deutsch (Konzept, Abschnitt 0) | *offen* |
+| **F6** | **Wie heißen die Schlüssel in der Datei?** | **Deutsch, nach der Sache, mit Namensraum** — `dialog.fotoLoeschen.frage`, nicht der Satz selbst und nicht `t17` (E2) | *offen* |
+| **F7** | **Die Zeitleiste im hellen Schema — welche Werte?** (Bauabschnitt 0.1) | **`#b9c2cb` · `#9aa5b0` · `--muted`** — 1,54 · 2,13 · 4,62 gegen den Grund; das dunkle Schema bleibt. *Am Wirt mit echten Punkten ansehen* | *offen* |
+| **F8** | **Der Umschalter der Tagzeile — wo, und wie heißt er?** (Bauabschnitt 0.2) | **Rechts in der Kategoriezeile, „Tags" mit Zahl** — der Vorschlag des Betreibers, geschärft nach S1. *Dazu am Wirt nachstellen, warum die Tags nach dem Klick nicht erschienen* | *offen* |
+
+**Was nicht gefragt wird, weil es entschieden ist:** die Nummer (0.24.0, der
+Kasten oben), die Reihenfolge der Bauabschnitte, und die technischen
+Entscheidungen A1 bis A3 sowie die des Konzepts, die unten stehen. *Sie werden
+beim Start genannt und nicht neu verhandelt — es sei denn, der Betreiber
+will.*
 
 ---
 
@@ -58,11 +101,171 @@ Wahl der Sprache irgendetwas daran verdeckt.
 
 **Jeder Text, den ein Mensch am Bildschirm oder in einer Mail liest, verlässt
 `public/app.js`, `server.js`, `auth.js` und `mail.js` und steht als Schlüssel
-in `public/sprachen/de.json`.** Der Quelltext ruft `t()` und sonst nichts.
-**Die Anwendung sieht danach genauso aus wie vorher** — dasselbe Wort an
-derselben Stelle, derselbe Umbruch. **Keine Wahl, keine zweite Sprache, kein
-Schema, keine Route, keine Abhängigkeit, kein Bestandslauf** — die Wahl kommt
-mit Stufe 2.
+in der Sprachdatei** (`public/sprachen/de.json`, F1). Der Quelltext ruft
+`t()` und sonst nichts. **Die Anwendung sieht danach genauso aus wie vorher**
+— dasselbe Wort an derselben Stelle, derselbe Umbruch. **Keine Wahl, keine
+zweite Sprache, kein Schema, keine Route, keine Abhängigkeit, kein
+Bestandslauf** — die Wahl kommt mit Stufe 2.
+
+| | zieht um in die Sprachdatei | bleibt, wo es ist |
+|---|---|---|
+| **Oberfläche** (`app.js`) | jede Beschriftung, jeder Knopf, Tooltip, Platzhalter, Toast, Dialog, jede Fehlermeldung — rund 1.800 Bausteine | Zeichen (`⌀`, `·`, `→`), Adressen, Selektoren, Bezeichner |
+| **Server** | die `error`-Meldungen, was `auth.js` als Fehler wirft, die zwei Sätze des Fehler-Handlers | Konsolenmeldungen für den Betreiber, Programmierfehler ohne Bildschirm |
+| **Mails** | die vier Briefe samt Betreff | — |
+| **Vokabular** | nur die **Vorgaben** der vierzehn Wörter (heute zweimal im Code) | die Wörter, die der Admin gesetzt hat — **sie folgen der Installation, nicht dem Benutzer** (F3) |
+| **Inhalt** | — | Tags, Kriterien, Kategorien, Titel, Einträge, Kommentare — in der Sprache, in der sie eingetragen wurden (F4) |
+| **Projekt** | — | Kommentare, Papiere, Prüfstand, Werkzeuge — Deutsch |
+
+**Davor, als Bauabschnitt 0, zwei Befunde aus dem Betrieb am
+hellen Schema** — die Zeitleiste ohne sichtbare Linien und Jahreszahlen, und
+der Aufklapper „Weitere Filter", der Platz kostet statt spart. *Sie fahren
+mit, weil sie klein sind und am selben Stand aufgefallen sind; der
+Augenschein von Stufe 1 gilt dann gegen den Stand NACH ihnen.*
+
+---
+
+## Bauabschnitt 0 — zwei Befunde aus dem Betrieb am hellen Schema
+
+**Beide gemeldet am 5. September 2026 vom Betreiber, am Wirt, 0.23.0
+`92f7a142`, helles Schema — mit Bild.** Keiner stand im Sammelblatt und
+keiner im Fahrplan; sie gehen unmittelbar in diesen Auftrag, wie die Befunde
+zu 0.21.1 und 0.22.1. **Sie werden zuerst gebaut und als eigener Commit
+eingecheckt**, damit der Vergleich „nichts sieht anders aus" für Stufe 1
+einen festen Stand hat.
+
+### 0.1 Die Zeitleiste — Linien und Jahreszahlen sind im hellen Schema nicht zu sehen
+
+**Der Befund:** *„Linien 0 bis 5 und Jahreszahlen sind nicht sichtbar."* Auf
+dem Bild stehen die Punkte frei in der Luft, die Achse ist eine Ahnung, die
+Jahreszahlen sind hellgrau und winzig.
+
+**Die Ursache ist gemessen, nicht geraten.** Die Zeitleiste liegt seit 0.22.0
+ohne Kasten **auf dem Grund der Seite** (`--bg`), nicht auf einer Karte
+(`style.css:2393`). Ihre fünf Hilfslinien je Notenstufe (1 bis 5, die dritte
+kräftiger — `drawZeitleiste()`, `app.js:3487`) und der Strich der Jahresachse
+tragen `--line-2`, die mittlere `--line`, die Jahreszahlen `--faint` bei
+0,63 rem (`style.css:2400–2418`). **Das Farbkonzept hat diese Paarungen nie
+gemessen — es hat „Rand auf der Karte" gemessen, und die Zeitleiste hat keine
+Karte.** Gegen `--bg`:
+
+| | dunkel `#0e1012` | **hell `#eaedf1`** |
+|---|---|---|
+| Hilfslinie und Jahresachse, `--line-2` | 1,22 : 1 | **1,02 : 1** — unsichtbar |
+| mittlere Linie, `--line` | 1,35 : 1 | **1,24 : 1** |
+| Jahreszahl, `--faint` | 3,47 : 1 | 3,46 : 1 — *aber bei 0,63 rem Festbreite, und `--faint` ist laut Farbkonzept nie tragender Text* |
+
+*Im dunklen Schema tragen dieselben Werte, weil eine hellere Linie auf
+Schwarz mehr hergibt als eine dunklere auf Hellgrau — die Zahl ist ähnlich,
+das Auge sieht anders. Das ist die Lücke im Farbkonzept, und sie gehört
+dorthin nachgetragen (Abschnitt 4.1, die Paarungen gegen den Grund).*
+
+**Was gebaut wird — drei eigene Werte, damit das dunkle Schema unberührt
+bleibt:**
+
+```
+                  dunkel (heute, bleibt)     hell (neu)              auf --bg hell
+--zl-linie        = var(--line-2)            #b9c2cb (= --line-hover)  1,54 : 1
+--zl-mitte        = var(--line)              #9aa5b0                    2,13 : 1
+--zl-jahr         = var(--faint)             = var(--muted) #616b75     4,62 : 1
+```
+
+`.zl-linie`, `.zl-linie.mitte`, `.zl-jahre` (der `border-top`) und `.zl-jahr`
+lesen diese drei statt der allgemeinen Randfarben. **Der Schwebehinweis
+(`.zl-hinweis`) und die Punkte bleiben, wie sie sind** — sie liegen auf
+`--surface-2` bzw. in Gold und tragen.
+
+**Was dabei nicht verhandelbar ist:**
+
+* **Das dunkle Schema ändert keinen Bildpunkt** — die drei Variablen tragen im
+  `:root`-Block genau die heutigen Werte. *Dieselbe Regel wie in 0.23.0: wer
+  es „nebenbei verbessert", hat den Auftrag verlassen.*
+* **Die Latte im hellen Schema:** Hilfslinie ≥ 1,5, mittlere ≥ 2,0,
+  Jahreszahl ≥ 4,5 gegen `--bg` — **gerechnet im Prüfstand mit dem
+  Rechenweg aus 0.23.0**, nicht abgeschrieben. Die drei Werte oben sind der
+  Vorschlag; **bestätigt werden sie am Wirt, am hellen Bildschirm, mit echten
+  Punkten (B1).**
+* **Keine feste Farbe im Stilblatt** — der Wächter aus 0.23.0 (keine
+  Farbliterale außerhalb der `:root`-Blöcke) bleibt grün; die neuen Werte
+  stehen in den Blöcken.
+
+### 0.2 Der Aufklapper „Weitere Filter" — er kostet Platz, statt ihn zu sparen
+
+**Der Befund:** *„Weitere Filter sollte Platz sparen, indem die Tags
+einklappen — aber diesen Platz hat jetzt dieser Knopf genommen. Wenn die Tags
+zusätzlich eingeblendet werden, braucht es mehr Platz als vorher."*
+
+**Die Ursache steht im Aufbau.** Der Aufklapper ist ein `<details>` mit einer
+`<summary>` als Zusammenfassung (`app.js:3134–3138`, `style.css:739–749`,
+E8 der Runde 0.22.0). **Die Zusammenfassung ist ein Block und belegt eine
+eigene Zeile** — zwischen der Kategoriezeile und der Sortierzeile steht
+„› Weitere Filter" als Zeile für sich. Zugeklappt spart das gegenüber der
+alten, immer sichtbaren Tagzeile nur den Unterschied zwischen einer
+Beschriftungszeile und einer Tagzeile; **aufgeklappt stehen Zusammenfassung
+UND Tagzeile da — eine Zeile mehr als vor 0.22.0.** *E8 wollte die Zeile
+sparen, die den Platz kostet; gebaut wurde eine Zeile, die den Platz kostet,
+und die andere dahinter.*
+
+**Was der Betreiber vorschlägt, und was dieser Auftrag daraus macht:** der
+Umschalter **an das rechte Ende der Kategoriezeile** — dort, wo in der
+Sortierzeile „Filter zurücksetzen (1)" steht, in derselben Bauform
+(`link-btn` mit Winkel, `margin-left: auto`). Zugeklappt ist die Tagzeile
+**ganz** weg, aufgeklappt erscheint sie als gewöhnliche `.frow` mit der
+Beschriftung „Tags" darunter — **keine eigene Zeile für den Umschalter, in
+keinem der beiden Zustände.** Auf dem Telefon bricht der Umschalter unter die
+Kategoriepillen; das kostet dort eine kurze Zeile, zugeklappt wie
+aufgeklappt, und immer noch weniger als heute.
+
+**Die Beschriftung wird „Tags", nicht „Weitere Filter".** Hinter dem
+Umschalter steht allein die Tagzeile (E8: *„nur die Tagzeile"*), und ein Text
+sagt, was der Klick tut (S1). *„Weitere Filter" verspricht mehr, als
+dahinter liegt — und der Betreiber hat es selbst so gelesen: „Weitere
+Tag-Filter".* Dazu die Zahl der greifenden Tagfilter, wenn es welche gibt:
+„Tags (2)".
+
+**Die beiden Regeln aus 0.22.0 bleiben, wörtlich:** greift ein Tagfilter,
+steht die Tagzeile beim Aufbau **offen** — ein Filter, der die Liste kürzt
+und unsichtbar ist, ist ein Fehler; und `filterZahl()` zählt ihn weiter mit.
+`WEITERE_FILTER_OFFEN` (`app.js:1452`) bleibt der Merker für die Dauer der
+Sitzung.
+
+**„… und blendet zusätzlich nicht die Tags ein."** Der Prüfstand hält das
+Öffnen im jsdom für richtig (Gruppe „Der Aufklapper „Weitere Filter" —
+0.22.0", `pruefung.js:40939`). **Am Wirt nachstellen, bevor gebaut wird**
+(Abschnitt 12 des Projektstands: erst nachstellen, dann behaupten): zeigt der
+Wirt nach dem Klick keine Tags, ist es entweder ein Fall, den der Prüfstand
+nicht stellt — kein Tag mit `usage_count > 0`, dann steht dort „Noch keine
+Tags" —, oder ein Stilblattfehler im hellen Schema. **Beides gehört in diesen
+Abschnitt, und was es war, steht im Änderungsprotokoll.**
+
+**Was dabei nicht verhandelbar ist:**
+
+* **Kein `<details>` mehr, sondern ein Knopf mit `aria-expanded`** — die
+  Zusammenfassung eines `<details>` lässt sich nicht in eine fremde Zeile
+  setzen. Zustand und Tastatur trägt der Knopf (Enter, Leertaste, Fokusring).
+* **Die Tagzeile bleibt eine `.frow` wie ihre Nachbarn**, mit Beschriftung,
+  Und/Oder-Umschalter, Wolke, „mehr" und „Tags zurücksetzen" — daran ändert
+  sich nichts.
+* **Die Alternative, wenn der Betreiber den Umschalter lieber links will:**
+  die Beschriftung der Tagzeile selbst wird der Umschalter — „› TAGS"
+  zugeklappt in der Beschriftungsspalte, „⌄ TAGS Und Oder …" aufgeklappt in
+  derselben Zeile. *Kostet zugeklappt eine Beschriftungszeile, aufgeklappt
+  nichts; hält die Spalte der Beschriftungen bündig.* **Entschieden wird am
+  gebauten Stand am Wirt (B2); gebaut wird zuerst der Vorschlag des
+  Betreibers.**
+
+### 0.3 Der Prüfstand in diesem Abschnitt
+
+* **Die drei Paarungen der Zeitleiste gegen `--bg` im hellen Block,
+  gerechnet** — Hilfslinie ≥ 1,5, mittlere ≥ 2,0, Jahreszahl ≥ 4,5 —, und
+  **die drei Werte im dunklen Block sind die heutigen** (`--line-2`, `--line`,
+  `--faint`).
+* **Die Gruppe „Der Aufklapper „Weitere Filter" — 0.22.0" zieht mit:** der
+  Umschalter steht in der Kategoriezeile, trägt „Tags" und `aria-expanded`;
+  zugeklappt gibt es keine `.frow` mit der Beschriftung „Tags"; aufgeklappt
+  eine, mit Und/Oder und Wolke; mit greifendem Tagfilter steht sie beim Aufbau
+  offen; `filterZahl()` zählt ihn. **Die Zusicherung `tagName === 'DETAILS'`
+  fällt — und wird nicht gelöscht, sondern zur Zusicherung über den Knopf.**
+* **Je Prüfung eine Gegenprobe.**
 
 ---
 
@@ -149,9 +352,12 @@ Prüfstand heute schon liest.**
   Absagen (`:245`, `:246`, `:255`) — **sie stehen am Bildschirm und ziehen
   mit.**
 * **Die Vokabelvorgaben:** `VOKABULAR_VORGABE` (`server.js:1619`) fällt weg,
-  `vokabular()` liest die Vorgabe aus `de.json` unter `vokabular.*`. **Der
-  gespeicherte Schlüssel `vokabular` bleibt flach** — das Objekt je Sprache
-  ist Stufe 2 (E9).
+  `vokabular()` liest die Vorgabe aus der Sprachdatei der **Installation**
+  unter `vokabular.*` — in dieser Runde `de.json`. **Der gespeicherte
+  Schlüssel `vokabular` bleibt, wie er ist:** ein Satz Wörter je Installation,
+  vom Admin gesetzt, unabhängig davon, welche Sprache ein Benutzer später
+  wählt (F3). *Kein Objekt je Sprache — anders als das Konzept in E9
+  vorschlug.*
 * **Was aus `bilder.js`, `bestandslauf.js` und `anhaenge.js` als Fehler bis
   zum Browser gelangt, wird beim Umzug gezählt und mitgenommen** — das
   Konzept hat dort keinen Bildschirmtext gefunden; ein Fund ist ein Fund.
@@ -320,12 +526,20 @@ mit Begründung; hier nur, welche greifen:
 | **E2** | deutsche Schlüssel nach der Sache, benannte Platzhalter | **ja** |
 | **E3** | Mehrzahl als Objekt, `Intl.PluralRules`, der ganze Satz wechselt | **ja** |
 | **E4** | keine Bibliothek — `t()`/`tH()` in vierzig Zeilen, beide Seiten | **ja** |
-| **E9** | Vokabelvorgaben in der Sprachdatei | **ja — die Überschreibung je Sprache nicht** (Stufe 2) |
+| **E9** | Vokabelvorgaben in der Sprachdatei | **ja, die Vorgaben — aber das Vokabular folgt der Installation, nicht dem Benutzer (F3)**; das Objekt je Sprache aus dem Konzept kommt nicht |
 | **E10** | `_locale` im Kopf, `Intl` statt `replace`, `toLocaleLowerCase` | **ja** |
 | **E11** | was nicht übersetzt wird | **ja** |
 | E5 bis E8 | Wahl, Anmeldeseite, Serverquellen, Mails je Empfänger | **nein — Stufe 2**; `spracheVon(req)` liefert `de` |
 | E12 | die Nummern der Stufen | **vom Betreiber entschieden: Stufe 1 allein, als 0.24.0** — siehe den Kasten am Kopf; Stufe 2 und 3 offen |
 | E13, E14 | Englisch, Leser | **nein — Stufe 2 und 3** |
+
+**Zwei zu den Befunden aus Bauabschnitt 0 — offen, bis der Betreiber sie am
+Wirt bestätigt (sie sind F7 und F8 der Fragen am Kopf):**
+
+| # | Frage | Empfehlung |
+|---|---|---|
+| **B1** | Die Werte der Zeitleiste im hellen Schema? | **`#b9c2cb` · `#9aa5b0` · `--muted`** (1,54 · 2,13 · 4,62 gegen `--bg`) — am Wirt mit echten Punkten bestätigen; das dunkle Schema bleibt (0.1) |
+| **B2** | Wo sitzt der Umschalter der Tagzeile, und wie heißt er? | **Rechts in der Kategoriezeile, „Tags" mit Zahl** — der Vorschlag des Betreibers, geschärft nach S1; Alternative: die Beschriftung der Tagzeile als Umschalter (0.2). Am gebauten Stand entscheiden |
 
 **Und drei, die erst beim Schreiben dieses Auftrags aufgekommen sind:**
 
@@ -347,7 +561,9 @@ Konzept auf und nicht im Quelltext.
   `Accept-Language`, kein sechstes Feld in `/api/config`. *Alles Stufe 2.*
 * **Kein Wort anders.** Weder verbessert noch gekürzt noch vereinheitlicht.
   *Wer beim Umzug einen Text ändert, hat den Auftrag verlassen — und die
-  Abnahme (dasselbe Wort an derselben Stelle) gleich mit.*
+  Abnahme (dasselbe Wort an derselben Stelle) gleich mit.* **Die eine
+  Ausnahme ist Bauabschnitt 0:** „Weitere Filter" wird „Tags" — vor dem
+  Umzug, als eigener Commit, mit den Prüfungen, die mitziehen.
 * **Kein `_hinweis`** — Übersetzerhinweise kommen mit der ersten Übersetzung,
   nicht vorher.
 * **Keine Übersetzung von Kommentaren, Papieren, Konsole, Werkzeugen,
@@ -355,13 +571,20 @@ Konzept auf und nicht im Quelltext.
 * **Keine Bibliothek, keine neue Route, kein Schema, kein Bestandslauf, kein
   Migrationsblock, keine neue Quelltextdatei.**
 * **Kein Umbau der Karte „Vokabular"** außer der Herkunft der Vorgabe.
-* **Keine Änderung an `style.css`, `index.html` (außer nichts) und
-  `thema.js`.** *Ein Text ist kein Stil.*
+* **Keine Änderung an `style.css` außer den Zeilen aus Bauabschnitt 0;
+  `index.html` und `thema.js` bleiben unberührt.** *Ein Text ist kein Stil.*
+* **Keine weiteren Befunde am hellen Schema „nebenbei".** Was beim Bauen
+  auffällt, kommt ins Änderungsprotokoll und ins Sammelblatt — nicht in
+  diesen Auftrag.
 
 ---
 
 ## Der Prüfstand — was er halten muss
 
+0. **Bauabschnitt 0:** die drei Paarungen der Zeitleiste gegen `--bg` hell
+   gerechnet über der Latte, die dunklen Werte unverändert; der Umschalter der
+   Tagzeile in der Kategoriezeile mit „Tags" und `aria-expanded`, die Tagzeile
+   zugeklappt weg und aufgeklappt da, mit greifendem Tagfilter offen.
 1. **`de.json` liegt unter `public/sprachen/`, trägt `_locale: "de-DE"`, und
    jeder Wert ist ein String oder ein Objekt `{ eins, andere }`.** Kein Wert
    trägt `<` oder `>`.
@@ -390,9 +613,13 @@ Konzept auf und nicht im Quelltext.
 
 ## Bauregeln
 
-* **Die fünf Bauabschnitte in dieser Reihenfolge**, und jeder ein eigener
-  Commit („0.24.0 Bauabschnitt n: …"), mit grünem Prüfstand. **Abschnitt 1
-  ist fertig, bevor der erste Satz umzieht.**
+* **Zuerst die acht Fragen am Kopf** — gestellt, beantwortet, eingetragen.
+  *Ein Bauabschnitt, der vor der Antwort anfängt, baut gegen eine Vermutung.*
+* **Die sechs Bauabschnitte in dieser Reihenfolge, 0 bis 5**, und jeder ein
+  eigener Commit („0.24.0 Bauabschnitt n: …"), mit grünem Prüfstand.
+  **Abschnitt 0 ist eingecheckt und am Wirt gesehen, bevor Abschnitt 1
+  anfängt** — sein Stand ist der Vergleichsstand für „nichts sieht anders
+  aus". **Abschnitt 1 ist fertig, bevor der erste Satz umzieht.**
 * **Innerhalb von Abschnitt 3 je Ansicht ein Commit** — ein halb umgezogener
   Stand ist erlaubt, solange der Prüfstand grün ist und die Ansicht am Wirt
   dieselbe; **eine halb umgezogene Ansicht nicht.**
@@ -418,7 +645,14 @@ Konzept auf und nicht im Quelltext.
 * **`Doku/Aenderungsprotokoll_0.24.0.md`** — neu, am Ende: was wirklich
   umgezogen ist, mit den Zahlen, die herauskamen; was auf der Restliste steht
   und warum; welche Texte beim Umzug als Fund aufgefallen sind, ohne geändert
-  zu werden.
+  zu werden — **und die beiden Befunde aus Bauabschnitt 0**, mit dem, was am
+  Wirt nachgestellt wurde, und den bestätigten Werten.
+* **`Doku/Farbkonzept_0_23_0.md`** — ein Nachtrag an Abschnitt 4.1: die
+  Paarungen der Zeitleiste gegen den Grund, gemessen, mit den Werten aus B1.
+  *Das Papier wird nicht umgeschrieben; die Lücke wird benannt.*
+* **`Doku/Fehler_und_Ideen.md`** — die Wegweisertafel bekommt am Ende die
+  Zeile zu 0.24.0 mit dem Vermerk, dass die beiden Befunde **nie** dort
+  standen (wie bei 0.21.1 und 0.22.1).
 * **`CHANGELOG.md`** — der Eintrag zur Version. **Kein Kasten darüber:** ein
   Betreiber hat nichts zu tun, und er sieht nichts.
 * **`Doku/Projektstand_…`** — `git mv` auf die Nummer; Kopf, Betriebsstand,
@@ -440,9 +674,10 @@ Konzept auf und nicht im Quelltext.
 
 * **Stufe 2 — Englisch.** Die Wahl je Zugang, die Vorgabe der Installation,
   die Zeile unter der Anmeldemaske, `spracheVon(req)` mit seinen drei
-  Quellen, die Mails je Empfänger, das Objekt je Sprache im Schlüssel
-  `vokabular`, `_hinweis` — und das englische Wörterbuch, beschlossen vor
-  der ersten Zeile (Konzept, S2.1).
+  Quellen, die Mails je Empfänger, `_hinweis` — und das englische
+  Wörterbuch, beschlossen vor der ersten Zeile (Konzept, S2.1). *Ob das
+  Vokabular dann je Sprache Vorgaben braucht, hängt an F3: folgt es der
+  Installation, braucht es keine.*
 * **Stufe 3 — Türkisch.**
 * **Die Liste der Texte, die beim Umzug aufgefallen sind** — ein Satz, der
   gegen S1 verstößt, ein Wort, das zweimal vorkommt, ein Tooltip über acht
