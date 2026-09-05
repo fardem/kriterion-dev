@@ -237,7 +237,7 @@ entschieden und hat seinen Ort.*
 
 | Art | Punkte in Teil I |
 |---|---|
-| **Fehler** | **11** *(drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden)* |
+| **Fehler** | **11**, **12** *(11: drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden. 12: die Ladezeit der Übersicht, ebenfalls 5. September 2026 — **der Server ist darin ausgemessen und ausgeschlossen**)* |
 | **Verbesserung** | — |
 | **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
 | **Design** | — *(der einzige, der Bildstreifen, ist 0.22.0 geworden)* |
@@ -248,6 +248,7 @@ entschieden und hat seinen Ort.*
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
 | **empfohlen** | **11** |
+| **empfohlen, aber eine Beobachtung fehlt** | **12** |
 | **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
 | **eingetragen als 0.24.0** | **5, 6** |
 
@@ -632,6 +633,122 @@ gemessen hat, ist eine Vermutung — dieselbe Regel, an der 0.19.0 selbst hängt
 
 `makeVariants()`, `kodiereKommentarBild()`, die Auslieferung, das Nachrüsten
 beim Start, Prüfungen, Gegenproben, README. **Kein Schema.**
+
+---
+
+## 12. Die Übersicht braucht beim Betreten rund eine Sekunde
+
+**Art: Fehler · Einschätzung: empfohlen, aber eine Beobachtung fehlt · Draußen üblich: ja**
+
+### Woher
+
+**Aus dem Betrieb, 5. September 2026.** Am Telefon über Mobilfunk gegen einen
+entfernten Wirt, 0.22.1 · `15c9b736`. Der Betreiber hat es gemeldet und die
+Beobachtung auf Nachfrage geschärft: *„overview → Einstellung → overview →
+Eintrag → overview. All das hat beim Lademoment zu overview eine Zeit von ca.
+1 Sekunde. Lademoment von overview weg ist blitzschnell."*
+
+**Und ausdrücklich auch dann, wenn man sich in Sekunden durchklickt** — nicht
+nur nach längerer Pause. Damit ist jeder Zwischenspeicher noch warm.
+
+### Was auffiel
+
+**Die Asymmetrie ist der ganze Befund, und sie zeigt in eine Richtung:**
+
+| Ansicht | Abrufe | Bilder | Gefühl |
+|---|---|---|---|
+| Einstellungen | **zwölf**, darunter `/api/stats` | **0** | blitzschnell |
+| Eintrag | drei | 1 (`medium`) | blitzschnell |
+| **Übersicht** | fünf | **13 × 45 kB = 585 kB** | **≈ 1 Sekunde** |
+
+**Zwölf Abrufe sind schnell, fünf sind langsam.** Die Zahl der Abrufe erklärt
+es also nicht, und die Leitung allein auch nicht — `/api/stats` rechnet dabei
+sogar die Exportgröße über 375 MB aus. **Die einzige Größe, die dem Symptom
+folgt, ist die Bildmenge.**
+
+### Was es nicht ist
+
+**ES IST NICHT DER SERVER. Das ist gemessen und braucht kein zweites Mal
+gemessen zu werden.** Nachgebaut wurde eine verschlüsselte Datenbank mit den
+Kennzahlen des Betreibers — 13 Einträge, 89 Fotos, 42 Kommentare, 25 Links,
+11 Testtage, **333,5 MB** —, der echte Server dagegen gestartet und jede Route
+einzeln gemessen:
+
+| | kalt | warm | Größe |
+|---|---|---|---|
+| `/api/items` | **17 ms** | 7 ms | 8,7 kB |
+| `/api/product-categories` | 4 ms | 2 ms | — |
+| `/api/tags` | 2 ms | 2 ms | — |
+| `/api/criteria` | 2 ms | 2 ms | 403 B |
+| `/api/titles` | 3 ms | 2 ms | 66 B |
+| **die fünf aus `loadAll()`** | **≈ 28 ms** | ≈ 15 ms | **≈ 9 kB** |
+| eine Kachel, `?size=thumb` | 30 ms | 7 ms | 45 kB |
+
+**Der Server trägt im schlimmsten Fall rund 120 ms bei.**
+
+**ES IST AUCH NICHT `length(thumb)`.** *Der Verdacht lag nahe: der Ausdruck
+sprengt den deckenden Index `idx_photos_kachel`, und Stolperstein 279
+beschreibt genau diesen Fehlertyp mit 1338 ms.* **Nachgemessen am Datenzuschnitt
+des Betreibers** — der fünfmal größere Zeilen hat als die Meßbank von 0.19.5
+(3,85 MB gegen 0,73 MB je Zeile):
+
+```
+OHNE length(thumb)   SCAN photos USING COVERING INDEX   0,8 ms
+MIT  length(thumb)   SCAN photos USING INDEX            2,0 ms
+```
+
+**Die Zusage von 0.19.5 hält:** neun Spalten weiter aus dem Index, nur die
+Länge aus dem Satzkopf. *Auch daß `data` (3,5 MB) in der Spaltenfolge VOR
+`thumb` steht, kostet nichts — eine Kachel auszuliefern dauert 7 ms warm.*
+
+**ES IST AUCH KEINE ZU GROSSE KACHEL.** 512 px kurze Kante; das Telefon zeigt
+zwei Spalten à rund 180 CSS-Punkte, bei dreifacher Pixeldichte also 540
+Gerätepunkte. **Die 512 sind eher knapp als üppig** — da ist nichts zu holen.
+
+### Was gebaut werden könnte
+
+* **(a) Nicht leeren, bevor Ersatz da ist.** `renderList()` setzt in
+  `public/app.js:2590` `app.innerHTML = "Lädt …"` und wartet **erst danach** auf
+  `loadAll()`. **Der Bildschirm ist leer, bevor überhaupt gefragt wird.** Egal
+  woher die Sekunde kommt — der Benutzer sieht sie als weiße Fläche.
+  *Kleinster Eingriff, größte Wirkung auf das Gefühl, und er hilft in jedem
+  Fall.* **Und er ändert keine einzige Zahl.**
+* **(b) Sofort aus `state.alle` zeichnen, dann nachladen.** Der Bestand liegt
+  beim Verlassen des Eintrags noch im Speicher. *Das Blatt begründet an anderer
+  Stelle selbst, warum er liegenbleibt: „damit das LEEREN der Suche keine
+  Anfrage kostet — ohne ihn wäre die häufigste Handhabung der Suche die
+  teuerste."* **Derselbe Gedanke ist auf den Rückweg in die Übersicht nie
+  angewandt worden, und der ist häufiger.** *Hat einen Preis:* hat jemand
+  anders inzwischen etwas angelegt, steht kurz der alte Stand da — das ist mit
+  der Glocke abzugleichen und keine Kleinigkeit.
+* **(c) Weniger als fünf Abrufe.** Kategorien, Kriterien und Titel ändern sich
+  selten. *Nach der Messung der kleinste Gewinn von den dreien — die fünf
+  zusammen sind 28 ms.*
+
+### Offene Entscheidungen
+
+**EINE BEOBACHTUNG FEHLT, UND OHNE SIE IST DIE URSACHE NICHT BEWIESEN.** Sie
+passiert im Browser des Betreibers und ist von außen nicht meßbar: im
+Netzwerk-Reiter (F12), **„Cache deaktivieren" AUS**, von einem Eintrag zurück
+in die Übersicht, und bei den Bild-Abrufen ablesen:
+
+| steht dort … | dann |
+|---|---|
+| **eine echte Zeit** | der Zwischenspeicher greift nicht — **das wäre der eigentliche Fehler**, und er ist zu suchen. Die Kachel trägt `Cache-Control: private, max-age=86400`, der Browser dürfte gar nicht erst fragen |
+| **„(disk cache)" / „(memory cache)"** | die Übertragung ist es nicht — dann bleibt der Neuaufbau, und **(a)** ist die ganze Antwort |
+
+**Am großen Bestand mit mehr als 60 Einträgen ist es noch nicht geprüft.** Dort
+wären es rund 2,7 MB Kacheln statt 585 kB — wenn die Übertragung die Ursache
+ist, muß es dort deutlich schlimmer sein, und das ist zugleich die Gegenprobe.
+
+### Was es anfasst
+
+**`public/app.js`, `renderList()`** — für (a) zwei Zeilen, für (b) die
+Zeichenfolge beim Betreten. **Kein Server, kein Schema, keine Route.**
+
+**Was dagegen spricht:** nichts klemmt, und **(b)** kauft Geschwindigkeit mit
+Aktualität. *Wer nur (a) baut, hat den ehrlichsten Gewinn: er macht nichts
+schneller, aber er hört auf, den Bildschirm ohne Not zu leeren.*
 
 ---
 
