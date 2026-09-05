@@ -29,6 +29,22 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.22.0] - 2026-09-04
+
+*Was ein Betreiber merkt: die Wörter sind andere, der Bildstreifen ist einstellbar, und die Sternzeile hat ihren Rücksetzknopf woanders. Keine Datenbankstufe; nach dem Einspielen im Browser einmal hart neu laden.*
+
+- Changed: **Die Wörter sind andere** — „Einstellungen" statt „Systembereich", „Mein Konto" und „Benutzer" statt „Zugang" und „Zugänge", „Registrierung" statt „Selbstanmeldung", „Wer hat bewertet" statt „Stimmen", „Bildformate" statt „Bildablage", „Suchmaschinen" statt „Suchanbieter", „Alle" statt „Alles anzeigen"; rund 250 Textstellen nach einem Wörterbuch, die Servermeldungen eingeschlossen
+- Changed: „Bewertung" ist Vokabelwort, als Paar (Einzahl und Mehrzahl) — es ändert Kastenkopf, Sortierung, Vergleich, Kachel und Karte
+- Added: Die Größe der Bilder im Bildstreifen der Detailansicht ist einstellbar — fünf Stufen von 60 bis 150 px, persönlich, in der Karte „Darstellung"; der Streifen nutzt auf jedem Schirm die volle Breite
+- Added: Der Bildausschnitt lässt sich mit der Maus als Rechteck aufziehen; der Schieber bleibt daneben
+- Changed: **Der Rücksetzknopf der Sternzeile steht ganz rechts hinter der Durchschnittszahl**, als runder Knopf mit eigener Spalte — und die Meldung danach trägt „Rückgängig"
+- Changed: Alle Rückfragen laufen über eigene Fenster statt über die Browserfenster; einen Benutzer löschen fragt in EINEM Fenster mit zwei Häkchen, und „Abbrechen" bricht ab; ein fremdes Passwort wird in einem Passwortfeld eingegeben
+- Changed: Kein Milchglas mehr — die Kopfzeile ist deckend und setzt sich beim Rollen mit einem Schatten ab; Kacheln heben sich beim Überfahren um zwei Pixel, Listenzeilen und Pillen antworten auf den Zeiger
+- Changed: Rolle und Zustand in der Benutzerliste sind Marken statt grauer Wörter; Beschriftungen der Blöcke sind größer und heller; Ziffern stehen tabellarisch
+- Changed: Server-Befehle stehen nur noch im Kasten „Auf dem Server" mit Kopierknopf, den allein der Eigentümer sieht; den Schlüssel im Klartext sieht nur der Eigentümer; der Knopf „Eintrag löschen" erscheint nur für Verfasser und Admin
+- Changed: Die Tagzeile der Filterleiste steht hinter dem Aufklapper „Weitere Filter" — offen, sobald ein Tagfilter greift
+- Changed: Erklärtexte an den Karten sind ein Satz; was Admin und Eigentümer darüber hinaus lesen, steht hinter „Mehr"
+
 ## [0.21.1] - 2026-09-04
 
 - Added: Die Sortierung gibt den Statusfilter vor — Bewertung stellt ihn auf „Getestet", Potenzial auf „Ungetestet"
