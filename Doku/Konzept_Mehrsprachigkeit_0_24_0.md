@@ -862,12 +862,31 @@ Entscheidung in einem halben Jahr noch zu beurteilen ist.*
 | **E6** | Was sieht die Anmeldeseite? | **Gedächtnis, sonst Vorgabe der Installation; eine Sprachzeile unter der Maske**, die nur das Gedächtnis schreibt (5.3) |
 | **E7** | Woher weiß der Server die Sprache? | **Benutzerschlüssel → `Accept-Language` aus `api()` → Vorgabe → `de`**; `auth.js` wirft Schlüssel statt Sätze (4.5) |
 | **E8** | Sprache der Mails? | **Die des Empfängers**; Einladung in der Vorgabe der Installation (4.6) |
-| **E9** | Vokabelwörter? | **Vorgaben in der Sprachdatei, Überschreibungen je Sprache**, alter flacher Wert gilt als `de` (Abschnitt 7) — **vom Betreiber am 5. September 2026 in Frage gestellt:** *das Vokabular soll der Sprache der Installation folgen, nicht der des Benutzers — ein Satz Wörter je Installation, wie der Titel.* Frage F3 im Auftrag 0.24.0; der Auftrag folgt dem Betreiber. *Die Empfehlung hier bleibt stehen, damit die Entscheidung in einem halben Jahr noch zu beurteilen ist* |
+| **E9** | Vokabelwörter? | **Vorgaben in der Sprachdatei, Überschreibungen je Sprache**, alter flacher Wert gilt als `de` (Abschnitt 7) — **vom Betreiber am 5. September 2026 in Frage gestellt:** *das Vokabular soll der Sprache der Installation folgen, nicht der des Benutzers — ein Satz Wörter je Installation, wie der Titel.* Frage F3 im Auftrag 0.24.0; der Auftrag folgt dem Betreiber. *Die Empfehlung hier bleibt stehen, damit die Entscheidung in einem halben Jahr noch zu beurteilen ist* — **und am selben Tag, beim Start der Runde, hat der Betreiber sie zu Ende entschieden (siehe den Kasten unter dieser Tafel)** |
 | **E10** | Datum, Zahl, Sortierung? | **`_locale` im Kopf der Datei, `Intl` statt `replace`, `toLocaleLowerCase`** (Abschnitt 6) |
-| **E11** | Was wird nicht übersetzt? | **Inhalte, Titel, Kommentare, Papiere, Konsole, Werkzeuge, Prüfstand** (Abschnitt 0, S1.2) |
+| **E11** | Was wird nicht übersetzt? | **Inhalte, Titel, Kommentare, Papiere, Konsole, Werkzeuge, Prüfstand** (Abschnitt 0, S1.2) — **geschärft am 5. September 2026 (F4 des Auftrags):** *Tags sind eine Wolke für alle und gehören keiner Sprache; die **Kriterien** dagegen bekommen in Stufe 2 je Sprache eine Fassung — **in der Datenbank, nicht in der Sprachdatei.** Kategorien, Titel, Einträge und Kommentare nie.* **Für Stufe 1 folgenlos:** die Namen stehen in `rating_criteria`, nicht im Quelltext |
 | **E12** | Welche Stufe geht mit welcher Nummer heraus? | **Stufe 1 + 2 = 0.24.0.** Stufe 3 ist eine eigene Runde und nimmt die nächste freie Nummer — **oder fährt in 0.24.0 mit, wenn `tr.json` gegengelesen ist, bevor die Runde herausgeht.** *Eine dritte Datei allein bringt eine Funktion (die Installation spricht danach Türkisch) und wäre nach 5.1 MINOR, nicht PATCH* — **Entschieden am 5. September 2026, anders als empfohlen: Stufe 1 geht zuerst und allein heraus, als 0.24.0 — Auftrag `Doku/Auftrag_0.24.0.md`.** *Zunächst 0.24.1 genannt und noch am selben Tag auf 0.24.0 entschieden, weil eine PATCH-Zahl ihre MINOR-Zahl voraussetzt. Die Nummern für Stufe 2 und 3 sind offen und werden am Auftrag zu Stufe 2 entschieden.* |
 | **E13** | Welches Englisch? | **`en-GB`** — Tag zuerst wie Deutsch und Türkisch, 24 Stunden, *Colour*. *Alternative `en-US`: Monat zuerst, 12 Stunden, *Color*.* Es ist eine Zeile in `en.json`, und sie ist später änderbar — aber nicht ohne die Wörter |
 | **E14** | Wer liest Englisch und Türkisch gegen? | **Der Betreiber nennt je Sprache einen Leser.** Ohne Leser geht keine Datei heraus (S3.4) |
+
+> **NACHTRAG ZU E9 — die Karte „Vokabular" in Stufe 2, entschieden am
+> 5. September 2026.** *Abschnitt 7 dieses Papiers hatte die Frage
+> offengelassen, wie die vierzehn Felder aussehen, wenn es sie je Sprache
+> gibt. Der Betreiber hat sie beim Start der Runde beantwortet:* **EINE Karte,
+> kein zweiter Ort.** Sie zeigt die vierzehn Felder **der gerade eingestellten
+> Sprache**; ein Umschalter darüber wechselt die Sprache, und die Felder
+> füllen sich neu. **Und wo für eine Sprache noch nichts eingetragen ist,
+> steht dort nicht nichts, sondern der zuerst angelegte Wortsatz** — legt der
+> Admin die Installation auf Deutsch an und öffnet später die englische
+> Fassung, sieht er die deutschen Wörter und nicht vierzehn leere Felder.
+> *Das ist derselbe Gedanke wie der Rückfall der Texte auf Deutsch (4.4):
+> lieber ein Wort in der falschen Sprache als gar keines.*
+>
+> **Für Stufe 1 ändert das nichts.** Der gespeicherte Schlüssel `vokabular`
+> bleibt in dieser Runde flach (F3 des Auftrags); das Objekt je Sprache und
+> der Rückfall werden in Stufe 2 gebaut, und ein flacher Altwert gilt dort
+> als `de`. *Die Entscheidung steht hier, weil sie beim Bauen von Stufe 2
+> vorliegen muss und nicht dann erst gestellt werden soll.*
 
 **Und eine Frage, die keine Nummer bekommt, weil sie entschieden ist:** *ob
 die Runde vor der Bereinigung kommt.* **Das hat der Fahrplan am 5. September
