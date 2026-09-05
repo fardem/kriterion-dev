@@ -154,7 +154,9 @@ Siehe Abschnitt 4.
 * `Doku/Aenderungsprotokoll_0.22.1.md` — dieses Blatt.
 * `Doku/Auftrag_0.22.1.md` — der Auftrag samt der Kantenregel 1.3a; der Auftrag
   zu 0.22.0 ist mit ihm weggefallen, und der Verweis darauf im Konzeptpapier
-  ist nachgezogen.
+  ist nachgezogen. ***Er ist seinerseits mit dem Auftrag zu 0.23.0
+  weggefallen** — es liegt immer nur einer im Repo; was gebaut wurde, steht in
+  diesem Blatt.*
 * `Doku/Projektstand_Kriterion_0_22_1.md` (per `git mv`, Revision 60): Kopf,
   Betriebsstand, Abschnitt 5.6 (**G9 bis G11**), Stolpersteine **318 bis 322**,
   Fahrplan, Versionsgeschichte, Prüfstandszahlen.
