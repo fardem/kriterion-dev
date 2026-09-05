@@ -1,4 +1,4 @@
-# Auftrag 0.24.1 — „Das Deutsche wandert in eine eigene Datei"
+# Auftrag 0.24.0 — „Das Deutsche wandert in eine eigene Datei"
 
 **Stufe 1 der Mehrsprachigkeit.** Aufsetzend auf **0.23.0, Fingerprint
 `92f7a142`** — der Stand von `main` am 5. September 2026 (`34da9ea`), dazu die
@@ -13,15 +13,17 @@ und die Sprachdatei stehen dort in den Abschnitten 3 bis 7 — hier steht nur,
 in welcher Reihenfolge gebaut wird, was dabei nicht verhandelbar ist und woran
 die Abnahme hängt.*
 
-> **DIE NUMMER IST EINE ZEILE IN DIESEM AUFTRAG UND SONST NICHTS.** Der
-> Betreiber hat die Runde am 5. September 2026 **0.24.1** genannt. *Abschnitt
-> 5.1 des Projektstands sagt für eine Runde, nach der die Installation nichts
-> kann, was sie vorher nicht konnte, PATCH — und das trifft hier zu. Eine
-> PATCH-Zahl setzt aber ihre MINOR-Zahl voraus, und eine 0.24.0 ist noch
-> nicht herausgegangen.* **Geht diese Runde als erste der Reihe heraus, ist
-> sie die 0.24.0** — oder der Betreiber lässt die 0.24.1 stehen und gibt die
-> 0.24.0 nie heraus, was SemVer erlaubt. **Entschieden wird das vor dem
-> Herausgeben, an genau dieser Stelle; gebaut wird davon nichts anders.**
+> **DIE NUMMER IST ENTSCHIEDEN: 0.24.0.** Der Betreiber hatte die Runde am
+> 5. September 2026 zunächst **0.24.1** genannt. *Abschnitt 5.1 des
+> Projektstands sagt für eine Runde, nach der die Installation nichts kann,
+> was sie vorher nicht konnte, PATCH — und das trifft hier zu. Eine PATCH-Zahl
+> setzt aber ihre MINOR-Zahl voraus, und eine 0.24.0 war noch nicht
+> herausgegangen.* **Noch am selben Tag entschieden: diese Runde ist die
+> 0.24.0** — die erste der Reihe nimmt die MINOR-Zahl der Mehrsprachigkeit,
+> auch wenn sie allein noch keine Funktion bringt. *Die Funktion kommt mit
+> Stufe 2; welche Nummer die trägt — die nächste freie MINOR-Zahl oder eine
+> PATCH-Zahl hinter 0.24.0 —, entscheidet der Betreiber an ihrem Auftrag.*
+> **Gebaut wird davon nichts anders.**
 
 ---
 
@@ -322,7 +324,7 @@ mit Begründung; hier nur, welche greifen:
 | **E10** | `_locale` im Kopf, `Intl` statt `replace`, `toLocaleLowerCase` | **ja** |
 | **E11** | was nicht übersetzt wird | **ja** |
 | E5 bis E8 | Wahl, Anmeldeseite, Serverquellen, Mails je Empfänger | **nein — Stufe 2**; `spracheVon(req)` liefert `de` |
-| E12 | die Nummern der Stufen | **vom Betreiber entschieden: Stufe 1 allein, 0.24.1** — siehe den Kasten am Kopf |
+| E12 | die Nummern der Stufen | **vom Betreiber entschieden: Stufe 1 allein, als 0.24.0** — siehe den Kasten am Kopf; Stufe 2 und 3 offen |
 | E13, E14 | Englisch, Leser | **nein — Stufe 2 und 3** |
 
 **Und drei, die erst beim Schreiben dieses Auftrags aufgekommen sind:**
@@ -389,7 +391,7 @@ Konzept auf und nicht im Quelltext.
 ## Bauregeln
 
 * **Die fünf Bauabschnitte in dieser Reihenfolge**, und jeder ein eigener
-  Commit („0.24.1 Bauabschnitt n: …"), mit grünem Prüfstand. **Abschnitt 1
+  Commit („0.24.0 Bauabschnitt n: …"), mit grünem Prüfstand. **Abschnitt 1
   ist fertig, bevor der erste Satz umzieht.**
 * **Innerhalb von Abschnitt 3 je Ansicht ein Commit** — ein halb umgezogener
   Stand ist erlaubt, solange der Prüfstand grün ist und die Ansicht am Wirt
@@ -413,7 +415,7 @@ Konzept auf und nicht im Quelltext.
   ergänzt (Funde nach den Bauregeln, die gemessenen Zahlen), nicht
   umgeschrieben. **E12 trägt seit dem 5. September 2026 die Entscheidung des
   Betreibers.**
-* **`Doku/Aenderungsprotokoll_0.24.1.md`** — neu, am Ende: was wirklich
+* **`Doku/Aenderungsprotokoll_0.24.0.md`** — neu, am Ende: was wirklich
   umgezogen ist, mit den Zahlen, die herauskamen; was auf der Restliste steht
   und warum; welche Texte beim Umzug als Fund aufgefallen sind, ohne geändert
   zu werden.
@@ -428,7 +430,7 @@ Konzept auf und nicht im Quelltext.
 * **`README.md`** — nur, wenn ein Betreiber etwas Neues sieht. *In dieser
   Runde: nichts.* Ein Satz zum Ordner `public/sprachen/` gehört dorthin,
   sobald Stufe 2 die Wahl bringt.
-* **`package.json`** — die Nummer, wie am Kopf entschieden.
+* **`package.json`** — `0.24.0`.
 * **Dieser Auftrag fällt mit dem nächsten weg** — es liegt immer nur einer
   im Repo.
 
@@ -450,4 +452,7 @@ Konzept auf und nicht im Quelltext.
 * **Die Ladezeit der Sprachdatei** — gemessen am Wirt, nicht geschätzt
   (Konzept, Abschnitt 11). *Wenn sie stört, ist sie ein Befund für Stufe 2
   und keine Überraschung.*
-* **Die Nummer** — der Kasten am Kopf.
+* **Die Nummern von Stufe 2 und 3** — am Auftrag zu Stufe 2 zu entscheiden:
+  die nächste freie MINOR-Zahl (heute 0.25.0) oder eine PATCH-Zahl hinter
+  0.24.0. *Eine zweite Sprache bringt eine Funktion; Abschnitt 5.1 sagt dazu
+  MINOR.*
