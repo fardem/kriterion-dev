@@ -33,6 +33,26 @@
 
   --accent: #ff7a1a;
   --accent-hi: #ff9440;
+  /* ORANGE ALS SCHRIFT -- 0.23.0. Im dunklen Schema ist es dieselbe Farbe wie
+     die Flaeche, und deshalb steht hier `var(--accent)` und kein zweiter Wert:
+     eine Abschrift liefe auseinander.
+     IM HELLEN SCHEMA GEHEN DIE BEIDEN AUSEINANDER, und das ist der einzige
+     Fall dieser Art. Orange als Flaeche misst auf Weiss 2,61 : 1 -- als
+     Schrift faellt es damit unter jede Schwelle; als MARKE muss es bleiben,
+     was es ist. Also traegt die Flaeche die Marke und die Schrift den
+     Kontrast. Gold, Gruen, Blau und Rot brauchen das nicht: sie sind keine
+     Markenflaeche und kommen mit EINEM dunkleren Wert aus. */
+  --accent-text: var(--accent);
+  --accent-text-hi: var(--accent-hi);
+  /* DIE KANTE EINER GEFUELLTEN ORANGEFLAECHE -- Knopf, gewaehlte Pille,
+     Blaetterpfeil. Im dunklen Schema IST die Kante die Flaeche, und deshalb
+     steht hier `var(--accent)`: ein Rand, den man nicht sieht, weil es keinen
+     zu sehen gibt.
+     IM HELLEN SCHEMA IST ER DIE GANZE GRENZE. Orange auf Weiss misst 2,61 : 1
+     -- die Flaeche allein sagt nicht, wo der Knopf aufhoert. Die Schrift
+     DARAUF ist mit 6,94 lesbar, der Umriss ist es nicht. Also traegt die
+     Flaeche die Marke und die Kante den Kontrast (5,38). */
+  --accent-kante: var(--accent);
   --accent-dim: rgba(var(--accent-rgb), .13);
   --accent-line: rgba(var(--accent-rgb), .42);
 
@@ -90,12 +110,27 @@
      rgba(12,14,16,...) und nehmen jetzt dasselbe Tripel wie ihre elf
      Nachbarn. Vier von 255 je Kanal, bei 80 Prozent Deckung auf einem Foto. */
   --foto-rgb: 8,10,12;
+  /* Und die Schrift darauf. SIE STEHT ALS ZAHL DA UND NICHT ALS `var(--text-2)`,
+     obwohl sie heute genau dessen Wert traegt -- und das ist kein Versehen:
+     eine Variable loest sich beim GEBRAUCH auf, nicht beim Schreiben. Stuende
+     hier `var(--text-2)`, zoege das helle Schema sie auf #3f4851 mit --
+     dunkle Schrift auf einem dunklen Schleier. Sie folgt dem Foto und nicht
+     dem Schema, also steht sie fest. */
+  --auf-foto: #b3bac1;
+  --auf-foto-leise: #616a73;
   /* Die Werkzeugecke im Betrachter und die Bedienung im Vollbild. */
   --werkzeug-rgb: 14,16,18;
   --vb-flaeche-rgb: 20,23,27;
   --rand-auf-dunkel-rgb: 255,255,255;
   /* Der Schleier -- hinter dem Dialog und hinter dem Vollbild. */
   --schleier-rgb: 6,7,9;
+  /* ZWEI FERTIGE WERTE UND NICHT ZWEI ALPHAS IN DEN REGELN: im hellen Schema
+     aendert sich an beiden BEIDES -- Farbe und Deckung. Der Schleier wird
+     leichter (ein Dialog ueber einer hellen Seite braucht keine 78 Prozent),
+     und der Vollbildgrund ist ueberhaupt kein Schleier mehr, sondern eine
+     deckende Flaeche. */
+  --schleier: rgba(var(--schleier-rgb), .78);
+  --vb-grund: rgba(var(--schleier-rgb), .97);
 
   --r-sm: 7px;
   --r: 11px;
@@ -163,6 +198,157 @@
   --z-vollbild: 90;
   --z-dialog: 100;
   --z-meldung: 120;
+}
+
+/* ═════════════════ DAS HELLE SCHEMA — 0.23.0 ═════════════════
+   EIN ZWEITER BLOCK, UND ES BLEIBT BEI EINEM. `data-thema` traegt genau zwei
+   Werte, `hell` und `dunkel`; die dritte Stufe der Einstellung -- „wie das
+   Geraet" -- wird in app.js aufgeloest und kommt hier nie an. Stuende sie
+   hier, muesste jeder Wert DREIMAL geschrieben werden: in :root, hier, und
+   noch einmal in einer Medienabfrage.
+
+   DIE WERTE SIND GEMESSEN UND NICHT AUSGERECHNET. Das Farbkonzept
+   (Doku/Farbkonzept_0_23_0.md) haelt sie einzeln fest, samt der Latte, an der
+   sie haengen: KEIN WERT DES HELLEN SCHEMAS UNTERSCHREITET, WAS DAS DUNKLE AN
+   DERSELBEN PAARUNG HEUTE ERREICHT. Das ist strenger als AA, und es ist
+   strenger, weil es schon stand.
+
+   DIE STUFENLEITER KEHRT IHRE RICHTUNG UM, NICHT IHRE BEDEUTUNG. Im dunklen
+   Schema heisst „eine Stufe hervortreten" heller, im hellen dunkler.
+   --surface-3 ist in beiden die Hover-Flaeche -- einmal ueber, einmal unter
+   der Karte.
+
+   WAS HIER NICHT STEHT, IST DIE HALBE AUSSAGE:
+   * --accent bleibt #ff7a1a. Die Marke bekommt keinen zweiten Wert; den
+     Kontrast traegt der RAND (--accent-line), nicht die Flaeche.
+   * --foto-rgb, --auf-foto, --auf-foto-leise, --auf-accent, --auf-signal,
+     --werkzeug-rgb, --vb-flaeche-rgb und --rand-auf-dunkel-rgb fehlen
+     ABSICHTLICH: was auf einem Foto oder auf einer gefuellten Flaeche liegt,
+     folgt seinem Grund und nicht dem Schema. */
+:root[data-thema="hell"] {
+  color-scheme: light;
+
+  --bg: #eaedf1;
+  --surface: #ffffff;
+  --surface-2: #f4f6f8;
+  --surface-3: #e3e7ec;
+  --line: #d0d7de;
+  --line-2: #e7ebef;
+
+  --text: #14181c;
+  --text-2: #3f4851;
+  --muted: #616b75;
+  --faint: #767f89;
+
+  /* Orange: die Flaeche traegt die Marke, die Schrift traegt den Kontrast.
+     Auf Weiss misst #ff7a1a 2,61 : 1 -- #ad4f0b misst 5,38 und auf dem Grund
+     noch 4,59. Beim Ueberfahren geht es nach DUNKLER und nicht nach heller. */
+  --accent-hi: #ec6a05;
+  --accent-text: #ad4f0b;
+  --accent-text-hi: #933f06;
+  --accent-dim: rgba(var(--accent-rgb), .16);
+  --accent-kante: var(--accent-text);
+  /* KEINE TEILDECKUNG: aus --accent gemischt erreicht der Rand auf Weiss auch
+     bei VOLLER Deckung nur 2,61 : 1 -- es gibt kein Alpha, das ihn rettet.
+     Im hellen Schema fallen Rand und Schrift deshalb zusammen. Ein Wert
+     weniger, und der Grund ist eine Zahl. */
+  --accent-line: var(--accent-text);
+
+  /* Die vier uebrigen Bedeutungsfarben kommen mit EINEM Wert aus -- sie sind
+     keine Markenflaeche. Gemessen auf der Karte 5,31 bis 5,38 und auf dem
+     Grund 4,52 bis 4,59: sie lesen sich als eine Familie, und das ist kein
+     Zufall, sondern dieselbe Rechnung. */
+  --gold: #8f6306;
+  --gold-rgb: 143,99,6;
+  --gold-line: rgba(var(--gold-rgb), .55);
+  /* Der leere Stern. Gegen den vollen misst er 3,76 : 1 -- die Schwelle fuer
+     Grafik. Das war der Punkt, an dem der erste Entwurf durchgefallen ist. */
+  --star-off: #d3dae1;
+
+  --blue: #1d6eb6;
+  --green: #0c7a54;
+  --green-rgb: 12,122,84;
+  --green-dim: rgba(var(--green-rgb), .10);
+  --red: #cb2a32;
+  --red-rgb: 203,42,50;
+  --red-dim: rgba(var(--red-rgb), .09);
+
+  --line-hover: #b9c2cb;
+  --line-hover-2: #aab4bf;
+  --platzhalter: #78828d;
+  /* Der Grund hinter einem Foto. Heute #0a0c0e -- gegen eine weisse Karte
+     waeren das 19,59 : 1, der lauteste Fleck der ganzen Seite. Dieselbe Rolle
+     wie bisher, nur in die andere Richtung: eine Flaeche, die zuruecktritt. */
+  --bild-grund: #e3e7ec;
+  --bild-grund-2: #dde2e8;
+  --vorschau-grund: #f4f6f8;
+
+  /* Der Schleier wird leichter -- ein Dialog ueber einer hellen Seite braucht
+     keine 78 Prozent. Der Vollbildgrund ist ueberhaupt kein Schleier mehr,
+     sondern eine deckende Flaeche; der Grund steht am Betrachter weiter unten. */
+  --schleier-rgb: 20,26,33;
+  --schleier: rgba(var(--schleier-rgb), .55);
+  --vb-grund: #2b323a;
+
+  /* Schwarz bei 45 Prozent ueber Weiss ist Russ. Auf hellem Grund traegt
+     ohnehin der Rand und nicht der Schatten: das Alpha faellt auf rund ein
+     Sechstel, und der Ton geht von reinem Schwarz auf die 210 Grad der
+     uebrigen Palette. */
+  --sh-sm: 0 1px 2px rgba(var(--schleier-rgb), .06);
+  --sh: 0 4px 16px rgba(var(--schleier-rgb), .10);
+  --sh-lg: 0 12px 40px rgba(var(--schleier-rgb), .16);
+  --sh-menue: 0 6px 18px rgba(var(--schleier-rgb), .12);
+}
+
+/* ---- DER BETRACHTER IST EIN RAUM MIT EIGENEM LICHT — 0.23.0 ----
+   DAS VOLLBILD BLEIBT IN BEIDEN SCHEMATA DUNKEL, ABER NICHT GLEICH DUNKEL.
+   Heute liegt es bei 2,9 Prozent Helligkeit, also praktisch schwarz; im
+   hellen Schema bei 19,8 -- dort, wo Lightroom (20,0) und Capture One (19,6)
+   ihr Umfeld haben. Ein fast schwarzes Umfeld laesst Fotos heller und
+   kontrastreicher erscheinen, als sie sind. Im dunklen Schema gewinnt die
+   Geschlossenheit der Oberflaeche; im hellen gibt es nichts zu schliessen,
+   und dort gewinnt das Bild.
+
+   ES KOSTET KEINE EINZIGE REGELAENDERUNG, und das ist der Punkt: der
+   Betrachter benutzt ACHT Schema-Variablen. Bliebe er dunkel, waehrend --text
+   auf #14181c geht, stuende seine Bedienung mit 1,38 : 1 da -- sie waere weg.
+   Variablen vererben sich, also bekommt er hier seine eigenen, und jede
+   `var(--text)`-Regel darin greift von selbst darauf zu.
+
+   WAS HIER STEHT, IST DAS DUNKLE SCHEMA -- nur der Grund ist angehoben. So
+   ist es auch gemeint und so ist es am leichtesten zu lesen: im Vollbild
+   gelten die Werte, die ueberall gelten, wenn es dunkel ist. */
+[data-thema="hell"] .lightbox {
+  --bg: #2b323a;
+  --surface: #363e47;
+  --surface-2: #3b434c;
+  --surface-3: #434c56;
+  --line: #4a535e;
+  --line-2: #333b43;
+  --line-hover: #566069;
+  --line-hover-2: #566069;
+
+  --text: #eef1f4;
+  --text-2: #c2c9d1;
+  --muted: #96a0aa;
+  --faint: #7d8791;
+
+  --accent-hi: #ff9440;
+  --accent-text: var(--accent);
+  --accent-text-hi: var(--accent-hi);
+  /* Im Betrachter ist es wieder dunkel, also ist die Kante wieder die Flaeche. */
+  --accent-kante: var(--accent);
+  --accent-dim: rgba(var(--accent-rgb), .13);
+  --accent-line: rgba(var(--accent-rgb), .42);
+
+  --gold: #ffc531;
+  --gold-rgb: 255,197,49;
+  --star-off: #3a424a;
+  --blue: #4d9de0;
+  --green: #3fd39a;
+  --green-rgb: 63,211,154;
+  --red: #f0555c;
+  --red-rgb: 240,85,92;
 }
 
 * { box-sizing: border-box; }
@@ -284,7 +470,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 }
 .btn:hover { background: var(--surface-3); border-color: var(--line-hover); color: var(--text); }
 .btn:active { transform: translateY(1px); }
-.btn-accent { background: var(--accent); border-color: var(--accent); color: var(--auf-accent); font-weight: 620; }
+.btn-accent { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); font-weight: 620; }
 .btn-accent:hover { background: var(--accent-hi); border-color: var(--accent-hi); color: var(--auf-accent); }
 .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
 .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
@@ -519,7 +705,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Rand UND Flaeche -- 0.22.0. Bis 0.21.1 antwortete die Pille nur mit dem
    Rand; die gewaehlte (`.pill.on`, weiter unten) bleibt gefuellt. */
 .pill:hover { border-color: var(--accent-line); color: var(--text); background: var(--accent-dim); }
-.pill.on { background: var(--accent); border-color: var(--accent); color: var(--auf-accent); font-weight: 620; }
+.pill.on { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); font-weight: 620; }
 .pill-tag { font-family: var(--mono); font-size: .77rem; }
 /* Setzt den Favoritenumschalter von der Statusreihe ab: die drei davor sind
    drei Zustaende EINES Merkmals, dieser hier ist ein eigenes. Ohne den Abstand
@@ -541,12 +727,12 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    der Bewertung. */
 .pill-abgeleitet {
   border-color: var(--accent); border-style: dashed;
-  color: var(--accent); font-weight: 620;
+  color: var(--accent-text); font-weight: 620;
 }
 /* Unter dem Zeiger behaelt sie ihre Farbe: `.pill:hover` weiter oben zieht
    sonst auf die gewoehnliche Textfarbe zurueck, und die Pille saehe beim
    Ueberfahren aus wie jede andere. */
-.pill-abgeleitet:hover { border-color: var(--accent); color: var(--accent); }
+.pill-abgeleitet:hover { border-color: var(--accent); color: var(--accent-text); }
 .pill .n { opacity: .55; margin-left: 4px; font-size: .7rem; }
 /* Das Kreuz an einer gespeicherten Ansicht. Es liegt IM Knopf -- ein Knopf im
    Knopf gibt es in HTML nicht --, ist deshalb ein span und traegt seinen
@@ -565,14 +751,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .aehnlich { margin-top: 6px; }
 .aehnlich:empty { display: none; }
 .aehnlich a { color: var(--text-2); text-decoration: underline; text-decoration-color: var(--line); }
-.aehnlich a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.aehnlich a:hover { color: var(--accent-text); text-decoration-color: var(--accent-text); }
 .select {
   padding: 6px 10px; border-radius: var(--r-sm);
   border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: .83rem;
 }
 .select:hover { border-color: var(--line-hover); }
 .link-btn { font-size: .8rem; color: var(--muted); text-decoration: underline; }
-.link-btn:hover { color: var(--accent); }
+.link-btn:hover { color: var(--accent-text); }
 
 /* ---------- Kartenraster ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
@@ -664,7 +850,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 }
 .photo-count {
   position: absolute; bottom: 8px; right: 8px;
-  background: rgba(var(--foto-rgb), .82); color: var(--text-2);
+  background: rgba(var(--foto-rgb), .82); color: var(--auf-foto);
   font-family: var(--mono); font-size: .67rem; padding: 2px 7px; border-radius: 999px;
 }
 /* Die Abspielmarke auf der Karte. Derselbe dunkle Traeger wie beim Stern und
@@ -682,7 +868,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .card-body { padding: 12px 14px 13px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .card-cat {
   font-family: var(--mono); font-size: .63rem; text-transform: uppercase;
-  letter-spacing: .1em; color: var(--accent); font-weight: 600;
+  letter-spacing: .1em; color: var(--accent-text); font-weight: 600;
 }
 .card-title { font-size: 1.03rem; font-weight: 600; letter-spacing: -.015em; margin: 0; line-height: 1.34; }
 /* ---- DIE TREFFERZEILE AN DER KACHEL -- 0.18.0 ----
@@ -741,7 +927,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    die Marke steht in der Kachel, in der Linkliste und im Kommentartext, und
    drei Abschriften derselben Regel liefen auseinander. */
 mark {
-  background: var(--accent-dim); color: var(--accent-hi);
+  background: var(--accent-dim); color: var(--accent-text-hi);
   border-radius: 3px; padding: 0 1px;
 }
 .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -769,7 +955,7 @@ mark {
   font-size: .8rem; color: transparent; flex-shrink: 0; transition: all .15s var(--ease);
 }
 .pick-box:hover { border-color: var(--accent-line); }
-.pick-box.on { background: var(--accent); border-color: var(--accent); color: var(--auf-accent); }
+.pick-box.on { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); }
 
 .badge {
   display: inline-flex; align-items: center;
@@ -797,7 +983,7 @@ mark {
 
 /* ---------- Detail ---------- */
 .back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .9rem; margin: 18px 0 16px; font-weight: 500; transition: color .15s var(--ease); }
-.back:hover { color: var(--accent); }
+.back:hover { color: var(--accent-text); }
 .detail { display: grid; grid-template-columns: minmax(300px, 46%) 1fr; gap: 28px; align-items: start; }
 @media (max-width: 860px) { .detail { grid-template-columns: 1fr; } }
 .meta-col { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 84px; }
@@ -840,11 +1026,11 @@ mark {
    GEWISCHT WIRD ZUSAETZLICH (siehe app.js, drawViewer): der Wisch ist der
    bequeme Weg, die Pfeile sind der auffindbare. */
 @media (hover: none) { .vnav { opacity: 1; } }
-.vnav:hover { background: var(--accent); border-color: var(--accent); color: var(--auf-accent); transform: translateY(-50%) scale(1.07); }
+.vnav:hover { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); transform: translateY(-50%) scale(1.07); }
 .vnav.prev { left: 10px; } .vnav.next { right: 10px; }
 .vcount {
   position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-  background: rgba(var(--foto-rgb), .84); color: var(--text-2);
+  background: rgba(var(--foto-rgb), .84); color: var(--auf-foto);
   font-family: var(--mono); font-size: .73rem; padding: 3px 10px; border-radius: 999px;
 }
 .main-flag {
@@ -870,8 +1056,8 @@ mark {
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 .thumb.current { border-color: var(--accent); }
 .thumb.dragging { opacity: .45; transform: scale(.93); cursor: grabbing; }
-.thumb .num { position: absolute; bottom: 0; left: 0; background: rgba(var(--foto-rgb), .82); color: var(--text-2); font-family: var(--mono); font-size: .6rem; padding: 1px 5px; border-radius: 0 5px 0 0; }
-.thumb .del { position: absolute; top: 0; right: 0; width: 19px; height: 19px; background: rgba(var(--foto-rgb), .82); color: var(--text-2); font-size: .73rem; display: flex; align-items: center; justify-content: center; border-radius: 0 0 0 6px; opacity: 0; transition: opacity .15s var(--ease); }
+.thumb .num { position: absolute; bottom: 0; left: 0; background: rgba(var(--foto-rgb), .82); color: var(--auf-foto); font-family: var(--mono); font-size: .6rem; padding: 1px 5px; border-radius: 0 5px 0 0; }
+.thumb .del { position: absolute; top: 0; right: 0; width: 19px; height: 19px; background: rgba(var(--foto-rgb), .82); color: var(--auf-foto); font-size: .73rem; display: flex; align-items: center; justify-content: center; border-radius: 0 0 0 6px; opacity: 0; transition: opacity .15s var(--ease); }
 /* Marke und Laenge am Video. Beides folgt aus art und dauer, es gibt keinen
    Schalter dafuer -- dieselbe Bauform wie die Gewichtsmarke am Kriterium.
    pointer-events: none, sonst faengt die Marke das Ziehen zum Umsortieren ab. */
@@ -883,7 +1069,7 @@ mark {
 }
 .thumb .dauer {
   position: absolute; bottom: 0; right: 0; pointer-events: none;
-  background: rgba(var(--foto-rgb), .82); color: var(--text-2);
+  background: rgba(var(--foto-rgb), .82); color: var(--auf-foto);
   font-family: var(--mono); font-size: .58rem; padding: 1px 4px; border-radius: 5px 0 0 0;
 }
 .lb-thumb { position: relative; }
@@ -909,7 +1095,7 @@ mark {
   padding: 13px; text-align: center; font-size: .87rem; color: var(--muted);
   cursor: pointer; background: var(--surface); transition: all .15s var(--ease);
 }
-.drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.drop:hover, .drop.over { border-color: var(--accent); color: var(--accent-text); background: var(--accent-dim); }
 .drop input { display: none; }
 
 .title-line { display: flex; align-items: flex-start; gap: 10px; }
@@ -1166,7 +1352,7 @@ mark {
 .rej-aussage .acts { display: flex; gap: 8px; flex-shrink: 0; }
 .rej-aussage .mact { color: var(--faint); font-size: .8rem; padding: 3px 6px;
                      border-radius: 4px; transition: all .15s var(--ease); }
-.rej-aussage .mact:hover { color: var(--accent); background: var(--accent-dim); }
+.rej-aussage .mact:hover { color: var(--accent-text); background: var(--accent-dim); }
 .rej-aussage .mact.rm:hover { color: var(--red); background: var(--red-dim); }
 /* Die Zeile fuer den Grund einer Ablehnung. Sie steht beim Einschalten offen,
    nicht hinter einem Aufklappen -- ein Feld, das man erst suchen muss, bleibt
@@ -1209,7 +1395,7 @@ mark {
   color: var(--faint); font-size: .87rem; line-height: 1; padding: 0 4px;
   border-radius: 4px; flex-shrink: 0;
 }
-.ttag-add:hover { color: var(--accent); background: var(--surface-2); }
+.ttag-add:hover { color: var(--accent-text); background: var(--surface-2); }
 .ttag-in { width: 8em; padding: 2px 7px !important; font-size: .73rem !important; }
 /* Wolke: Hoehe wird in JS gesetzt, gemessen an der ersten Marke. */
 .cloud { transition: max-height .15s var(--ease); }
@@ -1225,7 +1411,7 @@ mark {
   font-size: .77rem; color: var(--muted); background: none; border: 0;
   transition: color .15s var(--ease);
 }
-.link-more:hover { color: var(--accent); }
+.link-more:hover { color: var(--accent-text); }
 .lrow {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px; border-radius: var(--r-sm);
@@ -1234,12 +1420,12 @@ mark {
   transition: border-color .15s var(--ease), background .15s var(--ease), opacity .15s var(--ease), transform .15s var(--ease);
 }
 .lrow:hover { border-color: var(--accent-line); background: var(--surface-3); }
-.lrow:hover .dom { color: var(--accent-hi); }
+.lrow:hover .dom { color: var(--accent-text-hi); }
 .lrow.dragging { opacity: .45; transform: scale(.99); cursor: grabbing; }
 .lrow .grip { color: var(--faint); font-size: .8rem; letter-spacing: -1px; flex-shrink: 0; cursor: grab; }
 .lrow .lnum { font-family: var(--mono); font-size: .67rem; color: var(--faint); min-width: 1.7em; flex-shrink: 0; }
 .lurl { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.lurl .dom { font-size: .87rem; font-weight: 560; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .15s var(--ease); }
+.lurl .dom { font-size: .87rem; font-weight: 560; color: var(--accent-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .15s var(--ease); }
 .lurl .path { font-family: var(--mono); font-size: .7rem; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lrow .go { color: var(--faint); font-size: .8rem; flex-shrink: 0; }
 /* Die Lupe ist ein SVG, der Pfeil ein Zeichen -- ohne diese Zeile sitzt sie
@@ -1248,7 +1434,7 @@ mark {
 /* Eine Suchzeile ist keine Adresse: der Rohtext bleibt in der Textfarbe,
    nicht in Orange. Die Orange bleibt den echten Adressen. */
 .lrow.suche .dom { color: var(--text); font-weight: 500; }
-.lrow.suche:hover .dom { color: var(--accent-hi); }
+.lrow.suche:hover .dom { color: var(--accent-text-hi); }
 /* Die Anbieternamen unter der Suchzeile. Keine Festbreitenschrift wie beim
    Pfad -- das hier sind Woerter, keine Adressteile. Alle Namen sehen gleich
    aus, auch der Startanbieter: jeder bedeutet dasselbe, naemlich "ein Klick
@@ -1269,7 +1455,7 @@ mark {
 .lunten .path, .lunten .snamen { flex: 0 1 auto; min-width: 0; }
 .lunten .lvon { flex: 0 0 auto; font-size: .7rem; color: var(--muted); }
 .snamen .sname { cursor: pointer; transition: color .15s var(--ease); }
-.snamen .sname:hover { color: var(--accent-hi); text-decoration: underline; }
+.snamen .sname:hover { color: var(--accent-text-hi); text-decoration: underline; }
 
 /* ---------- Suchanbieter im Systembereich ---------- */
 .sanb-liste { display: flex; flex-direction: column; gap: 4px; }
@@ -1284,8 +1470,8 @@ mark {
   border: 1px solid var(--line); background: none; color: var(--muted);
   transition: color .15s var(--ease), border-color .15s var(--ease);
 }
-.sanb .sstart:hover:not(:disabled) { color: var(--accent); border-color: var(--accent-line); }
-.sanb .sstart.on { color: var(--accent); border-color: var(--accent); }
+.sanb .sstart:hover:not(:disabled) { color: var(--accent-text); border-color: var(--accent-line); }
+.sanb .sstart.on { color: var(--accent-text); border-color: var(--accent); }
 .sanb .sstart:disabled, .sanb input:disabled { opacity: .4; cursor: default; }
 .sanb-eigen { display: flex; flex-direction: column; gap: 6px; }
 .sanb-slot { display: flex; align-items: center; gap: 6px; }
@@ -1319,7 +1505,7 @@ mark {
 .cmt-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--mono); font-size: .7rem; color: var(--faint); margin-bottom: 6px; }
 .cmt-head .acts { display: flex; gap: 8px; }
 .cmt-head button { color: var(--faint); font-size: .73rem; }
-.cmt-head button:hover { color: var(--accent); }
+.cmt-head button:hover { color: var(--accent-text); }
 .cmt-head button.rm:hover { color: var(--red); }
 /* word-break, weil pre-wrap nur an Leerzeichen umbricht: eine lange Adresse
    ohne Leerzeichen stuende sonst ueber den Rand hinaus, auf dem Handy zuerst. */
@@ -1327,8 +1513,8 @@ mark {
 /* Orange wie in der Linkliste -- keine neue Farbe. Dort sagt die Zeile durch
    Pfeil und Platz schon an, dass sie ein Link ist; im Fliesstext gibt es
    diesen Hinweis nicht, deshalb zusaetzlich die Unterstreichung. */
-.cmt-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
-.cmt-body a:hover { color: var(--accent-hi); }
+.cmt-body a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.cmt-body a:hover { color: var(--accent-text-hi); }
 .cmt-edit { display: flex; flex-direction: column; gap: 7px; }
 .cmt-edit .ta { min-height: 62px; }
 .cmt-edit .acts { display: flex; gap: 7px; justify-content: flex-end; }
@@ -1672,7 +1858,7 @@ mark {
 .mrow .mcount { font-family: var(--mono); font-size: .7rem; color: var(--faint); }
 .mrow .mact { color: var(--faint); font-size: .8rem; padding: 3px 6px; border-radius: 4px; opacity: 0; transition: all .15s var(--ease); }
 .mrow:hover .mact { opacity: 1; }
-.mrow .mact:hover { color: var(--accent); background: var(--accent-dim); }
+.mrow .mact:hover { color: var(--accent-text); background: var(--accent-dim); }
 .mrow .mact.rm:hover { color: var(--red); background: var(--red-dim); }
 .mrow input.medit { flex: 1; background: var(--bg); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 8px; font-size: .87rem; }
 /* Das Gewicht in der Kriterienzeile, zwischen Name und Verwendungszaehler.
@@ -1738,7 +1924,7 @@ mark {
   color: var(--muted); white-space: nowrap;
 }
 .rolle-marke.admin { border-color: var(--accent-line); color: var(--text-2); }
-.rolle-marke.eigentuemer { background: var(--accent-dim); border-color: var(--accent-line); color: var(--accent-hi); }
+.rolle-marke.eigentuemer { background: var(--accent-dim); border-color: var(--accent-line); color: var(--accent-text-hi); }
 .zug-punkt {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   background: var(--faint); flex-shrink: 0;
@@ -1771,7 +1957,7 @@ mark {
 /* "noch kein Passwort" steht an der Statusspalte und nimmt deren Schrift.
    Es ist ein abgeleiteter Zustand und kein vierter in der Datenbank -- es
    soll sich deshalb auch nicht wie einer anfuehlen. */
-.mrow.zug .zug-wartet { color: var(--accent); }
+.mrow.zug .zug-wartet { color: var(--accent-text); }
 .prot-merkmal .rolle-marke { margin-left: 2px; }
 /* Das Feld traegt den Link in voller Laenge; er wird kopiert, nicht gelesen,
    deshalb die feste Schrift und die volle Zeile. */
@@ -1896,7 +2082,7 @@ mark {
    gedämpften Verweisfarbe: er steht mitten im Text und soll nicht heller sein
    als das, was ihn umgibt — die Unterstreichung sagt schon, dass er trägt. */
 .prot-wer .prot-sprung, .prot-ziel .prot-sprung { color: inherit; font-size: inherit; }
-.prot-wer .prot-sprung:hover, .prot-ziel .prot-sprung:hover { color: var(--accent); }
+.prot-wer .prot-sprung:hover, .prot-ziel .prot-sprung:hover { color: var(--accent-text); }
 .prot-merkmal { color: var(--muted); font-size: .8rem; }
 /* Die Zeile, auf die gerade gesprungen wurde. Kurz und ohne Bewegung: ein
    Aufblinken, das sich selbst wieder wegnimmt, führt das Auge und bleibt
@@ -1957,7 +2143,7 @@ mark {
    zu unterscheiden, und genau das ist die eine Auskunft dieser Karte. */
 .mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); white-space: nowrap; }
 .mrow.sitz-ich { border-color: var(--accent); }
-.mrow.sitz-ich .mname { color: var(--accent); }
+.mrow.sitz-ich .mname { color: var(--accent-text); }
 .sitz-fuss { margin-top: 4px; }
 
 .warn-box { background: var(--red-dim); border: 1px solid rgba(var(--red-rgb), .3); border-radius: var(--r-sm); padding: 11px 13px; font-size: .87rem; color: var(--text-2); line-height: 1.55; }
@@ -2015,7 +2201,7 @@ mark {
    weiter -- man schliesst das Bild und steht an einer voellig anderen Stelle
    der Liste. `body.lb-open { overflow: hidden }` weiter unten allein reicht
    dafuer nicht: es haelt den Bildlauf an, nicht die Weiterreichung. */
-.lightbox { position: fixed; inset: 0; z-index: var(--z-vollbild); background: rgba(var(--schleier-rgb), .97); display: flex; flex-direction: column; overscroll-behavior: contain; animation: fade .2s var(--ease) both; }
+.lightbox { position: fixed; inset: 0; z-index: var(--z-vollbild); background: var(--vb-grund); display: flex; flex-direction: column; overscroll-behavior: contain; animation: fade .2s var(--ease) both; }
 .lb-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
 .lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; user-select: none; -webkit-user-drag: none; }
 /* flex-start ist Absicht und muss bleiben: ein zentriertes Flex-Kind, das
@@ -2056,7 +2242,7 @@ mark {
    Zustand wird .lb-stage zum Scrollbereich, und Kinder davon wandern beim
    Verschieben mit dem Bild aus dem Bild. .lightbox ist fixed und scrollt nie. */
 .lb-nav { position: absolute; z-index: var(--z-blaetterpfeile); top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%; background: rgba(var(--vb-flaeche-rgb), .9); border: 1px solid rgba(var(--rand-auf-dunkel-rgb), .11); display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 1.53rem; transition: all .15s var(--ease); }
-.lb-nav:hover { background: var(--accent); border-color: var(--accent); color: var(--auf-accent); transform: translateY(-50%) scale(1.07); }
+.lb-nav:hover { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); transform: translateY(-50%) scale(1.07); }
 .lb-nav.prev { left: 16px; } .lb-nav.next { right: 16px; }
 /* `safe center` STEHT ZWEIMAL DA, UND DAS IST ABSICHT: mittig ist richtig,
    solange die Reihe hineinpasst -- passt sie nicht, schiebt `center` die
@@ -2078,7 +2264,7 @@ body.lb-open { overflow: hidden; }
    `blur(3px)`; der Schleier ist dafuer eine Spur dichter (78 statt 74
    Prozent). Einblenden 180 ms, Schleier 150 ms: Bewegung antwortet, sie
    unterhaelt nicht (Gestaltungsregel G2). */
-.backdrop { position: fixed; inset: 0; background: rgba(var(--schleier-rgb), .78); display: flex; align-items: center; justify-content: center; padding: 22px; z-index: var(--z-dialog); animation: fade .15s var(--ease) both; }
+.backdrop { position: fixed; inset: 0; background: var(--schleier); display: flex; align-items: center; justify-content: center; padding: 22px; z-index: var(--z-dialog); animation: fade .15s var(--ease) both; }
 .modal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px; width: 100%; max-width: 460px; box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 13px; max-height: 88vh; max-height: 88dvh; overflow-y: auto; animation: rise .18s var(--ease) both; }
 .modal h2 { font-size: 1.27rem; font-weight: 640; letter-spacing: -.022em; margin: 0; }
 .modal p { margin: 0; color: var(--muted); font-size: .93rem; line-height: 1.6; }
@@ -2097,7 +2283,7 @@ body.lb-open { overflow: hidden; }
    Zeigerwechsel -- .mrow bringt Raster und Trennlinie mit, der Rest ist
    dieselbe Hervorhebung wie an jeder anderen anklickbaren Zeile. */
 .glocken-zeile { cursor: pointer; }
-.glocken-zeile:hover .mname { color: var(--accent); }
+.glocken-zeile:hover .mname { color: var(--accent-text); }
 /* DREI STUECKE IN EINER ZEILE, seit 0.17.0: der Titel, was dort neu ist, und
    von wem. DIE DRITTE ANGABE BEKOMMT IHRE EIGENE ZEILE -- oben, worum es geht,
    darunter, wer. Dieselbe Aufteilung wie an der Zeile einer Anmeldung, und aus
@@ -2142,8 +2328,8 @@ body.lb-open { overflow: hidden; }
    setzt toast() selbst (sechs Sekunden). */
 .toast.mit-knopf { display: inline-flex; align-items: center; gap: 8px; }
 .toast-trenner { color: var(--muted); }
-.toast-knopf { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
-.toast-knopf:hover { color: var(--accent-hi); text-decoration: underline; }
+.toast-knopf { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
+.toast-knopf:hover { color: var(--accent-text-hi); text-decoration: underline; }
 @keyframes pop { 0% { opacity: 0; transform: translate(-50%, 8px); } 8% { opacity: 1; transform: translate(-50%, 0); } 84% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -4px); } }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -2204,7 +2390,7 @@ body.lb-open { overflow: hidden; }
   color: var(--faint); font-size: .8rem; line-height: 1; letter-spacing: -1px;
   cursor: grab; padding: 2px 1px; flex-shrink: 0;
 }
-.bgrip:hover { color: var(--accent); }
+.bgrip:hover { color: var(--accent-text); }
 .bcaret { color: var(--faint); font-size: .73rem; width: .8em; flex-shrink: 0; }
 .bsumme { color: var(--muted); font-size: .83rem; font-family: var(--mono); }
 .block.zu > *:not(.block-head) { display: none; }
@@ -2264,12 +2450,12 @@ body.lb-open { overflow: hidden; }
 .vfocus, .vfull, .vweg {
   display: flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 999px;
-  background: rgba(var(--foto-rgb), .78); border: 1px solid var(--line); color: var(--text-2);
+  background: rgba(var(--foto-rgb), .78); border: 1px solid var(--line); color: var(--auf-foto);
   transition: color .15s var(--ease), border-color .15s var(--ease),
               background .15s var(--ease);
 }
 .vfocus:hover, .vfull:hover, .vweg:hover { color: var(--text); border-color: var(--line-hover-2); }
-.vfocus.on { color: var(--accent); border-color: var(--accent); }
+.vfocus.on { color: var(--accent-text); border-color: var(--accent); }
 /* DER PAPIERKORB STEHT ABGESETZT. Die beiden davor stellen etwas ein, dieser
    hier nimmt etwas weg -- ohne den Abstand liest er sich als dritte
    Einstellung. Dieselben 14 Pixel wie bei `.pill-sep` in der Filterzeile, und
@@ -2331,7 +2517,7 @@ body.lb-open { overflow: hidden; }
 .arow { cursor: pointer; }
 .arow:hover { border-color: var(--line); background: var(--surface-3); }
 .arow.offen { border-color: var(--line); }
-.arow.offen .aicon { color: var(--accent); }
+.arow.offen .aicon { color: var(--accent-text); }
 /* Pfeil bzw. Klapphinweis rechts, wie das ↗ bei den Links. */
 .arow .ago { color: var(--faint); font-size: .73rem; flex-shrink: 0; }
 .arow:hover .ago { color: var(--muted); }
@@ -2342,7 +2528,7 @@ body.lb-open { overflow: hidden; }
   opacity: 0; flex-shrink: 0; transition: opacity .15s var(--ease), color .15s var(--ease);
 }
 .arow:hover .adl { opacity: 1; }
-.arow .adl:hover { color: var(--accent); background: var(--surface); }
+.arow .adl:hover { color: var(--accent-text); background: var(--surface); }
 @media (hover: none) { .arow .adl { opacity: 1; } }
 .arow .aicon { color: var(--faint); font-size: .87rem; flex-shrink: 0; }
 .arow .aname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
@@ -2358,7 +2544,7 @@ body.lb-open { overflow: hidden; }
   border: 1px solid var(--line); background: var(--surface); flex-shrink: 0;
   transition: color .15s var(--ease), border-color .15s var(--ease);
 }
-.abtn:hover { color: var(--accent); border-color: var(--accent); }
+.abtn:hover { color: var(--accent-text); border-color: var(--accent); }
 .apreview {
   margin: 0 0 10px; padding: 10px; border-radius: var(--r-sm);
   background: var(--bild-grund); border: 1px solid var(--line);
@@ -2519,7 +2705,7 @@ body.lb-open { overflow: hidden; }
   transition: color .15s var(--ease), border-color .15s var(--ease);
 }
 .mark:hover { color: var(--text-2); border-color: var(--line-hover-2); }
-.mark.on { color: var(--accent); border-color: var(--accent); }
+.mark.on { color: var(--accent-text); border-color: var(--accent); }
 /* Bis 0.21.1 stand hier ein Graufilter fuer das bunte Emoji; das Zeichen ist
    seit 0.22.0 ein SVG in der Schriftfarbe, und es bleibt die Daempfung. */
 .mark.pin { opacity: .55; }
@@ -2531,7 +2717,7 @@ body.lb-open { overflow: hidden; }
 .cmt-img img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; display: block; }
 .cmt-img .del {
   position: absolute; top: 3px; right: 3px; width: 19px; height: 19px;
-  border-radius: 50%; background: rgba(var(--foto-rgb), .8); color: var(--faint);
+  border-radius: 50%; background: rgba(var(--foto-rgb), .8); color: var(--auf-foto-leise);
   font-size: .7rem; line-height: 1; opacity: 0; transition: opacity .15s var(--ease);
 }
 .cmt-img:hover .del { opacity: 1; }
@@ -2614,7 +2800,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   display: block; font-weight: 600; font-size: .95rem; color: var(--text);
   margin-bottom: 7px; transition: color .15s var(--ease);
 }
-.off-titel:hover { color: var(--accent); }
+.off-titel:hover { color: var(--accent-text); }
 /* Der Text nimmt den Platz, der Zeitstempel nicht: flex: 0 1 auto am Inhalt,
    flex: 0 0 auto an der Angabe — dieselbe Regel wie am Namen der Linkzeile.
    Was sich die volle Breite nimmt, schöbe die Angabe ans andere Ende der
@@ -2628,7 +2814,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   flex: 0 1 auto; color: var(--text-2); font-size: .9rem;
   word-break: break-word; transition: color .15s var(--ease);
 }
-.off-text:hover { color: var(--accent); }
+.off-text:hover { color: var(--accent-text); }
 .off-wann {
   flex: 0 0 auto; margin-left: auto;
   font-family: var(--mono); font-size: .7rem; color: var(--faint);
@@ -2736,7 +2922,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
    zu bemerken. */
 .offen-zahl {
   font-family: var(--mono); font-size: .7rem; font-weight: 600;
-  color: var(--accent); margin-left: 3px;
+  color: var(--accent-text); margin-left: 3px;
 }
 .mast-rest { display: contents; }
 .mast-menue { display: none; }
@@ -2749,7 +2935,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
 .filter-schalter { display: none; align-items: center; gap: 7px; margin-bottom: 14px; }
 .filter-schalter .fz { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
 .filter-schalter.aktiv { border-color: var(--accent-line); color: var(--text); }
-.filter-schalter.aktiv .fz { color: var(--accent); }
+.filter-schalter.aktiv .fz { color: var(--accent-text); }
 
 /* ---------------------------------------------------------------
    DIE SUCHE IN DER ZWEITEN ZEILE -- nur schmal, nicht nur niedrig

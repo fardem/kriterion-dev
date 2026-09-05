@@ -3779,7 +3779,7 @@ const RUECKBAUTEN = [
   {
     nr: '427', name: 'Die Marke bringt wieder Schwarz auf Gelb mit',
     datei: 'public/style.css',
-    suche: "mark {\n  background: var(--accent-dim); color: var(--accent-hi);",
+    suche: "mark {\n  background: var(--accent-dim); color: var(--accent-text-hi);",
     ersatz: "mark {\n  border-radius: 3px;",
     erwartet: 'Die Trefferzeile im Stylesheet'
   },

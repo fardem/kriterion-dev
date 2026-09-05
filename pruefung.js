@@ -28255,7 +28255,10 @@ async function pruefeOberflaeche() {
   // Aussehen laesst sich hier nur am Stylesheet pruefen (Abschnitt 7).
   const cssK = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   pruefe('Ein Link im Kommentartext ist ohne Überfahren erkennbar',
-    /\.cmt-body a \{[^}]*color: var\(--accent\)[^}]*\}/.test(cssK) &&
+    /* Seit 0.23.0 --accent-text: im hellen Schema faellt Orange als SCHRIFT
+       unter die Lesbarkeitsschwelle, waehrend es als Flaeche die Marke bleibt.
+       Die Bedeutung ist dieselbe, der Wert je Schema ein anderer. */
+    /\.cmt-body a \{[^}]*color: var\(--accent-text\)[^}]*\}/.test(cssK) &&
     /\.cmt-body a \{[^}]*text-decoration: underline[^}]*\}/.test(cssK),
     (cssK.match(/\.cmt-body a \{[^}]*\}/) || ['(keine Regel)'])[0]);
   pruefe('Eine lange Adresse bricht um, statt über den Rand zu laufen',
@@ -40400,8 +40403,13 @@ async function pruefeOberflaeche() {
       /\.masthead\.gerollt \{ box-shadow: var\(--sh-sm\); \}/.test(css123),
       regel123('.masthead.gerollt') || '(keine Regel)');
     pruefe('Der Hintergrund eines Dialogs ist eine deckende Farbe ohne Weichzeichner',
-      // Seit 0.23.0 als Tripel; die 78 Prozent und die Farbe sind dieselben.
-      /\.backdrop \{[^}]*background: rgba\(var\(--schleier-rgb\), \.78\)/.test(css123)
+      /* Seit 0.23.0 traegt --schleier den ganzen Wert und nicht die Regel:
+         im hellen Schema aendern sich BEIDE Teile, Farbe und Deckung. Geprueft
+         wird deshalb die KETTE -- die Regel nimmt --schleier, --schleier ist
+         eine Teildeckung des Schleiertripels, und das Tripel ist die Farbe.
+         Nur das letzte Glied zu pruefen liesse die Regel selbst offen. */
+      /\.backdrop \{[^}]*background: var\(--schleier\)/.test(css123)
+        && /--schleier: *rgba\(var\(--schleier-rgb\), *\.78\)/.test(cssRoh)
         && /--schleier-rgb: *6,\s*7,\s*9/.test(cssRoh)
         && !/\.backdrop \{[^}]*filter/.test(css123),
       regel123('.backdrop') || '(keine Regel)');
@@ -40438,13 +40446,34 @@ async function pruefeOberflaeche() {
     // ein Kommentar innerhalb von :root duerfte den Block sonst zerschneiden.
     const ohneK = cssF.replace(/\/\*[\s\S]*?\*\//g, '');
     const regelwerk = ohneK.replace(/:root[^{]*\{[^}]*\}/g, '');
+    /* GESUCHT WIRD, WAS MALT -- nicht, was benennt. Eine Eigenschaft, die mit
+       zwei Strichen anfaengt, IST eine Farbdefinition; genau so werden die
+       Schemata gebaut, und die Insel des Betrachters steht deshalb voller
+       Zahlen. Verboten ist die Zahl an `color`, `background`, `border`,
+       `box-shadow`, `outline` -- also dort, wo sie beim Umschalten stehen
+       bleibt. Das Muster verlangt einen BUCHSTABEN als erstes Zeichen der
+       Eigenschaft; `--bg:` faellt damit heraus, `background:` nicht.
+       (Der erste Entwurf nahm `[a-z-]+` und wurde an der Insel rot -- er hat
+       damit bewiesen, dass er trifft, und gleich auch, was er treffen soll.) */
+    const malend = /(?:^|[;{}\s])([a-z][a-z-]*: *(?:#[0-9a-fA-F]{3,8}\b|rgba?\([0-9]))/g;
     // Die Positivliste: der Videobalken, und sonst nichts.
     const erlaubt = /^(background: #000)$/;
-    const funde = (regelwerk.match(/[a-z-]+: *#[0-9a-fA-F]{3,8}\b|[a-z-]+: *rgba?\([0-9]/g) || [])
+    const funde = [...regelwerk.matchAll(malend)].map(m => m[1])
       .filter(s => !erlaubt.test(s.trim()));
-    pruefe('Keine Regel ausserhalb von :root traegt eine Farbe als Zahl',
+    pruefe('Keine malende Regel ausserhalb von :root traegt eine Farbe als Zahl',
       funde.length === 0,
       funde.length ? `${funde.length}: ${[...new Set(funde)].slice(0, 8).join(' · ')}` : 'keine');
+    /* UND DIE GEGENSEITE: Farbdefinitionen ausserhalb von :root stehen nur in
+       den BEKANNTEN Schemabloecken. Ohne diese Zeile duerfte sich jede Regel
+       ihre eigenen Farben setzen, und der Waechter saehe weg. */
+    const fremdeBloecke = [...ohneK.matchAll(/(?:^|\})\s*([^{}@]+)\{([^}]*)\}/g)]
+      .filter(m => /(^|[;\s])--[a-z0-9-]+: *(#|rgba?\()/.test(m[2]))
+      .map(m => m[1].trim().replace(/\s+/g, ' '))
+      .filter(s => !/^:root(\[data-thema="(hell|dunkel)"\])?$/.test(s)
+                && !/^\[data-thema="(hell|dunkel)"\] \.lightbox$/.test(s));
+    pruefe('Und Farbwerte stehen nur in den bekannten Schemabloecken',
+      fremdeBloecke.length === 0,
+      fremdeBloecke.length ? fremdeBloecke.slice(0, 4).join(' · ') : 'keine fremden');
     // DIE GEGENLAGE: der Waechter kann ueberhaupt etwas finden. Ohne sie
     // belegte die Zeile darueber auch dann etwas, wenn der Ausdruck nie
     // trifft -- die haeufigste Art, wie eine Regelpruefung still stirbt.
