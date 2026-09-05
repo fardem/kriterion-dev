@@ -86,14 +86,18 @@ kein Wettlauf.** *Was als „beides gleichzeitig" auffällt, ist etwas anderes u
 vorhandenen Rahmen wirft ihn weg, statt ihn anzufassen.** Jedes Ausschnittwerkzeug, das jemand
 schon einmal bedient hat, trennt genau das.
 
-### 1.2 Die vier Gesten, und sie sind der ganze Bauabschnitt
+### 1.2 Die fünf Gesten, und sie sind der ganze Bauabschnitt
 
 | Wo die Berührung anfängt | Was die Bewegung tut | Was sich ändert |
 |---|---|---|
 | **außerhalb des Rahmens** | zieht einen **neuen** Rahmen auf; der alte ist damit fort | `zoom`, `focus_x`, `focus_y` |
 | **im Rahmen** | **schiebt** ihn | **nur** `focus_x`, `focus_y` — die Weite bleibt |
-| **auf einer Ecke** | zieht ihn **von dieser Ecke aus** größer oder kleiner; die gegenüberliegende Ecke bleibt liegen | `zoom`, und `focus_x`/`focus_y` so weit, wie die feste Ecke es verlangt |
-| **Klick ohne Weg** | siehe Entscheidung **E1** | — |
+| **auf einer der vier Ecken** | zieht ihn **von dieser Ecke aus** größer oder kleiner; die gegenüberliegende Ecke bleibt liegen | `zoom`, und `focus_x`/`focus_y` so weit, wie die feste Ecke es verlangt |
+| **auf einer der vier Kanten** | zieht ihn **von dieser Kante aus**; die gegenüberliegende Kante bleibt liegen, die andere Achse geht symmetrisch mit (**1.3a**) | `zoom`, und `focus_x`/`focus_y` nach der Regel aus 1.3a |
+| **Klick ohne Weg** | außerhalb: den Punkt setzen · innerhalb: nichts (**E1**) | ggf. `focus_x`, `focus_y` |
+
+**Acht Griffe am Rahmen** — vier Ecken und vier Kanten, je 12 Bildpunkte nach innen (**E3**).
+*Wo Ecke und Kante einander überlappen, gewinnt die Ecke:* sie ist die genauere Angabe.
 
 ### 1.3 Was dabei nicht verhandelbar ist
 
@@ -124,8 +128,8 @@ schon einmal bedient hat, trennt genau das.
 ### 1.4 Der Zeiger sagt vorher, was geschehen wird
 
 Heute steht die ganze Fläche auf `cursor: crosshair` (`.viewer.focus-mode`). **Ab dieser Runde
-sagt der Zeiger, welche der vier Gesten unter ihm liegt:** `crosshair` außerhalb, `move` im
-Rahmen, `nwse-resize` und `nesw-resize` an den Ecken. *Das ist die Gestaltungsregel aus 0.22.0
+sagt der Zeiger, welche Geste unter ihm liegt:** `crosshair` außerhalb, `move` im Rahmen,
+`nwse-resize` und `nesw-resize` an den Ecken, `ns-resize` und `ew-resize` an den Kanten. *Das ist die Gestaltungsregel aus 0.22.0
 — eine Antwort auf jede Berührung — an der einzigen Stelle der Oberfläche, an der drei
 verschiedene Dinge unter demselben Zeiger liegen.*
 
@@ -214,25 +218,37 @@ bewertet man". Die Oberfläche sagt ihn leise und lässt zugleich das Gegenteil 
 
 ---
 
-## Die offenen Entscheidungen — sechs, mit Empfehlung
+## Die Entscheidungen — sieben, und sie sind gefallen
 
-| | Frage | Empfehlung | Was dagegen spricht |
-|---|---|---|---|
-| **E1** | Was tut ein **Klick ohne Weg**? Heute setzt er den Fokuspunkt mittig. | **Außerhalb des Rahmens: den Punkt setzen wie bisher. Innerhalb: nichts.** *Ein Griff in den Rahmen, der sich nicht bewegt, ist ein misslungener Griff — und der darf nichts verändern. Außerhalb bleibt der Klick der schnelle Weg, den es seit 0.19.x gibt und auf den das Telefon baut.* | zwei Bedeutungen für dieselbe Geste, je nachdem, wo sie anfängt |
-| **E2** | Nur die **vier Ecken**, oder auch die Kanten? | **Nur die vier Ecken.** *Der Ausschnitt ist ein Quadrat: eine Kante zieht nur eine Achse, die andere müsste die Instanz dazuerfinden — der Rahmen rutschte dabei seitlich weg, und niemand hätte das verlangt.* | wer eine Kante fasst, greift ins Leere und muss die Ecke suchen |
-| **E3** | Wie groß ist die **Greifzone**, und was macht der **Finger**? | **12 Bildpunkte nach innen ab der Ecke. Auf dem Finger nur Schieben; die Weite bleibt beim Schieber** (0.22.0, E9). *Eine Ecke von 12 px trifft keine Fingerkuppe, und ein zweiter Weg, der auf dem Telefon nicht funktioniert, ist schlechter als keiner.* | auf dem Tablett mit Stift wäre die Ecke brauchbar und steht trotzdem nicht zur Verfügung |
-| **E4** | Welche der beiden Zahlen im Kopf **fällt**? | **Die Kurzfassung fällt, solange eine Kopfzahl dasteht.** *Die Kopfzahl trägt das Wort „gewichtet" und ist der Knopf zur Rechnung — sie ist die reichere von beiden. Die Kurzfassung behält den Fall ohne Zahl.* | die Kurzfassung ist die Form, die alle anderen Blöcke tragen; die Sternkästen weichen davon ab |
-| **E5** | Sagt die Zahl, **wessen** sie ist — und wo? | **An zwei Stellen: im Titel des Knopfes und als Halbsatz im Erklärkasten.** *Der Titel steht beim Überfahren und im Vorleseprogramm; der Erklärkasten ist der Ort, an dem die Zahl erklärt wird, und er erklärt sie heute nur zur Hälfte.* **Beide Male ohne Bedingung auf die Zahl der Zugänge** — eine Instanz mit einem einzigen Zugang bekäme sonst einen anderen Satz über dieselbe Rechnung (Stolperstein 47). | zwei Sätze mehr in einer Runde, die 0.22.0 gerade leer geräumt hat |
-| **E6** | Was ist mit einem **ungetesteten Eintrag, der schon Bewertungssterne trägt**? | **Der Kasten steht da, offen, wie heute.** *Die Ausnahme ist seit 0.21.0 aufgeschrieben und begründet: vorhandene Daten schlagen die Regel. Ohne sie wären vergebene Sterne unsichtbar UND unerreichbar.* | die Regel „ungetestet heißt kein Bewertungskasten" gilt dann nicht ausnahmslos, und der Bestand entscheidet über die Anzeige |
+**Beantwortet vom Betreiber am 5. September 2026, vor dem Bauen.** *Sechs folgen der
+Empfehlung; **E2 nicht** — und die Abweichung ist die einzige Stelle, an der dieser Auftrag
+mehr verlangt als der Vorschlag, aus dem er entstanden ist.*
 
-**Dazu eine siebte Frage, die keine Bauentscheidung ist, sondern eine über die Nummer:**
+| | Frage | **Entschieden** |
+|---|---|---|
+| **E1** | Was tut ein **Klick ohne Weg**? | **Außerhalb des Rahmens: den Punkt setzen wie bisher. Innerhalb: nichts.** *Ein Griff in den Rahmen, der sich nicht bewegt, ist ein misslungener Griff — und der darf nichts verändern. Außerhalb bleibt der Klick der schnelle Weg, den es seit 0.19.x gibt und auf den das Telefon baut.* |
+| **E2** | Nur die vier Ecken, oder auch die Kanten? | **Ecken UND Kanten — acht Griffe.** *Abweichend von der Empfehlung: was jeder aus anderen Programmen kennt, soll auch hier gehen. Die Regel für die Kante steht in 1.3a und ist damit entschieden und nicht dazuerfunden.* |
+| **E3** | Greifzone und Finger? | **12 Bildpunkte nach innen ab Ecke und Kante. Auf dem Finger nur Schieben und neu Aufziehen; die Weite bleibt beim Schieber** (0.22.0, E9). *Eine Zone von 12 px trifft keine Fingerkuppe, und ein zweiter Weg, der auf dem Telefon nicht funktioniert, ist schlechter als keiner.* |
+| **E4** | Welche der beiden Zahlen fällt? | **Die Kurzfassung fällt, solange eine Kopfzahl dasteht.** *Die Kopfzahl trägt das Wort „gewichtet" und ist der Knopf zur Rechnung — sie ist die reichere von beiden. Die Kurzfassung behält den Fall ohne Zahl.* **Es wird KEINE zweite Zahl gebaut** — „meine" gegen „alle" wäre eine neue Angabe und gehört nicht in eine PATCH-Runde. |
+| **E5** | Sagt die Zahl, wessen sie ist — und wo? | **An zwei Stellen: im Titel des Knopfes und als Halbsatz im Erklärkasten.** *Der Titel steht beim Überfahren und im Vorleseprogramm; der Erklärkasten ist der Ort, an dem die Zahl erklärt wird, und er erklärt sie heute nur zur Hälfte.* **Beide Male ohne Bedingung auf die Zahl der Zugänge** — eine Instanz mit einem einzigen Zugang bekäme sonst einen anderen Satz über dieselbe Rechnung (Stolperstein 47). |
+| **E6** | Ungetesteter Eintrag mit vorhandenen Bewertungssternen? | **Der Kasten steht da, offen, wie heute.** *Die Ausnahme ist seit 0.21.0 aufgeschrieben und begründet: vorhandene Daten schlagen die Regel. Ohne sie wären vergebene Sterne unsichtbar UND unerreichbar — man könnte sie nicht einmal mehr entfernen.* |
+| **E7** | Bleibt es bei PATCH? | **Ja — 0.22.1.** *Keine Route, keine Spalte, keine Karte, kein Vokabelwort, keine Funktion kommt dazu, und kein gespeicherter Wert ändert sich.* **Die Wegnahme aus Bauabschnitt 3 steht fett als `Changed`-Zeile im Changelog**, wie die geänderte Trefferzahl in 0.21.1. *Der Fahrplan rückt nicht; die nächste eingeschobene MINOR-Runde nimmt weiterhin 0.25.0.* |
 
-> **E7 — bleibt es bei PATCH?** **Empfehlung: ja.** *Es kommt keine Funktion dazu, keine Route,
-> keine Spalte, keine Karte und kein Vokabelwort; keine gespeicherte Zahl ändert sich.*
-> **Aber Bauabschnitt 3 nimmt etwas weg** — an einem ungetesteten Eintrag lässt sich nicht mehr
-> bewerten —, und das gehört **fett in den Changelog**, wie die geänderte Menge in 0.21.1.
-> *Der Fahrplan rückt dadurch nicht: 0.22.1 ist eine PATCH-Zahl hinter einer gebauten Runde und
-> nimmt niemandem seinen Platz. Die nächste eingeschobene MINOR-Runde nimmt weiterhin 0.25.0.*
+### 1.3a Die Regel für die Kante — sie folgt aus E2 und ist nicht verhandelbar
+
+**Der Ausschnitt bleibt ein Quadrat, auch an der Kante.** Eine Kante zieht ihre eigene Achse;
+die zweite muss deshalb mitgehen, und die Frage ist allein, **wohin**:
+
+* **Die gefasste Kante folgt dem Zeiger. Die gegenüberliegende Kante bleibt liegen** — genau
+  wie die gegenüberliegende Ecke bei einer Ecke.
+* **Die andere Achse wächst und schrumpft symmetrisch um die Mitte der festen Kante.** *Der
+  Rahmen rutscht damit nicht seitlich weg: sein Mittelpunkt wandert auf der festen Kante nicht,
+  er bleibt in ihrer Mitte.*
+* **Bis an den Bildrand und nicht darüber.** Beißt die Grenze, hört die Kante auf zu folgen —
+  der Rahmen springt nicht und dreht sich nicht um.
+
+*Damit hat jede der acht Zonen eine Regel, die in einem Satz zu sagen ist, und keine erfindet
+etwas dazu.*
 
 ---
 
@@ -264,14 +280,16 @@ Sternkästen am Zustand des Eintrags.*
 
 **Neu zu belegen ist mindestens:**
 
-1. **Die Gestenentscheidung, ohne Zeiger.** Vier gestellte Lagen gegen einen gestellten Rahmen:
-   außen, innen, jede der vier Ecken, und die Ecke bei einem Rahmen, der so klein ist, dass die
-   Greifzonen einander berühren. *Diese Prüfung erreicht die Funktion unmittelbar und nicht über
-   ein Ereignis.*
+1. **Die Gestenentscheidung, ohne Zeiger.** Gestellte Lagen gegen einen gestellten Rahmen:
+   außen, innen, **jede der vier Ecken, jede der vier Kanten**, die Überlappung von Ecke und
+   Kante (**die Ecke gewinnt**), und ein Rahmen, der so klein ist, dass die Greifzonen einander
+   berühren. *Diese Prüfung erreicht die Funktion unmittelbar und nicht über ein Ereignis.*
 2. **Schieben ändert die Weite nicht** — **am gesendeten Rumpf geprüft, nicht an der Anzeige:**
    `zoom` ist vorher und nachher dieselbe Zahl.
-3. **Die feste Ecke bleibt liegen.** Nach dem Ziehen an einer Ecke steht die gegenüberliegende —
-   innerhalb der Fünferrastung — an derselben Stelle.
+3. **Die feste Ecke und die feste Kante bleiben liegen.** Nach dem Ziehen an einer Ecke steht
+   die gegenüberliegende — innerhalb der Fünferrastung — an derselben Stelle; nach dem Ziehen an
+   einer Kante steht die gegenüberliegende Kante still, **und der Mittelpunkt ist auf ihr nicht
+   gewandert** (1.3a).
 4. **Nichts verlässt das Bild:** keine Geste bringt `focus_x` oder `focus_y` aus `[0, 100]` oder
    `zoom` aus `[100, 400]`.
 5. **Ein Griff ohne Bewegung speichert nicht** — gezählt an den Aufrufen von `speichere()`.
@@ -286,8 +304,9 @@ Sternkästen am Zustand des Eintrags.*
 9. **`zuschnittKiste()` unverändert:** die vorhandene Prüfung Browser gegen Server bleibt grün.
 
 **Rückbauten ab 642**, für jede neue Regel mindestens einer — darunter: **die Greifzone
-weggenommen**, **Schieben ändert den Zoom mit**, **die feste Ecke wandert**, **die Kurzfassung
-kommt zurück**, **der Server nimmt die Bewertung am ungetesteten Eintrag wieder an**.
+weggenommen**, **Schieben ändert den Zoom mit**, **die feste Ecke wandert**, **die Kante
+verschiebt den Mittelpunkt**, **die Kante gewinnt gegen die Ecke**, **die Kurzfassung kommt
+zurück**, **der Server nimmt die Bewertung am ungetesteten Eintrag wieder an**.
 **Ein Rückbau, der den Lauf abreißt, belegt nichts** (Stolperstein 161) — *erst das Objekt, dann
 sein Inhalt* (Stolperstein 311), und das gilt nach 0.22.0 ausdrücklich auch für einen Rückbau,
 der einen Weg wieder gangbar macht (Stolperstein 317).
@@ -325,7 +344,7 @@ der einen Weg wieder gangbar macht (Stolperstein 317).
 * Vor dem letzten Push: **`git status` muss leer sein**, und **`npm test` läuft ein letztes Mal
   gegen genau diesen Stand.**
 * **`Doku/Aenderungsprotokoll_0.22.1.md`** liegt im Branch: was gebaut wurde je Datei, die sechs
-  Entscheidungen mit ihrer Begründung, **die vier Gesten als Tabelle**, die gemessenen Maße, was
+  Entscheidungen mit ihrer Begründung, **die fünf Gesten als Tabelle**, die gemessenen Maße, was
   umgedreht statt gelöscht wurde, neue Stolpersteine, die Gegenprobentabelle, Prüfungszahlen und
   Rückbauten vorher/nachher *(vorher jeweils aus dem Protokoll 0.22.0)*, Offengebliebenes — **und
   was im Augenschein zurückgenommen wurde.**
@@ -338,8 +357,8 @@ der einen Weg wieder gangbar macht (Stolperstein 317).
   Bewertungskasten am ungetesteten Eintrag wieder und nimmt dort auch wieder Sterne an; **die
   Daten sind dieselben.** **Nach dem Einspielen im Browser einmal hart neu laden.**
 * Die Befehle zum Nachprüfen auf dem Server mit erwartetem Ergebnis — **im Chat, nicht in den
-  Dokumenten.** Darunter: **einen Ausschnitt aufziehen, schieben und an einer Ecke ändern**
-  *(drei Gesten, drei Ergebnisse, ein Speichern je Geste)*, **einen zugeklappten Sternkasten
+  Dokumenten.** Darunter: **einen Ausschnitt aufziehen, schieben, an einer Ecke und an einer Kante ändern**
+  *(vier Gesten, vier Ergebnisse, ein Speichern je Geste)*, **einen zugeklappten Sternkasten
   ansehen** *(eine Zahl, nicht zwei)*, **einen ungetesteten Eintrag öffnen** *(kein
   Bewertungskasten, keine Lücke)* und **„Getestet" umlegen** *(der Kasten kommt und geht, die
   Sterne bleiben)*.
@@ -351,13 +370,13 @@ der einen Weg wieder gangbar macht (Stolperstein 317).
 * **Der Projektstand wird umbenannt** (`git mv` auf `_0_22_1`), und **alle Verweise sind
   nachzuziehen.** Kopf, Betriebsstand, **Abschnitt 5.6 (Anzeige und Bedienung)**, Stolpersteine,
   Prüfstand, Versionsgeschichte, Fahrplan, offene Betriebspunkte.
-* **Abschnitt 5.6 bekommt die vier Gesten als geschriebene Regel** und den Satz, dass die
+* **Abschnitt 5.6 bekommt die fünf Gesten als geschriebene Regel** und den Satz, dass die
   Kopfzahl an einer Kopfzeile genau einmal steht. *Sonst läuft es beim nächsten Mal wieder
   auseinander — genau dafür ist der Abschnitt in 0.22.0 angelegt worden.*
 * **Der Fahrplan:** 0.22.1 wandert in die Versionsgeschichte, **und es rückt nichts.** 0.23.0
   („Die Oberfläche wird hell") bleibt die nächste geplante Runde und **braucht vor ihrem Auftrag
   ihr eigenes Farbkonzept** (`Doku/Farbkonzept_0_23_0.md`, noch nicht geschrieben).
-* **README:** der Absatz zum Rechteck unter „Bedienung" — **er beschreibt jetzt vier Gesten** —,
+* **README:** der Absatz zum Rechteck unter „Bedienung" — **er beschreibt jetzt fünf Gesten** —,
   und der Satz zum Bewertungskasten am ungetesteten Eintrag.
 * **`CHANGELOG.md`** in der gewohnten Form, **ohne Kasten** (keine Datenbankstufe), mit einer
   **fetten `Changed`-Zeile** für die Wegnahme aus Bauabschnitt 3 und einem Satz zu dem, was ein
