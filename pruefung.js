@@ -7442,6 +7442,46 @@ const freigabeHaupt = (zweck, ziel = null) =>
       .map(z => `${z.user_id}/${z.value}`), ['2/5']),
     JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2')));
 
+  /* --- VOR DEM TEST WIRD NICHT BEWERTET, UND ZWAR FUER JEDEN — 0.22.1 ---
+     DIE KLEMME KENNT KEINE ROLLE, und genau das ist hier zu belegen: sie ist
+     keine Rechtefrage, sondern eine Aussage ueber den Eintrag. Ein Admin, der
+     an einer Idee bewerten duerfte, machte aus der Regel eine Empfehlung.
+     GEPRUEFT AN DER ECHTEN DATENBANK mit drei Benutzern -- der Nachweis, dass
+     nichts geschrieben wurde, geht an den Zeilen und nicht an der Antwort. */
+  /* EIN EIGENER EINTRAG FUER DIESE FRAGE, und er wird angelegt statt
+     umgeschaltet: „Getestet" laesst sich nicht zuruecknehmen, solange Testtage
+     eingetragen sind (0.13.x), und die beiden Eintraege dieser Lage tragen
+     welche. Ein frisch angelegter Eintrag kommt ungetestet auf die Welt -- er
+     IST die Lage, um die es geht, und braucht keinen Handgriff. */
+  const fIdee = (await fRuf('cookie-f-bert', 'POST', '/api/items', { title: 'Eine Idee' })).inhalt;
+  pruefe('Die Prueflage steht: ein frisch angelegter Eintrag ist ungetestet',
+    fIdee && fIdee.tested === false, JSON.stringify(fIdee && fIdee.tested));
+  const fUngBert = await fRuf('cookie-f-bert', 'PUT', `/api/items/${fIdee.id}/ratings`,
+    { criterionId: fOptikId, value: 4 });
+  const fUngAnna = await fRuf('cookie-f-anna', 'PUT', `/api/items/${fIdee.id}/ratings`,
+    { criterionId: fOptikId, value: 4 });
+  pruefe('Am ungetesteten Eintrag wird der Verfasser abgewiesen',
+    fUngBert.status === 400, `Status ${fUngBert.status} ${JSON.stringify(fUngBert.inhalt?.error)}`);
+  pruefe('Und der Admin ebenso',
+    fUngAnna.status === 400, `Status ${fUngAnna.status} ${JSON.stringify(fUngAnna.inhalt?.error)}`);
+  pruefe('Es steht danach keine einzige Stimme da',
+    fZeilen('SELECT user_id, value FROM ratings WHERE item_id = ?', fIdee.id).length === 0,
+    JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = ?', fIdee.id)));
+  /* WEGNEHMEN BLEIBT OFFEN -- fuer jeden und in jedem Zustand. */
+  const fNullUng = await fRuf('cookie-f-carla', 'PUT', `/api/items/${fIdee.id}/ratings`,
+    { criterionId: fOptikId, value: 0 });
+  pruefe('Wegnehmen bleibt auch am ungetesteten Eintrag offen',
+    fNullUng.status === 200, `Status ${fNullUng.status}`);
+  /* UND DANACH GEHT ES WIEDER. Ohne diese Zeile bliebe gruen, wer die Route
+     ueberhaupt gesperrt haette (Stolperstein 81). */
+  await fRuf('cookie-f-bert', 'PUT', `/api/items/${fIdee.id}`, { tested: true });
+  const fWiederBert = await fRuf('cookie-f-bert', 'PUT', `/api/items/${fIdee.id}/ratings`,
+    { criterionId: fOptikId, value: 4 });
+  pruefe('Und am getesteten Eintrag nimmt die Route wieder an',
+    fWiederBert.status === 200 && fWiederBert.inhalt?.avgRating === 4,
+    `Status ${fWiederBert.status}, avgRating ${fWiederBert.inhalt?.avgRating}`);
+  await fRuf('cookie-f-anna', 'DELETE', `/api/items/${fIdee.id}`);
+
   /* ---------------------------------------------------------------- */
   gruppe('Rechte in der Verwaltung');
 
@@ -21042,6 +21082,67 @@ const freigabeHaupt = (zweck, ziel = null) =>
     phD.ratings.every(r => PHASEN_SOLL.includes(r.phase)) &&
     phD.ratings.filter(r => r.phase === 'vorher').map(r => r.name).join() === 'Wunsch',
     JSON.stringify(phD.ratings.map(r => `${r.name}:${r.phase}`)));
+
+  /* --- VOR DEM TEST WIRD NICHT BEWERTET — 0.22.1 -----------------------
+     DER BEFUND AUS DEM BETRIEB: an einem ungetesteten Eintrag stand der
+     Bewertungskasten zugeklappt da, und ein Klick liess Sterne vergeben. Die
+     Oberflaeche versteckt ihn seit dieser Runde -- UND DER SERVER WEIST AB.
+     Was der Bildschirm nicht anbietet, muss der Server abweisen, sonst ist es
+     keine Regel, sondern eine Gewohnheit.
+     DIE LAGE IST GERADE DIE RICHTIGE: der Traeger steht seit dem Umlegen oben
+     auf „ungetestet" und traegt trotzdem Bewertungssterne -- genau der Fall
+     aus Entscheidung E6. */
+  {
+    const phBew = (krit, wert) => PH.ruf('PUT', `/api/items/${phItem.id}/ratings`,
+      { criterionId: krit, value: wert });
+    /* ERST DIE PRUEFLAGE. Ohne sie waere jede Absage darunter auch dann
+       „richtig", wenn der Eintrag laengst wieder getestet waere -- und die
+       Zusagen prueften einen Zustand, den es gar nicht gibt (Stolperstein 161). */
+    const phVorLage = await phDetail();
+    pruefe('Die Prueflage steht: ungetestet, und mit Bewertungssternen',
+      !phVorLage.tested && phVorLage.avgRating === 4,
+      `tested ${phVorLage.tested}, avgRating ${phVorLage.avgRating}`);
+
+    const phAbsage = await phBew(phOhne.inhalt.id, 5);
+    pruefe('Eine Bewertung am ungetesteten Eintrag wird abgewiesen',
+      phAbsage.status === 400, `${phAbsage.status} ${JSON.stringify(phAbsage.inhalt)}`);
+    /* UND SIE SAGT, WARUM. Eine Absage ohne Grund ist auf dem Bildschirm ein
+       roter Streifen ohne Auskunft. */
+    pruefe('Und die Absage nennt den Grund',
+      /ungetestet|Vor dem Test/.test(phAbsage.inhalt?.error || ''),
+      JSON.stringify(phAbsage.inhalt));
+    /* EINE ABSAGE, DIE TROTZDEM SCHREIBT, WAERE SCHLIMMER ALS KEINE. */
+    pruefe('Sie hat dabei nichts geschrieben',
+      (await phDetail()).avgRating === 4, JSON.stringify((await phDetail()).avgRating));
+
+    /* DAS POTENZIAL GEHT WEITER -- es ist die Frage VOR dem Test und an einer
+       Idee die einzige, die sich stellt. Ohne diese Zeile bliebe gruen, wer
+       BEIDE Kaesten sperrt. */
+    const phVorherOk = await phBew(phVorher.inhalt.id, 3);
+    pruefe('Das Potenzial laesst sich am ungetesteten Eintrag weiter setzen',
+      phVorherOk.status === 200 && phVorherOk.inhalt.potenzialRating === 3,
+      `${phVorherOk.status}, potenzialRating ${phVorherOk.inhalt?.potenzialRating}`);
+
+    /* UND WEGNEHMEN MUSS IMMER GEHEN. Der Kasten steht an einem ungetesteten
+       Eintrag MIT Sternen ausdruecklich da (E6), und sein einziger Zweck ist,
+       sie loswerden zu koennen. Eine Klemme, die auch die Null abwiese,
+       sperrte genau den Weg, fuer den er noch da ist. */
+    const phNullOk = await phBew(phOhne.inhalt.id, 0);
+    pruefe('Wegnehmen geht auch am ungetesteten Eintrag',
+      phNullOk.status === 200 && phNullOk.inhalt.rechenweg?.zeilen?.length === 1,
+      `${phNullOk.status}, Zeilen ${phNullOk.inhalt?.rechenweg?.zeilen?.length}`);
+
+    /* UND MIT „getestet" IST DER WEG WIEDER OFFEN. Ohne diese Zeile bliebe
+       gruen, wer die Bewertung ueberhaupt gesperrt haette. */
+    await PH.ruf('PUT', `/api/items/${phItem.id}`, { tested: true });
+    const phWiederOk = await phBew(phOhne.inhalt.id, 4);
+    pruefe('Am getesteten Eintrag geht sie wieder',
+      phWiederOk.status === 200 && phWiederOk.inhalt.rechenweg?.zeilen?.length === 2,
+      `${phWiederOk.status}, Zeilen ${phWiederOk.inhalt?.rechenweg?.zeilen?.length}`);
+    // Die Lage wird zurueckgestellt, wie sie vorgefunden wurde.
+    await phBew(phVorher.inhalt.id, 1);
+    await PH.ruf('PUT', `/api/items/${phItem.id}`, { tested: false });
+  }
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
@@ -36683,6 +36784,35 @@ async function pruefeOberflaeche() {
       /⌀ 4,2/.test(zkDoc.getElementById('phead')?.textContent || ''),
       JSON.stringify(zkDoc.getElementById('phead')?.textContent));
 
+    /* --- DIE KOPFZAHL SAGT, WESSEN ZAHL SIE IST — 0.22.1 (E5) ---
+       DIE FRAGE KAM AUS DEM BETRIEB: „ist das meine Bewertung oder von
+       allen?" Es ist der Schnitt ueber alle, die bewertet haben -- die eigenen
+       Sterne stehen links in der Zeile. Bis 0.22.0 stand das nirgends: weder
+       am Knopf noch im Kasten dahinter.
+       OHNE BEDINGUNG AUF DIE ZAHL DER ZUGAENGE: eine Installation mit einem
+       einzigen Benutzer bekaeme sonst einen anderen Satz ueber dieselbe
+       Rechnung (Stolperstein 47). */
+    pruefe('Die Kopfzahl sagt im Titel, dass sie ueber alle geht',
+      /über alle Benutzer/.test(zkDoc.getElementById('gew-auf')?.title || '') &&
+      /nicht nur der eigene/.test(zkDoc.getElementById('gew-auf')?.title || ''),
+      JSON.stringify(zkDoc.getElementById('gew-auf')?.title));
+    /* UND IN BEIDEN KAESTEN DASSELBE. Ein Titel, der nur an einem der beiden
+       haengt, beantwortet die Frage genau dort nicht, wo sie zuerst auffiel. */
+    pruefe('Und im Potenzialkasten steht derselbe Titel',
+      zkDoc.getElementById('pgew-auf')?.title === zkDoc.getElementById('gew-auf')?.title,
+      JSON.stringify([zkDoc.getElementById('gew-auf')?.title,
+                      zkDoc.getElementById('pgew-auf')?.title]));
+    /* UND DER ERKLAERKASTEN SAGT ES AUCH -- am Ort der Erklaerung. Er nannte
+       bis 0.22.0 die beiden Schritte und liess offen, ueber WEN der erste
+       geht. */
+    zkDoc.getElementById('gew-auf')?.dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const zkErkl = zkDoc.getElementById('rechnung-modal');
+    pruefe('Der Erklaerkasten nennt die Menge, ueber die gerechnet wird',
+      /über alle\s+Benutzer/.test(zkErkl?.textContent || ''),
+      JSON.stringify((zkErkl?.textContent || '').slice(0, 160)));
+    zkErkl?.closest('.backdrop')?.remove();
+
     /* EIN KLICK AUF DEN KOPF IST EIN BLICK UND KEIN BEFEHL: er klappt auf und
        schickt NICHTS an den Server. Das ist der Unterschied zu jedem anderen
        Block, und er ist der Kern von Abschnitt 4.3. */
@@ -36715,22 +36845,46 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     const zkIdeeZu = (name) => zkIdee.w.document
       .querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
-    pruefe('An einer Idee ohne Bewertungssterne steht das Potenzial offen und die Bewertung zu',
-      zkIdeeZu('potenzial') === false && zkIdeeZu('bewertung') === true,
-      JSON.stringify([zkIdeeZu('potenzial'), zkIdeeZu('bewertung')]));
-    /* DER SCHALTER LEERT DEN BLICK. Nach dem Umlegen steht der richtige
-       Kasten offen, ohne dass jemand klickt. */
-    zkIdee.w.document.querySelector('.block[data-block="bewertung"] .block-head')
+    pruefe('An einer Idee ohne Bewertungssterne steht das Potenzial offen',
+      zkIdeeZu('potenzial') === false, JSON.stringify(zkIdeeZu('potenzial')));
+    /* UND DEN BEWERTUNGSKASTEN GIBT ES DORT GAR NICHT -- 0.22.1, und das ist
+       die Umkehrung der Zusage, die hier bis 0.22.0 stand: „und die Bewertung
+       zu".
+       DER BEFUND, DER SIE UMGEDREHT HAT: zugeklappt heisst sichtbar. Kopfzeile,
+       Griff, Pfeil und eine Zeile Platz standen an jeder Idee da, und EIN
+       KLICK LIESS STERNE VERGEBEN -- obwohl „vor dem Test schaetzt man, nach
+       dem Test bewertet man" seit 0.21.0 der Satz dieser Instanz ist. Sie sagte
+       ihn leise und liess zugleich das Gegenteil zu.
+       GEPRUEFT WIRD DIE EIGENSCHAFT; DASS SIE AUCH WIRKT, haelt die Gruppe
+       „`hidden` muss wirken, und zwar ueberall" weiter unten fest -- die Regel
+       steht seit 0.15.1 EINMAL ganz oben im Stilblatt und traegt `!important`
+       (Stolperstein 212). */
+    const zkIdeeBlock = () => zkIdee.w.document.querySelector('.block[data-block="bewertung"]');
+    pruefe('Und den Bewertungskasten gibt es dort gar nicht',
+      zkIdeeBlock()?.hidden === true,
+      JSON.stringify([!!zkIdeeBlock(), zkIdeeBlock()?.hidden]));
+    /* DER SCHALTER LEERT DEN BLICK. Nach dem Umlegen steht der richtige Kasten
+       offen, ohne dass jemand klickt.
+       DER BLICK WIRD AM POTENZIAL GESETZT UND NICHT MEHR AN DER BEWERTUNG:
+       deren Kopfzeile steht an einer Idee nicht da, und ein Klick auf einen
+       Kasten, den niemand sehen kann, belegte nichts. Die Frage bleibt
+       dieselbe -- ueberlebt ein Blick das Umlegen des Schalters? */
+    zkIdee.w.document.querySelector('.block[data-block="potenzial"] .block-head')
       .dispatchEvent(new zkIdee.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    pruefe('Ein Blick klappt die Bewertung an der Idee auf',
-      zkIdeeZu('bewertung') === false, JSON.stringify(zkIdeeZu('bewertung')));
+    pruefe('Ein Blick klappt das Potenzial an der Idee zu',
+      zkIdeeZu('potenzial') === true, JSON.stringify(zkIdeeZu('potenzial')));
     zkIdee.w.document.getElementById('sw-test')
       .dispatchEvent(new zkIdee.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     pruefe('Der Schalter „Getestet" stellt die Regel wieder her',
       zkIdeeZu('bewertung') === false && zkIdeeZu('potenzial') === true,
       JSON.stringify([zkIdeeZu('bewertung'), zkIdeeZu('potenzial')]));
+    /* UND ER HOLT DEN KASTEN ZURUECK. Ohne diese Zeile bliebe gruen, wer den
+       Bewertungskasten dauerhaft versteckt -- die Zusage darueber fragt nur
+       nach `zu`, und die gilt auch fuer einen Block, den niemand sieht. */
+    pruefe('Und er holt den Bewertungskasten zurueck',
+      zkIdeeBlock()?.hidden === false, JSON.stringify(zkIdeeBlock()?.hidden));
     zkIdee.w.close();
 
     /* VORHANDENE DATEN SCHLAGEN DIE REGEL. Ein ungetesteter Eintrag mit
@@ -36744,6 +36898,38 @@ async function pruefeOberflaeche() {
       zkAlt.w.document.querySelector('.block[data-block="bewertung"]')
         ?.classList.contains('zu') === false,
       JSON.stringify(zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.className));
+    /* UND SIE ZEIGT IHN WIRKLICH -- 0.22.1 (Entscheidung E6). „Offen" allein
+       genuegt seit dieser Runde nicht mehr: ein versteckter Block kann offen
+       sein, und niemand saehe die Sterne. Vorhandene Daten schlagen die Regel;
+       ohne diese Ausnahme waeren vergebene Sterne unsichtbar UND unerreichbar,
+       denn wegnehmen laesst sich nur, was man sieht. */
+    pruefe('Und zwar sichtbar, nicht nur aufgeklappt',
+      zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.hidden === false,
+      JSON.stringify(zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.hidden));
+
+    /* --- OHNE ZAHL BLEIBT DER SATZ — 0.22.1 (E4) ---
+       Die Kurzfassung faellt nur, solange eine KOPFZAHL dasteht. Steht keine
+       („ohne Zahl kein Knopf"), muss der zugeklappte Kasten selbst sagen, dass
+       er leer ist -- sonst stuende dort eine Ueberschrift und weiter nichts.
+       UND JE KASTEN MIT EIGENEM WORT: zwei gleiche Texte an zwei Koepfen
+       waeren ein Raetsel fuer den, der nur die Koepfe sieht.
+       DIE LAGE: ein GETESTETER Eintrag (Potenzial also zugeklappt) mit einem
+       Vorher-Kriterium, das niemand eingeschaetzt hat. */
+    const zkLeer = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
+      potenzialWert: null, eigeneWerte: [4, 4, 0],
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const zkLeerDoc = zkLeer.w.document;
+    pruefe('Die Prueflage steht: der Potenzialkasten ist zu und hat keine Zahl',
+      zkLeerDoc.querySelector('.block[data-block="potenzial"]')?.classList.contains('zu') === true &&
+      (zkLeerDoc.getElementById('phead')?.textContent || '') === '',
+      JSON.stringify([zkLeerDoc.querySelector('.block[data-block="potenzial"]')?.className,
+                      zkLeerDoc.getElementById('phead')?.textContent]));
+    pruefe('Dann sagt die Kurzfassung, dass noch nichts dasteht',
+      /noch nicht eingeschätzt/.test(
+        zkLeerDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent || ''),
+      JSON.stringify(zkLeerDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent));
+    zkLeer.w.close();
 
     /* --- DER BLICK ENDET MIT DEM EINTRAG ---
        NACHGETRAGEN AUS DER GEGENPROBE: Rueckbau 593 nimmt `BLICK.clear()` am

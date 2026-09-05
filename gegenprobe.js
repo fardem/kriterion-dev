@@ -6114,6 +6114,135 @@ const RUECKBAUTEN = [
     ersatz: "    bd.querySelector('[data-no]').onclick = nimm;\n    bd.querySelector('[data-yes]').onclick = nimm;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
+  /* ================= 0.22.1 — die fuenf Gesten, die Kopfzahl, der Kasten ====
+     Zwoelf Rueckbauten, und jeder nimmt GENAU EINE Zusage dieser Runde zurueck.
+     Wo eine Zusage an mehreren Zeilen haengt, steht der Rueckbau an der Zeile,
+     die den Unterschied traegt -- nicht an der, die am leichtesten zu finden
+     ist. */
+  {
+    /* OHNE GREIFZONE GIBT ES DIE ACHT GRIFFE NICHT MEHR: alles im Rahmen wird
+       zum Schieben, und Ecke wie Kante sind unerreichbar. */
+    nr: '642', name: 'Der Rahmen verliert seine acht Griffe',
+    datei: 'public/app.js',
+    suche: "const GRIFF = 12;",
+    ersatz: "const GRIFF = 0;",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* DIE KANTE GEWINNT GEGEN DIE ECKE -- die Reihenfolge der vier Fragen ist
+       die ganze Entscheidung, und sie steht nirgends sonst. */
+    nr: '643', name: 'Die Kante gewinnt wieder gegen die Ecke',
+    datei: 'public/app.js',
+    suche: "  if (n && w) return 'links-oben';",
+    ersatz: "  if (n) return 'oben';\n  if (n && w) return 'links-oben';",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* DER GRIFF WIRD NICHT MEHR AM RAHMEN GEDECKELT: an einem kleinen Rahmen
+       decken die acht Zonen die ganze Flaeche ab, und das Schieben faellt
+       weg. */
+    nr: '644', name: 'Die Greifzone wird am kleinen Rahmen nicht mehr gedeckelt',
+    datei: 'public/app.js',
+    suche: "  const g = Math.min(griff, kante / 4);",
+    ersatz: "  const g = griff;",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* SCHIEBEN AENDERT DIE WEITE MIT. Der Weg an der Rastung vorbei ist die
+       Zusage; geht das Schieben durch setzeKiste(), rastet der Zoom bei jedem
+       Zug neu. */
+    nr: '645', name: 'Das Schieben aendert die Weite wieder mit',
+    datei: 'public/app.js',
+    suche: "      setzeLage(zug.kiste.links + (p.x - zug.p0.x), zug.kiste.oben + (p.y - zug.p0.y));",
+    ersatz: "      setzeKiste(zug.kiste.kante * 0.9,\n        () => ({ l: zug.kiste.links + (p.x - zug.p0.x), o: zug.kiste.oben + (p.y - zug.p0.y) }));",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* DIE RASTUNG KOMMT VOR DER LAGE. Legt man den Rahmen nach der
+       UNGERASTETEN Kante, wandert die feste Ecke bei jedem Zug um bis zu eine
+       halbe Stufe -- genau die Ecke, die stillstehen soll. */
+    nr: '646', name: 'Die feste Ecke wandert wieder mit der Rastung',
+    datei: 'public/app.js',
+    suche: "      const eng = seite * 100 / zoom;\n      const { l, o } = lage(eng);",
+    ersatz: "      const eng = seite * 100 / zoom;\n      const { l, o } = lage(k);",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* DIE KANTE VERSCHIEBT DEN MITTELPUNKT. Statt symmetrisch um die Mitte der
+       festen Kante zu wachsen, haengt der Rahmen an ihrer oberen Ecke -- er
+       rutscht dabei seitlich weg. */
+    nr: '647', name: 'Die Kante verschiebt den Mittelpunkt wieder',
+    datei: 'public/app.js',
+    suche: "          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
+    ersatz: "          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* EIN GRIFF IM RAHMEN OHNE WEG VERSTELLT WIEDER DEN AUSSCHNITT
+       (Entscheidung E1): ein misslungener Griff schiebt den Punkt unter den
+       Zeiger. */
+    nr: '648', name: 'Ein Griff ohne Weg setzt wieder den Punkt',
+    datei: 'public/app.js',
+    suche: "      if (zuletzt.geste !== 'neu') return;\n      ausPunkt(e);",
+    ersatz: "      ausPunkt(e);",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* DER ZEIGER SAGT NICHTS MEHR: ueber Rahmen, Ecke und Kante steht wieder
+       dasselbe Zeichen (Regel G2 aus 0.22.0). */
+    nr: '649', name: 'Der Zeiger sagt wieder nicht, was geschehen wird',
+    datei: 'public/app.js',
+    suche: "      const kl = GRIFF_ZEIGER[geste];\n      if (kl) v.classList.add(kl);",
+    ersatz: "      const kl = null;\n      if (kl) v.classList.add(kl);",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* DER FINGER BEKOMMT DIE ACHT GRIFFE DOCH (Entscheidung E3): eine Zone von
+       zwoelf Bildpunkten trifft keine Fingerkuppe, und ein Tipp an den Rand
+       aendert dann die Weite statt zu schieben. */
+    nr: '650', name: 'Der Finger bekommt die acht Griffe doch',
+    datei: 'public/app.js',
+    suche: "      if (e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';",
+    ersatz: "      if (false && e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';",
+    erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
+  },
+  {
+    /* DIE KURZFASSUNG KOMMT ZURUECK: die Zahl steht wieder zweimal im selben
+       Kopf, einmal in Klammern und einmal mit „gewichtet" (Stolperstein 318). */
+    nr: '651', name: 'Die Kopfzahl steht wieder zweimal da',
+    datei: 'public/app.js',
+    suche: "    case 'potenzial': return item.potenzialRating ? '' : 'noch nicht eingeschätzt';",
+    ersatz: "    case 'potenzial': return item.potenzialRating\n      ? '⌀ ' + item.potenzialRating.toFixed(1).replace('.', ',') : 'noch nicht eingeschätzt';",
+    erwartet: 'Die beiden Sternkaesten — 0.21.0'
+  },
+  {
+    /* DER BEWERTUNGSKASTEN STEHT WIEDER AN JEDER IDEE -- zugeklappt, aber
+       sichtbar, und ein Klick liesse Sterne vergeben. */
+    nr: '652', name: 'Der Bewertungskasten steht wieder an jeder Idee',
+    datei: 'public/app.js',
+    suche: "  return name === 'bewertung' && !item.tested && !hatSterne(item, 'nachher');",
+    ersatz: "  return false && name === 'bewertung' && !item.tested && !hatSterne(item, 'nachher');",
+    erwartet: 'Die beiden Sternkaesten — 0.21.0'
+  },
+  {
+    /* UND DER SERVER NIMMT SIE WIEDER AN. Was der Bildschirm nicht anbietet,
+       muss der Server abweisen -- sonst ist es keine Regel, sondern eine
+       Gewohnheit. */
+    nr: '653', name: 'Der Server nimmt die Bewertung am ungetesteten Eintrag wieder an',
+    datei: 'server.js',
+    suche: "    if (krit && krit.phase === 'nachher' && eintrag && !eintrag.tested)",
+    ersatz: "    if (false && krit && krit.phase === 'nachher' && eintrag && !eintrag.tested)",
+    erwartet: 'Rechte und Sichtbarkeit'
+  },
+  {
+    /* UND DIE KOPFZAHL SAGT NICHT MEHR, WESSEN ZAHL SIE IST (Entscheidung E5)
+       -- die Frage aus dem Betrieb bliebe wieder unbeantwortet. */
+    nr: '654', name: 'Die Kopfzahl sagt nicht mehr, wessen Zahl sie ist',
+    datei: 'public/app.js',
+    suche: "        b.title = 'Der Durchschnitt über alle Benutzer — nicht nur der eigene. Wie diese Zahl zustande kommt';",
+    ersatz: "        b.title = 'Wie diese Zahl zustande kommt';",
+    erwartet: 'Die beiden Sternkaesten — 0.21.0'
+  },
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
     datei: 'pruefung.js',
