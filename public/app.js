@@ -4946,7 +4946,24 @@ async function renderDetail(id, begriffAdresse) {
       const hoch = Math.max(seite / 4, Math.min(seite, deckel ?? seite));
       const k = begrenzt(kanteWunsch, seite / 4, hoch);
       zoom = begrenzt(Math.round(seite * 100 / k / 5) * 5, 100, 400);
-      const eng = seite * 100 / zoom;
+      let eng = seite * 100 / zoom;
+      /* UND DIE RASTUNG DARF DEN DECKEL NICHT UEBERSPRINGEN -- 0.22.1, und das
+         ist ein Fund aus der Gegenprobe.
+         WAS GESCHAH: die Kante rastet auf die naechste Fuenferstufe, und die
+         kann NACH OBEN gehen -- `eng` wird dann groesser als der Deckel, den
+         `hoch` gerade gesetzt hat. Der Rahmen passt danach nicht mehr an
+         seinen Anker, die Klemme in `setzeLage()` schiebt ihn ins Bild zurueck
+         -- und damit genau die Ecke oder Kante, die stillstehen sollte. In der
+         Prueflage waren es 0,217 Bildpunkte am Mittelpunkt einer Kante.
+         DIE ANTWORT IST EINE STUFE ENGER, nicht eine Toleranz: eine Stufe
+         weiter zugezogen bleibt der Rahmen unter dem Deckel, der Anker sitzt
+         wieder exakt, und die Zahl am Schieber ist weiterhin eine
+         Fuenferstufe. Der Preis ist ein halber Schritt Weite an genau der
+         Stelle, an der es ohnehin nicht weiterginge. */
+      if (eng > hoch + 1e-9 && zoom < 400) {
+        zoom = Math.min(400, zoom + 5);
+        eng = seite * 100 / zoom;
+      }
       const { l, o } = lage(eng);
       setzeLage(l, o);
     };
