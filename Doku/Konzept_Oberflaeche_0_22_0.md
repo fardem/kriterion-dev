@@ -915,15 +915,17 @@ sie verworfen hat, ist in einem halben Jahr nicht mehr zu beurteilen (Stolperste
 
 ### 9.2 Was diese Runde nicht löst
 
-* **Mehrsprachigkeit (Fahrplan 0.28.0).** Sie kommt nach dieser Runde und wegen ihr: wer
-  Texte ordnet und je Sache ein Wort hat, zieht sie später in eine Sprachdatei, ohne sie
-  zweimal anzufassen. *Diese Runde legt keine Sprachdatei an.*
+* **Mehrsprachigkeit (Fahrplan 0.24.0 — bis zum 5. September 2026 0.28.0).** Sie kommt nach
+  dieser Runde und wegen ihr: wer Texte ordnet und je Sache ein Wort hat, zieht sie später
+  in eine Sprachdatei, ohne sie zweimal anzufassen. *Diese Runde legt keine Sprachdatei an.*
+  **Am 5. September 2026 vorgezogen und ausgearbeitet: `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`.**
 * **Das helle Farbschema (N6).** **Eingetragen als 0.23.0, „Die Oberfläche wird hell"** —
   ausgearbeitet im Projektstand, Abschnitt 10a. *Sie braucht die Gestaltungsregeln, die diese
   Runde aufschreibt: ein zweites Schema ist nur zu bauen, wenn feststeht, was jede Farbe
   bedeutet.*
 * **Die Listenansicht (N11), Fälligkeitsdaten an Aufgaben, die Wortgrenzensuche** — Sammelblatt.
-* **Die Kommentare im Quelltext** („Die Kommentare werden knapp", 0.26.x) — dort liegt der
+* **Die Kommentare im Quelltext** („Die Kommentare werden knapp", 0.28.x — bis zum 5. September
+  2026 0.26.x) — dort liegt der
   Ursprung des Kumpeltons, und dort bleibt er, bis die Bereinigung sie schneidet. *Diese
   Runde fasst keinen Kommentar an, der nicht an einem geänderten Text hängt.*
 
