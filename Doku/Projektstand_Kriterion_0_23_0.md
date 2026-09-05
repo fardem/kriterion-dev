@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 60 · Stand 5. September 2026 · gebaut: Version 0.22.1**
+**Kompakte Übergabe · Revision 61 · Stand 5. September 2026 · gebaut: Version 0.23.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -475,8 +475,19 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.22.1** — Fingerprint **`15c9b736`**, **5713
+**Gebaut ist 0.23.0** — Fingerprint **`92f7a142`**, **5744
 Prüfungen**, **649 Rückbauten in der Liste** (Abschnitt 8).
+*0.23.0 bringt das helle Farbschema: umschaltbar in der Karte „Darstellung",
+drei Stufen (**hell · dunkel · wie das Gerät**), **die Vorgabe bleibt
+dunkel**. 67 feste Farben haben das Regelwerk verlassen, ein zweiter Block mit
+42 Werten ist dazugekommen, und der Betrachter hat 27 eigene — er bleibt in
+beiden Schemata dunkel, im hellen aber dunkelgrau statt schwarz. **Alle Werte
+sind gemessen und nicht ausgerechnet** (`Doku/Farbkonzept_0_23_0.md`); die
+Latte ist der eigene Bestand und nicht die WCAG-Schwelle allein. Regel
+**G12** in Abschnitt 5.6, Einzelheiten im Änderungsprotokoll 0.23.0.*
+
+*0.22.1 davor räumte drei Befunde aus dem Rundlauf nach 0.22.0 weg — Fingerprint
+`15c9b736`, 5713 Prüfungen.*
 *0.22.1 räumt drei Befunde aus dem Rundlauf nach 0.22.0 weg. **Der
 Bildausschnitt bedient sich wie ein Ausschnitt:** außerhalb ziehen zieht einen
 neuen auf, im Rahmen ziehen schiebt ihn, und an vier Ecken und vier Kanten wird
@@ -1408,7 +1419,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.22.1** | **`15c9b736`** *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5713 |
+| **0.23.0** | **`92f7a142`** *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5744 |
+| 0.22.1 | `15c9b736` *(am 5. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5713 |
 | 0.22.0 | `fd292332` *(am 5. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; die drei Befunde daraus sind 0.22.1)* | 5661 |
 | 0.21.1 | `2295870b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5571 |
 | 0.21.0 | `85f4348b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5512 |
@@ -4941,9 +4953,9 @@ Bauform wie `F_ROUTEN`: *eine Menge bliebe grün, wenn jemand zwanzig neue „se
 dieses Blattes und in den Änderungsprotokollen — *also dort, wo sie jemand
 sucht, und nicht dort, wo sie jemanden aufhält.*
 
-#### Gestaltungsregeln G1 bis G11 — seit 0.22.0 geschriebene Regel
+#### Gestaltungsregeln G1 bis G12 — seit 0.22.0 geschriebene Regel
 
-*(G9 bis G11 sind mit 0.22.1 dazugekommen.)*
+*(G9 bis G11 sind mit 0.22.1 dazugekommen, G12 mit 0.23.0.)*
 
 *(Konzept `Doku/Konzept_Oberflaeche_0_22_0.md`, Abschnitt 4.1; gebaut mit 0.22.0.
 Die ersten drei sind alt und standen hier schon, verteilt; ab hier stehen alle
@@ -5040,6 +5052,27 @@ G3 hat das mit dem Milchglas vorgeführt, Stolperstein 314.)*
   nicht mehr entfernen. **Dieselbe Bedingung entscheidet beides** (`hatSterne`),
   und der Server weist eine Bewertung der Phase `nachher` an einem ungetesteten
   Eintrag ab — `value: 0` bleibt offen (Stolperstein 321).
+
+- **G12 · Das Schema hat zwei Werte, und keine feste Farbe trägt eine
+  Bedeutung.** *(seit 0.23.0.)* `data-thema` steht am Wurzelelement und kennt
+  **`hell` und `dunkel`** — die dritte Stufe der Einstellung („wie das Gerät")
+  löst `public/app.js` über `matchMedia` auf und schreibt einen der beiden;
+  **stünde sie auch im Stilblatt, müsste jeder Wert dreimal geschrieben
+  werden.** **Im Regelwerk außerhalb der `:root`-Blöcke steht keine Farbe als
+  Zahl** — die Positivliste hat genau einen Eintrag, `#000` hinter `<video>`
+  (der Balken beim Seitenverhältnis ist der Rand eines Videos und keine Fläche
+  der Oberfläche). *Eine Variable zu **definieren** ist erlaubt, mit einer Zahl
+  zu **malen** nicht; ein Prüfstandswächter hält beides auseinander.*
+  **Drei Dinge folgen ihrem Grund und nicht dem Schema:** was auf einem **Foto**
+  liegt (Schleier, Schrift darauf, die zwei Abzeichen der Kachel), was auf einer
+  **gefüllten Fläche** steht (die Schrift auf Orange und auf Rot), und der
+  **Betrachter** — er bleibt in beiden Schemata dunkel und bekommt seine Werte
+  über die Vererbung der Variablen, ohne eine einzige Regeländerung.
+  **`--accent` ist in beiden Schemata `#ff7a1a`**: die Fläche trägt die Marke,
+  der Rand trägt den Kontrast. **Die Vorgabe ist dunkel.** *Alle Werte sind
+  gemessen; die Latte ist, was das dunkle Schema an derselben Paarung erreicht
+  — sie ist strenger als AA, und sie stand schon
+  (`Doku/Farbkonzept_0_23_0.md`).*
 
 #### Sprachregeln S1 bis S7 — seit 0.22.0 geschriebene Regel
 
@@ -9030,9 +9063,13 @@ im Image.**
 > fällt nicht von selbst auf: die Bereitschaftsprüfung bekommt ja eine Antwort*
 > (Stolperstein 139).
 
-**Stand: 5713 von 5713 bestanden** (0.22.1) — **52
-neue, keine weggefallen.** *0.22.0 davor brachte 90, 0.21.1 davor 59, 0.21.0
-davor 109.*
+**Stand: 5744 von 5744 bestanden** (0.23.0) — **31
+neue, keine weggefallen.** *0.22.1 davor brachte 52, 0.22.0 davor 90, 0.21.1
+davor 59.*
+*Die 31 verteilen sich auf drei Gruppen: sechs am Wächter „keine feste Farbe
+im Stilblatt", sechzehn an der Maschine des Farbschemas, acht an der
+Einstellung am Server. Zwanzig weitere sind nachgezogen worden — sie prüfen
+Wortlaut, und der hat sich geändert, der Wert nicht.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
 beschränkt und **nicht** der volle Lauf über alle **649** Rückbauten.
 
@@ -12648,8 +12685,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man"** | **GEBAUT am 4. September 2026.** *(Aus dem Betrieb am 3. September 2026, noch am selben Tag als Konzeptpapier `Doku/Konzept_Potenzial.md` geschrieben und als **eingeschobene** Runde gebaut — sie stand nie im Sammelblatt und nie im Fahrplan.)* **Ein Eintrag mit `tested = 0` ist eine Idee — und die einzige Zahl, die er bekommen konnte, war die Bewertung.** Ab jetzt hat er zwei Sternkästen: **Potenzial** (vorher) und **Bewertung** (nachher), mit eigenen Kriterien, eigenen Gewichten und **zwei Durchschnitten, die einander baulich nicht berühren** — die Menge wird nach `rating_criteria.phase` geschnitten, *bevor* die Rechnung sie sieht. Dazu: eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs und die **gemessene Mindestbreite** der Durchschnittsspalte. **`DELETE /api/items/:id/ratings` fällt** — `F_ROUTEN` **71 → 70**. *MINOR* | ja, **neunter Block** | 12 → 13 |
 | **0.21.1** | **„Die Sortierung sagt, wonach du fragst“** | **GEBAUT am 4. September 2026.** *(Aus dem Rundlauf von Hand nach 0.21.0 — dieselbe Herkunft wie 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Der Punkt stand nie im Sammelblatt und nie im Fahrplan: er kam am 4. September 2026 aus dem Betrieb und ist unmittelbar in den Auftrag gegangen.)* **Eine Sortierung beantwortet eine Frage, aber die Liste zeigte nicht die Menge, in der diese Frage sich stellt.** Ab jetzt gibt die Sortierung den Statusfilter als **Vorgabe** vor — `rating_*` → Getestet, `potenzial_*` → Ungetestet, **jede andere Sortierung fasst ihn nicht an**. **Die Handwahl und eine angewandte gespeicherte Ansicht schlagen die Vorgabe** und halten über einen Wechsel der Sortierung hinweg; der Rücksetzer ist der Weg zurück. **Die Ableitung wird nicht gespeichert und nicht mitgezählt, sondern in Worten gesagt.** *Der Fahrplan rückt dadurch nicht — 0.21.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
 | **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch"** | **GEBAUT am 4. September 2026.** *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und noch am selben Tag auf 0.22.0; am 4. September 2026 im Gespräch mit dem Betreiber zu sechzehn Entscheidungen ausgearbeitet — Konzept `Doku/Konzept_Oberflaeche_0_22_0.md` samt Anlage.)* Fünf Bauabschnitte: das Stilblatt (kein Milchglas, eine Antwort auf jede Berührung, Marken aus Form), die zwei Vokabelwörter für die Bewertung, rund 250 Textstellen nach einem Wörterbuch, eigene Fenster statt `confirm()` und `prompt()`, und Bildstreifen · Rechteck · Sternzeile (Punkt 10 des Sammelblatts eingeschlossen). **Die Gestaltungs- und Sprachregeln G1 bis G8 und S1 bis S7 stehen seither in Abschnitt 5.6; was gebaut wurde, im Änderungsprotokoll 0.22.0.** *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
-| **0.22.1** | **„Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da"** | **GEBAUT am 5. September 2026.** *(Aus dem Rundlauf von Hand nach 0.22.0 — dieselbe Herkunft wie 0.21.1 nach 0.21.0, 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Drei Befunde, keiner davon aus dem Sammelblatt und keiner aus dem Fahrplan; sieben Entscheidungen E1 bis E7 hat der Betreiber am 5. September 2026 vor dem Bauen getroffen — Auftrag `Doku/Auftrag_0.22.1.md`.)* **Erstens:** das Rechteck aus 0.22.0 legte Lage und Weite auf EINEN Griff, und wer den Rahmen anfasste, warf ihn weg. Ab jetzt entscheidet der ORT der Berührung — fünf Gesten, acht Griffe, Regel **G9**. **Zweitens:** der Kopf eines zugeklappten Sternkastens trug dieselbe Zahl zweimal; die Kurzfassung fällt, und die Kopfzahl sagt jetzt, dass sie über ALLE Benutzer geht — Regel **G10**. **Drittens:** an einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr, und der Server weist eine Bewertung dort ab — Regel **G11**. *Der Fahrplan rückt dadurch nicht: 0.22.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
-| **0.23.0** | **Die Oberfläche wird hell** | *(Neu am 4. September 2026, aus der Besprechung zu 0.22.0 — dort als Idee **N6** ausgearbeitet und ausdrücklich **nicht** in jene Runde genommen.)* **Ein zweites Farbschema — hell, umschaltbar, und die Vorgabe bleibt dunkel.** Kriterion ist heute nur dunkel (`color-scheme: dark`, `theme-color #0e1012`); das ist das eine Merkmal, das am Tag und am Tablett zuerst fehlt. **Rund dreißig Farbwerte ein zweites Mal — und die fünf Bedeutungsfarben auf hellem Grund neu abgestimmt, nicht umgerechnet.** *Sie behalten ihre Bedeutung: Gold bleibt Bewertung und Anheftung, Orange Art und Bedienung, Grün erledigt und getestet, Blau die Aufgabe, Rot das Zerstören.* **Die Ausarbeitung steht in Abschnitt 10a — samt dem Vermerk, dass diese Runde vor ihrem Auftrag ein eigenes Farbkonzept braucht** (`Doku/Farbkonzept_0_23_0.md`, noch nicht geschrieben): *eine Farbe lässt sich nicht aus einer anderen ausrechnen.* *MINOR* | nein | — |
+| **0.22.1** | **„Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da"** | **GEBAUT am 5. September 2026.** *(Aus dem Rundlauf von Hand nach 0.22.0 — dieselbe Herkunft wie 0.21.1 nach 0.21.0, 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Drei Befunde, keiner davon aus dem Sammelblatt und keiner aus dem Fahrplan; sieben Entscheidungen E1 bis E7 hat der Betreiber am 5. September 2026 vor dem Bauen getroffen — Auftrag `Doku/Auftrag_0.22.1.md`, mit dem Auftrag zu 0.23.0 weggefallen.)* **Erstens:** das Rechteck aus 0.22.0 legte Lage und Weite auf EINEN Griff, und wer den Rahmen anfasste, warf ihn weg. Ab jetzt entscheidet der ORT der Berührung — fünf Gesten, acht Griffe, Regel **G9**. **Zweitens:** der Kopf eines zugeklappten Sternkastens trug dieselbe Zahl zweimal; die Kurzfassung fällt, und die Kopfzahl sagt jetzt, dass sie über ALLE Benutzer geht — Regel **G10**. **Drittens:** an einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr, und der Server weist eine Bewertung dort ab — Regel **G11**. *Der Fahrplan rückt dadurch nicht: 0.22.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
+| **0.23.0** | **„Die Oberfläche wird hell"** | **GEBAUT am 5. September 2026.** *(Neu am 4. September 2026 aus der Besprechung zu 0.22.0, dort als Idee **N6**; am 5. September 2026 im Gespräch mit dem Betreiber zu sieben Entscheidungen ausgearbeitet — Konzept `Doku/Farbkonzept_0_23_0.md`, wie 0.22.0 ihres hat.)* **Ein zweites Farbschema — hell, umschaltbar je Zugang, und die Vorgabe bleibt dunkel.** Vier Bauabschnitte: 67 feste Farben verlassen das Regelwerk (die Menge, die hier als „heute unbekannt" stand), ein zweiter Block mit 42 Werten, die Maschine mit drei Stufen samt Vorgriff gegen das Blitzen, und Marke, Dämpfung und Augenschein. **Die Gestaltungsregel G12 steht seither in Abschnitt 5.6**; was gebaut wurde, im Änderungsprotokoll 0.23.0. *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
 | **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
 | **0.26.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0 vorgemerkt — **die Nummer ist vorläufig**; das **achte** Rücken am 3. September 2026, und das letzte um den ganzen Rest.)* Migrationscode raus — **jetzt neun Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
@@ -13771,98 +13808,40 @@ wenn der Ausschnitt enger gezogen wird, als die Vorlage hergibt.
 
 ---
 
-### 0.23.0 — „Die Oberfläche wird hell" · *MINOR*
+### 0.23.0 — „Die Oberfläche wird hell" · *MINOR* · **GEBAUT am 5. September 2026**
 
-**Neu am 4. September 2026, aus der Besprechung zu 0.22.0.** *Sie stand dort als Idee **N6** auf
-der Tafel der neuen Vorschläge und ist ausdrücklich **nicht** in jene Runde genommen worden —
-die Begründung steht im Konzept, Abschnitt 7 und 9.2: 0.22.0 ist ohnehin die größte Textrunde
-des Projekts, und Farbfehler fallen erst im Betrieb auf.*
+**Woher:** aus der Frage, was an „Moderne" nach 0.22.0 noch fehlt. Kriterion war
+seit jeher nur dunkel — `color-scheme: dark`, `theme-color #0e1012`, 32
+Farbwerte in `:root`, die alle einen dunklen Grund voraussetzten.
 
-**SIE HAT DIE ERSTE DER FREIEN NUMMERN GENOMMEN, UND ES IST NICHTS GERÜCKT.** *Was das für den
-nächsten Einschub bedeutet, steht an der Regel in Abschnitt 10.*
+**Was gebaut wurde:** ein zweites Schema, umschaltbar in der Karte
+„Darstellung", drei Stufen **hell · dunkel · wie das Gerät**, Vorgabe dunkel.
+`data-thema` am Wurzelelement kennt zwei Werte; die dritte löst `app.js` auf.
+67 feste Farben sind aus dem Regelwerk verschwunden, 42 Werte stehen im zweiten
+Block, 27 in der Insel des Betrachters. Ein Vorgriff aus `public/thema.js` malt
+vor dem Stilblatt, damit nichts aufblitzt.
 
-### Woher
+**Was ausdrücklich NICHT gebaut wurde:** keine neue Farbfamilie, kein Schalter
+in der Kopfzeile, kein drittes Schema, keine zweite Markendatei, kein helles
+Vollbild.
 
-**Aus der Frage, was an „Moderne" nach 0.22.0 noch fehlt.** Kriterion ist seit jeher nur
-dunkel: `color-scheme: dark` im Kopf der Seite, `theme-color #0e1012` als Farbe der
-Browserleiste, rund dreißig Farbwerte in `:root`, die alle einen dunklen Grund voraussetzen.
+**Was offen blieb:** die Ausdruckansicht (es gibt keine), `prefers-contrast`,
+der Randfall zweier Benutzer an einem Browser, und **der Augenschein am
+Telefon** — gefahren ist er am Schreibtisch.
 
-### Was auffiel
-
-**Es ist das einzige verbliebene Merkmal, das ein Benutzer am Tag vermisst** — und das einzige
-aus der Ideentafel, das sich nicht mit einer Handvoll Regeln nachrüsten lässt. *Alles andere
-dort war entweder klein (eigene Zeichen, tabellarische Ziffern, leere Zustände) oder es
-widersprach einer eigenen Regel.*
-
-### Was gebaut werden könnte
-
-* **Ein zweites Farbschema — und die Vorgabe bleibt dunkel.** *Wer nichts einstellt, sieht, was
-  er heute sieht.*
-* **Die Wahl gehört in die Karte „Darstellung"**, neben Schriftgröße und Bildstreifen: **hell ·
-  dunkel · wie das Gerät**. Dieselbe Maschine wie `schrift` und `streifen` — persönlich je
-  Zugang, auf `PUT /api/settings`, keine neue Route.
-* **Die fünf Bedeutungsfarben werden auf hellem Grund neu abgestimmt und nicht umgerechnet.**
-  *Gold auf Weiß ist kaum zu sehen, und Orange als Textfarbe auf Weiß fällt unter jede
-  Lesbarkeitsschwelle.* **Sie behalten ihre Bedeutung und bekommen einen zweiten Wert** — das
-  ist keine neue Farbe, sondern dieselbe Aussage in einem anderen Licht.
-* **`theme-color` folgt dem Schema.** Heute steht der Wert als Zeichenfolge im Kopf der Seite,
-  mit dem ausdrücklichen Vermerk, dass er `--bg` ist und keine zweite Wahrheit sein darf.
-  **Zwei Schemata heißen zwei Werte.**
-
-### Was es ausdrücklich NICHT wird
-
-| was | warum nicht |
-|---|---|
-| **Eine neue Farbfamilie fürs helle Schema** | Die Bedeutungen sind vergeben (5.6). Zwei Schemata sind zwei Werte je Bedeutung, nicht zehn Bedeutungen |
-| **Ein Schalter in der Kopfzeile** | Die Darstellung wird in der Karte „Darstellung" eingestellt, wie Schriftgröße und Bildstreifen — sonst gäbe es zwei Orte für dieselbe Frage |
-| **Ein drittes Schema („Kontrast", „Sepia")** | Ein zweites ist eine Entscheidung; ein drittes ist eine Sammlung |
-| **Nur `prefers-color-scheme` ohne eigene Einstellung** | Wer am hellen Bildschirm dunkel arbeiten will, könnte es dann nicht mehr — die Wahl ist der Punkt |
-
-### Was es anfasst
-
-**`public/style.css`** — die Werte in `:root` **und jede Regel, die eine Farbe fest schreibt,
-statt eine Variable zu benutzen**; **`public/index.html`** (`color-scheme`, `theme-color`);
-**`public/app.js`** (die Einstellung und ihre drei Stufen); **`server.js`** (der Schlüssel bei
-den persönlichen Einstellungen, dieselbe Zeile wie `schrift`). **Kein Schema, keine Route,
-keine Abhängigkeit, kein Bestandslauf.**
-
-**Der Prüfstand bekommt eine Zusage, die es heute nicht gibt:** *keine Farbe steht fest im
-Stilblatt, die eine Bedeutung trägt* — sonst bleibt beim Umschalten ein dunkler Fleck stehen.
-**Dazu der Augenschein je Schema, und zwar an Fotos:** die Kachel hat heute einen fast
-schwarzen Grund, und ein abgelehnter Eintrag wird über `grayscale` und `brightness` gedämpft —
-**beides ist auf hellem Grund neu zu beurteilen.**
-
-### Was vorher noch fehlt: ein Farbkonzept
-
-**DIESE RUNDE BRAUCHT EIN EIGENES PAPIER, BEVOR IHR AUFTRAG GESCHRIEBEN WERDEN KANN**
-— so, wie 0.22.0 ihres hat (`Doku/Konzept_Oberflaeche_0_22_0.md`). *Der Grund ist einfach:
-eine Farbe lässt sich nicht aus einer anderen ausrechnen. Jeder der rund dreißig Werte ist
-eine eigene Entscheidung, und die fällt man einmal in Ruhe und nicht fünfzigmal beim Bauen.*
-**Am 4. September 2026 vermerkt; geschrieben ist es noch nicht.**
-
-**Arbeitsname:** `Doku/Farbkonzept_0_23_0.md`. **Es wird wie dieses Papier in einem
-Vorbereitungschat geschrieben, nicht beim Bauen.**
-
-*Was darin entschieden sein muss, bevor gebaut wird:*
-
-| was | warum es vorher entschieden sein muss |
-|---|---|
-| **Der zweite Wert je Variable** — alle rund dreißig aus `:root`, einzeln benannt | Beim Bauen fällt sonst dreißig Mal dieselbe Frage an, und jede Antwort ist ein Geschmacksurteil ohne Vorlage |
-| **Die fünf Bedeutungsfarben auf hellem Grund** — Gold, Orange, Grün, Blau, Rot | *Gold auf Weiß ist kaum zu sehen, Orange als Textfarbe fällt unter jede Lesbarkeitsschwelle.* Sie behalten ihre Bedeutung und bekommen einen zweiten Wert — welchen, entscheidet das Papier |
-| **Woran Lesbarkeit gemessen wird** — welche Schwelle gilt, und an welchen Paarungen sie geprüft wird (Text auf Grund, Abzeichen auf Kachel, Stern auf Kachel) | Sonst heißt „lesbar" beim Bauen etwas anderes als bei der Abnahme |
-| **Wie umgeschaltet und wo gespeichert wird** — die drei Stufen **hell · dunkel · wie das Gerät**, dieselbe Maschine wie `schrift` und `streifen` | Das ist keine Farbfrage, aber es gehört in dasselbe Papier, weil es die Reihenfolge beim Laden bestimmt |
-| **Was zu sehen ist, bevor die Einstellung geladen ist** | Sonst blitzt beim Öffnen kurz das falsche Schema auf — der bekannteste Fehler dieser Bauart, und er fällt erst im Feld auf |
-| **`theme-color` je Schema** | Heute steht der Wert als Zeichenfolge im Kopf der Seite, mit dem Vermerk, dass er `--bg` ist und keine zweite Wahrheit sein darf. Zwei Schemata heißen zwei Werte |
-| **Die Fotos auf hellem Grund** — der fast schwarze Grund der Kachel, und die Dämpfung eines abgelehnten Eintrags über `grayscale` und `brightness` | Beides ist für dunklen Grund gebaut worden und auf hellem neu zu beurteilen — am Bild, nicht am Zahlenwert |
-| **Die Bestandsaufnahme: wo steht heute eine Farbe fest, statt eine Variable zu benutzen** | *Das ist die eigentliche Arbeitsmenge der Runde, und sie ist heute unbekannt.* Ohne diese Liste ist der Aufwand nicht zu schätzen — und jede übersehene Stelle bleibt beim Umschalten als dunkler Fleck stehen |
-
-> **NICHT IN DAS PAPIER GEHÖRT DIE FRAGE, OB DAS HELLE SCHEMA KOMMT.** *Die ist entschieden;
-> hier steht nur, dass die Entscheidungen darin vor dem Auftrag fallen müssen und nicht
-> während seiner Ausführung.*
-
-**Was dagegen spricht:** nichts klemmt. *Es ist wie 0.22.0 eine Runde ohne Not — und sie gehört
-hinter sie, weil sie auf ihr aufsetzt: was 0.22.0 als Gestaltungsregel aufschreibt (G1 bis G8),
-ist die Grundlage, auf der ein zweites Schema überhaupt zu bauen ist.*
+> **DIE AUSARBEITUNG IST MIT DIESER RUNDE HERAUSGEFALLEN — sie ist gebaut.**
+> *Was von ihr als **Regel** weitergilt, steht in Abschnitt 5.6 als **G12**;
+> die Werte und ihre Begründung stehen vollständig in
+> `Doku/Farbkonzept_0_23_0.md`, dem einzigen Papier der Runde, das stehen
+> bleibt; wie gebaut wurde und was dabei anders kam, im Änderungsprotokoll
+> 0.23.0.*
+> **Zwei Funde aus dem Bauen, die im Papier nicht standen:**
+> * **die CSP wies den Vorgriff ab** (`script-src 'self'`) — er liegt deshalb
+>   als eigene Datei daneben und nicht inline;
+> * **die zwei Abzeichen der Bildkachel** trugen ihre Bedeutungsfarbe aus dem
+>   Schema und wurden im hellen dunkelgrün auf dunkelgrau (2,10 : 1). *Das hat
+>   der Augenschein gebracht und keine Messung — die Paarung stand in keiner
+>   Tafel.*
 
 ---
 

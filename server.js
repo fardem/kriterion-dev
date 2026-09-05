@@ -263,8 +263,12 @@ const putSetting = { run: (k, v) => {
 /* NEUN SEIT 0.22.0: `streifen` -- die Mindestgroesse der Kacheln im Bildstreifen,
    persoenlich je Zugang, ein Wert fuer alle Geraete, dieselbe Maschine wie
    `schrift` (E11). */
+/* ZEHN SEIT 0.23.0: `thema` -- hell, dunkel oder wie das Geraet. Dieselbe
+   Maschine wie die beiden davor, und aus demselben Grund persoenlich: es ist
+   eine Aussage ueber die Augen dessen, der hinsieht, und nicht ueber den
+   Bestand. Keine neue Route -- die Karte „Darstellung" schickt sie mit. */
 const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen',
-                                'glockeGesehen', 'ansichten', 'streifen'];
+                                'glockeGesehen', 'ansichten', 'streifen', 'thema'];
 
 /* DER DRITTE RANG IN DERSELBEN ROUTE, seit 0.19.0. Bis dahin kannte
    PUT /api/settings zwei Haelften: was in dieser Liste steht, ist persoenlich,
@@ -1650,6 +1654,16 @@ const SCHRIFT_STUFEN = [80, 90, 100, 110, 120];
    der kurzen Kante, und darueber verliesse die Anzeige ihre Reserve. Kein
    Bestandslauf. */
 const STREIFEN_STUFEN = [60, 80, 100, 120, 150];
+/* DIE DREI STUFEN DES FARBSCHEMAS -- 0.23.0. DIE VORGABE IST `dunkel` UND
+   NICHT `geraet`: wer nichts einstellt, sieht, was er heute sieht. „Wie das
+   Geraet" ist eine ausdrueckliche Wahl und kein Rueckfall.
+   DER SERVER KENNT ALLE DREI, DAS STILBLATT NUR ZWEI. `geraet` loest die
+   Oberflaeche ueber matchMedia auf und schreibt `hell` oder `dunkel` an das
+   Wurzelelement; stuende die dritte Stufe auch im Stilblatt, muesste jeder
+   der vierzig Werte DREIMAL geschrieben werden -- in :root, im zweiten Block
+   und noch einmal in einer Medienabfrage. */
+const THEMA_STUFEN = ['hell', 'dunkel', 'geraet'];
+const THEMA_VORGABE = 'dunkel';
 
 // Anordnung und Einklappzustand der Bloecke in der Detailansicht. Verschoben
 // wird nur innerhalb des jeweiligen Bereichs, deshalb zwei getrennte Listen.
@@ -1851,6 +1865,12 @@ const schriftgroesse = (benutzerId) => {
   const n = Number(getUserSetting(benutzerId, 'schrift', 100));
   return SCHRIFT_STUFEN.includes(n) ? n : 100;
 };
+// Persoenlich, wie die Schrift: das Farbschema (0.23.0). Dieselbe Maschine --
+// ein Wert je Zugang, ein Wert fuer alle Geraete.
+const farbschema = (benutzerId) => {
+  const s = String(getUserSetting(benutzerId, 'thema', THEMA_VORGABE));
+  return THEMA_STUFEN.includes(s) ? s : THEMA_VORGABE;
+};
 // Persoenlich, wie die Schrift: die Kachelgroesse im Bildstreifen (0.22.0).
 const bildstreifen = (benutzerId) => {
   const n = Number(getUserSetting(benutzerId, 'streifen', 80));
@@ -1922,6 +1942,7 @@ app.get('/api/settings', (req, res) => res.json({
   vokabular: vokabular(),
   schrift: schriftgroesse(req.benutzer.id),
   streifen: bildstreifen(req.benutzer.id),
+  thema: farbschema(req.benutzer.id),
   bloecke: bloecke(req.benutzer.id),
   linkZeilen: linkZeilen(req.benutzer.id),
   zeitleiste: zeitleisteAn(req.benutzer.id),
@@ -2058,6 +2079,15 @@ app.put('/api/settings', (req, res) => {
       return res.status(400).json({ error: 'Diese Größe für den Bildstreifen gibt es nicht.' });
     putUserSetting(req.benutzer.id, 'streifen', JSON.stringify(n));
   }
+  /* DIE KLEMME STEHT AM SERVER UND NICHT NUR IN DER PILLENREIHE -- dieselbe
+     Bauform wie bei der Schrift daruber. Eine Auswahl in der Oberflaeche ist
+     eine Bitte; was in user_settings landet, entscheidet diese Zeile. */
+  if (req.body.thema !== undefined) {
+    const s = String(req.body.thema);
+    if (!THEMA_STUFEN.includes(s))
+      return res.status(400).json({ error: 'Dieses Farbschema gibt es nicht.' });
+    putUserSetting(req.benutzer.id, 'thema', JSON.stringify(s));
+  }
   if (req.body.bloecke !== undefined) {
     const ein = req.body.bloecke || {};
     putUserSetting(req.benutzer.id, 'bloecke', JSON.stringify({
@@ -2158,6 +2188,7 @@ app.put('/api/settings', (req, res) => {
   res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vokabular: vokabular(),
              ansichten: ansichten(req.benutzer.id), ansichtenDeckel: ANSICHTEN_DECKEL,
              schrift: schriftgroesse(req.benutzer.id), streifen: bildstreifen(req.benutzer.id),
+             thema: farbschema(req.benutzer.id),
              bloecke: bloecke(req.benutzer.id),
              linkZeilen: linkZeilen(req.benutzer.id), zeitleiste: zeitleisteAn(req.benutzer.id),
              suche: suchvorlage(), suchAnbieter: suchAnbieter(),

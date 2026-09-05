@@ -151,43 +151,67 @@ const ICON_PIN = zeichen('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M
    esc() -- er ist fest, aber innerHTML ist innerHTML. */
 const leerZustand = (satz) => `<div class="leer-zustand">${ICON_PH}<span class="hint">${esc(satz)}</span></div>`;
 
-/* Die Marke der Instanz. EINE AUSGELIEFERTE DATEI statt eines eingebauten
-   SVG: eine Marke gehoert dem Projekt und nicht einer Funktion in app.js --
-   wer sie austauscht, tauscht eine Datei aus und fasst keinen Quelltext an.
+/* Die Marke der Instanz — EIN EINGEBAUTES SVG, seit 0.23.0 wieder.
+
+   UND DAS NIMMT EINE ENTSCHEIDUNG VON 0.9.1 ZURÜCK. Dort wurde sie aus dem
+   Quelltext in eine Datei gezogen, mit dieser Begründung: „eine Marke gehört
+   dem Projekt und nicht einer Funktion in app.js — wer sie austauscht,
+   tauscht eine Datei aus und fasst keinen Quelltext an." Die Begründung ist
+   nicht falsch geworden. Sie hält nur der Messung nicht stand:
+
+     die drei grauen Striche #838c95   auf dunklem Grund 5,58 : 1
+                                       auf hellem Grund  2,91 : 1   ✗
+     der orange Strich      #ff7a1a    auf dunklem Grund 7,31 : 1
+                                       auf hellem Grund  2,22 : 1   ✗
+
+   Der Dateiname sagt es selbst: `marke-dunkel.svg`. Auf hellem Grund fällt
+   sie durch, und zwar der Markenstrich am deutlichsten.
+
+   WAS NICHT GEHT UND WARUM. Ein `<img>` kann keine CSS-Variable lesen — das
+   Dokument, aus dem es gezeichnet wird, ist ein anderes. Eine zweite Datei
+   `marke-hell.svg` scheidet aus: sie lag schon einmal daneben und ist
+   ausdrücklich entfernt worden (zwei Dateien über dieselbe Sache,
+   Stolperstein 47), und sie kostete beim Umschalten ein Neuzeichnen der
+   Kopfzeile. Ein Strich, der auf BEIDEN Gründen trägt, gäbe es — aber nur
+   um den Preis, dass die Marke in keinem der beiden Schemata mehr die
+   Markenfarbe trägt, auch im dunklen nicht, wo heute alles stimmt.
+
+   WAS DER TAUSCH KOSTET, STEHT HIER UND NICHT NUR IM ÄNDERUNGSPROTOKOLL: wer
+   die Marke austauscht, fasst ab jetzt Quelltext an. `favicon.svg` bleibt
+   eine Datei — es braucht keine Variable, weil es seine eigene dunkle Kachel
+   mitbringt und damit auf jeder fremden Fläche steht.
+
+   ZWEI VARIABLEN UND KEINE NEUEN FARBEN: --marke-grau ist --muted, und
+   --marke-strich ist --accent-text. Beide tragen in beiden Schemata schon den
+   richtigen Wert, und beide sind über 3 : 1 auf ihrem Grund. Die Marke folgt
+   dem Schema damit ohne eine Zeile JavaScript.
+
    Die Klasse heisst `marke` und nicht `mark`: `mark` gibt es in style.css
    bereits fuer die kleinen Knoepfe am Kommentar.
 
-   GENOMMEN WIRD DIE DURCHSICHTIGE FASSUNG -- die Flaechen, auf denen sie
-   steht, sind ohnehin dunkel. favicon.svg bringt die Kachel mit und ist fuer
-   fremde Flaechen gedacht: Reiter, Lesezeichen, helle Seite. ZWEI DATEIEN,
-   NICHT DREI.
+   aria-hidden UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem
+   Namen der Instanz -- ein Vorleseprogramm saegte ihn sonst zweimal. (Bis
+   0.22.1 stand dafuer alt="" am Bild; an einem SVG ist aria-hidden die
+   Entsprechung, und focusable="false" haelt es aus der Tabreihenfolge
+   aelterer Browser.)
 
-   alt="" UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem Namen
-   der Instanz -- ein Vorleseprogramm saegte ihn sonst zweimal.
-
-   DAS viewBox DER DURCHSICHTIGEN FASSUNG UMSCHLIESST DIE FARBE UND NICHT DIE
-   KACHEL (`6.5 4.5 19 23`): bei stroke-width 3 und stroke-linecap round
-   traegt die Farbe eine halbe Strichbreite ueber die Zeichnung hinaus. Damit
-   ist die angegebene Hoehe die gezeichnete Hoehe. favicon.svg behaelt
-   0 0 32 32 samt Kachel -- ein Kachelsymbol braucht seinen Rand.
+   DAS viewBox UMSCHLIESST DIE FARBE UND NICHT DIE KACHEL (`6.5 4.5 19 23`):
+   bei stroke-width 3 und stroke-linecap round traegt die Farbe eine halbe
+   Strichbreite ueber die Zeichnung hinaus. Damit ist die angegebene Hoehe die
+   gezeichnete Hoehe. favicon.svg behaelt 0 0 32 32 samt Kachel -- ein
+   Kachelsymbol braucht seinen Rand.
 
    DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem: die Instanz stellt die Schrift
    von 80 bis 120 Prozent. Die Attribute hier halten nur das Seitenverhaeltnis
    und den Platz, bis das Stylesheet greift. */
 const MARK = (s = 30) =>
-  `<img class="marke" src="marke-dunkel.svg" width="${Math.round(s * 19 / 23)}" height="${s}" alt="">`;
+  `<svg class="marke" viewBox="6.5 4.5 19 23" width="${Math.round(s * 19 / 23)}" height="${s}"`
+  + ` aria-hidden="true" focusable="false" fill="none" stroke-linecap="round" stroke-width="3">`
+  + `<path d="M8 6 V26" stroke="var(--marke-grau)"/>`
+  + `<path d="M8 10 H15" stroke="var(--marke-grau)"/>`
+  + `<path d="M8 22 H13" stroke="var(--marke-grau)"/>`
+  + `<path d="M8 16 H24" stroke="var(--marke-strich)"/></svg>`;
 
-/* DIE MARKENZEILE DER ANMELDESEITEN: Marke UND Name in EINER Zeile, erst das
-   Zeichen, dann das Wort -- dieselbe Anordnung wie `.brand` in der Kopfzeile
-   des angemeldeten Bereichs. Uebereinander gestapelt las sich das Paar als
-   zwei Dinge; nebeneinander ist es eines.
-
-   SIE STEHT EINMAL HIER UND WIRD NEUNMAL GERUFEN (Stolperstein 145).
-
-   SIE MISST SICH AM WORT UND NICHT AN DER LEEREN FLAECHE DARUEBER: so hoch
-   wie der Text daneben, gemessen an dessen Zeilenhoehe. Die Zahl steht im
-   CSS, damit sie der eingestellten Schriftgroesse folgt; 36 hier ist der
-   Platzhalter bis dahin. */
 const MARKENZEILE = () =>
   `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
 
@@ -1740,6 +1764,66 @@ function wendeStreifenAn() {
   document.documentElement.style.setProperty('--streifen', STREIFEN + 'px');
 }
 
+/* ================= DAS FARBSCHEMA -- 0.23.0 =================
+   DREI STUFEN HIER, ZWEI IM STILBLATT. `hell` und `dunkel` sind Werte von
+   `data-thema` am Wurzelelement; `geraet` ist KEINER -- er wird hier
+   aufgeloest und kommt dort nie an. Der Grund steht im Stilblatt am zweiten
+   Block: sonst muesste jeder der vierzig Werte dreimal geschrieben werden.
+   DIE STUFEN STEHEN HIER UND IM SERVER; der Server entscheidet, die Karte
+   „Darstellung" zeigt die Liste -- dieselbe Bauform wie `schrift`. */
+const THEMA_STUFEN = ['hell', 'dunkel', 'geraet'];
+const THEMA_NAMEN = { hell: 'Hell', dunkel: 'Dunkel', geraet: 'Wie das Gerät' };
+const GERAET_HELL = '(prefers-color-scheme: light)';
+/* DER GEMERKTE WERT IST KEINE ZWEITE WAHRHEIT, SONDERN DAS GEDAECHTNIS DER
+   LETZTEN. Der Server bleibt die Wahrheit: ladeEinstellungen() ueberschreibt
+   ihn bei JEDEM Laden, und er wird NIE zurueckgeschickt. Er wird gelesen,
+   damit beim Oeffnen nicht das falsche Schema aufblitzt -- und sonst zu
+   nichts. In einem privaten Fenster wirft der Zugriff selbst, deshalb der
+   Fangarm.
+   DERSELBE SCHLUESSEL STEHT IM KOPF DER SEITE, im Achtzeiler vor dem
+   Stilblatt. Zwei Stellen fuer denselben Namen -- es geht nicht anders: der
+   Achtzeiler laeuft, bevor es diese Datei gibt. */
+const THEMA_MERKER = 'kriterion.thema';
+let THEMA = (() => {
+  try {
+    const t = localStorage.getItem(THEMA_MERKER);
+    return THEMA_STUFEN.includes(t) ? t : 'dunkel';
+  } catch (e) { return 'dunkel'; }
+})();
+const wirksamesThema = () => THEMA === 'geraet'
+  ? (window.matchMedia && window.matchMedia(GERAET_HELL).matches ? 'hell' : 'dunkel')
+  : (THEMA === 'hell' ? 'hell' : 'dunkel');
+/* DIE FARBE DER BROWSERLEISTE WIRD GELESEN UND NICHT ABGESCHRIEBEN. Der Kopf
+   der Seite sagt seit jeher, sie sei `--bg` und duerfe keine zweite Wahrheit
+   sein -- als Zeichenfolge im Meta-Element war sie aber genau das. Zwei
+   Schemata heissen zwei Werte, und beide stehen im Stilblatt: hier wird der
+   gerade gueltige abgeholt. Wer --bg aendert, aendert die Leiste mit, ohne
+   diese Datei anzufassen. */
+function wendeThemaAn() {
+  const wirksam = wirksamesThema();
+  document.documentElement.dataset.thema = wirksam;
+  const leiste = document.querySelector('meta[name="theme-color"]');
+  if (leiste) {
+    const grund = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    if (grund) leiste.setAttribute('content', grund);
+  }
+  try { localStorage.setItem(THEMA_MERKER, THEMA); } catch (e) { /* privates Fenster */ }
+}
+/* SOFORT UND NICHT ERST NACH DEM ABRUF: der Achtzeiler im Kopf setzt
+   `data-thema`, aber er kann die Leistenfarbe nicht kennen -- das Stilblatt
+   gibt es dort noch nicht. Hier gibt es beides. */
+wendeThemaAn();
+/* UND WER „wie das Geraet" gewaehlt hat, folgt ihm OHNE NEULADEN. Der Horcher
+   greift nur in dieser einen Stellung; in den beiden anderen ist die Frage
+   des Geraets nicht gestellt worden. `addListener` als Rueckfall: aeltere
+   Fassungen kennen `addEventListener` an einer Medienabfrage nicht. */
+if (window.matchMedia) {
+  const mq = window.matchMedia(GERAET_HELL);
+  const folge = () => { if (THEMA === 'geraet') wendeThemaAn(); };
+  if (mq.addEventListener) mq.addEventListener('change', folge);
+  else if (mq.addListener) mq.addListener(folge);
+}
+
 /* DER SCHMALE SCHIRM, ALS FRAGE AN DEN BROWSER.
    SIE STEHT WOERTLICH SO AUCH IM STYLESHEET, und das ist die einzige Stelle
    in der ganzen Instanz, an der eine Bedingung zweimal geschrieben steht. Es
@@ -1960,6 +2044,7 @@ async function ladeEinstellungen() {
   if (EINSTELLUNGEN.vokabular) V = { ...V, ...EINSTELLUNGEN.vokabular };
   if (EINSTELLUNGEN.schrift) SCHRIFT = EINSTELLUNGEN.schrift;
   if (EINSTELLUNGEN.streifen) STREIFEN = EINSTELLUNGEN.streifen;
+  if (THEMA_STUFEN.includes(EINSTELLUNGEN.thema)) THEMA = EINSTELLUNGEN.thema;
   uebernimmBloecke(EINSTELLUNGEN.bloecke);
   if (EINSTELLUNGEN.linkZeilen) LINKZEILEN = EINSTELLUNGEN.linkZeilen;
   if (EINSTELLUNGEN.zeitleiste !== undefined) ZEITLEISTE_AN = EINSTELLUNGEN.zeitleiste !== false;
@@ -1982,6 +2067,8 @@ async function ladeEinstellungen() {
   ZWEIFAKTOR = EINSTELLUNGEN.zweifaktor === true;
   wendeSchriftAn();
   wendeStreifenAn();
+  // Berichtigt, was der Achtzeiler im Kopf aus dem Gedaechtnis geraten hat.
+  wendeThemaAn();
 }
 
 const saveFilters = () => {
@@ -7689,7 +7776,11 @@ function ruesteSitzungenAus(geholt) {
 function karteDarstellung() {
   return `<div class="sys-card">
         <h3>Darstellung</h3>
-        <p class="desc">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
+        <p class="desc">Farbschema der Oberfläche. Wirkt sofort und gilt auf jedem Gerät.
+          „Wie das Gerät" folgt der Einstellung des Betriebssystems und wechselt mit ihr.</p>
+        <div class="pills" id="thema"></div>
+
+        <p class="desc" style="margin:16px 0 8px">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
           Gerät. Bei sehr großer Schrift wird es an manchen Stellen eng.</p>
         <div class="pills" id="fsize"></div>
 
@@ -7707,6 +7798,7 @@ function karteDarstellung() {
       </div>`;
 }
 function ruesteDarstellungAus() {
+  drawThema();
   drawSchrift();
   drawStreifen();
   /* --- Zeitleiste --- */
@@ -7728,6 +7820,29 @@ function ruesteDarstellungAus() {
   });
 }
 
+  /* --- Farbschema — 0.23.0, dieselbe Bauform wie die Schriftgröße darunter ---
+     DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. Sofort sichtbar,
+     bei einem Fehlschlag zurück auf den alten Wert — wer das Schema wechselt,
+     sieht es, bevor der Server geantwortet hat. */
+  function drawThema() {
+    const box = document.getElementById('thema');
+    if (!box) return;
+    box.innerHTML = '';
+    THEMA_STUFEN.forEach(stufe => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (THEMA === stufe ? ' on' : '');
+      b.textContent = THEMA_NAMEN[stufe];
+      b.onclick = async () => {
+        const vorher = THEMA;
+        THEMA = stufe;
+        wendeThemaAn();
+        drawThema();
+        try { await api('PUT', '/api/settings', { thema: stufe }); gespeichert(b); }
+        catch (e) { THEMA = vorher; wendeThemaAn(); drawThema(); toast(e.message, true); }
+      };
+      box.appendChild(b);
+    });
+  }
   /* --- Schriftgröße --- */
   function drawSchrift() {
     const box = document.getElementById('fsize');

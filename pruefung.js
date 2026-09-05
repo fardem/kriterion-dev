@@ -1343,10 +1343,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---------------------------------------------------------------- */
   gruppe('Die Marke der Instanz');
 
-  /* SEIT 0.9.1 IST SIE EINE AUSGELIEFERTE DATEI und kein eingebautes SVG mehr.
-     Wer sie austauscht, tauscht eine Datei aus und faesst keinen Quelltext an. */
+  /* SEIT 0.9.1 WAR SIE EINE AUSGELIEFERTE DATEI. SEIT 0.23.0 IST SIE WIEDER
+     EIN EINGEBAUTES SVG -- eine zurueckgenommene Entscheidung, und die steht
+     hier ausdruecklich und nicht stillschweigend (Stolperstein 201: was still
+     zurueckgenommen wird, kommt wieder).
+     DER GRUND IST GEMESSEN: `marke-dunkel.svg` traegt #838c95 und #ff7a1a,
+     und die messen auf hellem Grund 2,91 und 2,22 : 1. Der Dateiname sagt es
+     selbst. Ein <img> kann keine CSS-Variable lesen; eine zweite Datei ist
+     ausgeschlossen (sie lag schon einmal daneben, siehe unten).
+     DER PREIS STEHT DAZU: wer die Marke austauscht, faesst ab jetzt Quelltext
+     an. favicon.svg bleibt eine Datei -- es braucht keine Variable, weil es
+     seine eigene Kachel mitbringt und damit auf jeder fremden Flaeche steht. */
   const mkVerz = path.join(__dirname, 'public');
-  const mkDateien = ['marke-dunkel.svg', 'favicon.svg'];
+  const mkDateien = ['favicon.svg'];
   for (const n of mkDateien) {
     pruefe(`${n} liegt in public/`, fs.existsSync(path.join(mkVerz, n)), 'die Datei fehlt');
   }
@@ -1366,13 +1375,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und keine davon traegt Skript',
     mkDateien.every(n => !/<script|on\w+ *=|javascript:/i.test(mkInhalt[n] || '')),
     mkDateien.filter(n => /<script|on\w+ *=|javascript:/i.test(mkInhalt[n] || '')).join(' '));
-  /* DIE DURCHSICHTIGE UND DIE MIT KACHEL SIND WIRKLICH VERSCHIEDEN. Ohne
-     diese Zeile blieben zwei gleiche Dateien unbemerkt -- und die Oberflaeche
-     traege dann eine sichtbare Kachel auf dunklem Grund. */
-  pruefe('marke-dunkel.svg bringt KEINE Kachel mit',
-    !/<rect[^>]*fill=/.test(mkInhalt['marke-dunkel.svg'] || ''),
-    (mkInhalt['marke-dunkel.svg'] || '').slice(0, 200));
-  pruefe('favicon.svg bringt eine mit',
+  /* UND SIE LIEGT WIRKLICH NICHT MEHR DA. Ohne diese Zeile bliebe eine
+     verwaiste Datei im Fingerprint stehen, die niemand mehr laedt. */
+  pruefe('marke-dunkel.svg liegt nicht mehr in public/',
+    !fs.existsSync(path.join(mkVerz, 'marke-dunkel.svg')), 'die Datei ist noch da');
+  pruefe('favicon.svg bringt eine Kachel mit',
     /<rect[^>]*fill=/.test(mkInhalt['favicon.svg'] || ''), 'keine Kachel');
   /* ZWEI DATEIEN, NICHT DREI. Es lag eine dritte daneben, marke-hell.svg,
      Byte fuer Byte dieselbe wie favicon.svg -- zwei Namen fuer dieselbe
@@ -1402,16 +1409,32 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `${mkAlle.length} Dateien`);
 
   const mkApp = fs.readFileSync(path.join(mkVerz, 'app.js'), 'utf8');
-  pruefe('Die Oberflaeche laedt die Marke als Datei',
-    /<img class="marke" src="marke-dunkel\.svg"/.test(mkApp),
-    (mkApp.match(/const MARK =[\s\S]{0,160}/) || [''])[0]);
-  /* SIE NIMMT DIE DURCHSICHTIGE. Die Flaechen der Oberflaeche sind dunkel;
-     eine mitgelieferte Kachel saesse dort als sichtbares Rechteck darauf. */
-  pruefe('Und zwar die durchsichtige, nicht die mit Kachel',
+  pruefe('Die Oberflaeche zeichnet die Marke selbst',
+    /<svg class="marke"/.test(mkApp) && !/<img class="marke"/.test(mkApp),
+    (mkApp.match(/const MARK = [\s\S]{0,120}/) || [''])[0].replace(/\s+/g, ' '));
+  /* UND ZWAR MIT VARIABLEN -- das ist der ganze Zweck der Ruecknahme. Vier
+     Striche, drei graue und einer in der Marke; stuende an einem davon eine
+     Zahl, bliebe er beim Umschalten stehen. */
+  pruefe('Und faerbt jeden Strich ueber eine Variable',
+    (mkApp.match(/stroke="var\(--marke-(?:grau|strich)\)"/g) || []).length === 4
+      && !/stroke="#/.test(mkApp),
+    (mkApp.match(/stroke="[^"]*"/g) || []).join(' '));
+  pruefe('Die Oberflaeche laedt keine Fassung mit Kachel',
     !/src="favicon\.svg"/.test(mkApp),
     'die Oberflaeche laedt eine Fassung mit Kachel');
-  pruefe('Das eingebaute SVG der Marke ist verschwunden',
-    !/<svg class="mark"/.test(mkApp), 'das alte SVG steht noch im Quelltext');
+  /* SIE IST FUER VORLESEPROGRAMME NICHT DA -- sie steht ueberall unmittelbar
+     neben dem Namen der Instanz. Bis 0.22.1 trug sie dafuer alt="" am Bild. */
+  pruefe('Und sie bleibt fuer Vorleseprogramme stumm',
+    /aria-hidden="true"/.test((mkApp.match(/const MARK = [\s\S]{0,400}/) || [''])[0]),
+    'kein aria-hidden an der Marke');
+  /* DIE ZWEI VARIABLEN ERFINDEN KEINE FARBE: sie sind --muted und
+     --accent-text. Ein eigener Zahlenwert waere eine dritte Wahrheit ueber
+     dieselben zwei Toene. */
+  pruefe('Die beiden Markenvariablen stehen im Stilblatt und erfinden keine Farbe',
+    /--marke-grau: var\(--muted\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8'))
+      && /--marke-strich: var\(--accent-text\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')),
+    (fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')
+      .match(/--marke-[a-z]+:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
 
   /* ZWEI DINGE MIT DEMSELBEN NAMEN SIND EINES ZU VIEL. `.mark` gibt es in
      style.css fuer die kleinen Knoepfe am Kommentar -- Rahmen, runder
@@ -1513,9 +1536,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
      27.5, also 23 von 32 Einheiten. Im quadratischen viewBox 0 0 32 32 zeichnete
      die Datei damit nur 72 Prozent ihrer eigenen Hoehe und stand neben dem Text
      zu tief. Mit dem engen viewBox ist die angegebene Hoehe die gezeichnete. */
-  pruefe('Das viewBox der durchsichtigen Fassung umschliesst die Farbe',
-    /viewBox="6\.5 4\.5 19 23"/.test(mkInhalt['marke-dunkel.svg'] || ''),
-    (mkInhalt['marke-dunkel.svg'] || '').match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
+  // Seit 0.23.0 steht es im Helfer und nicht mehr in einer Datei.
+  pruefe('Das viewBox der Marke umschliesst die Farbe',
+    /viewBox="6\.5 4\.5 19 23"/.test(mkApp),
+    mkApp.match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
   /* UND favicon.svg BEHAELT SEIN QUADRAT. Es ist ein Kachelsymbol: die Kachel
      braucht ihren Rand, und 72 Prozent sind dort der uebliche Schutzbereich.
      Ein enges viewBox schnitte die Kachel an. */
@@ -2019,6 +2043,34 @@ const freigabeHaupt = (zweck, ziel = null) =>
     if ((await ruf('PUT', '/api/settings', { streifen: s })).inhalt?.streifen !== s) streifenAlle = false;
   pruefe('Alle fuenf Stufen 60, 80, 100, 120 und 150 gehen durch', streifenAlle);
   await ruf('PUT', '/api/settings', { streifen: 80 });
+
+  /* DAS FARBSCHEMA -- 0.23.0. Dieselbe Maschine wie die beiden darueber: ein
+     Wert je Zugang, ein Wert fuer alle Geraete, drei Stufen, Rueckfall auf die
+     Vorgabe. Erst der Gegenstand (Stolperstein 81): DIE VORGABE IST `dunkel`
+     UND NICHT `geraet` -- wer nichts einstellt, sieht, was er heute sieht. */
+  pruefe('Die Vorgabe des Farbschemas ist dunkel',
+    (await ruf('GET', '/api/settings')).inhalt.thema === 'dunkel',
+    JSON.stringify((await ruf('GET', '/api/settings')).inhalt.thema));
+  pruefe('Ein unbekanntes Schema wird abgewiesen',
+    (await ruf('PUT', '/api/settings', { thema: 'sepia' })).status === 400);
+  pruefe('Und eine Zahl als Schema ebenso',
+    (await ruf('PUT', '/api/settings', { thema: 7 })).status === 400);
+  const themaGesetzt = await ruf('PUT', '/api/settings', { thema: 'hell' });
+  pruefe('Ein gueltiges Schema wird gespeichert und zurueckgegeben',
+    themaGesetzt.status === 200 && themaGesetzt.inhalt.thema === 'hell',
+    JSON.stringify([themaGesetzt.status, themaGesetzt.inhalt.thema]));
+  pruefe('Und es steht beim naechsten Lesen noch',
+    (await ruf('GET', '/api/settings')).inhalt.thema === 'hell');
+  pruefe('Der Bildstreifen daneben bleibt unberuehrt',
+    (await ruf('GET', '/api/settings')).inhalt.streifen === 80);
+  /* ALLE DREI STUFEN, UND KEINE DAZWISCHEN. `geraet` ist ausdruecklich dabei:
+     es ist eine WAHL und kein Rueckfall, und der Server muss sie annehmen --
+     aufgeloest wird sie erst in der Oberflaeche. */
+  let themaAlle = true;
+  for (const s of ['hell', 'dunkel', 'geraet'])
+    if ((await ruf('PUT', '/api/settings', { thema: s })).inhalt?.thema !== s) themaAlle = false;
+  pruefe('Alle drei Stufen hell, dunkel und geraet gehen durch', themaAlle);
+  await ruf('PUT', '/api/settings', { thema: 'dunkel' });
 
   /* ---------------------------------------------------------------- */
   gruppe('Vokabular in den Servermeldungen');
@@ -3005,9 +3057,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gelesen. Eine Migration, die persoenliche Zeilen loescht, waere teurer als
      die Zeilen selbst -- und sie waere ein Schema-Eingriff in einer Runde, die
      ausdruecklich keiner ist. */
+  /* ZEHN SEIT 0.23.0: `thema` -- hell, dunkel oder wie das Geraet. Dieselbe
+     Maschine wie `schrift` und `streifen`, und aus demselben Grund
+     persoenlich: es ist eine Aussage ueber die Augen dessen, der hinsieht,
+     und nicht ueber den Bestand. */
   const dSoll = ['ansichten', 'bloecke', 'filters', 'glockeGesehen', 'linkZeilen', 'schrift',
-                 'streifen', 'suchNamen', 'zeitleiste'];
-  pruefe('server.js kennt genau die neun persoenlichen Schluessel — 0.22.0',
+                 'streifen', 'suchNamen', 'thema', 'zeitleiste'];
+  pruefe('server.js kennt genau die zehn persoenlichen Schluessel — 0.23.0',
     gleich(dListeSrv, dSoll), JSON.stringify(dListeSrv));
   /* UND `zuletztGesehen` STEHT WIRKLICH NIRGENDS MEHR IN server.js -- ausser
      als Vermerk in einem Kommentar. Ohne diese Zeile bliebe die Aufzaehlung
@@ -3220,6 +3276,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Objekt statt Zahl) und deshalb eigens geprueft wird.
   await dRuf('cookie-d-eins', 'PUT', '/api/settings',
     { bloecke: { seite: ['bewertung', 'tags', 'kategorie', 'potenzial'], unten: [], zu: ['links'] } });
+  // 0.23.0: das Farbschema gehoert demselben Rang wie Schrift und Bildstreifen.
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings', { thema: 'hell' });
+  await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { thema: 'geraet' });
+  pruefe('Das Farbschema gehoert dem Benutzer',
+    (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt.thema === 'hell' &&
+    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.thema === 'geraet',
+    JSON.stringify([(await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt.thema,
+                    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.thema]));
   const dBlEins = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt.bloecke;
   const dBlZwei = (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.bloecke;
   pruefe('Die Blockanordnung gehoert dem Benutzer',
@@ -3270,7 +3334,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const dFehlend = dSoll.filter(k => !persoenlichDa(k, 1));
   pruefe('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dFalschGlobal.length === 0, `global gefunden: ${JSON.stringify(dFalschGlobal)}`);
-  pruefe('Alle neun stehen beim Benutzer, der sie gesetzt hat — 0.22.0',
+  pruefe('Alle zehn stehen beim Benutzer, der sie gesetzt hat — 0.23.0',
     dFehlend.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dFehlend)}`);
   pruefe('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('sucheAktiv') && !persoenlichDa('sucheAktiv', 1),
@@ -3293,9 +3357,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      WIEDER FUENF SEIT 0.17.0: der Merkzeitpunkt der gestrichenen Pille faellt
      weg. Die Zahl steht hier ausdruecklich und wird nicht aus dSoll
      abgeleitet -- sie zaehlt, was der Zweite WIRKLICH gesetzt hat, und das ist
-     etwas anderes als die Liste der moeglichen Schluessel. */
+     etwas anderes als die Liste der moeglichen Schluessel.
+     SECHS SEIT 0.23.0: das Farbschema kommt dazu. Der Zweite hat `geraet`
+     gesetzt, der Erste `hell` -- verschiedene Werte, und darum geht es. */
   pruefe('Die beiden Benutzer teilen sich keine Zeile',
-    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 5,
+    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 6,
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 2').all()));
   pruefe('Und die gespeicherte Ansicht des Ersten steht nicht beim Zweiten',
     persoenlichDa('ansichten', 1) && !persoenlichDa('ansichten', 2),
@@ -27714,7 +27780,12 @@ async function pruefeOberflaeche() {
   // Im Einzelnen: die beiden Kanäle dürfen sich nicht überschneiden,
   // sonst sind nicht mehr alle vier Zustände unterscheidbar.
   pruefe('Es gibt ein gedämpftes Gold als eigene Farbe',
-    /--gold-line: rgba\(255,\s*197,\s*49,\s*\.\d+\)/.test(cssM),
+    // SEIT 0.23.0 STEHT DIE FARBE ALS TRIPEL: `rgba(var(--gold-rgb), .52)`.
+    // Geprueft wird beides -- dass --gold-line das GOLD-Tripel nimmt und nicht
+    // irgendeines, und dass das Tripel wirklich Gold ist. Sonst belegte die
+    // Zeile nur noch, dass irgendwo eine Klammer steht.
+    /--gold-line: rgba\(var\(--gold-rgb\),\s*\.\d+\)/.test(cssM)
+      && /--gold-rgb: *255,\s*197,\s*49/.test(cssM),
     (cssM.match(/--gold-line:[^;]*/) || ['(nicht gesetzt)'])[0]);
   /* DIESE DREI ZEILEN HABEN BIS 0.13.2 DIE ZURUECKGENOMMENE ENTSCHEIDUNG
      FESTGEHALTEN, und das ist der eigentliche Befund jener Runde. Sie
@@ -28250,7 +28321,10 @@ async function pruefeOberflaeche() {
   // Aussehen laesst sich hier nur am Stylesheet pruefen (Abschnitt 7).
   const cssK = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   pruefe('Ein Link im Kommentartext ist ohne Überfahren erkennbar',
-    /\.cmt-body a \{[^}]*color: var\(--accent\)[^}]*\}/.test(cssK) &&
+    /* Seit 0.23.0 --accent-text: im hellen Schema faellt Orange als SCHRIFT
+       unter die Lesbarkeitsschwelle, waehrend es als Flaeche die Marke bleibt.
+       Die Bedeutung ist dieselbe, der Wert je Schema ein anderer. */
+    /\.cmt-body a \{[^}]*color: var\(--accent-text\)[^}]*\}/.test(cssK) &&
     /\.cmt-body a \{[^}]*text-decoration: underline[^}]*\}/.test(cssK),
     (cssK.match(/\.cmt-body a \{[^}]*\}/) || ['(keine Regel)'])[0]);
   pruefe('Eine lange Adresse bricht um, statt über den Rand zu laufen',
@@ -30223,9 +30297,13 @@ async function pruefeOberflaeche() {
   const mzKinder = mzZeile ? [...mzZeile.children] : [];
   pruefe('Darin stehen genau zwei Dinge', mzKinder.length === 2,
     mzKinder.map(e => e.tagName).join(' ') || '(leer)');
+  /* SEIT 0.23.0 IST DAS ZEICHEN EIN SVG UND KEIN BILD MEHR -- es muss
+     Variablen lesen koennen (siehe „Die Marke der Instanz"). An einem
+     eingebetteten SVG ist `tagName` kleingeschrieben, und `className` ist
+     kein String, sondern ein SVGAnimatedString. */
   pruefe('Erst das Zeichen',
-    mzKinder[0]?.tagName === 'IMG' && mzKinder[0]?.classList.contains('marke'),
-    `${mzKinder[0]?.tagName} ${mzKinder[0]?.className || ''}`);
+    mzKinder[0]?.tagName?.toLowerCase() === 'svg' && mzKinder[0]?.classList.contains('marke'),
+    `${mzKinder[0]?.tagName} ${mzKinder[0]?.getAttribute('class') || ''}`);
   pruefe('Dann das Wort',
     mzKinder[1]?.tagName === 'H1' && /\S/.test(mzKinder[1]?.textContent || ''),
     `${mzKinder[1]?.tagName} ${JSON.stringify(mzKinder[1]?.textContent || '')}`);
@@ -30238,9 +30316,11 @@ async function pruefeOberflaeche() {
   /* DAS ZEICHEN BLEIBT STUMM: es steht unmittelbar neben dem Namen der
      Instanz, ein Vorleseprogramm saegte ihn sonst zweimal. Nebeneinander ist
      das noch dringender als gestapelt. */
+  // Bis 0.22.1 war das alt=""; an einem SVG ist aria-hidden die Entsprechung.
   pruefe('Das Zeichen bleibt fuer das Vorleseprogramm stumm',
-    mzKinder[0]?.getAttribute('alt') === '' && !mzKinder[0]?.getAttribute('title'),
-    `alt=${JSON.stringify(mzKinder[0]?.getAttribute('alt'))}`);
+    mzKinder[0]?.getAttribute('aria-hidden') === 'true'
+      && !mzKinder[0]?.getAttribute('title') && !mzKinder[0]?.querySelector('title'),
+    `aria-hidden=${JSON.stringify(mzKinder[0]?.getAttribute('aria-hidden'))}`);
   mzDom.w.close();
 
   /* ---------------------------------------------------------------- */
@@ -30331,7 +30411,11 @@ async function pruefeOberflaeche() {
      und --accent-line stehen in :root als Teildeckung; waeren sie voll
      gesaettigt, saessen zwei gleich laute Knoepfe uebereinander. */
   const sDeckung = ['--accent-dim', '--accent-line'].map(n => {
-    const t = (sCss.match(new RegExp(`${n}: *rgba\\([^)]*\\)`)) || [''])[0];
+    /* DIE KLAMMER IST SEIT 0.23.0 VERSCHACHTELT -- `rgba(var(--accent-rgb), .13)`.
+       Mit `[^)]*` endete der Treffer an der INNEREN Klammer, und das Alpha
+       stand nicht mehr darin: die Pruefung waere nicht rot geworden, sondern
+       blind. Deshalb eine Runde Verschachtelung ausdruecklich erlaubt. */
+    const t = (sCss.match(new RegExp(`${n}: *rgba\\((?:[^()]|\\([^()]*\\))*\\)`)) || [''])[0];
     const a = t.match(/,\s*(0?\.\d+|0|1)\)/);
     return { n, t, a: a ? Number(a[1]) : NaN };
   });
@@ -34957,22 +35041,30 @@ async function pruefeOberflaeche() {
   /* ---------------------------------------------------------------- */
   gruppe('Die Marke am Bildschirm');
 
-  /* SIE STEHT IN DER KOPFZEILE UND AUF DEN ANMELDESEITEN, und beide laden
-     DIESELBE Datei. Die Farbe und das viewBox pruefen die Dateien selbst
-     (Gruppe "Die Marke der Instanz"); hier geht es darum, dass die Oberflaeche
-     sie ueberhaupt so einbaut. */
+  /* SIE STEHT IN DER KOPFZEILE UND AUF DEN ANMELDESEITEN, und beide zeichnen
+     DASSELBE SVG. Die Farben pruefen die Variablen selbst (Gruppe „Die Marke
+     der Instanz"); hier geht es darum, dass die Oberflaeche sie ueberhaupt so
+     einbaut.
+     SEIT 0.23.0 EIN SVG UND KEIN BILD: es muss die Schemavariablen lesen
+     koennen, und ein <img> kann das nicht. Gesucht wird `svg.marke` statt
+     `img.marke` -- und der GEGENSTAND wird vor der Eigenschaft geprueft
+     (Stolperstein 81), sonst greift die naechste Zeile auf null zu und der
+     ganze Lauf bricht ab. Genau das ist beim Umbau passiert. */
   const mbDom = baueDom(JSDOM, { uebersichtItems: suBestand });
   const mb = mbDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const mbMarke = mb.document.querySelector('.masthead .brand img.marke');
-  pruefe('Die Kopfzeile traegt die Marke als Datei', !!mbMarke,
+  const mbMarke = mb.document.querySelector('.masthead .brand svg.marke');
+  pruefe('Die Kopfzeile zeichnet die Marke selbst', !!mbMarke,
     mb.document.querySelector('.masthead .brand')?.innerHTML.slice(0, 120) || '(keine Kopfzeile)');
-  pruefe('Und zwar die durchsichtige Fassung',
-    mbMarke.getAttribute('src') === 'marke-dunkel.svg', mbMarke.getAttribute('src'));
+  pruefe('Und faerbt sie ueber die Schemavariablen',
+    !!mbMarke && [...mbMarke.querySelectorAll('path')]
+      .every(s => /^var\(--marke-(grau|strich)\)$/.test(s.getAttribute('stroke') || '')),
+    mbMarke ? [...mbMarke.querySelectorAll('path')].map(s => s.getAttribute('stroke')).join(' ')
+            : '(keine Marke)');
   /* DAS SEITENVERHAELTNIS DER ATTRIBUTE FOLGT DEM GEZEICHNETEN STRICH, 19:23.
      Ein Quadrat hier liesse die Marke bis zum Greifen des Stylesheets zu
      breit stehen und danach springen. */
-  const mbB = Number(mbMarke.getAttribute('width')), mbH = Number(mbMarke.getAttribute('height'));
+  const mbB = Number(mbMarke?.getAttribute('width')), mbH = Number(mbMarke?.getAttribute('height'));
   pruefe('Und die Attribute tragen das Verhaeltnis 19:23',
     mbB === Math.round(mbH * 19 / 23), `${mbB}x${mbH}`);
   pruefe('Und sie ist nicht mehr quadratisch angegeben', mbB !== mbH, `${mbB}x${mbH}`);
@@ -34981,12 +35073,17 @@ async function pruefeOberflaeche() {
   const mlDom = baueDom(JSDOM, { angemeldet: false });
   const ml = mlDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const mlMarke = ml.document.querySelector('.login-marke img.marke');
+  const mlMarke = ml.document.querySelector('.login-marke svg.marke');
   pruefe('Die Anmeldeseite traegt sie ebenso', !!mlMarke,
     ml.document.querySelector('.login-card')?.innerHTML.slice(0, 120) || '(keine Karte)');
-  pruefe('Und aus derselben Datei',
-    mlMarke && mlMarke.getAttribute('src') === 'marke-dunkel.svg', mlMarke?.getAttribute('src'));
-  const mlB = Number(mlMarke.getAttribute('width')), mlH = Number(mlMarke.getAttribute('height'));
+  /* UND AUS DEMSELBEN HELFER -- vier Striche, nicht drei und nicht fuenf.
+     Die Anmeldeseite kennt das Schema noch nicht (start() laeuft erst nach
+     der Anmeldung), aber der Vorgriff aus thema.js hat data-thema laengst
+     gesetzt: die Marke steht dort schon richtig. */
+  pruefe('Und aus demselben Helfer, mit allen vier Strichen',
+    !!mlMarke && mlMarke.querySelectorAll('path').length === 4,
+    `${mlMarke?.querySelectorAll('path').length} Striche`);
+  const mlB = Number(mlMarke?.getAttribute('width')), mlH = Number(mlMarke?.getAttribute('height'));
   pruefe('Und auch dort im Verhaeltnis 19:23',
     mlB === Math.round(mlH * 19 / 23), `${mlB}x${mlH}`);
   ml.close();
@@ -36044,15 +36141,19 @@ async function pruefeOberflaeche() {
   const vzW = vzDom.w;
   await new Promise(r => setTimeout(r, 80));
   const vzZeile = vzW.document.getElementById('version');
-  const vzMarke = vzZeile?.querySelector('img.marke');
+  // Seit 0.23.0 ein SVG und kein Bild -- es muss die Schemavariablen lesen.
+  const vzMarke = vzZeile?.querySelector('svg.marke');
   pruefe('Die Versionszeile traegt das Zeichen davor', !!vzMarke, vzZeile?.innerHTML.slice(0, 160));
-  pruefe('Und zwar dieselbe Datei wie ueberall sonst',
-    vzMarke?.getAttribute('src') === 'marke-dunkel.svg', vzMarke?.getAttribute('src'));
-  /* alt="" UND KEIN TITEL: das Zeichen steht unmittelbar neben dem Namen der
-     Instanz, und ein Vorleseprogramm saegte ihn sonst zweimal. */
+  pruefe('Und zwar aus demselben Helfer wie ueberall sonst',
+    vzMarke?.querySelectorAll('path').length === 4,
+    `${vzMarke?.querySelectorAll('path').length} Striche`);
+  /* aria-hidden UND KEIN TITEL: das Zeichen steht unmittelbar neben dem Namen
+     der Instanz, und ein Vorleseprogramm saegte ihn sonst zweimal. Bis 0.22.1
+     war das alt="" am Bild. */
   pruefe('Es sagt nichts vor — der Name steht daneben',
-    vzMarke?.getAttribute('alt') === '' && !vzMarke?.getAttribute('title'),
-    JSON.stringify([vzMarke?.getAttribute('alt'), vzMarke?.getAttribute('title')]));
+    vzMarke?.getAttribute('aria-hidden') === 'true' && !vzMarke?.getAttribute('title')
+      && !vzMarke?.querySelector('title'),
+    JSON.stringify([vzMarke?.getAttribute('aria-hidden'), vzMarke?.getAttribute('title')]));
   pruefe('Der Name der Instanz steht weiterhin in der Zeile',
     /^Kriterion \d/.test((vzZeile?.textContent || '').trim()), vzZeile?.textContent);
   /* DIE GROESSE STEHT IM STYLESHEET UND IN em: die Zeile laeuft auf .67rem,
@@ -38059,7 +38160,8 @@ async function pruefeOberflaeche() {
     // Dasselbe Werkzeug wie in der Gruppe zur Filterleiste -- ein zweiter
     // Leser fuer dieselbe Datei liefe mit ihm auseinander.
     pruefe('Die Aussage traegt einen roten Strich in der Farbe des Schalters',
-      /border-left: 2px solid rgba\(240,85,92,\.42\)/.test(regel123('.rej-aussage')),
+      // Seit 0.23.0 als Tripel geschrieben; die 42 Prozent sind dieselben.
+      /border-left: 2px solid rgba\(var\(--red-rgb\), \.42\)/.test(regel123('.rej-aussage')),
       regel123('.rej-aussage') || '(keine Regel)');
     pruefe('Und der Grund selbst steht in --red',
       /color: var\(--red\)/.test(regel123('.rej-aussage .rej-warum')),
@@ -40390,8 +40492,201 @@ async function pruefeOberflaeche() {
       /\.masthead\.gerollt \{ box-shadow: var\(--sh-sm\); \}/.test(css123),
       regel123('.masthead.gerollt') || '(keine Regel)');
     pruefe('Der Hintergrund eines Dialogs ist eine deckende Farbe ohne Weichzeichner',
-      /\.backdrop \{[^}]*background: rgba\(6,7,9,\.78\)/.test(css123) && !/\.backdrop \{[^}]*filter/.test(css123),
+      /* Seit 0.23.0 traegt --schleier den ganzen Wert und nicht die Regel:
+         im hellen Schema aendern sich BEIDE Teile, Farbe und Deckung. Geprueft
+         wird deshalb die KETTE -- die Regel nimmt --schleier, --schleier ist
+         eine Teildeckung des Schleiertripels, und das Tripel ist die Farbe.
+         Nur das letzte Glied zu pruefen liesse die Regel selbst offen. */
+      /\.backdrop \{[^}]*background: var\(--schleier\)/.test(css123)
+        && /--schleier: *rgba\(var\(--schleier-rgb\), *\.78\)/.test(cssRoh)
+        && /--schleier-rgb: *6,\s*7,\s*9/.test(cssRoh)
+        && !/\.backdrop \{[^}]*filter/.test(css123),
       regel123('.backdrop') || '(keine Regel)');
+  }
+
+  /* ================= Das Farbschema — 0.23.0 =================
+     Die Maschine, nicht die Farben: wo die Einstellung steht, wie sie ans
+     Wurzelelement kommt, und WAS VOR DEM ERSTEN ANSTRICH ZU SEHEN IST. Der
+     letzte Punkt ist der, der im Feld auffaellt und sonst nirgends. */
+  gruppe('Das Farbschema — 0.23.0');
+  {
+    const tHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+    const tApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const tCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const tBoot = fs.existsSync(path.join(__dirname, 'public', 'thema.js'))
+      ? fs.readFileSync(path.join(__dirname, 'public', 'thema.js'), 'utf8') : null;
+
+    pruefe('Der Vorgriff liegt als eigene Datei public/thema.js', tBoot !== null,
+      tBoot === null ? '(fehlt)' : `${tBoot.length} Zeichen`);
+    /* ALS DATEI UND NICHT INLINE, und das ist keine Geschmacksfrage: die CSP
+       des Servers sagt `script-src 'self'`, und ein Inline-Script wird vom
+       Browser wortlos abgewiesen. Genau so stand er zuerst da. */
+    pruefe('Und nicht als Inline-Script — script-src bleibt streng',
+      !/<script>[\s\S]*?<\/script>/.test(tHtml) && /script-src 'self'/.test(
+        fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')),
+      (tHtml.match(/<script[^>]*>/g) || []).join(' '));
+    /* ER MUSS VOR DEM STILBLATT STEHEN. Danach hat er seinen Zweck verfehlt:
+       der Browser hat dann schon einmal falsch gemalt. */
+    pruefe('Er steht vor dem Stilblatt',
+      tHtml.indexOf('thema.js') > -1
+        && tHtml.indexOf('thema.js') < tHtml.indexOf('href="style.css"'),
+      `thema.js bei ${tHtml.indexOf('thema.js')}, style.css bei ${tHtml.indexOf('href="style.css"')}`);
+    /* UND ER MUSS SYNCHRON LADEN. `defer` oder `async` liessen ihn NACH dem
+       Stilblatt laufen -- die Datei waere da, und das Blitzen auch. */
+    pruefe('Und er laedt synchron, ohne defer und ohne async',
+      /<script src="thema\.js"><\/script>/.test(tHtml),
+      (tHtml.match(/<script[^>]*thema\.js[^>]*>/) || ['(nicht gefunden)'])[0]);
+    /* DER NAME DES SCHLUESSELS STEHT AN ZWEI STELLEN, und es geht nicht
+       anders: thema.js laeuft, bevor es app.js gibt. Also haelt sie eine
+       Pruefung gegeneinander -- sonst laufen sie beim naechsten Umbenennen
+       auseinander, und der Vorgriff liest ins Leere (Stolperstein 47). */
+    const schluesselBoot = (tBoot || '').match(/getItem\('([^']+)'\)/);
+    const schluesselApp = tApp.match(/THEMA_MERKER = '([^']+)'/);
+    pruefe('Der Name des gemerkten Schluessels stimmt in beiden Dateien ueberein',
+      !!schluesselBoot && !!schluesselApp && schluesselBoot[1] === schluesselApp[1],
+      `thema.js: ${schluesselBoot?.[1]} · app.js: ${schluesselApp?.[1]}`);
+    pruefe('Ohne Gedaechtnis steht dunkel da — die Vorgabe, auch vor der Anmeldung',
+      /\? 'hell' : 'dunkel'/.test(tBoot || '') && /catch[\s\S]{0,80}= 'dunkel'/.test(tBoot || ''),
+      tBoot === null ? '(keine Datei)' : 'Rueckfall geprueft');
+
+    /* DAS STILBLATT KENNT ZWEI WERTE UND NICHT DREI. „Wie das Geraet" loest
+       app.js auf; stuende es hier, muesste jeder Wert dreimal geschrieben
+       werden. */
+    pruefe('Das Stilblatt kennt genau einen zweiten Block',
+      (tCss.match(/:root\[data-thema="hell"\]/g) || []).length === 1
+        && !/data-thema="geraet"/.test(tCss),
+      `hell: ${(tCss.match(/:root\[data-thema="hell"\]/g) || []).length} · geraet: ${/data-thema="geraet"/.test(tCss)}`);
+    pruefe('Und der Betrachter bekommt seine eigenen Werte',
+      /\[data-thema="hell"\] \.lightbox \{/.test(tCss),
+      /\[data-thema="hell"\] \.lightbox/.test(tCss) ? 'Insel da' : '(keine Insel)');
+    /* color-scheme GEHOERT DEM BLOCK und nicht mehr einem einzelnen Element:
+       davon haengen Auswahlfelder, Rollbalken und Datumswaehler ab. */
+    pruefe('color-scheme steht in beiden Schemabloecken und nirgends sonst',
+      (tCss.match(/color-scheme: */g) || []).length === 3
+        && /:root \{[\s\S]*?color-scheme: dark/.test(tCss)
+        && /:root\[data-thema="hell"\] \{[\s\S]*?color-scheme: light/.test(tCss),
+      `${(tCss.match(/color-scheme: [a-z]+/g) || []).join(' · ')}`);
+    pruefe('Und der Kopf der Seite nennt beide',
+      /<meta name="color-scheme" content="light dark">/.test(tHtml));
+
+    /* DIE LEISTENFARBE WIRD GELESEN UND NICHT ABGESCHRIEBEN -- sonst waere
+       sie die zweite Wahrheit, vor der der Kopf der Seite seit jeher warnt. */
+    pruefe('Die Farbe der Browserleiste kommt aus --bg und nicht aus einer Abschrift',
+      /getPropertyValue\('--bg'\)/.test(tApp) && /theme-color/.test(tApp),
+      /getPropertyValue\('--bg'\)/.test(tApp) ? 'gelesen' : '(abgeschrieben)');
+    /* „WIE DAS GERAET" FOLGT OHNE NEULADEN -- und nur in dieser Stellung. */
+    pruefe('Der Horcher auf das Geraet greift nur in der Stellung geraet',
+      /THEMA === 'geraet'\) wendeThemaAn\(\)/.test(tApp)
+        && /addEventListener\('change'/.test(tApp),
+      /addEventListener\('change'/.test(tApp) ? 'Horcher da' : '(kein Horcher)');
+    pruefe('Die Karte „Darstellung" traegt die Pillenreihe',
+      /<div class="pills" id="thema"><\/div>/.test(tApp) && /function drawThema\(\)/.test(tApp)
+        && /drawThema\(\);\n  drawSchrift\(\);/.test(tApp),
+      /function drawThema/.test(tApp) ? 'Reihe und Zeichner da' : '(fehlt)');
+    /* DIE STUFEN STEHEN IN BEIDEN DATEIEN UND MUESSEN UEBEREINSTIMMEN --
+       dieselbe Zusicherung wie bei SCHRIFT_STUFEN und STREIFEN_STUFEN. */
+    /* DIE DAEMPFUNG SCHIEBT ZUM GRUND HIN UND NICHT ZU SCHWARZ -- Regel F4.
+       `brightness(.5)` macht ein Foto DUNKLER; auf weisser Karte waere der
+       abgelehnte Eintrag damit der lauteste Fleck der Seite und stuende vor
+       dem angenommenen daneben. Gemessen an einem mittleren Foto gegen die je
+       eigene Karte: dunkel 1,71 : 1, hell mit brightness 10,33, hell mit
+       opacity(.45) wieder 1,71. Derselbe Wert, andere Richtung. */
+    pruefe('Die Daempfung eines abgelehnten Eintrags geht ueber eine Variable',
+      /filter: var\(--daempfung\)/.test(tCss) && !/filter: grayscale/.test(tCss),
+      (tCss.match(/\.card\.rejected[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('Und sie nimmt im Hellen opacity statt brightness',
+      /:root \{[\s\S]*?--daempfung: grayscale\(\.85\) brightness\(\.5\);/.test(tCss)
+        && /:root\[data-thema="hell"\] \{[\s\S]*?--daempfung: grayscale\(\.85\) opacity\(\.45\);/.test(tCss),
+      (tCss.match(/--daempfung:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
+    const stufenApp = (tApp.match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
+    const stufenSrv = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
+      .match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
+    pruefe('Die drei Stufen stehen in app.js und server.js gleich',
+      !!stufenApp && stufenApp === stufenSrv, `app: ${stufenApp} · server: ${stufenSrv}`);
+  }
+
+  /* ============ Keine feste Farbe im Stilblatt — 0.23.0 ============
+     DER WAECHTER DER RUNDE, und er entsteht im ERSTEN Bauabschnitt und nicht
+     am Ende: er ist die einzige Zusicherung, dass die Bestandsaufnahme
+     vollstaendig war.
+
+     WORUM ES GEHT. Bis 0.22.1 trugen 67 Stellen ausserhalb von `:root` ihre
+     Farbe als Zahl -- 36 als `#rrggbb`, 31 als `rgba(r,g,b,a)`. Solange es
+     nur ein Schema gab, war das eine Unordnung. Mit zwei Schemata ist es ein
+     Fehler: WAS FEST IM BLATT STEHT, BLEIBT BEIM UMSCHALTEN STEHEN -- als
+     dunkler Fleck auf heller Seite.
+
+     GESUCHT WIRD IM REGELWERK, NICHT IM PAPIER. Kommentare fallen heraus: ein
+     Kommentar darf eine Farbe nennen (und tut es, zum Beispiel dort, wo die
+     Herkunft eines Randes erklaert wird), eine Regel nicht. Die
+     `:root`-Bloecke fallen ebenfalls heraus -- dort GEHOEREN die Zahlen hin,
+     das ist der ganze Zweck der Uebung.
+
+     DIE POSITIVLISTE HAT GENAU EINEN EINTRAG, und er steht hier und im
+     Stilblatt danebengeschrieben: `#000` hinter `<video>`. Es ist der Balken,
+     den ein Video beim Seitenverhaeltnis stehen laesst -- der RAND EINES
+     VIDEOS und keine Flaeche der Oberflaeche. Er ist in jedem Schema
+     schwarz, weil das Bild es dort ist.
+     WER SIE VERLAENGERT, schreibt den Grund daneben. Eine Positivliste ohne
+     Begruendung je Eintrag ist nach zwei Runden eine Ausnahmeliste. */
+  gruppe('Keine feste Farbe im Stilblatt — 0.23.0');
+  {
+    const cssF = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    // Kommentare raus, dann die :root-Bloecke raus. In dieser Reihenfolge --
+    // ein Kommentar innerhalb von :root duerfte den Block sonst zerschneiden.
+    const ohneK = cssF.replace(/\/\*[\s\S]*?\*\//g, '');
+    const regelwerk = ohneK.replace(/:root[^{]*\{[^}]*\}/g, '');
+    /* GESUCHT WIRD, WAS MALT -- nicht, was benennt. Eine Eigenschaft, die mit
+       zwei Strichen anfaengt, IST eine Farbdefinition; genau so werden die
+       Schemata gebaut, und die Insel des Betrachters steht deshalb voller
+       Zahlen. Verboten ist die Zahl an `color`, `background`, `border`,
+       `box-shadow`, `outline` -- also dort, wo sie beim Umschalten stehen
+       bleibt. Das Muster verlangt einen BUCHSTABEN als erstes Zeichen der
+       Eigenschaft; `--bg:` faellt damit heraus, `background:` nicht.
+       (Der erste Entwurf nahm `[a-z-]+` und wurde an der Insel rot -- er hat
+       damit bewiesen, dass er trifft, und gleich auch, was er treffen soll.) */
+    const malend = /(?:^|[;{}\s])([a-z][a-z-]*: *(?:#[0-9a-fA-F]{3,8}\b|rgba?\([0-9]))/g;
+    // Die Positivliste: der Videobalken, und sonst nichts.
+    const erlaubt = /^(background: #000)$/;
+    const funde = [...regelwerk.matchAll(malend)].map(m => m[1])
+      .filter(s => !erlaubt.test(s.trim()));
+    pruefe('Keine malende Regel ausserhalb von :root traegt eine Farbe als Zahl',
+      funde.length === 0,
+      funde.length ? `${funde.length}: ${[...new Set(funde)].slice(0, 8).join(' · ')}` : 'keine');
+    /* UND DIE GEGENSEITE: Farbdefinitionen ausserhalb von :root stehen nur in
+       den BEKANNTEN Schemabloecken. Ohne diese Zeile duerfte sich jede Regel
+       ihre eigenen Farben setzen, und der Waechter saehe weg. */
+    const fremdeBloecke = [...ohneK.matchAll(/(?:^|\})\s*([^{}@]+)\{([^}]*)\}/g)]
+      .filter(m => /(^|[;\s])--[a-z0-9-]+: *(#|rgba?\()/.test(m[2]))
+      .map(m => m[1].trim().replace(/\s+/g, ' '))
+      .filter(s => !/^:root(\[data-thema="(hell|dunkel)"\])?$/.test(s)
+                && !/^\[data-thema="(hell|dunkel)"\] \.lightbox$/.test(s));
+    pruefe('Und Farbwerte stehen nur in den bekannten Schemabloecken',
+      fremdeBloecke.length === 0,
+      fremdeBloecke.length ? fremdeBloecke.slice(0, 4).join(' · ') : 'keine fremden');
+    // DIE GEGENLAGE: der Waechter kann ueberhaupt etwas finden. Ohne sie
+    // belegte die Zeile darueber auch dann etwas, wenn der Ausdruck nie
+    // trifft -- die haeufigste Art, wie eine Regelpruefung still stirbt.
+    pruefe('Und der Waechter findet eine eingebaute Farbe wirklich',
+      ((regelwerk + '\n.probe { color: #abcdef; }')
+        .match(/[a-z-]+: *#[0-9a-fA-F]{3,8}\b/g) || []).includes('color: #abcdef'),
+      'Gegenprobe mit .probe { color: #abcdef }');
+    // Die Positivliste steht wirklich nur an den zwei Videoregeln -- und der
+    // Grund steht im Stilblatt daneben, nicht nur hier.
+    const videos = (regelwerk.match(/background: #000/g) || []).length;
+    pruefe('Die Positivliste hat genau die zwei Videoregeln',
+      videos === 2, `${videos} Stellen mit background: #000`);
+    pruefe('Und das Stilblatt schreibt daneben, warum sie eine Ausnahme sind',
+      /Positivliste[\s\S]{0,400}RAND EINES VIDEOS/.test(cssF),
+      /Positivliste/.test(cssF) ? 'Begruendung gefunden' : '(kein Wort davon)');
+    /* DIE ZWEITE HAELFTE: die Tripel gibt es, und sie tragen die Farben, auf
+       die sich alles Uebrige beruft. Ein `rgba(var(--red-rgb), .42)` ist nur
+       so viel wert wie `--red-rgb`. */
+    for (const [name, wert] of [['--accent-rgb', '255,\\s*122,\\s*26'], ['--gold-rgb', '255,\\s*197,\\s*49'],
+                                ['--green-rgb', '63,\\s*211,\\s*154'], ['--red-rgb', '240,\\s*85,\\s*92']])
+      pruefe(`${name} steht in :root und traegt die richtige Farbe`,
+        new RegExp(`${name}: *${wert} *;`).test(cssF),
+        (cssF.match(new RegExp(`${name}:[^;]*`)) || ['(nicht gesetzt)'])[0]);
   }
 
   /* ================= Keine Browserfenster mehr — 0.22.0 =================

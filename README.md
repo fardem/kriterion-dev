@@ -1708,7 +1708,8 @@ Listen.
   entfernte Kommentarbilder. *Und zwei Löschwege füllen den Papierkorb nicht:*
   „Zugang entfernen" mit dem Häkchen *Einträge mitnehmen* und der **ersetzende**
   Import.
-- **Darstellung**: Schriftgröße der Oberfläche in fünf Stufen von 80 % bis
+- **Darstellung**: das **Farbschema** — hell, dunkel oder wie das Gerät —,
+  die Schriftgröße der Oberfläche in fünf Stufen von 80 % bis
   120 %, die Größe der Bilder im Bildstreifen der Detailansicht in fünf Stufen
   von 60 bis 150 px, Zeitleiste an oder aus, Standardanordnung der Blöcke —
   alles serverseitig gespeichert, persönlich, und es gilt auf jedem Gerät
@@ -2046,6 +2047,36 @@ hält sich an dieselbe Regel:
 Leere Felder fallen auf die Vorgabe zurück, ein Knopf stellt alle zwölf
 zurück. Eine Probe unter den Feldern zeigt vor dem Speichern, wie die Wörter in
 echten Textbausteinen aussehen.
+
+## Hell oder dunkel
+
+**Kriterion hat zwei Farbschemata, und jeder stellt für sich ein, welches er
+sieht** — in „Einstellungen → Persönlich → Darstellung", drei Stufen:
+
+| | |
+|---|---|
+| **Hell** | die helle Oberfläche, immer |
+| **Dunkel** | die dunkle, immer — **die Vorgabe** |
+| **Wie das Gerät** | folgt der Einstellung des Betriebssystems und wechselt mit ihr, ohne Neuladen |
+
+**Wer nichts einstellt, bekommt dunkel.** Die Einstellung gehört dem Zugang und
+nicht der Installation: zwei Leute an derselben Installation können
+verschiedene Schemata sehen.
+
+**Das Vollbild bleibt in beiden Schemata dunkel** — im hellen dunkelgrau statt
+fast schwarz. Das ist kein Versehen: ein fast schwarzes Umfeld lässt Fotos
+heller und kontrastreicher erscheinen, als sie sind, und Bildwerkzeuge sitzen
+deshalb alle bei rund 20 Prozent Helligkeit. Im dunklen Schema gewinnt die
+Geschlossenheit der Oberfläche; im hellen gibt es nichts zu schließen, und dort
+gewinnt das Bild.
+
+**Beim Öffnen blitzt nichts auf.** Der Browser merkt sich die letzte Wahl und
+malt gleich richtig — auch vor der Anmeldung. *Zwei Leute an einem Browser:
+der zweite sieht für Sekundenbruchteile das Schema des ersten, dann berichtigt
+der Server.*
+
+*Wie die Farben zustande gekommen sind — jeder Wert gemessen, nicht
+ausgerechnet — steht in `Doku/Farbkonzept_0_23_0.md`.*
 
 ## Schriftgröße
 
@@ -2422,9 +2453,10 @@ Start eine leere Neuinstallation vermuten.
   Sache des Admins — der Schalter der Bildformate allerdings nur des
   **Eigentümers**: er bestimmt, wie die ganze Installation künftig ablegt, und
   liegt damit in derselben Zeile wie Export, Sicherung und Schlüssel
-- `user_settings` — die **persönliche** Hälfte, **neun** Schlüssel: die zuletzt
+- `user_settings` — die **persönliche** Hälfte, **zehn** Schlüssel: die zuletzt
   benutzte Filterwahl, die **gespeicherten Ansichten**, der Bezugspunkt der
-  **Glocke**, Schriftgröße, die Größe der Bilder im Bildstreifen, Blockanordnung,
+  **Glocke**, das **Farbschema**, Schriftgröße, die Größe der Bilder im
+  Bildstreifen, Blockanordnung,
   sichtbare Linkzeilen, Zeitleiste und die Zahl der Suchmaschinennamen. Je Benutzer eine Zeile pro Schlüssel.
   *Ein Schlüssel aus einer älteren Fassung, den es nicht mehr gibt, **bleibt
   stehen und wird nicht mehr gelesen** — es gibt dafür keinen Migrationsblock,
