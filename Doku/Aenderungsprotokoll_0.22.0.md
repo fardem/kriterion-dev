@@ -49,7 +49,7 @@ neun Migrationsblöcke, neun ausgelieferte Module — unverändert.
 |---|---|---|
 | Prüfungen | 5571 | **5661** (+90, gezählt an beiden Läufen) |
 | Rückbauten in `gegenprobe.js` | 617 | **635** (+18, Nummern 624 bis 641; 42 nachgezogen) |
-| Stolpersteine | 313 | **316** |
+| Stolpersteine | 313 | **317** |
 | Vokabelwörter | 12 | **14** (`bewertungEinzahl`, `bewertungMehrzahl`) |
 | persönliche Schlüssel in `user_settings` | 8 | **9** (`streifen`) |
 | `F_ROUTEN` · Karten · Austauschformat | 70 · 21 · 13 | 70 · 21 · 13 — unverändert |
@@ -250,6 +250,12 @@ dem Wirt"; die Rückgängig-Formel „Das lässt sich nicht rückgängig machen.
   bedient die Prüflage selbst.
 - **Rund neunzig Zusagen umgedreht statt gelöscht** (Abschnitt 6); zwei Gruppen
   heißen neu.
+- **Zwei Prüflagen nach dem ersten Gegenprobenlauf gehärtet** (`4cab203`,
+  Stolperstein 317): die Lage zum fremden Passwort stellt `prompt()` auf
+  „Abbrechen", und die beiden Klicks auf den Rücksetzknopf des Aufklappers
+  greifen mit `?.`. Ohne das rissen die Rückbauten 630 und 637 den Lauf ab,
+  statt eine Prüfung rot zu färben (Abschnitt 8). Drei Zeilen, keine neue
+  Zusage — der Nenner bleibt 5661.
 - Die Zahl der Rückbauten steht auf **635**.
 
 ### `gegenprobe.js`
@@ -270,7 +276,7 @@ dem Wirt"; die Rückgängig-Formel „Das lässt sich nicht rückgängig machen.
 - `Doku/Projektstand_Kriterion_0_22_0.md` (per `git mv` aus `_0_21_1`,
   Revision 59): Kopf, Betriebsstand, Abschnitt 4 (die Karten unter ihren neuen
   Namen), **Abschnitt 5.6 mit G1 bis G8 und S1 bis S7 als geschriebene Regel**,
-  Stolpersteine 314 bis 316, Prüfstand (Abschnitt 7), Versionsgeschichte,
+  Stolpersteine 314 bis 317, Prüfstand (Abschnitt 7), Versionsgeschichte,
   Fahrplan (0.22.0 ist gebaut; die Ausarbeitung aus 10a ist herausgefallen; die
   nächste eingeschobene Runde nimmt 0.25.0), offene Betriebspunkte.
 - `README.md`: „Rollen und Benutzer", Registrierung, Mein Konto, Einstellungen,
@@ -469,6 +475,12 @@ anderer Benutzer", „5 Neuigkeiten von anderen" — und der Einladungsbrief, de
 - **316 — „Abbrechen" bricht ab.** *Der Löschdialog für einen Benutzer stellte
   drei `confirm()`, und in zweien hieß „Abbrechen" „ohne diese Hälfte weiter".
   Seit 0.22.0 ein Fenster mit zwei Häkchen, „Abbrechen" liefert null.*
+- **317 — Wer belegt, dass ein Weg nicht mehr begangen wird, hält den alten
+  Weg trotzdem gangbar.** *Aus dem Gegenprobenlauf: 630 (`prompt()` wieder
+  eingesetzt) lief in jsdom auf `undefined.trim()`, 637 (der Tag zählt nicht
+  mehr) auf `.dispatchEvent` an einer Null — beide rissen den Lauf ab, statt
+  rot zu färben (Stolpersteine 161 und 311). Seit `4cab203` ist `prompt()`
+  gestellt und der Klick greift mit `?.`; beide nachgefahren.*
 
 *Der Wortlaut steht im Projektstand, Abschnitt 11.*
 
@@ -528,7 +540,271 @@ vorausgesagt.*
 
 ### Die Gegenprobentabelle
 
-@@GP_TABELLE@@
+**18 Rückbauten gefahren, 4 Nebenspuren, Versatz 3500 je Spur — 0 STUMM; 630 und 637
+im ersten Anlauf ABGERISSEN, nach der Härtung zweier Prüflagen (`4cab203`,
+Stolperstein 317) auf zwei Nebenspuren nachgefahren — 18 von 18 rot.**
+*Gefahren am gebauten Stand (`8cb2029`; die Läufe nach den ersten vier nahmen
+`963eb38`, das nur die Papiere und die Versionsnummer trägt — derselbe Code),
+jede in einer eigenen Kopie aus `git archive HEAD`; der Arbeitsbaum wurde
+nicht angefasst.* *Jeder der 18 auswertbaren Läufe meldet denselben Nenner, **5661** — die Zahl ist damit 18-mal unabhängig bestätigt.*
+
+> **DIE ZEILE „Jeder Suchtext kommt in seiner Datei genau einmal vor" WIRD IN
+> FAST JEDEM LAUF ROT** — der Rückbau hat den Suchtext ja gerade ersetzt. *Sie
+> sagt nichts über den einzelnen Rückbau und steht trotzdem in der Tabelle,
+> damit niemand sie für einen Fund hält.*
+
+> **ZWEI LÄUFE SIND IM ERSTEN ANLAUF ABGERISSEN** — 630 nach 321 Sekunden an
+> `undefined.trim()` (jsdom kennt kein `prompt()`), 637 nach 374 Sekunden an
+> `.dispatchEvent` auf einer Null. *Ein abgerissener Lauf belegt nichts
+> (Stolpersteine 161 und 311); beide Prüflagen sind gehärtet (`4cab203`), und
+> die Tabelle zeigt beide Anläufe — den abgerissenen mit seinen letzten Zeilen
+> unter „Im Einzelnen", den nachgefahrenen mit den roten Prüfungen.*
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 624 | Das Milchglas kommt an die Kopfzeile zurueck | „backdrop-filter steht in keiner Regel des Stilblatts", „Die Kopfzeile ist deckend und bekommt beim Rollen einen Schatten statt Milchglas", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 625 | Die Glocke sagt wieder „Blick" | 4 Prüfungen, darunter „Kein Bildschirmtext in app.js traegt ein Wort der Verbotsliste" (3 Gruppen) |
+| 626 | Die Servermeldung zur Phase eines Kriteriums sagt wieder „Kasten" | „Keine Servermeldung ebenso", „Ein anderer Wert ist eine Absage mit Meldung", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 627 | Das Beenden der anderen Sitzungen fragt wieder ueber confirm() | 5 Prüfungen, darunter „Nach der Bestaetigung geht es an den Server" (3 Gruppen) |
+| 628 | Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto | 7 Prüfungen, darunter „Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da" (3 Gruppen) |
+| 629 | Ein fuenfter Kasten „Auf dem Server" kommt an die Karte Sicherung | „Und es sind genau vier: Passwort (Mein Konto), zweiter Faktor, Passwort (Benutzer), Neustart", „Die Eigentuemerin sieht drei: Mein Konto, Benutzer und Kennzahlen", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 630 | Das fremde Passwort wird wieder ueber prompt() abgefragt | **erster Anlauf: LAUF ABGERISSEN** — Code 1; **zweiter Anlauf** (`4cab203`): 8 Prüfungen, darunter „Vor dem fremden Passwort steht ein Fenster mit Passwortfeld — 0.22.0" (3 Gruppen) |
+| 631 | Der Bildstreifen laesst eine ungueltige Stufe durch | „Eine unbekannte Stufe wird abgewiesen", „Ueber 150 ebenso — das Vorschaubild hat nur 512 Bildpunkte", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 632 | Die Vorgabe des Vokabulars vergisst die Mehrzahl der Bewertung | 6 Prüfungen, darunter „Das Vokabular hat vierzehn Woerter, nicht mehr — 0.22.0" (2 Gruppen) |
+| 633 | Der Ruecksetzknopf steht wieder in der Sternzelle statt in seiner eigenen Spalte | 12 Prüfungen, darunter „Dafuer traegt jede Sternzeile ihren Ruecksetzknopf" (6 Gruppen) |
+| 634 | Rueckgaengig schreibt die Null statt des alten Werts | „„Rückgängig" schreibt den alten Wert zurueck: derselbe PUT mit value 3", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 635 | Die Zelle des Ruecksetzknopfs verliert ihren Abstand | „Die Zelle des Knopfs haelt mindestens 12 Bildpunkte Abstand nach links", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 636 | Der Aufklapper „Weitere Filter" bleibt bei greifendem Tagfilter zu | „Greift ein Tagfilter, steht er beim Aufbau offen", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 637 | filterZahl() zaehlt die Tags hinter dem Aufklapper nicht mehr | **erster Anlauf: LAUF ABGERISSEN** — Cannot read properties of null (reading 'dispatchEvent') (davor 3 rot); **zweiter Anlauf** (`4cab203`): 5 Prüfungen, darunter „Und er nennt die Zahl" (3 Gruppen) |
+| 638 | Der Knopf „Eintrag löschen" steht wieder fuer jede Rolle | „Ein Benutzer sieht an einem fremden Eintrag keinen Loeschknopf (E10)", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 639 | Der Klartextschluessel steht wieder vor dem Admin | „Der Admin sieht statt des Schluessels einen Satz an den Eigentuemer", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 640 | Die Karte Kategorien erklaert dem Benutzer wieder die Werkzeuge des Admins | „Der Benutzer liest an „Kategorien" einen Satz: „Alle Kategorien. Ändern kann sie der Admin."", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 641 | Abbrechen im Loeschfenster fuer einen Benutzer bricht nicht ab | „„Abbrechen" bricht ab: das Fenster liefert null und ist fort", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+
+### Im Einzelnen
+
+**624 — Das Milchglas kommt an die Kopfzeile zurueck** (public/style.css, Spur 0, 483s)
+  5658 von 5661 bestanden, erwartet in „Kein Milchglas im Stilblatt — 0.22.0"
+  ── Kein Milchglas im Stilblatt — 0.22.0
+     ✗ backdrop-filter steht in keiner Regel des Stilblatts
+     ✗ Die Kopfzeile ist deckend und bekommt beim Rollen einen Schatten statt Milchglas
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**625 — Die Glocke sagt wieder „Blick"** (public/app.js, Spur 1, 482s)
+  5657 von 5661 bestanden, erwartet in „Der Bildschirmtext-Waechter — 0.22.0"
+  ── Der Bildschirmtext-Waechter — 0.22.0
+     ✗ Kein Bildschirmtext in app.js traegt ein Wort der Verbotsliste
+  ── Die Glocke in der Kopfzeile
+     ✗ Und ihr Titel sagt es
+     ✗ Und ihr Titel nennt keine Zahl
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**626 — Die Servermeldung zur Phase eines Kriteriums sagt wieder „Kasten"** (server.js, Spur 2, 483s)
+  5658 von 5661 bestanden, erwartet in „Der Bildschirmtext-Waechter — 0.22.0"
+  ── Der Bildschirmtext-Waechter — 0.22.0
+     ✗ Keine Servermeldung ebenso
+  ── Zwei Kaesten, zwei Durchschnitte — 0.21.0
+     ✗ Ein anderer Wert ist eine Absage mit Meldung
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**627 — Das Beenden der anderen Sitzungen fragt wieder ueber confirm()** (public/app.js, Spur 3, 482s)
+  5656 von 5661 bestanden, erwartet in „Keine Browserfenster mehr — 0.22.0"
+  ── Meine Sitzungen in der Oberflaeche
+     ✗ Nach der Bestaetigung geht es an den Server
+     ✗ Und es bleibt genau die eigene stehen
+     ✗ Die Karte sagt danach, dass es die einzige ist
+  ── Keine Browserfenster mehr — 0.22.0
+     ✗ public/app.js ruft weder confirm( noch prompt( auf
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**628 — Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto** (public/app.js, Spur 1, 470s)
+  5654 von 5661 bestanden, erwartet in „Server-Befehle nur im Kasten — 0.22.0"
+  ── Der Systembereich nach Rolle
+     ✗ Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da
+     ✗ Sondern der Satz, der ihm wirklich hilft
+  ── Server-Befehle nur im Kasten — 0.22.0
+     ✗ Jeder Server-Befehl in app.js steht auf einer Zeile serverKasten(
+     ✗ Und es sind genau vier: Passwort (Mein Konto), zweiter Faktor, Passwort (Benutzer), Neustart
+     ✗ Ein Benutzer sieht keinen Kasten „Auf dem Server" und keinen Befehl
+     ✗ Ein Admin ebenso wenig
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**629 — Ein fuenfter Kasten „Auf dem Server" kommt an die Karte Sicherung** (public/app.js, Spur 3, 438s)
+  5658 von 5661 bestanden, erwartet in „Server-Befehle nur im Kasten — 0.22.0"
+  ── Server-Befehle nur im Kasten — 0.22.0
+     ✗ Und es sind genau vier: Passwort (Mein Konto), zweiter Faktor, Passwort (Benutzer), Neustart
+     ✗ Die Eigentuemerin sieht drei: Mein Konto, Benutzer und Kennzahlen
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**630 — Das fremde Passwort wird wieder ueber prompt() abgefragt** (public/app.js, Spur 2, 321s)
+  LAUF ABGERISSEN: Rückgabewert 1
+     │   ✓ Vor dem Rollenwechsel steht der Dialog
+     │   ✓ Die Freigabe nennt Zweck und Ziel
+     │   ✓ Und danach geht der Rollenwechsel an den Server
+     │   ✓ Die Freigabe kommt VOR der Handlung
+     │ Not implemented: Window's prompt() method
+     │ http://127.0.0.1:10932/:8523
+     │           if (neu === null || !neu.trim()) return;
+     │                                    ^
+     │ TypeError: Cannot read properties of undefined (reading 'trim')
+     │     at werkzeug.querySelector.onclick (http://127.0.0.1:10932/:8523:36)
+     │     at HTMLButtonElement.invokeTheCallbackFunction (/home/user/kriterion-dev/node_modules/jsdom/lib/generated/idl/EventHandlerNonNull.js:14:28)
+     │     at HTMLButtonElement.<anonymous> (/home/user/kriterion-dev/node_modules/jsdom/lib/jsdom/living/helpers/create-event-accessor.js:57:32)
+     │     at innerInvokeEventListeners (/home/user/kriterion-dev/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+     │     at invokeEventListeners (/home/user/kriterion-dev/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:296:3)
+     │     at HTMLButtonElementImpl._dispatch (/home/user/kriterion-dev/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9)
+     │     at HTMLButtonElementImpl.dispatchEvent (/home/user/kriterion-dev/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:114:17)
+     │     at HTMLButtonElement.dispatchEvent (/home/user/kriterion-dev/node_modules/jsdom/lib/generated/idl/EventTarget.js:241:34)
+     │     at pruefeOberflaeche (/tmp/kriterion-gegenprobe-630-IEPgNg/pruefung.js:31285:37)
+     │     at async lauf (/tmp/kriterion-gegenprobe-630-IEPgNg/pruefung.js:21102:3)
+     │ Node.js v22.22.2
+
+**630 — Das fremde Passwort wird wieder ueber prompt() abgefragt — zweiter Anlauf nach der Härtung (`4cab203`)** (public/app.js, Spur 0, 435s)
+  5653 von 5661 bestanden, erwartet in „Keine Browserfenster mehr — 0.22.0"
+  ── Die zweite Bestaetigung in der Oberflaeche
+     ✗ Vor dem fremden Passwort steht ein Fenster mit Passwortfeld — 0.22.0
+     ✗ Und es nennt die Vorgabe und die Folge
+     ✗ Danach steht der Dialog der zweiten Bestaetigung
+     ✗ Die Freigabe traegt den Zweck Passwort
+     ✗ Und danach wird das Passwort gesetzt
+  ── Keine Browserfenster mehr — 0.22.0
+     ✗ public/app.js ruft weder confirm( noch prompt( auf
+     ✗ Die eigenen Fenster stehen da und werden gerufen
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**631 — Der Bildstreifen laesst eine ungueltige Stufe durch** (server.js, Spur 0, 469s)
+  5658 von 5661 bestanden, erwartet in „Die Einstellung streifen — 0.22.0"
+  ── Die Einstellung streifen — 0.22.0
+     ✗ Eine unbekannte Stufe wird abgewiesen
+     ✗ Ueber 150 ebenso — das Vorschaubild hat nur 512 Bildpunkte
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**632 — Die Vorgabe des Vokabulars vergisst die Mehrzahl der Bewertung** (server.js, Spur 2, 448s)
+  5655 von 5661 bestanden, erwartet in „Einstellungen: Vokabular und Schriftgroesse"
+  ── Einstellungen: Vokabular und Schriftgroesse
+     ✗ Das Vokabular hat vierzehn Woerter, nicht mehr — 0.22.0
+     ✗ Und das dreizehnte und vierzehnte sind das Paar fuer die Bewertung — 0.22.0
+     ✗ Der Server kennt alle vierzehn Vokabeln
+     ✗ Das Paar fuer die Bewertung laesst sich setzen — 0.22.0
+     ✗ Und leer faellt jede Haelfte auf ihre Vorgabe zurueck
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**633 — Der Ruecksetzknopf steht wieder in der Sternzelle statt in seiner eigenen Spalte** (public/app.js, Spur 3, 422s)
+  5649 von 5661 bestanden, erwartet in „Die Sternzeile — 0.22.0"
+  ── Mehrbenutzer-Anzeigen in der Oberflaeche
+     ✗ Dafuer traegt jede Sternzeile ihren Ruecksetzknopf
+  ── Die Sternreihe steht auf einer Linie — 0.14.0
+     ✗ Jede Zeile haengt Name, Sterne, Zahl und Ruecksetzer als vier direkte Kinder — 0.22.0
+  ── Die Sternzeile — 0.21.0
+     ✗ Der Ruecksetzer steht in jeder Sternzeile mit Ruecksetzer im Dokument — 0.22.0
+  ── Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0
+     ✗ Und bei mehreren Zugaengen passen Zellen und Spalten zusammen
+     ✗ Bei mehreren Zugaengen sind es vier Zellen — 0.22.0
+     ✗ Und bei einem einzigen Zugang passen Zellen und Spalten zusammen
+     ✗ Bei einem einzigen Zugang sind es drei Zellen — 0.22.0
+  ── Die Sternzeile — 0.22.0
+     ✗ Jede Sternzeile hat vier Zellen: Name, Sterne, Durchschnitt, Ruecksetzer
+     ✗ Der Knopf steht in seiner Zelle, nicht in der Sternreihe
+     ✗ Ohne eigenen Stern ist der Knopf unsichtbar, seine Zelle bleibt
+     ✗ Bei einem einzigen Zugang hat die Zeile drei Zellen, die letzte ist der Knopf
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**634 — Rueckgaengig schreibt die Null statt des alten Werts** (public/app.js, Spur 0, 450s)
+  5659 von 5661 bestanden, erwartet in „Die Sternzeile — 0.22.0"
+  ── Die Sternzeile — 0.22.0
+     ✗ „Rückgängig" schreibt den alten Wert zurueck: derselbe PUT mit value 3
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**635 — Die Zelle des Ruecksetzknopfs verliert ihren Abstand** (public/style.css, Spur 1, 450s)
+  5659 von 5661 bestanden, erwartet in „Die Sternzeile — 0.22.0"
+  ── Die Sternzeile — 0.22.0
+     ✗ Die Zelle des Knopfs haelt mindestens 12 Bildpunkte Abstand nach links
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**636 — Der Aufklapper „Weitere Filter" bleibt bei greifendem Tagfilter zu** (public/app.js, Spur 2, 452s)
+  5659 von 5661 bestanden, erwartet in „Der Aufklapper „Weitere Filter" — 0.22.0"
+  ── Der Aufklapper „Weitere Filter" — 0.22.0
+     ✗ Greift ein Tagfilter, steht er beim Aufbau offen
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**637 — filterZahl() zaehlt die Tags hinter dem Aufklapper nicht mehr** (public/app.js, Spur 3, 374s)
+  LAUF ABGERISSEN: Cannot read properties of null (reading 'dispatchEvent')
+     │   ✗ Und er nennt die Zahl
+     │       "Filter zurücksetzen (2)"
+     │   ✗ Und es ist dieselbe Zahl, die auch der Schalter nennt
+     │       "· 2 aktiv"
+     │   ✓ Er steht in der Sortierzeile
+     │   ✓ Und rechts in ihr
+     │   ✓ Das Stilblatt schiebt ihn an den rechten Rand
+     │   ✓ Danach ist der Teststatus zurueckgesetzt
+     │   ✓ Und die Kategorien sind leer
+     │   ✓ Und die Tags ebenso
+     │   ✓ Auch die uebrigen Merkmale stehen wieder auf der Vorgabe
+     │   ✓ Und die Leiste zeigt es
+     │   ✓ Die Sortierung bleibt, wo sie war
+     │   ✓ Der Suchbegriff bleibt ebenfalls stehen
+     │   ✓ Der neue Stand geht ueber die vorhandene Route hinaus
+     │   ✓ Und keine andere Route wird dafuer geschrieben
+     │   ✓ Und danach ist der Ruecksetzer selbst wieder weg
+     │   ✓ Die gespeicherte Ansicht steht in der Leiste
+     │   ✗ Bei einem einzigen Tag nennt der Knopf die Eins
+     │ Prueflauf abgebrochen: Cannot read properties of null (reading 'dispatchEvent')
+  ── Der Ruecksetzer fuer die Filterleiste — 0.17.3
+     ✗ Und er nennt die Zahl
+     ✗ Und es ist dieselbe Zahl, die auch der Schalter nennt
+     ✗ Bei einem einzigen Tag nennt der Knopf die Eins
+
+**637 — filterZahl() zaehlt die Tags hinter dem Aufklapper nicht mehr — zweiter Anlauf nach der Härtung (`4cab203`)** (public/app.js, Spur 1, 435s)
+  5656 von 5661 bestanden, erwartet in „Der Aufklapper „Weitere Filter" — 0.22.0"
+  ── Der Ruecksetzer fuer die Filterleiste — 0.17.3
+     ✗ Und er nennt die Zahl
+     ✗ Und es ist dieselbe Zahl, die auch der Schalter nennt
+     ✗ Bei einem einzigen Tag nennt der Knopf die Eins
+  ── Der Aufklapper „Weitere Filter" — 0.22.0
+     ✗ Und filterZahl() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**638 — Der Knopf „Eintrag löschen" steht wieder fuer jede Rolle** (public/app.js, Spur 0, 420s)
+  5659 von 5661 bestanden, erwartet in „Die Rollenweichen — 0.22.0"
+  ── Die Rollenweichen — 0.22.0
+     ✗ Ein Benutzer sieht an einem fremden Eintrag keinen Loeschknopf (E10)
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**639 — Der Klartextschluessel steht wieder vor dem Admin** (public/app.js, Spur 1, 447s)
+  5659 von 5661 bestanden, erwartet in „Die Rollenweichen — 0.22.0"
+  ── Die Rollenweichen — 0.22.0
+     ✗ Der Admin sieht statt des Schluessels einen Satz an den Eigentuemer
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**640 — Die Karte Kategorien erklaert dem Benutzer wieder die Werkzeuge des Admins** (public/app.js, Spur 2, 448s)
+  5659 von 5661 bestanden, erwartet in „Die Rollenweichen — 0.22.0"
+  ── Die Rollenweichen — 0.22.0
+     ✗ Der Benutzer liest an „Kategorien" einen Satz: „Alle Kategorien. Ändern kann sie der Admin."
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
+
+**641 — Abbrechen im Loeschfenster fuer einen Benutzer bricht nicht ab** (public/app.js, Spur 3, 434s)
+  5659 von 5661 bestanden, erwartet in „Keine Browserfenster mehr — 0.22.0"
+  ── Keine Browserfenster mehr — 0.22.0
+     ✗ „Abbrechen" bricht ab: das Fenster liefert null und ist fort
+  ── Die Gegenproben greifen
+     ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor
 
 ---
 
@@ -570,7 +846,7 @@ vorausgesagt.*
 
 ---
 
-## 0.22.0 — Fingerprint `@@FP@@`
+## 0.22.0 — Fingerprint `fd292332`
 
 *Gebildet zuletzt, aus einem laufenden Server über `GET /api/stats`, nach der
 letzten Änderung an einer ausgelieferten Datei — die Versionsnummer in

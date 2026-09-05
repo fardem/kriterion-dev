@@ -475,7 +475,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.22.0** — Fingerprint **`@@FP@@`**, **5661
+**Gebaut ist 0.22.0** — Fingerprint **`fd292332`**, **5661
 Prüfungen**, **635 Rückbauten in der Liste** (Abschnitt 8).
 *0.22.0 macht die Oberfläche ruhiger, und sie redet Deutsch: kein Milchglas,
 eine Antwort auf jede Berührung, Marken statt grauer Wörter; rund 250
@@ -1378,7 +1378,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.22.0** | **`@@FP@@`** *(gebaut am 4. September 2026; **am Wirt noch nicht gesehen**)* | 5661 |
+| **0.22.0** | **`fd292332`** *(gebaut am 4. September 2026; **am Wirt noch nicht gesehen**)* | 5661 |
 | 0.21.1 | `2295870b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5571 |
 | 0.21.0 | `85f4348b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5512 |
 | **0.20.1** | **`c67a13f9`** *(am 3. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5403 |
@@ -8820,6 +8820,22 @@ Version, in der sie entstanden sind.*
     „Abbrechen" bricht immer ab, ohne Ausnahme; eine Wahl zwischen zwei Wegen ist
     kein Abbrechen, sondern zwei Knöpfe mit zwei Verben.
 
+317. **WER BELEGT, DASS EIN WEG NICHT MEHR BEGANGEN WIRD, HÄLT DEN ALTEN WEG
+    TROTZDEM GANGBAR — sonst reißt der Rückbau den Lauf ab, statt die Zeile
+    rot zu färben.** *Die Prüflage zum fremden Passwort belegt seit 0.22.0,
+    dass ein Fenster mit Passwortfeld steht und kein `prompt()` mehr gerufen
+    wird. Gestellt war `prompt()` darum nicht mehr — und die Gegenprobe 630,
+    die es wieder einsetzt, lief in jsdom auf `undefined.trim()`: der Lauf
+    riss nach 321 Sekunden ab, ohne eine einzige rote Prüfung (Stolperstein
+    161, zum dritten Mal). Dasselbe bei 637: `filterZahl()` zählte den einen
+    Tag nicht mehr, der Rücksetzknopf stand nicht da, und `.dispatchEvent` an
+    einer Null riss den Lauf nach 374 Sekunden ab (Stolperstein 311).* **Die
+    Prüflage stellt `prompt()` jetzt auf „Abbrechen", und beide Klicks auf den
+    Rücksetzknopf greifen mit `?.`** — *ob der Knopf dasteht, fragt die Zeile
+    darüber schon; so wird das Wiederauftauchen des alten Wegs rot und nicht
+    stumm.* Beide Rückbauten wurden nach der Härtung (`4cab203`) nachgefahren;
+    die Tabelle im Änderungsprotokoll 0.22.0 nennt beide Anläufe.
+
 ---
 
 ## 7. Prüfstand
@@ -8904,10 +8920,15 @@ beschränkt und **nicht** der volle Lauf über alle **635** Rückbauten.
 > Aufteilung je Gruppe ist aus den Ausgaben beider Läufe gezählt**, nicht
 > geschätzt (Stolperstein 137).
 
-> **DER GEGENPROBENLAUF ZU DIESER RUNDE: @@GP_SATZ@@** *Vier Nebenspuren,
+> **DER GEGENPROBENLAUF ZU DIESER RUNDE: 18 von 18, 0 STUMM — 630 und 637 im zweiten Anlauf.** *Vier Nebenspuren,
 > Versatz 3500 je Spur, jede Kopie aus `git archive HEAD` am gebauten Stand
-> (`8cb2029`).* @@GP_NENNER@@ *Die Tabelle mit den namentlich roten Prüfungen
-> steht im Änderungsprotokoll 0.22.0.*
+> (`8cb2029`; die Läufe nach den ersten vier nahmen `963eb38`, das nur die
+> Papiere und die Versionsnummer trägt — derselbe Code).* **Zwei Rückbauten,
+> 630 und 637, rissen den Lauf im ersten Anlauf ab, statt eine Prüfung rot
+> zu färben** (Stolperstein 317); *nach der Härtung der beiden Prüflagen
+> (`4cab203`) wurden sie auf zwei Nebenspuren nachgefahren und färben rot.*
+> *Jeder der 18 auswertbaren Läufe meldet denselben Nenner, **5661** — die Zahl ist damit 18-mal unabhängig bestätigt.* *Die Tabelle mit den namentlich roten Prüfungen steht im
+> Änderungsprotokoll 0.22.0, mit beiden Anläufen.*
 
 **Und die Runde davor, zum Vergleich — 5571 von 5571 bestanden** (0.21.1) —
 **59 neue, keine weggefallen.** *0.21.0 davor brachte 109, 0.20.1 davor 29.*
@@ -9895,7 +9916,7 @@ eine Buchführung.*
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
 | **0.19.5** | **Der Ausschnitt wird eingerechnet (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
-| **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch" (90 netto: 5571 → 5661)** | **achtzehn neue (617 → 635, Nummern 624 bis 641); 41 nachgezogen (Stolperstein 201 — fast jeder, der einen Bildschirmtext sucht); @@GP_SATZ@@** | **Stolpersteine 314 bis 316**; rund neunzig Zusagen umgedreht statt gelöscht |
+| **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch" (90 netto: 5571 → 5661)** | **achtzehn neue (617 → 635, Nummern 624 bis 641); 42 nachgezogen (Stolperstein 201 — fast jeder, der einen Bildschirmtext sucht); 18 von 18, 0 STUMM — 630 und 637 im zweiten Anlauf.** | **Stolpersteine 314 bis 317**; rund neunzig Zusagen umgedreht statt gelöscht |
 | **0.21.1** | **„Die Sortierung sagt, wonach du fragst“ (59 netto: 5512 → 5571)** | **achtzehn neue (599 → 617, Nummern 606 bis 623); EINER nachgezogen (Stolperstein 201: 612 auf den beim Härten gekürzten Rumpf von `statusAusSortierung()`)** — sonst musste keiner mitgehen: die Runde fasst `drawFilters()` an mehreren Stellen an, aber keine davon war der Suchtext eines vorhandenen Rückbaus *(nachgesehen an 384 bis 388 und an 254; 387 greift weiter, weil sein Suchtext bei `redraw()` beginnt und die neue Zeile darüber steht)*. **613 ist der, den der Auftrag ausdrücklich verlangt:** er schreibt die Ableitung **in** `state.filters`. *613 und 614 tragen denselben Suchtext und sind trotzdem zwei — verschiedene Zusagen, verschiedene rote Punkte.* **622 und 623 sind die Nachträge zu den beiden Befunden aus dem Bauen** — die Ruhestellung und der Zugriff auf die Vorgabetabelle, siehe Änderungsprotokoll 0.21.1, Abschnitte 5 und 5a | **Stolpersteine 312 und 313** |
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man“ (109 netto: 5403 → 5512)** | **sechsunddreißig neue (563 → 599, Nummern 570 bis 605); FÜNF nachgezogen (Stolperstein 201: 233 und 448 auf die Formatnummer 13, 237 auf die zusätzliche Zeile im Stilblatt, 240 auf den verschobenen Anker, 279 auf den umgebauten Erklärknopf); **alle 36 gefahren in zwei Läufen, im zweiten 0 stumm** — *der erste gab **SECHS STUMME** und **EINEN ABGERISSENEN** zurück, und zwei seiner Zeilen stammten gar nicht von ihren Rückbauten*. **Alle sieben Befunde sind abgearbeitet:** das `GROUP BY` trug die Zusage nicht (570, 571 — nachgemessen; sie hängt am `SELECT`, und dafür gab es keinen Rückbau → **602 und 603 nachgetragen**), die Migrationsprüflage rief den Block selbst (581), keine Prüflage wechselte je den Eintrag (593), drei Prüflagen trugen den Wert, der auch die Vorgabe ist (597, 598, 600), eine Kette riss den Lauf ab statt rot zu werden (573) — und **sieben liegengebliebene Server** an 6180 bis 6242 färbten auf Spur 0 fünfzehn Punkte im **Mailversand** (→ Wächter `fremdeServer()` im Treiber, **604 und 605**). *Jeder der 36 Läufe des Nachlaufs meldet denselben Nenner, 5512.* | **Stolpersteine 302 bis 311** |
 | **0.20.1** | **Die Karte listet die Sicherungen (29 netto: 5374 → 5403)** | **fünf neue (558 → 563: 567 bis 569 an der Karte, **W15 und W16 am Gegenprobentreiber**); DREI nachgezogen (563, 565 — und **566 in eine andere Datei**: der Deckel der Liste ist seit dieser Runde eine Regel im Stilblatt und keine Klasse im Markup); **ACHT GEFAHREN in drei Läufen** (563, 565, 566, 567, 568, 569 an der Karte; **W15 und W16** am Treiber), **EINER STUMM: 568** — *die Nummern wurden am Mock geprüft, und der rechnet sie selbst; das Feld `dateien` der echten Antwort war vollständig ungeprüft*. **Neun Zusagen an der echten Antwort nachgerüstet, danach namentlich rot.** *Sein erster Nachlauf riss nach 79 s ab, ohne genannten Grund — daraus ist Stolperstein 301 und der Bau am Treiber geworden; der zweite lief durch (5401 von 5403, 452 s).*** | **Stolperstein 301** |
@@ -9928,10 +9949,13 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 - **0.21.1 IST EINGESPIELT UND BESTÄTIGT.** *Die laufende Installation hat am
   4. September 2026 **`2295870b`** gemeldet, genau den Sollwert.* Die fünf
   Handgriffe jener Runde stehen im Änderungsprotokoll 0.21.1.
-- **DER GEGENPROBENLAUF DIESER RUNDE IST GEFAHREN: @@GP_SATZ@@** *Vier
+- **DER GEGENPROBENLAUF DIESER RUNDE IST GEFAHREN: 18 von 18, 0 STUMM — 630 und 637 im zweiten Anlauf.** *Vier
   Nebenspuren, Versatz 3500 je Spur, jede Kopie aus `git archive HEAD` am
-  gebauten Stand (`8cb2029`).* @@GP_NENNER@@ **Die Tabelle steht im
-  Änderungsprotokoll 0.22.0.**
+  gebauten Stand (`8cb2029`, ab dem fünften Lauf `963eb38` — derselbe Code).
+  Zwei Rückbauten, 630 und 637, rissen den Lauf im ersten Anlauf ab
+  (Stolperstein 317) und wurden nach der Härtung zweier Prüflagen
+  (`4cab203`) nachgefahren.* *Jeder der 18 auswertbaren Läufe meldet denselben Nenner, **5661** — die Zahl ist damit 18-mal unabhängig bestätigt.* **Die Tabelle steht im
+  Änderungsprotokoll 0.22.0, mit beiden Anläufen.**
 - **DER GEGENPROBENLAUF VON 0.21.1 WAR GEFAHREN: 18 von 18, 0 STUMM.** *Vier
   Nebenspuren, Versatz 3500 je Spur, jede Kopie aus `git archive HEAD` am
   gebauten Stand (`11ecd2a`); jeder der 18 Läufe meldet denselben Nenner,
@@ -10653,8 +10677,8 @@ der Bildschirmtext-Wächter gegen die Verbotsliste, kein Milchglas, keine
 Browserfenster, Server-Befehle nur im Kasten, die Einstellung `streifen`, das
 Vokabular bei vierzehn, die Sternzeile, der Aufklapper, die Rollenweichen —,
 und rund neunzig Zusagen umgedreht statt gelöscht, weil ihr Wortlaut sich
-geändert hat (Stolperstein 74). **Rückbauten 624 bis 641** (617 → 635), 41
-mitgezogen (Stolperstein 201). **Stolpersteine 314 bis 316.** *Die Tabellen
+geändert hat (Stolperstein 74). **Rückbauten 624 bis 641** (617 → 635), 42
+mitgezogen (Stolperstein 201). **Stolpersteine 314 bis 317.** *Die Tabellen
 stehen im Änderungsprotokoll 0.22.0.*
 
 ### 0.21.1 — „Die Sortierung sagt, wonach du fragst"
