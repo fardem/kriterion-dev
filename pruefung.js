@@ -31281,6 +31281,12 @@ async function pruefeOberflaeche() {
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     stelleBestaetigung(d.w, true);
+    /* prompt() WIRD AUF „Abbrechen" GESTELLT, obwohl die Oberflaeche es seit
+       0.22.0 nicht mehr ruft: jsdom liefert undefined, und ein Rueckbau auf
+       prompt() liefe damit in `.trim()` auf undefined -- der Lauf risse ab,
+       statt dass die Zeile zum Passwortfeld rot wuerde (Stolpersteine 161
+       und 311; die Gegenprobe 630 hat es gezeigt). */
+    d.w.prompt = () => null;
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-p')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -39345,7 +39351,9 @@ async function pruefeOberflaeche() {
     /* GEZAEHLT WIRD, WAS NACH DEM KLICK HINAUSGEHT und nicht, was beim Aufbau
        schon lief -- sonst pruefte die Verneinung unten den Seitenaufbau mit. */
     const vorDemKlick = d.gesendet.length;
-    knopf.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    // MIT `?.`: ob der Knopf dasteht, hat die Zeile oben schon gefragt
+    // (Stolperstein 311) -- an einer Null soll der Lauf nicht abreissen.
+    knopf?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     const danach = d.gesendet.slice(vorDemKlick);
     /* GELESEN WIRD DIE STELLUNG DORT, WO SIE HINAUSGEHT -- im Rumpf des
@@ -39406,7 +39414,11 @@ async function pruefeOberflaeche() {
       frKnopf(d.w)?.textContent === 'Filter zurücksetzen (1)',
       JSON.stringify(frKnopf(d.w)?.textContent));
     const anVorher = d.gesendet.length;
-    frKnopf(d.w).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    /* MIT `?.`: zaehlt ein Rueckbau den einen Tag nicht mehr mit, steht kein
+       Knopf da -- dann bleibt die Zeile darueber rot, statt dass der Lauf an
+       einer Null abreisst (Stolpersteine 161 und 311; die Gegenprobe 637 hat
+       es gezeigt). */
+    frKnopf(d.w)?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     pruefe('Nach dem Zuruecksetzen steht sie immer noch da',
       pillen().includes('Meine Sicht'), JSON.stringify(pillen()));
