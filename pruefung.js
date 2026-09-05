@@ -27714,7 +27714,12 @@ async function pruefeOberflaeche() {
   // Im Einzelnen: die beiden Kanäle dürfen sich nicht überschneiden,
   // sonst sind nicht mehr alle vier Zustände unterscheidbar.
   pruefe('Es gibt ein gedämpftes Gold als eigene Farbe',
-    /--gold-line: rgba\(255,\s*197,\s*49,\s*\.\d+\)/.test(cssM),
+    // SEIT 0.23.0 STEHT DIE FARBE ALS TRIPEL: `rgba(var(--gold-rgb), .52)`.
+    // Geprueft wird beides -- dass --gold-line das GOLD-Tripel nimmt und nicht
+    // irgendeines, und dass das Tripel wirklich Gold ist. Sonst belegte die
+    // Zeile nur noch, dass irgendwo eine Klammer steht.
+    /--gold-line: rgba\(var\(--gold-rgb\),\s*\.\d+\)/.test(cssM)
+      && /--gold-rgb: *255,\s*197,\s*49/.test(cssM),
     (cssM.match(/--gold-line:[^;]*/) || ['(nicht gesetzt)'])[0]);
   /* DIESE DREI ZEILEN HABEN BIS 0.13.2 DIE ZURUECKGENOMMENE ENTSCHEIDUNG
      FESTGEHALTEN, und das ist der eigentliche Befund jener Runde. Sie
@@ -30331,7 +30336,11 @@ async function pruefeOberflaeche() {
      und --accent-line stehen in :root als Teildeckung; waeren sie voll
      gesaettigt, saessen zwei gleich laute Knoepfe uebereinander. */
   const sDeckung = ['--accent-dim', '--accent-line'].map(n => {
-    const t = (sCss.match(new RegExp(`${n}: *rgba\\([^)]*\\)`)) || [''])[0];
+    /* DIE KLAMMER IST SEIT 0.23.0 VERSCHACHTELT -- `rgba(var(--accent-rgb), .13)`.
+       Mit `[^)]*` endete der Treffer an der INNEREN Klammer, und das Alpha
+       stand nicht mehr darin: die Pruefung waere nicht rot geworden, sondern
+       blind. Deshalb eine Runde Verschachtelung ausdruecklich erlaubt. */
+    const t = (sCss.match(new RegExp(`${n}: *rgba\\((?:[^()]|\\([^()]*\\))*\\)`)) || [''])[0];
     const a = t.match(/,\s*(0?\.\d+|0|1)\)/);
     return { n, t, a: a ? Number(a[1]) : NaN };
   });
@@ -38059,7 +38068,8 @@ async function pruefeOberflaeche() {
     // Dasselbe Werkzeug wie in der Gruppe zur Filterleiste -- ein zweiter
     // Leser fuer dieselbe Datei liefe mit ihm auseinander.
     pruefe('Die Aussage traegt einen roten Strich in der Farbe des Schalters',
-      /border-left: 2px solid rgba\(240,85,92,\.42\)/.test(regel123('.rej-aussage')),
+      // Seit 0.23.0 als Tripel geschrieben; die 42 Prozent sind dieselben.
+      /border-left: 2px solid rgba\(var\(--red-rgb\), \.42\)/.test(regel123('.rej-aussage')),
       regel123('.rej-aussage') || '(keine Regel)');
     pruefe('Und der Grund selbst steht in --red',
       /color: var\(--red\)/.test(regel123('.rej-aussage .rej-warum')),
@@ -40390,8 +40400,74 @@ async function pruefeOberflaeche() {
       /\.masthead\.gerollt \{ box-shadow: var\(--sh-sm\); \}/.test(css123),
       regel123('.masthead.gerollt') || '(keine Regel)');
     pruefe('Der Hintergrund eines Dialogs ist eine deckende Farbe ohne Weichzeichner',
-      /\.backdrop \{[^}]*background: rgba\(6,7,9,\.78\)/.test(css123) && !/\.backdrop \{[^}]*filter/.test(css123),
+      // Seit 0.23.0 als Tripel; die 78 Prozent und die Farbe sind dieselben.
+      /\.backdrop \{[^}]*background: rgba\(var\(--schleier-rgb\), \.78\)/.test(css123)
+        && /--schleier-rgb: *6,\s*7,\s*9/.test(cssRoh)
+        && !/\.backdrop \{[^}]*filter/.test(css123),
       regel123('.backdrop') || '(keine Regel)');
+  }
+
+  /* ============ Keine feste Farbe im Stilblatt — 0.23.0 ============
+     DER WAECHTER DER RUNDE, und er entsteht im ERSTEN Bauabschnitt und nicht
+     am Ende: er ist die einzige Zusicherung, dass die Bestandsaufnahme
+     vollstaendig war.
+
+     WORUM ES GEHT. Bis 0.22.1 trugen 67 Stellen ausserhalb von `:root` ihre
+     Farbe als Zahl -- 36 als `#rrggbb`, 31 als `rgba(r,g,b,a)`. Solange es
+     nur ein Schema gab, war das eine Unordnung. Mit zwei Schemata ist es ein
+     Fehler: WAS FEST IM BLATT STEHT, BLEIBT BEIM UMSCHALTEN STEHEN -- als
+     dunkler Fleck auf heller Seite.
+
+     GESUCHT WIRD IM REGELWERK, NICHT IM PAPIER. Kommentare fallen heraus: ein
+     Kommentar darf eine Farbe nennen (und tut es, zum Beispiel dort, wo die
+     Herkunft eines Randes erklaert wird), eine Regel nicht. Die
+     `:root`-Bloecke fallen ebenfalls heraus -- dort GEHOEREN die Zahlen hin,
+     das ist der ganze Zweck der Uebung.
+
+     DIE POSITIVLISTE HAT GENAU EINEN EINTRAG, und er steht hier und im
+     Stilblatt danebengeschrieben: `#000` hinter `<video>`. Es ist der Balken,
+     den ein Video beim Seitenverhaeltnis stehen laesst -- der RAND EINES
+     VIDEOS und keine Flaeche der Oberflaeche. Er ist in jedem Schema
+     schwarz, weil das Bild es dort ist.
+     WER SIE VERLAENGERT, schreibt den Grund daneben. Eine Positivliste ohne
+     Begruendung je Eintrag ist nach zwei Runden eine Ausnahmeliste. */
+  gruppe('Keine feste Farbe im Stilblatt — 0.23.0');
+  {
+    const cssF = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    // Kommentare raus, dann die :root-Bloecke raus. In dieser Reihenfolge --
+    // ein Kommentar innerhalb von :root duerfte den Block sonst zerschneiden.
+    const ohneK = cssF.replace(/\/\*[\s\S]*?\*\//g, '');
+    const regelwerk = ohneK.replace(/:root[^{]*\{[^}]*\}/g, '');
+    // Die Positivliste: der Videobalken, und sonst nichts.
+    const erlaubt = /^(background: #000)$/;
+    const funde = (regelwerk.match(/[a-z-]+: *#[0-9a-fA-F]{3,8}\b|[a-z-]+: *rgba?\([0-9]/g) || [])
+      .filter(s => !erlaubt.test(s.trim()));
+    pruefe('Keine Regel ausserhalb von :root traegt eine Farbe als Zahl',
+      funde.length === 0,
+      funde.length ? `${funde.length}: ${[...new Set(funde)].slice(0, 8).join(' · ')}` : 'keine');
+    // DIE GEGENLAGE: der Waechter kann ueberhaupt etwas finden. Ohne sie
+    // belegte die Zeile darueber auch dann etwas, wenn der Ausdruck nie
+    // trifft -- die haeufigste Art, wie eine Regelpruefung still stirbt.
+    pruefe('Und der Waechter findet eine eingebaute Farbe wirklich',
+      ((regelwerk + '\n.probe { color: #abcdef; }')
+        .match(/[a-z-]+: *#[0-9a-fA-F]{3,8}\b/g) || []).includes('color: #abcdef'),
+      'Gegenprobe mit .probe { color: #abcdef }');
+    // Die Positivliste steht wirklich nur an den zwei Videoregeln -- und der
+    // Grund steht im Stilblatt daneben, nicht nur hier.
+    const videos = (regelwerk.match(/background: #000/g) || []).length;
+    pruefe('Die Positivliste hat genau die zwei Videoregeln',
+      videos === 2, `${videos} Stellen mit background: #000`);
+    pruefe('Und das Stilblatt schreibt daneben, warum sie eine Ausnahme sind',
+      /Positivliste[\s\S]{0,400}RAND EINES VIDEOS/.test(cssF),
+      /Positivliste/.test(cssF) ? 'Begruendung gefunden' : '(kein Wort davon)');
+    /* DIE ZWEITE HAELFTE: die Tripel gibt es, und sie tragen die Farben, auf
+       die sich alles Uebrige beruft. Ein `rgba(var(--red-rgb), .42)` ist nur
+       so viel wert wie `--red-rgb`. */
+    for (const [name, wert] of [['--accent-rgb', '255,\\s*122,\\s*26'], ['--gold-rgb', '255,\\s*197,\\s*49'],
+                                ['--green-rgb', '63,\\s*211,\\s*154'], ['--red-rgb', '240,\\s*85,\\s*92']])
+      pruefe(`${name} steht in :root und traegt die richtige Farbe`,
+        new RegExp(`${name}: *${wert} *;`).test(cssF),
+        (cssF.match(new RegExp(`${name}:[^;]*`)) || ['(nicht gesetzt)'])[0]);
   }
 
   /* ================= Keine Browserfenster mehr — 0.22.0 =================
