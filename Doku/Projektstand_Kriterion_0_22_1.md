@@ -475,7 +475,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.22.1** — Fingerprint **`53aacd7c`**, **5710
+**Gebaut ist 0.22.1** — Fingerprint **`53aacd7c`**, **5713
 Prüfungen**, **648 Rückbauten in der Liste** (Abschnitt 8).
 *0.22.1 räumt drei Befunde aus dem Rundlauf nach 0.22.0 weg. **Der
 Bildausschnitt bedient sich wie ein Ausschnitt:** außerhalb ziehen zieht einen
@@ -1408,7 +1408,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.22.1** | **`53aacd7c`** *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5710 |
+| **0.22.1** | **`53aacd7c`** *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5713 |
 | 0.22.0 | `fd292332` *(am 5. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; die drei Befunde daraus sind 0.22.1)* | 5661 |
 | 0.21.1 | `2295870b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5571 |
 | 0.21.0 | `85f4348b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5512 |
@@ -8957,6 +8957,20 @@ Version, in der sie entstanden sind.*
     keine Lücke ist: `value: 0` bleibt immer offen, denn wegnehmen muss man
     dürfen.*
 
+322. **EINE ZUSAGE, DIE AN VIER FÄLLEN HÄNGT, MUSS AN DEM FALL STEHEN, DER SIE
+    SEHEN KANN.** *Rückbau 646 legt den Ausschnittrahmen nach der ungerasteten
+    Kante — genau das, was `setzeKiste()` verhindert. Rot wurde er nur an den
+    beiden Kanten-Zusagen; „und die gegenüberliegende Ecke bleibt liegen" blieb
+    grün. Der Grund: geprüft war die untere rechte Ecke, und die zieht
+    `rechts-unten` — ihr Anker ist die linke obere Ecke, und `lage()` gibt dort
+    `{ l: k.links, o: k.oben }` zurück; die gerastete Kante kommt darin gar
+    nicht vor. An dieser einen der vier Ecken kann der Rückbau nichts
+    verschieben.* **Die Zusage war richtig und stand am einzigen Fall, an dem
+    sie nichts sehen konnte.** *Seit 0.22.1 steht sie zusätzlich an der oberen
+    linken Ecke, deren Anker `rechts - e` und `unten - e` sind.* **Das ist der
+    Zweck der Gegenprobe, wörtlich genommen:** *grün UND rot-fähig genügt nicht
+    — sie muss rot werden an dem Fall, den sie zu tragen vorgibt.*
+
 ---
 
 ## 7. Prüfstand
@@ -9001,7 +9015,7 @@ im Image.**
 > fällt nicht von selbst auf: die Bereitschaftsprüfung bekommt ja eine Antwort*
 > (Stolperstein 139).
 
-**Stand: 5710 von 5710 bestanden** (0.22.1) — **49
+**Stand: 5713 von 5713 bestanden** (0.22.1) — **52
 neue, keine weggefallen.** *0.22.0 davor brachte 90, 0.21.1 davor 59, 0.21.0
 davor 109.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
@@ -9009,17 +9023,17 @@ beschränkt und **nicht** der volle Lauf über alle **648** Rückbauten.
 
 | Gruppe (0.22.1) | vorher | nachher | wofür |
 |---|---|---|---|
-| **Die fünf Gesten am Ausschnitt — 0.22.1** *(neu)* | — | **32** | **Zuerst die Entscheidung selbst, ohne Zeiger:** außen, innen, jede der vier Ecken, jede der vier Kanten, die Überlappung (**die Ecke gewinnt**), die Breite der Zone auf **beiden** Seiten der Grenze, der Deckel am kleinen Rahmen. **Dann am lebenden Objekt, mit echten Zeigerereignissen:** die linke obere Ecke eines neuen Rahmens sitzt, wo der Zug anfing; das Schieben rührt den Zoom nicht an (am gesendeten Rumpf); die feste Ecke und die feste Kante bleiben liegen; der Mittelpunkt wandert auf ihr nicht; nichts verlässt das Bild; ein Griff ohne Weg speichert nicht und verstellt nichts, ein Klick außerhalb speichert weiter; der Zeiger sagt es vorher; der Finger schiebt. *Davon sind **fünf** Zusagen aus der Gruppe „Fokuspunkt in der Oberfläche" herübergekommen — das Verlassen des Modus räumt jetzt fünf Zeigerbehandler ab statt drei und gehört zu dieser Frage.* |
+| **Die fünf Gesten am Ausschnitt — 0.22.1** *(neu)* | — | **34** | **Zuerst die Entscheidung selbst, ohne Zeiger:** außen, innen, jede der vier Ecken, jede der vier Kanten, die Überlappung (**die Ecke gewinnt**), die Breite der Zone auf **beiden** Seiten der Grenze, der Deckel am kleinen Rahmen. **Dann am lebenden Objekt, mit echten Zeigerereignissen:** die linke obere Ecke eines neuen Rahmens sitzt, wo der Zug anfing; das Schieben rührt den Zoom nicht an (am gesendeten Rumpf); die feste Ecke und die feste Kante bleiben liegen; der Mittelpunkt wandert auf ihr nicht; nichts verlässt das Bild; ein Griff ohne Weg speichert nicht und verstellt nichts, ein Klick außerhalb speichert weiter; der Zeiger sagt es vorher; der Finger schiebt. *Davon sind **fünf** Zusagen aus der Gruppe „Fokuspunkt in der Oberfläche" herübergekommen — das Verlassen des Modus räumt jetzt fünf Zeigerbehandler ab statt drei und gehört zu dieser Frage.* |
 | **Fokuspunkt in der Oberflaeche** | 34 | **29** | *Unverändert; die fünf Zusagen zum Verlassen des Modus stehen jetzt in der Gruppe darüber.* |
-| **Zwei Kaesten in der Oberflaeche — 0.21.0** | 37 | **46** | Die Kopfzahl steht **genau einmal** und die Zahl steht trotzdem da; ohne Zahl bleibt der Satz, je Kasten mit eigenem Wort; der Titel sagt in **beiden** Kästen wortgleich, dass die Zahl über alle Benutzer geht, und der Erklärkasten sagt es auch; an einer Idee gibt es den Bewertungskasten **nicht**, mit vorhandenen Sternen steht er **sichtbar** da, und der Schalter „Getestet" holt ihn zurück |
+| **Zwei Kaesten in der Oberflaeche — 0.21.0** | 37 | **47** | Die Kopfzahl steht **genau einmal** und die Zahl steht trotzdem da; ohne Zahl bleibt der Satz, je Kasten mit eigenem Wort; der Titel sagt in **beiden** Kästen wortgleich, dass die Zahl über alle Benutzer geht, und der Erklärkasten sagt es auch; an einer Idee gibt es den Bewertungskasten **nicht**, mit vorhandenen Sternen steht er **sichtbar** da, und der Schalter „Getestet" holt ihn zurück |
 | **Zwei Kaesten, zwei Durchschnitte — 0.21.0** | 33 | **40** | Die Route weist eine Bewertung am ungetesteten Eintrag ab, **nennt den Grund** und **schreibt dabei nichts**; das Potenzial geht weiter; `value: 0` geht weiter; am getesteten Eintrag nimmt sie wieder an |
 | **Rechte an Testtagen und Bewertungen** | 18 | **24** | Dieselbe Absage für **Verfasser und Admin** — die Klemme kennt keine Rolle; an einer echten Datenbank mit drei Benutzern, und der Nachweis geht an den Zeilen und nicht an der Antwort |
-| **zusammen** | **5661** | **5710** | **+49** |
+| **zusammen** | **5661** | **5713** | **+52** |
 
 > **BEIDE ZAHLEN SIND GEFAHREN UND NICHT GERECHNET** — der volle Lauf am
-> gebauten Stand meldet **5710 von 5710**. *Die Aufteilung je Gruppe ist aus
-> der Ausgabe des Laufs gezählt und gegen den Diff gehalten: **53 neue
-> `pruefe()`-Aufrufe, vier weggefallene**, macht +49.*
+> gebauten Stand meldet **5713 von 5713**. *Die Aufteilung je Gruppe ist aus
+> der Ausgabe des Laufs gezählt und gegen den Diff gehalten: **56 neue
+> `pruefe()`-Aufrufe, vier weggefallene**, macht +52.*
 
 ---
 
@@ -10058,7 +10072,7 @@ eine Buchführung.*
 | **0.19.3** | **Bestandsläufe verlassen den Anfrageweg (62 netto: 5108 → 5170)** | **sechzehn neue (481 → 497, fünfzehn ab 491 plus W14); acht nachgezogen; 24 gefahren, 1 STUMM — und der eine war der bekannte** | **Stolpersteine 282 bis 286** |
 | **0.19.4** | **Die Kachel zeigt, was das Original hergibt (37 netto: 5170 → 5207)** | **siebzehn neue (497 → 514, Nummern 506 bis 522); fünf nachgezogen; 22 gefahren, 1 STUMM — und der eine war vorhergesagt (516, `reclaim()`)** | **Stolpersteine 287 bis 292** |
 | **0.19.5** | **Der Ausschnitt wird eingerechnet (30 netto: 5207 → 5237)** | **achtzehn neue (514 → 532, Nummern 523 bis 540); ELF nachgezogen, davon VIER in eine andere Datei (449, 453, 464, 465 — der Zuschnitt im Browser, den sie zurückbauten, gibt es nicht mehr; die Zusage schon); 21 gefahren, 1 STUMM — und der eine war ein FUND (529: der Prüfstand belegte nirgends, dass der Import den Ausschnitt mitbackt; Lücke geschlossen, nachgefahren)** | **Stolpersteine 293 bis 297** |
-| **0.22.1** | **„Der Ausschnitt bedient sich wie ein Ausschnitt" (49 netto: 5661 → 5710)** | **dreizehn neue (635 → 648, Nummern 642 bis 654); einer nachgezogen (Stolperstein 201: Rückbau 330, dessen Suchtext auf den Satz im Erklärkasten zeigt); GEGENPROBENTABELLE_PLATZ.** | **Stolpersteine 318 bis 321**; drei Zusagen umgedreht statt gelöscht |
+| **0.22.1** | **„Der Ausschnitt bedient sich wie ein Ausschnitt" (52 netto: 5661 → 5713)** | **dreizehn neue (635 → 648, Nummern 642 bis 654); einer nachgezogen (Stolperstein 201: Rückbau 330, dessen Suchtext auf den Satz im Erklärkasten zeigt); 13 von 13, 0 STUMM — 646 nach einem Fund am Prüfstand nachgefahren.** | **Stolpersteine 318 bis 322**; drei Zusagen umgedreht statt gelöscht |
 | **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch" (90 netto: 5571 → 5661)** | **achtzehn neue (617 → 635, Nummern 624 bis 641); 42 nachgezogen (Stolperstein 201 — fast jeder, der einen Bildschirmtext sucht); 18 von 18, 0 STUMM — 630 und 637 im zweiten Anlauf.** | **Stolpersteine 314 bis 317**; rund neunzig Zusagen umgedreht statt gelöscht |
 | **0.21.1** | **„Die Sortierung sagt, wonach du fragst“ (59 netto: 5512 → 5571)** | **achtzehn neue (599 → 617, Nummern 606 bis 623); EINER nachgezogen (Stolperstein 201: 612 auf den beim Härten gekürzten Rumpf von `statusAusSortierung()`)** — sonst musste keiner mitgehen: die Runde fasst `drawFilters()` an mehreren Stellen an, aber keine davon war der Suchtext eines vorhandenen Rückbaus *(nachgesehen an 384 bis 388 und an 254; 387 greift weiter, weil sein Suchtext bei `redraw()` beginnt und die neue Zeile darüber steht)*. **613 ist der, den der Auftrag ausdrücklich verlangt:** er schreibt die Ableitung **in** `state.filters`. *613 und 614 tragen denselben Suchtext und sind trotzdem zwei — verschiedene Zusagen, verschiedene rote Punkte.* **622 und 623 sind die Nachträge zu den beiden Befunden aus dem Bauen** — die Ruhestellung und der Zugriff auf die Vorgabetabelle, siehe Änderungsprotokoll 0.21.1, Abschnitte 5 und 5a | **Stolpersteine 312 und 313** |
 | **0.21.0** | **„Vor dem Test schätzt man, nach dem Test bewertet man“ (109 netto: 5403 → 5512)** | **sechsunddreißig neue (563 → 599, Nummern 570 bis 605); FÜNF nachgezogen (Stolperstein 201: 233 und 448 auf die Formatnummer 13, 237 auf die zusätzliche Zeile im Stilblatt, 240 auf den verschobenen Anker, 279 auf den umgebauten Erklärknopf); **alle 36 gefahren in zwei Läufen, im zweiten 0 stumm** — *der erste gab **SECHS STUMME** und **EINEN ABGERISSENEN** zurück, und zwei seiner Zeilen stammten gar nicht von ihren Rückbauten*. **Alle sieben Befunde sind abgearbeitet:** das `GROUP BY` trug die Zusage nicht (570, 571 — nachgemessen; sie hängt am `SELECT`, und dafür gab es keinen Rückbau → **602 und 603 nachgetragen**), die Migrationsprüflage rief den Block selbst (581), keine Prüflage wechselte je den Eintrag (593), drei Prüflagen trugen den Wert, der auch die Vorgabe ist (597, 598, 600), eine Kette riss den Lauf ab statt rot zu werden (573) — und **sieben liegengebliebene Server** an 6180 bis 6242 färbten auf Spur 0 fünfzehn Punkte im **Mailversand** (→ Wächter `fremdeServer()` im Treiber, **604 und 605**). *Jeder der 36 Läufe des Nachlaufs meldet denselben Nenner, 5512.* | **Stolpersteine 302 bis 311** |
@@ -10807,10 +10821,10 @@ nicht mehr wegzunehmen (Stolperstein 321). **Die Ausnahme aus 0.21.0 bleibt:**
 trägt ein ungetesteter Eintrag schon Bewertungssterne, steht sein Kasten
 sichtbar und offen da (E6). *Regel G11.*
 
-**Der Prüfstand:** 5710 Prüfungen (5661 davor, +49), eine neue Gruppe — die
+**Der Prüfstand:** 5713 Prüfungen (5661 davor, +52), eine neue Gruppe — die
 fünf Gesten am Ausschnitt —, und drei Zusagen umgedreht statt gelöscht
 (Stolperstein 74). **Rückbauten 642 bis 654** (635 → 648), einer mitgezogen
-(Stolperstein 201). **Stolpersteine 318 bis 321.** *Die Tabellen stehen im
+(Stolperstein 201). **Stolpersteine 318 bis 322.** *Die Tabellen stehen im
 Änderungsprotokoll 0.22.1.*
 
 **Ein Befund aus dem Bauen:** *der Prüfstand zählt die Rückbauten, und die Zahl

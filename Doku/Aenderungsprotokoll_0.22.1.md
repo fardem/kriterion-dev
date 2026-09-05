@@ -45,9 +45,9 @@ Vokabelwörter, neun persönliche Schlüssel — unverändert.
 
 | | vorher (0.22.0) | nachher (0.22.1) |
 |---|---|---|
-| Prüfungen | 5661 | **5710** (+49, gezählt am Lauf) |
+| Prüfungen | 5661 | **5713** (+52, gezählt am Lauf) |
 | Rückbauten in `gegenprobe.js` | 635 | **648** (+13, Nummern 642 bis 654; einer mitgezogen) |
-| Stolpersteine | 317 | **321** |
+| Stolpersteine | 317 | **322** |
 | Gestaltungsregeln in 5.6 | G1 bis G8 | **G1 bis G11** |
 | Gesten am Bildausschnitt | 2 | **5** — und **8 Griffe** am Rahmen |
 | `F_ROUTEN` · Karten · Austauschformat · Vokabelwörter | 70 · 21 · 13 · 14 | unverändert |
@@ -156,8 +156,8 @@ Siehe Abschnitt 4.
   zu 0.22.0 ist mit ihm weggefallen, und der Verweis darauf im Konzeptpapier
   ist nachgezogen.
 * `Doku/Projektstand_Kriterion_0_22_1.md` (per `git mv`, Revision 60): Kopf,
-  Betriebsstand, Abschnitt 5.6 (**G9 bis G11**), Stolpersteine **318 bis 321**,
-  Fahrplan, Versionsgeschichte.
+  Betriebsstand, Abschnitt 5.6 (**G9 bis G11**), Stolpersteine **318 bis 322**,
+  Fahrplan, Versionsgeschichte, Prüfstandszahlen.
 * `README.md` — der Absatz zum Bildausschnitt, der Absatz zu den zwei
   Sternkästen, der Satz zum Gesamtschnitt.
 * `CHANGELOG.md`, `package.json`, `package-lock.json`.
@@ -213,7 +213,7 @@ Binärdateien** (Bauregel).*
 
 ## 4. Prüfstand und Gegenproben
 
-### Prüfungen: 5661 → 5710 (+49, gezählt an beiden Läufen)
+### Prüfungen: 5661 → 5713 (+52, gezählt am Lauf)
 
 **Neu belegt:**
 
@@ -269,7 +269,66 @@ mehr.
 
 ### Die Gegenprobentabelle
 
-*(wird nach dem Lauf eingesetzt)*
+**13 Rückbauten gefahren, 4 Nebenspuren, Versatz 3500 je Spur — 13 von 13 rot,
+0 STUMM.** *Gefahren gegen `f88479a`, jede in einer eigenen Kopie aus
+`git archive HEAD`; der Arbeitsbaum wurde nicht angefasst. Jeder Lauf meldet
+denselben Nenner, **5710** — die Zahl ist damit dreizehnmal unabhängig
+bestätigt.* **Was danach am Prüfstand noch dazugekommen ist** (die zweite Ecke
+und der gehärtete Rücksetzer, `e58b910`), **ändert an keinem dieser Rückbauten
+etwas** — außer an 646, und der ist eigens nachgefahren.
+
+> **EIN ERSTER LAUF IST VERWORFEN WORDEN.** *Der Prüfstand zählt die
+> Rückbauten, und die Zahl stand nach dem Eintragen der dreizehn neuen noch auf
+> 635 — jeder Durchgang hat deshalb die Zeile „Es sind genau 635 Rückbauten"
+> mitgezählt, und alle Zahlen waren um eins zu hoch. Ein Beleg, der eine
+> falsche rote Zeile enthält, ist kein Beleg.*
+
+> **DIE ZEILE „Jeder Suchtext kommt in seiner Datei genau einmal vor" WIRD IN
+> FAST JEDEM LAUF ROT** — der Rückbau hat den Suchtext ja gerade ersetzt. *Sie
+> sagt nichts über den einzelnen Rückbau und steht trotzdem in der Tabelle,
+> damit niemand sie für einen Fund hält.*
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 642 | Der Rahmen verliert seine acht Griffe | 12 Prüfungen, darunter „Die vier Ecken tragen ihre vier Namen" (2 Gruppen) |
+| 643 | Die Kante gewinnt wieder gegen die Ecke | 4 Prüfungen, darunter „Die vier Ecken tragen ihre vier Namen" (Gruppe „Die fuenf Gesten am Ausschnitt — 0.22.1") |
+| 644 | Die Greifzone wird am kleinen Rahmen nicht mehr gedeckelt | „An einem kleinen Rahmen bleibt Flaeche zum Schieben", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 645 | Das Schieben aendert die Weite wieder mit | „Und er ruehrt die Weite nicht an", „Ein Finger an der Ecke schiebt, statt die Weite zu aendern", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 646 | Die feste Ecke wandert wieder mit der Rastung | **erster Lauf:** „Die gegenueberliegende Kante bleibt dabei liegen", „Und der Mittelpunkt wandert auf ihr nicht", „Jeder Suchtext …" — **rot allein an den KANTEN, und das ist der Fund** (siehe unten); **nachgefahren gegen `e58b910`:** NACHGEFAHREN_646 |
+| 647 | Die Kante verschiebt den Mittelpunkt wieder | „Und der Mittelpunkt wandert auf ihr nicht", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 648 | Ein Griff ohne Weg setzt wieder den Punkt | „Ein Griff IM Rahmen ohne Weg speichert nichts", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 649 | Der Zeiger sagt wieder nicht, was geschehen wird | 4 Prüfungen, darunter „Ueber dem Rahmen zeigt der Zeiger das Schieben an" (2 Gruppen) |
+| 650 | Der Finger bekommt die acht Griffe doch | „Ein Finger an der Ecke schiebt, statt die Weite zu aendern", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 651 | Die Kopfzahl steht wieder zweimal da | „Der zugeklappte Kopf traegt keine Kurzfassung mehr", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 652 | Der Bewertungskasten steht wieder an jeder Idee | „Und den Bewertungskasten gibt es dort gar nicht", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 653 | Der Server nimmt die Bewertung am ungetesteten Eintrag wieder an | 7 Prüfungen, darunter „Am ungetesteten Eintrag wird der Verfasser abgewiesen" (3 Gruppen) |
+| 654 | Die Kopfzahl sagt nicht mehr, wessen Zahl sie ist | „Die Kopfzahl sagt im Titel, dass sie ueber alle geht", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+
+### Der Fund aus der Gegenprobe: die geprüfte Ecke war die immune
+
+**Rückbau 646 legt den Rahmen nach der UNGERASTETEN Kante** — genau das, was
+`setzeKiste()` verhindert. **Rot wurde er trotzdem nur an den beiden
+Kanten-Zusagen; die Zusage „und die gegenüberliegende Ecke bleibt liegen" blieb
+grün.**
+
+**Der Grund steht im Quelltext.** Die geprüfte Ecke war die untere rechte, und
+die zieht `rechts-unten`: ihr Anker ist die **linke obere** Ecke, und `lage()`
+gibt dort schlicht `{ l: k.links, o: k.oben }` zurück — **die gerastete Kante
+kommt darin gar nicht vor.** An dieser einen Ecke kann der Rückbau also nichts
+verschieben. *Die Zusage war richtig; sie stand nur an der einzigen der vier
+Ecken, an der sie nichts sehen konnte.*
+
+**Behoben mit zwei Zusagen an der oberen linken Ecke** (`e58b910`), deren Anker
+`rechts - e` und `unten - e` sind und damit an der Rastung hängen. **Dazu ein
+Rücksetzer, der seinen Startpunkt sucht statt ihn zu raten:** der neue Eckzug
+zieht den Rahmen so weit auf, dass der bisherige feste Startpunkt (60, 60) darin
+liegt — der nächste „neue Ausschnitt" wäre gar keiner gewesen, sondern ein
+Schieben.
+
+> **DAS IST DER ZWECK DER GEGENPROBE, wörtlich:** *eine Prüfung, die grün ist,
+> belegt nichts, solange niemand gezeigt hat, dass sie auch rot werden kann.*
+> Hier war sie grün **und** rot-fähig — nur nicht an dem Fall, den sie zu
+> tragen vorgab. **Als Stolperstein 322 aufgeschrieben.**
 
 ---
 
