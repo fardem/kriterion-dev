@@ -28952,6 +28952,22 @@ async function pruefeOberflaeche() {
       return { links: z('left'), oben: z('top'), kante: z('width') };
     };
     const mitte = (r) => [r.links + r.kante / 2, r.oben + r.kante / 2];
+    /* EIN FRISCHER, MITTLERER RAHMEN -- und zwar ueber die Bedienung selbst.
+       DER ZUG MUSS AUSSERHALB ANFANGEN, sonst schoebe er den Rahmen oder zoege
+       an einem seiner Griffe. WO das ist, haengt vom Rahmen ab, den die vorige
+       Geste hinterlassen hat; geraten wird deshalb nicht, sondern gesucht.
+       ZUERST AUF DEN ENGSTEN ZOOM: ein Rahmen von einem Viertel der kurzen
+       Seite kann die vier Ecken des Bildes nicht alle abdecken, also gibt es
+       immer einen Punkt draussen. */
+    const draussen = (r) => [[10, 10], [590, 10], [10, 390], [590, 390]]
+      .find(([x, y]) => x < r.links || x > r.links + r.kante ||
+                        y < r.oben || y > r.oben + r.kante) || [10, 10];
+    const frischerRahmen = async () => {
+      zieh(400); zieh(400, 'change');
+      await new Promise(r => setTimeout(r, 30));
+      const [ax, ay] = draussen(rahmen());
+      return ziehe([ax, ay], [ax < 300 ? ax + 280 : ax - 280, ay < 200 ? ay + 280 : ay - 280]);
+    };
 
     /* EIN BEKANNTER AUSGANGSZUSTAND, und zwar ueber die Bedienung selbst: ein
        neues Rechteck von (60,60) nach (360,360). Es faengt ausserhalb an --
@@ -29004,6 +29020,32 @@ async function pruefeOberflaeche() {
       Math.abs(nachEcke.oben - vorEcke.oben) < 0.5,
       `${vorEcke.links}/${vorEcke.oben} → ${nachEcke.links}/${nachEcke.oben}`);
 
+    /* UND DIE ANDERE DIAGONALE -- die Zeile darueber allein belegt zu wenig,
+       und das ist ein Fund aus der Gegenprobe und keine Vorsicht.
+       WARUM: die Ecke oben zieht `rechts-unten`, und deren Anker ist die LINKE
+       OBERE Ecke -- `lage()` gibt dort schlicht `{ l: k.links, o: k.oben }`
+       zurueck und sieht die gerastete Kante gar nicht. Rueckbau 646 legt den
+       Rahmen nach der UNGERASTETEN Kante; an dieser Ecke aendert das nichts,
+       und die Zusage blieb gruen. Rot wurde 646 nur an den KANTEN.
+       DIE ECKE OBEN LINKS SIEHT ES: ihr Anker ist `rechts - e` und `unten - e`,
+       haengt also an der Rastung. Erst mit ihr traegt die Zusage „die feste
+       Ecke bleibt liegen" beide Faelle. */
+    await frischerRahmen();
+    const vorEckeZwei = rahmen();
+    const festRechts = vorEckeZwei.links + vorEckeZwei.kante;
+    const festUnten = vorEckeZwei.oben + vorEckeZwei.kante;
+    const eckeZweiRumpf = await ziehe([vorEckeZwei.links + 4, vorEckeZwei.oben + 4],
+      [vorEckeZwei.links - 37, vorEckeZwei.oben - 37]);
+    const nachEckeZwei = rahmen();
+    pruefe('Ein Zug an der oberen linken Ecke aendert die Weite ebenfalls',
+      !!eckeZweiRumpf && nachEckeZwei.kante > vorEckeZwei.kante,
+      `${vorEckeZwei.kante} → ${nachEckeZwei.kante}`);
+    pruefe('Und die rechte untere Ecke bleibt dabei liegen',
+      Math.abs((nachEckeZwei.links + nachEckeZwei.kante) - festRechts) < 0.5 &&
+      Math.abs((nachEckeZwei.oben + nachEckeZwei.kante) - festUnten) < 0.5,
+      `${festRechts}/${festUnten} → ` +
+      `${nachEckeZwei.links + nachEckeZwei.kante}/${nachEckeZwei.oben + nachEckeZwei.kante}`);
+
     /* --- DIE KANTE: die gegenueberliegende bleibt liegen, und die andere
        Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). Der Rahmen
        rutscht dabei nicht seitlich weg. */
@@ -29011,7 +29053,7 @@ async function pruefeOberflaeche() {
        seine MINDESTKANTE gebracht (ein Viertel der kurzen Seite, dieselbe
        Grenze wie Zoom 400) -- von dort aus laesst sich nichts mehr verkleinern,
        und die Zusage darunter waere trivial gruen. */
-    await ziehe([60, 60], [360, 360]);
+    await frischerRahmen();
     const vorKante = rahmen();
     const rechtsVor = vorKante.links + vorKante.kante;
     const mitteYvor = vorKante.oben + vorKante.kante / 2;
