@@ -1,5 +1,19 @@
 # Auftrag 0.24.0 — „Das Deutsche wandert in eine eigene Datei"
 
+**WAS IN DIESER RUNDE PASSIERT, IN EINEM ABSATZ:** Kriterion redet heute
+Deutsch, und jedes deutsche Wort steht fest im Quelltext — in `app.js`, in den
+Servermeldungen, in den Mails. **In dieser Runde wird jeder dieser Texte aus
+dem Code herausgenommen und in EINE Sprachdatei gelegt** — `de.json` unter
+`public/sprachen/`, oder `de.lang`, wenn der Betreiber es so entscheidet
+(Frage F1). In der Datei stehen **alle Texte der Oberfläche**, die vorkommen,
+je Sache ein Schlüssel; der Code kennt nur noch die Schlüssel. **Die
+Anwendung sieht danach genauso aus wie vorher** — das ist die Abnahme. *Was
+der Admin und die Benutzer eingetragen haben — Vokabular, Tags, Kriterien,
+Kategorien, der Titel, die Einträge — ist keine Oberfläche, sondern Inhalt:
+es zieht nicht um und bleibt in der Sprache, in der es eingetragen wurde
+(Fragen F3 und F4).* Englisch und die Wahl der Sprache kommen erst mit
+Stufe 2.
+
 **Stufe 1 der Mehrsprachigkeit — und davor zwei Befunde aus dem Betrieb am
 hellen Schema.** Aufsetzend auf **0.23.0, Fingerprint `92f7a142`** — der Stand
 von `main` am 5. September 2026 (`34da9ea`), dazu die Papiere aus `8603d0a`
@@ -25,6 +39,34 @@ die Abnahme hängt.*
 > Stufe 2; welche Nummer die trägt — die nächste freie MINOR-Zahl oder eine
 > PATCH-Zahl hinter 0.24.0 —, entscheidet der Betreiber an ihrem Auftrag.*
 > **Gebaut wird davon nichts anders.**
+
+---
+
+## Zuerst: acht Fragen, die vor der ersten Zeile geklärt werden
+
+**Kein Bauabschnitt beginnt, bevor die Spalte „Antwort" gefüllt ist.** Die
+Fragen werden **beim Start der Runde im Gespräch** gestellt, beantwortet und
+hier eingetragen — nicht unterwegs (Abschnitt 12 des Projektstands: *vor dem
+Bauen besprechen, Entscheidungen ausdrücklich bestätigen lassen*). Die
+Spalte „Vorschlag" ist der Vorschlag dieses Papiers; **entschieden ist
+nichts, solange die Antwort fehlt.**
+
+| # | Frage | Vorschlag | Antwort |
+|---|---|---|---|
+| **F1** | **Wie heißt die Sprachdatei, und in welcher Form?** Der Betreiber hat `de.lang` genannt; das Konzept schlägt `de.json` vor (E1) | **`de.json`** — Node und Browser lesen JSON ohne eine Zeile Code; Mehrzahlformen sind Objekte; jeder Editor kennt die Form. *`de.lang` ginge auch:* eine Zeile `schluessel=Text` je Text, ein eigener Leser von rund dreißig Zeilen, die Mehrzahl als zwei Schlüssel (`x.eins`, `x.andere`), und kein Editor hebt sie hervor. **Die Kennung `de` bleibt in beiden Fällen** (ISO 639-1, nicht `deu` oder `ger`) | *offen* |
+| **F2** | **Wo liegt sie?** | **`public/sprachen/`** — beide Seiten lesen dieselbe Datei, der Fingerprint deckt sie von selbst ab, keine neue Route (Konzept 3.3) | *offen* |
+| **F3** | **Was wird aus dem Vokabular — den vierzehn Wörtern, die der Admin umbenennt?** Der Betreiber: *es muss in der Sprache bleiben, die der Admin eingestellt hat, auch wenn ein Benutzer die Oberfläche umschaltet* | **Das Vokabular folgt der Installation, nicht dem Benutzer.** Es gibt **einen** Satz von vierzehn Wörtern je Installation; seine Vorgaben kommen aus der Sprachdatei der **Installationssprache** (in dieser Runde `de.json`), die Überschreibungen des Admins bleiben, wie sie sind. *In einer englischen Oberfläche (Stufe 2) steht dann weiter das Wort, das der Admin gewählt hat — wie der Titel der Installation: es sind die Namen der Sache, keine Texte der Oberfläche.* Das Konzept hatte in E9 ein Vokabular je Sprache vorgeschlagen; **der Betreiber hat es in Frage gestellt, und dieser Auftrag folgt ihm** | *offen* |
+| **F4** | **Tags, Kriterien, Kategorien, der Titel, die Einträge, Kommentare — bleiben so?** | **Ja, unverändert.** Inhalt, eingetragen von Menschen, in ihrer Sprache; kein Umzug, keine Übersetzung, in keiner Stufe (E11). *Bestätigen, damit es nie wieder gefragt wird* | *offen* |
+| **F5** | **Was zählt als Text der Oberfläche?** | **Alles, was ein Mensch am Bildschirm oder in einer Mail liest:** `app.js`, die `error`-Meldungen des Servers, was `auth.js` als Fehler wirft, die vier Briefe samt Betreff. **Nicht:** Konsole, `zugang.js`, `schluessel.js`, Kommentare, Papiere, Prüfstand — die bleiben Deutsch (Konzept, Abschnitt 0) | *offen* |
+| **F6** | **Wie heißen die Schlüssel in der Datei?** | **Deutsch, nach der Sache, mit Namensraum** — `dialog.fotoLoeschen.frage`, nicht der Satz selbst und nicht `t17` (E2) | *offen* |
+| **F7** | **Die Zeitleiste im hellen Schema — welche Werte?** (Bauabschnitt 0.1) | **`#b9c2cb` · `#9aa5b0` · `--muted`** — 1,54 · 2,13 · 4,62 gegen den Grund; das dunkle Schema bleibt. *Am Wirt mit echten Punkten ansehen* | *offen* |
+| **F8** | **Der Umschalter der Tagzeile — wo, und wie heißt er?** (Bauabschnitt 0.2) | **Rechts in der Kategoriezeile, „Tags" mit Zahl** — der Vorschlag des Betreibers, geschärft nach S1. *Dazu am Wirt nachstellen, warum die Tags nach dem Klick nicht erschienen* | *offen* |
+
+**Was nicht gefragt wird, weil es entschieden ist:** die Nummer (0.24.0, der
+Kasten oben), die Reihenfolge der Bauabschnitte, und die technischen
+Entscheidungen A1 bis A3 sowie die des Konzepts, die unten stehen. *Sie werden
+beim Start genannt und nicht neu verhandelt — es sei denn, der Betreiber
+will.*
 
 ---
 
@@ -59,11 +101,22 @@ Wahl der Sprache irgendetwas daran verdeckt.
 
 **Jeder Text, den ein Mensch am Bildschirm oder in einer Mail liest, verlässt
 `public/app.js`, `server.js`, `auth.js` und `mail.js` und steht als Schlüssel
-in `public/sprachen/de.json`.** Der Quelltext ruft `t()` und sonst nichts.
-**Die Anwendung sieht danach genauso aus wie vorher** — dasselbe Wort an
-derselben Stelle, derselbe Umbruch. **Keine Wahl, keine zweite Sprache, kein
-Schema, keine Route, keine Abhängigkeit, kein Bestandslauf** — die Wahl kommt
-mit Stufe 2. **Davor, als Bauabschnitt 0, zwei Befunde aus dem Betrieb am
+in der Sprachdatei** (`public/sprachen/de.json`, F1). Der Quelltext ruft
+`t()` und sonst nichts. **Die Anwendung sieht danach genauso aus wie vorher**
+— dasselbe Wort an derselben Stelle, derselbe Umbruch. **Keine Wahl, keine
+zweite Sprache, kein Schema, keine Route, keine Abhängigkeit, kein
+Bestandslauf** — die Wahl kommt mit Stufe 2.
+
+| | zieht um in die Sprachdatei | bleibt, wo es ist |
+|---|---|---|
+| **Oberfläche** (`app.js`) | jede Beschriftung, jeder Knopf, Tooltip, Platzhalter, Toast, Dialog, jede Fehlermeldung — rund 1.800 Bausteine | Zeichen (`⌀`, `·`, `→`), Adressen, Selektoren, Bezeichner |
+| **Server** | die `error`-Meldungen, was `auth.js` als Fehler wirft, die zwei Sätze des Fehler-Handlers | Konsolenmeldungen für den Betreiber, Programmierfehler ohne Bildschirm |
+| **Mails** | die vier Briefe samt Betreff | — |
+| **Vokabular** | nur die **Vorgaben** der vierzehn Wörter (heute zweimal im Code) | die Wörter, die der Admin gesetzt hat — **sie folgen der Installation, nicht dem Benutzer** (F3) |
+| **Inhalt** | — | Tags, Kriterien, Kategorien, Titel, Einträge, Kommentare — in der Sprache, in der sie eingetragen wurden (F4) |
+| **Projekt** | — | Kommentare, Papiere, Prüfstand, Werkzeuge — Deutsch |
+
+**Davor, als Bauabschnitt 0, zwei Befunde aus dem Betrieb am
 hellen Schema** — die Zeitleiste ohne sichtbare Linien und Jahreszahlen, und
 der Aufklapper „Weitere Filter", der Platz kostet statt spart. *Sie fahren
 mit, weil sie klein sind und am selben Stand aufgefallen sind; der
@@ -299,9 +352,12 @@ Prüfstand heute schon liest.**
   Absagen (`:245`, `:246`, `:255`) — **sie stehen am Bildschirm und ziehen
   mit.**
 * **Die Vokabelvorgaben:** `VOKABULAR_VORGABE` (`server.js:1619`) fällt weg,
-  `vokabular()` liest die Vorgabe aus `de.json` unter `vokabular.*`. **Der
-  gespeicherte Schlüssel `vokabular` bleibt flach** — das Objekt je Sprache
-  ist Stufe 2 (E9).
+  `vokabular()` liest die Vorgabe aus der Sprachdatei der **Installation**
+  unter `vokabular.*` — in dieser Runde `de.json`. **Der gespeicherte
+  Schlüssel `vokabular` bleibt, wie er ist:** ein Satz Wörter je Installation,
+  vom Admin gesetzt, unabhängig davon, welche Sprache ein Benutzer später
+  wählt (F3). *Kein Objekt je Sprache — anders als das Konzept in E9
+  vorschlug.*
 * **Was aus `bilder.js`, `bestandslauf.js` und `anhaenge.js` als Fehler bis
   zum Browser gelangt, wird beim Umzug gezählt und mitgenommen** — das
   Konzept hat dort keinen Bildschirmtext gefunden; ein Fund ist ein Fund.
@@ -470,7 +526,7 @@ mit Begründung; hier nur, welche greifen:
 | **E2** | deutsche Schlüssel nach der Sache, benannte Platzhalter | **ja** |
 | **E3** | Mehrzahl als Objekt, `Intl.PluralRules`, der ganze Satz wechselt | **ja** |
 | **E4** | keine Bibliothek — `t()`/`tH()` in vierzig Zeilen, beide Seiten | **ja** |
-| **E9** | Vokabelvorgaben in der Sprachdatei | **ja — die Überschreibung je Sprache nicht** (Stufe 2) |
+| **E9** | Vokabelvorgaben in der Sprachdatei | **ja, die Vorgaben — aber das Vokabular folgt der Installation, nicht dem Benutzer (F3)**; das Objekt je Sprache aus dem Konzept kommt nicht |
 | **E10** | `_locale` im Kopf, `Intl` statt `replace`, `toLocaleLowerCase` | **ja** |
 | **E11** | was nicht übersetzt wird | **ja** |
 | E5 bis E8 | Wahl, Anmeldeseite, Serverquellen, Mails je Empfänger | **nein — Stufe 2**; `spracheVon(req)` liefert `de` |
@@ -478,7 +534,7 @@ mit Begründung; hier nur, welche greifen:
 | E13, E14 | Englisch, Leser | **nein — Stufe 2 und 3** |
 
 **Zwei zu den Befunden aus Bauabschnitt 0 — offen, bis der Betreiber sie am
-Wirt bestätigt:**
+Wirt bestätigt (sie sind F7 und F8 der Fragen am Kopf):**
 
 | # | Frage | Empfehlung |
 |---|---|---|
@@ -557,6 +613,8 @@ Konzept auf und nicht im Quelltext.
 
 ## Bauregeln
 
+* **Zuerst die acht Fragen am Kopf** — gestellt, beantwortet, eingetragen.
+  *Ein Bauabschnitt, der vor der Antwort anfängt, baut gegen eine Vermutung.*
 * **Die sechs Bauabschnitte in dieser Reihenfolge, 0 bis 5**, und jeder ein
   eigener Commit („0.24.0 Bauabschnitt n: …"), mit grünem Prüfstand.
   **Abschnitt 0 ist eingecheckt und am Wirt gesehen, bevor Abschnitt 1
@@ -616,9 +674,10 @@ Konzept auf und nicht im Quelltext.
 
 * **Stufe 2 — Englisch.** Die Wahl je Zugang, die Vorgabe der Installation,
   die Zeile unter der Anmeldemaske, `spracheVon(req)` mit seinen drei
-  Quellen, die Mails je Empfänger, das Objekt je Sprache im Schlüssel
-  `vokabular`, `_hinweis` — und das englische Wörterbuch, beschlossen vor
-  der ersten Zeile (Konzept, S2.1).
+  Quellen, die Mails je Empfänger, `_hinweis` — und das englische
+  Wörterbuch, beschlossen vor der ersten Zeile (Konzept, S2.1). *Ob das
+  Vokabular dann je Sprache Vorgaben braucht, hängt an F3: folgt es der
+  Installation, braucht es keine.*
 * **Stufe 3 — Türkisch.**
 * **Die Liste der Texte, die beim Umzug aufgefallen sind** — ein Satz, der
   gegen S1 verstößt, ein Wort, das zweimal vorkommt, ein Tooltip über acht
