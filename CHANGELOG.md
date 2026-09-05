@@ -29,6 +29,18 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.23.0] - 2026-09-05
+
+*Was ein Betreiber merkt: es gibt jetzt ein helles Farbschema, und jeder stellt für sich ein, welches er sieht — in „Einstellungen → Persönlich → Darstellung". Die Vorgabe bleibt dunkel: wer nichts einstellt, sieht, was er heute sieht. Keine Datenbankstufe; nach dem Einspielen im Browser einmal hart neu laden.*
+
+- Added: **Ein helles Farbschema** — umschaltbar in der Karte „Darstellung", drei Stufen: **Hell · Dunkel · Wie das Gerät**. Persönlich je Zugang, ein Wert für alle Geräte, wirkt sofort
+- Added: „Wie das Gerät" folgt der Einstellung des Betriebssystems und wechselt mit ihr — ohne Neuladen
+- Changed: Beim Öffnen blitzt kein falsches Schema mehr auf; der Browser merkt sich die letzte Wahl und malt gleich richtig, auch vor der Anmeldung
+- Changed: Die Farbe der Browserleiste folgt dem Schema
+- Changed: **Das Vollbild bleibt in beiden Schemata dunkel** — im hellen aber dunkelgrau statt fast schwarz, dort, wo Bildwerkzeuge ihr Umfeld haben. Ein fast schwarzer Rand lässt Fotos heller erscheinen, als sie sind
+- Changed: Ein abgelehnter Eintrag wird im hellen Schema nach hell gedämpft statt nach dunkel — sonst wäre er der lauteste Fleck der Seite
+- Changed: Die Marke folgt dem Schema; auf hellem Grund war sie vorher kaum zu sehen
+
 ## [0.22.1] - 2026-09-05
 
 *Was ein Betreiber merkt: der Bildausschnitt lässt sich schieben und an Ecken und Kanten ändern, die Kopfzahl steht nur noch einmal da, und an ungetesteten Einträgen gibt es keinen Bewertungskasten mehr. Keine Datenbankstufe; nach dem Einspielen im Browser einmal hart neu laden.*
