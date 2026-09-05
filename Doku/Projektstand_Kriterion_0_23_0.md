@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 61 · Stand 5. September 2026 · gebaut: Version 0.23.0**
+**Kompakte Übergabe · Revision 62 · Stand 5. September 2026 · gebaut: Version 0.23.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -428,6 +428,7 @@ Abschnitt 9.
 | `Doku/Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` | die **Herleitung** des abgearbeiteten Stufenplans — Historie, geschlossen |
 | `Doku/Konzept_Video_und_grosse_Dateien.md` | **Teil II, große Dateien bis 2 GB** — noch nicht gebaut |
 | `Doku/Konzept_Potenzial.md` | die **Herleitung** der beiden Sternkästen (0.21.0) — Recherche, verworfene Wege, Regeln. *Es bleibt, wie es geschrieben wurde: wo die Bauform am Ende davon abweicht, berichtet das Änderungsprotokoll — das Konzept wird nicht nachträglich passend gemacht.* |
+| `Doku/Konzept_Mehrsprachigkeit_0_24_0.md` | die **Herleitung und die Bauform** der Mehrsprachigkeit (0.24.0) in drei Stufen — das Deutsche in eine eigene Datei, dann Englisch, dann Türkisch. *Geschrieben am 5. September 2026, vor dem Auftrag; die Runde ist noch nicht gebaut. Es bleibt wie die anderen Konzepte, wie es geschrieben wurde — wo die Bauform am Ende abweicht, berichtet das Änderungsprotokoll.* |
 | `Doku/Fehler_und_Ideen.md` | **Alles Offene: Befunde, Fehler und Ideen.** *Im Gespräch „das Sammelblatt" — ein Papier dieses Namens gibt es nicht.* Es ersetzt seit Revision 26 `Roadmap.md` und `Ideen_und_Vorschlaege.md`. **Was gebaut ist, steht dort nicht mehr** (Abschnitt 12) |
 | `Doku/Auftrag_<Version>.md` | der Auftrag der **laufenden** Runde; er fällt weg, sobald die nächste beginnt |
 
@@ -12687,14 +12688,14 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch"** | **GEBAUT am 4. September 2026.** *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und noch am selben Tag auf 0.22.0; am 4. September 2026 im Gespräch mit dem Betreiber zu sechzehn Entscheidungen ausgearbeitet — Konzept `Doku/Konzept_Oberflaeche_0_22_0.md` samt Anlage.)* Fünf Bauabschnitte: das Stilblatt (kein Milchglas, eine Antwort auf jede Berührung, Marken aus Form), die zwei Vokabelwörter für die Bewertung, rund 250 Textstellen nach einem Wörterbuch, eigene Fenster statt `confirm()` und `prompt()`, und Bildstreifen · Rechteck · Sternzeile (Punkt 10 des Sammelblatts eingeschlossen). **Die Gestaltungs- und Sprachregeln G1 bis G8 und S1 bis S7 stehen seither in Abschnitt 5.6; was gebaut wurde, im Änderungsprotokoll 0.22.0.** *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
 | **0.22.1** | **„Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da"** | **GEBAUT am 5. September 2026.** *(Aus dem Rundlauf von Hand nach 0.22.0 — dieselbe Herkunft wie 0.21.1 nach 0.21.0, 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Drei Befunde, keiner davon aus dem Sammelblatt und keiner aus dem Fahrplan; sieben Entscheidungen E1 bis E7 hat der Betreiber am 5. September 2026 vor dem Bauen getroffen — Auftrag `Doku/Auftrag_0.22.1.md`, mit dem Auftrag zu 0.23.0 weggefallen.)* **Erstens:** das Rechteck aus 0.22.0 legte Lage und Weite auf EINEN Griff, und wer den Rahmen anfasste, warf ihn weg. Ab jetzt entscheidet der ORT der Berührung — fünf Gesten, acht Griffe, Regel **G9**. **Zweitens:** der Kopf eines zugeklappten Sternkastens trug dieselbe Zahl zweimal; die Kurzfassung fällt, und die Kopfzahl sagt jetzt, dass sie über ALLE Benutzer geht — Regel **G10**. **Drittens:** an einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr, und der Server weist eine Bewertung dort ab — Regel **G11**. *Der Fahrplan rückt dadurch nicht: 0.22.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
 | **0.23.0** | **„Die Oberfläche wird hell"** | **GEBAUT am 5. September 2026.** *(Neu am 4. September 2026 aus der Besprechung zu 0.22.0, dort als Idee **N6**; am 5. September 2026 im Gespräch mit dem Betreiber zu sieben Entscheidungen ausgearbeitet — Konzept `Doku/Farbkonzept_0_23_0.md`, wie 0.22.0 ihres hat.)* **Ein zweites Farbschema — hell, umschaltbar je Zugang, und die Vorgabe bleibt dunkel.** Vier Bauabschnitte: 67 feste Farben verlassen das Regelwerk (die Menge, die hier als „heute unbekannt" stand), ein zweiter Block mit 42 Werten, die Maschine mit drei Stufen samt Vorgriff gegen das Blitzen, und Marke, Dämpfung und Augenschein. **Die Gestaltungsregel G12 steht seither in Abschnitt 5.6**; was gebaut wurde, im Änderungsprotokoll 0.23.0. *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
-| **0.24.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und **noch am selben Tag auf 0.24.0**.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
+| **0.24.0** | **Mehrsprachigkeit** | *(Neu am 2. September 2026 als 0.23.0, am 3. September 2026 auf 0.24.0 gerückt und noch am selben Tag auf 0.28.0; **am 5. September 2026 auf Entscheidung des Betreibers zurück auf 0.24.0** — das neunte Rücken, das erste nach vorn; der Rest rückt so, dass zwischen zwei geplanten Runden weiter eine Nummer frei bleibt. Am selben Tag ausgearbeitet — Konzept `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`, wie 0.22.0 und 0.23.0 ihres haben.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Drei Stufen:** das Deutsche, das schon da ist, wandert in eine eigene Datei (Stufe 1); dann kommt Englisch (Stufe 2); dann Türkisch (Stufe 3) — *welche Stufe mit welcher Nummer herausgeht, entscheidet der Betreiber am Konzept.* **Nach der Oberfläche** — die ist gebaut — **und vor der Bereinigung.** *Bis zum 5. September 2026 stand hier „nach der Bereinigung"; was das Vorziehen kostet und warum es wenig ist, steht im Kasten zum neunten Rücken unter dieser Tafel.* *MINOR* | nein | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
-| **0.26.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0 vorgemerkt — **die Nummer ist vorläufig**; das **achte** Rücken am 3. September 2026, und das letzte um den ganzen Rest.)* Migrationscode raus — **jetzt neun Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
-| **0.26.x** | Die Kommentare werden knapp | *(Neu am 31. August 2026, am 3. September 2026 von 0.22.x auf 0.23.x und **noch am selben Tag auf 0.26.x gerückt** — **keine geplante Nummer, sondern die nächste freie PATCH-Zahl nach der Bereinigung**; dieselbe Bauform wie die 0.12.x-Zeile darüber. **Eine PATCH-Zahl belegt keinen Zwischenraum** — die Regel gilt den geplanten MINOR-Runden.)* **Fast dreißig Prozent des Quelltextes sind Kommentar** — 16.281 von 54.822 Zeilen, `zweifaktor.js` zu 52 %, `auth.js` zu 46 %, `server.js` zu 44 %. **Was das Offensichtliche wiederholt, geht; was eine ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger stehen.** *PATCH: die Installation kann danach nichts, was sie vorher nicht konnte. Der Fingerprint verschiebt sich, sonst nichts.* **Nach der Bereinigung und nicht davor** — sie löscht ganze Blöcke samt ihren Kommentaren, und wer vorher schneidet, schneidet zweimal. Einzelheiten in 10a | nein | — |
+| **0.26.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und noch am selben Tag auf 0.24.0; **am 5. September 2026 auf 0.26.0, weil die Mehrsprachigkeit vor sie gezogen wurde** — das neunte Rücken, siehe den Kasten unter dieser Tafel.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.27.0** | *frei* | Dritter Zwischenraum nach derselben Regel | — | — |
-| **0.28.0** | **Mehrsprachigkeit** | *(Neu am 2. September 2026 als 0.23.0, am 3. September 2026 auf 0.24.0 gerückt und **noch am selben Tag auf 0.28.0** — nur eingetragen, nicht ausgearbeitet.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Nach der Oberfläche und nach der Bereinigung** — wer Texte herauszieht, die gleich darauf umbenannt oder gelöscht werden, zieht sie zweimal heraus. *MINOR* | nein | — |
+| **0.28.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, dann 0.26.0 vorgemerkt — **die Nummer ist vorläufig**; das achte Rücken am 3. September 2026 war das letzte um den ganzen Rest, **das neunte am 5. September 2026 ging um zwei Stellen**, weil die Mehrsprachigkeit vor sie gezogen wurde.)* Migrationscode raus — **jetzt neun Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.28.x** | Die Kommentare werden knapp | *(Neu am 31. August 2026, am 3. September 2026 von 0.22.x auf 0.23.x und noch am selben Tag auf 0.26.x gerückt, **am 5. September 2026 mit der Bereinigung auf 0.28.x** — **keine geplante Nummer, sondern die nächste freie PATCH-Zahl nach der Bereinigung**; dieselbe Bauform wie die 0.12.x-Zeile darüber. **Eine PATCH-Zahl belegt keinen Zwischenraum** — die Regel gilt den geplanten MINOR-Runden.)* **Fast dreißig Prozent des Quelltextes sind Kommentar** — 16.281 von 54.822 Zeilen, `zweifaktor.js` zu 52 %, `auth.js` zu 46 %, `server.js` zu 44 %. **Was das Offensichtliche wiederholt, geht; was eine ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger stehen.** *PATCH: die Installation kann danach nichts, was sie vorher nicht konnte. Der Fingerprint verschiebt sich, sonst nichts.* **Nach der Bereinigung und nicht davor** — sie löscht ganze Blöcke samt ihren Kommentaren, und wer vorher schneidet, schneidet zweimal. Einzelheiten in 10a | nein | — |
 | **0.29.0** | *frei* | Vierter Zwischenraum nach derselben Regel | — | — |
-| **0.30.0** | **Code-Effizienz** | *(Neu am 2. September 2026 — **nur eingetragen, nicht ausgearbeitet**. **Diese Zahl ist nicht gerückt**: sie stand schon frei, und der Takt aus einer geplanten und einer freien Runde trifft sie genau.)* Leichen und ineffizienten Code durchgehen und verbessern. **Gebaut mit Claude Fable 5.1 und ultracode; die Projektbesprechung dazu mit Opus 5 und ultracode.** Nach der Bereinigung, damit sie keinen toten Code mitschleppt | offen | — |
+| **0.30.0** | **Code-Effizienz** | *(Neu am 2. September 2026 — **nur eingetragen, nicht ausgearbeitet**. **Diese Zahl ist zweimal nicht gerückt**: am 3. September 2026 stand sie schon frei, und der Takt aus einer geplanten und einer freien Runde trifft sie genau; am 5. September 2026 haben die drei Runden vor ihr nur die Plätze getauscht.)* Leichen und ineffizienten Code durchgehen und verbessern. **Gebaut mit Claude Fable 5.1 und ultracode; die Projektbesprechung dazu mit Opus 5 und ultracode.** Nach der Bereinigung, damit sie keinen toten Code mitschleppt | offen | — |
 
 > **ZWISCHEN ZWEI GEPLANTEN RUNDEN BLEIBT AB JETZT EINE NUMMER FREI — die Regel
 > ist am 3. September 2026 entstanden, beim achten Rücken.**
@@ -12731,15 +12732,62 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > wann eine Runde herausgeht, und nicht, wie wichtig sie ist.*
 
 
+> **DAS NEUNTE RÜCKEN, am 5. September 2026, IST DAS ERSTE NACH VORN — und das
+> erste, das kein Einschub ausgelöst hat.** Der Betreiber hat entschieden, dass
+> die Mehrsprachigkeit als Nächstes kommt: **sie geht von 0.28.0 auf 0.24.0**,
+> und die Runden, die davor und dahinter standen, rücken so, dass zwischen je
+> zwei geplanten Runden weiter eine Nummer frei bleibt.
+>
+> | Nummer | bis zum 5. September 2026 | seit dem 5. September 2026 |
+> |---|---|---|
+> | **0.24.0** | Die wählbare Bildablage | **Mehrsprachigkeit** |
+> | 0.25.0 | *frei* | *frei* |
+> | **0.26.0** | Bereinigung — der Bruch *(0.26.x: Die Kommentare werden knapp)* | **Die wählbare Bildablage** |
+> | 0.27.0 | *frei* | *frei* |
+> | **0.28.0** | Mehrsprachigkeit | **Bereinigung — der Bruch** *(0.28.x: Die Kommentare werden knapp)* |
+> | 0.29.0 | *frei* | *frei* |
+> | 0.30.0 | Code-Effizienz | Code-Effizienz — **nicht gerückt** |
+> | 1.0.0 · danach | Die Zusage · Große Dateien | **unberührt** — die 1.0 ist kein Glied dieser Kette und bleibt, wo sie steht |
+>
+> **Die Regel ist dabei nicht verletzt, sondern angewandt.** Kein Zwischenraum
+> ist belegt worden; die Reihenfolge ist geändert, und die Lücken sind hinterher
+> dieselben wie vorher — 0.25.0, 0.27.0 und 0.29.0. *Eine Nummer sagt, wann
+> eine Runde herausgeht; welche Runde wann herausgeht, entscheidet der
+> Betreiber, und die Entscheidung wird hier festgehalten und nicht weggeredet.*
+> **Eine Nummer MIT Grund nicht zu rücken macht den Fahrplan falsch** — der
+> Satz steht seit dem siebten Rücken weiter unten, und er gilt auch nach vorn.
+>
+> **WAS DAS VORZIEHEN KOSTET, steht hier und nicht im Kleingedruckten.** Die
+> Zeile trug bis dahin den Satz *„nach der Oberfläche und nach der Bereinigung
+> — wer Texte herauszieht, die gleich darauf umbenannt oder gelöscht werden,
+> zieht sie zweimal heraus."* **Die erste Hälfte ist eingelöst:** die Oberfläche
+> (0.22.0) ist gebaut und redet seither nach einem Wörterbuch. **Die zweite
+> Hälfte wiegt weniger, als der Satz vermuten lässt:** die Bereinigung baut
+> Migrationsblöcke in `db.js` aus, und die Kommentarrunde (0.28.x) schneidet
+> Kommentare — **an beiden hängt kein Text, den die Oberfläche zeigt.** Was die
+> Bereinigung an Text neu bringt, die Absage an zu alte Datenbanken, ist eine
+> Meldung an den Betreiber auf der Konsole und keine der Oberfläche. *Der
+> zweite Griff, den der Satz fürchtete, fällt damit auf wenige Zeilen
+> zusammen.* **Dafür gilt jetzt eine Bindung, die vorher nicht galt:** brächte
+> die Mehrsprachigkeit einen Migrationsblock, fiele er mit der Bereinigung mit
+> — wie bei 0.14.0, 0.16.0 und 0.21.0. *Das Konzept sieht keinen vor: die
+> Sprache je Zugang liegt wie das Farbschema in `user_settings`.*
+>
+> **Was sich sonst nicht ändert:** die Bereinigung bleibt vor der
+> Code-Effizienz; 0.28.x hängt weiter an der Bereinigung und belegt keinen
+> Zwischenraum; der Abschnitt 10a führt die Kommentarrunde seither unter
+> 0.28.x, und die Wegweisertafel im Sammelblatt trägt die neuen Nummern neben
+> den alten (Stolperstein 201).
+
 > **DIE REIHENFOLGE DER NÄCHSTEN RUNDEN IST NICHT BELIEBIG.** Die Gründe stehen
 > hier und nicht im Auftrag — ein Auftrag wird beim Schreiben des nächsten
 > weggeworfen, und was darin stand, wäre dann weg.
 >
 > * **0.19.3 steht vor jeder Runde mit einem Bestandslauf.** 0.19.4, 0.19.5 und
->   die wählbare Bildablage (**heute 0.24.0**) fahren alle drei über alle
+>   die wählbare Bildablage (**heute 0.26.0**) fahren alle drei über alle
 >   Bilder; ohne sie hielte jede einzelne davon die Installation wieder für
 >   Stunden an. *0.19.4 ist im Feld bestätigt, 0.19.5 ist gebaut und hat es im
->   Feld zu belegen; für 0.24.0 gilt der Satz weiter.*
+>   Feld zu belegen; für 0.26.0 gilt der Satz weiter.*
 > * **DIESE RUNDE — 0.21.0 — IST VOR DIE OBERFLÄCHE UND VOR DIE BEREINIGUNG
 >   GESCHOBEN WORDEN, und beides hat einen Grund.** *Vor die Oberfläche:* sie
 >   fasst den Bewertungsblock an, den „Die Oberfläche wird ruhiger" umgestaltet
@@ -12749,7 +12797,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 >   die Blöcke aus. *Hinter 0.20.0:* die klemmte — eine Installation, die
 >   Sicherungen schreibt und keine entfernt, füllt ihre Platte; diese Runde
 >   klemmt nicht.
-> * **Die Ableitungen auf WebP fahren in 0.24.0 mit und nicht in 0.19.4 oder
+> * **Die Ableitungen auf WebP fahren in 0.26.0 mit und nicht in 0.19.4 oder
 >   0.19.5.** Dort wird ohnehin über Verfahren entschieden, und beides zusammen
 >   ist **ein** Durchgang über den Bestand statt zwei. *Die thumb-GEOMETRIE
 >   gehörte dagegen nach 0.19.4 und der ZUSCHNITT nach 0.19.5: beides waren
@@ -12773,8 +12821,17 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > * **Die Mehrsprachigkeit kommt nach der Oberfläche und nach der Bereinigung.**
 >   Wer Texte herauszieht, die gleich darauf umbenannt oder ganz gelöscht
 >   werden, zieht sie zweimal heraus.
+>   ***Seit dem 5. September 2026 gilt nur noch die erste Hälfte:** sie kommt
+>   nach der Oberfläche — die ist gebaut — und **vor** der Bereinigung, als
+>   0.24.0, auf Entscheidung des Betreibers. Der Satz bleibt stehen, weil er
+>   richtig war, solange er galt (Stolperstein 201); was das Vorziehen kostet,
+>   steht im Kasten zum neunten Rücken.*
 > * **Die Bereinigung kommt vor Mehrsprachigkeit und Code-Effizienz**, damit
 >   keine der beiden toten Code mitschleppt.
+>   *Seit dem 5. September 2026 nur noch vor der Code-Effizienz — die
+>   Mehrsprachigkeit steht davor. Was sie an Text aus Code zieht, den die
+>   Bereinigung später löscht, sind wenige Zeilen; siehe den Kasten zum
+>   neunten Rücken.*
 >
 > **UND „DIE OBERFLÄCHE WIRD RUHIGER" IST AM 3. SEPTEMBER 2026 DOCH GERÜCKT
 > WORDEN — auf 0.21.0.** *Bis dahin stand hier das Gegenteil, und der Satz
@@ -12786,8 +12843,12 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > rücken macht ihn falsch.*
 
 > **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0, DANN 0.17.0, DANN 0.18.0,
-> DANN 0.19.0, DANN 0.21.0, DANN 0.22.0 UND HEISST JETZT 0.23.0.** Sie ist kein einziges Mal verschoben worden, weil
-> jemand sie später wollte —
+> DANN 0.19.0, DANN 0.21.0, DANN 0.22.0, DANN 0.23.0, DANN 0.26.0 UND HEISST JETZT
+> 0.28.0.** *(Bis zum 5. September 2026 endete der Satz bei „und heißt jetzt
+> 0.23.0" — das achte Rücken war in ihn nicht mitgezogen worden; nachgetragen mit
+> dem neunten.)* Sie ist bis zum neunten Rücken kein einziges Mal verschoben worden, weil
+> jemand sie später wollte — *am 5. September 2026 zum ersten Mal doch: die
+> Mehrsprachigkeit ist ausdrücklich vor sie gestellt worden* —
 > **die Nummer war vorgemerkt und nicht vergeben**, und dazwischen sind Runden
 > geplant worden, die Funktionen bringen und damit nach der eigenen Regel MINOR
 > sind. *Eine vorgemerkte Zahl bindet nicht; was eine Runde enthält, entscheidet
@@ -13368,13 +13429,48 @@ an 0.17.2 selbst.* **Alle vier sind gebaut; was dabei herauskam, steht im
 
 ---
 
-### 0.26.x — „Die Kommentare werden knapp" · *PATCH* *(stand hier bis zum 4. September 2026 als 0.23.x)*
+### 0.24.0 — „Mehrsprachigkeit" · *MINOR* *(stand bis zum 5. September 2026 als 0.28.0 im Fahrplan; hier nie ausgearbeitet)*
+
+**Die Ausarbeitung steht nicht hier, sondern im Konzept
+`Doku/Konzept_Mehrsprachigkeit_0_24_0.md`** — wie bei 0.22.0 und 0.23.0 ist das
+Konzeptpapier das Papier der Runde, und dieser Eintrag ist der Wegweiser und
+kein zweiter Eintrag. *Nicht aus dem Sammelblatt: die Runde ist am 2. September
+2026 unmittelbar in den Fahrplan eingetragen worden und hat dort bis zum
+5. September 2026 ohne Ausarbeitung gestanden.*
+
+**In einem Satz je Stufe:**
+
+1. **Stufe 1 — das Deutsche wandert in eine eigene Datei.** Jeder Text, den
+   die Oberfläche zeigt, verlässt `app.js`, `server.js`, `auth.js` und
+   `mail.js` und steht als Schlüssel in `de.json`; die Anwendung sieht danach
+   genauso aus wie vorher, und der Prüfstand belegt, dass kein Text
+   zurückgeblieben ist.
+2. **Stufe 2 — Englisch.** Eine zweite Datei mit denselben Schlüsseln, die
+   Wahl je Zugang in der Karte „Darstellung", die Vorgabe der Installation in
+   der Karte „Vokabular"; die Anmeldeseite zeigt die zuletzt gewählte Sprache
+   und sonst die Vorgabe der Installation — nicht die Sprache des Geräts.
+3. **Stufe 3 — Türkisch.** Eine dritte Datei, und mit ihr die Fälle, die
+   Deutsch und Englisch nicht stellen: Suffixe an Platzhaltern, die
+   Vokalharmonie, `İ` und `ı` beim Sortieren und Suchen.
+
+**Was der Fahrplan dazu festhält:** die Sprache je Zugang liegt wie das
+Farbschema in `user_settings` — **kein Schema, kein Bestandslauf**; die
+Sprachdateien sind Daten und keine Programme; **die Sprache des Projekts
+bleibt Deutsch** (Abschnitt 12) — Kommentare, Papiere, Bezeichner und
+Prüfstand ändern sich nicht, nur die Oberfläche wird wählbar. *Welche Stufe
+mit welcher Nummer herausgeht, entscheidet der Betreiber am Konzept.*
+
+---
+
+### 0.28.x — „Die Kommentare werden knapp" · *PATCH* *(stand hier bis zum 4. September 2026 als 0.23.x, bis zum 5. September 2026 als 0.26.x)*
 
 > **DIESE ÜBERSCHRIFT HIESS BIS ZUM 3. SEPTEMBER 2026 „0.21.x", während die
 > Tabelle in Abschnitt 10 schon „0.22.x" trug.** *Zwei Tabellen über dieselbe
 > Sache dürfen sich nicht widersprechen (Stolperstein 47) — das Rücken der
 > Bereinigung am 2. September ist hier nicht mitgezogen worden.* **Beide
-> stehen jetzt auf 0.23.x.**
+> stehen jetzt auf 0.23.x.** *Seit dem 3. September 2026 auf 0.26.x, seit dem
+> 5. September 2026 auf 0.28.x — die PATCH-Zahl folgt der Bereinigung, wohin
+> die geht.*
 
 *(Neu am 31. August 2026. **Keine geplante Nummer, sondern die nächste freie
 PATCH-Zahl nach der Bereinigung** — dieselbe Bauform wie die 0.12.x-Zeile im

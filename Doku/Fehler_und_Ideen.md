@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 3. September 2026, nach der zweiten Zuordnung**
+**Das Sammelblatt · Stand 5. September 2026, nach dem neunten Rücken des Fahrplans**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -164,6 +164,14 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 > für eine eingeschobene Runde war. Eine freie Nummer je Zwischenraum lässt die
 > nächste dort Platz finden, ohne dass sich dahinter etwas bewegt.* **Die Regel
 > und der neue Fahrplan stehen im Projektstand, Abschnitt 10.**
+>
+> **UND AM 5. SEPTEMBER 2026 EIN DRITTES MAL — diesmal NACH VORN, und diesmal
+> ohne Einschub.** Der Betreiber hat die Mehrsprachigkeit von 0.28.0 auf 0.24.0
+> vorgezogen. *Die wählbare Bildablage (Punkte 5 und 6) steht seither auf
+> 0.26.0, die Bereinigung auf 0.28.0, und zwischen je zwei geplanten Runden
+> bleibt weiter eine Nummer frei; 0.30.0 und die 1.0 sind nicht gerückt.*
+> **Die Gründe und der Preis stehen im Projektstand, Abschnitt 10** — die
+> Ausarbeitung der Mehrsprachigkeit in `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`.
 
 | Runde | Was daraus geworden ist |
 |---|---|
@@ -187,8 +195,8 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.21.1** *PATCH* — **GEBAUT am 4. September 2026** | **„Die Sortierung sagt, wonach du fragst" — die Sortierung gibt den Statusfilter vor.** *Nichts aus diesem Blatt, und er ist auch **nie** hier gewesen: der Punkt kam am 4. September 2026 aus dem Rundlauf von Hand nach 0.21.0 und ist unmittelbar in den Auftrag gegangen.* **Er steht hier trotzdem — diese Tabelle ist der Wegweiser, und ein Punkt, der den Umweg nicht genommen hat, gehört mit genau diesem Vermerk hinein.** Gebaut ist: `rating_*` gibt „Getestet" vor, `potenzial_*` „Ungetestet", **jede andere Sortierung fasst den Filter nicht an**; die **Handwahl** und eine angewandte **gespeicherte Ansicht** schlagen die Vorgabe und halten über einen Wechsel der Sortierung hinweg; der **Rücksetzer** ist der Weg zurück; die Ableitung wird **nicht gespeichert** und **nicht mitgezählt**, sondern **in Worten gesagt**. **Was gebaut wurde, steht im Änderungsprotokoll 0.21.1.** ***Der Fahrplan rückt dadurch nicht*** — *0.21.1 ist eine PATCH-Zahl hinter einer gebauten Runde.* ***Und ein Befund aus dem Bauen:*** *wer bei „Potenzial" auf „Alles anzeigen" klickte, fand nicht mehr in die Automatik zurück — `filterZahl()` verglich gegen `all`, zählte null, und der Rücksetzer stand nicht da. Gezählt wird seither gegen die **Ruhestellung** (Stolperstein 312).* ***Der Rundlauf hat sonst nichts ergeben*** — *kein zweiter Befund, kein Fehler, kein Wunsch.* |
 | **0.22.0** *MINOR* *(war 0.20.0, dann 0.21.0)* — **GEBAUT am 4. September 2026** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch"** — aus dem Betrieb am 30. August 2026, dazu **Punkt 10 dieses Blatts** (der Bildstreifen nutzt die Breite, und seine Größe ist eine Einstellung), am 4. September 2026 zugeordnet und am selben Tag gebaut. *Was gebaut wurde, steht im Änderungsprotokoll 0.22.0; die Gestaltungs- und Sprachregeln der Runde stehen im Projektstand, Abschnitt 5.6.* |
 | **0.22.1** *PATCH* — **GEBAUT am 5. September 2026** | **„Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da."** *Nichts aus diesem Blatt, und die drei Befunde sind auch **nie** hier gewesen: sie kamen am 5. September 2026 aus dem Rundlauf von Hand nach 0.22.0 und sind unmittelbar in den Auftrag gegangen — dieselbe Herkunft wie 0.21.1 nach 0.21.0.* **Sie stehen hier trotzdem — diese Tabelle ist der Wegweiser, und ein Punkt, der den Umweg nicht genommen hat, gehört mit genau diesem Vermerk hinein.** Gebaut ist: fünf Gesten und acht Griffe am Bildausschnitt (die gegenüberliegende Ecke bzw. Kante bleibt liegen, der Zeiger sagt es vorher); die Kopfzahl steht nur noch einmal im Kopf und sagt, dass sie über **alle** Benutzer geht; und an einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr — der Server weist eine Bewertung dort ebenfalls ab, `value: 0` bleibt offen. **Was gebaut wurde, steht im Änderungsprotokoll 0.22.1; die Regeln G9 bis G11 im Projektstand, Abschnitt 5.6.** ***Sieben Entscheidungen sind vor dem Bauen gefallen (E1 bis E7), sechs nach Empfehlung — E2 nicht: sie nimmt zu den vier Ecken auch die vier Kanten.*** ***Und ein Befund aus dem Bauen:*** *der Prüfstand zählt die Rückbauten, und die Zahl stand noch auf 635 — der erste Gegenprobenlauf hat deshalb in jedem Durchgang eine falsche rote Zeile mitgezählt und ist verworfen worden.* |
-| **0.24.0** *MINOR* *(war 0.21.0, dann 0.22.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
-| **0.26.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, Nummer vorläufig)* | Bereinigung — der Bruch |
+| **0.26.0** *MINOR* *(war 0.21.0, dann 0.22.0, dann 0.24.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
+| **0.28.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, dann 0.26.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
 **Was hier bleibt, bleibt aus einem Grund:** die **acht** Punkte unten haben
 **keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — *mit einer
@@ -250,7 +258,7 @@ entschieden und hat seinen Ort.*
 | **empfohlen** | **11** |
 | **empfohlen, aber eine Beobachtung fehlt** | **12** |
 | **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
-| **eingetragen als 0.24.0** | **5, 6** |
+| **eingetragen als 0.26.0** *(bis zum 5. September 2026: 0.24.0)* | **5, 6** |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
 
