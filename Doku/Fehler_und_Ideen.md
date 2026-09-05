@@ -186,11 +186,15 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.21.0** *MINOR, Schema* — **GEBAUT am 4. September 2026** | **„Vor dem Test schätzt man, nach dem Test bewertet man" — der zweite Sternkasten.** *Nichts aus diesem Blatt: der Punkt ist am 3. September 2026 aus dem Betrieb gekommen und noch am selben Tag als Konzeptpapier (`Doku/Konzept_Potenzial.md`) und als eingeschobene Runde gebaut worden — er hat hier nie gestanden.* Gebaut sind: die Spalte `rating_criteria.phase` (**neunter Migrationsblock**, Austauschformat **13**), zwei Durchschnitte, die einander **baulich** nicht berühren, eine **einundzwanzigste Karte**, zwei Sortiereinträge, das **zwölfte Vokabelwort**, das **×** an der Sternzeile statt des Kopfknopfs — und `DELETE /api/items/:id/ratings` **fällt** (`F_ROUTEN` 71 → 70). **Was gebaut wurde, steht im Änderungsprotokoll 0.21.0.** ***Und eine Regel für den Fahrplan ist dabei entstanden:*** *zwischen zwei geplanten Runden bleibt ab jetzt eine Nummer frei — der Fahrplan ist seit 0.12.0 achtmal gerückt, und jedes Mal um den ganzen Rest.* |
 | **0.21.1** *PATCH* — **GEBAUT am 4. September 2026** | **„Die Sortierung sagt, wonach du fragst" — die Sortierung gibt den Statusfilter vor.** *Nichts aus diesem Blatt, und er ist auch **nie** hier gewesen: der Punkt kam am 4. September 2026 aus dem Rundlauf von Hand nach 0.21.0 und ist unmittelbar in den Auftrag gegangen.* **Er steht hier trotzdem — diese Tabelle ist der Wegweiser, und ein Punkt, der den Umweg nicht genommen hat, gehört mit genau diesem Vermerk hinein.** Gebaut ist: `rating_*` gibt „Getestet" vor, `potenzial_*` „Ungetestet", **jede andere Sortierung fasst den Filter nicht an**; die **Handwahl** und eine angewandte **gespeicherte Ansicht** schlagen die Vorgabe und halten über einen Wechsel der Sortierung hinweg; der **Rücksetzer** ist der Weg zurück; die Ableitung wird **nicht gespeichert** und **nicht mitgezählt**, sondern **in Worten gesagt**. **Was gebaut wurde, steht im Änderungsprotokoll 0.21.1.** ***Der Fahrplan rückt dadurch nicht*** — *0.21.1 ist eine PATCH-Zahl hinter einer gebauten Runde.* ***Und ein Befund aus dem Bauen:*** *wer bei „Potenzial" auf „Alles anzeigen" klickte, fand nicht mehr in die Automatik zurück — `filterZahl()` verglich gegen `all`, zählte null, und der Rücksetzer stand nicht da. Gezählt wird seither gegen die **Ruhestellung** (Stolperstein 312).* ***Der Rundlauf hat sonst nichts ergeben*** — *kein zweiter Befund, kein Fehler, kein Wunsch.* |
 | **0.22.0** *MINOR* *(war 0.20.0, dann 0.21.0)* — **GEBAUT am 4. September 2026** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch"** — aus dem Betrieb am 30. August 2026, dazu **Punkt 10 dieses Blatts** (der Bildstreifen nutzt die Breite, und seine Größe ist eine Einstellung), am 4. September 2026 zugeordnet und am selben Tag gebaut. *Was gebaut wurde, steht im Änderungsprotokoll 0.22.0; die Gestaltungs- und Sprachregeln der Runde stehen im Projektstand, Abschnitt 5.6.* |
+| **0.22.1** *PATCH* — **GEBAUT am 5. September 2026** | **„Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da."** *Nichts aus diesem Blatt, und die drei Befunde sind auch **nie** hier gewesen: sie kamen am 5. September 2026 aus dem Rundlauf von Hand nach 0.22.0 und sind unmittelbar in den Auftrag gegangen — dieselbe Herkunft wie 0.21.1 nach 0.21.0.* **Sie stehen hier trotzdem — diese Tabelle ist der Wegweiser, und ein Punkt, der den Umweg nicht genommen hat, gehört mit genau diesem Vermerk hinein.** Gebaut ist: fünf Gesten und acht Griffe am Bildausschnitt (die gegenüberliegende Ecke bzw. Kante bleibt liegen, der Zeiger sagt es vorher); die Kopfzahl steht nur noch einmal im Kopf und sagt, dass sie über **alle** Benutzer geht; und an einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr — der Server weist eine Bewertung dort ebenfalls ab, `value: 0` bleibt offen. **Was gebaut wurde, steht im Änderungsprotokoll 0.22.1; die Regeln G9 bis G11 im Projektstand, Abschnitt 5.6.** ***Sieben Entscheidungen sind vor dem Bauen gefallen (E1 bis E7), sechs nach Empfehlung — E2 nicht: sie nimmt zu den vier Ecken auch die vier Kanten.*** ***Und ein Befund aus dem Bauen:*** *der Prüfstand zählt die Rückbauten, und die Zahl stand noch auf 635 — der erste Gegenprobenlauf hat deshalb in jedem Durchgang eine falsche rote Zeile mitgezählt und ist verworfen worden.* |
 | **0.24.0** *MINOR* *(war 0.21.0, dann 0.22.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
 | **0.26.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
-**Was hier bleibt, bleibt aus einem Grund:** die **sieben** Punkte unten haben
-**keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — zwei sind
+**Was hier bleibt, bleibt aus einem Grund:** die **acht** Punkte unten haben
+**keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — *mit einer
+Ausnahme seit dem 5. September 2026: **Punkt 11** ist empfohlen und wartet nur
+auf eine Runde; er ist am selben Tag dazugekommen, als 0.22.1 ihn ausdrücklich
+nicht mitgenommen hat* — zwei sind
 `nicht empfohlen`, drei sind `später`, einer wartet auf die Runde, in der über
 die Verfahren entschieden wird, **und einer ist am 3. September 2026
 dazugekommen: Punkt 9, die gepackte Sicherung** — *sein Kern ist gemessen und
@@ -233,7 +237,7 @@ entschieden und hat seinen Ort.*
 
 | Art | Punkte in Teil I |
 |---|---|
-| **Fehler** | — *(der letzte, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden)* |
+| **Fehler** | **11** *(drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden)* |
 | **Verbesserung** | — |
 | **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
 | **Design** | — *(der einzige, der Bildstreifen, ist 0.22.0 geworden)* |
@@ -243,6 +247,7 @@ entschieden und hat seinen Ort.*
 |---|---|
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
+| **empfohlen** | **11** |
 | **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
 | **eingetragen als 0.24.0** | **5, 6** |
 
@@ -531,6 +536,46 @@ nicht reicht — und dann mit einem Beispiel, an dem man das sehen kann.*
 
 Die Suchroute (ein Parameter für den Bereich), die Filterzeile, die
 gespeicherten Ansichten, Prüfungen, Gegenproben, README. **Kein Schema.**
+
+---
+
+## 11. Drei kleine Anzeigefehler aus dem Augenschein zu 0.22.0
+
+**Aufgefallen am 4. September 2026 beim Augenschein zu 0.22.0** — beim
+Durchsehen von 64 Bildschirmfotos je Rolle und je Schirm. **Alle drei sind
+älter als jene Runde und stehen so auch in 0.21.1**; sie sind dort ausdrücklich
+als „Zeilen fürs Sammelblatt, keine für diese Runde" abgelegt worden, und
+0.22.1 hat sie nicht mitgenommen (Entscheidung des Betreibers beim Start).
+
+> **Art: Fehler** (drei kleine) · **Claude: empfohlen** — *zwei davon sind je
+> eine Zeile im Stilblatt.*
+> **Draußen üblich:** ein Titel, der auf dem Telefon umbricht, statt
+> abgeschnitten zu werden; keine Leerzeichen vor einer Klammer.
+
+### Was auffiel
+
+1. **Der Eintragstitel wird auf dem Telefon rechts abgeschnitten statt
+   umgebrochen.** *Ein langer Titel ist damit auf dem Gerät, an dem man ihn am
+   ehesten sucht, nicht zu lesen.*
+2. **„Mit Fotos (~ 301,5 KB )" trägt ein Leerzeichen vor der Klammer** — es
+   kommt vom `gap` des `.btn`, nicht aus dem Text. *Die Klammer sieht dadurch
+   aus, als fehlte etwas darin.*
+3. **Die Karte „Bewertung: Kriterien" erklärt dem Benutzer das Gewicht, das er
+   nicht stellen kann.** *Der Satz liest sich als Erklärung der Marke `×1`, die
+   er sieht — und beschreibt einen Knopf, den nur der Admin hat.* Das ist
+   Sprachregel S5 („ein Text, den nur die Rolle darüber braucht, gehört hinter
+   deren Klemme", Stolperstein 315) an einer Stelle, die 0.22.0 übersehen hat.
+
+### Was es nicht ist
+
+**Keine Funktion und keine Regel** — dreimal Anzeige. *Punkt 3 ist eine
+Textstelle, die beim Wörterbuch von 0.22.0 durchgerutscht ist; er gehört
+inhaltlich zu jener Runde und nicht zu einer neuen Idee.*
+
+### Was es anfasst
+
+`public/style.css` (Punkt 1 und 2), `public/app.js` (Punkt 3), Prüfungen,
+Gegenproben. **Kein Schema, keine Route, kein Vokabelwort.**
 
 ---
 
