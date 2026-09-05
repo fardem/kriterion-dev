@@ -1,10 +1,11 @@
 # Auftrag 0.24.0 — „Das Deutsche wandert in eine eigene Datei"
 
-**Stufe 1 der Mehrsprachigkeit.** Aufsetzend auf **0.23.0, Fingerprint
-`92f7a142`** — der Stand von `main` am 5. September 2026 (`34da9ea`), dazu die
-Papiere aus `8603d0a` (der gerückte Fahrplan und das Konzept). **Derselbe Bau
-läuft am Wirt**, der Augenschein am Wirt ist also aussagekräftig — und er ist
-in dieser Runde die Abnahme.
+**Stufe 1 der Mehrsprachigkeit — und davor zwei Befunde aus dem Betrieb am
+hellen Schema.** Aufsetzend auf **0.23.0, Fingerprint `92f7a142`** — der Stand
+von `main` am 5. September 2026 (`34da9ea`), dazu die Papiere aus `8603d0a`
+(der gerückte Fahrplan und das Konzept). **Derselbe Bau läuft am Wirt**, der
+Augenschein am Wirt ist also aussagekräftig — und er ist in dieser Runde die
+Abnahme.
 
 **Das Konzept steht und ist vollständig:
 `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`.** *Dieser Auftrag entscheidet keine
@@ -62,7 +63,156 @@ in `public/sprachen/de.json`.** Der Quelltext ruft `t()` und sonst nichts.
 **Die Anwendung sieht danach genauso aus wie vorher** — dasselbe Wort an
 derselben Stelle, derselbe Umbruch. **Keine Wahl, keine zweite Sprache, kein
 Schema, keine Route, keine Abhängigkeit, kein Bestandslauf** — die Wahl kommt
-mit Stufe 2.
+mit Stufe 2. **Davor, als Bauabschnitt 0, zwei Befunde aus dem Betrieb am
+hellen Schema** — die Zeitleiste ohne sichtbare Linien und Jahreszahlen, und
+der Aufklapper „Weitere Filter", der Platz kostet statt spart. *Sie fahren
+mit, weil sie klein sind und am selben Stand aufgefallen sind; der
+Augenschein von Stufe 1 gilt dann gegen den Stand NACH ihnen.*
+
+---
+
+## Bauabschnitt 0 — zwei Befunde aus dem Betrieb am hellen Schema
+
+**Beide gemeldet am 5. September 2026 vom Betreiber, am Wirt, 0.23.0
+`92f7a142`, helles Schema — mit Bild.** Keiner stand im Sammelblatt und
+keiner im Fahrplan; sie gehen unmittelbar in diesen Auftrag, wie die Befunde
+zu 0.21.1 und 0.22.1. **Sie werden zuerst gebaut und als eigener Commit
+eingecheckt**, damit der Vergleich „nichts sieht anders aus" für Stufe 1
+einen festen Stand hat.
+
+### 0.1 Die Zeitleiste — Linien und Jahreszahlen sind im hellen Schema nicht zu sehen
+
+**Der Befund:** *„Linien 0 bis 5 und Jahreszahlen sind nicht sichtbar."* Auf
+dem Bild stehen die Punkte frei in der Luft, die Achse ist eine Ahnung, die
+Jahreszahlen sind hellgrau und winzig.
+
+**Die Ursache ist gemessen, nicht geraten.** Die Zeitleiste liegt seit 0.22.0
+ohne Kasten **auf dem Grund der Seite** (`--bg`), nicht auf einer Karte
+(`style.css:2393`). Ihre fünf Hilfslinien je Notenstufe (1 bis 5, die dritte
+kräftiger — `drawZeitleiste()`, `app.js:3487`) und der Strich der Jahresachse
+tragen `--line-2`, die mittlere `--line`, die Jahreszahlen `--faint` bei
+0,63 rem (`style.css:2400–2418`). **Das Farbkonzept hat diese Paarungen nie
+gemessen — es hat „Rand auf der Karte" gemessen, und die Zeitleiste hat keine
+Karte.** Gegen `--bg`:
+
+| | dunkel `#0e1012` | **hell `#eaedf1`** |
+|---|---|---|
+| Hilfslinie und Jahresachse, `--line-2` | 1,22 : 1 | **1,02 : 1** — unsichtbar |
+| mittlere Linie, `--line` | 1,35 : 1 | **1,24 : 1** |
+| Jahreszahl, `--faint` | 3,47 : 1 | 3,46 : 1 — *aber bei 0,63 rem Festbreite, und `--faint` ist laut Farbkonzept nie tragender Text* |
+
+*Im dunklen Schema tragen dieselben Werte, weil eine hellere Linie auf
+Schwarz mehr hergibt als eine dunklere auf Hellgrau — die Zahl ist ähnlich,
+das Auge sieht anders. Das ist die Lücke im Farbkonzept, und sie gehört
+dorthin nachgetragen (Abschnitt 4.1, die Paarungen gegen den Grund).*
+
+**Was gebaut wird — drei eigene Werte, damit das dunkle Schema unberührt
+bleibt:**
+
+```
+                  dunkel (heute, bleibt)     hell (neu)              auf --bg hell
+--zl-linie        = var(--line-2)            #b9c2cb (= --line-hover)  1,54 : 1
+--zl-mitte        = var(--line)              #9aa5b0                    2,13 : 1
+--zl-jahr         = var(--faint)             = var(--muted) #616b75     4,62 : 1
+```
+
+`.zl-linie`, `.zl-linie.mitte`, `.zl-jahre` (der `border-top`) und `.zl-jahr`
+lesen diese drei statt der allgemeinen Randfarben. **Der Schwebehinweis
+(`.zl-hinweis`) und die Punkte bleiben, wie sie sind** — sie liegen auf
+`--surface-2` bzw. in Gold und tragen.
+
+**Was dabei nicht verhandelbar ist:**
+
+* **Das dunkle Schema ändert keinen Bildpunkt** — die drei Variablen tragen im
+  `:root`-Block genau die heutigen Werte. *Dieselbe Regel wie in 0.23.0: wer
+  es „nebenbei verbessert", hat den Auftrag verlassen.*
+* **Die Latte im hellen Schema:** Hilfslinie ≥ 1,5, mittlere ≥ 2,0,
+  Jahreszahl ≥ 4,5 gegen `--bg` — **gerechnet im Prüfstand mit dem
+  Rechenweg aus 0.23.0**, nicht abgeschrieben. Die drei Werte oben sind der
+  Vorschlag; **bestätigt werden sie am Wirt, am hellen Bildschirm, mit echten
+  Punkten (B1).**
+* **Keine feste Farbe im Stilblatt** — der Wächter aus 0.23.0 (keine
+  Farbliterale außerhalb der `:root`-Blöcke) bleibt grün; die neuen Werte
+  stehen in den Blöcken.
+
+### 0.2 Der Aufklapper „Weitere Filter" — er kostet Platz, statt ihn zu sparen
+
+**Der Befund:** *„Weitere Filter sollte Platz sparen, indem die Tags
+einklappen — aber diesen Platz hat jetzt dieser Knopf genommen. Wenn die Tags
+zusätzlich eingeblendet werden, braucht es mehr Platz als vorher."*
+
+**Die Ursache steht im Aufbau.** Der Aufklapper ist ein `<details>` mit einer
+`<summary>` als Zusammenfassung (`app.js:3134–3138`, `style.css:739–749`,
+E8 der Runde 0.22.0). **Die Zusammenfassung ist ein Block und belegt eine
+eigene Zeile** — zwischen der Kategoriezeile und der Sortierzeile steht
+„› Weitere Filter" als Zeile für sich. Zugeklappt spart das gegenüber der
+alten, immer sichtbaren Tagzeile nur den Unterschied zwischen einer
+Beschriftungszeile und einer Tagzeile; **aufgeklappt stehen Zusammenfassung
+UND Tagzeile da — eine Zeile mehr als vor 0.22.0.** *E8 wollte die Zeile
+sparen, die den Platz kostet; gebaut wurde eine Zeile, die den Platz kostet,
+und die andere dahinter.*
+
+**Was der Betreiber vorschlägt, und was dieser Auftrag daraus macht:** der
+Umschalter **an das rechte Ende der Kategoriezeile** — dort, wo in der
+Sortierzeile „Filter zurücksetzen (1)" steht, in derselben Bauform
+(`link-btn` mit Winkel, `margin-left: auto`). Zugeklappt ist die Tagzeile
+**ganz** weg, aufgeklappt erscheint sie als gewöhnliche `.frow` mit der
+Beschriftung „Tags" darunter — **keine eigene Zeile für den Umschalter, in
+keinem der beiden Zustände.** Auf dem Telefon bricht der Umschalter unter die
+Kategoriepillen; das kostet dort eine kurze Zeile, zugeklappt wie
+aufgeklappt, und immer noch weniger als heute.
+
+**Die Beschriftung wird „Tags", nicht „Weitere Filter".** Hinter dem
+Umschalter steht allein die Tagzeile (E8: *„nur die Tagzeile"*), und ein Text
+sagt, was der Klick tut (S1). *„Weitere Filter" verspricht mehr, als
+dahinter liegt — und der Betreiber hat es selbst so gelesen: „Weitere
+Tag-Filter".* Dazu die Zahl der greifenden Tagfilter, wenn es welche gibt:
+„Tags (2)".
+
+**Die beiden Regeln aus 0.22.0 bleiben, wörtlich:** greift ein Tagfilter,
+steht die Tagzeile beim Aufbau **offen** — ein Filter, der die Liste kürzt
+und unsichtbar ist, ist ein Fehler; und `filterZahl()` zählt ihn weiter mit.
+`WEITERE_FILTER_OFFEN` (`app.js:1452`) bleibt der Merker für die Dauer der
+Sitzung.
+
+**„… und blendet zusätzlich nicht die Tags ein."** Der Prüfstand hält das
+Öffnen im jsdom für richtig (Gruppe „Der Aufklapper „Weitere Filter" —
+0.22.0", `pruefung.js:40939`). **Am Wirt nachstellen, bevor gebaut wird**
+(Abschnitt 12 des Projektstands: erst nachstellen, dann behaupten): zeigt der
+Wirt nach dem Klick keine Tags, ist es entweder ein Fall, den der Prüfstand
+nicht stellt — kein Tag mit `usage_count > 0`, dann steht dort „Noch keine
+Tags" —, oder ein Stilblattfehler im hellen Schema. **Beides gehört in diesen
+Abschnitt, und was es war, steht im Änderungsprotokoll.**
+
+**Was dabei nicht verhandelbar ist:**
+
+* **Kein `<details>` mehr, sondern ein Knopf mit `aria-expanded`** — die
+  Zusammenfassung eines `<details>` lässt sich nicht in eine fremde Zeile
+  setzen. Zustand und Tastatur trägt der Knopf (Enter, Leertaste, Fokusring).
+* **Die Tagzeile bleibt eine `.frow` wie ihre Nachbarn**, mit Beschriftung,
+  Und/Oder-Umschalter, Wolke, „mehr" und „Tags zurücksetzen" — daran ändert
+  sich nichts.
+* **Die Alternative, wenn der Betreiber den Umschalter lieber links will:**
+  die Beschriftung der Tagzeile selbst wird der Umschalter — „› TAGS"
+  zugeklappt in der Beschriftungsspalte, „⌄ TAGS Und Oder …" aufgeklappt in
+  derselben Zeile. *Kostet zugeklappt eine Beschriftungszeile, aufgeklappt
+  nichts; hält die Spalte der Beschriftungen bündig.* **Entschieden wird am
+  gebauten Stand am Wirt (B2); gebaut wird zuerst der Vorschlag des
+  Betreibers.**
+
+### 0.3 Der Prüfstand in diesem Abschnitt
+
+* **Die drei Paarungen der Zeitleiste gegen `--bg` im hellen Block,
+  gerechnet** — Hilfslinie ≥ 1,5, mittlere ≥ 2,0, Jahreszahl ≥ 4,5 —, und
+  **die drei Werte im dunklen Block sind die heutigen** (`--line-2`, `--line`,
+  `--faint`).
+* **Die Gruppe „Der Aufklapper „Weitere Filter" — 0.22.0" zieht mit:** der
+  Umschalter steht in der Kategoriezeile, trägt „Tags" und `aria-expanded`;
+  zugeklappt gibt es keine `.frow` mit der Beschriftung „Tags"; aufgeklappt
+  eine, mit Und/Oder und Wolke; mit greifendem Tagfilter steht sie beim Aufbau
+  offen; `filterZahl()` zählt ihn. **Die Zusicherung `tagName === 'DETAILS'`
+  fällt — und wird nicht gelöscht, sondern zur Zusicherung über den Knopf.**
+* **Je Prüfung eine Gegenprobe.**
 
 ---
 
@@ -327,6 +477,14 @@ mit Begründung; hier nur, welche greifen:
 | E12 | die Nummern der Stufen | **vom Betreiber entschieden: Stufe 1 allein, als 0.24.0** — siehe den Kasten am Kopf; Stufe 2 und 3 offen |
 | E13, E14 | Englisch, Leser | **nein — Stufe 2 und 3** |
 
+**Zwei zu den Befunden aus Bauabschnitt 0 — offen, bis der Betreiber sie am
+Wirt bestätigt:**
+
+| # | Frage | Empfehlung |
+|---|---|---|
+| **B1** | Die Werte der Zeitleiste im hellen Schema? | **`#b9c2cb` · `#9aa5b0` · `--muted`** (1,54 · 2,13 · 4,62 gegen `--bg`) — am Wirt mit echten Punkten bestätigen; das dunkle Schema bleibt (0.1) |
+| **B2** | Wo sitzt der Umschalter der Tagzeile, und wie heißt er? | **Rechts in der Kategoriezeile, „Tags" mit Zahl** — der Vorschlag des Betreibers, geschärft nach S1; Alternative: die Beschriftung der Tagzeile als Umschalter (0.2). Am gebauten Stand entscheiden |
+
 **Und drei, die erst beim Schreiben dieses Auftrags aufgekommen sind:**
 
 | # | Frage | Entscheidung |
@@ -347,7 +505,9 @@ Konzept auf und nicht im Quelltext.
   `Accept-Language`, kein sechstes Feld in `/api/config`. *Alles Stufe 2.*
 * **Kein Wort anders.** Weder verbessert noch gekürzt noch vereinheitlicht.
   *Wer beim Umzug einen Text ändert, hat den Auftrag verlassen — und die
-  Abnahme (dasselbe Wort an derselben Stelle) gleich mit.*
+  Abnahme (dasselbe Wort an derselben Stelle) gleich mit.* **Die eine
+  Ausnahme ist Bauabschnitt 0:** „Weitere Filter" wird „Tags" — vor dem
+  Umzug, als eigener Commit, mit den Prüfungen, die mitziehen.
 * **Kein `_hinweis`** — Übersetzerhinweise kommen mit der ersten Übersetzung,
   nicht vorher.
 * **Keine Übersetzung von Kommentaren, Papieren, Konsole, Werkzeugen,
@@ -355,13 +515,20 @@ Konzept auf und nicht im Quelltext.
 * **Keine Bibliothek, keine neue Route, kein Schema, kein Bestandslauf, kein
   Migrationsblock, keine neue Quelltextdatei.**
 * **Kein Umbau der Karte „Vokabular"** außer der Herkunft der Vorgabe.
-* **Keine Änderung an `style.css`, `index.html` (außer nichts) und
-  `thema.js`.** *Ein Text ist kein Stil.*
+* **Keine Änderung an `style.css` außer den Zeilen aus Bauabschnitt 0;
+  `index.html` und `thema.js` bleiben unberührt.** *Ein Text ist kein Stil.*
+* **Keine weiteren Befunde am hellen Schema „nebenbei".** Was beim Bauen
+  auffällt, kommt ins Änderungsprotokoll und ins Sammelblatt — nicht in
+  diesen Auftrag.
 
 ---
 
 ## Der Prüfstand — was er halten muss
 
+0. **Bauabschnitt 0:** die drei Paarungen der Zeitleiste gegen `--bg` hell
+   gerechnet über der Latte, die dunklen Werte unverändert; der Umschalter der
+   Tagzeile in der Kategoriezeile mit „Tags" und `aria-expanded`, die Tagzeile
+   zugeklappt weg und aufgeklappt da, mit greifendem Tagfilter offen.
 1. **`de.json` liegt unter `public/sprachen/`, trägt `_locale: "de-DE"`, und
    jeder Wert ist ein String oder ein Objekt `{ eins, andere }`.** Kein Wert
    trägt `<` oder `>`.
@@ -390,9 +557,11 @@ Konzept auf und nicht im Quelltext.
 
 ## Bauregeln
 
-* **Die fünf Bauabschnitte in dieser Reihenfolge**, und jeder ein eigener
-  Commit („0.24.0 Bauabschnitt n: …"), mit grünem Prüfstand. **Abschnitt 1
-  ist fertig, bevor der erste Satz umzieht.**
+* **Die sechs Bauabschnitte in dieser Reihenfolge, 0 bis 5**, und jeder ein
+  eigener Commit („0.24.0 Bauabschnitt n: …"), mit grünem Prüfstand.
+  **Abschnitt 0 ist eingecheckt und am Wirt gesehen, bevor Abschnitt 1
+  anfängt** — sein Stand ist der Vergleichsstand für „nichts sieht anders
+  aus". **Abschnitt 1 ist fertig, bevor der erste Satz umzieht.**
 * **Innerhalb von Abschnitt 3 je Ansicht ein Commit** — ein halb umgezogener
   Stand ist erlaubt, solange der Prüfstand grün ist und die Ansicht am Wirt
   dieselbe; **eine halb umgezogene Ansicht nicht.**
@@ -418,7 +587,14 @@ Konzept auf und nicht im Quelltext.
 * **`Doku/Aenderungsprotokoll_0.24.0.md`** — neu, am Ende: was wirklich
   umgezogen ist, mit den Zahlen, die herauskamen; was auf der Restliste steht
   und warum; welche Texte beim Umzug als Fund aufgefallen sind, ohne geändert
-  zu werden.
+  zu werden — **und die beiden Befunde aus Bauabschnitt 0**, mit dem, was am
+  Wirt nachgestellt wurde, und den bestätigten Werten.
+* **`Doku/Farbkonzept_0_23_0.md`** — ein Nachtrag an Abschnitt 4.1: die
+  Paarungen der Zeitleiste gegen den Grund, gemessen, mit den Werten aus B1.
+  *Das Papier wird nicht umgeschrieben; die Lücke wird benannt.*
+* **`Doku/Fehler_und_Ideen.md`** — die Wegweisertafel bekommt am Ende die
+  Zeile zu 0.24.0 mit dem Vermerk, dass die beiden Befunde **nie** dort
+  standen (wie bei 0.21.1 und 0.22.1).
 * **`CHANGELOG.md`** — der Eintrag zur Version. **Kein Kasten darüber:** ein
   Betreiber hat nichts zu tun, und er sieht nichts.
 * **`Doku/Projektstand_…`** — `git mv` auf die Nummer; Kopf, Betriebsstand,
