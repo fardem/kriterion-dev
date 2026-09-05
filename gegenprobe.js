@@ -652,10 +652,10 @@ const RUECKBAUTEN = [
     /* NEU GEZIELT: marke-hell.svg ist entfernt -- sie war Byte fuer Byte
        favicon.svg. Der Rueckbau greift jetzt zur verbliebenen Fassung mit
        Kachel, und die saesse auf dunklem Grund als sichtbares Rechteck. */
-    nr: '70', name: 'Die Oberflaeche nimmt die Marke MIT Kachel',
+    nr: '70', name: 'Die Marke folgt dem Schema nicht mehr',
     datei: 'public/app.js',
-    suche: '<img class="marke" src="marke-dunkel.svg"',
-    ersatz: '<img class="marke" src="favicon.svg"',
+    suche: '<path d="M8 6 V26" stroke="var(--marke-grau)"/>',
+    ersatz: '<path d="M8 6 V26" stroke="#838c95"/>',
     erwartet: 'Die Marke der Instanz'
   },
   {
@@ -663,8 +663,8 @@ const RUECKBAUTEN = [
        damit wieder in einem Kaestchen mit Rahmen und rundem Fuellgrund. */
     nr: '71', name: 'Die Marke heisst wieder wie die Kommentarknoepfe',
     datei: 'public/app.js',
-    suche: '<img class="marke" src="marke-dunkel.svg"',
-    ersatz: '<img class="mark" src="marke-dunkel.svg"',
+    suche: '<svg class="marke" viewBox=',
+    ersatz: '<svg class="mark" viewBox=',
     erwartet: 'Die Marke der Instanz'
   },
   {
@@ -1348,10 +1348,10 @@ const RUECKBAUTEN = [
   },
   /* ---- Die Marke ---- */
   {
-    nr: '153', name: 'Die durchsichtige Fassung traegt wieder Gold',
-    datei: 'public/marke-dunkel.svg',
-    suche: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
-    ersatz: '<path d="M8 16 H24" stroke="#ffc531"/>',
+    nr: '153', name: 'Der Markenstrich traegt wieder Gold',
+    datei: 'public/style.css',
+    suche: '--marke-strich: var(--accent-text);',
+    ersatz: '--marke-strich: var(--gold);',
     erwartet: 'Die Marke der Instanz'
   },
   {
@@ -1366,9 +1366,9 @@ const RUECKBAUTEN = [
   },
   {
     nr: '155', name: 'Das viewBox umschliesst wieder die Kachel statt der Farbe',
-    datei: 'public/marke-dunkel.svg',
-    suche: 'viewBox="6.5 4.5 19 23" width="19" height="23"',
-    ersatz: 'viewBox="0 0 32 32" width="32" height="32"',
+    datei: 'public/app.js',
+    suche: 'viewBox="6.5 4.5 19 23" width=',
+    ersatz: 'viewBox="0 0 32 32" width=',
     erwartet: 'Die Marke der Instanz'
   },
   {
@@ -1381,8 +1381,8 @@ const RUECKBAUTEN = [
   {
     nr: '157', name: 'Das Markup gibt die Marke wieder quadratisch an',
     datei: 'public/app.js',
-    suche: '`<img class="marke" src="marke-dunkel.svg" width="${Math.round(s * 19 / 23)}" height="${s}" alt="">`;',
-    ersatz: '`<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;',
+    suche: 'width="${Math.round(s * 19 / 23)}" height="${s}"',
+    ersatz: 'width="${s}" height="${s}"',
     erwartet: 'Die Marke der Instanz'
   },
   /* ---- Telefon und Tablett (0.12.0) ----

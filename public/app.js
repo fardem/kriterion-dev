@@ -151,43 +151,67 @@ const ICON_PIN = zeichen('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M
    esc() -- er ist fest, aber innerHTML ist innerHTML. */
 const leerZustand = (satz) => `<div class="leer-zustand">${ICON_PH}<span class="hint">${esc(satz)}</span></div>`;
 
-/* Die Marke der Instanz. EINE AUSGELIEFERTE DATEI statt eines eingebauten
-   SVG: eine Marke gehoert dem Projekt und nicht einer Funktion in app.js --
-   wer sie austauscht, tauscht eine Datei aus und fasst keinen Quelltext an.
+/* Die Marke der Instanz — EIN EINGEBAUTES SVG, seit 0.23.0 wieder.
+
+   UND DAS NIMMT EINE ENTSCHEIDUNG VON 0.9.1 ZURÜCK. Dort wurde sie aus dem
+   Quelltext in eine Datei gezogen, mit dieser Begründung: „eine Marke gehört
+   dem Projekt und nicht einer Funktion in app.js — wer sie austauscht,
+   tauscht eine Datei aus und fasst keinen Quelltext an." Die Begründung ist
+   nicht falsch geworden. Sie hält nur der Messung nicht stand:
+
+     die drei grauen Striche #838c95   auf dunklem Grund 5,58 : 1
+                                       auf hellem Grund  2,91 : 1   ✗
+     der orange Strich      #ff7a1a    auf dunklem Grund 7,31 : 1
+                                       auf hellem Grund  2,22 : 1   ✗
+
+   Der Dateiname sagt es selbst: `marke-dunkel.svg`. Auf hellem Grund fällt
+   sie durch, und zwar der Markenstrich am deutlichsten.
+
+   WAS NICHT GEHT UND WARUM. Ein `<img>` kann keine CSS-Variable lesen — das
+   Dokument, aus dem es gezeichnet wird, ist ein anderes. Eine zweite Datei
+   `marke-hell.svg` scheidet aus: sie lag schon einmal daneben und ist
+   ausdrücklich entfernt worden (zwei Dateien über dieselbe Sache,
+   Stolperstein 47), und sie kostete beim Umschalten ein Neuzeichnen der
+   Kopfzeile. Ein Strich, der auf BEIDEN Gründen trägt, gäbe es — aber nur
+   um den Preis, dass die Marke in keinem der beiden Schemata mehr die
+   Markenfarbe trägt, auch im dunklen nicht, wo heute alles stimmt.
+
+   WAS DER TAUSCH KOSTET, STEHT HIER UND NICHT NUR IM ÄNDERUNGSPROTOKOLL: wer
+   die Marke austauscht, fasst ab jetzt Quelltext an. `favicon.svg` bleibt
+   eine Datei — es braucht keine Variable, weil es seine eigene dunkle Kachel
+   mitbringt und damit auf jeder fremden Fläche steht.
+
+   ZWEI VARIABLEN UND KEINE NEUEN FARBEN: --marke-grau ist --muted, und
+   --marke-strich ist --accent-text. Beide tragen in beiden Schemata schon den
+   richtigen Wert, und beide sind über 3 : 1 auf ihrem Grund. Die Marke folgt
+   dem Schema damit ohne eine Zeile JavaScript.
+
    Die Klasse heisst `marke` und nicht `mark`: `mark` gibt es in style.css
    bereits fuer die kleinen Knoepfe am Kommentar.
 
-   GENOMMEN WIRD DIE DURCHSICHTIGE FASSUNG -- die Flaechen, auf denen sie
-   steht, sind ohnehin dunkel. favicon.svg bringt die Kachel mit und ist fuer
-   fremde Flaechen gedacht: Reiter, Lesezeichen, helle Seite. ZWEI DATEIEN,
-   NICHT DREI.
+   aria-hidden UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem
+   Namen der Instanz -- ein Vorleseprogramm saegte ihn sonst zweimal. (Bis
+   0.22.1 stand dafuer alt="" am Bild; an einem SVG ist aria-hidden die
+   Entsprechung, und focusable="false" haelt es aus der Tabreihenfolge
+   aelterer Browser.)
 
-   alt="" UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem Namen
-   der Instanz -- ein Vorleseprogramm saegte ihn sonst zweimal.
-
-   DAS viewBox DER DURCHSICHTIGEN FASSUNG UMSCHLIESST DIE FARBE UND NICHT DIE
-   KACHEL (`6.5 4.5 19 23`): bei stroke-width 3 und stroke-linecap round
-   traegt die Farbe eine halbe Strichbreite ueber die Zeichnung hinaus. Damit
-   ist die angegebene Hoehe die gezeichnete Hoehe. favicon.svg behaelt
-   0 0 32 32 samt Kachel -- ein Kachelsymbol braucht seinen Rand.
+   DAS viewBox UMSCHLIESST DIE FARBE UND NICHT DIE KACHEL (`6.5 4.5 19 23`):
+   bei stroke-width 3 und stroke-linecap round traegt die Farbe eine halbe
+   Strichbreite ueber die Zeichnung hinaus. Damit ist die angegebene Hoehe die
+   gezeichnete Hoehe. favicon.svg behaelt 0 0 32 32 samt Kachel -- ein
+   Kachelsymbol braucht seinen Rand.
 
    DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem: die Instanz stellt die Schrift
    von 80 bis 120 Prozent. Die Attribute hier halten nur das Seitenverhaeltnis
    und den Platz, bis das Stylesheet greift. */
 const MARK = (s = 30) =>
-  `<img class="marke" src="marke-dunkel.svg" width="${Math.round(s * 19 / 23)}" height="${s}" alt="">`;
+  `<svg class="marke" viewBox="6.5 4.5 19 23" width="${Math.round(s * 19 / 23)}" height="${s}"`
+  + ` aria-hidden="true" focusable="false" fill="none" stroke-linecap="round" stroke-width="3">`
+  + `<path d="M8 6 V26" stroke="var(--marke-grau)"/>`
+  + `<path d="M8 10 H15" stroke="var(--marke-grau)"/>`
+  + `<path d="M8 22 H13" stroke="var(--marke-grau)"/>`
+  + `<path d="M8 16 H24" stroke="var(--marke-strich)"/></svg>`;
 
-/* DIE MARKENZEILE DER ANMELDESEITEN: Marke UND Name in EINER Zeile, erst das
-   Zeichen, dann das Wort -- dieselbe Anordnung wie `.brand` in der Kopfzeile
-   des angemeldeten Bereichs. Uebereinander gestapelt las sich das Paar als
-   zwei Dinge; nebeneinander ist es eines.
-
-   SIE STEHT EINMAL HIER UND WIRD NEUNMAL GERUFEN (Stolperstein 145).
-
-   SIE MISST SICH AM WORT UND NICHT AN DER LEEREN FLAECHE DARUEBER: so hoch
-   wie der Text daneben, gemessen an dessen Zeilenhoehe. Die Zahl steht im
-   CSS, damit sie der eingestellten Schriftgroesse folgt; 36 hier ist der
-   Platzhalter bis dahin. */
 const MARKENZEILE = () =>
   `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
 

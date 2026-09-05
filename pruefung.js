@@ -1343,10 +1343,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---------------------------------------------------------------- */
   gruppe('Die Marke der Instanz');
 
-  /* SEIT 0.9.1 IST SIE EINE AUSGELIEFERTE DATEI und kein eingebautes SVG mehr.
-     Wer sie austauscht, tauscht eine Datei aus und faesst keinen Quelltext an. */
+  /* SEIT 0.9.1 WAR SIE EINE AUSGELIEFERTE DATEI. SEIT 0.23.0 IST SIE WIEDER
+     EIN EINGEBAUTES SVG -- eine zurueckgenommene Entscheidung, und die steht
+     hier ausdruecklich und nicht stillschweigend (Stolperstein 201: was still
+     zurueckgenommen wird, kommt wieder).
+     DER GRUND IST GEMESSEN: `marke-dunkel.svg` traegt #838c95 und #ff7a1a,
+     und die messen auf hellem Grund 2,91 und 2,22 : 1. Der Dateiname sagt es
+     selbst. Ein <img> kann keine CSS-Variable lesen; eine zweite Datei ist
+     ausgeschlossen (sie lag schon einmal daneben, siehe unten).
+     DER PREIS STEHT DAZU: wer die Marke austauscht, faesst ab jetzt Quelltext
+     an. favicon.svg bleibt eine Datei -- es braucht keine Variable, weil es
+     seine eigene Kachel mitbringt und damit auf jeder fremden Flaeche steht. */
   const mkVerz = path.join(__dirname, 'public');
-  const mkDateien = ['marke-dunkel.svg', 'favicon.svg'];
+  const mkDateien = ['favicon.svg'];
   for (const n of mkDateien) {
     pruefe(`${n} liegt in public/`, fs.existsSync(path.join(mkVerz, n)), 'die Datei fehlt');
   }
@@ -1366,13 +1375,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und keine davon traegt Skript',
     mkDateien.every(n => !/<script|on\w+ *=|javascript:/i.test(mkInhalt[n] || '')),
     mkDateien.filter(n => /<script|on\w+ *=|javascript:/i.test(mkInhalt[n] || '')).join(' '));
-  /* DIE DURCHSICHTIGE UND DIE MIT KACHEL SIND WIRKLICH VERSCHIEDEN. Ohne
-     diese Zeile blieben zwei gleiche Dateien unbemerkt -- und die Oberflaeche
-     traege dann eine sichtbare Kachel auf dunklem Grund. */
-  pruefe('marke-dunkel.svg bringt KEINE Kachel mit',
-    !/<rect[^>]*fill=/.test(mkInhalt['marke-dunkel.svg'] || ''),
-    (mkInhalt['marke-dunkel.svg'] || '').slice(0, 200));
-  pruefe('favicon.svg bringt eine mit',
+  /* UND SIE LIEGT WIRKLICH NICHT MEHR DA. Ohne diese Zeile bliebe eine
+     verwaiste Datei im Fingerprint stehen, die niemand mehr laedt. */
+  pruefe('marke-dunkel.svg liegt nicht mehr in public/',
+    !fs.existsSync(path.join(mkVerz, 'marke-dunkel.svg')), 'die Datei ist noch da');
+  pruefe('favicon.svg bringt eine Kachel mit',
     /<rect[^>]*fill=/.test(mkInhalt['favicon.svg'] || ''), 'keine Kachel');
   /* ZWEI DATEIEN, NICHT DREI. Es lag eine dritte daneben, marke-hell.svg,
      Byte fuer Byte dieselbe wie favicon.svg -- zwei Namen fuer dieselbe
@@ -1402,16 +1409,32 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `${mkAlle.length} Dateien`);
 
   const mkApp = fs.readFileSync(path.join(mkVerz, 'app.js'), 'utf8');
-  pruefe('Die Oberflaeche laedt die Marke als Datei',
-    /<img class="marke" src="marke-dunkel\.svg"/.test(mkApp),
-    (mkApp.match(/const MARK =[\s\S]{0,160}/) || [''])[0]);
-  /* SIE NIMMT DIE DURCHSICHTIGE. Die Flaechen der Oberflaeche sind dunkel;
-     eine mitgelieferte Kachel saesse dort als sichtbares Rechteck darauf. */
-  pruefe('Und zwar die durchsichtige, nicht die mit Kachel',
+  pruefe('Die Oberflaeche zeichnet die Marke selbst',
+    /<svg class="marke"/.test(mkApp) && !/<img class="marke"/.test(mkApp),
+    (mkApp.match(/const MARK = [\s\S]{0,120}/) || [''])[0].replace(/\s+/g, ' '));
+  /* UND ZWAR MIT VARIABLEN -- das ist der ganze Zweck der Ruecknahme. Vier
+     Striche, drei graue und einer in der Marke; stuende an einem davon eine
+     Zahl, bliebe er beim Umschalten stehen. */
+  pruefe('Und faerbt jeden Strich ueber eine Variable',
+    (mkApp.match(/stroke="var\(--marke-(?:grau|strich)\)"/g) || []).length === 4
+      && !/stroke="#/.test(mkApp),
+    (mkApp.match(/stroke="[^"]*"/g) || []).join(' '));
+  pruefe('Die Oberflaeche laedt keine Fassung mit Kachel',
     !/src="favicon\.svg"/.test(mkApp),
     'die Oberflaeche laedt eine Fassung mit Kachel');
-  pruefe('Das eingebaute SVG der Marke ist verschwunden',
-    !/<svg class="mark"/.test(mkApp), 'das alte SVG steht noch im Quelltext');
+  /* SIE IST FUER VORLESEPROGRAMME NICHT DA -- sie steht ueberall unmittelbar
+     neben dem Namen der Instanz. Bis 0.22.1 trug sie dafuer alt="" am Bild. */
+  pruefe('Und sie bleibt fuer Vorleseprogramme stumm',
+    /aria-hidden="true"/.test((mkApp.match(/const MARK = [\s\S]{0,400}/) || [''])[0]),
+    'kein aria-hidden an der Marke');
+  /* DIE ZWEI VARIABLEN ERFINDEN KEINE FARBE: sie sind --muted und
+     --accent-text. Ein eigener Zahlenwert waere eine dritte Wahrheit ueber
+     dieselben zwei Toene. */
+  pruefe('Die beiden Markenvariablen stehen im Stilblatt und erfinden keine Farbe',
+    /--marke-grau: var\(--muted\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8'))
+      && /--marke-strich: var\(--accent-text\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')),
+    (fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')
+      .match(/--marke-[a-z]+:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
 
   /* ZWEI DINGE MIT DEMSELBEN NAMEN SIND EINES ZU VIEL. `.mark` gibt es in
      style.css fuer die kleinen Knoepfe am Kommentar -- Rahmen, runder
@@ -1513,9 +1536,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
      27.5, also 23 von 32 Einheiten. Im quadratischen viewBox 0 0 32 32 zeichnete
      die Datei damit nur 72 Prozent ihrer eigenen Hoehe und stand neben dem Text
      zu tief. Mit dem engen viewBox ist die angegebene Hoehe die gezeichnete. */
-  pruefe('Das viewBox der durchsichtigen Fassung umschliesst die Farbe',
-    /viewBox="6\.5 4\.5 19 23"/.test(mkInhalt['marke-dunkel.svg'] || ''),
-    (mkInhalt['marke-dunkel.svg'] || '').match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
+  // Seit 0.23.0 steht es im Helfer und nicht mehr in einer Datei.
+  pruefe('Das viewBox der Marke umschliesst die Farbe',
+    /viewBox="6\.5 4\.5 19 23"/.test(mkApp),
+    mkApp.match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
   /* UND favicon.svg BEHAELT SEIN QUADRAT. Es ist ein Kachelsymbol: die Kachel
      braucht ihren Rand, und 72 Prozent sind dort der uebliche Schutzbereich.
      Ein enges viewBox schnitte die Kachel an. */
@@ -30273,9 +30297,13 @@ async function pruefeOberflaeche() {
   const mzKinder = mzZeile ? [...mzZeile.children] : [];
   pruefe('Darin stehen genau zwei Dinge', mzKinder.length === 2,
     mzKinder.map(e => e.tagName).join(' ') || '(leer)');
+  /* SEIT 0.23.0 IST DAS ZEICHEN EIN SVG UND KEIN BILD MEHR -- es muss
+     Variablen lesen koennen (siehe „Die Marke der Instanz"). An einem
+     eingebetteten SVG ist `tagName` kleingeschrieben, und `className` ist
+     kein String, sondern ein SVGAnimatedString. */
   pruefe('Erst das Zeichen',
-    mzKinder[0]?.tagName === 'IMG' && mzKinder[0]?.classList.contains('marke'),
-    `${mzKinder[0]?.tagName} ${mzKinder[0]?.className || ''}`);
+    mzKinder[0]?.tagName?.toLowerCase() === 'svg' && mzKinder[0]?.classList.contains('marke'),
+    `${mzKinder[0]?.tagName} ${mzKinder[0]?.getAttribute('class') || ''}`);
   pruefe('Dann das Wort',
     mzKinder[1]?.tagName === 'H1' && /\S/.test(mzKinder[1]?.textContent || ''),
     `${mzKinder[1]?.tagName} ${JSON.stringify(mzKinder[1]?.textContent || '')}`);
@@ -30288,9 +30316,11 @@ async function pruefeOberflaeche() {
   /* DAS ZEICHEN BLEIBT STUMM: es steht unmittelbar neben dem Namen der
      Instanz, ein Vorleseprogramm saegte ihn sonst zweimal. Nebeneinander ist
      das noch dringender als gestapelt. */
+  // Bis 0.22.1 war das alt=""; an einem SVG ist aria-hidden die Entsprechung.
   pruefe('Das Zeichen bleibt fuer das Vorleseprogramm stumm',
-    mzKinder[0]?.getAttribute('alt') === '' && !mzKinder[0]?.getAttribute('title'),
-    `alt=${JSON.stringify(mzKinder[0]?.getAttribute('alt'))}`);
+    mzKinder[0]?.getAttribute('aria-hidden') === 'true'
+      && !mzKinder[0]?.getAttribute('title') && !mzKinder[0]?.querySelector('title'),
+    `aria-hidden=${JSON.stringify(mzKinder[0]?.getAttribute('aria-hidden'))}`);
   mzDom.w.close();
 
   /* ---------------------------------------------------------------- */
@@ -35011,22 +35041,30 @@ async function pruefeOberflaeche() {
   /* ---------------------------------------------------------------- */
   gruppe('Die Marke am Bildschirm');
 
-  /* SIE STEHT IN DER KOPFZEILE UND AUF DEN ANMELDESEITEN, und beide laden
-     DIESELBE Datei. Die Farbe und das viewBox pruefen die Dateien selbst
-     (Gruppe "Die Marke der Instanz"); hier geht es darum, dass die Oberflaeche
-     sie ueberhaupt so einbaut. */
+  /* SIE STEHT IN DER KOPFZEILE UND AUF DEN ANMELDESEITEN, und beide zeichnen
+     DASSELBE SVG. Die Farben pruefen die Variablen selbst (Gruppe „Die Marke
+     der Instanz"); hier geht es darum, dass die Oberflaeche sie ueberhaupt so
+     einbaut.
+     SEIT 0.23.0 EIN SVG UND KEIN BILD: es muss die Schemavariablen lesen
+     koennen, und ein <img> kann das nicht. Gesucht wird `svg.marke` statt
+     `img.marke` -- und der GEGENSTAND wird vor der Eigenschaft geprueft
+     (Stolperstein 81), sonst greift die naechste Zeile auf null zu und der
+     ganze Lauf bricht ab. Genau das ist beim Umbau passiert. */
   const mbDom = baueDom(JSDOM, { uebersichtItems: suBestand });
   const mb = mbDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const mbMarke = mb.document.querySelector('.masthead .brand img.marke');
-  pruefe('Die Kopfzeile traegt die Marke als Datei', !!mbMarke,
+  const mbMarke = mb.document.querySelector('.masthead .brand svg.marke');
+  pruefe('Die Kopfzeile zeichnet die Marke selbst', !!mbMarke,
     mb.document.querySelector('.masthead .brand')?.innerHTML.slice(0, 120) || '(keine Kopfzeile)');
-  pruefe('Und zwar die durchsichtige Fassung',
-    mbMarke.getAttribute('src') === 'marke-dunkel.svg', mbMarke.getAttribute('src'));
+  pruefe('Und faerbt sie ueber die Schemavariablen',
+    !!mbMarke && [...mbMarke.querySelectorAll('path')]
+      .every(s => /^var\(--marke-(grau|strich)\)$/.test(s.getAttribute('stroke') || '')),
+    mbMarke ? [...mbMarke.querySelectorAll('path')].map(s => s.getAttribute('stroke')).join(' ')
+            : '(keine Marke)');
   /* DAS SEITENVERHAELTNIS DER ATTRIBUTE FOLGT DEM GEZEICHNETEN STRICH, 19:23.
      Ein Quadrat hier liesse die Marke bis zum Greifen des Stylesheets zu
      breit stehen und danach springen. */
-  const mbB = Number(mbMarke.getAttribute('width')), mbH = Number(mbMarke.getAttribute('height'));
+  const mbB = Number(mbMarke?.getAttribute('width')), mbH = Number(mbMarke?.getAttribute('height'));
   pruefe('Und die Attribute tragen das Verhaeltnis 19:23',
     mbB === Math.round(mbH * 19 / 23), `${mbB}x${mbH}`);
   pruefe('Und sie ist nicht mehr quadratisch angegeben', mbB !== mbH, `${mbB}x${mbH}`);
@@ -35035,12 +35073,17 @@ async function pruefeOberflaeche() {
   const mlDom = baueDom(JSDOM, { angemeldet: false });
   const ml = mlDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const mlMarke = ml.document.querySelector('.login-marke img.marke');
+  const mlMarke = ml.document.querySelector('.login-marke svg.marke');
   pruefe('Die Anmeldeseite traegt sie ebenso', !!mlMarke,
     ml.document.querySelector('.login-card')?.innerHTML.slice(0, 120) || '(keine Karte)');
-  pruefe('Und aus derselben Datei',
-    mlMarke && mlMarke.getAttribute('src') === 'marke-dunkel.svg', mlMarke?.getAttribute('src'));
-  const mlB = Number(mlMarke.getAttribute('width')), mlH = Number(mlMarke.getAttribute('height'));
+  /* UND AUS DEMSELBEN HELFER -- vier Striche, nicht drei und nicht fuenf.
+     Die Anmeldeseite kennt das Schema noch nicht (start() laeuft erst nach
+     der Anmeldung), aber der Vorgriff aus thema.js hat data-thema laengst
+     gesetzt: die Marke steht dort schon richtig. */
+  pruefe('Und aus demselben Helfer, mit allen vier Strichen',
+    !!mlMarke && mlMarke.querySelectorAll('path').length === 4,
+    `${mlMarke?.querySelectorAll('path').length} Striche`);
+  const mlB = Number(mlMarke?.getAttribute('width')), mlH = Number(mlMarke?.getAttribute('height'));
   pruefe('Und auch dort im Verhaeltnis 19:23',
     mlB === Math.round(mlH * 19 / 23), `${mlB}x${mlH}`);
   ml.close();
@@ -36098,15 +36141,19 @@ async function pruefeOberflaeche() {
   const vzW = vzDom.w;
   await new Promise(r => setTimeout(r, 80));
   const vzZeile = vzW.document.getElementById('version');
-  const vzMarke = vzZeile?.querySelector('img.marke');
+  // Seit 0.23.0 ein SVG und kein Bild -- es muss die Schemavariablen lesen.
+  const vzMarke = vzZeile?.querySelector('svg.marke');
   pruefe('Die Versionszeile traegt das Zeichen davor', !!vzMarke, vzZeile?.innerHTML.slice(0, 160));
-  pruefe('Und zwar dieselbe Datei wie ueberall sonst',
-    vzMarke?.getAttribute('src') === 'marke-dunkel.svg', vzMarke?.getAttribute('src'));
-  /* alt="" UND KEIN TITEL: das Zeichen steht unmittelbar neben dem Namen der
-     Instanz, und ein Vorleseprogramm saegte ihn sonst zweimal. */
+  pruefe('Und zwar aus demselben Helfer wie ueberall sonst',
+    vzMarke?.querySelectorAll('path').length === 4,
+    `${vzMarke?.querySelectorAll('path').length} Striche`);
+  /* aria-hidden UND KEIN TITEL: das Zeichen steht unmittelbar neben dem Namen
+     der Instanz, und ein Vorleseprogramm saegte ihn sonst zweimal. Bis 0.22.1
+     war das alt="" am Bild. */
   pruefe('Es sagt nichts vor — der Name steht daneben',
-    vzMarke?.getAttribute('alt') === '' && !vzMarke?.getAttribute('title'),
-    JSON.stringify([vzMarke?.getAttribute('alt'), vzMarke?.getAttribute('title')]));
+    vzMarke?.getAttribute('aria-hidden') === 'true' && !vzMarke?.getAttribute('title')
+      && !vzMarke?.querySelector('title'),
+    JSON.stringify([vzMarke?.getAttribute('aria-hidden'), vzMarke?.getAttribute('title')]));
   pruefe('Der Name der Instanz steht weiterhin in der Zeile',
     /^Kriterion \d/.test((vzZeile?.textContent || '').trim()), vzZeile?.textContent);
   /* DIE GROESSE STEHT IM STYLESHEET UND IN em: die Zeile laeuft auf .67rem,
@@ -40538,6 +40585,19 @@ async function pruefeOberflaeche() {
       /function drawThema/.test(tApp) ? 'Reihe und Zeichner da' : '(fehlt)');
     /* DIE STUFEN STEHEN IN BEIDEN DATEIEN UND MUESSEN UEBEREINSTIMMEN --
        dieselbe Zusicherung wie bei SCHRIFT_STUFEN und STREIFEN_STUFEN. */
+    /* DIE DAEMPFUNG SCHIEBT ZUM GRUND HIN UND NICHT ZU SCHWARZ -- Regel F4.
+       `brightness(.5)` macht ein Foto DUNKLER; auf weisser Karte waere der
+       abgelehnte Eintrag damit der lauteste Fleck der Seite und stuende vor
+       dem angenommenen daneben. Gemessen an einem mittleren Foto gegen die je
+       eigene Karte: dunkel 1,71 : 1, hell mit brightness 10,33, hell mit
+       opacity(.45) wieder 1,71. Derselbe Wert, andere Richtung. */
+    pruefe('Die Daempfung eines abgelehnten Eintrags geht ueber eine Variable',
+      /filter: var\(--daempfung\)/.test(tCss) && !/filter: grayscale/.test(tCss),
+      (tCss.match(/\.card\.rejected[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('Und sie nimmt im Hellen opacity statt brightness',
+      /:root \{[\s\S]*?--daempfung: grayscale\(\.85\) brightness\(\.5\);/.test(tCss)
+        && /:root\[data-thema="hell"\] \{[\s\S]*?--daempfung: grayscale\(\.85\) opacity\(\.45\);/.test(tCss),
+      (tCss.match(/--daempfung:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
     const stufenApp = (tApp.match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
     const stufenSrv = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
