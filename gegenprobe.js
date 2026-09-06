@@ -299,8 +299,8 @@ const RUECKBAUTEN = [
   {
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     datei: 'public/app.js',
-    suche: "        ${stand.minuten ? `<strong>Der Link gilt noch ${stand.minuten} Minuten</strong> — danach",
-    ersatz: "        ${false ? `<strong>Der Link gilt noch ${stand.minuten} Minuten</strong> — danach",
+    suche: "        ${stand.minuten ? `<strong>${tH('anmeldung.derLinkGiltNochMinuten', { minuten: stand.minuten })}</strong> ${tH('anmeldung.danachBrauchstDuEinenNeuen')}` : ''}",
+    ersatz: "        ${false ? `<strong>${tH('anmeldung.derLinkGiltNochMinuten', { minuten: stand.minuten })}</strong> ${tH('anmeldung.danachBrauchstDuEinenNeuen')}` : ''}",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
@@ -547,8 +547,8 @@ const RUECKBAUTEN = [
   {
     nr: '62', name: 'Das Anfrageformular steht auch bei ausgeschaltetem Schalter da',
     datei: 'public/app.js',
-    suche: "    ${REGISTRIERUNG ? `<p class=\"sub anmeld-trenner\">Noch keinen Zugang?</p>",
-    ersatz: "    ${true ? `<p class=\"sub anmeld-trenner\">Noch keinen Zugang?</p>",
+    suche: "    ${REGISTRIERUNG ? `<p class=\"sub anmeld-trenner\">${tH('anmeldung.nochKeinenZugang')}</p>",
+    ersatz: "    ${true ? `<p class=\"sub anmeld-trenner\">${tH('anmeldung.nochKeinenZugang')}</p>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -572,8 +572,8 @@ const RUECKBAUTEN = [
        Groesse wie "Anmelden"; der Rueckbau macht wieder einen Verweis daraus. */
     nr: '68', name: 'Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes',
     datei: 'public/app.js',
-    suche: "      <button class=\"btn anmeld-zweitweg\" id=\"l-anfrage\">Zugang beantragen</button>",
-    ersatz: "      <a href=\"#\" id=\"l-anfrage\">Zugang beantragen</a>",
+    suche: "      <button class=\"btn anmeld-zweitweg\" id=\"l-anfrage\">${tH('anmeldung.zugangBeantragen')}</button>",
+    ersatz: "      <a href=\"#\" id=\"l-anfrage\">${tH('anmeldung.zugangBeantragen')}</a>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {

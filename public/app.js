@@ -659,28 +659,27 @@ function showSetup(errMsg) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Erste Einrichtung — Benutzername und Passwort wählen.</p>
+    <p class="sub">${tH('anmeldung.ersteEinrichtungBenutzernameUnd')}</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
-    <div class="field"><label for="su">Benutzername</label>
+    <div class="field"><label for="su">${tH('anmeldung.benutzername')}</label>
       <input class="input" id="su" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
-    <div class="field"><label for="sp">Passwort</label>
+    <div class="field"><label for="sp">${tH('anmeldung.passwort')}</label>
       <input class="input" id="sp" type="password" autocomplete="new-password"></div>
-    <div class="field"><label for="sp2">Passwort wiederholen</label>
+    <div class="field"><label for="sp2">${tH('anmeldung.passwortWiederholen')}</label>
       <input class="input" id="sp2" type="password" autocomplete="new-password"></div>
-    <p class="sub" style="margin:0 0 4px">Mindestens ${MIN_PASSWORT} Zeichen. Gut aufbewahren —
-      ein vergessenes Passwort lässt sich hier nicht zurücksetzen.</p>
-    <button class="btn btn-accent" id="sb">Einrichten</button>
+    <p class="sub" style="margin:0 0 4px">${tH('anmeldung.mindestensZeichenGutAufbewahrenEin', { minPasswort: MIN_PASSWORT })}</p>
+    <button class="btn btn-accent" id="sb">${tH('anmeldung.einrichten')}</button>
   </div></div>`;
   document.title = TITLE_PUBLIC;
 
   const u = document.getElementById('su'), p1 = document.getElementById('sp'),
         p2 = document.getElementById('sp2'), b = document.getElementById('sb');
   const submit = async () => {
-    if (!u.value.trim()) return showSetup('Bitte einen Benutzernamen angeben.');
+    if (!u.value.trim()) return showSetup(t('anmeldung.benutzernameFehlt'));
     if (p1.value.length < MIN_PASSWORT)
-      return showSetup(`Das Passwort muss mindestens ${MIN_PASSWORT} Zeichen lang sein.`);
-    if (p1.value !== p2.value) return showSetup('Die beiden Passwörter stimmen nicht überein.');
-    b.disabled = true; b.textContent = 'Einrichten …';
+      return showSetup(t('anmeldung.passwortZuKurz', { min: MIN_PASSWORT }));
+    if (p1.value !== p2.value) return showSetup(t('anmeldung.dieBeidenPasswoerterStimmenNicht'));
+    b.disabled = true; b.textContent = t('anmeldung.einrichten2');
     try {
       const res = await fetch('/api/setup', {
         method: 'POST', credentials: 'same-origin',
@@ -689,11 +688,11 @@ function showSetup(errMsg) {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        return showSetup(j.error || 'Einrichtung fehlgeschlagen.');
+        return showSetup(j.error || t('anmeldung.einrichtungFehlgeschlagen'));
       }
       location.hash = '#/';
       start();
-    } catch { showSetup('Server nicht erreichbar.'); }
+    } catch { showSetup(t('anmeldung.serverNichtErreichbar')); }
   };
   b.onclick = submit;
   [u, p1, p2].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
@@ -711,13 +710,13 @@ function showLogin(errMsg) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Bitte anmelden, um fortzufahren.</p>
+    <p class="sub">${tH('anmeldung.bitteAnmeldenUmFortzufahren')}</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
-    <div class="field"><label for="lu">Benutzername</label>
+    <div class="field"><label for="lu">${tH('anmeldung.benutzername')}</label>
       <input class="input" id="lu" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
-    <div class="field"><label for="lp">Passwort</label>
+    <div class="field"><label for="lp">${tH('anmeldung.passwort')}</label>
       <input class="input" id="lp" type="password" autocomplete="current-password"></div>
-    <button class="btn btn-accent" id="lb">Anmelden</button>
+    <button class="btn btn-accent" id="lb">${tH('anmeldung.anmelden')}</button>
     ${/* DIE SELBSTANMELDUNG — sie steht nur da, wenn der
           Server sagt, dass sie an ist. Ein Formular, das ins Leere führt,
           wäre schlimmer als keines: der Anfragende bekäme dieselbe freundliche
@@ -725,15 +724,15 @@ function showLogin(errMsg) {
           KEIN PASSWORTFELD. Der Anfragende gibt Namen und Adresse an, sonst
           nichts — sein Passwort wählt er später über den Einladungslink, und
           zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
-    ${REGISTRIERUNG ? `<p class="sub anmeld-trenner">Noch keinen Zugang?</p>
-      <button class="btn anmeld-zweitweg" id="l-anfrage">Zugang beantragen</button>` : ''}
+    ${REGISTRIERUNG ? `<p class="sub anmeld-trenner">${tH('anmeldung.nochKeinenZugang')}</p>
+      <button class="btn anmeld-zweitweg" id="l-anfrage">${tH('anmeldung.zugangBeantragen')}</button>` : ''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
   if (REGISTRIERUNG) document.getElementById('l-anfrage').onclick = () => showAnfrage();
 
   const u = document.getElementById('lu'), p = document.getElementById('lp'), b = document.getElementById('lb');
   const submit = async () => {
-    b.disabled = true; b.textContent = 'Anmelden …';
+    b.disabled = true; b.textContent = t('anmeldung.anmelden2');
     try {
       const res = await fetch('/api/login', {
         method: 'POST', credentials: 'same-origin',
@@ -742,7 +741,7 @@ function showLogin(errMsg) {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        showLogin(j.error || 'Anmeldung fehlgeschlagen.');
+        showLogin(j.error || t('anmeldung.anmeldungFehlgeschlagen'));
         return;
       }
       const j = await res.json().catch(() => ({}));
@@ -753,7 +752,7 @@ function showLogin(errMsg) {
       if (j.zweifaktor) return showZweiterFaktor(j.ausweis);
       location.hash = '#/';
       start();
-    } catch { showLogin('Server nicht erreichbar.'); }
+    } catch { showLogin(t('anmeldung.serverNichtErreichbar')); }
   };
   b.onclick = submit;
   [u, p].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
@@ -775,22 +774,22 @@ function showZweiterFaktor(ausweis, errMsg) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Fast geschafft — jetzt den Zwei-Faktor-Code eingeben.</p>
+    <p class="sub">${tH('anmeldung.fastGeschafftJetztDenZwei')}</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
     ${/* Nicht "Sechsstelliger Code": hier traegt auch ein Wiederherstellungscode,
          und der hat zehn Zeichen. Die Beschriftung nennt deshalb das Verfahren,
          die Zeile darunter nennt den zweiten Weg. */''}
-    <div class="field"><label for="zf-code">Zwei-Faktor-Code</label>
+    <div class="field"><label for="zf-code">${tH('anmeldung.zweiFaktorCode')}</label>
       <input class="input" id="zf-code" inputmode="text" autocomplete="one-time-code"
         autocapitalize="characters" spellcheck="false" maxlength="16"></div>
-    <button class="btn btn-accent" id="zf-ab">Anmelden</button>
-    <p class="sub" style="margin:14px 0 0">Handy nicht zur Hand? Du kannst auch einen
-      <strong>Wiederherstellungscode</strong> eingeben — jeder gilt nur einmal.</p>
+    <button class="btn btn-accent" id="zf-ab">${tH('anmeldung.anmelden')}</button>
+    <p class="sub" style="margin:14px 0 0">${tH('anmeldung.handyNichtZurHandDu')}
+      <strong>${tH('anmeldung.wiederherstellungscode')}</strong> ${tH('anmeldung.eingebenJederGiltNurEinmal')}</p>
   </div></div>`;
   document.title = TITLE_PUBLIC;
   const c = document.getElementById('zf-code'), b = document.getElementById('zf-ab');
   const submit = async () => {
-    b.disabled = true; b.textContent = 'Anmelden …';
+    b.disabled = true; b.textContent = t('anmeldung.anmelden2');
     try {
       const res = await fetch('/api/login/zwei', {
         method: 'POST', credentials: 'same-origin',
@@ -807,12 +806,12 @@ function showZweiterFaktor(ausweis, errMsg) {
            an den Anfang.
            DEN ALTEN AUSWEIS WEITERZUVERWENDEN WÄRE FALSCH: er ist verbraucht,
            auch nach einer Absage. */
-        if (j.ausweis) return showZweiterFaktor(j.ausweis, j.error || 'Der Code stimmt nicht.');
-        return showLogin(j.error || 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.');
+        if (j.ausweis) return showZweiterFaktor(j.ausweis, j.error || t('anmeldung.codeFalsch'));
+        return showLogin(j.error || t('server.anmeldungAbgelaufen'));
       }
       location.hash = '#/';
       start();
-    } catch { showZweiterFaktor(ausweis, 'Server nicht erreichbar.'); }
+    } catch { showZweiterFaktor(ausweis, t('anmeldung.serverNichtErreichbar')); }
   };
   b.onclick = submit;
   c.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
@@ -833,24 +832,23 @@ function showAnfrage(errMsg, werte = {}) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Zugang beantragen. Du bestätigst zuerst deine E-Mail-Adresse, danach
-      entscheidet ein Admin.</p>
+    <p class="sub">${tH('anmeldung.zugangBeantragenDuBestaetigst')}</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
-    <div class="field"><label for="an-name">Gewünschter Benutzername</label>
+    <div class="field"><label for="an-name">${tH('anmeldung.gewuenschterBenutzername')}</label>
       <input class="input" id="an-name" autocomplete="username" autocapitalize="off"
         spellcheck="false" maxlength="64" value="${esc(werte.name || '')}"></div>
-    <div class="field"><label for="an-mail">E-Mail-Adresse</label>
+    <div class="field"><label for="an-mail">${tH('anmeldung.eMailAdresse')}</label>
       <input class="input" id="an-mail" type="email" autocomplete="email" autocapitalize="off"
         spellcheck="false" maxlength="254" value="${esc(werte.adresse || '')}"></div>
-    <button class="btn btn-accent" id="an-ab">Anfrage abschicken</button>
-    <p class="sub" style="margin:14px 0 0"><a href="#" id="an-zurueck">Zurück zur Anmeldung</a></p>
+    <button class="btn btn-accent" id="an-ab">${tH('anmeldung.anfrageAbschicken')}</button>
+    <p class="sub" style="margin:14px 0 0"><a href="#" id="an-zurueck">${tH('anmeldung.zurueckZurAnmeldung')}</a></p>
   </div></div>`;
   document.title = TITLE_PUBLIC;
   const n = document.getElementById('an-name'), m = document.getElementById('an-mail'),
         b = document.getElementById('an-ab');
   document.getElementById('an-zurueck').onclick = (e) => { e.preventDefault(); showLogin(); };
   const submit = async () => {
-    b.disabled = true; b.textContent = 'Abschicken …';
+    b.disabled = true; b.textContent = t('anmeldung.abschicken');
     try {
       const res = await fetch('/api/registrierung', {
         method: 'POST', credentials: 'same-origin',
@@ -862,10 +860,10 @@ function showAnfrage(errMsg, werte = {}) {
          andere endet auf derselben Dankseite — auch das, was der Server still
          verworfen hat. Die Eingaben bleiben dabei stehen, damit ein zweiter
          Anlauf nach einer 429 nicht am leeren Formular beginnt. */
-      if (!res.ok) return showAnfrage(j.error || 'Die Anfrage konnte gerade nicht gestellt werden.',
+      if (!res.ok) return showAnfrage(j.error || t('anmeldung.dieAnfrageKonnteGeradeNicht'),
         { name: n.value, adresse: m.value });
       showAnfrageDank(j.meldung);
-    } catch { showAnfrage('Server nicht erreichbar.', { name: n.value, adresse: m.value }); }
+    } catch { showAnfrage(t('anmeldung.serverNichtErreichbar'), { name: n.value, adresse: m.value }); }
   };
   b.onclick = submit;
   [n, m].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
@@ -878,7 +876,7 @@ function showAnfrageDank(meldung) {
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
     <p class="sub" id="an-dank">${esc(meldung || '')}</p>
-    <p class="sub"><a href="#" id="an-zurueck2">Zurück zur Anmeldung</a></p>
+    <p class="sub"><a href="#" id="an-zurueck2">${tH('anmeldung.zurueckZurAnmeldung')}</a></p>
   </div></div>`;
   document.getElementById('an-zurueck2').onclick = (e) => { e.preventDefault(); showLogin(); };
 }
@@ -899,7 +897,7 @@ async function showBestaetigung(schluessel) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Der Link wird geprüft …</p></div></div>`;
+    <p class="sub">${tH('anmeldung.derLinkWirdGeprueft')}</p></div></div>`;
   document.title = TITLE_PUBLIC;
   let res, j = {};
   try {
@@ -912,9 +910,9 @@ async function showBestaetigung(schluessel) {
   } catch {
     /* KEIN NETZ IST KEINE ABSAGE. Wie bei der Einladungsseite bleibt der
        Schlüssel in der Adresse stehen, und ein Neuladen trägt wieder. */
-    return zeichne(false, 'Server nicht erreichbar.', true);
+    return zeichne(false, t('anmeldung.serverNichtErreichbar'), true);
   }
-  if (!res.ok) return zeichne(false, j.error || 'Dieser Bestätigungslink gilt nicht mehr.',
+  if (!res.ok) return zeichne(false, j.error || t('anmeldung.dieserBestaetigungslinkGiltNicht'),
     res.status !== 400);
   location.hash = '#/';
   zeichne(true, '');
@@ -922,14 +920,12 @@ async function showBestaetigung(schluessel) {
   function zeichne(gut, meldung, nochmal) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${MARKENZEILE()}
-      ${gut ? `<p class="sub" id="best-gut"><strong>Danke — deine Adresse ist bestätigt.</strong>
-        Die Anfrage liegt jetzt beim Admin. Wird sie freigeschaltet, bekommst du eine zweite
-        E-Mail mit dem Link, über den du dein Passwort setzt.</p>`
+      ${gut ? `<p class="sub" id="best-gut"><strong>${tH('anmeldung.dankeDeineAdresseIstBestaetigt')}</strong>
+        ${tH('anmeldung.dieAnfrageLiegtJetztBeim')}</p>`
         : `<div class="login-error">${esc(meldung)}</div>
-        ${nochmal ? `<p class="sub">Dein Link ist davon <strong>nicht</strong> betroffen — er gilt
-          weiter.</p><button class="btn btn-accent" id="best-neu">Noch einmal versuchen</button>`
+        ${nochmal ? `<p class="sub">${tH('anmeldung.deinLinkIstDavon')} <strong>${tH('anmeldung.nicht')}</strong> ${tH('anmeldung.betroffenErGiltWeiter')}</p><button class="btn btn-accent" id="best-neu">${tH('anmeldung.nochEinmalVersuchen')}</button>`
           : ''}`}
-      <p class="sub" style="margin:14px 0 0"><a href="#" id="best-zurueck">Zurück zur Anmeldung</a></p>
+      <p class="sub" style="margin:14px 0 0"><a href="#" id="best-zurueck">${tH('anmeldung.zurueckZurAnmeldung')}</a></p>
     </div></div>`;
     const neu = document.getElementById('best-neu');
     if (neu) neu.onclick = () => showBestaetigung(schluessel);
@@ -958,7 +954,7 @@ async function showEinladung(schluessel) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Der Link wird geprüft …</p></div></div>`;
+    <p class="sub">${tH('anmeldung.derLinkWirdGeprueft')}</p></div></div>`;
   document.title = TITLE_PUBLIC;
 
   let stand;
@@ -981,10 +977,10 @@ async function showEinladung(schluessel) {
        erfunden, Zugang gesperrt, Frist verstrichen. */
     if (res.status === 400) {
       location.hash = '#/';
-      return showLogin(stand.error || 'Dieser Link gilt nicht mehr.');
+      return showLogin(stand.error || t('anmeldung.dieserLinkGiltNichtMehr'));
     }
-    if (!res.ok) return spaeter(stand.error || 'Der Link konnte gerade nicht geprüft werden.');
-  } catch { return spaeter('Server nicht erreichbar.'); }
+    if (!res.ok) return spaeter(stand.error || t('anmeldung.derLinkKonnteGeradeNicht'));
+  } catch { return spaeter(t('anmeldung.serverNichtErreichbar')); }
 
   const min = stand.minPassword || MIN_PASSWORT;
   zeichne();
@@ -999,9 +995,8 @@ async function showEinladung(schluessel) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${MARKENZEILE()}
       <div class="login-error">${esc(meldung)}</div>
-      <p class="sub">Dein Link ist davon <strong>nicht</strong> betroffen — er gilt weiter.
-        Versuch es gleich noch einmal.</p>
-      <button class="btn btn-accent" id="eb-neu">Noch einmal versuchen</button>
+      <p class="sub">${tH('anmeldung.deinLinkIstDavon')} <strong>${tH('anmeldung.nicht')}</strong> ${tH('anmeldung.betroffenErGiltWeiterVersuch')}</p>
+      <button class="btn btn-accent" id="eb-neu">${tH('anmeldung.nochEinmalVersuchen')}</button>
     </div></div>`;
     document.getElementById('eb-neu').onclick = () => showEinladung(schluessel);
   }
@@ -1010,30 +1005,29 @@ async function showEinladung(schluessel) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${MARKENZEILE()}
       <p class="sub">${stand.ohnePasswort
-        ? `Willkommen, <strong>${esc(stand.username)}</strong> — bitte ein Passwort wählen.`
-        : `Neues Passwort für <strong>${esc(stand.username)}</strong>.`}</p>
+        ? `${tH('anmeldung.willkommen')} <strong>${esc(stand.username)}</strong> ${tH('anmeldung.bitteEinPasswortWaehlen')}`
+        : `${tH('anmeldung.neuesPasswortFuer')} <strong>${esc(stand.username)}</strong>.`}</p>
       ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
-      <div class="field"><label for="ep">Passwort</label>
+      <div class="field"><label for="ep">${tH('anmeldung.passwort')}</label>
         <input class="input" id="ep" type="password" autocomplete="new-password"></div>
-      <div class="field"><label for="ep2">Passwort wiederholen</label>
+      <div class="field"><label for="ep2">${tH('anmeldung.passwortWiederholen')}</label>
         <input class="input" id="ep2" type="password" autocomplete="new-password"></div>
       ${/* DIE FRIST GEHÖRT AN DIE STELLE, AN DER SIE LÄUFT. Sie beginnt mit
             genau diesem Aufruf — vorher ist nichts geschehen, egal wie lange
             die Mail im Postfach lag. Wer sie hier nicht liest, erfährt sie
             erst an der Absage, und dann ist es zu spät. */''}
-      <p class="sub" style="margin:0 0 4px">Mindestens ${min} Zeichen.
-        ${stand.minuten ? `<strong>Der Link gilt noch ${stand.minuten} Minuten</strong> — danach
-        brauchst du einen neuen vom Admin.` : ''}
-        <br>Nach dem Setzen wirst du auf allen anderen Geräten abgemeldet.</p>
-      <button class="btn btn-accent" id="eb">Passwort setzen</button>
+      <p class="sub" style="margin:0 0 4px">${tH('anmeldung.mindestensZeichen', { min: min })}
+        ${stand.minuten ? `<strong>${tH('anmeldung.derLinkGiltNochMinuten', { minuten: stand.minuten })}</strong> ${tH('anmeldung.danachBrauchstDuEinenNeuen')}` : ''}
+        <br>${tH('anmeldung.nachDemSetzenWirstDu')}</p>
+      <button class="btn btn-accent" id="eb">${tH('anmeldung.passwortSetzen')}</button>
     </div></div>`;
 
     const p1 = document.getElementById('ep'), p2 = document.getElementById('ep2'),
           b = document.getElementById('eb');
     const submit = async () => {
-      if (p1.value.length < min) return zeichne(`Das Passwort muss mindestens ${min} Zeichen lang sein.`);
-      if (p1.value !== p2.value) return zeichne('Die beiden Passwörter stimmen nicht überein.');
-      b.disabled = true; b.textContent = 'Passwort setzen …';
+      if (p1.value.length < min) return zeichne(t('anmeldung.passwortZuKurz', { min: min }));
+      if (p1.value !== p2.value) return zeichne(t('anmeldung.dieBeidenPasswoerterStimmenNicht'));
+      b.disabled = true; b.textContent = t('anmeldung.passwortSetzen2');
       try {
         const res = await fetch('/api/token/einloesen', {
           method: 'POST', credentials: 'same-origin',
@@ -1042,7 +1036,7 @@ async function showEinladung(schluessel) {
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
-          return zeichne(j.error || 'Das Passwort konnte nicht gesetzt werden.');
+          return zeichne(j.error || t('anmeldung.dasPasswortKonnteNichtGesetzt'));
         }
         const j = await res.json().catch(() => ({}));
         /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, — sonst wäre
@@ -1054,7 +1048,7 @@ async function showEinladung(schluessel) {
         // mitgeschickt. Die Adresse wird geleert: der Link ist verbraucht.
         location.hash = '#/';
         start();
-      } catch { zeichne('Server nicht erreichbar.'); }
+      } catch { zeichne(t('anmeldung.serverNichtErreichbar')); }
     };
     b.onclick = submit;
     [p1, p2].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
