@@ -61,15 +61,15 @@ const RUECKBAUTEN = [
   {
     nr: '01', name: 'Der Token entsteht erst NACH dem Versand',
     datei: 'server.js',
-    suche: "    const v = await versendeTokenLink(ziel, token);",
-    ersatz: "    const v = await versendeTokenLink(ziel, token); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
+    suche: "    const v = await sendTokenLink(ziel, token);",
+    ersatz: "    const v = await sendTokenLink(ziel, token); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
     erwartet: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   {
     nr: '02', name: 'Der Link faellt aus der Antwort, wenn der Versand traegt',
     datei: 'server.js',
-    suche: "               ohnePasswort: token.ohnePasswort,\n               ...linkAngabe(token.plain), ...v });",
-    ersatz: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkAngabe(token.plain)), ...v });",
+    suche: "               ohnePasswort: token.ohnePasswort,\n               ...linkInfo(token.plain), ...v });",
+    ersatz: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkInfo(token.plain)), ...v });",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
@@ -115,14 +115,14 @@ const RUECKBAUTEN = [
        Versand des Tokenlinks und einmal in versandBereit(). Der Rueckbau
        nimmt die Zeile am VERSAND, und die naechste Zeile macht ihn
        eindeutig. */
-    suche: "  if (!OEFFENTLICHE.adresse)\n    return { versand: 'aus', versandGrund:",
+    suche: "  if (!PUBLIC.adresse)\n    return { versand: 'aus', versandGrund:",
     ersatz: "  if (false)\n    return { versand: 'aus', versandGrund:",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   {
     nr: '08', name: 'Die Adresse wird aus dem Host-Kopf abgeleitet',
     datei: 'server.js',
-    suche: "    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${token.plain}`,",
+    suche: "    username: ziel.username, link: `${PUBLIC.adresse}/#/einladung/${token.plain}`,",
     ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${token.plain}`,",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
@@ -152,7 +152,7 @@ const RUECKBAUTEN = [
   {
     nr: '12', name: 'Die Testmail nimmt die Adresse aus dem Rumpf',
     datei: 'server.js',
-    suche: "  const eigener = auth.getUser2(req.benutzer.id);",
+    suche: "  const ownOne = auth.getUser2(req.benutzer.id);",
     ersatz: "  const eigener = { ...auth.getUser2(req.benutzer.id), email: (req.body || {}).an || auth.getUser2(req.benutzer.id)?.email };",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
@@ -176,7 +176,7 @@ const RUECKBAUTEN = [
        Zwei Mechanismen fuer eine Zusage waeren einer zu viel
        (Stolperstein 145), und deshalb faerbt dieser Rueckbau jetzt BEIDE
        Seiten rot. */
-    suche: "  return test && test.marke && test.marke === mail.mark(roh) ? test : null;",
+    suche: "  return test && test.mark && test.mark === mail.mark(roh) ? test : null;",
     ersatz: "  return test || null;",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
@@ -184,30 +184,30 @@ const RUECKBAUTEN = [
   {
     nr: '15', name: 'Der Mailzugang steht auch dem Admin offen',
     datei: 'server.js',
-    suche: "app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res) => {",
-    ersatz: "app.put('/api/mail', nurAdmin, zweiteBestaetigungNoetig('mail'), (req, res) => {",
+    suche: "app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {",
+    ersatz: "app.put('/api/mail', adminOnly, secondConfirmNeeded('mail'), (req, res) => {",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
   {
     nr: '16', name: 'Die Testmail steht auch dem Admin offen',
     datei: 'server.js',
-    suche: "app.post('/api/mail/test', nurEigentuemer, async (req, res) => {",
-    ersatz: "app.post('/api/mail/test', nurAdmin, async (req, res) => {",
+    suche: "app.post('/api/mail/test', ownerOnly, async (req, res) => {",
+    ersatz: "app.post('/api/mail/test', adminOnly, async (req, res) => {",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
   {
     nr: '17', name: 'Die zweite Bestaetigung faellt am Mailzugang weg',
     datei: 'server.js',
-    suche: "app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res) => {",
-    ersatz: "app.put('/api/mail', nurEigentuemer, (req, res) => {",
+    suche: "app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {",
+    ersatz: "app.put('/api/mail', ownerOnly, (req, res) => {",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
   /* ---- Das Passwort ---- */
   {
     nr: '18', name: 'Das Mailpasswort steht in der Antwort',
     datei: 'server.js',
-    suche: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte(req)));",
-    ersatz: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json({ ...mailKarte(req), passwort: mail.resolve(getSetting(mail.SETTING_KEY, null)).passwort }));",
+    suche: "app.get('/api/mail', ownerOnly, (req, res) => res.json(mailCard(req)));",
+    ersatz: "app.get('/api/mail', ownerOnly, (req, res) => res.json({ ...mailCard(req), passwort: mail.resolve(getSetting(mail.SETTING_KEY, null)).passwort }));",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
@@ -307,8 +307,8 @@ const RUECKBAUTEN = [
   {
     nr: '31', name: 'Die Antwort verraet, dass still verworfen wurde',
     datei: 'server.js',
-    suche: "  res.json(ANFRAGE_ANTWORT);",
-    ersatz: "  res.json(klartext ? ANFRAGE_ANTWORT : { ok: false, error: 'Name oder Adresse ist schon vergeben.' });",
+    suche: "  res.json(REQUEST_ANSWER);",
+    ersatz: "  res.json(klartext ? REQUEST_ANSWER : { ok: false, error: 'Name oder Adresse ist schon vergeben.' });",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
@@ -318,9 +318,9 @@ const RUECKBAUTEN = [
        Der troepfelnde Empfaenger haelt ihn zwanzig Sekunden fest. */
     nr: '32', name: 'Die Antwort wartet wieder auf den Mailserver',
     datei: 'server.js',
-    suche: "  const klartext = an ? auth.createRequest(name, adresse) : null;",
-    ersatz: "  const klartext = an ? auth.createRequest(name, adresse) : null;\n" +
-            "  if (klartext) await versendeBestaetigung(String(name).trim(), String(adresse).trim(), klartext).catch(() => {});",
+    suche: "  const plain = an ? auth.createRequest(name, adresse) : null;",
+    ersatz: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
+            "  if (klartext) await sendConfirm(String(name).trim(), String(adresse).trim(), klartext).catch(() => {});",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
@@ -411,14 +411,14 @@ const RUECKBAUTEN = [
   {
     nr: '43', name: 'Der Schalter laesst sich ohne durchgekommene Testmail einschalten',
     datei: 'server.js',
-    suche: "  if (!mailtestStand(roh))",
+    suche: "  if (!mailtestState(roh))",
     ersatz: "  if (false)",
     erwartet: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
   {
     nr: '44', name: 'Der Schalter laesst sich ohne oeffentliche Adresse einschalten',
     datei: 'server.js',
-    suche: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (!OEFFENTLICHE.adresse)",
+    suche: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (!PUBLIC.adresse)",
     ersatz: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (false)",
     erwartet: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
@@ -468,15 +468,15 @@ const RUECKBAUTEN = [
   {
     nr: '52', name: 'Die unbestaetigte Anfrage laesst sich freischalten',
     datei: 'server.js',
-    suche: "  const a = auth.getRequest(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});\n  let angelegt, token;",
-    ersatz: "  const a = auth.getRequest(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});\n  let angelegt, token;",
+    suche: "  const a = auth.getRequest(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});\n  let created, token;",
+    ersatz: "  const a = auth.getRequest(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});\n  let angelegt, token;",
     erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   /* ---- Die Selbstanmeldung: Freischaltung, Ablehnung, Rolle ---- */
   {
     nr: '53', name: 'Die Rolle kommt aus dem Rumpf der Anfrage',
     datei: 'server.js',
-    suche: "    angelegt = await auth.createUser(a.username, null, 'user', true, req.benutzer.id, a.email);",
+    suche: "    created = await auth.createUser(a.username, null, 'user', true, req.benutzer.id, a.email);",
     ersatz: "    angelegt = await auth.createUser(a.username, null, (req.body || {}).rolle || 'user', true, req.benutzer.id, a.email);",
     erwartet: 'Die Selbstanmeldung: die Rolle ist immer user'
   },
@@ -490,14 +490,14 @@ const RUECKBAUTEN = [
   {
     nr: '55', name: 'Die Freischaltung erzeugt keinen Token',
     datei: 'server.js',
-    suche: "    token = auth.createToken(angelegt.id, 'einladung', req.benutzer.id);",
+    suche: "    token = auth.createToken(created.id, 'einladung', req.benutzer.id);",
     ersatz: "    token = { klartext: 'x'.repeat(64), zweck: 'einladung', tage: 7, id: angelegt.id, username: angelegt.username };",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '56', name: 'Die Protokollzeile der Freischaltung faellt weg',
     datei: 'server.js',
-    suche: "  auth.log('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
+    suche: "  auth.log('anfrage.frei', { wer: req.benutzer.id, ziel: created.id });",
     ersatz: "  // auth.log('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
@@ -523,8 +523,8 @@ const RUECKBAUTEN = [
   {
     nr: '59', name: 'Die Anfrage selbst schreibt eine Protokollzeile',
     datei: 'server.js',
-    suche: "  const klartext = an ? auth.createRequest(name, adresse) : null;",
-    ersatz: "  const klartext = an ? auth.createRequest(name, adresse) : null;\n" +
+    suche: "  const plain = an ? auth.createRequest(name, adresse) : null;",
+    ersatz: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
             "  if (klartext) auth.log('anfrage.frei', { wer: 1 });",
     erwartet: 'Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann'
   },
@@ -532,14 +532,14 @@ const RUECKBAUTEN = [
   {
     nr: '60', name: 'Die Bremse fehlt an der Anfrageroute',
     datei: 'server.js',
-    suche: "app.post('/api/registrierung', async (req, res) => {\n  if (!await tokenBremseFrei(req, res)) return;",
+    suche: "app.post('/api/registrierung', async (req, res) => {\n  if (!await tokenThrottleFree(req, res)) return;",
     ersatz: "app.post('/api/registrierung', async (req, res) => {",
     erwartet: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
   },
   {
     nr: '61', name: 'Die Bremse fehlt an der Bestaetigungsroute',
     datei: 'server.js',
-    suche: "  const ip = auth.clientIp(req);\n  if (!await tokenBremseFrei(req, res)) return;\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
+    suche: "  const ip = auth.clientIp(req);\n  if (!await tokenThrottleFree(req, res)) return;\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
     ersatz: "  const ip = auth.clientIp(req);\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
     erwartet: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
   },
@@ -833,8 +833,8 @@ const RUECKBAUTEN = [
        weg (Stolperstein 138). */
     nr: '93', name: 'Die Absage verraet, ob der Zugang einen zweiten Faktor hat',
     datei: 'server.js',
-    suche: "    return res.status(401).json({ error: t(spracheVon(req), 'server.loginWrong')});",
-    ersatz: "    return res.status(401).json({ error: t(spracheVon(req), 'server.loginWrong'),\n      zweifaktor: auth.twoFactorOn((auth.getUserByName(user) || {}).id) });",
+    suche: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong')});",
+    ersatz: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong'),\n      zweifaktor: auth.twoFactorOn((auth.getUserByName(user) || {}).id) });",
     erwartet: 'Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort'
   },
   {
@@ -873,7 +873,7 @@ const RUECKBAUTEN = [
   {
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
     datei: 'server.js',
-    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.useLoginTicket(ausweis);",
+    suche: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ausweis);",
     ersatz: "  const id = auth.useLoginTicket(ausweis);",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
@@ -884,8 +884,8 @@ const RUECKBAUTEN = [
        daran ist die erste Fassung der Bremsprobe stumm geblieben. */
     nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
     datei: 'server.js',
-    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.sessionExpired')});\n  }",
-    ersatz: "  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.sessionExpired')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
+    suche: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }",
+    ersatz: "  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
@@ -991,8 +991,8 @@ const RUECKBAUTEN = [
   {
     nr: '110', name: 'Ausschalten geht ohne Code',
     datei: 'server.js',
-    suche: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  if (!auth.checkTwoFactor(req.benutzer.id, code))\n    return res.status(403).json({ error: t(spracheVon(req), auth.TWO_FACTOR_DENIAL)});\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
-    ersatz: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
+    suche: "  if (!await ownPasswordMatches(req, res, passwort)) return;\n  if (!auth.checkTwoFactor(req.benutzer.id, code))\n    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
+    ersatz: "  if (!await ownPasswordMatches(req, res, passwort)) return;\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
     erwartet: 'Der zweite Faktor: der Rundlauf'
   },
   {
@@ -1035,10 +1035,10 @@ const RUECKBAUTEN = [
        Passwort, ob am Zugang ein Faktor haengt. */
     nr: '114', name: 'Der Code wird VOR dem Passwort geprueft',
     datei: 'server.js',
-    suche: "  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!zeile || !await auth.checkPassword(String(passwort || ''), zeile.password_hash)) {",
+    suche: "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!row || !await auth.checkPassword(String(passwort || ''), row.password_hash)) {",
     ersatz: "  if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code))\n" +
             "    return res.status(403).json({ error: auth.TWO_FACTOR_DENIAL, zweifaktor: true });\n" +
-            "  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!zeile || !await auth.checkPassword(String(passwort || ''), zeile.password_hash)) {",
+            "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!row || !await auth.checkPassword(String(passwort || ''), row.password_hash)) {",
     erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
   },
   /* ---- Der zweite Faktor: die Tabellen und die Oberflaeche ---- */
@@ -1115,7 +1115,7 @@ const RUECKBAUTEN = [
   {
     nr: '124', name: 'Der Parameter q wird nicht mehr gelesen',
     datei: 'server.js',
-    suche: "  const begriff = volltextBegriff(req.query.q, spracheVon(req));",
+    suche: "  const term = fulltextTerm(req.query.q, localeOf(req));",
     ersatz: "  const begriff = '';",
     erwartet: 'Die Volltextsuche'
   },
@@ -1208,8 +1208,8 @@ const RUECKBAUTEN = [
        Suche. */
     nr: '135', name: 'Die Liste ohne Begriff verschweigt die abgelehnten Eintraege',
     datei: 'server.js',
-    suche: "  let rows = qAlleItems.all();",
-    ersatz: "  let rows = qAlleItems.all();\n  if (!volltextBegriff(req.query.q)) rows = rows.filter(r => !r.rejected);",
+    suche: "  let rows = qAllItems.all();",
+    ersatz: "  let rows = qAllItems.all();\n  if (!fulltextTerm(req.query.q)) rows = rows.filter(r => !r.rejected);",
     erwartet: 'Die Volltextsuche'
   },
   /* ---- testDays und die Zeitleiste ---- */
@@ -1219,16 +1219,16 @@ const RUECKBAUTEN = [
        Derselbe Fund, andere Zeile. */
     nr: '136', name: 'testDays kommt wieder immer mit',
     datei: 'server.js',
-    suche: "    if (zeitleiste) it.testDays = testTageJe.get(it.id) || [];",
-    ersatz: "    it.testDays = testTageJeEintrag(req.benutzer.id).get(it.id) || [];",
+    suche: "    if (zeitleiste) it.testDays = testDaysPer.get(it.id) || [];",
+    ersatz: "    it.testDays = testDaysPerEntry(req.benutzer.id).get(it.id) || [];",
     erwartet: 'testDays haengt an der Zeitleiste'
   },
   {
     /* MITGEGANGEN MIT 0.19.3, wie 136 daneben. */
     nr: '137', name: 'testDays fehlt immer, auch mit eingeschalteter Zeitleiste',
     datei: 'server.js',
-    suche: "    if (zeitleiste) it.testDays = testTageJe.get(it.id) || [];",
-    ersatz: "    if (false) it.testDays = testTageJe.get(it.id) || [];",
+    suche: "    if (zeitleiste) it.testDays = testDaysPer.get(it.id) || [];",
+    ersatz: "    if (false) it.testDays = testDaysPer.get(it.id) || [];",
     erwartet: 'testDays haengt an der Zeitleiste'
   },
   /* ---- Die Suche am Bildschirm ---- */
@@ -1281,7 +1281,7 @@ const RUECKBAUTEN = [
   {
     nr: '144', name: 'Der Deckel fuer Ansichten faellt weg',
     datei: 'server.js',
-    suche: "    if (ein.length > ANSICHTEN_DECKEL)",
+    suche: "    if (ein.length > VIEWS_CAP)",
     ersatz: "    if (false)",
     erwartet: 'Gespeicherte Ansichten'
   },
@@ -1295,15 +1295,15 @@ const RUECKBAUTEN = [
   {
     nr: '146', name: 'Die Ansichten werden geprueft, NACHDEM filters geschrieben ist',
     datei: 'server.js',
-    suche: "  let ansichtenText = null;",
-    ersatz: "  let ansichtenText = null;\n  if (req.body.filters !== undefined)\n    putUserSetting(req.benutzer.id, 'filters', JSON.stringify(req.body.filters));",
+    suche: "  let viewsText = null;",
+    ersatz: "  let viewsText = null;\n  if (req.body.filters !== undefined)\n    putUserSetting(req.benutzer.id, 'filters', JSON.stringify(req.body.filters));",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
     nr: '147', name: 'Das Speichern einer Ansicht raeumt die gemerkte Stellung weg',
     datei: 'server.js',
-    suche: "  if (ansichtenText !== null)\n    putUserSetting(req.benutzer.id, 'ansichten', ansichtenText);",
-    ersatz: "  if (ansichtenText !== null) {\n    putUserSetting(req.benutzer.id, 'ansichten', ansichtenText);\n    putUserSetting(req.benutzer.id, 'filters', 'null');\n  }",
+    suche: "  if (viewsText !== null)\n    putUserSetting(req.benutzer.id, 'ansichten', viewsText);",
+    ersatz: "  if (viewsText !== null) {\n    putUserSetting(req.benutzer.id, 'ansichten', viewsText);\n    putUserSetting(req.benutzer.id, 'filters', 'null');\n  }",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
@@ -1529,7 +1529,7 @@ const RUECKBAUTEN = [
   {
     nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
     datei: 'server.js',
-    suche: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder + austauschUmschlagBytes(itemId);',
+    suche: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder + exchangeEnvelopeBytes(itemId);',
     ersatz: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
     erwartet: 'Die Exportgroesse sagt sich an'
   },
@@ -1540,22 +1540,22 @@ const RUECKBAUTEN = [
        die zu frueh kommt, wird weggeklickt. */
     nr: '172', name: 'Die Vorschaubilder werden mitgezaehlt, obwohl sie nie mitgehen',
     datei: 'server.js',
-    suche: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE art != 'video'${und('item_id')}`));",
+    suche: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE art != 'video'${and('item_id')}`));",
     ersatz: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE art != 'video'${und('item_id')}`));",
     erwartet: 'Videos: Kennzahlen und Austausch'
   },
   {
     nr: '173', name: 'Der Export baut erst und sagt danach ab',
     datei: 'server.js',
-    suche: '  const gross = austauschBytes(null, schalter);\n  if (!alsTeil && gross > AUSTAUSCH_MAX)',
-    ersatz: '  const gross = 0;\n  if (!alsTeil && gross > AUSTAUSCH_MAX)',
+    suche: '  const big = exchangeBytes(null, schalter);\n  if (!asPart && big > EXCHANGE_MAX)',
+    ersatz: '  const gross = 0;\n  if (!asPart && gross > EXCHANGE_MAX)',
     erwartet: 'Videos: Kennzahlen und Austausch'
   },
   {
     nr: '174', name: 'Der Warnwert liegt auf der Grenze statt darunter',
     datei: 'server.js',
-    suche: 'const AUSTAUSCH_WARN = 300 * 1024 * 1024;',
-    ersatz: 'const AUSTAUSCH_WARN = AUSTAUSCH_MAX;',
+    suche: 'const EXCHANGE_WARN = 300 * 1024 * 1024;',
+    ersatz: 'const EXCHANGE_WARN = EXCHANGE_MAX;',
     erwartet: 'Die Exportgroesse sagt sich an'
   },
   {
@@ -1667,8 +1667,8 @@ const RUECKBAUTEN = [
        die Message gebaut ist. */
     nr: '185', name: 'Ein zu grosser Eintrag wird still uebergangen',
     datei: 'server.js',
-    suche: "    if (grund + b > AUSTAUSCH_MAX) { zuGross.push({ id: z.id, titel: z.titel, bytes: grund + b }); continue; }",
-    ersatz: '    if (grund + b > AUSTAUSCH_MAX) { continue; }',
+    suche: "    if (grund + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, titel: z.titel, bytes: grund + b }); continue; }",
+    ersatz: '    if (grund + b > EXCHANGE_MAX) { continue; }',
     erwartet: 'Der Export in Teilen'
   },
   {
@@ -1677,7 +1677,7 @@ const RUECKBAUTEN = [
        merkte es erst an der Dateigroesse. */
     nr: '186', name: 'Eine halbe Fensterangabe geht als Vollexport durch',
     datei: 'server.js',
-    suche: '  if (alsTeil && (von === null || bis === null || teil === null || teile === null))',
+    suche: '  if (asPart && (von === null || bis === null || teil === null || teile === null))',
     ersatz: '  if (false)',
     erwartet: 'Der Export in Teilen'
   },
@@ -1704,7 +1704,7 @@ const RUECKBAUTEN = [
   {
     nr: '189', name: 'Die Teilgroesse laesst sich ueber den Warnwert stellen',
     datei: 'server.js',
-    suche: '  const zielGroesse = Math.min(AUSTAUSCH_WARN,',
+    suche: '  const zielGroesse = Math.min(EXCHANGE_WARN,',
     ersatz: '  const zielGroesse = Math.min(Number.MAX_SAFE_INTEGER,',
     erwartet: 'Der Export in Teilen'
   },
@@ -1714,7 +1714,7 @@ const RUECKBAUTEN = [
        auseinanderzuhalten. */
     nr: '190', name: 'Alle Teile heissen gleich',
     datei: 'server.js',
-    suche: "    `attachment; filename=\"${exportName(alsTeil ? `-teil-${teil}-von-${teile}` : '')}\"`);",
+    suche: "    `attachment; filename=\"${exportName(asPart ? `-teil-${teil}-von-${teile}` : '')}\"`);",
     ersatz: "    `attachment; filename=\"${exportName('')}\"`);",
     erwartet: 'Der Export in Teilen'
   },
@@ -1738,8 +1738,8 @@ const RUECKBAUTEN = [
        bekaeme 403, und zwar ohne dass irgendwo ein Code falsch gewesen waere. */
     nr: '192', name: 'Die Route nimmt wieder nur ein einzelnes Ziel',
     datei: 'server.js',
-    suche: '  } else zielListe = [ziel ?? null];',
-    ersatz: '  }\n  zielListe = [ziel ?? null];',
+    suche: '  } else targetList = [ziel ?? null];',
+    ersatz: '  }\n  targetList = [ziel ?? null];',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
   {
@@ -1748,7 +1748,7 @@ const RUECKBAUTEN = [
        und der zweite Teil bliebe stehen. */
     nr: '193', name: 'Doppelte Zielnummern gehen als halbierte Bestellung durch',
     datei: 'server.js',
-    suche: '    if (new Set(zielListe).size !== zielListe.length)',
+    suche: '    if (new Set(targetList).size !== targetList.length)',
     ersatz: '    if (false)',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1758,7 +1758,7 @@ const RUECKBAUTEN = [
        ihrem Ablauf wieder weg. */
     nr: '194', name: 'Eine Anfrage darf beliebig viele Freigaben bestellen',
     datei: 'server.js',
-    suche: '    if (ziele.length > AUSTAUSCH_TEIL_MAX)',
+    suche: '    if (ziele.length > EXCHANGE_PART_MAX)',
     ersatz: '    if (false)',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1769,8 +1769,8 @@ const RUECKBAUTEN = [
        DAS IST DER BEFUND AUS 0.12.4, wortwoertlich zurueckgebaut. */
     nr: '195', name: 'Der Teilexport schreibt wieder "teil 1/5" und faellt damit aus dem Protokoll',
     datei: 'server.js',
-    suche: "merkmal: alsTeil ? 'teil' : null });",
-    ersatz: 'merkmal: alsTeil ? `teil ${teil}/${teile}` : null });',
+    suche: "merkmal: asPart ? 'teil' : null });",
+    ersatz: 'merkmal: asPart ? `teil ${teil}/${teile}` : null });',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
   /* ---- 0.13.0: zwei Netze, ein Zugang ---- */
@@ -2070,10 +2070,10 @@ const RUECKBAUTEN = [
     /* DIE ZURUECKGENOMMENE ENTSCHEIDUNG, wiederhergestellt: an der Begruendung
        gilt wieder darfAendern -- Verfasser ODER Admin. Damit schreibt ein
        Admin eine fremde Aussage unter fremdem Namen um. */
-    nr: '225', name: 'An der Begruendung gilt wieder darfAendern statt nurSelbst',
+    nr: '225', name: 'An der Begruendung gilt wieder mayChange statt selfOnly',
     datei: 'server.js',
-    suche: "      it.rejected_von != null && !nurSelbst(req, it.rejected_von))",
-    ersatz: "      it.rejected_von != null && !darfAendern(req, it.rejected_von))",
+    suche: "      it.rejected_von != null && !selfOnly(req, it.rejected_von))",
+    ersatz: "      it.rejected_von != null && !mayChange(req, it.rejected_von))",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2082,8 +2082,8 @@ const RUECKBAUTEN = [
        einen Eintrag, dessen Ablehnung noch keinen Verfasser traegt. */
     nr: '226', name: 'Die Begruendung faellt aus den Verfasserfeldern heraus',
     datei: 'server.js',
-    suche: "const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected', 'rejectedGrund',\n                              'tested', 'productCategoryId'];",
-    ersatz: "const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected',\n                              'tested', 'productCategoryId'];",
+    suche: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected', 'rejectedGrund',\n                              'tested', 'productCategoryId'];",
+    ersatz: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected',\n                              'tested', 'productCategoryId'];",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2092,8 +2092,8 @@ const RUECKBAUTEN = [
        nurSelbst(null) ist fuer jeden falsch. */
     nr: '227', name: 'Eine Ablehnung ohne Verfasser laesst sich nicht mehr begruenden',
     datei: 'server.js',
-    suche: "  if (b.rejectedGrund !== undefined && !schaltetEin && !entferntGrund &&\n      it.rejected_von != null && !nurSelbst(req, it.rejected_von))",
-    ersatz: "  if (b.rejectedGrund !== undefined && !schaltetEin && !entferntGrund &&\n      !nurSelbst(req, it.rejected_von))",
+    suche: "  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&\n      it.rejected_von != null && !selfOnly(req, it.rejected_von))",
+    ersatz: "  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&\n      !selfOnly(req, it.rejected_von))",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2102,7 +2102,7 @@ const RUECKBAUTEN = [
        genau das, was die Klemme verhindern soll. */
     nr: '228', name: 'Ein neues Ablehnen uebernimmt den fremden Satz',
     datei: 'server.js',
-    suche: "    put('rejected_von', req.benutzer.id);\n    put('rejected_grund', grundText(b.rejectedGrund));",
+    suche: "    put('rejected_von', req.benutzer.id);\n    put('rejected_grund', reasonText(b.rejectedGrund));",
     ersatz: "    put('rejected_von', req.benutzer.id);",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2121,7 +2121,7 @@ const RUECKBAUTEN = [
        freigegebene Name dann nicht mehr fernhalten. */
     nr: '230', name: 'Der Ablehnende geht als nackte Nummer hinaus',
     datei: 'server.js',
-    suche: "  it.rejectedVerfasser = verfasserAus(karte, it.rejected_von);\n  delete it.rejected_von;",
+    suche: "  it.rejectedVerfasser = authorFrom(card, it.rejected_von);\n  delete it.rejected_von;",
     ersatz: "",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2140,8 +2140,8 @@ const RUECKBAUTEN = [
        Marke in der Oberflaeche, und der Deckel faellt gleich mit. */
     nr: '232', name: 'Die Begruendung wird weder eingeebnet noch gekappt',
     datei: 'server.js',
-    suche: "const grundText = (v) =>\n  typeof v === 'string' ? v.replace(/\\s+/g, ' ').trim().slice(0, GRUND_LAENGE) : '';",
-    ersatz: "const grundText = (v) => (typeof v === 'string' ? v : '');",
+    suche: "const reasonText = (v) =>\n  typeof v === 'string' ? v.replace(/\\s+/g, ' ').trim().slice(0, REASON_LENGTH) : '';",
+    ersatz: "const reasonText = (v) => (typeof v === 'string' ? v : '');",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   /* ---- 0.14.0: das Austauschformat ---- */
@@ -2157,8 +2157,8 @@ const RUECKBAUTEN = [
        Format steigt und nicht stehen bleibt. */
     nr: '233', name: 'Die Formatnummer bleibt auf 12',
     datei: 'server.js',
-    suche: "const AUSTAUSCH_FORMAT = 13;",
-    ersatz: "const AUSTAUSCH_FORMAT = 12;",
+    suche: "const EXCHANGE_FORMAT = 13;",
+    ersatz: "const EXCHANGE_FORMAT = 12;",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2167,7 +2167,7 @@ const RUECKBAUTEN = [
        beliebigen Zugang oder gar keinen. */
     nr: '234', name: 'Der Ablehnende wandert als Nummer statt als Name hinaus',
     datei: 'server.js',
-    suche: "    rejected_author: verfasserName(it.rejected_von),",
+    suche: "    rejected_author: authorName(it.rejected_von),",
     ersatz: "    rejected_author: it.rejected_von,",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2176,7 +2176,7 @@ const RUECKBAUTEN = [
        einer begruendeten Ablehnung wieder ein nacktes Haekchen. */
     nr: '235', name: 'Die drei Angaben gehen gar nicht erst in die Datei',
     datei: 'server.js',
-    suche: "    rejected_at: it.rejected_at, rejected_grund: it.rejected_grund,\n    rejected_author: verfasserName(it.rejected_von),",
+    suche: "    rejected_at: it.rejected_at, rejected_grund: it.rejected_grund,\n    rejected_author: authorName(it.rejected_von),",
     ersatz: "",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2186,8 +2186,8 @@ const RUECKBAUTEN = [
        abgelehnt hat. */
     nr: '236', name: 'Ein fehlender Ablehnender faellt an den Einspielenden',
     datei: 'server.js',
-    suche: "      const abgelehntVon = String(it.rejected_author == null ? '' : it.rejected_author).trim()\n        ? verfasser(it.rejected_author) : null;",
-    ersatz: "      const abgelehntVon = verfasser(it.rejected_author);",
+    suche: "      const rejectedBy = String(it.rejected_author == null ? '' : it.rejected_author).trim()\n        ? verfasser(it.rejected_author) : null;",
+    ersatz: "      const rejectedBy = verfasser(it.rejected_author);",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   /* ---- 0.14.0: die Sternreihe der Kriterienliste ---- */
@@ -2380,7 +2380,7 @@ const RUECKBAUTEN = [
        Nummer -- und der Stift verschwindet fuer den, der ihn braucht. */
     nr: '255', name: 'rejectedMine geht nicht mehr hinaus',
     datei: 'server.js',
-    suche: "  it.rejectedMine = it.rejected_von != null && it.rejected_von === benutzerId;",
+    suche: "  it.rejectedMine = it.rejected_von != null && it.rejected_von === userId;",
     ersatz: "  it.rejectedMine = false;",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2389,7 +2389,7 @@ const RUECKBAUTEN = [
        weg, dem der Eintrag gehoert. */
     nr: '256', name: 'mine geht am Eintrag nicht mehr hinaus',
     datei: 'server.js',
-    suche: "  it.mine = it.user_id === benutzerId;",
+    suche: "  it.mine = it.user_id === userId;",
     ersatz: "  it.mine = false;",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2397,10 +2397,10 @@ const RUECKBAUTEN = [
     /* Die Fallunterscheidung faellt weg: das Entfernen laeuft wieder ueber
        nurSelbst, und ein Admin kann eine fremde Begruendung weder umschreiben
        noch wegnehmen. Genau die Luecke, die 0.15.0 schliesst. */
-    nr: '257', name: 'Entfernen laeuft wieder ueber nurSelbst',
+    nr: '257', name: 'Entfernen laeuft wieder ueber selfOnly',
     datei: 'server.js',
-    suche: "  const entferntGrund = b.rejectedGrund !== undefined && !grundText(b.rejectedGrund);",
-    ersatz: "  const entferntGrund = false;",
+    suche: "  const removedReason = b.rejectedGrund !== undefined && !reasonText(b.rejectedGrund);",
+    ersatz: "  const removedReason = false;",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
   {
@@ -2409,7 +2409,7 @@ const RUECKBAUTEN = [
        "beides ja". */
     nr: '258', name: 'Auch das Umschreiben kommt durch',
     datei: 'server.js',
-    suche: "  if (b.rejectedGrund !== undefined && !schaltetEin && !entferntGrund &&",
+    suche: "  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&",
     ersatz: "  if (false &&",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2418,7 +2418,7 @@ const RUECKBAUTEN = [
        gibt -- an einer Ablehnung aus einer Instanz vor 0.14.0. */
     nr: '259', name: 'Wer entfernt, wird Verfasser',
     datei: 'server.js',
-    suche: "    if (it.rejected_von == null && !entferntGrund) put('rejected_von', req.benutzer.id);",
+    suche: "    if (it.rejected_von == null && !removedReason) put('rejected_von', req.benutzer.id);",
     ersatz: "    if (it.rejected_von == null) put('rejected_von', req.benutzer.id);",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2617,7 +2617,7 @@ const RUECKBAUTEN = [
   {
     nr: '281', name: 'Der Rechenweg faellt aus der Antwort',
     datei: 'server.js',
-    suche: "  it.rechenweg = { ...rechenweg, ergebnis: it.avgRating };",
+    suche: "  it.rechenweg = { ...calc, ergebnis: it.avgRating };",
     ersatz: "  void rechenweg;",
     erwartet: 'Der Rechenweg reist mit'
   },
@@ -2629,7 +2629,7 @@ const RUECKBAUTEN = [
        vorher gerundet hat -- Summe und rohen Quotienten. */
     nr: '282', name: 'Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert',
     datei: 'server.js',
-    suche: "    { zeilen, summe: zaehler, teiler: nenner, roh: nenner ? zaehler / nenner : null,",
+    suche: "    { zeilen, summe: counter, teiler: nenner, roh: nenner ? counter / nenner : null,",
     ersatz: "    { zeilen, summe: Math.round(zaehler * 100) / 100, teiler: nenner,\n      roh: nenner ? Math.round((zaehler / nenner) * 100) / 100 : null,",
     erwartet: 'Der Rechenweg reist mit'
   },
@@ -2660,8 +2660,8 @@ const RUECKBAUTEN = [
        „es gibt keinen Bezugspunkt". */
     nr: '285', name: 'Die Zahl der Kommentare steht auch ohne Bezugspunkt da',
     datei: 'server.js',
-    suche: "    if (bezug) it.neuKommentare = neuKommJe.get(it.id) || 0;",
-    ersatz: "    it.neuKommentare = neuKommJe.get(it.id) || 0;",
+    suche: "    if (reference) it.neuKommentare = newCommentsPer.get(it.id) || 0;",
+    ersatz: "    it.neuKommentare = newCommentsPer.get(it.id) || 0;",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -2669,8 +2669,8 @@ const RUECKBAUTEN = [
        Antwort mit nur einer davon waere eine dritte Lage, die niemand kennt. */
     nr: '314', name: 'Die Verfasser stehen auch ohne Bezugspunkt an jedem Eintrag',
     datei: 'server.js',
-    suche: "    if (bezug) it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => verfasserAus(karte, uid));",
-    ersatz: "    it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => verfasserAus(karte, uid));",
+    suche: "    if (reference) it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(card, uid));",
+    ersatz: "    it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(karte, uid));",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -2885,7 +2885,7 @@ const RUECKBAUTEN = [
        und sagt nicht, wofuer die Gewichte gut sind. */
     nr: '308', name: 'Die Vergleichszahl faellt aus dem Rechenweg',
     datei: 'server.js',
-    suche: "      gleichSumme: gleichZaehler, gleichTeiler: zeilen.length,",
+    suche: "      gleichSumme: sameCounter, gleichTeiler: zeilen.length,",
     ersatz: "      gleichSumme: 0, gleichTeiler: 0,",
     erwartet: 'Der Rechenweg reist mit'
   },
@@ -2894,16 +2894,16 @@ const RUECKBAUTEN = [
        zweites Mal, also gar kein Vergleich. */
     nr: '309', name: 'Die Vergleichszahl rechnet die Gewichte doch wieder ein',
     datei: 'server.js',
-    suche: "    gleichZaehler += z.schnitt;",
-    ersatz: "    gleichZaehler += produkt;",
+    suche: "    sameCounter += z.schnitt;",
+    ersatz: "    sameCounter += produkt;",
     erwartet: 'Der Rechenweg reist mit'
   },
   {
     /* GERUNDET WIRD ZWEIMAL: je Kriterium und am Ende. */
     nr: '310', name: 'Die Vergleichszahl wird ungerundet ausgeliefert',
     datei: 'server.js',
-    suche: "      gleichErgebnis: zeilen.length\n        ? Math.round((gleichZaehler / zeilen.length) * 10) / 10 : null });",
-    ersatz: "      gleichErgebnis: zeilen.length ? gleichZaehler / zeilen.length : null });",
+    suche: "      gleichErgebnis: zeilen.length\n        ? Math.round((sameCounter / zeilen.length) * 10) / 10 : null });",
+    ersatz: "      gleichErgebnis: zeilen.length ? sameCounter / zeilen.length : null });",
     erwartet: 'Der Rechenweg reist mit'
   },
   {
@@ -2966,7 +2966,7 @@ const RUECKBAUTEN = [
     nr: '318', name: 'Der Server legt beide Zahlen wieder in eine Kiste',
     datei: 'server.js',
     suche: "      neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);",
-    ersatz: "      neuKommJe.set(z.item_id, (neuKommJe.get(z.item_id) || 0) + z.n);",
+    ersatz: "      newCommentsPer.set(z.item_id, (newCommentsPer.get(z.item_id) || 0) + z.n);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -3382,7 +3382,7 @@ const RUECKBAUTEN = [
   {
     nr: '378', name: 'Die Anbieterliste kommt wieder ohne Hinweise und feste Werte',
     datei: 'server.js',
-    suche: "    anbieterListe: mail.forChoice().map(a =>\n      ({ ...a, hinweis: a.hinweis ? t(spracheVon(req), a.hinweis) : '' })),",
+    suche: "    anbieterListe: mail.forChoice().map(a =>\n      ({ ...a, hinweis: a.hinweis ? t(localeOf(req), a.hinweis) : '' })),",
     ersatz: "    anbieterListe: mail.PROVIDERS.map(a => ({ schluessel: a.schluessel, name: a.name })),",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
@@ -3529,7 +3529,7 @@ const RUECKBAUTEN = [
   {
     nr: '398', name: 'Der Trefferkontext faellt ganz aus der Antwort',
     datei: 'server.js',
-    suche: "    if (begriff) it.fundstelle = fundstellen.get(it.id);",
+    suche: "    if (term) it.fundstelle = hits.get(it.id);",
     ersatz: "    if (false) it.fundstelle = fundstellen.get(it.id);",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
@@ -3545,15 +3545,15 @@ const RUECKBAUTEN = [
        traegt, nicht eine daneben. */
     nr: '399', name: 'Der Trefferkontext steht auch ohne Suche in der Antwort',
     datei: 'server.js',
-    suche: "    if (begriff) it.fundstelle = fundstellen.get(it.id);",
+    suche: "    if (term) it.fundstelle = hits.get(it.id);",
     ersatz: "    it.fundstelle = fundstellen.get(it.id) || null;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '400', name: 'Der Ausschnitt wird vorn geschnitten statt an der Fundstelle',
     datei: 'server.js',
-    suche: "const AUSSCHNITT_VORLAUF = 4;",
-    ersatz: "const AUSSCHNITT_VORLAUF = 1000;",
+    suche: "const SNIPPET_LEAD = 4;",
+    ersatz: "const SNIPPET_LEAD = 1000;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
@@ -3562,28 +3562,28 @@ const RUECKBAUTEN = [
        Befund, wegen dem es diese Runde ueberhaupt gibt. */
     nr: '401', name: 'Der Ausschnitt beginnt genau bei der Fundstelle',
     datei: 'server.js',
-    suche: "const AUSSCHNITT_VORLAUF = 4;",
-    ersatz: "const AUSSCHNITT_VORLAUF = 0;",
+    suche: "const SNIPPET_LEAD = 4;",
+    ersatz: "const SNIPPET_LEAD = 0;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '402', name: 'Der Ausschnitt wird nicht mehr eingeebnet',
     datei: 'server.js',
-    suche: "const einZeilig = (s) => String(s ?? '').replace(/\\s+/g, ' ').trim();",
-    ersatz: "const einZeilig = (s) => String(s ?? '');",
+    suche: "const oneLine = (s) => String(s ?? '').replace(/\\s+/g, ' ').trim();",
+    ersatz: "const oneLine = (s) => String(s ?? '');",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '403', name: 'Der Ausschnitt wird gar nicht mehr gekuerzt',
     datei: 'server.js',
-    suche: "const AUSSCHNITT_LAENGE = 56;",
-    ersatz: "const AUSSCHNITT_LAENGE = 100000;",
+    suche: "const SNIPPET_LENGTH = 56;",
+    ersatz: "const SNIPPET_LENGTH = 100000;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '404', name: 'Die Zahl der weiteren Stellen ist immer null',
     datei: 'server.js',
-    suche: "    weitere: getroffen.length - 1",
+    suche: "    weitere: hit.length - 1",
     ersatz: "    weitere: 0",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
@@ -3592,8 +3592,8 @@ const RUECKBAUTEN = [
        genau das, was die Kachel ohnehin zeigt. */
     nr: '405', name: 'Die Folge der Quellen kehrt sich um',
     datei: 'server.js',
-    suche: "  const getroffen = VOLLTEXT_QUELLEN.filter(q => r['f_' + q.schluessel] != null);",
-    ersatz: "  const getroffen = [...VOLLTEXT_QUELLEN].reverse().filter(q => r['f_' + q.schluessel] != null);",
+    suche: "  const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.schluessel] != null);",
+    ersatz: "  const getroffen = [...FULLTEXT_SOURCES].reverse().filter(q => r['f_' + q.schluessel] != null);",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
@@ -3911,23 +3911,23 @@ const RUECKBAUTEN = [
        die drei neuen stehen -- sonst pruefte er nicht mehr dasselbe. */
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     datei: 'server.js',
-    suche: "const EIGENTUEMER_SCHLUESSEL = ['bilderUmwandeln',\n" +
+    suche: "const OWNER_KEYS = ['bilderUmwandeln',\n" +
            "                                'sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];",
-    ersatz: "const EIGENTUEMER_SCHLUESSEL = ['sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];",
+    ersatz: "const OWNER_KEYS = ['sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];",
     erwartet: 'Die Bildablage: die Rechte'
   },
   {
     nr: '438', name: 'Die Umstellung laeuft ohne zweite Bestaetigung',
     datei: 'server.js',
-    suche: "app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bilder'), (req, res) => {",
-    ersatz: "app.post('/api/bilder/umstellen', nurEigentuemer, (req, res) => {",
+    suche: "app.post('/api/bilder/umstellen', ownerOnly, secondConfirmNeeded('bilder'), (req, res) => {",
+    ersatz: "app.post('/api/bilder/umstellen', ownerOnly, (req, res) => {",
     erwartet: 'Die Bildablage: die Rechte'
   },
   {
     nr: '439', name: 'Zweimal druecken startet zwei Laeufe',
     datei: 'server.js',
-    suche: "  if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)\n    return res.status(409).json({ error: t(spracheVon(req), 'server.convertRunning')});",
-    ersatz: "  if (false)\n    return res.status(409).json({ error: t(spracheVon(req), 'server.convertRunning')});",
+    suche: "  if (batchStates.umstellung && batchStates.umstellung.laeuft)\n    return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});",
+    ersatz: "  if (false)\n    return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3936,8 +3936,8 @@ const RUECKBAUTEN = [
        sein Ende wartet, laeuft in ihre Grenze. */
     nr: '440', name: 'Der Fortschritt steht nicht mehr in den Kennzahlen',
     datei: 'server.js',
-    suche: "const bestandsStand = (aufgabe) =>\n  bestandsStaende[aufgabe] && { ...bestandsStaende[aufgabe] };",
-    ersatz: "const bestandsStand = () => null;",
+    suche: "const batchState = (aufgabe) =>\n  batchStates[aufgabe] && { ...batchStates[aufgabe] };",
+    ersatz: "const batchState = () => null;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3988,7 +3988,7 @@ const RUECKBAUTEN = [
   {
     nr: '446', name: 'Der eingespielte Ausschnitt wird verworfen',
     datei: 'server.js',
-    suche: "                    fx: zuschnitt.fx, fy: zuschnitt.fy, zoom: zuschnitt.zoom,",
+    suche: "                    fx: crop.fx, fy: crop.fy, zoom: crop.zoom,",
     ersatz: "                    fx: 50, fy: 50, zoom: ANZEIGEWERTE.zoom.vorgabe,",
     erwartet: 'Fokuspunkt der Vorschau'
   },
@@ -4007,8 +4007,8 @@ const RUECKBAUTEN = [
        Zusage: dort die Entscheidung, hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 12, obwohl der Ausschnitt mitgeht',
     datei: 'server.js',
-    suche: "const AUSTAUSCH_FORMAT = 13;",
-    ersatz: "const AUSTAUSCH_FORMAT = 12;",
+    suche: "const EXCHANGE_FORMAT = 13;",
+    ersatz: "const EXCHANGE_FORMAT = 12;",
     erwartet: 'Die Exportdatei'
   },
 
@@ -4069,7 +4069,7 @@ const RUECKBAUTEN = [
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
     datei: 'public/app.js',
     suche: "      const ok = await zweiteBestaetigung('bilder', null, t('card.convertPngWebp'),",
-    ersatz: "      const ok = true || await zweiteBestaetigung('bilder', null, t('card.convertPngWebp'),",
+    ersatz: "      const ok = true || await secondConfirm('bilder', null, t('card.convertPngWebp'),",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4134,8 +4134,8 @@ const RUECKBAUTEN = [
        Zusage am TEXT und nicht am Ergebnis. */
     nr: '461', name: 'Die Arten kommen wieder aus dem Satz statt aus dem Index',
     datei: 'server.js',
-    suche: "const qBildArten = db.prepare('SELECT art AS a FROM photos GROUP BY 1');",
-    ersatz: "const qBildArten = db.prepare('SELECT DISTINCT art || \\'\\' AS a FROM photos');",
+    suche: "const qImageKinds = db.prepare('SELECT art AS a FROM photos GROUP BY 1');",
+    ersatz: "const qImageKinds = db.prepare('SELECT DISTINCT art || \\'\\' AS a FROM photos');",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4153,8 +4153,8 @@ const RUECKBAUTEN = [
        Ohne diese Tafel stuende die Aufstellung leer da. */
     nr: '463', name: 'Die Zuordnung von mime_type auf den Schluessel ist leer',
     datei: 'server.js',
-    suche: "const BILD_MIME_FORMAT = {\n  'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'\n};",
-    ersatz: "const BILD_MIME_FORMAT = {};",
+    suche: "const IMAGE_MIME_FORMAT = {\n  'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'\n};",
+    ersatz: "const IMAGE_MIME_FORMAT = {};",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4360,8 +4360,8 @@ const RUECKBAUTEN = [
        zweiter (Stolperstein 47). */
     nr: '482', name: 'Die Exportgroesse der Bilder wird ein zweites Mal gefragt',
     datei: 'server.js',
-    suche: "      ...austauschTeile(null, { mitDateien: true }),",
-    ersatz: "      ...austauschTeile(null, { mitFotos: true, mitDateien: true, mitVideos: true }),",
+    suche: "      ...exchangeParts(null, { mitDateien: true }),",
+    ersatz: "      ...exchangeParts(null, { mitFotos: true, mitDateien: true, mitVideos: true }),",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4431,7 +4431,7 @@ const RUECKBAUTEN = [
        halbiert sich -- 3,0 statt 1,6 ms. */
     nr: '490', name: 'Die Uebersicht fragt die Fotos wieder je Eintrag',
     datei: 'server.js',
-    suche: "    const ph = fotosJe.get(it.id) || [];",
+    suche: "    const ph = photosPer.get(it.id) || [];",
     ersatz: "    const ph = qPhotos.all(it.id);",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4465,7 +4465,7 @@ const RUECKBAUTEN = [
        Grenze. */
     nr: '492', name: 'Der Haupt-Thread hoert die Meldungen des Threads nicht mehr',
     datei: 'server.js',
-    suche: "  w.on('message', (m) => { if (m && m.art === 'stand') bestandsStaende[aufgabe] = m.stand; });",
+    suche: "  w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });",
     ersatz: "  w.on('message', () => {});",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4476,7 +4476,7 @@ const RUECKBAUTEN = [
        denselben Weg wie der Haupt-Thread. */
     nr: '493', name: 'Der Schluessel reist ueber workerData in den Thread',
     datei: 'server.js',
-    suche: "  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen } });",
+    suche: "  const w = new Worker(BATCHRUN, { workerData: { task, rows } });",
     ersatz: "  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen, schluessel: keyHex } });",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4486,7 +4486,7 @@ const RUECKBAUTEN = [
        einbringt. */
     nr: '494', name: 'SIGTERM kuerzt die WAL, waehrend der Thread noch schreibt',
     datei: 'server.js',
-    suche: "    for (const w of bestandsThreads) { try { w.terminate(); } catch {} }",
+    suche: "    for (const w of batchThreads) { try { w.terminate(); } catch {} }",
     ersatz: "    // die Threads laufen weiter",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4496,8 +4496,8 @@ const RUECKBAUTEN = [
        mit 409 abgewiesen, obwohl gar nichts mehr laeuft. */
     nr: '495', name: 'Ein Fehler im Thread laesst den Lauf auf „laeuft" stehen',
     datei: 'server.js',
-    suche: "    if (bestandsStaende[aufgabe]) bestandsStaende[aufgabe].laeuft = false;",
-    ersatz: "    if (false) bestandsStaende[aufgabe].laeuft = false;",
+    suche: "    if (batchStates[task]) batchStates[task].laeuft = false;",
+    ersatz: "    if (false) batchStates[aufgabe].laeuft = false;",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4506,7 +4506,7 @@ const RUECKBAUTEN = [
        in keiner Ableitung, und der Fingerprint ist eine halbe Aussage. */
     nr: '496', name: 'Der Fingerprint kennt die Datei des Threads nicht',
     datei: 'server.js',
-    suche: "  const liste = [...new Set([...ausgefuehrt, BESTANDSLAUF,",
+    suche: "  const list = [...new Set([...ran, BATCHRUN,",
     ersatz: "  const liste = [...new Set([...ausgefuehrt,",
     erwartet: 'Der Versions-Fingerprint'
   },
@@ -4557,8 +4557,8 @@ const RUECKBAUTEN = [
        Oberflaeche zeigt dort nichts statt einer Null. */
     nr: '501', name: 'Die Linkzahl fehlt ganz, wo kein Link ist',
     datei: 'server.js',
-    suche: "    it.linkCount = linkZahlJe.get(it.id) || 0;",
-    ersatz: "    it.linkCount = linkZahlJe.get(it.id);",
+    suche: "    it.linkCount = linkCountPer.get(it.id) || 0;",
+    ersatz: "    it.linkCount = linkCountPer.get(it.id);",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
@@ -4567,8 +4567,8 @@ const RUECKBAUTEN = [
        anderes als der Eintrag (Stolperstein 47). */
     nr: '502', name: 'Die gebuendelte Schlagwortabfrage liest eine Spalte mehr',
     datei: 'server.js',
-    suche: "const qAlleTags = db.prepare(`SELECT it.item_id, ${TAG_SPALTEN} FROM tags t",
-    ersatz: "const qAlleTags = db.prepare(`SELECT it.item_id, t.id, t.name, t.created_at FROM tags t",
+    suche: "const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t",
+    ersatz: "const qAllTags = db.prepare(`SELECT it.item_id, t.id, t.name, t.created_at FROM tags t",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
@@ -4577,7 +4577,7 @@ const RUECKBAUTEN = [
        dazu. Gelesen hat beides in der Uebersicht nie jemand. */
     nr: '503', name: 'Die Testtage der Liste tragen wieder Schlagworte und Verfasser',
     datei: 'server.js',
-    suche: "    if (zeitleiste) it.testDays = testTageJe.get(it.id) || [];",
+    suche: "    if (zeitleiste) it.testDays = testDaysPer.get(it.id) || [];",
     ersatz: "    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
@@ -4587,8 +4587,8 @@ const RUECKBAUTEN = [
        beim Holen und beim Senden. */
     nr: '504', name: 'Die Schlagwortabfrage liest wieder alle Spalten',
     datei: 'server.js',
-    suche: "const TAG_SPALTEN = 't.id, t.name';",
-    ersatz: "const TAG_SPALTEN = 't.*';",
+    suche: "const TAG_COLUMNS = 't.id, t.name';",
+    ersatz: "const TAG_COLUMNS = 't.*';",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
 
@@ -4740,7 +4740,7 @@ const RUECKBAUTEN = [
        ihrem ersten Start. */
     nr: '517', name: 'Das Nachziehen wird beim Start nicht mehr gerufen',
     datei: 'server.js',
-    suche: "  if (!offen.length) return erneuereKacheln();",
+    suche: "  if (!offen.length) return refreshTiles();",
     ersatz: "  if (!offen.length) return maintainStorage();",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4752,8 +4752,8 @@ const RUECKBAUTEN = [
        liegen. */
     nr: '518', name: 'Die Auswahl der faelligen Zeilen verengt sich auf ein Wort',
     datei: 'server.js',
-    suche: "const qKachelZeilen = db.prepare('SELECT id FROM photos');",
-    ersatz: "const qKachelZeilen = db.prepare(\"SELECT id FROM photos WHERE art IS 'bild'\");",
+    suche: "const qTileRows = db.prepare('SELECT id FROM photos');",
+    ersatz: "const qTileRows = db.prepare(\"SELECT id FROM photos WHERE art IS 'bild'\");",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4864,7 +4864,7 @@ const RUECKBAUTEN = [
        weg. */
     nr: '528', name: 'Beim Hochladen wird die Kachel nicht zugeschnitten',
     datei: 'server.js',
-    suche: "      const v = await makeVariants(f.buffer, VORGABE_ZUSCHNITT);",
+    suche: "      const v = await makeVariants(f.buffer, DEFAULT_CROP);",
     ersatz: "      const v = await makeVariants(f.buffer);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4875,7 +4875,7 @@ const RUECKBAUTEN = [
        Bestand. */
     nr: '529', name: 'Beim Einspielen wird die Kachel nicht zugeschnitten',
     datei: 'server.js',
-    suche: "      const v = vorlage ? await makeVariants(vorlage, zuschnitt) : { thumb: null, medium: null };",
+    suche: "      const v = vorlage ? await makeVariants(vorlage, crop) : { thumb: null, medium: null };",
     ersatz: "      const v = vorlage ? await makeVariants(vorlage) : { thumb: null, medium: null };",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4906,7 +4906,7 @@ const RUECKBAUTEN = [
        Fehlerweg -- und die Kachel bleibt, wie sie war. */
     nr: '532', name: 'Der Thread kennt die Aufgabe zuschnitt nicht',
     datei: 'bestandslauf.js',
-    suche: "  else if (workerData.aufgabe === 'zuschnitt') await refreshOneTile(workerData.zeilen);\n",
+    suche: "  else if (workerData.task === 'zuschnitt') await refreshOneTile(workerData.rows);\n",
     ersatz: "",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4916,7 +4916,7 @@ const RUECKBAUTEN = [
        Message -- ohne sie weiss aber niemand, ob wirklich erneuert wurde. */
     nr: '533', name: 'Das Ergebnis der einzelnen Zeile wird nicht gemeldet',
     datei: 'bestandslauf.js',
-    suche: "  parentPort.postMessage({ art: 'erneuert', id, ok });",
+    suche: "  parentPort.postMessage({ kind: 'refreshed', id, ok });",
     ersatz: "",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4926,7 +4926,7 @@ const RUECKBAUTEN = [
        Schnitt, bis irgendwann etwas anderes die Zeile anfasst. */
     nr: '534', name: 'Das Speichern des Ausschnitts erzeugt die Kachel nicht neu',
     datei: 'server.js',
-    suche: "  erneuereKachel(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));",
+    suche: "  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));",
     ersatz: "  res.json(detail(p.item_id, req.benutzer.id));",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4936,7 +4936,7 @@ const RUECKBAUTEN = [
        Der Browser haelt sie damit bis zu 24 Stunden fest. */
     nr: '535', name: 'Die Antwort kommt, bevor die Kachel steht',
     datei: 'server.js',
-    suche: "  const uhr = setTimeout(einmal, ERNEUERUNGSFRIST_MS);",
+    suche: "  const clock = setTimeout(once, REFRESH_MS);",
     ersatz: "  const uhr = setTimeout(einmal, 0);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4946,8 +4946,8 @@ const RUECKBAUTEN = [
        die alte Kachel fest. */
     nr: '536', name: 'Die Fassung faellt aus der Fotoabfrage',
     datei: 'server.js',
-    suche: "const PHOTO_FASSUNG = 'length(thumb) AS fassung';",
-    ersatz: "const PHOTO_FASSUNG = 'NULL AS fassung';",
+    suche: "const PHOTO_VERSION = 'length(thumb) AS fassung';",
+    ersatz: "const PHOTO_VERSION = 'NULL AS fassung';",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -5044,7 +5044,7 @@ const RUECKBAUTEN = [
        Schlag, genau dann, wenn sie die einzigen sind. */
     nr: '544', name: 'Die Regel kennt nur das Alter -- der Boden faellt weg',
     datei: 'server.js',
-    suche: "  return brauchbar.slice(behalten).filter(d => d.zeit < grenze);",
+    suche: "  return usable.slice(behalten).filter(d => d.zeit < grenze);",
     ersatz: "  return brauchbar.filter(d => d.zeit < grenze);",
     erwartet: 'Die Aufraeumregel an der Tafel'
   },
@@ -5054,7 +5054,7 @@ const RUECKBAUTEN = [
        obwohl nichts alt ist. */
     nr: '545', name: 'Die Regel kennt nur die Zahl -- die Schere faellt weg',
     datei: 'server.js',
-    suche: "  return brauchbar.slice(behalten).filter(d => d.zeit < grenze);",
+    suche: "  return usable.slice(behalten).filter(d => d.zeit < grenze);",
     ersatz: "  return brauchbar.slice(behalten);",
     erwartet: 'Die Aufraeumregel an der Tafel'
   },
@@ -5066,8 +5066,8 @@ const RUECKBAUTEN = [
        die Lage, in der `notizen.txt` wirklich verschwindet. */
     nr: '546', name: 'Die Musterpruefung faellt weg -- die fremde Datei faellt mit',
     datei: 'server.js',
-    suche: "const SICHERUNG_MUSTER = /^kriterion-.+\\.sqlite$/;",
-    ersatz: "const SICHERUNG_MUSTER = /./;",
+    suche: "const BACKUP_PATTERN = /^kriterion-.+\\.sqlite$/;",
+    ersatz: "const BACKUP_PATTERN = /./;",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5079,7 +5079,7 @@ const RUECKBAUTEN = [
        rot wird deshalb der Waechter ueber den Quelltext. */
     nr: '547', name: 'Die zweite Musterpruefung vor dem unlink faellt weg',
     datei: 'server.js',
-    suche: "    if (kurz !== String(n) || !SICHERUNG_MUSTER.test(kurz)) { geblieben.push(kurz); continue; }",
+    suche: "    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { geblieben.push(short); continue; }",
     ersatz: "    if (false) { geblieben.push(kurz); continue; }",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5101,7 +5101,7 @@ const RUECKBAUTEN = [
        absichtlich zweimal da. */
     nr: '549', name: 'Das Entfernen folgt dem Symlink',
     datei: 'server.js',
-    suche: "      const st = fs.lstatSync(voll);",
+    suche: "      const st = fs.lstatSync(full);",
     ersatz: "      const st = fs.statSync(voll);",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5111,7 +5111,7 @@ const RUECKBAUTEN = [
        Wahrheit eine; wer sie mitzaehlt, raeumt die einzige brauchbare weg. */
     nr: '550', name: 'Der Boden zaehlt auch die veralteten Kopien mit',
     datei: 'server.js',
-    suche: "    .filter(d => wechselMs == null || d.zeit >= wechselMs)",
+    suche: "    .filter(d => changeMs == null || d.zeit >= changeMs)",
     ersatz: "    .filter(() => true)",
     erwartet: 'Die Aufraeumregel an der Tafel'
   },
@@ -5122,8 +5122,8 @@ const RUECKBAUTEN = [
        keine neue Kopie zustande bringt. */
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
     datei: 'server.js',
-    suche: "  if (fs.existsSync(datei))\n    return res.status(409).json({ error: t(spracheVon(req), 'server.backupConcurrent')});",
-    ersatz: "  if (fs.existsSync(datei)) {\n    const r = aufraeumStand();\n    if (r.an) entferneSicherungen(ziel.pfad, regelTreffer(sicherungsListe(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (wechselMarke() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: t(spracheVon(req), 'server.backupConcurrent')});\n  }",
+    suche: "  if (fs.existsSync(datei))\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});",
+    ersatz: "  if (fs.existsSync(datei)) {\n    const r = cleanupStatus();\n    if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});\n  }",
     erwartet: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
   {
@@ -5160,7 +5160,7 @@ const RUECKBAUTEN = [
        schreiben kann, ist eine Falle. */
     nr: '554', name: 'Die Grenzen der beiden Werte halten nicht mehr am Server',
     datei: 'server.js',
-    suche: "  if (!Number.isInteger(n) || n < spanne.min || n > spanne.max)",
+    suche: "  if (!Number.isInteger(n) || n < range.min || n > range.max)",
     ersatz: "  if (false)",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5170,8 +5170,8 @@ const RUECKBAUTEN = [
        verliert damit genau das, wofuer es sie gibt. */
     nr: '555', name: 'Die Vorschau rechnet mit einem anderen Boden als das Loeschen',
     datei: 'server.js',
-    suche: "  const treffer = regelTreffer(dateien, behalten, tage, jetzt, marke ? marke.ms : null);",
-    ersatz: "  const treffer = regelTreffer(dateien, Math.max(1, behalten - 1), tage, jetzt,\n" +
+    suche: "  const treffer = ruleHit(dateien, behalten, tage, now, mark ? mark.ms : null);",
+    ersatz: "  const treffer = ruleHit(dateien, Math.max(1, behalten - 1), tage, jetzt,\n" +
             "                               marke ? marke.ms : null);",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5185,18 +5185,18 @@ const RUECKBAUTEN = [
     suche: "  const art = String(req.body?.art || '');",
     ersatz: "  const art = String(req.body?.art || '');\n" +
             "  if (req.body?.datei) {\n" +
-            "    const einzeln = entferneSicherungen(ziel.pfad, [req.body.datei]);\n" +
+            "    const einzeln = removeBackups(ziel.pfad, [req.body.datei]);\n" +
             "    return res.json({ ok: true, art, weg: einzeln.weg, nicht: einzeln.geblieben.length,\n" +
-            "                      bytes: einzeln.bytes, ...letzteSicherung(ziel.pfad) });\n" +
+            "                      bytes: einzeln.bytes, ...lastBackup(ziel.pfad) });\n" +
             "  }",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
     nr: '557', name: 'Das Aufraeumen laeuft ohne zweite Bestaetigung',
     datei: 'server.js',
-    suche: "app.post('/api/sicherung/aufraeumen', nurEigentuemer,\n" +
-           "         zweiteBestaetigungNoetig('sicherung'), (req, res) => {",
-    ersatz: "app.post('/api/sicherung/aufraeumen', nurEigentuemer, (req, res) => {",
+    suche: "app.post('/api/sicherung/aufraeumen', ownerOnly,\n" +
+           "         secondConfirmNeeded('sicherung'), (req, res) => {",
+    ersatz: "app.post('/api/sicherung/aufraeumen', ownerOnly, (req, res) => {",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5205,10 +5205,10 @@ const RUECKBAUTEN = [
        Sicherung -- beim Eigentuemer. */
     nr: '558', name: 'Ein gewoehnlicher Admin darf alte Sicherungen entfernen',
     datei: 'server.js',
-    suche: "app.post('/api/sicherung/aufraeumen', nurEigentuemer,\n" +
-           "         zweiteBestaetigungNoetig('sicherung'), (req, res) => {",
-    ersatz: "app.post('/api/sicherung/aufraeumen', nurAdmin,\n" +
-            "         zweiteBestaetigungNoetig('sicherung'), (req, res) => {",
+    suche: "app.post('/api/sicherung/aufraeumen', ownerOnly,\n" +
+           "         secondConfirmNeeded('sicherung'), (req, res) => {",
+    ersatz: "app.post('/api/sicherung/aufraeumen', adminOnly,\n" +
+            "         secondConfirmNeeded('sicherung'), (req, res) => {",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5313,8 +5313,8 @@ const RUECKBAUTEN = [
        Liste nicht mehr ablesen -- was faellt, stuende dann ganz oben. */
     nr: '568', name: 'Die Nummern laufen von der aeltesten zur juengsten',
     datei: 'server.js',
-    suche: '      ...aufraeumZeile(d, jetzt), nr: i + 1,',
-    ersatz: '      ...aufraeumZeile(d, jetzt), nr: dateien.length - i,',
+    suche: '      ...cleanupRow(d, now), nr: i + 1,',
+    ersatz: '      ...cleanupRow(d, jetzt), nr: dateien.length - i,',
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5370,7 +5370,7 @@ const RUECKBAUTEN = [
        Eintrags zeigte nichts. */
     nr: '572', name: 'potenzialRating faellt aus der Uebersicht',
     datei: 'server.js',
-    suche: '    it.potenzialRating = gesamtSchnitt(kaesten.vorher);',
+    suche: '    it.potenzialRating = totalAverage(boxes.vorher);',
     ersatz: '    it.potenzialRating = null;',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5380,7 +5380,7 @@ const RUECKBAUTEN = [
        nachsehen kann, wie sie zustande kommt (Stolperstein 217). */
     nr: '573', name: 'Der Rechenweg des Potenzials faellt aus der Antwort',
     datei: 'server.js',
-    suche: '  it.potenzialRechenweg = { ...potenzialRechenweg, ergebnis: it.potenzialRating };',
+    suche: '  it.potenzialRechenweg = { ...potentialCalc, ergebnis: it.potenzialRating };',
     ersatz: '  void potenzialRechenweg;',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5399,7 +5399,7 @@ const RUECKBAUTEN = [
        daran zaehlten nirgends mit, ohne dass es jemand saehe. */
     nr: '575', name: 'POST /api/criteria nimmt jede Phase an',
     datei: 'server.js',
-    suche: "  if (!PHASEN.includes(phase))",
+    suche: "  if (!PHASES.includes(phase))",
     ersatz: "  if (false)",
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5419,7 +5419,7 @@ const RUECKBAUTEN = [
        und die Sterne landeten im falschen Durchschnitt. */
     nr: '577', name: 'Der Export nennt die Kaesten nicht mehr',
     datei: 'server.js',
-    suche: "  for (const c of kritZeilen) if (c.phase !== 'nachher') criteriaPhase[c.name] = c.phase;",
+    suche: "  for (const c of critRows) if (c.phase !== 'nachher') criteriaPhase[c.name] = c.phase;",
     ersatz: '  void criteriaPhase;',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5430,7 +5430,7 @@ const RUECKBAUTEN = [
        Installation, und niemand saehe es. */
     nr: '578', name: 'Der Import spielt ueber die Kaesten hinweg ein',
     datei: 'server.js',
-    suche: '  if (konflikte.length) {',
+    suche: '  if (conflicts.length) {',
     ersatz: '  if (false) {',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5471,8 +5471,8 @@ const RUECKBAUTEN = [
        die diese Runde ihnen nimmt. */
     nr: '582', name: 'Die Sternkaesten speichern ihren Einklappzustand wieder',
     datei: 'server.js',
-    suche: "const ZU_BLOECKE = ALLE_BLOECKE.filter(k => !BLOECKE_OHNE_ZU.includes(k));",
-    ersatz: "const ZU_BLOECKE = ALLE_BLOECKE;",
+    suche: "const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_WITHOUT_TO.includes(k));",
+    ersatz: "const CLOSED_BLOCKS = ALL_BLOCKS;",
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
 
@@ -6023,7 +6023,7 @@ const RUECKBAUTEN = [
     // Die Schranke der Stufen lockert sich: 90 ginge durch.
     nr: '631', name: 'Der Bildstreifen laesst eine ungueltige Stufe durch',
     datei: 'server.js',
-    suche: "    if (!STREIFEN_STUFEN.includes(n))",
+    suche: "    if (!STRIP_LEVELS.includes(n))",
     ersatz: "    if (!Number.isFinite(n))",
     erwartet: 'Die Einstellung streifen — 0.22.0'
   },
@@ -6112,7 +6112,7 @@ const RUECKBAUTEN = [
        ueberall entfernt hat. */
     nr: '675', name: 'Eine Servermeldung steht wieder als Satz im Quelltext',
     datei: 'server.js',
-    suche: "  if (!title) return res.status(400).json({ error: t(spracheVon(req), 'server.titleMissing')});",
+    suche: "  if (!title) return res.status(400).json({ error: t(localeOf(req), 'server.titleMissing')});",
     ersatz: "  if (!title) return res.status(400).json({ error: 'Bitte einen Titel eingeben.' });",
     erwartet: 'Der Bildschirmtext-Waechter'
   },
@@ -6166,7 +6166,7 @@ const RUECKBAUTEN = [
        als Klammerausdruck da. */
     nr: '681', name: 'auth.js bekommt den Uebersetzer nicht mehr gereicht',
     datei: 'server.js',
-    suche: "auth.setTranslator((req, schluessel, werte) => t(spracheVon(req), schluessel, werte));",
+    suche: "auth.setTranslator((req, schluessel, values) => t(localeOf(req), schluessel, values));",
     ersatz: "void auth.setTranslator;",
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
@@ -6176,8 +6176,8 @@ const RUECKBAUTEN = [
        sich nur halb. */
     nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
     datei: 'server.js',
-    suche: "const vokabularVorgabe = () => Object.fromEntries(\n  Object.entries(SPRACHEN[SPRACH_VORGABE])",
-    ersatz: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vokabularVorgabe = () => Object.fromEntries(\n  Object.entries(SPRACHEN[SPRACH_VORGABE])",
+    suche: "const vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
+    ersatz: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6268,7 +6268,7 @@ const RUECKBAUTEN = [
        keine -- jede Message stuende als Klammerausdruck da. */
     nr: '672', name: 'Der Server startet auch ohne de.json',
     datei: 'server.js',
-    suche: "  if (!raus.de) throw new Error(",
+    suche: "  if (!out2.de) throw new Error(",
     ersatz: "  if (false) throw new Error(",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6284,7 +6284,7 @@ const RUECKBAUTEN = [
     /* DER FEHLER-HANDLER SAGT SEINEN SATZ WIEDER SELBST. */
     nr: '674', name: 'Der Fehler-Handler traegt seinen Satz wieder im Quelltext',
     datei: 'server.js',
-    suche: "  if (rang >= 500) return res.status(500).json({ error: t(sprache, 'server.error') });",
+    suche: "  if (rank >= 500) return res.status(500).json({ error: t(locale, 'server.error') });",
     ersatz: "  if (rang >= 500) return res.status(500).json({ error: 'Auf dem Server ist ein Fehler aufgetreten.' });",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6474,7 +6474,7 @@ const RUECKBAUTEN = [
        Gewohnheit. */
     nr: '653', name: 'Der Server nimmt die Bewertung am ungetesteten Eintrag wieder an',
     datei: 'server.js',
-    suche: "    if (krit && krit.phase === 'nachher' && eintrag && !eintrag.tested)",
+    suche: "    if (crit && crit.phase === 'nachher' && entry && !entry.tested)",
     ersatz: "    if (false && krit && krit.phase === 'nachher' && eintrag && !eintrag.tested)",
     erwartet: 'Rechte und Sichtbarkeit'
   },

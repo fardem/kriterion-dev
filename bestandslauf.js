@@ -87,7 +87,7 @@ const { makeVariants, isPng, storeImage, isUncropped } = require('./bilder');
    Vollstaendigkeit der Meldungsfolge; ein voller Stand kann gar nicht
    auseinanderlaufen. Zwei Wahrheiten ueber denselben Fortschritt gibt es so
    nicht (Stolperstein 47). */
-const report = (status) => parentPort.postMessage({ art: 'stand', stand: status });
+const report = (status) => parentPort.postMessage({ kind: 'status', status });
 
 /* ---- Die Umstellung von PNG auf WebP ----
    WORTGLEICH ZUR FASSUNG AUS 0.19.2, bis auf zwei Dinge: der Stand steht in
@@ -406,7 +406,7 @@ async function refreshOneTile(rows) {
     try { ok = await refreshRow(id, z) !== null; }
     catch (e) { console.error(`[Kriterion] Kachel ${id} nicht erneuert:`, e.message); }
   }
-  parentPort.postMessage({ art: 'erneuert', id, ok });
+  parentPort.postMessage({ kind: 'refreshed', id, ok });
 }
 
 /* DIESELBE SPEICHERPFLEGE WIE IN server.js, und sie steht in beiden Dateien:
@@ -428,11 +428,11 @@ function reclaim() {
    parentPort.close() DANACH -- ohne ihn haelt der offene Kanal den Thread am
    Leben, und der Haupt-Thread bekaeme sein 'exit' nie. */
 (async () => {
-  if (workerData.aufgabe === 'umstellung') await convertInventory(workerData.zeilen);
-  else if (workerData.aufgabe === 'vorschaubilder') await backfillThumbnails(workerData.zeilen);
-  else if (workerData.aufgabe === 'geometrie') await refreshTiles(workerData.zeilen);
-  else if (workerData.aufgabe === 'zuschnitt') await refreshOneTile(workerData.zeilen);
-  else throw new Error(`Unbekannte Aufgabe: ${workerData.aufgabe}`);
+  if (workerData.task === 'umstellung') await convertInventory(workerData.rows);
+  else if (workerData.task === 'vorschaubilder') await backfillThumbnails(workerData.rows);
+  else if (workerData.task === 'geometrie') await refreshTiles(workerData.rows);
+  else if (workerData.task === 'zuschnitt') await refreshOneTile(workerData.rows);
+  else throw new Error(`Unbekannte Aufgabe: ${workerData.task}`);
   db.close();
   parentPort.close();
 })();

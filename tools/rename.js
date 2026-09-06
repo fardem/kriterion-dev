@@ -24,7 +24,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { zerlege, zusammen, texte, CODE, TEXT, KOMMENTAR } = require('./segments.js');
+const { zerlege, zusammen, texte, CODE, TEXT, KOMMENTAR, REGEX } = require('./segments.js');
 
 const IDENT = /[A-Za-z_$][A-Za-z0-9_$]*/g;
 
@@ -178,6 +178,25 @@ function probeGleich(a, b, was, datei) {
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // --- Anwendung -------------------------------------------------------------
+/* NUR DIE REGULAEREN AUSDRUECKE. Der Pruefstand sucht seine Zusicherungen mit
+   Mustern im Quelltext -- `/function ruleHit\(/` ist ein ZITAT eines Namens
+   und kein Text. Wer den Namen umbenennt, muss das Muster mitnehmen. */
+function nurRegex(src, datei, map) {
+  const teile = zerlege(src, datei);
+  const vorher = texte(teile);
+  let treffer = 0;
+  const namen = Object.keys(map).sort((a, b) => b.length - a.length);
+  if (!namen.length) return { text: src, treffer: 0 };
+  const re = new RegExp('(?<![A-Za-z0-9_$])(' + namen.map(esc).join('|') + ')(?![A-Za-z0-9_$])', 'g');
+  for (const t of teile) {
+    if (t.art !== REGEX) continue;
+    t.wert = t.wert.replace(re, (m) => { treffer++; return map[m]; });
+  }
+  const neu = zusammen(teile);
+  probeGleich(vorher, texte(zerlege(neu, datei)), 'Zeichenketten', datei);
+  return { text: neu, treffer };
+}
+
 // Nur die Kommentare -- fuer Namen, die schon umbenannt sind und deren Zitate
 // nachziehen sollen.
 function nurKommentare(src, datei, map) {
@@ -193,7 +212,8 @@ function wende(datei, art, map, opt = {}) {
   const src = fs.readFileSync(datei, 'utf8');
   const f = art === 'ident' ? ersetzeIdent : art === 'string' ? ersetzeString
     : art === 'kommentar' ? nurKommentare
-    : art === 'qualifiziert' ? ersetzeQualifiziert : ersetzeInString;
+    : art === 'qualifiziert' ? ersetzeQualifiziert
+    : art === 'regex' ? nurRegex : ersetzeInString;
   const { text, treffer } = f(src, datei, map, opt);
   if (!opt.probe) fs.writeFileSync(datei, text);
   return treffer;
@@ -230,4 +250,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ersetzeIdent, ersetzeString, ersetzeInString, ersetzeQualifiziert, ersetzeInKommentaren, nurKommentare, wende, bezeichner, probeGleich, istCodeName };
+module.exports = { ersetzeIdent, ersetzeString, ersetzeInString, ersetzeQualifiziert, ersetzeInKommentaren, nurKommentare, nurRegex, wende, bezeichner, probeGleich, istCodeName };

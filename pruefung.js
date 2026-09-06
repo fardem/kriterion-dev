@@ -3008,7 +3008,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Fehlermeldung faellt durch das + im Muster heraus. */
   const ohneKommentar = quelle.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const rufe = [...ohneKommentar.matchAll(/detail\(([^)]+)\)/g)]
-    .map(m => m[1]).filter(a => a !== 'id, benutzerId');
+    .map(m => m[1]).filter(a => a !== 'id, userId');
   /* VIERUNDZWANZIG SEIT 0.21.0, vorher fuenfundzwanzig: DELETE
      /api/items/:id/ratings ist weggefallen und mit ihm seine Aufrufstelle.
      DIE ZAHL STEHT AUSDRUECKLICH DA und wird nicht abgeleitet -- sie ist der
@@ -3019,7 +3019,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `${rufe.length} Aufrufe, ohne Benutzer: ` +
     JSON.stringify(rufe.filter(a => !/,\s*req\.benutzer\.id\s*$/.test(a))));
   pruefe('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
-    /function detail\(id, benutzerId\) \{\s*\n\s*if \(benutzerId == null\) throw/.test(quelle),
+    /function detail\(id, userId\) \{\s*\n\s*if \(userId == null\) throw/.test(quelle),
     'ohne die Klemme bindet better-sqlite3 das fehlende Argument als NULL');
 
   /* ---------------------------------------------------------------- */
@@ -3060,7 +3060,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return text.slice(auf + 1, zu).split(',')
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
-  const dListeSrv = listeAus(srvQuelle, 'PERSOENLICHE_SCHLUESSEL');
+  const dListeSrv = listeAus(srvQuelle, 'PERSONAL_KEYS');
   /* ACHT SEIT 0.11.0: `ansichten` kommt dazu, die gespeicherten
      Filterstellungen. Sie sind persoenlich wie `filters` daneben und aus
      demselben Grund -- eine geteilte Ansicht waere ein neuer Traeger samt
@@ -3109,15 +3109,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
      schriftgroesse() lieferte also wortlos 100 statt aufzufallen. */
   const srvOhneKommentar = srvQuelle
     .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  const leereRufe = ['schriftgroesse', 'bloecke', 'linkZeilen', 'zeitleisteAn', 'suchNamen']
+  const leereRufe = ['schriftgroesse', 'bloecke', 'linkZeilen', 'timelineOn', 'suchNamen']
     .filter(f => new RegExp(`[^a-zA-Z]${f}\\(\\)`).test(srvOhneKommentar));
   pruefe('Keine Aufrufstelle der persoenlichen Ableiter ohne Benutzer',
     leereRufe.length === 0, `ohne Benutzer gerufen: ${JSON.stringify(leereRufe)}`);
   pruefe('getUserSetting klemmt einen fehlenden Benutzer ab',
-    /const getUserSetting = \(benutzerId, k, fallback\) => \{\s*\n\s*if \(benutzerId == null\)\s*\n?\s*throw/.test(srvQuelle),
+    /const getUserSetting = \(userId, k, fallback\) => \{\s*\n\s*if \(userId == null\)\s*\n?\s*throw/.test(srvQuelle),
     'ohne die Klemme faellt alles still auf die Vorgaben zurueck');
   pruefe('putUserSetting klemmt ebenso ab',
-    /const putUserSetting = \(benutzerId, k, wert\) => \{\s*\n\s*if \(benutzerId == null\)\s*\n?\s*throw/.test(srvQuelle),
+    /const putUserSetting = \(userId, k, wert\) => \{\s*\n\s*if \(userId == null\)\s*\n?\s*throw/.test(srvQuelle),
     'sonst meldet erst die Datenbank den Fehler, ohne zu sagen wer ihn gemacht hat');
 
   /* Die Schranke gegen die zweite Wahrheit. Sie ist der Grund, warum
@@ -3128,7 +3128,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Der Leseweg ist von aussen nicht
      erreichbar, also muss die Pruefung an der inneren Schicht ansetzen. */
   pruefe('putSetting weist persoenliche Schluessel ab',
-    /if \(PERSOENLICHE_SCHLUESSEL\.includes\(k\)\)\s*\n\s*throw/.test(srvQuelle),
+    /if \(PERSONAL_KEYS\.includes\(k\)\)\s*\n\s*throw/.test(srvQuelle),
     'ohne die Schranke wandert ein zurueckgeschriebener Schluessel beim naechsten ' +
     'Start still zum Eigentuemer statt zu dem, der ihn gesetzt hat');
   // Und der Nachweis, dass sie wirklich greift: der einzige Weg dorthin fuehrt
@@ -3139,7 +3139,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       const { execFileSync } = require('child_process');
       const ausg = execFileSync(process.execPath, ['-e', `
         const s = require('fs').readFileSync('server.js', 'utf8');
-        const liste = s.slice(s.indexOf('const PERSOENLICHE_SCHLUESSEL = [') + 32);
+        const liste = s.slice(s.indexOf('const PERSONAL_KEYS = [') + 32);
         const schluessel = liste.slice(0, liste.indexOf(']'))
           .split(',').map(x => x.trim().replace(/^'|'$/g, '')).filter(Boolean);
         console.log(schluessel.includes('schrift') && schluessel.includes('zeitleiste') ? 'ja' : 'nein');
@@ -5993,7 +5993,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // und wer ihn einfuehrt, faellt hier auf.
     const d = oeffne(path.join(siDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
-    d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('letzteSicherung', ?)")
+    d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('lastBackup', ?)")
       .run(JSON.stringify('1999-01-01 00:00:00'));
     d.close();
     const r2 = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
@@ -6001,7 +6001,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       r2.inhalt?.letzte?.tageHer === 4, JSON.stringify(r2.inhalt?.letzte));
     const d2 = oeffne(path.join(siDir, 'katalog.sqlite'));
     d2.pragma('busy_timeout = 4000');
-    d2.prepare("DELETE FROM settings WHERE key = 'letzteSicherung'").run();
+    d2.prepare("DELETE FROM settings WHERE key = 'lastBackup'").run();
     d2.close();
   }
 
@@ -6240,21 +6240,21 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const bis = auQuelle.indexOf('\n}\n', von);
     return bis < 0 ? '' : auQuelle.slice(von, bis + 2);
   };
-  const auTagMs = (auQuelle.match(/^const TAG_MS = (\d+);$/m) || [])[1] || '';
-  const auRegelQuelle = auSchnitt('function regelTreffer(');
+  const auTagMs = (auQuelle.match(/^const DAY_MS = (\d+);$/m) || [])[1] || '';
+  const auRegelQuelle = auSchnitt('function ruleHit(');
   pruefe('Die Regel steht in server.js als eine Funktion',
     auRegelQuelle.length > 100 && auTagMs === '86400000',
-    `${auRegelQuelle.length} Zeichen, TAG_MS ${JSON.stringify(auTagMs)}`);
+    `${auRegelQuelle.length} Zeichen, DAY_MS ${JSON.stringify(auTagMs)}`);
   /* UND SIE STEHT GENAU EINMAL. Zwei Fassungen waeren zwei Wahrheiten darueber,
      was gleich passiert (Stolperstein 47), und die Vorschau verloere genau
      das, wofuer es sie gibt. */
   pruefe('Und zwar genau einmal',
-    (auQuelle.match(/function regelTreffer\(/g) || []).length === 1,
-    `${(auQuelle.match(/function regelTreffer\(/g) || []).length} Stellen`);
+    (auQuelle.match(/function ruleHit\(/g) || []).length === 1,
+    `${(auQuelle.match(/function ruleHit\(/g) || []).length} Stellen`);
   const regelTreffer = auRegelQuelle
     // eslint-disable-next-line no-new-func
-    ? new Function(`const TAG_MS = ${auTagMs};\n${auRegelQuelle}\nreturn regelTreffer;`)()
-    : () => { throw new Error('regelTreffer nicht gefunden'); };
+    ? new Function(`const DAY_MS = ${auTagMs};\n${auRegelQuelle}\nreturn ruleHit;`)()
+    : () => { throw new Error('ruleHit nicht gefunden'); };
 
   /* DIE TAFEL. Eine feste Uhrzeit statt Date.now(): so heisst "vor 40 Tagen"
      in jeder Zeile dasselbe, und der Lauf ist von der Sekunde unabhaengig, in
@@ -6754,7 +6754,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   {
     auSetzeLage();
     /* DIE MARKE DES SCHLUESSELWECHSELS wird in die laufende Instanz
-       geschrieben: wechselMarke() liest sie bei jeder Anfrage neu, ein
+       geschrieben: changeMark() liest sie bei jeder Anfrage neu, ein
        Neustart ist also nicht noetig. Sie liegt 100 Tage zurueck -- damit ist
        genau die 400 Tage alte Kopie veraltet und keine andere. */
     {
@@ -6865,7 +6865,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       fehl.status === 409, `Status ${fehl.status} · ${JSON.stringify(fehl.inhalt)}`);
     pruefe('Nach einer gescheiterten Sicherung wird nicht aufgeraeumt',
       gleich(auDa(), vorFehl), auDa().join(' · '));
-    /* UND ES WURDE NICHT EINMAL VERSUCHT. entferneSicherungen() meldet jede
+    /* UND ES WURDE NICHT EINMAL VERSUCHT. removeBackups() meldet jede
        Datei, die es nicht wegbekommt, ins Containerprotokoll -- steht dort
        nichts, ist der Aufruf gar nicht gelaufen. Ohne diese Zeile waere „es
        liegt noch alles da" auch dann wahr, wenn das Loeschen nur gescheitert
@@ -6910,16 +6910,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Beides steht deshalb zusaetzlich hier -- dieselbe Bauform wie bei der
      Route ohne Dateinamen. --- */
   {
-    const von = auQuelle.indexOf("app.post('/api/sicherung', nurEigentuemer");
+    const von = auQuelle.indexOf("app.post('/api/sicherung', ownerOnly");
     const bis = auQuelle.indexOf("app.post('/api/sicherung/aufraeumen'");
     const rumpf = von >= 0 && bis > von ? auQuelle.slice(von, bis) : '';
     pruefe('Die Route POST /api/sicherung steht im Quelltext',
       rumpf.length > 500, `${rumpf.length} Zeichen`);
-    const auRegelZeile = 'const regel = aufraeumStand();';
+    const auRegelZeile = 'const rule = cleanupStatus();';
     const aufrufAn = rumpf.indexOf(auRegelZeile);
     pruefe('Der Aufruf des Aufraeumens steht darin genau einmal',
-      aufrufAn >= 0 && rumpf.indexOf('aufraeumStand()', aufrufAn + auRegelZeile.length) < 0,
-      `Stelle ${aufrufAn}, weitere bei ${rumpf.indexOf('aufraeumStand()', aufrufAn + auRegelZeile.length)}`);
+      aufrufAn >= 0 && rumpf.indexOf('cleanupStatus()', aufrufAn + auRegelZeile.length) < 0,
+      `Stelle ${aufrufAn}, weitere bei ${rumpf.indexOf('cleanupStatus()', aufrufAn + auRegelZeile.length)}`);
     /* KEIN FEHLERAUSGANG HINTER IHM. Genau daran haengt Entscheidung 3: der
        Weg zu einer gescheiterten Sicherung verlaesst die Route vorher, es
        genuegt also, den Aufruf ans Ende zu setzen. Wer ihn nach vorn zieht
@@ -6928,11 +6928,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
       !/return res\.status\((4|5)\d\d\)/.test(rumpf.slice(aufrufAn)),
       (rumpf.slice(aufrufAn).match(/return res\.status\(\d+\)/g) || []).join(' · '));
     pruefe('Er steht hinter dem Umbenennen und hinter statSync',
-      rumpf.indexOf('fs.renameSync(werdend, datei);') < aufrufAn &&
+      rumpf.indexOf('fs.renameSync(becoming, datei);') < aufrufAn &&
       rumpf.indexOf('bytes = fs.statSync(datei).size;') < aufrufAn,
-      `rename ${rumpf.indexOf('fs.renameSync(werdend, datei);')}, Aufruf ${aufrufAn}`);
+      `rename ${rumpf.indexOf('fs.renameSync(becoming, datei);')}, Aufruf ${aufrufAn}`);
     pruefe('Und er haengt in seinem eigenen try',
-      /let aufgeraeumt = null;\n  try \{\n    const regel = aufraeumStand\(\);/.test(rumpf),
+      /let aufgeraeumt = null;\n  try \{\n    const rule = cleanupStatus\(\);/.test(rumpf),
       (rumpf.match(/let aufgeraeumt[^\n]*\n[^\n]*\n[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* UND DIE LOESCHROUTE LIEST AUS DEM RUMPF NUR DIE ART. Ein zweiter Zugriff
        auf req.body waere die Stelle, an der ein Dateiname hereinkaeme -- und
@@ -6949,18 +6949,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
        dem unlink. Zwei Pruefungen desselben Namens sind hier keine
        Verdopplung, sondern die Klemme an der Stelle, an der der Fehler
        wehtut. */
-    const eVon = auQuelle.indexOf('function entferneSicherungen(');
+    const eVon = auQuelle.indexOf('function removeBackups(');
     const eBis = auQuelle.indexOf('\n}\n', eVon);
     const eRumpf = eVon >= 0 ? auQuelle.slice(eVon, eBis) : '';
     pruefe('Und das Entfernen prueft jeden Namen unmittelbar davor noch einmal',
-      /const kurz = path\.basename\(String\(n\)\);/.test(eRumpf) &&
-      /if \(kurz !== String\(n\) \|\| !SICHERUNG_MUSTER\.test\(kurz\)\)/.test(eRumpf) &&
-      eRumpf.indexOf('SICHERUNG_MUSTER.test(kurz)') < eRumpf.indexOf('fs.unlinkSync('),
-      (eRumpf.match(/SICHERUNG_MUSTER[^\n]*/) || ['(nicht gefunden)'])[0]);
+      /const short = path\.basename\(String\(n\)\);/.test(eRumpf) &&
+      /if \(short !== String\(n\) \|\| !BACKUP_PATTERN\.test\(short\)\)/.test(eRumpf) &&
+      eRumpf.indexOf('BACKUP_PATTERN.test(short)') < eRumpf.indexOf('fs.unlinkSync('),
+      (eRumpf.match(/BACKUP_PATTERN[^\n]*/) || ['(nicht gefunden)'])[0]);
     // UND ES FOLGT KEINEM SYMLINK: lstatSync sieht den Verweis selbst, statSync
     // saehe die Datei am anderen Ende und meldete sie als regulaer.
     pruefe('Und es fragt mit lstatSync statt mit statSync',
-      /fs\.lstatSync\(voll\)/.test(eRumpf) && !/fs\.statSync\(/.test(eRumpf),
+      /fs\.lstatSync\(full\)/.test(eRumpf) && !/fs\.statSync\(/.test(eRumpf),
       (eRumpf.match(/fs\.l?statSync\([^\n]*/) || ['(nicht gefunden)'])[0]);
   }
 
@@ -14081,8 +14081,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
                        Befund aus 0.8.30 -- die Art sagte bis dahin nur, DASS
                        eine Klemme dasteht, nicht WELCHE. */
   const fQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-  const RUMPF_WOERTER = ['darfAendern(', 'nurSelbst(', 'eintragFrei(', 'istAdmin(',
-    'istEigentuemer(', 'zielZugangFrei(', 'darfAnlegen('];
+  const RUMPF_WOERTER = ['mayChange(', 'selfOnly(', 'entryFree(', 'istAdmin(',
+    'istEigentuemer(', 'targetUserFree(', 'mayCreate('];
   const F_ROUTEN = [
     ['POST',   '/api/setup',                     'offen'],
     ['POST',   '/api/login',                     'offen'],
@@ -14143,28 +14143,28 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* ANLEGEN BRAUCHT KEINE ZWEITE BESTAETIGUNG, und das ist entschieden und
        nicht vergessen: es erzeugt einen NEUEN Zugang und nimmt niemandem
        etwas. Der Link an einem BESTEHENDEN Zugang ist der andere Fall. */
-    ['POST',   '/api/users',                     'nurAdmin, im Rumpf'],
+    ['POST',   '/api/users',                     'adminOnly, im Rumpf'],
     /* Der Link fuer einen vorhandenen Zugang. Dieselbe Rechtezeile wie die
        drei Verwaltungsrouten: zielZugangFrei entscheidet, damit gilt die
        Rollenleiter auch hier. */
-    ['POST',   '/api/users/:id/token',           'nurAdmin, im Rumpf, zweitbestaetigt'],
+    ['POST',   '/api/users/:id/token',           'adminOnly, im Rumpf, zweitbestaetigt'],
     /* Zwei der drei Rechteklassen dieser Route liegen hinter der zweiten
        Bestaetigung -- Rolle und fremdes Passwort. Sperren und Freigeben nicht:
        das ist umkehrbar und uebergibt nichts. */
-    ['PUT',    '/api/users/:id',                 'nurAdmin, im Rumpf, zweitbestaetigt'],
-    ['DELETE', '/api/users/:id',                 'nurAdmin, im Rumpf, zweitbestaetigt'],
+    ['PUT',    '/api/users/:id',                 'adminOnly, im Rumpf, zweitbestaetigt'],
+    ['DELETE', '/api/users/:id',                 'adminOnly, im Rumpf, zweitbestaetigt'],
     /* Der Mailzugang, 0.9.0. NUR DER EIGENTUEMER, und zusaetzlich
        zweitbestaetigt -- der SMTP-Server sieht jede Mail, und jede traegt
        einen Link, der ein Passwort setzt. Ein Admin, der ihn setzen duerfte,
        boege die Ruecksetzmail des Eigentuemers auf einen Server seiner Wahl.
        GET /api/mail steht wie immer NICHT hier: lesend, auch mit Waechter. */
-    ['PUT',    '/api/mail',                      'nurEigentuemer, zweitbestaetigt'],
+    ['PUT',    '/api/mail',                      'ownerOnly, zweitbestaetigt'],
     /* Die Testmail. nurEigentuemer wie das Setzen daneben -- wer den Zugang
        nicht sehen darf, testet ihn auch nicht. Sie geht an die EIGENE Adresse
        des Anfordernden; ein Adressfeld gibt es nicht, und der Rumpf wird gar
        nicht angesehen. Deshalb steht hier auch keine Klemme im Rumpf: der
        Selbstbezug ist baulich und nicht abgefragt. */
-    ['POST',   '/api/mail/test',                 'nurEigentuemer'],
+    ['POST',   '/api/mail/test',                 'ownerOnly'],
     /* Die Selbstanmeldung hinter der Anmeldung, 0.9.1 -- drei Routen, alle
        beim ADMIN und nicht beim Eigentuemer: aus einer Anfrage wird nie etwas
        anderes als ein Zugang mit der Rolle 'user', und den legt der Admin
@@ -14174,44 +14174,44 @@ const freigabeHaupt = (zweck, ziel = null) =>
        wie bei POST /api/users -- es entsteht ein NEUER Zugang und nimmt
        niemandem etwas.
        GET /api/anfragen steht wie immer NICHT hier: lesend, auch mit Waechter. */
-    ['PUT',    '/api/registrierung/schalter',    'nurAdmin'],
-    ['POST',   '/api/anfragen/:id/frei',         'nurAdmin'],
-    ['DELETE', '/api/anfragen/:id',              'nurAdmin'],
-    ['PUT',    '/api/titles',                    'nurAdmin'],
+    ['PUT',    '/api/registrierung/schalter',    'adminOnly'],
+    ['POST',   '/api/anfragen/:id/frei',         'adminOnly'],
+    ['DELETE', '/api/anfragen/:id',              'adminOnly'],
+    ['PUT',    '/api/titles',                    'adminOnly'],
     ['PUT',    '/api/settings',                  'im Rumpf'],
-    ['POST',   '/api/criteria',                  'nurAdmin'],
-    ['PUT',    '/api/criteria/order',            'nurAdmin'],
-    ['PUT',    '/api/criteria/:id',              'nurAdmin'],
-    ['DELETE', '/api/criteria/:id',              'nurAdmin'],
+    ['POST',   '/api/criteria',                  'adminOnly'],
+    ['PUT',    '/api/criteria/order',            'adminOnly'],
+    ['PUT',    '/api/criteria/:id',              'adminOnly'],
+    ['DELETE', '/api/criteria/:id',              'adminOnly'],
     // Zuweisen darf jeder, einen NEUEN Namen anlegen haengt am Schalter --
     // deshalb im Rumpf und hinter dem Nachschlagen, nicht vor der Route.
     ['POST',   '/api/product-categories',        'im Rumpf'],
-    ['PUT',    '/api/product-categories/:id',    'nurAdmin'],
-    ['DELETE', '/api/product-categories/:id',    'nurAdmin'],
-    ['PUT',    '/api/tags/:id',                  'nurAdmin'],
-    ['DELETE', '/api/tags/:id',                  'nurAdmin'],
-    ['POST',   '/api/items/:id/tags',            'nurEintragVerfasser, im Rumpf'],
-    ['DELETE', '/api/items/:id/tags/:tagId',     'nurEintragVerfasser'],
+    ['PUT',    '/api/product-categories/:id',    'adminOnly'],
+    ['DELETE', '/api/product-categories/:id',    'adminOnly'],
+    ['PUT',    '/api/tags/:id',                  'adminOnly'],
+    ['DELETE', '/api/tags/:id',                  'adminOnly'],
+    ['POST',   '/api/items/:id/tags',            'entryAuthorOnly, im Rumpf'],
+    ['DELETE', '/api/items/:id/tags/:tagId',     'entryAuthorOnly'],
     ['POST',   '/api/items',                     'offen'],
     ['PUT',    '/api/items/:id',                 'im Rumpf'],
-    ['DELETE', '/api/items/:id',                 'nurEintragVerfasser'],
-    ['POST',   '/api/items/:id/photos',          'nurEintragVerfasser'],
+    ['DELETE', '/api/items/:id',                 'entryAuthorOnly'],
+    ['POST',   '/api/items/:id/photos',          'entryAuthorOnly'],
     // Eigene Route statt der erweiterten Fotoroute: deren fileFilter auf
     // ^image\/ zu lockern naehme die erste Schranke dem Fotoweg mit ab.
     // Dieselbe Klemme wie dort -- wer den Eintrag aendern darf, darf Videos
     // hinzufuegen, sonst niemand.
-    ['POST',   '/api/items/:id/videos',          'nurEintragVerfasser'],
+    ['POST',   '/api/items/:id/videos',          'entryAuthorOnly'],
     ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
     // Hochladen darf jeder -- umgestellt mit 0.8.31, aus demselben Grund wie
     // beim Link: eine Datei erscheint nur dort, wo man sie hinsetzt.
     ['POST',   '/api/items/:id/attachments',     'offen'],
     ['DELETE', '/api/attachments/:id',           'im Rumpf'],
-    ['PUT',    '/api/items/:id/photo-order',     'nurEintragVerfasser'],
+    ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],
     ['DELETE', '/api/photos/:id',                'im Rumpf'],
     // Eintragen darf jeder -- wie Kommentar, Testtag und Bewertung. Umgestellt
     // mit 0.8.30: ein Link erscheint nur dort, wo man ihn hinsetzt.
     ['POST',   '/api/items/:id/links',           'offen'],
-    ['PUT',    '/api/items/:id/link-order',      'nurEintragVerfasser'],
+    ['PUT',    '/api/items/:id/link-order',      'entryAuthorOnly'],
     ['DELETE', '/api/links/:id',                 'im Rumpf'],
     ['POST',   '/api/items/:id/test-days',       'offen'],
     ['PUT',    '/api/test-days/:id',             'im Rumpf'],
@@ -14232,22 +14232,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
     ['POST',   '/api/comments/:id/images',       'im Rumpf'],
     ['DELETE', '/api/comment-images/:id',        'im Rumpf'],
     ['DELETE', '/api/comments/:id',              'im Rumpf'],
-    ['POST',   '/api/import',                    'nurEigentuemer, zweitbestaetigt'],
+    ['POST',   '/api/import',                    'ownerOnly, zweitbestaetigt'],
     /* Der Papierkorb, 0.8.70. SEHEN darf ihn der Admin (lesend, deshalb steht
        GET /api/papierkorb hier nicht) -- HANDELN nur der Eigentuemer:
        Wiederherstellen legt Zeilen unter FREMDEM Namen an, genau wie der
        Import, und liegt damit in derselben Rechtezeile. Wer einen Rueckweg
        nehmen darf, darf ihn auch schliessen; deshalb dieselbe Klemme am
        endgueltigen Entfernen. */
-    ['POST',   '/api/papierkorb/:id/wiederherstellen', 'nurEigentuemer'],
-    ['DELETE', '/api/papierkorb/:id',            'nurEigentuemer'],
+    ['POST',   '/api/papierkorb/:id/wiederherstellen', 'ownerOnly'],
+    ['DELETE', '/api/papierkorb/:id',            'ownerOnly'],
     /* Die Sicherung, 0.8.70. Beide beim Eigentuemer, dieselbe Zeile wie Export
        und Import -- alles, was die Instanz als Ganzes betrifft. Der Zielort geht
        ausdruecklich NICHT ueber PUT /api/settings: die Route leitet ihre Rechte
        aus PERSOENLICHE_SCHLUESSEL ab, und was dort nicht persoenlich ist, ist
        Adminsache. Der Sicherungsort ist es nicht. */
-    ['PUT',    '/api/sicherung/ort',             'nurEigentuemer'],
-    ['POST',   '/api/sicherung',                 'nurEigentuemer'],
+    ['PUT',    '/api/sicherung/ort',             'ownerOnly'],
+    ['POST',   '/api/sicherung',                 'ownerOnly'],
     /* Die Bildumstellung, 0.19.0 -- die siebzigste. Beim Eigentuemer und
        zweitbestaetigt, dieselbe Zeile wie Export, Import und Sicherung: der
        Lauf schreibt jeden PNG-Blob der Instanz um, und die alte Fassung ist
@@ -14256,7 +14256,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        PUT /api/settings wie jede andere Einstellung; der Fortschritt des
        Laufs ist ein Feld in GET /api/stats und damit lesend. Eine neue Spalte
        ist erst recht keine Route. */
-    ['POST',   '/api/bilder/umstellen',          'nurEigentuemer, zweitbestaetigt'],
+    ['POST',   '/api/bilder/umstellen',          'ownerOnly, zweitbestaetigt'],
     /* Das Aufraeumen alter Sicherungen, 0.20.0 -- die einundsiebzigste. Beim
        Eigentuemer und zweitbestaetigt, dieselbe Zeile wie Export, Import,
        Sicherung und die Bildumstellung: sie entfernt Bytes unwiderruflich,
@@ -14268,7 +14268,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        DER SCHALTER UND DIE BEIDEN WERTE BEKOMMEN AUSDRUECKLICH KEINE ROUTE.
        Sie gehen ueber PUT /api/settings wie jede andere Einstellung; die
        Vorschau ist ein Feld in GET /api/sicherung und damit lesend. */
-    ['POST',   '/api/sicherung/aufraeumen',      'nurEigentuemer, zweitbestaetigt']
+    ['POST',   '/api/sicherung/aufraeumen',      'ownerOnly, zweitbestaetigt']
   ];
 
   function schreibendeRouten(text) {
@@ -14436,8 +14436,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und der neunte heisst sicherung',
     fAuth.CONFIRM_PURPOSES[8] === 'sicherung', fAuth.CONFIRM_PURPOSES.join(' '));
 
-  const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
-  const ZWEIT_WORT = 'zweiteBestaetigung';
+  const WAECHTER_WOERTER = ['adminOnly', 'ownerOnly', 'entryAuthorOnly'];
+  const ZWEIT_WORT = 'secondConfirm';
   const fOhneWaechter = [], fOhneKlemme = [], fZuviel = [], fOhneSelbst = [], fZuvielWaechter = [];
   const fOhneZweit = [], fZuvielZweit = [];
   for (const r of fGefunden) {
@@ -14534,9 +14534,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Loeschroute fuer Links ist ueberhaupt da',
     fLinkWegRumpf.length > 0, 'die Route fehlt im Quelltext');
   pruefe('Sie fragt nach der ZEILE, nicht nach dem Eintrag',
-    fLinkWegRumpf.includes('darfAendern(req, l.user_id)') &&
-    !fLinkWegRumpf.includes('eintragFrei('),
-    fLinkWegRumpf ? 'darfAendern(req, l.user_id) fehlt oder eintragFrei steht noch da' : '(kein Rumpf)');
+    fLinkWegRumpf.includes('mayChange(req, l.user_id)') &&
+    !fLinkWegRumpf.includes('entryFree('),
+    fLinkWegRumpf ? 'mayChange(req, l.user_id) fehlt oder entryFree steht noch da' : '(kein Rumpf)');
   /* Und die Gegenrichtung am Eintragen: der Waechter ist dort gefallen, die
      Zeile bekommt stattdessen ihren Verfasser. Ein POST ohne user_id liefe
      stumm in eine herrenlose Zeile -- das Auffangnetz schoebe sie beim
@@ -14558,9 +14558,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Loeschroute fuer Dateien ist ueberhaupt da',
     fAnhWegRumpf.length > 0, 'die Route fehlt im Quelltext');
   pruefe('Sie fragt nach der DATEI, nicht nach dem Eintrag',
-    fAnhWegRumpf.includes('darfAendern(req, a.user_id)') &&
-    !fAnhWegRumpf.includes('eintragFrei('),
-    fAnhWegRumpf ? 'darfAendern(req, a.user_id) fehlt oder eintragFrei steht noch da' : '(kein Rumpf)');
+    fAnhWegRumpf.includes('mayChange(req, a.user_id)') &&
+    !fAnhWegRumpf.includes('entryFree('),
+    fAnhWegRumpf ? 'mayChange(req, a.user_id) fehlt oder entryFree steht noch da' : '(kein Rumpf)');
   const fAnhNeuRoute = fGefunden.find(r => r.schluessel === 'POST /api/items/:id/attachments');
   const fAnhNeuRumpf = fAnhNeuRoute ? fAnhNeuRoute.rumpf : '';
   pruefe('Die Anlegeroute fuer Dateien ist ueberhaupt da',
@@ -14587,8 +14587,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const fBildWegRumpf = fBildWeg ? fBildWeg.rumpf : '';
   pruefe('Die Loeschroute fuer Kommentarbilder ist ueberhaupt da',
     fBildWegRumpf.length > 0, 'die Route fehlt im Quelltext');
-  pruefe('Sie steht hinter darfAendern -- Verfasser oder Admin',
-    fBildWegRumpf.includes('darfAendern(req, b.user_id)'),
+  pruefe('Sie steht hinter mayChange -- Verfasser oder Admin',
+    fBildWegRumpf.includes('mayChange(req, b.user_id)'),
     fBildWegRumpf ? 'die Klemme fehlt im Rumpf' : '(kein Rumpf)');
   pruefe('Und der Vermerk zaehlt nur bei einem anderen als dem Verfasser hoch',
     fBildWegRumpf.includes('b.user_id !== req.benutzer.id') &&
@@ -14597,8 +14597,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* Und genau eines von beiden: der andere Zweig setzt "bearbeitet". Ein
      zweites if statt des else liesse beides zugleich zu. */
   pruefe('Der andere Zweig setzt bearbeitet, und es ist ein else',
-    /\belse\s*\n?\s*kommentarBearbeitet\.run\(b\.comment_id\)/.test(fBildWegRumpf),
-    fBildWegRumpf ? 'kein else-Zweig mit kommentarBearbeitet' : '(kein Rumpf)');
+    /\belse\s*\n?\s*commentEdited\.run\(b\.comment_id\)/.test(fBildWegRumpf),
+    fBildWegRumpf ? 'kein else-Zweig mit commentEdited' : '(kein Rumpf)');
   /* DER SATZ STEHT SEIT 0.24.0 IN DER SPRACHDATEI. Gesucht wird in beidem --
      Datei und Quelltext --, damit der Waechter waehrend des Umzugs in jedem
      Zwischenstand dieselbe Frage stellt (Stolperstein 201). */
@@ -14606,14 +14606,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     + '\u0000' + fs.readFileSync(path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8');
   pruefe('Erst deshalb darf der Bildschirm die Rolle nennen',
     fAppQuelle.includes('vom Admin entfernt') &&
-    fBildWegRumpf.includes('darfAendern(req, b.user_id)') &&
+    fBildWegRumpf.includes('mayChange(req, b.user_id)') &&
     fBildWegRumpf.includes('b.user_id !== req.benutzer.id'),
     fAppQuelle.includes('vom Admin entfernt')
       ? 'die Beschriftung steht da, die Klemme nicht mehr'
       : 'die Beschriftung fehlt in public/app.js');
   // Kein Wer, kein Wann, keine Kette: es bleibt bei der Rolle.
   pruefe('Und nennt dabei keinen Namen und keinen Zeitpunkt',
-    !/cmt-eingriff[^`]*verfasserName|cmt-eingriff[^`]*fmtDate/.test(fAppQuelle),
+    !/cmt-eingriff[^`]*authorName|cmt-eingriff[^`]*fmtDate/.test(fAppQuelle),
     'der Vermerk nennt Person oder Zeitpunkt');
 
   /* Den vorhandenen Waechter erweitern,
@@ -14645,12 +14645,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      liefen sie irgendwann auseinander. Dieselbe Bauform wie bei der
      Adminfrage darueber: den vorhandenen Waechter erweitern, die Regel nicht
      ein zweites Mal hinschreiben. */
-  for (const [wort, wo] of [['GEWICHT_MIN = ', 'die Untergrenze'], ['GEWICHT_MAX = ', 'die Obergrenze']]) {
+  for (const [wort, wo] of [['WEIGHT_MIN = ', 'die Untergrenze'], ['GEWICHT_MAX = ', 'die Obergrenze']]) {
     const n = fQuelle.split(wort).length - 1;
     pruefe(`${wo[0].toUpperCase()}${wo.slice(1)} des Gewichts steht genau einmal im Quelltext`,
       n === 1, `${n} Vorkommen`);
   }
-  const fGueltigDef = fQuelle.split('function gueltigesGewicht').length - 1;
+  const fGueltigDef = fQuelle.split('function validWeight').length - 1;
   pruefe('Und es gibt genau eine Pruefung darauf', fGueltigDef === 1, `${fGueltigDef} Vorkommen`);
   /* DIE OBERFLAECHE KENNT DIE SPANNE NICHT. Stuende sie auch in app.js, waere
      sie die zweite Stelle -- und die, die es nicht meldet, wenn sie
@@ -14741,7 +14741,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Satz. Gehalten wird beides: er sagt genau einen Satz, und er sagt ihn
      ueber t(). */
   pruefe('Und er liefert die Meldung eines Serverfehlers nicht aus',
-    /res\.status\(500\)\.json\(\{ error: t\(sprache, 'server\.error'\) \}\)/.test(fFehlerRumpf)
+    /res\.status\(500\)\.json\(\{ error: t\(locale, 'server\.error'\) \}\)/.test(fFehlerRumpf)
       && !/res\.status\(500\)[^\n]*err\.(message|stack)/.test(fFehlerRumpf),
     fFehlerRumpf ? 'kein Schluessel bei 500' : '(kein Rumpf)');
 
@@ -14763,8 +14763,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      haette den Fehler eingebaut, den sie verhindern soll.
      Gezaehlt werden MARKEN, die es nur in der Abbildung gibt -- die
      Funktionszeile allein saehe eine kopierte Feldliste daneben nicht. */
-  const ABBILD_MARKEN = ['function eintragAlsPaket(', 'favorite: pins.has(',
-                         'author: verfasserName(it.user_id)'];
+  const ABBILD_MARKEN = ['function entryAsBundle(', 'favorite: pins.has(',
+                         'author: authorName(it.user_id)'];
   const abbildZaehle = (text) => ABBILD_MARKEN.map(m => [m, text.split(m).length - 1]);
   const fAbbild = abbildZaehle(fCodeZeilen);
   pruefe('Die Abbildung je Eintrag kommt genau einmal im Quelltext vor',
@@ -14776,25 +14776,25 @@ const freigabeHaupt = (zweck, ziel = null) =>
     abbildZaehle(fCodeZeilen + '\nconst o = { favorite: pins.has(it.id) };')
       .some(([, n]) => n === 2),
     'der Waechter sieht die zweite Abbildung nicht');
-  const fAbbildRufe = fCodeZeilen.split('eintragAlsPaket(').length - 1;
+  const fAbbildRufe = fCodeZeilen.split('entryAsBundle(').length - 1;
   pruefe('Sie wird an drei Stellen gerufen: Export, Einzelexport, Papierkorb',
     fAbbildRufe === 4, `${fAbbildRufe} Vorkommen samt Deklaration`);
 
   /* Dasselbe in der Gegenrichtung. Das Wiederherstellen geht durch den
      IMPORT -- ein zweiter, frisch geschriebener Deserialisierer waere derselbe
      Fehler, nur spiegelverkehrt. */
-  const EINSPIEL_MARKEN = ['function spieleEin(', 'const itemVerfasser = verfasser(it.author)'];
+  const EINSPIEL_MARKEN = ['function importInto(', 'const itemAuthor = verfasser(it.author)'];
   const fEinspiel = EINSPIEL_MARKEN.map(m => [m, fCodeZeilen.split(m).length - 1]);
   pruefe('Und der Deserialisierer ebenfalls genau einmal',
     fEinspiel.every(([, n]) => n === 1), fEinspiel.map(([m, n]) => `${m} (${n}x)`).join(' · '));
-  const fEinspielRufe = fCodeZeilen.split('spieleEin(').length - 1;
+  const fEinspielRufe = fCodeZeilen.split('importInto(').length - 1;
   pruefe('Er wird an zwei Stellen gerufen: Import und Wiederherstellen',
     fEinspielRufe === 3, `${fEinspielRufe} Vorkommen samt Deklaration`);
 
   /* DIE FORMATNUMMER STEHT AN GENAU EINER STELLE. Zwei Umschlaege -- der volle
      Export und der Einzelexport -- gehen durch dieselbe Funktion; stuende die
      Zahl an beiden, liefen sie auseinander. */
-  const fFormatDef = fCodeZeilen.split('AUSTAUSCH_FORMAT = ').length - 1;
+  const fFormatDef = fCodeZeilen.split('EXCHANGE_FORMAT = ').length - 1;
   pruefe('Die Formatnummer steht genau einmal im Quelltext', fFormatDef === 1,
     `${fFormatDef} Vorkommen`);
   pruefe('Und nirgends noch einmal als nackte Zahl',
@@ -14875,7 +14875,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* DIE FRIST STEHT IM SERVER, NICHT IN DER OBERFLAECHE. Die Karte und der
      Loeschdialog nennen sie beide -- gerechnet wird sie an einer Stelle, und
      die Oberflaeche bekommt sie ueber die Antwort. */
-  const fFristDef = fCodeZeilen.split('PAPIERKORB_TAGE = ').length - 1;
+  const fFristDef = fCodeZeilen.split('TRASH_DAYS = ').length - 1;
   pruefe('Die Frist steht genau einmal im Server', fFristDef === 1, `${fFristDef} Vorkommen`);
   pruefe('Die Oberflaeche rechnet die verbleibenden Tage nicht selbst nach',
     !/tageOffen\s*=/.test(fAppQuelle),
@@ -14894,11 +14894,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Route zur Sicherung ist ueberhaupt da', fSicherungRumpf.length > 0,
     'kein Rumpf gefunden');
   pruefe('Sie schreibt unter einem Arbeitsnamen und benennt erst danach um',
-    /VACUUM INTO \?'\)\.run\(werdend\)/.test(fSicherungRumpf) &&
-    fSicherungRumpf.includes('fs.renameSync(werdend, datei)'),
+    /VACUUM INTO \?'\)\.run\(becoming\)/.test(fSicherungRumpf) &&
+    fSicherungRumpf.includes('fs.renameSync(becoming, datei)'),
     fSicherungRumpf ? 'kein Arbeitsname im Rumpf' : '(kein Rumpf)');
   pruefe('Und entfernt im Fehlerfall NUR den Arbeitsnamen',
-    fSicherungRumpf.includes('fs.unlinkSync(werdend)') &&
+    fSicherungRumpf.includes('fs.unlinkSync(becoming)') &&
     !fSicherungRumpf.includes('fs.unlinkSync(datei)'),
     (fSicherungRumpf.match(/.*fs\.unlinkSync\(.*/g) || []).join(' · '));
   /* Und die Gegenprobe zum Waechter selbst: er darf nicht deshalb gruen sein,
@@ -18478,11 +18478,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Zeile, die beim naechsten Umbau am leichtesten zurueckfaellt. */
     pruefe('Die Aufteilung fragt je Art mit einer Gleichheit',
       einzeilig.includes("FROM photos WHERE art IS ?") &&
-      !/const qJeArt[^;]*art != 'video'/.test(einzeilig),
-      (einzeilig.match(/const qJeArt = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      !/const qPerKind[^;]*art != 'video'/.test(einzeilig),
+      (einzeilig.match(/const qPerKind = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
     pruefe('Und die Arten kommen aus einer eigenen, blobfreien Abfrage',
-      einzeilig.includes("const qBildArten = db.prepare('SELECT art AS a FROM photos GROUP BY 1')"),
-      (einzeilig.match(/const qBildArten = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      einzeilig.includes("const qImageKinds = db.prepare('SELECT art AS a FROM photos GROUP BY 1')"),
+      (einzeilig.match(/const qImageKinds = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* 3. DIE FORMATZEILE BLEIBT MATERIALISIERT -- dort ist die Gruppierung
        ueber eine Blob-Laenge der Kostenpunkt. */
     pruefe('Die Aufteilung nach Format laeuft ueber eine materialisierte Zwischenabfrage',
@@ -18498,9 +18498,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Bis zum ersten Anlauf von 0.19.1 stellte austauschTeile(null, …)
        dieselbe teure Frage noch zweimal -- gemessen 1363 und 1310 ms. */
     pruefe('Die Exportgroesse der Bilder kommt aus derselben Schleife',
-      einzeilig.includes('...austauschTeile(null, { mitDateien: true })') &&
-      einzeilig.includes('fotos: Math.round(exportFotoBytes * 4 / 3)'),
-      (einzeilig.match(/\.\.\.austauschTeile\(null[^,]*,[^)]*\)/) || ['(nicht gefunden)'])[0]);
+      einzeilig.includes('...exchangeParts(null, { mitDateien: true })') &&
+      einzeilig.includes('fotos: Math.round(exportPhotoBytes * 4 / 3)'),
+      (einzeilig.match(/\.\.\.exchangeParts\(null[^,]*,[^)]*\)/) || ['(nicht gefunden)'])[0]);
     /* 5. DIE UEBERSICHT LIEST IHRE FOTOS AUS EINEM DECKENDEN INDEX, und die
        Spaltenliste steht an EINER Stelle. Sieben der zehn Spalten stehen in
        `photos` hinter den Blobs; fehlt auch nur eine im Index, faellt SQLite
@@ -18508,7 +18508,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        dass irgendetwas rot wuerde (Stolperstein 279).
        GEMESSEN (400 Eintraege, 400 Fotos, 312 MB): N Abfragen aus dem Satz
        9,3 ms, N aus dem Index 3,0 ms, EINE aus dem Index 1,6 ms. */
-    const spalten = (einzeilig.match(/const PHOTO_SPALTEN = '([^']+)'/) || [])[1] || '';
+    const spalten = (einzeilig.match(/const PHOTO_COLUMNS = '([^']+)'/) || [])[1] || '';
     const indexSpalten = ((dbQuelle.replace(/\s+/g, ' ')
       .match(/idx_photos_kachel ON photos\(([^)]+)\)/) || [])[1] || '');
     const alsListe = (t) => t.split(',').map(x => x.trim()).filter(Boolean);
@@ -18524,14 +18524,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* UND DIE UEBERSICHT FRAGT EINMAL STATT JE EINTRAG. Ohne diese Zeile
        bliebe gruen, wer den Index anlegt und die Schleife stehen laesst. */
     pruefe('Die Uebersicht holt die Fotos in einer Abfrage',
-      einzeilig.includes('const qAlleFotos = db.prepare(') &&
-      einzeilig.includes('const ph = fotosJe.get(it.id) || [];'),
+      einzeilig.includes('const qAllPhotos = db.prepare(') &&
+      einzeilig.includes('const ph = photosPer.get(it.id) || [];'),
       (einzeilig.match(/const ph = [^;]*/) || ['(nicht gefunden)'])[0]);
     /* UND detail() BENUTZT WEITER DIESELBEN SPALTEN. Zwei Fotolisten mit
        verschiedenen Feldern waeren zwei Wahrheiten ueber dasselbe Foto -- die
        Kachel truege ein anderes als der Eintrag (Stolperstein 47). */
     pruefe('Und die Einzelabfrage liest dieselben Spalten',
-      einzeilig.includes('const qPhotos = db.prepare(`SELECT ${PHOTO_SPALTEN}, ${PHOTO_FASSUNG} FROM photos WHERE item_id = ?'),
+      einzeilig.includes('const qPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ?'),
       (einzeilig.match(/const qPhotos = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* UND DIE FASSUNG STEHT NEBEN DER LISTE UND NICHT IN IHR -- 0.19.5.
        `length(thumb)` laesst sich nicht indizieren; stuende es in
@@ -18540,22 +18540,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
        zwei verschiedene Fassungsangaben waeren zwei Wahrheiten ueber
        denselben Zwischenspeicher (Stolperstein 47). */
     pruefe('Die Fassung steht neben der Spaltenliste und nicht in ihr',
-      einzeilig.includes("const PHOTO_FASSUNG = 'length(thumb) AS fassung'") &&
-      !/PHOTO_SPALTEN = '[^']*thumb/.test(einzeilig) &&
-      einzeilig.includes('const qAlleFotos = db.prepare(`SELECT ${PHOTO_SPALTEN}, ${PHOTO_FASSUNG} FROM photos'),
-      (einzeilig.match(/const PHOTO_FASSUNG = [^;]*/) || ['(nicht gefunden)'])[0]);
+      einzeilig.includes("const PHOTO_VERSION = 'length(thumb) AS fassung'") &&
+      !/PHOTO_COLUMNS = '[^']*thumb/.test(einzeilig) &&
+      einzeilig.includes('const qAllPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
+      (einzeilig.match(/const PHOTO_VERSION = [^;]*/) || ['(nicht gefunden)'])[0]);
     /* DER KNOPF DAGEGEN SUCHT WEITER AM INHALT -- er laeuft nur auf Verlangen.
        Ohne diese Zeile bliebe gruen, wer beide auf die Spalte umstellt, und
        dann schriebe der Lauf Zeilen um, die gar keine PNG sind. */
     pruefe('Der Knopf sucht dagegen weiter am Inhalt',
-      /qOffenePNG = db\.prepare\([\s\S]{0,200}?hex\(substr\(data,1,8\)\)/.test(serverQuelle),
-      (serverQuelle.match(/qOffenePNG = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
+      /qOpenPng = db\.prepare\([\s\S]{0,200}?hex\(substr\(data,1,8\)\)/.test(serverQuelle),
+      (serverQuelle.match(/qOpenPng = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
     /* DIE ZUORDNUNG mime_type -> SCHLUESSEL STEHT AN EINER STELLE. Zwei
        Tabellen ueber dieselbe Sache duerfen sich nicht widersprechen
        (Stolperstein 47) -- die Oberflaeche kennt nur noch Schluessel und Namen. */
     const appQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     pruefe('Die Zuordnung von mime_type auf den Schluessel steht nur im Server',
-      /const BILD_MIME_FORMAT = \{/.test(serverQuelle) && !/image\/webp'\s*:/.test(appQuelle),
+      /const IMAGE_MIME_FORMAT = \{/.test(serverQuelle) && !/image\/webp'\s*:/.test(appQuelle),
       (appQuelle.match(/'image\/\w+'\s*:[^\n]*/) || ['(keine zweite Tafel)'])[0]);
   }
 
@@ -19773,12 +19773,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const rumpf = (fQuelle.match(/app\.get\('\/api\/export'[\s\S]*?\n\}\);/) || [''])[0];
     pruefe('Die Exportroute steht ueberhaupt da', rumpf.length > 200, String(rumpf.length));
     pruefe('Sie misst ihre Groesse, bevor sie baut',
-      rumpf.indexOf('austauschBytes') > 0 &&
-      rumpf.indexOf('austauschBytes') < rumpf.indexOf('eintragAlsPaket'),
-      `${rumpf.indexOf('austauschBytes')} gegen ${rumpf.indexOf('eintragAlsPaket')}`);
+      rumpf.indexOf('exchangeBytes') > 0 &&
+      rumpf.indexOf('exchangeBytes') < rumpf.indexOf('entryAsBundle'),
+      `${rumpf.indexOf('exchangeBytes')} gegen ${rumpf.indexOf('entryAsBundle')}`);
     pruefe('Und sagt ab, statt am String zu zerbrechen',
-      /AUSTAUSCH_MAX\)?\s*\n?\s*return res\.status\(413\)/.test(rumpf) ||
-      /> AUSTAUSCH_MAX/.test(rumpf) && /413/.test(rumpf),
+      /EXCHANGE_MAX\)?\s*\n?\s*return res\.status\(413\)/.test(rumpf) ||
+      /> EXCHANGE_MAX/.test(rumpf) && /413/.test(rumpf),
       rumpf.replace(/\s+/g, ' ').slice(0, 240));
     /* DAS NETZ BLEIBT DARUNTER: die Absage rechnet, sie misst nicht. Faellt
        die Schaetzung zu niedrig aus, wirft JSON.stringify -- und dann muss
@@ -19804,14 +19804,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
        gehoert seither dem Sprachhelfer, und eine lokale Bindung verdeckte ihn
        (Bauabschnitt 1). Der Waechter zieht mit, die Rechnung bleibt dieselbe. */
     pruefe('Und die Absage rechnet den Umschlag mit',
-      /return teile\.fotos \+ teile\.videos \+ teile\.anhaenge \+ teile\.kommentarbilder \+ austauschUmschlagBytes\(itemId\);/
+      /return teile\.fotos \+ teile\.videos \+ teile\.anhaenge \+ teile\.kommentarbilder \+ exchangeEnvelopeBytes\(itemId\);/
         .test(fQuelle),
       (fQuelle.match(/return teile\.fotos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
     /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
        einen Namen zielt, den es gar nicht mehr gibt. */
     pruefe('Der Waechter zielt auf eine Rechnung, die es wirklich gibt',
-      /function austauschUmschlagBytes\(itemId\)/.test(fQuelle) &&
-      /function austauschBytes\(itemId, schalter\)/.test(fQuelle),
+      /function exchangeEnvelopeBytes\(itemId\)/.test(fQuelle) &&
+      /function exchangeBytes\(itemId, schalter\)/.test(fQuelle),
       'eine der beiden Rechnungen heisst anders');
     /* DIESELBE FRAGE AM EINZELEXPORT: dort steht die Absage seit den Videos,
        und sie liest dieselbe Rechnung. Ohne diese Zeile bliebe offen, ob der
@@ -19819,7 +19819,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     {
       const einzel = (fQuelle.match(/app\.get\('\/api\/items\/:id\/export'[\s\S]*?\n\}\);/) || [''])[0];
       pruefe('Der Einzelexport misst mit derselben Rechnung wie der volle',
-        /austauschBytes\(it\.id, schalter\)/.test(einzel) && /AUSTAUSCH_MAX/.test(einzel),
+        /exchangeBytes\(it\.id, schalter\)/.test(einzel) && /EXCHANGE_MAX/.test(einzel),
         einzel.replace(/\s+/g, ' ').slice(0, 200) || '(keine Route)');
     }
   }
@@ -20825,12 +20825,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
        anderes Schlagwort als der Eintrag, und die Pruefungen oben faenden es
        erst am naechsten Feld. */
     pruefe('Die Spaltenliste der Schlagworte steht an einer Stelle',
-      /const TAG_SPALTEN = 't\.id, t\.name';/.test(ueQuelle),
-      (ueQuelle.match(/const TAG_SPALTEN = [^\n]*/) || ['(nicht gefunden)'])[0]);
+      /const TAG_COLUMNS = 't\.id, t\.name';/.test(ueQuelle),
+      (ueQuelle.match(/const TAG_COLUMNS = [^\n]*/) || ['(nicht gefunden)'])[0]);
     pruefe('Und beide Abfragen lesen sie',
-      ueEinzeilig.includes('const qTags = db.prepare(`SELECT ${TAG_SPALTEN} FROM tags t') &&
-      ueEinzeilig.includes('const qAlleTags = db.prepare(`SELECT it.item_id, ${TAG_SPALTEN} FROM tags t'),
-      (ueEinzeilig.match(/const qAlleTags = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      ueEinzeilig.includes('const qTags = db.prepare(`SELECT ${TAG_COLUMNS} FROM tags t') &&
+      ueEinzeilig.includes('const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t'),
+      (ueEinzeilig.match(/const qAllTags = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* DIE ORDNUNG DER GEBUENDELTEN TESTTAGE STEHT AM QUELLTEXT: zuerst
        item_id, dann WIE BISHER. Der Gleichstand zweier Testtage am selben Tag
        laesst sich mit einem Zugang gar nicht herstellen (ein Zugang darf einen
@@ -20842,12 +20842,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
         "'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC'") &&
       ueEinzeilig.includes(
         "FROM test_days WHERE item_id = ? ORDER BY day DESC, id DESC'"),
-      (ueEinzeilig.match(/qAlleTestTageSchmal = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      (ueEinzeilig.match(/qAllTestDaysNarrow = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* KEIN `IN (…)` MIT VIERHUNDERT NUMMERN -- dieselbe Begruendung wie bei
        den Fotos: die gefilterte Uebersicht wirft dann etwas weg, und das ist
        billiger als die Liste zu binden. */
     pruefe('Keine der gebuendelten Abfragen bindet eine Nummernliste',
-      !/qAlleTags|qLinkZahlen|qAnhangZahlen|qAlleKategorien|qAlleTestTageSchmal|qSchnittJeKriteriumAlle/
+      !/qAllTags|qLinkCounts|qAttachmentCounts|qAllCategories|qAllTestDaysNarrow|qAveragePerCriterionAll/
         .test((ueEinzeilig.match(/IN \(\$\{[^)]*\)/g) || []).join(' ')),
       (ueEinzeilig.match(/IN \(\$\{[^)]*\)/g) || []).join(' ') || '(keine)');
     /* UND testStats BLEIBT UNGEBUENDELT. Ohne diese Zeile bliebe gruen, wer es
@@ -21269,8 +21269,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const phQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const phAbfrage = (name) =>
       (phQuelle.match(new RegExp(`const ${name} = db\\.prepare\\(\`([^\`]*)\``)) || ['', ''])[1];
-    const phEinzeln = phAbfrage('qSchnittJeKriterium');
-    const phAlle = phAbfrage('qSchnittJeKriteriumAlle');
+    const phEinzeln = phAbfrage('qAveragePerCriterion');
+    const phAlle = phAbfrage('qAveragePerCriterionAll');
     const nenntPhase = (a) => /SELECT[\s\S]*?\bc\.phase\b[\s\S]*?FROM/.test(a) &&
                              /GROUP BY[^`]*\bc\.phase\b/.test(a);
     pruefe('Die Abfrage des Eintrags nennt die Phase im SELECT und im GROUP BY',
@@ -22306,8 +22306,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die laengste Funktion in public/app.js heisst renderDetail',
     flLaengste('public/app.js')?.name === 'renderDetail',
     `${flLaengste('public/app.js')?.name} mit ${flLaengste('public/app.js')?.zeilen} Zeilen`);
-  pruefe('Und die laengste in server.js heisst spieleEin',
-    flLaengste('server.js')?.name === 'spieleEin',
+  pruefe('Und die laengste in server.js heisst importInto',
+    flLaengste('server.js')?.name === 'importInto',
     `${flLaengste('server.js')?.name} mit ${flLaengste('server.js')?.zeilen} Zeilen`);
   /* UND DASS renderSystem() WIRKLICH ZERFALLEN IST. Das ist die Zusage dieser
      Runde, und sie waere ohne diese Zeile nur eine Behauptung im Protokoll.
@@ -40950,7 +40950,7 @@ async function pruefeOberflaeche() {
       (tCss.match(/--daempfung:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
     const stufenApp = (tApp.match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
     const stufenSrv = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
-      .match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
+      .match(/THEME_LEVELS = \[([^\]]*)\]/) || [])[1];
     pruefe('Die drei Stufen stehen in app.js und server.js gleich',
       !!stufenApp && stufenApp === stufenSrv, `app: ${stufenApp} · server: ${stufenSrv}`);
   }
@@ -41143,8 +41143,8 @@ async function pruefeOberflaeche() {
         && !/Der Server meldet einen Fehler/.test(spApp),
       (spApp.match(/let m = [^\n]*/) || ['(nicht gefunden)'])[0]);
     pruefe('Der Fehler-Handler übersetzt seine zwei Sätze',
-      /t\(sprache, 'server\.error'\)/.test(spSrv)
-        && /t\(sprache, 'server\.errorUnknown'\)/.test(spSrv)
+      /t\(locale, 'server\.error'\)/.test(spSrv)
+        && /t\(locale, 'server\.errorUnknown'\)/.test(spSrv)
         && !/Auf dem Server ist ein Fehler aufgetreten/.test(spSrv)
         && !/'Unbekannter Fehler'/.test(spSrv),
       'Literale im Handler: ' + String(/Auf dem Server ist ein Fehler aufgetreten/.test(spSrv)));
@@ -41164,11 +41164,11 @@ async function pruefeOberflaeche() {
     /* GESUCHT WIRD DIE BENUTZUNG UND NICHT DAS WORT: „Accept-Language" steht im
        Kommentar daneben, weil dort steht, was Stufe 2 einhaengt. Ein Waechter
        ueber das Wort verboete, die Absicht aufzuschreiben. */
-    pruefe('spracheVon(req) kennt in dieser Runde keine Quelle',
-      /function spracheVon\(req\) \{\s*return SPRACH_VORGABE;\s*\}/.test(spSrv)
+    pruefe('localeOf(req) kennt in dieser Runde keine Quelle',
+      /function localeOf\(req\) \{\s*return LANGUAGE_DEFAULT;\s*\}/.test(spSrv)
         && !/headers\[[^\]]*accept-language/i.test(spSrv)
         && !/getUserSetting\([^)]*'sprache'/.test(spSrv),
-      (spSrv.match(/function spracheVon[\s\S]{0,80}/) || ['(nicht gefunden)'])[0]);
+      (spSrv.match(/function localeOf[\s\S]{0,80}/) || ['(nicht gefunden)'])[0]);
     /* FEHLT de.json, STARTET DER SERVER NICHT. Gefahren aus einer KOPIE des
        Quelltextes -- der laufende Prueflauf darf sich dabei nicht selbst
        veraendern. */
@@ -41265,7 +41265,7 @@ async function pruefeOberflaeche() {
     const sdSrv = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     pruefe('server.js reicht den Übersetzer an mail.js und an auth.js',
       /mail\.setTranslator\(t\);/.test(sdSrv) &&
-      /auth\.setTranslator\(\(req, schluessel, werte\) =>/.test(sdSrv),
+      /auth\.setTranslator\(\(req, schluessel, values\) =>/.test(sdSrv),
       `mail: ${/mail\.setTranslator/.test(sdSrv)} · auth: ${/auth\.setTranslator/.test(sdSrv)}`);
     /* DIE VORGABEN DER VIERZEHN VOKABELWOERTER KOMMEN AUS DER DATEI -- eine
        Vorgabe, ein Ort (Stolperstein 47). Bis 0.24.0 standen sie zweimal im
@@ -41425,7 +41425,7 @@ async function pruefeOberflaeche() {
         for (const n of rumpf.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) gereicht.get(m[1]).add(n[1]);
         for (const n of rumpf.matchAll(/[{,]\s*([A-Za-z_][A-Za-z0-9_]*)\s*[,}]/g)) gereicht.get(m[1]).add(n[1]);
       }
-      for (const m of q.matchAll(/(?:fehler|grund):\s*'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'\s*(?:,\s*werte:\s*\{([^{}]*)\})?/g)) {
+      for (const m of q.matchAll(/(?:fehler|grund):\s*'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'\s*(?:,\s*(?:werte|values):\s*\{([^{}]*)\})?/g)) {
         if (!gereicht.has(m[1])) gereicht.set(m[1], new Set());
         for (const n of (m[2] || '').matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) gereicht.get(m[1]).add(n[1]);
       }
@@ -42829,7 +42829,7 @@ async function pruefeBestandslauf() {
      ueber workerData, genau wie im Betrieb. */
   const fahre = (aufgabe, zeilen, daneben) => new Promise((fertig) => {
     const w = new Worker(path.join(__dirname, 'bestandslauf.js'),
-      { workerData: { aufgabe, zeilen }, env: umgebung, stdout: true, stderr: true });
+      { workerData: { task: aufgabe, rows: zeilen }, env: umgebung, stdout: true, stderr: true });
     const staende = [];
     let fehler = null;
     w.on('message', (m) => staende.push(m));
@@ -42912,19 +42912,19 @@ async function pruefeBestandslauf() {
      Meldungsfolge, ein voller Stand kann gar nicht auseinanderlaufen. */
   const letzter = um.staende[um.staende.length - 1] || {};
   pruefe('Jede Meldung traegt den ganzen Stand und nicht eine Zunahme',
-    um.staende.every(m => m && m.art === 'stand' && m.stand &&
-      typeof m.stand.erledigt === 'number' && typeof m.stand.gesamt === 'number'),
+    um.staende.every(m => m && m.kind === 'status' && m.status &&
+      typeof m.status.erledigt === 'number' && typeof m.status.gesamt === 'number'),
     JSON.stringify(um.staende[0]));
   /* AUCH HIER GEHT JEDER ZUGRIFF DURCH EINE KLAMMER: Rueckbau 491 nimmt der
-     Schleife ihre Message, und eine Zeile, die dann auf `m.stand.erledigt`
+     Schleife ihre Message, und eine Zeile, die dann auf `m.status.erledigt`
      greift, riesse den Lauf ab statt rot zu werden (Stolperstein 161). */
-  const ueErledigt = um.staende.map(m => (m && m.stand && m.stand.erledigt));
+  const ueErledigt = um.staende.map(m => (m && m.status && m.status.erledigt));
   pruefe('Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind',
     gleich(ueErledigt, [1, 2, 3, 4, 5, 6, 6]), JSON.stringify(ueErledigt));
   pruefe('Am Ende steht laeuft: false und jede Zeile umgestellt',
-    letzter.stand && letzter.stand.laeuft === false &&
-    letzter.stand.umgestellt === ZEILEN && letzter.stand.gespart > 0,
-    JSON.stringify(letzter.stand));
+    letzter.status && letzter.status.laeuft === false &&
+    letzter.status.umgestellt === ZEILEN && letzter.status.gespart > 0,
+    JSON.stringify(letzter.status));
   {
     const d = oeffne();
     const webp = d.prepare("SELECT COUNT(*) n FROM photos WHERE mime_type = 'image/webp'").get().n;
@@ -43003,8 +43003,8 @@ async function pruefeBestandslauf() {
     const AUSWAHL = 'SELECT id FROM photos';
     const serverGeo = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     pruefe('Und der Server waehlt seine Zeilen mit genau dieser Abfrage',
-      serverGeo.includes(`const qKachelZeilen = db.prepare('${AUSWAHL}');`),
-      (serverGeo.match(/const qKachelZeilen = [^\n]*/) || ['(nicht gefunden)'])[0]);
+      serverGeo.includes(`const qTileRows = db.prepare('${AUSWAHL}');`),
+      (serverGeo.match(/const qTileRows = [^\n]*/) || ['(nicht gefunden)'])[0]);
     const bildZeilen = (() => { const d = oeffne(); const r = d.prepare(AUSWAHL).all(); d.close(); return r; })();
     pruefe('Die Videozeile steht jetzt IN der Auswahl',
       bildZeilen.some(z => z.id === videoId), `${bildZeilen.length} Zeilen`);
@@ -43023,7 +43023,7 @@ async function pruefeBestandslauf() {
        waehrend des ganzen Laufs dieselbe Null zeigen. */
     pruefe('Und meldet je Zeile einmal, dazu einmal am Ende',
       geo.staende.length === ZEILEN + ALT + 2, `${geo.staende.length} Meldungen`);
-    const gStand = (geo.staende[geo.staende.length - 1] || {}).stand || {};
+    const gStand = (geo.staende[geo.staende.length - 1] || {}).status || {};
     /* ZWEIMAL WIRD GEZAEHLT, UND DAS IST KEINE DOPPELUNG: `geprueft` sind die
        Zeilen, deren Kopf gelesen wurde, `nachgezogen` die, die wirklich eine
        neue Kachel bekommen haben. Ein Lauf, der 1032 prueft und 0 erneuert,
@@ -43093,7 +43093,7 @@ async function pruefeBestandslauf() {
         d.close();
       }
       const rep = await fahre('geometrie', [{ id: kaputtId }]);
-      const rStand = (rep.staende[rep.staende.length - 1] || {}).stand || {};
+      const rStand = (rep.staende[rep.staende.length - 1] || {}).status || {};
       const d = oeffne();
       const neu = d.prepare('SELECT thumb FROM photos WHERE id = ?').get(kaputtId);
       d.close();
@@ -43111,7 +43111,7 @@ async function pruefeBestandslauf() {
     const nochmal = await fahre('geometrie', (() => {
       const d = oeffne(); const r = d.prepare(AUSWAHL).all(); d.close(); return r;
     })());
-    const nStand = (nochmal.staende[nochmal.staende.length - 1] || {}).stand || {};
+    const nStand = (nochmal.staende[nochmal.staende.length - 1] || {}).status || {};
     pruefe('Ein zweiter Lauf erneuert nichts mehr — die Frage ist ein Festpunkt',
       nStand.nachgezogen === 0 && nStand.geprueft === ZEILEN + ALT + 2,
       JSON.stringify(nStand));
@@ -43131,7 +43131,7 @@ async function pruefeBestandslauf() {
       const d1 = oeffne();
       const nachher = d1.prepare('SELECT thumb FROM photos WHERE id = ?').get(eine.id).thumb;
       d1.close();
-      const meldung = einzeln.staende.find(m => m && m.art === 'erneuert') || {};
+      const meldung = einzeln.staende.find(m => m && m.kind === 'refreshed') || {};
       pruefe('Die einzelne Zeile wird erneuert und das Ergebnis gemeldet',
         einzeln.code === 0 && meldung.ok === true && meldung.id === eine.id,
         JSON.stringify(meldung));
@@ -43141,7 +43141,7 @@ async function pruefeBestandslauf() {
          Der Haupt-Thread antwortet dann mit der alten Fassung -- eine
          Ableitung, die schlechter ist als die alte, gibt es nicht. */
       const leer = await fahre('zuschnitt', [{ id: 999999 }]);
-      const lm = leer.staende.find(m => m && m.art === 'erneuert') || {};
+      const lm = leer.staende.find(m => m && m.kind === 'refreshed') || {};
       pruefe('Eine Zeile, die es nicht gibt, meldet ok:false und wirft nicht',
         leer.code === 0 && leer.fehler === null && lm.ok === false,
         `${leer.code} · ${JSON.stringify(lm)}`);
@@ -43192,16 +43192,16 @@ async function pruefeBestandslauf() {
        an einem Knopfdruck und nicht am Start, und ihr Abschluss ist die
        Antwort an den Browser. */
     pruefe('Und der Server startet fuer alle vier Aufgaben einen Thread',
-      einzeilig(blServer).includes("starteBestandsThread('umstellung', zeilen)") &&
-      einzeilig(blServer).includes("starteBestandsThread('vorschaubilder', offen, erneuereKacheln)") &&
-      einzeilig(blServer).includes("starteBestandsThread('geometrie', zeilen, maintainStorage)") &&
-      einzeilig(blServer).includes("starteBestandsThread('zuschnitt', [{ id: Number(id) }], einmal)"),
-      (blServer.match(/starteBestandsThread\([^)]*\)/g) || []).join(' · ') || '(nicht gefunden)');
+      einzeilig(blServer).includes("startBatchThread('umstellung', zeilen)") &&
+      einzeilig(blServer).includes("startBatchThread('vorschaubilder', offen, refreshTiles)") &&
+      einzeilig(blServer).includes("startBatchThread('geometrie', zeilen, maintainStorage)") &&
+      einzeilig(blServer).includes("startBatchThread('zuschnitt', [{ id: Number(id) }], once)"),
+      (blServer.match(/startBatchThread\([^)]*\)/g) || []).join(' · ') || '(nicht gefunden)');
     /* UND DIE KETTE HAELT AUCH, WENN EIN GLIED NICHTS ZU TUN HAT. Ohne diese
        beiden Zeilen bliebe das Erneuern aus, sobald kein Vorschaubild fehlt --
        also in jeder Instanz nach dem ersten Start. */
     pruefe('Und jedes Glied ruft das naechste selbst, wenn es nichts zu tun gibt',
-      /if \(!offen\.length\) return erneuereKacheln\(\);/.test(blServer) &&
+      /if \(!offen\.length\) return refreshTiles\(\);/.test(blServer) &&
       /if \(!zeilen\.length\) return maintainStorage\(\);/.test(blServer),
       (blServer.match(/if \(!offen\.length\)[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 3. DER PFAD STEHT AN EINER STELLE, und der Fingerprint liest dieselbe.
@@ -43209,16 +43209,16 @@ async function pruefeBestandslauf() {
        Umbenennung auseinander -- und der Fingerprint kennte dann eine
        ausgelieferte Datei nicht. */
     pruefe('Der Pfad des Threads steht an einer Stelle',
-      /const BESTANDSLAUF = path\.join\(__dirname, 'bestandslauf\.js'\);/.test(blServer) &&
-      /new Worker\(BESTANDSLAUF,/.test(blServer) &&
-      /\.\.\.ausgefuehrt, BESTANDSLAUF,/.test(einzeilig(blServer)),
-      (blServer.match(/const BESTANDSLAUF = [^\n]*/) || ['(nicht gefunden)'])[0]);
+      /const BATCHRUN = path\.join\(__dirname, 'bestandslauf\.js'\);/.test(blServer) &&
+      /new Worker\(BATCHRUN,/.test(blServer) &&
+      /\.\.\.ran, BATCHRUN,/.test(einzeilig(blServer)),
+      (blServer.match(/const BATCHRUN = [^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 4. DER SCHLUESSEL REIST NICHT MIT. `workerData` wird beim Erzeugen
        strukturiert kopiert -- ein Schluessel darin staende in einem zweiten
        Speicher. Er kommt im Thread denselben Weg wie im Haupt-Thread, ueber
        keys.js und die Umgebung. */
     pruefe('Der Schluessel reist nicht ueber workerData',
-      einzeilig(blServer).includes('{ workerData: { aufgabe, zeilen } }') &&
+      einzeilig(blServer).includes('{ workerData: { task, rows } }') &&
       !/workerData[^\n]*(key|hex|schluessel|Schluessel)/i.test(blServer) &&
       !/workerData\.(key|hex|schluessel)/i.test(blLauf),
       (blServer.match(/workerData: \{[^}]*\}/) || ['(nicht gefunden)'])[0]);
@@ -43228,7 +43228,7 @@ async function pruefeBestandslauf() {
     /* 5. DER ABSCHLUSS BEENDET DEN THREAD VOR DER DATEI. Andersherum schriebe
        er in eine Datei, deren WAL gerade gekuerzt wird -- der eine Fall, den
        diese Runde neu einbringt. */
-    const sigterm = (blServer.match(/for \(const zeichen of \['SIGTERM'[\s\S]{0,1600}?\n\}/) || [''])[0];
+    const sigterm = (blServer.match(/for \(const signal of \['SIGTERM'[\s\S]{0,1600}?\n\}/) || [''])[0];
     pruefe('SIGTERM beendet erst die Threads und dann die Datei',
       sigterm.indexOf('w.terminate()') > 0 &&
       sigterm.indexOf('w.terminate()') < sigterm.indexOf('db.close()'),
@@ -43237,11 +43237,11 @@ async function pruefeBestandslauf() {
        hoechstens einer -- aber wer den Umstellungsknopf 1500 ms nach dem Start
        drueckt, hat zwei, und eine Variable truege dann nur den zweiten. */
     pruefe('Und er nimmt jeden laufenden Thread mit, nicht nur den letzten',
-      /const bestandsThreads = new Set\(\);/.test(blServer) &&
-      /bestandsThreads\.add\(w\);/.test(blServer) &&
-      /bestandsThreads\.delete\(w\);/.test(blServer) &&
-      /for \(const w of bestandsThreads\)/.test(sigterm),
-      (blServer.match(/const bestandsThreads = [^\n]*/) || ['(nicht gefunden)'])[0]);
+      /const batchThreads = new Set\(\);/.test(blServer) &&
+      /batchThreads\.add\(w\);/.test(blServer) &&
+      /batchThreads\.delete\(w\);/.test(blServer) &&
+      /for \(const w of batchThreads\)/.test(sigterm),
+      (blServer.match(/const batchThreads = [^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 6. EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB, und er laesst die
        Karte auch nicht fuer immer auf „laeuft" stehen.
        DIE ERSTE FASSUNG DIESER ZEILE WAR ZU LOCKER, und die Gegenprobe hat es
@@ -43254,14 +43254,14 @@ async function pruefeBestandslauf() {
        SEIT 0.19.4 STEHT DER STAND JE AUFGABE, und die Zeile greift ihn ueber
        denselben Namen, mit dem der Thread erzeugt wurde. */
     pruefe('Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen',
-      /w\.on\('error', \(e\) => \{\s*\n\s*if \(bestandsStaende\[aufgabe\]\) bestandsStaende\[aufgabe\]\.laeuft = false;\s*\n\s*console\.error\(/
+      /w\.on\('error', \(e\) => \{\s*\n\s*if \(batchStates\[task\]\) batchStates\[task\]\.laeuft = false;\s*\n\s*console\.error\(/
         .test(blServer),
       (blServer.match(/w\.on\('error'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     /* 7. UND ER WIRD JE LAUF ERZEUGT UND DANACH BEENDET -- kein Threadpool,
        kein Dauerlaeufer. Ein Dauerlaeufer hielte eine zweite Verbindung auf
        die Datenbank offen, solange der Server laeuft. */
     pruefe('Der Thread wird je Lauf erzeugt und danach vergessen',
-      /w\.on\('exit', \(\) => \{ bestandsThreads\.delete\(w\);/.test(blServer) &&
+      /w\.on\('exit', \(\) => \{ batchThreads\.delete\(w\);/.test(blServer) &&
       /parentPort\.close\(\);/.test(blLauf) && /db\.close\(\);/.test(blLauf),
       (blServer.match(/w\.on\('exit'[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 8. DIE UMWANDLUNG GIBT ES GENAU EINMAL. Zwei Fassungen liefen
@@ -43286,7 +43286,7 @@ async function pruefeBestandslauf() {
        -- beim ersten Mal ein VACUUM -- und gehoert nicht neben die Schleife. */
     pruefe('maintainStorage bleibt im Haupt-Thread',
       /db\.exec\('VACUUM'\);/.test(blServer) && !/db\.exec\('VACUUM'\)/.test(blLauf) &&
-      /starteBestandsThread\('geometrie', zeilen, maintainStorage\);/.test(blServer),
+      /startBatchThread\('geometrie', zeilen, maintainStorage\);/.test(blServer),
       (blLauf.match(/db\.exec\('VACUUM'\)/) || ['(kein VACUUM im Thread — richtig)'])[0]);
     /* 11. UND db.js FUEHRT BEIM OEFFNEN NICHTS AUS, WAS ZWEIMAL SCHADET. Der
        Thread requiret es ein zweites Mal; ein VACUUM oder ein CREATE TABLE
