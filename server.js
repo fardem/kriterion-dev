@@ -57,7 +57,7 @@ const mail = require('./mail');
    IM SPEICHER UND NICHT JE ANFRAGE VON DER PLATTE: die Datei aendert sich zur
    Laufzeit nicht, und wer sie tauscht, tauscht damit den Fingerprint -- also
    den Server. */
-const SPRACH_VERZ = path.join(__dirname, 'public', 'sprachen');
+const SPRACH_VERZ = path.join(__dirname, 'public', 'languages');
 function leseSprachen() {
   const raus = {};
   for (const name of fs.readdirSync(SPRACH_VERZ).sort()) {
@@ -66,7 +66,7 @@ function leseSprachen() {
       JSON.parse(fs.readFileSync(path.join(SPRACH_VERZ, name), 'utf8'));
   }
   if (!raus.de) throw new Error(
-    'public/sprachen/de.json fehlt -- ohne sie hat die Oberflaeche keine Texte.');
+    'public/languages/de.json fehlt -- ohne sie hat die Oberflaeche keine Texte.');
   return raus;
 }
 const SPRACHEN = leseSprachen();
@@ -141,7 +141,7 @@ auth.setzeUebersetzer((req, schluessel, werte) => t(spracheVon(req), schluessel,
    Betreiber ihn liest. */
 const fehlerText = (req, e) => (e && e.schluessel)
   ? t(spracheVon(req), e.schluessel, e.werte || {})
-  : t(spracheVon(req), 'server.fehlerUnbekannt');
+  : t(spracheVon(req), 'server.errorUnknown');
 
 const PORT = process.env.PORT || 3000;
 
@@ -316,7 +316,7 @@ const upload = multer({
   fileFilter: (req, file, cb) =>
     /^image\//.test(file.mimetype)
       ? cb(null, true)
-      : cb(new Meldung('server.nurBilder'))
+      : cb(new Meldung('server.imagesOnly'))
 });
 
 /* Was als Foto hereinkommt, muss ein Rasterbild sein -- dem INHALT nach.
@@ -623,7 +623,7 @@ app.get('/api/config', (req, res) => {
 // gibt -- und ist genau deshalb nur solange offen, wie kein Zugang existiert.
 app.post('/api/setup', async (req, res) => {
   if (auth.benutzerVorhanden()) {
-    return res.status(409).json({ error: t(spracheVon(req), 'server.einrichtungFertig')});
+    return res.status(409).json({ error: t(spracheVon(req), 'server.setupDone')});
   }
   const { user, password } = req.body || {};
   let angelegt;
@@ -645,14 +645,14 @@ app.post('/api/login', async (req, res) => {
   const bremse = auth.checkThrottle(ip, user);
   if (bremse.blocked) {
     return res.status(429).json({
-      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});
+      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});
   }
   if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
 
   const benutzer = await auth.pruefeAnmeldung(user, password);
   if (!benutzer) {
     auth.noteFailure(ip, user);
-    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungFalsch')});
+    return res.status(401).json({ error: t(spracheVon(req), 'server.loginWrong')});
   }
   /* Erste von zwei Stellen: ein gesperrter Zugang kommt nicht herein.
      ERST HIER, nach der Passwortpruefung: ein gesperrter Zugang soll
@@ -661,7 +661,7 @@ app.post('/api/login', async (req, res) => {
      Kein noteFailure -- das Passwort war richtig. */
   if (benutzer.status !== 'aktiv') {
     return res.status(403).json({
-      error: t(spracheVon(req), benutzer.status === 'geloescht' ? 'server.kontoWeg' : 'server.kontoGesperrt')});
+      error: t(spracheVon(req), benutzer.status === 'geloescht' ? 'server.accountGone' : 'server.accountLocked')});
   }
   /* DER ZWEITE FAKTOR -- UND HIER, NACH DER PASSWORTPRUEFUNG.
      DIE AUSKUNFT "DIESER ZUGANG HAT EINEN ZWEITEN FAKTOR" KOMMT ERST NACH
@@ -718,13 +718,13 @@ app.post('/api/login/zwei', async (req, res) => {
   const bremse = auth.checkThrottle(ip, null);
   if (bremse.blocked) {
     return res.status(429).json({
-      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});
+      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});
   }
   if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
   const id = auth.verbraucheAnmeldeAusweis(ausweis);
   if (!id) {
     auth.noteFailure(ip, null);
-    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungAbgelaufen')});
+    return res.status(401).json({ error: t(spracheVon(req), 'server.sessionExpired')});
   }
   const zugang = auth.holeZugang(id);
   const name = zugang ? zugang.username : null;
@@ -733,7 +733,7 @@ app.post('/api/login/zwei', async (req, res) => {
      Meldung wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
      belegt und darf deshalb erfahren, woran es liegt. */
   if (!zugang || zugang.status !== 'aktiv') {
-    return res.status(403).json({ error: t(spracheVon(req), 'server.kontoGesperrt')});
+    return res.status(403).json({ error: t(spracheVon(req), 'server.accountLocked')});
   }
   if (!auth.pruefeZweitenFaktor(id, code)) {
     auth.noteFailure(ip, name);
@@ -792,14 +792,14 @@ app.get('/api/session', (req, res) => {
    DIE ANMELDEBREMSE GREIFT AN BEIDEN. Beim Token gibt es keinen
    Benutzernamen: die IP-Haelfte greift, die Namenshaelfte faellt von selbst
    weg -- noteFailure legt bei leerem Namen gar keinen Zaehler an. */
-const TOKEN_ABSAGE = 'server.linkAbgelaufen';
+const TOKEN_ABSAGE = 'server.linkExpired';
 
 // true = weitermachen. Bei false ist die Antwort bereits geschrieben.
 async function tokenBremseFrei(req, res) {
   const bremse = auth.checkThrottle(auth.clientIp(req), null);
   if (bremse.blocked) {
     res.status(429).json({
-      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});
+      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});
     return false;
   }
   if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
@@ -932,7 +932,7 @@ app.post('/api/registrierung/bestaetigen', async (req, res) => {
   if (!auth.bestaetigeAnfrage((req.body || {}).schluessel)) {
     auth.noteFailure(ip, null);
     return res.status(400).json({ error:
-      t(spracheVon(req), 'server.bestaetigungAbgelaufen')});
+      t(spracheVon(req), 'server.confirmExpired')});
   }
   auth.noteSuccess(ip, null);
   res.json({ ok: true });
@@ -964,12 +964,12 @@ app.use('/api', auth.requireAuth);
 function istEigentuemer(req) { return req.benutzer.role === 'eigentuemer'; }
 function istAdmin(req) { return req.benutzer.role === 'admin' || istEigentuemer(req); }
 
-const VERWEIGERT_ADMIN = 'server.verweigertAdmin';
-const VERWEIGERT_EIGEN = 'server.verweigertEigen';
-const VERWEIGERT_EINTRAG = 'server.verweigertEintrag';
-const VERWEIGERT_SELBST = 'server.verweigertSelbst';
-const VERWEIGERT_TAG_NEU = 'server.verweigertTagNeu';
-const VERWEIGERT_KAT_NEU = 'server.verweigertKategorieNeu';
+const VERWEIGERT_ADMIN = 'server.deniedAdmin';
+const VERWEIGERT_EIGEN = 'server.deniedOwner';
+const VERWEIGERT_EINTRAG = 'server.deniedEntry';
+const VERWEIGERT_SELBST = 'server.deniedSelf';
+const VERWEIGERT_TAG_NEU = 'server.deniedTagNew';
+const VERWEIGERT_KAT_NEU = 'server.deniedCategoryNew';
 
 function nurAdmin(req, res, next) {
   if (!istAdmin(req)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_ADMIN)});
@@ -1003,7 +1003,7 @@ function nurEigentuemer(req, res, next) {
    ZWEI FORMEN DESSELBEN AUFRUFS: der Waechter fuer die Routenzeile -- er MUSS
    es sein, wo multer dahinter steht -- und die Frage im Rumpf, wo erst der
    Rumpf sagt, ob ueberhaupt bestaetigt werden muss. */
-const VERWEIGERT_BESTAETIGUNG = 'server.verweigertBestaetigung';
+const VERWEIGERT_BESTAETIGUNG = 'server.deniedConfirm';
 
 // true = weitermachen. Bei false ist die Antwort bereits geschrieben.
 // 403 und NICHT 401: der Zugang gilt weiter, nur diese eine Handlung nicht.
@@ -1072,7 +1072,7 @@ const qEintragVerfasser = db.prepare('SELECT user_id FROM items WHERE id = ?');
 // true = weitermachen. Bei false ist die Antwort bereits geschrieben.
 function eintragFrei(req, res, itemId) {
   const z = qEintragVerfasser.get(itemId);
-  if (!z) { res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')}); return false; }
+  if (!z) { res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')}); return false; }
   if (!darfAendern(req, z.user_id)) { res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_EINTRAG)}); return false; }
   return true;
 }
@@ -1101,9 +1101,9 @@ const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected', 'rejectedGrund
 function darfAnZugang(req, ziel) {
   return ziel.role === 'user' ? istAdmin(req) : istEigentuemer(req);
 }
-const VERWEIGERT_ZUGANG = 'server.verweigertZugang';
-const VERWEIGERT_ROLLE = 'server.verweigertRolle';
-const VERWEIGERT_SELBST_ZUGANG = 'server.verweigertSelbstZugang';
+const VERWEIGERT_ZUGANG = 'server.deniedUser';
+const VERWEIGERT_ROLLE = 'server.deniedRole';
+const VERWEIGERT_SELBST_ZUGANG = 'server.deniedOwnUser';
 
 /* ---- Zugang ---- */
 // Der angemeldete Benutzer, nicht der erste: ab dem zweiten Zugang saehe
@@ -1161,10 +1161,10 @@ app.delete('/api/sessions/:kennung', (req, res) => {
   // POST /api/logout -- und einer, nach dem die Oberflaeche weiterliefe, als
   // waere nichts gewesen.
   if (auth.sitzungsKennung(eigener || '') === String(req.params.kennung)) {
-    return res.status(400).json({ error: t(spracheVon(req), 'server.sitzungEigene')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.sessionOwn')});
   }
   const n = auth.beendeSitzung(req.benutzer.id, req.params.kennung);
-  if (!n) return res.status(404).json({ error: t(spracheVon(req), 'server.sitzungFehlt')});
+  if (!n) return res.status(404).json({ error: t(spracheVon(req), 'server.sessionUnknown')});
   res.json({ beendet: n });
 });
 
@@ -1196,7 +1196,7 @@ app.delete('/api/sessions/:kennung', (req, res) => {
 async function eigenesPasswortStimmt(req, res, passwort) {
   const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
   if (zeile && await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) return true;
-  res.status(403).json({ error: t(spracheVon(req), 'server.passwortFalsch')});
+  res.status(403).json({ error: t(spracheVon(req), 'server.passwordWrong')});
   return false;
 }
 
@@ -1252,7 +1252,7 @@ app.post('/api/zweifaktor/codes', async (req, res) => {
 app.delete('/api/zweifaktor', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!auth.zweifaktorAn(req.benutzer.id))
-    return res.status(400).json({ error: t(spracheVon(req), 'server.zweiterFaktorAus')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.twoFactorOff')});
   if (!await eigenesPasswortStimmt(req, res, passwort)) return;
   if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))
     return res.status(403).json({ error: t(spracheVon(req), auth.ZWEITER_FAKTOR_ABSAGE)});
@@ -1278,12 +1278,12 @@ app.post('/api/bestaetigung', async (req, res) => {
   const bremse = auth.checkThrottle(ip, name);
   if (bremse.blocked) {
     return res.status(429).json({
-      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});
+      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});
   }
   if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
   const { passwort, zweck, ziel, ziele, code } = req.body || {};
   if (!auth.BESTAETIGUNG_ZWECKE.includes(zweck))
-    return res.status(400).json({ error: t(spracheVon(req), 'server.zweckFehlt')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.purposeUnknown')});
   /* MEHRERE ZIELE IN EINER ANFRAGE, und der Grund ist der Code des zweiten
      Faktors: er gilt GENAU EINMAL. Das Passwort laeuft gegen einen Hash und
      laesst sich beliebig oft vergleichen, der Code nicht -- wer ihn n-mal
@@ -1297,9 +1297,9 @@ app.post('/api/bestaetigung', async (req, res) => {
   let zielListe;
   if (ziele !== undefined) {
     if (ziel !== undefined)
-      return res.status(400).json({ error: t(spracheVon(req), 'server.zielEntwederOder')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.targetEitherOr')});
     if (!Array.isArray(ziele) || !ziele.length)
-      return res.status(400).json({ error: t(spracheVon(req), 'server.zieleFehlen')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.targetsMissing')});
     /* Die Zahl der Ziele ist gedeckelt wie die Zahl der Teile: eine Bestellung
        ueber zehntausend Freigaben legte sie im Arbeitsspeicher ab und nichts
        raeumte sie vor ihrem Ablauf wieder weg.
@@ -1308,15 +1308,15 @@ app.post('/api/bestaetigung', async (req, res) => {
        auseinander. Zur Laufzeit ist sie laengst gesetzt: diese Zeile laeuft in
        einem Routenrumpf, nicht bei der Modulauswertung. */
     if (ziele.length > AUSTAUSCH_TEIL_MAX)
-      return res.status(400).json({ error: t(spracheVon(req), 'server.zieleZuViele', { deckel: AUSTAUSCH_TEIL_MAX })});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.targetsTooMany', { deckel: AUSTAUSCH_TEIL_MAX })});
     zielListe = ziele.map(z => Number(z));
     if (!zielListe.every(n => Number.isInteger(n) && n > 0))
-      return res.status(400).json({ error: t(spracheVon(req), 'server.zielKeineNummer')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.targetNotNumber')});
     // Doppelte sind ein Fehler und keine stillschweigend halbierte Bestellung:
     // wer zweimal dieselbe Nummer schickt, hat sich verzaehlt, und eine
     // Antwort mit weniger Freigaben als bestellt saehe aus wie ein Erfolg.
     if (new Set(zielListe).size !== zielListe.length)
-      return res.status(400).json({ error: t(spracheVon(req), 'server.zielDoppelt')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.targetTwice')});
   } else zielListe = [ziel ?? null];
   const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
   if (!zeile || !await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) {
@@ -1325,7 +1325,7 @@ app.post('/api/bestaetigung', async (req, res) => {
     // Wer hier scheitert, sitzt an einer angemeldeten Sitzung und kennt das
     // Passwort nicht -- genau der Fall, gegen den diese Runde gebaut ist.
     auth.protokolliere('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
-    return res.status(403).json({ error: t(spracheVon(req), 'server.passwortFalsch')});
+    return res.status(403).json({ error: t(spracheVon(req), 'server.passwordWrong')});
   }
   /* FRAGT DIESE STELLE ZUSAETZLICH DEN CODE -- aber NUR bei Zugaengen, die
      einen zweiten Faktor eingeschaltet haben.
@@ -1373,7 +1373,7 @@ app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
      LESEND WIE VORHER -- F_ROUTEN bleibt bei 69. */
   const gruppe = req.query.gruppe;
   if (gruppe !== undefined && !Object.prototype.hasOwnProperty.call(auth.PROTOKOLL_GRUPPEN, gruppe))
-    return res.status(400).json({ error: t(spracheVon(req), 'server.ansichtFehlt')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.viewUnknown')});
   res.json(auth.leseProtokoll(auth.PROTOKOLL_GRENZE, gruppe));
 });
 
@@ -1388,9 +1388,9 @@ app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
 // die halbe Aenderung schon geschrieben hat, waere schlimmer als keine.
 function zielZugangFrei(req, res, id, selbstErlaubt = false) {
   const ziel = auth.holeZugang(id);
-  if (!ziel) { res.status(404).json({ error: t(spracheVon(req), 'server.benutzerFehlt')}); return null; }
+  if (!ziel) { res.status(404).json({ error: t(spracheVon(req), 'server.userUnknown')}); return null; }
   if (ziel.status === 'geloescht') {
-    res.status(400).json({ error: t(spracheVon(req), 'server.benutzerGeloescht')}); return null;
+    res.status(400).json({ error: t(spracheVon(req), 'server.userDeleted')}); return null;
   }
   if (!selbstErlaubt && ziel.id === req.benutzer.id) {
     res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST_ZUGANG)}); return null;
@@ -1416,7 +1416,7 @@ app.get('/api/users', nurAdmin, (req, res) => {
 // Die Zahlen fuer den Loeschdialog. Lesend, deshalb kein Eintrag in F_ROUTEN.
 app.get('/api/users/:id/bestand', nurAdmin, (req, res) => {
   const ziel = auth.holeZugang(req.params.id);
-  if (!ziel) return res.status(404).json({ error: t(spracheVon(req), 'server.benutzerFehlt')});
+  if (!ziel) return res.status(404).json({ error: t(spracheVon(req), 'server.userUnknown')});
   res.json({ username: ziel.username, ...auth.zaehleBestand(ziel.id) });
 });
 
@@ -1597,11 +1597,11 @@ app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
   const eigener = auth.holeZugang(req.benutzer.id);
   if (!eigener || !eigener.email) {
     return res.status(400).json({ error:
-      t(spracheVon(req), 'server.eigeneMailFehlt')});
+      t(spracheVon(req), 'server.ownEmailMissing')});
   }
   const roh = getSetting(mail.SCHLUESSEL, null);
   if (!mail.eingerichtet(roh))
-    return res.status(400).json({ error: t(spracheVon(req), 'server.mailzugangFehlt')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.mailAccountMissing')});
   const sprache = spracheVon(req);
   const brief = mail.briefTest(sprache, { titel: getSetting('title_public', 'Bewertungskatalog'),
                                           username: eigener.username });
@@ -1655,7 +1655,7 @@ app.put('/api/registrierung/schalter', nurAdmin, (req, res) => {
   if (an) {
     const b = versandBereit();
     if (!b.ok) return res.status(400).json({ error:
-      t(spracheVon(req), 'server.registrierungOhneMail', { grund: b.grund })});
+      t(spracheVon(req), 'server.signupNeedsMail', { grund: b.grund })});
   }
   putSetting.run('registrierung', JSON.stringify(an));
   res.json(anfragenKarte());
@@ -1669,7 +1669,7 @@ app.put('/api/registrierung/schalter', nurAdmin, (req, res) => {
 app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
   const a = auth.holeAnfrage(req.params.id);
   if (!a || !a.bestaetigt_am)
-    return res.status(404).json({ error: t(spracheVon(req), 'server.anfrageFehlt')});
+    return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});
   let angelegt, token;
   try {
     angelegt = await auth.legeZugangAn(a.username, null, 'user', true, req.benutzer.id, a.email);
@@ -1695,7 +1695,7 @@ app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
 app.delete('/api/anfragen/:id', nurAdmin, (req, res) => {
   const a = auth.holeAnfrage(req.params.id);
   if (!a || !a.bestaetigt_am)
-    return res.status(404).json({ error: t(spracheVon(req), 'server.anfrageFehlt')});
+    return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});
   auth.entferneAnfrage(a.id);
   auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });
   res.json({ ok: true, ...anfragenKarte() });
@@ -1710,7 +1710,7 @@ app.get('/api/titles', (req, res) => res.json({
 app.put('/api/titles', nurAdmin, (req, res) => {
   const p = (req.body.publicTitle || '').trim();
   const a = (req.body.appTitle || '').trim();
-  if (!p || !a) return res.status(400).json({ error: t(spracheVon(req), 'server.titelBeide')});
+  if (!p || !a) return res.status(400).json({ error: t(spracheVon(req), 'server.titlesBoth')});
   putSetting.run('title_public', JSON.stringify(p));
   putSetting.run('title_app', JSON.stringify(a));
   res.json({ publicTitle: p, appTitle: a });
@@ -1732,7 +1732,7 @@ app.put('/api/titles', nurAdmin, (req, res) => {
    von vierzehn Woertern je Installation, wie den Titel. In dieser Runde ist
    das Deutsch; in Stufe 2 bleibt es die Sprache der Installation, auch wenn
    ein Benutzer die Oberflaeche umschaltet. */
-const VOKABEL_VORSATZ = 'vokabular.';
+const VOKABEL_VORSATZ = 'vocabulary.';
 const vokabularVorgabe = () => Object.fromEntries(
   Object.entries(SPRACHEN[SPRACH_VORGABE])
     .filter(([k]) => k.startsWith(VOKABEL_VORSATZ))
@@ -2096,8 +2096,8 @@ app.put('/api/settings', (req, res) => {
      GEPRUEFT MIT DERSELBEN FUNKTION WIE DIE VORSCHAU UND DAS LOESCHEN -- eine
      zweite Spanne daneben liefe auseinander. */
   const regelWerte = {};
-  for (const [k, spanne, was] of [['sicherungBehalten', AUFRAEUM_BEHALTEN, 'server.regelBehalten'],
-                                  ['sicherungTage', AUFRAEUM_TAGE, 'server.regelTage']]) {
+  for (const [k, spanne, was] of [['sicherungBehalten', AUFRAEUM_BEHALTEN, 'server.ruleKeep'],
+                                  ['sicherungTage', AUFRAEUM_TAGE, 'server.ruleDays']]) {
     if (req.body[k] === undefined) continue;
     const g = pruefeRegelwert(req.body[k], spanne, was);
     if (g.fehler) return res.status(400).json({ error: t(spracheVon(req), g.fehler, g.werte) });
@@ -2114,7 +2114,7 @@ app.put('/api/settings', (req, res) => {
     const ein = Array.isArray(req.body.ansichten) ? req.body.ansichten : [];
     if (ein.length > ANSICHTEN_DECKEL)
       return res.status(400).json({
-        error: t(spracheVon(req), 'server.ansichtenDeckel', { deckel: ANSICHTEN_DECKEL })});
+        error: t(spracheVon(req), 'server.viewCap', { deckel: ANSICHTEN_DECKEL })});
     const sauber = [];
     const namen = new Set();
     for (const a of ein) {
@@ -2123,14 +2123,14 @@ app.put('/api/settings', (req, res) => {
       // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
       // nicht, sonst sucht man die Ansicht spaeter in der Liste.
       if (!name)
-        return res.status(400).json({ error: t(spracheVon(req), 'server.ansichtNameFehlt')});
+        return res.status(400).json({ error: t(spracheVon(req), 'server.viewNameMissing')});
       /* ZWEI ANSICHTEN MIT DEMSELBEN NAMEN SIND EINE ZU VIEL: der Name ist
          das Einzige, woran ein Mensch sie auseinanderhaelt. Verglichen wird
          ohne Ruecksicht auf Gross- und Kleinschreibung -- "Bosch" und "bosch"
          nebeneinander waeren dieselbe Falle mit einem Buchstaben Abstand. */
       const schluessel = name.toLowerCase();
       if (namen.has(schluessel))
-        return res.status(400).json({ error: t(spracheVon(req), 'server.ansichtDoppelt', { name })});
+        return res.status(400).json({ error: t(spracheVon(req), 'server.viewExists', { name })});
       namen.add(schluessel);
       sauber.push({
         name,
@@ -2140,7 +2140,7 @@ app.put('/api/settings', (req, res) => {
     }
     ansichtenText = JSON.stringify(sauber);
     if (ansichtenText.length > ANSICHTEN_ZEICHEN)
-      return res.status(400).json({ error: t(spracheVon(req), 'server.ansichtenZuGross')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.viewsTooBig')});
   }
 
   if (req.body.filters !== undefined)
@@ -2160,13 +2160,13 @@ app.put('/api/settings', (req, res) => {
   if (req.body.schrift !== undefined) {
     const n = Number(req.body.schrift);
     if (!SCHRIFT_STUFEN.includes(n))
-      return res.status(400).json({ error: t(spracheVon(req), 'server.schriftUnbekannt')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.fontUnknown')});
     putUserSetting(req.benutzer.id, 'schrift', JSON.stringify(n));
   }
   if (req.body.streifen !== undefined) {
     const n = Number(req.body.streifen);
     if (!STREIFEN_STUFEN.includes(n))
-      return res.status(400).json({ error: t(spracheVon(req), 'server.streifenUnbekannt')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.stripUnknown')});
     putUserSetting(req.benutzer.id, 'streifen', JSON.stringify(n));
   }
   /* DIE KLEMME STEHT AM SERVER UND NICHT NUR IN DER PILLENREIHE -- dieselbe
@@ -2175,7 +2175,7 @@ app.put('/api/settings', (req, res) => {
   if (req.body.thema !== undefined) {
     const s = String(req.body.thema);
     if (!THEMA_STUFEN.includes(s))
-      return res.status(400).json({ error: t(spracheVon(req), 'server.themaUnbekannt')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.themeUnknown')});
     putUserSetting(req.benutzer.id, 'thema', JSON.stringify(s));
   }
   if (req.body.bloecke !== undefined) {
@@ -2189,7 +2189,7 @@ app.put('/api/settings', (req, res) => {
   if (req.body.linkZeilen !== undefined) {
     const n = Number(req.body.linkZeilen);
     if (!LINKZEILEN_STUFEN.includes(n))
-      return res.status(400).json({ error: t(spracheVon(req), 'server.linkzeilenUnbekannt')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.linkRowsUnknown')});
     putUserSetting(req.benutzer.id, 'linkZeilen', JSON.stringify(n));
   }
   if (req.body.zeitleiste !== undefined)
@@ -2225,10 +2225,10 @@ app.put('/api/settings', (req, res) => {
       // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
       // nicht, sonst sucht man den Anbieter spaeter in der Liste.
       if (!name)
-        return res.status(400).json({ error: t(spracheVon(req), 'server.suchmaschineNameFehlt')});
+        return res.status(400).json({ error: t(spracheVon(req), 'server.searchEngineName')});
       if (!suchvorlageOk(vorlage))
         return res.status(400).json({
-          error: t(spracheVon(req), 'server.suchUrlForm')});
+          error: t(spracheVon(req), 'server.searchUrlForm')});
       sauber.push({ name, vorlage });
     }
     putSetting.run('sucheEigene', JSON.stringify(sauber));
@@ -2248,13 +2248,13 @@ app.put('/api/settings', (req, res) => {
     // Ersatzweise auf den eingebauten ersten zu wechseln waere schlimmer als
     // eine Absage: es hiesse, ab jetzt wortlos woanders zu suchen.
     if (!ein.length)
-      return res.status(400).json({ error: t(spracheVon(req), 'server.suchmaschineLetzte')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.searchEngineLast')});
     schreibeVorrat(ein[0], ein);
   }
   if (req.body.suchNamen !== undefined) {
     const n = Number(req.body.suchNamen);
     if (!SUCHNAMEN_STUFEN.includes(n))
-      return res.status(400).json({ error: t(spracheVon(req), 'server.suchNamenUnbekannt')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.searchNamesUnknown')});
     putUserSetting(req.benutzer.id, 'suchNamen', JSON.stringify(n));
   }
   // Die beiden Anlegen-Schalter sind global und damit Adminsache -- ueber die
@@ -2375,7 +2375,7 @@ app.get('/api/criteria', (req, res) => res.json(qCriteria.all()));
 // weniger im Anlegeweg, und die Vorgabe steht nur an einer Stelle.
 app.post('/api/criteria', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameFehlt')});
+  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameMissing')});
   /* DIE PHASE IST FREIWILLIG UND HAT DIE VORGABE 'nachher' -- so legt die
      Karte „Bewertungskriterien" weiter an, ohne ein Feld mitzuschicken.
      ETWAS ANDERES ALS DIE ZWEI WERTE IST EINE ABSAGE MIT MELDUNG und nicht
@@ -2384,11 +2384,11 @@ app.post('/api/criteria', nurAdmin, (req, res) => {
      falschen Kasten, ohne dass es jemand saehe. */
   const phase = req.body.phase === undefined ? PHASE_VORGABE : String(req.body.phase);
   if (!PHASEN.includes(phase))
-    return res.status(400).json({ error: t(spracheVon(req), 'server.kriteriumEntwederOder')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.criterionEitherOr')});
   // UNIQUE(name) IST GLOBAL: ein Name, ein Kasten. Die Frage kennt deshalb
   // keine Phase -- „Wunsch" gibt es einmal oder gar nicht.
   if (db.prepare('SELECT 1 FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name))
-    return res.status(409).json({ error: t(spracheVon(req), 'server.kriteriumDoppelt')});
+    return res.status(409).json({ error: t(spracheVon(req), 'server.criterionExists')});
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
   const i = db.prepare('INSERT INTO rating_criteria (name, sort_order, phase) VALUES (?, ?, ?)')
     .run(name, pos, phase);
@@ -2407,7 +2407,7 @@ app.put('/api/criteria/order', nurAdmin, (req, res) => {
 
 app.put('/api/criteria/:id', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameFehlt')});
+  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameMissing')});
   /* DER KASTEN LAESST SICH NACH DEM ANLEGEN NICHT MEHR WECHSELN, und der
      Versuch wird ABGEWIESEN und nicht still uebergangen: ein uebergangenes
      Feld sieht fuer den Aufrufer aus wie ein gesetztes.
@@ -2418,12 +2418,12 @@ app.put('/api/criteria/:id', nurAdmin, (req, res) => {
      DIE PRUEFUNG STEHT VOR JEDER SCHREIBUNG -- die Absage darf nicht auf ein
      schon umbenanntes Kriterium folgen. */
   if (req.body.phase !== undefined)
-    return res.status(400).json({ error: t(spracheVon(req), 'server.kriteriumArtFest')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.criterionKindFixed')});
   if (!db.prepare('SELECT 1 FROM rating_criteria WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: t(spracheVon(req), 'server.kriteriumWeg')});
+    return res.status(404).json({ error: t(spracheVon(req), 'server.criterionGone')});
   const clash = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
     .get(name, req.params.id);
-  if (clash) return res.status(409).json({ error: t(spracheVon(req), 'server.nameDoppelt')});
+  if (clash) return res.status(409).json({ error: t(spracheVon(req), 'server.nameExists')});
   // Das Gewicht ist FREIWILLIG: das Umbenennen schickt nur den Namen und darf
   // das Gewicht nicht mit anfassen. Ohne diese Unterscheidung setzte jedes ✎
   // die Gewichtung still auf die Vorgabe zurueck.
@@ -2431,7 +2431,7 @@ app.put('/api/criteria/:id', nurAdmin, (req, res) => {
   if (req.body.gewicht !== undefined) {
     gewicht = gueltigesGewicht(req.body.gewicht);
     if (gewicht === null) return res.status(400).json({
-      error: t(spracheVon(req), 'server.gewichtSpanne',
+      error: t(spracheVon(req), 'server.weightRange',
         { min: zahl(GEWICHT_MIN, spracheVon(req)), max: zahl(GEWICHT_MAX, spracheVon(req)) })});
   }
   // Name und Gewicht in EINEM UPDATE: zwei Anweisungen hintereinander koennten
@@ -2454,7 +2454,7 @@ app.get('/api/product-categories', (req, res) => res.json(db.prepare(`
 
 app.post('/api/product-categories', (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameFehlt')});
+  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameMissing')});
   const found = db.prepare('SELECT * FROM product_categories WHERE name = ? COLLATE NOCASE').get(name);
   if (found) return res.json(found);
   // HINTER dem Nachschlagen: eine VORHANDENE Kategorie zuzuweisen bleibt fuer
@@ -2471,12 +2471,12 @@ app.post('/api/product-categories', (req, res) => {
 // Schalter kategorienFreiAnlegen, Vorgabe an; zuweisen darf immer jeder.
 app.put('/api/product-categories/:id', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameFehlt')});
+  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameMissing')});
   if (!db.prepare('SELECT 1 FROM product_categories WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: t(spracheVon(req), 'server.kategorieWeg')});
+    return res.status(404).json({ error: t(spracheVon(req), 'server.categoryGone')});
   const clash = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE AND id != ?')
     .get(name, req.params.id);
-  if (clash) return res.status(409).json({ error: t(spracheVon(req), 'server.nameDoppelt')});
+  if (clash) return res.status(409).json({ error: t(spracheVon(req), 'server.nameExists')});
   db.prepare('UPDATE product_categories SET name = ? WHERE id = ?').run(name, req.params.id);
   res.json(db.prepare('SELECT * FROM product_categories WHERE id = ?').get(req.params.id));
 });
@@ -2498,11 +2498,11 @@ app.get('/api/tags', (req, res) => res.json(db.prepare(`
 
 app.put('/api/tags/:id', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameFehlt')});
+  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.nameMissing')});
   if (!db.prepare('SELECT 1 FROM tags WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: t(spracheVon(req), 'server.tagWeg')});
+    return res.status(404).json({ error: t(spracheVon(req), 'server.tagGone')});
   const clash = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE AND id != ?').get(name, req.params.id);
-  if (clash) return res.status(409).json({ error: t(spracheVon(req), 'server.tagDoppelt')});
+  if (clash) return res.status(409).json({ error: t(spracheVon(req), 'server.tagExists')});
   db.prepare('UPDATE tags SET name = ? WHERE id = ?').run(name, req.params.id);
   res.json(db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id));
 });
@@ -2533,7 +2533,7 @@ function legeTagAn(name) {
 // etwas beizutragen hat, schreibt einen Kommentar.
 app.post('/api/items/:id/tags', nurEintragVerfasser, (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.tagFehlt')});
+  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.tagMissing')});
   // Erst nachschlagen, dann die Klemme: einen vorhandenen Tag vergibt auch
   // hier jeder, der an den Eintrag darf. Die Wolke im Block bleibt deshalb
   // bedienbar, wenn der Schalter aus ist -- nur die Eingabezeile verschwindet.
@@ -3590,13 +3590,13 @@ app.get('/api/items', (req, res) => {
 
 app.get('/api/items/:id', (req, res) => {
   const it = detail(req.params.id, req.benutzer.id);
-  if (!it) return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+  if (!it) return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
   res.json(it);
 });
 
 app.post('/api/items', (req, res) => {
   const title = (req.body.title || '').trim();
-  if (!title) return res.status(400).json({ error: t(spracheVon(req), 'server.titelFehlt')});
+  if (!title) return res.status(400).json({ error: t(spracheVon(req), 'server.titleMissing')});
   // Der Anlegende ist der Verfasser. req.benutzer steht an
   // jedem geschuetzten Endpunkt (auth.js, requireAuth). BEWUSST OHNE ?.: fiele
   // es je weg, soll das mit einem Fehler auffallen und nicht als stille Zeile
@@ -3622,7 +3622,7 @@ const grundText = (v) =>
 
 app.put('/api/items/:id', (req, res) => {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
-  if (!it) return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+  if (!it) return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
   const b = req.body || {};
 
   /* DIESE ROUTE TRAEGT ZWEI RECHTEKLASSEN IN EINEM RUMPF, und das ist
@@ -3689,7 +3689,7 @@ app.put('/api/items/:id', (req, res) => {
       // im Nominativ und in Anfuehrungszeichen. Beides bleibt bei jedem Wort
       // richtig, gleich welches Geschlecht.
       return res.status(409).json({
-        error: t(spracheVon(req), 'server.getestetBleibt', { n })});
+        error: t(spracheVon(req), 'server.testedStays', { n })});
     }
   }
 
@@ -3799,13 +3799,13 @@ app.delete('/api/items/:id', nurEintragVerfasser, (req, res) => {
 app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40), async (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-      return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+      return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
       .get(req.params.id).m + 1;
     const ins = db.prepare('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
     for (const f of req.files || []) {
       if (!await rasterBild(f.buffer))
-        return res.status(400).json({ error: t(spracheVon(req), 'server.nurBilder')});
+        return res.status(400).json({ error: t(spracheVon(req), 'server.imagesOnly')});
       /* DIE ABLEITUNGEN KOMMEN AUS DER VORLAGE, NICHT AUS DER ABLAGEFASSUNG.
          Beide Wege ergaeben dasselbe Bild -- `nearLossless` weicht hoechstens
          um 2 von 255 ab --, aber ein zweites Dekodieren waere Arbeit ohne
@@ -3850,7 +3850,7 @@ const videoUpload = multer({
   fileFilter: (req, file, cb) => {
     const gut = file.fieldname === 'video' ? /^video\//.test(file.mimetype)
                                            : /^image\//.test(file.mimetype);
-    cb(gut ? null : new Meldung('server.nurVideoMitStandbild'), gut);
+    cb(gut ? null : new Meldung('server.videoNeedsStill'), gut);
   }
 });
 
@@ -3861,10 +3861,10 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
   async (req, res, next) => {
     try {
       if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-        return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+        return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
       const video = req.files?.video?.[0], standbild = req.files?.standbild?.[0];
       if (!video || !standbild)
-        return res.status(400).json({ error: t(spracheVon(req), 'server.videoStandbild')});
+        return res.status(400).json({ error: t(spracheVon(req), 'server.videoStill')});
       /* DER INHALT ENTSCHEIDET, nicht die Endung im Namen und nicht der
          gemeldete Typ -- dieselbe Regel wie am Fotoweg, nur mit dem
          Erkenner, der auch beim Ausliefern entscheidet. Damit kann keine
@@ -3872,11 +3872,11 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
          AUF DIE VIDEODATEI WIRD rasterBild() AUSDRUECKLICH NICHT ANGEWANDT:
          der Server oeffnet nie ein Video. Gelesen werden zwoelf Bytes. */
       if (!Object.values(anh.VIDEO_TYPEN).includes(anh.typAusBytes(video.buffer)))
-        return res.status(400).json({ error: t(spracheVon(req), 'server.nurVideos')});
+        return res.status(400).json({ error: t(spracheVon(req), 'server.videosOnly')});
       // Das Standbild geht denselben Weg wie jedes Foto: was sharp nicht als
       // Bild lesen kann, kommt nicht herein.
       if (!await rasterBild(standbild.buffer))
-        return res.status(400).json({ error: t(spracheVon(req), 'server.standbildKeinBild')});
+        return res.status(400).json({ error: t(spracheVon(req), 'server.stillNotImage')});
       // Die Dauer ist eine Angabe des Hochladenden wie der gemeldete Typ:
       // gespeichert und angezeigt, nie tragend. Unsinniges wird zu NULL.
       const d = Math.round(Number(req.body.dauer));
@@ -3893,7 +3893,7 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
          holt seine Vorschau beim naechsten Start nach; ein Video kann das
          nicht. Deshalb lieber gar nicht anlegen als kaputt. */
       if (!v.thumb || !v.medium)
-        return res.status(400).json({ error: t(spracheVon(req), 'server.standbildOhneVorschau')});
+        return res.status(400).json({ error: t(spracheVon(req), 'server.stillNoPreview')});
       // sort_order zaehlt weiter wie bisher: ein Video haengt sich hinten an
       // die vorhandenen Zeilen, in derselben Nummerierung.
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
@@ -4040,12 +4040,12 @@ function erneuereKachel(id, fertig) {
    Beschreibung. */
 app.put('/api/photos/:id/focus', (req, res) => {
   const p = db.prepare('SELECT item_id, zoom FROM photos WHERE id = ?').get(req.params.id);
-  if (!p) return res.status(404).json({ error: t(spracheVon(req), 'server.fotoWeg')});
+  if (!p) return res.status(404).json({ error: t(spracheVon(req), 'server.photoGone')});
   // Die Eintragsnummer kommt erst aus der Kindzeile -- deshalb die
   // zweite Form desselben Aufrufs, nicht eine zweite Regel.
   if (!eintragFrei(req, res, p.item_id)) return;
   const x = anzeigeWert('focus_x', req.body.x), y = anzeigeWert('focus_y', req.body.y);
-  if (x === null || y === null) return res.status(400).json({ error: t(spracheVon(req), 'server.ausschnittUngueltig')});
+  if (x === null || y === null) return res.status(400).json({ error: t(spracheVon(req), 'server.cropInvalid')});
   /* DER ZOOM DARF FEHLEN und behaelt dann seinen Wert. Nicht aus Nachsicht
      gegenueber einer aelteren Oberflaeche -- die wird im selben Dateisatz
      ausgeliefert --, sondern weil zwei Bedienungen auf dieselbe Route fuehren:
@@ -4057,7 +4057,7 @@ app.put('/api/photos/:id/focus', (req, res) => {
   let z = p.zoom;
   if (req.body.zoom !== undefined) {
     z = anzeigeWert('zoom', req.body.zoom);
-    if (z === null) return res.status(400).json({ error: t(spracheVon(req), 'server.ausschnittUngueltig')});
+    if (z === null) return res.status(400).json({ error: t(spracheVon(req), 'server.cropInvalid')});
   }
   db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')
     .run(x, y, z, req.params.id);
@@ -4085,11 +4085,11 @@ const anhangUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
 app.post('/api/items/:id/attachments', anhangUpload.array('files', ANHANG_ZAHL), (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-      return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+      return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
     const da = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(req.params.id).n;
     const neu = (req.files || []).length;
     if (da + neu > ANHANG_ZAHL)
-      return res.status(400).json({ error: t(spracheVon(req), 'server.dateienDeckel', { deckel: ANHANG_ZAHL })});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.fileCap', { deckel: ANHANG_ZAHL })});
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
       .get(req.params.id).m + 1;
     const ins = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
@@ -4119,15 +4119,15 @@ app.get('/api/attachments/:id/raw', (req, res) => {
 // ueberhaupt nicht.
 app.get('/api/attachments/:id/preview', (req, res) => {
   const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
-  if (!a) return res.status(404).json({ error: t(spracheVon(req), 'server.dateiWeg')});
+  if (!a) return res.status(404).json({ error: t(spracheVon(req), 'server.fileGone')});
   const art = anh.vorschauArt(a.filename);
   if (art === 'text') return res.json({ art, ...anh.textVorschau(a.data) });
   if (art === 'docx') {
     const v = anh.docxVorschau(a.data);
-    if (!v) return res.status(422).json({ error: t(spracheVon(req), 'server.dateiKeinText')});
+    if (!v) return res.status(422).json({ error: t(spracheVon(req), 'server.fileNotText')});
     return res.json({ art, ...v });
   }
-  res.status(400).json({ error: t(spracheVon(req), 'server.keineTextvorschau')});
+  res.status(400).json({ error: t(spracheVon(req), 'server.noTextPreview')});
 });
 
 /* LOESCHEN DARF DER HOCHLADENDE ODER DER ADMIN. Gefragt wird nach der ZEILE
@@ -4136,7 +4136,7 @@ app.get('/api/attachments/:id/preview', (req, res) => {
    faengt darfAendern ab -- sie gehoeren dem Admin. */
 app.delete('/api/attachments/:id', (req, res) => {
   const a = db.prepare('SELECT item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
-  if (!a) return res.status(404).json({ error: t(spracheVon(req), 'server.dateiWeg')});
+  if (!a) return res.status(404).json({ error: t(spracheVon(req), 'server.fileGone')});
   if (!darfAendern(req, a.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
   db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);
   // Sortiernummern lueckenlos halten, wie bei Fotos und Links.
@@ -4158,7 +4158,7 @@ app.put('/api/items/:id/photo-order', nurEintragVerfasser, (req, res) => {
 
 app.delete('/api/photos/:id', (req, res) => {
   const p = db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id);
-  if (!p) return res.status(404).json({ error: t(spracheVon(req), 'server.fotoWeg')});
+  if (!p) return res.status(404).json({ error: t(spracheVon(req), 'server.photoGone')});
   if (!eintragFrei(req, res, p.item_id)) return;
   db.prepare('DELETE FROM photos WHERE id = ?').run(req.params.id);
   const rest = db.prepare('SELECT id FROM photos WHERE item_id = ? ORDER BY sort_order, id').all(p.item_id);
@@ -4205,9 +4205,9 @@ function normalisiereLink(roh) {
    Frage, wer sie loeschen darf. */
 app.post('/api/items/:id/links', (req, res) => {
   const url = normalisiereLink(req.body.url);
-  if (!url) return res.status(400).json({ error: t(spracheVon(req), 'server.linkFehlt')});
+  if (!url) return res.status(400).json({ error: t(spracheVon(req), 'server.linkMissing')});
   if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+    return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM links WHERE item_id = ?')
     .get(req.params.id).m + 1;
   db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
@@ -4234,7 +4234,7 @@ app.put('/api/items/:id/link-order', nurEintragVerfasser, (req, res) => {
    Link bekommt KEINEN Vermerk -- er ist eine ganze Aussage, die geht. */
 app.delete('/api/links/:id', (req, res) => {
   const l = db.prepare('SELECT * FROM links WHERE id = ?').get(req.params.id);
-  if (!l) return res.status(404).json({ error: t(spracheVon(req), 'server.linkWeg')});
+  if (!l) return res.status(404).json({ error: t(spracheVon(req), 'server.linkGone')});
   if (!darfAendern(req, l.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
   db.prepare('DELETE FROM links WHERE id = ?').run(req.params.id);
   const rest = db.prepare('SELECT id FROM links WHERE item_id = ? ORDER BY sort_order, id').all(l.item_id);
@@ -4248,12 +4248,12 @@ app.delete('/api/links/:id', (req, res) => {
 app.post('/api/items/:id/test-days', (req, res) => {
   const day = String(req.body.day || '').trim();
   const rating = Number(req.body.rating);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return res.status(400).json({ error: t(spracheVon(req), 'server.datumUngueltig')});
-  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: t(spracheVon(req), 'server.noteSpanne')});
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return res.status(400).json({ error: t(spracheVon(req), 'server.dateInvalid')});
+  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: t(spracheVon(req), 'server.gradeRange')});
   const today = new Date().toISOString().slice(0, 10);
-  if (day > today) return res.status(400).json({ error: t(spracheVon(req), 'server.datumZukunft')});
+  if (day > today) return res.status(400).json({ error: t(spracheVon(req), 'server.dateFuture')});
   if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+    return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
 
   // Der eigene Tag. Zwei Leute am selben Datum sind kein Konflikt,
   // sondern zwei Testtage -- ersetzt wird nur, was einem selbst gehoert, und
@@ -4278,9 +4278,9 @@ app.post('/api/items/:id/test-days', (req, res) => {
 // loeschen ja, umschreiben nein.
 app.put('/api/test-days/:id', (req, res) => {
   const rating = Number(req.body.rating);
-  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: t(spracheVon(req), 'server.noteSpanne')});
+  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: t(spracheVon(req), 'server.gradeRange')});
   const testtag = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!testtag) return res.status(404).json({ error: t(spracheVon(req), 'server.zeitpunktFehlt')});
+  if (!testtag) return res.status(404).json({ error: t(spracheVon(req), 'server.dayUnknown')});
   if (!nurSelbst(req, testtag.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
   db.prepare('UPDATE test_days SET rating = ? WHERE id = ?').run(rating, req.params.id);
   touch.run(testtag.item_id);
@@ -4289,7 +4289,7 @@ app.put('/api/test-days/:id', (req, res) => {
 
 app.delete('/api/test-days/:id', (req, res) => {
   const testtag = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!testtag) return res.status(404).json({ error: t(spracheVon(req), 'server.zeitpunktFehlt')});
+  if (!testtag) return res.status(404).json({ error: t(spracheVon(req), 'server.dayUnknown')});
   // Loeschen darf der Admin, aendern nicht -- der Unterschied ist die ganze
   // Regel aus Teil IV.
   if (!darfAendern(req, testtag.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
@@ -4302,9 +4302,9 @@ app.delete('/api/test-days/:id', (req, res) => {
 // Name legt den Tag auch fuer die Eintraege an.
 app.post('/api/test-days/:id/tags', (req, res) => {
   const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.tagFehlt')});
+  if (!name) return res.status(400).json({ error: t(spracheVon(req), 'server.tagMissing')});
   const testtag = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!testtag) return res.status(404).json({ error: t(spracheVon(req), 'server.zeitpunktFehlt')});
+  if (!testtag) return res.status(404).json({ error: t(spracheVon(req), 'server.dayUnknown')});
   // Ein Tag am Testtag gehoert dem Testtag und teilt dessen
   // Eigentuemer (deshalb hat er keine eigene user_id). "Regen" an
   // einem fremden Testtag zu ergaenzen hiesse, eine fremde Beobachtung
@@ -4327,7 +4327,7 @@ app.post('/api/test-days/:id/tags', (req, res) => {
 
 app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
   const testtag = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!testtag) return res.status(404).json({ error: t(spracheVon(req), 'server.zeitpunktFehlt')});
+  if (!testtag) return res.status(404).json({ error: t(spracheVon(req), 'server.dayUnknown')});
   if (!nurSelbst(req, testtag.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
   db.prepare('DELETE FROM test_day_tags WHERE test_day_id = ? AND tag_id = ?').run(testtag.id, req.params.tagId);
   touch.run(testtag.item_id);
@@ -4363,7 +4363,7 @@ app.put('/api/items/:id/ratings', (req, res) => {
     const eintrag = qItemGetestet.get(req.params.id);
     if (krit && krit.phase === 'nachher' && eintrag && !eintrag.tested)
       return res.status(400).json({
-        error: t(spracheVon(req), 'server.bewertungVorTest')});
+        error: t(spracheVon(req), 'server.ratingBeforeTest')});
   }
   // Die eigene Bewertung. Konfliktziel und UNIQUE in db.js gehoeren
   // zusammen -- siehe die Bemerkung beim Testtag eine Bildschirmseite hoeher.
@@ -4417,7 +4417,7 @@ app.get('/api/items/:id/stimmen', nurAdmin, (req, res) => {
    Aussage der Zeile. Loeschen ja, umschreiben nein. */
 app.delete('/api/ratings/:id', (req, res) => {
   const r = db.prepare('SELECT id, item_id, user_id FROM ratings WHERE id = ?').get(req.params.id);
-  if (!r) return res.status(404).json({ error: t(spracheVon(req), 'server.bewertungFehlt')});
+  if (!r) return res.status(404).json({ error: t(spracheVon(req), 'server.ratingUnknown')});
   if (!darfAendern(req, r.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
   db.prepare('DELETE FROM ratings WHERE id = ?').run(r.id);
   touch.run(r.item_id);
@@ -4466,7 +4466,7 @@ async function kodiereAlle(dateien) {
     try {
       const { gross, klein } = await kodiereKommentarBild(f.buffer);
       out.push({ name: path.basename(String(f.originalname || 'bild.jpg')).slice(0, 200), gross, klein });
-    } catch { return { fehler: 'server.bildUnlesbar', werte: { name: f.originalname } }; }
+    } catch { return { fehler: 'server.imageUnreadable', werte: { name: f.originalname } }; }
   }
   return { bilder: out };
 }
@@ -4476,9 +4476,9 @@ async function kodiereAlle(dateien) {
 app.post('/api/items/:id/comments', kommentarBildUpload.array('images', BILD_ZAHL), async (req, res, next) => {
   try {
     const text = (req.body.text || '').trim();
-    if (!text) return res.status(400).json({ error: t(spracheVon(req), 'server.textFehlt')});
+    if (!text) return res.status(400).json({ error: t(spracheVon(req), 'server.textMissing')});
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-      return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+      return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
 
     const k = await kodiereAlle(req.files);
     if (k.fehler) return res.status(400).json({ error: t(spracheVon(req), k.fehler, k.werte) });
@@ -4497,7 +4497,7 @@ app.post('/api/items/:id/comments', kommentarBildUpload.array('images', BILD_ZAH
 // Kopfzeile schicken nur ihr eigenes Feld, ohne den Text anzufassen.
 app.put('/api/comments/:id', (req, res) => {
   const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
-  if (!c) return res.status(404).json({ error: t(spracheVon(req), 'server.kommentarWeg')});
+  if (!c) return res.status(404).json({ error: t(spracheVon(req), 'server.commentGone')});
 
   /* DIE ZWEITE ROUTE MIT ZWEI RECHTEKLASSEN IN EINEM RUMPF.
        TEXT          -- nur der Verfasser, AUCH DER ADMIN NICHT.
@@ -4512,7 +4512,7 @@ app.put('/api/comments/:id', (req, res) => {
 
   if (req.body.text !== undefined) {
     const text = String(req.body.text).trim();
-    if (!text) return res.status(400).json({ error: t(spracheVon(req), 'server.textFehlt')});
+    if (!text) return res.status(400).json({ error: t(spracheVon(req), 'server.textMissing')});
     db.prepare(`UPDATE comments SET text = ?, updated_at = datetime('now') WHERE id = ?`).run(text, c.id);
   }
   // Eine Aenderung der Merkmale ist keine Bearbeitung des Textes und setzt
@@ -4531,7 +4531,7 @@ app.put('/api/comments/:id', (req, res) => {
 app.post('/api/comments/:id/images', kommentarBildUpload.array('images', BILD_ZAHL), async (req, res, next) => {
   try {
     const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
-    if (!c) return res.status(404).json({ error: t(spracheVon(req), 'server.kommentarWeg')});
+    if (!c) return res.status(404).json({ error: t(spracheVon(req), 'server.commentGone')});
     // HINZUFUEGEN nur der Verfasser -- ein Bild an einem fremden
     // Kommentar waere ein Zusatz zu einer fremden Aussage. Das Entfernen darf
     // der Admin (siehe die Loeschroute weiter unten); der Unterschied ist
@@ -4539,7 +4539,7 @@ app.post('/api/comments/:id/images', kommentarBildUpload.array('images', BILD_ZA
     if (!nurSelbst(req, c.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
     const da = db.prepare('SELECT COUNT(*) n FROM comment_images WHERE comment_id = ?').get(c.id).n;
     if (da + (req.files || []).length > BILD_ZAHL)
-      return res.status(400).json({ error: t(spracheVon(req), 'server.bilderDeckel', { deckel: BILD_ZAHL })});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.imageCap', { deckel: BILD_ZAHL })});
     const k = await kodiereAlle(req.files);
     if (k.fehler) return res.status(400).json({ error: t(spracheVon(req), k.fehler, k.werte) });
     /* Anhaengen IST Bearbeiten -- und hierher kommt nach der Klemme oben nur
@@ -4563,7 +4563,7 @@ app.post('/api/comments/:id/images', kommentarBildUpload.array('images', BILD_ZA
 app.delete('/api/comment-images/:id', (req, res) => {
   const b = db.prepare(`SELECT ci.id, ci.comment_id, c.item_id, c.user_id FROM comment_images ci
                         JOIN comments c ON c.id = ci.comment_id WHERE ci.id = ?`).get(req.params.id);
-  if (!b) return res.status(404).json({ error: t(spracheVon(req), 'server.bildWeg')});
+  if (!b) return res.status(404).json({ error: t(spracheVon(req), 'server.imageGone')});
   if (!darfAendern(req, b.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
   db.prepare('DELETE FROM comment_images WHERE id = ?').run(b.id);
   /* HIER GILT GENAU EINES VON BEIDEN, NIE BEIDES UND NIE KEINES -- deshalb
@@ -4845,7 +4845,7 @@ app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bild
      aber sie liefen doppelt, und der gemeldete Fortschritt waere der der
      zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
   if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)
-    return res.status(409).json({ error: t(spracheVon(req), 'server.umstellungLaeuft')});
+    return res.status(409).json({ error: t(spracheVon(req), 'server.convertRunning')});
   const zeilen = qOffenePNG.all(PNG_MAGIE_HEX);
   bestandsStaende.umstellung = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
                                  umgestellt: 0, geblieben: 0, gespart: 0 };
@@ -5377,14 +5377,14 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
   const teil = zahl(req.query.teil), teile = zahl(req.query.teile);
   const alsTeil = von !== null || bis !== null || teil !== null || teile !== null;
   if (alsTeil && (von === null || bis === null || teil === null || teile === null))
-    return res.status(400).json({ error: t(spracheVon(req), 'server.teilexportUnvollstaendig')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.partExportIncomplete')});
   if (alsTeil && (von > bis || teil > teile || teile > AUSTAUSCH_TEIL_MAX))
-    return res.status(400).json({ error: t(spracheVon(req), 'server.teilexportKrumm')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.partExportMismatch')});
 
   const gross = austauschBytes(null, schalter);
   if (!alsTeil && gross > AUSTAUSCH_MAX)
     return res.status(413).json({ error:
-      t(spracheVon(req), 'server.exportZuGross', { mb: Math.round(gross / 1048576), grenze: Math.round(AUSTAUSCH_STRING / 1048576) })});
+      t(spracheVon(req), 'server.exportTooBig', { mb: Math.round(gross / 1048576), grenze: Math.round(AUSTAUSCH_STRING / 1048576) })});
   const lage = paketLage(req.benutzer.id, schalter);
   const items = (alsTeil
     ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(von, bis)
@@ -5408,7 +5408,7 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
     if (!(e instanceof RangeError)) throw e;
     res.removeHeader('Content-Disposition');
     res.status(413).json({ error:
-      t(spracheVon(req), 'server.exportGewachsen', { grenze: Math.round(AUSTAUSCH_STRING / 1048576) })});
+      t(spracheVon(req), 'server.exportGrew', { grenze: Math.round(AUSTAUSCH_STRING / 1048576) })});
   }
 });
 
@@ -5422,11 +5422,11 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
  */
 app.get('/api/items/:id/export', nurEigentuemer, (req, res) => {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
-  if (!it) return res.status(404).json({ error: t(spracheVon(req), 'server.sacheFehlt')});
+  if (!it) return res.status(404).json({ error: t(spracheVon(req), 'server.entryUnknown')});
   const schalter = { mitFotos: true, mitDateien: true, mitVideos: true };
   const gross = austauschBytes(it.id, schalter);
   if (gross > AUSTAUSCH_MAX)
-    return res.status(413).json({ error: t(spracheVon(req), 'server.eintragZuGross', { mb: Math.round(gross / 1048576), grenze: Math.round(AUSTAUSCH_STRING / 1048576) })});
+    return res.status(413).json({ error: t(spracheVon(req), 'server.entryTooBig', { mb: Math.round(gross / 1048576), grenze: Math.round(AUSTAUSCH_STRING / 1048576) })});
   const paket = eintragAlsPaket(it, paketLage(req.benutzer.id, schalter));
   res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
   res.json(exportUmschlag([paket]));
@@ -5641,7 +5641,7 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
     /* EIN GANZER SATZ JE ZAHLFORM UND KEIN ZUSAMMENGEKLEBTER -- 0.24.0. Bis
        dahin waehlte der Code zwischen „steht" und „stehen"; das ist Satzbau im
        Quelltext, und er faellt (Konzept, Abschnitt 0, Satz 2). */
-    const e = new Meldung('server.kriterienKonflikt',
+    const e = new Meldung('server.criteriaConflict',
                           { n: konflikte.length, namen: konflikte.join(', ') });
     e.absage = true;
     throw e;
@@ -5888,13 +5888,13 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
 app.post('/api/import', nurEigentuemer, zweiteBestaetigungNoetig('import'),
          importUpload.single('file'), async (req, res, next) => {
   try {
-    if (!req.file) return res.status(400).json({ error: t(spracheVon(req), 'server.keineDatei')});
+    if (!req.file) return res.status(400).json({ error: t(spracheVon(req), 'server.noFile')});
     const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
     let payload;
     try { payload = JSON.parse(req.file.buffer.toString('utf8')); }
-    catch { return res.status(400).json({ error: t(spracheVon(req), 'server.exportUngueltig')}); }
+    catch { return res.status(400).json({ error: t(spracheVon(req), 'server.exportInvalid')}); }
     if (!payload || !Array.isArray(payload.items))
-      return res.status(400).json({ error: t(spracheVon(req), 'server.exportLeer')});
+      return res.status(400).json({ error: t(spracheVon(req), 'server.exportEmpty')});
     // neueIds bleibt hier liegen: eine Datei mit hundert Eintraegen liefert
     // hundert Nummern, mit denen die Oberflaeche nichts anfaengt.
     const { neueIds, ...antwort } = await spieleEin(payload, req.benutzer.id, mode);
@@ -6037,10 +6037,10 @@ app.get('/api/papierkorb', nurAdmin, (req, res) => {
 app.post('/api/papierkorb/:id/wiederherstellen', nurEigentuemer, async (req, res, next) => {
   try {
     const z = db.prepare('SELECT * FROM papierkorb WHERE id = ?').get(req.params.id);
-    if (!z) return res.status(404).json({ error: t(spracheVon(req), 'server.papierkorbWeg')});
+    if (!z) return res.status(404).json({ error: t(spracheVon(req), 'server.trashGone')});
     let umschlag;
     try { umschlag = JSON.parse(z.inhalt); }
-    catch { return res.status(500).json({ error: t(spracheVon(req), 'server.papierkorbUnlesbar')}); }
+    catch { return res.status(500).json({ error: t(spracheVon(req), 'server.trashUnreadable')}); }
     // Die Bytes kommen aus der Nebentabelle, Zeile fuer Zeile -- nie alle
     // zugleich in einem String. Fehlt eine Nummer, wird die Zeile uebergangen
     // und genannt, wie bei einem Video ohne Datei.
@@ -6068,7 +6068,7 @@ app.post('/api/papierkorb/:id/wiederherstellen', nurEigentuemer, async (req, res
 // ON DELETE CASCADE mit.
 app.delete('/api/papierkorb/:id', nurEigentuemer, (req, res) => {
   const n = db.prepare('DELETE FROM papierkorb WHERE id = ?').run(req.params.id).changes;
-  if (!n) return res.status(404).json({ error: t(spracheVon(req), 'server.papierkorbWeg')});
+  if (!n) return res.status(404).json({ error: t(spracheVon(req), 'server.trashGone')});
   reclaim();
   res.status(204).end();
 });
@@ -6176,19 +6176,19 @@ function sicherungLage() {
      Er reist mit seinen Werten -- wer ihn zeigt, uebersetzt ihn dort, wo die
      Anfrage in der Hand liegt. */
   if (!SICHERUNG_DIR)
-    return { ein: false, grund: 'server.sicherungOrdnerFehlt', werte: {} };
+    return { ein: false, grund: 'server.backupDirNotSet', werte: {} };
   let wurzel;
   try { wurzel = fs.realpathSync(SICHERUNG_DIR); }
-  catch { return { ein: false, grund: 'server.sicherungOrdnerWeg', werte: { ordner: SICHERUNG_DIR } }; }
+  catch { return { ein: false, grund: 'server.backupDirGone', werte: { ordner: SICHERUNG_DIR } }; }
   try { if (!fs.statSync(wurzel).isDirectory())
-    return { ein: false, grund: 'server.sicherungOrdnerKeinVerzeichnis', werte: { ordner: SICHERUNG_DIR } }; }
-  catch { return { ein: false, grund: 'server.sicherungOrdnerUnlesbar', werte: { ordner: SICHERUNG_DIR } }; }
+    return { ein: false, grund: 'server.backupDirNotDir', werte: { ordner: SICHERUNG_DIR } }; }
+  catch { return { ein: false, grund: 'server.backupDirUnreadable', werte: { ordner: SICHERUNG_DIR } }; }
   let daten;
   try { daten = fs.realpathSync(DATA_DIR); } catch { daten = path.resolve(DATA_DIR); }
   // EINE SICHERUNG NEBEN DEM ORIGINAL IST KEINE. Beide Richtungen, denn beide
   // sind falsch: der Sicherungsort im Datenverzeichnis und umgekehrt.
   if (liegtIn(wurzel, daten) || liegtIn(daten, wurzel))
-    return { ein: false, grund: 'server.sicherungImDatenverzeichnis', werte: {} };
+    return { ein: false, grund: 'server.backupInDataDir', werte: {} };
   return { ein: true, wurzel, imArbeitsverzeichnis: liegtIn(wurzel, ANWENDUNG_DIR) };
 }
 
@@ -6200,23 +6200,23 @@ function pruefeOrt(roh) {
   if (!lage.ein) return { fehler: lage.grund, werte: lage.werte };
   const s = String(roh == null ? '' : roh).trim();
   if (!s) return { ort: '', pfad: lage.wurzel };
-  if (s.length > 200) return { fehler: 'server.unterordnerZuLang', werte: { deckel: 200 } };
+  if (s.length > 200) return { fehler: 'server.subDirTooLong', werte: { deckel: 200 } };
   if (!ORT_MUSTER.test(s))
-    return { fehler: 'server.unterordnerForm', werte: {} };
+    return { fehler: 'server.subDirForm', werte: {} };
   let echt;
   try { echt = fs.realpathSync(path.resolve(lage.wurzel, s)); }
-  catch { return { fehler: 'server.unterordnerWeg', werte: { ordner: s } }; }
+  catch { return { fehler: 'server.subDirGone', werte: { ordner: s } }; }
   try { if (!fs.statSync(echt).isDirectory())
-    return { fehler: 'server.unterordnerKeinVerzeichnis', werte: { ordner: s } }; }
-  catch { return { fehler: 'server.unterordnerUnlesbar', werte: { ordner: s } }; }
+    return { fehler: 'server.subDirNotDir', werte: { ordner: s } }; }
+  catch { return { fehler: 'server.subDirUnreadable', werte: { ordner: s } }; }
   // DIE PRUEFUNG HAENGT AM AUFGELOESTEN PFAD. Erst hier faellt ein Symlink
   // auf, der aus der Wurzel herausfuehrt -- am String saehe er harmlos aus.
   if (!liegtIn(echt, lage.wurzel))
-    return { fehler: 'server.unterordnerHeraus', werte: { ordner: s } };
+    return { fehler: 'server.subDirOutside', werte: { ordner: s } };
   let daten;
   try { daten = fs.realpathSync(DATA_DIR); } catch { daten = path.resolve(DATA_DIR); }
   if (liegtIn(echt, daten))
-    return { fehler: 'server.sicherungImDatenverzeichnis', werte: {} };
+    return { fehler: 'server.backupInDataDir', werte: {} };
   return { ort: s, pfad: echt };
 }
 
@@ -6364,9 +6364,9 @@ function pruefeRegelwert(roh, spanne, schluessel) {
    Regel nicht. Die Klemme steht an der Stelle, an der der Fehler wehtut. */
 function aufraeumStand() {
   const b = pruefeRegelwert(getSetting('sicherungBehalten', AUFRAEUM_BEHALTEN.vorgabe),
-                            AUFRAEUM_BEHALTEN, 'server.regelBehalten');
+                            AUFRAEUM_BEHALTEN, 'server.ruleKeep');
   const regel = pruefeRegelwert(getSetting('sicherungTage', AUFRAEUM_TAGE.vorgabe),
-                            AUFRAEUM_TAGE, 'server.regelTage');
+                            AUFRAEUM_TAGE, 'server.ruleDays');
   return {
     an: getSetting('sicherungAufraeumen', false) === true,
     behalten: b.fehler ? AUFRAEUM_BEHALTEN.vorgabe : b.wert,
@@ -6531,12 +6531,12 @@ app.get('/api/sicherung', nurEigentuemer, (req, res) => {
   const stand = aufraeumStand();
   let behalten = stand.behalten, tage = stand.tage;
   if (req.query.behalten !== undefined) {
-    const g = pruefeRegelwert(req.query.behalten, AUFRAEUM_BEHALTEN, 'server.regelBehalten');
+    const g = pruefeRegelwert(req.query.behalten, AUFRAEUM_BEHALTEN, 'server.ruleKeep');
     if (g.fehler) return res.status(400).json({ error: t(spracheVon(req), g.fehler, g.werte) });
     behalten = g.wert;
   }
   if (req.query.tage !== undefined) {
-    const g = pruefeRegelwert(req.query.tage, AUFRAEUM_TAGE, 'server.regelTage');
+    const g = pruefeRegelwert(req.query.tage, AUFRAEUM_TAGE, 'server.ruleDays');
     if (g.fehler) return res.status(400).json({ error: t(spracheVon(req), g.fehler, g.werte) });
     tage = g.wert;
   }
@@ -6592,7 +6592,7 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
   const marke = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
   const datei = path.join(ziel.pfad, `kriterion-${marke}.sqlite`);
   if (fs.existsSync(datei))
-    return res.status(409).json({ error: t(spracheVon(req), 'server.sicherungGleichzeitig')});
+    return res.status(409).json({ error: t(spracheVon(req), 'server.backupConcurrent')});
   /* GESCHRIEBEN WIRD UNTER EINEM ARBEITSNAMEN, umbenannt wird erst danach.
      Stolperstein 8 verlangt, eine halbfertige Zieldatei nach einem Fehlschlag
      zu entfernen -- das hier ist eine Stufe schaerfer: der Fall entsteht gar
@@ -6614,7 +6614,7 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
     // Fester Text wie ueberall bei einem Fehler DES SERVERS: ein SQL-Fehler
     // nennt Pfade und Tabellen, und die gehoeren ins Protokoll, nicht in die
     // Antwort.
-    return res.status(500).json({ error: t(spracheVon(req), 'server.sicherungGescheitert')});
+    return res.status(500).json({ error: t(spracheVon(req), 'server.backupFailed')});
   }
   const ms = Date.now() - t0;
   let bytes = 0;
@@ -6706,10 +6706,10 @@ app.post('/api/sicherung/aufraeumen', nurEigentuemer,
   if (ziel.fehler) return res.status(400).json({ error: t(spracheVon(req), ziel.fehler, ziel.werte) });
   const art = String(req.body?.art || '');
   if (art !== 'regel' && art !== 'veraltet')
-    return res.status(400).json({ error: t(spracheVon(req), 'server.aufraeumenUnbekannt')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.cleanupUnknown')});
   const dateien = sicherungsListe(ziel.pfad);
   if (dateien === null)
-    return res.status(400).json({ error: t(spracheVon(req), 'server.sicherungsordnerFehlt')});
+    return res.status(400).json({ error: t(spracheVon(req), 'server.backupDirUnreachable')});
   const marke = wechselMarke();
   /* DIE GRENZEN HALTEN, BEVOR IRGENDETWAS GELOESCHT WIRD. Die Werte kommen aus
      settings und nicht aus dem Rumpf; steht dort einer ausserhalb der Spanne,
@@ -6717,14 +6717,14 @@ app.post('/api/sicherung/aufraeumen', nurEigentuemer,
   let treffer;
   if (art === 'veraltet') {
     if (!marke) return res.status(400).json({
-      error: t(spracheVon(req), 'server.schluesselNieGewechselt')});
+      error: t(spracheVon(req), 'server.keyNeverChanged')});
     treffer = dateien.filter(d => d.zeit < marke.ms);
   } else {
     const b = pruefeRegelwert(getSetting('sicherungBehalten', AUFRAEUM_BEHALTEN.vorgabe),
-                              AUFRAEUM_BEHALTEN, 'server.regelBehalten');
+                              AUFRAEUM_BEHALTEN, 'server.ruleKeep');
     if (b.fehler) return res.status(400).json({ error: t(spracheVon(req), b.fehler, b.werte) });
     const regel = pruefeRegelwert(getSetting('sicherungTage', AUFRAEUM_TAGE.vorgabe),
-                              AUFRAEUM_TAGE, 'server.regelTage');
+                              AUFRAEUM_TAGE, 'server.ruleDays');
     if (regel.fehler) return res.status(400).json({ error: t(spracheVon(req), regel.fehler, regel.werte) });
     treffer = regelTreffer(dateien, b.wert, regel.wert, Date.now(), marke ? marke.ms : null);
   }
@@ -6781,8 +6781,8 @@ app.use((err, req, res, next) => {
   if (err && err.schluessel)
     return res.status(err.status || 400).json({ error: t(sprache, err.schluessel, err.werte || {}) });
   const rang = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
-  if (rang >= 500) return res.status(500).json({ error: t(sprache, 'server.fehlerAllgemein') });
-  res.status(rang).json({ error: err.message || t(sprache, 'server.fehlerUnbekannt') });
+  if (rang >= 500) return res.status(500).json({ error: t(sprache, 'server.error') });
+  res.status(rang).json({ error: err.message || t(sprache, 'server.errorUnknown') });
 });
 
 /* ================= Start ================= */

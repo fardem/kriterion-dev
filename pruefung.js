@@ -679,7 +679,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const GEPRUEFT = ['server.js', 'db.js', 'auth.js', 'keys.js', 'zugang.js', 'anhaenge.js',
     'package.json', 'docker-compose.example.yml', 'Dockerfile', '.env.example',
     'public/app.js', 'public/index.html', 'public/style.css',
-    'public/sprachen/de.json'];
+    'public/languages/de.json'];
   const funde = [];
   for (const datei of GEPRUEFT) {
     fs.readFileSync(path.join(__dirname, datei), 'utf8').split('\n').forEach((zeile, i) => {
@@ -907,12 +907,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      damit ausgeliefert; ein Server, der andere Texte sagt, ist ein anderer
      Server. Die Ableitung deckt sie von selbst ab -- diese Zeile haelt fest,
      dass sie es wirklich tut. */
-  pruefe('Eine Änderung an public/sprachen/de.json ändert ihn',
-    await nachAenderung('public/sprachen/de.json',
-      JSON.stringify({ _locale: 'de-DE', 'server.fehlerUnbekannt': 'anders' })) !== fingerprintKopie);
+  pruefe('Eine Änderung an public/languages/de.json ändert ihn',
+    await nachAenderung('public/languages/de.json',
+      JSON.stringify({ _locale: 'de-DE', 'server.errorUnknown': 'anders' })) !== fingerprintKopie);
   // Und wieder zurueck: die folgenden Zeilen vergleichen gegen den Ausgangswert.
-  fs.copyFileSync(path.join(__dirname, 'public', 'sprachen', 'de.json'),
-                  path.join(quellKopie, 'public', 'sprachen', 'de.json'));
+  fs.copyFileSync(path.join(__dirname, 'public', 'languages', 'de.json'),
+                  path.join(quellKopie, 'public', 'languages', 'de.json'));
   pruefe('Eine Änderung an pruefung.js lässt ihn unberührt',
     await nachAenderung('pruefung.js', '// nicht ausgeliefert\n') === fingerprintKopie);
   pruefe('Eine neue Datei unter Doku ebenfalls',
@@ -6168,7 +6168,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         headers: { cookie: 'kriterion_session=cookie-sd-anna' } })).json()
       ).error?.includes('Datenverzeichnis'), 'keine sprechende Absage');
     pruefe('Der Start sagt es im Protokoll',
-      /Sicherungsort: aus — .*Datenverzeichnis/.test(SD.protokoll()), SD.protokoll().slice(0, 500));
+      /Sicherungsort: aus — .*backupInDataDir/.test(SD.protokoll()), SD.protokoll().slice(0, 500));
     await SD.stopp();
     fs.rmSync(dDir, { recursive: true, force: true });
   }
@@ -14603,7 +14603,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Datei und Quelltext --, damit der Waechter waehrend des Umzugs in jedem
      Zwischenstand dieselbe Frage stellt (Stolperstein 201). */
   const fAppQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
-    + '\u0000' + fs.readFileSync(path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8');
+    + '\u0000' + fs.readFileSync(path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8');
   pruefe('Erst deshalb darf der Bildschirm die Rolle nennen',
     fAppQuelle.includes('vom Admin entfernt') &&
     fBildWegRumpf.includes('darfAendern(req, b.user_id)') &&
@@ -14741,7 +14741,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Satz. Gehalten wird beides: er sagt genau einen Satz, und er sagt ihn
      ueber t(). */
   pruefe('Und er liefert die Meldung eines Serverfehlers nicht aus',
-    /res\.status\(500\)\.json\(\{ error: t\(sprache, 'server\.fehlerAllgemein'\) \}\)/.test(fFehlerRumpf)
+    /res\.status\(500\)\.json\(\{ error: t\(sprache, 'server\.error'\) \}\)/.test(fFehlerRumpf)
       && !/res\.status\(500\)[^\n]*err\.(message|stack)/.test(fFehlerRumpf),
     fFehlerRumpf ? 'kein Schluessel bei 500' : '(kein Rumpf)');
 
@@ -15029,7 +15029,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Anwendung nicht (Auftrag 0.24.0, Bauabschnitt 5.1). */
   const PROT_DATEIEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
                         'public/app.js', 'public/index.html', 'zugang.js',
-                        'public/sprachen/de.json'];
+                        'public/languages/de.json'];
   const protZaehle = (text) => (ohneKommentare(text).match(/(?<!Sicherheits)\bProtokoll\b/g) || []).length;
   const fProt = PROT_DATEIEN
     .map(d => [d, protZaehle(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
@@ -15048,14 +15048,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* SEIT 0.24.0 STEHT SIE IN DER SPRACHDATEI und nicht mehr in server.js --
      der Satz ist derselbe, nur wohnt er jetzt dort, wo Text wohnt. */
   pruefe('Und sie meint den Containerlog, in der Sprachdatei',
-    gleich(fProt.map(([d]) => d), ['public/sprachen/de.json']), JSON.stringify(fProt));
+    gleich(fProt.map(([d]) => d), ['public/languages/de.json']), JSON.stringify(fProt));
   /* DER SATZ WOHNT SEIT 0.24.0 IN DER SPRACHDATEI. Gesucht wird in beidem --
      Quelltext und Datei --, damit der Waechter in jedem Zwischenstand des
      Umzugs dieselbe Frage stellt (Stolperstein 201). */
   const protAppUndTexte =
     fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8') + '\u0000' +
     Object.values(JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8')))
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
       .flatMap(v => (typeof v === 'string' ? [v] : Object.values(v))).join('\u0000');
   pruefe('Die Kennzahlenkarte sagt dafuer „Server-Log"',
     /im Server-Log „Schlüssel aus ENCRYPTION_KEY geladen/.test(protAppUndTexte),
@@ -15080,7 +15080,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      das Wort? Ein Schluessel, den die Datei nicht kennt, bleibt stehen und
      faellt damit auf. */
   const protDe = JSON.parse(fs.readFileSync(
-    path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'));
+    path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
   const protUeberschriften = [...fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')
     .matchAll(/<h3>([\s\S]*?)<\/h3>/g)].map(m => {
       const ruf = /^\$\{tH?\('([^']+)'\)\}$/.exec(m[1].trim());
@@ -15110,8 +15110,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Quelltext -- gesucht wird er dort, mitgezogen und nicht geloescht
      (Stolperstein 201). */
   pruefe('Dafuer steht das gewaehlte Wort am Bildschirm',
-    JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'))
-      ['dialog.bestaetigen'] === 'Bestätigen',
+    JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'))
+      ['dialog.confirm'] === 'Bestätigen',
     'der Dialog nennt die Bestaetigung nicht beim Namen');
 
   /* DAS PASSWORT REIST IM RUMPF -- UND DARF NIRGENDS AUSGEGEBEN WERDEN. Im
@@ -15493,14 +15493,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // Und der Filter wirft nicht ALLES weg: ein deutscher Satz bleibt stehen.
     pruefe('Und der Filter laesst einen deutschen Satz stehen',
       !istSchluessel('Bitte einen Titel eingeben.') && !istBezeichner('Bitte einen Titel eingeben.')
-        && istSchluessel('server.tagWeg') && istBezeichner('geloescht'),
+        && istSchluessel('server.tagGone') && istBezeichner('geloescht'),
       'der Filter trennt Schluessel und Satz nicht');
     const spDe = JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'));
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
     const btServer = Object.entries(spDe)
       .filter(([k]) => k.startsWith('server.') || k.startsWith('anmeldung.'))
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v))
-        .map(text => ({ text, zeile: k, datei: 'public/sprachen/de.json' })));
+        .map(text => ({ text, zeile: k, datei: 'public/languages/de.json' })));
     pruefe('Und die Sprachdatei traegt dafuer mehr als hundert Servermeldungen',
       btServer.length > 100, `${btServer.length} Meldungen`);
     /* JEDER WERT DER DATEI, nicht nur die Servermeldungen -- der Waechter
@@ -15512,7 +15512,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const btDe = Object.entries(spDe).filter(([k]) => k !== '_locale')
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v))
         .map(text => ({ text: text.replace(/\{[^}]*\}/g, ' '), zeile: k,
-                        datei: 'public/sprachen/de.json' })));
+                        datei: 'public/languages/de.json' })));
     pruefe('Die Sprachdatei traegt mehr als achthundert lesbare Texte',
       btDe.filter(t => !istAdresse(t.text)).length > 800, `${btDe.length} Texte`);
     /* NULL DEUTSCHE SAETZE IN `throw new Error` IN auth.js -- der blinde Fleck
@@ -15559,10 +15559,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Aenderungsprotokoll und gehen ins Sammelblatt.
        NAMENTLICH UND NICHT ALS ZAHL: wer einen davon spaeter richtigstellt,
        nimmt ihn hier heraus -- und wer einen neuen dazuschreibt, faellt auf. */
-    const ALTLASTEN = ['anmeldung.keinZugang', 'server.kriterienKonflikt',
-                       'server.sicherungImDatenverzeichnis', 'server.verweigertSelbstZugang',
-                       'mail.bestaetigung.text', 'mail.einladung.betreff',
-                       'mail.einladung.text', 'mail.ruecksetzung.text', 'mail.test.text'];
+    const ALTLASTEN = ['login.noUserYet', 'server.criteriaConflict',
+                       'server.backupInDataDir', 'server.deniedOwnUser',
+                       'mail.confirm.body', 'mail.invite.subject',
+                       'mail.invite.body', 'mail.reset.body', 'mail.test.body'];
     pruefe('Die neun Altlasten stehen wirklich noch in der Sprachdatei',
       ALTLASTEN.every(k => spDe[k] !== undefined),
       ALTLASTEN.filter(k => spDe[k] === undefined).join(' · ') || 'alle neun da');
@@ -23720,11 +23720,11 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        gueltig, wie sie sind, und laufen weiter auf Deutsch. Ein nachgebauter
        Satz waere eine zweite Wahrheit -- und die Pruefung liefe gruen, waehrend
        die ausgelieferte Datei etwas anderes sagt (Stolperstein 47). */
-    const sprachDatei = /^\/sprachen\/([a-z]{2})\.json$/.exec(String(url));
+    const sprachDatei = /^\/languages\/([a-z]{2})\.json$/.exec(String(url));
     if (sprachDatei) {
       // `ohneSprache`: die Lage, in der die Datei fehlt (Entscheidung A1).
       if (ohneSprache) return gib({}, 404);
-      const datei = path.join(__dirname, 'public', 'sprachen', `${sprachDatei[1]}.json`);
+      const datei = path.join(__dirname, 'public', 'languages', `${sprachDatei[1]}.json`);
       if (!fs.existsSync(datei)) return gib({}, 404);
       return gib(JSON.parse(fs.readFileSync(datei, 'utf8')));
     }
@@ -25757,7 +25757,7 @@ async function pruefeOberflaeche() {
      sie dort -- die Frage ist dieselbe geblieben: heisst es am Eintrag
      „Favorit" und am Kommentar „angepinnt"? */
   const appTexte = JSON.parse(fs.readFileSync(
-    path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'));
+    path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
   const appWerte = Object.values(appTexte)
     .flatMap(v => typeof v === 'string' ? [v] : Object.values(v));
   pruefe('Der Eintrag spricht von Favoriten, nicht vom Anheften',
@@ -25780,10 +25780,10 @@ async function pruefeOberflaeche() {
      dasselbe wie vorher -- die Kommentare sprechen vom Anpinnen --, nur zaehlt
      der Waechter jetzt SCHLUESSEL statt Vorkommen. */
   pruefe('Die Kommentare sprechen vom Anpinnen, nicht vom Favoriten',
-    appTexte['eintrag.anpinnenStehtDannGanzOben'] === 'Anpinnen — steht dann ganz oben' &&
-    appTexte['eintrag.nichtMehrAnpinnen'] === 'Nicht mehr anpinnen' &&
-    (appQuelle.match(/tH?\('eintrag\.anpinnenStehtDannGanzOben'\)/g) || []).length === 3 &&
-    (appQuelle.match(/tH?\('eintrag\.nichtMehrAnpinnen'\)/g) || []).length === 2,
+    appTexte['entry.pinHint'] === 'Anpinnen — steht dann ganz oben' &&
+    appTexte['entry.unpin'] === 'Nicht mehr anpinnen' &&
+    (appQuelle.match(/tH?\('entry\.pinHint'\)/g) || []).length === 3 &&
+    (appQuelle.match(/tH?\('entry\.unpin'\)/g) || []).length === 2,
     'die Umbenennung hat die Kommentare mitgenommen -- das sind zwei verschiedene Dinge');
 
   /* ================= Offen: die Ansicht ================= */
@@ -36045,7 +36045,7 @@ async function pruefeOberflaeche() {
        Die drei Saetze sind dieselben geblieben, sie wohnen nur woanders; die
        FRAGE aendert sich dadurch nicht (Stolperstein 201). */
     const tzWerte = Object.values(JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8')))
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
       .flatMap(v => (typeof v === 'string' ? [v] : Object.values(v)));
     const tzAlles = tzApp + '\u0000' + tzWerte.join('\u0000');
     pruefe('Er sagt, dass EINMAL bestätigt wird',
@@ -39960,7 +39960,7 @@ async function pruefeOberflaeche() {
        Schritt zur Seite gemacht haette (Gegenprobe 505, ein Fund vom
        6. September 2026: sie blieb stumm, weil hier nur app.js stand). */
     const iDe = Object.entries(JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8')))
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(w => [k, w]))
       .filter(([, w]) => w.includes('Instanz'));
     pruefe('Und in der Sprachdatei steht es in keinem einzigen Satz',
@@ -40989,8 +40989,8 @@ async function pruefeOberflaeche() {
      darunter. Der Helfer kann sie trotzdem, und das gehoert belegt. */
   gruppe('Der Sprachhelfer und die Ladung — 0.24.0');
   {
-    const spDatei = path.join(__dirname, 'public', 'sprachen', 'de.json');
-    pruefe('Die Sprachdatei liegt unter public/sprachen/ und heisst de.json',
+    const spDatei = path.join(__dirname, 'public', 'languages', 'de.json');
+    pruefe('Die Sprachdatei liegt unter public/languages/ und heisst de.json',
       fs.existsSync(spDatei), spDatei);
     const spRoh = fs.readFileSync(spDatei, 'utf8');
     let spTexte = null;
@@ -41102,8 +41102,8 @@ async function pruefeOberflaeche() {
     spEcht();
     /* DIE ECHTE DATEI TRAEGT DIE DREI SCHLUESSEL DIESES BAUABSCHNITTS. */
     pruefe('Der Rückfallsatz von api() steht in der Datei',
-      spW.t('fehler.serverStatus', { status: 500 }) === 'Der Server meldet einen Fehler (500).',
-      spW.t('fehler.serverStatus', { status: 500 }));
+      spW.t('error.serverStatus', { status: 500 }) === 'Der Server meldet einen Fehler (500).',
+      spW.t('error.serverStatus', { status: 500 }));
     spW.close();
 
     /* ---- Die Ladung in boot() ---- */
@@ -41139,12 +41139,12 @@ async function pruefeOberflaeche() {
     const spApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const spSrv = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     pruefe('api() liest seinen Rückfallsatz über t()',
-      /let m = t\('fehler\.serverStatus', \{ status: res\.status \}\);/.test(spApp)
+      /let m = t\('error\.serverStatus', \{ status: res\.status \}\);/.test(spApp)
         && !/Der Server meldet einen Fehler/.test(spApp),
       (spApp.match(/let m = [^\n]*/) || ['(nicht gefunden)'])[0]);
     pruefe('Der Fehler-Handler übersetzt seine zwei Sätze',
-      /t\(sprache, 'server\.fehlerAllgemein'\)/.test(spSrv)
-        && /t\(sprache, 'server\.fehlerUnbekannt'\)/.test(spSrv)
+      /t\(sprache, 'server\.error'\)/.test(spSrv)
+        && /t\(sprache, 'server\.errorUnknown'\)/.test(spSrv)
         && !/Auf dem Server ist ein Fehler aufgetreten/.test(spSrv)
         && !/'Unbekannter Fehler'/.test(spSrv),
       'Literale im Handler: ' + String(/Auf dem Server ist ein Fehler aufgetreten/.test(spSrv)));
@@ -41180,7 +41180,7 @@ async function pruefeOberflaeche() {
       else if (e.isFile()) fs.copyFileSync(path.join(__dirname, e.name), ziel);
     }
     fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(spKopie, 'node_modules'));
-    fs.rmSync(path.join(spKopie, 'public', 'sprachen', 'de.json'));
+    fs.rmSync(path.join(spKopie, 'public', 'languages', 'de.json'));
     const spStart = await new Promise((fertig) => {
       const datenVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sprachdaten-'));
       const spPort = SPRACHE_BASIS + PORT_VERSATZ;
@@ -41214,7 +41214,7 @@ async function pruefeOberflaeche() {
   gruppe('Die Serverseite spricht aus der Datei — 0.24.0');
   {
     const sdDe = JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'));
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
     /* EINE MELDUNG AUS auth.js, AN EINEM ZUGANG: das falsche bisherige
        Passwort. Sie wird in auth.js geworfen, in server.js gefangen und dort
        uebersetzt -- drei Dateien, ein Satz. */
@@ -41235,15 +41235,15 @@ async function pruefeOberflaeche() {
        zweite Faktor" ab -- sie liest den Satz und wuerde rot, sobald er
        nicht mehr herauskommt. */
     pruefe('Die Absage des zweiten Faktors ist ein Schlüssel mit Satz in der Datei',
-      require('./auth').ZWEITER_FAKTOR_ABSAGE === 'anmeldung.codeFalsch' &&
-      sdDe['anmeldung.codeFalsch'] === 'Der Code stimmt nicht.',
-      `${require('./auth').ZWEITER_FAKTOR_ABSAGE} · ${sdDe['anmeldung.codeFalsch']}`);
+      require('./auth').ZWEITER_FAKTOR_ABSAGE === 'login.codeWrong' &&
+      sdDe['login.codeWrong'] === 'Der Code stimmt nicht.',
+      `${require('./auth').ZWEITER_FAKTOR_ABSAGE} · ${sdDe['login.codeWrong']}`);
     /* DIE VIER BRIEFE SAMT BETREFF. Sie sind aus mail.js in die Datei gezogen,
        die Betreffzeilen aus server.js dazu. Geprueft wird die FORM: ein
        Betreff und ein Text je Brief, und der Titel der Installation als
        Platzhalter -- er ist Inhalt und wird nie uebersetzt. */
-    for (const art of ['einladung', 'ruecksetzung', 'bestaetigung', 'test']) {
-      const betreff = sdDe[`mail.${art}.betreff`], text = sdDe[`mail.${art}.text`];
+    for (const art of ['invite', 'reset', 'confirm', 'test']) {
+      const betreff = sdDe[`mail.${art}.subject`], text = sdDe[`mail.${art}.body`];
       pruefe(`Der Brief „${art}" steht mit Betreff und Text in der Datei`,
         typeof betreff === 'string' && typeof text === 'string' && text.includes('\n'),
         `${JSON.stringify(betreff)} · ${String(text).length} Zeichen`);
@@ -41255,10 +41255,10 @@ async function pruefeOberflaeche() {
        eine, der keinen hat, und das ist der Unterschied, den ein Uebersetzer
        sehen muss. */
     pruefe('Die drei Briefe mit Link tragen {link}, die Testmail nicht',
-      ['einladung', 'ruecksetzung', 'bestaetigung'].every(a => sdDe[`mail.${a}.text`].includes('{link}')) &&
-      !sdDe['mail.test.text'].includes('{link}'),
-      ['einladung', 'ruecksetzung', 'bestaetigung', 'test']
-        .map(a => `${a}:${sdDe[`mail.${a}.text`].includes('{link}')}`).join(' '));
+      ['invite', 'reset', 'confirm'].every(a => sdDe[`mail.${a}.body`].includes('{link}')) &&
+      !sdDe['mail.test.body'].includes('{link}'),
+      ['invite', 'reset', 'confirm', 'test']
+        .map(a => `${a}:${sdDe[`mail.${a}.body`].includes('{link}')}`).join(' '));
     /* UND DIE BEIDEN GRIFFE SIND WIRKLICH GEREICHT. Ohne sie stuende in jedem
        Brief und in jeder Absage von requireAuth() die Klammerform -- und die
        faellt erst am Empfaenger auf. */
@@ -41270,9 +41270,9 @@ async function pruefeOberflaeche() {
     /* DIE VORGABEN DER VIERZEHN VOKABELWOERTER KOMMEN AUS DER DATEI -- eine
        Vorgabe, ein Ort (Stolperstein 47). Bis 0.24.0 standen sie zweimal im
        Quelltext. */
-    const sdVok = Object.keys(sdDe).filter(k => k.startsWith('vokabular.'));
+    const sdVok = Object.keys(sdDe).filter(k => k.startsWith('vocabulary.'));
     pruefe('Die vierzehn Vokabelvorgaben stehen in der Sprachdatei',
-      sdVok.length === 14 && sdDe['vokabular.sacheEinzahl'] === 'Eintrag',
+      sdVok.length === 14 && sdDe['vocabulary.sacheEinzahl'] === 'Eintrag',
       `${sdVok.length} Wörter: ${sdVok.map(k => k.slice(10)).join(' ')}`);
     // Im Server steht sie nicht mehr; die zweite Ausfertigung in app.js faellt
     // mit Bauabschnitt 3, und die Zeile dazu steht in dessen Gruppe.
@@ -41290,7 +41290,7 @@ async function pruefeOberflaeche() {
      Fund (Projektstand, Abschnitt 12). */
   gruppe('Die sieben Waechter der Sprachdatei — 0.24.0');
   {
-    const spVerz = path.join(__dirname, 'public', 'sprachen');
+    const spVerz = path.join(__dirname, 'public', 'languages');
     const spNamen = fs.readdirSync(spVerz).filter(n => n.endsWith('.json')).sort();
     const spKaputt = [], spInhalt = {};
     for (const name of spNamen) {
@@ -41361,8 +41361,8 @@ async function pruefeOberflaeche() {
        `mail.${art}.betreff` zur Laufzeit. Sie stehen deshalb namentlich hier
        und nicht als Regel -- eine Regel „alles unter mail. ist in Ordnung"
        liesse auch eine Karteileiche durch. */
-    const BRIEFE = ['bestaetigung', 'einladung', 'ruecksetzung', 'test']
-      .flatMap(art => [`mail.${art}.betreff`, `mail.${art}.text`]);
+    const BRIEFE = ['confirm', 'invite', 'reset', 'test']
+      .flatMap(art => [`mail.${art}.subject`, `mail.${art}.body`]);
     for (const k of BRIEFE) gerufen.add(k);
     const nichtGerufen = deSchluessel.filter(k => k !== '_locale' && !gerufen.has(k));
     const ohneSatz = [...gerufen].filter(k => !deSchluessel.includes(k)).sort();
@@ -41386,7 +41386,7 @@ async function pruefeOberflaeche() {
        Bildschirm auf, wo `{sache}` woertlich steht (der Helfer laesst
        Unbekanntes ausdruecklich stehen). */
     const VOKABELN = Object.keys(spInhalt.de || {})
-      .filter(k => k.startsWith('vokabular.')).map(k => k.slice('vokabular.'.length));
+      .filter(k => k.startsWith('vocabulary.')).map(k => k.slice('vocabulary.'.length));
     const platzhalterVon = (wert) => new Set(
       [...JSON.stringify(wert).matchAll(/\{([A-Za-z0-9_]+)\}/g)].map(m => m[1]));
     const phFehler = [];
@@ -41434,7 +41434,7 @@ async function pruefeOberflaeche() {
        spanne, was)` bekommt den Namen gereicht und baut die Werte selbst.
        Sie stehen NAMENTLICH hier und nicht als Regel: wer einen dritten so
        baut, faellt auf. */
-    const UEBER_HELFER = ['server.regelBehalten', 'server.regelTage'];
+    const UEBER_HELFER = ['server.ruleKeep', 'server.ruleDays'];
     const unversorgt = [];
     for (const k of deSchluessel) {
       if (k === '_locale' || BRIEFE.includes(k) || UEBER_HELFER.includes(k)) continue;
@@ -41477,8 +41477,8 @@ async function pruefeOberflaeche() {
        tragen die Zahl NICHT im Satz und bekommen sie trotzdem gereicht --
        „Sitzung." und „Sitzungen." sind der Schluss eines Satzes, dessen Zahl
        weiter vorn steht. */
-    const OHNE_N_IM_SATZ = ['server.kriterienKonflikt', 'karte.sieOeffnenSichNurMitDem',
-                            'karte.sitzungenPunkt'];
+    const OHNE_N_IM_SATZ = ['server.criteriaConflict', 'card.opensOnlyWith',
+                            'card.sessionsDot'];
     const ohneN = objekte.filter(k => !OHNE_N_IM_SATZ.includes(k)
       && !platzhalterVon(spInhalt.de[k]).has('n'));
     pruefe('Und jede nennt ihr {n} im Satz — ausser den drei benannten',
@@ -41523,7 +41523,7 @@ async function pruefeOberflaeche() {
       // Der Name des Programms, bevor /api/config antwortet
       'Kriterion',
       // Der Ort der Sprachdateien und die Lage, wenn eine fehlt
-      'sprachen/', 'Die Sprachdatei fehlt.',
+      'languages/', 'Die Sprachdatei fehlt.',
       // Auswahl im Stilblatt und zwei Medienabfragen
       'button, input, select, a, .bgrip',
       '(prefers-color-scheme: light)',
@@ -41552,7 +41552,7 @@ async function pruefeOberflaeche() {
     // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
     pruefe('Und der Filter laesst einen deutschen Satz stehen',
       lesbarerText('Bitte einen Titel eingeben.') && !lesbarerText('mrow zug')
-        && !lesbarerText('liste.oeffnen') && !lesbarerText('#/system'),
+        && !lesbarerText('list.open') && !lesbarerText('#/system'),
       'der Filter trennt Satz und Bezeichner nicht');
 
     /* ---- 7. Formatprobe -------------------------------------------------
@@ -41864,7 +41864,7 @@ async function pruefeOberflaeche() {
        derselbe Verstoss wie vorher in app.js. Ein Befehl ist ausserdem in
        jeder Sprache derselbe und gehoert schon deshalb nicht uebersetzt. */
     const befehleDe = Object.entries(JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8')))
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(w => [k, w]))
       .filter(([, w]) => /docker compose|zugang\.js/.test(w));
     pruefe('Und keiner steht in der Sprachdatei',

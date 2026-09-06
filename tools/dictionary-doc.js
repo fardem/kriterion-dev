@@ -110,7 +110,20 @@ for (const [gruppe, paare] of Object.entries(d.values)) {
 p('**Der Migrationsblock liest diese Liste**, und der Import übersetzt alte');
 p('Exportdateien beim Einlesen mit derselben (F2).');
 p();
-p('## 8. Die Namen über der Latte — mit Begründung');
+p('## 8. Wie ein Wort gezählt wird');
+p();
+p('**Die Latte zählt die Teile eines Namens in Höckerschrift** — `saveTitle`');
+p('sind zwei. **Ein Fachwort, das aus zwei Teilen besteht und EINE Sache');
+p('benennt, zählt als eins:**');
+p();
+p(d.begriffe.map(b => '`' + b + '`').join(' · '));
+p();
+p('*Sie stehen namentlich da und nicht als Regel: eine Regel „Zusammensetzungen');
+p('zaehlen als eins" liesse jeden Namen durch.*');
+p();
+p('**UND EINE AUSNAHME, DIE KEIN NAME IST, SONDERN EIN ORT:** ' + d.vokabularAusnahme);
+p();
+p('## 9. Die Namen über der Latte — mit Begründung');
 p();
 if (!d.exceptions.length) {
   p('*Noch keiner. Die Latte (drei Wörter, 24 Zeichen) weist nichts ab; wer über');

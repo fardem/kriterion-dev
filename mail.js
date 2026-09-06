@@ -67,11 +67,11 @@ const ANBIETER = [
    Anbieter dazukommt. Der dritte gilt fuer alle und steht deshalb ohne
    Schluessel darunter. */
 const HINWEISE = {
-  gmail: 'mail.hinweisGmail',
-  gmx: 'mail.hinweisGmx',
-  web: 'mail.hinweisWeb'
+  gmail: 'mail.hintGmail',
+  gmx: 'mail.hintGmx',
+  web: 'mail.hintWebDe'
 };
-const HINWEIS_IMMER = 'mail.hinweisImmer';
+const HINWEIS_IMMER = 'mail.hintAlways';
 
 /* ---- Die Frist ----
    SMTP KANN MINUTENLANG NICHTS SAGEN, und nodemailers Vorgaben sind fuer
@@ -194,7 +194,7 @@ function pruefeEingabe(ein, bisher) {
   const anbieter = String(e.anbieter || '').trim();
   if (!anbieter) return { ...LEER };
   const v = anbieterZu(anbieter);
-  if (!v) throw meldung('mail.anbieterFehlt');
+  if (!v) throw meldung('mail.providerUnknown');
 
   const benutzer = String(e.benutzer ?? '').trim();
   const absender = String(e.absender ?? '').trim();
@@ -204,18 +204,18 @@ function pruefeEingabe(ein, bisher) {
   const passwort = typeof e.passwort === 'string' && e.passwort !== ''
     ? e.passwort : String(alt.passwort || '');
 
-  if (!benutzer) throw meldung('mail.benutzerFehlt');
-  if (!passwort) throw meldung('mail.passwortFehlt');
-  if (!istAdresse(absender)) throw meldung('mail.absenderUngueltig');
+  if (!benutzer) throw meldung('mail.userMissing');
+  if (!passwort) throw meldung('mail.passwordMissing');
+  if (!istAdresse(absender)) throw meldung('mail.senderInvalid');
 
   const raus = { anbieter, benutzer, passwort, absender, server: '', port: 0, sicher: false };
   if (v.schluessel !== 'eigen') return raus;
 
   const server = String(e.server || '').trim();
   const port = Number(e.port);
-  if (!server) throw meldung('mail.servernameFehlt');
+  if (!server) throw meldung('mail.serverMissing');
   if (!Number.isInteger(port) || port < 1 || port > 65535)
-    throw meldung('mail.portSpanne', { min: 1, max: 65535 });
+    throw meldung('mail.portRange', { min: 1, max: 65535 });
   return { ...raus, server, port, sicher: e.sicher === true };
 }
 
@@ -263,8 +263,8 @@ async function versende(sprache, roh, an, betreff, text) {
   /* DER GRUND IST SEIT 0.24.0 EIN SCHLUESSEL, WO ER AUS DIESER DATEI KOMMT --
      und ein SATZ, wo ihn der Anbieter geschrieben hat (kurzerGrund). Beides
      steht am Bildschirm; nur das erste laesst sich uebersetzen. */
-  if (!eingerichtet(z)) return { ok: false, grund: t(sprache, 'mail.zugangFehlt') };
-  if (!istAdresse(an)) return { ok: false, grund: t(sprache, 'mail.empfaengerUngueltig') };
+  if (!eingerichtet(z)) return { ok: false, grund: t(sprache, 'mail.noAccount') };
+  if (!istAdresse(an)) return { ok: false, grund: t(sprache, 'mail.recipientInvalid') };
   let versender = null;
   try {
     versender = baueVersender(z);
@@ -273,7 +273,7 @@ async function versende(sprache, roh, an, betreff, text) {
        vergessen, die als naechste dazukommt. */
     let uhr;
     const frist = new Promise((_, fehler) => {
-      uhr = setTimeout(() => fehler(new Error(t(sprache, 'mail.keineAntwort'))), VERSAND_MS);
+      uhr = setTimeout(() => fehler(new Error(t(sprache, 'mail.timeout'))), VERSAND_MS);
     });
     try {
       await Promise.race([
@@ -298,7 +298,7 @@ async function versende(sprache, roh, an, betreff, text) {
 }
 
 function kurzerGrund(sprache, e) {
-  const roh = String((e && e.message) || t(sprache, 'mail.unbekannterFehler')).replace(/\s+/g, ' ').trim();
+  const roh = String((e && e.message) || t(sprache, 'mail.unknownError')).replace(/\s+/g, ' ').trim();
   return roh.length > 120 ? roh.slice(0, 117) + '…' : roh;
 }
 
@@ -322,12 +322,12 @@ function kurzerGrund(sprache, e) {
    JEDER BRIEF LIEFERT BETREFF UND TEXT ZUSAMMEN: zwei Aufrufe fuer einen Brief
    liessen sich an der naechsten Stelle halb vergessen. */
 const brief = (sprache, art, werte) => ({
-  betreff: t(sprache, `mail.${art}.betreff`, werte),
-  text: t(sprache, `mail.${art}.text`, werte)
+  betreff: t(sprache, `mail.${art}.subject`, werte),
+  text: t(sprache, `mail.${art}.body`, werte)
 });
-const briefEinladung = (sprache, werte) => brief(sprache, 'einladung', werte);
-const briefRuecksetzung = (sprache, werte) => brief(sprache, 'ruecksetzung', werte);
-const briefBestaetigung = (sprache, werte) => brief(sprache, 'bestaetigung', werte);
+const briefEinladung = (sprache, werte) => brief(sprache, 'invite', werte);
+const briefRuecksetzung = (sprache, werte) => brief(sprache, 'reset', werte);
+const briefBestaetigung = (sprache, werte) => brief(sprache, 'confirm', werte);
 const briefTest = (sprache, werte) => brief(sprache, 'test', werte);
 
 module.exports = {

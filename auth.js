@@ -253,16 +253,16 @@ const benutzerVorhanden = () => db.prepare('SELECT COUNT(*) n FROM users').get()
 // der Grabstein eines anderen.
 function pruefeName(name) {
   const n = String(name || '').trim();
-  if (!n) throw new Meldung('anmeldung.benutzernameFehlt');
+  if (!n) throw new Meldung('login.usernameMissing');
   if (GRABSTEIN_MUSTER.test(n))
-    throw new Meldung('anmeldung.nameReserviert');
+    throw new Meldung('login.nameReserved');
   return n;
 }
 
 function pruefeVorgaben(name, passwort) {
   pruefeName(name);
   if (String(passwort || '').length < PASSWORT_MIN)
-    throw new Meldung('anmeldung.passwortZuKurz', { min: PASSWORT_MIN });
+    throw new Meldung('login.passwordTooShort', { min: PASSWORT_MIN });
 }
 
 // Legt den ersten Zugang an. Das Einfuegen entscheidet selbst, ob es der erste
@@ -276,7 +276,7 @@ async function legeErstenBenutzerAn(name, passwort) {
     "INSERT INTO users (username, password_hash, role) " +
     "SELECT ?, ?, 'eigentuemer' WHERE NOT EXISTS (SELECT 1 FROM users)"
   ).run(String(name).trim(), hash);
-  if (r.changes === 0) throw new Meldung('server.einrichtungFertig');
+  if (r.changes === 0) throw new Meldung('server.setupDone');
   // Zweite Aufrufstelle des Auffangnetzes aus db.js: beim Start einer leeren
   // Instanz lief es ins Leere, weil es noch keinen Benutzer gab -- dieser Weg
   // liefert ihn erst jetzt nach.
@@ -305,9 +305,9 @@ async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort
   if (!Number.isInteger(id) || id <= 0)
     throw new Error('Ein Zugangswechsel braucht den angemeldeten Benutzer.');
   const u = db.prepare('SELECT id, username, password_hash, email FROM users WHERE id = ?').get(id);
-  if (!u) throw new Meldung('anmeldung.keinZugang');
+  if (!u) throw new Meldung('login.noUserYet');
   if (!await pruefePasswort(String(altesPasswort || ''), u.password_hash))
-    throw new Meldung('anmeldung.altesPasswortFalsch');
+    throw new Meldung('login.oldPasswordWrong');
   const name = String(neuerName || '').trim() || u.username;
   const wechselt = String(neuesPasswort || '').length > 0;
   // pruefeName laeuft auf BEIDEN Wegen; pruefeVorgaben greift nur beim
@@ -318,14 +318,14 @@ async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort
   // zweiten Zugang die rohe SQLite-Meldung als 400 heraus -- unverstaendlich
   // an einer Stelle, an der man nur einen Namen tippt.
   if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE AND id != ?').get(name, u.id))
-    throw new Meldung('anmeldung.benutzernameDoppelt');
+    throw new Meldung('login.usernameTaken');
   const hash = wechselt ? await hashePasswort(neuesPasswort) : u.password_hash;
   /* Die Adresse wird GEPRUEFT, bevor irgendetwas geschrieben wird -- eine
      Absage, die den Namen schon gewechselt hat, waere schlimmer als keine. */
   const adresseGemeint = neueAdresse !== undefined;
   const adresse = adresseGemeint ? String(neueAdresse || '').trim() : null;
   if (adresseGemeint && adresse && !mail.istAdresse(adresse))
-    throw new Meldung('anmeldung.mailUngueltig');
+    throw new Meldung('login.emailInvalid');
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(name, hash, u.id);
   if (adresseGemeint)
     db.prepare('UPDATE users SET email = ? WHERE id = ?').run(adresse || null, u.id);
@@ -383,10 +383,10 @@ const zahlEigentuemer = () => db.prepare(
 async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false, wer, adresse) {
   if (ohnePasswort === true) pruefeName(name);
   else pruefeVorgaben(name, passwort);
-  if (!ROLLEN.includes(rolle)) throw new Meldung('anmeldung.rolleFehlt');
+  if (!ROLLEN.includes(rolle)) throw new Meldung('login.roleUnknown');
   const sauber = String(name).trim();
   if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(sauber))
-    throw new Meldung('anmeldung.benutzernameDoppelt');
+    throw new Meldung('login.usernameTaken');
   /* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die Einladungsmail
      keinen Empfaenger, und den Zugang gibt es in diesem Augenblick noch nicht,
      also kann ihn auch niemand selbst eintragen. Alles Spaetere laeuft ueber
@@ -395,7 +395,7 @@ async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false
      daneben waeren zwei Aussagen ueber denselben Aufruf. */
   const mailAdresse = String(adresse || '').trim();
   if (mailAdresse && !mail.istAdresse(mailAdresse))
-    throw new Meldung('anmeldung.mailUngueltig');
+    throw new Meldung('login.emailInvalid');
   const hash = ohnePasswort === true ? '' : await hashePasswort(passwort);
   const handelt = handelnder(wer);
   const r = db.prepare('INSERT INTO users (username, password_hash, role, email) VALUES (?, ?, ?, ?)')
@@ -411,10 +411,10 @@ async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false
 async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status === 'geloescht') throw new Meldung('server.benutzerGeloescht');
+  if (!u) throw new Meldung('server.userUnknown');
+  if (u.status === 'geloescht') throw new Meldung('server.userDeleted');
   if (String(neuesPasswort || '').length < PASSWORT_MIN)
-    throw new Meldung('anmeldung.passwortZuKurz', { min: PASSWORT_MIN });
+    throw new Meldung('login.passwordTooShort', { min: PASSWORT_MIN });
   const hash = await hashePasswort(neuesPasswort);
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, u.id);
   db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
@@ -425,14 +425,14 @@ async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {
 function setzeRolle(benutzerId, rolle, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status === 'geloescht') throw new Meldung('server.benutzerGeloescht');
-  if (!ROLLEN.includes(rolle)) throw new Meldung('anmeldung.rolleFehlt');
+  if (!u) throw new Meldung('server.userUnknown');
+  if (u.status === 'geloescht') throw new Meldung('server.userDeleted');
+  if (!ROLLEN.includes(rolle)) throw new Meldung('login.roleUnknown');
   // Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
   // noch weiter unten durch Sperren oder Loeschen. Ohne ihn kaeme niemand mehr
   // an Rollen, Export und Import, und der einzige Ausweg waere zugang.js.
   if (u.role === 'eigentuemer' && rolle !== 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Meldung('anmeldung.letzterEigentuemer');
+    throw new Meldung('login.lastOwner');
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(rolle, u.id);
   protokolliere('zugang.rolle', { wer: handelt, ziel: u.id, merkmal: rolle });
   return { id: u.id, username: u.username, role: rolle };
@@ -441,12 +441,12 @@ function setzeRolle(benutzerId, rolle, wer) {
 function setzeStatus(benutzerId, status, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status === 'geloescht') throw new Meldung('server.benutzerGeloescht');
+  if (!u) throw new Meldung('server.userUnknown');
+  if (u.status === 'geloescht') throw new Meldung('server.userDeleted');
   if (status !== 'aktiv' && status !== 'gesperrt')
-    throw new Meldung('anmeldung.statusNichtSetzbar');
+    throw new Meldung('login.statusNotSettable');
   if (u.role === 'eigentuemer' && status !== 'aktiv' && zahlEigentuemer() <= 1)
-    throw new Meldung('anmeldung.letzterEigentuemer');
+    throw new Meldung('login.lastOwner');
   db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, u.id);
   // Erste von zwei Schichten. requireAuth wuerde eine laufende Sitzung ohnehin
   // abweisen; das Wegraeumen haelt die Tabelle sauber und wirkt sofort.
@@ -508,10 +508,10 @@ function zaehleBestand(benutzerId) {
 function entferneZugang(benutzerId, optionen = {}, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status === 'geloescht') throw new Meldung('anmeldung.benutzerSchonGeloescht');
+  if (!u) throw new Meldung('server.userUnknown');
+  if (u.status === 'geloescht') throw new Meldung('login.userDeleted');
   if (u.role === 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Meldung('anmeldung.letzterEigentuemer');
+    throw new Meldung('login.lastOwner');
   const zahlen = zaehleBestand(u.id);
   db.transaction(() => {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
@@ -879,9 +879,9 @@ function raeumeTokensAuf() {
 function erzeugeToken(benutzerId, zweck, wer) {
   const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status !== 'aktiv') throw new Meldung('anmeldung.benutzerNichtAktiv');
-  if (!TOKEN_ZWECKE.includes(zweck)) throw new Meldung('server.zweckFehlt');
+  if (!u) throw new Meldung('server.userUnknown');
+  if (u.status !== 'aktiv') throw new Meldung('login.userInactive');
+  if (!TOKEN_ZWECKE.includes(zweck)) throw new Meldung('server.purposeUnknown');
   const klartext = crypto.randomBytes(32).toString('hex');
   db.prepare(
     `INSERT INTO tokens (hash, user_id, zweck, ablauf)
@@ -936,9 +936,9 @@ function pruefeToken(klartext) {
    und ein zweiter Ort dafuer waere ein zweiter, der auseinanderlaufen kann. */
 async function loeseTokenEin(klartext, neuesPasswort) {
   const token = pruefeToken(klartext);
-  if (!token) throw new Meldung('server.linkAbgelaufen');
+  if (!token) throw new Meldung('server.linkExpired');
   if (String(neuesPasswort || '').length < PASSWORT_MIN)
-    throw new Meldung('anmeldung.passwortZuKurz', { min: PASSWORT_MIN });
+    throw new Meldung('login.passwordTooShort', { min: PASSWORT_MIN });
   // Ausserhalb der Transaktion: scrypt rechnet absichtlich lange, und eine
   // Transaktion soll nicht so lange offen stehen.
   const hash = await hashePasswort(neuesPasswort);
@@ -1376,7 +1376,7 @@ const freigabeSchluessel = (token, zweck, ziel) =>
 
 function erzeugeFreigabe(token, zweck, ziel) {
   if (!token) throw new Error('Eine Freigabe braucht die Sitzung.');
-  if (!BESTAETIGUNG_ZWECKE.includes(zweck)) throw new Meldung('server.zweckFehlt');
+  if (!BESTAETIGUNG_ZWECKE.includes(zweck)) throw new Meldung('server.purposeUnknown');
   freigaben.set(freigabeSchluessel(token, zweck, ziel), Date.now() + FREIGABE_MS);
   return { zweck, sekunden: FREIGABE_MS / 1000 };
 }
@@ -1459,7 +1459,7 @@ function zweifaktorStand(benutzerId) {
    dieser Faelle dasselbe, naemlich einen frischen Code vom Telefon ablesen.
    "Der Code ist abgelaufen" waere ausserdem eine Auskunft an den, der raet --
    er wuesste, dass er die richtige Ziffernfolge hat und nur zu spaet war. */
-const ZWEITER_FAKTOR_ABSAGE = 'anmeldung.codeFalsch';
+const ZWEITER_FAKTOR_ABSAGE = 'login.codeWrong';
 
 /* SCHRITT EINS: das Geheimnis entsteht und geht EINMAL ueber das Netz --
    danach nie wieder, auch nicht an den Eigentuemer.
@@ -1473,7 +1473,7 @@ const ZWEITER_FAKTOR_ABSAGE = 'anmeldung.codeFalsch';
    gegen einen eigenen zu tauschen. */
 function beginneZweifaktor(benutzerId, instanzName, benutzername) {
   const id = Number(benutzerId) || 0;
-  if (zweifaktorAn(id)) throw new Meldung('anmeldung.zweiterFaktorSchonAn');
+  if (zweifaktorAn(id)) throw new Meldung('login.twoFactorAlreadyOn');
   const geheim = zf.neuesGeheimnis();
   db.prepare(
     `INSERT INTO zweifaktor (user_id, geheim, bestaetigt_am, letzter_zaehler)
@@ -1517,8 +1517,8 @@ function legeWiederCodesAn(benutzerId) {
 function schalteZweifaktorEin(benutzerId, eingabe, wer, jetzt = Date.now()) {
   const id = Number(benutzerId) || 0;
   const z = holeZweifaktor(id);
-  if (!z) throw new Meldung('anmeldung.zweiterFaktorNichtBegonnen');
-  if (z.bestaetigt_am) throw new Meldung('anmeldung.zweiterFaktorSchonAn');
+  if (!z) throw new Meldung('login.twoFactorNotBegun');
+  if (z.bestaetigt_am) throw new Meldung('login.twoFactorAlreadyOn');
   const zaehler = zf.pruefeCode(z.geheim, eingabe, jetzt);
   if (zaehler === null) throw new Meldung(ZWEITER_FAKTOR_ABSAGE);
   db.prepare(
@@ -1579,7 +1579,7 @@ function pruefeZweitenFaktor(benutzerId, eingabe, jetzt = Date.now()) {
    der Karte, dass es eng wird ("noch 1 von 8"), und holt sich neue. */
 function erneuereWiederCodes(benutzerId) {
   const id = Number(benutzerId) || 0;
-  if (!zweifaktorAn(id)) throw new Meldung('server.zweiterFaktorAus');
+  if (!zweifaktorAn(id)) throw new Meldung('server.twoFactorOff');
   return legeWiederCodesAn(id);
 }
 
@@ -1696,13 +1696,13 @@ function requireAuth(req, res, next) {
   const token = sitzungsToken(req);
   const benutzer = sitzungsBenutzer(token);
   if (!benutzer) {
-    return res.status(401).json({ error: uebersetze(req, 'anmeldung.nichtAngemeldet') });
+    return res.status(401).json({ error: uebersetze(req, 'login.notSignedIn') });
   }
   if (benutzer.status !== 'aktiv') {
     destroySession(token);
     return res.status(401).json({
       error: uebersetze(req, benutzer.status === 'geloescht'
-        ? 'server.kontoWeg' : 'anmeldung.kontoGesperrt')
+        ? 'server.accountGone' : 'login.accountLocked')
     });
   }
   req.benutzer = benutzer;

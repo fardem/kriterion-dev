@@ -570,5 +570,40 @@
       "thema": "theme"
     }
   },
-  "exceptions": []
+  "exceptions": [
+    {
+      "name": "card.passLinkByHandEnd",
+      "grund": "Vier Wörter: derselbe Satz steht zweimal in der Datei — einmal für sich, einmal als Ende eines längeren. Der Name muss sagen, welcher von beiden gemeint ist."
+    },
+    {
+      "name": "card.noBackupInFolder",
+      "grund": "Vier Wörter: „Hier gibt es noch keine Sicherung\" und „Im Sicherungsordner gibt es noch keine Sicherung\" sind zwei Sätze über zwei Orte. Ohne den Ort wäre der kürzere Name zweideutig."
+    },
+    {
+      "name": "card.noBackupForKey",
+      "grund": "Vier Wörter: ohne „ForKey\" bliebe offen, WORAN die Sicherung nicht passt — und genau das ist die Aussage des Satzes."
+    },
+    {
+      "name": "card.notSetNoSend",
+      "grund": "Vier Wörter: der Satz trägt zwei Aussagen („nicht gesetzt\" und „es wird nicht verschickt\"), und die zweite ist die Folge der ersten."
+    }
+  ],
+  "begriffe": [
+    "twoFactor",
+    "subDir",
+    "backupDir",
+    "dataDir",
+    "signIn",
+    "signUp",
+    "recoveryCode",
+    "mailAccount",
+    "searchEngine",
+    "testMail",
+    "webP",
+    "oldKey",
+    "byHand",
+    "forGood",
+    "atLeast"
+  ],
+  "vokabularAusnahme": "Die vierzehn Namen hinter `vocabulary.` bleiben deutsch: sie SIND die Platzhalternamen in den Werten ({sacheMehrzahl}), und ein Wert dieser Runde ändert sich nicht. Sie ziehen mit Stufe 2 um, die ohnehin jeden Wert anfasst. Vom Betreiber am 6. September 2026 entschieden."
 }

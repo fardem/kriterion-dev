@@ -403,8 +403,24 @@ Einladungslink aus einer verschickten Mail zeigt auf `#/einladung/…`.
 **Der Migrationsblock liest diese Liste**, und der Import übersetzt alte
 Exportdateien beim Einlesen mit derselben (F2).
 
-## 8. Die Namen über der Latte — mit Begründung
+## 8. Wie ein Wort gezählt wird
 
-*Noch keiner. Die Latte (drei Wörter, 24 Zeichen) weist nichts ab; wer über
-sie hinausmuss, trägt den Namen hier mit einem Satz ein, und die Kürzeprobe
-zählt sie.*
+**Die Latte zählt die Teile eines Namens in Höckerschrift** — `saveTitle`
+sind zwei. **Ein Fachwort, das aus zwei Teilen besteht und EINE Sache
+benennt, zählt als eins:**
+
+`twoFactor` · `subDir` · `backupDir` · `dataDir` · `signIn` · `signUp` · `recoveryCode` · `mailAccount` · `searchEngine` · `testMail` · `webP` · `oldKey` · `byHand` · `forGood` · `atLeast`
+
+*Sie stehen namentlich da und nicht als Regel: eine Regel „Zusammensetzungen
+zaehlen als eins" liesse jeden Namen durch.*
+
+**UND EINE AUSNAHME, DIE KEIN NAME IST, SONDERN EIN ORT:** Die vierzehn Namen hinter `vocabulary.` bleiben deutsch: sie SIND die Platzhalternamen in den Werten ({sacheMehrzahl}), und ein Wert dieser Runde ändert sich nicht. Sie ziehen mit Stufe 2 um, die ohnehin jeden Wert anfasst. Vom Betreiber am 6. September 2026 entschieden.
+
+## 9. Die Namen über der Latte — mit Begründung
+
+| Name | warum er länger sein muss |
+|---|---|
+| `card.passLinkByHandEnd` | Vier Wörter: derselbe Satz steht zweimal in der Datei — einmal für sich, einmal als Ende eines längeren. Der Name muss sagen, welcher von beiden gemeint ist. |
+| `card.noBackupInFolder` | Vier Wörter: „Hier gibt es noch keine Sicherung" und „Im Sicherungsordner gibt es noch keine Sicherung" sind zwei Sätze über zwei Orte. Ohne den Ort wäre der kürzere Name zweideutig. |
+| `card.noBackupForKey` | Vier Wörter: ohne „ForKey" bliebe offen, WORAN die Sicherung nicht passt — und genau das ist die Aussage des Satzes. |
+| `card.notSetNoSend` | Vier Wörter: der Satz trägt zwei Aussagen („nicht gesetzt" und „es wird nicht verschickt"), und die zweite ist die Folge der ersten. |
