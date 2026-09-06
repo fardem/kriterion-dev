@@ -1762,7 +1762,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Pruefung ist die Klammer darum: laufen die beiden auseinander, klappt die
      Instanz Filter ein, deren Schalter gar nicht dasteht -- eine Liste, die
      ohne sichtbaren Grund weniger zeigt. */
-  const schmalLiteral = (appQuelle.match(/const SCHMAL = '([^']+)'/) || [])[1];
+  const schmalLiteral = (appQuelle.match(/const NARROW = '([^']+)'/) || [])[1];
   pruefe('Die Oberflaeche kennt die Bedingung fuer den schmalen Schirm', !!schmalLiteral,
     String(schmalLiteral));
   pruefe('Und das Stylesheet benutzt woertlich dieselbe',
@@ -18693,9 +18693,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const quGeoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     pruefe('Die Uhr verfolgt beide Läufe und nicht nur die Umstellung',
       /const BESTANDSLAEUFE = \[/.test(quGeoApp) &&
-      /feld: 'umstellung', id: 'bild-lauf'/.test(quGeoApp) &&
-      /feld: 'geometrie', id: 'geo-lauf'/.test(quGeoApp) &&
-      /BESTANDSLAEUFE\.some\(l => geholt\.stats\[l\.feld\] && geholt\.stats\[l\.feld\]\.laeuft\)/
+      /field: 'umstellung', id: 'bild-lauf'/.test(quGeoApp) &&
+      /field: 'geometrie', id: 'geo-lauf'/.test(quGeoApp) &&
+      /BESTANDSLAEUFE\.some\(l => geholt\.stats\[l\.field\] && geholt\.stats\[l\.field\]\.laeuft\)/
         .test(quGeoApp),
       (quGeoApp.match(/const BESTANDSLAEUFE = \[[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     pruefe('Und es gibt genau eine Uhr für beide',
@@ -18883,7 +18883,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       if (!JSDOMz) {
         uebergehe('Beide Rechnungen kommen auf denselben Ausschnitt', 'jsdom fehlt');
       } else {
-        const imBrowser = baueDom(JSDOMz).w.zuschnittKiste;
+        const imBrowser = baueDom(JSDOMz).w.cropSpecBox;
         const faelle = [];
         for (const [b, h] of [[1920, 1080], [1080, 1920], [4032, 3024], [7680, 1080],
                               [1000, 1000], [300, 200], [6192, 4128]])
@@ -18894,7 +18894,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
           const a2 = amServer(b, h, fx, fy, z), b2 = imBrowser(b, h, fx, fy, z);
           return Math.abs(a2.links - b2.links) > 1e-9 ||
                  Math.abs(a2.oben - b2.oben) > 1e-9 ||
-                 Math.abs(a2.kante - b2.kante) > 1e-9;
+                 Math.abs(a2.edge - b2.edge) > 1e-9;
         });
         pruefe(`Beide Rechnungen kommen auf denselben Ausschnitt — ${faelle.length} Fälle`,
           daneben.length === 0 && typeof imBrowser === 'function',
@@ -18961,10 +18961,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
        haelt die alte Kachel bis zu einem Tag fest. */
     {
       const appZ = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-      pruefe('Die Kachel-Adresse entsteht nur in bildQuelle()',
+      pruefe('Die Kachel-Adresse entsteht nur in imageSource()',
         (appZ.match(/\/api\/photos\/\$\{[^}]*\}\/raw\?size=thumb/g) || []).length === 0 &&
-        /const fassung = groesse === 'thumb' && Number\.isFinite\(f\) \? `&v=\$\{f\}` : '';/.test(appZ),
-        (appZ.match(/\/api\/photos\/[^\n]*raw\?size=thumb[^\n]*/) || ['(nur in bildQuelle)'])[0]);
+        /const version = groesse === 'thumb' && Number\.isFinite\(f\) \? `&v=\$\{f\}` : '';/.test(appZ),
+        (appZ.match(/\/api\/photos\/[^\n]*raw\?size=thumb[^\n]*/) || ['(nur in imageSource)'])[0]);
       /* UND DIE AUSLIEFERUNG SETZT WEITER max-age -- das ist der Grund fuer
          die ganze Uebung. Faellt sie weg, ist die Fassung ueberfluessig; sie
          faellt aber nicht weg, denn ohne sie holte der Browser jede Kachel
@@ -25018,12 +25018,12 @@ async function pruefeOberflaeche() {
     kzVok ? kzVok.textContent : '(kein Hinweis)');
   pruefe('„Kommentar" bleibt dabei fest',
     /^6 Kommentare/.test(kzVok?.textContent || '') &&
-    wVok.kommentarZahlen([{ kind: 'note' }]) === '1 Kommentar',
-    wVok.kommentarZahlen([{ kind: 'note' }]));
+    wVok.commentNumbers([{ kind: 'note' }]) === '1 Kommentar',
+    wVok.commentNumbers([{ kind: 'note' }]));
   pruefe('Und die Einzahl kommt ebenfalls aus dem Vokabular',
-    wVok.kommentarZahlen([{ kind: 'report' }, { kind: 'task' }])
+    wVok.commentNumbers([{ kind: 'report' }, { kind: 'task' }])
       === '2 Kommentare, davon 1 Notat und 1 ToDo',
-    wVok.kommentarZahlen([{ kind: 'report' }, { kind: 'task' }]));
+    wVok.commentNumbers([{ kind: 'report' }, { kind: 'task' }]));
   wVok.close();
 
   /* ---- Der Favoritenknopf, mit einem wirklich zugestellten Klick ----
@@ -25275,13 +25275,13 @@ async function pruefeOberflaeche() {
   }));
 
   pruefe('Punkte werden aus allen sichtbaren Einträgen gesammelt',
-    wz.zeitleistePunkte(bauItems(3, 2)).length === 6);
+    wz.timelinePoints(bauItems(3, 2)).length === 6);
   pruefe('Punkte sind nach Datum sortiert', (() => {
-    const p = wz.zeitleistePunkte(bauItems(4, 2)).map(x => x.tag);
+    const p = wz.timelinePoints(bauItems(4, 2)).map(x => x.tag);
     return gleich(p, [...p].sort());
   })());
   pruefe('Einträge ohne Testtage stören nicht',
-    wz.zeitleistePunkte([{ id: 1, title: 'X' }]).length === 0);
+    wz.timelinePoints([{ id: 1, title: 'X' }]).length === 0);
   wz.close();
 
   const wenig = baueDom(JSDOM, { uebersichtItems: bauItems(4, 1) }).w;
@@ -25368,26 +25368,26 @@ async function pruefeOberflaeche() {
   Object.defineProperty(wolkenkasten, 'clientHeight', { get: () => parseInt(wolkenkasten.style.maxHeight) || 0 });
   let inhaltshoehe2 = 90;
   Object.defineProperty(wolkenkasten, 'scrollHeight', { get: () => inhaltshoehe2 });
-  pruefe('Eine Zeile ist so hoch wie eine Marke', (ww.begrenzeWolke(wolkenkasten, 1), wolkenkasten.style.maxHeight === '26px'),
+  pruefe('Eine Zeile ist so hoch wie eine Marke', (ww.limitCloud(wolkenkasten, 1), wolkenkasten.style.maxHeight === '26px'),
     wolkenkasten.style.maxHeight);
-  pruefe('Drei Zeilen zählen die Lücken mit', (ww.begrenzeWolke(wolkenkasten, 3), wolkenkasten.style.maxHeight === '90px'),
+  pruefe('Drei Zeilen zählen die Lücken mit', (ww.limitCloud(wolkenkasten, 3), wolkenkasten.style.maxHeight === '90px'),
     wolkenkasten.style.maxHeight);
-  pruefe('Abgeschnittenes wird gemeldet', ww.begrenzeWolke(wolkenkasten, 1) === true);
+  pruefe('Abgeschnittenes wird gemeldet', ww.limitCloud(wolkenkasten, 1) === true);
   /* Und zwar abgeschnitten, nicht scrollbar. Die Wolke hatte nie einen
      eigenen Bildlauf -- die Prueflage steht seit 0.8.6 daneben, damit ein
      spaeterer Griff nach 'auto' hier ebenso auffaellt wie an der Linkliste:
      ein eigener Bildlauf faengt auf dem Finger die Wischbewegung ab.
      Erst das Vorhandensein der Begrenzung, dann ihre Art. */
   pruefe('Und die Wolke wird abgeschnitten, nicht scrollbar',
-    (ww.begrenzeWolke(wolkenkasten, 1),
+    (ww.limitCloud(wolkenkasten, 1),
      wolkenkasten.style.maxHeight !== '' && wolkenkasten.style.overflow === 'hidden'),
     JSON.stringify([wolkenkasten.style.maxHeight, wolkenkasten.style.overflow]));
   inhaltshoehe2 = 20;
-  pruefe('Passt alles hinein, meldet nichts', ww.begrenzeWolke(wolkenkasten, 3) === false);
+  pruefe('Passt alles hinein, meldet nichts', ww.limitCloud(wolkenkasten, 3) === false);
   pruefe('Null Zeilen heben die Begrenzung auf',
-    (ww.begrenzeWolke(wolkenkasten, 0), wolkenkasten.style.maxHeight === ''));
+    (ww.limitCloud(wolkenkasten, 0), wolkenkasten.style.maxHeight === ''));
   pruefe('Und nehmen die Abschneidung mit',
-    (ww.begrenzeWolke(wolkenkasten, 0), wolkenkasten.style.overflow === ''),
+    (ww.limitCloud(wolkenkasten, 0), wolkenkasten.style.overflow === ''),
     JSON.stringify(wolkenkasten.style.overflow));
 
   const wolke = [...ww.document.querySelectorAll('#tagcloud .pill')];
@@ -25421,7 +25421,7 @@ async function pruefeOberflaeche() {
   zuKasten.appendChild(ww.document.createElement('span'));   // offsetHeight bleibt 0
   ww.document.body.appendChild(zuKasten);
   zuKasten.style.maxHeight = '12px';                          // Rest eines frueheren Laufs
-  const zuErgebnis = ww.begrenzeWolke(zuKasten, 3);
+  const zuErgebnis = ww.limitCloud(zuKasten, 3);
   pruefe('Eine nicht messbare Wolke bekommt keine Hoehe verpasst',
     zuKasten.style.maxHeight === '' && zuErgebnis === false,
     `maxHeight=${JSON.stringify(zuKasten.style.maxHeight)}, meldet ${zuErgebnis}`);
@@ -26276,7 +26276,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
 
   pruefe('Ordnen: Unbekanntes raus, Fehlendes hinten dran',
-    gleich(wb.ordneBereich(['bewertung', 'quatsch', 'bewertung'], ['kategorie', 'tags', 'bewertung']),
+    gleich(wb.sortArea(['bewertung', 'quatsch', 'bewertung'], ['kategorie', 'tags', 'bewertung']),
            ['bewertung', 'kategorie', 'tags']));
 
   const namen2 = (sel) => [...wb.document.querySelectorAll(sel + ' > .block')].map(b => b.dataset.block);
@@ -26354,9 +26354,9 @@ async function pruefeOberflaeche() {
      andere alles wegnimmt. */
   pruefe('Der Kommentarblock zaehlt in seinem Hinweis, nicht in der Kurzfassung',
     wb.blockZusammenfassung('kommentare', { comments: [{ kind: 'note' }, { kind: 'report' }] }) === '' &&
-    wb.kommentarZahlen([{ kind: 'note' }, { kind: 'report' }]) === '2 Kommentare, davon 1 Bericht',
+    wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }]) === '2 Kommentare, davon 1 Bericht',
     `Kurzfassung "${wb.blockZusammenfassung('kommentare', { comments: [{ kind: 'note' }] })}", ` +
-    `Hinweis "${wb.kommentarZahlen([{ kind: 'note' }, { kind: 'report' }])}"`);
+    `Hinweis "${wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }])}"`);
 
   // Zusammenfassung nennt echte Zahlen
   pruefe('Zusammenfassung kürzt die Beschreibung',
@@ -28211,7 +28211,7 @@ async function pruefeOberflaeche() {
   // Notiz. Bei drei Zustaenden zeigt ein einzelner Schritt noch keine Ordnung.
   // Fehlt die Funktion, muss das ein roter Punkt werden und darf den Lauf nicht
   // abbrechen -- ein Absturz sagt nicht, welche Pruefung betroffen ist.
-  const weiter = (k) => { try { return wb.aufgabeWeiter(k); } catch { return '(fehlt)'; } };
+  const weiter = (k) => { try { return wb.taskMore(k); } catch { return '(fehlt)'; } };
   pruefe('Die Weiterschaltung läuft im Kreis',
     gleich(['note', 'task', 'done'].map(weiter), ['task', 'done', 'note']),
     JSON.stringify(['note', 'task', 'done'].map(weiter)));
@@ -28329,10 +28329,10 @@ async function pruefeOberflaeche() {
 
   // Gebildet an EINEM Ort. Die Randfaelle unmittelbar an der Funktion, nicht
   // ueber sechs aufgebaute Kommentarlagen.
-  const kz = (...arten) => wb.kommentarZahlen(arten.map(k => ({ kind: k })));
+  const kz = (...arten) => wb.commentNumbers(arten.map(k => ({ kind: k })));
   pruefe('Bei null Kommentaren bleibt der Hinweis ganz leer, wie bei den Links',
-    kz() === '' && wb.kommentarZahlen(null) === '' && wb.kommentarZahlen(undefined) === '',
-    JSON.stringify([kz(), wb.kommentarZahlen(null)]));
+    kz() === '' && wb.commentNumbers(null) === '' && wb.commentNumbers(undefined) === '',
+    JSON.stringify([kz(), wb.commentNumbers(null)]));
   pruefe('Ein einzelner Kommentar steht in der Einzahl',
     kz('note') === '1 Kommentar', kz('note'));
   pruefe('Nur Notizen: das „davon" faellt ganz weg',
@@ -28373,9 +28373,9 @@ async function pruefeOberflaeche() {
   pruefe('Die NOTIZ bleibt ungenannt — sie ist der Zustand ohne Markierung',
     !/Notiz/i.test(kz('note', 'note', 'report')), kz('note', 'note', 'report'));
   pruefe('Und die ANPINNUNG steht nicht in der Zeile: zweite, unabhaengige Achse',
-    wb.kommentarZahlen([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }])
+    wb.commentNumbers([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }])
       === '2 Kommentare',
-    wb.kommentarZahlen([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }]));
+    wb.commentNumbers([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }]));
   /* Die Summe der Teilmengen darf die Gesamtzahl nicht ueberschreiten -- das
      ist der Sinn von "davon". Waeren es Summanden, ergaebe die Prueflage
      1 + 2 + 1 = 4 von 3. */
@@ -28889,11 +28889,11 @@ async function pruefeOberflaeche() {
      app.js, damit der Pruefstand ihr die Zahlen unmittelbar vorlegen kann --
      dieselbe Bauform wie bei zentriereBuehne(). */
   pruefe('Die Laengenangabe rechnet Minuten und Sekunden richtig',
-    wVid.dauerText(42) === '0:42' && wVid.dauerText(130) === '2:10' && wVid.dauerText(60) === '1:00',
-    JSON.stringify([wVid.dauerText(42), wVid.dauerText(130), wVid.dauerText(60)]));
+    wVid.durationText(42) === '0:42' && wVid.durationText(130) === '2:10' && wVid.durationText(60) === '1:00',
+    JSON.stringify([wVid.durationText(42), wVid.durationText(130), wVid.durationText(60)]));
   pruefe('Ohne bekannte Dauer steht nichts da',
-    wVid.dauerText(null) === '' && wVid.dauerText(0) === '' && wVid.dauerText('x') === '',
-    JSON.stringify([wVid.dauerText(null), wVid.dauerText(0), wVid.dauerText('x')]));
+    wVid.durationText(null) === '' && wVid.durationText(0) === '' && wVid.durationText('x') === '',
+    JSON.stringify([wVid.durationText(null), wVid.durationText(0), wVid.durationText('x')]));
 
   /* DIE KARTE. Dort steht das Standbild wie ein Foto, mit einem
      Abspielzeichen darauf -- und der Zaehler nennt beide Zahlen, statt ein
@@ -28958,9 +28958,9 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
 
   pruefe('Adressen: Foto und Kommentarbild werden unterschieden',
-    wb.bildQuelle({ id: 9 }, 'medium') === '/api/photos/9/raw?size=medium' &&
-    wb.bildQuelle({ id: 9, quelle: 'kommentar' }, 'medium') === '/api/comment-images/9/raw' &&
-    wb.bildQuelle({ id: 9, quelle: 'kommentar' }, 'thumb') === '/api/comment-images/9/raw?size=thumb');
+    wb.imageSource({ id: 9 }, 'medium') === '/api/photos/9/raw?size=medium' &&
+    wb.imageSource({ id: 9, quelle: 'kommentar' }, 'medium') === '/api/comment-images/9/raw' &&
+    wb.imageSource({ id: 9, quelle: 'kommentar' }, 'thumb') === '/api/comment-images/9/raw?size=thumb');
 
   /* --- Neuer Kommentar --- */
   pruefe('Das Formular hat alle drei Markierungen',
@@ -29050,20 +29050,20 @@ async function pruefeOberflaeche() {
     typeof wb.ausschnitt);
   pruefe('Und fokus() ebenso wenig', typeof wb.fokus === 'undefined', typeof wb.fokus);
   pruefe('Die Rechnung fuer den Ausschnitt steht als eigene Funktion da',
-    typeof wb.zuschnittKiste === 'function', typeof wb.zuschnittKiste);
+    typeof wb.cropSpecBox === 'function', typeof wb.cropSpecBox);
   /* SIE RECHNET OHNE RUNDUNG UND MASSSTABSFREI. Bei zoom 100 ist die Kante die
      kurze Seite; bei 250 ein Fuenftel-... nachgerechnet: 1080 * 100 / 250 =
      432. Der Punkt liegt linear auf dem verbleibenden Weg. */
   {
-    const k = wb.zuschnittKiste(1920, 1080, 10, 90, 250);
+    const k = wb.cropSpecBox(1920, 1080, 10, 90, 250);
     pruefe('Der Ausschnitt bei zoom 250 ist 432 breit und sitzt auf dem Punkt',
-      Math.abs(k.kante - 432) < 1e-9 &&
+      Math.abs(k.edge - 432) < 1e-9 &&
       Math.abs(k.links - 0.10 * (1920 - 432)) < 1e-9 &&
       Math.abs(k.oben - 0.90 * (1080 - 432)) < 1e-9,
       JSON.stringify(k));
-    const w = wb.zuschnittKiste(1920, 1080, 50, 50, 100);
+    const w = wb.cropSpecBox(1920, 1080, 50, 50, 100);
     pruefe('Und bei zoom 100 ist er die kurze Seite',
-      Math.abs(w.kante - 1080) < 1e-9, JSON.stringify(w));
+      Math.abs(w.edge - 1080) < 1e-9, JSON.stringify(w));
   }
 
   const fokusDom = baueDom(JSDOM, {
@@ -29246,10 +29246,10 @@ async function pruefeOberflaeche() {
      dieselbe Bauform wie `cropSpecBox()` und aus demselben Grund: was der
      Pruefstand nur ueber ein Zeigerereignis erreicht, prueft er nicht. */
   pruefe('Die Gestenentscheidung steht als eigene Funktion da',
-    typeof wb.ausschnittGeste === 'function', typeof wb.ausschnittGeste);
+    typeof wb.cropGesture === 'function', typeof wb.cropGesture);
   {
-    const gK = { links: 100, oben: 50, kante: 200 };   // 100..300 / 50..250
-    const g = (x, y) => wb.ausschnittGeste(gK, x, y);
+    const gK = { links: 100, oben: 50, edge: 200 };   // 100..300 / 50..250
+    const g = (x, y) => wb.cropGesture(gK, x, y);
     pruefe('Ausserhalb des Rahmens wird neu aufgezogen',
       g(50, 150) === 'neu' && g(200, 20) === 'neu' && g(400, 150) === 'neu' && g(200, 400) === 'neu',
       [g(50, 150), g(200, 20), g(400, 150), g(200, 400)].join(' · '));
@@ -29274,11 +29274,11 @@ async function pruefeOberflaeche() {
     /* UND SIE WIRD AM RAHMEN GEDECKELT (kante / 4). Ohne den Deckel deckten
        die acht Zonen einen kleinen Rahmen vollstaendig ab, und das Schieben --
        die haeufigste Geste -- haette keine Flaeche mehr. */
-    const klein = { links: 0, oben: 0, kante: 20 };
+    const klein = { links: 0, oben: 0, edge: 20 };
     pruefe('An einem kleinen Rahmen bleibt Flaeche zum Schieben',
-      wb.ausschnittGeste(klein, 10, 10) === 'schieben' &&
-      wb.ausschnittGeste(klein, 2, 2) === 'links-oben',
-      `${wb.ausschnittGeste(klein, 10, 10)} / ${wb.ausschnittGeste(klein, 2, 2)}`);
+      wb.cropGesture(klein, 10, 10) === 'schieben' &&
+      wb.cropGesture(klein, 2, 2) === 'links-oben',
+      `${wb.cropGesture(klein, 10, 10)} / ${wb.cropGesture(klein, 2, 2)}`);
   }
 
   /* --- UND JETZT AM LEBENDEN OBJEKT. Gefahren wird mit echten Zeigerereignissen
@@ -29312,9 +29312,9 @@ async function pruefeOberflaeche() {
     const rahmen = () => {
       const el = wb.document.querySelector('.focus-frame');
       const z = (n) => parseFloat(el.style[n]) || 0;
-      return { links: z('left'), oben: z('top'), kante: z('width') };
+      return { links: z('left'), oben: z('top'), edge: z('width') };
     };
-    const mitte = (r) => [r.links + r.kante / 2, r.oben + r.kante / 2];
+    const mitte = (r) => [r.links + r.edge / 2, r.oben + r.edge / 2];
     /* EIN FRISCHER, MITTLERER RAHMEN -- und zwar ueber die Bedienung selbst.
        DER ZUG MUSS AUSSERHALB ANFANGEN, sonst schoebe er den Rahmen oder zoege
        an einem seiner Griffe. WO das ist, haengt vom Rahmen ab, den die vorige
@@ -29323,8 +29323,8 @@ async function pruefeOberflaeche() {
        Seite kann die vier Ecken des Bildes nicht alle abdecken, also gibt es
        immer einen Punkt draussen. */
     const draussen = (r) => [[10, 10], [590, 10], [10, 390], [590, 390]]
-      .find(([x, y]) => x < r.links || x > r.links + r.kante ||
-                        y < r.oben || y > r.oben + r.kante) || [10, 10];
+      .find(([x, y]) => x < r.links || x > r.links + r.edge ||
+                        y < r.oben || y > r.oben + r.edge) || [10, 10];
     const frischerRahmen = async () => {
       zieh(400); zieh(400, 'change');
       await new Promise(r => setTimeout(r, 30));
@@ -29342,7 +29342,7 @@ async function pruefeOberflaeche() {
     const neuRumpf = await ziehe([60, 60], [360, 360]);
     const r0 = rahmen();
     pruefe('Ein Zug ausserhalb zieht einen neuen Ausschnitt auf',
-      !!neuRumpf && r0.kante > 0, JSON.stringify([neuRumpf, r0]));
+      !!neuRumpf && r0.edge > 0, JSON.stringify([neuRumpf, r0]));
     /* SEINE LINKE OBERE ECKE SITZT, WO DER ZUG ANFING. Die Kante rastet auf die
        Fuenferstufen des Schiebers (0.22.0, E9) -- die Ecke tut es nicht. */
     pruefe('Und seine linke obere Ecke sitzt, wo der Zug anfing',
@@ -29365,19 +29365,19 @@ async function pruefeOberflaeche() {
        auf 250". */
     pruefe('Und er ruehrt die Weite nicht an',
       !!schiebRumpf && !!neuRumpf && schiebRumpf.zoom === neuRumpf.zoom &&
-      Math.abs(nachSchieben.kante - vorSchieben.kante) < 0.001,
+      Math.abs(nachSchieben.edge - vorSchieben.edge) < 0.001,
       `zoom ${neuRumpf && neuRumpf.zoom} → ${schiebRumpf && schiebRumpf.zoom}, ` +
-      `Kante ${vorSchieben.kante} → ${nachSchieben.kante}`);
+      `Kante ${vorSchieben.edge} → ${nachSchieben.edge}`);
 
     /* --- DIE ECKE: die gegenueberliegende bleibt liegen. */
     const vorEcke = rahmen();
     const eckeRumpf = await ziehe(
-      [vorEcke.links + vorEcke.kante - 4, vorEcke.oben + vorEcke.kante - 4],
+      [vorEcke.links + vorEcke.edge - 4, vorEcke.oben + vorEcke.edge - 4],
       [vorEcke.links + 60, vorEcke.oben + 60]);
     const nachEcke = rahmen();
     pruefe('Ein Zug an der Ecke aendert die Weite',
-      !!eckeRumpf && nachEcke.kante < vorEcke.kante,
-      `${vorEcke.kante} → ${nachEcke.kante}`);
+      !!eckeRumpf && nachEcke.edge < vorEcke.edge,
+      `${vorEcke.edge} → ${nachEcke.edge}`);
     /* DIE SCHRANKE IST ENG, UND DAS IST EIN FUND AUS DER GEGENPROBE: mit einem
        halben Bildpunkt Toleranz blieb Rueckbau 646 STUMM — er legt den Rahmen
        nach der ungerasteten Kante, und der Unterschied betrug in dieser Lage
@@ -29402,19 +29402,19 @@ async function pruefeOberflaeche() {
        Ecke bleibt liegen" beide Faelle. */
     await frischerRahmen();
     const vorEckeZwei = rahmen();
-    const festRechts = vorEckeZwei.links + vorEckeZwei.kante;
-    const festUnten = vorEckeZwei.oben + vorEckeZwei.kante;
+    const festRechts = vorEckeZwei.links + vorEckeZwei.edge;
+    const festUnten = vorEckeZwei.oben + vorEckeZwei.edge;
     const eckeZweiRumpf = await ziehe([vorEckeZwei.links + 4, vorEckeZwei.oben + 4],
       [vorEckeZwei.links - 37, vorEckeZwei.oben - 37]);
     const nachEckeZwei = rahmen();
     pruefe('Ein Zug an der oberen linken Ecke aendert die Weite ebenfalls',
-      !!eckeZweiRumpf && nachEckeZwei.kante > vorEckeZwei.kante,
-      `${vorEckeZwei.kante} → ${nachEckeZwei.kante}`);
+      !!eckeZweiRumpf && nachEckeZwei.edge > vorEckeZwei.edge,
+      `${vorEckeZwei.edge} → ${nachEckeZwei.edge}`);
     pruefe('Und die rechte untere Ecke bleibt dabei liegen',
-      Math.abs((nachEckeZwei.links + nachEckeZwei.kante) - festRechts) < GENAU &&
-      Math.abs((nachEckeZwei.oben + nachEckeZwei.kante) - festUnten) < GENAU,
+      Math.abs((nachEckeZwei.links + nachEckeZwei.edge) - festRechts) < GENAU &&
+      Math.abs((nachEckeZwei.oben + nachEckeZwei.edge) - festUnten) < GENAU,
       `${festRechts}/${festUnten} → ` +
-      `${nachEckeZwei.links + nachEckeZwei.kante}/${nachEckeZwei.oben + nachEckeZwei.kante}`);
+      `${nachEckeZwei.links + nachEckeZwei.edge}/${nachEckeZwei.oben + nachEckeZwei.edge}`);
 
     /* --- DIE KANTE: die gegenueberliegende bleibt liegen, und die andere
        Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). Der Rahmen
@@ -29425,29 +29425,29 @@ async function pruefeOberflaeche() {
        und die Zusage darunter waere trivial gruen. */
     await frischerRahmen();
     const vorKante = rahmen();
-    const rechtsVor = vorKante.links + vorKante.kante;
-    const mitteYvor = vorKante.oben + vorKante.kante / 2;
+    const rechtsVor = vorKante.links + vorKante.edge;
+    const mitteYvor = vorKante.oben + vorKante.edge / 2;
     // Die linke Kante nach LINKS: der Rahmen wird dabei groesser, und die
     // rechte Kante muss trotzdem stehenbleiben.
     const kantRumpf = await ziehe([vorKante.links + 4, mitteYvor],
       [vorKante.links - 40, mitteYvor]);
     const nachKante = rahmen();
     pruefe('Ein Zug an der Kante aendert ebenfalls die Weite',
-      !!kantRumpf && nachKante.kante > vorKante.kante,
-      `${vorKante.kante} → ${nachKante.kante}`);
+      !!kantRumpf && nachKante.edge > vorKante.edge,
+      `${vorKante.edge} → ${nachKante.edge}`);
     pruefe('Die gegenueberliegende Kante bleibt dabei liegen',
-      Math.abs((nachKante.links + nachKante.kante) - rechtsVor) < GENAU,
-      `${rechtsVor} → ${nachKante.links + nachKante.kante}`);
+      Math.abs((nachKante.links + nachKante.edge) - rechtsVor) < GENAU,
+      `${rechtsVor} → ${nachKante.links + nachKante.edge}`);
     pruefe('Und der Mittelpunkt wandert auf ihr nicht',
-      Math.abs((nachKante.oben + nachKante.kante / 2) - mitteYvor) < GENAU,
-      `${mitteYvor} → ${nachKante.oben + nachKante.kante / 2}`);
+      Math.abs((nachKante.oben + nachKante.edge / 2) - mitteYvor) < GENAU,
+      `${mitteYvor} → ${nachKante.oben + nachKante.edge / 2}`);
 
     /* --- NICHTS VERLAESST DAS BILD. Ein Zug weit ueber den Rand hinaus. */
     const weitRumpf = await ziehe(mitte(rahmen()), [5000, 5000]);
     const nachWeit = rahmen();
     pruefe('Keine Geste bringt den Rahmen aus dem Bild',
       nachWeit.links >= -0.5 && nachWeit.oben >= -0.5 &&
-      nachWeit.links + nachWeit.kante <= 600.5 && nachWeit.oben + nachWeit.kante <= 400.5,
+      nachWeit.links + nachWeit.edge <= 600.5 && nachWeit.oben + nachWeit.edge <= 400.5,
       JSON.stringify(nachWeit));
     pruefe('Und die gespeicherten Werte bleiben in ihrer Spanne',
       !!weitRumpf && weitRumpf.x >= 0 && weitRumpf.x <= 100 &&
@@ -29465,12 +29465,12 @@ async function pruefeOberflaeche() {
       innenRumpf === null, JSON.stringify(innenRumpf));
     pruefe('Und er verstellt den Rahmen auch nicht',
       Math.abs(rahmen().links - vorKlick.links) < 0.001 &&
-      Math.abs(rahmen().kante - vorKlick.kante) < 0.001,
-      `${vorKlick.links}/${vorKlick.kante} → ${rahmen().links}/${rahmen().kante}`);
+      Math.abs(rahmen().edge - vorKlick.edge) < 0.001,
+      `${vorKlick.links}/${vorKlick.edge} → ${rahmen().links}/${rahmen().edge}`);
     /* DIE ANDERE HAELFTE VON E1, und ohne sie belegte die erste nichts: es
        koennte auch gar nichts mehr gespeichert werden (Stolperstein 81). */
     const aussenX = vorKlick.links > 40 ? vorKlick.links / 2
-      : (vorKlick.links + vorKlick.kante + 600) / 2;
+      : (vorKlick.links + vorKlick.edge + 600) / 2;
     const aussenRumpf = await ziehe([aussenX, 200], [aussenX + 2, 200]);
     pruefe('Ein Klick AUSSERHALB setzt dagegen weiter den Punkt',
       !!aussenRumpf, JSON.stringify(aussenRumpf));
@@ -29485,12 +29485,12 @@ async function pruefeOberflaeche() {
       /griff-nwse/.test(klasse(r1.links + 4, r1.oben + 4)),
       klasse(r1.links + 4, r1.oben + 4));
     pruefe('An der Kante zeigt er die Achse',
-      /griff-ew/.test(klasse(r1.links + 4, r1.oben + r1.kante / 2)),
-      klasse(r1.links + 4, r1.oben + r1.kante / 2));
+      /griff-ew/.test(klasse(r1.links + 4, r1.oben + r1.edge / 2)),
+      klasse(r1.links + 4, r1.oben + r1.edge / 2));
     /* DER PUNKT AUSSERHALB WIRD AM AKTUELLEN RAHMEN BESTIMMT. Ein Punkt, der
        vor drei Gesten ausserhalb lag, kann inzwischen darin liegen -- und die
        Zusage praefte dann das Gegenteil dessen, was sie behauptet. */
-    const drausX = r1.links > 40 ? r1.links / 2 : (r1.links + r1.kante + 600) / 2;
+    const drausX = r1.links > 40 ? r1.links / 2 : (r1.links + r1.edge + 600) / 2;
     pruefe('Und ausserhalb traegt er keine Griffklasse',
       !/griff-/.test(klasse(drausX, 200)), `${drausX}: ${klasse(drausX, 200)}`);
 
@@ -29513,8 +29513,8 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 30));
     const r4 = rahmen();
     pruefe('Ein Finger an der Ecke schiebt, statt die Weite zu aendern',
-      Math.abs(r4.kante - r3.kante) < 0.001 && r4.links > r3.links,
-      `Kante ${r3.kante} → ${r4.kante}, links ${r3.links} → ${r4.links}`);
+      Math.abs(r4.edge - r3.edge) < 0.001 && r4.links > r3.links,
+      `Kante ${r3.edge} → ${r4.edge}, links ${r3.links} → ${r4.links}`);
   }
 
   /* --- Verlassen des Modus. Der Betrachter wird beim Neuzeichnen nicht
@@ -30904,7 +30904,7 @@ async function pruefeOberflaeche() {
      bei, war der Code falsch; liegt keiner bei, ist hier nichts mehr zu holen.
      Nachgestellt mit einem Ausweis, den der Mock nicht kennt. */
   const zdWeg = await zdAnmelden(true);
-  zdWeg.w.showZweiterFaktor('erfundener-ausweis');
+  zdWeg.w.showSecondFactor('erfundener-ausweis');
   await new Promise(r => setTimeout(r, 40));
   zfSetze(zdWeg.w, 'zf-code', '123456');
   await zdKlick(zdWeg.w, zdWeg.w.document.getElementById('zf-ab'));
@@ -31096,7 +31096,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 60));
   await zkBest.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
-  zkBest.w.zweiteBestaetigung('export', null, 'Export', 'Alles herunterladen');
+  zkBest.w.secondConfirm('export', null, 'Export', 'Alles herunterladen');
   await new Promise(r => setTimeout(r, 40));
   pruefe('Mit zweitem Faktor traegt das Bestaetigungsfenster ein Codefeld',
     Boolean(zkBest.w.document.getElementById('best-code')), 'kein Codefeld');
@@ -31136,7 +31136,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 60));
   await zkOhne.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
-  zkOhne.w.zweiteBestaetigung('export', null, 'Export', 'Alles herunterladen');
+  zkOhne.w.secondConfirm('export', null, 'Export', 'Alles herunterladen');
   await new Promise(r => setTimeout(r, 40));
   pruefe('Ohne zweiten Faktor steht dort kein Codefeld',
     Boolean(zkOhne.w.document.getElementById('best-pass')) &&
@@ -31828,9 +31828,9 @@ async function pruefeOberflaeche() {
     /* "GESCHEITERT" IST DIE ANSICHT, UM DIE ES GEHT -- sie steht ausdruecklich
        und nicht als eine unter vielen: der ganze Punkt war, dass man sie
        findet. */
-    const spGescheitert = () => spFilter().find(b => b.dataset.gruppe === 'gescheitert');
+    const spGescheitert = () => spFilter().find(b => b.dataset.group === 'gescheitert');
     pruefe('Darunter eine eigene fuer die gescheiterten Versuche', !!spGescheitert(),
-      JSON.stringify(spFilter().map(b => b.dataset.gruppe)));
+      JSON.stringify(spFilter().map(b => b.dataset.group)));
     pruefe('Und ihr Name sagt, dass beide Arten darin stehen',
       /Anmeldungen und .*Bestätigungen/.test(spGescheitert()?.title || ''),
       spGescheitert()?.title);
@@ -31845,7 +31845,7 @@ async function pruefeOberflaeche() {
       spGescheitert().querySelector('.n').textContent === '2',
       JSON.stringify(spFilter().map(b => b.textContent)));
     // Eine Ansicht ohne Zeilen wird gedaempft -- wie jede Pille in dieser Lage.
-    const spZf = spFilter().find(b => b.dataset.gruppe === 'zweifaktor');
+    const spZf = spFilter().find(b => b.dataset.group === 'zweifaktor');
     pruefe('Eine Ansicht ohne Zeilen ist gedaempft', spZf?.classList.contains('leer'),
       spZf?.className);
     pruefe('Und "Alle" mit Zeilen ist es nicht',
@@ -31927,7 +31927,7 @@ async function pruefeOberflaeche() {
     const wVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-woerter-'));
     const wListen = JSON.parse(kurzlauf(
       `const a = require('./auth'); console.log(JSON.stringify(` +
-      `{ EVENTS: a.EVENTS, DETAILS: a.DETAILS, GRUPPEN: a.LOG_GROUPS }));`, wVerz));
+      `{ EVENTS: a.EVENTS, DETAILS: a.DETAILS, GROUPS: a.LOG_GROUPS }));`, wVerz));
     fs.rmSync(wVerz, { recursive: true, force: true });
     const wZeilen = wListen.EVENTS.map((was, i) => ({
       id: 100 + i, am: '2026-08-24 09:00:00', was,
@@ -31969,7 +31969,7 @@ async function pruefeOberflaeche() {
        steht, waere unter keiner Ansicht zu finden -- ausser unter "alle", und
        dort sucht ihn niemand. */
     const wZuordnung = wListen.EVENTS.map(v =>
-      [v, Object.entries(wListen.GRUPPEN).filter(([, arten]) => arten.includes(v)).length]);
+      [v, Object.entries(wListen.GROUPS).filter(([, arten]) => arten.includes(v)).length]);
     pruefe('Jeder Vorgang steht in genau einer Gruppe des Filters',
       wZuordnung.every(([, n]) => n === 1),
       wZuordnung.filter(([, n]) => n !== 1).map(([v, n]) => `${v}: ${n}`).join(' · '));
@@ -35438,7 +35438,7 @@ async function pruefeOberflaeche() {
 
   /* Die Rechnung selbst, an der Funktion und nicht ueber fuenf aufgebaute
      Karten -- dieselbe Bauform wie bei kommentarZahlen(). */
-  const exS = (schalter) => exW.exportSumme(exKlein, schalter);
+  const exS = (schalter) => exW.exportSum(exKlein, schalter);
   pruefe('Der Umschlag faellt auch ohne jeden Schalter an',
     exS({}) === 1 * MB, `${exS({})}`);
   pruefe('Mit Fotos kommen die Fotos dazu',
@@ -35457,9 +35457,9 @@ async function pruefeOberflaeche() {
     exS({ mitFotos: true, mitVideos: true, mitDateien: true }) === 18 * MB,
     `${exS({ mitFotos: true, mitVideos: true, mitDateien: true })}`);
   pruefe('Ohne Angaben vom Server bleibt die Zahl null statt zu raten',
-    exW.exportSumme(null, { mitFotos: true }) === 0 &&
-    exW.exportSumme(undefined, { mitFotos: true }) === 0,
-    `${exW.exportSumme(null, { mitFotos: true })}`);
+    exW.exportSum(null, { mitFotos: true }) === 0 &&
+    exW.exportSum(undefined, { mitFotos: true }) === 0,
+    `${exW.exportSum(null, { mitFotos: true })}`);
 
   // Die Kennzahlen: die zweite Groessenangabe neben der Datenbankgroesse.
   const exKv = [...exW.document.querySelectorAll('.sys-card .kv')]
@@ -37801,10 +37801,10 @@ async function pruefeOberflaeche() {
      und Zelle zwei Quellen, und die eine liesse sich aendern, ohne dass die
      andere mitginge. */
   pruefe('Raster und Zelle haengen an derselben einen Bedingung',
-    /const mitSchnitt = mehrereBenutzer\(\);/.test(arQuelle) &&
-    /box\.className = 'rlist' \+ \(mitSchnitt \?/.test(arQuelle) &&
-    /if \(mitSchnitt\) \{/.test(arQuelle),
-    (arQuelle.match(/const mitSchnitt[^\n]*/) || ['(nicht gefunden)'])[0]);
+    /const withAverage = mehrereBenutzer\(\);/.test(arQuelle) &&
+    /box\.className = 'rlist' \+ \(withAverage \?/.test(arQuelle) &&
+    /if \(withAverage\) \{/.test(arQuelle),
+    (arQuelle.match(/const withAverage[^\n]*/) || ['(nicht gefunden)'])[0]);
 
   /* ================= Zwei Masse vom echten Geraet — 0.17.0 =============
      BEIDE BEFUNDE SIND AUF EINEM TELEFON ENTSTANDEN und in jsdom nicht zu
@@ -40926,13 +40926,13 @@ async function pruefeOberflaeche() {
       /getPropertyValue\('--bg'\)/.test(tApp) ? 'gelesen' : '(abgeschrieben)');
     /* „WIE DAS GERAET" FOLGT OHNE NEULADEN -- und nur in dieser Stellung. */
     pruefe('Der Horcher auf das Geraet greift nur in der Stellung geraet',
-      /THEMA === 'geraet'\) wendeThemaAn\(\)/.test(tApp)
+      /THEME === 'geraet'\) wendeThemaAn\(\)/.test(tApp)
         && /addEventListener\('change'/.test(tApp),
       /addEventListener\('change'/.test(tApp) ? 'Horcher da' : '(kein Horcher)');
     pruefe('Die Karte „Darstellung" traegt die Pillenreihe',
-      /<div class="pills" id="thema"><\/div>/.test(tApp) && /function drawThema\(\)/.test(tApp)
-        && /drawThema\(\);\n  drawSchrift\(\);/.test(tApp),
-      /function drawThema/.test(tApp) ? 'Reihe und Zeichner da' : '(fehlt)');
+      /<div class="pills" id="thema"><\/div>/.test(tApp) && /function drawTheme\(\)/.test(tApp)
+        && /drawTheme\(\);\n  drawFont\(\);/.test(tApp),
+      /function drawTheme/.test(tApp) ? 'Reihe und Zeichner da' : '(fehlt)');
     /* DIE STUFEN STEHEN IN BEIDEN DATEIEN UND MUESSEN UEBEREINSTIMMEN --
        dieselbe Zusicherung wie bei SCHRIFT_STUFEN und STREIFEN_STUFEN. */
     /* DIE DAEMPFUNG SCHIEBT ZUM GRUND HIN UND NICHT ZU SCHWARZ -- Regel F4.
@@ -40948,7 +40948,7 @@ async function pruefeOberflaeche() {
       /:root \{[\s\S]*?--daempfung: grayscale\(\.85\) brightness\(\.5\);/.test(tCss)
         && /:root\[data-thema="hell"\] \{[\s\S]*?--daempfung: grayscale\(\.85\) opacity\(\.45\);/.test(tCss),
       (tCss.match(/--daempfung:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
-    const stufenApp = (tApp.match(/THEMA_STUFEN = \[([^\]]*)\]/) || [])[1];
+    const stufenApp = (tApp.match(/THEME_LEVELS = \[([^\]]*)\]/) || [])[1];
     const stufenSrv = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/THEME_LEVELS = \[([^\]]*)\]/) || [])[1];
     pruefe('Die drei Stufen stehen in app.js und server.js gleich',
@@ -41785,9 +41785,9 @@ async function pruefeOberflaeche() {
     pruefe('public/app.js ruft weder confirm( noch prompt( auf',
       rohe.length === 0, JSON.stringify(rohe.slice(0, 5)));
     pruefe('Die eigenen Fenster stehen da und werden gerufen',
-      ['confirmBox(', 'nameBox(', 'passwortFenster(', 'neuesPasswortFenster(', 'benutzerLoeschenFenster(']
+      ['confirmBox(', 'nameBox(', 'passwordDialog(', 'newPasswordDialog(', 'userDeleteDialog(']
         .every(f => (appCode.split(f).length - 1) >= 2),
-      ['confirmBox(', 'nameBox(', 'passwortFenster(', 'neuesPasswortFenster(', 'benutzerLoeschenFenster(']
+      ['confirmBox(', 'nameBox(', 'passwordDialog(', 'newPasswordDialog(', 'userDeleteDialog(']
         .map(f => `${f} ${appCode.split(f).length - 1}x`).join(' · '));
     /* DAS LOESCHFENSTER FUER EINEN BENUTZER: „Abbrechen" bricht ab (Stolperstein
        316). Bis 0.21.1 hiess „Abbrechen" in den ersten zwei von drei Fenstern
@@ -41799,7 +41799,7 @@ async function pruefeOberflaeche() {
     const blW = blDom.w;
     const blStand = { eintraege: 5, fremdKommentare: 3, fremdBewertungen: 0, fremdTesttage: 0, fremdLinks: 0, fremdDateien: 0,
                       kommentare: 2, bewertungen: 1, testtage: 0, links: 0, dateien: 0 };
-    const blP = blW.benutzerLoeschenFenster('bert', 2, blStand);
+    const blP = blW.userDeleteDialog('bert', 2, blStand);
     await new Promise(r => setTimeout(r, 20));
     const blFenster = blW.document.getElementById('benutzer-loeschen');
     pruefe('Das Loeschfenster fuer einen Benutzer ist EIN Fenster mit Titel „Benutzer „x" löschen?"',
@@ -41822,7 +41822,7 @@ async function pruefeOberflaeche() {
     /* UND DIE HAEKCHEN KOMMEN ALS ANTWORT, wenn jemand loescht: das erste
        gesetzt, das zweite nicht -- genau so, wie es der Aufrufer an die Route
        weitergibt. */
-    const blP2 = blW.benutzerLoeschenFenster('bert', 2, blStand);
+    const blP2 = blW.userDeleteDialog('bert', 2, blStand);
     await new Promise(r => setTimeout(r, 20));
     const blF2 = blW.document.getElementById('benutzer-loeschen');
     blF2.querySelector('#bl-eintraege').checked = true;
@@ -41831,7 +41831,7 @@ async function pruefeOberflaeche() {
       gleich(await blP2, { eintraege: true, beitraege: false }), JSON.stringify(await blP2));
     /* DAS FREMDE PASSWORT KOMMT AUS EINEM PASSWORTFELD und nicht aus prompt():
        dort stand es im Klartext auf dem Bildschirm. */
-    const npP = blW.neuesPasswortFenster('Passwort für „bert" setzen', 'Mindestens 10 Zeichen.');
+    const npP = blW.newPasswordDialog('Passwort für „bert" setzen', 'Mindestens 10 Zeichen.');
     await new Promise(r => setTimeout(r, 20));
     const npFeld = blW.document.getElementById('np-pass');
     pruefe('Das Fenster fuer ein fremdes Passwort hat ein Passwortfeld',
@@ -41870,7 +41870,7 @@ async function pruefeOberflaeche() {
     pruefe('Und keiner steht in der Sprachdatei',
       befehleDe.length === 0, befehleDe.map(([k]) => k).join(' · '));
     pruefe('Der Kasten selbst prueft die Rolle — nicht jede Karte fuer sich',
-      /function serverKasten\(satz, befehl\) \{\s*\n\s*if \(!EIGENTUEMER\) return '';/.test(appRoh),
+      /function serverKasten\(sentence, command\) \{\s*\n\s*if \(!OWNER\) return '';/.test(appRoh),
       (appRoh.match(/function serverKasten[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
     /* UND AM BILDSCHIRM: der Benutzer und der Admin sehen keinen einzigen
        Kasten, die Eigentuemerin drei -- Mein Konto, Benutzer, Kennzahlen. */
@@ -42108,7 +42108,7 @@ async function pruefeOberflaeche() {
        wird dabei nicht unsichtbar, er steht als Zahl da. */
     pruefe('Und der Umschalter traegt die Zahl der greifenden Tagfilter: „Tags (1)"',
       wfKnopf2?.textContent === 'Tags (1)', JSON.stringify(wfKnopf2?.textContent));
-    pruefe('Und filterZahl() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)',
+    pruefe('Und filterNumber() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)',
       wfMit.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)' &&
       wfMit.w.document.querySelector('#filter-auf .fz')?.textContent === '· 1 aktiv',
       JSON.stringify([wfMit.w.document.getElementById('filter-zurueck')?.textContent,

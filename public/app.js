@@ -11,7 +11,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&
    FLACHE SCHLUESSEL MIT PUNKTEN und keine verschachtelten Objekte:
    `t('dialog.fotoLoeschen.frage')` schlaegt EIN Feld nach. Verschachtelt waere
    die Datei fuer einen Uebersetzer huebscher, aber zwei Schluessel wie
-   `knopf.speichern` und `knopf.speichern.titel` koennten dann nicht
+   `button.speichern` und `button.speichern.titel` koennten dann nicht
    nebeneinander stehen -- bei tausend Schluesseln trifft dieser Fall ein, und
    er faellt erst beim Laden auf. Flach koennen sie es, und das Objekt bleibt
    der Mehrzahl vorbehalten: WAS EIN OBJEKT IST, IST EINE MEHRZAHLFORM.
@@ -21,24 +21,24 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&
    eine Regel, die man erst dann baut, wenn sie gebraucht wird, ist ungeprueft
    (Konzept 4.4). Fehlt der Schluessel auch dort, steht `⟦schluessel⟧` am
    Bildschirm -- sichtbar und nie still. */
-let SPRACHE = 'de';
+let LANGUAGE = 'de';
 let LOCALE = 'de-DE';
-let TEXTE = {};
+let TEXTS = {};
 let TEXTE_DE = {};
 /* EINMAL GEBAUT UND NICHT JE AUFRUF. `new Intl.PluralRules(...)` je Text waere
    bei 46 Mehrzahlstellen und jedem Neuzeichnen eine gut sichtbare Rechnung. */
 let PLURAL = new Intl.PluralRules(LOCALE);
 
 // Den Satz nachschlagen -- in der gewaehlten Sprache, sonst auf Deutsch.
-function spracheSatz(schluessel, werte) {
-  const roh = TEXTE[schluessel] !== undefined ? TEXTE[schluessel] : TEXTE_DE[schluessel];
+function languageSentence(schluessel, values) {
+  const roh = TEXTS[schluessel] !== undefined ? TEXTS[schluessel] : TEXTE_DE[schluessel];
   if (roh === undefined) return `⟦${schluessel}⟧`;
   if (typeof roh !== 'object') return roh;
   /* DIE MEHRZAHL WAEHLT Intl.PluralRules UND NICHT `n === 1`. Fuer Deutsch
      faellt beides zusammen; fuer die naechste Sprache nicht, und die Regel
      steht dann schon richtig da. `select(undefined)` ist `other` -- ein
      Mehrzahlobjekt ohne `n` bekommt also die Mehrzahl und nicht die Einzahl. */
-  return PLURAL.select(werte.n) === 'one' ? roh.eins : roh.andere;
+  return PLURAL.select(values.n) === 'one' ? roh.eins : roh.andere;
 }
 
 /* DIE WERTE EINSETZEN. Ein Platzhalter, den weder der Aufrufer noch das
@@ -48,9 +48,9 @@ function spracheSatz(schluessel, werte) {
    traegt kein HTML (der Pruefstand haelt das fest); der Wert kommt vom
    Benutzer oder aus dem Vokabular des Admins. Genau deshalb maskiert tH()
    AUCH die Vokabelwoerter -- Stolperstein 18 in Dateiform. */
-function spracheEinsetzen(satz, werte, maskieren) {
-  return String(satz).replace(/\{(\w+)\}/g, (ganz, name) => {
-    let wert = werte[name];
+function spracheEinsetzen(sentence, values, maskieren) {
+  return String(sentence).replace(/\{(\w+)\}/g, (ganz, name) => {
+    let wert = values[name];
     if (wert === undefined && V && V[name] !== undefined) wert = V[name];
     if (wert === undefined) return ganz;
     return maskieren ? esc(String(wert)) : String(wert);
@@ -58,12 +58,12 @@ function spracheEinsetzen(satz, werte, maskieren) {
 }
 
 // Fuer textContent, title und placeholder: der nackte Text.
-function t(schluessel, werte = {}) {
-  return spracheEinsetzen(spracheSatz(schluessel, werte), werte, false);
+function t(schluessel, values = {}) {
+  return spracheEinsetzen(languageSentence(schluessel, values), values, false);
 }
 // Fuer innerHTML: derselbe Text, aber jeder eingesetzte Wert maskiert.
-function tH(schluessel, werte = {}) {
-  return spracheEinsetzen(spracheSatz(schluessel, werte), werte, true);
+function tH(schluessel, values = {}) {
+  return spracheEinsetzen(languageSentence(schluessel, values), values, true);
 }
 
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
@@ -72,31 +72,31 @@ function tH(schluessel, werte = {}) {
    DAS IST DER WEG FUER EIN VOKABELWORT: seine beiden Formen sind Inhalt und
    stehen nicht in der Sprachdatei. Steht der ganze Satz dort, traegt sein
    Schluessel stattdessen ein Objekt { eins, andere }. */
-function mehrzahl(n, eins, andere) {
-  return PLURAL.select(Number(n) || 0) === 'one' ? eins : andere;
+function mehrzahl(n, eins, other) {
+  return PLURAL.select(Number(n) || 0) === 'one' ? eins : other;
 }
 
 /* DIE DATEI HOLEN. Sie liegt unter public/ und kommt damit ueber
    express.static -- keine neue Route, ETag und 304 wie app.js selbst, und der
    Fingerprint deckt sie ab, ohne dass jemand daran denkt (Konzept 3.3). */
-async function ladeSprache(code) {
-  const antwort = await fetch(`/languages/${code}.json`, { credentials: 'same-origin' });
+async function loadLanguage(code) {
+  const response = await fetch(`/languages/${code}.json`, { credentials: 'same-origin' });
   /* DIE BEIDEN WUERFE TRAGEN KEINEN SATZ, SONDERN EINE LAGE. Sie erreichen
      keinen Bildschirm: boot() faengt sie und zeigt den einen festen Satz (A1).
      Ein deutscher Satz hier waere ein Text, den nie jemand liest -- und der
      dem Waechter als Rest in app.js aufstiesse. Die Lage steht trotzdem da:
      sie landet auf der Konsole, und dort liest sie der Betreiber. */
-  if (!antwort.ok) throw new Error(`languages/${code}.json ${antwort.status}`);
-  const daten = await antwort.json();
+  if (!response.ok) throw new Error(`languages/${code}.json ${response.status}`);
+  const data = await response.json();
   // Ohne Locale kein Datum und keine Mehrzahl -- eine Datei ohne sie ist keine.
-  if (!daten || typeof daten !== 'object' || typeof daten._locale !== 'string')
+  if (!data || typeof data !== 'object' || typeof data._locale !== 'string')
     throw new Error(`languages/${code}.json _locale`);
-  SPRACHE = code;
-  LOCALE = daten._locale;
+  LANGUAGE = code;
+  LOCALE = data._locale;
   PLURAL = new Intl.PluralRules(LOCALE);
-  TEXTE = daten;
+  TEXTS = data;
   // Deutsch ist die Rueckfalldatei. In dieser Runde ist es dieselbe.
-  if (code === 'de') TEXTE_DE = daten;
+  if (code === 'de') TEXTE_DE = data;
   /* UND DIE VORGABE DES VOKABULARS -- 0.24.0. Sie ist Oberflaeche und kein
      Inhalt: bis der Server seinen Satz schickt, beschriftet sie den Bildschirm
      (siehe `V`). Gesetzt wird sie HIER und nicht an `V` selbst, weil die Zeile
@@ -104,7 +104,7 @@ async function ladeSprache(code) {
      Was schon in `V` steht, bleibt: der Satz des Servers wiegt schwerer als
      die Vorgabe. */
   V = { ...Object.fromEntries(Object.entries(VOK_VORGABE).map(([k, ruf]) => [k, ruf()])), ...V };
-  return daten;
+  return data;
 }
 
 function fmtDate(iso) {
@@ -154,7 +154,7 @@ const today = () => new Date().toLocaleDateString('sv-SE');
    Der Videoschalter haengt am Fotoschalter -- genau wie am Server, wo die
    Fotoliste ohne ihn gar nicht erst gebaut wird. Ohne diese Bindung naennte
    die Karte eine Zahl, die kein Knopf erzeugen kann. */
-function exportSumme(ex, s) {
+function exportSum(ex, s) {
   if (!ex) return 0;
   return (ex.umschlag || 0)
     + (s.mitFotos ? (ex.fotos || 0) : 0)
@@ -162,7 +162,7 @@ function exportSumme(ex, s) {
     + (s.mitDateien ? (ex.anhaenge || 0) + (ex.kommentarbilder || 0) : 0);
 }
 // Alles eingeschaltet -- die Zahl fuer die Kennzahlen, wo kein Schalter steht.
-const exportGesamt = (stats) => exportSumme(stats && stats.export,
+const exportTotal = (stats) => exportSum(stats && stats.export,
   { mitFotos: true, mitDateien: true, mitVideos: true });
 
 async function api(method, url, body, isForm = false) {
@@ -210,13 +210,13 @@ function toast(msg, isErr = false, aktion = null) {
 const ICON_PH = `<svg class="ph" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3.5 17l5-4.5 3.5 3 3-2.5 5.5 4.5"/></svg>`;
 // Eine Liste mit Haken -- das Zeichen fuer "was ist noch offen". Es steht
 // neben dem Zahnrad und traegt dieselbe Groesse wie dieses.
-const ICON_OFFEN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5l2 2 3-3.5"/><path d="M3.5 13l2 2 3-3.5"/><path d="M3.5 19.5l2 2 3-3.5"/><path d="M12.5 6.5H21"/><path d="M12.5 13H21"/><path d="M12.5 19.5H21"/></svg>`;
+const ICON_OPEN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5l2 2 3-3.5"/><path d="M3.5 13l2 2 3-3.5"/><path d="M3.5 19.5l2 2 3-3.5"/><path d="M12.5 6.5H21"/><path d="M12.5 13H21"/><path d="M12.5 19.5H21"/></svg>`;
 /* DREI STRICHE. Es gibt kein besseres Zeichen fuer "hier ist noch mehr" --
    nicht weil es gut waere, sondern weil es jeder kennt. Es steht NUR auf dem
    schmalen Schirm; das entscheidet das Stylesheet, nicht diese Zeile.
    Dieselbe Strichstaerke und dasselbe viewBox wie die beiden Nachbarn in der
    Kopfzeile -- sie sollen wie ein Satz aussehen und nicht wie drei Herkuenfte. */
-const ICON_MENUE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>`;
+const ICON_MENU = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>`;
 /* DIE DREI ZEICHEN AM BILDBEREICH. Sie ersetzen die Woerter "Ausschnitt" und
    "Vollbild" -- und der Papierkorb ist neu.
    WARUM ZEICHEN UND NICHT WOERTER: sie liegen AUF dem Bild und nicht daneben.
@@ -231,14 +231,14 @@ const ICON_MENUE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" 
    ALLE DREI IN DERSELBEN STRICHSTAERKE UND DEMSELBEN viewBox wie die Zeichen
    der Kopfzeile. Sie sollen wie ein Satz aussehen und nicht wie drei
    Herkuenfte. */
-const ICON_AUSSCHNITT = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v13a2 2 0 0 0 2 2h13"/><path d="M2 7h13a2 2 0 0 1 2 2v13"/></svg>`;
+const ICON_CROP = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v13a2 2 0 0 0 2 2h13"/><path d="M2 7h13a2 2 0 0 1 2 2v13"/></svg>`;
 const ICON_VOLLBILD = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6"/><path d="M15 21h6v-6"/><path d="M21 9V3h-6"/><path d="M3 15v6h6"/></svg>`;
-const ICON_PAPIERKORB = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.6A1.5 1.5 0 0 0 8.9 21h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
+const ICON_TRASH = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.6A1.5 1.5 0 0 0 8.9 21h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
 const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>`;
 /* DIE GLOCKE. Kein Zeichen erklaert sich von selbst, aber dieses ist draussen
    so fest belegt wie das Zahnrad fuer Einstellungen -- und die Kopfzeile
    traegt ohnehin an jedem Knopf seinen Titel. */
-const ICON_GLOCKE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 5.2-2 6.5-2 6.5h16s-2-1.3-2-6.5"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>`;
+const ICON_BELL = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 5.2-2 6.5-2 6.5h16s-2-1.3-2-6.5"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
 /* DIE ZEICHEN DER ZEILENAKTIONEN -- 0.22.0 (Ideentafel N1). Bis 0.21.1 waren
    sie Schriftzeichen und ein Emoji (✎ ✕ ↩ ☐ ☑ 🔗 🔑 ⃠ 📌): jedes System
@@ -249,27 +249,27 @@ const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
    misst sich damit an der Schrift, in der es steht.
    aria-hidden, weil jeder Knopf seinen Sinn im `title` traegt; ein
    Vorleseprogramm soll nicht „Grafik" vorlesen. */
-const zeichen = (pfade, staerke = 1.8) =>
+const char = (pfade, staerke = 1.8) =>
   `<svg class="zg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${staerke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pfade}</svg>`;
-const ICON_KREUZ = zeichen('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
-const ICON_STIFT = zeichen('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/>');
-const ICON_HAKEN = zeichen('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.1);
-const ICON_KASTEN = zeichen('<rect x="4" y="4" width="16" height="16" rx="3"/>');
-const ICON_KASTEN_HAKEN = zeichen('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/>');
-const ICON_WIEDERHER = zeichen('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>');
+const ICON_KREUZ = char('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
+const ICON_PEN = char('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/>');
+const ICON_CHECK = char('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.1);
+const ICON_BOX = char('<rect x="4" y="4" width="16" height="16" rx="3"/>');
+const ICON_BOX_CHECK = char('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/>');
+const ICON_WIEDERHER = char('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>');
 /* Das Zeichen „zuruecksetzen" an der Sternzeile -- ein Kreis, der zurueck
    laeuft, und ausdruecklich kein Kreuz: meine Sterne werden entfernt, nicht
    geloescht (Woerterbuch, Konzept 4.3). */
-const ICON_ZURUECKSETZEN = zeichen('<path d="M4.5 12a7.5 7.5 0 1 0 2.6-5.7"/><path d="M4 4v5h5"/>');
-const ICON_LINK = zeichen('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/>');
-const ICON_SCHLUESSEL = zeichen('<circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5"/><path d="M17 6.5l2.5 2.5"/><path d="M14.5 9l2 2"/>');
-const ICON_SPERREN = zeichen('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>');
-const ICON_PIN = zeichen('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
+const ICON_ZURUECKSETZEN = char('<path d="M4.5 12a7.5 7.5 0 1 0 2.6-5.7"/><path d="M4 4v5h5"/>');
+const ICON_LINK = char('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/>');
+const ICON_KEY = char('<circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5"/><path d="M17 6.5l2.5 2.5"/><path d="M14.5 9l2 2"/>');
+const ICON_SPERREN = char('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>');
+const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
 
 /* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT -- 0.22.0 (Ideentafel
    N3): das vorhandene Platzhalterzeichen ueber dem Satz. Der Satz geht durch
    esc() -- er ist fest, aber innerHTML ist innerHTML. */
-const leerZustand = (satz) => `<div class="leer-zustand">${ICON_PH}<span class="hint">${esc(satz)}</span></div>`;
+const emptyState = (sentence) => `<div class="leer-zustand">${ICON_PH}<span class="hint">${esc(sentence)}</span></div>`;
 
 /* Die Marke der Instanz — EIN EINGEBAUTES SVG, seit 0.23.0 wieder.
 
@@ -306,7 +306,7 @@ const leerZustand = (satz) => `<div class="leer-zustand">${ICON_PH}<span class="
    richtigen Wert, und beide sind über 3 : 1 auf ihrem Grund. Die Marke folgt
    dem Schema damit ohne eine Zeile JavaScript.
 
-   Die Klasse heisst `marke` und nicht `mark`: `mark` gibt es in style.css
+   Die Klasse heisst `mark` und nicht `mark`: `mark` gibt es in style.css
    bereits fuer die kleinen Knoepfe am Kommentar.
 
    aria-hidden UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem
@@ -368,14 +368,14 @@ function stars(value, onPick) {
   }
   // Das Vorschauleuchten geht ueber die STERNE und nicht ueber alle Kinder --
   // sonst faerbte das × als sechstes Kind mit, sobald jemand darueberfaehrt.
-  const sterne = () => [...w.querySelectorAll('.star')];
+  const stars = () => [...w.querySelectorAll('.star')];
   w.addEventListener('mouseover', e => {
     if (!e.target.dataset.v) return;
     const h = +e.target.dataset.v;
-    sterne().forEach((s, i) => s.classList.toggle('on', i < h));
+    stars().forEach((s, i) => s.classList.toggle('on', i < h));
   });
   w.addEventListener('mouseleave', () => {
-    sterne().forEach((s, i) => s.classList.toggle('on', i < value));
+    stars().forEach((s, i) => s.classList.toggle('on', i < value));
   });
   w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });
   return w;
@@ -463,18 +463,18 @@ function nameBox(title, text, vorgabe = '', okLabel = t('dialog.save'), maxLaeng
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
       <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`;
     document.body.appendChild(bd);
-    const feld = bd.querySelector('#nb-name');
+    const field = bd.querySelector('#nb-name');
     const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
-    const nimm = () => { const w = feld.value.trim(); done(w || null); };
+    const nimm = () => { const w = field.value.trim(); done(w || null); };
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = nimm;
     bd.onclick = e => { if (e.target === bd) done(null); };
     const onKey = e => {
       if (e.key === 'Escape') done(null);
-      else if (e.key === 'Enter' && document.activeElement === feld) nimm();
+      else if (e.key === 'Enter' && document.activeElement === field) nimm();
     };
     document.addEventListener('keydown', onKey, true);
-    feld.focus(); feld.select();
+    field.focus(); field.select();
   });
 }
 
@@ -491,7 +491,7 @@ function nameBox(title, text, vorgabe = '', okLabel = t('dialog.save'), maxLaeng
    Sprachdatei, und die ist beim Auswerten dieser Zeile noch nicht da: ein
    `const` haette hier fuer immer die Klammerform festgehalten. Gefragt wird
    beim Gebrauch und nicht beim Laden. */
-const bestaetigungGrund = () => t('dialog.appWideHint') +
+const confirmReason = () => t('dialog.appWideHint') +
   t('dialog.confirmPassword');
 
 /* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
@@ -502,7 +502,7 @@ const bestaetigungGrund = () => t('dialog.appWideHint') +
    den ersten Versuch absichtlich scheitern lassen, um zu erfahren, dass ein
    Code fehlt -- und schriebe dabei bei JEDEM Vorgang eine Zeile
    'bestaetigung.fehl' ins Sicherheitsprotokoll. */
-function passwortFenster(titel, was, grund, mitCode) {
+function passwordDialog(titel, was, grund, withCode) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
@@ -518,25 +518,25 @@ function passwortFenster(titel, was, grund, mitCode) {
            EIN FELD FUER BEIDE FORMEN, wie an der Anmeldung: der Server sieht
            der Eingabe an, was gemeint ist (istCodeform gegen istWiederform).
            Deshalb darf die Beschriftung keine von beiden ausschliessen. */''}
-      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>${tH('dialog.twoFactorCode')}</label>
+      ${withCode ? `<div class="field" style="margin:10px 0 0"><label>${tH('dialog.twoFactorCode')}</label>
         <input class="input" id="best-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
       <button class="btn btn-accent" data-yes>${tH('dialog.confirm')}</button></div></div>`;
     document.body.appendChild(bd);
-    const feld = bd.querySelector('#best-pass');
-    const codeFeld = bd.querySelector('#best-code');
-    const wert = () => ({ passwort: feld.value, ...(codeFeld ? { code: codeFeld.value } : {}) });
+    const field = bd.querySelector('#best-pass');
+    const codeField = bd.querySelector('#best-code');
+    const wert = () => ({ passwort: field.value, ...(codeField ? { code: codeField.value } : {}) });
     const done = v => { bd.remove(); resolve(v); };
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = () => done(wert());
     bd.onclick = e => { if (e.target === bd) done(null); };
-    for (const el of [feld, codeFeld]) {
+    for (const el of [field, codeField]) {
       if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') done(wert()); });
     }
     const onKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey, true); done(null); } };
     document.addEventListener('keydown', onKey, true);
-    feld.focus();
+    field.focus();
   });
 }
 
@@ -544,22 +544,22 @@ function passwortFenster(titel, was, grund, mitCode) {
    ZWEIFAKTOR und damit der Server -- die Oberflaeche raet es nie.
    DER ZUSATZSATZ STEHT NUR DA, WENN DAS FELD DASTEHT: ein Grund fuer eine
    Frage, die gar nicht gestellt wird, waere Verwirrung ohne Gegenwert. */
-const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
-  bestaetigungGrund() + (ZWEIFAKTOR
+const confirmField = (titel, was) => passwordDialog(titel, was,
+  confirmReason() + (TWO_FACTOR
     ? t('dialog.twoFactorOn') +
       t('dialog.recoveryCodeToo')
-    : ''), ZWEIFAKTOR);
+    : ''), TWO_FACTOR);
 
 /* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, .
-   ES HAT EINEN EIGENEN NAMEN UND KEINEN SCHALTER AN bestaetigungsFeld: dort
+   ES HAT EINEN EIGENEN NAMEN UND KEINEN SCHALTER AN confirmField: dort
    haengt das Codefeld an ZWEIFAKTOR, hier am WEG. Beim Einschalten gibt es noch
    keinen Code zu fragen, beim Ausschalten gehoert er dazu -- und beide Male ist
    ZWEIFAKTOR die falsche Auskunft darueber.
-   OHNE bestaetigungGrund(): der steht fuer "das trifft die Instanz als Ganzes",
+   OHNE confirmReason(): der steht fuer "das trifft die Instanz als Ganzes",
    und das trifft hier nicht zu -- es geht um den eigenen Zugang. Der Grund
    kommt deshalb je Weg von der Aufrufstelle. */
-const bestaetigungsFeldFrei = (titel, was, mitCode) =>
-  passwortFenster(titel, was, '', mitCode === true);
+const confirmFieldFree = (titel, was, withCode) =>
+  passwordDialog(titel, was, '', withCode === true);
 
 /* EINE ABFRAGE, EINE ANFRAGE, MEHRERE FREIGABEN. Ein Bestand, der in fuenf
    Teilen hinausgeht, braucht fuenf Freigaben -- eine Freigabe wird verbraucht,
@@ -578,20 +578,20 @@ const bestaetigungsFeldFrei = (titel, was, mitCode) =>
    WAS BLEIBT: das Laden eines Teils verbraucht genau eine Freigabe. Was
    zusammengefasst wird, ist die ABFRAGE und nicht die Schranke. */
 async function zweiteBestaetigungMehrfach(zweck, ziele, titel, was) {
-  const eingabe = await bestaetigungsFeld(titel, was);
-  if (eingabe === null) return false;
-  try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziele }); }
+  const input = await confirmField(titel, was);
+  if (input === null) return false;
+  try { await api('POST', '/api/bestaetigung', { ...input, zweck, ziele }); }
   catch (e) { toast(e.message, true); return false; }
   return true;
 }
 
-async function zweiteBestaetigung(zweck, ziel, titel, was) {
-  const eingabe = await bestaetigungsFeld(titel, was);
+async function secondConfirm(zweck, ziel, titel, was) {
+  const input = await confirmField(titel, was);
   // null heisst abgebrochen -- ein Abbruch, der trotzdem handelt, waere der
   // schlimmere Fehler. Ein LEERES Feld ist keine Bestaetigung, sondern ein
   // falsches Passwort und geht als solches an den Server.
-  if (eingabe === null) return false;
-  try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel: ziel ?? null }); }
+  if (input === null) return false;
+  try { await api('POST', '/api/bestaetigung', { ...input, zweck, ziel: ziel ?? null }); }
   catch (e) { toast(e.message, true); return false; }
   return true;
 }
@@ -600,28 +600,28 @@ async function zweiteBestaetigung(zweck, ziel, titel, was) {
    prompt(): dort stand das fremde Passwort im Klartext auf dem Bildschirm.
    Ein Passwortfeld, darueber die Vorgabe und die Folge. Liefert das Passwort
    oder null bei Abbruch; ein leeres Feld ist ein Abbruch. */
-function neuesPasswortFenster(titel, satz) {
+function newPasswordDialog(titel, sentence) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2><p>${esc(satz)}</p>
+    bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2><p>${esc(sentence)}</p>
       <div class="field" style="margin:0"><label for="np-pass">${tH('dialog.newPassword')}</label>
         <input class="input" id="np-pass" type="password" autocomplete="new-password"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
       <button class="btn btn-accent" data-yes>${tH('dialog.setPassword')}</button></div></div>`;
     document.body.appendChild(bd);
-    const feld = bd.querySelector('#np-pass');
+    const field = bd.querySelector('#np-pass');
     const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
-    const nimm = () => done(feld.value || null);
+    const nimm = () => done(field.value || null);
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = nimm;
     bd.onclick = e => { if (e.target === bd) done(null); };
     const onKey = e => {
       if (e.key === 'Escape') done(null);
-      else if (e.key === 'Enter' && document.activeElement === feld) nimm();
+      else if (e.key === 'Enter' && document.activeElement === field) nimm();
     };
     document.addEventListener('keydown', onKey, true);
-    feld.focus();
+    field.focus();
   });
 }
 
@@ -633,7 +633,7 @@ function neuesPasswortFenster(titel, satz) {
    Ein Haekchen steht nur da, wenn es etwas zu entscheiden gibt: ohne eigene
    Eintraege gibt es nichts mitzuloeschen.
    Liefert { eintraege, beitraege } oder null bei Abbruch. */
-function benutzerLoeschenFenster(name, nummer, b) {
+function userDeleteDialog(name, nummer, b) {
   return new Promise(resolve => {
     const zaehl = (n, ein, mehr) => (n ? [`${n} ${mehrzahl(n, ein, mehr)}`] : []);
     const fremdDaran = (b.fremdKommentare || 0) + (b.fremdBewertungen || 0) + (b.fremdTesttage || 0)
@@ -682,7 +682,7 @@ const enqueue = fn => (queue = queue.then(fn, fn));
 let TITLE_PUBLIC = 'Kriterion';
 let VERSION = '';   // kommt von /api/config, steht auch vor der Anmeldung
 let TITLE_APP = 'Kriterion';
-let MIN_PASSWORT = 10;   // Vorgabe des Servers, kommt mit /api/config
+let MIN_PASSWORD = 10;   // Vorgabe des Servers, kommt mit /api/config
 /* Ob diese Instanz Anfragen annimmt. KOMMT VOM SERVER und wird hier nie
    geraten: die Oberfläche zeigt das Formular, der Server entscheidet über die
    Anfrage. Wer das Feld von Hand auf true setzt, bekommt ein Formular, dessen
@@ -708,7 +708,7 @@ function showSetup(errMsg) {
       <input class="input" id="sp" type="password" autocomplete="new-password"></div>
     <div class="field"><label for="sp2">${tH('login.repeatPassword')}</label>
       <input class="input" id="sp2" type="password" autocomplete="new-password"></div>
-    <p class="sub" style="margin:0 0 4px">${tH('login.passwordHint', { minPasswort: MIN_PASSWORT })}</p>
+    <p class="sub" style="margin:0 0 4px">${tH('login.passwordHint', { minPasswort: MIN_PASSWORD })}</p>
     <button class="btn btn-accent" id="sb">${tH('login.setup')}</button>
   </div></div>`;
   document.title = TITLE_PUBLIC;
@@ -717,8 +717,8 @@ function showSetup(errMsg) {
         p2 = document.getElementById('sp2'), b = document.getElementById('sb');
   const submit = async () => {
     if (!u.value.trim()) return showSetup(t('login.usernameMissing'));
-    if (p1.value.length < MIN_PASSWORT)
-      return showSetup(t('login.passwordTooShort', { min: MIN_PASSWORT }));
+    if (p1.value.length < MIN_PASSWORD)
+      return showSetup(t('login.passwordTooShort', { min: MIN_PASSWORD }));
     if (p1.value !== p2.value) return showSetup(t('login.passwordsDiffer'));
     b.disabled = true; b.textContent = t('login.settingUp');
     try {
@@ -769,7 +769,7 @@ function showLogin(errMsg) {
       <button class="btn anmeld-zweitweg" id="l-anfrage">${tH('login.requestAccess')}</button>` : ''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
-  if (REGISTRIERUNG) document.getElementById('l-anfrage').onclick = () => showAnfrage();
+  if (REGISTRIERUNG) document.getElementById('l-anfrage').onclick = () => showRequest();
 
   const u = document.getElementById('lu'), p = document.getElementById('lp'), b = document.getElementById('lb');
   const submit = async () => {
@@ -790,7 +790,7 @@ function showLogin(errMsg) {
          geschickt — es gibt noch keine Sitzung, und diese Seite hält auch
          keine halbe: sie hält nur den Ausweis, den sie gleich wieder
          hergibt. */
-      if (j.zweifaktor) return showZweiterFaktor(j.ausweis);
+      if (j.zweifaktor) return showSecondFactor(j.ausweis);
       location.hash = '#/';
       start();
     } catch { showLogin(t('login.serverUnreachable')); }
@@ -810,7 +810,7 @@ function showLogin(errMsg) {
    Wiederherstellungscode — der Server sieht der Eingabe an, was gemeint ist.
 
    DIE ABSAGE KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN. */
-function showZweiterFaktor(ausweis, errMsg) {
+function showSecondFactor(ausweis, errMsg) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
@@ -847,12 +847,12 @@ function showZweiterFaktor(ausweis, errMsg) {
            an den Anfang.
            DEN ALTEN AUSWEIS WEITERZUVERWENDEN WÄRE FALSCH: er ist verbraucht,
            auch nach einer Absage. */
-        if (j.ausweis) return showZweiterFaktor(j.ausweis, j.error || t('login.codeWrong'));
+        if (j.ausweis) return showSecondFactor(j.ausweis, j.error || t('login.codeWrong'));
         return showLogin(j.error || t('server.sessionExpired'));
       }
       location.hash = '#/';
       start();
-    } catch { showZweiterFaktor(ausweis, t('login.serverUnreachable')); }
+    } catch { showSecondFactor(ausweis, t('login.serverUnreachable')); }
   };
   b.onclick = submit;
   c.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
@@ -868,7 +868,7 @@ function showZweiterFaktor(ausweis, errMsg) {
    DIE ANTWORT KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN: sie sieht in
    jeder Lage gleich aus, und diese Seite darf daraus keine zweite Auskunft
    machen — kein „Name bereits vergeben", kein Unterschied im Aussehen. */
-function showAnfrage(errMsg, werte = {}) {
+function showRequest(errMsg, values = {}) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
@@ -877,10 +877,10 @@ function showAnfrage(errMsg, werte = {}) {
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
     <div class="field"><label for="an-name">${tH('login.wantedUsername')}</label>
       <input class="input" id="an-name" autocomplete="username" autocapitalize="off"
-        spellcheck="false" maxlength="64" value="${esc(werte.name || '')}"></div>
+        spellcheck="false" maxlength="64" value="${esc(values.name || '')}"></div>
     <div class="field"><label for="an-mail">${tH('login.email')}</label>
       <input class="input" id="an-mail" type="email" autocomplete="email" autocapitalize="off"
-        spellcheck="false" maxlength="254" value="${esc(werte.adresse || '')}"></div>
+        spellcheck="false" maxlength="254" value="${esc(values.adresse || '')}"></div>
     <button class="btn btn-accent" id="an-ab">${tH('login.sendRequest')}</button>
     <p class="sub" style="margin:14px 0 0"><a href="#" id="an-zurueck">${tH('login.backToSignIn')}</a></p>
   </div></div>`;
@@ -901,10 +901,10 @@ function showAnfrage(errMsg, werte = {}) {
          andere endet auf derselben Dankseite — auch das, was der Server still
          verworfen hat. Die Eingaben bleiben dabei stehen, damit ein zweiter
          Anlauf nach einer 429 nicht am leeren Formular beginnt. */
-      if (!res.ok) return showAnfrage(j.error || t('login.requestFailed'),
+      if (!res.ok) return showRequest(j.error || t('login.requestFailed'),
         { name: n.value, adresse: m.value });
       showAnfrageDank(j.meldung);
-    } catch { showAnfrage(t('login.serverUnreachable'), { name: n.value, adresse: m.value }); }
+    } catch { showRequest(t('login.serverUnreachable'), { name: n.value, adresse: m.value }); }
   };
   b.onclick = submit;
   [n, m].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
@@ -933,7 +933,7 @@ function showAnfrageDank(meldung) {
    Server — dieselbe Bauform wie beim Einladungslink. Ein Vorschaudienst, der
    Links im Postfach vorab abruft, holt nur die Seite und bestätigt gerade
    NICHT: der Browser schickt den Schlüssel erst von hier aus im Rumpf. */
-async function showBestaetigung(schluessel) {
+async function showConfirm(schluessel) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
@@ -951,14 +951,14 @@ async function showBestaetigung(schluessel) {
   } catch {
     /* KEIN NETZ IST KEINE ABSAGE. Wie bei der Einladungsseite bleibt der
        Schlüssel in der Adresse stehen, und ein Neuladen trägt wieder. */
-    return zeichne(false, t('login.serverUnreachable'), true);
+    return draw(false, t('login.serverUnreachable'), true);
   }
-  if (!res.ok) return zeichne(false, j.error || t('login.confirmLinkExpired'),
+  if (!res.ok) return draw(false, j.error || t('login.confirmLinkExpired'),
     res.status !== 400);
   location.hash = '#/';
-  zeichne(true, '');
+  draw(true, '');
 
-  function zeichne(gut, meldung, nochmal) {
+  function draw(gut, meldung, nochmal) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${MARKENZEILE()}
       ${gut ? `<p class="sub" id="best-gut"><strong>${tH('login.confirmed')}</strong>
@@ -968,8 +968,8 @@ async function showBestaetigung(schluessel) {
           : ''}`}
       <p class="sub" style="margin:14px 0 0"><a href="#" id="best-zurueck">${tH('login.backToSignIn')}</a></p>
     </div></div>`;
-    const neu = document.getElementById('best-neu');
-    if (neu) neu.onclick = () => showBestaetigung(schluessel);
+    const fresh = document.getElementById('best-neu');
+    if (fresh) fresh.onclick = () => showConfirm(schluessel);
     document.getElementById('best-zurueck').onclick = (e) => {
       e.preventDefault(); location.hash = '#/'; showLogin();
     };
@@ -988,7 +988,7 @@ async function showBestaetigung(schluessel) {
 
    DER NAME KOMMT ERST VOM SERVER, wenn der Link trägt — sonst verriete ein
    geratener Link einen Benutzernamen. */
-async function showEinladung(schluessel) {
+async function showInvite(schluessel) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
   document.body.classList.add('anmeldung');
@@ -998,14 +998,14 @@ async function showEinladung(schluessel) {
     <p class="sub">${tH('login.linkChecking')}</p></div></div>`;
   document.title = TITLE_PUBLIC;
 
-  let stand;
+  let status;
   try {
     const res = await fetch('/api/token/pruefen', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: schluessel })
     });
-    stand = await res.json().catch(() => ({}));
+    status = await res.json().catch(() => ({}));
     /* EINE VORÜBERGEHENDE ABSAGE DARF DEN SCHLÜSSEL NICHT WEGWERFEN. Leerte
        JEDES `!res.ok` die Adresse, träfe es auch die 429 der Anmeldebremse:
        wer sich vorher beim Anmelden vertippt hat und danach seinen GÜLTIGEN
@@ -1018,13 +1018,13 @@ async function showEinladung(schluessel) {
        erfunden, Zugang gesperrt, Frist verstrichen. */
     if (res.status === 400) {
       location.hash = '#/';
-      return showLogin(stand.error || t('login.linkExpired'));
+      return showLogin(status.error || t('login.linkExpired'));
     }
-    if (!res.ok) return spaeter(stand.error || t('login.linkCheckFailed'));
+    if (!res.ok) return spaeter(status.error || t('login.linkCheckFailed'));
   } catch { return spaeter(t('login.serverUnreachable')); }
 
-  const min = stand.minPassword || MIN_PASSWORT;
-  zeichne();
+  const min = status.minPassword || MIN_PASSWORD;
+  draw();
 
   /* Die Seite für eine VORÜBERGEHENDE Absage. Sie hält den Schlüssel fest und
      bietet einen zweiten Anlauf an — ohne Neuladen, aber ein Neuladen tut es
@@ -1039,15 +1039,15 @@ async function showEinladung(schluessel) {
       <p class="sub">${tH('login.yourLinkAffected')} <strong>${tH('login.not')}</strong> ${tH('login.stillValidRetry')}</p>
       <button class="btn btn-accent" id="eb-neu">${tH('login.tryAgain')}</button>
     </div></div>`;
-    document.getElementById('eb-neu').onclick = () => showEinladung(schluessel);
+    document.getElementById('eb-neu').onclick = () => showInvite(schluessel);
   }
 
-  function zeichne(errMsg) {
+  function draw(errMsg) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${MARKENZEILE()}
-      <p class="sub">${stand.ohnePasswort
-        ? `${tH('login.welcome')} <strong>${esc(stand.username)}</strong> ${tH('login.choosePassword')}`
-        : `${tH('login.newPasswordFor')} <strong>${esc(stand.username)}</strong>.`}</p>
+      <p class="sub">${status.ohnePasswort
+        ? `${tH('login.welcome')} <strong>${esc(status.username)}</strong> ${tH('login.choosePassword')}`
+        : `${tH('login.newPasswordFor')} <strong>${esc(status.username)}</strong>.`}</p>
       ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
       <div class="field"><label for="ep">${tH('login.password')}</label>
         <input class="input" id="ep" type="password" autocomplete="new-password"></div>
@@ -1058,7 +1058,7 @@ async function showEinladung(schluessel) {
             die Mail im Postfach lag. Wer sie hier nicht liest, erfährt sie
             erst an der Absage, und dann ist es zu spät. */''}
       <p class="sub" style="margin:0 0 4px">${tH('login.minChars', { min: min })}
-        ${stand.minuten ? `<strong>${tH('login.linkValidMinutes', { minuten: stand.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}
+        ${status.minuten ? `<strong>${tH('login.linkValidMinutes', { minuten: status.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}
         <br>${tH('login.logoutHint')}</p>
       <button class="btn btn-accent" id="eb">${tH('dialog.setPassword')}</button>
     </div></div>`;
@@ -1066,8 +1066,8 @@ async function showEinladung(schluessel) {
     const p1 = document.getElementById('ep'), p2 = document.getElementById('ep2'),
           b = document.getElementById('eb');
     const submit = async () => {
-      if (p1.value.length < min) return zeichne(t('login.passwordTooShort', { min: min }));
-      if (p1.value !== p2.value) return zeichne(t('login.passwordsDiffer'));
+      if (p1.value.length < min) return draw(t('login.passwordTooShort', { min: min }));
+      if (p1.value !== p2.value) return draw(t('login.passwordsDiffer'));
       b.disabled = true; b.textContent = t('login.settingPassword');
       try {
         const res = await fetch('/api/token/einloesen', {
@@ -1077,19 +1077,19 @@ async function showEinladung(schluessel) {
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
-          return zeichne(j.error || t('login.passwordNotSet'));
+          return draw(j.error || t('login.passwordNotSet'));
         }
         const j = await res.json().catch(() => ({}));
         /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, — sonst wäre
            der Rücksetzlink der Weg daran vorbei. Das Passwort IST gesetzt und
            der Link verbraucht; was noch aussteht, ist die Anmeldung. Deshalb
            wird die Adresse auch hier geleert. */
-        if (j.zweifaktor) { location.hash = '#/'; return showZweiterFaktor(j.ausweis); }
+        if (j.zweifaktor) { location.hash = '#/'; return showSecondFactor(j.ausweis); }
         // Angemeldet ist man damit schon -- der Server hat den Cookie
         // mitgeschickt. Die Adresse wird geleert: der Link ist verbraucht.
         location.hash = '#/';
         start();
-      } catch { zeichne(t('login.serverUnreachable')); }
+      } catch { draw(t('login.serverUnreachable')); }
     };
     b.onclick = submit;
     [p1, p2].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
@@ -1102,10 +1102,10 @@ async function showEinladung(schluessel) {
 // auf dem Server. Verschoben wird nur innerhalb des jeweiligen Bereichs:
 // Kommentare in der schmalen Spalte oder eine Kategorieauswahl über die volle
 // Breite wären schlechter als jede Vorgabe.
-const BLOCK_VORGABE = {
+const BLOCK_DEFAULT = {
   // Vorher steht vor nachher -- geschaetzt wird, bevor bewertet wird. Dieselbe
-  // Liste wie BLOCK_VORGABE.seite im Server; wer eine gespeicherte Reihenfolge
-  // hat, bekommt den neuen Block ueber ordneBereich() hinten angehaengt und
+  // Liste wie BLOCK_DEFAULT.seite im Server; wer eine gespeicherte Reihenfolge
+  // hat, bekommt den neuen Block ueber sortArea() hinten angehaengt und
   // kann ihn ziehen.
   seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
   unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
@@ -1116,33 +1116,33 @@ const BLOCK_VORGABE = {
    demselben Grund gefiltert: ein gespeichertes `bewertung` aus einer aelteren
    Fassung faellt still heraus. */
 const BLOECKE_OHNE_ZU = ['potenzial', 'bewertung'];
-const ZU_BLOECKE = [...BLOCK_VORGABE.seite, ...BLOCK_VORGABE.unten]
+const ZU_BLOECKE = [...BLOCK_DEFAULT.seite, ...BLOCK_DEFAULT.unten]
   .filter(k => !BLOECKE_OHNE_ZU.includes(k));
-let BLOECKE = { seite: [...BLOCK_VORGABE.seite], unten: [...BLOCK_VORGABE.unten], zu: [] };
+let BLOCKS = { seite: [...BLOCK_DEFAULT.seite], unten: [...BLOCK_DEFAULT.unten], zu: [] };
 
 // Unbekannte Namen fliegen raus, fehlende hängen sich in der Vorgabereihenfolge
 // hinten an. So überlebt die Einstellung auch einen später hinzugekommenen Block.
-function ordneBereich(gespeichert, vorgabe) {
+function sortArea(gespeichert, vorgabe) {
   const sauber = (Array.isArray(gespeichert) ? gespeichert : []).filter((k, i, a) => vorgabe.includes(k) && a.indexOf(k) === i);
   return [...sauber, ...vorgabe.filter(k => !sauber.includes(k))];
 }
 
 function uebernimmBloecke(roh) {
-  BLOECKE = {
-    seite: ordneBereich(roh && roh.seite, BLOCK_VORGABE.seite),
-    unten: ordneBereich(roh && roh.unten, BLOCK_VORGABE.unten),
+  BLOCKS = {
+    seite: sortArea(roh && roh.seite, BLOCK_DEFAULT.seite),
+    unten: sortArea(roh && roh.unten, BLOCK_DEFAULT.unten),
     zu: (roh && Array.isArray(roh.zu) ? roh.zu : []).filter(k => ZU_BLOECKE.includes(k))
   };
 }
 
-const speichereBloecke = () =>
-  api('PUT', '/api/settings', { bloecke: BLOECKE }).catch(e => toast(e.message, true));
+const saveBlocks = () =>
+  api('PUT', '/api/settings', { bloecke: BLOCKS }).catch(e => toast(e.message, true));
 
-function ordneBloecke() {
-  [['seite', 'blocks-seite'], ['unten', 'blocks-unten']].forEach(([bereich, kasten]) => {
-    const box = document.getElementById(kasten);
+function sortBlocks() {
+  [['seite', 'blocks-seite'], ['unten', 'blocks-unten']].forEach(([area, boxId]) => {
+    const box = document.getElementById(boxId);
     if (!box) return;
-    BLOECKE[bereich].forEach(name => {
+    BLOCKS[area].forEach(name => {
       const el = box.querySelector(`[data-block="${name}"]`);
       if (el) box.appendChild(el);       // appendChild verschiebt, kopiert nicht
     });
@@ -1158,7 +1158,7 @@ function ordneBloecke() {
    Summanden. Die Klammer nistet die zweite Ebene ein -- das Erledigte steckt
    IN den Aufgaben, sonst schrumpfte die Zahl beim Abhaken.
    DIE OFFENEN STEHEN VORAN, denn danach wird im Alltag gefragt. Sie werden
-   ABGEZOGEN und nicht gezaehlt: `aufgaben - fertig` kann nicht von der Summe
+   ABGEZOGEN und nicht gezaehlt: `tasks - fertig` kann nicht von der Summe
    abweichen, eine zweite Zaehlung ueber `kind = 'task'` schon.
    DIE KLAMMER ERSCHEINT NUR, WENN ETWAS ERLEDIGT IST. Sonst stuende dort
    "5 Aufgaben (5 offen)" -- eine Zahl, die nichts hinzufuegt, weil die davor
@@ -1172,19 +1172,19 @@ function ordneBloecke() {
    Achse, und zwei Achsen in einer Zeile sind nicht mehr lesbar.
    "Kommentar" ist eine FESTE Beschriftung und kein zwoelftes Vokabelwort --
    anders als Sache und Zeitpunkt verschiebt es sich nicht mit dem Gegenstand. */
-function kommentarZahlen(kommentare) {
-  const liste = kommentare || [];
-  const n = liste.length;
+function commentNumbers(kommentare) {
+  const list = kommentare || [];
+  const n = list.length;
   if (!n) return '';
-  const zaehle = (...arten) => liste.filter(c => arten.includes(c.kind)).length;
-  const berichte = zaehle('report');
+  const count = (...arten) => list.filter(c => arten.includes(c.kind)).length;
+  const berichte = count('report');
   // Erledigtes zaehlt MIT zu den Aufgaben, nicht daneben.
-  const aufgaben = zaehle('task', 'done');
-  const fertig = zaehle('done');
+  const tasks = count('task', 'done');
+  const fertig = count('done');
   const teile = [];
   if (berichte) teile.push(`${berichte} ${vBericht(berichte)}`);
-  if (aufgaben) teile.push(`${aufgaben} ${vAufgabe(aufgaben)}`
-    + (fertig ? t('list.openCount', { n: aufgaben - fertig }) : ''));
+  if (tasks) teile.push(`${tasks} ${vAufgabe(tasks)}`
+    + (fertig ? t('list.openCount', { n: tasks - fertig }) : ''));
   return t('list.commentCount', { n: n })
     + (teile.length ? t('list.ofWhich', { teile: teile.join(t('list.and')) }) : '');
 }
@@ -1258,12 +1258,12 @@ let BLICK = new Set();
    versteckt, der es eingetragen hat.
    GEZAEHLT WIRD `value > 0` ODER `avg != null` -- also MEINE Sterne oder die
    irgendeines anderen. Nur die eigenen zu fragen versteckte fremde. */
-const hatSterne = (item, phase) => (item.ratings || [])
+const hasStars = (item, phase) => (item.ratings || [])
   .some(r => r.phase === phase && (r.value > 0 || r.avg != null));
 
 function zuNachZustand(name, item) {
   if (name === 'potenzial') return !!item.tested;
-  return !item.tested && !hatSterne(item, 'nachher');
+  return !item.tested && !hasStars(item, 'nachher');
 }
 
 /* WELCHER BLOCK AN DIESEM EINTRAG GAR NICHT DASTEHT -- 0.22.1.
@@ -1281,55 +1281,55 @@ function zuNachZustand(name, item) {
    fremde --, steht der Kasten da. Vorhandene Daten schlagen die Regel; ohne
    die Ausnahme waeren vergebene Sterne unsichtbar UND unerreichbar, denn
    wegnehmen laesst sich nur, was man sieht.
-   DIESELBE BEDINGUNG WIE OBEN, und zwar buchstaeblich dieselbe: `hatSterne()`
+   DIESELBE BEDINGUNG WIE OBEN, und zwar buchstaeblich dieselbe: `hasStars()`
    entscheidet, OB der Kasten dasteht, und ob er offen steht. Zwei getrennte
    Abfragen waeren zwei Wahrheiten, und die eine liesse sich aendern, ohne dass
    die andere mitginge (Stolperstein 47).
    NUR DER BEWERTUNGSKASTEN. Der Potenzialkasten bleibt an einem getesteten
    Eintrag stehen: was man vor dem Test wollte, ist nach dem Test die
    interessantere Haelfte der Frage. */
-function blockWegNachZustand(name, item) {
-  return name === 'bewertung' && !item.tested && !hatSterne(item, 'nachher');
+function blockPathAfterState(name, item) {
+  return name === 'bewertung' && !item.tested && !hasStars(item, 'nachher');
 }
 
 // Wird nach jedem Neuzeichnen aufgerufen und muss deshalb mehrfach ausführbar
 // sein: der Testtagblock etwa schreibt seine Kopfzeile jedes Mal neu.
-function ruesteBloeckeAus(item) {
+function setUpBlocksOut(item) {
   document.querySelectorAll('.block[data-block]').forEach(block => {
     const name = block.dataset.block;
-    const kopf = block.querySelector('.block-head');
-    if (!kopf) return;
+    const head = block.querySelector('.block-head');
+    if (!head) return;
 
-    if (!kopf.querySelector('.bgrip')) {
-      const griff = document.createElement('span');
-      griff.className = 'bgrip'; griff.textContent = '⣿';
-      griff.title = t('entry.moveBlock');
+    if (!head.querySelector('.bgrip')) {
+      const handle = document.createElement('span');
+      handle.className = 'bgrip'; handle.textContent = '⣿';
+      handle.title = t('entry.moveBlock');
       const pfeil = document.createElement('span');
       pfeil.className = 'bcaret';
-      kopf.prepend(pfeil);
-      kopf.prepend(griff);
+      head.prepend(pfeil);
+      head.prepend(handle);
       const summe = document.createElement('span');
       summe.className = 'bsumme';
-      kopf.querySelector('.label').after(summe);
-      kopf.classList.add('block-head-x');
+      head.querySelector('.label').after(summe);
+      head.classList.add('block-head-x');
     }
 
     /* FUER GENAU ZWEI BLOECKE ENTSCHEIDET DER ZUSTAND UND NICHT DIE
        EINSTELLUNG -- 0.21.0. Ein Klick kehrt die Regel fuer diesen Eintrag um
        (BLICK), er speichert sie nicht. */
-    const nachZustand = BLOECKE_OHNE_ZU.includes(name);
-    const zu = nachZustand
+    const afterState = BLOECKE_OHNE_ZU.includes(name);
+    const zu = afterState
       ? (BLICK.has(name) ? !zuNachZustand(name, item) : zuNachZustand(name, item))
-      : BLOECKE.zu.includes(name);
+      : BLOCKS.zu.includes(name);
     /* DER BLOCK WIRD AUSGEBLENDET UND NICHT ENTFERNT -- 0.22.1. `#rhead` und
        `#ratings` bleiben damit im Dokument, und `drawRatings()` braucht keine
-       zweite Wache. Und er wird auch nicht aus `BLOECKE` genommen: die
+       zweite Wache. Und er wird auch nicht aus `BLOCKS` genommen: die
        Reihenfolge der Bloecke gilt fuer ALLE Eintraege, und ein Eintrag, an dem
        ein Block fehlt, darf sie nicht umschreiben. */
-    block.hidden = blockWegNachZustand(name, item);
+    block.hidden = blockPathAfterState(name, item);
     block.classList.toggle('zu', zu);
-    kopf.querySelector('.bcaret').textContent = zu ? '▸' : '▾';
-    const summe = kopf.querySelector('.bsumme');
+    head.querySelector('.bcaret').textContent = zu ? '▸' : '▾';
+    const summe = head.querySelector('.bsumme');
     // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts.
     const kurz = zu ? blockZusammenfassung(name, item) : '';
     summe.textContent = kurz ? `(${kurz})` : '';
@@ -1337,18 +1337,18 @@ function ruesteBloeckeAus(item) {
     // Klick auf die Kopfzeile klappt ein und aus. Griff und alles Bedienbare
     // darin sind ausgenommen, sonst löst das Zurücksetzen der Bewertung
     // nebenbei das Einklappen aus.
-    kopf.onclick = (e) => {
+    head.onclick = (e) => {
       if (e.target.closest('button, input, select, a, .bgrip')) return;
-      if (nachZustand) {
-        /* KEIN speichereBloecke(), KEIN PUT /api/settings -- der Klick ist ein
+      if (afterState) {
+        /* KEIN saveBlocks(), KEIN PUT /api/settings -- der Klick ist ein
            Blick. Umgeschaltet wird eine Menge im Speicher der Seite, und die
            gilt bis zum Verlassen des Eintrags. */
         if (BLICK.has(name)) BLICK.delete(name); else BLICK.add(name);
       } else {
-        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];
-        speichereBloecke();
+        BLOCKS.zu = zu ? BLOCKS.zu.filter(k => k !== name) : [...BLOCKS.zu, name];
+        saveBlocks();
       }
-      ruesteBloeckeAus(item);
+      setUpBlocksOut(item);
       // Was eingeklappt war, konnte nicht gemessen werden -- die Wolke im
       // Tagblock hat deshalb keine Zeilenbegrenzung. Jetzt steht sie im
       // Dokument und laesst sich vermessen. Nur beim AUFklappen: beim
@@ -1358,12 +1358,12 @@ function ruesteBloeckeAus(item) {
 
     if (!block.dataset.ziehbar) {
       block.dataset.ziehbar = '1';
-      const bereich = BLOCK_VORGABE.seite.includes(name) ? 'seite' : 'unten';
+      const area = BLOCK_DEFAULT.seite.includes(name) ? 'seite' : 'unten';
       makeSortable(block, {
         axis: 'y', selector: '.block[data-block]', handle: '.bgrip',
         onDrop: (kinder) => {
-          BLOECKE[bereich] = kinder.map(k => k.dataset.block).filter(Boolean);
-          speichereBloecke();
+          BLOCKS[area] = kinder.map(k => k.dataset.block).filter(Boolean);
+          saveBlocks();
           toast(t('entry.layoutSaved'));
         }
       });
@@ -1377,7 +1377,7 @@ function ruesteBloeckeAus(item) {
 /* DIE VERSIONSZEILE, und das Zeichen davor ist ein Aufruf und kein zweites
    Bild: MARK() liefert dieselbe durchsichtige Fassung, die auf allen neun
    Anmeldeseiten steht (Stolperstein 145).
-   `alt=""` STECKT IN MARK() -- das Zeichen steht unmittelbar neben dem Namen
+   `old=""` STECKT IN MARK() -- das Zeichen steht unmittelbar neben dem Namen
    der Instanz, und ein Vorleseprogramm saegte ihn sonst zweimal.
    DIE GROESSE STEHT IM STYLESHEET UND IN em: diese Zeile laeuft auf 0,67rem,
    und die Instanz stellt die Schrift von 80 bis 120 Prozent. Eine feste
@@ -1385,7 +1385,7 @@ function ruesteBloeckeAus(item) {
    daneben mitwaechst.
    Der Name geht durch esc(): er kommt zwar aus dem eigenen package.json und
    nicht von aussen, aber innerHTML ist innerHTML. */
-function zeigeVersion() {
+function showVersion() {
   const el = document.getElementById('version');
   if (!el) return;
   el.innerHTML = VERSION ? `${MARK()}<span>${tH('list.brand', { version: VERSION })}</span>` : '';
@@ -1396,9 +1396,9 @@ function zeigeVersion() {
 // Zwischenablage-Objekt; alles, was kein Bild ist, wird uebergangen, damit
 // eingefuegter Text weiterhin normal im Feld landet.
 function bilderAusZwischenablage(e) {
-  const daten = e.clipboardData;
-  if (!daten) return [];
-  return [...(daten.files || [])].filter(f => f.type.startsWith('image/'));
+  const data = e.clipboardData;
+  if (!data) return [];
+  return [...(data.files || [])].filter(f => f.type.startsWith('image/'));
 }
 
 // Dateiauswahl fuer Bilder, ohne dass ein Feld im Aufbau stehen muss.
@@ -1414,12 +1414,12 @@ function waehleBilder(fertig) {
 }
 
 // Multipart-Formular schicken. api() sendet JSON und taugt dafuer nicht.
-async function sendeFormular(pfad, formular) {
-  const a = await fetch(pfad, { method: 'POST', body: formular, credentials: 'same-origin' });
-  const daten = await a.json().catch(() => ({}));
+async function sendForm(pfad, form) {
+  const a = await fetch(pfad, { method: 'POST', body: form, credentials: 'same-origin' });
+  const data = await a.json().catch(() => ({}));
   if (a.status === 401) { showLogin(); throw new Error(t('dialog.sessionExpired')); }
-  if (!a.ok) throw new Error(daten.error || t('entry.uploadFailed'));
-  return daten;
+  if (!a.ok) throw new Error(data.error || t('entry.uploadFailed'));
+  return data;
 }
 
 /* ================= Der Ausschnitt der Vorschau =================
@@ -1443,12 +1443,12 @@ async function sendeFormular(pfad, formular) {
    gleichem Namen einen anderen Inhalt, und sie wird mit
    `Cache-Control: private, max-age=86400` ausgeliefert. Ohne ein Merkmal an
    der Adresse saehe der Betreiber seinen neuen Ausschnitt bis zu 24 Stunden
-   lang nicht. Es haengt in bildQuelle() an der Adresse und nirgends sonst. */
+   lang nicht. Es haengt in imageSource() an der Adresse und nirgends sonst. */
 
 /* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ----
 
    SIE STEHT ZWEIMAL, UND DAS IST DER PUNKT. Diese Funktion ist Zeichen fuer
-   Zeichen dieselbe wie `zuschnittKiste()` in bilder.js: der Browser muss den
+   Zeichen dieselbe wie `cropSpecBox()` in bilder.js: der Browser muss den
    Rahmen live zeichnen, der Server muss erzeugen, und zwischen beiden liegt
    HTTP -- eine gemeinsame Fassung gibt es nicht. Also steht sie auf jeder
    Seite in GENAU EINER Funktion und nicht verstreut, und der Pruefstand haelt
@@ -1457,19 +1457,19 @@ async function sendeFormular(pfad, formular) {
 
    DIE RECHNUNG, UND SIE IST DIE DER KACHEL:
      die Kachel ist quadratisch und zeigt die kurze Seite ganz -- `seite`;
-     der Zoom verkuerzt das Sichtbare auf `seite / z` -- `kante`;
+     der Zoom verkuerzt das Sichtbare auf `seite / z` -- `edge`;
      die beiden Prozentwerte legen dieses Quadrat linear auf den Weg
-     `breite - kante` bzw. `hoehe - kante`.
-   BEI zoom = 100 IST `kante === seite`, und die Rechnung ist Zeichen fuer
+     `width - edge` bzw. `height - edge`.
+   BEI zoom = 100 IST `edge === seite`, und die Rechnung ist Zeichen fuer
    Zeichen die von 0.18.1.
 
    OHNE RUNDUNG: der Rahmen im Editor braucht Bruchteile eines Bildpunkts, um
    ruckelfrei zu ziehen. Gerundet wird nur dort, wo sharp ganze Zahlen
    verlangt -- im Server, in schnittRechteck(). */
-function zuschnittKiste(breite, hoehe, fx, fy, zoom) {
-  const seite = Math.min(breite, hoehe);   // was die Kachel bei zoom 100 zeigt
+function cropSpecBox(width, height, fx, fy, zoom) {
+  const seite = Math.min(width, height);   // was die Kachel bei zoom 100 zeigt
   const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
-  return { links: fx / 100 * (breite - eng), oben: fy / 100 * (hoehe - eng), kante: eng };
+  return { links: fx / 100 * (width - eng), oben: fy / 100 * (height - eng), edge: eng };
 }
 
 /* WELCHE GESTE UNTER EINER BERUEHRUNG LIEGT -- 0.22.1.
@@ -1489,14 +1489,14 @@ function zuschnittKiste(breite, hoehe, fx, fy, zoom) {
    haeufigste Geste -- haette keine Flaeche mehr.
    SIE BEKOMMT KEIN EREIGNIS UND KEINEN BETRACHTER, sondern einen Rahmen und
    einen Punkt, beide im Bildmass. Nur so ist sie ohne Zeiger zu pruefen --
-   dieselbe Bauform wie `zuschnittKiste()` darueber, und aus demselben Grund:
+   dieselbe Bauform wie `cropSpecBox()` darueber, und aus demselben Grund:
    was der Pruefstand nur ueber ein Zeigerereignis erreicht, prueft er nicht. */
-const GRIFF = 12;
-function ausschnittGeste(rahmen, px, py, griff = GRIFF) {
-  const { links, oben, kante } = rahmen;
-  const rechts = links + kante, unten = oben + kante;
+const HANDLE = 12;
+function cropGesture(frame, px, py, handle = HANDLE) {
+  const { links, oben, edge } = frame;
+  const rechts = links + edge, unten = oben + edge;
   if (px < links || px > rechts || py < oben || py > unten) return 'neu';
-  const g = Math.min(griff, kante / 4);
+  const g = Math.min(handle, edge / 4);
   const w = px - links <= g, o = rechts - px <= g;
   const n = py - oben <= g, s = unten - py <= g;
   if (n && w) return 'links-oben';
@@ -1528,9 +1528,9 @@ const GRIFF_KLASSEN = ['griff-nwse', 'griff-nesw', 'griff-ns', 'griff-ew', 'grif
 // Sortierung: hervorgehobene Tags (aktiver Filter bzw. vergebener Tag) immer
 // vorn, danach nach Haeufigkeit, bei Gleichstand nach Namen. Sonst rutscht ein
 // gerade benutzter Tag beim Aufklappen aus dem Blick.
-function sortiereWolke(tags, hervor) {
+function sortiereWolke(tags, highlight) {
   return [...tags].sort((a, b) => {
-    const ha = hervor.has(a.id) ? 0 : 1, hb = hervor.has(b.id) ? 0 : 1;
+    const ha = highlight.has(a.id) ? 0 : 1, hb = highlight.has(b.id) ? 0 : 1;
     if (ha !== hb) return ha - hb;
     if (b.usage_count !== a.usage_count) return b.usage_count - a.usage_count;
     return a.name.localeCompare(b.name, LOCALE);
@@ -1541,18 +1541,18 @@ function sortiereWolke(tags, hervor) {
 // wurde. n = 0 hebt die Begrenzung auf. Die Zeilenhoehe wird am ersten Element
 // gemessen statt geraten -- sie haengt an der eingestellten Schriftgroesse.
 const WOLKE_LUECKE = 6;
-function begrenzeWolke(box, zeilen) {
+function limitCloud(box, zeilen) {
   if (!zeilen) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
   const erste = box.firstElementChild;
   if (!erste) return false;
-  const hoehe = erste.offsetHeight || 0;
+  const height = erste.offsetHeight || 0;
   // EIN EINGEKLAPPTER BLOCK MISST NULL: seine Kinder stehen auf
   // display: none, und aus der Hoehe 0 entstuende eine feste maxHeight, die
   // nach dem Aufklappen stehenbliebe. Also gar nichts setzen.
   // ZWEITER WEG NOETIG: das Aufklappen zeichnet die Wolke neu -- dieser Weg
   // haelt die falsche Hoehe fern, jener holt die richtige nach.
-  if (!hoehe) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
-  box.style.maxHeight = (zeilen * hoehe + (zeilen - 1) * WOLKE_LUECKE) + 'px';
+  if (!height) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
+  box.style.maxHeight = (zeilen * height + (zeilen - 1) * WOLKE_LUECKE) + 'px';
   box.style.overflow = 'hidden';
   return box.scrollHeight > box.clientHeight + 1;
 }
@@ -1560,9 +1560,9 @@ function begrenzeWolke(box, zeilen) {
 // Aufklappzustand der beiden Wolken, absichtlich nur fuer die Sitzung im
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
-const wolkeOffen = { uebersicht: false, detail: false };
+const cloudOpen = { uebersicht: false, detail: false };
 /* OB DIE TAGZEILE OFFEN STEHT -- 0.22.0 (E8), umgebaut in 0.24.0
-   (Bauabschnitt 0.2). Nur fuer die Dauer der Sitzung, wie wolkeOffen: keine
+   (Bauabschnitt 0.2). Nur fuer die Dauer der Sitzung, wie cloudOpen: keine
    Einstellung und kein Feld in `filters`.
    DREI WERTE UND NICHT ZWEI, und der dritte ist der Grund: `null` heisst „der
    Benutzer hat in dieser Sitzung noch nicht geklickt". Nur dann entscheidet
@@ -1598,7 +1598,7 @@ let wolkeNeuzeichnen = null;
    0.21.0 passiert.
    SEIT 0.24.0 STEHT SIE NUR NOCH AN EINER STELLE: in der Sprachdatei, unter
    `vokabular.`. Diese Zeile faengt leer an und wird gefuellt, sobald die Datei
-   da ist (ladeSprache) -- ein Wort hier haette beim Laden der Datei noch
+   da ist (loadLanguage) -- ein Wort hier haette beim Laden der Datei noch
    keinen Text. VOK_VORGABE nennt dieselben vierzehn Namen und ist die eine
    Liste, aus der beides liest (Stolperstein 47). */
 let V = {};
@@ -1607,7 +1607,7 @@ let V = {};
 // Eine Abfolge, kein Entweder-oder -- deshalb ein Knopf statt dreier.
 // Funktionsdeklaration, nicht const: sonst haengt sie nicht am window und der
 // Pruefstand kaeme nicht heran.
-function aufgabeWeiter(art) {
+function taskMore(art) {
   return { note: 'task', task: 'done', done: 'note', report: 'task' }[art] || 'task';
 }
 /* --- Das Gewicht eines Kriteriums: Komma herein, Komma hinaus -------------
@@ -1619,7 +1619,7 @@ function aufgabeWeiter(art) {
    Die Spanne selbst steht NICHT hier, sondern nur im Server: zwei Stellen fuer
    dieselbe Grenze liefen auseinander, und die Oberflaeche waere die, die es
    nicht meldet. */
-const gewichtAusText = (roh) => {
+const weightOutText = (roh) => {
   const roh2 = String(roh ?? '').trim();
   return roh2 === '' ? NaN : Number(roh2.replace(',', '.'));
 };
@@ -1629,7 +1629,7 @@ const gewichtAusText = (roh) => {
    Einstellung, wo in Wahrheit die Vorgabe steht.
    Das Komma setzt seit 0.24.0 zahl() aus der Sprache und nicht mehr ein
    festes Zeichen -- dieselbe Form, aber begruendet statt festgeschrieben. */
-const gewichtText = (g) => zahl(Math.round(Number(g) * 100) / 100, 0, 2);
+const weightText = (g) => zahl(Math.round(Number(g) * 100) / 100, 0, 2);
 
 /* Die Marke hinter einem Kriteriennamen -- ABGELEITET, kein Schalter: bei
    Gewicht 1 steht dort nichts. "×1" an jeder Zeile waere Rauschen ohne
@@ -1637,7 +1637,7 @@ const gewichtText = (g) => zahl(Math.round(Number(g) * 100) / 100, 0, 2);
    einzigen Zugang entfaellt.
    Ohne diese Anzeige saehe die Kopfzahl schlicht falsch aus: mit Gewichten
    laesst sich das Mittel der Zeilenwerte nicht mehr im Kopf nachrechnen. */
-const gewichtMarke = (g) => (Number(g) === 1 || g == null ? '' : '×' + gewichtText(g));
+const weightMark = (g) => (Number(g) === 1 || g == null ? '' : '×' + weightText(g));
 
 const vSache = (n) => mehrzahl(n, V.sacheEinzahl, V.sacheMehrzahl);
 const vZeit = (n) => mehrzahl(n, V.zeitpunktEinzahl, V.zeitpunktMehrzahl);
@@ -1655,48 +1655,48 @@ const vBewertung = (n) => mehrzahl(n, V.bewertungEinzahl, V.bewertungMehrzahl);
    etwas anderes als ein entfernter Zugang.
    Funktionsdeklaration, nicht const: sonst haengt sie nicht am window und der
    Pruefstand kaeme nicht heran. */
-function verfasserName(v) {
+function authorName(v) {
   if (!v) return t('list.noAuthor');
   return v.geloescht ? t('list.deletedUser', { id: v.id }) : v.name;
 }
 
-let LINKZEILEN = 5;          // sichtbare Zeilen, bevor aufgeklappt wird
+let LINK_ROWS = 5;          // sichtbare Zeilen, bevor aufgeklappt wird
 let ZEITLEISTE_AN = true;
-const LINKZEILEN_STUFEN = [3, 5, 8, 12];
+const LINK_ROW_LEVELS = [3, 5, 8, 12];
 
 // Suchanbieter fuer Linkzeilen, die keine Adresse sind. %s ist der Platzhalter
 // fuer den Suchtext. Die Liste steht ausschliesslich im Server und
 // kommt ueber /api/settings -- hier gibt es bewusst KEINE zweite Kopie und
 // auch keine eingebaute Vorlage als Rueckfall.
-let SUCHANBIETER = [];      // alle neun Plaetze, wie der Server sie liefert
-let SUCHNAMEN = 2;          // wie viele Namen unter einer Suchzeile stehen
-const SUCHNAMEN_STUFEN = [1, 2, 3, 4];
+let SEARCH_PROVIDERS = [];      // alle neun Plaetze, wie der Server sie liefert
+let SEARCH_NAMES = 2;          // wie viele Namen unter einer Suchzeile stehen
+const SEARCH_NAME_LEVELS = [1, 2, 3, 4];
 
 // Woran eine Suchzeile erkennbar ist: am fehlenden Schema. Der Server setzt es
 // bei allem, was wie eine Adresse aussieht -- was ohne dasteht, ist Suchtext.
-const istSuche = (text) => !/^https?:\/\//i.test(String(text || ''));
+const isSearch = (text) => !/^https?:\/\//i.test(String(text || ''));
 
 // Zweite Schranke vor dem Oeffnen. Die erste steht im Server beim Speichern;
 // eine Vorlage aus der Datenbank ist Eingabe und landet hier in einem
 // window.open. Faellt eine durch, faellt dieser Anbieter weg -- still einen
 // anderen einzusetzen hiesse, woanders zu suchen als angeschrieben.
-function suchvorlageOk(v) {
+function searchTemplateOk(v) {
   return typeof v === 'string' && /^https?:\/\/[^\s]+$/i.test(v) && v.includes('%s');
 }
 
 // Die Anbieter unter einer Suchzeile: im Vorrat, Vorlage in Ordnung, Standard
 // zuerst -- die Reihenfolge kommt fertig vom Server. Gezaehlt werden ALLE
 // Namen, nicht nur die Alternativen: Stufe 1 zeigt damit genau den Standard.
-function suchListe() {
-  return SUCHANBIETER
-    .filter(a => a.aktiv && a.vorhanden && suchvorlageOk(a.vorlage))
+function searchList() {
+  return SEARCH_PROVIDERS
+    .filter(a => a.aktiv && a.vorhanden && searchTemplateOk(a.vorlage))
     .sort((a, b) => (b.standard ? 1 : 0) - (a.standard ? 1 : 0))
-    .slice(0, SUCHNAMEN);
+    .slice(0, SEARCH_NAMES);
 }
 // Der Standard ist das Ziel des Zeilenklicks. Faellt er durch die Schranke,
 // gibt es keinen -- der Klick meldet das, statt anderswo zu suchen.
-const suchStandard = () => suchListe()[0] || null;
-const sucheAdresse = (vorlage, text) => vorlage.replace('%s', encodeURIComponent(text));
+const searchDefault = () => searchList()[0] || null;
+const searchAddress = (vorlage, text) => vorlage.replace('%s', encodeURIComponent(text));
 
 /* ================= Links im Kommentartext ================= */
 // Erkennung und Knotenbau sind getrennt, und das mit Absicht: Schranke 2 kann
@@ -1710,7 +1710,7 @@ const sucheAdresse = (vorlage, text) => vorlage.replace('%s', encodeURIComponent
 // Fehltreffer. javascript: kann hier gar nicht erst passen.
 // Der Anfang wird mitgefangen: weiter unten wird nur noch gefragt, ob nach ihm
 // etwas stehen blieb -- sonst staende die Schemaentscheidung an zwei Stellen.
-const KOMMENTAR_LINK = /(https?:\/\/|www\.)\S+/gi;
+const COMMENT_LINK = /(https?:\/\/|www\.)\S+/gi;
 
 // Nachlaufende Satzzeichen gehoeren nicht zur Adresse. Bei Klammern mit
 // Augenmass: eine schliessende bleibt drin, solange die Adresse eine
@@ -1718,14 +1718,14 @@ const KOMMENTAR_LINK = /(https?:\/\/|www\.)\S+/gi;
 // ..._(Begriffsklaerung) mitten in der Adresse.
 const LINK_SATZZEICHEN = '.,;:!?"\'»«…';
 const LINK_KLAMMERN = { ')': '(', ']': '[' };
-const zaehleZeichen = (s, z) => s.split(z).length - 1;
+const countChar = (s, z) => s.split(z).length - 1;
 
 function kuerzeLinkende(adresse) {
   for (;;) {
     const letztes = adresse.slice(-1);
     if (LINK_SATZZEICHEN.includes(letztes)) { adresse = adresse.slice(0, -1); continue; }
     const oeffnend = LINK_KLAMMERN[letztes];
-    if (oeffnend && zaehleZeichen(adresse, letztes) > zaehleZeichen(adresse, oeffnend)) {
+    if (oeffnend && countChar(adresse, letztes) > countChar(adresse, oeffnend)) {
       adresse = adresse.slice(0, -1); continue;
     }
     return adresse;
@@ -1756,9 +1756,9 @@ function kuerzeLinkende(adresse) {
    DIE UEBRIGEN ANGABEN EINES STUECKS REISEN MIT (`rest`). Damit zerfaellt auch
    eine Adresse, in der der Begriff steht, in mehrere Stuecke MIT demselben
    Ziel -- der Knotenbauer setzt sie danach wieder zu EINEM Link zusammen. */
-function zerlegeAmBegriff(text, begriff, rest = {}) {
+function zerlegeAmBegriff(text, term, rest = {}) {
   const inhalt = String(text ?? '');
-  const b = String(begriff ?? '');
+  const b = String(term ?? '');
   if (!inhalt) return [];
   if (!b) return [{ text: inhalt, ...rest }];
   const klein = inhalt.toLocaleLowerCase(LOCALE), kleinB = b.toLocaleLowerCase(LOCALE);
@@ -1781,13 +1781,13 @@ function zerlegeAmBegriff(text, begriff, rest = {}) {
 // &amp; jede Abfragezeichenfolge.
 // DIE LINKS WERDEN ZUERST GESUCHT UND DER BEGRIFF DANACH: umgekehrt zerschnitte
 // eine Fundstelle die Adresse, bevor sie ueberhaupt als eine erkannt waere.
-function zerlegeKommentartext(roh, begriff) {
+function zerlegeKommentartext(roh, term) {
   const text = String(roh ?? '');
   const stuecke = [];
-  const nimm = (roh2, rest) => { for (const s of zerlegeAmBegriff(roh2, begriff, rest)) stuecke.push(s); };
+  const nimm = (roh2, rest) => { for (const s of zerlegeAmBegriff(roh2, term, rest)) stuecke.push(s); };
   let zuletzt = 0, treffer;
-  KOMMENTAR_LINK.lastIndex = 0;
-  while ((treffer = KOMMENTAR_LINK.exec(text)) !== null) {
+  COMMENT_LINK.lastIndex = 0;
+  while ((treffer = COMMENT_LINK.exec(text)) !== null) {
     const adresse = kuerzeLinkende(treffer[0]);
     // Nach dem Abschneiden kann ein nacktes "https://" uebrigbleiben. Das ist
     // keine Adresse und wird wieder zu Text. Gefragt wird allein, ob nach dem
@@ -1822,9 +1822,9 @@ function baueKommentarknoten(stuecke) {
   const teil = document.createDocumentFragment();
   // Leere Stuecke fallen vorher heraus, damit weiter unten keine Abfrage auf
   // "" mitten in der Zusammenfassung eines Links steht.
-  const liste = (stuecke || []).filter(s => String(s?.text ?? '') !== '');
-  for (let i = 0; i < liste.length; i++) {
-    const s = liste[i];
+  const list = (stuecke || []).filter(s => String(s?.text ?? '') !== '');
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i];
     // Schranke 2: unmittelbar vor dem Setzen von href noch einmal pruefen.
     // Faellt der String durch, wird sie gewoehnlicher Text, nicht Link.
     if (s.ziel && /^https?:\/\//i.test(String(s.ziel))) {
@@ -1839,8 +1839,8 @@ function baueKommentarknoten(stuecke) {
          Vorleseprogramm drei Ziele statt einem, und beim Kopieren drei
          Stuecke statt einer Adresse. */
       let j = i;
-      while (j < liste.length && String(liste[j].ziel ?? '') === String(s.ziel))
-        a.appendChild(stueckKnoten(liste[j++]));
+      while (j < list.length && String(list[j].ziel ?? '') === String(s.ziel))
+        a.appendChild(stueckKnoten(list[j++]));
       i = j - 1;
       teil.appendChild(a);
       continue;
@@ -1853,35 +1853,35 @@ function baueKommentarknoten(stuecke) {
 /* DIE HERVORHEBUNG FUER JEDEN TEXT OHNE LINKS -- Titel, Kategorie, Tag,
    Kontextzeile, Linkadresse. Denselben Weg geht der Kommentartext, nur mit
    der Linkzerlegung davor: ein Knotenbauer und nicht zwei. */
-const hebeHervor = (text, begriff) =>
-  baueKommentarknoten(zerlegeAmBegriff(String(text ?? ''), begriff));
+const raiseHighlight = (text, term) =>
+  baueKommentarknoten(zerlegeAmBegriff(String(text ?? ''), term));
 
 /* DEN INHALT EINES ELEMENTS DURCH HERVORGEHOBENE KNOTEN ERSETZEN. Ohne
    Begriff wird gar nichts angefasst -- ohne Suche gibt es nichts
    hervorzuheben, und ein unnoetig neu gebauter Knoten waere Arbeit ohne
    Wirkung. Ein fehlendes Element ist kein Fehler: die Kategorie steht nicht
    an jeder Kachel. */
-function hebeImKnoten(el, text, begriff) {
-  if (!el || !begriff) return;
-  el.replaceChildren(hebeHervor(text, begriff));
+function hebeImKnoten(el, text, term) {
+  if (!el || !term) return;
+  el.replaceChildren(raiseHighlight(text, term));
 }
 
-let SCHRIFT = 100;
-const SCHRIFT_STUFEN = [80, 90, 100, 110, 120];
+let FONT = 100;
+const FONT_LEVELS = [80, 90, 100, 110, 120];
 // Es wird genau ein Wert gesetzt: das Grundmass am Wurzelelement. Alle
 // Schriftgroessen im Stylesheet haengen als rem daran.
 function wendeSchriftAn() {
-  document.documentElement.style.fontSize = (15 * SCHRIFT / 100).toFixed(2) + 'px';
+  document.documentElement.style.fontSize = (15 * FONT / 100).toFixed(2) + 'px';
 }
 
 /* DER BILDSTREIFEN -- 0.22.0 (E11). Ein Wert am Wurzelelement, `--streifen`,
    und das Stilblatt rechnet damit: `.thumbs` ist ueberall ein Raster mit
    `minmax(var(--streifen), 1fr)`. Die Stufen stehen hier UND im Server; der
    Server entscheidet, die Karte „Darstellung" zeigt die Liste. */
-let STREIFEN = 80;
-const STREIFEN_STUFEN = [60, 80, 100, 120, 150];
+let STRIP = 80;
+const STRIP_LEVELS = [60, 80, 100, 120, 150];
 function wendeStreifenAn() {
-  document.documentElement.style.setProperty('--streifen', STREIFEN + 'px');
+  document.documentElement.style.setProperty('--streifen', STRIP + 'px');
 }
 
 /* ================= DAS FARBSCHEMA -- 0.23.0 =================
@@ -1891,12 +1891,12 @@ function wendeStreifenAn() {
    Block: sonst muesste jeder der vierzig Werte dreimal geschrieben werden.
    DIE STUFEN STEHEN HIER UND IM SERVER; der Server entscheidet, die Karte
    „Darstellung" zeigt die Liste -- dieselbe Bauform wie `schrift`. */
-const THEMA_STUFEN = ['hell', 'dunkel', 'geraet'];
+const THEME_LEVELS = ['hell', 'dunkel', 'geraet'];
 // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
-const THEMA_NAMEN = { hell: 'card.light', dunkel: 'card.dark', geraet: 'card.likeDevice' };
-const GERAET_HELL = '(prefers-color-scheme: light)';
+const THEME_NAMES = { hell: 'card.light', dunkel: 'card.dark', geraet: 'card.likeDevice' };
+const DEVICE_LIGHT = '(prefers-color-scheme: light)';
 /* DER GEMERKTE WERT IST KEINE ZWEITE WAHRHEIT, SONDERN DAS GEDAECHTNIS DER
-   LETZTEN. Der Server bleibt die Wahrheit: ladeEinstellungen() ueberschreibt
+   LETZTEN. Der Server bleibt die Wahrheit: loadSettings() ueberschreibt
    ihn bei JEDEM Laden, und er wird NIE zurueckgeschickt. Er wird gelesen,
    damit beim Oeffnen nicht das falsche Schema aufblitzt -- und sonst zu
    nichts. In einem privaten Fenster wirft der Zugriff selbst, deshalb der
@@ -1905,15 +1905,15 @@ const GERAET_HELL = '(prefers-color-scheme: light)';
    Stilblatt. Zwei Stellen fuer denselben Namen -- es geht nicht anders: der
    Achtzeiler laeuft, bevor es diese Datei gibt. */
 const THEMA_MERKER = 'kriterion.thema';
-let THEMA = (() => {
+let THEME = (() => {
   try {
     const gemerkt = localStorage.getItem(THEMA_MERKER);
-    return THEMA_STUFEN.includes(gemerkt) ? gemerkt : 'dunkel';
+    return THEME_LEVELS.includes(gemerkt) ? gemerkt : 'dunkel';
   } catch (e) { return 'dunkel'; }
 })();
-const wirksamesThema = () => THEMA === 'geraet'
-  ? (window.matchMedia && window.matchMedia(GERAET_HELL).matches ? 'hell' : 'dunkel')
-  : (THEMA === 'hell' ? 'hell' : 'dunkel');
+const wirksamesThema = () => THEME === 'geraet'
+  ? (window.matchMedia && window.matchMedia(DEVICE_LIGHT).matches ? 'hell' : 'dunkel')
+  : (THEME === 'hell' ? 'hell' : 'dunkel');
 /* DIE FARBE DER BROWSERLEISTE WIRD GELESEN UND NICHT ABGESCHRIEBEN. Der Kopf
    der Seite sagt seit jeher, sie sei `--bg` und duerfe keine zweite Wahrheit
    sein -- als Zeichenfolge im Meta-Element war sie aber genau das. Zwei
@@ -1921,14 +1921,14 @@ const wirksamesThema = () => THEMA === 'geraet'
    gerade gueltige abgeholt. Wer --bg aendert, aendert die Leiste mit, ohne
    diese Datei anzufassen. */
 function wendeThemaAn() {
-  const wirksam = wirksamesThema();
-  document.documentElement.dataset.thema = wirksam;
+  const effective = wirksamesThema();
+  document.documentElement.dataset.thema = effective;
   const leiste = document.querySelector('meta[name="theme-color"]');
   if (leiste) {
     const grund = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
     if (grund) leiste.setAttribute('content', grund);
   }
-  try { localStorage.setItem(THEMA_MERKER, THEMA); } catch (e) { /* privates Fenster */ }
+  try { localStorage.setItem(THEMA_MERKER, THEME); } catch (e) { /* privates Fenster */ }
 }
 /* SOFORT UND NICHT ERST NACH DEM ABRUF: der Achtzeiler im Kopf setzt
    `data-thema`, aber er kann die Leistenfarbe nicht kennen -- das Stilblatt
@@ -1939,8 +1939,8 @@ wendeThemaAn();
    des Geraets nicht gestellt worden. `addListener` als Rueckfall: aeltere
    Fassungen kennen `addEventListener` an einer Medienabfrage nicht. */
 if (window.matchMedia) {
-  const mq = window.matchMedia(GERAET_HELL);
-  const folge = () => { if (THEMA === 'geraet') wendeThemaAn(); };
+  const mq = window.matchMedia(DEVICE_LIGHT);
+  const folge = () => { if (THEME === 'geraet') wendeThemaAn(); };
   if (mq.addEventListener) mq.addEventListener('change', folge);
   else if (mq.addListener) mq.addListener(folge);
 }
@@ -1955,8 +1955,8 @@ if (window.matchMedia) {
    Zeile unter der Ueberschrift "DAS TELEFON".
    WARUM ZWEI BEDINGUNGEN: ein Telefon quer ist 850 bis 930 Pixel breit und
    keine 500 hoch. Nach der Breite allein waere es ein Tablett. */
-const SCHMAL = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';
-const istSchmal = () => !!(window.matchMedia && window.matchMedia(SCHMAL).matches);
+const NARROW = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';
+const isNarrow = () => !!(window.matchMedia && window.matchMedia(NARROW).matches);
 
 /* ================= Zustand ================= */
 /* DIE VORGABESTELLUNG DER FILTER STEHT GENAU EINMAL -- sonst laufen die
@@ -1966,7 +1966,7 @@ const istSchmal = () => !!(window.matchMedia && window.matchMedia(SCHMAL).matche
    ihnen zusammen anklicken. Ein Wort und keine Nummer: Nummern sind
    Kategorienummern, und eine erfundene (0 oder -1) waere irgendwann eine echte.
    ER STEHT IM GESPEICHERTEN JSON und muss deshalb stabil bleiben. */
-const KATEGORIE_OHNE = 'ohne';
+const CATEGORY_NONE = 'ohne';
 /* SEIT 0.13.0 EINE LISTE UND KEINE EINZELNE NUMMER. Der Filter traegt mehrere
    Kategorien zugleich, und die Verknuepfung ist ein ODER -- nie ein UND:
    `product_category_id` ist EINE Spalte, ein Eintrag traegt also genau eine
@@ -1974,7 +1974,7 @@ const KATEGORIE_OHNE = 'ohne';
 /* `neu` STEHT HIER SEIT 0.17.0 NICHT MEHR. Die Pille „Neu seit ..." ist
    gestrichen; ihre Auskunft traegt die Glocke. Eine gespeicherte Ansicht aus
    0.11.0 kann den Schluessel noch tragen -- filterNormal() uebergeht ihn. */
-const FILTER_VORGABE = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
+const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                          abgelehnt: 'all', favorit: false,
                          sort: 'updated_desc' };
 
@@ -2017,7 +2017,7 @@ const FILTER_VORGABE = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'a
    aber sie sind eine eigene Gruppe im Auswahlfeld, und diese Runde fasst zwei
    Gruppen an, nicht drei. title_asc ebenfalls nicht: ein Titel sagt nichts
    ueber den Teststatus. */
-const SORTIERUNG_STATUS = {
+const SORT_STATUS = {
   rating_desc: 'tested',      rating_asc: 'tested',
   potenzial_desc: 'untested', potenzial_asc: 'untested'
 };
@@ -2045,66 +2045,66 @@ let STATUS_VON_HAND = false;
    EIN UNBEKANNTER WERT DARF NICHTS WEGNEHMEN. Dieselbe Regel steht in
    visibleItems() schon am Schluessel `abgelehnt`, und sie gilt hier genauso. */
 const vorgabeZu = (sort) =>
-  Object.prototype.hasOwnProperty.call(SORTIERUNG_STATUS, sort)
-    ? SORTIERUNG_STATUS[sort] : null;
+  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)
+    ? SORT_STATUS[sort] : null;
 
 /* DIE EINE STELLE, AN DER AUS SORTIERUNG UND HANDWAHL EINE VORGABE WIRD.
    Sie liefert den abgeleiteten Wert oder null -- null heisst „hier leitet
    nichts ab", und das ist etwas anderes als „alles anzeigen".
    ZWEI RECHENWEGE FUER DIESELBE FRAGE LIEFEN AUSEINANDER (Stolperstein 47):
    deshalb fragen die Liste (visibleItems) und die Leiste (drawFilters,
-   zeichneFilterSchalter) DIESE Funktion und rechnen nicht je selbst. */
-const statusAusSortierung = (sort) => STATUS_VON_HAND ? null : vorgabeZu(sort);
+   drawFilterSwitch) DIESE Funktion und rechnen nicht je selbst. */
+const statusOutSort = (sort) => STATUS_VON_HAND ? null : vorgabeZu(sort);
 
 // Was am Ende wirklich filtert: die Ableitung, sonst die gewaehlte Stellung.
-const statusWirksam = (f) => statusAusSortierung(f.sort) || f.tested;
+const statusEffective = (f) => statusOutSort(f.sort) || f.tested;
 
 /* WORAUF DIE STATUSZEILE VON SELBST STEHT -- die Ruhestellung. Sie fragt die
    Tabelle OHNE Ruecksicht auf die Handwahl: „was zeigte die Leiste hier, haette
    niemand geklickt?"
-   SIE IST DER MASSSTAB FUER filterZahl(), und dafuer wird sie gebraucht. Vor
+   SIE IST DER MASSSTAB FUER filterNumber(), und dafuer wird sie gebraucht. Vor
    0.21.1 war die Ruhestellung immer `all`; seit dieser Runde haengt sie an der
    Sortierung, und ohne diese Zeile faende ein Mensch aus einer Handwahl, die
    „alles anzeigen" heisst, nicht mehr in die Automatik zurueck: `all` ist der
    alte Vorgabewert, die Zahl bliebe null, der Ruecksetzer stuende nicht da --
    und einen zweiten Weg heraus gibt es nicht. */
-const statusRuhestellung = (f) => vorgabeZu(f.sort) || FILTER_VORGABE.tested;
+const statusRuhestellung = (f) => vorgabeZu(f.sort) || FILTER_DEFAULT.tested;
 const state = {
   items: [], categories: [], tags: [], criteria: [],
-  filters: { ...FILTER_VORGABE },
+  filters: { ...FILTER_DEFAULT },
   search: '', compare: new Set(),
   /* SUCHT DER SERVER, und daraus folgen vier Felder.
-     `alle` ist der ungefilterte Bestand aus dem letzten loadAll(). Er bleibt
+     `all` ist der ungefilterte Bestand aus dem letzten loadAll(). Er bleibt
      liegen, damit das LEEREN der Suche keine Anfrage kostet -- ohne ihn waere
      die haeufigste Handhabung der Suche (tippen, wieder loeschen) die
-     teuerste. `items` ist, was gerade gezeigt wird: entweder `alle` oder die
+     teuerste. `items` ist, was gerade gezeigt wird: entweder `all` oder die
      Antwort auf einen Suchbegriff.
      `bestand` ist die Zahl des GANZEN Bestands fuer die Zaehlzeile. Ohne sie
      stuende dort waehrend einer Suche die Trefferzahl als Gesamtzahl -- "3
      Sachen · 3 sichtbar", und der Bestand von 300 waere verschwunden.
      `suchLaeuft` und `suchFehler` sind Ansichtszustand und keine Einstellung:
      beim naechsten Aufruf steht wieder die Vorgabe. */
-  alle: [], bestand: 0, suchLaeuft: false, suchFehler: false,
+  all: [], bestand: 0, suchLaeuft: false, suchFehler: false,
 };
 
 // Die Einstellungen werden einmal beim Start geholt -- auch beim Direkteinstieg
 // auf einen Eintrag oder den Systembereich, wo loadAll() gar nicht laeuft.
-let EINSTELLUNGEN = null;
+let SETTINGS = null;
 
-// Abgeleitet, nicht eingestellt. BENUTZER_ZAHL entscheidet, ob die
+// Abgeleitet, nicht eingestellt. USER_COUNT entscheidet, ob die
 // Durchschnittsspalte ueberhaupt erscheint; ADMIN steuert die Kriterienkarte,
 // EIGENTUEMER, was in der Karte "Zugaenge" bedienbar ist. Der Server
 // verweigert beides ohnehin -- die Felder ersparen der Oberflaeche eine zweite
 // Wahrheit darueber, wem die Instanz gehoert.
-let BENUTZER_ZAHL = 1;
+let USER_COUNT = 1;
 let ADMIN = true;
-let EIGENTUEMER = true;
+let OWNER = true;
 // Der eigene Name in der Kopfzeile. AUCH BEI EINEM EINZIGEN ZUGANG: das ist
 // eine Aussage ueber MICH, nicht ueber andere -- derselbe Grund, aus dem die
 // Karte "Zugang" fuer jeden stehenbleibt.
 let NAME = '';
 // Die Schwelle steht GENAU HIER und nirgends sonst.
-const mehrereBenutzer = () => BENUTZER_ZAHL > 1;
+const mehrereBenutzer = () => USER_COUNT > 1;
 
 /* DER BEZUGSPUNKT DER GLOCKE, und seit 0.17.0 der EINZIGE. Bis dahin stand ein
    zweiter daneben: `zuletztGesehen` trug die Pille „Neu seit ..." und fiel beim
@@ -2116,7 +2116,7 @@ const mehrereBenutzer = () => BENUTZER_ZAHL > 1;
    erklaeren waere eine Behauptung, und der erste Blick in die Uebersicht
    laeutete fuer den ganzen Bestand. Gesetzt wird er beim ersten Verlassen der
    Uebersicht; von da an ist er der Strich, hinter dem gezaehlt wird. */
-let GLOCKE_GESEHEN = null;
+let BELL_SEEN = null;
 
 /* Die beiden Anlegen-Schalter, global und mit Vorgabe an. Der Bildschirm haelt
    sich an dieselbe Regel wie der Server: DER ADMIN KOMMT IMMER DURCH. Bote die
@@ -2125,25 +2125,25 @@ let GLOCKE_GESEHEN = null;
    aus wie ein Fehler.
    Aus heisst ausdruecklich NUR: die Zeile zum Anlegen verschwindet. Auswahl
    und Wolke bleiben, denn zuweisen darf immer jeder. */
-let TAGS_FREI = true;
-let KATEGORIEN_FREI = true;
+let TAGS_FREE = true;
+let CATEGORIES_FREE = true;
 /* WANDELT DIESE INSTANZ ANKOMMENDE PNG UM? Vorgabe an, wie im Server. Der Wert
    entscheidet hier NICHTS -- die Umwandlung geschieht im Server, und der liest
    seine eigene Einstellung. Er sagt der Karte nur, wo der Haken steht; die
    Schranke liegt nicht hier. */
-let BILDER_UMWANDELN = true;
+let IMAGES_CONVERT = true;
 /* Ob DIESER Zugang einen zweiten Faktor traegt, . KOMMT VOM SERVER
    und wird hier nie geraten: die Oberflaeche entscheidet damit nur, ob das
    Bestaetigungsfenster ein zweites Feld zeigt. Wer den Wert von Hand auf false
    setzt, bekommt ein Fenster ohne Codefeld -- und der Server weist die
    Bestaetigung ab. Die Schranke liegt nicht hier. */
-let ZWEIFAKTOR = false;
+let TWO_FACTOR = false;
 /* Die Frist des Papierkorbs. Sie kommt aus /api/settings und wird hier NICHT
    nachgebaut: die Zahl steht im Server an einer Stelle, und der Löschdialog
    nennt sie jedem — auch dem, der die Karte gar nicht sehen darf. Die 30
    hier ist kein zweiter Wert, sondern der Rückfall für eine Antwort, die das
    Feld nicht kennt. */
-let PAPIERKORB_TAGE = 30;
+let TRASH_DAYS = 30;
 /* DIE GESPEICHERTEN ANSICHTEN, . Persoenlich, wie die eine gemerkte
    Filterstellung daneben -- und sie ERSETZEN diese nicht: `filters` bleibt die
    zuletzt benutzte Stellung und wird weiter bei jeder Aenderung
@@ -2151,41 +2151,41 @@ let PAPIERKORB_TAGE = 30;
    DER DECKEL KOMMT VOM SERVER. Er steht dort an einer Stelle und wird hier
    nicht nachgebaut; die 8 ist der Rueckfall fuer eine Antwort, die das Feld
    nicht kennt. */
-let ANSICHTEN = [];
-let ANSICHTEN_DECKEL = 8;
-const darfTagAnlegen = () => ADMIN || TAGS_FREI;
-const darfKategorieAnlegen = () => ADMIN || KATEGORIEN_FREI;
+let VIEWS = [];
+let VIEWS_CAP = 8;
+const mayTagCreate = () => ADMIN || TAGS_FREE;
+const mayCategoryCreate = () => ADMIN || CATEGORIES_FREE;
 
-async function ladeEinstellungen() {
-  EINSTELLUNGEN = await api('GET', '/api/settings');
-  if (EINSTELLUNGEN.benutzerZahl) BENUTZER_ZAHL = EINSTELLUNGEN.benutzerZahl;
-  if (EINSTELLUNGEN.name) NAME = EINSTELLUNGEN.name;
-  if (EINSTELLUNGEN.istAdmin !== undefined) ADMIN = !!EINSTELLUNGEN.istAdmin;
-  if (EINSTELLUNGEN.istEigentuemer !== undefined) EIGENTUEMER = !!EINSTELLUNGEN.istEigentuemer;
-  if (EINSTELLUNGEN.vokabular) V = { ...V, ...EINSTELLUNGEN.vokabular };
-  if (EINSTELLUNGEN.schrift) SCHRIFT = EINSTELLUNGEN.schrift;
-  if (EINSTELLUNGEN.streifen) STREIFEN = EINSTELLUNGEN.streifen;
-  if (THEMA_STUFEN.includes(EINSTELLUNGEN.thema)) THEMA = EINSTELLUNGEN.thema;
-  uebernimmBloecke(EINSTELLUNGEN.bloecke);
-  if (EINSTELLUNGEN.linkZeilen) LINKZEILEN = EINSTELLUNGEN.linkZeilen;
-  if (EINSTELLUNGEN.zeitleiste !== undefined) ZEITLEISTE_AN = EINSTELLUNGEN.zeitleiste !== false;
-  if (Array.isArray(EINSTELLUNGEN.ansichten)) ANSICHTEN = EINSTELLUNGEN.ansichten;
-  if (EINSTELLUNGEN.ansichtenDeckel) ANSICHTEN_DECKEL = EINSTELLUNGEN.ansichtenDeckel;
-  // Ausdruecklich nur beim ERSTEN Laden. ladeEinstellungen() laeuft nur in
+async function loadSettings() {
+  SETTINGS = await api('GET', '/api/settings');
+  if (SETTINGS.benutzerZahl) USER_COUNT = SETTINGS.benutzerZahl;
+  if (SETTINGS.name) NAME = SETTINGS.name;
+  if (SETTINGS.istAdmin !== undefined) ADMIN = !!SETTINGS.istAdmin;
+  if (SETTINGS.istEigentuemer !== undefined) OWNER = !!SETTINGS.istEigentuemer;
+  if (SETTINGS.vokabular) V = { ...V, ...SETTINGS.vokabular };
+  if (SETTINGS.schrift) FONT = SETTINGS.schrift;
+  if (SETTINGS.streifen) STRIP = SETTINGS.streifen;
+  if (THEME_LEVELS.includes(SETTINGS.thema)) THEME = SETTINGS.thema;
+  uebernimmBloecke(SETTINGS.bloecke);
+  if (SETTINGS.linkZeilen) LINK_ROWS = SETTINGS.linkZeilen;
+  if (SETTINGS.zeitleiste !== undefined) ZEITLEISTE_AN = SETTINGS.zeitleiste !== false;
+  if (Array.isArray(SETTINGS.ansichten)) VIEWS = SETTINGS.ansichten;
+  if (SETTINGS.ansichtenDeckel) VIEWS_CAP = SETTINGS.ansichtenDeckel;
+  // Ausdruecklich nur beim ERSTEN Laden. loadSettings() laeuft nur in
   // start(); ein spaeterer Aufruf duerfte den Bezugszeitpunkt nicht mehr
   // nachziehen, sonst verschwaende die Menge unter dem Zeiger.
-  if (EINSTELLUNGEN.glockeGesehen) GLOCKE_GESEHEN = EINSTELLUNGEN.glockeGesehen;
-  if (Array.isArray(EINSTELLUNGEN.suchAnbieter)) SUCHANBIETER = EINSTELLUNGEN.suchAnbieter;
-  if (EINSTELLUNGEN.suchNamen) SUCHNAMEN = EINSTELLUNGEN.suchNamen;
+  if (SETTINGS.glockeGesehen) BELL_SEEN = SETTINGS.glockeGesehen;
+  if (Array.isArray(SETTINGS.suchAnbieter)) SEARCH_PROVIDERS = SETTINGS.suchAnbieter;
+  if (SETTINGS.suchNamen) SEARCH_NAMES = SETTINGS.suchNamen;
   // Der Server leitet beide beim Lesen ab und liefert sie immer; die Vorgabe
   // hier greift nur, wenn die Antwort das Feld gar nicht kennt.
-  if (EINSTELLUNGEN.tagsFreiAnlegen !== undefined) TAGS_FREI = EINSTELLUNGEN.tagsFreiAnlegen !== false;
-  if (EINSTELLUNGEN.kategorienFreiAnlegen !== undefined)
-    KATEGORIEN_FREI = EINSTELLUNGEN.kategorienFreiAnlegen !== false;
-  if (EINSTELLUNGEN.bilderUmwandeln !== undefined)
-    BILDER_UMWANDELN = EINSTELLUNGEN.bilderUmwandeln !== false;
-  if (EINSTELLUNGEN.papierkorbTage) PAPIERKORB_TAGE = EINSTELLUNGEN.papierkorbTage;
-  ZWEIFAKTOR = EINSTELLUNGEN.zweifaktor === true;
+  if (SETTINGS.tagsFreiAnlegen !== undefined) TAGS_FREE = SETTINGS.tagsFreiAnlegen !== false;
+  if (SETTINGS.kategorienFreiAnlegen !== undefined)
+    CATEGORIES_FREE = SETTINGS.kategorienFreiAnlegen !== false;
+  if (SETTINGS.bilderUmwandeln !== undefined)
+    IMAGES_CONVERT = SETTINGS.bilderUmwandeln !== false;
+  if (SETTINGS.papierkorbTage) TRASH_DAYS = SETTINGS.papierkorbTage;
+  TWO_FACTOR = SETTINGS.zweifaktor === true;
   wendeSchriftAn();
   wendeStreifenAn();
   // Berichtigt, was der Achtzeiler im Kopf aus dem Gedaechtnis geraten hat.
@@ -2196,7 +2196,7 @@ const saveFilters = () => {
   // Die Momentaufnahme mitfuehren. loadAll() laeuft bei jeder Rueckkehr in die
   // Uebersicht und setzt state.filters daraus zurueck -- ohne diese Zeile
   // landet man immer wieder bei der Kombination, die beim Laden der Seite galt.
-  if (EINSTELLUNGEN) EINSTELLUNGEN.filters = { ...state.filters };
+  if (SETTINGS) SETTINGS.filters = { ...state.filters };
   api('PUT', '/api/settings', { filters: state.filters }).catch(() => {});
 };
 
@@ -2205,22 +2205,22 @@ async function loadAll() {
     api('GET', '/api/items'), api('GET', '/api/product-categories'), api('GET', '/api/tags'),
     api('GET', '/api/criteria'), api('GET', '/api/titles')
   ]);
-  /* DER UNGEFILTERTE BESTAND KOMMT HIER UND NUR HIER. `alle` ist die Quelle,
+  /* DER UNGEFILTERTE BESTAND KOMMT HIER UND NUR HIER. `all` ist die Quelle,
      `items` das, was gezeigt wird -- beim Betreten der Uebersicht dasselbe.
      Stand vorher ein Suchbegriff im Feld, wird er gleich darunter neu gefragt;
      bis die Antwort da ist, steht der ganze Bestand da und nicht nichts. */
-  /* `alle` und `items` zeigen hier auf DASSELBE Feld, und das ist gewollt: eine
+  /* `all` und `items` zeigen hier auf DASSELBE Feld, und das ist gewollt: eine
      Kopie von tausend Objekten waere Arbeit fuer nichts. Es traegt nur, solange
      niemand `state.items` an der Stelle veraendert -- gefiltert und sortiert
      wird ueber Kopien (`[...out].sort(...)` in visibleItems), und ein push oder
      splice darauf gibt es nirgends. Wer je eines einbaut, veraendert damit auch
      den ungefilterten Bestand. */
-  state.alle = items; state.items = items; state.bestand = items.length;
+  state.all = items; state.items = items; state.bestand = items.length;
   state.suchFehler = false;
   state.categories = categories; state.tags = tags; state.criteria = criteria;
   TITLE_APP = titles.appTitle; TITLE_PUBLIC = titles.publicTitle;
   document.title = TITLE_APP;
-  const settings = EINSTELLUNGEN;
+  const settings = SETTINGS;
   if (settings && settings.filters) state.filters = filterNormal(settings.filters);
 }
 
@@ -2239,7 +2239,7 @@ async function loadAll() {
    wie er ist. Ein Lesevorgang, der die Ansicht eines Menschen
    umschreibt, ist schlimmer als eine Nummer, die ins Leere zeigt. */
 function filterNormal(roh) {
-  const f = { ...FILTER_VORGABE, ...(roh && typeof roh === 'object' ? roh : {}) };
+  const f = { ...FILTER_DEFAULT, ...(roh && typeof roh === 'object' ? roh : {}) };
   f.tagIds = (Array.isArray(f.tagIds) ? f.tagIds : []).filter(id => state.tags.some(tag => tag.id === id));
   /* DIE UEBERSETZUNG DER ALTEN FORM, an genau dieser einen Stelle. Vor 0.13.0
      stand in einer gespeicherten Ansicht EIN Kategoriewert (`categoryId`).
@@ -2269,7 +2269,7 @@ function filterNormal(roh) {
      "Ohne" BLEIBT IMMER STEHEN: es ist kein Kategoriewert und trotzdem
      gueltig. */
   f.categoryIds = [...new Set(f.categoryIds)].filter(v =>
-    v === KATEGORIE_OHNE || state.categories.some(c => c.id === v));
+    v === CATEGORY_NONE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorit = f.favorit === true;
   /* DER SCHLUESSEL EINER GESTRICHENEN PILLE FAELLT HERAUS -- 0.17.0. Eine
@@ -2311,9 +2311,9 @@ function filterNormal(roh) {
    einmal. EINE ERSATZSUCHE IM BROWSER GIBT ES AUSDRUECKLICH NICHT: sie haette
    die Kommentare nicht und faende damit weniger -- zwei Antworten auf
    dieselbe Frage, und die schlechtere ohne Kennzeichen. */
-const SUCH_VERZOEGERUNG = 220;
-let suchUhr = null;
-let suchLauf = 0;
+const SEARCH_DELAY_MS = 220;
+let searchClock = null;
+let searchRun = 0;
 
 /* Das Kreuz zum Leeren steht nur da, wenn etwas zu leeren ist. Der Helfer
    liest das FELD und nicht state.search: er wird auch gerufen, nachdem eine
@@ -2328,11 +2328,11 @@ function syncSuchknopf() {
    Kleingeschrieben wird dort -- die Anfrage traegt, was der Mensch getippt
    hat, und der Vergleich ist an einer Stelle. */
 async function sucheAusfuehren() {
-  const begriff = state.search.trim();
-  const lauf = ++suchLauf;
-  if (!begriff) {
+  const term = state.search.trim();
+  const run = ++searchRun;
+  if (!term) {
     // Ohne Begriff ist der ganze Bestand die Antwort, und der liegt schon da.
-    state.items = state.alle;
+    state.items = state.all;
     state.suchLaeuft = false; state.suchFehler = false;
     drawFilters(); drawBody();
     return;
@@ -2340,12 +2340,12 @@ async function sucheAusfuehren() {
   state.suchLaeuft = true;
   drawBody();
   try {
-    const treffer = await api('GET', `/api/items?q=${encodeURIComponent(begriff)}`);
-    if (lauf !== suchLauf) return;          // eine neuere Anfrage ist unterwegs
+    const treffer = await api('GET', `/api/items?q=${encodeURIComponent(term)}`);
+    if (run !== searchRun) return;          // eine neuere Anfrage ist unterwegs
     state.items = treffer;
     state.suchLaeuft = false; state.suchFehler = false;
   } catch (e) {
-    if (lauf !== suchLauf) return;
+    if (run !== searchRun) return;
     if (e.message === t('dialog.sessionExpired')) return;   // die Anmeldeseite kommt
     // Stehen bleibt, was da ist. Die Zaehlzeile sagt es.
     state.suchLaeuft = false; state.suchFehler = true;
@@ -2367,40 +2367,40 @@ async function sucheAusfuehren() {
 
 // Was gerade eingestellt ist, als Ansicht -- ohne den Namen, der kommt vom
 // Menschen.
-const ansichtAusZustand = () => ({ filters: { ...state.filters }, q: state.search.trim() });
+const viewOutState = () => ({ filters: { ...state.filters }, q: state.search.trim() });
 
 /* GESCHICKT UND DANN ERST UEBERNOMMEN. Der Deckel und die Namensgleichheit
    entscheidet der Server; scheitert es dort, bleibt die oertliche Liste, wie
    sie war, und die Meldung steht da. Die umgekehrte Reihenfolge zeigte eine
    Ansicht, die es nicht gibt. */
-async function ansichtenSchicken(liste) {
+async function ansichtenSchicken(list) {
   try {
-    await api('PUT', '/api/settings', { ansichten: liste });
-    ANSICHTEN = liste;
-    if (EINSTELLUNGEN) EINSTELLUNGEN.ansichten = liste;
+    await api('PUT', '/api/settings', { ansichten: list });
+    VIEWS = list;
+    if (SETTINGS) SETTINGS.ansichten = list;
     return true;
   } catch (e) { toast(e.message, true); return false; }
 }
 
 async function ansichtSpeichern() {
-  if (ANSICHTEN.length >= ANSICHTEN_DECKEL)
-    return toast(t('list.viewCapDelete', { ansichtenDeckel: ANSICHTEN_DECKEL }), true);
+  if (VIEWS.length >= VIEWS_CAP)
+    return toast(t('list.viewCapDelete', { ansichtenDeckel: VIEWS_CAP }), true);
   const name = await nameBox(t('list.saveViewTitle'),
     t('list.saveViewNote'), '', t('dialog.save'));
   if (!name) return;
   // Derselbe Vergleich wie im Server, und aus demselben Grund: der Name ist
   // das Einzige, woran ein Mensch zwei Ansichten auseinanderhaelt.
-  if (ANSICHTEN.some(a => a.name.toLowerCase() === name.toLowerCase()))
+  if (VIEWS.some(a => a.name.toLowerCase() === name.toLowerCase()))
     return toast(t('list.viewExists', { name: name }), true);
-  if (await ansichtenSchicken([...ANSICHTEN, { name, ...ansichtAusZustand() }])) {
+  if (await ansichtenSchicken([...VIEWS, { name, ...viewOutState() }])) {
     toast(t('list.saved'));
     drawFilters();
   }
 }
 
-async function ansichtLoeschen(name) {
+async function viewDelete(name) {
   if (!await confirmBox(t('list.deleteViewAsk'), t('list.removedFromList', { name: name }))) return;
-  if (await ansichtenSchicken(ANSICHTEN.filter(a => a.name !== name))) drawFilters();
+  if (await ansichtenSchicken(VIEWS.filter(a => a.name !== name))) drawFilters();
 }
 
 /* ANGEWANDT WIRD OERTLICH UND SOFORT. Die Stellung geht durch filterNormal()
@@ -2418,19 +2418,19 @@ function ansichtAnwenden(a) {
      „alles anzeigen" zusammen gespeichert hat, bekommt beides zurueck. */
   STATUS_VON_HAND = true;
   state.search = typeof a.q === 'string' ? a.q : '';
-  const feld = document.getElementById('q');
-  if (feld) feld.value = state.search;
+  const field = document.getElementById('q');
+  if (field) field.value = state.search;
   syncSuchknopf();
   saveFilters();
-  if (suchUhr) { clearTimeout(suchUhr); suchUhr = null; }
+  if (searchClock) { clearTimeout(searchClock); searchClock = null; }
   sucheAusfuehren();
 }
 
 // Der Debounce. Beim Leeren sofort -- dort ist keine Anfrage im Spiel.
 function sucheAngestossen() {
-  if (suchUhr) clearTimeout(suchUhr);
-  if (!state.search.trim()) { suchUhr = null; sucheAusfuehren(); return; }
-  suchUhr = setTimeout(() => { suchUhr = null; sucheAusfuehren(); }, SUCH_VERZOEGERUNG);
+  if (searchClock) clearTimeout(searchClock);
+  if (!state.search.trim()) { searchClock = null; sucheAusfuehren(); return; }
+  searchClock = setTimeout(() => { searchClock = null; sucheAusfuehren(); }, SEARCH_DELAY_MS);
 }
 
 // Fehlender Wert ist nicht Null: Eintraege ohne Testtage stehen bei den
@@ -2445,12 +2445,12 @@ function byTest(a, b, field, dir) {
 
 // Traegt ein Eintrag die gewaehlten Tags? Getrennt herausgezogen, weil auch
 // die Vorschau der Wolke damit rechnet, welche Tags noch Treffer brachten.
-function passtZuTags(item, tagIds, modus) {
+function passtZuTags(item, tagIds, mode) {
   if (!tagIds.length) return true;
-  const eigene = new Set((item.tags || []).map(tag => tag.id));
-  return modus === 'or'
-    ? tagIds.some(id => eigene.has(id))
-    : tagIds.every(id => eigene.has(id));
+  const ownOnes = new Set((item.tags || []).map(tag => tag.id));
+  return mode === 'or'
+    ? tagIds.some(id => ownOnes.has(id))
+    : tagIds.every(id => ownOnes.has(id));
 }
 
 /* Der Parameter ist die Vorschau: die Filterzeile fragt "wie viele blieben
@@ -2468,17 +2468,17 @@ function visibleItems(filter) {
      keine einzelne Kategorie erreichbar, und die Zahlen verrieten die Luecke,
      ohne sie zeigen zu koennen. */
   if (f.categoryIds.length) out = out.filter(i =>
-    f.categoryIds.includes(i.category ? i.category.id : KATEGORIE_OHNE));
+    f.categoryIds.includes(i.category ? i.category.id : CATEGORY_NONE));
   // UND ist die Vorgabe: mit zwei Tags will man fast immer den Schnitt
   // ("gruen UND schwer"), nicht die Vereinigung.
   if (f.tagIds.length) out = out.filter(i => passtZuTags(i, f.tagIds, f.tagMode));
   /* DIE EINE LESESTELLE DER ABLEITUNG -- 0.21.1. Hier stand bis dahin
-     `f.tested` unmittelbar; jetzt fragt die Zeile statusWirksam(), und das ist
+     `f.tested` unmittelbar; jetzt fragt die Zeile statusEffective(), und das ist
      der einzige Ort, an dem aus Handwahl und Sortierung eine Menge wird. Eine
      zweite Lesestelle liefe auseinander (Stolperstein 47).
      GEFRAGT WIRD MIT `f` UND NICHT MIT state.filters: der Parameter dieser
      Funktion ist die Vorschau, und sie soll dieselbe Rechnung bekommen. */
-  const status = statusWirksam(f);
+  const status = statusEffective(f);
   if (status === 'tested') out = out.filter(i => i.tested);
   else if (status === 'untested') out = out.filter(i => !i.tested);
   /* DIE ABLEHNUNG IST EIN EIGENES MERKMAL und deshalb eine eigene Dreiergruppe
@@ -2554,13 +2554,13 @@ async function start() {
   // Vor dem ersten Aufbau: sonst greift die Schriftgroesse erst nach dem
   // zweiten Klick und der Direkteinstieg auf einen Eintrag zeigt das
   // Vorgabevokabular.
-  try { await ladeEinstellungen(); }
+  try { await loadSettings(); }
   catch (e) { if (e.message === t('dialog.sessionExpired')) return; }
   route();
 }
 /* Welche Ansicht zuletzt stand -- gebraucht wird das fuer genau eine Frage:
    ob die Uebersicht gerade VERLASSEN wird. */
-let LETZTE_ANSICHT = null;
+let LAST_VIEW = null;
 /* DER MERKZEITPUNKT WIRD BEIM VERLASSEN GESETZT, NICHT BEIM BETRETEN. Beim
    Betreten waere er wertlos: er stuende dann auf dem Augenblick, in dem man
    hinsieht, und "neu seit" waere immer leer. Beim Verlassen bleibt er
@@ -2580,9 +2580,9 @@ let LETZTE_ANSICHT = null;
    bleibt, ist der eine Ruf, der die Glocke ueberhaupt erst moeglich macht.
    UND AUSDRUECKLICH KEIN RUF BEIM BETRETEN: was beim Betreten der Uebersicht
    hinausginge, ginge bei jedem Seitenaufbau hinaus. */
-const merkeGesehen = () => {
-  if (GLOCKE_GESEHEN) return;
-  GLOCKE_GESEHEN = true;
+const rememberSeen = () => {
+  if (BELL_SEEN) return;
+  BELL_SEEN = true;
   api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});
 };
 /* ================= Der Suchbegriff in der Adresse -- 0.18.0 =================
@@ -2600,10 +2600,10 @@ const merkeGesehen = () => {
    Entschluesseln der Prozentzeichen steht damit an einer Stelle, und ein
    Parameter, den diese Fassung nicht kennt, wirft die Adresse nicht um.
    Ein `?q=` ohne Wert ist dasselbe wie kein `?q=` -- "keine Suche". */
-const EINTRAG_MUSTER = /^#\/item\/(\d+)(?:\?(.*))?$/;
-const eintragAdresse = (id, begriff) =>
-  `#/item/${id}` + (begriff ? `?q=${encodeURIComponent(begriff)}` : '');
-const begriffAusAdresse = (frage) => {
+const ENTRY_PATTERN = /^#\/item\/(\d+)(?:\?(.*))?$/;
+const entryAddress = (id, term) =>
+  `#/item/${id}` + (term ? `?q=${encodeURIComponent(term)}` : '');
+const termOutAddress = (frage) => {
   try { return new URLSearchParams(frage || '').get('q') || ''; }
   catch { return ''; }
 };
@@ -2612,7 +2612,7 @@ function route() {
   const h = location.hash || '#/';
   // Die alte Ansicht ist gleich fort; ihre Wolke darf niemand mehr zeichnen.
   wolkeNeuzeichnen = null;
-  const m = h.match(EINTRAG_MUSTER);
+  const m = h.match(ENTRY_PATTERN);
   /* DER SYSTEMBEREICH HAT SEIT 0.16.0 FUENF ADRESSEN STATT EINER --
      `#/system` und `#/system/<abschnitt>`. Welcher Abschnitt gemeint ist,
      liest renderSystem() selbst aus der Adresse; hier steht nur, DASS es der
@@ -2620,14 +2620,14 @@ function route() {
      und die beiden Stellen liefen auseinander.
      `#/systemisch` DARF NICHT TREFFEN: das Muster ist verankert und verlangt
      hinter „system" entweder nichts oder einen Schraegstrich. */
-  const ansicht = SYS_MUSTER.test(h) ? 'system' : h === '#/compare' ? 'vergleich'
+  const view = SYS_MUSTER.test(h) ? 'system' : h === '#/compare' ? 'vergleich'
     : h === '#/offen' ? 'offen' : m ? 'eintrag' : 'liste';
-  if (LETZTE_ANSICHT === 'liste' && ansicht !== 'liste') merkeGesehen();
-  LETZTE_ANSICHT = ansicht;
-  if (ansicht === 'system') return renderSystem();
-  if (ansicht === 'vergleich') return renderCompare();
-  if (ansicht === 'offen') return renderOffen();
-  if (m) return renderDetail(+m[1], begriffAusAdresse(m[2]));
+  if (LAST_VIEW === 'liste' && view !== 'liste') rememberSeen();
+  LAST_VIEW = view;
+  if (view === 'system') return renderSystem();
+  if (view === 'vergleich') return renderCompare();
+  if (view === 'offen') return renderOffen();
+  if (m) return renderDetail(+m[1], termOutAddress(m[2]));
   return renderList();
 }
 
@@ -2655,8 +2655,8 @@ function route() {
    dieselbe Sache (Stolperstein 47), und die Glocke zaehlte sie eines Tages
    doppelt. */
 const neuAn = (i) => (Number(i.neuKommentare) || 0) + (Number(i.neuBewertungen) || 0);
-const glockeNeu = () => (state.alle || []).reduce((n, i) => n + neuAn(i), 0);
-const offeneGesamt = () => (state.alle || []).reduce((n, i) => n + (Number(i.offeneAufgaben) || 0), 0);
+const bellNew = () => (state.all || []).reduce((n, i) => n + neuAn(i), 0);
+const openTotal = () => (state.all || []).reduce((n, i) => n + (Number(i.offeneAufgaben) || 0), 0);
 
 /* WAS DORT NEU IST, IN WORTEN -- 0.17.0. „7 neue Beitraege" liess offen, ob
    das Kommentare sind oder Bewertungen; „Beitrag" ist ein Sammelwort, das die
@@ -2668,7 +2668,7 @@ const offeneGesamt = () => (state.alle || []).reduce((n, i) => n + (Number(i.off
    feste Endung macht. Die beiden Woerter stehen NICHT im Vokabular: dort geht
    es um die Sache, den Bericht, die Aufgabe und den Zeitpunkt -- Kommentar und
    Bewertung heissen in dieser Instanz ueberall so. */
-const neuWorte = (i) => {
+const newWords = (i) => {
   const k = Number(i.neuKommentare) || 0, b = Number(i.neuBewertungen) || 0;
   return [k ? t('list.commentCount', { n: k }) : '',
           b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');
@@ -2689,10 +2689,10 @@ const neuWorte = (i) => {
    von Dingen, nicht von Menschen.
    SORTIERT NACH DEM ANGEZEIGTEN NAMEN und nicht nach der Zugangsnummer -- die
    Nummer sieht niemand, und zwei Tafeln nacheinander sollen dieselbe Reihe
-   zeigen. Der Name entsteht ueber verfasserName() wie ueberall sonst. */
-const neuVonWorte = (i) => {
+   zeigen. Der Name entsteht ueber authorName() wie ueberall sonst. */
+const newFromWords = (i) => {
   const namen = (Array.isArray(i.neuVon) ? i.neuVon : [])
-    .map(verfasserName).sort((a, b) => String(a).localeCompare(String(b), LOCALE));
+    .map(authorName).sort((a, b) => String(a).localeCompare(String(b), LOCALE));
   if (!namen.length) return '';
   const letzter = namen[namen.length - 1], vorne = namen.slice(0, -1).join(', ');
   return t('list.byNames',
@@ -2700,7 +2700,7 @@ const neuVonWorte = (i) => {
 };
 
 function zeichneKopfzahlen() {
-  const offen = offeneGesamt();
+  const offen = openTotal();
   /* KEINE NULL AM KNOPF. „Offen 0" ist eine Auskunft ueber nichts und stuende
      dauerhaft da -- dieselbe Ueberlegung wie bei der Marke ×1 an einem
      Kriterium. Ohne offene Aufgaben traegt der Knopf nur sein Zeichen. */
@@ -2711,14 +2711,14 @@ function zeichneKopfzahlen() {
   amElement('offen', b => b.title = offen
     ? `${offen} ${vAufgabe(offen)} offen`
     : t('list.openTasks'));
-  const neu = glockeNeu();
+  const fresh = bellNew();
   /* EINE ZAHL IM TITEL, EIN PUNKT AM KNOPF. Der Titel bleibt EINE Zahl, auch
      seit die Tafel zwei nennt: er beantwortet „gibt es etwas", die Tafel
      beantwortet „was". Eine Aufzaehlung im Titel machte aus einem Hinweis eine
      Liste. */
-  amElement('glocke-punkt', el => { el.hidden = !neu; });
-  amElement('glocke', b => b.title = neu
-    ? t('list.newsFromOthers', { n: neu })
+  amElement('glocke-punkt', el => { el.hidden = !fresh; });
+  amElement('glocke', b => b.title = fresh
+    ? t('list.newsFromOthers', { n: fresh })
     : t('list.noNews'));
 }
 
@@ -2736,7 +2736,7 @@ function zeichneKopfzahlen() {
 function zeigeGlockentafel() {
   /* SORTIERT NACH DER SUMME und nicht nach einem der beiden Teile: ein Eintrag
      mit vier neuen Bewertungen stuende sonst unter einem mit einem Kommentar. */
-  const zeilen = (state.alle || []).filter(i => neuAn(i) > 0)
+  const zeilen = (state.all || []).filter(i => neuAn(i) > 0)
     .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title), LOCALE));
   const bd = document.createElement('div');
   bd.className = 'backdrop';
@@ -2774,8 +2774,8 @@ function zeigeGlockentafel() {
     a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
       <span class="glocken-von"></span>`;
     a.querySelector('.mname').textContent = it.title;
-    a.querySelector('.mcount').textContent = neuWorte(it);
-    a.querySelector('.glocken-von').textContent = neuVonWorte(it);
+    a.querySelector('.mcount').textContent = newWords(it);
+    a.querySelector('.glocken-von').textContent = newFromWords(it);
     a.onclick = () => zu();
     box.appendChild(a);
   }
@@ -2788,7 +2788,7 @@ function zeigeGlockentafel() {
   /* NUR WAS DASTEHT, WIRD ZURUECKGESETZT -- und nichts angelegt. Ohne
      Bezugspunkt gibt es die Felder gar nicht, und wer sie hier auf 0 setzte,
      machte aus „es gibt keinen Bezugspunkt" ein „nichts Neues". */
-  for (const it of (state.alle || [])) {
+  for (const it of (state.all || [])) {
     if (it.neuKommentare) it.neuKommentare = 0;
     if (it.neuBewertungen) it.neuBewertungen = 0;
     if (it.neuVon) it.neuVon = [];
@@ -2841,9 +2841,9 @@ async function renderList() {
              DER PUNKT IST EIN EIGENER KNOTEN und kein Text im Knopf: er wird
              beim Zeichnen ein- und ausgeblendet, ohne dass das Zeichen daneben
              neu gebaut wird. */''}
-        ${GLOCKE_GESEHEN ? `<button class="icon-btn glocke" id="glocke" title="${esc(t('list.news'))}"
-          aria-label="${esc(t('list.news'))}">${ICON_GLOCKE}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">${tH('list.news')}</span></button>` : ''}
-        <button class="icon-btn" id="offen" title="${esc(t('list.openTasks'))}">${ICON_OFFEN}<span class="offen-zahl" id="offen-zahl" hidden></span><span class="mast-wort">${tH('list.openTasks')}</span></button>
+        ${BELL_SEEN ? `<button class="icon-btn glocke" id="glocke" title="${esc(t('list.news'))}"
+          aria-label="${esc(t('list.news'))}">${ICON_BELL}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">${tH('list.news')}</span></button>` : ''}
+        <button class="icon-btn" id="offen" title="${esc(t('list.openTasks'))}">${ICON_OPEN}<span class="offen-zahl" id="offen-zahl" hidden></span><span class="mast-wort">${tH('list.openTasks')}</span></button>
         <button class="icon-btn" id="sys" title="${esc(t('list.settings'))}">${ICON_SYS}<span class="mast-wort">${tH('list.settings')}</span></button>
         <span class="hint wer" id="wer">${tH('list.signedInAs', { name: NAME })}</span>
         <button class="btn btn-ghost btn-sm" id="out">${tH('list.signOut')}</button>
@@ -2855,7 +2855,7 @@ async function renderList() {
            Markup fuer die Tastatur aber trotzdem die letzte, und das ist
            richtig: es fuehrt nirgendwohin, was nicht schon dasteht. */''}
       <button class="icon-btn mast-menue" id="menue" aria-expanded="false"
-        aria-controls="mast-rest" aria-label="${esc(t('list.openMenu'))}" title="${esc(t('list.menu'))}">${ICON_MENUE}</button>
+        aria-controls="mast-rest" aria-label="${esc(t('list.openMenu'))}" title="${esc(t('list.menu'))}">${ICON_MENU}</button>
     </div>
     ${/* Nur auf dem schmalen Schirm sichtbar. Die Zahl daneben nennt die
          Filter, die gerade greifen -- ohne sie waere eine eingeklappte
@@ -2902,14 +2902,14 @@ async function renderList() {
      aria-expanded wird mitgefuehrt, weil das Zeichen sonst ein Knopf ohne
      Auskunft waere: ein Vorleseprogramm saehe drei Striche und keinen
      Zustand. */
-  const menue = document.getElementById('menue');
+  const menu = document.getElementById('menue');
   const tafel = document.getElementById('mast-rest');
-  const menueStellen = (auf) => {
-    tafel.classList.toggle('offen', auf);
-    menue.setAttribute('aria-expanded', auf ? 'true' : 'false');
-    menue.setAttribute('aria-label', auf ? t('list.closeMenu') : t('list.openMenu'));
+  const menuPlaces = (on) => {
+    tafel.classList.toggle('offen', on);
+    menu.setAttribute('aria-expanded', on ? 'true' : 'false');
+    menu.setAttribute('aria-label', on ? t('list.closeMenu') : t('list.openMenu'));
   };
-  menue.onclick = () => menueStellen(!tafel.classList.contains('offen'));
+  menu.onclick = () => menuPlaces(!tafel.classList.contains('offen'));
 
   /* EIN KLICK DANEBEN SCHLIESST, UND ESCAPE AUCH. Beides haengt am Dokument
      und nicht an der Tafel: eine Tafel, die sich nur ueber ihren eigenen
@@ -2923,9 +2923,9 @@ async function renderList() {
      sammeln sich mit jedem Aufruf der Uebersicht. */
   const menueDaneben = (e) => {
     if (e.target.closest('#menue') || e.target.closest('#mast-rest')) return;
-    menueStellen(false);
+    menuPlaces(false);
   };
-  const menueTaste = (e) => { if (e.key === 'Escape') menueStellen(false); };
+  const menueTaste = (e) => { if (e.key === 'Escape') menuPlaces(false); };
   document.addEventListener('click', menueDaneben);
   document.addEventListener('keydown', menueTaste);
 
@@ -2938,16 +2938,16 @@ async function renderList() {
      Schalter ist dort und nur dort sichtbar, wo hier eingeklappt wird. Ohne
      die Frage saesse ein breites Fenster vor eingeklappten Filtern und
      haette keinen sichtbaren Knopf, sie zu oeffnen. */
-  const filterKasten = document.getElementById('filters');
-  if (istSchmal()) filterKasten.classList.add('zu');
+  const filterBox = document.getElementById('filters');
+  if (isNarrow()) filterBox.classList.add('zu');
   document.getElementById('filter-auf').onclick = () => {
-    const warZu = filterKasten.classList.contains('zu');
-    filterKasten.classList.toggle('zu');
+    const warZu = filterBox.classList.contains('zu');
+    filterBox.classList.toggle('zu');
     /* BEIM AUFKLAPPEN WIRD NEU GEZEICHNET, beim Einklappen nicht.
-       Der Grund steht bei begrenzeWolke(): die Tagwolke wird auf eine Zeile
+       Der Grund steht bei limitCloud(): die Tagwolke wird auf eine Zeile
        begrenzt, und die Zeilenhoehe wird an der ERSTEN Marke GEMESSEN statt
        geraten -- sie haengt an der eingestellten Schriftgroesse. Ein
-       eingeklappter Kasten misst null, und begrenzeWolke() steigt dann
+       eingeklappter Kasten misst null, und limitCloud() steigt dann
        ausdruecklich aus, ohne etwas zu setzen. Waere die Wolke also beim
        Aufbau der Ansicht hinter einem eingeklappten Filterbereich gezeichnet
        worden, staende sie nach dem Aufklappen unbegrenzt da: alle Marken auf
@@ -2956,7 +2956,7 @@ async function renderList() {
        Detailansicht ueber wolkeNeuzeichnen geht -- dieselbe Falle, dieselbe
        Antwort. Beim Einklappen gibt es nichts zu messen und nichts zu holen. */
     if (warZu) drawFilters();
-    else zeichneFilterSchalter();
+    else drawFilterSwitch();
   };
 
   // "/" springt in die Suche
@@ -2978,13 +2978,13 @@ async function renderList() {
 }
 
 function listKeys(e) {
-  const marke = document.activeElement?.tagName;
-  if (marke === 'INPUT' || marke === 'TEXTAREA' || marke === 'SELECT') return;
+  const mark = document.activeElement?.tagName;
+  if (mark === 'INPUT' || mark === 'TEXTAREA' || mark === 'SELECT') return;
   if (document.querySelector('.backdrop')) return;
   if (e.key === '/') { e.preventDefault(); document.getElementById('q')?.focus(); }
 }
 
-/* WIE VIELE FILTER GERADE GREIFEN. Gezaehlt wird gegen FILTER_VORGABE und
+/* WIE VIELE FILTER GERADE GREIFEN. Gezaehlt wird gegen FILTER_DEFAULT und
    nicht gegen eine zweite Liste -- die Vorgabe steht genau einmal, und wer
    dort einen Filter ergaenzt, ergaenzt ihn hier mit.
    DIE SORTIERUNG ZAEHLT AUSDRUECKLICH NICHT MIT. Die Zahl beantwortet die
@@ -3011,8 +3011,8 @@ function listKeys(e) {
    GESAGT WIRD SIE TROTZDEM, nur in Worten statt in einer Zahl: neben den
    Statuspillen steht „folgt der Sortierung", und am eingeklappten Schalter
    steht dasselbe. Regel 4 gilt an beiden Orten. */
-function filterZahl() {
-  const f = state.filters, v = FILTER_VORGABE;
+function filterNumber() {
+  const f = state.filters, v = FILTER_DEFAULT;
   let n = 0;
   /* GEZAEHLT WIRD DIE ABWEICHUNG VON DER RUHESTELLUNG UND NICHT MEHR VON `all`
      -- 0.21.1. Beides fiel bis dahin zusammen; seit die Sortierung eine Vorgabe
@@ -3025,7 +3025,7 @@ function filterZahl() {
      einzige Weg zurueck in die Automatik ist;
      keine Ableitung im Spiel -> die Ruhestellung IST `all`, und die Zeile zaehlt
      wie vor dieser Runde. */
-  if (statusWirksam(f) !== statusRuhestellung(f)) n++;
+  if (statusEffective(f) !== statusRuhestellung(f)) n++;
   // Die Ablehnung zaehlt EIGENS mit und nicht mit dem Teststatus zusammen: sie
   // ist ein zweites Merkmal, und beide zugleich verkleinern die Menge zweimal.
   if (f.abgelehnt !== v.abgelehnt) n++;
@@ -3045,25 +3045,25 @@ function filterZahl() {
    weil sich die Zahl mit jedem Klick auf eine Pille aendert -- und weil der
    Schalter eingeklappt sonst eine veraltete Zahl truege, also genau dann
    falsch waere, wenn er als einziger noch etwas sagt. */
-function zeichneFilterSchalter() {
-  const knopf = document.getElementById('filter-auf');
+function drawFilterSwitch() {
+  const button = document.getElementById('filter-auf');
   const box = document.getElementById('filters');
-  if (!knopf || !box) return;
-  const n = filterZahl();
+  if (!button || !box) return;
+  const n = filterNumber();
   const zu = box.classList.contains('zu');
   /* UND EINGEKLAPPT STEHT AUCH DIE ABLEITUNG DRAN -- 0.21.1. Das Wort neben den
      Statuspillen ist dann nicht zu sehen, und der Schalter ist der einzige
      Ort, der fuer die zugeklappte Leiste noch spricht. Regel 4 gilt auch hier.
-     ALS WORT UND NICHT ALS ZAHL: filterZahl() zaehlt die Ableitung
+     ALS WORT UND NICHT ALS ZAHL: filterNumber() zaehlt die Ableitung
      ausdruecklich nicht mit (die Begruendung steht dort), und `aktiv` bleibt
      deshalb an der Zahl haengen -- die Farbe sagt „du hast etwas eingestellt",
      und eingestellt hat das niemand. */
-  const woher = statusAusSortierung(state.filters.sort) ? t('list.followsSort') : '';
-  knopf.querySelector('.fz').textContent =
+  const woher = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';
+  button.querySelector('.fz').textContent =
     [n ? `${n} aktiv` : '', woher].filter(Boolean).map(s => `· ${s}`).join(' ');
-  knopf.classList.toggle('aktiv', n > 0);
-  knopf.setAttribute('aria-expanded', zu ? 'false' : 'true');
-  knopf.title = zu ? t('list.showFilters') : t('list.hideFilters');
+  button.classList.toggle('aktiv', n > 0);
+  button.setAttribute('aria-expanded', zu ? 'false' : 'true');
+  button.title = zu ? t('list.showFilters') : t('list.hideFilters');
 }
 
 function drawFilters() {
@@ -3087,11 +3087,11 @@ function drawFilters() {
      zur ersten und keine Ueberschrift ueber dem, was dahinter steht. Deshalb
      ohne die Beschriftungsspalte (`min-width`) und mit einem Abstand davor:
      die erste haelt die Spalte, die zweite laeuft mit. */
-  const zweiteBeschriftung = (zeile, text) => {
+  const zweiteBeschriftung = (row, text) => {
     const e = document.createElement('span');
     e.className = 'eyebrow eyebrow-mit';
     e.textContent = text;
-    zeile.appendChild(e);
+    row.appendChild(e);
     return e;
   };
 
@@ -3102,7 +3102,7 @@ function drawFilters() {
   /* WAS DIE SORTIERUNG GERADE VORGIBT -- 0.21.1, oder null. Gefragt wird
      dieselbe Funktion, die auch visibleItems() fragt: die Leiste soll nicht
      ihre eigene Rechnung ueber dieselbe Menge fuehren (Stolperstein 47). */
-  const vorgabe = statusAusSortierung(f.sort);
+  const vorgabe = statusOutSort(f.sort);
   [['all',t('list.all')],['tested',V.merkmalJa],['untested',V.merkmalNein]].forEach(([v,l]) => {
     const b = document.createElement('button');
     /* GENAU EINE PILLE IST MARKIERT, UND SIE SAGT IMMER DASSELBE: „so steht die
@@ -3229,14 +3229,14 @@ function drawFilters() {
      waere ein Bedienelement fuer nichts. Ist sie einmal gewaehlt und faellt der
      letzte Eintrag ohne Kategorie weg, bleibt sie stehen: sonst verschwaende
      der eigene Filter unter der Hand. */
-  const ohneZahl = state.alle.filter(i => !i.category).length;
-  if (ohneZahl || f.categoryIds.includes(KATEGORIE_OHNE)) {
+  const withoutNumber = state.all.filter(i => !i.category).length;
+  if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {
     const b = document.createElement('button');
-    b.className = 'pill pill-sep' + (f.categoryIds.includes(KATEGORIE_OHNE) ? ' on' : '');
+    b.className = 'pill pill-sep' + (f.categoryIds.includes(CATEGORY_NONE) ? ' on' : '');
     b.id = 'f-kat-ohne';
-    b.innerHTML = `${tH('list.without')}<span class="n">${ohneZahl}</span>`;
+    b.innerHTML = `${tH('list.without')}<span class="n">${withoutNumber}</span>`;
     b.title = t('list.noCategory');
-    b.onclick = () => katUm(KATEGORIE_OHNE);
+    b.onclick = () => katUm(CATEGORY_NONE);
     g2.appendChild(b);
   }
   /* ---- DER UMSCHALTER DER TAGZEILE -- 0.24.0, Bauabschnitt 0.2.
@@ -3278,27 +3278,27 @@ function drawFilters() {
   /* GREIFT EIN TAGFILTER, STEHT DIE ZEILE BEIM AUFBAU OFFEN -- 0.22.0, und die
      Regel bleibt woertlich: ein Filter, der die Liste kuerzt und dabei
      unsichtbar ist, ist ein Fehler und kein Aufraeumen (dieselbe Ueberlegung
-     wie beim abgeleiteten Status, 0.21.1). Und filterZahl() zaehlt ihn weiter
+     wie beim abgeleiteten Status, 0.21.1). Und filterNumber() zaehlt ihn weiter
      mit. „Beim Aufbau" heisst: solange niemand geklickt hat -- danach gilt der
      Klick, und die Zahl am Umschalter haelt den Filter sichtbar. */
-  const tagsOffen = tagsMoeglich &&
+  const tagsOpen = tagsMoeglich &&
     (WEITERE_FILTER_OFFEN === null ? f.tagIds.length > 0 : WEITERE_FILTER_OFFEN);
   if (tagsMoeglich) {
     const rechts2 = document.createElement('div');
     rechts2.className = 'frow-rechts frow-rechts-weit';
-    const schalter = document.createElement('button');
-    schalter.className = 'link-btn tag-schalter';
-    schalter.id = 'f-weitere';
-    schalter.setAttribute('aria-expanded', String(tagsOffen));
-    if (tagsOffen) schalter.setAttribute('aria-controls', 'f-tagzeile');
+    const toggle = document.createElement('button');
+    toggle.className = 'link-btn tag-schalter';
+    toggle.id = 'f-weitere';
+    toggle.setAttribute('aria-expanded', String(tagsOpen));
+    if (tagsOpen) toggle.setAttribute('aria-controls', 'f-tagzeile');
     /* DER TEXT STEHT IN EINEM EIGENEN ELEMENT, und das ist keine Zierde: der
        link-btn unterstreicht, und ein Strich unter dem Winkel saehe aus wie
        ein zweiter Winkel. Den Strich traegt deshalb das Wort. */
-    const schalterText = document.createElement('span');
-    schalterText.textContent = f.tagIds.length ? t('list.tagsCount', { length: f.tagIds.length }) : t('list.tags');
-    schalter.appendChild(schalterText);
-    schalter.onclick = () => { WEITERE_FILTER_OFFEN = !tagsOffen; drawFilters(); };
-    rechts2.appendChild(schalter);
+    const switchText = document.createElement('span');
+    switchText.textContent = f.tagIds.length ? t('list.tagsCount', { length: f.tagIds.length }) : t('list.tags');
+    toggle.appendChild(switchText);
+    toggle.onclick = () => { WEITERE_FILTER_OFFEN = !tagsOpen; drawFilters(); };
+    rechts2.appendChild(toggle);
     r2.appendChild(g2);
     r2.appendChild(rechts2);
   } else {
@@ -3306,7 +3306,7 @@ function drawFilters() {
   }
 
   // Tags
-  if (tagsOffen) {
+  if (tagsOpen) {
     const r3 = row(t('list.tags'));
     /* ZUGEKLAPPT IST DIE ZEILE GANZ WEG und nicht bloss verborgen: eine leere
        Zeile im Fluss kostete genau den Platz, um den es in diesem Befund geht.
@@ -3316,8 +3316,8 @@ function drawFilters() {
     // Umschalter der Verknuepfung, direkt neben der Beschriftung: er macht
     // sichtbar, warum ein zweiter Tag das Ergebnis verkleinert. Gedaempft,
     // solange weniger als zwei Tags gewaehlt sind.
-    const modusBox = document.createElement('div');
-    modusBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' ruht');
+    const modeBox = document.createElement('div');
+    modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' ruht');
     [['and', t('list.and'), t('list.allTagsHint')],
      ['or', t('list.or'), t('list.anyTagHint')]]
       .forEach(([wert, text, erklaerung]) => {
@@ -3327,9 +3327,9 @@ function drawFilters() {
         b.title = erklaerung;
         b.dataset.mode = wert;
         b.onclick = () => { f.tagMode = wert; redraw(); };
-        modusBox.appendChild(b);
+        modeBox.appendChild(b);
       });
-    r3.appendChild(modusBox);
+    r3.appendChild(modeBox);
 
     const g3 = document.createElement('div'); g3.className = 'pills cloud';
     /* KEIN „Noch keine Tags" MEHR: die Zeile steht ueberhaupt nur da, wenn es
@@ -3341,10 +3341,10 @@ function drawFilters() {
     // im UND-Modus eine Frage -- im ODER-Modus erweitert jeder Klick.
     const leerlauf = new Set();
     if (f.tagMode === 'and' && f.tagIds.length) {
-      const sichtbar = visibleItems();
+      const visible = visibleItems();
       filterTags.forEach(tag => {
         if (f.tagIds.includes(tag.id)) return;
-        if (!sichtbar.some(i => (i.tags || []).some(x => x.id === tag.id))) leerlauf.add(tag.id);
+        if (!visible.some(i => (i.tags || []).some(x => x.id === tag.id))) leerlauf.add(tag.id);
       });
     }
     sortiereWolke(filterTags, new Set(f.tagIds)).forEach(tag => {
@@ -3362,7 +3362,7 @@ function drawFilters() {
     r3.appendChild(g3);
     // Eine Zeile, Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
     // abgeschnitten ist.
-    const beschnitten = begrenzeWolke(g3, wolkeOffen.uebersicht ? 0 : 1);
+    const beschnitten = limitCloud(g3, cloudOpen.uebersicht ? 0 : 1);
     /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche Geschwister
        -- und seit 0.13.0 ist das wieder die natuerliche Reihenfolge: "mehr"
        gehoert hinter das, was es aufklappt.
@@ -3375,7 +3375,7 @@ function drawFilters() {
        DER PREIS IST BEKANNT UND ANGENOMMEN: die Wolke verliert rund 230 px, also
        etwa drei sichtbare Tags. "mehr" faengt sie -- und die erste Zeile war
        vorher zu drei Vierteln leer.
-       GEMESSEN WIRD DIE WOLKE VORHER: begrenzeWolke() braucht sie im Dokument,
+       GEMESSEN WIRD DIE WOLKE VORHER: limitCloud() braucht sie im Dokument,
        und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
        ZUSAMMEN IN EINEM KASTEN und nicht zwei einzelne Geschwister: die beiden
        gehoeren zusammen und sollen bei einem Umbruch nicht auseinanderfallen.
@@ -3386,11 +3386,11 @@ function drawFilters() {
        120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
     const rechts = document.createElement('div');
     rechts.className = 'frow-rechts';
-    if (beschnitten || wolkeOffen.uebersicht) {
+    if (beschnitten || cloudOpen.uebersicht) {
       const m = document.createElement('button');
       m.className = 'link-btn';
-      m.textContent = wolkeOffen.uebersicht ? t('list.less') : t('list.more');
-      m.onclick = () => { wolkeOffen.uebersicht = !wolkeOffen.uebersicht; drawFilters(); };
+      m.textContent = cloudOpen.uebersicht ? t('list.less') : t('list.more');
+      m.onclick = () => { cloudOpen.uebersicht = !cloudOpen.uebersicht; drawFilters(); };
       rechts.appendChild(m);
     }
     if (f.tagIds.length) {
@@ -3407,7 +3407,7 @@ function drawFilters() {
   /* SORTIEREN UND ANSICHTEN TEILEN SICH EINE ZEILE -- gemessen brauchen sie
      322 und 237 px von 1232, sie passen mit Abstand.
      DER SCHLIMMSTE FALL IST HARMLOS: stehen einmal acht gespeicherte Ansichten
-     da (ANSICHTEN_DECKEL), bricht die Zeile um und sieht aus wie vorher. Nichts
+     da (VIEWS_CAP), bricht die Zeile um und sieht aus wie vorher. Nichts
      wird abgeschnitten, nichts geht verloren. */
   const r4 = row(t('list.sort'));
   const sel = document.createElement('select');
@@ -3425,7 +3425,7 @@ function drawFilters() {
          „Testtage" (Regel S6).
          DAS WORT KOMMT AUS DEM VOKABULAR und steht in der Klammer daneben,
          nie darin verbaut: „Potenzial (hoch → niedrig)". `V` ist hier
-         geladen -- ladeEinstellungen() laeuft vor route(), und drawFilters()
+         geladen -- loadSettings() laeuft vor route(), und drawFilters()
          haengt daran. */''}
     <optgroup label="Allgemein">
       <option value="updated_desc">${tH('list.sortChangedDesc')}</option>
@@ -3472,24 +3472,24 @@ function drawFilters() {
      einen Filter von Hand verstellt. Verglichen wird die zurechtgerueckte
      Stellung samt Begriff -- sonst gaelte eine Ansicht mit einer geloeschten
      Kategorie nie als aktiv, obwohl sie genau das zeigt, was sie zeigen kann. */
-  const jetzt = JSON.stringify({ filters: filterNormal(state.filters), q: state.search.trim() });
-  ANSICHTEN.forEach(a => {
+  const now = JSON.stringify({ filters: filterNormal(state.filters), q: state.search.trim() });
+  VIEWS.forEach(a => {
     const b = document.createElement('button');
-    const gleich = JSON.stringify({ filters: filterNormal(a.filters),
-                                    q: typeof a.q === 'string' ? a.q.trim() : '' }) === jetzt;
-    b.className = 'pill' + (gleich ? ' on' : '');
+    const equal = JSON.stringify({ filters: filterNormal(a.filters),
+                                    q: typeof a.q === 'string' ? a.q.trim() : '' }) === now;
+    b.className = 'pill' + (equal ? ' on' : '');
     b.innerHTML = `<span>${esc(a.name)}</span><span class="an-weg" title="${esc(t('list.deleteView'))}">${ICON_KREUZ}</span>`;
     b.onclick = () => ansichtAnwenden(a);
     // Das Kreuz liegt IM Knopf und muss deshalb den Klick anhalten -- sonst
     // wuerde die Ansicht im selben Zug angewandt und geloescht.
     b.querySelector('.an-weg').onclick = e => {
-      e.preventDefault(); e.stopPropagation(); ansichtLoeschen(a.name);
+      e.preventDefault(); e.stopPropagation(); viewDelete(a.name);
     };
     g5.appendChild(b);
   });
-  if (ANSICHTEN.length < ANSICHTEN_DECKEL) {
+  if (VIEWS.length < VIEWS_CAP) {
     const bNeu = document.createElement('button');
-    bNeu.className = 'pill' + (ANSICHTEN.length ? ' pill-sep' : '');
+    bNeu.className = 'pill' + (VIEWS.length ? ' pill-sep' : '');
     bNeu.id = 'ansicht-neu';
     bNeu.textContent = t('list.saveView');
     bNeu.title = t('list.saveViewHint');
@@ -3500,7 +3500,7 @@ function drawFilters() {
     // ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein Fehler.
     const hin = document.createElement('span');
     hin.className = 'hint hint-sm';
-    hin.textContent = t('list.viewCapNew', { ansichtenDeckel: ANSICHTEN_DECKEL });
+    hin.textContent = t('list.viewCapNew', { ansichtenDeckel: VIEWS_CAP });
     g5.appendChild(hin);
   }
   r5.appendChild(g5);
@@ -3513,17 +3513,17 @@ function drawFilters() {
      ER STEHT NUR DA, WENN WIRKLICH ETWAS GESETZT IST, und nennt die Zahl. Ein
      Knopf, der nichts zu tun hat, ist dieselbe Auskunft ueber nichts wie eine
      Null am Zaehler „Offen".
-     DIE ZAHL KOMMT AUS filterZahl() UND AUS NICHTS ANDEREM -- dieselbe
+     DIE ZAHL KOMMT AUS filterNumber() UND AUS NICHTS ANDEREM -- dieselbe
      Funktion, die den Schalter ueber den Filtern traegt, mit denselben Regeln:
      drei Kategorien zaehlen als EIN Filter, jeder Tag einzeln. Eine zweite
      Zaehlung daneben waere eine zweite Wahrheit (Stolperstein 47).
      WAS ER NICHT MITRAEUMT, UND BEIDES AUS DEMSELBEN GRUND: die SUCHE -- sie
-     hat ihr eigenes ✕ im Suchfeld, und filterZahl() zaehlt sie nicht mit --
+     hat ihr eigenes ✕ im Suchfeld, und filterNumber() zaehlt sie nicht mit --
      und die SORTIERUNG. Ein Knopf, der „(3)" sagt und vier Dinge wegnimmt,
      sagt die Unwahrheit.
      EINE GESPEICHERTE ANSICHT WIRD NICHT ANGETASTET: zuruecksetzen heisst
      „zeig mir alles", nicht „vergiss, was ich mir gemerkt habe". */
-  const filterGesetzt = filterZahl();
+  const filterGesetzt = filterNumber();
   if (filterGesetzt) {
     const rechts5 = document.createElement('div');
     rechts5.className = 'frow-rechts frow-rechts-weit';
@@ -3533,7 +3533,7 @@ function drawFilters() {
     bZurueck.textContent = t('list.resetFilters', { filterGesetzt: filterGesetzt });
     bZurueck.title = t('list.resetFiltersHint');
     bZurueck.onclick = () => {
-      /* ZURUECKGESETZT WIRD AUF FILTER_VORGABE und sonst nichts -- und der Weg
+      /* ZURUECKGESETZT WIRD AUF FILTER_DEFAULT und sonst nichts -- und der Weg
          dorthin ist filterNormal(), derselbe wie beim Anwenden einer
          gespeicherten Ansicht. Eine zweite Stelle, die eine Filterstellung
          zurechtrueckt, liefe auseinander.
@@ -3554,7 +3554,7 @@ function drawFilters() {
   // Ganz zum Schluss, wenn state.filters steht: der Schalter nennt die Zahl
   // der greifenden Filter, und die aendert sich mit jedem Klick auf eine
   // Pille. Er steht ausserhalb von #filters und ueberlebt das Neuzeichnen.
-  zeichneFilterSchalter();
+  drawFilterSwitch();
 }
 
 function drawBody() {
@@ -3577,7 +3577,7 @@ function drawBody() {
     cnt.textContent = z;
   }
 
-  drawZeitleiste(list);
+  drawTimeline(list);
   body.innerHTML = '';
   // GEFRAGT WIRD DER BESTAND UND NICHT DIE GEZEIGTE MENGE: eine Suche ohne
   // Treffer ist kein leerer Bestand, und "Noch nichts erfasst" waere dort die
@@ -3608,16 +3608,16 @@ function drawBody() {
 // Punktes ist seine Tagesnote — das trennt Punkte, die auf denselben Tag
 // fallen, und zeigt nebenbei, wohin sich die Bewertungen entwickeln.
 // Richtet sich nach den gerade sichtbaren Einträgen, folgt also den Filtern.
-const ZEITLEISTE_AB = 5;   // darunter sagt das Band nichts und bleibt weg
+const TIMELINE_FROM = 5;   // darunter sagt das Band nichts und bleibt weg
 
-function zeitleistePunkte(list) {
-  const punkte = [];
+function timelinePoints(list) {
+  const points = [];
   for (const it of list)
     for (const d of it.testDays || [])
       // mine kommt vom Server: eigene Punkte werden gefuellt
       // gezeichnet, fremde als Ring. Kein neuer Farbkanal -- Gold bleibt Gold.
-      punkte.push({ itemId: it.id, titel: it.title, tag: d.day, note: d.rating, mine: d.mine !== false });
-  return punkte.sort((a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
+      points.push({ itemId: it.id, titel: it.title, tag: d.day, note: d.rating, mine: d.mine !== false });
+  return points.sort((a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
 }
 
 // Anteil eines Datums an der Gesamtspanne, 0 bis 1. Bei nur einem einzigen
@@ -3630,31 +3630,31 @@ function zeitAnteil(tag, von, bis) {
 
 function jahresMarken(von, bis) {
   const j1 = Number(von.slice(0, 4)), j2 = Number(bis.slice(0, 4));
-  const marken = [];
+  const marks = [];
   for (let j = j1; j <= j2; j++) {
     const tag = j === j1 ? von : `${j}-01-01`;
-    marken.push({ jahr: j, anteil: zeitAnteil(tag, von, bis) });
+    marks.push({ jahr: j, anteil: zeitAnteil(tag, von, bis) });
   }
-  return marken;
+  return marks;
 }
 
-function drawZeitleiste(list) {
+function drawTimeline(list) {
   const box = document.getElementById('zeitleiste');
   if (!box) return;
   if (!ZEITLEISTE_AN) { box.innerHTML = ''; return; }
-  const punkte = zeitleistePunkte(list);
+  const points = timelinePoints(list);
   // Zwei getrennte Bedingungen mit Absicht: die Schwelle ist eine Frage des
   // Nutzens, die leere Menge eine des Rechnens. Wer die Schwelle spaeter
   // aendert, soll nicht ueber punkte[0] stolpern.
-  if (!punkte.length || punkte.length < ZEITLEISTE_AB) { box.innerHTML = ''; return; }
+  if (!points.length || points.length < TIMELINE_FROM) { box.innerHTML = ''; return; }
 
-  const von = punkte[0].tag, bis = punkte[punkte.length - 1].tag;
+  const von = points[0].tag, bis = points[points.length - 1].tag;
   box.innerHTML = `<div class="zl">
       <div class="zl-achse" id="zl-achse"></div>
       <div class="zl-feld" id="zl-feld"></div>
       <div class="zl-jahre" id="zl-jahre"></div>
     </div>`;
-  const feld = box.querySelector('#zl-feld');
+  const field = box.querySelector('#zl-feld');
   const achse = box.querySelector('#zl-achse');
 
   // Waagerechte Hilfslinien je Notenstufe, die mittlere etwas kräftiger
@@ -3665,7 +3665,7 @@ function drawZeitleiste(list) {
     achse.appendChild(l);
   }
 
-  punkte.forEach(p => {
+  points.forEach(p => {
     const d = document.createElement('button');
     d.className = 'zl-punkt' + (p.mine ? '' : ' fremd');
     d.style.left = (zeitAnteil(p.tag, von, bis) * 100) + '%';
@@ -3676,14 +3676,14 @@ function drawZeitleiste(list) {
     // Eigenes Hinweisfeld statt title: kein Wartezögern, und der Text bleibt
     // lesbar gesetzt. Auf dem Finger gibt es kein Überfahren — dort öffnet die
     // Berührung direkt den Eintrag.
-    d.onpointerenter = (e) => { if (e.pointerType !== 'touch') zeigeHinweis(box, d, p); };
+    d.onpointerenter = (e) => { if (e.pointerType !== 'touch') showHint(box, d, p); };
     d.onpointerleave = () => versteckeHinweis(box);
-    feld.appendChild(d);
+    field.appendChild(d);
   });
 
   const jahre = box.querySelector('#zl-jahre');
-  const marken = jahresMarken(von, bis);
-  marken.forEach(m => {
+  const marks = jahresMarken(von, bis);
+  marks.forEach(m => {
     const s = document.createElement('span');
     s.className = 'zl-jahr';
     s.style.left = (m.anteil * 100) + '%';
@@ -3700,29 +3700,29 @@ function drawZeitleiste(list) {
      GEMESSEN, NICHT GERATEN: die Breite einer Zahl haengt an der
      eingestellten Schriftgroesse (80 bis 120 Prozent). Deshalb werden erst
      alle gebaut, dann wird die erste vermessen und dann wird ausgeduennt --
-     dasselbe Vorgehen wie in begrenzeWolke(), und aus demselben Grund.
+     dasselbe Vorgehen wie in limitCloud(), und aus demselben Grund.
      Der Zwischenraum von einer halben Zahlbreite gehoert dazu: zwei
      Jahreszahlen, die einander beruehren, sind eine achtstellige Zahl.
      AUSGEDUENNT WIRD NUR DIE BESCHRIFTUNG. Die Punkte stehen alle da, wo sie
      stehen -- an der Achse selbst aendert sich nichts, nur an ihrer
      Beschriftung. Und bei einer Achse, die nichts zu verbergen hat (weniger
      Jahre als Platz), ist der Schritt 1 und diese Rechnung folgenlos. */
-  const zahlBreite = jahre.firstElementChild ? jahre.firstElementChild.offsetWidth : 0;
+  const numberWidth = jahre.firstElementChild ? jahre.firstElementChild.offsetWidth : 0;
   const achsenBreite = jahre.clientWidth;
-  if (zahlBreite && achsenBreite && marken.length > 1) {
-    const passt = Math.max(1, Math.floor(achsenBreite / (zahlBreite * 1.5)));
-    const schritt = Math.ceil(marken.length / passt);
-    if (schritt > 1)
-      [...jahre.children].forEach((el, i) => { if (i % schritt) el.remove(); });
+  if (numberWidth && achsenBreite && marks.length > 1) {
+    const matches = Math.max(1, Math.floor(achsenBreite / (numberWidth * 1.5)));
+    const step = Math.ceil(marks.length / matches);
+    if (step > 1)
+      [...jahre.children].forEach((el, i) => { if (i % step) el.remove(); });
   }
 }
 
-function zeigeHinweis(box, punkt, p) {
+function showHint(box, point, p) {
   versteckeHinweis(box);
   const h = document.createElement('div');
   h.className = 'zl-hinweis';
   h.innerHTML = `<strong>${esc(p.titel)}</strong><span>${tH('list.gradeShort', { tag: fmtDay(p.tag), note: p.note })}</span>`;
-  h.style.left = punkt.style.left;
+  h.style.left = point.style.left;
   box.querySelector('.zl').appendChild(h);
 }
 function versteckeHinweis(box) { box.querySelector('.zl-hinweis')?.remove(); }
@@ -3732,7 +3732,7 @@ function versteckeHinweis(box) { box.querySelector('.zl-hinweis')?.remove(); }
    dass auch ein Video dabei ist. Bei reinem Bestand bleibt es beim einen Wort.
    Die beiden Zaehler kommen getrennt aus der Antwort und werden hier nicht
    zusammengerechnet. */
-function bestandText(it) {
+function inventoryText(it) {
   const f = it.photoCount || 0, v = it.videoCount || 0;
   if (f + v < 2) return '';
   const teile = [];
@@ -3756,7 +3756,7 @@ function bestandText(it) {
    "Tag am Testtag" heisst je nach eingestelltem Vokabular anders; deshalb
    sind es Funktionen und keine Strings, die einmal beim Laden
    festgelegt wuerden. */
-const FUND_WORTE = {
+const FINDING_WORDS = {
   beschreibung: () => t('list.description'),
   kommentar: () => t('dialog.comment'),
   link: () => t('dialog.link'),
@@ -3770,14 +3770,14 @@ const FUND_WORTE = {
    nicht kennt, sind derselbe Fall wie eine alte Oberflaeche an einer neuen
    Antwort: die Zeile sagt dann weniger, aber sie luegt nicht und sie
    verschwindet nicht. */
-const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => t('list.hitPlace')))();
+const findingWord = (quelle) => (FINDING_WORDS[quelle] || (() => t('list.hitPlace')))();
 
 /* DIE VOLLE AUSSAGE STEHT IM UEBERFAHRTEXT. In der Zeile selbst ist kein
    Platz dafuer: die schmalste Kachel ist 240 px breit, und "und 2 weitere
    Stellen" nimmt dort mehr Raum ein als der Ausschnitt, den sie begleitet
    (gemessen, siehe Aenderungsprotokoll 0.18.0). Die Zahl steht deshalb kurz
    in der Zeile und ausgeschrieben darueber. */
-const fundUeberfahrt = (f) => t('list.foundIn', { quelle: fundWort(f.quelle) }) + (
+const fundUeberfahrt = (f) => t('list.foundIn', { quelle: findingWord(f.quelle) }) + (
   f.weitere > 0 ? t('list.moreHits', { n: f.weitere }) : '');
 
 function card(it) {
@@ -3786,8 +3786,8 @@ function card(it) {
      und neu laedt, behaelt damit die Hervorhebung -- ein Eintrag, der beim
      ersten Blick markierte Stellen hat und nach F5 keine mehr, saehe aus wie
      ein Fehler. Ohne Suche bleibt es bei der Adresse von vorher. */
-  const begriff = state.search.trim();
-  a.href = eintragAdresse(it.id, begriff);
+  const term = state.search.trim();
+  a.href = entryAddress(it.id, term);
   a.className = 'card' + (state.compare.has(it.id) ? ' picked' : '') + (it.rejected ? ' rejected' : '');
   const badges = [];
   if (it.rejected) badges.push(`<span class="badge badge-rejected">${tH('list.rejectedInline')}</span>`);
@@ -3807,23 +3807,23 @@ function card(it) {
      mit echten Knoten -- mit Hervorhebung, wenn ein Begriff da ist, und ohne,
      wenn nicht. */
   const f = it.fundstelle;
-  const fundZeile = f ? `<div class="card-fund" title="${esc(fundUeberfahrt(f))}">
-        <span class="fund-quelle">${esc(fundWort(f.quelle))}:</span><span
+  const findingRow = f ? `<div class="card-fund" title="${esc(fundUeberfahrt(f))}">
+        <span class="fund-quelle">${esc(findingWord(f.quelle))}:</span><span
           class="fund-text"></span>${f.weitere ? `<span class="fund-mehr">+${f.weitere}</span>` : ''}
       </div>` : '';
 
   a.innerHTML = `
     <div class="card-img">
-      ${it.mainPhoto ? `<img src="${bildQuelle(it.mainPhoto, 'thumb')}" alt="" loading="lazy">` : ICON_PH}
+      ${it.mainPhoto ? `<img src="${imageSource(it.mainPhoto, 'thumb')}" alt="" loading="lazy">` : ICON_PH}
       ${badges.length ? `<div class="card-badges">${badges.join('')}</div>` : ''}
       ${it.favorite ? `<div class="card-pin" title="${esc(t('list.favorite'))}">★</div>` : ''}
-      ${istVideo(it.mainPhoto) ? `<div class="card-spielmarke" title="${esc(t('list.video'))}">▶</div>` : ''}
-      ${bestandText(it)}
+      ${isVideo(it.mainPhoto) ? `<div class="card-spielmarke" title="${esc(t('list.video'))}">▶</div>` : ''}
+      ${inventoryText(it)}
     </div>
     <div class="card-body">
       ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
       <h3 class="card-title">${esc(it.title)}</h3>
-      ${fundZeile}
+      ${findingRow}
       ${it.tags.length ? `<div class="card-tags">${it.tags.slice(0,4).map(tag => `<span class="chip ro">${esc(tag.name)}</span>`).join('')}</div>` : ''}
       ${testLine}
       <div class="card-foot">
@@ -3838,24 +3838,24 @@ function card(it) {
                FEHLT DIE JEWEILIGE ZAHL, STEHT DER HINWEIS DA -- und er nennt,
                was fehlt: an einem ungetesteten Eintrag fehlt keine „Wertung",
                sondern die Einschaetzung. */''}
-          ${kachelZahl(it)}
+          ${tileNumber(it)}
           ${it.linkCount ? `<span class="link-count">${tH('list.linkCount', { n: it.linkCount })}</span>` : ''}
         </span>
-        <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="${state.compare.has(it.id) ? t('list.removeCompare') : t('list.selectCompare')}">${ICON_HAKEN}</button>
+        <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="${state.compare.has(it.id) ? t('list.removeCompare') : t('list.selectCompare')}">${ICON_CHECK}</button>
       </div>
     </div>`;
 
-  if (f) a.querySelector('.fund-text').replaceChildren(hebeHervor(f.text, begriff));
+  if (f) a.querySelector('.fund-text').replaceChildren(raiseHighlight(f.text, term));
   /* DIE HERVORHEBUNG GILT DORT, WO GESUCHT WURDE -- und die Kachel zeigt drei
      der sieben Quellen: Titel, Kategorie und die ersten vier Tags. Der Rest
      steht in der Zeile darueber.
      ERSETZT WIRD DER FERTIGE TEXTKNOTEN, nicht die Vorlage umgebaut: `esc()`
      hat den Text schon richtig hineingeschrieben, und ohne Begriff bleibt er
      unangetastet stehen. */
-  hebeImKnoten(a.querySelector('.card-title'), it.title, begriff);
-  if (it.category) hebeImKnoten(a.querySelector('.card-cat'), it.category.name, begriff);
-  if (begriff) [...a.querySelectorAll('.card-tags .chip')]
-    .forEach((chip, i) => hebeImKnoten(chip, it.tags[i].name, begriff));
+  hebeImKnoten(a.querySelector('.card-title'), it.title, term);
+  if (it.category) hebeImKnoten(a.querySelector('.card-cat'), it.category.name, term);
+  if (term) [...a.querySelectorAll('.card-tags .chip')]
+    .forEach((chip, i) => hebeImKnoten(chip, it.tags[i].name, term));
 
   a.querySelector('.pick-box').addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
@@ -3872,7 +3872,7 @@ function card(it) {
    DAS ZEICHEN ◆ IST NICHT ★, damit niemand 4,2 Potenzial fuer 4,2 Qualitaet
    haelt. Es traegt eine eigene Klasse und keine eigene Farbe: Gold bleibt der
    Bewertung. */
-function kachelZahl(it) {
+function tileNumber(it) {
   const potenzial = !it.tested;
   const wert = potenzial ? it.potenzialRating : it.avgRating;
   /* „noch nicht eingeschätzt" UND NICHT „keine <Vokabelwort>sterne": das Wort
@@ -3882,10 +3882,10 @@ function kachelZahl(it) {
      verschiedene Kaesten waeren ein Raetsel. „keine Sterne" las sich bis
      0.21.1 wie null Sterne (Konzept 0.22.0, Anhang B und C). */
   if (!wert) return `<span class="hint hint-sm">${potenzial ? tH('list.notEstimatedYet') : tH('list.notRatedYet')}</span>`;
-  const zeichen = potenzial ? '◆' : '★';
+  const char = potenzial ? '◆' : '★';
   const wort = potenzial ? V.potenzial : V.bewertungEinzahl;
   return `<span class="rating-inline${potenzial ? ' potenzial' : ''}" title="${esc(wort)}">` +
-    `<span class="dot">${zeichen}</span>${zahl(wert, 1)}</span>`;
+    `<span class="dot">${char}</span>${zahl(wert, 1)}</span>`;
 }
 
 function drawCompareBar() {
@@ -3918,25 +3918,25 @@ function drawCompareBar() {
    vorher weggeraeumt. Vier, weil "GSR" und "18V" allein zu viel faenden und
    weil jede laengere gemeinsame Folge eine Vierergruppe enthaelt.
    TRIGRAMME ODER LEVENSHTEIN BRAUCHT ES NICHT: Titel sind kurz. */
-const AEHNLICH_FENSTER = 4;
-const AEHNLICH_ZEIGE = 5;
+const SIMILAR_DIALOG = 4;
+const SIMILAR_SHOW = 5;
 
 // Kleinbuchstaben, Ziffern und Buchstaben mit Zeichen darauf bleiben; alles
 // andere faellt weg. "Bosch GSR 18V-60" wird zu "boschgsr18v60".
-const titelKern = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
+const titleCore = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
 
 function aehnlicheEintraege(titel) {
-  const kern = titelKern(titel);
-  if (kern.length < AEHNLICH_FENSTER) return [];
-  const fenster = [];
-  for (let i = 0; i + AEHNLICH_FENSTER <= kern.length; i++)
-    fenster.push(kern.slice(i, i + AEHNLICH_FENSTER));
+  const core = titleCore(titel);
+  if (core.length < SIMILAR_DIALOG) return [];
+  const dialog = [];
+  for (let i = 0; i + SIMILAR_DIALOG <= core.length; i++)
+    dialog.push(core.slice(i, i + SIMILAR_DIALOG));
   const treffer = [];
-  for (const it of state.alle) {
-    const k = titelKern(it.title);
-    if (k.length < AEHNLICH_FENSTER) continue;
-    if (fenster.some(f => k.includes(f))) treffer.push(it);
-    if (treffer.length >= AEHNLICH_ZEIGE) break;
+  for (const it of state.all) {
+    const k = titleCore(it.title);
+    if (k.length < SIMILAR_DIALOG) continue;
+    if (dialog.some(f => k.includes(f))) treffer.push(it);
+    if (treffer.length >= SIMILAR_SHOW) break;
   }
   return treffer;
 }
@@ -3955,20 +3955,20 @@ function openCreate() {
   bd.onclick = e => { if (e.target === bd) close(); };
   document.getElementById('nc').onclick = close;
   const nt = document.getElementById('nt');
-  const zeile = document.getElementById('nt-aehnlich');
+  const row = document.getElementById('nt-aehnlich');
   // Die Zeile wird bei jedem Anschlag neu gebildet. Sie rechnet oertlich und
   // braucht deshalb keinen Debounce -- bei dreihundert Titeln sind es
   // dreihundert includes() auf einer Handvoll Vierergruppen.
-  const zeichneAehnlich = () => {
+  const drawSimilar = () => {
     const treffer = aehnlicheEintraege(nt.value);
-    if (!treffer.length) { zeile.innerHTML = ''; return; }
+    if (!treffer.length) { row.innerHTML = ''; return; }
     // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
     // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
-    zeile.innerHTML = t('list.similarTitles') + treffer
+    row.innerHTML = t('list.similarTitles') + treffer
       .map(it => `<a href="#/item/${it.id}" data-zu>${esc(it.title)}</a>`).join(', ');
-    zeile.querySelectorAll('[data-zu]').forEach(a => { a.onclick = () => close(); });
+    row.querySelectorAll('[data-zu]').forEach(a => { a.onclick = () => close(); });
   };
-  nt.addEventListener('input', zeichneAehnlich);
+  nt.addEventListener('input', drawSimilar);
   const save = async () => {
     const title = nt.value.trim();
     if (!title) return toast(t('list.titleMissing'), true);
@@ -4011,7 +4011,7 @@ async function renderOffen() {
      Bei genau einem Zugang erscheint der Umschalter nicht -- dann sind beide
      Stellungen dieselbe Menge, und ein Knopf ohne Wirkung sieht aus wie ein
      Fehler. Die Schwelle steht in mehrereBenutzer() wie überall. */
-  let nurMeine = false;
+  let onlyMy = false;
 
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">${tH('list.backToList')}</a>
@@ -4025,18 +4025,18 @@ async function renderOffen() {
     const box = document.getElementById('off-sicht');
     if (!box) return;
     box.innerHTML = '';
-    [true, false].forEach(meine => {
+    [true, false].forEach(my => {
       const b = document.createElement('button');
-      b.className = 'pill' + (meine === nurMeine ? ' on' : '');
-      b.dataset.sicht = meine ? 'meine' : 'alle';
-      b.textContent = meine ? t('list.mine') : t('list.all');
-      b.onclick = () => { nurMeine = meine; zeichne(); };
+      b.className = 'pill' + (my === onlyMy ? ' on' : '');
+      b.dataset.sicht = my ? 'meine' : 'alle';
+      b.textContent = my ? t('list.mine') : t('list.all');
+      b.onclick = () => { onlyMy = my; draw(); };
       box.appendChild(b);
     });
   }
 
   /* Der Haken schickt die Art AUSDRÜCKLICH, er schaltet nicht weiter.
-     aufgabeWeiter() macht aus einer erledigten Aufgabe eine NOTIZ -- im
+     taskMore() macht aus einer erledigten Aufgabe eine NOTIZ -- im
      Kommentarblock ist das die gewollte Abfolge, hier wäre es ein Kästchen,
      dessen zweiter Druck die Zeile lautlos aus der Menge nimmt. Zwei
      Bedienelemente, zwei Bedeutungen: dort eine Abfolge, hier ein Zustand.
@@ -4046,45 +4046,45 @@ async function renderOffen() {
      verschwindet, nimmt die Möglichkeit, den Haken gleich wieder wegzunehmen.
      Der Vermerk steht nur hier im Speicher; beim nächsten Aufbau holt die
      Ansicht die Wahrheit wieder vom Server. */
-  const setzeHaken = async (z, fertig) => {
+  const setCheck = async (z, fertig) => {
     try {
       await api('PUT', `/api/comments/${z.id}`, { kind: fertig ? 'done' : 'task' });
       z.erledigt = fertig;
-      zeichne();
+      draw();
     } catch (e) { toast(e.message, true); }
   };
 
-  function zeichne() {
+  function draw() {
     zeichneSicht();
-    const sichtbar = nurMeine ? zeilen.filter(z => z.mine) : zeilen;
-    const gruppen = [];
-    for (const z of sichtbar) {
-      const letzte = gruppen[gruppen.length - 1];
+    const visible = onlyMy ? zeilen.filter(z => z.mine) : zeilen;
+    const groups = [];
+    for (const z of visible) {
+      const letzte = groups[groups.length - 1];
       if (letzte && letzte.id === z.item.id) letzte.zeilen.push(z);
-      else gruppen.push({ id: z.item.id, title: z.item.title, zeilen: [z] });
+      else groups.push({ id: z.item.id, title: z.item.title, zeilen: [z] });
     }
 
     // Ein leerer Bildschirm ist eine schlechte Antwort. Und die beiden Fälle
     // sind verschieden: gar nichts offen, oder nichts von mir.
-    document.getElementById('off-hint').textContent = !sichtbar.length
+    document.getElementById('off-hint').textContent = !visible.length
       ? (zeilen.length ? t('list.nothingOpenMine')
                        : t('list.nothingOpen'))
-      : t('list.openGroupedBy', { length: sichtbar.length, aufgabe: vAufgabe(sichtbar.length) })
+      : t('list.openGroupedBy', { length: visible.length, aufgabe: vAufgabe(visible.length) })
         + `${V.sacheEinzahl}.`
-        + (mehrereBenutzer() ? (nurMeine ? t('list.showingOwn')
+        + (mehrereBenutzer() ? (onlyMy ? t('list.showingOwn')
                                          : t('list.showingAll')) : '');
 
     const box = document.getElementById('off-liste');
     box.innerHTML = '';
-    gruppen.forEach(g => {
-      const kasten = document.createElement('div');
-      kasten.className = 'off-gruppe';
-      kasten.dataset.item = g.id;
-      const kopf = document.createElement('a');
-      kopf.className = 'off-titel';
-      kopf.href = `#/item/${g.id}`;
-      kopf.textContent = g.title;
-      kasten.appendChild(kopf);
+    groups.forEach(g => {
+      const boxId = document.createElement('div');
+      boxId.className = 'off-gruppe';
+      boxId.dataset.item = g.id;
+      const head = document.createElement('a');
+      head.className = 'off-titel';
+      head.href = `#/item/${g.id}`;
+      head.textContent = g.title;
+      boxId.appendChild(head);
 
       g.zeilen.forEach(z => {
         const el = document.createElement('div');
@@ -4097,14 +4097,14 @@ async function renderOffen() {
            Wo sie nicht gilt, steht hier kein Kästchen; ein Haken, der ein 403
            holt, sähe aus wie ein Fehler. */
         if (z.mine || ADMIN) {
-          const haken = document.createElement('button');
-          haken.className = 'off-haken';
-          haken.innerHTML = z.erledigt ? ICON_KASTEN_HAKEN : ICON_KASTEN;
-          haken.classList.toggle('on', !!z.erledigt);
-          haken.title = z.erledigt ? t('list.reopen')
+          const check = document.createElement('button');
+          check.className = 'off-haken';
+          check.innerHTML = z.erledigt ? ICON_BOX_CHECK : ICON_BOX;
+          check.classList.toggle('on', !!z.erledigt);
+          check.title = z.erledigt ? t('list.reopen')
                                    : t('list.setDone');
-          haken.onclick = () => setzeHaken(z, !z.erledigt);
-          el.appendChild(haken);
+          check.onclick = () => setCheck(z, !z.erledigt);
+          el.appendChild(check);
         }
 
         const text = document.createElement('a');
@@ -4117,17 +4117,17 @@ async function renderOffen() {
         // wer ohnehin alles geschrieben hat. Dieselbe Schwelle wie überall.
         const wann = document.createElement('span');
         wann.className = 'off-wann';
-        wann.textContent = (mehrereBenutzer() ? `${verfasserName(z.verfasser)} · ` : '')
+        wann.textContent = (mehrereBenutzer() ? `${authorName(z.verfasser)} · ` : '')
           + fmtDate(z.created_at);
         el.appendChild(wann);
 
-        kasten.appendChild(el);
+        boxId.appendChild(el);
       });
-      box.appendChild(kasten);
+      box.appendChild(boxId);
     });
   }
 
-  zeichne();
+  draw();
 }
 
 /* ================= Vergleich ================= */
@@ -4147,23 +4147,23 @@ async function renderCompare() {
      Phase: alle drei gehoeren dem Kriterium und nicht dem Eintrag, sie sind
      global dieselben, gleich aus welchem Eintrag die Zeile stammt. */
   const names = [];
-  const gewichte = new Map();
-  const phasen = new Map();
+  const weights = new Map();
+  const phases = new Map();
   items.forEach(i => i.ratings.forEach(r => {
     if (!names.includes(r.name)) {
-      names.push(r.name); gewichte.set(r.name, r.gewicht); phasen.set(r.name, r.phase);
+      names.push(r.name); weights.set(r.name, r.gewicht); phases.set(r.name, r.phase);
     }
   }));
   // Die beiden Gruppen, in der Reihenfolge der Kaesten am Eintrag: vorher,
   // dann nachher. Eine leere Gruppe zeichnet gar nichts -- eine Trennzeile
   // ueber nichts waere eine Ueberschrift ohne Inhalt.
-  const GRUPPEN = [
+  const GROUPS = [
     { phase: 'vorher',  wort: () => V.potenzial, schnitt: 'potenzialRating' },
     { phase: 'nachher', wort: () => V.bewertungEinzahl, schnitt: 'avgRating' }
-  ].map(g => ({ ...g, namen: names.filter(n => phasen.get(n) === g.phase) }));
+  ].map(g => ({ ...g, namen: names.filter(n => phases.get(n) === g.phase) }));
 
-  /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie linksOffen und
-     wolkeOffen. Der Umschalter ist eine Linse auf dieselben Daten und darf
+  /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie linksOpen und
+     cloudOpen. Der Umschalter ist eine Linse auf dieselben Daten und darf
      keine zweite Wahrheit werden; beim naechsten Aufruf steht wieder die
      Vorgabe.
      VORGABESTELLUNG "alle": der Vergleich fragt, wie die Dinge zueinander
@@ -4171,7 +4171,7 @@ async function renderCompare() {
      Bei genau einem Zugang erscheint der Umschalter nicht -- dann sind beide
      Stellungen dieselbe Zahl, und ein Knopf ohne Wirkung sieht aus wie ein
      Fehler. */
-  let nurMeine = false;
+  let onlyMy = false;
 
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">${tH('list.backToList')}</a>
@@ -4208,60 +4208,60 @@ async function renderCompare() {
      nicht liefern kann: den Schnitt ueber MEINE eigenen Sterne. Neu ist
      allein, dass sie ihn je Kasten bildet -- eine Zahl aus beiden Mengen waere
      genau die Vermischung, die diese Runde abschafft. */
-  const eigenerSchnitt = (it, phase) => {
-    let zaehler = 0, nenner = 0;
+  const ownAverage = (it, phase) => {
+    let counter = 0, nenner = 0;
     for (const r of it.ratings) {
       if (r.phase !== phase) continue;
-      if (r.value > 0) { zaehler += r.value * r.gewicht; nenner += r.gewicht; }
+      if (r.value > 0) { counter += r.value * r.gewicht; nenner += r.gewicht; }
     }
     if (!nenner) return null;
-    return Math.round((zaehler / nenner) * 10) / 10;
+    return Math.round((counter / nenner) * 10) / 10;
   };
   // Drei Zahlen, ein Schalter: Kriterienwert, Kopfzahl und Testtagzeile
   // schalten gemeinsam um. Schaltete nur eine, waere es derselbe Widerspruch
   // mit einem Knopf davor.
-  const wertVon = (it, name) => {
+  const valueFrom = (it, name) => {
     const r = it.ratings.find(x => x.name === name);
     if (!r) return 0;
-    return nurMeine ? r.value : (r.avg || 0);
+    return onlyMy ? r.value : (r.avg || 0);
   };
   // Der Schnitt DER GRUPPE: in der Stellung „alle" die Zahl vom Server, in der
   // Stellung „meine" die eigene -- beide je Kasten, nie ueber beide.
-  const schnittVon = (it, gruppe) =>
-    (nurMeine ? eigenerSchnitt(it, gruppe.phase) : it[gruppe.schnitt]);
-  const zeitpunkteVon = (it) => (nurMeine
+  const averageFrom = (it, group) =>
+    (onlyMy ? ownAverage(it, group.phase) : it[group.schnitt]);
+  const daysFrom = (it) => (onlyMy
     ? (it.testDays || []).filter(td => td.mine).length
     : (it.testCount || 0));
   /* GANZ BLEIBT GANZ, ALLES ANDERE BEKOMMT EINE STELLE -- und zwar auch dann,
      wenn sie nach dem Runden eine Null ist: „7,0" sagt, dass gerechnet wurde,
      „7" saehe aus wie eine glatte Zahl. Genau so stand es bis 0.23.0 da. */
-  const alsZahl = (v) => (Number.isInteger(v) ? zahl(v, 0) : zahl(v, 1));
+  const asNumber = (v) => (Number.isInteger(v) ? zahl(v, 0) : zahl(v, 1));
 
   function zeichneSicht() {
     const box = document.getElementById('cmp-sicht');
     if (!box) return;
     box.innerHTML = '';
-    [true, false].forEach(meine => {
+    [true, false].forEach(my => {
       const b = document.createElement('button');
-      b.className = 'pill' + (meine === nurMeine ? ' on' : '');
-      b.dataset.sicht = meine ? 'meine' : 'alle';
-      b.textContent = meine ? t('list.mine') : t('list.all');
-      b.onclick = () => { nurMeine = meine; zeichne(); };
+      b.className = 'pill' + (my === onlyMy ? ' on' : '');
+      b.dataset.sicht = my ? 'meine' : 'alle';
+      b.textContent = my ? t('list.mine') : t('list.all');
+      b.onclick = () => { onlyMy = my; draw(); };
       box.appendChild(b);
     });
   }
 
-  function zeichne() {
+  function draw() {
     zeichneSicht();
     document.getElementById('cmp-hint').textContent =
       t('list.compared', { length: items.length, sache: vSache(items.length) })
       + t('list.bestValueHint')
       + (mehrereBenutzer()
-        ? (nurMeine ? t('list.showingOwnValues') : t('list.showingAvg'))
+        ? (onlyMy ? t('list.showingOwnValues') : t('list.showingAvg'))
         : '');
 
-    const bestOf = (name) => Math.max(...items.map(o => wertVon(o, name)));
-    const bestTest = Math.max(...items.map(zeitpunkteVon));
+    const bestOf = (name) => Math.max(...items.map(o => valueFrom(o, name)));
+    const bestTest = Math.max(...items.map(daysFrom));
 
     cg.innerHTML = '';
     items.forEach(it => {
@@ -4274,38 +4274,38 @@ async function renderCompare() {
          keine 0 -- „nicht eingeschaetzt" ist etwas anderes als „schlecht
          eingeschaetzt". Das galt fuer die Kriterienzeilen schon; hier gilt es
          auch fuer die Kopfzahl der Gruppe. */
-      const gruppen = GRUPPEN.filter(g => g.namen.length).map(g => {
-        const schnitt = schnittVon(it, g);
-        const kopf = `<div class="cmp-gruppe"><span class="cn">${esc(g.wort())}</span>
+      const groups = GROUPS.filter(g => g.namen.length).map(g => {
+        const schnitt = averageFrom(it, g);
+        const head = `<div class="cmp-gruppe"><span class="cn">${esc(g.wort())}</span>
           <span>${schnitt ? '⌀ ' + zahl(schnitt, 1) : '–'}</span></div>`;
-        return kopf + g.namen.map(n => {
-          const v = wertVon(it, n);
+        return head + g.namen.map(n => {
+          const v = valueFrom(it, n);
           const best = v > 0 && v === bestOf(n);
           // Die Marke ×1,5 an der Zeilenbeschriftung, abgeleitet wie ueberall:
           // bei Gewicht 1 steht dort nichts.
-          const marke = gewichtMarke(gewichte.get(n));
+          const mark = weightMark(weights.get(n));
           return `<div class="cmp-crit"><span class="cn">${esc(n)}${
-              marke ? ` <span class="cgew" title="${esc(t('list.weightedAvg'))}">${esc(marke)}</span>` : ''}</span>
-            <span class="${best ? 'cmp-best' : ''}">${v > 0 ? alsZahl(v) + ' / 5' : '–'}</span></div>`;
+              mark ? ` <span class="cgew" title="${esc(t('list.weightedAvg'))}">${esc(mark)}</span>` : ''}</span>
+            <span class="${best ? 'cmp-best' : ''}">${v > 0 ? asNumber(v) + ' / 5' : '–'}</span></div>`;
         }).join('');
       }).join('');
-      const zeitpunkte = zeitpunkteVon(it);
+      const days = daysFrom(it);
       const testRow = `<div class="cmp-crit" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
         <span class="cn">${esc(V.zeitpunktMehrzahl)}</span>
-        <span class="${zeitpunkte && zeitpunkte === bestTest ? 'cmp-best' : ''}">${zeitpunkte || '–'}</span></div>`;
+        <span class="${days && days === bestTest ? 'cmp-best' : ''}">${days || '–'}</span></div>`;
       col.innerHTML = `
         <div class="cimg">${it.photos[0] ? `<img src="/api/photos/${it.photos[0].id}/raw?size=medium" alt="">` : ''}</div>
         <div class="cbody">
           ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
           <h3>${esc(it.title)}</h3>
-          ${gruppen}${testRow}
+          ${groups}${testRow}
           <div style="margin-top:12px"><a href="#/item/${it.id}" class="btn btn-sm" style="width:100%">${tH('list.open')}</a></div>
         </div>`;
       cg.appendChild(col);
     });
   }
 
-  zeichne();
+  draw();
 }
 
 /* ================= Vollbild ================= */
@@ -4328,22 +4328,22 @@ let lightboxOpen = false;
    FEHLT DIE FASSUNG, STEHT SIE NICHT DA. Eine aeltere Antwort ohne das Feld
    (oder ein Kommentarbild, das gar keine hat) bekommt die Adresse wie bisher
    -- und damit genau das Verhalten bis 0.19.4, nicht `?v=undefined`. */
-function bildQuelle(p, groesse) {
+function imageSource(p, groesse) {
   if (p.quelle === 'kommentar')
     return `/api/comment-images/${p.id}/raw${groesse === 'thumb' ? t('list.thumbQuery') : ''}`;
   if (!groesse) return `/api/photos/${p.id}/raw`;
   const f = Number(p.fassung);
-  const fassung = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
-  return `/api/photos/${p.id}/raw?size=${groesse}${fassung}`;
+  const version = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
+  return `/api/photos/${p.id}/raw?size=${groesse}${version}`;
 }
 // Woran die Oberflaeche ein Video erkennt: an art aus der Antwort, an nichts
 // sonst. Kein Raten am ausgelieferten Typ, keine zweite Wahrheit.
-const istVideo = (p) => p?.art === 'video';
+const isVideo = (p) => p?.art === 'video';
 // Beim Video gehoert der zweite Klick der Abspielsteuerung, nicht dem Zoom.
 // Kommentarbilder haben ohnehin kein Original.
-const hatOriginal = (p) => p.quelle !== 'kommentar' && !istVideo(p);
+const hatOriginal = (p) => p.quelle !== 'kommentar' && !isVideo(p);
 // 42 -> "0:42", 130 -> "2:10". Ohne bekannte Dauer steht nichts da.
-function dauerText(s) {
+function durationText(s) {
   const n = Number(s);
   if (!Number.isFinite(n) || n <= 0) return '';
   return `${Math.floor(n / 60)}:${String(Math.floor(n % 60)).padStart(2, '0')}`;
@@ -4353,13 +4353,13 @@ function dauerText(s) {
 // statt der Stelle, die man eben betrachtet hat. Eigene Funktionsdeklaration,
 // weil jsdom kein Layout rechnet und der Pruefstand ihr die Zahlen deshalb
 // unmittelbar vorlegen muss.
-function zentriereBuehne(buehne) {
-  if (!buehne) return;
-  buehne.scrollLeft = Math.max(0, (buehne.scrollWidth - buehne.clientWidth) / 2);
-  buehne.scrollTop = Math.max(0, (buehne.scrollHeight - buehne.clientHeight) / 2);
+function zentriereBuehne(stage) {
+  if (!stage) return;
+  stage.scrollLeft = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+  stage.scrollTop = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
 }
 
-/* `loeschen` IST FREIWILLIG UND ENTSCHEIDET UEBER DEN PAPIERKORB IM VOLLBILD.
+/* `remove` IST FREIWILLIG UND ENTSCHEIDET UEBER DEN PAPIERKORB IM VOLLBILD.
    Wer keinen mitgibt, bekommt keinen -- die Kommentarbilder etwa werden am
    Kommentar entfernt und nicht hier.
    DIE KLEMME WIRD NICHT NEU ERFUNDEN: der Rufer gibt genau die Funktion
@@ -4375,7 +4375,7 @@ function zentriereBuehne(buehne) {
    Loeschen neu, und ein gemerktes Element zeigte danach auf einen Knoten, den
    es nicht mehr gibt. Wer keinen mitgibt -- die Kommentarbilder etwa --
    bekommt keinen Wechsel; dort gibt es auch nichts zu uebernehmen. */
-function openLightbox(photos, startIdx, title, loeschen, innen) {
+function openLightbox(photos, startIdx, title, remove, innen) {
   if (!photos.length) return;
   lightboxOpen = true;
   let i = startIdx, zoomed = false;
@@ -4396,7 +4396,7 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
              das Bild vernichtet, waeren die gefaehrlichste Nachbarschaft der
              Instanz. Deshalb traegt er das Papierkorbzeichen und steht vor dem
              Schliessen, nicht daneben. */''}
-        ${loeschen ? `<button class="lb-btn weg" title="${esc(t('dialog.delete'))}">${ICON_PAPIERKORB}</button>` : ''}
+        ${remove ? `<button class="lb-btn weg" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
         <button class="lb-btn close" title="${esc(t('list.closeEsc'))}">${ICON_KREUZ}</button>
       </div>
     </div>
@@ -4410,7 +4410,7 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
 
   const stage = lb.querySelector('.lb-stage');
   const img = lb.querySelector('.lb-stage img');
-  const abspieler = lb.querySelector('.lb-video');
+  const player = lb.querySelector('.lb-video');
   const strip = lb.querySelector('.lb-strip');
 
   /* ---- DER FLIEGENDE WECHSEL ----
@@ -4426,11 +4426,11 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
      angehalten.
      DIE LEERE QUELLE IST DAS ERKENNUNGSZEICHEN FUER DEN RUECKWEG: leer ist
      nur der, dem wir sie genommen haben. */
-  const innerer = () => (typeof innen === 'function' ? innen() : null) || null;
+  const inner = () => (typeof innen === 'function' ? innen() : null) || null;
   let uebergabe = null;
   {
-    const el = innerer();
-    const quelle = istVideo(photos[i]) ? bildQuelle(photos[i], '') : null;
+    const el = inner();
+    const quelle = isVideo(photos[i]) ? imageSource(photos[i], '') : null;
     if (el && quelle && el.getAttribute('src') === quelle) {
       uebergabe = { quelle, stelle: el.currentTime || 0, lief: !el.paused, offen: true };
       el.pause();
@@ -4448,14 +4448,14 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
      fuers Schliessen -- beide gehen durch diese eine Stelle, und deshalb
      braucht der Rueckweg keine zweite. */
   const halteAn = () => {
-    if (!abspieler.hidden || abspieler.src) {
-      if (uebergabe && abspieler.getAttribute('src') === uebergabe.quelle) {
-        uebergabe.stelle = abspieler.currentTime || 0;
-        uebergabe.lief = !abspieler.paused;
+    if (!player.hidden || player.src) {
+      if (uebergabe && player.getAttribute('src') === uebergabe.quelle) {
+        uebergabe.stelle = player.currentTime || 0;
+        uebergabe.lief = !player.paused;
       }
-      abspieler.pause();
-      abspieler.removeAttribute('src');
-      abspieler.load();
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
     }
   };
 
@@ -4466,7 +4466,7 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
      setzen, die es vielleicht gar nicht mehr gibt. */
   const gibZurueck = () => {
     if (!uebergabe) return;
-    const el = innerer();
+    const el = inner();
     if (!el || el.getAttribute('src')) return;
     el.src = uebergabe.quelle;
     el.currentTime = uebergabe.stelle;
@@ -4482,7 +4482,7 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
     zoomed = on;
     stage.classList.toggle('zoomed', on);
     // Erst beim Zoom wird das unveraenderte Original geladen.
-    img.src = bildQuelle(photos[i], on ? '' : 'medium');
+    img.src = imageSource(photos[i], on ? '' : 'medium');
   }
   function show() {
     if (i < 0) i = photos.length - 1;
@@ -4490,14 +4490,14 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
     zoomed = false;
     stage.classList.remove('zoomed');
     halteAn();
-    const video = istVideo(photos[i]);
+    const video = isVideo(photos[i]);
     // Statt des Bildes der Abspieler. Kein automatisches Abspielen -- der
     // Klick auf die Steuerung startet, sonst nichts.
     img.hidden = video;
-    abspieler.hidden = !video;
+    player.hidden = !video;
     if (video) {
-      abspieler.poster = bildQuelle(photos[i], 'medium');
-      abspieler.src = bildQuelle(photos[i], '');
+      player.poster = imageSource(photos[i], 'medium');
+      player.src = imageSource(photos[i], '');
       /* DIE UEBERNOMMENE STELLE GILT EINMAL, beim Oeffnen. Wer im Vollbild
          weiterblaettert und zurueckkommt, faengt vorn an -- so wie jedes
          andere Video dort auch.
@@ -4505,13 +4505,13 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
          position": der Browser merkt sich die Zahl und springt hin, sobald er
          die Masse kennt. Ein Warten auf loadedmetadata braucht es dafuer
          nicht. */
-      if (uebergabe && uebergabe.offen && abspieler.getAttribute('src') === uebergabe.quelle) {
+      if (uebergabe && uebergabe.offen && player.getAttribute('src') === uebergabe.quelle) {
         uebergabe.offen = false;
-        abspieler.currentTime = uebergabe.stelle;
-        if (uebergabe.lief) abspieler.play()?.catch?.(() => {});
+        player.currentTime = uebergabe.stelle;
+        if (uebergabe.lief) player.play()?.catch?.(() => {});
       }
     } else {
-      img.src = bildQuelle(photos[i], 'medium');
+      img.src = imageSource(photos[i], 'medium');
     }
     // Ohne Original kein Zoomknopf -- ein Knopf, der nichts tut, wirkt kaputt.
     lb.querySelector('.zoom').hidden = !hatOriginal(photos[i]);
@@ -4524,26 +4524,26 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
     lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
     if (strip) {
       strip.hidden = photos.length < 2;
-      [...strip.children].forEach((kachel, n) => kachel.classList.toggle('on', n === i));
+      [...strip.children].forEach((tile, n) => tile.classList.toggle('on', n === i));
       strip.children[i]?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
     }
   }
   /* EIGENE FUNKTION UND NICHT EINE SCHLEIFE BEIM OEFFNEN: nach einem Loeschen
      stimmt der Streifen sonst nicht mehr -- er zeigte das entfernte Bild
      weiter, und der Klick darauf fuehrte auf eine Nummer, die es nicht gibt. */
-  function baueStreifen() {
+  function buildStrip() {
     if (!strip) return;
     strip.innerHTML = '';
     photos.forEach((p, n) => {
-      const kachel = document.createElement('button');
-      kachel.className = 'lb-thumb' + (istVideo(p) ? ' ist-video' : '');
-      kachel.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
-        (istVideo(p) ? `<span class="spielmarke">▶</span>` : '');
-      kachel.onclick = () => { i = n; show(); };
-      strip.appendChild(kachel);
+      const tile = document.createElement('button');
+      tile.className = 'lb-thumb' + (isVideo(p) ? ' ist-video' : '');
+      tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
+        (isVideo(p) ? `<span class="spielmarke">▶</span>` : '');
+      tile.onclick = () => { i = n; show(); };
+      strip.appendChild(tile);
     });
   }
-  baueStreifen();
+  buildStrip();
 
   const close = () => {
     halteAn();
@@ -4569,14 +4569,14 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
      „0 / 0" waere die Ansicht eines Nichts. */
   lb.querySelector('.weg')?.addEventListener('click', async () => {
     const weg = photos[i];
-    if (!await loeschen(weg)) return;
+    if (!await remove(weg)) return;
     /* WAS GELOESCHT IST, WANDERT NICHT ZURUECK. Der Betrachter darunter hat
        sich beim Loeschen bereits neu gezeichnet; eine Quelle, die es nicht
        mehr gibt, darf ihm hier nicht noch einmal untergeschoben werden. */
-    if (uebergabe && bildQuelle(weg, '') === uebergabe.quelle) uebergabe = null;
+    if (uebergabe && imageSource(weg, '') === uebergabe.quelle) uebergabe = null;
     photos.splice(i, 1);
     if (!photos.length) { close(); return; }
-    baueStreifen();
+    buildStrip();
     show();
   });
   // Auf dem Finger zoomt erst der zweite Tipp. Ein einzelner Tipp tut nichts --
@@ -4587,9 +4587,9 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
   img.addEventListener('pointerup', (e) => {
     if (!hatOriginal(photos[i])) return;
     if (e.pointerType !== 'touch') { setZoom(!zoomed); return; }
-    const jetzt = Date.now();
-    if (jetzt - letzterTipp < DOPPELTIPP) { letzterTipp = 0; setZoom(!zoomed); }
-    else letzterTipp = jetzt;
+    const now = Date.now();
+    if (now - letzterTipp < DOPPELTIPP) { letzterTipp = 0; setZoom(!zoomed); }
+    else letzterTipp = now;
   });
   lb.querySelector('.prev')?.addEventListener('click', () => { i--; show(); });
   lb.querySelector('.next')?.addEventListener('click', () => { i++; show(); });
@@ -4629,25 +4629,25 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
     const finger = e.pointerType === 'touch';
     let dragging = false;
     // Auf dem Finger erst nach der Haltezeit; mit der Maus sofort.
-    let bereit = !finger;
+    let ready = !finger;
     let halten = null;
 
     // Solange der Browser das Scrollen noch nicht uebernommen hat, laesst es
     // sich abfangen. Deshalb greift dieser Hoerer erst nach der Haltezeit --
     // vorher soll gescrollt werden duerfen.
-    const haltFest = (ev) => { if (dragging) ev.preventDefault(); };
+    const stopFixed = (ev) => { if (dragging) ev.preventDefault(); };
 
     const aufraeumen = () => {
       clearTimeout(halten);
       document.removeEventListener('pointermove', move);
       document.removeEventListener('pointerup', up);
       document.removeEventListener('pointercancel', abbruch);
-      document.removeEventListener('touchmove', haltFest);
+      document.removeEventListener('touchmove', stopFixed);
     };
 
     const move = ev => {
       const dist = Math.hypot(ev.clientX - sx, ev.clientY - sy);
-      if (!bereit) {
+      if (!ready) {
         // Bewegung vor Ablauf der Haltezeit: das war ein Wisch, kein Griff.
         if (dist > WISCH_TOLERANZ) { aufraeumen(); }
         return;
@@ -4677,11 +4677,11 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
 
     if (finger) {
       halten = setTimeout(() => {
-        bereit = true;
+        ready = true;
         // Sichtbare Rueckmeldung: von jetzt an haengt die Zeile am Finger.
         el.classList.add('griffbereit');
         if (navigator.vibrate) navigator.vibrate(12);
-        document.addEventListener('touchmove', haltFest, { passive: false });
+        document.addEventListener('touchmove', stopFixed, { passive: false });
       }, HALTEZEIT);
     }
 
@@ -4716,7 +4716,7 @@ function sparkline(days) {
 }
 
 /* ================= Detailansicht ================= */
-async function renderDetail(id, begriffAdresse) {
+async function renderDetail(id, termAddress) {
   /* DER BLICK GILT FUER EINEN EINTRAG UND ENDET MIT IHM -- 0.21.0. Wer an
      Eintrag 12 den Potenzialkasten aufgeklappt hat, hat das an Eintrag 12
      getan; an Eintrag 13 gilt wieder die Regel. Genau das unterscheidet den
@@ -4736,9 +4736,9 @@ async function renderDetail(id, begriffAdresse) {
      sondern dieselbe Ansicht mit einer Angabe mehr. Ein Eintrag im Verlauf je
      Buchstabe machte die Zurueck-Taste unbrauchbar, und ein gesetzter Hash
      loeste ein zweites Zeichnen aus. */
-  const begriff = (begriffAdresse || state.search).trim();
-  if (begriff) state.search = begriff;
-  const gewollt = eintragAdresse(id, begriff);
+  const term = (termAddress || state.search).trim();
+  if (term) state.search = term;
+  const gewollt = entryAddress(id, term);
   if (location.hash !== gewollt &&
       typeof history !== 'undefined' && typeof history.replaceState === 'function')
     history.replaceState(null, '', gewollt);
@@ -4754,8 +4754,8 @@ async function renderDetail(id, begriffAdresse) {
     return;
   }
   let idx = 0;
-  let ausschnittModus = false;   // Klick setzt dann den Fokuspunkt statt Vollbild zu oeffnen
-  let linksOffen = false;        // nur fuer diese Ansicht, nicht auf dem Server
+  let cropMode = false;   // Klick setzt dann den Fokuspunkt statt Vollbild zu oeffnen
+  let linksOpen = false;        // nur fuer diese Ansicht, nicht auf dem Server
 
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">${tH('list.backToList')}</a>
@@ -4824,7 +4824,7 @@ async function renderDetail(id, begriffAdresse) {
           <div class="block-head"><span class="label">${tH('list.category')}</span></div>
           <div class="row-in">
             <select class="select select-sm" id="cat" style="min-width:148px;padding:9px 11px"></select>
-            ${darfKategorieAnlegen() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('entry.newCategoryHint'))}" style="padding:8px 11px">
+            ${mayCategoryCreate() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('entry.newCategoryHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newcat-b">${tH('entry.create')}</button>` : ''}
           </div>
         </div>
@@ -4835,7 +4835,7 @@ async function renderDetail(id, begriffAdresse) {
           <!-- Diese Liste steht ausserhalb der Eingabezeile: die Tageingabe
                am Testtag benutzt sie, und die bleibt in jedem Fall stehen. -->
           <datalist id="tagsug"></datalist>
-          ${darfTagAnlegen() ? `<div class="row-in">
+          ${mayTagCreate() ? `<div class="row-in">
             <input class="input input-sm" id="newtag" list="tagsug" placeholder="${esc(t('entry.tagInputHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newtag-b">${tH('entry.add')}</button>
           </div>` : ''}
@@ -4935,7 +4935,7 @@ async function renderDetail(id, begriffAdresse) {
     ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). Der Server laesst
          nur Verfasser und Admin durch; fuer jeden anderen war der Knopf nie
          eine Funktion, sondern eine Fehlermeldung auf Vorrat. Dieselbe Weiche
-         wie an den Kreuzen der Link- und Dateizeilen (darfWeg). */''}
+         wie an den Kreuzen der Link- und Dateizeilen (mayPath). */''}
     ${item.mine === true || ADMIN
       ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('entry.deleteEntry')}</button></div>`
       : ''}
@@ -4951,9 +4951,9 @@ async function renderDetail(id, begriffAdresse) {
      SIE LIEFERT, OB WIRKLICH GELOESCHT WURDE. Das Vollbild braucht die
      Antwort, um sein Bild aus der eigenen Liste zu nehmen; ein abgebrochenes
      Loeschen darf dort nichts verschwinden lassen. */
-  async function loescheFoto(foto) {
+  async function deletePhoto(foto) {
     if (!foto) return false;
-    const wort = istVideo(foto) ? t('list.video') : t('list.photo');
+    const wort = isVideo(foto) ? t('list.video') : t('list.photo');
     if (!await confirmBox(t('entry.deleteWordAsk', { wort: wort }), t('entry.deleteHint', { wort: wort }))) return false;
     try {
       await api('DELETE', `/api/photos/${foto.id}`);
@@ -4975,7 +4975,7 @@ async function renderDetail(id, begriffAdresse) {
        Wahrheit geglueckt war (Stolperstein 298).
        DIE WACHE STEHT HIER UND NICHT AN DEN SECHS AUFRUFSTELLEN: alle sechs
        stehen hinter einem await, und die siebte kaeme ungeschuetzt dazu.
-       Dieselbe Regel wie bei zeichneZugaenge() -- nur dass dort ein gehaltener
+       Dieselbe Regel wie bei drawUsers() -- nur dass dort ein gehaltener
        Knoten auf isConnected geprueft wird und hier ein frisch gesuchter auf
        sein Dasein. */
     if (!v) return;
@@ -5001,7 +5001,7 @@ async function renderDetail(id, begriffAdresse) {
        zeigt der Betrachter das Standbild, denn eingestellt wird die Kachel,
        und die gibt es am Video genauso. Der Rahmen rechnet ausserdem mit den
        natuerlichen Massen eines Bildes. */
-    const zeigtVideo = istVideo(ps[idx]) && !ausschnittModus;
+    const zeigtVideo = isVideo(ps[idx]) && !cropMode;
     v.innerHTML = (zeigtVideo
         ? `<video controls playsinline preload="metadata"
              poster="/api/photos/${ps[idx].id}/raw?size=medium"
@@ -5021,12 +5021,12 @@ async function renderDetail(id, begriffAdresse) {
            Dieselbe Ueberlegung wie beim Favoritenfilter in der Filterzeile:
            die beiden davor stellen etwas ein, dieser hier nimmt etwas weg.
            Ohne den Abstand liest er sich als dritte Einstellung. */''}
-      <div class="vtools${ausschnittModus ? ' offen' : ''}">
-        <button class="vfocus${ausschnittModus ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
-          aria-label="${esc(t('entry.setCrop'))}">${ICON_AUSSCHNITT}</button>
+      <div class="vtools${cropMode ? ' offen' : ''}">
+        <button class="vfocus${cropMode ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
+          aria-label="${esc(t('entry.setCrop'))}">${ICON_CROP}</button>
         ${zeigtVideo ? `<button class="vfull" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_VOLLBILD}</button>` : ''}
-        <button class="vweg" title="${istVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}"
-          aria-label="${istVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}">${ICON_PAPIERKORB}</button>
+        <button class="vweg" title="${isVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}"
+          aria-label="${isVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}">${ICON_TRASH}</button>
       </div>
       ${/* DER SCHIEBER STEHT NUR IM AUSSCHNITTMODUS, und er steht IM
            BETRACHTER und nicht in einer eigenen Bedienflaeche daneben: der
@@ -5034,7 +5034,7 @@ async function renderDetail(id, begriffAdresse) {
            EIN SCHIEBER UND KEIN MAUSRAD: ein Rad gaebe es auf dem Telefon
            nicht, und die Bedienung waere dann geraeteabhaengig -- genau das,
            was die Kachelreihe seit 0.12.0 vermeidet. */''}
-      ${ausschnittModus && !zeigtVideo ? `<div class="vzoom">
+      ${cropMode && !zeigtVideo ? `<div class="vzoom">
         <label for="vzoom-schieber">${tH('entry.zoom')}</label>
         <input type="range" id="vzoom-schieber" min="100" max="400" step="5"
           value="${Number(ps[idx].zoom) || 100}" aria-label="${esc(t('entry.cropZoom'))}">
@@ -5043,7 +5043,7 @@ async function renderDetail(id, begriffAdresse) {
       ${ps.length > 1 ? `<button class="vnav prev" title="${esc(t('list.previous'))}">‹</button>
         <button class="vnav next" title="${esc(t('list.next'))}">›</button>
         <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
-    const bild = v.querySelector('img');
+    const image = v.querySelector('img');
     /* DAS VOLLBILD BEKOMMT DENSELBEN PAPIERKORB -- eine Funktion, zwei Rufer.
        Eine EIGENE Liste geht mit: das Vollbild nimmt sein geloeschtes Bild
        selbst heraus, waehrend hier unten `item` frisch vom Server kommt.
@@ -5052,17 +5052,17 @@ async function renderDetail(id, begriffAdresse) {
        Element: `drawViewer()` baut den Betrachter beim Loeschen und beim
        Blaettern neu auf, und ein gemerkter Knoten waere danach ein Waisenkind.
        Ohne diese Mitgabe liefen zwei Abspieler nebeneinander. */
-    const innererAbspieler = () => v.querySelector('video');
-    if (bild) bild.onclick = () => {
-      if (!ausschnittModus)
-        openLightbox([...item.photos], idx, item.title, loescheFoto, innererAbspieler);
+    const innerPlayer = () => v.querySelector('video');
+    if (image) image.onclick = () => {
+      if (!cropMode)
+        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer);
     };
     v.querySelector('.vfull')?.addEventListener('click',
-      () => openLightbox([...item.photos], idx, item.title, loescheFoto, innererAbspieler));
+      () => openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer));
     v.querySelector('.vfocus').onclick = () => {
-      ausschnittModus = !ausschnittModus;
+      cropMode = !cropMode;
       drawViewer();
-      if (ausschnittModus) toast(t('entry.cropHint'));
+      if (cropMode) toast(t('entry.cropHint'));
     };
     /* GELOESCHT WIRD AM GROSSEN BILD, und das ist der Kern dieser Aenderung.
        Vorher sass ein Kreuz auf jeder Vorschaukachel. Auf dem Finger stand es
@@ -5076,8 +5076,8 @@ async function renderDetail(id, begriffAdresse) {
        Hier dagegen ist das Bild gross und der Zaehler daneben sagt, welches es
        ist -- man loescht, was man ansieht. Dasselbe Bild, das eine Kamera
        zeigt, wenn man dort den Papierkorb drueckt. */
-    v.querySelector('.vweg').onclick = () => loescheFoto(ps[idx]);
-    if (ausschnittModus && bild) ruesteAusschnittAus(v, bild, ps[idx]);
+    v.querySelector('.vweg').onclick = () => deletePhoto(ps[idx]);
+    if (cropMode && image) setUpCropOut(v, image, ps[idx]);
     if (ps.length > 1) {
       v.querySelector('.prev').onclick = () => { idx--; drawViewer(); markThumb(); };
       v.querySelector('.next').onclick = () => { idx++; drawViewer(); markThumb(); };
@@ -5086,20 +5086,20 @@ async function renderDetail(id, begriffAdresse) {
 
   // Ausschnitt festlegen. Der Rahmen zeigt, was die quadratische Vorschau
   // spaeter zeigen wird -- ohne ihn muesste man raten.
-  function ruesteAusschnittAus(v, bild, foto) {
+  function setUpCropOut(v, image, foto) {
     v.classList.add('focus-mode');
-    const rahmen = document.createElement('div');
-    rahmen.className = 'focus-frame';
-    v.appendChild(rahmen);
+    const frame = document.createElement('div');
+    frame.className = 'focus-frame';
+    v.appendChild(frame);
 
     // Das Bild steht mit object-fit:contain im Betrachter; gerechnet wird auf
     // dem tatsaechlich sichtbaren Rechteck, nicht auf dem Element.
     const flaeche = () => {
-      const r = bild.getBoundingClientRect();
-      const nb = bild.naturalWidth || 1, nh = bild.naturalHeight || 1;
+      const r = image.getBoundingClientRect();
+      const nb = image.naturalWidth || 1, nh = image.naturalHeight || 1;
       const m = Math.min(r.width / nb, r.height / nh);
       const b = nb * m, h = nh * m;
-      return { links: r.left + (r.width - b) / 2, oben: r.top + (r.height - h) / 2, breite: b, hoehe: h };
+      return { links: r.left + (r.width - b) / 2, oben: r.top + (r.height - h) / 2, width: b, height: h };
     };
 
     let fx = Number(foto.focus_x ?? 50), fy = Number(foto.focus_y ?? 50);
@@ -5110,19 +5110,19 @@ async function renderDetail(id, begriffAdresse) {
     let zoom = Number(foto.zoom ?? 100) || 100;
 
     /* WIE GROSS DER SICHTBARE AUSSCHNITT IST UND WIE WEIT ER WANDERN KANN.
-       BEIDES AN EINER STELLE, seit 0.19.1 -- vorher rechnete `zeichne()` die
-       Lage des Rahmens und `ausPunkt()` den Spielraum, und die beiden liefen
+       BEIDES AN EINER STELLE, seit 0.19.1 -- vorher rechnete `draw()` die
+       Lage des Rahmens und `outPoint()` den Spielraum, und die beiden liefen
        auseinander.
 
        DER BEFUND, DER DAZU GEFUEHRT HAT: an einem fast quadratischen Bild
        liess sich der Ausschnitt WAAGERECHT GAR NICHT verschieben und senkrecht
-       kaum. Der Grund stand hier: der Spielraum war `breite - seite`, also
+       kaum. Der Grund stand hier: der Spielraum war `width - seite`, also
        allein die Ueberlaenge der laengeren Seite -- bei 542 x 568 Bildpunkten
        sind das 0 waagerecht und 26 senkrecht. DER ZOOM KAM DARIN NICHT VOR,
        und genau er macht den sichtbaren Ausschnitt kleiner und damit den
        Spielraum groesser.
 
-       DIE RECHNUNG SELBST STEHT SEIT 0.19.5 IN `zuschnittKiste()` GANZ OBEN,
+       DIE RECHNUNG SELBST STEHT SEIT 0.19.5 IN `cropSpecBox()` GANZ OBEN,
        und der Grund steht dort: der Server rechnet sie ein zweites Mal, um die
        Kachel zu erzeugen, und der Pruefstand haelt beide gegeneinander
        (Stolperstein 293). Hier bleibt nur, was der EDITOR daraus macht -- die
@@ -5131,37 +5131,37 @@ async function renderDetail(id, begriffAdresse) {
        der Server ausschneidet. Bis 0.19.4 war das eine Behauptung ueber zwei
        CSS-Eigenschaften; seit dieser Runde ist es dasselbe Rechteck, das in
        `extract()` geht. */
-    const masse = () => {
+    const dims = () => {
       const f = flaeche();
-      const k = zuschnittKiste(f.breite, f.hoehe, fx, fy, zoom);
-      return { f, eng: k.kante, links: k.links, oben: k.oben,
-               spielX: f.breite - k.kante, spielY: f.hoehe - k.kante };
+      const k = cropSpecBox(f.width, f.height, fx, fy, zoom);
+      return { f, eng: k.edge, links: k.links, oben: k.oben,
+               playX: f.width - k.edge, playY: f.height - k.edge };
     };
 
-    const zeichne = () => {
-      const { f, eng, links, oben } = masse();
+    const draw = () => {
+      const { f, eng, links, oben } = dims();
       const vr = v.getBoundingClientRect();
-      rahmen.style.left = (f.links - vr.left + links) + 'px';
-      rahmen.style.top = (f.oben - vr.top + oben) + 'px';
-      rahmen.style.width = eng + 'px';
-      rahmen.style.height = eng + 'px';
+      frame.style.left = (f.links - vr.left + links) + 'px';
+      frame.style.top = (f.oben - vr.top + oben) + 'px';
+      frame.style.width = eng + 'px';
+      frame.style.height = eng + 'px';
     };
-    zeichne();
-    if (!bild.complete) bild.onload = zeichne;
+    draw();
+    if (!image.complete) image.onload = draw;
 
     // Aus der Zeigerposition den Fokuspunkt errechnen: der angeklickte Punkt
     // soll in der Mitte des Ausschnitts liegen, soweit das Bild das hergibt.
-    const ausPunkt = (e) => {
-      const { f, eng, spielX, spielY } = masse();
+    const outPoint = (e) => {
+      const { f, eng, playX, playY } = dims();
       const px = e.clientX - f.links, py = e.clientY - f.oben;
       /* GERECHNET WIRD MIT DEMSELBEN `eng` WIE OBEN. Stuende hier `seite`,
          landete der Zeiger nicht in der Mitte des Rahmens, den er gerade
          zieht -- und der Sprung waere umso groesser, je enger der Ausschnitt.
          BLEIBT KEIN SPIELRAUM, IST 50 DIE EINZIGE EHRLICHE ANTWORT: ein Bild,
          von dem die Kachel alles zeigt, hat keine Wahl zu treffen. */
-      fx = spielX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / spielX * 100)) : 50;
-      fy = spielY > 0 ? Math.min(100, Math.max(0, (py - eng / 2) / spielY * 100)) : 50;
-      zeichne();
+      fx = playX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / playX * 100)) : 50;
+      fy = playY > 0 ? Math.min(100, Math.max(0, (py - eng / 2) / playY * 100)) : 50;
+      draw();
     };
 
     /* DIE FUENF GESTEN -- 0.22.1, und sie sind der Kern dieser Runde.
@@ -5169,27 +5169,27 @@ async function renderDetail(id, begriffAdresse) {
        gelegt: ziehen hiess neu aufziehen, immer. Ab jetzt entscheidet der
        ORT der Beruehrung, was die Bewegung tut -- aussen neu aufziehen,
        innen schieben, an einer der acht Zonen die Weite aendern.
-       WELCHE ZONE ES IST, SAGT `ausschnittGeste()` GANZ OBEN; hier steht nur
+       WELCHE ZONE ES IST, SAGT `cropGesture()` GANZ OBEN; hier steht nur
        noch, was daraus folgt. Die Trennung ist Absicht: die Entscheidung ist
        ohne Zeiger pruefbar, die Ausfuehrung braucht den Betrachter. */
 
     const begrenzt = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
-    // Der Rahmen im Bildmass -- dasselbe Rechteck, das `zeichne()` hinlegt.
-    const rahmenKiste = () => { const m = masse(); return { links: m.links, oben: m.oben, kante: m.eng }; };
+    // Der Rahmen im Bildmass -- dasselbe Rechteck, das `draw()` hinlegt.
+    const frameBox = () => { const m = dims(); return { links: m.links, oben: m.oben, edge: m.eng }; };
     // Zeigerlage im Bildmass. Jede Geste rechnet darin, keine in Bildschirmpunkten.
     const imBild = (e) => { const f = flaeche(); return { x: e.clientX - f.links, y: e.clientY - f.oben }; };
 
     /* NUR DIE LAGE, OHNE DIE WEITE ANZURUEHREN. Das Schieben geht durch diesen
-       Weg und nicht durch `setzeKiste()`: die Zusage „schieben aendert die
+       Weg und nicht durch `setBox()`: die Zusage „schieben aendert die
        Weite nicht" ist damit baulich erfuellt und haengt nicht daran, dass die
        Rastung zufaellig denselben Wert zurueckgibt. */
-    const setzeLage = (l, o) => {
+    const setState = (l, o) => {
       const f = flaeche();
-      const eng = Math.min(f.breite, f.hoehe) * 100 / zoom;
-      const spielX = f.breite - eng, spielY = f.hoehe - eng;
-      fx = spielX > 0 ? begrenzt(l / spielX * 100, 0, 100) : 50;
-      fy = spielY > 0 ? begrenzt(o / spielY * 100, 0, 100) : 50;
-      zeichne();
+      const eng = Math.min(f.width, f.height) * 100 / zoom;
+      const playX = f.width - eng, playY = f.height - eng;
+      fx = playX > 0 ? begrenzt(l / playX * 100, 0, 100) : 50;
+      fy = playY > 0 ? begrenzt(o / playY * 100, 0, 100) : 50;
+      draw();
     };
 
     /* WEITE UND LAGE IN EINEM ZUG -- fuer alle Gesten, die die Kante aendern.
@@ -5199,17 +5199,17 @@ async function renderDetail(id, begriffAdresse) {
        gelegt. Legte man ihn nach der ungerasteten Kante, wanderte die feste
        Ecke bei jeder Rastung um bis zu eine halbe Stufe -- genau die Ecke, die
        stillstehen soll.
-       `lage` bekommt deshalb die GERASTETE Kante und antwortet mit der linken
+       `situation` bekommt deshalb die GERASTETE Kante und antwortet mit der linken
        oberen Ecke. Jede Geste bringt ihre eigene Lage mit; mehr unterscheidet
        sie nicht.
        DER DECKEL HAELT DEN RAHMEN IM BILD, ohne den Anker zu verschieben: er
        begrenzt die KANTE, nicht die Lage. Ohne ihn schoebe die Klemme in
-       `setzeLage()` den Rahmen zurueck ins Bild -- und damit die feste Ecke. */
-    const setzeKiste = (kanteWunsch, lage, deckel) => {
+       `setState()` den Rahmen zurueck ins Bild -- und damit die feste Ecke. */
+    const setBox = (edgeWanted, situation, deckel) => {
       const f = flaeche();
-      const seite = Math.min(f.breite, f.hoehe);
+      const seite = Math.min(f.width, f.height);
       const hoch = Math.max(seite / 4, Math.min(seite, deckel ?? seite));
-      const k = begrenzt(kanteWunsch, seite / 4, hoch);
+      const k = begrenzt(edgeWanted, seite / 4, hoch);
       zoom = begrenzt(Math.round(seite * 100 / k / 5) * 5, 100, 400);
       let eng = seite * 100 / zoom;
       /* UND DIE RASTUNG DARF DEN DECKEL NICHT UEBERSPRINGEN -- 0.22.1, und das
@@ -5217,7 +5217,7 @@ async function renderDetail(id, begriffAdresse) {
          WAS GESCHAH: die Kante rastet auf die naechste Fuenferstufe, und die
          kann NACH OBEN gehen -- `eng` wird dann groesser als der Deckel, den
          `hoch` gerade gesetzt hat. Der Rahmen passt danach nicht mehr an
-         seinen Anker, die Klemme in `setzeLage()` schiebt ihn ins Bild zurueck
+         seinen Anker, die Klemme in `setState()` schiebt ihn ins Bild zurueck
          -- und damit genau die Ecke oder Kante, die stillstehen sollte. In der
          Prueflage waren es 0,217 Bildpunkte am Mittelpunkt einer Kante.
          DIE ANTWORT IST EINE STUFE ENGER, nicht eine Toleranz: eine Stufe
@@ -5229,8 +5229,8 @@ async function renderDetail(id, begriffAdresse) {
         zoom = Math.min(400, zoom + 5);
         eng = seite * 100 / zoom;
       }
-      const { l, o } = lage(eng);
-      setzeLage(l, o);
+      const { l, o } = situation(eng);
+      setState(l, o);
     };
 
     /* DIE ANKER DER ACHT GRIFFE. Je Geste: welche Ecke oder Kante stillsteht,
@@ -5240,29 +5240,29 @@ async function renderDetail(id, begriffAdresse) {
        Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). Der Rahmen
        rutscht dabei nicht seitlich weg: sein Mittelpunkt wandert auf der
        festen Kante nicht, er bleibt in ihrer Mitte. */
-    const zieheGriff = (geste, k, p, f) => {
-      const rechts = k.links + k.kante, unten = k.oben + k.kante;
-      const mitteX = k.links + k.kante / 2, mitteY = k.oben + k.kante / 2;
+    const zieheGriff = (gesture, k, p, f) => {
+      const rechts = k.links + k.edge, unten = k.oben + k.edge;
+      const centerX = k.links + k.edge / 2, mitteY = k.oben + k.edge / 2;
       // Wie weit eine Kante nach beiden Seiten reichen darf, ohne dass die
       // Mitte wandert -- die kleinere Haelfte gibt den Deckel.
       const umMitte = (m, ganz) => 2 * Math.min(m, ganz - m);
-      switch (geste) {
-        case 'links-oben': return setzeKiste(Math.max(rechts - p.x, unten - p.y),
+      switch (gesture) {
+        case 'links-oben': return setBox(Math.max(rechts - p.x, unten - p.y),
           (e) => ({ l: rechts - e, o: unten - e }), Math.min(rechts, unten));
-        case 'rechts-oben': return setzeKiste(Math.max(p.x - k.links, unten - p.y),
-          (e) => ({ l: k.links, o: unten - e }), Math.min(f.breite - k.links, unten));
-        case 'links-unten': return setzeKiste(Math.max(rechts - p.x, p.y - k.oben),
-          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, f.hoehe - k.oben));
-        case 'rechts-unten': return setzeKiste(Math.max(p.x - k.links, p.y - k.oben),
-          (e) => ({ l: k.links, o: k.oben }), Math.min(f.breite - k.links, f.hoehe - k.oben));
-        case 'links': return setzeKiste(rechts - p.x,
-          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, umMitte(mitteY, f.hoehe)));
-        case 'rechts': return setzeKiste(p.x - k.links,
-          (e) => ({ l: k.links, o: mitteY - e / 2 }), Math.min(f.breite - k.links, umMitte(mitteY, f.hoehe)));
-        case 'oben': return setzeKiste(unten - p.y,
-          (e) => ({ l: mitteX - e / 2, o: unten - e }), Math.min(unten, umMitte(mitteX, f.breite)));
-        case 'unten': return setzeKiste(p.y - k.oben,
-          (e) => ({ l: mitteX - e / 2, o: k.oben }), Math.min(f.hoehe - k.oben, umMitte(mitteX, f.breite)));
+        case 'rechts-oben': return setBox(Math.max(p.x - k.links, unten - p.y),
+          (e) => ({ l: k.links, o: unten - e }), Math.min(f.width - k.links, unten));
+        case 'links-unten': return setBox(Math.max(rechts - p.x, p.y - k.oben),
+          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, f.height - k.oben));
+        case 'rechts-unten': return setBox(Math.max(p.x - k.links, p.y - k.oben),
+          (e) => ({ l: k.links, o: k.oben }), Math.min(f.width - k.links, f.height - k.oben));
+        case 'links': return setBox(rechts - p.x,
+          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, umMitte(mitteY, f.height)));
+        case 'rechts': return setBox(p.x - k.links,
+          (e) => ({ l: k.links, o: mitteY - e / 2 }), Math.min(f.width - k.links, umMitte(mitteY, f.height)));
+        case 'oben': return setBox(unten - p.y,
+          (e) => ({ l: centerX - e / 2, o: unten - e }), Math.min(unten, umMitte(centerX, f.width)));
+        case 'unten': return setBox(p.y - k.oben,
+          (e) => ({ l: centerX - e / 2, o: k.oben }), Math.min(f.height - k.oben, umMitte(centerX, f.width)));
       }
     };
 
@@ -5271,27 +5271,27 @@ async function renderDetail(id, begriffAdresse) {
        Kante (der Ausschnitt ist immer ein Quadrat, die Kachel auch), aus der
        linken oberen Ecke folgt der Punkt. Neu ist allein, dass sie nur noch
        AUSSERHALB des Rahmens anfaengt. */
-    const ausRechteck = (a, e) => {
+    const outRect = (a, e) => {
       const f = flaeche();
-      const x1 = begrenzt(a.x - f.links, 0, f.breite), y1 = begrenzt(a.y - f.oben, 0, f.hoehe);
-      const x2 = begrenzt(e.clientX - f.links, 0, f.breite), y2 = begrenzt(e.clientY - f.oben, 0, f.hoehe);
-      setzeKiste(Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)),
+      const x1 = begrenzt(a.x - f.links, 0, f.width), y1 = begrenzt(a.y - f.oben, 0, f.height);
+      const x2 = begrenzt(e.clientX - f.links, 0, f.width), y2 = begrenzt(e.clientY - f.oben, 0, f.height);
+      setBox(Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)),
         () => ({ l: Math.min(x1, x2), o: Math.min(y1, y2) }));
     };
 
     // Den Rahmen schieben: die Weite bleibt, der Zeiger behaelt seine Stelle
     // IM Rahmen. Ohne den gemerkten Abstand spraenge der Rahmen beim Anfassen
     // mit seiner linken oberen Ecke unter den Zeiger.
-    const schiebe = (zug, e) => {
+    const schiebe = (user, e) => {
       const p = imBild(e);
-      setzeLage(zug.kiste.links + (p.x - zug.p0.x), zug.kiste.oben + (p.y - zug.p0.y));
+      setState(user.crate.links + (p.x - user.p0.x), user.crate.oben + (p.y - user.p0.y));
     };
 
     /* EIN SPEICHERWEG FUER ALLE GESTEN. Ziehen, Schieben und jeder der acht
        Griffe setzen denselben Ausschnitt und gehen deshalb durch dieselbe
        Zusage -- mehrere Aufrufstellen mit mehreren Meldungen waeren mehrere
        Wahrheiten darueber, was gerade gespeichert wurde. */
-    const speichere = async () => {
+    const save = async () => {
       try {
         item = await api('PUT', `/api/photos/${foto.id}/focus`, { x: fx, y: fy, zoom });
         drawThumbs();
@@ -5309,9 +5309,9 @@ async function renderDetail(id, begriffAdresse) {
     /* WAS DER ZEIGER ZEIGT, BEVOR JEMAND DRUECKT. Bis 0.22.0 stand die ganze
        Flaeche auf `crosshair`, und drei verschiedene Dinge lagen unter
        demselben Zeichen. */
-    const zeigeGriff = (geste) => {
+    const showHandle = (gesture) => {
       v.classList.remove(...GRIFF_KLASSEN);
-      const kl = GRIFF_ZEIGER[geste];
+      const kl = GRIFF_ZEIGER[gesture];
       if (kl) v.classList.add(kl);
     };
 
@@ -5320,61 +5320,61 @@ async function renderDetail(id, begriffAdresse) {
        wird gesetzt) und INNERHALB DES RAHMENS NICHTS (Entscheidung E1).
        Ein Griff in den Rahmen, der sich nicht bewegt, ist ein misslungener
        Griff, und der darf den Ausschnitt nicht verstellen. */
-    const WEG_MIN = 6;
-    let zug = null;
+    const DISTANCE_MIN = 6;
+    let user = null;
     v.onpointerdown = (e) => {
       // Der Schieber gehoert nicht zur Flaeche, auf der gezogen wird -- ohne
       // ihn in dieser Liste setzte jeder Griff an den Schieber zugleich den
       // Fokuspunkt auf die Stelle, an der der Schieber steht.
       if (e.target.closest('.vfocus, .vnav, .vzoom')) return;
-      const kiste = rahmenKiste(), p0 = imBild(e);
-      let geste = ausschnittGeste(kiste, p0.x, p0.y);
+      const crate = frameBox(), p0 = imBild(e);
+      let gesture = cropGesture(crate, p0.x, p0.y);
       /* AUF DEM FINGER GIBT ES DIE ACHT GRIFFE NICHT (Entscheidung E3): eine
          Zone von zwoelf Bildpunkten trifft keine Fingerkuppe, und ein Weg,
          der auf dem Telefon danebengeht, ist schlechter als keiner. Wer den
          Rahmen antippt, schiebt ihn; die Weite bleibt beim Schieber (E9). */
-      if (e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';
-      zug = { geste, x: e.clientX, y: e.clientY, kiste, p0, gezogen: false };
+      if (e.pointerType === 'touch' && gesture !== 'neu') gesture = 'schieben';
+      user = { gesture, x: e.clientX, y: e.clientY, crate, p0, gezogen: false };
       v.setPointerCapture?.(e.pointerId);
       e.preventDefault();
     };
-    const fuehre = (zug, e) => {
-      if (zug.geste === 'neu') return ausRechteck({ x: zug.x, y: zug.y }, e);
-      if (zug.geste === 'schieben') return schiebe(zug, e);
-      return zieheGriff(zug.geste, zug.kiste, imBild(e), flaeche());
+    const fuehre = (user, e) => {
+      if (user.gesture === 'neu') return outRect({ x: user.x, y: user.y }, e);
+      if (user.gesture === 'schieben') return schiebe(user, e);
+      return zieheGriff(user.gesture, user.crate, imBild(e), flaeche());
     };
     v.onpointermove = (e) => {
-      if (!zug) { const p = imBild(e); zeigeGriff(ausschnittGeste(rahmenKiste(), p.x, p.y)); return; }
-      if (!zug.gezogen && Math.hypot(e.clientX - zug.x, e.clientY - zug.y) < WEG_MIN) return;
-      zug.gezogen = true;
-      fuehre(zug, e);
+      if (!user) { const p = imBild(e); showHandle(cropGesture(frameBox(), p.x, p.y)); return; }
+      if (!user.gezogen && Math.hypot(e.clientX - user.x, e.clientY - user.y) < DISTANCE_MIN) return;
+      user.gezogen = true;
+      fuehre(user, e);
     };
-    v.onpointerleave = () => { if (!zug) zeigeGriff('neu'); };
+    v.onpointerleave = () => { if (!user) showHandle('neu'); };
     v.onpointerup = (e) => {
-      if (!zug) return;
+      if (!user) return;
       /* DER LETZTE ZUG GEHT DURCH DENSELBEN WEG WIE JEDER ZWISCHENSCHRITT --
          mit dem Anker vom Anfang der Geste. Ein hier neu gebildeter Anker
          waere der Rahmen, den die Bewegung gerade hingelegt hat, und der Griff
          wirkte ein zweites Mal. */
-      const zuletzt = zug;
-      zug = null;
+      const zuletzt = user;
+      user = null;
       if (zuletzt.gezogen) {
         fuehre(zuletzt, e);
-        if (zuletzt.geste !== 'schieben') zeigeZoom();
-        return speichere();
+        if (zuletzt.gesture !== 'schieben') zeigeZoom();
+        return save();
       }
       // Kein Weg: aussen setzt der Klick den Punkt, innen geschieht nichts.
-      if (zuletzt.geste !== 'neu') return;
-      ausPunkt(e);
-      speichere();
+      if (zuletzt.gesture !== 'neu') return;
+      outPoint(e);
+      save();
     };
     /* EIN ABGEBROCHENER ZUG SPEICHERT, WAS DASTEHT. Der Rahmen zeigt zu diesem
        Zeitpunkt bereits den neuen Ausschnitt; ihn unbemerkt zu verwerfen
        hiesse, dem Bildschirm zu widersprechen. */
     v.onpointercancel = () => {
-      const gezogen = zug && zug.gezogen;
-      zug = null;
-      if (gezogen) speichere();
+      const gezogen = user && user.gezogen;
+      user = null;
+      if (gezogen) save();
     };
 
     /* DER SCHIEBER: `input` zeichnet mit, `change` speichert. Beim Ziehen des
@@ -5395,9 +5395,9 @@ async function renderDetail(id, begriffAdresse) {
       schieber.oninput = () => {
         zoom = Number(schieber.value) || 100;
         if (wert) wert.textContent = `${Math.round(zoom)} %`;
-        zeichne();
+        draw();
       };
-      schieber.onchange = speichere;
+      schieber.onchange = save;
     }
   }
   const markThumb = () =>
@@ -5412,18 +5412,18 @@ async function renderDetail(id, begriffAdresse) {
     if (!box) return;
     box.innerHTML = '';
     item.photos.forEach((p, i) => {
-      const kachel = document.createElement('div');
-      kachel.className = 'thumb' + (i === idx ? ' current' : '') + (istVideo(p) ? ' ist-video' : '');
-      kachel.dataset.pid = p.id;
+      const tile = document.createElement('div');
+      tile.className = 'thumb' + (i === idx ? ' current' : '') + (isVideo(p) ? ' ist-video' : '');
+      tile.dataset.pid = p.id;
       // Abgeleitet aus art und dauer, kein Schalter: das ▶ in der Ecke und,
       // wenn die Dauer bekannt ist, die Laenge daneben.
-      const laenge = istVideo(p) ? dauerText(p.dauer) : '';
-      const wort = istVideo(p) ? t('list.video') : t('list.photo');
-      kachel.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
-        (istVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
-        (laenge ? `<span class="dauer">${laenge}</span>` : '') +
+      const length = isVideo(p) ? durationText(p.dauer) : '';
+      const wort = isVideo(p) ? t('list.video') : t('list.photo');
+      tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
+        (isVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
+        (length ? `<span class="dauer">${length}</span>` : '') +
         `<span class="num">${i + 1}</span><span class="del" title="${esc(t('entry.deleteWord', { wort: wort }))}">${ICON_KREUZ}</span>`;
-      kachel.querySelector('.del').onclick = async (e) => {
+      tile.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(t('entry.deleteWordAsk', { wort: wort }), t('entry.deleteHint', { wort: wort }))) return;
         try {
@@ -5433,9 +5433,9 @@ async function renderDetail(id, begriffAdresse) {
           drawViewer(); drawThumbs();
         } catch (err) { toast(err.message, true); }
       };
-      makeSortable(kachel, {
+      makeSortable(tile, {
         axis: 'x', selector: '.thumb', ignore: '.del',
-        onClick: () => { idx = [...t.parentElement.children].indexOf(kachel); drawViewer(); markThumb(); },
+        onClick: () => { idx = [...t.parentElement.children].indexOf(tile); drawViewer(); markThumb(); },
         onDrop: async (children) => {
           const order = children.map(c => +c.dataset.pid);
           const currentId = item.photos[idx]?.id;
@@ -5447,7 +5447,7 @@ async function renderDetail(id, begriffAdresse) {
           } catch (err) { toast(err.message, true); }
         }
       });
-      box.appendChild(kachel);
+      box.appendChild(tile);
     });
   }
 
@@ -5481,9 +5481,9 @@ async function renderDetail(id, begriffAdresse) {
       const c = document.createElement('canvas');
       c.width = v.videoWidth; c.height = v.videoHeight;
       c.getContext('2d').drawImage(v, 0, 0);
-      const bild = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
-      if (!bild) throw new Error(t('entry.videoNoThumb'));
-      return { bild, dauer: Math.round(v.duration) || null };
+      const image = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+      if (!image) throw new Error(t('entry.videoNoThumb'));
+      return { image, dauer: Math.round(v.duration) || null };
     } finally { URL.revokeObjectURL(v.src); }
   }
 
@@ -5506,11 +5506,11 @@ async function renderDetail(id, begriffAdresse) {
       }
       for (const f of videos) {
         drop.textContent = t('entry.thumbBuilding');
-        const { bild, dauer } = await standbild(f);
+        const { image, dauer } = await standbild(f);
         drop.textContent = t('entry.uploading');
         const fd = new FormData();
         fd.append('video', f, f.name);
-        fd.append('standbild', bild, 'standbild.jpg');
+        fd.append('standbild', image, 'standbild.jpg');
         if (dauer) fd.append('dauer', String(dauer));
         item = await api('POST', `/api/items/${id}/videos`, fd, true);
         fertig++;
@@ -5532,8 +5532,8 @@ async function renderDetail(id, begriffAdresse) {
 
   // Bilder aus der Zwischenablage — spart bei Bildschirmfotos den Umweg ueber eine Datei
   const onPaste = (e) => {
-    const marke = document.activeElement?.tagName;
-    if (marke === 'INPUT' || marke === 'TEXTAREA') return;
+    const mark = document.activeElement?.tagName;
+    if (mark === 'INPUT' || mark === 'TEXTAREA') return;
     const files = [...(e.clipboardData?.files || [])].filter(f => /^image\//.test(f.type));
     if (!files.length) return;
     e.preventDefault();
@@ -5550,8 +5550,8 @@ async function renderDetail(id, begriffAdresse) {
 
   // Pfeiltasten blaettern, aber nicht waehrend getippt wird und nicht bei offenem Vollbild
   const keyNav = e => {
-    const marke = document.activeElement?.tagName;
-    if (marke === 'INPUT' || marke === 'TEXTAREA' || marke === 'SELECT') return;
+    const mark = document.activeElement?.tagName;
+    if (mark === 'INPUT' || mark === 'TEXTAREA' || mark === 'SELECT') return;
     if (document.querySelector('.backdrop') || lightboxOpen) return;
     if (!item.photos.length) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); idx--; drawViewer(); markThumb(); }
@@ -5580,11 +5580,11 @@ async function renderDetail(id, begriffAdresse) {
      Bildausschnitts, und ein Blaettern mittendrin verwuerfe die Einstellung.
      passive: true, weil nichts verhindert wird: war der Wisch senkrecht
      gemeint, scrollt die Seite weiter, als waere nichts gewesen. */
-  const buehne = document.getElementById('viewer');
-  const WISCH_WEG = 45;
-  let wischX = 0, wischY = 0, wischt = false;
-  buehne.addEventListener('touchstart', e => {
-    if (ausschnittModus || e.touches.length !== 1 || item.photos.length < 2) return;
+  const stage = document.getElementById('viewer');
+  const SWIPE_DISTANCE = 45;
+  let swipeX = 0, wischY = 0, wischt = false;
+  stage.addEventListener('touchstart', e => {
+    if (cropMode || e.touches.length !== 1 || item.photos.length < 2) return;
     /* NICHT AUF DEM ABSPIELER. Der steht als Kind im Bildbereich und bringt
        seine eigene Steuerung mit -- Beruehrungen darauf steigen bis hierher
        auf. Ohne diese Zeile ist jedes Ziehen am Schieberegler des Videos
@@ -5592,14 +5592,14 @@ async function renderDetail(id, begriffAdresse) {
        im naechsten Bild. Der Wisch gilt dem Blaettern zwischen Bildern, und
        die Steuerung eines Videos ist kein Bild. */
     if (e.target.closest('video')) return;
-    wischX = e.touches[0].clientX; wischY = e.touches[0].clientY; wischt = true;
+    swipeX = e.touches[0].clientX; wischY = e.touches[0].clientY; wischt = true;
   }, { passive: true });
-  buehne.addEventListener('touchend', e => {
-    if (!wischt || ausschnittModus) return;
+  stage.addEventListener('touchend', e => {
+    if (!wischt || cropMode) return;
     wischt = false;
-    const dx = e.changedTouches[0].clientX - wischX;
+    const dx = e.changedTouches[0].clientX - swipeX;
     const dy = e.changedTouches[0].clientY - wischY;
-    if (Math.abs(dx) > WISCH_WEG && Math.abs(dx) > Math.abs(dy)) {
+    if (Math.abs(dx) > SWIPE_DISTANCE && Math.abs(dx) > Math.abs(dy)) {
       idx += dx < 0 ? 1 : -1;
       drawViewer(); markThumb();
     }
@@ -5607,10 +5607,10 @@ async function renderDetail(id, begriffAdresse) {
 
   /* ---- Schalter ---- */
   function drawSwitches() {
-    const schalter = document.getElementById('sw-test'), r = document.getElementById('sw-rej');
+    const toggle = document.getElementById('sw-test'), r = document.getElementById('sw-rej');
     const locked = item.testDays.length > 0;
-    schalter.className = 'switch' + (item.tested ? ' on-green' : '') + (locked ? ' locked' : '');
-    schalter.title = locked ? t('entry.lockedByDays') : '';
+    toggle.className = 'switch' + (item.tested ? ' on-green' : '') + (locked ? ' locked' : '');
+    toggle.title = locked ? t('entry.lockedByDays') : '';
     document.getElementById('sw-test-t').textContent = item.tested ? V.merkmalJa : V.merkmalNein;
     r.className = 'switch' + (item.rejected ? ' on-red' : '');
     document.getElementById('sw-rej-t').textContent = item.rejected ? t('list.rejected') : t('list.notRejected');
@@ -5624,7 +5624,7 @@ async function renderDetail(id, begriffAdresse) {
      Vorlage mit Luecken.
      STEHT GAR NICHTS DA, BLEIBT DIE ZEILE WEG: „Abgelehnt" allein saende
      dasselbe wie der Schalter darueber -- dieselbe Aussage zweimal.
-     AM GRABSTEIN STEHT KEIN NAME: verfasserName() macht daraus „Gelöschter
+     AM GRABSTEIN STEHT KEIN NAME: authorName() macht daraus „Gelöschter
      Benutzer 7", und die Abbildung von der Nummer auf den Namen ist eine
      Stelle und kein zweiter Weg. Ein Verfasserobjekt, das gar nicht da ist,
      laesst das „von" weg -- „von Ohne Verfasser" waere eine Behauptung ueber
@@ -5646,33 +5646,33 @@ async function renderDetail(id, begriffAdresse) {
      den Text oder das ✎ aufgemacht hat. Damit kommt es nach dem Entfernen des
      Grundes von selbst zurueck, und ein neu geladener Eintrag ohne Grund
      zeigt es ebenso. */
-  let grundOffen = false;
+  let reasonOpen = false;
 
   function drawAblehnung() {
-    const marke = document.getElementById('rej-marke');
-    const zeile = document.getElementById('rej-grund-zeile');
-    const feld = document.getElementById('rej-grund');
-    if (!marke || !zeile || !feld) return;
+    const mark = document.getElementById('rej-marke');
+    const row = document.getElementById('rej-grund-zeile');
+    const field = document.getElementById('rej-grund');
+    if (!mark || !row || !field) return;
 
     /* WER WAS DARF, KOMMT VOM SERVER UND WIRD NICHT ZURUECKGERECHNET -- diese
        Seite kennt ihren NAMEN (`NAME`), nicht ihre Nummer, und aus einem
        Grabstein liesse sich ohnehin nichts holen. Geliefert werden zwei
        Tatsachen, gerechnet wird hier, und zwar genau wie am Kommentar:
-         `darf`      spiegelt darfAendern am EINTRAG. Ohne ihn kommt gar kein
+         `may`      spiegelt darfAendern am EINTRAG. Ohne ihn kommt gar kein
                      Schreiben an `rejectedGrund` durch die erste Klemme.
          `meins`     UMSCHREIBEN -- nur wer die Begruendung getroffen hat, und
                      nur, solange er den Eintrag auch aendern darf.
          `verwalten` ENTFERNEN -- "Loeschen ja, umschreiben nein": das ist
-                     dieselbe Klemme wie am Eintrag und deshalb `darf`.
+                     dieselbe Klemme wie am Eintrag und deshalb `may`.
        HERRENLOS IST EIN EIGENER FALL: eine Ablehnung aus einer Instanz vor
        0.14.0 hat keinen Verfasser. Der Server laesst dort jeden schreiben, der
        den Eintrag aendern darf -- ohne diesen Zweig gaebe es hier keinen Weg
        hinein, und die Zusage des Servers liefe ins Leere. `rejectedVerfasser`
        ist GENAU DANN null, wenn die Spalte leer ist: ein Grabstein steht
        weiter in der Verfasserkarte und kommt als Objekt ohne Namen. */
-    const darf = item.mine === true || ADMIN;
-    const meins = darf && (item.rejectedMine === true || !item.rejectedVerfasser);
-    const verwalten = darf;
+    const may = item.mine === true || ADMIN;
+    const meins = may && (item.rejectedMine === true || !item.rejectedVerfasser);
+    const verwalten = may;
     const grund = (item.rejected_grund || '').trim();
 
     /* WANN DAS FELD DASTEHT -- die Regel aus dem Betrieb, 29. August 2026:
@@ -5681,38 +5681,38 @@ async function renderDetail(id, begriffAdresse) {
        Ablehnungsknopf gedrueckt hat, braucht sie gar nicht -- sie naehme
        umsonst Platz (gemessen: 72,9 px).
        UND DARUEBER HINAUS AUF WUNSCH: wer den Text oder das ✎ anklickt, macht
-       sie auf, um einen vorhandenen Grund zu aendern. Das ist `grundOffen`.
+       sie auf, um einen vorhandenen Grund zu aendern. Das ist `reasonOpen`.
        EIN FELD, DAS NIEMAND FUELLEN DARF, STEHT NIE OFFEN. */
-    const offen = item.rejected && meins && (!grund || grundOffen);
-    if (!offen) grundOffen = false;
-    zeile.hidden = !offen;
+    const offen = item.rejected && meins && (!grund || reasonOpen);
+    if (!offen) reasonOpen = false;
+    row.hidden = !offen;
     // Der Vorschlag zum Ueberschreiben: beim Oeffnen steht die alte
     // Begruendung im Feld. Waehrend getippt wird, NICHT ueberschreiben --
     // drawSwitches() laeuft auch nach dem Speichern des Grundes.
-    if (offen && document.activeElement !== feld) feld.value = item.rejected_grund || '';
+    if (offen && document.activeElement !== field) field.value = item.rejected_grund || '';
 
     const teile = [];
     if (item.rejected_at) teile.push(`am ${fmtDate(item.rejected_at)}`);
     if (item.rejectedVerfasser && mehrereBenutzer())
-      teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);
-    const kopf = teile.length ? t('entry.rejectedBy', { was: teile.join(' ') }) : '';
+      teile.push(`von ${authorName(item.rejectedVerfasser)}`);
+    const head = teile.length ? t('entry.rejectedBy', { was: teile.join(' ') }) : '';
 
     /* DAS ✎ STEHT AUCH OHNE BEGRUENDUNG DA. Ohne Text gibt es nichts
        anzuklicken, und ohne das Zeichen gaebe es dann gar keinen Weg mehr in
        das Feld -- der Schalter steht ja schon auf "abgelehnt".
        DAS ✕ NUR MIT BEGRUENDUNG: ein Papierkorb an einem leeren Feld boete
        an, nichts zu entfernen. */
-    const zeigeStift = item.rejected && meins;
-    const zeigeWeg = item.rejected && verwalten && !!grund;
+    const showPen = item.rejected && meins;
+    const showPath = item.rejected && verwalten && !!grund;
     /* WAEHREND GESCHRIEBEN WIRD, TRITT DIE AUSSAGE ZURUECK: das Feld IST in
        diesem Augenblick die Aussage, und beides nebeneinander waere genau die
        Doppelung, die dieser Ruhezustand aufloest. Der Kommentar macht es
        genauso -- sein Text weicht dem Textfeld. */
-    marke.hidden = !item.rejected || offen || (!kopf && !grund && !zeigeStift);
-    marke.innerHTML = '';
+    mark.hidden = !item.rejected || offen || (!head && !grund && !showPen);
+    mark.innerHTML = '';
     const text = document.createElement('span');
     text.className = 'rej-text';
-    if (kopf) text.appendChild(document.createTextNode(grund ? `${kopf} — ` : kopf));
+    if (head) text.appendChild(document.createTextNode(grund ? `${head} — ` : head));
     if (grund) {
       /* DER GRUND IST DIE ENTSCHEIDUNG UND BEKOMMT DAS ROT DES SCHALTERS;
          Datum und Name bleiben grau. Sie sind eine Verfasserangabe wie
@@ -5724,27 +5724,27 @@ async function renderDetail(id, begriffAdresse) {
       if (meins) { w.title = t('entry.reasonEdit'); w.onclick = oeffneGrund; }
       text.appendChild(w);
     }
-    marke.appendChild(text);
+    mark.appendChild(text);
 
     // Dieselbe Bauform, dieselben Klassen, dieselben Zeichen wie am Kommentar.
     // Eine zweite Bauform fuer dasselbe waere eine zweite Wahrheit.
     const acts = document.createElement('span');
     acts.className = 'acts';
-    if (zeigeStift) {
+    if (showPen) {
       const b = document.createElement('button');
-      b.className = 'mact ed'; b.innerHTML = ICON_STIFT;
+      b.className = 'mact ed'; b.innerHTML = ICON_PEN;
       b.title = grund ? t('entry.reasonEdit') : t('entry.reasonWrite');
       b.onclick = oeffneGrund;
       acts.appendChild(b);
     }
-    if (zeigeWeg) {
+    if (showPath) {
       const b = document.createElement('button');
       b.className = 'mact rm'; b.innerHTML = ICON_KREUZ;
       b.title = t('entry.reasonRemove');
-      b.onclick = entferneGrund;
+      b.onclick = removeReason;
       acts.appendChild(b);
     }
-    marke.appendChild(acts);
+    mark.appendChild(acts);
   }
 
   /* AUSDRUECKLICH AUFMACHEN -- fuer den einen Fall, den die Regel nicht schon
@@ -5752,26 +5752,26 @@ async function renderDetail(id, begriffAdresse) {
      ist das Feld ohnehin offen, und dieser Weg fuehrt dann nur den Zeiger
      hinein. */
   function oeffneGrund() {
-    grundOffen = true;
+    reasonOpen = true;
     drawAblehnung();
-    const feld = document.getElementById('rej-grund');
-    if (feld) feld.focus();
+    const field = document.getElementById('rej-grund');
+    if (field) field.focus();
   }
 
   /* DAS ENTFERNEN GEHT ALS LEERER GRUND HINAUS, und der Server macht daraus
-     ein Entfernen: leer nach grundText() heisst wegnehmen und laeuft ueber
+     ein Entfernen: leer nach reasonText() heisst wegnehmen und laeuft ueber
      darfAendern, alles andere ueber nurSelbst.
      DATUM UND VERFASSER BLEIBEN STEHEN -- „Abgelehnt am 14.03.2026 von Anna"
      ist weiterhin wahr, nur der Grund fehlt. Deshalb wird hier auch NICHT das
      Merkmal zurueckgenommen; das ist der Schalter darueber und eine andere
      Handlung.
      GEFRAGT WIRD VORHER: die Angabe ist danach nirgends wiederherzustellen. */
-  async function entferneGrund() {
+  async function removeReason() {
     if (!await confirmBox(t('entry.reasonDeleteAsk'),
       t('entry.reasonDeleteHint'))) return;
     try {
       item = await api('PUT', `/api/items/${id}`, { rejectedGrund: '' });
-      grundOffen = false; drawSwitches(); toast(t('entry.reasonRemoved'));
+      reasonOpen = false; drawSwitches(); toast(t('entry.reasonRemoved'));
     } catch (e) { toast(e.message, true); }
   }
   document.getElementById('sw-test').onclick = async () => {
@@ -5815,7 +5815,7 @@ async function renderDetail(id, begriffAdresse) {
          aendern. Er ist nicht verloren, er steht nur woanders.
          BEIM AUSSCHALTEN VERSCHWINDEN BEIDE: es gibt nichts mehr zu begruenden,
          und die Angaben bleiben trotzdem in der Zeile stehen. */
-      grundOffen = false;
+      reasonOpen = false;
       drawSwitches();
       const f = document.getElementById('rej-grund');
       if (f && !document.getElementById('rej-grund-zeile').hidden) f.focus();
@@ -5831,28 +5831,28 @@ async function renderDetail(id, begriffAdresse) {
      wieder an seine Stelle. Auch nach einer Absage -- der Text steht dann
      wieder da, wie er in der Zeile steht, und die Meldung sagt, warum. */
   {
-    const feld = document.getElementById('rej-grund');
-    const speichere = async () => {
-      const v = feld.value.trim();
+    const field = document.getElementById('rej-grund');
+    const save = async () => {
+      const v = field.value.trim();
       if (v !== (item.rejected_grund || '')) {
         try { item = await api('PUT', `/api/items/${id}`, { rejectedGrund: v }); toast(t('list.saved')); }
-        catch (e) { toast(e.message, true); feld.value = item.rejected_grund || ''; }
+        catch (e) { toast(e.message, true); field.value = item.rejected_grund || ''; }
       }
-      grundOffen = false;
+      reasonOpen = false;
       drawSwitches();
     };
-    feld.onblur = speichere;
+    field.onblur = save;
     /* ESCAPE SETZT DAS FELD ZURUECK, BEVOR ES SCHLIESST -- und die Reihenfolge
        ist der ganze Punkt: das Schliessen nimmt dem Feld den Zeiger, das
-       loest onblur aus, und speichere() vergliche sonst den getippten Text
+       loest onblur aus, und save() vergliche sonst den getippten Text
        mit dem gespeicherten und schriebe genau das weg, was gerade verworfen
        werden sollte. */
-    feld.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); feld.blur(); }
+    field.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); field.blur(); }
       else if (e.key === 'Escape') {
         e.preventDefault();
-        feld.value = item.rejected_grund || '';
-        grundOffen = false;
+        field.value = item.rejected_grund || '';
+        reasonOpen = false;
         drawAblehnung();
       }
     });
@@ -5906,12 +5906,12 @@ async function renderDetail(id, begriffAdresse) {
      zwei Schreibweisen für denselben Zeitpunkt wären eine zu viel.
      `created_at` steht NOT NULL in der Zeile; ein Auffangnetz für den
      fehlenden Wert wäre eines gegen etwas, das es nicht gibt. */
-  function drawVerfasser() {
+  function drawAuthor() {
     const el = document.getElementById('ivf');
     if (!el) return;
     el.hidden = !mehrereBenutzer();
     el.textContent = mehrereBenutzer()
-      ? t('entry.createdByOn', { verfasser: verfasserName(item.verfasser), created_at: fmtDate(item.created_at) }) : '';
+      ? t('entry.createdByOn', { verfasser: authorName(item.verfasser), created_at: fmtDate(item.created_at) }) : '';
   }
 
   function drawCat() {
@@ -5922,7 +5922,7 @@ async function renderDetail(id, begriffAdresse) {
       try { item = await api('PUT', `/api/items/${id}`, { productCategoryId: s.value ? +s.value : null }); toast(t('list.saved')); }
       catch (e) { toast(e.message, true); }
     };
-    ruesteBloeckeAus(item);
+    setUpBlocksOut(item);
   }
   const addCat = async () => {
     const el = document.getElementById('newcat');
@@ -5960,22 +5960,22 @@ async function renderDetail(id, begriffAdresse) {
       box.appendChild(c);
     });
     document.getElementById('tagsug').innerHTML = allTags.map(tag => `<option value="${esc(tag.name)}">`).join('');
-    drawWolke();
-    ruesteBloeckeAus(item);
+    drawCloud();
+    setUpBlocksOut(item);
   }
 
   // Wolke aller vorhandenen Tags. Klick vergibt oder nimmt zurueck -- das ✕ an
   // der Marke oben bleibt daneben bestehen: zwei Wege fuer zwei Absichten,
   // Fehlgriff korrigieren gegen gezieltes Aufraeumen.
-  function drawWolke() {
+  function drawCloud() {
     const box = document.getElementById('tagcloud');
     const mehr = document.getElementById('tagcloud-more');
     if (!box) return;
     const vergeben = new Set(item.tags.map(tag => tag.id));
-    const liste = sortiereWolke(allTags, vergeben);
+    const list = sortiereWolke(allTags, vergeben);
     box.innerHTML = '';
-    if (!liste.length) { box.innerHTML = `<span class="hint">${tH('entry.noTagsCreated')}</span>`; mehr.hidden = true; return; }
-    liste.forEach(tag => {
+    if (!list.length) { box.innerHTML = `<span class="hint">${tH('entry.noTagsCreated')}</span>`; mehr.hidden = true; return; }
+    list.forEach(tag => {
       const b = document.createElement('button');
       b.className = 'pill pill-tag' + (vergeben.has(tag.id) ? ' on' : '');
       b.innerHTML = `${esc(tag.name)}<span class="n">${tag.usage_count}</span>`;
@@ -5990,10 +5990,10 @@ async function renderDetail(id, begriffAdresse) {
       };
       box.appendChild(b);
     });
-    const beschnitten = begrenzeWolke(box, wolkeOffen.detail ? 0 : 3);
-    mehr.hidden = !beschnitten && !wolkeOffen.detail;
-    mehr.textContent = wolkeOffen.detail ? t('list.less') : t('list.more');
-    mehr.onclick = () => { wolkeOffen.detail = !wolkeOffen.detail; drawWolke(); };
+    const beschnitten = limitCloud(box, cloudOpen.detail ? 0 : 3);
+    mehr.hidden = !beschnitten && !cloudOpen.detail;
+    mehr.textContent = cloudOpen.detail ? t('list.less') : t('list.more');
+    mehr.onclick = () => { cloudOpen.detail = !cloudOpen.detail; drawCloud(); };
   }
 
   async function loadTagList() {
@@ -6028,19 +6028,19 @@ async function renderDetail(id, begriffAdresse) {
      nichts.
      GERECHNET WIRD HIER NICHTS. Beide Kopfzahlen und beide Rechenwege kommen
      vom Server; der Browser filtert und schreibt hin. */
-  const KAESTEN = [
-    { phase: 'nachher', box: 'ratings',           kopf: 'rhead', knopf: 'gew-auf',
+  const BOXES = [
+    { phase: 'nachher', box: 'ratings',           head: 'rhead', button: 'gew-auf',
       wer: 'rwho', schnitt: 'avgRating',       weg: 'rechenweg' },
-    { phase: 'vorher',  box: 'potenzial-ratings', kopf: 'phead', knopf: 'pgew-auf',
+    { phase: 'vorher',  box: 'potenzial-ratings', head: 'phead', button: 'pgew-auf',
       wer: 'pwho', schnitt: 'potenzialRating', weg: 'potenzialRechenweg' }
   ];
 
-  function drawRatings() { for (const k of KAESTEN) zeichneKasten(k); ruesteBloeckeAus(item); }
+  function drawRatings() { for (const k of BOXES) drawBox(k); setUpBlocksOut(item); }
 
-  function zeichneKasten(kasten) {
-    const box = document.getElementById(kasten.box);
+  function drawBox(boxId) {
+    const box = document.getElementById(boxId.box);
     if (!box) return;
-    const zeilen = item.ratings.filter(r => r.phase === kasten.phase);
+    const zeilen = item.ratings.filter(r => r.phase === boxId.phase);
     /* DER KASTEN IST DAS RASTER, nicht die einzelne Zeile: eine Spalte kann
        sich nur dann an ihrer breitesten Zelle ausrichten, wenn alle Zellen im
        SELBEN Raster liegen. Die Klasse steht hier und nicht im Aufbau
@@ -6051,8 +6051,8 @@ async function renderDetail(id, begriffAdresse) {
        steht einmal hier und wird unten wiederverwendet, statt ein zweites Mal
        gefragt zu werden (Stolperstein 47). Mit drei Spalten und zwei Zellen
        ruecken die Zeilen gegeneinander, und die Liste zerfaellt. */
-    const mitSchnitt = mehrereBenutzer();
-    box.className = 'rlist' + (mitSchnitt ? '' : ' ohne-schnitt');
+    const withAverage = mehrereBenutzer();
+    box.className = 'rlist' + (withAverage ? '' : ' ohne-schnitt');
     // Angelegt wird im Systembereich: ein neues Kriterium erscheint an
     // JEDEM Eintrag, das ist eine redaktionelle Entscheidung und keine
     // Notiz am Eintrag.
@@ -6067,7 +6067,7 @@ async function renderDetail(id, begriffAdresse) {
     // ueber die Kriterien -- also genau das Mittel der Zahlen, die rechts in
     // den Zeilen stehen. Damit ist sie nachvollziehbar, sobald beide zugleich
     // sichtbar sind.
-    const kopf = document.getElementById(kasten.kopf);
+    const head = document.getElementById(boxId.head);
     /* DAS WORT "gewichtet" IST ABGELEITET, kein Schalter und keine Einstellung
        -- dieselbe Bauform wie die Durchschnittsspalte, die bei einem einzigen
        Zugang entfaellt. Sind alle Gewichte 1, steht dort genau das, was vor
@@ -6089,14 +6089,14 @@ async function renderDetail(id, begriffAdresse) {
        OHNE ZAHL KEIN KNOPF: an einem Eintrag ohne Bewertung gaebe es nichts zu
        erklaeren, und ein Knopf, der ein leeres Fenster oeffnet, ist einer zu
        viel. */
-    const schnittWert = item[kasten.schnitt];
-    if (kopf) {
-      kopf.textContent = '';
-      if (schnittWert) {
+    const averageValue = item[boxId.schnitt];
+    if (head) {
+      head.textContent = '';
+      if (averageValue) {
         const b = document.createElement('button');
         b.className = 'link-btn gew-auf';
-        b.id = kasten.knopf;
-        b.textContent = '⌀ ' + zahl(schnittWert, 1) +
+        b.id = boxId.button;
+        b.textContent = '⌀ ' + zahl(averageValue, 1) +
           (gewichtetGerechnet ? ' gewichtet' : '');
         /* DER TITEL SAGT, WESSEN ZAHL DAS IST -- 0.22.1 (E5). Die Zahl ist
            der Schnitt ueber ALLE, die bewertet haben; die eigenen Sterne
@@ -6112,8 +6112,8 @@ async function renderDetail(id, begriffAdresse) {
         // DER ERKLAERKNOPF BEKOMMT DEN RECHENWEG SEINES KASTENS. Beide kommen
         // aus derselben Rechnung im Server; hier wird nur der richtige
         // angehaengt.
-        b.onclick = () => zeigeRechnung(kasten);
-        kopf.appendChild(b);
+        b.onclick = () => zeigeRechnung(boxId);
+        head.appendChild(b);
       }
     }
     zeilen.forEach(r => {
@@ -6125,10 +6125,10 @@ async function renderDetail(id, begriffAdresse) {
       // aus -- mit Gewichten ist sie aus den Zeilenwerten nicht mehr durch
       // Mitteln nachzuvollziehen. Eigener Knoten statt Text im Namen: der Name
       // ist Eingabe und wird gesetzt, nicht zusammengebaut.
-      const marke = gewichtMarke(r.gewicht);
-      if (marke) {
+      const mark = weightMark(r.gewicht);
+      if (mark) {
         const m = document.createElement('span');
-        m.className = 'rgew'; m.textContent = marke;
+        m.className = 'rgew'; m.textContent = mark;
         m.title = t('list.weightedAvg');
         n.append(' ', m);
       }
@@ -6149,10 +6149,10 @@ async function renderDetail(id, begriffAdresse) {
          kein Verlauf und keine Wiederherstellung, sondern die Umkehr genau
          des einen Klicks, der die Meldung ausgeloest hat. */
       const s = stars(r.value, set);
-      const zurueck = zuruecksetzKnopf(r.value, () => {
-        const alt = r.value;
+      const back = zuruecksetzKnopf(r.value, () => {
+        const old = r.value;
         set(0);
-        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(alt) });
+        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(old) });
       });
       // Kein Loeschkreuz in dieser Zeile. Ein Kriterium zu
       // loeschen wirkt auf ALLE Eintraege und nimmt vergebene Sterne mit -- eine
@@ -6183,10 +6183,10 @@ async function renderDetail(id, begriffAdresse) {
          wieder nur so breit wie ihr eigener Inhalt, und die Sterne stuenden
          Zeile fuer Zeile woanders.
          DIESELBE BEDINGUNG WIE OBEN AM RASTER, und zwar buchstaeblich
-         dieselbe: `mitSchnitt` entscheidet ueber die Spalte UND ueber die
+         dieselbe: `withAverage` entscheidet ueber die Spalte UND ueber die
          Zelle. Zwei getrennte Abfragen waeren zwei Wahrheiten, und die eine
          liesse sich aendern, ohne dass die andere mitginge. */
-      if (mitSchnitt) {
+      if (withAverage) {
         const a = document.createElement('span');
         a.className = 'ravg';
         /* DIESELBE FORM WIE DIE KOPFZAHL DARUEBER, die bereits "⌀ 4,2
@@ -6231,7 +6231,7 @@ async function renderDetail(id, begriffAdresse) {
          und das Stilblatt haelt dort mindestens 12 px Abstand. */
       const zz = document.createElement('span');
       zz.className = 'rzz';
-      zz.appendChild(zurueck);
+      zz.appendChild(back);
       row.append(zz);
       box.appendChild(row);
       /* HIER STEHT AUSDRÜCKLICH KEINE STIMMENLISTE. Wer welchen Wert vergeben
@@ -6277,14 +6277,14 @@ async function renderDetail(id, begriffAdresse) {
      fuer die Bewertung, `potenzialRechenweg` fuer das Potenzial. Beide
      entstehen im Server IN gesamtSchnitt(), also in derselben Schleife wie die
      Zahl darueber. Zwei Kaesten, ein Fenster. */
-  function zeigeRechnung(kasten) {
-    const weg = item[kasten.weg];
+  function zeigeRechnung(boxId) {
+    const weg = item[boxId.weg];
     // Ohne Aufstellung kein Kasten. Sie fehlt nur, wenn nichts bewertet ist --
     // dann steht aber auch keine Kopfzahl da, an der man klicken koennte.
     if (!weg || !Array.isArray(weg.zeilen) || !weg.zeilen.length)
       return toast(t('entry.nothingRatedYet'), true);
     const namen = new Map(item.ratings.map(r => [r.criterion_id, r.name]));
-    const mitGewicht = weg.zeilen.some(z => Number(z.gewicht) !== 1);
+    const withWeight = weg.zeilen.some(z => Number(z.gewicht) !== 1);
     /* OB DIE GEWICHTUNG UEBERHAUPT ETWAS AENDERT. Verglichen werden die beiden
        ANGEZEIGTEN Zahlen und nicht die ungerundeten: der Kasten sagt etwas
        ueber das, was dasteht. Zwei Rechnungen, die sich erst in der dritten
@@ -6310,7 +6310,7 @@ async function renderDetail(id, begriffAdresse) {
            offen, ueber WEN der erste geht. Genau das war die Frage aus dem
            Betrieb. Zwei Woerter, und sie stehen dort, wo die Zahl ohnehin
            erklaert wird. */''}
-      <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}${mitGewicht
+      <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}${withWeight
           ? t('entry.calcWithWeight')
           : t('entry.calcAllEqual')}.</p>
       <div class="rechnung" id="rechnung">
@@ -6338,7 +6338,7 @@ async function renderDetail(id, begriffAdresse) {
              UND SIE WIRD GELESEN, NICHT GERECHNET (Stolperstein 217): sie
              entsteht in gesamtSchnitt(), in derselben Schleife wie die Zahl
              darueber. */''}
-        ${mitGewicht ? `<div class="rz rz-gleich"><span>${tH('entry.calcNoWeights')}</span>
+        ${withWeight ? `<div class="rz rz-gleich"><span>${tH('entry.calcNoWeights')}</span>
           <span></span><span></span>
           <span id="rz-gleich">⌀ ${esc(gewZahl(weg.gleichErgebnis))}</span></div>` : ''}
       </div>
@@ -6362,13 +6362,13 @@ async function renderDetail(id, begriffAdresse) {
            die Gewichte eingestellt werden, liest nur, wer dorthin kommt
            (Regel S5). */''}
       <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')}${ADMIN ? ` ${tH('entry.weightsWhere')}
-        <strong>${esc(kasten.phase === 'vorher' ? t('entry.criteriaPotential') : t('entry.criteriaRating'))}</strong> ${tH('entry.calcIn')}` : ''}</p>
+        <strong>${esc(boxId.phase === 'vorher' ? t('entry.criteriaPotential') : t('entry.criteriaRating'))}</strong> ${tH('entry.calcIn')}` : ''}</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
            steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
            eine Auskunft ueber nichts.
            DIESER ABSATZ IST DER PUNKT DES GANZEN KASTENS und deshalb der
            einzige, an dem 0.17.3 kein Wort geaendert hat. */''}
-      ${mitGewicht ? (gleicheZahl
+      ${withWeight ? (gleicheZahl
         ? `<p id="rz-gleich-satz"><strong>${tH('entry.calcNoChange')}</strong>
             ${tH('entry.calcWithoutWeights')}
             <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong> ${tH('entry.calcOut')}</p>`
@@ -6395,12 +6395,12 @@ async function renderDetail(id, begriffAdresse) {
      ABRUF liefert die Stimmen aller Kriterien; welche das Fenster zeigt,
      entscheidet der Kasten, aus dem geklickt wurde. Eine zweite Route je
      Kasten waere eine Route mehr fuer nichts -- die Antwort ist dieselbe. */
-  async function zeigeStimmen(kasten) {
-    let liste;
-    try { liste = await api('GET', `/api/items/${id}/stimmen`); }
+  async function showMatch(boxId) {
+    let list;
+    try { list = await api('GET', `/api/items/${id}/stimmen`); }
     catch (e) { return toast(e.message, true); }
     const titel = t('entry.whoRatedWord',
-      { wort: kasten.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl });
+      { wort: boxId.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl });
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="stimmen-modal"><h2>${esc(titel)}</h2>
@@ -6420,12 +6420,12 @@ async function renderDetail(id, begriffAdresse) {
     document.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-no]').onclick = zu;
     bd.onclick = e => { if (e.target === bd) zu(); };
-    zeichneStimmen();
+    drawMatch();
 
-    function zeichneStimmen() {
+    function drawMatch() {
       const box = bd.querySelector('#stimmliste');
       box.innerHTML = '';
-      const je = new Map(liste.map(z => [z.criterion_id, z.stimmen]));
+      const je = new Map(list.map(z => [z.criterion_id, z.stimmen]));
       // Reihenfolge und Name kommen aus dem Eintrag: der Endpunkt liefert nur
       // Nummern, Werte und Verfasser. Zwei Quellen für denselben Namen wären
       // zwei Wahrheiten.
@@ -6433,14 +6433,14 @@ async function renderDetail(id, begriffAdresse) {
       // NUR DIE ZEILEN DIESES KASTENS. Der Abruf kennt keine Phase; das Fenster
       // gehoert aber zu einem der beiden Koepfe, und was darin steht, muss zu
       // dem Kopf passen, aus dem es aufgegangen ist.
-      item.ratings.filter(r => r.phase === kasten.phase).forEach(r => {
+      item.ratings.filter(r => r.phase === boxId.phase).forEach(r => {
         const stimmen = je.get(r.criterion_id) || [];
         // Ein Kriterium ohne Stimme bekommt gar keine Zeile -- eine leere
         // Liste unter einem Namen sagt nichts.
         if (!stimmen.length) return;
         etwas = true;
-        const zeile = document.createElement('div');
-        zeile.className = 'stimmzeile';
+        const row = document.createElement('div');
+        row.className = 'stimmzeile';
         const n = document.createElement('span');
         n.className = 'rname'; n.textContent = r.name;
         const wer = document.createElement('div');
@@ -6448,7 +6448,7 @@ async function renderDetail(id, begriffAdresse) {
         stimmen.forEach(st => {
           const s2 = document.createElement('span');
           s2.className = 'rstimme' + (st.mine ? ' meine' : '');
-          s2.appendChild(document.createTextNode(`${verfasserName(st.verfasser)} ${st.wert}`));
+          s2.appendChild(document.createTextNode(`${authorName(st.verfasser)} ${st.wert}`));
           /* Das ✕ steht nur am FREMDEN Wert — den eigenen räumt man mit dem
              Doppelklick auf den Stern weg, und zwei Wege für dieselbe Absicht
              wären einer zu viel. Die Note ändert der Admin nicht: es gibt hier
@@ -6461,29 +6461,29 @@ async function renderDetail(id, begriffAdresse) {
             x.title = `${V.bewertungEinzahl} entfernen`;
             x.onclick = async () => {
               if (!await confirmBox(t('entry.removeRatingAsk'),
-                t('entry.ratingRemoveHint', { verfasser: verfasserName(st.verfasser), name: r.name }),
+                t('entry.ratingRemoveHint', { verfasser: authorName(st.verfasser), name: r.name }),
                 t('entry.remove'))) return;
               try {
                 item = await api('DELETE', `/api/ratings/${st.id}`);
-                liste = await api('GET', `/api/items/${id}/stimmen`);
-                drawRatings(); zeichneStimmen(); toast(`${V.bewertungEinzahl} entfernt`);
+                list = await api('GET', `/api/items/${id}/stimmen`);
+                drawRatings(); drawMatch(); toast(`${V.bewertungEinzahl} entfernt`);
               } catch (e) { toast(e.message, true); }
             };
             s2.appendChild(x);
           }
           wer.appendChild(s2);
         });
-        zeile.append(n, wer);
-        box.appendChild(zeile);
+        row.append(n, wer);
+        box.appendChild(row);
       });
       if (!etwas) box.innerHTML = `<span class="hint">${tH('entry.noRatingsYet')}</span>`;
     }
   }
   // Der Knopf steht nur beim Admin ab zwei Zugängen; ohne ihn gibt es hier
   // nichts anzuhängen. ZWEI KOEPFE, ZWEI KNOEPFE, EINE SCHLEIFE.
-  for (const k of KAESTEN) {
+  for (const k of BOXES) {
     const el = document.getElementById(k.wer);
-    if (el) el.onclick = () => zeigeStimmen(k);
+    if (el) el.onclick = () => showMatch(k);
   }
   /* HIER HING BIS 0.20.1 DER KNOPF „Meine Bewertung zuruecksetzen" -- samt
      confirmBox und samt `DELETE /api/items/:id/ratings` dahinter. Beides ist
@@ -6515,7 +6515,7 @@ async function renderDetail(id, begriffAdresse) {
       </div>`;
 
     const list = box.querySelector('#tdays');
-    if (!n) list.innerHTML = leerZustand(t('entry.noDaysYet'));
+    if (!n) list.innerHTML = emptyState(t('entry.noDaysYet'));
     item.testDays.forEach(d => {
       const row = document.createElement('div');
       row.className = 'trow';
@@ -6560,16 +6560,16 @@ async function renderDetail(id, begriffAdresse) {
         inp.className = 'input input-sm ttag-in';
         inp.setAttribute('list', 'tagsug');
         inp.placeholder = t('list.tag');
-        const schliessen = () => inp.remove();
+        const close = () => inp.remove();
         inp.onkeydown = async (e) => {
-          if (e.key === 'Escape') return schliessen();
+          if (e.key === 'Escape') return close();
           if (e.key !== 'Enter') return;
           const name = inp.value.trim();
-          if (!name) return schliessen();
+          if (!name) return close();
           try { item = await api('POST', `/api/test-days/${d.id}/tags`, { name }); drawTestDays(); loadTagList(); }
           catch (e2) { toast(e2.message, true); }
         };
-        inp.onblur = () => setTimeout(schliessen, 120);
+        inp.onblur = () => setTimeout(close, 120);
         tagBox.appendChild(inp);
         inp.focus();
       };
@@ -6580,7 +6580,7 @@ async function renderDetail(id, begriffAdresse) {
       if (mehrereBenutzer()) {
         const von = document.createElement('span');
         von.className = 'tvon' + (d.mine ? ' meine' : '');
-        von.textContent = verfasserName(d.verfasser);
+        von.textContent = authorName(d.verfasser);
         row.append(date, wd, von, tagBox, s, x);
       } else {
         row.append(date, wd, tagBox, s, x);
@@ -6606,7 +6606,7 @@ async function renderDetail(id, begriffAdresse) {
         toast(res.replaced ? t('entry.gradeReplaced', { day: fmtDay(day) }) : `${V.zeitpunktEinzahl} eingetragen`);
       } catch (e) { toast(e.message, true); }
     };
-    ruesteBloeckeAus(item);
+    setUpBlocksOut(item);
   }
 
   /* ---- Links ---- */
@@ -6616,18 +6616,18 @@ async function renderDetail(id, begriffAdresse) {
       ? t('list.linkCount', { n: item.links.length }) : '';
     box.innerHTML = '';
     if (!item.links.length) {
-      box.innerHTML = leerZustand(t('entry.noLinksYet'));
+      box.innerHTML = emptyState(t('entry.noLinksYet'));
       return;
     }
     item.links.forEach((l, n) => {
-      const suche = istSuche(l.url);
+      const suche = isSearch(l.url);
       const { dom, path } = splitUrl(l.url);
       // Suchzeile: der Rohtext oben, darunter die Anbieter -- die sind
       // einstellbar, also darf die Zeile nicht verschweigen, wen sie fragt.
       // Rechts steht die Lupe statt des Pfeils; das ist der Platz, an dem eine
       // Zeile in Kriterion ansagt, was ein Klick tut.
-      const anbieter = suche ? suchListe() : [];
-      const standard = anbieter[0] || null;
+      const provider = suche ? searchList() : [];
+      const standard = provider[0] || null;
       const oben = suche ? l.url : dom;
 
       /* WANN DER NAME AN DER ZEILE STEHT -- die Regel steht hier und nirgends
@@ -6644,12 +6644,12 @@ async function renderDetail(id, begriffAdresse) {
          hat keinen mehr. Fehlt der Verfasser auf beiden Seiten, ist niemand zu
          nennen; fehlt er nur an der Zeile, steht dort "Ohne Verfasser" -- eine
          herrenlose Zeile ist eine Auskunft. */
-      const fremdeZeile = (l.verfasser?.id ?? null) !== (item.verfasser?.id ?? null);
-      const zeigeVon = mehrereBenutzer() && fremdeZeile;
+      const foreignRow = (l.verfasser?.id ?? null) !== (item.verfasser?.id ?? null);
+      const showFrom = mehrereBenutzer() && foreignRow;
       // Das Datum steht im Ueberfahrtext, nicht in der Zeile: die Zeile ist auf
       // dem Handy am Anschlag, und der Name ist die Angabe, um die es geht.
-      const eingetragen = zeigeVon
-        ? t('entry.enteredByOn', { verfasser: verfasserName(l.verfasser), created_at: fmtDate(l.created_at) }) : '';
+      const eingetragen = showFrom
+        ? t('entry.enteredByOn', { verfasser: authorName(l.verfasser), created_at: fmtDate(l.created_at) }) : '';
 
       /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE: der Server laesst
          den Eintrager und den Admin durch (darfAendern). Beides ist getrennt --
@@ -6657,15 +6657,15 @@ async function renderDetail(id, begriffAdresse) {
          Name ohne Kreuz, solange man nicht Admin ist.
          `mine` sagt der Server; die Oberflaeche rechnet das nicht aus dem
          Verfasserobjekt zurueck. */
-      const darfWeg = l.mine === true || ADMIN;
+      const mayPath = l.mine === true || ADMIN;
 
       const row = document.createElement('div');
       row.className = 'lrow' + (suche ? ' suche' : '');
       row.dataset.lid = l.id;
-      const grundText = suche
+      const reasonText = suche
         ? (standard ? t('entry.searchForAt', { url: l.url, name: standard.name }) : t('entry.searchFor', { url: l.url }))
         : l.url;
-      row.title = eingetragen ? `${grundText} · ${eingetragen}` : grundText;
+      row.title = eingetragen ? `${reasonText} · ${eingetragen}` : reasonText;
       /* Die zweite Zeile traegt den Pfad (bei einer Suchzeile die
          Anbieternamen) und dahinter den Namen. Beides in EINER Zeile, damit die
          Linkzeile nicht auf drei Hoehen waechst; abgeschnitten wird der Pfad,
@@ -6675,21 +6675,21 @@ async function renderDetail(id, begriffAdresse) {
          " · " bereits "noch ein Anbieter, anklickbar", und ein Strich davor
          sieht aus wie ein abgerissener Satz. Die Klammer sagt von selbst, dass
          hier eine Angabe ueber die Zeile steht und kein weiterer Teil von ihr.
-         Sie traegt ausserdem jede Form, die verfasserName() liefert --
+         Sie traegt ausserdem jede Form, die authorName() liefert --
          "(chefin)", "(Geloeschter Benutzer 4)", "(Ohne Verfasser)". Ein
          Vorwort wie "von" taete das nicht: "von Ohne Verfasser" ist kein
          Deutsch. */
-      const untenLinks = suche ? '<span class="snamen"></span>'
+      const bottomLinks = suche ? '<span class="snamen"></span>'
                                : (path ? `<span class="path">${esc(path)}</span>` : '');
-      const unten = untenLinks + (zeigeVon
-        ? `<span class="lvon">(${esc(verfasserName(l.verfasser))})</span>` : '');
+      const unten = bottomLinks + (showFrom
+        ? `<span class="lvon">(${esc(authorName(l.verfasser))})</span>` : '');
       row.innerHTML = `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>
         <span class="lnum">${n + 1}</span>
         <span class="lurl"><span class="dom">${esc(oben)}</span>${
           unten ? `<span class="lunten">${unten}</span>` : ''
         }</span>
         <span class="go">${suche ? ICON_SEARCH : '↗'}</span>
-        ${darfWeg ? `<button class="xdel" title="${suche ? t('entry.removeSearch') : t('entry.removeLink')}">${ICON_KREUZ}</button>` : ''}`;
+        ${mayPath ? `<button class="xdel" title="${suche ? t('entry.removeSearch') : t('entry.removeLink')}">${ICON_KREUZ}</button>` : ''}`;
       /* IN DER LINKLISTE WIRD DIE ADRESSE HERVORGEHOBEN UND NICHT DER
          ANZEIGENAME -- 0.18.0. Gesucht wurde in `links.url`; ein
          hervorgehobener Anbietername, in dem der Begriff gar nicht steht,
@@ -6698,8 +6698,8 @@ async function renderDetail(id, begriffAdresse) {
          -- und ausdruecklich nicht `.snamen`.
          Bei einer Suchzeile steht oben der Rohtext, und der IST hier die
          Adresse: gesucht hat SQLite in derselben Spalte. */
-      hebeImKnoten(row.querySelector('.dom'), oben, begriff);
-      if (!suche && path) hebeImKnoten(row.querySelector('.path'), path, begriff);
+      hebeImKnoten(row.querySelector('.dom'), oben, term);
+      if (!suche && path) hebeImKnoten(row.querySelector('.path'), path, term);
 
       // Die Namen sind Eingabe des Admins und werden als Beschriftung
       // gerendert -- die erste Stelle in der Linkliste, an der das gilt.
@@ -6708,9 +6708,9 @@ async function renderDetail(id, begriffAdresse) {
       // Jeder Name ist ausserdem sein eigenes Klickziel und braucht ohnehin
       // einen eigenen Knoten.
       if (suche) {
-        const namensBox = row.querySelector('.snamen');
-        anbieter.forEach((a, i) => {
-          if (i) namensBox.appendChild(document.createTextNode(' · '));
+        const nameBox = row.querySelector('.snamen');
+        provider.forEach((a, i) => {
+          if (i) nameBox.appendChild(document.createTextNode(' · '));
           const s = document.createElement('span');
           s.className = 'sname';
           s.textContent = a.name;
@@ -6720,14 +6720,14 @@ async function renderDetail(id, begriffAdresse) {
           // kippen -- .sname steht deshalb im ignore von makeSortable.
           s.onclick = (e) => {
             e.stopPropagation();
-            window.open(sucheAdresse(a.vorlage, l.url), t('entry.targetBlank'), t('entry.linkRel'));
+            window.open(searchAddress(a.vorlage, l.url), t('entry.targetBlank'), t('entry.linkRel'));
           };
-          namensBox.appendChild(s);
+          nameBox.appendChild(s);
         });
       }
       // Der Behandler nur dort, wo das Kreuz auch steht -- an einem fehlenden
       // Element risse er den Aufbau der ganzen Liste mit.
-      if (darfWeg) row.querySelector('.xdel').onclick = async (e) => {
+      if (mayPath) row.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(suche ? t('entry.removeSearchAsk') : t('entry.removeLinkAsk'),
           t('entry.removedFromList',
@@ -6746,7 +6746,7 @@ async function renderDetail(id, begriffAdresse) {
           if (!standard) return toast(ADMIN
             ? t('entry.noSearchEngineHint')
             : t('entry.noSearchEngine'), true);
-          window.open(sucheAdresse(standard.vorlage, l.url), t('entry.targetBlank'), t('entry.linkRel'));
+          window.open(searchAddress(standard.vorlage, l.url), t('entry.targetBlank'), t('entry.linkRel'));
         },
         onDrop: async (children) => {
           try {
@@ -6757,8 +6757,8 @@ async function renderDetail(id, begriffAdresse) {
       });
       box.appendChild(row);
     });
-    begrenzeLinks();
-    ruesteBloeckeAus(item);
+    limitLinks();
+    setUpBlocksOut(item);
   }
 
   // Sichtbare Zeilen begrenzen, statt die Liste immer scrollen zu lassen.
@@ -6769,27 +6769,27 @@ async function renderDetail(id, begriffAdresse) {
   // Liste kommt, scrollt ploetzlich nur noch die Liste. Der Knopf "alle N
   // anzeigen" ist der Weg zum Rest -- damit scrollt am Finger immer die Seite,
   // und die Einstellung "sichtbare Zeilen" behaelt ihren Sinn.
-  function begrenzeLinks() {
+  function limitLinks() {
     const box = document.getElementById('links');
-    const knopf = document.getElementById('links-more');
-    if (!box || !knopf) return;
+    const button = document.getElementById('links-more');
+    if (!box || !button) return;
     const zeilen = [...box.children];
-    const zuViele = zeilen.length > LINKZEILEN;
-    if (!zuViele || linksOffen) {
+    const zuViele = zeilen.length > LINK_ROWS;
+    if (!zuViele || linksOpen) {
       box.style.maxHeight = '';
       box.style.overflowY = '';
-      knopf.hidden = !zuViele;
-      knopf.textContent = t('entry.showLess');
-      knopf.onclick = () => { linksOffen = false; drawLinks(); };
+      button.hidden = !zuViele;
+      button.textContent = t('entry.showLess');
+      button.onclick = () => { linksOpen = false; drawLinks(); };
       return;
     }
     const h = zeilen[0]?.offsetHeight || 0;
     const abstand = 5;   // entspricht dem margin-bottom von .lrow
-    box.style.maxHeight = (LINKZEILEN * h + (LINKZEILEN - 1) * abstand) + 'px';
+    box.style.maxHeight = (LINK_ROWS * h + (LINK_ROWS - 1) * abstand) + 'px';
     box.style.overflowY = 'hidden';
-    knopf.hidden = false;
-    knopf.textContent = `alle ${zeilen.length} anzeigen`;
-    knopf.onclick = () => { linksOffen = true; drawLinks(); };
+    button.hidden = false;
+    button.textContent = `alle ${zeilen.length} anzeigen`;
+    button.onclick = () => { linksOpen = true; drawLinks(); };
   }
 
   const addLink = async () => {
@@ -6808,7 +6808,7 @@ async function renderDetail(id, begriffAdresse) {
   /* ---- Dateien ---- */
   // Welche Vorschau möglich ist, entscheidet der Server (Feld `preview`) --
   // die Oberfläche rät nicht anhand des Dateinamens herum.
-  const offeneVorschau = new Set();
+  const openPreview = new Set();
 
   function groesse(bytes) {
     if (bytes < 1024) return bytes + ' B';
@@ -6818,22 +6818,22 @@ async function renderDetail(id, begriffAdresse) {
 
   function drawAtts() {
     const box = document.getElementById('atts');
-    const liste = item.attachments || [];
-    document.getElementById('acount').textContent = liste.length
-      ? t('entry.fileCount', { n: liste.length,
-          groesse: groesse(liste.reduce((s2, a) => s2 + a.size, 0)) }) : '';
+    const list = item.attachments || [];
+    document.getElementById('acount').textContent = list.length
+      ? t('entry.fileCount', { n: list.length,
+          groesse: groesse(list.reduce((s2, a) => s2 + a.size, 0)) }) : '';
     box.innerHTML = '';
-    if (!liste.length) {
-      box.innerHTML = leerZustand(t('entry.noFilesYet'));
+    if (!list.length) {
+      box.innerHTML = emptyState(t('entry.noFilesYet'));
       return;
     }
-    liste.forEach(a => {
-      const zeile = document.createElement('div');
-      zeile.className = 'arow';
+    list.forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'arow';
       const kannVorschau = a.preview !== 'keine';
-      const offen = offeneVorschau.has(a.id);
-      zeile.classList.toggle('offen', offen);
-      zeile.title = kannVorschau
+      const offen = openPreview.has(a.id);
+      row.classList.toggle('offen', offen);
+      row.title = kannVorschau
         ? (offen ? t('entry.clickToCollapse') : t('entry.clickToView'))
         : t('entry.clickToDownload');
       /* DIESELBE REGEL WIE AN DER LINKZEILE, und sie steht dort ausfuehrlich:
@@ -6842,27 +6842,27 @@ async function renderDetail(id, begriffAdresse) {
          Er steht hinter der Groesse, nicht hinter dem Dateinamen: rechts stehen
          die Angaben ZUR Datei, links ist ihr Name -- und der darf nicht
          abgeschnitten werden, um Platz fuer eine Nebenangabe zu machen. */
-      const fremdeDatei = (a.verfasser?.id ?? null) !== (item.verfasser?.id ?? null);
-      const zeigeVon = mehrereBenutzer() && fremdeDatei;
-      const hochgeladen = zeigeVon
-        ? t('entry.uploadedByOn', { verfasser: verfasserName(a.verfasser), created_at: fmtDate(a.created_at) }) : '';
-      if (hochgeladen) zeile.title = `${zeile.title} · ${hochgeladen}`;
+      const foreignFile = (a.verfasser?.id ?? null) !== (item.verfasser?.id ?? null);
+      const showFrom = mehrereBenutzer() && foreignFile;
+      const hochgeladen = showFrom
+        ? t('entry.uploadedByOn', { verfasser: authorName(a.verfasser), created_at: fmtDate(a.created_at) }) : '';
+      if (hochgeladen) row.title = `${row.title} · ${hochgeladen}`;
       // Das ✕ folgt dem Recht, nicht der Anzeige -- wie am Link.
-      const darfWeg = a.mine === true || ADMIN;
+      const mayPath = a.mine === true || ADMIN;
 
-      zeile.innerHTML = `<span class="aicon">${a.preview === 'bild' ? '▣' : a.preview === 'pdf' ? '▤' : a.preview === 'keine' ? '▪' : '▥'}</span>
+      row.innerHTML = `<span class="aicon">${a.preview === 'bild' ? '▣' : a.preview === 'pdf' ? '▤' : a.preview === 'keine' ? '▪' : '▥'}</span>
         <span class="aname">${esc(a.filename)}</span>
         <span class="asize">${groesse(a.size)}</span>
-        ${zeigeVon ? `<span class="avon">(${esc(verfasserName(a.verfasser))})</span>` : ''}
+        ${showFrom ? `<span class="avon">(${esc(authorName(a.verfasser))})</span>` : ''}
         <span class="ago">${kannVorschau ? (offen ? '▾' : '▸') : '↓'}</span>
         <a class="adl" href="/api/attachments/${a.id}/raw" download title="${esc(t('entry.download'))}">↓</a>
-        ${darfWeg ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_KREUZ}</button>` : ''}`;
+        ${mayPath ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_KREUZ}</button>` : ''}`;
 
       // Der Behandler nur dort, wo das Kreuz auch steht.
-      if (darfWeg) zeile.querySelector('.xdel').onclick = async (e) => {
+      if (mayPath) row.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(t('entry.deleteFileAsk'), t('entry.fileDeleteHint', { filename: a.filename }))) return;
-        try { item = await api('DELETE', `/api/attachments/${a.id}`); offeneVorschau.delete(a.id); drawAtts(); }
+        try { item = await api('DELETE', `/api/attachments/${a.id}`); openPreview.delete(a.id); drawAtts(); }
         catch (e2) { toast(e2.message, true); }
       };
 
@@ -6870,26 +6870,26 @@ async function renderDetail(id, begriffAdresse) {
       // Dateityp. Was der Server ansehen kann, wird auf- und zugeklappt; alles
       // andere wird heruntergeladen. Das ✕ und der Ladepfeil sind ausgenommen,
       // sonst löste ein Klick darauf beides zugleich aus.
-      zeile.onclick = (e) => {
+      row.onclick = (e) => {
         if (e.target.closest('.xdel, .adl')) return;
-        if (!kannVorschau) return zeile.querySelector('.adl')?.click();
-        if (offen) offeneVorschau.delete(a.id); else offeneVorschau.add(a.id);
+        if (!kannVorschau) return row.querySelector('.adl')?.click();
+        if (offen) openPreview.delete(a.id); else openPreview.add(a.id);
         drawAtts();
       };
-      box.appendChild(zeile);
+      box.appendChild(row);
 
-      if (kannVorschau && offen) box.appendChild(baueVorschau(a));
+      if (kannVorschau && offen) box.appendChild(buildPreview(a));
     });
-    ruesteBloeckeAus(item);
+    setUpBlocksOut(item);
   }
 
-  function baueVorschau(a) {
-    const kasten = document.createElement('div');
-    kasten.className = 'apreview';
+  function buildPreview(a) {
+    const boxId = document.createElement('div');
+    boxId.className = 'apreview';
     if (a.preview === 'bild') {
       // Bilder in einem img-Element: dort wird nichts ausgeführt, und der
       // Server schickt sie mit nosniff und enger Sicherheitsregel.
-      kasten.innerHTML = `<img src="/api/attachments/${a.id}/raw?inline=1" alt="${esc(a.filename)}">`;
+      boxId.innerHTML = `<img src="/api/attachments/${a.id}/raw?inline=1" alt="${esc(a.filename)}">`;
     } else if (a.preview === 'pdf') {
       // allow-scripts, aber ausdrücklich OHNE allow-same-origin: die
       // eingebauten PDF-Betrachter von Chrome und Edge bestehen selbst aus
@@ -6898,29 +6898,29 @@ async function renderDetail(id, begriffAdresse) {
       // Ursprung und sieht von der Anwendung nichts.
       // Daneben immer der Weg in einen neuen Tab: sollte ein Browser das
       // Einbetten trotzdem verweigern, ist das dann kein Sackgassen-Ergebnis.
-      kasten.innerHTML = `<iframe src="/api/attachments/${a.id}/raw?inline=1"
+      boxId.innerHTML = `<iframe src="/api/attachments/${a.id}/raw?inline=1"
           sandbox="allow-scripts" referrerpolicy="no-referrer" title="${esc(a.filename)}"></iframe>
         <p class="apdf-hint"><span class="hint">${tH('entry.pdfHint')}</span>
           <a class="abtn" href="/api/attachments/${a.id}/raw?inline=1" target="_blank" rel="noopener noreferrer">${tH('entry.openNewTab')}</a></p>`;
     } else {
-      kasten.innerHTML = `<p class="hint">${tH('list.loading')}</p>`;
+      boxId.innerHTML = `<p class="hint">${tH('list.loading')}</p>`;
       api('GET', `/api/attachments/${a.id}/preview`).then(v => {
         // Als Text in den DOM gesetzt, nie als Datei ausgeliefert: der
         // Browser interpretiert den Inhalt damit überhaupt nicht.
-        kasten.innerHTML = '';
+        boxId.innerHTML = '';
         const pre = document.createElement('pre');
         pre.className = 'atext';
         pre.textContent = v.text || t('entry.empty');
-        kasten.appendChild(pre);
+        boxId.appendChild(pre);
         if (v.gekuerzt) {
           const h = document.createElement('p');
           h.className = 'hint';
           h.textContent = t('entry.previewTruncated');
-          kasten.appendChild(h);
+          boxId.appendChild(h);
         }
-      }).catch(e => { kasten.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
+      }).catch(e => { boxId.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
     }
-    return kasten;
+    return boxId;
   }
 
   document.getElementById('aadd').onclick = () => document.getElementById('afile').click();
@@ -6935,9 +6935,9 @@ async function renderDetail(id, begriffAdresse) {
     try {
       toast(t('entry.uploadingTitle'));
       const r = await fetch(`/api/items/${id}/attachments`, { method: 'POST', body: fd, credentials: 'same-origin' });
-      const daten = await r.json();
-      if (!r.ok) throw new Error(daten.error || t('entry.uploadFailed'));
-      item = daten; drawAtts();
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || t('entry.uploadFailed'));
+      item = data; drawAtts();
       toast(t('entry.filesAttached', { n: dateien.length }));
     } catch (e2) { toast(e2.message, true); }
   };
@@ -6947,15 +6947,15 @@ async function renderDetail(id, begriffAdresse) {
     const box = document.getElementById('cmts');
     // Der Hinweis steht in der Kopfzeile und bleibt damit auch eingeklappt
     // sichtbar -- eingeklappt ist gerade der Moment, in dem man nicht
-    // hineinsieht. Gebildet wird er an einem Ort, oben bei kommentarZahlen().
-    document.getElementById('ccount').textContent = kommentarZahlen(item.comments);
-    box.innerHTML = item.comments.length ? '' : leerZustand(t('entry.noCommentsYet'));
+    // hineinsieht. Gebildet wird er an einem Ort, oben bei commentNumbers().
+    document.getElementById('ccount').textContent = commentNumbers(item.comments);
+    box.innerHTML = item.comments.length ? '' : emptyState(t('entry.noCommentsYet'));
     item.comments.forEach(c => {
-      const bericht = c.kind === 'report', aufgabe = c.kind === 'task',
+      const report = c.kind === 'report', aufgabe = c.kind === 'task',
             erledigt = c.kind === 'done';
       const el = document.createElement('div');
       el.className = 'cmt'
-        + (bericht ? ' bericht' : aufgabe ? ' aufgabe' : erledigt ? ' erledigt' : '')
+        + (report ? ' bericht' : aufgabe ? ' aufgabe' : erledigt ? ' erledigt' : '')
         + (c.pinned ? ' pinned' : '');
 
       /* FUENF FAELLE, DREI ANTWORTEN -- die Spalten der Rechtetabelle:
@@ -6988,7 +6988,7 @@ async function renderDetail(id, begriffAdresse) {
             ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
                  sagt „aufheben", nicht noch einmal „markieren". */''}
             <button class="mark pin${c.pinned ? ' on' : ''}" title="${c.pinned ? t('entry.unpin') : t('entry.pinHint')}">${ICON_PIN}</button>
-            <button class="mark art${bericht ? ' on' : ''}" title="${bericht ? t('entry.unmarkReport') : t('entry.markReport')}">${esc(V.berichtEinzahl)}</button>
+            <button class="mark art${report ? ' on' : ''}" title="${report ? t('entry.unmarkReport') : t('entry.markReport')}">${esc(V.berichtEinzahl)}</button>
             <button class="mark aufg${aufgabe ? ' on' : ''}${erledigt ? ' on fertig' : ''}" title="${
               erledigt ? t('entry.unmark')
                        : aufgabe ? t('list.setDone')
@@ -6996,11 +6996,11 @@ async function renderDetail(id, begriffAdresse) {
             }">${esc(erledigt ? V.aufgabeErledigt : V.aufgabeEinzahl)}</button>
           </span>` : ''}
           <span class="cmt-when">${mehrereBenutzer()
-            ? `<span class="cmt-von">${esc(verfasserName(c.verfasser))}</span> · ` : ''
+            ? `<span class="cmt-von">${esc(authorName(c.verfasser))}</span> · ` : ''
           }${fmtDate(c.created_at)}${c.updated_at ? t('entry.edited') : ''}${
             c.bilderEntfernt ? ` · <span class="cmt-eingriff">${
               tH('entry.imagesRemovedAdmin', { n: c.bilderEntfernt })}</span>` : ''}</span>
-          <span class="acts">${meins ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_STIFT}</button>` : ''
+          <span class="acts">${meins ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''
             }${verwalten ? `<button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_KREUZ}</button>` : ''}</span>
         </div>
         <div class="cmt-body"></div>
@@ -7014,10 +7014,10 @@ async function renderDetail(id, begriffAdresse) {
          `<mark>` wird hier ein Element mit textContent und niemals ein
          String. Ohne Begriff aendert sich an dieser Zeile nichts. */
       el.querySelector('.cmt-body')
-        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text, begriff)));
+        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text, term)));
 
-      const umschalten = async (feld, wert) => {
-        try { item = await api('PUT', `/api/comments/${c.id}`, { [feld]: wert }); drawComments(); }
+      const umschalten = async (field, wert) => {
+        try { item = await api('PUT', `/api/comments/${c.id}`, { [field]: wert }); drawComments(); }
         catch (e) { toast(e.message, true); }
       };
       // Die Knoepfe stehen nur da, wo sie auch gedrueckt werden duerfen --
@@ -7027,8 +7027,8 @@ async function renderDetail(id, begriffAdresse) {
         // Die Art ist ein Wert, keine zwei Merkmale: wer Aufgabe drueckt, waehrend
         // Bericht an ist, waehlt Aufgabe -- ein zweiter Druck auf denselben Knopf
         // nimmt sie wieder zurueck auf Notiz.
-        el.querySelector('.art').onclick = () => umschalten('kind', bericht ? 'note' : 'report');
-        el.querySelector('.aufg').onclick = () => umschalten('kind', aufgabeWeiter(c.kind));
+        el.querySelector('.art').onclick = () => umschalten('kind', report ? 'note' : 'report');
+        el.querySelector('.aufg').onclick = () => umschalten('kind', taskMore(c.kind));
       }
 
       // Bilder als Kacheln unter dem Text; Klick öffnet das vorhandene Vollbild.
@@ -7081,7 +7081,7 @@ async function renderDetail(id, begriffAdresse) {
           const fd = new FormData();
           dateien.forEach(f => fd.append('images', f));
           try {
-            item = await sendeFormular(`/api/comments/${c.id}/images`, fd);
+            item = await sendForm(`/api/comments/${c.id}/images`, fd);
             toast(t('entry.imagesAttached', { n: dateien.length }));
             drawComments();
           } catch (e) { toast(e.message, true); }
@@ -7104,20 +7104,20 @@ async function renderDetail(id, begriffAdresse) {
       };
       box.appendChild(el);
     });
-    ruesteBloeckeAus(item);
+    setUpBlocksOut(item);
   }
   /* ---- Neuer Kommentar ---- */
   // Bilder werden hier gesammelt und erst mit dem Absenden geschickt: der
   // Kommentar hat noch keine Id, und bei einem Abbruch entstuende sonst ein
   // leerer Kommentar mit Bildern.
   const fitCtext = autoGrow(document.getElementById('ctext'));
-  let neueBilder = [];
-  let neuAngepinnt = false, neueArt = 'note';
+  let newImages = [];
+  let newPinned = false, neueArt = 'note';
 
-  function drawNeuMarken() {
+  function drawNewMarks() {
     const pin = document.getElementById('cpin');
-    pin.classList.toggle('on', neuAngepinnt);
-    pin.title = neuAngepinnt ? t('entry.unpin') : t('entry.pinHint');
+    pin.classList.toggle('on', newPinned);
+    pin.title = newPinned ? t('entry.unpin') : t('entry.pinHint');
     const art = document.getElementById('cart');
     art.classList.toggle('on', neueArt === 'report');
     art.textContent = V.berichtEinzahl;
@@ -7131,35 +7131,35 @@ async function renderDetail(id, begriffAdresse) {
       : neueArt === 'task' ? t('list.setDone')
                            : t('entry.markTask');
   }
-  function drawNeuBilder() {
+  function drawNewImages() {
     const box = document.getElementById('cneu-imgs');
     box.innerHTML = '';
-    neueBilder.forEach((f, i) => {
+    newImages.forEach((f, i) => {
       const k = document.createElement('div');
       k.className = 'cmt-img';
       const url = URL.createObjectURL(f);
       k.innerHTML = `<img src="${url}" alt=""><button class="del" title="${esc(t('entry.removeAgain'))}">${ICON_KREUZ}</button>`;
       // Die erzeugte Adresse wieder freigeben, sobald das Bild steht.
       k.querySelector('img').onload = () => URL.revokeObjectURL(url);
-      k.querySelector('.del').onclick = () => { neueBilder.splice(i, 1); drawNeuBilder(); };
+      k.querySelector('.del').onclick = () => { newImages.splice(i, 1); drawNewImages(); };
       box.appendChild(k);
     });
   }
-  const nimmBilder = (dateien) => {
+  const takeImages = (dateien) => {
     const bilder = dateien.filter(f => f.type.startsWith(t('entry.imagePrefix')));
     if (!bilder.length) return;
-    if (neueBilder.length + bilder.length > 6) return toast(t('entry.imageCapHint'), true);
-    neueBilder = [...neueBilder, ...bilder];
-    drawNeuBilder();
+    if (newImages.length + bilder.length > 6) return toast(t('entry.imageCapHint'), true);
+    newImages = [...newImages, ...bilder];
+    drawNewImages();
   };
-  drawNeuMarken();
+  drawNewMarks();
 
-  document.getElementById('cpin').onclick = () => { neuAngepinnt = !neuAngepinnt; drawNeuMarken(); };
+  document.getElementById('cpin').onclick = () => { newPinned = !newPinned; drawNewMarks(); };
   document.getElementById('cart').onclick =
-    () => { neueArt = neueArt === 'report' ? 'note' : 'report'; drawNeuMarken(); };
+    () => { neueArt = neueArt === 'report' ? 'note' : 'report'; drawNewMarks(); };
   document.getElementById('caufg').onclick =
-    () => { neueArt = aufgabeWeiter(neueArt); drawNeuMarken(); };
-  document.getElementById('cimg').onclick = () => waehleBilder(nimmBilder);
+    () => { neueArt = taskMore(neueArt); drawNewMarks(); };
+  document.getElementById('cimg').onclick = () => waehleBilder(takeImages);
 
   /* Der Sprung ans Schreibfeld. ZUERST AUFKLAPPEN, DANN SPRINGEN: ein
      eingeklappter Block stellt seine Kinder auf display: none, und ein Sprung
@@ -7169,21 +7169,21 @@ async function renderDetail(id, begriffAdresse) {
      scrollIntoView VOR focus(): focus() rollt von sich aus hart an den Rand,
      die weiche Bewegung davor gibt dem Feld seinen Platz in der Mitte. */
   document.getElementById('cjump').onclick = () => {
-    if (BLOECKE.zu.includes('kommentare')) {
-      BLOECKE.zu = BLOECKE.zu.filter(k => k !== 'kommentare');
-      speichereBloecke();
-      ruesteBloeckeAus(item);
+    if (BLOCKS.zu.includes('kommentare')) {
+      BLOCKS.zu = BLOCKS.zu.filter(k => k !== 'kommentare');
+      saveBlocks();
+      setUpBlocksOut(item);
     }
-    const feld = document.getElementById('ctext');
-    if (!feld) return;
-    feld.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    feld.focus({ preventScroll: true });
+    const field = document.getElementById('ctext');
+    if (!field) return;
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    field.focus({ preventScroll: true });
   };
   document.getElementById('ctext').addEventListener('paste', (e) => {
     const bilder = bilderAusZwischenablage(e);
     if (!bilder.length) return;   // Text weiterhin normal einfügen
     e.preventDefault();
-    nimmBilder(bilder);
+    takeImages(bilder);
   });
 
   document.getElementById('cadd').onclick = async () => {
@@ -7193,13 +7193,13 @@ async function renderDetail(id, begriffAdresse) {
     const fd = new FormData();
     fd.append('text', v);
     fd.append('kind', neueArt);
-    fd.append('pinned', neuAngepinnt ? '1' : '0');
-    neueBilder.forEach(f => fd.append('images', f));
+    fd.append('pinned', newPinned ? '1' : '0');
+    newImages.forEach(f => fd.append('images', f));
     try {
-      item = await sendeFormular(`/api/items/${id}/comments`, fd);
+      item = await sendForm(`/api/items/${id}/comments`, fd);
       ta.value = ''; fitCtext();
-      neueBilder = []; neuAngepinnt = false; neueArt = 'note';
-      drawNeuBilder(); drawNeuMarken(); drawComments();
+      newImages = []; newPinned = false; neueArt = 'note';
+      drawNewImages(); drawNewMarks(); drawComments();
     } catch (e) { toast(e.message, true); }
   };
 
@@ -7231,7 +7231,7 @@ async function renderDetail(id, begriffAdresse) {
       ...zaehl(b.eigenBewertungen, V.bewertungEinzahl, V.bewertungMehrzahl),
       ...(b.eigenTesttage ? [`${b.eigenTesttage} ${vZeit(b.eigenTesttage)}`] : [])
     ];
-    const fremd = [
+    const foreign = [
       ...zaehl(b.fremdLinks, t('dialog.link'), t('dialog.links')),
       ...zaehl(b.fremdDateien, t('dialog.file'), t('dialog.files')),
       ...zaehl(b.fremdKommentare, t('dialog.comment'), t('dialog.comments')),
@@ -7247,8 +7247,8 @@ async function renderDetail(id, begriffAdresse) {
     const saetze = [t('entry.titleDeleteHint', { title: item.title })];
     if (inhalt.length) saetze.push(t('entry.alsoGoes', { was: inhalt.join(', ') }));
     if (eigen.length) saetze.push(t('entry.alsoFromMe', { was: eigen.join(', ') }));
-    if (fremd.length) saetze.push(t('entry.andFromOthers', { was: fremd.join(', ') }));
-    saetze.push(t('entry.trashHint', { papierkorbTage: PAPIERKORB_TAGE }) +
+    if (foreign.length) saetze.push(t('entry.andFromOthers', { was: foreign.join(', ') }));
+    saetze.push(t('entry.trashHint', { papierkorbTage: TRASH_DAYS }) +
       t('entry.restoreOwnerOnly'));
 
     if (!await confirmBox(t('entry.deleteEntryAsk'), saetze.join(' '))) return;
@@ -7257,11 +7257,11 @@ async function renderDetail(id, begriffAdresse) {
   });
 
   // Ab hier kann das Aufklappen des Tagblocks die Wolke nachmessen lassen.
-  wolkeNeuzeichnen = drawWolke;
+  wolkeNeuzeichnen = drawCloud;
 
   // Gespeicherte Anordnung anwenden, bevor die Blöcke gefüllt werden.
-  ordneBloecke();
-  drawViewer(); drawThumbs(); drawSwitches(); drawVerfasser(); drawCat(); drawTags();
+  sortBlocks();
+  drawViewer(); drawThumbs(); drawSwitches(); drawAuthor(); drawCat(); drawTags();
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
 }
 
@@ -7279,7 +7279,7 @@ async function renderDetail(id, begriffAdresse) {
    kann sie nachzaehlen, statt sie im Markup zu suchen.
 
    DIE KLEMME IST EIN FELD UND KEINE KLAMMER. Vorher stand vor jeder Karte ein
-   `${ADMIN ? ...}` im Markup; jetzt steht sie in `sichtbar`. Das ist derselbe
+   `${ADMIN ? ...}` im Markup; jetzt steht sie in `visible`. Das ist derselbe
    Wert an einer Stelle, an der man ihn ansehen kann: kein Zugang bekommt
    danach eine Karte, die ihm vorher verwehrt war, und keiner verliert eine.
 
@@ -7306,7 +7306,7 @@ async function renderDetail(id, begriffAdresse) {
 /* DIE NAMEN SIND RUFE UND KEINE WERTE -- 0.24.0. Diese Zeile wird beim Laden
    der Datei ausgewertet, die Sprachdatei kommt erst danach: ein Wert stuende
    fuer immer als ⟦card.personal⟧ am Reiter. Gefragt wird beim Zeichnen.
-   Dieselbe Ueberlegung wie bei FUND_WORTE und bestaetigungGrund(). */
+   Dieselbe Ueberlegung wie bei FINDING_WORDS und confirmReason(). */
 const SYS_ABSCHNITTE = [
   { schluessel: 'persoenlich',  name: () => t('card.personal') },
   { schluessel: 'bestand',      name: () => t('card.inventory') },
@@ -7379,12 +7379,12 @@ document.addEventListener('click', e => {
    vier solche Befehle im Fliesstext, einen davon sah jeder Benutzer.
    JEDER AUFRUF STEHT MIT SEINEM BEFEHL AUF EINER ZEILE `serverKasten(`, damit
    der Pruefstand die Befehle zaehlen und dem Kasten zuordnen kann. */
-function serverKasten(satz, befehl) {
-  if (!EIGENTUEMER) return '';
+function serverKasten(sentence, command) {
+  if (!OWNER) return '';
   return `<div class="server-kasten"><div class="server-kopf">${tH('card.onTheServer')}</div>
-    <p class="desc">${esc(satz)}</p>
-    <div class="server-zeile"><code>${esc(befehl)}</code><button type="button" class="btn btn-sm"
-      data-kopie="${esc(befehl)}">${tH('card.copy')}</button></div></div>`;
+    <p class="desc">${esc(sentence)}</p>
+    <div class="server-zeile"><code>${esc(command)}</code><button type="button" class="btn btn-sm"
+      data-kopie="${esc(command)}">${tH('card.copy')}</button></div></div>`;
 }
 
 /* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE -- 0.22.0, Konzept 4.5. Ein
@@ -7401,17 +7401,17 @@ const mehr = (html) => `<details class="mehr"><summary>${tH('card.more')}</summa
    Toast. */
 function gespeichert(el = document.activeElement) {
   toast(t('list.saved'));
-  const karte = el && el.closest ? el.closest('.sys-card') : null;
-  if (!karte) return;
-  karte.classList.remove('gespeichert');
-  void karte.offsetWidth;   // erzwingt den Neustart der Animation
-  karte.classList.add('gespeichert');
-  karte.addEventListener('animationend', () => karte.classList.remove('gespeichert'), { once: true });
+  const card = el && el.closest ? el.closest('.sys-card') : null;
+  if (!card) return;
+  card.classList.remove('gespeichert');
+  void card.offsetWidth;   // erzwingt den Neustart der Animation
+  card.classList.add('gespeichert');
+  card.addEventListener('animationend', () => card.classList.remove('gespeichert'), { once: true });
 }
 
 
 /* ---- DIE NEUNZEHN KARTEN ----
-   `sichtbar` ist die Klemme, `markup` das Aussehen, `ausruesten` die
+   `visible` ist die Klemme, `markup` das Aussehen, `ausruesten` die
    Behandler. Eine Karte ohne Behandler laesst `ausruesten` weg, und eine leere
    Funktion daneben waere eine Zeile, die behauptet, es gaebe dort etwas zu tun.
    "Kennzahlen" ist wieder die einzige ohne: sie zeigt nur Zahlen.
@@ -7427,56 +7427,56 @@ function gespeichert(el = document.activeElement) {
    fuer fuenf Formatzeilen, einen Schalter mit Erlaeuterung, einen Knopf, eine
    Fortschrittszeile und eine Meldung nicht mehr. */
 const SYS_KARTEN = [
-  { schluessel: 'zugang',       abschnitt: 'persoenlich', sichtbar: () => true,
-    markup: karteZugang,       ausruesten: ruesteZugangAus },
-  { schluessel: 'sitzungen',    abschnitt: 'persoenlich', sichtbar: () => true,
-    markup: karteSitzungen,    ausruesten: ruesteSitzungenAus },
-  { schluessel: 'darstellung',  abschnitt: 'persoenlich', sichtbar: () => true,
-    markup: karteDarstellung,  ausruesten: ruesteDarstellungAus },
+  { schluessel: 'zugang',       abschnitt: 'persoenlich', visible: () => true,
+    markup: cardUser,       ausruesten: setUpUserOut },
+  { schluessel: 'sitzungen',    abschnitt: 'persoenlich', visible: () => true,
+    markup: cardSessions,    ausruesten: setUpSessionsOut },
+  { schluessel: 'darstellung',  abschnitt: 'persoenlich', visible: () => true,
+    markup: cardAppearance,  ausruesten: setUpAppearanceOut },
 
-  { schluessel: 'kategorien',   abschnitt: 'bestand', sichtbar: () => true,
-    markup: karteKategorien,   ausruesten: ruesteKategorienAus },
-  { schluessel: 'tags',         abschnitt: 'bestand', sichtbar: () => true,
-    markup: karteTags,         ausruesten: ruesteTagsAus },
-  { schluessel: 'kriterien',    abschnitt: 'bestand', sichtbar: () => true,
-    markup: () => karteKriterien('nachher'),
-    ausruesten: (g) => ruesteKriterienAus(g, 'nachher') },
+  { schluessel: 'kategorien',   abschnitt: 'bestand', visible: () => true,
+    markup: cardCategories,   ausruesten: setUpCategoriesOut },
+  { schluessel: 'tags',         abschnitt: 'bestand', visible: () => true,
+    markup: cardTags,         ausruesten: setUpTagsOut },
+  { schluessel: 'kriterien',    abschnitt: 'bestand', visible: () => true,
+    markup: () => cardCriteria('nachher'),
+    ausruesten: (g) => setUpCriteriaOut(g, 'nachher') },
   /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. Sichtbar
      fuer alle, bedienbar fuer den Admin, wie die Nachbarkarte: die Namen sind
      die Auswahl, aus der jeder am Eintrag schoepft.
      ZWEI KARTEN, EINE MASCHINE: dieselbe `manage-list`, derselbe Eintrag
      `crit`, dasselbe Ziehen, dasselbe Gewichtsfeld. Nur die Liste ist nach
      Phase gefiltert, und `POST` schickt die Phase mit. */
-  { schluessel: 'potenzialkriterien', abschnitt: 'bestand', sichtbar: () => true,
-    markup: () => karteKriterien('vorher'),
-    ausruesten: (g) => ruesteKriterienAus(g, 'vorher') },
-  { schluessel: 'vokabular',    abschnitt: 'bestand', sichtbar: () => ADMIN,
-    markup: karteVokabular,    ausruesten: ruesteVokabularAus },
-  { schluessel: 'links',        abschnitt: 'bestand', sichtbar: () => true,
-    markup: karteLinks,        ausruesten: ruesteLinksAus },
-  { schluessel: 'suchanbieter', abschnitt: 'bestand', sichtbar: () => ADMIN,
-    markup: karteSuchanbieter, ausruesten: ruesteSuchanbieterAus },
-  { schluessel: 'papierkorb',   abschnitt: 'bestand', sichtbar: () => ADMIN,
-    markup: kartePapierkorb,   ausruesten: ruestePapierkorbAus },
+  { schluessel: 'potenzialkriterien', abschnitt: 'bestand', visible: () => true,
+    markup: () => cardCriteria('vorher'),
+    ausruesten: (g) => setUpCriteriaOut(g, 'vorher') },
+  { schluessel: 'vokabular',    abschnitt: 'bestand', visible: () => ADMIN,
+    markup: cardVocabulary,    ausruesten: setUpVocabularyOut },
+  { schluessel: 'links',        abschnitt: 'bestand', visible: () => true,
+    markup: cardLinks,        ausruesten: setUpLinksOut },
+  { schluessel: 'suchanbieter', abschnitt: 'bestand', visible: () => ADMIN,
+    markup: cardSearchProvider, ausruesten: setUpSearchProviderOut },
+  { schluessel: 'papierkorb',   abschnitt: 'bestand', visible: () => ADMIN,
+    markup: cardTrash,   ausruesten: setUpTrashOut },
 
-  { schluessel: 'zugaenge',     abschnitt: 'zugaenge', sichtbar: () => ADMIN,
-    markup: karteZugaenge,     ausruesten: ruesteZugaengeAus },
-  { schluessel: 'anfragen',     abschnitt: 'zugaenge', sichtbar: (g) => ADMIN && !!g.anfragen,
-    markup: karteAnfragen,     ausruesten: ruesteAnfragenAus },
-  { schluessel: 'protokoll',    abschnitt: 'zugaenge', sichtbar: (g) => EIGENTUEMER && !!g.protokoll,
-    markup: karteProtokoll,    ausruesten: ruesteProtokollAus },
-  { schluessel: 'mailversand',  abschnitt: 'zugaenge', sichtbar: (g) => EIGENTUEMER && !!g.mailstand,
-    markup: karteMailversand,  ausruesten: ruesteMailversandAus },
+  { schluessel: 'zugaenge',     abschnitt: 'zugaenge', visible: () => ADMIN,
+    markup: cardUsers,     ausruesten: setUpUsersOut },
+  { schluessel: 'anfragen',     abschnitt: 'zugaenge', visible: (g) => ADMIN && !!g.anfragen,
+    markup: cardRequests,     ausruesten: setUpRequestsOut },
+  { schluessel: 'protokoll',    abschnitt: 'zugaenge', visible: (g) => OWNER && !!g.log,
+    markup: cardLog,    ausruesten: setUpLogOut },
+  { schluessel: 'mailversand',  abschnitt: 'zugaenge', visible: (g) => OWNER && !!g.mailstand,
+    markup: cardMailDelivery,  ausruesten: setUpMailDeliveryOut },
 
-  { schluessel: 'kennzahlen',   abschnitt: 'datenbank', sichtbar: () => ADMIN,
+  { schluessel: 'kennzahlen',   abschnitt: 'datenbank', visible: () => ADMIN,
     markup: karteKennzahlen },
-  { schluessel: 'bildablage',   abschnitt: 'datenbank', sichtbar: () => ADMIN,
-    markup: karteBildablage,   ausruesten: ruesteBildablageAus },
-  { schluessel: 'sicherung',    abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
-    markup: karteSicherung,    ausruesten: ruesteSicherungAus },
+  { schluessel: 'bildablage',   abschnitt: 'datenbank', visible: () => ADMIN,
+    markup: cardImageStore,   ausruesten: setUpImageStoreOut },
+  { schluessel: 'sicherung',    abschnitt: 'datenbank', visible: () => OWNER,
+    markup: cardBackup,    ausruesten: setUpBackupOut },
   /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und nicht
      zufaellig: die eine Karte legt Kopien an, die andere raeumt sie weg.
-     DIESELBE KLEMME WIE DIE KARTE DANEBEN -- `EIGENTUEMER`.
+     DIESELBE KLEMME WIE DIE KARTE DANEBEN -- `OWNER`.
      WARUM SIE NICHT IN DIE VORHANDENE PASST: die Karte "Sicherung" traegt
      heute schon bis zu drei Zustandskaesten, vier Kennzahlzeilen, das Feld
      fuer den Zielort mit eigenem Knopf und den Sicherungsknopf. Dazu kaemen
@@ -7484,13 +7484,13 @@ const SYS_KARTEN = [
      UND EIN LOESCHKNOPF GEHOERT NICHT UNTER DEN SICHERUNGSKNOPF: die beiden
      Vorgaenge sind gegenlaeufig und stuenden untereinander in derselben
      Kachel -- die Verwechslung waere nicht wiedergutzumachen. */
-  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
-    markup: karteAufraeumen,   ausruesten: ruesteAufraeumenAus },
-  { schluessel: 'export',       abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
-    markup: karteExport,       ausruesten: ruesteExportAus },
+  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', visible: () => OWNER,
+    markup: cardCleanup,   ausruesten: setUpCleanupOut },
+  { schluessel: 'export',       abschnitt: 'datenbank', visible: () => OWNER,
+    markup: cardExport,       ausruesten: setUpExportOut },
 
-  { schluessel: 'titel',        abschnitt: 'installation', sichtbar: () => ADMIN,
-    markup: karteTitel,        ausruesten: ruesteTitelAus }
+  { schluessel: 'titel',        abschnitt: 'installation', visible: () => ADMIN,
+    markup: cardTitle,        ausruesten: setUpTitleOut }
 ];
 
 /* WELCHE ABSCHNITTE FUER DIESEN ZUGANG ETWAS ZU ZEIGEN HABEN. Ein Abschnitt
@@ -7501,7 +7501,7 @@ const SYS_KARTEN = [
    nie ins Leere. */
 function sysSichtbareAbschnitte(geholt) {
   return SYS_ABSCHNITTE.filter(a =>
-    SYS_KARTEN.some(k => k.abschnitt === a.schluessel && k.sichtbar(geholt)));
+    SYS_KARTEN.some(k => k.abschnitt === a.schluessel && k.visible(geholt)));
 }
 
 
@@ -7526,30 +7526,30 @@ async function renderSystem() {
        Zusage weiter, auch wenn das Fenster laengst zu ist (Stolperstein 118).
        Es sind elf Abrufe. */
     [geholt.stats, geholt.titles, geholt.cats, geholt.tags, geholt.crits, geholt.zugang,
-     geholt.papierkorb, geholt.sicherung, geholt.sitzungen, geholt.protokoll,
+     geholt.papierkorb, geholt.sicherung, geholt.sitzungen, geholt.log,
      geholt.mailstand, geholt.anfragen] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null,
-      EIGENTUEMER ? api('GET', '/api/sicherung') : null, api('GET', '/api/sessions'),
-      EIGENTUEMER ? api('GET', '/api/sicherheitsprotokoll') : null,
-      EIGENTUEMER ? api('GET', '/api/mail') : null,
+      OWNER ? api('GET', '/api/sicherung') : null, api('GET', '/api/sessions'),
+      OWNER ? api('GET', '/api/sicherheitsprotokoll') : null,
+      OWNER ? api('GET', '/api/mail') : null,
       ADMIN ? api('GET', '/api/anfragen') : null
     ]);
   } catch (e) { if (e.message !== t('dialog.sessionExpired')) toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
-  if (geholt.papierkorb && geholt.papierkorb.tage) PAPIERKORB_TAGE = geholt.papierkorb.tage;
+  if (geholt.papierkorb && geholt.papierkorb.tage) TRASH_DAYS = geholt.papierkorb.tage;
 
   /* WELCHER ABSCHNITT OFFEN IST, ENTSCHEIDET DIE ADRESSE -- und wenn die auf
      einen zeigt, den es fuer diesen Zugang nicht gibt, faellt sie auf den
      ersten sichtbaren zurueck. Ins Leere zeigen darf sie nicht: wer den Link
      eines Admins bekommt und ihn als gewoehnlicher Benutzer oeffnet, saehe
      sonst eine leere Seite. */
-  const sichtbare = sysSichtbareAbschnitte(geholt);
+  const visibleOnes = sysSichtbareAbschnitte(geholt);
   const ausDerAdresse = (SYS_MUSTER.exec(location.hash || '') || [])[1] || '';
   const gewuenscht = ausDerAdresse;
-  const offen = sichtbare.find(a => a.schluessel === gewuenscht) || sichtbare[0];
-  const karten = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.sichtbar(geholt));
+  const offen = visibleOnes.find(a => a.schluessel === gewuenscht) || visibleOnes[0];
+  const cards = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.visible(geholt));
 
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">${tH('list.backToList')}</a>
@@ -7565,15 +7565,15 @@ async function renderSystem() {
          laesst sich kopieren, in einem neuen Fenster oeffnen und mit der
          Zurueck-Taste verlassen -- ein Knopf koennte davon nichts. */''}
     <nav class="sys-reiter" aria-label="${esc(t('card.sectionsHint'))}">
-      ${sichtbare.map(a => `<a class="sys-reiter-k${a === offen ? ' on' : ''}"
+      ${visibleOnes.map(a => `<a class="sys-reiter-k${a === offen ? ' on' : ''}"
         href="${sysAdresse(a.schluessel)}" data-abschnitt="${esc(a.schluessel)}"${
         a === offen ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
     </nav>
     <div class="sys-grid">
-      ${karten.map(k => k.markup(geholt)).join('\n')}
+      ${cards.map(k => k.markup(geholt)).join('\n')}
     </div></div>`;
 
-  for (const k of karten) if (k.ausruesten) k.ausruesten(geholt);
+  for (const k of cards) if (k.ausruesten) k.ausruesten(geholt);
 
   /* DIE ADRESSE WIRD NACHGEZOGEN, NICHT DIE ANSICHT VERBOGEN. Stuende in der
      Adresse weiter "datenbank", waehrend "Persoenlich" dasteht, gaebe es zwei
@@ -7590,7 +7590,7 @@ async function renderSystem() {
 
 
 /* ---- Karte „Titel" — Abschnitt „Installation" ---- */
-function karteTitel(geholt) {
+function cardTitle(geholt) {
   const { titles } = geholt;
   return `<div class="sys-card">
         <h3>${tH('list.title')}</h3>
@@ -7602,7 +7602,7 @@ function karteTitel(geholt) {
         <button class="btn btn-accent btn-sm" id="tsave">${tH('card.saveTitle')}</button>
       </div>`;
 }
-function ruesteTitelAus() {
+function setUpTitleOut() {
   amElement('tsave', tsave => tsave.onclick = async () => {
     const p = document.getElementById('tp').value.trim();
     const a = document.getElementById('ta2').value.trim();
@@ -7631,7 +7631,7 @@ function ruesteTitelAus() {
    den Betrieb und kein Weg. Für ihn steht dort der Satz, der wirklich hilft.
    WAS HILFT DEM, DER DAVORSTEHT — und was erzählt ihm nur, wie es gebaut ist?
    Eine Oberfläche sagt, WAS IST (Projektstand 5.6). */
-function karteZugang(geholt) {
+function cardUser(geholt) {
   const { zugang } = geholt;
   return `<div class="sys-card">
         <h3>${tH('card.myAccount')}</h3>
@@ -7657,7 +7657,7 @@ function karteZugang(geholt) {
               gehört sie nicht hin, und wer sie dort las, hielt sie für eine
               Vorgabe an die Adresse. */''}
         <div class="field"><label>${tH('dialog.newPassword')}
-          <span class="hint">${tH('card.minCharsHint', { minPasswort: MIN_PASSWORT })}</span></label>
+          <span class="hint">${tH('card.minCharsHint', { minPasswort: MIN_PASSWORD })}</span></label>
           <input class="input" id="acc-new" type="password" autocomplete="new-password"></div>
         <div class="field"><label>${tH('card.repeatNewPassword')}</label>
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
@@ -7680,39 +7680,39 @@ function karteZugang(geholt) {
         <div class="zf-block" id="zf-block"></div>
       </div>`;
 }
-function ruesteZugangAus(geholt) {
+function setUpUserOut(geholt) {
   document.getElementById('acc-save').onclick = async () => {
-    const alt = document.getElementById('acc-old').value;
+    const old = document.getElementById('acc-old').value;
     const name = document.getElementById('acc-user').value.trim();
     const neu1 = document.getElementById('acc-new').value;
     const neu2 = document.getElementById('acc-new2').value;
     const adresse = document.getElementById('acc-mail').value.trim();
-    if (!alt) return toast(t('card.oldPasswordNeeded'), true);
+    if (!old) return toast(t('card.oldPasswordNeeded'), true);
     if (!name) return toast(t('login.usernameMissing'), true);
     if (neu1 !== neu2) return toast(t('card.passwordsDiffer'), true);
-    if (neu1 && neu1.length < MIN_PASSWORT)
-      return toast(t('login.passwordTooShort', { min: MIN_PASSWORT }), true);
+    if (neu1 && neu1.length < MIN_PASSWORD)
+      return toast(t('login.passwordTooShort', { min: MIN_PASSWORD }), true);
     try {
       // Die Adresse geht IMMER mit, auch leer: der Server unterscheidet
       // „nicht angefasst“ (Feld fehlt) von „löschen“ (leer). Das Formular
       // zeigt den heutigen Wert an, also ist ein leeres Feld hier wirklich
       // die Ansage, sie zu entfernen.
       const r = await api('PUT', '/api/account', {
-        oldPassword: alt, username: name, newPassword: neu1, email: adresse
+        oldPassword: old, username: name, newPassword: neu1, email: adresse
       });
       toast(r.passwortGewechselt ? t('card.passwordChanged') : t('list.saved'));
       // Die Kopfzeile nennt den Namen. Ohne diese Zeile stuende dort bis zum
-      // naechsten Laden der Seite der alte -- ladeEinstellungen() laeuft nur
+      // naechsten Laden der Seite der alte -- loadSettings() laeuft nur
       // beim Start.
       NAME = name;
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
   };
-  zeichneZweifaktor(geholt.zugang.zweifaktor);
+  drawTwoFactor(geholt.zugang.zweifaktor);
 }
 
   /* --- Der zweite Faktor in der Karte „Zugang“ ---
-     DIESELBE BAUFORM WIE zeichneAnfragen(): der Stand kommt vom Server, die
+     DIESELBE BAUFORM WIE drawRequests(): der Stand kommt vom Server, die
      Karte zeichnet sich nach jeder Handlung aus der ANTWORT der Handlung neu
      und fragt nicht ein zweites Mal nach. Ein Server, der auf ein Einschalten
      zwar „ok“ sagt, aber denselben Stand zurückgibt, fällt damit auf
@@ -7720,14 +7720,14 @@ function ruesteZugangAus(geholt) {
      DER ANGEZEIGTE ZUSTAND KOMMT AUS DER ANTWORT UND WIRD HIER NIE GERATEN —
      „an“, der Zeitpunkt und die Zahl der übrigen Codes stehen alle im Feld
      `zweifaktor` von GET /api/account (Stolperstein 102). */
-  function zeichneZweifaktor(stand) {
+  function drawTwoFactor(status) {
     const box = document.getElementById('zf-block');
-    if (!box || !stand) return;
-    box.innerHTML = stand.an ? `
+    if (!box || !status) return;
+    box.innerHTML = status.an ? `
       <div class="zf-zustand zf-an">
-        <strong>${tH('card.twoFactorIsOn')}</strong> ${tH('card.twoFactorSinceHint', { seit: fmtDate(stand.seit) })}
+        <strong>${tH('card.twoFactorIsOn')}</strong> ${tH('card.twoFactorSinceHint', { seit: fmtDate(status.seit) })}
         <div class="zf-codestand">${tH('card.recoveryCodes')}
-          <strong>${tH('card.codesLeft', { codesOffen: stand.codesOffen, codesGesamt: stand.codesGesamt })}</strong>${stand.codesOffen <= 2
+          <strong>${tH('card.codesLeft', { codesOffen: status.codesOffen, codesGesamt: status.codesGesamt })}</strong>${status.codesOffen <= 2
             ? ` — <strong>${tH('card.codesRunningOut')}</strong>` : ''}</div>
       </div>
       <div class="row-in" style="margin-top:10px">
@@ -7743,13 +7743,13 @@ function ruesteZugangAus(geholt) {
        offensichtliche und genauso wichtige Fall — eine übernommene offene
        Anmeldung könnte sonst einen zweiten Faktor auf ein FREMDES Telefon
        legen und dich damit aussperren. */
-    const frag = (titel, was, mitCode) => bestaetigungsFeldFrei(titel, was, mitCode);
+    const frag = (titel, was, withCode) => confirmFieldFree(titel, was, withCode);
 
     amElement('zf-an', b => b.onclick = async () => {
       const e = await frag(t('card.twoFactorOn'),
         t('card.passwordNeeded'), false);
       if (e === null) return;
-      try { zeigeGeheimnis(await api('POST', '/api/zweifaktor/start', { passwort: e.passwort })); }
+      try { showSecret(await api('POST', '/api/zweifaktor/start', { passwort: e.passwort })); }
       catch (err) { toast(err.message, true); }
     });
 
@@ -7759,8 +7759,8 @@ function ruesteZugangAus(geholt) {
       if (e === null) return;
       try {
         const r = await api('POST', '/api/zweifaktor/codes', e);
-        zeichneZweifaktor(r);
-        zeigeWiederCodes(r.codes);
+        drawTwoFactor(r);
+        showAgainCodes(r.codes);
         toast(t('card.recoveryCodesMade'));
       } catch (err) { toast(err.message, true); }
     });
@@ -7771,8 +7771,8 @@ function ruesteZugangAus(geholt) {
         t('card.becomeInvalid'), true);
       if (e === null) return;
       try {
-        zeichneZweifaktor(await api('DELETE', '/api/zweifaktor', e));
-        ZWEIFAKTOR = false;
+        drawTwoFactor(await api('DELETE', '/api/zweifaktor', e));
+        TWO_FACTOR = false;
         toast(t('card.twoFactorTurnedOff'));
       } catch (err) { toast(err.message, true); }
     });
@@ -7784,7 +7784,7 @@ function ruesteZugangAus(geholt) {
      Telefon öffnet der die App unmittelbar.
      DER SCHLÜSSEL IST DIE ZUSAGE, DER LINK IST DIE BEQUEMLICHKEIT. Deshalb
      steht der abtippbare Wert oben und groß, nicht der Link. */
-  function zeigeGeheimnis(d) {
+  function showSecret(d) {
     const box = document.getElementById('zf-block');
     if (!box) return;
     box.innerHTML = `
@@ -7806,7 +7806,7 @@ function ruesteZugangAus(geholt) {
         <button class="btn btn-accent btn-sm" id="zf-fertig">${tH('card.turnOn')}</button>
         <button class="btn btn-ghost btn-sm" id="zf-abbruch">${tH('dialog.cancel')}</button>
       </div>`;
-    const feld = document.getElementById('zf-probe');
+    const field = document.getElementById('zf-probe');
     document.getElementById('zf-kopie').onclick = () => {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(d.geheim).then(() => toast(t('card.keyCopied')),
@@ -7815,73 +7815,73 @@ function ruesteZugangAus(geholt) {
     };
     document.getElementById('zf-abbruch').onclick = () => renderSystem();
     document.getElementById('zf-fertig').onclick = async () => {
-      const e = await bestaetigungsFeldFrei(t('card.twoFactorOn'),
+      const e = await confirmFieldFree(t('card.twoFactorOn'),
         t('card.passwordAgainHint'), false);
       if (e === null) return;
       try {
-        const r = await api('POST', '/api/zweifaktor/an', { passwort: e.passwort, code: feld.value });
-        zeichneZweifaktor(r);
-        zeigeWiederCodes(r.codes);
-        ZWEIFAKTOR = true;
+        const r = await api('POST', '/api/zweifaktor/an', { passwort: e.passwort, code: field.value });
+        drawTwoFactor(r);
+        showAgainCodes(r.codes);
+        TWO_FACTOR = true;
         toast(t('card.twoFactorTurnedOn'));
       } catch (err) { toast(err.message, true); }
     };
-    feld.focus();
+    field.focus();
   }
 
   /* DIE WIEDERHERSTELLUNGSCODES WERDEN GENAU EINMAL GEZEIGT, und der Bildschirm
      sagt es an derselben Stelle — mit demselben Ernst wie beim Einladungslink,
      und im selben Kasten. Sie kommen danach nicht wieder: in der Datenbank
      steht nur ihr SHA-256. */
-  function zeigeWiederCodes(codes) {
+  function showAgainCodes(codes) {
     const box = document.getElementById('zf-block');
     if (!box || !Array.isArray(codes)) return;
-    const kasten = document.createElement('div');
-    kasten.className = 'warn-box zf-codes';
-    kasten.id = 'zf-codes';
-    kasten.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
+    const boxId = document.createElement('div');
+    boxId.className = 'warn-box zf-codes';
+    boxId.id = 'zf-codes';
+    boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
       ${tH('card.recoveryCodesHint')} <strong>${tH('card.once')}</strong> ${tH('card.replacesAppCode')}
       <div class="zf-codeliste">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
       ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER (Stolperstein
            315). Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
       ${serverKasten(t('card.twoFactorOffUser'), 'docker compose exec kriterion node zugang.js zweifaktor <name>')}`;
-    box.appendChild(kasten);
+    box.appendChild(boxId);
   }
 
 
 /* ---- Karte „Meine Sitzungen" — Abschnitt „Persönlich" ---- */
-function karteSitzungen() {
+function cardSessions() {
   return `<div class="sys-card">
         <h3>${tH('card.mySessions')}</h3>
         <p class="desc">${tH('card.sessionsHint')}</p>
         <div class="manage-list" id="msitzungen"></div>
       </div>`;
 }
-function ruesteSitzungenAus(geholt) {
-  zeichneSitzungen(geholt.sitzungen);
+function setUpSessionsOut(geholt) {
+  drawSessions(geholt.sitzungen);
 }
 
   /* --- Meine Sitzungen ---
      Gezeichnet wird aus dem, was oben schon geholt wurde -- eine Karte, die
      sich beim Einhaengen selbst nachlaedt, laeuft als herrenlose Zusage
-     weiter. Nach einem Beenden holt sitzungenNeu() die Liste noch einmal und
+     weiter. Nach einem Beenden holt sessionsNew() die Liste noch einmal und
      zeichnet NUR diese Karte: ein Neuaufbau des ganzen Systembereichs leerte
      die Passwortfelder daneben.
      JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
      soll die Karte etwas sagen und nicht der Lauf abreissen. */
-  function zeichneSitzungen(d) {
+  function drawSessions(d) {
     const box = document.getElementById('msitzungen');
     if (!box) return;
     const dok = box.ownerDocument;
-    const liste = (d && Array.isArray(d.sitzungen)) ? d.sitzungen : null;
-    if (!liste) {
+    const list = (d && Array.isArray(d.sitzungen)) ? d.sitzungen : null;
+    if (!list) {
       box.innerHTML = `<span class="hint">${tH('card.loginsLoadFailed')}</span>`;
       return;
     }
     box.innerHTML = '';
-    const andere = liste.filter(z => !z.diese).length;
-    for (const z of liste) {
+    const other = list.filter(z => !z.diese).length;
+    for (const z of list) {
       const row = dok.createElement('div');
       row.className = 'mrow sitz' + (z.diese ? ' sitz-ich' : '');
       row.dataset.kennung = z.kennung || '';
@@ -7897,7 +7897,7 @@ function ruesteSitzungenAus(geholt) {
         w.querySelector('.sitz-x').onclick = async () => {
           try { await api('DELETE', `/api/sessions/${z.kennung}`); toast(t('card.sessionEnded')); }
           catch (e) { return toast(e.message, true); }
-          sitzungenNeu();
+          sessionsNew();
         };
       }
       box.appendChild(row);
@@ -7908,25 +7908,25 @@ function ruesteSitzungenAus(geholt) {
        zuverlaessig nichts tut, sieht aus wie ein Fehler. */
     const fuss = dok.createElement('div');
     fuss.className = 'sitz-fuss';
-    fuss.innerHTML = andere
+    fuss.innerHTML = other
       ? `<p class="desc" style="margin:10px 0 8px">${tH('card.besidesThisOne')} <strong>${
-          tH('card.moreSessions', { n: andere })}</strong> ${tH('card.sessionsDot', { n: andere })}
+          tH('card.moreSessions', { n: other })}</strong> ${tH('card.sessionsDot', { n: other })}
           ${tH('card.sessionExpiresIn')} ${d.tage || 30} ${tH('card.sessionIdleHint')}</p>
          <button class="btn btn-sm" id="sitz-alle">${tH('card.endOtherSessions')}</button>`
       : `<p class="desc" style="margin:10px 0 0">${tH('card.thisIsThe')} <strong>${tH('card.only')}</strong> ${tH('card.sessionOfAccount')}</p>`;
     box.appendChild(fuss);
-    const alle = dok.getElementById('sitz-alle');
-    if (alle) alle.onclick = async () => {
+    const all = dok.getElementById('sitz-alle');
+    if (all) all.onclick = async () => {
       if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;
       try {
         const r = await api('DELETE', '/api/sessions');
         const n = r && r.beendet ? r.beendet : 0;
         toast(t('card.sessionsEnded', { n: n }));
       } catch (e) { return toast(e.message, true); }
-      sitzungenNeu();
+      sessionsNew();
     };
   }
-  async function sitzungenNeu() {
+  async function sessionsNew() {
     const box = document.getElementById('msitzungen');
     if (!box) return;
     let d;
@@ -7935,12 +7935,12 @@ function ruesteSitzungenAus(geholt) {
       if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
       return;
     }
-    if (box.isConnected) zeichneSitzungen(d);
+    if (box.isConnected) drawSessions(d);
   }
 
 
 /* ---- Karte „Darstellung" — Abschnitt „Persönlich" ---- */
-function karteDarstellung() {
+function cardAppearance() {
   return `<div class="sys-card">
         <h3>${tH('card.appearance')}</h3>
         <p class="desc">${tH('card.themeHint')}</p>
@@ -7959,10 +7959,10 @@ function karteDarstellung() {
         <button class="btn btn-ghost btn-sm" id="breset">${tH('card.restoreLayout')}</button>
       </div>`;
 }
-function ruesteDarstellungAus() {
-  drawThema();
-  drawSchrift();
-  drawStreifen();
+function setUpAppearanceOut() {
+  drawTheme();
+  drawFont();
+  drawStrip();
   /* --- Zeitleiste --- */
   const zl = document.getElementById('zlan');
   zl.checked = ZEITLEISTE_AN;
@@ -7976,8 +7976,8 @@ function ruesteDarstellungAus() {
     if (!await confirmBox(t('card.restoreLayoutAsk'),
       t('card.blocksResetHint'),
       t('card.restore'))) return;
-    BLOECKE = { seite: [...BLOCK_VORGABE.seite], unten: [...BLOCK_VORGABE.unten], zu: [] };
-    try { await api('PUT', '/api/settings', { bloecke: BLOECKE }); toast(t('card.layoutRestored')); }
+    BLOCKS = { seite: [...BLOCK_DEFAULT.seite], unten: [...BLOCK_DEFAULT.unten], zu: [] };
+    try { await api('PUT', '/api/settings', { bloecke: BLOCKS }); toast(t('card.layoutRestored')); }
     catch (e) { toast(e.message, true); }
   });
 }
@@ -7986,61 +7986,61 @@ function ruesteDarstellungAus() {
      DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. Sofort sichtbar,
      bei einem Fehlschlag zurück auf den alten Wert — wer das Schema wechselt,
      sieht es, bevor der Server geantwortet hat. */
-  function drawThema() {
+  function drawTheme() {
     const box = document.getElementById('thema');
     if (!box) return;
     box.innerHTML = '';
-    THEMA_STUFEN.forEach(stufe => {
+    THEME_LEVELS.forEach(level => {
       const b = document.createElement('button');
-      b.className = 'pill' + (THEMA === stufe ? ' on' : '');
-      b.textContent = t(THEMA_NAMEN[stufe]);
+      b.className = 'pill' + (THEME === level ? ' on' : '');
+      b.textContent = t(THEME_NAMES[level]);
       b.onclick = async () => {
-        const vorher = THEMA;
-        THEMA = stufe;
+        const vorher = THEME;
+        THEME = level;
         wendeThemaAn();
-        drawThema();
-        try { await api('PUT', '/api/settings', { thema: stufe }); gespeichert(b); }
-        catch (e) { THEMA = vorher; wendeThemaAn(); drawThema(); toast(e.message, true); }
+        drawTheme();
+        try { await api('PUT', '/api/settings', { thema: level }); gespeichert(b); }
+        catch (e) { THEME = vorher; wendeThemaAn(); drawTheme(); toast(e.message, true); }
       };
       box.appendChild(b);
     });
   }
   /* --- Schriftgröße --- */
-  function drawSchrift() {
+  function drawFont() {
     const box = document.getElementById('fsize');
     box.innerHTML = '';
-    SCHRIFT_STUFEN.forEach(stufe => {
+    FONT_LEVELS.forEach(level => {
       const b = document.createElement('button');
-      b.className = 'pill' + (SCHRIFT === stufe ? ' on' : '');
-      b.textContent = stufe + ' %';
+      b.className = 'pill' + (FONT === level ? ' on' : '');
+      b.textContent = level + ' %';
       b.onclick = async () => {
-        const vorher = SCHRIFT;
-        SCHRIFT = stufe;
+        const vorher = FONT;
+        FONT = level;
         wendeSchriftAn();          // sofort sichtbar, auch wenn das Speichern scheitert
-        drawSchrift();
-        try { await api('PUT', '/api/settings', { schrift: stufe }); gespeichert(b); }
-        catch (e) { SCHRIFT = vorher; wendeSchriftAn(); drawSchrift(); toast(e.message, true); }
+        drawFont();
+        try { await api('PUT', '/api/settings', { schrift: level }); gespeichert(b); }
+        catch (e) { FONT = vorher; wendeSchriftAn(); drawFont(); toast(e.message, true); }
       };
       box.appendChild(b);
     });
   }
   /* DER BILDSTREIFEN, dieselbe Bauform wie die Schriftgroesse darueber: fuenf
      Pillen, sofort sichtbar, bei einem Fehlschlag zurueck auf den alten Wert. */
-  function drawStreifen() {
+  function drawStrip() {
     const box = document.getElementById('streifen');
     if (!box) return;
     box.innerHTML = '';
-    STREIFEN_STUFEN.forEach(stufe => {
+    STRIP_LEVELS.forEach(level => {
       const b = document.createElement('button');
-      b.className = 'pill' + (STREIFEN === stufe ? ' on' : '');
-      b.textContent = stufe + t('card.px');
+      b.className = 'pill' + (STRIP === level ? ' on' : '');
+      b.textContent = level + t('card.px');
       b.onclick = async () => {
-        const vorher = STREIFEN;
-        STREIFEN = stufe;
+        const vorher = STRIP;
+        STRIP = level;
         wendeStreifenAn();
-        drawStreifen();
-        try { await api('PUT', '/api/settings', { streifen: stufe }); gespeichert(b); }
-        catch (e) { STREIFEN = vorher; wendeStreifenAn(); drawStreifen(); toast(e.message, true); }
+        drawStrip();
+        try { await api('PUT', '/api/settings', { streifen: level }); gespeichert(b); }
+        catch (e) { STRIP = vorher; wendeStreifenAn(); drawStrip(); toast(e.message, true); }
       };
       box.appendChild(b);
     });
@@ -8048,7 +8048,7 @@ function ruesteDarstellungAus() {
 
 
 /* ---- Karte „Kategorien" — Abschnitt „Bestand" ---- */
-function karteKategorien() {
+function cardCategories() {
   return `<div class="sys-card">
         <h3>${tH('card.categories')}</h3>
         ${/* WAS HINTER EINER ROLLE LIEGT, WIRD IHR NICHT ERKLAERT (Regel S5): der
@@ -8062,13 +8062,13 @@ function karteKategorien() {
           ${tH('card.anyoneNewCategory')}</label>` : ''}
       </div>`;
 }
-function ruesteKategorienAus(geholt) {
+function setUpCategoriesOut(geholt) {
   verwaltungsListe('mcats', geholt.cats, 'cat', geholt);
-  anlegeSchalter('katfrei', 'kategorienFreiAnlegen', () => KATEGORIEN_FREI, v => { KATEGORIEN_FREI = v; });
+  anlegeSchalter('katfrei', 'kategorienFreiAnlegen', () => CATEGORIES_FREE, v => { CATEGORIES_FREE = v; });
 }
 
 /* ---- Karte „Tags" — Abschnitt „Bestand" ---- */
-function karteTags() {
+function cardTags() {
   return `<div class="sys-card">
         <h3>${tH('list.tags')}</h3>
         <p class="desc">${ADMIN
@@ -8080,9 +8080,9 @@ function karteTags() {
           ${tH('card.anyoneNewTag')}</label>` : ''}
       </div>`;
 }
-function ruesteTagsAus(geholt) {
+function setUpTagsOut(geholt) {
   verwaltungsListe('mtags', geholt.tags, 'tag', geholt);
-  anlegeSchalter('tagfrei', 'tagsFreiAnlegen', () => TAGS_FREI, v => { TAGS_FREI = v; });
+  anlegeSchalter('tagfrei', 'tagsFreiAnlegen', () => TAGS_FREE, v => { TAGS_FREE = v; });
 }
 
 /* ---- Karte „Bewertungskriterien" — Abschnitt „Bestand" ---- */
@@ -8098,11 +8098,11 @@ function ruesteTagsAus(geholt) {
    Kartenschluessel `kriterien` bleibt: ein Bildschirmtext benennt keine
    Adresse um. */
 const KRIT_KARTE = {
-  nachher: { liste: 'mcrits',  feld: 'newcrit',  knopf: 'newcrit-b' },
-  vorher:  { liste: 'mpcrits', feld: 'newpcrit', knopf: 'newpcrit-b' }
+  nachher: { list: 'mcrits',  field: 'newcrit',  button: 'newcrit-b' },
+  vorher:  { list: 'mpcrits', field: 'newpcrit', button: 'newpcrit-b' }
 };
 
-function karteKriterien(phase) {
+function cardCriteria(phase) {
   const vorher = phase === 'vorher';
   const k = KRIT_KARTE[phase];
   return `<div class="sys-card">
@@ -8117,7 +8117,7 @@ function karteKriterien(phase) {
           ? t('card.criteriaHintDelete')
           : tH('card.criteriaAdminHint')}</p>
            ${ADMIN ? mehr(tH('card.orderAppliesNote')) : ''}`}
-        <div class="manage-list" id="${k.liste}"></div>
+        <div class="manage-list" id="${k.list}"></div>
         <p class="desc" style="margin:10px 0 0">${tH('card.the')} <strong>${tH('entry.weight')}</strong> ${tH('card.weightHint')} ${ADMIN
             ? t('card.weightRangeHint')
             : t('card.setByAdmin')}</p>
@@ -8138,31 +8138,31 @@ function karteKriterien(phase) {
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
         ${ADMIN ? `<div class="row-in" style="margin-top:12px">
-          <input class="input input-sm" id="${k.feld}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
-          <button class="btn btn-sm" id="${k.knopf}">${tH('entry.create')}</button>
+          <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
+          <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
         </div>` : ''}
       </div>`;
 }
-function ruesteKriterienAus(geholt, phase) {
+function setUpCriteriaOut(geholt, phase) {
   const k = KRIT_KARTE[phase];
   // NUR DIE ZEILEN DIESES KASTENS. Die Antwort von /api/criteria traegt beide
   // und ist nach sort_order, id sortiert -- gefiltert bleibt jede Karte in
   // sich richtig geordnet, ohne dass irgendwo eine zweite Ordnung stuende.
-  verwaltungsListe(k.liste, geholt.crits.filter(c => c.phase === phase), 'crit', geholt);
+  verwaltungsListe(k.list, geholt.crits.filter(c => c.phase === phase), 'crit', geholt);
   // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
   // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
-  const critFeld = document.getElementById(k.feld);
-  if (critFeld) {
+  const critField = document.getElementById(k.field);
+  if (critField) {
     const addCrit = async () => {
-      const name = critFeld.value.trim();
+      const name = critField.value.trim();
       if (!name) return;
       // DIE PHASE SCHICKT DIE KARTE MIT. Ohne sie legte die zweite Karte
       // Bewertungskriterien an -- der Server hat die Vorgabe 'nachher'.
-      try { await api('POST', '/api/criteria', { name, phase }); critFeld.value = ''; toast(t('card.criterionCreated')); verwaltungNeu(geholt); }
+      try { await api('POST', '/api/criteria', { name, phase }); critField.value = ''; toast(t('card.criterionCreated')); adminNew(geholt); }
       catch (e) { toast(e.message, true); }
     };
-    document.getElementById(k.knopf).onclick = addCrit;
-    critFeld.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
+    document.getElementById(k.button).onclick = addCrit;
+    critField.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
 }
 
@@ -8172,15 +8172,15 @@ function ruesteKriterienAus(geholt, phase) {
      gleichlautende Bloecke nebeneinander liefen frueher oder spaeter
      auseinander. Schlaegt das Speichern fehl, geht die Stellung zurueck --
      sonst zeigte der Bildschirm etwas anderes an als der Server haelt. */
-  const anlegeSchalter = (id, schluessel, lies, merke) => {
+  const anlegeSchalter = (id, schluessel, lies, remember) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.checked = lies();
     el.onchange = async () => {
       const vorher = lies();
-      merke(el.checked);
+      remember(el.checked);
       try { await api('PUT', '/api/settings', { [schluessel]: el.checked }); gespeichert(); }
-      catch (e) { merke(vorher); el.checked = vorher; toast(e.message, true); }
+      catch (e) { remember(vorher); el.checked = vorher; toast(e.message, true); }
     };
   };
 
@@ -8201,7 +8201,7 @@ function ruesteKriterienAus(geholt, phase) {
       url: '/api/tags', frage: 'card.deleteTagAsk',
       // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
       // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
-      zaehler: e => `${e.usage_count} ${vSache(e.usage_count)} · ${e.test_usage_count} ${vZeit(e.test_usage_count)}`,
+      counter: e => `${e.usage_count} ${vSache(e.usage_count)} · ${e.test_usage_count} ${vZeit(e.test_usage_count)}`,
       warnung: e => t('card.tagDeleteHint', { name: e.name }) +
         `${e.usage_count} ${vSache(e.usage_count)} und ${e.test_usage_count} ${vZeit(e.test_usage_count)}` +
         `${e.test_usage_count ? t('card.marksGoneToo') : '.'}`
@@ -8212,7 +8212,7 @@ function ruesteKriterienAus(geholt, phase) {
       // Zeile auch fuer Kategorien und Tags, und dort gibt es kein Gewicht --
       // ein Kriterium wiegt im Gesamtschnitt, eine Kategorie rechnet nirgends
       // mit. Die Unterscheidung laeuft ueber diesen Eintrag, wie schon bei
-      // `sortierbar` und `zaehler`, und nicht ueber eine Abfrage auf den
+      // `sortierbar` und `counter`, und nicht ueber eine Abfrage auf den
       // Kartennamen.
       gewicht: true,
       warnung: e => t('card.criterionDeleteHint', { name: e.name })
@@ -8231,12 +8231,12 @@ function ruesteKriterienAus(geholt, phase) {
     // DIE KARTE SELBST BLEIBT STEHEN, alle drei. Wer nicht verwalten darf,
     // darf trotzdem nachsehen, was es gibt -- die Namen sind die Auswahl, aus
     // der jeder am Eintrag schoepft.
-    const darf = ADMIN;
+    const may = ADMIN;
     box.innerHTML = '';
     if (!list.length) { box.innerHTML = `<span class="hint">${tH('card.nothingCreatedYet')}</span>`; return; }
     list.forEach(entry => {
       const row = document.createElement('div');
-      row.className = 'mrow' + (art.sortierbar && darf ? ' drag' : '');
+      row.className = 'mrow' + (art.sortierbar && may ? ' drag' : '');
       row.dataset.mid = entry.id;
       const url = art.url;
       /* Die Zeile war schon besetzt: Griff, Name, Verwendungszaehler, ✎ und ✕.
@@ -8248,19 +8248,19 @@ function ruesteKriterienAus(geholt, phase) {
          die Kopfzahl an jedem Eintrag, und die sieht er ja auch. Nur als Text
          statt als Feld, wie bei Name und Zaehler daneben. */
       const gewFeld = art.gewicht
-        ? (darf
+        ? (may
           ? `<span class="mgew" title="${esc(t('list.weightedAvg'))}">×<input class="mgew-feld"
                type="text" inputmode="decimal" list="gewichtsug" aria-label="${esc(t('entry.weight'))}"
-               value="${esc(gewichtText(entry.gewicht))}"></span>`
-          : `<span class="mgew mgew-fest" title="${esc(t('list.weightedAvg'))}">×${esc(gewichtText(entry.gewicht))}</span>`)
+               value="${esc(weightText(entry.gewicht))}"></span>`
+          : `<span class="mgew mgew-fest" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.gewicht))}</span>`)
         : '';
-      row.innerHTML = `${art.sortierbar && darf ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
+      row.innerHTML = `${art.sortierbar && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="mname">${esc(entry.name)}</span>
         ${gewFeld}
-        <span class="mcount">${esc(art.zaehler ? art.zaehler(entry) : `${entry.usage_count} ${vSache(entry.usage_count)}`)}</span>
-        ${darf ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_STIFT}</button>
+        <span class="mcount">${esc(art.counter ? art.counter(entry) : `${entry.usage_count} ${vSache(entry.usage_count)}`)}</span>
+        ${may ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_PEN}</button>
         <button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_KREUZ}</button>` : ''}`;
-      if (!darf) { box.appendChild(row); return; }
+      if (!may) { box.appendChild(row); return; }
       if (art.sortierbar) {
         // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
         // Die Knoepfe und das Umbenennfeld bleiben ausgenommen.
@@ -8270,8 +8270,8 @@ function ruesteKriterienAus(geholt, phase) {
             try {
               await api('PUT', '/api/criteria/order', { order: children.map(c => +c.dataset.mid) });
               toast(t('entry.orderSaved'));
-              verwaltungNeu(geholt);
-            } catch (e) { toast(e.message, true); verwaltungNeu(geholt); }
+              adminNew(geholt);
+            } catch (e) { toast(e.message, true); adminNew(geholt); }
           }
         });
       }
@@ -8279,18 +8279,18 @@ function ruesteKriterienAus(geholt, phase) {
          ist der Unterschied zum Umbenennen: dort MUSS neu gezeichnet werden,
          weil das ✎ den Namen durch ein Eingabefeld ERSETZT hat und der Zustand
          zurueckgebaut gehoert. Ein Gewichtswechsel ersetzt nichts -- das Feld
-         steht dauerhaft da und traegt den neuen Wert bereits. Ein verwaltungNeu()
+         steht dauerhaft da und traegt den neuen Wert bereits. Ein adminNew()
          waere hier nicht nur ueberfluessig, sondern schaedlich: ist an
          derselben Zeile gerade ein Umbenennen offen, risse der Neuaufbau es
          weg. Der Verwendungszaehler daneben aendert sich durch ein Gewicht
          ohnehin nicht. */
       const gewEingabe = row.querySelector('.mgew-feld');
       if (gewEingabe) gewEingabe.onchange = async () => {
-        const g = gewichtAusText(gewEingabe.value);
+        const g = weightOutText(gewEingabe.value);
         // Ein leeres oder unlesbares Feld schickt GAR NICHTS: wer den Inhalt
         // loescht und wegklickt, hat es sich anders ueberlegt und meint nicht
         // "Gewicht 0".
-        if (Number.isNaN(g)) { gewEingabe.value = gewichtText(entry.gewicht); return; }
+        if (Number.isNaN(g)) { gewEingabe.value = weightText(entry.gewicht); return; }
         try {
           const nun = await api('PUT', `${url}/${entry.id}`, { name: entry.name, gewicht: g });
           // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
@@ -8298,12 +8298,12 @@ function ruesteKriterienAus(geholt, phase) {
           entry.gewicht = nun.gewicht;
           // Zeigt die Rundung mit: 1,234 steht danach als 1,23 im Feld. Die
           // Rundung ist damit nicht still.
-          gewEingabe.value = gewichtText(nun.gewicht);
+          gewEingabe.value = weightText(nun.gewicht);
           toast(t('card.weightSaved'));
         } catch (e) {
           toast(e.message, true);
           // Kein Wert im Feld, der nicht gespeichert ist.
-          gewEingabe.value = gewichtText(entry.gewicht);
+          gewEingabe.value = weightText(entry.gewicht);
         }
       };
       row.querySelector('.ed').onclick = () => {
@@ -8313,47 +8313,47 @@ function ruesteKriterienAus(geholt, phase) {
         inp.focus(); inp.select();
         const save = async () => {
           const name = inp.value.trim();
-          if (!name || name === entry.name) return verwaltungNeu(geholt);
-          try { await api('PUT', `${url}/${entry.id}`, { name }); toast(t('card.renamed')); verwaltungNeu(geholt); }
-          catch (e) { toast(e.message, true); verwaltungNeu(geholt); }
+          if (!name || name === entry.name) return adminNew(geholt);
+          try { await api('PUT', `${url}/${entry.id}`, { name }); toast(t('card.renamed')); adminNew(geholt); }
+          catch (e) { toast(e.message, true); adminNew(geholt); }
         };
         inp.onblur = save;
-        inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') verwaltungNeu(geholt); };
+        inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') adminNew(geholt); };
       };
       row.querySelector('.rm').onclick = async () => {
         if (!await confirmBox(t(art.frage), art.warnung(entry))) return;
-        try { await api('DELETE', `${url}/${entry.id}`); toast(t('card.deleted')); verwaltungNeu(geholt); }
+        try { await api('DELETE', `${url}/${entry.id}`); toast(t('card.deleted')); adminNew(geholt); }
         catch (e) { toast(e.message, true); }
       };
       box.appendChild(row);
     });
   }
-  function zeichneVerwaltung(geholt) {
+  function drawAdmin(geholt) {
     verwaltungsListe('mcats', geholt.cats, 'cat', geholt);
     verwaltungsListe('mtags', geholt.tags, 'tag', geholt);
     // BEIDE KRITERIENLISTEN, aus DERSELBEN Antwort. verwaltungsListe() haengt
     // sich an einen Kasten, den es nicht gibt, gar nicht erst an -- wer nur
     // eine der beiden Karten offen hat, bekommt nur diese gezeichnet.
     for (const phase of Object.keys(KRIT_KARTE))
-      verwaltungsListe(KRIT_KARTE[phase].liste,
+      verwaltungsListe(KRIT_KARTE[phase].list,
         geholt.crits.filter(c => c.phase === phase), 'crit', geholt);
   }
-  async function verwaltungNeu(geholt) {
+  async function adminNew(geholt) {
     [geholt.cats, geholt.tags, geholt.crits] = await Promise.all([
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria')
     ]);
-    zeichneVerwaltung(geholt);
+    drawAdmin(geholt);
   }
 
 
 /* ---- Karte „Vokabular" — Abschnitt „Bestand" ---- */
-function karteVokabular() {
+function cardVocabulary() {
   return `<div class="sys-card">
         <h3>${tH('card.vocabulary')}</h3>
         <p class="desc">${tH('card.vocabularyHint')} <strong>${tH('card.labelOnlyHint')}</strong>${tH('card.dataStaysSame')}</p>
         ${/* VIERZEHN FELDER AUS EINER TABELLE -- 0.22.0. Bis 0.21.1 standen die
              zwoelf Felder dreimal im Quelltext: hier als Markup, in vFelder()
-             als Leser und in ruesteVokabularAus() als Liste der Kennungen.
+             als Leser und in setUpVocabularyOut() als Liste der Kennungen.
              Wer ein Wort ergaenzte, musste es dreimal ergaenzen -- genau so
              ist beim Bauen von 0.21.0 das Feld fuer „Potenzial" zunaechst
              leer geblieben. Jetzt steht die Tabelle einmal (VOK_FELDER), und
@@ -8409,7 +8409,7 @@ const VOK_FELDER = [
   ['v13', 'bewertungEinzahl', () => t('card.ratingOne')],
   ['v14', 'bewertungMehrzahl', () => t('card.ratingMany')]
 ];
-function ruesteVokabularAus() {
+function setUpVocabularyOut() {
   // Die Probe zeigt dieselben Textbausteine, die die Oberfläche später
   // benutzt — damit sich Einzahl und Mehrzahl vor dem Speichern prüfen lassen.
   const vFelder = () => Object.fromEntries(VOK_FELDER.map(([id, schluessel]) =>
@@ -8448,7 +8448,7 @@ function ruesteVokabularAus() {
   // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
   // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
   VOK_FELDER.forEach(([id]) =>
-    amElement(id, feld => feld.addEventListener('input', drawProbe)));
+    amElement(id, field => field.addEventListener('input', drawProbe)));
   if (document.getElementById('vprobe')) drawProbe();
 
   amElement('vsave', vsave => vsave.onclick = async () => {
@@ -8465,8 +8465,8 @@ function ruesteVokabularAus() {
       t('card.reset'))) return;
     try {
       // Leer heisst Vorgabe: der Server setzt fuer jedes leere Feld sein Wort ein.
-      const leer = Object.fromEntries(Object.keys(VOK_VORGABE).map(k => [k, '']));
-      const r = await api('PUT', '/api/settings', { vokabular: leer });
+      const empty = Object.fromEntries(Object.keys(VOK_VORGABE).map(k => [k, '']));
+      const r = await api('PUT', '/api/settings', { vokabular: empty });
       V = { ...V, ...r.vokabular };
       toast(t('card.defaultsRestored'));
       renderSystem();
@@ -8476,7 +8476,7 @@ function ruesteVokabularAus() {
 
 
 /* ---- Karte „Links" — Abschnitt „Bestand" ---- */
-function karteLinks() {
+function cardLinks() {
   return `<div class="sys-card">
         <h3>${tH('dialog.links')}</h3>
         <p class="desc">${tH('card.linkRowsHint')}</p>
@@ -8488,44 +8488,44 @@ function karteLinks() {
         <div class="pills" id="snamen"></div>
       </div>`;
 }
-function ruesteLinksAus() {
-  drawLinkZeilen();
-  drawSuchNamen();
+function setUpLinksOut() {
+  drawLinkRows();
+  drawSearchNames();
 }
 
   /* --- Sichtbare Linkzeilen --- */
-  function drawLinkZeilen() {
+  function drawLinkRows() {
     const box = document.getElementById('lzeilen');
     box.innerHTML = '';
-    LINKZEILEN_STUFEN.forEach(n => {
+    LINK_ROW_LEVELS.forEach(n => {
       const b2 = document.createElement('button');
-      b2.className = 'pill' + (LINKZEILEN === n ? ' on' : '');
+      b2.className = 'pill' + (LINK_ROWS === n ? ' on' : '');
       b2.textContent = n + t('card.rows');
       b2.onclick = async () => {
-        const vorher = LINKZEILEN;
-        LINKZEILEN = n;
-        drawLinkZeilen();
+        const vorher = LINK_ROWS;
+        LINK_ROWS = n;
+        drawLinkRows();
         try { await api('PUT', '/api/settings', { linkZeilen: n }); gespeichert(); }
-        catch (e) { LINKZEILEN = vorher; drawLinkZeilen(); toast(e.message, true); }
+        catch (e) { LINK_ROWS = vorher; drawLinkRows(); toast(e.message, true); }
       };
       box.appendChild(b2);
     });
   }
 
-  function drawSuchNamen() {
+  function drawSearchNames() {
     const box = document.getElementById('snamen');
     if (!box) return;
     box.innerHTML = '';
-    SUCHNAMEN_STUFEN.forEach(n => {
+    SEARCH_NAME_LEVELS.forEach(n => {
       const b3 = document.createElement('button');
-      b3.className = 'pill' + (SUCHNAMEN === n ? ' on' : '');
+      b3.className = 'pill' + (SEARCH_NAMES === n ? ' on' : '');
       b3.textContent = t('card.names', { n: n });
       b3.onclick = async () => {
-        const vorher = SUCHNAMEN;
-        SUCHNAMEN = n;
-        drawSuchNamen();
+        const vorher = SEARCH_NAMES;
+        SEARCH_NAMES = n;
+        drawSearchNames();
         try { await api('PUT', '/api/settings', { suchNamen: n }); gespeichert(); }
-        catch (e) { SUCHNAMEN = vorher; drawSuchNamen(); toast(e.message, true); }
+        catch (e) { SEARCH_NAMES = vorher; drawSearchNames(); toast(e.message, true); }
       };
       box.appendChild(b3);
     });
@@ -8533,7 +8533,7 @@ function ruesteLinksAus() {
 
 
 /* ---- Karte „Suchanbieter" — Abschnitt „Bestand" ---- */
-function karteSuchanbieter() {
+function cardSearchProvider() {
   return `<div class="sys-card">
         <h3>${tH('card.searchEngines')}</h3>
         <p class="desc">${tH('card.checkboxHint')} <strong>${tH('card.standard')}</strong>${tH('card.opensOnClick')}</p>
@@ -8548,46 +8548,46 @@ function karteSuchanbieter() {
           <code>%3A</code> ${tH('card.mustReadSo')}`)}
       </div>`;
 }
-function ruesteSuchanbieterAus() {
-  drawAnbieter();
-  drawEigene();
+function setUpSearchProviderOut() {
+  drawProvider();
+  drawOwn();
 }
 
   /* --- Suchanbieter --- */
   // Der Vorrat als Liste von Schluesseln, Standard zuerst -- dieselbe Form,
   // in der der Server sie speichert. Zurueck kommt immer der aufgeraeumte
   // Zustand; gezeichnet wird daraus, nicht aus der eigenen Annahme.
-  const vorratListe = () => {
-    const std = SUCHANBIETER.find(a => a.aktiv && a.standard);
-    const rest = SUCHANBIETER.filter(a => a.aktiv && a !== std).map(a => a.schluessel);
+  const poolList = () => {
+    const std = SEARCH_PROVIDERS.find(a => a.aktiv && a.standard);
+    const rest = SEARCH_PROVIDERS.filter(a => a.aktiv && a !== std).map(a => a.schluessel);
     return std ? [std.schluessel, ...rest] : rest;
   };
 
-  async function sendeAnbieter(koerper, meldung) {
+  async function sendProvider(koerper, meldung) {
     try {
       const s = await api('PUT', '/api/settings', koerper);
-      if (Array.isArray(s.suchAnbieter)) SUCHANBIETER = s.suchAnbieter;
-      drawAnbieter(); drawEigene();
+      if (Array.isArray(s.suchAnbieter)) SEARCH_PROVIDERS = s.suchAnbieter;
+      drawProvider(); drawOwn();
       toast(meldung);
-    } catch (e) { drawAnbieter(); drawEigene(); toast(e.message, true); }
+    } catch (e) { drawProvider(); drawOwn(); toast(e.message, true); }
   }
 
-  function drawAnbieter() {
+  function drawProvider() {
     const box = document.getElementById('sanbieter');
     if (!box) return;
     box.innerHTML = '';
-    SUCHANBIETER.forEach(a => {
-      const zeile = document.createElement('div');
-      zeile.className = 'sanb' + (a.vorhanden ? '' : ' leer');
-      zeile.dataset.k = a.schluessel;
+    SEARCH_PROVIDERS.forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'sanb' + (a.vorhanden ? '' : ' leer');
+      row.dataset.k = a.schluessel;
       const hk = document.createElement('input');
       hk.type = 'checkbox';
       hk.checked = !!a.aktiv;
       hk.disabled = !a.vorhanden;
       hk.title = t('card.addToSelection');
       hk.onchange = () => {
-        const keys = vorratListe();
-        sendeAnbieter({ sucheAktiv: hk.checked ? [...keys, a.schluessel] : keys.filter(k => k !== a.schluessel) },
+        const keys = poolList();
+        sendProvider({ sucheAktiv: hk.checked ? [...keys, a.schluessel] : keys.filter(k => k !== a.schluessel) },
           t('card.selectionSaved'));
       };
       const st = document.createElement('button');
@@ -8598,26 +8598,26 @@ function ruesteSuchanbieterAus() {
       st.title = t('card.searchLineHint');
       // Start nimmt zugleich in die Auswahl auf: ein Startanbieter ausserhalb
       // des Vorrats ist ein Zustand, den es nicht geben darf.
-      st.onclick = () => sendeAnbieter(
-        { sucheAktiv: [a.schluessel, ...vorratListe().filter(k => k !== a.schluessel)] },
+      st.onclick = () => sendProvider(
+        { sucheAktiv: [a.schluessel, ...poolList().filter(k => k !== a.schluessel)] },
         t('list.saved'));
       // Der Name kommt aus dem Verwaltungsbereich und ist freier Text --
       // textContent statt innerHTML, damit Maskierung nicht vergessbar ist.
       const nm = document.createElement('span');
       nm.className = 'sanb-name';
       nm.textContent = a.vorhanden ? a.name : '—';
-      zeile.append(hk, st, nm);
-      box.appendChild(zeile);
+      row.append(hk, st, nm);
+      box.appendChild(row);
     });
   }
 
-  function drawEigene() {
+  function drawOwn() {
     const box = document.getElementById('seigene');
     if (!box) return;
     box.innerHTML = '';
-    SUCHANBIETER.filter(a => a.eigen).forEach((a, i) => {
-      const zeile = document.createElement('div');
-      zeile.className = 'sanb-slot';
+    SEARCH_PROVIDERS.filter(a => a.eigen).forEach((a, i) => {
+      const row = document.createElement('div');
+      row.className = 'sanb-slot';
       const nm = document.createElement('input');
       nm.className = 'input input-sm'; nm.id = `se-name-${i + 1}`;
       nm.maxLength = 20; nm.placeholder = t('card.name'); nm.value = a.name || '';
@@ -8628,55 +8628,55 @@ function ruesteSuchanbieterAus() {
       const b3 = document.createElement('button');
       b3.className = 'btn btn-sm'; b3.id = `se-b-${i + 1}`;
       b3.textContent = t('card.apply');
-      b3.onclick = () => sendeEigene();
-      zeile.append(nm, vl, b3);
-      box.appendChild(zeile);
+      b3.onclick = () => sendOwn();
+      row.append(nm, vl, b3);
+      box.appendChild(row);
     });
   }
 
   // Immer alle drei Plaetze auf einmal: der Server bekommt den ganzen Stand
   // und raeumt danach den Vorrat auf, falls ein Platz geleert wurde.
-  function sendeEigene() {
-    const liste = [1, 2, 3].map(i => ({
+  function sendOwn() {
+    const list = [1, 2, 3].map(i => ({
       name: document.getElementById(`se-name-${i}`)?.value || '',
       vorlage: document.getElementById(`se-vorlage-${i}`)?.value || ''
     }));
-    return sendeAnbieter({ sucheEigene: liste }, t('list.saved'));
+    return sendProvider({ sucheEigene: list }, t('list.saved'));
   }
 
 
 /* ---- Karte „Papierkorb" — Abschnitt „Bestand" ---- */
-function kartePapierkorb() {
+function cardTrash() {
   return `<div class="sys-card">
         <h3>${tH('card.trash')}</h3>
-        <p class="desc">${tH('card.deletedStayHere')} <strong>${tH('card.trashDays', { papierkorbTage: PAPIERKORB_TAGE })}</strong>
+        <p class="desc">${tH('card.deletedStayHere')} <strong>${tH('card.trashDays', { papierkorbTage: TRASH_DAYS })}</strong>
           ${tH('card.restorableHint')}
-          ${EIGENTUEMER ? '' : t('card.trashOwnerHint')}</p>
+          ${OWNER ? '' : t('card.trashOwnerHint')}</p>
         <div class="manage-list" id="mpapierkorb"></div>
       </div>`;
 }
-function ruestePapierkorbAus(geholt) {
-  drawPapierkorb(geholt);
+function setUpTrashOut(geholt) {
+  drawTrash(geholt);
 }
 
   /* --- Papierkorb --- */
   /* Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
      wie bei den drei Verwaltungskarten. Nach einem Zurueckholen oder einem
-     endgueltigen Entfernen holt papierkorbNeu() die Liste noch einmal und
+     endgueltigen Entfernen holt trashNew() die Liste noch einmal und
      zeichnet nur DIESE Karte: ein Neuaufbau des ganzen Systembereichs leerte
      die Passwortfelder daneben.
      JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
      soll die Karte etwas sagen und nicht der Lauf abreissen. */
-  async function papierkorbNeu(geholt) {
+  async function trashNew(geholt) {
     try { geholt.papierkorb = await api('GET', '/api/papierkorb'); }
     catch (e) {
       const box = document.getElementById('mpapierkorb');
       if (box) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
       return;
     }
-    drawPapierkorb(geholt);
+    drawTrash(geholt);
   }
-  function drawPapierkorb(geholt) {
+  function drawTrash(geholt) {
     const box = document.getElementById('mpapierkorb');
     if (!box) return;
     const zeilen = Array.isArray(geholt.papierkorb && geholt.papierkorb.zeilen) ? geholt.papierkorb.zeilen : [];
@@ -8691,7 +8691,7 @@ function ruestePapierkorbAus(geholt) {
       row.dataset.pkid = z.id;
       const offen = Number(z.tageOffen);
       const meta = [
-        t('card.deletedByOn', { geloescht_am: fmtDate(z.geloescht_am), loeschender: verfasserName(z.loeschender) }),
+        t('card.deletedByOn', { geloescht_am: fmtDate(z.geloescht_am), loeschender: authorName(z.loeschender) }),
         t('card.daysLeft', { n: offen }),
         fmtBytes(z.bytes)
       ];
@@ -8699,20 +8699,20 @@ function ruestePapierkorbAus(geholt) {
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.
       row.innerHTML = `<span class="mname">${esc(z.titel)}</span>
-        ${EIGENTUEMER ? `<button class="mact pk-back" title="${esc(t('card.restore'))}">${tH('card.restoreIcon', { iconWiederher: ICON_WIEDERHER })}</button>
+        ${OWNER ? `<button class="mact pk-back" title="${esc(t('card.restore'))}">${tH('card.restoreIcon', { iconWiederher: ICON_WIEDERHER })}</button>
         <button class="mact rm pk-weg" title="${esc(t('card.deleteForGood'))}">${ICON_KREUZ}</button>` : ''}
         <span class="pk-meta">${esc(meta.join(' · '))}</span>`;
       box.appendChild(row);
-      const zurueck = row.querySelector('.pk-back');
-      if (zurueck) zurueck.onclick = async () => {
+      const back = row.querySelector('.pk-back');
+      if (back) back.onclick = async () => {
         try {
           const r = await api('POST', `/api/papierkorb/${z.id}/wiederherstellen`);
           // Die unbekannten Verfasser stehen in der Antwort und gehoeren
           // gesagt: sie sind beim Zurueckholen an MICH gefallen.
-          const offene = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
+          const open = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
           toast(t('card.restored', { titel: z.titel }) +
-            (offene.length ? t('card.postsAssignedHint', { namen: offene.join(', ') }) : ''));
-          papierkorbNeu(geholt);
+            (open.length ? t('card.postsAssignedHint', { namen: open.join(', ') }) : ''));
+          trashNew(geholt);
         } catch (e) { toast(e.message, true); }
       };
       const weg = row.querySelector('.pk-weg');
@@ -8723,7 +8723,7 @@ function ruestePapierkorbAus(geholt) {
         try {
           await api('DELETE', `/api/papierkorb/${z.id}`);
           toast(t('card.deletedForGood'));
-          papierkorbNeu(geholt);
+          trashNew(geholt);
         } catch (e) { toast(e.message, true); }
       };
     });
@@ -8731,17 +8731,17 @@ function ruestePapierkorbAus(geholt) {
 
 
 /* ---- Karte „Zugänge" — Abschnitt „Zugänge" ---- */
-function karteZugaenge() {
+function cardUsers() {
   return `<div class="sys-card breit">
         <h3>${tH('card.user')}</h3>
         <p class="desc">${tH('card.usersHint')}</p>
-        ${mehr(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${EIGENTUEMER
+        ${mehr(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
         <div class="manage-list" id="mzugaenge"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
              nichts geloescht wurde -- gefuellt wird sie von
-             zeichneGrabsteinKnopf(), sobald die Liste vom Server da ist. */''}
+             drawTombstoneButton(), sobald die Liste vom Server da ist. */''}
         <div class="row-in" id="zug-weg-zeile" style="margin-top:8px"></div>
 
         <p class="desc" style="margin:16px 0 8px">${tH('card.newUserHint')} <strong>${tH('card.inviteLink')}</strong> ${tH('card.linkValidHint')}</p>
@@ -8761,7 +8761,7 @@ function karteZugaenge() {
           </select>
           <input class="input input-sm" id="zug-pass" type="password" placeholder="${esc(t('card.firstPassword'))}"
             autocomplete="new-password" hidden>
-          ${EIGENTUEMER ? `<select class="input input-sm" id="zug-rolle">
+          ${OWNER ? `<select class="input input-sm" id="zug-rolle">
             <option value="user">${tH('card.user')}</option>
             <option value="admin">${tH('card.admin')}</option>
             <option value="eigentuemer">${tH('card.owner')}</option>
@@ -8775,14 +8775,14 @@ function karteZugaenge() {
               der Eigentümer. Ein Admin, der nicht Eigentümer ist, verwaltet
               Zugänge über diese Karte und kommt an den Server nicht heran —
               ihm hilft der Name dessen, der es kann. */''}
-        ${EIGENTUEMER
+        ${OWNER
           ? `<div style="margin-top:16px">${serverKasten(t('card.lockedOutHint'), 'docker compose exec kriterion node zugang.js passwort <name>')}</div>`
           : `<p class="desc" style="margin:16px 0 0">${tH('card.lockedOutOwner')}
                <strong>${tH('card.owner')}</strong> ${tH('card.resetOnServer')}</p>`}
       </div>`;
 }
-function ruesteZugaengeAus() {
-  zeichneZugaenge();
+function setUpUsersOut() {
+  drawUsers();
   /* EINE WAHL, EIN KNOPF. Vorher standen hier zwei Knöpfe nebeneinander, und
      die Betriebsart steckte darin, WELCHEN man drückt — man musste beide
      Beschriftungen lesen, um zu wissen, was gleich passiert, und das
@@ -8793,41 +8793,41 @@ function ruesteZugaengeAus() {
      Nachbar heißt, ist eine Falle.
      DIE VORGABE IST DER LINK: es ist der Weg, bei dem der Admin das Passwort
      nie erfährt. */
-  const zugArt = document.getElementById('zug-art');
-  const zugAnlegen = document.getElementById('zug-anlegen');
+  const userKind = document.getElementById('zug-art');
+  const userCreate = document.getElementById('zug-anlegen');
   const zugPass = document.getElementById('zug-pass');
 
-  const zugArtGesetzt = () => {
-    if (!zugArt || !zugAnlegen || !zugPass) return;
-    const link = zugArt.value === 'link';
+  const userKindSet = () => {
+    if (!userKind || !userCreate || !zugPass) return;
+    const link = userKind.value === 'link';
     zugPass.hidden = link;
     // Geleert, nicht bloß versteckt: ein Passwort, das man nicht mehr sieht,
     // aber noch mitschickt, wäre die unangenehmste Art von Überraschung.
     if (link) zugPass.value = '';
-    zugAnlegen.textContent = link ? t('card.createWithLink') : t('entry.create');
+    userCreate.textContent = link ? t('card.createWithLink') : t('entry.create');
   };
-  if (zugArt) zugArt.onchange = zugArtGesetzt;
-  zugArtGesetzt();
+  if (userKind) userKind.onchange = userKindSet;
+  userKindSet();
 
-  if (zugAnlegen) zugAnlegen.onclick = async () => {
-    const nameFeld = document.getElementById('zug-name');
-    const mailFeld = document.getElementById('zug-mail');
-    const rolleFeld = document.getElementById('zug-rolle');
-    const einladen = !zugArt || zugArt.value === 'link';
-    const koerper = { username: nameFeld.value.trim() };
-    if (mailFeld && mailFeld.value.trim()) koerper.email = mailFeld.value.trim();
+  if (userCreate) userCreate.onclick = async () => {
+    const nameField = document.getElementById('zug-name');
+    const mailField = document.getElementById('zug-mail');
+    const roleField = document.getElementById('zug-rolle');
+    const einladen = !userKind || userKind.value === 'link';
+    const koerper = { username: nameField.value.trim() };
+    if (mailField && mailField.value.trim()) koerper.email = mailField.value.trim();
     if (einladen) koerper.einladen = true;
     else koerper.passwort = zugPass.value;
-    if (rolleFeld) koerper.rolle = rolleFeld.value;
+    if (roleField) koerper.rolle = roleField.value;
     if (!koerper.username) return toast(t('login.usernameMissing'), true);
     try {
       const d = await api('POST', '/api/users', koerper);
-      nameFeld.value = ''; zugPass.value = '';
-      if (mailFeld) mailFeld.value = '';
+      nameField.value = ''; zugPass.value = '';
+      if (mailField) mailField.value = '';
       toast(einladen ? t('card.userCreatedLink') : t('card.userCreated'));
-      if (einladen) zeigeLink(d);
+      if (einladen) showLink(d);
     } catch (e) { return toast(e.message, true); }
-    zeichneZugaenge();
+    drawUsers();
   };
 
 }
@@ -8839,10 +8839,10 @@ function ruesteZugaengeAus() {
      Dieselbe Ueberlegung wie bei der Kriterienkarte. */
   /* SCHLUESSEL STATT SATZ, wie bei VERWALTUNGSART -- Modulebene. */
   const ROLLENWORT = { user: 'card.user', admin: 'card.admin', eigentuemer: 'card.owner' };
-  const rollenWort = (rolle) => (ROLLENWORT[rolle] ? t(ROLLENWORT[rolle]) : rolle);
+  const rolesWord = (rolle) => (ROLLENWORT[rolle] ? t(ROLLENWORT[rolle]) : rolle);
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const STATUSWORT = { aktiv: 'card.active', gesperrt: 'card.locked', geloescht: 'card.deletedLower' };
-  const statusWort = (status) => (STATUSWORT[status] ? t(STATUSWORT[status]) : status);
+  const statusWord = (status) => (STATUSWORT[status] ? t(STATUSWORT[status]) : status);
 
   /* DIE VOLLSTÄNDIGE ADRESSE BAUT DER BROWSER, nicht der Server. Der Server
      hinter einem Proxy weiß nicht, wie er von außen heißt, und aus dem
@@ -8874,7 +8874,7 @@ function ruesteZugaengeAus() {
      DREI ZUSTÄNDE, DREI FARBEN, und der Grund wird MITGENANNT: „aus“ allein
      deckt drei verschiedene Lagen ab, und ohne den Grund wüsste niemand,
      welche davon gerade gilt. */
-  const versandZeile = (d) => {
+  const deliveryRow = (d) => {
     /* DIE ADRESSE STEHT HIER NICHT, und das ist kein Versehen: an einem
        BESTEHENDEN Zugang hat sie der Betroffene selbst eingetragen, und ein
        Admin bekommt fremde Postfächer nicht zu sehen — GET /api/users liefert
@@ -8895,8 +8895,8 @@ function ruesteZugaengeAus() {
      "Zugaenge" und das Freischalten in der Karte "Anfragen". Der Link ist in
      beiden Faellen derselbe Gegenstand mit derselben Warnung daneben; zwei
      Ausfertigungen liefen beim naechsten Satz auseinander. */
-  function zeigeLink(d, kasten = 'zug-link') {
-    const box = document.getElementById(kasten);
+  function showLink(d, boxId = 'zug-link') {
+    const box = document.getElementById(boxId);
     if (!box || !d || !d.token) return;
     /* DER ANDERE KASTEN WIRD GELEERT, und das ist keine Aufraeumarbeit: die
        Kennungen darin sind feste Namen, und zwei Kaesten nebeneinander
@@ -8904,7 +8904,7 @@ function ruesteZugaengeAus() {
        Knopf "Kopieren" kopierte den falschen Link. Es steht immer hoechstens
        EIN Link am Bildschirm, und das ist ohnehin richtig so. */
     for (const anderer of ['zug-link', 'anf-link']) {
-      if (anderer !== kasten) {
+      if (anderer !== boxId) {
         const k = document.getElementById(anderer);
         if (k) k.innerHTML = '';
       }
@@ -8921,12 +8921,12 @@ function ruesteZugaengeAus() {
         value="${esc(adresse)}"><button class="btn btn-sm" id="zug-link-kopie">${tH('card.copy')}</button></div>
       <p class="zug-linkherkunft" id="zug-link-herkunft">${tH('card.linkPointsTo')}
         <code>${esc(new URL(adresse).origin)}</code> — <strong>${linkHerkunft(d)}</strong>.</p>
-      ${versandZeile(d)}
+      ${deliveryRow(d)}
     </div>`;
-    const feld = document.getElementById('zug-link-feld');
-    feld.focus(); feld.select();
+    const field = document.getElementById('zug-link-feld');
+    field.focus(); field.select();
     document.getElementById('zug-link-kopie').onclick = () => {
-      feld.select();
+      field.select();
       // Die Zwischenablage über das Skript ist nicht überall erlaubt; das
       // markierte Feld daneben ist der Weg, der immer trägt.
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -8936,7 +8936,7 @@ function ruesteZugaengeAus() {
     };
   }
 
-  async function zeichneZugaenge() {
+  async function drawUsers() {
     const box = document.getElementById('mzugaenge');
     if (!box) return;
     /* Was nach dem await gebraucht wird, wird VORHER geholt -- dieselbe Regel
@@ -8946,8 +8946,8 @@ function ruesteZugaengeAus() {
        ownerDocument haengt am Knoten und ueberlebt das; isConnected sagt, ob
        er ueberhaupt noch in der Seite steht. */
     const dok = box.ownerDocument;
-    let daten;
-    try { daten = await api('GET', '/api/users'); }
+    let data;
+    try { data = await api('GET', '/api/users'); }
     catch (e) { if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`; return; }
     if (!box.isConnected) return;
     box.innerHTML = '';
@@ -8959,12 +8959,12 @@ function ruesteZugaengeAus() {
        Test am Namen -- der geht gar nicht hinaus.
        DER SERVER GIBT SIE WEITERHIN MIT. Getrennt wird in der Oberfläche; die
        Antwort der Route bleibt, wie sie ist. */
-    zugGrabsteine = daten.zugaenge.filter(z => z.status === 'geloescht');
-    for (const z of daten.zugaenge.filter(z => z.status !== 'geloescht')) {
-      const selbst = z.id === daten.ich;
+    userTombstones = data.zugaenge.filter(z => z.status === 'geloescht');
+    for (const z of data.zugaenge.filter(z => z.status !== 'geloescht')) {
+      const self = z.id === data.ich;
       // Genau die Regel des Servers, einmal hier: an einen Admin oder den
       // Eigentuemer kommt nur der Eigentuemer.
-      const darf = !selbst && (z.role === 'user' ? true : daten.darfRollen);
+      const may = !self && (z.role === 'user' ? true : data.darfRollen);
       const row = dok.createElement('div');
       row.className = 'mrow zug' + (z.status === 'gesperrt' ? ' zug-sperr' : '');
       row.dataset.mid = z.id;
@@ -8978,8 +8978,8 @@ function ruesteZugaengeAus() {
          der steht seit 0.13.0 in einem eigenen Fenster, und dort trägt keine
          Zeile diese Angabe. */
       const wartet = z.ohnePasswort;
-      row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: false }))}${
-          selbst ? ' <span class="zug-ich">(du)</span>' : ''}</span>
+      row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, geloescht: false }))}${
+          self ? ' <span class="zug-ich">(du)</span>' : ''}</span>
         ${/* ROLLE ALS MARKE, ZUSTAND ALS PUNKT -- 0.22.0 (Konzept 6.7). Die Marke
              ist Form, keine Farbe: gefuellt, umrandet, neutral. Der Punkt
              nimmt die drei Farben, die „aktiv", „zurueckgenommen" und
@@ -8987,47 +8987,47 @@ function ruesteZugaengeAus() {
              dessen Passwort noch niemand gesetzt hat, ist er orange und der
              Hinweistext sagt, dass die Einladung offen ist. Das Wort bleibt
              daneben stehen: ein Punkt allein liest kein Vorleseprogramm vor. */''}
-        <span class="zug-rolle"><span class="rolle-marke ${esc(z.role)}">${esc(rollenWort(z.role))}</span></span>
-        <span class="zug-status" title="${wartet ? esc(t('card.inviteOpen')) : esc(statusWort(z.status))}"><span
-          class="zug-punkt ${wartet ? 'eingeladen' : esc(z.status)}"></span>${esc(statusWort(z.status))}${
+        <span class="zug-rolle"><span class="rolle-marke ${esc(z.role)}">${esc(rolesWord(z.role))}</span></span>
+        <span class="zug-status" title="${wartet ? esc(t('card.inviteOpen')) : esc(statusWord(z.status))}"><span
+          class="zug-punkt ${wartet ? 'eingeladen' : esc(z.status)}"></span>${esc(statusWord(z.status))}${
           wartet ? ` <span class="zug-wartet">${tH('card.noPasswordYet')}</span>` : ''}</span>
         <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
-      if (darf) {
+      if (may) {
         const werkzeug = dok.createElement('span');
         werkzeug.className = 'zug-akt';
         werkzeug.innerHTML =
-          `${daten.darfRollen ? `<select class="input input-sm zug-r">
+          `${data.darfRollen ? `<select class="input input-sm zug-r">
              <option value="user"${z.role === 'user' ? ' selected' : ''}>${tH('card.user')}</option>
              <option value="admin"${z.role === 'admin' ? ' selected' : ''}>${tH('card.admin')}</option>
              <option value="eigentuemer"${z.role === 'eigentuemer' ? ' selected' : ''}>${tH('card.owner')}</option>
            </select>` : ''}
            <button class="mact zug-s" title="${z.status === 'aktiv' ? t('card.lock') : t('card.unlock')}">${
-             z.status === 'aktiv' ? ICON_SPERREN : ICON_HAKEN}</button>
+             z.status === 'aktiv' ? ICON_SPERREN : ICON_CHECK}</button>
            <button class="mact zug-l" title="${z.ohnePasswort ? t('card.createInviteLink')
              : t('card.createResetLink')}">${ICON_LINK}</button>
-           <button class="mact zug-p" title="${esc(t('card.presetPassword'))}">${ICON_SCHLUESSEL}</button>
+           <button class="mact zug-p" title="${esc(t('card.presetPassword'))}">${ICON_KEY}</button>
            <button class="mact rm zug-x" title="${esc(t('dialog.deleteUser'))}">${ICON_KREUZ}</button>`;
         row.appendChild(werkzeug);
 
-        const rolleFeld = werkzeug.querySelector('.zug-r');
-        if (rolleFeld) rolleFeld.onchange = async () => {
+        const roleField = werkzeug.querySelector('.zug-r');
+        if (roleField) roleField.onchange = async () => {
           // Vor dem ersten await lesen: danach ist das Feld schon neu gezeichnet.
-          const neu = rolleFeld.value;
-          if (!await zweiteBestaetigung('rolle', z.id, t('card.roleGiven'),
-            t('card.getsRoleHint', { username: z.username, rolle: rollenWort(neu) }))) { zeichneZugaenge(); return; }
-          try { await api('PUT', `/api/users/${z.id}`, { rolle: neu }); toast(t('card.roleChanged')); }
+          const fresh = roleField.value;
+          if (!await secondConfirm('rolle', z.id, t('card.roleGiven'),
+            t('card.getsRoleHint', { username: z.username, rolle: rolesWord(fresh) }))) { drawUsers(); return; }
+          try { await api('PUT', `/api/users/${z.id}`, { rolle: fresh }); toast(t('card.roleChanged')); }
           catch (e) { toast(e.message, true); }
-          zeichneZugaenge();
+          drawUsers();
         };
 
         werkzeug.querySelector('.zug-s').onclick = async () => {
-          const neu = z.status === 'aktiv' ? 'gesperrt' : 'aktiv';
-          if (neu === 'gesperrt' && !await confirmBox(t('card.lockAsk', { username: z.username }),
+          const fresh = z.status === 'aktiv' ? 'gesperrt' : 'aktiv';
+          if (fresh === 'gesperrt' && !await confirmBox(t('card.lockAsk', { username: z.username }),
             t('card.lockUserHint'),
             t('card.lock'))) return;
-          try { await api('PUT', `/api/users/${z.id}`, { status: neu }); toast(neu === 'aktiv' ? t('card.unlocked') : t('card.locked')); }
+          try { await api('PUT', `/api/users/${z.id}`, { status: fresh }); toast(fresh === 'aktiv' ? t('card.unlocked') : t('card.locked')); }
           catch (e) { toast(e.message, true); }
-          zeichneZugaenge();
+          drawUsers();
         };
 
         /* BEIDE WEGE BLEIBEN, UND DIE KARTE BEVORZUGT DEN LINK. Das ist kein
@@ -9040,23 +9040,23 @@ function ruesteZugaengeAus() {
           if (zweck === 'ruecksetzung' && !await confirmBox(t('card.resetLinkAsk'),
             t('card.oldPasswordValid', { username: z.username }) +
             t('card.oldLinkVoid'), t('card.create'))) return;
-          if (!await zweiteBestaetigung('link', z.id,
+          if (!await secondConfirm('link', z.id,
             zweck === 'ruecksetzung' ? t('card.resetLink') : t('card.inviteLink'),
             t('card.linkHolderUser', { username: z.username }))) return;
-          try { zeigeLink(await api('POST', `/api/users/${z.id}/token`, { zweck })); }
+          try { showLink(await api('POST', `/api/users/${z.id}/token`, { zweck })); }
           catch (e) { toast(e.message, true); }
-          zeichneZugaenge();
+          drawUsers();
         };
 
         werkzeug.querySelector('.zug-p').onclick = async () => {
-          const neu = await neuesPasswortFenster(t('card.setPasswordFor', { username: z.username }),
-            t('card.minCharsSessions', { minPasswort: MIN_PASSWORT }));
-          if (neu === null || !neu.trim()) return;
-          if (!await zweiteBestaetigung('passwort', z.id, t('card.presetPassword'),
+          const fresh = await newPasswordDialog(t('card.setPasswordFor', { username: z.username }),
+            t('card.minCharsSessions', { minPasswort: MIN_PASSWORD }));
+          if (fresh === null || !fresh.trim()) return;
+          if (!await secondConfirm('passwort', z.id, t('card.presetPassword'),
             t('card.getsPasswordHint', { username: z.username }))) return;
-          try { await api('PUT', `/api/users/${z.id}`, { passwort: neu }); toast(t('card.passwordSet')); }
+          try { await api('PUT', `/api/users/${z.id}`, { passwort: fresh }); toast(t('card.passwordSet')); }
           catch (e) { toast(e.message, true); }
-          zeichneZugaenge();
+          drawUsers();
         };
 
         werkzeug.querySelector('.zug-x').onclick = async () => {
@@ -9070,22 +9070,22 @@ function ruesteZugaengeAus() {
              stehen VOR der Entscheidung, wie bei jeder Loeschabfrage im
              Projekt; der Satz zum Sperren nennt den umkehrbaren Weg (seit
              0.12.4). Danach, wie bisher, die Passwortabfrage. */
-          const wahl = await benutzerLoeschenFenster(z.username, z.id, b);
+          const wahl = await userDeleteDialog(z.username, z.id, b);
           if (!wahl) return;
-          if (!await zweiteBestaetigung('entfernen', z.id, t('dialog.deleteUser'),
+          if (!await secondConfirm('entfernen', z.id, t('dialog.deleteUser'),
             t('card.deleteUserHint', { username: z.username }))) return;
           try {
             await api('DELETE', `/api/users/${z.id}?eintraege=${wahl.eintraege ? 1 : 0}&beitraege=${wahl.beitraege ? 1 : 0}`);
             toast(t('card.userDeleted'));
           } catch (e) { toast(e.message, true); }
-          zeichneZugaenge();
+          drawUsers();
         };
       }
       box.appendChild(row);
     }
-    if (!daten.zugaenge.some(z => z.status !== 'geloescht'))
+    if (!data.zugaenge.some(z => z.status !== 'geloescht'))
       box.innerHTML = `<span class="hint">${tH('card.noUsersYet')}</span>`;
-    zeichneGrabsteinKnopf();
+    drawTombstoneButton();
   }
 
   /* --- Gelöschte Zugänge, im eigenen Fenster ---
@@ -9095,23 +9095,23 @@ function ruesteZugaengeAus() {
      DER KNOPF STEHT NUR DA, WENN ES ETWAS ZU ZEIGEN GIBT. Ein Knopf, der ein
      leeres Fenster öffnet, ist ein Knopf zu viel; die Zahl daneben sagt schon,
      was darin steht. */
-  let zugGrabsteine = [];
-  function zeichneGrabsteinKnopf() {
-    const zeile = document.getElementById('zug-weg-zeile');
-    if (!zeile) return;
-    zeile.innerHTML = '';
-    if (!zugGrabsteine.length) return;
-    const n = zugGrabsteine.length;
-    const b = zeile.ownerDocument.createElement('button');
+  let userTombstones = [];
+  function drawTombstoneButton() {
+    const row = document.getElementById('zug-weg-zeile');
+    if (!row) return;
+    row.innerHTML = '';
+    if (!userTombstones.length) return;
+    const n = userTombstones.length;
+    const b = row.ownerDocument.createElement('button');
     b.className = 'btn btn-ghost btn-sm';
     b.id = 'zug-weg-auf';
     b.textContent = t('card.deletedUsersCount', { n: n });
     b.title = t('card.showDeletedUsers');
-    b.onclick = zeigeGrabsteine;
-    zeile.appendChild(b);
+    b.onclick = showTombstones;
+    row.appendChild(b);
   }
 
-  function zeigeGrabsteine() {
+  function showTombstones() {
     const dok = document;
     const bd = dok.createElement('div');
     bd.className = 'backdrop';
@@ -9134,18 +9134,18 @@ function ruesteZugaengeAus() {
     bd.querySelector('[data-no]').onclick = zu;
     bd.onclick = e => { if (e.target === bd) zu(); };
     const box = bd.querySelector('#grabsteinliste');
-    if (!zugGrabsteine.length) {
+    if (!userTombstones.length) {
       box.innerHTML = `<span class="hint">${tH('card.noUserDeleted')}</span>`;
       return;
     }
-    for (const z of zugGrabsteine) {
+    for (const z of userTombstones) {
       const row = dok.createElement('div');
       row.className = 'mrow zug zug-weg';
       row.dataset.mid = z.id;
       // Dieselbe Beschriftung wie ueberall: eine Funktion, zwei Rufer. Stuende
       // die Bildung des Grabsteinnamens hier ein zweites Mal, liefen die
       // Stellen auseinander.
-      row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: true }))}</span>
+      row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, geloescht: true }))}</span>
         <span class="zug-status">${tH('card.deletedLower')}</span>
         <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
       box.appendChild(row);
@@ -9154,7 +9154,7 @@ function ruesteZugaengeAus() {
 
 
 /* ---- Karte „Anfragen" — Abschnitt „Zugänge" ---- */
-function karteAnfragen(geholt) {
+function cardRequests(geholt) {
   const { anfragen } = geholt;
   return `<div class="sys-card breit">
         <h3>${tH('card.requests')}</h3>
@@ -9180,14 +9180,14 @@ function karteAnfragen(geholt) {
         <div id="anf-link"></div>
       </div>`;
 }
-function ruesteAnfragenAus(geholt) {
-  zeichneAnfragen(geholt.anfragen);
+function setUpRequestsOut(geholt) {
+  drawRequests(geholt.anfragen);
   const anfSchalter = document.getElementById('anf-schalter');
   if (anfSchalter) anfSchalter.onclick = async () => {
     // Vor dem await lesen: danach steht am Knopf schon der andere Text.
-    const neu = !(geholt.anfragen && geholt.anfragen.an);
+    const fresh = !(geholt.anfragen && geholt.anfragen.an);
     try {
-      const d = await api('PUT', '/api/registrierung/schalter', { an: neu });
+      const d = await api('PUT', '/api/registrierung/schalter', { an: fresh });
       geholt.anfragen = d;
       /* DER EINE MERKER ZIEHT MIT. `REGISTRIERUNG` kommt beim Start aus
          /api/config und traegt die Anmeldeseite; seit 0.17.1 haengt auch der
@@ -9195,8 +9195,8 @@ function ruesteAnfragenAus(geholt) {
          Admin, der eben umgelegt hat, einen Abschnitt weiter noch die alte
          Lage -- eine zweite Wahrheit, und zwar die falsche. */
       REGISTRIERUNG = !!d.an;
-      toast(neu ? t('card.signupOn') : t('card.signupOff'));
-      zeichneAnfragen(d);
+      toast(fresh ? t('card.signupOn') : t('card.signupOff'));
+      drawRequests(d);
       const kaputt = document.getElementById('anf-kaputt');
       if (kaputt && (!d.an || d.versandBereit)) kaputt.remove();
     } catch (e) { toast(e.message, true); }
@@ -9204,36 +9204,36 @@ function ruesteAnfragenAus(geholt) {
 }
 
   /* Die Warteschlange der Selbstanmeldung, . DIESELBE BAUFORM WIE
-     zeichneZugaenge(): die Liste kommt vom Server, wird nach jeder Handlung
+     drawUsers(): die Liste kommt vom Server, wird nach jeder Handlung
      neu gezeichnet, und was nach dem await gebraucht wird, wird vorher geholt.
      DIE ANTWORT DER HANDLUNG TRAEGT DIE NEUE LISTE MIT -- die Karte zeichnet
      sich daraus neu und fragt nicht ein zweites Mal nach. Ein Mock, der auf
      ein Loeschen zwar "ok" sagt, aber dieselbe Liste zurueckgibt, faellt damit
      auf (Stolperstein 90). */
-  function zeichneAnfragen(stand) {
+  function drawRequests(status) {
     const box = document.getElementById('manfragen');
-    if (!box || !stand) return;
+    if (!box || !status) return;
     const dok = box.ownerDocument;
-    const zustand = document.getElementById('anf-zustand');
-    if (zustand) zustand.innerHTML = stand.an
+    const state = document.getElementById('anf-zustand');
+    if (state) state.innerHTML = status.an
       ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>';
     const belegt = document.getElementById('anf-belegt');
-    if (belegt) belegt.textContent = t('card.ofAtMost', { belegt: stand.belegt, deckel: stand.deckel });
-    const schalter = document.getElementById('anf-schalter');
-    if (schalter) {
-      schalter.textContent = stand.an ? t('card.turnSignupOff') : t('card.turnSignupOn');
-      schalter.disabled = !stand.an && !stand.versandBereit;
+    if (belegt) belegt.textContent = t('card.ofAtMost', { belegt: status.belegt, deckel: status.deckel });
+    const toggle = document.getElementById('anf-schalter');
+    if (toggle) {
+      toggle.textContent = status.an ? t('card.turnSignupOff') : t('card.turnSignupOn');
+      toggle.disabled = !status.an && !status.versandBereit;
     }
     box.innerHTML = '';
-    if (!stand.anfragen.length) {
+    if (!status.anfragen.length) {
       /* KURZ, ABER NICHT STUMM: wer die Karte ansieht, soll den Unterschied
          zwischen „es liegt nichts vor" und „hier fehlt etwas" sehen. */
-      box.innerHTML = stand.an
+      box.innerHTML = status.an
         ? `<span class="hint">${tH('card.noConfirmedRequest')}</span>`
         : '';
       return;
     }
-    for (const a of stand.anfragen) {
+    for (const a of status.anfragen) {
       const row = dok.createElement('div');
       row.className = 'mrow zug';
       row.dataset.mid = a.id;
@@ -9247,7 +9247,7 @@ function ruesteAnfragenAus(geholt) {
       const werkzeug = dok.createElement('span');
       werkzeug.className = 'zug-akt';
       werkzeug.innerHTML =
-        `<button class="mact anf-frei" title="${esc(t('card.approveHint'))}">${ICON_HAKEN}</button>
+        `<button class="mact anf-frei" title="${esc(t('card.approveHint'))}">${ICON_CHECK}</button>
          <button class="mact rm anf-ab" title="${esc(t('card.rejectHint'))}">${ICON_KREUZ}</button>`;
       row.appendChild(werkzeug);
       werkzeug.querySelector('.anf-frei').onclick = async () => {
@@ -9257,9 +9257,9 @@ function ruesteAnfragenAus(geholt) {
         try {
           const d = await api('POST', `/api/anfragen/${a.id}/frei`);
           toast(t('card.approvedLinkBelow'));
-          zeigeLink(d, 'anf-link');
-          zeichneAnfragen(d);
-          zeichneZugaenge();
+          showLink(d, 'anf-link');
+          drawRequests(d);
+          drawUsers();
         } catch (e) { toast(e.message, true); }
       };
       werkzeug.querySelector('.anf-ab').onclick = async () => {
@@ -9268,7 +9268,7 @@ function ruesteAnfragenAus(geholt) {
         try {
           const d = await api('DELETE', `/api/anfragen/${a.id}`);
           toast(t('card.requestRejected'));
-          zeichneAnfragen(d);
+          drawRequests(d);
         } catch (e) { toast(e.message, true); }
       };
       box.appendChild(row);
@@ -9277,12 +9277,12 @@ function ruesteAnfragenAus(geholt) {
 
 
 /* ---- Karte „Sicherheitsprotokoll" — Abschnitt „Zugänge" ---- */
-function karteProtokoll(geholt) {
-  const { protokoll } = geholt;
+function cardLog(geholt) {
+  const { log } = geholt;
   return `<div class="sys-card breit">
         <h3>${tH('card.securityLog')}</h3>
         <p class="desc">${tH('card.logHint')} <strong>${tH('card.notIncluded')}</strong> ${tH('card.logContentHint')}</p>
-        <p class="desc">${tH('card.rowsSortedBy')} <strong>${tH('card.inDays', { tage: protokoll.tage })}</strong> ${tH('card.autoDeleteHint')}</p>
+        <p class="desc">${tH('card.rowsSortedBy')} <strong>${tH('card.inDays', { tage: log.tage })}</strong> ${tH('card.autoDeleteHint')}</p>
         ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
              dieser Instanz -- man waehlt, bevor man liest. Gezeichnet wird sie
              aus einer geschlossenen Liste; die Auswahl geht an den Server,
@@ -9292,10 +9292,10 @@ function karteProtokoll(geholt) {
         <p class="hint hint-sm" id="protokoll-fuss" style="margin:10px 2px 0"></p>
       </div>`;
 }
-function ruesteProtokollAus(geholt) {
+function setUpLogOut(geholt) {
   // Beim Zeichnen steht wieder "Alle" -- Ansichtszustand, keine Einstellung.
-  protokollGruppe = '';
-  zeichneProtokoll(geholt.protokoll);
+  logGroup = '';
+  drawLog(geholt.log);
 }
 
   /* --- Das Sicherheitsprotokoll ---
@@ -9375,13 +9375,13 @@ function ruesteProtokollAus(geholt) {
      Vorgang zu erkennen: bei einer gescheiterten Anmeldung war niemand
      angemeldet. */
   const protHandelnder = (z) => {
-    if (z.wer != null) return verfasserName({ id: z.wer, name: z.werName, geloescht: z.werName == null });
+    if (z.wer != null) return authorName({ id: z.wer, name: z.werName, geloescht: z.werName == null });
     return z.was === 'anmeldung.fehl' ? '—' : t('card.viaCommandLine');
   };
   const protZiel = (z) => {
     if (z.ziel == null) return z.was === 'anmeldung.fehl' ? t('card.unknownName') : '';
     if (z.ziel === z.wer) return '';
-    return verfasserName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
+    return authorName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
   };
 
   /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
@@ -9392,7 +9392,7 @@ function ruesteProtokollAus(geholt) {
      jemand konnte an der Tuer nicht belegen, wer er ist. Ein Name, der nur die
      Haelfte nennt, waere falsch. */
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
-  const PROTOKOLL_ANSICHT = [
+  const LOG_VIEW = [
     ['', 'list.all'],
     ['gescheitert', 'card.failed'],
     ['anmeldungen', 'card.logins'],
@@ -9400,7 +9400,7 @@ function ruesteProtokollAus(geholt) {
     ['zweifaktor', 'card.twoFactor'],
     ['bestand', 'card.database']
   ];
-  const PROTOKOLL_ANSICHT_HILFE = {
+  const LOG_VIEW_HELP = {
     '': 'card.logAllHint',
     gescheitert: 'card.loginsFailed',
     anmeldungen: 'card.loginsOk',
@@ -9410,23 +9410,23 @@ function ruesteProtokollAus(geholt) {
   };
   // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
   // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
-  let protokollGruppe = '';
+  let logGroup = '';
 
   /* DER SPRUNG ZUM ZUGANG. Er klappt nichts auf -- die Karte "Zugaenge" steht
      im selben Bereich -- und hebt die Zeile kurz hervor, damit man sie in
      einer langen Liste wiederfindet.
      WER DAS PROTOKOLL SIEHT, IST EIGENTUEMER UND DAMIT IMMER AUCH ADMIN: die
-     Karte "Zugaenge" ist also da. Trotzdem abgefangen -- zeichneZugaenge()
+     Karte "Zugaenge" ist also da. Trotzdem abgefangen -- drawUsers()
      laedt fuer sich, und beim allerersten Aufbau kann die Zeile noch fehlen.
      Ein stiller Klick, der nichts tut, waere der schlechtere Ausgang.
      scrollIntoView MIT `?.`: jsdom kennt es nicht, und ein Prueflauf, der an
      einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
   function springeZuZugang(id) {
-    const zeile = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
-    if (!zeile) return toast(t('card.userGone'), true);
-    zeile.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-    zeile.classList.add('mrow-blitz');
-    setTimeout(() => zeile.classList.remove('mrow-blitz'), 1600);
+    const row = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
+    if (!row) return toast(t('card.userGone'), true);
+    row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    row.classList.add('mrow-blitz');
+    setTimeout(() => row.classList.remove('mrow-blitz'), 1600);
   }
 
   /* EIN NAME WIRD ZUM KNOPF, wenn er eine Nummer hat -- und nur dann.
@@ -9434,76 +9434,76 @@ function ruesteProtokollAus(geholt) {
      an keinen Zugang traf, und es gaebe nichts, wohin er springen koennte. Ein
      Knopf, der ins Leere fuehrt, ist schlimmer als Text. */
   const protNamensFeld = (dok, klasse, text, id, davor = '') => {
-    const feld = dok.createElement('span');
-    feld.className = klasse;
-    if (!text) return feld;
+    const field = dok.createElement('span');
+    field.className = klasse;
+    if (!text) return field;
     // Der Pfeil steht VOR dem Knopf und nicht in ihm: er gehoert der Zeile und
     // ist kein Teil des Namens, auf den man klickt.
-    if (davor) feld.appendChild(dok.createTextNode(davor));
-    if (id == null) { feld.appendChild(dok.createTextNode(text)); return feld; }
+    if (davor) field.appendChild(dok.createTextNode(davor));
+    if (id == null) { field.appendChild(dok.createTextNode(text)); return field; }
     const b = dok.createElement('button');
     b.className = 'link-btn prot-sprung';
     b.dataset.mid = String(id);
     b.textContent = text;
     b.title = t('card.jumpToUser');
     b.onclick = () => springeZuZugang(id);
-    feld.appendChild(b);
-    return feld;
+    field.appendChild(b);
+    return field;
   };
 
-  function zeichneProtokollFilter(d) {
+  function drawLogFilter(d) {
     const box = document.getElementById('protokoll-filter');
     if (!box) return;
-    const zahlen = (d && d.zahlen && typeof d.zahlen === 'object') ? d.zahlen : {};
+    const numbers = (d && d.zahlen && typeof d.zahlen === 'object') ? d.zahlen : {};
     box.innerHTML = '';
-    for (const [schluessel, wort] of PROTOKOLL_ANSICHT) {
+    for (const [schluessel, wort] of LOG_VIEW) {
       const b = document.createElement('button');
-      const n = Number(zahlen[schluessel || 'alle']) || 0;
+      const n = Number(numbers[schluessel || 'alle']) || 0;
       /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage (Stolperstein 47):
          eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste.
          Anklickbar bleibt sie -- man sieht nur vorher, dass nichts kommt. */
-      const leer = n === 0 && protokollGruppe !== schluessel;
-      b.className = 'pill' + (protokollGruppe === schluessel ? ' on' : '') + (leer ? ' leer' : '');
-      b.dataset.gruppe = schluessel;
+      const empty = n === 0 && logGroup !== schluessel;
+      b.className = 'pill' + (logGroup === schluessel ? ' on' : '') + (empty ? ' leer' : '');
+      b.dataset.group = schluessel;
       b.innerHTML = `${esc(t(wort))}<span class="n">${n}</span>`;
-      b.title = PROTOKOLL_ANSICHT_HILFE[schluessel] ? t(PROTOKOLL_ANSICHT_HILFE[schluessel]) : '';
-      b.onclick = () => protokollNeu(schluessel);
+      b.title = LOG_VIEW_HELP[schluessel] ? t(LOG_VIEW_HELP[schluessel]) : '';
+      b.onclick = () => logNew(schluessel);
       box.appendChild(b);
     }
   }
 
   /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
-     wie sitzungenNeu() und papierkorbNeu(). Ein Neuaufbau des ganzen
+     wie sessionsNew() und trashNew(). Ein Neuaufbau des ganzen
      Systembereichs leerte die Passwortfelder daneben.
      GEFRAGT WIRD DER SERVER UND NICHT DIE GEHOLTEN HUNDERT ZEILEN: der Filter
      soll die hundert juengsten DIESER Art zeigen und nicht die dieser Art unter
      den hundert juengsten aller Arten. Genau das war der Befund. */
-  async function protokollNeu(gruppe) {
-    protokollGruppe = gruppe || '';
+  async function logNew(group) {
+    logGroup = group || '';
     let d;
     try {
       d = await api('GET', '/api/sicherheitsprotokoll' +
-        (protokollGruppe ? `?gruppe=${encodeURIComponent(protokollGruppe)}` : ''));
+        (logGroup ? `?gruppe=${encodeURIComponent(logGroup)}` : ''));
     } catch (e) {
       const box = document.getElementById('protokoll-liste');
       if (box) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`;
       return;
     }
-    zeichneProtokoll(d);
+    drawLog(d);
   }
 
-  function zeichneProtokoll(d) {
+  function drawLog(d) {
     const box = document.getElementById('protokoll-liste');
     const fuss = document.getElementById('protokoll-fuss');
     if (!box) return;
     const dok = box.ownerDocument;
-    zeichneProtokollFilter(d);
+    drawLogFilter(d);
     const zeilen = (d && Array.isArray(d.zeilen)) ? d.zeilen : [];
     if (!zeilen.length) {
       /* ZWEI LEERE FAELLE, ZWEI SAETZE. "Noch kein Vorgang festgehalten" waere
          unter einem Filter eine Falschaussage: es gibt Vorgaenge, nur keinen
          dieser Art. */
-      box.innerHTML = protokollGruppe
+      box.innerHTML = logGroup
         ? `<p class="hint">${tH('card.noEventKind')} ${esc(String(d && d.tage || ''))} ${tH('card.daysDot')}</p>`
         : `<p class="hint">${tH('card.noEventYet')}</p>`;
       if (fuss) fuss.textContent = '';
@@ -9511,20 +9511,20 @@ function ruesteProtokollAus(geholt) {
     }
     box.innerHTML = '';
     for (const z of zeilen) {
-      const zeile = dok.createElement('div');
-      zeile.className = 'prot-zeile';
-      zeile.dataset.was = z.was;
+      const row = dok.createElement('div');
+      row.className = 'prot-zeile';
+      row.dataset.was = z.was;
       const wen = protZiel(z), merk = merkmalsWort(z);
       const zeit = dok.createElement('span');
       zeit.className = 'prot-zeit'; zeit.textContent = fmtDate(z.am);
       const was = dok.createElement('span');
       was.className = 'prot-was'; was.textContent = vorgangsWort(z);
-      zeile.appendChild(zeit); zeile.appendChild(was);
+      row.appendChild(zeit); row.appendChild(was);
       // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
       // "ueber zugang.js auf dem Wirt" haben keine.
-      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),
+      row.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),
         z.wer != null ? z.wer : null));
-      zeile.appendChild(protNamensFeld(dok, 'prot-ziel', wen,
+      row.appendChild(protNamensFeld(dok, 'prot-ziel', wen,
         z.ziel != null ? z.ziel : null, '→ '));
       const mfeld = dok.createElement('span');
       mfeld.className = 'prot-merkmal';
@@ -9532,17 +9532,17 @@ function ruesteProtokollAus(geholt) {
          (Konzept 6.7). Alles andere bleibt Text; die Marke selbst entsteht
          als Knoten und nicht als Vorlage, der Wortlaut geht durch textContent. */
       if (merk && ROLLENWORT[z.merkmal]) {
-        const marke = dok.createElement('span');
-        marke.className = 'rolle-marke ' + z.merkmal;
-        marke.textContent = merk;
-        mfeld.appendChild(marke);
+        const mark = dok.createElement('span');
+        mark.className = 'rolle-marke ' + z.merkmal;
+        mark.textContent = merk;
+        mfeld.appendChild(mark);
       } else mfeld.textContent = merk || '';
-      zeile.appendChild(mfeld);
-      box.appendChild(zeile);
+      row.appendChild(mfeld);
+      box.appendChild(row);
     }
     if (fuss) {
       const gesamt = Number(d.gesamt) || zeilen.length;
-      const art = protokollGruppe ? t('card.ofThisKind') : '';
+      const art = logGroup ? t('card.ofThisKind') : '';
       fuss.textContent = gesamt > zeilen.length
         ? t('card.logNewestHint', { length: zeilen.length, gesamt: gesamt, art: art })
         : t('card.eventCount', { n: gesamt, art: art });
@@ -9551,7 +9551,7 @@ function ruesteProtokollAus(geholt) {
 
 
 /* ---- Karte „Mailversand" — Abschnitt „Zugänge" ---- */
-function karteMailversand(geholt) {
+function cardMailDelivery(geholt) {
   const { mailstand } = geholt;
   /* `.breit` WIE DIE DREI NACHBARN. Seit 0.16.0 stehen „Zugaenge",
      „Anfragen", „Sicherheitsprotokoll" und „Mailversand" im selben Abschnitt;
@@ -9595,7 +9595,7 @@ function karteMailversand(geholt) {
               am Feld selbst. DASS DAS PASSWORT NIE DASTEHT, gilt unverändert:
               nie der Wert, nie die Länge, nie Sternchen mit der richtigen
               Zahl. */''}
-        <div class="kv"><span class="k">${tH('card.provider')}</span><span class="v">${mailAnbieterZeile(mailstand)}</span></div>
+        <div class="kv"><span class="k">${tH('card.provider')}</span><span class="v">${mailProviderRow(mailstand)}</span></div>
         <div class="kv"><span class="k">${tH('card.sender')}</span><span class="v">${mailstand.absender
           ? esc(mailstand.absender)
           : `<strong class="mail-aus">${tH('card.notSet')}</strong>`}</span></div>
@@ -9630,7 +9630,7 @@ function karteMailversand(geholt) {
    BEI „Eigener Server" OHNE EINGETRAGENEN SERVER steht nur der Name. Ein
    „:0" oder ein nacktes „:587" wäre eine Angabe über etwas, das gar nicht
    eingetragen ist. */
-function mailAnbieterZeile(m) {
+function mailProviderRow(m) {
   if (!m.anbieter) return `<strong class="mail-aus">${tH('card.noneChosenYet')}</strong>`;
   const teile = [esc(m.anbieterName || m.anbieter)];
   if (m.server && m.port) {
@@ -9660,8 +9660,8 @@ function mailAnbieterZeile(m) {
    LIEFERT true, wenn wirklich gespeichert wurde — der Rufer zeichnet dann neu. */
 function mailDialog(mailstand) {
   return new Promise(resolve => {
-    const liste = Array.isArray(mailstand.anbieterListe) ? mailstand.anbieterListe : [];
-    const vorlage = (key) => liste.find(a => a.key === key) || null;
+    const list = Array.isArray(mailstand.anbieterListe) ? mailstand.anbieterListe : [];
+    const vorlage = (key) => list.find(a => a.key === key) || null;
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal mail-dialog" id="mail-dialog">
@@ -9669,7 +9669,7 @@ function mailDialog(mailstand) {
       <div class="field"><label for="mail-anbieter">${tH('card.provider')}</label>
         <select class="input" id="mail-anbieter">
           <option value=""${mailstand.anbieter ? '' : ' selected'}>${tH('card.noDelivery')}</option>
-          ${liste.map(a => `<option value="${esc(a.key)}"${
+          ${list.map(a => `<option value="${esc(a.key)}"${
             a.key === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
         </select></div>
       ${/* DER HINWEIS ZUM GEWÄHLTEN ANBIETER — DARUNTER, NICHT DANEBEN, und er
@@ -9711,31 +9711,31 @@ function mailDialog(mailstand) {
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
         <button class="btn btn-accent" id="mail-save">${tH('dialog.save')}</button></div></div>`;
     document.body.appendChild(bd);
-    const feld = (id) => bd.querySelector('#mail-' + id);
-    const auswahl = feld('anbieter');
+    const field = (id) => bd.querySelector('#mail-' + id);
+    const selection = field('anbieter');
     const hinweis = bd.querySelector('#mail-anbieter-hinweis');
-    const festFeld = bd.querySelector('#mail-fest-feld');
-    const eigenBox = bd.querySelector('#mail-eigen');
-    const absenderHinweis = bd.querySelector('#mail-absender-hinweis');
+    const fixedField = bd.querySelector('#mail-fest-feld');
+    const ownBox = bd.querySelector('#mail-eigen');
+    const senderHint = bd.querySelector('#mail-absender-hinweis');
 
     /* WAS DIE AUSWAHL UMSTELLT, an EINER Stelle. Drei Fälle und nicht zwei:
        eine Vorlage (feste Zeile), „Eigener Server" (Felder) und „kein
        Versand" — dort gibt es weder das eine noch das andere, und auch die
        drei Felder darunter haben nichts zu tragen. */
-    const nachAuswahl = () => {
-      const v = vorlage(auswahl.value);
-      const eigen = auswahl.value === 'eigen';
+    const afterSelection = () => {
+      const v = vorlage(selection.value);
+      const eigen = selection.value === 'eigen';
       hinweis.textContent = v && v.hinweis ? v.hinweis : '';
       hinweis.hidden = !(v && v.hinweis);
-      festFeld.hidden = !v || eigen;
+      fixedField.hidden = !v || eigen;
       if (v && !eigen) bd.querySelector('#mail-fest').textContent =
         `${v.server} · ${v.port} · ${v.sicher ? 'SSL/TLS' : 'STARTTLS'}`;
-      eigenBox.hidden = !eigen;
-      for (const id of ['benutzer', 'passwort', 'absender']) feld(id).disabled = !v;
-      absenderHinweis.hidden = !v;
+      ownBox.hidden = !eigen;
+      for (const id of ['benutzer', 'passwort', 'absender']) field(id).disabled = !v;
+      senderHint.hidden = !v;
     };
-    auswahl.onchange = nachAuswahl;
-    nachAuswahl();
+    selection.onchange = afterSelection;
+    afterSelection();
 
     const fertig = (v) => {
       document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v);
@@ -9754,20 +9754,20 @@ function mailDialog(mailstand) {
 
     bd.querySelector('#mail-save').onclick = async () => {
       const koerper = {
-        anbieter: auswahl.value,
-        server: feld('server').value.trim(),
-        port: Number(feld('port').value),
-        sicher: feld('sicher').value === 'tls',
-        benutzer: feld('benutzer').value.trim(),
+        anbieter: selection.value,
+        server: field('server').value.trim(),
+        port: Number(field('port').value),
+        sicher: field('sicher').value === 'tls',
+        benutzer: field('benutzer').value.trim(),
         // LEER HEISST "unveraendert", nicht "loeschen": sonst muesste das
         // Passwort bei jeder Aenderung am Absender neu getippt werden, und ein
         // Formular, das ein Geheimnis fuer eine Nebensache verlangt, wird
         // irgendwann mit einem falschen Wert gespeichert. Der Server hat
         // dieselbe Regel; hier steht sie nur, weil das Feld hier steht.
-        passwort: feld('passwort').value,
-        absender: feld('absender').value.trim()
+        passwort: field('passwort').value,
+        absender: field('absender').value.trim()
       };
-      if (!await zweiteBestaetigung('mail', null, t('card.saveMailAccount'),
+      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),
         t('card.mailServerHint') +
         t('card.toSetPassword'))) return;
       try {
@@ -9776,27 +9776,27 @@ function mailDialog(mailstand) {
         fertig(true);
       } catch (e) { toast(e.message, true); }
     };
-    auswahl.focus();
+    selection.focus();
   });
 }
-function ruesteMailversandAus(geholt) {
+function setUpMailDeliveryOut(geholt) {
   /* NUR FUER DEN EIGENTUEMER; die Klemme steht in SYS_KARTEN, und die
      Endpunkte darunter weisen jeden anderen ohnehin ab. Die Abfrage auf das
      Element bleibt trotzdem stehen: sie ist der Schutz davor, dass ein
      Behandler ins Leere greift, wenn die Karte einmal woanders steht
      (Stolperstein 211). */
   const { mailstand } = geholt;
-  const mailKnopf = document.getElementById('mail-einrichten');
-  if (mailKnopf && mailstand) {
+  const mailButton = document.getElementById('mail-einrichten');
+  if (mailButton && mailstand) {
     /* DER DIALOG BEKOMMT DEN ZUSTAND MIT, den die Karte ohnehin schon hat --
        kein zweiter Ruf an den Server fuer dieselbe Auskunft (Stolperstein 145).
        NEU GEZEICHNET WIRD NUR, WENN WIRKLICH GESPEICHERT WURDE. renderSystem()
        nach einem Abbruch waere ein Neuaufbau fuer nichts. */
-    mailKnopf.onclick = async () => {
+    mailButton.onclick = async () => {
       if (await mailDialog(mailstand)) renderSystem();
     };
 
-    const mailErgebnis = (text, gut) => {
+    const mailResult = (text, gut) => {
       const box = document.getElementById('mail-ergebnis');
       if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-erfolg' : ''}"
         style="margin:10px 0 0">${esc(text)}</p>`;
@@ -9805,16 +9805,16 @@ function ruesteMailversandAus(geholt) {
     document.getElementById('mail-test').onclick = async (e) => {
       /* e.currentTarget IST NACH DEM ERSTEN await NULL (Stolperstein 61) --
          der Knopf wird deshalb VOR dem Ruf festgehalten. */
-      const knopf = e.currentTarget;
-      knopf.disabled = true; knopf.textContent = t('card.sending');
+      const button = e.currentTarget;
+      button.disabled = true; button.textContent = t('card.sending');
       try {
         const r = await api('POST', '/api/mail/test', {});
-        mailErgebnis(r.ok
+        mailResult(r.ok
           ? t('card.testMailHint', { an: r.an })
           : t('card.sendFailed', { grund: r.grund }), r.ok);
         if (r.ok) toast(t('card.testMailSentShort'));
-      } catch (err) { mailErgebnis(err.message, false); }
-      knopf.disabled = false; knopf.textContent = t('card.testMailToMe');
+      } catch (err) { mailResult(err.message, false); }
+      button.disabled = false; button.textContent = t('card.testMailToMe');
     };
   }
 }
@@ -9881,7 +9881,7 @@ function geometrieZeile(g) {
 /* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
    OHNE BEHANDLER, WIEDER. In 0.19.0 trug sie einen -- der Schalter und der
    Knopf der Bildablage sassen darin. Sie sind in 0.19.1 in eine eigene Karte
-   gezogen (siehe karteBildablage()), und was hier bleibt, sind Zahlen. Eine
+   gezogen (siehe cardImageStore()), und was hier bleibt, sind Zahlen. Eine
    leere ausruesten-Funktion daneben waere eine Zeile, die behauptet, es gaebe
    hier etwas zu tun. */
 function karteKennzahlen(geholt) {
@@ -9918,7 +9918,7 @@ function karteKennzahlen(geholt) {
              ALLES EINGERECHNET: Fotos, Videos, Dateien, Kommentarbilder. Am
              Knopf steht darunter, was die eingeschalteten Schalter davon
              wirklich mitnehmen. */''}
-        ${exportGesamt(stats) ? `<div class="kv"><span class="k">${tH('card.exportSizeAll')}</span><span class="v">≈ ${fmtBytes(exportGesamt(stats))}</span></div>` : ''}
+        ${exportTotal(stats) ? `<div class="kv"><span class="k">${tH('card.exportSizeAll')}</span><span class="v">≈ ${fmtBytes(exportTotal(stats))}</span></div>` : ''}
         ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
              Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
              Einspielen wird er gegen die Zeile im Aenderungsprotokoll
@@ -9937,7 +9937,7 @@ function karteKennzahlen(geholt) {
              Befehl steht im Kasten „Auf dem Server" (Regel S5). */''}
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">${tH('card.keyFromSetting')} <code>ENCRYPTION_KEY</code>. <strong><code>.env</code> ${tH('card.and')} <code>data/</code> ${tH('card.neverSameBackup')}</strong> ${tH('card.withoutKeyLost')}</div>`
-          : (EIGENTUEMER
+          : (OWNER
             ? `<div class="warn-box"><strong>${tH('card.keyBesideDb')}</strong> ${tH('card.keyFileCopy')}
               <p style="margin:9px 0 6px">${tH('card.forRealProtection')} <strong>${tH('card.thisOne')}</strong> ${tH('card.valueInto')} <code>.env</code> ${tH('card.enterKeyHint')}</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
@@ -10004,7 +10004,7 @@ function karteKennzahlen(geholt) {
    LIEGT UEBERHAUPT KEIN BILD DA, sagt die Karte GENAU DAS und verschwindet
    nicht: eine Karte, die je nach Bestand da ist oder nicht, liesse den
    Systembereich unter der Hand die Gestalt wechseln. */
-function karteBildablage(geholt) {
+function cardImageStore(geholt) {
   const stats = geholt.stats || {};
   const bf = stats.bildFormate || {};
   const zeilen = BILDFORMATE.filter(f => bf[f.schluessel] && bf[f.schluessel].anzahl);
@@ -10020,12 +10020,12 @@ function karteBildablage(geholt) {
           const z = bf[f.schluessel];
           // Der Hinweis am PNG sagt nur dann etwas, wenn die Umwandlung an ist.
           const hinweis = f.schluessel === 'png'
-            ? (BILDER_UMWANDELN ? t('card.webpOnUpload') : '') : f.hinweis();
+            ? (IMAGES_CONVERT ? t('card.webpOnUpload') : '') : f.hinweis();
           return `<div class="kv"><span class="k">${f.name()}${
             hinweis ? ` <span class="zusatz">— ${hinweis}</span>` : ''
           }</span><span class="v">${z.anzahl} · ${fmtBytes(z.bytes)}</span></div>`;
         }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noPhotosYet')}</p>`}
-        ${EIGENTUEMER ? `
+        ${OWNER ? `
         <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="bild-umwandeln">
           ${tH('card.convertOnUpload')}</label>
         ${/* WAS DER SCHALTER TUT, UND WAS ER NICHT TUT. Der Satz nennt beides:
@@ -10054,10 +10054,10 @@ function karteBildablage(geholt) {
 /* DER FERTIGSATZ IST EIN RUF -- 0.24.0, wie der Fortschrittssatz darueber
    schon immer einer war (siehe SYS_ABSCHNITTE). */
 const BESTANDSLAEUFE = [
-  { feld: 'umstellung', id: 'bild-lauf',
+  { field: 'umstellung', id: 'bild-lauf',
     text: (u) => t('card.convertProgress', { erledigt: u.erledigt, gesamt: u.gesamt }),
     fertig: () => t('card.convertDone') },
-  { feld: 'geometrie', id: 'geo-lauf',
+  { field: 'geometrie', id: 'geo-lauf',
     text: (g) => t('card.thumbnailsProgress', { erledigt: g.erledigt, gesamt: g.gesamt }),
     fertig: () => t('card.thumbnailsRefreshed') }
 ];
@@ -10073,26 +10073,26 @@ const BESTANDSLAEUFE = [
    deren Ende ist eine Nachricht wert. Ohne diese Merkliste truege ein Lauf,
    der schon vor dem Oeffnen der Karte fertig war, bei jedem Takt seine
    Fertigmeldung — er steht ja mit `laeuft: false` in der Antwort. */
-let bestandsUhr = null;
+let inventoryClock = null;
 function verfolgeBestandslauf() {
-  if (bestandsUhr) return;
+  if (inventoryClock) return;
   const unterwegs = new Set();
-  const halt = () => { clearInterval(bestandsUhr); bestandsUhr = null; };
-  bestandsUhr = setInterval(async () => {
-    if (!BESTANDSLAEUFE.some(l => document.getElementById(l.id))) return halt();
+  const stop = () => { clearInterval(inventoryClock); inventoryClock = null; };
+  inventoryClock = setInterval(async () => {
+    if (!BESTANDSLAEUFE.some(l => document.getElementById(l.id))) return stop();
     let s;
     // Ein Fehlschlag haelt an, statt im Sekundentakt weiterzufragen: wer die
     // Sitzung verloren hat, bekommt sonst eine Meldung je Umlauf.
-    try { s = await api('GET', '/api/stats'); } catch { return halt(); }
+    try { s = await api('GET', '/api/stats'); } catch { return stop(); }
     const fertig = [];
     for (const l of BESTANDSLAEUFE) {
-      const zeile = document.getElementById(l.id), stand = s[l.feld];
-      if (!zeile || !stand) continue;
-      if (stand.laeuft) { zeile.textContent = l.text(stand); unterwegs.add(l.feld); }
-      else if (unterwegs.delete(l.feld)) fertig.push(l.fertig());
+      const row = document.getElementById(l.id), status = s[l.field];
+      if (!row || !status) continue;
+      if (status.laeuft) { row.textContent = l.text(status); unterwegs.add(l.field); }
+      else if (unterwegs.delete(l.field)) fertig.push(l.fertig());
     }
     if (unterwegs.size) return;
-    halt();
+    stop();
     /* FERTIG HEISST: DIE GANZE KARTE NEU. Die Aufstellung nach Format ist
        jetzt eine andere, und nur die Fortschrittszeile nachzuziehen hiesse,
        zwei Staende nebeneinander stehen zu lassen -- unten „fertig", darueber
@@ -10102,15 +10102,15 @@ function verfolgeBestandslauf() {
   }, 1500);
 }
 
-function ruesteBildablageAus(geholt) {
+function setUpImageStoreOut(geholt) {
   /* DERSELBE HELFER WIE BEI DEN BEIDEN ANLEGEN-SCHALTERN. Er nimmt die
      Stellung bei einem Fehlschlag zurueck -- sonst zeigte der Bildschirm
      etwas anderes an, als der Server haelt. */
   anlegeSchalter('bild-umwandeln', 'bilderUmwandeln',
-    () => BILDER_UMWANDELN, v => { BILDER_UMWANDELN = v; });
+    () => IMAGES_CONVERT, v => { IMAGES_CONVERT = v; });
 
-  amElement('bild-um', (knopf) => {
-    knopf.onclick = async () => {
+  amElement('bild-um', (button) => {
+    button.onclick = async () => {
       const bf = (geholt.stats && geholt.stats.bildFormate) || {};
       const png = bf.png || { anzahl: 0, bytes: 0 };
       /* DER DIALOG SAGT ES VORHER UND BESCHOENIGT NICHTS: wie viele Bilder,
@@ -10137,7 +10137,7 @@ function ruesteBildablageAus(geholt) {
          KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE, aus demselben Grund: sie
          waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
          eine Anzeige, die bei jedem Umlauf springt. */
-      const ok = await zweiteBestaetigung('bilder', null, t('card.convertPngWebp'),
+      const ok = await secondConfirm('bilder', null, t('card.convertPngWebp'),
         t('card.pngConverting', { n: png.anzahl, bytes: fmtBytes(png.bytes),
           danach: fmtBytes(Math.round(png.bytes * 0.37)) }));
       if (!ok) return;
@@ -10155,13 +10155,13 @@ function ruesteBildablageAus(geholt) {
   // Laeuft beim Oeffnen der Karte schon einer -- weil jemand sie neu geladen
   // hat, von woanders zurueckkommt oder der Server gerade erst angefangen hat
   // --, wird weitergezaehlt. Seit 0.19.4 gilt das fuer beide Laeufe.
-  if (geholt.stats && BESTANDSLAEUFE.some(l => geholt.stats[l.feld] && geholt.stats[l.feld].laeuft))
+  if (geholt.stats && BESTANDSLAEUFE.some(l => geholt.stats[l.field] && geholt.stats[l.field].laeuft))
     verfolgeBestandslauf();
 }
 
 
 /* ---- Karte „Sicherung" — Abschnitt „Datenbank" ---- */
-function karteSicherung() {
+function cardBackup() {
   return `<div class="sys-card">
         <h3>${tH('card.backup')}</h3>
         <p class="desc"><strong>${tH('card.backupLabel')}</strong> ${tH('card.backupHint')}</p>
@@ -10174,8 +10174,8 @@ function karteSicherung() {
         <div id="sicherung-box"></div>
       </div>`;
 }
-function ruesteSicherungAus(geholt) {
-  drawSicherung(geholt);
+function setUpBackupOut(geholt) {
+  drawBackup(geholt);
 }
 
   /* --- Sicherung --- */
@@ -10183,7 +10183,7 @@ function ruesteSicherungAus(geholt) {
      traegt die Antwort den neuen Stand, und die Karte zeichnet sich daraus neu.
      JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
      und nicht der Lauf abreissen. */
-  function drawSicherung(geholt) {
+  function drawBackup(geholt) {
     const box = document.getElementById('sicherung-box');
     if (!box) return;
     const d = geholt.sicherung || {};
@@ -10206,7 +10206,7 @@ function ruesteSicherungAus(geholt) {
        erreichbar, sagt die Karte GENAU DAS statt einer Zahl — eine Zahl aus
        einem Merker wäre in genau diesem Fall die Lüge. */
     const letzte = d.letzte;
-    const stand = d.fehler
+    const status = d.fehler
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler)}</div>`
       : (!d.erreichbar
         ? `<div class="warn-box" style="margin:0 0 12px">${tH('server.backupDirUnreachable')}</div>`
@@ -10229,7 +10229,7 @@ function ruesteSicherungAus(geholt) {
        er von dort kam; im Dateifall steht er nach dem Wechsel nirgends mehr.
        Die Karte weiß das nicht sicher und behauptet es deshalb nicht: sie
        nennt den Weg, der ihn beim Wechsel genannt hat. */
-    const wechsel = !d.gewechseltAm ? '' : (
+    const change = !d.gewechseltAm ? '' : (
       letzte && letzte.veraltet
         ? `<div class="warn-box" style="margin:0 0 12px"><strong>${tH('card.noBackupForKey')}</strong> ${tH('card.keyChangedOn', { gewechseltAm: fmtDate(d.gewechseltAm) })}
              <strong>${tH('card.backupNowHint')}</strong></div>`
@@ -10244,20 +10244,20 @@ function ruesteSicherungAus(geholt) {
        benannt. Wer hier rot sieht, soll wissen, WARUM, und nicht bloss, DASS.
        Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
        sonst liest ihn beim nächsten Umbau niemand mehr. */
-    const lage = d.imArbeitsverzeichnis
+    const situation = d.imArbeitsverzeichnis
       ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>${tH('card.backupDirInProject')}</strong> ${tH('card.backupDirAdvice')} <code>${tH('card.composeFile')}</code>.</div>`
       : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">${tH('card.backupDirIs')}
            <strong>${tH('card.outsideProject')}</strong> ${tH('card.untouchedByUpdates')}</div>`;
     box.innerHTML = `
-      ${lage}
+      ${situation}
       <div class="field"><label>${tH('card.backupDir')}</label>
         <p class="desc" style="margin:0 0 6px">${tH('card.configuredIs')} <code>${esc(d.wurzel || '')}</code>${tH('card.subDirOptional')}</p>
         <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="${esc(t('card.noSubDir'))}"
           autocapitalize="off" spellcheck="false"></div>
       <button class="btn btn-sm" id="sich-ort-save">${tH('dialog.save')}</button>
       <div class="sys-teil"></div>
-      ${stand}
-      ${wechsel}
+      ${status}
+      ${change}
       <p class="desc" style="margin:0 0 10px">${tH('card.duringBackupHint')} <strong>${tH('card.brieflyOffline')}</strong> ${tH('card.backupDurationHint', { dbBytes: fmtBytes(d.dbBytes), dauerSekunden: d.dauerSekunden })}</p>
       <button class="btn btn-accent btn-sm" id="sich-los">${tH('card.backupNow')}</button>`;
 
@@ -10272,16 +10272,16 @@ function ruesteSicherungAus(geholt) {
                       erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
                       gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
         gespeichert();
-        drawSicherung(geholt);
+        drawBackup(geholt);
       } catch (e) { toast(e.message, true); }
     };
     /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
        laeuft synchron, die Instanz steht so lange still, und ein zweiter Klick
        stellte sich nur in die Schlange. */
     document.getElementById('sich-los').onclick = async (e) => {
-      const knopf = e.currentTarget;
-      knopf.disabled = true;
-      knopf.textContent = t('card.backupRunning');
+      const button = e.currentTarget;
+      button.disabled = true;
+      button.textContent = t('card.backupRunning');
       try {
         const r = await api('POST', '/api/sicherung');
         geholt.sicherung = { ...geholt.sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
@@ -10306,11 +10306,11 @@ function ruesteSicherungAus(geholt) {
            Karte: ein Neuaufbau des ganzen Bereichs leerte die Felder daneben
            (derselbe Grund wie beim Papierkorb). */
         if (r.aufgeraeumt && r.aufgeraeumt.weg) return renderSystem();
-        drawSicherung(geholt);
+        drawBackup(geholt);
       } catch (err) {
         toast(err.message, true);
-        knopf.disabled = false;
-        knopf.textContent = t('card.backupNow');
+        button.disabled = false;
+        button.textContent = t('card.backupNow');
       }
     };
   }
@@ -10337,7 +10337,7 @@ function ruesteSicherungAus(geholt) {
    zurueckkommt -- sie rechnet nichts selbst nach. Eine zweite Fassung der
    Regel im Browser waere eine zweite Wahrheit darueber, was gleich passiert
    (Stolperstein 47), und die Vorschau verloere genau das, wofuer es sie gibt. */
-function karteAufraeumen() {
+function cardCleanup() {
   return `<div class="sys-card">
         <h3>${tH('card.oldBackups')}</h3>
         ${/* ZWEI SAETZE, UND JEDER TRAEGT EINE TATSACHE: dass es weg ist, und
@@ -10351,8 +10351,8 @@ function karteAufraeumen() {
         <div id="aufraeumen-box"></div>
       </div>`;
 }
-function ruesteAufraeumenAus(geholt) {
-  drawAufraeumen(geholt);
+function setUpCleanupOut(geholt) {
+  drawCleanup(geholt);
 }
 
   /* --- Alte Sicherungen ---
@@ -10362,7 +10362,7 @@ function ruesteAufraeumenAus(geholt) {
      sich daraus neu.
      JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
      und nicht der Lauf abreissen. */
-  function drawAufraeumen(geholt) {
+  function drawCleanup(geholt) {
     const box = document.getElementById('aufraeumen-box');
     if (!box) return;
     const d = geholt.sicherung || {};
@@ -10399,24 +10399,24 @@ function ruesteAufraeumenAus(geholt) {
        Karte, unter ihr stehen die Zusammenfassung und beide Knoepfe. Ein Ordner
        mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
        und dieselbe Begruendung wie bei `#ex-teil-liste`. */
-    const zeile = (z) => {
-      const marke = z.faellt ? `<span class="auf-marke weg">${tH('card.deleteLower')}</span>`
+    const row = (z) => {
+      const mark = z.faellt ? `<span class="auf-marke weg">${tH('card.deleteLower')}</span>`
                   : z.veraltet ? `<span class="auf-marke alt">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
-        <span class="mname">#${z.nr} · ${esc(fmtDate(z.am))}</span>${marke}
+        <span class="mname">#${z.nr} · ${esc(fmtDate(z.am))}</span>${mark}
         <span class="mcount">${tH('card.daysAgo', { n: z.tageHer })} · ${
           esc(fmtBytes(z.bytes))}</span></div>`;
     };
-    const alle = Array.isArray(a.dateien) ? a.dateien : [];
+    const all = Array.isArray(a.dateien) ? a.dateien : [];
     const treffer = Array.isArray(a.treffer) ? a.treffer : [];
     const altZahl = Number(a.altZahl) || 0;
 
-    const liste = !a.erreichbar
+    const list = !a.erreichbar
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler ||
            t('server.backupDirUnreachable'))}</div>`
-      : (alle.length
-        ? `<div class="label" style="margin:0 0 6px">${tH('card.backupsCount', { length: alle.length })}</div>
-           <div class="manage-list" id="auf-liste">${alle.map(zeile).join('')}</div>`
+      : (all.length
+        ? `<div class="label" style="margin:0 0 6px">${tH('card.backupsCount', { length: all.length })}</div>
+           <div class="manage-list" id="auf-liste">${all.map(row).join('')}</div>`
         : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noBackupInFolder')}</p>`);
 
     /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und in
@@ -10425,7 +10425,7 @@ function ruesteAufraeumenAus(geholt) {
        aufzuzaehlen waere dieselbe Auskunft an zwei Stellen.
        TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
        Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server. */
-    const stand = !a.erreichbar ? '' : (treffer.length
+    const status = !a.erreichbar ? '' : (treffer.length
       ? `<p class="desc" style="margin:10px 0 6px"><strong>${
            tH('card.backupsDeleteHint', { n: treffer.length })}</strong> —
            ${esc(fmtBytes(a.bytes || 0))} ${tH('card.free')}</p>`
@@ -10461,8 +10461,8 @@ function ruesteAufraeumenAus(geholt) {
         <input class="input" id="auf-tage" type="number" inputmode="numeric"
           min="${gT.min}" max="${gT.max}" step="1" value="${tage}"></div>
       <div class="sys-teil"></div>
-      ${liste}
-      ${stand}
+      ${list}
+      ${status}
       <div class="row-in">
         <button class="btn btn-accent btn-sm" id="auf-los"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}</button>
       </div>
@@ -10493,15 +10493,15 @@ function ruesteAufraeumenAus(geholt) {
        DIE GRENZEN HALTEN AM SERVER. `min` und `max` stehen an den Feldern, aber
        sie sind eine Bitte und keine Klemme -- die Absage kommt vom Server, und
        die Karte sagt, warum. */
-    const werte = () => ({
+    const values = () => ({
       behalten: Number(document.getElementById('auf-behalten')?.value),
       tage: Number(document.getElementById('auf-tage')?.value)
     });
-    let vorschauLauf = 0;
-    const vorschauNeu = async () => {
-      const w = werte();
+    let previewRun = 0;
+    const previewNew = async () => {
+      const w = values();
       if (!Number.isInteger(w.behalten) || !Number.isInteger(w.tage)) return;
-      const lauf = ++vorschauLauf;
+      const run = ++previewRun;
       let frisch;
       try {
         frisch = await api('GET', `/api/sicherung?behalten=${w.behalten}&tage=${w.tage}`);
@@ -10511,15 +10511,15 @@ function ruesteAufraeumenAus(geholt) {
          ankommen -- ohne diese Frage stuende womoeglich das Ergebnis der
          vorletzten Eingabe da (dieselbe Ueberlegung wie bei der Wache aus
          0.19.6: die Ansicht kann fort sein). */
-      if (lauf !== vorschauLauf) return;
+      if (run !== previewRun) return;
       if (!document.getElementById('aufraeumen-box')) return;
       geholt.sicherung = frisch;
-      drawAufraeumen(geholt);
+      drawCleanup(geholt);
     };
     for (const [id, schluessel] of [['auf-behalten', 'sicherungBehalten'],
                                     ['auf-tage', 'sicherungTage']])
       amElement(id, (el) => {
-        el.oninput = vorschauNeu;
+        el.oninput = previewNew;
         el.onchange = async () => {
           const n = Number(el.value);
           try {
@@ -10540,8 +10540,8 @@ function ruesteAufraeumenAus(geholt) {
        und Knopfdruck kann sich der Ordner geaendert haben. Die Antwort nennt
        deshalb, was WIRKLICH geloescht wurde, und die Karte zeichnet sich
        daraus neu. */
-    const raeume = async (art, titel, was) => {
-      if (!(await zweiteBestaetigung('sicherung', null, titel, was))) return;
+    const clear = async (art, titel, was) => {
+      if (!(await secondConfirm('sicherung', null, titel, was))) return;
       let r;
       try { r = await api('POST', '/api/sicherung/aufraeumen', { art }); }
       catch (e) { return toast(e.message, true); }
@@ -10556,13 +10556,13 @@ function ruesteAufraeumenAus(geholt) {
          GANZE Karte neu, dieselbe Bauform wie bei der Bildumstellung. */
       renderSystem();
     };
-    amElement('auf-los', (knopf) => {
-      knopf.onclick = () => raeume('regel', t('card.deleteBackups'),
+    amElement('auf-los', (button) => {
+      button.onclick = () => clear('regel', t('card.deleteBackups'),
         t('card.backupsPurgeHint',
           { n: treffer.length, bytes: fmtBytes(a.bytes || 0) }));
     });
-    amElement('auf-alt', (knopf) => {
-      knopf.onclick = () => raeume('veraltet', t('card.deleteOldKeyBackups'),
+    amElement('auf-alt', (button) => {
+      button.onclick = () => clear('veraltet', t('card.deleteOldKeyBackups'),
         t('card.oldKeyBackupsPurge',
           { n: altZahl, bytes: fmtBytes(a.altBytes || 0) }));
     });
@@ -10570,7 +10570,7 @@ function ruesteAufraeumenAus(geholt) {
 
 
 /* ---- Karte „Export und Import" — Abschnitt „Datenbank" ---- */
-function karteExport(geholt) {
+function cardExport(geholt) {
   const { stats } = geholt;
   return `<div class="sys-card">
         <h3>${tH('card.exportAndImport')}</h3>
@@ -10583,7 +10583,7 @@ function karteExport(geholt) {
              Text und rechneten dabei jede fuer sich -- die Haekchen darunter
              aenderten die Datei, aber keine Zahl. Wer beide Haekchen setzte,
              fand nirgends, was dabei herauskommt.
-             GERECHNET WIRD AN EINER STELLE, in exportSumme(); die Warnung
+             GERECHNET WIRD AN EINER STELLE, in exportSum(); die Warnung
              darunter liest dieselbe Zahl. Zwei Rechenwege naennten frueher oder
              spaeter zwei Groessen fuer dieselbe Datei. */''}
         <div class="row-in">
@@ -10652,19 +10652,19 @@ function karteExport(geholt) {
           ${tH('card.pickExportFile')}</label>
       </div>`;
 }
-function ruesteExportAus(geholt) {
+function setUpExportOut(geholt) {
   amElement('ex-yes', b => b.onclick = () => exportLos(true));
   amElement('ex-no', b => b.onclick = () => exportLos(false));
   for (const id of ['ex-files', 'ex-videos'])
-    amElement(id, e => e.addEventListener('change', () => exportZahlen(geholt)));
-  exportZahlen(geholt);
+    amElement(id, e => e.addEventListener('change', () => exportNumbers(geholt)));
+  exportNumbers(geholt);
   amElement('ex-plan', b => b.onclick = zeichneTeilplan);
   // Aendert sich ein Schalter oder die Teilgroesse, gilt der gezeichnete Plan
   // nicht mehr -- ein stehengebliebener Plan naennte falsche Grenzen.
   for (const id of ['ex-files', 'ex-videos', 'ex-ziel'])
     amElement(id, e => e.addEventListener('change', () => {
-      const kasten = document.getElementById('ex-plan-out');
-      if (kasten) kasten.innerHTML = '';
+      const boxId = document.getElementById('ex-plan-out');
+      if (boxId) boxId.innerHTML = '';
     }));
   amElement('imp', imp => imp.onchange = e => {
     const file = e.target.files[0];
@@ -10682,7 +10682,7 @@ function ruesteExportAus(geholt) {
      steht deshalb DAVOR und nicht darin: sie holt die Freigabe, danach faehrt
      der Browser los. */
   const exportLos = async (mitFotos) => {
-    if (!await zweiteBestaetigung('export', null, t('card.confirmExport'),
+    if (!await secondConfirm('export', null, t('card.confirmExport'),
       t('card.exportHint') +
       t('card.exportContentHint'))) return;
     window.location = `/api/export?photos=${mitFotos ? 1 : 0}` + mitDateien();
@@ -10694,27 +10694,27 @@ function ruesteExportAus(geholt) {
      GEWARNT WIRD FUER DIE ZAHL, DIE GROESSER IST: die beiden Knoepfe stehen
      nebeneinander, und ein Hinweis, der nur fuer einen von ihnen gilt, muss
      sagen, fuer welchen. Deshalb nennt er den Fall beim Namen. */
-  function exportZahlen(geholt) {
+  function exportNumbers(geholt) {
     /* `stats` bleibt null, wer nicht Admin ist. Die Karte steht zwar hinter
        dem Eigentuemer und der ist immer auch Admin -- aber die Rollenleiter
        ist eine Annahme ueber eine ANDERE Stelle, und diese Zeile traegt sie
        nicht. */
     const ex = geholt.stats && geholt.stats.export;
     if (!ex) return;
-    const schalter = {
+    const toggle = {
       mitDateien: !!document.getElementById('ex-files')?.checked,
       mitVideos: !!document.getElementById('ex-videos')?.checked
     };
-    const mit = exportSumme(ex, { ...schalter, mitFotos: true });
-    const ohne = exportSumme(ex, { ...schalter, mitFotos: false });
+    const mit = exportSum(ex, { ...toggle, mitFotos: true });
+    const ohne = exportSum(ex, { ...toggle, mitFotos: false });
     amElement('ex-gr-yes', e => e.textContent = fmtBytes(mit));
     amElement('ex-gr-no', e => e.textContent = fmtBytes(ohne));
-    amElement('ex-warn', kasten => {
-      if (mit <= ex.warnAb) { kasten.innerHTML = ''; return; }
+    amElement('ex-warn', boxId => {
+      if (mit <= ex.warnAb) { boxId.innerHTML = ''; return; }
       // „Auch ohne Fotos" ist der schlimmere Fall und gehoert deshalb gesagt:
       // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
       const auchOhne = ohne > ex.warnAb;
-      kasten.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
+      boxId.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
         <strong>${tH('card.exportWithPhotos', { mit: fmtBytes(mit) })}</strong> ${tH('card.overMaxSize', { string: fmtBytes(ex.string) })}${auchOhne
           ? t('card.sizeWithoutPhotos', { ohne: fmtBytes(ohne) })
           : t('card.withoutPhotosSize', { ohne: fmtBytes(ohne) })}).
@@ -10729,19 +10729,19 @@ function ruesteExportAus(geholt) {
      genau deshalb gibt es hier kein neues Format und keinen zweiten Leser.
      GESCHNITTEN WIRD AM SERVER und nicht hier: dort liegen die Groessen, und
      eine zweite Rechnung in der Oberflaeche liefe irgendwann auseinander. */
-  const teilSchalter = () => t('card.photosQuery') + mitDateien();
+  const partSwitch = () => t('card.photosQuery') + mitDateien();
   async function zeichneTeilplan() {
-    const kasten = document.getElementById('ex-plan-out');
-    if (!kasten) return;
+    const boxId = document.getElementById('ex-plan-out');
+    if (!boxId) return;
     const ziel = document.getElementById('ex-ziel')?.value || '';
-    kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">${tH('card.calculating')}</p>`;
+    boxId.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">${tH('card.calculating')}</p>`;
     let plan;
-    try { plan = await api('GET', `/api/export/plan?${teilSchalter()}&ziel=${encodeURIComponent(ziel)}`); }
-    catch (e) { kasten.innerHTML = `<p class="hint hint-sm">${esc(e.message)}</p>`; return; }
+    try { plan = await api('GET', `/api/export/plan?${partSwitch()}&ziel=${encodeURIComponent(ziel)}`); }
+    catch (e) { boxId.innerHTML = `<p class="hint hint-sm">${esc(e.message)}</p>`; return; }
 
     const n = (plan.teile || []).length;
     if (!n && !(plan.zuGross || []).length) {
-      kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">${tH('card.nothingToExport')}</p>`;
+      boxId.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">${tH('card.nothingToExport')}</p>`;
       return;
     }
     /* EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, WIRD BEIM NAMEN GENANNT
@@ -10755,7 +10755,7 @@ function ruesteExportAus(geholt) {
         `<li>${esc(z.titel)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
       <p style="margin:8px 0 0">${tH('card.withoutVideosHint')}</p></div>` : '';
 
-    kasten.innerHTML = `${zuGross}
+    boxId.innerHTML = `${zuGross}
       ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${tH('card.partsNumber', { n: n })}</strong>${tH('card.eachAtMost', { zielGroesse: fmtBytes(plan.zielGroesse) })} <strong>${tH('card.partIsComplete')}</strong></p>
       <div class="manage-list" id="ex-teil-liste">${plan.teile.map(teil => `
         <div class="mrow">
@@ -10771,7 +10771,7 @@ function ruesteExportAus(geholt) {
            WAS EIN MENSCH WISSEN MUSS, sind zwei Dinge: dass EINMAL gefragt
            wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
            Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 6px">${tH('card.exportPasswordHint')}${ZWEIFAKTOR ? t('card.andTwoFactorCode') : ''} ${tH('card.partsThenLoad')}</p>
+      <p class="hint hint-sm" style="margin:10px 2px 6px">${tH('card.exportPasswordHint')}${TWO_FACTOR ? t('card.andTwoFactorCode') : ''} ${tH('card.partsThenLoad')}</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
         ${tH('card.confirmOnce')} ${tH('card.partOrAll', { n: n })} ${tH('card.loadLower')}</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
@@ -10790,18 +10790,18 @@ function ruesteExportAus(geholt) {
       if (!ok) return;
       b.disabled = true;
       b.textContent = t('card.partsConfirmed');
-      kasten.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
+      boxId.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
     });
 
     /* JEDER KNOPF GILT GENAU EINMAL, weil die Freigabe verbraucht wird. Das
        steht am Knopf und nicht in einer Fehlermeldung danach: ein zweiter
        Klick bekaeme sonst eine 403, die wie ein Fehler aussieht. */
-    kasten.querySelectorAll('.ex-teil-lad').forEach(k => {
+    boxId.querySelectorAll('.ex-teil-lad').forEach(k => {
       k.onclick = () => {
-        window.location = `/api/export?${teilSchalter()}` +
+        window.location = `/api/export?${partSwitch()}` +
           t('card.partQuery', { von: k.dataset.von, bis: k.dataset.bis, nr: k.dataset.nr, n: n });
         k.disabled = true;
-        k.innerHTML = `${ICON_HAKEN} geladen`;
+        k.innerHTML = `${ICON_CHECK} geladen`;
       };
     });
   }
@@ -10815,7 +10815,7 @@ function ruesteExportAus(geholt) {
    lesen", und das ist die falsche Auskunft. Sie klingt nach einer kaputten
    Datei; in Wahrheit ist sie zu gross.
    GEWARNT WIRD, VERWEIGERT NICHT -- dieselbe Regel wie am Export. */
-async function importGroesseGeprueft(file, grenzen) {
+async function importSizeTested(file, grenzen) {
   const warnAb = grenzen && grenzen.warnAb;
   if (!warnAb || file.size <= warnAb) return true;
   const grenze = grenzen.string;
@@ -10839,7 +10839,7 @@ function askImport(file, grenzen) {
   };
   // Erst fragen, dann lesen. Andersherum stuende der Browser schon minutenlang
   // an der Datei, bevor die Warnung ueberhaupt erscheinen koennte.
-  importGroesseGeprueft(file, grenzen).then(weiter => { if (weiter) reader.readAsText(file); });
+  importSizeTested(file, grenzen).then(more => { if (more) reader.readAsText(file); });
 
   function show() {
     const bd = document.createElement('div');
@@ -10871,7 +10871,7 @@ function askImport(file, grenzen) {
     const run = async (mode) => {
       if (mode === 'replace' && !await confirmBox(t('card.replaceAsk'),
         t('card.importWipeHint'), t('card.replace'))) return;
-      if (!await zweiteBestaetigung('import', null, t('card.confirmImport'),
+      if (!await secondConfirm('import', null, t('card.confirmImport'),
         mode === 'replace'
           ? t('card.importReplaceHint')
           : t('card.importAddHint'))) return;
@@ -10915,7 +10915,7 @@ let einrichtungNoetig = false;
   const konfLaeuft = fetch('/api/config', { credentials: 'same-origin' })
     .then(r => r.json()).catch(() => null);
   try {
-    await ladeSprache(SPRACHE);
+    await loadLanguage(LANGUAGE);
   } catch (e) {
     /* DER EINE FESTE SATZ IM QUELLTEXT -- Entscheidung A1 des Auftrags. Ohne
        die Datei gibt es keinen Schluessel, mit dem sich sagen liesse, dass sie
@@ -10928,15 +10928,15 @@ let einrichtungNoetig = false;
      Der Vorleser waehlt danach seine Stimme, der Browser danach seine
      Silbentrennung. Das Attribut in index.html bleibt `de`: es gilt, bis die
      Datei da ist, und sagt bis dahin die Wahrheit. */
-  document.documentElement.lang = SPRACHE;
+  document.documentElement.lang = LANGUAGE;
   try {
     const cfg = await konfLaeuft;
     if (cfg && cfg.title) TITLE_PUBLIC = cfg.title;
     if (cfg && cfg.version) VERSION = cfg.version;
-    if (cfg && cfg.minPassword) MIN_PASSWORT = cfg.minPassword;
+    if (cfg && cfg.minPassword) MIN_PASSWORD = cfg.minPassword;
     if (cfg && cfg.setupRequired) einrichtungNoetig = true;
     REGISTRIERUNG = Boolean(cfg && cfg.registrierung);
-    zeigeVersion();
+    showVersion();
   } catch {}
   document.title = TITLE_PUBLIC;
   // Die Einrichtung geht vor: ohne Zugang hilft keine Anmeldemaske.
@@ -10947,7 +10947,7 @@ let einrichtungNoetig = false;
      Frage nach einer laufenden Anmeldung -- wer den Link aus einem Browser
      öffnet, in dem noch jemand angemeldet ist, meint trotzdem den Link. */
   const einl = (location.hash || '').match(/^#\/einladung\/([0-9a-f]{16,128})$/);
-  if (einl) return showEinladung(einl[1]);
+  if (einl) return showInvite(einl[1]);
   /* Der Bestätigungslink der Selbstanmeldung, — an derselben
      Stelle und aus demselben Grund wie der Einladungslink: wer ihn anklickt,
      meint ihn, auch wenn im Browser noch jemand angemeldet ist. Er wird
@@ -10955,7 +10955,7 @@ let einrichtungNoetig = false;
      abgeschaltet, während eine Bestätigung unterwegs ist, soll der Link nicht
      stumm auf der Anmeldeseite enden — der Server sagt dann, was gilt. */
   const best = (location.hash || '').match(/^#\/bestaetigung\/([0-9a-f]{16,128})$/);
-  if (best) return showBestaetigung(best[1]);
+  if (best) return showConfirm(best[1]);
   try {
     const s = await fetch('/api/session', { credentials: 'same-origin' }).then(r => r.json());
     if (s.authenticated) start(); else showLogin();

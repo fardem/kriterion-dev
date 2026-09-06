@@ -265,7 +265,7 @@ const RUECKBAUTEN = [
   {
     nr: '26', name: 'Der zweite Anlauf nach der Bremse faellt weg',
     datei: 'public/app.js',
-    suche: "    document.getElementById('eb-neu').onclick = () => showEinladung(schluessel);",
+    suche: "    document.getElementById('eb-neu').onclick = () => showInvite(schluessel);",
     ersatz: "    document.getElementById('eb-neu').onclick = () => {};",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
@@ -278,28 +278,28 @@ const RUECKBAUTEN = [
        deshalb dort. */
     nr: '27', name: 'Der Mailzugang wird auch fuer den Admin geholt',
     datei: 'public/app.js',
-    suche: "      EIGENTUEMER ? api('GET', '/api/mail') : null",
+    suche: "      ADMIN ? api('GET', '/api/anfragen') : null",
     ersatz: "      ADMIN ? api('GET', '/api/mail') : null",
     erwartet: 'Die Karten des Systembereichs nach Rolle (viele rot — der Abruf reisst den ganzen Bereich mit)'
   },
   {
     nr: '28', name: 'Der Versandzustand verschwindet aus dem Linkkasten',
     datei: 'public/app.js',
-    suche: "      ${versandZeile(d)}",
+    suche: "      ${deliveryRow(d)}",
     ersatz: "      ",
     erwartet: 'Der Versandzustand neben dem Link'
   },
   {
     nr: '29', name: 'Das Adressfeld am eigenen Zugang schickt nichts mehr mit',
     datei: 'public/app.js',
-    suche: "        oldPassword: alt, username: name, newPassword: neu1, email: adresse",
+    suche: "        oldPassword: old, username: name, newPassword: neu1, email: adresse",
     ersatz: "        oldPassword: alt, username: name, newPassword: neu1",
     erwartet: 'Die eigene Adresse in der Karte „Zugang“'
   },
   {
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     datei: 'public/app.js',
-    suche: "        ${stand.minuten ? `<strong>${tH('login.linkValidMinutes', { minuten: stand.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}",
+    suche: "        ${status.minuten ? `<strong>${tH('login.linkValidMinutes', { minuten: status.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}",
     ersatz: "        ${false ? `<strong>${tH('login.linkValidMinutes', { minuten: stand.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
@@ -562,7 +562,7 @@ const RUECKBAUTEN = [
        Selbstanmeldung ueberhaupt erst einschalten laesst. */
     nr: '63', name: 'Die Karte „Anfragen“ verschwindet, solange der Schalter aus ist',
     datei: 'public/app.js',
-    suche: "sichtbar: (g) => ADMIN && !!g.anfragen,",
+    suche: "visible: (g) => ADMIN && !!g.anfragen,",
     ersatz: "sichtbar: (g) => ADMIN && !!g.anfragen && (g.anfragen.an || g.anfragen.anfragen.length),",
     erwartet: 'Die Karten im Systembereich'
   },
@@ -633,8 +633,8 @@ const RUECKBAUTEN = [
   {
     nr: '65', name: 'Die Bestaetigungsseite meldet gleich an',
     datei: 'public/app.js',
-    suche: "  const best = (location.hash || '').match(/^#\\/bestaetigung\\/([0-9a-f]{16,128})$/);\n  if (best) return showBestaetigung(best[1]);",
-    ersatz: "  const best = (location.hash || '').match(/^#\\/bestaetigung\\/([0-9a-f]{16,128})$/);\n  if (best) return showEinladung(best[1]);",
+    suche: "  const best = (location.hash || '').match(/^#\\/bestaetigung\\/([0-9a-f]{16,128})$/);\n  if (best) return showConfirm(best[1]);",
+    ersatz: "  const best = (location.hash || '').match(/^#\\/bestaetigung\\/([0-9a-f]{16,128})$/);\n  if (best) return showInvite(best[1]);",
     erwartet: 'Die Bestaetigungsseite in der Oberflaeche'
   },
   {
@@ -1026,7 +1026,7 @@ const RUECKBAUTEN = [
        dieser Aenderung rot. */
     nr: '113', name: 'Das Bestaetigungsfenster zeigt sein Codefeld immer',
     datei: 'public/app.js',
-    suche: "    : ''), ZWEIFAKTOR);",
+    suche: "    : ''), TWO_FACTOR);",
     ersatz: "    : ''), true);",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1068,7 +1068,7 @@ const RUECKBAUTEN = [
   {
     nr: '117', name: 'Die Zahl der uebrigen Wiederherstellungscodes faellt weg',
     datei: 'public/app.js',
-    suche: "          <strong>${tH('card.codesLeft', { codesOffen: stand.codesOffen, codesGesamt: stand.codesGesamt })}</strong>",
+    suche: "          <strong>${tH('card.codesLeft', { codesOffen: status.codesOffen, codesGesamt: status.codesGesamt })}</strong>",
     ersatz: "          <strong>vorhanden</strong>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1079,7 +1079,7 @@ const RUECKBAUTEN = [
        Einladungslink. */
     nr: '118', name: 'Der Kasten sagt nicht mehr, dass die Codes nicht wiederkommen',
     datei: 'public/app.js',
-    suche: "    kasten.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>",
+    suche: "    boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>",
     ersatz: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes.</strong>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1093,14 +1093,14 @@ const RUECKBAUTEN = [
   {
     nr: '119', name: 'Das Bestaetigungsfenster zeigt das Codefeld nie',
     datei: 'public/app.js',
-    suche: "    : ''), ZWEIFAKTOR);",
+    suche: "    : ''), TWO_FACTOR);",
     ersatz: "    : ''), false);",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '120', name: 'Die Anmeldeseite geht ueber den zweiten Schritt hinweg',
     datei: 'public/app.js',
-    suche: "      if (j.zweifaktor) return showZweiterFaktor(j.ausweis);",
+    suche: "      if (j.zweifaktor) return showSecondFactor(j.ausweis);",
     ersatz: "",
     erwartet: 'Die Anmeldeseite: der zweite Schritt'
   },
@@ -1235,14 +1235,14 @@ const RUECKBAUTEN = [
   {
     nr: '138', name: 'Der Debounce faellt weg -- jeder Anschlag fragt',
     datei: 'public/app.js',
-    suche: "  suchUhr = setTimeout(() => { suchUhr = null; sucheAusfuehren(); }, SUCH_VERZOEGERUNG);",
+    suche: "  searchClock = setTimeout(() => { searchClock = null; sucheAusfuehren(); }, SEARCH_DELAY_MS);",
     ersatz: "  sucheAusfuehren();",
     erwartet: 'Die Suche fragt den Server'
   },
   {
     nr: '139', name: 'Die Reihenfolge der Antworten wird nicht mehr geachtet',
     datei: 'public/app.js',
-    suche: "    if (lauf !== suchLauf) return;          // eine neuere Anfrage ist unterwegs",
+    suche: "    if (run !== searchRun) return;          // eine neuere Anfrage ist unterwegs",
     ersatz: "",
     erwartet: 'Die Suche fragt den Server'
   },
@@ -1263,7 +1263,7 @@ const RUECKBAUTEN = [
   {
     nr: '142', name: 'Das Leeren holt den Bestand neu vom Server',
     datei: 'public/app.js',
-    suche: "    state.items = state.alle;\n    state.suchLaeuft = false; state.suchFehler = false;",
+    suche: "    state.items = state.all;\n    state.suchLaeuft = false; state.suchFehler = false;",
     ersatz: "    state.items = await api('GET', '/api/items');\n    state.suchLaeuft = false; state.suchFehler = false;",
     erwartet: 'Die Suche fragt den Server'
   },
@@ -1309,8 +1309,8 @@ const RUECKBAUTEN = [
   {
     nr: '148', name: 'Der Suchbegriff faellt aus der gespeicherten Ansicht',
     datei: 'public/app.js',
-    suche: "const ansichtAusZustand = () => ({ filters: { ...state.filters }, q: state.search.trim() });",
-    ersatz: "const ansichtAusZustand = () => ({ filters: { ...state.filters }, q: '' });",
+    suche: "const viewOutState = () => ({ filters: { ...state.filters }, q: state.search.trim() });",
+    ersatz: "const viewOutState = () => ({ filters: { ...state.filters }, q: '' });",
     erwartet: 'Gespeicherte Ansichten in der Oberflaeche'
   },
   {
@@ -1319,7 +1319,7 @@ const RUECKBAUTEN = [
        stehen und filterte auf eine Kategorie, die niemand mehr hat. */
     nr: '149', name: 'Eine geloeschte Kategorie bleibt in der angewandten Ansicht stehen',
     datei: 'public/app.js',
-    suche: "  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>\n    v === KATEGORIE_OHNE || state.categories.some(c => c.id === v));",
+    suche: "  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>\n    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
     ersatz: "  f.categoryIds = [...new Set(f.categoryIds)];",
     erwartet: 'Gespeicherte Ansichten in der Oberflaeche'
   },
@@ -1327,21 +1327,21 @@ const RUECKBAUTEN = [
   {
     nr: '150', name: 'Der Titelvergleich achtet wieder auf Gross- und Kleinschreibung',
     datei: 'public/app.js',
-    suche: "const titelKern = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(",
-    ersatz: "const titelKern = (roh) => String(roh || '').replace(",
+    suche: "const titleCore = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(",
+    ersatz: "const titleCore = (roh) => String(roh || '').replace(",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
   {
     nr: '151', name: 'Der Hinweis greift erst ab acht Zeichen',
     datei: 'public/app.js',
-    suche: "const AEHNLICH_FENSTER = 4;",
-    ersatz: "const AEHNLICH_FENSTER = 8;",
+    suche: "const SIMILAR_DIALOG = 4;",
+    ersatz: "const SIMILAR_DIALOG = 8;",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
   {
     nr: '152', name: 'Der Hinweis vergleicht nur die Trefferliste statt des Bestands',
     datei: 'public/app.js',
-    suche: "  for (const it of state.alle) {",
+    suche: "  for (const it of state.all) {",
     ersatz: "  for (const it of state.items) {",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
@@ -1402,7 +1402,7 @@ const RUECKBAUTEN = [
   {
     nr: '159', name: 'Die Bedingung in app.js laeuft von der im Stylesheet weg',
     datei: 'public/app.js',
-    suche: "const SCHMAL = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';",
+    suche: "const NARROW = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';",
     ersatz: "const SCHMAL = '(max-width: 640px)';",
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1619,7 +1619,7 @@ const RUECKBAUTEN = [
        statt der offenen. */
     nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
     datei: 'public/app.js',
-    suche: "    + (fertig ? t('list.openCount', { n: aufgaben - fertig }) : ''));",
+    suche: "    + (fertig ? t('list.openCount', { n: tasks - fertig }) : ''));",
     ersatz: "    + (fertig ? t('list.openCount', { n: aufgaben }) : ''));",
     erwartet: 'Kommentare in der Oberflaeche'
   },
@@ -1636,7 +1636,7 @@ const RUECKBAUTEN = [
   {
     nr: '182', name: 'Der Sprungknopf springt, klappt den Block aber nicht auf',
     datei: 'public/app.js',
-    suche: "    if (BLOECKE.zu.includes('kommentare')) {",
+    suche: "    if (BLOCKS.zu.includes('kommentare')) {",
     ersatz: '    if (false) {',
     erwartet: 'Kommentare in der Oberflaeche'
   },
@@ -1728,7 +1728,7 @@ const RUECKBAUTEN = [
        Gruppe rot werden und nicht die alte. */
     nr: '191', name: 'Die Oberflaeche fragt wieder je Teil statt einmal fuer alle',
     datei: 'public/app.js',
-    suche: "  try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
+    suche: "  try { await api('POST', '/api/bestaetigung', { ...input, zweck, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
     ersatz: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }\n    catch (e) { toast(e.message, true); return false; }\n  }\n  return true;",
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1830,7 +1830,7 @@ const RUECKBAUTEN = [
        weg -- und mit ihm die zweite Haelfte von Punkt 3a. */
     nr: '201', name: 'Die Namen im Protokoll sind wieder nur Text',
     datei: 'public/app.js',
-    suche: "    if (id == null) { feld.appendChild(dok.createTextNode(text)); return feld; }",
+    suche: "    if (id == null) { field.appendChild(dok.createTextNode(text)); return field; }",
     ersatz: "    feld.appendChild(dok.createTextNode(text)); return feld;",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -1839,7 +1839,7 @@ const RUECKBAUTEN = [
        Versuchs, der an keinen Zugang traf -- ein Knopf ins Leere. */
     nr: '202', name: 'Auch "unbekannter Name" wird ein Knopf',
     datei: 'public/app.js',
-    suche: "      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),\n        z.wer != null ? z.wer : null));",
+    suche: "      row.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),\n        z.wer != null ? z.wer : null));",
     ersatz: "      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z), z.wer ?? 0));",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -1867,7 +1867,7 @@ const RUECKBAUTEN = [
     /* DIE GRABSTEINE STEHEN WIEDER ZWISCHEN DEN LEBENDEN. */
     nr: '205', name: 'Grabsteine stehen wieder in der Zugangsliste',
     datei: 'public/app.js',
-    suche: "    for (const z of daten.zugaenge.filter(z => z.status !== 'geloescht')) {",
+    suche: "    for (const z of data.zugaenge.filter(z => z.status !== 'geloescht')) {",
     ersatz: "    for (const z of daten.zugaenge) {",
     erwartet: 'Der Einladungslink in der Karte Zugaenge'
   },
@@ -1918,8 +1918,8 @@ const RUECKBAUTEN = [
        zwei gewaehlte ergaeben damit garantiert null Treffer. */
     nr: '210', name: 'Aus der Vereinigung wird ein Schnitt',
     datei: 'public/app.js',
-    suche: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.includes(i.category ? i.category.id : KATEGORIE_OHNE));",
-    ersatz: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.every(v => v === (i.category ? i.category.id : KATEGORIE_OHNE)));",
+    suche: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.includes(i.category ? i.category.id : CATEGORY_NONE));",
+    ersatz: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.every(v => v === (i.category ? i.category.id : CATEGORY_NONE)));",
     erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
   {
@@ -1927,7 +1927,7 @@ const RUECKBAUTEN = [
        und eine Klemme, die nur Nummern durchlaesst, nimmt es mit. */
     nr: '211', name: '"Ohne" ueberlebt das Zurechtruecken nicht',
     datei: 'public/app.js',
-    suche: "    v === KATEGORIE_OHNE || state.categories.some(c => c.id === v));",
+    suche: "    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
     ersatz: "    state.categories.some(c => c.id === v));",
     erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
@@ -1936,7 +1936,7 @@ const RUECKBAUTEN = [
        ueber keine einzelne Kategorie erreichbar -- der Anlass des Punktes. */
     nr: '212', name: 'Die Pille "Ohne" wird gar nicht erst gezeichnet',
     datei: 'public/app.js',
-    suche: "  if (ohneZahl || f.categoryIds.includes(KATEGORIE_OHNE)) {",
+    suche: "  if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {",
     ersatz: "  if (false) {",
     erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
@@ -2231,7 +2231,7 @@ const RUECKBAUTEN = [
        geworden (Stolperstein 192). Er nimmt weiterhin die ganze Klasse. */
     nr: '239', name: 'Die Kriterienliste bekommt ihre Rasterklasse nicht',
     datei: 'public/app.js',
-    suche: "    box.className = 'rlist' + (mitSchnitt ? '' : ' ohne-schnitt');",
+    suche: "    box.className = 'rlist' + (withAverage ? '' : ' ohne-schnitt');",
     ersatz: "",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2274,7 +2274,7 @@ const RUECKBAUTEN = [
     nr: '243', name: 'Die Aussage verliert ihren Verfasser',
     datei: 'public/app.js',
     suche: "    if (item.rejectedVerfasser && mehrereBenutzer())\n" +
-      "      teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);",
+      "      teile.push(`von ${authorName(item.rejectedVerfasser)}`);",
     ersatz: "",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
@@ -2306,7 +2306,7 @@ const RUECKBAUTEN = [
        Stift. Der Rueckbau trifft dieselbe Sache an ihrer neuen Zeile. */
     nr: '245', name: 'Das Feld fuer den Grund erscheint nicht',
     datei: 'public/app.js',
-    suche: "    zeile.hidden = !offen;",
+    suche: "    row.hidden = !offen;",
     ersatz: "    zeile.hidden = true;",
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
@@ -2316,7 +2316,7 @@ const RUECKBAUTEN = [
        Aussage zweimal. */
     nr: '246', name: 'Die Aussage steht auch da, wenn sie nichts sagt',
     datei: 'public/app.js',
-    suche: "    marke.hidden = !item.rejected || offen || (!kopf && !grund && !zeigeStift);",
+    suche: "    mark.hidden = !item.rejected || offen || (!head && !grund && !showPen);",
     ersatz: "    marke.hidden = !item.rejected;",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
@@ -2428,7 +2428,7 @@ const RUECKBAUTEN = [
        zweimal, und genau der Befund aus dem Betrieb. */
     nr: '260', name: 'Das Feld bleibt nach dem Speichern offen',
     datei: 'public/app.js',
-    suche: "      grundOffen = false;\n      drawSwitches();\n    };\n    feld.onblur = speichere;",
+    suche: "      reasonOpen = false;\n      drawSwitches();\n    };\n    field.onblur = save;",
     ersatz: "      drawSwitches();\n    };\n    feld.onblur = speichere;",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2441,8 +2441,8 @@ const RUECKBAUTEN = [
        dieselbe Sache an ihrer neuen Zeile. */
     nr: '261', name: 'Beim Einschalten bleibt das Feld zu',
     datei: 'public/app.js',
-    suche: "    const offen = item.rejected && meins && (!grund || grundOffen);",
-    ersatz: "    const offen = item.rejected && meins && grundOffen;",
+    suche: "    const offen = item.rejected && meins && (!grund || reasonOpen);",
+    ersatz: "    const offen = item.rejected && meins && reasonOpen;",
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
   {
@@ -2450,8 +2450,8 @@ const RUECKBAUTEN = [
        oeffnet ein Feld, dessen Inhalt der Server mit 403 abweist. */
     nr: '262', name: 'Der Stift steht jedem da',
     datei: 'public/app.js',
-    suche: "    const zeigeStift = item.rejected && meins;",
-    ersatz: "    const zeigeStift = item.rejected;",
+    suche: "    const showPen = item.rejected && meins;",
+    ersatz: "    const showPen = item.rejected;",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2459,8 +2459,8 @@ const RUECKBAUTEN = [
        nicht aendern darf. */
     nr: '263', name: 'Der Papierkorb steht jedem da',
     datei: 'public/app.js',
-    suche: "    const zeigeWeg = item.rejected && verwalten && !!grund;",
-    ersatz: "    const zeigeWeg = item.rejected && !!grund;",
+    suche: "    const showPath = item.rejected && verwalten && !!grund;",
+    ersatz: "    const showPath = item.rejected && !!grund;",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2478,8 +2478,8 @@ const RUECKBAUTEN = [
        wird genau von dem Weg gespeichert, der ihn verwerfen sollte. */
     nr: '265', name: 'Escape verwirft nicht mehr, sondern speichert',
     datei: 'public/app.js',
-    suche: "        feld.value = item.rejected_grund || '';\n        grundOffen = false;\n        drawAblehnung();",
-    ersatz: "        grundOffen = false;\n        drawAblehnung();",
+    suche: "        field.value = item.rejected_grund || '';\n        reasonOpen = false;\n        drawAblehnung();",
+    ersatz: "        reasonOpen = false;\n        drawAblehnung();",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2488,7 +2488,7 @@ const RUECKBAUTEN = [
        den Eintrag aendern darf; die Oberflaeche bietet es nicht mehr an. */
     nr: '266', name: 'An der herrenlosen Ablehnung fehlt der Weg hinein',
     datei: 'public/app.js',
-    suche: "    const meins = darf && (item.rejectedMine === true || !item.rejectedVerfasser);",
+    suche: "    const meins = may && (item.rejectedMine === true || !item.rejectedVerfasser);",
     ersatz: "    const meins = darf && item.rejectedMine === true;",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2528,8 +2528,8 @@ const RUECKBAUTEN = [
        zugleich. Genau die Doppelung, die 0.15.0 aufloesen sollte. */
     nr: '270', name: 'Aussage und Feld stehen wieder zugleich da',
     datei: 'public/app.js',
-    suche: "    marke.hidden = !item.rejected || offen || (!kopf && !grund && !zeigeStift);",
-    ersatz: "    marke.hidden = !item.rejected || (!kopf && !grund && !zeigeStift);",
+    suche: "    mark.hidden = !item.rejected || offen || (!head && !grund && !showPen);",
+    ersatz: "    marke.hidden = !item.rejected || (!kopf && !grund && !showPen);",
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
   {
@@ -2537,8 +2537,8 @@ const RUECKBAUTEN = [
        eine Eingabe an, die der Server mit 403 abweist. */
     nr: '271', name: 'Das Feld steht auch dem offen, der nicht schreiben darf',
     datei: 'public/app.js',
-    suche: "    const offen = item.rejected && meins && (!grund || grundOffen);",
-    ersatz: "    const offen = item.rejected && (!grund || grundOffen);",
+    suche: "    const offen = item.rejected && meins && (!grund || reasonOpen);",
+    ersatz: "    const offen = item.rejected && (!grund || reasonOpen);",
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
 
@@ -2546,14 +2546,14 @@ const RUECKBAUTEN = [
   {
     nr: '272', name: 'Der Systembereich zeigt wieder alle Karten auf einmal',
     datei: 'public/app.js',
-    suche: "  const karten = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.sichtbar(geholt));",
+    suche: "  const cards = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.visible(geholt));",
     ersatz: "  const karten = SYS_KARTEN.filter(k => k.sichtbar(geholt));",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '273', name: 'Ein Abschnitt ohne sichtbare Karte erscheint trotzdem',
     datei: 'public/app.js',
-    suche: "  return SYS_ABSCHNITTE.filter(a =>\n    SYS_KARTEN.some(k => k.abschnitt === a.schluessel && k.sichtbar(geholt)));",
+    suche: "  return SYS_ABSCHNITTE.filter(a =>\n    SYS_KARTEN.some(k => k.abschnitt === a.schluessel && k.visible(geholt)));",
     ersatz: "  return SYS_ABSCHNITTE;",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -2567,7 +2567,7 @@ const RUECKBAUTEN = [
   {
     nr: '275', name: 'Eine Adresse auf einen unsichtbaren Abschnitt zeigt ins Leere',
     datei: 'public/app.js',
-    suche: "  const offen = sichtbare.find(a => a.schluessel === gewuenscht) || sichtbare[0];",
+    suche: "  const offen = visibleOnes.find(a => a.schluessel === gewuenscht) || visibleOnes[0];",
     ersatz: "  const offen = SYS_ABSCHNITTE.find(a => a.schluessel === gewuenscht) || sichtbare[0];",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -2577,7 +2577,7 @@ const RUECKBAUTEN = [
        verlinken und die Zurueck-Taste bricht. */
     nr: '276', name: 'Die Reiter tragen keine eigene Adresse mehr',
     datei: 'public/app.js',
-    suche: "      ${sichtbare.map(a => `<a class=\"sys-reiter-k${a === offen ? ' on' : ''}\"",
+    suche: "      ${visibleOnes.map(a => `<a class=\"sys-reiter-k${a === offen ? ' on' : ''}\"",
     ersatz: "      ${sichtbare.map(a => `<button class=\"sys-reiter-k${a === offen ? ' on' : ''}\"",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -2601,7 +2601,7 @@ const RUECKBAUTEN = [
        zweimal. Was der Rueckbau tut, ist unveraendert. */
     nr: '279', name: 'Die Kopfzahl ist wieder blosser Text',
     datei: 'public/app.js',
-    suche: "        b.onclick = () => zeigeRechnung(kasten);",
+    suche: "        b.onclick = () => zeigeRechnung(boxId);",
     ersatz: "        b.onclick = null;",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -2648,7 +2648,7 @@ const RUECKBAUTEN = [
        Nachziehen griffe der Rueckbau ins Leere (Stolperstein 192). */
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
     datei: 'public/app.js',
-    suche: "        ${GLOCKE_GESEHEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('list.news'))}\"",
+    suche: "        ${BELL_SEEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('list.news'))}\"",
     ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('list.news'))}\"",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2710,7 +2710,7 @@ const RUECKBAUTEN = [
        Zeichen werden nirgends vertauscht. */
     nr: '289', name: 'Der Punkt an der Glocke wird wieder eine Zahl',
     datei: 'public/app.js',
-    suche: "  amElement('glocke-punkt', el => { el.hidden = !neu; });",
+    suche: "  amElement('glocke-punkt', el => { el.hidden = !fresh; });",
     ersatz: "  amElement('glocke-punkt', el => { el.textContent = String(neu); el.hidden = !neu; });",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2774,14 +2774,14 @@ const RUECKBAUTEN = [
   {
     nr: '297', name: 'Das Vollbild bekommt seinen Papierkorb nicht',
     datei: 'public/app.js',
-    suche: "    ${loeschen ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_PAPIERKORB}</button>` : ''}",
-    ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_PAPIERKORB}</button>` : ''}",
+    suche: "        ${remove ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
+    ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
     erwartet: 'Der Papierkorb im Vollbild'
   },
   {
     nr: '298', name: 'Der Vorschaustreifen im Vollbild zieht nach dem Loeschen nicht nach',
     datei: 'public/app.js',
-    suche: "    baueStreifen();\n    show();",
+    suche: "    buildStrip();\n    show();",
     ersatz: "    show();",
     erwartet: 'Der Papierkorb im Vollbild'
   },
@@ -2808,7 +2808,7 @@ const RUECKBAUTEN = [
        zwei Zellen in drei Spalten, und die Liste zerfaellt. */
     nr: '301', name: 'Die Spaltenzahl folgt dem Zustand nicht mehr',
     datei: 'public/app.js',
-    suche: "    box.className = 'rlist' + (mitSchnitt ? '' : ' ohne-schnitt');",
+    suche: "    box.className = 'rlist' + (withAverage ? '' : ' ohne-schnitt');",
     ersatz: "    box.className = 'rlist';",
     erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
@@ -2910,7 +2910,7 @@ const RUECKBAUTEN = [
     /* DER KASTEN ZEIGT SIE NICHT MEHR. */
     nr: '311', name: 'Der Erklaerkasten laesst die Vergleichszahl weg',
     datei: 'public/app.js',
-    suche: "        ${mitGewicht ? `<div class=\"rz rz-gleich\"><span>${tH('entry.calcNoWeights')}</span>",
+    suche: "        ${withWeight ? `<div class=\"rz rz-gleich\"><span>${tH('entry.calcNoWeights')}</span>",
     ersatz: "        ${false ? `<div class=\"rz rz-gleich\"><span>${tH('entry.calcNoWeights')}</span>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -2986,7 +2986,7 @@ const RUECKBAUTEN = [
        eigenen Beitraege meldet, ist das die halbe Auskunft. */
     nr: '320', name: 'Die Tafel sagt nicht mehr, von wem etwas kommt',
     datei: 'public/app.js',
-    suche: "    a.querySelector('.glocken-von').textContent = neuVonWorte(it);",
+    suche: "    a.querySelector('.glocken-von').textContent = newFromWords(it);",
     ersatz: "    a.querySelector('.glocken-von').textContent = '';",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -3028,8 +3028,8 @@ const RUECKBAUTEN = [
        dass jemand sie gelesen haette. */
     nr: '324', name: 'Der Bezugspunkt faellt bei jedem Verlassen der Uebersicht',
     datei: 'public/app.js',
-    suche: "  if (GLOCKE_GESEHEN) return;\n  GLOCKE_GESEHEN = true;",
-    ersatz: "  GLOCKE_GESEHEN = true;",
+    suche: "  if (BELL_SEEN) return;\n  BELL_SEEN = true;",
+    ersatz: "  BELL_SEEN = true;",
     erwartet: 'Der Bezugspunkt der Glocke in der Oberflaeche'
   },
   {
@@ -3077,7 +3077,7 @@ const RUECKBAUTEN = [
   {
     nr: '329', name: 'Die Durchschnittszelle haengt nicht mehr an derselben Bedingung',
     datei: 'public/app.js',
-    suche: "      if (mitSchnitt) {",
+    suche: "      if (withAverage) {",
     ersatz: "      if (true) {",
     erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
@@ -3149,14 +3149,14 @@ const RUECKBAUTEN = [
   {
     nr: '337', name: 'Der Wirtsbefehl steht wieder bei jedem',
     datei: 'public/app.js',
-    suche: "function serverKasten(satz, befehl) {\n  if (!EIGENTUEMER) return '';",
+    suche: "function serverKasten(sentence, command) {\n  if (!OWNER) return '';",
     ersatz: "function serverKasten(satz, befehl) {\n  if (false) return '';",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '338', name: 'Die Laengenvorgabe faellt vom Passwortfeld weg',
     datei: 'public/app.js',
-    suche: "        <div class=\"field\"><label>${tH('dialog.newPassword')}\n          <span class=\"hint\">${tH('card.minCharsHint', { minPasswort: MIN_PASSWORT })}</span></label>",
+    suche: "        <div class=\"field\"><label>${tH('dialog.newPassword')}\n          <span class=\"hint\">${tH('card.minCharsHint', { minPasswort: MIN_PASSWORD })}</span></label>",
     ersatz: "        <div class=\"field\"><label>${tH('dialog.newPassword')}</label>",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
@@ -3223,7 +3223,7 @@ const RUECKBAUTEN = [
   {
     nr: '351', name: 'Die uebernommene Stelle wird nicht gesetzt',
     datei: 'public/app.js',
-    suche: "        abspieler.currentTime = uebergabe.stelle;\n",
+    suche: "        player.currentTime = uebergabe.stelle;\n",
     ersatz: "",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
   },
@@ -3237,7 +3237,7 @@ const RUECKBAUTEN = [
   {
     nr: '353', name: 'Die geloeschte Quelle wandert wieder zurueck',
     datei: 'public/app.js',
-    suche: "    if (uebergabe && bildQuelle(weg, '') === uebergabe.quelle) uebergabe = null;\n",
+    suche: "    if (uebergabe && imageSource(weg, '') === uebergabe.quelle) uebergabe = null;\n",
     ersatz: "",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
   },
@@ -3368,14 +3368,14 @@ const RUECKBAUTEN = [
   {
     nr: '376', name: 'Die gelesene Zeile steht auch bei „Eigener Server"',
     datei: 'public/app.js',
-    suche: "      festFeld.hidden = !v || eigen;",
-    ersatz: "      festFeld.hidden = !v;",
+    suche: "      fixedField.hidden = !v || eigen;",
+    ersatz: "      fixedField.hidden = !v;",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '377', name: 'Der Dialog kuerzt die zweite Bestaetigung ab',
     datei: 'public/app.js',
-    suche: "      if (!await zweiteBestaetigung('mail', null, t('card.saveMailAccount'),\n        t('card.mailServerHint') +\n        t('card.toSetPassword'))) return;\n",
+    suche: "      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),\n        t('card.mailServerHint') +\n        t('card.toSetPassword'))) return;\n",
     ersatz: "",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
@@ -3424,8 +3424,8 @@ const RUECKBAUTEN = [
   {
     nr: '384', name: 'Der Filterruecksetzer steht immer da',
     datei: 'public/app.js',
-    suche: "  const filterGesetzt = filterZahl();\n  if (filterGesetzt) {",
-    ersatz: "  const filterGesetzt = filterZahl();\n  if (true) {",
+    suche: "  const filterGesetzt = filterNumber();\n  if (filterGesetzt) {",
+    ersatz: "  const filterGesetzt = filterNumber();\n  if (true) {",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
   {
@@ -3628,8 +3628,8 @@ const RUECKBAUTEN = [
        falschen Stelle. */
     nr: '408', name: 'Die Trefferzeile rutscht ueber den Titel',
     datei: 'public/app.js',
-    suche: "      <h3 class=\"card-title\">${esc(it.title)}</h3>\n      ${fundZeile}",
-    ersatz: "      ${fundZeile}\n      <h3 class=\"card-title\">${esc(it.title)}</h3>",
+    suche: "      <h3 class=\"card-title\">${esc(it.title)}</h3>\n      ${findingRow}",
+    ersatz: "      ${findingRow}\n      <h3 class=\"card-title\">${esc(it.title)}</h3>",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -3649,8 +3649,8 @@ const RUECKBAUTEN = [
   {
     nr: '411', name: 'Eine unbekannte Quelle faellt aus der Zeile',
     datei: 'public/app.js',
-    suche: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => t('list.hitPlace')))();",
-    ersatz: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => ''))();",
+    suche: "const findingWord = (quelle) => (FINDING_WORDS[quelle] || (() => t('list.hitPlace')))();",
+    ersatz: "const findingWord = (quelle) => (FINDING_WORDS[quelle] || (() => ''))();",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -3659,7 +3659,7 @@ const RUECKBAUTEN = [
        aus einem Kommentar stammen. */
     nr: '412', name: 'Der Ausschnitt kommt ueber innerHTML in die Kachel',
     datei: 'public/app.js',
-    suche: "  if (f) a.querySelector('.fund-text').replaceChildren(hebeHervor(f.text, begriff));",
+    suche: "  if (f) a.querySelector('.fund-text').replaceChildren(raiseHighlight(f.text, term));",
     ersatz: "  if (f) a.querySelector('.fund-text').innerHTML = f.text;",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
@@ -3676,7 +3676,7 @@ const RUECKBAUTEN = [
   {
     nr: '414', name: 'Der Titel der Kachel wird nicht mehr hervorgehoben',
     datei: 'public/app.js',
-    suche: "  hebeImKnoten(a.querySelector('.card-title'), it.title, begriff);",
+    suche: "  hebeImKnoten(a.querySelector('.card-title'), it.title, term);",
     ersatz: "  hebeImKnoten(a.querySelector('.card-title'), it.title, '');",
     erwartet: 'Die Hervorhebung in der Uebersicht'
   },
@@ -3700,43 +3700,43 @@ const RUECKBAUTEN = [
   {
     nr: '417', name: 'Die Hervorhebung erreicht den Kommentartext nicht mehr',
     datei: 'public/app.js',
-    suche: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text, begriff)));",
+    suche: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text, term)));",
     ersatz: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text)));",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '418', name: 'Eine Adresse mit Begriff zerfaellt in mehrere Anker',
     datei: 'public/app.js',
-    suche: "      let j = i;\n      while (j < liste.length && String(liste[j].ziel ?? '') === String(s.ziel))\n        a.appendChild(stueckKnoten(liste[j++]));\n      i = j - 1;",
+    suche: "      let j = i;\n      while (j < list.length && String(list[j].ziel ?? '') === String(s.ziel))\n        a.appendChild(stueckKnoten(list[j++]));\n      i = j - 1;",
     ersatz: "      a.appendChild(stueckKnoten(s));",
     erwartet: 'Links im Kommentartext'
   },
   {
     nr: '419', name: 'In der Linkliste wird der Anzeigename hervorgehoben',
     datei: 'public/app.js',
-    suche: "          namensBox.appendChild(s);",
-    ersatz: "          hebeImKnoten(s, a.name, begriff);\n          namensBox.appendChild(s);",
+    suche: "          nameBox.appendChild(s);",
+    ersatz: "          hebeImKnoten(s, a.name, begriff);\n          nameBox.appendChild(s);",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '420', name: 'Die Adresse in der Linkliste wird nicht mehr hervorgehoben',
     datei: 'public/app.js',
-    suche: "      hebeImKnoten(row.querySelector('.dom'), oben, begriff);",
+    suche: "      hebeImKnoten(row.querySelector('.dom'), oben, term);",
     ersatz: "      hebeImKnoten(row.querySelector('.dom'), oben, '');",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '421', name: 'Das Adressmuster nimmt keinen Begriff mehr an',
     datei: 'public/app.js',
-    suche: "const EINTRAG_MUSTER = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
-    ersatz: "const EINTRAG_MUSTER = /^#\\/item\\/(\\d+)$/;",
+    suche: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
+    ersatz: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)$/;",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '422', name: 'Das Adressmuster ist hinten nicht mehr verankert',
     datei: 'public/app.js',
-    suche: "const EINTRAG_MUSTER = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
-    ersatz: "const EINTRAG_MUSTER = /^#\\/item\\/(\\d+)/;",
+    suche: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
+    ersatz: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)/;",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
@@ -3759,8 +3759,8 @@ const RUECKBAUTEN = [
   {
     nr: '425', name: 'Die Kachel haengt den Begriff nicht an ihre Adresse',
     datei: 'public/app.js',
-    suche: "  a.href = eintragAdresse(it.id, begriff);",
-    ersatz: "  a.href = eintragAdresse(it.id, '');",
+    suche: "  a.href = entryAddress(it.id, term);",
+    ersatz: "  a.href = entryAddress(it.id, '');",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -4030,7 +4030,7 @@ const RUECKBAUTEN = [
   {
     nr: '450', name: 'Der Schieber fuer die Weite steht nicht mehr im Betrachter',
     datei: 'public/app.js',
-    suche: "      ${ausschnittModus && !zeigtVideo ? `<div class=\"vzoom\">",
+    suche: "      ${cropMode && !zeigtVideo ? `<div class=\"vzoom\">",
     ersatz: "      ${false ? `<div class=\"vzoom\">",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
@@ -4039,7 +4039,7 @@ const RUECKBAUTEN = [
        damit sechzig Anfragen statt einer. */
     nr: '451', name: 'Der Schieber schickt bei jedem Zwischenschritt',
     datei: 'public/app.js',
-    suche: "        zeichne();\n      };\n      schieber.onchange = speichere;",
+    suche: "        draw();\n      };\n      schieber.onchange = save;",
     ersatz: "        zeichne();\n        speichere();\n      };\n      schieber.onchange = speichere;",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
@@ -4068,7 +4068,7 @@ const RUECKBAUTEN = [
   {
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
     datei: 'public/app.js',
-    suche: "      const ok = await zweiteBestaetigung('bilder', null, t('card.convertPngWebp'),",
+    suche: "      const ok = await secondConfirm('bilder', null, t('card.convertPngWebp'),",
     ersatz: "      const ok = true || await secondConfirm('bilder', null, t('card.convertPngWebp'),",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4094,7 +4094,7 @@ const RUECKBAUTEN = [
        ein Fehler. */
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
     datei: 'public/app.js',
-    suche: "        ${EIGENTUEMER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"bild-umwandeln\">",
+    suche: "        ${OWNER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"bild-umwandeln\">",
     ersatz: "        ${true ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"bild-umwandeln\">",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4215,8 +4215,8 @@ const RUECKBAUTEN = [
        weder als Karte noch als Abschnitt in „Kennzahlen". */
     nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank', sichtbar: () => ADMIN,\n" +
-           "    markup: karteBildablage,   ausruesten: ruesteBildablageAus },\n",
+    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank', visible: () => ADMIN,\n" +
+           "    markup: cardImageStore,   ausruesten: setUpImageStoreOut },\n",
     ersatz: "",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4235,7 +4235,7 @@ const RUECKBAUTEN = [
        Installation, neunzehn auf einer benutzten. */
     nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank', sichtbar: () => ADMIN,",
+    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank', visible: () => ADMIN,",
     ersatz: "  { schluessel: 'bildablage',   abschnitt: 'datenbank',\n" +
             "    sichtbar: (g) => ADMIN && !!Object.keys((g.stats && g.stats.bildFormate) || {}).length,",
     erwartet: 'Die Bildablage in der Oberflaeche'
@@ -4371,8 +4371,8 @@ const RUECKBAUTEN = [
        auch mit `transform-origin` nie zu erreichen. */
     nr: '483', name: 'Der Spielraum des Ausschnitts rechnet den Zoom nicht ein',
     datei: 'public/app.js',
-    suche: "               spielX: f.breite - k.kante, spielY: f.hoehe - k.kante };",
-    ersatz: "               spielX: f.breite - Math.min(f.breite, f.hoehe), spielY: f.hoehe - Math.min(f.breite, f.hoehe) };",
+    suche: "               playX: f.width - k.edge, playY: f.height - k.edge };",
+    ersatz: "               playX: f.breite - Math.min(f.breite, f.hoehe), playY: f.hoehe - Math.min(f.breite, f.hoehe) };",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
   {
@@ -4381,8 +4381,8 @@ const RUECKBAUTEN = [
        engeren Ausschnitt. Der Sprung ist umso groesser, je enger man zieht. */
     nr: '484', name: 'Der Griff setzt den Punkt neben die Mitte des Rahmens',
     datei: 'public/app.js',
-    suche: "      fx = spielX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / spielX * 100)) : 50;",
-    ersatz: "      fx = spielX > 0 ? Math.min(100, Math.max(0, (px - seite / 2) / spielX * 100)) : 50;",
+    suche: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / playX * 100)) : 50;",
+    ersatz: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - seite / 2) / playX * 100)) : 50;",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
   {
@@ -4783,7 +4783,7 @@ const RUECKBAUTEN = [
        Systembereich neu aufbaut. */
     nr: '521', name: 'Die Uhr verfolgt nur noch die Umstellung',
     datei: 'public/app.js',
-    suche: "  { feld: 'geometrie', id: 'geo-lauf',",
+    suche: "  { field: 'geometrie', id: 'geo-lauf',",
     ersatz: "  { feld: 'gibtsnicht', id: 'gibtsnicht',",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4956,7 +4956,7 @@ const RUECKBAUTEN = [
        Spalte liefert und sie in der Oberflaeche liegen laesst. */
     nr: '537', name: 'Die Bildadresse traegt die Fassung nicht mehr',
     datei: 'public/app.js',
-    suche: "  const fassung = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';",
+    suche: "  const version = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';",
     ersatz: "  const fassung = '';",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -5235,8 +5235,8 @@ const RUECKBAUTEN = [
        Knoepfe stehen darauf. */
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,\n" +
-           "    markup: karteAufraeumen,   ausruesten: ruesteAufraeumenAus },",
+    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', visible: () => OWNER,\n" +
+           "    markup: cardCleanup,   ausruesten: setUpCleanupOut },",
     ersatz: "",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -5245,7 +5245,7 @@ const RUECKBAUTEN = [
        Karte "Sicherung" daneben faellt damit weg. */
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,",
+    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', visible: () => OWNER,",
     ersatz: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => ADMIN,",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -5255,7 +5255,7 @@ const RUECKBAUTEN = [
        Vorschau zu Werten, die gar nicht mehr dastehen. */
     nr: '563', name: 'Eine Aenderung am Feld rechnet die Vorschau nicht neu',
     datei: 'public/app.js',
-    suche: "        el.oninput = vorschauNeu;",
+    suche: "        el.oninput = previewNew;",
     ersatz: "        el.oninput = null;",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5303,7 +5303,7 @@ const RUECKBAUTEN = [
        Zeilen ist sie eine Behauptung. */
     nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
     datei: 'public/app.js',
-    suche: '           <div class="manage-list" id="auf-liste">${alle.map(zeile).join(\'\')}</div>`',
+    suche: '           <div class="manage-list" id="auf-liste">${all.map(row).join(\'\')}</div>`',
     ersatz: '           <div class="manage-list" id="auf-liste"></div>`',
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5323,7 +5323,7 @@ const RUECKBAUTEN = [
        der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     datei: 'public/app.js',
-    suche: "      const marke = z.faellt ? `<span class=\"auf-marke weg\">${tH('card.deleteLower')}</span>`",
+    suche: "      const mark = z.faellt ? `<span class=\"auf-marke weg\">${tH('card.deleteLower')}</span>`",
     ersatz: "      const marke = z.faellt ? ''",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5534,7 +5534,7 @@ const RUECKBAUTEN = [
        Kopfzahlen darueber. */
     nr: '588', name: 'Der Zeichner zeigt in beiden Kaesten alle Zeilen',
     datei: 'public/app.js',
-    suche: '    const zeilen = item.ratings.filter(r => r.phase === kasten.phase);',
+    suche: '    const zeilen = item.ratings.filter(r => r.phase === boxId.phase);',
     ersatz: '    const zeilen = item.ratings;',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5544,8 +5544,8 @@ const RUECKBAUTEN = [
        zu -- genau verkehrt herum. */
     nr: '589', name: 'Die Sternkaesten folgen wieder der gespeicherten Einstellung',
     datei: 'public/app.js',
-    suche: '    const nachZustand = BLOECKE_OHNE_ZU.includes(name);',
-    ersatz: '    const nachZustand = false;',
+    suche: '    const afterState = BLOECKE_OHNE_ZU.includes(name);',
+    ersatz: '    const afterState = false;',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5554,7 +5554,7 @@ const RUECKBAUTEN = [
        das jemand eingetragen hat, waere versteckt. */
     nr: '590', name: 'Bewertungssterne an einem ungetesteten Eintrag bleiben zugeklappt',
     datei: 'public/app.js',
-    suche: "  return !item.tested && !hatSterne(item, 'nachher');",
+    suche: "  return !item.tested && !hasStars(item, 'nachher');",
     ersatz: '  return !item.tested;',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5565,7 +5565,7 @@ const RUECKBAUTEN = [
     nr: '591', name: 'Ein Klick auf den Kastenkopf speichert wieder',
     datei: 'public/app.js',
     suche: '        if (BLICK.has(name)) BLICK.delete(name); else BLICK.add(name);',
-    ersatz: "        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];\n        speichereBloecke();",
+    ersatz: "        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];\n        saveBlocks();",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5604,7 +5604,7 @@ const RUECKBAUTEN = [
        einem geprueften Eintrag. */
     nr: '595', name: 'Das Potenzial traegt auf der Kachel wieder den Stern',
     datei: 'public/app.js',
-    suche: "  const zeichen = potenzial ? '◆' : '★';",
+    suche: "  const char = potenzial ? '◆' : '★';",
     ersatz: "  const zeichen = '★';",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5624,7 +5624,7 @@ const RUECKBAUTEN = [
        saehe sein Kriterium in beiden. */
     nr: '597', name: 'Die zweite Kriterienkarte filtert nicht nach Phase',
     datei: 'public/app.js',
-    suche: "  verwaltungsListe(k.liste, geholt.crits.filter(c => c.phase === phase), 'crit', geholt);",
+    suche: "  verwaltungsListe(k.list, geholt.crits.filter(c => c.phase === phase), 'crit', geholt);",
     ersatz: "  verwaltungsListe(k.liste, geholt.crits, 'crit', geholt);",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5634,8 +5634,8 @@ const RUECKBAUTEN = [
        Vorgabe 'nachher'. */
     nr: '598', name: 'Die zweite Kriterienkarte legt im falschen Kasten an',
     datei: 'public/app.js',
-    suche: "      try { await api('POST', '/api/criteria', { name, phase }); critFeld.value = '';",
-    ersatz: "      try { await api('POST', '/api/criteria', { name }); critFeld.value = '';",
+    suche: "      try { await api('POST', '/api/criteria', { name, phase }); critField.value = '';",
+    ersatz: "      try { await api('POST', '/api/criteria', { name }); critField.value = '';",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5734,11 +5734,11 @@ const RUECKBAUTEN = [
        aus wie vor 0.21.1. */
     nr: '606', name: 'Keine Sortierung gibt mehr einen Status vor',
     datei: 'public/app.js',
-    suche: "const SORTIERUNG_STATUS = {\n" +
+    suche: "const SORT_STATUS = {\n" +
            "  rating_desc: 'tested',      rating_asc: 'tested',\n" +
            "  potenzial_desc: 'untested', potenzial_asc: 'untested'\n" +
            "};",
-    ersatz: "const SORTIERUNG_STATUS = {};",
+    ersatz: "const SORT_STATUS = {};",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5756,8 +5756,8 @@ const RUECKBAUTEN = [
        soll, koppelt doch. Ein Titel sagt nichts ueber den Teststatus. */
     nr: '608', name: 'Die Titelsortierung koppelt mit',
     datei: 'public/app.js',
-    suche: "const SORTIERUNG_STATUS = {\n",
-    ersatz: "const SORTIERUNG_STATUS = {\n  title_asc: 'tested',\n",
+    suche: "const SORT_STATUS = {\n",
+    ersatz: "const SORT_STATUS = {\n  title_asc: 'tested',\n",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5767,8 +5767,8 @@ const RUECKBAUTEN = [
        drei. Ohne diesen Rueckbau waere das eine Behauptung im Kommentar. */
     nr: '609', name: 'Die Verlaufssortierungen koppeln mit',
     datei: 'public/app.js',
-    suche: "const SORTIERUNG_STATUS = {\n  rating_desc:",
-    ersatz: "const SORTIERUNG_STATUS = {\n  testavg_desc: 'tested', testavg_asc: 'tested',\n  tests_desc: 'tested', tests_asc: 'tested',\n  rating_desc:",
+    suche: "const SORT_STATUS = {\n  rating_desc:",
+    ersatz: "const SORT_STATUS = {\n  testavg_desc: 'tested', testavg_asc: 'tested',\n  tests_desc: 'tested', tests_asc: 'tested',\n  rating_desc:",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5777,7 +5777,7 @@ const RUECKBAUTEN = [
        mehr -- der groesste Rueckbau dieser Runde. */
     nr: '610', name: 'Die Liste liest die Ableitung nicht mehr',
     datei: 'public/app.js',
-    suche: "  const status = statusWirksam(f);",
+    suche: "  const status = statusEffective(f);",
     ersatz: "  const status = f.tested;",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5797,8 +5797,8 @@ const RUECKBAUTEN = [
        Handwahl, die gespeicherte Ansicht und den Ruecksetzer zugleich. */
     nr: '612', name: 'Die Ableitung schlaegt die Handwahl statt umgekehrt',
     datei: 'public/app.js',
-    suche: "const statusAusSortierung = (sort) => STATUS_VON_HAND ? null : vorgabeZu(sort);",
-    ersatz: "const statusAusSortierung = (sort) => vorgabeZu(sort);",
+    suche: "const statusOutSort = (sort) => STATUS_VON_HAND ? null : vorgabeZu(sort);",
+    ersatz: "const statusOutSort = (sort) => vorgabeZu(sort);",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5812,7 +5812,7 @@ const RUECKBAUTEN = [
     datei: 'public/app.js',
     suche: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
     ersatz: "  sel.onchange = () => { f.sort = sel.value;\n" +
-            "    f.tested = statusAusSortierung(sel.value) || f.tested; redraw(); };",
+            "    f.tested = statusOutSort(sel.value) || f.tested; redraw(); };",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5882,9 +5882,9 @@ const RUECKBAUTEN = [
        wieder her: derselbe Knopf mit derselben Zahl. */
     nr: '620', name: 'Die Ableitung zaehlt als gesetzter Filter mit',
     datei: 'public/app.js',
-    suche: "  if (statusWirksam(f) !== statusRuhestellung(f)) n++;",
-    ersatz: "  if (statusWirksam(f) !== statusRuhestellung(f)) n++;\n" +
-            "  if (statusAusSortierung(f.sort)) n++;",
+    suche: "  if (statusEffective(f) !== statusRuhestellung(f)) n++;",
+    ersatz: "  if (statusEffective(f) !== statusRuhestellung(f)) n++;\n" +
+            "  if (statusOutSort(f.sort)) n++;",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5901,15 +5901,15 @@ const RUECKBAUTEN = [
        still ganz weg -- samt der gespeicherten Wahl. */
     nr: '623', name: 'Die Vorgabetabelle wird ohne Ruecksicht auf den Prototyp gefragt',
     datei: 'public/app.js',
-    suche: "  Object.prototype.hasOwnProperty.call(SORTIERUNG_STATUS, sort)\n" +
-           "    ? SORTIERUNG_STATUS[sort] : null;",
-    ersatz: "  SORTIERUNG_STATUS[sort] || null;",
+    suche: "  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)\n" +
+           "    ? SORT_STATUS[sort] : null;",
+    ersatz: "  SORT_STATUS[sort] || null;",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
     nr: '622', name: 'Die Ruhestellung der Statuszeile ist wieder fest „alles"',
     datei: 'public/app.js',
-    suche: "  if (statusWirksam(f) !== statusRuhestellung(f)) n++;",
+    suche: "  if (statusEffective(f) !== statusRuhestellung(f)) n++;",
     ersatz: "  if (f.tested !== v.tested) n++;",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5919,7 +5919,7 @@ const RUECKBAUTEN = [
        genau dann nirgends dran, wenn man sie am wenigsten sieht. */
     nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
     datei: 'public/app.js',
-    suche: "  const woher = statusAusSortierung(state.filters.sort) ? t('list.followsSort') : '';",
+    suche: "  const woher = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';",
     ersatz: "  const woher = '';",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -6015,7 +6015,7 @@ const RUECKBAUTEN = [
     // prompt() kehrt zurueck: das fremde Passwort stuende wieder im Klartext.
     nr: '630', name: 'Das fremde Passwort wird wieder ueber prompt() abgefragt',
     datei: 'public/app.js',
-    suche: "          const neu = await neuesPasswortFenster(t('card.setPasswordFor', { username: z.username }),",
+    suche: "          const fresh = await newPasswordDialog(t('card.setPasswordFor', { username: z.username }),",
     ersatz: "          const neu = prompt(t('card.setPasswordFor', { username: z.username }),",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
@@ -6041,7 +6041,7 @@ const RUECKBAUTEN = [
        aus dem Betrieb waere nicht behoben. */
     nr: '633', name: 'Der Ruecksetzknopf steht wieder in der Sternzelle statt in seiner eigenen Spalte',
     datei: 'public/app.js',
-    suche: "      const zz = document.createElement('span');\n      zz.className = 'rzz';\n      zz.appendChild(zurueck);\n      row.append(zz);",
+    suche: "      const zz = document.createElement('span');\n      zz.className = 'rzz';\n      zz.appendChild(back);\n      row.append(zz);",
     ersatz: "      acts.appendChild(zurueck);",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
@@ -6049,7 +6049,7 @@ const RUECKBAUTEN = [
     // „Rückgängig" schreibt nicht den alten Wert zurueck, sondern noch einmal die Null.
     nr: '634', name: 'Rueckgaengig schreibt die Null statt des alten Werts',
     datei: 'public/app.js',
-    suche: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(alt) });",
+    suche: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(old) });",
     ersatz: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(0) });",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
@@ -6074,7 +6074,7 @@ const RUECKBAUTEN = [
   },
   {
     // filterZahl() vergisst die Tags hinter dem Umschalter.
-    nr: '637', name: 'filterZahl() zaehlt die Tags hinter dem Umschalter nicht mehr',
+    nr: '637', name: 'filterNumber() zaehlt die Tags hinter dem Umschalter nicht mehr',
     datei: 'public/app.js',
     suche: "  n += f.tagIds.length;",
     ersatz: "  n += 0;",
@@ -6094,7 +6094,7 @@ const RUECKBAUTEN = [
        den Platz weiter, und der Befund waere nur zur Haelfte behoben. */
     nr: '659', name: 'Die Tagzeile wird zugeklappt gebaut statt weggelassen',
     datei: 'public/app.js',
-    suche: "  if (tagsOffen) {\n    const r3 = row(t('list.tags'));",
+    suche: "  if (tagsOpen) {\n    const r3 = row(t('list.tags'));",
     ersatz: "  if (true) {\n    const r3 = row(t('list.tags'));",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
@@ -6240,7 +6240,7 @@ const RUECKBAUTEN = [
        naechste Sprache bricht daran. */
     nr: '669', name: 'Die Mehrzahl waehlt wieder ueber n === 1',
     datei: 'public/app.js',
-    suche: "  return PLURAL.select(werte.n) === 'one' ? roh.eins : roh.andere;",
+    suche: "  return PLURAL.select(values.n) === 'one' ? roh.eins : roh.andere;",
     ersatz: "  return werte.n === 1 ? roh.eins : roh.andere;",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6250,7 +6250,7 @@ const RUECKBAUTEN = [
        Stufe 2 auf, wo er gebraucht wird. */
     nr: '670', name: 'Der Rueckfall auf Deutsch faellt weg',
     datei: 'public/app.js',
-    suche: "  const roh = TEXTE[schluessel] !== undefined ? TEXTE[schluessel] : TEXTE_DE[schluessel];",
+    suche: "  const roh = TEXTS[schluessel] !== undefined ? TEXTS[schluessel] : TEXTE_DE[schluessel];",
     ersatz: "  const roh = TEXTE[schluessel];",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6337,7 +6337,7 @@ const RUECKBAUTEN = [
     // Der Klartextschluessel steht wieder vor jedem Admin (E13).
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     datei: 'public/app.js',
-    suche: "          : (EIGENTUEMER\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
+    suche: "          : (OWNER\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
     ersatz: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
     erwartet: 'Die Rollenweichen — 0.22.0'
   },
@@ -6368,7 +6368,7 @@ const RUECKBAUTEN = [
        zum Schieben, und Ecke wie Kante sind unerreichbar. */
     nr: '642', name: 'Der Rahmen verliert seine acht Griffe',
     datei: 'public/app.js',
-    suche: "const GRIFF = 12;",
+    suche: "const HANDLE = 12;",
     ersatz: "const GRIFF = 0;",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6387,7 +6387,7 @@ const RUECKBAUTEN = [
        weg. */
     nr: '644', name: 'Die Greifzone wird am kleinen Rahmen nicht mehr gedeckelt',
     datei: 'public/app.js',
-    suche: "  const g = Math.min(griff, kante / 4);",
+    suche: "  const g = Math.min(handle, edge / 4);",
     ersatz: "  const g = griff;",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6397,8 +6397,8 @@ const RUECKBAUTEN = [
        Zug neu. */
     nr: '645', name: 'Das Schieben aendert die Weite wieder mit',
     datei: 'public/app.js',
-    suche: "      setzeLage(zug.kiste.links + (p.x - zug.p0.x), zug.kiste.oben + (p.y - zug.p0.y));",
-    ersatz: "      setzeKiste(zug.kiste.kante * 0.9,\n        () => ({ l: zug.kiste.links + (p.x - zug.p0.x), o: zug.kiste.oben + (p.y - zug.p0.y) }));",
+    suche: "      setState(user.crate.links + (p.x - user.p0.x), user.crate.oben + (p.y - user.p0.y));",
+    ersatz: "      setBox(zug.kiste.kante * 0.9,\n        () => ({ l: zug.kiste.links + (p.x - zug.p0.x), o: zug.kiste.oben + (p.y - zug.p0.y) }));",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6407,8 +6407,8 @@ const RUECKBAUTEN = [
        halbe Stufe -- genau die Ecke, die stillstehen soll. */
     nr: '646', name: 'Die feste Ecke wandert wieder mit der Rastung',
     datei: 'public/app.js',
-    suche: "      const { l, o } = lage(eng);\n      setzeLage(l, o);",
-    ersatz: "      const { l, o } = lage(k);\n      setzeLage(l, o);",
+    suche: "      const { l, o } = situation(eng);\n      setState(l, o);",
+    ersatz: "      const { l, o } = lage(k);\n      setState(l, o);",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6417,7 +6417,7 @@ const RUECKBAUTEN = [
        rutscht dabei seitlich weg. */
     nr: '647', name: 'Die Kante verschiebt den Mittelpunkt wieder',
     datei: 'public/app.js',
-    suche: "          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
+    suche: "          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, umMitte(mitteY, f.height)));",
     ersatz: "          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6427,8 +6427,8 @@ const RUECKBAUTEN = [
        Zeiger. */
     nr: '648', name: 'Ein Griff ohne Weg setzt wieder den Punkt',
     datei: 'public/app.js',
-    suche: "      if (zuletzt.geste !== 'neu') return;\n      ausPunkt(e);",
-    ersatz: "      ausPunkt(e);",
+    suche: "      if (zuletzt.gesture !== 'neu') return;\n      outPoint(e);",
+    ersatz: "      outPoint(e);",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6436,7 +6436,7 @@ const RUECKBAUTEN = [
        dasselbe Zeichen (Regel G2 aus 0.22.0). */
     nr: '649', name: 'Der Zeiger sagt wieder nicht, was geschehen wird',
     datei: 'public/app.js',
-    suche: "      const kl = GRIFF_ZEIGER[geste];\n      if (kl) v.classList.add(kl);",
+    suche: "      const kl = GRIFF_ZEIGER[gesture];\n      if (kl) v.classList.add(kl);",
     ersatz: "      const kl = null;\n      if (kl) v.classList.add(kl);",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6446,7 +6446,7 @@ const RUECKBAUTEN = [
        aendert dann die Weite statt zu schieben. */
     nr: '650', name: 'Der Finger bekommt die acht Griffe doch',
     datei: 'public/app.js',
-    suche: "      if (e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';",
+    suche: "      if (e.pointerType === 'touch' && gesture !== 'neu') gesture = 'schieben';",
     ersatz: "      if (false && e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6464,8 +6464,8 @@ const RUECKBAUTEN = [
        sichtbar, und ein Klick liesse Sterne vergeben. */
     nr: '652', name: 'Der Bewertungskasten steht wieder an jeder Idee',
     datei: 'public/app.js',
-    suche: "  return name === 'bewertung' && !item.tested && !hatSterne(item, 'nachher');",
-    ersatz: "  return false && name === 'bewertung' && !item.tested && !hatSterne(item, 'nachher');",
+    suche: "  return name === 'bewertung' && !item.tested && !hasStars(item, 'nachher');",
+    ersatz: "  return false && name === 'bewertung' && !item.tested && !hasStars(item, 'nachher');",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
@@ -6601,7 +6601,7 @@ const RUECKBAUTEN = [
        Namen, statt bloss eine Zahl zu zeigen. */
     nr: '690', name: 'Ein deutscher Satz bleibt wieder in app.js stehen',
     datei: 'public/app.js',
-    suche: "      knopf.textContent = t('entry.showLess');",
+    suche: "      button.textContent = t('entry.showLess');",
     ersatz: "      knopf.textContent = 'Weniger anzeigen, bitte sehr';",
     erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },

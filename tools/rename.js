@@ -28,8 +28,25 @@ const { zerlege, zusammen, texte, CODE, TEXT, KOMMENTAR, REGEX } = require('./se
 
 const IDENT = /[A-Za-z_$][A-Za-z0-9_$]*/g;
 
+/* WAS KEIN NAME WERDEN DARF. `neu -> new` steht so im Woerterbuch und ist als
+   WORT richtig -- als Bezeichner ist es ein Schluesselwort, und der Prueflauf
+   bricht mit `Unexpected token 'new'` ab. Der Umbenenner weist das ab, statt
+   es zu schreiben. */
+const SCHLUESSELWOERTER = new Set(['await', 'break', 'case', 'catch', 'class', 'const',
+  'continue', 'debugger', 'default', 'delete', 'do', 'else', 'enum', 'export', 'extends',
+  'false', 'finally', 'for', 'function', 'if', 'implements', 'import', 'in', 'instanceof',
+  'interface', 'let', 'new', 'null', 'package', 'private', 'protected', 'public', 'return',
+  'static', 'super', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'var', 'void',
+  'while', 'with', 'yield']);
+function pruefeZiele(map) {
+  const schlecht = Object.entries(map).filter(([, v]) => SCHLUESSELWOERTER.has(v));
+  if (schlecht.length)
+    throw new Error('Kein Bezeichner: ' + schlecht.map(([a, b]) => `${a} -> ${b}`).join(', '));
+}
+
 // --- Bezeichner ------------------------------------------------------------
 function ersetzeIdent(src, datei, map, opt = {}) {
+  pruefeZiele(map);
   const teile = zerlege(src, datei);
   const vorher = texte(teile);
   let treffer = 0;
@@ -250,4 +267,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ersetzeIdent, ersetzeString, ersetzeInString, ersetzeQualifiziert, ersetzeInKommentaren, nurKommentare, nurRegex, wende, bezeichner, probeGleich, istCodeName };
+module.exports = { ersetzeIdent, pruefeZiele, ersetzeString, ersetzeInString, ersetzeQualifiziert, ersetzeInKommentaren, nurKommentare, nurRegex, wende, bezeichner, probeGleich, istCodeName };
