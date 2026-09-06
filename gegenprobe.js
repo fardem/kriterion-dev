@@ -96,8 +96,8 @@ const RUECKBAUTEN = [
        aber die Zusage wirft danach UNBEHANDELT -- der Server stirbt, und der
        Lauf reisst ab, statt eine Pruefung rot zu faerben (Stolperstein 138).
        So bleibt alles stehen, und nur die Wirkung faellt weg. */
-    suche: "      uhr = setTimeout(() => fehler(new Error('Der Mailserver hat nicht rechtzeitig geantwortet.')),",
-    ersatz: "      uhr = setTimeout(() => {},",
+    suche: "      uhr = setTimeout(() => fehler(new Error(t(sprache, 'mail.keineAntwort'))), VERSAND_MS);",
+    ersatz: "      uhr = setTimeout(() => {}, VERSAND_MS);",
     erwartet: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
   {
@@ -158,9 +158,9 @@ const RUECKBAUTEN = [
   },
   {
     nr: '13', name: 'Die Absage ohne eigene Adresse nennt den Weg dorthin nicht',
-    datei: 'server.js',
-    suche: "      'Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.' });",
-    ersatz: "      'ein.' });",
+    datei: 'public/sprachen/de.json',
+    suche: "\"server.eigeneMailFehlt\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt. Trag sie unter Einstellungen › Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.\",",
+    ersatz: "\"server.eigeneMailFehlt\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt.\",",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
@@ -206,8 +206,8 @@ const RUECKBAUTEN = [
   {
     nr: '18', name: 'Das Mailpasswort steht in der Antwort',
     datei: 'server.js',
-    suche: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte()));",
-    ersatz: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json({ ...mailKarte(), passwort: mail.loeseAuf(getSetting(mail.SCHLUESSEL, null)).passwort }));",
+    suche: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte(req)));",
+    ersatz: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json({ ...mailKarte(req), passwort: mail.loeseAuf(getSetting(mail.SCHLUESSEL, null)).passwort }));",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
@@ -228,7 +228,7 @@ const RUECKBAUTEN = [
   {
     nr: '21', name: 'Ein unbekannter Anbieter wird durchgelassen',
     datei: 'mail.js',
-    suche: "  if (!v) throw new Error('Diesen Anbieter gibt es nicht.');",
+    suche: "  if (!v) throw meldung('mail.anbieterFehlt');",
     ersatz: "  const vv = v;",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
@@ -249,9 +249,9 @@ const RUECKBAUTEN = [
   },
   {
     nr: '24', name: 'Die Absage nach der Frist bekommt einen eigenen Wortlaut',
-    datei: 'server.js',
-    suche: "const TOKEN_ABSAGE = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.';",
-    ersatz: "const TOKEN_ABSAGE = 'Die Frist von 15 Minuten ist abgelaufen.';",
+    datei: 'public/sprachen/de.json',
+    suche: "\"server.linkAbgelaufen\": \"Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.\",",
+    ersatz: "\"server.linkAbgelaufen\": \"Die Frist von 15 Minuten ist abgelaufen.\",",
     erwartet: 'Der Token: die Absage sieht immer gleich aus'
   },
   /* ---- Befund G: die voruebergehende Absage ---- */
@@ -468,8 +468,8 @@ const RUECKBAUTEN = [
   {
     nr: '52', name: 'Die unbestaetigte Anfrage laesst sich freischalten',
     datei: 'server.js',
-    suche: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, token;",
-    ersatz: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, token;",
+    suche: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.anfrageFehlt')});\n  let angelegt, token;",
+    ersatz: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.anfrageFehlt')});\n  let angelegt, token;",
     erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   /* ---- Die Selbstanmeldung: Freischaltung, Ablehnung, Rolle ---- */
@@ -639,12 +639,12 @@ const RUECKBAUTEN = [
   },
   {
     nr: '66', name: 'Die gekuerzte Zeile im Mailtext verliert eine Auskunft',
-    datei: 'mail.js',
+    datei: 'public/sprachen/de.json',
     /* DIE ZEILE STEHT ZWEIMAL -- in der Einladung und in der Ruecksetzung.
        Genommen wird die der EINLADUNG; die naechsten Zeilen machen sie
        eindeutig. */
-    suche: "    'Danach brauchst du einen neuen Link vom Admin.',\n    '',\n    'Wer diesen Link hat, kommt herein",
-    ersatz: "    '',\n    'Wer diesen Link hat, kommt herein",
+    suche: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt herein",
+    ersatz: "\\nWer diesen Link hat, kommt herein",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   /* ---- Die Marke der Instanz ---- */
@@ -833,9 +833,8 @@ const RUECKBAUTEN = [
        weg (Stolperstein 138). */
     nr: '93', name: 'Die Absage verraet, ob der Zugang einen zweiten Faktor hat',
     datei: 'server.js',
-    suche: "    return res.status(401).json({ error: 'Benutzername oder Passwort stimmt nicht.' });",
-    ersatz: "    return res.status(401).json({ error: 'Benutzername oder Passwort stimmt nicht.',\n" +
-            "      zweifaktor: auth.zweifaktorAn((auth.holeBenutzerNachNamen(user) || {}).id) });",
+    suche: "    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungFalsch')});",
+    ersatz: "    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungFalsch'),\n      zweifaktor: auth.zweifaktorAn((auth.holeBenutzerNachNamen(user) || {}).id) });",
     erwartet: 'Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort'
   },
   {
@@ -874,7 +873,7 @@ const RUECKBAUTEN = [
   {
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
     datei: 'server.js',
-    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
     ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
@@ -885,8 +884,8 @@ const RUECKBAUTEN = [
        daran ist die erste Fassung der Bremsprobe stumm geblieben. */
     nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
     datei: 'server.js',
-    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });\n  }",
-    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
+    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungAbgelaufen')});\n  }",
+    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungAbgelaufen')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
@@ -955,7 +954,7 @@ const RUECKBAUTEN = [
   {
     nr: '106', name: 'Ein zweiter Start ueberschreibt einen laufenden zweiten Faktor',
     datei: 'auth.js',
-    suche: "  if (zweifaktorAn(id)) throw new Error('Der zweite Faktor ist bereits eingeschaltet.');",
+    suche: "  if (zweifaktorAn(id)) throw new Meldung('anmeldung.zweiterFaktorSchonAn');",
     ersatz: "",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
@@ -992,7 +991,7 @@ const RUECKBAUTEN = [
   {
     nr: '110', name: 'Ausschalten geht ohne Code',
     datei: 'server.js',
-    suche: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))\n    return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE });\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
+    suche: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))\n    return res.status(403).json({ error: t(spracheVon(req), auth.ZWEITER_FAKTOR_ABSAGE)});\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
     ersatz: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
     erwartet: 'Der zweite Faktor: der Rundlauf'
   },
@@ -3388,7 +3387,7 @@ const RUECKBAUTEN = [
   {
     nr: '378', name: 'Die Anbieterliste kommt wieder ohne Hinweise und feste Werte',
     datei: 'server.js',
-    suche: "    anbieterListe: mail.fuerDieAuswahl(),",
+    suche: "    anbieterListe: mail.fuerDieAuswahl().map(a =>\n      ({ ...a, hinweis: a.hinweis ? t(spracheVon(req), a.hinweis) : '' })),",
     ersatz: "    anbieterListe: mail.ANBIETER.map(a => ({ schluessel: a.schluessel, name: a.name })),",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
@@ -3932,8 +3931,8 @@ const RUECKBAUTEN = [
   {
     nr: '439', name: 'Zweimal druecken startet zwei Laeufe',
     datei: 'server.js',
-    suche: "  if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
-    ersatz: "  if (false)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
+    suche: "  if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)\n    return res.status(409).json({ error: t(spracheVon(req), 'server.umstellungLaeuft')});",
+    ersatz: "  if (false)\n    return res.status(409).json({ error: t(spracheVon(req), 'server.umstellungLaeuft')});",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4289,9 +4288,9 @@ const RUECKBAUTEN = [
        benannt hat, liest eine Meldung ueber ein Wort, das nirgends auf seinem
        Bildschirm steht. */
     nr: '476', name: 'Die Absage nennt wieder „den Eigentümer der Instanz"',
-    datei: 'server.js',
-    suche: "const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer dieser Installation.';",
-    ersatz: "const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer der Instanz.';",
+    datei: 'public/sprachen/de.json',
+    suche: "\"server.verweigertEigen\": \"Das kann nur der Eigentümer dieser Installation.\",",
+    ersatz: "\"server.verweigertEigen\": \"Das kann nur der Eigentümer der Instanz.\",",
     erwartet: 'Die Rechte am Papierkorb'
   },
   {
@@ -5125,8 +5124,8 @@ const RUECKBAUTEN = [
        keine neue Kopie zustande bringt. */
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
     datei: 'server.js',
-    suche: "  if (fs.existsSync(datei))\n    return res.status(409).json({ error: 'In dieser Sekunde wurde dort schon eine Sicherung angelegt — bitte noch einmal.' });",
-    ersatz: "  if (fs.existsSync(datei)) {\n    const r = aufraeumStand();\n    if (r.an) entferneSicherungen(ziel.pfad, regelTreffer(sicherungsListe(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (wechselMarke() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: 'In dieser Sekunde wurde dort schon eine Sicherung angelegt — bitte noch einmal.' });\n  }",
+    suche: "  if (fs.existsSync(datei))\n    return res.status(409).json({ error: t(spracheVon(req), 'server.sicherungGleichzeitig')});",
+    ersatz: "  if (fs.existsSync(datei)) {\n    const r = aufraeumStand();\n    if (r.an) entferneSicherungen(ziel.pfad, regelTreffer(sicherungsListe(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (wechselMarke() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: t(spracheVon(req), 'server.sicherungGleichzeitig')});\n  }",
     erwartet: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
   {
@@ -5983,9 +5982,9 @@ const RUECKBAUTEN = [
   {
     // Eine Servermeldung nennt wieder den Spaltenwert „Kasten".
     nr: '626', name: 'Die Servermeldung zur Phase eines Kriteriums sagt wieder „Kasten"',
-    datei: 'server.js',
-    suche: "    return res.status(400).json({ error: `Ein Kriterium gehört entweder zu „${vokabular().potenzial}“ ` +",
-    ersatz: "    return res.status(400).json({ error: `Der Kasten muss „${vokabular().potenzial}“ ` +",
+    datei: 'public/sprachen/de.json',
+    suche: "\"server.kriteriumEntwederOder\": \"Ein Kriterium gehört entweder zu „{potenzial}“ oder zu „{bewertungEinzahl}“.\",",
+    ersatz: "\"server.kriteriumEntwederOder\": \"Der Kasten muss „{potenzial}“ oder „{bewertungEinzahl}“ sein.\",",
     erwartet: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
   {
@@ -6033,9 +6032,9 @@ const RUECKBAUTEN = [
   {
     // Die Vorgabe vergisst eines der zwei neuen Woerter -- dreizehn statt vierzehn.
     nr: '632', name: 'Die Vorgabe des Vokabulars vergisst die Mehrzahl der Bewertung',
-    datei: 'server.js',
-    suche: "  bewertungEinzahl: 'Bewertung', bewertungMehrzahl: 'Bewertungen'\n};",
-    ersatz: "  bewertungEinzahl: 'Bewertung'\n};",
+    datei: 'public/sprachen/de.json',
+    suche: "\"vokabular.bewertungMehrzahl\": \"Bewertungen\",",
+    ersatz: "\"vokabular.bewertungMehrzahl\": \"\",",
     erwartet: 'Einstellungen: Vokabular und Schriftgroesse'
   },
   {
@@ -6109,6 +6108,96 @@ const RUECKBAUTEN = [
     suche: "  const tagsMoeglich = filterTags.length > 0 || f.tagIds.length > 0;",
     ersatz: "  const tagsMoeglich = true;",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* EIN LITERAL ZURUECK HINTER `error:` -- genau das, was Bauabschnitt 2
+       ueberall entfernt hat. */
+    nr: '675', name: 'Eine Servermeldung steht wieder als Satz im Quelltext',
+    datei: 'server.js',
+    suche: "  if (!title) return res.status(400).json({ error: t(spracheVon(req), 'server.titelFehlt')});",
+    ersatz: "  if (!title) return res.status(400).json({ error: 'Bitte einen Titel eingeben.' });",
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* EIN DEUTSCHER SATZ ZURUECK IN `throw new Error` IN auth.js -- der blinde
+       Fleck des Waechters, den diese Runde geschlossen hat. */
+    nr: '676', name: 'auth.js wirft wieder einen deutschen Satz',
+    datei: 'auth.js',
+    suche: "  if (!ROLLEN.includes(rolle)) throw new Meldung('anmeldung.rolleFehlt');\n  const sauber = String(name).trim();",
+    ersatz: "  if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');\n  const sauber = String(name).trim();",
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* EIN PROGRAMMIERFEHLER OHNE BILDSCHIRM VERSCHWINDET. Die Liste ist
+       namentlich -- eine Zahl allein liesse offen, welche gemeint sind. */
+    nr: '677', name: 'Ein Programmierfehler ohne Bildschirm faellt weg',
+    datei: 'auth.js',
+    suche: "    throw new Error('Eine Sitzung braucht einen Benutzer.');",
+    ersatz: "    return null;",
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* EINE DER VIER ALTLASTEN VERSCHWINDET AUS DER DATEI, ohne dass jemand die
+       Liste im Pruefstand nachzieht. */
+    nr: '678', name: 'Eine benannte Altlast verschwindet aus der Sprachdatei',
+    datei: 'public/sprachen/de.json',
+    suche: '  "anmeldung.keinZugang": "Es ist noch kein Zugang eingerichtet.",',
+    ersatz: '  "anmeldung.keinZugangX": "Es ist noch kein Zugang eingerichtet.",',
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* UND DIE ANDERE RICHTUNG: eine Altlast wird richtiggestellt, bleibt aber
+       auf der Liste stehen. Dann fuehrt die Liste eine Ausnahme fuer nichts. */
+    nr: '679', name: 'Eine Altlast ist behoben und steht doch noch auf der Liste',
+    datei: 'public/sprachen/de.json',
+    suche: '  "server.verweigertSelbstZugang": "Den eigenen Zugang ändert man unter „Zugang“, nicht hier.",',
+    ersatz: '  "server.verweigertSelbstZugang": "Das eigene Konto ändert man an anderer Stelle.",',
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* DER UEBERSETZER WIRD mail.js NICHT MEHR GEREICHT -- jeder Brief stuende
+       dann als Klammerausdruck da, und der Link waere fort. */
+    nr: '680', name: 'mail.js bekommt den Uebersetzer nicht mehr gereicht',
+    datei: 'server.js',
+    suche: "mail.setzeUebersetzer(t);",
+    ersatz: "void mail.setzeUebersetzer;",
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* UND auth.js EBENSO WENIG -- die zwei Antworten von requireAuth() stuenden
+       als Klammerausdruck da. */
+    nr: '681', name: 'auth.js bekommt den Uebersetzer nicht mehr gereicht',
+    datei: 'server.js',
+    suche: "auth.setzeUebersetzer((req, schluessel, werte) => t(spracheVon(req), schluessel, werte));",
+    ersatz: "void auth.setzeUebersetzer;",
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* DIE VORGABE DES VOKABULARS KOMMT WIEDER AUS DEM QUELLTEXT -- Stolperstein
+       47 in seiner urspruenglichen Form: doppelt gehaltene Vorgaben pruefen
+       sich nur halb. */
+    nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
+    datei: 'server.js',
+    suche: "const vokabularVorgabe = () => Object.fromEntries(\n  Object.entries(SPRACHEN[SPRACH_VORGABE])",
+    ersatz: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vokabularVorgabe = () => Object.fromEntries(\n  Object.entries(SPRACHEN[SPRACH_VORGABE])",
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* EINE BETREFFZEILE ZURUECK IN server.js -- der Text gehoert zur Sache, und
+       zwei Ausfertigungen liefen auseinander. */
+    nr: '683', name: 'Der Betreff eines Briefes verliert seinen Platzhalter',
+    datei: 'public/sprachen/de.json',
+    suche: '  "mail.einladung.betreff": "Dein Zugang zu „{titel}“",',
+    ersatz: '  "mail.einladung.betreff": "Dein Zugang",',
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* DIE TESTMAIL BEKOMMT EINEN LINK, DEN SIE NICHT HAT. */
+    nr: '684', name: 'Die Testmail traegt ploetzlich einen Link',
+    datei: 'public/sprachen/de.json',
+    suche: 'das ist die Testmail aus „{titel}“.',
+    ersatz: 'das ist die Testmail aus „{titel}“: {link}',
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
     /* OHNE _locale GAEBE ES WEDER DATUM NOCH MEHRZAHL -- und die Ladung im

@@ -15015,14 +15015,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
      GROSSGESCHRIEBEN GESUCHT, dieselbe Trennlinie wie beim Backup-Waechter:
      gemeint ist das deutsche SUBSTANTIV, nicht der Bezeichner
      raeumeProtokollAuf. */
+  /* UND DIE SPRACHDATEI SEIT 0.24.0. Sie liegt unter public/ und wird
+     ausgeliefert; seit dieser Runde steht der Bildschirmtext DORT, und ein
+     Waechter ueber Bildschirmtexte, der sie nicht ansieht, sieht die halbe
+     Anwendung nicht (Auftrag 0.24.0, Bauabschnitt 5.1). */
   const PROT_DATEIEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
-                        'public/app.js', 'public/index.html', 'zugang.js'];
+                        'public/app.js', 'public/index.html', 'zugang.js',
+                        'public/sprachen/de.json'];
   const protZaehle = (text) => (ohneKommentare(text).match(/(?<!Sicherheits)\bProtokoll\b/g) || []).length;
   const fProt = PROT_DATEIEN
     .map(d => [d, protZaehle(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
-  pruefe('Der Protokollwaechter sieht alle acht ausgelieferten Dateien an',
-    PROT_DATEIEN.length === 8 && PROT_DATEIEN.every(n => fs.existsSync(path.join(__dirname, n))),
+  pruefe('Der Protokollwaechter sieht alle neun ausgelieferten Dateien an',
+    PROT_DATEIEN.length === 9 && PROT_DATEIEN.every(n => fs.existsSync(path.join(__dirname, n))),
     JSON.stringify(PROT_DATEIEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
   /* EIN VORKOMMEN SEIT 0.22.0, und es meint den Containerlog: die Meldung nach
      einer gescheiterten Sicherung in server.js. Der zweite stand bis 0.21.1
@@ -15032,8 +15037,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
      74) -- die Zahl steht weiter ausdruecklich. */
   pruefe('Das alleinstehende Wort steht in genau einer ausgelieferten Zeile — 0.22.0',
     fProt.reduce((n, [, k]) => n + k, 0) === 1, fProt.map(([d, n]) => `${d} (${n}x)`).join(' · '));
-  pruefe('Und sie meint den Containerlog, in server.js',
-    gleich(fProt.map(([d]) => d), ['server.js']), JSON.stringify(fProt));
+  /* SEIT 0.24.0 STEHT SIE IN DER SPRACHDATEI und nicht mehr in server.js --
+     der Satz ist derselbe, nur wohnt er jetzt dort, wo Text wohnt. */
+  pruefe('Und sie meint den Containerlog, in der Sprachdatei',
+    gleich(fProt.map(([d]) => d), ['public/sprachen/de.json']), JSON.stringify(fProt));
   pruefe('Die Kennzahlenkarte sagt dafuer „Server-Log"',
     /im Server-Log „Schlüssel aus ENCRYPTION_KEY geladen/.test(
       fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
@@ -15425,16 +15432,94 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const btApp = bildschirmtexteVon(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'));
     pruefe('public/app.js traegt mehr als achthundert lesbare Texte',
       btApp.filter(t => !istAdresse(t.text)).length > 800, `${btApp.length} Texte`);
-    const btServer = ['server.js', 'auth.js', 'mail.js'].flatMap(d =>
-      servertexteVon(fs.readFileSync(path.join(__dirname, d), 'utf8')).map(t => ({ ...t, datei: d })));
-    pruefe('Und die drei Serverdateien mehr als hundert Meldungen',
+    /* DER SERVERTEXT-WAECHTER DREHT SICH UM -- 0.24.0, Bauabschnitt 2. Bis
+       dahin ZAEHLTE er die Meldungen im Quelltext („mehr als hundert"); jetzt
+       haelt er fest, dass dort KEINE mehr steht. Die Zahl steht nicht weniger
+       fest, sie steht nur woanders: gezaehlt werden die server.*- und
+       anmeldung.*-Schluessel in de.json.
+       DIE UNTERGRENZE BLEIBT EINE ZAHL. Ein Waechter, der nur „null Literale"
+       sagt, waere auch dann gruen, wenn jemand die Sprachdatei leerte. */
+    /* WAS HINTER `error:` NOCH STEHEN DARF: ein SCHLUESSEL („server.tagWeg")
+       und ein BEZEICHNER („geloescht", der Status in einem Vergleich). Beides
+       ist kein Text, den ein Mensch liest -- den Text dazu liest der Waechter
+       eine Zeile tiefer in de.json. Alles andere ist ein Literal, das nicht
+       umgezogen ist. */
+    const istSchluessel = (x) => /^[a-zäöü][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/.test(x);
+    const istBezeichner = (x) => /^[a-zäöü][A-Za-z0-9_-]*$/.test(x);
+    const btServerRoh = ['server.js', 'auth.js', 'mail.js'].flatMap(d =>
+      servertexteVon(fs.readFileSync(path.join(__dirname, d), 'utf8')).map(t => ({ ...t, datei: d })))
+      .filter(t => !istSchluessel(t.text) && !istBezeichner(t.text));
+    pruefe('Kein Literal steht mehr hinter „error:" in den drei Serverdateien',
+      btServerRoh.length === 0,
+      btServerRoh.slice(0, 6).map(t => `${t.datei}:${t.zeile} „${t.text}"`).join(' · '));
+    // Und der Filter wirft nicht ALLES weg: ein deutscher Satz bleibt stehen.
+    pruefe('Und der Filter laesst einen deutschen Satz stehen',
+      !istSchluessel('Bitte einen Titel eingeben.') && !istBezeichner('Bitte einen Titel eingeben.')
+        && istSchluessel('server.tagWeg') && istBezeichner('geloescht'),
+      'der Filter trennt Schluessel und Satz nicht');
+    const spDe = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'));
+    const btServer = Object.entries(spDe)
+      .filter(([k]) => k.startsWith('server.') || k.startsWith('anmeldung.'))
+      .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v))
+        .map(text => ({ text, zeile: k, datei: 'public/sprachen/de.json' })));
+    pruefe('Und die Sprachdatei traegt dafuer mehr als hundert Servermeldungen',
       btServer.length > 100, `${btServer.length} Meldungen`);
+    /* NULL DEUTSCHE SAETZE IN `throw new Error` IN auth.js -- der blinde Fleck
+       des Waechters faellt damit von selbst: was auth.js wirft, ist ein
+       Schluessel, und den Text liest der Waechter in de.json.
+       WAS `new Error` BLEIBT, IST EIN PROGRAMMIERFEHLER OHNE BILDSCHIRM, und
+       die Liste dieser Stellen steht NAMENTLICH hier -- eine Zahl allein
+       liesse offen, welche gemeint sind. */
+    const ohneBildschirm = [
+      'Ein Zugangswechsel braucht den angemeldeten Benutzer.',
+      'Eine Sitzung braucht einen Benutzer.',
+      'Eine Sitzungsliste braucht den angemeldeten Benutzer.',
+      'Das Beenden braucht den angemeldeten Benutzer.',
+      'Dieser Vorgang braucht den Handelnden — eine Nummer oder VOM_WIRT.',
+      'Unbekannter Vorgang: ',
+      'Unbekanntes Merkmal: ',
+      'Eine Freigabe braucht die Sitzung.',
+      'Ein Ausweis braucht einen Zugang.'
+    ];
+    const authWuerfe = [...fs.readFileSync(path.join(__dirname, 'auth.js'), 'utf8')
+      .matchAll(/throw new Error\(\s*[`']([^`']*)/g)].map(m => m[1]);
+    const fremdeWuerfe = authWuerfe.filter(w => !ohneBildschirm.some(o => w.startsWith(o)));
+    pruefe('Kein deutscher Satz mehr in `throw new Error` in auth.js',
+      fremdeWuerfe.length === 0, fremdeWuerfe.slice(0, 6).join(' · '));
+    // Und der Gegenstand dazu: die neun Programmierfehler stehen wirklich noch
+    // da. Ohne diese Zeile waere die Zeile darueber auch dann gruen, wenn
+    // jemand ALLE Wuerfe entfernte (Stolperstein 81).
+    pruefe('Und die neun Programmierfehler ohne Bildschirm stehen namentlich da',
+      authWuerfe.length === 10 && ohneBildschirm.every(o => authWuerfe.some(w => w.startsWith(o))),
+      `${authWuerfe.length} Wuerfe: ${authWuerfe.join(' · ').slice(0, 160)}`);
     const vApp = bildschirmVerstoesse(btApp);
     pruefe('Kein Bildschirmtext in app.js traegt ein Wort der Verbotsliste',
       vApp.length === 0, vApp.slice(0, 12).join(' · '));
-    const vServer = bildschirmVerstoesse(btServer);
-    pruefe('Keine Servermeldung ebenso',
+    /* VIER SAETZE, DIE DER WAECHTER ZUM ERSTEN MAL SIEHT -- 0.24.0. Sie standen
+       bis dahin in `throw new Error` in auth.js oder in einem Pruefer, der
+       `{ fehler }` zurueckgibt; beides las er nicht. Mit dem Umzug in die
+       Sprachdatei sieht er sie -- und findet in ihnen Woerter, die das
+       Woerterbuch aus 0.22.0 vom Bildschirm genommen hat.
+       SIE WERDEN IN DIESER RUNDE NICHT GEAENDERT, und das ist keine Nachsicht,
+       sondern die Abnahme: „kein Wort anders" ist der Satz, an dem sich der
+       Augenschein messen laesst (Auftrag 0.24.0). Sie stehen namentlich im
+       Aenderungsprotokoll und gehen ins Sammelblatt.
+       NAMENTLICH UND NICHT ALS ZAHL: wer einen davon spaeter richtigstellt,
+       nimmt ihn hier heraus -- und wer einen neuen dazuschreibt, faellt auf. */
+    const ALTLASTEN = ['anmeldung.keinZugang', 'server.kriterienKonflikt',
+                       'server.sicherungImDatenverzeichnis', 'server.verweigertSelbstZugang'];
+    pruefe('Die vier Altlasten stehen wirklich noch in der Sprachdatei',
+      ALTLASTEN.every(k => spDe[k] !== undefined),
+      ALTLASTEN.filter(k => spDe[k] === undefined).join(' · ') || 'alle vier da');
+    const vServer = bildschirmVerstoesse(btServer.filter(t => !ALTLASTEN.includes(t.zeile)));
+    pruefe('Keine Servermeldung ebenso — ausser den vier benannten Altlasten',
       vServer.length === 0, vServer.slice(0, 12).join(' · '));
+    // Und sie sind wirklich Verstoesse: ohne diese Zeile stuende die Liste
+    // oben auch dann da, wenn sie laengst richtiggestellt waeren.
+    pruefe('Und die vier sind wirklich Verstoesse, keine Vorratsliste',
+      bildschirmVerstoesse(btServer.filter(t => ALTLASTEN.includes(t.zeile))).length >= 4,
+      `${bildschirmVerstoesse(btServer.filter(t => ALTLASTEN.includes(t.zeile))).length} Verstoesse`);
   }
 
   /* ================================================================
@@ -21790,9 +21875,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
      613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
      Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
      behauptet. */
-  /* 666 SEIT 0.24.0: siebzehn neue -- sieben (658 bis 664) fuer die beiden
-     Befunde aus Bauabschnitt 0 und zehn (665 bis 674) fuer den Sprachhelfer
-     und die Ladung aus Bauabschnitt 1. Zwoelf sind mitgegangen (Stolperstein
+  /* 676 SEIT 0.24.0: siebenundzwanzig neue -- sieben (658 bis 664) fuer die
+     beiden Befunde aus Bauabschnitt 0, zehn (665 bis 674) fuer den
+     Sprachhelfer und die Ladung aus Bauabschnitt 1 und zehn (675 bis 684) fuer
+     die Serverseite aus Bauabschnitt 2. Dreissig sind mitgegangen
+     (Stolperstein 201): zwoelf, deren Suchtext eine lokale Variable `t` trug,
+     und achtzehn, deren Satz aus dem Quelltext in die Sprachdatei gezogen ist
+     -- sie suchen ihn jetzt dort.
+     DIE SIEBEN AUS BAUABSCHNITT 0: vier fuer den Umschalter der Tagzeile
+     (0.2) und drei fuer die drei Werte der Zeitleiste (0.1). Zwoelf sind mitgegangen (Stolperstein
      201): ihre Suchtexte trugen eine lokale Variable `t`, und der Name gehoert
      seit dieser Runde dem Sprachhelfer.
      DIE SIEBEN AUS BAUABSCHNITT 0: vier fuer den Umschalter der Tagzeile
@@ -21810,7 +21901,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      DAVOR 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel
      des Pruefstands und eines, das das Milchglas wieder einsetzt; einundvierzig
      vorhandene sind damals mitgegangen. */
-  pruefe('Es sind genau 666 Rueckbauten', gpListe.length === 666, `${gpListe.length}`);
+  pruefe('Es sind genau 676 Rueckbauten', gpListe.length === 676, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -40939,6 +41030,83 @@ async function pruefeOberflaeche() {
     pruefe('Und er sagt, warum',
       /de\.json fehlt/.test(spStart.prot), spStart.prot.split('\n').find(z => /de\.json/.test(z)) || '(kein Wort davon)');
     fs.rmSync(spKopie, { recursive: true, force: true });
+  }
+
+  /* ================= Die Serverseite spricht aus der Datei — 0.24.0 ==========
+     Bauabschnitt 2: server.js, auth.js und mail.js sagen keinen Satz mehr
+     selbst. Diese Gruppe faehrt den Weg AM LAUFENDEN SERVER ab -- eine
+     `Meldung` aus auth.js kommt als `error` mit uebersetztem Satz und
+     richtigem Status heraus, und die vier Briefe stehen mit ihren
+     Platzhaltern in der Sprachdatei.
+     AM LAUFENDEN SERVER UND NICHT AM QUELLTEXT: dass ein Schluessel im Code
+     steht, sagt noch nicht, dass am Ende ein Satz herauskommt. */
+  gruppe('Die Serverseite spricht aus der Datei — 0.24.0');
+  {
+    const sdDe = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'));
+    /* EINE MELDUNG AUS auth.js, AN EINEM ZUGANG: das falsche bisherige
+       Passwort. Sie wird in auth.js geworfen, in server.js gefangen und dort
+       uebersetzt -- drei Dateien, ein Satz. */
+    const sdKonto = await ruf('PUT', '/api/account', { oldPassword: 'falsch-falsch-falsch' });
+    pruefe('Eine Meldung aus auth.js kommt als error mit Satz und Status heraus',
+      sdKonto.status === 400 && sdKonto.inhalt?.error === 'Das bisherige Passwort stimmt nicht.',
+      `Status ${sdKonto.status} · ${JSON.stringify(sdKonto.inhalt)}`);
+    /* UND EINE AN EINER ANMELDUNG: der Token, den es nicht gibt. Sie kommt
+       ueber die Konstante TOKEN_ABSAGE, die seit dieser Runde den SCHLUESSEL
+       traegt und nicht mehr den Satz. */
+    const sdToken = await ruf('POST', '/api/token/pruefen', { token: 'a'.repeat(64) });
+    pruefe('Und eine über eine Absagekonstante ebenso',
+      sdToken.status === 400 &&
+      sdToken.inhalt?.error === 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.',
+      `Status ${sdToken.status} · ${JSON.stringify(sdToken.inhalt)}`);
+    /* DER ZWEITE FAKTOR: seine Absage ist ein Schluessel geworden, und der
+       Satz steht in der Datei. Der Weg selbst faehrt in der Gruppe „Der
+       zweite Faktor" ab -- sie liest den Satz und wuerde rot, sobald er
+       nicht mehr herauskommt. */
+    pruefe('Die Absage des zweiten Faktors ist ein Schlüssel mit Satz in der Datei',
+      require('./auth').ZWEITER_FAKTOR_ABSAGE === 'anmeldung.codeFalsch' &&
+      sdDe['anmeldung.codeFalsch'] === 'Der Code stimmt nicht.',
+      `${require('./auth').ZWEITER_FAKTOR_ABSAGE} · ${sdDe['anmeldung.codeFalsch']}`);
+    /* DIE VIER BRIEFE SAMT BETREFF. Sie sind aus mail.js in die Datei gezogen,
+       die Betreffzeilen aus server.js dazu. Geprueft wird die FORM: ein
+       Betreff und ein Text je Brief, und der Titel der Installation als
+       Platzhalter -- er ist Inhalt und wird nie uebersetzt. */
+    for (const art of ['einladung', 'ruecksetzung', 'bestaetigung', 'test']) {
+      const betreff = sdDe[`mail.${art}.betreff`], text = sdDe[`mail.${art}.text`];
+      pruefe(`Der Brief „${art}" steht mit Betreff und Text in der Datei`,
+        typeof betreff === 'string' && typeof text === 'string' && text.includes('\n'),
+        `${JSON.stringify(betreff)} · ${String(text).length} Zeichen`);
+      pruefe(`Und beide tragen den Titel der Installation als Platzhalter`,
+        betreff.includes('{titel}') && text.includes('{titel}') && text.includes('{username}'),
+        `${betreff} · ${String(text).slice(0, 60)}`);
+    }
+    /* DIE DREI LINKBRIEFE TRAGEN DEN LINK, DER TESTBRIEF NICHT -- er ist der
+       eine, der keinen hat, und das ist der Unterschied, den ein Uebersetzer
+       sehen muss. */
+    pruefe('Die drei Briefe mit Link tragen {link}, die Testmail nicht',
+      ['einladung', 'ruecksetzung', 'bestaetigung'].every(a => sdDe[`mail.${a}.text`].includes('{link}')) &&
+      !sdDe['mail.test.text'].includes('{link}'),
+      ['einladung', 'ruecksetzung', 'bestaetigung', 'test']
+        .map(a => `${a}:${sdDe[`mail.${a}.text`].includes('{link}')}`).join(' '));
+    /* UND DIE BEIDEN GRIFFE SIND WIRKLICH GEREICHT. Ohne sie stuende in jedem
+       Brief und in jeder Absage von requireAuth() die Klammerform -- und die
+       faellt erst am Empfaenger auf. */
+    const sdSrv = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    pruefe('server.js reicht den Übersetzer an mail.js und an auth.js',
+      /mail\.setzeUebersetzer\(t\);/.test(sdSrv) &&
+      /auth\.setzeUebersetzer\(\(req, schluessel, werte\) =>/.test(sdSrv),
+      `mail: ${/mail\.setzeUebersetzer/.test(sdSrv)} · auth: ${/auth\.setzeUebersetzer/.test(sdSrv)}`);
+    /* DIE VORGABEN DER VIERZEHN VOKABELWOERTER KOMMEN AUS DER DATEI -- eine
+       Vorgabe, ein Ort (Stolperstein 47). Bis 0.24.0 standen sie zweimal im
+       Quelltext. */
+    const sdVok = Object.keys(sdDe).filter(k => k.startsWith('vokabular.'));
+    pruefe('Die vierzehn Vokabelvorgaben stehen in der Sprachdatei',
+      sdVok.length === 14 && sdDe['vokabular.sacheEinzahl'] === 'Eintrag',
+      `${sdVok.length} Wörter: ${sdVok.map(k => k.slice(10)).join(' ')}`);
+    // Im Server steht sie nicht mehr; die zweite Ausfertigung in app.js faellt
+    // mit Bauabschnitt 3, und die Zeile dazu steht in dessen Gruppe.
+    pruefe('Und im Server steht keine zweite Liste mehr',
+      !/VOKABULAR_VORGABE/.test(sdSrv), `VOKABULAR_VORGABE in server.js: ${/VOKABULAR_VORGABE/.test(sdSrv)}`);
   }
 
   /* ================= Die Zeitleiste im hellen Schema — 0.24.0 =================
