@@ -29,6 +29,17 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.24.0] - 2026-09-06
+
+*Was ein Betreiber merkt: nichts — und genau das ist der Punkt. Jeder Satz der Oberfläche ist aus dem Programm in eine eigene Datei gezogen (`public/sprachen/de.json`); Kriterion sieht danach Zeichen für Zeichen aus wie vorher. Zwei Dinge sind trotzdem anders: die Zeitleiste ist im hellen Schema wieder zu sehen, und die Tags im Filter stecken hinter einem Umschalter statt hinter „Weitere Filter". Keine Datenbankstufe; nach dem Einspielen im Browser einmal hart neu laden.*
+
+- Added: **Alle Texte der Oberfläche stehen in einer Datei** — `public/sprachen/de.json`, 1190 Einträge. Grundlage für weitere Sprachen; in dieser Runde ändert sich kein Wort
+- Added: Fehlt die Sprachdatei, sagt die Oberfläche das in einem Satz — und der Server startet gar nicht erst
+- Fixed: **Die Zeitleiste der Testtage war im hellen Schema unsichtbar** — Linie, Mittelstrich und Jahreszahl haben jetzt eigene Farben mit ausreichendem Kontrast
+- Changed: **„Weitere Filter" ist ein Umschalter „Tags" mit Zahl geworden**, rechts in der Kategoriezeile — die Filterleiste ist gut zwei Zeilen schmaler, und ohne Tags am Bestand steht er gar nicht erst da
+- Changed: Datum, Uhrzeit, Wochentag, Zahlen mit Komma und die Sortierung folgen jetzt der eingestellten Sprache statt einer festen deutschen Regel — für Deutsch sieht alles aus wie vorher
+- Changed: Einzahl und Mehrzahl wählt die Sprachregel statt eines Vergleichs auf 1
+
 ## [0.23.0] - 2026-09-05
 
 *Was ein Betreiber merkt: es gibt jetzt ein helles Farbschema, und jeder stellt für sich ein, welches er sieht — in „Einstellungen → Persönlich → Darstellung". Die Vorgabe bleibt dunkel: wer nichts einstellt, sieht, was er heute sieht. Keine Datenbankstufe; nach dem Einspielen im Browser einmal hart neu laden.*

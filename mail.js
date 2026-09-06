@@ -1,6 +1,25 @@
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
+/* ================= Der Uebersetzer =================
+   TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 2. Die vier Briefe
+   und die Absagen dieser Datei stehen seither in public/sprachen/<code>.json.
+   ER WIRD GEREICHT UND NICHT GEHOLT: t() lebt in server.js, und server.js
+   requiret diese Datei -- der Weg zurueck waere ein Ring. Beim Start reicht
+   server.js den Helfer herein; bis dahin steht hier die Klammerform, damit ein
+   vergessener Griff auffaellt statt still zu bleiben.
+   DASSELBE t() UND KEINE ZWEITE AUSFERTIGUNG: eine eigene Ladung hier waere
+   eine zweite Wahrheit ueber dieselbe Datei (Stolperstein 47). */
+let t = (sprache, schluessel) => `\u27e6${schluessel}\u27e7`;
+function setzeUebersetzer(fn) { t = fn; }
+
+/* EIN FEHLER MIT SCHLUESSEL, OHNE DIE KLASSE `Meldung` -- 0.24.0. Die Klasse
+   wohnt in auth.js, und auth.js requiret DIESE Datei; der Weg zurueck waere
+   ein Ring. Was der Fehler-Handler in server.js braucht, ist nicht die Klasse,
+   sondern die FORM: ein `schluessel`, seine `werte` und ein `status`. */
+const meldung = (schluessel, werte = {}) =>
+  Object.assign(new Error(schluessel), { schluessel, werte, status: 400 });
+
 /* ================= Der Mailversand =================
 
    DIE EINZIGE VERBINDUNG NACH DRAUSSEN. Die Instanz antwortet sonst nur auf
@@ -48,12 +67,11 @@ const ANBIETER = [
    Anbieter dazukommt. Der dritte gilt fuer alle und steht deshalb ohne
    Schluessel darunter. */
 const HINWEISE = {
-  gmail: 'Gmail verlangt Zwei-Faktor und ein App-Passwort — das Kontopasswort wird abgewiesen.',
-  gmx: 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.',
-  web: 'Web.de verlangt, den Versand über fremde Programme im Konto erst freizuschalten.'
+  gmail: 'mail.hinweisGmail',
+  gmx: 'mail.hinweisGmx',
+  web: 'mail.hinweisWeb'
 };
-const HINWEIS_IMMER =
-  'Die Absenderadresse muss zum Konto gehören — über GMX lässt sich nicht als fremde Adresse senden.';
+const HINWEIS_IMMER = 'mail.hinweisImmer';
 
 /* ---- Die Frist ----
    SMTP KANN MINUTENLANG NICHTS SAGEN, und nodemailers Vorgaben sind fuer
@@ -176,7 +194,7 @@ function pruefeEingabe(ein, bisher) {
   const anbieter = String(e.anbieter || '').trim();
   if (!anbieter) return { ...LEER };
   const v = anbieterZu(anbieter);
-  if (!v) throw new Error('Diesen Anbieter gibt es nicht.');
+  if (!v) throw meldung('mail.anbieterFehlt');
 
   const benutzer = String(e.benutzer ?? '').trim();
   const absender = String(e.absender ?? '').trim();
@@ -186,18 +204,18 @@ function pruefeEingabe(ein, bisher) {
   const passwort = typeof e.passwort === 'string' && e.passwort !== ''
     ? e.passwort : String(alt.passwort || '');
 
-  if (!benutzer) throw new Error('Der Benutzername beim Anbieter fehlt.');
-  if (!passwort) throw new Error('Das Passwort beim Anbieter fehlt.');
-  if (!istAdresse(absender)) throw new Error('Die Absenderadresse ist keine gültige E-Mail-Adresse.');
+  if (!benutzer) throw meldung('mail.benutzerFehlt');
+  if (!passwort) throw meldung('mail.passwortFehlt');
+  if (!istAdresse(absender)) throw meldung('mail.absenderUngueltig');
 
   const raus = { anbieter, benutzer, passwort, absender, server: '', port: 0, sicher: false };
   if (v.schluessel !== 'eigen') return raus;
 
   const server = String(e.server || '').trim();
   const port = Number(e.port);
-  if (!server) throw new Error('Beim eigenen Server fehlt der Servername.');
+  if (!server) throw meldung('mail.servernameFehlt');
   if (!Number.isInteger(port) || port < 1 || port > 65535)
-    throw new Error('Der Port muss eine Zahl zwischen 1 und 65535 sein.');
+    throw meldung('mail.portSpanne', { min: 1, max: 65535 });
   return { ...raus, server, port, sicher: e.sicher === true };
 }
 
@@ -240,10 +258,13 @@ function baueVersender(z) {
   });
 }
 
-async function versende(roh, an, betreff, text) {
+async function versende(sprache, roh, an, betreff, text) {
   const z = loeseAuf(roh);
-  if (!eingerichtet(z)) return { ok: false, grund: 'Es ist kein Mailzugang eingerichtet.' };
-  if (!istAdresse(an)) return { ok: false, grund: 'Der Empfänger hat keine gültige Adresse.' };
+  /* DER GRUND IST SEIT 0.24.0 EIN SCHLUESSEL, WO ER AUS DIESER DATEI KOMMT --
+     und ein SATZ, wo ihn der Anbieter geschrieben hat (kurzerGrund). Beides
+     steht am Bildschirm; nur das erste laesst sich uebersetzen. */
+  if (!eingerichtet(z)) return { ok: false, grund: t(sprache, 'mail.zugangFehlt') };
+  if (!istAdresse(an)) return { ok: false, grund: t(sprache, 'mail.empfaengerUngueltig') };
   let versender = null;
   try {
     versender = baueVersender(z);
@@ -252,8 +273,7 @@ async function versende(roh, an, betreff, text) {
        vergessen, die als naechste dazukommt. */
     let uhr;
     const frist = new Promise((_, fehler) => {
-      uhr = setTimeout(() => fehler(new Error('Der Mailserver hat nicht rechtzeitig geantwortet.')),
-        VERSAND_MS);
+      uhr = setTimeout(() => fehler(new Error(t(sprache, 'mail.keineAntwort'))), VERSAND_MS);
     });
     try {
       await Promise.race([
@@ -268,7 +288,7 @@ async function versende(roh, an, betreff, text) {
        Anmeldedaten in der Absage zurueck ("535 5.7.8 Username and Password
        not accepted for <benutzer>"). Der Anfang traegt den Fehlercode, und
        der ist das, was hilft. */
-    return { ok: false, grund: kurzerGrund(e) };
+    return { ok: false, grund: kurzerGrund(sprache, e) };
   } finally {
     // Auch im Fehlerfall: eine haengende Verbindung nach draussen ist genau
     // das, was diese Instanz nicht offen halten soll (Stolperstein 134 in
@@ -277,105 +297,43 @@ async function versende(roh, an, betreff, text) {
   }
 }
 
-function kurzerGrund(e) {
-  const roh = String((e && e.message) || 'Unbekannter Fehler').replace(/\s+/g, ' ').trim();
+function kurzerGrund(sprache, e) {
+  const roh = String((e && e.message) || t(sprache, 'mail.unbekannterFehler')).replace(/\s+/g, ' ').trim();
   return roh.length > 120 ? roh.slice(0, 117) + '…' : roh;
 }
 
-/* ---- Die drei Mailtexte ----
-   SIE STEHEN HIER UND NICHT IN server.js: der Text gehoert zur Sache, und
-   zwei Ausfertigungen desselben Textes liefen auseinander.
+/* ---- Die vier Briefe ----
+   SIE STEHEN SEIT 0.24.0 IN DER SPRACHDATEI und nicht mehr hier: ein Brief ist
+   Text, und Text ist Daten (Konzept, Abschnitt 0, Satz 1). Was hier bleibt,
+   ist der Griff -- welcher Brief zu welchem Anlass gehoert und welche Werte er
+   braucht.
+   EIN SCHLUESSEL JE BRIEF, NICHT EINER JE ZEILE. Der Uebersetzer sieht den
+   Brief am Stueck, so wie ihn der Empfaenger sieht; die Umbrueche stehen als
+   \n in der Datei. `mail.einladung.z1` bis `z14` waeren vierzehn Schluessel,
+   von denen keiner fuer sich einen Sinn ergibt.
+   DER BETREFF ZIEHT AUS server.js MIT HIERHER (Konzept 4.6): der Text gehoert
+   zur Sache, und der Betreff ist Teil des Briefes. Der Titel der Installation
+   bleibt ein Platzhalter -- er ist Inhalt und wird nicht uebersetzt.
    DER LINK STEHT IM FRAGMENT (#/einladung/…) UND GEHT DAMIT NIE AN DEN SERVER
    -- in der Mail genauso wie beim Kopieren. Das traegt hier zusaetzlich: ein
    Vorschaudienst, der Links im Postfach vorab abruft, holt nur die Seite und
    nie das Fragment. Die Frist ab dem ersten Oeffnen kann er deshalb nicht
-   ausloesen. */
-function textEinladung({ titel, username, link, tage, minuten }) {
-  return [
-    `Hallo ${username},`,
-    '',
-    `für dich wurde ein Zugang zu „${titel}“ angelegt.`,
-    '',
-    'Über diesen Link setzt du dein Passwort selbst:',
-    link,
-    '',
-    `Der Link gilt ${tage} Tage und genau einmal.`,
-    `Ab dem ersten Öffnen bleiben dir ${minuten} Minuten — neu laden darfst du darin beliebig oft.`,
-    'Danach brauchst du einen neuen Link vom Admin.',
-    '',
-    'Wer diesen Link hat, kommt herein — gib ihn an niemanden weiter.',
-    '',
-    'Diese Nachricht wurde automatisch verschickt. Antworten darauf liest niemand.'
-  ].join('\n');
-}
-
-function textRuecksetzung({ titel, username, link, tage, minuten }) {
-  return [
-    `Hallo ${username},`,
-    '',
-    `für deinen Zugang zu „${titel}“ wurde ein Link zum Zurücksetzen des Passworts erzeugt.`,
-    '',
-    link,
-    '',
-    `Der Link gilt ${tage} Tage und genau einmal.`,
-    `Ab dem ersten Öffnen bleiben dir ${minuten} Minuten — neu laden darfst du darin beliebig oft.`,
-    'Danach brauchst du einen neuen Link vom Admin.',
-    '',
-    'Hast du das nicht angefordert, sag dem Admin Bescheid — dein bisheriges',
-    'Passwort gilt unverändert weiter, solange der Link nicht benutzt wird.',
-    '',
-    'Diese Nachricht wurde automatisch verschickt. Antworten darauf liest niemand.'
-  ].join('\n');
-}
-
-/* DER DRITTE ANLASS -- die benannte Ausnahme von "es gibt genau zwei", und
-   keine Benachrichtigung.
-
-   ER IST DER EINZIGE TEXT, DER AN JEMANDEN GEHEN KANN, DER NICHTS ANGEFORDERT
-   HAT: die Adresse hat ein Fremder eingetippt, und ob sie ihm gehoert, ist ja
-   gerade die Frage. Deshalb steht der Satz "dann ist nichts zu tun" WEIT OBEN
-   und nicht am Ende.
-
-   DER LINK HAT KEINE PASSWORTKRAFT, und der Text sagt es ausdruecklich -- samt
-   dem, was danach kommt: ein Mensch entscheidet. */
-function textBestaetigung({ titel, username, link, stunden }) {
-  return [
-    `Hallo ${username},`,
-    '',
-    `für „${titel}“ wurde ein Zugang unter dieser Adresse angefragt.`,
-    '',
-    'Warst du das nicht, ist nichts zu tun: ohne den Link unten geschieht gar',
-    'nichts, und die Anfrage verfällt von selbst.',
-    '',
-    'Warst du es, bestätige damit, dass die Adresse dir gehört:',
-    link,
-    '',
-    `Der Link gilt ${stunden} Stunden.`,
-    'Er öffnet keinen Zugang und setzt kein Passwort — er sagt nur „ja, das bin ich“.',
-    'Über die Anfrage entscheidet danach ein Admin. Wird sie freigeschaltet,',
-    'bekommst du eine zweite Mail mit dem Link, über den du dein Passwort setzt.',
-    '',
-    'Diese Nachricht wurde automatisch verschickt. Antworten darauf liest niemand.'
-  ].join('\n');
-}
-
-function textTest({ titel, username }) {
-  return [
-    `Hallo ${username},`,
-    '',
-    `das ist die Testmail aus „${titel}“.`,
-    '',
-    'Kommt sie an, steht der Mailversand: Einladungen und Rücksetzlinks gehen',
-    'ab jetzt von selbst hinaus. Der Link steht im Verwaltungsbereich weiterhin',
-    'zusätzlich zum Kopieren bereit — daran ändert sich nichts.',
-    '',
-    'Diese Nachricht wurde automatisch verschickt. Antworten darauf liest niemand.'
-  ].join('\n');
-}
+   ausloesen.
+   JEDER BRIEF LIEFERT BETREFF UND TEXT ZUSAMMEN: zwei Aufrufe fuer einen Brief
+   liessen sich an der naechsten Stelle halb vergessen. */
+const brief = (sprache, art, werte) => ({
+  betreff: t(sprache, `mail.${art}.betreff`, werte),
+  text: t(sprache, `mail.${art}.text`, werte)
+});
+const briefEinladung = (sprache, werte) => brief(sprache, 'einladung', werte);
+const briefRuecksetzung = (sprache, werte) => brief(sprache, 'ruecksetzung', werte);
+const briefBestaetigung = (sprache, werte) => brief(sprache, 'bestaetigung', werte);
+const briefTest = (sprache, werte) => brief(sprache, 'test', werte);
 
 module.exports = {
   ANBIETER, HINWEISE, HINWEIS_IMMER, SCHLUESSEL,
   VERSAND_MS, VERBINDUNG_MS, GRUSS_MS,
   istAdresse, anbieterZu, fuerDieAuswahl, loeseAuf, zustand, eingerichtet, pruefeEingabe, marke,
-  versende, textEinladung, textRuecksetzung, textBestaetigung, textTest
+  versende, setzeUebersetzer,
+  briefEinladung, briefRuecksetzung, briefBestaetigung, briefTest
 };

@@ -44,24 +44,36 @@ die Abnahme hängt.*
 
 ## Zuerst: acht Fragen, die vor der ersten Zeile geklärt werden
 
-**Kein Bauabschnitt beginnt, bevor die Spalte „Antwort" gefüllt ist.** *F1
-ist beantwortet; F2 bis F8 stehen offen.* Die
+**Kein Bauabschnitt beginnt, bevor die Spalte „Antwort" gefüllt ist.** *Alle
+acht sind beantwortet — F1 am 5. September 2026 vorab, F2 bis F8 im Gespräch
+beim Start der Runde, am selben Tag.* Die
 Fragen werden **beim Start der Runde im Gespräch** gestellt, beantwortet und
 hier eingetragen — nicht unterwegs (Abschnitt 12 des Projektstands: *vor dem
 Bauen besprechen, Entscheidungen ausdrücklich bestätigen lassen*). Die
 Spalte „Vorschlag" ist der Vorschlag dieses Papiers; **entschieden ist
 nichts, solange die Antwort fehlt.**
 
+**Sieben von acht sind so entschieden worden, wie dieses Papier sie
+vorgeschlagen hat.** *Die eine, die anders ausging, ist F3 — und sie ging
+nicht gegen den Vorschlag, sondern über ihn hinaus: der Betreiber hat für
+Stufe 2 die Bauform der Karte gleich mitentschieden (eine Karte, ein
+Umschalter, und der zuerst angelegte Wortsatz als Rückfall). Für diese Runde
+bleibt der Speicher flach, und damit ändert sich an dem, was hier gebaut
+wird, nichts.* **Zu F4 sind zwei Schärfungen dazugekommen**, die im Papier
+noch nicht standen: Tags sind eine Wolke für alle, und die Kriterien bekommen
+in Stufe 2 je Sprache eine Fassung — in der Datenbank. *Beides ist für 0.24.0
+folgenlos und steht hier, damit es nicht wieder gefragt wird.*
+
 | # | Frage | Vorschlag | Antwort |
 |---|---|---|---|
 | **F1** | **Wie heißt die Sprachdatei, und in welcher Form?** Der Betreiber hat `de.lang` genannt; das Konzept schlägt `de.json` vor (E1) | **`de.json`** — Node und Browser lesen JSON ohne eine Zeile Code; Mehrzahlformen sind Objekte; jeder Editor kennt die Form. *`de.lang` ginge auch:* eine Zeile `schluessel=Text` je Text, ein eigener Leser von rund dreißig Zeilen, die Mehrzahl als zwei Schlüssel (`x.eins`, `x.andere`), und kein Editor hebt sie hervor. **Die Kennung `de` bleibt in beiden Fällen** (ISO 639-1, nicht `deu` oder `ger`) | **`de.json`** — entschieden am 5. September 2026 |
-| **F2** | **Wo liegt sie?** | **`public/sprachen/`** — beide Seiten lesen dieselbe Datei, der Fingerprint deckt sie von selbst ab, keine neue Route (Konzept 3.3) | *offen* |
-| **F3** | **Was wird aus dem Vokabular — den vierzehn Wörtern, die der Admin umbenennt?** Der Betreiber: *es muss in der Sprache bleiben, die der Admin eingestellt hat, auch wenn ein Benutzer die Oberfläche umschaltet* | **Das Vokabular folgt der Installation, nicht dem Benutzer.** Es gibt **einen** Satz von vierzehn Wörtern je Installation; seine Vorgaben kommen aus der Sprachdatei der **Installationssprache** (in dieser Runde `de.json`), die Überschreibungen des Admins bleiben, wie sie sind. *In einer englischen Oberfläche (Stufe 2) steht dann weiter das Wort, das der Admin gewählt hat — wie der Titel der Installation: es sind die Namen der Sache, keine Texte der Oberfläche.* Das Konzept hatte in E9 ein Vokabular je Sprache vorgeschlagen; **der Betreiber hat es in Frage gestellt, und dieser Auftrag folgt ihm** | *offen* |
-| **F4** | **Tags, Kriterien, Kategorien, der Titel, die Einträge, Kommentare — bleiben so?** | **Ja, unverändert.** Inhalt, eingetragen von Menschen, in ihrer Sprache; kein Umzug, keine Übersetzung, in keiner Stufe (E11). *Bestätigen, damit es nie wieder gefragt wird* | *offen* |
-| **F5** | **Was zählt als Text der Oberfläche?** | **Alles, was ein Mensch am Bildschirm oder in einer Mail liest:** `app.js`, die `error`-Meldungen des Servers, was `auth.js` als Fehler wirft, die vier Briefe samt Betreff. **Nicht:** Konsole, `zugang.js`, `schluessel.js`, Kommentare, Papiere, Prüfstand — die bleiben Deutsch (Konzept, Abschnitt 0) | *offen* |
-| **F6** | **Wie heißen die Schlüssel in der Datei?** | **Deutsch, nach der Sache, mit Namensraum** — `dialog.fotoLoeschen.frage`, nicht der Satz selbst und nicht `t17` (E2) | *offen* |
-| **F7** | **Die Zeitleiste im hellen Schema — welche Werte?** (Bauabschnitt 0.1) | **`#b9c2cb` · `#9aa5b0` · `--muted`** — 1,54 · 2,13 · 4,62 gegen den Grund; das dunkle Schema bleibt. *Am Wirt mit echten Punkten ansehen* | *offen* |
-| **F8** | **Der Umschalter der Tagzeile — wo, und wie heißt er?** (Bauabschnitt 0.2) | **Rechts in der Kategoriezeile, „Tags" mit Zahl** — der Vorschlag des Betreibers, geschärft nach S1. *Dazu am Wirt nachstellen, warum die Tags nach dem Klick nicht erschienen* | *offen* |
+| **F2** | **Wo liegt sie?** | **`public/sprachen/`** — beide Seiten lesen dieselbe Datei, der Fingerprint deckt sie von selbst ab, keine neue Route (Konzept 3.3) | **`public/sprachen/`** — entschieden am 5. September 2026 |
+| **F3** | **Was wird aus dem Vokabular — den vierzehn Wörtern, die der Admin umbenennt?** Der Betreiber: *es muss in der Sprache bleiben, die der Admin eingestellt hat, auch wenn ein Benutzer die Oberfläche umschaltet* | **Das Vokabular folgt der Installation, nicht dem Benutzer.** Es gibt **einen** Satz von vierzehn Wörtern je Installation; seine Vorgaben kommen aus der Sprachdatei der **Installationssprache** (in dieser Runde `de.json`), die Überschreibungen des Admins bleiben, wie sie sind. *In einer englischen Oberfläche (Stufe 2) steht dann weiter das Wort, das der Admin gewählt hat — wie der Titel der Installation: es sind die Namen der Sache, keine Texte der Oberfläche.* Das Konzept hatte in E9 ein Vokabular je Sprache vorgeschlagen; **der Betreiber hat es in Frage gestellt, und dieser Auftrag folgt ihm** | **Es folgt der Installation — in dieser Runde.** Die **Vorgaben** kommen aus `de.json` unter `vokabular.*`; der gespeicherte Schlüssel `vokabular` **bleibt flach**, ein Satz von vierzehn Wörtern, wie heute. *Der Betreiber hat dazu die Bauform für Stufe 2 entschieden: **eine** Karte, die je nach eingestellter Sprache den passenden Wortsatz zeigt — kein zweiter Ort —, und wo für eine Sprache noch nichts eingetragen ist, **steht der zuerst angelegte Satz da statt nichts**. Gebaut wird das in Stufe 2; ein flacher Altwert gilt dort als `de`. In dieser Runde ändert sich am Speicher nichts* — entschieden am 5. September 2026 |
+| **F4** | **Tags, Kriterien, Kategorien, der Titel, die Einträge, Kommentare — bleiben so?** | **Ja, unverändert.** Inhalt, eingetragen von Menschen, in ihrer Sprache; kein Umzug, keine Übersetzung, in keiner Stufe (E11). *Bestätigen, damit es nie wieder gefragt wird* | **Ja — alles bleibt Inhalt in der Datenbank, und in dieser Runde zieht nichts davon um.** *Zwei Schärfungen des Betreibers: **Tags sind eine Wolke für alle** — sie gehören keiner Sprache, sondern allen Benutzern zugleich; und **die Kriterien bekommen in Stufe 2 je Sprache eine Fassung — in der Datenbank, nicht in der Sprachdatei.** Kategorien, Titel, Einträge und Kommentare nie.* Für 0.24.0 heißt beides dasselbe: kein Umzug, keine Übersetzung, kein Bestandslauf — entschieden am 5. September 2026  **NACHGESCHÄRFT AM 6. SEPTEMBER 2026, nach dem Bau von Stufe 1:** *Vokabular, Kriterien, Kategorien und Tags gehören in KEINEM Fall in die Sprachdatei — sie stehen in der Datenbank. **Tags sind für alle Sprachen dieselben**; **Vokabular, Kriterien und Kategorien bekommen je angelegter Sprache eine eigene Zuordnung**, und solange nur eine angelegt ist, gilt die zuerst angelegte. Der Eigentümer schaltet im Adminbereich kurz um und trägt die andere Fassung ein; ab dann gilt für diese Sprache die dafür angelegte. Der Nachtrag steht vollständig im Konzept bei E9/E11.* |
+| **F5** | **Was zählt als Text der Oberfläche?** | **Alles, was ein Mensch am Bildschirm oder in einer Mail liest:** `app.js`, die `error`-Meldungen des Servers, was `auth.js` als Fehler wirft, die vier Briefe samt Betreff. **Nicht:** Konsole, `zugang.js`, `schluessel.js`, Kommentare, Papiere, Prüfstand — die bleiben Deutsch (Konzept, Abschnitt 0) | **Wie vorgeschlagen: was ein Mensch am Bildschirm oder in einer Mail liest** — entschieden am 5. September 2026 |
+| **F6** | **Wie heißen die Schlüssel in der Datei?** | **Deutsch, nach der Sache, mit Namensraum** — `dialog.fotoLoeschen.frage`, nicht der Satz selbst und nicht `t17` (E2) | **Deutsch, nach der Sache, mit Namensraum** — entschieden am 5. September 2026 |
+| **F7** | **Die Zeitleiste im hellen Schema — welche Werte?** (Bauabschnitt 0.1) | **`#b9c2cb` · `#9aa5b0` · `--muted`** — 1,54 · 2,13 · 4,62 gegen den Grund; das dunkle Schema bleibt. *Am Wirt mit echten Punkten ansehen* | **`#b9c2cb` · `#9aa5b0` · `--muted`** — entschieden am 5. September 2026; **am Wirt zu bestätigen (B1)** |
+| **F8** | **Der Umschalter der Tagzeile — wo, und wie heißt er?** (Bauabschnitt 0.2) | **Rechts in der Kategoriezeile, „Tags" mit Zahl** — der Vorschlag des Betreibers, geschärft nach S1. *Dazu am Wirt nachstellen, warum die Tags nach dem Klick nicht erschienen* | **Rechts in der Kategoriezeile, „Tags" mit Zahl** — entschieden am 5. September 2026; **am gebauten Stand am Wirt zu bestätigen (B2)** |
 
 **Was nicht gefragt wird, weil es entschieden ist:** die Nummer (0.24.0, der
 Kasten oben), die Reihenfolge der Bauabschnitte, und die technischen

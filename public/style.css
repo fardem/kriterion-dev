@@ -101,6 +101,22 @@
      TROTZDEM EINE EIGENE VARIABLE: es ist ein Zeichen auf einer Flaeche und
      kein Rand. Auf hellem Grund gehen die beiden auseinander. */
   --platzhalter: #333b44;
+  /* DIE DREI WERTE DER ZEITLEISTE -- 0.24.0, Bauabschnitt 0.1.
+     SIE STEHEN HIER, WEIL DIE ZEITLEISTE KEINE KARTE HAT. Seit 0.22.0 liegt
+     sie ohne Kasten auf dem Grund der Seite; das Farbkonzept hat seine
+     Randfarben aber gegen die KARTE gemessen und nie gegen --bg. Im dunklen
+     Schema trug das trotzdem, im hellen nicht: --line-2 misst dort 1,02 : 1
+     gegen den Grund und ist damit unsichtbar (Befund vom 5. September 2026,
+     am Wirt, mit Bild).
+     DREI EIGENE VARIABLEN UND KEINE NEUE ALLGEMEINE RANDFARBE: was hier
+     gebraucht wird, ist ein Raster auf dem Grund, und das ist eine andere
+     Rolle als ein Rand auf einer Karte. Wer stattdessen --line-2 anhoebe,
+     zoege jeden Kartenrand der Anwendung mit.
+     IM DUNKLEN SCHEMA SIND ES GENAU DIE HEUTIGEN WERTE -- kein Bildpunkt
+     aendert sich dort. */
+  --zl-linie: var(--line-2);
+  --zl-mitte: var(--line);
+  --zl-jahr: var(--faint);
   /* Schrift auf einer gefuellten Flaeche. SIE FOLGT DER FLAECHE UND NICHT DEM
      SCHEMA: Orange bleibt Orange, also bleibt die Schrift darauf dunkel.
      ZUSAMMENGELEGT (2 von 3): ::selection trug #12151a und nimmt jetzt
@@ -322,6 +338,23 @@
   --line-hover: #b9c2cb;
   --line-hover-2: #aab4bf;
   --platzhalter: #78828d;
+  /* DIE DREI WERTE DER ZEITLEISTE IM HELLEN SCHEMA -- 0.24.0, Bauabschnitt
+     0.1. Gemessen gegen --bg (#eaedf1) und nicht gegen die Karte, denn die
+     Zeitleiste liegt auf dem Grund:
+       --zl-linie  #b9c2cb  1,54 : 1   (die Latte fuer eine Hilfslinie: 1,5)
+       --zl-mitte  #9aa5b0  2,13 : 1   (die Latte fuer die mittlere: 2,0)
+       --zl-jahr   --muted  4,62 : 1   (die Latte fuer tragenden Text: 4,5)
+     Die Hilfslinie nimmt --line-hover und keinen neuen Wert: die Palette
+     kennt diesen Grauton schon, und ein Raster ist so laut wie ein Rand
+     unter dem Zeiger. Die mittlere Linie braucht einen eigenen -- zwischen
+     --line-hover (1,54) und --line-hover-2 (1,88) liegt kein Wert, der 2,0
+     erreicht, und dafuer einen der beiden anzuheben zoege jeden Rand mit.
+     DIE JAHRESZAHL WIRD TRAGENDER TEXT. Sie stand auf --faint, und das
+     Farbkonzept sagt in 4.1 ausdruecklich, dass --faint nie tragender Text
+     ist -- bei 0,63 rem Festbreite ist sie aber genau das. */
+  --zl-linie: var(--line-hover);
+  --zl-mitte: #9aa5b0;
+  --zl-jahr: var(--muted);
   /* Der Grund hinter einem Foto. Heute #0a0c0e -- gegen eine weisse Karte
      waeren das 19,59 : 1, der lauteste Fleck der ganzen Seite. Dieselbe Rolle
      wie bisher, nur in die andere Richtung: eine Flaeche, die zuruecktritt. */
@@ -736,17 +769,21 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    dahinter steht: deshalb ohne die Beschriftungsspalte und mit einem Abstand
    davor, der sie vom Vorhergehenden loest. */
 .frow > .eyebrow-mit { min-width: 0; margin-left: 22px; }
-/* DER AUFKLAPPER „Weitere Filter" -- 0.22.0 (E8). Ein <details> um die Tagzeile:
-   der Browser traegt Zustand und Tastatur. Die Zusammenfassung sieht aus wie
-   eine Beschriftung der Leiste, mit einem Winkel davor, der sich beim Oeffnen
-   dreht. Offen steht er beim Aufbau, sobald ein Tagfilter greift -- das
-   entscheidet app.js. */
-.weitere-filter > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; font-size: .8rem; color: var(--muted); user-select: none; transition: color .15s var(--ease); }
-.weitere-filter > summary::-webkit-details-marker { display: none; }
-.weitere-filter > summary::before { content: ''; width: .45em; height: .45em; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s var(--ease); }
-.weitere-filter[open] > summary::before { transform: rotate(45deg); }
-.weitere-filter > summary:hover { color: var(--text-2); }
-.weitere-filter[open] > summary { margin-bottom: 10px; }
+/* DER UMSCHALTER DER TAGZEILE -- 0.22.0 (E8), umgebaut in 0.24.0
+   (Bauabschnitt 0.2). Bis dahin war er die <summary> eines <details> und
+   belegte damit eine EIGENE Zeile in der Leiste -- also genau den Platz, den
+   er sparen sollte. Jetzt sitzt er am rechten Ende der Kategoriezeile, in der
+   Bauform von „Filter zurücksetzen": ein .link-btn in einem
+   .frow-rechts-weit, das die selbsttaetige Aussenkante traegt.
+   DER WINKEL IST DERSELBE WIE VORHER und dreht sich beim Oeffnen -- nur haengt
+   er jetzt an `aria-expanded` und nicht mehr an `[open]`.
+   DER UNTERSTRICH GEHOERT UNTER DIE WOERTER: .link-btn unterstreicht, und ein
+   Strich unter dem Winkel saehe aus wie ein zweiter Winkel. Deshalb traegt ihn
+   das Wort und nicht der Knopf. */
+.tag-schalter { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
+.tag-schalter::before { content: ''; width: .45em; height: .45em; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s var(--ease); }
+.tag-schalter[aria-expanded="true"]::before { transform: rotate(45deg); }
+.tag-schalter > span { text-decoration: underline; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .pill {
   padding: 5px 12px; border-radius: 999px;
@@ -2397,8 +2434,8 @@ body.lb-open { overflow: hidden; }
   position: relative; margin: 0 0 22px; padding: 14px 0 4px;
 }
 .zl-achse { position: absolute; left: 0; right: 0; top: 14px; height: 60px; }
-.zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }
-.zl-linie.mitte { background: var(--line); }
+.zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--zl-linie); }
+.zl-linie.mitte { background: var(--zl-mitte); }
 .zl-feld { position: relative; height: 60px; }
 .zl-punkt {
   position: absolute; width: 9px; height: 9px; margin: 0 0 -4px -4px;
@@ -2411,10 +2448,10 @@ body.lb-open { overflow: hidden; }
    behaelt seine 9 Pixel; sonst saesse er versetzt zu den eigenen. */
 .zl-punkt.fremd { background: transparent; border: 1.5px solid var(--gold); }
 .zl-punkt:hover { opacity: 1; transform: scale(1.5); }
-.zl-jahre { position: relative; height: 18px; margin-top: 4px; border-top: 1px solid var(--line-2); }
+.zl-jahre { position: relative; height: 18px; margin-top: 4px; border-top: 1px solid var(--zl-linie); }
 .zl-jahr {
   position: absolute; transform: translateX(-50%); top: 3px;
-  font-family: var(--mono); font-size: .63rem; color: var(--faint); white-space: nowrap;
+  font-family: var(--mono); font-size: .63rem; color: var(--zl-jahr); white-space: nowrap;
 }
 .zl-hinweis {
   position: absolute; bottom: 100%; transform: translateX(-50%);

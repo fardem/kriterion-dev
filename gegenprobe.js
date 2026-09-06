@@ -61,15 +61,15 @@ const RUECKBAUTEN = [
   {
     nr: '01', name: 'Der Token entsteht erst NACH dem Versand',
     datei: 'server.js',
-    suche: "    const v = await versendeTokenLink(ziel, t);",
-    ersatz: "    const v = await versendeTokenLink(ziel, t); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
+    suche: "    const v = await versendeTokenLink(ziel, token);",
+    ersatz: "    const v = await versendeTokenLink(ziel, token); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
     erwartet: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   {
     nr: '02', name: 'Der Link faellt aus der Antwort, wenn der Versand traegt',
     datei: 'server.js',
-    suche: "               ohnePasswort: t.ohnePasswort,\n               ...linkAngabe(t.klartext), ...v });",
-    ersatz: "               ohnePasswort: t.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkAngabe(t.klartext)), ...v });",
+    suche: "               ohnePasswort: token.ohnePasswort,\n               ...linkAngabe(token.klartext), ...v });",
+    ersatz: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkAngabe(token.klartext)), ...v });",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
@@ -96,8 +96,8 @@ const RUECKBAUTEN = [
        aber die Zusage wirft danach UNBEHANDELT -- der Server stirbt, und der
        Lauf reisst ab, statt eine Pruefung rot zu faerben (Stolperstein 138).
        So bleibt alles stehen, und nur die Wirkung faellt weg. */
-    suche: "      uhr = setTimeout(() => fehler(new Error('Der Mailserver hat nicht rechtzeitig geantwortet.')),",
-    ersatz: "      uhr = setTimeout(() => {},",
+    suche: "      uhr = setTimeout(() => fehler(new Error(t(sprache, 'mail.keineAntwort'))), VERSAND_MS);",
+    ersatz: "      uhr = setTimeout(() => {}, VERSAND_MS);",
     erwartet: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
   {
@@ -122,8 +122,8 @@ const RUECKBAUTEN = [
   {
     nr: '08', name: 'Die Adresse wird aus dem Host-Kopf abgeleitet',
     datei: 'server.js',
-    suche: "    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${t.klartext}`,",
-    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${t.klartext}`,",
+    suche: "    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${token.klartext}`,",
+    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${token.klartext}`,",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   /* ---- Der Versand: der Empfaenger am Zugang ---- */
@@ -158,9 +158,9 @@ const RUECKBAUTEN = [
   },
   {
     nr: '13', name: 'Die Absage ohne eigene Adresse nennt den Weg dorthin nicht',
-    datei: 'server.js',
-    suche: "      'Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.' });",
-    ersatz: "      'ein.' });",
+    datei: 'public/sprachen/de.json',
+    suche: "\"server.eigeneMailFehlt\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt. Trag sie unter Einstellungen › Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.\",",
+    ersatz: "\"server.eigeneMailFehlt\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt.\",",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
@@ -206,8 +206,8 @@ const RUECKBAUTEN = [
   {
     nr: '18', name: 'Das Mailpasswort steht in der Antwort',
     datei: 'server.js',
-    suche: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte()));",
-    ersatz: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json({ ...mailKarte(), passwort: mail.loeseAuf(getSetting(mail.SCHLUESSEL, null)).passwort }));",
+    suche: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte(req)));",
+    ersatz: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json({ ...mailKarte(req), passwort: mail.loeseAuf(getSetting(mail.SCHLUESSEL, null)).passwort }));",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
@@ -228,7 +228,7 @@ const RUECKBAUTEN = [
   {
     nr: '21', name: 'Ein unbekannter Anbieter wird durchgelassen',
     datei: 'mail.js',
-    suche: "  if (!v) throw new Error('Diesen Anbieter gibt es nicht.');",
+    suche: "  if (!v) throw meldung('mail.anbieterFehlt');",
     ersatz: "  const vv = v;",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
@@ -236,7 +236,7 @@ const RUECKBAUTEN = [
   {
     nr: '22', name: 'Das erste Oeffnen startet die Frist nicht',
     datei: 'server.js',
-    suche: "  const minuten = auth.beginneTokenFrist(t.hash);",
+    suche: "  const minuten = auth.beginneTokenFrist(token.hash);",
     ersatz: "  const minuten = auth.TOKEN_FRIST_MINUTEN;",
     erwartet: 'Der Token: die Frist ab dem ersten Oeffnen'
   },
@@ -249,9 +249,9 @@ const RUECKBAUTEN = [
   },
   {
     nr: '24', name: 'Die Absage nach der Frist bekommt einen eigenen Wortlaut',
-    datei: 'server.js',
-    suche: "const TOKEN_ABSAGE = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.';",
-    ersatz: "const TOKEN_ABSAGE = 'Die Frist von 15 Minuten ist abgelaufen.';",
+    datei: 'public/sprachen/de.json',
+    suche: "\"server.linkAbgelaufen\": \"Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.\",",
+    ersatz: "\"server.linkAbgelaufen\": \"Die Frist von 15 Minuten ist abgelaufen.\",",
     erwartet: 'Der Token: die Absage sieht immer gleich aus'
   },
   /* ---- Befund G: die voruebergehende Absage ---- */
@@ -299,8 +299,8 @@ const RUECKBAUTEN = [
   {
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     datei: 'public/app.js',
-    suche: "        ${stand.minuten ? `<strong>Der Link gilt noch ${stand.minuten} Minuten</strong> — danach",
-    ersatz: "        ${false ? `<strong>Der Link gilt noch ${stand.minuten} Minuten</strong> — danach",
+    suche: "        ${stand.minuten ? `<strong>${tH('anmeldung.derLinkGiltNochMinuten', { minuten: stand.minuten })}</strong> ${tH('anmeldung.danachBrauchstDuEinenNeuen')}` : ''}",
+    ersatz: "        ${false ? `<strong>${tH('anmeldung.derLinkGiltNochMinuten', { minuten: stand.minuten })}</strong> ${tH('anmeldung.danachBrauchstDuEinenNeuen')}` : ''}",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
@@ -447,8 +447,8 @@ const RUECKBAUTEN = [
   {
     nr: '49', name: 'Die Bestaetigung nimmt jeden Schluessel an',
     datei: 'auth.js',
-    suche: "  return setzeBestaetigt.run(tokenHash(t), `-${ANFRAGE_STUNDEN} hours`).changes > 0;",
-    ersatz: "  setzeBestaetigt.run(tokenHash(t), `-${ANFRAGE_STUNDEN} hours`); return true;",
+    suche: "  return setzeBestaetigt.run(tokenHash(roh), `-${ANFRAGE_STUNDEN} hours`).changes > 0;",
+    ersatz: "  setzeBestaetigt.run(tokenHash(roh), `-${ANFRAGE_STUNDEN} hours`); return true;",
     erwartet: 'Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft'
   },
   {
@@ -468,8 +468,8 @@ const RUECKBAUTEN = [
   {
     nr: '52', name: 'Die unbestaetigte Anfrage laesst sich freischalten',
     datei: 'server.js',
-    suche: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, t;",
-    ersatz: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, t;",
+    suche: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.anfrageFehlt')});\n  let angelegt, token;",
+    ersatz: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.anfrageFehlt')});\n  let angelegt, token;",
     erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   /* ---- Die Selbstanmeldung: Freischaltung, Ablehnung, Rolle ---- */
@@ -490,8 +490,8 @@ const RUECKBAUTEN = [
   {
     nr: '55', name: 'Die Freischaltung erzeugt keinen Token',
     datei: 'server.js',
-    suche: "    t = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);",
-    ersatz: "    t = { klartext: 'x'.repeat(64), zweck: 'einladung', tage: 7, id: angelegt.id, username: angelegt.username };",
+    suche: "    token = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);",
+    ersatz: "    token = { klartext: 'x'.repeat(64), zweck: 'einladung', tage: 7, id: angelegt.id, username: angelegt.username };",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
@@ -547,8 +547,8 @@ const RUECKBAUTEN = [
   {
     nr: '62', name: 'Das Anfrageformular steht auch bei ausgeschaltetem Schalter da',
     datei: 'public/app.js',
-    suche: "    ${REGISTRIERUNG ? `<p class=\"sub anmeld-trenner\">Noch keinen Zugang?</p>",
-    ersatz: "    ${true ? `<p class=\"sub anmeld-trenner\">Noch keinen Zugang?</p>",
+    suche: "    ${REGISTRIERUNG ? `<p class=\"sub anmeld-trenner\">${tH('anmeldung.nochKeinenZugang')}</p>",
+    ersatz: "    ${true ? `<p class=\"sub anmeld-trenner\">${tH('anmeldung.nochKeinenZugang')}</p>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -572,8 +572,8 @@ const RUECKBAUTEN = [
        Groesse wie "Anmelden"; der Rueckbau macht wieder einen Verweis daraus. */
     nr: '68', name: 'Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes',
     datei: 'public/app.js',
-    suche: "      <button class=\"btn anmeld-zweitweg\" id=\"l-anfrage\">Zugang beantragen</button>",
-    ersatz: "      <a href=\"#\" id=\"l-anfrage\">Zugang beantragen</a>",
+    suche: "      <button class=\"btn anmeld-zweitweg\" id=\"l-anfrage\">${tH('anmeldung.zugangBeantragen')}</button>",
+    ersatz: "      <a href=\"#\" id=\"l-anfrage\">${tH('anmeldung.zugangBeantragen')}</a>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -639,12 +639,12 @@ const RUECKBAUTEN = [
   },
   {
     nr: '66', name: 'Die gekuerzte Zeile im Mailtext verliert eine Auskunft',
-    datei: 'mail.js',
+    datei: 'public/sprachen/de.json',
     /* DIE ZEILE STEHT ZWEIMAL -- in der Einladung und in der Ruecksetzung.
        Genommen wird die der EINLADUNG; die naechsten Zeilen machen sie
        eindeutig. */
-    suche: "    'Danach brauchst du einen neuen Link vom Admin.',\n    '',\n    'Wer diesen Link hat, kommt herein",
-    ersatz: "    '',\n    'Wer diesen Link hat, kommt herein",
+    suche: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt herein",
+    ersatz: "\\nWer diesen Link hat, kommt herein",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   /* ---- Die Marke der Instanz ---- */
@@ -833,9 +833,8 @@ const RUECKBAUTEN = [
        weg (Stolperstein 138). */
     nr: '93', name: 'Die Absage verraet, ob der Zugang einen zweiten Faktor hat',
     datei: 'server.js',
-    suche: "    return res.status(401).json({ error: 'Benutzername oder Passwort stimmt nicht.' });",
-    ersatz: "    return res.status(401).json({ error: 'Benutzername oder Passwort stimmt nicht.',\n" +
-            "      zweifaktor: auth.zweifaktorAn((auth.holeBenutzerNachNamen(user) || {}).id) });",
+    suche: "    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungFalsch')});",
+    ersatz: "    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungFalsch'),\n      zweifaktor: auth.zweifaktorAn((auth.holeBenutzerNachNamen(user) || {}).id) });",
     erwartet: 'Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort'
   },
   {
@@ -874,7 +873,7 @@ const RUECKBAUTEN = [
   {
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
     datei: 'server.js',
-    suche: "  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
     ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
@@ -885,8 +884,8 @@ const RUECKBAUTEN = [
        daran ist die erste Fassung der Bremsprobe stumm geblieben. */
     nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
     datei: 'server.js',
-    suche: "  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });\n  }",
-    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });\n  }\n  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));",
+    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungAbgelaufen')});\n  }",
+    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.anmeldungAbgelaufen')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.bremseAktiv', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
@@ -955,7 +954,7 @@ const RUECKBAUTEN = [
   {
     nr: '106', name: 'Ein zweiter Start ueberschreibt einen laufenden zweiten Faktor',
     datei: 'auth.js',
-    suche: "  if (zweifaktorAn(id)) throw new Error('Der zweite Faktor ist bereits eingeschaltet.');",
+    suche: "  if (zweifaktorAn(id)) throw new Meldung('anmeldung.zweiterFaktorSchonAn');",
     ersatz: "",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
@@ -992,7 +991,7 @@ const RUECKBAUTEN = [
   {
     nr: '110', name: 'Ausschalten geht ohne Code',
     datei: 'server.js',
-    suche: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))\n    return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE });\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
+    suche: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))\n    return res.status(403).json({ error: t(spracheVon(req), auth.ZWEITER_FAKTOR_ABSAGE)});\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
     ersatz: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
     erwartet: 'Der zweite Faktor: der Rundlauf'
   },
@@ -1069,7 +1068,7 @@ const RUECKBAUTEN = [
   {
     nr: '117', name: 'Die Zahl der uebrigen Wiederherstellungscodes faellt weg',
     datei: 'public/app.js',
-    suche: "          <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>",
+    suche: "          <strong>${tH('karte.nochVon', { codesOffen: stand.codesOffen, codesGesamt: stand.codesGesamt })}</strong>",
     ersatz: "          <strong>vorhanden</strong>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1080,7 +1079,7 @@ const RUECKBAUTEN = [
        Einladungslink. */
     nr: '118', name: 'Der Kasten sagt nicht mehr, dass die Codes nicht wiederkommen',
     datei: 'public/app.js',
-    suche: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes — sie werden\n      nur dieses eine Mal angezeigt.</strong>",
+    suche: "    kasten.innerHTML = `<strong>${tH('karte.deineWiederherstellungscodesSie', { length: codes.length })}</strong>",
     ersatz: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes.</strong>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1116,7 +1115,7 @@ const RUECKBAUTEN = [
   {
     nr: '124', name: 'Der Parameter q wird nicht mehr gelesen',
     datei: 'server.js',
-    suche: "  const begriff = volltextBegriff(req.query.q);",
+    suche: "  const begriff = volltextBegriff(req.query.q, spracheVon(req));",
     ersatz: "  const begriff = '';",
     erwartet: 'Die Volltextsuche'
   },
@@ -1328,8 +1327,8 @@ const RUECKBAUTEN = [
   {
     nr: '150', name: 'Der Titelvergleich achtet wieder auf Gross- und Kleinschreibung',
     datei: 'public/app.js',
-    suche: "const titelKern = (t) => String(t || '').toLowerCase().replace(",
-    ersatz: "const titelKern = (t) => String(t || '').replace(",
+    suche: "const titelKern = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(",
+    ersatz: "const titelKern = (roh) => String(roh || '').replace(",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
   {
@@ -1442,8 +1441,8 @@ const RUECKBAUTEN = [
   {
     nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
     datei: 'public/app.js',
-    suche: '        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>\n        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>',
-    ersatz: '        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>\n        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>',
+    suche: "        <span class=\"hint wer\" id=\"wer\">${tH('liste.angemeldetAls', { name: NAME })}</span>\n        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('liste.abmelden')}</button>",
+    ersatz: "        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('liste.abmelden')}</button>\n        <span class=\"hint wer\" id=\"wer\">${tH('liste.angemeldetAls', { name: NAME })}</span>",
     erwartet: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
   },
   /* DAS KREUZ AN DER KACHEL WAR EIN FUND AUS DEM FELD, kein Einfall am
@@ -1530,8 +1529,8 @@ const RUECKBAUTEN = [
   {
     nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
     datei: 'server.js',
-    suche: '  return t.fotos + t.videos + t.anhaenge + t.kommentarbilder + austauschUmschlagBytes(itemId);',
-    ersatz: '  return t.fotos + t.videos + t.anhaenge + t.kommentarbilder;',
+    suche: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder + austauschUmschlagBytes(itemId);',
+    ersatz: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
     erwartet: 'Die Exportgroesse sagt sich an'
   },
   {
@@ -1620,8 +1619,8 @@ const RUECKBAUTEN = [
        statt der offenen. */
     nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
     datei: 'public/app.js',
-    suche: "    + (fertig ? ` (${aufgaben - fertig} offen)` : ''));",
-    ersatz: "    + (fertig ? ` (${aufgaben} offen)` : ''));",
+    suche: "    + (fertig ? t('liste.offenInKlammern', { n: aufgaben - fertig }) : ''));",
+    ersatz: "    + (fertig ? t('liste.offenInKlammern', { n: aufgaben }) : ''));",
     erwartet: 'Kommentare in der Oberflaeche'
   },
   {
@@ -1630,8 +1629,8 @@ const RUECKBAUTEN = [
        dabei vollkommen unauffaellig aus. */
     nr: '181', name: 'Das Codefeld fragt wieder nach der App statt nach dem Verfahren',
     datei: 'public/app.js',
-    suche: "<label>Zwei-Faktor-Code</label>",
-    ersatz: "<label>Code aus deiner App</label>",
+    suche: "<label>${tH('dialog.zweiFaktorCode')}</label>\n        <input class=\"input\" id=\"best-code\"",
+    ersatz: "<label>Code aus deiner App</label>\n        <input class=\"input\" id=\"best-code\"",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
@@ -1849,7 +1848,7 @@ const RUECKBAUTEN = [
        Schluessel am Bildschirm -- "anfrage.frei" statt eines Satzes. */
     nr: '203', name: 'Fuenf Vorgaenge stehen wieder als roher Schluessel da',
     datei: 'public/app.js',
-    suche: "    'anfrage.frei': 'Anfrage freigeschaltet',",
+    suche: "    'anfrage.frei': 'karte.anfrageFreigeschaltet',",
     ersatz: "",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -1860,7 +1859,7 @@ const RUECKBAUTEN = [
        nicht tut. Der billigste Punkt der Runde mit dem groessten Schaden. */
     nr: '204', name: 'Der Loeschdialog verschweigt den umkehrbaren Weg wieder',
     datei: 'public/app.js',
-    suche: "      <p>Nur vorübergehend aussperren? Dann sperren statt löschen — das ist umkehrbar, und der\n        Name bleibt.</p>",
+    suche: "      <p>${tH('dialog.nurVoruebergehendAussperrenDann')}</p>",
     ersatz: "",
     erwartet: 'Die zweite Bestaetigung in der Oberflaeche'
   },
@@ -1887,8 +1886,8 @@ const RUECKBAUTEN = [
     /* SORTIEREN UND ANSICHTEN FALLEN WIEDER AUSEINANDER. */
     nr: '207', name: 'Sortieren und Ansichten bekommen wieder je eine Zeile',
     datei: 'public/app.js',
-    suche: "  const r5 = r4;\n  zweiteBeschriftung(r5, 'Ansichten');",
-    ersatz: "  const r5 = row('Ansichten');",
+    suche: "  const r5 = r4;\n  zweiteBeschriftung(r5, t('liste.ansichten'));",
+    ersatz: "  const r5 = row(t('liste.ansichten'));",
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
   {
@@ -1900,7 +1899,7 @@ const RUECKBAUTEN = [
        (Stolperstein 192). */
     nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
     datei: 'public/app.js',
-    suche: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(t.id) ? ' leer' : '');",
+    suche: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(tag.id) ? ' leer' : '');",
     ersatz: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '');",
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
@@ -2371,8 +2370,8 @@ const RUECKBAUTEN = [
        Merkmals. */
     nr: '254', name: 'Die zweite Gruppe ist nicht abgesetzt',
     datei: 'public/app.js',
-    suche: "  zweiteBeschriftung(r1, 'Ablehnung');",
-    ersatz: "  // zweiteBeschriftung(r1, 'Ablehnung');",
+    suche: "  zweiteBeschriftung(r1, t('liste.ablehnung'));",
+    ersatz: "  // zweiteBeschriftung(r1, t('liste.ablehnung'));",
     erwartet: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
@@ -2469,8 +2468,8 @@ const RUECKBAUTEN = [
        wiederherstellen kann, verschwindet auf einen Klick. */
     nr: '264', name: 'Der Papierkorb fragt nicht mehr nach',
     datei: 'public/app.js',
-    suche: "    if (!await confirmBox('Begründung löschen?',",
-    ersatz: "    if (false && !await confirmBox('Begründung löschen?',",
+    suche: "    if (!await confirmBox(t('eintrag.begruendungLoeschen'),",
+    ersatz: "    if (false && !await confirmBox(t('eintrag.begruendungLoeschen'),",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2585,8 +2584,8 @@ const RUECKBAUTEN = [
   {
     nr: '277', name: 'Der Import steht wieder gleichrangig neben dem Export',
     datei: 'public/app.js',
-    suche: '        <h4 class="sys-unter">Import</h4>',
-    ersatz: '        <h3>Import</h3>',
+    suche: "        <h4 class=\"sys-unter\">${tH('karte.import')}</h4>",
+    ersatz: "        <h3>${tH('karte.import')}</h3>",
     erwartet: 'Export und Import stehen in einer Karte'
   },
   {
@@ -2611,8 +2610,8 @@ const RUECKBAUTEN = [
        gibt es zwei Wege zu derselben Zahl -- und sie laufen auseinander. */
     nr: '280', name: 'Der Erklaerkasten rechnet wieder selbst nach',
     datei: 'public/app.js',
-    suche: '        <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>\n          <span id="rz-ergebnis">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>',
-    ersatz: '        <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>\n          <span id="rz-ergebnis">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>',
+    suche: "          <span id=\"rz-ergebnis\">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>",
+    ersatz: "          <span id=\"rz-ergebnis\">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -2649,8 +2648,8 @@ const RUECKBAUTEN = [
        Nachziehen griffe der Rueckbau ins Leere (Stolperstein 192). */
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
     datei: 'public/app.js',
-    suche: "        ${GLOCKE_GESEHEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neuigkeiten\"",
-    ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neuigkeiten\"",
+    suche: "        ${GLOCKE_GESEHEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('liste.neuigkeiten'))}\"",
+    ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('liste.neuigkeiten'))}\"",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2768,15 +2767,15 @@ const RUECKBAUTEN = [
     /* DER GEFAEHRLICHSTE KNOPF DER INSTANZ, wenn er ohne Frage loescht. */
     nr: '296', name: 'Der Papierkorb loescht wieder ohne Rueckfrage',
     datei: 'public/app.js',
-    suche: "    if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird endgültig gelöscht.`)) return false;",
+    suche: "    if (!await confirmBox(t('eintrag.loeschen2', { wort: wort }), t('eintrag.diesesWirdEndgueltigGeloescht', { wort: wort }))) return false;",
     ersatz: "    if (false) return false;",
     erwartet: 'Der Papierkorb im Vollbild'
   },
   {
     nr: '297', name: 'Das Vollbild bekommt seinen Papierkorb nicht',
     datei: 'public/app.js',
-    suche: "    ${loeschen ? `<button class=\"lb-btn weg\" title=\"Löschen\">${ICON_PAPIERKORB}</button>` : ''}",
-    ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"Löschen\">${ICON_PAPIERKORB}</button>` : ''}",
+    suche: "    ${loeschen ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.loeschen'))}\">${ICON_PAPIERKORB}</button>` : ''}",
+    ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.loeschen'))}\">${ICON_PAPIERKORB}</button>` : ''}",
     erwartet: 'Der Papierkorb im Vollbild'
   },
   {
@@ -2864,8 +2863,8 @@ const RUECKBAUTEN = [
     /* DIE VIERTE KACHEL STEHT WIEDER SCHMAL UNTER DREI BREITEN. */
     nr: '306', name: 'Die Karte „Mailversand" verliert ihre Breite wieder',
     datei: 'public/app.js',
-    suche: "  return `<div class=\"sys-card breit\">\n        <h3>Mailversand</h3>",
-    ersatz: "  return `<div class=\"sys-card\">\n        <h3>Mailversand</h3>",
+    suche: "  return `<div class=\"sys-card breit\">\n        <h3>${tH('karte.mailversand')}</h3>",
+    ersatz: "  return `<div class=\"sys-card\">\n        <h3>${tH('karte.mailversand')}</h3>",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
@@ -2911,8 +2910,8 @@ const RUECKBAUTEN = [
     /* DER KASTEN ZEIGT SIE NICHT MEHR. */
     nr: '311', name: 'Der Erklaerkasten laesst die Vergleichszahl weg',
     datei: 'public/app.js',
-    suche: "        ${mitGewicht ? `<div class=\"rz rz-gleich\"><span>Ohne Gewichte — jedes Kriterium gleich</span>",
-    ersatz: "        ${false ? `<div class=\"rz rz-gleich\"><span>Ohne Gewichte — jedes Kriterium gleich</span>",
+    suche: "        ${mitGewicht ? `<div class=\"rz rz-gleich\"><span>${tH('eintrag.ohneGewichteJedesKriteriumGleich')}</span>",
+    ersatz: "        ${false ? `<div class=\"rz rz-gleich\"><span>${tH('eintrag.ohneGewichteJedesKriteriumGleich')}</span>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -2940,7 +2939,7 @@ const RUECKBAUTEN = [
        Beitraege" sagt nicht, WAS auf einen wartet. */
     nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
     datei: 'public/app.js',
-    suche: "  return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',\n          b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');",
+    suche: "  return [k ? t('liste.kommentareZahl', { n: k }) : '',\n          b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');",
     ersatz: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2956,9 +2955,9 @@ const RUECKBAUTEN = [
   {
     /* EINE FESTE ENDUNG MACHT AUS EINEM KOMMENTAR „1 Kommentare". */
     nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
-    datei: 'public/app.js',
-    suche: "  return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',",
-    ersatz: "  return [k ? `${k} Kommentare` : '',",
+    datei: 'public/sprachen/de.json',
+    suche: "\"liste.kommentareZahl\": {\n    \"eins\": \"{n} Kommentar\",",
+    ersatz: "\"liste.kommentareZahl\": {\n    \"eins\": \"{n} Kommentare\",",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2976,8 +2975,8 @@ const RUECKBAUTEN = [
        Kommentar. */
     nr: '319', name: 'Die Tafel ordnet nach den Kommentaren statt nach der Summe',
     datei: 'public/app.js',
-    suche: "    .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title)));",
-    ersatz: "    .slice().sort((a, b) => ((b.neuKommentare || 0) - (a.neuKommentare || 0)) || String(a.title).localeCompare(String(b.title)));",
+    suche: "    .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title), LOCALE));",
+    ersatz: "    .slice().sort((a, b) => ((b.neuKommentare || 0) - (a.neuKommentare || 0)) || String(a.title).localeCompare(String(b.title), LOCALE));",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
 
@@ -3010,8 +3009,8 @@ const RUECKBAUTEN = [
        zaehlt man Dinge auf, nicht Menschen. */
     nr: '322', name: 'Die Namen werden mit Kommas bis zum Schluss aufgezaehlt',
     datei: 'public/app.js',
-    suche: "  return 'von ' + (namen.length === 1 ? namen[0]\n    : `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}`);",
-    ersatz: "  return 'von ' + namen.join(', ');",
+    suche: "  const letzter = namen[namen.length - 1], vorne = namen.slice(0, -1).join(', ');\n  return t('liste.vonNamen',\n    { namen: vorne ? t('liste.namenUndLetzter', { vorne: vorne, letzter: letzter }) : letzter });",
+    ersatz: "  return t('liste.vonNamen', { namen: namen.join(', ') });",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3059,8 +3058,8 @@ const RUECKBAUTEN = [
   {
     nr: '327', name: 'Die Kennzahlen begruenden den Vorbehalt wieder an der Oberflaeche',
     datei: 'public/app.js',
-    suche: "        <div class=\"kv\"><span class=\"k\">Passwörter</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>` : ''}",
-    ersatz: "        <div class=\"kv\"><span class=\"k\">Passwörter</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>\n        <p class=\"desc\" style=\"margin:10px 0 0\"><strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
+    suche: "        <div class=\"kv\"><span class=\"k\">${tH('karte.passwoerter')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>` : ''}",
+    ersatz: "        <div class=\"kv\"><span class=\"k\">${tH('karte.passwoerter')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>\n        <p class=\"desc\" style=\"margin:10px 0 0\"><strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
     erwartet: 'Der Papierkorb in der Oberflaeche'
   },
   {
@@ -3092,8 +3091,8 @@ const RUECKBAUTEN = [
   {
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     datei: 'public/app.js',
-    suche: "      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium über alle\n        Benutzer (Spalte <strong>Note</strong>), dann der Durchschnitt darüber${mitGewicht",
-    ersatz: "      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium (die Zahlen\n        rechts in den Zeilen), dann der Durchschnitt darüber${mitGewicht",
+    suche: "${tH('eintrag.erstDerDurchschnittJeKriterium')} <strong>${tH('eintrag.note')}</strong>${tH('eintrag.dannDerDurchschnittDarueber')}",
+    ersatz: "${tH('eintrag.erstDerDurchschnittJeKriterium')}${tH('eintrag.dannDerDurchschnittDarueber')}",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
@@ -3129,8 +3128,8 @@ const RUECKBAUTEN = [
   {
     nr: '334', name: 'Die Marke am Adressfeld behauptet wieder immer „freiwillig"',
     datei: 'public/app.js',
-    suche: "        <div class=\"field\"><label>E-Mail-Adresse <span class=\"hint\">${\n          REGISTRIERUNG ? '(erforderlich)' : '(optional)'}</span></label>",
-    ersatz: "        <div class=\"field\"><label>E-Mail-Adresse <span class=\"hint\">(optional)</span></label>",
+    suche: "        <div class=\"field\"><label>${tH('anmeldung.eMailAdresse')} <span class=\"hint\">${\n          REGISTRIERUNG ? t('karte.erforderlich') : t('karte.optional')}</span></label>",
+    ersatz: "        <div class=\"field\"><label>${tH('anmeldung.eMailAdresse')} <span class=\"hint\">${t('karte.optional')}</span></label>",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
@@ -3157,9 +3156,8 @@ const RUECKBAUTEN = [
   {
     nr: '338', name: 'Die Laengenvorgabe faellt vom Passwortfeld weg',
     datei: 'public/app.js',
-    suche: "        <div class=\"field\"><label>Neues Passwort\n" +
-           "          <span class=\"hint\">(mindestens ${MIN_PASSWORT} Zeichen)</span></label>",
-    ersatz: "        <div class=\"field\"><label>Neues Passwort</label>",
+    suche: "        <div class=\"field\"><label>${tH('dialog.neuesPasswort')}\n          <span class=\"hint\">${tH('karte.mindestensZeichen', { minPasswort: MIN_PASSWORT })}</span></label>",
+    ersatz: "        <div class=\"field\"><label>${tH('dialog.neuesPasswort')}</label>",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
@@ -3196,8 +3194,8 @@ const RUECKBAUTEN = [
        „Installation", der Rueckbau setzt weiter den aeltesten Namen. */
     nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'installation', name: 'Installation' }",
-    ersatz: "  { schluessel: 'installation', name: 'Anlage' }",
+    suche: "  { schluessel: 'installation', name: () => t('karte.installation') }",
+    ersatz: "  { schluessel: 'installation', name: () => 'Anlage' }",
     erwartet: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
   {
@@ -3276,11 +3274,9 @@ const RUECKBAUTEN = [
   },
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
-    datei: 'public/app.js',
-    suche: "deines eigenen Kontos</strong>. Antwortet der Mailserver nicht, bricht der",
-    ersatz: "deines eigenen Zugangs</strong> — es gibt kein Adressfeld daneben, und zwar mit\n" +
-            "            Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener\n" +
-            "            Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
+    datei: 'public/sprachen/de.json',
+    suche: "\"karte.antwortetDerMailserverNichtBricht\": \". Antwortet der Mailserver nicht, bricht der",
+    ersatz: "\"karte.antwortetDerMailserverNichtBricht\": \" — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
@@ -3307,8 +3303,8 @@ const RUECKBAUTEN = [
   {
     nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
     datei: 'public/app.js',
-    suche: "    <p>Neue Kommentare und ${esc(V.bewertungMehrzahl)} <strong>anderer Benutzer</strong>, seit du\n      diese Liste zuletzt geöffnet hast.</p>",
-    ersatz: "    <p>Neue Kommentare und ${esc(V.bewertungMehrzahl)}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
+    suche: "    <p>${tH('liste.neueKommentareUnd')} <strong>${tH('liste.andererBenutzer')}</strong>${tH('liste.seitDuDieseListeZuletzt')}</p>",
+    ersatz: "    <p>${tH('liste.neueKommentareUnd')}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3344,10 +3340,8 @@ const RUECKBAUTEN = [
   {
     nr: '372', name: 'Die Karte bekommt ihre Passwortzeile zurueck',
     datei: 'public/app.js',
-    suche: "        <div class=\"kv\"><span class=\"k\">Anbieter</span>",
-    ersatz: "        <div class=\"kv\"><span class=\"k\">Passwort</span><span class=\"v\">${mailstand.passwortGesetzt\n" +
-            "          ? 'gesetzt' : 'nicht gesetzt'}</span></div>\n" +
-            "        <div class=\"kv\"><span class=\"k\">Anbieter</span>",
+    suche: "        <div class=\"kv\"><span class=\"k\">${tH('karte.anbieter')}</span>",
+    ersatz: "        <div class=\"kv\"><span class=\"k\">Passwort</span><span class=\"v\">${mailstand.passwortGesetzt\n          ? 'gesetzt' : 'nicht gesetzt'}</span></div>\n        <div class=\"kv\"><span class=\"k\">${tH('karte.anbieter')}</span>",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
@@ -3360,8 +3354,8 @@ const RUECKBAUTEN = [
   {
     nr: '374', name: 'Der Knopf heisst wieder „Mailzugang speichern"',
     datei: 'public/app.js',
-    suche: "id=\"mail-einrichten\">Mailzugang ${\n            mailstand.eingerichtet ? 'ändern' : 'einrichten'}</button>",
-    ersatz: "id=\"mail-einrichten\">Mailzugang speichern</button>",
+    suche: "id=\"mail-einrichten\">${tH('karte.mailzugang')} ${\n            mailstand.eingerichtet ? tH('karte.aendern') : tH('karte.einrichten')}</button>",
+    ersatz: "id=\"mail-einrichten\">${tH('karte.mailzugang')} speichern</button>",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
@@ -3381,14 +3375,14 @@ const RUECKBAUTEN = [
   {
     nr: '377', name: 'Der Dialog kuerzt die zweite Bestaetigung ab',
     datei: 'public/app.js',
-    suche: "      if (!await zweiteBestaetigung('mail', null, 'Mailzugang speichern',\n        'Über diesen Server laufen künftig alle Mails dieser Installation — auch die Links ' +\n        'zum Passwort-Setzen.')) return;\n",
+    suche: "      if (!await zweiteBestaetigung('mail', null, t('karte.mailzugangSpeichern'),\n        t('karte.ueberDiesenServerLaufenKuenftig') +\n        t('karte.zumPasswortSetzen'))) return;\n",
     ersatz: "",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '378', name: 'Die Anbieterliste kommt wieder ohne Hinweise und feste Werte',
     datei: 'server.js',
-    suche: "    anbieterListe: mail.fuerDieAuswahl(),",
+    suche: "    anbieterListe: mail.fuerDieAuswahl().map(a =>\n      ({ ...a, hinweis: a.hinweis ? t(spracheVon(req), a.hinweis) : '' })),",
     ersatz: "    anbieterListe: mail.ANBIETER.map(a => ({ schluessel: a.schluessel, name: a.name })),",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
@@ -3423,8 +3417,8 @@ const RUECKBAUTEN = [
   {
     nr: '383', name: 'Die ausgeschriebene Rechnung steht wieder unter der Tabelle',
     datei: 'public/app.js',
-    suche: "      <p><strong>Kriterien ohne Sterne zählen nicht mit.</strong> Gerundet wird nur das\n        Endergebnis.",
-    ersatz: "      <p><strong>Kriterien ohne Sterne zählen nicht mit.</strong> Gerundet wird nur das\n        Endergebnis: ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))} =\n        ${esc(String(Math.round(Number(weg.roh) * 10000) / 10000).replace('.', ','))}\n        → <strong>${esc(gewZahl(weg.ergebnis))}</strong>.",
+    suche: "      <p><strong>${tH('eintrag.kriterienOhneSterneZaehlenNicht')}</strong> ${tH('eintrag.gerundetWirdNurDasEndergebnis')}",
+    ersatz: "      <p><strong>${tH('eintrag.kriterienOhneSterneZaehlenNicht')}</strong> ${tH('eintrag.gerundetWirdNurDasEndergebnis')} ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))}",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -3437,7 +3431,7 @@ const RUECKBAUTEN = [
   {
     nr: '385', name: 'Der Filterruecksetzer nennt seine Zahl nicht mehr',
     datei: 'public/app.js',
-    suche: "    bZurueck.textContent = `Filter zurücksetzen (${filterGesetzt})`;",
+    suche: "    bZurueck.textContent = t('liste.filterZuruecksetzen', { filterGesetzt: filterGesetzt });",
     ersatz: "    bZurueck.textContent = 'Filter zurücksetzen';",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
@@ -3648,14 +3642,14 @@ const RUECKBAUTEN = [
   {
     nr: '410', name: 'Der Ueberfahrtext nennt die weiteren Stellen nicht mehr',
     datei: 'public/app.js',
-    suche: "  f.weitere === 1 ? ' und 1 weitere Stelle'\n  : f.weitere > 1 ? ` und ${f.weitere} weitere Stellen` : '');",
+    suche: "  f.weitere > 0 ? t('liste.undWeitereStellen', { n: f.weitere }) : '');",
     ersatz: "  '');",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '411', name: 'Eine unbekannte Quelle faellt aus der Zeile',
     datei: 'public/app.js',
-    suche: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => 'Fundstelle'))();",
+    suche: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => t('liste.fundstelle')))();",
     ersatz: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => ''))();",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
@@ -3932,8 +3926,8 @@ const RUECKBAUTEN = [
   {
     nr: '439', name: 'Zweimal druecken startet zwei Laeufe',
     datei: 'server.js',
-    suche: "  if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
-    ersatz: "  if (false)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
+    suche: "  if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)\n    return res.status(409).json({ error: t(spracheVon(req), 'server.umstellungLaeuft')});",
+    ersatz: "  if (false)\n    return res.status(409).json({ error: t(spracheVon(req), 'server.umstellungLaeuft')});",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4074,8 +4068,8 @@ const RUECKBAUTEN = [
   {
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
     datei: 'public/app.js',
-    suche: "      const ok = await zweiteBestaetigung('bilder', null, 'PNG in WebP umwandeln',",
-    ersatz: "      const ok = true || await zweiteBestaetigung('bilder', null, 'PNG in WebP umwandeln',",
+    suche: "      const ok = await zweiteBestaetigung('bilder', null, t('karte.pNGInWebPUmwandeln'),",
+    ersatz: "      const ok = true || await zweiteBestaetigung('bilder', null, t('karte.pNGInWebPUmwandeln'),",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4083,8 +4077,8 @@ const RUECKBAUTEN = [
        mehr, dass die PNG-Fassung danach weg ist. */
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
     datei: 'public/app.js',
-    suche: "        `${fmtBytes(Math.round(png.bytes * 0.37))}). Rückgängig nur mit einer vorher angelegten ` +\n        `Sicherung. Dauer: Minuten bis Stunden.`);",
-    ersatz: "        `${fmtBytes(Math.round(png.bytes * 0.37))}). Dauer: Minuten bis Stunden.`);",
+    suche: "        t('karte.pngFotosWerdenUmgewandelt', { n: png.anzahl, bytes: fmtBytes(png.bytes),\n          danach: fmtBytes(Math.round(png.bytes * 0.37)) }));",
+    ersatz: "        `${png.anzahl} PNG-Fotos (${fmtBytes(png.bytes)}) werden umgewandelt. Dauer: Minuten bis Stunden.`);",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4249,10 +4243,13 @@ const RUECKBAUTEN = [
   {
     /* DER DIALOG SAGT NICHT MEHR, DASS ES DAUERN KANN. Wer den Knopf drueckt,
        rechnet dann mit Sekunden und bekommt eine Stunde. */
+    /* AN DER MEHRZAHLFORM UND NICHT AN DER EINZAHL -- ein Fund vom
+       6. September 2026: die Prueflage zeigt zwoelf Fotos, also die Mehrzahl;
+       ein Rueckbau an der Einzahl blieb deshalb STUMM. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
-    datei: 'public/app.js',
-    suche: "        `Sicherung. Dauer: Minuten bis Stunden.`);",
-    ersatz: "        `Sicherung.`);",
+    datei: 'public/sprachen/de.json',
+    suche: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
+    ersatz: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4260,9 +4257,9 @@ const RUECKBAUTEN = [
        Feld -- Faktor dreizehn: eine Schaetzung waere auf der einen Maschine
        beruhigend falsch und auf der anderen erschreckend falsch. */
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
-    datei: 'public/app.js',
-    suche: "Sicherung. Dauer: Minuten bis Stunden.`);",
-    ersatz: "Sicherung. Dauer: etwa 20 Minuten.`);",
+    datei: 'public/sprachen/de.json',
+    suche: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"\n  },",
+    ersatz: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: etwa 20 Minuten.\"\n  },",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4289,9 +4286,9 @@ const RUECKBAUTEN = [
        benannt hat, liest eine Meldung ueber ein Wort, das nirgends auf seinem
        Bildschirm steht. */
     nr: '476', name: 'Die Absage nennt wieder „den Eigentümer der Instanz"',
-    datei: 'server.js',
-    suche: "const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer dieser Installation.';",
-    ersatz: "const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer der Instanz.';",
+    datei: 'public/sprachen/de.json',
+    suche: "\"server.verweigertEigen\": \"Das kann nur der Eigentümer dieser Installation.\",",
+    ersatz: "\"server.verweigertEigen\": \"Das kann nur der Eigentümer der Instanz.\",",
     erwartet: 'Die Rechte am Papierkorb'
   },
   {
@@ -4392,9 +4389,9 @@ const RUECKBAUTEN = [
     /* DER DIALOG SAGT NICHT MEHR, DASS DIE UMWANDLUNG NAHEZU VERLUSTFREI IST.
        Wer das nicht liest, haelt den Knopf fuer eine Verschlechterung. */
     nr: '485', name: 'Der Dialog sagt nicht mehr, dass es nahezu verlustfrei ist',
-    datei: 'public/app.js',
-    suche: "          WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und",
-    ersatz: "          WebP gespeichert — etwa zwei Drittel kleiner. JPEG, GIF und",
+    datei: 'public/sprachen/de.json',
+    suche: "WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und",
+    ersatz: "WebP gespeichert — etwa zwei Drittel kleiner. JPEG, GIF und",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4600,9 +4597,9 @@ const RUECKBAUTEN = [
     /* EINE DER ACHT STELLEN SAGT WIEDER „Instanz". Der Waechter zaehlt
        Nicht-Kommentarzeilen; eine einzige genuegt, damit er anschlaegt. */
     nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
-    datei: 'public/app.js',
-    suche: "        <p class=\"desc\"><strong>E-Mail ist optional.</strong> Ohne Mailzugang zeigt Kriterion",
-    ersatz: "        <p class=\"desc\"><strong>E-Mail ist optional.</strong> Ohne Mailzugang zeigt die Instanz",
+    datei: 'public/sprachen/de.json',
+    suche: "\"karte.ohneMailzugangZeigtKriterion\": \"Ohne Mailzugang zeigt Kriterion",
+    ersatz: "\"karte.ohneMailzugangZeigtKriterion\": \"Ohne Mailzugang zeigt die Instanz",
     erwartet: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
 
@@ -4795,9 +4792,9 @@ const RUECKBAUTEN = [
        richtig und ist es seit dieser Runde nicht mehr -- und sie verschweigt
        das, worauf es ankommt: WELCHE Kante die Zahl traegt. */
     nr: '522', name: 'Die Karte nennt wieder 400 px, ohne die Kante zu sagen',
-    datei: 'public/app.js',
-    suche: "          (JPEG) sind nicht mitgezählt.</p>",
-    ersatz: "          (JPEG, 400 px) sind nicht mitgezählt.</p>",
+    datei: 'public/sprachen/de.json',
+    suche: "(JPEG) sind nicht mitgezählt.\"",
+    ersatz: "(JPEG, 400 px) sind nicht mitgezählt.\"",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -5125,8 +5122,8 @@ const RUECKBAUTEN = [
        keine neue Kopie zustande bringt. */
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
     datei: 'server.js',
-    suche: "  if (fs.existsSync(datei))\n    return res.status(409).json({ error: 'In dieser Sekunde wurde dort schon eine Sicherung angelegt — bitte noch einmal.' });",
-    ersatz: "  if (fs.existsSync(datei)) {\n    const r = aufraeumStand();\n    if (r.an) entferneSicherungen(ziel.pfad, regelTreffer(sicherungsListe(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (wechselMarke() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: 'In dieser Sekunde wurde dort schon eine Sicherung angelegt — bitte noch einmal.' });\n  }",
+    suche: "  if (fs.existsSync(datei))\n    return res.status(409).json({ error: t(spracheVon(req), 'server.sicherungGleichzeitig')});",
+    ersatz: "  if (fs.existsSync(datei)) {\n    const r = aufraeumStand();\n    if (r.an) entferneSicherungen(ziel.pfad, regelTreffer(sicherungsListe(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (wechselMarke() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: t(spracheVon(req), 'server.sicherungGleichzeitig')});\n  }",
     erwartet: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
   {
@@ -5280,8 +5277,8 @@ const RUECKBAUTEN = [
     datei: 'public/app.js',
     // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
     // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
-    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>Jetzt",
-    ersatz: "id=\"auf-los\">Jetzt",
+    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>${tH('karte.jetztLoeschen')}",
+    ersatz: "id=\"auf-los\">${tH('karte.jetztLoeschen')}",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5326,7 +5323,7 @@ const RUECKBAUTEN = [
        der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     datei: 'public/app.js',
-    suche: "      const marke = z.faellt ? '<span class=\"auf-marke weg\">löschen</span>'",
+    suche: "      const marke = z.faellt ? `<span class=\"auf-marke weg\">${tH('karte.loeschen4')}</span>`",
     ersatz: "      const marke = z.faellt ? ''",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5505,7 +5502,7 @@ const RUECKBAUTEN = [
        ihm die Auskunft „noch niemand". */
     nr: '585', name: 'Die leere Durchschnittszelle zeigt wieder gar nichts',
     datei: 'public/app.js',
-    suche: "          a.textContent = '–';\n          a.title = 'Noch nicht bewertet';",
+    suche: "          a.textContent = '–';\n          a.title = t('eintrag.nochNichtBewertet');",
     ersatz: "          a.textContent = '';",
     erwartet: 'Die Sternzeile — 0.21.0'
   },
@@ -5671,9 +5668,9 @@ const RUECKBAUTEN = [
        GENAU DAS IST BEIM BAUEN VON 0.21.0 PASSIERT, und der Pruefstand hat es
        gefunden -- an der Lage mit dem unvollstaendigen eigenen Vokabular. */
     nr: '601', name: 'Die Vorgabe der Oberflaeche kennt das neue Wort nicht',
-    datei: 'public/app.js',
-    suche: "  aufgabeErledigt: 'Erledigt',\n  potenzial: 'Potenzial',",
-    ersatz: "  aufgabeErledigt: 'Erledigt',",
+    datei: 'public/sprachen/de.json',
+    suche: "\"vokabular.potenzial\":",
+    ersatz: "\"vokabular.potenzialWeg\":",
     erwartet: 'Oberflaeche mit eigenem Vokabular'
   },
   {
@@ -5854,8 +5851,8 @@ const RUECKBAUTEN = [
        wenn er richtig raet -- niemand erfuehre, warum die Liste kuerzer ist. */
     nr: '617', name: 'Neben den Statuspillen steht nicht mehr, woher sie kommen',
     datei: 'public/app.js',
-    suche: "  if (vorgabe) {\n    const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');",
-    ersatz: "  if (false) {\n    const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');",
+    suche: "  if (vorgabe) {\n    const woher = zweiteBeschriftung(r1, t('liste.folgtDerSortierung'));",
+    ersatz: "  if (false) {\n    const woher = zweiteBeschriftung(r1, t('liste.folgtDerSortierung'));",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5922,7 +5919,7 @@ const RUECKBAUTEN = [
        genau dann nirgends dran, wenn man sie am wenigsten sieht. */
     nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
     datei: 'public/app.js',
-    suche: "  const woher = statusAusSortierung(state.filters.sort) ? 'folgt der Sortierung' : '';",
+    suche: "  const woher = statusAusSortierung(state.filters.sort) ? t('liste.folgtDerSortierung') : '';",
     ersatz: "  const woher = '';",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5976,24 +5973,24 @@ const RUECKBAUTEN = [
     // Ein Bildschirmtext traegt wieder ein Wort der Verbotsliste (Konzept 4.3).
     nr: '625', name: 'Die Glocke sagt wieder „Blick"',
     datei: 'public/app.js',
-    suche: "    : 'Keine Neuigkeiten');",
+    suche: "    : t('liste.keineNeuigkeiten'));",
     ersatz: "    : 'Nichts Neues seit deinem letzten Blick');",
     erwartet: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
   {
     // Eine Servermeldung nennt wieder den Spaltenwert „Kasten".
     nr: '626', name: 'Die Servermeldung zur Phase eines Kriteriums sagt wieder „Kasten"',
-    datei: 'server.js',
-    suche: "    return res.status(400).json({ error: `Ein Kriterium gehört entweder zu „${vokabular().potenzial}“ ` +",
-    ersatz: "    return res.status(400).json({ error: `Der Kasten muss „${vokabular().potenzial}“ ` +",
+    datei: 'public/sprachen/de.json',
+    suche: "\"server.kriteriumEntwederOder\": \"Ein Kriterium gehört entweder zu „{potenzial}“ oder zu „{bewertungEinzahl}“.\",",
+    ersatz: "\"server.kriteriumEntwederOder\": \"Der Kasten muss „{potenzial}“ oder „{bewertungEinzahl}“ sein.\",",
     erwartet: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
   {
     // Ein rohes Browserfenster kehrt zurueck -- confirm() statt confirmBox().
     nr: '627', name: 'Das Beenden der anderen Sitzungen fragt wieder ueber confirm()',
     datei: 'public/app.js',
-    suche: "      if (!await confirmBox('Alle anderen Sitzungen beenden?', 'Diese Sitzung bleibt bestehen.', 'Beenden')) return;",
-    ersatz: "      if (!confirm('Alle anderen Sitzungen beenden?')) return;",
+    suche: "      if (!await confirmBox(t('karte.alleAnderenSitzungenBeenden2'), t('karte.dieseSitzungBleibtBestehen'), t('karte.beenden'))) return;",
+    ersatz: "      if (!confirm(t('karte.alleAnderenSitzungenBeenden2'))) return;",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
   {
@@ -6001,9 +5998,9 @@ const RUECKBAUTEN = [
        Benutzers, wie bis 0.21.1 an den Wiederherstellungscodes (Stolperstein
        315). Gezaehlt wird, nicht gesucht: die Zeile traegt kein serverKasten(. */
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
-    datei: 'public/app.js',
-    suche: "          Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.</p>",
-    ersatz: "          Passwort vergessen? Auf dem Server hilft <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>",
+    datei: 'public/sprachen/de.json',
+    suche: "Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.\"",
+    ersatz: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node zugang.js passwort <name>.\"",
     erwartet: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -6018,8 +6015,8 @@ const RUECKBAUTEN = [
     // prompt() kehrt zurueck: das fremde Passwort stuende wieder im Klartext.
     nr: '630', name: 'Das fremde Passwort wird wieder ueber prompt() abgefragt',
     datei: 'public/app.js',
-    suche: "          const neu = await neuesPasswortFenster(`Passwort für „${z.username}“ setzen`,",
-    ersatz: "          const neu = prompt(`Passwort für „${z.username}“ setzen`,",
+    suche: "          const neu = await neuesPasswortFenster(t('karte.passwortFuerSetzen', { username: z.username }),",
+    ersatz: "          const neu = prompt(t('karte.passwortFuerSetzen', { username: z.username }),",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
   {
@@ -6033,9 +6030,9 @@ const RUECKBAUTEN = [
   {
     // Die Vorgabe vergisst eines der zwei neuen Woerter -- dreizehn statt vierzehn.
     nr: '632', name: 'Die Vorgabe des Vokabulars vergisst die Mehrzahl der Bewertung',
-    datei: 'server.js',
-    suche: "  bewertungEinzahl: 'Bewertung', bewertungMehrzahl: 'Bewertungen'\n};",
-    ersatz: "  bewertungEinzahl: 'Bewertung'\n};",
+    datei: 'public/sprachen/de.json',
+    suche: "\"vokabular.bewertungMehrzahl\": \"Bewertungen\",",
+    ersatz: "\"vokabular.bewertungMehrzahl\": \"\",",
     erwartet: 'Einstellungen: Vokabular und Schriftgroesse'
   },
   {
@@ -6052,8 +6049,8 @@ const RUECKBAUTEN = [
     // „Rückgängig" schreibt nicht den alten Wert zurueck, sondern noch einmal die Null.
     nr: '634', name: 'Rueckgaengig schreibt die Null statt des alten Werts',
     datei: 'public/app.js',
-    suche: "        toast(`Sterne bei „${r.name}\" entfernt`, false, { text: 'Rückgängig', tu: () => set(alt) });",
-    ersatz: "        toast(`Sterne bei „${r.name}\" entfernt`, false, { text: 'Rückgängig', tu: () => set(0) });",
+    suche: "        toast(t('eintrag.sterneBeiEntfernt', { name: r.name }), false, { text: t('eintrag.rueckgaengig'), tu: () => set(alt) });",
+    ersatz: "        toast(t('eintrag.sterneBeiEntfernt', { name: r.name }), false, { text: t('eintrag.rueckgaengig'), tu: () => set(0) });",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
   {
@@ -6065,21 +6062,268 @@ const RUECKBAUTEN = [
     erwartet: 'Die Sternzeile — 0.22.0'
   },
   {
-    /* EIN FILTER, DER GREIFT UND UNSICHTBAR IST, IST EIN FEHLER: der Kasten
-       bliebe beim Aufbau zu, obwohl ein Tag die Liste kuerzt. */
-    nr: '636', name: 'Der Aufklapper „Weitere Filter" bleibt bei greifendem Tagfilter zu',
+    /* EIN FILTER, DER GREIFT UND UNSICHTBAR IST, IST EIN FEHLER: die Tagzeile
+       bliebe beim Aufbau zu, obwohl ein Tag die Liste kuerzt.
+       MITGEZOGEN, NICHT GELOESCHT -- 0.24.0 (Stolperstein 201): der Aufklapper
+       ist ein Knopf geworden, die Regel dahinter ist dieselbe geblieben. */
+    nr: '636', name: 'Die Tagzeile bleibt bei greifendem Tagfilter zugeklappt',
     datei: 'public/app.js',
-    suche: "  weitere.open = WEITERE_FILTER_OFFEN || f.tagIds.length > 0;",
-    ersatz: "  weitere.open = WEITERE_FILTER_OFFEN;",
-    erwartet: 'Der Aufklapper „Weitere Filter" — 0.22.0'
+    suche: "    (WEITERE_FILTER_OFFEN === null ? f.tagIds.length > 0 : WEITERE_FILTER_OFFEN);",
+    ersatz: "    (WEITERE_FILTER_OFFEN === null ? false : WEITERE_FILTER_OFFEN);",
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
-    // filterZahl() vergisst die Tags hinter dem Aufklapper.
-    nr: '637', name: 'filterZahl() zaehlt die Tags hinter dem Aufklapper nicht mehr',
+    // filterZahl() vergisst die Tags hinter dem Umschalter.
+    nr: '637', name: 'filterZahl() zaehlt die Tags hinter dem Umschalter nicht mehr',
     datei: 'public/app.js',
     suche: "  n += f.tagIds.length;",
     ersatz: "  n += 0;",
-    erwartet: 'Der Aufklapper „Weitere Filter" — 0.22.0'
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* DER UMSCHALTER BELEGT WIEDER EINE EIGENE ZEILE -- 0.24.0. Genau das war
+       der Befund: er kostete den Platz, den er sparen sollte. */
+    nr: '658', name: 'Der Umschalter der Tagzeile steht nicht in der Kategoriezeile',
+    datei: 'public/app.js',
+    suche: "    r2.appendChild(rechts2);",
+    ersatz: "    box.appendChild(rechts2);",
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* ZUGEKLAPPT WAERE DIE ZEILE NUR VERBORGEN UND NICHT FORT -- sie kostete
+       den Platz weiter, und der Befund waere nur zur Haelfte behoben. */
+    nr: '659', name: 'Die Tagzeile wird zugeklappt gebaut statt weggelassen',
+    datei: 'public/app.js',
+    suche: "  if (tagsOffen) {\n    const r3 = row(t('liste.tags2'));",
+    ersatz: "  if (true) {\n    const r3 = row(t('liste.tags2'));",
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* EIN UMSCHALTER FUER EINE LEERE ZEILE -- die zweite Haelfte des Befundes
+       vom 5. September 2026. */
+    nr: '660', name: 'Der Umschalter steht auch da, wenn kein Tag dahinter ist',
+    datei: 'public/app.js',
+    suche: "  const tagsMoeglich = filterTags.length > 0 || f.tagIds.length > 0;",
+    ersatz: "  const tagsMoeglich = true;",
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* EIN LITERAL ZURUECK HINTER `error:` -- genau das, was Bauabschnitt 2
+       ueberall entfernt hat. */
+    nr: '675', name: 'Eine Servermeldung steht wieder als Satz im Quelltext',
+    datei: 'server.js',
+    suche: "  if (!title) return res.status(400).json({ error: t(spracheVon(req), 'server.titelFehlt')});",
+    ersatz: "  if (!title) return res.status(400).json({ error: 'Bitte einen Titel eingeben.' });",
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* EIN DEUTSCHER SATZ ZURUECK IN `throw new Error` IN auth.js -- der blinde
+       Fleck des Waechters, den diese Runde geschlossen hat. */
+    nr: '676', name: 'auth.js wirft wieder einen deutschen Satz',
+    datei: 'auth.js',
+    suche: "  if (!ROLLEN.includes(rolle)) throw new Meldung('anmeldung.rolleFehlt');\n  const sauber = String(name).trim();",
+    ersatz: "  if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');\n  const sauber = String(name).trim();",
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* EIN PROGRAMMIERFEHLER OHNE BILDSCHIRM VERSCHWINDET. Die Liste ist
+       namentlich -- eine Zahl allein liesse offen, welche gemeint sind. */
+    nr: '677', name: 'Ein Programmierfehler ohne Bildschirm faellt weg',
+    datei: 'auth.js',
+    suche: "    throw new Error('Eine Sitzung braucht einen Benutzer.');",
+    ersatz: "    return null;",
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* EINE DER VIER ALTLASTEN VERSCHWINDET AUS DER DATEI, ohne dass jemand die
+       Liste im Pruefstand nachzieht. */
+    nr: '678', name: 'Eine benannte Altlast verschwindet aus der Sprachdatei',
+    datei: 'public/sprachen/de.json',
+    suche: '  "anmeldung.keinZugang": "Es ist noch kein Zugang eingerichtet.",',
+    ersatz: '  "anmeldung.keinZugangX": "Es ist noch kein Zugang eingerichtet.",',
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* UND DIE ANDERE RICHTUNG: eine Altlast wird richtiggestellt, bleibt aber
+       auf der Liste stehen. Dann fuehrt die Liste eine Ausnahme fuer nichts. */
+    nr: '679', name: 'Eine Altlast ist behoben und steht doch noch auf der Liste',
+    datei: 'public/sprachen/de.json',
+    suche: '  "server.verweigertSelbstZugang": "Den eigenen Zugang ändert man unter „Zugang“, nicht hier.",',
+    ersatz: '  "server.verweigertSelbstZugang": "Das eigene Konto ändert man an anderer Stelle.",',
+    erwartet: 'Der Bildschirmtext-Waechter'
+  },
+  {
+    /* DER UEBERSETZER WIRD mail.js NICHT MEHR GEREICHT -- jeder Brief stuende
+       dann als Klammerausdruck da, und der Link waere fort. */
+    nr: '680', name: 'mail.js bekommt den Uebersetzer nicht mehr gereicht',
+    datei: 'server.js',
+    suche: "mail.setzeUebersetzer(t);",
+    ersatz: "void mail.setzeUebersetzer;",
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* UND auth.js EBENSO WENIG -- die zwei Antworten von requireAuth() stuenden
+       als Klammerausdruck da. */
+    nr: '681', name: 'auth.js bekommt den Uebersetzer nicht mehr gereicht',
+    datei: 'server.js',
+    suche: "auth.setzeUebersetzer((req, schluessel, werte) => t(spracheVon(req), schluessel, werte));",
+    ersatz: "void auth.setzeUebersetzer;",
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* DIE VORGABE DES VOKABULARS KOMMT WIEDER AUS DEM QUELLTEXT -- Stolperstein
+       47 in seiner urspruenglichen Form: doppelt gehaltene Vorgaben pruefen
+       sich nur halb. */
+    nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
+    datei: 'server.js',
+    suche: "const vokabularVorgabe = () => Object.fromEntries(\n  Object.entries(SPRACHEN[SPRACH_VORGABE])",
+    ersatz: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vokabularVorgabe = () => Object.fromEntries(\n  Object.entries(SPRACHEN[SPRACH_VORGABE])",
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* EINE BETREFFZEILE ZURUECK IN server.js -- der Text gehoert zur Sache, und
+       zwei Ausfertigungen liefen auseinander. */
+    nr: '683', name: 'Der Betreff eines Briefes verliert seinen Platzhalter',
+    datei: 'public/sprachen/de.json',
+    suche: '  "mail.einladung.betreff": "Dein Zugang zu „{titel}“",',
+    ersatz: '  "mail.einladung.betreff": "Dein Zugang",',
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* DIE TESTMAIL BEKOMMT EINEN LINK, DEN SIE NICHT HAT. */
+    nr: '684', name: 'Die Testmail traegt ploetzlich einen Link',
+    datei: 'public/sprachen/de.json',
+    suche: 'das ist die Testmail aus „{titel}“.',
+    ersatz: 'das ist die Testmail aus „{titel}“: {link}',
+    erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
+  },
+  {
+    /* OHNE _locale GAEBE ES WEDER DATUM NOCH MEHRZAHL -- und die Ladung im
+       Browser bricht ab, statt eine halbe Sprache zu nehmen. */
+    nr: '665', name: 'Die Sprachdatei verliert ihren Kopf _locale',
+    datei: 'public/sprachen/de.json',
+    suche: '  "_locale": "de-DE",',
+    ersatz: '  "_hinweis": "de-DE",',
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* EIN WERT MIT SPITZER KLAMMER. Der Helfer maskiert den TEXT ausdruecklich
+       nicht -- er kommt aus der Datei und traegt kein HTML. Traegt er doch
+       eines, faellt genau diese Zusage. */
+    nr: '666', name: 'Ein Wert der Sprachdatei traegt eine spitze Klammer',
+    datei: 'public/sprachen/de.json',
+    suche: '"server.fehlerUnbekannt": "Unbekannter Fehler"',
+    ersatz: '"server.fehlerUnbekannt": "<b>Unbekannter Fehler</b>"',
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* tH() MASKIERT NICHT MEHR -- Stolperstein 18 waere damit wieder offen:
+       ein Vokabelwort des Admins liefe roh in innerHTML. */
+    nr: '667', name: 'tH() maskiert die eingesetzten Werte nicht mehr',
+    datei: 'public/app.js',
+    suche: "    return maskieren ? esc(String(wert)) : String(wert);",
+    ersatz: "    return String(wert);",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* EIN UNBEKANNTER PLATZHALTER WIRD GELEERT STATT STEHENZUBLEIBEN. Ein
+       leerer Fleck ist kein Fund -- `{sache}` am Bildschirm ist einer. */
+    nr: '668', name: 'Ein unbekannter Platzhalter verschwindet still',
+    datei: 'public/app.js',
+    suche: "    if (wert === undefined) return ganz;",
+    ersatz: "    if (wert === undefined) return '';",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DIE MEHRZAHL WAEHLT WIEDER `n === 1` STATT Intl.PluralRules. Auf Deutsch
+       faellt beides zusammen -- die Regel steht trotzdem falsch da, und die
+       naechste Sprache bricht daran. */
+    nr: '669', name: 'Die Mehrzahl waehlt wieder ueber n === 1',
+    datei: 'public/app.js',
+    suche: "  return PLURAL.select(werte.n) === 'one' ? roh.eins : roh.andere;",
+    ersatz: "  return werte.n === 1 ? roh.eins : roh.andere;",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DER RUECKFALL AUF DEUTSCH FAELLT WEG. In dieser Runde ist er leer -- und
+       genau deshalb muss er belegt sein, sonst faellt sein Wegfall erst in
+       Stufe 2 auf, wo er gebraucht wird. */
+    nr: '670', name: 'Der Rueckfall auf Deutsch faellt weg',
+    datei: 'public/app.js',
+    suche: "  const roh = TEXTE[schluessel] !== undefined ? TEXTE[schluessel] : TEXTE_DE[schluessel];",
+    ersatz: "  const roh = TEXTE[schluessel];",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* boot() ZEICHNET WEITER, OBWOHL DIE SPRACHDATEI FEHLT -- die Oberflaeche
+       stuende dann voller Klammern da (Entscheidung A1). */
+    nr: '671', name: 'boot() haelt bei fehlender Sprachdatei nicht an',
+    datei: 'public/app.js',
+    suche: "    app.textContent = 'Die Sprachdatei fehlt.';\n    return;",
+    ersatz: "    app.textContent = 'Die Sprachdatei fehlt.';",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DER SERVER STARTET AUCH OHNE de.json. Eine Installation ohne Sprache ist
+       keine -- jede Meldung stuende als Klammerausdruck da. */
+    nr: '672', name: 'Der Server startet auch ohne de.json',
+    datei: 'server.js',
+    suche: "  if (!raus.de) throw new Error(",
+    ersatz: "  if (false) throw new Error(",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* api() SCHREIBT SEINEN RUECKFALLSATZ WIEDER IN DEN QUELLTEXT. */
+    nr: '673', name: 'api() traegt seinen Rueckfallsatz wieder im Quelltext',
+    datei: 'public/app.js',
+    suche: "    let m = t('fehler.serverStatus', { status: res.status });",
+    ersatz: "    let m = `Der Server meldet einen Fehler (${res.status}).`;",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DER FEHLER-HANDLER SAGT SEINEN SATZ WIEDER SELBST. */
+    nr: '674', name: 'Der Fehler-Handler traegt seinen Satz wieder im Quelltext',
+    datei: 'server.js',
+    suche: "  if (rang >= 500) return res.status(500).json({ error: t(sprache, 'server.fehlerAllgemein') });",
+    ersatz: "  if (rang >= 500) return res.status(500).json({ error: 'Auf dem Server ist ein Fehler aufgetreten.' });",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DIE HILFSLINIE DER ZEITLEISTE FAELLT ZURUECK AUF DIE ALLGEMEINE
+       RANDFARBE -- 1,02 : 1 gegen den hellen Grund, also unsichtbar. */
+    nr: '661', name: 'Die Hilfslinie der Zeitleiste ist im hellen Schema wieder unsichtbar',
+    datei: 'public/style.css',
+    suche: "  --zl-linie: var(--line-hover);",
+    ersatz: "  --zl-linie: var(--line-2);",
+    erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
+  },
+  {
+    /* UND DIE JAHRESZAHL WIRD WIEDER --faint: 3,46 : 1 bei 0,63 rem
+       Festbreite, und das Farbkonzept sagt, dass --faint nie tragender Text
+       ist. */
+    nr: '662', name: 'Die Jahreszahl der Zeitleiste faellt unter die Latte fuer Text',
+    datei: 'public/style.css',
+    suche: "  --zl-jahr: var(--muted);",
+    ersatz: "  --zl-jahr: var(--faint);",
+    erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
+  },
+  {
+    /* DAS DUNKLE SCHEMA AENDERT EINEN BILDPUNKT -- und genau das darf es
+       nicht. Die Regel steht in jedem Auftrag seit 0.23.0. */
+    nr: '663', name: 'Das dunkle Schema bekommt einen anderen Wert fuer die Zeitleiste',
+    datei: 'public/style.css',
+    suche: "  --zl-mitte: var(--line);\n  --zl-jahr: var(--faint);",
+    ersatz: "  --zl-mitte: var(--line-hover);\n  --zl-jahr: var(--faint);",
+    erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
+  },
+  {
+    /* DIE REGEL LIEST WIEDER DIE ALLGEMEINE RANDFARBE. Die Variable stuende
+       tadellos da und faerbte nichts. */
+    nr: '664', name: 'Die Hilfslinie liest die allgemeine Randfarbe statt ihrer eigenen',
+    datei: 'public/style.css',
+    suche: ".zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--zl-linie); }",
+    ersatz: ".zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }",
+    erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {
     // Der Loeschknopf steht wieder fuer jeden -- die Fehlermeldung auf Vorrat (E10).
@@ -6093,16 +6337,16 @@ const RUECKBAUTEN = [
     // Der Klartextschluessel steht wieder vor jedem Admin (E13).
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     datei: 'public/app.js',
-    suche: "          : (EIGENTUEMER\n            ? `<div class=\"warn-box\"><strong>Der Schlüssel liegt neben der Datenbank</strong>",
-    ersatz: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>Der Schlüssel liegt neben der Datenbank</strong>",
+    suche: "          : (EIGENTUEMER\n            ? `<div class=\"warn-box\"><strong>${tH('karte.derSchluesselLiegtNebenDer')}</strong>",
+    ersatz: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>${tH('karte.derSchluesselLiegtNebenDer')}</strong>",
     erwartet: 'Die Rollenweichen — 0.22.0'
   },
   {
     // Der Benutzer liest an „Kategorien" wieder, wie man umbenennt und loescht.
     nr: '640', name: 'Die Karte Kategorien erklaert dem Benutzer wieder die Werkzeuge des Admins',
     datei: 'public/app.js',
-    suche: "        <p class=\"desc\">${ADMIN\n          ? `Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)} erhalten und",
-    ersatz: "        <p class=\"desc\">${true\n          ? `Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)} erhalten und",
+    suche: "        <p class=\"desc\">${ADMIN\n          ? tH('karte.umbenennenOderLoeschenBeimLoeschen')",
+    ersatz: "        <p class=\"desc\">${true\n          ? tH('karte.umbenennenOderLoeschenBeimLoeschen')",
     erwartet: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -6211,8 +6455,8 @@ const RUECKBAUTEN = [
        Kopf, einmal in Klammern und einmal mit „gewichtet" (Stolperstein 318). */
     nr: '651', name: 'Die Kopfzahl steht wieder zweimal da',
     datei: 'public/app.js',
-    suche: "    case 'potenzial': return item.potenzialRating ? '' : 'noch nicht eingeschätzt';",
-    ersatz: "    case 'potenzial': return item.potenzialRating\n      ? '⌀ ' + item.potenzialRating.toFixed(1).replace('.', ',') : 'noch nicht eingeschätzt';",
+    suche: "    case 'potenzial': return item.potenzialRating ? '' : t('liste.nochNichtEingeschaetzt');",
+    ersatz: "    case 'potenzial': return item.potenzialRating\n      ? '⌀ ' + zahl(item.potenzialRating, 1) : t('liste.nochNichtEingeschaetzt');",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
@@ -6239,7 +6483,7 @@ const RUECKBAUTEN = [
        -- die Frage aus dem Betrieb bliebe wieder unbeantwortet. */
     nr: '654', name: 'Die Kopfzahl sagt nicht mehr, wessen Zahl sie ist',
     datei: 'public/app.js',
-    suche: "        b.title = 'Der Durchschnitt über alle Benutzer — nicht nur der eigene. Wie diese Zahl zustande kommt';",
+    suche: "        b.title = t('eintrag.derDurchschnittUeberAlleBenutzer');",
     ersatz: "        b.title = 'Wie diese Zahl zustande kommt';",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
@@ -6299,6 +6543,99 @@ const RUECKBAUTEN = [
     suche: "    schwanz: ausgabe.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
     ersatz: '    schwanz: []',
     erwartet: 'Die Gegenproben greifen'
+  },
+  /* ---- Die sieben Waechter der Sprachdatei -- 0.24.0 ------------------
+     SIEBEN FRAGEN, NEUN RUECKBAUTEN. Jede der neuen Zusicherungen bekommt
+     genau den Fall, gegen den sie gebaut ist -- eine Zusicherung ohne
+     Gegenprobe ist eine Behauptung (Projektstand, Abschnitt 12). */
+  {
+    /* EINE ZWEITE SPRACHDATEI MIT GANZ ANDEREN SCHLUESSELN. package.json ist
+       lesbares JSON und traegt kein einziges `karte.`; die Deckungsprobe muss
+       das sehen -- und die Formatprobe die fehlende Locale. */
+    nr: '685', name: 'Eine zweite Sprachdatei traegt andere Schluessel',
+    datei: 'package.json',
+    kopie: 'public/sprachen/en.json',
+    erwartet: 'Die sieben Waechter der Sprachdatei — 0.24.0'
+  },
+  {
+    /* EIN SCHLUESSEL WIRD UMBENANNT. Danach steht in der Datei einer, den
+       niemand ruft, und im Code einer, den die Datei nicht kennt -- beide
+       Haelften der Verwendungsprobe auf einmal. */
+    nr: '686', name: 'Ein Schluessel der Sprachdatei heisst anders als im Code',
+    datei: 'public/sprachen/de.json',
+    suche: '"liste.oeffnen": "\u00d6ffnen",',
+    ersatz: '"liste.oeffnen2": "\u00d6ffnen",',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* EIN PLATZHALTER HEISST BEINAHE WIE EIN VOKABELWORT. `{sache}` gibt es
+       nicht -- es heisst `{sacheEinzahl}`; der Helfer laesst das Unbekannte
+       ausdruecklich stehen, und am Bildschirm stuende woertlich „{sache}". */
+    nr: '687', name: 'Ein Platzhalter heisst beinahe wie ein Vokabelwort',
+    datei: 'public/sprachen/de.json',
+    suche: '"liste.gefundenIn": "Gefunden in: {quelle}",',
+    ersatz: '"liste.gefundenIn": "Gefunden in: {sache}",',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* EINE MEHRZAHLFORM VERLIERT IHRE EINZAHL. Der Helfer waehlt dann
+       `undefined` und setzt es am Bildschirm ein. */
+    nr: '688', name: 'Einer Mehrzahlform fehlt die Einzahl',
+    datei: 'public/sprachen/de.json',
+    suche: '"liste.kommentareZahl": {\n    "eins": "{n} Kommentar",\n    "andere": "{n} Kommentare"\n  },',
+    ersatz: '"liste.kommentareZahl": {\n    "andere": "{n} Kommentare"\n  },',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* DIE DEUTSCHE REGEL KEHRT IN DEN CODE ZURUECK: `n === 1 ?` waehlt
+       wieder zwei Saetze, statt Intl.PluralRules zu fragen. */
+    nr: '689', name: 'Eine Mehrzahl waehlt ihre Form wieder ueber `=== 1 ?`',
+    datei: 'public/app.js',
+    suche: 'const vSache = (n) => mehrzahl(n, V.sacheEinzahl, V.sacheMehrzahl);',
+    ersatz: 'const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* EIN DEUTSCHER SATZ BLEIBT IM QUELLTEXT STEHEN. Genau der Fall, gegen
+       den diese ganze Runde gebaut ist -- und die Restliste nennt ihn beim
+       Namen, statt bloss eine Zahl zu zeigen. */
+    nr: '690', name: 'Ein deutscher Satz bleibt wieder in app.js stehen',
+    datei: 'public/app.js',
+    suche: "      knopf.textContent = t('eintrag.wenigerAnzeigen');",
+    ersatz: "      knopf.textContent = 'Weniger anzeigen, bitte sehr';",
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* EINE LOCALE, DIE ES NICHT GIBT. Ohne sie rechnet Intl mit der Sprache
+       des Servers weiter -- still, und das Datum sieht ploetzlich anders aus.
+       `xx-XX` UND NICHT `de-XYZ`: das zweite ist kein gueltiges Sprachetikett,
+       und `new Intl.PluralRules('de-XYZ')` wirft schon beim Start des Servers.
+       Ein Rueckbau, der den Lauf abreisst, belegt nichts -- gesucht ist die
+       ROTE ZEILE, nicht der Absturz. `xx-XX` ist wohlgeformt und trotzdem
+       keiner Sprache zugeordnet: `supportedLocalesOf` gibt nichts zurueck. */
+    nr: '691', name: 'Die Sprachdatei nennt eine Locale, die Intl nicht kennt',
+    datei: 'public/sprachen/de.json',
+    suche: "\"_locale\": \"de-DE\",",
+    ersatz: "\"_locale\": \"xx-XX\",",
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* UND DIE RUECKFALLPROBE: ein Schluessel, den die Liste ruft, fehlt in
+       der Datei -- am Bildschirm steht dann \u27e6liste.laedt\u27e7. */
+    nr: '692', name: 'Ein Schluessel der Liste fehlt und steht als \u27e6\u2026\u27e7 am Bildschirm',
+    datei: 'public/sprachen/de.json',
+    suche: '"liste.laedt":',
+    ersatz: '"liste.laedtNicht":',
+    erwartet: 'Oberflaeche'
+  },
+  {
+    /* DASSELBE IM SYSTEMBEREICH -- er hat seine eigene Gruppe und seinen
+       eigenen Durchgang ueber alle fuenf Abschnitte. */
+    nr: '693', name: 'Ein Schluessel des Systembereichs fehlt und steht als \u27e6\u2026\u27e7 da',
+    datei: 'public/sprachen/de.json',
+    suche: '"karte.persoenlich":',
+    ersatz: '"karte.persoenlichNicht":',
+    erwartet: 'Der Systembereich nach Rolle'
   }
 ];
 
