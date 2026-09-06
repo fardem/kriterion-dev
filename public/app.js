@@ -1444,12 +1444,20 @@ function begrenzeWolke(box, zeilen) {
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
 const wolkeOffen = { uebersicht: false, detail: false };
-/* OB DER AUFKLAPPER „Weitere Filter" OFFEN STEHT -- 0.22.0 (E8). Nur fuer die
-   Dauer der Sitzung, wie wolkeOffen: keine Einstellung und kein Feld in
-   `filters`. Beim Aufbau steht er ausserdem offen, sobald ein Tagfilter
-   greift -- das entscheidet drawFilters() an Ort und Stelle, nicht dieser
-   Merker. */
-let WEITERE_FILTER_OFFEN = false;
+/* OB DIE TAGZEILE OFFEN STEHT -- 0.22.0 (E8), umgebaut in 0.24.0
+   (Bauabschnitt 0.2). Nur fuer die Dauer der Sitzung, wie wolkeOffen: keine
+   Einstellung und kein Feld in `filters`.
+   DREI WERTE UND NICHT ZWEI, und der dritte ist der Grund: `null` heisst „der
+   Benutzer hat in dieser Sitzung noch nicht geklickt". Nur dann entscheidet
+   der Aufbau, und er entscheidet nach der Regel aus 0.22.0 -- greift ein
+   Tagfilter, steht die Zeile offen.
+   WARUM NICHT WEITER `WEITERE_FILTER_OFFEN || f.tagIds.length > 0`: bis 0.24.0
+   trug ein <details> den Zustand, und ein Klick darauf schloss es ohne
+   Neuzeichnen. Jetzt zeichnet der Klick die Leiste neu -- die Oder-Verbindung
+   haette die Zeile im selben Atemzug wieder aufgezogen, und der Knopf saehe
+   kaputt aus. Der Filter wird dabei nicht unsichtbar: seine Zahl steht am
+   Umschalter selbst („Tags (2)"), und genau dafuer ist sie da. */
+let WEITERE_FILTER_OFFEN = null;
 
 // Wer die Wolke der Detailansicht neu zeichnen kann. Sie laesst sich nur
 // messen, wenn ihr Block offen ist. Modulweit statt als Ereignis am Dokument:
@@ -2949,13 +2957,14 @@ function drawFilters() {
   const f = state.filters;
   const redraw = () => { saveFilters(); drawFilters(); drawBody(); };
 
-  // `ziel`: wohin die Zeile kommt -- die Leiste selbst oder, seit 0.22.0,
-  // der Aufklapper „Weitere Filter" fuer die Tagzeile.
-  const row = (label, ziel = box) => {
+  /* JEDE ZEILE KOMMT IN DIE LEISTE. Bis 0.24.0 nahm dieser Helfer ein Ziel
+     entgegen, weil die Tagzeile in einem <details> steckte; der ist fort
+     (Bauabschnitt 0.2), und mit ihm der zweite mögliche Ort. */
+  const row = (label) => {
     const r = document.createElement('div');
     r.className = 'frow';
     r.innerHTML = `<span class="eyebrow">${label}</span>`;
-    ziel.appendChild(r);
+    box.appendChild(r);
     return r;
   };
   /* EINE ZWEITE BESCHRIFTUNG IN DERSELBEN ZEILE -- und sie ist das Gegenstueck
@@ -3114,117 +3123,170 @@ function drawFilters() {
     b.onclick = () => katUm(KATEGORIE_OHNE);
     g2.appendChild(b);
   }
-  r2.appendChild(g2);
-
-  // Tags
+  /* ---- DER UMSCHALTER DER TAGZEILE -- 0.24.0, Bauabschnitt 0.2.
+     Er sass bis hierher als <summary> eines <details> in einer EIGENEN Zeile
+     zwischen Kategorie und Sortieren (E8 der Runde 0.22.0) -- und kostete
+     damit genau den Platz, den er sparen sollte: zugeklappt eine
+     Beschriftungszeile ANSTELLE der Tagzeile, aufgeklappt beide zusammen,
+     also eine Zeile MEHR als vor 0.22.0. Befund vom 5. September 2026, am
+     Wirt, mit Bild.
+     JETZT AM RECHTEN ENDE DER KATEGORIEZEILE, in derselben Bauform wie
+     „Filter zurücksetzen (n)" in der Sortierzeile: ein link-btn mit Winkel in
+     einem .frow-rechts-weit, also mit selbsttaetiger Aussenkante. Er belegt in
+     KEINEM der beiden Zustaende eine eigene Zeile. Auf dem Telefon steht die
+     Zeile in der Spalte, und er bricht unter die Kategoriepillen -- das kostet
+     dort eine kurze Zeile, zugeklappt wie aufgeklappt, und immer noch weniger
+     als vorher.
+     KEIN <details> MEHR: die Zusammenfassung eines <details> laesst sich nicht
+     in eine fremde Zeile setzen. Zustand traegt jetzt `aria-expanded`; Enter,
+     Leertaste und Fokusring bringt ein <button> von Haus aus mit.
+     „TAGS" UND NICHT „WEITERE FILTER": dahinter steht allein die Tagzeile, und
+     ein Text sagt, was der Klick tut (S1). Der Betreiber hat den alten Namen
+     selbst als „Weitere Tag-Filter" gelesen -- er versprach mehr, als dahinter
+     lag. Daneben die Zahl der greifenden Tagfilter, wenn es welche gibt.
+     ER STEHT NUR DA, WENN ETWAS DAHINTER IST, und das ist die zweite Haelfte
+     des Befundes („und blendet zusaetzlich nicht die Tags ein"). Nachgestellt
+     am 5. September 2026 in einem echten Browser, beide Schemata: die Tags
+     erscheinen -- SOLANGE welche an einem Eintrag haengen. Haengt keiner,
+     klappt die Zeile auf und zeigt „Noch keine Tags", denn die Wolke filtert
+     auf usage_count > 0. Ein Umschalter fuer eine leere Zeile ist ein
+     Bedienelement fuer nichts -- dieselbe Ueberlegung wie bei der Pille
+     „Ohne" eine Zeile hoeher, und dieselbe wie beim Verweis „mehr" darunter.
+     GREIFT EIN TAGFILTER, STEHT ER TROTZDEM DA: sonst verschwaende der eigene
+     Filter unter der Hand. */
   // Nur Tags mit mindestens einem Eintrag: Tags, die ausschliesslich an
   // Testtagen haengen, lieferten hier null Treffer. Die Suche findet sie
   // trotzdem.
-  /* ---- „Weitere Filter": DIE TAGZEILE HINTER EINEM AUFKLAPPER -- 0.22.0, E8.
-     Allein die Tagzeile wandert dahinter -- sie kostet den Platz (Umschalter,
-     bis zu drei Zeilen Marken, „mehr" und „Tags zurücksetzen"); die Ablehnung
-     bleibt in der Statuszeile.
-     ZWEI REGELN, KEINE VERHANDELBAR: greift ein Tagfilter, steht der Kasten
-     beim Aufbau OFFEN -- ein Filter, der die Liste kuerzt und dabei unsichtbar
-     ist, ist ein Fehler und kein Aufraeumen (dieselbe Ueberlegung wie beim
-     abgeleiteten Status, 0.21.1). Und filterZahl() zaehlt ihn weiter mit.
-     Ein <details> und kein eigener Schalter: der Browser traegt Zustand und
-     Tastatur, und die Tagzeile bleibt eine .frow wie ihre Nachbarn. */
-  const weitere = document.createElement('details');
-  weitere.className = 'weitere-filter';
-  weitere.id = 'f-weitere';
-  weitere.open = WEITERE_FILTER_OFFEN || f.tagIds.length > 0;
-  weitere.innerHTML = `<summary>Weitere Filter</summary>`;
-  weitere.addEventListener('toggle', () => { WEITERE_FILTER_OFFEN = weitere.open; });
-  box.appendChild(weitere);
-  const r3 = row('Tags', weitere);
-
-  // Umschalter der Verknuepfung, direkt neben der Beschriftung: er macht
-  // sichtbar, warum ein zweiter Tag das Ergebnis verkleinert. Gedaempft,
-  // solange weniger als zwei Tags gewaehlt sind.
-  const modusBox = document.createElement('div');
-  modusBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' ruht');
-  [['and', 'Und', `Nur ${V.sacheMehrzahl} mit allen gewählten Tags`],
-   ['or', 'Oder', `${V.sacheMehrzahl} mit mindestens einem der gewählten Tags`]]
-    .forEach(([wert, text, erklaerung]) => {
-      const b = document.createElement('button');
-      b.className = 'pill pill-mode' + (f.tagMode === wert ? ' on' : '');
-      b.textContent = text;
-      b.title = erklaerung;
-      b.dataset.mode = wert;
-      b.onclick = () => { f.tagMode = wert; redraw(); };
-      modusBox.appendChild(b);
-    });
-  r3.appendChild(modusBox);
-
-  const g3 = document.createElement('div'); g3.className = 'pills cloud';
   const filterTags = state.tags.filter(t => t.usage_count > 0);
-  if (!filterTags.length) g3.innerHTML = `<span class="hint">Noch keine Tags</span>`;
-  // Welche Tags brächten null Treffer, wenn man sie zusätzlich anklickt? Nur
-  // im UND-Modus eine Frage -- im ODER-Modus erweitert jeder Klick.
-  const leerlauf = new Set();
-  if (f.tagMode === 'and' && f.tagIds.length) {
-    const sichtbar = visibleItems();
-    filterTags.forEach(t => {
-      if (f.tagIds.includes(t.id)) return;
-      if (!sichtbar.some(i => (i.tags || []).some(x => x.id === t.id))) leerlauf.add(t.id);
+  const tagsMoeglich = filterTags.length > 0 || f.tagIds.length > 0;
+  /* GREIFT EIN TAGFILTER, STEHT DIE ZEILE BEIM AUFBAU OFFEN -- 0.22.0, und die
+     Regel bleibt woertlich: ein Filter, der die Liste kuerzt und dabei
+     unsichtbar ist, ist ein Fehler und kein Aufraeumen (dieselbe Ueberlegung
+     wie beim abgeleiteten Status, 0.21.1). Und filterZahl() zaehlt ihn weiter
+     mit. „Beim Aufbau" heisst: solange niemand geklickt hat -- danach gilt der
+     Klick, und die Zahl am Umschalter haelt den Filter sichtbar. */
+  const tagsOffen = tagsMoeglich &&
+    (WEITERE_FILTER_OFFEN === null ? f.tagIds.length > 0 : WEITERE_FILTER_OFFEN);
+  if (tagsMoeglich) {
+    const rechts2 = document.createElement('div');
+    rechts2.className = 'frow-rechts frow-rechts-weit';
+    const schalter = document.createElement('button');
+    schalter.className = 'link-btn tag-schalter';
+    schalter.id = 'f-weitere';
+    schalter.setAttribute('aria-expanded', String(tagsOffen));
+    if (tagsOffen) schalter.setAttribute('aria-controls', 'f-tagzeile');
+    /* DER TEXT STEHT IN EINEM EIGENEN ELEMENT, und das ist keine Zierde: der
+       link-btn unterstreicht, und ein Strich unter dem Winkel saehe aus wie
+       ein zweiter Winkel. Den Strich traegt deshalb das Wort. */
+    const schalterText = document.createElement('span');
+    schalterText.textContent = f.tagIds.length ? `Tags (${f.tagIds.length})` : 'Tags';
+    schalter.appendChild(schalterText);
+    schalter.onclick = () => { WEITERE_FILTER_OFFEN = !tagsOffen; drawFilters(); };
+    rechts2.appendChild(schalter);
+    r2.appendChild(g2);
+    r2.appendChild(rechts2);
+  } else {
+    r2.appendChild(g2);
+  }
+
+  // Tags
+  if (tagsOffen) {
+    const r3 = row('Tags');
+    /* ZUGEKLAPPT IST DIE ZEILE GANZ WEG und nicht bloss verborgen: eine leere
+       Zeile im Fluss kostete genau den Platz, um den es in diesem Befund geht.
+       Die Kennung haengt am `aria-controls` des Umschalters. */
+    r3.id = 'f-tagzeile';
+
+    // Umschalter der Verknuepfung, direkt neben der Beschriftung: er macht
+    // sichtbar, warum ein zweiter Tag das Ergebnis verkleinert. Gedaempft,
+    // solange weniger als zwei Tags gewaehlt sind.
+    const modusBox = document.createElement('div');
+    modusBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' ruht');
+    [['and', 'Und', `Nur ${V.sacheMehrzahl} mit allen gewählten Tags`],
+     ['or', 'Oder', `${V.sacheMehrzahl} mit mindestens einem der gewählten Tags`]]
+      .forEach(([wert, text, erklaerung]) => {
+        const b = document.createElement('button');
+        b.className = 'pill pill-mode' + (f.tagMode === wert ? ' on' : '');
+        b.textContent = text;
+        b.title = erklaerung;
+        b.dataset.mode = wert;
+        b.onclick = () => { f.tagMode = wert; redraw(); };
+        modusBox.appendChild(b);
+      });
+    r3.appendChild(modusBox);
+
+    const g3 = document.createElement('div'); g3.className = 'pills cloud';
+    /* KEIN „Noch keine Tags" MEHR: die Zeile steht ueberhaupt nur da, wenn es
+       einen Tag gibt oder ein Tagfilter greift (siehe `tagsMoeglich` oben). Der
+       eine Fall, der bleibt, ist der zweite: ein Filter auf einen Tag, dessen
+       letzter Eintrag gerade weggefallen ist. Dann ist die Wolke leer, und die
+       Zeile traegt „Tags zurücksetzen" -- der Weg heraus. */
+    // Welche Tags brächten null Treffer, wenn man sie zusätzlich anklickt? Nur
+    // im UND-Modus eine Frage -- im ODER-Modus erweitert jeder Klick.
+    const leerlauf = new Set();
+    if (f.tagMode === 'and' && f.tagIds.length) {
+      const sichtbar = visibleItems();
+      filterTags.forEach(t => {
+        if (f.tagIds.includes(t.id)) return;
+        if (!sichtbar.some(i => (i.tags || []).some(x => x.id === t.id))) leerlauf.add(t.id);
+      });
+    }
+    sortiereWolke(filterTags, new Set(f.tagIds)).forEach(t => {
+      const b = document.createElement('button');
+      const gewaehlt = f.tagIds.includes(t.id);
+      b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(t.id) ? ' leer' : '');
+      b.textContent = t.name;
+      if (leerlauf.has(t.id)) b.title = 'Mit der aktuellen Auswahl keine Treffer';
+      b.onclick = () => {
+        f.tagIds = gewaehlt ? f.tagIds.filter(x => x !== t.id) : [...f.tagIds, t.id];
+        redraw();
+      };
+      g3.appendChild(b);
     });
+    r3.appendChild(g3);
+    // Eine Zeile, Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
+    // abgeschnitten ist.
+    const beschnitten = begrenzeWolke(g3, wolkeOffen.uebersicht ? 0 : 1);
+    /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche Geschwister
+       -- und seit 0.13.0 ist das wieder die natuerliche Reihenfolge: "mehr"
+       gehoert hinter das, was es aufklappt.
+       WARUM DAS FRUEHER NICHT GING: der Kasten trug `margin-left: auto`. Eine
+       selbsttaetige Aussenkante frisst den gesamten freien Platz der ersten
+       Zeile -- die Wolke KANN daneben nicht stehen, sie rutscht immer darunter,
+       und die Tagzeile kostete zwei Zeilen statt einer. Jetzt ist die Wolke ein
+       Flex-Element (`flex: 1 1 0`, `min-width: 0`) und nimmt den Platz, der
+       uebrig ist; die Verweise stehen daneben.
+       DER PREIS IST BEKANNT UND ANGENOMMEN: die Wolke verliert rund 230 px, also
+       etwa drei sichtbare Tags. "mehr" faengt sie -- und die erste Zeile war
+       vorher zu drei Vierteln leer.
+       GEMESSEN WIRD DIE WOLKE VORHER: begrenzeWolke() braucht sie im Dokument,
+       und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
+       ZUSAMMEN IN EINEM KASTEN und nicht zwei einzelne Geschwister: die beiden
+       gehoeren zusammen und sollen bei einem Umbruch nicht auseinanderfallen.
+       KEIN AUSGERECHNETER FREIRAUM. Die Wolke wird beschnitten (`max-height`,
+       `overflow: hidden`), ein Verweis IN ihr wuerde mitabgeschnitten -- und
+       eine feste Breite daneben ist genau der Fehler, an dem 0.12.1 schon einmal
+       hing (`right: 92px`, Befund A). Die Instanz stellt die Schrift von 80 bis
+       120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
+    const rechts = document.createElement('div');
+    rechts.className = 'frow-rechts';
+    if (beschnitten || wolkeOffen.uebersicht) {
+      const m = document.createElement('button');
+      m.className = 'link-btn';
+      m.textContent = wolkeOffen.uebersicht ? 'weniger' : 'mehr';
+      m.onclick = () => { wolkeOffen.uebersicht = !wolkeOffen.uebersicht; drawFilters(); };
+      rechts.appendChild(m);
+    }
+    if (f.tagIds.length) {
+      const c = document.createElement('button');
+      c.className = 'link-btn'; c.textContent = 'Tags zurücksetzen';
+      c.onclick = () => { f.tagIds = []; redraw(); };
+      rechts.appendChild(c);
+    }
+    // Ein leerer Kasten bliebe als Flex-Element stehen und naehme der Wolke
+    // eine Luecke weg.
+    if (rechts.childElementCount) r3.appendChild(rechts);
   }
-  sortiereWolke(filterTags, new Set(f.tagIds)).forEach(t => {
-    const b = document.createElement('button');
-    const gewaehlt = f.tagIds.includes(t.id);
-    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(t.id) ? ' leer' : '');
-    b.textContent = t.name;
-    if (leerlauf.has(t.id)) b.title = 'Mit der aktuellen Auswahl keine Treffer';
-    b.onclick = () => {
-      f.tagIds = gewaehlt ? f.tagIds.filter(x => x !== t.id) : [...f.tagIds, t.id];
-      redraw();
-    };
-    g3.appendChild(b);
-  });
-  r3.appendChild(g3);
-  // Eine Zeile, Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
-  // abgeschnitten ist.
-  const beschnitten = begrenzeWolke(g3, wolkeOffen.uebersicht ? 0 : 1);
-  /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche Geschwister
-     -- und seit 0.13.0 ist das wieder die natuerliche Reihenfolge: "mehr"
-     gehoert hinter das, was es aufklappt.
-     WARUM DAS FRUEHER NICHT GING: der Kasten trug `margin-left: auto`. Eine
-     selbsttaetige Aussenkante frisst den gesamten freien Platz der ersten
-     Zeile -- die Wolke KANN daneben nicht stehen, sie rutscht immer darunter,
-     und die Tagzeile kostete zwei Zeilen statt einer. Jetzt ist die Wolke ein
-     Flex-Element (`flex: 1 1 0`, `min-width: 0`) und nimmt den Platz, der
-     uebrig ist; die Verweise stehen daneben.
-     DER PREIS IST BEKANNT UND ANGENOMMEN: die Wolke verliert rund 230 px, also
-     etwa drei sichtbare Tags. "mehr" faengt sie -- und die erste Zeile war
-     vorher zu drei Vierteln leer.
-     GEMESSEN WIRD DIE WOLKE VORHER: begrenzeWolke() braucht sie im Dokument,
-     und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
-     ZUSAMMEN IN EINEM KASTEN und nicht zwei einzelne Geschwister: die beiden
-     gehoeren zusammen und sollen bei einem Umbruch nicht auseinanderfallen.
-     KEIN AUSGERECHNETER FREIRAUM. Die Wolke wird beschnitten (`max-height`,
-     `overflow: hidden`), ein Verweis IN ihr wuerde mitabgeschnitten -- und
-     eine feste Breite daneben ist genau der Fehler, an dem 0.12.1 schon einmal
-     hing (`right: 92px`, Befund A). Die Instanz stellt die Schrift von 80 bis
-     120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
-  const rechts = document.createElement('div');
-  rechts.className = 'frow-rechts';
-  if (beschnitten || wolkeOffen.uebersicht) {
-    const m = document.createElement('button');
-    m.className = 'link-btn';
-    m.textContent = wolkeOffen.uebersicht ? 'weniger' : 'mehr';
-    m.onclick = () => { wolkeOffen.uebersicht = !wolkeOffen.uebersicht; drawFilters(); };
-    rechts.appendChild(m);
-  }
-  if (f.tagIds.length) {
-    const c = document.createElement('button');
-    c.className = 'link-btn'; c.textContent = 'Tags zurücksetzen';
-    c.onclick = () => { f.tagIds = []; redraw(); };
-    rechts.appendChild(c);
-  }
-  // Ein leerer Kasten bliebe als Flex-Element stehen und naehme der Wolke
-  // eine Luecke weg.
-  if (rechts.childElementCount) r3.appendChild(rechts);
 
   /* SORTIEREN UND ANSICHTEN TEILEN SICH EINE ZEILE -- gemessen brauchen sie
      322 und 237 px von 1232, sie passen mit Abstand.

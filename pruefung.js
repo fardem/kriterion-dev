@@ -21757,7 +21757,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
      Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
      behauptet. */
-  /* 649 SEIT 0.22.1: vierzehn neue (642 bis 655) -- zehn fuer die fuenf Gesten
+  /* 656 SEIT 0.24.0: sieben neue (658 bis 664) -- vier fuer den Umschalter der
+     Tagzeile (Bauabschnitt 0.2) und drei fuer die drei Werte der Zeitleiste
+     (Bauabschnitt 0.1). Zwei sind mitgegangen (Stolperstein 201): 636, dessen
+     Suchtext auf die Zeile zeigte, die den Aufklapper oeffnete -- die Regel
+     dahinter ist dieselbe geblieben, nur traegt sie jetzt ein Knopf --, und
+     637, dessen erwartete Gruppe umbenannt wurde.
+     DAVOR 649 SEIT 0.22.1: vierzehn neue (642 bis 655) -- zehn fuer die fuenf Gesten
      am Bildausschnitt, zwei fuer die Kopfzahl, zwei fuer den Bewertungskasten
      vor dem Test. Der letzte, 655, ist AUS DER GEGENPROBE ENTSTANDEN: sie hat
      gezeigt, dass die Rastung ueber den Deckel springen kann.
@@ -21767,7 +21773,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      DAVOR 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel
      des Pruefstands und eines, das das Milchglas wieder einsetzt; einundvierzig
      vorhandene sind damals mitgegangen. */
-  pruefe('Es sind genau 649 Rueckbauten', gpListe.length === 649, `${gpListe.length}`);
+  pruefe('Es sind genau 656 Rueckbauten', gpListe.length === 656, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -24317,6 +24323,19 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   w.document.head.appendChild(skript);
   return { w, gesendet, kriterien, beispiel, stimmenAntwort };
 }
+/* DIE TAGZEILE AUFKLAPPEN -- 0.24.0 (Bauabschnitt 0.2). Sie steht seither
+   zugeklappt, solange kein Tagfilter greift; wer prueft, was IN ihr steht,
+   klappt sie zuerst auf.
+   MIT DEM KLICK UND NICHT MIT EINEM GESETZTEN ZUSTAND: ein von Hand
+   gesetzter Merker naehme genau den Weg heraus, um den es geht -- und liesse
+   die Pruefung auch dann gruen, wenn der Knopf gar nichts mehr tut. */
+async function oeffneTagzeile(w) {
+  const knopf = w.document.getElementById('f-weitere');
+  if (knopf && knopf.getAttribute('aria-expanded') === 'false') knopf.onclick();
+  await new Promise(r => setTimeout(r, 20));
+  return w.document.getElementById('f-tagzeile');
+}
+
 
 /* WARTEN, BIS DIE SUCHE DURCH IST. Sie laeuft seit 0.11.0 ueber einen Debounce
    von 220 ms und danach ueber eine Anfrage; ein Vergleich unmittelbar nach
@@ -25246,6 +25265,14 @@ async function pruefeOberflaeche() {
   const titel = () => [...wf.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
   const marke = (name) => [...wf.document.querySelectorAll('#filters .pill-tag')].find(b => b.textContent === name);
   const modus = (wert) => wf.document.querySelector(`#filters .pill-mode[data-mode="${wert}"]`);
+
+  /* DIE TAGZEILE STEHT SEIT 0.24.0 ZUGEKLAPPT, solange kein Tagfilter greift
+     (Bauabschnitt 0.2). Diese Gruppe prueft, was IN der Zeile steht -- sie
+     klappt sie deshalb zuerst auf, mit demselben Klick, den ein Benutzer tut.
+     EINMAL GENUEGT: der Merker haelt fuer die Dauer der Sitzung, und ab dem
+     ersten gewaehlten Tag stuende die Zeile ohnehin offen. */
+  pruefe('Die Tagzeile laesst sich aufklappen', !!(await oeffneTagzeile(wf)),
+    '(keine Tagzeile nach dem Klick)');
 
   pruefe('Zunächst sind alle vier zu sehen', titel().length === 4, JSON.stringify(titel()));
   pruefe('Vorgabe ist UND', modus('and')?.classList.contains('on'), 'and nicht hervorgehoben');
@@ -26273,6 +26300,8 @@ async function pruefeOberflaeche() {
   const sichtbar = () => [...wFilt.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
   pruefe('Zu Beginn sind alle zu sehen', sichtbar().length === 2, JSON.stringify(sichtbar()));
 
+  // Die Marke liegt seit 0.24.0 hinter dem Umschalter (Bauabschnitt 0.2).
+  await oeffneTagzeile(wFilt);
   [...wFilt.document.querySelectorAll('#filters .pill-tag')].find(b2 => b2.textContent === 'Grün').onclick();
   await new Promise(r => setTimeout(r, 20));
   pruefe('Ein Tagfilter greift', gleich(sichtbar(), ['Mit Tag']), JSON.stringify(sichtbar()));
@@ -35844,6 +35873,9 @@ async function pruefeOberflaeche() {
     { id: 43, name: 'Holz', usage_count: 1 }] });
   const fzW = fzDom.w;
   await new Promise(r => setTimeout(r, 80));
+  // Aufgeklappt wie ein Benutzer es tut -- zugeklappt gibt es die Zeile seit
+  // 0.24.0 gar nicht (Bauabschnitt 0.2).
+  await oeffneTagzeile(fzW);
   const fZeile = [...fzW.document.querySelectorAll('.frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
   pruefe('Die Tagzeile steht da', !!fZeile, '(keine Tagzeile)');
@@ -35905,6 +35937,12 @@ async function pruefeOberflaeche() {
     { id: 41, name: 'Alu', usage_count: 3 }, { id: 42, name: 'Stahl', usage_count: 2 }] });
   const flW = flDom.w;
   await new Promise(r => setTimeout(r, 80));
+  /* AUFGEKLAPPT GEZAEHLT. Seit 0.24.0 steht die Tagzeile zugeklappt, solange
+     kein Tagfilter greift (Bauabschnitt 0.2) -- die Leiste ist damit noch
+     einmal eine Zeile kuerzer geworden. Gezaehlt werden hier weiter die VIER
+     Steuergruppen, also der aufgeklappte Zustand: die Zahl aus 0.13.0 bleibt
+     damit vergleichbar, und die neue Ersparnis steht in ihrer eigenen Gruppe. */
+  await oeffneTagzeile(flW);
   const flZeilen = () => [...flW.document.querySelectorAll('#filters .frow')];
   const flBeschriftungen = () => flZeilen().map(z =>
     [...z.querySelectorAll('.eyebrow')].map(e => e.textContent).join('+'));
@@ -40629,6 +40667,115 @@ async function pruefeOberflaeche() {
      schwarz, weil das Bild es dort ist.
      WER SIE VERLAENGERT, schreibt den Grund daneben. Eine Positivliste ohne
      Begruendung je Eintrag ist nach zwei Runden eine Ausnahmeliste. */
+  /* ================= Die Zeitleiste im hellen Schema — 0.24.0 =================
+     DIE LUECKE, DIE DAS FARBKONZEPT GELASSEN HAT. Es hat seine Randfarben
+     gegen die KARTE gemessen; die Zeitleiste liegt aber seit 0.22.0 ohne
+     Kasten auf dem GRUND der Seite. Im dunklen Schema trug das trotzdem, im
+     hellen nicht: --line-2 misst dort 1,02 : 1 gegen --bg und ist unsichtbar
+     (Befund vom 5. September 2026, am Wirt, mit Bild).
+     GERECHNET UND NICHT ABGESCHRIEBEN. Die Zahlen stehen im Auftrag und im
+     Farbkonzept; hier werden sie aus dem Stilblatt hergeleitet -- eine Zahl in
+     einem Papier ist eine Behauptung, im Pruefstand ist sie ein Beleg. Der
+     Rechenweg ist der von 0.23.0: relative Leuchtdichte nach WCAG, das
+     Verhaeltnis der beiden um 0,05 verschobenen Werte.
+     UND DIE ANDERE HAELFTE: das dunkle Schema aendert keinen Bildpunkt. Die
+     drei neuen Variablen tragen dort GENAU die Werte, die die vier Regeln
+     vorher gelesen haben. */
+  gruppe('Die Zeitleiste im hellen Schema — 0.24.0');
+  {
+    const zlRoh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const zlBlock = (kopf) => {
+      const i = zlRoh.indexOf(kopf);
+      return i < 0 ? '' : zlRoh.slice(i + kopf.length, zlRoh.indexOf('}', i));
+    };
+    const zlPaare = (kopf) => Object.fromEntries(
+      [...zlBlock(kopf).matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
+    const zlDunkel = zlPaare(':root {');
+    // Das helle Schema ueberschreibt nur, was es nennt -- der Rest kommt aus
+    // :root. Genau so liest es auch der Browser.
+    const zlHell = { ...zlDunkel, ...zlPaare(':root[data-thema="hell"] {') };
+    /* `var(--x)` wird aufgeloest, und zwar IM SELBEN SCHEMA: --zl-linie steht
+       im hellen Block auf var(--line-hover), und --line-hover ist dort ein
+       anderer Wert als im dunklen. Wer die Kette im falschen Block aufloest,
+       rechnet zwei Schemata durcheinander. */
+    const zlLoese = (map, wert, tiefe = 0) => {
+      const t = String(wert || '').trim();
+      const m = /^var\((--[a-z0-9-]+)\)$/.exec(t);
+      if (!m) return t;
+      return tiefe > 8 ? '' : zlLoese(map, map[m[1]], tiefe + 1);
+    };
+    // Relative Leuchtdichte nach WCAG 2: erst die Kanaele linearisieren, dann
+    // nach der Empfindlichkeit des Auges wichten.
+    const zlLeucht = (hex) => {
+      const n = parseInt(hex.replace('#', ''), 16);
+      const k = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * k[0] + 0.7152 * k[1] + 0.0722 * k[2];
+    };
+    const zlKontrast = (a, b) => {
+      const [hoch, tief] = [zlLeucht(a), zlLeucht(b)].sort((x, y) => y - x);
+      return (hoch + 0.05) / (tief + 0.05);
+    };
+    // DIE GEGENLAGE ZUERST (Stolperstein 81): rechnet der Rechenweg ueberhaupt?
+    // Ohne sie belegte jede Zeile darunter auch dann etwas, wenn er null
+    // liefert -- und "0 >= 1,5" waere schlicht falsch, "21 >= 1,5" nicht.
+    pruefe('Der Rechenweg rechnet: Weiss auf Schwarz sind 21 : 1',
+      Math.round(zlKontrast('#ffffff', '#000000') * 100) / 100 === 21,
+      String(zlKontrast('#ffffff', '#000000')));
+    const zlGrundHell = zlLoese(zlHell, zlHell['--bg']);
+    pruefe('Der helle Grund ist #eaedf1', zlGrundHell === '#eaedf1', zlGrundHell);
+    /* DIE DREI LATTEN AUS DEM AUFTRAG. Sie sind keine WCAG-Stufe, sondern das
+       Mass dieses Bildes: eine Hilfslinie muss zu ahnen sein, die mittlere
+       sich von ihr abheben, die Jahreszahl sich LESEN lassen -- und das
+       letzte ist tragender Text, also 4,5. */
+    for (const [name, latte, erwartet] of [['--zl-linie', 1.5, 1.54],
+                                           ['--zl-mitte', 2.0, 2.13],
+                                           ['--zl-jahr', 4.5, 4.62]]) {
+      const farbe = zlLoese(zlHell, zlHell[name]);
+      const wert = zlKontrast(farbe, zlGrundHell);
+      pruefe(`${name} traegt im hellen Schema ${latte.toFixed(1)} : 1 oder mehr gegen den Grund`,
+        wert >= latte, `${farbe} misst ${wert.toFixed(2)} : 1 (Latte ${latte})`);
+      // Und die Zahl ist DIE aus dem Auftrag -- nicht bloss irgendeine ueber
+      // der Latte. Wer den Wert spaeter anfasst, aendert auch das Papier.
+      pruefe(`Und es sind die ${erwartet.toFixed(2)} : 1 aus dem Auftrag`,
+        Math.round(wert * 100) / 100 === erwartet, `${wert.toFixed(2)} statt ${erwartet}`);
+    }
+    /* WAS VORHER DASTAND, UND WARUM ES NICHT TRUG. Die Zeile belegt den
+       Befund: --line-2 gegen den hellen Grund ist 1,02 : 1. */
+    pruefe('Der alte Wert --line-2 laege im hellen Schema unter jeder Latte',
+      zlKontrast(zlLoese(zlHell, zlHell['--line-2']), zlGrundHell) < 1.1,
+      `${zlLoese(zlHell, zlHell['--line-2'])} misst ` +
+      `${zlKontrast(zlLoese(zlHell, zlHell['--line-2']), zlGrundHell).toFixed(2)} : 1`);
+    /* DAS DUNKLE SCHEMA AENDERT KEINEN BILDPUNKT. Verglichen wird der
+       AUFGELOESTE Wert und nicht die Schreibweise: `var(--line-2)` und
+       `#1e2429` waeren dasselbe Bild, und geprueft wird das Bild. */
+    for (const [neu, alt] of [['--zl-linie', '--line-2'], ['--zl-mitte', '--line'],
+                              ['--zl-jahr', '--faint']]) {
+      pruefe(`Im dunklen Schema ist ${neu} genau ${alt}, wie vorher`,
+        zlLoese(zlDunkel, zlDunkel[neu]) === zlLoese(zlDunkel, zlDunkel[alt])
+          && /^#[0-9a-f]{6}$/i.test(zlLoese(zlDunkel, zlDunkel[neu])),
+        `${zlLoese(zlDunkel, zlDunkel[neu])} gegen ${zlLoese(zlDunkel, zlDunkel[alt])}`);
+    }
+    /* UND DIE VIER REGELN LESEN WIRKLICH DIE DREI VARIABLEN. Ohne diese Zeile
+       koennten die Werte tadellos dastehen und nichts faerben. */
+    for (const [wahl, eigenschaft, variable] of [
+      ['.zl-linie', 'background', '--zl-linie'],
+      ['.zl-linie.mitte', 'background', '--zl-mitte'],
+      ['.zl-jahre', 'border-top', '--zl-linie'],
+      ['.zl-jahr', 'color', '--zl-jahr']])
+      pruefe(`${wahl} liest ${variable}`,
+        new RegExp(`${eigenschaft}:[^;}]*var\\(${variable}\\)`).test(regel123(wahl)),
+        regel123(wahl) || '(keine Regel)');
+    // Die Zeitleiste hat wirklich keine Karte unter sich -- das ist die
+    // Voraussetzung dafuer, dass gegen --bg gemessen wird und nicht gegen
+    // --surface. Faellt sie je auf eine Karte, sind die drei Zahlen falsch.
+    pruefe('Und die Zeitleiste liegt weiter ohne Kasten auf dem Grund',
+      !/background|border:/.test(regel123('.zl')), regel123('.zl') || '(keine Regel)');
+  }
+
   gruppe('Keine feste Farbe im Stilblatt — 0.23.0');
   {
     const cssF = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
@@ -40932,58 +41079,146 @@ async function pruefeOberflaeche() {
     stDom.w.close(); stNull.w.close(); stEins.w.close();
   }
 
-  /* ================= Der Aufklapper „Weitere Filter" — 0.22.0 =================
-     Hinter ihm wandert allein die Tagzeile (E8). Zwei Regeln, keine
-     verhandelbar: greift ein Tagfilter, steht der Kasten beim Aufbau OFFEN;
-     und filterZahl() zaehlt ihn weiter mit. */
-  gruppe('Der Aufklapper „Weitere Filter" — 0.22.0');
+  /* ================= Der Umschalter der Tagzeile — 0.24.0 =================
+     Hinter ihm steht allein die Tagzeile (E8 der Runde 0.22.0). Er sass bis
+     0.24.0 als <summary> eines <details> in einer EIGENEN Zeile und kostete
+     damit den Platz, den er sparen sollte (Befund vom 5. September 2026);
+     jetzt sitzt er am rechten Ende der Kategoriezeile.
+     DREI REGELN, KEINE VERHANDELBAR: greift ein Tagfilter, steht die Zeile
+     beim Aufbau OFFEN; filterZahl() zaehlt ihn weiter mit; und zugeklappt ist
+     die Tagzeile GANZ weg -- eine verborgene Zeile kostete den Platz weiter.
+     DIE ZUSICHERUNG UEBER `tagName === 'DETAILS'` IST NICHT GELOESCHT,
+     sondern zur Zusicherung ueber den Knopf geworden (Stolperstein 201). */
+  gruppe('Der Umschalter der Tagzeile — 0.24.0');
   {
     const wfTags = [{ id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
                     { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 }];
     const wfFilter = (tagIds) => ({ categoryIds: [], tagIds, tagMode: 'and', tested: 'all',
                                     abgelehnt: 'all', favorit: false, sort: 'title_asc' });
+    const wfZeilen = (d) => [...d.querySelectorAll('#filters .frow')]
+      .map(z => z.querySelector('.eyebrow')?.textContent);
     const wfOhne = baueDom(JSDOM, { tags: wfTags, einstellungen: { filters: wfFilter([]) } });
     await new Promise(r => setTimeout(r, 80));
-    const wfBox = wfOhne.w.document.getElementById('f-weitere');
-    pruefe('Der Aufklapper steht in der Leiste, mit der Beschriftung „Weitere Filter"',
-      wfBox?.tagName === 'DETAILS' && wfBox?.querySelector('summary')?.textContent === 'Weitere Filter',
-      JSON.stringify(wfBox?.querySelector('summary')?.textContent));
-    pruefe('Die Tagzeile steht in ihm — und nur sie',
-      [...wfOhne.w.document.querySelectorAll('#filters .frow')]
-        .filter(z => z.closest('#f-weitere')).map(z => z.querySelector('.eyebrow')?.textContent).join() === 'Tags',
-      [...wfOhne.w.document.querySelectorAll('#filters .frow')]
-        .map(z => (z.closest('#f-weitere') ? 'innen:' : 'aussen:') + z.querySelector('.eyebrow')?.textContent).join(' '));
-    pruefe('Status, Kategorie und Sortieren bleiben sichtbar davor und dahinter',
-      [...wfOhne.w.document.querySelectorAll('#filters .frow')]
-        .filter(z => !z.closest('#f-weitere')).map(z => z.querySelector('.eyebrow')?.textContent).join() === 'Status,Kategorie,Sortieren',
-      [...wfOhne.w.document.querySelectorAll('#filters .frow')].map(z => z.querySelector('.eyebrow')?.textContent).join());
-    pruefe('Ohne Tagfilter steht er beim Aufbau geschlossen',
-      wfBox?.open === false, String(wfBox?.open));
+    const wfKnopf = wfOhne.w.document.getElementById('f-weitere');
+    /* KEIN <details> MEHR, SONDERN EIN KNOPF. Die Zusammenfassung eines
+       <details> laesst sich nicht in eine fremde Zeile setzen; den Zustand
+       traegt jetzt `aria-expanded`, Tastatur und Fokusring der <button>. */
+    pruefe('Der Umschalter ist ein Knopf und kein <details> mehr',
+      wfKnopf?.tagName === 'BUTTON', String(wfKnopf?.tagName));
+    pruefe('Er traegt die Beschriftung „Tags" — nicht mehr „Weitere Filter"',
+      wfKnopf?.textContent === 'Tags', JSON.stringify(wfKnopf?.textContent));
+    pruefe('Und er steht in der Kategoriezeile, am rechten Ende',
+      wfKnopf?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Kategorie'
+        && !!wfKnopf?.closest('.frow-rechts-weit'),
+      `${wfKnopf?.closest('.frow')?.querySelector('.eyebrow')?.textContent} · ${wfKnopf?.parentElement?.className}`);
+    pruefe('Ohne Tagfilter steht er beim Aufbau zugeklappt',
+      wfKnopf?.getAttribute('aria-expanded') === 'false',
+      String(wfKnopf?.getAttribute('aria-expanded')));
+    /* ZUGEKLAPPT IST DIE TAGZEILE GANZ WEG. Bis 0.24.0 stand sie verborgen im
+       <details> und kostete den Platz der Zusammenfassung darueber. */
+    pruefe('Und zugeklappt gibt es keine Zeile mit der Beschriftung „Tags"',
+      wfZeilen(wfOhne.w.document).join() === 'Status,Kategorie,Sortieren',
+      wfZeilen(wfOhne.w.document).join(' · '));
+    pruefe('Der Umschalter belegt in keinem Zustand eine eigene Zeile',
+      [...wfOhne.w.document.querySelectorAll('#filters > *')].every(e => e.classList.contains('frow')),
+      [...wfOhne.w.document.querySelectorAll('#filters > *')].map(e => e.tagName + '.' + e.className).join(' · '));
     pruefe('Die Ablehnung bleibt in der Statuszeile',
-      !!wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.querySelector('.eyebrow') &&
-      wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Status' &&
-      !wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('#f-weitere'),
+      wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Status',
       wfOhne.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.textContent.slice(0, 60));
+    /* EIN KLICK KLAPPT AUF -- und die Zeile steht danach zwischen Kategorie
+       und Sortieren, mit Und/Oder und Wolke. */
+    wfKnopf.dispatchEvent(new wfOhne.w.Event('click'));
+    await new Promise(r => setTimeout(r, 40));
+    const wfAuf = wfOhne.w.document.getElementById('f-weitere');
+    pruefe('Ein Klick klappt die Tagzeile auf, an ihrem Platz zwischen Kategorie und Sortieren',
+      wfZeilen(wfOhne.w.document).join() === 'Status,Kategorie,Tags,Sortieren',
+      wfZeilen(wfOhne.w.document).join(' · '));
+    pruefe('Und der Knopf sagt es an: aria-expanded steht auf true',
+      wfAuf?.getAttribute('aria-expanded') === 'true',
+      String(wfAuf?.getAttribute('aria-expanded')));
+    pruefe('Die aufgeklappte Zeile traegt Und/Oder und die Wolke',
+      !!wfOhne.w.document.querySelector('#f-tagzeile .tagmode')
+        && wfOhne.w.document.querySelectorAll('#f-tagzeile .pill-tag').length === 2,
+      `${!!wfOhne.w.document.querySelector('#f-tagzeile .tagmode')} · ` +
+      `${wfOhne.w.document.querySelectorAll('#f-tagzeile .pill-tag').length} Marken`);
+    /* UND EIN ZWEITER KLICK SCHLIESST WIEDER. Das ist der Grund, warum der
+       Merker drei Werte hat: die alte Oder-Verbindung haette die Zeile im
+       selben Atemzug wieder aufgezogen. */
+    wfAuf.dispatchEvent(new wfOhne.w.Event('click'));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein zweiter Klick schliesst sie wieder',
+      wfZeilen(wfOhne.w.document).join() === 'Status,Kategorie,Sortieren'
+        && wfOhne.w.document.getElementById('f-weitere')?.getAttribute('aria-expanded') === 'false',
+      wfZeilen(wfOhne.w.document).join(' · '));
     wfOhne.w.close();
-    /* GREIFT EIN TAGFILTER, STEHT ER OFFEN -- ein Filter, der die Liste kuerzt
-       und dabei unsichtbar ist, ist ein Fehler und kein Aufraeumen. */
+    /* GREIFT EIN TAGFILTER, STEHT SIE BEIM AUFBAU OFFEN -- ein Filter, der die
+       Liste kuerzt und dabei unsichtbar ist, ist ein Fehler und kein
+       Aufraeumen. */
     const wfMit = baueDom(JSDOM, { tags: wfTags, einstellungen: { filters: wfFilter([41]) } });
     await new Promise(r => setTimeout(r, 80));
-    const wfBox2 = wfMit.w.document.getElementById('f-weitere');
-    pruefe('Greift ein Tagfilter, steht er beim Aufbau offen', wfBox2?.open === true, String(wfBox2?.open));
+    const wfKnopf2 = wfMit.w.document.getElementById('f-weitere');
+    pruefe('Greift ein Tagfilter, steht die Tagzeile beim Aufbau offen',
+      wfKnopf2?.getAttribute('aria-expanded') === 'true' && !!wfMit.w.document.getElementById('f-tagzeile'),
+      `${wfKnopf2?.getAttribute('aria-expanded')} · Zeile: ${!!wfMit.w.document.getElementById('f-tagzeile')}`);
+    /* UND DIE ZAHL STEHT AM UMSCHALTER. Sie ist der Grund, warum sich die
+       Zeile ueberhaupt zuklappen laesst, solange ein Filter greift: der Filter
+       wird dabei nicht unsichtbar, er steht als Zahl da. */
+    pruefe('Und der Umschalter traegt die Zahl der greifenden Tagfilter: „Tags (1)"',
+      wfKnopf2?.textContent === 'Tags (1)', JSON.stringify(wfKnopf2?.textContent));
     pruefe('Und filterZahl() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)',
       wfMit.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)' &&
       wfMit.w.document.querySelector('#filter-auf .fz')?.textContent === '· 1 aktiv',
       JSON.stringify([wfMit.w.document.getElementById('filter-zurueck')?.textContent,
                       wfMit.w.document.querySelector('#filter-auf .fz')?.textContent]));
     pruefe('Der Rueckweg in der Tagzeile heisst „Tags zurücksetzen"',
-      [...wfMit.w.document.querySelectorAll('#f-weitere .link-btn')].some(b => b.textContent === 'Tags zurücksetzen'),
-      [...wfMit.w.document.querySelectorAll('#f-weitere .link-btn')].map(b => b.textContent).join(' | '));
+      [...wfMit.w.document.querySelectorAll('#f-tagzeile .link-btn')].some(b => b.textContent === 'Tags zurücksetzen'),
+      [...wfMit.w.document.querySelectorAll('#f-tagzeile .link-btn')].map(b => b.textContent).join(' | '));
     wfMit.w.close();
-    pruefe('Die Zusammenfassung ist im Stilblatt ohne Browserpfeil und mit eigenem Winkel gesetzt',
-      /\.weitere-filter > summary \{[^}]*list-style: none/.test(css123) &&
-      /\.weitere-filter\[open\] > summary::before \{ transform: rotate\(45deg\); \}/.test(css123),
-      regel123('.weitere-filter > summary') || '(keine Regel)');
+    /* DIE ZWEITE HAELFTE DES BEFUNDES: „und blendet zusaetzlich nicht die Tags
+       ein". Nachgestellt am 5. September 2026 in einem echten Browser -- es
+       war kein Stilblattfehler, sondern der Fall, den der Pruefstand bis dahin
+       nicht stellte: kein Tag mit usage_count > 0. Der Aufklapper ging auf und
+       zeigte „Noch keine Tags". Ein Umschalter fuer eine leere Zeile ist ein
+       Bedienelement fuer nichts. */
+    const wfLeer = baueDom(JSDOM, { tags: [], einstellungen: { filters: wfFilter([]) } });
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Haengt kein Tag an einem Eintrag, steht der Umschalter gar nicht da',
+      !wfLeer.w.document.getElementById('f-weitere') && !wfLeer.w.document.getElementById('f-tagzeile'),
+      `Knopf: ${!!wfLeer.w.document.getElementById('f-weitere')} · Zeile: ${!!wfLeer.w.document.getElementById('f-tagzeile')}`);
+    pruefe('Und die Leiste traegt dann drei Zeilen statt vier',
+      wfZeilen(wfLeer.w.document).join() === 'Status,Kategorie,Sortieren',
+      wfZeilen(wfLeer.w.document).join(' · '));
+    wfLeer.w.close();
+    /* UND DER RANDFALL DAZU: ein Filter auf einen Tag, dessen letzter Eintrag
+       gerade weggefallen ist. Dann ist die Wolke leer -- der Umschalter steht
+       trotzdem da, sonst verschwaende der eigene Filter unter der Hand. */
+    const wfLeerMit = baueDom(JSDOM, {
+      tags: [{ id: 41, name: 'Alu', usage_count: 0, test_usage_count: 2 }],
+      einstellungen: { filters: wfFilter([41]) } });
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Greift ein Filter auf einen Tag ohne Eintraege, steht er trotzdem da',
+      wfLeerMit.w.document.getElementById('f-weitere')?.textContent === 'Tags (1)'
+        && [...wfLeerMit.w.document.querySelectorAll('#f-tagzeile .link-btn')]
+             .some(b => b.textContent === 'Tags zurücksetzen'),
+      JSON.stringify(wfLeerMit.w.document.getElementById('f-weitere')?.textContent));
+    wfLeerMit.w.close();
+    /* DER WINKEL IM STILBLATT -- er haengt jetzt an `aria-expanded` und nicht
+       mehr an `[open]`, und der Unterstrich des link-btn traegt das Wort und
+       nicht den Winkel. */
+    pruefe('Der Umschalter traegt im Stilblatt seinen eigenen Winkel',
+      /\.tag-schalter::before \{[^}]*border-right: 1\.5px solid currentColor/.test(css123) &&
+      /\.tag-schalter\[aria-expanded="true"\]::before \{ transform: rotate\(45deg\); \}/.test(css123),
+      regel123('.tag-schalter::before') || '(keine Regel)');
+    pruefe('Und der Unterstrich steht unter dem Wort, nicht unter dem Winkel',
+      /\.tag-schalter \{[^}]*text-decoration: none/.test(css123) &&
+      /\.tag-schalter > span \{ text-decoration: underline; \}/.test(css123),
+      regel123('.tag-schalter') || '(keine Regel)');
+    // Und der alte Aufklapper ist wirklich fort -- aus dem Stilblatt wie aus
+    // dem Quelltext. Sonst bliebe totes Regelwerk liegen.
+    pruefe('Vom alten <details> ist nichts uebrig',
+      !/weitere-filter/.test(css123) &&
+      !/weitere-filter/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
+      `Stilblatt: ${/weitere-filter/.test(css123)} · app.js: ${/weitere-filter/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'))}`);
   }
 
   /* ================= Die Rollenweichen — 0.22.0 =================

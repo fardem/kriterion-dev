@@ -6065,21 +6065,87 @@ const RUECKBAUTEN = [
     erwartet: 'Die Sternzeile — 0.22.0'
   },
   {
-    /* EIN FILTER, DER GREIFT UND UNSICHTBAR IST, IST EIN FEHLER: der Kasten
-       bliebe beim Aufbau zu, obwohl ein Tag die Liste kuerzt. */
-    nr: '636', name: 'Der Aufklapper „Weitere Filter" bleibt bei greifendem Tagfilter zu',
+    /* EIN FILTER, DER GREIFT UND UNSICHTBAR IST, IST EIN FEHLER: die Tagzeile
+       bliebe beim Aufbau zu, obwohl ein Tag die Liste kuerzt.
+       MITGEZOGEN, NICHT GELOESCHT -- 0.24.0 (Stolperstein 201): der Aufklapper
+       ist ein Knopf geworden, die Regel dahinter ist dieselbe geblieben. */
+    nr: '636', name: 'Die Tagzeile bleibt bei greifendem Tagfilter zugeklappt',
     datei: 'public/app.js',
-    suche: "  weitere.open = WEITERE_FILTER_OFFEN || f.tagIds.length > 0;",
-    ersatz: "  weitere.open = WEITERE_FILTER_OFFEN;",
-    erwartet: 'Der Aufklapper „Weitere Filter" — 0.22.0'
+    suche: "    (WEITERE_FILTER_OFFEN === null ? f.tagIds.length > 0 : WEITERE_FILTER_OFFEN);",
+    ersatz: "    (WEITERE_FILTER_OFFEN === null ? false : WEITERE_FILTER_OFFEN);",
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
-    // filterZahl() vergisst die Tags hinter dem Aufklapper.
-    nr: '637', name: 'filterZahl() zaehlt die Tags hinter dem Aufklapper nicht mehr',
+    // filterZahl() vergisst die Tags hinter dem Umschalter.
+    nr: '637', name: 'filterZahl() zaehlt die Tags hinter dem Umschalter nicht mehr',
     datei: 'public/app.js',
     suche: "  n += f.tagIds.length;",
     ersatz: "  n += 0;",
-    erwartet: 'Der Aufklapper „Weitere Filter" — 0.22.0'
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* DER UMSCHALTER BELEGT WIEDER EINE EIGENE ZEILE -- 0.24.0. Genau das war
+       der Befund: er kostete den Platz, den er sparen sollte. */
+    nr: '658', name: 'Der Umschalter der Tagzeile steht nicht in der Kategoriezeile',
+    datei: 'public/app.js',
+    suche: "    r2.appendChild(rechts2);",
+    ersatz: "    box.appendChild(rechts2);",
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* ZUGEKLAPPT WAERE DIE ZEILE NUR VERBORGEN UND NICHT FORT -- sie kostete
+       den Platz weiter, und der Befund waere nur zur Haelfte behoben. */
+    nr: '659', name: 'Die Tagzeile wird zugeklappt gebaut statt weggelassen',
+    datei: 'public/app.js',
+    suche: "  if (tagsOffen) {\n    const r3 = row('Tags');",
+    ersatz: "  if (true) {\n    const r3 = row('Tags');",
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* EIN UMSCHALTER FUER EINE LEERE ZEILE -- die zweite Haelfte des Befundes
+       vom 5. September 2026. */
+    nr: '660', name: 'Der Umschalter steht auch da, wenn kein Tag dahinter ist',
+    datei: 'public/app.js',
+    suche: "  const tagsMoeglich = filterTags.length > 0 || f.tagIds.length > 0;",
+    ersatz: "  const tagsMoeglich = true;",
+    erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* DIE HILFSLINIE DER ZEITLEISTE FAELLT ZURUECK AUF DIE ALLGEMEINE
+       RANDFARBE -- 1,02 : 1 gegen den hellen Grund, also unsichtbar. */
+    nr: '661', name: 'Die Hilfslinie der Zeitleiste ist im hellen Schema wieder unsichtbar',
+    datei: 'public/style.css',
+    suche: "  --zl-linie: var(--line-hover);",
+    ersatz: "  --zl-linie: var(--line-2);",
+    erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
+  },
+  {
+    /* UND DIE JAHRESZAHL WIRD WIEDER --faint: 3,46 : 1 bei 0,63 rem
+       Festbreite, und das Farbkonzept sagt, dass --faint nie tragender Text
+       ist. */
+    nr: '662', name: 'Die Jahreszahl der Zeitleiste faellt unter die Latte fuer Text',
+    datei: 'public/style.css',
+    suche: "  --zl-jahr: var(--muted);",
+    ersatz: "  --zl-jahr: var(--faint);",
+    erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
+  },
+  {
+    /* DAS DUNKLE SCHEMA AENDERT EINEN BILDPUNKT -- und genau das darf es
+       nicht. Die Regel steht in jedem Auftrag seit 0.23.0. */
+    nr: '663', name: 'Das dunkle Schema bekommt einen anderen Wert fuer die Zeitleiste',
+    datei: 'public/style.css',
+    suche: "  --zl-mitte: var(--line);\n  --zl-jahr: var(--faint);",
+    ersatz: "  --zl-mitte: var(--line-hover);\n  --zl-jahr: var(--faint);",
+    erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
+  },
+  {
+    /* DIE REGEL LIEST WIEDER DIE ALLGEMEINE RANDFARBE. Die Variable stuende
+       tadellos da und faerbte nichts. */
+    nr: '664', name: 'Die Hilfslinie liest die allgemeine Randfarbe statt ihrer eigenen',
+    datei: 'public/style.css',
+    suche: ".zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--zl-linie); }",
+    ersatz: ".zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }",
+    erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {
     // Der Loeschknopf steht wieder fuer jeden -- die Fehlermeldung auf Vorrat (E10).
