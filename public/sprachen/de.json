@@ -1,0 +1,8 @@
+{
+  "_locale": "de-DE",
+
+  "fehler.serverStatus": "Der Server meldet einen Fehler ({status}).",
+
+  "server.fehlerAllgemein": "Auf dem Server ist ein Fehler aufgetreten.",
+  "server.fehlerUnbekannt": "Unbekannter Fehler"
+}

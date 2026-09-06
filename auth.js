@@ -9,6 +9,33 @@ const mail = require('./mail');
    was eine Zeile hat, steht hier -- dieselbe Teilung wie bei mail.js. */
 const zf = require('./zweifaktor');
 
+/* ================= Die Fehlerklasse „Meldung" ================= */
+/* EIN FEHLER IST EIN SCHLUESSEL UND KEIN SATZ -- 0.24.0, Bauabschnitt 1.
+   Bis dahin warf diese Datei rund vierzig deutsche Saetze als `new Error`,
+   die server.js faengt und im Feld `error` weiterreicht -- der
+   Bildschirmtext-Waechter sah keinen davon, weil er nur das Feld selbst
+   liest und nicht, was hineinlaeuft. Kuenftig traegt der Fehler den
+   Schluessel, und den Satz liest der Waechter in de.json.
+   SIE STEHT HIER UND NICHT IN server.js, obwohl sie DORT uebersetzt wird:
+   server.js requiret diese Datei, der Weg zurueck waere ein Ring. Eine eigene
+   Datei dafuer verbietet der Auftrag -- und fuer sieben Zeilen waere sie auch
+   zu viel.
+   SIE ERBT VON Error, damit jeder vorhandene try/catch sie weiter faengt und
+   der Wurf seine Spur behaelt. `message` traegt den SCHLUESSEL: wer sie
+   versehentlich als Text ausgibt, sieht einen Schluessel und keinen halben
+   Satz -- das faellt auf, ein halber Satz nicht.
+   `status` GEHOERT AN DIE MELDUNG, weil er zu ihr gehoert und nicht zur
+   Aufrufstelle: „Der Code stimmt nicht." ist 400, wo immer sie geworfen wird. */
+class Meldung extends Error {
+  constructor(schluessel, werte = {}, status = 400) {
+    super(schluessel);
+    this.name = 'Meldung';
+    this.schluessel = schluessel;
+    this.werte = werte;
+    this.status = status;
+  }
+}
+
 /* EINE EINSTELLUNG, ZWEI WIRKUNGEN -- BIS 0.12.4 WAREN ES FUENF.
 
    Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung.
@@ -61,7 +88,7 @@ const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_P
 function ueberProxy(req) {
   if (!HINTER_PROXY) return false;
   const kette = String((req && req.headers && req.headers['x-forwarded-proto']) || '')
-    .split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   return kette.length > 0 && kette[kette.length - 1] === 'https';
 }
 
@@ -159,14 +186,14 @@ function hashePasswortSync(passwort) {
 }
 
 async function pruefePasswort(passwort, gespeichert) {
-  const t = String(gespeichert || '').split('$');
-  if (t.length !== 6 || t[0] !== 'scrypt') return false;
-  const soll = Buffer.from(t[4 + 1], 'hex');
+  const teile = String(gespeichert || '').split('$');
+  if (teile.length !== 6 || teile[0] !== 'scrypt') return false;
+  const soll = Buffer.from(teile[4 + 1], 'hex');
   if (!soll.length) return false;
   let ist;
   try {
-    ist = await scryptRechne(String(passwort), Buffer.from(t[4], 'hex'),
-      { N: +t[1], r: +t[2], p: +t[3], keylen: soll.length });
+    ist = await scryptRechne(String(passwort), Buffer.from(teile[4], 'hex'),
+      { N: +teile[1], r: +teile[2], p: +teile[3], keylen: soll.length });
   } catch { return false; }
   return ist.length === soll.length && crypto.timingSafeEqual(ist, soll);
 }
@@ -569,7 +596,7 @@ function verzoegerung(count) {
 function clientIp(req) {
   if (HINTER_PROXY) {
     const kette = String(req.headers['x-forwarded-for'] || '')
-      .split(',').map(t => t.trim()).filter(Boolean);
+      .split(',').map(s => s.trim()).filter(Boolean);
     if (kette.length) return kette[kette.length - 1];
   }
   return req.socket.remoteAddress || 'unbekannt';
@@ -817,7 +844,7 @@ function beginneTokenFrist(hash) {
   return TOKEN_FRIST_MINUTEN;
 }
 
-const tokenHash = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
+const tokenHash = (roh) => crypto.createHash('sha256').update(String(roh)).digest('hex');
 
 /* Dieselbe Bauform wie raeumePapierkorbAuf(): EINE Funktion, ZWEI
    Aufrufstellen -- beim Start und beim Oeffnen der Karte. Eine Instanz, die
@@ -874,13 +901,13 @@ function erzeugeToken(benutzerId, zweck, wer) {
    Namen nennen koennen, sobald der Token traegt. VORHER nennt ihn niemand,
    sonst verriete ein geratener Token einen Benutzernamen. */
 function pruefeToken(klartext) {
-  const t = String(klartext || '');
-  if (!t) return null;
+  const roh = String(klartext || '');
+  if (!roh) return null;
   const z = db.prepare(
     `SELECT t.hash, t.user_id, t.zweck, t.ablauf, u.username, u.status, u.password_hash
        FROM tokens t JOIN users u ON u.id = t.user_id
       WHERE t.hash = ? AND t.benutzt_am IS NULL AND t.ablauf > datetime('now')`
-  ).get(tokenHash(t));
+  ).get(tokenHash(roh));
   if (!z || z.status !== 'aktiv') return null;
   return {
     hash: z.hash, id: z.user_id, username: z.username, zweck: z.zweck,
@@ -897,23 +924,23 @@ function pruefeToken(klartext) {
    DIE SITZUNGEN FALLEN ueber setzeNeuesPasswort -- dort steht die Regel schon,
    und ein zweiter Ort dafuer waere ein zweiter, der auseinanderlaufen kann. */
 async function loeseTokenEin(klartext, neuesPasswort) {
-  const t = pruefeToken(klartext);
-  if (!t) throw new Error('Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.');
+  const token = pruefeToken(klartext);
+  if (!token) throw new Error('Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.');
   if (String(neuesPasswort || '').length < PASSWORT_MIN)
     throw new Error(`Das Passwort muss mindestens ${PASSWORT_MIN} Zeichen lang sein.`);
   // Ausserhalb der Transaktion: scrypt rechnet absichtlich lange, und eine
   // Transaktion soll nicht so lange offen stehen.
   const hash = await hashePasswort(neuesPasswort);
   db.transaction(() => {
-    db.prepare("UPDATE tokens SET benutzt_am = datetime('now') WHERE hash = ?").run(t.hash);
-    db.prepare('DELETE FROM tokens WHERE user_id = ? AND benutzt_am IS NULL').run(t.id);
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, t.id);
-    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(t.id);
+    db.prepare("UPDATE tokens SET benutzt_am = datetime('now') WHERE hash = ?").run(token.hash);
+    db.prepare('DELETE FROM tokens WHERE user_id = ? AND benutzt_am IS NULL').run(token.id);
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, token.id);
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(token.id);
   })();
   // Der Einloesende handelt an sich selbst -- er ist ja gerade dabei, sein
   // eigenes Passwort zu setzen. Die Zeile steht NACH der Transaktion.
-  protokolliere('link.ein', { wer: t.id, ziel: t.id, merkmal: t.zweck });
-  return { id: t.id, username: t.username, zweck: t.zweck };
+  protokolliere('link.ein', { wer: token.id, ziel: token.id, merkmal: token.zweck });
+  return { id: token.id, username: token.username, zweck: token.zweck };
 }
 
 /* --- Die Selbstanmeldung ------------------------------------------------
@@ -1027,12 +1054,12 @@ const setzeBestaetigt = db.prepare(
   `UPDATE anfragen SET bestaetigt_am = datetime('now')
     WHERE hash = ? AND created_at > datetime('now', ?)`);
 function bestaetigeAnfrage(klartext) {
-  const t = String(klartext || '');
-  if (!t) return false;
+  const roh = String(klartext || '');
+  if (!roh) return false;
   // Erst raeumen: eine verfallene Zeile darf sich nicht nachtraeglich
   // bestaetigen lassen, nur weil sie noch dasteht.
   raeumeAnfragenAuf();
-  return setzeBestaetigt.run(tokenHash(t), `-${ANFRAGE_STUNDEN} hours`).changes > 0;
+  return setzeBestaetigt.run(tokenHash(roh), `-${ANFRAGE_STUNDEN} hours`).changes > 0;
 }
 
 /* Was der Admin sieht: AUSSCHLIESSLICH DIE BESTAETIGTEN. Eine unbestaetigte
@@ -1628,8 +1655,8 @@ function sitzungsBenutzer(token) {
    Secure-Cookie stillschweigend, und niemand kaeme herein; ueber https ohne
    Secure gaebe der Name seine Zusage auf. Zwei Namen, zwei Wege, eine Regel je
    Weg -- und keine Bedingung, die man falsch stellen kann. */
-const sessionCookie = (req, t) =>
-  `${cookieName(req)}=${t}; HttpOnly; Path=/; SameSite=Lax` +
+const sessionCookie = (req, token) =>
+  `${cookieName(req)}=${token}; HttpOnly; Path=/; SameSite=Lax` +
   `${ueberProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;
 /* GELOESCHT WERDEN BEIDE NAMEN, nicht nur der des eigenen Wegs. Wer sich
    abmeldet, meint diesen Browser und nicht diese Verbindungsart -- ein
@@ -1673,6 +1700,8 @@ function requireAuth(req, res, next) {
 }
 
 module.exports = {
+  // Die Fehlerklasse; Rufer sind server.js (uebersetzt) und diese Datei.
+  Meldung,
   COOKIE_NAME, COOKIE_SICHER, cookieName, sitzungsToken, ueberProxy,
   HINTER_PROXY, PASSWORT_MIN, SESSION_DAYS,
   OEFFENTLICHE_ADRESSE, pruefeOeffentlicheAdresse, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,

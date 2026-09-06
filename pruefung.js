@@ -316,6 +316,14 @@ const PRUEFLAGEN = [];
    braucht nur so viele Nummern, wie er Server oeffnet. */
 const SMTP_BASIS = 6110;
 const SMTP_BREITE = 20;
+/* DIE LAGE „SERVER OHNE de.json" -- 0.24.0, Bauabschnitt 1. Sie startet GENAU
+   EINEN Server, und der soll gerade NICHT hochkommen; sie braucht deshalb nur
+   eine Nummer und bekommt ein Fenster von zwei -- wie die Fingerprintlage,
+   die ebenfalls hochzaehlt statt zu wuerfeln. Vermerkt wird sie trotzdem:
+   eine Basis, die nicht ueber die Liste laeuft, sieht kein Waechter
+   (Stolperstein 139). */
+const SPRACHE_BASIS = 6140;
+const SPRACHE_BREITE = 2;
 let smtpPort = SMTP_BASIS;
 const SMTP_LAGEN = [];
 function smtpEmpfaenger(art = 'ok') {
@@ -891,6 +899,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
      liegen im Repo, aber nicht im Image (.dockerignore). Zaehlten sie mit,
      waere der Fingerprint im Container ein anderer als auf der Platte -- und damit
      wertlos. */
+  /* DIE SPRACHDATEI GEHOERT DAZU -- 0.24.0. Sie liegt unter public/ und wird
+     damit ausgeliefert; ein Server, der andere Texte sagt, ist ein anderer
+     Server. Die Ableitung deckt sie von selbst ab -- diese Zeile haelt fest,
+     dass sie es wirklich tut. */
+  pruefe('Eine Änderung an public/sprachen/de.json ändert ihn',
+    await nachAenderung('public/sprachen/de.json',
+      JSON.stringify({ _locale: 'de-DE', 'server.fehlerUnbekannt': 'anders' })) !== fingerprintKopie);
+  // Und wieder zurueck: die folgenden Zeilen vergleichen gegen den Ausgangswert.
+  fs.copyFileSync(path.join(__dirname, 'public', 'sprachen', 'de.json'),
+                  path.join(quellKopie, 'public', 'sprachen', 'de.json'));
   pruefe('Eine Änderung an pruefung.js lässt ihn unberührt',
     await nachAenderung('pruefung.js', '// nicht ausgeliefert\n') === fingerprintKopie);
   pruefe('Eine neue Datei unter Doku ebenfalls',
@@ -14709,9 +14727,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Den Fehler-Handler gibt es', fFehlerRumpf.length > 0, 'kein Handler gefunden');
   pruefe('Er kennt die Markierung absichtlicher Fehler',
     fFehlerRumpf.includes('err.status'), fFehlerRumpf ? 'err.status fehlt' : '(kein Rumpf)');
+  /* SEIT 0.24.0 STEHT DORT KEIN TEXT MEHR, SONDERN EIN SCHLUESSEL -- und die
+     Zusicherung dreht sich mit um (Stolperstein 201): der Handler darf bei 500
+     nichts VERRATEN, und das tut ein Schluessel noch weniger als ein fester
+     Satz. Gehalten wird beides: er sagt genau einen Satz, und er sagt ihn
+     ueber t(). */
   pruefe('Und er liefert die Meldung eines Serverfehlers nicht aus',
-    /res\.status\(500\)\.json\(\{ error: '[^']+' \}\)/.test(fFehlerRumpf),
-    fFehlerRumpf ? 'kein fester Text bei 500' : '(kein Rumpf)');
+    /res\.status\(500\)\.json\(\{ error: t\(sprache, 'server\.fehlerAllgemein'\) \}\)/.test(fFehlerRumpf)
+      && !/res\.status\(500\)[^\n]*err\.(message|stack)/.test(fFehlerRumpf),
+    fFehlerRumpf ? 'kein Schluessel bei 500' : '(kein Rumpf)');
 
   /* SAUBERES HERUNTERFAHREN. Sechs Zeilen, und die Sicherung des
      Datenverzeichnisses wird verlaesslich -- geprueft wird hier, dass beide
@@ -19637,10 +19661,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
        `austauschBytes()` nimmt, blieb deshalb STUMM (Gegenprobe 171): die
        Kennzahlen lesen den Umschlag getrennt und merkten davon nichts.
        Der Waechter schliesst genau diese Luecke. */
+    /* DIE VARIABLE HEISST SEIT 0.24.0 `teile` UND NICHT MEHR `t`: der Name `t`
+       gehoert seither dem Sprachhelfer, und eine lokale Bindung verdeckte ihn
+       (Bauabschnitt 1). Der Waechter zieht mit, die Rechnung bleibt dieselbe. */
     pruefe('Und die Absage rechnet den Umschlag mit',
-      /return t\.fotos \+ t\.videos \+ t\.anhaenge \+ t\.kommentarbilder \+ austauschUmschlagBytes\(itemId\);/
+      /return teile\.fotos \+ teile\.videos \+ teile\.anhaenge \+ teile\.kommentarbilder \+ austauschUmschlagBytes\(itemId\);/
         .test(fQuelle),
-      (fQuelle.match(/return t\.fotos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
+      (fQuelle.match(/return teile\.fotos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
     /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
        einen Namen zielt, den es gar nicht mehr gibt. */
     pruefe('Der Waechter zielt auf eine Rechnung, die es wirklich gibt',
@@ -21406,7 +21433,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Waechter gesehen (Stolperstein 139). Er zaehlt hoch statt zu wuerfeln und
      bekommt deshalb ein eigenes, schmales Fenster -- wie die Fingerprintlage. */
   const pbBreite = (basis) => basis === FINGERPRINT_BASIS ? 10
-    : basis === SMTP_BASIS ? SMTP_BREITE : PORT_BREITE;
+    : basis === SMTP_BASIS ? SMTP_BREITE
+    : basis === SPRACHE_BASIS ? SPRACHE_BREITE : PORT_BREITE;
   const pbBasen = [...new Set([...PRUEFLAGEN.map(l => l.basis),
                                ...SMTP_LAGEN.map(l => l.basis)])].sort((a, b) => a - b);
   /* ERST DER GEGENSTAND (Stolperstein 81): ein Waechter ueber null Basen ist
@@ -21441,8 +21469,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Versatz von 3500. Wer eine weitere Basis anhaengt, faellt an der Zeile
      „Der Versatz je Nebenspur ist groesser als die Spanne aller Basen" auf --
      dort ist dann eine Luecke weiter unten zu nehmen. */
+  /* ZWEIUNDSECHZIG SEIT 0.24.0: die Lage „Server ohne de.json" (Bauabschnitt
+     1) bringt ihre eigene Basis mit -- sie startet einen Server, der gerade
+     NICHT hochkommen soll, und braucht dafuer genau eine Nummer. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 61 && PRUEFLAGEN.length >= 60,
+    pbBasen.length === 62 && PRUEFLAGEN.length >= 60,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
@@ -21465,8 +21496,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
      vorbei, und genau daran sind zwei Gegenproben haengengeblieben. */
   const pbStarts = (fs.readFileSync(path.join(__dirname, 'pruefung.js'), 'utf8')
     .match(/spawn\(process\.execPath, \['server\.js'\]/g) || []).length;
-  pruefe('Es gibt genau drei Stellen, die einen Server starten',
-    pbStarts === 3, `${pbStarts} Stellen`);
+  /* VIER SEIT 0.24.0: dazu die Lage, die einen Server OHNE de.json startet und
+     festhaelt, dass er nicht hochkommt (Bauabschnitt 1). */
+  pruefe('Es gibt genau vier Stellen, die einen Server starten',
+    pbStarts === 4, `${pbStarts} Stellen`);
 
   const pbHeute = pbBasen
     .map(b => [b, pbGesperrt(b, pbBreite(b))])
@@ -21757,9 +21790,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      613 IST DER, DEN DER AUFTRAG AUSDRUECKLICH VERLANGT: er schreibt die
      Ableitung IN state.filters. Ohne ihn waere Regel 3 nicht baulich, sondern
      behauptet. */
-  /* 656 SEIT 0.24.0: sieben neue (658 bis 664) -- vier fuer den Umschalter der
-     Tagzeile (Bauabschnitt 0.2) und drei fuer die drei Werte der Zeitleiste
-     (Bauabschnitt 0.1). Zwei sind mitgegangen (Stolperstein 201): 636, dessen
+  /* 666 SEIT 0.24.0: siebzehn neue -- sieben (658 bis 664) fuer die beiden
+     Befunde aus Bauabschnitt 0 und zehn (665 bis 674) fuer den Sprachhelfer
+     und die Ladung aus Bauabschnitt 1. Zwoelf sind mitgegangen (Stolperstein
+     201): ihre Suchtexte trugen eine lokale Variable `t`, und der Name gehoert
+     seit dieser Runde dem Sprachhelfer.
+     DIE SIEBEN AUS BAUABSCHNITT 0: vier fuer den Umschalter der Tagzeile
+     (0.2) und drei fuer die drei Werte der Zeitleiste (0.1). Zwei sind mitgegangen (Stolperstein 201): 636, dessen
      Suchtext auf die Zeile zeigte, die den Aufklapper oeffnete -- die Regel
      dahinter ist dieselbe geblieben, nur traegt sie jetzt ein Knopf --, und
      637, dessen erwartete Gruppe umbenannt wurde.
@@ -21773,7 +21810,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      DAVOR 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel
      des Pruefstands und eines, das das Milchglas wieder einsetzt; einundvierzig
      vorhandene sind damals mitgegangen. */
-  pruefe('Es sind genau 656 Rueckbauten', gpListe.length === 656, `${gpListe.length}`);
+  pruefe('Es sind genau 666 Rueckbauten', gpListe.length === 666, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -22930,7 +22967,7 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false,
+function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false,
   /* ZU WELCHEM KASTEN JEDES DER DREI KRITERIEN GEHOERT, seit 0.21.0. Vorgabe
      sind DREI Nachher-Kriterien -- genau die Lage, in der der Bestand nach der
      Migration steht, und genau die, in der jede Pruefung von vor dieser Runde
@@ -23529,6 +23566,19 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   w.fetch = async (url, opt = {}) => {
     gesendet.push({ methode: opt.method || 'GET', url, koerper: opt.body ? JSON.parse(opt.body) : null });
     const gib = (o, status = 200) => ({ ok: status < 400, status, json: async () => o });
+    /* DIE SPRACHDATEI KOMMT AUS DER ECHTEN DATEI -- 0.24.0, Bauabschnitt 1.
+       Kein Mock: die 312 Zusicherungen mit deutschem Text bleiben damit
+       gueltig, wie sie sind, und laufen weiter auf Deutsch. Ein nachgebauter
+       Satz waere eine zweite Wahrheit -- und die Pruefung liefe gruen, waehrend
+       die ausgelieferte Datei etwas anderes sagt (Stolperstein 47). */
+    const sprachDatei = /^\/sprachen\/([a-z]{2})\.json$/.exec(String(url));
+    if (sprachDatei) {
+      // `ohneSprache`: die Lage, in der die Datei fehlt (Entscheidung A1).
+      if (ohneSprache) return gib({}, 404);
+      const datei = path.join(__dirname, 'public', 'sprachen', `${sprachDatei[1]}.json`);
+      if (!fs.existsSync(datei)) return gib({}, 404);
+      return gib(JSON.parse(fs.readFileSync(datei, 'utf8')));
+    }
     if (url === '/api/config') return gib({ title: 'Oeffentlich', version: require('./package.json').version,
       setupRequired: einrichtung, minPassword: 10, registrierung });
     if (url === '/api/session') return gib({ authenticated: angemeldet });
@@ -40667,6 +40717,230 @@ async function pruefeOberflaeche() {
      schwarz, weil das Bild es dort ist.
      WER SIE VERLAENGERT, schreibt den Grund daneben. Eine Positivliste ohne
      Begruendung je Eintrag ist nach zwei Runden eine Ausnahmeliste. */
+  /* ================= Der Sprachhelfer und die Ladung — 0.24.0 =================
+     TEXT IST DATEN UND NICHT PROGRAMM (Konzept, Abschnitt 0, Satz 1). Diese
+     Gruppe haelt den Weg von der Datei bis zum Bildschirm fest -- und zwar
+     BEVOR der erste Text umzieht, damit der Umzug auf etwas Belegtes
+     aufsetzt (Auftrag, Bauabschnitt 1).
+     GEPRUEFT WIRD AN GESTELLTEN TEXTEN und nicht an denen der Datei: die Datei
+     traegt in dieser Runde drei Schluessel, und eine Mehrzahlform ist nicht
+     darunter. Der Helfer kann sie trotzdem, und das gehoert belegt. */
+  gruppe('Der Sprachhelfer und die Ladung — 0.24.0');
+  {
+    const spDatei = path.join(__dirname, 'public', 'sprachen', 'de.json');
+    pruefe('Die Sprachdatei liegt unter public/sprachen/ und heisst de.json',
+      fs.existsSync(spDatei), spDatei);
+    const spRoh = fs.readFileSync(spDatei, 'utf8');
+    let spTexte = null;
+    try { spTexte = JSON.parse(spRoh); } catch (e) { spTexte = null; }
+    // Erst das Vorhandensein, dann jede Aussage darueber (Stolperstein 81).
+    pruefe('Sie ist lesbares JSON', !!spTexte && typeof spTexte === 'object',
+      spTexte ? `${Object.keys(spTexte).length} Schluessel` : '(nicht lesbar)');
+    /* DIE LOCALE IM KOPF. An ihr haengen Datum, Zahl, Sortierung und die
+       Mehrzahl -- eine Datei ohne sie ist keine (Konzept 6). */
+    pruefe('Sie traegt _locale: "de-DE"', spTexte?._locale === 'de-DE', String(spTexte?._locale));
+    pruefe('Und Intl kennt diese Locale',
+      Intl.DateTimeFormat.supportedLocalesOf([spTexte?._locale || 'xx-XX']).length === 1,
+      String(spTexte?._locale));
+    /* EIN TEXT IST EIN STRING ODER EIN OBJEKT { eins, andere } -- SONST NICHTS.
+       Kein Feld, das der Helfer nicht kennt: es stuende still da und faerbte
+       nichts. */
+    const spKrumm = Object.entries(spTexte || {}).filter(([k, v]) => {
+      if (k === '_locale') return typeof v !== 'string';
+      if (typeof v === 'string') return false;
+      if (v && typeof v === 'object')
+        return Object.keys(v).sort().join() !== 'andere,eins'
+          || typeof v.eins !== 'string' || typeof v.andere !== 'string';
+      return true;
+    }).map(([k]) => k);
+    pruefe('Jeder Wert ist ein String oder ein Objekt { eins, andere }',
+      spKrumm.length === 0, spKrumm.join(' · ') || 'alle in Ordnung');
+    /* KEIN HTML IN EINEM TEXT (Konzept 4.2). Der Helfer maskiert den Text
+       ausdruecklich NICHT -- er maskiert nur die eingesetzten Werte. Traegt
+       ein Text ein Zeichen, faellt genau diese Zusage. */
+    const spSpitz = Object.entries(spTexte || {}).filter(([, v]) =>
+      (typeof v === 'string' ? [v] : Object.values(v || {})).some(x => /[<>]/.test(String(x))))
+      .map(([k]) => k);
+    pruefe('Kein Wert trägt ein < oder ein >', spSpitz.length === 0,
+      spSpitz.join(' · ') || 'keiner');
+    /* UND DER WAECHTER FINDET WIRKLICH EINES -- ohne diese Zeile bliebe die
+       Zeile darueber auch dann gruen, wenn der Ausdruck nie trifft. */
+    pruefe('Und der Wächter findet ein eingebautes < wirklich',
+      /[<>]/.test('<b>'), 'Gegenlage mit <b>');
+
+    /* ---- Der Helfer im Browser ---- */
+    const spDom = baueDom(JSDOM, { einstellungen: { filters: null } });
+    await new Promise(r => setTimeout(r, 80));
+    const spW = spDom.w;
+    /* DIE GESTELLTEN TEXTE WERDEN IN DIE GELADENEN GESCHOBEN. `TEXTE` ist ein
+       `let` am Kopf von app.js und steht damit im Fenster nicht als
+       Eigenschaft, sondern als Bindung -- w.eval() ist der Weg dorthin.
+       ZURUECKGESETZT WIRD DANACH, damit die uebrigen Zeilen dieser Gruppe die
+       echte Datei sehen. */
+    const spSetze = (obj) => spW.eval(`TEXTE = ${JSON.stringify(obj)}; TEXTE_DE = TEXTE;`);
+    const spEcht = () => spW.eval(`TEXTE = ${spRoh}; TEXTE_DE = TEXTE;`);
+    spSetze({
+      _locale: 'de-DE',
+      'probe.einfach': 'Ein fester Satz.',
+      'probe.platzhalter': 'Es sind {n} von {gesamt}.',
+      'probe.vokabel': 'Der Knopf heißt „{sacheEinzahl}".',
+      'probe.mehrzahl': { eins: '{n} Kommentar', andere: '{n} Kommentare' },
+      'probe.unbekannt': 'Hier fehlt {niemand}.'
+    });
+    pruefe('t() gibt einen festen Satz unverändert zurück',
+      spW.t('probe.einfach') === 'Ein fester Satz.', spW.t('probe.einfach'));
+    pruefe('t() setzt benannte Platzhalter ein',
+      spW.t('probe.platzhalter', { n: 3, gesamt: 7 }) === 'Es sind 3 von 7.',
+      spW.t('probe.platzhalter', { n: 3, gesamt: 7 }));
+    /* EIN VOKABELPLATZHALTER KOMMT AUS `V`, ohne dass ihn jemand mitgibt --
+       die vierzehn Namen sind dieselben wie heute im Quelltext. */
+    pruefe('Ein Vokabelplatzhalter kommt aus V, ohne ihn mitzugeben',
+      spW.t('probe.vokabel') === 'Der Knopf heißt „Eintrag".', spW.t('probe.vokabel'));
+    /* EIN UNBEKANNTER PLATZHALTER BLEIBT STEHEN. Ein leerer Fleck waere kein
+       Fund -- `{niemand}` am Bildschirm ist einer. */
+    pruefe('Ein unbekannter Platzhalter bleibt stehen',
+      spW.t('probe.unbekannt') === 'Hier fehlt {niemand}.', spW.t('probe.unbekannt'));
+    /* DIE MEHRZAHL WAEHLT Intl.PluralRules UND NICHT `n === 1`.
+       ERST NACHSTELLEN, DANN BEHAUPTEN: select(0) ist auf Deutsch `other` und
+       nicht `one` -- wer das nicht weiss, schreibt „0 Kommentar". */
+    pruefe('Intl.PluralRules("de-DE").select(0) ist „other" und nicht „one"',
+      new Intl.PluralRules('de-DE').select(0) === 'other',
+      new Intl.PluralRules('de-DE').select(0));
+    for (const [n, soll] of [[0, '0 Kommentare'], [1, '1 Kommentar'], [2, '2 Kommentare']])
+      pruefe(`Die Mehrzahl bei n = ${n} ist „${soll}"`,
+        spW.t('probe.mehrzahl', { n }) === soll, spW.t('probe.mehrzahl', { n }));
+    /* tH() MASKIERT JEDEN EINGESETZTEN WERT -- Stolperstein 18 in Dateiform.
+       t() tut es NICHT, weil textContent, title und placeholder es nicht
+       brauchen; ein doppelt maskierter Text stuende dort als &lt;b&gt; da. */
+    const spBoese = { n: '<b>', gesamt: 1 };
+    pruefe('tH() maskiert einen Wert mit einem <',
+      spW.tH('probe.platzhalter', spBoese) === 'Es sind &lt;b&gt; von 1.',
+      spW.tH('probe.platzhalter', spBoese));
+    pruefe('Und t() maskiert ihn nicht',
+      spW.t('probe.platzhalter', spBoese) === 'Es sind <b> von 1.',
+      spW.t('probe.platzhalter', spBoese));
+    /* AUCH DAS VOKABELWORT WIRD IN tH() MASKIERT. Es kommt vom Admin und ist
+       damit Benutzertext -- genau der Fall, den Stolperstein 18 nennt. */
+    spW.eval("V = { ...V, sacheEinzahl: '<i>Modell</i>' };");
+    pruefe('tH() maskiert auch das Vokabelwort',
+      spW.tH('probe.vokabel') === 'Der Knopf heißt „&lt;i&gt;Modell&lt;/i&gt;".',
+      spW.tH('probe.vokabel'));
+    spW.eval("V = { ...V, sacheEinzahl: 'Eintrag' };");
+    /* EIN FEHLENDER SCHLUESSEL IST SICHTBAR UND NIE STILL. */
+    pruefe('Ein fehlender Schlüssel liefert ⟦schluessel⟧',
+      spW.t('gibt.es.nicht') === '⟦gibt.es.nicht⟧', spW.t('gibt.es.nicht'));
+    /* DER RUECKFALL AUF DEUTSCH. In dieser Runde ist er leer -- es gibt nur
+       Deutsch --, und er wird trotzdem jetzt gebaut und belegt: eine Regel,
+       die man erst dann baut, wenn sie gebraucht wird, ist ungeprueft. */
+    spW.eval("TEXTE = { _locale: 'de-DE' };");
+    pruefe('Fehlt ein Schlüssel in der gewählten Sprache, greift Deutsch',
+      spW.t('probe.einfach') === 'Ein fester Satz.', spW.t('probe.einfach'));
+    pruefe('Und fehlt er auch dort, steht ⟦…⟧ da',
+      spW.t('probe.nichtda') === '⟦probe.nichtda⟧', spW.t('probe.nichtda'));
+    spEcht();
+    /* DIE ECHTE DATEI TRAEGT DIE DREI SCHLUESSEL DIESES BAUABSCHNITTS. */
+    pruefe('Der Rückfallsatz von api() steht in der Datei',
+      spW.t('fehler.serverStatus', { status: 500 }) === 'Der Server meldet einen Fehler (500).',
+      spW.t('fehler.serverStatus', { status: 500 }));
+    spW.close();
+
+    /* ---- Die Ladung in boot() ---- */
+    /* SCHEITERT SIE, ZEICHNET boot() EINEN EINZIGEN FESTEN SATZ UND HAELT AN
+       (Entscheidung A1). Eine Oberflaeche voller ⟦…⟧ waere schlimmer als ein
+       Satz -- und ohne Datei gibt es keinen Schluessel, mit dem sich sagen
+       liesse, dass sie fehlt. */
+    const spOhne = baueDom(JSDOM, { ohneSprache: true });
+    await new Promise(r => setTimeout(r, 120));
+    pruefe('Fehlt die Sprachdatei, steht ein einziger fester Satz da',
+      spOhne.w.document.getElementById('app')?.textContent === 'Die Sprachdatei fehlt.',
+      JSON.stringify(spOhne.w.document.getElementById('app')?.textContent?.slice(0, 80)));
+    // UND SONST NICHTS: keine Anmeldemaske, keine Leiste, kein Knopf.
+    pruefe('Und boot() zeichnet nichts weiter',
+      spOhne.w.document.querySelectorAll('#app *').length === 0,
+      `${spOhne.w.document.querySelectorAll('#app *').length} Knoten`);
+    spOhne.w.close();
+    /* UND DIE GEGENLAGE: mit Datei zeichnet dieselbe Seite ihre Ansicht. Ohne
+       sie belegte die Zeile darueber auch dann etwas, wenn boot() nie
+       zeichnet. */
+    const spMit = baueDom(JSDOM, {});
+    await new Promise(r => setTimeout(r, 120));
+    pruefe('Mit Datei zeichnet dieselbe Seite ihre Ansicht',
+      spMit.w.document.querySelectorAll('#app *').length > 0
+        && spMit.w.document.getElementById('app').textContent !== 'Die Sprachdatei fehlt.',
+      `${spMit.w.document.querySelectorAll('#app *').length} Knoten`);
+    spMit.w.close();
+
+    /* ---- Der Helfer im Server ---- */
+    /* KEIN LITERAL MEHR AN DEN DREI STELLEN DIESES BAUABSCHNITTS. Gelesen wird
+       der Quelltext: api() und der Fehler-Handler haben keinen Rufer, den
+       dieser Lauf von aussen erreichte, ohne einen Fehler zu erzwingen. */
+    const spApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const spSrv = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    pruefe('api() liest seinen Rückfallsatz über t()',
+      /let m = t\('fehler\.serverStatus', \{ status: res\.status \}\);/.test(spApp)
+        && !/Der Server meldet einen Fehler/.test(spApp),
+      (spApp.match(/let m = [^\n]*/) || ['(nicht gefunden)'])[0]);
+    pruefe('Der Fehler-Handler übersetzt seine zwei Sätze',
+      /t\(sprache, 'server\.fehlerAllgemein'\)/.test(spSrv)
+        && /t\(sprache, 'server\.fehlerUnbekannt'\)/.test(spSrv)
+        && !/Auf dem Server ist ein Fehler aufgetreten/.test(spSrv)
+        && !/'Unbekannter Fehler'/.test(spSrv),
+      'Literale im Handler: ' + String(/Auf dem Server ist ein Fehler aufgetreten/.test(spSrv)));
+    /* DIE KLASSE `Meldung`: Schluessel, Werte, Status -- und sie erbt von
+       Error, damit jeder vorhandene try/catch sie weiter faengt. */
+    const spM = new (require('./auth').Meldung)('probe.schluessel', { n: 2 }, 409);
+    pruefe('Eine Meldung ist ein Error und trägt Schlüssel, Werte und Status',
+      spM instanceof Error && spM.schluessel === 'probe.schluessel'
+        && spM.werte.n === 2 && spM.status === 409,
+      JSON.stringify([spM.schluessel, spM.werte, spM.status]));
+    // Und ihr `message` ist der SCHLUESSEL: wer sie versehentlich als Text
+    // ausgibt, sieht einen Schluessel und keinen halben Satz.
+    pruefe('Und ihre Meldung ist der Schlüssel selbst',
+      spM.message === 'probe.schluessel', spM.message);
+    /* spracheVon() LIEFERT IN DIESER RUNDE IMMER `de` -- kein
+       Accept-Language, kein Benutzerschluessel, kein Feld in /api/config. */
+    /* GESUCHT WIRD DIE BENUTZUNG UND NICHT DAS WORT: „Accept-Language" steht im
+       Kommentar daneben, weil dort steht, was Stufe 2 einhaengt. Ein Waechter
+       ueber das Wort verboete, die Absicht aufzuschreiben. */
+    pruefe('spracheVon(req) kennt in dieser Runde keine Quelle',
+      /function spracheVon\(req\) \{\s*return SPRACH_VORGABE;\s*\}/.test(spSrv)
+        && !/headers\[[^\]]*accept-language/i.test(spSrv)
+        && !/getUserSetting\([^)]*'sprache'/.test(spSrv),
+      (spSrv.match(/function spracheVon[\s\S]{0,80}/) || ['(nicht gefunden)'])[0]);
+    /* FEHLT de.json, STARTET DER SERVER NICHT. Gefahren aus einer KOPIE des
+       Quelltextes -- der laufende Prueflauf darf sich dabei nicht selbst
+       veraendern. */
+    const spKopie = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sprache-'));
+    for (const e of fs.readdirSync(__dirname, { withFileTypes: true })) {
+      if (['node_modules', 'data', '.git'].includes(e.name)) continue;
+      const ziel = path.join(spKopie, e.name);
+      if (e.isDirectory()) fs.cpSync(path.join(__dirname, e.name), ziel, { recursive: true });
+      else if (e.isFile()) fs.copyFileSync(path.join(__dirname, e.name), ziel);
+    }
+    fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(spKopie, 'node_modules'));
+    fs.rmSync(path.join(spKopie, 'public', 'sprachen', 'de.json'));
+    const spStart = await new Promise((fertig) => {
+      const datenVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sprachdaten-'));
+      const spPort = SPRACHE_BASIS + PORT_VERSATZ;
+      const kindS = spawn(process.execPath, ['server.js'], { cwd: spKopie,
+        env: { ...process.env, PORT: String(spPort), DATA_DIR: datenVerz, ENCRYPTION_KEY: KEY } });
+      // Vermerkt, damit beide Waechter am Ende auch diese Lage ansehen -- und
+      // damit ihr Kind aufgeraeumt wird, falls es wider Erwarten laeuft.
+      PRUEFLAGEN.push({ basis: SPRACHE_BASIS, port: spPort, kind: kindS, verzeichnis: datenVerz });
+      let prot = '';
+      kindS.stdout.on('data', d => { prot += d; });
+      kindS.stderr.on('data', d => { prot += d; });
+      kindS.on('exit', (code) => { fs.rmSync(datenVerz, { recursive: true, force: true });
+                                   fertig({ code, prot }); });
+      setTimeout(() => { kindS.kill('SIGKILL'); }, 20000);
+    });
+    pruefe('Ohne de.json startet der Server nicht',
+      spStart.code !== 0, `Rueckgabe ${spStart.code}`);
+    pruefe('Und er sagt, warum',
+      /de\.json fehlt/.test(spStart.prot), spStart.prot.split('\n').find(z => /de\.json/.test(z)) || '(kein Wort davon)');
+    fs.rmSync(spKopie, { recursive: true, force: true });
+  }
+
   /* ================= Die Zeitleiste im hellen Schema — 0.24.0 =================
      DIE LUECKE, DIE DAS FARBKONZEPT GELASSEN HAT. Es hat seine Randfarben
      gegen die KARTE gemessen; die Zeitleiste liegt aber seit 0.22.0 ohne

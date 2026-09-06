@@ -3,6 +3,88 @@ const app = document.getElementById('app');
 /* ================= Grundlagen ================= */
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+/* ================= Die Sprache ================= */
+/* TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 1. Jeder Text, den
+   ein Mensch am Bildschirm liest, steht in `public/sprachen/<code>.json`; der
+   Quelltext kennt nur noch den Schluessel.
+
+   FLACHE SCHLUESSEL MIT PUNKTEN und keine verschachtelten Objekte:
+   `t('dialog.fotoLoeschen.frage')` schlaegt EIN Feld nach. Verschachtelt waere
+   die Datei fuer einen Uebersetzer huebscher, aber zwei Schluessel wie
+   `knopf.speichern` und `knopf.speichern.titel` koennten dann nicht
+   nebeneinander stehen -- bei tausend Schluesseln trifft dieser Fall ein, und
+   er faellt erst beim Laden auf. Flach koennen sie es, und das Objekt bleibt
+   der Mehrzahl vorbehalten: WAS EIN OBJEKT IST, IST EINE MEHRZAHLFORM.
+
+   DER RUECKFALL AUF DEUTSCH steht schon hier, obwohl es in dieser Runde nur
+   Deutsch gibt: er ist die Regel, nach der Stufe 2 eine Luecke fuellt, und
+   eine Regel, die man erst dann baut, wenn sie gebraucht wird, ist ungeprueft
+   (Konzept 4.4). Fehlt der Schluessel auch dort, steht `⟦schluessel⟧` am
+   Bildschirm -- sichtbar und nie still. */
+let SPRACHE = 'de';
+let LOCALE = 'de-DE';
+let TEXTE = {};
+let TEXTE_DE = {};
+/* EINMAL GEBAUT UND NICHT JE AUFRUF. `new Intl.PluralRules(...)` je Text waere
+   bei 46 Mehrzahlstellen und jedem Neuzeichnen eine gut sichtbare Rechnung. */
+let PLURAL = new Intl.PluralRules(LOCALE);
+
+// Den Satz nachschlagen -- in der gewaehlten Sprache, sonst auf Deutsch.
+function spracheSatz(schluessel, werte) {
+  const roh = TEXTE[schluessel] !== undefined ? TEXTE[schluessel] : TEXTE_DE[schluessel];
+  if (roh === undefined) return `⟦${schluessel}⟧`;
+  if (typeof roh !== 'object') return roh;
+  /* DIE MEHRZAHL WAEHLT Intl.PluralRules UND NICHT `n === 1`. Fuer Deutsch
+     faellt beides zusammen; fuer die naechste Sprache nicht, und die Regel
+     steht dann schon richtig da. `select(undefined)` ist `other` -- ein
+     Mehrzahlobjekt ohne `n` bekommt also die Mehrzahl und nicht die Einzahl. */
+  return PLURAL.select(werte.n) === 'one' ? roh.eins : roh.andere;
+}
+
+/* DIE WERTE EINSETZEN. Ein Platzhalter, den weder der Aufrufer noch das
+   Vokabular kennt, BLEIBT STEHEN -- `{sache}` am Bildschirm ist ein Fund, ein
+   leerer Fleck waere keiner.
+   MASKIERT WIRD DER WERT UND NIE DER TEXT: der Text kommt aus der Datei und
+   traegt kein HTML (der Pruefstand haelt das fest); der Wert kommt vom
+   Benutzer oder aus dem Vokabular des Admins. Genau deshalb maskiert tH()
+   AUCH die Vokabelwoerter -- Stolperstein 18 in Dateiform. */
+function spracheEinsetzen(satz, werte, maskieren) {
+  return String(satz).replace(/\{(\w+)\}/g, (ganz, name) => {
+    let wert = werte[name];
+    if (wert === undefined && V && V[name] !== undefined) wert = V[name];
+    if (wert === undefined) return ganz;
+    return maskieren ? esc(String(wert)) : String(wert);
+  });
+}
+
+// Fuer textContent, title und placeholder: der nackte Text.
+function t(schluessel, werte = {}) {
+  return spracheEinsetzen(spracheSatz(schluessel, werte), werte, false);
+}
+// Fuer innerHTML: derselbe Text, aber jeder eingesetzte Wert maskiert.
+function tH(schluessel, werte = {}) {
+  return spracheEinsetzen(spracheSatz(schluessel, werte), werte, true);
+}
+
+/* DIE DATEI HOLEN. Sie liegt unter public/ und kommt damit ueber
+   express.static -- keine neue Route, ETag und 304 wie app.js selbst, und der
+   Fingerprint deckt sie ab, ohne dass jemand daran denkt (Konzept 3.3). */
+async function ladeSprache(code) {
+  const antwort = await fetch(`/sprachen/${code}.json`, { credentials: 'same-origin' });
+  if (!antwort.ok) throw new Error(`sprachen/${code}.json: ${antwort.status}`);
+  const daten = await antwort.json();
+  // Ohne Locale kein Datum und keine Mehrzahl -- eine Datei ohne sie ist keine.
+  if (!daten || typeof daten !== 'object' || typeof daten._locale !== 'string')
+    throw new Error(`sprachen/${code}.json ohne _locale`);
+  SPRACHE = code;
+  LOCALE = daten._locale;
+  PLURAL = new Intl.PluralRules(LOCALE);
+  TEXTE = daten;
+  // Deutsch ist die Rueckfalldatei. In dieser Runde ist es dieselbe.
+  if (code === 'de') TEXTE_DE = daten;
+  return daten;
+}
+
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso.replace(' ', 'T') + 'Z');
@@ -54,7 +136,7 @@ async function api(method, url, body, isForm = false) {
   const res = await fetch(url, opts);
   if (res.status === 401) { showLogin(); throw new Error('Sitzung abgelaufen'); }
   if (!res.ok) {
-    let m = `Der Server meldet einen Fehler (${res.status}).`;
+    let m = t('fehler.serverStatus', { status: res.status });
     try { const j = await res.json(); if (j.error) m = j.error; } catch {}
     throw new Error(m);
   }
@@ -66,7 +148,7 @@ async function api(method, url, body, isForm = false) {
    sieht, soll ihn auch erreichen. Allgemein gebaut, zunaechst an genau einer
    Stelle benutzt -- dem Zuruecksetzen der eigenen Sterne. */
 function toast(msg, isErr = false, aktion = null) {
-  document.querySelectorAll('.toast').forEach(t => t.remove());
+  document.querySelectorAll('.toast').forEach(m => m.remove());
   const el = document.createElement('div');
   el.className = 'toast' + (isErr ? ' err' : '') + (aktion ? ' mit-knopf' : '');
   el.textContent = msg;
@@ -1099,9 +1181,9 @@ function blockZusammenfassung(name, item) {
     case 'bewertung': return item.avgRating ? '' : 'noch nicht bewertet';
     case 'potenzial': return item.potenzialRating ? '' : 'noch nicht eingeschätzt';
     case 'beschreibung': {
-      const t = (item.description || '').trim().replace(/\s+/g, ' ');
-      if (!t) return 'leer';
-      return t.length > 40 ? t.slice(0, 40) + ' …' : t;
+      const text = (item.description || '').trim().replace(/\s+/g, ' ');
+      if (!text) return 'leer';
+      return text.length > 40 ? text.slice(0, 40) + ' …' : text;
     }
     case 'testtage': return String(item.testDays.length);
     case 'links': return String(item.links.length);
@@ -1509,8 +1591,8 @@ function aufgabeWeiter(art) {
    dieselbe Grenze liefen auseinander, und die Oberflaeche waere die, die es
    nicht meldet. */
 const gewichtAusText = (roh) => {
-  const t = String(roh ?? '').trim();
-  return t === '' ? NaN : Number(t.replace(',', '.'));
+  const roh2 = String(roh ?? '').trim();
+  return roh2 === '' ? NaN : Number(roh2.replace(',', '.'));
 };
 
 /* 1 -> "1", 1.2 -> "1,2", 1.25 -> "1,25". KEINE nachlaufenden Nullen: "1,50"
@@ -1645,21 +1727,21 @@ function kuerzeLinkende(adresse) {
    eine Adresse, in der der Begriff steht, in mehrere Stuecke MIT demselben
    Ziel -- der Knotenbauer setzt sie danach wieder zu EINEM Link zusammen. */
 function zerlegeAmBegriff(text, begriff, rest = {}) {
-  const t = String(text ?? '');
+  const inhalt = String(text ?? '');
   const b = String(begriff ?? '');
-  if (!t) return [];
-  if (!b) return [{ text: t, ...rest }];
-  const klein = t.toLowerCase(), kleinB = b.toLowerCase();
+  if (!inhalt) return [];
+  if (!b) return [{ text: inhalt, ...rest }];
+  const klein = inhalt.toLowerCase(), kleinB = b.toLowerCase();
   const stuecke = [];
   let von = 0;
   for (;;) {
     const i = klein.indexOf(kleinB, von);
     if (i < 0) break;
-    if (i > von) stuecke.push({ text: t.slice(von, i), ...rest });
-    stuecke.push({ text: t.slice(i, i + b.length), ...rest, treffer: true });
+    if (i > von) stuecke.push({ text: inhalt.slice(von, i), ...rest });
+    stuecke.push({ text: inhalt.slice(i, i + b.length), ...rest, treffer: true });
     von = i + b.length;
   }
-  if (von < t.length) stuecke.push({ text: t.slice(von), ...rest });
+  if (von < inhalt.length) stuecke.push({ text: inhalt.slice(von), ...rest });
   return stuecke;
 }
 
@@ -1672,7 +1754,7 @@ function zerlegeAmBegriff(text, begriff, rest = {}) {
 function zerlegeKommentartext(roh, begriff) {
   const text = String(roh ?? '');
   const stuecke = [];
-  const nimm = (t, rest) => { for (const s of zerlegeAmBegriff(t, begriff, rest)) stuecke.push(s); };
+  const nimm = (roh2, rest) => { for (const s of zerlegeAmBegriff(roh2, begriff, rest)) stuecke.push(s); };
   let zuletzt = 0, treffer;
   KOMMENTAR_LINK.lastIndex = 0;
   while ((treffer = KOMMENTAR_LINK.exec(text)) !== null) {
@@ -1794,8 +1876,8 @@ const GERAET_HELL = '(prefers-color-scheme: light)';
 const THEMA_MERKER = 'kriterion.thema';
 let THEMA = (() => {
   try {
-    const t = localStorage.getItem(THEMA_MERKER);
-    return THEMA_STUFEN.includes(t) ? t : 'dunkel';
+    const gemerkt = localStorage.getItem(THEMA_MERKER);
+    return THEMA_STUFEN.includes(gemerkt) ? gemerkt : 'dunkel';
   } catch (e) { return 'dunkel'; }
 })();
 const wirksamesThema = () => THEMA === 'geraet'
@@ -2127,7 +2209,7 @@ async function loadAll() {
    umschreibt, ist schlimmer als eine Nummer, die ins Leere zeigt. */
 function filterNormal(roh) {
   const f = { ...FILTER_VORGABE, ...(roh && typeof roh === 'object' ? roh : {}) };
-  f.tagIds = (Array.isArray(f.tagIds) ? f.tagIds : []).filter(id => state.tags.some(t => t.id === id));
+  f.tagIds = (Array.isArray(f.tagIds) ? f.tagIds : []).filter(id => state.tags.some(tag => tag.id === id));
   /* DIE UEBERSETZUNG DER ALTEN FORM, an genau dieser einen Stelle. Vor 0.13.0
      stand in einer gespeicherten Ansicht EIN Kategoriewert (`categoryId`).
      Ohne diese Zeilen verloeren alle vorhandenen Ansichten ihre Kategorie --
@@ -2334,7 +2416,7 @@ function byTest(a, b, field, dir) {
 // die Vorschau der Wolke damit rechnet, welche Tags noch Treffer brachten.
 function passtZuTags(item, tagIds, modus) {
   if (!tagIds.length) return true;
-  const eigene = new Set((item.tags || []).map(t => t.id));
+  const eigene = new Set((item.tags || []).map(tag => tag.id));
   return modus === 'or'
     ? tagIds.some(id => eigene.has(id))
     : tagIds.every(id => eigene.has(id));
@@ -2862,8 +2944,8 @@ async function renderList() {
 }
 
 function listKeys(e) {
-  const t = document.activeElement?.tagName;
-  if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+  const marke = document.activeElement?.tagName;
+  if (marke === 'INPUT' || marke === 'TEXTAREA' || marke === 'SELECT') return;
   if (document.querySelector('.backdrop')) return;
   if (e.key === '/') { e.preventDefault(); document.getElementById('q')?.focus(); }
 }
@@ -2944,7 +3026,7 @@ function zeichneFilterSchalter() {
      und eingestellt hat das niemand. */
   const woher = statusAusSortierung(state.filters.sort) ? 'folgt der Sortierung' : '';
   knopf.querySelector('.fz').textContent =
-    [n ? `${n} aktiv` : '', woher].filter(Boolean).map(t => `· ${t}`).join(' ');
+    [n ? `${n} aktiv` : '', woher].filter(Boolean).map(s => `· ${s}`).join(' ');
   knopf.classList.toggle('aktiv', n > 0);
   knopf.setAttribute('aria-expanded', zu ? 'false' : 'true');
   knopf.title = zu ? 'Filter anzeigen' : 'Filter ausblenden';
@@ -3157,7 +3239,7 @@ function drawFilters() {
   // Nur Tags mit mindestens einem Eintrag: Tags, die ausschliesslich an
   // Testtagen haengen, lieferten hier null Treffer. Die Suche findet sie
   // trotzdem.
-  const filterTags = state.tags.filter(t => t.usage_count > 0);
+  const filterTags = state.tags.filter(tag => tag.usage_count > 0);
   const tagsMoeglich = filterTags.length > 0 || f.tagIds.length > 0;
   /* GREIFT EIN TAGFILTER, STEHT DIE ZEILE BEIM AUFBAU OFFEN -- 0.22.0, und die
      Regel bleibt woertlich: ein Filter, der die Liste kuerzt und dabei
@@ -3226,19 +3308,19 @@ function drawFilters() {
     const leerlauf = new Set();
     if (f.tagMode === 'and' && f.tagIds.length) {
       const sichtbar = visibleItems();
-      filterTags.forEach(t => {
-        if (f.tagIds.includes(t.id)) return;
-        if (!sichtbar.some(i => (i.tags || []).some(x => x.id === t.id))) leerlauf.add(t.id);
+      filterTags.forEach(tag => {
+        if (f.tagIds.includes(tag.id)) return;
+        if (!sichtbar.some(i => (i.tags || []).some(x => x.id === tag.id))) leerlauf.add(tag.id);
       });
     }
-    sortiereWolke(filterTags, new Set(f.tagIds)).forEach(t => {
+    sortiereWolke(filterTags, new Set(f.tagIds)).forEach(tag => {
       const b = document.createElement('button');
-      const gewaehlt = f.tagIds.includes(t.id);
-      b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(t.id) ? ' leer' : '');
-      b.textContent = t.name;
-      if (leerlauf.has(t.id)) b.title = 'Mit der aktuellen Auswahl keine Treffer';
+      const gewaehlt = f.tagIds.includes(tag.id);
+      b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(tag.id) ? ' leer' : '');
+      b.textContent = tag.name;
+      if (leerlauf.has(tag.id)) b.title = 'Mit der aktuellen Auswahl keine Treffer';
       b.onclick = () => {
-        f.tagIds = gewaehlt ? f.tagIds.filter(x => x !== t.id) : [...f.tagIds, t.id];
+        f.tagIds = gewaehlt ? f.tagIds.filter(x => x !== tag.id) : [...f.tagIds, tag.id];
         redraw();
       };
       g3.appendChild(b);
@@ -3710,7 +3792,7 @@ function card(it) {
       ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
       <h3 class="card-title">${esc(it.title)}</h3>
       ${fundZeile}
-      ${it.tags.length ? `<div class="card-tags">${it.tags.slice(0,4).map(t => `<span class="chip ro">${esc(t.name)}</span>`).join('')}</div>` : ''}
+      ${it.tags.length ? `<div class="card-tags">${it.tags.slice(0,4).map(tag => `<span class="chip ro">${esc(tag.name)}</span>`).join('')}</div>` : ''}
       ${testLine}
       <div class="card-foot">
         <span class="card-meta-l">
@@ -3809,7 +3891,7 @@ const AEHNLICH_ZEIGE = 5;
 
 // Kleinbuchstaben, Ziffern und Buchstaben mit Zeichen darauf bleiben; alles
 // andere faellt weg. "Bosch GSR 18V-60" wird zu "boschgsr18v60".
-const titelKern = (t) => String(t || '').toLowerCase().replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
+const titelKern = (roh) => String(roh || '').toLowerCase().replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
 
 function aehnlicheEintraege(titel) {
   const kern = titelKern(titel);
@@ -4116,7 +4198,7 @@ async function renderCompare() {
   const schnittVon = (it, gruppe) =>
     (nurMeine ? eigenerSchnitt(it, gruppe.phase) : it[gruppe.schnitt]);
   const zeitpunkteVon = (it) => (nurMeine
-    ? (it.testDays || []).filter(t => t.mine).length
+    ? (it.testDays || []).filter(td => td.mine).length
     : (it.testCount || 0));
   const alsZahl = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
 
@@ -4407,7 +4489,7 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
     lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
     if (strip) {
       strip.hidden = photos.length < 2;
-      [...strip.children].forEach((t, n) => t.classList.toggle('on', n === i));
+      [...strip.children].forEach((kachel, n) => kachel.classList.toggle('on', n === i));
       strip.children[i]?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
     }
   }
@@ -4418,12 +4500,12 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
     if (!strip) return;
     strip.innerHTML = '';
     photos.forEach((p, n) => {
-      const t = document.createElement('button');
-      t.className = 'lb-thumb' + (istVideo(p) ? ' ist-video' : '');
-      t.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
+      const kachel = document.createElement('button');
+      kachel.className = 'lb-thumb' + (istVideo(p) ? ' ist-video' : '');
+      kachel.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
         (istVideo(p) ? `<span class="spielmarke">▶</span>` : '');
-      t.onclick = () => { i = n; show(); };
-      strip.appendChild(t);
+      kachel.onclick = () => { i = n; show(); };
+      strip.appendChild(kachel);
     });
   }
   baueStreifen();
@@ -5285,7 +5367,7 @@ async function renderDetail(id, begriffAdresse) {
     }
   }
   const markThumb = () =>
-    document.querySelectorAll('#thumbs .thumb').forEach((t, i) => t.classList.toggle('current', i === idx));
+    document.querySelectorAll('#thumbs .thumb').forEach((k, i) => k.classList.toggle('current', i === idx));
 
   function drawThumbs() {
     const box = document.getElementById('thumbs');
@@ -5296,18 +5378,18 @@ async function renderDetail(id, begriffAdresse) {
     if (!box) return;
     box.innerHTML = '';
     item.photos.forEach((p, i) => {
-      const t = document.createElement('div');
-      t.className = 'thumb' + (i === idx ? ' current' : '') + (istVideo(p) ? ' ist-video' : '');
-      t.dataset.pid = p.id;
+      const kachel = document.createElement('div');
+      kachel.className = 'thumb' + (i === idx ? ' current' : '') + (istVideo(p) ? ' ist-video' : '');
+      kachel.dataset.pid = p.id;
       // Abgeleitet aus art und dauer, kein Schalter: das ▶ in der Ecke und,
       // wenn die Dauer bekannt ist, die Laenge daneben.
       const laenge = istVideo(p) ? dauerText(p.dauer) : '';
       const wort = istVideo(p) ? 'Video' : 'Foto';
-      t.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
+      kachel.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
         (istVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
         (laenge ? `<span class="dauer">${laenge}</span>` : '') +
         `<span class="num">${i + 1}</span><span class="del" title="${wort} löschen">${ICON_KREUZ}</span>`;
-      t.querySelector('.del').onclick = async (e) => {
+      kachel.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird endgültig gelöscht.`)) return;
         try {
@@ -5317,9 +5399,9 @@ async function renderDetail(id, begriffAdresse) {
           drawViewer(); drawThumbs();
         } catch (err) { toast(err.message, true); }
       };
-      makeSortable(t, {
+      makeSortable(kachel, {
         axis: 'x', selector: '.thumb', ignore: '.del',
-        onClick: () => { idx = [...t.parentElement.children].indexOf(t); drawViewer(); markThumb(); },
+        onClick: () => { idx = [...t.parentElement.children].indexOf(kachel); drawViewer(); markThumb(); },
         onDrop: async (children) => {
           const order = children.map(c => +c.dataset.pid);
           const currentId = item.photos[idx]?.id;
@@ -5331,7 +5413,7 @@ async function renderDetail(id, begriffAdresse) {
           } catch (err) { toast(err.message, true); }
         }
       });
-      box.appendChild(t);
+      box.appendChild(kachel);
     });
   }
 
@@ -5415,8 +5497,8 @@ async function renderDetail(id, begriffAdresse) {
 
   // Bilder aus der Zwischenablage — spart bei Bildschirmfotos den Umweg ueber eine Datei
   const onPaste = (e) => {
-    const t = document.activeElement?.tagName;
-    if (t === 'INPUT' || t === 'TEXTAREA') return;
+    const marke = document.activeElement?.tagName;
+    if (marke === 'INPUT' || marke === 'TEXTAREA') return;
     const files = [...(e.clipboardData?.files || [])].filter(f => /^image\//.test(f.type));
     if (!files.length) return;
     e.preventDefault();
@@ -5433,8 +5515,8 @@ async function renderDetail(id, begriffAdresse) {
 
   // Pfeiltasten blaettern, aber nicht waehrend getippt wird und nicht bei offenem Vollbild
   const keyNav = e => {
-    const t = document.activeElement?.tagName;
-    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+    const marke = document.activeElement?.tagName;
+    if (marke === 'INPUT' || marke === 'TEXTAREA' || marke === 'SELECT') return;
     if (document.querySelector('.backdrop') || lightboxOpen) return;
     if (!item.photos.length) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); idx--; drawViewer(); markThumb(); }
@@ -5490,10 +5572,10 @@ async function renderDetail(id, begriffAdresse) {
 
   /* ---- Schalter ---- */
   function drawSwitches() {
-    const t = document.getElementById('sw-test'), r = document.getElementById('sw-rej');
+    const schalter = document.getElementById('sw-test'), r = document.getElementById('sw-rej');
     const locked = item.testDays.length > 0;
-    t.className = 'switch' + (item.tested ? ' on-green' : '') + (locked ? ' locked' : '');
-    t.title = locked ? `Nicht änderbar, solange ${V.zeitpunktMehrzahl} eingetragen sind.` : '';
+    schalter.className = 'switch' + (item.tested ? ' on-green' : '') + (locked ? ' locked' : '');
+    schalter.title = locked ? `Nicht änderbar, solange ${V.zeitpunktMehrzahl} eingetragen sind.` : '';
     document.getElementById('sw-test-t').textContent = item.tested ? V.merkmalJa : V.merkmalNein;
     r.className = 'switch' + (item.rejected ? ' on-red' : '');
     document.getElementById('sw-rej-t').textContent = item.rejected ? 'Abgelehnt' : 'Nicht abgelehnt';
@@ -5832,17 +5914,17 @@ async function renderDetail(id, begriffAdresse) {
     // Kein Hinweis, solange die Wolke darunter leer ist: „Noch keine Tags."
     // direkt ueber „Noch keine Tags angelegt." war derselbe Satz zweimal.
     box.innerHTML = item.tags.length || !allTags.length ? '' : `<span class="hint">Noch keine Tags.</span>`;
-    item.tags.forEach(t => {
+    item.tags.forEach(tag => {
       const c = document.createElement('span');
       c.className = 'chip';
-      c.innerHTML = `${esc(t.name)} <button title="Entfernen">${ICON_KREUZ}</button>`;
+      c.innerHTML = `${esc(tag.name)} <button title="Entfernen">${ICON_KREUZ}</button>`;
       c.querySelector('button').onclick = async () => {
-        try { item = await api('DELETE', `/api/items/${id}/tags/${t.id}`); drawTags(); }
+        try { item = await api('DELETE', `/api/items/${id}/tags/${tag.id}`); drawTags(); }
         catch (e) { toast(e.message, true); }
       };
       box.appendChild(c);
     });
-    document.getElementById('tagsug').innerHTML = allTags.map(t => `<option value="${esc(t.name)}">`).join('');
+    document.getElementById('tagsug').innerHTML = allTags.map(tag => `<option value="${esc(tag.name)}">`).join('');
     drawWolke();
     ruesteBloeckeAus(item);
   }
@@ -5854,20 +5936,20 @@ async function renderDetail(id, begriffAdresse) {
     const box = document.getElementById('tagcloud');
     const mehr = document.getElementById('tagcloud-more');
     if (!box) return;
-    const vergeben = new Set(item.tags.map(t => t.id));
+    const vergeben = new Set(item.tags.map(tag => tag.id));
     const liste = sortiereWolke(allTags, vergeben);
     box.innerHTML = '';
     if (!liste.length) { box.innerHTML = `<span class="hint">Noch keine Tags angelegt.</span>`; mehr.hidden = true; return; }
-    liste.forEach(t => {
+    liste.forEach(tag => {
       const b = document.createElement('button');
-      b.className = 'pill pill-tag' + (vergeben.has(t.id) ? ' on' : '');
-      b.innerHTML = `${esc(t.name)}<span class="n">${t.usage_count}</span>`;
-      b.title = vergeben.has(t.id) ? 'Tag entfernen' : 'Tag setzen';
+      b.className = 'pill pill-tag' + (vergeben.has(tag.id) ? ' on' : '');
+      b.innerHTML = `${esc(tag.name)}<span class="n">${tag.usage_count}</span>`;
+      b.title = vergeben.has(tag.id) ? 'Tag entfernen' : 'Tag setzen';
       b.onclick = async () => {
         try {
-          item = vergeben.has(t.id)
-            ? await api('DELETE', `/api/items/${id}/tags/${t.id}`)
-            : await api('POST', `/api/items/${id}/tags`, { name: t.name });
+          item = vergeben.has(tag.id)
+            ? await api('DELETE', `/api/items/${id}/tags/${tag.id}`)
+            : await api('POST', `/api/items/${id}/tags`, { name: tag.name });
           await loadTagList();
         } catch (e) { toast(e.message, true); }
       };
@@ -6425,7 +6507,7 @@ async function renderDetail(id, begriffAdresse) {
       // findet sie trotzdem.
       const tagBox = document.createElement('span');
       tagBox.className = 'ttags';
-      (d.tags || []).forEach(t => {
+      (d.tags || []).forEach(tag => {
         const c = document.createElement('span');
         c.className = 'chip chip-xs';
         // Mit Namen, damit „Tag" und „Testtag" nicht zusammenfallen (Woerterbuch).
@@ -10014,7 +10096,7 @@ function verfolgeBestandslauf() {
        jetzt eine andere, und nur die Fortschrittszeile nachzuziehen hiesse,
        zwei Staende nebeneinander stehen zu lassen -- unten „fertig", darueber
        die alte PNG-Zahl. */
-    for (const t of fertig) toast(t);
+    for (const meldung of fertig) toast(meldung);
     if (fertig.length) renderSystem();
   }, 1500);
 }
@@ -10705,12 +10787,12 @@ function ruesteExportAus(geholt) {
       ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${n} ${n === 1 ? 'Teil' : 'Teile'}</strong>,
         je höchstens ${esc(fmtBytes(plan.zielGroesse))}. <strong>Jeder Teil ist eine vollständige
         Exportdatei.</strong></p>
-      <div class="manage-list" id="ex-teil-liste">${plan.teile.map(t => `
+      <div class="manage-list" id="ex-teil-liste">${plan.teile.map(teil => `
         <div class="mrow">
-          <span class="mname">Teil ${t.nr} — ${t.anzahl} ${t.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
-          <button class="mact ex-teil-lad" data-nr="${t.nr}" data-von="${t.von}" data-bis="${t.bis}"
+          <span class="mname">Teil ${teil.nr} — ${teil.anzahl} ${teil.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
+          <button class="mact ex-teil-lad" data-nr="${teil.nr}" data-von="${teil.von}" data-bis="${teil.bis}"
             disabled>↓ Laden</button>
-          <span class="pk-meta">${esc(fmtBytes(t.bytes))}</span>
+          <span class="pk-meta">${esc(fmtBytes(teil.bytes))}</span>
         </div>`).join('')}</div>
       ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. "Alle n Teile
            freigeben" war das Wort aus dem Maschinenraum -- aus dem Betrieb kam
@@ -10735,7 +10817,7 @@ function ruesteExportAus(geholt) {
     /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
        je Datei getippt werden -- bei fünf Teilen fünfmal. */
     amElement('ex-frei', b => b.onclick = async () => {
-      const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(t => t.nr),
+      const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(teil => teil.nr),
         'Export bestätigen',
         `Der Export schreibt den gesamten Bestand in ${n} ${n === 1 ? 'Datei' : 'Dateien'}, die das Haus ` +
         `verlassen — mit allen Fotos, allen Anhängen und den Namen aller Verfasser.`);
@@ -10861,8 +10943,27 @@ function askImport(file, grenzen) {
 /* ================= Start ================= */
 let einrichtungNoetig = false;
 (async function boot() {
+  /* DIE SPRACHDATEI UND DIE KONFIGURATION NEBENEINANDER -- 0.24.0,
+     Bauabschnitt 1. Beide werden gebraucht, bevor das erste Zeichen steht;
+     nacheinander kosteten sie zwei Umlaeufe statt einem.
+     UND VOR DEM ERSTEN ZEICHNEN: hier steht noch nichts am Bildschirm, also
+     blitzt auch nichts auf. Das Farbschema brauchte 0.23.0 einen Vorgriff im
+     Kopf der Seite, weil das Stilblatt vor app.js greift -- Text zeichnet
+     allein app.js (Konzept 5.3). */
+  const konfLaeuft = fetch('/api/config', { credentials: 'same-origin' })
+    .then(r => r.json()).catch(() => null);
   try {
-    const cfg = await fetch('/api/config', { credentials: 'same-origin' }).then(r => r.json());
+    await ladeSprache(SPRACHE);
+  } catch (e) {
+    /* DER EINE FESTE SATZ IM QUELLTEXT -- Entscheidung A1 des Auftrags. Ohne
+       die Datei gibt es keinen Schluessel, mit dem sich sagen liesse, dass sie
+       fehlt; und eine Oberflaeche voller ⟦…⟧ waere schlimmer als ein Satz.
+       Er steht namentlich auf der Restliste des Pruefstands. */
+    app.textContent = 'Die Sprachdatei fehlt.';
+    return;
+  }
+  try {
+    const cfg = await konfLaeuft;
     if (cfg && cfg.title) TITLE_PUBLIC = cfg.title;
     if (cfg && cfg.version) VERSION = cfg.version;
     if (cfg && cfg.minPassword) MIN_PASSWORT = cfg.minPassword;

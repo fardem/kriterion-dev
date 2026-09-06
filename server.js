@@ -44,6 +44,78 @@ const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren }
 const auth = require('./auth');
 const mail = require('./mail');
 
+/* ================= Die Sprachdateien ================= */
+/* TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 1. Der Server
+   liest beim Start ALLE Dateien unter public/sprachen/ in den Speicher; der
+   Browser holt sich die eine, die er braucht, ueber express.static. Eine
+   Wahrheit, zwei Leser (Konzept 3.3).
+
+   FEHLT de.json, STARTET DER SERVER NICHT. Eine Installation ohne Sprache ist
+   keine: jede Meldung stuende als ⟦…⟧ da, und das faellt beim ersten Fehler
+   auf und nicht beim Start. Lieber gleich.
+
+   IM SPEICHER UND NICHT JE ANFRAGE VON DER PLATTE: die Datei aendert sich zur
+   Laufzeit nicht, und wer sie tauscht, tauscht damit den Fingerprint -- also
+   den Server. */
+const SPRACH_VERZ = path.join(__dirname, 'public', 'sprachen');
+function leseSprachen() {
+  const raus = {};
+  for (const name of fs.readdirSync(SPRACH_VERZ).sort()) {
+    if (!name.endsWith('.json')) continue;
+    raus[name.slice(0, -'.json'.length)] =
+      JSON.parse(fs.readFileSync(path.join(SPRACH_VERZ, name), 'utf8'));
+  }
+  if (!raus.de) throw new Error(
+    'public/sprachen/de.json fehlt -- ohne sie hat die Oberflaeche keine Texte.');
+  return raus;
+}
+const SPRACHEN = leseSprachen();
+const SPRACH_VORGABE = 'de';
+// Eine Mehrzahlregel je Sprache, einmal gebaut. Sie kommt aus der Locale IM
+// KOPF DER DATEI und nicht aus dem Dateinamen: welche Locale eine Sprache
+// hat, entscheidet die Datei (Konzept 6).
+const SPRACH_PLURAL = Object.fromEntries(Object.entries(SPRACHEN)
+  .map(([code, texte]) => [code, new Intl.PluralRules(texte._locale)]));
+
+/* WELCHE SPRACHE EINE ANTWORT TRAEGT. In dieser Runde immer Deutsch -- die
+   Funktion steht trotzdem schon da, damit Stufe 2 nur ihre drei Quellen
+   einhaengt (Benutzerschluessel, Accept-Language aus api(), Vorgabe der
+   Installation) und keine 125 Aufrufstellen anfassen muss. */
+function spracheVon(req) {
+  return SPRACH_VORGABE;
+}
+
+/* DER HELFER -- dieselbe Regel wie im Browser, mit der Sprache davor.
+   MASKIERT WIRD HIER NICHTS: eine Servermeldung geht als JSON heraus, und die
+   Oberflaeche entscheidet, wie sie sie zeigt. */
+function t(sprache, schluessel, werte = {}) {
+  const texte = SPRACHEN[sprache] || SPRACHEN[SPRACH_VORGABE];
+  const roh = texte[schluessel] !== undefined
+    ? texte[schluessel] : SPRACHEN[SPRACH_VORGABE][schluessel];
+  if (roh === undefined) return `\u27e6${schluessel}\u27e7`;
+  const regel = SPRACH_PLURAL[sprache] || SPRACH_PLURAL[SPRACH_VORGABE];
+  const satz = typeof roh === 'object'
+    ? (regel.select(werte.n) === 'one' ? roh.eins : roh.andere) : roh;
+  /* DAS VOKABULAR WIRD ERST GEHOLT, WENN EIN PLATZHALTER ES BRAUCHT -- es
+     kommt aus der Datenbank, und die meisten Meldungen tragen kein
+     Vokabelwort. Einmal je Meldung, nicht einmal je Platzhalter. */
+  let vok = null;
+  return String(satz).replace(/\{(\w+)\}/g, (ganz, name) => {
+    if (werte[name] !== undefined) return String(werte[name]);
+    if (vok === null) vok = vokabular();
+    return vok[name] !== undefined ? String(vok[name]) : ganz;
+  });
+}
+
+/* EINE MELDUNG IST EIN SCHLUESSEL UND KEIN SATZ -- 0.24.0, Bauabschnitt 1.
+   Wer sie wirft, weiss noch nicht, in welcher Sprache sie gelesen wird; das
+   weiss erst der Fehler-Handler, der die Anfrage in der Hand hat.
+   SIE WOHNT IN auth.js UND NICHT HIER, obwohl sie hier uebersetzt wird: die
+   meisten Werfer stehen dort, und server.js requiret auth.js -- der Weg
+   zurueck waere ein Ring. Eine eigene Datei dafuer verbietet der Auftrag, und
+   sie waere fuer sechs Zeilen auch zu viel. */
+const Meldung = auth.Meldung;
+
 const PORT = process.env.PORT || 3000;
 
 /* ---- Die oeffentliche Adresse ----
@@ -91,7 +163,7 @@ const linkAngabe = (klartext) => OEFFENTLICHE.adresse
    START: ein Startabbruch braeche jede vorhandene Installation. Ohne sie wird
    nicht verschickt, die Karte sagt warum, und der Browser des Admins baut den
    Link beim Kopieren weiter selbst. */
-async function versendeTokenLink(ziel, t) {
+async function versendeTokenLink(ziel, token) {
   const zugang = mail.loeseAuf(getSetting(mail.SCHLUESSEL, null));
   if (!mail.eingerichtet(zugang))
     return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };
@@ -102,10 +174,10 @@ async function versendeTokenLink(ziel, t) {
     return { versand: 'aus', versandGrund: 'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
   const angaben = {
     titel: getSetting('title_public', 'Bewertungskatalog'),
-    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${t.klartext}`,
+    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${token.klartext}`,
     tage: auth.TOKEN_TAGE, minuten: auth.TOKEN_FRIST_MINUTEN
   };
-  const einladung = t.zweck === 'einladung';
+  const einladung = token.zweck === 'einladung';
   const e = await mail.versende(zugang, ziel.email,
     einladung ? `Dein Zugang zu „${angaben.titel}“` : `Neues Passwort für „${angaben.titel}“`,
     einladung ? mail.textEinladung(angaben) : mail.textRuecksetzung(angaben));
@@ -538,13 +610,13 @@ app.post('/api/login', async (req, res) => {
   // Gezaehlt wird je IP UND je Name. Die IP sperrt hart, der Name verzoegert
   // nur -- sonst waere die Bremse ein Werkzeug, um einen bekannten Zugang
   // auszusperren. Die Begruendung steht in auth.js.
-  const t = auth.checkThrottle(ip, user);
-  if (t.blocked) {
+  const bremse = auth.checkThrottle(ip, user);
+  if (bremse.blocked) {
     return res.status(429).json({
-      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
+      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`
     });
   }
-  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
+  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
 
   const benutzer = await auth.pruefeAnmeldung(user, password);
   if (!benutzer) {
@@ -615,13 +687,13 @@ app.post('/api/login/zwei', async (req, res) => {
      geblieben (Stolperstein 163).
      GEZAEHLT WIRD MIT DER IP-HAELFTE, denn der Name ist vor dem Ausweis nicht
      bekannt. Die HARTE Sperre haengt ohnehin allein an der Adresse. */
-  const t = auth.checkThrottle(ip, null);
-  if (t.blocked) {
+  const bremse = auth.checkThrottle(ip, null);
+  if (bremse.blocked) {
     return res.status(429).json({
-      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
+      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`
     });
   }
-  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
+  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
   const id = auth.verbraucheAnmeldeAusweis(ausweis);
   if (!id) {
     auth.noteFailure(ip, null);
@@ -669,8 +741,8 @@ app.post('/api/login/zwei', async (req, res) => {
    deshalb das, was diese eine Anfrage mitbringt, und nicht eine Vermutung. */
 app.post('/api/logout', (req, res) => {
   const kekse = auth.parseCookies(req);
-  for (const t of new Set([kekse[auth.COOKIE_SICHER], kekse[auth.COOKIE_NAME]].filter(Boolean)))
-    auth.destroySession(t);
+  for (const keks of new Set([kekse[auth.COOKIE_SICHER], kekse[auth.COOKIE_NAME]].filter(Boolean)))
+    auth.destroySession(keks);
   res.set('Set-Cookie', auth.clearCookie());
   res.json({ ok: true });
 });
@@ -698,14 +770,14 @@ const TOKEN_ABSAGE = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen 
 
 // true = weitermachen. Bei false ist die Antwort bereits geschrieben.
 async function tokenBremseFrei(req, res) {
-  const t = auth.checkThrottle(auth.clientIp(req), null);
-  if (t.blocked) {
+  const bremse = auth.checkThrottle(auth.clientIp(req), null);
+  if (bremse.blocked) {
     res.status(429).json({
-      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
+      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`
     });
     return false;
   }
-  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
+  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
   return true;
 }
 
@@ -716,8 +788,8 @@ async function tokenBremseFrei(req, res) {
 app.post('/api/token/pruefen', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenBremseFrei(req, res)) return;
-  const t = auth.pruefeToken((req.body || {}).token);
-  if (!t) { auth.noteFailure(ip, null); return res.status(400).json({ error: TOKEN_ABSAGE }); }
+  const token = auth.pruefeToken((req.body || {}).token);
+  if (!token) { auth.noteFailure(ip, null); return res.status(400).json({ error: TOKEN_ABSAGE }); }
   /* HIER BEGINNT DIE FRIST, und nur hier: dies ist die eine Stelle, an der
      belegt ist, dass ein BROWSER den Schluessel in der Hand hat -- er steht im
      Fragment und kommt nur von dort.
@@ -726,9 +798,9 @@ app.post('/api/token/pruefen', async (req, res) => {
      Link.
      NICHT in auth.pruefeToken: die wird auch von loeseTokenEin gerufen, und
      das Einloesen darf die Frist nicht noch einmal anfassen. */
-  const minuten = auth.beginneTokenFrist(t.hash);
+  const minuten = auth.beginneTokenFrist(token.hash);
   res.json({
-    username: t.username, ohnePasswort: t.ohnePasswort,
+    username: token.username, ohnePasswort: token.ohnePasswort,
     minPassword: auth.PASSWORT_MIN, minuten
   });
 });
@@ -1178,13 +1250,13 @@ app.delete('/api/zweifaktor', async (req, res) => {
 app.post('/api/bestaetigung', async (req, res) => {
   const ip = auth.clientIp(req);
   const name = req.benutzer.username;
-  const t = auth.checkThrottle(ip, name);
-  if (t.blocked) {
+  const bremse = auth.checkThrottle(ip, name);
+  if (bremse.blocked) {
     return res.status(429).json({
-      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
+      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`
     });
   }
-  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
+  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
   const { passwort, zweck, ziel, ziele, code } = req.body || {};
   if (!auth.BESTAETIGUNG_ZWECKE.includes(zweck))
     return res.status(400).json({ error: 'Diesen Zweck gibt es nicht.' });
@@ -1342,12 +1414,12 @@ app.post('/api/users', nurAdmin, async (req, res) => {
     const angelegt = await auth.legeZugangAn(username, passwort, gewuenscht, einladen === true,
                                              req.benutzer.id, email);
     if (einladen !== true) return res.json(angelegt);
-    const t = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
+    const token = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
     /* ERST DER TOKEN, DANN DER VERSAND, und die Reihenfolge ist die ganze
        Zusage: der Link steht in der Antwort, egal was der Mailserver sagt. */
-    const v = await versendeTokenLink({ username: angelegt.username, email: angelegt.email }, t);
-    res.json({ ...angelegt, token: t.klartext, zweck: t.zweck, tage: t.tage,
-               minuten: auth.TOKEN_FRIST_MINUTEN, ...linkAngabe(t.klartext), ...v });
+    const v = await versendeTokenLink({ username: angelegt.username, email: angelegt.email }, token);
+    res.json({ ...angelegt, token: token.klartext, zweck: token.zweck, tage: token.tage,
+               minuten: auth.TOKEN_FRIST_MINUTEN, ...linkAngabe(token.klartext), ...v });
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -1365,14 +1437,14 @@ app.post('/api/users/:id/token', nurAdmin, async (req, res) => {
   if (!zweiteBestaetigung(req, res, 'link', ziel.id)) return;
   const zweck = (req.body || {}).zweck || 'einladung';
   try {
-    const t = auth.erzeugeToken(ziel.id, zweck, req.benutzer.id);
+    const token = auth.erzeugeToken(ziel.id, zweck, req.benutzer.id);
     // Erst der Token, dann der Versand -- dieselbe Reihenfolge wie am Anlegen,
     // und aus demselben Grund.
-    const v = await versendeTokenLink(ziel, t);
-    res.json({ id: t.id, username: t.username, token: t.klartext,
-               zweck: t.zweck, tage: t.tage, minuten: auth.TOKEN_FRIST_MINUTEN,
-               ohnePasswort: t.ohnePasswort,
-               ...linkAngabe(t.klartext), ...v });
+    const v = await versendeTokenLink(ziel, token);
+    res.json({ id: token.id, username: token.username, token: token.klartext,
+               zweck: token.zweck, tage: token.tage, minuten: auth.TOKEN_FRIST_MINUTEN,
+               ohnePasswort: token.ohnePasswort,
+               ...linkAngabe(token.klartext), ...v });
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -1566,10 +1638,10 @@ app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
   const a = auth.holeAnfrage(req.params.id);
   if (!a || !a.bestaetigt_am)
     return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });
-  let angelegt, t;
+  let angelegt, token;
   try {
     angelegt = await auth.legeZugangAn(a.username, null, 'user', true, req.benutzer.id, a.email);
-    t = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
+    token = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
   } catch (e) { return res.status(400).json({ error: e.message }); }
   auth.entferneAnfrage(a.id);
   /* DIE ZEILE NENNT DEN NEUEN ZUGANG UND NICHT DEN NAMEN DES ANFRAGENDEN.
@@ -1577,9 +1649,9 @@ app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
      dieser Zugang aus einer SELBSTANMELDUNG kam und nicht aus der Hand des
      Admins. */
   auth.protokolliere('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });
-  const v = await versendeTokenLink({ username: angelegt.username, email: angelegt.email }, t);
-  res.json({ ...angelegt, token: t.klartext, zweck: t.zweck, tage: t.tage,
-             minuten: auth.TOKEN_FRIST_MINUTEN, ...linkAngabe(t.klartext), ...v,
+  const v = await versendeTokenLink({ username: angelegt.username, email: angelegt.email }, token);
+  res.json({ ...angelegt, token: token.klartext, zweck: token.zweck, tage: token.tage,
+             minuten: auth.TOKEN_FRIST_MINUTEN, ...linkAngabe(token.klartext), ...v,
              ...anfragenKarte() });
 });
 
@@ -2797,14 +2869,14 @@ const qTestDayTags = db.prepare(`SELECT t.id, t.name FROM tags t
 function qTestDays(itemId, benutzerId, karte) {
   if (benutzerId == null) throw new Error('qTestDays() ohne Benutzer aufgerufen');
   const tage = qTestDaysRoh.all(itemId);
-  for (const t of tage) {
-    t.tags = qTestDayTags.all(t.id);
-    t.mine = t.user_id === benutzerId;
+  for (const tag of tage) {
+    tag.tags = qTestDayTags.all(tag.id);
+    tag.mine = tag.user_id === benutzerId;
     // Der Name steht neben `mine`, er ersetzt es nicht: die Zeitleiste
     // unterscheidet eigene von fremden Punkten ueber die Fuellung und braucht
     // dafuer keinen Namen, die Zeile im Eintrag braucht ihn.
-    t.verfasser = verfasserAus(karte, t.user_id);
-    delete t.user_id;
+    tag.verfasser = verfasserAus(karte, tag.user_id);
+    delete tag.user_id;
   }
   return tage;
 }
@@ -2840,13 +2912,13 @@ const qAlleTestTageSchmal = db.prepare(
 function testTageJeEintrag(benutzerId) {
   if (benutzerId == null) throw new Error('testTageJeEintrag() ohne Benutzer aufgerufen');
   const je = new Map();
-  for (const t of qAlleTestTageSchmal.all()) {
-    if (!je.has(t.item_id)) je.set(t.item_id, []);
+  for (const tag of qAlleTestTageSchmal.all()) {
+    if (!je.has(tag.item_id)) je.set(tag.item_id, []);
     // mine kommt vom Server, wie in qTestDays(): die Zeitleiste zeichnet die
     // eigenen Punkte gefuellt und fremde als Ring. Die Verfassernummer geht
     // nicht hinaus -- hier so wenig wie dort.
-    je.get(t.item_id).push({ id: t.id, day: t.day, rating: t.rating,
-                             mine: t.user_id === benutzerId });
+    je.get(tag.item_id).push({ id: tag.id, day: tag.day, rating: tag.rating,
+                             mine: tag.user_id === benutzerId });
   }
   return je;
 }
@@ -3150,10 +3222,10 @@ const AUSSCHNITT_VORLAUF = 4;
 const einZeilig = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
 function ausschnitt(text, begriff) {
-  const t = einZeilig(text);
+  const zeile = einZeilig(text);
   const b = String(begriff ?? '');
-  if (!b) return t.slice(0, AUSSCHNITT_LAENGE);
-  const stelle = t.toLowerCase().indexOf(b.toLowerCase());
+  if (!b) return zeile.slice(0, AUSSCHNITT_LAENGE);
+  const stelle = zeile.toLowerCase().indexOf(b.toLowerCase());
   /* GEFUNDEN WIRD SIE HIER NORMALERWEISE WIEDER -- gesucht hat SQLite auf dem
      Rohtext, geschnitten wird auf dem eingeebneten. Ein Begriff, der selbst
      einen doppelten Leerraum traegt, ist danach nicht mehr zu finden; dann
@@ -3162,7 +3234,7 @@ function ausschnitt(text, begriff) {
      wahr. */
   const von = stelle < 0 ? 0 : Math.max(0, stelle - AUSSCHNITT_VORLAUF);
   const bis = von + AUSSCHNITT_LAENGE;
-  return (von > 0 ? '…' : '') + t.slice(von, bis) + (bis < t.length ? '…' : '');
+  return (von > 0 ? '…' : '') + zeile.slice(von, bis) + (bis < zeile.length ? '…' : '');
 }
 
 /* DER BEGRIFF WIRD GENAU SO ZUGESCHNITTEN WIE VORHER IM BROWSER: aussen
@@ -4097,10 +4169,10 @@ const ADRESSMUSTER = [
 // lueckenhaft. Der Preis ist ein seltener Fehlgriff wie "v2.beta", das als
 // Adresse durchgeht. Die Zeile zeigt sofort, wofuer sie sich entschieden hat.
 function normalisiereLink(roh) {
-  const t = String(roh || '').trim();
-  if (!t) return '';
-  if (/^https?:\/\//i.test(t)) return t;
-  return ADRESSMUSTER.some(m => m.test(t)) ? 'https://' + t : t;
+  const adresse = String(roh || '').trim();
+  if (!adresse) return '';
+  if (/^https?:\/\//i.test(adresse)) return adresse;
+  return ADRESSMUSTER.some(m => m.test(adresse)) ? 'https://' + adresse : adresse;
 }
 
 /* EINTRAGEN DARF JEDER -- wie den Kommentar, den Testtag und die Bewertung.
@@ -4185,23 +4257,23 @@ app.post('/api/items/:id/test-days', (req, res) => {
 app.put('/api/test-days/:id', (req, res) => {
   const rating = Number(req.body.rating);
   if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: 'Die Note muss zwischen 1 und 5 liegen.' });
-  const t = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!t) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
-  if (!nurSelbst(req, t.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
+  const testtag = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
+  if (!testtag) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
+  if (!nurSelbst(req, testtag.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('UPDATE test_days SET rating = ? WHERE id = ?').run(rating, req.params.id);
-  touch.run(t.item_id);
-  res.json(detail(t.item_id, req.benutzer.id));
+  touch.run(testtag.item_id);
+  res.json(detail(testtag.item_id, req.benutzer.id));
 });
 
 app.delete('/api/test-days/:id', (req, res) => {
-  const t = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!t) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
+  const testtag = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
+  if (!testtag) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
   // Loeschen darf der Admin, aendern nicht -- der Unterschied ist die ganze
   // Regel aus Teil IV.
-  if (!darfAendern(req, t.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
+  if (!darfAendern(req, testtag.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM test_days WHERE id = ?').run(req.params.id);
-  touch.run(t.item_id);
-  res.json(detail(t.item_id, req.benutzer.id));
+  touch.run(testtag.item_id);
+  res.json(detail(testtag.item_id, req.benutzer.id));
 });
 
 // Tags am Testtag. Derselbe Vorrat wie am Eintrag -- ein hier neu getippter
@@ -4209,13 +4281,13 @@ app.delete('/api/test-days/:id', (req, res) => {
 app.post('/api/test-days/:id/tags', (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'Bitte einen Tag eingeben.' });
-  const t = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!t) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
+  const testtag = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
+  if (!testtag) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
   // Ein Tag am Testtag gehoert dem Testtag und teilt dessen
   // Eigentuemer (deshalb hat er keine eigene user_id). "Regen" an
   // einem fremden Testtag zu ergaenzen hiesse, eine fremde Beobachtung
   // umzuschreiben.
-  if (!nurSelbst(req, t.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
+  if (!nurSelbst(req, testtag.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   /* AM TESTTAG GIBT ES KEINE WOLKE -- die Eingabe ist der einzige
      Zuweisungsweg und bleibt deshalb auf dem Bildschirm stehen. Ein
      unbekannter Name faellt hier mit sprechender Meldung durch, statt dass die
@@ -4226,18 +4298,18 @@ app.post('/api/test-days/:id/tags', (req, res) => {
     if (!darfAnlegen(req, 'tagsFreiAnlegen')) return res.status(403).json({ error: VERWEIGERT_TAG_NEU });
     tag = legeTagAn(name);
   }
-  db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(t.id, tag.id);
-  touch.run(t.item_id);
-  res.status(201).json(detail(t.item_id, req.benutzer.id));
+  db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(testtag.id, tag.id);
+  touch.run(testtag.item_id);
+  res.status(201).json(detail(testtag.item_id, req.benutzer.id));
 });
 
 app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
-  const t = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
-  if (!t) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
-  if (!nurSelbst(req, t.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
-  db.prepare('DELETE FROM test_day_tags WHERE test_day_id = ? AND tag_id = ?').run(t.id, req.params.tagId);
-  touch.run(t.item_id);
-  res.json(detail(t.item_id, req.benutzer.id));
+  const testtag = db.prepare('SELECT * FROM test_days WHERE id = ?').get(req.params.id);
+  if (!testtag) return res.status(404).json({ error: `${vokabular().zeitpunktEinzahl} nicht gefunden.` });
+  if (!nurSelbst(req, testtag.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
+  db.prepare('DELETE FROM test_day_tags WHERE test_day_id = ? AND tag_id = ?').run(testtag.id, req.params.tagId);
+  touch.run(testtag.item_id);
+  res.json(detail(testtag.item_id, req.benutzer.id));
 });
 
 /* ---- Bewertungen ---- */
@@ -4865,7 +4937,7 @@ function paketLage(benutzerId, schalter = {}) {
 // Pruefstand haelt das fest.
 function eintragAlsPaket(it, lage) {
   const { verfasserName, pins, trichter, mitFotos, mitDateien, mitVideos } = lage;
-  const t = trichter.endung;
+  const endung = trichter.endung;
   const o = {
     title: it.title, description: it.description,
     rejected: !!it.rejected, tested: !!it.tested, favorite: pins.has(it.id),
@@ -4913,7 +4985,7 @@ function eintragAlsPaket(it, lage) {
         // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
         images: mitDateien
           ? db.prepare('SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id')
-              .all(c.id).map(b2 => ({ filename: b2.filename, ['data' + t]: trichter.nimm(b2.data) }))
+              .all(c.id).map(b2 => ({ filename: b2.filename, ['data' + endung]: trichter.nimm(b2.data) }))
           : []
       })),
     photos: [], attachments: []
@@ -4927,7 +4999,7 @@ function eintragAlsPaket(it, lage) {
            aeltere Instanz uebergeht das zusaetzliche Feld wortlos. */
         const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,
                     zoom: p.zoom, art: p.art };
-        if (p.art !== 'video') { z['data' + t] = trichter.nimm(p.data); return z; }
+        if (p.art !== 'video') { z['data' + endung] = trichter.nimm(p.data); return z; }
         z.dauer = p.dauer;
         /* OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN -- ohne Bytes.
            Sie legt beim Einspielen keinen Platz an (photos.data ist NOT
@@ -4936,12 +5008,12 @@ function eintragAlsPaket(it, lage) {
            Videos die Datei nicht enthielt. Ohne die Marke wuesste er es
            nicht, und der Verlust waere still. */
         if (mitVideos) {
-          z['data' + t] = trichter.nimm(p.data);
+          z['data' + endung] = trichter.nimm(p.data);
           /* Das Standbild geht EIGENS mit. Der Import erzeugt die Varianten
              sonst aus data -- bei einem Video also aus der Videodatei, und
              das Standbild waere verloren. */
           const sb = p.medium || p.thumb;
-          if (sb) z['standbild' + t] = trichter.nimm(sb);
+          if (sb) z['standbild' + endung] = trichter.nimm(sb);
         }
         return z;
       });
@@ -4952,7 +5024,7 @@ function eintragAlsPaket(it, lage) {
     o.attachments = db.prepare('SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id')
       .all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
-                    author: verfasserName(a2.user_id), ['data' + t]: trichter.nimm(a2.data) }));
+                    author: verfasserName(a2.user_id), ['data' + endung]: trichter.nimm(a2.data) }));
   }
   return o;
 }
@@ -5188,7 +5260,7 @@ function austauschPlan(schalter, zielWunsch) {
     offen.bytes += b;
   }
   return { teile, zuGross,
-           gesamt: teile.reduce((n, t) => n + t.bytes, 0),
+           gesamt: teile.reduce((n, teil) => n + teil.bytes, 0),
            zielGroesse, vorgabe: AUSTAUSCH_WARN, kleinstes: AUSTAUSCH_TEIL_MIN,
            grenze: AUSTAUSCH_MAX, string: AUSTAUSCH_STRING };
 }
@@ -5217,8 +5289,8 @@ function austauschUmschlagRahmen() {
    Der Umschlag gehoert dazu: eine Absage, die nur die Blobs zaehlt, laesst
    genau die Datei durch, die am Umschlag zerbricht. */
 function austauschBytes(itemId, schalter) {
-  const t = austauschTeile(itemId, schalter);
-  return t.fotos + t.videos + t.anhaenge + t.kommentarbilder + austauschUmschlagBytes(itemId);
+  const teile = austauschTeile(itemId, schalter);
+  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder + austauschUmschlagBytes(itemId);
 }
 
 /* ---- Export ---- */
@@ -5682,8 +5754,8 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
         stats.links++;
       });
 
-      for (const t of it.testDays || []) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(t.day || '')) continue;
+      for (const tag of it.testDays || []) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(tag.day || '')) continue;
         // OR REPLACE bleibt: die Datei ist die Wahrheit, der spaetere Wert
         // gewinnt. Das tut mehr, als es aussieht: REPLACE LOESCHT die
         // getroffene Zeile, und ueber ON DELETE CASCADE gehen deren
@@ -5693,10 +5765,10 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
         // Zeilen. Fallen zwei unbekannte Namen auf den Einspielenden,
         // fallen sie doch zusammen -- deshalb die Protokollzeile unten.
         const einf = db.prepare(`INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)`)
-          .run(id, t.day, Math.max(1, Math.min(5, Number(t.rating) || 1)), verfasser(t.author));
+          .run(id, tag.day, Math.max(1, Math.min(5, Number(tag.rating) || 1)), verfasser(tag.author));
         // Aeltere Exportdateien haben hier kein Feld -- dann bleibt der
         // Testtag einfach ohne Tags.
-        for (const name of Array.isArray(t.tags) ? t.tags : []) {
+        for (const name of Array.isArray(tag.tags) ? tag.tags : []) {
           const clean = String(name || '').trim();
           if (clean) db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)')
             .run(einf.lastInsertRowid, tagByName(clean));
@@ -6277,12 +6349,12 @@ function pruefeRegelwert(roh, spanne, was) {
 function aufraeumStand() {
   const b = pruefeRegelwert(getSetting('sicherungBehalten', AUFRAEUM_BEHALTEN.vorgabe),
                             AUFRAEUM_BEHALTEN, 'Immer behalten');
-  const t = pruefeRegelwert(getSetting('sicherungTage', AUFRAEUM_TAGE.vorgabe),
+  const regel = pruefeRegelwert(getSetting('sicherungTage', AUFRAEUM_TAGE.vorgabe),
                             AUFRAEUM_TAGE, 'Erst löschen ab');
   return {
     an: getSetting('sicherungAufraeumen', false) === true,
     behalten: b.fehler ? AUFRAEUM_BEHALTEN.vorgabe : b.wert,
-    tage: t.fehler ? AUFRAEUM_TAGE.vorgabe : t.wert
+    tage: regel.fehler ? AUFRAEUM_TAGE.vorgabe : regel.wert
   };
 }
 
@@ -6631,10 +6703,10 @@ app.post('/api/sicherung/aufraeumen', nurEigentuemer,
     const b = pruefeRegelwert(getSetting('sicherungBehalten', AUFRAEUM_BEHALTEN.vorgabe),
                               AUFRAEUM_BEHALTEN, 'Immer behalten');
     if (b.fehler) return res.status(400).json({ error: b.fehler });
-    const t = pruefeRegelwert(getSetting('sicherungTage', AUFRAEUM_TAGE.vorgabe),
+    const regel = pruefeRegelwert(getSetting('sicherungTage', AUFRAEUM_TAGE.vorgabe),
                               AUFRAEUM_TAGE, 'Erst löschen ab');
-    if (t.fehler) return res.status(400).json({ error: t.fehler });
-    treffer = regelTreffer(dateien, b.wert, t.wert, Date.now(), marke ? marke.ms : null);
+    if (regel.fehler) return res.status(400).json({ error: regel.fehler });
+    treffer = regelTreffer(dateien, b.wert, regel.wert, Date.now(), marke ? marke.ms : null);
   }
   const raus = entferneSicherungen(ziel.pfad, treffer.map(d => d.name));
   if (raus.weg) {
@@ -6676,9 +6748,17 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
    Einzelheiten stehen im Protokoll, und dort gehoeren sie hin. */
 app.use((err, req, res, next) => {
   console.error(err);
+  const sprache = spracheVon(req);
+  /* EINE MELDUNG WIRD HIER UEBERSETZT UND SONST NIRGENDS -- 0.24.0,
+     Bauabschnitt 1. Sie kommt als Schluessel aus auth.js oder aus einer Route,
+     und erst hier ist die Anfrage in der Hand, die sagt, welche Sprache sie
+     traegt. Ihr Status steht an ihr; die Reihenfolge davor gilt weiter fuer
+     alles andere. */
+  if (err instanceof Meldung)
+    return res.status(err.status || 400).json({ error: t(sprache, err.schluessel, err.werte) });
   const rang = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
-  if (rang >= 500) return res.status(500).json({ error: 'Auf dem Server ist ein Fehler aufgetreten.' });
-  res.status(rang).json({ error: err.message || 'Unbekannter Fehler' });
+  if (rang >= 500) return res.status(500).json({ error: t(sprache, 'server.fehlerAllgemein') });
+  res.status(rang).json({ error: err.message || t(sprache, 'server.fehlerUnbekannt') });
 });
 
 /* ================= Start ================= */

@@ -61,15 +61,15 @@ const RUECKBAUTEN = [
   {
     nr: '01', name: 'Der Token entsteht erst NACH dem Versand',
     datei: 'server.js',
-    suche: "    const v = await versendeTokenLink(ziel, t);",
-    ersatz: "    const v = await versendeTokenLink(ziel, t); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
+    suche: "    const v = await versendeTokenLink(ziel, token);",
+    ersatz: "    const v = await versendeTokenLink(ziel, token); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
     erwartet: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   {
     nr: '02', name: 'Der Link faellt aus der Antwort, wenn der Versand traegt',
     datei: 'server.js',
-    suche: "               ohnePasswort: t.ohnePasswort,\n               ...linkAngabe(t.klartext), ...v });",
-    ersatz: "               ohnePasswort: t.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkAngabe(t.klartext)), ...v });",
+    suche: "               ohnePasswort: token.ohnePasswort,\n               ...linkAngabe(token.klartext), ...v });",
+    ersatz: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkAngabe(token.klartext)), ...v });",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
@@ -122,8 +122,8 @@ const RUECKBAUTEN = [
   {
     nr: '08', name: 'Die Adresse wird aus dem Host-Kopf abgeleitet',
     datei: 'server.js',
-    suche: "    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${t.klartext}`,",
-    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${t.klartext}`,",
+    suche: "    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${token.klartext}`,",
+    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${token.klartext}`,",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   /* ---- Der Versand: der Empfaenger am Zugang ---- */
@@ -236,7 +236,7 @@ const RUECKBAUTEN = [
   {
     nr: '22', name: 'Das erste Oeffnen startet die Frist nicht',
     datei: 'server.js',
-    suche: "  const minuten = auth.beginneTokenFrist(t.hash);",
+    suche: "  const minuten = auth.beginneTokenFrist(token.hash);",
     ersatz: "  const minuten = auth.TOKEN_FRIST_MINUTEN;",
     erwartet: 'Der Token: die Frist ab dem ersten Oeffnen'
   },
@@ -447,8 +447,8 @@ const RUECKBAUTEN = [
   {
     nr: '49', name: 'Die Bestaetigung nimmt jeden Schluessel an',
     datei: 'auth.js',
-    suche: "  return setzeBestaetigt.run(tokenHash(t), `-${ANFRAGE_STUNDEN} hours`).changes > 0;",
-    ersatz: "  setzeBestaetigt.run(tokenHash(t), `-${ANFRAGE_STUNDEN} hours`); return true;",
+    suche: "  return setzeBestaetigt.run(tokenHash(roh), `-${ANFRAGE_STUNDEN} hours`).changes > 0;",
+    ersatz: "  setzeBestaetigt.run(tokenHash(roh), `-${ANFRAGE_STUNDEN} hours`); return true;",
     erwartet: 'Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft'
   },
   {
@@ -468,8 +468,8 @@ const RUECKBAUTEN = [
   {
     nr: '52', name: 'Die unbestaetigte Anfrage laesst sich freischalten',
     datei: 'server.js',
-    suche: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, t;",
-    ersatz: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, t;",
+    suche: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, token;",
+    ersatz: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, token;",
     erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   /* ---- Die Selbstanmeldung: Freischaltung, Ablehnung, Rolle ---- */
@@ -490,8 +490,8 @@ const RUECKBAUTEN = [
   {
     nr: '55', name: 'Die Freischaltung erzeugt keinen Token',
     datei: 'server.js',
-    suche: "    t = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);",
-    ersatz: "    t = { klartext: 'x'.repeat(64), zweck: 'einladung', tage: 7, id: angelegt.id, username: angelegt.username };",
+    suche: "    token = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);",
+    ersatz: "    token = { klartext: 'x'.repeat(64), zweck: 'einladung', tage: 7, id: angelegt.id, username: angelegt.username };",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
@@ -874,7 +874,7 @@ const RUECKBAUTEN = [
   {
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
     datei: 'server.js',
-    suche: "  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
     ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
@@ -885,8 +885,8 @@ const RUECKBAUTEN = [
        daran ist die erste Fassung der Bremsprobe stumm geblieben. */
     nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
     datei: 'server.js',
-    suche: "  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });\n  }",
-    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });\n  }\n  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));",
+    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });\n  }",
+    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.' });\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${bremse.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
@@ -1328,8 +1328,8 @@ const RUECKBAUTEN = [
   {
     nr: '150', name: 'Der Titelvergleich achtet wieder auf Gross- und Kleinschreibung',
     datei: 'public/app.js',
-    suche: "const titelKern = (t) => String(t || '').toLowerCase().replace(",
-    ersatz: "const titelKern = (t) => String(t || '').replace(",
+    suche: "const titelKern = (roh) => String(roh || '').toLowerCase().replace(",
+    ersatz: "const titelKern = (roh) => String(roh || '').replace(",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
   {
@@ -1530,8 +1530,8 @@ const RUECKBAUTEN = [
   {
     nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
     datei: 'server.js',
-    suche: '  return t.fotos + t.videos + t.anhaenge + t.kommentarbilder + austauschUmschlagBytes(itemId);',
-    ersatz: '  return t.fotos + t.videos + t.anhaenge + t.kommentarbilder;',
+    suche: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder + austauschUmschlagBytes(itemId);',
+    ersatz: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
     erwartet: 'Die Exportgroesse sagt sich an'
   },
   {
@@ -1900,7 +1900,7 @@ const RUECKBAUTEN = [
        (Stolperstein 192). */
     nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
     datei: 'public/app.js',
-    suche: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(t.id) ? ' leer' : '');",
+    suche: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(tag.id) ? ' leer' : '');",
     ersatz: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '');",
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
@@ -6109,6 +6109,97 @@ const RUECKBAUTEN = [
     suche: "  const tagsMoeglich = filterTags.length > 0 || f.tagIds.length > 0;",
     ersatz: "  const tagsMoeglich = true;",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
+  },
+  {
+    /* OHNE _locale GAEBE ES WEDER DATUM NOCH MEHRZAHL -- und die Ladung im
+       Browser bricht ab, statt eine halbe Sprache zu nehmen. */
+    nr: '665', name: 'Die Sprachdatei verliert ihren Kopf _locale',
+    datei: 'public/sprachen/de.json',
+    suche: '  "_locale": "de-DE",',
+    ersatz: '  "_hinweis": "de-DE",',
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* EIN WERT MIT SPITZER KLAMMER. Der Helfer maskiert den TEXT ausdruecklich
+       nicht -- er kommt aus der Datei und traegt kein HTML. Traegt er doch
+       eines, faellt genau diese Zusage. */
+    nr: '666', name: 'Ein Wert der Sprachdatei traegt eine spitze Klammer',
+    datei: 'public/sprachen/de.json',
+    suche: '"server.fehlerUnbekannt": "Unbekannter Fehler"',
+    ersatz: '"server.fehlerUnbekannt": "<b>Unbekannter Fehler</b>"',
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* tH() MASKIERT NICHT MEHR -- Stolperstein 18 waere damit wieder offen:
+       ein Vokabelwort des Admins liefe roh in innerHTML. */
+    nr: '667', name: 'tH() maskiert die eingesetzten Werte nicht mehr',
+    datei: 'public/app.js',
+    suche: "    return maskieren ? esc(String(wert)) : String(wert);",
+    ersatz: "    return String(wert);",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* EIN UNBEKANNTER PLATZHALTER WIRD GELEERT STATT STEHENZUBLEIBEN. Ein
+       leerer Fleck ist kein Fund -- `{sache}` am Bildschirm ist einer. */
+    nr: '668', name: 'Ein unbekannter Platzhalter verschwindet still',
+    datei: 'public/app.js',
+    suche: "    if (wert === undefined) return ganz;",
+    ersatz: "    if (wert === undefined) return '';",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DIE MEHRZAHL WAEHLT WIEDER `n === 1` STATT Intl.PluralRules. Auf Deutsch
+       faellt beides zusammen -- die Regel steht trotzdem falsch da, und die
+       naechste Sprache bricht daran. */
+    nr: '669', name: 'Die Mehrzahl waehlt wieder ueber n === 1',
+    datei: 'public/app.js',
+    suche: "  return PLURAL.select(werte.n) === 'one' ? roh.eins : roh.andere;",
+    ersatz: "  return werte.n === 1 ? roh.eins : roh.andere;",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DER RUECKFALL AUF DEUTSCH FAELLT WEG. In dieser Runde ist er leer -- und
+       genau deshalb muss er belegt sein, sonst faellt sein Wegfall erst in
+       Stufe 2 auf, wo er gebraucht wird. */
+    nr: '670', name: 'Der Rueckfall auf Deutsch faellt weg',
+    datei: 'public/app.js',
+    suche: "  const roh = TEXTE[schluessel] !== undefined ? TEXTE[schluessel] : TEXTE_DE[schluessel];",
+    ersatz: "  const roh = TEXTE[schluessel];",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* boot() ZEICHNET WEITER, OBWOHL DIE SPRACHDATEI FEHLT -- die Oberflaeche
+       stuende dann voller Klammern da (Entscheidung A1). */
+    nr: '671', name: 'boot() haelt bei fehlender Sprachdatei nicht an',
+    datei: 'public/app.js',
+    suche: "    app.textContent = 'Die Sprachdatei fehlt.';\n    return;",
+    ersatz: "    app.textContent = 'Die Sprachdatei fehlt.';",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DER SERVER STARTET AUCH OHNE de.json. Eine Installation ohne Sprache ist
+       keine -- jede Meldung stuende als Klammerausdruck da. */
+    nr: '672', name: 'Der Server startet auch ohne de.json',
+    datei: 'server.js',
+    suche: "  if (!raus.de) throw new Error(",
+    ersatz: "  if (false) throw new Error(",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* api() SCHREIBT SEINEN RUECKFALLSATZ WIEDER IN DEN QUELLTEXT. */
+    nr: '673', name: 'api() traegt seinen Rueckfallsatz wieder im Quelltext',
+    datei: 'public/app.js',
+    suche: "    let m = t('fehler.serverStatus', { status: res.status });",
+    ersatz: "    let m = `Der Server meldet einen Fehler (${res.status}).`;",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    /* DER FEHLER-HANDLER SAGT SEINEN SATZ WIEDER SELBST. */
+    nr: '674', name: 'Der Fehler-Handler traegt seinen Satz wieder im Quelltext',
+    datei: 'server.js',
+    suche: "  if (rang >= 500) return res.status(500).json({ error: t(sprache, 'server.fehlerAllgemein') });",
+    ersatz: "  if (rang >= 500) return res.status(500).json({ error: 'Auf dem Server ist ein Fehler aufgetreten.' });",
+    erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
     /* DIE HILFSLINIE DER ZEITLEISTE FAELLT ZURUECK AUF DIE ALLGEMEINE
