@@ -333,7 +333,7 @@ const MARK = (s = 30) =>
   + `<path d="M8 16 H24" stroke="var(--brand-line)"/></svg>`;
 
 const BRAND_LINE = () =>
-  `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
+  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
 
 function splitUrl(u) {
   try {
@@ -510,7 +510,7 @@ function passwordDialog(titel, was, grund, withCode) {
       <p>${esc(was)}</p>
       ${grund ? `<p class="desc" style="margin:0">${esc(grund)}</p>` : ''}
       <div class="field" style="margin:0"><label>${tH('dialog.yourPassword')}</label>
-        <input class="input" id="best-pass" type="password" autocomplete="current-password"></div>
+        <input class="input" id="confirm-pass" type="password" autocomplete="current-password"></div>
       ${/* DAS FELD NENNT DAS VERFAHREN UND NICHT DAS GERAET. "Code aus deiner
            App" war zweimal falsch: es fragt nach der Herkunft statt nach der
            Sache, und es stimmt fuer die Haelfte der Faelle nicht -- hier traegt
@@ -519,13 +519,13 @@ function passwordDialog(titel, was, grund, withCode) {
            der Eingabe an, was gemeint ist (istCodeform gegen istWiederform).
            Deshalb darf die Beschriftung keine von beiden ausschliessen. */''}
       ${withCode ? `<div class="field" style="margin:10px 0 0"><label>${tH('dialog.twoFactorCode')}</label>
-        <input class="input" id="best-code" inputmode="text" autocomplete="one-time-code"
+        <input class="input" id="confirm-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
       <button class="btn btn-accent" data-yes>${tH('dialog.confirm')}</button></div></div>`;
     document.body.appendChild(bd);
-    const field = bd.querySelector('#best-pass');
-    const codeField = bd.querySelector('#best-code');
+    const field = bd.querySelector('#confirm-pass');
+    const codeField = bd.querySelector('#confirm-code');
     const wert = () => ({ passwort: field.value, ...(codeField ? { code: codeField.value } : {}) });
     const done = v => { bd.remove(); resolve(v); };
     bd.querySelector('[data-no]').onclick = () => done(null);
@@ -696,7 +696,7 @@ let SIGNUP = false;
 function showSetup(errMsg) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
-  document.body.classList.add('anmeldung');
+  document.body.classList.add('login');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${BRAND_LINE()}
@@ -745,7 +745,7 @@ function showLogin(errMsg) {
   document.body.classList.remove('lb-open');
   // Teilt der Seite mit, dass jetzt die Anmeldung steht: nur dort teilen sich
   // Inhalt und Versionszeile die Fensterhoehe.
-  document.body.classList.add('anmeldung');
+  document.body.classList.add('login');
   // Die Anmeldeseite bleibt bei der Vorgabegroesse: der Endpunkt davor liefert
   // nur den oeffentlichen Titel, sonst nichts.
   document.documentElement.style.fontSize = '';
@@ -765,11 +765,11 @@ function showLogin(errMsg) {
           KEIN PASSWORTFELD. Der Anfragende gibt Namen und Adresse an, sonst
           nichts — sein Passwort wählt er später über den Einladungslink, und
           zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
-    ${SIGNUP ? `<p class="sub anmeld-trenner">${tH('login.noAccountYet')}</p>
-      <button class="btn anmeld-zweitweg" id="l-anfrage">${tH('login.requestAccess')}</button>` : ''}
+    ${SIGNUP ? `<p class="sub login-divider">${tH('login.noAccountYet')}</p>
+      <button class="btn login-alt" id="l-request">${tH('login.requestAccess')}</button>` : ''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
-  if (SIGNUP) document.getElementById('l-anfrage').onclick = () => showRequest();
+  if (SIGNUP) document.getElementById('l-request').onclick = () => showRequest();
 
   const u = document.getElementById('lu'), p = document.getElementById('lp'), b = document.getElementById('lb');
   const submit = async () => {
@@ -811,7 +811,7 @@ function showLogin(errMsg) {
 
    DIE ABSAGE KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN. */
 function showSecondFactor(ausweis, errMsg) {
-  document.body.classList.add('anmeldung');
+  document.body.classList.add('login');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${BRAND_LINE()}
@@ -820,15 +820,15 @@ function showSecondFactor(ausweis, errMsg) {
     ${/* Nicht "Sechsstelliger Code": hier traegt auch ein Wiederherstellungscode,
          und der hat zehn Zeichen. Die Beschriftung nennt deshalb das Verfahren,
          die Zeile darunter nennt den zweiten Weg. */''}
-    <div class="field"><label for="zf-code">${tH('dialog.twoFactorCode')}</label>
-      <input class="input" id="zf-code" inputmode="text" autocomplete="one-time-code"
+    <div class="field"><label for="two-factor-code">${tH('dialog.twoFactorCode')}</label>
+      <input class="input" id="two-factor-code" inputmode="text" autocomplete="one-time-code"
         autocapitalize="characters" spellcheck="false" maxlength="16"></div>
-    <button class="btn btn-accent" id="zf-ab">${tH('login.signIn')}</button>
+    <button class="btn btn-accent" id="two-factor-send">${tH('login.signIn')}</button>
     <p class="sub" style="margin:14px 0 0">${tH('login.noPhoneHint')}
       <strong>${tH('login.recoveryCode')}</strong> ${tH('login.codeOnceHint')}</p>
   </div></div>`;
   document.title = TITLE_PUBLIC;
-  const c = document.getElementById('zf-code'), b = document.getElementById('zf-ab');
+  const c = document.getElementById('two-factor-code'), b = document.getElementById('two-factor-send');
   const submit = async () => {
     b.disabled = true; b.textContent = t('login.signingIn');
     try {
@@ -869,25 +869,25 @@ function showSecondFactor(ausweis, errMsg) {
    jeder Lage gleich aus, und diese Seite darf daraus keine zweite Auskunft
    machen — kein „Name bereits vergeben", kein Unterschied im Aussehen. */
 function showRequest(errMsg, values = {}) {
-  document.body.classList.add('anmeldung');
+  document.body.classList.add('login');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${BRAND_LINE()}
     <p class="sub">${tH('login.requestAccessHint')}</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
-    <div class="field"><label for="an-name">${tH('login.wantedUsername')}</label>
-      <input class="input" id="an-name" autocomplete="username" autocapitalize="off"
+    <div class="field"><label for="req-name">${tH('login.wantedUsername')}</label>
+      <input class="input" id="req-name" autocomplete="username" autocapitalize="off"
         spellcheck="false" maxlength="64" value="${esc(values.name || '')}"></div>
-    <div class="field"><label for="an-mail">${tH('login.email')}</label>
-      <input class="input" id="an-mail" type="email" autocomplete="email" autocapitalize="off"
+    <div class="field"><label for="req-mail">${tH('login.email')}</label>
+      <input class="input" id="req-mail" type="email" autocomplete="email" autocapitalize="off"
         spellcheck="false" maxlength="254" value="${esc(values.adresse || '')}"></div>
-    <button class="btn btn-accent" id="an-ab">${tH('login.sendRequest')}</button>
-    <p class="sub" style="margin:14px 0 0"><a href="#" id="an-zurueck">${tH('login.backToSignIn')}</a></p>
+    <button class="btn btn-accent" id="req-send">${tH('login.sendRequest')}</button>
+    <p class="sub" style="margin:14px 0 0"><a href="#" id="req-back">${tH('login.backToSignIn')}</a></p>
   </div></div>`;
   document.title = TITLE_PUBLIC;
-  const n = document.getElementById('an-name'), m = document.getElementById('an-mail'),
-        b = document.getElementById('an-ab');
-  document.getElementById('an-zurueck').onclick = (e) => { e.preventDefault(); showLogin(); };
+  const n = document.getElementById('req-name'), m = document.getElementById('req-mail'),
+        b = document.getElementById('req-send');
+  document.getElementById('req-back').onclick = (e) => { e.preventDefault(); showLogin(); };
   const submit = async () => {
     b.disabled = true; b.textContent = t('login.sending');
     try {
@@ -916,10 +916,10 @@ function showRequest(errMsg, values = {}) {
 function showRequestThanks(meldung) {
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${BRAND_LINE()}
-    <p class="sub" id="an-dank">${esc(meldung || '')}</p>
-    <p class="sub"><a href="#" id="an-zurueck2">${tH('login.backToSignIn')}</a></p>
+    <p class="sub" id="req-thanks">${esc(meldung || '')}</p>
+    <p class="sub"><a href="#" id="req-back2">${tH('login.backToSignIn')}</a></p>
   </div></div>`;
-  document.getElementById('an-zurueck2').onclick = (e) => { e.preventDefault(); showLogin(); };
+  document.getElementById('req-back2').onclick = (e) => { e.preventDefault(); showLogin(); };
 }
 
 /* Der Bestätigungslink aus der Selbstanmeldung.
@@ -934,7 +934,7 @@ function showRequestThanks(meldung) {
    Links im Postfach vorab abruft, holt nur die Seite und bestätigt gerade
    NICHT: der Browser schickt den Schlüssel erst von hier aus im Rumpf. */
 async function showConfirm(schluessel) {
-  document.body.classList.add('anmeldung');
+  document.body.classList.add('login');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${BRAND_LINE()}
@@ -961,16 +961,16 @@ async function showConfirm(schluessel) {
   function draw(gut, meldung, again) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${BRAND_LINE()}
-      ${gut ? `<p class="sub" id="best-gut"><strong>${tH('login.confirmed')}</strong>
+      ${gut ? `<p class="sub" id="confirm-ok"><strong>${tH('login.confirmed')}</strong>
         ${tH('login.requestPending')}</p>`
         : `<div class="login-error">${esc(meldung)}</div>
-        ${again ? `<p class="sub">${tH('login.yourLinkAffected')} <strong>${tH('login.not')}</strong> ${tH('login.stillValid')}</p><button class="btn btn-accent" id="best-neu">${tH('login.tryAgain')}</button>`
+        ${again ? `<p class="sub">${tH('login.yourLinkAffected')} <strong>${tH('login.not')}</strong> ${tH('login.stillValid')}</p><button class="btn btn-accent" id="confirm-again">${tH('login.tryAgain')}</button>`
           : ''}`}
-      <p class="sub" style="margin:14px 0 0"><a href="#" id="best-zurueck">${tH('login.backToSignIn')}</a></p>
+      <p class="sub" style="margin:14px 0 0"><a href="#" id="confirm-back">${tH('login.backToSignIn')}</a></p>
     </div></div>`;
-    const fresh = document.getElementById('best-neu');
+    const fresh = document.getElementById('confirm-again');
     if (fresh) fresh.onclick = () => showConfirm(schluessel);
-    document.getElementById('best-zurueck').onclick = (e) => {
+    document.getElementById('confirm-back').onclick = (e) => {
       e.preventDefault(); location.hash = '#/'; showLogin();
     };
   }
@@ -991,7 +991,7 @@ async function showConfirm(schluessel) {
 async function showInvite(schluessel) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
-  document.body.classList.add('anmeldung');
+  document.body.classList.add('login');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${BRAND_LINE()}
@@ -1037,9 +1037,9 @@ async function showInvite(schluessel) {
       ${BRAND_LINE()}
       <div class="login-error">${esc(meldung)}</div>
       <p class="sub">${tH('login.yourLinkAffected')} <strong>${tH('login.not')}</strong> ${tH('login.stillValidRetry')}</p>
-      <button class="btn btn-accent" id="eb-neu">${tH('login.tryAgain')}</button>
+      <button class="btn btn-accent" id="eb-again">${tH('login.tryAgain')}</button>
     </div></div>`;
-    document.getElementById('eb-neu').onclick = () => showInvite(schluessel);
+    document.getElementById('eb-again').onclick = () => showInvite(schluessel);
   }
 
   function draw(errMsg) {
@@ -2548,7 +2548,7 @@ function visibleItems(filter) {
 
 /* ================= Wegweiser ================= */
 async function start() {
-  document.body.classList.remove('anmeldung');
+  document.body.classList.remove('login');
   window.removeEventListener('hashchange', route);
   window.addEventListener('hashchange', route);
   // Vor dem ersten Aufbau: sonst greift die Schriftgroesse erst nach dem
@@ -7677,7 +7677,7 @@ function cardUser(fetched) {
               GET /api/account, das diese Karte ohnehin holt; ein Knopf, den
               man erst drücken muss, um zu sehen, ob der Zugang gesichert ist,
               wäre keine Auskunft. */''}
-        <div class="zf-block" id="zf-block"></div>
+        <div class="two-factor-block" id="two-factor-block"></div>
       </div>`;
 }
 function setUpUserOut(fetched) {
@@ -7721,22 +7721,22 @@ function setUpUserOut(fetched) {
      „an“, der Zeitpunkt und die Zahl der übrigen Codes stehen alle im Feld
      `zweifaktor` von GET /api/account (Stolperstein 102). */
   function drawTwoFactor(status) {
-    const box = document.getElementById('zf-block');
+    const box = document.getElementById('two-factor-block');
     if (!box || !status) return;
     box.innerHTML = status.an ? `
-      <div class="zf-zustand zf-an">
+      <div class="two-factor-state two-factor-on">
         <strong>${tH('card.twoFactorIsOn')}</strong> ${tH('card.twoFactorSinceHint', { seit: fmtDate(status.seit) })}
-        <div class="zf-codestand">${tH('card.recoveryCodes')}
+        <div class="two-factor-count">${tH('card.recoveryCodes')}
           <strong>${tH('card.codesLeft', { codesOffen: status.codesOffen, codesGesamt: status.codesGesamt })}</strong>${status.codesOffen <= 2
             ? ` — <strong>${tH('card.codesRunningOut')}</strong>` : ''}</div>
       </div>
       <div class="row-in" style="margin-top:10px">
-        <button class="btn btn-sm" id="zf-neue">${tH('card.newRecoveryCodes')}</button>
-        <button class="btn btn-ghost btn-sm" id="zf-aus">${tH('card.twoFactorOff')}</button>
+        <button class="btn btn-sm" id="two-factor-new">${tH('card.newRecoveryCodes')}</button>
+        <button class="btn btn-ghost btn-sm" id="two-factor-off">${tH('card.twoFactorOff')}</button>
       </div>` : `
-      <div class="zf-zustand zf-aus"><strong>${tH('card.twoFactorIsOff')}</strong> ${tH('card.passwordEnoughHint')}</div>
+      <div class="two-factor-state two-factor-off"><strong>${tH('card.twoFactorIsOff')}</strong> ${tH('card.passwordEnoughHint')}</div>
       <p class="desc" style="margin:8px 0 10px">${tH('card.twoFactorHint')}</p>
-      <button class="btn btn-sm" id="zf-an">${tH('card.twoFactorOn')}</button>`;
+      <button class="btn btn-sm" id="two-factor-on">${tH('card.twoFactorOn')}</button>`;
 
     /* Das Passwort wird an ALLEN Wegen verlangt, auch am Einschalten. Beim
        Ausschalten leuchtet das ein; beim EINSCHALTEN ist es der weniger
@@ -7745,7 +7745,7 @@ function setUpUserOut(fetched) {
        legen und dich damit aussperren. */
     const ask = (titel, was, withCode) => confirmFieldFree(titel, was, withCode);
 
-    atElement('zf-an', b => b.onclick = async () => {
+    atElement('two-factor-on', b => b.onclick = async () => {
       const e = await ask(t('card.twoFactorOn'),
         t('card.passwordNeeded'), false);
       if (e === null) return;
@@ -7753,7 +7753,7 @@ function setUpUserOut(fetched) {
       catch (err) { toast(err.message, true); }
     });
 
-    atElement('zf-neue', b => b.onclick = async () => {
+    atElement('two-factor-new', b => b.onclick = async () => {
       const e = await ask(t('card.newRecoveryCodes'),
         t('card.codesInvalidHint'), true);
       if (e === null) return;
@@ -7765,7 +7765,7 @@ function setUpUserOut(fetched) {
       } catch (err) { toast(err.message, true); }
     });
 
-    atElement('zf-aus', b => b.onclick = async () => {
+    atElement('two-factor-off', b => b.onclick = async () => {
       const e = await ask(t('card.twoFactorOff'),
         t('card.twoFactorOffHint') +
         t('card.becomeInvalid'), true);
@@ -7785,36 +7785,36 @@ function setUpUserOut(fetched) {
      DER SCHLÜSSEL IST DIE ZUSAGE, DER LINK IST DIE BEQUEMLICHKEIT. Deshalb
      steht der abtippbare Wert oben und groß, nicht der Link. */
   function showSecret(d) {
-    const box = document.getElementById('zf-block');
+    const box = document.getElementById('two-factor-block');
     if (!box) return;
     box.innerHTML = `
-      <div class="warn-box zf-einrichten">
+      <div class="warn-box two-factor-setup">
         <strong>${tH('card.twoFactorStep1')}</strong>
         ${tH('card.heWill')} <strong>${tH('card.onlyThisOnce')}</strong> ${tH('card.shown')}
-        <div class="zf-schluessel" id="zf-geheim">${esc(d.gruppen)}</div>
+        <div class="two-factor-key" id="two-factor-secret">${esc(d.gruppen)}</div>
         <div class="row-in" style="margin:8px 0 0">
-          <button class="btn btn-sm" id="zf-kopie">${tH('card.copyKey')}</button>
-          <a class="btn btn-sm" id="zf-zeile" href="${esc(d.zeile)}">${tH('card.openInApp')}</a>
+          <button class="btn btn-sm" id="two-factor-copy">${tH('card.copyKey')}</button>
+          <a class="btn btn-sm" id="two-factor-row" href="${esc(d.zeile)}">${tH('card.openInApp')}</a>
         </div>
         <p class="desc" style="margin:10px 0 0">${tH('card.openAppHint')}</p>
       </div>
-      <div class="field" style="margin:12px 0 0"><label for="zf-probe">${tH('card.twoFactorStep2', { ziffern: d.ziffern })}</label>
-        <input class="input" id="zf-probe" inputmode="numeric" autocomplete="one-time-code"
+      <div class="field" style="margin:12px 0 0"><label for="two-factor-check">${tH('card.twoFactorStep2', { ziffern: d.ziffern })}</label>
+        <input class="input" id="two-factor-check" inputmode="numeric" autocomplete="one-time-code"
           spellcheck="false" maxlength="6"></div>
       <p class="desc" style="margin:0 0 10px">${tH('card.twoFactorProofHint')}</p>
       <div class="row-in">
-        <button class="btn btn-accent btn-sm" id="zf-fertig">${tH('card.turnOn')}</button>
-        <button class="btn btn-ghost btn-sm" id="zf-abbruch">${tH('dialog.cancel')}</button>
+        <button class="btn btn-accent btn-sm" id="two-factor-done">${tH('card.turnOn')}</button>
+        <button class="btn btn-ghost btn-sm" id="two-factor-cancel">${tH('dialog.cancel')}</button>
       </div>`;
-    const field = document.getElementById('zf-probe');
-    document.getElementById('zf-kopie').onclick = () => {
+    const field = document.getElementById('two-factor-check');
+    document.getElementById('two-factor-copy').onclick = () => {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(d.geheim).then(() => toast(t('card.keyCopied')),
           () => toast(t('card.typeByHand'), true));
       } else toast(t('card.typeByHand'), true);
     };
-    document.getElementById('zf-abbruch').onclick = () => renderSystem();
-    document.getElementById('zf-fertig').onclick = async () => {
+    document.getElementById('two-factor-cancel').onclick = () => renderSystem();
+    document.getElementById('two-factor-done').onclick = async () => {
       const e = await confirmFieldFree(t('card.twoFactorOn'),
         t('card.passwordAgainHint'), false);
       if (e === null) return;
@@ -7834,14 +7834,14 @@ function setUpUserOut(fetched) {
      und im selben Kasten. Sie kommen danach nicht wieder: in der Datenbank
      steht nur ihr SHA-256. */
   function showAgainCodes(codes) {
-    const box = document.getElementById('zf-block');
+    const box = document.getElementById('two-factor-block');
     if (!box || !Array.isArray(codes)) return;
     const boxId = document.createElement('div');
-    boxId.className = 'warn-box zf-codes';
-    boxId.id = 'zf-codes';
+    boxId.className = 'warn-box two-factor-codebox';
+    boxId.id = 'two-factor-codebox';
     boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
       ${tH('card.recoveryCodesHint')} <strong>${tH('card.once')}</strong> ${tH('card.replacesAppCode')}
-      <div class="zf-codeliste">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
+      <div class="two-factor-codes">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
       ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER (Stolperstein
            315). Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>

@@ -265,8 +265,8 @@ const RUECKBAUTEN = [
   {
     nr: '26', name: 'Der zweite Anlauf nach der Bremse faellt weg',
     datei: 'public/app.js',
-    suche: "    document.getElementById('eb-neu').onclick = () => showInvite(schluessel);",
-    ersatz: "    document.getElementById('eb-neu').onclick = () => {};",
+    suche: "    document.getElementById('eb-again').onclick = () => showInvite(schluessel);",
+    ersatz: "    document.getElementById('eb-again').onclick = () => {};",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Oberflaeche ---- */
@@ -547,8 +547,8 @@ const RUECKBAUTEN = [
   {
     nr: '62', name: 'Das Anfrageformular steht auch bei ausgeschaltetem Schalter da',
     datei: 'public/app.js',
-    suche: "    ${SIGNUP ? `<p class=\"sub anmeld-trenner\">${tH('login.noAccountYet')}</p>",
-    ersatz: "    ${true ? `<p class=\"sub anmeld-trenner\">${tH('login.noAccountYet')}</p>",
+    suche: "    ${SIGNUP ? `<p class=\"sub login-divider\">${tH('login.noAccountYet')}</p>",
+    ersatz: "    ${true ? `<p class=\"sub login-divider\">${tH('login.noAccountYet')}</p>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -572,8 +572,8 @@ const RUECKBAUTEN = [
        Groesse wie "Anmelden"; der Rueckbau macht wieder einen Verweis daraus. */
     nr: '68', name: 'Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes',
     datei: 'public/app.js',
-    suche: "      <button class=\"btn anmeld-zweitweg\" id=\"l-anfrage\">${tH('login.requestAccess')}</button>",
-    ersatz: "      <a href=\"#\" id=\"l-anfrage\">${tH('login.requestAccess')}</a>",
+    suche: "      <button class=\"btn login-alt\" id=\"l-request\">${tH('login.requestAccess')}</button>",
+    ersatz: "      <a href=\"#\" id=\"l-request\">${tH('login.requestAccess')}</a>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -681,7 +681,7 @@ const RUECKBAUTEN = [
        sich wieder. */
     nr: '77', name: 'Marke und Name stapeln sich wieder uebereinander',
     datei: 'public/app.js',
-    suche: '  `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
+    suche: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
     ersatz: '  `${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>`;',
     erwartet: 'Die Markenzeile der Anmeldeseiten'
   },
@@ -690,8 +690,8 @@ const RUECKBAUTEN = [
        bleibt, also greift hier nur die Zeile, die die Reihenfolge prueft. */
     nr: '78', name: 'Erst das Wort, dann das Zeichen',
     datei: 'public/app.js',
-    suche: '  `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
-    ersatz: '  `<div class="login-marke"><h1>${esc(TITLE_PUBLIC)}</h1>${MARK(36)}</div>`;',
+    suche: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
+    ersatz: '  `<div class="login-brand"><h1>${esc(TITLE_PUBLIC)}</h1>${MARK(36)}</div>`;',
     erwartet: 'Die Markenzeile der Anmeldeseiten'
   },
   {
@@ -710,8 +710,8 @@ const RUECKBAUTEN = [
        die Marke stuende schief daneben. */
     nr: '80', name: 'Die Ueberschrift in der Zeile traegt wieder einen Unterrand',
     datei: 'public/style.css',
-    suche: '.login-card .login-marke h1 { margin: 0; }',
-    ersatz: '.login-card .login-marke h1 { margin: 0 0 5px; }',
+    suche: '.login-card .login-brand h1 { margin: 0; }',
+    ersatz: '.login-card .login-brand h1 { margin: 0 0 5px; }',
     erwartet: 'Die Marke der Instanz'
   },
   {
@@ -1086,8 +1086,8 @@ const RUECKBAUTEN = [
   {
     nr: '122', name: 'Die Liste der Wiederherstellungscodes wird um einen gekuerzt',
     datei: 'public/app.js',
-    suche: "      <div class=\"zf-codeliste\">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>",
-    ersatz: "      <div class=\"zf-codeliste\">${codes.slice(1).map(c => `<span>${esc(c)}</span>`).join('')}</div>",
+    suche: "      <div class=\"two-factor-codes\">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>",
+    ersatz: "      <div class=\"two-factor-codes\">${codes.slice(1).map(c => `<span>${esc(c)}</span>`).join('')}</div>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
@@ -1629,8 +1629,8 @@ const RUECKBAUTEN = [
        dabei vollkommen unauffaellig aus. */
     nr: '181', name: 'Das Codefeld fragt wieder nach der App statt nach dem Verfahren',
     datei: 'public/app.js',
-    suche: "<label>${tH('dialog.twoFactorCode')}</label>\n        <input class=\"input\" id=\"best-code\"",
-    ersatz: "<label>Code aus deiner App</label>\n        <input class=\"input\" id=\"best-code\"",
+    suche: "<label>${tH('dialog.twoFactorCode')}</label>\n        <input class=\"input\" id=\"confirm-code\"",
+    ersatz: "<label>Code aus deiner App</label>\n        <input class=\"input\" id=\"confirm-code\"",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
@@ -2829,8 +2829,8 @@ const RUECKBAUTEN = [
        man auf dem Telefon gar nicht sieht. */
     nr: '303', name: 'Die Anmeldeseite misst die Hoehe wieder in vh',
     datei: 'public/style.css',
-    suche: "body.anmeldung { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }",
-    ersatz: "body.anmeldung { display: flex; flex-direction: column; min-height: 100vh; }",
+    suche: "body.login { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }",
+    ersatz: "body.login { display: flex; flex-direction: column; min-height: 100vh; }",
     erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
   },
   {
@@ -6140,7 +6140,7 @@ const RUECKBAUTEN = [
     nr: '678', name: 'Eine benannte Altlast verschwindet aus der Sprachdatei',
     datei: 'public/languages/de.json',
     suche: '  "login.noUserYet": "Es ist noch kein Zugang eingerichtet.",',
-    ersatz: '  "anmeldung.keinZugangX": "Es ist noch kein Zugang eingerichtet.",',
+    ersatz: '  "login.noUserYetX": "Es ist noch kein Zugang eingerichtet.",',
     erwartet: 'Der Bildschirmtext-Waechter'
   },
   {

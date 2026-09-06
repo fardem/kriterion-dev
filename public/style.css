@@ -517,7 +517,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .mrow .mcount, .mrow .mgew, .kv .v, .prot-zeit, .sitz-zeit, .pk-meta, .cmt-head,
 .lb-count, .vcount, .bsumme, .rz > span, .off-wann, .card-fund .fund-mehr,
 .thumb .num, .thumb .dauer, .lrow .lnum, .cmp-crit, .cmp-gruppe, .pill .n, .photo-count,
-.zf-codeliste span, .zug-status, .filter-schalter .fz, .offen-zahl {
+.two-factor-codes span, .zug-status, .filter-schalter .fz, .offen-zahl {
   font-variant-numeric: tabular-nums;
 }
 /* Die Marke der Instanz. SIE HEISST `marke` UND NICHT `mark`, und das ist kein
@@ -566,7 +566,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .btn:disabled:hover { background: var(--surface-2); border-color: var(--line); color: var(--text-2); }
 
 /* ---------- Anmeldung ---------- */
-/* DIESELBE EINHEIT UND DERSELBE RUECKFALL WIE AN body.anmeldung: die Regel
+/* DIESELBE EINHEIT UND DERSELBE RUECKFALL WIE AN body.login: die Regel
    dort hebt diese Hoehe zwar auf, solange die Kennzeichnung am body steht --
    aber zwei Stellen mit derselben Aussage duerfen nicht zwei Einheiten tragen
    (Stolperstein 47). */
@@ -587,16 +587,16 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    angemeldeten Bereichs -- die Instanz zeigt sich vor und nach der Anmeldung
    gleich. Die 5px darunter sind die, die vorher das h1 trug: der Abstand von
    der Marke zur Unterzeile bleibt derselbe, nur der Stapel faellt weg. */
-.login-card .login-marke {
+.login-card .login-brand {
   display: flex; align-items: center; gap: 11px; margin: 0 0 5px;
 }
 /* Im Verbund traegt die Zeile den Abstand, nicht die Ueberschrift: ein
    margin-bottom am h1 schoebe es bei align-items: center um die halbe Hoehe
    nach oben und die Marke saesse schief daneben. */
-.login-card .login-marke h1 { margin: 0; }
+.login-card .login-brand h1 { margin: 0; }
 /* Dieselbe Regel wie in der Kopfzeile, nur steht hier EINE Zeile daneben und
    kein Stapel: 1,53 rem x Zeilenhoehe 1,55 = 2,372 rem. */
-.login-card .login-marke .marke { height: 2.372rem; }
+.login-card .login-brand .marke { height: 2.372rem; }
 .login-card h1 { font-size: 1.53rem; font-weight: 640; letter-spacing: -.028em; margin: 0 0 5px; }
 .login-card .sub { color: var(--muted); font-size: .9rem; margin: 0 0 24px; }
 .field { margin-bottom: 14px; }
@@ -622,7 +622,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    einer. Der Abstand trennt genauso und schneidet nicht. Er ist mit 28px
    groesser als jede andere Luecke in der Karte (24px zwischen Unterzeile und
    Feldern) und damit selbst die Trennung. */
-.login-card .anmeld-trenner {
+.login-card .login-divider {
   margin: 28px 0 0; font-size: .87rem;
 }
 /* GEDAEMPFT, ABER ERKENNBAR EIN KNOPF -- und die Grenze zwischen beidem ist
@@ -644,11 +644,11 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    BEIM UEBERFAHREN ZIEHT DIE UMRANDUNG AUF DEN VOLLEN AKZENT AN, der
    Fuellgrund bleibt, wo er ist -- wer mit der Maus hingeht, soll die Zusage
    sehen, dass hier etwas passiert, ohne dass die Flaeche springt. */
-.login-card .anmeld-zweitweg {
+.login-card .login-alt {
   background: var(--accent-dim); border-color: var(--accent-line);
   color: var(--muted); font-weight: 500;
 }
-.login-card .anmeld-zweitweg:hover {
+.login-card .login-alt:hover {
   border-color: var(--accent); color: var(--text-2);
 }
 .login-error {
@@ -2251,17 +2251,17 @@ mark {
    ungesicherten Zugang dauerhaft dasteht, wird nach einer Woche nicht mehr
    gelesen (dieselbe Ueberlegung wie bei den drei Abstufungen der Karte
    "Sicherung"). */
-.zf-block { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
-.zf-zustand { font-size: .87rem; line-height: 1.55; color: var(--text-2); }
-.zf-an strong { color: var(--green); }
-.zf-aus strong { color: var(--muted); }
-.zf-codestand { margin-top: 5px; }
-.zf-codestand strong { color: var(--text-2); }
+.two-factor-block { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+.two-factor-state { font-size: .87rem; line-height: 1.55; color: var(--text-2); }
+.two-factor-on strong { color: var(--green); }
+.two-factor-off strong { color: var(--muted); }
+.two-factor-count { margin-top: 5px; }
+.two-factor-count strong { color: var(--text-2); }
 
 /* Der Schluessel wird ABGETIPPT, nicht gelesen: feste Schrift, weit gesperrt,
    und er darf umbrechen -- auf einem schmalen Schirm sind acht Vierergruppen
    sonst eine Zeile, die seitlich hinauslaeuft. */
-.zf-schluessel {
+.two-factor-key {
   font-family: var(--mono); font-size: 1.02rem; letter-spacing: .08em;
   margin: 10px 0 0; padding: 9px 11px; border-radius: var(--r-sm);
   background: var(--bg); border: 1px solid var(--line); color: var(--text);
@@ -2270,16 +2270,16 @@ mark {
 /* Der Link in die App ist ein Knopf und trotzdem ein <a> -- er muss eine
    Adresse tragen, damit das Telefon die App oeffnet. Er bekommt deshalb hier
    die Zeilenhoehe, die ein Knopf sonst von selbst hat. */
-.zf-einrichten a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+.two-factor-setup a.btn { display: inline-flex; align-items: center; text-decoration: none; }
 
 /* Die Wiederherstellungscodes. Sie werden ABGESCHRIEBEN, also feste Schrift und
    Platz zwischen den Bloecken; das Raster bricht auf schmalem Schirm auf eine
    Spalte um. */
-.zf-codeliste {
+.two-factor-codes {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 6px 12px; margin: 10px 0 0;
 }
-.zf-codeliste span {
+.two-factor-codes span {
   font-family: var(--mono); font-size: .95rem; letter-spacing: .04em;
   color: var(--text); user-select: all;
 }
@@ -2835,14 +2835,14 @@ body.lb-open { overflow: hidden; }
 .version-zeile .marke { height: 1.5em; }
 /* DER ABSTAND DARUNTER IST EIN TELEFONBEFUND UND KEIN DESKTOPBEFUND, und
    deshalb faellt er hier und nicht an der Zeile im Allgemeinen.
-   Auf der Anmeldeseite drueckt der Flex-Aufbau von body.anmeldung die Zeile
+   Auf der Anmeldeseite drueckt der Flex-Aufbau von body.login die Zeile
    ohnehin ans untere Ende -- die 26 Pixel und der Streifen fuer den
    Home-Indikator kommen obendrauf, und zusammen ist es zu viel. Im
    angemeldeten Bereich steht die Zeile hinter dem Inhalt und braucht ihre
    26 Pixel; dort bleibt alles, wie es war.
    DER STREIFEN BLEIBT: er ist kein Abstand, sondern die Flaeche, in der das
    Telefon seinen eigenen Balken zeichnet. */
-body.anmeldung .version-zeile { margin-bottom: calc(10px + env(safe-area-inset-bottom)); }
+body.login .version-zeile { margin-bottom: calc(10px + env(safe-area-inset-bottom)); }
 /* Im Vollbild waere sie nur im Weg. */
 body.lb-open .version-zeile { display: none; }
 
@@ -2871,9 +2871,9 @@ body.lb-open .version-zeile { display: none; }
    ZWEI ZEILEN UND KEINE Abfrage: ein Browser, der `dvh` nicht kennt, ueberliest
    die zweite und behaelt die erste -- dieselbe Bauform wie an den Listen
    weiter unten. */
-body.anmeldung { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
-body.anmeldung #app { flex: 1 0 auto; display: flex; flex-direction: column; }
-body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
+body.login { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+body.login #app { flex: 1 0 auto; display: flex; flex-direction: column; }
+body.login .login-screen { flex: 1 0 auto; min-height: 0; }
 
 /* ================= Die Ansicht „Offen" ================= */
 /* Sie zeigt Aufgabenkommentare quer über alle Einträge. Keine neue Farbe: die
@@ -3570,7 +3570,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .apreview, .vok-probe, .warn-box, .ok-box, .sanb, .empty, .zl {
     border-radius: var(--r);
   }
-  /* NICHT MITGEFASST SIND .keyline UND .zf-schluessel: die beiden liegen
+  /* NICHT MITGEFASST SIND .keyline UND .two-factor-key: die beiden liegen
      nachweislich INNERHALB eines Hinweiskastens und sind Einsaetze, keine
      Kaesten in der Flucht. Ein Einsatz mit derselben Ecke wie sein Behaelter
      sieht aus, als sei einer von beiden zu viel. Sie behalten die kleinere. */

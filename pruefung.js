@@ -1478,7 +1478,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Gegenlage dazu ist die Zeile darunter -- sie haelt fest, dass daneben
      keine Seite das Paar wieder von Hand stapelt. */
   pruefe('Marke und Name stehen in einer gemeinsamen Zeile',
-    /const BRAND_LINE = \(\) =>\s*`<div class="login-marke">\$\{MARK\(\d+\)\}<h1>/.test(mkApp),
+    /const BRAND_LINE = \(\) =>\s*`<div class="login-brand">\$\{MARK\(\d+\)\}<h1>/.test(mkApp),
     (mkApp.match(/const BRAND_LINE =[\s\S]{0,140}/) || ['(kein Helfer)'])[0]);
   /* UND ZWAR GENAU EINMAL IN DER GANZEN QUELLE. Zusammen mit der Zeile
      darueber -- die eine Stelle steht im Helfer -- heisst das: keine der neun
@@ -1490,12 +1490,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      diese Zeile bliebe die vorige auch dann gruen, wenn hinter dem h1 noch
      etwas Drittes im Kasten saesse. */
   pruefe('Und in der Zeile steht nichts ausser den beiden',
-    /login-marke">\$\{MARK\(\d+\)\}<h1>\$\{esc\(TITLE_PUBLIC\)\}<\/h1><\/div>/.test(mkApp),
-    (mkApp.match(/<div class="login-marke">[\s\S]{0,90}/) || ['(keine Zeile)'])[0]);
+    /login-brand">\$\{MARK\(\d+\)\}<h1>\$\{esc\(TITLE_PUBLIC\)\}<\/h1><\/div>/.test(mkApp),
+    (mkApp.match(/<div class="login-brand">[\s\S]{0,90}/) || ['(keine Zeile)'])[0]);
   /* UND DAS STYLESHEET STELLT SIE WIRKLICH NEBENEINANDER. Ohne diese Zeile
      belegte die Quelle nur, dass beide in EINEM Kasten stehen -- gestapelt
      saessen sie darin genauso (Stolperstein 81). */
-  const mkZeile = (mkCss.match(/\.login-card \.login-marke \{[^}]*\}/) || [''])[0];
+  const mkZeile = (mkCss.match(/\.login-card \.login-brand \{[^}]*\}/) || [''])[0];
   pruefe('Und das Stylesheet stellt sie wirklich nebeneinander',
     /display: *flex/.test(mkZeile) && /align-items: *center/.test(mkZeile), mkZeile);
   pruefe('Mit einer Luecke dazwischen',
@@ -1507,7 +1507,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      dieser Zeile las `margin: *0` und war damit auch bei `margin: 0 0 5px`
      noch gruen -- die Null davor passte, der Unterrand dahinter blieb
      ungesehen. Gegenprobe 80 war deshalb stumm. */
-  const mkH1 = (mkCss.match(/\.login-card \.login-marke h1 \{[^}]*\}/) || [''])[0];
+  const mkH1 = (mkCss.match(/\.login-card \.login-brand h1 \{[^}]*\}/) || [''])[0];
   pruefe('Und die Ueberschrift traegt darin keinen eigenen Unterrand',
     /margin: *0 *[;}]/.test(mkH1) && !/margin-bottom/.test(mkH1),
     mkH1 || '(keine Regel)');
@@ -1610,7 +1610,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       && Math.abs(mkMarkeHoch - (mkTitel + mkZaehl) * mkZeilenhoehe) < 0.011,
     `${mkMarkeHoch}rem gegen ${((mkTitel + mkZaehl) * mkZeilenhoehe).toFixed(3)}rem`);
   const mkLoginGross = mkGroesse('.login-card h1');
-  const mkLoginHoch = mkZahl('.login-card .login-marke .marke', 'height');
+  const mkLoginHoch = mkZahl('.login-card .login-brand .marke', 'height');
   pruefe('Und die der Anmeldeseite so hoch wie die eine Zeile daneben',
     mkLoginHoch !== null && mkLoginGross !== null
       && Math.abs(mkLoginHoch - mkLoginGross * mkZeilenhoehe) < 0.011,
@@ -1619,7 +1619,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      je nach Reihenfolge und macht die Rechnung darueber wertlos. */
   pruefe('Und keine der beiden traegt daneben eine Hoehe in Pixel',
     !/\.brand \.marke \{[^}]*height: *\d+px/.test(mkCss)
-      && !/\.login-marke \.marke \{[^}]*height: *\d+px/.test(mkCss),
+      && !/\.login-brand \.marke \{[^}]*height: *\d+px/.test(mkCss),
     'eine Pixelhoehe steht daneben');
   /* DIE BREITE FOLGT DEM SEITENVERHAELTNIS. Ohne `width: auto` schluege das
      Attribut aus dem Markup zu und die Marke waere verzerrt. */
@@ -15476,7 +15476,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        dahin ZAEHLTE er die Meldungen im Quelltext („mehr als hundert"); jetzt
        haelt er fest, dass dort KEINE mehr steht. Die Zahl steht nicht weniger
        fest, sie steht nur woanders: gezaehlt werden die server.*- und
-       anmeldung.*-Schluessel in de.json.
+       login.*-Schluessel in de.json.
        DIE UNTERGRENZE BLEIBT EINE ZAHL. Ein Waechter, der nur „null Literale"
        sagt, waere auch dann gruen, wenn jemand die Sprachdatei leerte. */
     /* WAS HINTER `error:` NOCH STEHEN DARF: ein SCHLUESSEL („server.tagGone")
@@ -15498,7 +15498,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const spDe = JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
     const btServer = Object.entries(spDe)
-      .filter(([k]) => k.startsWith('server.') || k.startsWith('anmeldung.'))
+      .filter(([k]) => k.startsWith('server.') || k.startsWith('login.'))
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v))
         .map(text => ({ text, zeile: k, datei: 'public/languages/de.json' })));
     pruefe('Und die Sprachdatei traegt dafuer mehr als hundert Servermeldungen',
@@ -23076,7 +23076,7 @@ function stelleBestaetigung(w, ja = true, mitschrift = null) {
 }
 
 async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen = false, code) {
-  const feld = d.w.document.getElementById('best-pass');
+  const feld = d.w.document.getElementById('confirm-pass');
   if (!feld) return false;
   const knopf = feld.closest('.modal')?.querySelector(abbrechen ? '[data-no]' : '[data-yes]');
   if (!knopf) return false;
@@ -23085,7 +23085,7 @@ async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen 
      Zugaengen mit zweitem Faktor. Gefuellt wird es nur, wenn es dasteht: eine
      Prueflage ohne Faktor soll hier nichts erfinden, sondern sehen, dass es
      fehlt. */
-  const codeFeld = d.w.document.getElementById('best-code');
+  const codeFeld = d.w.document.getElementById('confirm-code');
   if (codeFeld && code !== undefined) codeFeld.value = code;
   knopf.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
@@ -24832,20 +24832,20 @@ async function pruefeOberflaeche() {
    * laesst sich das nur an beiden Enden: dass die Kennzeichnung gesetzt und
    * wieder genommen wird, und dass am Stylesheet eine Regel dafuer haengt. */
   w.showLogin();
-  pruefe('Anmeldeseite kennzeichnet sich am body', w.document.body.classList.contains('anmeldung'));
+  pruefe('Anmeldeseite kennzeichnet sich am body', w.document.body.classList.contains('login'));
   const cssAnm = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   pruefe('Stylesheet teilt dort die Fensterhoehe auf',
-    /body\.anmeldung \{[^}]*min-height: *100vh/.test(cssAnm) &&
-    /body\.anmeldung \.login-screen \{[^}]*min-height: *0/.test(cssAnm),
-    'Regel fuer body.anmeldung fehlt oder hebt die 100vh der Anmeldeseite nicht auf');
+    /body\.login \{[^}]*min-height: *100vh/.test(cssAnm) &&
+    /body\.login \.login-screen \{[^}]*min-height: *0/.test(cssAnm),
+    'Regel fuer body.login fehlt oder hebt die 100vh der Anmeldeseite nicht auf');
   pruefe('Karte darf nicht schrumpfen, sondern die Seite wachsen',
-    /body\.anmeldung \.login-screen \{[^}]*flex: *1 0 auto/.test(cssAnm));
+    /body\.login \.login-screen \{[^}]*flex: *1 0 auto/.test(cssAnm));
 
   // Ueber start(), nicht ueber renderDetail: das ist der einzige Weg, den es
   // nach einer Anmeldung wirklich gibt.
   await w.start();
   pruefe('Nach der Anmeldung ist die Kennzeichnung wieder weg',
-    !w.document.body.classList.contains('anmeldung'));
+    !w.document.body.classList.contains('login'));
 
   /* --- Detailansicht --- */
   await w.renderDetail(1);
@@ -30403,7 +30403,7 @@ async function pruefeOberflaeche() {
     !eiGut.gesendet.some(x => x.url === '/api/session'),
     eiGut.gesendet.map(x => x.url).join(' · '));
   pruefe('Die Seite kennzeichnet sich als Anmeldeseite',
-    eiGut.w.document.body.classList.contains('anmeldung'));
+    eiGut.w.document.body.classList.contains('login'));
   pruefe('Sie steht in derselben Karte wie die Anmeldung',
     !!eiGut.w.document.querySelector('.login-screen .login-card'), 'keine Anmeldekarte');
   /* DER NAME KOMMT VOM SERVER, und zwar erst, wenn der Link traegt
@@ -30504,7 +30504,7 @@ async function pruefeOberflaeche() {
   pruefe('Und sie nennt den Grund der Bremse',
     /Zu viele Fehlversuche/.test(eiBremse.w.document.querySelector('.login-error')?.textContent || ''),
     eiBremse.w.document.querySelector('.login-error')?.textContent);
-  const eiKnopf = eiBremse.w.document.getElementById('eb-neu');
+  const eiKnopf = eiBremse.w.document.getElementById('eb-again');
   pruefe('Ein zweiter Anlauf steht als Knopf da', !!eiKnopf, 'kein Knopf');
   {
     /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und
@@ -30531,8 +30531,8 @@ async function pruefeOberflaeche() {
      bliebe "nur bei 400" eine Behauptung -- eine Oberflaeche, die gar nichts
      mehr leert, waere hier genauso gruen. Sie steht oben bei eiWeg. */
   pruefe('Die endgueltige Absage leert die Adresse dagegen weiterhin',
-    eiWeg.w.location.hash === '#/' && !eiWeg.w.document.getElementById('eb-neu'),
-    `${eiWeg.w.location.hash} · Knopf: ${!!eiWeg.w.document.getElementById('eb-neu')}`);
+    eiWeg.w.location.hash === '#/' && !eiWeg.w.document.getElementById('eb-again'),
+    `${eiWeg.w.location.hash} · Knopf: ${!!eiWeg.w.document.getElementById('eb-again')}`);
 
   /* Ein Fragment, das gar kein Schluessel ist, geht den gewoehnlichen Weg --
      ohne den Server nach ihm zu fragen. */
@@ -30581,7 +30581,7 @@ async function pruefeOberflaeche() {
     /* UND DIE SEITE GEHT WEITER, statt stehenzubleiben: angemeldet ist man
        bereits, der Server hat den Cookie mitgeschickt. */
     pruefe('Und die Oberflaeche baut sich auf',
-      !d.w.document.body.classList.contains('anmeldung'),
+      !d.w.document.body.classList.contains('login'),
       'die Seite steht noch auf der Anmeldung');
   }
 
@@ -30597,7 +30597,7 @@ async function pruefeOberflaeche() {
      der Helfer schreibt, der Baum sagt, was auf der Seite steht. */
   const mzDom = baueDom(JSDOM, { angemeldet: false, registrierung: false });
   await new Promise(r => setTimeout(r, 80));
-  const mzZeile = mzDom.w.document.querySelector('.login-card .login-marke');
+  const mzZeile = mzDom.w.document.querySelector('.login-card .login-brand');
   pruefe('Die Anmeldeseite traegt eine Markenzeile', Boolean(mzZeile),
     'keine Zeile im Baum');
   const mzKinder = mzZeile ? [...mzZeile.children] : [];
@@ -30642,16 +30642,16 @@ async function pruefeOberflaeche() {
   const sAus = baueDom(JSDOM, { angemeldet: false, registrierung: false });
   await new Promise(r => setTimeout(r, 80));
   pruefe('Ist die Selbstanmeldung aus, steht auf der Anmeldeseite kein Formular',
-    !sAus.w.document.getElementById('l-anfrage'), 'der Knopf steht da');
+    !sAus.w.document.getElementById('l-request'), 'der Knopf steht da');
   pruefe('Und auch die Frage darueber nicht',
-    !sAus.w.document.querySelector('.anmeld-trenner'), 'die Frage steht da');
+    !sAus.w.document.querySelector('.login-divider'), 'die Frage steht da');
   pruefe('Und die Anmeldemaske selbst ist unveraendert da',
     Boolean(sAus.w.document.getElementById('lu') && sAus.w.document.getElementById('lp')),
     'die Anmeldemaske fehlt');
 
   const sAn = baueDom(JSDOM, { angemeldet: false, registrierung: true });
   await new Promise(r => setTimeout(r, 80));
-  const sVerweis = sAn.w.document.getElementById('l-anfrage');
+  const sVerweis = sAn.w.document.getElementById('l-request');
   pruefe('Ist sie an, steht der Weg "Zugang anfragen" da', Boolean(sVerweis),
     'der Weg fehlt');
   /* ER IST EIN KNOPF UND KEIN VERWEIS IN EINER FUSSZEILE -- eine Berichtigung
@@ -30670,7 +30670,7 @@ async function pruefeOberflaeche() {
     sAn.w.document.getElementById('lb')?.classList.contains('btn-accent'),
     `${sVerweis?.className} · ${sAn.w.document.getElementById('lb')?.className}`);
   /* DIE FRAGE STEHT UEBER DEM KNOPF, nicht daneben und nicht darin. */
-  const sFrage = sAn.w.document.querySelector('.anmeld-trenner');
+  const sFrage = sAn.w.document.querySelector('.login-divider');
   pruefe('Darueber steht die Frage "Noch keinen Zugang?"',
     /Noch keinen Zugang\?/.test(sFrage?.textContent || ''), sFrage?.textContent || '(fehlt)');
   pruefe('Und sie steht wirklich VOR dem Knopf',
@@ -30686,7 +30686,7 @@ async function pruefeOberflaeche() {
      Anmeldeknopf zusammen. */
   const sCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
-  const sRegel = (sCss.match(/\.login-card \.anmeld-trenner \{[^}]*\}/) || [''])[0];
+  const sRegel = (sCss.match(/\.login-card \.login-divider \{[^}]*\}/) || [''])[0];
   pruefe('Die Regel fuer die Trennung steht im Stylesheet', sRegel.length > 0,
     'keine Regel gefunden');
   /* UND SIE TRENNT MIT ABSTAND STATT MIT EINEM STRICH. Die erste Fassung zog
@@ -30705,8 +30705,8 @@ async function pruefeOberflaeche() {
      bleibt. Ohne die zweite duerfte er so laut werden wie der Anmeldeknopf,
      und die Seite sagte nicht mehr, welcher der gewoehnliche Weg ist. */
   pruefe('Der Knopf traegt die gedaempfte Klasse',
-    sVerweis?.classList.contains('anmeld-zweitweg'), sVerweis?.className);
-  const sLeise = (sCss.match(/\.login-card \.anmeld-zweitweg \{[^}]*\}/) || [''])[0];
+    sVerweis?.classList.contains('login-alt'), sVerweis?.className);
+  const sLeise = (sCss.match(/\.login-card \.login-alt \{[^}]*\}/) || [''])[0];
   pruefe('Und die Regel dazu steht im Stylesheet', sLeise.length > 0,
     'keine Regel gefunden');
   pruefe('Sie faerbt ihn leicht ein statt ihn leer zu lassen',
@@ -30745,8 +30745,8 @@ async function pruefeOberflaeche() {
      aufgerufener Behandler belegt nicht, dass ein Klick ankommt. */
   sVerweis.dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 40));
-  const sName = sAn.w.document.getElementById('an-name');
-  const sMail = sAn.w.document.getElementById('an-mail');
+  const sName = sAn.w.document.getElementById('req-name');
+  const sMail = sAn.w.document.getElementById('req-mail');
   pruefe('Der Klick fuehrt zum Formular mit Name und Adresse',
     Boolean(sName && sMail), 'das Formular fehlt');
   /* KEIN PASSWORTFELD. Der Anfragende gibt Namen und Adresse an, sonst nichts
@@ -30760,7 +30760,7 @@ async function pruefeOberflaeche() {
     `${sName.getAttribute('maxlength')} / ${sMail.getAttribute('maxlength')}`);
   sName.value = 'neuling';
   sMail.value = 'neuling@beispiel.de';
-  sAn.w.document.getElementById('an-ab')
+  sAn.w.document.getElementById('req-send')
     .dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 80));
   const sGesendet = sAn.gesendet.find(x => x.url === '/api/registrierung');
@@ -30777,7 +30777,7 @@ async function pruefeOberflaeche() {
      Ausfertigung in der Oberflaeche liefe beim naechsten Wort auseinander
      (Stolperstein 102: der Mock bringt sie nicht selbst mit, er gibt zurueck,
      was der echte Server gibt). */
-  const sDank = sAn.w.document.getElementById('an-dank');
+  const sDank = sAn.w.document.getElementById('req-thanks');
   pruefe('Danach steht die Dankseite da', Boolean(sDank), 'die Dankseite fehlt');
   pruefe('Und sie zeigt genau die Meldung des Servers',
     (sDank?.textContent || '').includes('Postfach') &&
@@ -30825,18 +30825,18 @@ async function pruefeOberflaeche() {
      dass der gewoehnliche unangetastet bleibt. */
   const zdOhne = await zdAnmelden(false);
   pruefe('Ohne zweiten Faktor fuehrt die Anmeldung wie bisher hinein',
-    !zdOhne.w.document.getElementById('zf-code') &&
+    !zdOhne.w.document.getElementById('two-factor-code') &&
     !zdOhne.w.document.querySelector('.login-card'),
     zdOhne.w.document.querySelector('.login-card') ? 'die Anmeldekarte steht noch da' : 'kein Codefeld');
 
   const zdMit = await zdAnmelden(true);
-  const zdFeld = zdMit.w.document.getElementById('zf-code');
+  const zdFeld = zdMit.w.document.getElementById('two-factor-code');
   pruefe('Mit zweitem Faktor steht danach die Frage nach dem Code',
     Boolean(zdFeld), 'das Codefeld fehlt');
   pruefe('Und das Passwortfeld ist fort -- es ist ein zweiter SCHRITT, kein zweites Feld',
     !zdMit.w.document.getElementById('lp'), 'das Passwortfeld steht noch da');
   pruefe('Die Marke der Instanz steht auch hier',
-    Boolean(zdMit.w.document.querySelector('.login-marke')), 'keine Markenzeile');
+    Boolean(zdMit.w.document.querySelector('.login-brand')), 'keine Markenzeile');
   /* DER WEG UEBER DEN WIEDERHERSTELLUNGSCODE STEHT DANEBEN, nicht hinter
      einem Knopf: wer sein Telefon nicht hat, sucht ihn genau in diesem
      Augenblick -- und findet ihn nicht, wenn er erst aufzuklappen waere. */
@@ -30851,7 +30851,7 @@ async function pruefeOberflaeche() {
      hat zehn Zeichen -- und "aus deiner App" fuer ihn ebenso: er kommt von
      einem Zettel. Die Beschriftung nennt deshalb das Verfahren, und der
      Hinweis darunter nennt den zweiten Weg. */
-  const zdLabel = zdMit.w.document.querySelector('label[for="zf-code"]')?.textContent || '';
+  const zdLabel = zdMit.w.document.querySelector('label[for="two-factor-code"]')?.textContent || '';
   pruefe('Die Beschriftung nennt das Verfahren und keine Zeichenzahl',
     /Zwei-Faktor-Code/.test(zdLabel) && !/[Ss]echsstellig/.test(zdLabel), zdLabel);
   pruefe('Und die Seite spricht nirgends mehr von einer App',
@@ -30864,11 +30864,11 @@ async function pruefeOberflaeche() {
 
   // Ein falscher Code: die Seite bleibt stehen, nennt die Absage und geht mit
   // dem FRISCHEN Ausweis weiter -- ein Tippfehler kostet nicht das Passwort.
-  zfSetze(zdMit.w, 'zf-code', '000000');
-  await zdKlick(zdMit.w, zdMit.w.document.getElementById('zf-ab'));
+  zfSetze(zdMit.w, 'two-factor-code', '000000');
+  await zdKlick(zdMit.w, zdMit.w.document.getElementById('two-factor-send'));
   const zdFalsch = zdMit.gesendet.filter(g => g.url === '/api/login/zwei').pop();
   pruefe('Ein falscher Code laesst den Menschen auf dieser Seite',
-    Boolean(zdMit.w.document.getElementById('zf-code')), 'die Seite ist gewechselt');
+    Boolean(zdMit.w.document.getElementById('two-factor-code')), 'die Seite ist gewechselt');
   pruefe('Und nennt die Absage',
     /Der Code stimmt nicht/.test(zdMit.w.document.querySelector('.login-error')?.textContent || ''),
     zdMit.w.document.querySelector('.login-error')?.textContent || '(keine Absage)');
@@ -30880,21 +30880,21 @@ async function pruefeOberflaeche() {
     zdFalsch?.koerper?.ausweis === 'ausweis-1', JSON.stringify(zdFalsch?.koerper));
 
   // Und jetzt der richtige.
-  zfSetze(zdMit.w, 'zf-code', '123456');
-  await zdKlick(zdMit.w, zdMit.w.document.getElementById('zf-ab'));
+  zfSetze(zdMit.w, 'two-factor-code', '123456');
+  await zdKlick(zdMit.w, zdMit.w.document.getElementById('two-factor-send'));
   const zdRichtig = zdMit.gesendet.filter(g => g.url === '/api/login/zwei').pop();
   pruefe('Der zweite Anlauf nimmt den FRISCHEN Ausweis aus der Absage',
     zdRichtig?.koerper?.ausweis === 'ausweis-2', JSON.stringify(zdRichtig?.koerper));
   pruefe('Und mit richtigem Code fuehrt der Weg hinein',
-    !zdMit.w.document.getElementById('zf-code') &&
+    !zdMit.w.document.getElementById('two-factor-code') &&
     !zdMit.w.document.querySelector('.login-card'),
     zdMit.w.document.querySelector('.login-card') ? 'die Karte steht noch da' : 'drin');
 
   /* EIN WIEDERHERSTELLUNGSCODE TRAEGT AN DERSELBEN STELLE. Ohne diese Lage
      bliebe der Satz auf dem Bildschirm eine Behauptung. */
   const zdWieder = await zdAnmelden(true);
-  zfSetze(zdWieder.w, 'zf-code', 'AAAAA-BBBBB');
-  await zdKlick(zdWieder.w, zdWieder.w.document.getElementById('zf-ab'));
+  zfSetze(zdWieder.w, 'two-factor-code', 'AAAAA-BBBBB');
+  await zdKlick(zdWieder.w, zdWieder.w.document.getElementById('two-factor-send'));
   pruefe('Ein Wiederherstellungscode traegt in demselben Feld',
     !zdWieder.w.document.querySelector('.login-card'),
     zdWieder.w.document.querySelector('.login-card')?.textContent?.slice(0, 80));
@@ -30906,10 +30906,10 @@ async function pruefeOberflaeche() {
   const zdWeg = await zdAnmelden(true);
   zdWeg.w.showSecondFactor('erfundener-ausweis');
   await new Promise(r => setTimeout(r, 40));
-  zfSetze(zdWeg.w, 'zf-code', '123456');
-  await zdKlick(zdWeg.w, zdWeg.w.document.getElementById('zf-ab'));
+  zfSetze(zdWeg.w, 'two-factor-code', '123456');
+  await zdKlick(zdWeg.w, zdWeg.w.document.getElementById('two-factor-send'));
   pruefe('Ein abgelaufener Ausweis fuehrt zurueck auf die Anmeldeseite',
-    Boolean(zdWeg.w.document.getElementById('lp')) && !zdWeg.w.document.getElementById('zf-code'),
+    Boolean(zdWeg.w.document.getElementById('lp')) && !zdWeg.w.document.getElementById('two-factor-code'),
     zdWeg.w.document.querySelector('.login-card')?.textContent?.slice(0, 100));
   pruefe('Und sagt dort, dass von vorn angefangen werden muss',
     /abgelaufen/.test(zdWeg.w.document.querySelector('.login-error')?.textContent || ''),
@@ -30926,7 +30926,7 @@ async function pruefeOberflaeche() {
   pruefe('Bei falschem Passwort bleibt es bei der gewohnten Absage',
     /Benutzername oder Passwort/.test(
       zdWort.w.document.querySelector('.login-error')?.textContent || '') &&
-    !zdWort.w.document.getElementById('zf-code'),
+    !zdWort.w.document.getElementById('two-factor-code'),
     zdWort.w.document.querySelector('.login-error')?.textContent);
   pruefe('Und kein Wort ueber einen zweiten Faktor steht auf der Seite',
     !/zweiter Faktor|Code aus deiner App/i.test(
@@ -30941,7 +30941,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 60));
   await zkAus.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
-  const zkBlock = () => zkAus.w.document.getElementById('zf-block');
+  const zkBlock = () => zkAus.w.document.getElementById('two-factor-block');
   pruefe('Der Block steht in der Karte "Mein Konto" und nicht in einer eigenen',
     Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === 'Mein Konto',
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
@@ -30957,48 +30957,48 @@ async function pruefeOberflaeche() {
   pruefe('Der Zustand "aus" steht ohne Klick da',
     /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
   pruefe('Und daneben der Knopf zum Einschalten',
-    Boolean(zkAus.w.document.getElementById('zf-an')), 'der Knopf fehlt');
+    Boolean(zkAus.w.document.getElementById('two-factor-on')), 'der Knopf fehlt');
   pruefe('Zum Ausschalten steht dort keiner',
-    !zkAus.w.document.getElementById('zf-aus') && !zkAus.w.document.getElementById('zf-neue'));
+    !zkAus.w.document.getElementById('two-factor-off') && !zkAus.w.document.getElementById('two-factor-new'));
   // 0.22.0: der Absatz ist zwei Saetze lang und sagt, dass die App kein Internet braucht.
   pruefe('Und der Text sagt, dass die App kein Internet braucht',
     /kein Internet/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 300));
 
   // Einschalten, Schritt 1: hinter dem bisherigen Passwort.
-  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-an'));
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('two-factor-on'));
   pruefe('Einschalten fragt zuerst nach dem bisherigen Passwort',
-    Boolean(zkAus.w.document.getElementById('best-pass')), 'kein Passwortfenster');
+    Boolean(zkAus.w.document.getElementById('confirm-pass')), 'kein Passwortfenster');
   pruefe('Und dort steht KEIN Codefeld -- es gibt noch keinen Code zu fragen',
-    !zkAus.w.document.getElementById('best-code'), 'ein Codefeld steht da');
+    !zkAus.w.document.getElementById('confirm-code'), 'ein Codefeld steht da');
   await bestaetigeImDom(zkAus, 'chefins-wort-100');
   pruefe('Danach steht der Schluessel in Vierergruppen da',
-    zkAus.w.document.getElementById('zf-geheim')?.textContent ===
+    zkAus.w.document.getElementById('two-factor-secret')?.textContent ===
       'GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ',
-    zkAus.w.document.getElementById('zf-geheim')?.textContent);
+    zkAus.w.document.getElementById('two-factor-secret')?.textContent);
   pruefe('Und der Bildschirm sagt, dass er nur dieses eine Mal erscheint',
     /nur dieses eine Mal/.test(
-      zkAus.w.document.querySelector('.zf-einrichten')?.textContent || ''),
-    zkAus.w.document.querySelector('.zf-einrichten')?.textContent?.slice(0, 140));
-  const zkZeile = zkAus.w.document.getElementById('zf-zeile');
+      zkAus.w.document.querySelector('.two-factor-setup')?.textContent || ''),
+    zkAus.w.document.querySelector('.two-factor-setup')?.textContent?.slice(0, 140));
+  const zkZeile = zkAus.w.document.getElementById('two-factor-row');
   pruefe('Daneben fuehrt ein Verweis unmittelbar in die App',
     zkZeile?.getAttribute('href')?.startsWith('otpauth://totp/'),
     zkZeile?.getAttribute('href'));
   pruefe('Und er traegt dasselbe Geheimnis wie der abtippbare Schluessel',
     zkZeile?.getAttribute('href')?.includes('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'));
   pruefe('Der abtippbare Schluessel steht dabei OBEN -- er ist die Zusage, der Verweis die Bequemlichkeit',
-    zkAus.w.document.getElementById('zf-geheim')?.compareDocumentPosition(zkZeile) === 4,
-    String(zkAus.w.document.getElementById('zf-geheim')?.compareDocumentPosition(zkZeile)));
+    zkAus.w.document.getElementById('two-factor-secret')?.compareDocumentPosition(zkZeile) === 4,
+    String(zkAus.w.document.getElementById('two-factor-secret')?.compareDocumentPosition(zkZeile)));
 
   // Schritt 2: der Code aus der App.
   // Ueber ein Auffangnetz gesetzt: nimmt ein Rueckbau den Schritt weg, faellt
   // die Pruefung darunter rot, statt den Lauf abzureissen (Stolperstein 138).
-  zfSetze(zkAus.w, 'zf-probe', '000000');
-  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-fertig'));
+  zfSetze(zkAus.w, 'two-factor-check', '000000');
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('two-factor-done'));
   await bestaetigeImDom(zkAus, 'chefins-wort-100');
   pruefe('Ein falscher Code schaltet nicht ein',
-    Boolean(zkAus.w.document.getElementById('zf-probe')), 'die Seite ist gewechselt');
-  zfSetze(zkAus.w, 'zf-probe', '123456');
-  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-fertig'));
+    Boolean(zkAus.w.document.getElementById('two-factor-check')), 'die Seite ist gewechselt');
+  zfSetze(zkAus.w, 'two-factor-check', '123456');
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('two-factor-done'));
   await bestaetigeImDom(zkAus, 'chefins-wort-100');
   pruefe('Mit richtigem Code steht der Zustand auf "an"',
     /Zweiter Faktor: an/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 120));
@@ -31007,10 +31007,10 @@ async function pruefeOberflaeche() {
 
   /* DIE CODES WERDEN GENAU EINMAL GEZEIGT, und der Bildschirm sagt es an
      derselben Stelle -- mit demselben Ernst wie beim Einladungslink. */
-  const zkKasten = () => zkAus.w.document.getElementById('zf-codes');
+  const zkKasten = () => zkAus.w.document.getElementById('two-factor-codebox');
   pruefe('Die acht Wiederherstellungscodes stehen da',
-    zkKasten()?.querySelectorAll('.zf-codeliste span').length === 8,
-    String(zkKasten()?.querySelectorAll('.zf-codeliste span').length));
+    zkKasten()?.querySelectorAll('.two-factor-codes span').length === 8,
+    String(zkKasten()?.querySelectorAll('.two-factor-codes span').length));
   pruefe('Und zwar im selben Warnkasten wie der Einladungslink',
     zkKasten()?.classList.contains('warn-box'), zkKasten()?.className);
   pruefe('Der Kasten sagt, dass sie nicht wiederkommen',
@@ -31026,7 +31026,7 @@ async function pruefeOberflaeche() {
   await zkAus.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
   pruefe('Beim naechsten Aufbau der Karte sind sie fort',
-    !zkAus.w.document.getElementById('zf-codes'), 'die Codes stehen noch da');
+    !zkAus.w.document.getElementById('two-factor-codebox'), 'die Codes stehen noch da');
   pruefe('Der Zustand "an" steht dagegen weiterhin ohne Klick da',
     /Zweiter Faktor: an/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
   pruefe('Und das Geheimnis steht nirgends mehr auf dem Bildschirm',
@@ -31035,33 +31035,33 @@ async function pruefeOberflaeche() {
 
   /* NEUE CODES -- der Fall, den niemand plant. Hinter Passwort UND Code, und
      das Fenster zeigt jetzt BEIDE Felder. */
-  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-neue'));
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('two-factor-new'));
   pruefe('Neue Codes fragen nach Passwort UND Code',
-    Boolean(zkAus.w.document.getElementById('best-pass')) &&
-    Boolean(zkAus.w.document.getElementById('best-code')), 'ein Feld fehlt');
+    Boolean(zkAus.w.document.getElementById('confirm-pass')) &&
+    Boolean(zkAus.w.document.getElementById('confirm-code')), 'ein Feld fehlt');
   await bestaetigeImDom(zkAus, 'chefins-wort-100', false, '123456');
   pruefe('Danach stehen acht frische Codes da',
-    zkKasten()?.querySelectorAll('.zf-codeliste span').length === 8 &&
+    zkKasten()?.querySelectorAll('.two-factor-codes span').length === 8 &&
     /NEU0A-BCDEF/.test(zkKasten()?.textContent || ''),
     zkKasten()?.textContent?.slice(0, 120));
   pruefe('Und die Zahl steht wieder bei acht von acht',
     /noch 8 von 8/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 160));
 
   // Ausschalten: Passwort und Code, danach wieder "aus".
-  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-aus'));
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('two-factor-off'));
   pruefe('Ausschalten fragt ebenfalls nach beidem',
-    Boolean(zkAus.w.document.getElementById('best-pass')) &&
-    Boolean(zkAus.w.document.getElementById('best-code')), 'ein Feld fehlt');
+    Boolean(zkAus.w.document.getElementById('confirm-pass')) &&
+    Boolean(zkAus.w.document.getElementById('confirm-code')), 'ein Feld fehlt');
   await bestaetigeImDom(zkAus, 'chefins-wort-100', false, '000000');
   pruefe('Mit falschem Code bleibt er an',
     /Zweiter Faktor: an/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
-  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-aus'));
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('two-factor-off'));
   await bestaetigeImDom(zkAus, 'chefins-wort-100', false, '123456');
   pruefe('Mit richtigem Code steht der Zustand wieder auf "aus"',
     /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
   pruefe('Und der Knopf zum Einschalten steht wieder da',
-    Boolean(zkAus.w.document.getElementById('zf-an')) &&
-    !zkAus.w.document.getElementById('zf-aus'));
+    Boolean(zkAus.w.document.getElementById('two-factor-on')) &&
+    !zkAus.w.document.getElementById('two-factor-off'));
 
   /* DIE WARNUNG, WENN ES KNAPP WIRD. Sie steht nur da, wenn sie etwas zu sagen
      hat -- dieselbe Ueberlegung wie bei den drei Abstufungen der Karte
@@ -31071,7 +31071,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 60));
   await zkKnapp.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
-  const zkKnappText = zkKnapp.w.document.getElementById('zf-block')?.textContent || '';
+  const zkKnappText = zkKnapp.w.document.getElementById('two-factor-block')?.textContent || '';
   pruefe('Bei einem uebrigen Code bittet die Karte um neue Codes',
     /noch 1 von 8/.test(zkKnappText) && /rechtzeitig neue erzeugen/.test(zkKnappText),
     zkKnappText.slice(0, 200));
@@ -31084,8 +31084,8 @@ async function pruefeOberflaeche() {
   await zkVoll.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
   pruefe('Bei acht uebrigen steht die Warnung NICHT da',
-    !/knapp/.test(zkVoll.w.document.getElementById('zf-block')?.textContent || ''),
-    zkVoll.w.document.getElementById('zf-block')?.textContent?.slice(0, 200));
+    !/knapp/.test(zkVoll.w.document.getElementById('two-factor-block')?.textContent || ''),
+    zkVoll.w.document.getElementById('two-factor-block')?.textContent?.slice(0, 200));
 
   /* DAS BESTAETIGUNGSFENSTER FOLGT DEM SERVER UND NICHT EINER VERMUTUNG:
      das Codefeld steht nur bei Zugaengen mit zweitem Faktor. Geprueft an
@@ -31099,7 +31099,7 @@ async function pruefeOberflaeche() {
   zkBest.w.secondConfirm('export', null, 'Export', 'Alles herunterladen');
   await new Promise(r => setTimeout(r, 40));
   pruefe('Mit zweitem Faktor traegt das Bestaetigungsfenster ein Codefeld',
-    Boolean(zkBest.w.document.getElementById('best-code')), 'kein Codefeld');
+    Boolean(zkBest.w.document.getElementById('confirm-code')), 'kein Codefeld');
   /* SEIT 0.19.2 IM NOMINATIV: „weil in deinem Profil ein zweiter Faktor
      eingeschaltet ist" statt „weil dein Zugang einen zweiten Faktor traegt".
      Dieselbe Zusage, ein anderer Wortlaut (Stolperstein 201). */
@@ -31139,8 +31139,8 @@ async function pruefeOberflaeche() {
   zkOhne.w.secondConfirm('export', null, 'Export', 'Alles herunterladen');
   await new Promise(r => setTimeout(r, 40));
   pruefe('Ohne zweiten Faktor steht dort kein Codefeld',
-    Boolean(zkOhne.w.document.getElementById('best-pass')) &&
-    !zkOhne.w.document.getElementById('best-code'), 'ein Codefeld steht da');
+    Boolean(zkOhne.w.document.getElementById('confirm-pass')) &&
+    !zkOhne.w.document.getElementById('confirm-code'), 'ein Codefeld steht da');
   pruefe('Und auch der Zusatzsatz nicht',
     !/zweiten Faktor/.test(
       zkOhne.w.document.querySelector('.modal .desc')?.textContent || ''),
@@ -31157,18 +31157,18 @@ async function pruefeOberflaeche() {
     .replace(/\s+/g, ' ');
   const zfRegel = (w) => (zfCss.match(new RegExp(w.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
   pruefe('Der eingeschaltete Zustand traegt eine eigene Regel',
-    zfRegel('.zf-an strong').length > 0, zfRegel('.zf-an strong') || '(keine Regel)');
+    zfRegel('.two-factor-on strong').length > 0, zfRegel('.two-factor-on strong') || '(keine Regel)');
   pruefe('Und sie faerbt gruen, nicht rot',
-    /--green/.test(zfRegel('.zf-an strong')), zfRegel('.zf-an strong'));
+    /--green/.test(zfRegel('.two-factor-on strong')), zfRegel('.two-factor-on strong'));
   pruefe('Der ausgeschaltete Zustand ist grau und ausdruecklich nicht rot',
-    zfRegel('.zf-aus strong').length > 0 && /--muted/.test(zfRegel('.zf-aus strong')) &&
-    !/--red/.test(zfRegel('.zf-aus strong')), zfRegel('.zf-aus strong') || '(keine Regel)');
+    zfRegel('.two-factor-off strong').length > 0 && /--muted/.test(zfRegel('.two-factor-off strong')) &&
+    !/--red/.test(zfRegel('.two-factor-off strong')), zfRegel('.two-factor-off strong') || '(keine Regel)');
   pruefe('Der Schluessel steht in fester Schrift und darf umbrechen',
-    /--mono/.test(zfRegel('.zf-schluessel')) &&
-    /overflow-wrap: anywhere/.test(zfRegel('.zf-schluessel')),
-    zfRegel('.zf-schluessel') || '(keine Regel)');
+    /--mono/.test(zfRegel('.two-factor-key')) &&
+    /overflow-wrap: anywhere/.test(zfRegel('.two-factor-key')),
+    zfRegel('.two-factor-key') || '(keine Regel)');
   pruefe('Und die Codeliste ebenfalls in fester Schrift',
-    /--mono/.test(zfRegel('.zf-codeliste span')), zfRegel('.zf-codeliste span') || '(keine Regel)');
+    /--mono/.test(zfRegel('.two-factor-codes span')), zfRegel('.two-factor-codes span') || '(keine Regel)');
 
   gruppe('Die Bestaetigungsseite in der Oberflaeche');
 
@@ -31191,15 +31191,15 @@ async function pruefeOberflaeche() {
     !beGut.gesendet.some(x => x.url === '/api/session'),
     beGut.gesendet.map(x => x.url).join(' · '));
   pruefe('Die gute Antwort fuehrt zur Bestaetigungsseite',
-    Boolean(beGut.w.document.getElementById('best-gut')), 'die Seite fehlt');
+    Boolean(beGut.w.document.getElementById('confirm-ok')), 'die Seite fehlt');
   pruefe('Und sie sagt, dass jetzt der Admin entscheidet',
-    /Admin/.test(beGut.w.document.getElementById('best-gut')?.textContent || ''),
-    beGut.w.document.getElementById('best-gut')?.textContent || '');
+    /Admin/.test(beGut.w.document.getElementById('confirm-ok')?.textContent || ''),
+    beGut.w.document.getElementById('confirm-ok')?.textContent || '');
   /* SIE MELDET NIEMANDEN AN, und das ist die Oberflaechenhaelfte der Zusage:
      kein Weg von hier fuehrt weiter in die Anwendung, und der Schluessel
      verlaesst die Adresse. */
   pruefe('Die Seite bleibt die Anmeldeseite -- niemand ist damit angemeldet',
-    beGut.w.document.body.classList.contains('anmeldung'),
+    beGut.w.document.body.classList.contains('login'),
     'die Oberflaeche hat sich aufgebaut');
   pruefe('Und der Schluessel ist aus der Adresse verschwunden',
     beGut.w.location.hash === '#/', beGut.w.location.hash);
@@ -31636,7 +31636,7 @@ async function pruefeOberflaeche() {
        offen, ob der Dialog ueberhaupt erscheint -- und dann belegte der Rest
        der Gruppe, dass der Link ohne Bestaetigung entsteht. */
     pruefe('Vor dem Link steht die zweite Bestaetigung',
-      !!d.w.document.getElementById('best-pass'), 'kein Dialog');
+      !!d.w.document.getElementById('confirm-pass'), 'kein Dialog');
     pruefe('Und der Server ist bis dahin NICHT gefragt worden',
       !d.gesendet.some(x => x.url === '/api/users/3/token'),
       d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
@@ -32019,7 +32019,7 @@ async function pruefeOberflaeche() {
      confirm UND prompt SIND IN JSDOM NICHT GEBAUT und liefern undefined; sie
      werden gestellt, und zwar auf BEIDE Antworten: ein Abbruch, der trotzdem
      handelt, ist der schlimmere Fehler. */
-  const zdDialog = (d) => d.w.document.getElementById('best-pass');
+  const zdDialog = (d) => d.w.document.getElementById('confirm-pass');
   const zdGefragt = (d, url) => d.gesendet.some(x => x.url === url);
 
   // 1. DER LINK. Der Dialog steht davor, und vorher geht nichts an den Server.
@@ -32778,7 +32778,7 @@ async function pruefeOberflaeche() {
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Vor dem Speichern steht die zweite Bestaetigung',
-      !!d.w.document.getElementById('best-pass'), 'kein Dialog');
+      !!d.w.document.getElementById('confirm-pass'), 'kein Dialog');
     pruefe('Und der Server ist bis dahin NICHT gefragt worden',
       !d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/mail'),
       d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
@@ -33205,7 +33205,7 @@ async function pruefeOberflaeche() {
       !baEig.gesendet.some(g => g.url === '/api/bilder/umstellen'),
       baEig.gesendet.map(g => `${g.methode} ${g.url}`).join(' · '));
     pruefe('Sondern fragt vorher nach dem Passwort',
-      !!dialog && !!baEig.w.document.getElementById('best-pass'),
+      !!dialog && !!baEig.w.document.getElementById('confirm-pass'),
       dialogText.replace(/\s+/g, ' ').slice(0, 160));
     /* UND DER TEXT BESCHOENIGT NICHTS UND SAGT NICHTS ZWEIMAL. Er ist in
        0.19.2 gekuerzt worden: „nahezu verlustfrei" und „die Bilder bleiben,
@@ -33994,7 +33994,7 @@ async function pruefeOberflaeche() {
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Knopf fragt erst nach dem Passwort',
-      !!d.w.document.getElementById('best-pass'), 'kein Bestaetigungsfenster');
+      !!d.w.document.getElementById('confirm-pass'), 'kein Bestaetigungsfenster');
     pruefe('Und der Dialog nennt Zahl und Bytes und sagt, dass es endgueltig ist — 0.22.0',
       /2 Sicherungen \(100,0 MB\) werden endgültig gelöscht\./.test(
         d.w.document.querySelector('.modal')?.textContent || ''),
@@ -35397,7 +35397,7 @@ async function pruefeOberflaeche() {
   const mlDom = baueDom(JSDOM, { angemeldet: false });
   const ml = mlDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const mlMarke = ml.document.querySelector('.login-marke svg.marke');
+  const mlMarke = ml.document.querySelector('.login-brand svg.marke');
   pruefe('Die Anmeldeseite traegt sie ebenso', !!mlMarke,
     ml.document.querySelector('.login-card')?.innerHTML.slice(0, 120) || '(keine Karte)');
   /* UND AUS DEMSELBEN HELFER -- vier Striche, nicht drei und nicht fuenf.
@@ -36505,10 +36505,10 @@ async function pruefeOberflaeche() {
   vzW.close();
 
   /* 2h ist ein TELEFONBEFUND und kein Desktopbefund: auf der Anmeldeseite
-     drueckt der Flex-Aufbau von body.anmeldung die Zeile ohnehin ans untere
+     drueckt der Flex-Aufbau von body.login die Zeile ohnehin ans untere
      Ende, die 26 Pixel und der Streifen fuer den Home-Indikator kommen
      obendrauf. Im angemeldeten Bereich bleibt alles, wie es war. */
-  const regelAnm = (css123.match(/body\.anmeldung \.version-zeile \{[^}]*\}/) || [''])[0];
+  const regelAnm = (css123.match(/body\.login \.version-zeile \{[^}]*\}/) || [''])[0];
   pruefe('Der Abstand darunter faellt nur auf der Anmeldeseite kleiner aus',
     /margin-bottom: calc\(\d+px \+ env\(safe-area-inset-bottom\)\)/.test(regelAnm),
     regelAnm || '(keine Regel)');
@@ -37849,7 +37849,7 @@ async function pruefeOberflaeche() {
      DER RUECKFALL STEHT DARUEBER UND NICHT DARUNTER: ein Browser, der `dvh`
      nicht kennt, ueberliest die zweite Zeile und behaelt die erste. Stuende
      sie andersherum, bliebe fuer ihn nichts uebrig. */
-  for (const wahl of ['body.anmeldung', '.login-screen']) {
+  for (const wahl of ['body.login', '.login-screen']) {
     const regel = (ohneMedien.match(new RegExp(wahl.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
     pruefe(`Die Regel fuer ${wahl} steht ueberhaupt im Stilblatt`,
       regel.length > 0, '(keine Regel)');
