@@ -4243,10 +4243,13 @@ const RUECKBAUTEN = [
   {
     /* DER DIALOG SAGT NICHT MEHR, DASS ES DAUERN KANN. Wer den Knopf drueckt,
        rechnet dann mit Sekunden und bekommt eine Stunde. */
+    /* AN DER MEHRZAHLFORM UND NICHT AN DER EINZAHL -- ein Fund vom
+       6. September 2026: die Prueflage zeigt zwoelf Fotos, also die Mehrzahl;
+       ein Rueckbau an der Einzahl blieb deshalb STUMM. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     datei: 'public/sprachen/de.json',
-    suche: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\",\n    \"andere\"",
-    ersatz: "Rückgängig nur mit einer vorher angelegten Sicherung.\",\n    \"andere\"",
+    suche: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
+    ersatz: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
