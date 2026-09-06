@@ -1068,7 +1068,7 @@ const RUECKBAUTEN = [
   {
     nr: '117', name: 'Die Zahl der uebrigen Wiederherstellungscodes faellt weg',
     datei: 'public/app.js',
-    suche: "          <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>",
+    suche: "          <strong>${tH('karte.nochVon', { codesOffen: stand.codesOffen, codesGesamt: stand.codesGesamt })}</strong>",
     ersatz: "          <strong>vorhanden</strong>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1079,7 +1079,7 @@ const RUECKBAUTEN = [
        Einladungslink. */
     nr: '118', name: 'Der Kasten sagt nicht mehr, dass die Codes nicht wiederkommen',
     datei: 'public/app.js',
-    suche: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes — sie werden\n      nur dieses eine Mal angezeigt.</strong>",
+    suche: "    kasten.innerHTML = `<strong>${tH('karte.deineWiederherstellungscodesSie', { length: codes.length })}</strong>",
     ersatz: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes.</strong>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1848,7 +1848,7 @@ const RUECKBAUTEN = [
        Schluessel am Bildschirm -- "anfrage.frei" statt eines Satzes. */
     nr: '203', name: 'Fuenf Vorgaenge stehen wieder als roher Schluessel da',
     datei: 'public/app.js',
-    suche: "    'anfrage.frei': 'Anfrage freigeschaltet',",
+    suche: "    'anfrage.frei': 'karte.anfrageFreigeschaltet',",
     ersatz: "",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -2584,8 +2584,8 @@ const RUECKBAUTEN = [
   {
     nr: '277', name: 'Der Import steht wieder gleichrangig neben dem Export',
     datei: 'public/app.js',
-    suche: '        <h4 class="sys-unter">Import</h4>',
-    ersatz: '        <h3>Import</h3>',
+    suche: "        <h4 class=\"sys-unter\">${tH('karte.import')}</h4>",
+    ersatz: "        <h3>${tH('karte.import')}</h3>",
     erwartet: 'Export und Import stehen in einer Karte'
   },
   {
@@ -2863,8 +2863,8 @@ const RUECKBAUTEN = [
     /* DIE VIERTE KACHEL STEHT WIEDER SCHMAL UNTER DREI BREITEN. */
     nr: '306', name: 'Die Karte „Mailversand" verliert ihre Breite wieder',
     datei: 'public/app.js',
-    suche: "  return `<div class=\"sys-card breit\">\n        <h3>Mailversand</h3>",
-    ersatz: "  return `<div class=\"sys-card\">\n        <h3>Mailversand</h3>",
+    suche: "  return `<div class=\"sys-card breit\">\n        <h3>${tH('karte.mailversand')}</h3>",
+    ersatz: "  return `<div class=\"sys-card\">\n        <h3>${tH('karte.mailversand')}</h3>",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
@@ -3058,8 +3058,8 @@ const RUECKBAUTEN = [
   {
     nr: '327', name: 'Die Kennzahlen begruenden den Vorbehalt wieder an der Oberflaeche',
     datei: 'public/app.js',
-    suche: "        <div class=\"kv\"><span class=\"k\">Passwörter</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>` : ''}",
-    ersatz: "        <div class=\"kv\"><span class=\"k\">Passwörter</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>\n        <p class=\"desc\" style=\"margin:10px 0 0\"><strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
+    suche: "        <div class=\"kv\"><span class=\"k\">${tH('karte.passwoerter')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>` : ''}",
+    ersatz: "        <div class=\"kv\"><span class=\"k\">${tH('karte.passwoerter')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>\n        <p class=\"desc\" style=\"margin:10px 0 0\"><strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
     erwartet: 'Der Papierkorb in der Oberflaeche'
   },
   {
@@ -3128,8 +3128,8 @@ const RUECKBAUTEN = [
   {
     nr: '334', name: 'Die Marke am Adressfeld behauptet wieder immer „freiwillig"',
     datei: 'public/app.js',
-    suche: "        <div class=\"field\"><label>E-Mail-Adresse <span class=\"hint\">${\n          REGISTRIERUNG ? '(erforderlich)' : '(optional)'}</span></label>",
-    ersatz: "        <div class=\"field\"><label>E-Mail-Adresse <span class=\"hint\">(optional)</span></label>",
+    suche: "        <div class=\"field\"><label>${tH('anmeldung.eMailAdresse')} <span class=\"hint\">${\n          REGISTRIERUNG ? t('karte.erforderlich') : t('karte.optional')}</span></label>",
+    ersatz: "        <div class=\"field\"><label>${tH('anmeldung.eMailAdresse')} <span class=\"hint\">${t('karte.optional')}</span></label>",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
@@ -3156,9 +3156,8 @@ const RUECKBAUTEN = [
   {
     nr: '338', name: 'Die Laengenvorgabe faellt vom Passwortfeld weg',
     datei: 'public/app.js',
-    suche: "        <div class=\"field\"><label>Neues Passwort\n" +
-           "          <span class=\"hint\">(mindestens ${MIN_PASSWORT} Zeichen)</span></label>",
-    ersatz: "        <div class=\"field\"><label>Neues Passwort</label>",
+    suche: "        <div class=\"field\"><label>${tH('dialog.neuesPasswort')}\n          <span class=\"hint\">${tH('karte.mindestensZeichen', { minPasswort: MIN_PASSWORT })}</span></label>",
+    ersatz: "        <div class=\"field\"><label>${tH('dialog.neuesPasswort')}</label>",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
@@ -3195,8 +3194,8 @@ const RUECKBAUTEN = [
        „Installation", der Rueckbau setzt weiter den aeltesten Namen. */
     nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'installation', name: 'Installation' }",
-    ersatz: "  { schluessel: 'installation', name: 'Anlage' }",
+    suche: "  { schluessel: 'installation', name: () => t('karte.installation') }",
+    ersatz: "  { schluessel: 'installation', name: () => 'Anlage' }",
     erwartet: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
   {
@@ -3275,11 +3274,9 @@ const RUECKBAUTEN = [
   },
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
-    datei: 'public/app.js',
-    suche: "deines eigenen Kontos</strong>. Antwortet der Mailserver nicht, bricht der",
-    ersatz: "deines eigenen Zugangs</strong> — es gibt kein Adressfeld daneben, und zwar mit\n" +
-            "            Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener\n" +
-            "            Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
+    datei: 'public/sprachen/de.json',
+    suche: "\"karte.antwortetDerMailserverNichtBricht\": \". Antwortet der Mailserver nicht, bricht der",
+    ersatz: "\"karte.antwortetDerMailserverNichtBricht\": \" — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
@@ -3343,10 +3340,8 @@ const RUECKBAUTEN = [
   {
     nr: '372', name: 'Die Karte bekommt ihre Passwortzeile zurueck',
     datei: 'public/app.js',
-    suche: "        <div class=\"kv\"><span class=\"k\">Anbieter</span>",
-    ersatz: "        <div class=\"kv\"><span class=\"k\">Passwort</span><span class=\"v\">${mailstand.passwortGesetzt\n" +
-            "          ? 'gesetzt' : 'nicht gesetzt'}</span></div>\n" +
-            "        <div class=\"kv\"><span class=\"k\">Anbieter</span>",
+    suche: "        <div class=\"kv\"><span class=\"k\">${tH('karte.anbieter')}</span>",
+    ersatz: "        <div class=\"kv\"><span class=\"k\">Passwort</span><span class=\"v\">${mailstand.passwortGesetzt\n          ? 'gesetzt' : 'nicht gesetzt'}</span></div>\n        <div class=\"kv\"><span class=\"k\">${tH('karte.anbieter')}</span>",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
@@ -3359,8 +3354,8 @@ const RUECKBAUTEN = [
   {
     nr: '374', name: 'Der Knopf heisst wieder „Mailzugang speichern"',
     datei: 'public/app.js',
-    suche: "id=\"mail-einrichten\">Mailzugang ${\n            mailstand.eingerichtet ? 'ändern' : 'einrichten'}</button>",
-    ersatz: "id=\"mail-einrichten\">Mailzugang speichern</button>",
+    suche: "id=\"mail-einrichten\">${tH('karte.mailzugang')} ${\n            mailstand.eingerichtet ? 'ändern' : 'einrichten'}</button>",
+    ersatz: "id=\"mail-einrichten\">${tH('karte.mailzugang')} speichern</button>",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
@@ -3380,7 +3375,7 @@ const RUECKBAUTEN = [
   {
     nr: '377', name: 'Der Dialog kuerzt die zweite Bestaetigung ab',
     datei: 'public/app.js',
-    suche: "      if (!await zweiteBestaetigung('mail', null, 'Mailzugang speichern',\n        'Über diesen Server laufen künftig alle Mails dieser Installation — auch die Links ' +\n        'zum Passwort-Setzen.')) return;\n",
+    suche: "      if (!await zweiteBestaetigung('mail', null, t('karte.mailzugangSpeichern'),\n        t('karte.ueberDiesenServerLaufenKuenftig') +\n        t('karte.zumPasswortSetzen'))) return;\n",
     ersatz: "",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
@@ -4073,8 +4068,8 @@ const RUECKBAUTEN = [
   {
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
     datei: 'public/app.js',
-    suche: "      const ok = await zweiteBestaetigung('bilder', null, 'PNG in WebP umwandeln',",
-    ersatz: "      const ok = true || await zweiteBestaetigung('bilder', null, 'PNG in WebP umwandeln',",
+    suche: "      const ok = await zweiteBestaetigung('bilder', null, t('karte.pNGInWebPUmwandeln'),",
+    ersatz: "      const ok = true || await zweiteBestaetigung('bilder', null, t('karte.pNGInWebPUmwandeln'),",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4082,7 +4077,7 @@ const RUECKBAUTEN = [
        mehr, dass die PNG-Fassung danach weg ist. */
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
     datei: 'public/app.js',
-    suche: "        `${fmtBytes(Math.round(png.bytes * 0.37))}). Rückgängig nur mit einer vorher angelegten ` +\n        `Sicherung. Dauer: Minuten bis Stunden.`);",
+    suche: "        `${fmtBytes(Math.round(png.bytes * 0.37))}). Rückgängig nur mit einer vorher angelegten ` +\n        t('karte.sicherungDauerMinutenBisStunden'));",
     ersatz: "        `${fmtBytes(Math.round(png.bytes * 0.37))}). Dauer: Minuten bis Stunden.`);",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4249,9 +4244,9 @@ const RUECKBAUTEN = [
     /* DER DIALOG SAGT NICHT MEHR, DASS ES DAUERN KANN. Wer den Knopf drueckt,
        rechnet dann mit Sekunden und bekommt eine Stunde. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
-    datei: 'public/app.js',
-    suche: "        `Sicherung. Dauer: Minuten bis Stunden.`);",
-    ersatz: "        `Sicherung.`);",
+    datei: 'public/sprachen/de.json',
+    suche: "\"karte.sicherungDauerMinutenBisStunden\": \"Sicherung. Dauer: Minuten bis Stunden.\",",
+    ersatz: "\"karte.sicherungDauerMinutenBisStunden\": \"Sicherung.\",",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4259,9 +4254,9 @@ const RUECKBAUTEN = [
        Feld -- Faktor dreizehn: eine Schaetzung waere auf der einen Maschine
        beruhigend falsch und auf der anderen erschreckend falsch. */
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
-    datei: 'public/app.js',
-    suche: "Sicherung. Dauer: Minuten bis Stunden.`);",
-    ersatz: "Sicherung. Dauer: etwa 20 Minuten.`);",
+    datei: 'public/sprachen/de.json',
+    suche: "\"karte.sicherungDauerMinutenBisStunden\": \"Sicherung. Dauer: Minuten bis Stunden.\"",
+    ersatz: "\"karte.sicherungDauerMinutenBisStunden\": \"Sicherung. Dauer: etwa 20 Minuten.\"",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4391,9 +4386,9 @@ const RUECKBAUTEN = [
     /* DER DIALOG SAGT NICHT MEHR, DASS DIE UMWANDLUNG NAHEZU VERLUSTFREI IST.
        Wer das nicht liest, haelt den Knopf fuer eine Verschlechterung. */
     nr: '485', name: 'Der Dialog sagt nicht mehr, dass es nahezu verlustfrei ist',
-    datei: 'public/app.js',
-    suche: "          WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und",
-    ersatz: "          WebP gespeichert — etwa zwei Drittel kleiner. JPEG, GIF und",
+    datei: 'public/sprachen/de.json',
+    suche: "WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und",
+    ersatz: "WebP gespeichert — etwa zwei Drittel kleiner. JPEG, GIF und",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4599,9 +4594,9 @@ const RUECKBAUTEN = [
     /* EINE DER ACHT STELLEN SAGT WIEDER „Instanz". Der Waechter zaehlt
        Nicht-Kommentarzeilen; eine einzige genuegt, damit er anschlaegt. */
     nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
-    datei: 'public/app.js',
-    suche: "        <p class=\"desc\"><strong>E-Mail ist optional.</strong> Ohne Mailzugang zeigt Kriterion",
-    ersatz: "        <p class=\"desc\"><strong>E-Mail ist optional.</strong> Ohne Mailzugang zeigt die Instanz",
+    datei: 'public/sprachen/de.json',
+    suche: "\"karte.ohneMailzugangZeigtKriterion\": \"Ohne Mailzugang zeigt Kriterion",
+    ersatz: "\"karte.ohneMailzugangZeigtKriterion\": \"Ohne Mailzugang zeigt die Instanz",
     erwartet: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
 
@@ -4794,9 +4789,9 @@ const RUECKBAUTEN = [
        richtig und ist es seit dieser Runde nicht mehr -- und sie verschweigt
        das, worauf es ankommt: WELCHE Kante die Zahl traegt. */
     nr: '522', name: 'Die Karte nennt wieder 400 px, ohne die Kante zu sagen',
-    datei: 'public/app.js',
-    suche: "          (JPEG) sind nicht mitgezählt.</p>",
-    ersatz: "          (JPEG, 400 px) sind nicht mitgezählt.</p>",
+    datei: 'public/sprachen/de.json',
+    suche: "(JPEG) sind nicht mitgezählt.\"",
+    ersatz: "(JPEG, 400 px) sind nicht mitgezählt.\"",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -5279,8 +5274,8 @@ const RUECKBAUTEN = [
     datei: 'public/app.js',
     // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
     // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
-    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>Jetzt",
-    ersatz: "id=\"auf-los\">Jetzt",
+    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>${tH('karte.jetztLoeschen')}",
+    ersatz: "id=\"auf-los\">${tH('karte.jetztLoeschen')}",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5991,8 +5986,8 @@ const RUECKBAUTEN = [
     // Ein rohes Browserfenster kehrt zurueck -- confirm() statt confirmBox().
     nr: '627', name: 'Das Beenden der anderen Sitzungen fragt wieder ueber confirm()',
     datei: 'public/app.js',
-    suche: "      if (!await confirmBox('Alle anderen Sitzungen beenden?', 'Diese Sitzung bleibt bestehen.', 'Beenden')) return;",
-    ersatz: "      if (!confirm('Alle anderen Sitzungen beenden?')) return;",
+    suche: "      if (!await confirmBox(t('karte.alleAnderenSitzungenBeenden2'), t('karte.dieseSitzungBleibtBestehen'), t('karte.beenden'))) return;",
+    ersatz: "      if (!confirm(t('karte.alleAnderenSitzungenBeenden2'))) return;",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
   {
@@ -6000,9 +5995,9 @@ const RUECKBAUTEN = [
        Benutzers, wie bis 0.21.1 an den Wiederherstellungscodes (Stolperstein
        315). Gezaehlt wird, nicht gesucht: die Zeile traegt kein serverKasten(. */
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
-    datei: 'public/app.js',
-    suche: "          Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.</p>",
-    ersatz: "          Passwort vergessen? Auf dem Server hilft <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>",
+    datei: 'public/sprachen/de.json',
+    suche: "Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.\"",
+    ersatz: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node zugang.js passwort <name>.\"",
     erwartet: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -6017,8 +6012,8 @@ const RUECKBAUTEN = [
     // prompt() kehrt zurueck: das fremde Passwort stuende wieder im Klartext.
     nr: '630', name: 'Das fremde Passwort wird wieder ueber prompt() abgefragt',
     datei: 'public/app.js',
-    suche: "          const neu = await neuesPasswortFenster(`Passwort für „${z.username}“ setzen`,",
-    ersatz: "          const neu = prompt(`Passwort für „${z.username}“ setzen`,",
+    suche: "          const neu = await neuesPasswortFenster(t('karte.passwortFuerSetzen', { username: z.username }),",
+    ersatz: "          const neu = prompt(t('karte.passwortFuerSetzen', { username: z.username }),",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
   {
@@ -6339,16 +6334,16 @@ const RUECKBAUTEN = [
     // Der Klartextschluessel steht wieder vor jedem Admin (E13).
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     datei: 'public/app.js',
-    suche: "          : (EIGENTUEMER\n            ? `<div class=\"warn-box\"><strong>Der Schlüssel liegt neben der Datenbank</strong>",
-    ersatz: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>Der Schlüssel liegt neben der Datenbank</strong>",
+    suche: "          : (EIGENTUEMER\n            ? `<div class=\"warn-box\"><strong>${tH('karte.derSchluesselLiegtNebenDer')}</strong>",
+    ersatz: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>${tH('karte.derSchluesselLiegtNebenDer')}</strong>",
     erwartet: 'Die Rollenweichen — 0.22.0'
   },
   {
     // Der Benutzer liest an „Kategorien" wieder, wie man umbenennt und loescht.
     nr: '640', name: 'Die Karte Kategorien erklaert dem Benutzer wieder die Werkzeuge des Admins',
     datei: 'public/app.js',
-    suche: "        <p class=\"desc\">${ADMIN\n          ? `Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)} erhalten und",
-    ersatz: "        <p class=\"desc\">${true\n          ? `Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)} erhalten und",
+    suche: "        <p class=\"desc\">${ADMIN\n          ? tH('karte.umbenennenOderLoeschenBeimLoeschen')",
+    ersatz: "        <p class=\"desc\">${true\n          ? tH('karte.umbenennenOderLoeschenBeimLoeschen')",
     erwartet: 'Die Rollenweichen — 0.22.0'
   },
   {

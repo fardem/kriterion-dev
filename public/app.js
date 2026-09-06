@@ -7262,14 +7262,18 @@ async function renderDetail(id, begriffAdresse) {
    weil `title_app` einstellbar ist: wer seinen Bestand "Produktliste" nennt,
    laese sonst eine Meldung ueber "Kriterion" und muesste erst ueberlegen, was
    gemeint ist. */
+/* DIE NAMEN SIND RUFE UND KEINE WERTE -- 0.24.0. Diese Zeile wird beim Laden
+   der Datei ausgewertet, die Sprachdatei kommt erst danach: ein Wert stuende
+   fuer immer als ⟦karte.persoenlich⟧ am Reiter. Gefragt wird beim Zeichnen.
+   Dieselbe Ueberlegung wie bei FUND_WORTE und bestaetigungGrund(). */
 const SYS_ABSCHNITTE = [
-  { schluessel: 'persoenlich',  name: 'Persönlich' },
-  { schluessel: 'bestand',      name: 'Bestand' },
+  { schluessel: 'persoenlich',  name: () => t('karte.persoenlich') },
+  { schluessel: 'bestand',      name: () => t('karte.bestand') },
   // „Benutzer" seit 0.22.0 (E2); der Schluessel bleibt, ein Bildschirmtext
   // benennt keine Adresse um.
-  { schluessel: 'zugaenge',     name: 'Benutzer' },
-  { schluessel: 'datenbank',    name: 'Datenbank' },
-  { schluessel: 'installation', name: 'Installation' }
+  { schluessel: 'zugaenge',     name: () => t('karte.benutzer') },
+  { schluessel: 'datenbank',    name: () => t('karte.datenbank') },
+  { schluessel: 'installation', name: () => t('karte.installation') }
 ];
 
 /* DIE ADRESSE IST DIE EINE WAHRHEIT UEBER DEN OFFENEN ABSCHNITT. Kein
@@ -7313,11 +7317,11 @@ const amElement = (id, tu) => { const el = document.getElementById(id); if (el) 
 
 /* IN DIE ZWISCHENABLAGE, mit demselben Rueckfall wie am Einladungslink: das
    Skript darf nicht ueberall an die Ablage, und dann sagt der Toast es. */
-function kopiereText(text, meldung = 'Kopiert') {
+function kopiereText(text, meldung = t('karte.kopiert')) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => toast(meldung),
-      () => toast('Bitte von Hand kopieren.', true));
-  } else toast('Bitte von Hand kopieren.', true);
+      () => toast(t('karte.bitteVonHandKopieren'), true));
+  } else toast(t('karte.bitteVonHandKopieren'), true);
 }
 // Ein Horcher fuer alle Kopierknoepfe mit data-kopie -- auch fuer die, die
 // erst spaeter in die Seite kommen (die Wiederherstellungscodes).
@@ -7336,10 +7340,10 @@ document.addEventListener('click', e => {
    der Pruefstand die Befehle zaehlen und dem Kasten zuordnen kann. */
 function serverKasten(satz, befehl) {
   if (!EIGENTUEMER) return '';
-  return `<div class="server-kasten"><div class="server-kopf">Auf dem Server</div>
+  return `<div class="server-kasten"><div class="server-kopf">${tH('karte.aufDemServer')}</div>
     <p class="desc">${esc(satz)}</p>
     <div class="server-zeile"><code>${esc(befehl)}</code><button type="button" class="btn btn-sm"
-      data-kopie="${esc(befehl)}">Kopieren</button></div></div>`;
+      data-kopie="${esc(befehl)}">${tH('karte.kopieren')}</button></div></div>`;
 }
 
 /* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE -- 0.22.0, Konzept 4.5. Ein
@@ -7347,7 +7351,7 @@ function serverKasten(satz, befehl) {
    zu entscheiden. Immer eingeklappt beim Aufbau, keine Einstellung dafuer.
    Kein Tooltip: ein Finger kann nicht ueberfahren. Der Inhalt kommt fertig
    als Markup, wie der Rest der Karte. */
-const mehr = (html) => `<details class="mehr"><summary>Mehr</summary><div class="mehr-text">${html}</div></details>`;
+const mehr = (html) => `<details class="mehr"><summary>${tH('karte.mehr')}</summary><div class="mehr-text">${html}</div></details>`;
 
 /* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen (Woerterbuch):
    der Toast, und die Karte, in der gespeichert wurde, zeigt es 400 ms lang am
@@ -7355,7 +7359,7 @@ const mehr = (html) => `<details class="mehr"><summary>Mehr</summary><div class=
    hat -- der Knopf, das Feld, die Pille; ohne eine solche bleibt es beim
    Toast. */
 function gespeichert(el = document.activeElement) {
-  toast('Gespeichert');
+  toast(t('liste.gespeichert'));
   const karte = el && el.closest ? el.closest('.sys-card') : null;
   if (!karte) return;
   karte.classList.remove('gespeichert');
@@ -7461,7 +7465,7 @@ function sysSichtbareAbschnitte(geholt) {
 
 
 async function renderSystem() {
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('liste.laedt')}</p></div>`;
   const geholt = {};
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
@@ -7491,7 +7495,7 @@ async function renderSystem() {
       EIGENTUEMER ? api('GET', '/api/mail') : null,
       ADMIN ? api('GET', '/api/anfragen') : null
     ]);
-  } catch (e) { if (e.message !== 'Sitzung abgelaufen') toast(e.message, true); return; }
+  } catch (e) { if (e.message !== t('dialog.sitzungAbgelaufen')) toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
   if (geholt.papierkorb && geholt.papierkorb.tage) PAPIERKORB_TAGE = geholt.papierkorb.tage;
 
@@ -7507,11 +7511,11 @@ async function renderSystem() {
   const karten = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.sichtbar(geholt));
 
   app.innerHTML = `<div class="shell">
-    <a href="#/" class="back">← Zurück zur Übersicht</a>
-    <h1 class="page-title">Einstellungen</h1>
+    <a href="#/" class="back">${tH('liste.zurueckZurUebersicht')}</a>
+    <h1 class="page-title">${tH('liste.einstellungen')}</h1>
     <p class="hint" style="margin:0 0 16px">${ADMIN
-      ? 'Einstellungen für dein Konto, den Bestand und die Installation.'
-      : 'Einstellungen für dein Konto und den Bestand.'}</p>
+      ? t('karte.einstellungenFuerDeinKontoDen')
+      : t('karte.einstellungenFuerDeinKontoUnd')}</p>
     ${/* EIN MARKUP, ZWEI GESTALTEN -- dieselbe Bauform wie das Menue der
          Kopfzeile aus 0.12.0. Auf dem breiten Schirm eine Reihe Reiter, auf
          dem Telefon eine Liste, die in den Abschnitt hinein fuehrt. Kein
@@ -7519,10 +7523,10 @@ async function renderSystem() {
          ES SIND LINKS UND KEINE KNOEPFE. Ein Reiter, der eine Adresse hat,
          laesst sich kopieren, in einem neuen Fenster oeffnen und mit der
          Zurueck-Taste verlassen -- ein Knopf koennte davon nichts. */''}
-    <nav class="sys-reiter" aria-label="Abschnitte der Einstellungen">
+    <nav class="sys-reiter" aria-label="${esc(t('karte.abschnitteDerEinstellungen'))}">
       ${sichtbare.map(a => `<a class="sys-reiter-k${a === offen ? ' on' : ''}"
         href="${sysAdresse(a.schluessel)}" data-abschnitt="${esc(a.schluessel)}"${
-        a === offen ? ' aria-current="page"' : ''}>${esc(a.name)}</a>`).join('')}
+        a === offen ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
     </nav>
     <div class="sys-grid">
       ${karten.map(k => k.markup(geholt)).join('\n')}
@@ -7548,15 +7552,13 @@ async function renderSystem() {
 function karteTitel(geholt) {
   const { titles } = geholt;
   return `<div class="sys-card">
-        <h3>Titel</h3>
-        <p class="desc">Der <strong>öffentliche Titel</strong> steht auf der Anmeldeseite und ist für
-          jeden sichtbar, der die Adresse aufruft. Der <strong>interne Titel</strong> erscheint erst
-          nach der Anmeldung — hier gehört die aussagekräftige Bezeichnung hin.</p>
-        <div class="field"><label>Titel vor der Anmeldung</label>
+        <h3>${tH('liste.titel')}</h3>
+        <p class="desc">${tH('karte.der')} <strong>${tH('karte.oeffentlicheTitel')}</strong> ${tH('karte.stehtAufDerAnmeldeseiteUnd')} <strong>${tH('karte.interneTitel')}</strong> ${tH('karte.erscheintErstNachDerAnmeldung')}</p>
+        <div class="field"><label>${tH('karte.titelVorDerAnmeldung')}</label>
           <input class="input" id="tp" value="${esc(titles.publicTitle)}"></div>
-        <div class="field"><label>Titel nach der Anmeldung</label>
+        <div class="field"><label>${tH('karte.titelNachDerAnmeldung')}</label>
           <input class="input" id="ta2" value="${esc(titles.appTitle)}"></div>
-        <button class="btn btn-accent btn-sm" id="tsave">Titel speichern</button>
+        <button class="btn btn-accent btn-sm" id="tsave">${tH('karte.titelSpeichern')}</button>
       </div>`;
 }
 function ruesteTitelAus() {
@@ -7567,7 +7569,7 @@ function ruesteTitelAus() {
       const r = await api('PUT', '/api/titles', { publicTitle: p, appTitle: a });
       TITLE_PUBLIC = r.publicTitle; TITLE_APP = r.appTitle;
       document.title = TITLE_APP;
-      toast('Titel gespeichert');
+      toast(t('karte.titelGespeichert'));
     } catch (e) { toast(e.message, true); }
   });
 }
@@ -7591,9 +7593,9 @@ function ruesteTitelAus() {
 function karteZugang(geholt) {
   const { zugang } = geholt;
   return `<div class="sys-card">
-        <h3>Mein Konto</h3>
-        <p class="desc">Benutzername, E-Mail-Adresse und Passwort deines Kontos.</p>
-        <div class="field"><label>Benutzername</label>
+        <h3>${tH('karte.meinKonto')}</h3>
+        <p class="desc">${tH('karte.benutzernameEMailAdresseUnd')}</p>
+        <div class="field"><label>${tH('anmeldung.benutzername')}</label>
           <input class="input" id="acc-user" autocomplete="username" autocapitalize="off"
             spellcheck="false" value="${esc(zugang.username || '')}"></div>
         ${/* DIE EIGENE ADRESSE STEHT HIER UND NICHT IN DER KARTE „ZUGÄNGE“:
@@ -7602,30 +7604,27 @@ function karteZugang(geholt) {
               Rücksetzlink des Betroffenen auf ein Postfach seiner Wahl.
               Sie steht hinter dem bisherigen Passwort wie Name und Passwort
               daneben — aus demselben Grund. */''}
-        <div class="field"><label>E-Mail-Adresse <span class="hint">${
-          REGISTRIERUNG ? '(erforderlich)' : '(optional)'}</span></label>
+        <div class="field"><label>${tH('anmeldung.eMailAdresse')} <span class="hint">${
+          REGISTRIERUNG ? t('karte.erforderlich') : t('karte.optional')}</span></label>
           <input class="input" id="acc-mail" type="email" autocomplete="email"
             autocapitalize="off" spellcheck="false" value="${esc(zugang.email || '')}"
-            placeholder="noch keine hinterlegt"></div>
-        <div class="field"><label>Bisheriges Passwort <span class="hint">(zum Speichern nötig)</span></label>
+            placeholder="${esc(t('karte.nochKeineHinterlegt'))}"></div>
+        <div class="field"><label>${tH('karte.bisherigesPasswort')} <span class="hint">${tH('karte.zumSpeichernNoetig')}</span></label>
           <input class="input" id="acc-old" type="password" autocomplete="current-password"></div>
         ${/* DIE VORGABE STEHT AM FELD, FÜR DAS SIE GILT. „Mindestens 10
               Zeichen“ stand bis 0.17.0 im Absatz unter der ADRESSE — dort
               gehört sie nicht hin, und wer sie dort las, hielt sie für eine
               Vorgabe an die Adresse. */''}
-        <div class="field"><label>Neues Passwort
-          <span class="hint">(mindestens ${MIN_PASSWORT} Zeichen)</span></label>
+        <div class="field"><label>${tH('dialog.neuesPasswort')}
+          <span class="hint">${tH('karte.mindestensZeichen', { minPasswort: MIN_PASSWORT })}</span></label>
           <input class="input" id="acc-new" type="password" autocomplete="new-password"></div>
-        <div class="field"><label>Neues Passwort wiederholen</label>
+        <div class="field"><label>${tH('karte.neuesPasswortWiederholen')}</label>
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
         <p class="desc" style="margin:0 0 10px">${REGISTRIERUNG
-          ? `<strong>Die Adresse ist erforderlich</strong>, solange die Registrierung erlaubt ist. `
-          : ''}An diese Adresse kann ein Link zum Zurücksetzen des Passworts geschickt werden.
-          Ohne Adresse gibt der Admin den Link persönlich weiter.
-          Nach einem Passwortwechsel werden alle anderen Sitzungen abgemeldet.
-          Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.</p>
-        ${serverKasten('Ein vergessenes Passwort setzt du auf dem Server zurück:', 'docker compose exec kriterion node zugang.js passwort <name>')}
-        <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">Speichern</button>
+          ? `<strong>${tH('karte.dieAdresseIstErforderlich')}</strong>${tH('karte.solangeDieRegistrierungErlaubtIst')} `
+          : ''}${tH('karte.anDieseAdresseKannEin')}</p>
+        ${serverKasten(t('karte.einVergessenesPasswortSetztDu'), 'docker compose exec kriterion node zugang.js passwort <name>')}
+        <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.speichern')}</button>
 
         ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
               — es bleibt bei neunzehn. Hier stehen Name, Passwort
@@ -7647,11 +7646,11 @@ function ruesteZugangAus(geholt) {
     const neu1 = document.getElementById('acc-new').value;
     const neu2 = document.getElementById('acc-new2').value;
     const adresse = document.getElementById('acc-mail').value.trim();
-    if (!alt) return toast('Bitte das bisherige Passwort angeben.', true);
-    if (!name) return toast('Bitte einen Benutzernamen angeben.', true);
-    if (neu1 !== neu2) return toast('Die beiden neuen Passwörter stimmen nicht überein.', true);
+    if (!alt) return toast(t('karte.bitteDasBisherigePasswortAngeben'), true);
+    if (!name) return toast(t('anmeldung.benutzernameFehlt'), true);
+    if (neu1 !== neu2) return toast(t('karte.dieBeidenNeuenPasswoerterStimmen'), true);
     if (neu1 && neu1.length < MIN_PASSWORT)
-      return toast(`Das Passwort muss mindestens ${MIN_PASSWORT} Zeichen lang sein.`, true);
+      return toast(t('anmeldung.passwortZuKurz', { min: MIN_PASSWORT }), true);
     try {
       // Die Adresse geht IMMER mit, auch leer: der Server unterscheidet
       // „nicht angefasst“ (Feld fehlt) von „löschen“ (leer). Das Formular
@@ -7660,7 +7659,7 @@ function ruesteZugangAus(geholt) {
       const r = await api('PUT', '/api/account', {
         oldPassword: alt, username: name, newPassword: neu1, email: adresse
       });
-      toast(r.passwortGewechselt ? 'Passwort geändert' : 'Gespeichert');
+      toast(r.passwortGewechselt ? t('karte.passwortGeaendert') : t('liste.gespeichert'));
       // Die Kopfzeile nennt den Namen. Ohne diese Zeile stuende dort bis zum
       // naechsten Laden der Seite der alte -- ladeEinstellungen() laeuft nur
       // beim Start.
@@ -7685,22 +7684,18 @@ function ruesteZugangAus(geholt) {
     if (!box || !stand) return;
     box.innerHTML = stand.an ? `
       <div class="zf-zustand zf-an">
-        <strong>Zweiter Faktor: an</strong> — seit ${esc(fmtDate(stand.seit))}.
-        Beim Anmelden wird zusätzlich der Zwei-Faktor-Code abgefragt.
-        <div class="zf-codestand">Wiederherstellungscodes:
-          <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>${stand.codesOffen <= 2
+        <strong>${tH('karte.zweiterFaktorAn')}</strong> ${tH('karte.seitBeimAnmeldenWirdZusaetzlich', { seit: fmtDate(stand.seit) })}
+        <div class="zf-codestand">${tH('karte.wiederherstellungscodes')}
+          <strong>${tH('karte.nochVon', { codesOffen: stand.codesOffen, codesGesamt: stand.codesGesamt })}</strong>${stand.codesOffen <= 2
             ? ' — <strong>bitte rechtzeitig neue erzeugen.</strong>' : ''}</div>
       </div>
       <div class="row-in" style="margin-top:10px">
-        <button class="btn btn-sm" id="zf-neue">Neue Wiederherstellungscodes</button>
-        <button class="btn btn-ghost btn-sm" id="zf-aus">Zweiten Faktor ausschalten</button>
+        <button class="btn btn-sm" id="zf-neue">${tH('karte.neueWiederherstellungscodes')}</button>
+        <button class="btn btn-ghost btn-sm" id="zf-aus">${tH('karte.zweitenFaktorAusschalten')}</button>
       </div>` : `
-      <div class="zf-zustand zf-aus"><strong>Zweiter Faktor: aus</strong> — zum Anmelden
-        genügt dein Passwort.</div>
-      <p class="desc" style="margin:8px 0 10px">Mit zweitem Faktor wird beim Anmelden zusätzlich
-        ein sechsstelliger Code aus einer Authenticator-App abgefragt (z. B. Google
-        Authenticator, Aegis, 1Password). Die App braucht dafür kein Internet.</p>
-      <button class="btn btn-sm" id="zf-an">Zweiten Faktor einschalten</button>`;
+      <div class="zf-zustand zf-aus"><strong>${tH('karte.zweiterFaktorAus')}</strong> ${tH('karte.zumAnmeldenGenuegtDeinPasswort')}</div>
+      <p class="desc" style="margin:8px 0 10px">${tH('karte.mitZweitemFaktorWirdBeim')}</p>
+      <button class="btn btn-sm" id="zf-an">${tH('karte.zweitenFaktorEinschalten')}</button>`;
 
     /* Das Passwort wird an ALLEN Wegen verlangt, auch am Einschalten. Beim
        Ausschalten leuchtet das ein; beim EINSCHALTEN ist es der weniger
@@ -7710,34 +7705,34 @@ function ruesteZugangAus(geholt) {
     const frag = (titel, was, mitCode) => bestaetigungsFeldFrei(titel, was, mitCode);
 
     amElement('zf-an', b => b.onclick = async () => {
-      const e = await frag('Zweiten Faktor einschalten',
-        'Bitte gib dein Passwort ein.', false);
+      const e = await frag(t('karte.zweitenFaktorEinschalten'),
+        t('karte.bitteGibDeinPasswortEin'), false);
       if (e === null) return;
       try { zeigeGeheimnis(await api('POST', '/api/zweifaktor/start', { passwort: e.passwort })); }
       catch (err) { toast(err.message, true); }
     });
 
     amElement('zf-neue', b => b.onclick = async () => {
-      const e = await frag('Neue Wiederherstellungscodes',
-        'Die bisherigen Codes werden ungültig — auch die unbenutzten.', true);
+      const e = await frag(t('karte.neueWiederherstellungscodes'),
+        t('karte.dieBisherigenCodesWerdenUngueltig'), true);
       if (e === null) return;
       try {
         const r = await api('POST', '/api/zweifaktor/codes', e);
         zeichneZweifaktor(r);
         zeigeWiederCodes(r.codes);
-        toast('Neue Wiederherstellungscodes erzeugt');
+        toast(t('karte.neueWiederherstellungscodesErzeugt'));
       } catch (err) { toast(err.message, true); }
     });
 
     amElement('zf-aus', b => b.onclick = async () => {
-      const e = await frag('Zweiten Faktor ausschalten',
-        'Danach genügt zum Anmelden wieder dein Passwort. Die Wiederherstellungscodes ' +
-        'werden ungültig.', true);
+      const e = await frag(t('karte.zweitenFaktorAusschalten'),
+        t('karte.danachGenuegtZumAnmeldenWieder') +
+        t('karte.werdenUngueltig'), true);
       if (e === null) return;
       try {
         zeichneZweifaktor(await api('DELETE', '/api/zweifaktor', e));
         ZWEIFAKTOR = false;
-        toast('Zweiter Faktor ausgeschaltet');
+        toast(t('karte.zweiterFaktorAusgeschaltet'));
       } catch (err) { toast(err.message, true); }
     });
   }
@@ -7753,44 +7748,41 @@ function ruesteZugangAus(geholt) {
     if (!box) return;
     box.innerHTML = `
       <div class="warn-box zf-einrichten">
-        <strong>Schritt 1 — diesen Schlüssel in deine App eintragen.</strong>
-        Er wird <strong>nur dieses eine Mal</strong> angezeigt.
+        <strong>${tH('karte.schrittDiesenSchluesselInDeine')}</strong>
+        ${tH('karte.erWird')} <strong>${tH('karte.nurDiesesEineMal')}</strong> ${tH('karte.angezeigt')}
         <div class="zf-schluessel" id="zf-geheim">${esc(d.gruppen)}</div>
         <div class="row-in" style="margin:8px 0 0">
-          <button class="btn btn-sm" id="zf-kopie">Schlüssel kopieren</button>
-          <a class="btn btn-sm" id="zf-zeile" href="${esc(d.zeile)}">In der App öffnen</a>
+          <button class="btn btn-sm" id="zf-kopie">${tH('karte.schluesselKopieren')}</button>
+          <a class="btn btn-sm" id="zf-zeile" href="${esc(d.zeile)}">${tH('karte.inDerAppOeffnen')}</a>
         </div>
-        <p class="desc" style="margin:10px 0 0">Auf dem Handy öffnet „In der App öffnen" die App
-          direkt. Am Rechner tippst du den Schlüssel ohne die Leerzeichen ein.</p>
+        <p class="desc" style="margin:10px 0 0">${tH('karte.aufDemHandyOeffnetIn')}</p>
       </div>
-      <div class="field" style="margin:12px 0 0"><label for="zf-probe">Schritt 2 — den
-        ${d.ziffern}-stelligen Code aus der App eintragen</label>
+      <div class="field" style="margin:12px 0 0"><label for="zf-probe">${tH('karte.schrittDenStelligenCodeAus', { ziffern: d.ziffern })}</label>
         <input class="input" id="zf-probe" inputmode="numeric" autocomplete="one-time-code"
           spellcheck="false" maxlength="6"></div>
-      <p class="desc" style="margin:0 0 10px">Erst damit ist der zweite Faktor aktiv — so wird
-        geprüft, dass die App richtig eingerichtet ist.</p>
+      <p class="desc" style="margin:0 0 10px">${tH('karte.erstDamitIstDerZweite')}</p>
       <div class="row-in">
-        <button class="btn btn-accent btn-sm" id="zf-fertig">Einschalten</button>
-        <button class="btn btn-ghost btn-sm" id="zf-abbruch">Abbrechen</button>
+        <button class="btn btn-accent btn-sm" id="zf-fertig">${tH('karte.einschalten')}</button>
+        <button class="btn btn-ghost btn-sm" id="zf-abbruch">${tH('dialog.abbrechen')}</button>
       </div>`;
     const feld = document.getElementById('zf-probe');
     document.getElementById('zf-kopie').onclick = () => {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(d.geheim).then(() => toast('Schlüssel kopiert'),
-          () => toast('Bitte von Hand abtippen.', true));
-      } else toast('Bitte von Hand abtippen.', true);
+        navigator.clipboard.writeText(d.geheim).then(() => toast(t('karte.schluesselKopiert')),
+          () => toast(t('karte.bitteVonHandAbtippen'), true));
+      } else toast(t('karte.bitteVonHandAbtippen'), true);
     };
     document.getElementById('zf-abbruch').onclick = () => renderSystem();
     document.getElementById('zf-fertig').onclick = async () => {
-      const e = await bestaetigungsFeldFrei('Zweiten Faktor einschalten',
-        'Zum Einschalten noch einmal dein Passwort.', false);
+      const e = await bestaetigungsFeldFrei(t('karte.zweitenFaktorEinschalten'),
+        t('karte.zumEinschaltenNochEinmalDein'), false);
       if (e === null) return;
       try {
         const r = await api('POST', '/api/zweifaktor/an', { passwort: e.passwort, code: feld.value });
         zeichneZweifaktor(r);
         zeigeWiederCodes(r.codes);
         ZWEIFAKTOR = true;
-        toast('Zweiter Faktor eingeschaltet');
+        toast(t('karte.zweiterFaktorEingeschaltet'));
       } catch (err) { toast(err.message, true); }
     };
     feld.focus();
@@ -7806,16 +7798,13 @@ function ruesteZugangAus(geholt) {
     const kasten = document.createElement('div');
     kasten.className = 'warn-box zf-codes';
     kasten.id = 'zf-codes';
-    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes — sie werden
-      nur dieses eine Mal angezeigt.</strong>
-      Bewahre sie getrennt vom Handy auf. Jeder Code gilt <strong>einmal</strong> und ersetzt den
-      Code aus der App.
+    kasten.innerHTML = `<strong>${tH('karte.deineWiederherstellungscodesSie', { length: codes.length })}</strong>
+      ${tH('karte.bewahreSieGetrenntVomHandy')} <strong>${tH('karte.einmal')}</strong> ${tH('karte.undErsetztDenCodeAus')}
       <div class="zf-codeliste">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
       ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER (Stolperstein
            315). Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
-      <p class="desc" style="margin:8px 0 0">Sind alle Codes verbraucht und das Handy weg, kann
-        der Eigentümer den zweiten Faktor auf dem Server zurücksetzen.</p>
-      ${serverKasten('Den zweiten Faktor eines Benutzers ausschalten:', 'docker compose exec kriterion node zugang.js zweifaktor <name>')}`;
+      <p class="desc" style="margin:8px 0 0">${tH('karte.sindAlleCodesVerbrauchtUnd')}</p>
+      ${serverKasten(t('karte.denZweitenFaktorEinesBenutzers'), 'docker compose exec kriterion node zugang.js zweifaktor <name>')}`;
     box.appendChild(kasten);
   }
 
@@ -7823,9 +7812,8 @@ function ruesteZugangAus(geholt) {
 /* ---- Karte „Meine Sitzungen" — Abschnitt „Persönlich" ---- */
 function karteSitzungen() {
   return `<div class="sys-card">
-        <h3>Meine Sitzungen</h3>
-        <p class="desc">Alle Browser und Geräte, in denen dein Konto angemeldet ist. Gerät und
-          Ort werden nicht gespeichert.</p>
+        <h3>${tH('karte.meineSitzungen')}</h3>
+        <p class="desc">${tH('karte.alleBrowserUndGeraeteIn')}</p>
         <div class="manage-list" id="msitzungen"></div>
       </div>`;
 }
@@ -7847,7 +7835,7 @@ function ruesteSitzungenAus(geholt) {
     const dok = box.ownerDocument;
     const liste = (d && Array.isArray(d.sitzungen)) ? d.sitzungen : null;
     if (!liste) {
-      box.innerHTML = `<span class="hint">Die Anmeldungen konnten nicht geladen werden.</span>`;
+      box.innerHTML = `<span class="hint">${tH('karte.dieAnmeldungenKonntenNichtGeladen')}</span>`;
       return;
     }
     box.innerHTML = '';
@@ -7857,16 +7845,16 @@ function ruesteSitzungenAus(geholt) {
       row.className = 'mrow sitz' + (z.diese ? ' sitz-ich' : '');
       row.dataset.kennung = z.kennung || '';
       row.innerHTML = `<span class="mname">${z.diese
-          ? 'Diese Sitzung <span class="zug-ich">(hier)</span>' : 'Andere Sitzung'}</span>
-        <span class="sitz-zeit">angemeldet ${esc(fmtDate(z.angemeldetAm))}</span>
-        <span class="sitz-zeit">zuletzt gesehen ${esc(fmtDate(z.zuletztGesehen))}</span>`;
+          ? 'Diese Sitzung <span class="zug-ich">(hier)</span>' : t('karte.andereSitzung')}</span>
+        <span class="sitz-zeit">${tH('karte.angemeldet', { angemeldetAm: fmtDate(z.angemeldetAm) })}</span>
+        <span class="sitz-zeit">${tH('karte.zuletztGesehen', { zuletztGesehen: fmtDate(z.zuletztGesehen) })}</span>`;
       if (!z.diese) {
         const w = dok.createElement('span');
         w.className = 'zug-akt';
-        w.innerHTML = `<button class="mact rm sitz-x" title="Diese Sitzung beenden">${ICON_KREUZ}</button>`;
+        w.innerHTML = `<button class="mact rm sitz-x" title="${esc(t('karte.dieseSitzungBeenden'))}">${ICON_KREUZ}</button>`;
         row.appendChild(w);
         w.querySelector('.sitz-x').onclick = async () => {
-          try { await api('DELETE', `/api/sessions/${z.kennung}`); toast('Sitzung beendet'); }
+          try { await api('DELETE', `/api/sessions/${z.kennung}`); toast(t('karte.sitzungBeendet')); }
           catch (e) { return toast(e.message, true); }
           sitzungenNeu();
         };
@@ -7882,19 +7870,18 @@ function ruesteSitzungenAus(geholt) {
     fuss.innerHTML = andere
       ? `<p class="desc" style="margin:10px 0 8px">${andere === 1
           ? 'Außer dieser gibt es <strong>eine weitere</strong> Sitzung.'
-          : `Außer dieser gibt es <strong>${andere} weitere</strong> Sitzungen.`}
-          Eine Sitzung läuft nach ${d.tage || 30} Tagen ohne Zugriff von selbst ab.</p>
-         <button class="btn btn-sm" id="sitz-alle">Alle anderen Sitzungen beenden</button>`
-      : `<p class="desc" style="margin:10px 0 0">Dies ist die <strong>einzige</strong> Sitzung
-          deines Kontos.</p>`;
+          : `${tH('karte.ausserDieserGibtEs')} <strong>${tH('karte.weitere', { andere: andere })}</strong> ${tH('karte.sitzungen')}`}
+          ${tH('karte.eineSitzungLaeuftNach')} ${d.tage || 30} ${tH('karte.tagenOhneZugriffVonSelbst')}</p>
+         <button class="btn btn-sm" id="sitz-alle">${tH('karte.alleAnderenSitzungenBeenden')}</button>`
+      : `<p class="desc" style="margin:10px 0 0">${tH('karte.diesIstDie')} <strong>${tH('karte.einzige')}</strong> ${tH('karte.sitzungDeinesKontos')}</p>`;
     box.appendChild(fuss);
     const alle = dok.getElementById('sitz-alle');
     if (alle) alle.onclick = async () => {
-      if (!await confirmBox('Alle anderen Sitzungen beenden?', 'Diese Sitzung bleibt bestehen.', 'Beenden')) return;
+      if (!await confirmBox(t('karte.alleAnderenSitzungenBeenden2'), t('karte.dieseSitzungBleibtBestehen'), t('karte.beenden'))) return;
       try {
         const r = await api('DELETE', '/api/sessions');
         const n = r && r.beendet ? r.beendet : 0;
-        toast(n === 1 ? '1 Sitzung beendet' : `${n} Sitzungen beendet`);
+        toast(n === 1 ? t('karte.sitzungBeendet2') : t('karte.sitzungenBeendet', { n: n }));
       } catch (e) { return toast(e.message, true); }
       sitzungenNeu();
     };
@@ -7915,26 +7902,21 @@ function ruesteSitzungenAus(geholt) {
 /* ---- Karte „Darstellung" — Abschnitt „Persönlich" ---- */
 function karteDarstellung() {
   return `<div class="sys-card">
-        <h3>Darstellung</h3>
-        <p class="desc">Farbschema der Oberfläche. Wirkt sofort und gilt auf jedem Gerät.
-          „Wie das Gerät" folgt der Einstellung des Betriebssystems und wechselt mit ihr.</p>
+        <h3>${tH('karte.darstellung')}</h3>
+        <p class="desc">${tH('karte.farbschemaDerOberflaecheWirkt')}</p>
         <div class="pills" id="thema"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
-          Gerät. Bei sehr großer Schrift wird es an manchen Stellen eng.</p>
+        <p class="desc" style="margin:16px 0 8px">${tH('karte.schriftgroesseDerGesamten')}</p>
         <div class="pills" id="fsize"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Größe der Bilder im Bildstreifen der
-          Detailansicht.</p>
+        <p class="desc" style="margin:16px 0 8px">${tH('karte.groesseDerBilderImBildstreifen')}</p>
         <div class="pills" id="streifen"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Zeitleiste der ${esc(V.zeitpunktMehrzahl)} in der
-          Übersicht.</p>
-        <label class="ex-files"><input type="checkbox" id="zlan"> Zeitleiste anzeigen</label>
+        <p class="desc" style="margin:16px 0 8px">${tH('karte.zeitleisteDerInDerUebersicht')}</p>
+        <label class="ex-files"><input type="checkbox" id="zlan"> ${tH('karte.zeitleisteAnzeigen')}</label>
 
-        <p class="desc" style="margin:16px 0 8px">Reihenfolge und Auf-/Zuklappen der Blöcke gelten
-          für alle ${esc(V.sacheMehrzahl)}.</p>
-        <button class="btn btn-ghost btn-sm" id="breset">Standardanordnung wiederherstellen</button>
+        <p class="desc" style="margin:16px 0 8px">${tH('karte.reihenfolgeUndAufZuklappenDer')}</p>
+        <button class="btn btn-ghost btn-sm" id="breset">${tH('karte.standardanordnungWiederherstellen')}</button>
       </div>`;
 }
 function ruesteDarstellungAus() {
@@ -7951,11 +7933,11 @@ function ruesteDarstellungAus() {
     catch (e) { ZEITLEISTE_AN = vorher; zl.checked = vorher; toast(e.message, true); }
   };
   amElement('breset', breset => breset.onclick = async () => {
-    if (!await confirmBox('Standardanordnung wiederherstellen?',
-      'Die Blöcke der Detailansicht kehren in ihre Ausgangsreihenfolge zurück, alle eingeklappten werden wieder geöffnet.',
-      'Wiederherstellen')) return;
+    if (!await confirmBox(t('karte.standardanordnungWiederherstellen2'),
+      t('karte.dieBloeckeDerDetailansichtKehren'),
+      t('karte.wiederherstellen'))) return;
     BLOECKE = { seite: [...BLOCK_VORGABE.seite], unten: [...BLOCK_VORGABE.unten], zu: [] };
-    try { await api('PUT', '/api/settings', { bloecke: BLOECKE }); toast('Standardanordnung wiederhergestellt'); }
+    try { await api('PUT', '/api/settings', { bloecke: BLOECKE }); toast(t('karte.standardanordnungWiederhergestellt')); }
     catch (e) { toast(e.message, true); }
   });
 }
@@ -8011,7 +7993,7 @@ function ruesteDarstellungAus() {
     STREIFEN_STUFEN.forEach(stufe => {
       const b = document.createElement('button');
       b.className = 'pill' + (STREIFEN === stufe ? ' on' : '');
-      b.textContent = stufe + ' px';
+      b.textContent = stufe + t('karte.px');
       b.onclick = async () => {
         const vorher = STREIFEN;
         STREIFEN = stufe;
@@ -8028,18 +8010,16 @@ function ruesteDarstellungAus() {
 /* ---- Karte „Kategorien" — Abschnitt „Bestand" ---- */
 function karteKategorien() {
   return `<div class="sys-card">
-        <h3>Kategorien</h3>
+        <h3>${tH('karte.kategorien')}</h3>
         ${/* WAS HINTER EINER ROLLE LIEGT, WIRD IHR NICHT ERKLAERT (Regel S5): der
              Benutzer sieht die Liste und einen Satz, der Admin die Werkzeuge. */''}
         <p class="desc">${ADMIN
-          ? `Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)} erhalten und
-             haben nur keine Kategorie mehr.`
-          : 'Alle Kategorien. Ändern kann sie der Admin.'}</p>
+          ? tH('karte.umbenennenOderLoeschenBeimLoeschen')
+          : t('karte.alleKategorienAendernKannSie')}</p>
         <div class="manage-list" id="mcats"></div>
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Ohne Häkchen legen nur Admins neue
-          Kategorien an; vorhandene kann weiterhin jeder auswählen.</p>
+        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('karte.ohneHaekchenLegenNurAdmins')}</p>
         <label class="ex-files"><input type="checkbox" id="katfrei">
-          Neue Kategorien darf jeder anlegen</label>` : ''}
+          ${tH('karte.neueKategorienDarfJederAnlegen')}</label>` : ''}
       </div>`;
 }
 function ruesteKategorienAus(geholt) {
@@ -8050,16 +8030,14 @@ function ruesteKategorienAus(geholt) {
 /* ---- Karte „Tags" — Abschnitt „Bestand" ---- */
 function karteTags() {
   return `<div class="sys-card">
-        <h3>Tags</h3>
+        <h3>${tH('liste.tags2')}</h3>
         <p class="desc">${ADMIN
-          ? `Umbenennen oder löschen. Ein gelöschter Tag verschwindet überall; die
-             ${esc(V.sacheMehrzahl)} selbst bleiben unberührt.`
-          : 'Alle Tags. Ändern kann sie der Admin.'}</p>
+          ? tH('karte.umbenennenOderLoeschenEin')
+          : t('karte.alleTagsAendernKannSie')}</p>
         <div class="manage-list" id="mtags"></div>
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Ohne Häkchen legen nur Admins neue
-          Tags an; vorhandene kann weiterhin jeder vergeben.</p>
+        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('karte.ohneHaekchenLegenNurAdmins2')}</p>
         <label class="ex-files"><input type="checkbox" id="tagfrei">
-          Neue Tags darf jeder anlegen</label>` : ''}
+          ${tH('karte.neueTagsDarfJederAnlegen')}</label>` : ''}
       </div>`;
 }
 function ruesteTagsAus(geholt) {
@@ -8088,28 +8066,21 @@ function karteKriterien(phase) {
   const vorher = phase === 'vorher';
   const k = KRIT_KARTE[phase];
   return `<div class="sys-card">
-        <h3>${esc(vorher ? V.potenzial : V.bewertungEinzahl)}: Kriterien</h3>
+        <h3>${esc(vorher ? V.potenzial : V.bewertungEinzahl)}${tH('karte.kriterien')}</h3>
         ${/* EIN SATZ AN DER KARTE, DIE FOLGEN HINTER „Mehr" (Konzept 4.5) -- und der
              Benutzer liest nur, was er tun kann (Regel S5). */''}
-        ${vorher ? `<p class="desc">Sterne <strong>vor</strong> dem Test: Welche Idee ist als
-             Nächstes dran? Eigener Durchschnitt, unabhängig von „${esc(V.bewertungEinzahl)}".
-             ${ADMIN ? 'Anlegen, umbenennen, löschen, per Ziehen sortieren.' : 'Die Liste pflegt der Admin.'}</p>
-           ${ADMIN ? mehr(`Tipp: Zwei oder drei Kriterien reichen, z. B. <em>Wunsch</em> (Gewicht 1,5),
-             <em>Nutzen</em>, <em>Machbarkeit</em>. Die Reihenfolge gilt in Detailansicht und
-             Vergleich; die Zahl nennt, an wie vielen ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`) : ''}`
+        ${vorher ? `<p class="desc">${tH('karte.sterne')} <strong>${tH('karte.vor')}</strong> ${tH('karte.demTestWelcheIdeeIst')}
+             ${ADMIN ? t('karte.anlegenUmbenennenLoeschenPerZiehen') : t('karte.dieListePflegtDerAdmin')}</p>
+           ${ADMIN ? mehr(`${tH('karte.tippZweiOderDreiKriterien')} <em>${tH('karte.wunsch')}</em> ${tH('karte.gewicht')}
+             <em>${tH('karte.nutzen')}</em>, <em>${tH('karte.machbarkeit')}</em>${tH('karte.dieReihenfolgeGiltInDetailansicht')}`) : ''}`
           : `<p class="desc">${ADMIN
-          ? `Anlegen, umbenennen, löschen, per Ziehen sortieren. Löschen entfernt auch alle
-             vergebenen Sterne.`
-          : `Die Kriterienliste pflegt der Admin. Die Zahl nennt, an wie vielen
-             ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`}</p>
-           ${ADMIN ? mehr(`Die Reihenfolge gilt in Detailansicht und Vergleich. Ein neues Kriterium
-             erscheint sofort an allen ${esc(V.sacheMehrzahl)}. Die Zahl nennt, an wie vielen
-             ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`) : ''}`}
+          ? t('karte.anlegenUmbenennenLoeschenPerZiehen2')
+          : tH('karte.dieKriterienlistePflegtDerAdmin')}</p>
+           ${ADMIN ? mehr(tH('karte.dieReihenfolgeGiltInDetailansicht2')) : ''}`}
         <div class="manage-list" id="${k.liste}"></div>
-        <p class="desc" style="margin:10px 0 0">Das <strong>Gewicht</strong> bestimmt, wie stark ein
-          Kriterium in den Durchschnitt eingeht; bei 1 zählen alle gleich. ${ADMIN
-            ? `Möglich ist 0,2 bis 2 — die Vorschläge sind nur die häufigsten Werte.`
-            : `Eingestellt wird es vom Admin.`}</p>
+        <p class="desc" style="margin:10px 0 0">${tH('karte.das')} <strong>${tH('eintrag.gewicht')}</strong> ${tH('karte.bestimmtWieStarkEinKriterium')} ${ADMIN
+            ? t('karte.moeglichIstBisDieVorschlaege')
+            : t('karte.eingestelltWirdEsVomAdmin')}</p>
         <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
              ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
              tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
@@ -8127,8 +8098,8 @@ function karteKriterien(phase) {
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
         ${ADMIN ? `<div class="row-in" style="margin-top:12px">
-          <input class="input input-sm" id="${k.feld}" placeholder="Neues Kriterium" style="padding:8px 11px">
-          <button class="btn btn-sm" id="${k.knopf}">+ Anlegen</button>
+          <input class="input input-sm" id="${k.feld}" placeholder="${esc(t('karte.neuesKriterium'))}" style="padding:8px 11px">
+          <button class="btn btn-sm" id="${k.knopf}">${tH('eintrag.anlegen')}</button>
         </div>` : ''}
       </div>`;
 }
@@ -8147,7 +8118,7 @@ function ruesteKriterienAus(geholt, phase) {
       if (!name) return;
       // DIE PHASE SCHICKT DIE KARTE MIT. Ohne sie legte die zweite Karte
       // Bewertungskriterien an -- der Server hat die Vorgabe 'nachher'.
-      try { await api('POST', '/api/criteria', { name, phase }); critFeld.value = ''; toast('Kriterium angelegt'); verwaltungNeu(geholt); }
+      try { await api('POST', '/api/criteria', { name, phase }); critFeld.value = ''; toast(t('karte.kriteriumAngelegt')); verwaltungNeu(geholt); }
       catch (e) { toast(e.message, true); }
     };
     document.getElementById(k.knopf).onclick = addCrit;
@@ -8177,22 +8148,26 @@ function ruesteKriterienAus(geholt, phase) {
   /* --- Kategorien, Tags und Kriterien verwalten --- */
   // Dieselbe Liste fuer alle drei. Kriterien haben zusaetzlich einen Griff,
   // weil bei ihnen die Reihenfolge etwas bedeutet.
+  /* DIE TABELLE HAELT DEN SCHLUESSEL, DAS WORT HOLT DIE LESESTELLE -- 0.24.0.
+     Diese Zeile steht auf Modulebene und laeuft, sobald der Browser die Datei
+     liest; die Sprachdatei kommt erst danach. Ein fertiger Satz stuende hier
+     fuer immer als ⟦…⟧. */
   const VERWALTUNGSART = {
     cat: {
-      url: '/api/product-categories', frage: 'Kategorie löschen?',
-      warnung: e => `Die Kategorie „${e.name}" wird entfernt. Betroffen: ${e.usage_count} ${vSache(e.usage_count)} — dort fehlt danach nur die Zuordnung.`
+      url: '/api/product-categories', frage: 'karte.kategorieLoeschen',
+      warnung: e => t('karte.dieKategorieWirdEntferntBetroffen', { name: e.name, usage_count: e.usage_count, sache: vSache(e.usage_count) })
     },
     tag: {
-      url: '/api/tags', frage: 'Tag löschen?',
+      url: '/api/tags', frage: 'karte.tagLoeschen',
       // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
       // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
       zaehler: e => `${e.usage_count} ${vSache(e.usage_count)} · ${e.test_usage_count} ${vZeit(e.test_usage_count)}`,
-      warnung: e => `Der Tag „${e.name}" wird überall entfernt. Betroffen: ` +
+      warnung: e => t('karte.derTagWirdUeberallEntfernt', { name: e.name }) +
         `${e.usage_count} ${vSache(e.usage_count)} und ${e.test_usage_count} ${vZeit(e.test_usage_count)}` +
-        `${e.test_usage_count ? ' — auch die Kennzeichnungen dort verschwinden.' : '.'}`
+        `${e.test_usage_count ? t('karte.auchDieKennzeichnungenDort') : '.'}`
     },
     crit: {
-      url: '/api/criteria', frage: 'Kriterium löschen?', sortierbar: true,
+      url: '/api/criteria', frage: 'karte.kriteriumLoeschen', sortierbar: true,
       // DAS GEWICHTSFELD GEHOERT ALLEIN HIERHER. verwaltungsListe() zeichnet dieselbe
       // Zeile auch fuer Kategorien und Tags, und dort gibt es kein Gewicht --
       // ein Kriterium wiegt im Gesamtschnitt, eine Kategorie rechnet nirgends
@@ -8200,7 +8175,7 @@ function ruesteKriterienAus(geholt, phase) {
       // `sortierbar` und `zaehler`, und nicht ueber eine Abfrage auf den
       // Kartennamen.
       gewicht: true,
-      warnung: e => `„${e.name}" wird überall entfernt, samt vergebener Sterne.`
+      warnung: e => t('karte.wirdUeberallEntferntSamtVergebener', { name: e.name })
     }
   };
 
@@ -8218,7 +8193,7 @@ function ruesteKriterienAus(geholt, phase) {
     // der jeder am Eintrag schoepft.
     const darf = ADMIN;
     box.innerHTML = '';
-    if (!list.length) { box.innerHTML = `<span class="hint">Noch nichts angelegt.</span>`; return; }
+    if (!list.length) { box.innerHTML = `<span class="hint">${tH('karte.nochNichtsAngelegt')}</span>`; return; }
     list.forEach(entry => {
       const row = document.createElement('div');
       row.className = 'mrow' + (art.sortierbar && darf ? ' drag' : '');
@@ -8234,17 +8209,17 @@ function ruesteKriterienAus(geholt, phase) {
          statt als Feld, wie bei Name und Zaehler daneben. */
       const gewFeld = art.gewicht
         ? (darf
-          ? `<span class="mgew" title="Gewicht im Durchschnitt">×<input class="mgew-feld"
-               type="text" inputmode="decimal" list="gewichtsug" aria-label="Gewicht"
+          ? `<span class="mgew" title="${esc(t('liste.gewichtImDurchschnitt'))}">×<input class="mgew-feld"
+               type="text" inputmode="decimal" list="gewichtsug" aria-label="${esc(t('eintrag.gewicht'))}"
                value="${esc(gewichtText(entry.gewicht))}"></span>`
-          : `<span class="mgew mgew-fest" title="Gewicht im Durchschnitt">×${esc(gewichtText(entry.gewicht))}</span>`)
+          : `<span class="mgew mgew-fest" title="${esc(t('liste.gewichtImDurchschnitt'))}">×${esc(gewichtText(entry.gewicht))}</span>`)
         : '';
-      row.innerHTML = `${art.sortierbar && darf ? `<span class="grip" title="Zum Sortieren ziehen">⣿</span>` : ''}
+      row.innerHTML = `${art.sortierbar && darf ? `<span class="grip" title="${esc(t('eintrag.zumSortierenZiehen'))}">⣿</span>` : ''}
         <span class="mname">${esc(entry.name)}</span>
         ${gewFeld}
         <span class="mcount">${esc(art.zaehler ? art.zaehler(entry) : `${entry.usage_count} ${vSache(entry.usage_count)}`)}</span>
-        ${darf ? `<button class="mact ed" title="Umbenennen">${ICON_STIFT}</button>
-        <button class="mact rm" title="Löschen">${ICON_KREUZ}</button>` : ''}`;
+        ${darf ? `<button class="mact ed" title="${esc(t('karte.umbenennen'))}">${ICON_STIFT}</button>
+        <button class="mact rm" title="${esc(t('dialog.loeschen'))}">${ICON_KREUZ}</button>` : ''}`;
       if (!darf) { box.appendChild(row); return; }
       if (art.sortierbar) {
         // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
@@ -8254,7 +8229,7 @@ function ruesteKriterienAus(geholt, phase) {
           onDrop: async (children) => {
             try {
               await api('PUT', '/api/criteria/order', { order: children.map(c => +c.dataset.mid) });
-              toast('Reihenfolge gespeichert');
+              toast(t('eintrag.reihenfolgeGespeichert'));
               verwaltungNeu(geholt);
             } catch (e) { toast(e.message, true); verwaltungNeu(geholt); }
           }
@@ -8284,7 +8259,7 @@ function ruesteKriterienAus(geholt, phase) {
           // Zeigt die Rundung mit: 1,234 steht danach als 1,23 im Feld. Die
           // Rundung ist damit nicht still.
           gewEingabe.value = gewichtText(nun.gewicht);
-          toast('Gewicht gespeichert');
+          toast(t('karte.gewichtGespeichert'));
         } catch (e) {
           toast(e.message, true);
           // Kein Wert im Feld, der nicht gespeichert ist.
@@ -8299,15 +8274,15 @@ function ruesteKriterienAus(geholt, phase) {
         const save = async () => {
           const name = inp.value.trim();
           if (!name || name === entry.name) return verwaltungNeu(geholt);
-          try { await api('PUT', `${url}/${entry.id}`, { name }); toast('Umbenannt'); verwaltungNeu(geholt); }
+          try { await api('PUT', `${url}/${entry.id}`, { name }); toast(t('karte.umbenannt')); verwaltungNeu(geholt); }
           catch (e) { toast(e.message, true); verwaltungNeu(geholt); }
         };
         inp.onblur = save;
         inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') verwaltungNeu(geholt); };
       };
       row.querySelector('.rm').onclick = async () => {
-        if (!await confirmBox(art.frage, art.warnung(entry))) return;
-        try { await api('DELETE', `${url}/${entry.id}`); toast('Gelöscht'); verwaltungNeu(geholt); }
+        if (!await confirmBox(t(art.frage), art.warnung(entry))) return;
+        try { await api('DELETE', `${url}/${entry.id}`); toast(t('karte.geloescht')); verwaltungNeu(geholt); }
         catch (e) { toast(e.message, true); }
       };
       box.appendChild(row);
@@ -8334,9 +8309,8 @@ function ruesteKriterienAus(geholt, phase) {
 /* ---- Karte „Vokabular" — Abschnitt „Bestand" ---- */
 function karteVokabular() {
   return `<div class="sys-card">
-        <h3>Vokabular</h3>
-        <p class="desc">Wie die Dinge in der Oberfläche heißen. <strong>Es ändert sich nur die
-          Beschriftung</strong>; Daten und Exporte bleiben gleich.</p>
+        <h3>${tH('karte.vokabular')}</h3>
+        <p class="desc">${tH('karte.wieDieDingeInDer')} <strong>${tH('karte.esAendertSichNurDie')}</strong>${tH('karte.datenUndExporteBleibenGleich')}</p>
         ${/* VIERZEHN FELDER AUS EINER TABELLE -- 0.22.0. Bis 0.21.1 standen die
              zwoelf Felder dreimal im Quelltext: hier als Markup, in vFelder()
              als Leser und in ruesteVokabularAus() als Liste der Kennungen.
@@ -8347,14 +8321,14 @@ function karteVokabular() {
              JEDER FELDNAME NENNT DIE VORGABE: „Sache, Einzahl" allein sagte
              einem Admin nicht, welches Wort er da umbenennt. */''}
         <div class="vok-grid">
-          ${VOK_FELDER.map(([id, schluessel, name]) => `<div class="field"><label for="${id}">${esc(name)}
-            <span class="hint">(Vorgabe: ${esc(VOK_VORGABE[schluessel])})</span></label>
+          ${VOK_FELDER.map(([id, schluessel, name]) => `<div class="field"><label for="${id}">${esc(name())}
+            <span class="hint">${tH('karte.vorgabe', { w1: VOK_VORGABE[schluessel]() })}</span></label>
             <input class="input input-sm" id="${id}" maxlength="40" value="${esc(V[schluessel])}"></div>`).join('')}
         </div>
         <div class="vok-probe" id="vprobe"></div>
         <div class="row-in" style="margin-top:12px">
-          <button class="btn btn-accent btn-sm" id="vsave">Vokabular speichern</button>
-          <button class="btn btn-ghost btn-sm" id="vreset">Auf Vorgaben zurücksetzen</button>
+          <button class="btn btn-accent btn-sm" id="vsave">${tH('karte.vokabularSpeichern')}</button>
+          <button class="btn btn-ghost btn-sm" id="vreset">${tH('karte.aufVorgabenZuruecksetzen')}</button>
         </div>
       </div>`;
 }
@@ -8365,31 +8339,35 @@ function karteVokabular() {
    Karte sie NENNEN muss („Vorgabe: Eintrag") und der Server sie nur beim
    Speichern einsetzt. `V` selbst taugt dafuer nicht: es traegt nach dem
    ersten Abruf das gespeicherte Wort. */
+/* AUCH HIER RUFE STATT WERTE -- 0.24.0, aus demselben Grund wie bei
+   SYS_ABSCHNITTE: die Vorgabe steht in der Sprachdatei, und die ist beim
+   Auswerten dieser Zeile noch nicht geladen. */
 const VOK_VORGABE = {
-  sacheEinzahl: 'Eintrag', sacheMehrzahl: 'Einträge',
-  merkmalJa: 'Getestet', merkmalNein: 'Ungetestet',
-  zeitpunktEinzahl: 'Testtag', zeitpunktMehrzahl: 'Testtage',
-  berichtEinzahl: 'Bericht', berichtMehrzahl: 'Berichte',
-  aufgabeEinzahl: 'Aufgabe', aufgabeMehrzahl: 'Aufgaben',
-  aufgabeErledigt: 'Erledigt', potenzial: 'Potenzial',
-  bewertungEinzahl: 'Bewertung', bewertungMehrzahl: 'Bewertungen'
+  sacheEinzahl: () => t('vokabular.sacheEinzahl'), sacheMehrzahl: () => t('vokabular.sacheMehrzahl'),
+  merkmalJa: () => t('vokabular.merkmalJa'), merkmalNein: () => t('vokabular.merkmalNein'),
+  zeitpunktEinzahl: () => t('vokabular.zeitpunktEinzahl'), zeitpunktMehrzahl: () => t('vokabular.zeitpunktMehrzahl'),
+  berichtEinzahl: () => t('vokabular.berichtEinzahl'), berichtMehrzahl: () => t('vokabular.berichtMehrzahl'),
+  aufgabeEinzahl: () => t('vokabular.aufgabeEinzahl'), aufgabeMehrzahl: () => t('vokabular.aufgabeMehrzahl'),
+  aufgabeErledigt: () => t('vokabular.aufgabeErledigt'), potenzial: () => t('vokabular.potenzial'),
+  bewertungEinzahl: () => t('vokabular.bewertungEinzahl'), bewertungMehrzahl: () => t('vokabular.bewertungMehrzahl')
 };
+/* UND DRITTENS DIE BESCHRIFTUNGEN -- Rufe, nicht Werte (siehe VOK_VORGABE). */
 const VOK_FELDER = [
-  ['v1', 'sacheEinzahl', 'Sache, Einzahl'], ['v2', 'sacheMehrzahl', 'Sache, Mehrzahl'],
-  ['v3', 'merkmalJa', 'Merkmal erfüllt'], ['v4', 'merkmalNein', 'Merkmal nicht erfüllt'],
-  ['v5', 'zeitpunktEinzahl', 'Zeitpunkt, Einzahl'], ['v6', 'zeitpunktMehrzahl', 'Zeitpunkt, Mehrzahl'],
-  ['v7', 'berichtEinzahl', 'Bericht, Einzahl'], ['v8', 'berichtMehrzahl', 'Bericht, Mehrzahl'],
-  ['v9', 'aufgabeEinzahl', 'Aufgabe, Einzahl'], ['v10', 'aufgabeMehrzahl', 'Aufgabe, Mehrzahl'],
-  ['v11', 'aufgabeErledigt', 'Aufgabe, erledigt'],
+  ['v1', 'sacheEinzahl', () => t('karte.sacheEinzahl')], ['v2', 'sacheMehrzahl', () => t('karte.sacheMehrzahl')],
+  ['v3', 'merkmalJa', () => t('karte.merkmalErfuellt')], ['v4', 'merkmalNein', () => t('karte.merkmalNichtErfuellt')],
+  ['v5', 'zeitpunktEinzahl', () => t('karte.zeitpunktEinzahl')], ['v6', 'zeitpunktMehrzahl', () => t('karte.zeitpunktMehrzahl')],
+  ['v7', 'berichtEinzahl', () => t('karte.berichtEinzahl')], ['v8', 'berichtMehrzahl', () => t('karte.berichtMehrzahl')],
+  ['v9', 'aufgabeEinzahl', () => t('karte.aufgabeEinzahl')], ['v10', 'aufgabeMehrzahl', () => t('karte.aufgabeMehrzahl')],
+  ['v11', 'aufgabeErledigt', () => t('karte.aufgabeErledigt')],
   /* DAS WORT FUER DEN ZWEITEN STERNKASTEN -- 0.21.0. Es steht am Blockkopf des
      Eintrags, in den Sortiereintraegen und im Titel der Karte „Potenzial:
      Kriterien"; ein Umbenennen wirkt an allen Stellen zugleich. NIE
      ZUSAMMENGESETZT: „Erwartungkriterien" haette kein Fugen-s. */
-  ['v12', 'potenzial', 'Sterne vor dem Test'],
+  ['v12', 'potenzial', () => t('karte.sterneVorDemTest')],
   /* UND DAS PAAR FUER DEN ERSTEN -- 0.22.0 (E14): Kastenkopf, Sortierung,
      Vergleich, Kachel, Karte, Glocke und Loeschdialoge lesen es. */
-  ['v13', 'bewertungEinzahl', 'Sterne nach dem Test, Einzahl'],
-  ['v14', 'bewertungMehrzahl', 'Sterne nach dem Test, Mehrzahl']
+  ['v13', 'bewertungEinzahl', () => t('karte.sterneNachDemTestEinzahl')],
+  ['v14', 'bewertungMehrzahl', () => t('karte.sterneNachDemTestMehrzahl')]
 ];
 function ruesteVokabularAus() {
   // Die Probe zeigt dieselben Textbausteine, die die Oberfläche später
@@ -8413,18 +8391,18 @@ function ruesteVokabularAus() {
     const bwe = w.bewertungEinzahl.trim() || V.bewertungEinzahl;
     const bwm = w.bewertungMehrzahl.trim() || V.bewertungMehrzahl;
     document.getElementById('vprobe').innerHTML =
-      `<span class="label">Vorschau</span>
-       <span>+ ${esc(s1)}</span><span>${esc(s1)} löschen?</span><span>7 ${esc(sm)}</span>
+      `<span class="label">${tH('karte.vorschau')}</span>
+       <span>+ ${esc(s1)}</span><span>${tH('karte.loeschen', { s1: s1 })}</span><span>7 ${esc(sm)}</span>
        <span>${esc(ja)} / ${esc(nein)}</span>
        <span>1 ${esc(z1)}</span><span>3 ${esc(zm)}</span>
-       <span>Als ${esc(b1)} markieren</span><span>2 ${esc(bm)}</span>
-       <span>Als ${esc(a1)} markieren</span><span>4 ${esc(am)}</span>
-       <span>Auf „${esc(ae)}" setzen</span>
+       <span>${tH('karte.alsMarkieren', { b1: b1 })}</span><span>2 ${esc(bm)}</span>
+       <span>${tH('karte.alsMarkieren', { b1: a1 })}</span><span>4 ${esc(am)}</span>
+       <span>${tH('karte.aufSetzen', { ae: ae })}</span>
        ${/* DIE PROBE ZEIGT DAS WORT SO, WIE ES SPAETER STEHT -- getrennt und
             nie verbaut. Wer „Erwartung" eintippt, sieht hier „Erwartung:
             Kriterien" und nicht „Erwartungkriterien". */''}
-       <span>${esc(po)}: Kriterien</span><span>${esc(po)} (hoch → niedrig)</span>
-       <span>${esc(bwe)}: Kriterien</span><span>${esc(bwe)} (hoch → niedrig)</span><span>2 ${esc(bwm)}</span>`;
+       <span>${tH('karte.kriterien2', { po: po })}</span><span>${tH('karte.hochNiedrig', { po: po })}</span>
+       <span>${tH('karte.kriterien2', { po: bwe })}</span><span>${tH('karte.hochNiedrig', { po: bwe })}</span><span>2 ${esc(bwm)}</span>`;
   }
   // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
   // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
@@ -8437,20 +8415,20 @@ function ruesteVokabularAus() {
     try {
       const r = await api('PUT', '/api/settings', { vokabular: vFelder() });
       V = { ...V, ...r.vokabular };
-      toast('Vokabular gespeichert');
+      toast(t('karte.vokabularGespeichert'));
       renderSystem();          // leere Felder kommen mit der Vorgabe zurück
     } catch (e) { toast(e.message, true); }
   });
   amElement('vreset', vreset => vreset.onclick = async () => {
-    if (!await confirmBox('Auf Vorgaben zurücksetzen?',
-      'Alle vierzehn Wörter werden auf ihre Vorgaben zurückgesetzt: Eintrag/Einträge, Getestet/Ungetestet, Testtag/Testtage, Bericht/Berichte, Aufgabe/Aufgaben, Erledigt, Potenzial, Bewertung/Bewertungen.',
-      'Zurücksetzen')) return;
+    if (!await confirmBox(t('karte.aufVorgabenZuruecksetzen2'),
+      t('karte.alleVierzehnWoerterWerdenAuf'),
+      t('karte.zuruecksetzen'))) return;
     try {
       // Leer heisst Vorgabe: der Server setzt fuer jedes leere Feld sein Wort ein.
       const leer = Object.fromEntries(Object.keys(VOK_VORGABE).map(k => [k, '']));
       const r = await api('PUT', '/api/settings', { vokabular: leer });
       V = { ...V, ...r.vokabular };
-      toast('Auf Vorgaben zurückgesetzt');
+      toast(t('karte.aufVorgabenZurueckgesetzt'));
       renderSystem();
     } catch (e) { toast(e.message, true); }
   });
@@ -8460,15 +8438,13 @@ function ruesteVokabularAus() {
 /* ---- Karte „Links" — Abschnitt „Bestand" ---- */
 function karteLinks() {
   return `<div class="sys-card">
-        <h3>Links</h3>
-        <p class="desc">Wie viele Zeilen in der Detailansicht zu sehen sind, bevor
-          aufgeklappt werden muss.</p>
+        <h3>${tH('dialog.links')}</h3>
+        <p class="desc">${tH('karte.wieVieleZeilenInDer')}</p>
         <div class="pills" id="lzeilen"></div>
 
-        <p class="desc sys-teil">Was in der Linkliste keine Adresse ist, wird als
-          <strong>Suche</strong> behandelt; die Suche startet erst beim Klick.</p>
-        <p class="desc" style="margin:0 0 8px">Wie viele Suchmaschinen unter einer Suchzeile
-          angeboten werden.</p>
+        <p class="desc sys-teil">${tH('karte.wasInDerLinklisteKeine')}
+          <strong>${tH('karte.suche')}</strong> ${tH('karte.behandeltDieSucheStartetErst')}</p>
+        <p class="desc" style="margin:0 0 8px">${tH('karte.wieVieleSuchmaschinenUnterEiner')}</p>
         <div class="pills" id="snamen"></div>
       </div>`;
 }
@@ -8484,7 +8460,7 @@ function ruesteLinksAus() {
     LINKZEILEN_STUFEN.forEach(n => {
       const b2 = document.createElement('button');
       b2.className = 'pill' + (LINKZEILEN === n ? ' on' : '');
-      b2.textContent = n + ' Zeilen';
+      b2.textContent = n + t('karte.zeilen');
       b2.onclick = async () => {
         const vorher = LINKZEILEN;
         LINKZEILEN = n;
@@ -8503,7 +8479,7 @@ function ruesteLinksAus() {
     SUCHNAMEN_STUFEN.forEach(n => {
       const b3 = document.createElement('button');
       b3.className = 'pill' + (SUCHNAMEN === n ? ' on' : '');
-      b3.textContent = n === 1 ? '1 Name' : `${n} Namen`;
+      b3.textContent = n === 1 ? t('karte.name') : t('karte.namen', { n: n });
       b3.onclick = async () => {
         const vorher = SUCHNAMEN;
         SUCHNAMEN = n;
@@ -8519,19 +8495,17 @@ function ruesteLinksAus() {
 /* ---- Karte „Suchanbieter" — Abschnitt „Bestand" ---- */
 function karteSuchanbieter() {
   return `<div class="sys-card">
-        <h3>Suchmaschinen</h3>
-        <p class="desc">Häkchen: steht zur Auswahl. <strong>Standard</strong>: öffnet sich beim
-          Klick auf die Suchzeile.</p>
-        ${mehr(`Beides gilt für alle Benutzer; wie viele Namen unter einer Suchzeile stehen,
-          stellt jeder für sich in der Karte „Links" ein. Der Standard steht immer vorn.`)}
+        <h3>${tH('karte.suchmaschinen')}</h3>
+        <p class="desc">${tH('karte.haekchenStehtZurAuswahl')} <strong>${tH('karte.standard')}</strong>${tH('karte.oeffnetSichBeimKlickAuf')}</p>
+        ${mehr(t('karte.beidesGiltFuerAlleBenutzer'))}
         <div class="sanb-liste" id="sanbieter"></div>
 
-        <p class="desc sys-teil">Bis zu drei eigene: Name (max. 20 Zeichen) und Such-URL mit
-          <code>%s</code> für den Suchtext (<code>http://</code> oder <code>https://</code>).</p>
+        <p class="desc sys-teil">${tH('karte.bisZuDreiEigeneName')}
+          <code>%s</code> ${tH('karte.fuerDenSuchtext')}<code>http://</code> ${tH('karte.oder')} <code>https://</code>).</p>
         <div class="sanb-eigen" id="seigene"></div>
-        ${mehr(`Tipp: eine Suchmaschine auf die Domain einschränken —
-          <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>. Das
-          <code>%3A</code> muss so dastehen.`)}
+        ${mehr(`${tH('karte.tippEineSuchmaschineAufDie')}
+          <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>${tH('karte.das2')}
+          <code>%3A</code> ${tH('karte.mussSoDastehen')}`)}
       </div>`;
 }
 function ruesteSuchanbieterAus() {
@@ -8570,23 +8544,23 @@ function ruesteSuchanbieterAus() {
       hk.type = 'checkbox';
       hk.checked = !!a.aktiv;
       hk.disabled = !a.vorhanden;
-      hk.title = 'In die Auswahl aufnehmen';
+      hk.title = t('karte.inDieAuswahlAufnehmen');
       hk.onchange = () => {
         const keys = vorratListe();
         sendeAnbieter({ sucheAktiv: hk.checked ? [...keys, a.schluessel] : keys.filter(k => k !== a.schluessel) },
-          'Auswahl gespeichert');
+          t('karte.auswahlGespeichert'));
       };
       const st = document.createElement('button');
       st.type = 'button';
       st.className = 'sstart' + (a.standard ? ' on' : '');
-      st.textContent = 'Standard';
+      st.textContent = t('karte.standard');
       st.disabled = !a.vorhanden;
-      st.title = 'Beim Klick auf die Suchzeile öffnen';
+      st.title = t('karte.beimKlickAufDieSuchzeile');
       // Start nimmt zugleich in die Auswahl auf: ein Startanbieter ausserhalb
       // des Vorrats ist ein Zustand, den es nicht geben darf.
       st.onclick = () => sendeAnbieter(
         { sucheAktiv: [a.schluessel, ...vorratListe().filter(k => k !== a.schluessel)] },
-        'Gespeichert');
+        t('liste.gespeichert'));
       // Der Name kommt aus dem Verwaltungsbereich und ist freier Text --
       // textContent statt innerHTML, damit Maskierung nicht vergessbar ist.
       const nm = document.createElement('span');
@@ -8606,14 +8580,14 @@ function ruesteSuchanbieterAus() {
       zeile.className = 'sanb-slot';
       const nm = document.createElement('input');
       nm.className = 'input input-sm'; nm.id = `se-name-${i + 1}`;
-      nm.maxLength = 20; nm.placeholder = 'Name'; nm.value = a.name || '';
+      nm.maxLength = 20; nm.placeholder = t('karte.name2'); nm.value = a.name || '';
       const vl = document.createElement('input');
       vl.className = 'input input-sm'; vl.id = `se-vorlage-${i + 1}`;
       vl.maxLength = 300; vl.placeholder = 'https://forum.beispiel.de/suche?q=%s';
       vl.value = a.vorlage || '';
       const b3 = document.createElement('button');
       b3.className = 'btn btn-sm'; b3.id = `se-b-${i + 1}`;
-      b3.textContent = 'Übernehmen';
+      b3.textContent = t('karte.uebernehmen');
       b3.onclick = () => sendeEigene();
       zeile.append(nm, vl, b3);
       box.appendChild(zeile);
@@ -8627,17 +8601,17 @@ function ruesteSuchanbieterAus() {
       name: document.getElementById(`se-name-${i}`)?.value || '',
       vorlage: document.getElementById(`se-vorlage-${i}`)?.value || ''
     }));
-    return sendeAnbieter({ sucheEigene: liste }, 'Gespeichert');
+    return sendeAnbieter({ sucheEigene: liste }, t('liste.gespeichert'));
   }
 
 
 /* ---- Karte „Papierkorb" — Abschnitt „Bestand" ---- */
 function kartePapierkorb() {
   return `<div class="sys-card">
-        <h3>Papierkorb</h3>
-        <p class="desc">Gelöschte ${esc(V.sacheMehrzahl)} bleiben hier <strong>${PAPIERKORB_TAGE} Tage</strong>
-          und lassen sich wiederherstellen; danach werden sie endgültig gelöscht.
-          ${EIGENTUEMER ? '' : 'Wiederherstellen und endgültig löschen kann nur der Eigentümer.'}</p>
+        <h3>${tH('karte.papierkorb')}</h3>
+        <p class="desc">${tH('karte.geloeschteBleibenHier')} <strong>${tH('karte.tage', { papierkorbTage: PAPIERKORB_TAGE })}</strong>
+          ${tH('karte.undLassenSichWiederherstellen')}
+          ${EIGENTUEMER ? '' : t('karte.wiederherstellenUndEndgueltig')}</p>
         <div class="manage-list" id="mpapierkorb"></div>
       </div>`;
 }
@@ -8668,7 +8642,7 @@ function ruestePapierkorbAus(geholt) {
     const zeilen = Array.isArray(geholt.papierkorb && geholt.papierkorb.zeilen) ? geholt.papierkorb.zeilen : [];
     box.innerHTML = '';
     if (!zeilen.length) {
-      box.innerHTML = `<span class="hint">Keine gelöschten ${esc(V.sacheMehrzahl)}.</span>`;
+      box.innerHTML = `<span class="hint">${tH('karte.keineGeloeschten')}</span>`;
       return;
     }
     zeilen.forEach(z => {
@@ -8677,16 +8651,16 @@ function ruestePapierkorbAus(geholt) {
       row.dataset.pkid = z.id;
       const offen = Number(z.tageOffen);
       const meta = [
-        `gelöscht ${fmtDate(z.geloescht_am)} von ${verfasserName(z.loeschender)}`,
-        `noch ${offen} ${offen === 1 ? 'Tag' : 'Tage'}`,
+        t('karte.geloeschtVon', { geloescht_am: fmtDate(z.geloescht_am), loeschender: verfasserName(z.loeschender) }),
+        `noch ${offen} ${offen === 1 ? t('liste.tag2') : t('karte.tage2')}`,
         fmtBytes(z.bytes)
       ];
       // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.
       row.innerHTML = `<span class="mname">${esc(z.titel)}</span>
-        ${EIGENTUEMER ? `<button class="mact pk-back" title="Wiederherstellen">${ICON_WIEDERHER} Wiederherstellen</button>
-        <button class="mact rm pk-weg" title="Endgültig löschen">${ICON_KREUZ}</button>` : ''}
+        ${EIGENTUEMER ? `<button class="mact pk-back" title="${esc(t('karte.wiederherstellen'))}">${tH('karte.wiederherstellen2', { iconWiederher: ICON_WIEDERHER })}</button>
+        <button class="mact rm pk-weg" title="${esc(t('karte.endgueltigLoeschen'))}">${ICON_KREUZ}</button>` : ''}
         <span class="pk-meta">${esc(meta.join(' · '))}</span>`;
       box.appendChild(row);
       const zurueck = row.querySelector('.pk-back');
@@ -8696,19 +8670,19 @@ function ruestePapierkorbAus(geholt) {
           // Die unbekannten Verfasser stehen in der Antwort und gehoeren
           // gesagt: sie sind beim Zurueckholen an MICH gefallen.
           const offene = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
-          toast(`„${z.titel}" wiederhergestellt.` +
+          toast(t('karte.wiederhergestellt', { titel: z.titel }) +
             (offene.length ? ` Beiträge ohne bekannten Verfasser wurden dir zugeordnet: ${offene.join(', ')}.` : ''));
           papierkorbNeu(geholt);
         } catch (e) { toast(e.message, true); }
       };
       const weg = row.querySelector('.pk-weg');
       if (weg) weg.onclick = async () => {
-        if (!await confirmBox('Endgültig löschen?',
-          `„${z.titel}" wird endgültig gelöscht. Das lässt sich nicht rückgängig machen.`,
-          'Endgültig löschen')) return;
+        if (!await confirmBox(t('karte.endgueltigLoeschen2'),
+          t('karte.wirdEndgueltigGeloeschtDasLaesst', { titel: z.titel }),
+          t('karte.endgueltigLoeschen'))) return;
         try {
           await api('DELETE', `/api/papierkorb/${z.id}`);
-          toast('Endgültig gelöscht');
+          toast(t('karte.endgueltigGeloescht'));
           papierkorbNeu(geholt);
         } catch (e) { toast(e.message, true); }
       };
@@ -8719,43 +8693,40 @@ function ruestePapierkorbAus(geholt) {
 /* ---- Karte „Zugänge" — Abschnitt „Zugänge" ---- */
 function karteZugaenge() {
   return `<div class="sys-card breit">
-        <h3>Benutzer</h3>
-        <p class="desc">Alle Benutzer dieser Installation.</p>
-        ${mehr(`<strong>Sperren statt löschen:</strong> Ein gesperrter Benutzer kann sich nicht anmelden,
-          seine Beiträge bleiben. ${EIGENTUEMER
-            ? 'Rollen ändern und Admins bearbeiten kannst nur du als Eigentümer.'
-            : 'Rollen ändern und Admins bearbeiten kann nur der Eigentümer.'}`)}
+        <h3>${tH('karte.benutzer')}</h3>
+        <p class="desc">${tH('karte.alleBenutzerDieserInstallation')}</p>
+        ${mehr(`<strong>${tH('karte.sperrenStattLoeschen')}</strong> ${tH('karte.einGesperrterBenutzerKannSich')} ${EIGENTUEMER
+            ? t('karte.rollenAendernUndAdminsBearbeiten')
+            : t('karte.rollenAendernUndAdminsBearbeiten2')}`)}
         <div class="manage-list" id="mzugaenge"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
              nichts geloescht wurde -- gefuellt wird sie von
              zeichneGrabsteinKnopf(), sobald die Liste vom Server da ist. */''}
         <div class="row-in" id="zug-weg-zeile" style="margin-top:8px"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Neuen Benutzer anlegen. Empfohlen: Der Benutzer
-          wählt sein Passwort selbst über einen <strong>Einladungslink</strong> (7 Tage gültig,
-          einmal nutzbar).</p>
+        <p class="desc" style="margin:16px 0 8px">${tH('karte.neuenBenutzerAnlegenEmpfohlenDer')} <strong>${tH('karte.einladungslink')}</strong> ${tH('karte.tageGueltigEinmalNutzbar')}</p>
         <div class="zug-neu">
-          <input class="input input-sm" id="zug-name" placeholder="Benutzername"
+          <input class="input input-sm" id="zug-name" placeholder="${esc(t('anmeldung.benutzername'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
           ${/* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die
                 Einladungsmail keinen Empfänger, und den Zugang gibt es in
                 diesem Augenblick noch nicht, also kann sie auch niemand selbst
                 eintragen. Ändern darf sie danach allein der Betroffene, unter
                 „Zugang“. Freiwillig — ohne sie bleibt alles beim Kopieren. */''}
-          <input class="input input-sm" id="zug-mail" type="email" placeholder="E-Mail (optional)"
+          <input class="input input-sm" id="zug-mail" type="email" placeholder="${esc(t('karte.eMailOptional'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
           <select class="input input-sm" id="zug-art">
-            <option value="link">Benutzer wählt Passwort selbst (per Link)</option>
-            <option value="passwort">Ich vergebe das erste Passwort</option>
+            <option value="link">${tH('karte.benutzerWaehltPasswortSelbstPer')}</option>
+            <option value="passwort">${tH('karte.ichVergebeDasErstePasswort')}</option>
           </select>
-          <input class="input input-sm" id="zug-pass" type="password" placeholder="Erstes Passwort"
+          <input class="input input-sm" id="zug-pass" type="password" placeholder="${esc(t('karte.erstesPasswort'))}"
             autocomplete="new-password" hidden>
           ${EIGENTUEMER ? `<select class="input input-sm" id="zug-rolle">
-            <option value="user">Benutzer</option>
-            <option value="admin">Admin</option>
-            <option value="eigentuemer">Eigentümer</option>
+            <option value="user">${tH('karte.benutzer')}</option>
+            <option value="admin">${tH('karte.admin')}</option>
+            <option value="eigentuemer">${tH('karte.eigentuemer')}</option>
           </select>` : ''}
-          <button class="btn btn-accent btn-sm" id="zug-anlegen">+ Anlegen und Link erzeugen</button>
+          <button class="btn btn-accent btn-sm" id="zug-anlegen">${tH('karte.anlegenUndLinkErzeugen')}</button>
         </div>
         <div id="zug-link"></div>
 
@@ -8765,9 +8736,9 @@ function karteZugaenge() {
               Zugänge über diese Karte und kommt an den Server nicht heran —
               ihm hilft der Name dessen, der es kann. */''}
         ${EIGENTUEMER
-          ? `<div style="margin-top:16px">${serverKasten('Kommt niemand mehr herein, setzt du ein Passwort auf dem Server zurück:', 'docker compose exec kriterion node zugang.js passwort <name>')}</div>`
-          : `<p class="desc" style="margin:16px 0 0">Kommt niemand mehr herein, kann der
-               <strong>Eigentümer</strong> das Passwort auf dem Server zurücksetzen.</p>`}
+          ? `<div style="margin-top:16px">${serverKasten(t('karte.kommtNiemandMehrHereinSetzt'), 'docker compose exec kriterion node zugang.js passwort <name>')}</div>`
+          : `<p class="desc" style="margin:16px 0 0">${tH('karte.kommtNiemandMehrHereinKann')}
+               <strong>${tH('karte.eigentuemer')}</strong> ${tH('karte.dasPasswortAufDemServer')}</p>`}
       </div>`;
 }
 function ruesteZugaengeAus() {
@@ -8793,7 +8764,7 @@ function ruesteZugaengeAus() {
     // Geleert, nicht bloß versteckt: ein Passwort, das man nicht mehr sieht,
     // aber noch mitschickt, wäre die unangenehmste Art von Überraschung.
     if (link) zugPass.value = '';
-    zugAnlegen.textContent = link ? '+ Anlegen und Link erzeugen' : '+ Anlegen';
+    zugAnlegen.textContent = link ? t('karte.anlegenUndLinkErzeugen') : t('eintrag.anlegen');
   };
   if (zugArt) zugArt.onchange = zugArtGesetzt;
   zugArtGesetzt();
@@ -8808,12 +8779,12 @@ function ruesteZugaengeAus() {
     if (einladen) koerper.einladen = true;
     else koerper.passwort = zugPass.value;
     if (rolleFeld) koerper.rolle = rolleFeld.value;
-    if (!koerper.username) return toast('Bitte einen Benutzernamen angeben.', true);
+    if (!koerper.username) return toast(t('anmeldung.benutzernameFehlt'), true);
     try {
       const d = await api('POST', '/api/users', koerper);
       nameFeld.value = ''; zugPass.value = '';
       if (mailFeld) mailFeld.value = '';
-      toast(einladen ? 'Benutzer angelegt — der Link steht unten' : 'Benutzer angelegt');
+      toast(einladen ? t('karte.benutzerAngelegtDerLinkSteht') : t('karte.benutzerAngelegt'));
       if (einladen) zeigeLink(d);
     } catch (e) { return toast(e.message, true); }
     zeichneZugaenge();
@@ -8826,7 +8797,9 @@ function ruesteZugaengeAus() {
      Oberflaeche zeigt nur, was dort auch durchkaeme -- ein Knopf, der
      zuverlaessig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
      Dieselbe Ueberlegung wie bei der Kriterienkarte. */
-  const ROLLENWORT = { user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer' };
+  /* SCHLUESSEL STATT SATZ, wie bei VERWALTUNGSART -- Modulebene. */
+  const ROLLENWORT = { user: 'karte.benutzer', admin: 'karte.admin', eigentuemer: 'karte.eigentuemer' };
+  const rollenWort = (rolle) => (ROLLENWORT[rolle] ? t(ROLLENWORT[rolle]) : rolle);
   const STATUSWORT = { aktiv: 'aktiv', gesperrt: 'gesperrt', geloescht: 'gelöscht' };
 
   /* DIE VOLLSTÄNDIGE ADRESSE BAUT DER BROWSER, nicht der Server. Der Server
@@ -8849,7 +8822,7 @@ function ruesteZugaengeAus() {
      wie HINTER_PROXY. */
   const linkHerkunft = (d) => d.linkQuelle === 'einstellung'
     ? 'aus der Server-Einstellung <code>OEFFENTLICHE_ADRESSE</code>'
-    : 'aus deinem Browser';
+    : t('karte.ausDeinemBrowser');
 
   /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
      IHM. Das ist die sichtbare Hälfte des Satzes, der über der ganzen Stufe
@@ -8866,14 +8839,13 @@ function ruesteZugaengeAus() {
        sie aus demselben Grund nicht mit. Was der Admin wissen muss, ist, DASS
        die Mail hinausging. */
     if (d.versand === 'ok')
-      return `<p class="zug-versand zug-versand-ok">Die Mail ist an die hinterlegte Adresse
-        hinausgegangen. Der Link steht trotzdem hier — falls sie nicht ankommt.</p>`;
+      return `<p class="zug-versand zug-versand-ok">${tH('karte.dieMailIstAnDie')}</p>`;
     if (d.versand === 'fehlgeschlagen')
-      return `<p class="zug-versand zug-versand-fehl"><strong>Versand fehlgeschlagen</strong> —
-        ${esc(d.versandGrund || 'ohne Angabe')}. Gib den Link von Hand weiter.</p>`;
+      return `<p class="zug-versand zug-versand-fehl"><strong>${tH('karte.versandFehlgeschlagen')}</strong> —
+        ${esc(d.versandGrund || t('karte.ohneAngabe'))}${tH('karte.gibDenLinkVonHand')}</p>`;
     if (d.versand === 'aus')
-      return `<p class="zug-versand">Es wurde keine Mail verschickt: ${esc(d.versandGrund || '')}
-        Gib den Link von Hand weiter.</p>`;
+      return `<p class="zug-versand">${tH('karte.esWurdeKeineMailVerschickt')} ${esc(d.versandGrund || '')}
+        ${tH('karte.gibDenLinkVonHand2')}</p>`;
     return '';
   };
 
@@ -8899,14 +8871,13 @@ function ruesteZugaengeAus() {
     // Sonst baut ihn der Browser wie bisher.
     const adresse = d.link || baueEinladungsAdresse(d.token);
     box.innerHTML = `<div class="warn-box zug-linkbox" style="margin:12px 0 0">
-      <strong>${d.zweck === 'ruecksetzung' ? 'Link zum Zurücksetzen' : 'Einladungslink'}
-      für „${esc(d.username || '')}“ — wird nur einmal angezeigt.</strong>
-      Wer den Link hat, kann das Passwort setzen: <strong>${d.tage || 7} Tage</strong> gültig,
-      <strong>einmal</strong> nutzbar, nach dem Öffnen <strong>${d.minuten || 15} Minuten</strong> Zeit.
-      Nur an die richtige Person weitergeben.
+      <strong>${d.zweck === 'ruecksetzung' ? t('karte.linkZumZuruecksetzen') : t('karte.einladungslink')}
+      ${tH('karte.fuer')}${esc(d.username || '')}${tH('karte.wirdNurEinmalAngezeigt')}</strong>
+      ${tH('karte.werDenLinkHatKann')} <strong>${d.tage || 7} ${tH('karte.tage2')}</strong> ${tH('karte.gueltig')}
+      <strong>${tH('karte.einmal')}</strong> ${tH('karte.nutzbarNachDemOeffnen')} <strong>${d.minuten || 15} ${tH('karte.minuten')}</strong> ${tH('karte.zeitNurAnDieRichtige')}
       <div class="zug-linkzeile"><input class="input input-sm" id="zug-link-feld" readonly
-        value="${esc(adresse)}"><button class="btn btn-sm" id="zug-link-kopie">Kopieren</button></div>
-      <p class="zug-linkherkunft" id="zug-link-herkunft">Dieser Link zeigt auf
+        value="${esc(adresse)}"><button class="btn btn-sm" id="zug-link-kopie">${tH('karte.kopieren')}</button></div>
+      <p class="zug-linkherkunft" id="zug-link-herkunft">${tH('karte.dieserLinkZeigtAuf')}
         <code>${esc(new URL(adresse).origin)}</code> — <strong>${linkHerkunft(d)}</strong>.</p>
       ${versandZeile(d)}
     </div>`;
@@ -8917,9 +8888,9 @@ function ruesteZugaengeAus() {
       // Die Zwischenablage über das Skript ist nicht überall erlaubt; das
       // markierte Feld daneben ist der Weg, der immer trägt.
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(adresse).then(() => toast('Link kopiert'),
-          () => toast('Bitte von Hand kopieren — der Link ist markiert.', true));
-      } else toast('Bitte von Hand kopieren — der Link ist markiert.', true);
+        navigator.clipboard.writeText(adresse).then(() => toast(t('karte.linkKopiert')),
+          () => toast(t('karte.bitteVonHandKopierenDer'), true));
+      } else toast(t('karte.bitteVonHandKopierenDer'), true);
     };
   }
 
@@ -8974,8 +8945,8 @@ function ruesteZugaengeAus() {
              dessen Passwort noch niemand gesetzt hat, ist er orange und der
              Hinweistext sagt, dass die Einladung offen ist. Das Wort bleibt
              daneben stehen: ein Punkt allein liest kein Vorleseprogramm vor. */''}
-        <span class="zug-rolle"><span class="rolle-marke ${esc(z.role)}">${esc(ROLLENWORT[z.role] || z.role)}</span></span>
-        <span class="zug-status" title="${wartet ? 'Einladung offen' : esc(STATUSWORT[z.status] || z.status)}"><span
+        <span class="zug-rolle"><span class="rolle-marke ${esc(z.role)}">${esc(rollenWort(z.role))}</span></span>
+        <span class="zug-status" title="${wartet ? t('karte.einladungOffen') : esc(STATUSWORT[z.status] || z.status)}"><span
           class="zug-punkt ${wartet ? 'eingeladen' : esc(z.status)}"></span>${esc(STATUSWORT[z.status] || z.status)}${
           wartet ? ' <span class="zug-wartet">· noch kein Passwort</span>' : ''}</span>
         <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
@@ -8984,35 +8955,35 @@ function ruesteZugaengeAus() {
         werkzeug.className = 'zug-akt';
         werkzeug.innerHTML =
           `${daten.darfRollen ? `<select class="input input-sm zug-r">
-             <option value="user"${z.role === 'user' ? ' selected' : ''}>Benutzer</option>
-             <option value="admin"${z.role === 'admin' ? ' selected' : ''}>Admin</option>
-             <option value="eigentuemer"${z.role === 'eigentuemer' ? ' selected' : ''}>Eigentümer</option>
+             <option value="user"${z.role === 'user' ? ' selected' : ''}>${tH('karte.benutzer')}</option>
+             <option value="admin"${z.role === 'admin' ? ' selected' : ''}>${tH('karte.admin')}</option>
+             <option value="eigentuemer"${z.role === 'eigentuemer' ? ' selected' : ''}>${tH('karte.eigentuemer')}</option>
            </select>` : ''}
-           <button class="mact zug-s" title="${z.status === 'aktiv' ? 'Sperren' : 'Entsperren'}">${
+           <button class="mact zug-s" title="${z.status === 'aktiv' ? t('karte.sperren') : t('karte.entsperren')}">${
              z.status === 'aktiv' ? ICON_SPERREN : ICON_HAKEN}</button>
-           <button class="mact zug-l" title="${z.ohnePasswort ? 'Einladungslink erzeugen'
-             : 'Link zum Zurücksetzen erzeugen'}">${ICON_LINK}</button>
-           <button class="mact zug-p" title="Passwort vorgeben">${ICON_SCHLUESSEL}</button>
-           <button class="mact rm zug-x" title="Benutzer löschen">${ICON_KREUZ}</button>`;
+           <button class="mact zug-l" title="${z.ohnePasswort ? t('karte.einladungslinkErzeugen')
+             : t('karte.linkZumZuruecksetzenErzeugen')}">${ICON_LINK}</button>
+           <button class="mact zug-p" title="${esc(t('karte.passwortVorgeben'))}">${ICON_SCHLUESSEL}</button>
+           <button class="mact rm zug-x" title="${esc(t('dialog.benutzerLoeschen2'))}">${ICON_KREUZ}</button>`;
         row.appendChild(werkzeug);
 
         const rolleFeld = werkzeug.querySelector('.zug-r');
         if (rolleFeld) rolleFeld.onchange = async () => {
           // Vor dem ersten await lesen: danach ist das Feld schon neu gezeichnet.
           const neu = rolleFeld.value;
-          if (!await zweiteBestaetigung('rolle', z.id, 'Rolle vergeben',
-            `„${z.username}“ bekommt die Rolle ${ROLLENWORT[neu] || neu}.`)) { zeichneZugaenge(); return; }
-          try { await api('PUT', `/api/users/${z.id}`, { rolle: neu }); toast('Rolle geändert'); }
+          if (!await zweiteBestaetigung('rolle', z.id, t('karte.rolleVergeben'),
+            t('karte.bekommtDieRolle', { username: z.username, rolle: rollenWort(neu) }))) { zeichneZugaenge(); return; }
+          try { await api('PUT', `/api/users/${z.id}`, { rolle: neu }); toast(t('karte.rolleGeaendert')); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
         };
 
         werkzeug.querySelector('.zug-s').onclick = async () => {
           const neu = z.status === 'aktiv' ? 'gesperrt' : 'aktiv';
-          if (neu === 'gesperrt' && !await confirmBox(`„${z.username}“ sperren?`,
-            'Der Benutzer wird abgemeldet und kann sich nicht mehr anmelden. Alle Beiträge bleiben erhalten.',
-            'Sperren')) return;
-          try { await api('PUT', `/api/users/${z.id}`, { status: neu }); toast(neu === 'aktiv' ? 'Entsperrt' : 'Gesperrt'); }
+          if (neu === 'gesperrt' && !await confirmBox(t('karte.sperren2', { username: z.username }),
+            t('karte.derBenutzerWirdAbgemeldetUnd'),
+            t('karte.sperren'))) return;
+          try { await api('PUT', `/api/users/${z.id}`, { status: neu }); toast(neu === 'aktiv' ? t('karte.entsperrt') : t('karte.gesperrt')); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
         };
@@ -9024,24 +8995,24 @@ function ruesteZugaengeAus() {
            danebensteht, ist er der kürzere. */
         werkzeug.querySelector('.zug-l').onclick = async () => {
           const zweck = z.ohnePasswort ? 'einladung' : 'ruecksetzung';
-          if (zweck === 'ruecksetzung' && !await confirmBox('Link zum Zurücksetzen erzeugen?',
-            `Das bisherige Passwort von „${z.username}“ bleibt gültig, bis der Link eingelöst wird. ` +
-            `Ein früher erzeugter Link gilt danach nicht mehr.`, 'Erzeugen')) return;
+          if (zweck === 'ruecksetzung' && !await confirmBox(t('karte.linkZumZuruecksetzenErzeugen2'),
+            t('karte.dasBisherigePasswortVonBleibt', { username: z.username }) +
+            t('karte.einFrueherErzeugterLinkGilt'), t('karte.erzeugen'))) return;
           if (!await zweiteBestaetigung('link', z.id,
-            zweck === 'ruecksetzung' ? 'Link zum Zurücksetzen' : 'Einladungslink',
-            `Wer den Link hat, kann das Passwort von „${z.username}“ setzen.`)) return;
+            zweck === 'ruecksetzung' ? t('karte.linkZumZuruecksetzen') : t('karte.einladungslink'),
+            t('karte.werDenLinkHatKann2', { username: z.username }))) return;
           try { zeigeLink(await api('POST', `/api/users/${z.id}/token`, { zweck })); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
         };
 
         werkzeug.querySelector('.zug-p').onclick = async () => {
-          const neu = await neuesPasswortFenster(`Passwort für „${z.username}“ setzen`,
-            `Mindestens ${MIN_PASSWORT} Zeichen. Alle Sitzungen dieses Benutzers werden beendet.`);
+          const neu = await neuesPasswortFenster(t('karte.passwortFuerSetzen', { username: z.username }),
+            t('karte.mindestensZeichenAlleSitzungen', { minPasswort: MIN_PASSWORT }));
           if (neu === null || !neu.trim()) return;
-          if (!await zweiteBestaetigung('passwort', z.id, 'Passwort vorgeben',
-            `„${z.username}“ bekommt ein neues Passwort; alle Sitzungen dieses Benutzers werden beendet.`)) return;
-          try { await api('PUT', `/api/users/${z.id}`, { passwort: neu }); toast('Passwort gesetzt'); }
+          if (!await zweiteBestaetigung('passwort', z.id, t('karte.passwortVorgeben'),
+            t('karte.bekommtEinNeuesPasswortAlle', { username: z.username }))) return;
+          try { await api('PUT', `/api/users/${z.id}`, { passwort: neu }); toast(t('karte.passwortGesetzt')); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
         };
@@ -9059,11 +9030,11 @@ function ruesteZugaengeAus() {
              0.12.4). Danach, wie bisher, die Passwortabfrage. */
           const wahl = await benutzerLoeschenFenster(z.username, z.id, b);
           if (!wahl) return;
-          if (!await zweiteBestaetigung('entfernen', z.id, 'Benutzer löschen',
-            `„${z.username}“ wird gelöscht; der Name wird frei. Das lässt sich nicht rückgängig machen.`)) return;
+          if (!await zweiteBestaetigung('entfernen', z.id, t('dialog.benutzerLoeschen2'),
+            t('karte.wirdGeloeschtDerNameWird', { username: z.username }))) return;
           try {
             await api('DELETE', `/api/users/${z.id}?eintraege=${wahl.eintraege ? 1 : 0}&beitraege=${wahl.beitraege ? 1 : 0}`);
-            toast('Benutzer gelöscht');
+            toast(t('karte.benutzerGeloescht'));
           } catch (e) { toast(e.message, true); }
           zeichneZugaenge();
         };
@@ -9071,7 +9042,7 @@ function ruesteZugaengeAus() {
       box.appendChild(row);
     }
     if (!daten.zugaenge.some(z => z.status !== 'geloescht'))
-      box.innerHTML = `<span class="hint">Noch keine Benutzer.</span>`;
+      box.innerHTML = `<span class="hint">${tH('karte.nochKeineBenutzer')}</span>`;
     zeichneGrabsteinKnopf();
   }
 
@@ -9092,8 +9063,8 @@ function ruesteZugaengeAus() {
     const b = zeile.ownerDocument.createElement('button');
     b.className = 'btn btn-ghost btn-sm';
     b.id = 'zug-weg-auf';
-    b.textContent = `Gelöschte Benutzer (${n})`;
-    b.title = 'Gelöschte Benutzer ansehen';
+    b.textContent = t('karte.geloeschteBenutzer', { n: n });
+    b.title = t('karte.geloeschteBenutzerAnsehen');
     b.onclick = zeigeGrabsteine;
     zeile.appendChild(b);
   }
@@ -9102,12 +9073,10 @@ function ruesteZugaengeAus() {
     const dok = document;
     const bd = dok.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>Gelöschte Benutzer</h2>
-      <p>Der Name ist wieder frei und wird nicht gespeichert; ihre Beiträge stehen unter
-      „Gelöschter Benutzer &lt;Nummer&gt;“. Ein gelöschter Benutzer lässt sich nicht
-      wiederherstellen — wer nur aussperren will, <strong>sperrt</strong>.</p>
+    bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>${tH('karte.geloeschteBenutzer2')}</h2>
+      <p>${tH('karte.derNameIstWiederFrei')} <strong>${tH('karte.sperrt')}</strong>.</p>
       <div class="manage-list" id="grabsteinliste"></div>
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('liste.schliessen')}</button></div></div>`;
     dok.body.appendChild(bd);
     const zu = () => { bd.remove(); dok.removeEventListener('keydown', onKey, true); };
     /* Escape schliesst nur den OBERSTEN Dialog -- dieselbe Regel wie bei
@@ -9124,7 +9093,7 @@ function ruesteZugaengeAus() {
     bd.onclick = e => { if (e.target === bd) zu(); };
     const box = bd.querySelector('#grabsteinliste');
     if (!zugGrabsteine.length) {
-      box.innerHTML = `<span class="hint">Es wurde noch kein Benutzer gelöscht.</span>`;
+      box.innerHTML = `<span class="hint">${tH('karte.esWurdeNochKeinBenutzer')}</span>`;
       return;
     }
     for (const z of zugGrabsteine) {
@@ -9146,28 +9115,23 @@ function ruesteZugaengeAus() {
 function karteAnfragen(geholt) {
   const { anfragen } = geholt;
   return `<div class="sys-card breit">
-        <h3>Anfragen</h3>
-        <p class="desc"><strong>Registrierung:</strong> Wer sich auf der Anmeldeseite mit Name und
-          E-Mail meldet und die Adresse bestätigt, erscheint hier. Ein Admin schaltet frei oder
-          lehnt ab.${anfragen.an ? '' : ' <strong>Zurzeit ist die Registrierung aus.</strong>'}</p>
-        ${mehr(`Unbestätigte Anfragen verfallen nach ${anfragen.stunden} Stunden. <strong>Freischalten</strong>
-          legt einen Benutzer an und erzeugt den Einladungslink. <strong>Ablehnen</strong> entfernt
-          die Anfrage; es geht keine Nachricht hinaus.`)}
-        <div class="kv"><span class="k">Registrierung</span><span class="v" id="anf-zustand">${
+        <h3>${tH('karte.anfragen')}</h3>
+        <p class="desc"><strong>${tH('karte.registrierung')}</strong> ${tH('karte.werSichAufDerAnmeldeseite')}${anfragen.an ? '' : ' <strong>Zurzeit ist die Registrierung aus.</strong>'}</p>
+        ${mehr(`${tH('karte.unbestaetigteAnfragenVerfallenNach', { stunden: anfragen.stunden })} <strong>${tH('karte.freischalten')}</strong>
+          ${tH('karte.legtEinenBenutzerAnUnd')} <strong>${tH('karte.ablehnen')}</strong> ${tH('karte.entferntDieAnfrageEsGeht')}`)}
+        <div class="kv"><span class="k">${tH('karte.registrierung2')}</span><span class="v" id="anf-zustand">${
           anfragen.an ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>'
         }</span></div>
-        <div class="kv"><span class="k">Offene Anfragen</span><span class="v" id="anf-belegt">${
-          anfragen.belegt} von höchstens ${anfragen.deckel}</span></div>
+        <div class="kv"><span class="k">${tH('karte.offeneAnfragen')}</span><span class="v" id="anf-belegt">${tH('karte.vonHoechstens', { belegt: anfragen.belegt, deckel: anfragen.deckel })}</span></div>
         ${anfragen.an && !anfragen.versandBereit ? `<p class="warn-box" id="anf-kaputt" style="margin:10px 0 0">
-          <strong>Der Mailversand funktioniert gerade nicht — die Registrierung bleibt eingeschaltet,
-          aber niemand kann eine Anfrage stellen.</strong> ${esc(anfragen.versandGrund)}</p>` : ''}
+          <strong>${tH('karte.derMailversandFunktioniertGerade')}</strong> ${esc(anfragen.versandGrund)}</p>` : ''}
         ${!anfragen.an && !anfragen.versandBereit ? `<p class="desc" id="anf-nichtbereit">
-          <strong>Einschalten ist erst möglich, wenn der Mailversand eingerichtet ist.</strong>
+          <strong>${tH('karte.einschaltenIstErstMoeglichWenn')}</strong>
           ${esc(anfragen.versandGrund)}</p>` : ''}
         <div class="row-in" style="margin-top:10px">
           <button class="btn btn-sm${anfragen.an ? '' : ' btn-accent'}" id="anf-schalter"${
             !anfragen.an && !anfragen.versandBereit ? ' disabled' : ''}>${
-            anfragen.an ? 'Registrierung ausschalten' : 'Registrierung einschalten'}</button>
+            anfragen.an ? t('karte.registrierungAusschalten') : t('karte.registrierungEinschalten')}</button>
         </div>
         <div class="manage-list" id="manfragen" style="margin-top:14px"></div>
         <div id="anf-link"></div>
@@ -9188,7 +9152,7 @@ function ruesteAnfragenAus(geholt) {
          Admin, der eben umgelegt hat, einen Abschnitt weiter noch die alte
          Lage -- eine zweite Wahrheit, und zwar die falsche. */
       REGISTRIERUNG = !!d.an;
-      toast(neu ? 'Registrierung eingeschaltet' : 'Registrierung ausgeschaltet');
+      toast(neu ? t('karte.registrierungEingeschaltet') : t('karte.registrierungAusgeschaltet'));
       zeichneAnfragen(d);
       const kaputt = document.getElementById('anf-kaputt');
       if (kaputt && (!d.an || d.versandBereit)) kaputt.remove();
@@ -9211,10 +9175,10 @@ function ruesteAnfragenAus(geholt) {
     if (zustand) zustand.innerHTML = stand.an
       ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>';
     const belegt = document.getElementById('anf-belegt');
-    if (belegt) belegt.textContent = `${stand.belegt} von höchstens ${stand.deckel}`;
+    if (belegt) belegt.textContent = t('karte.vonHoechstens', { belegt: stand.belegt, deckel: stand.deckel });
     const schalter = document.getElementById('anf-schalter');
     if (schalter) {
-      schalter.textContent = stand.an ? 'Registrierung ausschalten' : 'Registrierung einschalten';
+      schalter.textContent = stand.an ? t('karte.registrierungAusschalten') : t('karte.registrierungEinschalten');
       schalter.disabled = !stand.an && !stand.versandBereit;
     }
     box.innerHTML = '';
@@ -9235,32 +9199,32 @@ function ruesteAnfragenAus(geholt) {
          Systembereich, an der etwas steht, das ein Fremder getippt hat. */
       row.innerHTML = `<span class="mname">${esc(a.username)}</span>
         <span class="zug-rolle">${esc(a.email)}</span>
-        <span class="zug-status">angefragt ${esc(fmtDate(a.created_at))}</span>
-        <span class="mcount">bestätigt ${esc(fmtDate(a.bestaetigt_am))}</span>`;
+        <span class="zug-status">${tH('karte.angefragt', { created_at: fmtDate(a.created_at) })}</span>
+        <span class="mcount">${tH('karte.bestaetigt', { bestaetigt_am: fmtDate(a.bestaetigt_am) })}</span>`;
       const werkzeug = dok.createElement('span');
       werkzeug.className = 'zug-akt';
       werkzeug.innerHTML =
-        `<button class="mact anf-frei" title="Freischalten — legt einen Benutzer an">${ICON_HAKEN}</button>
-         <button class="mact rm anf-ab" title="Ablehnen — entfernt die Anfrage">${ICON_KREUZ}</button>`;
+        `<button class="mact anf-frei" title="${esc(t('karte.freischaltenLegtEinenBenutzerAn'))}">${ICON_HAKEN}</button>
+         <button class="mact rm anf-ab" title="${esc(t('karte.ablehnenEntferntDieAnfrage'))}">${ICON_KREUZ}</button>`;
       row.appendChild(werkzeug);
       werkzeug.querySelector('.anf-frei').onclick = async () => {
-        if (!await confirmBox(`„${a.username}“ freischalten?`,
-          `Es entsteht ein Benutzer mit der Rolle „Benutzer“; der Einladungslink geht an ${a.email}.`,
-          'Freischalten', 'accent')) return;
+        if (!await confirmBox(t('karte.freischalten2', { username: a.username }),
+          t('karte.esEntstehtEinBenutzerMit', { email: a.email }),
+          t('karte.freischalten'), 'accent')) return;
         try {
           const d = await api('POST', `/api/anfragen/${a.id}/frei`);
-          toast('Freigeschaltet — der Link steht unten');
+          toast(t('karte.freigeschaltetDerLinkStehtUnten'));
           zeigeLink(d, 'anf-link');
           zeichneAnfragen(d);
           zeichneZugaenge();
         } catch (e) { toast(e.message, true); }
       };
       werkzeug.querySelector('.anf-ab').onclick = async () => {
-        if (!await confirmBox(`Anfrage von „${a.username}“ ablehnen?`,
-          'Die Anfrage wird entfernt; es geht keine Nachricht hinaus.', 'Ablehnen')) return;
+        if (!await confirmBox(t('karte.anfrageVonAblehnen', { username: a.username }),
+          t('karte.dieAnfrageWirdEntferntEs'), t('karte.ablehnen'))) return;
         try {
           const d = await api('DELETE', `/api/anfragen/${a.id}`);
-          toast('Anfrage abgelehnt');
+          toast(t('karte.anfrageAbgelehnt'));
           zeichneAnfragen(d);
         } catch (e) { toast(e.message, true); }
       };
@@ -9273,11 +9237,9 @@ function ruesteAnfragenAus(geholt) {
 function karteProtokoll(geholt) {
   const { protokoll } = geholt;
   return `<div class="sys-card breit">
-        <h3>Sicherheitsprotokoll</h3>
-        <p class="desc">Anmeldungen, Benutzer und Eingriffe an der Installation. <strong>Nicht
-          enthalten:</strong> Inhalte, ${esc(V.bewertungMehrzahl)}, IP-Adresse, Browser.</p>
-        <p class="desc">Die Zeilen werden nach <strong>${protokoll.tage} Tagen</strong> automatisch
-          gelöscht; ein Löschen von Hand gibt es nicht.</p>
+        <h3>${tH('karte.sicherheitsprotokoll')}</h3>
+        <p class="desc">${tH('karte.anmeldungenBenutzerUndEingriffeAn')} <strong>${tH('karte.nichtEnthalten')}</strong> ${tH('karte.inhalteIPAdresseBrowser')}</p>
+        <p class="desc">${tH('karte.dieZeilenWerdenNach')} <strong>${tH('karte.tagen', { tage: protokoll.tage })}</strong> ${tH('karte.automatischGeloeschtEinLoeschenVon')}</p>
         ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
              dieser Instanz -- man waehlt, bevor man liest. Gezeichnet wird sie
              aus einer geschlossenen Liste; die Auswahl geht an den Server,
@@ -9298,46 +9260,47 @@ function ruesteProtokollAus(geholt) {
      wie bei den Verwaltungskarten und aus demselben Grund (Stolperstein 118).
      JEDE LESESTELLE IST ABGEFANGEN: fehlt der Gegenstand, bleibt die Karte
      leer und sagt es, statt den Lauf abzureissen. */
+  // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const VORGANGSWORT = {
-    'anmeldung.ok': 'Angemeldet',
-    'anmeldung.fehl': 'Anmeldung gescheitert',
-    'bestaetigung.fehl': 'Bestätigung gescheitert',
-    'zugang.neu': 'Benutzer angelegt',
-    'zugang.rolle': 'Rolle vergeben',
-    'zugang.passwort': 'Passwort gesetzt',
-    'zugang.weg': 'Benutzer gelöscht',
-    'zugang.selbst': 'Eigenes Konto geändert',
-    'link.neu': 'Link erzeugt',
-    'link.ein': 'Link eingelöst',
+    'anmeldung.ok': 'karte.angemeldet2',
+    'anmeldung.fehl': 'karte.anmeldungGescheitert',
+    'bestaetigung.fehl': 'karte.bestaetigungGescheitert',
+    'zugang.neu': 'karte.benutzerAngelegt',
+    'zugang.rolle': 'karte.rolleVergeben',
+    'zugang.passwort': 'karte.passwortGesetzt',
+    'zugang.weg': 'karte.benutzerGeloescht',
+    'zugang.selbst': 'karte.eigenesKontoGeaendert',
+    'link.neu': 'karte.linkErzeugt',
+    'link.ein': 'karte.linkEingeloest',
     /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. Sie fielen auf den Rueckfall `|| z.was`
        und standen als roher Schluessel am Bildschirm -- "anfrage.frei" statt
        eines Wortes. Zwanzig Vorgaenge und vierzehn Woerter: der Filter dieser
        Runde macht die Luecke unuebersehbar, gefehlt hat sie seit 0.9.1 und
        0.10.0. */
-    'anfrage.frei': 'Anfrage freigeschaltet',
-    'anfrage.ab': 'Anfrage abgelehnt',
-    'zweifaktor.an': 'Zweiter Faktor eingeschaltet',
-    'zweifaktor.aus': 'Zweiter Faktor ausgeschaltet',
-    'zweifaktor.wieder': 'Wiederherstellungscode verbraucht',
-    'export': 'Export erstellt',
-    'import': 'Import eingespielt',
-    'sicherung': 'Sicherung geschrieben',
+    'anfrage.frei': 'karte.anfrageFreigeschaltet',
+    'anfrage.ab': 'karte.anfrageAbgelehnt',
+    'zweifaktor.an': 'karte.zweiterFaktorEingeschaltet',
+    'zweifaktor.aus': 'karte.zweiterFaktorAusgeschaltet',
+    'zweifaktor.wieder': 'karte.wiederherstellungscodeVerbraucht',
+    'export': 'karte.exportErstellt',
+    'import': 'karte.importEingespielt',
+    'sicherung': 'karte.sicherungGeschrieben',
     /* EINE ZEILE JE ENTFERNTER KOPIE, deshalb der Singular: vier entfernte
        Kopien sind vier Zeilen. Die Zahl steht damit in der Tabelle, ohne dass
        es eine Spalte dafuer braeuchte -- die Begruendung steht in auth.js an
        der Liste. */
-    'sicherung.weg': 'Alte Sicherung gelöscht',
+    'sicherung.weg': 'karte.alteSicherungGeloescht',
     // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
     // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
     // gewechselt wird auf dem Wirt.
-    'schluessel': 'Schlüssel gewechselt'
+    'schluessel': 'karte.schluesselGewechselt'
   };
   // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "gesperrt"
   // und "entsperrt" sind zwei verschiedene Aussagen und sollen auch zwei
   // verschiedene Zeilen sein.
   const vorgangsWort = (z) => z.was === 'zugang.status'
-    ? (z.merkmal === 'aktiv' ? 'Benutzer entsperrt' : 'Benutzer gesperrt')
-    : (VORGANGSWORT[z.was] || z.was);
+    ? (z.merkmal === 'aktiv' ? t('karte.benutzerEntsperrt') : t('karte.benutzerGesperrt'))
+    : (VORGANGSWORT[z.was] ? t(VORGANGSWORT[z.was]) : z.was);
   // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
   // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
   /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- merkmalsWort() faellt still
@@ -9353,14 +9316,16 @@ function ruesteProtokollAus(geholt) {
      schon der Vorgang ("Benutzer gesperrt" / "Benutzer entsperrt"), und zweimal
      dasselbe in einer Zeile ist eines zu viel. Ein Waechter im Pruefstand
      nimmt genau diese beiden aus und verlangt fuer jedes uebrige ein Wort. */
+  // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const MERKMALSWORT = {
-    user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer',
-    einladung: 'Einladung', ruecksetzung: 'Rücksetzung',
+    user: 'karte.benutzer', admin: 'karte.admin', eigentuemer: 'karte.eigentuemer',
+    einladung: 'karte.einladung', ruecksetzung: 'karte.ruecksetzung',
     merge: 'zusammengeführt', replace: 'ersetzend',
-    name: 'Name', passwort: 'Passwort', adresse: 'Adresse',
-    beides: 'mehrere Angaben', teil: 'in Teilen'
+    name: 'karte.name2', passwort: 'anmeldung.passwort', adresse: 'karte.adresse',
+    beides: 'karte.mehrereAngaben', teil: 'karte.inTeilen'
   };
-  const merkmalsWort = (z) => (z.was === 'zugang.status' ? '' : (MERKMALSWORT[z.merkmal] || ''));
+  const merkmalsWort = (z) => (z.was === 'zugang.status' || !MERKMALSWORT[z.merkmal]
+    ? '' : t(MERKMALSWORT[z.merkmal]));
 
   /* WER GEHANDELT HAT. Eine leere Nummer heisst "per Kommandozeile am Server"
      (zugang.js auf dem Wirt) -- mit genau einer Ausnahme, und die ist am
@@ -9368,10 +9333,10 @@ function ruesteProtokollAus(geholt) {
      angemeldet. */
   const protHandelnder = (z) => {
     if (z.wer != null) return verfasserName({ id: z.wer, name: z.werName, geloescht: z.werName == null });
-    return z.was === 'anmeldung.fehl' ? '—' : 'per Kommandozeile am Server';
+    return z.was === 'anmeldung.fehl' ? '—' : t('karte.perKommandozeileAmServer');
   };
   const protZiel = (z) => {
-    if (z.ziel == null) return z.was === 'anmeldung.fehl' ? 'unbekannter Name' : '';
+    if (z.ziel == null) return z.was === 'anmeldung.fehl' ? t('karte.unbekannterName') : '';
     if (z.ziel === z.wer) return '';
     return verfasserName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
   };
@@ -9383,21 +9348,22 @@ function ruesteProtokollAus(geholt) {
      auch die gescheiterte zweite Bestaetigung, und beide sagen dasselbe --
      jemand konnte an der Tuer nicht belegen, wer er ist. Ein Name, der nur die
      Haelfte nennt, waere falsch. */
+  // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const PROTOKOLL_ANSICHT = [
-    ['', 'Alle'],
-    ['gescheitert', 'Gescheitert'],
-    ['anmeldungen', 'Anmeldungen'],
-    ['zugaenge', 'Benutzer'],
-    ['zweifaktor', 'Zweiter Faktor'],
-    ['bestand', 'Datenbank']
+    ['', 'liste.alle'],
+    ['gescheitert', 'karte.gescheitert'],
+    ['anmeldungen', 'karte.anmeldungen'],
+    ['zugaenge', 'karte.benutzer'],
+    ['zweifaktor', 'karte.zweiterFaktor'],
+    ['bestand', 'karte.datenbank']
   ];
   const PROTOKOLL_ANSICHT_HILFE = {
-    '': 'Alle Vorgänge, die jüngsten zuerst',
-    gescheitert: 'Gescheiterte Anmeldungen und gescheiterte Bestätigungen',
-    anmeldungen: 'Gelungene Anmeldungen',
-    zugaenge: 'Benutzer angelegt, gesperrt, gelöscht; Rollen, Links, Anfragen',
-    zweifaktor: 'Ein- und ausgeschaltet, verbrauchte Wiederherstellungscodes',
-    bestand: 'Export, Import, Sicherung, gelöschte Sicherungen, Schlüsselwechsel'
+    '': 'karte.alleVorgaengeDieJuengstenZuerst',
+    gescheitert: 'karte.gescheiterteAnmeldungenUnd',
+    anmeldungen: 'karte.gelungeneAnmeldungen',
+    zugaenge: 'karte.benutzerAngelegtGesperrtGeloescht',
+    zweifaktor: 'karte.einUndAusgeschaltetVerbrauchte',
+    bestand: 'karte.exportImportSicherungGeloeschte'
   };
   // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
   // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
@@ -9414,7 +9380,7 @@ function ruesteProtokollAus(geholt) {
      einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
   function springeZuZugang(id) {
     const zeile = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
-    if (!zeile) return toast('Diesen Benutzer gibt es in der Liste nicht mehr.', true);
+    if (!zeile) return toast(t('karte.diesenBenutzerGibtEsIn'), true);
     zeile.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
     zeile.classList.add('mrow-blitz');
     setTimeout(() => zeile.classList.remove('mrow-blitz'), 1600);
@@ -9436,7 +9402,7 @@ function ruesteProtokollAus(geholt) {
     b.className = 'link-btn prot-sprung';
     b.dataset.mid = String(id);
     b.textContent = text;
-    b.title = 'Zu diesem Benutzer springen';
+    b.title = t('karte.zuDiesemBenutzerSpringen');
     b.onclick = () => springeZuZugang(id);
     feld.appendChild(b);
     return feld;
@@ -9456,8 +9422,8 @@ function ruesteProtokollAus(geholt) {
       const leer = n === 0 && protokollGruppe !== schluessel;
       b.className = 'pill' + (protokollGruppe === schluessel ? ' on' : '') + (leer ? ' leer' : '');
       b.dataset.gruppe = schluessel;
-      b.innerHTML = `${esc(wort)}<span class="n">${n}</span>`;
-      b.title = PROTOKOLL_ANSICHT_HILFE[schluessel] || '';
+      b.innerHTML = `${esc(t(wort))}<span class="n">${n}</span>`;
+      b.title = PROTOKOLL_ANSICHT_HILFE[schluessel] ? t(PROTOKOLL_ANSICHT_HILFE[schluessel]) : '';
       b.onclick = () => protokollNeu(schluessel);
       box.appendChild(b);
     }
@@ -9495,8 +9461,8 @@ function ruesteProtokollAus(geholt) {
          unter einem Filter eine Falschaussage: es gibt Vorgaenge, nur keinen
          dieser Art. */
       box.innerHTML = protokollGruppe
-        ? `<p class="hint">Kein Vorgang dieser Art in den letzten ${esc(String(d && d.tage || ''))} Tagen.</p>`
-        : `<p class="hint">Noch kein Vorgang festgehalten.</p>`;
+        ? `<p class="hint">${tH('karte.keinVorgangDieserArtIn')} ${esc(String(d && d.tage || ''))} ${tH('karte.tagen2')}</p>`
+        : `<p class="hint">${tH('karte.nochKeinVorgangFestgehalten')}</p>`;
       if (fuss) fuss.textContent = '';
       return;
     }
@@ -9533,10 +9499,10 @@ function ruesteProtokollAus(geholt) {
     }
     if (fuss) {
       const gesamt = Number(d.gesamt) || zeilen.length;
-      const art = protokollGruppe ? ' dieser Art' : '';
+      const art = protokollGruppe ? t('karte.dieserArt') : '';
       fuss.textContent = gesamt > zeilen.length
-        ? `Die ${zeilen.length} jüngsten von ${gesamt} Vorgängen${art}.`
-        : `${gesamt} ${gesamt === 1 ? 'Vorgang' : 'Vorgänge'}${art}.`;
+        ? t('karte.dieJuengstenVonVorgaengen', { length: zeilen.length, gesamt: gesamt, art: art })
+        : `${gesamt} ${gesamt === 1 ? t('karte.vorgang') : t('karte.vorgaenge')}${art}.`;
     }
   }
 
@@ -9552,7 +9518,7 @@ function karteMailversand(geholt) {
      Zeile, „Eigener Server · smtp.beispiel.de:587 · STARTTLS", statt mit
      Feldern. */
   return `<div class="sys-card breit">
-        <h3>Mailversand</h3>
+        <h3>${tH('karte.mailversand')}</h3>
         ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
               Admin, obwohl der die Einladungen verschickt. Der SMTP-Server
               sieht jede Mail, und jede trägt einen Link, der ein Passwort
@@ -9565,10 +9531,9 @@ function karteMailversand(geholt) {
               ansieht. Bis 0.17.2 stand hier wenigstens „gesetzt" oder „nicht
               gesetzt"; die Zeile ist weg, weil sie dieselbe Frage beantwortete
               wie „Zustand" — der Dialog sagt es jetzt am Feld selbst. */''}
-        <p class="desc"><strong>E-Mail ist optional.</strong> Ohne Mailzugang zeigt Kriterion
-          Einladungslinks und Links zum Zurücksetzen zum Kopieren an; mit Mailzugang werden sie
-          <em>zusätzlich</em> verschickt.</p>
-        <div class="kv"><span class="k">Zustand</span><span class="v">${mailstand.eingerichtet
+        <p class="desc"><strong>${tH('karte.eMailIstOptional')}</strong> ${tH('karte.ohneMailzugangZeigtKriterion')}
+          <em>${tH('karte.zusaetzlich')}</em> ${tH('karte.verschickt')}</p>
+        <div class="kv"><span class="k">${tH('karte.zustand')}</span><span class="v">${mailstand.eingerichtet
           ? '<strong class="mail-gut">eingerichtet</strong>'
           : '<strong class="mail-aus">nicht eingerichtet</strong>'}</span></div>
         ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
@@ -9587,18 +9552,17 @@ function karteMailversand(geholt) {
               am Feld selbst. DASS DAS PASSWORT NIE DASTEHT, gilt unverändert:
               nie der Wert, nie die Länge, nie Sternchen mit der richtigen
               Zahl. */''}
-        <div class="kv"><span class="k">Anbieter</span><span class="v">${mailAnbieterZeile(mailstand)}</span></div>
-        <div class="kv"><span class="k">Absender</span><span class="v">${mailstand.absender
+        <div class="kv"><span class="k">${tH('karte.anbieter')}</span><span class="v">${mailAnbieterZeile(mailstand)}</span></div>
+        <div class="kv"><span class="k">${tH('karte.absender')}</span><span class="v">${mailstand.absender
           ? esc(mailstand.absender)
           : '<strong class="mail-aus">nicht gesetzt</strong>'}</span></div>
-        <div class="kv"><span class="k">Öffentliche Adresse</span><span class="v">${mailstand.adresseGesetzt
+        <div class="kv"><span class="k">${tH('karte.oeffentlicheAdresse')}</span><span class="v">${mailstand.adresseGesetzt
           ? esc(mailstand.adresse)
           : '<strong class="mail-aus">nicht gesetzt — es wird nicht verschickt</strong>'}</span></div>
-        <div class="kv"><span class="k">Zuletzt erfolgreich getestet</span><span class="v">${mailstand.getestetAm
+        <div class="kv"><span class="k">${tH('karte.zuletztErfolgreichGetestet')}</span><span class="v">${mailstand.getestetAm
           ? esc(mailstand.getestetAm) : 'noch nie'}</span></div>
         ${mailstand.adresseGesetzt ? '' : `<p class="warn-box" style="margin:10px 0 0">
-          <strong>Ohne die Server-Einstellung <code>OEFFENTLICHE_ADRESSE</code> wird nichts
-          verschickt:</strong> Der Server braucht sie, um gültige Links zu erzeugen.</p>`}
+          <strong>${tH('karte.ohneDieServerEinstellung')} <code>${tH('karte.oEFFENTLICHE_ADRESSE')}</code> ${tH('karte.wirdNichtsVerschickt')}</strong> ${tH('karte.derServerBrauchtSieUm')}</p>`}
         ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn noch
               nichts steht, ändern, wenn etwas steht. „Speichern" hieß er bis
               0.17.2 — an einer Karte, in der die Felder schon dastanden. Ein
@@ -9607,13 +9571,11 @@ function karteMailversand(geholt) {
               DER SATZ ZUR TESTMAIL STEHT DARUNTER und nicht daneben: er nennt
               eine Folge, die man kennen muss, bevor man drückt. */''}
         <div class="row-in" style="margin-top:14px">
-          <button class="btn btn-accent btn-sm" id="mail-einrichten">Mailzugang ${
+          <button class="btn btn-accent btn-sm" id="mail-einrichten">${tH('karte.mailzugang')} ${
             mailstand.eingerichtet ? 'ändern' : 'einrichten'}</button>
-          <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
+          <button class="btn btn-sm" id="mail-test">${tH('karte.testmailAnMich')}</button>
         </div>
-        <p class="desc" style="margin:10px 0 0">Die Testmail geht <strong>ausschließlich an die
-          Adresse deines eigenen Kontos</strong>. Antwortet der Mailserver nicht, bricht der
-          Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
+        <p class="desc" style="margin:10px 0 0">${tH('karte.dieTestmailGeht')} <strong>${tH('karte.ausschliesslichAnDieAdresseDeines')}</strong>${tH('karte.antwortetDerMailserverNichtBricht', { sekunden: mailstand.sekunden })}</p>
         <div id="mail-ergebnis"></div>
       </div>`;
 }
@@ -9660,10 +9622,10 @@ function mailDialog(mailstand) {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal mail-dialog" id="mail-dialog">
-      <h2>Mailzugang ${mailstand.eingerichtet ? 'ändern' : 'einrichten'}</h2>
-      <div class="field"><label for="mail-anbieter">Anbieter</label>
+      <h2>${tH('karte.mailzugang')} ${mailstand.eingerichtet ? 'ändern' : 'einrichten'}</h2>
+      <div class="field"><label for="mail-anbieter">${tH('karte.anbieter')}</label>
         <select class="input" id="mail-anbieter">
-          <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
+          <option value=""${mailstand.anbieter ? '' : ' selected'}>${tH('karte.keinVersand')}</option>
           ${liste.map(a => `<option value="${esc(a.schluessel)}"${
             a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
         </select></div>
@@ -9676,36 +9638,35 @@ function mailDialog(mailstand) {
             stehen im Quelltext des Servers; wechselt ein Anbieter morgen den
             Port, kommt der neue von dort. Drei Felder für drei feste Werte
             wären drei Felder zu viel. */''}
-      <div class="field" id="mail-fest-feld"><label>Server, Port und Verschlüsselung</label>
+      <div class="field" id="mail-fest-feld"><label>${tH('karte.serverPortUndVerschluesselung')}</label>
         <div class="mail-fest" id="mail-fest"></div></div>
       <div id="mail-eigen">
-        <div class="field"><label for="mail-server">Server</label>
+        <div class="field"><label for="mail-server">${tH('karte.server')}</label>
           <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
             autocapitalize="off" spellcheck="false"></div>
-        <div class="field"><label for="mail-port">Port</label>
+        <div class="field"><label for="mail-port">${tH('karte.port')}</label>
           <input class="input" id="mail-port" type="number" min="1" max="65535"
             value="${mailstand.port || ''}"></div>
-        <div class="field"><label for="mail-sicher">Verschlüsselung</label>
+        <div class="field"><label for="mail-sicher">${tH('karte.verschluesselung')}</label>
           <select class="input" id="mail-sicher">
-            <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
-            <option value="tls"${mailstand.sicher ? ' selected' : ''}>SSL/TLS (meist 465)</option>
+            <option value="starttls"${mailstand.sicher ? '' : ' selected'}>${tH('karte.sTARTTLSMeist')}</option>
+            <option value="tls"${mailstand.sicher ? ' selected' : ''}>${tH('karte.sSLTLSMeist')}</option>
           </select></div>
-        <p class="desc mail-hinweis">Immer über den SMTP-Server eines Anbieters, nicht direkt vom
-          eigenen Internetanschluss — sonst landet die Mail im Spam.</p>
+        <p class="desc mail-hinweis">${tH('karte.immerUeberDenSMTPServer')}</p>
       </div>
-      <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
+      <div class="field"><label for="mail-benutzer">${tH('karte.benutzernameBeimAnbieter')}</label>
         <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
           autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-      <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
+      <div class="field"><label for="mail-passwort">${tH('karte.passwortBeimAnbieter')}</label>
         <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
           placeholder="${mailstand.passwortGesetzt
-            ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
-      <div class="field"><label for="mail-absender">Absenderadresse</label>
+            ? t('karte.gesetztLeerLassenAendertEs') : 'nicht gesetzt'}"></div>
+      <div class="field"><label for="mail-absender">${tH('karte.absenderadresse')}</label>
         <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
           autocomplete="off" autocapitalize="off" spellcheck="false"></div>
       <p class="desc mail-hinweis" id="mail-absender-hinweis">${esc(mailstand.hinweisImmer)}</p>
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
-        <button class="btn btn-accent" id="mail-save">Speichern</button></div></div>`;
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.abbrechen')}</button>
+        <button class="btn btn-accent" id="mail-save">${tH('dialog.speichern')}</button></div></div>`;
     document.body.appendChild(bd);
     const feld = (id) => bd.querySelector('#mail-' + id);
     const auswahl = feld('anbieter');
@@ -9763,12 +9724,12 @@ function mailDialog(mailstand) {
         passwort: feld('passwort').value,
         absender: feld('absender').value.trim()
       };
-      if (!await zweiteBestaetigung('mail', null, 'Mailzugang speichern',
-        'Über diesen Server laufen künftig alle Mails dieser Installation — auch die Links ' +
-        'zum Passwort-Setzen.')) return;
+      if (!await zweiteBestaetigung('mail', null, t('karte.mailzugangSpeichern'),
+        t('karte.ueberDiesenServerLaufenKuenftig') +
+        t('karte.zumPasswortSetzen'))) return;
       try {
         await api('PUT', '/api/mail', koerper);
-        toast('Mailzugang gespeichert');
+        toast(t('karte.mailzugangGespeichert'));
         fertig(true);
       } catch (e) { toast(e.message, true); }
     };
@@ -9802,15 +9763,15 @@ function ruesteMailversandAus(geholt) {
       /* e.currentTarget IST NACH DEM ERSTEN await NULL (Stolperstein 61) --
          der Knopf wird deshalb VOR dem Ruf festgehalten. */
       const knopf = e.currentTarget;
-      knopf.disabled = true; knopf.textContent = 'Wird verschickt …';
+      knopf.disabled = true; knopf.textContent = t('karte.wirdVerschickt');
       try {
         const r = await api('POST', '/api/mail/test', {});
         mailErgebnis(r.ok
-          ? `Testmail an ${r.an} gesendet. Kommt sie an, funktioniert der Versand.`
-          : `Der Versand ist fehlgeschlagen: ${r.grund}`, r.ok);
-        if (r.ok) toast('Testmail verschickt');
+          ? t('karte.testmailAnGesendetKommtSie', { an: r.an })
+          : t('karte.derVersandIstFehlgeschlagen', { grund: r.grund }), r.ok);
+        if (r.ok) toast(t('karte.testmailVerschickt'));
       } catch (err) { mailErgebnis(err.message, false); }
-      knopf.disabled = false; knopf.textContent = 'Testmail an mich';
+      knopf.disabled = false; knopf.textContent = t('karte.testmailAnMich');
     };
   }
 }
@@ -9822,13 +9783,16 @@ function ruesteMailversandAus(geholt) {
    gemeldeten Typ. Was der Server nicht einordnen kann, faellt in 'anderes';
    die Zeile erscheint nur, wenn es wirklich etwas gibt, und dann ist sie ein
    Befund und keine Verzierung. */
+/* RUFE STATT WERTE -- 0.24.0 (siehe SYS_ABSCHNITTE). Auch die drei festen
+   Namen stehen als Ruf da: die Zeile, die sie ausgibt, soll nicht zweierlei
+   Formen kennen muessen. */
 const BILDFORMATE = [
   // Der Hinweis am PNG haengt am Schalter und steht deshalb in der Karte selbst.
-  { schluessel: 'png',     name: 'PNG',     hinweis: '' },
-  { schluessel: 'jpeg',    name: 'JPEG',    hinweis: 'bleibt unverändert' },
-  { schluessel: 'webp',    name: 'WebP',    hinweis: 'Zielformat' },
-  { schluessel: 'gif',     name: 'GIF',     hinweis: 'bleibt unverändert' },
-  { schluessel: 'anderes', name: 'Anderes', hinweis: '' }
+  { schluessel: 'png',     name: () => 'PNG',  hinweis: () => '' },
+  { schluessel: 'jpeg',    name: () => 'JPEG', hinweis: () => t('karte.bleibtUnveraendert') },
+  { schluessel: 'webp',    name: () => t('karte.webP'), hinweis: () => t('karte.zielformat') },
+  { schluessel: 'gif',     name: () => 'GIF',  hinweis: () => t('karte.bleibtUnveraendert') },
+  { schluessel: 'anderes', name: () => t('karte.anderes'), hinweis: () => '' }
 ];
 
 /* Die Fortschrittszeile. EIN Ort fuer den Satz, den drei Zustaende brauchen --
@@ -9837,12 +9801,12 @@ const BILDFORMATE = [
 function umstellungsZeile(u) {
   if (!u) return '';
   if (u.laeuft)
-    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">Umwandlung läuft — ` +
-           `${u.erledigt} von ${u.gesamt} …</p>`;
-  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">Umwandlung fertig: ` +
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">${tH('karte.umwandlungLaeuft')} ` +
+           `${tH('karte.von', { erledigt: u.erledigt, gesamt: u.gesamt })}</p>`;
+  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">${tH('karte.umwandlungFertig')} ` +
          `${u.umgestellt} von ${u.gesamt} umgewandelt` +
-         (u.geblieben ? `, ${u.geblieben} blieben PNG` : '') +
-         (u.gespart > 0 ? ` — ${fmtBytes(u.gespart)} gespart` : '') + `.</p>`;
+         (u.geblieben ? t('karte.bliebenPNG', { geblieben: u.geblieben }) : '') +
+         (u.gespart > 0 ? t('karte.gespart', { gespart: fmtBytes(u.gespart) }) : '') + `.</p>`;
 }
 
 /* Die zweite Fortschrittszeile — 0.19.4, fuer das Nachziehen der Geometrie.
@@ -9856,8 +9820,8 @@ function umstellungsZeile(u) {
 function geometrieZeile(g) {
   if (!g) return '';
   if (g.laeuft)
-    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">Vorschaubilder ` +
-           `werden erneuert — ${g.erledigt} von ${g.gesamt} …</p>`;
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">${tH('karte.vorschaubilder')} ` +
+           `${tH('karte.werdenErneuertVon', { erledigt: g.erledigt, gesamt: g.gesamt })}</p>`;
   if (!g.nachgezogen && !g.uebersprungen) return '';
   /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN -- 0.19.5. Bis 0.19.4 wurde die
      Kachel groesser (512 statt 400 auf der kurzen Kante), und die Zeile sagte
@@ -9865,9 +9829,9 @@ function geometrieZeile(g) {
      -34,2 % ueber zwoelf Seitenverhaeltnisse, beim Panorama dagegen mehr.
      Eine Zeile, die nur eine Richtung kennt, verschwiege die haeufigere. */
   const d = g.zugenommen || 0;
-  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">Vorschaubilder ` +
-         `erneuert: ${g.nachgezogen} von ${g.geprueft} geprüften` +
-         (g.uebersprungen ? `, ${g.uebersprungen} übersprungen` : '') +
+  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">${tH('karte.vorschaubilder')} ` +
+         t('karte.erneuertVonGeprueften', { nachgezogen: g.nachgezogen, geprueft: g.geprueft }) +
+         (g.uebersprungen ? t('karte.uebersprungen', { uebersprungen: g.uebersprungen }) : '') +
          (d ? ` — ${fmtBytes(Math.abs(d))} ${d > 0 ? 'mehr' : 'weniger'}` : '') + `.</p>`;
 }
 
@@ -9880,16 +9844,15 @@ function geometrieZeile(g) {
 function karteKennzahlen(geholt) {
   const { stats } = geholt;
   return `<div class="sys-card">
-        <h3>Kennzahlen</h3>
-        <p class="desc">Umfang des Bestands, Größe der Datenbank, Version — unten die
-          eingesetzten Verschlüsselungsverfahren.</p>
+        <h3>${tH('karte.kennzahlen')}</h3>
+        <p class="desc">${tH('karte.umfangDesBestandsGroesseDer')}</p>
         <div class="kv"><span class="k">${esc(V.sacheMehrzahl)}</span><span class="v">${stats.itemCount}</span></div>
-        <div class="kv"><span class="k">Fotos</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
-        <div class="kv"><span class="k">Videos</span><span class="v">${stats.videoCount} · ${fmtBytes(stats.videoBytes)}</span></div>
-        <div class="kv"><span class="k">Kommentare</span><span class="v">${stats.commentCount}</span></div>
-        <div class="kv"><span class="k">Links</span><span class="v">${stats.linkCount}</span></div>
+        <div class="kv"><span class="k">${tH('liste.fotos')}</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
+        <div class="kv"><span class="k">${tH('liste.videos')}</span><span class="v">${stats.videoCount} · ${fmtBytes(stats.videoBytes)}</span></div>
+        <div class="kv"><span class="k">${tH('dialog.kommentare')}</span><span class="v">${stats.commentCount}</span></div>
+        <div class="kv"><span class="k">${tH('dialog.links')}</span><span class="v">${stats.linkCount}</span></div>
         <div class="kv"><span class="k">${esc(V.zeitpunktMehrzahl)}</span><span class="v">${stats.testDayCount}</span></div>
-          <div class="kv"><span class="k">Dateien</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
+          <div class="kv"><span class="k">${tH('dialog.dateien')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
         ${/* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos:
              sonst wundert sich jemand ueber eine Datenbank, die nach dem
              Aufraeumen groesser ist als vorher. Die Zeile steht UEBER der
@@ -9898,9 +9861,9 @@ function karteKennzahlen(geholt) {
              in derselben Datei liegen wie Fotos und Anhaenge. Wer sich fragt,
              wovon die Datenbank so gross ist, soll die Antwort vollstaendig
              finden und nicht bei einem Rest stehenbleiben. */''}
-        <div class="kv"><span class="k">Kommentarbilder</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
-        <div class="kv"><span class="k">Papierkorb</span><span class="v">${stats.papierkorbCount || 0} · ${fmtBytes(stats.papierkorbBytes)}</span></div>
-        <div class="kv"><span class="k">Datenbank</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
+        <div class="kv"><span class="k">${tH('karte.kommentarbilder')}</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
+        <div class="kv"><span class="k">${tH('karte.papierkorb')}</span><span class="v">${stats.papierkorbCount || 0} · ${fmtBytes(stats.papierkorbBytes)}</span></div>
+        <div class="kv"><span class="k">${tH('karte.datenbank')}</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
         ${/* DIE ZWEITE GROESSENANGABE, und sie beantwortet eine andere Frage als
              die Zeile darueber. Die Datenbankgroesse sagt, wie viel Platz die
              Instanz auf der Platte braucht; sie traegt Indizes, das
@@ -9912,7 +9875,7 @@ function karteKennzahlen(geholt) {
              ALLES EINGERECHNET: Fotos, Videos, Dateien, Kommentarbilder. Am
              Knopf steht darunter, was die eingeschalteten Schalter davon
              wirklich mitnehmen. */''}
-        ${exportGesamt(stats) ? `<div class="kv"><span class="k">Exportgröße (alles)</span><span class="v">≈ ${fmtBytes(exportGesamt(stats))}</span></div>` : ''}
+        ${exportGesamt(stats) ? `<div class="kv"><span class="k">${tH('karte.exportgroesseAlles')}</span><span class="v">≈ ${fmtBytes(exportGesamt(stats))}</span></div>` : ''}
         ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
              Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
              Einspielen wird er gegen die Zeile im Aenderungsprotokoll
@@ -9923,21 +9886,21 @@ function karteKennzahlen(geholt) {
              Fingerprint, ob die Dateien dazu wirklich zusammengehoeren. Wer
              nach dem Einspielen nachsieht, braucht beide, und zwar
              nebeneinander. */''}
-        <div class="kv"><span class="k">Version</span><span class="v">${esc(stats.version || '—')}</span></div>
-        <div class="kv"><span class="k">Prüfsumme (Fingerprint)</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
+        <div class="kv"><span class="k">${tH('karte.version')}</span><span class="v">${esc(stats.version || '—')}</span></div>
+        <div class="kv"><span class="k">${tH('karte.pruefsummeFingerprint')}</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
         ${/* DER KLARTEXTSCHLUESSEL GEHOERT DEM EIGENTUEMER -- 0.22.0 (E13). Der
              Admin sieht stattdessen einen Satz: der Schluessel liegt noch
              neben der Datenbank, und der Eigentuemer sollte das aendern. Der
              Befehl steht im Kasten „Auf dem Server" (Regel S5). */''}
         <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">Der Schlüssel kommt aus der Server-Einstellung <code>ENCRYPTION_KEY</code>. <strong><code>.env</code> und <code>data/</code> nie in dieselbe Sicherung legen</strong> — ohne Schlüssel sind die Daten verloren.</div>`
+          ? `<div class="ok-box">${tH('karte.derSchluesselKommtAusDer')} <code>${tH('karte.eNCRYPTION_KEY')}</code>. <strong><code>${tH('karte.env')}</code> ${tH('karte.und')} <code>${tH('karte.data')}</code> ${tH('karte.nieInDieselbeSicherungLegen')}</strong> ${tH('karte.ohneSchluesselSindDieDaten')}</div>`
           : (EIGENTUEMER
-            ? `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.
-              <p style="margin:9px 0 6px">Für echten Schutz <strong>diesen</strong> Wert in die <code>.env</code> eintragen — keinen neuen erzeugen, sonst sind die vorhandenen Daten nicht mehr lesbar:</p>
-              <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
-              ${serverKasten('Danach neu starten und im Server-Log „Schlüssel aus ENCRYPTION_KEY geladen“ prüfen — erst dann data/encryption.key löschen:', 'docker compose up -d')}
+            ? `<div class="warn-box"><strong>${tH('karte.derSchluesselLiegtNebenDer')}</strong> ${tH('karte.dataEncryptionKeyWerDas')}
+              <p style="margin:9px 0 6px">${tH('karte.fuerEchtenSchutz')} <strong>${tH('karte.diesen')}</strong> ${tH('karte.wertInDie')} <code>${tH('karte.env')}</code> ${tH('karte.eintragenKeinenNeuenErzeugenSonst')}</p>
+              <code class="keyline" id="keyline">${tH('karte.eNCRYPTION_KEY2')}${esc(stats.keyHex || '')}</code>
+              ${serverKasten(t('karte.danachNeuStartenUndIm'), 'docker compose up -d')}
             </div>`
-            : `<div class="warn-box"><strong>Der Schlüssel liegt noch neben der Datenbank</strong> (data/encryption.key). Der Eigentümer sollte ihn in die Server-Einstellung <code>ENCRYPTION_KEY</code> übernehmen.</div>`)}
+            : `<div class="warn-box"><strong>${tH('karte.derSchluesselLiegtNochNeben')}</strong> ${tH('karte.dataEncryptionKeyDerEigentuemer')} <code>${tH('karte.eNCRYPTION_KEY')}</code> ${tH('karte.uebernehmen2')}</div>`)}
         </div>
         ${/* ---- DIE VERFAHREN ----
              AUS DEM BETRIEB: „was benutzt ihr eigentlich?" Die Antwort stand
@@ -9957,17 +9920,17 @@ function karteKennzahlen(geholt) {
              geoeffnete Datei selbst fragt. Eine Kopie hier liefe beim naechsten
              Wechsel auseinander. */''}
         ${stats.verfahren ? `<div class="sys-teil"></div>
-        <h4 class="sys-unter">Technische Verfahren</h4>
+        <h4 class="sys-unter">${tH('karte.technischeVerfahren')}</h4>
         ${/* SIE HEISST „Verschlüsselung" UND NICHT „Datenbank": eine Zeile mit
              dieser Beschriftung steht in derselben Karte schon — die
              Belegung auf der Platte. Zwei Zeilen mit demselben Wort in einer
              Karte sind eine zu viel, und beim Ablesen greift man die
              falsche. */''}
-        <div class="kv"><span class="k">Verschlüsselung</span><span class="v">${esc(stats.verfahren.cipher || '—')}</span></div>
-        <div class="kv"><span class="k">Schlüssel</span><span class="v">${
-          stats.verfahren.schluesselBits ? `${stats.verfahren.schluesselBits} Bit (Zufallsschlüssel)` : '—'}</span></div>
-        <div class="kv"><span class="k">Journal (SQLite)</span><span class="v">${esc(stats.verfahren.journal || '—')}</span></div>
-        <div class="kv"><span class="k">Passwörter</span><span class="v">${esc(stats.verfahren.passwoerter || '—')}</span></div>` : ''}
+        <div class="kv"><span class="k">${tH('karte.verschluesselung')}</span><span class="v">${esc(stats.verfahren.cipher || '—')}</span></div>
+        <div class="kv"><span class="k">${tH('karte.schluessel')}</span><span class="v">${
+          stats.verfahren.schluesselBits ? t('karte.bitZufallsschluessel', { schluesselBits: stats.verfahren.schluesselBits }) : '—'}</span></div>
+        <div class="kv"><span class="k">${tH('karte.journalSQLite')}</span><span class="v">${esc(stats.verfahren.journal || '—')}</span></div>
+        <div class="kv"><span class="k">${tH('karte.passwoerter')}</span><span class="v">${esc(stats.verfahren.passwoerter || '—')}</span></div>` : ''}
       </div>`;
 }
 
@@ -10008,32 +9971,29 @@ function karteBildablage(geholt) {
   // wie ein Fehler.
   const laeuft = !!(stats.umstellung && stats.umstellung.laeuft);
   return `<div class="sys-card">
-        <h3>Bildformate</h3>
-        <p class="desc">Original-Fotos nach Format. Die automatisch erzeugten Vorschaubilder
-          (JPEG) sind nicht mitgezählt.</p>
+        <h3>${tH('karte.bildformate')}</h3>
+        <p class="desc">${tH('karte.originalFotosNachFormatDie')}</p>
         ${zeilen.length ? zeilen.map(f => {
           const z = bf[f.schluessel];
           // Der Hinweis am PNG sagt nur dann etwas, wenn die Umwandlung an ist.
           const hinweis = f.schluessel === 'png'
-            ? (BILDER_UMWANDELN ? 'wird beim Upload zu WebP' : '') : f.hinweis;
-          return `<div class="kv"><span class="k">${f.name}${
+            ? (BILDER_UMWANDELN ? t('karte.wirdBeimUploadZuWebP') : '') : f.hinweis();
+          return `<div class="kv"><span class="k">${f.name()}${
             hinweis ? ` <span class="zusatz">— ${hinweis}</span>` : ''
           }</span><span class="v">${z.anzahl} · ${fmtBytes(z.bytes)}</span></div>`;
-        }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">Noch keine Fotos.</p>`}
+        }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('karte.nochKeineFotos')}</p>`}
         ${EIGENTUEMER ? `
         <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="bild-umwandeln">
-          PNG-Fotos beim Upload in WebP umwandeln</label>
+          ${tH('karte.pNGFotosBeimUploadIn')}</label>
         ${/* WAS DER SCHALTER TUT, UND WAS ER NICHT TUT. Der Satz nennt beides:
              ein eingefügtes Bildschirmfoto liegt danach als WebP da, und die
              Güte bleibt dabei erhalten. Ohne Häkchen bleibt jedes PNG
              byte-genau, wie es hereinkam. */''}
-        <p class="hint hint-sm" style="margin:6px 2px 0">Eingefügte Screenshots (PNG) werden als
-          WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und
-          WebP bleiben unverändert.</p>
+        <p class="hint hint-sm" style="margin:6px 2px 0">${tH('karte.eingefuegteScreenshotsPNGWerdenAls')}</p>
         <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>Alle PNG in WebP umwandeln</button>
+          <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>${tH('karte.allePNGInWebPUmwandeln')}</button>
         </div>
-        ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">Keine PNG-Fotos mehr vorhanden.</p>`}
+        ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">${tH('karte.keinePNGFotosMehrVorhanden')}</p>`}
         ${umstellungsZeile(stats.umstellung)}
         ${geometrieZeile(stats.geometrie)}` : ''}
       </div>`;
@@ -10048,13 +10008,15 @@ function karteBildablage(geholt) {
    gemessen hat.
    JEDE ZEILE HAT IHREN EIGENEN SATZ, weil die beiden Laeufe verschiedene
    Dinge zaehlen. Was sie teilen, ist der Takt und die Abfrage. */
+/* DER FERTIGSATZ IST EIN RUF -- 0.24.0, wie der Fortschrittssatz darueber
+   schon immer einer war (siehe SYS_ABSCHNITTE). */
 const BESTANDSLAEUFE = [
   { feld: 'umstellung', id: 'bild-lauf',
-    text: (u) => `Umwandlung läuft — ${u.erledigt} von ${u.gesamt} …`,
-    fertig: 'Umwandlung abgeschlossen' },
+    text: (u) => t('karte.umwandlungLaeuftVon', { erledigt: u.erledigt, gesamt: u.gesamt }),
+    fertig: () => t('karte.umwandlungAbgeschlossen') },
   { feld: 'geometrie', id: 'geo-lauf',
-    text: (g) => `Vorschaubilder werden erneuert — ${g.erledigt} von ${g.gesamt} …`,
-    fertig: 'Vorschaubilder erneuert' }
+    text: (g) => t('karte.vorschaubilderWerdenErneuertVon', { erledigt: g.erledigt, gesamt: g.gesamt }),
+    fertig: () => t('karte.vorschaubilderErneuert') }
 ];
 
 /* DIE UHR, DIE DEN LAEUFEN ZUSIEHT. Sie steht ausserhalb der Karte, weil es
@@ -10084,7 +10046,7 @@ function verfolgeBestandslauf() {
       const zeile = document.getElementById(l.id), stand = s[l.feld];
       if (!zeile || !stand) continue;
       if (stand.laeuft) { zeile.textContent = l.text(stand); unterwegs.add(l.feld); }
-      else if (unterwegs.delete(l.feld)) fertig.push(l.fertig);
+      else if (unterwegs.delete(l.feld)) fertig.push(l.fertig());
     }
     if (unterwegs.size) return;
     halt();
@@ -10132,11 +10094,11 @@ function ruesteBildablageAus(geholt) {
          KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE, aus demselben Grund: sie
          waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
          eine Anzeige, die bei jedem Umlauf springt. */
-      const ok = await zweiteBestaetigung('bilder', null, 'PNG in WebP umwandeln',
+      const ok = await zweiteBestaetigung('bilder', null, t('karte.pNGInWebPUmwandeln'),
         `${png.anzahl} PNG-Foto${png.anzahl === 1 ? '' : 's'} (${fmtBytes(png.bytes)}) ` +
         `${png.anzahl === 1 ? 'wird' : 'werden'} umgewandelt, die Originale ersetzt (danach etwa ` +
         `${fmtBytes(Math.round(png.bytes * 0.37))}). Rückgängig nur mit einer vorher angelegten ` +
-        `Sicherung. Dauer: Minuten bis Stunden.`);
+        t('karte.sicherungDauerMinutenBisStunden'));
       if (!ok) return;
       try { await api('POST', '/api/bilder/umstellen', {}); }
       catch (e) { return toast(e.message, true); }
@@ -10160,17 +10122,14 @@ function ruesteBildablageAus(geholt) {
 /* ---- Karte „Sicherung" — Abschnitt „Datenbank" ---- */
 function karteSicherung() {
   return `<div class="sys-card">
-        <h3>Sicherung</h3>
-        <p class="desc"><strong>Sicherung:</strong> vollständige, verschlüsselte
-          Kopie der Datenbank — auch mit dem, was der Export nicht enthält. Lässt sich
-          nur in dieselbe Programmversion zurückspielen.</p>
+        <h3>${tH('karte.sicherung')}</h3>
+        <p class="desc"><strong>${tH('karte.sicherung2')}</strong> ${tH('karte.vollstaendigeVerschluesselteKopie')}</p>
         ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
              Dokumentation: die Kopie ist ohne .env wertlos. Das ist dieselbe
              Falle, die die README ausfuehrlich beschreibt -- hier steht sie an
              der Stelle, an der jemand sie tatsaechlich tappt. */''}
-        <div class="warn-box" style="margin:0 0 14px"><strong>Die Sicherung ist verschlüsselt.</strong>
-          Ohne den Schlüssel aus der <code>.env</code> lässt sie sich nicht öffnen — beides
-          gehört nicht an denselben Ort.</div>
+        <div class="warn-box" style="margin:0 0 14px"><strong>${tH('karte.dieSicherungIstVerschluesselt')}</strong>
+          ${tH('karte.ohneDenSchluesselAusDer')} <code>${tH('karte.env')}</code> ${tH('karte.laesstSieSichNichtOeffnen')}</div>
         <div id="sicherung-box"></div>
       </div>`;
 }
@@ -10188,7 +10147,7 @@ function ruesteSicherungAus(geholt) {
     if (!box) return;
     const d = geholt.sicherung || {};
     if (!d.eingerichtet) {
-      box.innerHTML = `<div class="warn-box">${esc(d.grund || 'Es ist kein Sicherungsordner eingerichtet.')}</div>`;
+      box.innerHTML = `<div class="warn-box">${esc(d.grund || t('karte.esIstKeinSicherungsordner'))}</div>`;
       return;
     }
     /* DIESE KARTE SAGT SEIT 0.20.0 NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG.
@@ -10209,12 +10168,12 @@ function ruesteSicherungAus(geholt) {
     const stand = d.fehler
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler)}</div>`
       : (!d.erreichbar
-        ? `<div class="warn-box" style="margin:0 0 12px">Der Sicherungsordner ist nicht erreichbar.</div>`
+        ? `<div class="warn-box" style="margin:0 0 12px">${tH('server.sicherungsordnerFehlt')}</div>`
         : (letzte
-          ? `<div class="kv"><span class="k">Letzte Sicherung</span><span class="v">vor ${letzte.tageHer} ${letzte.tageHer === 1 ? 'Tag' : 'Tagen'}</span></div>
-             <div class="kv"><span class="k">Datei</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
-             <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>`
-          : `<p class="desc" style="margin:0 0 12px">Hier gibt es noch keine Sicherung.</p>`));
+          ? `<div class="kv"><span class="k">${tH('karte.letzteSicherung')}</span><span class="v">${tH('karte.vor2', { tageHer: letzte.tageHer })} ${letzte.tageHer === 1 ? t('liste.tag2') : t('karte.tagen3')}</span></div>
+             <div class="kv"><span class="k">${tH('dialog.datei')}</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
+             <div class="kv"><span class="k">${tH('karte.groesse')}</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>`
+          : `<p class="desc" style="margin:0 0 12px">${tH('karte.hierGibtEsNochKeine')}</p>`));
 
     /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt,
        öffnen sich die Kopien von vorher nur noch mit dem ALTEN. Sie sind nicht
@@ -10231,19 +10190,13 @@ function ruesteSicherungAus(geholt) {
        nennt den Weg, der ihn beim Wechsel genannt hat. */
     const wechsel = !d.gewechseltAm ? '' : (
       letzte && letzte.veraltet
-        ? `<div class="warn-box" style="margin:0 0 12px"><strong>Keine Sicherung passt zum aktuellen
-             Schlüssel</strong> (gewechselt am ${esc(fmtDate(d.gewechseltAm))}). Ältere Sicherungen
-             öffnen sich nur mit dem alten Schlüssel — bewahre ihn in einem Passwort-Manager auf.
-             <strong>Bitte jetzt neu sichern.</strong></div>`
+        ? `<div class="warn-box" style="margin:0 0 12px"><strong>${tH('karte.keineSicherungPasstZumAktuellen')}</strong> ${tH('karte.gewechseltAmAeltereSicherungen', { gewechseltAm: fmtDate(d.gewechseltAm) })}
+             <strong>${tH('karte.bitteJetztNeuSichern')}</strong></div>`
         : (d.veraltet
           ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
-               ? 'Sicherung stammt' : 'Sicherungen stammen'} von vor dem Schlüsselwechsel</strong>
-               (${esc(fmtDate(d.gewechseltAm))}). ${d.veraltet === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich
-               nur mit dem <strong>alten</strong> Schlüssel — bewahre ihn in einem Passwort-Manager
-               auf.</div>`
-          : `<div class="ok-box" style="margin:0 0 12px">Der Schlüssel wurde am
-               ${esc(fmtDate(d.gewechseltAm))} gewechselt. Alle Sicherungen hier sind jünger und
-               passen zum aktuellen Schlüssel.</div>`));
+               ? t('karte.sicherungStammt') : t('karte.sicherungenStammen')} ${tH('karte.vonVorDemSchluesselwechsel')}</strong>
+               (${esc(fmtDate(d.gewechseltAm))}). ${d.veraltet === 1 ? t('karte.sieOeffnet') : t('karte.sieOeffnen')} ${tH('karte.sichNurMitDem')} <strong>${tH('karte.alten')}</strong> ${tH('karte.schluesselBewahreIhnInEinem')}</div>`
+          : `<div class="ok-box" style="margin:0 0 12px">${tH('karte.derSchluesselWurdeAmGewechselt', { gewechseltAm: fmtDate(d.gewechseltAm) })}</div>`));
     /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
        ist die Frage, die vor allen anderen steht. Ein Ort im
        Arbeitsverzeichnis ist erlaubt und wird nicht abgewiesen -- er wird
@@ -10251,26 +10204,21 @@ function ruesteSicherungAus(geholt) {
        Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
        sonst liest ihn beim nächsten Umbau niemand mehr. */
     const lage = d.imArbeitsverzeichnis
-      ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>Der Sicherungsordner liegt im
-           Projektordner von Kriterion.</strong> Empfohlen ist ein Ordner außerhalb, am besten auf
-           einer anderen Platte — sonst gehen bei einem Fehler am Projektordner Original und
-           Sicherung zugleich verloren. Einstellung: <code>docker-compose.yml</code>.</div>`
-      : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">Der Sicherungsordner liegt
-           <strong>außerhalb des Projektordners</strong> — so bleibt er bei Updates unberührt.</div>`;
+      ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>${tH('karte.derSicherungsordnerLiegtIm')}</strong> ${tH('karte.empfohlenIstEinOrdnerAusserhalb')} <code>${tH('karte.dockerComposeYml')}</code>.</div>`
+      : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">${tH('karte.derSicherungsordnerLiegt')}
+           <strong>${tH('karte.ausserhalbDesProjektordners')}</strong> ${tH('karte.soBleibtErBeiUpdates')}</div>`;
     box.innerHTML = `
       ${lage}
-      <div class="field"><label>Sicherungsordner</label>
-        <p class="desc" style="margin:0 0 6px">Eingerichtet ist <code>${esc(d.wurzel || '')}</code>.
-          Optional ein vorhandener Unterordner:</p>
-        <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="(kein Unterordner)"
+      <div class="field"><label>${tH('karte.sicherungsordner')}</label>
+        <p class="desc" style="margin:0 0 6px">${tH('karte.eingerichtetIst')} <code>${esc(d.wurzel || '')}</code>${tH('karte.optionalEinVorhandenerUnterordner')}</p>
+        <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="${esc(t('karte.keinUnterordner'))}"
           autocapitalize="off" spellcheck="false"></div>
-      <button class="btn btn-sm" id="sich-ort-save">Speichern</button>
+      <button class="btn btn-sm" id="sich-ort-save">${tH('dialog.speichern')}</button>
       <div class="sys-teil"></div>
       ${stand}
       ${wechsel}
-      <p class="desc" style="margin:0 0 10px">Während der Sicherung ist Kriterion <strong>kurz nicht
-        erreichbar</strong> — bei ${fmtBytes(d.dbBytes)} etwa ${d.dauerSekunden} Sekunden.</p>
-      <button class="btn btn-accent btn-sm" id="sich-los">Jetzt sichern</button>`;
+      <p class="desc" style="margin:0 0 10px">${tH('karte.waehrendDerSicherungIstKriterion')} <strong>${tH('karte.kurzNichtErreichbar')}</strong> ${tH('karte.beiEtwaSekunden', { dbBytes: fmtBytes(d.dbBytes), dauerSekunden: d.dauerSekunden })}</p>
+      <button class="btn btn-accent btn-sm" id="sich-los">${tH('karte.jetztSichern')}</button>`;
 
     document.getElementById('sich-ort-save').onclick = async () => {
       const wert = document.getElementById('sich-ort').value;
@@ -10292,7 +10240,7 @@ function ruesteSicherungAus(geholt) {
     document.getElementById('sich-los').onclick = async (e) => {
       const knopf = e.currentTarget;
       knopf.disabled = true;
-      knopf.textContent = 'Sicherung läuft …';
+      knopf.textContent = t('karte.sicherungLaeuft');
       try {
         const r = await api('POST', '/api/sicherung');
         geholt.sicherung = { ...geholt.sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
@@ -10301,10 +10249,10 @@ function ruesteSicherungAus(geholt) {
            hintereinander hiessen also, die erste zu verschlucken. Das
            Aufraeumen ist eine Angabe NEBEN der Sicherung und steht deshalb im
            selben Satz dahinter. */
-        toast(`Sicherung geschrieben: ${r.datei} (${fmtBytes(r.bytes)})` +
+        toast(t('karte.sicherungGeschrieben2', { datei: r.datei, bytes: fmtBytes(r.bytes) }) +
               (r.aufgeraeumt && r.aufgeraeumt.weg
-                ? ` · ${r.aufgeraeumt.weg} alte ${r.aufgeraeumt.weg === 1 ? 'Sicherung' : 'Sicherungen'} ` +
-                  `gelöscht, ${fmtBytes(r.aufgeraeumt.bytes)} frei`
+                ? ` · ${r.aufgeraeumt.weg} alte ${r.aufgeraeumt.weg === 1 ? t('karte.sicherung') : t('karte.sicherungen')} ` +
+                  t('karte.geloeschtFrei', { bytes: fmtBytes(r.aufgeraeumt.bytes) })
                 : ''));
         /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU --
            dieselbe Bauform wie bei der Bildumstellung, und aus demselben
@@ -10321,7 +10269,7 @@ function ruesteSicherungAus(geholt) {
       } catch (err) {
         toast(err.message, true);
         knopf.disabled = false;
-        knopf.textContent = 'Jetzt sichern';
+        knopf.textContent = t('karte.jetztSichern');
       }
     };
   }
@@ -10350,7 +10298,7 @@ function ruesteSicherungAus(geholt) {
    (Stolperstein 47), und die Vorschau verloere genau das, wofuer es sie gibt. */
 function karteAufraeumen() {
   return `<div class="sys-card">
-        <h3>Alte Sicherungen</h3>
+        <h3>${tH('karte.alteSicherungen')}</h3>
         ${/* ZWEI SAETZE, UND JEDER TRAEGT EINE TATSACHE: dass es weg ist, und
              was ueberhaupt in Frage kommt. Die Fassung bis zum ersten
              Feldbefund erklaerte dazu, warum der Schalter auf aus steht und was
@@ -10358,8 +10306,7 @@ function karteAufraeumen() {
              Bildschirm zu viel. Aus dem Betrieb: „der Text vom GUI muss so kurz
              wie moeglich sein und dennoch muss zu verstehen sein, was gemeint
              ist." */''}
-        <p class="desc">Löscht alte Sicherungen im Sicherungsordner — <strong>endgültig</strong>.
-          Gelöscht werden nur Sicherungen, die Kriterion selbst angelegt hat.</p>
+        <p class="desc">${tH('karte.loeschtAlteSicherungenIm')} <strong>${tH('karte.endgueltig')}</strong>${tH('karte.geloeschtWerdenNurSicherungenDie')}</p>
         <div id="aufraeumen-box"></div>
       </div>`;
 }
@@ -10383,8 +10330,8 @@ function ruesteAufraeumenAus(geholt) {
        Schalter, der nie greifen kann, verspricht etwas und haelt es nie -- und
        die Karte darueber nennt den Weg zum Einhaengepunkt ohnehin schon. */
     if (!d.eingerichtet) {
-      box.innerHTML = `<div class="warn-box">Es ist kein Sicherungsordner eingerichtet (siehe Karte
-        <strong>Sicherung</strong>).</div>`;
+      box.innerHTML = `<div class="warn-box">${tH('karte.esIstKeinSicherungsordner2')}
+        <strong>${tH('karte.sicherung')}</strong>).</div>`;
       return;
     }
     const gB = (a.grenzen && a.grenzen.behalten) || { min: 1, max: 20, vorgabe: 3 };
@@ -10416,7 +10363,7 @@ function ruesteAufraeumenAus(geholt) {
                   : z.veraltet ? '<span class="auf-marke alt">alter Schlüssel</span>' : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.am))}</span>${marke}
-        <span class="mcount">${z.tageHer === 1 ? 'vor 1 Tag' : `vor ${z.tageHer} Tagen`} · ${
+        <span class="mcount">${z.tageHer === 1 ? t('karte.vorTag') : t('karte.vorTagen', { tageHer: z.tageHer })} · ${
           esc(fmtBytes(z.bytes))}</span></div>`;
     };
     const alle = Array.isArray(a.dateien) ? a.dateien : [];
@@ -10425,12 +10372,11 @@ function ruesteAufraeumenAus(geholt) {
 
     const liste = !a.erreichbar
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler ||
-           'Der Sicherungsordner ist nicht erreichbar.')}</div>`
+           t('server.sicherungsordnerFehlt'))}</div>`
       : (alle.length
-        ? `<div class="label" style="margin:0 0 6px">Sicherungen (${alle.length})</div>
+        ? `<div class="label" style="margin:0 0 6px">${tH('karte.sicherungen2', { length: alle.length })}</div>
            <div class="manage-list" id="auf-liste">${alle.map(zeile).join('')}</div>`
-        : `<p class="hint hint-sm" style="margin:2px 2px 0">Im Sicherungsordner gibt es noch
-             keine Sicherung.</p>`);
+        : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('karte.imSicherungsordnerGibtEsNoch')}</p>`);
 
     /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und in
        ihr steht die Zahl, die Summe und sonst nichts. Die Dateien selbst sind
@@ -10440,9 +10386,9 @@ function ruesteAufraeumenAus(geholt) {
        Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server. */
     const stand = !a.erreichbar ? '' : (treffer.length
       ? `<p class="desc" style="margin:10px 0 6px"><strong>${treffer.length} ${
-           treffer.length === 1 ? 'Sicherung wird' : 'Sicherungen werden'} gelöscht</strong> —
-           ${esc(fmtBytes(a.bytes || 0))} frei.</p>`
-      : `<p class="desc" style="margin:10px 0 6px">Es wird nichts gelöscht. ${
+           treffer.length === 1 ? t('karte.sicherungWird') : t('karte.sicherungenWerden')} ${tH('karte.geloescht2')}</strong> —
+           ${esc(fmtBytes(a.bytes || 0))} ${tH('karte.frei')}</p>`
+      : `<p class="desc" style="margin:10px 0 6px">${tH('karte.esWirdNichtsGeloescht')} ${
            esc(a.grund || '')}</p>`);
 
     /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: eigene Zahl, eigene Summe,
@@ -10451,36 +10397,33 @@ function ruesteAufraeumenAus(geholt) {
     const veraltet = !altZahl ? '' : `
       <div class="sys-teil"></div>
       <p class="desc" style="margin:0 0 8px"><strong>${altZahl} ${altZahl === 1
-        ? 'Sicherung öffnet' : 'Sicherungen öffnen'} sich nur mit dem alten Schlüssel</strong>
-        (${esc(fmtBytes(a.altBytes || 0))}). Das automatische Aufräumen löscht sie nicht.</p>
+        ? t('karte.sicherungOeffnet') : t('karte.sicherungenOeffnen')} ${tH('karte.sichNurMitDemAlten')}</strong>
+        (${esc(fmtBytes(a.altBytes || 0))}${tH('karte.dasAutomatischeAufraeumenLoescht')}</p>
       <div class="row-in">
         <button class="btn btn-sm" id="auf-alt">${altZahl} ${altZahl === 1
-          ? 'Sicherung' : 'Sicherungen'} mit altem Schlüssel löschen</button>
+          ? t('karte.sicherung') : t('karte.sicherungen')} ${tH('karte.mitAltemSchluesselLoeschen')}</button>
       </div>`;
 
     box.innerHTML = `
       <label class="ex-files"><input type="checkbox" id="auf-schalter"${a.an ? ' checked' : ''}>
-        Nach jeder erfolgreichen Sicherung aufräumen</label>
+        ${tH('karte.nachJederErfolgreichenSicherung')}</label>
       ${/* WAS DER HAKEN TUT, IN EINEM HALBEN SATZ. Ohne ihn ist der Knopf der
            einzige Weg -- das ist die ganze Auskunft, die er braucht. */''}
-      <p class="hint hint-sm" style="margin:6px 2px 0">Ohne Häkchen nur auf Knopfdruck.</p>
+      <p class="hint hint-sm" style="margin:6px 2px 0">${tH('karte.ohneHaekchenNurAufKnopfdruck')}</p>
       <div class="sys-teil"></div>
-      <div class="field"><label for="auf-behalten">Mindestens behalten</label>
-        <p class="desc" style="margin:0 0 6px">So viele Sicherungen bleiben immer erhalten.
-          ${gB.min} bis ${gB.max}.</p>
+      <div class="field"><label for="auf-behalten">${tH('karte.mindestensBehalten')}</label>
+        <p class="desc" style="margin:0 0 6px">${tH('karte.soVieleSicherungenBleibenImmer', { min: gB.min, max: gB.max })}</p>
         <input class="input" id="auf-behalten" type="number" inputmode="numeric"
           min="${gB.min}" max="${gB.max}" step="1" value="${behalten}"></div>
-      <div class="field"><label for="auf-tage">Löschen ab Alter (Tage)</label>
-        <p class="desc" style="margin:0 0 6px">Erst danach darf eine Sicherung gelöscht werden —
-          und nur, wenn mehr als ${behalten} vorhanden sind. ${gT.min} bis ${gT.max}.</p>
+      <div class="field"><label for="auf-tage">${tH('karte.loeschenAbAlterTage')}</label>
+        <p class="desc" style="margin:0 0 6px">${tH('karte.erstDanachDarfEineSicherung', { behalten: behalten, min: gT.min, max: gT.max })}</p>
         <input class="input" id="auf-tage" type="number" inputmode="numeric"
           min="${gT.min}" max="${gT.max}" step="1" value="${tage}"></div>
       <div class="sys-teil"></div>
       ${liste}
       ${stand}
       <div class="row-in">
-        <button class="btn btn-accent btn-sm" id="auf-los"${treffer.length ? '' : ' disabled'}>Jetzt
-          löschen</button>
+        <button class="btn btn-accent btn-sm" id="auf-los"${treffer.length ? '' : ' disabled'}>${tH('karte.jetztLoeschen')}</button>
       </div>
       ${veraltet}`;
 
@@ -10493,7 +10436,7 @@ function ruesteAufraeumenAus(geholt) {
           await api('PUT', '/api/settings', { sicherungAufraeumen: el.checked });
           geholt.sicherung = { ...geholt.sicherung,
                                aufraeumen: { ...a, an: el.checked } };
-          toast(el.checked ? 'Aufräumen eingeschaltet' : 'Aufräumen ausgeschaltet');
+          toast(el.checked ? t('karte.aufraeumenEingeschaltet') : t('karte.aufraeumenAusgeschaltet'));
         } catch (e) { el.checked = vorher; toast(e.message, true); }
       };
     });
@@ -10564,8 +10507,8 @@ function ruesteAufraeumenAus(geholt) {
       geholt.sicherung = { ...geholt.sicherung, erreichbar: r.erreichbar, letzte: r.letzte,
                            zahl: r.zahl, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
                            aufraeumen: { ...(geholt.sicherung || {}).aufraeumen, ...r.aufraeumen } };
-      toast(`${r.weg} ${r.weg === 1 ? 'Sicherung' : 'Sicherungen'} gelöscht (${
-        fmtBytes(r.bytes)} frei)${r.nicht ? ` — ${r.nicht} nicht gelöscht` : ''}`);
+      toast(`${r.weg} ${r.weg === 1 ? t('karte.sicherung') : t('karte.sicherungen')} gelöscht (${
+        fmtBytes(r.bytes)} frei)${r.nicht ? t('karte.nichtGeloescht', { nicht: r.nicht }) : ''}`);
       /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
          andere sein. Zwei Staende nebeneinander stehen zu lassen waere genau
          die zweite Wahrheit, gegen die diese Runde gebaut ist -- also die
@@ -10573,16 +10516,16 @@ function ruesteAufraeumenAus(geholt) {
       renderSystem();
     };
     amElement('auf-los', (knopf) => {
-      knopf.onclick = () => raeume('regel', 'Sicherungen löschen',
-        `${treffer.length} ${treffer.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
+      knopf.onclick = () => raeume('regel', t('karte.sicherungenLoeschen'),
+        `${treffer.length} ${treffer.length === 1 ? t('karte.sicherung') : t('karte.sicherungen')} ` +
         `(${fmtBytes(a.bytes || 0)}) ${treffer.length === 1 ? 'wird' : 'werden'} endgültig gelöscht.`);
     });
     amElement('auf-alt', (knopf) => {
-      knopf.onclick = () => raeume('veraltet', 'Sicherungen mit altem Schlüssel löschen',
-        `${altZahl} ${altZahl === 1 ? 'Sicherung' : 'Sicherungen'} von vor dem ` +
+      knopf.onclick = () => raeume('veraltet', t('karte.sicherungenMitAltemSchluessel'),
+        `${altZahl} ${altZahl === 1 ? t('karte.sicherung') : t('karte.sicherungen')} von vor dem ` +
         `Schlüsselwechsel (${fmtBytes(a.altBytes || 0)}) ${altZahl === 1 ? 'wird' : 'werden'} ` +
-        `endgültig gelöscht. ${altZahl === 1 ? 'Sie lässt' : 'Sie lassen'} sich nur mit dem alten ` +
-        `Schlüssel öffnen.`);
+        `endgültig gelöscht. ${altZahl === 1 ? t('karte.sieLaesst') : t('karte.sieLassen')} sich nur mit dem alten ` +
+        t('karte.schluesselOeffnen'));
     });
   }
 
@@ -10591,14 +10534,12 @@ function ruesteAufraeumenAus(geholt) {
 function karteExport(geholt) {
   const { stats } = geholt;
   return `<div class="sys-card">
-        <h3>Export und Import</h3>
+        <h3>${tH('karte.exportUndImport')}</h3>
         ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. Wer
              Export und Sicherung nebeneinander sieht, muss ohne Rueckfrage
              wissen, welche er will. Ein Satz je Karte, und er steht hier. */''}
-        <p class="desc"><strong>Export:</strong> für Umzug, Archiv und Weitergabe — unverschlüsselt,
-          auch mit späteren Versionen lesbar. Für den Notfall: Karte <strong>Sicherung</strong>.</p>
-        <p class="desc">Schreibt den gesamten Bestand in eine Datei; die erwartete Größe steht an
-          den Knöpfen.</p>
+        <p class="desc"><strong>${tH('karte.export')}</strong> ${tH('karte.fuerUmzugArchivUndWeitergabe')} <strong>${tH('karte.sicherung')}</strong>.</p>
+        <p class="desc">${tH('karte.schreibtDenGesamtenBestandIn')}</p>
         ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. Sie standen bisher fest im
              Text und rechneten dabei jede fuer sich -- die Haekchen darunter
              aenderten die Datei, aber keine Zahl. Wer beide Haekchen setzte,
@@ -10607,19 +10548,19 @@ function karteExport(geholt) {
              darunter liest dieselbe Zahl. Zwei Rechenwege naennten frueher oder
              spaeter zwei Groessen fuer dieselbe Datei. */''}
         <div class="row-in">
-          <button class="btn btn-accent btn-sm" id="ex-yes">Mit Fotos (~<span id="ex-gr-yes">…</span>)</button>
-          <button class="btn btn-sm" id="ex-no">Ohne Fotos (~<span id="ex-gr-no">…</span>)</button>
+          <button class="btn btn-accent btn-sm" id="ex-yes">${tH('karte.mitFotos')}<span id="ex-gr-yes">…</span>)</button>
+          <button class="btn btn-sm" id="ex-no">${tH('karte.ohneFotos')}<span id="ex-gr-no">…</span>)</button>
         </div>
         <label class="ex-files"><input type="checkbox" id="ex-files">
-          Angehängte Dateien mitnehmen (+${fmtBytes((stats.export?.anhaenge || 0) + (stats.export?.kommentarbilder || 0))})</label>
+          ${tH('karte.angehaengteDateienMitnehmen')}${fmtBytes((stats.export?.anhaenge || 0) + (stats.export?.kommentarbilder || 0))})</label>
         ${/* Eigener Schalter, Vorgabe aus. Ohne ihn bleibt der Platz des Videos
              in der Datei vermerkt, die Datei selbst fehlt -- der Import sagt
              dann, wie viele es waren. Stand ein Video an erster Stelle, wird
              danach das naechste Foto zum Hauptbild. */''}
         <label class="ex-files"><input type="checkbox" id="ex-videos">
-          Videos mitnehmen (+${fmtBytes(stats.export?.videos || 0)})</label>
+          ${tH('karte.videosMitnehmen')}${fmtBytes(stats.export?.videos || 0)})</label>
         ${stats.videoCount ? `<p class="hint hint-sm" style="margin:6px 2px 0">
-          Ohne Häkchen werden Videos nicht mitgenommen; es bleibt nur der Verweis darauf.</p>` : ''}
+          ${tH('karte.ohneHaekchenWerdenVideosNicht')}</p>` : ''}
         ${/* DER HINWEIS STEHT VOR DEM KNOPF UND NICHT HINTER DEM ABBRUCH. Ein
              Export, der nach zwei Minuten mit einem Speicherfehler aufgibt,
              sieht aus wie ein kaputtes Programm; er ist aber eine erreichte
@@ -10639,16 +10580,16 @@ function karteExport(geholt) {
              Atemzug warnt. */''}
         <div class="ex-teile">
           <div class="row-in" style="align-items:baseline">
-            <button class="btn btn-sm" id="ex-plan">In Teilen exportieren</button>
+            <button class="btn btn-sm" id="ex-plan">${tH('karte.inTeilenExportieren')}</button>
             <label class="hint hint-sm" style="display:flex;align-items:baseline;gap:6px">
-              höchstens
+              ${tH('karte.hoechstens')}
               <select class="input input-sm" id="ex-ziel" style="width:auto">
-                <option value="52428800">50 MB</option>
-                <option value="104857600">100 MB</option>
-                <option value="209715200">200 MB</option>
-                <option value="314572800" selected>300 MB</option>
+                <option value="52428800">${tH('karte.mB')}</option>
+                <option value="104857600">${tH('karte.mB2')}</option>
+                <option value="209715200">${tH('karte.mB3')}</option>
+                <option value="314572800" selected>${tH('karte.mB4')}</option>
               </select>
-              je Datei
+              ${tH('karte.jeDatei')}
             </label>
           </div>
           <div id="ex-plan-out"></div>
@@ -10665,12 +10606,11 @@ function karteExport(geholt) {
              leisen Bauform des Ablagefeldes. Die zweite Bestaetigung bleibt,
              wo sie war: in askImport(). */''}
         <div class="sys-teil"></div>
-        <h4 class="sys-unter">Import</h4>
-        <p class="desc">Spielt eine Exportdatei ein — entweder zusammenführen oder den
-          <strong>vorhandenen Bestand ersetzen</strong>. Vorher wird nachgefragt und das Passwort
-          verlangt.</p>
+        <h4 class="sys-unter">${tH('karte.import')}</h4>
+        <p class="desc">${tH('karte.spieltEineExportdateiEinEntweder')}
+          <strong>${tH('karte.vorhandenenBestandErsetzen')}</strong>${tH('karte.vorherWirdNachgefragtUndDas')}</p>
         <label class="drop drop-leise" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
-          Exportdatei auswählen</label>
+          ${tH('karte.exportdateiAuswaehlen')}</label>
       </div>`;
 }
 function ruesteExportAus(geholt) {
@@ -10696,16 +10636,16 @@ function ruesteExportAus(geholt) {
 
   // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
   // waere die Exportdatei sonst schnell unhandlich.
-  const mitDateien = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '') +
-                           (document.getElementById('ex-videos')?.checked ? '&videos=1' : '');
+  const mitDateien = () => (document.getElementById('ex-files')?.checked ? t('karte.files') : '') +
+                           (document.getElementById('ex-videos')?.checked ? t('karte.videos') : '');
   /* DER EXPORT BLEIBT EINE NAVIGATION -- die Datei laeuft damit an der Platte
      vorbei statt vollstaendig im Speicher zu stehen. Die zweite Bestaetigung
      steht deshalb DAVOR und nicht darin: sie holt die Freigabe, danach faehrt
      der Browser los. */
   const exportLos = async (mitFotos) => {
-    if (!await zweiteBestaetigung('export', null, 'Export bestätigen',
-      'Der Export schreibt den gesamten Bestand unverschlüsselt in eine Datei — mit allen ' +
-      'Fotos, Anhängen und Verfassernamen.')) return;
+    if (!await zweiteBestaetigung('export', null, t('karte.exportBestaetigen'),
+      t('karte.derExportSchreibtDenGesamten') +
+      t('karte.fotosAnhaengenUndVerfassernamen'))) return;
     window.location = `/api/export?photos=${mitFotos ? 1 : 0}` + mitDateien();
   };
 
@@ -10736,13 +10676,11 @@ function ruesteExportAus(geholt) {
       // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
       const auchOhne = ohne > ex.warnAb;
       kasten.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
-        <strong>Export mit Fotos: rund ${esc(fmtBytes(mit))}</strong> — mehr als die Höchstgröße
-        von ${esc(fmtBytes(ex.string))} je Datei (${auchOhne
-          ? `auch ohne Fotos noch rund ${esc(fmtBytes(ohne))}`
-          : `ohne Fotos rund ${esc(fmtBytes(ohne))}`}).
-        <p style="margin:9px 0 0">Nutze <strong>„In Teilen exportieren"</strong>; jeder Teil ist
-        eine vollständige Exportdatei. Für eine Sicherung ist die Karte
-        <strong>Sicherung</strong> einfacher.</p></div>`;
+        <strong>${tH('karte.exportMitFotosRund', { mit: fmtBytes(mit) })}</strong> ${tH('karte.mehrAlsDieHoechstgroesseVon', { string: fmtBytes(ex.string) })}${auchOhne
+          ? t('karte.auchOhneFotosNochRund', { ohne: fmtBytes(ohne) })
+          : t('karte.ohneFotosRund', { ohne: fmtBytes(ohne) })}).
+        <p style="margin:9px 0 0">${tH('karte.nutze')} <strong>${tH('karte.inTeilenExportieren2')}</strong>${tH('karte.jederTeilIstEineVollstaendige')}
+        <strong>${tH('karte.sicherung')}</strong> ${tH('karte.einfacher')}</p></div>`;
     });
   }
 
@@ -10752,19 +10690,19 @@ function ruesteExportAus(geholt) {
      genau deshalb gibt es hier kein neues Format und keinen zweiten Leser.
      GESCHNITTEN WIRD AM SERVER und nicht hier: dort liegen die Groessen, und
      eine zweite Rechnung in der Oberflaeche liefe irgendwann auseinander. */
-  const teilSchalter = () => `photos=1` + mitDateien();
+  const teilSchalter = () => t('karte.photos') + mitDateien();
   async function zeichneTeilplan() {
     const kasten = document.getElementById('ex-plan-out');
     if (!kasten) return;
     const ziel = document.getElementById('ex-ziel')?.value || '';
-    kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">Wird gerechnet …</p>`;
+    kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">${tH('karte.wirdGerechnet')}</p>`;
     let plan;
     try { plan = await api('GET', `/api/export/plan?${teilSchalter()}&ziel=${encodeURIComponent(ziel)}`); }
     catch (e) { kasten.innerHTML = `<p class="hint hint-sm">${esc(e.message)}</p>`; return; }
 
     const n = (plan.teile || []).length;
     if (!n && !(plan.zuGross || []).length) {
-      kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">Es gibt nichts zu exportieren.</p>`;
+      kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">${tH('karte.esGibtNichtsZuExportieren')}</p>`;
       return;
     }
     /* EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, WIRD BEIM NAMEN GENANNT
@@ -10773,21 +10711,18 @@ function ruesteExportAus(geholt) {
        oder diesen einen Eintrag von Hand behandeln muss. */
     const zuGross = (plan.zuGross || []).length ? `<div class="warn-box" style="margin:10px 0 0">
       <strong>${plan.zuGross.length} ${plan.zuGross.length === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}
-      ${plan.zuGross.length === 1 ? 'passt' : 'passen'} in keinen Teil</strong> — schon für sich allein
-      über der Grenze von ${esc(fmtBytes(plan.string))}. Sie fehlen in jeder Datei:
+      ${plan.zuGross.length === 1 ? 'passt' : 'passen'} ${tH('karte.inKeinenTeil')}</strong> ${tH('karte.schonFuerSichAlleinUeber', { string: fmtBytes(plan.string) })}
       <ul style="margin:6px 0 0 18px">${plan.zuGross.map(z =>
         `<li>${esc(z.titel)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
-      <p style="margin:8px 0 0">Ohne das Häkchen an den Videos werden sie meist klein genug.</p></div>` : '';
+      <p style="margin:8px 0 0">${tH('karte.ohneDasHaekchenAnDen')}</p></div>` : '';
 
     kasten.innerHTML = `${zuGross}
-      ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${n} ${n === 1 ? 'Teil' : 'Teile'}</strong>,
-        je höchstens ${esc(fmtBytes(plan.zielGroesse))}. <strong>Jeder Teil ist eine vollständige
-        Exportdatei.</strong></p>
+      ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${n} ${n === 1 ? t('karte.teil') : t('karte.teile')}</strong>${tH('karte.jeHoechstens', { zielGroesse: fmtBytes(plan.zielGroesse) })} <strong>${tH('karte.jederTeilIstEineVollstaendige2')}</strong></p>
       <div class="manage-list" id="ex-teil-liste">${plan.teile.map(teil => `
         <div class="mrow">
-          <span class="mname">Teil ${teil.nr} — ${teil.anzahl} ${teil.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
+          <span class="mname">${tH('karte.teil2', { nr: teil.nr, anzahl: teil.anzahl })} ${teil.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
           <button class="mact ex-teil-lad" data-nr="${teil.nr}" data-von="${teil.von}" data-bis="${teil.bis}"
-            disabled>↓ Laden</button>
+            disabled>${tH('karte.laden2')}</button>
           <span class="pk-meta">${esc(fmtBytes(teil.bytes))}</span>
         </div>`).join('')}</div>
       ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. "Alle n Teile
@@ -10797,29 +10732,26 @@ function ruesteExportAus(geholt) {
            WAS EIN MENSCH WISSEN MUSS, sind zwei Dinge: dass EINMAL gefragt
            wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
            Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 6px">Vor dem Export wird einmal dein
-        Passwort${ZWEIFAKTOR ? ' und der Zwei-Faktor-Code' : ''} abgefragt; danach lädst du jeden
-        Teil einzeln.</p>
+      <p class="hint hint-sm" style="margin:10px 2px 6px">${tH('karte.vorDemExportWirdEinmal')}${ZWEIFAKTOR ? t('karte.undDerZweiFaktorCode') : ''} ${tH('karte.abgefragtDanachLaedstDuJeden')}</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
-        Einmal bestätigen, dann ${n === 1 ? 'den Teil' : `alle ${n} Teile`} laden</button></div>
+        ${tH('karte.einmalBestaetigenDann')} ${n === 1 ? t('karte.denTeil') : t('karte.alleTeile', { n: n })} ${tH('karte.laden')}</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
            Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
            welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 0"><strong>Zum Einspielen:</strong>
-        Teil 1 mit <strong>Ersetzen</strong>, alle übrigen der Reihe nach mit
-        <strong>Zusammenführen</strong>. Nur zum Weitergeben einzelner
-        ${esc(V.sacheMehrzahl)} genügt der Teil, der sie enthält.</p>` : ''}`;
+      <p class="hint hint-sm" style="margin:10px 2px 0"><strong>${tH('karte.zumEinspielen')}</strong>
+        ${tH('karte.teilMit')} <strong>${tH('karte.ersetzen')}</strong>${tH('karte.alleUebrigenDerReiheNach')}
+        <strong>${tH('karte.zusammenfuehren')}</strong>${tH('karte.nurZumWeitergebenEinzelnerGenuegt')}</p>` : ''}`;
 
     /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
        je Datei getippt werden -- bei fünf Teilen fünfmal. */
     amElement('ex-frei', b => b.onclick = async () => {
       const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(teil => teil.nr),
-        'Export bestätigen',
-        `Der Export schreibt den gesamten Bestand in ${n} ${n === 1 ? 'Datei' : 'Dateien'}, die das Haus ` +
-        `verlassen — mit allen Fotos, allen Anhängen und den Namen aller Verfasser.`);
+        t('karte.exportBestaetigen'),
+        `Der Export schreibt den gesamten Bestand in ${n} ${n === 1 ? t('dialog.datei') : t('dialog.dateien')}, die das Haus ` +
+        t('karte.verlassenMitAllenFotosAllen'));
       if (!ok) return;
       b.disabled = true;
-      b.textContent = 'Bestätigt — jetzt jeden Teil laden';
+      b.textContent = t('karte.bestaetigtJetztJedenTeilLaden');
       kasten.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
     });
 
@@ -10829,7 +10761,7 @@ function ruesteExportAus(geholt) {
     kasten.querySelectorAll('.ex-teil-lad').forEach(k => {
       k.onclick = () => {
         window.location = `/api/export?${teilSchalter()}` +
-          `&von=${k.dataset.von}&bis=${k.dataset.bis}&teil=${k.dataset.nr}&teile=${n}`;
+          t('karte.vonBisTeilTeile', { von: k.dataset.von, bis: k.dataset.bis, nr: k.dataset.nr, n: n });
         k.disabled = true;
         k.innerHTML = `${ICON_HAKEN} geladen`;
       };
@@ -10849,11 +10781,11 @@ async function importGroesseGeprueft(file, grenzen) {
   const warnAb = grenzen && grenzen.warnAb;
   if (!warnAb || file.size <= warnAb) return true;
   const grenze = grenzen.string;
-  return confirmBox('Diese Datei ist sehr groß',
-    `Die Datei misst ${fmtBytes(file.size)}. Dateien über ${fmtBytes(grenze)} kann der Import ` +
-    `nicht verarbeiten — er bricht ab, ohne etwas zu ändern. Für eine vollständige ` +
-    `Wiederherstellung ist die Sicherung der richtige Weg.`,
-    'Trotzdem versuchen');
+  return confirmBox(t('karte.dieseDateiIstSehrGross'),
+    t('karte.dieDateiMisstDateienUeber', { size: fmtBytes(file.size), grenze: fmtBytes(grenze) }) +
+    t('karte.nichtVerarbeitenErBrichtAb') +
+    t('karte.wiederherstellungIstDieSicherung'),
+    t('karte.trotzdemVersuchen'));
 }
 
 function askImport(file, grenzen) {
@@ -10875,25 +10807,23 @@ function askImport(file, grenzen) {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     if (!info) {
-      bd.innerHTML = `<div class="modal"><h2>Import nicht möglich</h2>
-        <p>Die Datei ließ sich nicht als Export lesen.</p>
-        <div class="modal-acts"><button class="btn" data-close>Schließen</button></div></div>`;
+      bd.innerHTML = `<div class="modal"><h2>${tH('karte.importNichtMoeglich')}</h2>
+        <p>${tH('karte.dieDateiLiessSichNicht')}</p>
+        <div class="modal-acts"><button class="btn" data-close>${tH('liste.schliessen')}</button></div></div>`;
       document.body.appendChild(bd);
       bd.querySelector('[data-close]').onclick = () => bd.remove();
       bd.onclick = e => { if (e.target === bd) bd.remove(); };
       return;
     }
-    bd.innerHTML = `<div class="modal"><h2>Import</h2>
-      <p>Die Datei enthält <strong>${info.count} ${esc(vSache(info.count))}</strong>${info.withPhotos ? ' <strong>mit Fotos</strong>' : ' ohne Fotos'}${info.title ? `, erstellt aus „${esc(info.title)}"` : ''}${info.date ? ` am ${fmtDate(info.date.replace('T',' ').slice(0,19))}` : ''}.</p>
-      <p>Was soll mit dem vorhandenen Bestand geschehen?</p>
-      <div class="warn-box"><strong>Ersetzen</strong> löscht vorher alles Vorhandene — für die
-        Wiederherstellung nach einem Datenverlust.<br><br>
-        <strong>Zusammenführen</strong> lässt Vorhandenes stehen und fügt die ${esc(V.sacheMehrzahl)} hinzu —
-        um Bestände von einem zweiten Gerät zu übernehmen.</div>
+    bd.innerHTML = `<div class="modal"><h2>${tH('karte.import')}</h2>
+      <p>${tH('karte.dieDateiEnthaelt')} <strong>${info.count} ${esc(vSache(info.count))}</strong>${info.withPhotos ? ' <strong>mit Fotos</strong>' : t('karte.ohneFotos2')}${info.title ? tH('karte.erstelltAus', { title: info.title }) : ''}${info.date ? ` am ${fmtDate(info.date.replace('T',' ').slice(0,19))}` : ''}.</p>
+      <p>${tH('karte.wasSollMitDemVorhandenen')}</p>
+      <div class="warn-box"><strong>${tH('karte.ersetzen')}</strong> ${tH('karte.loeschtVorherAllesVorhandeneFuer')}<br><br>
+        <strong>${tH('karte.zusammenfuehren')}</strong> ${tH('karte.laesstVorhandenesStehenUndFuegt')}</div>
       <div class="modal-acts">
-        <button class="btn btn-ghost" data-cancel>Abbrechen</button>
-        <button class="btn" data-merge>Zusammenführen</button>
-        <button class="btn btn-danger" data-replace>Ersetzen</button>
+        <button class="btn btn-ghost" data-cancel>${tH('dialog.abbrechen')}</button>
+        <button class="btn" data-merge>${tH('karte.zusammenfuehren')}</button>
+        <button class="btn btn-danger" data-replace>${tH('karte.ersetzen')}</button>
       </div></div>`;
     document.body.appendChild(bd);
     const close = () => bd.remove();
@@ -10901,17 +10831,17 @@ function askImport(file, grenzen) {
     bd.onclick = e => { if (e.target === bd) close(); };
 
     const run = async (mode) => {
-      if (mode === 'replace' && !await confirmBox('Wirklich ersetzen?',
-        'Der komplette vorhandene Bestand wird vorher gelöscht. Das lässt sich nicht rückgängig machen.', 'Ersetzen')) return;
-      if (!await zweiteBestaetigung('import', null, 'Import bestätigen',
+      if (mode === 'replace' && !await confirmBox(t('karte.wirklichErsetzen'),
+        t('karte.derKompletteVorhandeneBestandWird'), t('karte.ersetzen'))) return;
+      if (!await zweiteBestaetigung('import', null, t('karte.importBestaetigen'),
         mode === 'replace'
-          ? `Der ersetzende Import löscht den vorhandenen Bestand und legt ${V.sacheMehrzahl}, Kommentare und ${V.bewertungMehrzahl} mit den Verfassernamen aus der Datei an.`
-          : `Der Import legt ${V.sacheMehrzahl}, Kommentare und ${V.bewertungMehrzahl} mit den Verfassernamen aus der Datei an.`)) return;
+          ? t('karte.derErsetzendeImportLoeschtDen')
+          : t('karte.derImportLegtKommentareUnd'))) return;
       close();
       const busy = document.createElement('div');
       busy.className = 'backdrop';
-      busy.innerHTML = `<div class="modal"><h2>Import läuft …</h2>
-        <p>Bei vielen Fotos kann das eine Weile dauern. Bitte das Fenster nicht schließen.</p></div>`;
+      busy.innerHTML = `<div class="modal"><h2>${tH('karte.importLaeuft')}</h2>
+        <p>${tH('karte.beiVielenFotosKannDas')}</p></div>`;
       document.body.appendChild(busy);
       const fd = new FormData();
       fd.append('file', file);
@@ -10920,13 +10850,13 @@ function askImport(file, grenzen) {
         const r = await api('POST', '/api/import', fd, true);
         busy.remove();
         toast(`${r.items} ${vSache(r.items)}, ${r.photos} Fotos, ${r.videos || 0} Videos, ` +
-              `${r.attachments} Dateien übernommen`);
+              t('karte.dateienUebernommen', { attachments: r.attachments }));
         /* Nicht abbrechen, melden -- und laut genug, dass es auffaellt: fehlt
            ein Video, kann das naechste Foto zum Hauptbild geworden sein. */
         const fehlend = (r.videosOhneDatei || 0) + (r.videosUnlesbar || 0);
         if (fehlend) toast(fehlend === 1
-          ? '1 Video fehlte in der Datei und wurde übersprungen.'
-          : `${fehlend} Videos fehlten in der Datei und wurden übersprungen.`, true);
+          ? t('karte.videoFehlteInDerDatei')
+          : t('karte.videosFehltenInDerDatei', { fehlend: fehlend }), true);
         location.hash = '#/';
         if (location.hash === '#/') renderList();
       } catch (e) { busy.remove(); toast(e.message, true); }

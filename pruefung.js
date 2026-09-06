@@ -15045,9 +15045,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
      der Satz ist derselbe, nur wohnt er jetzt dort, wo Text wohnt. */
   pruefe('Und sie meint den Containerlog, in der Sprachdatei',
     gleich(fProt.map(([d]) => d), ['public/sprachen/de.json']), JSON.stringify(fProt));
+  /* DER SATZ WOHNT SEIT 0.24.0 IN DER SPRACHDATEI. Gesucht wird in beidem --
+     Quelltext und Datei --, damit der Waechter in jedem Zwischenstand des
+     Umzugs dieselbe Frage stellt (Stolperstein 201). */
+  const protAppUndTexte =
+    fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8') + '\u0000' +
+    Object.values(JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8')))
+      .flatMap(v => (typeof v === 'string' ? [v] : Object.values(v))).join('\u0000');
   pruefe('Die Kennzahlenkarte sagt dafuer „Server-Log"',
-    /im Server-Log „Schlüssel aus ENCRYPTION_KEY geladen/.test(
-      fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
+    /im Server-Log „Schlüssel aus ENCRYPTION_KEY geladen/.test(protAppUndTexte),
     'die Karte nennt das Server-Log nicht');
   /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein, weil
      er gar keinen Code mehr liest (Stolperstein 106) -- und er darf das lange
@@ -15064,8 +15071,20 @@ const freigabeHaupt = (zweck, ziel = null) =>
     'der Waechter faerbt sich am Kommentar');
   /* Und die Gegenrichtung, damit die Entscheidung nicht bloss eine Verneinung
      ist: das Wort, das dort STEHEN soll, steht auch da -- am Bildschirm. */
+  /* DIE UEBERSCHRIFT KOMMT SEIT 0.24.0 AUS DER SPRACHDATEI. Der Waechter loest
+     den Schluessel auf und fragt weiter dasselbe: traegt eine Kartenueberschrift
+     das Wort? Ein Schluessel, den die Datei nicht kennt, bleibt stehen und
+     faellt damit auf. */
+  const protDe = JSON.parse(fs.readFileSync(
+    path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'));
+  const protUeberschriften = [...fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')
+    .matchAll(/<h3>([\s\S]*?)<\/h3>/g)].map(m => {
+      const ruf = /^\$\{tH?\('([^']+)'\)\}$/.exec(m[1].trim());
+      const wort = ruf ? protDe[ruf[1]] : m[1];
+      return typeof wort === 'string' ? wort.trim() : m[1].trim();
+    });
   pruefe('Und das Wort Sicherheitsprotokoll steht am Bildschirm wirklich',
-    /<h3>Sicherheitsprotokoll<\/h3>/.test(fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')),
+    protUeberschriften.includes('Sicherheitsprotokoll'),
     'die Karte nennt das Sicherheitsprotokoll nicht beim Namen');
 
   /* RE-AUTHENTIFIZIERUNG IST DAS WORT DER PAPIERE, NICHT DES BILDSCHIRMS.
@@ -15435,11 +15454,20 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Die Liste traegt mindestens dreissig Zeilen',
       BILDSCHIRM_VERBOT.length >= 30, `${BILDSCHIRM_VERBOT.length} Zeilen`);
 
-    /* DANN DER GEGENSTAND: app.js traegt Hunderte Bildschirmtexte, sonst
-       belegte „kein Verstoss" nichts. */
-    const btApp = bildschirmtexteVon(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'));
-    pruefe('public/app.js traegt mehr als achthundert lesbare Texte',
-      btApp.filter(t => !istAdresse(t.text)).length > 800, `${btApp.length} Texte`);
+    /* WAS EIN SCHLUESSEL IST UND WAS EIN SATZ -- der Filter steht hier oben,
+       weil ihn seit 0.24.0 beide Seiten brauchen: die Serverdateien und
+       app.js. */
+    const istSchluessel = (x) => /^[a-zäöü][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/.test(x);
+    const istBezeichner = (x) => /^[a-zäöü][A-Za-z0-9_-]*$/.test(x);
+    /* DANN DER GEGENSTAND: die Sprachdatei traegt Hunderte Bildschirmtexte,
+       sonst belegte „kein Verstoss" nichts.
+       SEIT 0.24.0 LIEST DER WAECHTER DIE SPRACHDATEI -- dort wohnt der Text
+       (Auftrag 3.3). Ueber app.js laeuft er weiter, solange dort noch Saetze
+       stehen; ein Schluessel wie „karte.pruefsummeFingerprint" ist keiner
+       davon und faellt heraus. Dass er app.js wirklich noch liest, haelt die
+       Gegenprobe 625 fest -- sie schreibt einen Satz zurueck. */
+    const btApp = bildschirmtexteVon(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'))
+      .filter(t => !istSchluessel(t.text));
     /* DER SERVERTEXT-WAECHTER DREHT SICH UM -- 0.24.0, Bauabschnitt 2. Bis
        dahin ZAEHLTE er die Meldungen im Quelltext („mehr als hundert"); jetzt
        haelt er fest, dass dort KEINE mehr steht. Die Zahl steht nicht weniger
@@ -15451,9 +15479,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        und ein BEZEICHNER („geloescht", der Status in einem Vergleich). Beides
        ist kein Text, den ein Mensch liest -- den Text dazu liest der Waechter
        eine Zeile tiefer in de.json. Alles andere ist ein Literal, das nicht
-       umgezogen ist. */
-    const istSchluessel = (x) => /^[a-zäöü][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/.test(x);
-    const istBezeichner = (x) => /^[a-zäöü][A-Za-z0-9_-]*$/.test(x);
+       umgezogen ist. Die beiden Filter stehen weiter oben, bei btApp. */
     const btServerRoh = ['server.js', 'auth.js', 'mail.js'].flatMap(d =>
       servertexteVon(fs.readFileSync(path.join(__dirname, d), 'utf8')).map(t => ({ ...t, datei: d })))
       .filter(t => !istSchluessel(t.text) && !istBezeichner(t.text));
@@ -15473,6 +15499,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
         .map(text => ({ text, zeile: k, datei: 'public/sprachen/de.json' })));
     pruefe('Und die Sprachdatei traegt dafuer mehr als hundert Servermeldungen',
       btServer.length > 100, `${btServer.length} Meldungen`);
+    /* JEDER WERT DER DATEI, nicht nur die Servermeldungen -- der Waechter
+       sieht seit 0.24.0 auch, was aus app.js und mail.js dorthin gezogen ist.
+       EIN PLATZHALTERNAME IST KEIN BILDSCHIRMTEXT: `{nachgezogen}` in
+       „erneuert: {nachgezogen} von {geprueft} geprüften" ist der Name einer
+       Zahl, kein Wort, das jemand liest. Er faellt vor der Pruefung heraus --
+       sonst faerbte sich die Verbotsliste an einem Bezeichner. */
+    const btDe = Object.entries(spDe).filter(([k]) => k !== '_locale')
+      .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v))
+        .map(text => ({ text: text.replace(/\{[^}]*\}/g, ' '), zeile: k,
+                        datei: 'public/sprachen/de.json' })));
+    pruefe('Die Sprachdatei traegt mehr als achthundert lesbare Texte',
+      btDe.filter(t => !istAdresse(t.text)).length > 800, `${btDe.length} Texte`);
     /* NULL DEUTSCHE SAETZE IN `throw new Error` IN auth.js -- der blinde Fleck
        des Waechters faellt damit von selbst: was auth.js wirft, ist ein
        Schluessel, und den Text liest der Waechter in de.json.
@@ -15504,11 +15542,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const vApp = bildschirmVerstoesse(btApp);
     pruefe('Kein Bildschirmtext in app.js traegt ein Wort der Verbotsliste',
       vApp.length === 0, vApp.slice(0, 12).join(' · '));
-    /* VIER SAETZE, DIE DER WAECHTER ZUM ERSTEN MAL SIEHT -- 0.24.0. Sie standen
-       bis dahin in `throw new Error` in auth.js oder in einem Pruefer, der
-       `{ fehler }` zurueckgibt; beides las er nicht. Mit dem Umzug in die
-       Sprachdatei sieht er sie -- und findet in ihnen Woerter, die das
-       Woerterbuch aus 0.22.0 vom Bildschirm genommen hat.
+    /* NEUN SAETZE, DIE DER WAECHTER ZUM ERSTEN MAL SIEHT -- 0.24.0. Vier
+       standen bis dahin in `throw new Error` in auth.js oder in einem Pruefer,
+       der `{ fehler }` zurueckgibt; fuenf sind die Briefe aus mail.js, die
+       kein Bildschirm war und die er deshalb nie gelesen hat. Mit dem Umzug in
+       die Sprachdatei sieht er sie alle -- und findet in ihnen Woerter, die das
+       Woerterbuch aus 0.22.0 vom Bildschirm genommen hat („Zugang",
+       „Rücksetzlink", „Verwaltungsbereich", „Kasten", „liegen").
        SIE WERDEN IN DIESER RUNDE NICHT GEAENDERT, und das ist keine Nachsicht,
        sondern die Abnahme: „kein Wort anders" ist der Satz, an dem sich der
        Augenschein messen laesst (Auftrag 0.24.0). Sie stehen namentlich im
@@ -15516,18 +15556,20 @@ const freigabeHaupt = (zweck, ziel = null) =>
        NAMENTLICH UND NICHT ALS ZAHL: wer einen davon spaeter richtigstellt,
        nimmt ihn hier heraus -- und wer einen neuen dazuschreibt, faellt auf. */
     const ALTLASTEN = ['anmeldung.keinZugang', 'server.kriterienKonflikt',
-                       'server.sicherungImDatenverzeichnis', 'server.verweigertSelbstZugang'];
-    pruefe('Die vier Altlasten stehen wirklich noch in der Sprachdatei',
+                       'server.sicherungImDatenverzeichnis', 'server.verweigertSelbstZugang',
+                       'mail.bestaetigung.text', 'mail.einladung.betreff',
+                       'mail.einladung.text', 'mail.ruecksetzung.text', 'mail.test.text'];
+    pruefe('Die neun Altlasten stehen wirklich noch in der Sprachdatei',
       ALTLASTEN.every(k => spDe[k] !== undefined),
-      ALTLASTEN.filter(k => spDe[k] === undefined).join(' · ') || 'alle vier da');
-    const vServer = bildschirmVerstoesse(btServer.filter(t => !ALTLASTEN.includes(t.zeile)));
-    pruefe('Keine Servermeldung ebenso — ausser den vier benannten Altlasten',
-      vServer.length === 0, vServer.slice(0, 12).join(' · '));
+      ALTLASTEN.filter(k => spDe[k] === undefined).join(' · ') || 'alle neun da');
+    const vDe = bildschirmVerstoesse(btDe.filter(t => !ALTLASTEN.includes(t.zeile)));
+    pruefe('Kein Wert der Sprachdatei ebenso — ausser den neun benannten Altlasten',
+      vDe.length === 0, vDe.slice(0, 12).join(' · '));
     // Und sie sind wirklich Verstoesse: ohne diese Zeile stuende die Liste
     // oben auch dann da, wenn sie laengst richtiggestellt waeren.
-    pruefe('Und die vier sind wirklich Verstoesse, keine Vorratsliste',
-      bildschirmVerstoesse(btServer.filter(t => ALTLASTEN.includes(t.zeile))).length >= 4,
-      `${bildschirmVerstoesse(btServer.filter(t => ALTLASTEN.includes(t.zeile))).length} Verstoesse`);
+    const vAlt = bildschirmVerstoesse(btDe.filter(t => ALTLASTEN.includes(t.zeile)));
+    pruefe('Und die neun sind wirklich Verstoesse, keine Vorratsliste',
+      vAlt.length >= 9, `${vAlt.length} Verstoesse`);
   }
 
   /* ================================================================
@@ -35916,12 +35958,19 @@ async function pruefeOberflaeche() {
        jeder Teil einzeln geladen wird. */
     pruefe('Der Knopf nennt nicht mehr das Freigeben',
       !/Alle \$\{n\} Teile freigeben/.test(tzApp) && !/Freigegeben —/.test(tzApp));
+    /* GESUCHT WIRD IN BEIDEM -- 0.24.0: im Quelltext und in der Sprachdatei.
+       Die drei Saetze sind dieselben geblieben, sie wohnen nur woanders; die
+       FRAGE aendert sich dadurch nicht (Stolperstein 201). */
+    const tzWerte = Object.values(JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8')))
+      .flatMap(v => (typeof v === 'string' ? [v] : Object.values(v)));
+    const tzAlles = tzApp + '\u0000' + tzWerte.join('\u0000');
     pruefe('Er sagt, dass EINMAL bestätigt wird',
-      /Einmal bestätigen, dann/.test(tzApp), 'Knopftext');
+      /Einmal bestätigen, dann/.test(tzAlles), 'Knopftext');
     pruefe('Und dass danach jeder Teil selbst geladen wird',
-      /danach lädst du jeden\s+Teil einzeln/.test(tzApp), 'Satz über dem Knopf');
+      /danach lädst du jeden\s+Teil einzeln/.test(tzAlles), 'Satz über dem Knopf');
     pruefe('Der Satz darüber sagt, was vorher abgefragt wird — 0.22.0',
-      /Vor dem Export wird einmal dein\s+Passwort/.test(tzApp), 'Grundsatz');
+      /Vor dem Export wird einmal dein\s+Passwort/.test(tzAlles), 'Grundsatz');
 
     tzS.stopp();
     fs.rmSync(tzDir, { recursive: true, force: true });
@@ -41397,6 +41446,16 @@ async function pruefeOberflaeche() {
       befehle.filter(t => !/serverKasten\(/.test(appZeilen[t.zeile - 1] || '')).map(t => `Z. ${t.zeile}: ${t.text.trim()}`).join(' · '));
     pruefe('Und es sind genau vier: Passwort (Mein Konto), zweiter Faktor, Passwort (Benutzer), Neustart',
       befehle.length === 4, `${befehle.length}: ` + befehle.map(t => t.text.trim()).join(' · '));
+    /* UND KEINER IN DER SPRACHDATEI -- 0.24.0. Seit die Saetze dort wohnen,
+       koennte ein Befehl auch dorthin geraten; im Fliesstext waere er
+       derselbe Verstoss wie vorher in app.js. Ein Befehl ist ausserdem in
+       jeder Sprache derselbe und gehoert schon deshalb nicht uebersetzt. */
+    const befehleDe = Object.entries(JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8')))
+      .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(w => [k, w]))
+      .filter(([, w]) => /docker compose|zugang\.js/.test(w));
+    pruefe('Und keiner steht in der Sprachdatei',
+      befehleDe.length === 0, befehleDe.map(([k]) => k).join(' · '));
     pruefe('Der Kasten selbst prueft die Rolle — nicht jede Karte fuer sich',
       /function serverKasten\(satz, befehl\) \{\s*\n\s*if \(!EIGENTUEMER\) return '';/.test(appRoh),
       (appRoh.match(/function serverKasten[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
