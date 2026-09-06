@@ -274,6 +274,13 @@ es im Konzept beim Nachtrag zu E9/E11, kurz im Auftrag bei F4.*
 4. **Der Eigentümer schaltet im Adminbereich kurz um** und trägt die andere
    Fassung ein; **ab dann gilt für diese Sprache die dafür angelegte.**
 
+5. **Die Grenze dazwischen, am selben Tag gezogen: die Vorgaben stehen in den
+   Sprachdateien — je Sprache in ihrer eigenen —, und was ein Mensch
+   stattdessen einträgt, landet in der Datenbank.** *Das ist genau der
+   gebaute Stand: unter `vokabular.` stehen die vierzehn Vorgaben, und was
+   der Admin in der Karte „Vokabular" eintippt, ging noch nie durch die
+   Datei.*
+
 *Der Rückfall ist damit kein Zustand, sondern eine Lage: er gilt genau so
 lange, wie für eine Sprache noch nichts dasteht — derselbe Gedanke wie der
 Rückfall der Texte auf Deutsch.*

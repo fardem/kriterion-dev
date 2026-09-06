@@ -940,6 +940,16 @@ Entscheidung in einem halben Jahr noch zu beurteilen ist.*
 > die Namen stehen schon heute in der Datenbank. *Gebaut wird die Zuordnung in
 > Stufe 2; dieser Nachtrag sagt, wie sie auszusehen hat, damit die Frage dann
 > nicht neu gestellt wird.*
+>
+> **UND DIE GRENZE DAZWISCHEN, vom Betreiber am 6. September 2026 in einem
+> Satz gezogen: die VORGABEN stehen in der Sprachdatei — je Sprache in ihrer
+> eigenen —, und was ein Mensch stattdessen einträgt, landet in der
+> Datenbank.** *Damit ist beides an genau einem Ort: das, was das Programm
+> mitbringt, in der Datei, die mit dem Programm ausgeliefert wird; das, was
+> die Installation daraus macht, in ihrem eigenen Bestand. Eine frische
+> englische Installation ist damit englisch beschriftet, ohne dass jemand ein
+> Wort eintragen müsste — und der erste eingetragene Satz gilt weiter für jede
+> Sprache, für die noch keiner dasteht.*
 
 **Und eine Frage, die keine Nummer bekommt, weil sie entschieden ist:** *ob
 die Runde vor der Bereinigung kommt.* **Das hat der Fahrplan am 5. September
