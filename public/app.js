@@ -188,16 +188,16 @@ async function api(method, url, body, isForm = false) {
 function toast(msg, isErr = false, action = null) {
   document.querySelectorAll('.toast').forEach(m => m.remove());
   const el = document.createElement('div');
-  el.className = 'toast' + (isErr ? ' err' : '') + (action ? ' mit-knopf' : '');
+  el.className = 'toast' + (isErr ? ' err' : '') + (action ? ' with-btn' : '');
   el.textContent = msg;
   const dauer = action ? 6000 : 2600;
   if (action) {
     const sep = document.createElement('span');
-    sep.className = 'toast-trenner';
+    sep.className = 'toast-sep';
     sep.textContent = '·';
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'toast-knopf';
+    b.className = 'toast-btn';
     b.textContent = action.text;
     b.onclick = () => { el.remove(); action.tu(); };
     el.append(sep, b);
@@ -647,7 +647,7 @@ function userDeleteDialog(name, number, b) {
     ];
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal" id="benutzer-loeschen"><h2>${tH('dialog.deleteUserAsk', { name: name })}</h2>
+    bd.innerHTML = `<div class="modal" id="delete-user"><h2>${tH('dialog.deleteUserAsk', { name: name })}</h2>
       <p>${tH('dialog.nameFreedHint', { name: name, nummer: Number(number) })}</p>
       ${b.eintraege ? `<label class="ex-files"><input type="checkbox" id="bl-eintraege">
         ${tH('dialog.deleteAlso', { eintraege: b.eintraege, sache: vThing(b.eintraege), name: name })}${foreignCount
@@ -2704,11 +2704,11 @@ function drawHeadCounts() {
   /* KEINE NULL AM KNOPF. „Offen 0" ist eine Auskunft ueber nichts und stuende
      dauerhaft da -- dieselbe Ueberlegung wie bei der Marke ×1 an einem
      Kriterium. Ohne offene Aufgaben traegt der Knopf nur sein Zeichen. */
-  atElement('offen-zahl', el => {
+  atElement('open-count', el => {
     el.textContent = offen ? String(offen) : '';
     el.hidden = !offen;
   });
-  atElement('offen', b => b.title = offen
+  atElement('open', b => b.title = offen
     ? `${offen} ${vTask(offen)} offen`
     : t('list.openTasks'));
   const fresh = bellNew();
@@ -2716,8 +2716,8 @@ function drawHeadCounts() {
      seit die Tafel zwei nennt: er beantwortet „gibt es etwas", die Tafel
      beantwortet „was". Eine Aufzaehlung im Titel machte aus einem Hinweis eine
      Liste. */
-  atElement('glocke-punkt', el => { el.hidden = !fresh; });
-  atElement('glocke', b => b.title = fresh
+  atElement('bell-dot', el => { el.hidden = !fresh; });
+  atElement('bell', b => b.title = fresh
     ? t('list.newsFromOthers', { n: fresh })
     : t('list.noNews'));
 }
@@ -2740,9 +2740,9 @@ function showBellPanel() {
     .slice().sort((a, b) => (freshCount(b) - freshCount(a)) || String(a.title).localeCompare(String(b.title), LOCALE));
   const bd = document.createElement('div');
   bd.className = 'backdrop';
-  bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>${tH('list.news')}</h2>
+  bd.innerHTML = `<div class="modal bell-panel" id="bell-modal"><h2>${tH('list.news')}</h2>
     <p>${tH('list.newCommentsAnd')} <strong>${tH('list.otherUser')}</strong>${tH('list.sinceLastVisit')}</p>
-    <div class="manage-list" id="glocken-liste"></div>
+    <div class="manage-list" id="bell-list"></div>
     <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
   document.body.appendChild(bd);
   const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
@@ -2755,7 +2755,7 @@ function showBellPanel() {
   bd.querySelector('[data-no]').onclick = zu;
   bd.onclick = e => { if (e.target === bd) zu(); };
 
-  const box = bd.querySelector('#glocken-liste');
+  const box = bd.querySelector('#bell-list');
   if (!zeilen.length) {
     box.innerHTML = `<span class="hint">${tH('list.noNewsDot')}</span>`;
   } else for (const it of zeilen) {
@@ -2763,7 +2763,7 @@ function showBellPanel() {
        und in einem neuen Fenster oeffnen. Geschlossen wird die Tafel trotzdem
        von Hand -- ein Wechsel der Ansicht raeumt sie nicht mit weg. */
     const a = document.createElement('a');
-    a.className = 'mrow glocken-zeile';
+    a.className = 'mrow bell-row';
     a.href = `#/item/${it.id}`;
     a.dataset.mid = String(it.id);
     /* DREI STUECKE: der Titel, WAS dort neu ist, und VON WEM. Die dritte
@@ -2772,10 +2772,10 @@ function showBellPanel() {
        ALLE DREI WERDEN GESETZT UND NICHT ZUSAMMENGEBAUT: Titel und Namen sind
        freier Text. */
     a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
-      <span class="glocken-von"></span>`;
+      <span class="bell-from"></span>`;
     a.querySelector('.mname').textContent = it.title;
     a.querySelector('.mcount').textContent = newWords(it);
-    a.querySelector('.glocken-von').textContent = newFromWords(it);
+    a.querySelector('.bell-from').textContent = newFromWords(it);
     a.onclick = () => zu();
     box.appendChild(a);
   }
@@ -2841,11 +2841,11 @@ async function renderList() {
              DER PUNKT IST EIN EIGENER KNOTEN und kein Text im Knopf: er wird
              beim Zeichnen ein- und ausgeblendet, ohne dass das Zeichen daneben
              neu gebaut wird. */''}
-        ${BELL_SEEN ? `<button class="icon-btn glocke" id="glocke" title="${esc(t('list.news'))}"
-          aria-label="${esc(t('list.news'))}">${ICON_BELL}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">${tH('list.news')}</span></button>` : ''}
-        <button class="icon-btn" id="offen" title="${esc(t('list.openTasks'))}">${ICON_OPEN}<span class="offen-zahl" id="offen-zahl" hidden></span><span class="mast-wort">${tH('list.openTasks')}</span></button>
-        <button class="icon-btn" id="sys" title="${esc(t('list.settings'))}">${ICON_SYS}<span class="mast-wort">${tH('list.settings')}</span></button>
-        <span class="hint wer" id="wer">${tH('list.signedInAs', { name: NAME })}</span>
+        ${BELL_SEEN ? `<button class="icon-btn bell" id="bell" title="${esc(t('list.news'))}"
+          aria-label="${esc(t('list.news'))}">${ICON_BELL}<span class="bell-dot" id="bell-dot" hidden></span><span class="mast-word">${tH('list.news')}</span></button>` : ''}
+        <button class="icon-btn" id="open" title="${esc(t('list.openTasks'))}">${ICON_OPEN}<span class="open-count" id="open-count" hidden></span><span class="mast-word">${tH('list.openTasks')}</span></button>
+        <button class="icon-btn" id="sys" title="${esc(t('list.settings'))}">${ICON_SYS}<span class="mast-word">${tH('list.settings')}</span></button>
+        <span class="hint who" id="who">${tH('list.signedInAs', { name: NAME })}</span>
         <button class="btn btn-ghost btn-sm" id="out">${tH('list.signOut')}</button>
       </div>
       <button class="btn btn-accent" id="new">+ ${esc(V.sacheEinzahl)}</button>
@@ -2854,7 +2854,7 @@ async function renderList() {
            hingehoert. Auf dem breiten Schirm ist es unsichtbar, die Stelle im
            Markup fuer die Tastatur aber trotzdem die letzte, und das ist
            richtig: es fuehrt nirgendwohin, was nicht schon dasteht. */''}
-      <button class="icon-btn mast-menue" id="menue" aria-expanded="false"
+      <button class="icon-btn mast-menu" id="menu" aria-expanded="false"
         aria-controls="mast-rest" aria-label="${esc(t('list.openMenu'))}" title="${esc(t('list.menu'))}">${ICON_MENU}</button>
     </div>
     ${/* Nur auf dem schmalen Schirm sichtbar. Die Zahl daneben nennt die
@@ -2868,8 +2868,8 @@ async function renderList() {
   </div>`;
 
   document.getElementById('new').onclick = openCreate;
-  document.getElementById('offen').onclick = () => { location.hash = '#/offen'; };
-  atElement('glocke', b => b.onclick = showBellPanel);
+  document.getElementById('open').onclick = () => { location.hash = '#/offen'; };
+  atElement('bell', b => b.onclick = showBellPanel);
   drawHeadCounts();
   document.getElementById('sys').onclick = () => { location.hash = '#/system'; };
   /* DER SCHATTEN DER KOPFZEILE BEIM ROLLEN -- 0.22.0. Sie ist deckend und
@@ -2902,14 +2902,14 @@ async function renderList() {
      aria-expanded wird mitgefuehrt, weil das Zeichen sonst ein Knopf ohne
      Auskunft waere: ein Vorleseprogramm saehe drei Striche und keinen
      Zustand. */
-  const menu = document.getElementById('menue');
+  const menu = document.getElementById('menu');
   const panel = document.getElementById('mast-rest');
   const menuPlaces = (on) => {
-    panel.classList.toggle('offen', on);
+    panel.classList.toggle('open', on);
     menu.setAttribute('aria-expanded', on ? 'true' : 'false');
     menu.setAttribute('aria-label', on ? t('list.closeMenu') : t('list.openMenu'));
   };
-  menu.onclick = () => menuPlaces(!panel.classList.contains('offen'));
+  menu.onclick = () => menuPlaces(!panel.classList.contains('open'));
 
   /* EIN KLICK DANEBEN SCHLIESST, UND ESCAPE AUCH. Beides haengt am Dokument
      und nicht an der Tafel: eine Tafel, die sich nur ueber ihren eigenen
@@ -2922,7 +2922,7 @@ async function renderList() {
      die Elemente weg, die Zusagen am Dokument bleiben sonst liegen und
      sammeln sich mit jedem Aufruf der Uebersicht. */
   const menuOutside = (e) => {
-    if (e.target.closest('#menue') || e.target.closest('#mast-rest')) return;
+    if (e.target.closest('#menu') || e.target.closest('#mast-rest')) return;
     menuPlaces(false);
   };
   const menuKey = (e) => { if (e.key === 'Escape') menuPlaces(false); };
@@ -4016,13 +4016,13 @@ async function renderOffen() {
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">${tH('list.backToList')}</a>
     <h1 class="page-title">${tH('list.openTasks')}</h1>
-    <p class="hint" id="off-hint" style="margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}"></p>
-    ${multipleUsers() ? `<div class="pills" id="off-sicht" style="margin:0 0 20px"></div>` : ''}
-    <div id="off-liste"></div>
+    <p class="hint" id="open-hint" style="margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}"></p>
+    ${multipleUsers() ? `<div class="pills" id="open-view" style="margin:0 0 20px"></div>` : ''}
+    <div id="open-list"></div>
   </div>`;
 
   function drawView() {
-    const box = document.getElementById('off-sicht');
+    const box = document.getElementById('open-view');
     if (!box) return;
     box.innerHTML = '';
     [true, false].forEach(my => {
@@ -4066,7 +4066,7 @@ async function renderOffen() {
 
     // Ein leerer Bildschirm ist eine schlechte Antwort. Und die beiden Fälle
     // sind verschieden: gar nichts offen, oder nichts von mir.
-    document.getElementById('off-hint').textContent = !visible.length
+    document.getElementById('open-hint').textContent = !visible.length
       ? (zeilen.length ? t('list.nothingOpenMine')
                        : t('list.nothingOpen'))
       : t('list.openGroupedBy', { length: visible.length, aufgabe: vTask(visible.length) })
@@ -4074,21 +4074,21 @@ async function renderOffen() {
         + (multipleUsers() ? (onlyMy ? t('list.showingOwn')
                                          : t('list.showingAll')) : '');
 
-    const box = document.getElementById('off-liste');
+    const box = document.getElementById('open-list');
     box.innerHTML = '';
     groups.forEach(g => {
       const boxId = document.createElement('div');
-      boxId.className = 'off-gruppe';
+      boxId.className = 'open-group';
       boxId.dataset.item = g.id;
       const head = document.createElement('a');
-      head.className = 'off-titel';
+      head.className = 'open-title';
       head.href = `#/item/${g.id}`;
       head.textContent = g.title;
       boxId.appendChild(head);
 
       g.zeilen.forEach(z => {
         const el = document.createElement('div');
-        el.className = 'off-zeile' + (z.erledigt ? ' erledigt' : '');
+        el.className = 'open-row' + (z.erledigt ? ' erledigt' : '');
         el.dataset.kommentar = z.id;
 
         /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. Die Art eines
@@ -4098,7 +4098,7 @@ async function renderOffen() {
            holt, sähe aus wie ein Fehler. */
         if (z.mine || ADMIN) {
           const check = document.createElement('button');
-          check.className = 'off-haken';
+          check.className = 'open-check';
           check.innerHTML = z.erledigt ? ICON_BOX_CHECK : ICON_BOX;
           check.classList.toggle('on', !!z.erledigt);
           check.title = z.erledigt ? t('list.reopen')
@@ -4108,7 +4108,7 @@ async function renderOffen() {
         }
 
         const text = document.createElement('a');
-        text.className = 'off-text';
+        text.className = 'open-text';
         text.href = `#/item/${g.id}`;
         text.textContent = z.text;
         el.appendChild(text);
@@ -4116,7 +4116,7 @@ async function renderOffen() {
         // Verfasser nur ab zwei Zugängen -- bei einem wiederholte der Name nur,
         // wer ohnehin alles geschrieben hat. Dieselbe Schwelle wie überall.
         const when = document.createElement('span');
-        when.className = 'off-wann';
+        when.className = 'open-when';
         when.textContent = (multipleUsers() ? `${authorName(z.verfasser)} · ` : '')
           + fmtDate(z.created_at);
         el.appendChild(when);
@@ -4787,7 +4787,7 @@ async function renderDetail(id, termAddress) {
              Schirm faellt das nicht auf, weil beides nebeneinander steht.
              Auf dem breiten Schirm aendert die Klasse nichts: sie traegt
              dort keine einzige Regel. */''}
-        <div class="titel-kopf">
+        <div class="title-head">
           <div class="title-line">
             <input class="title-in" id="title" value="${esc(item.title)}">
             <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite')}">${item.favorite ? '★' : '☆'}</button>
@@ -5021,7 +5021,7 @@ async function renderDetail(id, termAddress) {
            Dieselbe Ueberlegung wie beim Favoritenfilter in der Filterzeile:
            die beiden davor stellen etwas ein, dieser hier nimmt etwas weg.
            Ohne den Abstand liest er sich als dritte Einstellung. */''}
-      <div class="vtools${cropMode ? ' offen' : ''}">
+      <div class="vtools${cropMode ? ' open' : ''}">
         <button class="vfocus${cropMode ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
           aria-label="${esc(t('entry.setCrop'))}">${ICON_CROP}</button>
         ${showsVideo ? `<button class="vfull" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
@@ -6403,9 +6403,9 @@ async function renderDetail(id, termAddress) {
       { wort: boxId.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl });
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal" id="stimmen-modal"><h2>${esc(titel)}</h2>
+    bd.innerHTML = `<div class="modal" id="votes-modal"><h2>${esc(titel)}</h2>
       <p>${tH('entry.adminOnlyHint')}</p>
-      <div class="stimmliste" id="stimmliste"></div>
+      <div class="vote-list" id="vote-list"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
     document.body.appendChild(bd);
     const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
@@ -6423,7 +6423,7 @@ async function renderDetail(id, termAddress) {
     drawMatch();
 
     function drawMatch() {
-      const box = bd.querySelector('#stimmliste');
+      const box = bd.querySelector('#vote-list');
       box.innerHTML = '';
       const je = new Map(list.map(z => [z.criterion_id, z.stimmen]));
       // Reihenfolge und Name kommen aus dem Eintrag: der Endpunkt liefert nur
@@ -6440,7 +6440,7 @@ async function renderDetail(id, termAddress) {
         if (!stimmen.length) return;
         etwas = true;
         const row = document.createElement('div');
-        row.className = 'stimmzeile';
+        row.className = 'vote-row';
         const n = document.createElement('span');
         n.className = 'rname'; n.textContent = r.name;
         const wer = document.createElement('div');
@@ -6832,7 +6832,7 @@ async function renderDetail(id, termAddress) {
       row.className = 'arow';
       const canPreview = a.preview !== 'keine';
       const offen = openPreview.has(a.id);
-      row.classList.toggle('offen', offen);
+      row.classList.toggle('open', offen);
       row.title = canPreview
         ? (offen ? t('entry.clickToCollapse') : t('entry.clickToView'))
         : t('entry.clickToDownload');
@@ -9115,9 +9115,9 @@ function setUpUsersOut() {
     const doc = document;
     const bd = doc.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>${tH('card.deletedUsers')}</h2>
+    bd.innerHTML = `<div class="modal" id="tombstone-modal"><h2>${tH('card.deletedUsers')}</h2>
       <p>${tH('card.nameFreedHint')} <strong>${tH('card.locks')}</strong>.</p>
-      <div class="manage-list" id="grabsteinliste"></div>
+      <div class="manage-list" id="tombstone-list"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
     doc.body.appendChild(bd);
     const zu = () => { bd.remove(); doc.removeEventListener('keydown', onKey, true); };
@@ -9133,7 +9133,7 @@ function setUpUsersOut() {
     doc.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-no]').onclick = zu;
     bd.onclick = e => { if (e.target === bd) zu(); };
-    const box = bd.querySelector('#grabsteinliste');
+    const box = bd.querySelector('#tombstone-list');
     if (!userTombstones.length) {
       box.innerHTML = `<span class="hint">${tH('card.noUserDeleted')}</span>`;
       return;

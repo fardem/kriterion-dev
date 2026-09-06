@@ -25794,9 +25794,9 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 90));
     return d;
   };
-  const offZeilen = (d) => [...d.w.document.querySelectorAll('.off-zeile')];
-  const offTexte = (d) => offZeilen(d).map(z => z.querySelector('.off-text')?.textContent);
-  const offGruppen = (d) => [...d.w.document.querySelectorAll('.off-gruppe')];
+  const offZeilen = (d) => [...d.w.document.querySelectorAll('.open-row')];
+  const offTexte = (d) => offZeilen(d).map(z => z.querySelector('.open-text')?.textContent);
+  const offGruppen = (d) => [...d.w.document.querySelectorAll('.open-group')];
 
   /* Drei Zugaenge: nur dann erscheinen Verfassername und Umschalter. Die
      Prueflage des Mocks traegt neben den drei offenen Aufgaben eine
@@ -25822,21 +25822,21 @@ async function pruefeOberflaeche() {
   pruefe('Die Zeilen sind nach Eintrag gruppiert',
     offGruppen(offAlle).length === 2, `${offGruppen(offAlle).length} Gruppen`);
   pruefe('Jede Gruppe traegt den Titel ihres Eintrags',
-    gleich(offGruppen(offAlle).map(g => g.querySelector('.off-titel')?.textContent),
+    gleich(offGruppen(offAlle).map(g => g.querySelector('.open-title')?.textContent),
       ['Beispiel', 'Zweites']),
-    JSON.stringify(offGruppen(offAlle).map(g => g.querySelector('.off-titel')?.textContent)));
+    JSON.stringify(offGruppen(offAlle).map(g => g.querySelector('.open-title')?.textContent)));
   pruefe('Und die zweite Gruppe traegt ihre beiden Zeilen',
-    offGruppen(offAlle)[1]?.querySelectorAll('.off-zeile').length === 2,
-    `${offGruppen(offAlle)[1]?.querySelectorAll('.off-zeile').length}`);
+    offGruppen(offAlle)[1]?.querySelectorAll('.open-row').length === 2,
+    `${offGruppen(offAlle)[1]?.querySelectorAll('.open-row').length}`);
   pruefe('Ein Klick fuehrt in den Eintrag -- am Titel wie an der Zeile',
-    offGruppen(offAlle)[1]?.querySelector('.off-titel')?.getAttribute('href') === '#/item/2' &&
-    offGruppen(offAlle)[1]?.querySelector('.off-text')?.getAttribute('href') === '#/item/2',
-    offGruppen(offAlle)[1]?.querySelector('.off-titel')?.getAttribute('href'));
+    offGruppen(offAlle)[1]?.querySelector('.open-title')?.getAttribute('href') === '#/item/2' &&
+    offGruppen(offAlle)[1]?.querySelector('.open-text')?.getAttribute('href') === '#/item/2',
+    offGruppen(offAlle)[1]?.querySelector('.open-title')?.getAttribute('href'));
 
   /* Verfasser und Datum an der Zeile. Drei Lagen nebeneinander: ein lebender
      Name, ein Fremder und ein Grabstein -- waeren alle gleich, liesse sich
      nicht sehen, ob die Beschriftung ihre eigene Zeile trifft. */
-  const offWann = (d) => offZeilen(d).map(z => z.querySelector('.off-wann')?.textContent);
+  const offWann = (d) => offZeilen(d).map(z => z.querySelector('.open-when')?.textContent);
   pruefe('Jede Zeile nennt ihren Verfasser',
     offWann(offAlle)[0]?.startsWith('chefin · ') && offWann(offAlle)[1]?.startsWith('bert · '),
     JSON.stringify(offWann(offAlle)));
@@ -25848,7 +25848,7 @@ async function pruefeOberflaeche() {
   /* Der Umschalter -- erst das Vorhandensein bei drei Zugaengen, dann die
      Abwesenheit bei einem (Stolperstein 81). */
   const offSicht = (d, welche) =>
-    d.w.document.querySelector(`#off-sicht [data-sicht="${welche}"]`);
+    d.w.document.querySelector(`#open-view [data-sicht="${welche}"]`);
   pruefe('Bei mehreren Zugaengen steht der Umschalter „meine / alle" da',
     !!offSicht(offAlle, 'meine') && !!offSicht(offAlle, 'alle'));
   pruefe('Vorgabestellung ist „alle"',
@@ -25860,8 +25860,8 @@ async function pruefeOberflaeche() {
   pruefe('„meine" zeigt nur die eigenen Aufgaben',
     gleich(offTexte(offAlle), ['Eine Aufgabe']), JSON.stringify(offTexte(offAlle)));
   pruefe('Und die Zeile darueber sagt, was gezeigt wird',
-    /eigenen/.test(offAlle.w.document.getElementById('off-hint')?.textContent || ''),
-    offAlle.w.document.getElementById('off-hint')?.textContent);
+    /eigenen/.test(offAlle.w.document.getElementById('open-hint')?.textContent || ''),
+    offAlle.w.document.getElementById('open-hint')?.textContent);
   offSicht(offAlle, 'alle').dispatchEvent(new offAlle.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   pruefe('Und zurueck geht es auch', offTexte(offAlle).length === 3, JSON.stringify(offTexte(offAlle)));
@@ -25871,11 +25871,11 @@ async function pruefeOberflaeche() {
   pruefe('Bei einem Zugang stehen die Zeilen trotzdem da',
     offZeilen(offEiner).length === 3, `${offZeilen(offEiner).length} Zeilen`);
   pruefe('Aber der Umschalter erscheint nicht',
-    !offEiner.w.document.getElementById('off-sicht'));
+    !offEiner.w.document.getElementById('open-view'));
   pruefe('Und kein Verfassername steht an der Zeile',
-    offZeilen(offEiner).every(z => !/ · /.test(z.querySelector('.off-wann')?.textContent || '')),
-    JSON.stringify(offEiner.w.document.querySelectorAll('.off-wann').length
-      ? [...offEiner.w.document.querySelectorAll('.off-wann')].map(e => e.textContent) : '(keine)'));
+    offZeilen(offEiner).every(z => !/ · /.test(z.querySelector('.open-when')?.textContent || '')),
+    JSON.stringify(offEiner.w.document.querySelectorAll('.open-when').length
+      ? [...offEiner.w.document.querySelectorAll('.open-when')].map(e => e.textContent) : '(keine)'));
   offEiner.w.close();
 
   /* ================= Der Haken in der Ansicht ================= */
@@ -25887,24 +25887,24 @@ async function pruefeOberflaeche() {
   const offAdmin = await offBaue({ einstellungen: { filters: null, benutzerZahl: 3 } });
   pruefe('Dem Admin steht an jeder Zeile ein Kaestchen',
     offZeilen(offAdmin).length === 3 &&
-    offZeilen(offAdmin).every(z => !!z.querySelector('.off-haken')),
-    `${offZeilen(offAdmin).filter(z => z.querySelector('.off-haken')).length} von ${offZeilen(offAdmin).length}`);
+    offZeilen(offAdmin).every(z => !!z.querySelector('.open-check')),
+    `${offZeilen(offAdmin).filter(z => z.querySelector('.open-check')).length} von ${offZeilen(offAdmin).length}`);
 
   const offBenutzer = await offBaue({
     einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
   pruefe('Ohne Adminrolle stehen die fremden Zeilen weiterhin da',
     offZeilen(offBenutzer).length === 3, `${offZeilen(offBenutzer).length} Zeilen`);
   pruefe('Aber nur an der eigenen steht ein Kaestchen',
-    offZeilen(offBenutzer).filter(z => z.querySelector('.off-haken')).length === 1 &&
-    !!offZeilen(offBenutzer)[0].querySelector('.off-haken'),
-    JSON.stringify(offZeilen(offBenutzer).map(z => !!z.querySelector('.off-haken'))));
+    offZeilen(offBenutzer).filter(z => z.querySelector('.open-check')).length === 1 &&
+    !!offZeilen(offBenutzer)[0].querySelector('.open-check'),
+    JSON.stringify(offZeilen(offBenutzer).map(z => !!z.querySelector('.open-check'))));
   offBenutzer.w.close();
 
   /* Ein wirklich zugestellter Druck, kein Behandleraufruf (Stolperstein 61).
      Geprueft wird BEIDES: was hinausgeht, und was danach auf dem Bildschirm
      steht. */
   offAdmin.gesendet.length = 0;
-  offZeilen(offAdmin)[0].querySelector('.off-haken')
+  offZeilen(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 50));
   const offGeschickt = offAdmin.gesendet.filter(g => g.methode === 'PUT');
@@ -25927,12 +25927,12 @@ async function pruefeOberflaeche() {
   // SEIT 0.22.0 EIN SVG-ZEICHEN STATT ☐/☑ (Stilblatt N1): der Haken ist am
   // Zustand `on` und am Zeichen im Kaestchen zu erkennen, nicht am Glyph.
   pruefe('Das Kaestchen zeigt jetzt den Haken',
-    offZeilen(offAdmin)[0].querySelector('.off-haken')?.classList.contains('on') === true &&
-    !!offZeilen(offAdmin)[0].querySelector('.off-haken svg.zg'),
-    offZeilen(offAdmin)[0].querySelector('.off-haken')?.outerHTML.slice(0, 120));
+    offZeilen(offAdmin)[0].querySelector('.open-check')?.classList.contains('on') === true &&
+    !!offZeilen(offAdmin)[0].querySelector('.open-check svg.zg'),
+    offZeilen(offAdmin)[0].querySelector('.open-check')?.outerHTML.slice(0, 120));
 
   offAdmin.gesendet.length = 0;
-  offZeilen(offAdmin)[0].querySelector('.off-haken')
+  offZeilen(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 50));
   pruefe('Ein zweiter Druck nimmt ihn wieder weg -- und macht keine Notiz daraus',
@@ -25946,7 +25946,7 @@ async function pruefeOberflaeche() {
      wird die Ansicht neu aufgebaut, ist die abgehakte Zeile fort. Ohne diese
      Zeile waere "die Ansicht hat den Haken gesetzt" von "nichts ist passiert"
      nicht zu unterscheiden. */
-  offZeilen(offAdmin)[0].querySelector('.off-haken')
+  offZeilen(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 50));
   offAdmin.w.location.hash = '#/';
@@ -25961,8 +25961,8 @@ async function pruefeOberflaeche() {
   /* Ein leerer Bildschirm ist eine schlechte Antwort. */
   const offLeer = await offBaue({ offenBestand: [], einstellungen: { filters: null, benutzerZahl: 3 } });
   pruefe('Ohne offene Aufgaben steht ein Satz da, kein leerer Bildschirm',
-    /Nichts offen/.test(offLeer.w.document.getElementById('off-hint')?.textContent || ''),
-    offLeer.w.document.getElementById('off-hint')?.textContent);
+    /Nichts offen/.test(offLeer.w.document.getElementById('open-hint')?.textContent || ''),
+    offLeer.w.document.getElementById('open-hint')?.textContent);
   pruefe('Und keine Gruppe daneben', offGruppen(offLeer).length === 0);
   offLeer.w.close();
 
@@ -25972,7 +25972,7 @@ async function pruefeOberflaeche() {
   offSicht(offNichtMeine, 'meine')
     .dispatchEvent(new offNichtMeine.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
-  offZeilen(offNichtMeine)[0].querySelector('.off-haken')
+  offZeilen(offNichtMeine)[0].querySelector('.open-check')
     .dispatchEvent(new offNichtMeine.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 50));
   offNichtMeine.w.location.hash = '#/';
@@ -25984,8 +25984,8 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 40));
   pruefe('„Von mir ist nichts offen" sagt etwas anderes als „nichts offen"',
     /Von mir ist nichts offen/.test(
-      offNichtMeine.w.document.getElementById('off-hint')?.textContent || ''),
-    offNichtMeine.w.document.getElementById('off-hint')?.textContent);
+      offNichtMeine.w.document.getElementById('open-hint')?.textContent || ''),
+    offNichtMeine.w.document.getElementById('open-hint')?.textContent);
   offNichtMeine.w.close();
 
   /* DIE UEBERSCHRIFT KOMMT AUS DEM VOKABULAR. Eine Ansicht, die „Offene
@@ -25997,12 +25997,12 @@ async function pruefeOberflaeche() {
     offVok.w.document.querySelector('.page-title')?.textContent === 'Offene ToDo’s',
     offVok.w.document.querySelector('.page-title')?.textContent);
   pruefe('Der Ueberfahrtext am Kaestchen ebenso',
-    /Done/.test(offZeilen(offVok)[0]?.querySelector('.off-haken')?.title || ''),
-    offZeilen(offVok)[0]?.querySelector('.off-haken')?.title);
+    /Done/.test(offZeilen(offVok)[0]?.querySelector('.open-check')?.title || ''),
+    offZeilen(offVok)[0]?.querySelector('.open-check')?.title);
   pruefe('Und die Zeile darueber nennt beide Woerter des Vokabulars',
-    /ToDo’s/.test(offVok.w.document.getElementById('off-hint')?.textContent || '') &&
-    /Maschine/.test(offVok.w.document.getElementById('off-hint')?.textContent || ''),
-    offVok.w.document.getElementById('off-hint')?.textContent);
+    /ToDo’s/.test(offVok.w.document.getElementById('open-hint')?.textContent || '') &&
+    /Maschine/.test(offVok.w.document.getElementById('open-hint')?.textContent || ''),
+    offVok.w.document.getElementById('open-hint')?.textContent);
   offVok.w.close();
 
   const offLeerVok = await offBaue({ offenBestand: [],
@@ -26011,14 +26011,14 @@ async function pruefeOberflaeche() {
      offen." -- zwei Woerter, und er braucht kein Vokabelwort mehr (Anlage C,
      Z. 3524: „Ton, doppelt"). Belegt wird, dass er kurz ist und dasteht. */
   pruefe('Der leere Satz ist kurz und kommt ohne Vokabelwort aus — 0.22.0',
-    (offLeerVok.w.document.getElementById('off-hint')?.textContent || '').trim() === 'Nichts offen.',
-    offLeerVok.w.document.getElementById('off-hint')?.textContent);
+    (offLeerVok.w.document.getElementById('open-hint')?.textContent || '').trim() === 'Nichts offen.',
+    offLeerVok.w.document.getElementById('open-hint')?.textContent);
   offLeerVok.w.close();
 
   /* Der Weg in die Ansicht: ein Knopf in der Kopfzeile, neben dem Zahnrad. */
   const offKopf = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 3 } });
   await new Promise(r => setTimeout(r, 90));
-  const offKnopf = offKopf.w.document.getElementById('offen');
+  const offKnopf = offKopf.w.document.getElementById('open');
   pruefe('Die Kopfzeile traegt einen Knopf in die Ansicht', !!offKnopf);
   pruefe('Und er steht neben dem Zahnrad',
     offKnopf?.nextElementSibling?.id === 'sys', offKnopf?.nextElementSibling?.id);
@@ -26028,13 +26028,13 @@ async function pruefeOberflaeche() {
   pruefe('Sein Ueberfahrtext kommt aus dem Vokabular',
     /^\d+ Aufgabe offen$/.test(offKnopf?.title || ''), offKnopf?.title);
   pruefe('Und der Knopf traegt die Zahl selbst',
-    offKopf.w.document.getElementById('offen-zahl')?.textContent === '1',
-    offKopf.w.document.getElementById('offen-zahl')?.textContent);
+    offKopf.w.document.getElementById('open-count')?.textContent === '1',
+    offKopf.w.document.getElementById('open-count')?.textContent);
   offKnopf?.dispatchEvent(new offKopf.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 90));
   pruefe('Ein zugestellter Klick fuehrt in die Ansicht',
     offKopf.w.location.hash === '#/offen' &&
-    !!offKopf.w.document.querySelector('.off-gruppe'),
+    !!offKopf.w.document.querySelector('.open-group'),
     offKopf.w.location.hash);
   offKopf.w.close();
 
@@ -26044,14 +26044,14 @@ async function pruefeOberflaeche() {
   const cssOff = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const regelOff = (wahl) => (cssOff.match(new RegExp(wahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
   pruefe('Die Gruppe traegt eine Regel im Stylesheet',
-    !!regelOff('.off-gruppe'), regelOff('.off-gruppe') || '(keine Regel)');
+    !!regelOff('.open-group'), regelOff('.open-group') || '(keine Regel)');
   pruefe('Und sie ist blau wie die Aufgabe im Eintrag -- keine neue Farbe',
-    /border-left: *3px solid var\(--blue\)/.test(regelOff('.off-gruppe')), regelOff('.off-gruppe'));
+    /border-left: *3px solid var\(--blue\)/.test(regelOff('.open-group')), regelOff('.open-group'));
   pruefe('Die erledigte Zeile hat eine eigene Regel',
-    !!regelOff('.off-zeile.erledigt .off-text'), regelOff('.off-zeile.erledigt .off-text') || '(keine Regel)');
+    !!regelOff('.open-row.erledigt .open-text'), regelOff('.open-row.erledigt .open-text') || '(keine Regel)');
   pruefe('Und sie streicht den Text durch',
-    /line-through/.test(regelOff('.off-zeile.erledigt .off-text')),
-    regelOff('.off-zeile.erledigt .off-text'));
+    /line-through/.test(regelOff('.open-row.erledigt .open-text')),
+    regelOff('.open-row.erledigt .open-text'));
 
   /* ================= Die gestrichene Pille — 0.17.0 ====================
      MITGENOMMEN UND NICHT GELOESCHT (Stolperstein 201). Hier standen bis 0.16.0
@@ -26180,7 +26180,7 @@ async function pruefeOberflaeche() {
   pruefe('Bei einem einzigen Zugang steht die Pille ebenfalls nicht mehr da',
     !nsEiner.w.document.getElementById('f-neu'));
   pruefe('Dafuer steht dort die Glocke',
-    !!nsEiner.w.document.getElementById('glocke'), 'keine Glocke bei einem Zugang');
+    !!nsEiner.w.document.getElementById('bell'), 'keine Glocke bei einem Zugang');
   nsEiner.w.close();
 
   /* ================= Der Bezugspunkt der Glocke ================= */
@@ -26472,7 +26472,7 @@ async function pruefeOberflaeche() {
   pruefe('Bildvorschau öffnet kein iframe', !wb.document.querySelector('#atts .apreview iframe'));
   const klickZeile = (n) => klick([...wb.document.querySelectorAll('#atts .arow')][n]);
   pruefe('Offene Zeile ist als solche erkennbar',
-    !![...wb.document.querySelectorAll('#atts .arow')][1]?.classList.contains('offen'));
+    !![...wb.document.querySelectorAll('#atts .arow')][1]?.classList.contains('open'));
   klickZeile(1);
   await new Promise(r => setTimeout(r, 20));
   pruefe('Erneuter Klick klappt die Vorschau wieder zu', !wb.document.querySelector('#atts .apreview'));
@@ -26750,14 +26750,14 @@ async function pruefeOberflaeche() {
     einstellungen: { filters: null, benutzerZahl: 1, istAdmin: true, name: 'chefin' } });
   await new Promise(r => setTimeout(r, 80));
   pruefe('Die Kopfzeile nennt auch bei einem einzigen Zugang, wer angemeldet ist',
-    /Angemeldet als chefin/.test(eKopf1.w.document.getElementById('wer')?.textContent || ''),
-    JSON.stringify(eKopf1.w.document.getElementById('wer')?.textContent));
+    /Angemeldet als chefin/.test(eKopf1.w.document.getElementById('who')?.textContent || ''),
+    JSON.stringify(eKopf1.w.document.getElementById('who')?.textContent));
   eKopf1.w.close();
 
   const eKopf = baueDom(JSDOM, {
     einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true, name: 'bert' } });
   await new Promise(r => setTimeout(r, 80));
-  const eWer = eKopf.w.document.getElementById('wer');
+  const eWer = eKopf.w.document.getElementById('who');
   pruefe('Und ab zwei Zugaengen ebenso, mit dem Namen des Angemeldeten',
     /Angemeldet als bert/.test(eWer?.textContent || ''), JSON.stringify(eWer?.textContent));
   // Neben dem Knopf zum Abmelden, nicht irgendwo in der Zeile.
@@ -26777,32 +26777,32 @@ async function pruefeOberflaeche() {
      Stylesheet in der Gruppe "Handy und Tablett". Hier geht es um das
      Markup und um das Verhalten. */
   const eTafel = eKopf.w.document.getElementById('mast-rest');
-  const eZeichen = eKopf.w.document.getElementById('menue');
+  const eZeichen = eKopf.w.document.getElementById('menu');
   pruefe('Die Kopfzeile traegt das Menuezeichen', !!eZeichen);
   pruefe('Und einen Behaelter fuer die vier, die dahinter wandern', !!eTafel);
   pruefe('Darin stehen Offen, System, der Name und das Abmelden -- in dieser Reihenfolge',
-    !!eTafel && [...eTafel.children].map(k => k.id).join(',') === 'offen,sys,wer,out',
+    !!eTafel && [...eTafel.children].map(k => k.id).join(',') === 'open,sys,who,out',
     eTafel ? [...eTafel.children].map(k => k.id).join(',') : '(kein Behaelter)');
   /* Die beiden Symbolknoepfe tragen ihr Wort mit: in der Kopfzeile ist es
      unsichtbar, in der Tafel steht es neben dem Zeichen. Ein Zeichen allein
      in einer Liste erklaert sich nicht, und auf dem Finger gibt es kein
      Ueberfahren, das den Titel zeigen koennte. */
   pruefe('Die Symbolknoepfe bringen ihr Wort fuer die Tafel mit',
-    !!eTafel && eTafel.querySelectorAll('.mast-wort').length === 2,
-    String(eTafel?.querySelectorAll('.mast-wort').length));
+    !!eTafel && eTafel.querySelectorAll('.mast-word').length === 2,
+    String(eTafel?.querySelectorAll('.mast-word').length));
   pruefe('Das Zeichen sagt zu Beginn, dass nichts offen ist',
     eZeichen?.getAttribute('aria-expanded') === 'false',
     eZeichen?.getAttribute('aria-expanded'));
   eZeichen?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
   pruefe('Ein Druck oeffnet die Tafel',
-    eTafel?.classList.contains('offen') && eZeichen?.getAttribute('aria-expanded') === 'true',
+    eTafel?.classList.contains('open') && eZeichen?.getAttribute('aria-expanded') === 'true',
     `${eTafel?.className} / ${eZeichen?.getAttribute('aria-expanded')}`);
   // Ein Klick daneben schliesst -- eine Tafel, die nur ihr eigener Knopf
   // wieder zumacht, steht im Weg, sobald man sie versehentlich geoeffnet hat.
   eKopf.w.document.getElementById('body')
     ?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
   pruefe('Und ein Klick daneben schliesst sie wieder',
-    !eTafel?.classList.contains('offen') && eZeichen?.getAttribute('aria-expanded') === 'false',
+    !eTafel?.classList.contains('open') && eZeichen?.getAttribute('aria-expanded') === 'false',
     `${eTafel?.className} / ${eZeichen?.getAttribute('aria-expanded')}`);
 
   /* --- Der Schalter ueber den Filtern ---------------------------------
@@ -26844,8 +26844,8 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   pruefe('Aus einem Benutzernamen wird in der Kopfzeile kein HTML',
     !eBoese.w.document.getElementById('boese9') &&
-    (eBoese.w.document.getElementById('wer')?.textContent || '').includes('<b id="boese9">X</b>'),
-    eBoese.w.document.getElementById('wer')?.textContent);
+    (eBoese.w.document.getElementById('who')?.textContent || '').includes('<b id="boese9">X</b>'),
+    eBoese.w.document.getElementById('who')?.textContent);
   eBoese.w.close();
 
   /* Nach dem Umbenennen des eigenen Zugangs zieht die Kopfzeile nach.
@@ -26868,8 +26868,8 @@ async function pruefeOberflaeche() {
   await eUm.w.renderList();
   await new Promise(r => setTimeout(r, 60));
   pruefe('Und die Kopfzeile nennt danach den neuen Namen',
-    /Angemeldet als chefin2/.test(eUm.w.document.getElementById('wer')?.textContent || ''),
-    JSON.stringify(eUm.w.document.getElementById('wer')?.textContent));
+    /Angemeldet als chefin2/.test(eUm.w.document.getElementById('who')?.textContent || ''),
+    JSON.stringify(eUm.w.document.getElementById('who')?.textContent));
   eUm.w.close();
 
   /* --- Wer hat bewertet: die Ansicht des Admins -------------------------
@@ -26890,9 +26890,9 @@ async function pruefeOberflaeche() {
   pruefe('Der Knopf holt die Stimmen beim Server',
     eMehr.gesendet.some(x => x.methode === 'GET' && x.url === '/api/items/1/stimmen'),
     JSON.stringify(eMehr.gesendet.slice(-3)));
-  const eAnsicht = eDoc.querySelector('.backdrop #stimmliste');
+  const eAnsicht = eDoc.querySelector('.backdrop #vote-list');
   pruefe('Und oeffnet einen Dialog mit der Liste', !!eAnsicht);
-  const eStimmZeilen = [...(eAnsicht?.querySelectorAll('.stimmzeile') || [])];
+  const eStimmZeilen = [...(eAnsicht?.querySelectorAll('.vote-row') || [])];
   pruefe('Je Kriterium steht dort, wer welchen Wert vergeben hat',
     eStimmZeilen.length === 2, `${eStimmZeilen.length} Zeilen`);
   // Das dritte Kriterium hat keine Stimme -- dort steht auch keine leere Liste.
@@ -26971,7 +26971,7 @@ async function pruefeOberflaeche() {
   }
   pruefe('Ein Abbruch nimmt nur die Rueckfrage weg, nicht die Ansicht',
     eDoc.querySelectorAll('.backdrop').length === 1 &&
-    !!eDoc.querySelector('.backdrop #stimmliste'),
+    !!eDoc.querySelector('.backdrop #vote-list'),
     `${eDoc.querySelectorAll('.backdrop').length} Dialoge`);
   pruefe('Und geloescht wird dabei nichts',
     eMehr.gesendet.length === eVorAbbruch,
@@ -31579,7 +31579,7 @@ async function pruefeOberflaeche() {
       zwKnopf()?.textContent);
     zwKnopf()?.dispatchEvent(new ziEig.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const zwFenster = () => ziEig.w.document.getElementById('grabstein-modal');
+    const zwFenster = () => ziEig.w.document.getElementById('tombstone-modal');
     pruefe('Der Klick oeffnet ein eigenes Fenster', !!zwFenster(), 'kein Fenster');
     const zwReihen = () => [...(zwFenster()?.querySelectorAll('.mrow.zug') || [])];
     pruefe('Darin steht der Grabstein', zwReihen().length === 1 &&
@@ -32141,7 +32141,7 @@ async function pruefeOberflaeche() {
        Knoepfen -- und DANACH die zweite Bestaetigung. Umgedreht, nicht
        geloescht (Stolperstein 74): die Zusagen von 0.13.0 -- der umkehrbare
        Weg wird genannt, der Name bleibt -- haengen jetzt an diesem Fenster. */
-    const zdFenster = d.w.document.getElementById('benutzer-loeschen');
+    const zdFenster = d.w.document.getElementById('delete-user');
     pruefe('Vor dem Loeschen steht EIN Fenster mit den Haekchen — 0.22.0',
       !!zdFenster && !zdDialog(d), zdFenster ? 'steht' : 'kein Fenster');
     const zdText = zdFenster?.textContent.replace(/\s+/g, ' ') || '';
@@ -37032,7 +37032,7 @@ async function pruefeOberflaeche() {
     slFremd.length === 0, slFremd.map(r => regel123(r)).join(' | ') || '(keine)');
   pruefe('Und die Stimmliste hat gar keine Durchschnittsspalte',
     !/\.stimmzeile[^{]*\.ravg/.test(css123) &&
-    !/zeile\.className = 'stimmzeile'[\s\S]{0,600}ravg/.test(arQuelle),
+    !/zeile\.className = 'vote-row'[\s\S]{0,600}ravg/.test(arQuelle),
     'ravg taucht in der Stimmliste auf');
 
   /* ================= Das Raster zaehlt seine Zellen — 0.17.0 ===========
@@ -39014,7 +39014,7 @@ async function pruefeOberflaeche() {
     const ohne = await glBaue([[3, 0, [glVon.bert]], [1, 0, [glVon.carla]]],
       { glockeGesehen: undefined });
     pruefe('Ohne gespeicherten Bezugspunkt gibt es keine Glocke',
-      !ohne.w.document.getElementById('glocke'), 'die Glocke steht trotzdem da');
+      !ohne.w.document.getElementById('bell'), 'die Glocke steht trotzdem da');
     /* UND SIE ENTSTEHT BEIM VERLASSEN DER UEBERSICHT -- sonst gaebe es keinen
        Weg, sie je zu bekommen. */
     ohne.w.location.hash = '#/item/1';
@@ -39037,13 +39037,13 @@ async function pruefeOberflaeche() {
        nur eine Angabe da" nicht zeigen. */
     const d = await glBaue([[3, 1, [glVon.bert, glVon.carla]], [1, 0, [glVon.dora]]]);
     const dok = d.w.document;
-    pruefe('Mit Bezugspunkt steht die Glocke da', !!dok.getElementById('glocke'));
+    pruefe('Mit Bezugspunkt steht die Glocke da', !!dok.getElementById('bell'));
     pruefe('Und sie steht im selben Behaelter wie die anderen Zeichenknoepfe',
-      dok.getElementById('glocke')?.closest('#mast-rest') === dok.getElementById('mast-rest'),
+      dok.getElementById('bell')?.closest('#mast-rest') === dok.getElementById('mast-rest'),
       'die Glocke steht ausserhalb von .mast-rest');
     /* EIN PUNKT UND KEINE ZAHL. Ein Ereignis bekommt einen Punkt, ein Zustand
        eine Zahl -- die beiden Zeichen werden nirgends vertauscht. */
-    const punkt = dok.getElementById('glocke-punkt');
+    const punkt = dok.getElementById('bell-dot');
     pruefe('Sie traegt einen Punkt, wenn etwas Neues da ist',
       !!punkt && punkt.hidden === false, `hidden: ${punkt?.hidden}`);
     pruefe('Und der Punkt traegt ausdruecklich keine Zahl',
@@ -39054,25 +39054,25 @@ async function pruefeOberflaeche() {
        DIE SUMME BILDET DIE OBERFLAECHE, an genau einer Stelle: der Server
        liefert zwei Zahlen und keine Summe. 3 + 1 + 1 + 0 = 5. */
     pruefe('Der Titel des Knopfes nennt die Summe',
-      /^5 Neuigkeiten von anderen/.test(dok.getElementById('glocke')?.title || ''),
-      dok.getElementById('glocke')?.title);
+      /^5 Neuigkeiten von anderen/.test(dok.getElementById('bell')?.title || ''),
+      dok.getElementById('bell')?.title);
     pruefe('Und er zaehlt Kommentare und Bewertungen zusammen, nicht doppelt',
-      !/10 |8 /.test(dok.getElementById('glocke')?.title || ''),
-      dok.getElementById('glocke')?.title);
+      !/10 |8 /.test(dok.getElementById('bell')?.title || ''),
+      dok.getElementById('bell')?.title);
     /* DER ZAEHLER „OFFEN". Er summiert, was an den Eintraegen steht -- 2 und 5.
        DIE ZAHL STEHT AM KNOPF, nicht an der Glocke. */
     pruefe('Der Knopf „Offen" traegt die Zahl',
-      dok.getElementById('offen-zahl')?.textContent === '7',
-      dok.getElementById('offen-zahl')?.textContent);
+      dok.getElementById('open-count')?.textContent === '7',
+      dok.getElementById('open-count')?.textContent);
     pruefe('Und sie steht sichtbar da',
-      dok.getElementById('offen-zahl')?.hidden === false,
-      String(dok.getElementById('offen-zahl')?.hidden));
+      dok.getElementById('open-count')?.hidden === false,
+      String(dok.getElementById('open-count')?.hidden));
 
     /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke: eine Message, die man
        nicht anspringen kann, ist eine Mitteilung ohne Weg. */
-    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    dok.getElementById('bell')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const tafel = dok.getElementById('glocken-modal');
+    const tafel = dok.getElementById('bell-modal');
     pruefe('Der Klick oeffnet die Tafel', !!tafel, dok.body.innerHTML.slice(0, 140));
     /* UND SIE SAGT, WESSEN BEITRAEGE SIE MELDET. DIESE ZEILE HAT GEFEHLT, und
        die Gegenprobe hat es gezeigt: der Rueckbau, der die alte Zusage „von
@@ -39086,7 +39086,7 @@ async function pruefeOberflaeche() {
     pruefe('Und sie verspricht nicht mehr die eigenen mit',
       !/von allen/.test(glSatz) && !/eigenen stehen mit da/.test(glSatz),
       glSatz.slice(0, 200));
-    const zeilen = [...(tafel?.querySelectorAll('#glocken-liste .glocken-zeile') || [])];
+    const zeilen = [...(tafel?.querySelectorAll('#bell-list .bell-row') || [])];
     pruefe('Sie listet nur die Eintraege mit Neuem',
       zeilen.length === 2, `${zeilen.length} Zeilen`);
     pruefe('Jede Zeile fuehrt zu ihrem Eintrag',
@@ -39118,7 +39118,7 @@ async function pruefeOberflaeche() {
     /* UND JEDE ZEILE SAGT, VON WEM. Ohne den Namen liesse sich seit 0.17.0
        nicht mehr unterscheiden, ob dort jemand anders war oder man selbst --
        die Glocke meldet beides. */
-    const glWer = (i) => zeilen[i]?.querySelector('.glocken-von')?.textContent?.trim();
+    const glWer = (i) => zeilen[i]?.querySelector('.bell-from')?.textContent?.trim();
     pruefe('Jede Zeile sagt, von wem',
       glWer(0) === 'von bert und carla', JSON.stringify(glWer(0)));
     pruefe('Bei einem Namen ohne „und"',
@@ -39163,13 +39163,13 @@ async function pruefeOberflaeche() {
     pruefe('Das Oeffnen zieht den Bezugspunkt nach',
       !!glPut, JSON.stringify(d.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
     pruefe('Und der Punkt ist danach fort',
-      dok.getElementById('glocke-punkt')?.hidden === true,
-      String(dok.getElementById('glocke-punkt')?.hidden));
+      dok.getElementById('bell-dot')?.hidden === true,
+      String(dok.getElementById('bell-dot')?.hidden));
     /* DER ZAEHLER „OFFEN" BLEIBT DAVON UNBERUEHRT: er beschreibt einen
        Zustand, und der aendert sich nicht dadurch, dass jemand hinsieht. */
     pruefe('Der Zaehler „Offen" bleibt dabei stehen',
-      dok.getElementById('offen-zahl')?.textContent === '7',
-      dok.getElementById('offen-zahl')?.textContent);
+      dok.getElementById('open-count')?.textContent === '7',
+      dok.getElementById('open-count')?.textContent);
     d.w.close();
   }
 
@@ -39178,20 +39178,20 @@ async function pruefeOberflaeche() {
        „der Punkt steht da" auch dann gruen, wenn er immer stuende. */
     const still = await glBaue([[0, 0, []], [0, 0, []]]);
     pruefe('Ohne Neues steht die Glocke, aber kein Punkt',
-      !!still.w.document.getElementById('glocke') &&
-      still.w.document.getElementById('glocke-punkt')?.hidden === true,
-      String(still.w.document.getElementById('glocke-punkt')?.hidden));
+      !!still.w.document.getElementById('bell') &&
+      still.w.document.getElementById('bell-dot')?.hidden === true,
+      String(still.w.document.getElementById('bell-dot')?.hidden));
     pruefe('Und ihr Titel sagt es',
-      /Keine Neuigkeiten/.test(still.w.document.getElementById('glocke')?.title || ''),
-      still.w.document.getElementById('glocke')?.title);
+      /Keine Neuigkeiten/.test(still.w.document.getElementById('bell')?.title || ''),
+      still.w.document.getElementById('bell')?.title);
     // Und die Tafel bleibt trotzdem erreichbar und sagt, dass nichts da ist.
-    still.w.document.getElementById('glocke')
+    still.w.document.getElementById('bell')
       .dispatchEvent(new still.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Die Tafel sagt es dann auch',
       /Keine Neuigkeiten\./.test(
-        still.w.document.getElementById('glocken-liste')?.textContent || ''),
-      still.w.document.getElementById('glocken-liste')?.textContent);
+        still.w.document.getElementById('bell-list')?.textContent || ''),
+      still.w.document.getElementById('bell-list')?.textContent);
     still.w.close();
   }
 
@@ -39205,9 +39205,9 @@ async function pruefeOberflaeche() {
       einstellungen: { filters: null, benutzerZahl: 3, glockeGesehen: '2026-08-01 00:00:00' } });
     await new Promise(r => setTimeout(r, 90));
     pruefe('Ohne offene Aufgaben traegt der Knopf keine Zahl',
-      ohneAufgaben.w.document.getElementById('offen-zahl')?.hidden === true &&
-      (ohneAufgaben.w.document.getElementById('offen-zahl')?.textContent || '') === '',
-      JSON.stringify(ohneAufgaben.w.document.getElementById('offen-zahl')?.textContent));
+      ohneAufgaben.w.document.getElementById('open-count')?.hidden === true &&
+      (ohneAufgaben.w.document.getElementById('open-count')?.textContent || '') === '',
+      JSON.stringify(ohneAufgaben.w.document.getElementById('open-count')?.textContent));
     leer.w.close(); ohneAufgaben.w.close();
   }
 
@@ -39218,9 +39218,9 @@ async function pruefeOberflaeche() {
        `neuKommentare` sortiert stuende er unten. */
     const d = await glBaue([[1, 4, [glVon.bert]], [3, 0, [glVon.carla]]]);
     const dok = d.w.document;
-    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    dok.getElementById('bell')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const zeilen = [...dok.querySelectorAll('#glocken-liste .glocken-zeile')];
+    const zeilen = [...dok.querySelectorAll('#bell-list .bell-row')];
     pruefe('Die Prueflage taugt: die Teile ordnen anders als die Summe',
       zeilen.length === 2, `${zeilen.length} Zeilen`);
     pruefe('Die Tafel ordnet nach der Summe, nicht nach einem der Teile',
@@ -39244,8 +39244,8 @@ async function pruefeOberflaeche() {
        zwei -- ein Trennpunkt dort waere die Aufteilung an der falschen
        Stelle. */
     pruefe('Der Knopf „Offen" traegt weiterhin genau eine Zahl',
-      /^\d+$/.test(dok.getElementById('offen-zahl')?.textContent || ''),
-      dok.getElementById('offen-zahl')?.textContent);
+      /^\d+$/.test(dok.getElementById('open-count')?.textContent || ''),
+      dok.getElementById('open-count')?.textContent);
     d.w.close();
   }
 
@@ -39258,9 +39258,9 @@ async function pruefeOberflaeche() {
        hineinlegte, deckte genau die Zusage zu, um die es geht. */
     const d = await glBaue([[0, 4, []], [0, 1, []]]);
     const dok = d.w.document;
-    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    dok.getElementById('bell')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const zeilen = [...dok.querySelectorAll('#glocken-liste .glocken-zeile')];
+    const zeilen = [...dok.querySelectorAll('#bell-list .bell-row')];
     pruefe('Die Prueflage traegt zwei Zeilen mit nur Bewertungen',
       zeilen.length === 2, `${zeilen.length} Zeilen`);
     pruefe('Nur Bewertungen: nur diese Angabe steht da',
@@ -39278,8 +39278,8 @@ async function pruefeOberflaeche() {
        OBERFLAECHE, damit sie auch dann rot wird, wenn jemand den Namen im
        Browser aus einer anderen Quelle zusammensuchte. */
     pruefe('Und kein Name steht neben einer reinen Bewertungszeile',
-      zeilen.every(z => (z.querySelector('.glocken-von')?.textContent || '') === ''),
-      JSON.stringify(zeilen.map(z => z.querySelector('.glocken-von')?.textContent)));
+      zeilen.every(z => (z.querySelector('.bell-from')?.textContent || '') === ''),
+      JSON.stringify(zeilen.map(z => z.querySelector('.bell-from')?.textContent)));
     d.w.close();
   }
 
@@ -39298,25 +39298,25 @@ async function pruefeOberflaeche() {
     const d = await glBaue([[0, 0, []], [0, 0, []]], { benutzerZahl: 1 });
     const dok = d.w.document;
     pruefe('Auch bei einem einzigen Zugang steht die Glocke da',
-      !!dok.getElementById('glocke'), 'keine Glocke bei einem Zugang');
+      !!dok.getElementById('bell'), 'keine Glocke bei einem Zugang');
     pruefe('Sie traegt dort aber keinen Punkt',
-      dok.getElementById('glocke-punkt')?.hidden === true,
-      String(dok.getElementById('glocke-punkt')?.hidden));
+      dok.getElementById('bell-dot')?.hidden === true,
+      String(dok.getElementById('bell-dot')?.hidden));
     /* UND IHR TITEL SAGT ES AUCH, statt eine Zahl zu nennen, die es nicht
        gibt. */
     pruefe('Und ihr Titel nennt keine Zahl',
-      dok.getElementById('glocke')?.title === 'Keine Neuigkeiten',
-      JSON.stringify(dok.getElementById('glocke')?.title));
-    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+      dok.getElementById('bell')?.title === 'Keine Neuigkeiten',
+      JSON.stringify(dok.getElementById('bell')?.title));
+    dok.getElementById('bell')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const zeilen = [...dok.querySelectorAll('#glocken-liste .glocken-zeile')];
+    const zeilen = [...dok.querySelectorAll('#bell-list .bell-row')];
     pruefe('Und die Tafel bleibt leer, statt ihm die eigene Hand zu melden',
       zeilen.length === 0, `${zeilen.length} Zeilen`);
     /* DER EIGENE NAME KOMMT AUCH HIER NIRGENDS VOR -- weder in einer Zeile
        noch als Ersatztext. */
     pruefe('Und der eigene Name steht nirgends darin',
-      !/chefin/.test(dok.getElementById('glocken-modal')?.textContent || ''),
-      (dok.getElementById('glocken-modal')?.textContent || '')
+      !/chefin/.test(dok.getElementById('bell-modal')?.textContent || ''),
+      (dok.getElementById('bell-modal')?.textContent || '')
         .replace(/\s+/g, ' ').slice(0, 200));
     d.w.close();
   }
@@ -39326,12 +39326,12 @@ async function pruefeOberflaeche() {
        das dritte gehoert in eine eigene Zeile -- sonst schrumpft der Titel zu
        Punkten, damit „3 Kommentare · 4 Bewertungen" und die Namen Platz haben.
        DIESELBE ANTWORT WIE AN DER ZEILE EINER ANMELDUNG in Punkt 4. */
-    const glZeile = regel123('.mrow.glocken-zeile');
+    const glZeile = regel123('.mrow.bell-row');
     pruefe('Die Regel fuer die Zeile der Tafel steht im Stilblatt',
       glZeile.length > 0, '(keine Regel)');
     pruefe('Und sie laesst die Zeile umbrechen',
       /flex-wrap: wrap/.test(glZeile), glZeile || '(keine Regel)');
-    const glVonRegel = regel123('.glocken-zeile .glocken-von');
+    const glVonRegel = regel123('.bell-row .bell-from');
     pruefe('Die Angabe „von wem" bekommt die volle Breite',
       /flex-basis: 100%/.test(glVonRegel), glVonRegel || '(keine Regel)');
     /* KEINE NEUE FARBE: --faint traegt in dieser Instanz jede Nebenangabe. Ein
@@ -41801,7 +41801,7 @@ async function pruefeOberflaeche() {
                       kommentare: 2, bewertungen: 1, testtage: 0, links: 0, dateien: 0 };
     const blP = blW.userDeleteDialog('bert', 2, blStand);
     await new Promise(r => setTimeout(r, 20));
-    const blFenster = blW.document.getElementById('benutzer-loeschen');
+    const blFenster = blW.document.getElementById('delete-user');
     pruefe('Das Loeschfenster fuer einen Benutzer ist EIN Fenster mit Titel „Benutzer „x" löschen?"',
       blFenster?.querySelector('h2')?.textContent === 'Benutzer „bert" löschen?',
       JSON.stringify(blFenster?.querySelector('h2')?.textContent));
@@ -41818,13 +41818,13 @@ async function pruefeOberflaeche() {
       JSON.stringify([blFenster?.querySelector('[data-no]')?.textContent, blFenster?.querySelector('[data-yes]')?.textContent]));
     blFenster.querySelector('[data-no]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
     pruefe('„Abbrechen" bricht ab: das Fenster liefert null und ist fort',
-      (await blP) === null && !blW.document.getElementById('benutzer-loeschen'), 'es hat weitergemacht');
+      (await blP) === null && !blW.document.getElementById('delete-user'), 'es hat weitergemacht');
     /* UND DIE HAEKCHEN KOMMEN ALS ANTWORT, wenn jemand loescht: das erste
        gesetzt, das zweite nicht -- genau so, wie es der Aufrufer an die Route
        weitergibt. */
     const blP2 = blW.userDeleteDialog('bert', 2, blStand);
     await new Promise(r => setTimeout(r, 20));
-    const blF2 = blW.document.getElementById('benutzer-loeschen');
+    const blF2 = blW.document.getElementById('delete-user');
     blF2.querySelector('#bl-eintraege').checked = true;
     blF2.querySelector('[data-yes]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
     pruefe('„Benutzer löschen" liefert die Stellung der beiden Haekchen',
@@ -41998,11 +41998,11 @@ async function pruefeOberflaeche() {
     const stToast = stDoc.querySelector('.toast');
     pruefe('Die Meldung sagt „Sterne bei „Zuerst" entfernt" und traegt den Knopf „Rückgängig"',
       /^Sterne bei „Zuerst" entfernt/.test(stToast?.textContent || '') &&
-      stToast?.querySelector('.toast-knopf')?.textContent === 'Rückgängig' &&
-      stToast?.classList.contains('mit-knopf'),
+      stToast?.querySelector('.toast-btn')?.textContent === 'Rückgängig' &&
+      stToast?.classList.contains('with-btn'),
       JSON.stringify(stToast?.textContent));
     stDom.gesendet.length = 0;
-    stToast.querySelector('.toast-knopf').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
+    stToast.querySelector('.toast-btn').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const stZurueck = stDom.gesendet.filter(g => /\/ratings/.test(g.url));
     pruefe('„Rückgängig" schreibt den alten Wert zurueck: derselbe PUT mit value 3',

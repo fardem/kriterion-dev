@@ -1441,8 +1441,8 @@ const RUECKBAUTEN = [
   {
     nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
     datei: 'public/app.js',
-    suche: "        <span class=\"hint wer\" id=\"wer\">${tH('list.signedInAs', { name: NAME })}</span>\n        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>",
-    ersatz: "        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>\n        <span class=\"hint wer\" id=\"wer\">${tH('list.signedInAs', { name: NAME })}</span>",
+    suche: "        <span class=\"hint who\" id=\"who\">${tH('list.signedInAs', { name: NAME })}</span>\n        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>",
+    ersatz: "        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>\n        <span class=\"hint who\" id=\"who\">${tH('list.signedInAs', { name: NAME })}</span>",
     erwartet: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
   },
   /* DAS KREUZ AN DER KACHEL WAR EIN FUND AUS DEM FELD, kein Einfall am
@@ -2648,8 +2648,8 @@ const RUECKBAUTEN = [
        Nachziehen griffe der Rueckbau ins Leere (Stolperstein 192). */
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
     datei: 'public/app.js',
-    suche: "        ${BELL_SEEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('list.news'))}\"",
-    ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('list.news'))}\"",
+    suche: "        ${BELL_SEEN ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
+    ersatz: "        ${true ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2710,8 +2710,8 @@ const RUECKBAUTEN = [
        Zeichen werden nirgends vertauscht. */
     nr: '289', name: 'Der Punkt an der Glocke wird wieder eine Zahl',
     datei: 'public/app.js',
-    suche: "  atElement('glocke-punkt', el => { el.hidden = !fresh; });",
-    ersatz: "  amElement('glocke-punkt', el => { el.textContent = String(neu); el.hidden = !neu; });",
+    suche: "  atElement('bell-dot', el => { el.hidden = !fresh; });",
+    ersatz: "  amElement('bell-dot', el => { el.textContent = String(neu); el.hidden = !neu; });",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2986,8 +2986,8 @@ const RUECKBAUTEN = [
        eigenen Beitraege meldet, ist das die halbe Auskunft. */
     nr: '320', name: 'Die Tafel sagt nicht mehr, von wem etwas kommt',
     datei: 'public/app.js',
-    suche: "    a.querySelector('.glocken-von').textContent = newFromWords(it);",
-    ersatz: "    a.querySelector('.glocken-von').textContent = '';",
+    suche: "    a.querySelector('.bell-from').textContent = newFromWords(it);",
+    ersatz: "    a.querySelector('.bell-from').textContent = '';",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3037,7 +3037,7 @@ const RUECKBAUTEN = [
        Punkten, damit die Namen Platz haben. */
     nr: '325', name: 'Die Zeile der Glockentafel bricht nicht mehr um',
     datei: 'public/style.css',
-    suche: ".mrow.glocken-zeile { flex-wrap: wrap; row-gap: 2px; }",
+    suche: ".mrow.bell-row { flex-wrap: wrap; row-gap: 2px; }",
     ersatz: "",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -3045,8 +3045,8 @@ const RUECKBAUTEN = [
     /* DIE ANGABE „VON WEM" BEKOMMT KEINE EIGENE ZEILE MEHR. */
     nr: '326', name: 'Die Angabe „von wem" bekommt keine eigene Zeile',
     datei: 'public/style.css',
-    suche: ".glocken-zeile .glocken-von { flex-basis: 100%; font-size: .76rem; color: var(--faint); }",
-    ersatz: ".glocken-zeile .glocken-von { font-size: .76rem; color: var(--faint); }",
+    suche: ".bell-row .bell-from { flex-basis: 100%; font-size: .76rem; color: var(--faint); }",
+    ersatz: ".bell-row .bell-from { font-size: .76rem; color: var(--faint); }",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
 
@@ -3065,8 +3065,8 @@ const RUECKBAUTEN = [
   {
     nr: '328', name: 'Die Glockentafel begruendet sich wieder selbst',
     datei: 'public/app.js',
-    suche: "    <div class=\"manage-list\" id=\"glocken-liste\"></div>\n    <div class=\"modal-acts\">",
-    ersatz: "    <div class=\"manage-list\" id=\"glocken-liste\"></div>\n    <p class=\"hint hint-sm\" style=\"margin:2px 0 0\"><strong>Was die Glocke nicht verspricht:</strong>\n      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.</p>\n    <div class=\"modal-acts\">",
+    suche: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <div class=\"modal-acts\">",
+    ersatz: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <p class=\"hint hint-sm\" style=\"margin:2px 0 0\"><strong>Was die Glocke nicht verspricht:</strong>\n      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.</p>\n    <div class=\"modal-acts\">",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   /* DIE GEGENRICHTUNG ZU 301. Dort faellt die KLASSE weg und das Raster bleibt

@@ -515,9 +515,9 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    nur mit gleich breiten Ziffern auch dort, wo die Sans-Schrift steht. */
 .brand .count, .card-test, .rating-inline, .link-count, .rrow .ravg, .rrow .rname .rgew,
 .mrow .mcount, .mrow .mgew, .kv .v, .prot-zeit, .sitz-zeit, .pk-meta, .cmt-head,
-.lb-count, .vcount, .bsumme, .rz > span, .off-wann, .card-fund .fund-mehr,
+.lb-count, .vcount, .bsumme, .rz > span, .open-when, .card-fund .fund-mehr,
 .thumb .num, .thumb .dauer, .lrow .lnum, .cmp-crit, .cmp-gruppe, .pill .n, .photo-count,
-.two-factor-codes span, .zug-status, .filter-schalter .fz, .offen-zahl {
+.two-factor-codes span, .zug-status, .filter-schalter .fz, .open-count {
   font-variant-numeric: tabular-nums;
 }
 /* Die Marke der Instanz. SIE HEISST `marke` UND NICHT `mark`, und das ist kein
@@ -694,7 +694,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    .hint gibt es laengst und bedeutet dort schon "Auskunft, kein
    Bedienelement". Umbrechen darf die Angabe nicht -- sie stuende sonst
    zwischen zwei Knoepfen. */
-.masthead .wer { white-space: nowrap; }
+.masthead .who { white-space: nowrap; }
 
 .search-box { position: relative; flex: 1; min-width: 180px; max-width: 320px; }
 .search-box .input { padding-left: 34px; padding-right: 28px; }
@@ -1404,9 +1404,9 @@ mark {
    samt der Ausnahme fuer das immer sichtbare Loeschkreuz.
    Kein eigener Bildlauf: die Hoehe begrenzt .modal, und die Liste waechst
    darin mit. */
-.stimmliste { display: flex; flex-direction: column; gap: 13px; }
-.stimmzeile .rname { display: block; font-size: .93rem; font-weight: 500; margin-bottom: 4px; }
-.stimmzeile .rstimmen { padding: 0; margin-top: 0; }
+.vote-list { display: flex; flex-direction: column; gap: 13px; }
+.vote-row .rname { display: block; font-size: .93rem; font-weight: 500; margin-bottom: 4px; }
+.vote-row .rstimmen { padding: 0; margin-top: 0; }
 /* Wer den Eintrag angelegt hat, wer einen Testtag eingetragen hat -- und seit
    0.14.0 die Aussage an der Marke „abgelehnt". Alle drei sind dieselbe Sache:
    eine Auskunft darueber, WER etwas getan hat und WANN. */
@@ -2367,20 +2367,20 @@ body.lb-open { overflow: hidden; }
    Der Kasten darf breiter werden als ein Bestaetigungsfenster: eine Zeile
    traegt einen Kriteriennamen und drei Zahlen. */
 /* ---- Die Tafel der Glocke ---- */
-.glockentafel { max-width: 520px; }
+.bell-panel { max-width: 520px; }
 /* Eine Zeile der Tafel ist ein LINK und traegt deshalb keinen eigenen
    Zeigerwechsel -- .mrow bringt Raster und Trennlinie mit, der Rest ist
    dieselbe Hervorhebung wie an jeder anderen anklickbaren Zeile. */
-.glocken-zeile { cursor: pointer; }
-.glocken-zeile:hover .mname { color: var(--accent-text); }
+.bell-row { cursor: pointer; }
+.bell-row:hover .mname { color: var(--accent-text); }
 /* DREI STUECKE IN EINER ZEILE, seit 0.17.0: der Titel, was dort neu ist, und
    von wem. DIE DRITTE ANGABE BEKOMMT IHRE EIGENE ZEILE -- oben, worum es geht,
    darunter, wer. Dieselbe Aufteilung wie an der Zeile einer Anmeldung, und aus
    demselben Grund: `.mname` schrumpft sonst zu Punkten, damit „3 Kommentare ·
    4 Bewertungen" und die Namen daneben Platz haben.
    KEINE NEUE FARBE: --faint traegt in dieser Instanz jede Nebenangabe. */
-.mrow.glocken-zeile { flex-wrap: wrap; row-gap: 2px; }
-.glocken-zeile .glocken-von { flex-basis: 100%; font-size: .76rem; color: var(--faint); }
+.mrow.bell-row { flex-wrap: wrap; row-gap: 2px; }
+.bell-row .bell-from { flex-basis: 100%; font-size: .76rem; color: var(--faint); }
 /* BREITER ALS EIN GEWOEHNLICHES FENSTER, seit 0.17.3: die Tabelle hat vier
    Spalten, und der Fliesstext darunter bricht auf 540 Pixeln zu oft um. Jeder
    gesparte Umbruch ist eine Zeile weniger im Kasten -- und der Kasten rollte
@@ -2415,10 +2415,10 @@ body.lb-open { overflow: hidden; }
 /* DIE MELDUNG MIT KNOPF -- 0.22.0 (E16): „Sterne bei „Qualität" entfernt · Rückgängig".
    Der Knopf ist Text in der Akzentfarbe, kein Kasten im Kasten; die Dauer
    setzt toast() selbst (sechs Sekunden). */
-.toast.mit-knopf { display: inline-flex; align-items: center; gap: 8px; }
-.toast-trenner { color: var(--muted); }
-.toast-knopf { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
-.toast-knopf:hover { color: var(--accent-text-hi); text-decoration: underline; }
+.toast.with-btn { display: inline-flex; align-items: center; gap: 8px; }
+.toast-sep { color: var(--muted); }
+.toast-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
+.toast-btn:hover { color: var(--accent-text-hi); text-decoration: underline; }
 @keyframes pop { 0% { opacity: 0; transform: translate(-50%, 8px); } 8% { opacity: 1; transform: translate(-50%, 0); } 84% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -4px); } }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -2534,7 +2534,7 @@ body.lb-open { overflow: hidden; }
    kennt, verwirft die ganze Regel, und dann verschwaende die Reihe mitsamt dem
    einzigen Weg aus dem Ausschnittmodus heraus, sobald der Zeiger fortgeht.
    drawViewer() setzt die Klasse; das kann kein Browser missverstehen. */
-.vtools.offen { opacity: 1; }
+.vtools.open { opacity: 1; }
 
 .vfocus, .vfull, .vweg {
   display: flex; align-items: center; justify-content: center;
@@ -2605,8 +2605,8 @@ body.lb-open { overflow: hidden; }
 }
 .arow { cursor: pointer; }
 .arow:hover { border-color: var(--line); background: var(--surface-3); }
-.arow.offen { border-color: var(--line); }
-.arow.offen .aicon { color: var(--accent-text); }
+.arow.open { border-color: var(--line); }
+.arow.open .aicon { color: var(--accent-text); }
 /* Pfeil bzw. Klapphinweis rechts, wie das ↗ bei den Links. */
 .arow .ago { color: var(--faint); font-size: .73rem; flex-shrink: 0; }
 .arow:hover .ago { color: var(--muted); }
@@ -2880,42 +2880,42 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
    Aufgabe ist blau, seit es die dritte Kommentarart gibt, und die Gruppe trägt
    dieselbe Kante wie .cmt.aufgabe im Eintrag — dieselbe Sache, dieselbe Marke.
    Wer hier eine eigene Farbe einführte, hätte zwei Kanäle für ein Merkmal. */
-.off-gruppe {
+.open-group {
   background: var(--surface-2); border: 1px solid var(--line);
   border-left: 3px solid var(--blue); border-radius: var(--r-sm);
   padding: 10px 12px; margin-bottom: 10px;
 }
-.off-titel {
+.open-title {
   display: block; font-weight: 600; font-size: .95rem; color: var(--text);
   margin-bottom: 7px; transition: color .15s var(--ease);
 }
-.off-titel:hover { color: var(--accent-text); }
+.open-title:hover { color: var(--accent-text); }
 /* Der Text nimmt den Platz, der Zeitstempel nicht: flex: 0 1 auto am Inhalt,
    flex: 0 0 auto an der Angabe — dieselbe Regel wie am Namen der Linkzeile.
    Was sich die volle Breite nimmt, schöbe die Angabe ans andere Ende der
    Zeile, wo sie zu nichts mehr gehört. */
-.off-zeile {
+.open-row {
   display: flex; align-items: baseline; gap: 8px;
   padding: 4px 0; border-top: 1px solid var(--line-2);
 }
-.off-zeile:first-of-type { border-top: 0; }
-.off-text {
+.open-row:first-of-type { border-top: 0; }
+.open-text {
   flex: 0 1 auto; color: var(--text-2); font-size: .9rem;
   word-break: break-word; transition: color .15s var(--ease);
 }
-.off-text:hover { color: var(--accent-text); }
-.off-wann {
+.open-text:hover { color: var(--accent-text); }
+.open-when {
   flex: 0 0 auto; margin-left: auto;
   font-family: var(--mono); font-size: .7rem; color: var(--faint);
 }
-.off-haken { flex: 0 0 auto; color: var(--faint); font-size: .95rem; line-height: 1; }
-.off-haken:hover { color: var(--green); }
+.open-check { flex: 0 0 auto; color: var(--faint); font-size: .95rem; line-height: 1; }
+.open-check:hover { color: var(--green); }
 /* Die erledigte Zeile bleibt stehen, durchgestrichen — sie verschwindet erst
    beim nächsten Aufbau. Eine Zeile, die unter dem Zeiger wegspringt, nimmt die
    Möglichkeit, den Haken gleich wieder wegzunehmen. Grün wie überall, wo etwas
    positiv abgeschlossen ist. */
-.off-zeile.erledigt .off-text { text-decoration: line-through; color: var(--faint); }
-.off-zeile.erledigt .off-haken { color: var(--green); }
+.open-row.erledigt .open-text { text-decoration: line-through; color: var(--faint); }
+.open-row.erledigt .open-check { color: var(--green); }
 
 /* ================================================================
    DER SCHMALE SCHIRM
@@ -2991,14 +2991,14 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
    `position: relative` am Knopf ist die Bezugsflaeche dafuer.
    IN DER TAFEL AUF DEM TELEFON steht der Knopf ueber die volle Breite; der
    Punkt bleibt am Zeichen und wandert nicht mit ans Ende der Zeile. */
-.icon-btn.glocke { position: relative; }
+.icon-btn.bell { position: relative; }
 /* DER PUNKT SCHWILLT EINMAL AN, WENN ER ERSCHEINT -- 0.22.0, 300 ms, danach
    Ruhe. Es ist eine der zwei Bewegungen, die von selbst laufen (die andere
    ist der Rand einer gerade gespeicherten Karte); alles Uebrige antwortet nur
    auf eine Beruehrung (Gestaltungsregel G2). Die Bewegung haengt am
    Erscheinen: `hidden` nimmt den Punkt aus dem Fluss, und ein Element, das
    neu in den Fluss kommt, faengt seine Bewegung von vorn an. */
-.glocke-punkt {
+.bell-dot {
   position: absolute; top: 6px; right: 6px;
   width: 7px; height: 7px; border-radius: 50%;
   background: var(--accent); box-shadow: 0 0 0 2px var(--surface);
@@ -3009,15 +3009,15 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
    Zahl -- der Punkt an der Glocke meldet ein EREIGNIS und ist deshalb keiner.
    Sie steht IM Knopf und nicht als Marke darauf: sie ist zu lesen, nicht bloss
    zu bemerken. */
-.offen-zahl {
+.open-count {
   font-family: var(--mono); font-size: .7rem; font-weight: 600;
   color: var(--accent-text); margin-left: 3px;
 }
 .mast-rest { display: contents; }
-.mast-menue { display: none; }
+.mast-menu { display: none; }
 /* Das Wort im Symbolknopf gibt es nur in der Tafel; in der Kopfzeile traegt
    der Knopf sein Zeichen und seinen Titel. */
-.mast-wort { display: none; }
+.mast-word { display: none; }
 /* Der Schalter ueber den Filtern gehoert dem Telefon. Auf dem breiten Schirm
    stehen die Filter da, wo sie hingehoeren -- eingeklappt waeren sie dort ein
    Griff ohne Grund. */
@@ -3083,7 +3083,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .sanb .sstart { padding: 6px 12px; }
   .switch { padding: 10px 15px; }
   .pin-btn { padding: 8px; }
-  .off-haken { padding: 6px 9px; }
+  .open-check { padding: 6px 9px; }
   .ttag-add { padding: 5px 9px; }
   /* DREI KLASSEN UND EIN ELEMENT schlagen die eine Klasse von `.select`
      darueber -- dasselbe Muster wie bei der kleinen Marke und dem Kreuz an
@@ -3172,7 +3172,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      AUSDRUECKLICH NICHT AM VOLLBILD: dort IST der zweite Tipp eine Bedeutung
      (er zoomt aufs Original), und `manipulation` naehme sie weg. */
   .btn, .icon-btn, .pill, .mark, .switch, .chip, .pick-box, .star,
-  .abtn, .link-btn, .xdel, .off-haken, .pin-btn, .vnav, .vfocus, .vfull,
+  .abtn, .link-btn, .xdel, .open-check, .pin-btn, .vnav, .vfocus, .vfull,
   .cmt-head button, .mrow .mact, .arow .adl,
   .rej-aussage .mact { touch-action: manipulation; }
 
@@ -3342,7 +3342,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
     border-radius: var(--r); box-shadow: var(--sh-lg);
     animation: rise .15s var(--ease) both;
   }
-  .mast-rest.offen { display: flex; }
+  .mast-rest.open { display: flex; }
   /* In der Tafel ist jeder Eintrag eine Zeile ueber die volle Breite: die
      Symbolknoepfe verlieren ihr Quadrat, die Knoepfe ihren Rahmen. Ein Rahmen
      um jede Zeile ergaebe Kaesten in einem Kasten -- dieselbe Ueberlegung wie
@@ -3357,21 +3357,21 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Symbol und erklaert sich ueber den Titel beim Ueberfahren -- auf dem
      Finger gibt es kein Ueberfahren, in einer Tafel ist Platz, und ein
      Zeichen allein in einer Liste erklaert sich nicht. */
-  .mast-rest .mast-wort { display: inline; }
+  .mast-rest .mast-word { display: inline; }
   /* In der Tafel sitzt der Punkt am Zeichen ganz links, nicht in der Ecke
      eines Quadrats, das es hier nicht mehr gibt. */
-  .mast-rest .glocke-punkt { top: 10px; left: 25px; right: auto; }
+  .mast-rest .bell-dot { top: 10px; left: 25px; right: auto; }
   /* Und die Zahl rueckt hinter das Wort, nicht hinter das Zeichen. */
-  .mast-rest .offen-zahl { order: 3; margin-left: 4px; }
+  .mast-rest .open-count { order: 3; margin-left: 4px; }
   /* Wer angemeldet ist, steht ueber dem Abmelden und ist Auskunft, kein
      Bedienelement: eigene Zeile, kein Rahmen, leiser Trennstrich darueber.
      Umbrechen darf sie hier ausdruecklich -- in der Kopfzeile stuende sie
      sonst zwischen zwei Knoepfen, in der Tafel steht sie fuer sich. */
-  .mast-rest .wer {
+  .mast-rest .who {
     white-space: normal; padding: 10px 12px 6px; margin-top: 5px;
     border-top: 1px solid var(--line-2);
   }
-  .mast-menue { display: inline-flex; }
+  .mast-menu { display: inline-flex; }
 
   /* DER SCHALTER UEBER DEN FILTERN STEHT HIER UND NICHT ERST BEIM TELEFON.
      Die vier Filterreihen sind auf einem Tablett im Hochformat ueber 600
@@ -3566,7 +3566,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Schirm zwei Kaesten nebeneinander, auf dem Telefon zwei Kanten
      uebereinander, und die untere die dickere. Gestrichelt bleibt es: das ist
      das Merkmal ("hier darf etwas hinein"), die Staerke war es nie. */
-  .viewer, .drop, .ta, .cmt, .lrow, .trow, .arow, .mrow, .off-gruppe,
+  .viewer, .drop, .ta, .cmt, .lrow, .trow, .arow, .mrow, .open-group,
   .apreview, .vok-probe, .warn-box, .ok-box, .sanb, .empty, .zl {
     border-radius: var(--r);
   }
@@ -3669,7 +3669,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Eingabefeld, das man ansteuert, nicht eines, an dem man vorbeimuss. */
   .detail { display: flex; flex-direction: column; gap: 16px; }
   .meta-col { display: contents; }
-  .titel-kopf { order: -1; }
+  .title-head { order: -1; }
   .title-in { font-size: 1.32rem; }
   .back { margin: 12px 0 14px; }
   /* MIT DER FENSTERHOEHE UND NICHT MIT EINER FESTEN ZAHL. Der Telefonblock
@@ -3729,7 +3729,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      DER NAME ALLEIN IN DER ERSTEN ZEILE ueber die ganze Breite, darunter links
      die Sterne mit ×, rechts der Durchschnitt.
      DAS MUSTER GIBT ES SCHON: die Stimmenliste setzt den Namen ueber die
-     Sterne (`.stimmzeile .rname { display: block }`). Dieselbe Bauform, damit
+     Sterne (`.vote-row .rname { display: block }`). Dieselbe Bauform, damit
      das Auge nichts Neues lernen muss.
      DIE TRENNLINIE LIEGT UNTER DER ZWEITEN ZEILE UND NICHT UNTER DEM NAMEN:
      die Zeile ist `display: contents`, ihre Stuecke sind Rasterzellen, und
