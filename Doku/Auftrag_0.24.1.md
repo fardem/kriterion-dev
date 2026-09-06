@@ -361,7 +361,7 @@ die erste Datenbankstufe seit 0.19.0, und der CHANGELOG bekommt seinen Kasten.
 `testbench.js` und `counterproof.js` (F8) — **Bezeichner ja, Prüfungs- und
 Rückbaunamen nein.**
 
-### 7.2 Fünf neue Wächter, jeder mit seiner Gegenprobe
+### 7.2 Sechs neue Wächter, jeder mit seiner Gegenprobe
 
 | Wächter | hält fest |
 |---|---|
