@@ -76,6 +76,9 @@ const SPRACH_VORGABE = 'de';
 // hat, entscheidet die Datei (Konzept 6).
 const SPRACH_PLURAL = Object.fromEntries(Object.entries(SPRACHEN)
   .map(([code, texte]) => [code, new Intl.PluralRules(texte._locale)]));
+// Und dieselbe Locale fuer Zahlen und Daten -- aus derselben einen Quelle.
+const spracheLocale = (sprache) =>
+  (SPRACHEN[sprache] || SPRACHEN[SPRACH_VORGABE])._locale;
 
 /* WELCHE SPRACHE EINE ANTWORT TRAEGT. In dieser Runde immer Deutsch -- die
    Funktion steht trotzdem schon da, damit Stufe 2 nur ihre drei Quellen
@@ -2327,10 +2330,16 @@ function gueltigesGewicht(roh) {
   return Math.round(g * 100) / 100;
 }
 
-// Deutsches Komma in Meldungen. Dieselbe Regel wie in der Oberflaeche
-// (`toFixed(1).replace('.', ',')`), nur ohne feste Nachkommastelle:
-// "zwischen 0.2 und 2" waere ein Punkt mitten in einem deutschen Satz.
-const zahl = (n) => String(n).replace('.', ',');
+/* EINE ZAHL IN EINER MELDUNG -- seit 0.24.0 aus der Sprache und nicht mehr
+   aus einem festen Zeichen (Bauabschnitt 4). "zwischen 0.2 und 2" waere ein
+   Punkt mitten in einem deutschen Satz; welches Zeichen richtig ist, weiss
+   aber die Sprache und nicht dieser Code.
+   OHNE GRUPPIERUNG, wie in der Oberflaeche: aus "1234" darf nicht "1.234"
+   werden. Hoechstens zwei Nachkommastellen, mindestens keine -- die Gewichte
+   dieser Meldungen haben genau diese Form. */
+const zahl = (n, sprache = SPRACH_VORGABE) => new Intl.NumberFormat(
+  spracheLocale(sprache), { maximumFractionDigits: 2, useGrouping: false })
+  .format(Number(n) || 0);
 
 // Die Reihenfolge ist frei bestimmbar und gilt ueberall gleich.
 //
@@ -2422,7 +2431,8 @@ app.put('/api/criteria/:id', nurAdmin, (req, res) => {
   if (req.body.gewicht !== undefined) {
     gewicht = gueltigesGewicht(req.body.gewicht);
     if (gewicht === null) return res.status(400).json({
-      error: t(spracheVon(req), 'server.gewichtSpanne', { min: zahl(GEWICHT_MIN), max: zahl(GEWICHT_MAX) })});
+      error: t(spracheVon(req), 'server.gewichtSpanne',
+        { min: zahl(GEWICHT_MIN, spracheVon(req)), max: zahl(GEWICHT_MAX, spracheVon(req)) })});
   }
   // Name und Gewicht in EINEM UPDATE: zwei Anweisungen hintereinander koennten
   // halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
@@ -3232,11 +3242,15 @@ const AUSSCHNITT_VORLAUF = 4;
    muss, haette eine dritte Lesart. */
 const einZeilig = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
-function ausschnitt(text, begriff) {
+/* DIE SPRACHE STEHT DABEI -- 0.24.0, Bauabschnitt 4. Kleinschreibung ist
+   keine feste Rechnung: das tuerkische I wird zu ı und nicht zu i. Verglichen
+   wird hier Sprache, also fragt der Vergleich die Sprache. */
+function ausschnitt(text, begriff, sprache = SPRACH_VORGABE) {
   const zeile = einZeilig(text);
   const b = String(begriff ?? '');
   if (!b) return zeile.slice(0, AUSSCHNITT_LAENGE);
-  const stelle = zeile.toLowerCase().indexOf(b.toLowerCase());
+  const ort = spracheLocale(sprache);
+  const stelle = zeile.toLocaleLowerCase(ort).indexOf(b.toLocaleLowerCase(ort));
   /* GEFUNDEN WIRD SIE HIER NORMALERWEISE WIEDER -- gesucht hat SQLite auf dem
      Rohtext, geschnitten wird auf dem eingeebneten. Ein Begriff, der selbst
      einen doppelten Leerraum traegt, ist danach nicht mehr zu finden; dann
@@ -3253,7 +3267,8 @@ function ausschnitt(text, begriff) {
    ist KEINE Suche und keine Suche ohne Treffer -- die Liste bleibt dann die
    ganze Liste. Zurueck kommt eine Abbildung Nummer -> Trefferkontext und
    keine Reihenfolge: sortiert wird die Liste selbst, an einer Stelle. */
-const volltextBegriff = (roh) => (typeof roh === 'string' ? roh.trim().toLowerCase() : '');
+const volltextBegriff = (roh, sprache = SPRACH_VORGABE) =>
+  (typeof roh === 'string' ? roh.trim().toLocaleLowerCase(spracheLocale(sprache)) : '');
 
 /* WAS JE EINTRAG HERAUSKOMMT: die erste getroffene Quelle der festen Folge,
    ihr Ausschnitt und die Zahl der WEITEREN getroffenen Quellen.
@@ -3265,12 +3280,12 @@ const volltextBegriff = (roh) => (typeof roh === 'string' ? roh.trim().toLowerCa
    DIE BENENNUNG DER QUELLE BLEIBT DER OBERFLAECHE UEBERLASSEN: hier steht ein
    Schluessel, kein Wort. „Tag am Testtag" heisst je nach eingestelltem
    Vokabular anders, und das weiss die Oberflaeche. */
-const volltextTreffer = (begriff) => new Map(qVolltext.all({ q: begriff }).map(r => {
+const volltextTreffer = (begriff, sprache = SPRACH_VORGABE) => new Map(qVolltext.all({ q: begriff }).map(r => {
   const getroffen = VOLLTEXT_QUELLEN.filter(q => r['f_' + q.schluessel] != null);
   const erste = getroffen[0];
   return [r.id, erste ? {
     quelle: erste.schluessel,
-    text: ausschnitt(r['f_' + erste.schluessel], begriff),
+    text: ausschnitt(r['f_' + erste.schluessel], begriff, sprache),
     weitere: getroffen.length - 1
   } : null];
 }));
@@ -3336,11 +3351,11 @@ const qNeueBewertungen = db.prepare(
 
 app.get('/api/items', (req, res) => {
   let rows = qAlleItems.all();
-  const begriff = volltextBegriff(req.query.q);
+  const begriff = volltextBegriff(req.query.q, spracheVon(req));
   /* DIE FUNDSTELLEN KOMMEN AUS DERSELBEN ABFRAGE WIE DER FILTER -- kein
      zweiter Weg und keine Abfrage je Eintrag. Ohne Begriff bleibt die
      Abbildung leer, und weiter unten faellt das Feld damit aus der Antwort. */
-  const fundstellen = begriff ? volltextTreffer(begriff) : new Map();
+  const fundstellen = begriff ? volltextTreffer(begriff, spracheVon(req)) : new Map();
   if (begriff) rows = rows.filter(r => fundstellen.has(r.id));
   /* DIE ZEITLEISTE EINMAL FUER DIE GANZE LISTE GEFRAGT, nicht je Eintrag:
      eine persoenliche Einstellung aendert sich innerhalb einer Antwort nicht.

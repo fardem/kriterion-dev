@@ -1115,7 +1115,7 @@ const RUECKBAUTEN = [
   {
     nr: '124', name: 'Der Parameter q wird nicht mehr gelesen',
     datei: 'server.js',
-    suche: "  const begriff = volltextBegriff(req.query.q);",
+    suche: "  const begriff = volltextBegriff(req.query.q, spracheVon(req));",
     ersatz: "  const begriff = '';",
     erwartet: 'Die Volltextsuche'
   },
@@ -1327,7 +1327,7 @@ const RUECKBAUTEN = [
   {
     nr: '150', name: 'Der Titelvergleich achtet wieder auf Gross- und Kleinschreibung',
     datei: 'public/app.js',
-    suche: "const titelKern = (roh) => String(roh || '').toLowerCase().replace(",
+    suche: "const titelKern = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(",
     ersatz: "const titelKern = (roh) => String(roh || '').replace(",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
@@ -1619,8 +1619,8 @@ const RUECKBAUTEN = [
        statt der offenen. */
     nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
     datei: 'public/app.js',
-    suche: "    + (fertig ? ` (${aufgaben - fertig} offen)` : ''));",
-    ersatz: "    + (fertig ? ` (${aufgaben} offen)` : ''));",
+    suche: "    + (fertig ? t('liste.offenInKlammern', { n: aufgaben - fertig }) : ''));",
+    ersatz: "    + (fertig ? t('liste.offenInKlammern', { n: aufgaben }) : ''));",
     erwartet: 'Kommentare in der Oberflaeche'
   },
   {
@@ -2939,7 +2939,7 @@ const RUECKBAUTEN = [
        Beitraege" sagt nicht, WAS auf einen wartet. */
     nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
     datei: 'public/app.js',
-    suche: "  return [k ? `${k} ${k === 1 ? t('dialog.kommentar') : t('dialog.kommentare')}` : '',\n          b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');",
+    suche: "  return [k ? t('liste.kommentareZahl', { n: k }) : '',\n          b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');",
     ersatz: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2955,9 +2955,9 @@ const RUECKBAUTEN = [
   {
     /* EINE FESTE ENDUNG MACHT AUS EINEM KOMMENTAR „1 Kommentare". */
     nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
-    datei: 'public/app.js',
-    suche: "  return [k ? `${k} ${k === 1 ? t('dialog.kommentar') : t('dialog.kommentare')}` : '',",
-    ersatz: "  return [k ? `${k} Kommentare` : '',",
+    datei: 'public/sprachen/de.json',
+    suche: "\"liste.kommentareZahl\": {\n    \"eins\": \"{n} Kommentar\",",
+    ersatz: "\"liste.kommentareZahl\": {\n    \"eins\": \"{n} Kommentare\",",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2975,8 +2975,8 @@ const RUECKBAUTEN = [
        Kommentar. */
     nr: '319', name: 'Die Tafel ordnet nach den Kommentaren statt nach der Summe',
     datei: 'public/app.js',
-    suche: "    .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title)));",
-    ersatz: "    .slice().sort((a, b) => ((b.neuKommentare || 0) - (a.neuKommentare || 0)) || String(a.title).localeCompare(String(b.title)));",
+    suche: "    .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title), LOCALE));",
+    ersatz: "    .slice().sort((a, b) => ((b.neuKommentare || 0) - (a.neuKommentare || 0)) || String(a.title).localeCompare(String(b.title), LOCALE));",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
 
@@ -3009,8 +3009,8 @@ const RUECKBAUTEN = [
        zaehlt man Dinge auf, nicht Menschen. */
     nr: '322', name: 'Die Namen werden mit Kommas bis zum Schluss aufgezaehlt',
     datei: 'public/app.js',
-    suche: "  return 'von ' + (namen.length === 1 ? namen[0]\n    : `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}`);",
-    ersatz: "  return 'von ' + namen.join(', ');",
+    suche: "  const letzter = namen[namen.length - 1], vorne = namen.slice(0, -1).join(', ');\n  return t('liste.vonNamen',\n    { namen: vorne ? t('liste.namenUndLetzter', { vorne: vorne, letzter: letzter }) : letzter });",
+    ersatz: "  return t('liste.vonNamen', { namen: namen.join(', ') });",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3354,7 +3354,7 @@ const RUECKBAUTEN = [
   {
     nr: '374', name: 'Der Knopf heisst wieder „Mailzugang speichern"',
     datei: 'public/app.js',
-    suche: "id=\"mail-einrichten\">${tH('karte.mailzugang')} ${\n            mailstand.eingerichtet ? 'ändern' : 'einrichten'}</button>",
+    suche: "id=\"mail-einrichten\">${tH('karte.mailzugang')} ${\n            mailstand.eingerichtet ? tH('karte.aendern') : tH('karte.einrichten')}</button>",
     ersatz: "id=\"mail-einrichten\">${tH('karte.mailzugang')} speichern</button>",
     erwartet: 'Die Karte „Mailversand“'
   },
@@ -3642,7 +3642,7 @@ const RUECKBAUTEN = [
   {
     nr: '410', name: 'Der Ueberfahrtext nennt die weiteren Stellen nicht mehr',
     datei: 'public/app.js',
-    suche: "  f.weitere === 1 ? t('liste.undWeitereStelle')\n  : f.weitere > 1 ? t('liste.undWeitereStellen', { weitere: f.weitere }) : '');",
+    suche: "  f.weitere > 0 ? t('liste.undWeitereStellen', { n: f.weitere }) : '');",
     ersatz: "  '');",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
@@ -4077,8 +4077,8 @@ const RUECKBAUTEN = [
        mehr, dass die PNG-Fassung danach weg ist. */
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
     datei: 'public/app.js',
-    suche: "        `${fmtBytes(Math.round(png.bytes * 0.37))}). Rückgängig nur mit einer vorher angelegten ` +\n        t('karte.sicherungDauerMinutenBisStunden'));",
-    ersatz: "        `${fmtBytes(Math.round(png.bytes * 0.37))}). Dauer: Minuten bis Stunden.`);",
+    suche: "        t('karte.pngFotosWerdenUmgewandelt', { n: png.anzahl, bytes: fmtBytes(png.bytes),\n          danach: fmtBytes(Math.round(png.bytes * 0.37)) }));",
+    ersatz: "        `${png.anzahl} PNG-Fotos (${fmtBytes(png.bytes)}) werden umgewandelt. Dauer: Minuten bis Stunden.`);",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4245,8 +4245,8 @@ const RUECKBAUTEN = [
        rechnet dann mit Sekunden und bekommt eine Stunde. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     datei: 'public/sprachen/de.json',
-    suche: "\"karte.sicherungDauerMinutenBisStunden\": \"Sicherung. Dauer: Minuten bis Stunden.\",",
-    ersatz: "\"karte.sicherungDauerMinutenBisStunden\": \"Sicherung.\",",
+    suche: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\",\n    \"andere\"",
+    ersatz: "Rückgängig nur mit einer vorher angelegten Sicherung.\",\n    \"andere\"",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4255,8 +4255,8 @@ const RUECKBAUTEN = [
        beruhigend falsch und auf der anderen erschreckend falsch. */
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
     datei: 'public/sprachen/de.json',
-    suche: "\"karte.sicherungDauerMinutenBisStunden\": \"Sicherung. Dauer: Minuten bis Stunden.\"",
-    ersatz: "\"karte.sicherungDauerMinutenBisStunden\": \"Sicherung. Dauer: etwa 20 Minuten.\"",
+    suche: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"\n  },",
+    ersatz: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: etwa 20 Minuten.\"\n  },",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -5320,7 +5320,7 @@ const RUECKBAUTEN = [
        der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     datei: 'public/app.js',
-    suche: "      const marke = z.faellt ? '<span class=\"auf-marke weg\">löschen</span>'",
+    suche: "      const marke = z.faellt ? `<span class=\"auf-marke weg\">${tH('karte.loeschen4')}</span>`",
     ersatz: "      const marke = z.faellt ? ''",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5665,9 +5665,9 @@ const RUECKBAUTEN = [
        GENAU DAS IST BEIM BAUEN VON 0.21.0 PASSIERT, und der Pruefstand hat es
        gefunden -- an der Lage mit dem unvollstaendigen eigenen Vokabular. */
     nr: '601', name: 'Die Vorgabe der Oberflaeche kennt das neue Wort nicht',
-    datei: 'public/app.js',
-    suche: "  aufgabeErledigt: 'Erledigt',\n  potenzial: 'Potenzial',",
-    ersatz: "  aufgabeErledigt: 'Erledigt',",
+    datei: 'public/sprachen/de.json',
+    suche: "\"vokabular.potenzial\":",
+    ersatz: "\"vokabular.potenzialWeg\":",
     erwartet: 'Oberflaeche mit eigenem Vokabular'
   },
   {
@@ -6452,8 +6452,8 @@ const RUECKBAUTEN = [
        Kopf, einmal in Klammern und einmal mit „gewichtet" (Stolperstein 318). */
     nr: '651', name: 'Die Kopfzahl steht wieder zweimal da',
     datei: 'public/app.js',
-    suche: "    case 'potenzial': return item.potenzialRating ? '' : 'noch nicht eingeschätzt';",
-    ersatz: "    case 'potenzial': return item.potenzialRating\n      ? '⌀ ' + item.potenzialRating.toFixed(1).replace('.', ',') : 'noch nicht eingeschätzt';",
+    suche: "    case 'potenzial': return item.potenzialRating ? '' : t('liste.nochNichtEingeschaetzt');",
+    ersatz: "    case 'potenzial': return item.potenzialRating\n      ? '⌀ ' + zahl(item.potenzialRating, 1) : t('liste.nochNichtEingeschaetzt');",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
@@ -6540,6 +6540,94 @@ const RUECKBAUTEN = [
     suche: "    schwanz: ausgabe.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
     ersatz: '    schwanz: []',
     erwartet: 'Die Gegenproben greifen'
+  },
+  /* ---- Die sieben Waechter der Sprachdatei -- 0.24.0 ------------------
+     SIEBEN FRAGEN, NEUN RUECKBAUTEN. Jede der neuen Zusicherungen bekommt
+     genau den Fall, gegen den sie gebaut ist -- eine Zusicherung ohne
+     Gegenprobe ist eine Behauptung (Projektstand, Abschnitt 12). */
+  {
+    /* EINE ZWEITE SPRACHDATEI MIT GANZ ANDEREN SCHLUESSELN. package.json ist
+       lesbares JSON und traegt kein einziges `karte.`; die Deckungsprobe muss
+       das sehen -- und die Formatprobe die fehlende Locale. */
+    nr: '685', name: 'Eine zweite Sprachdatei traegt andere Schluessel',
+    datei: 'package.json',
+    kopie: 'public/sprachen/en.json',
+    erwartet: 'Die sieben Waechter der Sprachdatei — 0.24.0'
+  },
+  {
+    /* EIN SCHLUESSEL WIRD UMBENANNT. Danach steht in der Datei einer, den
+       niemand ruft, und im Code einer, den die Datei nicht kennt -- beide
+       Haelften der Verwendungsprobe auf einmal. */
+    nr: '686', name: 'Ein Schluessel der Sprachdatei heisst anders als im Code',
+    datei: 'public/sprachen/de.json',
+    suche: '"liste.oeffnen": "\u00d6ffnen",',
+    ersatz: '"liste.oeffnen2": "\u00d6ffnen",',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* EIN PLATZHALTER HEISST BEINAHE WIE EIN VOKABELWORT. `{sache}` gibt es
+       nicht -- es heisst `{sacheEinzahl}`; der Helfer laesst das Unbekannte
+       ausdruecklich stehen, und am Bildschirm stuende woertlich „{sache}". */
+    nr: '687', name: 'Ein Platzhalter heisst beinahe wie ein Vokabelwort',
+    datei: 'public/sprachen/de.json',
+    suche: '"liste.gefundenIn": "Gefunden in: {quelle}",',
+    ersatz: '"liste.gefundenIn": "Gefunden in: {sache}",',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* EINE MEHRZAHLFORM VERLIERT IHRE EINZAHL. Der Helfer waehlt dann
+       `undefined` und setzt es am Bildschirm ein. */
+    nr: '688', name: 'Einer Mehrzahlform fehlt die Einzahl',
+    datei: 'public/sprachen/de.json',
+    suche: '"liste.kommentareZahl": {\n    "eins": "{n} Kommentar",\n    "andere": "{n} Kommentare"\n  },',
+    ersatz: '"liste.kommentareZahl": {\n    "andere": "{n} Kommentare"\n  },',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* DIE DEUTSCHE REGEL KEHRT IN DEN CODE ZURUECK: `n === 1 ?` waehlt
+       wieder zwei Saetze, statt Intl.PluralRules zu fragen. */
+    nr: '689', name: 'Eine Mehrzahl waehlt ihre Form wieder ueber `=== 1 ?`',
+    datei: 'public/app.js',
+    suche: 'const vSache = (n) => mehrzahl(n, V.sacheEinzahl, V.sacheMehrzahl);',
+    ersatz: 'const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* EIN DEUTSCHER SATZ BLEIBT IM QUELLTEXT STEHEN. Genau der Fall, gegen
+       den diese ganze Runde gebaut ist -- und die Restliste nennt ihn beim
+       Namen, statt bloss eine Zahl zu zeigen. */
+    nr: '690', name: 'Ein deutscher Satz bleibt wieder in app.js stehen',
+    datei: 'public/app.js',
+    suche: "      knopf.textContent = t('eintrag.wenigerAnzeigen');",
+    ersatz: "      knopf.textContent = 'Weniger anzeigen, bitte sehr';",
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* EINE LOCALE, DIE ES NICHT GIBT. Ohne sie rechnet Intl mit der Sprache
+       des Servers weiter -- still, und das Datum sieht ploetzlich anders aus. */
+    nr: '691', name: 'Die Sprachdatei nennt eine Locale, die Intl nicht kennt',
+    datei: 'public/sprachen/de.json',
+    suche: '"_locale": "de-DE",',
+    ersatz: '"_locale": "de-XYZ",',
+    erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
+  },
+  {
+    /* UND DIE RUECKFALLPROBE: ein Schluessel, den die Liste ruft, fehlt in
+       der Datei -- am Bildschirm steht dann \u27e6liste.laedt\u27e7. */
+    nr: '692', name: 'Ein Schluessel der Liste fehlt und steht als \u27e6\u2026\u27e7 am Bildschirm',
+    datei: 'public/sprachen/de.json',
+    suche: '"liste.laedt":',
+    ersatz: '"liste.laedtNicht":',
+    erwartet: 'Oberflaeche'
+  },
+  {
+    /* DASSELBE IM SYSTEMBEREICH -- er hat seine eigene Gruppe und seinen
+       eigenen Durchgang ueber alle fuenf Abschnitte. */
+    nr: '693', name: 'Ein Schluessel des Systembereichs fehlt und steht als \u27e6\u2026\u27e7 da',
+    datei: 'public/sprachen/de.json',
+    suche: '"karte.persoenlich":',
+    ersatz: '"karte.persoenlichNicht":',
+    erwartet: 'Der Systembereich nach Rolle'
   }
 ];
 

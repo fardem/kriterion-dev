@@ -673,9 +673,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      pruefung.js steht absichtlich nicht auf der Liste, sonst faende diese
      Pruefung ihre eigenen Suchmuster. */
   const ERLAUBT = ['katalog.sqlite', 'Bewertungskatalog'];
+  /* DIE SPRACHDATEI GEHOERT DAZU -- 0.24.0. Seit dieser Runde wohnt der Text
+     dort; ein alter Name wuerde sich sonst genau dorthin retten, wo der
+     Waechter nicht hinsieht. */
   const GEPRUEFT = ['server.js', 'db.js', 'auth.js', 'keys.js', 'zugang.js', 'anhaenge.js',
     'package.json', 'docker-compose.example.yml', 'Dockerfile', '.env.example',
-    'public/app.js', 'public/index.html', 'public/style.css'];
+    'public/app.js', 'public/index.html', 'public/style.css',
+    'public/sprachen/de.json'];
   const funde = [];
   for (const datei of GEPRUEFT) {
     fs.readFileSync(path.join(__dirname, datei), 'utf8').split('\n').forEach((zeile, i) => {
@@ -21950,8 +21954,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      genau jenes Fundes verschoben hat.
      DAVOR 635 SEIT 0.22.0: achtzehn neue (624 bis 641) -- eines je neuer Regel
      des Pruefstands und eines, das das Milchglas wieder einsetzt; einundvierzig
-     vorhandene sind damals mitgegangen. */
-  pruefe('Es sind genau 676 Rueckbauten', gpListe.length === 676, `${gpListe.length}`);
+     vorhandene sind damals mitgegangen.
+     UND 685 SEIT 0.24.0: neun neue (685 bis 693) -- eines je Waechter der
+     Sprachdatei, dazu zwei fuer die Rueckfallprobe, die in zwei Gruppen
+     zuhause ist. Sechsundzwanzig vorhandene sind mitgezogen, sechs davon
+     zeigen jetzt auf public/sprachen/de.json statt auf den Quelltext. */
+  pruefe('Es sind genau 685 Rueckbauten', gpListe.length === 685, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -25197,6 +25205,44 @@ async function pruefeOberflaeche() {
   pruefe('Systembereich macht aus dem Vokabular kein HTML',
     !w4.document.getElementById('boese2') && !w4.document.getElementById('boese3'));
   w4.close();
+
+  /* --- Rueckfallprobe: Liste, Eintrag und Anmeldung — 0.24.0 -----------
+     DASSELBE ZEICHEN, DIE ANDEREN DREI ANSICHTEN. ⟦…⟧ steht am Bildschirm,
+     wo ein Schluessel fehlt -- und vor allem dort, wo eine Tabelle beim LADEN
+     der Datei ausgewertet wurde, als es noch keinen Text gab. Der
+     Systembereich steht in seiner eigenen Gruppe. */
+  {
+    const rf = baueDom(JSDOM, {});
+    await new Promise(r => setTimeout(r, 80));
+    const rfText = () => rf.w.document.body.textContent || '';
+    const rfFund = [];
+    const rfSieh = (wo) => {
+      const treffer = (rfText().match(/\u27e6[^\u27e7]*\u27e7/g) || []);
+      if (treffer.length) rfFund.push(`${wo}: ${[...new Set(treffer)].slice(0, 4).join(' ')}`);
+    };
+    rfSieh('Liste');
+    const rfListe = rfText().length;
+    rf.w.location.hash = '#/item/1';
+    await new Promise(r => setTimeout(r, 80));
+    rfSieh('Eintrag');
+    const rfEintrag = rfText().length;
+    rf.w.showLogin();
+    await new Promise(r => setTimeout(r, 40));
+    rfSieh('Anmeldung');
+    pruefe('Rueckfallprobe: kein ⟦…⟧ in Liste, Eintrag und Anmeldung',
+      rfFund.length === 0, rfFund.join(' · '));
+    pruefe('Und die drei Ansichten tragen wirklich Text',
+      rfListe > 200 && rfEintrag > 200 && rfText().length > 50,
+      `${rfListe} · ${rfEintrag} · ${rfText().length} Zeichen`);
+    /* UND DAS ZEICHEN WUERDE WIRKLICH AUFFALLEN: der Helfer setzt es, wenn
+       ein Schluessel weder in der Sprache noch im Rueckfall steht. Ohne diese
+       Zeile waere die Probe oben auch dann gruen, wenn niemand mehr suchte
+       (Stolperstein 106). */
+    pruefe('Und ein fehlender Schluessel wuerde als ⟦…⟧ dastehen',
+      rf.w.t('gibtesnicht.hier') === '\u27e6gibtesnicht.hier\u27e7',
+      rf.w.t('gibtesnicht.hier'));
+    rf.w.close();
+  }
 
   /* ================= Zeitleiste ================= */
   gruppe('Zeitleiste der Testtage');
@@ -29863,6 +29909,25 @@ async function pruefeOberflaeche() {
         dUser = await sysDurchgang(rUser);
   const kEig = dEig.karten, kAdm = dAdm.karten, kUser = dUser.karten;
 
+  /* ---- Rueckfallprobe — 0.24.0 ---------------------------------------
+     KEIN ⟦…⟧ AM BILDSCHIRM. Das Zeichen steht dort, wo ein Schluessel weder
+     in der gewaehlten Sprache noch im deutschen Rueckfall zu finden war --
+     sichtbar und nie still (Konzept 4.4). Genau deshalb taugt es als Probe:
+     ein vergessener Schluessel, ein Tippfehler im Namen und vor allem eine
+     Tabelle, die BEIM LADEN der Datei ausgewertet wird, faerben hier rot.
+     GEPRUEFT WIRD DER GANZE DURCHGANG: alle fuenf Abschnitte des
+     Systembereichs, in drei Rollen. Liste, Eintrag und Anmeldung stehen
+     weiter unten in ihren eigenen Gruppen. */
+  const ruecklauf = [['Eigentuemerin', dEig], ['Admin', dAdm], ['Benutzer', dUser]]
+    .filter(([, d]) => d.text.includes('\u27e6'))
+    .map(([wer, d]) => `${wer}: ${(d.text.match(/\u27e6[^\u27e7]*\u27e7/g) || []).slice(0, 4).join(' ')}`);
+  pruefe('Rueckfallprobe: kein ⟦…⟧ im Systembereich, in keiner Rolle',
+    ruecklauf.length === 0, ruecklauf.join(' · '));
+  // Und der Gegenstand: es ist wirklich Text da, den sie ansehen konnte.
+  pruefe('Und die drei Durchgaenge tragen wirklich Text',
+    dEig.text.length > 2000 && dAdm.text.length > 500 && dUser.text.length > 200,
+    `${dEig.text.length} · ${dAdm.text.length} · ${dUser.text.length} Zeichen`);
+
   /* ACHTZEHN SEIT 0.9.0: "Mailversand" kommt dazu, und sie steht beim
      EIGENTUEMER -- nicht beim Admin, obwohl der die Einladungen verschickt.
      Der SMTP-Server sieht jede Mail, und jede traegt einen Link, der ein
@@ -33094,6 +33159,24 @@ async function pruefeOberflaeche() {
     const knopf = baEig.w.document.getElementById('bild-um');
     pruefe('Und den Knopf, der den Bestand nachzieht', !!knopf);
     pruefe('Der Knopf ist bedienbar, solange PNG dasteht', !!knopf && !knopf.disabled);
+
+    /* WAS DER SCHALTER TUT, STEHT AM SCHALTER -- und zwar vollstaendig: was
+       aus einem eingefuegten Bildschirmfoto wird, dass die Guete dabei
+       bleibt, und was UNANGETASTET bleibt. Ohne den Halbsatz „ohne sichtbaren
+       Verlust" liest sich der Haken wie eine Verschlechterung.
+       DIESE ZEILE IST EIN FUND VOM 6. SEPTEMBER 2026: Gegenprobe 485 nimmt
+       genau diesen Halbsatz heraus und blieb STUMM -- der Satz stand seit
+       0.22.0 am Bildschirm und wurde von keiner einzigen Zusicherung
+       gelesen. */
+    const baKarteText = (kEig?.textContent || '').replace(/\s+/g, ' ');
+    pruefe('Der Schalter sagt, was aus einem eingefuegten Bildschirmfoto wird',
+      /Eingefügte Screenshots \(PNG\) werden als WebP gespeichert/.test(baKarteText),
+      baKarteText.slice(0, 300));
+    pruefe('Und dass dabei nichts Sichtbares verloren geht',
+      /etwa zwei Drittel kleiner, ohne sichtbaren Verlust/.test(baKarteText),
+      baKarteText.slice(0, 300));
+    pruefe('Und welche Formate er gar nicht anfasst',
+      /JPEG, GIF und WebP bleiben unverändert/.test(baKarteText), baKarteText.slice(0, 300));
 
     /* DER SCHALTER SCHREIBT WIRKLICH -- und ueber PUT /api/settings, nicht
        ueber eine eigene Route. Ohne diese Zeile bliebe gruen, wer den Haken
@@ -39872,6 +39955,16 @@ async function pruefeOberflaeche() {
     const iApp = bildschirmzeilen('public/app.js');
     pruefe('In public/app.js steht das Wort in keiner Nicht-Kommentarzeile mehr',
       iApp.length === 0, iApp.map(([n, z]) => `${n}: ${z.trim()}`).join(' · '));
+    /* UND SEIT 0.24.0 IN DER SPRACHDATEI -- dort wohnt der Bildschirmtext.
+       Ohne diese Zeile bliebe der Waechter gruen, waehrend das Wort einen
+       Schritt zur Seite gemacht haette (Gegenprobe 505, ein Fund vom
+       6. September 2026: sie blieb stumm, weil hier nur app.js stand). */
+    const iDe = Object.entries(JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8')))
+      .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(w => [k, w]))
+      .filter(([, w]) => w.includes('Instanz'));
+    pruefe('Und in der Sprachdatei steht es in keinem einzigen Satz',
+      iDe.length === 0, iDe.map(([k]) => k).join(' · '));
     /* ERST DER WAECHTER, DANN SEIN BEFUND (Stolperstein 81): ein Zaehler, der
        nichts findet, weil er nichts liest, ist gruen und belegt nichts. */
     pruefe('Und der Waechter wuerde eine solche Zeile wirklich finden',
@@ -41185,6 +41278,326 @@ async function pruefeOberflaeche() {
     // mit Bauabschnitt 3, und die Zeile dazu steht in dessen Gruppe.
     pruefe('Und im Server steht keine zweite Liste mehr',
       !/VOKABULAR_VORGABE/.test(sdSrv), `VOKABULAR_VORGABE in server.js: ${/VOKABULAR_VORGABE/.test(sdSrv)}`);
+  }
+
+  /* ================= Die sieben Waechter der Sprachdatei — 0.24.0 =========
+     SIEBEN FRAGEN, DIE EINE SPRACHDATEI SICH GEFALLEN LASSEN MUSS. Sie
+     stehen im Konzept (Abschnitt 9) und im Auftrag (5.1); gebaut werden sie
+     JETZT, obwohl es in dieser Runde nur eine Datei gibt -- eine Regel, die
+     man erst dann baut, wenn sie gebraucht wird, ist ungeprueft. Stufe 2
+     findet sie vor und faellt nicht in dieselben Gruben.
+     JEDE HAT IHRE GEGENPROBE in gegenprobe.js; eine stumme Gegenprobe ist ein
+     Fund (Projektstand, Abschnitt 12). */
+  gruppe('Die sieben Waechter der Sprachdatei — 0.24.0');
+  {
+    const spVerz = path.join(__dirname, 'public', 'sprachen');
+    const spNamen = fs.readdirSync(spVerz).filter(n => n.endsWith('.json')).sort();
+    const spKaputt = [], spInhalt = {};
+    for (const name of spNamen) {
+      try { spInhalt[name.slice(0, -'.json'.length)] = JSON.parse(
+        fs.readFileSync(path.join(spVerz, name), 'utf8')); }
+      catch { spKaputt.push(name); }
+    }
+    /* ERST DER GEGENSTAND: eine Datei, und sie heisst de.json. Die Zahl steht
+       ausdruecklich da -- mit der zweiten Sprache aendert sie sich, und dann
+       soll jemand hinsehen und nicht bloss zustimmen. */
+    pruefe('Eine Sprachdatei, und sie heisst de.json',
+      gleich(spNamen, ['de.json']), spNamen.join(' · '));
+    pruefe('Und jede Sprachdatei ist lesbares JSON',
+      spKaputt.length === 0, spKaputt.join(' · ') || 'alle lesbar');
+
+    /* ---- 1. Deckungsprobe ---------------------------------------------
+       JEDE DATEI TRAEGT DIESELBEN SCHLUESSEL. Eine Uebersetzung, der ein
+       Schluessel fehlt, faellt sonst still auf Deutsch zurueck -- und ein
+       Schluessel zu viel ist eine Zeile, die niemand mehr liest. In dieser
+       Runde prueft sie eine Datei gegen sich selbst; die Frage ist trotzdem
+       schon richtig gestellt. */
+    const deSchluessel = Object.keys(spInhalt.de || {}).filter(k => k !== '_hinweis').sort();
+    const deckungsFehler = [];
+    for (const [code, texte] of Object.entries(spInhalt)) {
+      const eigene = Object.keys(texte).filter(k => k !== '_hinweis').sort();
+      const fehlt = deSchluessel.filter(k => !eigene.includes(k));
+      const zuviel = eigene.filter(k => !deSchluessel.includes(k));
+      if (fehlt.length || zuviel.length)
+        deckungsFehler.push(`${code}: ${fehlt.length} fehlen, ${zuviel.length} zu viel`);
+    }
+    pruefe('Deckungsprobe: jede Datei traegt genau die Schluessel von de.json',
+      spKaputt.length === 0 && deckungsFehler.length === 0,
+      deckungsFehler.join(' · ') || (spKaputt.length ? 'unlesbare Datei: ' + spKaputt.join(' ') : 'gedeckt'));
+    // Und der Gegenstand dazu: es sind wirklich ueber tausend Schluessel.
+    pruefe('Und es sind mehr als tausend Schluessel',
+      deSchluessel.length > 1000, `${deSchluessel.length} Schlüssel`);
+
+    /* ---- 2. Verwendungsprobe -------------------------------------------
+       JEDER SCHLUESSEL WIRD GERUFEN, UND JEDER GERUFENE STEHT DA. Die erste
+       Haelfte findet die Karteileiche, die zweite das ⟦…⟧ am Bildschirm.
+       KOMMENTARE ZAEHLEN NICHT: der Kopf von app.js nennt
+       `t('dialog.fotoLoeschen.frage')` als Beispiel fuer die Form der
+       Schluessel -- ein Beispiel ist kein Aufruf. */
+    /* EIN `/*` MITTEN IN EINEM WORT IST KEIN KOMMENTAR. `accept="image/*,
+       video/*"` steht so in app.js, und ein Leser, der dort einen Block
+       oeffnet, verschluckt alles bis zum naechsten `*` mit Schraegstrich --
+       samt der Zeile darunter. Gefunden am 6. September 2026: die
+       Verwendungsprobe hielt `eintrag.fotosUndVideosHinzufuegenMehrere` fuer
+       ungerufen, weil der Ruf genau eine Zeile darunter stand. */
+    const ohneKommentar = (q) => q
+      .replace(/(^|[^A-Za-z0-9_"'`])\/\*[\s\S]*?\*\//g, '$1 ')
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+    const spQuellen = ['public/app.js', 'server.js', 'auth.js', 'mail.js'];
+    const gerufen = new Set();
+    for (const datei of spQuellen) {
+      const q = ohneKommentar(fs.readFileSync(path.join(__dirname, datei), 'utf8'));
+      // t('…'), tH('…'), t(sprache, '…'), new Meldung('…'), meldung('…')
+      for (const m of q.matchAll(/(?<![A-Za-z0-9_.$])(?:tH?|new Meldung|meldung)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
+        gerufen.add(m[1]);
+      /* UND DIE TABELLEN, DIE EINEN SCHLUESSEL HALTEN statt eines Satzes
+         (VORGANGSWORT, ROLLENWORT, THEMA_NAMEN …): dort steht der Schluessel
+         als blosser Wert. Gezaehlt wird er nur, wenn die Datei ihn kennt --
+         sonst wuerde jede punktierte Zeichenfolge zum Aufruf. */
+      for (const m of q.matchAll(/'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
+        if (spInhalt.de && spInhalt.de[m[1]] !== undefined) gerufen.add(m[1]);
+    }
+    /* DIE VIER BRIEFE ENTSTEHEN AUS EINEM NAMEN: mail.js baut
+       `mail.${art}.betreff` zur Laufzeit. Sie stehen deshalb namentlich hier
+       und nicht als Regel -- eine Regel „alles unter mail. ist in Ordnung"
+       liesse auch eine Karteileiche durch. */
+    const BRIEFE = ['bestaetigung', 'einladung', 'ruecksetzung', 'test']
+      .flatMap(art => [`mail.${art}.betreff`, `mail.${art}.text`]);
+    for (const k of BRIEFE) gerufen.add(k);
+    const nichtGerufen = deSchluessel.filter(k => k !== '_locale' && !gerufen.has(k));
+    const ohneSatz = [...gerufen].filter(k => !deSchluessel.includes(k)).sort();
+    pruefe('Verwendungsprobe: jeder Schluessel der Datei wird gerufen',
+      nichtGerufen.length === 0, nichtGerufen.slice(0, 12).join(' · '));
+    pruefe('Und jeder gerufene Schluessel steht in der Datei',
+      ohneSatz.length === 0, ohneSatz.slice(0, 12).join(' · '));
+    // Und der Leser liest wirklich: die vier Briefe stehen da, und er findet
+    // ueber tausend Rufe (Stolperstein 106).
+    pruefe('Der Leser findet mehr als tausend Rufe',
+      gerufen.size > 1000, `${gerufen.size} Rufe`);
+    pruefe('Und die acht Briefzeilen stehen namentlich da',
+      BRIEFE.every(k => spInhalt.de[k] !== undefined), BRIEFE.join(' '));
+
+    /* ---- 3. Platzhalterprobe -------------------------------------------
+       DERSELBE SCHLUESSEL TRAEGT IN JEDER DATEI DIESELBEN PLATZHALTER. Ein
+       Uebersetzer, der `{n}` weglaesst, nimmt dem Satz seine Zahl; einer, der
+       `{x}` erfindet, laesst sie am Bildschirm stehen.
+       UND EIN VOKABELPLATZHALTER IST EINER DER VIERZEHN. `{sache}` gibt es
+       nicht -- es heisst `{sacheEinzahl}`; der Fehler faellt sonst erst am
+       Bildschirm auf, wo `{sache}` woertlich steht (der Helfer laesst
+       Unbekanntes ausdruecklich stehen). */
+    const VOKABELN = Object.keys(spInhalt.de || {})
+      .filter(k => k.startsWith('vokabular.')).map(k => k.slice('vokabular.'.length));
+    const platzhalterVon = (wert) => new Set(
+      [...JSON.stringify(wert).matchAll(/\{([A-Za-z0-9_]+)\}/g)].map(m => m[1]));
+    const phFehler = [];
+    for (const k of deSchluessel) {
+      if (k === '_locale') continue;
+      const soll = platzhalterVon(spInhalt.de[k]);
+      for (const [code, texte] of Object.entries(spInhalt)) {
+        if (code === 'de' || texte[k] === undefined) continue;
+        const ist = platzhalterVon(texte[k]);
+        if (![...soll].every(p => ist.has(p)) || ![...ist].every(p => soll.has(p)))
+          phFehler.push(`${code}/${k}`);
+      }
+    }
+    /* UND JEDER PLATZHALTER WIRD AUCH VERSORGT. Die vierzehn aus `vokabular.`
+       fuellt der Helfer von selbst; jeder andere muss vom Aufrufer kommen.
+       Ein Name, den niemand reicht, bleibt woertlich am Bildschirm stehen --
+       `{sache}` statt „Eintrag", und der Helfer tut das ausdruecklich, damit
+       es auffaellt. Hier faellt es frueher auf.
+       GELESEN WIRD DER RUMPF DES AUFRUFS -- von hinter dem Schluessel bis zur
+       schliessenden Klammer, mit gezaehlten Klammern; darin `name:` und die
+       Kurzform `{ name }`. DAZU DIE ZWEITE GESTALT: ein Pruefer, der
+       `{ fehler: 'schluessel', werte: {…} }` zurueckgibt, statt zu werfen. */
+    const gereicht = new Map();
+    for (const datei of spQuellen) {
+      const q = fs.readFileSync(path.join(__dirname, datei), 'utf8');
+      const ruf = /(?<![A-Za-z0-9_.$])(?:tH?|new Meldung|meldung)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
+      for (const m of q.matchAll(ruf)) {
+        let i = m.index + m[0].length, tiefe = 1;
+        while (i < q.length && tiefe > 0) {
+          const c = q[i];
+          if (c === '(') tiefe++; else if (c === ')') tiefe--;
+          i++;
+        }
+        const rumpf = q.slice(m.index + m[0].length, i);
+        if (!gereicht.has(m[1])) gereicht.set(m[1], new Set());
+        for (const n of rumpf.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) gereicht.get(m[1]).add(n[1]);
+        for (const n of rumpf.matchAll(/[{,]\s*([A-Za-z_][A-Za-z0-9_]*)\s*[,}]/g)) gereicht.get(m[1]).add(n[1]);
+      }
+      for (const m of q.matchAll(/(?:fehler|grund):\s*'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'\s*(?:,\s*werte:\s*\{([^{}]*)\})?/g)) {
+        if (!gereicht.has(m[1])) gereicht.set(m[1], new Set());
+        for (const n of (m[2] || '').matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) gereicht.get(m[1]).add(n[1]);
+      }
+    }
+    /* ZWEI SCHLUESSEL REISEN IN EINER VARIABLEN -- `pruefeRegelwert(wert,
+       spanne, was)` bekommt den Namen gereicht und baut die Werte selbst.
+       Sie stehen NAMENTLICH hier und nicht als Regel: wer einen dritten so
+       baut, faellt auf. */
+    const UEBER_HELFER = ['server.regelBehalten', 'server.regelTage'];
+    const unversorgt = [];
+    for (const k of deSchluessel) {
+      if (k === '_locale' || BRIEFE.includes(k) || UEBER_HELFER.includes(k)) continue;
+      for (const p of platzhalterVon(spInhalt.de[k]))
+        if (!VOKABELN.includes(p) && !(gereicht.get(k) || new Set()).has(p))
+          unversorgt.push(`${k}: {${p}}`);
+    }
+    pruefe('Platzhalterprobe: derselbe Schluessel traegt ueberall dieselben Platzhalter',
+      phFehler.length === 0, phFehler.slice(0, 10).join(' · ') || 'gleich');
+    pruefe('Und jeder Platzhalter wird gereicht oder ist ein Vokabelwort',
+      unversorgt.length === 0, unversorgt.slice(0, 10).join(' · '));
+    pruefe('Und die zwei ueber einen Helfer gereichten stehen namentlich da',
+      UEBER_HELFER.every(k => spInhalt.de[k] !== undefined
+        && platzhalterVon(spInhalt.de[k]).size > 0), UEBER_HELFER.join(' · '));
+    pruefe('Und es sind wirklich vierzehn Vokabelwoerter',
+      VOKABELN.length === 14, `${VOKABELN.length}: ${VOKABELN.join(' ')}`);
+
+    /* ---- 4. Mehrzahlprobe ----------------------------------------------
+       WAS EIN OBJEKT IST, IST EINE MEHRZAHLFORM -- und traegt genau `eins`
+       und `andere`. Ein drittes Feld waere eine Form, die der Helfer nie
+       waehlt; ein fehlendes waere ein `undefined` am Bildschirm.
+       UND IM CODE STEHT KEIN `=== 1 ?` MEHR, das zwei Saetze waehlt: die
+       Regel gehoert der Sprache (Intl.PluralRules) und nicht dem Vergleich.
+       Fuer Vokabelwoerter tut das mehrzahl() -- an EINER Stelle. */
+    const objekte = deSchluessel.filter(k => k !== '_locale' && typeof spInhalt.de[k] === 'object');
+    const formFehler = objekte.filter(k => {
+      const felder = Object.keys(spInhalt.de[k]).sort();
+      return !gleich(felder, ['andere', 'eins']);
+    });
+    const appRohM = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const gabeln = [...ohneKommentar(appRohM).matchAll(/===\s*1\s*\?/g)].length;
+    pruefe('Mehrzahlprobe: jede Mehrzahlform traegt eins und andere',
+      objekte.length > 20 && formFehler.length === 0,
+      formFehler.join(' · ') || `${objekte.length} Mehrzahlformen`);
+    pruefe('Und keine waehlt ihre Form ueber `=== 1 ?`',
+      gabeln === 0, `${gabeln} Gabelungen in app.js`);
+    /* JEDE MEHRZAHLFORM WIRD UEBER `n` GEWAEHLT. Der Helfer sieht `werte.n`
+       an; ein Objekt, dessen Saetze nur `{tageHer}` nennen, bekaeme immer die
+       Mehrzahl -- still und falsch. Drei Ausnahmen stehen namentlich da: sie
+       tragen die Zahl NICHT im Satz und bekommen sie trotzdem gereicht --
+       „Sitzung." und „Sitzungen." sind der Schluss eines Satzes, dessen Zahl
+       weiter vorn steht. */
+    const OHNE_N_IM_SATZ = ['server.kriterienKonflikt', 'karte.sieOeffnenSichNurMitDem',
+                            'karte.sitzungenPunkt'];
+    const ohneN = objekte.filter(k => !OHNE_N_IM_SATZ.includes(k)
+      && !platzhalterVon(spInhalt.de[k]).has('n'));
+    pruefe('Und jede nennt ihr {n} im Satz — ausser den drei benannten',
+      ohneN.length === 0, ohneN.join(' · '));
+    pruefe('Und die drei benannten sind wirklich Mehrzahlformen',
+      OHNE_N_IM_SATZ.every(k => typeof spInhalt.de[k] === 'object'), OHNE_N_IM_SATZ.join(' · '));
+
+    /* ---- 5. Restprobe ---------------------------------------------------
+       WAS IN app.js AN TEXT UEBRIG IST, STEHT NAMENTLICH HIER. Eine Zahl
+       allein liesse offen, welche gemeint sind -- und beim naechsten Satz,
+       der stehen bleibt, faellt niemandem etwas auf.
+       DER FILTER IST DIE FRAGE „liest das ein Mensch als Sprache?": Markup,
+       Adressen, Selektoren, Schluessel und Bezeichner fallen heraus. Was
+       bleibt, ist entweder ein Bezeichner, den die Sprache nicht anfasst
+       (POST, Escape), ein technischer Ausdruck (eine Medienabfrage, ein
+       Serverbefehl) oder der EINE feste Satz aus Bauabschnitt 1. */
+    const sichtbarerTeil = (roh) => String(roh)
+      .replace(/<[^>]*>/g, ' ').replace(/<[^>]*$/, ' ').replace(/^[^<]*>/, ' ')
+      .replace(/\$\{[^}]*\}/g, ' ').replace(/&[a-z]+;|&#\d+;/g, ' ').trim();
+    const lesbarerText = (roh) => {
+      const s = sichtbarerTeil(roh);
+      if (!/[A-Za-zÄÖÜäöüß]{3}/.test(s)) return false;                  // kein Wort darin
+      if (/^[\/#.\[]/.test(s)) return false;                            // Adresse, Selektor
+      if (/[=:]"|"$|^"/.test(s)) return false;                          // Bruchstueck eines Attributs
+      if (/^[a-zäöü][A-Za-z0-9]*(\.[A-Za-z0-9_]+)+$/.test(s)) return false;  // ein Schluessel
+      if (/^[a-z][A-Za-z0-9_-]*$/.test(s)) return false;                // ein Bezeichner
+      if (/^[a-z0-9-]+( [a-z0-9-]+){0,3}$/.test(s)) return false;       // eine Klassenliste
+      return true;
+    };
+    const restStellen = bildschirmtexteVon(appRohM).filter(t => lesbarerText(t.text));
+    const rest = [...new Set(restStellen.map(t => t.text.trim()))].sort();
+    /* DIE LISTE. Sie ist die Abnahme dieser Runde in einer Zeile: alles
+       andere, was ein Mensch am Bildschirm liest, wohnt in der Sprachdatei. */
+    const REST_ERWARTET = [
+      // Die Verben und Koepfe des Netzverkehrs
+      'GET', 'POST', 'PUT', 'DELETE', 'Content-Type', 'application/json',
+      // Tasten und Knotennamen
+      'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'INPUT', 'TEXTAREA', 'SELECT',
+      // Formen, Typen und Ziele
+      'image/', 'image/*', 'image/jpeg', 'PNG', 'JPEG', 'GIF', '_blank', 'https://',
+      'SSL/TLS', 'STARTTLS',
+      // Der Name des Programms, bevor /api/config antwortet
+      'Kriterion',
+      // Der Ort der Sprachdateien und die Lage, wenn eine fehlt
+      'sprachen/', 'Die Sprachdatei fehlt.',
+      // Auswahl im Stilblatt und zwei Medienabfragen
+      'button, input, select, a, .bgrip',
+      '(prefers-color-scheme: light)',
+      '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
+      // Stuecke einer Adresse
+      '?eintraege=', '&beitraege=', '?gruppe=', '&tage=', '&ziel=',
+      // Die vier Serverbefehle -- in jeder Sprache dieselben
+      'docker compose exec kriterion node zugang.js passwort <name>',
+      'docker compose exec kriterion node zugang.js zweifaktor <name>',
+      // Markup um einen technischen Namen herum
+      '<code>OEFFENTLICHE_ADRESSE</code>', '<code>ENCRYPTION_KEY</code>',
+      '<code>data/</code>', '<code>http://</code>',
+      '<code>ENCRYPTION_KEY</code>. <strong><code>.env</code>',
+      '</p>\n              <code class="keyline" id="keyline">ENCRYPTION_KEY=',
+      '<code>https://</code>).</p>\n        <div class="sanb-eigen" id="seigene"></div>',
+      '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
+      'https://forum.beispiel.de/suche?q=%s'
+    ].sort();
+    const zuviel = rest.filter(t => !REST_ERWARTET.includes(t));
+    const fehlt = REST_ERWARTET.filter(t => !rest.includes(t));
+    pruefe('Restprobe: weniger als sechzig lesbare Texte in app.js',
+      rest.length < 60, `${rest.length} verschiedene, ${restStellen.length} Stellen`);
+    pruefe('Und es sind genau die fuenfundvierzig benannten',
+      zuviel.length === 0 && fehlt.length === 0,
+      `zu viel: ${zuviel.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${fehlt.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
+    // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
+    pruefe('Und der Filter laesst einen deutschen Satz stehen',
+      lesbarerText('Bitte einen Titel eingeben.') && !lesbarerText('mrow zug')
+        && !lesbarerText('liste.oeffnen') && !lesbarerText('#/system'),
+      'der Filter trennt Satz und Bezeichner nicht');
+
+    /* ---- 7. Formatprobe -------------------------------------------------
+       (Die Rueckfallprobe steht bei der Oberflaeche -- sie braucht das DOM.)
+       JEDE DATEI NENNT IHRE LOCALE, UND Intl KENNT SIE. Ohne sie gaebe es
+       weder Datum noch Mehrzahl; eine erfundene („de-XY") faellt sonst erst
+       am Bildschirm auf, wo das Datum ploetzlich anders aussieht.
+       UND DIE HELFER LIEFERN FUER de-DE, WAS SIE HEUTE LIEFERN -- gegen den
+       Ausdruck von 0.23.0 und nicht gegen eine neue Erwartung. */
+    const ortFehler = Object.entries(spInhalt).filter(([, texte]) =>
+      typeof texte._locale !== 'string'
+      || Intl.DateTimeFormat.supportedLocalesOf([texte._locale]).length !== 1);
+    pruefe('Formatprobe: jede Datei nennt eine Locale, die Intl kennt',
+      spKaputt.length === 0 && ortFehler.length === 0,
+      ortFehler.map(([c, t]) => `${c}: ${t._locale}`).join(' · ') || 'alle bekannt');
+    const ort = spInhalt.de._locale;
+    const fmtProbe = (iso) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleString(ort,
+      { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const zahlProbe = (n, stellen = 0, hoechstens = stellen) => new Intl.NumberFormat(ort,
+      { minimumFractionDigits: stellen, maximumFractionDigits: hoechstens, useGrouping: false })
+      .format(Number(n));
+    const tagProbe = (tag) => new Date(tag + 'T12:00:00').toLocaleDateString(ort, { weekday: 'long' });
+    pruefe('Und fmtDate liefert fuer de-DE den Ausdruck von 0.23.0',
+      fmtProbe('2026-09-05 14:02:11') === '05.09.2026, 14:02'
+      && fmtProbe('2026-01-01 00:00:00') === '01.01.2026, 00:00'
+      && fmtProbe('2025-12-31 23:59:00') === '31.12.2025, 23:59',
+      [fmtProbe('2026-09-05 14:02:11'), fmtProbe('2026-01-01 00:00:00'), fmtProbe('2025-12-31 23:59:00')].join(' · '));
+    pruefe('Und zahl() ebenso — mit Komma und ohne Tausenderpunkt',
+      zahlProbe(3.5, 1) === '3,5' && zahlProbe(1234.56, 1) === '1234,6'
+      && zahlProbe(1.25, 0, 2) === '1,25',
+      [zahlProbe(3.5, 1), zahlProbe(1234.56, 1), zahlProbe(1.25, 0, 2)].join(' · '));
+    pruefe('Und weekday() nennt den Wochentag auf Deutsch',
+      tagProbe('2026-09-05') === 'Samstag' && tagProbe('2026-09-06') === 'Sonntag'
+      && tagProbe('2026-09-07') === 'Montag',
+      [tagProbe('2026-09-05'), tagProbe('2026-09-06'), tagProbe('2026-09-07')].join(' · '));
+    /* UND DIE ZAHLEN DIESER RUNDE, festgenagelt: eine Sprachdatei, und die
+       drei Zahlen aus dem Bestand, die sich NICHT geaendert haben. Eine Zahl,
+       die unveraendert bleiben soll, muss dastehen -- sonst faellt ihre
+       Aenderung niemandem auf (Auftrag 5.1). */
+    const cfgRumpf = ((fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
+      .match(/app\.get\('\/api\/config'[\s\S]*?res\.json\(\{([\s\S]*?)\}\);/) || ['', ''])[1]);
+    const cfgFelder = (cfgRumpf.match(/(?:^|[,{\n])\s*(\w+):/g) || []).length;
+    pruefe('Die Zahlen dieser Runde: eine Sprachdatei, fuenf Felder in /api/config',
+      spNamen.length === 1 && cfgFelder === 5,
+      `${spNamen.length} Datei(en) · ${cfgFelder} Felder`);
   }
 
   /* ================= Die Zeitleiste im hellen Schema — 0.24.0 =================

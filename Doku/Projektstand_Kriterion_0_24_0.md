@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 65 · Stand 5. September 2026 · gebaut: Version 0.23.0**
+**Kompakte Übergabe · Revision 66 · Stand 6. September 2026 · gebaut: Version 0.24.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -476,8 +476,16 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.23.0** — Fingerprint **`92f7a142`**, **5744
-Prüfungen**, **649 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.24.0** — Fingerprint **`795ddc8a`**, **5862
+Prüfungen**, **685 Rückbauten in der Liste** (Abschnitt 8).
+*0.24.0 zieht jeden Satz der Oberfläche in eine eigene Datei —
+`public/sprachen/de.json`, 1190 Schlüssel. **Die Anwendung sieht danach aus
+wie vorher**; das war die Abnahme. Regel **S8** in Abschnitt 5.6, Einzelheiten
+im Änderungsprotokoll 0.24.0. Dazu zwei Befunde aus dem Betrieb am hellen
+Schema: die Zeitleiste ist wieder zu sehen, und „Weitere Filter" ist ein
+Umschalter „Tags" mit Zahl geworden.*
+
+*0.23.0 davor* — Fingerprint `92f7a142`, 5744 Prüfungen, 649 Rückbauten.
 *0.23.0 bringt das helle Farbschema: umschaltbar in der Karte „Darstellung",
 drei Stufen (**hell · dunkel · wie das Gerät**), **die Vorgabe bleibt
 dunkel**. 67 feste Farben haben das Regelwerk verlassen, ein zweiter Block mit
@@ -1420,7 +1428,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.23.0** | **`92f7a142`** *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5744 |
+| **0.24.0** | **`795ddc8a`** *(gebaut am 6. September 2026; **am Wirt noch nicht gesehen**)* | 5862 |
+| 0.23.0 | `92f7a142` *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5744 |
 | 0.22.1 | `15c9b736` *(am 5. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5713 |
 | 0.22.0 | `fd292332` *(am 5. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; die drei Befunde daraus sind 0.22.1)* | 5661 |
 | 0.21.1 | `2295870b` *(am 4. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 5571 |
@@ -5075,7 +5084,7 @@ G3 hat das mit dem Milchglas vorgeführt, Stolperstein 314.)*
   — sie ist strenger als AA, und sie stand schon
   (`Doku/Farbkonzept_0_23_0.md`).*
 
-#### Sprachregeln S1 bis S7 — seit 0.22.0 geschriebene Regel
+#### Sprachregeln S1 bis S8 — seit 0.22.0 geschriebene Regel, S8 seit 0.24.0
 
 *(Konzept, Abschnitt 4.2 und 4.3. Das Wörterbuch mit den sechzehn
 Entscheidungen E1 bis E16 steht im Änderungsprotokoll 0.22.0; die Verbotsliste
@@ -5131,6 +5140,25 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   gehen durch `confirmBox`, `nameBox`, `passwortFenster`,
   `neuesPasswortFenster` und `benutzerLoeschenFenster`; der Prüfstand sucht die
   beiden Aufrufe im Code und findet keinen.
+- **S8 · Ein Text am Bildschirm steht in der Sprachdatei, nicht im Code.**
+  *(seit 0.24.0.)* Jeder Satz, den ein Mensch am Bildschirm oder in einer Mail
+  liest, wohnt in `public/sprachen/de.json`; der Quelltext kennt nur noch den
+  **Schlüssel** — deutsch, nach der Sache, mit Namensraum
+  (`karte.titelSpeichern`, nicht `t17` und nicht der Satz selbst). **Drei
+  Rufformen und keine vierte:** `tH()` in einer Vorlage, die HTML baut,
+  `esc(t())` in einem Attribut, blankes `t()` für `textContent`, `title` und
+  `placeholder`. **Was von einer Zahl abhängt, trägt ein Objekt
+  `{ eins, andere }`** und wird über `Intl.PluralRules` gewählt — `n === 1` ist
+  die deutsche Regel und steht nicht mehr im Code (`mehrzahl()` für die
+  Vokabelwörter, deren zwei Formen Inhalt sind). **Kein HTML in einem Text:**
+  wo ein Satz ein fettes Wort braucht, sind es zwei Schlüssel. **Nicht in die
+  Datei gehören:** Inhalt (Vokabular, Tags, Kriterien, Kategorien, Titel,
+  Einträge), technische Namen (`ENCRYPTION_KEY`, `.env`, MIME-Typen),
+  Server-Befehle und Adressen — sie sind in jeder Sprache dieselben. **Der
+  eine feste Satz im Quelltext** ist „Die Sprachdatei fehlt.": ohne die Datei
+  gibt es keinen Schlüssel, mit dem er sich sagen ließe. *Sieben Wächter im
+  Prüfstand halten die Regel: Deckungs-, Verwendungs-, Platzhalter-, Mehrzahl-,
+  Rest-, Rückfall- und Formatprobe.*
 
 #### Farbe und Marke
 
@@ -10840,6 +10868,66 @@ in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstof
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
 
+### 0.24.0 — „Das Deutsche wandert in eine eigene Datei"
+
+**MINOR · 6. September 2026 · Stufe 1 der Mehrsprachigkeit** *(gebaut auf
+0.23.0, Fingerprint `92f7a142`).* *Angefasst sind `public/app.js`,
+`server.js`, `auth.js`, `mail.js`, `public/style.css`, `pruefung.js`,
+`gegenprobe.js` — und neu: `public/sprachen/de.json`.*
+
+**Jeder Satz, den ein Mensch am Bildschirm oder in einer Mail liest, ist aus
+dem Quelltext heraus und in EINE Datei gezogen** — 1190 Schlüssel, deutsch,
+nach der Sache, mit Namensraum. Der Code kennt nur noch den Schlüssel.
+**Die Anwendung sieht danach genauso aus wie vorher; das war die Abnahme, und
+sie ist eingehalten.** *Englisch und die Wahl der Sprache kommen mit Stufe 2;
+`spracheVon(req)` liefert in dieser Runde immer `de`.*
+
+**(1) Der Helfer, vierzig Zeilen, keine Bibliothek.** `t()` gibt den nackten
+Satz, `tH()` denselben mit **maskierten Werten** — der Text kommt aus der
+Datei und trägt kein HTML, der Wert vom Benutzer oder aus dem Vokabular
+(Stolperstein 18 in Dateiform). Flache Schlüssel mit Punkten; **ein Objekt ist
+deshalb immer eine Mehrzahlform** `{ eins, andere }`, gewählt über
+`Intl.PluralRules`. Fehlt ein Schlüssel, steht `⟦schluessel⟧` am Bildschirm —
+sichtbar und nie still. Fehlt die ganze Datei, steht **ein einziger fester
+Satz** da, und der Server startet gar nicht erst.
+
+**(2) Die Serverseite.** Eine Klasse `Meldung` trägt **Schlüssel, Werte und
+Status** statt eines Satzes; `server.js` fängt und übersetzt. Der
+Fehler-Handler erkennt sie **an ihrer Gestalt**, nicht am `instanceof` — so
+baut `mail.js` dieselbe Form ohne Ringschluss. **Zehn Würfe bleiben
+`new Error`**: Programmierfehler ohne Bildschirm, namentlich im Prüfstand.
+
+**(3) Elf Tabellen auf Modulebene standen nach dem Umzug für immer auf ⟦…⟧** —
+sie werden ausgewertet, sobald der Browser die Datei liest, und die
+Sprachdatei kommt erst danach. Seither gilt: **eine Nachschlagetabelle hält
+den Schlüssel** und die Lesestelle ruft; wo ein Feld unmittelbar gelesen wird,
+steht ein **Ruf** statt eines Werts.
+
+**(4) Die Einzahl kommt von der Sprache.** 45 Gabelungen `=== 1 ?` sind
+gefallen; 34 Mehrzahlformen stehen in der Datei, und für die Vokabelwörter —
+deren zwei Formen Inhalt sind — entscheidet `mehrzahl()` an einer Stelle.
+**Datum, Zahl, Wochentag, Sortierung und Kleinschreibung** lesen `LOCALE` aus
+dem Kopf der Datei; `today()` bleibt `sv-SE`.
+
+**(5) Sieben Wächter** halten die Regel: Deckungs-, Verwendungs-,
+Platzhalter-, Mehrzahl-, Rest-, Rückfall- und Formatprobe, jeder mit seiner
+Gegenprobe. **45 lesbare Texte bleiben in `app.js`** — HTTP-Verben, Tasten,
+Formate, vier Server-Befehle, zwei Medienabfragen und der eine feste Satz;
+**sie stehen namentlich da.** *Regel S8 in Abschnitt 5.6.*
+
+**(6) Dazu zwei Befunde aus dem Betrieb am hellen Schema** (Bauabschnitt 0):
+die Zeitleiste war unsichtbar — `--line-2` misst gegen den hellen Grund
+**1,02 : 1**, und das Farbkonzept hatte seine Ränder gegen die Karte gemessen;
+drei neue Variablen tragen jetzt **1,54 · 2,13 · 4,62**. Und „Weitere Filter"
+ist ein Umschalter **„Tags" mit Zahl** geworden, rechts in der Kategoriezeile:
+die Filterleiste ist zugeklappt 147 → **114 px**.
+
+**Neun Altlasten sind aufgefallen und ausdrücklich NICHT behoben worden** —
+Sätze aus `auth.js` und die fünf Briefe aus `mail.js` tragen Wörter, die das
+Wörterbuch aus 0.22.0 vom Bildschirm genommen hat. *Der Wächter sieht sie zum
+ersten Mal; ihre Berichtigung ist eine eigene Runde wert, denn die Abnahme
+dieser hier hieß „kein Wort anders".*
+
 ### 0.22.1 — „Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da"
 
 **PATCH · 5. September 2026 · aus dem Rundlauf von Hand nach 0.22.0**
@@ -12688,7 +12776,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.22.0** | **„Die Oberfläche wird ruhiger, und sie redet Deutsch"** | **GEBAUT am 4. September 2026.** *(Neu am 30. August 2026 als 0.20.0, am 3. September 2026 auf 0.21.0 gerückt und noch am selben Tag auf 0.22.0; am 4. September 2026 im Gespräch mit dem Betreiber zu sechzehn Entscheidungen ausgearbeitet — Konzept `Doku/Konzept_Oberflaeche_0_22_0.md` samt Anlage.)* Fünf Bauabschnitte: das Stilblatt (kein Milchglas, eine Antwort auf jede Berührung, Marken aus Form), die zwei Vokabelwörter für die Bewertung, rund 250 Textstellen nach einem Wörterbuch, eigene Fenster statt `confirm()` und `prompt()`, und Bildstreifen · Rechteck · Sternzeile (Punkt 10 des Sammelblatts eingeschlossen). **Die Gestaltungs- und Sprachregeln G1 bis G8 und S1 bis S7 stehen seither in Abschnitt 5.6; was gebaut wurde, im Änderungsprotokoll 0.22.0.** *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
 | **0.22.1** | **„Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da"** | **GEBAUT am 5. September 2026.** *(Aus dem Rundlauf von Hand nach 0.22.0 — dieselbe Herkunft wie 0.21.1 nach 0.21.0, 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Drei Befunde, keiner davon aus dem Sammelblatt und keiner aus dem Fahrplan; sieben Entscheidungen E1 bis E7 hat der Betreiber am 5. September 2026 vor dem Bauen getroffen — Auftrag `Doku/Auftrag_0.22.1.md`, mit dem Auftrag zu 0.23.0 weggefallen.)* **Erstens:** das Rechteck aus 0.22.0 legte Lage und Weite auf EINEN Griff, und wer den Rahmen anfasste, warf ihn weg. Ab jetzt entscheidet der ORT der Berührung — fünf Gesten, acht Griffe, Regel **G9**. **Zweitens:** der Kopf eines zugeklappten Sternkastens trug dieselbe Zahl zweimal; die Kurzfassung fällt, und die Kopfzahl sagt jetzt, dass sie über ALLE Benutzer geht — Regel **G10**. **Drittens:** an einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr, und der Server weist eine Bewertung dort ab — Regel **G11**. *Der Fahrplan rückt dadurch nicht: 0.22.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
 | **0.23.0** | **„Die Oberfläche wird hell"** | **GEBAUT am 5. September 2026.** *(Neu am 4. September 2026 aus der Besprechung zu 0.22.0, dort als Idee **N6**; am 5. September 2026 im Gespräch mit dem Betreiber zu sieben Entscheidungen ausgearbeitet — Konzept `Doku/Farbkonzept_0_23_0.md`, wie 0.22.0 ihres hat.)* **Ein zweites Farbschema — hell, umschaltbar je Zugang, und die Vorgabe bleibt dunkel.** Vier Bauabschnitte: 67 feste Farben verlassen das Regelwerk (die Menge, die hier als „heute unbekannt" stand), ein zweiter Block mit 42 Werten, die Maschine mit drei Stufen samt Vorgriff gegen das Blitzen, und Marke, Dämpfung und Augenschein. **Die Gestaltungsregel G12 steht seither in Abschnitt 5.6**; was gebaut wurde, im Änderungsprotokoll 0.23.0. *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
-| **0.24.0** | **Mehrsprachigkeit** | *(Neu am 2. September 2026 als 0.23.0, am 3. September 2026 auf 0.24.0 gerückt und noch am selben Tag auf 0.28.0; **am 5. September 2026 auf Entscheidung des Betreibers zurück auf 0.24.0** — das neunte Rücken, das erste nach vorn; der Rest rückt so, dass zwischen zwei geplanten Runden weiter eine Nummer frei bleibt. Am selben Tag ausgearbeitet — Konzept `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`, wie 0.22.0 und 0.23.0 ihres haben.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Drei Stufen:** das Deutsche, das schon da ist, wandert in eine eigene Datei (Stufe 1); dann kommt Englisch (Stufe 2); dann Türkisch (Stufe 3). **Entschieden am 5. September 2026: Stufe 1 geht zuerst und allein heraus, als 0.24.0** — Auftrag `Doku/Auftrag_0.24.0.md`; *zunächst 0.24.1 genannt, noch am selben Tag auf 0.24.0 entschieden, weil eine PATCH-Zahl ihre MINOR-Zahl voraussetzt (Abschnitt 5.1); die Nummern für Stufe 2 und 3 sind offen.* **Dazu fahren zwei Befunde aus dem Betrieb am 5. September 2026 am hellen Schema mit**, als Bauabschnitt 0 des Auftrags: die Zeitleiste ohne sichtbare Linien und Jahreszahlen (`--line-2` misst gegen den hellen Grund 1,02 : 1 — eine Paarung, die das Farbkonzept nicht gemessen hat) und der Aufklapper „Weitere Filter", der als eigene Zeile Platz kostet statt spart. *Keiner der beiden stand im Sammelblatt oder im Fahrplan.* **Nach der Oberfläche** — die ist gebaut — **und vor der Bereinigung.** *Bis zum 5. September 2026 stand hier „nach der Bereinigung"; was das Vorziehen kostet und warum es wenig ist, steht im Kasten zum neunten Rücken unter dieser Tafel.* *MINOR* | nein | — |
+| **0.24.0** | **„Das Deutsche wandert in eine eigene Datei“** | **GEBAUT am 6. September 2026.** *(Neu am 2. September 2026 als 0.23.0, am 3. September 2026 auf 0.24.0 gerückt und noch am selben Tag auf 0.28.0; **am 5. September 2026 auf Entscheidung des Betreibers zurück auf 0.24.0** — das neunte Rücken, das erste nach vorn; der Rest rückt so, dass zwischen zwei geplanten Runden weiter eine Nummer frei bleibt. Am selben Tag ausgearbeitet — Konzept `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`, wie 0.22.0 und 0.23.0 ihres haben.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Drei Stufen:** das Deutsche, das schon da ist, wandert in eine eigene Datei (Stufe 1); dann kommt Englisch (Stufe 2); dann Türkisch (Stufe 3). **Entschieden am 5. September 2026: Stufe 1 geht zuerst und allein heraus, als 0.24.0** — Auftrag `Doku/Auftrag_0.24.0.md`; *zunächst 0.24.1 genannt, noch am selben Tag auf 0.24.0 entschieden, weil eine PATCH-Zahl ihre MINOR-Zahl voraussetzt (Abschnitt 5.1); die Nummern für Stufe 2 und 3 sind offen.* **Dazu fahren zwei Befunde aus dem Betrieb am 5. September 2026 am hellen Schema mit**, als Bauabschnitt 0 des Auftrags: die Zeitleiste ohne sichtbare Linien und Jahreszahlen (`--line-2` misst gegen den hellen Grund 1,02 : 1 — eine Paarung, die das Farbkonzept nicht gemessen hat) und der Aufklapper „Weitere Filter", der als eigene Zeile Platz kostet statt spart. *Keiner der beiden stand im Sammelblatt oder im Fahrplan.* **Nach der Oberfläche** — die ist gebaut — **und vor der Bereinigung.** *Bis zum 5. September 2026 stand hier „nach der Bereinigung"; was das Vorziehen kostet und warum es wenig ist, steht im Kasten zum neunten Rücken unter dieser Tafel.* **GEBAUT IST STUFE 1:** sechs Bauabschnitte — die zwei Befunde am hellen Schema, der Helfer `t()`/`tH()` samt Ladung, die Serverseite mit der Klasse `Meldung`, `public/app.js` Ansicht für Ansicht, die Format-Helfer über `Intl` und `<html lang>`, und die sieben Wächter im Prüfstand. **1190 Schlüssel in `public/sprachen/de.json`, 45 lesbare Texte in `app.js` — namentlich, und keiner davon ein Satz.** *Kein Wort anders: das war die Abnahme, und sie ist eingehalten.* **Die Regel steht als S8 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.0. *Stufe 2 (Englisch und die Wahl der Sprache) und Stufe 3 (Türkisch) haben weiter keine Nummer.* *MINOR* | nein | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
 | **0.26.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und noch am selben Tag auf 0.24.0; **am 5. September 2026 auf 0.26.0, weil die Mehrsprachigkeit vor sie gezogen wurde** — das neunte Rücken, siehe den Kasten unter dieser Tafel.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.27.0** | *frei* | Dritter Zwischenraum nach derselben Regel | — | — |

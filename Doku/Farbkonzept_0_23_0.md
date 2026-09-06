@@ -158,6 +158,26 @@ schmal und es ist ausgemessen:
 *Nach unten begrenzt `--muted` das Fenster, nach oben die Karte. `#eaedf1`
 steht am unteren Ende — dort, wo die Karte am deutlichsten liegt.*
 
+> **NACHTRAG VOM 6. SEPTEMBER 2026 (0.24.0): DIE ZEITLEISTE LIEGT AUF DEM
+> GRUND, NICHT AUF DER KARTE.** Die Tabelle oben misst die Randfarben gegen
+> die **Karte** — `--line` auf der Karte trägt 1,45 : 1, und das genügt für
+> eine Trennlinie. Die Zeitleiste der Testtage liegt aber seit 0.22.0 **ohne
+> Kasten auf dem Grund**, und dort misst dieselbe Farbe anders. Im Betrieb am
+> Wirt war sie im hellen Schema **nicht zu sehen** (Befund mit Bild):
+>
+> | auf dem Grund `#eaedf1` | vorher | seit 0.24.0 | |
+> |---|---|---|---|
+> | Hilfslinie `.zl-linie` | `--line-2` · **1,02** | `--zl-linie` `#b9c2cb` · **1,54** | eine Linie, die es gab und die niemand sah |
+> | Mittelstrich `.zl-linie.mitte` | `--line` · **1,24** | `--zl-mitte` `#9aa5b0` · **2,13** | er trägt die Bedeutung „Mitte" |
+> | Jahreszahl `.zl-jahr` | `--faint` · **3,46** | `--zl-jahr` `--muted` · **4,62** | Text, also die Latte für Text |
+>
+> **Die Regel, die daraus folgt und die dieses Papier nachträgt: eine Farbe
+> wird gegen den Grund gemessen, auf dem sie wirklich liegt.** Ein Rand auf
+> der Karte und ein Rand auf dem Grund sind zwei verschiedene Messungen, auch
+> wenn dieselbe Variable dahintersteht. *Im dunklen Schema tragen die drei
+> neuen Variablen genau die Werte, die die vier Regeln vorher gelesen haben —
+> dort ändert sich kein Bildpunkt.*
+
 ### 4.2 Die fünf Bedeutungsfarben
 
 **Sie behalten ihre Bedeutung (G1) und bekommen einen zweiten Wert.**

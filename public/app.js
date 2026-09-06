@@ -66,6 +66,16 @@ function tH(schluessel, werte = {}) {
   return spracheEinsetzen(spracheSatz(schluessel, werte), werte, true);
 }
 
+/* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
+   `n === 1`. Der Vergleich waere die deutsche Regel, festgeschrieben im Code;
+   die Regel gehoert aber der Sprache (Konzept 4.3).
+   DAS IST DER WEG FUER EIN VOKABELWORT: seine beiden Formen sind Inhalt und
+   stehen nicht in der Sprachdatei. Steht der ganze Satz dort, traegt sein
+   Schluessel stattdessen ein Objekt { eins, andere }. */
+function mehrzahl(n, eins, andere) {
+  return PLURAL.select(Number(n) || 0) === 'one' ? eins : andere;
+}
+
 /* DIE DATEI HOLEN. Sie liegt unter public/ und kommt damit ueber
    express.static -- keine neue Route, ETag und 304 wie app.js selbst, und der
    Fingerprint deckt sie ab, ohne dass jemand daran denkt (Konzept 3.3). */
@@ -87,13 +97,20 @@ async function ladeSprache(code) {
   TEXTE = daten;
   // Deutsch ist die Rueckfalldatei. In dieser Runde ist es dieselbe.
   if (code === 'de') TEXTE_DE = daten;
+  /* UND DIE VORGABE DES VOKABULARS -- 0.24.0. Sie ist Oberflaeche und kein
+     Inhalt: bis der Server seinen Satz schickt, beschriftet sie den Bildschirm
+     (siehe `V`). Gesetzt wird sie HIER und nicht an `V` selbst, weil die Zeile
+     dort beim Laden der Datei ausgewertet wird -- da gibt es noch keinen Text.
+     Was schon in `V` steht, bleibt: der Satz des Servers wiegt schwerer als
+     die Vorgabe. */
+  V = { ...Object.fromEntries(Object.entries(VOK_VORGABE).map(([k, ruf]) => [k, ruf()])), ...V };
   return daten;
 }
 
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso.replace(' ', 'T') + 'Z');
-  return d.toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  return d.toLocaleString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 /* HIER STAND BIS 0.17.0 fmtTagKurz() -- die Kurzform „19.08." fuer die
    Beschriftung der Pille „Neu seit ...". Die Pille ist gestrichen, und die
@@ -101,16 +118,32 @@ function fmtDate(iso) {
    ruft, ist kein Vorrat, sondern eine Frage an den Naechsten. */
 function fmtDay(day) {
   const d = new Date(day + 'T12:00:00');
-  return d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+  return d.toLocaleDateString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric' });
 }
 function weekday(day) {
-  return new Date(day + 'T12:00:00').toLocaleDateString('de-DE', { weekday:'long' });
+  return new Date(day + 'T12:00:00').toLocaleDateString(LOCALE, { weekday:'long' });
 }
+/* EINE ZAHL, WIE SIE DIE SPRACHE SCHREIBT -- 0.24.0, Bauabschnitt 4. Bis
+   0.23.0 stand dafuer elfmal `.replace('.', ',')` im Code: die deutsche Regel,
+   festgeschrieben an elf Stellen.
+   OHNE GRUPPIERUNG, und das ist keine Kleinigkeit: mit ihr stuende in „1234"
+   ploetzlich ein Punkt, und die Abnahme dieser Runde heisst „kein Zeichen
+   anders" (Auftrag 4.1).
+   ZWEI STELLENZAHLEN: `zahl(x, 1)` schreibt immer eine Nachkommastelle,
+   `zahl(x, 0, 2)` hoechstens zwei und keine, wo keine noetig ist -- das ist
+   die Form der Gewichte. */
+function zahl(n, stellen = 0, hoechstens = stellen) {
+  const wert = Number(n);
+  return new Intl.NumberFormat(LOCALE, { minimumFractionDigits: stellen,
+    maximumFractionDigits: hoechstens, useGrouping: false })
+    .format(Number.isFinite(wert) ? wert : 0);
+}
+
 function fmtBytes(b) {
   if (!b) return '0 B';
   const u = ['B','KB','MB','GB'];
   const i = Math.min(Math.floor(Math.log(b)/Math.log(1024)), u.length-1);
-  return (b/Math.pow(1024,i)).toFixed(i?1:0).replace('.',',') + ' ' + u[i];
+  return zahl(b/Math.pow(1024,i), i?1:0) + ' ' + u[i];
 }
 const today = () => new Date().toLocaleDateString('sv-SE');
 
@@ -602,7 +635,7 @@ function neuesPasswortFenster(titel, satz) {
    Liefert { eintraege, beitraege } oder null bei Abbruch. */
 function benutzerLoeschenFenster(name, nummer, b) {
   return new Promise(resolve => {
-    const zaehl = (n, ein, mehr) => (n ? [`${n} ${n === 1 ? ein : mehr}`] : []);
+    const zaehl = (n, ein, mehr) => (n ? [`${n} ${mehrzahl(n, ein, mehr)}`] : []);
     const fremdDaran = (b.fremdKommentare || 0) + (b.fremdBewertungen || 0) + (b.fremdTesttage || 0)
       + (b.fremdLinks || 0) + (b.fremdDateien || 0);
     const beitraege = [
@@ -618,7 +651,7 @@ function benutzerLoeschenFenster(name, nummer, b) {
       <p>${tH('dialog.derNameWirdFreiWas', { name: name, nummer: Number(nummer) })}</p>
       ${b.eintraege ? `<label class="ex-files"><input type="checkbox" id="bl-eintraege">
         ${tH('dialog.vonMitloeschen', { eintraege: b.eintraege, sache: vSache(b.eintraege), name: name })}${fremdDaran
-          ? ` — samt ${fremdDaran} ${fremdDaran === 1 ? t('dialog.fremdemBeitrag') : t('dialog.fremdenBeitraegen')} daran` : ''}</label>` : ''}
+          ? tH('dialog.samtFremdenBeitraegenDaran', { n: fremdDaran }) : ''}</label>` : ''}
       ${beitraege.length ? `<label class="ex-files"><input type="checkbox" id="bl-beitraege">
         ${tH('dialog.beitraegeVonInAndererBenutzer', { name: name, sache: vSache(2) })} ${esc(beitraege.join(', '))}</label>` : ''}
       <p>${tH('dialog.nurVoruebergehendAussperrenDann')}</p>
@@ -1151,9 +1184,9 @@ function kommentarZahlen(kommentare) {
   const teile = [];
   if (berichte) teile.push(`${berichte} ${vBericht(berichte)}`);
   if (aufgaben) teile.push(`${aufgaben} ${vAufgabe(aufgaben)}`
-    + (fertig ? ` (${aufgaben - fertig} offen)` : ''));
-  return `${n} ${n === 1 ? 'Kommentar' : 'Kommentare'}`
-    + (teile.length ? `, davon ${teile.join(' und ')}` : '');
+    + (fertig ? t('liste.offenInKlammern', { n: aufgaben - fertig }) : ''));
+  return t('liste.kommentareZahl', { n: n })
+    + (teile.length ? t('liste.davon', { teile: teile.join(t('liste.und')) }) : '');
 }
 
 // Kurzfassung des Inhalts für die eingeklappte Kopfzeile.
@@ -1180,8 +1213,8 @@ function blockZusammenfassung(name, item) {
        Knopf), und der zugeklappte Kasten muss selbst sagen, dass er leer ist
        -- und zwar JE KASTEN MIT EIGENEM WORT: zwei gleiche Texte an zwei
        Koepfen waeren ein Raetsel fuer den, der nur die Koepfe sieht. */
-    case 'bewertung': return item.avgRating ? '' : 'noch nicht bewertet';
-    case 'potenzial': return item.potenzialRating ? '' : 'noch nicht eingeschätzt';
+    case 'bewertung': return item.avgRating ? '' : t('liste.nochNichtBewertet');
+    case 'potenzial': return item.potenzialRating ? '' : t('liste.nochNichtEingeschaetzt');
     case 'beschreibung': {
       const text = (item.description || '').trim().replace(/\s+/g, ' ');
       if (!text) return 'leer';
@@ -1270,7 +1303,7 @@ function ruesteBloeckeAus(item) {
     if (!kopf.querySelector('.bgrip')) {
       const griff = document.createElement('span');
       griff.className = 'bgrip'; griff.textContent = '⣿';
-      griff.title = 'Block verschieben';
+      griff.title = t('eintrag.blockVerschieben');
       const pfeil = document.createElement('span');
       pfeil.className = 'bcaret';
       kopf.prepend(pfeil);
@@ -1331,7 +1364,7 @@ function ruesteBloeckeAus(item) {
         onDrop: (kinder) => {
           BLOECKE[bereich] = kinder.map(k => k.dataset.block).filter(Boolean);
           speichereBloecke();
-          toast('Anordnung gespeichert');
+          toast(t('eintrag.anordnungGespeichert'));
         }
       });
     }
@@ -1355,7 +1388,7 @@ function ruesteBloeckeAus(item) {
 function zeigeVersion() {
   const el = document.getElementById('version');
   if (!el) return;
-  el.innerHTML = VERSION ? `${MARK()}<span>Kriterion ${esc(VERSION)}</span>` : '';
+  el.innerHTML = VERSION ? `${MARK()}<span>${tH('liste.kriterion', { version: VERSION })}</span>` : '';
 }
 
 /* ================= Bilder in Kommentaren ================= */
@@ -1384,8 +1417,8 @@ function waehleBilder(fertig) {
 async function sendeFormular(pfad, formular) {
   const a = await fetch(pfad, { method: 'POST', body: formular, credentials: 'same-origin' });
   const daten = await a.json().catch(() => ({}));
-  if (a.status === 401) { showLogin(); throw new Error('Sitzung abgelaufen'); }
-  if (!a.ok) throw new Error(daten.error || 'Upload fehlgeschlagen');
+  if (a.status === 401) { showLogin(); throw new Error(t('dialog.sitzungAbgelaufen')); }
+  if (!a.ok) throw new Error(daten.error || t('eintrag.uploadFehlgeschlagen'));
   return daten;
 }
 
@@ -1500,7 +1533,7 @@ function sortiereWolke(tags, hervor) {
     const ha = hervor.has(a.id) ? 0 : 1, hb = hervor.has(b.id) ? 0 : 1;
     if (ha !== hb) return ha - hb;
     if (b.usage_count !== a.usage_count) return b.usage_count - a.usage_count;
-    return a.name.localeCompare(b.name, 'de');
+    return a.name.localeCompare(b.name, LOCALE);
   });
 }
 
@@ -1562,19 +1595,13 @@ let wolkeNeuzeichnen = null;
    Vokabularkarte stuende dann leer, solange der gespeicherte Satz es nicht
    nennt -- und ein gespeicherter Satz nennt genau die Woerter, die schon
    einmal jemand gesetzt hat. Genau das ist mit `potenzial` beim Bauen von
-   0.21.0 passiert. */
-let V = {
-  sacheEinzahl: 'Eintrag', sacheMehrzahl: 'Einträge',
-  merkmalJa: 'Getestet', merkmalNein: 'Ungetestet',
-  zeitpunktEinzahl: 'Testtag', zeitpunktMehrzahl: 'Testtage',
-  berichtEinzahl: 'Bericht', berichtMehrzahl: 'Berichte',
-  aufgabeEinzahl: 'Aufgabe', aufgabeMehrzahl: 'Aufgaben',
-  aufgabeErledigt: 'Erledigt',
-  potenzial: 'Potenzial',
-  // Das Paar fuer den ersten Sternkasten -- 0.22.0 (E14). Wer hier ein Wort
-  // vergisst, sieht das Feld in der Vokabularkarte leer (siehe oben).
-  bewertungEinzahl: 'Bewertung', bewertungMehrzahl: 'Bewertungen'
-};
+   0.21.0 passiert.
+   SEIT 0.24.0 STEHT SIE NUR NOCH AN EINER STELLE: in der Sprachdatei, unter
+   `vokabular.`. Diese Zeile faengt leer an und wird gefuellt, sobald die Datei
+   da ist (ladeSprache) -- ein Wort hier haette beim Laden der Datei noch
+   keinen Text. VOK_VORGABE nennt dieselben vierzehn Namen und ist die eine
+   Liste, aus der beides liest (Stolperstein 47). */
+let V = {};
 
 // Weiterschaltung des Aufgabenknopfes: Notiz -> Aufgabe -> erledigt -> Notiz.
 // Eine Abfolge, kein Entweder-oder -- deshalb ein Knopf statt dreier.
@@ -1600,8 +1627,9 @@ const gewichtAusText = (roh) => {
 /* 1 -> "1", 1.2 -> "1,2", 1.25 -> "1,25". KEINE nachlaufenden Nullen: "1,50"
    sieht nach einer Genauigkeit aus, die es nicht gibt -- und "1,0" nach einer
    Einstellung, wo in Wahrheit die Vorgabe steht.
-   .replace('.', ',') ist die Konvention der ganzen Oberflaeche. */
-const gewichtText = (g) => String(Math.round(Number(g) * 100) / 100).replace('.', ',');
+   Das Komma setzt seit 0.24.0 zahl() aus der Sprache und nicht mehr ein
+   festes Zeichen -- dieselbe Form, aber begruendet statt festgeschrieben. */
+const gewichtText = (g) => zahl(Math.round(Number(g) * 100) / 100, 0, 2);
 
 /* Die Marke hinter einem Kriteriennamen -- ABGELEITET, kein Schalter: bei
    Gewicht 1 steht dort nichts. "×1" an jeder Zeile waere Rauschen ohne
@@ -1611,11 +1639,11 @@ const gewichtText = (g) => String(Math.round(Number(g) * 100) / 100).replace('.'
    laesst sich das Mittel der Zeilenwerte nicht mehr im Kopf nachrechnen. */
 const gewichtMarke = (g) => (Number(g) === 1 || g == null ? '' : '×' + gewichtText(g));
 
-const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);
-const vZeit = (n) => (n === 1 ? V.zeitpunktEinzahl : V.zeitpunktMehrzahl);
-const vBericht = (n) => (n === 1 ? V.berichtEinzahl : V.berichtMehrzahl);
-const vAufgabe = (n) => (n === 1 ? V.aufgabeEinzahl : V.aufgabeMehrzahl);
-const vBewertung = (n) => (n === 1 ? V.bewertungEinzahl : V.bewertungMehrzahl);
+const vSache = (n) => mehrzahl(n, V.sacheEinzahl, V.sacheMehrzahl);
+const vZeit = (n) => mehrzahl(n, V.zeitpunktEinzahl, V.zeitpunktMehrzahl);
+const vBericht = (n) => mehrzahl(n, V.berichtEinzahl, V.berichtMehrzahl);
+const vAufgabe = (n) => mehrzahl(n, V.aufgabeEinzahl, V.aufgabeMehrzahl);
+const vBewertung = (n) => mehrzahl(n, V.bewertungEinzahl, V.bewertungMehrzahl);
 
 /* Aus dem Verfasserobjekt des Servers wird die Beschriftung -- GENAU HIER und
    nirgends sonst, damit die Karte "Zugaenge" und die Beitraege im Eintrag
@@ -1628,8 +1656,8 @@ const vBewertung = (n) => (n === 1 ? V.bewertungEinzahl : V.bewertungMehrzahl);
    Funktionsdeklaration, nicht const: sonst haengt sie nicht am window und der
    Pruefstand kaeme nicht heran. */
 function verfasserName(v) {
-  if (!v) return 'Ohne Verfasser';
-  return v.geloescht ? `Gelöschter Benutzer ${v.id}` : v.name;
+  if (!v) return t('liste.ohneVerfasser');
+  return v.geloescht ? t('liste.geloeschterBenutzer', { id: v.id }) : v.name;
 }
 
 let LINKZEILEN = 5;          // sichtbare Zeilen, bevor aufgeklappt wird
@@ -1733,7 +1761,7 @@ function zerlegeAmBegriff(text, begriff, rest = {}) {
   const b = String(begriff ?? '');
   if (!inhalt) return [];
   if (!b) return [{ text: inhalt, ...rest }];
-  const klein = inhalt.toLowerCase(), kleinB = b.toLowerCase();
+  const klein = inhalt.toLocaleLowerCase(LOCALE), kleinB = b.toLocaleLowerCase(LOCALE);
   const stuecke = [];
   let von = 0;
   for (;;) {
@@ -1864,7 +1892,8 @@ function wendeStreifenAn() {
    DIE STUFEN STEHEN HIER UND IM SERVER; der Server entscheidet, die Karte
    „Darstellung" zeigt die Liste -- dieselbe Bauform wie `schrift`. */
 const THEMA_STUFEN = ['hell', 'dunkel', 'geraet'];
-const THEMA_NAMEN = { hell: 'Hell', dunkel: 'Dunkel', geraet: 'Wie das Gerät' };
+// Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
+const THEMA_NAMEN = { hell: 'karte.hell', dunkel: 'karte.dunkel', geraet: 'karte.wieDasGeraet' };
 const GERAET_HELL = '(prefers-color-scheme: light)';
 /* DER GEMERKTE WERT IST KEINE ZWEITE WAHRHEIT, SONDERN DAS GEDAECHTNIS DER
    LETZTEN. Der Server bleibt die Wahrheit: ladeEinstellungen() ueberschreibt
@@ -2490,6 +2519,9 @@ function visibleItems(filter) {
     // "Bewertung hoch nach niedrig" ganz oben. Ein Favorit ist persoenlich und
     // darf die gemeinsame Liste nicht umsortieren.
     switch (f.sort) {
+      /* OHNE SPRACHE, UND DAS IST ABSICHT: verglichen werden zwei
+         ISO-Zeitstempel („2026-09-05 14:02:11"), also Ziffern. Eine Sprache
+         daran waere eine Behauptung ueber Text, wo keiner steht (Auftrag 4.1). */
       case 'updated_asc': return a.updated_at.localeCompare(b.updated_at);
       case 'rating_desc': return (b.avgRating ?? -1) - (a.avgRating ?? -1);
       case 'rating_asc':  return (a.avgRating ?? 99) - (b.avgRating ?? 99);
@@ -2501,7 +2533,7 @@ function visibleItems(filter) {
          gefragt wird. */
       case 'potenzial_desc': return (b.potenzialRating ?? -1) - (a.potenzialRating ?? -1);
       case 'potenzial_asc':  return (a.potenzialRating ?? 99) - (b.potenzialRating ?? 99);
-      case 'title_asc':   return a.title.localeCompare(b.title, 'de');
+      case 'title_asc':   return a.title.localeCompare(b.title, LOCALE);
       case 'tests_desc':  return byTest(a, b, 'testCount', 'desc');
       case 'tests_asc':   return byTest(a, b, 'testCount', 'asc');
       case 'testavg_desc':return byTest(a, b, 'testAvg', 'desc');
@@ -2638,7 +2670,7 @@ const offeneGesamt = () => (state.alle || []).reduce((n, i) => n + (Number(i.off
    Bewertung heissen in dieser Instanz ueberall so. */
 const neuWorte = (i) => {
   const k = Number(i.neuKommentare) || 0, b = Number(i.neuBewertungen) || 0;
-  return [k ? `${k} ${k === 1 ? t('dialog.kommentar') : t('dialog.kommentare')}` : '',
+  return [k ? t('liste.kommentareZahl', { n: k }) : '',
           b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');
 };
 
@@ -2660,10 +2692,11 @@ const neuWorte = (i) => {
    zeigen. Der Name entsteht ueber verfasserName() wie ueberall sonst. */
 const neuVonWorte = (i) => {
   const namen = (Array.isArray(i.neuVon) ? i.neuVon : [])
-    .map(verfasserName).sort((a, b) => String(a).localeCompare(String(b), 'de'));
+    .map(verfasserName).sort((a, b) => String(a).localeCompare(String(b), LOCALE));
   if (!namen.length) return '';
-  return 'von ' + (namen.length === 1 ? namen[0]
-    : `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}`);
+  const letzter = namen[namen.length - 1], vorne = namen.slice(0, -1).join(', ');
+  return t('liste.vonNamen',
+    { namen: vorne ? t('liste.namenUndLetzter', { vorne: vorne, letzter: letzter }) : letzter });
 };
 
 function zeichneKopfzahlen() {
@@ -2685,7 +2718,7 @@ function zeichneKopfzahlen() {
      Liste. */
   amElement('glocke-punkt', el => { el.hidden = !neu; });
   amElement('glocke', b => b.title = neu
-    ? `${neu} ${neu === 1 ? t('liste.neuigkeit') : t('liste.neuigkeiten')} von anderen`
+    ? t('liste.neuigkeitenVonAnderen', { n: neu })
     : t('liste.keineNeuigkeiten'));
 }
 
@@ -2704,7 +2737,7 @@ function zeigeGlockentafel() {
   /* SORTIERT NACH DER SUMME und nicht nach einem der beiden Teile: ein Eintrag
      mit vier neuen Bewertungen stuende sonst unter einem mit einem Kommentar. */
   const zeilen = (state.alle || []).filter(i => neuAn(i) > 0)
-    .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title)));
+    .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title), LOCALE));
   const bd = document.createElement('div');
   bd.className = 'backdrop';
   bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>${tH('liste.neuigkeiten')}</h2>
@@ -3703,8 +3736,8 @@ function bestandText(it) {
   const f = it.photoCount || 0, v = it.videoCount || 0;
   if (f + v < 2) return '';
   const teile = [];
-  if (f) teile.push(`${f} ${f === 1 ? t('liste.foto') : t('liste.fotos')}`);
-  if (v) teile.push(`${v} ${v === 1 ? t('liste.video') : t('liste.videos')}`);
+  if (f) teile.push(t('liste.fotosZahl', { n: f }));
+  if (v) teile.push(t('liste.videosZahl', { n: v }));
   return `<div class="photo-count">${teile.join(' · ')}</div>`;
 }
 
@@ -3744,9 +3777,8 @@ const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => t('liste.fundstelle')
    Stellen" nimmt dort mehr Raum ein als der Ausschnitt, den sie begleitet
    (gemessen, siehe Aenderungsprotokoll 0.18.0). Die Zahl steht deshalb kurz
    in der Zeile und ausgeschrieben darueber. */
-const fundUeberfahrt = (f) => `Gefunden in: ${fundWort(f.quelle)}` + (
-  f.weitere === 1 ? t('liste.undWeitereStelle')
-  : f.weitere > 1 ? t('liste.undWeitereStellen', { weitere: f.weitere }) : '');
+const fundUeberfahrt = (f) => t('liste.gefundenIn', { quelle: fundWort(f.quelle) }) + (
+  f.weitere > 0 ? t('liste.undWeitereStellen', { n: f.weitere }) : '');
 
 function card(it) {
   const a = document.createElement('a');
@@ -3763,7 +3795,7 @@ function card(it) {
 
   const testLine = it.testCount ? `<div class="card-test">
       <span>${it.testCount} ${esc(vZeit(it.testCount))}</span>
-      <span class="sep">·</span><span>⌀ ${it.testAvg.toFixed(1).replace('.', ',')}</span>
+      <span class="sep">·</span><span>⌀ ${zahl(it.testAvg, 1)}</span>
       <span class="sep">·</span><span>${tH('liste.letzteNote', { testLast: it.testLast })}</span>
     </div>` : '';
 
@@ -3807,7 +3839,7 @@ function card(it) {
                was fehlt: an einem ungetesteten Eintrag fehlt keine „Wertung",
                sondern die Einschaetzung. */''}
           ${kachelZahl(it)}
-          ${it.linkCount ? `<span class="link-count">${it.linkCount} ${it.linkCount === 1 ? t('dialog.link') : t('dialog.links')}</span>` : ''}
+          ${it.linkCount ? `<span class="link-count">${tH('liste.linksZahl', { n: it.linkCount })}</span>` : ''}
         </span>
         <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="${state.compare.has(it.id) ? t('liste.ausDemVergleichNehmen') : t('liste.zumVergleichAuswaehlen')}">${ICON_HAKEN}</button>
       </div>
@@ -3849,11 +3881,11 @@ function kachelZahl(it) {
      „noch nicht bewertet" der Bewertung: zwei gleiche Texte fuer zwei
      verschiedene Kaesten waeren ein Raetsel. „keine Sterne" las sich bis
      0.21.1 wie null Sterne (Konzept 0.22.0, Anhang B und C). */
-  if (!wert) return `<span class="hint hint-sm">${potenzial ? t('liste.nochNichtEingeschaetzt') : 'noch nicht bewertet'}</span>`;
+  if (!wert) return `<span class="hint hint-sm">${potenzial ? tH('liste.nochNichtEingeschaetzt') : tH('liste.nochNichtBewertet')}</span>`;
   const zeichen = potenzial ? '◆' : '★';
   const wort = potenzial ? V.potenzial : V.bewertungEinzahl;
   return `<span class="rating-inline${potenzial ? ' potenzial' : ''}" title="${esc(wort)}">` +
-    `<span class="dot">${zeichen}</span>${wert.toFixed(1).replace('.', ',')}</span>`;
+    `<span class="dot">${zeichen}</span>${zahl(wert, 1)}</span>`;
 }
 
 function drawCompareBar() {
@@ -3891,7 +3923,7 @@ const AEHNLICH_ZEIGE = 5;
 
 // Kleinbuchstaben, Ziffern und Buchstaben mit Zeichen darauf bleiben; alles
 // andere faellt weg. "Bosch GSR 18V-60" wird zu "boschgsr18v60".
-const titelKern = (roh) => String(roh || '').toLowerCase().replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
+const titelKern = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
 
 function aehnlicheEintraege(titel) {
   const kern = titelKern(titel);
@@ -4200,7 +4232,10 @@ async function renderCompare() {
   const zeitpunkteVon = (it) => (nurMeine
     ? (it.testDays || []).filter(td => td.mine).length
     : (it.testCount || 0));
-  const alsZahl = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
+  /* GANZ BLEIBT GANZ, ALLES ANDERE BEKOMMT EINE STELLE -- und zwar auch dann,
+     wenn sie nach dem Runden eine Null ist: „7,0" sagt, dass gerechnet wurde,
+     „7" saehe aus wie eine glatte Zahl. Genau so stand es bis 0.23.0 da. */
+  const alsZahl = (v) => (Number.isInteger(v) ? zahl(v, 0) : zahl(v, 1));
 
   function zeichneSicht() {
     const box = document.getElementById('cmp-sicht');
@@ -4242,7 +4277,7 @@ async function renderCompare() {
       const gruppen = GRUPPEN.filter(g => g.namen.length).map(g => {
         const schnitt = schnittVon(it, g);
         const kopf = `<div class="cmp-gruppe"><span class="cn">${esc(g.wort())}</span>
-          <span>${schnitt ? '⌀ ' + schnitt.toFixed(1).replace('.', ',') : '–'}</span></div>`;
+          <span>${schnitt ? '⌀ ' + zahl(schnitt, 1) : '–'}</span></div>`;
         return kopf + g.namen.map(n => {
           const v = wertVon(it, n);
           const best = v > 0 && v === bestOf(n);
@@ -4254,10 +4289,10 @@ async function renderCompare() {
             <span class="${best ? 'cmp-best' : ''}">${v > 0 ? alsZahl(v) + ' / 5' : '–'}</span></div>`;
         }).join('');
       }).join('');
-      const zahl = zeitpunkteVon(it);
+      const zeitpunkte = zeitpunkteVon(it);
       const testRow = `<div class="cmp-crit" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
         <span class="cn">${esc(V.zeitpunktMehrzahl)}</span>
-        <span class="${zahl && zahl === bestTest ? 'cmp-best' : ''}">${zahl || '–'}</span></div>`;
+        <span class="${zeitpunkte && zeitpunkte === bestTest ? 'cmp-best' : ''}">${zeitpunkte || '–'}</span></div>`;
       col.innerHTML = `
         <div class="cimg">${it.photos[0] ? `<img src="/api/photos/${it.photos[0].id}/raw?size=medium" alt="">` : ''}</div>
         <div class="cbody">
@@ -5482,8 +5517,9 @@ async function renderDetail(id, begriffAdresse) {
       }
       drawViewer(); drawThumbs();
       // „1 Foto", „1 Video", sonst „3 Dateien" -- „Element" sagt niemand.
-      if (fertig) toast(`${fertig} ${fertig === 1 ? (videos.length ? t('liste.video') : t('liste.foto'))
-        : (videos.length ? (bilder.length ? t('dialog.dateien') : t('liste.videos')) : t('liste.fotos'))} hinzugefügt`);
+      if (fertig) toast(t('eintrag.hinzugefuegt', { anzahl: fertig,
+        was: mehrzahl(fertig, videos.length ? t('liste.video') : t('liste.foto'),
+          videos.length ? (bilder.length ? t('dialog.dateien') : t('liste.videos')) : t('liste.fotos')) }));
     } catch (err) {
       toast(err.message, true);
       // Was schon durchging, ist durch -- die Anzeige muss es zeigen.
@@ -5659,7 +5695,7 @@ async function renderDetail(id, begriffAdresse) {
     if (item.rejected_at) teile.push(`am ${fmtDate(item.rejected_at)}`);
     if (item.rejectedVerfasser && mehrereBenutzer())
       teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);
-    const kopf = teile.length ? `Abgelehnt ${teile.join(' ')}` : '';
+    const kopf = teile.length ? t('eintrag.abgelehntVon', { was: teile.join(' ') }) : '';
 
     /* DAS ✎ STEHT AUCH OHNE BEGRUENDUNG DA. Ohne Text gibt es nichts
        anzuklicken, und ohne das Zeichen gaebe es dann gar keinen Weg mehr in
@@ -6053,14 +6089,14 @@ async function renderDetail(id, begriffAdresse) {
        OHNE ZAHL KEIN KNOPF: an einem Eintrag ohne Bewertung gaebe es nichts zu
        erklaeren, und ein Knopf, der ein leeres Fenster oeffnet, ist einer zu
        viel. */
-    const zahl = item[kasten.schnitt];
+    const schnittWert = item[kasten.schnitt];
     if (kopf) {
       kopf.textContent = '';
-      if (zahl) {
+      if (schnittWert) {
         const b = document.createElement('button');
         b.className = 'link-btn gew-auf';
         b.id = kasten.knopf;
-        b.textContent = '⌀ ' + zahl.toFixed(1).replace('.', ',') +
+        b.textContent = '⌀ ' + zahl(schnittWert, 1) +
           (gewichtetGerechnet ? ' gewichtet' : '');
         /* DER TITEL SAGT, WESSEN ZAHL DAS IST -- 0.22.1 (E5). Die Zahl ist
            der Schnitt ueber ALLE, die bewertet haben; die eigenen Sterne
@@ -6162,8 +6198,8 @@ async function renderDetail(id, begriffAdresse) {
            Vorleseprogramm vor, und "⌀ 4,2 (3)" bliebe fuer den, der es
            vorgelesen bekommt, eine Folge von Zeichen. */
         if (r.avg) {
-          const stimmen = `${r.count} ${r.count === 1 ? V.bewertungEinzahl : V.bewertungMehrzahl}`;
-          const schnitt = r.avg.toFixed(1).replace('.', ',');
+          const stimmen = `${r.count} ${vBewertung(r.count)}`;
+          const schnitt = zahl(r.avg, 1);
           /* DIE KLAMMER ERST AB ZWEI. Sie sagt "so viele Stimmen" und
              beantwortet damit die Frage, wie schwer der Schnitt wiegt -- bei
              einer einzigen gibt es diese Frage nicht.
@@ -6233,7 +6269,7 @@ async function renderDetail(id, begriffAdresse) {
      Wahrheiten -- dieselbe Ueberlegung wie bei „Wer hat bewertet". */
   const gewZahl = (n) => {
     const z = Math.round(Number(n) * 100) / 100;
-    return (Number.isFinite(z) ? z : 0).toString().replace('.', ',');
+    return zahl(z, 0, 2);
   };
 
   /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0. Die Aufstellung gibt es zweimal,
@@ -6363,7 +6399,8 @@ async function renderDetail(id, begriffAdresse) {
     let liste;
     try { liste = await api('GET', `/api/items/${id}/stimmen`); }
     catch (e) { return toast(e.message, true); }
-    const titel = `Wer hat bewertet — ${kasten.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl}`;
+    const titel = t('eintrag.werHatBewertetWort',
+      { wort: kasten.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl });
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="stimmen-modal"><h2>${esc(titel)}</h2>
@@ -6467,7 +6504,8 @@ async function renderDetail(id, begriffAdresse) {
     }
     const n = item.testDays.length;
     box.innerHTML = `<div class="block-head"><span class="label">${esc(V.zeitpunktMehrzahl)}</span>
-        <span class="hint">${n ? `${n} ${esc(vZeit(n))} · ⌀ ${item.testAvg.toFixed(1).replace('.', ',')} · zuletzt ${item.testLast}` : ''}</span></div>
+        <span class="hint">${n ? tH('eintrag.testtageSchnittZuletzt',
+          { n: n, zeit: vZeit(n), schnitt: zahl(item.testAvg, 1), zuletzt: item.testLast }) : ''}</span></div>
       ${sparkline(item.testDays)}
       <div class="test-scroll" id="tdays"></div>
       <div class="test-add">
@@ -6575,7 +6613,7 @@ async function renderDetail(id, begriffAdresse) {
   function drawLinks() {
     const box = document.getElementById('links');
     document.getElementById('lcount').textContent = item.links.length
-      ? `${item.links.length} ${item.links.length === 1 ? t('dialog.link') : t('dialog.links')}` : '';
+      ? t('liste.linksZahl', { n: item.links.length }) : '';
     box.innerHTML = '';
     if (!item.links.length) {
       box.innerHTML = leerZustand(t('eintrag.nochKeineLinksUntenEine'));
@@ -6692,7 +6730,8 @@ async function renderDetail(id, begriffAdresse) {
       if (darfWeg) row.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(suche ? t('eintrag.suchbegriffEntfernen2') : t('eintrag.linkEntfernen2'),
-          `${suche ? `„${l.url}"` : dom} wird aus der Liste entfernt.`, t('eintrag.entfernen'))) return;
+          t('eintrag.wirdAusDerListeEntfernt',
+            { was: suche ? `„${l.url}"` : dom }), t('eintrag.entfernen'))) return;
         try { await api('DELETE', `/api/links/${l.id}`); item = await api('GET', `/api/items/${id}`); drawLinks(); }
         catch (err) { toast(err.message, true); }
       };
@@ -6740,7 +6779,7 @@ async function renderDetail(id, begriffAdresse) {
       box.style.maxHeight = '';
       box.style.overflowY = '';
       knopf.hidden = !zuViele;
-      knopf.textContent = 'weniger anzeigen';
+      knopf.textContent = t('eintrag.wenigerAnzeigen');
       knopf.onclick = () => { linksOffen = false; drawLinks(); };
       return;
     }
@@ -6774,14 +6813,15 @@ async function renderDetail(id, begriffAdresse) {
   function groesse(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
-    return (bytes / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB';
+    return zahl(bytes / 1024 / 1024, 1) + ' MB';
   }
 
   function drawAtts() {
     const box = document.getElementById('atts');
     const liste = item.attachments || [];
     document.getElementById('acount').textContent = liste.length
-      ? `${liste.length} ${liste.length === 1 ? t('dialog.datei') : t('dialog.dateien')} · ${groesse(liste.reduce((s2, a) => s2 + a.size, 0))}` : '';
+      ? t('eintrag.dateienZahl', { n: liste.length,
+          groesse: groesse(liste.reduce((s2, a) => s2 + a.size, 0)) }) : '';
     box.innerHTML = '';
     if (!liste.length) {
       box.innerHTML = leerZustand(t('eintrag.nochKeineDateienBilderPDF'));
@@ -6898,7 +6938,7 @@ async function renderDetail(id, begriffAdresse) {
       const daten = await r.json();
       if (!r.ok) throw new Error(daten.error || t('eintrag.uploadFehlgeschlagen'));
       item = daten; drawAtts();
-      toast(dateien.length === 1 ? t('eintrag.dateiAngehaengt') : t('eintrag.dateienAngehaengt', { length: dateien.length }));
+      toast(t('eintrag.dateienAngehaengt', { n: dateien.length }));
     } catch (e2) { toast(e2.message, true); }
   };
 
@@ -6958,8 +6998,8 @@ async function renderDetail(id, begriffAdresse) {
           <span class="cmt-when">${mehrereBenutzer()
             ? `<span class="cmt-von">${esc(verfasserName(c.verfasser))}</span> · ` : ''
           }${fmtDate(c.created_at)}${c.updated_at ? t('eintrag.bearbeitet') : ''}${
-            c.bilderEntfernt ? ` · <span class="cmt-eingriff">${c.bilderEntfernt} ${
-              c.bilderEntfernt === 1 ? t('eintrag.bild2') : t('eintrag.bilder')} ${tH('eintrag.vomAdminEntfernt')}</span>` : ''}</span>
+            c.bilderEntfernt ? ` · <span class="cmt-eingriff">${
+              tH('eintrag.bilderVomAdminEntfernt', { n: c.bilderEntfernt })}</span>` : ''}</span>
           <span class="acts">${meins ? `<button class="mact ed" title="${esc(t('eintrag.bearbeiten'))}">${ICON_STIFT}</button>` : ''
             }${verwalten ? `<button class="mact rm" title="${esc(t('dialog.loeschen'))}">${ICON_KREUZ}</button>` : ''}</span>
         </div>
@@ -7012,7 +7052,8 @@ async function renderDetail(id, begriffAdresse) {
 
       if (verwalten) el.querySelector('.rm').onclick = async () => {
         if (!await confirmBox(t('eintrag.kommentarLoeschen'),
-          `Der Kommentar wird endgültig gelöscht${(c.images || []).length ? t('eintrag.mitAllenBildern') : ''}.`)) return;
+          t('eintrag.derKommentarWirdEndgueltigGeloescht',
+            { zusatz: (c.images || []).length ? t('eintrag.mitAllenBildern') : '' }))) return;
         try { await api('DELETE', `/api/comments/${c.id}`); item = await api('GET', `/api/items/${id}`); drawComments(); }
         catch (e) { toast(e.message, true); }
       };
@@ -7041,7 +7082,7 @@ async function renderDetail(id, begriffAdresse) {
           dateien.forEach(f => fd.append('images', f));
           try {
             item = await sendeFormular(`/api/comments/${c.id}/images`, fd);
-            toast(dateien.length === 1 ? t('eintrag.bildAngehaengt') : t('eintrag.bilderAngehaengt', { length: dateien.length }));
+            toast(t('eintrag.bilderAngehaengt', { n: dateien.length }));
             drawComments();
           } catch (e) { toast(e.message, true); }
         };
@@ -7173,7 +7214,7 @@ async function renderDetail(id, begriffAdresse) {
     try { b = await api('GET', `/api/items/${id}/bestand`); }
     catch (e) { return toast(e.message, true); }
 
-    const zaehl = (n, ein, mehr) => (n ? [`${n} ${n === 1 ? ein : mehr}`] : []);
+    const zaehl = (n, ein, mehr) => (n ? [`${n} ${mehrzahl(n, ein, mehr)}`] : []);
     // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
     // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
     const inhalt = [
@@ -7204,9 +7245,9 @@ async function renderDetail(id, begriffAdresse) {
        verloren geht, gehört anderen. Und wer wiederherstellen darf, steht
        dabei — es ist nicht der, der hier klickt. */
     const saetze = [t('eintrag.wirdGeloescht', { title: item.title })];
-    if (inhalt.length) saetze.push(`Dabei gehen ${inhalt.join(', ')} mit.`);
-    if (eigen.length) saetze.push(`Außerdem von mir: ${eigen.join(', ')}.`);
-    if (fremd.length) saetze.push(`Und von anderen: ${fremd.join(', ')}.`);
+    if (inhalt.length) saetze.push(t('eintrag.dabeiGehenMit', { was: inhalt.join(', ') }));
+    if (eigen.length) saetze.push(t('eintrag.ausserdemVonMir', { was: eigen.join(', ') }));
+    if (fremd.length) saetze.push(t('eintrag.undVonAnderen', { was: fremd.join(', ') }));
     saetze.push(t('eintrag.allesLandetFuerTageIm', { papierkorbTage: PAPIERKORB_TAGE }) +
       t('eintrag.wiederherstellenKannEsNurDer'));
 
@@ -7687,7 +7728,7 @@ function ruesteZugangAus(geholt) {
         <strong>${tH('karte.zweiterFaktorAn')}</strong> ${tH('karte.seitBeimAnmeldenWirdZusaetzlich', { seit: fmtDate(stand.seit) })}
         <div class="zf-codestand">${tH('karte.wiederherstellungscodes')}
           <strong>${tH('karte.nochVon', { codesOffen: stand.codesOffen, codesGesamt: stand.codesGesamt })}</strong>${stand.codesOffen <= 2
-            ? ' — <strong>bitte rechtzeitig neue erzeugen.</strong>' : ''}</div>
+            ? ` — <strong>${tH('karte.bitteRechtzeitigNeueErzeugen')}</strong>` : ''}</div>
       </div>
       <div class="row-in" style="margin-top:10px">
         <button class="btn btn-sm" id="zf-neue">${tH('karte.neueWiederherstellungscodes')}</button>
@@ -7845,7 +7886,7 @@ function ruesteSitzungenAus(geholt) {
       row.className = 'mrow sitz' + (z.diese ? ' sitz-ich' : '');
       row.dataset.kennung = z.kennung || '';
       row.innerHTML = `<span class="mname">${z.diese
-          ? 'Diese Sitzung <span class="zug-ich">(hier)</span>' : t('karte.andereSitzung')}</span>
+          ? `${tH('karte.dieseSitzung')} <span class="zug-ich">${tH('karte.hier')}</span>` : tH('karte.andereSitzung')}</span>
         <span class="sitz-zeit">${tH('karte.angemeldet', { angemeldetAm: fmtDate(z.angemeldetAm) })}</span>
         <span class="sitz-zeit">${tH('karte.zuletztGesehen', { zuletztGesehen: fmtDate(z.zuletztGesehen) })}</span>`;
       if (!z.diese) {
@@ -7868,9 +7909,8 @@ function ruesteSitzungenAus(geholt) {
     const fuss = dok.createElement('div');
     fuss.className = 'sitz-fuss';
     fuss.innerHTML = andere
-      ? `<p class="desc" style="margin:10px 0 8px">${andere === 1
-          ? 'Außer dieser gibt es <strong>eine weitere</strong> Sitzung.'
-          : `${tH('karte.ausserDieserGibtEs')} <strong>${tH('karte.weitere', { andere: andere })}</strong> ${tH('karte.sitzungen')}`}
+      ? `<p class="desc" style="margin:10px 0 8px">${tH('karte.ausserDieserGibtEs')} <strong>${
+          tH('karte.weitereSitzungen', { n: andere })}</strong> ${tH('karte.sitzungenPunkt', { n: andere })}
           ${tH('karte.eineSitzungLaeuftNach')} ${d.tage || 30} ${tH('karte.tagenOhneZugriffVonSelbst')}</p>
          <button class="btn btn-sm" id="sitz-alle">${tH('karte.alleAnderenSitzungenBeenden')}</button>`
       : `<p class="desc" style="margin:10px 0 0">${tH('karte.diesIstDie')} <strong>${tH('karte.einzige')}</strong> ${tH('karte.sitzungDeinesKontos')}</p>`;
@@ -7881,7 +7921,7 @@ function ruesteSitzungenAus(geholt) {
       try {
         const r = await api('DELETE', '/api/sessions');
         const n = r && r.beendet ? r.beendet : 0;
-        toast(n === 1 ? t('karte.sitzungBeendet2') : t('karte.sitzungenBeendet', { n: n }));
+        toast(t('karte.sitzungenBeendet', { n: n }));
       } catch (e) { return toast(e.message, true); }
       sitzungenNeu();
     };
@@ -7953,7 +7993,7 @@ function ruesteDarstellungAus() {
     THEMA_STUFEN.forEach(stufe => {
       const b = document.createElement('button');
       b.className = 'pill' + (THEMA === stufe ? ' on' : '');
-      b.textContent = THEMA_NAMEN[stufe];
+      b.textContent = t(THEMA_NAMEN[stufe]);
       b.onclick = async () => {
         const vorher = THEMA;
         THEMA = stufe;
@@ -8479,7 +8519,7 @@ function ruesteLinksAus() {
     SUCHNAMEN_STUFEN.forEach(n => {
       const b3 = document.createElement('button');
       b3.className = 'pill' + (SUCHNAMEN === n ? ' on' : '');
-      b3.textContent = n === 1 ? t('karte.name') : t('karte.namen', { n: n });
+      b3.textContent = t('karte.namen', { n: n });
       b3.onclick = async () => {
         const vorher = SUCHNAMEN;
         SUCHNAMEN = n;
@@ -8652,7 +8692,7 @@ function ruestePapierkorbAus(geholt) {
       const offen = Number(z.tageOffen);
       const meta = [
         t('karte.geloeschtVon', { geloescht_am: fmtDate(z.geloescht_am), loeschender: verfasserName(z.loeschender) }),
-        `noch ${offen} ${offen === 1 ? t('liste.tag2') : t('karte.tage2')}`,
+        t('karte.nochTage', { n: offen }),
         fmtBytes(z.bytes)
       ];
       // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
@@ -8671,7 +8711,7 @@ function ruestePapierkorbAus(geholt) {
           // gesagt: sie sind beim Zurueckholen an MICH gefallen.
           const offene = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
           toast(t('karte.wiederhergestellt', { titel: z.titel }) +
-            (offene.length ? ` Beiträge ohne bekannten Verfasser wurden dir zugeordnet: ${offene.join(', ')}.` : ''));
+            (offene.length ? t('karte.beitraegeOhneBekanntenVerfasser', { namen: offene.join(', ') }) : ''));
           papierkorbNeu(geholt);
         } catch (e) { toast(e.message, true); }
       };
@@ -8800,7 +8840,9 @@ function ruesteZugaengeAus() {
   /* SCHLUESSEL STATT SATZ, wie bei VERWALTUNGSART -- Modulebene. */
   const ROLLENWORT = { user: 'karte.benutzer', admin: 'karte.admin', eigentuemer: 'karte.eigentuemer' };
   const rollenWort = (rolle) => (ROLLENWORT[rolle] ? t(ROLLENWORT[rolle]) : rolle);
-  const STATUSWORT = { aktiv: 'aktiv', gesperrt: 'gesperrt', geloescht: 'gelöscht' };
+  // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
+  const STATUSWORT = { aktiv: 'karte.aktiv', gesperrt: 'karte.gesperrt', geloescht: 'karte.geloescht3' };
+  const statusWort = (status) => (STATUSWORT[status] ? t(STATUSWORT[status]) : status);
 
   /* DIE VOLLSTÄNDIGE ADRESSE BAUT DER BROWSER, nicht der Server. Der Server
      hinter einem Proxy weiß nicht, wie er von außen heißt, und aus dem
@@ -8821,7 +8863,7 @@ function ruesteZugaengeAus() {
      GEZEIGT und nicht gesetzt -- sie steht in der .env, aus demselben Grund
      wie HINTER_PROXY. */
   const linkHerkunft = (d) => d.linkQuelle === 'einstellung'
-    ? 'aus der Server-Einstellung <code>OEFFENTLICHE_ADRESSE</code>'
+    ? `${tH('karte.ausDerServerEinstellung')} <code>OEFFENTLICHE_ADRESSE</code>`
     : t('karte.ausDeinemBrowser');
 
   /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
@@ -8946,9 +8988,9 @@ function ruesteZugaengeAus() {
              Hinweistext sagt, dass die Einladung offen ist. Das Wort bleibt
              daneben stehen: ein Punkt allein liest kein Vorleseprogramm vor. */''}
         <span class="zug-rolle"><span class="rolle-marke ${esc(z.role)}">${esc(rollenWort(z.role))}</span></span>
-        <span class="zug-status" title="${wartet ? t('karte.einladungOffen') : esc(STATUSWORT[z.status] || z.status)}"><span
-          class="zug-punkt ${wartet ? 'eingeladen' : esc(z.status)}"></span>${esc(STATUSWORT[z.status] || z.status)}${
-          wartet ? ' <span class="zug-wartet">· noch kein Passwort</span>' : ''}</span>
+        <span class="zug-status" title="${wartet ? esc(t('karte.einladungOffen')) : esc(statusWort(z.status))}"><span
+          class="zug-punkt ${wartet ? 'eingeladen' : esc(z.status)}"></span>${esc(statusWort(z.status))}${
+          wartet ? ` <span class="zug-wartet">${tH('karte.nochKeinPasswort')}</span>` : ''}</span>
         <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
       if (darf) {
         const werkzeug = dok.createElement('span');
@@ -9104,7 +9146,7 @@ function ruesteZugaengeAus() {
       // die Bildung des Grabsteinnamens hier ein zweites Mal, liefen die
       // Stellen auseinander.
       row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: true }))}</span>
-        <span class="zug-status">${esc(STATUSWORT.geloescht)}</span>
+        <span class="zug-status">${tH('karte.geloescht3')}</span>
         <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
       box.appendChild(row);
     }
@@ -9116,11 +9158,12 @@ function karteAnfragen(geholt) {
   const { anfragen } = geholt;
   return `<div class="sys-card breit">
         <h3>${tH('karte.anfragen')}</h3>
-        <p class="desc"><strong>${tH('karte.registrierung')}</strong> ${tH('karte.werSichAufDerAnmeldeseite')}${anfragen.an ? '' : ' <strong>Zurzeit ist die Registrierung aus.</strong>'}</p>
+        <p class="desc"><strong>${tH('karte.registrierung')}</strong> ${tH('karte.werSichAufDerAnmeldeseite')}${anfragen.an ? '' : ` <strong>${tH('karte.zurzeitIstDieRegistrierungAus')}</strong>`}</p>
         ${mehr(`${tH('karte.unbestaetigteAnfragenVerfallenNach', { stunden: anfragen.stunden })} <strong>${tH('karte.freischalten')}</strong>
           ${tH('karte.legtEinenBenutzerAnUnd')} <strong>${tH('karte.ablehnen')}</strong> ${tH('karte.entferntDieAnfrageEsGeht')}`)}
         <div class="kv"><span class="k">${tH('karte.registrierung2')}</span><span class="v" id="anf-zustand">${
-          anfragen.an ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>'
+          anfragen.an ? `<strong class="mail-gut">${tH('karte.an')}</strong>`
+                      : `<strong class="mail-aus">${tH('karte.aus')}</strong>`
         }</span></div>
         <div class="kv"><span class="k">${tH('karte.offeneAnfragen')}</span><span class="v" id="anf-belegt">${tH('karte.vonHoechstens', { belegt: anfragen.belegt, deckel: anfragen.deckel })}</span></div>
         ${anfragen.an && !anfragen.versandBereit ? `<p class="warn-box" id="anf-kaputt" style="margin:10px 0 0">
@@ -9186,7 +9229,7 @@ function ruesteAnfragenAus(geholt) {
       /* KURZ, ABER NICHT STUMM: wer die Karte ansieht, soll den Unterschied
          zwischen „es liegt nichts vor" und „hier fehlt etwas" sehen. */
       box.innerHTML = stand.an
-        ? '<span class="hint">Zurzeit liegt keine bestätigte Anfrage vor.</span>'
+        ? `<span class="hint">${tH('karte.zurzeitLiegtKeineBestaetigteAnfrage')}</span>`
         : '';
       return;
     }
@@ -9320,7 +9363,7 @@ function ruesteProtokollAus(geholt) {
   const MERKMALSWORT = {
     user: 'karte.benutzer', admin: 'karte.admin', eigentuemer: 'karte.eigentuemer',
     einladung: 'karte.einladung', ruecksetzung: 'karte.ruecksetzung',
-    merge: 'zusammengeführt', replace: 'ersetzend',
+    merge: 'karte.zusammengefuehrt', replace: 'karte.ersetzend',
     name: 'karte.name2', passwort: 'anmeldung.passwort', adresse: 'karte.adresse',
     beides: 'karte.mehrereAngaben', teil: 'karte.inTeilen'
   };
@@ -9502,7 +9545,7 @@ function ruesteProtokollAus(geholt) {
       const art = protokollGruppe ? t('karte.dieserArt') : '';
       fuss.textContent = gesamt > zeilen.length
         ? t('karte.dieJuengstenVonVorgaengen', { length: zeilen.length, gesamt: gesamt, art: art })
-        : `${gesamt} ${gesamt === 1 ? t('karte.vorgang') : t('karte.vorgaenge')}${art}.`;
+        : t('karte.vorgaengeZahl', { n: gesamt, art: art });
     }
   }
 
@@ -9535,7 +9578,7 @@ function karteMailversand(geholt) {
           <em>${tH('karte.zusaetzlich')}</em> ${tH('karte.verschickt')}</p>
         <div class="kv"><span class="k">${tH('karte.zustand')}</span><span class="v">${mailstand.eingerichtet
           ? '<strong class="mail-gut">eingerichtet</strong>'
-          : '<strong class="mail-aus">nicht eingerichtet</strong>'}</span></div>
+          : `<strong class="mail-aus">${tH('karte.nichtEingerichtet')}</strong>`}</span></div>
         ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
               BIS 0.17.2 STANDEN HIER NEUN BEDIENELEMENTE in vier verschiedenen
               Spaltenaufteilungen, und dazwischen vier Erklärsätze: zwei NEBEN
@@ -9555,14 +9598,14 @@ function karteMailversand(geholt) {
         <div class="kv"><span class="k">${tH('karte.anbieter')}</span><span class="v">${mailAnbieterZeile(mailstand)}</span></div>
         <div class="kv"><span class="k">${tH('karte.absender')}</span><span class="v">${mailstand.absender
           ? esc(mailstand.absender)
-          : '<strong class="mail-aus">nicht gesetzt</strong>'}</span></div>
+          : `<strong class="mail-aus">${tH('karte.nichtGesetzt')}</strong>`}</span></div>
         <div class="kv"><span class="k">${tH('karte.oeffentlicheAdresse')}</span><span class="v">${mailstand.adresseGesetzt
           ? esc(mailstand.adresse)
-          : '<strong class="mail-aus">nicht gesetzt — es wird nicht verschickt</strong>'}</span></div>
+          : `<strong class="mail-aus">${tH('karte.nichtGesetztEsWirdNicht')}</strong>`}</span></div>
         <div class="kv"><span class="k">${tH('karte.zuletztErfolgreichGetestet')}</span><span class="v">${mailstand.getestetAm
-          ? esc(mailstand.getestetAm) : 'noch nie'}</span></div>
+          ? esc(mailstand.getestetAm) : tH('karte.nochNie')}</span></div>
         ${mailstand.adresseGesetzt ? '' : `<p class="warn-box" style="margin:10px 0 0">
-          <strong>${tH('karte.ohneDieServerEinstellung')} <code>${tH('karte.oEFFENTLICHE_ADRESSE')}</code> ${tH('karte.wirdNichtsVerschickt')}</strong> ${tH('karte.derServerBrauchtSieUm')}</p>`}
+          <strong>${tH('karte.ohneDieServerEinstellung')} <code>OEFFENTLICHE_ADRESSE</code> ${tH('karte.wirdNichtsVerschickt')}</strong> ${tH('karte.derServerBrauchtSieUm')}</p>`}
         ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn noch
               nichts steht, ändern, wenn etwas steht. „Speichern" hieß er bis
               0.17.2 — an einer Karte, in der die Felder schon dastanden. Ein
@@ -9572,7 +9615,7 @@ function karteMailversand(geholt) {
               eine Folge, die man kennen muss, bevor man drückt. */''}
         <div class="row-in" style="margin-top:14px">
           <button class="btn btn-accent btn-sm" id="mail-einrichten">${tH('karte.mailzugang')} ${
-            mailstand.eingerichtet ? 'ändern' : 'einrichten'}</button>
+            mailstand.eingerichtet ? tH('karte.aendern') : tH('karte.einrichten')}</button>
           <button class="btn btn-sm" id="mail-test">${tH('karte.testmailAnMich')}</button>
         </div>
         <p class="desc" style="margin:10px 0 0">${tH('karte.dieTestmailGeht')} <strong>${tH('karte.ausschliesslichAnDieAdresseDeines')}</strong>${tH('karte.antwortetDerMailserverNichtBricht', { sekunden: mailstand.sekunden })}</p>
@@ -9588,7 +9631,7 @@ function karteMailversand(geholt) {
    „:0" oder ein nacktes „:587" wäre eine Angabe über etwas, das gar nicht
    eingetragen ist. */
 function mailAnbieterZeile(m) {
-  if (!m.anbieter) return '<strong class="mail-aus">noch keiner gewählt</strong>';
+  if (!m.anbieter) return `<strong class="mail-aus">${tH('karte.nochKeinerGewaehlt')}</strong>`;
   const teile = [esc(m.anbieterName || m.anbieter)];
   if (m.server && m.port) {
     teile.push(`${esc(m.server)}:${m.port}`);
@@ -9622,7 +9665,7 @@ function mailDialog(mailstand) {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal mail-dialog" id="mail-dialog">
-      <h2>${tH('karte.mailzugang')} ${mailstand.eingerichtet ? 'ändern' : 'einrichten'}</h2>
+      <h2>${tH('karte.mailzugang')} ${mailstand.eingerichtet ? tH('karte.aendern') : tH('karte.einrichten')}</h2>
       <div class="field"><label for="mail-anbieter">${tH('karte.anbieter')}</label>
         <select class="input" id="mail-anbieter">
           <option value=""${mailstand.anbieter ? '' : ' selected'}>${tH('karte.keinVersand')}</option>
@@ -9660,7 +9703,7 @@ function mailDialog(mailstand) {
       <div class="field"><label for="mail-passwort">${tH('karte.passwortBeimAnbieter')}</label>
         <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
           placeholder="${mailstand.passwortGesetzt
-            ? t('karte.gesetztLeerLassenAendertEs') : 'nicht gesetzt'}"></div>
+            ? esc(t('karte.gesetztLeerLassenAendertEs')) : esc(t('karte.nichtGesetzt'))}"></div>
       <div class="field"><label for="mail-absender">${tH('karte.absenderadresse')}</label>
         <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
           autocomplete="off" autocapitalize="off" spellcheck="false"></div>
@@ -9893,14 +9936,14 @@ function karteKennzahlen(geholt) {
              neben der Datenbank, und der Eigentuemer sollte das aendern. Der
              Befehl steht im Kasten „Auf dem Server" (Regel S5). */''}
         <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">${tH('karte.derSchluesselKommtAusDer')} <code>${tH('karte.eNCRYPTION_KEY')}</code>. <strong><code>${tH('karte.env')}</code> ${tH('karte.und')} <code>${tH('karte.data')}</code> ${tH('karte.nieInDieselbeSicherungLegen')}</strong> ${tH('karte.ohneSchluesselSindDieDaten')}</div>`
+          ? `<div class="ok-box">${tH('karte.derSchluesselKommtAusDer')} <code>ENCRYPTION_KEY</code>. <strong><code>.env</code> ${tH('karte.und')} <code>data/</code> ${tH('karte.nieInDieselbeSicherungLegen')}</strong> ${tH('karte.ohneSchluesselSindDieDaten')}</div>`
           : (EIGENTUEMER
             ? `<div class="warn-box"><strong>${tH('karte.derSchluesselLiegtNebenDer')}</strong> ${tH('karte.dataEncryptionKeyWerDas')}
-              <p style="margin:9px 0 6px">${tH('karte.fuerEchtenSchutz')} <strong>${tH('karte.diesen')}</strong> ${tH('karte.wertInDie')} <code>${tH('karte.env')}</code> ${tH('karte.eintragenKeinenNeuenErzeugenSonst')}</p>
-              <code class="keyline" id="keyline">${tH('karte.eNCRYPTION_KEY2')}${esc(stats.keyHex || '')}</code>
+              <p style="margin:9px 0 6px">${tH('karte.fuerEchtenSchutz')} <strong>${tH('karte.diesen')}</strong> ${tH('karte.wertInDie')} <code>.env</code> ${tH('karte.eintragenKeinenNeuenErzeugenSonst')}</p>
+              <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
               ${serverKasten(t('karte.danachNeuStartenUndIm'), 'docker compose up -d')}
             </div>`
-            : `<div class="warn-box"><strong>${tH('karte.derSchluesselLiegtNochNeben')}</strong> ${tH('karte.dataEncryptionKeyDerEigentuemer')} <code>${tH('karte.eNCRYPTION_KEY')}</code> ${tH('karte.uebernehmen2')}</div>`)}
+            : `<div class="warn-box"><strong>${tH('karte.derSchluesselLiegtNochNeben')}</strong> ${tH('karte.dataEncryptionKeyDerEigentuemer')} <code>ENCRYPTION_KEY</code> ${tH('karte.uebernehmen2')}</div>`)}
         </div>
         ${/* ---- DIE VERFAHREN ----
              AUS DEM BETRIEB: „was benutzt ihr eigentlich?" Die Antwort stand
@@ -10095,10 +10138,8 @@ function ruesteBildablageAus(geholt) {
          waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
          eine Anzeige, die bei jedem Umlauf springt. */
       const ok = await zweiteBestaetigung('bilder', null, t('karte.pNGInWebPUmwandeln'),
-        `${png.anzahl} PNG-Foto${png.anzahl === 1 ? '' : 's'} (${fmtBytes(png.bytes)}) ` +
-        `${png.anzahl === 1 ? 'wird' : 'werden'} umgewandelt, die Originale ersetzt (danach etwa ` +
-        `${fmtBytes(Math.round(png.bytes * 0.37))}). Rückgängig nur mit einer vorher angelegten ` +
-        t('karte.sicherungDauerMinutenBisStunden'));
+        t('karte.pngFotosWerdenUmgewandelt', { n: png.anzahl, bytes: fmtBytes(png.bytes),
+          danach: fmtBytes(Math.round(png.bytes * 0.37)) }));
       if (!ok) return;
       try { await api('POST', '/api/bilder/umstellen', {}); }
       catch (e) { return toast(e.message, true); }
@@ -10129,7 +10170,7 @@ function karteSicherung() {
              Falle, die die README ausfuehrlich beschreibt -- hier steht sie an
              der Stelle, an der jemand sie tatsaechlich tappt. */''}
         <div class="warn-box" style="margin:0 0 14px"><strong>${tH('karte.dieSicherungIstVerschluesselt')}</strong>
-          ${tH('karte.ohneDenSchluesselAusDer')} <code>${tH('karte.env')}</code> ${tH('karte.laesstSieSichNichtOeffnen')}</div>
+          ${tH('karte.ohneDenSchluesselAusDer')} <code>.env</code> ${tH('karte.laesstSieSichNichtOeffnen')}</div>
         <div id="sicherung-box"></div>
       </div>`;
 }
@@ -10170,7 +10211,7 @@ function ruesteSicherungAus(geholt) {
       : (!d.erreichbar
         ? `<div class="warn-box" style="margin:0 0 12px">${tH('server.sicherungsordnerFehlt')}</div>`
         : (letzte
-          ? `<div class="kv"><span class="k">${tH('karte.letzteSicherung')}</span><span class="v">${tH('karte.vor2', { tageHer: letzte.tageHer })} ${letzte.tageHer === 1 ? t('liste.tag2') : t('karte.tagen3')}</span></div>
+          ? `<div class="kv"><span class="k">${tH('karte.letzteSicherung')}</span><span class="v">${tH('karte.vorTagenZahl', { n: letzte.tageHer })}</span></div>
              <div class="kv"><span class="k">${tH('dialog.datei')}</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
              <div class="kv"><span class="k">${tH('karte.groesse')}</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>`
           : `<p class="desc" style="margin:0 0 12px">${tH('karte.hierGibtEsNochKeine')}</p>`));
@@ -10193,9 +10234,9 @@ function ruesteSicherungAus(geholt) {
         ? `<div class="warn-box" style="margin:0 0 12px"><strong>${tH('karte.keineSicherungPasstZumAktuellen')}</strong> ${tH('karte.gewechseltAmAeltereSicherungen', { gewechseltAm: fmtDate(d.gewechseltAm) })}
              <strong>${tH('karte.bitteJetztNeuSichern')}</strong></div>`
         : (d.veraltet
-          ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
-               ? t('karte.sicherungStammt') : t('karte.sicherungenStammen')} ${tH('karte.vonVorDemSchluesselwechsel')}</strong>
-               (${esc(fmtDate(d.gewechseltAm))}). ${d.veraltet === 1 ? t('karte.sieOeffnet') : t('karte.sieOeffnen')} ${tH('karte.sichNurMitDem')} <strong>${tH('karte.alten')}</strong> ${tH('karte.schluesselBewahreIhnInEinem')}</div>`
+          ? `<div class="warn-box" style="margin:0 0 12px"><strong>${
+               tH('karte.sicherungenStammenVonVorDem', { n: d.veraltet })}</strong>
+               (${esc(fmtDate(d.gewechseltAm))}). ${tH('karte.sieOeffnenSichNurMitDem', { n: d.veraltet })} <strong>${tH('karte.alten')}</strong> ${tH('karte.schluesselBewahreIhnInEinem')}</div>`
           : `<div class="ok-box" style="margin:0 0 12px">${tH('karte.derSchluesselWurdeAmGewechselt', { gewechseltAm: fmtDate(d.gewechseltAm) })}</div>`));
     /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
        ist die Frage, die vor allen anderen steht. Ein Ort im
@@ -10251,8 +10292,8 @@ function ruesteSicherungAus(geholt) {
            selben Satz dahinter. */
         toast(t('karte.sicherungGeschrieben2', { datei: r.datei, bytes: fmtBytes(r.bytes) }) +
               (r.aufgeraeumt && r.aufgeraeumt.weg
-                ? ` · ${r.aufgeraeumt.weg} alte ${r.aufgeraeumt.weg === 1 ? t('karte.sicherung') : t('karte.sicherungen')} ` +
-                  t('karte.geloeschtFrei', { bytes: fmtBytes(r.aufgeraeumt.bytes) })
+                ? t('karte.alteSicherungenGeloeschtFrei',
+                    { n: r.aufgeraeumt.weg, bytes: fmtBytes(r.aufgeraeumt.bytes) })
                 : ''));
         /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU --
            dieselbe Bauform wie bei der Bildumstellung, und aus demselben
@@ -10359,11 +10400,11 @@ function ruesteAufraeumenAus(geholt) {
        mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
        und dieselbe Begruendung wie bei `#ex-teil-liste`. */
     const zeile = (z) => {
-      const marke = z.faellt ? '<span class="auf-marke weg">löschen</span>'
-                  : z.veraltet ? '<span class="auf-marke alt">alter Schlüssel</span>' : '';
+      const marke = z.faellt ? `<span class="auf-marke weg">${tH('karte.loeschen4')}</span>`
+                  : z.veraltet ? `<span class="auf-marke alt">${tH('karte.alterSchluessel')}</span>` : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.am))}</span>${marke}
-        <span class="mcount">${z.tageHer === 1 ? t('karte.vorTag') : t('karte.vorTagen', { tageHer: z.tageHer })} · ${
+        <span class="mcount">${tH('karte.vorTagenZahl', { n: z.tageHer })} · ${
           esc(fmtBytes(z.bytes))}</span></div>`;
     };
     const alle = Array.isArray(a.dateien) ? a.dateien : [];
@@ -10385,8 +10426,8 @@ function ruesteAufraeumenAus(geholt) {
        TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
        Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server. */
     const stand = !a.erreichbar ? '' : (treffer.length
-      ? `<p class="desc" style="margin:10px 0 6px"><strong>${treffer.length} ${
-           treffer.length === 1 ? t('karte.sicherungWird') : t('karte.sicherungenWerden')} ${tH('karte.geloescht2')}</strong> —
+      ? `<p class="desc" style="margin:10px 0 6px"><strong>${
+           tH('karte.sicherungenWerdenGeloescht', { n: treffer.length })}</strong> —
            ${esc(fmtBytes(a.bytes || 0))} ${tH('karte.frei')}</p>`
       : `<p class="desc" style="margin:10px 0 6px">${tH('karte.esWirdNichtsGeloescht')} ${
            esc(a.grund || '')}</p>`);
@@ -10396,12 +10437,12 @@ function ruesteAufraeumenAus(geholt) {
        entbehrlich, sondern etwas anderes. */
     const veraltet = !altZahl ? '' : `
       <div class="sys-teil"></div>
-      <p class="desc" style="margin:0 0 8px"><strong>${altZahl} ${altZahl === 1
-        ? t('karte.sicherungOeffnet') : t('karte.sicherungenOeffnen')} ${tH('karte.sichNurMitDemAlten')}</strong>
+      <p class="desc" style="margin:0 0 8px"><strong>${
+        tH('karte.sicherungenOeffnenSichNurMitDemAlten', { n: altZahl })}</strong>
         (${esc(fmtBytes(a.altBytes || 0))}${tH('karte.dasAutomatischeAufraeumenLoescht')}</p>
       <div class="row-in">
-        <button class="btn btn-sm" id="auf-alt">${altZahl} ${altZahl === 1
-          ? t('karte.sicherung') : t('karte.sicherungen')} ${tH('karte.mitAltemSchluesselLoeschen')}</button>
+        <button class="btn btn-sm" id="auf-alt">${
+          tH('karte.sicherungenMitAltemSchluesselLoeschen', { n: altZahl })}</button>
       </div>`;
 
     box.innerHTML = `
@@ -10507,8 +10548,8 @@ function ruesteAufraeumenAus(geholt) {
       geholt.sicherung = { ...geholt.sicherung, erreichbar: r.erreichbar, letzte: r.letzte,
                            zahl: r.zahl, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
                            aufraeumen: { ...(geholt.sicherung || {}).aufraeumen, ...r.aufraeumen } };
-      toast(`${r.weg} ${r.weg === 1 ? t('karte.sicherung') : t('karte.sicherungen')} gelöscht (${
-        fmtBytes(r.bytes)} frei)${r.nicht ? t('karte.nichtGeloescht', { nicht: r.nicht }) : ''}`);
+      toast(t('karte.sicherungenGeloescht', { n: r.weg, bytes: fmtBytes(r.bytes),
+        zusatz: r.nicht ? t('karte.nichtGeloescht', { nicht: r.nicht }) : '' }));
       /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
          andere sein. Zwei Staende nebeneinander stehen zu lassen waere genau
          die zweite Wahrheit, gegen die diese Runde gebaut ist -- also die
@@ -10517,15 +10558,13 @@ function ruesteAufraeumenAus(geholt) {
     };
     amElement('auf-los', (knopf) => {
       knopf.onclick = () => raeume('regel', t('karte.sicherungenLoeschen'),
-        `${treffer.length} ${treffer.length === 1 ? t('karte.sicherung') : t('karte.sicherungen')} ` +
-        `(${fmtBytes(a.bytes || 0)}) ${treffer.length === 1 ? 'wird' : 'werden'} endgültig gelöscht.`);
+        t('karte.sicherungenWerdenEndgueltigGeloescht',
+          { n: treffer.length, bytes: fmtBytes(a.bytes || 0) }));
     });
     amElement('auf-alt', (knopf) => {
       knopf.onclick = () => raeume('veraltet', t('karte.sicherungenMitAltemSchluessel'),
-        `${altZahl} ${altZahl === 1 ? t('karte.sicherung') : t('karte.sicherungen')} von vor dem ` +
-        `Schlüsselwechsel (${fmtBytes(a.altBytes || 0)}) ${altZahl === 1 ? 'wird' : 'werden'} ` +
-        `endgültig gelöscht. ${altZahl === 1 ? t('karte.sieLaesst') : t('karte.sieLassen')} sich nur mit dem alten ` +
-        t('karte.schluesselOeffnen'));
+        t('karte.sicherungenVonVorDemSchluesselwechsel',
+          { n: altZahl, bytes: fmtBytes(a.altBytes || 0) }));
     });
   }
 
@@ -10710,17 +10749,17 @@ function ruesteExportAus(geholt) {
        schlimmere Ausgang -- wer ihn sieht, weiss, dass er die Videos abwaehlen
        oder diesen einen Eintrag von Hand behandeln muss. */
     const zuGross = (plan.zuGross || []).length ? `<div class="warn-box" style="margin:10px 0 0">
-      <strong>${plan.zuGross.length} ${plan.zuGross.length === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}
-      ${plan.zuGross.length === 1 ? 'passt' : 'passen'} ${tH('karte.inKeinenTeil')}</strong> ${tH('karte.schonFuerSichAlleinUeber', { string: fmtBytes(plan.string) })}
+      <strong>${plan.zuGross.length} ${esc(vSache(plan.zuGross.length))}
+      ${mehrzahl(plan.zuGross.length, tH('karte.passt'), tH('karte.passen'))} ${tH('karte.inKeinenTeil')}</strong> ${tH('karte.schonFuerSichAlleinUeber', { string: fmtBytes(plan.string) })}
       <ul style="margin:6px 0 0 18px">${plan.zuGross.map(z =>
         `<li>${esc(z.titel)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
       <p style="margin:8px 0 0">${tH('karte.ohneDasHaekchenAnDen')}</p></div>` : '';
 
     kasten.innerHTML = `${zuGross}
-      ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${n} ${n === 1 ? t('karte.teil') : t('karte.teile')}</strong>${tH('karte.jeHoechstens', { zielGroesse: fmtBytes(plan.zielGroesse) })} <strong>${tH('karte.jederTeilIstEineVollstaendige2')}</strong></p>
+      ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${tH('karte.teileZahl', { n: n })}</strong>${tH('karte.jeHoechstens', { zielGroesse: fmtBytes(plan.zielGroesse) })} <strong>${tH('karte.jederTeilIstEineVollstaendige2')}</strong></p>
       <div class="manage-list" id="ex-teil-liste">${plan.teile.map(teil => `
         <div class="mrow">
-          <span class="mname">${tH('karte.teil2', { nr: teil.nr, anzahl: teil.anzahl })} ${teil.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
+          <span class="mname">${tH('karte.teil2', { nr: teil.nr, anzahl: teil.anzahl })} ${esc(vSache(teil.anzahl))}</span>
           <button class="mact ex-teil-lad" data-nr="${teil.nr}" data-von="${teil.von}" data-bis="${teil.bis}"
             disabled>${tH('karte.laden2')}</button>
           <span class="pk-meta">${esc(fmtBytes(teil.bytes))}</span>
@@ -10734,7 +10773,7 @@ function ruesteExportAus(geholt) {
            Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
       <p class="hint hint-sm" style="margin:10px 2px 6px">${tH('karte.vorDemExportWirdEinmal')}${ZWEIFAKTOR ? t('karte.undDerZweiFaktorCode') : ''} ${tH('karte.abgefragtDanachLaedstDuJeden')}</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
-        ${tH('karte.einmalBestaetigenDann')} ${n === 1 ? t('karte.denTeil') : t('karte.alleTeile', { n: n })} ${tH('karte.laden')}</button></div>
+        ${tH('karte.einmalBestaetigenDann')} ${tH('karte.denTeilOderAlle', { n: n })} ${tH('karte.laden')}</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
            Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
            welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
@@ -10747,8 +10786,7 @@ function ruesteExportAus(geholt) {
     amElement('ex-frei', b => b.onclick = async () => {
       const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(teil => teil.nr),
         t('karte.exportBestaetigen'),
-        `Der Export schreibt den gesamten Bestand in ${n} ${n === 1 ? t('dialog.datei') : t('dialog.dateien')}, die das Haus ` +
-        t('karte.verlassenMitAllenFotosAllen'));
+        t('karte.derExportSchreibtDenGesamtenInTeile', { n: n }));
       if (!ok) return;
       b.disabled = true;
       b.textContent = t('karte.bestaetigtJetztJedenTeilLaden');
@@ -10816,7 +10854,7 @@ function askImport(file, grenzen) {
       return;
     }
     bd.innerHTML = `<div class="modal"><h2>${tH('karte.import')}</h2>
-      <p>${tH('karte.dieDateiEnthaelt')} <strong>${info.count} ${esc(vSache(info.count))}</strong>${info.withPhotos ? ' <strong>mit Fotos</strong>' : t('karte.ohneFotos2')}${info.title ? tH('karte.erstelltAus', { title: info.title }) : ''}${info.date ? ` am ${fmtDate(info.date.replace('T',' ').slice(0,19))}` : ''}.</p>
+      <p>${tH('karte.dieDateiEnthaelt')} <strong>${info.count} ${esc(vSache(info.count))}</strong>${info.withPhotos ? ` <strong>${tH('karte.mitFotos')}</strong>` : tH('karte.ohneFotos2')}${info.title ? tH('karte.erstelltAus', { title: info.title }) : ''}${info.date ? ` am ${fmtDate(info.date.replace('T',' ').slice(0,19))}` : ''}.</p>
       <p>${tH('karte.wasSollMitDemVorhandenen')}</p>
       <div class="warn-box"><strong>${tH('karte.ersetzen')}</strong> ${tH('karte.loeschtVorherAllesVorhandeneFuer')}<br><br>
         <strong>${tH('karte.zusammenfuehren')}</strong> ${tH('karte.laesstVorhandenesStehenUndFuegt')}</div>
@@ -10849,14 +10887,12 @@ function askImport(file, grenzen) {
       try {
         const r = await api('POST', '/api/import', fd, true);
         busy.remove();
-        toast(`${r.items} ${vSache(r.items)}, ${r.photos} Fotos, ${r.videos || 0} Videos, ` +
-              t('karte.dateienUebernommen', { attachments: r.attachments }));
+        toast(t('karte.uebernommen', { items: r.items, sache: vSache(r.items),
+          photos: r.photos, videos: r.videos || 0, attachments: r.attachments }));
         /* Nicht abbrechen, melden -- und laut genug, dass es auffaellt: fehlt
            ein Video, kann das naechste Foto zum Hauptbild geworden sein. */
         const fehlend = (r.videosOhneDatei || 0) + (r.videosUnlesbar || 0);
-        if (fehlend) toast(fehlend === 1
-          ? t('karte.videoFehlteInDerDatei')
-          : t('karte.videosFehltenInDerDatei', { fehlend: fehlend }), true);
+        if (fehlend) toast(t('karte.videosFehltenInDerDatei', { n: fehlend }), true);
         location.hash = '#/';
         if (location.hash === '#/') renderList();
       } catch (e) { busy.remove(); toast(e.message, true); }
@@ -10888,6 +10924,11 @@ let einrichtungNoetig = false;
     app.textContent = 'Die Sprachdatei fehlt.';
     return;
   }
+  /* WAS DIE SEITE SPRICHT, STEHT AM WURZELELEMENT -- 0.24.0, Bauabschnitt 4.
+     Der Vorleser waehlt danach seine Stimme, der Browser danach seine
+     Silbentrennung. Das Attribut in index.html bleibt `de`: es gilt, bis die
+     Datei da ist, und sagt bis dahin die Wahrheit. */
+  document.documentElement.lang = SPRACHE;
   try {
     const cfg = await konfLaeuft;
     if (cfg && cfg.title) TITLE_PUBLIC = cfg.title;
@@ -10918,5 +10959,5 @@ let einrichtungNoetig = false;
   try {
     const s = await fetch('/api/session', { credentials: 'same-origin' }).then(r => r.json());
     if (s.authenticated) start(); else showLogin();
-  } catch { showLogin('Server nicht erreichbar.'); }
+  } catch { showLogin(t('anmeldung.serverNichtErreichbar')); }
 })();
