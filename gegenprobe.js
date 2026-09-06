@@ -1463,7 +1463,7 @@ const RUECKBAUTEN = [
   {
     nr: '165', name: 'Der Papierkorb rueckt an die Einstellknoepfe heran',
     datei: 'public/style.css',
-    suche: '.vweg { margin-left: 14px; }',
+    suche: '.vremove { margin-left: 14px; }',
     ersatz: '.vweg { margin-left: 0; }',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1590,7 +1590,7 @@ const RUECKBAUTEN = [
   {
     nr: '178', name: 'Der angepinnte Bericht traegt wieder zwei Farben',
     datei: 'public/style.css',
-    suche: '.cmt.pinned.bericht {\n  border-top-color: var(--accent);',
+    suche: '.cmt.pinned.report {\n  border-top-color: var(--accent);',
     ersatz: '.cmt.pinned.bericht {\n  border-top-color: var(--gold-line);',
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
@@ -1878,8 +1878,8 @@ const RUECKBAUTEN = [
        zwei Zeilen. */
     nr: '206', name: 'Die selbsttaetige Aussenkante frisst die Zeile wieder',
     datei: 'public/style.css',
-    suche: '.frow-rechts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }',
-    ersatz: '.frow-rechts { display: flex; align-items: center; gap: 10px; margin-left: auto; }',
+    suche: '.frow-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }',
+    ersatz: '.frow-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }',
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
@@ -2231,7 +2231,7 @@ const RUECKBAUTEN = [
        geworden (Stolperstein 192). Er nimmt weiterhin die ganze Klasse. */
     nr: '239', name: 'Die Kriterienliste bekommt ihre Rasterklasse nicht',
     datei: 'public/app.js',
-    suche: "    box.className = 'rlist' + (withAverage ? '' : ' ohne-schnitt');",
+    suche: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
     ersatz: "",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2498,8 +2498,8 @@ const RUECKBAUTEN = [
        liest sich wieder wie eine Randnotiz -- der zweite Befund. */
     nr: '267', name: 'Die Hervorhebung des Grundes faellt weg',
     datei: 'public/style.css',
-    suche: ".rej-aussage .rej-warum { color: var(--red); font-weight: 500; }",
-    ersatz: ".rej-aussage .rej-warum { font-weight: 500; }",
+    suche: ".rej-note .rej-why { color: var(--red); font-weight: 500; }",
+    ersatz: ".rej-note .rej-why { font-weight: 500; }",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   /* ---- 0.15.1: `hidden` wirkt wieder ---- */
@@ -2610,8 +2610,8 @@ const RUECKBAUTEN = [
        gibt es zwei Wege zu derselben Zahl -- und sie laufen auseinander. */
     nr: '280', name: 'Der Erklaerkasten rechnet wieder selbst nach',
     datei: 'public/app.js',
-    suche: "          <span id=\"rz-ergebnis\">⌀ ${esc(weightNumber(weg.ergebnis))}</span></div>",
-    ersatz: "          <span id=\"rz-ergebnis\">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>",
+    suche: "          <span id=\"calc-result\">⌀ ${esc(weightNumber(weg.ergebnis))}</span></div>",
+    ersatz: "          <span id=\"calc-result\">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -2808,7 +2808,7 @@ const RUECKBAUTEN = [
        zwei Zellen in drei Spalten, und die Liste zerfaellt. */
     nr: '301', name: 'Die Spaltenzahl folgt dem Zustand nicht mehr',
     datei: 'public/app.js',
-    suche: "    box.className = 'rlist' + (withAverage ? '' : ' ohne-schnitt');",
+    suche: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
     ersatz: "    box.className = 'rlist';",
     erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
@@ -2818,7 +2818,7 @@ const RUECKBAUTEN = [
        (Stolperstein 223) -- dieser hier nimmt den Gegenstand weg. */
     nr: '302', name: 'Die Regel fuer den einen Zugang faellt aus dem Stilblatt',
     datei: 'public/style.css',
-    suche: ".rlist.ohne-schnitt { grid-template-columns: 1fr auto auto; }",
+    suche: ".rlist.no-average { grid-template-columns: 1fr auto auto; }",
     ersatz: "",
     erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
@@ -2910,8 +2910,8 @@ const RUECKBAUTEN = [
     /* DER KASTEN ZEIGT SIE NICHT MEHR. */
     nr: '311', name: 'Der Erklaerkasten laesst die Vergleichszahl weg',
     datei: 'public/app.js',
-    suche: "        ${withWeight ? `<div class=\"rz rz-gleich\"><span>${tH('entry.calcNoWeights')}</span>",
-    ersatz: "        ${false ? `<div class=\"rz rz-gleich\"><span>${tH('entry.calcNoWeights')}</span>",
+    suche: "        ${withWeight ? `<div class=\"calc-row calc-same\"><span>${tH('entry.calcNoWeights')}</span>",
+    ersatz: "        ${false ? `<div class=\"rz calc-same\"><span>${tH('entry.calcNoWeights')}</span>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -2928,8 +2928,8 @@ const RUECKBAUTEN = [
        Rechenstelle im Browser (Stolperstein 217). */
     nr: '313', name: 'Der Kasten rechnet die Vergleichszahl selbst nach',
     datei: 'public/app.js',
-    suche: "          <span id=\"rz-gleich\">⌀ ${esc(weightNumber(weg.gleichErgebnis))}</span></div>` : ''}",
-    ersatz: "          <span id=\"rz-gleich\">⌀ ${esc(gewZahl(Math.round((weg.zeilen.reduce((n, z) => n + z.schnitt, 0) / weg.zeilen.length) * 10) / 10))}</span></div>` : ''}",
+    suche: "          <span id=\"calc-same\">⌀ ${esc(weightNumber(weg.gleichErgebnis))}</span></div>` : ''}",
+    ersatz: "          <span id=\"calc-same\">⌀ ${esc(gewZahl(Math.round((weg.zeilen.reduce((n, z) => n + z.schnitt, 0) / weg.zeilen.length) * 10) / 10))}</span></div>` : ''}",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
 
@@ -3103,7 +3103,7 @@ const RUECKBAUTEN = [
   {
     nr: '331', name: 'Das Raster des Erklaerkastens verliert eine Spalte',
     datei: 'public/style.css',
-    suche: ".rechnung { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }",
+    suche: ".calc { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }",
     ersatz: ".rechnung { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; }",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -3112,15 +3112,15 @@ const RUECKBAUTEN = [
   {
     nr: '332', name: 'Die Vergleichszeile wird dem Ergebnis gleichgestellt',
     datei: 'public/style.css',
-    suche: ".rz-gleich > span { color: var(--muted); border-bottom: 0; border-top: 1px solid var(--line-2); }",
-    ersatz: ".rz-gleich > span { font-weight: 640; color: #8a8a8a; border-bottom: 0; }",
+    suche: ".calc-same > span { color: var(--muted); border-bottom: 0; border-top: 1px solid var(--line-2); }",
+    ersatz: ".calc-same > span { font-weight: 640; color: #8a8a8a; border-bottom: 0; }",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '333', name: 'Die Vergleichszeile bekommt eine Zelle zu wenig',
     datei: 'public/app.js',
-    suche: "          <span></span><span></span>\n          <span id=\"rz-gleich\">",
-    ersatz: "          <span></span>\n          <span id=\"rz-gleich\">",
+    suche: "          <span></span><span></span>\n          <span id=\"calc-same\">",
+    ersatz: "          <span></span>\n          <span id=\"calc-same\">",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
 
@@ -3403,15 +3403,15 @@ const RUECKBAUTEN = [
   {
     nr: '381', name: 'Die Zeilen der Rechnung ruecken wieder auseinander',
     datei: 'public/style.css',
-    suche: ".rz > span { padding: 3px 0;",
+    suche: ".calc-row > span { padding: 3px 0;",
     ersatz: ".rz > span { padding: 6px 0;",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '382', name: 'Der Erklaerkasten wird wieder schmal',
     datei: 'public/style.css',
-    suche: ".rechnung-modal { max-width: 620px; }",
-    ersatz: ".rechnung-modal { max-width: 540px; }",
+    suche: ".calc-modal { max-width: 620px; }",
+    ersatz: ".calc-modal { max-width: 540px; }",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -3453,8 +3453,8 @@ const RUECKBAUTEN = [
   {
     nr: '388', name: 'Der Filterruecksetzer steht nicht mehr am rechten Rand',
     datei: 'public/style.css',
-    suche: ".frow-rechts-weit { margin-left: auto; }",
-    ersatz: ".frow-rechts-weit { margin-right: 0; }",
+    suche: ".frow-right-wide { margin-left: auto; }",
+    ersatz: ".frow-right-wide { margin-right: 0; }",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
 
@@ -3610,7 +3610,7 @@ const RUECKBAUTEN = [
   {
     /* ER NIMMT DAS FELD WEG UND NICHT NUR DIE VORLAGE. Der erste Anlauf setzte
        `fundZeile` auf leer und liess `f` stehen -- die Kachel suchte danach
-       eine `.fund-text`, die es nicht mehr gab, und riss beim Zeichnen ab
+       eine `.find-text`, die es nicht mehr gab, und riss beim Zeichnen ab
        statt rot zu werden. EIN RUECKBAU MUSS EINEN LAUFFAEHIGEN STAND
        ERGEBEN; einer, der die Oberflaeche zerreisst, sagt nichts darueber,
        welche Pruefung ihn bemerkt haette (Stolperstein 138). */
@@ -3635,8 +3635,8 @@ const RUECKBAUTEN = [
   {
     nr: '409', name: 'Die Zahl der weiteren Stellen faellt aus der Zeile',
     datei: 'public/app.js',
-    suche: "class=\"fund-text\"></span>${f.weitere ? `<span class=\"fund-mehr\">+${f.weitere}</span>` : ''}",
-    ersatz: "class=\"fund-text\"></span>${''}",
+    suche: "class=\"find-text\"></span>${f.weitere ? `<span class=\"find-more\">+${f.weitere}</span>` : ''}",
+    ersatz: "class=\"find-text\"></span>${''}",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -3659,8 +3659,8 @@ const RUECKBAUTEN = [
        aus einem Kommentar stammen. */
     nr: '412', name: 'Der Ausschnitt kommt ueber innerHTML in die Kachel',
     datei: 'public/app.js',
-    suche: "  if (f) a.querySelector('.fund-text').replaceChildren(raiseHighlight(f.text, term));",
-    ersatz: "  if (f) a.querySelector('.fund-text').innerHTML = f.text;",
+    suche: "  if (f) a.querySelector('.find-text').replaceChildren(raiseHighlight(f.text, term));",
+    ersatz: "  if (f) a.querySelector('.find-text').innerHTML = f.text;",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -3787,8 +3787,8 @@ const RUECKBAUTEN = [
   {
     nr: '429', name: 'Die Quelle gibt in der Trefferzeile nach statt der Ausschnitt',
     datei: 'public/style.css',
-    suche: ".card-fund .fund-quelle { flex-shrink: 0; color: var(--faint); font-weight: 600; }",
-    ersatz: ".card-fund .fund-quelle { color: var(--faint); font-weight: 600; }",
+    suche: ".card-find .find-source { flex-shrink: 0; color: var(--faint); font-weight: 600; }",
+    ersatz: ".card-find .find-source { color: var(--faint); font-weight: 600; }",
     erwartet: 'Die Trefferzeile im Stylesheet'
   },
 
@@ -5483,7 +5483,7 @@ const RUECKBAUTEN = [
        -- genau der Sprung, den dieselbe Runde eine Spalte weiter abschafft. */
     nr: '583', name: 'Das × verschwindet mit seinem Platz statt nur mit seiner Farbe',
     datei: 'public/app.js',
-    suche: "  z.className = 'rzurueck' + (value > 0 ? '' : ' leer');",
+    suche: "  z.className = 'rreset' + (value > 0 ? '' : ' leer');",
     ersatz: "  z.className = 'rzurueck'; if (!(value > 0)) z.hidden = true;",
     erwartet: "Die Sternzeile — 0.22.0"
   },
@@ -5860,7 +5860,7 @@ const RUECKBAUTEN = [
        damit eine Einstellung, die niemand vorgenommen hat. */
     nr: '618', name: 'Die abgeleitete Pille zeichnet sich wie eine gewaehlte',
     datei: 'public/app.js',
-    suche: "    b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-abgeleitet' : '')\n" +
+    suche: "    b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-derived' : '')\n" +
            "                                    : (f.tested === v ? ' on' : ''));",
     ersatz: "    b.className = 'pill' + ((vorgabe ? vorgabe === v : f.tested === v) ? ' on' : '');",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
@@ -5965,8 +5965,8 @@ const RUECKBAUTEN = [
        (Stolperstein 314). Der Waechter muss sie kennen. */
     nr: '624', name: 'Das Milchglas kommt an die Kopfzeile zurueck',
     datei: 'public/style.css',
-    suche: ".masthead.gerollt { box-shadow: var(--sh-sm); }",
-    ersatz: ".masthead.gerollt { box-shadow: var(--sh-sm); backdrop-filter: blur(10px); }",
+    suche: ".masthead.scrolled { box-shadow: var(--sh-sm); }",
+    ersatz: ".masthead.scrolled { box-shadow: var(--sh-sm); backdrop-filter: blur(10px); }",
     erwartet: 'Kein Milchglas im Stilblatt — 0.22.0'
   },
   {
@@ -6041,7 +6041,7 @@ const RUECKBAUTEN = [
        aus dem Betrieb waere nicht behoben. */
     nr: '633', name: 'Der Ruecksetzknopf steht wieder in der Sternzelle statt in seiner eigenen Spalte',
     datei: 'public/app.js',
-    suche: "      const zz = document.createElement('span');\n      zz.className = 'rzz';\n      zz.appendChild(back);\n      row.append(zz);",
+    suche: "      const zz = document.createElement('span');\n      zz.className = 'rreset-cell';\n      zz.appendChild(back);\n      row.append(zz);",
     ersatz: "      acts.appendChild(zurueck);",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
@@ -6057,7 +6057,7 @@ const RUECKBAUTEN = [
     // Bei einem einzigen Zugang stuende der Knopf wieder dicht an den Sternen.
     nr: '635', name: 'Die Zelle des Ruecksetzknopfs verliert ihren Abstand',
     datei: 'public/style.css',
-    suche: ".rrow .rzz { display: flex; align-items: center; justify-content: flex-end; padding-left: 12px; }",
+    suche: ".rrow .rreset-cell { display: flex; align-items: center; justify-content: flex-end; padding-left: 12px; }",
     ersatz: ".rrow .rzz { display: flex; align-items: center; justify-content: flex-end; padding-left: 4px; }",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
@@ -6321,8 +6321,8 @@ const RUECKBAUTEN = [
        tadellos da und faerbte nichts. */
     nr: '664', name: 'Die Hilfslinie liest die allgemeine Randfarbe statt ihrer eigenen',
     datei: 'public/style.css',
-    suche: ".zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--timeline-line); }",
-    ersatz: ".zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }",
+    suche: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--timeline-line); }",
+    ersatz: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }",
     erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {

@@ -1675,22 +1675,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
     (cssTz.match(new RegExp(wahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
 
   pruefe('Die Trefferzeile bricht nicht um',
-    /white-space: nowrap/.test(regelTz('.card-fund .fund-text')),
-    regelTz('.card-fund .fund-text') || '(keine Regel)');
+    /white-space: nowrap/.test(regelTz('.card-find .find-text')),
+    regelTz('.card-find .find-text') || '(keine Regel)');
   pruefe('Und was nicht hineinpasst, wird mit einem Auslassungszeichen gekappt',
-    /text-overflow: ellipsis/.test(regelTz('.card-fund .fund-text')) &&
-    /overflow: hidden/.test(regelTz('.card-fund .fund-text')),
-    regelTz('.card-fund .fund-text') || '(keine Regel)');
+    /text-overflow: ellipsis/.test(regelTz('.card-find .find-text')) &&
+    /overflow: hidden/.test(regelTz('.card-find .find-text')),
+    regelTz('.card-find .find-text') || '(keine Regel)');
   pruefe('Nachgeben darf allein der Ausschnitt',
-    /min-width: 0/.test(regelTz('.card-fund .fund-text')) &&
-    /flex: 1/.test(regelTz('.card-fund .fund-text')),
-    regelTz('.card-fund .fund-text') || '(keine Regel)');
+    /min-width: 0/.test(regelTz('.card-find .find-text')) &&
+    /flex: 1/.test(regelTz('.card-find .find-text')),
+    regelTz('.card-find .find-text') || '(keine Regel)');
   pruefe('Die Quelle gibt nicht nach',
-    /flex-shrink: 0/.test(regelTz('.card-fund .fund-quelle')),
-    regelTz('.card-fund .fund-quelle') || '(keine Regel)');
+    /flex-shrink: 0/.test(regelTz('.card-find .find-source')),
+    regelTz('.card-find .find-source') || '(keine Regel)');
   pruefe('Und die Zahl der weiteren Stellen ebenso wenig',
-    /flex-shrink: 0/.test(regelTz('.card-fund .fund-mehr')),
-    regelTz('.card-fund .fund-mehr') || '(keine Regel)');
+    /flex-shrink: 0/.test(regelTz('.card-find .find-more')),
+    regelTz('.card-find .find-more') || '(keine Regel)');
   pruefe('Die Marke setzt Grund UND Schrift',
     /background:/.test(regelTz('mark')) && /color:/.test(regelTz('mark')),
     regelTz('mark') || '(keine Regel)');
@@ -1899,8 +1899,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Er steht ABGESETZT von den beiden Knoepfen davor: die stellen etwas ein,
      er nimmt etwas weg. Dieselben 14 Pixel wie beim Favoritenfilter. */
   pruefe('Am Bildbereich gibt es einen Papierkorb',
-    /\.vweg \{ margin-left: 14px; \}/.test(cssEng),
-    (cssEng.match(/\.vweg[^{]*\{[^}]*\}/g) || ['(keine Regel)'])[0]);
+    /\.vremove \{ margin-left: 14px; \}/.test(cssEng),
+    (cssEng.match(/\.vremove[^{]*\{[^}]*\}/g) || ['(keine Regel)'])[0]);
   /* Die Reihe macht die ausgerechnete Zahl ueberfluessig, an der sich die
      beiden Knoepfe bei grosser Schrift uebereinandergeschoben haben. */
   pruefe('Und der Vollbildknopf haengt nicht mehr an einer ausgerechneten Breite',
@@ -14613,7 +14613,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       : 'die Beschriftung fehlt in public/app.js');
   // Kein Wer, kein Wann, keine Kette: es bleibt bei der Rolle.
   pruefe('Und nennt dabei keinen Namen und keinen Zeitpunkt',
-    !/cmt-eingriff[^`]*authorName|cmt-eingriff[^`]*fmtDate/.test(fAppQuelle),
+    !/cmt-edited[^`]*authorName|cmt-edited[^`]*fmtDate/.test(fAppQuelle),
     'der Vermerk nennt Person oder Zeitpunkt');
 
   /* Den vorhandenen Waechter erweitern,
@@ -24949,7 +24949,7 @@ async function pruefeOberflaeche() {
     w.document.documentElement.style.fontSize);
 
   await sysAbschnitt(w, 'bestand');
-  const zeilenKnoepfe = [...w.document.querySelectorAll('#lzeilen .pill')];
+  const zeilenKnoepfe = [...w.document.querySelectorAll('#lrows .pill')];
   zeilenKnoepfe.find(b => b.textContent === '12 Zeilen')
     ?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 30));
@@ -24958,9 +24958,9 @@ async function pruefeOberflaeche() {
   pruefe('Der Klick auf die Linkzeilen ebenso',
     putZeilen?.koerper.linkZeilen === 12, JSON.stringify(putZeilen?.koerper));
   pruefe('Und auch dieser Knopf zeichnet sich neu',
-    [...w.document.querySelectorAll('#lzeilen .pill')]
+    [...w.document.querySelectorAll('#lrows .pill')]
       .find(b => b.classList.contains('on'))?.textContent === '12 Zeilen',
-    [...w.document.querySelectorAll('#lzeilen .pill')]
+    [...w.document.querySelectorAll('#lrows .pill')]
       .map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join(' '));
 
   w.close();
@@ -25287,14 +25287,14 @@ async function pruefeOberflaeche() {
   const wenig = baueDom(JSDOM, { uebersichtItems: bauItems(4, 1) }).w;
   await new Promise(r => setTimeout(r, 80));
   pruefe('Unter fünf Testtagen bleibt das Band weg',
-    wenig.document.getElementById('zeitleiste').innerHTML === '');
+    wenig.document.getElementById('timeline').innerHTML === '');
   wenig.close();
 
   const wviel = baueDom(JSDOM, { uebersichtItems: bauItems(6, 1) }).w;
   await new Promise(r => setTimeout(r, 80));
-  const zlBox = () => wviel.document.getElementById('zeitleiste');
-  pruefe('Ab fünf Testtagen erscheint das Band', !!zlBox().querySelector('.zl'));
-  const punkte = [...zlBox().querySelectorAll('.zl-punkt')];
+  const zlBox = () => wviel.document.getElementById('timeline');
+  pruefe('Ab fünf Testtagen erscheint das Band', !!zlBox().querySelector('.timeline'));
+  const punkte = [...zlBox().querySelectorAll('.timeline-dot')];
   pruefe('Je Testtag ein Punkt', punkte.length === 6, `${punkte.length}`);
   pruefe('Höhe folgt der Tagesnote', punkte.every(p => {
     const note = Number(p.getAttribute('aria-label').match(/Note (\d)/)[1]);
@@ -25303,18 +25303,18 @@ async function pruefeOberflaeche() {
   pruefe('Punkte sitzen waagerecht nach Datum',
     punkte[0].style.left === '0%' && punkte[punkte.length - 1].style.left === '100%',
     `${punkte[0].style.left} … ${punkte[punkte.length - 1].style.left}`);
-  pruefe('Jahre werden beschriftet', zlBox().querySelectorAll('.zl-jahr').length >= 2);
+  pruefe('Jahre werden beschriftet', zlBox().querySelectorAll('.timeline-year').length >= 2);
 
   const erster = punkte[0];
   erster.onpointerenter({ pointerType: 'mouse' });
   pruefe('Überfahren zeigt Titel, Datum und Note', (() => {
-    const h = zlBox().querySelector('.zl-hinweis');
+    const h = zlBox().querySelector('.timeline-hint');
     return h && /Stück/.test(h.textContent) && /Note \d/.test(h.textContent);
   })());
   erster.onpointerleave();
-  pruefe('Hinweis verschwindet wieder', !zlBox().querySelector('.zl-hinweis'));
+  pruefe('Hinweis verschwindet wieder', !zlBox().querySelector('.timeline-hint'));
   erster.onpointerenter({ pointerType: 'touch' });
-  pruefe('Auf dem Finger erscheint kein Hinweis', !zlBox().querySelector('.zl-hinweis'));
+  pruefe('Auf dem Finger erscheint kein Hinweis', !zlBox().querySelector('.timeline-hint'));
 
   /* Folgt den Filtern: die Suche schneidet die sichtbaren Eintraege zusammen,
      danach unterschreitet die Zeitleiste ihre Schwelle und verschwindet.
@@ -25327,15 +25327,15 @@ async function pruefeOberflaeche() {
   suchfeld.oninput();
   await warteSuche(wviel);
   pruefe('Zeitleiste folgt der Suche', zlBox().innerHTML === '',
-    `${zlBox().querySelectorAll('.zl-punkt').length} Punkte`);
+    `${zlBox().querySelectorAll('.timeline-dot').length} Punkte`);
   suchfeld.value = '';
   suchfeld.oninput();
   await new Promise(r => setTimeout(r, 40));
-  pruefe('Ohne Suche kommt sie zurück', zlBox().querySelectorAll('.zl-punkt').length === 6,
-    `${zlBox().querySelectorAll('.zl-punkt').length} Punkte`);
+  pruefe('Ohne Suche kommt sie zurück', zlBox().querySelectorAll('.timeline-dot').length === 6,
+    `${zlBox().querySelectorAll('.timeline-dot').length} Punkte`);
 
   const zielId = punkte[0].dataset.item;
-  zlBox().querySelector('.zl-punkt').onclick();
+  zlBox().querySelector('.timeline-dot').onclick();
   pruefe('Klick öffnet den Eintrag', wviel.location.hash.startsWith('#/item/'), wviel.location.hash);
   wviel.close();
 
@@ -25514,7 +25514,7 @@ async function pruefeOberflaeche() {
   pruefe('Zunächst sind alle vier zu sehen', titel().length === 4, JSON.stringify(titel()));
   pruefe('Vorgabe ist UND', modus('and')?.classList.contains('on'), 'and nicht hervorgehoben');
   pruefe('Der Umschalter ruht, solange nichts gewählt ist',
-    !!wf.document.querySelector('#filters .tagmode.ruht'));
+    !!wf.document.querySelector('#filters .tagmode.idle'));
 
   marke('Grün').onclick();
   await new Promise(r => setTimeout(r, 20));
@@ -25526,7 +25526,7 @@ async function pruefeOberflaeche() {
   pruefe('Zwei Tags mit UND zeigen nur den Schnitt',
     gleich(titel(), ['Grün und schwer']), JSON.stringify(titel()));
   pruefe('Der Umschalter ruht jetzt nicht mehr',
-    !wf.document.querySelector('#filters .tagmode.ruht'));
+    !wf.document.querySelector('#filters .tagmode.idle'));
 
   modus('or').onclick();
   await new Promise(r => setTimeout(r, 20));
@@ -25922,7 +25922,7 @@ async function pruefeOberflaeche() {
     offZeilen(offAdmin).length === 3 && offTexte(offAdmin)[0] === 'Eine Aufgabe',
     JSON.stringify(offTexte(offAdmin)));
   pruefe('Und sie zeichnet sich als erledigt',
-    offZeilen(offAdmin)[0].classList.contains('erledigt'),
+    offZeilen(offAdmin)[0].classList.contains('done'),
     offZeilen(offAdmin)[0].className);
   // SEIT 0.22.0 EIN SVG-ZEICHEN STATT ☐/☑ (Stilblatt N1): der Haken ist am
   // Zustand `on` und am Zeichen im Kaestchen zu erkennen, nicht am Glyph.
@@ -25939,7 +25939,7 @@ async function pruefeOberflaeche() {
     offAdmin.gesendet.filter(g => g.methode === 'PUT')[0]?.koerper?.kind === 'task',
     JSON.stringify(offAdmin.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
   pruefe('Die Zeile steht danach wieder offen da',
-    !offZeilen(offAdmin)[0].classList.contains('erledigt'),
+    !offZeilen(offAdmin)[0].classList.contains('done'),
     offZeilen(offAdmin)[0].className);
 
   /* Der Mock aendert seinen Bestand wirklich mit (Stolperstein 90):
@@ -26048,10 +26048,10 @@ async function pruefeOberflaeche() {
   pruefe('Und sie ist blau wie die Aufgabe im Eintrag -- keine neue Farbe',
     /border-left: *3px solid var\(--blue\)/.test(regelOff('.open-group')), regelOff('.open-group'));
   pruefe('Die erledigte Zeile hat eine eigene Regel',
-    !!regelOff('.open-row.erledigt .open-text'), regelOff('.open-row.erledigt .open-text') || '(keine Regel)');
+    !!regelOff('.open-row.done .open-text'), regelOff('.open-row.done .open-text') || '(keine Regel)');
   pruefe('Und sie streicht den Text durch',
-    /line-through/.test(regelOff('.open-row.erledigt .open-text')),
-    regelOff('.open-row.erledigt .open-text'));
+    /line-through/.test(regelOff('.open-row.done .open-text')),
+    regelOff('.open-row.done .open-text'));
 
   /* ================= Die gestrichene Pille — 0.17.0 ====================
      MITGENOMMEN UND NICHT GELOESCHT (Stolperstein 201). Hier standen bis 0.16.0
@@ -26149,8 +26149,8 @@ async function pruefeOberflaeche() {
      Zahl der greifenden Filter; ein Schluessel, den es nicht mehr gibt, darf
      dort keine Eins erzeugen. */
   pruefe('Und der Schalter zaehlt ihn nicht als greifenden Filter',
-    !/aktiv/.test(nsAlt.w.document.querySelector('#filter-auf .fz')?.textContent || ''),
-    nsAlt.w.document.querySelector('#filter-auf .fz')?.textContent);
+    !/aktiv/.test(nsAlt.w.document.querySelector('#filter-toggle .fcount')?.textContent || ''),
+    nsAlt.w.document.querySelector('#filter-toggle .fcount')?.textContent);
   nsAlt.w.close();
 
   /* UND DIE UEBRIGEN FILTER STEHEN UNVERAENDERT. Eine gestrichene Pille darf
@@ -26281,22 +26281,22 @@ async function pruefeOberflaeche() {
 
   const namen2 = (sel) => [...wb.document.querySelectorAll(sel + ' > .block')].map(b => b.dataset.block);
   pruefe('Gespeicherte Reihenfolge wird angewandt (Seite)',
-    gleich(namen2('#blocks-seite'), ['bewertung', 'kategorie', 'tags', 'potenzial']),
-    JSON.stringify(namen2('#blocks-seite')));
+    gleich(namen2('#blocks-side'), ['bewertung', 'kategorie', 'tags', 'potenzial']),
+    JSON.stringify(namen2('#blocks-side')));
   pruefe('Gespeicherte Reihenfolge wird angewandt (unten)',
-    gleich(namen2('#blocks-unten'), ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien']),
-    JSON.stringify(namen2('#blocks-unten')));
+    gleich(namen2('#blocks-bottom'), ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien']),
+    JSON.stringify(namen2('#blocks-bottom')));
   pruefe('Jeder Block hat einen Griff',
     [...wb.document.querySelectorAll('.block[data-block]')].every(b => b.querySelector('.bgrip')));
 
   const links = wb.document.querySelector('[data-block="links"]');
   pruefe('Gespeicherter Einklappzustand wird angewandt', links.classList.contains('zu'));
   pruefe('Eingeklappte Kopfzeile nennt den Inhalt',
-    links.querySelector('.bsumme').textContent === '(8)',
-    links.querySelector('.bsumme').textContent);
+    links.querySelector('.bsum').textContent === '(8)',
+    links.querySelector('.bsum').textContent);
   const kommentare = wb.document.querySelector('[data-block="kommentare"]');
   pruefe('Offener Block zeigt keine Zusammenfassung',
-    kommentare.querySelector('.bsumme').textContent === '');
+    kommentare.querySelector('.bsum').textContent === '');
 
   // Aufklappen per Klick auf die Kopfzeile
   links.querySelector('.block-head').onclick({ target: links.querySelector('.label') });
@@ -26336,8 +26336,8 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 20));
   pruefe('Der Kommentarblock laesst sich einklappen', kommentare.classList.contains('zu'));
   pruefe('Eingeklappt steht dort keine leere Klammer',
-    kommentare.querySelector('.bsumme').textContent === '',
-    `"${kommentare.querySelector('.bsumme').textContent}"`);
+    kommentare.querySelector('.bsum').textContent === '',
+    `"${kommentare.querySelector('.bsum').textContent}"`);
   pruefe('Und derselbe volle Satz steht weiterhin in der Kopfzeile',
     kommentare.querySelector('#ccount')?.textContent
       === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen)',
@@ -26367,7 +26367,7 @@ async function pruefeOberflaeche() {
     wb.blockSummary('kategorie', { category: null }) === 'keine');
 
   /* --- Ziehen am Griff --- */
-  const seiteBloecke = [...wb.document.querySelectorAll('#blocks-seite > .block')];
+  const seiteBloecke = [...wb.document.querySelectorAll('#blocks-side > .block')];
   wb.document.elementFromPoint = () => seiteBloecke[2];
   const zeiger2 = (art, y, ziel) => {
     const e = new wb.Event(art, { bubbles: true });
@@ -26385,16 +26385,16 @@ async function pruefeOberflaeche() {
      hinten, weil die gespeicherte Ordnung ihn nicht kennt (ordneBereich). Er
      zieht mit wie jeder andere; die Zusagen darunter gelten unveraendert. */
   pruefe('Ziehen am Rumpf verschiebt nichts',
-    gleich(namen2('#blocks-seite'), ['bewertung', 'kategorie', 'tags', 'potenzial']),
-    JSON.stringify(namen2('#blocks-seite')));
+    gleich(namen2('#blocks-side'), ['bewertung', 'kategorie', 'tags', 'potenzial']),
+    JSON.stringify(namen2('#blocks-side')));
 
   seiteBloecke[0].querySelector('.bgrip').dispatchEvent(zeiger2('pointerdown', 0));
   wb.document.dispatchEvent(zeiger2('pointermove', 200));
   wb.document.dispatchEvent(zeiger2('pointerup', 200));
   await new Promise(r => setTimeout(r, 20));
   pruefe('Ziehen am Griff verschiebt den Block',
-    gleich(namen2('#blocks-seite'), ['kategorie', 'tags', 'bewertung', 'potenzial']),
-    JSON.stringify(namen2('#blocks-seite')));
+    gleich(namen2('#blocks-side'), ['kategorie', 'tags', 'bewertung', 'potenzial']),
+    JSON.stringify(namen2('#blocks-side')));
   const nachZug = bd.gesendet.filter(x => x.koerper && x.koerper.bloecke).pop();
   pruefe('Neue Reihenfolge wird serverseitig gespeichert',
     nachZug && gleich(nachZug.koerper.bloecke.seite, ['kategorie', 'tags', 'bewertung', 'potenzial']),
@@ -26659,9 +26659,9 @@ async function pruefeOberflaeche() {
      gaebe (Stolperstein 81). */
   // SEIT 0.22.0 EIN EIGENER KNOPF IN DER LETZTEN SPALTE statt des × in der Reihe (E15).
   pruefe('Dafuer traegt jede Sternzeile ihren Ruecksetzknopf',
-    [...eDoc.querySelectorAll('#ratings .rrow')].every(z => !!z.querySelector('.rzz .rzurueck')),
+    [...eDoc.querySelectorAll('#ratings .rrow')].every(z => !!z.querySelector('.rreset-cell .rreset')),
     JSON.stringify([...eDoc.querySelectorAll('#ratings .rrow')]
-      .map(z => !!z.querySelector('.rzz .rzurueck'))));
+      .map(z => !!z.querySelector('.rreset-cell .rreset'))));
   // Angelegt wird nicht mehr am Eintrag. Das ist der eigentliche Umzug.
   pruefe('Am Eintrag gibt es kein Anlegefeld fuer Kriterien mehr',
     !eDoc.getElementById('newcrit'), 'newcrit steht noch in der Detailansicht');
@@ -26682,17 +26682,17 @@ async function pruefeOberflaeche() {
      die nur die Anzeige belegt, liesse offen, ob die Schwelle ueberhaupt
      wirkt. */
   pruefe('Bei einem Zugang steht keine Verfasserzeile am Eintrag',
-    eEinzeln.w.document.getElementById('ivf')?.hidden === true,
-    JSON.stringify(eEinzeln.w.document.getElementById('ivf')?.textContent));
+    eEinzeln.w.document.getElementById('iauthor')?.hidden === true,
+    JSON.stringify(eEinzeln.w.document.getElementById('iauthor')?.textContent));
   // Und damit auch kein Datum. Es steht dort schon in der Sortierung; die
   // Zeile bliebe sonst als reine Datumszeile stehen.
   pruefe('Und damit auch kein Anlegedatum',
-    !/2026/.test(eEinzeln.w.document.getElementById('ivf')?.textContent || ''),
-    JSON.stringify(eEinzeln.w.document.getElementById('ivf')?.textContent));
+    !/2026/.test(eEinzeln.w.document.getElementById('iauthor')?.textContent || ''),
+    JSON.stringify(eEinzeln.w.document.getElementById('iauthor')?.textContent));
   pruefe('Und kein Name an den Kommentaren',
-    eEinzeln.w.document.querySelectorAll('#cmts .cmt-von').length === 0);
+    eEinzeln.w.document.querySelectorAll('#cmts .cmt-from').length === 0);
   pruefe('Und keiner an den Testtagen',
-    eEinzeln.w.document.querySelectorAll('#tdays .tvon').length === 0);
+    eEinzeln.w.document.querySelectorAll('#tdays .tfrom').length === 0);
   /* UMGEDREHT MIT 0.8.6, nicht geloescht: bis 0.8.5 hiess die Prueflage "Und
      keine Stimmenliste unter den Sternen" und war die einzige Lage, in der
      unter den Sternen nichts stand. Unter den Sternen steht jetzt fuer
@@ -26707,11 +26707,11 @@ async function pruefeOberflaeche() {
      -- nur der Aufruf des Admins fehlt. */
   pruefe('Bei einem Zugang gibt es den Aufruf gar nicht',
     eEinzeln.w.document.getElementById('rwho') === null &&
-    eEinzeln.w.document.querySelector('#ratings .rrow .rzurueck') !== null,
+    eEinzeln.w.document.querySelector('#ratings .rrow .rreset') !== null,
     'rwho steht im Blockkopf');
   eEinzeln.w.close();
 
-  const eIvf = eDoc.getElementById('ivf');
+  const eIvf = eDoc.getElementById('iauthor');
   pruefe('Ab zwei Zugaengen sagt der Eintrag, wer ihn angelegt hat',
     eIvf?.hidden === false && /Angelegt von bert/.test(eIvf?.textContent || ''),
     JSON.stringify([eIvf?.hidden, eIvf?.textContent]));
@@ -26722,7 +26722,7 @@ async function pruefeOberflaeche() {
     /Angelegt von bert am 20\.07\.2026/.test(eIvf?.textContent || ''),
     JSON.stringify(eIvf?.textContent));
 
-  const eVon = [...eDoc.querySelectorAll('#cmts .cmt .cmt-von')].map(z => z.textContent);
+  const eVon = [...eDoc.querySelectorAll('#cmts .cmt .cmt-from')].map(z => z.textContent);
   pruefe('Jeder Kommentar traegt den Namen seines Verfassers',
     eVon.length === 6 && eVon.includes('chefin') && eVon.includes('bert'),
     JSON.stringify(eVon));
@@ -26737,7 +26737,7 @@ async function pruefeOberflaeche() {
   pruefe('Der freigegebene Grabsteinname steht nirgends auf dem Bildschirm',
     !/geloescht-4/.test(eDoc.body.textContent || ''), 'geloescht-4 steht im Text');
 
-  const eTvon = [...eDoc.querySelectorAll('#tdays .tvon')].map(z => z.textContent);
+  const eTvon = [...eDoc.querySelectorAll('#tdays .tfrom')].map(z => z.textContent);
   pruefe('Jeder Testtag nennt seinen Verfasser',
     eTvon.length === 1 && eTvon[0] === 'chefin', JSON.stringify(eTvon));
 
@@ -26810,12 +26810,12 @@ async function pruefeOberflaeche() {
      warum das ueberhaupt zulaessig ist: eingeklappt sieht man sonst nicht,
      dass gefiltert wird -- und eine Liste, die ohne sichtbaren Grund
      unvollstaendig ist, ist ein Fehler und keine Ansicht. */
-  const eSchalter = eKopf.w.document.getElementById('filter-auf');
+  const eSchalter = eKopf.w.document.getElementById('filter-toggle');
   const eFilter = eKopf.w.document.getElementById('filters');
   pruefe('Ueber den Filtern steht ein Schalter', !!eSchalter);
   pruefe('Ohne gesetzten Filter nennt er keine Zahl',
-    eSchalter?.querySelector('.fz')?.textContent === '' && !eSchalter?.classList.contains('aktiv'),
-    JSON.stringify(eSchalter?.querySelector('.fz')?.textContent));
+    eSchalter?.querySelector('.fcount')?.textContent === '' && !eSchalter?.classList.contains('aktiv'),
+    JSON.stringify(eSchalter?.querySelector('.fcount')?.textContent));
   eSchalter?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
   pruefe('Ein Druck klappt die Filter weg',
     eFilter?.classList.contains('zu') && eSchalter?.getAttribute('aria-expanded') === 'false',
@@ -26830,11 +26830,11 @@ async function pruefeOberflaeche() {
     .find(b => b.textContent.trim() === 'Getestet')
     ?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 20));
-  const eSchalter2 = eKopf.w.document.getElementById('filter-auf');
+  const eSchalter2 = eKopf.w.document.getElementById('filter-toggle');
   pruefe('Die Zahl am Schalter folgt der Filterstellung',
-    /1 aktiv/.test(eSchalter2?.querySelector('.fz')?.textContent || '') &&
-    eSchalter2?.classList.contains('aktiv'),
-    JSON.stringify(eSchalter2?.querySelector('.fz')?.textContent));
+    /1 aktiv/.test(eSchalter2?.querySelector('.fcount')?.textContent || '') &&
+    eSchalter2?.classList.contains('active'),
+    JSON.stringify(eSchalter2?.querySelector('.fcount')?.textContent));
   eKopf.w.close();
 
   /* Ein Benutzername ist Eingabe, keine Konstante -- spitze Klammern duerfen
@@ -26879,8 +26879,8 @@ async function pruefeOberflaeche() {
      Gegenrichtung: unter den Sternen steht nichts mehr. */
   pruefe('Unter den Sternen steht seit 0.8.6 keine Stimmenliste mehr',
     [...eDoc.querySelectorAll('#ratings .rrow')].length === 3 &&
-    eDoc.querySelectorAll('#ratings .rstimmen').length === 0,
-    `${eDoc.querySelectorAll('#ratings .rstimmen').length} Listen`);
+    eDoc.querySelectorAll('#ratings .rvotes').length === 0,
+    `${eDoc.querySelectorAll('#ratings .rvotes').length} Listen`);
   pruefe('Der Blockkopf bietet dem Admin die Ansicht an',
     !!eDoc.getElementById('rwho'), 'kein Knopf im Blockkopf');
   // Wirklich zugestellt, nicht von Hand gerufen -- und danach durch die
@@ -26904,25 +26904,25 @@ async function pruefeOberflaeche() {
   pruefe('Jede Zeile traegt den Namen ihres Kriteriums',
     gleich(eStimmZeilen.map(z => z.querySelector('.rname')?.textContent), ['Zuerst', 'Dann']),
     JSON.stringify(eStimmZeilen.map(z => z.querySelector('.rname')?.textContent)));
-  const eStimmen = [...eStimmZeilen[0]?.querySelectorAll('.rstimme') || []]
+  const eStimmen = [...eStimmZeilen[0]?.querySelectorAll('.rvote') || []]
     .map(z => z.textContent.replace('✕', '').trim());
   pruefe('Jede Stimme nennt Name und Wert',
     gleich(eStimmen, ['chefin 3', 'bert 4', 'Gelöschter Benutzer 4 2',
                       'Ohne Verfasser 4', 'carla 4']),
     JSON.stringify(eStimmen));
   pruefe('Die eigene Stimme ist gekennzeichnet',
-    eStimmZeilen[0]?.querySelectorAll('.rstimme.meine').length === 1,
-    `${eStimmZeilen[0]?.querySelectorAll('.rstimme.meine').length}`);
+    eStimmZeilen[0]?.querySelectorAll('.rvote.mine').length === 1,
+    `${eStimmZeilen[0]?.querySelectorAll('.rvote.mine').length}`);
   /* Das ✕ steht am FREMDEN Wert. Am eigenen nicht: dafuer gibt es die Sterne
      und den Ruecksetzer, und zwei Wege fuer dieselbe Absicht waeren einer zu
      viel. Eine Rollenfrage steht hier NICHT mehr daneben -- den Dialog
      bekommt ohnehin nur der Admin zu sehen, und eine zweite Klemme darin
      liesse sich nicht gegenpruefen. */
   pruefe('An jeder fremden Stimme steht ein ✕',
-    eStimmZeilen[0]?.querySelectorAll('.rstimme .xdel').length === 4,
-    `${eStimmZeilen[0]?.querySelectorAll('.rstimme .xdel').length}`);
+    eStimmZeilen[0]?.querySelectorAll('.rvote .xdel').length === 4,
+    `${eStimmZeilen[0]?.querySelectorAll('.rvote .xdel').length}`);
   pruefe('Aber keins an der eigenen',
-    !eStimmZeilen[0]?.querySelector('.rstimme.meine .xdel'));
+    !eStimmZeilen[0]?.querySelector('.rvote.mine .xdel'));
   pruefe('Und der freigegebene Grabsteinname steht auch hier nicht',
     !/geloescht-4/.test(eAnsicht?.textContent || ''), eAnsicht?.textContent);
 
@@ -26932,7 +26932,7 @@ async function pruefeOberflaeche() {
      -- und erst dann wird nachgesehen, was der Server bekommen hat.
      Die Rueckfrage liegt hier UEBER dem Dialog: zwei .backdrop
      uebereinander, und der zweite ist der juengere. */
-  const eKreuz = eStimmZeilen[0]?.querySelectorAll('.rstimme .xdel')[0];
+  const eKreuz = eStimmZeilen[0]?.querySelectorAll('.rvote .xdel')[0];
   if (eKreuz) {
     eKreuz.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
@@ -26955,13 +26955,13 @@ async function pruefeOberflaeche() {
      seiner Antwort. */
   pruefe('Danach holt sie die Liste neu und zeigt die Stimme nicht mehr',
     eMehr.gesendet.filter(x => x.url === '/api/items/1/stimmen').length === 2 &&
-    ![...eDoc.querySelectorAll('.backdrop .rstimme')]
+    ![...eDoc.querySelectorAll('.backdrop .rvote')]
       .some(z => /bert 4/.test(z.textContent)),
-    JSON.stringify([...eDoc.querySelectorAll('.backdrop .rstimme')].map(z => z.textContent)));
+    JSON.stringify([...eDoc.querySelectorAll('.backdrop .rvote')].map(z => z.textContent)));
   /* Zwei Dialoge uebereinander, und eine Taste nimmt nur den obersten weg.
      Ohne diese Frage schluesse dieselbe Taste die Ansicht gleich mit -- der
      Admin haette abgebrochen und staende wieder am Eintrag. */
-  const eKreuz2 = [...eDoc.querySelectorAll('.backdrop .rstimme .xdel')][0];
+  const eKreuz2 = [...eDoc.querySelectorAll('.backdrop .rvote .xdel')][0];
   const eVorAbbruch = eMehr.gesendet.length;
   if (eKreuz2) {
     eKreuz2.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
@@ -26993,7 +26993,7 @@ async function pruefeOberflaeche() {
      seit 0.21.0 an der Sternzeile statt am weggefallenen Ruecksetzer. */
   pruefe('Ohne Adminrolle gibt es den Aufruf gar nicht',
     eKeinAdmin.w.document.getElementById('rwho') === null &&
-    eKeinAdmin.w.document.querySelector('#ratings .rrow .rzurueck') !== null,
+    eKeinAdmin.w.document.querySelector('#ratings .rrow .rreset') !== null,
     'rwho steht im Blockkopf');
   // Und die Stimmen werden auch nicht abgerufen. Der Server verweigert es
   // ohnehin -- aber ein Abruf, der zuverlaessig ein 403 erzeugt, waere genau
@@ -27002,8 +27002,8 @@ async function pruefeOberflaeche() {
     !eKeinAdmin.gesendet.some(x => /\/stimmen$/.test(x.url)),
     JSON.stringify(eKeinAdmin.gesendet.map(x => x.url)));
   pruefe('Und kein einziger fremder Wert steht auf dem Bildschirm',
-    eKeinAdmin.w.document.querySelectorAll('.rstimme').length === 0,
-    `${eKeinAdmin.w.document.querySelectorAll('.rstimme').length}`);
+    eKeinAdmin.w.document.querySelectorAll('.rvote').length === 0,
+    `${eKeinAdmin.w.document.querySelectorAll('.rvote').length}`);
   eKeinAdmin.w.close();
 
   /* --- Der Loeschdialog am Eintrag ---------------------------------------
@@ -27233,12 +27233,12 @@ async function pruefeOberflaeche() {
   const eZl = baueDom(JSDOM, { uebersichtItems: eZlItems,
     einstellungen: { filters: null, zeitleiste: true, benutzerZahl: 3 } }).w;
   await new Promise(r => setTimeout(r, 80));
-  const eAlle = [...eZl.document.querySelectorAll('#zeitleiste .zl-punkt')];
+  const eAlle = [...eZl.document.querySelectorAll('#timeline .timeline-dot')];
   pruefe('Alle Testtage stehen in der Zeitleiste, auch die fremden',
     eAlle.length === 6, `${eAlle.length}`);
   pruefe('Fremde Punkte sind gekennzeichnet, eigene nicht',
-    eAlle.filter(p => p.classList.contains('fremd')).length === 2,
-    `${eAlle.filter(p => p.classList.contains('fremd')).length} von ${eAlle.length}`);
+    eAlle.filter(p => p.classList.contains('foreign')).length === 2,
+    `${eAlle.filter(p => p.classList.contains('foreign')).length} von ${eAlle.length}`);
   eZl.close();
   eMehr.w.close();
 
@@ -27277,14 +27277,14 @@ async function pruefeOberflaeche() {
     einstellungen: { filters: null, zeitleiste: true } }).w;
   await new Promise(r => setTimeout(r, 80));
   pruefe('Eingeschaltet erscheint die Zeitleiste',
-    !!zlAn.document.querySelector('#zeitleiste .zl'));
+    !!zlAn.document.querySelector('#timeline .timeline'));
   zlAn.close();
 
   const zlAus = baueDom(JSDOM, { uebersichtItems: zlItems,
     einstellungen: { filters: null, zeitleiste: false } }).w;
   await new Promise(r => setTimeout(r, 80));
   pruefe('Abgeschaltet bleibt sie weg',
-    zlAus.document.getElementById('zeitleiste').innerHTML === '');
+    zlAus.document.getElementById('timeline').innerHTML === '');
   pruefe('Das Kartenraster steht trotzdem',
     zlAus.document.querySelectorAll('.card').length === 6);
   zlAus.close();
@@ -27292,7 +27292,7 @@ async function pruefeOberflaeche() {
   const sysZl = baueDom(JSDOM, { einstellungen: { filters: null, zeitleiste: false, linkZeilen: 12 } });
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(sysZl.w, 'persoenlich');
-  const haken = sysZl.w.document.getElementById('zlan');
+  const haken = sysZl.w.document.getElementById('timeline-on');
   pruefe('Der Systembereich hat einen Schalter dafür', !!haken);
   pruefe('Er zeigt den gespeicherten Zustand', haken.checked === false);
   haken.checked = true;
@@ -27306,7 +27306,7 @@ async function pruefeOberflaeche() {
      fuer die Zeitleiste in „Darstellung" -- seit 0.16.0 zwei Abschnitte
      (Stolperstein 201). */
   await sysAbschnitt(sysZl.w, 'bestand');
-  const lzStufen = [...sysZl.w.document.querySelectorAll('#lzeilen .pill')];
+  const lzStufen = [...sysZl.w.document.querySelectorAll('#lrows .pill')];
   pruefe('Und es gibt Stufen für die sichtbaren Linkzeilen', lzStufen.length === 4, `${lzStufen.length}`);
   pruefe('Die gespeicherte Stufe ist hervorgehoben',
     lzStufen.find(b3 => b3.classList.contains('on'))?.textContent === '12 Zeilen',
@@ -27395,7 +27395,7 @@ async function pruefeOberflaeche() {
     JSON.stringify(eigGesendet?.koerper.sucheEigene));
 
   // Zahl der Namen: vier feste Stufen, wie schrift und linkZeilen.
-  const namenStufen = [...sysZl.w.document.querySelectorAll('#snamen .pill')];
+  const namenStufen = [...sysZl.w.document.querySelectorAll('#snames .pill')];
   pruefe('Es gibt vier Stufen für die Zahl der Namen', namenStufen.length === 4, `${namenStufen.length}`);
   pruefe('Die eingestellte Stufe ist hervorgehoben',
     namenStufen.find(b3 => b3.classList.contains('on'))?.textContent === '3 Namen',
@@ -27521,15 +27521,15 @@ async function pruefeOberflaeche() {
   const suchZeile = alleZeilen[7];
   const linkZeile0 = alleZeilen[0];
   pruefe('Die Suchzeile ist als solche gekennzeichnet',
-    !!suchZeile?.classList.contains('suche'), suchZeile?.className);
-  pruefe('Adresszeilen sind es nicht', !linkZeile0?.classList.contains('suche'));
+    !!suchZeile?.classList.contains('search'), suchZeile?.className);
+  pruefe('Adresszeilen sind es nicht', !linkZeile0?.classList.contains('search'));
   pruefe('Oben steht der Rohtext, unverändert',
     suchZeile?.querySelector('.dom')?.textContent === 'Handbuch 3000',
     suchZeile?.querySelector('.dom')?.textContent);
   // Darunter stehen mehrere Anbieter, Standard zuerst. BEWUSST OHNE
   // Vorspann "Suche · ": der erste Trenner bedeutete sonst etwas
   // anderes als der zweite.
-  const anbNamen = [...(suchZeile?.querySelectorAll('.snamen .sname') || [])];
+  const anbNamen = [...(suchZeile?.querySelectorAll('.snames .sname') || [])];
   pruefe('Darunter stehen die Anbieter des Vorrats', anbNamen.length === 3, `${anbNamen.length}`);
   pruefe('Der Startanbieter steht vorn',
     anbNamen[0]?.textContent === 'Startpage', anbNamen[0]?.textContent);
@@ -27537,19 +27537,19 @@ async function pruefeOberflaeche() {
     anbNamen.map(s => s.textContent).join(' · ') === 'Startpage · Bing · Forum <b>X</b>',
     anbNamen.map(s => s.textContent).join(' · '));
   pruefe('Kein Vorspann mehr vor den Namen',
-    !/Suche/.test(suchZeile?.querySelector('.snamen')?.textContent || ''),
-    suchZeile?.querySelector('.snamen')?.textContent);
+    !/Suche/.test(suchZeile?.querySelector('.snames')?.textContent || ''),
+    suchZeile?.querySelector('.snames')?.textContent);
   pruefe('Die Namen sind durch Mittelpunkte getrennt',
-    (suchZeile?.querySelector('.snamen')?.textContent || '').split(' · ').length === 3,
-    suchZeile?.querySelector('.snamen')?.textContent);
+    (suchZeile?.querySelector('.snames')?.textContent || '').split(' · ').length === 3,
+    suchZeile?.querySelector('.snames')?.textContent);
   // Der Anbietername ist Eingabe des Admins und die erste Stelle in der
   // Linkliste, an der Eingabe als Beschriftung gerendert wird. Gebaut wird
   // deshalb mit echten Knoten -- geprueft wird am gerenderten HTML, weil
   // textContent eine fehlende Maskierung gar nicht bemerken wuerde.
   pruefe('Ein Anbietername mit spitzen Klammern bleibt Text',
-    !suchZeile?.querySelector('.snamen b') &&
-    /&lt;b&gt;/.test(suchZeile?.querySelector('.snamen')?.innerHTML || ''),
-    suchZeile?.querySelector('.snamen')?.innerHTML);
+    !suchZeile?.querySelector('.snames b') &&
+    /&lt;b&gt;/.test(suchZeile?.querySelector('.snames')?.innerHTML || ''),
+    suchZeile?.querySelector('.snames')?.innerHTML);
   pruefe('Jeder Name sagt im Überfahrtext, wohin er führt',
     anbNamen.every(s => /^Suche nach /.test(s.title || '')) &&
     /Forum <b>X<\/b>$/.test(anbNamen[2]?.title || ''),
@@ -27651,7 +27651,7 @@ async function pruefeOberflaeche() {
      Der Eintrag gehoert bert; chefin, der boese Name, der Grabstein und die
      herrenlose Zeile sind ihm fremd. */
   const lvZeilen = (fenster) => [...fenster.document.querySelectorAll('#links .lrow')];
-  const lvName = (z) => z?.querySelector('.lvon')?.textContent || '';
+  const lvName = (z) => z?.querySelector('.lfrom')?.textContent || '';
 
   const lvMehr = baueDom(JSDOM, { hash: '#/item/1',
     einstellungen: { filters: null, benutzerZahl: 3 } });
@@ -27662,7 +27662,7 @@ async function pruefeOberflaeche() {
   pruefe('Die Linkliste steht auch bei mehreren Zugaengen vollstaendig da',
     lvM.length === 8, `${lvM.length}`);
   pruefe('An einer Zeile des Eintragsverfassers steht kein Name',
-    lvM.slice(0, 4).every(z => !z.querySelector('.lvon')),
+    lvM.slice(0, 4).every(z => !z.querySelector('.lfrom')),
     lvM.slice(0, 4).map(z => lvName(z)).join(' | ') || '(kein Name -- richtig)');
   pruefe('An einer fremden Zeile steht er',
     lvName(lvM[5]) === '(chefin)', lvName(lvM[5]) || '(kein Name)');
@@ -27690,10 +27690,10 @@ async function pruefeOberflaeche() {
   /* Der Name steht NEBEN dem Pfad, nicht darunter -- sonst waechst die Zeile
      auf dem Handy auf drei Hoehen. */
   pruefe('Name und Pfad stehen in derselben zweiten Zeile',
-    !!lvM[5].querySelector('.lunten > .path') && !!lvM[5].querySelector('.lunten > .lvon'),
+    !!lvM[5].querySelector('.lbottom > .path') && !!lvM[5].querySelector('.lbottom > .lfrom'),
     lvM[5].querySelector('.lurl')?.innerHTML);
   pruefe('Und bei der Suchzeile Anbieternamen und Name ebenso',
-    !!lvM[7].querySelector('.lunten > .snamen') && !!lvM[7].querySelector('.lunten > .lvon'),
+    !!lvM[7].querySelector('.lbottom > .snames') && !!lvM[7].querySelector('.lbottom > .lfrom'),
     lvM[7].querySelector('.lurl')?.innerHTML);
 
   /* Das Datum steht im Ueberfahrtext, nicht in der Zeile -- die Zeile ist auf
@@ -27716,7 +27716,7 @@ async function pruefeOberflaeche() {
   pruefe('Aus einem Verfassernamen mit spitzen Klammern wird kein HTML',
     !lvMehr.w.document.getElementById('boese-link') &&
     lvName(lvM[4]).includes('<b id="boese-link">X</b>'),
-    lvM[4]?.querySelector('.lvon')?.innerHTML);
+    lvM[4]?.querySelector('.lfrom')?.innerHTML);
   /* Und die Klammern kommen aus der Vorlage, nicht aus dem Namen: bei einem
      Namen mit spitzen Klammern muessen sie trotzdem aussen stehen. */
   pruefe('Die Klammern stehen auch dort aussen',
@@ -27740,7 +27740,7 @@ async function pruefeOberflaeche() {
   pruefe('Auch bei einem einzigen Zugang stehen alle Zeilen da',
     lvE.length === 8, `${lvE.length}`);
   pruefe('Aber an keiner steht ein Name',
-    lvE.every(z => !z.querySelector('.lvon')),
+    lvE.every(z => !z.querySelector('.lfrom')),
     lvE.map(z => lvName(z)).filter(Boolean).join(' | ') || '(kein Name -- richtig)');
   pruefe('Und im Ueberfahrtext steht auch kein Eintrager',
     lvE.every(z => !/Eingetragen von/.test(z.title)),
@@ -27762,7 +27762,7 @@ async function pruefeOberflaeche() {
     lvU.filter(z => !!z.querySelector('.xdel')).length === 1 && !!lvU[5].querySelector('.xdel'),
     lvU.map((z, i) => (z.querySelector('.xdel') ? i : null)).filter(i => i !== null).join(', '));
   pruefe('Ein Name ohne Kreuz ist moeglich -- Anzeige und Recht sind getrennt',
-    !!lvU[7].querySelector('.lvon') && !lvU[7].querySelector('.xdel'),
+    !!lvU[7].querySelector('.lfrom') && !lvU[7].querySelector('.xdel'),
     `${lvName(lvU[7])} / ${!!lvU[7].querySelector('.xdel')}`);
   // Und die Zeile bleibt im Uebrigen vollstaendig -- ein fehlendes Kreuz darf
   // nicht den Aufbau der Liste mitreissen.
@@ -27777,19 +27777,19 @@ async function pruefeOberflaeche() {
   const cssL = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const regelL = (wahl) => (cssL.match(new RegExp(wahl.replace(/[.>]/g, m => '\\' + m) + ' \\{[^}]*\\}')) || [''])[0];
   pruefe('Die zweite Zeile der Linkzeile ist im Stylesheet ueberhaupt geregelt',
-    regelL('.lunten').length > 0, '(keine Regel .lunten)');
+    regelL('.lbottom').length > 0, '(keine Regel .lbottom)');
   pruefe('Sie stellt Pfad und Namen nebeneinander',
-    /display: flex/.test(regelL('.lunten')), regelL('.lunten') || '(keine Regel)');
+    /display: flex/.test(regelL('.lbottom')), regelL('.lbottom') || '(keine Regel)');
   /* `0 1 auto` und nicht `1 1 auto`: der Pfad nimmt sich nur, was er braucht.
      Waechst er auf die volle Breite, schiebt er den Namen ans rechte Ende der
      Zeile, wo er zu nichts mehr gehoert -- genau das war der Befund aus dem
      Betrieb. Schrumpfen darf er weiterhin. */
   pruefe('Der Pfad nimmt sich nur, was er braucht, und darf schrumpfen',
-    /flex: 0 1 auto/.test(regelL('.lunten .path, .lunten .snamen')),
-    regelL('.lunten .path, .lunten .snamen') || '(keine Regel)');
+    /flex: 0 1 auto/.test(regelL('.lbottom .path, .lbottom .snames')),
+    regelL('.lbottom .path, .lbottom .snames') || '(keine Regel)');
   pruefe('Der Name nicht',
-    /flex: 0 0 auto/.test(regelL('.lunten .lvon')),
-    regelL('.lunten .lvon') || '(keine Regel)');
+    /flex: 0 0 auto/.test(regelL('.lbottom .lfrom')),
+    regelL('.lbottom .lfrom') || '(keine Regel)');
 
   /* ================= Der Name an der Dateizeile ================= */
   gruppe('Der Name an der Dateizeile');
@@ -27799,7 +27799,7 @@ async function pruefeOberflaeche() {
      zweiten nur behauptet, ist an der zweiten ungeprueft.
      Der Eintrag gehoert bert; chefin und die herrenlose Zeile sind ihm fremd. */
   const avZeilen = (fenster) => [...fenster.document.querySelectorAll('#atts .arow')];
-  const avName = (z) => z?.querySelector('.avon')?.textContent || '';
+  const avName = (z) => z?.querySelector('.afrom')?.textContent || '';
 
   const avMehr = baueDom(JSDOM, { hash: '#/item/1',
     einstellungen: { filters: null, benutzerZahl: 3 } });
@@ -27808,7 +27808,7 @@ async function pruefeOberflaeche() {
   pruefe('Die Dateiliste steht bei mehreren Zugaengen vollstaendig da',
     avM.length === 4, `${avM.length}`);
   pruefe('An einer Datei des Eintragsverfassers steht kein Name',
-    avM.slice(0, 2).every(z => !z.querySelector('.avon')),
+    avM.slice(0, 2).every(z => !z.querySelector('.afrom')),
     avM.slice(0, 2).map(z => avName(z)).join(' | ') || '(kein Name -- richtig)');
   pruefe('An einer fremden Datei steht er, in Klammern',
     avName(avM[2]) === '(chefin)', avName(avM[2]) || '(kein Name)');
@@ -27818,7 +27818,7 @@ async function pruefeOberflaeche() {
      hinter dem Dateinamen. Der Name der Datei ist die Hauptsache der Zeile und
      darf nicht schrumpfen, um Platz fuer eine Nebenangabe zu machen. */
   pruefe('Er steht hinter der Groesse, nicht hinter dem Dateinamen',
-    !!avM[2].querySelector('.asize + .avon'),
+    !!avM[2].querySelector('.asize + .afrom'),
     avM[2].innerHTML.slice(0, 200));
   pruefe('Der Ueberfahrtext nennt den Hochladenden und das Datum',
     /Hochgeladen von chefin am \d\d\.\d\d\.\d{4}/.test(avM[2].title), avM[2].title);
@@ -27839,7 +27839,7 @@ async function pruefeOberflaeche() {
   pruefe('Auch bei einem einzigen Zugang stehen alle Dateien da',
     avE.length === 4, `${avE.length}`);
   pruefe('Aber an keiner steht ein Name',
-    avE.every(z => !z.querySelector('.avon')),
+    avE.every(z => !z.querySelector('.afrom')),
     avE.map(z => avName(z)).filter(Boolean).join(' | ') || '(kein Name -- richtig)');
   pruefe('Und im Ueberfahrtext steht auch kein Hochladender',
     avE.every(z => !/Hochgeladen von/.test(z.title)),
@@ -27856,7 +27856,7 @@ async function pruefeOberflaeche() {
     avU.filter(z => !!z.querySelector('.xdel')).length === 1 && !!avU[2].querySelector('.xdel'),
     avU.map((z, i) => (z.querySelector('.xdel') ? i : null)).filter(i => i !== null).join(', '));
   pruefe('Ein Name ohne Kreuz ist auch hier moeglich',
-    !!avU[3].querySelector('.avon') && !avU[3].querySelector('.xdel'),
+    !!avU[3].querySelector('.afrom') && !avU[3].querySelector('.xdel'),
     `${avName(avU[3])} / ${!!avU[3].querySelector('.xdel')}`);
   // Ein fehlendes Kreuz darf den Rest der Zeile nicht mitreissen.
   pruefe('Die Zeilen ohne Kreuz sind sonst unversehrt',
@@ -27866,9 +27866,9 @@ async function pruefeOberflaeche() {
 
   // Und die Regel im Stylesheet: der Name wird nie abgeschnitten.
   pruefe('Der Name an der Dateizeile ist im Stylesheet ueberhaupt geregelt',
-    regelL('.arow .avon').length > 0, '(keine Regel .arow .avon)');
+    regelL('.arow .afrom').length > 0, '(keine Regel .arow .afrom)');
   pruefe('Und er darf nicht schrumpfen',
-    /flex-shrink: 0/.test(regelL('.arow .avon')), regelL('.arow .avon') || '(keine Regel)');
+    /flex-shrink: 0/.test(regelL('.arow .afrom')), regelL('.arow .afrom') || '(keine Regel)');
 
   /* ================= Ziehen auf dem Finger ================= */
   gruppe('Ziehen: Maus sofort, Finger erst nach Halten');
@@ -27888,12 +27888,12 @@ async function pruefeOberflaeche() {
     (el || wb.document).dispatchEvent(e);
     return e;
   };
-  const seite = () => [...wb.document.querySelectorAll('#blocks-seite > .block')].map(b => b.dataset.block);
+  const seite = () => [...wb.document.querySelectorAll('#blocks-side > .block')].map(b => b.dataset.block);
   const ausgang = seite();
 
   // Mit der Maus: sofort, ohne zu warten.
-  const ersterBlock = wb.document.querySelector('#blocks-seite > .block');
-  wb.document.elementFromPoint = () => [...wb.document.querySelectorAll('#blocks-seite > .block')][2];
+  const ersterBlock = wb.document.querySelector('#blocks-side > .block');
+  wb.document.elementFromPoint = () => [...wb.document.querySelectorAll('#blocks-side > .block')][2];
   zeigerAuf(ersterBlock.querySelector('.bgrip'), 'pointerdown', 0, 0, 'mouse');
   zeigerAuf(null, 'pointermove', 0, 200, 'mouse');
   zeigerAuf(null, 'pointerup', 0, 200, 'mouse');
@@ -27902,7 +27902,7 @@ async function pruefeOberflaeche() {
 
   // Auf dem Finger: sofortiges Wischen ist Scrollen, kein Sortieren.
   const jetzt = seite();
-  const b2 = wb.document.querySelector('#blocks-seite > .block');
+  const b2 = wb.document.querySelector('#blocks-side > .block');
   zeigerAuf(b2.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
   zeigerAuf(null, 'pointermove', 0, 200, 'touch');
   zeigerAuf(null, 'pointerup', 0, 200, 'touch');
@@ -27915,7 +27915,7 @@ async function pruefeOberflaeche() {
   // Der eigentliche Schaden ohne Abbruch: ein langsamer Wisch greift nach
   // Ablauf der Haltezeit doch zu, und beim Loslassen zaehlt er als Klick --
   // auf einer Linkzeile oeffnet das den Link.
-  const langsam = wb.document.querySelector('#blocks-seite > .block');
+  const langsam = wb.document.querySelector('#blocks-side > .block');
   zeigerAuf(langsam.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
   zeigerAuf(null, 'pointermove', 0, 120, 'touch');     // gewischt = gescrollt
   await new Promise(r => setTimeout(r, 480));           // und die Zeit laeuft ab
@@ -27942,7 +27942,7 @@ async function pruefeOberflaeche() {
   pruefe('Ein Tipp öffnet ihn sehr wohl', geoeffnet === 1, `${geoeffnet}`);
 
   // Auf dem Finger: erst halten, dann ziehen.
-  const b3 = wb.document.querySelector('#blocks-seite > .block');
+  const b3 = wb.document.querySelector('#blocks-side > .block');
   zeigerAuf(b3.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
   zeigerAuf(null, 'pointermove', 0, 3, 'touch');   // winzige Bewegung ist erlaubt
   pruefe('Vor Ablauf der Haltezeit ist noch nichts gegriffen',
@@ -27958,7 +27958,7 @@ async function pruefeOberflaeche() {
     !wb.document.querySelector('.dragging, .griffbereit'));
 
   // Ein abgebrochener Zeiger (der Browser übernimmt das Scrollen) räumt auf.
-  const b4 = wb.document.querySelector('#blocks-seite > .block');
+  const b4 = wb.document.querySelector('#blocks-side > .block');
   zeigerAuf(b4.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
   await new Promise(r => setTimeout(r, 480));
   zeigerAuf(null, 'pointercancel', 0, 0, 'touch');
@@ -27987,8 +27987,8 @@ async function pruefeOberflaeche() {
   pruefe('Und überhaupt kein fremdes Markup',
     !!kBody && !kBody.querySelector('b, i, img, script, iframe, style'), kBody?.innerHTML);
   pruefe('Bericht ist optisch als solcher erkennbar',
-    !kmts[0].classList.contains('bericht') && kmts[1].classList.contains('bericht') &&
-    !kmts[2].classList.contains('bericht'));
+    !kmts[0].classList.contains('report') && kmts[1].classList.contains('report') &&
+    !kmts[2].classList.contains('report'));
   pruefe('Angepinntes ist optisch erkennbar',
     kmts[0].classList.contains('pinned') && !kmts[1].classList.contains('pinned'));
 
@@ -28059,8 +28059,8 @@ async function pruefeOberflaeche() {
   const cssM = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const regelM = (wahl) => (cssM.match(new RegExp(wahl.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
   pruefe('Die Art wird an der linken Kante markiert, in Orange',
-    /border-left: 3px solid var\(--accent\)/.test(regelM('.cmt.bericht')),
-    regelM('.cmt.bericht') || '(keine Regel)');
+    /border-left: 3px solid var\(--accent\)/.test(regelM('.cmt.report')),
+    regelM('.cmt.report') || '(keine Regel)');
   pruefe('Die Anpinnung bewirkt im Stylesheet überhaupt etwas',
     /[a-z-]+:/.test(regelM('.cmt.pinned')), regelM('.cmt.pinned') || '(keine Regel)');
 
@@ -28092,13 +28092,13 @@ async function pruefeOberflaeche() {
         .test(regelM('.cmt.pinned'))),
     regelM('.cmt.pinned') || '(keine Regel)');
   pruefe('Und die drei Arten holen sich ihre linke Kante in ihrer Farbe zurueck',
-    [['bericht', 'accent'], ['aufgabe', 'blue'], ['erledigt', 'green']].every(([a, f]) =>
+    [['report', 'accent'], ['task', 'blue'], ['done', 'green']].every(([a, f]) =>
       new RegExp('border-left-color: var\\(--' + f + '\\)').test(regelM('.cmt.pinned.' + a))),
-    ['bericht', 'aufgabe', 'erledigt'].map(a => regelM('.cmt.pinned.' + a)).join(' | ').slice(0, 240));
+    ['report', 'task', 'done'].map(a => regelM('.cmt.pinned.' + a)).join(' | ').slice(0, 240));
   pruefe('Und der Bericht behält seine dicke Kante auch angepinnt',
-    /border-left: 3px solid var\(--accent\)/.test(regelM('.cmt.bericht')) &&
-    !/border-left:|border-left-width/.test(regelM('.cmt.pinned.bericht')),
-    regelM('.cmt.pinned.bericht') || '(keine Regel)');
+    /border-left: 3px solid var\(--accent\)/.test(regelM('.cmt.report')) &&
+    !/border-left:|border-left-width/.test(regelM('.cmt.pinned.report')),
+    regelM('.cmt.pinned.report') || '(keine Regel)');
   pruefe('Ein Merkmal, ein Zeichen — kein zweiter Untergrund für die Anpinnung',
     !/background/.test(regelM('.cmt.pinned')),
     regelM('.cmt.pinned') || '(keine Regel)');
@@ -28107,27 +28107,27 @@ async function pruefeOberflaeche() {
     !/border-(top|right|bottom)-width|border-width/.test(regelM('.cmt.pinned')),
     regelM('.cmt'));
   pruefe('Rot bleibt aus der Kennzeichnung heraus',
-    !/--red|#f0555c/.test(regelM('.cmt.pinned') + regelM('.cmt.bericht')));
+    !/--red|#f0555c/.test(regelM('.cmt.pinned') + regelM('.cmt.report')));
 
   /* --- Dritte Art: Aufgabe --- */
   pruefe('Eine Aufgabe bekommt ihre eigene Klasse',
-    kmts[4].classList.contains('aufgabe') && !kmts[4].classList.contains('bericht'),
+    kmts[4].classList.contains('task') && !kmts[4].classList.contains('report'),
     kmts[4].className);
   pruefe('Und keine andere Art trägt sie',
-    kmts.filter(k => k.classList.contains('aufgabe')).length === 1);
+    kmts.filter(k => k.classList.contains('task')).length === 1);
   pruefe('Die Aufgabe wird an derselben Kante markiert, in Blau',
-    /border-left: 3px solid var\(--blue\)/.test(regelM('.cmt.aufgabe')),
-    regelM('.cmt.aufgabe') || '(keine Regel)');
+    /border-left: 3px solid var\(--blue\)/.test(regelM('.cmt.task')),
+    regelM('.cmt.task') || '(keine Regel)');
   pruefe('Blau ist als eigene Farbe hinterlegt',
     /--blue: #[0-9a-f]{6}/i.test(cssM), (cssM.match(/--blue:[^;]*/) || ['(nicht gesetzt)'])[0]);
   pruefe('Kein zweiter Kanal: die Aufgabe färbt keine Fläche',
-    !/background/.test(regelM('.cmt.aufgabe')), regelM('.cmt.aufgabe'));
+    !/background/.test(regelM('.cmt.task')), regelM('.cmt.task'));
   pruefe('Ein erledigtes Todo bekommt seine eigene Klasse',
-    kmts[5].classList.contains('erledigt') && !kmts[5].classList.contains('aufgabe'),
+    kmts[5].classList.contains('done') && !kmts[5].classList.contains('task'),
     kmts[5].className);
   pruefe('Erledigt wird an derselben Kante markiert, in Grün',
-    /border-left: 3px solid var\(--green\)/.test(regelM('.cmt.erledigt')),
-    regelM('.cmt.erledigt') || '(keine Regel)');
+    /border-left: 3px solid var\(--green\)/.test(regelM('.cmt.done')),
+    regelM('.cmt.done') || '(keine Regel)');
   pruefe('Grün ist als Farbe hinterlegt',
     /--green: #[0-9a-f]{6}/i.test(cssM), (cssM.match(/--green:[^;]*/) || ['(nicht gesetzt)'])[0]);
   // Keine Farbe zweimal erklaeren. Eine zweite Deklaration im selben :root
@@ -28141,14 +28141,14 @@ async function pruefeOberflaeche() {
     doppelt.length === 0 && namen.length > 20,
     doppelt.length ? `doppelt: ${[...new Set(doppelt)].join(', ')}` : `${namen.length} Variablen`);
   pruefe('Auch erledigt färbt keine Fläche',
-    !/background/.test(regelM('.cmt.erledigt')), regelM('.cmt.erledigt'));
+    !/background/.test(regelM('.cmt.done')), regelM('.cmt.done'));
   pruefe('Die vier Arten haben vier verschiedene Kanten',
-    new Set(['.cmt.bericht', '.cmt.aufgabe', '.cmt.erledigt']
+    new Set(['.cmt.report', '.cmt.task', '.cmt.done']
       .map(w => (regelM(w).match(/var\(--[a-z]+\)/) || [''])[0])).size === 3,
-    ['.cmt.bericht', '.cmt.aufgabe', '.cmt.erledigt'].map(regelM).join(' '));
+    ['.cmt.report', '.cmt.task', '.cmt.done'].map(regelM).join(' '));
 
   const knoepfe = (n) => ({
-    art: kmts[n].querySelector('.mark.art'), aufg: kmts[n].querySelector('.mark.aufg')
+    art: kmts[n].querySelector('.mark.kind'), aufg: kmts[n].querySelector('.mark.task')
   });
   pruefe('Jeder Kommentar hat beide Artknöpfe',
     kmts.every((_, n) => knoepfe(n).art && knoepfe(n).aufg));
@@ -28161,7 +28161,7 @@ async function pruefeOberflaeche() {
     knoepfe(4).aufg.classList.contains('on') && !knoepfe(4).art.classList.contains('on'));
   pruefe('Beim erledigten Todo trägt der Knopf das Wort für erledigt',
     knoepfe(5).aufg.textContent === 'Erledigt' &&
-    knoepfe(5).aufg.classList.contains('fertig'),
+    knoepfe(5).aufg.classList.contains('done'),
     `${knoepfe(5).aufg.textContent} | ${knoepfe(5).aufg.className}`);
   /* Der Knopf traegt die Farbe der Kante, die er setzt. Bis 0.8.2 fiel der
      eingeschaltete, noch offene Aufgabenknopf auf .mark.on zurueck und wurde
@@ -28169,18 +28169,18 @@ async function pruefeOberflaeche() {
      nebeneinander: eine Pruefung nur auf Blau liesse offen, ob dabei das
      Gruen des erledigten Todos mit umgefaerbt wurde. */
   pruefe('Der eingeschaltete Aufgabenknopf trägt Blau wie seine Kante',
-    /color: var\(--blue\)/.test(regelM('.mark.aufg.on')) &&
-    /border-color: var\(--blue\)/.test(regelM('.mark.aufg.on')),
-    regelM('.mark.aufg.on') || '(keine Regel)');
+    /color: var\(--blue\)/.test(regelM('.mark.task.on')) &&
+    /border-color: var\(--blue\)/.test(regelM('.mark.task.on')),
+    regelM('.mark.task.on') || '(keine Regel)');
   // Die Regel muss DA SEIN und darf nicht orange sein. Ohne den ersten Teil
   // waere die Pruefung bei fehlender Regel gruen -- sie kann dann gar nicht
   // scheitern, und die Gegenprobe belegte nichts.
   pruefe('Und ausdrücklich nicht mehr Orange',
-    !!regelM('.mark.aufg.on') && !/var\(--accent\)/.test(regelM('.mark.aufg.on')),
-    regelM('.mark.aufg.on') || '(keine Regel)');
+    !!regelM('.mark.task.on') && !/var\(--accent\)/.test(regelM('.mark.task.on')),
+    regelM('.mark.task.on') || '(keine Regel)');
   pruefe('Das erledigte Todo behält daneben sein Grün',
-    /color: var\(--green\)/.test(regelM('.mark.aufg.on.fertig')),
-    regelM('.mark.aufg.on.fertig') || '(keine Regel)');
+    /color: var\(--green\)/.test(regelM('.mark.task.on.done')),
+    regelM('.mark.task.on.done') || '(keine Regel)');
   // Orange bleibt die Farbe der uebrigen Marken -- die Klarstellung nimmt
   // "Orange ist Art und Bedienung" nicht zurueck, sie beschneidet sie.
   pruefe('Die übrigen Marken bleiben orange',
@@ -28236,13 +28236,13 @@ async function pruefeOberflaeche() {
     `${kmts.filter(k => k.querySelector('.cmt-head .acts .rm')).length} mal ✕`);
   pruefe('Die Umschalter zeigen den Zustand',
     kmts[0].querySelector('.pin').classList.contains('on') &&
-    !kmts[0].querySelector('.art').classList.contains('on') &&
-    kmts[1].querySelector('.art').classList.contains('on'));
+    !kmts[0].querySelector('.kind').classList.contains('on') &&
+    kmts[1].querySelector('.kind').classList.contains('on'));
   pruefe('Der Artschalter trägt das Vokabelwort',
-    kmts[1].querySelector('.art').textContent === 'Bericht',
-    kmts[1].querySelector('.art').textContent);
+    kmts[1].querySelector('.kind').textContent === 'Bericht',
+    kmts[1].querySelector('.kind').textContent);
 
-  kmts[2].querySelector('.art').onclick();
+  kmts[2].querySelector('.kind').onclick();
   await new Promise(r => setTimeout(r, 30));
   const alsBericht = bd.gesendet.filter(x => x.koerper && x.koerper.kind !== undefined).pop();
   pruefe('Klick auf die Art schickt nur die Art',
@@ -28279,7 +28279,7 @@ async function pruefeOberflaeche() {
      ist. Zwei Kommentare tragen ihn mit VERSCHIEDENEN Zahlen: gleiche liessen
      nicht sehen, ob die Angabe ihre eigene Zeile trifft, und die Mehrzahl
      bliebe ungeprueft. */
-  const vermerke = [...wb.document.querySelectorAll('#cmts .cmt-head .cmt-eingriff')]
+  const vermerke = [...wb.document.querySelectorAll('#cmts .cmt-head .cmt-edited')]
     .map(z => z.textContent);
   /* DER VERMERK NENNT DIE ROLLE. "vom Admin" steht in keiner Spalte: es folgt
      aus den beiden Klemmen an der Loeschroute (siehe den Waechter ueber den
@@ -28296,10 +28296,10 @@ async function pruefeOberflaeche() {
     ![...wb.document.querySelectorAll('#cmts .cmt-body')].some(b => /entfernt/.test(b.textContent)),
     'ein Kommentartext nennt den Vermerk');
   pruefe('Wo nichts entfernt wurde, steht auch nichts',
-    !kmts[0].querySelector('.cmt-eingriff') && !kmts[4].querySelector('.cmt-eingriff') &&
-    !kmts[5].querySelector('.cmt-eingriff'));
+    !kmts[0].querySelector('.cmt-edited') && !kmts[4].querySelector('.cmt-edited') &&
+    !kmts[5].querySelector('.cmt-edited'));
   pruefe('Es gibt keinen Knopf, der ihn zurücksetzt',
-    ![...wb.document.querySelectorAll('#cmts .cmt-eingriff')].some(z => z.querySelector('button')));
+    ![...wb.document.querySelectorAll('#cmts .cmt-edited')].some(z => z.querySelector('button')));
 
   /* --- Die Zahlen in der Kopfzeile des Kommentarblocks ------------------
      Links und Dateien tragen ihren Hinweis, Kommentare bisher nicht. Der Satz
@@ -28406,8 +28406,8 @@ async function pruefeOberflaeche() {
     nZahl('.acts .rm') === 3 && kmts.filter(k => k.querySelector('.acts .rm')).length === 6,
     `${nZahl('.acts .rm')} ohne Admin, ${kmts.filter(k => k.querySelector('.acts .rm')).length} mit`);
   pruefe('Und die drei Marken ebenso',
-    nZahl('.marks') === 3 && nZahl('.mark.pin') === 3 && nZahl('.mark.art') === 3 &&
-    nZahl('.mark.aufg') === 3, `${nZahl('.marks')} Markenleisten`);
+    nZahl('.marks') === 3 && nZahl('.mark.pin') === 3 && nZahl('.mark.kind') === 3 &&
+    nZahl('.mark.task') === 3, `${nZahl('.marks')} Markenleisten`);
   // Der Bericht von bert traegt zwei Bilder und gehoert einem anderen.
   pruefe('Am fremden Kommentar bleibt kein einziges Bedienelement',
     !nKmts[1].querySelector('.ed') && !nKmts[1].querySelector('.rm') &&
@@ -28733,15 +28733,15 @@ async function pruefeOberflaeche() {
   pruefe('Die Vorschauleiste zeigt beide Zeilen', vKacheln.length === 2,
     `${vKacheln.length} Kacheln`);
   pruefe('Am Video steht ein Abspielzeichen',
-    !!vKacheln[1]?.querySelector('.spielmarke'), vKacheln[1]?.innerHTML?.slice(0, 120));
+    !!vKacheln[1]?.querySelector('.play-badge'), vKacheln[1]?.innerHTML?.slice(0, 120));
   pruefe('Und am Foto daneben steht keins',
-    !!vKacheln[0] && !vKacheln[0].querySelector('.spielmarke'),
+    !!vKacheln[0] && !vKacheln[0].querySelector('.play-badge'),
     vKacheln[0]?.innerHTML?.slice(0, 120));
   pruefe('Die Laenge steht als 0:42 an der Videokachel',
-    vKacheln[1]?.querySelector('.dauer')?.textContent === '0:42',
-    JSON.stringify(vKacheln[1]?.querySelector('.dauer')?.textContent));
+    vKacheln[1]?.querySelector('.duration')?.textContent === '0:42',
+    JSON.stringify(vKacheln[1]?.querySelector('.duration')?.textContent));
   pruefe('Und am Foto steht keine Laenge',
-    !!vKacheln[0] && !vKacheln[0].querySelector('.dauer'),
+    !!vKacheln[0] && !vKacheln[0].querySelector('.duration'),
     vKacheln[0]?.innerHTML?.slice(0, 120));
   pruefe('Das Loeschkreuz am Video spricht vom Video, nicht vom Foto',
     vKacheln[1]?.querySelector('.del')?.getAttribute('title') === 'Video löschen' &&
@@ -28880,7 +28880,7 @@ async function pruefeOberflaeche() {
   pruefe('Die Leiste im Vollbild zeigt beide Zeilen', vStreifen.length === 2,
     `${vStreifen.length}`);
   pruefe('Und die Marke steht dort am Video, nicht am Foto',
-    !!vStreifen[1]?.querySelector('.spielmarke') && !vStreifen[0]?.querySelector('.spielmarke'),
+    !!vStreifen[1]?.querySelector('.play-badge') && !vStreifen[0]?.querySelector('.play-badge'),
     vStreifen.map(t => t.innerHTML.slice(0, 40)).join(' | '));
   wVid.document.querySelector('.lightbox .close')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 20));
@@ -28909,7 +28909,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 60));
     const karte = d.w.document.querySelector('.card');
     return { karte, zaehler: karte?.querySelector('.photo-count')?.textContent,
-             marke: !!karte?.querySelector('.card-spielmarke') };
+             marke: !!karte?.querySelector('.card-play') };
   };
   const vkGemischt = await vKarte('video', 3, 1);
   pruefe('Die Karte steht ueberhaupt da', !!vkGemischt.karte, 'keine Karte');
@@ -28964,17 +28964,17 @@ async function pruefeOberflaeche() {
 
   /* --- Neuer Kommentar --- */
   pruefe('Das Formular hat alle drei Markierungen',
-    !!wb.document.getElementById('cpin') && !!wb.document.getElementById('cart') &&
-    !!wb.document.getElementById('caufg'));
+    !!wb.document.getElementById('cpin') && !!wb.document.getElementById('ckind') &&
+    !!wb.document.getElementById('ctask'));
   pruefe('Der Artschalter im Formular trägt das Vokabelwort',
-    wb.document.getElementById('cart').textContent === 'Bericht');
+    wb.document.getElementById('ckind').textContent === 'Bericht');
   pruefe('Der Aufgabenschalter ebenso',
-    wb.document.getElementById('caufg').textContent === 'Aufgabe',
-    wb.document.getElementById('caufg').textContent);
+    wb.document.getElementById('ctask').textContent === 'Aufgabe',
+    wb.document.getElementById('ctask').textContent);
 
   // Die Art ist ein Wert: die beiden Schalter im Formular duerfen nie
   // gleichzeitig leuchten, sonst waere unklar, was abgeschickt wird.
-  const fArt = wb.document.getElementById('cart'), fAufg = wb.document.getElementById('caufg');
+  const fArt = wb.document.getElementById('ckind'), fAufg = wb.document.getElementById('ctask');
   fArt.onclick();
   pruefe('Bericht an, Aufgabe aus',
     fArt.classList.contains('on') && !fAufg.classList.contains('on'));
@@ -28984,13 +28984,13 @@ async function pruefeOberflaeche() {
     `${fArt.className} | ${fAufg.className}`);
   fAufg.onclick();
   pruefe('Ein zweiter Druck zeigt „erledigt"',
-    fAufg.classList.contains('on') && fAufg.classList.contains('fertig') &&
+    fAufg.classList.contains('on') && fAufg.classList.contains('done') &&
     fAufg.textContent === 'Erledigt',
     `${fAufg.className} | ${fAufg.textContent}`);
   fAufg.onclick();
   pruefe('Und der dritte lässt beide aus',
     !fArt.classList.contains('on') && !fAufg.classList.contains('on') &&
-    !fAufg.classList.contains('fertig') && fAufg.textContent === 'Aufgabe',
+    !fAufg.classList.contains('done') && fAufg.textContent === 'Aufgabe',
     `${fAufg.className} | ${fAufg.textContent}`);
 
   pruefe('Es gibt einen Knopf für Bilder', !!wb.document.getElementById('cimg'));
@@ -29010,24 +29010,24 @@ async function pruefeOberflaeche() {
   const mitBildE = einfuegen([machDatei('image/png')]);
   await new Promise(r => setTimeout(r, 20));
   pruefe('Eingefügtes Bild wird aufgenommen',
-    wb.document.querySelectorAll('#cneu-imgs .cmt-img').length === 1);
+    wb.document.querySelectorAll('#cnew-imgs .cmt-img').length === 1);
   pruefe('Dabei wird das Einfügen abgefangen', mitBildE.defaultPrevented);
   const nurTextE = einfuegen([]);
   pruefe('Eingefügter Text bleibt unangetastet', !nurTextE.defaultPrevented);
   pruefe('Und erzeugt keine Kachel',
-    wb.document.querySelectorAll('#cneu-imgs .cmt-img').length === 1);
+    wb.document.querySelectorAll('#cnew-imgs .cmt-img').length === 1);
   // Zwei Filter greifen hier ineinander: einer beim Auslesen der
   // Zwischenablage, einer beim Aufnehmen. Der Unterschied wird erst am
   // abgefangenen Einfügen sichtbar -- sonst verdeckt einer den anderen und
   // die Gegenprobe bliebe stumm.
   const pdfE = einfuegen([machDatei('application/pdf')]);
   pruefe('Eingefügtes Nicht-Bild wird übergangen',
-    wb.document.querySelectorAll('#cneu-imgs .cmt-img').length === 1);
+    wb.document.querySelectorAll('#cnew-imgs .cmt-img').length === 1);
   pruefe('Und fängt das Einfügen nicht ab', !pdfE.defaultPrevented);
 
-  wb.document.querySelector('#cneu-imgs .cmt-img .del').onclick();
+  wb.document.querySelector('#cnew-imgs .cmt-img .del').onclick();
   pruefe('Aufgenommenes Bild lässt sich vor dem Absenden wieder entfernen',
-    wb.document.querySelectorAll('#cneu-imgs .cmt-img').length === 0);
+    wb.document.querySelectorAll('#cnew-imgs .cmt-img').length === 0);
 
   pruefe('Bilder werden erst mit dem Absenden geschickt',
     !bd.gesendet.some(x => /\/comments$/.test(x.url) && x.methode === 'POST'));
@@ -29146,7 +29146,7 @@ async function pruefeOberflaeche() {
   /* --- DER SCHIEBER FUER DIE WEITE, seit 0.19.0 ---
      Er steht IM BETRACHTER und nur im Ausschnittmodus: der Ausschnitt wird an
      EINEM Ort eingestellt, nicht an zweien. */
-  const schieber = wb.document.querySelector('#vzoom-schieber');
+  const schieber = wb.document.querySelector('#vzoom-slider');
   pruefe('Im Ausschnittmodus steht ein Schieber für die Weite', !!schieber);
   pruefe('Er steht auf dem weitesten Ausschnitt', schieber && schieber.value === '100',
     schieber ? schieber.value : 'kein Schieber');
@@ -29164,7 +29164,7 @@ async function pruefeOberflaeche() {
     schieber.dispatchEvent(new wb.Event(art, { bubbles: true }));
     return true;
   };
-  const zoomWert = () => wb.document.querySelector('#vzoom-wert')?.textContent ?? '(keine Anzeige)';
+  const zoomWert = () => wb.document.querySelector('#vzoom-value')?.textContent ?? '(keine Anzeige)';
   const rahmenBreite = () =>
     parseFloat(wb.document.querySelector('.focus-frame')?.style.width) || 0;
 
@@ -29578,7 +29578,7 @@ async function pruefeOberflaeche() {
     pruefe('Die Prueflage steht: der Betrachter hat seinen Ausschnittschalter', !!vfF);
     vfF?.onclick();
     await new Promise(r => setTimeout(r, 20));
-    const schF = wf.document.querySelector('#vzoom-schieber');
+    const schF = wf.document.querySelector('#vzoom-slider');
     pruefe('Und den Schieber fuer die Weite', !!schF);
 
     /* DER RUF WIRD ANGEHALTEN -- genau hier liegt das Zeitfenster, in dem der
@@ -30223,10 +30223,10 @@ async function pruefeOberflaeche() {
   await sysAbschnitt(rUser.w, 'bestand');
   await sysAbschnitt(rAdm.w, 'bestand');
   pruefe('Die Zahl der Anbieternamen bleibt dem Benutzer',
-    !!rUser.w.document.getElementById('snamen') &&
-    rUser.w.document.querySelectorAll('#snamen .pill').length > 0);
+    !!rUser.w.document.getElementById('snames') &&
+    rUser.w.document.querySelectorAll('#snames .pill').length > 0);
   pruefe('Und die sichtbaren Linkzeilen ebenso',
-    rUser.w.document.querySelectorAll('#lzeilen .pill').length > 0);
+    rUser.w.document.querySelectorAll('#lrows .pill').length > 0);
   pruefe('Vorrat, Startanbieter und eigene Anbieter dagegen nicht',
     !rUser.w.document.getElementById('sanbieter') &&
     !rUser.w.document.getElementById('seigene'));
@@ -34040,7 +34040,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   const gwDoc = gwEintrag.w.document;
   const gwMarken = () => [...gwDoc.querySelectorAll('#ratings .rrow .rname')]
-    .map(z => z.querySelector('.rgew')?.textContent || '');
+    .map(z => z.querySelector('.rweight')?.textContent || '');
 
   pruefe('Die Gewichtsmarke steht hinter dem Kriteriennamen',
     gleich(gwMarken(), ['×1,5', '', '×0,5']), JSON.stringify(gwMarken()));
@@ -34071,8 +34071,8 @@ async function pruefeOberflaeche() {
     einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
   pruefe('Stehen alle Gewichte auf 1, steht keine Marke da',
-    gwGleich.w.document.querySelectorAll('#ratings .rgew').length === 0,
-    `${gwGleich.w.document.querySelectorAll('#ratings .rgew').length} Marken`);
+    gwGleich.w.document.querySelectorAll('#ratings .rweight').length === 0,
+    `${gwGleich.w.document.querySelectorAll('#ratings .rweight').length} Marken`);
   pruefe('Und der Blockkopf traegt genau das, was er vorher trug',
     gwGleich.w.document.getElementById('rhead')?.textContent === '⌀ 3,0',
     JSON.stringify(gwGleich.w.document.getElementById('rhead')?.textContent));
@@ -34091,9 +34091,9 @@ async function pruefeOberflaeche() {
   const gwUDoc = gwUnbewertet.w.document;
   pruefe('Ein Gewicht an einem unbewerteten Kriterium steht trotzdem an der Zeile',
     [...gwUDoc.querySelectorAll('#ratings .rrow .rname')]
-      .map(z => z.querySelector('.rgew')?.textContent || '')[2] === '×1,5',
+      .map(z => z.querySelector('.rweight')?.textContent || '')[2] === '×1,5',
     JSON.stringify([...gwUDoc.querySelectorAll('#ratings .rrow .rname')]
-      .map(z => z.querySelector('.rgew')?.textContent || '')));
+      .map(z => z.querySelector('.rweight')?.textContent || '')));
   pruefe('Aber der Blockkopf nennt sich nicht gewichtet — es floss nichts ein',
     !/gewichtet/.test(gwUDoc.getElementById('rhead')?.textContent || ''),
     JSON.stringify(gwUDoc.getElementById('rhead')?.textContent));
@@ -34109,7 +34109,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   await sysAbschnitt(gwSys.w, 'bestand');
   const gwSDoc = gwSys.w.document;
-  const gwFelder = () => [...gwSDoc.querySelectorAll('#mcrits .mgew-feld')];
+  const gwFelder = () => [...gwSDoc.querySelectorAll('#mcrits .mweight-field')];
   const gwGesendet = gwSys.gesendet;
 
   pruefe('Jede Kriterienzeile traegt ein Gewichtsfeld', gwFelder().length === 3,
@@ -34126,13 +34126,13 @@ async function pruefeOberflaeche() {
     gwSDoc.querySelectorAll('#mcats .mrow').length >= 2,
     `${gwSDoc.querySelectorAll('#mcats .mrow').length} Zeilen`);
   pruefe('Und keine davon traegt ein Gewicht',
-    gwSDoc.querySelectorAll('#mcats .mgew').length === 0,
+    gwSDoc.querySelectorAll('#mcats .mweight').length === 0,
     gwSDoc.getElementById('mcats')?.innerHTML.slice(0, 200));
   pruefe('Die Tagkarte traegt ebenfalls Zeilen',
     gwSDoc.querySelectorAll('#mtags .mrow').length >= 1,
     `${gwSDoc.querySelectorAll('#mtags .mrow').length} Zeilen`);
   pruefe('Und auch dort steht keines',
-    gwSDoc.querySelectorAll('#mtags .mgew').length === 0,
+    gwSDoc.querySelectorAll('#mtags .mweight').length === 0,
     gwSDoc.getElementById('mtags')?.innerHTML.slice(0, 200));
   /* KEINE ERFUNDENE GENAUIGKEIT: 1 steht als "1", nicht als "1,0" -- das sieht
      nach einer Einstellung aus, wo in Wahrheit die Vorgabe steht. Und 1,5
@@ -34161,7 +34161,7 @@ async function pruefeOberflaeche() {
      Vorhandensein, dann auf die Eigenschaft (Stolperstein 81). */
   {
     const gwCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
-    const gwRegel = (gwCss.match(/\.mrow \.mgew-feld \{[^}]*\}/) || [''])[0];
+    const gwRegel = (gwCss.match(/\.mrow \.mweight-field \{[^}]*\}/) || [''])[0];
     pruefe('Das Stylesheet kennt das Gewichtsfeld', gwRegel.length > 0);
     /* Die Breite steht in em, nicht in px: die Schriftgroesse der Oberflaeche
        ist in fuenf Stufen einstellbar, und ein festes Mass hielte bei 120 %
@@ -34170,7 +34170,7 @@ async function pruefeOberflaeche() {
       /width: *[0-9.]+em/.test(gwRegel) && !/width: *[0-9.]+px/.test(gwRegel), gwRegel);
     // Gesucht wird die EIGENE Regel der Marke: seit 0.22.0 steht derselbe
     // Waehler auch in der Sammelregel fuer tabular-nums (Bauabschnitt 1).
-    const gwMarkeRegel = (gwCss.match(/\.rrow \.rname \.rgew, \.cmp-crit \.cn \.cgew \{[^}]*\}/) || [''])[0];
+    const gwMarkeRegel = (gwCss.match(/\.rrow \.rname \.rweight, \.cmp-crit \.cn \.cweight \{[^}]*\}/) || [''])[0];
     pruefe('Und die Gewichtsmarke ist gedaempft, nicht golden',
       /var\(--faint\)/.test(gwMarkeRegel) && !/--gold/.test(gwMarkeRegel), gwMarkeRegel);
   }
@@ -34246,7 +34246,7 @@ async function pruefeOberflaeche() {
   pruefe('Ein Umbenennen laesst sich oeffnen', !!gwReihe.querySelector('input.medit'));
   const gwUmbenennFeld = gwReihe.querySelector('input.medit');
   gwUmbenennFeld.value = 'Halb getippt';
-  await gwSchreib(gwReihe.querySelector('.mgew-feld'), '1,1');
+  await gwSchreib(gwReihe.querySelector('.mweight-field'), '1,1');
   pruefe('Ein offenes Umbenennen ueberlebt den Gewichtswechsel daneben',
     gwReihe.querySelector('input.medit') === gwUmbenennFeld &&
     gwUmbenennFeld.value === 'Halb getippt' && gwUmbenennFeld.isConnected,
@@ -34277,7 +34277,7 @@ async function pruefeOberflaeche() {
     return e;
   };
   const gwVorSortieren = gwGesendet.filter(z => z.url === '/api/criteria/order').length;
-  gwZeilen[0].querySelector('.mgew-feld').dispatchEvent(gwZeiger('pointerdown', 0));
+  gwZeilen[0].querySelector('.mweight-field').dispatchEvent(gwZeiger('pointerdown', 0));
   gwSDoc.dispatchEvent(gwZeiger('pointermove', 120));
   gwSDoc.dispatchEvent(gwZeiger('pointerup', 120));
   await new Promise(r => setTimeout(r, 40));
@@ -34307,11 +34307,11 @@ async function pruefeOberflaeche() {
   await sysAbschnitt(gwNurLesen.w, 'bestand');
   const gwNDoc = gwNurLesen.w.document;
   pruefe('Ohne Adminrecht steht kein Eingabefeld da',
-    gwNDoc.querySelectorAll('#mcrits .mgew-feld').length === 0);
+    gwNDoc.querySelectorAll('#mcrits .mweight-field').length === 0);
   pruefe('Das Gewicht selbst steht trotzdem an der Zeile',
-    gleich([...gwNDoc.querySelectorAll('#mcrits .mgew-fest')].map(z => z.textContent),
+    gleich([...gwNDoc.querySelectorAll('#mcrits .mweight-fixed')].map(z => z.textContent),
            ['×1,5', '×1', '×0,5']),
-    JSON.stringify([...gwNDoc.querySelectorAll('#mcrits .mgew-fest')].map(z => z.textContent)));
+    JSON.stringify([...gwNDoc.querySelectorAll('#mcrits .mweight-fixed')].map(z => z.textContent)));
   gwNurLesen.w.close();
 
   /* ---------------------------------------------------------------- */
@@ -34398,11 +34398,11 @@ async function pruefeOberflaeche() {
      offen, welchen der beiden sie meint. Diese Prueflage traegt nur
      Nachher-Kriterien, also gibt es genau eine Gruppe; ihre Zahl steht rechts
      in der Trennzeile. */
-  const cmpGruppen = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-gruppe')];
+  const cmpGruppen = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-group')];
   const cmpKopf = (n) => cmpGruppen(n)[0].lastElementChild.textContent.trim();
   const cmpBeste = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-crit')]
     .map(z => !!z.querySelector('.cmp-best'));
-  const cmpSicht = (wert) => wVgl.document.querySelector(`#cmp-sicht [data-sicht="${wert}"]`);
+  const cmpSicht = (wert) => wVgl.document.querySelector(`#cmp-view [data-sicht="${wert}"]`);
 
   pruefe('Der Umschalter steht da und traegt beide Stellungen',
     !!cmpSicht('meine') && !!cmpSicht('alle'), 'ein Knopf fehlt');
@@ -34476,14 +34476,14 @@ async function pruefeOberflaeche() {
   /* Die Marke am Kriterium: ×1,5 und ×0,5 stehen an ihren Zeilen, an der Zeile
      mit Gewicht 1 steht nichts. Ableitung, kein Schalter. */
   const cmpMarken = [...cmpSpalte(0).querySelectorAll('.cmp-crit .cn')]
-    .map(z => z.querySelector('.cgew')?.textContent || '');
+    .map(z => z.querySelector('.cweight')?.textContent || '');
   pruefe('Das Gewicht steht an der Zeilenbeschriftung, und nur bei Abweichung',
     gleich(cmpMarken, ['×1,5', '', '×0,5', '']), JSON.stringify(cmpMarken));
   /* Einmal je Zeile, nicht je Spalte: das Gewicht gehoert dem Kriterium, und
      die Spalten sind die Eintraege. */
   pruefe('Und in der zweiten Spalte steht dieselbe Marke noch einmal',
     gleich([...cmpSpalte(1).querySelectorAll('.cmp-crit .cn')]
-      .map(z => z.querySelector('.cgew')?.textContent || ''), ['×1,5', '', '×0,5', '']));
+      .map(z => z.querySelector('.cweight')?.textContent || ''), ['×1,5', '', '×0,5', '']));
   // Die Testtagzeile ebenso, gezaehlt ueber mine.
   pruefe('Die Testtagzeile schaltet mit, gezaehlt ueber mine',
     cmpZeilen(0)[3] === '1' && cmpZeilen(1)[3] === '–',
@@ -34513,14 +34513,14 @@ async function pruefeOberflaeche() {
   if (cmpZweiLeiste) cmpZweiLeiste.dispatchEvent(new cmpZwei.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 140));
   const zSpalte = (n) => cmpZwei.w.document.querySelectorAll('.cmp-col')[n];
-  const zGruppen = (n) => [...zSpalte(n).querySelectorAll('.cmp-gruppe')]
+  const zGruppen = (n) => [...zSpalte(n).querySelectorAll('.cmp-group')]
     .map(g => `${g.firstElementChild.textContent.trim()}|${g.lastElementChild.textContent.trim()}`);
   pruefe('Der Vergleich zeigt zwei Gruppen, vorher vor nachher',
     gleich(zGruppen(0), ['Potenzial|⌀ 4,2', 'Bewertung|⌀ 3,0']), JSON.stringify(zGruppen(0)));
   /* UND JEDE GRUPPE TRAEGT NUR IHRE ZEILEN. Ohne diese Zeile bliebe die
      Ueberschrift richtig und der Inhalt darunter falsch. */
-  const zNamen = [...zSpalte(0).querySelectorAll('.cmp-gruppe, .cmp-crit')]
-    .map(e => (e.classList.contains('cmp-gruppe') ? '# ' : '') +
+  const zNamen = [...zSpalte(0).querySelectorAll('.cmp-group, .cmp-crit')]
+    .map(e => (e.classList.contains('cmp-group') ? '# ' : '') +
               e.firstElementChild.textContent.trim().split(' ')[0]);
   pruefe('Und unter jeder Trennzeile stehen nur ihre Kriterien',
     gleich(zNamen, ['# Potenzial', 'Zuletzt', '# Bewertung', 'Zuerst', 'Dann', 'Testtage']),
@@ -34538,7 +34538,7 @@ async function pruefeOberflaeche() {
      und geprueft wird der ZWEITE Eintrag: er hat im Potenzialkasten KEINEN
      eigenen Stern (Zuletzt steht auf 0), also bleibt dort der Strich, waehrend
      die Bewertung 4,6 zeigt. Eine gemischte Rechnung koennte das nicht. */
-  const zSicht = cmpZwei.w.document.querySelector('#cmp-sicht [data-sicht="meine"]');
+  const zSicht = cmpZwei.w.document.querySelector('#cmp-view [data-sicht="meine"]');
   zSicht.dispatchEvent(new cmpZwei.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   pruefe('In Stellung „meine" rechnet jede Gruppe fuer sich',
@@ -34584,7 +34584,7 @@ async function pruefeOberflaeche() {
     wEiner.document.querySelectorAll('.cmp-col').length === 2,
     `${wEiner.document.querySelectorAll('.cmp-col').length} Spalten`);
   pruefe('Aber der Umschalter erscheint gar nicht erst',
-    !wEiner.document.getElementById('cmp-sicht'), 'der Umschalter steht da');
+    !wEiner.document.getElementById('cmp-view'), 'der Umschalter steht da');
   pruefe('Und die Zeile darueber sagt nichts von einer Sicht',
     !/eigenen Werte|ueber alle|über alle/.test(
       wEiner.document.getElementById('cmp-hint').textContent),
@@ -34765,7 +34765,7 @@ async function pruefeOberflaeche() {
   const trDom = baueDom(JSDOM, { uebersichtItems: trBestand });
   const tr = trDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const trZeilen = () => [...tr.document.querySelectorAll('.card-fund')];
+  const trZeilen = () => [...tr.document.querySelectorAll('.card-find')];
 
   pruefe('Der Aufbau steht: die Uebersicht zeigt beide Kacheln',
     tr.document.querySelectorAll('.card').length === 2,
@@ -34786,22 +34786,22 @@ async function pruefeOberflaeche() {
   const trKoerper = tr.document.querySelector('.card .card-body');
   const trFolge = [...trKoerper.children].map(k => k.className.split(' ')[0]);
   pruefe('Die Zeile steht unter dem Titel',
-    trFolge.indexOf('card-fund') === trFolge.indexOf('card-title') + 1,
+    trFolge.indexOf('card-find') === trFolge.indexOf('card-title') + 1,
     JSON.stringify(trFolge));
   pruefe('Und ueber den Tags',
-    trFolge.indexOf('card-fund') < trFolge.indexOf('card-tags'),
+    trFolge.indexOf('card-find') < trFolge.indexOf('card-tags'),
     JSON.stringify(trFolge));
 
   pruefe('Sie nennt die Quelle in Worten',
-    gleich(trZeilen().map(z => z.querySelector('.fund-quelle')?.textContent),
+    gleich(trZeilen().map(z => z.querySelector('.find-source')?.textContent),
            ['Kommentar:', 'Link:']),
-    JSON.stringify(trZeilen().map(z => z.querySelector('.fund-quelle')?.textContent)));
+    JSON.stringify(trZeilen().map(z => z.querySelector('.find-source')?.textContent)));
   /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81). Ein
      Rueckbau, der die Zeile GAR NICHT baut, liess den Lauf sonst ABREISSEN
      statt rot zu werden -- gefunden in der Gegenprobe zu 0.18.0. */
   pruefe('Und zeigt den Ausschnitt daneben',
-    trZeilen()[0]?.querySelector('.fund-text')?.textContent === '…hat mir der Bosch-Händler empfohlen…',
-    JSON.stringify(trZeilen()[0]?.querySelector('.fund-text')?.textContent));
+    trZeilen()[0]?.querySelector('.find-text')?.textContent === '…hat mir der Bosch-Händler empfohlen…',
+    JSON.stringify(trZeilen()[0]?.querySelector('.find-text')?.textContent));
 
   /* DIE ZAHL DER WEITEREN STELLEN steht kurz in der Zeile und ausgeschrieben
      im Ueberfahrtext. In der Zeile ist kein Platz fuer den ganzen Satz: auf
@@ -34809,11 +34809,11 @@ async function pruefeOberflaeche() {
      Ausschnitt haette danach keinen mehr (gemessen, Aenderungsprotokoll
      0.18.0). */
   pruefe('Bei weiteren Stellen steht ihre Zahl in der Zeile',
-    trZeilen()[0]?.querySelector('.fund-mehr')?.textContent === '+2',
-    JSON.stringify(trZeilen()[0]?.querySelector('.fund-mehr')?.textContent));
+    trZeilen()[0]?.querySelector('.find-more')?.textContent === '+2',
+    JSON.stringify(trZeilen()[0]?.querySelector('.find-more')?.textContent));
   pruefe('Und ohne weitere Stellen steht dort gar nichts',
-    trZeilen().length === 2 && !trZeilen()[1].querySelector('.fund-mehr'),
-    trZeilen()[1]?.querySelector('.fund-mehr')?.textContent ?? '(keine zweite Zeile)');
+    trZeilen().length === 2 && !trZeilen()[1].querySelector('.find-more'),
+    trZeilen()[1]?.querySelector('.find-more')?.textContent ?? '(keine zweite Zeile)');
   pruefe('Der Ueberfahrtext sagt es ausgeschrieben',
     trZeilen()[0]?.getAttribute('title') === 'Gefunden in: Kommentar und 2 weitere Stellen',
     trZeilen()[0]?.getAttribute('title'));
@@ -34862,9 +34862,9 @@ async function pruefeOberflaeche() {
   tuFeld.dispatchEvent(new tu.Event('input'));
   await warteSuche(tu);
   pruefe('Eine unbekannte Quelle heisst „Fundstelle" und faellt nicht weg',
-    tu.document.querySelector('.fund-quelle')?.textContent === 'Fundstelle:',
-    tu.document.querySelector('.fund-quelle')?.textContent);
-  const tuText = tu.document.querySelector('.fund-text');
+    tu.document.querySelector('.find-source')?.textContent === 'Fundstelle:',
+    tu.document.querySelector('.find-source')?.textContent);
+  const tuText = tu.document.querySelector('.find-text');
   pruefe('Aus Markup im Ausschnitt entsteht kein Element',
     !!tuText && !tuText.querySelector('img, b, i, script, iframe, style'),
     tuText?.innerHTML);
@@ -34919,8 +34919,8 @@ async function pruefeOberflaeche() {
     JSON.stringify(hvMarken('.card-cat')));
   pruefe('Und an den Tags', gleich(hvMarken('.card-tags'), ['bella']),
     JSON.stringify(hvMarken('.card-tags')));
-  pruefe('Und in der Trefferzeile', gleich(hvMarken('.card-fund'), ['bella']),
-    JSON.stringify(hvMarken('.card-fund')));
+  pruefe('Und in der Trefferzeile', gleich(hvMarken('.card-find'), ['bella']),
+    JSON.stringify(hvMarken('.card-find')));
 
   /* DER BEGRIFF IST TEXT UND KEIN MUSTER. Wer aus ihm ein regulaeres
      Ausdrucksmuster baute, muesste jedes Sonderzeichen darin maskieren -- ein
@@ -35014,7 +35014,7 @@ async function pruefeOberflaeche() {
     created_at: '2026-08-04 13:00:00', mine: false, verfasser: null }];
   await new Promise(r => setTimeout(r, 200));
   const adSz = adSuchzeile.w;
-  const adNamen = [...adSz.document.querySelectorAll('#links .snamen .sname')];
+  const adNamen = [...adSz.document.querySelectorAll('#links .snames .sname')];
   pruefe('Der Aufbau steht: die Suchzeile nennt wirklich Anbieter mit demselben Wort',
     adNamen.some(s => /Startpage/i.test(s.textContent)),
     adNamen.map(s => s.textContent).join(' · ') || '(keine)');
@@ -35022,8 +35022,8 @@ async function pruefeOberflaeche() {
     adSz.document.querySelectorAll('#links .lrow .dom mark').length === 1,
     `${adSz.document.querySelectorAll('#links .lrow .dom mark').length}`);
   pruefe('Und ausdruecklich nicht der Anbietername',
-    adSz.document.querySelectorAll('#links .snamen mark').length === 0,
-    `${adSz.document.querySelectorAll('#links .snamen mark').length} Marken am Namen`);
+    adSz.document.querySelectorAll('#links .snames mark').length === 0,
+    `${adSz.document.querySelectorAll('#links .snames mark').length} Marken am Namen`);
   adSz.close();
 
   /* DAS MUSTER IST VERANKERT UND BLEIBT ES. `#/item/1x` ist keine
@@ -35086,8 +35086,8 @@ async function pruefeOberflaeche() {
   adNFeld.dispatchEvent(new adN.Event('input'));
   await warteSuche(adN);
   pruefe('Der Aufbau steht: die Suche laeuft und die Kachel steht da',
-    adN.document.querySelectorAll('.card-fund').length === 1,
-    `${adN.document.querySelectorAll('.card-fund').length}`);
+    adN.document.querySelectorAll('.card-find').length === 1,
+    `${adN.document.querySelectorAll('.card-find').length}`);
   // Ein Weg in den Eintrag, der die Adresse OHNE Begriff setzt.
   adN.location.hash = '#/item/1';
   await new Promise(r => setTimeout(r, 300));
@@ -35203,7 +35203,7 @@ async function pruefeOberflaeche() {
      DAS KREUZ LIEGT IM KNOPF und muss den Klick anhalten -- ohne das wuerde
      die Ansicht im selben Zug angewandt und geloescht. */
   const awVorher = awDom.gesendet.filter(g => g.url === '/api/settings' && g.methode === 'PUT').length;
-  awPille().querySelector('.an-weg').dispatchEvent(new aw.MouseEvent('click', { bubbles: true }));
+  awPille().querySelector('.view-remove').dispatchEvent(new aw.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   const awFrage = aw.document.querySelector('.backdrop .modal');
   pruefe('Das Kreuz fragt vorher nach', !!awFrage && /löschen/.test(awFrage.textContent),
@@ -35292,7 +35292,7 @@ async function pruefeOberflaeche() {
   dp.document.getElementById('new').dispatchEvent(new dp.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   const dpTitel = dp.document.getElementById('nt');
-  const dpZeile = () => dp.document.getElementById('nt-aehnlich');
+  const dpZeile = () => dp.document.getElementById('nt-similar');
   pruefe('Der Aufbau steht: der Anlegen-Dialog hat eine Zeile dafuer', !!dpZeile(), 'keine Zeile');
   pruefe('Und sie ist zunaechst leer', dpZeile().innerHTML === '', dpZeile().innerHTML);
 
@@ -35358,8 +35358,8 @@ async function pruefeOberflaeche() {
   dsTitel.dispatchEvent(new ds.Event('input'));
   await new Promise(r => setTimeout(r, 20));
   pruefe('Der Hinweis findet den Eintrag auch dann, wenn die Suche ihn ausblendet',
-    /Bosch GSR 18V-60/.test(ds.document.getElementById('nt-aehnlich').textContent),
-    ds.document.getElementById('nt-aehnlich').textContent);
+    /Bosch GSR 18V-60/.test(ds.document.getElementById('nt-similar').textContent),
+    ds.document.getElementById('nt-similar').textContent);
   ds.close();
 
   /* ---------------------------------------------------------------- */
@@ -36109,11 +36109,11 @@ async function pruefeOberflaeche() {
     ['border-top-color', 'border-right-color', 'border-bottom-color']
       .every(k => new RegExp(k + ': var\\(--' + farbe + '\\)').test(regel123('.cmt.pinned.' + art)));
   pruefe('Ein angepinnter Bericht traegt rundum seine eigene Farbe',
-    pinFarbe('bericht', 'accent'), regel123('.cmt.pinned.bericht') || '(keine Regel)');
+    pinFarbe('report', 'accent'), regel123('.cmt.pinned.report') || '(keine Regel)');
   pruefe('Eine angepinnte Aufgabe ebenso',
-    pinFarbe('aufgabe', 'blue'), regel123('.cmt.pinned.aufgabe') || '(keine Regel)');
+    pinFarbe('task', 'blue'), regel123('.cmt.pinned.task') || '(keine Regel)');
   pruefe('Und ein angepinntes Erledigt ebenso',
-    pinFarbe('erledigt', 'green'), regel123('.cmt.pinned.erledigt') || '(keine Regel)');
+    pinFarbe('done', 'green'), regel123('.cmt.pinned.done') || '(keine Regel)');
   /* GOLD BLEIBT GENAU EIN FALL: die angepinnte Notiz hat keine eigene Farbe,
      und nur bei ihr wird der ganze Rahmen golden. */
   pruefe('Gold bleibt der angepinnten Notiz vorbehalten',
@@ -36135,13 +36135,13 @@ async function pruefeOberflaeche() {
      Farbe, sondern die BREITE: die Kurzform `border-left:` kann eine tragen,
      `border-left-color:` niemals. */
   pruefe('Und keine Breite und kein Innenabstand aendern sich dabei',
-    !['', '.bericht', '.aufgabe', '.erledigt'].some(a =>
+    !['', '.report', '.task', '.done'].some(a =>
       /border-left:|border-left-width|border-width|border-(top|right|bottom)-width|padding/
         .test(regel123('.cmt.pinned' + a))),
-    ['', '.bericht', '.aufgabe', '.erledigt'].map(a => regel123('.cmt.pinned' + a)).join(' | ').slice(0, 240));
+    ['', '.report', '.task', '.done'].map(a => regel123('.cmt.pinned' + a)).join(' | ').slice(0, 240));
   pruefe('Die linke Kante bleibt ungeruehrt bei der Art',
-    /border-left: 3px solid var\(--accent\)/.test(regel123('.cmt.bericht')),
-    regel123('.cmt.bericht'));
+    /border-left: 3px solid var\(--accent\)/.test(regel123('.cmt.report')),
+    regel123('.cmt.report'));
   /* DIE ZURUECKGENOMMENE ENTSCHEIDUNG STEHT MIT DEM GRUND DANEBEN und wurde
      nicht geloescht -- sonst baut sie jemand in zwei Jahren wieder ein. */
   const cssRoh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
@@ -36157,14 +36157,14 @@ async function pruefeOberflaeche() {
      (`flex: 1 1 0`), und die Verweise stehen als gewoehnliche Geschwister
      dahinter. */
   pruefe('Es gibt einen Kasten fuer die Verweise der Filterzeile',
-    /display: flex/.test(regel123('.frow-rechts')), regel123('.frow-rechts') || '(keine Regel)');
+    /display: flex/.test(regel123('.frow-right')), regel123('.frow-right') || '(keine Regel)');
   pruefe('Und er traegt KEINE selbsttaetige Aussenkante mehr',
-    !/margin-left: auto/.test(regel123('.frow-rechts')), regel123('.frow-rechts'));
+    !/margin-left: auto/.test(regel123('.frow-right')), regel123('.frow-right'));
   /* KEINE AUSGERECHNETE BREITE, nirgends -- die Instanz stellt die Schrift von
      80 bis 120 Prozent, und genau daran hing 0.12.1 schon einmal
      (`right: 92px`, Befund A). */
   pruefe('Und er rechnet keine Breite aus',
-    !/width|right:/.test(regel123('.frow-rechts')), regel123('.frow-rechts'));
+    !/width|right:/.test(regel123('.frow-right')), regel123('.frow-right'));
   pruefe('Die Wolke der Filterzeile nimmt den uebrigen Platz, ohne eine Breite zu nennen',
     /flex: 1 1 0/.test(regel123('.frow > .pills.cloud')) &&
     /min-width: 0/.test(regel123('.frow > .pills.cloud')) &&
@@ -36188,12 +36188,12 @@ async function pruefeOberflaeche() {
      laesst sich mit einem echten Klick auf eine Marke herstellen. Ein von
      Hand gesetzter Zustand naehme genau den Weg heraus, um den es geht. */
   pruefe('Ohne Auswahl steht der Kasten gar nicht erst da',
-    !fZeile?.querySelector('.frow-rechts'), fZeile?.innerHTML.slice(0, 160));
+    !fZeile?.querySelector('.frow-right'), fZeile?.innerHTML.slice(0, 160));
   fZeile?.querySelector('.pill-tag')?.click();
   await new Promise(r => setTimeout(r, 40));
   const fZeile2 = [...fzW.document.querySelectorAll('.frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
-  const fRechts = fZeile2?.querySelector('.frow-rechts');
+  const fRechts = fZeile2?.querySelector('.frow-right');
   pruefe('Der Verweis sitzt in seinem Kasten',
     !!fRechts && /zurücksetzen/.test(fRechts.textContent), fZeile2?.innerHTML.slice(0, 200));
   /* SEIT 0.13.0 STEHT ER HINTER DER WOLKE -- die natuerliche Reihenfolge:
@@ -36205,14 +36205,14 @@ async function pruefeOberflaeche() {
      sehen kann, ist der Aufbau. */
   const fKinder = [...(fZeile2?.children || [])].map(k => k.className);
   pruefe('Und er steht im Aufbau HINTER der Wolke, in derselben Zeile',
-    fKinder.indexOf('frow-rechts') >= 0 &&
-    fKinder.indexOf('frow-rechts') > fKinder.findIndex(k => /cloud/.test(k)),
+    fKinder.indexOf('frow-right') >= 0 &&
+    fKinder.indexOf('frow-right') > fKinder.findIndex(k => /cloud/.test(k)),
     JSON.stringify(fKinder));
   // Wolke und Verweise sind Geschwister in EINER Zeile -- das ist die
   // Ersparnis, und sie laesst sich am Aufbau ablesen.
   pruefe('Wolke und Verweise sind Geschwister derselben .frow',
     fZeile2?.querySelector('.pills.cloud')?.parentElement ===
-    fZeile2?.querySelector('.frow-rechts')?.parentElement,
+    fZeile2?.querySelector('.frow-right')?.parentElement,
     JSON.stringify(fKinder));
   // Und wieder weg: ein leerer Kasten bliebe als Flex-Element stehen und
   // schoebe die Wolke um eine Luecke nach rechts.
@@ -36221,7 +36221,7 @@ async function pruefeOberflaeche() {
   const fZeile3 = [...fzW.document.querySelectorAll('.frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
   pruefe('Faellt die Auswahl weg, verschwindet auch der Kasten wieder',
-    !fZeile3?.querySelector('.frow-rechts'), fZeile3?.innerHTML.slice(0, 160));
+    !fZeile3?.querySelector('.frow-right'), fZeile3?.innerHTML.slice(0, 160));
   fzW.close();
 
   /* ================= Die Filterleiste wird kuerzer — 0.13.0 ============
@@ -36261,10 +36261,10 @@ async function pruefeOberflaeche() {
      nicht messen. */
   const flZweite = flZeilen()[3]?.querySelectorAll('.eyebrow')[1];
   pruefe('Die zweite Beschriftung traegt die Beschriftungsspalte nicht',
-    flZweite?.classList.contains('eyebrow-mit'), flZweite?.className);
+    flZweite?.classList.contains('eyebrow-with'), flZweite?.className);
   pruefe('Und das Stilblatt nimmt ihr die Mindestbreite wieder ab',
-    /min-width: 0/.test(regel123('.frow > .eyebrow-mit')),
-    regel123('.frow > .eyebrow-mit') || '(keine Regel)');
+    /min-width: 0/.test(regel123('.frow > .eyebrow-with')),
+    regel123('.frow > .eyebrow-with') || '(keine Regel)');
   // Und die Sortierung steht weiterhin in derselben Zeile -- ohne sie waere
   // die Zusammenlegung nur eine verschobene Beschriftung.
   pruefe('Das Auswahlfeld der Sortierung steht in derselben Zeile',
@@ -36276,7 +36276,7 @@ async function pruefeOberflaeche() {
      von 80 bis 120 Prozent -- jede feste Zahl kann dabei nur falsch werden.
      Die Beschriftungsspalte selbst bleibt in em und ist ausgenommen; sie fasst
      Text und ist die eine Ausnahme, die im Stilblatt begruendet steht. */
-  const flRegeln = ['.frow-rechts', '.frow > .pills.cloud', '.frow > .eyebrow-mit'];
+  const flRegeln = ['.frow-right', '.frow > .pills.cloud', '.frow > .eyebrow-with'];
   const flMitPx = flRegeln.filter(r => /:\s*[0-9.]+px/.test(regel123(r).replace(/gap: [0-9]+px|margin-left: [0-9]+px/g, '')));
   pruefe('Keine der drei angefassten Regeln rechnet eine Breite aus',
     flMitPx.length === 0, flMitPx.map(r => regel123(r)).join(' | '));
@@ -36419,8 +36419,8 @@ async function pruefeOberflaeche() {
      und der Unterschied ist die Verknuepfung: jeder Tag verkleinert die Menge,
      jede Kategorie vergroessert sie. */
   pruefe('Die Filterzahl zaehlt drei gewaehlte Werte als EINEN Filter',
-    /· 1 aktiv/.test(kmW.document.querySelector('#filter-auf .fz')?.textContent || ''),
-    kmW.document.querySelector('#filter-auf .fz')?.textContent);
+    /· 1 aktiv/.test(kmW.document.querySelector('#filter-toggle .fcount')?.textContent || ''),
+    kmW.document.querySelector('#filter-toggle .fcount')?.textContent);
   kmKlick('Werkzeug'); await new Promise(r => setTimeout(r, 40));
   pruefe('Ein zweiter Klick nimmt einen Wert wieder heraus', kmKarten() === 3,
     `${kmKarten()} Karten`);
@@ -36540,7 +36540,7 @@ async function pruefeOberflaeche() {
   gruppe('Die Beschriftungen stehen oben — 0.13.1');
 
   /* Ein gesetzter Tag ist noetig, damit "zuruecksetzen" dasteht: OHNE ihn gibt
-     es den Kasten .frow-rechts in dieser Prueflage gar nicht, denn "mehr"
+     es den Kasten .frow-right in dieser Prueflage gar nicht, denn "mehr"
      haengt an begrenzeWolke() -- und die steigt in jsdom mangels Hoehe
      ausdruecklich aus. Die Pruefung darunter waere dann eine ueber nichts. */
   const obDom = baueDom(JSDOM, {
@@ -36553,7 +36553,7 @@ async function pruefeOberflaeche() {
   const obKind = (wahl) => obTagzeile && [...obTagzeile.children].some(k => k.matches(wahl));
   pruefe('Die Tagzeile steht da', !!obTagzeile, '(keine Tagzeile)');
   pruefe('Beschriftung, Umschalter, Wolke und Verweise sind Geschwister EINER Zeile',
-    obKind('.eyebrow') && obKind('.tagmode') && obKind('.pills.cloud') && obKind('.frow-rechts'),
+    obKind('.eyebrow') && obKind('.tagmode') && obKind('.pills.cloud') && obKind('.frow-right'),
     [...(obTagzeile?.children || [])].map(k => k.className).join(' | '));
   obW.close();
 
@@ -36579,7 +36579,7 @@ async function pruefeOberflaeche() {
      zwischen Beschriftung und Pille ausgleicht -- also eine ausgerechnete Zahl.
      Die kann bei 80 bis 120 Prozent Schrift nur falsch werden; das war Befund A
      aus 0.12.1. Diese Zeile haelt den Weg zu. */
-  const obNach = ['.frow > .eyebrow', '.frow-rechts', '.frow > .eyebrow-mit']
+  const obNach = ['.frow > .eyebrow', '.frow-right', '.frow > .eyebrow-with']
     .filter(r => /align-self|padding-top|margin-top/.test(regel123(r)));
   pruefe('Keine der Zeilen bessert die Ausrichtung mit einer Zahl nach',
     obNach.length === 0, obNach.map(r => regel123(r)).join(' | ') || '(keine)');
@@ -36602,7 +36602,7 @@ async function pruefeOberflaeche() {
      Kasten hat keine Regel darunter einen Fall, auf den sie zutraefe. */
   const arQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   pruefe('Die Oberflaeche haengt Art und Anpinnung an denselben Kasten',
-    /className = 'cmt'[\s\S]{0,200}bericht[\s\S]{0,120}aufgabe[\s\S]{0,120}erledigt[\s\S]{0,120}pinned/
+    /className = 'cmt'[\s\S]{0,200}report[\s\S]{0,120}task[\s\S]{0,120}done[\s\S]{0,120}pinned/
       .test(arQuelle),
     (arQuelle.match(/className = 'cmt'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0].slice(0, 160));
 
@@ -36612,7 +36612,7 @@ async function pruefeOberflaeche() {
   pruefe('Die Grundregel gibt allen vier Kanten dieselbe Breite',
     /border: 1px solid var\(--line\)/.test(arGrund), arGrund || '(keine Regel)');
   // Und die drei Arten tragen die dicke linke Linie, an der man sie erkennt.
-  const arArten = ['.cmt.bericht', '.cmt.aufgabe', '.cmt.erledigt'];
+  const arArten = ['.cmt.report', '.cmt.task', '.cmt.done'];
   const arOhneKante = arArten.filter(r => !/border-left: 3px solid/.test(regel123(r)));
   pruefe('Die drei Arten tragen die dicke linke Linie',
     arOhneKante.length === 0, arOhneKante.join(' '));
@@ -36635,9 +36635,9 @@ async function pruefeOberflaeche() {
      die Anpinnung steht spaeter. Ohne die Wiederholung bekaeme ein
      angepinnter Bericht eine goldene linke Kante -- die zwei Farben an einem
      Kasten, die 0.12.3 abgeschafft hat. */
-  const arPinArten = [['.cmt.pinned.bericht', '--accent'],
-                      ['.cmt.pinned.aufgabe', '--blue'],
-                      ['.cmt.pinned.erledigt', '--green']];
+  const arPinArten = [['.cmt.pinned.report', '--accent'],
+                      ['.cmt.pinned.task', '--blue'],
+                      ['.cmt.pinned.done', '--green']];
   const arOhneLinks = arPinArten.filter(([r, farbe]) =>
     !new RegExp(`border-left-color: var\\(${farbe}\\)`).test(regel123(r)));
   pruefe('Jede angepinnte Art holt sich ihre linke Kante in ihrer Farbe zurueck',
@@ -36652,8 +36652,8 @@ async function pruefeOberflaeche() {
      Wiederholungen ueberfluessig -- und die Pruefung darueber bliebe gruen,
      ohne dass noch jemand wuesste, warum sie dasteht. */
   pruefe('Die Anpinnung steht im Stilblatt HINTER den drei Arten',
-    css123.indexOf('.cmt.pinned {') > css123.indexOf('.cmt.bericht {'),
-    `pinned bei ${css123.indexOf('.cmt.pinned {')}, bericht bei ${css123.indexOf('.cmt.bericht {')}`);
+    css123.indexOf('.cmt.pinned {') > css123.indexOf('.cmt.report {'),
+    `pinned bei ${css123.indexOf('.cmt.pinned {')}, bericht bei ${css123.indexOf('.cmt.report {')}`);
 
   /* ================= Die Aussage an der Marke — 0.14.0 =================
      Aus dem Haekchen "abgelehnt" wird ein Satz: WANN, WARUM und VON WEM.
@@ -36674,16 +36674,16 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     return d;
   };
-  const amText = (d) => d.w.document.getElementById('rej-marke');
-  const amFeld = (d) => d.w.document.getElementById('rej-grund');
-  const amZeile = (d) => d.w.document.getElementById('rej-grund-zeile');
+  const amText = (d) => d.w.document.getElementById('rej-badge');
+  const amFeld = (d) => d.w.document.getElementById('rej-reason');
+  const amZeile = (d) => d.w.document.getElementById('rej-reason-row');
   /* SEIT 0.15.0 TRAEGT DIE ZEILE AUCH DIE ZEICHEN ✎ und ✕ -- der Satz selbst
-     steht in einer eigenen Spanne. Wer hier `rej-marke`.textContent
+     steht in einer eigenen Spanne. Wer hier `rej-badge`.textContent
      vergliche, verglichenen den Satz SAMT der beiden Zeichen und muesste sie
      in jede Erwartung schreiben. */
-  const amSatz = (d) => d.w.document.querySelector('#rej-marke .rej-text');
-  const amStift = (d) => d.w.document.querySelector('#rej-marke .mact.ed');
-  const amWeg = (d) => d.w.document.querySelector('#rej-marke .mact.rm');
+  const amSatz = (d) => d.w.document.querySelector('#rej-badge .rej-text');
+  const amStift = (d) => d.w.document.querySelector('#rej-badge .mact.ed');
+  const amWeg = (d) => d.w.document.querySelector('#rej-badge .mact.rm');
 
   // --- Nicht abgelehnt: weder Satz noch Feld ---
   {
@@ -36876,7 +36876,7 @@ async function pruefeOberflaeche() {
       karte?.querySelector('.badge-rejected')?.textContent === 'abgelehnt',
       JSON.stringify(karte?.querySelector('.badge-rejected')?.textContent));
     pruefe('Und sonst nichts zur Ablehnung',
-      !/Abgelehnt am|Lieferzeit|rej-marke/.test(karte?.innerHTML || ''),
+      !/Abgelehnt am|Lieferzeit|rej-badge/.test(karte?.innerHTML || ''),
       (karte?.innerHTML || '').slice(0, 200));
     d.w.close();
   }
@@ -36935,9 +36935,9 @@ async function pruefeOberflaeche() {
     slKasten?.classList.contains('rlist'), JSON.stringify(slKasten?.className));
   const slKinder = slZeilen.map(z => [...z.children].map(k => k.className));
   /* VIER SEIT 0.22.0 (E15): der Ruecksetzer bekommt seine eigene vierte Zelle
-     `.rzz` rechts neben der Zahl. Umgedreht, nicht geloescht (Stolperstein 74). */
+     `.rreset-cell` rechts neben der Zahl. Umgedreht, nicht geloescht (Stolperstein 74). */
   pruefe('Jede Zeile haengt Name, Sterne, Zahl und Ruecksetzer als vier direkte Kinder — 0.22.0',
-    slKinder.every(k => k.length === 4 && k[0] === 'rname' && k[1] === 'racts' && k[2] === 'ravg' && k[3] === 'rzz'),
+    slKinder.every(k => k.length === 4 && k[0] === 'rname' && k[1] === 'racts' && k[2] === 'ravg' && k[3] === 'rreset-cell'),
     JSON.stringify(slKinder));
   pruefe('Die Zahl steckt ausdruecklich NICHT mehr in den Sternen',
     slZeilen.every(z => !z.querySelector('.racts .ravg')),
@@ -37026,12 +37026,12 @@ async function pruefeOberflaeche() {
      geschoben wuerde; "Wer hat bewertet" traegt keine Durchschnittsspalte,
      dort steht der Name ueber den Stimmen. Keine der beiden Regeln traegt
      eine feste Breite. */
-  const slFremd = ['.cmp-crit', '.stimmzeile .rname', '.rstimmen', '.rstimme']
+  const slFremd = ['.cmp-crit', '.vote-row .rname', '.rvotes', '.rvote']
     .filter(r => /min-width|max-width|width:/.test(regel123(r)));
   pruefe('Weder Vergleich noch Stimmliste tragen dasselbe Muster',
     slFremd.length === 0, slFremd.map(r => regel123(r)).join(' | ') || '(keine)');
   pruefe('Und die Stimmliste hat gar keine Durchschnittsspalte',
-    !/\.stimmzeile[^{]*\.ravg/.test(css123) &&
+    !/\.vote-row[^{]*\.ravg/.test(css123) &&
     !/zeile\.className = 'vote-row'[\s\S]{0,600}ravg/.test(arQuelle),
     'ravg taucht in der Stimmliste auf');
 
@@ -37087,44 +37087,44 @@ async function pruefeOberflaeche() {
        Ruecksetzer `.rzurueck` in der eigenen vierten Zelle `.rzz` geworden.
        Die Zusagen von 0.21.0 gelten fuer ihn weiter und haengen jetzt dort. */
     pruefe('Der Ruecksetzer steht in jeder Sternzeile mit Ruecksetzer im Dokument — 0.22.0',
-      szZeilen.length === 3 && szZeilen.every(z => !!z.querySelector('.rzz .rzurueck')),
-      JSON.stringify(szZeilen.map(z => !!z.querySelector('.rzz .rzurueck'))));
+      szZeilen.length === 3 && szZeilen.every(z => !!z.querySelector('.rreset-cell .rreset')),
+      JSON.stringify(szZeilen.map(z => !!z.querySelector('.rreset-cell .rreset'))));
     /* BEI EINEM EIGENEN STERN SICHTBAR, BEI KEINEM UNSICHTBAR -- und zwar
        ueber eine Klasse, die `visibility` setzt, NICHT ueber `hidden`.
        Der Unterschied ist der ganze Punkt: `hidden` ist `display: none` und
        naehme dem × seinen Platz; die Sterne rutschten dann beim ERSTEN Stern
        nach links -- genau der Sprung, den dieselbe Runde abschafft. */
     pruefe('Bei eigenem Stern ist es sichtbar',
-      szZeilen.slice(0, 2).every(z => !z.querySelector('.rzurueck')?.classList.contains('leer')),
-      JSON.stringify(szZeilen.map(z => z.querySelector('.rzurueck')?.className)));
+      szZeilen.slice(0, 2).every(z => !z.querySelector('.rreset')?.classList.contains('leer')),
+      JSON.stringify(szZeilen.map(z => z.querySelector('.rreset')?.className)));
     pruefe('Ohne eigenen Stern ist es unsichtbar, behaelt aber seinen Platz',
-      szNullZeilen[2]?.querySelector('.rzurueck')?.classList.contains('leer') === true &&
-      szNullZeilen[2]?.querySelector('.rzurueck')?.hidden === false,
-      JSON.stringify([szNullZeilen[2]?.querySelector('.rzurueck')?.className,
-                      szNullZeilen[2]?.querySelector('.rzurueck')?.hidden]));
+      szNullZeilen[2]?.querySelector('.rreset')?.classList.contains('leer') === true &&
+      szNullZeilen[2]?.querySelector('.rreset')?.hidden === false,
+      JSON.stringify([szNullZeilen[2]?.querySelector('.rreset')?.className,
+                      szNullZeilen[2]?.querySelector('.rreset')?.hidden]));
     /* UND DIE REGEL DAZU IM STILBLATT: `visibility: hidden` und ausdruecklich
        nicht `display: none`. Ohne diese Zeile bliebe die Zusage darueber auch
        dann gruen, wenn die Klasse den Platz doch naehme (Stolperstein 223). */
-    const szRegel = regel123('.rzurueck.leer');
+    const szRegel = regel123('.rreset.leer');
     pruefe('Und die Regel nimmt ihm die Sichtbarkeit, nicht seinen Platz',
       /visibility: hidden/.test(szRegel) && !/display: none/.test(szRegel),
       szRegel || '(keine Regel)');
     /* EIN RUNDER KNOPF VON 26 BILDPUNKTEN (E15). Der Platz gehoert ihm auch
        dann, wenn es nichts zu tun gibt. */
     pruefe('Es ist ein runder Knopf von 26 Bildpunkten — 0.22.0',
-      /width: 26px; height: 26px; border-radius: 50%/.test(regel123('.rzurueck')), regel123('.rzurueck') || '(keine Regel)');
+      /width: 26px; height: 26px; border-radius: 50%/.test(regel123('.rreset')), regel123('.rreset') || '(keine Regel)');
     /* UND AUF DEM FINGER GROESSER, wie die uebrigen Kreuze. Es sitzt
        unmittelbar neben dem fuenften Stern; wer danebentrifft, vergibt fuenf
        Sterne, statt seinen zu entfernen. */
     pruefe('Auf Beruehrungsgeraeten ist die Trefflaeche mindestens 32 Bildpunkte',
-      /\.rzurueck \{ width: 32px; height: 32px/.test(css123),
-      (css123.match(/\.rzurueck \{[^}]*\}/g) || []).join(' | '));
+      /\.rreset \{ width: 32px; height: 32px/.test(css123),
+      (css123.match(/\.rreset \{[^}]*\}/g) || []).join(' | '));
 
     /* EIN TIPP SCHICKT `PUT` MIT 0 -- UND NICHTS ANDERES. Das ist die
        eigentliche Zusage der Wegnahme: die Sammelroute ist weg, und der Weg,
        der geblieben ist, geht ueber dieselbe Route wie das Setzen. */
     szDom.gesendet.length = 0;
-    szZeilen[0].querySelector('.rzurueck')
+    szZeilen[0].querySelector('.rreset')
       .dispatchEvent(new szDom.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const szRufe = szDom.gesendet.filter(g => /\/ratings/.test(g.url));
@@ -37153,9 +37153,9 @@ async function pruefeOberflaeche() {
        als keins. */
     const szTest = [...szDoc.querySelectorAll('#tstars .stars, .ttag .stars, .tdrow .stars')];
     pruefe('Eine Sternreihe ohne Ruecksetzer traegt kein ×',
-      szTest.length > 0 && szTest.every(t => !t.querySelector('.rzurueck') && !t.parentElement?.querySelector('.rzurueck')),
+      szTest.length > 0 && szTest.every(t => !t.querySelector('.rreset') && !t.parentElement?.querySelector('.rreset')),
       `${szTest.length} Reihen ohne Ruecksetzer, davon mit Ruecksetzer: ` +
-      szTest.filter(t => t.querySelector('.rzurueck') || t.parentElement?.querySelector('.rzurueck')).length);
+      szTest.filter(t => t.querySelector('.rreset') || t.parentElement?.querySelector('.rreset')).length);
 
     /* DER KOPF IST KURZ. „Meine Bewertung zuruecksetzen" ist weg -- samt der
        Route dahinter --, und „Wer hat bewertet" hiess ab 0.21.0 „Stimmen".
@@ -37176,16 +37176,16 @@ async function pruefeOberflaeche() {
        die Trennlinie liegt unter der ZWEITEN Zeile. */
     const szTel = (css123.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*/) || [''])[0];
     pruefe('Auf dem Telefon geht der Name ueber die ganze Breite',
-      /\.rlist:not\(\.ohne-schnitt\) \.rrow \.rname \{[^}]*grid-column: 1 \/ -1/.test(szTel),
-      (szTel.match(/\.rlist:not\(\.ohne-schnitt\) \.rrow \.rname \{[^}]*\}/) || ['(keine Regel)'])[0]);
+      /\.rlist:not\(\.no-average\) \.rrow \.rname \{[^}]*grid-column: 1 \/ -1/.test(szTel),
+      (szTel.match(/\.rlist:not\(\.no-average\) \.rrow \.rname \{[^}]*\}/) || ['(keine Regel)'])[0]);
     pruefe('Und die Trennlinie liegt nicht unter ihm, sondern unter der zweiten Zeile',
-      /\.rlist:not\(\.ohne-schnitt\) \.rrow \.rname \{[^}]*border-bottom: none/.test(szTel),
-      (szTel.match(/\.rlist:not\(\.ohne-schnitt\) \.rrow \.rname \{[^}]*\}/) || ['(keine Regel)'])[0]);
+      /\.rlist:not\(\.no-average\) \.rrow \.rname \{[^}]*border-bottom: none/.test(szTel),
+      (szTel.match(/\.rlist:not\(\.no-average\) \.rrow \.rname \{[^}]*\}/) || ['(keine Regel)'])[0]);
     /* BEI EINEM EINZIGEN ZUGANG AENDERT SICH NICHTS -- dort gibt es die
        Durchschnittsspalte gar nicht, also auch keine Mindestbreite, und dem
        Namen bleibt Platz. Der Befund ist der DREISPALTIGE Fall. */
     pruefe('Bei einem einzigen Zugang bleibt die Zeile einzeilig',
-      /\.rlist:not\(\.ohne-schnitt\) \{ grid-template-columns: auto 1fr/.test(szTel),
+      /\.rlist:not\(\.no-average\) \{ grid-template-columns: auto 1fr/.test(szTel),
       (szTel.match(/\.rlist[^{]*\{ grid-template-columns[^}]*\}/g) || []).join(' | '));
 
     szDom.w.close(); szNull.w.close();
@@ -37219,7 +37219,7 @@ async function pruefeOberflaeche() {
 
     /* DER NEUE BLOCK STEHT VOR DEM BEWERTUNGSBLOCK -- geschaetzt wird, bevor
        bewertet wird, und die Anordnung sagt es. */
-    const zkNamen = [...zkDoc.querySelectorAll('#blocks-seite .block[data-block]')]
+    const zkNamen = [...zkDoc.querySelectorAll('#blocks-side .block[data-block]')]
       .map(b => b.dataset.block);
     pruefe('Der Potenzialblock steht vor dem Bewertungsblock',
       zkNamen.indexOf('potenzial') >= 0 &&
@@ -37230,7 +37230,7 @@ async function pruefeOberflaeche() {
        waeren dieselbe Sternzeile zweimal, unter zwei verschiedenen
        Kopfzahlen. */
     const zkNach = [...zkDoc.querySelectorAll('#ratings .rname')].map(e => e.firstChild.textContent.trim());
-    const zkVor = [...zkDoc.querySelectorAll('#potenzial-ratings .rname')].map(e => e.firstChild.textContent.trim());
+    const zkVor = [...zkDoc.querySelectorAll('#potential-ratings .rname')].map(e => e.firstChild.textContent.trim());
     pruefe('Der Bewertungskasten zeigt nur seine beiden Zeilen',
       gleich(zkNach, ['Zuerst', 'Dann']), JSON.stringify(zkNach));
     pruefe('Der Potenzialkasten zeigt nur seine eine',
@@ -37247,11 +37247,11 @@ async function pruefeOberflaeche() {
     /* UND DER ERKLAERKNOPF ZEIGT DEN RECHENWEG SEINES KASTENS. Ohne diese
        Zeile bliebe die Kopfzahl richtig und die Erklaerung dahinter falsch
        (Stolperstein 217). */
-    zkDoc.getElementById('pgew-auf')?.dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
+    zkDoc.getElementById('pweight-open')?.dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const zkRechnung = zkDoc.getElementById('rechnung-modal');
-    const zkRechenZeilen = [...(zkRechnung?.querySelectorAll('.rz[data-krit]') || [])]
-      .map(z => z.querySelector('.rz-name').textContent.trim());
+    const zkRechnung = zkDoc.getElementById('calc-modal');
+    const zkRechenZeilen = [...(zkRechnung?.querySelectorAll('.calc-row[data-krit]') || [])]
+      .map(z => z.querySelector('.calc-name').textContent.trim());
     pruefe('Der Erklaerknopf des Potenzials zeigt nur dessen Zeile',
       gleich(zkRechenZeilen, ['Zuletzt']), JSON.stringify(zkRechenZeilen));
     zkRechnung?.closest('.backdrop')?.remove();
@@ -37276,7 +37276,7 @@ async function pruefeOberflaeche() {
     /* ERST DAS OBJEKT, DANN SEIN INHALT (Stolperstein 81): `?.textContent ||
        ''` waere auch dann leer, wenn es die Kurzfassung gar nicht mehr gaebe —
        und die Zusage bliebe gruen, obwohl der ganze Knoten fehlt. */
-    const zkSumme = zkDoc.querySelector('.block[data-block="potenzial"] .bsumme');
+    const zkSumme = zkDoc.querySelector('.block[data-block="potenzial"] .bsum');
     pruefe('Die Kurzfassung ist als Knoten weiterhin da', !!zkSumme,
       JSON.stringify(zkDoc.querySelector('.block[data-block="potenzial"] .block-head')?.innerHTML?.slice(0, 120)));
     pruefe('Der zugeklappte Kopf traegt keine Kurzfassung mehr',
@@ -37294,21 +37294,21 @@ async function pruefeOberflaeche() {
        einzigen Benutzer bekaeme sonst einen anderen Satz ueber dieselbe
        Rechnung (Stolperstein 47). */
     pruefe('Die Kopfzahl sagt im Titel, dass sie ueber alle geht',
-      /über alle Benutzer/.test(zkDoc.getElementById('gew-auf')?.title || '') &&
-      /nicht nur der eigene/.test(zkDoc.getElementById('gew-auf')?.title || ''),
-      JSON.stringify(zkDoc.getElementById('gew-auf')?.title));
+      /über alle Benutzer/.test(zkDoc.getElementById('weight-open')?.title || '') &&
+      /nicht nur der eigene/.test(zkDoc.getElementById('weight-open')?.title || ''),
+      JSON.stringify(zkDoc.getElementById('weight-open')?.title));
     /* UND IN BEIDEN KAESTEN DASSELBE. Ein Titel, der nur an einem der beiden
        haengt, beantwortet die Frage genau dort nicht, wo sie zuerst auffiel. */
     pruefe('Und im Potenzialkasten steht derselbe Titel',
-      zkDoc.getElementById('pgew-auf')?.title === zkDoc.getElementById('gew-auf')?.title,
-      JSON.stringify([zkDoc.getElementById('gew-auf')?.title,
-                      zkDoc.getElementById('pgew-auf')?.title]));
+      zkDoc.getElementById('pweight-open')?.title === zkDoc.getElementById('weight-open')?.title,
+      JSON.stringify([zkDoc.getElementById('weight-open')?.title,
+                      zkDoc.getElementById('pweight-open')?.title]));
     /* UND DER ERKLAERKASTEN SAGT ES AUCH -- am Ort der Erklaerung. Er nannte
        bis 0.22.0 die beiden Schritte und liess offen, ueber WEN der erste
        geht. */
-    zkDoc.getElementById('gew-auf')?.dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
+    zkDoc.getElementById('weight-open')?.dispatchEvent(new zkGetestet.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const zkErkl = zkDoc.getElementById('rechnung-modal');
+    const zkErkl = zkDoc.getElementById('calc-modal');
     pruefe('Der Erklaerkasten nennt die Menge, ueber die gerechnet wird',
       /über alle\s+Benutzer/.test(zkErkl?.textContent || ''),
       JSON.stringify((zkErkl?.textContent || '').slice(0, 160)));
@@ -37428,8 +37428,8 @@ async function pruefeOberflaeche() {
                       zkLeerDoc.getElementById('phead')?.textContent]));
     pruefe('Dann sagt die Kurzfassung, dass noch nichts dasteht',
       /noch nicht eingeschätzt/.test(
-        zkLeerDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent || ''),
-      JSON.stringify(zkLeerDoc.querySelector('.block[data-block="potenzial"] .bsumme')?.textContent));
+        zkLeerDoc.querySelector('.block[data-block="potenzial"] .bsum')?.textContent || ''),
+      JSON.stringify(zkLeerDoc.querySelector('.block[data-block="potenzial"] .bsum')?.textContent));
     zkLeer.w.close();
 
     /* --- DER BLICK ENDET MIT DEM EINTRAG ---
@@ -37612,8 +37612,8 @@ async function pruefeOberflaeche() {
     /* UND DAS ZEICHEN IST NICHT GOLDEN. Gold bleibt der Bewertung -- sonst
        hielte jemand 4,2 Potenzial fuer 4,2 Qualitaet. */
     pruefe('Das Zeichen des Potenzials traegt nicht die Farbe der Bewertung',
-      /var\(--muted\)/.test(regel123('.rating-inline.potenzial .dot')),
-      regel123('.rating-inline.potenzial .dot') || '(keine Regel)');
+      /var\(--muted\)/.test(regel123('.rating-inline.potential .dot')),
+      regel123('.rating-inline.potential .dot') || '(keine Regel)');
 
     /* --- Die Sortierung --- */
     const zkSort = zkUeb.w.document.getElementById('f-sort');
@@ -37659,7 +37659,7 @@ async function pruefeOberflaeche() {
      gewinnt die SPEZIFISCHERE, und bei gleicher Spezifitaet die spaetere --
      in dieser Reihenfolge wertet es der Browser.
      DIE BEIDEN REGELN HABEN HIER NICHT DIESELBE SPEZIFITAET: `.rlist` traegt
-     eine Klasse, `.rlist.ohne-schnitt` zwei. Die zweite gewinnt deshalb ueber
+     eine Klasse, `.rlist.no-average` zwei. Die zweite gewinnt deshalb ueber
      ihre Spezifitaet und nicht ueber ihren Platz -- ein Leser, der nur den
      Platz ansaehe, gaebe die falsche Zahl zurueck, sobald jemand die Regeln
      umstellt, und die Zusagen darunter blieben trotzdem gruen.
@@ -37701,24 +37701,24 @@ async function pruefeOberflaeche() {
      Zahl lieferte -- und das waere eine Pruefung ueber den Pruefstand statt
      ueber die Instanz. */
   pruefe('Der Leser findet fuer beide Klassenstellungen eine Regel',
-    rasterSpalten(['rlist']) > 0 && rasterSpalten(['rlist', 'ohne-schnitt']) > 0,
-    `${rasterSpalten(['rlist'])} / ${rasterSpalten(['rlist', 'ohne-schnitt'])}`);
+    rasterSpalten(['rlist']) > 0 && rasterSpalten(['rlist', 'no-average']) > 0,
+    `${rasterSpalten(['rlist'])} / ${rasterSpalten(['rlist', 'no-average'])}`);
   pruefe('Und er unterscheidet die beiden wirklich',
-    rasterSpalten(['rlist']) !== rasterSpalten(['rlist', 'ohne-schnitt']),
-    `${rasterSpalten(['rlist'])} / ${rasterSpalten(['rlist', 'ohne-schnitt'])}`);
+    rasterSpalten(['rlist']) !== rasterSpalten(['rlist', 'no-average']),
+    `${rasterSpalten(['rlist'])} / ${rasterSpalten(['rlist', 'no-average'])}`);
   /* UND ER WAEHLT NACH SPEZIFITAET UND NICHT NACH PLATZ. Gegengeprueft an der
      Regel selbst: was der Leser fuer beide Klassen liefert, muss die Zahl aus
      der ZWEIKLASSIGEN Regel sein. Ohne diese Zeile bliebe „er unterscheidet
      die beiden" auch dann gruen, wenn er die falsche Regel nimmt und nur
      zufaellig eine andere Zahl herausbekaeme. */
-  const rzOhneRegel = regel123('.rlist.ohne-schnitt');
+  const rzOhneRegel = regel123('.rlist.no-average');
   pruefe('Die Regel fuer den einen Zugang steht ueberhaupt im Stilblatt',
     rzOhneRegel.length > 0, '(keine Regel)');
   const rzOhneSpalten = (rzOhneRegel.match(/grid-template-columns: ([^;}]+)/) || ['', ''])[1]
     .trim().split(/\s+/).filter(Boolean).length;
   pruefe('Und der Leser liefert die Zahl AUS DIESER Regel, nicht aus der allgemeinen',
-    rzOhneSpalten > 0 && rasterSpalten(['rlist', 'ohne-schnitt']) === rzOhneSpalten,
-    `${rasterSpalten(['rlist', 'ohne-schnitt'])} gegen ${rzOhneSpalten} in ${rzOhneRegel || '(keine Regel)'}`);
+    rzOhneSpalten > 0 && rasterSpalten(['rlist', 'no-average']) === rzOhneSpalten,
+    `${rasterSpalten(['rlist', 'no-average'])} gegen ${rzOhneSpalten} in ${rzOhneRegel || '(keine Regel)'}`);
 
   for (const [wieViele, wort] of [[3, 'mehreren Zugaengen'], [1, 'einem einzigen Zugang']]) {
     const rz = baueDom(JSDOM, { hash: '#/item/1',
@@ -37755,8 +37755,8 @@ async function pruefeOberflaeche() {
     /* UND DIE KLASSE STEHT NUR DA, WO SIE HINGEHOERT. Ohne diese Zeile bliebe
        „passen zusammen" auch dann gruen, wenn sie immer stuende und die
        Durchschnittszelle mit ihr. */
-    pruefe(`Die Klasse „ohne-schnitt" steht bei ${wort} ${wieViele > 1 ? 'nicht' : ''} da`.replace('  ', ' '),
-      rzKlassen.includes('ohne-schnitt') === (wieViele === 1), JSON.stringify(rzKlassen));
+    pruefe(`Die Klasse „no-average" steht bei ${wort} ${wieViele > 1 ? 'nicht' : ''} da`.replace('  ', ' '),
+      rzKlassen.includes('no-average') === (wieViele === 1), JSON.stringify(rzKlassen));
     rz.w.close();
   }
 
@@ -37778,7 +37778,7 @@ async function pruefeOberflaeche() {
      Stilblatt und nicht nach dem Waehler: eine Regel, die richtig aussieht und
      ausserhalb der Abfrage steht, gaelte auf jedem Schirm. */
   const rzTelefon = (css123.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{.*$/) || [''])[0];
-  const rzDritte = rzRegeln.find(r => /:not\(\.ohne-schnitt\)/.test(r));
+  const rzDritte = rzRegeln.find(r => /:not\(\.no-average\)/.test(r));
   pruefe('Und die dritte gilt nur auf dem Telefon',
     !!rzDritte && rzTelefon.includes(rzDritte), JSON.stringify(rzDritte));
   /* UND DIE BEIDEN ALLGEMEINEN STEHEN AUSSERHALB -- der alte Satz gilt fuer
@@ -37952,9 +37952,9 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     return d;
   };
-  const fsFeld = (d) => d.w.document.getElementById('rej-grund-zeile');
-  const fsMarke = (d) => d.w.document.getElementById('rej-marke');
-  const fsWert = (d) => d.w.document.getElementById('rej-grund');
+  const fsFeld = (d) => d.w.document.getElementById('rej-reason-row');
+  const fsMarke = (d) => d.w.document.getElementById('rej-badge');
+  const fsWert = (d) => d.w.document.getElementById('rej-reason');
 
   // --- Nicht abgelehnt: gar nichts, gleich ob ein Grund in der Zeile steht ---
   {
@@ -38091,7 +38091,7 @@ async function pruefeOberflaeche() {
     !!abGruppe && abGruppe.closest('.frow') === abZeile,
     abGruppe ? 'andere Zeile' : 'die Gruppe fehlt ganz');
   pruefe('Und ist mit einer zweiten Beschriftung abgesetzt',
-    [...(abZeile?.querySelectorAll('.eyebrow-mit') || [])].some(e => e.textContent === 'Ablehnung'),
+    [...(abZeile?.querySelectorAll('.eyebrow-with') || [])].some(e => e.textContent === 'Ablehnung'),
     JSON.stringify([...(abZeile?.querySelectorAll('.eyebrow') || [])].map(e => e.textContent)));
   pruefe('Sie traegt drei Pillen und keinen vierten Wert der Reihe davor',
     gleich([...(abGruppe?.querySelectorAll('.pill') || [])].map(b => b.textContent),
@@ -38165,7 +38165,7 @@ async function pruefeOberflaeche() {
   /* ---- filterZahl() ZAEHLT IHN MIT. Sonst sagte der eingeklappte
      Filterbereich die Unwahrheit ueber die eine Frage, die er aufwirft:
      „warum sehe ich nicht alles?" ---- */
-  const abZahl = (d) => d.w.document.querySelector('#filter-auf .fz')?.textContent || '';
+  const abZahl = (d) => d.w.document.querySelector('#filter-toggle .fcount')?.textContent || '';
   pruefe('Ohne Filter steht keine Zahl am Schalter', abZahl(abKeiner) === '', abZahl(abKeiner));
   pruefe('Mit dem Ablehnungsfilter steht dort eine Eins',
     /· 1 aktiv/.test(abZahl(abJa)), abZahl(abJa));
@@ -38233,13 +38233,13 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     return d;
   };
-  const ruhMarke = (d) => d.w.document.getElementById('rej-marke');
-  const ruhSatz = (d) => d.w.document.querySelector('#rej-marke .rej-text');
-  const ruhWarum = (d) => d.w.document.querySelector('#rej-marke .rej-warum');
-  const ruhStift = (d) => d.w.document.querySelector('#rej-marke .mact.ed');
-  const ruhWeg = (d) => d.w.document.querySelector('#rej-marke .mact.rm');
-  const ruhZeile = (d) => d.w.document.getElementById('rej-grund-zeile');
-  const ruhFeld = (d) => d.w.document.getElementById('rej-grund');
+  const ruhMarke = (d) => d.w.document.getElementById('rej-badge');
+  const ruhSatz = (d) => d.w.document.querySelector('#rej-badge .rej-text');
+  const ruhWarum = (d) => d.w.document.querySelector('#rej-badge .rej-why');
+  const ruhStift = (d) => d.w.document.querySelector('#rej-badge .mact.ed');
+  const ruhWeg = (d) => d.w.document.querySelector('#rej-badge .mact.rm');
+  const ruhZeile = (d) => d.w.document.getElementById('rej-reason-row');
+  const ruhFeld = (d) => d.w.document.getElementById('rej-reason');
 
   // --- Der Ablehnende: Aussage im Ruhezustand, Stift und Papierkorb ---
   {
@@ -38403,7 +38403,7 @@ async function pruefeOberflaeche() {
     pruefe('Ein fremder Admin bekommt den Papierkorb, aber keinen Stift',
       !ruhStift(d) && !!ruhWeg(d), JSON.stringify([!!ruhStift(d), !!ruhWeg(d)]));
     pruefe('Und der Text ist bei ihm nicht anklickbar',
-      !ruhWarum(d)?.classList.contains('klick'), ruhWarum(d)?.className);
+      !ruhWarum(d)?.classList.contains('clickable'), ruhWarum(d)?.className);
     ruhWarum(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Ein Klick auf den Text oeffnet dort gar nichts',
@@ -38501,18 +38501,18 @@ async function pruefeOberflaeche() {
     // Leser fuer dieselbe Datei liefe mit ihm auseinander.
     pruefe('Die Aussage traegt einen roten Strich in der Farbe des Schalters',
       // Seit 0.23.0 als Tripel geschrieben; die 42 Prozent sind dieselben.
-      /border-left: 2px solid rgba\(var\(--red-rgb\), \.42\)/.test(regel123('.rej-aussage')),
-      regel123('.rej-aussage') || '(keine Regel)');
+      /border-left: 2px solid rgba\(var\(--red-rgb\), \.42\)/.test(regel123('.rej-note')),
+      regel123('.rej-note') || '(keine Regel)');
     pruefe('Und der Grund selbst steht in --red',
-      /color: var\(--red\)/.test(regel123('.rej-aussage .rej-warum')),
-      regel123('.rej-aussage .rej-warum') || '(keine Regel)');
+      /color: var\(--red\)/.test(regel123('.rej-note .rej-why')),
+      regel123('.rej-note .rej-why') || '(keine Regel)');
     /* KEINE NEUE FARBE, und das ist zu belegen und nicht zu behaupten. Rot
        steht hier in ZWEI Schreibweisen: ausgeschrieben (der Strich) und ueber
        einen Vorgabewert (der Grund, das Loeschkreuz). Beide werden einzeln
        nachgesehen -- ein Lauf, der nur die eine kennt, bliebe gruen, wenn die
        andere eine erfundene Farbe truege. */
-    const ruhStellen = [regel123('.rej-aussage'), regel123('.rej-aussage .rej-warum'),
-                        regel123('.rej-aussage .mact.rm:hover')].join(' ');
+    const ruhStellen = [regel123('.rej-note'), regel123('.rej-note .rej-why'),
+                        regel123('.rej-note .mact.rm:hover')].join(' ');
     const ruhRot = ruhStellen.match(/#[0-9a-f]{3,8}|rgba?\([^)]*\)/gi) || [];
     const ruhVar = [...new Set(ruhStellen.match(/var\(--[a-z0-9-]+\)/gi) || [])];
     pruefe('Die Gruppe benutzt Rot in beiden Schreibweisen',
@@ -38566,7 +38566,7 @@ async function pruefeOberflaeche() {
     /* DIE GEGENPROBE ZUM MASSSTAB: es gibt ueberhaupt Regeln, die `display`
        setzen und ein Element mit `hidden` treffen koennen -- sonst pruefte die
        Zeile darueber eine Sache ohne Gegenstand (Stolperstein 81). */
-    const hidGefahr = ['.row-in', '.rej-aussage', '.lb-btn']
+    const hidGefahr = ['.row-in', '.rej-note', '.lb-btn']
       .filter(w => /display:\s*(flex|grid|block|inline-flex)/.test(regel123(w)));
     pruefe('Und es gibt wirklich display-Regeln, die `hidden` schlagen wuerden',
       hidGefahr.length === 3, JSON.stringify(hidGefahr));
@@ -38658,17 +38658,17 @@ async function pruefeOberflaeche() {
     const dok = d.w.document;
     const kopf = () => dok.getElementById('rhead');
     pruefe('Die Kopfzahl steht ueberhaupt da', !!kopf(), 'kein #rhead');
-    const knopf = () => dok.querySelector('#rhead .gew-auf');
+    const knopf = () => dok.querySelector('#rhead .weight-open');
     pruefe('Und sie ist ein Knopf, kein blosser Text', !!knopf(),
       kopf()?.innerHTML?.slice(0, 120));
     pruefe('Der Knopf traegt die Zahl und das Wort',
       /^⌀ 3,0 gewichtet$/.test(knopf()?.textContent || ''), knopf()?.textContent);
 
     // Kein Kasten, bevor jemand klickt.
-    pruefe('Vor dem Klick steht kein Kasten da', !dok.getElementById('rechnung-modal'));
+    pruefe('Vor dem Klick steht kein Kasten da', !dok.getElementById('calc-modal'));
     knopf()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const kasten = dok.getElementById('rechnung-modal');
+    const kasten = dok.getElementById('calc-modal');
     pruefe('Der Klick oeffnet den Kasten', !!kasten, dok.body.innerHTML.slice(0, 160));
     pruefe('Und die Ueberschrift nennt die Zahl dieses Eintrags',
       /⌀ 3/.test(kasten?.querySelector('h2')?.textContent || ''),
@@ -38678,31 +38678,31 @@ async function pruefeOberflaeche() {
        bewertetem: „Zuletzt" hat kein avg und geht in die Rechnung gar nicht
        ein. Stuende es hier, waere der Kasten eine andere Rechnung als die
        Zahl darueber. */
-    const zeilen = [...(kasten?.querySelectorAll('.rechnung .rz[data-krit]') || [])];
+    const zeilen = [...(kasten?.querySelectorAll('.calc .calc-row[data-krit]') || [])];
     pruefe('Der Kasten zeigt je bewertetem Kriterium eine Zeile',
       zeilen.length === 2, `${zeilen.length} Zeilen`);
     pruefe('Und nennt sie beim Namen',
-      gleich(zeilen.map(z => z.querySelector('.rz-name')?.textContent), ['Zuerst', 'Dann']),
-      JSON.stringify(zeilen.map(z => z.querySelector('.rz-name')?.textContent)));
+      gleich(zeilen.map(z => z.querySelector('.calc-name')?.textContent), ['Zuerst', 'Dann']),
+      JSON.stringify(zeilen.map(z => z.querySelector('.calc-name')?.textContent)));
     pruefe('Das unbewertete Kriterium steht ausdruecklich nicht darin',
-      !/Zuletzt/.test(kasten?.querySelector('.rechnung')?.textContent || ''),
-      kasten?.querySelector('.rechnung')?.textContent);
+      !/Zuletzt/.test(kasten?.querySelector('.calc')?.textContent || ''),
+      kasten?.querySelector('.calc')?.textContent);
     /* NOTE, GEWICHT UND PRODUKT stehen in der Zeile -- ohne das Produkt waere
        es eine Aufzaehlung und keine Rechnung. */
     const spalten = [...(zeilen[0]?.querySelectorAll('span') || [])].map(x => x.textContent.trim());
     pruefe('Jede Zeile traegt Note, Gewicht und Produkt',
       gleich(spalten, ['Zuerst', '3,4', '× 1,5', '5,1']), JSON.stringify(spalten));
     pruefe('Summe und Teiler stehen darunter',
-      dok.getElementById('rz-summe')?.textContent === '9,2' &&
-      dok.getElementById('rz-teiler')?.textContent === '2,5',
-      `${dok.getElementById('rz-summe')?.textContent} / ${dok.getElementById('rz-teiler')?.textContent}`);
+      dok.getElementById('calc-sum')?.textContent === '9,2' &&
+      dok.getElementById('calc-divisor')?.textContent === '2,5',
+      `${dok.getElementById('calc-sum')?.textContent} / ${dok.getElementById('calc-divisor')?.textContent}`);
     /* DIE ENTSCHEIDENDE ZEILE. 9,2 ÷ 2,5 ergibt 3,68 und gerundet 3,7 -- der
        Rechenweg der Prueflage nennt als Ergebnis aber ausdruecklich 3. Steht
        hier 3, LIEST die Oberflaeche; stuende 3,7, RECHNETE sie nach, und der
        Kasten waere eine zweite Wahrheit ueber dieselbe Zahl. */
     pruefe('Das Ergebnis kommt aus der Antwort und wird nicht nachgerechnet',
-      dok.getElementById('rz-ergebnis')?.textContent.trim() === '⌀ 3',
-      dok.getElementById('rz-ergebnis')?.textContent);
+      dok.getElementById('calc-result')?.textContent.trim() === '⌀ 3',
+      dok.getElementById('calc-result')?.textContent);
     pruefe('Und der Kasten sagt, dass genau einmal gerundet wird',
       /Gerundet wird nur das\s+Endergebnis/.test(kasten?.textContent || ''),
       kasten?.textContent?.replace(/\s+/g, ' ').slice(0, 200));
@@ -38717,7 +38717,7 @@ async function pruefeOberflaeche() {
        drei. Die HOEHE ist es nicht -- jsdom rechnet kein Layout, und die
        gemessenen Pixel stehen im Aenderungsprotokoll (Stolperstein 223). */
     const rgKinder = [...(kasten?.children || [])];
-    const rgNachTabelle = rgKinder.slice(rgKinder.findIndex(k => k.classList.contains('rechnung')) + 1)
+    const rgNachTabelle = rgKinder.slice(rgKinder.findIndex(k => k.classList.contains('calc')) + 1)
       .filter(k => k.tagName === 'P');
     pruefe('Unter der Tabelle stehen zwei Absaetze und nicht drei',
       rgNachTabelle.length === 2, `${rgNachTabelle.length} Absaetze`);
@@ -38737,11 +38737,11 @@ async function pruefeOberflaeche() {
        Punktes: die Zeilen ruecken enger, und der Kasten wird breiter, damit
        der Fliesstext seltener umbricht. */
     pruefe('Die Zeilen der Rechnung ruecken enger zusammen',
-      /\.rz > span \{ padding: 3px 0;/.test(css123),
-      (css123.match(/\.rz > span \{[^}]*\}/) || ['(keine Regel)'])[0]);
+      /\.calc-row > span \{ padding: 3px 0;/.test(css123),
+      (css123.match(/\.calc-row > span \{[^}]*\}/) || ['(keine Regel)'])[0]);
     pruefe('Und der Kasten selbst wird breiter',
-      /\.rechnung-modal \{ max-width: 620px; \}/.test(css123),
-      (css123.match(/\.rechnung-modal \{[^}]*\}/) || ['(keine Regel)'])[0]);
+      /\.calc-modal \{ max-width: 620px; \}/.test(css123),
+      (css123.match(/\.calc-modal \{[^}]*\}/) || ['(keine Regel)'])[0]);
 
     /* ---- DER VERWEIS ZEIGT IN DEN KASTEN — 0.17.0 ----
        BIS 0.17.0 STAND HIER „die Zahlen rechts in den Zeilen". Gemeint war die
@@ -38752,7 +38752,7 @@ async function pruefeOberflaeche() {
        es diese Spalte im Kasten wirklich gibt. Ein Satz, der auf eine Spalte
        zeigt, die es nicht gibt, ist genau der Fehler, um den es geht -- und
        eine Zusage, die nur den Satz liest, faende ihn nicht (Stolperstein 81). */
-    const rvKopf = [...(kasten?.querySelectorAll('.rechnung .rz-kopf span') || [])]
+    const rvKopf = [...(kasten?.querySelectorAll('.calc .calc-head span') || [])]
       .map(s => s.textContent.trim());
     pruefe('Der Kasten traegt selbst eine Spalte „Note"',
       rvKopf.includes('Note'), JSON.stringify(rvKopf));
@@ -38771,20 +38771,20 @@ async function pruefeOberflaeche() {
        kann diese Gruppe den Unterschied gar nicht zeigen -- dann wird DIESE
        Zeile rot und nicht die Zusagen darunter stumm. */
     pruefe('Die Prueflage taugt: gewichtet und ungewichtet sind verschieden',
-      dok.getElementById('rz-gleich')?.textContent.trim() !== '⌀ 3' &&
-      (dok.getElementById('rz-gleich')?.textContent || '').trim().length > 0,
-      `${dok.getElementById('rz-ergebnis')?.textContent} gegen ` +
-      `${dok.getElementById('rz-gleich')?.textContent}`);
+      dok.getElementById('calc-same')?.textContent.trim() !== '⌀ 3' &&
+      (dok.getElementById('calc-same')?.textContent || '').trim().length > 0,
+      `${dok.getElementById('calc-result')?.textContent} gegen ` +
+      `${dok.getElementById('calc-same')?.textContent}`);
     pruefe('Der Kasten nennt die Zahl ohne Gewichte',
-      dok.getElementById('rz-gleich')?.textContent.trim() === '⌀ 4',
-      dok.getElementById('rz-gleich')?.textContent);
+      dok.getElementById('calc-same')?.textContent.trim() === '⌀ 4',
+      dok.getElementById('calc-same')?.textContent);
     /* SIE WIRD GELESEN UND NICHT NACHGERECHNET (Stolperstein 217). (3,4 + 4,1)
        ÷ 2 ergibt 3,75 und gerundet 3,8 -- der Rechenweg der Prueflage nennt
        aber ausdruecklich 4. Steht hier 4, LIEST die Oberflaeche; stuende 3,8,
        rechnete sie nach, und der Kasten waere eine zweite Rechenstelle. */
     pruefe('Und sie kommt aus der Antwort, statt im Browser gerechnet zu werden',
-      !/3,8/.test(dok.querySelector('.rechnung')?.textContent || ''),
-      dok.querySelector('.rechnung')?.textContent?.replace(/\s+/g, ' '));
+      !/3,8/.test(dok.querySelector('.calc')?.textContent || ''),
+      dok.querySelector('.calc')?.textContent?.replace(/\s+/g, ' '));
     /* SO VIELE ZELLEN, WIE DAS RASTER SPALTEN HAT -- UND DIE ZAHL WIRD
        GELESEN, NICHT HINGESCHRIEBEN. Eine Zeile mit einer Zelle zu wenig
        schoebe alles darunter um eine Spalte weiter, genau der Fehler, den
@@ -38793,20 +38793,20 @@ async function pruefeOberflaeche() {
        DIESELBE ZWEITE WAHRHEIT (Stolperstein 47/223): wer die Spaltenzahl des
        Kastens aenderte, bekaeme hier eine gruene Zusage ueber ein zerfallenes
        Raster -- und das ist woertlich der Befund, aus dem Punkt 1 entstand. */
-    const rgRegel = regel123('.rechnung');
+    const rgRegel = regel123('.calc');
     pruefe('Die Regel fuer das Raster des Kastens steht im Stilblatt',
       rgRegel.length > 0, '(keine Regel)');
     const rgSpalten = (rgRegel.match(/grid-template-columns: ([^;}]+)/) || ['', ''])[1]
       .trim().split(/\s+/).filter(Boolean).length;
     pruefe('Und sie nennt eine Spaltenzahl', rgSpalten > 0, rgRegel || '(keine Regel)');
-    const rgZeile = kasten?.querySelector('.rz-gleich');
+    const rgZeile = kasten?.querySelector('.calc-same');
     pruefe('Die Zeile traegt so viele Zellen, wie das Raster Spalten hat',
       rgSpalten > 0 && rgZeile?.children.length === rgSpalten,
       `${rgZeile?.children.length} Zellen gegen ${rgSpalten} Spalten`);
     /* UND JEDE ANDERE ZEILE EBENSO. Ohne diese Zeile bliebe die darueber
        gruen, waehrend eine Nachbarzeile das Raster sprengt -- dieselbe
        Bauform wie an der Kriterienliste. */
-    const rgAlle = [...(kasten?.querySelectorAll('.rechnung > .rz') || [])]
+    const rgAlle = [...(kasten?.querySelectorAll('.calc > .calc-row') || [])]
       .map(z => z.children.length);
     pruefe('Und jede Zeile des Kastens traegt dieselbe Zahl',
       rgAlle.length > 0 && rgSpalten > 0 && rgAlle.every(n => n === rgSpalten),
@@ -38816,7 +38816,7 @@ async function pruefeOberflaeche() {
        keine neue Farbe --, und ein Kommentar ist keine Pruefung
        (Stolperstein 199). Ohne diese Zeilen bliebe die Regel ungeprueft, und
        ein Rueckbau an ihr faerbte nichts rot. */
-    const rgSpanRegel = regel123('.rz-gleich > span');
+    const rgSpanRegel = regel123('.calc-same > span');
     pruefe('Die Regel fuer die Zellen der Vergleichszeile steht im Stilblatt',
       rgSpanRegel.length > 0, '(keine Regel)');
     pruefe('Sie daempft die Zahl',
@@ -38831,25 +38831,25 @@ async function pruefeOberflaeche() {
       rgSpanRegel || '(keine Regel)');
     /* DER GEGENSATZ MUSS ES AUCH GEBEN (Stolperstein 81): „untergeordnet"
        belegt nichts, wenn die Zeile darueber selbst nicht hervorgehoben ist. */
-    const rgErgRegel = regel123('.rz-ergebnis > span');
+    const rgErgRegel = regel123('.calc-result > span');
     pruefe('Die Zeile darueber traegt dagegen den fetten Schnitt',
       /font-weight: 6\d\d/.test(rgErgRegel), rgErgRegel || '(keine Regel)');
     pruefe('Und sie steht unter dem Ergebnis, nicht darueber',
-      [...(kasten?.querySelectorAll('.rechnung > .rz') || [])].indexOf(rgZeile) >
-      [...(kasten?.querySelectorAll('.rechnung > .rz') || [])]
-        .indexOf(kasten?.querySelector('.rz-ergebnis')),
+      [...(kasten?.querySelectorAll('.calc > .calc-row') || [])].indexOf(rgZeile) >
+      [...(kasten?.querySelectorAll('.calc > .calc-row') || [])]
+        .indexOf(kasten?.querySelector('.calc-result')),
       'die Vergleichszahl steht vor dem Ergebnis');
     /* UND EIN SATZ SAGT, WAS SIE BEDEUTET. Eine Zahl ohne Deutung waere die
        fuenfte Zahl im Kasten und nicht die Antwort auf „wofuer sind die
        Gewichte gut". */
     pruefe('Ein Satz nennt den Unterschied beim Namen',
       /Unterschied, den die Gewichtung macht/.test(kasten?.textContent || ''),
-      dok.getElementById('rz-gleich-satz')?.textContent?.replace(/\s+/g, ' '));
+      dok.getElementById('calc-same-note')?.textContent?.replace(/\s+/g, ' '));
 
     // Escape schliesst ihn, wie jeden Dialog dieser Instanz.
     dok.dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
-    pruefe('Escape schliesst den Kasten wieder', !dok.getElementById('rechnung-modal'));
+    pruefe('Escape schliesst den Kasten wieder', !dok.getElementById('calc-modal'));
     d.w.close();
   }
 
@@ -38862,21 +38862,21 @@ async function pruefeOberflaeche() {
     const d = baueDom(JSDOM, { hash: '#/item/1', kriterienGewichte: [1, 1, 1] });
     await new Promise(r => setTimeout(r, 90));
     const dok = d.w.document;
-    dok.querySelector('#rhead .gew-auf')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    dok.querySelector('#rhead .weight-open')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const kasten = dok.getElementById('rechnung-modal');
+    const kasten = dok.getElementById('calc-modal');
     pruefe('Auch ohne Gewichtung geht der Kasten auf', !!kasten, dok.body.innerHTML.slice(0, 160));
     pruefe('Aber er nennt keine Vergleichszahl',
-      !!kasten && !dok.getElementById('rz-gleich'),
-      dok.getElementById('rz-gleich')?.textContent);
+      !!kasten && !dok.getElementById('calc-same'),
+      dok.getElementById('calc-same')?.textContent);
     pruefe('Und auch keinen Satz dazu',
-      !!kasten && !dok.getElementById('rz-gleich-satz'),
-      dok.getElementById('rz-gleich-satz')?.textContent);
+      !!kasten && !dok.getElementById('calc-same-note'),
+      dok.getElementById('calc-same-note')?.textContent);
     /* DIE RECHNUNG SELBST STEHT TROTZDEM DA -- was fehlt, ist der Vergleich,
        nicht der Kasten. */
     pruefe('Die Rechnung selbst steht trotzdem darin',
-      (kasten?.querySelectorAll('.rechnung .rz[data-krit]') || []).length === 2,
-      `${kasten?.querySelectorAll('.rechnung .rz[data-krit]').length}`);
+      (kasten?.querySelectorAll('.calc .calc-row[data-krit]') || []).length === 2,
+      `${kasten?.querySelectorAll('.calc .calc-row[data-krit]').length}`);
     d.w.close();
   }
 
@@ -38888,20 +38888,20 @@ async function pruefeOberflaeche() {
     const d = baueDom(JSDOM, { hash: '#/item/1', rechenwegGleich: 3 });
     await new Promise(r => setTimeout(r, 90));
     const dok = d.w.document;
-    dok.querySelector('#rhead .gew-auf')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    dok.querySelector('#rhead .weight-open')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const kasten = dok.getElementById('rechnung-modal');
+    const kasten = dok.getElementById('calc-modal');
     pruefe('Die Prueflage taugt: hier sind beide Zahlen wirklich gleich',
-      dok.getElementById('rz-gleich')?.textContent.trim() ===
-      dok.getElementById('rz-ergebnis')?.textContent.trim(),
-      `${dok.getElementById('rz-ergebnis')?.textContent} gegen ` +
-      `${dok.getElementById('rz-gleich')?.textContent}`);
+      dok.getElementById('calc-same')?.textContent.trim() ===
+      dok.getElementById('calc-result')?.textContent.trim(),
+      `${dok.getElementById('calc-result')?.textContent} gegen ` +
+      `${dok.getElementById('calc-same')?.textContent}`);
     pruefe('Dann sagt der Kasten, dass die Gewichtung nichts aendert',
       /ändert die Gewichtung nichts/.test(kasten?.textContent || ''),
-      dok.getElementById('rz-gleich-satz')?.textContent?.replace(/\s+/g, ' '));
+      dok.getElementById('calc-same-note')?.textContent?.replace(/\s+/g, ' '));
     pruefe('Und er behauptet keinen Unterschied',
       !/Unterschied, den die Gewichtung macht/.test(kasten?.textContent || ''),
-      dok.getElementById('rz-gleich-satz')?.textContent?.replace(/\s+/g, ' '));
+      dok.getElementById('calc-same-note')?.textContent?.replace(/\s+/g, ' '));
     d.w.close();
   }
 
@@ -38916,7 +38916,7 @@ async function pruefeOberflaeche() {
       (d.w.document.getElementById('rhead')?.textContent || '') === '',
       JSON.stringify(d.w.document.getElementById('rhead')?.innerHTML));
     pruefe('Und damit auch kein Knopf',
-      !d.w.document.querySelector('#rhead .gew-auf'),
+      !d.w.document.querySelector('#rhead .weight-open'),
       d.w.document.getElementById('rhead')?.innerHTML);
     /* Die Kriterienzeilen stehen trotzdem da -- was fehlt, ist die ZAHL, nicht
        der Block. */
@@ -38944,16 +38944,16 @@ async function pruefeOberflaeche() {
     pruefe('Die Prueflage taugt: bei einem Zugang gibt es die Spalte dahinter nicht',
       dok.querySelectorAll('#ratings .rrow .ravg').length === 0,
       `${dok.querySelectorAll('#ratings .rrow .ravg').length} Durchschnittszellen`);
-    dok.querySelector('#rhead .gew-auf')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    dok.querySelector('#rhead .weight-open')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const kasten = dok.getElementById('rechnung-modal');
+    const kasten = dok.getElementById('calc-modal');
     pruefe('Auch bei einem einzigen Zugang geht der Kasten auf', !!kasten,
       dok.body.innerHTML.slice(0, 160));
     pruefe('Und er verweist auch dort nicht auf die Liste dahinter',
       !!kasten && !/rechts in den Zeilen/.test(kasten.textContent || ''),
       (kasten?.textContent || '').replace(/\s+/g, ' ').slice(0, 220));
     pruefe('Sondern auf seine eigene Spalte, die auch hier dasteht',
-      [...(kasten?.querySelectorAll('.rechnung .rz-kopf span') || [])]
+      [...(kasten?.querySelectorAll('.calc .calc-head span') || [])]
         .map(s => s.textContent.trim()).includes('Note') &&
       /\(Spalte Note\)/.test((kasten?.textContent || '').replace(/\s+/g, ' ')),
       (kasten?.textContent || '').replace(/\s+/g, ' ').slice(0, 220));
@@ -40299,7 +40299,7 @@ async function pruefeOberflaeche() {
        dieselbe Zahl steht: den Schalter ueber den Filtern. Zwei Zaehlungen
        nebeneinander liefen frueher oder spaeter auseinander
        (Stolperstein 47). */
-    const schalter = d.w.document.querySelector('#filter-auf .fz')?.textContent || '';
+    const schalter = d.w.document.querySelector('#filter-toggle .fcount')?.textContent || '';
     pruefe('Und es ist dieselbe Zahl, die auch der Schalter nennt',
       schalter === '· 4 aktiv', JSON.stringify(schalter));
     /* ER STEHT IN DER SORTIERZEILE, neben „+ Ansicht speichern" -- dort, wo er
@@ -40309,14 +40309,14 @@ async function pruefeOberflaeche() {
       !!zeile?.querySelector('#f-sort') && !!zeile?.querySelector('#ansicht-neu'),
       zeile ? [...zeile.querySelectorAll('.eyebrow')].map(e => e.textContent).join('+') : 'in keiner Zeile');
     pruefe('Und rechts in ihr',
-      knopf?.parentElement?.classList.contains('frow-rechts-weit'),
+      knopf?.parentElement?.classList.contains('frow-right-wide'),
       knopf?.parentElement?.className);
     /* DAS STILBLATT SCHIEBT IHN AN DEN RAND -- ohne ausgerechnete Breite. Die
        Pillen der Sortierzeile wachsen nicht von selbst, anders als die Wolke
        der Tagzeile. */
     pruefe('Das Stilblatt schiebt ihn an den rechten Rand',
-      /margin-left: auto/.test(regel123('.frow-rechts-weit')),
-      regel123('.frow-rechts-weit') || '(keine Regel)');
+      /margin-left: auto/.test(regel123('.frow-right-wide')),
+      regel123('.frow-right-wide') || '(keine Regel)');
 
     /* ---- UND JETZT DER KLICK ----
        EIN SUCHBEGRIFF STEHT DABEI WIRKLICH IM FELD und nicht bloss im Zustand:
@@ -40702,7 +40702,7 @@ async function pruefeOberflaeche() {
     pruefe('Neben den Statuspillen steht, woher die Stellung kommt',
       wort?.textContent === 'folgt der Sortierung', JSON.stringify(wort?.textContent));
     pruefe('Und es ist eine zweite Beschriftung ohne eigene Spalte',
-      wort?.classList.contains('eyebrow-mit'), wort?.className);
+      wort?.classList.contains('eyebrow-with'), wort?.className);
     pruefe('Es steht in derselben Zeile wie die Statuspillen',
       wort?.closest('.frow') === ksPille(d, 'Alle')?.closest('.frow'),
       wort?.closest('.frow')?.querySelector('.eyebrow')?.textContent);
@@ -40710,7 +40710,7 @@ async function pruefeOberflaeche() {
        zwar an einer EIGENEN Klasse und nicht an derselben mit Zusatz. */
     const abgeleitet = ksPille(d, 'Ungetestet');
     pruefe('Die abgeleitete Pille traegt ihre eigene Marke',
-      abgeleitet?.classList.contains('pill-abgeleitet'), abgeleitet?.className);
+      abgeleitet?.classList.contains('pill-derived'), abgeleitet?.className);
     pruefe('Und sie sieht ausdruecklich nicht aus wie eine angeklickte',
       !abgeleitet?.classList.contains('on'), abgeleitet?.className);
     // SEIT 0.22.0 HEISST DIE PILLE IN JEDER FILTERGRUPPE „Alle" (Woerterbuch);
@@ -40730,13 +40730,13 @@ async function pruefeOberflaeche() {
        laesst sich das ohne Layoutberechnung nicht sehen -- geprueft wird
        deshalb am Stilblatt, wie bei den Loeschkreuzen und dem Favoritenstern. */
     pruefe('Das Stilblatt zeichnet sie gestrichelt statt gefuellt',
-      /border-style: dashed/.test(regel123('.pill-abgeleitet')) &&
-      !/background:/.test(regel123('.pill-abgeleitet')),
-      regel123('.pill-abgeleitet') || '(keine Regel)');
+      /border-style: dashed/.test(regel123('.pill-derived')) &&
+      !/background:/.test(regel123('.pill-derived')),
+      regel123('.pill-derived') || '(keine Regel)');
     /* UND SIE IST NICHT GEDAEMPFT: ein Klick darauf ist weiterhin eine
        Handwahl, sie darf also nicht wie ein toter Knopf aussehen. */
     pruefe('Und sie ist nicht gedaempft wie eine wirkungslose Pille',
-      !/opacity/.test(regel123('.pill-abgeleitet')), regel123('.pill-abgeleitet'));
+      !/opacity/.test(regel123('.pill-derived')), regel123('.pill-derived'));
     pruefe('Anklickbar bleibt sie', abgeleitet?.disabled !== true, String(abgeleitet?.disabled));
     await ksKlick(d, abgeleitet);
     pruefe('Und ein Klick darauf ist eine Handwahl und beendet die Vorgabe',
@@ -40754,7 +40754,7 @@ async function pruefeOberflaeche() {
       d.w.document.getElementById('f-status-woher')?.textContent);
     pruefe('Und eine von Hand gesetzte Pille zeichnet sich wie immer',
       ksPille(d, 'Alle')?.classList.contains('on') &&
-      !ksPille(d, 'Alle')?.classList.contains('pill-abgeleitet'),
+      !ksPille(d, 'Alle')?.classList.contains('pill-derived'),
       ksPille(d, 'Alle')?.className);
     d.w.close();
   }
@@ -40773,7 +40773,7 @@ async function pruefeOberflaeche() {
     pruefe('Nach dem Wechsel der Sortierung steht das Wort da',
       !!d.w.document.getElementById('f-status-woher'), '(kein Wort)');
     pruefe('Und die abgeleitete Pille ist mitgezogen',
-      ksPille(d, 'Ungetestet')?.classList.contains('pill-abgeleitet'),
+      ksPille(d, 'Ungetestet')?.classList.contains('pill-derived'),
       ksPille(d, 'Ungetestet')?.className);
     pruefe('Und „Alle" steht nicht mehr als gewaehlt da',
       !ksPille(d, 'Alle')?.classList.contains('on'),
@@ -40797,14 +40797,14 @@ async function pruefeOberflaeche() {
       !d.w.document.getElementById('filter-zurueck'),
       d.w.document.getElementById('filter-zurueck')?.textContent);
     pruefe('Und der Schalter faerbt sich nicht als „etwas eingestellt"',
-      !d.w.document.getElementById('filter-auf')?.classList.contains('aktiv'),
-      d.w.document.getElementById('filter-auf')?.className);
+      !d.w.document.getElementById('filter-toggle')?.classList.contains('aktiv'),
+      d.w.document.getElementById('filter-toggle')?.className);
     /* GESAGT WIRD SIE TROTZDEM, nur in Worten statt in einer Zahl: eingeklappt
        ist das Wort neben den Pillen nicht zu sehen, und der Schalter ist dann
        der einzige Ort, der noch spricht. Regel 4 gilt an beiden Orten. */
     pruefe('Der Schalter sagt sie stattdessen im Wort',
-      d.w.document.querySelector('#filter-auf .fz')?.textContent === '· folgt der Sortierung',
-      JSON.stringify(d.w.document.querySelector('#filter-auf .fz')?.textContent));
+      d.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· folgt der Sortierung',
+      JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
     d.w.close();
   }
   {
@@ -40816,8 +40816,8 @@ async function pruefeOberflaeche() {
       d.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)',
       JSON.stringify(d.w.document.getElementById('filter-zurueck')?.textContent));
     pruefe('Und die Ableitung schiebt die Zahl nicht hoch',
-      d.w.document.querySelector('#filter-auf .fz')?.textContent === '· 1 aktiv · folgt der Sortierung',
-      JSON.stringify(d.w.document.querySelector('#filter-auf .fz')?.textContent));
+      d.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· 1 aktiv · folgt der Sortierung',
+      JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
     d.w.close();
   }
 
@@ -40839,8 +40839,8 @@ async function pruefeOberflaeche() {
       /backdrop-filter/.test(cssRoh) && /\.masthead \{[^}]*background: var\(--bg\)/.test(css123),
       regel123('.masthead').slice(0, 200));
     pruefe('Die Kopfzeile ist deckend und bekommt beim Rollen einen Schatten statt Milchglas',
-      /\.masthead\.gerollt \{ box-shadow: var\(--sh-sm\); \}/.test(css123),
-      regel123('.masthead.gerollt') || '(keine Regel)');
+      /\.masthead\.scrolled \{ box-shadow: var\(--sh-sm\); \}/.test(css123),
+      regel123('.masthead.scrolled') || '(keine Regel)');
     pruefe('Der Hintergrund eines Dialogs ist eine deckende Farbe ohne Weichzeichner',
       /* Seit 0.23.0 traegt --scrim den ganzen Wert und nicht die Regel:
          im hellen Schema aendern sich BEIDE Teile, Farbe und Deckung. Geprueft
@@ -41695,10 +41695,10 @@ async function pruefeOberflaeche() {
     /* UND DIE VIER REGELN LESEN WIRKLICH DIE DREI VARIABLEN. Ohne diese Zeile
        koennten die Werte tadellos dastehen und nichts faerben. */
     for (const [wahl, eigenschaft, variable] of [
-      ['.zl-linie', 'background', '--timeline-line'],
-      ['.zl-linie.mitte', 'background', '--timeline-mid'],
-      ['.zl-jahre', 'border-top', '--timeline-line'],
-      ['.zl-jahr', 'color', '--timeline-year']])
+      ['.timeline-line', 'background', '--timeline-line'],
+      ['.timeline-line.center', 'background', '--timeline-mid'],
+      ['.timeline-years', 'border-top', '--timeline-line'],
+      ['.timeline-year', 'color', '--timeline-year']])
       pruefe(`${wahl} liest ${variable}`,
         new RegExp(`${eigenschaft}:[^;}]*var\\(${variable}\\)`).test(regel123(wahl)),
         regel123(wahl) || '(keine Regel)');
@@ -41706,7 +41706,7 @@ async function pruefeOberflaeche() {
     // Voraussetzung dafuer, dass gegen --bg gemessen wird und nicht gegen
     // --surface. Faellt sie je auf eine Karte, sind die drei Zahlen falsch.
     pruefe('Und die Zeitleiste liegt weiter ohne Kasten auf dem Grund',
-      !/background|border:/.test(regel123('.zl')), regel123('.zl') || '(keine Regel)');
+      !/background|border:/.test(regel123('.timeline')), regel123('.timeline') || '(keine Regel)');
   }
 
   gruppe('Keine feste Farbe im Stilblatt — 0.23.0');
@@ -41930,13 +41930,13 @@ async function pruefeOberflaeche() {
     pruefe('Jede Sternzeile hat vier Zellen: Name, Sterne, Durchschnitt, Ruecksetzer',
       stZeilen.length === 3 && stZeilen.every(z => z.children.length === 4 &&
         z.children[0].classList.contains('rname') && z.children[1].classList.contains('racts') &&
-        z.children[2].classList.contains('ravg') && z.children[3].classList.contains('rzz')),
+        z.children[2].classList.contains('ravg') && z.children[3].classList.contains('rreset-cell')),
       JSON.stringify(stZeilen.map(z => [...z.children].map(c => c.className))));
     pruefe('Das Raster hat vier Spalten',
       /\.rlist \{ display: grid; grid-template-columns: 1fr auto auto auto; \}/.test(css123),
       regel123('.rlist') || '(keine Regel)');
     pruefe('Der Knopf steht in seiner Zelle, nicht in der Sternreihe',
-      stZeilen.every(z => !!z.querySelector('.rzz > .rzurueck') && !z.querySelector('.stars .rzurueck') &&
+      stZeilen.every(z => !!z.querySelector('.rreset-cell > .rreset') && !z.querySelector('.stars .rreset') &&
         !z.querySelector('.stars .sdel') && z.querySelectorAll('.stars > *').length === 5),
       JSON.stringify(stZeilen.map(z => z.querySelectorAll('.stars > *').length)));
     /* DIE STERNE ALLER ZEILEN BEGINNEN AN DERSELBEN STELLE, auch wenn eine
@@ -41944,25 +41944,25 @@ async function pruefeOberflaeche() {
        ueber `visibility`, nicht ueber `display`. */
     pruefe('Ohne eigenen Stern ist der Knopf unsichtbar, seine Zelle bleibt',
       stNullZeilen[2]?.children.length === 4 &&
-      stNullZeilen[2]?.querySelector('.rzurueck')?.classList.contains('leer') === true &&
-      stNullZeilen[2]?.querySelector('.rzurueck')?.hidden === false &&
-      stNullZeilen.slice(0, 2).every(z => !z.querySelector('.rzurueck').classList.contains('leer')),
-      JSON.stringify(stNullZeilen.map(z => z.querySelector('.rzurueck')?.className)));
+      stNullZeilen[2]?.querySelector('.rreset')?.classList.contains('leer') === true &&
+      stNullZeilen[2]?.querySelector('.rreset')?.hidden === false &&
+      stNullZeilen.slice(0, 2).every(z => !z.querySelector('.rreset').classList.contains('leer')),
+      JSON.stringify(stNullZeilen.map(z => z.querySelector('.rreset')?.className)));
     pruefe('Und die Regel nimmt ihm die Sichtbarkeit, nicht seinen Platz',
-      /visibility: hidden/.test(regel123('.rzurueck.leer')) && !/display: none/.test(regel123('.rzurueck.leer')),
-      regel123('.rzurueck.leer') || '(keine Regel)');
+      /visibility: hidden/.test(regel123('.rreset.leer')) && !/display: none/.test(regel123('.rreset.leer')),
+      regel123('.rreset.leer') || '(keine Regel)');
     /* (3) SICHTBAR ABGESETZT: ein runder Knopf mit Hoverflaeche, das Zeichen ↺,
        und der Hinweistext behaelt das Wort „Meine". */
     pruefe('Er ist ein runder Knopf mit 26 Bildpunkten und roter Hoverflaeche',
-      /\.rzurueck \{[^}]*width: 26px; height: 26px; border-radius: 50%/.test(css123) &&
-      /\.rzurueck:hover \{ color: var\(--red\); background: var\(--red-dim\); \}/.test(css123),
-      regel123('.rzurueck') || '(keine Regel)');
+      /\.rreset \{[^}]*width: 26px; height: 26px; border-radius: 50%/.test(css123) &&
+      /\.rreset:hover \{ color: var\(--red\); background: var\(--red-dim\); \}/.test(css123),
+      regel123('.rreset') || '(keine Regel)');
     pruefe('Er traegt das Zeichen „zurücksetzen" und nicht ein ×',
-      stZeilen.every(z => !!z.querySelector('.rzurueck svg.zg') && !/×/.test(z.querySelector('.rzurueck').textContent)),
-      stZeilen[0]?.querySelector('.rzurueck')?.innerHTML.slice(0, 80));
+      stZeilen.every(z => !!z.querySelector('.rreset svg.zg') && !/×/.test(z.querySelector('.rreset').textContent)),
+      stZeilen[0]?.querySelector('.rreset')?.innerHTML.slice(0, 80));
     pruefe('Und sein Hinweistext sagt „Meine Sterne entfernen"',
-      stZeilen.every(z => z.querySelector('.rzurueck').title === 'Meine Sterne entfernen'),
-      JSON.stringify(stZeilen.map(z => z.querySelector('.rzurueck').title)));
+      stZeilen.every(z => z.querySelector('.rreset').title === 'Meine Sterne entfernen'),
+      JSON.stringify(stZeilen.map(z => z.querySelector('.rreset').title)));
     /* (2) BEI EINEM EINZIGEN ZUGANG GIBT ES DIE ZAHLENSPALTE NICHT -- dort
        steht der Knopf als dritte Zelle hinter den Sternen und braucht seinen
        Abstand aus dem Raster: mindestens 12 px. */
@@ -41971,24 +41971,24 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     const stEinsZeilen = [...stEins.w.document.querySelectorAll('#ratings .rrow')];
     pruefe('Bei einem einzigen Zugang hat die Zeile drei Zellen, die letzte ist der Knopf',
-      stEinsZeilen.length === 3 && stEins.w.document.getElementById('ratings')?.classList.contains('ohne-schnitt') &&
-      stEinsZeilen.every(z => z.children.length === 3 && z.children[2].classList.contains('rzz')),
+      stEinsZeilen.length === 3 && stEins.w.document.getElementById('ratings')?.classList.contains('no-average') &&
+      stEinsZeilen.every(z => z.children.length === 3 && z.children[2].classList.contains('rreset-cell')),
       JSON.stringify(stEinsZeilen.map(z => [...z.children].map(c => c.className))));
     pruefe('Und das Raster rechnet dort mit drei Spalten',
-      /\.rlist\.ohne-schnitt \{ grid-template-columns: 1fr auto auto; \}/.test(css123),
-      regel123('.rlist.ohne-schnitt') || '(keine Regel)');
-    const stAbstand = Number((regel123('.rrow .rzz').match(/padding-left: (\d+)px/) || [])[1]);
+      /\.rlist\.no-average \{ grid-template-columns: 1fr auto auto; \}/.test(css123),
+      regel123('.rlist.no-average') || '(keine Regel)');
+    const stAbstand = Number((regel123('.rrow .rreset-cell').match(/padding-left: (\d+)px/) || [])[1]);
     pruefe('Die Zelle des Knopfs haelt mindestens 12 Bildpunkte Abstand nach links',
-      stAbstand >= 12, regel123('.rrow .rzz') || '(keine Regel)');
+      stAbstand >= 12, regel123('.rrow .rreset-cell') || '(keine Regel)');
     pruefe('Auf Beruehrungsgeraeten ist die Trefflaeche mindestens 32 Bildpunkte',
-      /\.rzurueck \{ width: 32px; height: 32px; \}/.test(css123),
-      (css123.match(/\.rzurueck \{[^}]*\}/g) || []).join(' | '));
+      /\.rreset \{ width: 32px; height: 32px; \}/.test(css123),
+      (css123.match(/\.rreset \{[^}]*\}/g) || []).join(' | '));
     /* DER KLICK: PUT MIT 0 -- und die Message traegt „Rückgängig", und der
        Knopf darin schreibt den ALTEN WERT zurueck: derselbe Ruf, derselbe
        Rumpf, nur mit 3 statt 0. Geprueft am gesendeten Rumpf, nicht an der
        Anzeige. */
     stDom.gesendet.length = 0;
-    stZeilen[0].querySelector('.rzurueck').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
+    stZeilen[0].querySelector('.rreset').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const stRufe = stDom.gesendet.filter(g => /\/ratings/.test(g.url));
     pruefe('Ein Klick auf den Knopf schickt PUT mit value 0 — und nichts anderes',
@@ -42017,7 +42017,7 @@ async function pruefeOberflaeche() {
     /* DIE TESTTAGE UND JEDE LESESTELLE BLEIBEN OHNE KNOPF. */
     const stTest = [...stDoc.querySelectorAll('#tstars .stars, .ttag .stars, .tdrow .stars')];
     pruefe('Eine Sternreihe ohne Ruecksetzer traegt keinen Knopf',
-      stTest.length > 0 && stTest.every(t => !t.querySelector('.rzurueck') && !t.parentElement.querySelector('.rzurueck')),
+      stTest.length > 0 && stTest.every(t => !t.querySelector('.rreset') && !t.parentElement.querySelector('.rreset')),
       `${stTest.length} Reihen`);
     stDom.w.close(); stNull.w.close(); stEins.w.close();
   }
@@ -42052,7 +42052,7 @@ async function pruefeOberflaeche() {
       wfKnopf?.textContent === 'Tags', JSON.stringify(wfKnopf?.textContent));
     pruefe('Und er steht in der Kategoriezeile, am rechten Ende',
       wfKnopf?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Kategorie'
-        && !!wfKnopf?.closest('.frow-rechts-weit'),
+        && !!wfKnopf?.closest('.frow-right-wide'),
       `${wfKnopf?.closest('.frow')?.querySelector('.eyebrow')?.textContent} · ${wfKnopf?.parentElement?.className}`);
     pruefe('Ohne Tagfilter steht er beim Aufbau zugeklappt',
       wfKnopf?.getAttribute('aria-expanded') === 'false',
@@ -42110,9 +42110,9 @@ async function pruefeOberflaeche() {
       wfKnopf2?.textContent === 'Tags (1)', JSON.stringify(wfKnopf2?.textContent));
     pruefe('Und filterNumber() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)',
       wfMit.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)' &&
-      wfMit.w.document.querySelector('#filter-auf .fz')?.textContent === '· 1 aktiv',
+      wfMit.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· 1 aktiv',
       JSON.stringify([wfMit.w.document.getElementById('filter-zurueck')?.textContent,
-                      wfMit.w.document.querySelector('#filter-auf .fz')?.textContent]));
+                      wfMit.w.document.querySelector('#filter-toggle .fcount')?.textContent]));
     pruefe('Der Rueckweg in der Tagzeile heisst „Tags zurücksetzen"',
       [...wfMit.w.document.querySelectorAll('#f-tagzeile .link-btn')].some(b => b.textContent === 'Tags zurücksetzen'),
       [...wfMit.w.document.querySelectorAll('#f-tagzeile .link-btn')].map(b => b.textContent).join(' | '));
@@ -42149,13 +42149,13 @@ async function pruefeOberflaeche() {
        mehr an `[open]`, und der Unterstrich des link-btn traegt das Wort und
        nicht den Winkel. */
     pruefe('Der Umschalter traegt im Stilblatt seinen eigenen Winkel',
-      /\.tag-schalter::before \{[^}]*border-right: 1\.5px solid currentColor/.test(css123) &&
-      /\.tag-schalter\[aria-expanded="true"\]::before \{ transform: rotate\(45deg\); \}/.test(css123),
-      regel123('.tag-schalter::before') || '(keine Regel)');
+      /\.tag-toggle::before \{[^}]*border-right: 1\.5px solid currentColor/.test(css123) &&
+      /\.tag-toggle\[aria-expanded="true"\]::before \{ transform: rotate\(45deg\); \}/.test(css123),
+      regel123('.tag-toggle::before') || '(keine Regel)');
     pruefe('Und der Unterstrich steht unter dem Wort, nicht unter dem Winkel',
-      /\.tag-schalter \{[^}]*text-decoration: none/.test(css123) &&
-      /\.tag-schalter > span \{ text-decoration: underline; \}/.test(css123),
-      regel123('.tag-schalter') || '(keine Regel)');
+      /\.tag-toggle \{[^}]*text-decoration: none/.test(css123) &&
+      /\.tag-toggle > span \{ text-decoration: underline; \}/.test(css123),
+      regel123('.tag-toggle') || '(keine Regel)');
     // Und der alte Aufklapper ist wirklich fort -- aus dem Stilblatt wie aus
     // dem Quelltext. Sonst bliebe totes Regelwerk liegen.
     pruefe('Vom alten <details> ist nichts uebrig',

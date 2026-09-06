@@ -396,7 +396,7 @@ function stars(value, onPick) {
 function resetButton(value, onReset) {
   const z = document.createElement('button');
   z.type = 'button';
-  z.className = 'rzurueck' + (value > 0 ? '' : ' leer');
+  z.className = 'rreset' + (value > 0 ? '' : ' leer');
   z.innerHTML = ICON_RESET;
   z.title = t('dialog.removeMyStars');
   z.setAttribute('aria-label', t('dialog.removeMyStars'));
@@ -1139,7 +1139,7 @@ const saveBlocks = () =>
   api('PUT', '/api/settings', { bloecke: BLOCKS }).catch(e => toast(e.message, true));
 
 function sortBlocks() {
-  [['seite', 'blocks-seite'], ['unten', 'blocks-unten']].forEach(([area, boxId]) => {
+  [['seite', 'blocks-side'], ['unten', 'blocks-bottom']].forEach(([area, boxId]) => {
     const box = document.getElementById(boxId);
     if (!box) return;
     BLOCKS[area].forEach(name => {
@@ -1309,7 +1309,7 @@ function setUpBlocksOut(item) {
       head.prepend(arrow);
       head.prepend(handle);
       const summe = document.createElement('span');
-      summe.className = 'bsumme';
+      summe.className = 'bsum';
       head.querySelector('.label').after(summe);
       head.classList.add('block-head-x');
     }
@@ -1329,7 +1329,7 @@ function setUpBlocksOut(item) {
     block.hidden = blockPathAfterState(name, item);
     block.classList.toggle('zu', zu);
     head.querySelector('.bcaret').textContent = zu ? '▸' : '▾';
-    const summe = head.querySelector('.bsumme');
+    const summe = head.querySelector('.bsum');
     // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts.
     const kurz = zu ? blockSummary(name, item) : '';
     summe.textContent = kurz ? `(${kurz})` : '';
@@ -2860,10 +2860,10 @@ async function renderList() {
     ${/* Nur auf dem schmalen Schirm sichtbar. Die Zahl daneben nennt die
          Filter, die gerade greifen -- ohne sie waere eine eingeklappte
          Filterreihe eine Liste, die aus unerfindlichem Grund weniger zeigt. */''}
-    <button class="btn btn-sm filter-schalter" id="filter-auf"
-      aria-expanded="true" aria-controls="filters">${tH('list.filter')}<span class="fz" id="filter-zahl"></span></button>
+    <button class="btn btn-sm filter-toggle" id="filter-toggle"
+      aria-expanded="true" aria-controls="filters">${tH('list.filter')}<span class="fcount" id="filter-count"></span></button>
     <div class="filters" id="filters"></div>
-    <div id="zeitleiste"></div>
+    <div id="timeline"></div>
     <div id="body"></div>
   </div>`;
 
@@ -2874,12 +2874,12 @@ async function renderList() {
   document.getElementById('sys').onclick = () => { location.hash = '#/system'; };
   /* DER SCHATTEN DER KOPFZEILE BEIM ROLLEN -- 0.22.0. Sie ist deckend und
      ohne Milchglas (Gestaltungsregel G3); dass unter ihr etwas liegt, sagt ab
-     acht Bildpunkten Rollweg die Klasse `gerollt`, und das Stilblatt haengt
+     acht Bildpunkten Rollweg die Klasse `scrolled`, und das Stilblatt haengt
      den Schatten daran. Acht und nicht null: beim Aufbau und am oberen Rand
      soll die Kopfzeile flach auf der Seite liegen. Der Horcher geht beim
      Verlassen der Ansicht mit den anderen weg. */
   const scrollGuard = () =>
-    document.querySelector('.masthead')?.classList.toggle('gerollt', (window.scrollY || 0) > 8);
+    document.querySelector('.masthead')?.classList.toggle('scrolled', (window.scrollY || 0) > 8);
   window.addEventListener('scroll', scrollGuard, { passive: true });
   scrollGuard();
   document.getElementById('out').onclick = async () => {
@@ -2940,7 +2940,7 @@ async function renderList() {
      haette keinen sichtbaren Knopf, sie zu oeffnen. */
   const filterBox = document.getElementById('filters');
   if (isNarrow()) filterBox.classList.add('zu');
-  document.getElementById('filter-auf').onclick = () => {
+  document.getElementById('filter-toggle').onclick = () => {
     const wasClosed = filterBox.classList.contains('zu');
     filterBox.classList.toggle('zu');
     /* BEIM AUFKLAPPEN WIRD NEU GEZEICHNET, beim Einklappen nicht.
@@ -3046,7 +3046,7 @@ function filterNumber() {
    Schalter eingeklappt sonst eine veraltete Zahl truege, also genau dann
    falsch waere, wenn er als einziger noch etwas sagt. */
 function drawFilterSwitch() {
-  const button = document.getElementById('filter-auf');
+  const button = document.getElementById('filter-toggle');
   const box = document.getElementById('filters');
   if (!button || !box) return;
   const n = filterNumber();
@@ -3059,9 +3059,9 @@ function drawFilterSwitch() {
      deshalb an der Zahl haengen -- die Farbe sagt „du hast etwas eingestellt",
      und eingestellt hat das niemand. */
   const woher = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';
-  button.querySelector('.fz').textContent =
+  button.querySelector('.fcount').textContent =
     [n ? `${n} aktiv` : '', woher].filter(Boolean).map(s => `· ${s}`).join(' ');
-  button.classList.toggle('aktiv', n > 0);
+  button.classList.toggle('active', n > 0);
   button.setAttribute('aria-expanded', zu ? 'false' : 'true');
   button.title = zu ? t('list.showFilters') : t('list.hideFilters');
 }
@@ -3089,7 +3089,7 @@ function drawFilters() {
      die erste haelt die Spalte, die zweite laeuft mit. */
   const secondLabel = (row, text) => {
     const e = document.createElement('span');
-    e.className = 'eyebrow eyebrow-mit';
+    e.className = 'eyebrow eyebrow-with';
     e.textContent = text;
     row.appendChild(e);
     return e;
@@ -3110,9 +3110,9 @@ function drawFilters() {
        Stellung wirkt in diesem Augenblick nicht, und sie als gesetzt zu
        zeichnen waere eine Falschaussage ueber die gezeigte Menge.
        ZWEI VERSCHIEDENE KLASSEN UND NICHT EINE MIT ZUSATZ: `on` heisst
-       „angeklickt", `pill-abgeleitet` heisst „gilt, aber nicht von deiner
+       „angeklickt", `pill-derived` heisst „gilt, aber nicht von deiner
        Hand". Gleich aussehen duerfen sie nicht (Regel 4). */
-    b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-abgeleitet' : '')
+    b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-derived' : '')
                                     : (f.tested === v ? ' on' : ''));
     b.textContent = l;
     if (vorgabe === v) b.title = t('list.sortDefaultHint');
@@ -3248,7 +3248,7 @@ function drawFilters() {
      Wirt, mit Bild.
      JETZT AM RECHTEN ENDE DER KATEGORIEZEILE, in derselben Bauform wie
      „Filter zurücksetzen (n)" in der Sortierzeile: ein link-btn mit Winkel in
-     einem .frow-rechts-weit, also mit selbsttaetiger Aussenkante. Er belegt in
+     einem .frow-right-wide, also mit selbsttaetiger Aussenkante. Er belegt in
      KEINEM der beiden Zustaende eine eigene Zeile. Auf dem Telefon steht die
      Zeile in der Spalte, und er bricht unter die Kategoriepillen -- das kostet
      dort eine kurze Zeile, zugeklappt wie aufgeklappt, und immer noch weniger
@@ -3285,9 +3285,9 @@ function drawFilters() {
     (MORE_FILTERS_OPEN === null ? f.tagIds.length > 0 : MORE_FILTERS_OPEN);
   if (tagsPossible) {
     const right2 = document.createElement('div');
-    right2.className = 'frow-rechts frow-rechts-weit';
+    right2.className = 'frow-right frow-right-wide';
     const toggle = document.createElement('button');
-    toggle.className = 'link-btn tag-schalter';
+    toggle.className = 'link-btn tag-toggle';
     toggle.id = 'f-weitere';
     toggle.setAttribute('aria-expanded', String(tagsOpen));
     if (tagsOpen) toggle.setAttribute('aria-controls', 'f-tagzeile');
@@ -3317,7 +3317,7 @@ function drawFilters() {
     // sichtbar, warum ein zweiter Tag das Ergebnis verkleinert. Gedaempft,
     // solange weniger als zwei Tags gewaehlt sind.
     const modeBox = document.createElement('div');
-    modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' ruht');
+    modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' idle');
     [['and', t('list.and'), t('list.allTagsHint')],
      ['or', t('list.or'), t('list.anyTagHint')]]
       .forEach(([wert, text, erklaerung]) => {
@@ -3385,7 +3385,7 @@ function drawFilters() {
        hing (`right: 92px`, Befund A). Die Instanz stellt die Schrift von 80 bis
        120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
     const rechts = document.createElement('div');
-    rechts.className = 'frow-rechts';
+    rechts.className = 'frow-right';
     if (trimmed || cloudOpen.uebersicht) {
       const m = document.createElement('button');
       m.className = 'link-btn';
@@ -3478,11 +3478,11 @@ function drawFilters() {
     const equal = JSON.stringify({ filters: filterNormal(a.filters),
                                     q: typeof a.q === 'string' ? a.q.trim() : '' }) === now;
     b.className = 'pill' + (equal ? ' on' : '');
-    b.innerHTML = `<span>${esc(a.name)}</span><span class="an-weg" title="${esc(t('list.deleteView'))}">${ICON_X}</span>`;
+    b.innerHTML = `<span>${esc(a.name)}</span><span class="view-remove" title="${esc(t('list.deleteView'))}">${ICON_X}</span>`;
     b.onclick = () => applyView(a);
     // Das Kreuz liegt IM Knopf und muss deshalb den Klick anhalten -- sonst
     // wuerde die Ansicht im selben Zug angewandt und geloescht.
-    b.querySelector('.an-weg').onclick = e => {
+    b.querySelector('.view-remove').onclick = e => {
       e.preventDefault(); e.stopPropagation(); viewDelete(a.name);
     };
     g5.appendChild(b);
@@ -3526,7 +3526,7 @@ function drawFilters() {
   const filterGesetzt = filterNumber();
   if (filterGesetzt) {
     const right5 = document.createElement('div');
-    right5.className = 'frow-rechts frow-rechts-weit';
+    right5.className = 'frow-right frow-right-wide';
     const bBack = document.createElement('button');
     bBack.className = 'link-btn';
     bBack.id = 'filter-zurueck';
@@ -3597,7 +3597,7 @@ function drawBody() {
   /* WAEHREND DIE SUCHE LAEUFT, BLEIBT DIE ALTE LISTE STEHEN und wird nur
      gedaempft. Eine Liste, die zwischen zwei Tastendruecken leer wird, ist
      schlechter als eine, die einen Augenblick alt ist. */
-  grid.className = 'grid' + (state.suchLaeuft ? ' sucht' : '');
+  grid.className = 'grid' + (state.suchLaeuft ? ' searching' : '');
   list.forEach(it => grid.appendChild(card(it)));
   body.appendChild(grid);
   drawCompareBar();
@@ -3639,7 +3639,7 @@ function yearMarks(von, bis) {
 }
 
 function drawTimeline(list) {
-  const box = document.getElementById('zeitleiste');
+  const box = document.getElementById('timeline');
   if (!box) return;
   if (!TIMELINE_ON) { box.innerHTML = ''; return; }
   const points = timelinePoints(list);
@@ -3649,25 +3649,25 @@ function drawTimeline(list) {
   if (!points.length || points.length < TIMELINE_FROM) { box.innerHTML = ''; return; }
 
   const von = points[0].tag, bis = points[points.length - 1].tag;
-  box.innerHTML = `<div class="zl">
-      <div class="zl-achse" id="zl-achse"></div>
-      <div class="zl-feld" id="zl-feld"></div>
-      <div class="zl-jahre" id="zl-jahre"></div>
+  box.innerHTML = `<div class="timeline">
+      <div class="timeline-axis" id="timeline-axis"></div>
+      <div class="timeline-field" id="timeline-field"></div>
+      <div class="timeline-years" id="timeline-years"></div>
     </div>`;
-  const field = box.querySelector('#zl-feld');
-  const axis = box.querySelector('#zl-achse');
+  const field = box.querySelector('#timeline-field');
+  const axis = box.querySelector('#timeline-axis');
 
   // Waagerechte Hilfslinien je Notenstufe, die mittlere etwas kräftiger
   for (let note = 1; note <= 5; note++) {
     const l = document.createElement('div');
-    l.className = 'zl-linie' + (note === 3 ? ' mitte' : '');
+    l.className = 'timeline-line' + (note === 3 ? ' center' : '');
     l.style.bottom = ((note - 1) / 4 * 100) + '%';
     axis.appendChild(l);
   }
 
   points.forEach(p => {
     const d = document.createElement('button');
-    d.className = 'zl-punkt' + (p.mine ? '' : ' fremd');
+    d.className = 'timeline-dot' + (p.mine ? '' : ' foreign');
     d.style.left = (timeShare(p.tag, von, bis) * 100) + '%';
     d.style.bottom = ((p.note - 1) / 4 * 100) + '%';
     d.dataset.item = p.itemId;
@@ -3681,11 +3681,11 @@ function drawTimeline(list) {
     field.appendChild(d);
   });
 
-  const years = box.querySelector('#zl-jahre');
+  const years = box.querySelector('#timeline-years');
   const marks = yearMarks(von, bis);
   marks.forEach(m => {
     const s = document.createElement('span');
-    s.className = 'zl-jahr';
+    s.className = 'timeline-year';
     s.style.left = (m.anteil * 100) + '%';
     s.textContent = m.jahr;
     years.appendChild(s);
@@ -3720,12 +3720,12 @@ function drawTimeline(list) {
 function showHint(box, point, p) {
   hideHint(box);
   const h = document.createElement('div');
-  h.className = 'zl-hinweis';
+  h.className = 'timeline-hint';
   h.innerHTML = `<strong>${esc(p.titel)}</strong><span>${tH('list.gradeShort', { tag: fmtDay(p.tag), note: p.note })}</span>`;
   h.style.left = point.style.left;
-  box.querySelector('.zl').appendChild(h);
+  box.querySelector('.timeline').appendChild(h);
 }
-function hideHint(box) { box.querySelector('.zl-hinweis')?.remove(); }
+function hideHint(box) { box.querySelector('.timeline-hint')?.remove(); }
 
 /* Die Marke auf der Karte, wenn mehr als ein Element dahintersteht. Bei
    gemischtem Bestand stehen beide Zahlen da -- "3 Fotos" allein verschwiege,
@@ -3807,9 +3807,9 @@ function card(it) {
      mit echten Knoten -- mit Hervorhebung, wenn ein Begriff da ist, und ohne,
      wenn nicht. */
   const f = it.fundstelle;
-  const findingRow = f ? `<div class="card-fund" title="${esc(findHover(f))}">
-        <span class="fund-quelle">${esc(findingWord(f.quelle))}:</span><span
-          class="fund-text"></span>${f.weitere ? `<span class="fund-mehr">+${f.weitere}</span>` : ''}
+  const findingRow = f ? `<div class="card-find" title="${esc(findHover(f))}">
+        <span class="find-source">${esc(findingWord(f.quelle))}:</span><span
+          class="find-text"></span>${f.weitere ? `<span class="find-more">+${f.weitere}</span>` : ''}
       </div>` : '';
 
   a.innerHTML = `
@@ -3817,7 +3817,7 @@ function card(it) {
       ${it.mainPhoto ? `<img src="${imageSource(it.mainPhoto, 'thumb')}" alt="" loading="lazy">` : ICON_PH}
       ${badges.length ? `<div class="card-badges">${badges.join('')}</div>` : ''}
       ${it.favorite ? `<div class="card-pin" title="${esc(t('list.favorite'))}">★</div>` : ''}
-      ${isVideo(it.mainPhoto) ? `<div class="card-spielmarke" title="${esc(t('list.video'))}">▶</div>` : ''}
+      ${isVideo(it.mainPhoto) ? `<div class="card-play" title="${esc(t('list.video'))}">▶</div>` : ''}
       ${inventoryText(it)}
     </div>
     <div class="card-body">
@@ -3845,7 +3845,7 @@ function card(it) {
       </div>
     </div>`;
 
-  if (f) a.querySelector('.fund-text').replaceChildren(raiseHighlight(f.text, term));
+  if (f) a.querySelector('.find-text').replaceChildren(raiseHighlight(f.text, term));
   /* DIE HERVORHEBUNG GILT DORT, WO GESUCHT WURDE -- und die Kachel zeigt drei
      der sieben Quellen: Titel, Kategorie und die ersten vier Tags. Der Rest
      steht in der Zeile darueber.
@@ -3884,7 +3884,7 @@ function tileNumber(it) {
   if (!wert) return `<span class="hint hint-sm">${potenzial ? tH('list.notEstimatedYet') : tH('list.notRatedYet')}</span>`;
   const char = potenzial ? '◆' : '★';
   const wort = potenzial ? V.potenzial : V.bewertungEinzahl;
-  return `<span class="rating-inline${potenzial ? ' potenzial' : ''}" title="${esc(wort)}">` +
+  return `<span class="rating-inline${potenzial ? ' potential' : ''}" title="${esc(wort)}">` +
     `<span class="dot">${char}</span>${zahl(wert, 1)}</span>`;
 }
 
@@ -3946,7 +3946,7 @@ function openCreate() {
   bd.className = 'backdrop';
   bd.innerHTML = `<div class="modal"><h2>${tH('list.createEntry')}</h2>
     <div class="field"><label>${tH('list.title')}</label><input class="input" id="nt" placeholder="${esc(t('list.nameIt'))}">
-      <div class="hint hint-sm aehnlich" id="nt-aehnlich"></div></div>
+      <div class="hint hint-sm similar" id="nt-similar"></div></div>
     <div class="field"><label>${tH('list.shortDescription')}</label><textarea class="ta" id="nd" placeholder="${esc(t('list.whatIsIt'))}"></textarea></div>
     <div class="modal-acts"><button class="btn btn-ghost" id="nc">${tH('dialog.cancel')}</button>
     <button class="btn btn-accent" id="ns">${tH('list.create')}</button></div></div>`;
@@ -3955,7 +3955,7 @@ function openCreate() {
   bd.onclick = e => { if (e.target === bd) close(); };
   document.getElementById('nc').onclick = close;
   const nt = document.getElementById('nt');
-  const row = document.getElementById('nt-aehnlich');
+  const row = document.getElementById('nt-similar');
   // Die Zeile wird bei jedem Anschlag neu gebildet. Sie rechnet oertlich und
   // braucht deshalb keinen Debounce -- bei dreihundert Titeln sind es
   // dreihundert includes() auf einer Handvoll Vierergruppen.
@@ -4088,7 +4088,7 @@ async function renderOffen() {
 
       g.zeilen.forEach(z => {
         const el = document.createElement('div');
-        el.className = 'open-row' + (z.erledigt ? ' erledigt' : '');
+        el.className = 'open-row' + (z.erledigt ? ' done' : '');
         el.dataset.kommentar = z.id;
 
         /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. Die Art eines
@@ -4177,7 +4177,7 @@ async function renderCompare() {
     <a href="#/" class="back">${tH('list.backToList')}</a>
     <h1 class="page-title">${tH('list.compare')}</h1>
     <p class="hint" id="cmp-hint" style="margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}"></p>
-    ${multipleUsers() ? `<div class="pills" id="cmp-sicht" style="margin:0 0 20px"></div>` : ''}
+    ${multipleUsers() ? `<div class="pills" id="cmp-view" style="margin:0 0 20px"></div>` : ''}
     <div class="cmp-grid" id="cg" style="grid-template-columns:repeat(auto-fit,minmax(264px,1fr))"></div>
   </div>`;
 
@@ -4238,7 +4238,7 @@ async function renderCompare() {
   const asNumber = (v) => (Number.isInteger(v) ? zahl(v, 0) : zahl(v, 1));
 
   function drawView() {
-    const box = document.getElementById('cmp-sicht');
+    const box = document.getElementById('cmp-view');
     if (!box) return;
     box.innerHTML = '';
     [true, false].forEach(my => {
@@ -4276,7 +4276,7 @@ async function renderCompare() {
          auch fuer die Kopfzahl der Gruppe. */
       const groups = GROUPS.filter(g => g.namen.length).map(g => {
         const schnitt = averageFrom(it, g);
-        const head = `<div class="cmp-gruppe"><span class="cn">${esc(g.wort())}</span>
+        const head = `<div class="cmp-group"><span class="cn">${esc(g.wort())}</span>
           <span>${schnitt ? '⌀ ' + zahl(schnitt, 1) : '–'}</span></div>`;
         return head + g.namen.map(n => {
           const v = valueFrom(it, n);
@@ -4285,7 +4285,7 @@ async function renderCompare() {
           // bei Gewicht 1 steht dort nichts.
           const mark = weightMark(weights.get(n));
           return `<div class="cmp-crit"><span class="cn">${esc(n)}${
-              mark ? ` <span class="cgew" title="${esc(t('list.weightedAvg'))}">${esc(mark)}</span>` : ''}</span>
+              mark ? ` <span class="cweight" title="${esc(t('list.weightedAvg'))}">${esc(mark)}</span>` : ''}</span>
             <span class="${best ? 'cmp-best' : ''}">${v > 0 ? asNumber(v) + ' / 5' : '–'}</span></div>`;
         }).join('');
       }).join('');
@@ -4536,9 +4536,9 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     strip.innerHTML = '';
     photos.forEach((p, n) => {
       const tile = document.createElement('button');
-      tile.className = 'lb-thumb' + (isVideo(p) ? ' ist-video' : '');
+      tile.className = 'lb-thumb' + (isVideo(p) ? ' is-video' : '');
       tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
-        (isVideo(p) ? `<span class="spielmarke">▶</span>` : '');
+        (isVideo(p) ? `<span class="play-badge">▶</span>` : '');
       tile.onclick = () => { i = n; show(); };
       strip.appendChild(tile);
     });
@@ -4792,7 +4792,7 @@ async function renderDetail(id, termAddress) {
             <input class="title-in" id="title" value="${esc(item.title)}">
             <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite')}">${item.favorite ? '★' : '☆'}</button>
           </div>
-          <div class="hint hint-sm verfasser-zeile" id="ivf" hidden></div>
+          <div class="hint hint-sm author-row" id="iauthor" hidden></div>
           <div class="switches" style="margin-top:10px">
             <button class="switch" id="sw-test"><span class="knob"></span><span id="sw-test-t"></span></button>
             <button class="switch" id="sw-rej"><span class="knob"></span><span id="sw-rej-t"></span></button>
@@ -4812,14 +4812,14 @@ async function renderDetail(id, termAddress) {
                oder ueber das ✎, und beides gibt es nur fuer den, der die
                Begruendung getroffen hat.
                Beide sind versteckt, solange nicht abgelehnt ist. */''}
-          <div class="hint hint-sm verfasser-zeile rej-aussage" id="rej-marke" hidden></div>
-          <div class="row-in rej-grund" id="rej-grund-zeile" hidden>
-            <input class="input input-sm" id="rej-grund" maxlength="200"
+          <div class="hint hint-sm author-row rej-note" id="rej-badge" hidden></div>
+          <div class="row-in rej-reason" id="rej-reason-row" hidden>
+            <input class="input input-sm" id="rej-reason" maxlength="200"
                    placeholder="${esc(t('entry.rejectReasonHint'))}" style="padding:8px 11px">
           </div>
         </div>
 
-        <div class="blocks" id="blocks-seite">
+        <div class="blocks" id="blocks-side">
         <div class="block" data-block="kategorie">
           <div class="block-head"><span class="label">${tH('list.category')}</span></div>
           <div class="row-in">
@@ -4839,7 +4839,7 @@ async function renderDetail(id, termAddress) {
             <input class="input input-sm" id="newtag" list="tagsug" placeholder="${esc(t('entry.tagInputHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newtag-b">${tH('entry.add')}</button>
           </div>` : ''}
-          <div class="wolke-kopf"><span class="hint">${tH('entry.tagsHint')}</span>
+          <div class="cloud-head"><span class="hint">${tH('entry.tagsHint')}</span>
             <button class="link-btn" id="tagcloud-more" hidden>${tH('list.more')}</button></div>
           <div class="pills cloud" id="tagcloud"></div>
         </div>
@@ -4860,7 +4860,7 @@ async function renderDetail(id, termAddress) {
           <div class="block-head"><span class="label">${esc(V.potenzial)}</span>
             <span class="hint" id="phead"></span>
             ${ADMIN && multipleUsers() ? `<button class="btn btn-ghost btn-sm" id="pwho">${tH('entry.whoRated')}</button>` : ''}</div>
-          <div id="potenzial-ratings"></div>
+          <div id="potential-ratings"></div>
         </div>
 
         <div class="block" data-block="bewertung">
@@ -4873,7 +4873,7 @@ async function renderDetail(id, termAddress) {
       </div>
     </div>
 
-    <div class="blocks" id="blocks-unten">
+    <div class="blocks" id="blocks-bottom">
 
     <div class="block block-wide" data-block="beschreibung">
       <div class="block-head"><span class="label">${tH('list.description')}</span></div>
@@ -4918,12 +4918,12 @@ async function renderDetail(id, termAddress) {
       <div class="cmts" id="cmts"></div>
       <div class="cmt-form">
         <textarea class="ta" id="ctext" placeholder="${esc(t('entry.commentPlaceholder'))}"></textarea>
-        <div class="cmt-neu-bilder" id="cneu-imgs"></div>
+        <div class="cmt-new-imgs" id="cnew-imgs"></div>
         <div class="cmt-form-row">
           <span class="marks">
             <button class="mark pin" id="cpin" title="${esc(t('entry.pinHint'))}">${ICON_PIN}</button>
-            <button class="mark art" id="cart"></button>
-            <button class="mark aufg" id="caufg"></button>
+            <button class="mark kind" id="ckind"></button>
+            <button class="mark task" id="ctask"></button>
           </span>
           <button class="btn btn-sm" id="cimg">${tH('entry.addImage')}</button>
           <button class="btn btn-sm btn-accent" id="cadd">${tH('entry.commentAdd')}</button>
@@ -5025,7 +5025,7 @@ async function renderDetail(id, termAddress) {
         <button class="vfocus${cropMode ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
           aria-label="${esc(t('entry.setCrop'))}">${ICON_CROP}</button>
         ${showsVideo ? `<button class="vfull" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
-        <button class="vweg" title="${isVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}"
+        <button class="vremove" title="${isVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}"
           aria-label="${isVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}">${ICON_TRASH}</button>
       </div>
       ${/* DER SCHIEBER STEHT NUR IM AUSSCHNITTMODUS, und er steht IM
@@ -5035,10 +5035,10 @@ async function renderDetail(id, termAddress) {
            nicht, und die Bedienung waere dann geraeteabhaengig -- genau das,
            was die Kachelreihe seit 0.12.0 vermeidet. */''}
       ${cropMode && !showsVideo ? `<div class="vzoom">
-        <label for="vzoom-schieber">${tH('entry.zoom')}</label>
-        <input type="range" id="vzoom-schieber" min="100" max="400" step="5"
+        <label for="vzoom-slider">${tH('entry.zoom')}</label>
+        <input type="range" id="vzoom-slider" min="100" max="400" step="5"
           value="${Number(ps[idx].zoom) || 100}" aria-label="${esc(t('entry.cropZoom'))}">
-        <span class="vzoom-wert" id="vzoom-wert">${Math.round(Number(ps[idx].zoom) || 100)} %</span>
+        <span class="vzoom-value" id="vzoom-value">${Math.round(Number(ps[idx].zoom) || 100)} %</span>
       </div>` : ''}
       ${ps.length > 1 ? `<button class="vnav prev" title="${esc(t('list.previous'))}">‹</button>
         <button class="vnav next" title="${esc(t('list.next'))}">›</button>
@@ -5076,7 +5076,7 @@ async function renderDetail(id, termAddress) {
        Hier dagegen ist das Bild gross und der Zaehler daneben sagt, welches es
        ist -- man loescht, was man ansieht. Dasselbe Bild, das eine Kamera
        zeigt, wenn man dort den Papierkorb drueckt. */
-    v.querySelector('.vweg').onclick = () => deletePhoto(ps[idx]);
+    v.querySelector('.vremove').onclick = () => deletePhoto(ps[idx]);
     if (cropMode && image) setUpCropOut(v, image, ps[idx]);
     if (ps.length > 1) {
       v.querySelector('.prev').onclick = () => { idx--; drawViewer(); markThumb(); };
@@ -5381,17 +5381,17 @@ async function renderDetail(id, termAddress) {
        Fokuspunkts ist es dieselbe Teilung -- die Bewegung ist sichtbar, die
        Schreibung geschieht einmal am Ende. Ein Aufruf je Zwischenschritt
        schickte bei einem Zug ueber die ganze Leiter sechzig Anfragen. */
-    const slider = v.querySelector('#vzoom-schieber');
+    const slider = v.querySelector('#vzoom-slider');
     // Nach einem Rechteck zeigt der Schieber den neuen Zoom -- beide Wege
     // sagen dieselbe Zahl.
     const showZoom = () => {
       if (!slider) return;
       slider.value = String(zoom);
-      const wert = v.querySelector('#vzoom-wert');
+      const wert = v.querySelector('#vzoom-value');
       if (wert) wert.textContent = `${Math.round(zoom)} %`;
     };
     if (slider) {
-      const wert = v.querySelector('#vzoom-wert');
+      const wert = v.querySelector('#vzoom-value');
       slider.oninput = () => {
         zoom = Number(slider.value) || 100;
         if (wert) wert.textContent = `${Math.round(zoom)} %`;
@@ -5413,15 +5413,15 @@ async function renderDetail(id, termAddress) {
     box.innerHTML = '';
     item.photos.forEach((p, i) => {
       const tile = document.createElement('div');
-      tile.className = 'thumb' + (i === idx ? ' current' : '') + (isVideo(p) ? ' ist-video' : '');
+      tile.className = 'thumb' + (i === idx ? ' current' : '') + (isVideo(p) ? ' is-video' : '');
       tile.dataset.pid = p.id;
       // Abgeleitet aus art und dauer, kein Schalter: das ▶ in der Ecke und,
       // wenn die Dauer bekannt ist, die Laenge daneben.
       const length = isVideo(p) ? durationText(p.dauer) : '';
       const wort = isVideo(p) ? t('list.video') : t('list.photo');
       tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
-        (isVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
-        (length ? `<span class="dauer">${length}</span>` : '') +
+        (isVideo(p) ? `<span class="play-badge">▶</span>` : '') +
+        (length ? `<span class="duration">${length}</span>` : '') +
         `<span class="num">${i + 1}</span><span class="del" title="${esc(t('entry.deleteWord', { wort: wort }))}">${ICON_X}</span>`;
       tile.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
@@ -5649,9 +5649,9 @@ async function renderDetail(id, termAddress) {
   let reasonOpen = false;
 
   function drawRejection() {
-    const mark = document.getElementById('rej-marke');
-    const row = document.getElementById('rej-grund-zeile');
-    const field = document.getElementById('rej-grund');
+    const mark = document.getElementById('rej-badge');
+    const row = document.getElementById('rej-reason-row');
+    const field = document.getElementById('rej-reason');
     if (!mark || !row || !field) return;
 
     /* WER WAS DARF, KOMMT VOM SERVER UND WIRD NICHT ZURUECKGERECHNET -- diese
@@ -5719,7 +5719,7 @@ async function renderDetail(id, termAddress) {
          „Angelegt von … am …" und keine Aussage ueber die Sache -- und ein
          ganzer Satz in Rot naehme dem Grund die Hervorhebung wieder weg. */
       const w = document.createElement('span');
-      w.className = 'rej-warum' + (mine ? ' klick' : '');
+      w.className = 'rej-why' + (mine ? ' clickable' : '');
       w.textContent = grund;
       if (mine) { w.title = t('entry.reasonEdit'); w.onclick = openReason; }
       text.appendChild(w);
@@ -5754,7 +5754,7 @@ async function renderDetail(id, termAddress) {
   function openReason() {
     reasonOpen = true;
     drawRejection();
-    const field = document.getElementById('rej-grund');
+    const field = document.getElementById('rej-reason');
     if (field) field.focus();
   }
 
@@ -5817,8 +5817,8 @@ async function renderDetail(id, termAddress) {
          und die Angaben bleiben trotzdem in der Zeile stehen. */
       reasonOpen = false;
       drawSwitches();
-      const f = document.getElementById('rej-grund');
-      if (f && !document.getElementById('rej-grund-zeile').hidden) f.focus();
+      const f = document.getElementById('rej-reason');
+      if (f && !document.getElementById('rej-reason-row').hidden) f.focus();
     }
     catch (e) { toast(e.message, true); }
   };
@@ -5831,7 +5831,7 @@ async function renderDetail(id, termAddress) {
      wieder an seine Stelle. Auch nach einer Absage -- der Text steht dann
      wieder da, wie er in der Zeile steht, und die Meldung sagt, warum. */
   {
-    const field = document.getElementById('rej-grund');
+    const field = document.getElementById('rej-reason');
     const save = async () => {
       const v = field.value.trim();
       if (v !== (item.rejected_grund || '')) {
@@ -5907,7 +5907,7 @@ async function renderDetail(id, termAddress) {
      `created_at` steht NOT NULL in der Zeile; ein Auffangnetz für den
      fehlenden Wert wäre eines gegen etwas, das es nicht gibt. */
   function drawAuthor() {
-    const el = document.getElementById('ivf');
+    const el = document.getElementById('iauthor');
     if (!el) return;
     el.hidden = !multipleUsers();
     el.textContent = multipleUsers()
@@ -6029,9 +6029,9 @@ async function renderDetail(id, termAddress) {
      GERECHNET WIRD HIER NICHTS. Beide Kopfzahlen und beide Rechenwege kommen
      vom Server; der Browser filtert und schreibt hin. */
   const BOXES = [
-    { phase: 'nachher', box: 'ratings',           head: 'rhead', button: 'gew-auf',
+    { phase: 'nachher', box: 'ratings',           head: 'rhead', button: 'weight-open',
       wer: 'rwho', schnitt: 'avgRating',       weg: 'rechenweg' },
-    { phase: 'vorher',  box: 'potenzial-ratings', head: 'phead', button: 'pgew-auf',
+    { phase: 'vorher',  box: 'potential-ratings', head: 'phead', button: 'pweight-open',
       wer: 'pwho', schnitt: 'potenzialRating', weg: 'potenzialRechenweg' }
   ];
 
@@ -6052,7 +6052,7 @@ async function renderDetail(id, termAddress) {
        gefragt zu werden (Stolperstein 47). Mit drei Spalten und zwei Zellen
        ruecken die Zeilen gegeneinander, und die Liste zerfaellt. */
     const withAverage = multipleUsers();
-    box.className = 'rlist' + (withAverage ? '' : ' ohne-schnitt');
+    box.className = 'rlist' + (withAverage ? '' : ' no-average');
     // Angelegt wird im Systembereich: ein neues Kriterium erscheint an
     // JEDEM Eintrag, das ist eine redaktionelle Entscheidung und keine
     // Notiz am Eintrag.
@@ -6094,7 +6094,7 @@ async function renderDetail(id, termAddress) {
       head.textContent = '';
       if (averageValue) {
         const b = document.createElement('button');
-        b.className = 'link-btn gew-auf';
+        b.className = 'link-btn weight-open';
         b.id = boxId.button;
         b.textContent = '⌀ ' + zahl(averageValue, 1) +
           (weightedCalc ? ' gewichtet' : '');
@@ -6128,7 +6128,7 @@ async function renderDetail(id, termAddress) {
       const mark = weightMark(r.gewicht);
       if (mark) {
         const m = document.createElement('span');
-        m.className = 'rgew'; m.textContent = mark;
+        m.className = 'rweight'; m.textContent = mark;
         m.title = t('list.weightedAvg');
         n.append(' ', m);
       }
@@ -6230,7 +6230,7 @@ async function renderDetail(id, termAddress) {
          einzigen Zugang steht er damit als dritte Zelle hinter den Sternen,
          und das Stilblatt haelt dort mindestens 12 px Abstand. */
       const zz = document.createElement('span');
-      zz.className = 'rzz';
+      zz.className = 'rreset-cell';
       zz.appendChild(back);
       row.append(zz);
       box.appendChild(row);
@@ -6293,7 +6293,7 @@ async function renderDetail(id, termAddress) {
     const sameNumber = Number(weg.gleichErgebnis) === Number(weg.ergebnis);
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal rechnung-modal" id="rechnung-modal">
+    bd.innerHTML = `<div class="modal calc-modal" id="calc-modal">
       <h2>${tH('entry.calcHowAvg')} ${esc(weightNumber(weg.ergebnis))} ${tH('entry.calcComesFrom')}</h2>
       ${/* DER VERWEIS ZEIGT IN DEN KASTEN UND NICHT AUS IHM HINAUS. Hier stand
            bis 0.17.0 „die Zahlen rechts in den Zeilen" -- gemeint war die
@@ -6313,19 +6313,19 @@ async function renderDetail(id, termAddress) {
       <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}${withWeight
           ? t('entry.calcWithWeight')
           : t('entry.calcAllEqual')}.</p>
-      <div class="rechnung" id="rechnung">
-        <div class="rz rz-kopf"><span>${tH('entry.criterion')}</span><span>${tH('entry.grade')}</span><span>${tH('entry.weight')}</span><span>${tH('entry.calcGradeWeight')}</span></div>
-        ${weg.zeilen.map(z => `<div class="rz" data-krit="${Number(z.criterionId)}">
-          <span class="rz-name">${esc(namen.get(z.criterionId) || '—')}</span>
+      <div class="calc" id="calc">
+        <div class="calc-row calc-head"><span>${tH('entry.criterion')}</span><span>${tH('entry.grade')}</span><span>${tH('entry.weight')}</span><span>${tH('entry.calcGradeWeight')}</span></div>
+        ${weg.zeilen.map(z => `<div class="calc-row" data-krit="${Number(z.criterionId)}">
+          <span class="calc-name">${esc(namen.get(z.criterionId) || '—')}</span>
           <span>${esc(weightNumber(z.schnitt))}</span>
           <span>× ${esc(weightNumber(z.gewicht))}</span>
           <span>${esc(weightNumber(z.produkt))}</span></div>`).join('')}
-        <div class="rz rz-summe"><span>${tH('entry.sum')}</span><span></span><span></span>
-          <span id="rz-summe">${esc(weightNumber(weg.summe))}</span></div>
-        <div class="rz rz-summe"><span>${tH('entry.calcDividedBy')}</span><span></span><span></span>
-          <span id="rz-teiler">${esc(weightNumber(weg.teiler))}</span></div>
-        <div class="rz rz-ergebnis"><span>${tH('entry.result')}</span><span></span><span></span>
-          <span id="rz-ergebnis">⌀ ${esc(weightNumber(weg.ergebnis))}</span></div>
+        <div class="calc-row calc-sum"><span>${tH('entry.sum')}</span><span></span><span></span>
+          <span id="calc-sum">${esc(weightNumber(weg.summe))}</span></div>
+        <div class="calc-row calc-sum"><span>${tH('entry.calcDividedBy')}</span><span></span><span></span>
+          <span id="calc-divisor">${esc(weightNumber(weg.teiler))}</span></div>
+        <div class="calc-row calc-result"><span>${tH('entry.result')}</span><span></span><span></span>
+          <span id="calc-result">⌀ ${esc(weightNumber(weg.ergebnis))}</span></div>
         ${/* DIE VERGLEICHSZAHL -- 0.17.0. Die Formel stand Zeile fuer Zeile da
              und liess trotzdem offen, WOFUER die Gewichte gut sind. Erst der
              Unterschied macht die Gewichtung sichtbar.
@@ -6338,9 +6338,9 @@ async function renderDetail(id, termAddress) {
              UND SIE WIRD GELESEN, NICHT GERECHNET (Stolperstein 217): sie
              entsteht in gesamtSchnitt(), in derselben Schleife wie die Zahl
              darueber. */''}
-        ${withWeight ? `<div class="rz rz-gleich"><span>${tH('entry.calcNoWeights')}</span>
+        ${withWeight ? `<div class="calc-row calc-same"><span>${tH('entry.calcNoWeights')}</span>
           <span></span><span></span>
-          <span id="rz-gleich">⌀ ${esc(weightNumber(weg.gleichErgebnis))}</span></div>` : ''}
+          <span id="calc-same">⌀ ${esc(weightNumber(weg.gleichErgebnis))}</span></div>` : ''}
       </div>
       ${/* ZWEI ABSAETZE UNTER DER TABELLE UND NICHT DREI -- 0.17.3. Bei sieben
            Kriterien lief der Kasten ueber `88dvh` hinaus und rollte.
@@ -6369,10 +6369,10 @@ async function renderDetail(id, termAddress) {
            DIESER ABSATZ IST DER PUNKT DES GANZEN KASTENS und deshalb der
            einzige, an dem 0.17.3 kein Wort geaendert hat. */''}
       ${withWeight ? (sameNumber
-        ? `<p id="rz-gleich-satz"><strong>${tH('entry.calcNoChange')}</strong>
+        ? `<p id="calc-same-note"><strong>${tH('entry.calcNoChange')}</strong>
             ${tH('entry.calcWithoutWeights')}
             <strong>⌀ ${esc(weightNumber(weg.ergebnis))}</strong> ${tH('entry.calcOut')}</p>`
-        : `<p id="rz-gleich-satz">${tH('entry.calcIfEqual')} <strong>${tH('entry.calcEquals')}</strong>${tH('entry.calcWouldBe')}
+        : `<p id="calc-same-note">${tH('entry.calcIfEqual')} <strong>${tH('entry.calcEquals')}</strong>${tH('entry.calcWouldBe')}
             <strong>⌀ ${esc(weightNumber(weg.gleichErgebnis))}</strong> ${tH('entry.calcInstead')}
             <strong>⌀ ${esc(weightNumber(weg.ergebnis))}</strong>.
             <strong>${tH('entry.calcDifference')}</strong></p>`) : ''}
@@ -6444,10 +6444,10 @@ async function renderDetail(id, termAddress) {
         const n = document.createElement('span');
         n.className = 'rname'; n.textContent = r.name;
         const wer = document.createElement('div');
-        wer.className = 'rstimmen';
+        wer.className = 'rvotes';
         stimmen.forEach(st => {
           const s2 = document.createElement('span');
-          s2.className = 'rstimme' + (st.mine ? ' meine' : '');
+          s2.className = 'rvote' + (st.mine ? ' mine' : '');
           s2.appendChild(document.createTextNode(`${authorName(st.verfasser)} ${st.wert}`));
           /* Das ✕ steht nur am FREMDEN Wert — den eigenen räumt man mit dem
              Doppelklick auf den Stern weg, und zwei Wege für dieselbe Absicht
@@ -6579,7 +6579,7 @@ async function renderDetail(id, termAddress) {
       // unterscheidet weiter über die Füllung; hier steht der Name.
       if (multipleUsers()) {
         const von = document.createElement('span');
-        von.className = 'tvon' + (d.mine ? ' meine' : '');
+        von.className = 'tfrom' + (d.mine ? ' mine' : '');
         von.textContent = authorName(d.verfasser);
         row.append(date, wd, von, tagBox, s, x);
       } else {
@@ -6660,7 +6660,7 @@ async function renderDetail(id, termAddress) {
       const mayPath = l.mine === true || ADMIN;
 
       const row = document.createElement('div');
-      row.className = 'lrow' + (suche ? ' suche' : '');
+      row.className = 'lrow' + (suche ? ' search' : '');
       row.dataset.lid = l.id;
       const reasonText = suche
         ? (standard ? t('entry.searchForAt', { url: l.url, name: standard.name }) : t('entry.searchFor', { url: l.url }))
@@ -6679,14 +6679,14 @@ async function renderDetail(id, termAddress) {
          "(chefin)", "(Geloeschter Benutzer 4)", "(Ohne Verfasser)". Ein
          Vorwort wie "von" taete das nicht: "von Ohne Verfasser" ist kein
          Deutsch. */
-      const bottomLinks = suche ? '<span class="snamen"></span>'
+      const bottomLinks = suche ? '<span class="snames"></span>'
                                : (path ? `<span class="path">${esc(path)}</span>` : '');
       const unten = bottomLinks + (showFrom
-        ? `<span class="lvon">(${esc(authorName(l.verfasser))})</span>` : '');
+        ? `<span class="lfrom">(${esc(authorName(l.verfasser))})</span>` : '');
       row.innerHTML = `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>
         <span class="lnum">${n + 1}</span>
         <span class="lurl"><span class="dom">${esc(oben)}</span>${
-          unten ? `<span class="lunten">${unten}</span>` : ''
+          unten ? `<span class="lbottom">${unten}</span>` : ''
         }</span>
         <span class="go">${suche ? ICON_SEARCH : '↗'}</span>
         ${mayPath ? `<button class="xdel" title="${suche ? t('entry.removeSearch') : t('entry.removeLink')}">${ICON_X}</button>` : ''}`;
@@ -6695,7 +6695,7 @@ async function renderDetail(id, termAddress) {
          hervorgehobener Anbietername, in dem der Begriff gar nicht steht,
          waere eine Falschaussage. Hervorgehoben werden deshalb `.dom` und
          `.path` -- die beiden Stuecke, in die splitUrl() die Adresse zerlegt
-         -- und ausdruecklich nicht `.snamen`.
+         -- und ausdruecklich nicht `.snames`.
          Bei einer Suchzeile steht oben der Rohtext, und der IST hier die
          Adresse: gesucht hat SQLite in derselben Spalte. */
       highlightInNode(row.querySelector('.dom'), oben, term);
@@ -6708,7 +6708,7 @@ async function renderDetail(id, termAddress) {
       // Jeder Name ist ausserdem sein eigenes Klickziel und braucht ohnehin
       // einen eigenen Knoten.
       if (suche) {
-        const nameBox = row.querySelector('.snamen');
+        const nameBox = row.querySelector('.snames');
         provider.forEach((a, i) => {
           if (i) nameBox.appendChild(document.createTextNode(' · '));
           const s = document.createElement('span');
@@ -6853,7 +6853,7 @@ async function renderDetail(id, termAddress) {
       row.innerHTML = `<span class="aicon">${a.preview === 'bild' ? '▣' : a.preview === 'pdf' ? '▤' : a.preview === 'keine' ? '▪' : '▥'}</span>
         <span class="aname">${esc(a.filename)}</span>
         <span class="asize">${groesse(a.size)}</span>
-        ${showFrom ? `<span class="avon">(${esc(authorName(a.verfasser))})</span>` : ''}
+        ${showFrom ? `<span class="afrom">(${esc(authorName(a.verfasser))})</span>` : ''}
         <span class="ago">${canPreview ? (offen ? '▾' : '▸') : '↓'}</span>
         <a class="adl" href="/api/attachments/${a.id}/raw" download title="${esc(t('entry.download'))}">↓</a>
         ${mayPath ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_X}</button>` : ''}`;
@@ -6955,7 +6955,7 @@ async function renderDetail(id, termAddress) {
             erledigt = c.kind === 'done';
       const el = document.createElement('div');
       el.className = 'cmt'
-        + (report ? ' bericht' : aufgabe ? ' aufgabe' : erledigt ? ' erledigt' : '')
+        + (report ? ' report' : aufgabe ? ' task' : erledigt ? ' done' : '')
         + (c.pinned ? ' pinned' : '');
 
       /* FUENF FAELLE, DREI ANTWORTEN -- die Spalten der Rechtetabelle:
@@ -6988,17 +6988,17 @@ async function renderDetail(id, termAddress) {
             ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
                  sagt „aufheben", nicht noch einmal „markieren". */''}
             <button class="mark pin${c.pinned ? ' on' : ''}" title="${c.pinned ? t('entry.unpin') : t('entry.pinHint')}">${ICON_PIN}</button>
-            <button class="mark art${report ? ' on' : ''}" title="${report ? t('entry.unmarkReport') : t('entry.markReport')}">${esc(V.berichtEinzahl)}</button>
-            <button class="mark aufg${aufgabe ? ' on' : ''}${erledigt ? ' on fertig' : ''}" title="${
+            <button class="mark kind${report ? ' on' : ''}" title="${report ? t('entry.unmarkReport') : t('entry.markReport')}">${esc(V.berichtEinzahl)}</button>
+            <button class="mark task${aufgabe ? ' on' : ''}${erledigt ? ' on done' : ''}" title="${
               erledigt ? t('entry.unmark')
                        : aufgabe ? t('list.setDone')
                                  : t('entry.markTask')
             }">${esc(erledigt ? V.aufgabeErledigt : V.aufgabeEinzahl)}</button>
           </span>` : ''}
           <span class="cmt-when">${multipleUsers()
-            ? `<span class="cmt-von">${esc(authorName(c.verfasser))}</span> · ` : ''
+            ? `<span class="cmt-from">${esc(authorName(c.verfasser))}</span> · ` : ''
           }${fmtDate(c.created_at)}${c.updated_at ? t('entry.edited') : ''}${
-            c.bilderEntfernt ? ` · <span class="cmt-eingriff">${
+            c.bilderEntfernt ? ` · <span class="cmt-edited">${
               tH('entry.imagesRemovedAdmin', { n: c.bilderEntfernt })}</span>` : ''}</span>
           <span class="acts">${mine ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''
             }${verwalten ? `<button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}</span>
@@ -7027,8 +7027,8 @@ async function renderDetail(id, termAddress) {
         // Die Art ist ein Wert, keine zwei Merkmale: wer Aufgabe drueckt, waehrend
         // Bericht an ist, waehlt Aufgabe -- ein zweiter Druck auf denselben Knopf
         // nimmt sie wieder zurueck auf Notiz.
-        el.querySelector('.art').onclick = () => flip('kind', report ? 'note' : 'report');
-        el.querySelector('.aufg').onclick = () => flip('kind', taskMore(c.kind));
+        el.querySelector('.kind').onclick = () => flip('kind', report ? 'note' : 'report');
+        el.querySelector('.task').onclick = () => flip('kind', taskMore(c.kind));
       }
 
       // Bilder als Kacheln unter dem Text; Klick öffnet das vorhandene Vollbild.
@@ -7118,21 +7118,21 @@ async function renderDetail(id, termAddress) {
     const pin = document.getElementById('cpin');
     pin.classList.toggle('on', newPinned);
     pin.title = newPinned ? t('entry.unpin') : t('entry.pinHint');
-    const art = document.getElementById('cart');
+    const art = document.getElementById('ckind');
     art.classList.toggle('on', neueArt === 'report');
     art.textContent = V.berichtEinzahl;
     art.title = neueArt === t('entry.reportKind') ? t('entry.unmarkReport') : t('entry.markReport');
-    const taskBtn = document.getElementById('caufg');
+    const taskBtn = document.getElementById('ctask');
     const fertig = neueArt === 'done';
     taskBtn.classList.toggle('on', neueArt === 'task' || fertig);
-    taskBtn.classList.toggle('fertig', fertig);
+    taskBtn.classList.toggle('done', fertig);
     taskBtn.textContent = fertig ? V.aufgabeErledigt : V.aufgabeEinzahl;
     taskBtn.title = fertig ? t('entry.unmark')
       : neueArt === 'task' ? t('list.setDone')
                            : t('entry.markTask');
   }
   function drawNewImages() {
-    const box = document.getElementById('cneu-imgs');
+    const box = document.getElementById('cnew-imgs');
     box.innerHTML = '';
     newImages.forEach((f, i) => {
       const k = document.createElement('div');
@@ -7155,9 +7155,9 @@ async function renderDetail(id, termAddress) {
   drawNewMarks();
 
   document.getElementById('cpin').onclick = () => { newPinned = !newPinned; drawNewMarks(); };
-  document.getElementById('cart').onclick =
+  document.getElementById('ckind').onclick =
     () => { neueArt = neueArt === 'report' ? 'note' : 'report'; drawNewMarks(); };
-  document.getElementById('caufg').onclick =
+  document.getElementById('ctask').onclick =
     () => { neueArt = taskMore(neueArt); drawNewMarks(); };
   document.getElementById('cimg').onclick = () => pickImages(takeImages);
 
@@ -7953,7 +7953,7 @@ function cardAppearance() {
         <div class="pills" id="streifen"></div>
 
         <p class="desc" style="margin:16px 0 8px">${tH('card.timelineHint')}</p>
-        <label class="ex-files"><input type="checkbox" id="zlan"> ${tH('card.showTimeline')}</label>
+        <label class="ex-files"><input type="checkbox" id="timeline-on"> ${tH('card.showTimeline')}</label>
 
         <p class="desc" style="margin:16px 0 8px">${tH('card.blocksHint')}</p>
         <button class="btn btn-ghost btn-sm" id="breset">${tH('card.restoreLayout')}</button>
@@ -7964,7 +7964,7 @@ function setUpAppearanceOut() {
   drawFont();
   drawStrip();
   /* --- Zeitleiste --- */
-  const zl = document.getElementById('zlan');
+  const zl = document.getElementById('timeline-on');
   zl.checked = TIMELINE_ON;
   zl.onchange = async () => {
     const vorher = TIMELINE_ON;
@@ -8249,10 +8249,10 @@ function setUpCriteriaOut(fetched, phase) {
          statt als Feld, wie bei Name und Zaehler daneben. */
       const weightField = art.gewicht
         ? (may
-          ? `<span class="mgew" title="${esc(t('list.weightedAvg'))}">×<input class="mgew-feld"
+          ? `<span class="mweight" title="${esc(t('list.weightedAvg'))}">×<input class="mweight-field"
                type="text" inputmode="decimal" list="gewichtsug" aria-label="${esc(t('entry.weight'))}"
                value="${esc(weightText(entry.gewicht))}"></span>`
-          : `<span class="mgew mgew-fest" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.gewicht))}</span>`)
+          : `<span class="mweight mweight-fixed" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.gewicht))}</span>`)
         : '';
       row.innerHTML = `${art.sortierbar && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="mname">${esc(entry.name)}</span>
@@ -8284,7 +8284,7 @@ function setUpCriteriaOut(fetched, phase) {
          derselben Zeile gerade ein Umbenennen offen, risse der Neuaufbau es
          weg. Der Verwendungszaehler daneben aendert sich durch ein Gewicht
          ohnehin nicht. */
-      const weightInput = row.querySelector('.mgew-feld');
+      const weightInput = row.querySelector('.mweight-field');
       if (weightInput) weightInput.onchange = async () => {
         const g = weightOutText(weightInput.value);
         // Ein leeres oder unlesbares Feld schickt GAR NICHTS: wer den Inhalt
@@ -8480,12 +8480,12 @@ function cardLinks() {
   return `<div class="sys-card">
         <h3>${tH('dialog.links')}</h3>
         <p class="desc">${tH('card.linkRowsHint')}</p>
-        <div class="pills" id="lzeilen"></div>
+        <div class="pills" id="lrows"></div>
 
         <p class="desc sys-teil">${tH('card.linkListHint')}
           <strong>${tH('card.search')}</strong> ${tH('card.searchOnClick')}</p>
         <p class="desc" style="margin:0 0 8px">${tH('card.engineCountHint')}</p>
-        <div class="pills" id="snamen"></div>
+        <div class="pills" id="snames"></div>
       </div>`;
 }
 function setUpLinksOut() {
@@ -8495,7 +8495,7 @@ function setUpLinksOut() {
 
   /* --- Sichtbare Linkzeilen --- */
   function drawLinkRows() {
-    const box = document.getElementById('lzeilen');
+    const box = document.getElementById('lrows');
     box.innerHTML = '';
     LINK_ROW_LEVELS.forEach(n => {
       const b2 = document.createElement('button');
@@ -8513,7 +8513,7 @@ function setUpLinksOut() {
   }
 
   function drawSearchNames() {
-    const box = document.getElementById('snamen');
+    const box = document.getElementById('snames');
     if (!box) return;
     box.innerHTML = '';
     SEARCH_NAME_LEVELS.forEach(n => {
@@ -10022,7 +10022,7 @@ function cardImageStore(fetched) {
           const hinweis = f.schluessel === 'png'
             ? (IMAGES_CONVERT ? t('card.webpOnUpload') : '') : f.hinweis();
           return `<div class="kv"><span class="k">${f.name()}${
-            hinweis ? ` <span class="zusatz">— ${hinweis}</span>` : ''
+            hinweis ? ` <span class="extra">— ${hinweis}</span>` : ''
           }</span><span class="v">${z.anzahl} · ${fmtBytes(z.bytes)}</span></div>`;
         }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noPhotosYet')}</p>`}
         ${OWNER ? `
