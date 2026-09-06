@@ -485,7 +485,7 @@ function passwortFenster(titel, was, grund, mitCode) {
            EIN FELD FUER BEIDE FORMEN, wie an der Anmeldung: der Server sieht
            der Eingabe an, was gemeint ist (istCodeform gegen istWiederform).
            Deshalb darf die Beschriftung keine von beiden ausschliessen. */''}
-      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>${tH('anmeldung.zweiFaktorCode')}</label>
+      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>${tH('dialog.zweiFaktorCode')}</label>
         <input class="input" id="best-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.abbrechen')}</button>
@@ -575,7 +575,7 @@ function neuesPasswortFenster(titel, satz) {
       <div class="field" style="margin:0"><label for="np-pass">${tH('dialog.neuesPasswort')}</label>
         <input class="input" id="np-pass" type="password" autocomplete="new-password"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.abbrechen')}</button>
-      <button class="btn btn-accent" data-yes>${tH('anmeldung.passwortSetzen')}</button></div></div>`;
+      <button class="btn btn-accent" data-yes>${tH('dialog.passwortSetzen')}</button></div></div>`;
     document.body.appendChild(bd);
     const feld = bd.querySelector('#np-pass');
     const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
@@ -615,7 +615,7 @@ function benutzerLoeschenFenster(name, nummer, b) {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="benutzer-loeschen"><h2>${tH('dialog.benutzerLoeschen', { name: name })}</h2>
-      <p>${tH('dialog.derNameWirdFreiWas', { name: name, nummer: nummer })}</p>
+      <p>${tH('dialog.derNameWirdFreiWas', { name: name, nummer: Number(nummer) })}</p>
       ${b.eintraege ? `<label class="ex-files"><input type="checkbox" id="bl-eintraege">
         ${tH('dialog.vonMitloeschen', { eintraege: b.eintraege, sache: vSache(b.eintraege), name: name })}${fremdDaran
           ? ` — samt ${fremdDaran} ${fremdDaran === 1 ? t('dialog.fremdemBeitrag') : t('dialog.fremdenBeitraegen')} daran` : ''}</label>` : ''}
@@ -787,7 +787,7 @@ function showZweiterFaktor(ausweis, errMsg) {
     ${/* Nicht "Sechsstelliger Code": hier traegt auch ein Wiederherstellungscode,
          und der hat zehn Zeichen. Die Beschriftung nennt deshalb das Verfahren,
          die Zeile darunter nennt den zweiten Weg. */''}
-    <div class="field"><label for="zf-code">${tH('anmeldung.zweiFaktorCode')}</label>
+    <div class="field"><label for="zf-code">${tH('dialog.zweiFaktorCode')}</label>
       <input class="input" id="zf-code" inputmode="text" autocomplete="one-time-code"
         autocapitalize="characters" spellcheck="false" maxlength="16"></div>
     <button class="btn btn-accent" id="zf-ab">${tH('anmeldung.anmelden')}</button>
@@ -1027,7 +1027,7 @@ async function showEinladung(schluessel) {
       <p class="sub" style="margin:0 0 4px">${tH('anmeldung.mindestensZeichen', { min: min })}
         ${stand.minuten ? `<strong>${tH('anmeldung.derLinkGiltNochMinuten', { minuten: stand.minuten })}</strong> ${tH('anmeldung.danachBrauchstDuEinenNeuen')}` : ''}
         <br>${tH('anmeldung.nachDemSetzenWirstDu')}</p>
-      <button class="btn btn-accent" id="eb">${tH('anmeldung.passwortSetzen')}</button>
+      <button class="btn btn-accent" id="eb">${tH('dialog.passwortSetzen')}</button>
     </div></div>`;
 
     const p1 = document.getElementById('ep'), p2 = document.getElementById('ep2'),
@@ -1035,7 +1035,7 @@ async function showEinladung(schluessel) {
     const submit = async () => {
       if (p1.value.length < min) return zeichne(t('anmeldung.passwortZuKurz', { min: min }));
       if (p1.value !== p2.value) return zeichne(t('anmeldung.dieBeidenPasswoerterStimmenNicht'));
-      b.disabled = true; b.textContent = t('anmeldung.passwortSetzen2');
+      b.disabled = true; b.textContent = t('anmeldung.passwortSetzen');
       try {
         const res = await fetch('/api/token/einloesen', {
           method: 'POST', credentials: 'same-origin',
@@ -3638,7 +3638,7 @@ function drawZeitleiste(list) {
     d.style.left = (zeitAnteil(p.tag, von, bis) * 100) + '%';
     d.style.bottom = ((p.note - 1) / 4 * 100) + '%';
     d.dataset.item = p.itemId;
-    d.setAttribute('aria-label', t('liste.note', { titel: p.titel, tag: p.tag, note: p.note }));
+    d.setAttribute('aria-label', t('liste.note', { titel: p.titel, tag: fmtDay(p.tag), note: p.note }));
     d.onclick = () => { location.hash = `#/item/${p.itemId}`; };
     // Eigenes Hinweisfeld statt title: kein Wartezögern, und der Text bleibt
     // lesbar gesetzt. Auf dem Finger gibt es kein Überfahren — dort öffnet die
@@ -3688,7 +3688,7 @@ function zeigeHinweis(box, punkt, p) {
   versteckeHinweis(box);
   const h = document.createElement('div');
   h.className = 'zl-hinweis';
-  h.innerHTML = `<strong>${esc(p.titel)}</strong><span>${tH('liste.note2', { tag: p.tag, note: p.note })}</span>`;
+  h.innerHTML = `<strong>${esc(p.titel)}</strong><span>${tH('liste.note2', { tag: fmtDay(p.tag), note: p.note })}</span>`;
   h.style.left = punkt.style.left;
   box.querySelector('.zl').appendChild(h);
 }
@@ -4707,15 +4707,15 @@ async function renderDetail(id, begriffAdresse) {
   if (location.hash !== gewollt &&
       typeof history !== 'undefined' && typeof history.replaceState === 'function')
     history.replaceState(null, '', gewollt);
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('liste.laedt')}</p></div>`;
   let item, cats, allTags;
   try {
     [item, cats, allTags] = await Promise.all([
       api('GET', `/api/items/${id}`), api('GET', '/api/product-categories'), api('GET', '/api/tags')
     ]);
   } catch (e) {
-    if (e.message !== 'Sitzung abgelaufen')
-      app.innerHTML = `<div class="shell"><a href="#/" class="back">← Zurück zur Übersicht</a><p class="hint">${esc(V.sacheEinzahl)} nicht gefunden.</p></div>`;
+    if (e.message !== t('dialog.sitzungAbgelaufen'))
+      app.innerHTML = `<div class="shell"><a href="#/" class="back">${tH('liste.zurueckZurUebersicht')}</a><p class="hint">${tH('server.sacheFehlt')}</p></div>`;
     return;
   }
   let idx = 0;
@@ -4723,21 +4723,20 @@ async function renderDetail(id, begriffAdresse) {
   let linksOffen = false;        // nur fuer diese Ansicht, nicht auf dem Server
 
   app.innerHTML = `<div class="shell">
-    <a href="#/" class="back">← Zurück zur Übersicht</a>
+    <a href="#/" class="back">${tH('liste.zurueckZurUebersicht')}</a>
     <div class="detail">
       <div>
         <div class="viewer" id="viewer"></div>
         <div class="thumbs" id="thumbs"></div>
         <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple>
-          Fotos und Videos hinzufügen — mehrere möglich, oder mit Strg+V einfügen</label>
+          ${tH('eintrag.fotosUndVideosHinzufuegenMehrere')}</label>
         ${/* EIN SATZ UND KEIN ABSATZ -- 0.22.0. Bis 0.21.1 standen hier fuenf
              Saetze (Vollbild, Blaettern, Papierkorb, Standbild): was ein Knopf
              tut, sagt sein Tooltip. Die Grenze fuer Videos bleibt, weil man
              sie VOR dem Upload wissen muss (Regel S1: eine Folge, die man
              kennen muss, darf stehen). */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">
-          Das erste Foto ist das Hauptbild — Reihenfolge per Ziehen.
-          Videos bis 20 MB (MP4, WebM, MOV).</p>
+          ${tH('eintrag.dasErsteFotoIstDas')}</p>
       </div>
 
       <div class="meta-col">
@@ -4756,7 +4755,7 @@ async function renderDetail(id, begriffAdresse) {
         <div class="titel-kopf">
           <div class="title-line">
             <input class="title-in" id="title" value="${esc(item.title)}">
-            <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? 'Favorit entfernen' : 'Als Favorit markieren'}">${item.favorite ? '★' : '☆'}</button>
+            <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? t('eintrag.favoritEntfernen') : t('eintrag.alsFavoritMarkieren')}">${item.favorite ? '★' : '☆'}</button>
           </div>
           <div class="hint hint-sm verfasser-zeile" id="ivf" hidden></div>
           <div class="switches" style="margin-top:10px">
@@ -4781,32 +4780,32 @@ async function renderDetail(id, begriffAdresse) {
           <div class="hint hint-sm verfasser-zeile rej-aussage" id="rej-marke" hidden></div>
           <div class="row-in rej-grund" id="rej-grund-zeile" hidden>
             <input class="input input-sm" id="rej-grund" maxlength="200"
-                   placeholder="Warum abgelehnt? (freiwillig)" style="padding:8px 11px">
+                   placeholder="${esc(t('eintrag.warumAbgelehntFreiwillig'))}" style="padding:8px 11px">
           </div>
         </div>
 
         <div class="blocks" id="blocks-seite">
         <div class="block" data-block="kategorie">
-          <div class="block-head"><span class="label">Kategorie</span></div>
+          <div class="block-head"><span class="label">${tH('liste.kategorie')}</span></div>
           <div class="row-in">
             <select class="select select-sm" id="cat" style="min-width:148px;padding:9px 11px"></select>
-            ${darfKategorieAnlegen() ? `<input class="input input-sm" id="newcat" placeholder="Neue Kategorie, Enter bestätigt" style="padding:8px 11px">
-            <button class="btn btn-sm" id="newcat-b">+ Anlegen</button>` : ''}
+            ${darfKategorieAnlegen() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('eintrag.neueKategorieEnterBestaetigt'))}" style="padding:8px 11px">
+            <button class="btn btn-sm" id="newcat-b">${tH('eintrag.anlegen')}</button>` : ''}
           </div>
         </div>
 
         <div class="block" data-block="tags">
-          <div class="block-head"><span class="label">Tags</span></div>
+          <div class="block-head"><span class="label">${tH('liste.tags2')}</span></div>
           <div class="chips" id="chips"></div>
           <!-- Diese Liste steht ausserhalb der Eingabezeile: die Tageingabe
                am Testtag benutzt sie, und die bleibt in jedem Fall stehen. -->
           <datalist id="tagsug"></datalist>
           ${darfTagAnlegen() ? `<div class="row-in">
-            <input class="input input-sm" id="newtag" list="tagsug" placeholder="Tag eingeben, Enter bestätigt" style="padding:8px 11px">
-            <button class="btn btn-sm" id="newtag-b">+ Hinzufügen</button>
+            <input class="input input-sm" id="newtag" list="tagsug" placeholder="${esc(t('eintrag.tagEingebenEnterBestaetigt'))}" style="padding:8px 11px">
+            <button class="btn btn-sm" id="newtag-b">${tH('eintrag.hinzufuegen')}</button>
           </div>` : ''}
-          <div class="wolke-kopf"><span class="hint">Vorhandene Tags — Klick setzt, erneuter Klick entfernt</span>
-            <button class="link-btn" id="tagcloud-more" hidden>mehr</button></div>
+          <div class="wolke-kopf"><span class="hint">${tH('eintrag.vorhandeneTagsKlickSetztErneuter')}</span>
+            <button class="link-btn" id="tagcloud-more" hidden>${tH('liste.mehr')}</button></div>
           <div class="pills cloud" id="tagcloud"></div>
         </div>
 
@@ -4825,14 +4824,14 @@ async function renderDetail(id, begriffAdresse) {
         <div class="block" data-block="potenzial">
           <div class="block-head"><span class="label">${esc(V.potenzial)}</span>
             <span class="hint" id="phead"></span>
-            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="pwho">Wer hat bewertet</button>` : ''}</div>
+            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="pwho">${tH('eintrag.werHatBewertet')}</button>` : ''}</div>
           <div id="potenzial-ratings"></div>
         </div>
 
         <div class="block" data-block="bewertung">
           <div class="block-head"><span class="label">${esc(V.bewertungEinzahl)}</span>
             <span class="hint" id="rhead"></span>
-            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="rwho">Wer hat bewertet</button>` : ''}</div>
+            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="rwho">${tH('eintrag.werHatBewertet')}</button>` : ''}</div>
           <div id="ratings"></div>
         </div>
         </div>
@@ -4842,29 +4841,29 @@ async function renderDetail(id, begriffAdresse) {
     <div class="blocks" id="blocks-unten">
 
     <div class="block block-wide" data-block="beschreibung">
-      <div class="block-head"><span class="label">Beschreibung</span></div>
-      <textarea class="ta ta-desc" id="desc" placeholder="Worum geht es hier?">${esc(item.description)}</textarea>
+      <div class="block-head"><span class="label">${tH('liste.beschreibung')}</span></div>
+      <textarea class="ta ta-desc" id="desc" placeholder="${esc(t('eintrag.worumGehtEsHier'))}">${esc(item.description)}</textarea>
     </div>
 
     <div class="block block-wide" id="testblock" data-block="testtage"></div>
 
     <div class="block block-wide" data-block="links">
-      <div class="block-head"><span class="label">Links</span><span class="hint" id="lcount"></span></div>
+      <div class="block-head"><span class="label">${tH('dialog.links')}</span><span class="hint" id="lcount"></span></div>
       <div class="link-scroll" id="links"></div>
       <button class="link-more" id="links-more" hidden></button>
       <div class="row-in">
-        <input class="input input-sm" id="newlink" placeholder="Adresse oder Suchbegriff, Enter bestätigt" style="padding:9px 11px">
-        <button class="btn btn-sm" id="newlink-b">+ Hinzufügen</button>
+        <input class="input input-sm" id="newlink" placeholder="${esc(t('eintrag.adresseOderSuchbegriffEnter'))}" style="padding:9px 11px">
+        <button class="btn btn-sm" id="newlink-b">${tH('eintrag.hinzufuegen')}</button>
       </div>
     </div>
 
     <div class="block block-wide" data-block="dateien">
-      <div class="block-head"><span class="label">Dateien</span><span class="hint" id="acount"></span></div>
+      <div class="block-head"><span class="label">${tH('dialog.dateien')}</span><span class="hint" id="acount"></span></div>
       <div id="atts"></div>
       <div class="row-in">
         <input type="file" id="afile" multiple hidden>
-        <button class="btn btn-sm" id="aadd">+ Dateien anhängen</button>
-        <span class="hint">bis 50 MB je Datei, höchstens 20 Dateien</span>
+        <button class="btn btn-sm" id="aadd">${tH('eintrag.dateienAnhaengen')}</button>
+        <span class="hint">${tH('eintrag.bisMBJeDateiHoechstens')}</span>
       </div>
     </div>
 
@@ -4879,20 +4878,20 @@ async function renderDetail(id, begriffAdresse) {
            ALS BUTTON UND NICHT ALS VERWEIS -- kopf.onclick nimmt jeden Klick
            auf ein `button` aus, und ohne das klappte der Sprung den Block im
            selben Atemzug ein. */''}
-      <div class="block-head"><span class="label">Kommentare</span><span class="hint" id="ccount"></span>
-        <button class="link-btn" id="cjump" title="Zum Schreibfeld springen">+ Kommentar</button></div>
+      <div class="block-head"><span class="label">${tH('dialog.kommentare')}</span><span class="hint" id="ccount"></span>
+        <button class="link-btn" id="cjump" title="${esc(t('eintrag.zumSchreibfeldSpringen'))}">${tH('eintrag.kommentar')}</button></div>
       <div class="cmts" id="cmts"></div>
       <div class="cmt-form">
-        <textarea class="ta" id="ctext" placeholder="Kommentar schreiben — Bilder mit Strg+V einfügen …"></textarea>
+        <textarea class="ta" id="ctext" placeholder="${esc(t('eintrag.kommentarSchreibenBilderMitStrg'))}"></textarea>
         <div class="cmt-neu-bilder" id="cneu-imgs"></div>
         <div class="cmt-form-row">
           <span class="marks">
-            <button class="mark pin" id="cpin" title="Anpinnen — steht dann ganz oben">${ICON_PIN}</button>
+            <button class="mark pin" id="cpin" title="${esc(t('eintrag.anpinnenStehtDannGanzOben'))}">${ICON_PIN}</button>
             <button class="mark art" id="cart"></button>
             <button class="mark aufg" id="caufg"></button>
           </span>
-          <button class="btn btn-sm" id="cimg">+ Bild</button>
-          <button class="btn btn-sm btn-accent" id="cadd">Kommentar hinzufügen</button>
+          <button class="btn btn-sm" id="cimg">${tH('eintrag.bild')}</button>
+          <button class="btn btn-sm btn-accent" id="cadd">${tH('eintrag.kommentarHinzufuegen')}</button>
         </div>
       </div>
     </div>
@@ -4903,7 +4902,7 @@ async function renderDetail(id, begriffAdresse) {
          eine Funktion, sondern eine Fehlermeldung auf Vorrat. Dieselbe Weiche
          wie an den Kreuzen der Link- und Dateizeilen (darfWeg). */''}
     ${item.mine === true || ADMIN
-      ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${esc(V.sacheEinzahl)} löschen</button></div>`
+      ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('eintrag.loeschen')}</button></div>`
       : ''}
   </div>`;
 
@@ -4919,8 +4918,8 @@ async function renderDetail(id, begriffAdresse) {
      Loeschen darf dort nichts verschwinden lassen. */
   async function loescheFoto(foto) {
     if (!foto) return false;
-    const wort = istVideo(foto) ? 'Video' : 'Foto';
-    if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird endgültig gelöscht.`)) return false;
+    const wort = istVideo(foto) ? t('liste.video') : t('liste.foto');
+    if (!await confirmBox(t('eintrag.loeschen2', { wort: wort }), t('eintrag.diesesWirdEndgueltigGeloescht', { wort: wort }))) return false;
     try {
       await api('DELETE', `/api/photos/${foto.id}`);
       item = await api('GET', `/api/items/${id}`);
@@ -4972,8 +4971,8 @@ async function renderDetail(id, begriffAdresse) {
         ? `<video controls playsinline preload="metadata"
              poster="/api/photos/${ps[idx].id}/raw?size=medium"
              src="/api/photos/${ps[idx].id}/raw"></video>`
-        : `<img src="/api/photos/${ps[idx].id}/raw?size=medium" alt="" title="Für Vollbild klicken">`) + `
-      ${idx === 0 ? `<span class="main-flag">Hauptbild</span>` : ''}
+        : `<img src="/api/photos/${ps[idx].id}/raw?size=medium" alt="" title="${esc(t('eintrag.fuerVollbildKlicken'))}">`) + `
+      ${idx === 0 ? `<span class="main-flag">${tH('eintrag.hauptbild')}</span>` : ''}
       ${/* EINE REIHE UND NICHT DREI AUSGERECHNETE ABSTAENDE. Die Knoepfe
            standen vorher einzeln am rechten Rand, und der Vollbildknopf trug
            dafuer die Zahl 92 -- die Breite des Wortes "Ausschnitt" bei 100
@@ -4988,11 +4987,11 @@ async function renderDetail(id, begriffAdresse) {
            die beiden davor stellen etwas ein, dieser hier nimmt etwas weg.
            Ohne den Abstand liest er sich als dritte Einstellung. */''}
       <div class="vtools${ausschnittModus ? ' offen' : ''}">
-        <button class="vfocus${ausschnittModus ? ' on' : ''}" title="Bildausschnitt der Vorschau festlegen"
-          aria-label="Bildausschnitt der Vorschau festlegen">${ICON_AUSSCHNITT}</button>
-        ${zeigtVideo ? `<button class="vfull" title="Vollbild öffnen" aria-label="Vollbild öffnen">${ICON_VOLLBILD}</button>` : ''}
-        <button class="vweg" title="${istVideo(ps[idx]) ? 'Video' : 'Foto'} löschen"
-          aria-label="${istVideo(ps[idx]) ? 'Video' : 'Foto'} löschen">${ICON_PAPIERKORB}</button>
+        <button class="vfocus${ausschnittModus ? ' on' : ''}" title="${esc(t('eintrag.bildausschnittDerVorschauFestlegen'))}"
+          aria-label="${esc(t('eintrag.bildausschnittDerVorschauFestlegen'))}">${ICON_AUSSCHNITT}</button>
+        ${zeigtVideo ? `<button class="vfull" title="${esc(t('eintrag.vollbildOeffnen'))}" aria-label="${esc(t('eintrag.vollbildOeffnen'))}">${ICON_VOLLBILD}</button>` : ''}
+        <button class="vweg" title="${istVideo(ps[idx]) ? t('liste.video') : t('liste.foto')} ${esc(t('eintrag.loeschen3'))}"
+          aria-label="${istVideo(ps[idx]) ? t('liste.video') : t('liste.foto')} ${esc(t('eintrag.loeschen3'))}">${ICON_PAPIERKORB}</button>
       </div>
       ${/* DER SCHIEBER STEHT NUR IM AUSSCHNITTMODUS, und er steht IM
            BETRACHTER und nicht in einer eigenen Bedienflaeche daneben: der
@@ -5001,13 +5000,13 @@ async function renderDetail(id, begriffAdresse) {
            nicht, und die Bedienung waere dann geraeteabhaengig -- genau das,
            was die Kachelreihe seit 0.12.0 vermeidet. */''}
       ${ausschnittModus && !zeigtVideo ? `<div class="vzoom">
-        <label for="vzoom-schieber">Zoom</label>
+        <label for="vzoom-schieber">${tH('eintrag.zoom')}</label>
         <input type="range" id="vzoom-schieber" min="100" max="400" step="5"
-          value="${Number(ps[idx].zoom) || 100}" aria-label="Zoom des Bildausschnitts">
+          value="${Number(ps[idx].zoom) || 100}" aria-label="${esc(t('eintrag.zoomDesBildausschnitts'))}">
         <span class="vzoom-wert" id="vzoom-wert">${Math.round(Number(ps[idx].zoom) || 100)} %</span>
       </div>` : ''}
-      ${ps.length > 1 ? `<button class="vnav prev" title="Vorheriges (←)">‹</button>
-        <button class="vnav next" title="Nächstes (→)">›</button>
+      ${ps.length > 1 ? `<button class="vnav prev" title="${esc(t('liste.vorheriges'))}">‹</button>
+        <button class="vnav next" title="${esc(t('liste.naechstes'))}">›</button>
         <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
     const bild = v.querySelector('img');
     /* DAS VOLLBILD BEKOMMT DENSELBEN PAPIERKORB -- eine Funktion, zwei Rufer.
@@ -5028,7 +5027,7 @@ async function renderDetail(id, begriffAdresse) {
     v.querySelector('.vfocus').onclick = () => {
       ausschnittModus = !ausschnittModus;
       drawViewer();
-      if (ausschnittModus) toast('Außerhalb ziehen legt einen neuen Ausschnitt fest; im Rahmen schieben, an Ecke und Kante die Größe ändern');
+      if (ausschnittModus) toast(t('eintrag.ausserhalbZiehenLegtEinenNeuen'));
     };
     /* GELOESCHT WIRD AM GROSSEN BILD, und das ist der Kern dieser Aenderung.
        Vorher sass ein Kreuz auf jeder Vorschaukachel. Auf dem Finger stand es
@@ -5261,7 +5260,7 @@ async function renderDetail(id, begriffAdresse) {
       try {
         item = await api('PUT', `/api/photos/${foto.id}/focus`, { x: fx, y: fy, zoom });
         drawThumbs();
-        toast('Gespeichert');
+        toast(t('liste.gespeichert'));
       } catch (e) { toast(e.message, true); }
     };
     /* DIE MELDUNG KOMMT AUCH DANN, WENN DIE ANSICHT SCHON FORT IST -- 0.19.6,
@@ -5384,14 +5383,14 @@ async function renderDetail(id, begriffAdresse) {
       // Abgeleitet aus art und dauer, kein Schalter: das ▶ in der Ecke und,
       // wenn die Dauer bekannt ist, die Laenge daneben.
       const laenge = istVideo(p) ? dauerText(p.dauer) : '';
-      const wort = istVideo(p) ? 'Video' : 'Foto';
+      const wort = istVideo(p) ? t('liste.video') : t('liste.foto');
       kachel.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
         (istVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
         (laenge ? `<span class="dauer">${laenge}</span>` : '') +
-        `<span class="num">${i + 1}</span><span class="del" title="${wort} löschen">${ICON_KREUZ}</span>`;
+        `<span class="num">${i + 1}</span><span class="del" title="${esc(t('eintrag.loeschen4', { wort: wort }))}">${ICON_KREUZ}</span>`;
       kachel.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
-        if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird endgültig gelöscht.`)) return;
+        if (!await confirmBox(t('eintrag.loeschen2', { wort: wort }), t('eintrag.diesesWirdEndgueltigGeloescht', { wort: wort }))) return;
         try {
           await api('DELETE', `/api/photos/${p.id}`);
           item = await api('GET', `/api/items/${id}`);
@@ -5409,7 +5408,7 @@ async function renderDetail(id, begriffAdresse) {
             item = await api('PUT', `/api/items/${id}/photo-order`, { order });
             idx = Math.max(0, item.photos.findIndex(p2 => p2.id === currentId));
             drawViewer(); drawThumbs();
-            toast('Reihenfolge gespeichert');
+            toast(t('eintrag.reihenfolgeGespeichert'));
           } catch (err) { toast(err.message, true); }
         }
       });
@@ -5433,22 +5432,22 @@ async function renderDetail(id, begriffAdresse) {
     try {
       await new Promise((ok, fehl) => {
         v.onloadedmetadata = ok;
-        v.onerror = () => fehl(new Error('Dieses Video kann der Browser nicht lesen'));
+        v.onerror = () => fehl(new Error(t('eintrag.diesesVideoKannDerBrowser')));
       });
       // Ein Video ohne Bildmasse -- etwa eine reine Tonspur -- ergaebe eine
       // Zeichenflaeche der Groesse null und damit gar kein Standbild.
       if (!v.videoWidth || !v.videoHeight)
-        throw new Error('Dieses Video hat kein Bild');
+        throw new Error(t('eintrag.diesesVideoHatKeinBild'));
       v.currentTime = Math.min(sekunde, (v.duration || 2) / 2);
       await new Promise((ok, fehl) => {
         v.onseeked = ok;
-        v.onerror = () => fehl(new Error('Dieses Video kann der Browser nicht lesen'));
+        v.onerror = () => fehl(new Error(t('eintrag.diesesVideoKannDerBrowser')));
       });
       const c = document.createElement('canvas');
       c.width = v.videoWidth; c.height = v.videoHeight;
       c.getContext('2d').drawImage(v, 0, 0);
       const bild = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
-      if (!bild) throw new Error('Aus diesem Video konnte kein Vorschaubild erzeugt werden.');
+      if (!bild) throw new Error(t('eintrag.ausDiesemVideoKonnteKein'));
       return { bild, dauer: Math.round(v.duration) || null };
     } finally { URL.revokeObjectURL(v.src); }
   }
@@ -5461,7 +5460,7 @@ async function renderDetail(id, begriffAdresse) {
     const videos = files.filter(f => /^video\//.test(f.type));
     const drop = document.getElementById('drop');
     const old = drop.textContent;
-    drop.textContent = 'wird hochgeladen …';
+    drop.textContent = t('eintrag.wirdHochgeladen');
     let fertig = 0;
     try {
       if (bilder.length) {
@@ -5471,9 +5470,9 @@ async function renderDetail(id, begriffAdresse) {
         fertig += bilder.length;
       }
       for (const f of videos) {
-        drop.textContent = 'Vorschaubild wird erzeugt …';
+        drop.textContent = t('eintrag.vorschaubildWirdErzeugt');
         const { bild, dauer } = await standbild(f);
-        drop.textContent = 'wird hochgeladen …';
+        drop.textContent = t('eintrag.wirdHochgeladen');
         const fd = new FormData();
         fd.append('video', f, f.name);
         fd.append('standbild', bild, 'standbild.jpg');
@@ -5483,8 +5482,8 @@ async function renderDetail(id, begriffAdresse) {
       }
       drawViewer(); drawThumbs();
       // „1 Foto", „1 Video", sonst „3 Dateien" -- „Element" sagt niemand.
-      if (fertig) toast(`${fertig} ${fertig === 1 ? (videos.length ? 'Video' : 'Foto')
-        : (videos.length ? (bilder.length ? 'Dateien' : 'Videos') : 'Fotos')} hinzugefügt`);
+      if (fertig) toast(`${fertig} ${fertig === 1 ? (videos.length ? t('liste.video') : t('liste.foto'))
+        : (videos.length ? (bilder.length ? t('dialog.dateien') : t('liste.videos')) : t('liste.fotos'))} hinzugefügt`);
     } catch (err) {
       toast(err.message, true);
       // Was schon durchging, ist durch -- die Anzeige muss es zeigen.
@@ -5575,10 +5574,10 @@ async function renderDetail(id, begriffAdresse) {
     const schalter = document.getElementById('sw-test'), r = document.getElementById('sw-rej');
     const locked = item.testDays.length > 0;
     schalter.className = 'switch' + (item.tested ? ' on-green' : '') + (locked ? ' locked' : '');
-    schalter.title = locked ? `Nicht änderbar, solange ${V.zeitpunktMehrzahl} eingetragen sind.` : '';
+    schalter.title = locked ? t('eintrag.nichtAenderbarSolangeEingetragen') : '';
     document.getElementById('sw-test-t').textContent = item.tested ? V.merkmalJa : V.merkmalNein;
     r.className = 'switch' + (item.rejected ? ' on-red' : '');
-    document.getElementById('sw-rej-t').textContent = item.rejected ? 'Abgelehnt' : 'Nicht abgelehnt';
+    document.getElementById('sw-rej-t').textContent = item.rejected ? t('liste.abgelehnt') : t('liste.nichtAbgelehnt');
     drawAblehnung();
   }
 
@@ -5686,7 +5685,7 @@ async function renderDetail(id, begriffAdresse) {
       const w = document.createElement('span');
       w.className = 'rej-warum' + (meins ? ' klick' : '');
       w.textContent = grund;
-      if (meins) { w.title = 'Begründung ändern'; w.onclick = oeffneGrund; }
+      if (meins) { w.title = t('eintrag.begruendungAendern'); w.onclick = oeffneGrund; }
       text.appendChild(w);
     }
     marke.appendChild(text);
@@ -5698,14 +5697,14 @@ async function renderDetail(id, begriffAdresse) {
     if (zeigeStift) {
       const b = document.createElement('button');
       b.className = 'mact ed'; b.innerHTML = ICON_STIFT;
-      b.title = grund ? 'Begründung ändern' : 'Begründung schreiben';
+      b.title = grund ? t('eintrag.begruendungAendern') : t('eintrag.begruendungSchreiben');
       b.onclick = oeffneGrund;
       acts.appendChild(b);
     }
     if (zeigeWeg) {
       const b = document.createElement('button');
       b.className = 'mact rm'; b.innerHTML = ICON_KREUZ;
-      b.title = 'Begründung entfernen';
+      b.title = t('eintrag.begruendungEntfernen');
       b.onclick = entferneGrund;
       acts.appendChild(b);
     }
@@ -5732,11 +5731,11 @@ async function renderDetail(id, begriffAdresse) {
      Handlung.
      GEFRAGT WIRD VORHER: die Angabe ist danach nirgends wiederherzustellen. */
   async function entferneGrund() {
-    if (!await confirmBox('Begründung löschen?',
-      'Der Text wird endgültig gelöscht. Datum und Verfasser der Ablehnung bleiben erhalten.')) return;
+    if (!await confirmBox(t('eintrag.begruendungLoeschen'),
+      t('eintrag.derTextWirdEndgueltigGeloescht'))) return;
     try {
       item = await api('PUT', `/api/items/${id}`, { rejectedGrund: '' });
-      grundOffen = false; drawSwitches(); toast('Begründung entfernt');
+      grundOffen = false; drawSwitches(); toast(t('eintrag.begruendungEntfernt'));
     } catch (e) { toast(e.message, true); }
   }
   document.getElementById('sw-test').onclick = async () => {
@@ -5800,7 +5799,7 @@ async function renderDetail(id, begriffAdresse) {
     const speichere = async () => {
       const v = feld.value.trim();
       if (v !== (item.rejected_grund || '')) {
-        try { item = await api('PUT', `/api/items/${id}`, { rejectedGrund: v }); toast('Gespeichert'); }
+        try { item = await api('PUT', `/api/items/${id}`, { rejectedGrund: v }); toast(t('liste.gespeichert')); }
         catch (e) { toast(e.message, true); feld.value = item.rejected_grund || ''; }
       }
       grundOffen = false;
@@ -5836,7 +5835,7 @@ async function renderDetail(id, begriffAdresse) {
     // Der Ueberfahrtext gehoert mit gezeichnet: er benennt die
     // naechste Handlung, nicht das Merkmal -- bliebe er stehen, boete ein
     // gesetzter Favorit weiterhin "Als Favorit markieren" an.
-    b.title = item.favorite ? 'Favorit entfernen' : 'Als Favorit markieren';
+    b.title = item.favorite ? t('eintrag.favoritEntfernen') : t('eintrag.alsFavoritMarkieren');
   }
   document.getElementById('pin').onclick = async () => {
     try {
@@ -5850,14 +5849,14 @@ async function renderDetail(id, begriffAdresse) {
   titleEl.onblur = async () => {
     const v = titleEl.value.trim();
     if (!v || v === item.title) return;
-    try { item = await api('PUT', `/api/items/${id}`, { title: v }); toast('Gespeichert'); }
+    try { item = await api('PUT', `/api/items/${id}`, { title: v }); toast(t('liste.gespeichert')); }
     catch (e) { toast(e.message, true); }
   };
   const descEl = document.getElementById('desc');
   autoGrow(descEl);
   descEl.onblur = async () => {
     if (descEl.value === item.description) return;
-    try { item = await api('PUT', `/api/items/${id}`, { description: descEl.value }); toast('Gespeichert'); }
+    try { item = await api('PUT', `/api/items/${id}`, { description: descEl.value }); toast(t('liste.gespeichert')); }
     catch (e) { toast(e.message, true); }
   };
 
@@ -5876,15 +5875,15 @@ async function renderDetail(id, begriffAdresse) {
     if (!el) return;
     el.hidden = !mehrereBenutzer();
     el.textContent = mehrereBenutzer()
-      ? `Angelegt von ${verfasserName(item.verfasser)} am ${fmtDate(item.created_at)}` : '';
+      ? t('eintrag.angelegtVonAm', { verfasser: verfasserName(item.verfasser), created_at: fmtDate(item.created_at) }) : '';
   }
 
   function drawCat() {
     const s = document.getElementById('cat');
-    s.innerHTML = `<option value="">— keine —</option>` + cats.map(c =>
+    s.innerHTML = `<option value="">${tH('eintrag.keine')}</option>` + cats.map(c =>
       `<option value="${c.id}"${item.category && item.category.id === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
     s.onchange = async () => {
-      try { item = await api('PUT', `/api/items/${id}`, { productCategoryId: s.value ? +s.value : null }); toast('Gespeichert'); }
+      try { item = await api('PUT', `/api/items/${id}`, { productCategoryId: s.value ? +s.value : null }); toast(t('liste.gespeichert')); }
       catch (e) { toast(e.message, true); }
     };
     ruesteBloeckeAus(item);
@@ -5897,7 +5896,7 @@ async function renderDetail(id, begriffAdresse) {
       const c = await api('POST', '/api/product-categories', { name });
       item = await api('PUT', `/api/items/${id}`, { productCategoryId: c.id });
       cats = await api('GET', '/api/product-categories');
-      el.value = ''; drawCat(); toast('Gespeichert');
+      el.value = ''; drawCat(); toast(t('liste.gespeichert'));
     } catch (e) { toast(e.message, true); }
   };
   // Die Behandler haengen nur an tatsaechlich vorhandenen Elementen: steht der
@@ -5913,11 +5912,11 @@ async function renderDetail(id, begriffAdresse) {
     const box = document.getElementById('chips');
     // Kein Hinweis, solange die Wolke darunter leer ist: „Noch keine Tags."
     // direkt ueber „Noch keine Tags angelegt." war derselbe Satz zweimal.
-    box.innerHTML = item.tags.length || !allTags.length ? '' : `<span class="hint">Noch keine Tags.</span>`;
+    box.innerHTML = item.tags.length || !allTags.length ? '' : `<span class="hint">${tH('eintrag.nochKeineTags')}</span>`;
     item.tags.forEach(tag => {
       const c = document.createElement('span');
       c.className = 'chip';
-      c.innerHTML = `${esc(tag.name)} <button title="Entfernen">${ICON_KREUZ}</button>`;
+      c.innerHTML = `${esc(tag.name)} <button title="${esc(t('eintrag.entfernen'))}">${ICON_KREUZ}</button>`;
       c.querySelector('button').onclick = async () => {
         try { item = await api('DELETE', `/api/items/${id}/tags/${tag.id}`); drawTags(); }
         catch (e) { toast(e.message, true); }
@@ -5939,12 +5938,12 @@ async function renderDetail(id, begriffAdresse) {
     const vergeben = new Set(item.tags.map(tag => tag.id));
     const liste = sortiereWolke(allTags, vergeben);
     box.innerHTML = '';
-    if (!liste.length) { box.innerHTML = `<span class="hint">Noch keine Tags angelegt.</span>`; mehr.hidden = true; return; }
+    if (!liste.length) { box.innerHTML = `<span class="hint">${tH('eintrag.nochKeineTagsAngelegt')}</span>`; mehr.hidden = true; return; }
     liste.forEach(tag => {
       const b = document.createElement('button');
       b.className = 'pill pill-tag' + (vergeben.has(tag.id) ? ' on' : '');
       b.innerHTML = `${esc(tag.name)}<span class="n">${tag.usage_count}</span>`;
-      b.title = vergeben.has(tag.id) ? 'Tag entfernen' : 'Tag setzen';
+      b.title = vergeben.has(tag.id) ? t('eintrag.tagEntfernen') : t('eintrag.tagSetzen');
       b.onclick = async () => {
         try {
           item = vergeben.has(tag.id)
@@ -5957,7 +5956,7 @@ async function renderDetail(id, begriffAdresse) {
     });
     const beschnitten = begrenzeWolke(box, wolkeOffen.detail ? 0 : 3);
     mehr.hidden = !beschnitten && !wolkeOffen.detail;
-    mehr.textContent = wolkeOffen.detail ? 'weniger' : 'mehr';
+    mehr.textContent = wolkeOffen.detail ? t('liste.weniger') : t('liste.mehr');
     mehr.onclick = () => { wolkeOffen.detail = !wolkeOffen.detail; drawWolke(); };
   }
 
@@ -6026,8 +6025,8 @@ async function renderDetail(id, begriffAdresse) {
     // tatsaechlich noch keine.
     box.innerHTML = zeilen.length ? ''
       : `<span class="hint">${ADMIN
-          ? 'Noch keine Kriterien — anlegen unter Einstellungen › Bestand.'
-          : 'Noch keine Kriterien.'}</span>`;
+          ? t('eintrag.nochKeineKriterienAnlegenUnter')
+          : t('eintrag.nochKeineKriterien')}</span>`;
     // Die Kopfzahl neben der Beschriftung: erst je Kriterium ueber alle, dann
     // ueber die Kriterien -- also genau das Mittel der Zahlen, die rechts in
     // den Zeilen stehen. Damit ist sie nachvollziehbar, sobald beide zugleich
@@ -6073,7 +6072,7 @@ async function renderDetail(id, begriffAdresse) {
            einem Benutzer nicht falsch, sondern knapp.
            UND PHASENNEUTRAL: derselbe Titel steht in beiden Kaesten, und
            „Bewertung" waere im Potenzialkasten das falsche Wort. */
-        b.title = 'Der Durchschnitt über alle Benutzer — nicht nur der eigene. Wie diese Zahl zustande kommt';
+        b.title = t('eintrag.derDurchschnittUeberAlleBenutzer');
         // DER ERKLAERKNOPF BEKOMMT DEN RECHENWEG SEINES KASTENS. Beide kommen
         // aus derselben Rechnung im Server; hier wird nur der richtige
         // angehaengt.
@@ -6094,7 +6093,7 @@ async function renderDetail(id, begriffAdresse) {
       if (marke) {
         const m = document.createElement('span');
         m.className = 'rgew'; m.textContent = marke;
-        m.title = 'Gewicht im Durchschnitt';
+        m.title = t('liste.gewichtImDurchschnitt');
         n.append(' ', m);
       }
       const acts = document.createElement('div');
@@ -6117,7 +6116,7 @@ async function renderDetail(id, begriffAdresse) {
       const zurueck = zuruecksetzKnopf(r.value, () => {
         const alt = r.value;
         set(0);
-        toast(`Sterne bei „${r.name}" entfernt`, false, { text: 'Rückgängig', tu: () => set(alt) });
+        toast(t('eintrag.sterneBeiEntfernt', { name: r.name }), false, { text: t('eintrag.rueckgaengig'), tu: () => set(alt) });
       });
       // Kein Loeschkreuz in dieser Zeile. Ein Kriterium zu
       // loeschen wirkt auf ALLE Eintraege und nimmt vergebene Sterne mit -- eine
@@ -6172,7 +6171,7 @@ async function renderDetail(id, begriffAdresse) {
              sie beim Ueberfahren und ueber das Vorleseprogramm. Was hier
              wegfaellt, ist die Zahl auf dem Bildschirm und nicht die Auskunft. */
           a.textContent = r.count > 1 ? `⌀ ${schnitt} (${r.count})` : `⌀ ${schnitt}`;
-          a.title = `Durchschnitt ${schnitt} aus ${stimmen}`;
+          a.title = t('eintrag.durchschnittAus', { schnitt: schnitt, stimmen: stimmen });
         } else {
           /* EIN STRICH, SOLANGE NIEMAND BEWERTET HAT -- 0.21.0. Bis 0.20.1
              stand hier nichts, mit der Begruendung, neben fuenf leeren Sternen
@@ -6185,7 +6184,7 @@ async function renderDetail(id, begriffAdresse) {
              Runde eine gemessene Mindestbreite (style.css). Der Strich ist
              die Auskunft, nicht der Platzhalter. */
           a.textContent = '–';
-          a.title = 'Noch nicht bewertet';
+          a.title = t('eintrag.nochNichtBewertet');
         }
         row.append(a);
       }
@@ -6247,7 +6246,7 @@ async function renderDetail(id, begriffAdresse) {
     // Ohne Aufstellung kein Kasten. Sie fehlt nur, wenn nichts bewertet ist --
     // dann steht aber auch keine Kopfzahl da, an der man klicken koennte.
     if (!weg || !Array.isArray(weg.zeilen) || !weg.zeilen.length)
-      return toast('Noch nichts bewertet.', true);
+      return toast(t('eintrag.nochNichtsBewertet'), true);
     const namen = new Map(item.ratings.map(r => [r.criterion_id, r.name]));
     const mitGewicht = weg.zeilen.some(z => Number(z.gewicht) !== 1);
     /* OB DIE GEWICHTUNG UEBERHAUPT ETWAS AENDERT. Verglichen werden die beiden
@@ -6259,7 +6258,7 @@ async function renderDetail(id, begriffAdresse) {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal rechnung-modal" id="rechnung-modal">
-      <h2>Wie ⌀ ${esc(gewZahl(weg.ergebnis))} zustande kommt</h2>
+      <h2>${tH('eintrag.wie')} ${esc(gewZahl(weg.ergebnis))} ${tH('eintrag.zustandeKommt')}</h2>
       ${/* DER VERWEIS ZEIGT IN DEN KASTEN UND NICHT AUS IHM HINAUS. Hier stand
            bis 0.17.0 „die Zahlen rechts in den Zeilen" -- gemeint war die
            Durchschnittsspalte der Kriterienliste dahinter, und die gibt es bei
@@ -6275,22 +6274,21 @@ async function renderDetail(id, begriffAdresse) {
            offen, ueber WEN der erste geht. Genau das war die Frage aus dem
            Betrieb. Zwei Woerter, und sie stehen dort, wo die Zahl ohnehin
            erklaert wird. */''}
-      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium über alle
-        Benutzer (Spalte <strong>Note</strong>), dann der Durchschnitt darüber${mitGewicht
-          ? ' — jedes Kriterium mit seinem Gewicht'
-          : ' — alle Gewichte stehen auf 1, jedes Kriterium zählt gleich'}.</p>
+      <p><strong>${tH('eintrag.zweiSchritte')}</strong> ${tH('eintrag.erstDerDurchschnittJeKriterium')} <strong>${tH('eintrag.note')}</strong>${tH('eintrag.dannDerDurchschnittDarueber')}${mitGewicht
+          ? t('eintrag.jedesKriteriumMitSeinemGewicht')
+          : t('eintrag.alleGewichteStehenAufJedes')}.</p>
       <div class="rechnung" id="rechnung">
-        <div class="rz rz-kopf"><span>Kriterium</span><span>Note</span><span>Gewicht</span><span>Note × Gewicht</span></div>
+        <div class="rz rz-kopf"><span>${tH('eintrag.kriterium')}</span><span>${tH('eintrag.note')}</span><span>${tH('eintrag.gewicht')}</span><span>${tH('eintrag.noteGewicht')}</span></div>
         ${weg.zeilen.map(z => `<div class="rz" data-krit="${Number(z.criterionId)}">
           <span class="rz-name">${esc(namen.get(z.criterionId) || '—')}</span>
           <span>${esc(gewZahl(z.schnitt))}</span>
           <span>× ${esc(gewZahl(z.gewicht))}</span>
           <span>${esc(gewZahl(z.produkt))}</span></div>`).join('')}
-        <div class="rz rz-summe"><span>Summe</span><span></span><span></span>
+        <div class="rz rz-summe"><span>${tH('eintrag.summe')}</span><span></span><span></span>
           <span id="rz-summe">${esc(gewZahl(weg.summe))}</span></div>
-        <div class="rz rz-summe"><span>Geteilt durch (Summe der Gewichte)</span><span></span><span></span>
+        <div class="rz rz-summe"><span>${tH('eintrag.geteiltDurchSummeDerGewichte')}</span><span></span><span></span>
           <span id="rz-teiler">${esc(gewZahl(weg.teiler))}</span></div>
-        <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>
+        <div class="rz rz-ergebnis"><span>${tH('eintrag.ergebnis')}</span><span></span><span></span>
           <span id="rz-ergebnis">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>
         ${/* DIE VERGLEICHSZAHL -- 0.17.0. Die Formel stand Zeile fuer Zeile da
              und liess trotzdem offen, WOFUER die Gewichte gut sind. Erst der
@@ -6304,7 +6302,7 @@ async function renderDetail(id, begriffAdresse) {
              UND SIE WIRD GELESEN, NICHT GERECHNET (Stolperstein 217): sie
              entsteht in gesamtSchnitt(), in derselben Schleife wie die Zahl
              darueber. */''}
-        ${mitGewicht ? `<div class="rz rz-gleich"><span>Ohne Gewichte — jedes Kriterium gleich</span>
+        ${mitGewicht ? `<div class="rz rz-gleich"><span>${tH('eintrag.ohneGewichteJedesKriteriumGleich')}</span>
           <span></span><span></span>
           <span id="rz-gleich">⌀ ${esc(gewZahl(weg.gleichErgebnis))}</span></div>` : ''}
       </div>
@@ -6327,23 +6325,22 @@ async function renderDetail(id, begriffAdresse) {
       ${/* ZWEI SAETZE FUER JEDEN, DER DRITTE NUR FUER DEN ADMIN -- 0.22.0. Wo
            die Gewichte eingestellt werden, liest nur, wer dorthin kommt
            (Regel S5). */''}
-      <p><strong>Kriterien ohne Sterne zählen nicht mit.</strong> Gerundet wird nur das
-        Endergebnis.${ADMIN ? ` Die Gewichte stellst du unter Einstellungen › Bestand ›
-        <strong>${esc(kasten.phase === 'vorher' ? `${V.potenzial}: Kriterien` : `${V.bewertungEinzahl}: Kriterien`)}</strong> ein.` : ''}</p>
+      <p><strong>${tH('eintrag.kriterienOhneSterneZaehlenNicht')}</strong> ${tH('eintrag.gerundetWirdNurDasEndergebnis')}${ADMIN ? ` ${tH('eintrag.dieGewichteStellstDuUnter')}
+        <strong>${esc(kasten.phase === 'vorher' ? t('eintrag.kriterien') : t('eintrag.kriterien2'))}</strong> ${tH('eintrag.ein')}` : ''}</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
            steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
            eine Auskunft ueber nichts.
            DIESER ABSATZ IST DER PUNKT DES GANZEN KASTENS und deshalb der
            einzige, an dem 0.17.3 kein Wort geaendert hat. */''}
       ${mitGewicht ? (gleicheZahl
-        ? `<p id="rz-gleich-satz"><strong>An dieser Zahl ändert die Gewichtung nichts:</strong>
-            ohne Gewichte käme nach dem Runden ebenfalls
-            <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong> heraus.</p>`
-        : `<p id="rz-gleich-satz">Zählte jedes Kriterium <strong>gleich</strong>, stünde hier
-            <strong>⌀ ${esc(gewZahl(weg.gleichErgebnis))}</strong> statt
+        ? `<p id="rz-gleich-satz"><strong>${tH('eintrag.anDieserZahlAendertDie')}</strong>
+            ${tH('eintrag.ohneGewichteKaemeNachDem')}
+            <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong> ${tH('eintrag.heraus')}</p>`
+        : `<p id="rz-gleich-satz">${tH('eintrag.zaehlteJedesKriterium')} <strong>${tH('eintrag.gleich')}</strong>${tH('eintrag.stuendeHier')}
+            <strong>⌀ ${esc(gewZahl(weg.gleichErgebnis))}</strong> ${tH('eintrag.statt')}
             <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong>.
-            <strong>Das ist der Unterschied, den die Gewichtung macht.</strong></p>`) : ''}
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+            <strong>${tH('eintrag.dasIstDerUnterschiedDen')}</strong></p>`) : ''}
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('liste.schliessen')}</button></div></div>`;
     document.body.appendChild(bd);
     const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
     /* Escape schliesst nur den OBERSTEN Dialog -- dieselbe Regel wie bei
@@ -6370,10 +6367,9 @@ async function renderDetail(id, begriffAdresse) {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="stimmen-modal"><h2>${esc(titel)}</h2>
-      <p>Nur für Admins sichtbar. ${esc(V.bewertungMehrzahl)} anderer Benutzer lassen sich hier
-         entfernen, aber nicht ändern.</p>
+      <p>${tH('eintrag.nurFuerAdminsSichtbarAnderer')}</p>
       <div class="stimmliste" id="stimmliste"></div>
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('liste.schliessen')}</button></div></div>`;
     document.body.appendChild(bd);
     const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
     // NUR DER OBERSTE DIALOG SCHLIESST. Das ✕ hier drin fragt über confirmBox
@@ -6427,9 +6423,9 @@ async function renderDetail(id, begriffAdresse) {
             x.innerHTML = ICON_KREUZ;
             x.title = `${V.bewertungEinzahl} entfernen`;
             x.onclick = async () => {
-              if (!await confirmBox(`${V.bewertungEinzahl} entfernen?`,
-                `${V.bewertungEinzahl} von ${verfasserName(st.verfasser)} für „${r.name}" wird entfernt.`,
-                'Entfernen')) return;
+              if (!await confirmBox(t('eintrag.entfernen2'),
+                t('eintrag.vonFuerWirdEntfernt', { verfasser: verfasserName(st.verfasser), name: r.name }),
+                t('eintrag.entfernen'))) return;
               try {
                 item = await api('DELETE', `/api/ratings/${st.id}`);
                 liste = await api('GET', `/api/items/${id}/stimmen`);
@@ -6443,7 +6439,7 @@ async function renderDetail(id, begriffAdresse) {
         zeile.append(n, wer);
         box.appendChild(zeile);
       });
-      if (!etwas) box.innerHTML = `<span class="hint">Noch hat niemand bewertet.</span>`;
+      if (!etwas) box.innerHTML = `<span class="hint">${tH('eintrag.nochHatNiemandBewertet')}</span>`;
     }
   }
   // Der Knopf steht nur beim Admin ab zwei Zugängen; ohne ihn gibt es hier
@@ -6466,7 +6462,7 @@ async function renderDetail(id, begriffAdresse) {
     const box = document.getElementById('testblock');
     if (!item.tested) {
       box.innerHTML = `<div class="block-head"><span class="label">${esc(V.zeitpunktMehrzahl)}</span></div>
-        <div class="test-locked">Oben „${esc(V.merkmalJa)}" einschalten, um ${esc(V.zeitpunktMehrzahl)} einzutragen.</div>`;
+        <div class="test-locked">${tH('eintrag.obenEinschaltenUmEinzutragen')}</div>`;
       return;
     }
     const n = item.testDays.length;
@@ -6476,12 +6472,12 @@ async function renderDetail(id, begriffAdresse) {
       <div class="test-scroll" id="tdays"></div>
       <div class="test-add">
         <input type="date" id="tdate" max="${today()}" value="${today()}">
-        <span class="hint">Note:</span><span id="tstars"></span>
-        <button class="btn btn-sm" id="tadd">+ ${esc(V.zeitpunktEinzahl)} eintragen</button>
+        <span class="hint">${tH('eintrag.note2')}</span><span id="tstars"></span>
+        <button class="btn btn-sm" id="tadd">${tH('eintrag.eintragen')}</button>
       </div>`;
 
     const list = box.querySelector('#tdays');
-    if (!n) list.innerHTML = leerZustand(`Noch keine ${V.zeitpunktMehrzahl} — unten Datum und Note eintragen.`);
+    if (!n) list.innerHTML = leerZustand(t('eintrag.nochKeineUntenDatumUnd'));
     item.testDays.forEach(d => {
       const row = document.createElement('div');
       row.className = 'trow';
@@ -6495,9 +6491,9 @@ async function renderDetail(id, begriffAdresse) {
         catch (e) { toast(e.message, true); }
       }));
       const x = document.createElement('button');
-      x.className = 'xdel'; x.innerHTML = ICON_KREUZ; x.title = `${V.zeitpunktEinzahl} löschen`;
+      x.className = 'xdel'; x.innerHTML = ICON_KREUZ; x.title = t('eintrag.loeschen5');
       x.onclick = async () => {
-        if (!await confirmBox(`${V.zeitpunktEinzahl} löschen?`, `Das Datum ${fmtDay(d.day)} wird gelöscht.`)) return;
+        if (!await confirmBox(t('eintrag.loeschen6'), t('eintrag.dasDatumWirdGeloescht', { day: fmtDay(d.day) }))) return;
         try { item = await api('DELETE', `/api/test-days/${d.id}`); drawTestDays(); drawSwitches(); }
         catch (e) { toast(e.message, true); }
       };
@@ -6511,7 +6507,7 @@ async function renderDetail(id, begriffAdresse) {
         const c = document.createElement('span');
         c.className = 'chip chip-xs';
         // Mit Namen, damit „Tag" und „Testtag" nicht zusammenfallen (Woerterbuch).
-        c.innerHTML = `${esc(t.name)}<button title="Tag „${esc(t.name)}" entfernen">${ICON_KREUZ}</button>`;
+        c.innerHTML = `${esc(t.name)}<button title="${esc(t('eintrag.tag', { name: t.name }))}" entfernen">${ICON_KREUZ}</button>`;
         c.querySelector('button').onclick = async () => {
           try { item = await api('DELETE', `/api/test-days/${d.id}/tags/${t.id}`); drawTestDays(); loadTagList(); }
           catch (e) { toast(e.message, true); }
@@ -6519,13 +6515,13 @@ async function renderDetail(id, begriffAdresse) {
         tagBox.appendChild(c);
       });
       const plus = document.createElement('button');
-      plus.className = 'ttag-add'; plus.textContent = '+'; plus.title = `Tag hinzufügen (${V.zeitpunktEinzahl})`;
+      plus.className = 'ttag-add'; plus.textContent = '+'; plus.title = t('eintrag.tagHinzufuegen');
       plus.onclick = () => {
         if (tagBox.querySelector('input')) return;
         const inp = document.createElement('input');
         inp.className = 'input input-sm ttag-in';
         inp.setAttribute('list', 'tagsug');
-        inp.placeholder = 'Tag';
+        inp.placeholder = t('liste.tag2');
         const schliessen = () => inp.remove();
         inp.onkeydown = async (e) => {
           if (e.key === 'Escape') return schliessen();
@@ -6564,12 +6560,12 @@ async function renderDetail(id, begriffAdresse) {
 
     box.querySelector('#tadd').onclick = async () => {
       const day = box.querySelector('#tdate').value;
-      if (!day) return toast('Bitte ein Datum wählen', true);
+      if (!day) return toast(t('eintrag.bitteEinDatumWaehlen'), true);
       try {
         const res = await api('POST', `/api/items/${id}/test-days`, { day, rating: newRating });
         item = res;
         drawTestDays(); drawSwitches();
-        toast(res.replaced ? `Note für den ${fmtDay(day)} ersetzt` : `${V.zeitpunktEinzahl} eingetragen`);
+        toast(res.replaced ? t('eintrag.noteFuerDenErsetzt', { day: fmtDay(day) }) : `${V.zeitpunktEinzahl} eingetragen`);
       } catch (e) { toast(e.message, true); }
     };
     ruesteBloeckeAus(item);
@@ -6579,10 +6575,10 @@ async function renderDetail(id, begriffAdresse) {
   function drawLinks() {
     const box = document.getElementById('links');
     document.getElementById('lcount').textContent = item.links.length
-      ? `${item.links.length} ${item.links.length === 1 ? 'Link' : 'Links'}` : '';
+      ? `${item.links.length} ${item.links.length === 1 ? t('dialog.link') : t('dialog.links')}` : '';
     box.innerHTML = '';
     if (!item.links.length) {
-      box.innerHTML = leerZustand('Noch keine Links. Unten eine Adresse einfügen — oder einen Suchbegriff, dann wird danach gesucht.');
+      box.innerHTML = leerZustand(t('eintrag.nochKeineLinksUntenEine'));
       return;
     }
     item.links.forEach((l, n) => {
@@ -6615,7 +6611,7 @@ async function renderDetail(id, begriffAdresse) {
       // Das Datum steht im Ueberfahrtext, nicht in der Zeile: die Zeile ist auf
       // dem Handy am Anschlag, und der Name ist die Angabe, um die es geht.
       const eingetragen = zeigeVon
-        ? `Eingetragen von ${verfasserName(l.verfasser)} am ${fmtDate(l.created_at)}` : '';
+        ? t('eintrag.eingetragenVonAm', { verfasser: verfasserName(l.verfasser), created_at: fmtDate(l.created_at) }) : '';
 
       /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE: der Server laesst
          den Eintrager und den Admin durch (darfAendern). Beides ist getrennt --
@@ -6629,7 +6625,7 @@ async function renderDetail(id, begriffAdresse) {
       row.className = 'lrow' + (suche ? ' suche' : '');
       row.dataset.lid = l.id;
       const grundText = suche
-        ? (standard ? `Suche nach „${l.url}" bei ${standard.name}` : `Suche nach „${l.url}"`)
+        ? (standard ? t('eintrag.sucheNachBei', { url: l.url, name: standard.name }) : t('eintrag.sucheNach', { url: l.url }))
         : l.url;
       row.title = eingetragen ? `${grundText} · ${eingetragen}` : grundText;
       /* Die zweite Zeile traegt den Pfad (bei einer Suchzeile die
@@ -6649,13 +6645,13 @@ async function renderDetail(id, begriffAdresse) {
                                : (path ? `<span class="path">${esc(path)}</span>` : '');
       const unten = untenLinks + (zeigeVon
         ? `<span class="lvon">(${esc(verfasserName(l.verfasser))})</span>` : '');
-      row.innerHTML = `<span class="grip" title="Zum Sortieren ziehen">⣿</span>
+      row.innerHTML = `<span class="grip" title="${esc(t('eintrag.zumSortierenZiehen'))}">⣿</span>
         <span class="lnum">${n + 1}</span>
         <span class="lurl"><span class="dom">${esc(oben)}</span>${
           unten ? `<span class="lunten">${unten}</span>` : ''
         }</span>
         <span class="go">${suche ? ICON_SEARCH : '↗'}</span>
-        ${darfWeg ? `<button class="xdel" title="${suche ? 'Suchbegriff entfernen' : 'Link entfernen'}">${ICON_KREUZ}</button>` : ''}`;
+        ${darfWeg ? `<button class="xdel" title="${suche ? t('eintrag.suchbegriffEntfernen') : t('eintrag.linkEntfernen')}">${ICON_KREUZ}</button>` : ''}`;
       /* IN DER LINKLISTE WIRD DIE ADRESSE HERVORGEHOBEN UND NICHT DER
          ANZEIGENAME -- 0.18.0. Gesucht wurde in `links.url`; ein
          hervorgehobener Anbietername, in dem der Begriff gar nicht steht,
@@ -6680,13 +6676,13 @@ async function renderDetail(id, begriffAdresse) {
           const s = document.createElement('span');
           s.className = 'sname';
           s.textContent = a.name;
-          s.title = `Suche nach „${l.url}" bei ${a.name}`;
+          s.title = t('eintrag.sucheNachBei', { url: l.url, name: a.name });
           // Ein Klick auf einen Namen sucht bei genau diesem Anbieter. Die
           // Zeile selbst darf dabei nicht mitgehen und nicht ins Ziehen
           // kippen -- .sname steht deshalb im ignore von makeSortable.
           s.onclick = (e) => {
             e.stopPropagation();
-            window.open(sucheAdresse(a.vorlage, l.url), '_blank', 'noopener,noreferrer');
+            window.open(sucheAdresse(a.vorlage, l.url), t('eintrag._blank'), t('eintrag.noopenerNoreferrer'));
           };
           namensBox.appendChild(s);
         });
@@ -6695,8 +6691,8 @@ async function renderDetail(id, begriffAdresse) {
       // Element risse er den Aufbau der ganzen Liste mit.
       if (darfWeg) row.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
-        if (!await confirmBox(suche ? 'Suchbegriff entfernen?' : 'Link entfernen?',
-          `${suche ? `„${l.url}"` : dom} wird aus der Liste entfernt.`, 'Entfernen')) return;
+        if (!await confirmBox(suche ? t('eintrag.suchbegriffEntfernen2') : t('eintrag.linkEntfernen2'),
+          `${suche ? `„${l.url}"` : dom} wird aus der Liste entfernt.`, t('eintrag.entfernen'))) return;
         try { await api('DELETE', `/api/links/${l.id}`); item = await api('GET', `/api/items/${id}`); drawLinks(); }
         catch (err) { toast(err.message, true); }
       };
@@ -6705,18 +6701,18 @@ async function renderDetail(id, begriffAdresse) {
       makeSortable(row, {
         axis: 'y', selector: '.lrow', ignore: '.xdel, .sname',
         onClick: () => {
-          if (!suche) return window.open(l.url, '_blank', 'noopener,noreferrer');
+          if (!suche) return window.open(l.url, t('eintrag._blank'), t('eintrag.noopenerNoreferrer'));
           // Ohne gueltigen Standard wird nicht ersatzweise woanders gesucht --
           // die Zeile sagt dann, dass nichts eingestellt ist.
           if (!standard) return toast(ADMIN
-            ? 'Keine Suchmaschine eingestellt — siehe Einstellungen › Bestand.'
-            : 'Keine Suchmaschine eingestellt.', true);
-          window.open(sucheAdresse(standard.vorlage, l.url), '_blank', 'noopener,noreferrer');
+            ? t('eintrag.keineSuchmaschineEingestelltSiehe')
+            : t('eintrag.keineSuchmaschineEingestellt'), true);
+          window.open(sucheAdresse(standard.vorlage, l.url), t('eintrag._blank'), t('eintrag.noopenerNoreferrer'));
         },
         onDrop: async (children) => {
           try {
             item = await api('PUT', `/api/items/${id}/link-order`, { order: children.map(c => +c.dataset.lid) });
-            drawLinks(); toast('Reihenfolge gespeichert');
+            drawLinks(); toast(t('eintrag.reihenfolgeGespeichert'));
           } catch (err) { toast(err.message, true); }
         }
       });
@@ -6785,10 +6781,10 @@ async function renderDetail(id, begriffAdresse) {
     const box = document.getElementById('atts');
     const liste = item.attachments || [];
     document.getElementById('acount').textContent = liste.length
-      ? `${liste.length} ${liste.length === 1 ? 'Datei' : 'Dateien'} · ${groesse(liste.reduce((s2, a) => s2 + a.size, 0))}` : '';
+      ? `${liste.length} ${liste.length === 1 ? t('dialog.datei') : t('dialog.dateien')} · ${groesse(liste.reduce((s2, a) => s2 + a.size, 0))}` : '';
     box.innerHTML = '';
     if (!liste.length) {
-      box.innerHTML = leerZustand('Noch keine Dateien. Bilder, PDF und Textdateien lassen sich hier ansehen, alles andere wird heruntergeladen.');
+      box.innerHTML = leerZustand(t('eintrag.nochKeineDateienBilderPDF'));
       return;
     }
     liste.forEach(a => {
@@ -6798,8 +6794,8 @@ async function renderDetail(id, begriffAdresse) {
       const offen = offeneVorschau.has(a.id);
       zeile.classList.toggle('offen', offen);
       zeile.title = kannVorschau
-        ? (offen ? 'Klicken zum Zuklappen' : 'Klicken zum Ansehen')
-        : 'Klicken zum Herunterladen';
+        ? (offen ? t('eintrag.klickenZumZuklappen') : t('eintrag.klickenZumAnsehen'))
+        : t('eintrag.klickenZumHerunterladen');
       /* DIESELBE REGEL WIE AN DER LINKZEILE, und sie steht dort ausfuehrlich:
          der Name nur bei mehreren Zugaengen und nur an einer Zeile, die NICHT
          vom Verfasser des Eintrags stammt. In Klammern, ohne Trennzeichen.
@@ -6809,7 +6805,7 @@ async function renderDetail(id, begriffAdresse) {
       const fremdeDatei = (a.verfasser?.id ?? null) !== (item.verfasser?.id ?? null);
       const zeigeVon = mehrereBenutzer() && fremdeDatei;
       const hochgeladen = zeigeVon
-        ? `Hochgeladen von ${verfasserName(a.verfasser)} am ${fmtDate(a.created_at)}` : '';
+        ? t('eintrag.hochgeladenVonAm', { verfasser: verfasserName(a.verfasser), created_at: fmtDate(a.created_at) }) : '';
       if (hochgeladen) zeile.title = `${zeile.title} · ${hochgeladen}`;
       // Das ✕ folgt dem Recht, nicht der Anzeige -- wie am Link.
       const darfWeg = a.mine === true || ADMIN;
@@ -6819,13 +6815,13 @@ async function renderDetail(id, begriffAdresse) {
         <span class="asize">${groesse(a.size)}</span>
         ${zeigeVon ? `<span class="avon">(${esc(verfasserName(a.verfasser))})</span>` : ''}
         <span class="ago">${kannVorschau ? (offen ? '▾' : '▸') : '↓'}</span>
-        <a class="adl" href="/api/attachments/${a.id}/raw" download title="Herunterladen">↓</a>
-        ${darfWeg ? `<button class="xdel" title="Datei löschen">${ICON_KREUZ}</button>` : ''}`;
+        <a class="adl" href="/api/attachments/${a.id}/raw" download title="${esc(t('eintrag.herunterladen'))}">↓</a>
+        ${darfWeg ? `<button class="xdel" title="${esc(t('eintrag.dateiLoeschen'))}">${ICON_KREUZ}</button>` : ''}`;
 
       // Der Behandler nur dort, wo das Kreuz auch steht.
       if (darfWeg) zeile.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
-        if (!await confirmBox('Datei löschen?', `„${a.filename}" wird endgültig gelöscht.`)) return;
+        if (!await confirmBox(t('eintrag.dateiLoeschen2'), t('eintrag.wirdEndgueltigGeloescht', { filename: a.filename }))) return;
         try { item = await api('DELETE', `/api/attachments/${a.id}`); offeneVorschau.delete(a.id); drawAtts(); }
         catch (e2) { toast(e2.message, true); }
       };
@@ -6864,22 +6860,22 @@ async function renderDetail(id, begriffAdresse) {
       // Einbetten trotzdem verweigern, ist das dann kein Sackgassen-Ergebnis.
       kasten.innerHTML = `<iframe src="/api/attachments/${a.id}/raw?inline=1"
           sandbox="allow-scripts" referrerpolicy="no-referrer" title="${esc(a.filename)}"></iframe>
-        <p class="apdf-hint"><span class="hint">Bleibt das Fenster leer, kann der Browser das PDF hier nicht anzeigen.</span>
-          <a class="abtn" href="/api/attachments/${a.id}/raw?inline=1" target="_blank" rel="noopener noreferrer">In neuem Tab öffnen</a></p>`;
+        <p class="apdf-hint"><span class="hint">${tH('eintrag.bleibtDasFensterLeerKann')}</span>
+          <a class="abtn" href="/api/attachments/${a.id}/raw?inline=1" target="_blank" rel="noopener noreferrer">${tH('eintrag.inNeuemTabOeffnen')}</a></p>`;
     } else {
-      kasten.innerHTML = `<p class="hint">Lädt …</p>`;
+      kasten.innerHTML = `<p class="hint">${tH('liste.laedt')}</p>`;
       api('GET', `/api/attachments/${a.id}/preview`).then(v => {
         // Als Text in den DOM gesetzt, nie als Datei ausgeliefert: der
         // Browser interpretiert den Inhalt damit überhaupt nicht.
         kasten.innerHTML = '';
         const pre = document.createElement('pre');
         pre.className = 'atext';
-        pre.textContent = v.text || '(leer)';
+        pre.textContent = v.text || t('eintrag.leer');
         kasten.appendChild(pre);
         if (v.gekuerzt) {
           const h = document.createElement('p');
           h.className = 'hint';
-          h.textContent = 'Vorschau gekürzt — die ganze Datei mit ↓ herunterladen.';
+          h.textContent = t('eintrag.vorschauGekuerztDieGanzeDatei');
           kasten.appendChild(h);
         }
       }).catch(e => { kasten.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
@@ -6893,16 +6889,16 @@ async function renderDetail(id, begriffAdresse) {
     e.target.value = '';
     if (!dateien.length) return;
     const zuGross = dateien.find(f => f.size > 50 * 1024 * 1024);
-    if (zuGross) return toast(`„${zuGross.name}" ist größer als 50 MB.`, true);
+    if (zuGross) return toast(t('eintrag.istGroesserAlsMB', { name: zuGross.name }), true);
     const fd = new FormData();
     dateien.forEach(f => fd.append('files', f));
     try {
-      toast('Wird hochgeladen …');
+      toast(t('eintrag.wirdHochgeladen2'));
       const r = await fetch(`/api/items/${id}/attachments`, { method: 'POST', body: fd, credentials: 'same-origin' });
       const daten = await r.json();
-      if (!r.ok) throw new Error(daten.error || 'Upload fehlgeschlagen');
+      if (!r.ok) throw new Error(daten.error || t('eintrag.uploadFehlgeschlagen'));
       item = daten; drawAtts();
-      toast(dateien.length === 1 ? 'Datei angehängt' : `${dateien.length} Dateien angehängt`);
+      toast(dateien.length === 1 ? t('eintrag.dateiAngehaengt') : t('eintrag.dateienAngehaengt', { length: dateien.length }));
     } catch (e2) { toast(e2.message, true); }
   };
 
@@ -6913,7 +6909,7 @@ async function renderDetail(id, begriffAdresse) {
     // sichtbar -- eingeklappt ist gerade der Moment, in dem man nicht
     // hineinsieht. Gebildet wird er an einem Ort, oben bei kommentarZahlen().
     document.getElementById('ccount').textContent = kommentarZahlen(item.comments);
-    box.innerHTML = item.comments.length ? '' : leerZustand('Noch keine Kommentare.');
+    box.innerHTML = item.comments.length ? '' : leerZustand(t('eintrag.nochKeineKommentare'));
     item.comments.forEach(c => {
       const bericht = c.kind === 'report', aufgabe = c.kind === 'task',
             erledigt = c.kind === 'done';
@@ -6951,21 +6947,21 @@ async function renderDetail(id, begriffAdresse) {
           ${verwalten ? `<span class="marks">
             ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
                  sagt „aufheben", nicht noch einmal „markieren". */''}
-            <button class="mark pin${c.pinned ? ' on' : ''}" title="${c.pinned ? 'Nicht mehr anpinnen' : 'Anpinnen — steht dann ganz oben'}">${ICON_PIN}</button>
-            <button class="mark art${bericht ? ' on' : ''}" title="${bericht ? `Markierung „${esc(V.berichtEinzahl)}" aufheben` : `Als ${esc(V.berichtEinzahl)} markieren`}">${esc(V.berichtEinzahl)}</button>
+            <button class="mark pin${c.pinned ? ' on' : ''}" title="${c.pinned ? t('eintrag.nichtMehrAnpinnen') : t('eintrag.anpinnenStehtDannGanzOben')}">${ICON_PIN}</button>
+            <button class="mark art${bericht ? ' on' : ''}" title="${bericht ? t('eintrag.markierungAufheben') : t('eintrag.alsMarkieren')}">${esc(V.berichtEinzahl)}</button>
             <button class="mark aufg${aufgabe ? ' on' : ''}${erledigt ? ' on fertig' : ''}" title="${
-              erledigt ? 'Markierung aufheben'
-                       : aufgabe ? `Auf „${esc(V.aufgabeErledigt)}" setzen`
-                                 : `Als ${esc(V.aufgabeEinzahl)} markieren`
+              erledigt ? t('eintrag.markierungAufheben2')
+                       : aufgabe ? t('liste.aufSetzen')
+                                 : t('eintrag.alsMarkieren2')
             }">${esc(erledigt ? V.aufgabeErledigt : V.aufgabeEinzahl)}</button>
           </span>` : ''}
           <span class="cmt-when">${mehrereBenutzer()
             ? `<span class="cmt-von">${esc(verfasserName(c.verfasser))}</span> · ` : ''
-          }${fmtDate(c.created_at)}${c.updated_at ? ' · bearbeitet' : ''}${
+          }${fmtDate(c.created_at)}${c.updated_at ? t('eintrag.bearbeitet') : ''}${
             c.bilderEntfernt ? ` · <span class="cmt-eingriff">${c.bilderEntfernt} ${
-              c.bilderEntfernt === 1 ? 'Bild' : 'Bilder'} vom Admin entfernt</span>` : ''}</span>
-          <span class="acts">${meins ? `<button class="mact ed" title="Bearbeiten">${ICON_STIFT}</button>` : ''
-            }${verwalten ? `<button class="mact rm" title="Löschen">${ICON_KREUZ}</button>` : ''}</span>
+              c.bilderEntfernt === 1 ? t('eintrag.bild2') : t('eintrag.bilder')} ${tH('eintrag.vomAdminEntfernt')}</span>` : ''}</span>
+          <span class="acts">${meins ? `<button class="mact ed" title="${esc(t('eintrag.bearbeiten'))}">${ICON_STIFT}</button>` : ''
+            }${verwalten ? `<button class="mact rm" title="${esc(t('dialog.loeschen'))}">${ICON_KREUZ}</button>` : ''}</span>
         </div>
         <div class="cmt-body"></div>
         <div class="cmt-imgs"></div>`;
@@ -7002,12 +6998,12 @@ async function renderDetail(id, begriffAdresse) {
         const k = document.createElement('div');
         k.className = 'cmt-img';
         k.innerHTML = `<img src="/api/comment-images/${b.id}/raw?size=thumb" alt="" loading="lazy">
-          ${verwalten ? `<button class="del" title="Bild löschen">${ICON_KREUZ}</button>` : ''}`;
+          ${verwalten ? `<button class="del" title="${esc(t('eintrag.bildLoeschen'))}">${ICON_KREUZ}</button>` : ''}`;
         k.querySelector('img').onclick = () =>
           openLightbox((c.images || []).map(x => ({ id: x.id, quelle: 'kommentar' })), i, item.title);
         if (verwalten) k.querySelector('.del').onclick = async (e) => {
           e.stopPropagation();
-          if (!await confirmBox('Bild löschen?', 'Das Bild wird endgültig gelöscht.')) return;
+          if (!await confirmBox(t('eintrag.bildLoeschen2'), t('eintrag.dasBildWirdEndgueltigGeloescht'))) return;
           try { item = await api('DELETE', `/api/comment-images/${b.id}`); drawComments(); }
           catch (err) { toast(err.message, true); }
         };
@@ -7015,8 +7011,8 @@ async function renderDetail(id, begriffAdresse) {
       });
 
       if (verwalten) el.querySelector('.rm').onclick = async () => {
-        if (!await confirmBox('Kommentar löschen?',
-          `Der Kommentar wird endgültig gelöscht${(c.images || []).length ? ' — mit allen Bildern' : ''}.`)) return;
+        if (!await confirmBox(t('eintrag.kommentarLoeschen'),
+          `Der Kommentar wird endgültig gelöscht${(c.images || []).length ? t('eintrag.mitAllenBildern') : ''}.`)) return;
         try { await api('DELETE', `/api/comments/${c.id}`); item = await api('GET', `/api/items/${id}`); drawComments(); }
         catch (e) { toast(e.message, true); }
       };
@@ -7027,9 +7023,9 @@ async function renderDetail(id, begriffAdresse) {
         const wrap = document.createElement('div');
         wrap.className = 'cmt-edit';
         wrap.innerHTML = `<textarea class="ta"></textarea>
-          <div class="acts"><button class="btn btn-ghost btn-sm addimg">+ Bild</button>
-          <button class="btn btn-ghost btn-sm cancel">Abbrechen</button>
-          <button class="btn btn-accent btn-sm save">Speichern</button></div>`;
+          <div class="acts"><button class="btn btn-ghost btn-sm addimg">${tH('eintrag.bild')}</button>
+          <button class="btn btn-ghost btn-sm cancel">${tH('dialog.abbrechen')}</button>
+          <button class="btn btn-accent btn-sm save">${tH('dialog.speichern')}</button></div>`;
         const ta = wrap.querySelector('textarea');
         ta.value = c.text;
         el.querySelector('.cmt-body').replaceWith(wrap);
@@ -7045,7 +7041,7 @@ async function renderDetail(id, begriffAdresse) {
           dateien.forEach(f => fd.append('images', f));
           try {
             item = await sendeFormular(`/api/comments/${c.id}/images`, fd);
-            toast(dateien.length === 1 ? 'Bild angehängt' : `${dateien.length} Bilder angehängt`);
+            toast(dateien.length === 1 ? t('eintrag.bildAngehaengt') : t('eintrag.bilderAngehaengt', { length: dateien.length }));
             drawComments();
           } catch (e) { toast(e.message, true); }
         };
@@ -7060,8 +7056,8 @@ async function renderDetail(id, begriffAdresse) {
         wrap.querySelector('.cancel').onclick = () => drawComments();
         wrap.querySelector('.save').onclick = async () => {
           const v = ta.value.trim();
-          if (!v) return toast('Bitte einen Text eingeben.', true);
-          try { item = await api('PUT', `/api/comments/${c.id}`, { text: v }); drawComments(); toast('Gespeichert'); }
+          if (!v) return toast(t('server.textFehlt'), true);
+          try { item = await api('PUT', `/api/comments/${c.id}`, { text: v }); drawComments(); toast(t('liste.gespeichert')); }
           catch (e) { toast(e.message, true); }
         };
       };
@@ -7080,19 +7076,19 @@ async function renderDetail(id, begriffAdresse) {
   function drawNeuMarken() {
     const pin = document.getElementById('cpin');
     pin.classList.toggle('on', neuAngepinnt);
-    pin.title = neuAngepinnt ? 'Nicht mehr anpinnen' : 'Anpinnen — steht dann ganz oben';
+    pin.title = neuAngepinnt ? t('eintrag.nichtMehrAnpinnen') : t('eintrag.anpinnenStehtDannGanzOben');
     const art = document.getElementById('cart');
     art.classList.toggle('on', neueArt === 'report');
     art.textContent = V.berichtEinzahl;
-    art.title = neueArt === 'report' ? `Markierung „${V.berichtEinzahl}" aufheben` : `Als ${V.berichtEinzahl} markieren`;
+    art.title = neueArt === t('eintrag.report') ? t('eintrag.markierungAufheben') : t('eintrag.alsMarkieren');
     const aufg = document.getElementById('caufg');
     const fertig = neueArt === 'done';
     aufg.classList.toggle('on', neueArt === 'task' || fertig);
     aufg.classList.toggle('fertig', fertig);
     aufg.textContent = fertig ? V.aufgabeErledigt : V.aufgabeEinzahl;
-    aufg.title = fertig ? 'Markierung aufheben'
-      : neueArt === 'task' ? `Auf „${V.aufgabeErledigt}" setzen`
-                           : `Als ${V.aufgabeEinzahl} markieren`;
+    aufg.title = fertig ? t('eintrag.markierungAufheben2')
+      : neueArt === 'task' ? t('liste.aufSetzen')
+                           : t('eintrag.alsMarkieren2');
   }
   function drawNeuBilder() {
     const box = document.getElementById('cneu-imgs');
@@ -7101,7 +7097,7 @@ async function renderDetail(id, begriffAdresse) {
       const k = document.createElement('div');
       k.className = 'cmt-img';
       const url = URL.createObjectURL(f);
-      k.innerHTML = `<img src="${url}" alt=""><button class="del" title="Wieder entfernen">${ICON_KREUZ}</button>`;
+      k.innerHTML = `<img src="${url}" alt=""><button class="del" title="${esc(t('eintrag.wiederEntfernen'))}">${ICON_KREUZ}</button>`;
       // Die erzeugte Adresse wieder freigeben, sobald das Bild steht.
       k.querySelector('img').onload = () => URL.revokeObjectURL(url);
       k.querySelector('.del').onclick = () => { neueBilder.splice(i, 1); drawNeuBilder(); };
@@ -7109,9 +7105,9 @@ async function renderDetail(id, begriffAdresse) {
     });
   }
   const nimmBilder = (dateien) => {
-    const bilder = dateien.filter(f => f.type.startsWith('image/'));
+    const bilder = dateien.filter(f => f.type.startsWith(t('eintrag.image')));
     if (!bilder.length) return;
-    if (neueBilder.length + bilder.length > 6) return toast('Höchstens 6 Bilder je Kommentar.', true);
+    if (neueBilder.length + bilder.length > 6) return toast(t('eintrag.hoechstensBilderJeKommentar'), true);
     neueBilder = [...neueBilder, ...bilder];
     drawNeuBilder();
   };
@@ -7152,7 +7148,7 @@ async function renderDetail(id, begriffAdresse) {
   document.getElementById('cadd').onclick = async () => {
     const ta = document.getElementById('ctext');
     const v = ta.value.trim();
-    if (!v) return toast('Bitte einen Text eingeben.', true);
+    if (!v) return toast(t('server.textFehlt'), true);
     const fd = new FormData();
     fd.append('text', v);
     fd.append('kind', neueArt);
@@ -7181,23 +7177,23 @@ async function renderDetail(id, begriffAdresse) {
     // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
     // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
     const inhalt = [
-      ...zaehl(b.fotos, 'Foto', 'Fotos'),
+      ...zaehl(b.fotos, t('liste.foto'), t('liste.fotos')),
       // Eigene Zeile, nicht als Foto getarnt: ein Dialog, der "3 Fotos" sagt
       // und dabei ein Video mit wegwirft, verschweigt genau das, um
       // dessentwillen er dasteht.
-      ...zaehl(b.videos, 'Video', 'Videos')
+      ...zaehl(b.videos, t('liste.video'), t('liste.videos'))
     ];
     const eigen = [
-      ...zaehl(b.eigenLinks, 'Link', 'Links'),
-      ...zaehl(b.eigenDateien, 'Datei', 'Dateien'),
-      ...zaehl(b.eigenKommentare, 'Kommentar', 'Kommentare'),
+      ...zaehl(b.eigenLinks, t('dialog.link'), t('dialog.links')),
+      ...zaehl(b.eigenDateien, t('dialog.datei'), t('dialog.dateien')),
+      ...zaehl(b.eigenKommentare, t('dialog.kommentar'), t('dialog.kommentare')),
       ...zaehl(b.eigenBewertungen, V.bewertungEinzahl, V.bewertungMehrzahl),
       ...(b.eigenTesttage ? [`${b.eigenTesttage} ${vZeit(b.eigenTesttage)}`] : [])
     ];
     const fremd = [
-      ...zaehl(b.fremdLinks, 'Link', 'Links'),
-      ...zaehl(b.fremdDateien, 'Datei', 'Dateien'),
-      ...zaehl(b.fremdKommentare, 'Kommentar', 'Kommentare'),
+      ...zaehl(b.fremdLinks, t('dialog.link'), t('dialog.links')),
+      ...zaehl(b.fremdDateien, t('dialog.datei'), t('dialog.dateien')),
+      ...zaehl(b.fremdKommentare, t('dialog.kommentar'), t('dialog.kommentare')),
       ...zaehl(b.fremdBewertungen, V.bewertungEinzahl, V.bewertungMehrzahl),
       ...(b.fremdTesttage ? [`${b.fremdTesttage} ${vZeit(b.fremdTesttage)}`] : [])
     ];
@@ -7207,14 +7203,14 @@ async function renderDetail(id, begriffAdresse) {
        falsch. Die Zahlen sind trotzdem die eigentliche Auskunft: was hier
        verloren geht, gehört anderen. Und wer wiederherstellen darf, steht
        dabei — es ist nicht der, der hier klickt. */
-    const saetze = [`„${item.title}" wird gelöscht.`];
+    const saetze = [t('eintrag.wirdGeloescht', { title: item.title })];
     if (inhalt.length) saetze.push(`Dabei gehen ${inhalt.join(', ')} mit.`);
     if (eigen.length) saetze.push(`Außerdem von mir: ${eigen.join(', ')}.`);
     if (fremd.length) saetze.push(`Und von anderen: ${fremd.join(', ')}.`);
-    saetze.push(`Alles landet für ${PAPIERKORB_TAGE} Tage im Papierkorb; ` +
-      `wiederherstellen kann es nur der Eigentümer.`);
+    saetze.push(t('eintrag.allesLandetFuerTageIm', { papierkorbTage: PAPIERKORB_TAGE }) +
+      t('eintrag.wiederherstellenKannEsNurDer'));
 
-    if (!await confirmBox(`${V.sacheEinzahl} löschen?`, saetze.join(' '))) return;
+    if (!await confirmBox(t('eintrag.loeschen7'), saetze.join(' '))) return;
     try { await api('DELETE', `/api/items/${id}`); state.compare.delete(id); location.hash = '#/'; }
     catch (e) { toast(e.message, true); }
   });

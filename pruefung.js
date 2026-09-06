@@ -14595,7 +14595,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Der andere Zweig setzt bearbeitet, und es ist ein else',
     /\belse\s*\n?\s*kommentarBearbeitet\.run\(b\.comment_id\)/.test(fBildWegRumpf),
     fBildWegRumpf ? 'kein else-Zweig mit kommentarBearbeitet' : '(kein Rumpf)');
-  const fAppQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  /* DER SATZ STEHT SEIT 0.24.0 IN DER SPRACHDATEI. Gesucht wird in beidem --
+     Datei und Quelltext --, damit der Waechter waehrend des Umzugs in jedem
+     Zwischenstand dieselbe Frage stellt (Stolperstein 201). */
+  const fAppQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+    + '\u0000' + fs.readFileSync(path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8');
   pruefe('Erst deshalb darf der Bildschirm die Rolle nennen',
     fAppQuelle.includes('vom Admin entfernt') &&
     fBildWegRumpf.includes('darfAendern(req, b.user_id)') &&
@@ -25682,9 +25686,16 @@ async function pruefeOberflaeche() {
     appWerte.filter(w => /Favorit/.test(w)).join(' · '));
   // DREI SEIT 0.22.0: das Formular, drawNeuMarken() (die Marke nennt seither
   // auch den Rueckweg „Nicht mehr anpinnen") und die Kommentarliste.
+  /* DREI STELLEN WURDEN EIN SCHLUESSEL -- 0.24.0. Das ist der Gewinn dieser
+     Runde und kein Verlust an Zusicherung: die drei Stellen sagten dreimal
+     denselben Satz, und jetzt sagen sie ihn EINMAL (S3). Gehalten wird
+     dasselbe wie vorher -- die Kommentare sprechen vom Anpinnen --, nur zaehlt
+     der Waechter jetzt SCHLUESSEL statt Vorkommen. */
   pruefe('Die Kommentare sprechen vom Anpinnen, nicht vom Favoriten',
-    (appQuelle.match(/Anpinnen — steht dann ganz oben/g) || []).length === 3 &&
-    (appQuelle.match(/Nicht mehr anpinnen/g) || []).length === 2,
+    appTexte['eintrag.anpinnenStehtDannGanzOben'] === 'Anpinnen — steht dann ganz oben' &&
+    appTexte['eintrag.nichtMehrAnpinnen'] === 'Nicht mehr anpinnen' &&
+    (appQuelle.match(/tH?\('eintrag\.anpinnenStehtDannGanzOben'\)/g) || []).length === 3 &&
+    (appQuelle.match(/tH?\('eintrag\.nichtMehrAnpinnen'\)/g) || []).length === 2,
     'die Umbenennung hat die Kommentare mitgenommen -- das sind zwei verschiedene Dinge');
 
   /* ================= Offen: die Ansicht ================= */

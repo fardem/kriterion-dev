@@ -1629,7 +1629,7 @@ const RUECKBAUTEN = [
        dabei vollkommen unauffaellig aus. */
     nr: '181', name: 'Das Codefeld fragt wieder nach der App statt nach dem Verfahren',
     datei: 'public/app.js',
-    suche: "<label>${tH('anmeldung.zweiFaktorCode')}</label>\n        <input class=\"input\" id=\"best-code\"",
+    suche: "<label>${tH('dialog.zweiFaktorCode')}</label>\n        <input class=\"input\" id=\"best-code\"",
     ersatz: "<label>Code aus deiner App</label>\n        <input class=\"input\" id=\"best-code\"",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -2468,8 +2468,8 @@ const RUECKBAUTEN = [
        wiederherstellen kann, verschwindet auf einen Klick. */
     nr: '264', name: 'Der Papierkorb fragt nicht mehr nach',
     datei: 'public/app.js',
-    suche: "    if (!await confirmBox('Begründung löschen?',",
-    ersatz: "    if (false && !await confirmBox('Begründung löschen?',",
+    suche: "    if (!await confirmBox(t('eintrag.begruendungLoeschen'),",
+    ersatz: "    if (false && !await confirmBox(t('eintrag.begruendungLoeschen'),",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2610,8 +2610,8 @@ const RUECKBAUTEN = [
        gibt es zwei Wege zu derselben Zahl -- und sie laufen auseinander. */
     nr: '280', name: 'Der Erklaerkasten rechnet wieder selbst nach',
     datei: 'public/app.js',
-    suche: '        <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>\n          <span id="rz-ergebnis">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>',
-    ersatz: '        <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>\n          <span id="rz-ergebnis">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>',
+    suche: "          <span id=\"rz-ergebnis\">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>",
+    ersatz: "          <span id=\"rz-ergebnis\">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -2767,7 +2767,7 @@ const RUECKBAUTEN = [
     /* DER GEFAEHRLICHSTE KNOPF DER INSTANZ, wenn er ohne Frage loescht. */
     nr: '296', name: 'Der Papierkorb loescht wieder ohne Rueckfrage',
     datei: 'public/app.js',
-    suche: "    if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird endgültig gelöscht.`)) return false;",
+    suche: "    if (!await confirmBox(t('eintrag.loeschen2', { wort: wort }), t('eintrag.diesesWirdEndgueltigGeloescht', { wort: wort }))) return false;",
     ersatz: "    if (false) return false;",
     erwartet: 'Der Papierkorb im Vollbild'
   },
@@ -2910,8 +2910,8 @@ const RUECKBAUTEN = [
     /* DER KASTEN ZEIGT SIE NICHT MEHR. */
     nr: '311', name: 'Der Erklaerkasten laesst die Vergleichszahl weg',
     datei: 'public/app.js',
-    suche: "        ${mitGewicht ? `<div class=\"rz rz-gleich\"><span>Ohne Gewichte — jedes Kriterium gleich</span>",
-    ersatz: "        ${false ? `<div class=\"rz rz-gleich\"><span>Ohne Gewichte — jedes Kriterium gleich</span>",
+    suche: "        ${mitGewicht ? `<div class=\"rz rz-gleich\"><span>${tH('eintrag.ohneGewichteJedesKriteriumGleich')}</span>",
+    ersatz: "        ${false ? `<div class=\"rz rz-gleich\"><span>${tH('eintrag.ohneGewichteJedesKriteriumGleich')}</span>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -3091,8 +3091,8 @@ const RUECKBAUTEN = [
   {
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     datei: 'public/app.js',
-    suche: "      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium über alle\n        Benutzer (Spalte <strong>Note</strong>), dann der Durchschnitt darüber${mitGewicht",
-    ersatz: "      <p><strong>Zwei Schritte:</strong> erst der Durchschnitt je Kriterium (die Zahlen\n        rechts in den Zeilen), dann der Durchschnitt darüber${mitGewicht",
+    suche: "${tH('eintrag.erstDerDurchschnittJeKriterium')} <strong>${tH('eintrag.note')}</strong>${tH('eintrag.dannDerDurchschnittDarueber')}",
+    ersatz: "${tH('eintrag.erstDerDurchschnittJeKriterium')}${tH('eintrag.dannDerDurchschnittDarueber')}",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
@@ -3422,8 +3422,8 @@ const RUECKBAUTEN = [
   {
     nr: '383', name: 'Die ausgeschriebene Rechnung steht wieder unter der Tabelle',
     datei: 'public/app.js',
-    suche: "      <p><strong>Kriterien ohne Sterne zählen nicht mit.</strong> Gerundet wird nur das\n        Endergebnis.",
-    ersatz: "      <p><strong>Kriterien ohne Sterne zählen nicht mit.</strong> Gerundet wird nur das\n        Endergebnis: ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))} =\n        ${esc(String(Math.round(Number(weg.roh) * 10000) / 10000).replace('.', ','))}\n        → <strong>${esc(gewZahl(weg.ergebnis))}</strong>.",
+    suche: "      <p><strong>${tH('eintrag.kriterienOhneSterneZaehlenNicht')}</strong> ${tH('eintrag.gerundetWirdNurDasEndergebnis')}",
+    ersatz: "      <p><strong>${tH('eintrag.kriterienOhneSterneZaehlenNicht')}</strong> ${tH('eintrag.gerundetWirdNurDasEndergebnis')} ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))}",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -5504,7 +5504,7 @@ const RUECKBAUTEN = [
        ihm die Auskunft „noch niemand". */
     nr: '585', name: 'Die leere Durchschnittszelle zeigt wieder gar nichts',
     datei: 'public/app.js',
-    suche: "          a.textContent = '–';\n          a.title = 'Noch nicht bewertet';",
+    suche: "          a.textContent = '–';\n          a.title = t('eintrag.nochNichtBewertet');",
     ersatz: "          a.textContent = '';",
     erwartet: 'Die Sternzeile — 0.21.0'
   },
@@ -6051,8 +6051,8 @@ const RUECKBAUTEN = [
     // „Rückgängig" schreibt nicht den alten Wert zurueck, sondern noch einmal die Null.
     nr: '634', name: 'Rueckgaengig schreibt die Null statt des alten Werts',
     datei: 'public/app.js',
-    suche: "        toast(`Sterne bei „${r.name}\" entfernt`, false, { text: 'Rückgängig', tu: () => set(alt) });",
-    ersatz: "        toast(`Sterne bei „${r.name}\" entfernt`, false, { text: 'Rückgängig', tu: () => set(0) });",
+    suche: "        toast(t('eintrag.sterneBeiEntfernt', { name: r.name }), false, { text: t('eintrag.rueckgaengig'), tu: () => set(alt) });",
+    ersatz: "        toast(t('eintrag.sterneBeiEntfernt', { name: r.name }), false, { text: t('eintrag.rueckgaengig'), tu: () => set(0) });",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
   {
@@ -6485,7 +6485,7 @@ const RUECKBAUTEN = [
        -- die Frage aus dem Betrieb bliebe wieder unbeantwortet. */
     nr: '654', name: 'Die Kopfzahl sagt nicht mehr, wessen Zahl sie ist',
     datei: 'public/app.js',
-    suche: "        b.title = 'Der Durchschnitt über alle Benutzer — nicht nur der eigene. Wie diese Zahl zustande kommt';",
+    suche: "        b.title = t('eintrag.derDurchschnittUeberAlleBenutzer');",
     ersatz: "        b.title = 'Wie diese Zahl zustande kommt';",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
