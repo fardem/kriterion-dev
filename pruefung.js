@@ -1438,7 +1438,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Striche, drei graue und einer in der Marke; stuende an einem davon eine
      Zahl, bliebe er beim Umschalten stehen. */
   pruefe('Und faerbt jeden Strich ueber eine Variable',
-    (mkApp.match(/stroke="var\(--marke-(?:grau|strich)\)"/g) || []).length === 4
+    (mkApp.match(/stroke="var\(--brand-(?:grey|line)\)"/g) || []).length === 4
       && !/stroke="#/.test(mkApp),
     (mkApp.match(/stroke="[^"]*"/g) || []).join(' '));
   pruefe('Die Oberflaeche laedt keine Fassung mit Kachel',
@@ -1453,10 +1453,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
      --accent-text. Ein eigener Zahlenwert waere eine dritte Wahrheit ueber
      dieselben zwei Toene. */
   pruefe('Die beiden Markenvariablen stehen im Stilblatt und erfinden keine Farbe',
-    /--marke-grau: var\(--muted\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8'))
-      && /--marke-strich: var\(--accent-text\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')),
+    /--brand-grey: var\(--muted\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8'))
+      && /--brand-line: var\(--accent-text\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')),
     (fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')
-      .match(/--marke-[a-z]+:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
+      .match(/--brand-[a-z]+:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
 
   /* ZWEI DINGE MIT DEMSELBEN NAMEN SIND EINES ZU VIEL. `.mark` gibt es in
      style.css fuer die kleinen Knoepfe am Kommentar -- Rahmen, runder
@@ -1478,8 +1478,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Gegenlage dazu ist die Zeile darunter -- sie haelt fest, dass daneben
      keine Seite das Paar wieder von Hand stapelt. */
   pruefe('Marke und Name stehen in einer gemeinsamen Zeile',
-    /const MARKENZEILE = \(\) =>\s*`<div class="login-marke">\$\{MARK\(\d+\)\}<h1>/.test(mkApp),
-    (mkApp.match(/const MARKENZEILE =[\s\S]{0,140}/) || ['(kein Helfer)'])[0]);
+    /const BRAND_LINE = \(\) =>\s*`<div class="login-marke">\$\{MARK\(\d+\)\}<h1>/.test(mkApp),
+    (mkApp.match(/const BRAND_LINE =[\s\S]{0,140}/) || ['(kein Helfer)'])[0]);
   /* UND ZWAR GENAU EINMAL IN DER GANZEN QUELLE. Zusammen mit der Zeile
      darueber -- die eine Stelle steht im Helfer -- heisst das: keine der neun
      Anmeldeseiten stapelt Marke und Namen daneben noch einmal von Hand. */
@@ -1865,11 +1865,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Ein Raster verteilt den Rest IN die Spalten. */
   /* UMGEDREHT MIT 0.22.0 UND NICHT GELOESCHT (Stolperstein 74): das Raster gilt
      seither auf ALLEN Schirmen, und die Mindestkante kommt aus der
-     Einstellung `--streifen` (E11) statt aus festen 60 Pixeln. Gesucht wird
+     Einstellung `--tile-min` (E11) statt aus festen 60 Pixeln. Gesucht wird
      deshalb in der Grundregel, nicht mehr im Telefonblock. */
   const kachelRaster = (cssEng.match(/\.thumbs \{ display: grid;[^}]*\}/) || [''])[0];
   pruefe('Der Bildstreifen steht auf allen Schirmen als Raster — 0.22.0',
-    /grid-template-columns: repeat\(auto-fill, minmax\(var\(--streifen\), 1fr\)\);/.test(kachelRaster),
+    /grid-template-columns: repeat\(auto-fill, minmax\(var\(--tile-min\), 1fr\)\);/.test(kachelRaster),
     kachelRaster || '(keine Rasterregel)');
   /* auto-fit STATT auto-fill WAERE DER STILLE FEHLER: mit genug Kacheln sehen
      die beiden gleich aus, und bei WENIGEN klappt auto-fit die leeren Spalten
@@ -1888,8 +1888,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Pixel dort unangetastet stehen. Nachgemessen ist es auch -- die
      Eintragsseite ist bei 1100, 1280 und 1440 Pixeln Pixel fuer Pixel
      dieselbe --, aber eine Messung von Hand faerbt nichts rot. */
-  pruefe('Am Schreibtisch gibt es keine festen 62 Pixel mehr — die Kante kommt aus --streifen (0.22.0)',
-    !/\.thumb \{ width: 62px/.test(cssEng) && /--streifen: 80px;/.test(cssEng),
+  pruefe('Am Schreibtisch gibt es keine festen 62 Pixel mehr — die Kante kommt aus --tile-min (0.22.0)',
+    !/\.thumb \{ width: 62px/.test(cssEng) && /--tile-min: 80px;/.test(cssEng),
     (cssEng.match(/\.thumb \{ width: 62px[^;]*;[^;]*;/) || ['(keine feste Kante — richtig)'])[0]);
   pruefe('Und der Telefonblock wiederholt das Raster nicht mehr',
     !/@media[^{]*\{[^@]*\.thumbs \{ display: grid/.test(cssEng.slice(cssEng.indexOf('@media (max-width: 700px)'))),
@@ -18692,14 +18692,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
        nichts hinterlaesst, woran sich das ablesen liesse. */
     const quGeoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     pruefe('Die Uhr verfolgt beide Läufe und nicht nur die Umstellung',
-      /const BESTANDSLAEUFE = \[/.test(quGeoApp) &&
+      /const BATCH_RUNS = \[/.test(quGeoApp) &&
       /field: 'umstellung', id: 'bild-lauf'/.test(quGeoApp) &&
       /field: 'geometrie', id: 'geo-lauf'/.test(quGeoApp) &&
-      /BESTANDSLAEUFE\.some\(l => geholt\.stats\[l\.field\] && geholt\.stats\[l\.field\]\.laeuft\)/
+      /BATCH_RUNS\.some\(l => fetched\.stats\[l\.field\] && fetched\.stats\[l\.field\]\.laeuft\)/
         .test(quGeoApp),
-      (quGeoApp.match(/const BESTANDSLAEUFE = \[[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
+      (quGeoApp.match(/const BATCH_RUNS = \[[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     pruefe('Und es gibt genau eine Uhr für beide',
-      (quGeoApp.match(/setInterval\(async \(\) => \{\s*\n\s*if \(!BESTANDSLAEUFE/g) || []).length === 1 &&
+      (quGeoApp.match(/setInterval\(async \(\) => \{\s*\n\s*if \(!BATCH_RUNS/g) || []).length === 1 &&
       !/function verfolgeUmstellung\(/.test(quGeoApp),
       (quGeoApp.match(/function verfolge\w+\(/g) || []).join(' · '));
   }
@@ -20047,7 +20047,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ohne diese Zeile stuende die Erweiterung ohne Grund da. Dieselbe Bauform
      wie bei der PDF-Vorschau eine Zeile tiefer. */
   pruefe('Die Standbildfunktion setzt wirklich eine blob-Adresse an ein <video>',
-    cspApp.includes('URL.createObjectURL(datei)') && /async function standbild\(/.test(cspApp),
+    cspApp.includes('URL.createObjectURL(datei)') && /async function stillFrame\(/.test(cspApp),
     'die Standbildfunktion fehlt in app.js');
   pruefe('Die PDF-Vorschau bindet wirklich ein iframe ein',
     cspApp.includes('<iframe src="/api/attachments/'), 'kein iframe gefunden');
@@ -25252,15 +25252,15 @@ async function pruefeOberflaeche() {
 
   // Rechnung zuerst, unabhaengig vom Bildschirm.
   pruefe('Anteil: Anfang, Mitte, Ende',
-    wz.zeitAnteil('2020-01-01', '2020-01-01', '2020-01-11') === 0 &&
-    wz.zeitAnteil('2020-01-06', '2020-01-01', '2020-01-11') === 0.5 &&
-    wz.zeitAnteil('2020-01-11', '2020-01-01', '2020-01-11') === 1);
+    wz.timeShare('2020-01-01', '2020-01-01', '2020-01-11') === 0 &&
+    wz.timeShare('2020-01-06', '2020-01-01', '2020-01-11') === 0.5 &&
+    wz.timeShare('2020-01-11', '2020-01-01', '2020-01-11') === 1);
   pruefe('Anteil bei nur einem Datum landet in der Mitte',
-    wz.zeitAnteil('2020-01-01', '2020-01-01', '2020-01-01') === 0.5);
+    wz.timeShare('2020-01-01', '2020-01-01', '2020-01-01') === 0.5);
   pruefe('Jahresmarken decken die Spanne ab',
-    gleich(wz.jahresMarken('2023-07-01', '2025-01-01').map(m => m.jahr), [2023, 2024, 2025]));
+    gleich(wz.yearMarks('2023-07-01', '2025-01-01').map(m => m.jahr), [2023, 2024, 2025]));
   pruefe('Erste Jahresmarke sitzt am Anfang, nicht davor',
-    wz.jahresMarken('2023-07-01', '2025-01-01')[0].anteil === 0);
+    wz.yearMarks('2023-07-01', '2025-01-01')[0].anteil === 0);
 
   // Eintraege wie aus der Uebersicht. Der Zustand der Anwendung steckt in
   // einem const und haengt deshalb nicht am window -- geprueft wird darum ueber
@@ -25353,10 +25353,10 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
 
   pruefe('Wolke sortiert nach Häufigkeit',
-    gleich(ww.sortiereWolke(vorrat, new Set()).map(t => t.name),
+    gleich(ww.sortCloud(vorrat, new Set()).map(t => t.name),
            ['Oft', 'Mittel', 'Selten', 'Nurtesttag']));
   pruefe('Hervorgehobenes steht immer vorn',
-    gleich(ww.sortiereWolke(vorrat, new Set([1])).map(t => t.name),
+    gleich(ww.sortCloud(vorrat, new Set([1])).map(t => t.name),
            ['Selten', 'Oft', 'Mittel', 'Nurtesttag']));
 
   // Zeilenbegrenzung: die Geometrie stellt jsdom nicht, also gestellt.
@@ -25492,12 +25492,12 @@ async function pruefeOberflaeche() {
   // Die reine Rechnung zuerst, unabhaengig von der Oberflaeche.
   const eintrag = bestand[0];
   pruefe('UND verlangt alle gewählten Tags',
-    wf.passtZuTags(eintrag, [1, 2], 'and') === true &&
-    wf.passtZuTags(bestand[1], [1, 2], 'and') === false);
-  pruefe('ODER genügt einer', wf.passtZuTags(bestand[1], [1, 2], 'or') === true);
-  pruefe('Ohne gewählte Tags passt jeder', wf.passtZuTags(bestand[1], [], 'and') === true);
+    wf.matchesTags(eintrag, [1, 2], 'and') === true &&
+    wf.matchesTags(bestand[1], [1, 2], 'and') === false);
+  pruefe('ODER genügt einer', wf.matchesTags(bestand[1], [1, 2], 'or') === true);
+  pruefe('Ohne gewählte Tags passt jeder', wf.matchesTags(bestand[1], [], 'and') === true);
   pruefe('Unbekannter Modus verhält sich wie UND',
-    wf.passtZuTags(bestand[1], [1, 2], 'quatsch') === false);
+    wf.matchesTags(bestand[1], [1, 2], 'quatsch') === false);
 
   const titel = () => [...wf.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
   const marke = (name) => [...wf.document.querySelectorAll('#filters .pill-tag')].find(b => b.textContent === name);
@@ -26353,18 +26353,18 @@ async function pruefeOberflaeche() {
      HAELFTEN IN EINER PRUEFUNG: die eine allein bliebe gruen, waehrend die
      andere alles wegnimmt. */
   pruefe('Der Kommentarblock zaehlt in seinem Hinweis, nicht in der Kurzfassung',
-    wb.blockZusammenfassung('kommentare', { comments: [{ kind: 'note' }, { kind: 'report' }] }) === '' &&
+    wb.blockSummary('kommentare', { comments: [{ kind: 'note' }, { kind: 'report' }] }) === '' &&
     wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }]) === '2 Kommentare, davon 1 Bericht',
-    `Kurzfassung "${wb.blockZusammenfassung('kommentare', { comments: [{ kind: 'note' }] })}", ` +
+    `Kurzfassung "${wb.blockSummary('kommentare', { comments: [{ kind: 'note' }] })}", ` +
     `Hinweis "${wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }])}"`);
 
   // Zusammenfassung nennt echte Zahlen
   pruefe('Zusammenfassung kürzt die Beschreibung',
-    wb.blockZusammenfassung('beschreibung', { description: 'x'.repeat(80) }).endsWith(' …'));
+    wb.blockSummary('beschreibung', { description: 'x'.repeat(80) }).endsWith(' …'));
   pruefe('Leere Beschreibung sagt das auch',
-    wb.blockZusammenfassung('beschreibung', { description: '   ' }) === 'leer');
+    wb.blockSummary('beschreibung', { description: '   ' }) === 'leer');
   pruefe('Fehlende Kategorie sagt das auch',
-    wb.blockZusammenfassung('kategorie', { category: null }) === 'keine');
+    wb.blockSummary('kategorie', { category: null }) === 'keine');
 
   /* --- Ziehen am Griff --- */
   const seiteBloecke = [...wb.document.querySelectorAll('#blocks-seite > .block')];
@@ -28467,7 +28467,7 @@ async function pruefeOberflaeche() {
   // Schranke 1 einzeln: die Erkennung wird unmittelbar gefragt. Ueber den
   // DOM allein waere sie nicht zu pruefen -- dort faengt Schranke 2 alles
   // ab, was hier durchrutschte.
-  const ziele = (roh) => wb.zerlegeKommentartext(roh).filter(s => s.ziel);
+  const ziele = (roh) => wb.splitCommentText(roh).filter(s => s.ziel);
   const einZiel = (roh) => ziele(roh)[0]?.ziel ?? null;
   const einText = (roh) => ziele(roh)[0]?.text ?? null;
 
@@ -28513,14 +28513,14 @@ async function pruefeOberflaeche() {
     ['Vor https://a.de/x, mitte www.b.de. Ende',
      'nur Text ohne alles',
      '(https://a.de/y_(z)) und [https://a.de/w]'].every(roh =>
-       wb.zerlegeKommentartext(roh).map(s => s.text).join('') === roh),
-    JSON.stringify(wb.zerlegeKommentartext('Vor https://a.de/x, mitte www.b.de. Ende')));
+       wb.splitCommentText(roh).map(s => s.text).join('') === roh),
+    JSON.stringify(wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')));
   pruefe('Zwei Adressen in einer Zeile werden beide erkannt',
     ziele('https://a.de und www.b.de').length === 2);
 
   // Schranke 2 einzeln: dem Knotenbauer wird unmittelbar ein Ziel vorgelegt,
   // das durch die Erkennung nie kaeme.
-  const bau = (stuecke) => wb.baueKommentarknoten(stuecke);
+  const bau = (stuecke) => wb.buildCommentNodes(stuecke);
   const boese = bau([{ text: 'hier klicken', ziel: 'javascript:alert(1)' }]);
   pruefe('Ein unerlaubtes Ziel wird gar nicht erst zum Link',
     !boese.querySelector('a'), boese.querySelector('a')?.getAttribute('href'));
@@ -28540,7 +28540,7 @@ async function pruefeOberflaeche() {
      hat. Wer den Rohtext maskiert und danach ein <mark> hineinschreibt, hat
      ihn geoeffnet -- deshalb dieselbe Zeile ein zweites Mal, jetzt mit einem
      Begriff, der MITTEN IM Angriffstext trifft. */
-  const boeseTreffer = wb.zerlegeAmBegriff('<img src=x onerror=alert(1)>', 'onerror');
+  const boeseTreffer = wb.splitAtTerm('<img src=x onerror=alert(1)>', 'onerror');
   const boeseKnoten = bau(boeseTreffer);
   pruefe('Der Aufbau steht: der Begriff trifft wirklich mitten im Angriffstext',
     boeseTreffer.some(s => s.treffer && s.text === 'onerror'), JSON.stringify(boeseTreffer));
@@ -28561,7 +28561,7 @@ async function pruefeOberflaeche() {
      innerHTML fuellt, blieb ohne diese Zeile STUMM**, weil in allen anderen
      Lagen nur harmlose Woerter markiert werden. */
   const boeserBegriff = '<img src=x onerror=alert(1)>';
-  const alsBegriff = bau(wb.zerlegeAmBegriff('davor ' + boeserBegriff + ' danach', boeserBegriff));
+  const alsBegriff = bau(wb.splitAtTerm('davor ' + boeserBegriff + ' danach', boeserBegriff));
   pruefe('Der Aufbau steht: der Begriff selbst ist der Angriffstext',
     alsBegriff.querySelector('mark')?.textContent === boeserBegriff,
     alsBegriff.querySelector('mark')?.textContent);
@@ -28576,7 +28576,7 @@ async function pruefeOberflaeche() {
      Die Zerlegung liefert sie dann als mehrere Stuecke mit demselben Ziel;
      drei Anker nebeneinander waeren drei Links auf dieselbe Adresse -- fuer
      ein Vorleseprogramm drei Ziele statt einem. */
-  const linkTreffer = bau(wb.zerlegeKommentartext('Siehe https://beispiel.de/pfad hier', 'beispiel'));
+  const linkTreffer = bau(wb.splitCommentText('Siehe https://beispiel.de/pfad hier', 'beispiel'));
   pruefe('Ein Begriff in der Adresse macht aus einem Link nicht drei',
     linkTreffer.querySelectorAll('a').length === 1,
     `${linkTreffer.querySelectorAll('a').length} Links`);
@@ -28596,14 +28596,14 @@ async function pruefeOberflaeche() {
     ['Vor https://a.de/x, mitte www.b.de. Ende',
      'nur Text ohne alles',
      '(https://a.de/y_(z)) und [https://a.de/w]'].every(roh =>
-       wb.zerlegeKommentartext(roh, 'a.de').map(s => s.text).join('') === roh),
-    JSON.stringify(wb.zerlegeKommentartext('Vor https://a.de/x, mitte www.b.de. Ende', 'a.de')
+       wb.splitCommentText(roh, 'a.de').map(s => s.text).join('') === roh),
+    JSON.stringify(wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende', 'a.de')
       .map(s => s.text)));
   // Und ohne Begriff bleibt sie Stueck fuer Stueck die von vorher.
   pruefe('Ohne Begriff entsteht kein einziges drittes Stueck',
-    wb.zerlegeKommentartext('Vor https://a.de/x, mitte www.b.de. Ende')
+    wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')
       .every(s => !s.treffer),
-    JSON.stringify(wb.zerlegeKommentartext('Vor https://a.de/x, mitte www.b.de. Ende')));
+    JSON.stringify(wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')));
 
   // Aussehen laesst sich hier nur am Stylesheet pruefen (Abschnitt 7).
   const cssK = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
@@ -28673,18 +28673,18 @@ async function pruefeOberflaeche() {
   // bekommt die Rechnung ihre Zahlen unmittelbar vorgelegt.
   const buehneGross = { scrollWidth: 3000, clientWidth: 1000,
                         scrollHeight: 2400, clientHeight: 800, scrollLeft: 0, scrollTop: 0 };
-  wb.zentriereBuehne(buehneGross);
+  wb.centerStage(buehneGross);
   pruefe('Ein Bild, das größer ist als die Bühne, startet in der Mitte',
     buehneGross.scrollLeft === 1000 && buehneGross.scrollTop === 800,
     `${buehneGross.scrollLeft}/${buehneGross.scrollTop}`);
   const buehneKlein = { scrollWidth: 400, clientWidth: 1000,
                         scrollHeight: 300, clientHeight: 800, scrollLeft: 0, scrollTop: 0 };
-  wb.zentriereBuehne(buehneKlein);
+  wb.centerStage(buehneKlein);
   pruefe('Ein kleineres Bild bekommt keinen negativen Bildlauf',
     buehneKlein.scrollLeft === 0 && buehneKlein.scrollTop === 0,
     `${buehneKlein.scrollLeft}/${buehneKlein.scrollTop}`);
   pruefe('Ohne Bühne passiert nichts, statt zu stürzen',
-    (() => { try { wb.zentriereBuehne(null); return true; } catch { return false; } })());
+    (() => { try { wb.centerStage(null); return true; } catch { return false; } })());
 
   // Die Rechnung muss auch angeschlossen sein -- eine Funktion, die niemand
   // ruft, ist so gut wie nicht vorhanden.
@@ -29678,21 +29678,21 @@ async function pruefeOberflaeche() {
     const zWert = (n) => (zStufen.find(([x]) => x === n) || [])[1];
     /* DIE ZUSAGE, UM DIE ES GEHT: der Dialog liegt UEBER dem Vollbild. */
     pruefe('Der Dialog liegt ueber dem Vollbild',
-      zWert('z-dialog') > zWert('z-vollbild'),
-      `Dialog ${zWert('z-dialog')} gegen Vollbild ${zWert('z-vollbild')}`);
+      zWert('z-dialog') > zWert('z-lightbox'),
+      `Dialog ${zWert('z-dialog')} gegen Vollbild ${zWert('z-lightbox')}`);
     /* UND DIE MELDUNG UEBER BEIDEN -- sie ist ein Hinweis und faengt keine
        Klicks; laege sie darunter, verdeckte der Dialog seine eigene Quittung. */
     pruefe('Und die Meldung ueber beiden',
-      zWert('z-meldung') > zWert('z-dialog'),
-      `Meldung ${zWert('z-meldung')} gegen Dialog ${zWert('z-dialog')}`);
+      zWert('z-toast') > zWert('z-dialog'),
+      `Meldung ${zWert('z-toast')} gegen Dialog ${zWert('z-dialog')}`);
     /* DIE VIER STUFEN INNERHALB DES VOLLBILDS BEHALTEN IHRE VERHAELTNISSE:
        der Schleier des Ausschnittrahmens unter der Bedienung, die Bedienung
        unter den Blaetterpfeilen. Die Ordnung wurde sortiert und nicht
        durcheinandergeworfen. */
     pruefe('Der Schleier des Ausschnittrahmens bleibt unter der Bedienung',
-      zWert('z-ausschnittrahmen') < zWert('z-betrachter-bedienung') &&
-      zWert('z-betrachter-bedienung') < zWert('z-blaetterpfeile'),
-      `${zWert('z-ausschnittrahmen')} · ${zWert('z-betrachter-bedienung')} · ${zWert('z-blaetterpfeile')}`);
+      zWert('z-crop-frame') < zWert('z-viewer-tools') &&
+      zWert('z-viewer-tools') < zWert('z-page-arrows'),
+      `${zWert('z-crop-frame')} · ${zWert('z-viewer-tools')} · ${zWert('z-page-arrows')}`);
     /* UND KEINE REGEL TRAEGT MEHR IHRE EIGENE ZAHL. Ohne diese Zeile bliebe
        gruen, wer die Tafel oben stehen laesst und daneben weiter feste Zahlen
        schreibt -- dann stuende die Ordnung an elf Stellen statt an einer. */
@@ -29709,7 +29709,7 @@ async function pruefeOberflaeche() {
        hat. */
     pruefe('Der Dialog und das Vollbild lesen ihre Stufe wirklich',
       /\.backdrop \{[^}]*z-index: var\(--z-dialog\)/.test(zRoh.replace(/\s+/g, ' ')) &&
-      /\.lightbox \{[^}]*z-index: var\(--z-vollbild\)/.test(zRoh.replace(/\s+/g, ' ')),
+      /\.lightbox \{[^}]*z-index: var\(--z-lightbox\)/.test(zRoh.replace(/\s+/g, ' ')),
       (zRoh.replace(/\s+/g, ' ').match(/\.backdrop \{[^}]*\}/) || ['(keine Regel)'])[0].slice(0, 200));
   }
 
@@ -35382,7 +35382,7 @@ async function pruefeOberflaeche() {
     mb.document.querySelector('.masthead .brand')?.innerHTML.slice(0, 120) || '(keine Kopfzeile)');
   pruefe('Und faerbt sie ueber die Schemavariablen',
     !!mbMarke && [...mbMarke.querySelectorAll('path')]
-      .every(s => /^var\(--marke-(grau|strich)\)$/.test(s.getAttribute('stroke') || '')),
+      .every(s => /^var\(--brand-(grey|line)\)$/.test(s.getAttribute('stroke') || '')),
     mbMarke ? [...mbMarke.querySelectorAll('path')].map(s => s.getAttribute('stroke')).join(' ')
             : '(keine Marke)');
   /* DAS SEITENVERHAELTNIS DER ATTRIBUTE FOLGT DEM GEZEICHNETEN STRICH, 19:23.
@@ -36028,7 +36028,7 @@ async function pruefeOberflaeche() {
        wieder da, ist der Fehler zurueck. */
     const tzApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const tzMehrfach = (tzApp.match(
-      /async function zweiteBestaetigungMehrfach[\s\S]*?\n\}/) || [''])[0];
+      /async function confirmTwiceMany[\s\S]*?\n\}/) || [''])[0];
     pruefe('zweiteBestaetigungMehrfach steht im Quelltext',
       tzMehrfach.length > 60, String(tzMehrfach.length));
     pruefe('Und sie schickt die Ziele in EINER Anfrage statt eine je Ziel',
@@ -37801,7 +37801,7 @@ async function pruefeOberflaeche() {
      und Zelle zwei Quellen, und die eine liesse sich aendern, ohne dass die
      andere mitginge. */
   pruefe('Raster und Zelle haengen an derselben einen Bedingung',
-    /const withAverage = mehrereBenutzer\(\);/.test(arQuelle) &&
+    /const withAverage = multipleUsers\(\);/.test(arQuelle) &&
     /box\.className = 'rlist' \+ \(withAverage \?/.test(arQuelle) &&
     /if \(withAverage\) \{/.test(arQuelle),
     (arQuelle.match(/const withAverage[^\n]*/) || ['(nicht gefunden)'])[0]);
@@ -39848,7 +39848,7 @@ async function pruefeOberflaeche() {
        gruen, wer die Tafel durch ein `if` ersetzt -- und genau davor warnt der
        Kommentar dort. */
     pruefe('Und die Adresse wird ohne Umweg gelesen',
-      /const gewuenscht = ausDerAdresse;/.test(quelle),
+      /const gewuenscht = fromAddress;/.test(quelle),
       (quelle.match(/const gewuenscht = [^\n]*/) || ['(nicht gefunden)'])[0]);
   }
   {
@@ -40842,14 +40842,14 @@ async function pruefeOberflaeche() {
       /\.masthead\.gerollt \{ box-shadow: var\(--sh-sm\); \}/.test(css123),
       regel123('.masthead.gerollt') || '(keine Regel)');
     pruefe('Der Hintergrund eines Dialogs ist eine deckende Farbe ohne Weichzeichner',
-      /* Seit 0.23.0 traegt --schleier den ganzen Wert und nicht die Regel:
+      /* Seit 0.23.0 traegt --scrim den ganzen Wert und nicht die Regel:
          im hellen Schema aendern sich BEIDE Teile, Farbe und Deckung. Geprueft
-         wird deshalb die KETTE -- die Regel nimmt --schleier, --schleier ist
+         wird deshalb die KETTE -- die Regel nimmt --scrim, --scrim ist
          eine Teildeckung des Schleiertripels, und das Tripel ist die Farbe.
          Nur das letzte Glied zu pruefen liesse die Regel selbst offen. */
-      /\.backdrop \{[^}]*background: var\(--schleier\)/.test(css123)
-        && /--schleier: *rgba\(var\(--schleier-rgb\), *\.78\)/.test(cssRoh)
-        && /--schleier-rgb: *6,\s*7,\s*9/.test(cssRoh)
+      /\.backdrop \{[^}]*background: var\(--scrim\)/.test(css123)
+        && /--scrim: *rgba\(var\(--scrim-rgb\), *\.78\)/.test(cssRoh)
+        && /--scrim-rgb: *6,\s*7,\s*9/.test(cssRoh)
         && !/\.backdrop \{[^}]*filter/.test(css123),
       regel123('.backdrop') || '(keine Regel)');
   }
@@ -40891,7 +40891,7 @@ async function pruefeOberflaeche() {
        Pruefung gegeneinander -- sonst laufen sie beim naechsten Umbenennen
        auseinander, und der Vorgriff liest ins Leere (Stolperstein 47). */
     const schluesselBoot = (tBoot || '').match(/getItem\('([^']+)'\)/);
-    const schluesselApp = tApp.match(/THEMA_MERKER = '([^']+)'/);
+    const schluesselApp = tApp.match(/THEME_KEY = '([^']+)'/);
     pruefe('Der Name des gemerkten Schluessels stimmt in beiden Dateien ueberein',
       !!schluesselBoot && !!schluesselApp && schluesselBoot[1] === schluesselApp[1],
       `thema.js: ${schluesselBoot?.[1]} · app.js: ${schluesselApp?.[1]}`);
@@ -40926,7 +40926,7 @@ async function pruefeOberflaeche() {
       /getPropertyValue\('--bg'\)/.test(tApp) ? 'gelesen' : '(abgeschrieben)');
     /* „WIE DAS GERAET" FOLGT OHNE NEULADEN -- und nur in dieser Stellung. */
     pruefe('Der Horcher auf das Geraet greift nur in der Stellung geraet',
-      /THEME === 'geraet'\) wendeThemaAn\(\)/.test(tApp)
+      /THEME === 'geraet'\) applyTheme\(\)/.test(tApp)
         && /addEventListener\('change'/.test(tApp),
       /addEventListener\('change'/.test(tApp) ? 'Horcher da' : '(kein Horcher)');
     pruefe('Die Karte „Darstellung" traegt die Pillenreihe',
@@ -40942,12 +40942,12 @@ async function pruefeOberflaeche() {
        eigene Karte: dunkel 1,71 : 1, hell mit brightness 10,33, hell mit
        opacity(.45) wieder 1,71. Derselbe Wert, andere Richtung. */
     pruefe('Die Daempfung eines abgelehnten Eintrags geht ueber eine Variable',
-      /filter: var\(--daempfung\)/.test(tCss) && !/filter: grayscale/.test(tCss),
+      /filter: var\(--dimmed\)/.test(tCss) && !/filter: grayscale/.test(tCss),
       (tCss.match(/\.card\.rejected[^}]*\}/) || ['(keine Regel)'])[0]);
     pruefe('Und sie nimmt im Hellen opacity statt brightness',
-      /:root \{[\s\S]*?--daempfung: grayscale\(\.85\) brightness\(\.5\);/.test(tCss)
-        && /:root\[data-thema="hell"\] \{[\s\S]*?--daempfung: grayscale\(\.85\) opacity\(\.45\);/.test(tCss),
-      (tCss.match(/--daempfung:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
+      /:root \{[\s\S]*?--dimmed: grayscale\(\.85\) brightness\(\.5\);/.test(tCss)
+        && /:root\[data-thema="hell"\] \{[\s\S]*?--dimmed: grayscale\(\.85\) opacity\(\.45\);/.test(tCss),
+      (tCss.match(/--dimmed:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
     const stufenApp = (tApp.match(/THEME_LEVELS = \[([^\]]*)\]/) || [])[1];
     const stufenSrv = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/THEME_LEVELS = \[([^\]]*)\]/) || [])[1];
@@ -41046,7 +41046,7 @@ async function pruefeOberflaeche() {
       'probe.einfach': 'Ein fester Satz.',
       'probe.platzhalter': 'Es sind {n} von {gesamt}.',
       'probe.vokabel': 'Der Knopf heißt „{sacheEinzahl}".',
-      'probe.mehrzahl': { eins: '{n} Kommentar', andere: '{n} Kommentare' },
+      'probe.plural': { eins: '{n} Kommentar', andere: '{n} Kommentare' },
       'probe.unbekannt': 'Hier fehlt {niemand}.'
     });
     pruefe('t() gibt einen festen Satz unverändert zurück',
@@ -41070,7 +41070,7 @@ async function pruefeOberflaeche() {
       new Intl.PluralRules('de-DE').select(0));
     for (const [n, soll] of [[0, '0 Kommentare'], [1, '1 Kommentar'], [2, '2 Kommentare']])
       pruefe(`Die Mehrzahl bei n = ${n} ist „${soll}"`,
-        spW.t('probe.mehrzahl', { n }) === soll, spW.t('probe.mehrzahl', { n }));
+        spW.t('probe.plural', { n }) === soll, spW.t('probe.plural', { n }));
     /* tH() MASKIERT JEDEN EINGESETZTEN WERT -- Stolperstein 18 in Dateiform.
        t() tut es NICHT, weil textContent, title und placeholder es nicht
        brauchen; ein doppelt maskierter Text stuende dort als &lt;b&gt; da. */
@@ -41628,7 +41628,7 @@ async function pruefeOberflaeche() {
     // Das helle Schema ueberschreibt nur, was es nennt -- der Rest kommt aus
     // :root. Genau so liest es auch der Browser.
     const zlHell = { ...zlDunkel, ...zlPaare(':root[data-thema="hell"] {') };
-    /* `var(--x)` wird aufgeloest, und zwar IM SELBEN SCHEMA: --zl-linie steht
+    /* `var(--x)` wird aufgeloest, und zwar IM SELBEN SCHEMA: --timeline-line steht
        im hellen Block auf var(--line-hover), und --line-hover ist dort ein
        anderer Wert als im dunklen. Wer die Kette im falschen Block aufloest,
        rechnet zwei Schemata durcheinander. */
@@ -41664,9 +41664,9 @@ async function pruefeOberflaeche() {
        Mass dieses Bildes: eine Hilfslinie muss zu ahnen sein, die mittlere
        sich von ihr abheben, die Jahreszahl sich LESEN lassen -- und das
        letzte ist tragender Text, also 4,5. */
-    for (const [name, latte, erwartet] of [['--zl-linie', 1.5, 1.54],
-                                           ['--zl-mitte', 2.0, 2.13],
-                                           ['--zl-jahr', 4.5, 4.62]]) {
+    for (const [name, latte, erwartet] of [['--timeline-line', 1.5, 1.54],
+                                           ['--timeline-mid', 2.0, 2.13],
+                                           ['--timeline-year', 4.5, 4.62]]) {
       const farbe = zlLoese(zlHell, zlHell[name]);
       const wert = zlKontrast(farbe, zlGrundHell);
       pruefe(`${name} traegt im hellen Schema ${latte.toFixed(1)} : 1 oder mehr gegen den Grund`,
@@ -41685,8 +41685,8 @@ async function pruefeOberflaeche() {
     /* DAS DUNKLE SCHEMA AENDERT KEINEN BILDPUNKT. Verglichen wird der
        AUFGELOESTE Wert und nicht die Schreibweise: `var(--line-2)` und
        `#1e2429` waeren dasselbe Bild, und geprueft wird das Bild. */
-    for (const [neu, alt] of [['--zl-linie', '--line-2'], ['--zl-mitte', '--line'],
-                              ['--zl-jahr', '--faint']]) {
+    for (const [neu, alt] of [['--timeline-line', '--line-2'], ['--timeline-mid', '--line'],
+                              ['--timeline-year', '--faint']]) {
       pruefe(`Im dunklen Schema ist ${neu} genau ${alt}, wie vorher`,
         zlLoese(zlDunkel, zlDunkel[neu]) === zlLoese(zlDunkel, zlDunkel[alt])
           && /^#[0-9a-f]{6}$/i.test(zlLoese(zlDunkel, zlDunkel[neu])),
@@ -41695,10 +41695,10 @@ async function pruefeOberflaeche() {
     /* UND DIE VIER REGELN LESEN WIRKLICH DIE DREI VARIABLEN. Ohne diese Zeile
        koennten die Werte tadellos dastehen und nichts faerben. */
     for (const [wahl, eigenschaft, variable] of [
-      ['.zl-linie', 'background', '--zl-linie'],
-      ['.zl-linie.mitte', 'background', '--zl-mitte'],
-      ['.zl-jahre', 'border-top', '--zl-linie'],
-      ['.zl-jahr', 'color', '--zl-jahr']])
+      ['.zl-linie', 'background', '--timeline-line'],
+      ['.zl-linie.mitte', 'background', '--timeline-mid'],
+      ['.zl-jahre', 'border-top', '--timeline-line'],
+      ['.zl-jahr', 'color', '--timeline-year']])
       pruefe(`${wahl} liest ${variable}`,
         new RegExp(`${eigenschaft}:[^;}]*var\\(${variable}\\)`).test(regel123(wahl)),
         regel123(wahl) || '(keine Regel)');
@@ -41853,10 +41853,10 @@ async function pruefeOberflaeche() {
     const appRoh = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const appZeilen = appRoh.split('\n');
     const befehle = bildschirmtexteVon(appRoh).filter(t => /docker compose|zugang\.js/.test(t.text));
-    const imKasten = befehle.filter(t => /serverKasten\(/.test(appZeilen[t.zeile - 1] || ''));
-    pruefe('Jeder Server-Befehl in app.js steht auf einer Zeile serverKasten(',
+    const imKasten = befehle.filter(t => /serverBox\(/.test(appZeilen[t.zeile - 1] || ''));
+    pruefe('Jeder Server-Befehl in app.js steht auf einer Zeile serverBox(',
       befehle.length > 0 && imKasten.length === befehle.length,
-      befehle.filter(t => !/serverKasten\(/.test(appZeilen[t.zeile - 1] || '')).map(t => `Z. ${t.zeile}: ${t.text.trim()}`).join(' · '));
+      befehle.filter(t => !/serverBox\(/.test(appZeilen[t.zeile - 1] || '')).map(t => `Z. ${t.zeile}: ${t.text.trim()}`).join(' · '));
     pruefe('Und es sind genau vier: Passwort (Mein Konto), zweiter Faktor, Passwort (Benutzer), Neustart',
       befehle.length === 4, `${befehle.length}: ` + befehle.map(t => t.text.trim()).join(' · '));
     /* UND KEINER IN DER SPRACHDATEI -- 0.24.0. Seit die Saetze dort wohnen,
@@ -41870,8 +41870,8 @@ async function pruefeOberflaeche() {
     pruefe('Und keiner steht in der Sprachdatei',
       befehleDe.length === 0, befehleDe.map(([k]) => k).join(' · '));
     pruefe('Der Kasten selbst prueft die Rolle — nicht jede Karte fuer sich',
-      /function serverKasten\(sentence, command\) \{\s*\n\s*if \(!OWNER\) return '';/.test(appRoh),
-      (appRoh.match(/function serverKasten[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+      /function serverBox\(sentence, command\) \{\s*\n\s*if \(!OWNER\) return '';/.test(appRoh),
+      (appRoh.match(/function serverBox[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
     /* UND AM BILDSCHIRM: der Benutzer und der Admin sehen keinen einzigen
        Kasten, die Eigentuemerin drei -- Mein Konto, Benutzer, Kennzahlen. */
     const skRollen = async (rollen) => {
@@ -42012,7 +42012,7 @@ async function pruefeOberflaeche() {
     pruefe('Und die Meldung ist danach fort', !stDoc.querySelector('.toast'), '');
     /* DIE MELDUNG MIT KNOPF STEHT LAENGER: sechs Sekunden statt 2,6. */
     pruefe('Eine Meldung mit Knopf steht sechs Sekunden',
-      /const dauer = aktion \? 6000 : 2600;/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
+      /const dauer = action \? 6000 : 2600;/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
       'die Dauer steht nicht so im Quelltext');
     /* DIE TESTTAGE UND JEDE LESESTELLE BLEIBEN OHNE KNOPF. */
     const stTest = [...stDoc.querySelectorAll('#tstars .stars, .ttag .stars, .tdrow .stars')];

@@ -65,7 +65,10 @@ function ersetzeIdent(src, datei, map, opt = {}) {
       if (zeileHier < von || zeileHier > bis) return m;
       // Nach einem Punkt steht eine Eigenschaft; sie zieht mit, ausser wenn
       // ausdruecklich anders verlangt.
-      if (opt.ohneEigenschaften && /\.\s*$/.test(s.slice(Math.max(0, i - 2), i))) return m;
+      /* EIN AUSBREITEN IST KEINE EIGENSCHAFT: vor `...GRIFF_KLASSEN` steht ein
+         Punkt, aber davor noch einer. Ohne diese Unterscheidung bliebe der
+         Name im Ausbreiten stehen und zeigte auf nichts mehr. */
+      if (opt.ohneEigenschaften && /(?<!\.)\.\s*$/.test(s.slice(Math.max(0, i - 3), i))) return m;
       // Ein Schluessel in `{ name: … }` zieht mit; `{ name }` auch.
       treffer++; return map[m];
     });
@@ -204,7 +207,10 @@ function nurRegex(src, datei, map) {
   let treffer = 0;
   const namen = Object.keys(map).sort((a, b) => b.length - a.length);
   if (!namen.length) return { text: src, treffer: 0 };
-  const re = new RegExp('(?<![A-Za-z0-9_$])(' + namen.map(esc).join('|') + ')(?![A-Za-z0-9_$])', 'g');
+  /* AUCH DER BINDESTRICH IST EINE GRENZE. `anmeld-trenner` ist EIN Name; ohne
+     ihn machte `trenner -> sep` daraus `anmeld-sep`, und die Klasse im
+     Stilblatt hiesse weiter anders. */
+  const re = new RegExp('(?<![A-Za-z0-9_$-])(' + namen.map(esc).join('|') + ')(?![A-Za-z0-9_$-])', 'g');
   for (const t of teile) {
     if (t.art !== REGEX) continue;
     t.wert = t.wert.replace(re, (m) => { treffer++; return map[m]; });

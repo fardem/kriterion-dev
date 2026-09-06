@@ -5,7 +5,7 @@
   /* Die Mindestkante der Kacheln im Bildstreifen -- 0.22.0 (E11). app.js
      setzt sie aus der persoenlichen Einstellung (60 bis 150 px, Vorgabe 80);
      der Wert hier ist nur der Rueckfall, bevor die Einstellungen geladen sind. */
-  --streifen: 80px;
+  --tile-min: 80px;
   /* WELCHES SCHEMA WIRKLICH GILT, STEHT HIER UND NICHT IM KOPF DER SEITE --
      0.23.0. Das Meta-Element dort nennt beide (`light dark`) und sagt damit
      nur, dass die Anwendung mit beidem umgehen kann; welches gerade laeuft,
@@ -60,7 +60,7 @@
      -- die Flaeche allein sagt nicht, wo der Knopf aufhoert. Die Schrift
      DARAUF ist mit 6,94 lesbar, der Umriss ist es nicht. Also traegt die
      Flaeche die Marke und die Kante den Kontrast (5,38). */
-  --accent-kante: var(--accent);
+  --accent-edge: var(--accent);
   --accent-dim: rgba(var(--accent-rgb), .13);
   --accent-line: rgba(var(--accent-rgb), .42);
 
@@ -100,7 +100,7 @@
   /* Das Zeichen, wo kein Bild ist. Heute derselbe Wert wie --line-hover und
      TROTZDEM EINE EIGENE VARIABLE: es ist ein Zeichen auf einer Flaeche und
      kein Rand. Auf hellem Grund gehen die beiden auseinander. */
-  --platzhalter: #333b44;
+  --placeholder: #333b44;
   /* DIE DREI WERTE DER ZEITLEISTE -- 0.24.0, Bauabschnitt 0.1.
      SIE STEHEN HIER, WEIL DIE ZEITLEISTE KEINE KARTE HAT. Seit 0.22.0 liegt
      sie ohne Kasten auf dem Grund der Seite; das Farbkonzept hat seine
@@ -114,37 +114,37 @@
      zoege jeden Kartenrand der Anwendung mit.
      IM DUNKLEN SCHEMA SIND ES GENAU DIE HEUTIGEN WERTE -- kein Bildpunkt
      aendert sich dort. */
-  --zl-linie: var(--line-2);
-  --zl-mitte: var(--line);
-  --zl-jahr: var(--faint);
+  --timeline-line: var(--line-2);
+  --timeline-mid: var(--line);
+  --timeline-year: var(--faint);
   /* Schrift auf einer gefuellten Flaeche. SIE FOLGT DER FLAECHE UND NICHT DEM
      SCHEMA: Orange bleibt Orange, also bleibt die Schrift darauf dunkel.
      ZUSAMMENGELEGT (2 von 3): ::selection trug #12151a und nimmt jetzt
-     --auf-accent (#14161a). Zwei von 255 je Kanal. */
-  --auf-accent: #14161a;
-  --auf-signal: #ffffff;
+     --on-accent (#14161a). Zwei von 255 je Kanal. */
+  --on-accent: #14161a;
+  --on-signal: #ffffff;
   /* Der Grund hinter einem Foto. ZWEI STUFEN: die Kachel steht tiefer als der
      Betrachter, damit das Bild in der Kachel am staerksten vorne steht. */
-  --bild-grund: #0a0c0e;
-  --bild-grund-2: #08090b;
-  --vorschau-grund: #14181c;
+  --image-bg: #0a0c0e;
+  --image-bg-2: #08090b;
+  --preview-bg: #14181c;
   /* WAS AUF EINEM FOTO LIEGT, FOLGT DEM FOTO UND NICHT DEM SCHEMA -- sein
      Grund ist Bildinhalt und in jedem Schema derselbe.
      ZUSAMMENGELEGT (3 von 3): die zwei Abzeichen der Kachel trugen
      rgba(12,14,16,...) und nehmen jetzt dasselbe Tripel wie ihre elf
      Nachbarn. Vier von 255 je Kanal, bei 80 Prozent Deckung auf einem Foto. */
-  --foto-rgb: 8,10,12;
+  --photo-rgb: 8,10,12;
   /* Und die Schrift darauf. SIE STEHT ALS ZAHL DA UND NICHT ALS `var(--text-2)`,
      obwohl sie heute genau dessen Wert traegt -- und das ist kein Versehen:
      eine Variable loest sich beim GEBRAUCH auf, nicht beim Schreiben. Stuende
      hier `var(--text-2)`, zoege das helle Schema sie auf #3f4851 mit --
      dunkle Schrift auf einem dunklen Schleier. Sie folgt dem Foto und nicht
      dem Schema, also steht sie fest. */
-  --auf-foto: #b3bac1;
-  --auf-foto-leise: #616a73;
+  --on-photo: #b3bac1;
+  --on-photo-dim: #616a73;
   /* UND DIE ZWEI BEDEUTUNGSFARBEN, DIE AUF EINEM FOTO STEHEN -- die beiden
      Abzeichen der Bildkachel, „getestet" und „abgelehnt". Sie folgen derselben
-     Regel wie --auf-foto und stehen aus demselben Grund als Zahl da.
+     Regel wie --on-photo und stehen aus demselben Grund als Zahl da.
      DAS IST IM AUGENSCHEIN AUFGEFALLEN UND IN KEINER MESSUNG: die Abzeichen
      tragen ihren eigenen dunklen Grund, und als sie noch `var(--green)` und
      `var(--red)` nahmen, wurden sie im hellen Schema DUNKELGRUEN AUF
@@ -154,10 +154,10 @@
        dunkles Rot   #cb2a32                    2,10 : 1
        helles  Rot   #f0555c                    3,30 : 1
      Die Bedeutung bleibt (G1), der Wert folgt dem Foto. */
-  --abzeichen-gruen: #3fd39a;
-  --abzeichen-gruen-rgb: 63,211,154;
-  --abzeichen-rot: #f0555c;
-  --abzeichen-rot-rgb: 240,85,92;
+  --badge-green: #3fd39a;
+  --badge-green-rgb: 63,211,154;
+  --badge-red: #f0555c;
+  --badge-red-rgb: 240,85,92;
   /* DIE MARKE -- 0.23.0. Sie ist seit dieser Runde ein eingebautes SVG und
      kann darum Variablen lesen; `marke-dunkel.svg` faellt weg.
      KEINE NEUEN FARBEN: die Striche sind --muted und --accent-text, und beide
@@ -166,8 +166,8 @@
      wer spaeter --muted verschiebt, soll die Frage gestellt bekommen, ob die
      Marke mitgehen soll. Gemessen auf ihrem Grund: dunkel 5,58 und 7,31,
      hell 4,62 und 4,59 -- die Schwelle fuer Grafik ist 3,0. */
-  --marke-grau: var(--muted);
-  --marke-strich: var(--accent-text);
+  --brand-grey: var(--muted);
+  --brand-line: var(--accent-text);
   /* DIE DAEMPFUNG EINES ABGELEHNTEN EINTRAGS -- 0.23.0 (Regel F4 des
      Farbkonzepts). SIE SCHIEBT ZUM GRUND HIN UND NICHT ZU SCHWARZ, und
      deshalb ist sie eine Variable und keine feste Zeile.
@@ -179,20 +179,20 @@
      abgelehnte Eintrag damit der lauteste Fleck der Seite und stuende vor dem
      angenommenen daneben. `opacity` schiebt ihn in die Karte hinein und
      erreicht dort GENAU denselben Wert wie brightness im Dunklen. */
-  --daempfung: grayscale(.85) brightness(.5);
+  --dimmed: grayscale(.85) brightness(.5);
   /* Die Werkzeugecke im Betrachter und die Bedienung im Vollbild. */
-  --werkzeug-rgb: 14,16,18;
-  --vb-flaeche-rgb: 20,23,27;
-  --rand-auf-dunkel-rgb: 255,255,255;
+  --tool-rgb: 14,16,18;
+  --lb-surface-rgb: 20,23,27;
+  --edge-on-dark-rgb: 255,255,255;
   /* Der Schleier -- hinter dem Dialog und hinter dem Vollbild. */
-  --schleier-rgb: 6,7,9;
+  --scrim-rgb: 6,7,9;
   /* ZWEI FERTIGE WERTE UND NICHT ZWEI ALPHAS IN DEN REGELN: im hellen Schema
      aendert sich an beiden BEIDES -- Farbe und Deckung. Der Schleier wird
      leichter (ein Dialog ueber einer hellen Seite braucht keine 78 Prozent),
      und der Vollbildgrund ist ueberhaupt kein Schleier mehr, sondern eine
      deckende Flaeche. */
-  --schleier: rgba(var(--schleier-rgb), .78);
-  --vb-grund: rgba(var(--schleier-rgb), .97);
+  --scrim: rgba(var(--scrim-rgb), .78);
+  --lb-bg: rgba(var(--scrim-rgb), .97);
 
   --r-sm: 7px;
   --r: 11px;
@@ -203,7 +203,7 @@
   /* DER VIERTE. Er stand als einziger fest im Blatt (eingeklapptes Menue der
      Kopfzeile), obwohl G4 sagt, dass die Schatten ueber ihre Variablen
      gehen. */
-  --sh-menue: 0 6px 18px rgba(0,0,0,.45);
+  --sh-menu: 0 6px 18px rgba(0,0,0,.45);
 
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
@@ -250,16 +250,16 @@
      Konkurrenz zu 90 oder 100.
      EINE PRUEFUNG HAELT DIE REIHENFOLGE FEST, damit die naechste Kachel sie
      nicht wieder aufmacht. */
-  --z-ausschnittrahmen: 2;
-  --z-betrachter-bedienung: 3;
-  --z-blaetterpfeile: 4;
-  --z-zeitleisten-hinweis: 5;
-  --z-kopfzeile: 20;
-  --z-kopfzeilen-menue: 30;
-  --z-vergleichsleiste: 40;
-  --z-vollbild: 90;
+  --z-crop-frame: 2;
+  --z-viewer-tools: 3;
+  --z-page-arrows: 4;
+  --z-timeline-hint: 5;
+  --z-masthead: 20;
+  --z-masthead-menu: 30;
+  --z-compare-bar: 40;
+  --z-lightbox: 90;
   --z-dialog: 100;
-  --z-meldung: 120;
+  --z-toast: 120;
 }
 
 /* ═════════════════ DAS HELLE SCHEMA — 0.23.0 ═════════════════
@@ -283,8 +283,8 @@
    WAS HIER NICHT STEHT, IST DIE HALBE AUSSAGE:
    * --accent bleibt #ff7a1a. Die Marke bekommt keinen zweiten Wert; den
      Kontrast traegt der RAND (--accent-line), nicht die Flaeche.
-   * --foto-rgb, --auf-foto, --auf-foto-leise, --auf-accent, --auf-signal,
-     --werkzeug-rgb, --vb-flaeche-rgb und --rand-auf-dunkel-rgb fehlen
+   * --photo-rgb, --on-photo, --on-photo-dim, --on-accent, --on-signal,
+     --tool-rgb, --lb-surface-rgb und --edge-on-dark-rgb fehlen
      ABSICHTLICH: was auf einem Foto oder auf einer gefuellten Flaeche liegt,
      folgt seinem Grund und nicht dem Schema. */
 :root[data-thema="hell"] {
@@ -309,7 +309,7 @@
   --accent-text: #ad4f0b;
   --accent-text-hi: #933f06;
   --accent-dim: rgba(var(--accent-rgb), .16);
-  --accent-kante: var(--accent-text);
+  --accent-edge: var(--accent-text);
   /* KEINE TEILDECKUNG: aus --accent gemischt erreicht der Rand auf Weiss auch
      bei VOLLER Deckung nur 2,61 : 1 -- es gibt kein Alpha, das ihn rettet.
      Im hellen Schema fallen Rand und Schrift deshalb zusammen. Ein Wert
@@ -337,13 +337,13 @@
 
   --line-hover: #b9c2cb;
   --line-hover-2: #aab4bf;
-  --platzhalter: #78828d;
+  --placeholder: #78828d;
   /* DIE DREI WERTE DER ZEITLEISTE IM HELLEN SCHEMA -- 0.24.0, Bauabschnitt
      0.1. Gemessen gegen --bg (#eaedf1) und nicht gegen die Karte, denn die
      Zeitleiste liegt auf dem Grund:
-       --zl-linie  #b9c2cb  1,54 : 1   (die Latte fuer eine Hilfslinie: 1,5)
-       --zl-mitte  #9aa5b0  2,13 : 1   (die Latte fuer die mittlere: 2,0)
-       --zl-jahr   --muted  4,62 : 1   (die Latte fuer tragenden Text: 4,5)
+       --timeline-line  #b9c2cb  1,54 : 1   (die Latte fuer eine Hilfslinie: 1,5)
+       --timeline-mid  #9aa5b0  2,13 : 1   (die Latte fuer die mittlere: 2,0)
+       --timeline-year   --muted  4,62 : 1   (die Latte fuer tragenden Text: 4,5)
      Die Hilfslinie nimmt --line-hover und keinen neuen Wert: die Palette
      kennt diesen Grauton schon, und ein Raster ist so laut wie ein Rand
      unter dem Zeiger. Die mittlere Linie braucht einen eigenen -- zwischen
@@ -352,33 +352,33 @@
      DIE JAHRESZAHL WIRD TRAGENDER TEXT. Sie stand auf --faint, und das
      Farbkonzept sagt in 4.1 ausdruecklich, dass --faint nie tragender Text
      ist -- bei 0,63 rem Festbreite ist sie aber genau das. */
-  --zl-linie: var(--line-hover);
-  --zl-mitte: #9aa5b0;
-  --zl-jahr: var(--muted);
+  --timeline-line: var(--line-hover);
+  --timeline-mid: #9aa5b0;
+  --timeline-year: var(--muted);
   /* Der Grund hinter einem Foto. Heute #0a0c0e -- gegen eine weisse Karte
      waeren das 19,59 : 1, der lauteste Fleck der ganzen Seite. Dieselbe Rolle
      wie bisher, nur in die andere Richtung: eine Flaeche, die zuruecktritt. */
-  --bild-grund: #e3e7ec;
-  --bild-grund-2: #dde2e8;
-  --vorschau-grund: #f4f6f8;
+  --image-bg: #e3e7ec;
+  --image-bg-2: #dde2e8;
+  --preview-bg: #f4f6f8;
 
   /* Der Schleier wird leichter -- ein Dialog ueber einer hellen Seite braucht
      keine 78 Prozent. Der Vollbildgrund ist ueberhaupt kein Schleier mehr,
      sondern eine deckende Flaeche; der Grund steht am Betrachter weiter unten. */
-  --daempfung: grayscale(.85) opacity(.45);
+  --dimmed: grayscale(.85) opacity(.45);
 
-  --schleier-rgb: 20,26,33;
-  --schleier: rgba(var(--schleier-rgb), .55);
-  --vb-grund: #2b323a;
+  --scrim-rgb: 20,26,33;
+  --scrim: rgba(var(--scrim-rgb), .55);
+  --lb-bg: #2b323a;
 
   /* Schwarz bei 45 Prozent ueber Weiss ist Russ. Auf hellem Grund traegt
      ohnehin der Rand und nicht der Schatten: das Alpha faellt auf rund ein
      Sechstel, und der Ton geht von reinem Schwarz auf die 210 Grad der
      uebrigen Palette. */
-  --sh-sm: 0 1px 2px rgba(var(--schleier-rgb), .06);
-  --sh: 0 4px 16px rgba(var(--schleier-rgb), .10);
-  --sh-lg: 0 12px 40px rgba(var(--schleier-rgb), .16);
-  --sh-menue: 0 6px 18px rgba(var(--schleier-rgb), .12);
+  --sh-sm: 0 1px 2px rgba(var(--scrim-rgb), .06);
+  --sh: 0 4px 16px rgba(var(--scrim-rgb), .10);
+  --sh-lg: 0 12px 40px rgba(var(--scrim-rgb), .16);
+  --sh-menu: 0 6px 18px rgba(var(--scrim-rgb), .12);
 }
 
 /* ---- DER BETRACHTER IST EIN RAUM MIT EIGENEM LICHT — 0.23.0 ----
@@ -422,7 +422,7 @@
   --accent-text: var(--accent);
   --accent-text-hi: var(--accent-hi);
   /* Im Betrachter ist es wieder dunkel, also ist die Kante wieder die Flaeche. */
-  --accent-kante: var(--accent);
+  --accent-edge: var(--accent);
   --accent-dim: rgba(var(--accent-rgb), .13);
   --accent-line: rgba(var(--accent-rgb), .42);
 
@@ -494,7 +494,7 @@ a { color: inherit; text-decoration: none; }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: none; padding: 0; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-::selection { background: var(--accent); color: var(--auf-accent); }
+::selection { background: var(--accent); color: var(--on-accent); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -555,8 +555,8 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 }
 .btn:hover { background: var(--surface-3); border-color: var(--line-hover); color: var(--text); }
 .btn:active { transform: translateY(1px); }
-.btn-accent { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); font-weight: 620; }
-.btn-accent:hover { background: var(--accent-hi); border-color: var(--accent-hi); color: var(--auf-accent); }
+.btn-accent { background: var(--accent); border-color: var(--accent-edge); color: var(--on-accent); font-weight: 620; }
+.btn-accent:hover { background: var(--accent-hi); border-color: var(--accent-hi); color: var(--on-accent); }
 .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
 .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
 .btn-danger { color: var(--red); border-color: rgba(var(--red-rgb), .32); background: transparent; }
@@ -662,7 +662,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .masthead {
   display: flex; align-items: center; gap: 12px;
   padding: 20px 0 17px; border-bottom: 1px solid var(--line); margin-bottom: 22px; flex-wrap: wrap;
-  position: sticky; top: 0; z-index: var(--z-kopfzeile);
+  position: sticky; top: 0; z-index: var(--z-masthead);
   /* DECKEND UND OHNE MILCHGLAS -- 0.22.0. Bis 0.21.1 stand hier ein Verlauf
      auf --bg mit `backdrop-filter: blur(10px)` -- gegen die Regel, die der
      Projektstand seit 0.19.x in Abschnitt 10a ausspricht: Milchglas kostet auf
@@ -794,7 +794,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Rand UND Flaeche -- 0.22.0. Bis 0.21.1 antwortete die Pille nur mit dem
    Rand; die gewaehlte (`.pill.on`, weiter unten) bleibt gefuellt. */
 .pill:hover { border-color: var(--accent-line); color: var(--text); background: var(--accent-dim); }
-.pill.on { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); font-weight: 620; }
+.pill.on { background: var(--accent); border-color: var(--accent-edge); color: var(--on-accent); font-weight: 620; }
 .pill-tag { font-family: var(--mono); font-size: .77rem; }
 /* Setzt den Favoritenumschalter von der Statusreihe ab: die drei davor sind
    drei Zustaende EINES Merkmals, dieser hier ist ein eigenes. Ohne den Abstand
@@ -897,7 +897,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .card:hover { border-color: var(--line-hover-2); transform: translateY(-2px); box-shadow: var(--sh); }
 .card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
 .card-img {
-  aspect-ratio: 1/1; background: var(--bild-grund);   /* quadratisch, Ausschnitt ueber den Fokuspunkt */
+  aspect-ratio: 1/1; background: var(--image-bg);   /* quadratisch, Ausschnitt ueber den Fokuspunkt */
   display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
 }
 /* DER ENGERE AUSSCHNITT WIRD SEIT 0.19.5 NICHT MEHR HIER GEZOGEN, SONDERN
@@ -920,8 +920,8 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    das Heben der Kachel um zwei Bildpunkte statt drei (Gestaltungsregel G2). */
 .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: filter .2s var(--ease), transform .3s var(--ease); }
 .card:hover .card-img img { transform: scale(1.02); }
-.card-img .ph { color: var(--platzhalter); }
-.card.rejected .card-img img { filter: var(--daempfung); }
+.card-img .ph { color: var(--placeholder); }
+.card.rejected .card-img img { filter: var(--dimmed); }
 .card.rejected .card-title { color: var(--muted); }
 .card-badges { position: absolute; top: 9px; left: 9px; display: flex; gap: 5px; flex-wrap: wrap; }
 /* Der Favoritenstern liegt NICHT blank auf dem Foto -- dort ginge er unter:
@@ -934,12 +934,12 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   font-size: 1.05rem; line-height: 1; color: var(--gold);
   width: 26px; height: 26px; display: flex;
   align-items: center; justify-content: center;
-  background: rgba(var(--foto-rgb), .82);
+  background: rgba(var(--photo-rgb), .82);
   border-radius: 999px;
 }
 .photo-count {
   position: absolute; bottom: 8px; right: 8px;
-  background: rgba(var(--foto-rgb), .82); color: var(--auf-foto);
+  background: rgba(var(--photo-rgb), .82); color: var(--on-photo);
   font-family: var(--mono); font-size: .67rem; padding: 2px 7px; border-radius: 999px;
 }
 /* Die Abspielmarke auf der Karte. Derselbe dunkle Traeger wie beim Stern und
@@ -951,7 +951,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   font-size: .72rem; line-height: 1; color: var(--text-2);
   width: 24px; height: 24px; display: flex;
   align-items: center; justify-content: center;
-  background: rgba(var(--foto-rgb), .82);
+  background: rgba(var(--photo-rgb), .82);
   border-radius: 999px; padding-left: 2px;
 }
 .card-body { padding: 12px 14px 13px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
@@ -1044,7 +1044,7 @@ mark {
   font-size: .8rem; color: transparent; flex-shrink: 0; transition: all .15s var(--ease);
 }
 .pick-box:hover { border-color: var(--accent-line); }
-.pick-box.on { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); }
+.pick-box.on { background: var(--accent); border-color: var(--accent-edge); color: var(--on-accent); }
 
 .badge {
   display: inline-flex; align-items: center;
@@ -1052,8 +1052,8 @@ mark {
   letter-spacing: .07em; text-transform: uppercase;
   padding: 3px 8px; border-radius: 5px; border: 1px solid;
 }
-.badge-rejected { background: rgba(var(--foto-rgb), .8); border-color: rgba(var(--abzeichen-rot-rgb), .5); color: var(--abzeichen-rot); }
-.badge-tested { background: rgba(var(--foto-rgb), .8); border-color: rgba(var(--abzeichen-gruen-rgb), .45); color: var(--abzeichen-gruen); }
+.badge-rejected { background: rgba(var(--photo-rgb), .8); border-color: rgba(var(--badge-red-rgb), .5); color: var(--badge-red); }
+.badge-tested { background: rgba(var(--photo-rgb), .8); border-color: rgba(var(--badge-green-rgb), .45); color: var(--badge-green); }
 
 .empty {
   border: 1.5px dashed var(--line); border-radius: var(--r-lg);
@@ -1062,12 +1062,12 @@ mark {
 /* DAS PLATZHALTERZEICHEN UEBER DEM SATZ -- 0.22.0 (Ideentafel N3). Ein leerer
    Bereich sieht damit gewollt aus und nicht kaputt. Dasselbe Zeichen wie in
    der Kachel ohne Foto; keine Bewegung. */
-.empty .ph { display: block; margin: 0 auto 12px; color: var(--platzhalter); }
+.empty .ph { display: block; margin: 0 auto 12px; color: var(--placeholder); }
 .empty h2 { font-size: 1.2rem; font-weight: 620; margin: 0 0 7px; letter-spacing: -.02em; }
 /* Dasselbe fuer die leeren Listen im Eintrag: Zeichen ueber dem Satz, mittig,
    kleiner als in der Uebersicht. */
 .leer-zustand { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0 8px; text-align: center; }
-.leer-zustand .ph { width: 30px; height: 30px; color: var(--platzhalter); }
+.leer-zustand .ph { width: 30px; height: 30px; color: var(--placeholder); }
 .empty p { color: var(--muted); margin: 0; font-size: .93rem; }
 
 /* ---------- Detail ---------- */
@@ -1079,7 +1079,7 @@ mark {
 @media (max-width: 860px) { .meta-col { position: static; } }
 
 .viewer {
-  position: relative; aspect-ratio: 4/3; background: var(--bild-grund-2);
+  position: relative; aspect-ratio: 4/3; background: var(--image-bg-2);
   border-radius: var(--r); overflow: hidden;
   display: flex; align-items: center; justify-content: center; border: 1px solid var(--line);
 }
@@ -1090,12 +1090,12 @@ mark {
    der Oberflaeche. Er ist in jedem Schema schwarz, weil das Bild es dort
    ist. Dasselbe gilt an `.lb-stage video`. */
 .viewer video { width: 100%; height: 100%; object-fit: contain; background: #000; }
-.viewer .ph { color: var(--platzhalter); }
+.viewer .ph { color: var(--placeholder); }
 .vnav {
   position: absolute; top: 50%; transform: translateY(-50%);
   width: 36px; height: 36px; border-radius: 50%;
-  background: rgba(var(--werkzeug-rgb), .86);
-  border: 1px solid rgba(var(--rand-auf-dunkel-rgb), .12);
+  background: rgba(var(--tool-rgb), .86);
+  border: 1px solid rgba(var(--edge-on-dark-rgb), .12);
   display: flex; align-items: center; justify-content: center;
   color: var(--text); font-size: 1.27rem; transition: all .15s var(--ease); opacity: 0;
 }
@@ -1115,16 +1115,16 @@ mark {
    GEWISCHT WIRD ZUSAETZLICH (siehe app.js, drawViewer): der Wisch ist der
    bequeme Weg, die Pfeile sind der auffindbare. */
 @media (hover: none) { .vnav { opacity: 1; } }
-.vnav:hover { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); transform: translateY(-50%) scale(1.07); }
+.vnav:hover { background: var(--accent); border-color: var(--accent-edge); color: var(--on-accent); transform: translateY(-50%) scale(1.07); }
 .vnav.prev { left: 10px; } .vnav.next { right: 10px; }
 .vcount {
   position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-  background: rgba(var(--foto-rgb), .84); color: var(--auf-foto);
+  background: rgba(var(--photo-rgb), .84); color: var(--on-photo);
   font-family: var(--mono); font-size: .73rem; padding: 3px 10px; border-radius: 999px;
 }
 .main-flag {
   position: absolute; top: 10px; left: 10px;
-  background: var(--accent); color: var(--auf-accent);
+  background: var(--accent); color: var(--on-accent);
   font-family: var(--mono); font-size: .6rem; font-weight: 700;
   letter-spacing: .09em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px;
 }
@@ -1132,12 +1132,12 @@ mark {
 /* DER BILDSTREIFEN NUTZT DIE BREITE -- 0.22.0. Bis 0.21.1 war er am breiten
    Schirm eine Reihe fester 62-px-Kacheln mit totem Rest rechts; die
    Telefonfassung (Raster, `auto-fill`) gilt jetzt ueberall, und die
-   Mindestkante kommt aus der Einstellung `--streifen`. Die Kacheln werden von
+   Mindestkante kommt aus der Einstellung `--tile-min`. Die Kacheln werden von
    selbst so gross, dass die Zeile voll ist. */
-.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--streifen), 1fr)); gap: 7px; margin: 10px 0; }
+.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr)); gap: 7px; margin: 10px 0; }
 .thumb {
   width: auto; height: auto; aspect-ratio: 1/1; border-radius: 8px; overflow: hidden;
-  border: 2px solid var(--line); position: relative; background: var(--bild-grund);
+  border: 2px solid var(--line); position: relative; background: var(--image-bg);
   cursor: grab; transition: border-color .15s var(--ease), transform .15s var(--ease), opacity .15s var(--ease);
 }
 /* OHNE `transform` SEIT 0.19.5 -- aus demselben Grund wie an der Kachel der
@@ -1145,8 +1145,8 @@ mark {
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 .thumb.current { border-color: var(--accent); }
 .thumb.dragging { opacity: .45; transform: scale(.93); cursor: grabbing; }
-.thumb .num { position: absolute; bottom: 0; left: 0; background: rgba(var(--foto-rgb), .82); color: var(--auf-foto); font-family: var(--mono); font-size: .6rem; padding: 1px 5px; border-radius: 0 5px 0 0; }
-.thumb .del { position: absolute; top: 0; right: 0; width: 19px; height: 19px; background: rgba(var(--foto-rgb), .82); color: var(--auf-foto); font-size: .73rem; display: flex; align-items: center; justify-content: center; border-radius: 0 0 0 6px; opacity: 0; transition: opacity .15s var(--ease); }
+.thumb .num { position: absolute; bottom: 0; left: 0; background: rgba(var(--photo-rgb), .82); color: var(--on-photo); font-family: var(--mono); font-size: .6rem; padding: 1px 5px; border-radius: 0 5px 0 0; }
+.thumb .del { position: absolute; top: 0; right: 0; width: 19px; height: 19px; background: rgba(var(--photo-rgb), .82); color: var(--on-photo); font-size: .73rem; display: flex; align-items: center; justify-content: center; border-radius: 0 0 0 6px; opacity: 0; transition: opacity .15s var(--ease); }
 /* Marke und Laenge am Video. Beides folgt aus art und dauer, es gibt keinen
    Schalter dafuer -- dieselbe Bauform wie die Gewichtsmarke am Kriterium.
    pointer-events: none, sonst faengt die Marke das Ziehen zum Umsortieren ab. */
@@ -1154,11 +1154,11 @@ mark {
   position: absolute; top: 3px; left: 3px; pointer-events: none;
   font-size: .58rem; line-height: 1; color: var(--text-2);
   width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
-  background: rgba(var(--foto-rgb), .82); border-radius: 999px; padding-left: 1px;
+  background: rgba(var(--photo-rgb), .82); border-radius: 999px; padding-left: 1px;
 }
 .thumb .dauer {
   position: absolute; bottom: 0; right: 0; pointer-events: none;
-  background: rgba(var(--foto-rgb), .82); color: var(--auf-foto);
+  background: rgba(var(--photo-rgb), .82); color: var(--on-photo);
   font-family: var(--mono); font-size: .58rem; padding: 1px 4px; border-radius: 5px 0 0 0;
 }
 .lb-thumb { position: relative; }
@@ -1177,7 +1177,7 @@ mark {
    Punkt, an dem sich die beiden Geraete wirklich unterscheiden -- und er steht
    hier, damit niemand ihn fuer ein Versehen haelt. */
 @media (hover: none) { .thumb .del { display: none; } }
-.thumb .del:hover { background: var(--red); color: var(--auf-signal); }
+.thumb .del:hover { background: var(--red); color: var(--on-signal); }
 
 .drop {
   display: block; border: 1.5px dashed var(--line); border-radius: var(--r-sm);
@@ -1630,14 +1630,14 @@ mark {
   width: max-content; max-width: calc(100% - 24px); margin: 0 auto;
   background: var(--surface-3); border: 1px solid var(--line); color: var(--text);
   border-radius: 999px; padding: 8px 9px 8px 19px;
-  display: flex; align-items: center; gap: 13px; box-shadow: var(--sh-lg); z-index: var(--z-vergleichsleiste); font-size: .9rem;
+  display: flex; align-items: center; gap: 13px; box-shadow: var(--sh-lg); z-index: var(--z-compare-bar); font-size: .9rem;
   animation: rise .26s var(--ease) both;
 }
 .cmp-bar .btn-x { color: var(--muted); padding: 4px 8px; }
 .cmp-bar .btn-x:hover { color: var(--text); }
 .cmp-grid { display: grid; gap: 18px; margin-top: 6px; }
 .cmp-col { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-.cmp-col .cimg { aspect-ratio: 16/10; background: var(--bild-grund-2); }
+.cmp-col .cimg { aspect-ratio: 16/10; background: var(--image-bg-2); }
 .cmp-col .cimg img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cmp-col .cbody { padding: 13px 15px 15px; }
 .cmp-col h3 { font-size: 1.07rem; font-weight: 620; letter-spacing: -.02em; margin: 0 0 3px; }
@@ -1725,8 +1725,8 @@ mark {
    abgeschlossen"; keine neue Farbe. Gesetzt wird die Klasse von
    gespeichert() in app.js und nach dem Ablauf wieder genommen, damit die
    naechste Speicherung wieder von vorn anfaengt. */
-.sys-card.gespeichert { animation: karte-gespeichert .4s var(--ease); }
-@keyframes karte-gespeichert {
+.sys-card.gespeichert { animation: card-saved .4s var(--ease); }
+@keyframes card-saved {
   0% { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
   100% { border-color: var(--line-2); box-shadow: none; }
 }
@@ -2290,7 +2290,7 @@ mark {
    weiter -- man schliesst das Bild und steht an einer voellig anderen Stelle
    der Liste. `body.lb-open { overflow: hidden }` weiter unten allein reicht
    dafuer nicht: es haelt den Bildlauf an, nicht die Weiterreichung. */
-.lightbox { position: fixed; inset: 0; z-index: var(--z-vollbild); background: var(--vb-grund); display: flex; flex-direction: column; overscroll-behavior: contain; animation: fade .2s var(--ease) both; }
+.lightbox { position: fixed; inset: 0; z-index: var(--z-lightbox); background: var(--lb-bg); display: flex; flex-direction: column; overscroll-behavior: contain; animation: fade .2s var(--ease) both; }
 .lb-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
 .lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; user-select: none; -webkit-user-drag: none; }
 /* flex-start ist Absicht und muss bleiben: ein zentriertes Flex-Kind, das
@@ -2330,8 +2330,8 @@ mark {
 /* Die Pfeile haengen an der Lightbox, nicht an der Buehne: im gezoomten
    Zustand wird .lb-stage zum Scrollbereich, und Kinder davon wandern beim
    Verschieben mit dem Bild aus dem Bild. .lightbox ist fixed und scrollt nie. */
-.lb-nav { position: absolute; z-index: var(--z-blaetterpfeile); top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%; background: rgba(var(--vb-flaeche-rgb), .9); border: 1px solid rgba(var(--rand-auf-dunkel-rgb), .11); display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 1.53rem; transition: all .15s var(--ease); }
-.lb-nav:hover { background: var(--accent); border-color: var(--accent-kante); color: var(--auf-accent); transform: translateY(-50%) scale(1.07); }
+.lb-nav { position: absolute; z-index: var(--z-page-arrows); top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%; background: rgba(var(--lb-surface-rgb), .9); border: 1px solid rgba(var(--edge-on-dark-rgb), .11); display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 1.53rem; transition: all .15s var(--ease); }
+.lb-nav:hover { background: var(--accent); border-color: var(--accent-edge); color: var(--on-accent); transform: translateY(-50%) scale(1.07); }
 .lb-nav.prev { left: 16px; } .lb-nav.next { right: 16px; }
 /* `safe center` STEHT ZWEIMAL DA, UND DAS IST ABSICHT: mittig ist richtig,
    solange die Reihe hineinpasst -- passt sie nicht, schiebt `center` die
@@ -2353,7 +2353,7 @@ body.lb-open { overflow: hidden; }
    `blur(3px)`; der Schleier ist dafuer eine Spur dichter (78 statt 74
    Prozent). Einblenden 180 ms, Schleier 150 ms: Bewegung antwortet, sie
    unterhaelt nicht (Gestaltungsregel G2). */
-.backdrop { position: fixed; inset: 0; background: var(--schleier); display: flex; align-items: center; justify-content: center; padding: 22px; z-index: var(--z-dialog); animation: fade .15s var(--ease) both; }
+.backdrop { position: fixed; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 22px; z-index: var(--z-dialog); animation: fade .15s var(--ease) both; }
 .modal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px; width: 100%; max-width: 460px; box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 13px; max-height: 88vh; max-height: 88dvh; overflow-y: auto; animation: rise .18s var(--ease) both; }
 .modal h2 { font-size: 1.27rem; font-weight: 640; letter-spacing: -.022em; margin: 0; }
 .modal p { margin: 0; color: var(--muted); font-size: .93rem; line-height: 1.6; }
@@ -2410,8 +2410,8 @@ body.lb-open { overflow: hidden; }
 
 /* Ueber dem Bedienbalken des Telefons und nicht darunter -- sonst steht die
    Meldung zur Haelfte hinter dem Griffstreifen. */
-.toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 999px; font-size: .9rem; z-index: var(--z-meldung); box-shadow: var(--sh-lg); animation: pop 2.6s forwards; max-width: 82vw; text-align: center; }
-.toast.err { background: var(--red); border-color: var(--red); color: var(--auf-signal); }
+.toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 999px; font-size: .9rem; z-index: var(--z-toast); box-shadow: var(--sh-lg); animation: pop 2.6s forwards; max-width: 82vw; text-align: center; }
+.toast.err { background: var(--red); border-color: var(--red); color: var(--on-signal); }
 /* DIE MELDUNG MIT KNOPF -- 0.22.0 (E16): „Sterne bei „Qualität" entfernt · Rückgängig".
    Der Knopf ist Text in der Akzentfarbe, kein Kasten im Kasten; die Dauer
    setzt toast() selbst (sechs Sekunden). */
@@ -2434,8 +2434,8 @@ body.lb-open { overflow: hidden; }
   position: relative; margin: 0 0 22px; padding: 14px 0 4px;
 }
 .zl-achse { position: absolute; left: 0; right: 0; top: 14px; height: 60px; }
-.zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--zl-linie); }
-.zl-linie.mitte { background: var(--zl-mitte); }
+.zl-linie { position: absolute; left: 0; right: 0; height: 1px; background: var(--timeline-line); }
+.zl-linie.mitte { background: var(--timeline-mid); }
 .zl-feld { position: relative; height: 60px; }
 .zl-punkt {
   position: absolute; width: 9px; height: 9px; margin: 0 0 -4px -4px;
@@ -2448,17 +2448,17 @@ body.lb-open { overflow: hidden; }
    behaelt seine 9 Pixel; sonst saesse er versetzt zu den eigenen. */
 .zl-punkt.fremd { background: transparent; border: 1.5px solid var(--gold); }
 .zl-punkt:hover { opacity: 1; transform: scale(1.5); }
-.zl-jahre { position: relative; height: 18px; margin-top: 4px; border-top: 1px solid var(--zl-linie); }
+.zl-jahre { position: relative; height: 18px; margin-top: 4px; border-top: 1px solid var(--timeline-line); }
 .zl-jahr {
   position: absolute; transform: translateX(-50%); top: 3px;
-  font-family: var(--mono); font-size: .63rem; color: var(--zl-jahr); white-space: nowrap;
+  font-family: var(--mono); font-size: .63rem; color: var(--timeline-year); white-space: nowrap;
 }
 .zl-hinweis {
   position: absolute; bottom: 100%; transform: translateX(-50%);
-  margin-bottom: -6px; padding: 7px 10px; z-index: var(--z-zeitleisten-hinweis); pointer-events: none;
+  margin-bottom: -6px; padding: 7px 10px; z-index: var(--z-timeline-hint); pointer-events: none;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
   display: flex; flex-direction: column; gap: 2px; white-space: nowrap;
-  box-shadow: var(--sh-menue);
+  box-shadow: var(--sh-menu);
 }
 .zl-hinweis strong { font-size: .83rem; font-weight: 600; }
 .zl-hinweis span { font-family: var(--mono); font-size: .7rem; color: var(--muted); }
@@ -2517,7 +2517,7 @@ body.lb-open { overflow: hidden; }
    Geste beruehrt wird -- und ein Papierkorb gehoert aus dem Daumenbereich
    heraus und nicht hinein. */
 .vtools {
-  position: absolute; top: 10px; right: 10px; z-index: var(--z-betrachter-bedienung);
+  position: absolute; top: 10px; right: 10px; z-index: var(--z-viewer-tools);
   display: flex; align-items: center; gap: 6px;
   opacity: 0; transition: opacity .15s var(--ease);
 }
@@ -2539,7 +2539,7 @@ body.lb-open { overflow: hidden; }
 .vfocus, .vfull, .vweg {
   display: flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 999px;
-  background: rgba(var(--foto-rgb), .78); border: 1px solid var(--line); color: var(--auf-foto);
+  background: rgba(var(--photo-rgb), .78); border: 1px solid var(--line); color: var(--on-photo);
   transition: color .15s var(--ease), border-color .15s var(--ease),
               background .15s var(--ease);
 }
@@ -2574,9 +2574,9 @@ body.lb-open { overflow: hidden; }
 .viewer.focus-mode.griff-ns, .viewer.focus-mode.griff-ns img { cursor: ns-resize; }
 .viewer.focus-mode.griff-ew, .viewer.focus-mode.griff-ew img { cursor: ew-resize; }
 .focus-frame {
-  position: absolute; pointer-events: none; z-index: var(--z-ausschnittrahmen);
+  position: absolute; pointer-events: none; z-index: var(--z-crop-frame);
   border: 2px solid var(--accent); border-radius: 2px;
-  box-shadow: 0 0 0 9999px rgba(var(--foto-rgb), .55);
+  box-shadow: 0 0 0 9999px rgba(var(--photo-rgb), .55);
 }
 /* DER SCHIEBER FUER DIE WEITE DES AUSSCHNITTS, nur im Ausschnittmodus.
    z-index ueber dem Rahmen: der Rahmen legt einen Schleier ueber alles
@@ -2584,10 +2584,10 @@ body.lb-open { overflow: hidden; }
    pointer-events bleibt an -- er ist die einzige Stelle im Betrachter, die
    im Ausschnittmodus etwas anderes tut als den Punkt zu setzen. */
 .vzoom {
-  position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: var(--z-betrachter-bedienung);
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: var(--z-viewer-tools);
   display: flex; align-items: center; gap: 10px;
   padding: 7px 12px; border-radius: 999px;
-  background: rgba(var(--foto-rgb), .88); border: 1px solid var(--line);
+  background: rgba(var(--photo-rgb), .88); border: 1px solid var(--line);
 }
 .vzoom label { color: var(--text-2); font-size: .78rem; }
 .vzoom input[type="range"] { width: 132px; accent-color: var(--accent); cursor: pointer; }
@@ -2636,10 +2636,10 @@ body.lb-open { overflow: hidden; }
 .abtn:hover { color: var(--accent-text); border-color: var(--accent); }
 .apreview {
   margin: 0 0 10px; padding: 10px; border-radius: var(--r-sm);
-  background: var(--bild-grund); border: 1px solid var(--line);
+  background: var(--image-bg); border: 1px solid var(--line);
 }
 .apreview img { max-width: 100%; max-height: 460px; display: block; margin: 0 auto; border-radius: 4px; }
-.apreview iframe { width: 100%; height: 520px; border: 0; border-radius: 4px; background: var(--vorschau-grund); }
+.apreview iframe { width: 100%; height: 520px; border: 0; border-radius: 4px; background: var(--preview-bg); }
 .atext {
   margin: 0; max-height: 420px; overflow: auto;
   font-family: var(--mono); font-size: .77rem; line-height: 1.6; color: var(--text-2);
@@ -2802,11 +2802,11 @@ body.lb-open { overflow: hidden; }
 .cmt-imgs, .cmt-neu-bilder { display: flex; flex-wrap: wrap; gap: 6px; }
 .cmt-imgs:not(:empty) { margin-top: 9px; }
 .cmt-neu-bilder:not(:empty) { margin-top: 2px; }
-.cmt-img { position: relative; width: 86px; height: 86px; border-radius: var(--r-sm); overflow: hidden; background: var(--bild-grund); }
+.cmt-img { position: relative; width: 86px; height: 86px; border-radius: var(--r-sm); overflow: hidden; background: var(--image-bg); }
 .cmt-img img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; display: block; }
 .cmt-img .del {
   position: absolute; top: 3px; right: 3px; width: 19px; height: 19px;
-  border-radius: 50%; background: rgba(var(--foto-rgb), .8); color: var(--auf-foto-leise);
+  border-radius: 50%; background: rgba(var(--photo-rgb), .8); color: var(--on-photo-dim);
   font-size: .7rem; line-height: 1; opacity: 0; transition: opacity .15s var(--ease);
 }
 .cmt-img:hover .del { opacity: 1; }
@@ -3002,9 +3002,9 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   position: absolute; top: 6px; right: 6px;
   width: 7px; height: 7px; border-radius: 50%;
   background: var(--accent); box-shadow: 0 0 0 2px var(--surface);
-  animation: glocke-auf .3s var(--ease);
+  animation: bell-pop .3s var(--ease);
 }
-@keyframes glocke-auf { 0% { transform: scale(0); } 60% { transform: scale(1.4); } 100% { transform: scale(1); } }
+@keyframes bell-pop { 0% { transform: scale(0); } 60% { transform: scale(1.4); } 100% { transform: scale(1); } }
 /* Die Zahl am Knopf „Offen". Sie beschreibt einen ZUSTAND und ist deshalb eine
    Zahl -- der Punkt an der Glocke meldet ein EREIGNIS und ist deshalb keiner.
    Sie steht IM Knopf und nicht als Marke darauf: sie ist zu lesen, nicht bloss
@@ -3047,7 +3047,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
 
 /* Das Blatt kommt von unten herein und nicht aus der Mitte heraus: `rise`
    waere hier die falsche Bewegung -- es hebt an, wo dieses Blatt schiebt. */
-@keyframes blatt { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes page { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 
 /* ---------------------------------------------------------------
    DER ZEIGER: was mit dem Finger getroffen werden muss
@@ -3268,12 +3268,12 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      den Pfeil um die halbe eigene Hoehe nach unten. */
   .vnav:hover {
     transform: translateY(-50%);
-    background: rgba(var(--werkzeug-rgb), .82); border-color: rgba(var(--rand-auf-dunkel-rgb), .12);
+    background: rgba(var(--tool-rgb), .82); border-color: rgba(var(--edge-on-dark-rgb), .12);
     color: var(--text);
   }
   .lb-nav:hover {
     transform: translateY(-50%);
-    background: rgba(var(--vb-flaeche-rgb), .86); border-color: rgba(var(--rand-auf-dunkel-rgb), .11);
+    background: rgba(var(--lb-surface-rgb), .86); border-color: rgba(var(--edge-on-dark-rgb), .11);
     color: var(--text);
   }
 }
@@ -3334,7 +3334,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      `position: relative` waere hier wirkungslos und stuende nur da. */
   .mast-rest {
     display: none;
-    position: absolute; top: 100%; right: 0; z-index: var(--z-kopfzeilen-menue);
+    position: absolute; top: 100%; right: 0; z-index: var(--z-masthead-menu);
     flex-direction: column; align-items: stretch; gap: 2px;
     min-width: 208px; max-width: min(290px, calc(100vw - 24px));
     margin-top: 7px; padding: 7px;
@@ -3884,7 +3884,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
     padding: 20px 16px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
     max-height: 92vh; max-height: 92dvh;
-    animation: blatt .18s var(--ease) both;
+    animation: page .18s var(--ease) both;
   }
   /* Die Knopfreihe untereinander und ueber die volle Breite -- zwei Knoepfe
      nebeneinander sind auf 350 Pixeln zwei schmale Knoepfe.
