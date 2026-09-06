@@ -254,3 +254,26 @@ im Prüfstand und im Sammelblatt.
   Einträge bleiben in der Sprache, in der sie eingetragen wurden.
 * **Kein Wort wird verbessert.** Wer einen Satz besser fände, ändert ihn in
   einer eigenen Runde — hier ist er Zeichen für Zeichen derselbe.
+
+---
+
+## 10. Was der Betreiber am 6. September für Stufe 2 nachgeschärft hat
+
+*Nach dem Bau, in einem Satz gestellt — es ändert an Stufe 1 nichts und legt
+Stufe 2 fest, damit die Frage dann nicht neu gestellt wird. Vollständig steht
+es im Konzept beim Nachtrag zu E9/E11, kurz im Auftrag bei F4.*
+
+1. **Vokabular, Kriterien, Kategorien und Tags gehören in keinem Fall in die
+   Sprachdatei.** Sie stehen in der Datenbank. *Was die Datei unter
+   `vokabular.` trägt, sind die **Vorgaben** — die Beschriftung einer frischen
+   Installation, bevor jemand etwas eingetragen hat.*
+2. **Tags sind für alle Sprachen dieselben** — eine Wolke, keine Zuordnung.
+3. **Vokabular, Kriterien und Kategorien bekommen je angelegter Sprache eine
+   eigene Zuordnung.** Ist nur eine angelegt, gilt die zuerst angelegte für
+   alle.
+4. **Der Eigentümer schaltet im Adminbereich kurz um** und trägt die andere
+   Fassung ein; **ab dann gilt für diese Sprache die dafür angelegte.**
+
+*Der Rückfall ist damit kein Zustand, sondern eine Lage: er gilt genau so
+lange, wie für eine Sprache noch nichts dasteht — derselbe Gedanke wie der
+Rückfall der Texte auf Deutsch.*

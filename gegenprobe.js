@@ -6604,11 +6604,16 @@ const RUECKBAUTEN = [
   },
   {
     /* EINE LOCALE, DIE ES NICHT GIBT. Ohne sie rechnet Intl mit der Sprache
-       des Servers weiter -- still, und das Datum sieht ploetzlich anders aus. */
+       des Servers weiter -- still, und das Datum sieht ploetzlich anders aus.
+       `xx-XX` UND NICHT `de-XYZ`: das zweite ist kein gueltiges Sprachetikett,
+       und `new Intl.PluralRules('de-XYZ')` wirft schon beim Start des Servers.
+       Ein Rueckbau, der den Lauf abreisst, belegt nichts -- gesucht ist die
+       ROTE ZEILE, nicht der Absturz. `xx-XX` ist wohlgeformt und trotzdem
+       keiner Sprache zugeordnet: `supportedLocalesOf` gibt nichts zurueck. */
     nr: '691', name: 'Die Sprachdatei nennt eine Locale, die Intl nicht kennt',
     datei: 'public/sprachen/de.json',
-    suche: '"_locale": "de-DE",',
-    ersatz: '"_locale": "de-XYZ",',
+    suche: "\"_locale\": \"de-DE\",",
+    ersatz: "\"_locale\": \"xx-XX\",",
     erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {

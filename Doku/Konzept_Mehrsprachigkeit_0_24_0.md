@@ -85,6 +85,30 @@ Menge ist jetzt bekannt.*
 | `mail.js` | die vier Briefe | rund **55** deutsche Zeilen (Einladung 12, Rücksetzung 12, Bestätigung 14, Testmail 8, eine gemeinsame Schlusszeile) — **die vier Betreffzeilen stehen nicht dort, sondern in `server.js`** |
 | Vokabular | die 14 Vokabelwörter | Vorgaben **zweimal** — `VOKABULAR_VORGABE` in `server.js`, `VOK_VORGABE` in `app.js` —, gespeichert im globalen Schlüssel `vokabular`; 133 Verwendungen im Browser, 25 im Server |
 
+> **NACHTRAG VOM 6. SEPTEMBER 2026 — STUFE 1 IST GEBAUT, UND DIE ZAHLEN
+> STEHEN JETZT FEST.** Aus den **1.824 Bausteinen** sind **1.190 Schlüssel**
+> geworden: weniger als Stellen, weil derselbe Satz an drei Stellen jetzt
+> einmal dasteht und dreimal gerufen wird. **In `app.js` bleiben 45 lesbare
+> Texte** — HTTP-Verben, Tasten, Formatnamen, vier Server-Befehle, zwei
+> Medienabfragen und der eine feste Satz aus Bauabschnitt 1; sie stehen
+> namentlich im Prüfstand.
+>
+> **Vier Mengen hat der Befund nicht gezählt, und sie sind beim Bauen
+> dazugekommen:**
+>
+> * **Elf Tabellen auf Modulebene** (`SYS_ABSCHNITTE`, `VORGANGSWORT`,
+>   `VERWALTUNGSART`, `THEMA_NAMEN` …). Sie werden ausgewertet, sobald der
+>   Browser die Datei liest — vor der Sprachdatei. Sie halten seither den
+>   **Schlüssel** oder einen **Ruf**, nie einen fertigen Satz.
+> * **45 Gabelungen `=== 1 ?`**, die zwei Sätze wählten. Sie sind gefallen;
+>   **34 Mehrzahlformen** stehen in der Datei, und für die Vokabelwörter
+>   entscheidet `mehrzahl()` an einer Stelle.
+> * **Fünf Stellen, die mit rohem `t()` ein Vokabelwort in eine Vorlage
+>   setzten** — ein `<i>` im Vokabular wäre dort zum Knoten geworden.
+> * **Neun Altlasten**, die der Bildschirmtext-Wächter zum ersten Mal sieht:
+>   vier aus `auth.js` und die **fünf Briefe aus `mail.js`** — ein Brief war
+>   nie ein Bildschirm. *Sie sind in dieser Runde nicht geändert worden.*
+
 **Was NICHT dazugehört, und die Zahl steht hier, damit sie niemand
 mitzählt:** 164 `console.*`-Meldungen im Server (Betreiber), die beiden
 Werkzeuge `zugang.js` und `schluessel.js` (Konsole, nie HTTP), `pruefung.js`
@@ -887,6 +911,35 @@ Entscheidung in einem halben Jahr noch zu beurteilen ist.*
 > der Rückfall werden in Stufe 2 gebaut, und ein flacher Altwert gilt dort
 > als `de`. *Die Entscheidung steht hier, weil sie beim Bauen von Stufe 2
 > vorliegen muss und nicht dann erst gestellt werden soll.*
+
+> **NACHTRAG ZU E9 UND E11 — DIE EINE REGEL FÜR ALLEN INHALT, geschärft vom
+> Betreiber am 6. September 2026, nach dem Bau von Stufe 1.** *Sie fasst
+> zusammen, was bis dahin an drei Stellen stand, und macht aus der Regel für
+> das Vokabular eine Regel für jeden Inhalt:*
+>
+> **1. Nichts davon gehört in die Sprachdatei.** Vokabular, Kriterien,
+> Kategorien und Tags sind Inhalt und stehen in der Datenbank — die
+> Sprachdatei trägt nur die **Vorgaben** unter `vokabular.`, mit denen eine
+> frische Installation beschriftet ist, bevor jemand etwas eingetragen hat.
+>
+> **2. Tags sind für alle Sprachen dieselben.** Eine Wolke, keine Zuordnung,
+> keine zweite Fassung. *Ein Tag ist eine Marke am Bestand und kein Satz.*
+>
+> **3. Vokabular, Kriterien und Kategorien bekommen je angelegter Sprache
+> eine eigene Zuordnung** — in der Datenbank, eine Zeile je Sprache. **Ist nur
+> eine Sprache angelegt, gilt sie für alle:** was gezeigt wird, ist der zuerst
+> angelegte Satz.
+>
+> **4. Der Eigentümer schaltet im Adminbereich kurz um** und trägt für die
+> andere Sprache neue Wörter ein. **Ab dann gilt für diese Sprache die dafür
+> angelegte Fassung** und nicht mehr die zuerst angelegte. *Der Rückfall ist
+> damit kein Zustand, sondern eine Lage: er gilt genau so lange, wie für eine
+> Sprache noch nichts dasteht.*
+>
+> **Für Stufe 1 ist auch das folgenlos** — sie hat keine zweite Sprache, und
+> die Namen stehen schon heute in der Datenbank. *Gebaut wird die Zuordnung in
+> Stufe 2; dieser Nachtrag sagt, wie sie auszusehen hat, damit die Frage dann
+> nicht neu gestellt wird.*
 
 **Und eine Frage, die keine Nummer bekommt, weil sie entschieden ist:** *ob
 die Runde vor der Bereinigung kommt.* **Das hat der Fahrplan am 5. September
