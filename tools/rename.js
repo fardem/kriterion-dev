@@ -24,7 +24,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { zerlege, zusammen, texte, CODE, TEXT } = require('./segments.js');
+const { zerlege, zusammen, texte, CODE, TEXT, KOMMENTAR } = require('./segments.js');
 
 const IDENT = /[A-Za-z_$][A-Za-z0-9_$]*/g;
 
@@ -53,10 +53,38 @@ function ersetzeIdent(src, datei, map, opt = {}) {
       treffer++; return map[m];
     });
   }
+  if (opt.auchKommentare) treffer += ersetzeInKommentaren(teile, map);
   const neu = zusammen(teile);
   const nachher = texte(zerlege(neu, datei));
   probeGleich(vorher, nachher, 'Zeichenketten', datei);
   return { text: neu, treffer };
+}
+
+/* DIE ZITATE IN DEN KOMMENTAREN ZIEHEN MIT -- vom Betreiber am 6. September
+   2026 entschieden. Der deutsche SATZ bleibt Wort fuer Wort stehen; nur der
+   NAME darin wird der neue, damit kein Kommentar auf etwas zeigt, das es nicht
+   mehr gibt.
+   UND NUR DA, WO ES WIRKLICH EIN NAME IST: `bild`, `zeile`, `karte` sind auch
+   deutsche Woerter. Ersetzt wird deshalb nur, was sich als Code zu erkennen
+   gibt -- ein Name mit Grossbuchstaben, Unterstrich oder Ziffer, oder einer,
+   der in Ruecktasten steht oder eine Klammer nach sich zieht. */
+function istCodeName(n) { return /[A-Z0-9_$./]/.test(n); }
+function ersetzeInKommentaren(teile, map) {
+  let treffer = 0;
+  const namen = Object.keys(map).sort((a, b) => b.length - a.length);
+  if (!namen.length) return 0;
+  const re = new RegExp('(?<![A-Za-z0-9_$.-])(' + namen.map(esc).join('|') + ')(?![A-Za-z0-9_$-])', 'g');
+  for (const t of teile) {
+    if (t.art !== KOMMENTAR) continue;
+    t.wert = t.wert.replace(re, (m, name, i, s) => {
+      const davor = s[i - 1], danach = s[i + m.length];
+      const inRuecktasten = davor === '`' || danach === '`';
+      const mitKlammer = danach === '(';
+      if (!istCodeName(name) && !inRuecktasten && !mitKlammer) return m;
+      treffer++; return map[name];
+    });
+  }
+  return treffer;
 }
 
 // --- ganze Zeichenketten ---------------------------------------------------
@@ -115,9 +143,21 @@ function probeGleich(a, b, was, datei) {
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // --- Anwendung -------------------------------------------------------------
+// Nur die Kommentare -- fuer Namen, die schon umbenannt sind und deren Zitate
+// nachziehen sollen.
+function nurKommentare(src, datei, map) {
+  const teile = zerlege(src, datei);
+  const vorher = texte(teile);
+  const treffer = ersetzeInKommentaren(teile, map);
+  const neu = zusammen(teile);
+  probeGleich(vorher, texte(zerlege(neu, datei)), 'Zeichenketten', datei);
+  return { text: neu, treffer };
+}
+
 function wende(datei, art, map, opt = {}) {
   const src = fs.readFileSync(datei, 'utf8');
-  const f = art === 'ident' ? ersetzeIdent : art === 'string' ? ersetzeString : ersetzeInString;
+  const f = art === 'ident' ? ersetzeIdent : art === 'string' ? ersetzeString
+    : art === 'kommentar' ? nurKommentare : ersetzeInString;
   const { text, treffer } = f(src, datei, map, opt);
   if (!opt.probe) fs.writeFileSync(datei, text);
   return treffer;
@@ -133,6 +173,7 @@ if (require.main === module) {
     else if (a.startsWith('--bis=')) opt.bisZeile = +a.slice(6);
     else if (a === '--ohne-eigenschaften') opt.ohneEigenschaften = true;
     else if (a === '--auch-code') opt.auchCode = true;
+    else if (a === '--auch-kommentare') opt.auchKommentare = true;
     else args.push(a);
   }
   if (art === 'batch') {
@@ -153,4 +194,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ersetzeIdent, ersetzeString, ersetzeInString, wende, bezeichner, probeGleich };
+module.exports = { ersetzeIdent, ersetzeString, ersetzeInString, ersetzeInKommentaren, nurKommentare, wende, bezeichner, probeGleich, istCodeName };

@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer');
 
 /* ================= Der Uebersetzer =================
    TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 2. Die vier Briefe
-   und die Absagen dieser Datei stehen seither in public/sprachen/<code>.json.
+   und die Absagen dieser Datei stehen seither in public/languages/<code>.json.
    ER WIRD GEREICHT UND NICHT GEHOLT: t() lebt in server.js, und server.js
    requiret diese Datei -- der Weg zurueck waere ein Ring. Beim Start reicht
    server.js den Helfer herein; bis dahin steht hier die Klammerform, damit ein

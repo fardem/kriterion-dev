@@ -5,7 +5,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&
 
 /* ================= Die Sprache ================= */
 /* TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 1. Jeder Text, den
-   ein Mensch am Bildschirm liest, steht in `public/sprachen/<code>.json`; der
+   ein Mensch am Bildschirm liest, steht in `public/languages/<code>.json`; der
    Quelltext kennt nur noch den Schluessel.
 
    FLACHE SCHLUESSEL MIT PUNKTEN und keine verschachtelten Objekte:
@@ -7305,7 +7305,7 @@ async function renderDetail(id, begriffAdresse) {
    gemeint ist. */
 /* DIE NAMEN SIND RUFE UND KEINE WERTE -- 0.24.0. Diese Zeile wird beim Laden
    der Datei ausgewertet, die Sprachdatei kommt erst danach: ein Wert stuende
-   fuer immer als ⟦karte.persoenlich⟧ am Reiter. Gefragt wird beim Zeichnen.
+   fuer immer als ⟦card.personal⟧ am Reiter. Gefragt wird beim Zeichnen.
    Dieselbe Ueberlegung wie bei FUND_WORTE und bestaetigungGrund(). */
 const SYS_ABSCHNITTE = [
   { schluessel: 'persoenlich',  name: () => t('card.personal') },

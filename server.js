@@ -46,7 +46,7 @@ const mail = require('./mail');
 
 /* ================= Die Sprachdateien ================= */
 /* TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 1. Der Server
-   liest beim Start ALLE Dateien unter public/sprachen/ in den Speicher; der
+   liest beim Start ALLE Dateien unter public/languages/ in den Speicher; der
    Browser holt sich die eine, die er braucht, ueber express.static. Eine
    Wahrheit, zwei Leser (Konzept 3.3).
 

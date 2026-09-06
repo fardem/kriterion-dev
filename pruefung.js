@@ -15467,7 +15467,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        sonst belegte „kein Verstoss" nichts.
        SEIT 0.24.0 LIEST DER WAECHTER DIE SPRACHDATEI -- dort wohnt der Text
        (Auftrag 3.3). Ueber app.js laeuft er weiter, solange dort noch Saetze
-       stehen; ein Schluessel wie „karte.pruefsummeFingerprint" ist keiner
+       stehen; ein Schluessel wie „card.fingerprint" ist keiner
        davon und faellt heraus. Dass er app.js wirklich noch liest, haelt die
        Gegenprobe 625 fest -- sie schreibt einen Satz zurueck. */
     const btApp = bildschirmtexteVon(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'))
@@ -15479,7 +15479,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        anmeldung.*-Schluessel in de.json.
        DIE UNTERGRENZE BLEIBT EINE ZAHL. Ein Waechter, der nur „null Literale"
        sagt, waere auch dann gruen, wenn jemand die Sprachdatei leerte. */
-    /* WAS HINTER `error:` NOCH STEHEN DARF: ein SCHLUESSEL („server.tagWeg")
+    /* WAS HINTER `error:` NOCH STEHEN DARF: ein SCHLUESSEL („server.tagGone")
        und ein BEZEICHNER („geloescht", der Status in einem Vergleich). Beides
        ist kein Text, den ein Mensch liest -- den Text dazu liest der Waechter
        eine Zeile tiefer in de.json. Alles andere ist ein Literal, das nicht
@@ -21958,7 +21958,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      UND 685 SEIT 0.24.0: neun neue (685 bis 693) -- eines je Waechter der
      Sprachdatei, dazu zwei fuer die Rueckfallprobe, die in zwei Gruppen
      zuhause ist. Sechsundzwanzig vorhandene sind mitgezogen, sechs davon
-     zeigen jetzt auf public/sprachen/de.json statt auf den Quelltext. */
+     zeigen jetzt auf public/languages/de.json statt auf den Quelltext. */
   pruefe('Es sind genau 685 Rueckbauten', gpListe.length === 685, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
@@ -41338,7 +41338,7 @@ async function pruefeOberflaeche() {
        video/*"` steht so in app.js, und ein Leser, der dort einen Block
        oeffnet, verschluckt alles bis zum naechsten `*` mit Schraegstrich --
        samt der Zeile darunter. Gefunden am 6. September 2026: die
-       Verwendungsprobe hielt `eintrag.fotosUndVideosHinzufuegenMehrere` fuer
+       Verwendungsprobe hielt `entry.addMediaHint` fuer
        ungerufen, weil der Ruf genau eine Zeile darunter stand. */
     const ohneKommentar = (q) => q
       .replace(/(^|[^A-Za-z0-9_"'`])\/\*[\s\S]*?\*\//g, '$1 ')
