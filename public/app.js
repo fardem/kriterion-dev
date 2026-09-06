@@ -649,10 +649,10 @@ function userDeleteDialog(name, number, b) {
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="delete-user"><h2>${tH('dialog.deleteUserAsk', { name: name })}</h2>
       <p>${tH('dialog.nameFreedHint', { name: name, nummer: Number(number) })}</p>
-      ${b.eintraege ? `<label class="ex-files"><input type="checkbox" id="bl-eintraege">
+      ${b.eintraege ? `<label class="ex-files"><input type="checkbox" id="bl-entries">
         ${tH('dialog.deleteAlso', { eintraege: b.eintraege, sache: vThing(b.eintraege), name: name })}${foreignCount
           ? tH('dialog.withForeignPosts', { n: foreignCount }) : ''}</label>` : ''}
-      ${beitraege.length ? `<label class="ex-files"><input type="checkbox" id="bl-beitraege">
+      ${beitraege.length ? `<label class="ex-files"><input type="checkbox" id="bl-posts">
         ${tH('dialog.postsOfOthers', { name: name, sache: vThing(2) })} ${esc(beitraege.join(', '))}</label>` : ''}
       <p>${tH('dialog.lockInsteadHint')}</p>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
@@ -660,8 +660,8 @@ function userDeleteDialog(name, number, b) {
     document.body.appendChild(bd);
     const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
     const nimm = () => done({
-      eintraege: !!bd.querySelector('#bl-eintraege')?.checked,
-      beitraege: !!bd.querySelector('#bl-beitraege')?.checked
+      eintraege: !!bd.querySelector('#bl-entries')?.checked,
+      beitraege: !!bd.querySelector('#bl-posts')?.checked
     });
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = nimm;
@@ -7381,9 +7381,9 @@ document.addEventListener('click', e => {
    der Pruefstand die Befehle zaehlen und dem Kasten zuordnen kann. */
 function serverBox(sentence, command) {
   if (!OWNER) return '';
-  return `<div class="server-kasten"><div class="server-kopf">${tH('card.onTheServer')}</div>
+  return `<div class="server-box"><div class="server-head">${tH('card.onTheServer')}</div>
     <p class="desc">${esc(sentence)}</p>
-    <div class="server-zeile"><code>${esc(command)}</code><button type="button" class="btn btn-sm"
+    <div class="server-row"><code>${esc(command)}</code><button type="button" class="btn btn-sm"
       data-kopie="${esc(command)}">${tH('card.copy')}</button></div></div>`;
 }
 
@@ -7564,8 +7564,8 @@ async function renderSystem() {
          ES SIND LINKS UND KEINE KNOEPFE. Ein Reiter, der eine Adresse hat,
          laesst sich kopieren, in einem neuen Fenster oeffnen und mit der
          Zurueck-Taste verlassen -- ein Knopf koennte davon nichts. */''}
-    <nav class="sys-reiter" aria-label="${esc(t('card.sectionsHint'))}">
-      ${visibleOnes.map(a => `<a class="sys-reiter-k${a === offen ? ' on' : ''}"
+    <nav class="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
+      ${visibleOnes.map(a => `<a class="sys-tab${a === offen ? ' on' : ''}"
         href="${sysUrl(a.schluessel)}" data-abschnitt="${esc(a.schluessel)}"${
         a === offen ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
     </nav>
@@ -7855,7 +7855,7 @@ function cardSessions() {
   return `<div class="sys-card">
         <h3>${tH('card.mySessions')}</h3>
         <p class="desc">${tH('card.sessionsHint')}</p>
-        <div class="manage-list" id="msitzungen"></div>
+        <div class="manage-list" id="msessions"></div>
       </div>`;
 }
 function setUpSessionsOut(fetched) {
@@ -7871,7 +7871,7 @@ function setUpSessionsOut(fetched) {
      JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
      soll die Karte etwas sagen und nicht der Lauf abreissen. */
   function drawSessions(d) {
-    const box = document.getElementById('msitzungen');
+    const box = document.getElementById('msessions');
     if (!box) return;
     const doc = box.ownerDocument;
     const list = (d && Array.isArray(d.sitzungen)) ? d.sitzungen : null;
@@ -7883,18 +7883,18 @@ function setUpSessionsOut(fetched) {
     const other = list.filter(z => !z.diese).length;
     for (const z of list) {
       const row = doc.createElement('div');
-      row.className = 'mrow sitz' + (z.diese ? ' sitz-ich' : '');
+      row.className = 'mrow session' + (z.diese ? ' session-mine' : '');
       row.dataset.kennung = z.kennung || '';
       row.innerHTML = `<span class="mname">${z.diese
-          ? `${tH('card.thisSession')} <span class="zug-ich">${tH('card.here')}</span>` : tH('card.otherSession')}</span>
-        <span class="sitz-zeit">${tH('card.signedInAt', { angemeldetAm: fmtDate(z.angemeldetAm) })}</span>
-        <span class="sitz-zeit">${tH('card.lastSeen', { zuletztGesehen: fmtDate(z.zuletztGesehen) })}</span>`;
+          ? `${tH('card.thisSession')} <span class="user-mine">${tH('card.here')}</span>` : tH('card.otherSession')}</span>
+        <span class="session-time">${tH('card.signedInAt', { angemeldetAm: fmtDate(z.angemeldetAm) })}</span>
+        <span class="session-time">${tH('card.lastSeen', { zuletztGesehen: fmtDate(z.zuletztGesehen) })}</span>`;
       if (!z.diese) {
         const w = doc.createElement('span');
-        w.className = 'zug-akt';
-        w.innerHTML = `<button class="mact rm sitz-x" title="${esc(t('card.endThisSession'))}">${ICON_X}</button>`;
+        w.className = 'user-act';
+        w.innerHTML = `<button class="mact rm session-x" title="${esc(t('card.endThisSession'))}">${ICON_X}</button>`;
         row.appendChild(w);
-        w.querySelector('.sitz-x').onclick = async () => {
+        w.querySelector('.session-x').onclick = async () => {
           try { await api('DELETE', `/api/sessions/${z.kennung}`); toast(t('card.sessionEnded')); }
           catch (e) { return toast(e.message, true); }
           sessionsNew();
@@ -7907,15 +7907,15 @@ function setUpSessionsOut(fetched) {
        daneben. Steht keine andere da, steht auch kein Knopf: einer, der
        zuverlaessig nichts tut, sieht aus wie ein Fehler. */
     const foot = doc.createElement('div');
-    foot.className = 'sitz-fuss';
+    foot.className = 'session-foot';
     foot.innerHTML = other
       ? `<p class="desc" style="margin:10px 0 8px">${tH('card.besidesThisOne')} <strong>${
           tH('card.moreSessions', { n: other })}</strong> ${tH('card.sessionsDot', { n: other })}
           ${tH('card.sessionExpiresIn')} ${d.tage || 30} ${tH('card.sessionIdleHint')}</p>
-         <button class="btn btn-sm" id="sitz-alle">${tH('card.endOtherSessions')}</button>`
+         <button class="btn btn-sm" id="sessions-all">${tH('card.endOtherSessions')}</button>`
       : `<p class="desc" style="margin:10px 0 0">${tH('card.thisIsThe')} <strong>${tH('card.only')}</strong> ${tH('card.sessionOfAccount')}</p>`;
     box.appendChild(foot);
-    const all = doc.getElementById('sitz-alle');
+    const all = doc.getElementById('sessions-all');
     if (all) all.onclick = async () => {
       if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;
       try {
@@ -7927,7 +7927,7 @@ function setUpSessionsOut(fetched) {
     };
   }
   async function sessionsNew() {
-    const box = document.getElementById('msitzungen');
+    const box = document.getElementById('msessions');
     if (!box) return;
     let d;
     try { d = await api('GET', '/api/sessions'); }
@@ -7944,13 +7944,13 @@ function cardAppearance() {
   return `<div class="sys-card">
         <h3>${tH('card.appearance')}</h3>
         <p class="desc">${tH('card.themeHint')}</p>
-        <div class="pills" id="thema"></div>
+        <div class="pills" id="theme"></div>
 
         <p class="desc" style="margin:16px 0 8px">${tH('card.fontSizeHint')}</p>
         <div class="pills" id="fsize"></div>
 
         <p class="desc" style="margin:16px 0 8px">${tH('card.stripSizeHint')}</p>
-        <div class="pills" id="streifen"></div>
+        <div class="pills" id="tiles"></div>
 
         <p class="desc" style="margin:16px 0 8px">${tH('card.timelineHint')}</p>
         <label class="ex-files"><input type="checkbox" id="timeline-on"> ${tH('card.showTimeline')}</label>
@@ -7987,7 +7987,7 @@ function setUpAppearanceOut() {
      bei einem Fehlschlag zurück auf den alten Wert — wer das Schema wechselt,
      sieht es, bevor der Server geantwortet hat. */
   function drawTheme() {
-    const box = document.getElementById('thema');
+    const box = document.getElementById('theme');
     if (!box) return;
     box.innerHTML = '';
     THEME_LEVELS.forEach(level => {
@@ -8027,7 +8027,7 @@ function setUpAppearanceOut() {
   /* DER BILDSTREIFEN, dieselbe Bauform wie die Schriftgroesse darueber: fuenf
      Pillen, sofort sichtbar, bei einem Fehlschlag zurueck auf den alten Wert. */
   function drawStrip() {
-    const box = document.getElementById('streifen');
+    const box = document.getElementById('tiles');
     if (!box) return;
     box.innerHTML = '';
     STRIP_LEVELS.forEach(level => {
@@ -8058,13 +8058,13 @@ function cardCategories() {
           : t('card.categoriesAdminHint')}</p>
         <div class="manage-list" id="mcats"></div>
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
-        <label class="ex-files"><input type="checkbox" id="katfrei">
+        <label class="ex-files"><input type="checkbox" id="cat-free">
           ${tH('card.anyoneNewCategory')}</label>` : ''}
       </div>`;
 }
 function setUpCategoriesOut(fetched) {
   manageList('mcats', fetched.cats, 'cat', fetched);
-  createToggle('katfrei', 'kategorienFreiAnlegen', () => CATEGORIES_FREE, v => { CATEGORIES_FREE = v; });
+  createToggle('cat-free', 'kategorienFreiAnlegen', () => CATEGORIES_FREE, v => { CATEGORIES_FREE = v; });
 }
 
 /* ---- Karte „Tags" — Abschnitt „Bestand" ---- */
@@ -8076,13 +8076,13 @@ function cardTags() {
           : t('card.tagsAdminHint')}</p>
         <div class="manage-list" id="mtags"></div>
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyTag')}</p>
-        <label class="ex-files"><input type="checkbox" id="tagfrei">
+        <label class="ex-files"><input type="checkbox" id="tag-free">
           ${tH('card.anyoneNewTag')}</label>` : ''}
       </div>`;
 }
 function setUpTagsOut(fetched) {
   manageList('mtags', fetched.tags, 'tag', fetched);
-  createToggle('tagfrei', 'tagsFreiAnlegen', () => TAGS_FREE, v => { TAGS_FREE = v; });
+  createToggle('tag-free', 'tagsFreiAnlegen', () => TAGS_FREE, v => { TAGS_FREE = v; });
 }
 
 /* ---- Karte „Bewertungskriterien" — Abschnitt „Bestand" ---- */
@@ -8134,7 +8134,7 @@ function cardCriteria(phase) {
              `datalist` mit derselben Kennung waeren zwei Knoten fuer einen
              Verweis. Die zweite Karte liegt hinter der ersten; ihre
              Gewichtsfelder finden die eine. */''}
-        ${vorher ? '' : `<datalist id="gewichtsug">
+        ${vorher ? '' : `<datalist id="weightsug">
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
         ${ADMIN ? `<div class="row-in" style="margin-top:12px">
@@ -8250,7 +8250,7 @@ function setUpCriteriaOut(fetched, phase) {
       const weightField = art.gewicht
         ? (may
           ? `<span class="mweight" title="${esc(t('list.weightedAvg'))}">×<input class="mweight-field"
-               type="text" inputmode="decimal" list="gewichtsug" aria-label="${esc(t('entry.weight'))}"
+               type="text" inputmode="decimal" list="weightsug" aria-label="${esc(t('entry.weight'))}"
                value="${esc(weightText(entry.gewicht))}"></span>`
           : `<span class="mweight mweight-fixed" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.gewicht))}</span>`)
         : '';
@@ -8360,12 +8360,12 @@ function cardVocabulary() {
              die drei Stellen lesen sie.
              JEDER FELDNAME NENNT DIE VORGABE: „Sache, Einzahl" allein sagte
              einem Admin nicht, welches Wort er da umbenennt. */''}
-        <div class="vok-grid">
+        <div class="vocabulary-grid">
           ${VOCABULARY_FIELDS.map(([id, schluessel, name]) => `<div class="field"><label for="${id}">${esc(name())}
             <span class="hint">${tH('card.defaultValue', { w1: VOCABULARY_DEFAULT[schluessel]() })}</span></label>
             <input class="input input-sm" id="${id}" maxlength="40" value="${esc(V[schluessel])}"></div>`).join('')}
         </div>
-        <div class="vok-probe" id="vprobe"></div>
+        <div class="vocabulary-preview" id="vpreview"></div>
         <div class="row-in" style="margin-top:12px">
           <button class="btn btn-accent btn-sm" id="vsave">${tH('card.saveVocabulary')}</button>
           <button class="btn btn-ghost btn-sm" id="vreset">${tH('card.restoreDefaults')}</button>
@@ -8430,7 +8430,7 @@ function setUpVocabularyOut() {
     const po = w.potenzial.trim() || V.potenzial;
     const rateOne = w.bewertungEinzahl.trim() || V.bewertungEinzahl;
     const rateMany = w.bewertungMehrzahl.trim() || V.bewertungMehrzahl;
-    document.getElementById('vprobe').innerHTML =
+    document.getElementById('vpreview').innerHTML =
       `<span class="label">${tH('card.preview')}</span>
        <span>+ ${esc(s1)}</span><span>${tH('card.delete', { s1: s1 })}</span><span>7 ${esc(sm)}</span>
        <span>${esc(ja)} / ${esc(nein)}</span>
@@ -8449,7 +8449,7 @@ function setUpVocabularyOut() {
   // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
   VOCABULARY_FIELDS.forEach(([id]) =>
     atElement(id, field => field.addEventListener('input', drawPreview)));
-  if (document.getElementById('vprobe')) drawPreview();
+  if (document.getElementById('vpreview')) drawPreview();
 
   atElement('vsave', vsave => vsave.onclick = async () => {
     try {
@@ -8482,7 +8482,7 @@ function cardLinks() {
         <p class="desc">${tH('card.linkRowsHint')}</p>
         <div class="pills" id="lrows"></div>
 
-        <p class="desc sys-teil">${tH('card.linkListHint')}
+        <p class="desc sys-part">${tH('card.linkListHint')}
           <strong>${tH('card.search')}</strong> ${tH('card.searchOnClick')}</p>
         <p class="desc" style="margin:0 0 8px">${tH('card.engineCountHint')}</p>
         <div class="pills" id="snames"></div>
@@ -8538,11 +8538,11 @@ function cardSearchProvider() {
         <h3>${tH('card.searchEngines')}</h3>
         <p class="desc">${tH('card.checkboxHint')} <strong>${tH('card.standard')}</strong>${tH('card.opensOnClick')}</p>
         ${mehr(t('card.searchUsersHint'))}
-        <div class="sanb-liste" id="sanbieter"></div>
+        <div class="engine-list" id="engines"></div>
 
-        <p class="desc sys-teil">${tH('card.ownEnginesHint')}
+        <p class="desc sys-part">${tH('card.ownEnginesHint')}
           <code>%s</code> ${tH('card.forSearchText')}<code>http://</code> ${tH('card.or')} <code>https://</code>).</p>
-        <div class="sanb-eigen" id="seigene"></div>
+        <div class="engine-own" id="engines-own"></div>
         ${mehr(`${tH('card.searchDomainTip')}
           <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>${tH('card.theDot')}
           <code>%3A</code> ${tH('card.mustReadSo')}`)}
@@ -8573,12 +8573,12 @@ function setUpSearchProviderOut() {
   }
 
   function drawProvider() {
-    const box = document.getElementById('sanbieter');
+    const box = document.getElementById('engines');
     if (!box) return;
     box.innerHTML = '';
     SEARCH_PROVIDERS.forEach(a => {
       const row = document.createElement('div');
-      row.className = 'sanb' + (a.vorhanden ? '' : ' leer');
+      row.className = 'engine' + (a.vorhanden ? '' : ' leer');
       row.dataset.k = a.schluessel;
       const hk = document.createElement('input');
       hk.type = 'checkbox';
@@ -8592,7 +8592,7 @@ function setUpSearchProviderOut() {
       };
       const st = document.createElement('button');
       st.type = 'button';
-      st.className = 'sstart' + (a.standard ? ' on' : '');
+      st.className = 'sdefault' + (a.standard ? ' on' : '');
       st.textContent = t('card.standard');
       st.disabled = !a.vorhanden;
       st.title = t('card.searchLineHint');
@@ -8604,7 +8604,7 @@ function setUpSearchProviderOut() {
       // Der Name kommt aus dem Verwaltungsbereich und ist freier Text --
       // textContent statt innerHTML, damit Maskierung nicht vergessbar ist.
       const nm = document.createElement('span');
-      nm.className = 'sanb-name';
+      nm.className = 'engine-name';
       nm.textContent = a.vorhanden ? a.name : '—';
       row.append(hk, st, nm);
       box.appendChild(row);
@@ -8612,12 +8612,12 @@ function setUpSearchProviderOut() {
   }
 
   function drawOwn() {
-    const box = document.getElementById('seigene');
+    const box = document.getElementById('engines-own');
     if (!box) return;
     box.innerHTML = '';
     SEARCH_PROVIDERS.filter(a => a.eigen).forEach((a, i) => {
       const row = document.createElement('div');
-      row.className = 'sanb-slot';
+      row.className = 'engine-slot';
       const nm = document.createElement('input');
       nm.className = 'input input-sm'; nm.id = `se-name-${i + 1}`;
       nm.maxLength = 20; nm.placeholder = t('card.name'); nm.value = a.name || '';
@@ -8652,7 +8652,7 @@ function cardTrash() {
         <p class="desc">${tH('card.deletedStayHere')} <strong>${tH('card.trashDays', { papierkorbTage: TRASH_DAYS })}</strong>
           ${tH('card.restorableHint')}
           ${OWNER ? '' : t('card.trashOwnerHint')}</p>
-        <div class="manage-list" id="mpapierkorb"></div>
+        <div class="manage-list" id="mtrash"></div>
       </div>`;
 }
 function setUpTrashOut(fetched) {
@@ -8670,14 +8670,14 @@ function setUpTrashOut(fetched) {
   async function trashNew(fetched) {
     try { fetched.papierkorb = await api('GET', '/api/papierkorb'); }
     catch (e) {
-      const box = document.getElementById('mpapierkorb');
+      const box = document.getElementById('mtrash');
       if (box) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
       return;
     }
     drawTrash(fetched);
   }
   function drawTrash(fetched) {
-    const box = document.getElementById('mpapierkorb');
+    const box = document.getElementById('mtrash');
     if (!box) return;
     const zeilen = Array.isArray(fetched.papierkorb && fetched.papierkorb.zeilen) ? fetched.papierkorb.zeilen : [];
     box.innerHTML = '';
@@ -8687,7 +8687,7 @@ function setUpTrashOut(fetched) {
     }
     zeilen.forEach(z => {
       const row = document.createElement('div');
-      row.className = 'mrow pk';
+      row.className = 'mrow trash';
       row.dataset.pkid = z.id;
       const offen = Number(z.tageOffen);
       const meta = [
@@ -8699,11 +8699,11 @@ function setUpTrashOut(fetched) {
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.
       row.innerHTML = `<span class="mname">${esc(z.titel)}</span>
-        ${OWNER ? `<button class="mact pk-back" title="${esc(t('card.restore'))}">${tH('card.restoreIcon', { iconWiederher: ICON_RESTORE })}</button>
-        <button class="mact rm pk-weg" title="${esc(t('card.deleteForGood'))}">${ICON_X}</button>` : ''}
-        <span class="pk-meta">${esc(meta.join(' · '))}</span>`;
+        ${OWNER ? `<button class="mact trash-back" title="${esc(t('card.restore'))}">${tH('card.restoreIcon', { iconWiederher: ICON_RESTORE })}</button>
+        <button class="mact rm trash-remove" title="${esc(t('card.deleteForGood'))}">${ICON_X}</button>` : ''}
+        <span class="trash-meta">${esc(meta.join(' · '))}</span>`;
       box.appendChild(row);
-      const back = row.querySelector('.pk-back');
+      const back = row.querySelector('.trash-back');
       if (back) back.onclick = async () => {
         try {
           const r = await api('POST', `/api/papierkorb/${z.id}/wiederherstellen`);
@@ -8715,7 +8715,7 @@ function setUpTrashOut(fetched) {
           trashNew(fetched);
         } catch (e) { toast(e.message, true); }
       };
-      const weg = row.querySelector('.pk-weg');
+      const weg = row.querySelector('.trash-remove');
       if (weg) weg.onclick = async () => {
         if (!await confirmBox(t('card.deleteForGoodAsk'),
           t('card.purgeHint', { titel: z.titel }),
@@ -8738,37 +8738,37 @@ function cardUsers() {
         ${mehr(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
-        <div class="manage-list" id="mzugaenge"></div>
+        <div class="manage-list" id="musers"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
              nichts geloescht wurde -- gefuellt wird sie von
              drawTombstoneButton(), sobald die Liste vom Server da ist. */''}
-        <div class="row-in" id="zug-weg-zeile" style="margin-top:8px"></div>
+        <div class="row-in" id="user-remove-row" style="margin-top:8px"></div>
 
         <p class="desc" style="margin:16px 0 8px">${tH('card.newUserHint')} <strong>${tH('card.inviteLink')}</strong> ${tH('card.linkValidHint')}</p>
-        <div class="zug-neu">
-          <input class="input input-sm" id="zug-name" placeholder="${esc(t('login.username'))}"
+        <div class="user-new">
+          <input class="input input-sm" id="user-name" placeholder="${esc(t('login.username'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
           ${/* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die
                 Einladungsmail keinen Empfänger, und den Zugang gibt es in
                 diesem Augenblick noch nicht, also kann sie auch niemand selbst
                 eintragen. Ändern darf sie danach allein der Betroffene, unter
                 „Zugang“. Freiwillig — ohne sie bleibt alles beim Kopieren. */''}
-          <input class="input input-sm" id="zug-mail" type="email" placeholder="${esc(t('card.emailOptional'))}"
+          <input class="input input-sm" id="user-mail" type="email" placeholder="${esc(t('card.emailOptional'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
-          <select class="input input-sm" id="zug-art">
+          <select class="input input-sm" id="user-kind">
             <option value="link">${tH('card.userPicksPassword')}</option>
             <option value="passwort">${tH('card.iSetPassword')}</option>
           </select>
-          <input class="input input-sm" id="zug-pass" type="password" placeholder="${esc(t('card.firstPassword'))}"
+          <input class="input input-sm" id="user-pass" type="password" placeholder="${esc(t('card.firstPassword'))}"
             autocomplete="new-password" hidden>
-          ${OWNER ? `<select class="input input-sm" id="zug-rolle">
+          ${OWNER ? `<select class="input input-sm" id="user-role">
             <option value="user">${tH('card.user')}</option>
             <option value="admin">${tH('card.admin')}</option>
             <option value="eigentuemer">${tH('card.owner')}</option>
           </select>` : ''}
-          <button class="btn btn-accent btn-sm" id="zug-anlegen">${tH('card.createWithLink')}</button>
+          <button class="btn btn-accent btn-sm" id="user-create">${tH('card.createWithLink')}</button>
         </div>
-        <div id="zug-link"></div>
+        <div id="user-link"></div>
 
         ${/* DIESELBE KLEMME WIE IN DER KARTE „ZUGANG“, und aus demselben
               Grund: der Befehl läuft auf dem Wirt, und dort sitzt in der Regel
@@ -8793,9 +8793,9 @@ function setUpUsersOut() {
      Nachbar heißt, ist eine Falle.
      DIE VORGABE IST DER LINK: es ist der Weg, bei dem der Admin das Passwort
      nie erfährt. */
-  const userKind = document.getElementById('zug-art');
-  const userCreate = document.getElementById('zug-anlegen');
-  const userPass = document.getElementById('zug-pass');
+  const userKind = document.getElementById('user-kind');
+  const userCreate = document.getElementById('user-create');
+  const userPass = document.getElementById('user-pass');
 
   const userKindSet = () => {
     if (!userKind || !userCreate || !userPass) return;
@@ -8810,9 +8810,9 @@ function setUpUsersOut() {
   userKindSet();
 
   if (userCreate) userCreate.onclick = async () => {
-    const nameField = document.getElementById('zug-name');
-    const mailField = document.getElementById('zug-mail');
-    const roleField = document.getElementById('zug-rolle');
+    const nameField = document.getElementById('user-name');
+    const mailField = document.getElementById('user-mail');
+    const roleField = document.getElementById('user-role');
     const byInvite = !userKind || userKind.value === 'link';
     const body = { username: nameField.value.trim() };
     if (mailField && mailField.value.trim()) body.email = mailField.value.trim();
@@ -8881,12 +8881,12 @@ function setUpUsersOut() {
        sie aus demselben Grund nicht mit. Was der Admin wissen muss, ist, DASS
        die Mail hinausging. */
     if (d.versand === 'ok')
-      return `<p class="zug-versand zug-versand-ok">${tH('card.testMailSent')}</p>`;
+      return `<p class="user-send user-send-ok">${tH('card.testMailSent')}</p>`;
     if (d.versand === 'fehlgeschlagen')
-      return `<p class="zug-versand zug-versand-fehl"><strong>${tH('card.deliveryFailed')}</strong> —
+      return `<p class="user-send user-send-fail"><strong>${tH('card.deliveryFailed')}</strong> —
         ${esc(d.versandGrund || t('card.noValue'))}${tH('card.passLinkByHandEnd')}</p>`;
     if (d.versand === 'aus')
-      return `<p class="zug-versand">${tH('card.noMailSent')} ${esc(d.versandGrund || '')}
+      return `<p class="user-send">${tH('card.noMailSent')} ${esc(d.versandGrund || '')}
         ${tH('card.passLinkByHand')}</p>`;
     return '';
   };
@@ -8895,7 +8895,7 @@ function setUpUsersOut() {
      "Zugaenge" und das Freischalten in der Karte "Anfragen". Der Link ist in
      beiden Faellen derselbe Gegenstand mit derselben Warnung daneben; zwei
      Ausfertigungen liefen beim naechsten Satz auseinander. */
-  function showLink(d, boxId = 'zug-link') {
+  function showLink(d, boxId = 'user-link') {
     const box = document.getElementById(boxId);
     if (!box || !d || !d.token) return;
     /* DER ANDERE KASTEN WIRD GELEERT, und das ist keine Aufraeumarbeit: die
@@ -8903,7 +8903,7 @@ function setUpUsersOut() {
        ergaeben sie doppelt -- getElementById naehme dann den ersten, und der
        Knopf "Kopieren" kopierte den falschen Link. Es steht immer hoechstens
        EIN Link am Bildschirm, und das ist ohnehin richtig so. */
-    for (const other of ['zug-link', 'anf-link']) {
+    for (const other of ['user-link', 'signup-link']) {
       if (other !== boxId) {
         const k = document.getElementById(other);
         if (k) k.innerHTML = '';
@@ -8912,20 +8912,20 @@ function setUpUsersOut() {
     // Der Server gibt den fertigen Link nur heraus, wenn die Einstellung steht.
     // Sonst baut ihn der Browser wie bisher.
     const adresse = d.link || buildInviteUrl(d.token);
-    box.innerHTML = `<div class="warn-box zug-linkbox" style="margin:12px 0 0">
+    box.innerHTML = `<div class="warn-box user-linkbox" style="margin:12px 0 0">
       <strong>${d.zweck === 'ruecksetzung' ? t('card.resetLink') : t('card.inviteLink')}
       ${tH('card.forQuote')}${esc(d.username || '')}${tH('card.shownOnce')}</strong>
       ${tH('card.linkHolderHint')} <strong>${d.tage || 7} ${tH('card.days')}</strong> ${tH('card.valid')}
       <strong>${tH('card.once')}</strong> ${tH('card.usableAfterOpen')} <strong>${d.minuten || 15} ${tH('card.minutes')}</strong> ${tH('card.linkCarefulHint')}
-      <div class="zug-linkzeile"><input class="input input-sm" id="zug-link-feld" readonly
-        value="${esc(adresse)}"><button class="btn btn-sm" id="zug-link-kopie">${tH('card.copy')}</button></div>
-      <p class="zug-linkherkunft" id="zug-link-herkunft">${tH('card.linkPointsTo')}
+      <div class="user-link-row"><input class="input input-sm" id="user-link-field" readonly
+        value="${esc(adresse)}"><button class="btn btn-sm" id="user-link-copy">${tH('card.copy')}</button></div>
+      <p class="user-link-origin" id="user-link-origin">${tH('card.linkPointsTo')}
         <code>${esc(new URL(adresse).origin)}</code> — <strong>${linkOrigin(d)}</strong>.</p>
       ${deliveryRow(d)}
     </div>`;
-    const field = document.getElementById('zug-link-feld');
+    const field = document.getElementById('user-link-field');
     field.focus(); field.select();
-    document.getElementById('zug-link-kopie').onclick = () => {
+    document.getElementById('user-link-copy').onclick = () => {
       field.select();
       // Die Zwischenablage über das Skript ist nicht überall erlaubt; das
       // markierte Feld daneben ist der Weg, der immer trägt.
@@ -8937,7 +8937,7 @@ function setUpUsersOut() {
   }
 
   async function drawUsers() {
-    const box = document.getElementById('mzugaenge');
+    const box = document.getElementById('musers');
     if (!box) return;
     /* Was nach dem await gebraucht wird, wird VORHER geholt -- dieselbe Regel
        wie bei e.currentTarget, nur eine Ebene hoeher: hier
@@ -8966,7 +8966,7 @@ function setUpUsersOut() {
       // Eigentuemer kommt nur der Eigentuemer.
       const may = !self && (z.role === 'user' ? true : data.darfRollen);
       const row = doc.createElement('div');
-      row.className = 'mrow zug' + (z.status === 'gesperrt' ? ' zug-sperr' : '');
+      row.className = 'mrow user' + (z.status === 'gesperrt' ? ' user-locked' : '');
       row.dataset.mid = z.id;
       // Dieselbe Beschriftung wie an jedem Beitrag im Eintrag -- eine
       // Funktion, zwei Rufer. Stuende die Bildung des Grabsteinnamens hier ein
@@ -8979,7 +8979,7 @@ function setUpUsersOut() {
          Zeile diese Angabe. */
       const waiting = z.ohnePasswort;
       row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, geloescht: false }))}${
-          self ? ' <span class="zug-ich">(du)</span>' : ''}</span>
+          self ? ' <span class="user-mine">(du)</span>' : ''}</span>
         ${/* ROLLE ALS MARKE, ZUSTAND ALS PUNKT -- 0.22.0 (Konzept 6.7). Die Marke
              ist Form, keine Farbe: gefuellt, umrandet, neutral. Der Punkt
              nimmt die drei Farben, die „aktiv", „zurueckgenommen" und
@@ -8987,29 +8987,29 @@ function setUpUsersOut() {
              dessen Passwort noch niemand gesetzt hat, ist er orange und der
              Hinweistext sagt, dass die Einladung offen ist. Das Wort bleibt
              daneben stehen: ein Punkt allein liest kein Vorleseprogramm vor. */''}
-        <span class="zug-rolle"><span class="rolle-marke ${esc(z.role)}">${esc(rolesWord(z.role))}</span></span>
-        <span class="zug-status" title="${waiting ? esc(t('card.inviteOpen')) : esc(statusWord(z.status))}"><span
-          class="zug-punkt ${waiting ? 'eingeladen' : esc(z.status)}"></span>${esc(statusWord(z.status))}${
-          waiting ? ` <span class="zug-wartet">${tH('card.noPasswordYet')}</span>` : ''}</span>
+        <span class="user-role"><span class="role-badge ${esc(z.role)}">${esc(rolesWord(z.role))}</span></span>
+        <span class="user-status" title="${waiting ? esc(t('card.inviteOpen')) : esc(statusWord(z.status))}"><span
+          class="user-dot ${waiting ? 'invited' : esc(z.status)}"></span>${esc(statusWord(z.status))}${
+          waiting ? ` <span class="user-waiting">${tH('card.noPasswordYet')}</span>` : ''}</span>
         <span class="mcount">${z.eintraege} ${esc(vThing(z.eintraege))}</span>`;
       if (may) {
         const tool = doc.createElement('span');
-        tool.className = 'zug-akt';
+        tool.className = 'user-act';
         tool.innerHTML =
-          `${data.darfRollen ? `<select class="input input-sm zug-r">
+          `${data.darfRollen ? `<select class="input input-sm user-role-sel">
              <option value="user"${z.role === 'user' ? ' selected' : ''}>${tH('card.user')}</option>
              <option value="admin"${z.role === 'admin' ? ' selected' : ''}>${tH('card.admin')}</option>
              <option value="eigentuemer"${z.role === 'eigentuemer' ? ' selected' : ''}>${tH('card.owner')}</option>
            </select>` : ''}
-           <button class="mact zug-s" title="${z.status === 'aktiv' ? t('card.lock') : t('card.unlock')}">${
+           <button class="mact user-lock-btn" title="${z.status === 'aktiv' ? t('card.lock') : t('card.unlock')}">${
              z.status === 'aktiv' ? ICON_LOCK : ICON_CHECK}</button>
-           <button class="mact zug-l" title="${z.ohnePasswort ? t('card.createInviteLink')
+           <button class="mact user-link-btn" title="${z.ohnePasswort ? t('card.createInviteLink')
              : t('card.createResetLink')}">${ICON_LINK}</button>
-           <button class="mact zug-p" title="${esc(t('card.presetPassword'))}">${ICON_KEY}</button>
-           <button class="mact rm zug-x" title="${esc(t('dialog.deleteUser'))}">${ICON_X}</button>`;
+           <button class="mact user-pass-btn" title="${esc(t('card.presetPassword'))}">${ICON_KEY}</button>
+           <button class="mact rm user-x" title="${esc(t('dialog.deleteUser'))}">${ICON_X}</button>`;
         row.appendChild(tool);
 
-        const roleField = tool.querySelector('.zug-r');
+        const roleField = tool.querySelector('.user-role-sel');
         if (roleField) roleField.onchange = async () => {
           // Vor dem ersten await lesen: danach ist das Feld schon neu gezeichnet.
           const fresh = roleField.value;
@@ -9020,7 +9020,7 @@ function setUpUsersOut() {
           drawUsers();
         };
 
-        tool.querySelector('.zug-s').onclick = async () => {
+        tool.querySelector('.user-lock-btn').onclick = async () => {
           const fresh = z.status === 'aktiv' ? 'gesperrt' : 'aktiv';
           if (fresh === 'gesperrt' && !await confirmBox(t('card.lockAsk', { username: z.username }),
             t('card.lockUserHint'),
@@ -9035,7 +9035,7 @@ function setUpUsersOut() {
            Passwort zu setzen, der Schlüssel übergibt ein PASSWORT. Der direkte
            Weg kommt ohne den Browser des anderen aus — für jemanden, der
            danebensteht, ist er der kürzere. */
-        tool.querySelector('.zug-l').onclick = async () => {
+        tool.querySelector('.user-link-btn').onclick = async () => {
           const zweck = z.ohnePasswort ? 'einladung' : 'ruecksetzung';
           if (zweck === 'ruecksetzung' && !await confirmBox(t('card.resetLinkAsk'),
             t('card.oldPasswordValid', { username: z.username }) +
@@ -9048,7 +9048,7 @@ function setUpUsersOut() {
           drawUsers();
         };
 
-        tool.querySelector('.zug-p').onclick = async () => {
+        tool.querySelector('.user-pass-btn').onclick = async () => {
           const fresh = await newPasswordDialog(t('card.setPasswordFor', { username: z.username }),
             t('card.minCharsSessions', { minPasswort: MIN_PASSWORD }));
           if (fresh === null || !fresh.trim()) return;
@@ -9059,7 +9059,7 @@ function setUpUsersOut() {
           drawUsers();
         };
 
-        tool.querySelector('.zug-x').onclick = async () => {
+        tool.querySelector('.user-x').onclick = async () => {
           let b;
           try { b = await api('GET', `/api/users/${z.id}/bestand`); }
           catch (e) { return toast(e.message, true); }
@@ -9097,7 +9097,7 @@ function setUpUsersOut() {
      was darin steht. */
   let userTombstones = [];
   function drawTombstoneButton() {
-    const row = document.getElementById('zug-weg-zeile');
+    const row = document.getElementById('user-remove-row');
     if (!row) return;
     row.innerHTML = '';
     if (!userTombstones.length) return;
@@ -9140,13 +9140,13 @@ function setUpUsersOut() {
     }
     for (const z of userTombstones) {
       const row = doc.createElement('div');
-      row.className = 'mrow zug zug-weg';
+      row.className = 'mrow user user-remove';
       row.dataset.mid = z.id;
       // Dieselbe Beschriftung wie ueberall: eine Funktion, zwei Rufer. Stuende
       // die Bildung des Grabsteinnamens hier ein zweites Mal, liefen die
       // Stellen auseinander.
       row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, geloescht: true }))}</span>
-        <span class="zug-status">${tH('card.deletedLower')}</span>
+        <span class="user-status">${tH('card.deletedLower')}</span>
         <span class="mcount">${z.eintraege} ${esc(vThing(z.eintraege))}</span>`;
       box.appendChild(row);
     }
@@ -9161,28 +9161,28 @@ function cardRequests(fetched) {
         <p class="desc"><strong>${tH('card.signupLabel')}</strong> ${tH('card.signupFlowHint')}${anfragen.an ? '' : ` <strong>${tH('card.signupOffNow')}</strong>`}</p>
         ${mehr(`${tH('card.requestExpiryHint', { stunden: anfragen.stunden })} <strong>${tH('card.approve')}</strong>
           ${tH('card.createsUserLink')} <strong>${tH('card.reject')}</strong> ${tH('card.rejectQuiet')}`)}
-        <div class="kv"><span class="k">${tH('card.signup')}</span><span class="v" id="anf-zustand">${
-          anfragen.an ? `<strong class="mail-gut">${tH('card.on')}</strong>`
-                      : `<strong class="mail-aus">${tH('card.off')}</strong>`
+        <div class="kv"><span class="k">${tH('card.signup')}</span><span class="v" id="signup-state">${
+          anfragen.an ? `<strong class="mail-on">${tH('card.on')}</strong>`
+                      : `<strong class="mail-off">${tH('card.off')}</strong>`
         }</span></div>
-        <div class="kv"><span class="k">${tH('card.openRequests')}</span><span class="v" id="anf-belegt">${tH('card.ofAtMost', { belegt: anfragen.belegt, deckel: anfragen.deckel })}</span></div>
-        ${anfragen.an && !anfragen.versandBereit ? `<p class="warn-box" id="anf-kaputt" style="margin:10px 0 0">
+        <div class="kv"><span class="k">${tH('card.openRequests')}</span><span class="v" id="signup-used">${tH('card.ofAtMost', { belegt: anfragen.belegt, deckel: anfragen.deckel })}</span></div>
+        ${anfragen.an && !anfragen.versandBereit ? `<p class="warn-box" id="signup-broken" style="margin:10px 0 0">
           <strong>${tH('card.mailBrokenHint')}</strong> ${esc(anfragen.versandGrund)}</p>` : ''}
-        ${!anfragen.an && !anfragen.versandBereit ? `<p class="desc" id="anf-nichtbereit">
+        ${!anfragen.an && !anfragen.versandBereit ? `<p class="desc" id="signup-notready">
           <strong>${tH('card.needsMailHint')}</strong>
           ${esc(anfragen.versandGrund)}</p>` : ''}
         <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm${anfragen.an ? '' : ' btn-accent'}" id="anf-schalter"${
+          <button class="btn btn-sm${anfragen.an ? '' : ' btn-accent'}" id="signup-toggle"${
             !anfragen.an && !anfragen.versandBereit ? ' disabled' : ''}>${
             anfragen.an ? t('card.turnSignupOff') : t('card.turnSignupOn')}</button>
         </div>
-        <div class="manage-list" id="manfragen" style="margin-top:14px"></div>
-        <div id="anf-link"></div>
+        <div class="manage-list" id="mrequests" style="margin-top:14px"></div>
+        <div id="signup-link"></div>
       </div>`;
 }
 function setUpRequestsOut(fetched) {
   drawRequests(fetched.anfragen);
-  const signupToggle = document.getElementById('anf-schalter');
+  const signupToggle = document.getElementById('signup-toggle');
   if (signupToggle) signupToggle.onclick = async () => {
     // Vor dem await lesen: danach steht am Knopf schon der andere Text.
     const fresh = !(fetched.anfragen && fetched.anfragen.an);
@@ -9197,7 +9197,7 @@ function setUpRequestsOut(fetched) {
       SIGNUP = !!d.an;
       toast(fresh ? t('card.signupOn') : t('card.signupOff'));
       drawRequests(d);
-      const kaputt = document.getElementById('anf-kaputt');
+      const kaputt = document.getElementById('signup-broken');
       if (kaputt && (!d.an || d.versandBereit)) kaputt.remove();
     } catch (e) { toast(e.message, true); }
   };
@@ -9211,15 +9211,15 @@ function setUpRequestsOut(fetched) {
      ein Loeschen zwar "ok" sagt, aber dieselbe Liste zurueckgibt, faellt damit
      auf (Stolperstein 90). */
   function drawRequests(status) {
-    const box = document.getElementById('manfragen');
+    const box = document.getElementById('mrequests');
     if (!box || !status) return;
     const doc = box.ownerDocument;
-    const state = document.getElementById('anf-zustand');
+    const state = document.getElementById('signup-state');
     if (state) state.innerHTML = status.an
-      ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>';
-    const belegt = document.getElementById('anf-belegt');
+      ? '<strong class="mail-on">an</strong>' : '<strong class="mail-off">aus</strong>';
+    const belegt = document.getElementById('signup-used');
     if (belegt) belegt.textContent = t('card.ofAtMost', { belegt: status.belegt, deckel: status.deckel });
-    const toggle = document.getElementById('anf-schalter');
+    const toggle = document.getElementById('signup-toggle');
     if (toggle) {
       toggle.textContent = status.an ? t('card.turnSignupOff') : t('card.turnSignupOn');
       toggle.disabled = !status.an && !status.versandBereit;
@@ -9235,34 +9235,34 @@ function setUpRequestsOut(fetched) {
     }
     for (const a of status.anfragen) {
       const row = doc.createElement('div');
-      row.className = 'mrow zug';
+      row.className = 'mrow user';
       row.dataset.mid = a.id;
       /* NAME UND ADRESSE STEHEN HIER, und sie sind Freitext von aussen --
          deshalb geht jedes Feld durch esc(). Es ist die einzige Stelle im
          Systembereich, an der etwas steht, das ein Fremder getippt hat. */
       row.innerHTML = `<span class="mname">${esc(a.username)}</span>
-        <span class="zug-rolle">${esc(a.email)}</span>
-        <span class="zug-status">${tH('card.requestedAt', { created_at: fmtDate(a.created_at) })}</span>
+        <span class="user-role">${esc(a.email)}</span>
+        <span class="user-status">${tH('card.requestedAt', { created_at: fmtDate(a.created_at) })}</span>
         <span class="mcount">${tH('card.confirmed', { bestaetigt_am: fmtDate(a.bestaetigt_am) })}</span>`;
       const tool = doc.createElement('span');
-      tool.className = 'zug-akt';
+      tool.className = 'user-act';
       tool.innerHTML =
-        `<button class="mact anf-frei" title="${esc(t('card.approveHint'))}">${ICON_CHECK}</button>
-         <button class="mact rm anf-ab" title="${esc(t('card.rejectHint'))}">${ICON_X}</button>`;
+        `<button class="mact signup-approve" title="${esc(t('card.approveHint'))}">${ICON_CHECK}</button>
+         <button class="mact rm signup-reject" title="${esc(t('card.rejectHint'))}">${ICON_X}</button>`;
       row.appendChild(tool);
-      tool.querySelector('.anf-frei').onclick = async () => {
+      tool.querySelector('.signup-approve').onclick = async () => {
         if (!await confirmBox(t('card.approveAsk', { username: a.username }),
           t('card.signupResultHint', { email: a.email }),
           t('card.approve'), 'accent')) return;
         try {
           const d = await api('POST', `/api/anfragen/${a.id}/frei`);
           toast(t('card.approvedLinkBelow'));
-          showLink(d, 'anf-link');
+          showLink(d, 'signup-link');
           drawRequests(d);
           drawUsers();
         } catch (e) { toast(e.message, true); }
       };
-      tool.querySelector('.anf-ab').onclick = async () => {
+      tool.querySelector('.signup-reject').onclick = async () => {
         if (!await confirmBox(t('card.rejectRequestAsk', { username: a.username }),
           t('card.rejectQuietHint'), t('card.reject'))) return;
         try {
@@ -9287,9 +9287,9 @@ function cardLog(fetched) {
              dieser Instanz -- man waehlt, bevor man liest. Gezeichnet wird sie
              aus einer geschlossenen Liste; die Auswahl geht an den Server,
              denn die Liste darunter traegt nur die hundert juengsten Zeilen. */''}
-        <div class="pills" id="protokoll-filter" style="margin:0 0 12px"></div>
-        <div class="prot-liste" id="protokoll-liste"></div>
-        <p class="hint hint-sm" id="protokoll-fuss" style="margin:10px 2px 0"></p>
+        <div class="pills" id="log-filter" style="margin:0 0 12px"></div>
+        <div class="log-list" id="log-list"></div>
+        <p class="hint hint-sm" id="log-foot" style="margin:10px 2px 0"></p>
       </div>`;
 }
 function setUpLogOut(fetched) {
@@ -9422,11 +9422,11 @@ function setUpLogOut(fetched) {
      scrollIntoView MIT `?.`: jsdom kennt es nicht, und ein Prueflauf, der an
      einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
   function jumpToUser(id) {
-    const row = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
+    const row = document.querySelector(`#musers .mrow[data-mid="${Number(id) || 0}"]`);
     if (!row) return toast(t('card.userGone'), true);
     row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-    row.classList.add('mrow-blitz');
-    setTimeout(() => row.classList.remove('mrow-blitz'), 1600);
+    row.classList.add('mrow-flash');
+    setTimeout(() => row.classList.remove('mrow-flash'), 1600);
   }
 
   /* EIN NAME WIRD ZUM KNOPF, wenn er eine Nummer hat -- und nur dann.
@@ -9442,7 +9442,7 @@ function setUpLogOut(fetched) {
     if (before) field.appendChild(doc.createTextNode(before));
     if (id == null) { field.appendChild(doc.createTextNode(text)); return field; }
     const b = doc.createElement('button');
-    b.className = 'link-btn prot-sprung';
+    b.className = 'link-btn log-jump';
     b.dataset.mid = String(id);
     b.textContent = text;
     b.title = t('card.jumpToUser');
@@ -9452,7 +9452,7 @@ function setUpLogOut(fetched) {
   };
 
   function drawLogFilter(d) {
-    const box = document.getElementById('protokoll-filter');
+    const box = document.getElementById('log-filter');
     if (!box) return;
     const numbers = (d && d.zahlen && typeof d.zahlen === 'object') ? d.zahlen : {};
     box.innerHTML = '';
@@ -9485,7 +9485,7 @@ function setUpLogOut(fetched) {
       d = await api('GET', '/api/sicherheitsprotokoll' +
         (logGroup ? `?gruppe=${encodeURIComponent(logGroup)}` : ''));
     } catch (e) {
-      const box = document.getElementById('protokoll-liste');
+      const box = document.getElementById('log-list');
       if (box) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`;
       return;
     }
@@ -9493,8 +9493,8 @@ function setUpLogOut(fetched) {
   }
 
   function drawLog(d) {
-    const box = document.getElementById('protokoll-liste');
-    const foot = document.getElementById('protokoll-fuss');
+    const box = document.getElementById('log-list');
+    const foot = document.getElementById('log-foot');
     if (!box) return;
     const doc = box.ownerDocument;
     drawLogFilter(d);
@@ -9512,28 +9512,28 @@ function setUpLogOut(fetched) {
     box.innerHTML = '';
     for (const z of zeilen) {
       const row = doc.createElement('div');
-      row.className = 'prot-zeile';
+      row.className = 'log-row';
       row.dataset.was = z.was;
       const wen = logTarget(z), merk = detailWord(z);
       const zeit = doc.createElement('span');
-      zeit.className = 'prot-zeit'; zeit.textContent = fmtDate(z.am);
+      zeit.className = 'log-time'; zeit.textContent = fmtDate(z.am);
       const was = doc.createElement('span');
-      was.className = 'prot-was'; was.textContent = eventWord(z);
+      was.className = 'log-event'; was.textContent = eventWord(z);
       row.appendChild(zeit); row.appendChild(was);
       // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
       // "ueber zugang.js auf dem Wirt" haben keine.
-      row.appendChild(logNameField(doc, 'prot-wer', logActor(z),
+      row.appendChild(logNameField(doc, 'log-actor', logActor(z),
         z.wer != null ? z.wer : null));
-      row.appendChild(logNameField(doc, 'prot-ziel', wen,
+      row.appendChild(logNameField(doc, 'log-target', wen,
         z.ziel != null ? z.ziel : null, '→ '));
       const detailEl = doc.createElement('span');
-      detailEl.className = 'prot-merkmal';
+      detailEl.className = 'log-detail';
       /* DIESELBE MARKE WIE IN DER BENUTZERLISTE hinter dem Rollenwort -- 0.22.0
          (Konzept 6.7). Alles andere bleibt Text; die Marke selbst entsteht
          als Knoten und nicht als Vorlage, der Wortlaut geht durch textContent. */
       if (merk && ROLE_WORD[z.merkmal]) {
         const mark = doc.createElement('span');
-        mark.className = 'rolle-marke ' + z.merkmal;
+        mark.className = 'role-badge ' + z.merkmal;
         mark.textContent = merk;
         detailEl.appendChild(mark);
       } else detailEl.textContent = merk || '';
@@ -9577,8 +9577,8 @@ function cardMailDelivery(fetched) {
         <p class="desc"><strong>${tH('card.emailOptionalHint')}</strong> ${tH('card.noMailAccountHint')}
           <em>${tH('card.additionally')}</em> ${tH('card.sent')}</p>
         <div class="kv"><span class="k">${tH('card.state')}</span><span class="v">${mailstand.eingerichtet
-          ? '<strong class="mail-gut">eingerichtet</strong>'
-          : `<strong class="mail-aus">${tH('card.notConfigured')}</strong>`}</span></div>
+          ? '<strong class="mail-on">eingerichtet</strong>'
+          : `<strong class="mail-off">${tH('card.notConfigured')}</strong>`}</span></div>
         ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
               BIS 0.17.2 STANDEN HIER NEUN BEDIENELEMENTE in vier verschiedenen
               Spaltenaufteilungen, und dazwischen vier Erklärsätze: zwei NEBEN
@@ -9598,10 +9598,10 @@ function cardMailDelivery(fetched) {
         <div class="kv"><span class="k">${tH('card.provider')}</span><span class="v">${mailProviderRow(mailstand)}</span></div>
         <div class="kv"><span class="k">${tH('card.sender')}</span><span class="v">${mailstand.absender
           ? esc(mailstand.absender)
-          : `<strong class="mail-aus">${tH('card.notSet')}</strong>`}</span></div>
+          : `<strong class="mail-off">${tH('card.notSet')}</strong>`}</span></div>
         <div class="kv"><span class="k">${tH('card.publicAddress')}</span><span class="v">${mailstand.adresseGesetzt
           ? esc(mailstand.adresse)
-          : `<strong class="mail-aus">${tH('card.notSetNoSend')}</strong>`}</span></div>
+          : `<strong class="mail-off">${tH('card.notSetNoSend')}</strong>`}</span></div>
         <div class="kv"><span class="k">${tH('card.lastTestedOk')}</span><span class="v">${mailstand.getestetAm
           ? esc(mailstand.getestetAm) : tH('card.never')}</span></div>
         ${mailstand.adresseGesetzt ? '' : `<p class="warn-box" style="margin:10px 0 0">
@@ -9614,12 +9614,12 @@ function cardMailDelivery(fetched) {
               DER SATZ ZUR TESTMAIL STEHT DARUNTER und nicht daneben: er nennt
               eine Folge, die man kennen muss, bevor man drückt. */''}
         <div class="row-in" style="margin-top:14px">
-          <button class="btn btn-accent btn-sm" id="mail-einrichten">${tH('card.mailAccount')} ${
+          <button class="btn btn-accent btn-sm" id="mail-setup">${tH('card.mailAccount')} ${
             mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</button>
           <button class="btn btn-sm" id="mail-test">${tH('card.testMailToMe')}</button>
         </div>
         <p class="desc" style="margin:10px 0 0">${tH('card.testMailGoes')} <strong>${tH('card.ownAddressOnly')}</strong>${tH('card.mailTimeoutHint', { sekunden: mailstand.sekunden })}</p>
-        <div id="mail-ergebnis"></div>
+        <div id="mail-result"></div>
       </div>`;
 }
 
@@ -9631,7 +9631,7 @@ function cardMailDelivery(fetched) {
    „:0" oder ein nacktes „:587" wäre eine Angabe über etwas, das gar nicht
    eingetragen ist. */
 function mailProviderRow(m) {
-  if (!m.anbieter) return `<strong class="mail-aus">${tH('card.noneChosenYet')}</strong>`;
+  if (!m.anbieter) return `<strong class="mail-off">${tH('card.noneChosenYet')}</strong>`;
   const teile = [esc(m.anbieterName || m.anbieter)];
   if (m.server && m.port) {
     teile.push(`${esc(m.server)}:${m.port}`);
@@ -9666,8 +9666,8 @@ function mailDialog(mailstand) {
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal mail-dialog" id="mail-dialog">
       <h2>${tH('card.mailAccount')} ${mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</h2>
-      <div class="field"><label for="mail-anbieter">${tH('card.provider')}</label>
-        <select class="input" id="mail-anbieter">
+      <div class="field"><label for="mail-provider">${tH('card.provider')}</label>
+        <select class="input" id="mail-provider">
           <option value=""${mailstand.anbieter ? '' : ' selected'}>${tH('card.noDelivery')}</option>
           ${list.map(a => `<option value="${esc(a.key)}"${
             a.key === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
@@ -9676,47 +9676,47 @@ function mailDialog(mailstand) {
             wechselt mit der Auswahl. Er kommt vom Server: zwei Ausfertigungen
             derselben Hinweise liefen auseinander, sobald ein Anbieter
             dazukommt (Stolperstein 102). */''}
-      <p class="desc mail-hinweis" id="mail-anbieter-hinweis"></p>
+      <p class="desc mail-hint" id="mail-provider-hint"></p>
       ${/* DIE FESTEN WERTE EINER VORLAGE — GELESEN UND NICHT EINGESTELLT. Sie
             stehen im Quelltext des Servers; wechselt ein Anbieter morgen den
             Port, kommt der neue von dort. Drei Felder für drei feste Werte
             wären drei Felder zu viel. */''}
-      <div class="field" id="mail-fest-feld"><label>${tH('card.serverPortHint')}</label>
-        <div class="mail-fest" id="mail-fest"></div></div>
-      <div id="mail-eigen">
+      <div class="field" id="mail-fixed-field"><label>${tH('card.serverPortHint')}</label>
+        <div class="mail-fixed" id="mail-fixed"></div></div>
+      <div id="mail-custom">
         <div class="field"><label for="mail-server">${tH('card.server')}</label>
           <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
             autocapitalize="off" spellcheck="false"></div>
         <div class="field"><label for="mail-port">${tH('card.port')}</label>
           <input class="input" id="mail-port" type="number" min="1" max="65535"
             value="${mailstand.port || ''}"></div>
-        <div class="field"><label for="mail-sicher">${tH('card.encryption')}</label>
-          <select class="input" id="mail-sicher">
+        <div class="field"><label for="mail-secure">${tH('card.encryption')}</label>
+          <select class="input" id="mail-secure">
             <option value="starttls"${mailstand.sicher ? '' : ' selected'}>${tH('card.startTls')}</option>
             <option value="tls"${mailstand.sicher ? ' selected' : ''}>${tH('card.sslTls')}</option>
           </select></div>
-        <p class="desc mail-hinweis">${tH('card.smtpOnlyHint')}</p>
+        <p class="desc mail-hint">${tH('card.smtpOnlyHint')}</p>
       </div>
-      <div class="field"><label for="mail-benutzer">${tH('card.providerUsername')}</label>
-        <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
+      <div class="field"><label for="mail-user">${tH('card.providerUsername')}</label>
+        <input class="input" id="mail-user" value="${esc(mailstand.benutzer || '')}"
           autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-      <div class="field"><label for="mail-passwort">${tH('card.providerPassword')}</label>
-        <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
+      <div class="field"><label for="mail-pass">${tH('card.providerPassword')}</label>
+        <input class="input" id="mail-pass" type="password" autocomplete="new-password"
           placeholder="${mailstand.passwortGesetzt
             ? esc(t('card.leaveEmptyHint')) : esc(t('card.notSet'))}"></div>
-      <div class="field"><label for="mail-absender">${tH('card.senderAddress')}</label>
-        <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
+      <div class="field"><label for="mail-sender">${tH('card.senderAddress')}</label>
+        <input class="input" id="mail-sender" type="email" value="${esc(mailstand.absender || '')}"
           autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-      <p class="desc mail-hinweis" id="mail-absender-hinweis">${esc(mailstand.hinweisImmer)}</p>
+      <p class="desc mail-hint" id="mail-sender-hint">${esc(mailstand.hinweisImmer)}</p>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
         <button class="btn btn-accent" id="mail-save">${tH('dialog.save')}</button></div></div>`;
     document.body.appendChild(bd);
     const field = (id) => bd.querySelector('#mail-' + id);
-    const selection = field('anbieter');
-    const hinweis = bd.querySelector('#mail-anbieter-hinweis');
-    const fixedField = bd.querySelector('#mail-fest-feld');
-    const ownBox = bd.querySelector('#mail-eigen');
-    const senderHint = bd.querySelector('#mail-absender-hinweis');
+    const selection = field('provider');
+    const hinweis = bd.querySelector('#mail-provider-hint');
+    const fixedField = bd.querySelector('#mail-fixed-field');
+    const ownBox = bd.querySelector('#mail-custom');
+    const senderHint = bd.querySelector('#mail-sender-hint');
 
     /* WAS DIE AUSWAHL UMSTELLT, an EINER Stelle. Drei Fälle und nicht zwei:
        eine Vorlage (feste Zeile), „Eigener Server" (Felder) und „kein
@@ -9728,10 +9728,10 @@ function mailDialog(mailstand) {
       hinweis.textContent = v && v.hinweis ? v.hinweis : '';
       hinweis.hidden = !(v && v.hinweis);
       fixedField.hidden = !v || eigen;
-      if (v && !eigen) bd.querySelector('#mail-fest').textContent =
+      if (v && !eigen) bd.querySelector('#mail-fixed').textContent =
         `${v.server} · ${v.port} · ${v.sicher ? 'SSL/TLS' : 'STARTTLS'}`;
       ownBox.hidden = !eigen;
-      for (const id of ['benutzer', 'passwort', 'absender']) field(id).disabled = !v;
+      for (const id of ['user', 'pass', 'sender']) field(id).disabled = !v;
       senderHint.hidden = !v;
     };
     selection.onchange = afterSelection;
@@ -9757,15 +9757,15 @@ function mailDialog(mailstand) {
         anbieter: selection.value,
         server: field('server').value.trim(),
         port: Number(field('port').value),
-        sicher: field('sicher').value === 'tls',
-        benutzer: field('benutzer').value.trim(),
+        sicher: field('secure').value === 'tls',
+        benutzer: field('user').value.trim(),
         // LEER HEISST "unveraendert", nicht "loeschen": sonst muesste das
         // Passwort bei jeder Aenderung am Absender neu getippt werden, und ein
         // Formular, das ein Geheimnis fuer eine Nebensache verlangt, wird
         // irgendwann mit einem falschen Wert gespeichert. Der Server hat
         // dieselbe Regel; hier steht sie nur, weil das Feld hier steht.
-        passwort: field('passwort').value,
-        absender: field('absender').value.trim()
+        passwort: field('pass').value,
+        absender: field('sender').value.trim()
       };
       if (!await secondConfirm('mail', null, t('card.saveMailAccount'),
         t('card.mailServerHint') +
@@ -9786,7 +9786,7 @@ function setUpMailDeliveryOut(fetched) {
      Behandler ins Leere greift, wenn die Karte einmal woanders steht
      (Stolperstein 211). */
   const { mailstand } = fetched;
-  const mailButton = document.getElementById('mail-einrichten');
+  const mailButton = document.getElementById('mail-setup');
   if (mailButton && mailstand) {
     /* DER DIALOG BEKOMMT DEN ZUSTAND MIT, den die Karte ohnehin schon hat --
        kein zweiter Ruf an den Server fuer dieselbe Auskunft (Stolperstein 145).
@@ -9797,8 +9797,8 @@ function setUpMailDeliveryOut(fetched) {
     };
 
     const mailResult = (text, gut) => {
-      const box = document.getElementById('mail-ergebnis');
-      if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-erfolg' : ''}"
+      const box = document.getElementById('mail-result');
+      if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-ok' : ''}"
         style="margin:10px 0 0">${esc(text)}</p>`;
     };
 
@@ -9844,9 +9844,9 @@ const IMAGE_FORMATS = [
 function switchRow(u) {
   if (!u) return '';
   if (u.laeuft)
-    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">${tH('card.convertRunning')} ` +
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${tH('card.convertRunning')} ` +
            `${tH('card.progressOf', { erledigt: u.erledigt, gesamt: u.gesamt })}</p>`;
-  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">${tH('card.convertFinished')} ` +
+  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${tH('card.convertFinished')} ` +
          `${u.umgestellt} von ${u.gesamt} umgewandelt` +
          (u.geblieben ? t('card.stayedPng', { geblieben: u.geblieben }) : '') +
          (u.gespart > 0 ? t('card.saved', { gespart: fmtBytes(u.gespart) }) : '') + `.</p>`;
@@ -9863,7 +9863,7 @@ function switchRow(u) {
 function geometryRow(g) {
   if (!g) return '';
   if (g.laeuft)
-    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">${tH('card.thumbnails')} ` +
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="thumbs-running">${tH('card.thumbnails')} ` +
            `${tH('card.refreshProgress', { erledigt: g.erledigt, gesamt: g.gesamt })}</p>`;
   if (!g.nachgezogen && !g.uebersprungen) return '';
   /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN -- 0.19.5. Bis 0.19.4 wurde die
@@ -9872,7 +9872,7 @@ function geometryRow(g) {
      -34,2 % ueber zwoelf Seitenverhaeltnisse, beim Panorama dagegen mehr.
      Eine Zeile, die nur eine Richtung kennt, verschwiege die haeufigere. */
   const d = g.zugenommen || 0;
-  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="geo-lauf">${tH('card.thumbnails')} ` +
+  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="thumbs-running">${tH('card.thumbnails')} ` +
          t('card.thumbsRefreshed', { nachgezogen: g.nachgezogen, geprueft: g.geprueft }) +
          (g.uebersprungen ? t('card.skipped', { uebersprungen: g.uebersprungen }) : '') +
          (d ? ` — ${fmtBytes(Math.abs(d))} ${d > 0 ? 'mehr' : 'weniger'}` : '') + `.</p>`;
@@ -9962,8 +9962,8 @@ function cardStats(fetched) {
              GELESEN UND NICHT BEHAUPTET: die Zeilen kommen aus db.js, das die
              geoeffnete Datei selbst fragt. Eine Kopie hier liefe beim naechsten
              Wechsel auseinander. */''}
-        ${stats.verfahren ? `<div class="sys-teil"></div>
-        <h4 class="sys-unter">${tH('card.techMethods')}</h4>
+        ${stats.verfahren ? `<div class="sys-part"></div>
+        <h4 class="sys-sub">${tH('card.techMethods')}</h4>
         ${/* SIE HEISST „Verschlüsselung" UND NICHT „Datenbank": eine Zeile mit
              dieser Beschriftung steht in derselben Karte schon — die
              Belegung auf der Platte. Zwei Zeilen mit demselben Wort in einer
@@ -10026,7 +10026,7 @@ function cardImageStore(fetched) {
           }</span><span class="v">${z.anzahl} · ${fmtBytes(z.bytes)}</span></div>`;
         }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noPhotosYet')}</p>`}
         ${OWNER ? `
-        <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="bild-umwandeln">
+        <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="convert-images">
           ${tH('card.convertOnUpload')}</label>
         ${/* WAS DER SCHALTER TUT, UND WAS ER NICHT TUT. Der Satz nennt beides:
              ein eingefügtes Bildschirmfoto liegt danach als WebP da, und die
@@ -10034,7 +10034,7 @@ function cardImageStore(fetched) {
              byte-genau, wie es hereinkam. */''}
         <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.pasteWebpHint')}</p>
         <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>${tH('card.convertAllPng')}</button>
+          <button class="btn btn-sm" id="convert-run"${png && !laeuft ? '' : ' disabled'}>${tH('card.convertAllPng')}</button>
         </div>
         ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.noPngLeft')}</p>`}
         ${switchRow(stats.umstellung)}
@@ -10054,10 +10054,10 @@ function cardImageStore(fetched) {
 /* DER FERTIGSATZ IST EIN RUF -- 0.24.0, wie der Fortschrittssatz darueber
    schon immer einer war (siehe SYS_SECTIONS). */
 const BATCH_RUNS = [
-  { field: 'umstellung', id: 'bild-lauf',
+  { field: 'umstellung', id: 'convert-running',
     text: (u) => t('card.convertProgress', { erledigt: u.erledigt, gesamt: u.gesamt }),
     fertig: () => t('card.convertDone') },
-  { field: 'geometrie', id: 'geo-lauf',
+  { field: 'geometrie', id: 'thumbs-running',
     text: (g) => t('card.thumbnailsProgress', { erledigt: g.erledigt, gesamt: g.gesamt }),
     fertig: () => t('card.thumbnailsRefreshed') }
 ];
@@ -10106,10 +10106,10 @@ function setUpImageStoreOut(fetched) {
   /* DERSELBE HELFER WIE BEI DEN BEIDEN ANLEGEN-SCHALTERN. Er nimmt die
      Stellung bei einem Fehlschlag zurueck -- sonst zeigte der Bildschirm
      etwas anderes an, als der Server haelt. */
-  createToggle('bild-umwandeln', 'bilderUmwandeln',
+  createToggle('convert-images', 'bilderUmwandeln',
     () => IMAGES_CONVERT, v => { IMAGES_CONVERT = v; });
 
-  atElement('bild-um', (button) => {
+  atElement('convert-run', (button) => {
     button.onclick = async () => {
       const bf = (fetched.stats && fetched.stats.bildFormate) || {};
       const png = bf.png || { anzahl: 0, bytes: 0 };
@@ -10171,7 +10171,7 @@ function cardBackup() {
              der Stelle, an der jemand sie tatsaechlich tappt. */''}
         <div class="warn-box" style="margin:0 0 14px"><strong>${tH('card.backupEncrypted')}</strong>
           ${tH('card.withoutKeyFrom')} <code>.env</code> ${tH('card.backupUnopenableHint')}</div>
-        <div id="sicherung-box"></div>
+        <div id="backup-box"></div>
       </div>`;
 }
 function setUpBackupOut(fetched) {
@@ -10184,7 +10184,7 @@ function setUpBackupOut(fetched) {
      JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
      und nicht der Lauf abreissen. */
   function drawBackup(fetched) {
-    const box = document.getElementById('sicherung-box');
+    const box = document.getElementById('backup-box');
     if (!box) return;
     const d = fetched.sicherung || {};
     if (!d.eingerichtet) {
@@ -10245,24 +10245,24 @@ function setUpBackupOut(fetched) {
        Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
        sonst liest ihn beim nächsten Umbau niemand mehr. */
     const situation = d.imArbeitsverzeichnis
-      ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>${tH('card.backupDirInProject')}</strong> ${tH('card.backupDirAdvice')} <code>${tH('card.composeFile')}</code>.</div>`
-      : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">${tH('card.backupDirIs')}
+      ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px"><strong>${tH('card.backupDirInProject')}</strong> ${tH('card.backupDirAdvice')} <code>${tH('card.composeFile')}</code>.</div>`
+      : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tH('card.backupDirIs')}
            <strong>${tH('card.outsideProject')}</strong> ${tH('card.untouchedByUpdates')}</div>`;
     box.innerHTML = `
       ${situation}
       <div class="field"><label>${tH('card.backupDir')}</label>
         <p class="desc" style="margin:0 0 6px">${tH('card.configuredIs')} <code>${esc(d.wurzel || '')}</code>${tH('card.subDirOptional')}</p>
-        <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="${esc(t('card.noSubDir'))}"
+        <input class="input" id="backup-dir" value="${esc(d.ort || '')}" placeholder="${esc(t('card.noSubDir'))}"
           autocapitalize="off" spellcheck="false"></div>
-      <button class="btn btn-sm" id="sich-ort-save">${tH('dialog.save')}</button>
-      <div class="sys-teil"></div>
+      <button class="btn btn-sm" id="backup-dir-save">${tH('dialog.save')}</button>
+      <div class="sys-part"></div>
       ${status}
       ${change}
       <p class="desc" style="margin:0 0 10px">${tH('card.duringBackupHint')} <strong>${tH('card.brieflyOffline')}</strong> ${tH('card.backupDurationHint', { dbBytes: fmtBytes(d.dbBytes), dauerSekunden: d.dauerSekunden })}</p>
-      <button class="btn btn-accent btn-sm" id="sich-los">${tH('card.backupNow')}</button>`;
+      <button class="btn btn-accent btn-sm" id="backup-run">${tH('card.backupNow')}</button>`;
 
-    document.getElementById('sich-ort-save').onclick = async () => {
-      const wert = document.getElementById('sich-ort').value;
+    document.getElementById('backup-dir-save').onclick = async () => {
+      const wert = document.getElementById('backup-dir').value;
       try {
         const r = await api('PUT', '/api/sicherung/ort', { ort: wert });
         // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
@@ -10278,7 +10278,7 @@ function setUpBackupOut(fetched) {
     /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
        laeuft synchron, die Instanz steht so lange still, und ein zweiter Klick
        stellte sich nur in die Schlange. */
-    document.getElementById('sich-los').onclick = async (e) => {
+    document.getElementById('backup-run').onclick = async (e) => {
       const button = e.currentTarget;
       button.disabled = true;
       button.textContent = t('card.backupRunning');
@@ -10348,7 +10348,7 @@ function cardCleanup() {
              wie moeglich sein und dennoch muss zu verstehen sein, was gemeint
              ist." */''}
         <p class="desc">${tH('card.cleanupHint')} <strong>${tH('card.finally')}</strong>${tH('card.cleanupScopeHint')}</p>
-        <div id="aufraeumen-box"></div>
+        <div id="cleanup-box"></div>
       </div>`;
 }
 function setUpCleanupOut(fetched) {
@@ -10363,7 +10363,7 @@ function setUpCleanupOut(fetched) {
      JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
      und nicht der Lauf abreissen. */
   function drawCleanup(fetched) {
-    const box = document.getElementById('aufraeumen-box');
+    const box = document.getElementById('cleanup-box');
     if (!box) return;
     const d = fetched.sicherung || {};
     const a = d.aufraeumen || {};
@@ -10394,14 +10394,14 @@ function setUpCleanupOut(fetched) {
        Mindestzahl zaehlt. Damit liest sich „mindestens 3 behalten" unmittelbar
        an der Liste ab: was faellt, steht ab Nummer 4.
 
-       DER DECKEL LIEGT BEI FUENF ZEILEN (`#auf-liste` im Stilblatt) und nicht
+       DER DECKEL LIEGT BEI FUENF ZEILEN (`#cleanup-list` im Stilblatt) und nicht
        bei den zehn der uebrigen Systemlisten: diese Liste steht MITTEN in ihrer
        Karte, unter ihr stehen die Zusammenfassung und beide Knoepfe. Ein Ordner
        mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
-       und dieselbe Begruendung wie bei `#ex-teil-liste`. */
+       und dieselbe Begruendung wie bei `#ex-part-list`. */
     const row = (z) => {
-      const mark = z.faellt ? `<span class="auf-marke weg">${tH('card.deleteLower')}</span>`
-                  : z.veraltet ? `<span class="auf-marke alt">${tH('card.oldKey')}</span>` : '';
+      const mark = z.faellt ? `<span class="cleanup-badge weg">${tH('card.deleteLower')}</span>`
+                  : z.veraltet ? `<span class="cleanup-badge alt">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.am))}</span>${mark}
         <span class="mcount">${tH('card.daysAgo', { n: z.tageHer })} · ${
@@ -10416,7 +10416,7 @@ function setUpCleanupOut(fetched) {
            t('server.backupDirUnreachable'))}</div>`
       : (all.length
         ? `<div class="label" style="margin:0 0 6px">${tH('card.backupsCount', { length: all.length })}</div>
-           <div class="manage-list" id="auf-liste">${all.map(row).join('')}</div>`
+           <div class="manage-list" id="cleanup-list">${all.map(row).join('')}</div>`
         : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noBackupInFolder')}</p>`);
 
     /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und in
@@ -10436,41 +10436,41 @@ function setUpCleanupOut(fetched) {
        eigener Knopf. Die Regel fasst sie nicht an -- sie sind nicht
        entbehrlich, sondern etwas anderes. */
     const veraltet = !altZahl ? '' : `
-      <div class="sys-teil"></div>
+      <div class="sys-part"></div>
       <p class="desc" style="margin:0 0 8px"><strong>${
         tH('card.oldKeyBackupsOnly', { n: altZahl })}</strong>
         (${esc(fmtBytes(a.altBytes || 0))}${tH('card.cleanupKeepsHint')}</p>
       <div class="row-in">
-        <button class="btn btn-sm" id="auf-alt">${
+        <button class="btn btn-sm" id="cleanup-old">${
           tH('card.oldKeyBackupsDelete', { n: altZahl })}</button>
       </div>`;
 
     box.innerHTML = `
-      <label class="ex-files"><input type="checkbox" id="auf-schalter"${a.an ? ' checked' : ''}>
+      <label class="ex-files"><input type="checkbox" id="cleanup-toggle"${a.an ? ' checked' : ''}>
         ${tH('card.cleanupAfterBackup')}</label>
       ${/* WAS DER HAKEN TUT, IN EINEM HALBEN SATZ. Ohne ihn ist der Knopf der
            einzige Weg -- das ist die ganze Auskunft, die er braucht. */''}
       <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.onlyOnButton')}</p>
-      <div class="sys-teil"></div>
-      <div class="field"><label for="auf-behalten">${tH('card.keepAtLeast')}</label>
+      <div class="sys-part"></div>
+      <div class="field"><label for="cleanup-keep">${tH('card.keepAtLeast')}</label>
         <p class="desc" style="margin:0 0 6px">${tH('card.keepAtLeastNote', { min: gB.min, max: gB.max })}</p>
-        <input class="input" id="auf-behalten" type="number" inputmode="numeric"
+        <input class="input" id="cleanup-keep" type="number" inputmode="numeric"
           min="${gB.min}" max="${gB.max}" step="1" value="${behalten}"></div>
-      <div class="field"><label for="auf-tage">${tH('card.deleteFromAge')}</label>
+      <div class="field"><label for="cleanup-days">${tH('card.deleteFromAge')}</label>
         <p class="desc" style="margin:0 0 6px">${tH('card.backupDeleteRule', { behalten: behalten, min: gT.min, max: gT.max })}</p>
-        <input class="input" id="auf-tage" type="number" inputmode="numeric"
+        <input class="input" id="cleanup-days" type="number" inputmode="numeric"
           min="${gT.min}" max="${gT.max}" step="1" value="${tage}"></div>
-      <div class="sys-teil"></div>
+      <div class="sys-part"></div>
       ${list}
       ${status}
       <div class="row-in">
-        <button class="btn btn-accent btn-sm" id="auf-los"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}</button>
+        <button class="btn btn-accent btn-sm" id="cleanup-run"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}</button>
       </div>
       ${veraltet}`;
 
     /* --- Der Schalter. Bei einem Fehlschlag geht die Stellung zurueck --
        sonst zeigte der Bildschirm etwas anderes an, als der Server haelt. */
-    atElement('auf-schalter', (el) => {
+    atElement('cleanup-toggle', (el) => {
       el.onchange = async () => {
         const vorher = !el.checked;
         try {
@@ -10494,8 +10494,8 @@ function setUpCleanupOut(fetched) {
        sie sind eine Bitte und keine Klemme -- die Absage kommt vom Server, und
        die Karte sagt, warum. */
     const values = () => ({
-      behalten: Number(document.getElementById('auf-behalten')?.value),
-      tage: Number(document.getElementById('auf-tage')?.value)
+      behalten: Number(document.getElementById('cleanup-keep')?.value),
+      tage: Number(document.getElementById('cleanup-days')?.value)
     });
     let previewRun = 0;
     const previewNew = async () => {
@@ -10512,12 +10512,12 @@ function setUpCleanupOut(fetched) {
          vorletzten Eingabe da (dieselbe Ueberlegung wie bei der Wache aus
          0.19.6: die Ansicht kann fort sein). */
       if (run !== previewRun) return;
-      if (!document.getElementById('aufraeumen-box')) return;
+      if (!document.getElementById('cleanup-box')) return;
       fetched.sicherung = frisch;
       drawCleanup(fetched);
     };
-    for (const [id, schluessel] of [['auf-behalten', 'sicherungBehalten'],
-                                    ['auf-tage', 'sicherungTage']])
+    for (const [id, schluessel] of [['cleanup-keep', 'sicherungBehalten'],
+                                    ['cleanup-days', 'sicherungTage']])
       atElement(id, (el) => {
         el.oninput = previewNew;
         el.onchange = async () => {
@@ -10526,7 +10526,7 @@ function setUpCleanupOut(fetched) {
             await api('PUT', '/api/settings', { [schluessel]: n });
             fetched.sicherung = { ...fetched.sicherung,
                                  aufraeumen: { ...(fetched.sicherung || {}).aufraeumen,
-                                               [id === 'auf-behalten' ? 'behalten' : 'tage']: n } };
+                                               [id === 'cleanup-keep' ? 'behalten' : 'tage']: n } };
             saved();
           } catch (e) { toast(e.message, true); }
         };
@@ -10556,12 +10556,12 @@ function setUpCleanupOut(fetched) {
          GANZE Karte neu, dieselbe Bauform wie bei der Bildumstellung. */
       renderSystem();
     };
-    atElement('auf-los', (button) => {
+    atElement('cleanup-run', (button) => {
       button.onclick = () => clear('regel', t('card.deleteBackups'),
         t('card.backupsPurgeHint',
           { n: treffer.length, bytes: fmtBytes(a.bytes || 0) }));
     });
-    atElement('auf-alt', (button) => {
+    atElement('cleanup-old', (button) => {
       button.onclick = () => clear('veraltet', t('card.deleteOldKeyBackups'),
         t('card.oldKeyBackupsPurge',
           { n: altZahl, bytes: fmtBytes(a.altBytes || 0) }));
@@ -10617,12 +10617,12 @@ function cardExport(fetched) {
              DIE TEILGROESSE IST WAEHLBAR, NACH OBEN ABER GEDECKELT: oberhalb
              des Warnwerts baute die Instanz Teile, vor denen sie im selben
              Atemzug warnt. */''}
-        <div class="ex-teile">
+        <div class="ex-parts">
           <div class="row-in" style="align-items:baseline">
             <button class="btn btn-sm" id="ex-plan">${tH('card.exportInParts')}</button>
             <label class="hint hint-sm" style="display:flex;align-items:baseline;gap:6px">
               ${tH('card.atMost')}
-              <select class="input input-sm" id="ex-ziel" style="width:auto">
+              <select class="input input-sm" id="ex-target" style="width:auto">
                 <option value="52428800">${tH('card.mb50')}</option>
                 <option value="104857600">${tH('card.mb100')}</option>
                 <option value="209715200">${tH('card.mb200')}</option>
@@ -10644,11 +10644,11 @@ function cardExport(fetched) {
              Trennstrich, mit eigener, kleinerer Ueberschrift und in der
              leisen Bauform des Ablagefeldes. Die zweite Bestaetigung bleibt,
              wo sie war: in askImport(). */''}
-        <div class="sys-teil"></div>
-        <h4 class="sys-unter">${tH('card.import')}</h4>
+        <div class="sys-part"></div>
+        <h4 class="sys-sub">${tH('card.import')}</h4>
         <p class="desc">${tH('card.importHint')}
           <strong>${tH('card.replaceInventory')}</strong>${tH('card.asksFirstHint')}</p>
-        <label class="drop drop-leise" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
+        <label class="drop drop-quiet" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
           ${tH('card.pickExportFile')}</label>
       </div>`;
 }
@@ -10661,7 +10661,7 @@ function setUpExportOut(fetched) {
   atElement('ex-plan', b => b.onclick = drawPartPlan);
   // Aendert sich ein Schalter oder die Teilgroesse, gilt der gezeichnete Plan
   // nicht mehr -- ein stehengebliebener Plan naennte falsche Grenzen.
-  for (const id of ['ex-files', 'ex-videos', 'ex-ziel'])
+  for (const id of ['ex-files', 'ex-videos', 'ex-target'])
     atElement(id, e => e.addEventListener('change', () => {
       const boxId = document.getElementById('ex-plan-out');
       if (boxId) boxId.innerHTML = '';
@@ -10733,7 +10733,7 @@ function setUpExportOut(fetched) {
   async function drawPartPlan() {
     const boxId = document.getElementById('ex-plan-out');
     if (!boxId) return;
-    const ziel = document.getElementById('ex-ziel')?.value || '';
+    const ziel = document.getElementById('ex-target')?.value || '';
     boxId.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">${tH('card.calculating')}</p>`;
     let plan;
     try { plan = await api('GET', `/api/export/plan?${partSwitch()}&ziel=${encodeURIComponent(ziel)}`); }
@@ -10757,12 +10757,12 @@ function setUpExportOut(fetched) {
 
     boxId.innerHTML = `${tooBig}
       ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${tH('card.partsNumber', { n: n })}</strong>${tH('card.eachAtMost', { zielGroesse: fmtBytes(plan.zielGroesse) })} <strong>${tH('card.partIsComplete')}</strong></p>
-      <div class="manage-list" id="ex-teil-liste">${plan.teile.map(teil => `
+      <div class="manage-list" id="ex-part-list">${plan.teile.map(teil => `
         <div class="mrow">
           <span class="mname">${tH('card.partOf', { nr: teil.nr, anzahl: teil.anzahl })} ${esc(vThing(teil.anzahl))}</span>
-          <button class="mact ex-teil-lad" data-nr="${teil.nr}" data-von="${teil.von}" data-bis="${teil.bis}"
+          <button class="mact ex-part-load" data-nr="${teil.nr}" data-von="${teil.von}" data-bis="${teil.bis}"
             disabled>${tH('card.load')}</button>
-          <span class="pk-meta">${esc(fmtBytes(teil.bytes))}</span>
+          <span class="trash-meta">${esc(fmtBytes(teil.bytes))}</span>
         </div>`).join('')}</div>
       ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. "Alle n Teile
            freigeben" war das Wort aus dem Maschinenraum -- aus dem Betrieb kam
@@ -10772,7 +10772,7 @@ function setUpExportOut(fetched) {
            wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
            Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
       <p class="hint hint-sm" style="margin:10px 2px 6px">${tH('card.exportPasswordHint')}${TWO_FACTOR ? t('card.andTwoFactorCode') : ''} ${tH('card.partsThenLoad')}</p>
-      <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
+      <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-confirm">
         ${tH('card.confirmOnce')} ${tH('card.partOrAll', { n: n })} ${tH('card.loadLower')}</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
            Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
@@ -10783,20 +10783,20 @@ function setUpExportOut(fetched) {
 
     /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
        je Datei getippt werden -- bei fünf Teilen fünfmal. */
-    atElement('ex-frei', b => b.onclick = async () => {
+    atElement('ex-confirm', b => b.onclick = async () => {
       const ok = await confirmTwiceMany('export', plan.teile.map(teil => teil.nr),
         t('card.confirmExport'),
         t('card.exportPartsHint', { n: n }));
       if (!ok) return;
       b.disabled = true;
       b.textContent = t('card.partsConfirmed');
-      boxId.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
+      boxId.querySelectorAll('.ex-part-load').forEach(k => { k.disabled = false; });
     });
 
     /* JEDER KNOPF GILT GENAU EINMAL, weil die Freigabe verbraucht wird. Das
        steht am Knopf und nicht in einer Fehlermeldung danach: ein zweiter
        Klick bekaeme sonst eine 403, die wie ein Fehler aussieht. */
-    boxId.querySelectorAll('.ex-teil-lad').forEach(k => {
+    boxId.querySelectorAll('.ex-part-load').forEach(k => {
       k.onclick = () => {
         window.location = `/api/export?${partSwitch()}` +
           t('card.partQuery', { von: k.dataset.von, bis: k.dataset.bis, nr: k.dataset.nr, n: n });

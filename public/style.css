@@ -457,7 +457,7 @@
    ganzen Stilblatt, an der eines steht, und sie stellt eine Vorgabe des
    Browsers wieder her, statt eine eigene durchzudruecken.
 
-   SIE ERSETZT ZWEI OERTLICHE FLICKEN (`.zug-neu [hidden]` und
+   SIE ERSETZT ZWEI OERTLICHE FLICKEN (`.user-new [hidden]` und
    `.lb-btn[hidden]`). Beide trugen den richtigen Kommentar und lösten dasselbe
    Problem an ihrer einen Stelle -- zweimal geflickt, nie grundsaetzlich. Genau
    das ist der Grund, warum es beim dritten Mal wieder zugeschlagen hat.
@@ -514,10 +514,10 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Bruchteile. Keine neue Schrift und keine neue Farbe: dieselbe Monoschrift,
    nur mit gleich breiten Ziffern auch dort, wo die Sans-Schrift steht. */
 .brand .count, .card-test, .rating-inline, .link-count, .rrow .ravg, .rrow .rname .rweight,
-.mrow .mcount, .mrow .mweight, .kv .v, .prot-zeit, .sitz-zeit, .pk-meta, .cmt-head,
+.mrow .mcount, .mrow .mweight, .kv .v, .log-time, .session-time, .trash-meta, .cmt-head,
 .lb-count, .vcount, .bsum, .calc-row > span, .open-when, .card-find .find-more,
 .thumb .num, .thumb .duration, .lrow .lnum, .cmp-crit, .cmp-group, .pill .n, .photo-count,
-.two-factor-codes span, .zug-status, .filter-toggle .fcount, .open-count {
+.two-factor-codes span, .user-status, .filter-toggle .fcount, .open-count {
   font-variant-numeric: tabular-nums;
 }
 /* Die Marke der Instanz. SIE HEISST `marke` UND NICHT `mark`, und das ist kein
@@ -1547,26 +1547,26 @@ mark {
 .snames .sname:hover { color: var(--accent-text-hi); text-decoration: underline; }
 
 /* ---------- Suchanbieter im Systembereich ---------- */
-.sanb-liste { display: flex; flex-direction: column; gap: 4px; }
-.sanb {
+.engine-list { display: flex; flex-direction: column; gap: 4px; }
+.engine {
   display: flex; align-items: center; gap: 10px;
   padding: 6px 10px; border-radius: var(--r-sm); background: var(--surface-2);
 }
-.sanb.leer .sanb-name { color: var(--faint); }
-.sanb-name { font-size: .85rem; }
-.sanb .sstart {
+.engine.leer .engine-name { color: var(--faint); }
+.engine-name { font-size: .85rem; }
+.engine .sdefault {
   font-size: .68rem; padding: 2px 8px; border-radius: 999px;
   border: 1px solid var(--line); background: none; color: var(--muted);
   transition: color .15s var(--ease), border-color .15s var(--ease);
 }
-.sanb .sstart:hover:not(:disabled) { color: var(--accent-text); border-color: var(--accent-line); }
-.sanb .sstart.on { color: var(--accent-text); border-color: var(--accent); }
-.sanb .sstart:disabled, .sanb input:disabled { opacity: .4; cursor: default; }
-.sanb-eigen { display: flex; flex-direction: column; gap: 6px; }
-.sanb-slot { display: flex; align-items: center; gap: 6px; }
-.sanb-slot .input { padding: 7px 9px; }
-.sanb-slot #se-name-1, .sanb-slot #se-name-2, .sanb-slot #se-name-3 { flex: 0 0 8.5em; }
-.sanb-slot input[id^="se-vorlage"] { flex: 1; min-width: 0; }
+.engine .sdefault:hover:not(:disabled) { color: var(--accent-text); border-color: var(--accent-line); }
+.engine .sdefault.on { color: var(--accent-text); border-color: var(--accent); }
+.engine .sdefault:disabled, .engine input:disabled { opacity: .4; cursor: default; }
+.engine-own { display: flex; flex-direction: column; gap: 6px; }
+.engine-slot { display: flex; align-items: center; gap: 6px; }
+.engine-slot .input { padding: 7px 9px; }
+.engine-slot #se-name-1, .engine-slot #se-name-2, .engine-slot #se-name-3 { flex: 0 0 8.5em; }
+.engine-slot input[id^="se-vorlage"] { flex: 1; min-width: 0; }
 
 /* ---------- Testtage ---------- */
 .spark { display: block; width: 100%; height: 46px; margin-bottom: 12px; }
@@ -1675,11 +1675,11 @@ mark {
    DER STRICH DER LEISTE UND DER DES OFFENEN REITERS LIEGEN AUFEINANDER --
    daher `margin-bottom: -1px` am Reiter. Ohne das staenden zwei Linien
    uebereinander, und die untere waere eine zu viel. */
-.sys-reiter {
+.sys-tabs {
   display: flex; flex-wrap: wrap; gap: 2px;
   margin: 0 0 20px; border-bottom: 1px solid var(--line);
 }
-.sys-reiter-k {
+.sys-tab {
   display: block; padding: 9px 14px 10px; margin-bottom: -1px;
   border-bottom: 2px solid transparent;
   font-size: .9rem; font-weight: 550; color: var(--muted);
@@ -1689,8 +1689,8 @@ mark {
 /* Der Reiter antwortet mit einer Flaeche, nicht nur mit der Schrift -- 0.22.0
    (Gestaltungsregel G2). Die oberen Ecken rund, die unteren nicht: er sitzt
    auf der Linie der Leiste. */
-.sys-reiter-k:hover { color: var(--text); background: var(--surface); border-radius: var(--r-sm) var(--r-sm) 0 0; }
-.sys-reiter-k.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 620; }
+.sys-tab:hover { color: var(--text); background: var(--surface); border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.sys-tab.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 620; }
 /* grid-auto-flow: dense zieht eine nachfolgende schmale Karte in die Luecke,
    die eine Karte ueber die volle Breite davor hinterlaesst. Eine feste
    Position taete das nicht: wie viele Karten in eine Zeile passen, haengt an
@@ -1750,12 +1750,12 @@ mark {
    Ueberschrift, ein Satz, der Befehl in Schreibmaschinenschrift mit
    Kopierknopf. Leiser Rand (--line-2), ruhige Flaeche -- er ist Auskunft,
    keine Warnung. */
-.server-kasten { border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 10px 12px; margin: 0 0 14px; background: var(--surface-2); }
-.server-kopf { font-size: .78rem; font-weight: 600; color: var(--text-2); letter-spacing: .03em; text-transform: uppercase; margin-bottom: 4px; }
-.server-kasten .desc { margin: 0 0 8px; }
-.server-zeile { display: flex; align-items: center; gap: 8px; }
-.server-zeile code { flex: 1 1 auto; min-width: 0; overflow-x: auto; white-space: nowrap; font-family: var(--mono); font-size: .78rem; padding: 6px 8px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r-sm); }
-.server-zeile .btn { flex: 0 0 auto; }
+.server-box { border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 10px 12px; margin: 0 0 14px; background: var(--surface-2); }
+.server-head { font-size: .78rem; font-weight: 600; color: var(--text-2); letter-spacing: .03em; text-transform: uppercase; margin-bottom: 4px; }
+.server-box .desc { margin: 0 0 8px; }
+.server-row { display: flex; align-items: center; gap: 8px; }
+.server-row code { flex: 1 1 auto; min-width: 0; overflow-x: auto; white-space: nowrap; font-family: var(--mono); font-size: .78rem; padding: 6px 8px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r-sm); }
+.server-row .btn { flex: 0 0 auto; }
 /* Eine Karte ueber die volle Breite des Rasters. Die Zugangsliste traegt je
    Zeile Name, Rolle, Status, Eintragszahl und bis zu vier Bedienelemente --
    in einer Rasterspalte von 300 px bricht das um. */
@@ -1764,13 +1764,13 @@ mark {
    mehrere Einstellungen untereinander stehen, laufen sie ohne Linie zu einem
    Textblock zusammen. Dieselbe Linienfarbe wie der Kartenrand, damit keine
    zweite Graustufe entsteht. */
-.sys-card .sys-teil { border-top: 1px solid var(--line); margin: 16px 0 8px; padding-top: 14px; }
+.sys-card .sys-part { border-top: 1px solid var(--line); margin: 16px 0 8px; padding-top: 14px; }
 /* EINE UEBERSCHRIFT EINE STUFE UNTER DER KARTE. Sie steht dort, wo in einer
    Karte zwei Dinge stehen, von denen eines dem anderen NACHGEORDNET ist --
    heute der Import unter dem Export. Kleiner und leiser als das <h3> darueber:
    waeren beide gleich gross, waere es keine Stufe, sondern eine zweite Karte
    im selben Rahmen. */
-.sys-card .sys-unter {
+.sys-card .sys-sub {
   font-size: .93rem; font-weight: 620; color: var(--text-2);
   letter-spacing: -.012em; margin: 0 0 6px;
 }
@@ -1778,7 +1778,7 @@ mark {
    und wird deshalb sekundaer gezeichnet -- gedaempfter Rand, kein eigener
    Untergrund. Beim Ueberfahren kommt die Farbe zurueck: leise heisst nicht
    versteckt. */
-.drop-leise { border-color: var(--line-2); background: none; }
+.drop-quiet { border-color: var(--line-2); background: none; }
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; }
 .kv:last-child { border-bottom: none; }
 .kv .k { color: var(--muted); }
@@ -1787,15 +1787,15 @@ mark {
    nicht neben ihr steht. */
 .kv .k .extra { color: var(--faint); }
 .kv .v { font-family: var(--mono); font-size: .83rem; }
-.vok-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 12px; }
-.vok-grid .field { margin-bottom: 10px; }
-.vok-probe {
+.vocabulary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 12px; }
+.vocabulary-grid .field { margin-bottom: 10px; }
+.vocabulary-preview {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
   margin-top: 4px; padding: 10px 12px;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
   font-size: .83rem; color: var(--text-2);
 }
-.vok-probe .label { width: 100%; margin-bottom: 2px; }
+.vocabulary-preview .label { width: 100%; margin-bottom: 2px; }
 /* DIE LISTE BEKOMMT DIE HOEHE, DIE DIE KACHEL HERGIBT -- und rollt erst dann,
    wenn sie wirklich ueberlaeuft. Bis 0.17.0 stand hier `max-height: 280px`:
    "Meine Sitzungen" zeigte drei von zehn Anmeldungen und blendete einen
@@ -1865,7 +1865,7 @@ mark {
    68 Pixel hoch statt 35.
    ZWEI ZEILENMASSE, WEIL ES ZWEI ZEILEN SIND -- dieselbe Unterscheidung wie
    beim Deckel darueber: eine `.mrow` misst 41,92 Pixel und rueckt 9 Pixel ein,
-   eine `.prot-zeile` misst 35 und rueckt 2 ein. Ein gemeinsames Mass waere hier
+   eine `.log-row` misst 35 und rueckt 2 ein. Ein gemeinsames Mass waere hier
    keine Regel, sondern ein Fehler an einer der beiden.
    ZWEI ZEILEN UND NICHT EINE -- SEIT 0.18.1. Mit einer war die Leere nicht zu
    sehen: die Meldung stand als eine Textzeile zwischen zwei Absaetzen und las
@@ -1875,10 +1875,10 @@ mark {
    steht mittig darin, und darunter bleibt eine Zeile Luft, die sagt, dass hier
    ein Ort ist, an dem sonst etwas stuende. Mehr als zwei waere ein Loch, und
    ein Loch ist wieder das, wovon die drei Runden davor gehandelt haben. */
-.manage-list > .hint, .prot-liste > .hint {
+.manage-list > .hint, .log-list > .hint {
   display: flex; align-items: center; margin: 0; }
 .manage-list > .hint { min-height: 5.59rem; padding: 0 9px; }
-.prot-liste > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }
+.log-list > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }
 /* DIE LISTEN IN EINEM FENSTER TRAGEN DEN DECKEL NICHT -- Glockentafel und
    Grabsteine. Dort gibt es keine Reihe und keine Nachbarin, an der sich etwas
    ausrichten koennte, und das Fenster deckelt laengst bei `88dvh`. Ein
@@ -1890,7 +1890,7 @@ mark {
 /* DIE SITZUNGSLISTE DECKELT NACH IHRER EIGENEN ZEILE -- und das ist keine
    dritte Regel, sondern dieselbe: ZEHN ZEILEN, gemessen an der Zeile, die
    DIESE Liste wirklich hat.
-   EINE `.mrow.sitz` IST EIN RASTER UEBER DREI ZEILEN -- Name, Anmeldezeit,
+   EINE `.mrow.session` IST EIN RASTER UEBER DREI ZEILEN -- Name, Anmeldezeit,
    letzter Zugriff -- und misst gemessen 72,55 Pixel, wo eine gewoehnliche
    `.mrow` 41,92 misst. Mit dem gemeinsamen Deckel von 27.95rem standen deshalb
    FUENF Sitzungen da, wo die Zusage zehn sagt: 419,25 Pixel geteilt durch
@@ -1898,21 +1898,21 @@ mark {
    Boden und koennte ihn nutzen": unter der Liste standen 453 von 1054,92
    Pixeln leer.
    55.23rem SIND ZEHN SITZUNGSZEILEN UND DIE FUSSZEILE: 10 x 72,55 = 725,5, dazu
-   die 102,88 der `.sitz-fuss`, die INNERHALB der Liste steht -- zusammen 828,38
+   die 102,88 der `.session-foot`, die INNERHALB der Liste steht -- zusammen 828,38
    Pixel bei Wurzelschrift 15. Ohne die Fusszeile im Deckel muesste man an zehn
    Sitzungen vorbeirollen, um den Knopf darunter zu sehen.
    DER WEG UEBER DIE NUMMER UND NICHT UEBER `:has()`: welche Zeilen eine Liste
    traegt, weiss das Stilblatt nicht, und ein Waehler, auf den erst seit ein
    paar Jahren Verlass ist, hat diese Instanz schon einmal Leerraum gekostet
-   (Stolperstein 256). `#ex-teil-liste` weiter unten macht es genauso. */
-#msitzungen { max-height: 55.23rem; }
+   (Stolperstein 256). `#ex-part-list` weiter unten macht es genauso. */
+#msessions { max-height: 55.23rem; }
 
 /* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
    einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
    der Export, unter ihr der Import. Naehme sie die Kachelhoehe, schoebe sie
    den Import aus dem Blick, und ein Bestand von zwanzig Gigabyte ergibt
    siebzig Zeilen. */
-#ex-teil-liste { flex: none; max-height: 280px; }
+#ex-part-list { flex: none; max-height: 280px; }
 
 /* DIE ZWEITE AUSNAHME, UND SIE HAT DIESELBE BEGRUENDUNG -- 0.20.0. Die Liste
    der Sicherungen steht MITTEN in ihrer Karte: unter ihr stehen die Zeile
@@ -1926,16 +1926,16 @@ mark {
    FUENF UND NICHT ZEHN, und die Zahl kommt aus dem Betrieb: „wenn vorhanden
    bis 5, der Rest dann durch einen Scrollbalken ansehbar."
    DER WEG UEBER DIE NUMMER wie bei den beiden Listen darueber. */
-#auf-liste { flex: none; max-height: 13.98rem; }
+#cleanup-list { flex: none; max-height: 13.98rem; }
 /* DIE MARKE AN EINER ZEILE DER SICHERUNGSLISTE -- „loeschen" oder „alter
    Schluessel". Sie steht zwischen Datum und Groesse und schrumpft nicht: was
    sie sagt, ist die Aussage der Zeile.
    ZWEI FARBEN FUER ZWEI VERSCHIEDENE DINGE: rot heisst „faellt beim naechsten
    Lauf", gedaempft heisst „liegt hier und die Regel fasst sie nicht an". Eine
    Farbe fuer beides waere die Verwechslung, gegen die diese Karte gebaut ist. */
-.mrow .auf-marke { flex-shrink: 0; font-size: .7rem; letter-spacing: .03em; text-transform: uppercase; }
-.mrow .auf-marke.weg { color: var(--red); }
-.mrow .auf-marke.alt { color: var(--faint); }
+.mrow .cleanup-badge { flex-shrink: 0; font-size: .7rem; letter-spacing: .03em; text-transform: uppercase; }
+.mrow .cleanup-badge.weg { color: var(--red); }
+.mrow .cleanup-badge.alt { color: var(--faint); }
 /* JEDE ZEILE ANTWORTET GLEICH -- 0.22.0. `.mrow`, `.trow` und `.arow` geben
    beim Ueberfahren Hintergrund und Rand eine Stufe heller, 150 ms, wie
    `.lrow` es schon tat. Bis 0.21.1 antwortete von den vieren nur die
@@ -1991,12 +1991,12 @@ mark {
    uebrigen Verwaltungszeilen: ein Rueckweg, den man erst suchen muss, ist
    keiner -- und auf einem Zeigegeraet ohne Ueberfahren gaebe es ihn gar
    nicht. */
-.mrow.pk { flex-wrap: wrap; align-items: center; }
-.mrow.pk .mname { white-space: normal; font-weight: 560; }
-.mrow.pk .mact { opacity: 1; flex-shrink: 0; }
-.mrow.pk .pk-meta { flex-basis: 100%; font-family: var(--mono); font-size: .7rem; color: var(--faint); }
+.mrow.trash { flex-wrap: wrap; align-items: center; }
+.mrow.trash .mname { white-space: normal; font-weight: 560; }
+.mrow.trash .mact { opacity: 1; flex-shrink: 0; }
+.mrow.trash .trash-meta { flex-basis: 100%; font-family: var(--mono); font-size: .7rem; color: var(--faint); }
 
-.mrow.zug .zug-rolle { font-size: .78rem; color: var(--muted); flex-shrink: 0; }
+.mrow.user .user-role { font-size: .78rem; color: var(--muted); flex-shrink: 0; }
 /* ROLLE ALS MARKE, ZUSTAND ALS PUNKT -- 0.22.0 (Konzept 6.7). Gebaut aus
    FORM und nicht aus neuer Farbe (Gestaltungsregel G1): der Eigentuemer
    gefuellt, der Admin umrandet, der Benutzer neutral. Ein Blau fuer den Admin
@@ -2005,39 +2005,39 @@ mark {
    „aktiv" wie „getestet", das gedaempfte Grau ist „zurueckgenommen" wie die
    abgelehnte Kachel, Orange ist „wartet auf Bedienung" wie jeder Knopf.
    Dieselbe Marke steht im Sicherheitsprotokoll hinter den Rollenwoertern. */
-.rolle-marke {
+.role-badge {
   display: inline-flex; align-items: center;
   font-family: var(--mono); font-size: .68rem; font-weight: 600;
   letter-spacing: .06em; text-transform: uppercase; line-height: 1;
   padding: 3px 7px; border-radius: 999px; border: 1px solid var(--line);
   color: var(--muted); white-space: nowrap;
 }
-.rolle-marke.admin { border-color: var(--accent-line); color: var(--text-2); }
-.rolle-marke.eigentuemer { background: var(--accent-dim); border-color: var(--accent-line); color: var(--accent-text-hi); }
-.zug-punkt {
+.role-badge.admin { border-color: var(--accent-line); color: var(--text-2); }
+.role-badge.eigentuemer { background: var(--accent-dim); border-color: var(--accent-line); color: var(--accent-text-hi); }
+.user-dot {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   background: var(--faint); flex-shrink: 0;
 }
-.zug-punkt.aktiv { background: var(--green); }
-.zug-punkt.eingeladen { background: var(--accent); }
-.mrow.zug .zug-status {
+.user-dot.aktiv { background: var(--green); }
+.user-dot.invited { background: var(--accent); }
+.mrow.user .user-status {
   display: inline-flex; align-items: center; gap: 6px;
   font-family: var(--mono); font-size: .78rem; color: var(--muted); flex-shrink: 0;
 }
-.mrow.zug .zug-ich { color: var(--faint); font-weight: 400; }
-.mrow.zug .zug-akt { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.mrow.user .user-mine { color: var(--faint); font-weight: 400; }
+.mrow.user .user-act { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 /* Die Auswahl bleibt sichtbar, die Knoepfe folgen dem Muster der Liste und
    erscheinen beim Ueberfahren. Auf dem Finger gibt es kein Ueberfahren --
    deshalb die Medienregel weiter unten. */
-.mrow.zug select.zug-r { padding: 3px 6px; font-size: .76rem; width: auto; flex-shrink: 0; }
-.mrow.zug-sperr { opacity: .62; }
-.mrow.zug-weg { opacity: .4; }
-.mrow.zug-weg .mname { font-style: italic; }
+.mrow.user select.user-role-sel { padding: 3px 6px; font-size: .76rem; width: auto; flex-shrink: 0; }
+.mrow.user-locked { opacity: .62; }
+.mrow.user-remove { opacity: .4; }
+.mrow.user-remove .mname { font-style: italic; }
 @media (hover: none) { .mrow .mact { opacity: 1; } }
 
-.zug-neu { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
-.zug-neu .input { flex: 1 1 130px; min-width: 0; }
-.zug-neu select.input { flex: 0 0 auto; width: auto; }
+.user-new { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.user-new .input { flex: 1 1 130px; min-width: 0; }
+.user-new select.input { flex: 0 0 auto; width: auto; }
 /* Das Passwortfeld erscheint nur zu der Betriebsart, in der es gilt. Die
    Regel dafuer steht seit 0.15.1 EINMAL ganz oben (`[hidden]`) und nicht mehr
    hier: `hidden` ist eine Vorgabe des Browsers mit schwacher Kraft, und in
@@ -2046,30 +2046,30 @@ mark {
 /* "noch kein Passwort" steht an der Statusspalte und nimmt deren Schrift.
    Es ist ein abgeleiteter Zustand und kein vierter in der Datenbank -- es
    soll sich deshalb auch nicht wie einer anfuehlen. */
-.mrow.zug .zug-wartet { color: var(--accent-text); }
-.prot-merkmal .rolle-marke { margin-left: 2px; }
+.mrow.user .user-waiting { color: var(--accent-text); }
+.log-detail .role-badge { margin-left: 2px; }
 /* Das Feld traegt den Link in voller Laenge; er wird kopiert, nicht gelesen,
    deshalb die feste Schrift und die volle Zeile. */
-.zug-linkzeile { display: flex; align-items: center; gap: 7px; margin-top: 9px; }
-.zug-linkzeile .input { flex: 1 1 auto; min-width: 0; font-family: var(--mono); font-size: .72rem; }
-.zug-linkzeile .btn { flex: 0 0 auto; }
+.user-link-row { display: flex; align-items: center; gap: 7px; margin-top: 9px; }
+.user-link-row .input { flex: 1 1 auto; min-width: 0; font-family: var(--mono); font-size: .72rem; }
+.user-link-row .btn { flex: 0 0 auto; }
 /* Woher die Adresse kam -- die Zeile unter dem Linkfeld. Sie steht dort, wo
    der Link entsteht, und nicht in der Karte "Titel". */
-.zug-linkherkunft { margin: 8px 0 0; font-size: .82rem; line-height: 1.55; }
-.zug-linkherkunft code { font-family: var(--mono); font-size: .78rem; word-break: break-all; }
+.user-link-origin { margin: 8px 0 0; font-size: .82rem; line-height: 1.55; }
+.user-link-origin code { font-family: var(--mono); font-size: .78rem; word-break: break-all; }
 
 /* Der Versandzustand NEBEN dem Link, seit 0.9.0 -- nie anstelle von ihm. Er
    steht deshalb als eigene Zeile im selben Kasten und nicht als eigener
    Kasten daneben: zwei Kaesten laesen sich als zwei Sachen, und es ist eine.
    Der Fehlschlag ist rot, der Erfolg gruen, das Ausbleiben grau -- drei
    Zustaende, drei Farben, und keiner davon nimmt dem Link den Platz weg. */
-.zug-versand { margin: 8px 0 0; font-size: .82rem; line-height: 1.55; color: var(--text-2); }
-.zug-versand-ok strong, .zug-versand-ok { color: var(--green); }
-.zug-versand-fehl strong { color: var(--red); }
+.user-send { margin: 8px 0 0; font-size: .82rem; line-height: 1.55; color: var(--text-2); }
+.user-send-ok strong, .user-send-ok { color: var(--green); }
+.user-send-fail strong { color: var(--red); }
 
 /* Die Karte "Mailversand". Zwei Woerter tragen die ganze Karte -- eingerichtet
    oder nicht -- und stehen deshalb farbig da. */
-.mail-gut { color: var(--green); }
+.mail-on { color: var(--green); }
 /* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
    HIER STANDEN BIS 0.17.2 SECHS REGELN FUER VIER REIHEN, und sie sind weg.
    Die Karte trug neun Bedienelemente in vier verschiedenen Spaltenaufteilungen
@@ -2080,9 +2080,9 @@ mark {
    DIE KARTE IST JETZT EINE ZUSTANDSKARTE WIE IHRE NACHBARN und braucht dafuer
    gar keine eigene Regel: `.kv` traegt die fuenf Zeilen, `.row-in` die beiden
    Knoepfe. Was von dieser Karte im Stilblatt bleibt, sind zwei Farben. */
-.mail-aus { color: var(--red); }
-.mail-erfolg { background: var(--green-dim); border-color: rgba(var(--green-rgb), .3); }
-.mail-erfolg strong { color: var(--green); }
+.mail-off { color: var(--red); }
+.mail-ok { background: var(--green-dim); border-color: rgba(var(--green-rgb), .3); }
+.mail-ok strong { color: var(--green); }
 /* ---- DER DIALOG „Mailzugang einrichten" — 0.17.3 ----
    EIN RHYTHMUS UND NICHT VIER: eine Spalte, Beschriftung ueber dem Feld,
    Hinweis unter seiner Sache. `.modal` ist selbst schon eine Spalte mit
@@ -2095,14 +2095,14 @@ mark {
    deshalb nach oben an seine Sache heran. Der negative Abstand nimmt genau die
    Haelfte der Luecke zurueck, die `.modal` zwischen ihren Kindern setzt --
    damit steht er naeher an dem, was er erklaert, als am naechsten Feld. */
-.mail-hinweis { margin: -7px 0 0; }
+.mail-hint { margin: -7px 0 0; }
 /* DIE FESTEN WERTE EINER VORLAGE WERDEN GELESEN UND NICHT EINGESTELLT. Server,
    Port und Verschluesselung stehen im Quelltext; drei Felder fuer drei feste
    Werte waeren drei Felder zu viel. GESPERRTE Felder waren es bis 0.17.2, und
    ein gesperrtes Feld sieht aus wie eines, das gleich aufgeht.
    IN DER MONOSCHRIFT, wie jede andere Angabe der Instanz, die ein Rechner
    gesetzt hat und kein Mensch. */
-.mail-fest { font-family: var(--mono); font-size: .84rem; color: var(--text-2);
+.mail-fixed { font-family: var(--mono); font-size: .84rem; color: var(--text-2);
   background: var(--surface-2); border: 1px solid var(--line);
   border-radius: var(--r-sm); padding: 9px 11px; }
 
@@ -2111,12 +2111,12 @@ mark {
    Hoehe, die die Kachel hergibt, und nicht mehr in festen 380 Pixeln. Auf
    schmalem Schirm bricht sie in zwei Zeilen statt seitlich zu scrollen. */
 /* DIESELBE BAUFORM WIE AN `.manage-list`, und die Begruendung steht dort.
-   35rem SIND HIER FUENFZEHN ZEILEN: eine `.prot-zeile` misst in der breiten
+   35rem SIND HIER FUENFZEHN ZEILEN: eine `.log-row` misst in der breiten
    Karte 35 Pixel -- sie traegt keinen Abstand zur naechsten, sondern eine
    Linie.
    FUENFZEHN UND NICHT ZEHN, UND DAS IST KEINE ZWEITE WAHRHEIT UEBER DIESELBE
    SACHE (Stolperstein 47): eine `.mrow` ist eine BEDIENZEILE mit Knoepfen und
-   Auswahlfeldern, eine `.prot-zeile` eine TEXTZEILE mit Trennlinie. Zwei
+   Auswahlfeldern, eine `.log-row` eine TEXTZEILE mit Trennlinie. Zwei
    verschiedene Dinge duerfen zwei Masse haben. 0.17.3 hat beide auf zehn
    gesetzt, „damit es eine Regel ist" -- das Protokoll hat dabei doppelt
    verloren: zwei Zeilen weniger UND die schmaleren Zeilen. Gemessen in
@@ -2155,28 +2155,28 @@ mark {
    Innenabstand traegt, stehen die Schriften trotzdem auf einer Linie: der
    Unterschied zwischen den Schriftgroessen 0,74 und 0,86 rem macht an der
    Unterlaenge weniger als einen halben Pixel aus. */
-.prot-liste { flex: 0 1 auto; min-height: 0; max-height: 35rem;
+.log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px;
   display: grid; grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }
-.prot-zeile { display: contents; }
-.prot-zeile > * { padding: 7px 12px 7px 0; border-bottom: 1px solid var(--line);
+.log-row { display: contents; }
+.log-row > * { padding: 7px 12px 7px 0; border-bottom: 1px solid var(--line);
   font-size: .86rem; align-self: end; }
-.prot-zeile > *:first-child { padding-left: 2px; }
-.prot-zeile > *:last-child { padding-right: 2px; }
-.prot-zeile:last-child > * { border-bottom: 0; }
-.prot-zeit { font-family: var(--mono); font-size: .74rem; color: var(--muted); white-space: nowrap; }
-.prot-was { font-weight: 560; }
-.prot-wer, .prot-ziel { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+.log-row > *:first-child { padding-left: 2px; }
+.log-row > *:last-child { padding-right: 2px; }
+.log-row:last-child > * { border-bottom: 0; }
+.log-time { font-family: var(--mono); font-size: .74rem; color: var(--muted); white-space: nowrap; }
+.log-event { font-weight: 560; }
+.log-actor, .log-target { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
 /* Der anklickbare Name im Protokoll. Er erbt die Farbe seiner Zeile statt der
    gedämpften Verweisfarbe: er steht mitten im Text und soll nicht heller sein
    als das, was ihn umgibt — die Unterstreichung sagt schon, dass er trägt. */
-.prot-wer .prot-sprung, .prot-ziel .prot-sprung { color: inherit; font-size: inherit; }
-.prot-wer .prot-sprung:hover, .prot-ziel .prot-sprung:hover { color: var(--accent-text); }
-.prot-merkmal { color: var(--muted); font-size: .8rem; }
+.log-actor .log-jump, .log-target .log-jump { color: inherit; font-size: inherit; }
+.log-actor .log-jump:hover, .log-target .log-jump:hover { color: var(--accent-text); }
+.log-detail { color: var(--muted); font-size: .8rem; }
 /* Die Zeile, auf die gerade gesprungen wurde. Kurz und ohne Bewegung: ein
    Aufblinken, das sich selbst wieder wegnimmt, führt das Auge und bleibt
    niemandem im Weg. Dieselbe Farbe wie jede Hervorhebung dieser Instanz. */
-.mrow.mrow-blitz { border-color: var(--accent); background: var(--accent-dim); }
+.mrow.mrow-flash { border-color: var(--accent); background: var(--accent-dim); }
 /* DIESELBE BEDINGUNG WIE DER GANZE ABSCHNITT "DAS TELEFON" weiter unten --
    vorher stand hier 620px, eine eigene vierte Zahl neben den drei Stellen der
    Staffel. Zwischen 620 und 700 Pixeln stand die Zeile damit noch in fuenf
@@ -2190,12 +2190,12 @@ mark {
      sechste Feld der ersten Zeile in die Reihe der zweiten, und aus zwei
      Vorgaengen wuerde eine Zeile. Zwei Spalten heissen hier also: jede Zeile
      ist wieder ein Kasten -- und traegt damit auch ihre Trennlinie selbst. */
-  .prot-liste { display: block; }
-  .prot-zeile { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
+  .log-list { display: block; }
+  .log-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
     align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); }
-  .prot-zeile > * { padding: 0; border-bottom: 0; }
-  .prot-zeile:last-child { border-bottom: 0; }
-  .prot-zeit { grid-column: 1 / -1; }
+  .log-row > * { padding: 0; border-bottom: 0; }
+  .log-row:last-child { border-bottom: 0; }
+  .log-time { grid-column: 1 / -1; }
 }
 
 /* DIE ZEILE EINER ANMELDUNG STEHT IN EINEM RASTER UND HAT ZWEI REIHEN:
@@ -2223,17 +2223,17 @@ mark {
    NUR DIE ZEITEN TRAGEN `white-space: nowrap`. Ein umgebrochener Zeitstempel
    waere schlechter zu lesen als ein abgeschnittener Name -- und der Name
    traegt seine Ellipse ohnehin schon. */
-.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto;
+.mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; column-gap: 9px; row-gap: 2px; }
-.mrow.sitz .mname { grid-column: 1; grid-row: 1; }
-.mrow.sitz .zug-akt { grid-column: 2; grid-row: 1; }
-.mrow.sitz .sitz-zeit { grid-column: 1 / -1; justify-self: end; text-align: right; }
+.mrow.session .mname { grid-column: 1; grid-row: 1; }
+.mrow.session .user-act { grid-column: 2; grid-row: 1; }
+.mrow.session .session-time { grid-column: 1 / -1; justify-self: end; text-align: right; }
 /* Die eigene Anmeldung ist markiert -- sonst waere sie von einer fremden nicht
    zu unterscheiden, und genau das ist die eine Auskunft dieser Karte. */
-.mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); white-space: nowrap; }
-.mrow.sitz-ich { border-color: var(--accent); }
-.mrow.sitz-ich .mname { color: var(--accent-text); }
-.sitz-fuss { margin-top: 4px; }
+.mrow.session .session-time { font-family: var(--mono); font-size: .68rem; color: var(--faint); white-space: nowrap; }
+.mrow.session-mine { border-color: var(--accent); }
+.mrow.session-mine .mname { color: var(--accent-text); }
+.session-foot { margin-top: 4px; }
 
 .warn-box { background: var(--red-dim); border: 1px solid rgba(var(--red-rgb), .3); border-radius: var(--r-sm); padding: 11px 13px; font-size: .87rem; color: var(--text-2); line-height: 1.55; }
 .warn-box strong { color: var(--red); }
@@ -2242,7 +2242,7 @@ mark {
    sind (0.8.91). Sie steht IN der Zeile "Dateien am Ort" und nicht nur im
    Kasten darueber: wer die Zahl liest, soll sofort sehen, dass sie nicht die
    Zahl der brauchbaren Kopien ist. Nimmt den vorhandenen Rotton, kein neuer. */
-.sich-alt { color: var(--red); }
+.backup-old { color: var(--red); }
 
 /* ---------- Der zweite Faktor, seit 0.10.0 ----------
    DER ZUSTAND STEHT OHNE KLICK DA, und er steht farbig da: gruen fuer "an",
@@ -2652,8 +2652,8 @@ body.lb-open { overflow: hidden; }
    `.row-in` gibt die Zeile mit dem Knopf, `.manage-list` die Liste darunter;
    beide gibt es laengst, und eine dritte Bauform fuer dieselbe Sache waere
    eine zu viel. */
-.ex-teile { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
-.ex-teile .mrow .mname { font-weight: 500; }
+.ex-parts { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.ex-parts .mrow .mname { font-weight: 500; }
 .ex-files { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: .83rem; color: var(--muted); cursor: pointer; }
 .ex-files input { accent-color: var(--accent); }
 .apdf-hint { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 0; flex-wrap: wrap; }
@@ -3080,7 +3080,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .link-btn { padding: 7px 3px; }
   .mark { padding: 8px 12px; }
   .abtn { padding: 7px 12px; }
-  .sanb .sstart { padding: 6px 12px; }
+  .engine .sdefault { padding: 6px 12px; }
   .switch { padding: 10px 15px; }
   .pin-btn { padding: 8px; }
   .open-check { padding: 6px 9px; }
@@ -3089,7 +3089,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      darueber -- dasselbe Muster wie bei der kleinen Marke und dem Kreuz an
      einer fremden Stimme. Das Rollenfeld in der Zugangsliste waere sonst als
      einziges Auswahlfeld der Instanz bei 20 Pixeln geblieben. */
-  .mrow.zug select.zug-r { padding: 6px 9px; }
+  .mrow.user select.user-role-sel { padding: 6px 9px; }
   /* Das Kreuz an einer gespeicherten Ansicht liegt IM Knopf und ist deshalb
      ein span -- `button { padding: 0 }` greift dort gar nicht, es hatte
      ueberhaupt kein Polster und war ein Ziel von der Groesse des Zeichens.
@@ -3206,8 +3206,8 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      `.input` allein liesse genau die kleinsten Felder ungedeckt, und das sind
      die, um die es geht. */
   .input, .input-sm, .ta, .select, .select-sm, .title-in,
-  .sanb-slot .input, .zug-linkzeile .input,
-  .mrow input.medit, .mrow .mweight-field, .mrow.zug select.zug-r,
+  .engine-slot .input, .user-link-row .input,
+  .mrow input.medit, .mrow .mweight-field, .mrow.user select.user-role-sel,
   .test-add input[type=date] { font-size: max(16px, 1rem); }
   /* Dasselbe, nur traegt die Regel oben ein !important und ist anders nicht
      zu erreichen. */
@@ -3567,7 +3567,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      uebereinander, und die untere die dickere. Gestrichelt bleibt es: das ist
      das Merkmal ("hier darf etwas hinein"), die Staerke war es nie. */
   .viewer, .drop, .ta, .cmt, .lrow, .trow, .arow, .mrow, .open-group,
-  .apreview, .vok-probe, .warn-box, .ok-box, .sanb, .empty, .timeline {
+  .apreview, .vocabulary-preview, .warn-box, .ok-box, .engine, .empty, .timeline {
     border-radius: var(--r);
   }
   /* NICHT MITGEFASST SIND .keyline UND .two-factor-key: die beiden liegen
@@ -3599,17 +3599,17 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Woerter um, und der Strich unter dem offenen zeigte dann in die Luft.
      DER OFFENE TRAEGT SEINE MARKE LINKS statt unten: an einer Liste ist der
      linke Rand die Kante, an der man entlangliest. */
-  .sys-reiter {
+  .sys-tabs {
     display: block; border-bottom: 0; gap: 0;
     margin: 0 0 4px; border-top: 1px solid var(--line);
   }
-  .sys-reiter-k {
+  .sys-tab {
     padding: 13px 0 13px 12px; margin-bottom: 0;
     border-bottom: 1px solid var(--line);
     border-left: 2px solid transparent;
     white-space: normal;
   }
-  .sys-reiter-k.on { border-left-color: var(--accent); border-bottom-color: var(--line); }
+  .sys-tab.on { border-left-color: var(--accent); border-bottom-color: var(--line); }
 
   .sys-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .sys-card {
@@ -3625,7 +3625,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      ihrer Unterzeile, und die trennt sich selbst. */
   .sys-grid > .sys-card:first-child { border-top: 0; padding-top: 4px; }
   /* Zwei Spalten Formularfelder auf 366 Pixeln sind zwei zu schmale Spalten. */
-  .vok-grid { grid-template-columns: 1fr; }
+  .vocabulary-grid { grid-template-columns: 1fr; }
   /* UND AUS DEMSELBEN GRUND FAELLT DER MAILVERSAND WIEDER IN EINE SPALTE. Eine
      Reihe, die auf 366 Pixeln drei Felder nebeneinander zwingt, ist schlechter
      als die Spalte, die es vorher war -- "Benutzername beim Anbieter" stuende
@@ -3646,7 +3646,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Zeilen gelten fuer den breiten Schirm, hier haengt der Deckel am Fenster.
      UND DIE LEERE ZEILE GILT AUCH HIER -- sie steht an der Liste und nicht am
      Umbruchpunkt. */
-  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {
+  .manage-list, .log-list, .test-scroll, .atext, #ex-part-list {
     flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }
 
   /* ---- Die Detailansicht: DER TITEL STEHT VOR DEM BILD ----

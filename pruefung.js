@@ -18693,8 +18693,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const quGeoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     pruefe('Die Uhr verfolgt beide Läufe und nicht nur die Umstellung',
       /const BATCH_RUNS = \[/.test(quGeoApp) &&
-      /field: 'umstellung', id: 'bild-lauf'/.test(quGeoApp) &&
-      /field: 'geometrie', id: 'geo-lauf'/.test(quGeoApp) &&
+      /field: 'umstellung', id: 'convert-running'/.test(quGeoApp) &&
+      /field: 'geometrie', id: 'thumbs-running'/.test(quGeoApp) &&
       /BATCH_RUNS\.some\(l => fetched\.stats\[l\.field\] && fetched\.stats\[l\.field\]\.laeuft\)/
         .test(quGeoApp),
       (quGeoApp.match(/const BATCH_RUNS = \[[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
@@ -24730,7 +24730,7 @@ function bildschirmVerstoesse(texte) {
 
 async function sysDurchgang(d) {
   const karten = [], stuecke = [];
-  const reiter = [...d.w.document.querySelectorAll('.sys-reiter-k')]
+  const reiter = [...d.w.document.querySelectorAll('.sys-tab')]
     .map(a => a.getAttribute('href'));
   for (const adresse of reiter) {
     d.w.history.replaceState(null, '', adresse);
@@ -25158,11 +25158,11 @@ async function pruefeOberflaeche() {
     [...w3.document.querySelectorAll('label[for^="v"]')].map(l => l.textContent.trim()).join(' | '));
   pruefe('Keine weiteren Felder', !w3.document.getElementById('v15'));
   pruefe('Probe zeigt die aktuellen Woerter',
-    w3.document.getElementById('vprobe').textContent.includes('+ Maschine'));
+    w3.document.getElementById('vpreview').textContent.includes('+ Maschine'));
   felder[0].value = 'Objekt';
   felder[0].dispatchEvent(new w3.Event('input'));
   pruefe('Probe folgt der Eingabe sofort',
-    w3.document.getElementById('vprobe').textContent.includes('+ Objekt'));
+    w3.document.getElementById('vpreview').textContent.includes('+ Objekt'));
 
   /* DIE SCHRIFTGROESSE STEHT IN „Darstellung" UND DAMIT IN EINEM ANDEREN
      ABSCHNITT ALS DAS VOKABULAR (Stolperstein 201): die Karte ist dieselbe
@@ -27132,7 +27132,7 @@ async function pruefeOberflaeche() {
     istAdmin: true, istEigentuemer: true } });
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(gvEig.w, 'zugaenge');
-  const gvZeilen = [...gvEig.w.document.querySelectorAll('#mzugaenge .mrow')];
+  const gvZeilen = [...gvEig.w.document.querySelectorAll('#musers .mrow')];
   /* DREI ZEILEN SEIT 0.13.0, VORHER VIER: der Grabstein steht nicht mehr
      zwischen den lebenden Zugaengen, sondern in einem eigenen Fenster. Die
      Prueflage traegt ihn weiterhin -- er ist nur woanders zu sehen. */
@@ -27151,27 +27151,27 @@ async function pruefeOberflaeche() {
   pruefe('Sondern hinter einem eigenen Knopf, der ihn zaehlt',
     !!gvWeg && /\(1\)/.test(gvWeg.textContent || ''), gvWeg?.textContent);
   pruefe('Und der freigegebene Name steht auch dort nirgends',
-    !/geloescht-4/.test(gvEig.w.document.getElementById('mzugaenge')?.textContent || ''),
-    gvEig.w.document.getElementById('mzugaenge')?.textContent);
+    !/geloescht-4/.test(gvEig.w.document.getElementById('musers')?.textContent || ''),
+    gvEig.w.document.getElementById('musers')?.textContent);
   pruefe('Ein gesperrter Zugang ist zurueckgenommen, nicht rot markiert',
-    gvZeilen[2]?.classList.contains('zug-sperr') && !gvZeilen[2]?.classList.contains('rm'),
+    gvZeilen[2]?.classList.contains('user-locked') && !gvZeilen[2]?.classList.contains('rm'),
     gvZeilen[2]?.className);
   pruefe('Am eigenen Zugang steht kein Werkzeug',
-    !gvZeilen[0]?.querySelector('.zug-akt'), gvZeilen[0]?.innerHTML.slice(0, 90));
+    !gvZeilen[0]?.querySelector('.user-act'), gvZeilen[0]?.innerHTML.slice(0, 90));
   pruefe('Der Eigentuemer kommt an den zweiten Admin heran',
-    !!gvZeilen[1]?.querySelector('.zug-akt') && !!gvZeilen[1]?.querySelector('.zug-r'),
+    !!gvZeilen[1]?.querySelector('.user-act') && !!gvZeilen[1]?.querySelector('.user-role-sel'),
     gvZeilen[1]?.innerHTML.slice(0, 90));
   pruefe('Und kann dort alle drei Rollen vergeben',
-    [...(gvZeilen[1]?.querySelectorAll('.zug-r option') || [])].map(o => o.value).join(',')
+    [...(gvZeilen[1]?.querySelectorAll('.user-role-sel option') || [])].map(o => o.value).join(',')
       === 'user,admin,eigentuemer');
   pruefe('Die Anlegezeile hat Name, Passwort und Rollenwahl',
-    !!gvEig.w.document.getElementById('zug-name') &&
-    !!gvEig.w.document.getElementById('zug-pass') &&
-    !!gvEig.w.document.getElementById('zug-rolle'));
+    !!gvEig.w.document.getElementById('user-name') &&
+    !!gvEig.w.document.getElementById('user-pass') &&
+    !!gvEig.w.document.getElementById('user-role'));
   // Wirklich zugestellt, nicht von Hand gerufen.
-  setzeFeld(gvEig.w.document, 'zug-name', 'neuer');
-  setzeFeld(gvEig.w.document, 'zug-pass', 'ein-langes-wort');
-  gvEig.w.document.getElementById('zug-anlegen')
+  setzeFeld(gvEig.w.document, 'user-name', 'neuer');
+  setzeFeld(gvEig.w.document, 'user-pass', 'ein-langes-wort');
+  gvEig.w.document.getElementById('user-create')
     .dispatchEvent(new gvEig.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   const gvAngelegt = gvEig.gesendet.filter(x => x.methode === 'POST' && x.url === '/api/users').pop();
@@ -27179,8 +27179,8 @@ async function pruefeOberflaeche() {
     gvAngelegt?.koerper?.username === 'neuer' && gvAngelegt?.koerper?.rolle === 'user',
     JSON.stringify(gvAngelegt));
   pruefe('Und die Felder sind danach wieder leer',
-    gvEig.w.document.getElementById('zug-name').value === '' &&
-    gvEig.w.document.getElementById('zug-pass').value === '');
+    gvEig.w.document.getElementById('user-name').value === '' &&
+    gvEig.w.document.getElementById('user-pass').value === '');
   gvEig.w.close();
 
   /* Ein Admin OHNE Eigentuemerrecht. Ohne diese Lage waere nicht zu
@@ -27195,13 +27195,13 @@ async function pruefeOberflaeche() {
     ] } });
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(gvAdm.w, 'zugaenge');
-  const gvAZeilen = [...gvAdm.w.document.querySelectorAll('#mzugaenge .mrow')];
+  const gvAZeilen = [...gvAdm.w.document.querySelectorAll('#musers .mrow')];
   pruefe('Ein Admin sieht die Karte ebenfalls', gvAZeilen.length === 3, `${gvAZeilen.length}`);
   pruefe('Aber nirgends eine Rollenwahl',
-    !gvAdm.w.document.querySelector('#mzugaenge .zug-r') &&
-    !gvAdm.w.document.getElementById('zug-rolle'));
-  pruefe('An den Eigentuemer kommt er nicht', !gvAZeilen[0]?.querySelector('.zug-akt'));
-  pruefe('An einen Benutzer dagegen schon', !!gvAZeilen[2]?.querySelector('.zug-akt'));
+    !gvAdm.w.document.querySelector('#musers .user-role-sel') &&
+    !gvAdm.w.document.getElementById('user-role'));
+  pruefe('An den Eigentuemer kommt er nicht', !gvAZeilen[0]?.querySelector('.user-act'));
+  pruefe('An einen Benutzer dagegen schon', !!gvAZeilen[2]?.querySelector('.user-act'));
   gvAdm.w.close();
 
   /* Und ein gewoehnlicher Benutzer sieht die Karte gar nicht. */
@@ -27213,8 +27213,8 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(gvUser.w, 'zugaenge');
   pruefe('Ohne Adminrolle gibt es die Karte "Zugaenge" nicht',
-    !gvUser.w.document.getElementById('mzugaenge') &&
-    !gvUser.w.document.getElementById('zug-anlegen'));
+    !gvUser.w.document.getElementById('musers') &&
+    !gvUser.w.document.getElementById('user-create'));
   pruefe('Und der Systembereich fragt die Liste gar nicht erst ab',
     !gvUser.gesendet.some(x => x.url === '/api/users'),
     JSON.stringify(gvUser.gesendet.map(x => x.url).filter(u => u.includes('users'))));
@@ -27320,33 +27320,33 @@ async function pruefeOberflaeche() {
   // Anbieterwahl in derselben Karte wie die Zeilenknoepfe -- beide
   // betreffen die Linkliste. Dort steht
   // eine Liste aus neun Plaetzen mit Haekchen und Startknopf.
-  const anbZeilen = [...sysZl.w.document.querySelectorAll('#sanbieter .sanb')];
+  const anbZeilen = [...sysZl.w.document.querySelectorAll('#engines .engine')];
   pruefe('Die Verwaltungskarte zeigt alle neun Plätze', anbZeilen.length === 9, `${anbZeilen.length}`);
   pruefe('Jede Zeile trägt Häkchen und Startknopf',
-    anbZeilen.every(z => z.querySelector('input[type=checkbox]') && z.querySelector('.sstart')));
+    anbZeilen.every(z => z.querySelector('input[type=checkbox]') && z.querySelector('.sdefault')));
   pruefe('Die drei im Vorrat sind angehakt',
     anbZeilen.filter(z => z.querySelector('input[type=checkbox]')?.checked)
       .map(z => z.dataset.k).join() === 'bing,startpage,eigen1',
     anbZeilen.filter(z => z.querySelector('input[type=checkbox]')?.checked).map(z => z.dataset.k).join());
   pruefe('Der Startanbieter ist gekennzeichnet',
-    anbZeilen.find(z => z.querySelector('.sstart')?.classList.contains('on'))?.dataset.k === 'startpage',
-    anbZeilen.find(z => z.querySelector('.sstart')?.classList.contains('on'))?.dataset.k);
+    anbZeilen.find(z => z.querySelector('.sdefault')?.classList.contains('on'))?.dataset.k === 'startpage',
+    anbZeilen.find(z => z.querySelector('.sdefault')?.classList.contains('on'))?.dataset.k);
   // Ein leerer Platz laesst sich weder anhaken noch zum Start machen -- er
   // traegt niemanden, den man waehlen koennte.
   const leerZeile = anbZeilen.find(z => z.dataset.k === 'eigen2');
   pruefe('Ein leerer eigener Platz ist gesperrt',
     leerZeile?.querySelector('input[type=checkbox]')?.disabled === true &&
-    leerZeile?.querySelector('.sstart')?.disabled === true);
+    leerZeile?.querySelector('.sdefault')?.disabled === true);
   pruefe('Und zeigt einen Strich statt eines Namens',
-    leerZeile?.querySelector('.sanb-name')?.textContent === '—');
+    leerZeile?.querySelector('.engine-name')?.textContent === '—');
   // Der Name ist Eingabe des Admins und wird als Beschriftung gerendert.
   // Geprueft wird die gerenderte Form, nicht textContent allein: spitze
   // Klammern fallen textContent gar nicht auf.
   const eigenZeile = anbZeilen.find(z => z.dataset.k === 'eigen1');
   pruefe('Ein Anbietername mit spitzen Klammern wird in der Karte maskiert',
-    eigenZeile?.querySelector('.sanb-name')?.textContent === 'Forum <b>X</b>' &&
-    !eigenZeile?.querySelector('.sanb-name b'),
-    eigenZeile?.querySelector('.sanb-name')?.innerHTML);
+    eigenZeile?.querySelector('.engine-name')?.textContent === 'Forum <b>X</b>' &&
+    !eigenZeile?.querySelector('.engine-name b'),
+    eigenZeile?.querySelector('.engine-name')?.innerHTML);
 
   // Haekchen setzen nimmt in den Vorrat auf, ohne den Standard anzufassen.
   anbZeilen.find(z => z.dataset.k === 'ddg')?.querySelector('input[type=checkbox]')?.click();
@@ -27361,8 +27361,8 @@ async function pruefeOberflaeche() {
 
   // Der Startknopf setzt den Standard und nimmt zugleich in den Vorrat auf:
   // ein Standard ausserhalb des Vorrats ist ein unmoeglicher Zustand.
-  [...sysZl.w.document.querySelectorAll('#sanbieter .sanb')]
-    .find(z => z.dataset.k === 'brave')?.querySelector('.sstart')?.click();
+  [...sysZl.w.document.querySelectorAll('#engines .engine')]
+    .find(z => z.dataset.k === 'brave')?.querySelector('.sdefault')?.click();
   await new Promise(r => setTimeout(r, 30));
   const stdGesendet = sysZl.gesendet.filter(x => x.koerper && x.koerper.sucheAktiv !== undefined).pop();
   pruefe('Der Startknopf schickt den Anbieter an erster Stelle',
@@ -27372,7 +27372,7 @@ async function pruefeOberflaeche() {
     JSON.stringify(stdGesendet?.koerper.sucheAktiv));
 
   // Eigene Anbieter: drei Plaetze mit je Name und Vorlage.
-  const slots = [...sysZl.w.document.querySelectorAll('#seigene .sanb-slot')];
+  const slots = [...sysZl.w.document.querySelectorAll('#engines-own .engine-slot')];
   pruefe('Es gibt drei Plätze für eigene Anbieter', slots.length === 3, `${slots.length}`);
   pruefe('Der belegte Platz zeigt Name und Vorlage',
     sysZl.w.document.getElementById('se-name-1')?.value === 'Forum <b>X</b>' &&
@@ -29824,8 +29824,8 @@ async function pruefeOberflaeche() {
   const wSys = sysDom.w;
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(wSys, 'bestand');
-  const hakenTag = wSys.document.getElementById('tagfrei');
-  const hakenKat = wSys.document.getElementById('katfrei');
+  const hakenTag = wSys.document.getElementById('tag-free');
+  const hakenKat = wSys.document.getElementById('cat-free');
   pruefe('Der Systembereich traegt beide Haken',
     !!hakenTag && !!hakenKat,
     `${hakenTag ? '' : 'tagfrei fehlt '}${hakenKat ? '' : 'katfrei fehlt'}`);
@@ -29863,7 +29863,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(wSysU, 'bestand');
   pruefe('Ein Benutzer bekommt die Haken gar nicht erst zu sehen',
-    !wSysU.document.getElementById('tagfrei') && !wSysU.document.getElementById('katfrei'),
+    !wSysU.document.getElementById('tag-free') && !wSysU.document.getElementById('cat-free'),
     'ein Haken steht auch ohne Adminrolle da');
   // Die beiden KARTEN bleiben stehen, auch seit 0.8.5: wer nicht verwalten
   // darf, darf nachsehen, was es gibt. Weg sind nur die Bedienzeichen.
@@ -30003,7 +30003,7 @@ async function pruefeOberflaeche() {
      ihn keine einzige Karte stuende, erscheint gar nicht. Eine Prueflage, in
      der jeder Abschnitt Karten haette, koennte darueber nichts sagen
      (Stolperstein 189). */
-  const reiterWorte = (d) => [...d.w.document.querySelectorAll('.sys-reiter-k')]
+  const reiterWorte = (d) => [...d.w.document.querySelectorAll('.sys-tab')]
     .map(a => a.textContent.trim());
   pruefe('Die Eigentuemerin bekommt fuenf Abschnitte',
     gleich(reiterWorte(rEig), ['Persönlich', 'Bestand', 'Benutzer', 'Datenbank', 'Installation']),
@@ -30028,9 +30028,9 @@ async function pruefeOberflaeche() {
      eine Marke, und keine Pruefung wurde rot (Stolperstein 50 -- die Regel
      lag nicht dort, wo sie zu wirken schien). */
   pruefe('Und er ist ein Verweis und kein Knopf',
-    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].length === 5 &&
-    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].every(a => a.tagName === 'A'),
-    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].map(a => a.tagName).join(' · '));
+    [...rEig.w.document.querySelectorAll('.sys-tab')].length === 5 &&
+    [...rEig.w.document.querySelectorAll('.sys-tab')].every(a => a.tagName === 'A'),
+    [...rEig.w.document.querySelectorAll('.sys-tab')].map(a => a.tagName).join(' · '));
   /* DIE ADRESSE ZEIGT AUF EINEN ABSCHNITT, DEN ES FUER IHN NICHT GIBT.
      Sie faellt auf den ersten sichtbaren zurueck -- und WIRD DABEI
      NACHGEZOGEN: stuende in der Adresse weiter "datenbank", waehrend
@@ -30113,14 +30113,14 @@ async function pruefeOberflaeche() {
      Selbstanmeldung ueber die Oberflaeche gar nicht einzuschalten. Das ist die
      Pruefung, die den Befund aus dem Betrieb festhaelt. */
   pruefe('Und der Schalter steht darin -- sonst kaeme man nie an ihn heran',
-    Boolean(rAus.w.document.getElementById('anf-schalter')), 'der Schalter fehlt');
+    Boolean(rAus.w.document.getElementById('signup-toggle')), 'der Schalter fehlt');
   pruefe('Er bietet das Einschalten an',
-    /einschalten/.test(rAus.w.document.getElementById('anf-schalter')?.textContent || ''),
-    rAus.w.document.getElementById('anf-schalter')?.textContent || '');
+    /einschalten/.test(rAus.w.document.getElementById('signup-toggle')?.textContent || ''),
+    rAus.w.document.getElementById('signup-toggle')?.textContent || '');
   /* Und die Karte bleibt in dieser Lage KURZ: keine Liste, wo nichts steht. */
   pruefe('Die Liste bleibt dabei leer, statt eine Zeile zu erfinden',
-    (rAus.w.document.getElementById('manfragen')?.textContent || '').trim() === '',
-    rAus.w.document.getElementById('manfragen')?.textContent || '');
+    (rAus.w.document.getElementById('mrequests')?.textContent || '').trim() === '',
+    rAus.w.document.getElementById('mrequests')?.textContent || '');
   /* UND SIE IST AUCH DA, WENN DER SCHALTER AUS IST, ABER NOCH ANFRAGEN LIEGEN.
      Sonst verschwaende ein Ausschalten die Warteschlange aus dem Blick, ohne
      sie zu leeren -- und niemand koennte die offenen Anfragen mehr bescheiden. */
@@ -30130,8 +30130,8 @@ async function pruefeOberflaeche() {
                    created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' }] });
   await sysAbschnitt(rAusMitZeilen.w, 'zugaenge');
   pruefe('Bei ausgeschaltetem Schalter mit offenen Anfragen steht die Liste darin',
-    [...rAusMitZeilen.w.document.querySelectorAll('#manfragen .mrow')].length === 1,
-    `${[...rAusMitZeilen.w.document.querySelectorAll('#manfragen .mrow')].length} Zeilen`);
+    [...rAusMitZeilen.w.document.querySelectorAll('#mrequests .mrow')].length === 1,
+    `${[...rAusMitZeilen.w.document.querySelectorAll('#mrequests .mrow')].length} Zeilen`);
 
   for (const karte of ['Mein Konto', 'Meine Sitzungen', 'Darstellung', 'Links']) {
     pruefe(`Die Karte "${karte}" steht jedem, auch ohne Rolle`,
@@ -30228,12 +30228,12 @@ async function pruefeOberflaeche() {
   pruefe('Und die sichtbaren Linkzeilen ebenso',
     rUser.w.document.querySelectorAll('#lrows .pill').length > 0);
   pruefe('Vorrat, Startanbieter und eigene Anbieter dagegen nicht',
-    !rUser.w.document.getElementById('sanbieter') &&
-    !rUser.w.document.getElementById('seigene'));
+    !rUser.w.document.getElementById('engines') &&
+    !rUser.w.document.getElementById('engines-own'));
   pruefe('Beim Admin stehen sie sehr wohl da',
-    rAdm.w.document.querySelectorAll('#sanbieter .sanb').length > 0 &&
-    rAdm.w.document.querySelectorAll('#seigene .sanb-slot').length === 3,
-    `${rAdm.w.document.querySelectorAll('#sanbieter .sanb').length} Anbieter`);
+    rAdm.w.document.querySelectorAll('#engines .engine').length > 0 &&
+    rAdm.w.document.querySelectorAll('#engines-own .engine-slot').length === 3,
+    `${rAdm.w.document.querySelectorAll('#engines .engine').length} Anbieter`);
 
   /* Die veraltete Anleitung. Eine falsche Anleitung auf dem Bildschirm ist
      schlimmer als eine fehlende: sie wird befolgt. Erst das Vorhandensein der
@@ -30353,24 +30353,24 @@ async function pruefeOberflaeche() {
   /* --- Trennlinien zwischen den Abschnitten der Linkkarten --- */
   await sysAbschnitt(rUser.w, 'bestand');
   pruefe('Die Karte "Links" traegt einen abgesetzten Abschnitt',
-    rUser.w.document.querySelectorAll('.sys-card .sys-teil').length > 0,
-    `${rUser.w.document.querySelectorAll('.sys-card .sys-teil').length} Abschnitte`);
+    rUser.w.document.querySelectorAll('.sys-card .sys-part').length > 0,
+    `${rUser.w.document.querySelectorAll('.sys-card .sys-part').length} Abschnitte`);
   pruefe('Und die Karte "Suchmaschinen" ebenfalls',
     [...rAdm.w.document.querySelectorAll('.sys-card')]
       .filter(k => k.querySelector('h3')?.textContent.trim() === 'Suchmaschinen')
-      .some(k => k.querySelector('.sys-teil')),
+      .some(k => k.querySelector('.sys-part')),
     'kein abgesetzter Abschnitt in der Karte "Suchmaschinen"');
   pruefe('Die Regel dafuer steht ueberhaupt im Stylesheet',
-    rRegel('.sys-card .sys-teil').length > 0, '(keine Regel)');
+    rRegel('.sys-card .sys-part').length > 0, '(keine Regel)');
   pruefe('Und sie zieht eine Linie darueber, nicht bloss einen Abstand',
-    /border-top: 1px solid var\(--line\)/.test(rRegel('.sys-card .sys-teil')) &&
-    /padding-top:/.test(rRegel('.sys-card .sys-teil')),
-    rRegel('.sys-card .sys-teil') || '(keine Regel)');
+    /border-top: 1px solid var\(--line\)/.test(rRegel('.sys-card .sys-part')) &&
+    /padding-top:/.test(rRegel('.sys-card .sys-part')),
+    rRegel('.sys-card .sys-part') || '(keine Regel)');
   // Keine neue Farbe: --line gibt es laengst und bedeutet dort bereits
   // "Kante zwischen zwei Flaechen".
   pruefe('Ohne eine neue Farbe dafuer zu erfinden',
-    !/border-top: 1px solid (?!var\(--line\))/.test(rRegel('.sys-card .sys-teil')),
-    rRegel('.sys-card .sys-teil'));
+    !/border-top: 1px solid (?!var\(--line\))/.test(rRegel('.sys-card .sys-part')),
+    rRegel('.sys-card .sys-part'));
 
   rEig.w.close(); rAdm.w.close(); rUser.w.close();
 
@@ -31240,7 +31240,7 @@ async function pruefeOberflaeche() {
         created_at: '2026-08-21 10:00:00', bestaetigt_am: '2026-08-21 10:30:00' }] });
 
   const kA = await sKarteBau(sKarteStand());
-  const kZeilen = [...kA.w.document.querySelectorAll('#manfragen .mrow')];
+  const kZeilen = [...kA.w.document.querySelectorAll('#mrequests .mrow')];
   pruefe('Die Karte listet die offenen Anfragen', kZeilen.length === 2,
     `${kZeilen.length} Zeilen`);
   pruefe('Jede Zeile nennt den Namen',
@@ -31252,16 +31252,16 @@ async function pruefeOberflaeche() {
     /angefragt/.test(kZeilen[0].textContent) && /bestätigt/.test(kZeilen[0].textContent),
     kZeilen[0].textContent);
   pruefe('Der Stand gegen den Deckel steht daneben',
-    /2 von höchstens 20/.test(kA.w.document.getElementById('anf-belegt')?.textContent || ''),
-    kA.w.document.getElementById('anf-belegt')?.textContent || '');
+    /2 von höchstens 20/.test(kA.w.document.getElementById('signup-used')?.textContent || ''),
+    kA.w.document.getElementById('signup-used')?.textContent || '');
   pruefe('Und der Zustand des Schalters',
-    /an/.test(kA.w.document.getElementById('anf-zustand')?.textContent || ''),
-    kA.w.document.getElementById('anf-zustand')?.textContent || '');
+    /an/.test(kA.w.document.getElementById('signup-state')?.textContent || ''),
+    kA.w.document.getElementById('signup-state')?.textContent || '');
 
   /* DIE FREISCHALTUNG UEBER EIN ZUGESTELLTES EREIGNIS, und das Bestaetigen
      davor ist gestellt: confirm() gibt es in jsdom nicht von selbst. */
   stelleBestaetigung(kA.w, true);
-  kZeilen[0].querySelector('.anf-frei')
+  kZeilen[0].querySelector('.signup-approve')
     .dispatchEvent(new kA.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 80));
   const kFrei = kA.gesendet.find(x => x.url === '/api/anfragen/11/frei');
@@ -31274,44 +31274,44 @@ async function pruefeOberflaeche() {
      wirklich weg (Stolperstein 90) -- bliebe die Liste gleich, waere
      "zeichnet sich neu" von "blieb stehen" nicht zu unterscheiden. */
   pruefe('Die freigeschaltete Zeile verschwindet aus der Liste',
-    [...kA.w.document.querySelectorAll('#manfragen .mrow')].length === 1,
-    `${[...kA.w.document.querySelectorAll('#manfragen .mrow')].length} Zeilen`);
+    [...kA.w.document.querySelectorAll('#mrequests .mrow')].length === 1,
+    `${[...kA.w.document.querySelectorAll('#mrequests .mrow')].length} Zeilen`);
   pruefe('Und der Stand gegen den Deckel zieht mit',
-    /1 von höchstens 20/.test(kA.w.document.getElementById('anf-belegt')?.textContent || ''),
-    kA.w.document.getElementById('anf-belegt')?.textContent || '');
+    /1 von höchstens 20/.test(kA.w.document.getElementById('signup-used')?.textContent || ''),
+    kA.w.document.getElementById('signup-used')?.textContent || '');
   /* DER EINLADUNGSLINK ERSCHEINT IN DER KARTE, in der der Knopf steht -- und
      nicht in "Zugaenge", wo ihn niemand sucht. */
-  const kFeld = kA.w.document.querySelector('#anf-link #zug-link-feld');
+  const kFeld = kA.w.document.querySelector('#signup-link #user-link-field');
   pruefe('Der Einladungslink steht danach in der Karte "Anfragen"',
     kFeld?.value === `https://kriterion.beispiel.de/#/einladung/${'e'.repeat(64)}`,
     kFeld?.value || '(kein Feld)');
   pruefe('Mit dem Satz, dass der Link das Passwort setzen kann',
-    /Wer den Link hat, kann das Passwort setzen/.test(kA.w.document.getElementById('anf-link')?.textContent || ''),
-    kA.w.document.getElementById('anf-link')?.textContent?.slice(0, 120) || '');
+    /Wer den Link hat, kann das Passwort setzen/.test(kA.w.document.getElementById('signup-link')?.textContent || ''),
+    kA.w.document.getElementById('signup-link')?.textContent?.slice(0, 120) || '');
   pruefe('Und es steht nur EIN Linkkasten am Bildschirm',
-    kA.w.document.querySelectorAll('#zug-link-feld').length === 1,
-    `${kA.w.document.querySelectorAll('#zug-link-feld').length} Kaesten`);
+    kA.w.document.querySelectorAll('#user-link-field').length === 1,
+    `${kA.w.document.querySelectorAll('#user-link-field').length} Kaesten`);
 
   const kAb = await sKarteBau(sKarteStand());
   stelleBestaetigung(kAb.w, true);
-  [...kAb.w.document.querySelectorAll('#manfragen .mrow')][1].querySelector('.anf-ab')
+  [...kAb.w.document.querySelectorAll('#mrequests .mrow')][1].querySelector('.signup-reject')
     .dispatchEvent(new kAb.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 80));
   pruefe('Der Knopf "Ablehnen" ruft DELETE mit der Nummer der Zeile',
     kAb.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/anfragen/12'),
     kAb.gesendet.filter(x => /anfragen/.test(x.url)).map(x => `${x.methode} ${x.url}`).join(' · '));
   pruefe('Die abgelehnte Zeile verschwindet',
-    [...kAb.w.document.querySelectorAll('#manfragen .mrow')]
+    [...kAb.w.document.querySelectorAll('#mrequests .mrow')]
       .every(z => !/zweiter/.test(z.textContent)),
-    [...kAb.w.document.querySelectorAll('#manfragen .mrow')].map(z => z.textContent).join(' | '));
+    [...kAb.w.document.querySelectorAll('#mrequests .mrow')].map(z => z.textContent).join(' | '));
   pruefe('Und es entsteht dabei kein Linkkasten -- es gibt keinen Zugang',
-    !kAb.w.document.querySelector('#anf-link #zug-link-feld'), 'ein Linkkasten steht da');
+    !kAb.w.document.querySelector('#signup-link #user-link-field'), 'ein Linkkasten steht da');
 
   /* DER SCHALTER. Ausschalten geht immer; einschalten nur, wenn der Versand
      traegt -- und die Oberflaeche stellt das nicht selbst fest, sie fragt den
      Server und zeigt seine Absage. */
   const kSch = await sKarteBau(sKarteStand());
-  kSch.w.document.getElementById('anf-schalter')
+  kSch.w.document.getElementById('signup-toggle')
     .dispatchEvent(new kSch.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 80));
   const kSchRuf = kSch.gesendet.find(x => x.url === '/api/registrierung/schalter');
@@ -31321,11 +31321,11 @@ async function pruefeOberflaeche() {
   pruefe('Und schickt den gewuenschten Zustand mit',
     kSchRuf?.koerper?.an === false, JSON.stringify(kSchRuf?.koerper));
   pruefe('Danach steht "aus" in der Karte',
-    /aus/.test(kSch.w.document.getElementById('anf-zustand')?.textContent || ''),
-    kSch.w.document.getElementById('anf-zustand')?.textContent || '');
+    /aus/.test(kSch.w.document.getElementById('signup-state')?.textContent || ''),
+    kSch.w.document.getElementById('signup-state')?.textContent || '');
   pruefe('Und der Knopf bietet das Einschalten an',
-    /einschalten/.test(kSch.w.document.getElementById('anf-schalter')?.textContent || ''),
-    kSch.w.document.getElementById('anf-schalter')?.textContent || '');
+    /einschalten/.test(kSch.w.document.getElementById('signup-toggle')?.textContent || ''),
+    kSch.w.document.getElementById('signup-toggle')?.textContent || '');
 
   /* DIE ROTE ZEILE: DER VERSAND IST KAPUTT, DER SCHALTER BLEIBT AN. Ein
      Schalter, der sich selbst umlegt, stuende anders da, als der Mensch ihn
@@ -31333,21 +31333,21 @@ async function pruefeOberflaeche() {
   const kRot = await sKarteBau({ ...sKarteStand(), versandBereit: false,
     versandGrund: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen.' });
   pruefe('Ist der Versand kaputt, steht die rote Zeile da',
-    Boolean(kRot.w.document.getElementById('anf-kaputt')), 'die Zeile fehlt');
+    Boolean(kRot.w.document.getElementById('signup-broken')), 'die Zeile fehlt');
   pruefe('Sie nennt den Grund des Servers',
-    /Testmail/.test(kRot.w.document.getElementById('anf-kaputt')?.textContent || ''),
-    kRot.w.document.getElementById('anf-kaputt')?.textContent || '');
+    /Testmail/.test(kRot.w.document.getElementById('signup-broken')?.textContent || ''),
+    kRot.w.document.getElementById('signup-broken')?.textContent || '');
   pruefe('Und sagt, dass der Schalter trotzdem an bleibt',
-    /bleibt eingeschaltet/.test(kRot.w.document.getElementById('anf-kaputt')?.textContent || ''),
-    kRot.w.document.getElementById('anf-kaputt')?.textContent || '');
+    /bleibt eingeschaltet/.test(kRot.w.document.getElementById('signup-broken')?.textContent || ''),
+    kRot.w.document.getElementById('signup-broken')?.textContent || '');
   pruefe('Der Schalter steht dabei weiterhin auf "an"',
-    /an/.test(kRot.w.document.getElementById('anf-zustand')?.textContent || ''),
-    kRot.w.document.getElementById('anf-zustand')?.textContent || '');
+    /an/.test(kRot.w.document.getElementById('signup-state')?.textContent || ''),
+    kRot.w.document.getElementById('signup-state')?.textContent || '');
   /* UND DIE GEGENLAGE (Stolperstein 81): bei heilem Versand steht die Zeile
      NICHT da. Ohne sie belegte die Pruefung oben nur, dass die Zeile
      ueberhaupt existiert. */
   pruefe('Bei heilem Versand steht sie nicht da',
-    !kA.w.document.getElementById('anf-kaputt'), 'die Zeile steht auch dann da');
+    !kA.w.document.getElementById('signup-broken'), 'die Zeile steht auch dann da');
 
   /* IST DER SCHALTER AUS UND DER VERSAND KAPUTT, laesst sich gar nicht erst
      einschalten -- und die Karte sagt, was fehlt, statt einen Knopf
@@ -31358,11 +31358,11 @@ async function pruefeOberflaeche() {
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' }] });
   pruefe('Ohne Versand ist der Einschaltknopf gesperrt',
-    kNichtBereit.w.document.getElementById('anf-schalter')?.disabled === true,
-    String(kNichtBereit.w.document.getElementById('anf-schalter')?.disabled));
+    kNichtBereit.w.document.getElementById('signup-toggle')?.disabled === true,
+    String(kNichtBereit.w.document.getElementById('signup-toggle')?.disabled));
   pruefe('Und die Karte sagt, was dafuer fehlt',
-    /Mailzugang/.test(kNichtBereit.w.document.getElementById('anf-nichtbereit')?.textContent || ''),
-    kNichtBereit.w.document.getElementById('anf-nichtbereit')?.textContent || '');
+    /Mailzugang/.test(kNichtBereit.w.document.getElementById('signup-notready')?.textContent || ''),
+    kNichtBereit.w.document.getElementById('signup-notready')?.textContent || '');
   /* ---------------------------------------------------------------- */
   gruppe('Meine Sitzungen in der Oberflaeche');
 
@@ -31382,7 +31382,7 @@ async function pruefeOberflaeche() {
   };
   const msKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Meine Sitzungen');
-  const msReihen = (d) => [...(msKarte(d)?.querySelectorAll('#msitzungen .mrow.sitz') || [])];
+  const msReihen = (d) => [...(msKarte(d)?.querySelectorAll('#msessions .mrow.session') || [])];
 
   const msuEig = await msSystem({ istAdmin: true, istEigentuemer: true });
   const msuUser = await msSystem({ istAdmin: false, istEigentuemer: false });
@@ -31408,7 +31408,7 @@ async function pruefeOberflaeche() {
   pruefe('Und wann zuletzt zugegriffen wurde',
     /zuletzt gesehen 24\.08\.2026/.test(msuText[0]), msuText[0]);
   pruefe('Die eigene ist markiert',
-    msuReihen.filter(r => r.classList.contains('sitz-ich')).length === 1,
+    msuReihen.filter(r => r.classList.contains('session-mine')).length === 1,
     msuReihen.map(r => r.className).join(' · '));
   pruefe('Und sie sagt es auch mit Worten',
     /Diese Sitzung/.test(msuText[0]) && /\(hier\)/.test(msuText[0]), msuText[0]);
@@ -31419,13 +31419,13 @@ async function pruefeOberflaeche() {
      Vorhandensein der Zeile, dann die Aussage, dass an ihr etwas FEHLT
      (Stolperstein 81). */
   pruefe('Es gibt ueberhaupt eine eigene Zeile',
-    !!msuReihen.find(r => r.classList.contains('sitz-ich')));
+    !!msuReihen.find(r => r.classList.contains('session-mine')));
   pruefe('An der eigenen steht kein Kreuz',
-    !msuReihen.find(r => r.classList.contains('sitz-ich'))?.querySelector('.sitz-x'),
+    !msuReihen.find(r => r.classList.contains('session-mine'))?.querySelector('.session-x'),
     'die eigene traegt ein Kreuz');
   pruefe('An den anderen steht eines',
-    msuReihen.filter(r => !r.classList.contains('sitz-ich'))
-      .every(r => !!r.querySelector('.sitz-x')),
+    msuReihen.filter(r => !r.classList.contains('session-mine'))
+      .every(r => !!r.querySelector('.session-x')),
     'einer anderen fehlt das Kreuz');
   /* DIE ZAHL IST DIE AUSKUNFT DIESER KARTE -- ohne Geraetekennung ist sie
      das, was ueberhaupt etwas sagt. */
@@ -31433,7 +31433,7 @@ async function pruefeOberflaeche() {
     /2 weitere/.test(msKarte(msuEig)?.textContent || ''),
     msKarte(msuEig)?.textContent?.slice(-260));
   pruefe('Und den Knopf, der sie beendet',
-    !!msKarte(msuEig)?.querySelector('#sitz-alle'), 'der Knopf fehlt');
+    !!msKarte(msuEig)?.querySelector('#sessions-all'), 'der Knopf fehlt');
   pruefe('Die Frist kommt vom Server und wird nicht nachgerechnet',
     /30 Tagen/.test(msKarte(msuEig)?.textContent || ''),
     msKarte(msuEig)?.textContent?.slice(-260));
@@ -31455,7 +31455,7 @@ async function pruefeOberflaeche() {
     msKarte(msuEine)?.textContent?.slice(-200));
   /* KEIN KNOPF, DER ZUVERLAESSIG NICHTS TUT -- er saehe aus wie ein Fehler. */
   pruefe('Ohne andere Anmeldung steht auch kein Knopf da',
-    !msKarte(msuEine)?.querySelector('#sitz-alle'), 'der Knopf steht doch da');
+    !msKarte(msuEine)?.querySelector('#sessions-all'), 'der Knopf steht doch da');
 
   /* EINE EINZELNE BEENDEN, mit einem WIRKLICH zugestellten Ereignis --
      .click() genuegt nicht. Der Mock aendert seinen Bestand dabei wirklich
@@ -31463,7 +31463,7 @@ async function pruefeOberflaeche() {
   {
     const d = await msSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = msReihen(d).length;
-    msReihen(d).find(r => !r.classList.contains('sitz-ich'))?.querySelector('.sitz-x')
+    msReihen(d).find(r => !r.classList.contains('session-mine'))?.querySelector('.session-x')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Das Kreuz schickt das Beenden an den Server',
@@ -31472,7 +31472,7 @@ async function pruefeOberflaeche() {
     pruefe('Und die Karte zeichnet sich mit einer Zeile weniger neu',
       msReihen(d).length === vorher - 1, `${vorher} -> ${msReihen(d).length}`);
     pruefe('Die eigene steht dabei weiter da',
-      msReihen(d).some(r => r.classList.contains('sitz-ich')),
+      msReihen(d).some(r => r.classList.contains('session-mine')),
       msReihen(d).map(r => r.className).join(' · '));
   }
 
@@ -31483,7 +31483,7 @@ async function pruefeOberflaeche() {
   {
     const d = await msSystem({ istAdmin: true, istEigentuemer: true });
     const msNein = stelleBestaetigung(d.w, false);
-    msKarte(d)?.querySelector('#sitz-alle')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    msKarte(d)?.querySelector('#sessions-all')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Wer abbricht, beendet nichts',
       !d.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/sessions'),
@@ -31493,13 +31493,13 @@ async function pruefeOberflaeche() {
 
     msNein.disconnect();
     stelleBestaetigung(d.w, true);
-    msKarte(d)?.querySelector('#sitz-alle')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    msKarte(d)?.querySelector('#sessions-all')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Nach der Bestaetigung geht es an den Server',
       d.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/sessions'),
       d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
     pruefe('Und es bleibt genau die eigene stehen',
-      msReihen(d).length === 1 && msReihen(d)[0].classList.contains('sitz-ich'),
+      msReihen(d).length === 1 && msReihen(d)[0].classList.contains('session-mine'),
       msReihen(d).map(r => r.className).join(' · '));
     pruefe('Die Karte sagt danach, dass es die einzige ist',
       /einzige/.test(msKarte(d)?.textContent || ''), msKarte(d)?.textContent?.slice(-200));
@@ -31520,7 +31520,7 @@ async function pruefeOberflaeche() {
   // „Benutzer" seit 0.22.0 (E2); der Abschnittsschluessel `zugaenge` bleibt.
   const ziKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Benutzer');
-  const ziReihen = (d) => [...(ziKarte(d)?.querySelectorAll('#mzugaenge .mrow.zug') || [])];
+  const ziReihen = (d) => [...(ziKarte(d)?.querySelectorAll('#musers .mrow.user') || [])];
   const ziSystem = async (rollen, opt = {}) => {
     const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
     await new Promise(r => setTimeout(r, 60));
@@ -31558,14 +31558,14 @@ async function pruefeOberflaeche() {
   /* BEIDE WEGE STEHEN NEBENEINANDER, und die Karte bevorzugt den Link:
      er steht VOR dem Schluessel. */
   pruefe('An einer bedienbaren Zeile steht das Kettenglied',
-    !!ziZeile('carla')?.querySelector('.zug-l'), 'der Knopf fehlt');
+    !!ziZeile('carla')?.querySelector('.user-link-btn'), 'der Knopf fehlt');
   pruefe('Und der Schluessel daneben steht weiterhin',
-    !!ziZeile('carla')?.querySelector('.zug-p'), 'der direkte Weg ist verschwunden');
+    !!ziZeile('carla')?.querySelector('.user-pass-btn'), 'der direkte Weg ist verschwunden');
   pruefe('Der Link steht VOR dem Schluessel',
-    [...(ziZeile('carla')?.querySelector('.zug-akt')?.children || [])]
-      .findIndex(e => e.classList.contains('zug-l')) <
-    [...(ziZeile('carla')?.querySelector('.zug-akt')?.children || [])]
-      .findIndex(e => e.classList.contains('zug-p')),
+    [...(ziZeile('carla')?.querySelector('.user-act')?.children || [])]
+      .findIndex(e => e.classList.contains('user-link-btn')) <
+    [...(ziZeile('carla')?.querySelector('.user-act')?.children || [])]
+      .findIndex(e => e.classList.contains('user-pass-btn')),
     'die Reihenfolge stimmt nicht');
 
   /* ================= Gelöschte Zugänge im eigenen Fenster — 0.13.0 ====
@@ -31574,21 +31574,21 @@ async function pruefeOberflaeche() {
   {
     const zwKnopf = () => ziKarte(ziEig)?.querySelector('#zug-weg-auf');
     pruefe('An der Karte steht ein Knopf zu den geloeschten Zugaengen', !!zwKnopf(),
-      ziKarte(ziEig)?.querySelector('#zug-weg-zeile')?.innerHTML);
+      ziKarte(ziEig)?.querySelector('#user-remove-row')?.innerHTML);
     pruefe('Und er nennt ihre Zahl', /\(1\)/.test(zwKnopf()?.textContent || ''),
       zwKnopf()?.textContent);
     zwKnopf()?.dispatchEvent(new ziEig.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     const zwFenster = () => ziEig.w.document.getElementById('tombstone-modal');
     pruefe('Der Klick oeffnet ein eigenes Fenster', !!zwFenster(), 'kein Fenster');
-    const zwReihen = () => [...(zwFenster()?.querySelectorAll('.mrow.zug') || [])];
+    const zwReihen = () => [...(zwFenster()?.querySelectorAll('.mrow.user') || [])];
     pruefe('Darin steht der Grabstein', zwReihen().length === 1 &&
       /Gelöschter Benutzer 4/.test(zwReihen()[0]?.textContent || ''), zwFenster()?.textContent);
     /* KEIN WERKZEUG AM GRABSTEIN -- es gibt nichts zu tun, und ein Knopf, der
        zuverlaessig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler. */
     pruefe('Ohne Werkzeug: kein Link, kein Schluessel, kein Entfernen',
-      !zwReihen()[0].querySelector('.zug-l') && !zwReihen()[0].querySelector('.zug-p') &&
-      !zwReihen()[0].querySelector('.zug-x') && !zwReihen()[0].querySelector('.zug-akt'),
+      !zwReihen()[0].querySelector('.user-link-btn') && !zwReihen()[0].querySelector('.user-pass-btn') &&
+      !zwReihen()[0].querySelector('.user-x') && !zwReihen()[0].querySelector('.user-act'),
       zwReihen()[0].innerHTML);
     // "Noch kein Passwort" gilt auch hier nicht: der Grabstein traegt denselben
     // leeren Hash, aber die Angabe waere eine Falschaussage.
@@ -31619,7 +31619,7 @@ async function pruefeOberflaeche() {
       ziReihen(d).length === 1, `${ziReihen(d).length} Zeilen`);
     pruefe('Und dann steht der Knopf gar nicht erst da',
       !ziKarte(d)?.querySelector('#zug-weg-auf'),
-      ziKarte(d)?.querySelector('#zug-weg-zeile')?.innerHTML);
+      ziKarte(d)?.querySelector('#user-remove-row')?.innerHTML);
     d.w.close();
   }
 
@@ -31629,7 +31629,7 @@ async function pruefeOberflaeche() {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     /* SEIT 0.8.90 STEHT DIE ZWEITE BESTAETIGUNG DAVOR. Sie gehoert hier
        mitgeprueft und nicht bloss weggeraeumt: ohne die erste Zeile bliebe
@@ -31647,7 +31647,7 @@ async function pruefeOberflaeche() {
     pruefe('Und bei einem Zugang MIT Passwort ist der Zweck die Ruecksetzung',
       d.gesendet.find(x => x.url === '/api/users/3/token')?.koerper?.zweck === 'ruecksetzung',
       JSON.stringify(d.gesendet.find(x => x.url === '/api/users/3/token')?.koerper));
-    const feld = d.w.document.getElementById('zug-link-feld');
+    const feld = d.w.document.getElementById('user-link-field');
     pruefe('Der Kasten mit dem Link steht da', !!feld, 'kein Feld');
     /* DIE VOLLSTAENDIGE ADRESSE BAUT DER BROWSER -- der Server gibt nur den
        Schluessel heraus. Nachgerechnet gegen den Ort des Fensters. */
@@ -31657,7 +31657,7 @@ async function pruefeOberflaeche() {
     /* UMGEDREHT MIT 0.22.0 (Anlage F): der Kasten sagt in drei Saetzen, was der
        Link kann, wie lange und wie oft er gilt und an wen er geht -- ohne
        „Passwortersatz" und ohne den „fremden Verlauf". */
-    const zlText = () => (d.w.document.getElementById('zug-link')?.textContent || '').replace(/\s+/g, ' ');
+    const zlText = () => (d.w.document.getElementById('user-link')?.textContent || '').replace(/\s+/g, ' ');
     pruefe('Die Warnung steht daneben, nicht nur im Dokument',
       /Wer den Link hat, kann das Passwort setzen/.test(zlText()), zlText().slice(0, 240));
     pruefe('Sie nennt die Frist und die Einmaligkeit',
@@ -31668,8 +31668,8 @@ async function pruefeOberflaeche() {
       /wird nur einmal angezeigt/.test(zlText()), zlText().slice(0, 240));
     // Und die Frist aus 0.9.0, gelesen aus der ANTWORT (Stolperstein 102).
     pruefe('Und er nennt die Frist ab dem ersten Oeffnen',
-      /15 Minuten/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
-      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 300));
+      /15 Minuten/.test(d.w.document.getElementById('user-link')?.textContent || ''),
+      d.w.document.getElementById('user-link')?.textContent?.slice(0, 300));
   }
 
   /* ---------------------------------------------------------------- */
@@ -31687,60 +31687,60 @@ async function pruefeOberflaeche() {
     // bert TRAEGT eine Adresse, carla nicht -- damit laesst sich der Zweig
     // "keine Adresse hinterlegt" ueberhaupt stellen.
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes(opt.wer || 'bert'));
-    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     await bestaetigeImDom(d);
     return d;
   };
   {
     const d = await vzLink({ oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
-    const kasten = d.w.document.getElementById('zug-link');
+    const kasten = d.w.document.getElementById('user-link');
     pruefe('Bei erfolgreichem Versand sagt der Kasten es',
       /hinausgegangen/.test(kasten?.textContent || ''), kasten?.textContent?.slice(0, 400));
     pruefe('Und der Link steht trotzdem da',
-      !!d.w.document.getElementById('zug-link-feld'), 'kein Linkfeld');
+      !!d.w.document.getElementById('user-link-field'), 'kein Linkfeld');
     /* DIE ADRESSE DES EMPFAENGERS STEHT NICHT IM KASTEN, und das ist kein
        Versehen: an einem BESTEHENDEN Zugang hat sie der Betroffene selbst
        eingetragen, und GET /api/users liefert sie aus demselben Grund nicht
        mit. Was der Admin wissen muss, ist DASS die Mail hinausging. */
     pruefe('Die Adresse des Empfaengers steht dabei NICHT im Kasten',
-      !/@/.test((kasten?.querySelector('.zug-versand')?.textContent || '')),
-      kasten?.querySelector('.zug-versand')?.textContent);
+      !/@/.test((kasten?.querySelector('.user-send')?.textContent || '')),
+      kasten?.querySelector('.user-send')?.textContent);
   }
   {
     const d = await vzLink({ oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailFehler: true });
-    const kasten = d.w.document.getElementById('zug-link');
+    const kasten = d.w.document.getElementById('user-link');
     pruefe('Bei einem Fehlschlag steht "Versand fehlgeschlagen" da',
       /Versand fehlgeschlagen/.test(kasten?.textContent || ''), kasten?.textContent?.slice(0, 400));
     pruefe('Mit dem Grund daneben',
       /550/.test(kasten?.textContent || ''), kasten?.textContent?.slice(0, 400));
     pruefe('Und der Link steht daneben -- nichts bricht ab',
-      d.w.document.getElementById('zug-link-feld')?.value ===
+      d.w.document.getElementById('user-link-field')?.value ===
         `https://kriterion.beispiel.de/#/einladung/${'d'.repeat(64)}`,
-      d.w.document.getElementById('zug-link-feld')?.value);
+      d.w.document.getElementById('user-link-field')?.value);
     pruefe('Die Seite sagt, dass der Link von Hand weiterzugeben ist',
       /von Hand weiter/.test(kasten?.textContent || ''), kasten?.textContent?.slice(0, 400));
   }
   {
     // KEIN MAILZUGANG: der haeufigste Fall, und er muss aussehen wie 0.8.80.
     const d = await vzLink({ oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailStand: {} });
-    const kasten = d.w.document.getElementById('zug-link');
+    const kasten = d.w.document.getElementById('user-link');
     pruefe('Ohne Mailzugang sagt der Kasten, dass nichts verschickt wurde',
       /keine Mail verschickt/.test(kasten?.textContent || ''), kasten?.textContent?.slice(0, 400));
     pruefe('Mit dem Grund',
       /kein Mailzugang/.test(kasten?.textContent || ''), kasten?.textContent?.slice(0, 400));
     pruefe('Und der Link steht auch dort',
-      !!d.w.document.getElementById('zug-link-feld'), 'kein Linkfeld');
+      !!d.w.document.getElementById('user-link-field'), 'kein Linkfeld');
   }
   {
     // UND DER ZUGANG OHNE ADRESSE -- carla hat keine.
     const d = await vzLink({ oeffentlicheAdresse: 'https://kriterion.beispiel.de', wer: 'carla' });
-    const kasten = d.w.document.getElementById('zug-link');
+    const kasten = d.w.document.getElementById('user-link');
     pruefe('Ohne Adresse am Zugang sagt der Kasten auch das',
       /keine E-Mail-Adresse hinterlegt/.test(kasten?.textContent || ''),
       kasten?.textContent?.slice(0, 400));
     pruefe('Und der Link steht auch dann da',
-      !!d.w.document.getElementById('zug-link-feld'), 'kein Linkfeld');
+      !!d.w.document.getElementById('user-link-field'), 'kein Linkfeld');
   }
 
   /* ---------------------------------------------------------------- */
@@ -31752,7 +31752,7 @@ async function pruefeOberflaeche() {
      faerben. Geprueft wird das an der Abrufliste, nicht an der Absicht. */
   const spKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Sicherheitsprotokoll');
-  const spReihen = (d) => [...(spKarte(d)?.querySelectorAll('.prot-zeile') || [])];
+  const spReihen = (d) => [...(spKarte(d)?.querySelectorAll('.log-row') || [])];
   const spText = (d) => spKarte(d)?.textContent || '';
 
   {
@@ -31779,9 +31779,9 @@ async function pruefeOberflaeche() {
        ein fehlendes Feld liefert einen leeren Text, und jede Verneinung darauf
        waere wahr. */
     pruefe('Die Zeile zum Export hat ueberhaupt ein Zielfeld',
-      !!spZeile('export')?.querySelector('.prot-ziel'), 'kein Zielfeld');
+      !!spZeile('export')?.querySelector('.log-target'), 'kein Zielfeld');
     pruefe('Und es bleibt leer -- der Export trifft die Instanz, nicht jemanden',
-      (spZeile('export')?.querySelector('.prot-ziel')?.textContent || '').trim() === '',
+      (spZeile('export')?.querySelector('.log-target')?.textContent || '').trim() === '',
       spZeile('export')?.textContent?.replace(/\s+/g, ' '));
 
     /* wer IS NULL HEISST "UEBER zugang.js AUF DEM WIRT" -- mit genau einer
@@ -31812,14 +31812,14 @@ async function pruefeOberflaeche() {
       spText(d).replace(/\s+/g, ' ').slice(0, 400));
     pruefe('Die Fusszeile nennt die gezeigten und die gesamten Vorgaenge',
       /Die 4 jüngsten von 7 Vorgängen/.test(
-        d.w.document.getElementById('protokoll-fuss')?.textContent || ''),
-      d.w.document.getElementById('protokoll-fuss')?.textContent);
+        d.w.document.getElementById('log-foot')?.textContent || ''),
+      d.w.document.getElementById('log-foot')?.textContent);
 
     /* ---- 0.13.0: der Filter an der Karte ----
        DIE KARTE HOLT DIE HUNDERT JUENGSTEN ZEILEN, alle Vorgangsarten
        gemischt -- man findet die gescheiterten Anmeldungen darin nicht, sie
        stehen nur dazwischen. Das war der Befund. */
-    const spFilter = () => [...(d.w.document.querySelectorAll('#protokoll-filter .pill') || [])];
+    const spFilter = () => [...(d.w.document.querySelectorAll('#log-filter .pill') || [])];
     pruefe('Ueber der Liste steht eine Filterleiste', spFilter().length > 0,
       `${spFilter().length} Pillen`);
     pruefe('Und sie bietet "Alle" und fuenf Ansichten',
@@ -31869,8 +31869,8 @@ async function pruefeOberflaeche() {
       spGescheitert().classList.contains('on') && !spFilter()[0].classList.contains('on'),
       JSON.stringify(spFilter().map(b => b.className)));
     pruefe('Und die Fusszeile sagt, dass sie von dieser Art spricht',
-      /dieser Art/.test(d.w.document.getElementById('protokoll-fuss')?.textContent || ''),
-      d.w.document.getElementById('protokoll-fuss')?.textContent);
+      /dieser Art/.test(d.w.document.getElementById('log-foot')?.textContent || ''),
+      d.w.document.getElementById('log-foot')?.textContent);
     // Und wieder zurueck: eine Ansicht, aus der es keinen Weg heraus gibt,
     // waere eine Falle.
     spFilter()[0].dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -31880,41 +31880,41 @@ async function pruefeOberflaeche() {
 
     /* ---- 0.13.0: die Namen sind anklickbar ---- */
     const spRolle = spReihen(d).find(z => z.dataset.was === 'zugang.rolle');
-    const spWerKnopf = spRolle?.querySelector('.prot-wer .prot-sprung');
+    const spWerKnopf = spRolle?.querySelector('.log-actor .log-jump');
     pruefe('Der Handelnde ist ein Knopf und kein blosser Text', !!spWerKnopf,
-      spRolle?.querySelector('.prot-wer')?.innerHTML);
+      spRolle?.querySelector('.log-actor')?.innerHTML);
     pruefe('Und er traegt die Nummer des Zugangs',
       spWerKnopf?.dataset.mid === '1', spWerKnopf?.dataset.mid);
     pruefe('Das Ziel ebenso',
-      spRolle?.querySelector('.prot-ziel .prot-sprung')?.dataset.mid === '2',
-      spRolle?.querySelector('.prot-ziel')?.innerHTML);
+      spRolle?.querySelector('.log-target .log-jump')?.dataset.mid === '2',
+      spRolle?.querySelector('.log-target')?.innerHTML);
     pruefe('Der Pfeil steht dabei VOR dem Knopf und nicht in ihm',
-      /^→\s/.test(spRolle?.querySelector('.prot-ziel')?.textContent || '') &&
-      !/→/.test(spRolle?.querySelector('.prot-ziel .prot-sprung')?.textContent || ''),
-      spRolle?.querySelector('.prot-ziel')?.textContent);
+      /^→\s/.test(spRolle?.querySelector('.log-target')?.textContent || '') &&
+      !/→/.test(spRolle?.querySelector('.log-target .log-jump')?.textContent || ''),
+      spRolle?.querySelector('.log-target')?.textContent);
     /* "UNBEKANNTER NAME" WIRD NIE EIN KNOPF: er ist der getippte Name eines
        Versuchs, der an keinen Zugang traf -- es gaebe nichts, wohin er
        springen koennte. Ein Knopf ins Leere ist schlimmer als Text. */
     const spFehl = spReihen(d).find(z => z.dataset.was === 'anmeldung.fehl');
     pruefe('"unbekannter Name" bleibt Text und wird kein Knopf',
       !!spFehl && /unbekannter Name/.test(spFehl.textContent) &&
-      !spFehl.querySelector('.prot-sprung'), spFehl?.innerHTML);
+      !spFehl.querySelector('.log-jump'), spFehl?.innerHTML);
     // Und "über zugang.js auf dem Wirt" ebenso wenig -- dort ist niemand.
     const spWirt = spReihen(d).find(z => z.dataset.was === 'zugang.passwort');
     pruefe('Der Wirt wird ebenso wenig anklickbar',
-      !spWirt?.querySelector('.prot-wer .prot-sprung'),
-      spWirt?.querySelector('.prot-wer')?.innerHTML);
+      !spWirt?.querySelector('.log-actor .log-jump'),
+      spWirt?.querySelector('.log-actor')?.innerHTML);
     // Das Ziel dieser Zeile dagegen schon: carla ist ein Zugang.
     pruefe('Ihr Ziel dagegen schon',
-      spWirt?.querySelector('.prot-ziel .prot-sprung')?.dataset.mid === '3',
-      spWirt?.querySelector('.prot-ziel')?.innerHTML);
+      spWirt?.querySelector('.log-target .log-jump')?.dataset.mid === '3',
+      spWirt?.querySelector('.log-target')?.innerHTML);
     /* DER SPRUNG FINDET DIE ZEILE IN DER KARTE "ZUGAENGE". Wer das Protokoll
        sieht, ist Eigentuemer und damit immer auch Admin -- die Karte ist da. */
     spWerKnopf?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Ein Klick hebt die Zeile in der Karte "Zugaenge" hervor',
-      !!d.w.document.querySelector('#mzugaenge .mrow[data-mid="1"].mrow-blitz'),
-      d.w.document.getElementById('mzugaenge')?.innerHTML.slice(0, 200));
+      !!d.w.document.querySelector('#musers .mrow[data-mid="1"].mrow-flash'),
+      d.w.document.getElementById('musers')?.innerHTML.slice(0, 200));
   }
 
   /* ---- 0.13.0: die fuenf Vorgaenge ohne Wort ----
@@ -31944,7 +31944,7 @@ async function pruefeOberflaeche() {
     /* KEIN ROHER SCHLUESSEL AM BILDSCHIRM. Erkennbar sind sie am Punkt:
        "anfrage.frei" steht so in keiner deutschen Beschriftung. */
     const wRoh = spReihen(d).filter(z =>
-      (z.querySelector('.prot-was')?.textContent || '').includes('.'));
+      (z.querySelector('.log-event')?.textContent || '').includes('.'));
     pruefe('Kein Vorgang steht als roher Schluessel am Bildschirm',
       wRoh.length === 0, wRoh.map(z => z.dataset.was).join(' '));
     /* UND JEDES MERKMAL HAT SEIN WORT -- ausser den beiden, deren Wort schon
@@ -31961,7 +31961,7 @@ async function pruefeOberflaeche() {
     pruefe('Der Aufbau steht: jedes Merkmal hat eine Zeile',
       spReihen(dm).length === wZeilen2.length, `${spReihen(dm).length} von ${wZeilen2.length}`);
     const wStumm = spReihen(dm).filter(z =>
-      !(z.querySelector('.prot-merkmal')?.textContent || '').trim());
+      !(z.querySelector('.log-detail')?.textContent || '').trim());
     pruefe('Und jedes Merkmal bekommt sein Wort — keines verschwindet spurlos',
       wStumm.length === 0,
       wStumm.map((z, i) => wZeilen2[spReihen(dm).indexOf(z)]?.merkmal).join(' '));
@@ -32027,7 +32027,7 @@ async function pruefeOberflaeche() {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Dialog steht da', !!zdDialog(d), 'kein Dialog');
     /* SEIT 0.19.2 KUERZER: der Nebensatz ueber die fremde offene Anmeldung ist
@@ -32058,7 +32058,7 @@ async function pruefeOberflaeche() {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     await bestaetigeImDom(d, 'ganz-falsch-hier');
     pruefe('Mit falschem Passwort wird die Freigabe gefragt',
@@ -32066,7 +32066,7 @@ async function pruefeOberflaeche() {
     pruefe('Und die Handlung laeuft trotzdem NICHT',
       !zdGefragt(d, '/api/users/3/token'), d.gesendet.map(x => x.url).join(' · '));
     pruefe('Es steht auch kein Linkkasten da',
-      !d.w.document.getElementById('zug-link-feld'), 'der Link steht da');
+      !d.w.document.getElementById('user-link-field'), 'der Link steht da');
   }
 
   // 3. DAS RICHTIGE PASSWORT -- an der Rolle, am fremden Passwort und am
@@ -32076,7 +32076,7 @@ async function pruefeOberflaeche() {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    const feld = zeile?.querySelector('.zug-r');
+    const feld = zeile?.querySelector('.user-role-sel');
     if (feld) { feld.value = 'admin'; feld.dispatchEvent(new d.w.Event('change', { bubbles: true })); }
     await new Promise(r => setTimeout(r, 60));
     pruefe('Vor dem Rollenwechsel steht der Dialog', !!zdDialog(d), 'kein Dialog');
@@ -32103,7 +32103,7 @@ async function pruefeOberflaeche() {
        und 311; die Gegenprobe 630 hat es gezeigt). */
     d.w.prompt = () => null;
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.zug-p')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    zeile?.querySelector('.user-pass-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     /* SEIT 0.22.0 KOMMT DAS FREMDE PASSWORT AUS EINEM EIGENEN WINDOW MIT
        PASSWORTFELD -- nicht mehr aus prompt(), wo es im Klartext stand
@@ -32132,7 +32132,7 @@ async function pruefeOberflaeche() {
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.zug-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    zeile?.querySelector('.user-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     /* ---- 0.22.0: EIN WINDOW STATT DREI RUECKFRAGEN (Bauabschnitt 4) ----
        Bis 0.21.1 stellte der Weg drei confirm() hintereinander, und in den
@@ -32203,14 +32203,14 @@ async function pruefeOberflaeche() {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, opt);
     stelleBestaetigung(d.w, true);
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     await bestaetigeImDom(d);
     return d;
   };
   {
     const d = await oaLink({});
-    const zeile = d.w.document.getElementById('zug-link-herkunft');
+    const zeile = d.w.document.getElementById('user-link-origin');
     pruefe('Die Herkunftszeile steht ueberhaupt da', !!zeile, 'keine Zeile');
     pruefe('Ohne Einstellung sagt sie: aus deinem Browser',
       /aus deinem Browser/.test(zeile?.textContent || ''), zeile?.textContent);
@@ -32219,13 +32219,13 @@ async function pruefeOberflaeche() {
     pruefe('Sie nennt die Adresse, auf die der Link zeigt',
       (zeile?.textContent || '').includes(d.w.location.origin), zeile?.textContent);
     pruefe('Und das Feld traegt die vom Browser gebaute Adresse',
-      d.w.document.getElementById('zug-link-feld')?.value ===
+      d.w.document.getElementById('user-link-field')?.value ===
         `${d.w.location.origin}${d.w.location.pathname}#/einladung/${'d'.repeat(64)}`,
-      d.w.document.getElementById('zug-link-feld')?.value);
+      d.w.document.getElementById('user-link-field')?.value);
   }
   {
     const d = await oaLink({ oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
-    const zeile = d.w.document.getElementById('zug-link-herkunft');
+    const zeile = d.w.document.getElementById('user-link-origin');
     pruefe('Mit Einstellung steht die Herkunftszeile ebenfalls da', !!zeile, 'keine Zeile');
     pruefe('Und sie nennt die Einstellung beim Namen',
       /OEFFENTLICHE_ADRESSE/.test(zeile?.textContent || ''), zeile?.textContent);
@@ -32234,9 +32234,9 @@ async function pruefeOberflaeche() {
     pruefe('Sie nennt die Adresse aus der Einstellung',
       /kriterion\.beispiel\.de/.test(zeile?.textContent || ''), zeile?.textContent);
     pruefe('Und das Feld traegt den Link des Servers, nicht den des Browsers',
-      d.w.document.getElementById('zug-link-feld')?.value ===
+      d.w.document.getElementById('user-link-field')?.value ===
         `https://kriterion.beispiel.de/#/einladung/${'d'.repeat(64)}`,
-      d.w.document.getElementById('zug-link-feld')?.value);
+      d.w.document.getElementById('user-link-field')?.value);
   }
 
   /* EINE WAHL, EIN KNOPF -- und das Passwortfeld erscheint nur zu der
@@ -32247,13 +32247,13 @@ async function pruefeOberflaeche() {
      Rueckweg aufraeumt. */
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    const art = d.w.document.getElementById('zug-art');
-    const knopf = d.w.document.getElementById('zug-anlegen');
-    const pass = d.w.document.getElementById('zug-pass');
+    const art = d.w.document.getElementById('user-kind');
+    const knopf = d.w.document.getElementById('user-create');
+    const pass = d.w.document.getElementById('user-pass');
     pruefe('Das Auswahlfeld steht im Formular', !!art, 'kein Auswahlfeld');
     pruefe('Und es gibt nur EINEN Anlegeknopf',
-      !!knopf && d.w.document.querySelectorAll('.zug-neu .btn').length === 1,
-      `${d.w.document.querySelectorAll('.zug-neu .btn').length} Knoepfe`);
+      !!knopf && d.w.document.querySelectorAll('.user-new .btn').length === 1,
+      `${d.w.document.querySelectorAll('.user-new .btn').length} Knoepfe`);
     pruefe('Es traegt genau die zwei Betriebsarten',
       gleich([...art.options].map(o => o.value), ['link', 'passwort']),
       JSON.stringify([...(art?.options || [])].map(o => o.value)));
@@ -32268,13 +32268,13 @@ async function pruefeOberflaeche() {
     /* Und die Regel dazu im Stylesheet -- ohne sie stuende das Feld im
        Flex-Kasten weiter da (Stolperstein 81: erst das Vorhandensein).
        SEIT 0.15.1 IST ES DIE GRUNDSAETZLICHE REGEL und nicht mehr eine eigene
-       fuer diesen Kasten: `.zug-neu [hidden]` ist entfallen. */
+       fuer diesen Kasten: `.user-new [hidden]` ist entfallen. */
     const ziCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
     pruefe('Das Stylesheet nimmt ein verstecktes Feld wirklich aus der Zeile',
       /\[hidden\] \{ display: none !important; \}/.test(ziCss),
       'die grundsaetzliche Regel fuer [hidden] fehlt');
     pruefe('Und zwar ohne eine eigene Regel fuer diesen Kasten daneben',
-      !/\.zug-neu \[hidden\] \{/.test(ziCss), 'die alte oertliche Regel steht noch da');
+      !/\.user-new \[hidden\] \{/.test(ziCss), 'die alte oertliche Regel steht noch da');
 
     // Hinwechseln: das Feld erscheint, der Knopf heisst anders.
     art.value = 'passwort';
@@ -32298,8 +32298,8 @@ async function pruefeOberflaeche() {
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = ziReihen(d).length;
-    setzeFeld(d.w.document, 'zug-name', 'neuling');
-    d.w.document.getElementById('zug-anlegen')
+    setzeFeld(d.w.document, 'user-name', 'neuling');
+    d.w.document.getElementById('user-create')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const anlegen = d.gesendet.find(x => x.methode === 'POST' && x.url === '/api/users');
@@ -32310,9 +32310,9 @@ async function pruefeOberflaeche() {
     pruefe('Ohne ein Passwort mitzuschicken',
       anlegen?.koerper?.passwort === undefined, JSON.stringify(anlegen?.koerper));
     pruefe('Der Link erscheint gleich mit',
-      d.w.document.getElementById('zug-link-feld')?.value
+      d.w.document.getElementById('user-link-field')?.value
         === `${d.w.location.origin}${d.w.location.pathname}#/einladung/${'e'.repeat(64)}`,
-      d.w.document.getElementById('zug-link-feld')?.value);
+      d.w.document.getElementById('user-link-field')?.value);
     pruefe('Und die Liste zeichnet sich mit einer Zeile mehr neu',
       ziReihen(d).length === vorher + 1, `${vorher} -> ${ziReihen(d).length}`);
   }
@@ -32321,12 +32321,12 @@ async function pruefeOberflaeche() {
      waere die Wahl eine Kulisse. */
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    const art = d.w.document.getElementById('zug-art');
+    const art = d.w.document.getElementById('user-kind');
     art.value = 'passwort';
     art.dispatchEvent(new d.w.Event('change'));
-    setzeFeld(d.w.document, 'zug-name', 'mitpasswort');
-    setzeFeld(d.w.document, 'zug-pass', 'ein-passwort-1');
-    d.w.document.getElementById('zug-anlegen')
+    setzeFeld(d.w.document, 'user-name', 'mitpasswort');
+    setzeFeld(d.w.document, 'user-pass', 'ein-passwort-1');
+    d.w.document.getElementById('user-create')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const anlegen = d.gesendet.find(x => x.methode === 'POST' && x.url === '/api/users');
@@ -32335,7 +32335,7 @@ async function pruefeOberflaeche() {
     pruefe('Und ausdruecklich KEINE Einladung',
       anlegen?.koerper?.einladen === undefined, JSON.stringify(anlegen?.koerper));
     pruefe('Und es erscheint kein Linkkasten',
-      !d.w.document.getElementById('zug-link-feld'), 'der Kasten steht doch da');
+      !d.w.document.getElementById('user-link-field'), 'der Kasten steht doch da');
   }
 
   /* Das Adressfeld beim Anlegen, seit 0.9.0. FREIWILLIG -- ohne Adresse
@@ -32343,26 +32343,26 @@ async function pruefeOberflaeche() {
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     pruefe('Beim Anlegen steht ein Adressfeld',
-      !!d.w.document.getElementById('zug-mail'), 'kein Adressfeld');
-    setzeFeld(d.w.document, 'zug-name', 'neuling');
-    setzeFeld(d.w.document, 'zug-mail', 'neuling@beispiel.de');
-    d.w.document.getElementById('zug-anlegen')
+      !!d.w.document.getElementById('user-mail'), 'kein Adressfeld');
+    setzeFeld(d.w.document, 'user-name', 'neuling');
+    setzeFeld(d.w.document, 'user-mail', 'neuling@beispiel.de');
+    d.w.document.getElementById('user-create')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const anlegen = d.gesendet.find(x => x.methode === 'POST' && x.url === '/api/users');
     pruefe('Die Adresse geht mit an den Server',
       anlegen?.koerper?.email === 'neuling@beispiel.de', JSON.stringify(anlegen?.koerper));
     pruefe('Und das Feld ist danach geleert',
-      d.w.document.getElementById('zug-mail')?.value === '',
-      JSON.stringify(d.w.document.getElementById('zug-mail')?.value));
+      d.w.document.getElementById('user-mail')?.value === '',
+      JSON.stringify(d.w.document.getElementById('user-mail')?.value));
   }
   {
     // OHNE ADRESSE wird das Feld gar nicht erst mitgeschickt -- ein leeres
     // `email` waere am Server die Ansage "keine", und das ist beim ANLEGEN
     // dasselbe; mitzuschicken gibt es trotzdem nichts.
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    setzeFeld(d.w.document, 'zug-name', 'ohnemail');
-    d.w.document.getElementById('zug-anlegen')
+    setzeFeld(d.w.document, 'user-name', 'ohnemail');
+    d.w.document.getElementById('user-create')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const anlegen = d.gesendet.find(x => x.methode === 'POST' && x.url === '/api/users');
@@ -32503,7 +32503,7 @@ async function pruefeOberflaeche() {
        Karte, in der die Felder schon dastanden. */
     const mvKnoepfe = [...(k?.querySelectorAll('.btn') || [])].map(b => `${b.id}:${b.textContent.trim()}`);
     pruefe('Darunter stehen genau zwei Knoepfe',
-      gleich(mvKnoepfe, ['mail-einrichten:Mailzugang ändern', 'mail-test:Testmail an mich']),
+      gleich(mvKnoepfe, ['mail-setup:Mailzugang ändern', 'mail-test:Testmail an mich']),
       JSON.stringify(mvKnoepfe));
     pruefe('Die Karte nennt die zuletzt erfolgreiche Probe',
       /2026-08-20 08:30:00/.test(k?.textContent || ''), k?.textContent?.slice(0, 600));
@@ -32522,7 +32522,7 @@ async function pruefeOberflaeche() {
       /braucht sie, um gültige Links zu erzeugen/.test(k?.textContent || ''),
       k?.textContent?.slice(0, 900));
     pruefe('Die Stelle traegt die rote Auszeichnung',
-      !!k?.querySelector('.mail-aus'), 'keine Auszeichnung');
+      !!k?.querySelector('.mail-off'), 'keine Auszeichnung');
     d.w.close();
   }
   {
@@ -32536,8 +32536,8 @@ async function pruefeOberflaeche() {
     pruefe('Und die Anbieterzeile sagt, dass keiner gewaehlt ist',
       /noch keiner gewählt/.test(k?.textContent || ''), k?.textContent?.slice(0, 500));
     pruefe('Der Knopf heisst dann „einrichten" und nicht „ändern"',
-      d.w.document.getElementById('mail-einrichten')?.textContent.trim() === 'Mailzugang einrichten',
-      d.w.document.getElementById('mail-einrichten')?.textContent);
+      d.w.document.getElementById('mail-setup')?.textContent.trim() === 'Mailzugang einrichten',
+      d.w.document.getElementById('mail-setup')?.textContent);
     pruefe('Und "noch nie" bei der Probe',
       /noch nie/.test(k?.textContent || ''), k?.textContent?.slice(0, 600));
     d.w.close();
@@ -32580,11 +32580,11 @@ async function pruefeOberflaeche() {
     pruefe('Es gibt auch gar kein Adressfeld daneben',
       !mvKarte(d)?.querySelector('input[type="email"]'), 'ein Adressfeld steht da');
     pruefe('Der Erfolg steht danach in der Karte',
-      /Testmail an .+ gesendet\. Kommt sie an, funktioniert der Versand\./.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
-      d.w.document.getElementById('mail-ergebnis')?.textContent);
+      /Testmail an .+ gesendet\. Kommt sie an, funktioniert der Versand\./.test(d.w.document.getElementById('mail-result')?.textContent || ''),
+      d.w.document.getElementById('mail-result')?.textContent);
     pruefe('Und die Karte sagt, an welche Adresse',
-      /chefin@beispiel\.de/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
-      d.w.document.getElementById('mail-ergebnis')?.textContent);
+      /chefin@beispiel\.de/.test(d.w.document.getElementById('mail-result')?.textContent || ''),
+      d.w.document.getElementById('mail-result')?.textContent);
     d.w.close();
   }
   {
@@ -32594,11 +32594,11 @@ async function pruefeOberflaeche() {
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     pruefe('Ein Fehlschlag steht ebenfalls in der Karte',
-      /fehlgeschlagen/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
-      d.w.document.getElementById('mail-ergebnis')?.textContent);
+      /fehlgeschlagen/.test(d.w.document.getElementById('mail-result')?.textContent || ''),
+      d.w.document.getElementById('mail-result')?.textContent);
     pruefe('Mit dem Grund daneben',
-      /550/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
-      d.w.document.getElementById('mail-ergebnis')?.textContent);
+      /550/.test(d.w.document.getElementById('mail-result')?.textContent || ''),
+      d.w.document.getElementById('mail-result')?.textContent);
     pruefe('Und der Knopf ist danach wieder bedienbar',
       d.w.document.getElementById('mail-test')?.disabled === false,
       `gesperrt=${d.w.document.getElementById('mail-test')?.disabled}`);
@@ -32612,8 +32612,8 @@ async function pruefeOberflaeche() {
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     pruefe('Ohne eigene Adresse sagt die Karte, wo sie einzutragen ist',
-      /Zugang/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
-      d.w.document.getElementById('mail-ergebnis')?.textContent);
+      /Zugang/.test(d.w.document.getElementById('mail-result')?.textContent || ''),
+      d.w.document.getElementById('mail-result')?.textContent);
     d.w.close();
   }
 
@@ -32627,7 +32627,7 @@ async function pruefeOberflaeche() {
      welcher Satz unter welcher Sache. Wie breit es dann wirklich ist, laesst
      sich hier nicht sehen; die Regeln dazu werden im Stilblatt gelesen. */
   const mdOeffne = async (d) => {
-    d.w.document.getElementById('mail-einrichten')
+    d.w.document.getElementById('mail-setup')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     return d.w.document.getElementById('mail-dialog');
@@ -32646,7 +32646,7 @@ async function pruefeOberflaeche() {
     pruefe('Der Dialog traegt keine der alten Reihen mehr',
       !dlg?.querySelector('.mail-reihe'), 'eine Reihe steht noch da');
     /* DIE AUSWAHLLISTE KOMMT VOM SERVER, samt „Eigener Server“. */
-    const auswahl = d.w.document.getElementById('mail-anbieter');
+    const auswahl = d.w.document.getElementById('mail-provider');
     pruefe('Die Anbieterliste kommt vom Server',
       [...(auswahl?.options || [])].map(o => o.value).join(',') === ',gmx,web,gmail,strato,ionos,eigen',
       [...(auswahl?.options || [])].map(o => o.value).join(','));
@@ -32655,9 +32655,9 @@ async function pruefeOberflaeche() {
     /* ---- DER HINWEIS STEHT UNTER SEINER SACHE UND WECHSELT MIT DER AUSWAHL.
        DAS IST DER PUNKT DES GANZEN UMBAUS: bis 0.17.2 stand der Hinweis zum
        Anbieter NEBEN der Absenderadresse -- also neben einer anderen Sache. */
-    const mdHinweis = () => d.w.document.getElementById('mail-anbieter-hinweis');
+    const mdHinweis = () => d.w.document.getElementById('mail-provider-hint');
     pruefe('Der Hinweis zum Anbieter steht unter der Auswahl',
-      mdHinweis()?.previousElementSibling?.querySelector('#mail-anbieter') != null,
+      mdHinweis()?.previousElementSibling?.querySelector('#mail-provider') != null,
       mdHinweis()?.previousElementSibling?.className);
     pruefe('Und er nennt, was GMX verlangt',
       /fremde Programme/.test(mdHinweis()?.textContent || ''), mdHinweis()?.textContent);
@@ -32665,9 +32665,9 @@ async function pruefeOberflaeche() {
        ZEILE DA -- kein Feld. Drei Felder fuer drei feste Werte waeren drei
        Felder zu viel, und ein gesperrtes Feld sieht aus wie eines, das gleich
        aufgeht. */
-    const mdFest = () => d.w.document.getElementById('mail-fest');
-    const mdFestFeld = () => d.w.document.getElementById('mail-fest-feld');
-    const mdEigen = () => d.w.document.getElementById('mail-eigen');
+    const mdFest = () => d.w.document.getElementById('mail-fixed');
+    const mdFestFeld = () => d.w.document.getElementById('mail-fixed-field');
+    const mdEigen = () => d.w.document.getElementById('mail-custom');
     pruefe('Bei einer Vorlage steht die feste Zeile da',
       mdFestFeld()?.hidden === false && mdFest()?.textContent === 'mail.gmx.net · 587 · STARTTLS',
       `versteckt=${mdFestFeld()?.hidden} · ${mdFest()?.textContent}`);
@@ -32682,7 +32682,7 @@ async function pruefeOberflaeche() {
       [...(dlg?.querySelectorAll('p') || [])]
         .filter(x => /Internetanschluss/.test(x.textContent)).length === 1 &&
       [...(dlg?.querySelectorAll('p') || [])]
-        .filter(x => /Internetanschluss/.test(x.textContent)).every(x => x.closest('#mail-eigen')),
+        .filter(x => /Internetanschluss/.test(x.textContent)).every(x => x.closest('#mail-custom')),
       [...(dlg?.querySelectorAll('p') || [])]
         .filter(x => /Internetanschluss/.test(x.textContent)).map(x => x.parentElement?.id).join(','));
 
@@ -32693,7 +32693,7 @@ async function pruefeOberflaeche() {
       mdEigen()?.hidden === false &&
       !!d.w.document.getElementById('mail-server') &&
       !!d.w.document.getElementById('mail-port') &&
-      !!d.w.document.getElementById('mail-sicher'),
+      !!d.w.document.getElementById('mail-secure'),
       `versteckt=${mdEigen()?.hidden}`);
     pruefe('Und die gelesene Zeile verschwindet dafuer',
       mdFestFeld()?.hidden === true, `versteckt=${mdFestFeld()?.hidden}`);
@@ -32720,24 +32720,24 @@ async function pruefeOberflaeche() {
       mdFestFeld()?.hidden === true && mdEigen()?.hidden === true,
       `fest=${mdFestFeld()?.hidden} · eigen=${mdEigen()?.hidden}`);
     pruefe('Und die drei Felder darunter sind gesperrt',
-      ['benutzer', 'passwort', 'absender']
+      ['user', 'pass', 'sender']
         .every(id => d.w.document.getElementById('mail-' + id)?.disabled === true),
-      ['benutzer', 'passwort', 'absender']
+      ['user', 'pass', 'sender']
         .map(id => `${id}=${d.w.document.getElementById('mail-' + id)?.disabled}`).join(' · '));
 
     /* ---- DAS PASSWORT UND SEIN PLATZHALTER ---- */
     auswahl.value = 'gmx';
     auswahl.dispatchEvent(new d.w.Event('change'));
     pruefe('Das Passwortfeld steht leer da',
-      d.w.document.getElementById('mail-passwort')?.value === '',
-      JSON.stringify(d.w.document.getElementById('mail-passwort')?.value));
+      d.w.document.getElementById('mail-pass')?.value === '',
+      JSON.stringify(d.w.document.getElementById('mail-pass')?.value));
     pruefe('Und sagt im Platzhalter, dass leer "unveraendert" heisst',
-      /leer lassen ändert es nicht/.test(d.w.document.getElementById('mail-passwort')?.placeholder || ''),
-      d.w.document.getElementById('mail-passwort')?.placeholder);
+      /leer lassen ändert es nicht/.test(d.w.document.getElementById('mail-pass')?.placeholder || ''),
+      d.w.document.getElementById('mail-pass')?.placeholder);
     /* DER HINWEIS ZUR ABSENDERADRESSE STEHT UNTER IHR und nicht neben ihr. */
-    const mdAbs = d.w.document.getElementById('mail-absender-hinweis');
+    const mdAbs = d.w.document.getElementById('mail-sender-hint');
     pruefe('Der Hinweis zur Absenderadresse steht unter dem Feld',
-      mdAbs?.previousElementSibling?.querySelector('#mail-absender') != null,
+      mdAbs?.previousElementSibling?.querySelector('#mail-sender') != null,
       mdAbs?.previousElementSibling?.className);
     pruefe('Und er nennt, dass die Adresse zum Konto gehoeren muss',
       /Absenderadresse muss zum Konto gehören/.test(mdAbs?.textContent || ''), mdAbs?.textContent);
@@ -32745,8 +32745,8 @@ async function pruefeOberflaeche() {
        drei der eigenen Lage, Benutzername, Passwort, Absenderadresse. */
     const mdFolge = [...(dlg?.querySelectorAll('.field .input') || [])].map(e => e.id);
     pruefe('Die Felder stehen in der Folge des Auftrags',
-      gleich(mdFolge, ['mail-anbieter', 'mail-server', 'mail-port', 'mail-sicher',
-                       'mail-benutzer', 'mail-passwort', 'mail-absender']),
+      gleich(mdFolge, ['mail-provider', 'mail-server', 'mail-port', 'mail-secure',
+                       'mail-user', 'mail-pass', 'mail-sender']),
       JSON.stringify(mdFolge));
     // ABBRECHEN SCHLIESST OHNE ZU SCHREIBEN.
     const mdVorher = d.gesendet.length;
@@ -32769,11 +32769,11 @@ async function pruefeOberflaeche() {
     pruefe('Ohne Zugang heisst die Ueberschrift „einrichten"',
       dlg?.querySelector('h2')?.textContent.trim() === 'Mailzugang einrichten',
       dlg?.querySelector('h2')?.textContent);
-    setzeFeld(d.w.document, 'mail-anbieter', 'gmail');
-    d.w.document.getElementById('mail-anbieter').dispatchEvent(new d.w.Event('change'));
-    setzeFeld(d.w.document, 'mail-benutzer', 'instanz@gmail.com');
-    setzeFeld(d.w.document, 'mail-passwort', 'erfundenes-app-passwort');
-    setzeFeld(d.w.document, 'mail-absender', 'instanz@gmail.com');
+    setzeFeld(d.w.document, 'mail-provider', 'gmail');
+    d.w.document.getElementById('mail-provider').dispatchEvent(new d.w.Event('change'));
+    setzeFeld(d.w.document, 'mail-user', 'instanz@gmail.com');
+    setzeFeld(d.w.document, 'mail-pass', 'erfundenes-app-passwort');
+    setzeFeld(d.w.document, 'mail-sender', 'instanz@gmail.com');
     d.w.document.getElementById('mail-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -32788,8 +32788,8 @@ async function pruefeOberflaeche() {
     pruefe('Ein Abbruch der Bestaetigung laesst den Dialog stehen',
       !!d.w.document.getElementById('mail-dialog'), 'der Dialog ist weg');
     pruefe('Und das Eingetippte steht noch darin',
-      d.w.document.getElementById('mail-benutzer')?.value === 'instanz@gmail.com',
-      d.w.document.getElementById('mail-benutzer')?.value);
+      d.w.document.getElementById('mail-user')?.value === 'instanz@gmail.com',
+      d.w.document.getElementById('mail-user')?.value);
     // Und noch einmal, diesmal mit Freigabe.
     d.w.document.getElementById('mail-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -32810,8 +32810,8 @@ async function pruefeOberflaeche() {
       !/nicht eingerichtet/.test(mvKarte(d)?.textContent || ''),
       mvKarte(d)?.textContent?.slice(0, 300));
     pruefe('Und der Knopf heisst jetzt „ändern"',
-      d.w.document.getElementById('mail-einrichten')?.textContent.trim() === 'Mailzugang ändern',
-      d.w.document.getElementById('mail-einrichten')?.textContent);
+      d.w.document.getElementById('mail-setup')?.textContent.trim() === 'Mailzugang ändern',
+      d.w.document.getElementById('mail-setup')?.textContent);
     d.w.close();
   }
 
@@ -32834,7 +32834,7 @@ async function pruefeOberflaeche() {
   };
   const pkKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Papierkorb');
-  const pkReihen = (d) => [...(pkKarte(d)?.querySelectorAll('#mpapierkorb .mrow.pk') || [])];
+  const pkReihen = (d) => [...(pkKarte(d)?.querySelectorAll('#mtrash .mrow.trash') || [])];
 
   const pkuEig = await pkSystem({ istAdmin: true, istEigentuemer: true });
   const pkuAdm = await pkSystem({ istAdmin: true, istEigentuemer: false });
@@ -32857,7 +32857,7 @@ async function pruefeOberflaeche() {
   pruefe('Mit ihren Titeln',
     gleich(pkuReihen.map(r => r.querySelector('.mname')?.textContent), ['Weggeworfenes', 'Von einem Grabstein']),
     JSON.stringify(pkuReihen.map(r => r.querySelector('.mname')?.textContent)));
-  const pkuMeta = pkuReihen.map(r => r.querySelector('.pk-meta')?.textContent || '');
+  const pkuMeta = pkuReihen.map(r => r.querySelector('.trash-meta')?.textContent || '');
   pruefe('Jede Zeile nennt, wer geloescht hat',
     /von chefin/.test(pkuMeta[0]), pkuMeta[0]);
   /* Der GRABSTEIN geht denselben Weg von der Nummer zum Namen wie ueberall
@@ -32875,13 +32875,13 @@ async function pruefeOberflaeche() {
      dann die Abwesenheit des Knopfes an ihr -- ohne die erste Haelfte bliebe
      die zweite auf null Zeilen wahr und belegte nichts (Stolperstein 81). */
   pruefe('Bei der Eigentuemerin steht an jeder Zeile Zurueckholen und ein Kreuz',
-    pkuReihen.length === 2 && pkuReihen.every(r => !!r.querySelector('.pk-back') && !!r.querySelector('.pk-weg')),
+    pkuReihen.length === 2 && pkuReihen.every(r => !!r.querySelector('.trash-back') && !!r.querySelector('.trash-remove')),
     JSON.stringify(pkuReihen.map(r => r.innerHTML.slice(0, 120))));
   const pkuAdmReihen = pkReihen(pkuAdm);
   pruefe('Beim Admin gibt es die Zeilen ueberhaupt', pkuAdmReihen.length === 2,
     `${pkuAdmReihen.length} Zeilen`);
   pruefe('Aber an ihnen steht kein einziger Knopf',
-    pkuAdmReihen.every(r => !r.querySelector('.pk-back') && !r.querySelector('.pk-weg')),
+    pkuAdmReihen.every(r => !r.querySelector('.trash-back') && !r.querySelector('.trash-remove')),
     JSON.stringify(pkuAdmReihen.map(r => r.innerHTML.slice(0, 120))));
   pruefe('Und die Karte sagt ihm, wer es darf',
     /kann nur der Eigentümer/.test(pkKarte(pkuAdm)?.querySelector('.desc')?.textContent || ''),
@@ -32932,7 +32932,7 @@ async function pruefeOberflaeche() {
   {
     const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = pkReihen(d).length;
-    pkReihen(d)[0]?.querySelector('.pk-back')
+    pkReihen(d)[0]?.querySelector('.trash-back')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Knopf schickt das Zurueckholen an den Server',
@@ -32955,7 +32955,7 @@ async function pruefeOberflaeche() {
      genannt. Die zweite Zeile der Prueflage traegt sie. */
   {
     const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
-    pkReihen(d)[1]?.querySelector('.pk-back')
+    pkReihen(d)[1]?.querySelector('.trash-back')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Unbekannte Verfasser stehen in der Meldung',
@@ -32968,7 +32968,7 @@ async function pruefeOberflaeche() {
   {
     const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = pkReihen(d).length;
-    pkReihen(d)[0]?.querySelector('.pk-weg')
+    pkReihen(d)[0]?.querySelector('.trash-remove')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     const frage = d.w.document.querySelector('.backdrop .modal');
@@ -32985,7 +32985,7 @@ async function pruefeOberflaeche() {
       d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
     pruefe('Und die Zeile steht noch da', pkReihen(d).length === vorher);
 
-    pkReihen(d)[0]?.querySelector('.pk-weg')
+    pkReihen(d)[0]?.querySelector('.trash-remove')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     d.w.document.querySelector('.backdrop [data-yes]')
@@ -33038,7 +33038,7 @@ async function pruefeOberflaeche() {
     /* GESUCHT WIRD DER ABSCHNITT MIT DEM NAMEN und nicht der erste: seit
        0.19.0 traegt die Karte zwei -- „Bildablage" steht vor „Verfahren".
        Ein querySelector auf den ersten faende ab da den falschen. */
-    const kvUnterschriften = [...(karte?.querySelectorAll('.sys-unter') || [])]
+    const kvUnterschriften = [...(karte?.querySelectorAll('.sys-sub') || [])]
       .map(u => u.textContent.trim());
     pruefe('Ein eigener, untergeordneter Abschnitt nennt die Verfahren',
       kvUnterschriften.includes('Technische Verfahren'), kvUnterschriften.join(' · '));
@@ -33089,9 +33089,9 @@ async function pruefeOberflaeche() {
     const kOhne = [...ohneVerf.w.document.querySelectorAll('.sys-grid > .sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
     pruefe('Ohne Verfahrensangaben steht der Abschnitt gar nicht da',
-      !!kOhne && ![...kOhne.querySelectorAll('.sys-unter')]
+      !!kOhne && ![...kOhne.querySelectorAll('.sys-sub')]
         .some(u => u.textContent.trim() === 'Verfahren'),
-      [...(kOhne?.querySelectorAll('.sys-unter') || [])].map(u => u.textContent.trim()).join(' · '));
+      [...(kOhne?.querySelectorAll('.sys-sub') || [])].map(u => u.textContent.trim()).join(' · '));
     ohneVerf.w.close();
   }
 
@@ -33126,11 +33126,11 @@ async function pruefeOberflaeche() {
     const kKennzahlen = [...baEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
     pruefe('Und „Kennzahlen" traegt sie nicht mehr als Unterabschnitt',
-      ![...(kKennzahlen?.querySelectorAll('.sys-unter') || [])]
+      ![...(kKennzahlen?.querySelectorAll('.sys-sub') || [])]
         .some(u => u.textContent.trim() === 'Bildablage'),
-      [...(kKennzahlen?.querySelectorAll('.sys-unter') || [])].map(u => u.textContent.trim()).join(' · '));
+      [...(kKennzahlen?.querySelectorAll('.sys-sub') || [])].map(u => u.textContent.trim()).join(' · '));
     pruefe('Und der Knopf steht wirklich in DIESER Karte',
-      !!kEig?.querySelector('#bild-um'),
+      !!kEig?.querySelector('#convert-run'),
       kEig ? '(kein Knopf in der Karte)' : '(keine Karte)');
     for (const [wort, wert] of [['PNG', '12 · 6,0 MB'], ['JPEG', '5 · 512,0 KB'], ['WebP', '2 · 64,0 KB']]) {
       const zeile = [...(kEig?.querySelectorAll('.kv') || [])]
@@ -33146,17 +33146,17 @@ async function pruefeOberflaeche() {
     /* UMGEDREHT MIT 0.22.0 (Anlage F): der Zusatz am PNG haengt am Schalter --
        „wird beim Upload zu WebP" steht nur bei eingeschalteter Umwandlung --,
        und JPEG „bleibt unverändert". */
-    const baSchalterAn = !!kEig?.querySelector('#bild-umwandeln')?.checked;
+    const baSchalterAn = !!kEig?.querySelector('#convert-images')?.checked;
     pruefe('Und PNG traegt den Zusatz genau dann, wenn der Schalter an ist — 0.22.0',
       baZeilen(kEig).some(z => /^PNG/.test(z) && /wird beim Upload zu WebP/.test(z) === baSchalterAn),
       `Schalter ${baSchalterAn ? 'an' : 'aus'}: ` + baZeilen(kEig).join(' · '));
     pruefe('Und JPEG den, dass es unveraendert bleibt — 0.22.0',
       baZeilen(kEig).some(z => /^JPEG.*bleibt unverändert/.test(z)), baZeilen(kEig).join(' · '));
 
-    const haken = baEig.w.document.getElementById('bild-umwandeln');
+    const haken = baEig.w.document.getElementById('convert-images');
     pruefe('Die Eigentuemerin bekommt den Schalter', !!haken);
     pruefe('Und er steht auf der Stellung aus der Antwort', !!haken && haken.checked === true);
-    const knopf = baEig.w.document.getElementById('bild-um');
+    const knopf = baEig.w.document.getElementById('convert-run');
     pruefe('Und den Knopf, der den Bestand nachzieht', !!knopf);
     pruefe('Der Knopf ist bedienbar, solange PNG dasteht', !!knopf && !knopf.disabled);
 
@@ -33253,7 +33253,7 @@ async function pruefeOberflaeche() {
       { statsBildFormate: { webp: { anzahl: 9, bytes: 65536 } } });
     await sysAbschnitt(baLeer.w, 'datenbank');
     pruefe('Ohne PNG ist der Knopf nicht bedienbar',
-      baLeer.w.document.getElementById('bild-um')?.disabled === true);
+      baLeer.w.document.getElementById('convert-run')?.disabled === true);
     pruefe('Und die Karte sagt, warum',
       /Keine PNG-Fotos mehr vorhanden/.test(baKarte(baLeer)?.textContent || ''),
       baKarte(baLeer)?.textContent?.replace(/\s+/g, ' ').slice(-200));
@@ -33264,17 +33264,17 @@ async function pruefeOberflaeche() {
       { statsUmstellung: { laeuft: true, gesamt: 12, erledigt: 5, umgestellt: 4, geblieben: 1, gespart: 100 } });
     await sysAbschnitt(baLauf.w, 'datenbank');
     pruefe('Waehrend eines Laufs zeigt die Karte den Fortschritt',
-      /5 von 12/.test(baLauf.w.document.getElementById('bild-lauf')?.textContent || ''),
-      baLauf.w.document.getElementById('bild-lauf')?.textContent);
+      /5 von 12/.test(baLauf.w.document.getElementById('convert-running')?.textContent || ''),
+      baLauf.w.document.getElementById('convert-running')?.textContent);
     pruefe('Und der Knopf ist so lange tot',
-      baLauf.w.document.getElementById('bild-um')?.disabled === true);
+      baLauf.w.document.getElementById('convert-run')?.disabled === true);
     baLauf.w.close();
 
     // Ein Lauf ist durch: die Zeile sagt, was herauskam.
     const baFertig = await pkSystem({ istAdmin: true, istEigentuemer: true },
       { statsUmstellung: { laeuft: false, gesamt: 12, erledigt: 12, umgestellt: 11, geblieben: 1, gespart: 4194304 } });
     await sysAbschnitt(baFertig.w, 'datenbank');
-    const fertigZeile = baFertig.w.document.getElementById('bild-lauf')?.textContent || '';
+    const fertigZeile = baFertig.w.document.getElementById('convert-running')?.textContent || '';
     pruefe('Nach einem Lauf sagt die Zeile, was herauskam',
       /11 von 12/.test(fertigZeile) && /1 blieben PNG/.test(fertigZeile) &&
       /4,0 MB gespart/.test(fertigZeile), fertigZeile);
@@ -33282,8 +33282,8 @@ async function pruefeOberflaeche() {
        diese Gegenlage waere „sie steht da" nicht von „sie steht immer da" zu
        unterscheiden (Stolperstein 81). */
     pruefe('Und die Zeile des Nachziehens steht daneben nicht',
-      !baFertig.w.document.getElementById('geo-lauf'),
-      baFertig.w.document.getElementById('geo-lauf')?.textContent);
+      !baFertig.w.document.getElementById('thumbs-running'),
+      baFertig.w.document.getElementById('thumbs-running')?.textContent);
     baFertig.w.close();
 
     /* ---- DAS NACHZIEHEN DER GEOMETRIE — 0.19.4 ----
@@ -33295,13 +33295,13 @@ async function pruefeOberflaeche() {
                           nachgezogen: 31, uebersprungen: 0, zugenommen: 1000 } });
     await sysAbschnitt(geoLauf.w, 'datenbank');
     pruefe('Waehrend des Nachziehens zeigt die Karte seinen Fortschritt',
-      /40 von 1032/.test(geoLauf.w.document.getElementById('geo-lauf')?.textContent || ''),
-      geoLauf.w.document.getElementById('geo-lauf')?.textContent);
+      /40 von 1032/.test(geoLauf.w.document.getElementById('thumbs-running')?.textContent || ''),
+      geoLauf.w.document.getElementById('thumbs-running')?.textContent);
     /* UND DER UMSTELLUNGSKNOPF BLEIBT BEDIENBAR. Genau das waere weg, wenn
        beide Laeufe in demselben Feld staenden. */
     pruefe('Und der Umstellungsknopf bleibt dabei bedienbar',
-      geoLauf.w.document.getElementById('bild-um')?.disabled === false,
-      String(geoLauf.w.document.getElementById('bild-um')?.disabled));
+      geoLauf.w.document.getElementById('convert-run')?.disabled === false,
+      String(geoLauf.w.document.getElementById('convert-run')?.disabled));
     geoLauf.w.close();
 
     // Und durch: die Zeile sagt, was herauskam.
@@ -33309,7 +33309,7 @@ async function pruefeOberflaeche() {
       { statsGeometrie: { laeuft: false, gesamt: 1032, erledigt: 1032, geprueft: 1032,
                           nachgezogen: 825, uebersprungen: 2, zugenommen: 61341696 } });
     await sysAbschnitt(geoFertig.w, 'datenbank');
-    const geoZeile = geoFertig.w.document.getElementById('geo-lauf')?.textContent || '';
+    const geoZeile = geoFertig.w.document.getElementById('thumbs-running')?.textContent || '';
     pruefe('Nach dem Erneuern sagt die Zeile, was herauskam',
       /825 von 1032/.test(geoZeile) && /2 übersprungen/.test(geoZeile) &&
       /58,5 MB mehr/.test(geoZeile), geoZeile);
@@ -33326,7 +33326,7 @@ async function pruefeOberflaeche() {
       { statsGeometrie: { laeuft: false, gesamt: 1032, erledigt: 1032, geprueft: 1032,
                           nachgezogen: 825, uebersprungen: 0, zugenommen: -20971520 } });
     await sysAbschnitt(geoKleiner.w, 'datenbank');
-    const geoKleinerZeile = geoKleiner.w.document.getElementById('geo-lauf')?.textContent || '';
+    const geoKleinerZeile = geoKleiner.w.document.getElementById('thumbs-running')?.textContent || '';
     pruefe('Und wenn die Kacheln kleiner geworden sind, sagt sie „weniger"',
       /20,0 MB weniger/.test(geoKleinerZeile) && !/mehr/.test(geoKleinerZeile),
       geoKleinerZeile);
@@ -33340,8 +33340,8 @@ async function pruefeOberflaeche() {
                           nachgezogen: 0, uebersprungen: 0, zugenommen: 0 } });
     await sysAbschnitt(geoLeer.w, 'datenbank');
     pruefe('Ein Lauf ohne Fund hinterlaesst keine Zeile',
-      !geoLeer.w.document.getElementById('geo-lauf'),
-      geoLeer.w.document.getElementById('geo-lauf')?.textContent);
+      !geoLeer.w.document.getElementById('thumbs-running'),
+      geoLeer.w.document.getElementById('thumbs-running')?.textContent);
     /* UND DIE KARTE SAGT, WELCHE MASSE DIE BEIDEN ABLEITUNGEN TRAGEN. Sie
        stand bis 0.19.3 mit „400 px und 1600 px" da -- eine Angabe, die 0.19.4
        falsch gemacht hat.
@@ -33369,8 +33369,8 @@ async function pruefeOberflaeche() {
     pruefe('Der Admin ohne Eigentuemerrolle sieht die Aufstellung',
       baZeilen(baKarte(baAdm)).some(z => z.startsWith('PNG')),
       baZeilen(baKarte(baAdm)).join(' · '));
-    pruefe('Aber keinen Schalter', !baAdm.w.document.getElementById('bild-umwandeln'));
-    pruefe('Und keinen Knopf', !baAdm.w.document.getElementById('bild-um'));
+    pruefe('Aber keinen Schalter', !baAdm.w.document.getElementById('convert-images'));
+    pruefe('Und keinen Knopf', !baAdm.w.document.getElementById('convert-run'));
     baAdm.w.close();
   }
 
@@ -33411,7 +33411,7 @@ async function pruefeOberflaeche() {
      Gegenprobe, dass die ANDERE Farbe gerade NICHT dasteht: ein Kasten, der
      immer rot ist, saehe im guten Fall genauso aus wie einer, der rechnet
      (Stolperstein 81 -- erst das Vorhandensein, dann die Eigenschaft). */
-  const siLage = (d) => d.w.document.getElementById('sich-lage');
+  const siLage = (d) => d.w.document.getElementById('backup-place');
   pruefe('Die Karte sagt, wie der Sicherungsort liegt', !!siLage(siEig),
     siKarte(siEig)?.innerHTML?.slice(0, 300));
   pruefe('Ausserhalb des Arbeitsverzeichnisses ist der Kasten gruen',
@@ -33441,9 +33441,9 @@ async function pruefeOberflaeche() {
       /docker-compose\.yml/.test(kasten?.textContent || ''), kasten?.textContent);
     /* DIE KARTE BLEIBT BENUTZBAR. Der Kasten ist eine Auskunft, keine
        Absage -- Zielort und Knopf stehen weiter da. */
-    pruefe('Der Knopf steht trotzdem da', !!siInn.w.document.getElementById('sich-los'));
+    pruefe('Der Knopf steht trotzdem da', !!siInn.w.document.getElementById('backup-run'));
     pruefe('Und das Feld fuer den Zielort auch',
-      !!siInn.w.document.getElementById('sich-ort'));
+      !!siInn.w.document.getElementById('backup-dir'));
   }
 
 
@@ -33576,8 +33576,8 @@ async function pruefeOberflaeche() {
     /\/sicherung/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 400));
   pruefe('Das Feld traegt das eingestellte Unterverzeichnis',
-    siEig.w.document.getElementById('sich-ort')?.value === 'taeglich',
-    siEig.w.document.getElementById('sich-ort')?.value);
+    siEig.w.document.getElementById('backup-dir')?.value === 'taeglich',
+    siEig.w.document.getElementById('backup-dir')?.value);
   pruefe('Die letzte Sicherung steht mit ihren Tagen da',
     /vor 3 Tagen/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 600));
@@ -33607,9 +33607,9 @@ async function pruefeOberflaeche() {
       /kein Sicherungsort eingerichtet/.test(siKarte(d)?.textContent || ''),
       siKarte(d)?.textContent?.slice(0, 300));
     pruefe('Der Knopf steht dann gar nicht erst da',
-      !d.w.document.getElementById('sich-los'), 'der Knopf steht da');
+      !d.w.document.getElementById('backup-run'), 'der Knopf steht da');
     pruefe('Und das Feld fuer den Ort ebenso wenig',
-      !d.w.document.getElementById('sich-ort'), 'das Feld steht da');
+      !d.w.document.getElementById('backup-dir'), 'das Feld steht da');
   }
 
   /* DER UNERREICHBARE ZIELORT. Die Karte sagt es, statt eine Zahl zu
@@ -33639,7 +33639,7 @@ async function pruefeOberflaeche() {
   /* DER KNOPF, mit einem WIRKLICH zugestellten Ereignis. */
   {
     const d = await siSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.document.getElementById('sich-los')
+    d.w.document.getElementById('backup-run')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Knopf schickt die Sicherung an den Server',
@@ -33660,8 +33660,8 @@ async function pruefeOberflaeche() {
      gesagt, statt still zu bleiben. */
   {
     const d = await siSystem({ istAdmin: true, istEigentuemer: true });
-    if (d.w.document.getElementById('sich-ort')) setzeFeld(d.w.document, 'sich-ort', 'woechentlich');
-    d.w.document.getElementById('sich-ort-save')
+    if (d.w.document.getElementById('backup-dir')) setzeFeld(d.w.document, 'backup-dir', 'woechentlich');
+    d.w.document.getElementById('backup-dir-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Zielort geht mit dem eingetippten Wert hinaus',
@@ -33669,19 +33669,19 @@ async function pruefeOberflaeche() {
         x.koerper?.ort === 'woechentlich'),
       d.gesendet.slice(-3).map(x => `${x.methode} ${x.url} ${JSON.stringify(x.koerper)}`).join(' · '));
     pruefe('Und die Karte traegt ihn danach',
-      d.w.document.getElementById('sich-ort')?.value === 'woechentlich',
-      d.w.document.getElementById('sich-ort')?.value);
+      d.w.document.getElementById('backup-dir')?.value === 'woechentlich',
+      d.w.document.getElementById('backup-dir')?.value);
 
-    if (d.w.document.getElementById('sich-ort')) setzeFeld(d.w.document, 'sich-ort', '../raus');
-    d.w.document.getElementById('sich-ort-save')
+    if (d.w.document.getElementById('backup-dir')) setzeFeld(d.w.document, 'backup-dir', '../raus');
+    d.w.document.getElementById('backup-dir-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Eine Absage des Servers wird gesagt',
       /Unterverzeichnis/.test(d.w.document.querySelector('.toast')?.textContent || ''),
       d.w.document.querySelector('.toast')?.textContent);
     pruefe('Und der Ort bleibt der alte',
-      d.w.document.getElementById('sich-ort')?.value === '../raus',
-      d.w.document.getElementById('sich-ort')?.value);
+      d.w.document.getElementById('backup-dir')?.value === '../raus',
+      d.w.document.getElementById('backup-dir')?.value);
   }
 
 
@@ -33695,9 +33695,9 @@ async function pruefeOberflaeche() {
   const afKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Alte Sicherungen');
   const afText = (d) => String(afKarte(d)?.textContent || '').replace(/\s+/g, ' ').trim();
-  const afZeilen = (d) => [...(d.w.document.querySelectorAll('#auf-liste .mrow') || [])]
+  const afZeilen = (d) => [...(d.w.document.querySelectorAll('#cleanup-list .mrow') || [])]
     .map(z => z.textContent.replace(/\s+/g, ' ').trim());
-  const afKnoepfe = (d) => d.w.document.querySelectorAll('#auf-liste button').length;
+  const afKnoepfe = (d) => d.w.document.querySelectorAll('#cleanup-list button').length;
   /* DAS STILBLATT ALS TEXT. Der Deckel ist eine Regel im Stilblatt und keine
      gerechnete Hoehe -- jsdom rechnet kein Layout, und eine Pruefung auf
      `offsetHeight` waere hier immer null. Dieselbe Bauform wie bei den
@@ -33791,16 +33791,16 @@ async function pruefeOberflaeche() {
      Zusammenfassung und beide Knoepfe. Geprueft wird die REGEL im Stilblatt
      und nicht eine gerechnete Hoehe -- jsdom rechnet kein Layout. */
   pruefe('Die Liste traegt ihren eigenen Deckel von fuenf Zeilen',
-    !!afEig.w.document.getElementById('auf-liste') &&
-    /#auf-liste \{ flex: none; max-height: 13\.98rem; \}/.test(afStil),
-    (afStil.match(/#auf-liste[^\n]*/) || ['(keine Regel)'])[0]);
+    !!afEig.w.document.getElementById('cleanup-list') &&
+    /#cleanup-list \{ flex: none; max-height: 13\.98rem; \}/.test(afStil),
+    (afStil.match(/#cleanup-list[^\n]*/) || ['(keine Regel)'])[0]);
   pruefe('Und die Rechnung dahinter steht im Stilblatt',
     /5 x 41,92 \/ 15 = 13,973/.test(afStil), 'die Rechnung fehlt');
 
   /* --- DER SCHALTER UND DIE BEIDEN FELDER, mit den kurzen Texten. --- */
   pruefe('Der Schalter steht auf aus',
-    afEig.w.document.getElementById('auf-schalter')?.checked === false,
-    JSON.stringify(afEig.w.document.getElementById('auf-schalter')?.checked));
+    afEig.w.document.getElementById('cleanup-toggle')?.checked === false,
+    JSON.stringify(afEig.w.document.getElementById('cleanup-toggle')?.checked));
   pruefe('Und sagt in einem halben Satz, was ohne Haken gilt',
     /Ohne Häkchen nur auf Knopfdruck\./.test(afText(afEig)), afText(afEig).slice(0, 400));
   /* ZWEI TATSACHEN IM KOPFTEXT, UND SONST NICHTS: dass es weg ist, und was
@@ -33827,8 +33827,8 @@ async function pruefeOberflaeche() {
   pruefe('Weder „Boden" noch „Schere" stehen am Bildschirm',
     !/\bBoden\b/.test(afText(afEig)) && !/\bSchere\b/.test(afText(afEig)),
     afText(afEig).slice(0, 500));
-  const afB = () => afEig.w.document.getElementById('auf-behalten');
-  const afT = () => afEig.w.document.getElementById('auf-tage');
+  const afB = () => afEig.w.document.getElementById('cleanup-keep');
+  const afT = () => afEig.w.document.getElementById('cleanup-days');
   pruefe('Die beiden Felder tragen die Vorgaben 3 und 30',
     afB()?.value === '3' && afT()?.value === '30',
     JSON.stringify([afB()?.value, afT()?.value]));
@@ -33855,12 +33855,12 @@ async function pruefeOberflaeche() {
     /2 Sicherungen werden gelöscht — 100,0 MB frei\./.test(afText(afEig)),
     afText(afEig).slice(0, 900));
   pruefe('Der Knopf steht da und ist bedienbar',
-    afEig.w.document.getElementById('auf-los')?.disabled === false,
-    JSON.stringify(afEig.w.document.getElementById('auf-los')?.disabled));
+    afEig.w.document.getElementById('cleanup-run')?.disabled === false,
+    JSON.stringify(afEig.w.document.getElementById('cleanup-run')?.disabled));
   /* OHNE VERALTETE KOPIEN GIBT ES DEN ZWEITEN KNOPF NICHT. Ein Knopf, der
      zuverlaessig nichts tut, sieht aus wie ein Fehler. */
   pruefe('Und der zweite Knopf steht nicht da, wenn es nichts Veraltetes gibt',
-    !afEig.w.document.getElementById('auf-alt'), 'der Knopf steht da');
+    !afEig.w.document.getElementById('cleanup-old'), 'der Knopf steht da');
 
   /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
      Erklaerung sieht aus wie ein Fehler. Und der Knopf ist dann tot. */
@@ -33871,8 +33871,8 @@ async function pruefeOberflaeche() {
       /Es wird nichts gelöscht\. Alle 5 Kopien sind unter den jüngsten 20\./.test(afText(d)),
       afText(d).slice(0, 600));
     pruefe('Und der Knopf ist dann nicht bedienbar',
-      d.w.document.getElementById('auf-los')?.disabled === true,
-      JSON.stringify(d.w.document.getElementById('auf-los')?.disabled));
+      d.w.document.getElementById('cleanup-run')?.disabled === true,
+      JSON.stringify(d.w.document.getElementById('cleanup-run')?.disabled));
     /* UND DIE LISTE STEHT TROTZDEM DA, ohne eine einzige Marke. Sie ist die
        Auskunft ueber den Ort und nicht die Ankuendigung eines Laufs. */
     pruefe('Die Liste steht auch dann da, ohne Marke',
@@ -33886,7 +33886,7 @@ async function pruefeOberflaeche() {
     pruefe('Ohne eine einzige Sicherung sagt die Karte das',
       /Im Sicherungsordner gibt es noch keine Sicherung\./.test(afText(d)), afText(d).slice(0, 400));
     pruefe('Und es steht keine leere Liste da',
-      !d.w.document.getElementById('auf-liste'), 'die Liste steht da');
+      !d.w.document.getElementById('cleanup-list'), 'die Liste steht da');
   }
   /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: in derselben Liste markiert, mit
      eigener Zahl, eigener Summe und eigenem Knopf darunter. */
@@ -33910,8 +33910,8 @@ async function pruefeOberflaeche() {
       /Das automatische Aufräumen löscht sie nicht\./.test(afText(d)), afText(d).slice(0, 900));
     pruefe('Und sie bekommen einen eigenen Knopf',
       /2 Sicherungen mit altem Schlüssel löschen/.test(
-        d.w.document.getElementById('auf-alt')?.textContent || ''),
-      d.w.document.getElementById('auf-alt')?.textContent);
+        d.w.document.getElementById('cleanup-old')?.textContent || ''),
+      d.w.document.getElementById('cleanup-old')?.textContent);
     // Die Einzahl gehoert geprueft, sonst steht dort "1 Sicherungen oeffnen".
     const eine = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 1 },
       { altZahl: 1, altBytes: 52428800, altDateien: AF_KOPIEN.slice(4),
@@ -33919,7 +33919,7 @@ async function pruefeOberflaeche() {
     pruefe('Bei genau einer steht die Einzahl da',
       /1 Sicherung öffnet sich nur mit dem alten Schlüssel/.test(afText(eine)) &&
       /1 Sicherung mit altem Schlüssel löschen/.test(
-        eine.w.document.getElementById('auf-alt')?.textContent || ''),
+        eine.w.document.getElementById('cleanup-old')?.textContent || ''),
       afText(eine).slice(0, 700));
   }
   /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS: ein
@@ -33931,7 +33931,7 @@ async function pruefeOberflaeche() {
     pruefe('Und sagt, warum sie nichts zu tun hat',
       /kein Sicherungsordner eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
     pruefe('Der Schalter steht dann gar nicht erst da',
-      !d.w.document.getElementById('auf-schalter') && !d.w.document.getElementById('auf-los'),
+      !d.w.document.getElementById('cleanup-toggle') && !d.w.document.getElementById('cleanup-run'),
       'der Schalter steht da');
   }
 
@@ -33943,8 +33943,8 @@ async function pruefeOberflaeche() {
        genau das tut Rueckbau 561 —, sollen die Zeilen darunter ROT werden und
        nicht der Lauf abreissen (Stolpersteine 103 und 161). Ein Rueckbau, der
        den Lauf abreisst, belegt nichts. */
-    setzeFeld(d.w.document, 'auf-behalten', '2');
-    d.w.document.getElementById('auf-behalten')
+    setzeFeld(d.w.document, 'cleanup-keep', '2');
+    d.w.document.getElementById('cleanup-keep')
       ?.dispatchEvent(new d.w.Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     const gefragt = d.gesendet.filter(x => String(x.url).startsWith('/api/sicherung?'));
@@ -33965,7 +33965,7 @@ async function pruefeOberflaeche() {
       d.gesendet.slice(-4).map(x => `${x.methode || 'GET'} ${x.url}`).join(' · '));
     /* ERST DAS VERLASSEN DES FELDES SPEICHERT. Ein eigener Speicherknopf waere
        ein dritter Knopf auf einer Karte, die mit zwei auskommt. */
-    d.w.document.getElementById('auf-behalten')
+    d.w.document.getElementById('cleanup-keep')
       ?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Erst das Verlassen des Feldes speichert den Wert',
@@ -33977,7 +33977,7 @@ async function pruefeOberflaeche() {
      Route -- dieselbe Bauform wie der Schalter der Bildablage. --- */
   {
     const d = await afSystem();
-    const afS = d.w.document.getElementById('auf-schalter');
+    const afS = d.w.document.getElementById('cleanup-toggle');
     if (afS) afS.checked = true;
     afS?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -33990,7 +33990,7 @@ async function pruefeOberflaeche() {
      im Dialog schickt gar nichts. --- */
   {
     const d = await afSystem();
-    d.w.document.getElementById('auf-los')
+    d.w.document.getElementById('cleanup-run')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Knopf fragt erst nach dem Passwort',
@@ -34008,7 +34008,7 @@ async function pruefeOberflaeche() {
      Dateiname. --- */
   {
     const d = await afSystem();
-    d.w.document.getElementById('auf-los')
+    d.w.document.getElementById('cleanup-run')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     await bestaetigeImDom(d);
@@ -34145,9 +34145,9 @@ async function pruefeOberflaeche() {
                           f.getAttribute('inputmode') === 'decimal'),
     JSON.stringify(gwFelder().map(f => `${f.getAttribute('type')}/${f.getAttribute('inputmode')}`)));
   pruefe('Und es haengt an der Vorschlagsliste',
-    gwFelder().every(f => f.getAttribute('list') === 'gewichtsug') &&
-    !!gwSDoc.getElementById('gewichtsug'));
-  const gwVorschlaege = [...(gwSDoc.getElementById('gewichtsug')?.querySelectorAll('option') || [])]
+    gwFelder().every(f => f.getAttribute('list') === 'weightsug') &&
+    !!gwSDoc.getElementById('weightsug'));
+  const gwVorschlaege = [...(gwSDoc.getElementById('weightsug')?.querySelectorAll('option') || [])]
     .map(o => o.value);
   pruefe('Die Vorschlaege reichen unter und ueber 1',
     gleich(gwVorschlaege, ['0,5', '0,8', '1', '1,2', '1,5']), JSON.stringify(gwVorschlaege));
@@ -37880,15 +37880,15 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 60));
     await az.w.renderSystem();
     await new Promise(r => setTimeout(r, 60));
-    const azEigene = az.w.document.querySelector('#msitzungen .mrow.sitz.sitz-ich');
+    const azEigene = az.w.document.querySelector('#msessions .mrow.session.session-mine');
     pruefe('Die eigene Anmeldung steht als markierte Zeile da',
-      !!azEigene, az.w.document.getElementById('msitzungen')?.innerHTML?.slice(0, 160));
+      !!azEigene, az.w.document.getElementById('msessions')?.innerHTML?.slice(0, 160));
     pruefe('Und sie traegt zwei Zeitangaben in derselben Zeile',
-      azEigene?.querySelectorAll('.sitz-zeit').length === 2,
-      `${azEigene?.querySelectorAll('.sitz-zeit').length}`);
+      azEigene?.querySelectorAll('.session-time').length === 2,
+      `${azEigene?.querySelectorAll('.session-time').length}`);
     az.w.close();
   }
-  const azZeit = (ohneMedien.match(/\.mrow\.sitz \.sitz-zeit \{[^}]*\}/g) || []).join(' ');
+  const azZeit = (ohneMedien.match(/\.mrow\.session \.session-time \{[^}]*\}/g) || []).join(' ');
   pruefe('Der Kasten laesst weiterhin senkrecht rollen',
     /overflow-y: auto/.test((ohneMedien.match(/\.manage-list \{[^}]*\}/) || [''])[0]),
     (ohneMedien.match(/\.manage-list \{[^}]*\}/) || ['(keine Regel)'])[0]);
@@ -37900,7 +37900,7 @@ async function pruefeOberflaeche() {
      laesst sie gar nicht erst zu breit werden -- die Namensspalte ist
      `minmax(0, 1fr)` und gibt nach. Die ZUSAGE ist dieselbe geblieben, der Weg
      dorthin ist der bessere. */
-  const azSitz = (ohneMedien.match(/\.mrow\.sitz \{[^}]*\}/) || [''])[0];
+  const azSitz = (ohneMedien.match(/\.mrow\.session \{[^}]*\}/) || [''])[0];
   pruefe('Die Zeile einer Anmeldung steht ausserhalb jeder Medienabfrage in einem Raster',
     /display: grid/.test(azSitz), azSitz || '(keine Regel)');
   pruefe('Und ihre Namensspalte gibt nach, statt die Zeile breiter zu machen',
@@ -37916,11 +37916,11 @@ async function pruefeOberflaeche() {
      Medienabfrage keine zweite danebensteht. Eine Regel, die an beiden Orten
      stuende, waere eine zweite Wahrheit. */
   pruefe('Die Anordnung der Stuecke gilt auf jedem Schirm',
-    /\.mrow\.sitz \.zug-akt \{ grid-column: 2; grid-row: 1; \}/.test(ohneMedien),
-    (ohneMedien.match(/\.mrow\.sitz \.zug-akt \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /\.mrow\.session \.user-act \{ grid-column: 2; grid-row: 1; \}/.test(ohneMedien),
+    (ohneMedien.match(/\.mrow\.session \.user-act \{[^}]*\}/) || ['(keine Regel)'])[0]);
   pruefe('Und die Medienabfrage traegt keine zweite daneben',
-    (css123.match(/\.mrow\.sitz \.zug-akt \{/g) || []).length === 1,
-    `${(css123.match(/\.mrow\.sitz \.zug-akt \{/g) || []).length} Regeln`);
+    (css123.match(/\.mrow\.session \.user-act \{/g) || []).length === 1,
+    `${(css123.match(/\.mrow\.session \.user-act \{/g) || []).length} Regeln`);
   /* UND DER ANDERE WEG IST AUSDRUECKLICH NICHT GEGANGEN: `min-width:
      max-content` liesse den seitlichen Bildlauf stehen, und der ist auf dem
      Telefon schwer zu treffen. */
@@ -38550,7 +38550,7 @@ async function pruefeOberflaeche() {
     pruefe('Und zwar mit !important, nicht auf gut Glueck',
       /\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/.test(css123),
       (css123.match(/\[hidden\][^}]*\}/) || ['(keine Regel)'])[0]);
-    /* UND SIE STEHT GENAU EINMAL. Zwei oertliche Flicken (`.zug-neu [hidden]`
+    /* UND SIE STEHT GENAU EINMAL. Zwei oertliche Flicken (`.user-new [hidden]`
        und `.lb-btn[hidden]`) hatten dasselbe Problem zweimal an seiner
        jeweiligen Stelle geloest -- und beim dritten Mal schlug es wieder zu.
        Eine zweite Regel daneben waere genau die zweite Wahrheit, die diese
@@ -38605,14 +38605,14 @@ async function pruefeOberflaeche() {
     /* DIE UNTERORDNUNG, an drei Merkmalen und nicht an einem Gefuehl:
        eine eigene, kleinere Ueberschrift, ein Trennstrich davor und das leise
        Ablagefeld. */
-    const unter = ex?.querySelector('.sys-unter');
+    const unter = ex?.querySelector('.sys-sub');
     pruefe('Der Import traegt eine eigene, untergeordnete Ueberschrift',
       unter?.textContent.trim() === 'Import', unter?.textContent);
     pruefe('Und sie ist ein h4 und kein zweites h3',
       unter?.tagName === 'H4', unter?.tagName);
-    pruefe('Ein Trennstrich steht davor', !!ex?.querySelector('.sys-teil'));
+    pruefe('Ein Trennstrich steht davor', !!ex?.querySelector('.sys-part'));
     pruefe('Und das Ablagefeld ist leise gezeichnet',
-      !!ex?.querySelector('#imp-drop.drop-leise'),
+      !!ex?.querySelector('#imp-drop.drop-quiet'),
       ex?.querySelector('#imp-drop')?.className);
     /* DIE REIHENFOLGE IST DER HALBE PUNKT: der Import steht UNTER dem Export
        und nicht darueber. Verglichen wird die Stellung im Markup. */
@@ -38626,19 +38626,19 @@ async function pruefeOberflaeche() {
     // Und die Regel dazu steht wirklich im Stilblatt -- erst das Vorhandensein,
     // dann die Eigenschaft (Stolperstein 81).
     pruefe('Die Regel fuer das leise Ablagefeld steht im Stilblatt',
-      regel123('.drop-leise').length > 0, '(keine Regel)');
+      regel123('.drop-quiet').length > 0, '(keine Regel)');
     pruefe('Und sie nimmt ihm den eigenen Untergrund',
-      /background: none/.test(regel123('.drop-leise')), regel123('.drop-leise'));
+      /background: none/.test(regel123('.drop-quiet')), regel123('.drop-quiet'));
     pruefe('Die Regel fuer die untergeordnete Ueberschrift ebenso',
-      regel123('.sys-card .sys-unter').length > 0, '(keine Regel)');
+      regel123('.sys-card .sys-sub').length > 0, '(keine Regel)');
     /* KLEINER ALS DAS h3 DARUEBER -- sonst waere es keine Stufe, sondern eine
        zweite Karte im selben Rahmen. Verglichen werden die beiden Groessen aus
        dem Stilblatt und nicht zwei Zahlen von Hand. */
     const grAus = (w) => parseFloat((regel123(w).match(/font-size:\s*([\d.]+)rem/) || [])[1] || '0');
     pruefe('Und sie ist kleiner als die Ueberschrift der Karte',
-      grAus('.sys-card .sys-unter') > 0 && grAus('.sys-card h3') > 0 &&
-      grAus('.sys-card .sys-unter') < grAus('.sys-card h3'),
-      `${grAus('.sys-card .sys-unter')} gegen ${grAus('.sys-card h3')}`);
+      grAus('.sys-card .sys-sub') > 0 && grAus('.sys-card h3') > 0 &&
+      grAus('.sys-card .sys-sub') < grAus('.sys-card h3'),
+      `${grAus('.sys-card .sys-sub')} gegen ${grAus('.sys-card h3')}`);
     d.w.close();
   }
 
@@ -39519,7 +39519,7 @@ async function pruefeOberflaeche() {
     pruefe('Vor dem Umlegen steht am Adressfeld „(optional)" — 0.22.0',
       /\(optional\)/.test(marke()), marke());
     await sysAbschnitt(d.w, 'zugaenge');
-    d.w.document.getElementById('anf-schalter')
+    d.w.document.getElementById('signup-toggle')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     pruefe('Der Schalter ist wirklich hinausgegangen',
@@ -39560,7 +39560,7 @@ async function pruefeOberflaeche() {
     pruefe('Und ein Knopf darin bleibt so breit wie sein Wort',
       /\.sys-card > \.btn \{ align-self: flex-start; \}/.test(css123),
       (css123.match(/\.sys-card > \.btn \{[^}]*\}/) || ['(keine Regel)'])[0]);
-    for (const wahl of ['.manage-list', '.prot-liste']) {
+    for (const wahl of ['.manage-list', '.log-list']) {
       const regel = (ohneMedien.match(new RegExp(wahl.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
       pruefe(`Die Regel fuer ${wahl} steht ueberhaupt im Stilblatt`,
         regel.length > 0, '(keine Regel)');
@@ -39581,11 +39581,11 @@ async function pruefeOberflaeche() {
         /max-height: [\d.]+rem/.test(regel), regel || '(keine Regel)');
       /* ZWEI ZAHLEN, UND SIE SIND KEINE ZWEITE WAHRHEIT UEBER DIESELBE SACHE:
          27,95rem sind ZEHN `.mrow` zu 41,92 px, 35rem sind FUENFZEHN
-         `.prot-zeile` zu 35 px. Eine Bedienzeile mit Knoepfen und eine
+         `.log-row` zu 35 px. Eine Bedienzeile mit Knoepfen und eine
          Textzeile mit Trennlinie sind zwei verschiedene Dinge und duerfen zwei
          Masse haben. */
       pruefe(`${wahl} deckelt bei seinem eigenen Mass`,
-        new RegExp('max-height: ' + ({ '.manage-list': '27\\.95', '.prot-liste': '35' })[wahl] + 'rem').test(regel),
+        new RegExp('max-height: ' + ({ '.manage-list': '27\\.95', '.log-list': '35' })[wahl] + 'rem').test(regel),
         regel || '(keine Regel)');
       /* DIE ZEILE, AN DER ES SONST SCHEITERT: ohne sie waechst ein Flexkind
          ueber seinen Anteil hinaus, statt zu rollen. */
@@ -39597,7 +39597,7 @@ async function pruefeOberflaeche() {
     /* ---- DIE LEERE LISTE IST EINE ZEILE HOCH — 0.17.4 ----
        Sie faellt nicht auf null zusammen, und sie sagt, dass nichts da ist.
        EINE REGEL FUER BEIDE LISTENARTEN und nicht sechs Zeichenwege. */
-    const khLeer = (ohneMedien.match(/\.manage-list > \.hint, \.prot-liste > \.hint \{[^}]*\}/) || [''])[0];
+    const khLeer = (ohneMedien.match(/\.manage-list > \.hint, \.log-list > \.hint \{[^}]*\}/) || [''])[0];
     pruefe('Die Meldung einer leeren Liste steht auf der Hoehe einer Zeile',
       /display: flex/.test(khLeer) && /align-items: center/.test(khLeer),
       khLeer || '(keine Regel)');
@@ -39611,7 +39611,7 @@ async function pruefeOberflaeche() {
       /margin: 0/.test(khLeer), khLeer || '(keine Regel)');
     /* ZWEI ZEILENMASSE, WEIL ES ZWEI ZEILEN SIND -- dieselbe Unterscheidung wie
        beim Deckel darueber. Eine `.mrow` misst 41,92 px und rueckt 9 px ein,
-       eine `.prot-zeile` misst 35 und rueckt 2 ein. Ein gemeinsames Mass waere
+       eine `.log-row` misst 35 und rueckt 2 ein. Ein gemeinsames Mass waere
        hier keine Regel, sondern ein Fehler an einer der beiden. */
     /* DIE EIGENE REGEL UND NICHT DIE SAMMELREGEL DARUEBER. Beide Waehler stehen
        zweimal im Stilblatt: einmal zusammen hinter einem Komma, einmal je fuer
@@ -39623,11 +39623,11 @@ async function pruefeOberflaeche() {
     const eigeneRegel = (waehler) =>
       (ohneMedien.match(new RegExp('\\} (' + waehler + ' \\{[^}]*\\})')) || ['', ''])[1];
     const khLeerBedien = eigeneRegel('\\.manage-list > \\.hint');
-    const khLeerText = eigeneRegel('\\.prot-liste > \\.hint');
+    const khLeerText = eigeneRegel('\\.log-list > \\.hint');
     /* ZWEI ZEILEN UND NICHT EINE -- SEIT 0.18.1. Mit einer war die Leere nicht
        zu sehen: die Message stand als eine Textzeile zwischen zwei Absaetzen und
        las sich wie einer davon. Gemeldet am Bild der Karte „Anfragen".
-       5.59rem SIND ZWEI `.mrow` zu 41,92 px, 4.666rem ZWEI `.prot-zeile` zu 35
+       5.59rem SIND ZWEI `.mrow` zu 41,92 px, 4.666rem ZWEI `.log-row` zu 35
        -- dieselben zwei Masse wie beim Deckel darueber, nur verdoppelt. */
     pruefe('Eine leere Bedienliste faellt nicht auf null zusammen',
       /min-height: 5\.59rem/.test(khLeerBedien) && /padding: 0 9px/.test(khLeerBedien),
@@ -39640,11 +39640,11 @@ async function pruefeOberflaeche() {
        die DIESE Liste wirklich hat. Eine `.mrow.sitz` ist ein Raster ueber drei
        Zeilen und misst 72,55 px, wo eine gewoehnliche `.mrow` 41,92 misst; mit
        dem gemeinsamen Deckel standen FUENF Sitzungen da, wo die Zusage zehn
-       sagt. 55.23rem sind 10 x 72,55 plus die 102,88 der `.sitz-fuss`, die
+       sagt. 55.23rem sind 10 x 72,55 plus die 102,88 der `.session-foot`, die
        INNERHALB der Liste steht. Nachgemessen in Chromium bei 1384x1061: zehn
        sichtbare Sitzungen statt fuenf, und unter der Liste bleiben 44 Pixel
        statt 453. */
-    const khSitz = (ohneMedien.match(/#msitzungen \{[^}]*\}/) || [''])[0];
+    const khSitz = (ohneMedien.match(/#msessions \{[^}]*\}/) || [''])[0];
     pruefe('Die Sitzungsliste deckelt nach ihrer eigenen Zeile',
       /max-height: 55\.23rem/.test(khSitz), khSitz || '(keine Regel)');
     /* UND SIE SAGT NICHTS ZWEIMAL: alles andere -- die Forderung, das
@@ -39669,8 +39669,8 @@ async function pruefeOberflaeche() {
        Exports bleibt kurz, weil sie MITTEN in ihrer Karte steht; der Grund
        steht als Satz daneben. Waeren es zwei, waere es keine Ausnahme mehr. */
     pruefe('Die eine Ausnahme traegt ihre Deckelung ausdruecklich',
-      /#ex-teil-liste \{ flex: none; max-height: 280px; \}/.test(ohneMedien),
-      (ohneMedien.match(/#ex-teil-liste \{[^}]*\}/) || ['(keine Regel)'])[0]);
+      /#ex-part-list \{ flex: none; max-height: 280px; \}/.test(ohneMedien),
+      (ohneMedien.match(/#ex-part-list \{[^}]*\}/) || ['(keine Regel)'])[0]);
     pruefe('Und der Grund dafuer steht im Stilblatt daneben',
       /Teileliste des Exports/.test(fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')),
       'kein Satz daneben');
@@ -39681,11 +39681,11 @@ async function pruefeOberflaeche() {
        drei stand damit in jeder Zeile woanders -- gemessen in Chromium bei
        1410 Pixeln VIER verschiedene linke Kanten: 706, 708, 734 und 769.
        Nach dem Umbau ist es EINE: 693. */
-    const khProtListe = (ohneMedien.match(/\.prot-liste \{[^}]*\}/) || [''])[0];
+    const khProtListe = (ohneMedien.match(/\.log-list \{[^}]*\}/) || [''])[0];
     pruefe('Die Spalten des Protokolls gehoeren der Liste',
       /display: grid/.test(khProtListe) && /grid-template-columns:/.test(khProtListe),
       khProtListe || '(keine Regel)');
-    const khProtZeile = (ohneMedien.match(/\.prot-zeile \{[^}]*\}/) || [''])[0];
+    const khProtZeile = (ohneMedien.match(/\.log-row \{[^}]*\}/) || [''])[0];
     pruefe('Und die Zeile setzt ihre Felder direkt hinein',
       /display: contents/.test(khProtZeile), khProtZeile || '(keine Regel)');
     /* EINE ZEILE OHNE EIGENEN KASTEN KANN KEINE LINIE TRAGEN -- die Trennlinie
@@ -39695,7 +39695,7 @@ async function pruefeOberflaeche() {
        Stuecke), und die Felder richten sich an der UNTERKANTE aus. Mit
        `baseline` blieb ein Feld OHNE Text 15 Pixel hoch, wo seine Nachbarn 35
        massen -- gemessen in Chromium, und im Bild als Treppe zu sehen. */
-    const khProtFeld = (ohneMedien.match(/\.prot-zeile > \* \{[^}]*\}/) || [''])[0];
+    const khProtFeld = (ohneMedien.match(/\.log-row > \* \{[^}]*\}/) || [''])[0];
     pruefe('Die Trennlinie sitzt an den Feldern',
       /border-bottom: 1px solid var\(--line\)/.test(khProtFeld), khProtFeld || '(keine Regel)');
     pruefe('Und sie reisst nicht ab',
@@ -39706,9 +39706,9 @@ async function pruefeOberflaeche() {
        sechste Feld der ersten Zeile in die Reihe der zweiten, und aus zwei
        Vorgaengen wuerde eine Zeile. */
     pruefe('Auf dem schmalen Schirm traegt die Zeile ihr Raster wieder selbst',
-      /\.prot-liste \{ display: block; \}/.test(css123) &&
-      /\.prot-zeile \{ display: grid; grid-template-columns: 1fr auto;/.test(css123),
-      (css123.match(/\.prot-liste \{ display: block; \}[\s\S]{0,120}/) || ['(keine Regel)'])[0]);
+      /\.log-list \{ display: block; \}/.test(css123) &&
+      /\.log-row \{ display: grid; grid-template-columns: 1fr auto;/.test(css123),
+      (css123.match(/\.log-list \{ display: block; \}[\s\S]{0,120}/) || ['(keine Regel)'])[0]);
     /* AUF DEM TELEFON BLEIBT DIE DECKELUNG, und sie ist keine feste Hoehe: sie
        misst das Fenster. Ohne sie machte ein Sicherheitsprotokoll mit
        zweihundert Zeilen die Karte unbrauchbar lang. */
@@ -39719,8 +39719,8 @@ async function pruefeOberflaeche() {
        Zeilen gelten fuer den breiten Schirm, hier haengt der Deckel am
        Fenster. */
     pruefe('Auf dem Telefon bleibt die Deckelung am Fenster haengen',
-      /\.manage-list, \.prot-liste, \.test-scroll, \.atext, #ex-teil-liste \{ flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; \}/.test(css123),
-      (css123.match(/\.manage-list, \.prot-liste[^}]*\}/) || ['(keine Regel)'])[0]);
+      /\.manage-list, \.log-list, \.test-scroll, \.atext, #ex-part-list \{ flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; \}/.test(css123),
+      (css123.match(/\.manage-list, \.log-list[^}]*\}/) || ['(keine Regel)'])[0]);
     /* UND DIE AUSNAHME STEHT DORT MIT DRIN. Ihre eigene Regel ist ein
        ID-Waehler und schluege die Klassenregel des Telefons -- die feste
        Deckelung bliebe dann auch auf dem schmalen Schirm stehen, wo bis 0.17.0
@@ -39740,12 +39740,12 @@ async function pruefeOberflaeche() {
       einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'persoenlich');
-    const reihen = [...d.w.document.querySelectorAll('#msitzungen .mrow.sitz')];
+    const reihen = [...d.w.document.querySelectorAll('#msessions .mrow.session')];
     pruefe('Zehn Anmeldungen ergeben zehn gezeichnete Zeilen',
       reihen.length === 10, `${reihen.length}`);
     pruefe('Und genau eine davon ist die eigene',
-      reihen.filter(r => r.classList.contains('sitz-ich')).length === 1,
-      `${reihen.filter(r => r.classList.contains('sitz-ich')).length}`);
+      reihen.filter(r => r.classList.contains('session-mine')).length === 1,
+      `${reihen.filter(r => r.classList.contains('session-mine')).length}`);
     d.w.close();
   }
 
@@ -39762,11 +39762,11 @@ async function pruefeOberflaeche() {
       /\.mail-dialog \.field \{ margin-bottom: 0; \}/.test(css123),
       (css123.match(/\.mail-dialog \.field \{[^}]*\}/) || ['(keine Regel)'])[0]);
     pruefe('Der Hinweis rueckt an die Sache heran, die er erklaert',
-      /margin: -7px 0 0/.test(regel123('.mail-hinweis')),
-      regel123('.mail-hinweis') || '(keine Regel)');
+      /margin: -7px 0 0/.test(regel123('.mail-hint')),
+      regel123('.mail-hint') || '(keine Regel)');
     pruefe('Und die gelesene Zeile steht in der Monoschrift',
-      /font-family: var\(--mono\)/.test(regel123('.mail-fest')),
-      regel123('.mail-fest') || '(keine Regel)');
+      /font-family: var\(--mono\)/.test(regel123('.mail-fixed')),
+      regel123('.mail-fixed') || '(keine Regel)');
     /* DIE SECHS REGELN DER VIER REIHEN SIND WEG, und das gehoert ausdruecklich
        geprueft: eine Regel ohne Waehler im Markup faellt niemandem auf. */
     const mdAlt = ['.mail-reihe', '.mail-wer', '.mail-wohin', '.mail-womit', '.mail-satz']
@@ -40002,7 +40002,7 @@ async function pruefeOberflaeche() {
      STILBLATT und dass die Zeile wirklich beide Angaben traegt -- die
      Ausrichtung selbst rechnet jsdom nicht. */
   {
-    const zeit = (ohneMedien.match(/\.mrow\.sitz \.sitz-zeit \{[^}]*\}/g) || []);
+    const zeit = (ohneMedien.match(/\.mrow\.session \.session-time \{[^}]*\}/g) || []);
     pruefe('Es gibt ueberhaupt Regeln fuer die Zeitangaben', zeit.length > 0, '(keine Regel)');
     const zAlle = zeit.join(' ');
     pruefe('Beide Zeitangaben stehen ueber die ganze Breite, also untereinander',
@@ -40014,20 +40014,20 @@ async function pruefeOberflaeche() {
     /* UND DARUEBER STEHT DER NAME IN SEINER EIGENEN REIHE. Bis 0.17.1 stand er
        NEBEN den Zeiten und wurde dabei abgeschnitten; seit 0.17.2 bekommt er
        die erste Rasterzeile fuer sich, mit dem Kreuz daneben. */
-    const name = (ohneMedien.match(/\.mrow\.sitz \.mname \{[^}]*\}/) || [''])[0];
+    const name = (ohneMedien.match(/\.mrow\.session \.mname \{[^}]*\}/) || [''])[0];
     pruefe('Darueber steht der Name in seiner eigenen Reihe',
       /grid-column: 1;/.test(name) && /grid-row: 1;/.test(name), name || '(keine Regel)');
     /* UND DAS RASTER HAT DAFUER NUR NOCH ZWEI SPALTEN -- Name und Kreuz. Eine
        dritte gaebe es, wenn die Zeiten wieder daneben stuenden. */
     pruefe('Und das Raster traegt nur noch zwei Spalten',
       /grid-template-columns: minmax\(0, 1fr\) auto;/.test(
-        (ohneMedien.match(/\.mrow\.sitz \{[^}]*\}/) || [''])[0]),
-      (ohneMedien.match(/\.mrow\.sitz \{[^}]*\}/) || ['(keine Regel)'])[0]);
+        (ohneMedien.match(/\.mrow\.session \{[^}]*\}/) || [''])[0]),
+      (ohneMedien.match(/\.mrow\.session \{[^}]*\}/) || ['(keine Regel)'])[0]);
     /* DER ORANGENE RAHMEN DER EIGENEN ANMELDUNG BLEIBT -- Punkt 4b von
        0.17.0 darf nicht zurueckfallen. */
     pruefe('Und der Rahmen der eigenen Anmeldung steht unveraendert da',
-      /\.mrow\.sitz-ich \{ border-color: var\(--accent\); \}/.test(ohneMedien),
-      (ohneMedien.match(/\.mrow\.sitz-ich \{[^}]*\}/) || ['(keine Regel)'])[0]);
+      /\.mrow\.session-mine \{ border-color: var\(--accent\); \}/.test(ohneMedien),
+      (ohneMedien.match(/\.mrow\.session-mine \{[^}]*\}/) || ['(keine Regel)'])[0]);
   }
 
   /* ---- 6. Genau ein Abspieler laeuft ---- */
@@ -40930,7 +40930,7 @@ async function pruefeOberflaeche() {
         && /addEventListener\('change'/.test(tApp),
       /addEventListener\('change'/.test(tApp) ? 'Horcher da' : '(kein Horcher)');
     pruefe('Die Karte „Darstellung" traegt die Pillenreihe',
-      /<div class="pills" id="thema"><\/div>/.test(tApp) && /function drawTheme\(\)/.test(tApp)
+      /<div class="pills" id="theme"><\/div>/.test(tApp) && /function drawTheme\(\)/.test(tApp)
         && /drawTheme\(\);\n  drawFont\(\);/.test(tApp),
       /function drawTheme/.test(tApp) ? 'Reihe und Zeichner da' : '(fehlt)');
     /* DIE STUFEN STEHEN IN BEIDEN DATEIEN UND MUESSEN UEBEREINSTIMMEN --
@@ -41538,7 +41538,7 @@ async function pruefeOberflaeche() {
       '<code>data/</code>', '<code>http://</code>',
       '<code>ENCRYPTION_KEY</code>. <strong><code>.env</code>',
       '</p>\n              <code class="keyline" id="keyline">ENCRYPTION_KEY=',
-      '<code>https://</code>).</p>\n        <div class="sanb-eigen" id="seigene"></div>',
+      '<code>https://</code>).</p>\n        <div class="engine-own" id="engines-own"></div>',
       '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
       'https://forum.beispiel.de/suche?q=%s'
     ].sort();
@@ -41806,7 +41806,7 @@ async function pruefeOberflaeche() {
       blFenster?.querySelector('h2')?.textContent === 'Benutzer „bert" löschen?',
       JSON.stringify(blFenster?.querySelector('h2')?.textContent));
     pruefe('Es traegt zwei Haekchen mit den Zahlen vom Server',
-      !!blFenster?.querySelector('#bl-eintraege') && !!blFenster?.querySelector('#bl-beitraege') &&
+      !!blFenster?.querySelector('#bl-entries') && !!blFenster?.querySelector('#bl-posts') &&
       /5 Einträge von „bert" mitlöschen — samt 3 fremden Beiträgen daran/.test(blFenster?.textContent || '') &&
       /2 Kommentare, 1 Bewertung/.test(blFenster?.textContent || ''),
       (blFenster?.textContent || '').replace(/\s+/g, ' ').slice(0, 300));
@@ -41825,7 +41825,7 @@ async function pruefeOberflaeche() {
     const blP2 = blW.userDeleteDialog('bert', 2, blStand);
     await new Promise(r => setTimeout(r, 20));
     const blF2 = blW.document.getElementById('delete-user');
-    blF2.querySelector('#bl-eintraege').checked = true;
+    blF2.querySelector('#bl-entries').checked = true;
     blF2.querySelector('[data-yes]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
     pruefe('„Benutzer löschen" liefert die Stellung der beiden Haekchen',
       gleich(await blP2, { eintraege: true, beitraege: false }), JSON.stringify(await blP2));
@@ -41885,11 +41885,11 @@ async function pruefeOberflaeche() {
         d.w.history.replaceState(null, '', adresse);
         await d.w.renderSystem();
         await new Promise(r => setTimeout(r, 30));
-        for (const k of d.w.document.querySelectorAll('.server-kasten')) {
+        for (const k of d.w.document.querySelectorAll('.server-box')) {
           kaesten++;
-          if (k.querySelector('.server-kopf')?.textContent.trim() !== 'Auf dem Server' ||
-              !/docker compose/.test(k.querySelector('.server-zeile code')?.textContent || '') ||
-              !k.querySelector('.server-zeile button[data-kopie]')) vollstaendig = false;
+          if (k.querySelector('.server-head')?.textContent.trim() !== 'Auf dem Server' ||
+              !/docker compose/.test(k.querySelector('.server-row code')?.textContent || '') ||
+              !k.querySelector('.server-row button[data-kopie]')) vollstaendig = false;
         }
       }
       d.w.close();
@@ -41905,7 +41905,7 @@ async function pruefeOberflaeche() {
     pruefe('Die Eigentuemerin sieht drei: Mein Konto, Benutzer und Kennzahlen',
       skEig.kaesten === 3 && /Auf dem Server/.test(skEig.text), String(skEig.kaesten));
     pruefe('Und jeder Kasten traegt Ueberschrift, Befehl und Kopierknopf',
-      skEig.vollstaendig && /\.server-zeile code \{/.test(css123) && /\.server-kopf \{/.test(css123),
+      skEig.vollstaendig && /\.server-row code \{/.test(css123) && /\.server-head \{/.test(css123),
       skEig.vollstaendig ? 'Stilregel fehlt' : 'ein Kasten ist unvollstaendig');
   }
 
@@ -42201,14 +42201,14 @@ async function pruefeOberflaeche() {
     pruefe('Die Eigentuemerin sieht den Schluessel im Klartext und den Kasten „Auf dem Server"',
       !!rwEigK.w.document.getElementById('keyline') &&
       /ENCRYPTION_KEY=abab/.test(rwEigK.w.document.getElementById('keyline')?.textContent || '') &&
-      !!rwEigK.w.document.querySelector('.server-kasten') &&
-      /docker compose up -d/.test(rwEigK.w.document.querySelector('.server-kasten')?.textContent || ''),
-      rwEigK.w.document.querySelector('.server-kasten')?.textContent.slice(0, 120) || '(kein Kasten)');
+      !!rwEigK.w.document.querySelector('.server-box') &&
+      /docker compose up -d/.test(rwEigK.w.document.querySelector('.server-box')?.textContent || ''),
+      rwEigK.w.document.querySelector('.server-box')?.textContent.slice(0, 120) || '(kein Kasten)');
     pruefe('Der Admin sieht statt des Schluessels einen Satz an den Eigentuemer',
       !rwAdmK.w.document.getElementById('keyline') &&
       !/ENCRYPTION_KEY=abab/.test(rwAdmK.w.document.getElementById('app')?.textContent || '') &&
       /Der Eigentümer sollte ihn in die Server-Einstellung/.test(rwAdmK.w.document.getElementById('app')?.textContent || '') &&
-      !rwAdmK.w.document.querySelector('.server-kasten'),
+      !rwAdmK.w.document.querySelector('.server-box'),
       (rwAdmK.w.document.querySelector('.warn-box')?.textContent || '').slice(0, 160));
     rwEigK.w.close(); rwAdmK.w.close();
     /* KATEGORIEN UND TAGS: der Benutzer sieht die Liste und einen Satz, der
@@ -42221,16 +42221,16 @@ async function pruefeOberflaeche() {
     const kAdmKat = karteText(rwAdmB, 'Kategorien'), kAdmTag = karteText(rwAdmB, 'Tags');
     pruefe('Der Benutzer liest an „Kategorien" einen Satz: „Alle Kategorien. Ändern kann sie der Admin."',
       kUserKat?.querySelector('.desc')?.textContent.trim() === 'Alle Kategorien. Ändern kann sie der Admin.' &&
-      !kUserKat?.querySelector('#katfrei') && !/Umbenennen|Häkchen/.test(kUserKat?.textContent || ''),
+      !kUserKat?.querySelector('#cat-free') && !/Umbenennen|Häkchen/.test(kUserKat?.textContent || ''),
       JSON.stringify(kUserKat?.querySelector('.desc')?.textContent.trim()));
     pruefe('Und an „Tags" ebenso',
       kUserTag?.querySelector('.desc')?.textContent.trim() === 'Alle Tags. Ändern kann sie der Admin.' &&
-      !kUserTag?.querySelector('#tagfrei') && !/Umbenennen|Häkchen/.test(kUserTag?.textContent || ''),
+      !kUserTag?.querySelector('#tag-free') && !/Umbenennen|Häkchen/.test(kUserTag?.textContent || ''),
       JSON.stringify(kUserTag?.querySelector('.desc')?.textContent.trim()));
     pruefe('Der Admin sieht die Werkzeuge: „Umbenennen oder löschen" und den Schalter',
-      /Umbenennen oder löschen/.test(kAdmKat?.querySelector('.desc')?.textContent || '') && !!kAdmKat?.querySelector('#katfrei') &&
-      /Umbenennen oder löschen/.test(kAdmTag?.querySelector('.desc')?.textContent || '') && !!kAdmTag?.querySelector('#tagfrei'),
-      JSON.stringify([kAdmKat?.querySelector('.desc')?.textContent.trim(), !!kAdmKat?.querySelector('#katfrei')]));
+      /Umbenennen oder löschen/.test(kAdmKat?.querySelector('.desc')?.textContent || '') && !!kAdmKat?.querySelector('#cat-free') &&
+      /Umbenennen oder löschen/.test(kAdmTag?.querySelector('.desc')?.textContent || '') && !!kAdmTag?.querySelector('#tag-free'),
+      JSON.stringify([kAdmKat?.querySelector('.desc')?.textContent.trim(), !!kAdmKat?.querySelector('#cat-free')]));
     /* UND DIE LISTE STEHT BEIM BENUTZER TROTZDEM DA: er sieht, was es gibt. */
     pruefe('Die Liste der Kategorien steht auch beim Benutzer',
       !!kUserKat?.querySelector('#mcats') && !!kUserTag?.querySelector('#mtags'), '');

@@ -626,8 +626,8 @@ const RUECKBAUTEN = [
   {
     nr: '64', name: 'Die rote Zeile bei kaputtem Versand faellt weg',
     datei: 'public/app.js',
-    suche: "        ${anfragen.an && !anfragen.versandBereit ? `<p class=\"warn-box\" id=\"anf-kaputt\"",
-    ersatz: "        ${false ? `<p class=\"warn-box\" id=\"anf-kaputt\"",
+    suche: "        ${anfragen.an && !anfragen.versandBereit ? `<p class=\"warn-box\" id=\"signup-broken\"",
+    ersatz: "        ${false ? `<p class=\"warn-box\" id=\"signup-broken\"",
     erwartet: 'Die Karte „Anfragen“'
   },
   {
@@ -1839,8 +1839,8 @@ const RUECKBAUTEN = [
        Versuchs, der an keinen Zugang traf -- ein Knopf ins Leere. */
     nr: '202', name: 'Auch "unbekannter Name" wird ein Knopf',
     datei: 'public/app.js',
-    suche: "      row.appendChild(logNameField(doc, 'prot-wer', logActor(z),\n        z.wer != null ? z.wer : null));",
-    ersatz: "      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z), z.wer ?? 0));",
+    suche: "      row.appendChild(logNameField(doc, 'log-actor', logActor(z),\n        z.wer != null ? z.wer : null));",
+    ersatz: "      zeile.appendChild(protNamensFeld(dok, 'log-actor', protHandelnder(z), z.wer ?? 0));",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
@@ -2577,21 +2577,21 @@ const RUECKBAUTEN = [
        verlinken und die Zurueck-Taste bricht. */
     nr: '276', name: 'Die Reiter tragen keine eigene Adresse mehr',
     datei: 'public/app.js',
-    suche: "      ${visibleOnes.map(a => `<a class=\"sys-reiter-k${a === offen ? ' on' : ''}\"",
-    ersatz: "      ${sichtbare.map(a => `<button class=\"sys-reiter-k${a === offen ? ' on' : ''}\"",
+    suche: "      ${visibleOnes.map(a => `<a class=\"sys-tab${a === offen ? ' on' : ''}\"",
+    ersatz: "      ${sichtbare.map(a => `<button class=\"sys-tab${a === offen ? ' on' : ''}\"",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '277', name: 'Der Import steht wieder gleichrangig neben dem Export',
     datei: 'public/app.js',
-    suche: "        <h4 class=\"sys-unter\">${tH('card.import')}</h4>",
+    suche: "        <h4 class=\"sys-sub\">${tH('card.import')}</h4>",
     ersatz: "        <h3>${tH('card.import')}</h3>",
     erwartet: 'Export und Import stehen in einer Karte'
   },
   {
     nr: '278', name: 'Das Ablagefeld des Imports wird wieder gleich laut gezeichnet',
     datei: 'public/app.js',
-    suche: '        <label class="drop drop-leise" id="imp-drop">',
+    suche: '        <label class="drop drop-quiet" id="imp-drop">',
     ersatz: '        <label class="drop" id="imp-drop">',
     erwartet: 'Export und Import stehen in einer Karte'
   },
@@ -2854,7 +2854,7 @@ const RUECKBAUTEN = [
        SEIT 0.17.1 ZIELT ER AUFS RASTER. Die Zusage ist dieselbe geblieben --
        der Rahmen der eigenen Anmeldung reicht bis zum Rand --, sie haengt nur
        nicht mehr am Umbruch, sondern an der nachgebenden Namensspalte. */
-    suche: `.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    suche: `.mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; column-gap: 9px; row-gap: 2px; }`,
     ersatz: ".mrow.sitz { display: grid; grid-template-columns: max-content auto; }",
     erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
@@ -3171,8 +3171,8 @@ const RUECKBAUTEN = [
   {
     nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
-    ersatz: ".prot-liste { flex: 0 1 auto; max-height: 35rem;",
+    suche: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
+    ersatz: ".log-list { flex: 0 1 auto; max-height: 35rem;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
@@ -3201,14 +3201,14 @@ const RUECKBAUTEN = [
   {
     nr: '348', name: 'Die Zeitangaben stehen wieder linksbuendig',
     datei: 'public/style.css',
-    suche: ".mrow.sitz .sitz-zeit { grid-column: 1 / -1; justify-self: end; text-align: right; }",
-    ersatz: ".mrow.sitz .sitz-zeit { grid-column: 1 / -1; }",
+    suche: ".mrow.session .session-time { grid-column: 1 / -1; justify-self: end; text-align: right; }",
+    ersatz: ".mrow.sitz .session-time { grid-column: 1 / -1; }",
     erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
     nr: '349', name: 'Der Name teilt seine Reihe wieder mit den Zeiten',
     datei: 'public/style.css',
-    suche: ".mrow.sitz .mname { grid-column: 1; grid-row: 1; }",
+    suche: ".mrow.session .mname { grid-column: 1; grid-row: 1; }",
     ersatz: ".mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 3; }",
     erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
@@ -3246,7 +3246,7 @@ const RUECKBAUTEN = [
   {
     nr: '354', name: 'Das Raster der Sitzungszeile bekommt seine dritte Spalte zurueck',
     datei: 'public/style.css',
-    suche: ".mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto;",
+    suche: ".mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;",
     ersatz: ".mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;",
     erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
@@ -3260,14 +3260,14 @@ const RUECKBAUTEN = [
   {
     nr: '356', name: 'Das Sicherheitsprotokoll fordert wieder alle seine Zeilen',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: 35rem;\n",
-    ersatz: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: none;\n",
+    suche: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;\n",
+    ersatz: ".log-list { flex: 0 1 auto; min-height: 0; max-height: none;\n",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '357', name: 'Auf dem Telefon deckelt nichts mehr am Fenster',
     datei: 'public/style.css',
-    suche: "  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {\n" +
+    suche: "  .manage-list, .log-list, .test-scroll, .atext, #ex-part-list {\n" +
            "    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }",
     ersatz: "",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
@@ -3333,8 +3333,8 @@ const RUECKBAUTEN = [
   {
     nr: '371', name: 'Das Sicherheitsprotokoll deckelt wieder bei zehn Zeilen',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
-    ersatz: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: 23.3rem;",
+    suche: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
+    ersatz: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 23.3rem;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
@@ -3354,8 +3354,8 @@ const RUECKBAUTEN = [
   {
     nr: '374', name: 'Der Knopf heisst wieder „Mailzugang speichern"',
     datei: 'public/app.js',
-    suche: "id=\"mail-einrichten\">${tH('card.mailAccount')} ${\n            mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</button>",
-    ersatz: "id=\"mail-einrichten\">${tH('card.mailAccount')} speichern</button>",
+    suche: "id=\"mail-setup\">${tH('card.mailAccount')} ${\n            mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</button>",
+    ersatz: "id=\"mail-setup\">${tH('card.mailAccount')} speichern</button>",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
@@ -3389,8 +3389,8 @@ const RUECKBAUTEN = [
   {
     nr: '379', name: 'Der Hinweis rueckt nicht mehr an seine Sache heran',
     datei: 'public/style.css',
-    suche: ".mail-hinweis { margin: -7px 0 0; }",
-    ersatz: ".mail-hinweis { margin: 0; }",
+    suche: ".mail-hint { margin: -7px 0 0; }",
+    ersatz: ".mail-hint { margin: 0; }",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
@@ -3469,8 +3469,8 @@ const RUECKBAUTEN = [
   {
     nr: '392', name: 'Das leere Protokoll wird wieder eine Zeile hoch',
     datei: 'public/style.css',
-    suche: ".prot-liste > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }",
-    ersatz: ".prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }",
+    suche: ".log-list > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }",
+    ersatz: ".log-list > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
@@ -3506,8 +3506,8 @@ const RUECKBAUTEN = [
   {
     nr: '395', name: 'Die Zeile wird wieder ein eigener Kasten',
     datei: 'public/style.css',
-    suche: ".prot-zeile { display: contents; }",
-    ersatz: ".prot-zeile { display: block; }",
+    suche: ".log-row { display: contents; }",
+    ersatz: ".log-row { display: block; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
@@ -3520,8 +3520,8 @@ const RUECKBAUTEN = [
   {
     nr: '397', name: 'Auf dem Telefon bleibt die Liste ein Raster',
     datei: 'public/style.css',
-    suche: "  .prot-liste { display: block; }\n  .prot-zeile { display: grid;",
-    ersatz: "  .prot-zeile { display: grid;",
+    suche: "  .log-list { display: block; }\n  .log-row { display: grid;",
+    ersatz: "  .log-row { display: grid;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
 
@@ -3796,7 +3796,7 @@ const RUECKBAUTEN = [
   {
     nr: '430', name: 'Die Sitzungsliste deckelt wieder nach der fremden Zeile',
     datei: 'public/style.css',
-    suche: "#msitzungen { max-height: 55.23rem; }",
+    suche: "#msessions { max-height: 55.23rem; }",
     ersatz: "#msitzungen { max-height: 27.95rem; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
@@ -4084,8 +4084,8 @@ const RUECKBAUTEN = [
   {
     nr: '456', name: 'Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht',
     datei: 'public/app.js',
-    suche: "id=\"bild-um\"${png && !laeuft ? '' : ' disabled'}",
-    ersatz: "id=\"bild-um\"${''}",
+    suche: "id=\"convert-run\"${png && !laeuft ? '' : ' disabled'}",
+    ersatz: "id=\"convert-run\"${''}",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4094,8 +4094,8 @@ const RUECKBAUTEN = [
        ein Fehler. */
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
     datei: 'public/app.js',
-    suche: "        ${OWNER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"bild-umwandeln\">",
-    ersatz: "        ${true ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"bild-umwandeln\">",
+    suche: "        ${OWNER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
+    ersatz: "        ${true ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4783,7 +4783,7 @@ const RUECKBAUTEN = [
        Systembereich neu aufbaut. */
     nr: '521', name: 'Die Uhr verfolgt nur noch die Umstellung',
     datei: 'public/app.js',
-    suche: "  { field: 'geometrie', id: 'geo-lauf',",
+    suche: "  { field: 'geometrie', id: 'thumbs-running',",
     ersatz: "  { feld: 'gibtsnicht', id: 'gibtsnicht',",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -5277,8 +5277,8 @@ const RUECKBAUTEN = [
     datei: 'public/app.js',
     // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
     // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
-    suche: "id=\"auf-los\"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
-    ersatz: "id=\"auf-los\">${tH('card.deleteNow')}",
+    suche: "id=\"cleanup-run\"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
+    ersatz: "id=\"cleanup-run\">${tH('card.deleteNow')}",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5292,8 +5292,8 @@ const RUECKBAUTEN = [
        seit 0.20.1 hat sie ihren EIGENEN Deckel von fuenf Zeilen als Regel im
        Stilblatt, und die ist die Sache. Die Zusage ist dieselbe geblieben:
        eine Liste ohne Deckel zieht die Karte auf. */
-    suche: '#auf-liste { flex: none; max-height: 13.98rem; }',
-    ersatz: '#auf-liste { flex: none; }',
+    suche: '#cleanup-list { flex: none; max-height: 13.98rem; }',
+    ersatz: '#cleanup-list { flex: none; }',
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5303,8 +5303,8 @@ const RUECKBAUTEN = [
        Zeilen ist sie eine Behauptung. */
     nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
     datei: 'public/app.js',
-    suche: '           <div class="manage-list" id="auf-liste">${all.map(row).join(\'\')}</div>`',
-    ersatz: '           <div class="manage-list" id="auf-liste"></div>`',
+    suche: '           <div class="manage-list" id="cleanup-list">${all.map(row).join(\'\')}</div>`',
+    ersatz: '           <div class="manage-list" id="cleanup-list"></div>`',
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5323,7 +5323,7 @@ const RUECKBAUTEN = [
        der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     datei: 'public/app.js',
-    suche: "      const mark = z.faellt ? `<span class=\"auf-marke weg\">${tH('card.deleteLower')}</span>`",
+    suche: "      const mark = z.faellt ? `<span class=\"cleanup-badge weg\">${tH('card.deleteLower')}</span>`",
     ersatz: "      const marke = z.faellt ? ''",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -6007,8 +6007,8 @@ const RUECKBAUTEN = [
     // Der Kasten wird zu einem fuenften Aufruf, den niemand gezaehlt hat.
     nr: '629', name: 'Ein fuenfter Kasten „Auf dem Server" kommt an die Karte Sicherung',
     datei: 'public/app.js',
-    suche: "        <div id=\"sicherung-box\"></div>\n      </div>`;",
-    ersatz: "        <div id=\"sicherung-box\"></div>\n        ${serverKasten('Die Sicherung von Hand:', 'docker compose exec kriterion node sicherung.js')}\n      </div>`;",
+    suche: "        <div id=\"backup-box\"></div>\n      </div>`;",
+    ersatz: "        <div id=\"backup-box\"></div>\n        ${serverKasten('Die Sicherung von Hand:', 'docker compose exec kriterion node sicherung.js')}\n      </div>`;",
     erwartet: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
