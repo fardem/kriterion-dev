@@ -18,20 +18,20 @@ const crypto = require('crypto');
    gelesen. Wer davon abweicht, sperrt genau die App aus, fuer die gebaut
    wird. Dieselben vier Werte sind die Vorgabe in jedem anderen Pruefgeraet --
    die Bindung gilt dem Standard, nicht einem Anbieter. */
-const VERFAHREN = 'sha1';
-const ZIFFERN = 6;
-const SCHRITT_SEKUNDEN = 30;
+const ALGORITHM = 'sha1';
+const DIGITS = 6;
+const STEP_SECONDS = 30;
 /* WIE WEIT DIE UHREN AUSEINANDERLAUFEN DUERFEN. Ein Fenster nach vorn und
    eines zurueck, also je dreissig Sekunden. Zwei waeren bequemer und kosteten
    die Haelfte der Zusage: ein mitgelesener Code waere zweieinhalb Minuten
    wert statt anderthalb. */
-const FENSTER = 1;
+const WINDOW = 1;
 
 /* Die Laenge des Geheimnisses in Bytes. RFC 4226 verlangt mindestens 16 und
    empfiehlt 20 -- die Ausgabelaenge von SHA-1. 20 Bytes sind ausserdem die
    Laenge, die glatt in 32 Base32-Zeichen aufgeht: kein Fuellzeichen, keine
    Frage, ob das Gleichheitszeichen mitgetippt werden muss. */
-const GEHEIM_BYTES = 20;
+const SECRET_BYTES = 20;
 
 /* ---- Base32, RFC 4648 ----
    WARUM BASE32 UND NICHT HEXADEZIMAL WIE BEIM TOKEN: weil das Geheimnis hier
@@ -43,18 +43,18 @@ const GEHEIM_BYTES = 20;
    trotzdem ein Alphabet verschoben haben. */
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-function base32Kodiere(puffer) {
-  let bits = 0, wert = 0, aus = '';
+function base32Encode(puffer) {
+  let bits = 0, value = 0, out = '';
   for (const b of puffer) {
-    wert = (wert << 8) | b;
+    value = (value << 8) | b;
     bits += 8;
-    while (bits >= 5) { aus += B32[(wert >>> (bits - 5)) & 31]; bits -= 5; }
+    while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }
   }
-  if (bits) aus += B32[(wert << (5 - bits)) & 31];
+  if (bits) out += B32[(value << (5 - bits)) & 31];
   // Fuellzeichen bis auf ein Vielfaches von acht -- so verlangt es RFC 4648.
   // Bei 20 Bytes faellt keines an; die Zeile steht fuer den allgemeinen Fall.
-  while (aus.length % 8) aus += '=';
-  return aus;
+  while (out.length % 8) out += '=';
+  return out;
 }
 
 /* Liefert den Puffer oder null. NULL UND KEINE AUSNAHME: der Aufrufer ist eine
@@ -62,31 +62,31 @@ function base32Kodiere(puffer) {
    der Instanz, sondern eine gewoehnliche Eingabe.
    LEERZEICHEN UND BINDESTRICHE FALLEN WEG: der Schluessel steht am Bildschirm
    in Vierergruppen, und wer ihn abschreibt, schreibt die Luecken mit. */
-function base32Dekodiere(text) {
+function base32Decode(text) {
   const t = String(text || '').toUpperCase().replace(/[\s-]/g, '').replace(/=+$/, '');
   if (!t) return null;
-  let bits = 0, wert = 0;
-  const aus = [];
+  let bits = 0, value = 0;
+  const out = [];
   for (const z of t) {
     const i = B32.indexOf(z);
     if (i < 0) return null;
-    wert = (wert << 5) | i;
+    value = (value << 5) | i;
     bits += 5;
-    if (bits >= 8) { aus.push((wert >>> (bits - 8)) & 255); bits -= 8; }
+    if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
   }
-  return Buffer.from(aus);
+  return Buffer.from(out);
 }
 
 // Ein frisches Geheimnis, fertig zum Abtippen. Es verlaesst die Instanz genau
 // einmal -- beim Einschalten. Danach nie wieder, auch nicht an den Eigentuemer.
-const neuesGeheimnis = () => base32Kodiere(crypto.randomBytes(GEHEIM_BYTES));
+const newSecret = () => base32Encode(crypto.randomBytes(SECRET_BYTES));
 
 /* Der Schluessel am Bildschirm, in Vierergruppen. Zweiunddreissig Zeichen am
    Stueck sind der Weg, an dem Menschen aufgeben; acht Gruppen zu vier sind
    derselbe String und lassen sich nach jeder Gruppe abgleichen.
-   DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT: base32Dekodiere wirft die
+   DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT: base32Decode wirft die
    Trennzeichen wieder weg, und die Instanz speichert den Wert ohne sie. */
-const inVierergruppen = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
+const groupsOfFour = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
 
 /* ---- Der Zeitschritt ----
    DIE ZAHL DER DREISSIG-SEKUNDEN-SCHRITTE SEIT DEM 1.1.1970. Sie ist der
@@ -95,8 +95,8 @@ const inVierergruppen = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
    DIE UHR WIRD UEBERGEBEN UND NICHT HIER GEHOLT -- sonst liesse sich das
    Zeitfenster nur mit echtem Warten pruefen, und eine Pruefung, die eine
    Minute schlaeft, wird irgendwann herausgenommen. */
-const schrittZu = (msSeitEpoche) => Math.floor(msSeitEpoche / 1000 / SCHRITT_SEKUNDEN);
-const jetztSchritt = () => schrittZu(Date.now());
+const stepOf = (msSinceEpoch) => Math.floor(msSinceEpoch / 1000 / STEP_SECONDS);
+const nowStep = () => stepOf(Date.now());
 
 /* Der Code zu EINEM Zaehler. Das dynamische Abgreifen steht so in RFC 4226,
    Abschnitt 5.3: die letzten vier Bit des Hashs nennen den Anfang, dort
@@ -105,22 +105,22 @@ const jetztSchritt = () => schrittZu(Date.now());
    writeUInt32BE kann keine 64 Bit. Ueber 2^32 laeuft er erst ab dem Jahr
    6053, kein Testvektor erreicht ihn; der Pruefstand haelt die obere Haelfte
    deshalb gegen eine ZWEITE Bauform (writeBigUInt64BE). */
-function code(geheimBase32, zaehler) {
-  const geheim = base32Dekodiere(geheimBase32);
-  if (!geheim || !geheim.length) return null;
+function code(secretBase32, counter) {
+  const secret = base32Decode(secretBase32);
+  if (!secret || !secret.length) return null;
   const z = Buffer.alloc(8);
-  z.writeUInt32BE(Math.floor(zaehler / 2 ** 32), 0);
-  z.writeUInt32BE(zaehler >>> 0, 4);
-  const h = crypto.createHmac(VERFAHREN, geheim).update(z).digest();
+  z.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);
+  z.writeUInt32BE(counter >>> 0, 4);
+  const h = crypto.createHmac(ALGORITHM, secret).update(z).digest();
   const o = h[h.length - 1] & 0x0f;
   const bin = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
-  return String(bin % 10 ** ZIFFERN).padStart(ZIFFERN, '0');
+  return String(bin % 10 ** DIGITS).padStart(DIGITS, '0');
 }
 
 // Sieht ein getippter Wert ueberhaupt nach einem Code aus. Sechs Ziffern, sonst
 // nichts -- der Wiederherstellungscode ist an seiner Form zu unterscheiden, und
 // deshalb genuegt EIN Eingabefeld fuer beide.
-const istCodeform = (eingabe) => new RegExp(`^\\d{${ZIFFERN}}$`).test(String(eingabe || '').trim());
+const isCodeForm = (input) => new RegExp(`^\\d{${DIGITS}}$`).test(String(input || '').trim());
 
 /* Prueft einen Code gegen das Fenster und liefert den ZAEHLER, der getragen
    hat -- oder null.
@@ -136,17 +136,17 @@ const istCodeform = (eingabe) => new RegExp(`^\\d{${ZIFFERN}}$`).test(String(ein
    Primaerschluessel und wird NACHGESCHLAGEN, hier wird wirklich verglichen,
    und sechs Ziffern sind kurz genug, dass eine Laufzeit etwas sagen
    koennte. */
-function pruefeCode(geheimBase32, eingabe, jetzt = Date.now()) {
-  const getippt = String(eingabe || '').trim();
-  if (!istCodeform(getippt)) return null;
-  const mitte = schrittZu(jetzt);
-  for (let d = FENSTER; d >= -FENSTER; d--) {
-    const zaehler = mitte + d;
-    if (zaehler < 0) continue;
-    const soll = code(geheimBase32, zaehler);
-    if (soll === null) return null;
-    const a = Buffer.from(soll), b = Buffer.from(getippt);
-    if (a.length === b.length && crypto.timingSafeEqual(a, b)) return zaehler;
+function checkCode(secretBase32, input, now = Date.now()) {
+  const typed = String(input || '').trim();
+  if (!isCodeForm(typed)) return null;
+  const middle = stepOf(now);
+  for (let d = WINDOW; d >= -WINDOW; d--) {
+    const counter = middle + d;
+    if (counter < 0) continue;
+    const want = code(secretBase32, counter);
+    if (want === null) return null;
+    const a = Buffer.from(want), b = Buffer.from(typed);
+    if (a.length === b.length && crypto.timingSafeEqual(a, b)) return counter;
   }
   return null;
 }
@@ -163,11 +163,11 @@ function pruefeCode(geheimBase32, eingabe, jetzt = Date.now()) {
    Systembereich -- deshalb encodeURIComponent, nicht bloss ein Ersetzen von
    Doppelpunkten. Die Zeile misst rund hundert Zeichen bei kurzen Namen und
    zweihundert bei sehr langen. */
-function otpauthZeile(instanz, benutzername, geheimBase32) {
-  const kennung = encodeURIComponent(`${instanz}:${benutzername}`);
-  return `otpauth://totp/${kennung}?secret=${geheimBase32}` +
-    `&issuer=${encodeURIComponent(instanz)}` +
-    `&algorithm=${VERFAHREN.toUpperCase()}&digits=${ZIFFERN}&period=${SCHRITT_SEKUNDEN}`;
+function otpauthLine(instance, username, secretBase32) {
+  const label = encodeURIComponent(`${instance}:${username}`);
+  return `otpauth://totp/${label}?secret=${secretBase32}` +
+    `&issuer=${encodeURIComponent(instance)}` +
+    `&algorithm=${ALGORITHM.toUpperCase()}&digits=${DIGITS}&period=${STEP_SECONDS}`;
 }
 
 /* ---- Die Wiederherstellungscodes ----
@@ -182,42 +182,42 @@ function otpauthZeile(instanz, benutzername, geheimBase32) {
    laesst -- 0/O, 1/I/l.
    DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT: gespeichert und verglichen
    wird ohne sie. */
-const WIEDER_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const WIEDER_ZAHL = 8;
-const WIEDER_LAENGE = 10;
+const RECOVERY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const RECOVERY_COUNT = 8;
+const RECOVERY_LENGTH = 10;
 
 /* GLEICHVERTEILT GEZOGEN, nicht ueber einen Rest. `zufall % 31` gaebe den
    ersten Zeichen des Alphabets mehr Gewicht als den letzten -- bei 256 durch 31
    sind das rund vier Prozent Schieflage. randomInt zieht ohne diesen Rand. */
-const einWiederCode = () => Array.from({ length: WIEDER_LAENGE },
-  () => WIEDER_ALPHABET[crypto.randomInt(WIEDER_ALPHABET.length)]).join('');
+const oneRecoveryCode = () => Array.from({ length: RECOVERY_LENGTH },
+  () => RECOVERY_ALPHABET[crypto.randomInt(RECOVERY_ALPHABET.length)]).join('');
 
-const neueWiederCodes = () => Array.from({ length: WIEDER_ZAHL }, einWiederCode);
+const newRecoveryCodes = () => Array.from({ length: RECOVERY_COUNT }, oneRecoveryCode);
 
 // Am Bildschirm in zwei Fuenferbloecken: XXXXX-XXXXX. Derselbe Gedanke wie bei
 // den Vierergruppen des Schluessels.
-const wiederAnzeige = (c) => `${String(c).slice(0, 5)}-${String(c).slice(5)}`;
+const recoveryDisplay = (c) => `${String(c).slice(0, 5)}-${String(c).slice(5)}`;
 
 /* Auf die Form gebracht, bevor verglichen wird. Bindestriche und Leerzeichen
    fallen weg, klein wird gross: wer einen Code vom Zettel abschreibt, schreibt
    ihn so, wie er dasteht.
    LIEFERT DEN LEEREN STRING, wenn nichts uebrig bleibt -- der Aufrufer prueft
    auf die Laenge und schlaegt nicht mit einem leeren Hash nach. */
-const wiederNormal = (eingabe) =>
-  String(eingabe || '').toUpperCase().replace(/[\s-]/g, '');
+const recoveryNormal = (input) =>
+  String(input || '').toUpperCase().replace(/[\s-]/g, '');
 
 // Sieht ein getippter Wert nach einem Wiederherstellungscode aus. Zehn Zeichen
-// aus dem Alphabet, sonst nichts -- die Gegenprobe zu istCodeform, damit EIN
+// aus dem Alphabet, sonst nichts -- die Gegenprobe zu isCodeForm, damit EIN
 // Eingabefeld beide Formen auseinanderhaelt.
-const istWiederform = (eingabe) => {
-  const w = wiederNormal(eingabe);
-  return w.length === WIEDER_LAENGE && [...w].every(z => WIEDER_ALPHABET.includes(z));
+const isRecoveryForm = (input) => {
+  const w = recoveryNormal(input);
+  return w.length === RECOVERY_LENGTH && [...w].every(z => RECOVERY_ALPHABET.includes(z));
 };
 
 module.exports = {
-  VERFAHREN, ZIFFERN, SCHRITT_SEKUNDEN, FENSTER, GEHEIM_BYTES,
-  WIEDER_ZAHL, WIEDER_LAENGE, WIEDER_ALPHABET,
-  base32Kodiere, base32Dekodiere, neuesGeheimnis, inVierergruppen,
-  schrittZu, jetztSchritt, code, istCodeform, pruefeCode, otpauthZeile,
-  neueWiederCodes, wiederAnzeige, wiederNormal, istWiederform
+  ALGORITHM, DIGITS, STEP_SECONDS, WINDOW, SECRET_BYTES,
+  RECOVERY_COUNT, RECOVERY_LENGTH, RECOVERY_ALPHABET,
+  base32Encode, base32Decode, newSecret, groupsOfFour,
+  stepOf, nowStep, code, isCodeForm, checkCode, otpauthLine,
+  newRecoveryCodes, recoveryDisplay, recoveryNormal, isRecoveryForm
 };

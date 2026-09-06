@@ -9661,7 +9661,7 @@ function mailAnbieterZeile(m) {
 function mailDialog(mailstand) {
   return new Promise(resolve => {
     const liste = Array.isArray(mailstand.anbieterListe) ? mailstand.anbieterListe : [];
-    const vorlage = (schluessel) => liste.find(a => a.schluessel === schluessel) || null;
+    const vorlage = (key) => liste.find(a => a.key === key) || null;
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal mail-dialog" id="mail-dialog">
@@ -9669,8 +9669,8 @@ function mailDialog(mailstand) {
       <div class="field"><label for="mail-anbieter">${tH('card.provider')}</label>
         <select class="input" id="mail-anbieter">
           <option value=""${mailstand.anbieter ? '' : ' selected'}>${tH('card.noDelivery')}</option>
-          ${liste.map(a => `<option value="${esc(a.schluessel)}"${
-            a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
+          ${liste.map(a => `<option value="${esc(a.key)}"${
+            a.key === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
         </select></div>
       ${/* DER HINWEIS ZUM GEWÄHLTEN ANBIETER — DARUNTER, NICHT DANEBEN, und er
             wechselt mit der Auswahl. Er kommt vom Server: zwei Ausfertigungen

@@ -324,7 +324,7 @@ async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort
      Absage, die den Namen schon gewechselt hat, waere schlimmer als keine. */
   const adresseGemeint = neueAdresse !== undefined;
   const adresse = adresseGemeint ? String(neueAdresse || '').trim() : null;
-  if (adresseGemeint && adresse && !mail.istAdresse(adresse))
+  if (adresseGemeint && adresse && !mail.isAddress(adresse))
     throw new Meldung('login.emailInvalid');
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(name, hash, u.id);
   if (adresseGemeint)
@@ -394,7 +394,7 @@ async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false
      dort. Geprueft VOR dem Anlegen: ein Zugang, der steht, und eine Absage
      daneben waeren zwei Aussagen ueber denselben Aufruf. */
   const mailAdresse = String(adresse || '').trim();
-  if (mailAdresse && !mail.istAdresse(mailAdresse))
+  if (mailAdresse && !mail.isAddress(mailAdresse))
     throw new Meldung('login.emailInvalid');
   const hash = ohnePasswort === true ? '' : await hashePasswort(passwort);
   const handelt = handelnder(wer);
@@ -1019,7 +1019,7 @@ function raeumeAnfragenAuf() {
    benannt -- geht die eine Mail verloren, wartet der Anfragende bis zum
    Verfall.
 
-   GEPRUEFT WIRD MIT pruefeName UND mail.istAdresse, wie an einem echten
+   GEPRUEFT WIRD MIT pruefeName UND mail.isAddress, wie an einem echten
    Zugang: was nie ein Zugang werden koennte, kommt gar nicht erst in die
    Warteschlange. VERGLICHEN WIRD OHNE RUECKSICHT AUF GROSS UND KLEIN -- zwei
    Adressen, die sich nur in der Schreibweise unterscheiden, sind dasselbe
@@ -1032,7 +1032,7 @@ function legeAnfrageAn(name, adresse) {
   const post = String(adresse || '').trim();
   if (sauber.length > ANFRAGE_NAME_MAX || post.length > ANFRAGE_MAIL_MAX) return null;
   try { pruefeName(sauber); } catch { return null; }
-  if (!mail.istAdresse(post)) return null;
+  if (!mail.isAddress(post)) return null;
   // Erst raeumen, dann zaehlen: der Deckel soll sich auf das beziehen, was
   // wirklich noch offen ist.
   raeumeAnfragenAuf();
@@ -1474,7 +1474,7 @@ const ZWEITER_FAKTOR_ABSAGE = 'login.codeWrong';
 function beginneZweifaktor(benutzerId, instanzName, benutzername) {
   const id = Number(benutzerId) || 0;
   if (zweifaktorAn(id)) throw new Meldung('login.twoFactorAlreadyOn');
-  const geheim = zf.neuesGeheimnis();
+  const geheim = zf.newSecret();
   db.prepare(
     `INSERT INTO zweifaktor (user_id, geheim, bestaetigt_am, letzter_zaehler)
      VALUES (?, ?, NULL, NULL)
@@ -1483,13 +1483,13 @@ function beginneZweifaktor(benutzerId, instanzName, benutzername) {
        created_at = datetime('now')`
   ).run(id, geheim);
   return {
-    geheim, gruppen: zf.inVierergruppen(geheim),
-    zeile: zf.otpauthZeile(instanzName, benutzername, geheim),
-    ziffern: zf.ZIFFERN, sekunden: zf.SCHRITT_SEKUNDEN
+    geheim, gruppen: zf.groupsOfFour(geheim),
+    zeile: zf.otpauthLine(instanzName, benutzername, geheim),
+    ziffern: zf.DIGITS, sekunden: zf.STEP_SECONDS
   };
 }
 
-/* Legt WIEDER_ZAHL frische Codes an und liefert die KLARTEXTE genau einmal
+/* Legt RECOVERY_COUNT frische Codes an und liefert die KLARTEXTE genau einmal
    zurueck -- danach stehen sie nirgends mehr, auch nicht in der Datenbank.
    EINE TRANSAKTION: entweder sind die alten fort UND die neuen da, oder es hat
    sich nichts bewegt. Ein halber Satz waere schlimmer als der alte. */
@@ -1497,7 +1497,7 @@ const insCode = db.prepare(
   'INSERT INTO zweifaktor_codes (hash, user_id) VALUES (?, ?)');
 function legeWiederCodesAn(benutzerId) {
   const id = Number(benutzerId) || 0;
-  const klartexte = zf.neueWiederCodes();
+  const klartexte = zf.newRecoveryCodes();
   db.transaction(() => {
     db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);
     // tokenHash() WIRD WIEDERVERWENDET und nicht ein zweites Mal geschrieben:
@@ -1505,7 +1505,7 @@ function legeWiederCodesAn(benutzerId) {
     // auseinander. Dieselbe Ueberlegung wie bei der Selbstanmeldung.
     for (const k of klartexte) insCode.run(tokenHash(k), id);
   })();
-  return klartexte.map(zf.wiederAnzeige);
+  return klartexte.map(zf.recoveryDisplay);
 }
 
 /* SCHRITT ZWEI: ein gueltiger Code aus dem Telefon schaltet ein. Erst hier
@@ -1519,7 +1519,7 @@ function schalteZweifaktorEin(benutzerId, eingabe, wer, jetzt = Date.now()) {
   const z = holeZweifaktor(id);
   if (!z) throw new Meldung('login.twoFactorNotBegun');
   if (z.bestaetigt_am) throw new Meldung('login.twoFactorAlreadyOn');
-  const zaehler = zf.pruefeCode(z.geheim, eingabe, jetzt);
+  const zaehler = zf.checkCode(z.geheim, eingabe, jetzt);
   if (zaehler === null) throw new Meldung(ZWEITER_FAKTOR_ABSAGE);
   db.prepare(
     `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?
@@ -1552,14 +1552,14 @@ function pruefeZweitenFaktor(benutzerId, eingabe, jetzt = Date.now()) {
   const id = Number(benutzerId) || 0;
   const z = holeZweifaktor(id);
   if (!z || !z.bestaetigt_am) return null;
-  if (zf.istCodeform(eingabe)) {
-    const zaehler = zf.pruefeCode(z.geheim, eingabe, jetzt);
+  if (zf.isCodeForm(eingabe)) {
+    const zaehler = zf.checkCode(z.geheim, eingabe, jetzt);
     if (zaehler === null) return null;
     if (!verbraucheZaehler.run(zaehler, id, zaehler).changes) return null;
     return 'app';
   }
-  if (zf.istWiederform(eingabe)) {
-    const hash = tokenHash(zf.wiederNormal(eingabe));
+  if (zf.isRecoveryForm(eingabe)) {
+    const hash = tokenHash(zf.recoveryNormal(eingabe));
     if (!verbraucheWieder.run(hash, id).changes) return null;
     /* DIE EINZIGE ZEILE IM PROTOKOLL, DIE SAGT, DASS EIN TELEFON WEG IST. Sie
        steht HIER und nicht an der Route: es gibt drei Rufer (Anmeldung,

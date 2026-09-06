@@ -96,14 +96,14 @@ const RUECKBAUTEN = [
        aber die Zusage wirft danach UNBEHANDELT -- der Server stirbt, und der
        Lauf reisst ab, statt eine Pruefung rot zu faerben (Stolperstein 138).
        So bleibt alles stehen, und nur die Wirkung faellt weg. */
-    suche: "      uhr = setTimeout(() => fehler(new Error(t(sprache, 'mail.timeout'))), VERSAND_MS);",
-    ersatz: "      uhr = setTimeout(() => {}, VERSAND_MS);",
+    suche: "      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);",
+    ersatz: "      uhr = setTimeout(() => {}, SEND_MS);",
     erwartet: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
   {
     nr: '06', name: 'Die Fristen von nodemailer stehen wieder auf ihren Vorgaben',
     datei: 'mail.js',
-    suche: "    connectionTimeout: VERBINDUNG_MS, greetingTimeout: GRUSS_MS, socketTimeout: VERSAND_MS,",
+    suche: "    connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,",
     ersatz: "",
     erwartet: '(erwartet STUMM — die aeussere Schranke traegt die Zusage allein; nodemailers Fristen sind der schnellere, nicht der tragende Weg)'
   },
@@ -176,7 +176,7 @@ const RUECKBAUTEN = [
        Zwei Mechanismen fuer eine Zusage waeren einer zu viel
        (Stolperstein 145), und deshalb faerbt dieser Rueckbau jetzt BEIDE
        Seiten rot. */
-    suche: "  return test && test.marke && test.marke === mail.marke(roh) ? test : null;",
+    suche: "  return test && test.marke && test.marke === mail.mark(roh) ? test : null;",
     ersatz: "  return test || null;",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
@@ -207,14 +207,14 @@ const RUECKBAUTEN = [
     nr: '18', name: 'Das Mailpasswort steht in der Antwort',
     datei: 'server.js',
     suche: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte(req)));",
-    ersatz: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json({ ...mailKarte(req), passwort: mail.loeseAuf(getSetting(mail.SCHLUESSEL, null)).passwort }));",
+    ersatz: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json({ ...mailKarte(req), passwort: mail.resolve(getSetting(mail.SETTING_KEY, null)).passwort }));",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '19', name: 'Das Mailpasswort geht in die Kontrollausgabe',
     datei: 'server.js',
     suche: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}.` +",
-    ersatz: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}, Passwort ${mail.loeseAuf(roh).passwort}.` +",
+    ersatz: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}, Passwort ${mail.resolve(roh).passwort}.` +",
     erwartet: 'Der Mailversand: das Passwort steht nirgends'
   },
   /* ---- Die Anbietervorlagen ---- */
@@ -228,7 +228,7 @@ const RUECKBAUTEN = [
   {
     nr: '21', name: 'Ein unbekannter Anbieter wird durchgelassen',
     datei: 'mail.js',
-    suche: "  if (!v) throw meldung('mail.providerUnknown');",
+    suche: "  if (!v) throw message('mail.providerUnknown');",
     ersatz: "  const vv = v;",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
@@ -730,22 +730,22 @@ const RUECKBAUTEN = [
   {
     nr: '82', name: 'Acht Ziffern statt sechs',
     datei: 'zweifaktor.js',
-    suche: 'const ZIFFERN = 6;',
-    ersatz: 'const ZIFFERN = 8;',
+    suche: 'const DIGITS = 6;',
+    ersatz: 'const DIGITS = 8;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '83', name: 'SHA-256 statt SHA-1',
     datei: 'zweifaktor.js',
-    suche: "const VERFAHREN = 'sha1';",
-    ersatz: "const VERFAHREN = 'sha256';",
+    suche: "const ALGORITHM = 'sha1';",
+    ersatz: "const ALGORITHM = 'sha256';",
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '84', name: 'Sechzig Sekunden statt dreissig',
     datei: 'zweifaktor.js',
-    suche: 'const SCHRITT_SEKUNDEN = 30;',
-    ersatz: 'const SCHRITT_SEKUNDEN = 60;',
+    suche: 'const STEP_SECONDS = 30;',
+    ersatz: 'const STEP_SECONDS = 60;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
@@ -765,7 +765,7 @@ const RUECKBAUTEN = [
        darueber. Ohne ihn bliebe genau diese Zeile ungeprueft. */
     nr: '86', name: 'Der Zaehler wird nur in seiner unteren Haelfte geschrieben',
     datei: 'zweifaktor.js',
-    suche: "  z.writeUInt32BE(Math.floor(zaehler / 2 ** 32), 0);",
+    suche: "  z.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);",
     ersatz: "  z.writeUInt32BE(0, 0);",
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
@@ -773,15 +773,15 @@ const RUECKBAUTEN = [
   {
     nr: '87', name: 'Das Fenster wird auf zwei Schritte geweitet',
     datei: 'zweifaktor.js',
-    suche: 'const FENSTER = 1;',
-    ersatz: 'const FENSTER = 2;',
+    suche: 'const WINDOW = 1;',
+    ersatz: 'const WINDOW = 2;',
     erwartet: 'Der zweite Faktor: das Zeitfenster'
   },
   {
     nr: '88', name: 'Es gibt gar kein Nachbarfenster mehr',
     datei: 'zweifaktor.js',
-    suche: 'const FENSTER = 1;',
-    ersatz: 'const FENSTER = 0;',
+    suche: 'const WINDOW = 1;',
+    ersatz: 'const WINDOW = 0;',
     erwartet: 'Der zweite Faktor: das Zeitfenster'
   },
   {
@@ -867,7 +867,7 @@ const RUECKBAUTEN = [
     erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
   /* ---- Der zweite Faktor: die Bremse ----
-     SECHS ZIFFERN SIND EINE MILLION; ungebremst ist das kein Faktor, sondern
+     SECHS DIGITS SIND EINE MILLION; ungebremst ist das kein Faktor, sondern
      eine Verzoegerung. Der zweite Schritt faellt NICHT von selbst in die
      Bremse -- er ist eine eigene Route. */
   {
@@ -923,8 +923,8 @@ const RUECKBAUTEN = [
   {
     nr: '102', name: 'Es entstehen sieben Codes statt acht',
     datei: 'zweifaktor.js',
-    suche: 'const WIEDER_ZAHL = 8;',
-    ersatz: 'const WIEDER_ZAHL = 7;',
+    suche: 'const RECOVERY_COUNT = 8;',
+    ersatz: 'const RECOVERY_COUNT = 7;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
@@ -1692,7 +1692,7 @@ const RUECKBAUTEN = [
     erwartet: 'Der Export in Teilen'
   },
   {
-    /* DER TEIL MUSS EIN FENSTER LESEN UND NICHT ALLES. Ohne die Klemme traegt
+    /* DER TEIL MUSS EIN WINDOW LESEN UND NICHT ALLES. Ohne die Klemme traegt
        jeder Teil den ganzen Bestand -- fuenf Dateien, jede vollstaendig, und
        der Import legte danach alles fuenfmal an. */
     nr: '188', name: 'Jeder Teil traegt den ganzen Bestand',
@@ -3382,8 +3382,8 @@ const RUECKBAUTEN = [
   {
     nr: '378', name: 'Die Anbieterliste kommt wieder ohne Hinweise und feste Werte',
     datei: 'server.js',
-    suche: "    anbieterListe: mail.fuerDieAuswahl().map(a =>\n      ({ ...a, hinweis: a.hinweis ? t(spracheVon(req), a.hinweis) : '' })),",
-    ersatz: "    anbieterListe: mail.ANBIETER.map(a => ({ schluessel: a.schluessel, name: a.name })),",
+    suche: "    anbieterListe: mail.forChoice().map(a =>\n      ({ ...a, hinweis: a.hinweis ? t(spracheVon(req), a.hinweis) : '' })),",
+    ersatz: "    anbieterListe: mail.PROVIDERS.map(a => ({ schluessel: a.schluessel, name: a.name })),",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
@@ -3817,8 +3817,8 @@ const RUECKBAUTEN = [
   {
     nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
     datei: 'bilder.js',
-    suche: "  if (!istPNG(buf)) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };",
-    ersatz: "  if (true) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };",
+    suche: "  if (!isPng(buf)) return { data: buf, mime: reportedType, umgewandelt: false };",
+    ersatz: "  if (true) return { data: buf, mime: reportedType, umgewandelt: false };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3829,7 +3829,7 @@ const RUECKBAUTEN = [
     nr: '432', name: 'Der mime_type wird nicht mitgezogen',
     datei: 'bilder.js',
     suche: "      return { data: webp, mime: 'image/webp', umgewandelt: true };",
-    ersatz: "      return { data: webp, mime: gemeldeterTyp, umgewandelt: true };",
+    ersatz: "      return { data: webp, mime: reportedType, umgewandelt: true };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3881,7 +3881,7 @@ const RUECKBAUTEN = [
        ein JPEG, das sich image/png nennt, ginge durch den Kodierer. */
     nr: '434', name: 'Die Erkennung glaubt dem gemeldeten Typ',
     datei: 'bilder.js',
-    suche: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIE);",
+    suche: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);",
     ersatz: "  Buffer.isBuffer(buf) && buf.length >= 8;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3891,8 +3891,8 @@ const RUECKBAUTEN = [
        eine Pruefung, die PIXEL vergleicht, bliebe dieser Rueckbau stumm. */
     nr: '435', name: 'Der verlustbehaftete Kodierer statt nearLossless',
     datei: 'bilder.js',
-    suche: "const WEBP_ABLAGE = { nearLossless: true, quality: 60, effort: 4 };",
-    ersatz: "const WEBP_ABLAGE = { quality: 60, effort: 4 };",
+    suche: "const WEBP_STORE = { nearLossless: true, quality: 60, effort: 4 };",
+    ersatz: "const WEBP_STORE = { quality: 60, effort: 4 };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4166,7 +4166,7 @@ const RUECKBAUTEN = [
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). `transform-origin` gibt es
        nicht mehr; die Zusage dahinter -- der Ausschnitt folgt dem Fokuspunkt
        in BEIDEN Richtungen -- gilt unveraendert und steht jetzt hier. */
-    suche: "  return { links: fx / 100 * (breite - eng), oben: fy / 100 * (hoehe - eng), kante: eng };",
+    suche: "  return { links: fx / 100 * (width - tight), oben: fy / 100 * (height - tight), edge: tight };",
     ersatz: "  return { links: fx / 100 * (breite - eng), oben: 0, kante: eng };",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4178,8 +4178,8 @@ const RUECKBAUTEN = [
     datei: 'bilder.js',
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201): dieselbe Zusage an der
        Stelle, an der der Ausschnitt jetzt entsteht. */
-    suche: "  const k = zuschnittKiste(breite, hoehe, zuschnitt.fx, zuschnitt.fy, zuschnitt.zoom);",
-    ersatz: "  const k = zuschnittKiste(breite, hoehe, 50, 50, zuschnitt.zoom);",
+    suche: "  const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);",
+    ersatz: "  const k = cropSpecBox(breite, hoehe, 50, 50, zuschnitt.zoom);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4454,7 +4454,7 @@ const RUECKBAUTEN = [
        Zeilen stehen jetzt auch in der dritten Schleife, und ein Suchtext, der
        zweimal passt, bricht den Rueckbau ab (Stolperstein 201 -- mitziehen,
        nicht loeschen). Das Nachziehen bekommt seinen eigenen Rueckbau. */
-    suche: "    stand.erledigt++;\n    melde(stand);\n    await new Promise(r => setTimeout(r, 30));",
+    suche: "    status.erledigt++;\n    report(status);\n    await new Promise(r => setTimeout(r, 30));",
     ersatz: "    stand.erledigt++;\n    await new Promise(r => setTimeout(r, 30));",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4645,7 +4645,7 @@ const RUECKBAUTEN = [
        kommt quer heraus -- mit 1280 auf der kurzen Kante. */
     nr: '509', name: 'Der EXIF-Vermerk zaehlt bei der Kante nicht mehr mit',
     datei: 'bilder.js',
-    suche: "  const gedreht = m && m.orientation >= 5;",
+    suche: "  const rotated = m && m.orientation >= 5;",
     ersatz: "  const gedreht = false;",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4655,7 +4655,7 @@ const RUECKBAUTEN = [
        kurzen Kante. */
     nr: '510', name: 'Der Kopf wird nicht gelesen -- die Kiste liegt immer quer',
     datei: 'bilder.js',
-    suche: "  const quer = masse ? istQuer(masse) : true;",
+    suche: "  const landscape = size ? isLandscape(size) : true;",
     ersatz: "  const quer = true;",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4672,7 +4672,7 @@ const RUECKBAUTEN = [
        ZWEITE HAELFTE WIEDER EIN -- und genau daran faellt der Festpunkt: eine
        zugeschnittene Kachel unter 512 (kleines Original, enger Ausschnitt) waere
        damit bei JEDEM Start wieder faellig. */
-    suche: "  return masse.width !== masse.height;",
+    suche: "  return size.width !== size.height;",
     ersatz: "  return masse.width !== masse.height || masse.width !== VARIANTS.thumb.kurz;",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4692,7 +4692,7 @@ const RUECKBAUTEN = [
        vollen Preis fuer das Lesen des Originals. */
     nr: '513', name: 'Der Lauf erneuert jede Zeile, nicht nur die faelligen',
     datei: 'bestandslauf.js',
-    suche: "        if (await istOhneZuschnitt(z.thumb)) {",
+    suche: "        if (await isUncropped(z.thumb)) {",
     ersatz: "        if (true) {",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4712,7 +4712,7 @@ const RUECKBAUTEN = [
        saehe waehrend des ganzen Laufs dieselbe Null. */
     nr: '515', name: 'Das Nachziehen meldet seinen Stand erst am Ende',
     datei: 'bestandslauf.js',
-    suche: "    stand.erledigt++;\n    melde(stand);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
+    suche: "    status.erledigt++;\n    report(status);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
     ersatz: "    stand.erledigt++;\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4730,7 +4730,7 @@ const RUECKBAUTEN = [
        Offengebliebenes benannt. */
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
     datei: 'bestandslauf.js',
-    suche: "  reclaim();\n  melde(stand);\n  console.log(`[Kriterion] Kacheln erneuert:",
+    suche: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Kacheln erneuert:",
     ersatz: "  melde(stand);\n  console.log(`[Kriterion] Kacheln erneuert:",
     erwartet: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
   },
@@ -4832,7 +4832,7 @@ const RUECKBAUTEN = [
        3024 Breite laege ein `left` von 3500 sogar ausserhalb. */
     nr: '525', name: 'Der Zuschnitt rechnet in den gespeicherten statt in den gedrehten Massen',
     datei: 'bilder.js',
-    suche: "  const { breite, hoehe } = gedrehteMasse(masse);",
+    suche: "  const { width, height } = rotatedSize(size);",
     ersatz: "  const breite = masse.width, hoehe = masse.height;",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4843,7 +4843,7 @@ const RUECKBAUTEN = [
        genau den Ausschnitt in einer Ecke (fx = 100). */
     nr: '526', name: 'Die Zuschnittkiste wird nicht gegen den Rand geklammert',
     datei: 'bilder.js',
-    suche: "  return { left:  Math.max(0, Math.min(breite - kante, Math.round(k.links))),\n           top:   Math.max(0, Math.min(hoehe  - kante, Math.round(k.oben))),",
+    suche: "  return { left:  Math.max(0, Math.min(width - edge, Math.round(k.links))),\n           top:   Math.max(0, Math.min(height  - edge, Math.round(k.oben))),",
     ersatz: "  return { left:  Math.round(k.links) + 1,\n           top:   Math.round(k.oben) + 1,",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4885,7 +4885,7 @@ const RUECKBAUTEN = [
        jedem Start aufs Neue faellig, weil sie nicht quadratisch wird. */
     nr: '530', name: 'Der Bestandslauf erneuert ohne Zuschnitt',
     datei: 'bestandslauf.js',
-    suche: "  const v = await makeVariants(vorlage, zuschnittAus(z));",
+    suche: "  const v = await makeVariants(source, cropFrom(z));",
     ersatz: "  const v = await makeVariants(vorlage);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4896,8 +4896,8 @@ const RUECKBAUTEN = [
        Video. */
     nr: '531', name: 'Die Videozeile erzeugt aus der Videodatei statt aus ihrem Standbild',
     datei: 'bestandslauf.js',
-    suche: "const vorlageAus = (z) => (istVideoZeile(z) ? z.medium : z.data);",
-    ersatz: "const vorlageAus = (z) => z.data;",
+    suche: "const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);",
+    ersatz: "const sourceFrom = (z) => z.data;",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4906,7 +4906,7 @@ const RUECKBAUTEN = [
        Fehlerweg -- und die Kachel bleibt, wie sie war. */
     nr: '532', name: 'Der Thread kennt die Aufgabe zuschnitt nicht',
     datei: 'bestandslauf.js',
-    suche: "  else if (workerData.aufgabe === 'zuschnitt') await erneuereEineKachel(workerData.zeilen);\n",
+    suche: "  else if (workerData.aufgabe === 'zuschnitt') await refreshOneTile(workerData.zeilen);\n",
     ersatz: "",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -6157,8 +6157,8 @@ const RUECKBAUTEN = [
        dann als Klammerausdruck da, und der Link waere fort. */
     nr: '680', name: 'mail.js bekommt den Uebersetzer nicht mehr gereicht',
     datei: 'server.js',
-    suche: "mail.setzeUebersetzer(t);",
-    ersatz: "void mail.setzeUebersetzer;",
+    suche: "mail.setTranslator(t);",
+    ersatz: "void mail.setTranslator;",
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6167,7 +6167,7 @@ const RUECKBAUTEN = [
     nr: '681', name: 'auth.js bekommt den Uebersetzer nicht mehr gereicht',
     datei: 'server.js',
     suche: "auth.setzeUebersetzer((req, schluessel, werte) => t(spracheVon(req), schluessel, werte));",
-    ersatz: "void auth.setzeUebersetzer;",
+    ersatz: "void auth.setTranslator;",
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {

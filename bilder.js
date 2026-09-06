@@ -27,7 +27,7 @@ const sharp = require('sharp');
      Weg                          was in der Datenbank landet
      ---------------------------  ------------------------------------------
      Foto am Eintrag (photos)     DAS ORIGINAL (ein PNG als WebP, siehe
-                                  legeBildAb() weiter unten), dazu `medium`
+                                  storeImage() weiter unten), dazu `medium`
                                   und `thumb` als JPEG
      Bild im Kommentar            NUR `medium` und `thumb` --
      (comment_images)             KEIN ORIGINAL
@@ -137,7 +137,7 @@ const VARIANTS = {
    SIE STEHT ZWEIMAL, UND DAS IST DER PUNKT. Der Browser muss den Rahmen im
    Editor live zeichnen, der Server muss die Kachel erzeugen, und zwischen
    beiden liegt HTTP -- eine gemeinsame Fassung gibt es nicht. Also steht sie
-   auf jeder Seite in GENAU EINER Funktion (`zuschnittKiste()` hier und
+   auf jeder Seite in GENAU EINER Funktion (`cropSpecBox()` hier und
    dieselbe in public/app.js) und nicht verstreut, UND DER PRUEFSTAND HAELT
    BEIDE GEGENEINANDER: dieselben drei Werte, dieselben Masse, beide
    Rechnungen, ein Vergleich. Ohne diese Zusage laufen sie beim naechsten
@@ -151,13 +151,13 @@ const VARIANTS = {
 
    GERECHNET WIRD OHNE RUNDUNG. Der Browser braucht Bruchteile eines
    Bildpunkts, um den Rahmen ruckelfrei zu ziehen; der Server rundet erst
-   dort, wo `sharp` ganze Zahlen verlangt (siehe schnittRechteck()). Wer hier
+   dort, wo `sharp` ganze Zahlen verlangt (siehe cropRectOf()). Wer hier
    rundete, machte den Vergleich der beiden Seiten unscharf -- und eine
    Zusage, die auf ein Bildpunkt genau gilt, ist keine. */
-function zuschnittKiste(breite, hoehe, fx, fy, zoom) {
-  const seite = Math.min(breite, hoehe);   // was die Kachel bei zoom 100 zeigt
-  const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
-  return { links: fx / 100 * (breite - eng), oben: fy / 100 * (hoehe - eng), kante: eng };
+function cropSpecBox(width, height, fx, fy, zoom) {
+  const side = Math.min(width, height);   // was die Kachel bei zoom 100 zeigt
+  const tight = side * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
+  return { links: fx / 100 * (width - tight), oben: fy / 100 * (height - tight), edge: tight };
 }
 
 /* WELCHE KANTE DIE KURZE IST, SAGT NUR DAS BILD SELBST -- und der Kopf sagt
@@ -170,13 +170,13 @@ function zuschnittKiste(breite, hoehe, fx, fy, zoom) {
    und bekommt eine Ableitung mit 1280 auf der kurzen Kante.
    `{ autoOrient: true }` HILFT DAGEGEN NICHT: sharp 0.35.3 meldet damit
    ebenfalls 600 x 1200. Nachgesehen, nicht angenommen. */
-function gedrehteMasse(m) {
-  const gedreht = m && m.orientation >= 5;
-  return { breite: gedreht ? m.height : m.width, hoehe: gedreht ? m.width : m.height };
+function rotatedSize(m) {
+  const rotated = m && m.orientation >= 5;
+  return { width: rotated ? m.height : m.width, height: rotated ? m.width : m.height };
 }
-const istQuer = (m) => {
-  const { breite, hoehe } = gedrehteMasse(m);
-  return !(hoehe > breite);
+const isLandscape = (m) => {
+  const { width, height } = rotatedSize(m);
+  return !(height > width);
 };
 
 /* ---- DIE FALLE, UND SIE IST GEMESSEN -- 0.19.5 ----
@@ -213,16 +213,16 @@ const istQuer = (m) => {
    EIN Zuschnitt OHNE MASSE GIBT null ZURUECK und keine Kiste auf gut Glueck:
    ohne die Masse der Vorlage ist jede Ecke geraten, und eine geratene Kachel
    ist schlechter als eine ungeschnittene. */
-function schnittRechteck(masse, zuschnitt) {
-  if (!masse || !zuschnitt) return null;
-  const { breite, hoehe } = gedrehteMasse(masse);
-  if (!breite || !hoehe) return null;
-  const k = zuschnittKiste(breite, hoehe, zuschnitt.fx, zuschnitt.fy, zuschnitt.zoom);
-  if (!Number.isFinite(k.kante) || !Number.isFinite(k.links) || !Number.isFinite(k.oben)) return null;
-  const kante = Math.max(1, Math.min(breite, hoehe, Math.round(k.kante)));
-  return { left:  Math.max(0, Math.min(breite - kante, Math.round(k.links))),
-           top:   Math.max(0, Math.min(hoehe  - kante, Math.round(k.oben))),
-           width: kante, height: kante };
+function cropRectOf(size, cropSpec) {
+  if (!size || !cropSpec) return null;
+  const { width, height } = rotatedSize(size);
+  if (!width || !height) return null;
+  const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);
+  if (!Number.isFinite(k.edge) || !Number.isFinite(k.links) || !Number.isFinite(k.oben)) return null;
+  const edge = Math.max(1, Math.min(width, height, Math.round(k.edge)));
+  return { left:  Math.max(0, Math.min(width - edge, Math.round(k.links))),
+           top:   Math.max(0, Math.min(height  - edge, Math.round(k.oben))),
+           width: edge, height: edge };
 }
 
 /* DER KOPF WIRD EINMAL GELESEN UND NICHT JE ABLEITUNG. Er kostet gemessen
@@ -245,23 +245,23 @@ function schnittRechteck(masse, zuschnitt) {
    enger Ausschnitt --, wird NICHT hochgerechnet: es kostete Bytes und truege
    keinen einzigen Bildpunkt mehr, der Browser zieht es beim Anzeigen ohnehin
    auf, und das Ergebnis ist Bildpunkt fuer Bildpunkt dasselbe. */
-async function makeVariants(buf, zuschnitt) {
+async function makeVariants(buf, cropSpec) {
   const out = {};
-  let masse = null;
-  try { masse = await sharp(buf, { failOn: 'none' }).metadata(); } catch {}
-  const quer = masse ? istQuer(masse) : true;
-  const schnitt = schnittRechteck(masse, zuschnitt);
+  let size = null;
+  try { size = await sharp(buf, { failOn: 'none' }).metadata(); } catch {}
+  const landscape = size ? isLandscape(size) : true;
+  const cropRect = cropRectOf(size, cropSpec);
   for (const [name, v] of Object.entries(VARIANTS)) {
     try {
       /* DIE TAFEL ENTSCHEIDET, OB GESCHNITTEN WIRD (`schneidet`), UND DIE
          KISTE FOLGT DARAUS: der Zuschnitt ist quadratisch, also traegt die
          Kiste zweimal die kurze Kante. Eine Verzweigung auf den NAMEN der
          Ableitung stuende als zweite Wahrheit neben der Tafel. */
-      const roh = sharp(buf, { failOn: 'none' }).rotate();
-      const geschnitten = v.schneidet && schnitt;
-      out[name] = await (geschnitten ? roh.extract(schnitt) : roh)
-        .resize(geschnitten ? v.kurz : (quer ? v.lang : v.kurz),
-                geschnitten ? v.kurz : (quer ? v.kurz : v.lang),
+      const raw = sharp(buf, { failOn: 'none' }).rotate();
+      const cropped = v.schneidet && cropRect;
+      out[name] = await (cropped ? raw.extract(cropRect) : raw)
+        .resize(cropped ? v.kurz : (landscape ? v.lang : v.kurz),
+                cropped ? v.kurz : (landscape ? v.kurz : v.lang),
                 { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();
     } catch { out[name] = null; }
@@ -323,17 +323,17 @@ async function makeVariants(buf, zuschnitt) {
    Start erneut versucht, kommt leer zurueck und wird uebersprungen. Das ist
    eine Zeile, deren Bild ohnehin niemand mehr anzeigen kann.
 
-   ZWEI AUSGAENGE AUF EINE REGEL, ABER NICHT ZWEI REGELN: `traegtKeinenZuschnitt`
+   ZWEI AUSGAENGE AUF EINE REGEL, ABER NICHT ZWEI REGELN: `hasNoCropSpec`
    ist die Regel ohne sharp -- der Pruefstand haelt sie gegen Masse, die er
-   selbst hinschreibt, und braucht dafuer kein Bild. `istOhneZuschnitt` liest
+   selbst hinschreibt, und braucht dafuer kein Bild. `isUncropped` liest
    den Kopf und ruft sie. */
-function traegtKeinenZuschnitt(masse) {
-  if (!masse || !masse.width || !masse.height) return true;
-  return masse.width !== masse.height;
+function hasNoCropSpec(size) {
+  if (!size || !size.width || !size.height) return true;
+  return size.width !== size.height;
 }
 
-async function istOhneZuschnitt(thumb) {
-  try { return traegtKeinenZuschnitt(await sharp(thumb, { failOn: 'none' }).metadata()); }
+async function isUncropped(thumb) {
+  try { return hasNoCropSpec(await sharp(thumb, { failOn: 'none' }).metadata()); }
   catch { return true; }
 }
 
@@ -374,7 +374,7 @@ async function istOhneZuschnitt(thumb) {
    WER DIE ABWAEGUNG ANDERS TRIFFT, setzt hier `nearLossless: true` mit
    `quality: 100` (dann wird gar nicht geglaettet) und zahlt 55 MB. Beides ist
    vertretbar; entschieden ist 60. */
-const WEBP_ABLAGE = { nearLossless: true, quality: 60, effort: 4 };
+const WEBP_STORE = { nearLossless: true, quality: 60, effort: 4 };
 
 /* DIE ERKENNUNG GEHT UEBER DIE ERSTEN ACHT BYTES, nicht ueber den gemeldeten
    Typ: ein Byte-Vergleich kostet nichts, und er glaubt dem Browser nicht auf
@@ -382,10 +382,10 @@ const WEBP_ABLAGE = { nearLossless: true, quality: 60, effort: 4 };
    aus den Bytes setzt. Der String daneben ist DERSELBE Wert in der Form,
    in der SQLite ihn liefert (hex(substr(data,1,8))) -- eine zweite Stelle mit
    einer zweiten Schreibweise liefe auseinander. */
-const PNG_MAGIE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const PNG_MAGIE_HEX = PNG_MAGIE.toString('hex').toUpperCase();
-const istPNG = (buf) =>
-  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIE);
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const PNG_MAGIC_HEX = PNG_MAGIC.toString('hex').toUpperCase();
+const isPng = (buf) =>
+  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);
 
 /* WAS WIRKLICH IN photos.data GEHT. Ein PNG wird ein WebP, alles andere bleibt,
    wie es ist.
@@ -414,10 +414,10 @@ const istPNG = (buf) =>
    Vorlage, an der sharp etwas zu beanstanden hat, soll hier NICHT halb
    umgewandelt werden. Sie faellt in den Rueckfall und bleibt unberuehrt --
    bei einer Ableitung ist ein Rest besser als nichts, beim Original nicht. */
-async function legeBildAb(buf, gemeldeterTyp) {
-  if (!istPNG(buf)) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
+async function storeImage(buf, reportedType) {
+  if (!isPng(buf)) return { data: buf, mime: reportedType, umgewandelt: false };
   try {
-    const webp = await sharp(buf).webp(WEBP_ABLAGE).toBuffer();
+    const webp = await sharp(buf).webp(WEBP_STORE).toBuffer();
     if (webp.length < buf.length)
       return { data: webp, mime: 'image/webp', umgewandelt: true };
   } catch (e) {
@@ -425,28 +425,28 @@ async function legeBildAb(buf, gemeldeterTyp) {
     // eben als PNG. Wer es wissen will, sieht es an der Formatzeile der Karte.
     console.error('[Kriterion] PNG blieb PNG:', e.message);
   }
-  return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
+  return { data: buf, mime: reportedType, umgewandelt: false };
 }
 
 /* AUSGEGEBEN WIRD, WAS GERUFEN WIRD, UND SONST NICHTS. `VARIANTS`,
-   `WEBP_ABLAGE` und `PNG_MAGIE` sind die Werte, mit denen die Funktionen hier
+   `WEBP_STORE` und `PNG_MAGIC` sind die Werte, mit denen die Funktionen hier
    arbeiten -- ausserhalb ruft sie niemand, und eine Ausgabe ohne Empfaenger
    ist eine Zeile, die beim naechsten Lesen erklaert werden muss.
    `ALTE_THUMB_KANTE` IST MIT 0.19.5 WEGGEFALLEN: die 400 beschrieb den
    Zustand, den 0.19.4 vorfand, und die neue Frage kommt ohne sie aus.
-   `istOhneZuschnitt` UND `traegtKeinenZuschnitt` SEIT 0.19.5 (bis dahin hiessen
+   `isUncropped` UND `hasNoCropSpec` SEIT 0.19.5 (bis dahin hiessen
    sie `istAlteAbleitung` und `traegtAlteGeometrie` und stellten die alte
    Frage): der Bestandslauf fragt mit der ersten je Zeile, ob ihre Kachel noch
    ungeschnitten ist. Die zweite ist dieselbe Regel OHNE sharp -- der
    Pruefstand haelt sie gegen Masse, die er selbst hinschreibt, und braucht
    dafuer kein Bild. Zwei Ausgaenge auf eine Regel, aber nicht zwei Regeln:
    die erste ruft die zweite.
-   `zuschnittKiste` STEHT DABEI, WEIL SIE ZWEIMAL GEBRAUCHT WIRD: hier von
-   schnittRechteck(), und der Pruefstand haelt sie gegen die gleichnamige
+   `cropSpecBox` STEHT DABEI, WEIL SIE ZWEIMAL GEBRAUCHT WIRD: hier von
+   cropRectOf(), und der Pruefstand haelt sie gegen die gleichnamige
    Funktion in public/app.js. Ohne diesen Ausgang waere die Zusage aus dem
    Kopf dieser Datei nicht nachpruefbar (Stolperstein 293).
-   `PNG_MAGIE_HEX` STEHT DAGEGEN DABEI: server.js braucht dieselbe Byte-Folge
+   `PNG_MAGIC_HEX` STEHT DAGEGEN DABEI: server.js braucht dieselbe Byte-Folge
    in der Schreibweise, in der SQLite sie liefert (hex(substr(data,1,8))), und
    eine zweite Stelle mit einer zweiten Schreibweise liefe auseinander. */
-module.exports = { makeVariants, PNG_MAGIE_HEX, istPNG, legeBildAb,
-                   istOhneZuschnitt, traegtKeinenZuschnitt, zuschnittKiste };
+module.exports = { makeVariants, PNG_MAGIC_HEX, isPng, storeImage,
+                   isUncropped, hasNoCropSpec, cropSpecBox };

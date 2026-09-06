@@ -2260,7 +2260,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Kennzahlen nennen ihn dafür', /^[0-9a-f]{8}$/.test(statsFingerprint || ''),
     JSON.stringify(statsFingerprint));
 
-  /* ---- DIE VERFAHREN -- 0.16.0 ------------------------------------------
+  /* ---- DIE ALGORITHM -- 0.16.0 ------------------------------------------
      ABGELESEN UND NICHT BEHAUPTET: die Angaben kommen aus db.js, das die
      GEOEFFNETE Datei fragt. Eine Kopie in der Oberflaeche liefe beim naechsten
      Wechsel auseinander -- deshalb steht hier auch keine zweite Liste, sondern
@@ -3250,7 +3250,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     dNachher.glockeGesehen !== '1999-01-01 00:00:00' &&
     dNachher.glockeGesehen > '2020-01-01 00:00:00',
     JSON.stringify(dNachher.glockeGesehen));
-  /* DAS FENSTER IST NACHGESTELLT (Stolperstein 60): datetime('now') loest nur
+  /* DAS WINDOW IST NACHGESTELLT (Stolperstein 60): datetime('now') loest nur
      Sekunden auf. Entstuende ein Kommentar in derselben Sekunde, in der jemand
      die Tafel oeffnet, traege sein Eintrag genau diesen Zeitstempel und
      gaelte danach nie als neu. Geprueft wird an der Sekunde selbst: der
@@ -12035,9 +12035,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Die Anbieterliste kommt weiterhin mit sechs Eintraegen',
       rAnbListe.length === 6, `${rAnbListe.length}`);
     pruefe('Und in derselben Folge wie in mail.js',
-      rAnbListe.map(a => a.schluessel).join(',') === 'gmx,web,gmail,strato,ionos,eigen',
-      rAnbListe.map(a => a.schluessel).join(','));
-    const rAnbGmx = rAnbListe.find(a => a.schluessel === 'gmx');
+      rAnbListe.map(a => a.key).join(',') === 'gmx,web,gmail,strato,ionos,eigen',
+      rAnbListe.map(a => a.key).join(','));
+    const rAnbGmx = rAnbListe.find(a => a.key === 'gmx');
     pruefe('Jeder Eintrag traegt Server, Port und Verschluesselung',
       rAnbListe.every(a => typeof a.server === 'string' && typeof a.port === 'number'
                      && typeof a.sicher === 'boolean'),
@@ -12052,7 +12052,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Anbieterhinweis haengt am Eintrag',
       /fremde Programme/.test(rAnbGmx?.hinweis || ''), JSON.stringify(rAnbGmx?.hinweis));
     pruefe('Und ein Anbieter ohne Hinweis traegt einen leeren',
-      rAnbListe.find(a => a.schluessel === 'strato')?.hinweis === '',
+      rAnbListe.find(a => a.key === 'strato')?.hinweis === '',
       JSON.stringify(rAnbListe.find(a => a.schluessel === 'strato')?.hinweis));
     /* DAS PASSWORT KOMMT AUCH HIER NICHT HERAUS -- die Liste ist eine neue
        Auskunft, und jede neue Auskunft wird daraufhin angesehen. */
@@ -13027,28 +13027,28 @@ const freigabeHaupt = (zweck, ziel = null) =>
        DER LETZTE (T = 20 000 000 000) LIEGT UEBER 2^32 und laeuft damit ueber
        die obere Haelfte des acht Byte grossen Zaehlers -- die eine Stelle, an
        der eine Umsetzung mit writeUInt32BE allein still falsch waere. */
-    const zfVektorGeheim = ZF.base32Kodiere(Buffer.from('12345678901234567890', 'ascii'));
+    const zfVektorGeheim = ZF.base32Encode(Buffer.from('12345678901234567890', 'ascii'));
     pruefe('Das Testgeheimnis kodiert nach RFC 4648 zu GEZDGNBVGY3TQOJQ…',
       zfVektorGeheim === 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', zfVektorGeheim);
     pruefe('Und dekodiert Zeichen fuer Zeichen zurueck',
-      ZF.base32Dekodiere(zfVektorGeheim).toString('ascii') === '12345678901234567890',
-      String(ZF.base32Dekodiere(zfVektorGeheim)));
+      ZF.base32Decode(zfVektorGeheim).toString('ascii') === '12345678901234567890',
+      String(ZF.base32Decode(zfVektorGeheim)));
     pruefe('Auch mit Leerzeichen und Bindestrichen, wie ein Mensch ihn abschreibt',
-      ZF.base32Dekodiere('GEZD GNBV GY3T-QOJQ GEZDGNBVGY3TQOJQ').toString('ascii')
+      ZF.base32Decode('GEZD GNBV GY3T-QOJQ GEZDGNBVGY3TQOJQ').toString('ascii')
         === '12345678901234567890');
     pruefe('Ein Zeichen ausserhalb des Alphabets ergibt null, keine Ausnahme',
-      ZF.base32Dekodiere('GEZ0GNBV') === null && ZF.base32Dekodiere('') === null);
+      ZF.base32Decode('GEZ0GNBV') === null && ZF.base32Decode('') === null);
 
     const ZF_VEKTOREN = [
       [59, '94287082'], [1111111109, '07081804'], [1111111111, '14050471'],
       [1234567890, '89005924'], [2000000000, '69279037'], [20000000000, '65353130']
     ];
     const zfFalsch = ZF_VEKTOREN.filter(([t, soll]) =>
-      ZF.code(zfVektorGeheim, ZF.schrittZu(t * 1000)) !== soll.slice(-ZF.ZIFFERN));
+      ZF.code(zfVektorGeheim, ZF.stepOf(t * 1000)) !== soll.slice(-ZF.DIGITS));
     pruefe(`Alle ${ZF_VEKTOREN.length} Testvektoren aus RFC 6238 stimmen`,
       zfFalsch.length === 0,
-      zfFalsch.map(([t, s]) => `T=${t} soll ${s.slice(-ZF.ZIFFERN)}, ist ` +
-        ZF.code(zfVektorGeheim, ZF.schrittZu(t * 1000))).join(' · '));
+      zfFalsch.map(([t, s]) => `T=${t} soll ${s.slice(-ZF.DIGITS)}, ist ` +
+        ZF.code(zfVektorGeheim, ZF.stepOf(t * 1000))).join(' · '));
     /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): eine leere
        Vektorliste machte die Zeile darueber wahr, ohne etwas zu belegen. */
     pruefe('Und die Liste der Vektoren ist wirklich gefuellt',
@@ -13063,16 +13063,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
        ueberein, ist die Teilung richtig -- und das ist kein Vergleich der
        Instanz mit sich selbst, sondern zweier verschiedener Wege. */
     pruefe('Kein Testvektor aus RFC 6238 erreicht die obere Haelfte des Zaehlers',
-      ZF.schrittZu(20000000000 * 1000) < 2 ** 32,
-      `groesster Zaehler ${ZF.schrittZu(20000000000 * 1000)}, Grenze ${2 ** 32}`);
+      ZF.stepOf(20000000000 * 1000) < 2 ** 32,
+      `groesster Zaehler ${ZF.stepOf(20000000000 * 1000)}, Grenze ${2 ** 32}`);
     const zfHmacDirekt = (geheimBase32, zaehler) => {
       const z = Buffer.alloc(8);
       z.writeBigUInt64BE(BigInt(zaehler));
-      const h = require('crypto').createHmac('sha1', ZF.base32Dekodiere(geheimBase32))
+      const h = require('crypto').createHmac('sha1', ZF.base32Decode(geheimBase32))
         .update(z).digest();
       const o = h[h.length - 1] & 0x0f;
       const bin = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
-      return String(bin % 10 ** ZF.ZIFFERN).padStart(ZF.ZIFFERN, '0');
+      return String(bin % 10 ** ZF.DIGITS).padStart(ZF.DIGITS, '0');
     };
     const ZF_HOCH = [2 ** 32, 2 ** 32 + 1, 2 ** 33 + 7, 987654321012];
     const zfHochFalsch = ZF_HOCH.filter(z =>
@@ -13092,71 +13092,71 @@ const freigabeHaupt = (zweck, ziel = null) =>
        jedes davon liest Google Authenticator stillschweigend falsch oder gar
        nicht. Wer davon abweicht, sperrt genau die App aus, fuer die gebaut ist;
        eine Zahl im Quelltext, die keine Pruefung festhaelt, wandert. */
-    pruefe('Das Verfahren ist HMAC-SHA1', ZF.VERFAHREN === 'sha1', ZF.VERFAHREN);
-    pruefe('Der Code hat sechs Ziffern', ZF.ZIFFERN === 6, String(ZF.ZIFFERN));
-    pruefe('Der Schritt ist dreissig Sekunden', ZF.SCHRITT_SEKUNDEN === 30,
-      String(ZF.SCHRITT_SEKUNDEN));
+    pruefe('Das Verfahren ist HMAC-SHA1', ZF.ALGORITHM === 'sha1', ZF.ALGORITHM);
+    pruefe('Der Code hat sechs Ziffern', ZF.DIGITS === 6, String(ZF.DIGITS));
+    pruefe('Der Schritt ist dreissig Sekunden', ZF.STEP_SECONDS === 30,
+      String(ZF.STEP_SECONDS));
     pruefe('Das Fenster ist genau eines nach vorn und eines zurueck',
-      ZF.FENSTER === 1, String(ZF.FENSTER));
+      ZF.WINDOW === 1, String(ZF.WINDOW));
     pruefe('Das Geheimnis hat zwanzig Bytes und damit 32 Base32-Zeichen ohne Fuellzeichen',
-      ZF.GEHEIM_BYTES === 20 && ZF.neuesGeheimnis().length === 32 &&
-      !ZF.neuesGeheimnis().includes('='), ZF.neuesGeheimnis());
+      ZF.SECRET_BYTES === 20 && ZF.newSecret().length === 32 &&
+      !ZF.newSecret().includes('='), ZF.newSecret());
 
     /* DIE ZWEI FORMEN IN EINEM FELD. Sechs Ziffern sind ein Code aus der App,
        zehn Zeichen ein Wiederherstellungscode -- und keine Eingabe darf beides
        zugleich sein, sonst entschiede die Reihenfolge der Abfrage. */
     pruefe('Sechs Ziffern sind ein Code aus der App',
-      ZF.istCodeform('012345') && !ZF.istCodeform('12345') && !ZF.istCodeform('0123456') &&
-      !ZF.istCodeform('abcdef') && !ZF.istCodeform(''));
-    const zfProbeCodes = ZF.neueWiederCodes();
+      ZF.isCodeForm('012345') && !ZF.isCodeForm('12345') && !ZF.isCodeForm('0123456') &&
+      !ZF.isCodeForm('abcdef') && !ZF.isCodeForm(''));
+    const zfProbeCodes = ZF.newRecoveryCodes();
     pruefe('Und zehn Zeichen aus dem Alphabet ein Wiederherstellungscode',
-      zfProbeCodes.every(c => ZF.istWiederform(c)) &&
-      zfProbeCodes.every(c => ZF.istWiederform(ZF.wiederAnzeige(c))) &&
-      !ZF.istWiederform('012345') && !ZF.istWiederform(zfProbeCodes[0] + 'X'));
+      zfProbeCodes.every(c => ZF.isRecoveryForm(c)) &&
+      zfProbeCodes.every(c => ZF.isRecoveryForm(ZF.recoveryDisplay(c))) &&
+      !ZF.isRecoveryForm('012345') && !ZF.isRecoveryForm(zfProbeCodes[0] + 'X'));
     pruefe('Keine der beiden Formen ist zugleich die andere',
-      !ZF.istCodeform(zfProbeCodes[0]) && !ZF.istWiederform('012345'));
+      !ZF.isCodeForm(zfProbeCodes[0]) && !ZF.isRecoveryForm('012345'));
     pruefe('Das Alphabet der Wiederherstellungscodes kennt kein 0, O, 1, I oder l',
-      !/[01OIl]/.test(ZF.WIEDER_ALPHABET), ZF.WIEDER_ALPHABET);
+      !/[01OIl]/.test(ZF.RECOVERY_ALPHABET), ZF.RECOVERY_ALPHABET);
     pruefe('Es sind acht Codes zu je zehn Zeichen, und keiner gleicht dem anderen',
-      zfProbeCodes.length === 8 && ZF.WIEDER_ZAHL === 8 && ZF.WIEDER_LAENGE === 10 &&
+      zfProbeCodes.length === 8 && ZF.RECOVERY_COUNT === 8 && ZF.RECOVERY_LENGTH === 10 &&
       zfProbeCodes.every(c => c.length === 10) && new Set(zfProbeCodes).size === 8);
     pruefe('Zwei Aufrufe liefern nie denselben Satz',
-      ZF.neueWiederCodes().join() !== ZF.neueWiederCodes().join());
+      ZF.newRecoveryCodes().join() !== ZF.newRecoveryCodes().join());
     pruefe('Der Schluessel wird in Vierergruppen angezeigt und laesst sich so zurueckdekodieren',
-      ZF.inVierergruppen(zfVektorGeheim).split(' ').length === 8 &&
-      ZF.base32Dekodiere(ZF.inVierergruppen(zfVektorGeheim)).toString('ascii')
-        === '12345678901234567890', ZF.inVierergruppen(zfVektorGeheim));
+      ZF.groupsOfFour(zfVektorGeheim).split(' ').length === 8 &&
+      ZF.base32Decode(ZF.groupsOfFour(zfVektorGeheim)).toString('ascii')
+        === '12345678901234567890', ZF.groupsOfFour(zfVektorGeheim));
 
-    /* DAS FENSTER, an der reinen Rechnung und ohne Uhr des Servers -- hier
+    /* DAS WINDOW, an der reinen Rechnung und ohne Uhr des Servers -- hier
        laesst sich der Zeitpunkt uebergeben, und deshalb steht die schaerfste
        Fassung dieser Probe hier und nicht an einem Server. */
-    const zfT = 1111111111 * 1000, zfN = ZF.schrittZu(zfT);
+    const zfT = 1111111111 * 1000, zfN = ZF.stepOf(zfT);
     pruefe('Ein Code aus dem laufenden Fenster traegt',
-      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN), zfT) === zfN);
+      ZF.checkCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN), zfT) === zfN);
     pruefe('Einer aus dem Fenster davor ebenfalls',
-      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN - 1), zfT) === zfN - 1);
+      ZF.checkCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN - 1), zfT) === zfN - 1);
     pruefe('Und einer aus dem Fenster danach auch',
-      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN + 1), zfT) === zfN + 1);
+      ZF.checkCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN + 1), zfT) === zfN + 1);
     pruefe('Einer aus dem UEBERNAECHSTEN Fenster traegt nicht',
-      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN + 2), zfT) === null &&
-      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN - 2), zfT) === null);
+      ZF.checkCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN + 2), zfT) === null &&
+      ZF.checkCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN - 2), zfT) === null);
     pruefe('Ein Code, der nach nichts aussieht, traegt ebenfalls nicht',
-      ZF.pruefeCode(zfVektorGeheim, 'abcdef', zfT) === null &&
-      ZF.pruefeCode(zfVektorGeheim, '', zfT) === null &&
-      ZF.pruefeCode(zfVektorGeheim, '00000', zfT) === null);
+      ZF.checkCode(zfVektorGeheim, 'abcdef', zfT) === null &&
+      ZF.checkCode(zfVektorGeheim, '', zfT) === null &&
+      ZF.checkCode(zfVektorGeheim, '00000', zfT) === null);
     /* DIE ZEILE, DIE DIE OTPAUTH-ZEILE ZUSAMMENHAELT. Sie traegt die drei
        Kennwerte ausgeschrieben, obwohl sie die Vorgabe sind: ein Pruefgeraet,
        das sie anders vorbelegt, laege sonst still daneben. */
-    const zfZeile = ZF.otpauthZeile('Kriterion', 'anna', zfVektorGeheim);
+    const zfZeile = ZF.otpauthLine('Kriterion', 'anna', zfVektorGeheim);
     pruefe('Die otpauth-Zeile nennt Instanz, Zugang, Geheimnis und alle drei Kennwerte',
       zfZeile.startsWith('otpauth://totp/') && zfZeile.includes('Kriterion%3Aanna') &&
       zfZeile.includes(`secret=${zfVektorGeheim}`) && zfZeile.includes('issuer=Kriterion') &&
       zfZeile.includes('algorithm=SHA1') && zfZeile.includes('digits=6') &&
       zfZeile.includes('period=30'), zfZeile);
     pruefe('Ein Instanzname mit Doppelpunkt oder Leerzeichen wird maskiert',
-      !ZF.otpauthZeile('Werk Nord: Prüfung', 'anna', zfVektorGeheim)
+      !ZF.otpauthLine('Werk Nord: Prüfung', 'anna', zfVektorGeheim)
         .slice('otpauth://totp/'.length).includes(' '),
-      ZF.otpauthZeile('Werk Nord: Prüfung', 'anna', zfVektorGeheim));
+      ZF.otpauthLine('Werk Nord: Prüfung', 'anna', zfVektorGeheim));
 
     /* ---------------------------------------------------------------- */
 
@@ -13170,7 +13170,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       `const { db } = require('./db'); console.log(JSON.stringify(db.prepare(${JSON.stringify(sql)}).all()));`,
       zfDir));
 
-    /* WARTET, BIS IM LAUFENDEN FENSTER NOCH GENUG ZEIT IST. Der Pruefstand
+    /* WARTET, BIS IM LAUFENDEN WINDOW NOCH GENUG ZEIT IST. Der Pruefstand
        rechnet Codes hier aus und schickt sie an einen Server, der SEINE Uhr
        liest -- faellt die Grenze der dreissig Sekunden dazwischen, wird aus
        einem Code fuer das uebernaechste Fenster einer fuers naechste, und eine
@@ -13197,7 +13197,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       await zfS.ruf('POST', '/api/login', { user: name, password: passwort });
       const start = await zfS.ruf('POST', '/api/zweifaktor/start', { passwort });
       await zfRuhig();
-      const zaehler = ZF.jetztSchritt();
+      const zaehler = ZF.nowStep();
       /* AUFFANGNETZ (Stolperstein 138): gibt /start kein Geheimnis her, laeuft
          alles Weitere trotzdem durch -- mit einem erfundenen Wert, der
          zuverlaessig nicht traegt. Ohne das griffe schon die naechste Zeile
@@ -13251,7 +13251,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       zfA.an.status === 200 && zfA.an.inhalt.an === true, JSON.stringify(zfA.an.inhalt));
     pruefe('Und gibt genau acht Wiederherstellungscodes heraus',
       Array.isArray(zfA.codes) && zfA.codes.length === 8 &&
-      zfA.codes.every(c => ZF.istWiederform(c)), JSON.stringify(zfA.codes?.length));
+      zfA.codes.every(c => ZF.isRecoveryForm(c)), JSON.stringify(zfA.codes?.length));
     pruefe('Der Stand nennt acht von acht offen',
       zfA.an.inhalt.codesOffen === 8 && zfA.an.inhalt.codesGesamt === 8,
       `${zfA.an.inhalt.codesOffen}/${zfA.an.inhalt.codesGesamt}`);
@@ -13265,7 +13265,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       zfEinst.inhalt.zweifaktor === true, JSON.stringify(zfEinst.inhalt.zweifaktor));
 
     await zfRuhig();
-    const zfRund = await zfAnmelden(zfA, ZF.jetztSchritt() + 1);
+    const zfRund = await zfAnmelden(zfA, ZF.nowStep() + 1);
     pruefe('Abmelden und mit Code wieder anmelden: Schritt 1 gibt keinen Cookie, sondern einen Ausweis',
       zfRund.eins.status === 200 && zfRund.eins.inhalt.zweifaktor === true &&
       typeof zfRund.eins.inhalt.ausweis === 'string' && !zfRund.eins.inhalt.ok,
@@ -13353,7 +13353,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       (await zfAnmelden(zfB, zfB.zaehler)).zwei.status === 401,
       'derselbe Code, mit dem eingeschaltet wurde');
     await zfRuhig();
-    const zfEinmal = ZF.jetztSchritt() + 1;
+    const zfEinmal = ZF.nowStep() + 1;
     const zfErst = await zfAnmelden(zfB, zfEinmal);
     pruefe('Ein frischer Code traegt', zfErst.zwei.status === 200,
       JSON.stringify(zfErst.zwei.inhalt));
@@ -13383,8 +13383,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const zfW = { vor: await zfZugangMitFaktor('wvor'), nach: await zfZugangMitFaktor('wnach'),
                   weit: await zfZugangMitFaktor('wweit'), zurueck: await zfZugangMitFaktor('wzur') };
     await zfRuhig();
-    const zfJetzt = ZF.jetztSchritt();
-    /* DIE ZUGAENGE SIND IM LAUFENDEN FENSTER BESTAETIGT WORDEN, ihr Zaehler
+    const zfJetzt = ZF.nowStep();
+    /* DIE ZUGAENGE SIND IM LAUFENDEN WINDOW BESTAETIGT WORDEN, ihr Zaehler
        steht also auf jetzt oder davor. Fuer "das Fenster davor traegt" braucht
        es deshalb einen Zugang, dessen Zaehler noch tiefer liegt -- gebaut ist
        das ueber das Zuruecksetzen der Zeile von Hand. Das ist Vorbereitung
@@ -13406,7 +13406,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und einer aus dem vorvorigen ebenso wenig',
       zfUnter.zwei.status === 401, JSON.stringify(zfUnter.zwei.inhalt));
     pruefe('Der abgewiesene Zugang kommt danach mit einem gueltigen Code herein',
-      (await zfAnmelden(zfW.zurueck, ZF.jetztSchritt())).zwei.status === 200);
+      (await zfAnmelden(zfW.zurueck, ZF.nowStep())).zwei.status === 200);
 
     /* ---------------------------------------------------------------- */
     gruppe('Der zweite Faktor: ohne Code kommt niemand herein');
@@ -13424,11 +13424,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Auch die geschuetzten Endpunkte bleiben zu',
       (await zfS.ruf('GET', '/api/items')).status === 401);
     const zfOhneAusweis = await zfS.ruf('POST', '/api/login/zwei',
-      { code: ZF.code(zfC.geheim, ZF.jetztSchritt()) });
+      { code: ZF.code(zfC.geheim, ZF.nowStep()) });
     pruefe('Ein Code OHNE Ausweis traegt nicht', zfOhneAusweis.status === 401,
       JSON.stringify(zfOhneAusweis.inhalt));
     const zfErfunden = await zfS.ruf('POST', '/api/login/zwei',
-      { ausweis: 'a'.repeat(64), code: ZF.code(zfC.geheim, ZF.jetztSchritt()) });
+      { ausweis: 'a'.repeat(64), code: ZF.code(zfC.geheim, ZF.nowStep()) });
     pruefe('Ein erfundener Ausweis ebenso wenig', zfErfunden.status === 401,
       JSON.stringify(zfErfunden.inhalt));
     /* DER AUSWEIS GILT GENAU EINMAL. Ohne das waere die eine Passwortprobe
@@ -13439,11 +13439,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
       { user: zfC.name, password: zfC.passwort });
     const zfAw = zfEinsB.inhalt.ausweis;
     const zfNutz1 = await zfS.ruf('POST', '/api/login/zwei',
-      { ausweis: zfAw, code: ZF.code(zfC.geheim, ZF.jetztSchritt() + 1) });
+      { ausweis: zfAw, code: ZF.code(zfC.geheim, ZF.nowStep() + 1) });
     pruefe('Der Ausweis traegt einmal', zfNutz1.status === 200);
     await zfS.cookieLoeschen();
     const zfNutz2 = await zfS.ruf('POST', '/api/login/zwei',
-      { ausweis: zfAw, code: ZF.code(zfC.geheim, ZF.jetztSchritt() + 1) });
+      { ausweis: zfAw, code: ZF.code(zfC.geheim, ZF.nowStep() + 1) });
     pruefe('Und danach nie wieder', zfNutz2.status === 401, JSON.stringify(zfNutz2.inhalt));
     pruefe('Auch die Absage auf einen verbrauchten Ausweis fuehrt zurueck an den Anfang',
       !zfNutz2.inhalt.ausweis, JSON.stringify(zfNutz2.inhalt));
@@ -13521,7 +13521,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       `const raus = {};` +
       `for (const x of t) raus[x.name] = db.prepare('SELECT * FROM ' + x.name).all();` +
       `console.log(JSON.stringify(raus));`, zfDir);
-    const zfTreffer = zfD.codes.filter(c => zfAlles.includes(ZF.wiederNormal(c)));
+    const zfTreffer = zfD.codes.filter(c => zfAlles.includes(ZF.recoveryNormal(c)));
     pruefe('Kein Klartext eines Wiederherstellungscodes steht in irgendeiner Spalte',
       zfTreffer.length === 0, zfTreffer.join(' '));
     /* UND DIE GEGENLAGE ZUR SUCHE SELBST (Stolperstein 81): findet sie ueberhaupt
@@ -13608,7 +13608,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        0.9.0: die Startzeile nennt, was laeuft, und kein Geheimnis. */
     pruefe('Und in keiner Zeile der Serverausgabe',
       !zfS.protokoll().includes(zfE.geheim) &&
-      !zfE.codes.some(c => zfS.protokoll().includes(ZF.wiederNormal(c))),
+      !zfE.codes.some(c => zfS.protokoll().includes(ZF.recoveryNormal(c))),
       'Serverausgabe durchsucht');
     // Der Eigentuemer sieht am fremden Zugang ohnehin nichts davon.
     await zfS.cookieLoeschen();
@@ -13796,7 +13796,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* ---------------------------------------------------------------- */
     gruppe('Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt');
 
-    /* SECHS ZIFFERN SIND EINE MILLION; ungebremst ist das kein Faktor, sondern
+    /* SECHS DIGITS SIND EINE MILLION; ungebremst ist das kein Faktor, sondern
        eine Verzoegerung. Die Bremse faellt am zweiten Schritt NICHT von selbst
        an -- er ist eine eigene Route neben POST /api/login und liefe ohne
        eigene Zeilen an checkThrottle vorbei. Genau das wird hier gemessen.
@@ -14687,7 +14687,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Content-Type ueberhaupt nicht mehr selbst. Wer eine Auslieferung ergaenzt
      -- ein Video ab 0.8.50 --, wird hier namentlich rot und muss sich fuer
      einen der beiden Wege in anhaenge.js entscheiden: Typ nach Endung
-     (setzeHeader) oder Typ nach den ersten Bytes (setzeBildHeader).
+     (setHeader) oder Typ nach den ersten Bytes (setImageHeader).
      Gezaehlt wird woertlich, ohne zusammengesetztes Muster. */
   const TYP_WOERTER = ["res.set('Content-Type'", 'res.set("Content-Type"',
                       "res.setHeader('Content-Type'", 'res.type('];
@@ -14707,8 +14707,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const fAnhQuelle = fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8');
   // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne die
   // Funktion belegte die Zeile darunter nichts.
-  pruefe('Die Ableitung aus den Bytes gibt es', fAnhQuelle.includes('function typAusBytes('),
-    'typAusBytes fehlt in anhaenge.js');
+  pruefe('Die Ableitung aus den Bytes gibt es', fAnhQuelle.includes('function typeFromBytes('),
+    'typeFromBytes fehlt in anhaenge.js');
   const fRohRumpf = (() => {
     const a = fQuelle.indexOf("app.get('/api/photos/:id/raw'");
     if (a < 0) return '';
@@ -14717,8 +14717,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   })();
   pruefe('Die Fotoroute ist ueberhaupt da', fRohRumpf.length > 0, 'die Route fehlt im Quelltext');
   pruefe('Und sie ruft die Ableitung aus den Bytes auf',
-    fRohRumpf.includes('anh.setzeBildHeader('),
-    fRohRumpf ? 'setzeBildHeader fehlt im Rumpf' : '(kein Rumpf)');
+    fRohRumpf.includes('anh.setImageHeader('),
+    fRohRumpf ? 'setImageHeader fehlt im Rumpf' : '(kein Rumpf)');
   pruefe('Der gemeldete Typ kommt in ihrem Rumpf gar nicht mehr vor',
     !fRohRumpf.includes('mime'), fRohRumpf ? 'mime steht noch im Rumpf' : '(kein Rumpf)');
 
@@ -18383,12 +18383,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      aus den ersten Bytes: gemessen 0,2 ms gegen 919 ms, und die Abfrage laeuft
      bei JEDEM Zeichnen des Systembereichs. 0.19.0 hat ausdruecklich anders
      entschieden; der Satz von damals bleibt richtig, wo er hingehoert -- am
-     Upload, wo legeBildAb() weiter in die ersten acht Bytes sieht.
+     Upload, wo storeImage() weiter in die ersten acht Bytes sieht.
 
      DIE ABWEICHUNG IST DAMIT MESSBAR, und genau das wird hier gemessen: eine
      Zeile, deren SPALTE etwas anderes sagt als ihr INHALT. Sie entsteht ueber
      den gewoehnlichen Weg -- ein JPEG, das sich beim Hochladen `image/png`
-     nennt: istPNG() sieht in die Bytes, findet kein PNG und laesst den
+     nennt: isPng() sieht in die Bytes, findet kein PNG und laesst den
      gemeldeten Typ stehen.
 
      ZWEI ZUSAGEN, UND SIE SIND DER GANZE PUNKT:
@@ -18401,7 +18401,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const jpegVor = formatZahl(vorFalsch, 'jpeg');
     /* JPEG-BYTES UNTER DEM NAMEN image/png. Der Filter am gemeldeten Typ
        laesst es durch (es faengt mit `image/` an), rasterBild() ebenfalls (es
-       IST ein Rasterbild), und legeBildAb() laesst den gemeldeten Typ stehen,
+       IST ein Rasterbild), und storeImage() laesst den gemeldeten Typ stehen,
        weil die ersten acht Bytes kein PNG sind. */
     const falschDetail = await ladeBild(ba.id, 'falsch.png', 'image/png', jpegVorlage);
     const falschFoto = letztesFoto(falschDetail);
@@ -18663,9 +18663,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
       /medium:\s*\{ kurz: 1600, lang: 1600, q: 84, schneidet: false \}/.test(quGeoBilder),
       (quGeoBilder.match(/const VARIANTS = \{[\s\S]{0,180}/) || ['(nicht gefunden)'])[0]);
     pruefe('Und die Schleife wählt ohne Verzweigung je Ableitung',
-      /const geschnitten = v\.schneidet && schnitt;/.test(quGeoBilder) &&
+      /const cropped = v\.schneidet && cropRect;/.test(quGeoBilder) &&
       !/if \([^)]*name === 'thumb'/.test(quGeoBilder),
-      (quGeoBilder.match(/const geschnitten = [^\n]*/) || ['(nicht gefunden)'])[0]);
+      (quGeoBilder.match(/const cropped = [^\n]*/) || ['(nicht gefunden)'])[0]);
 
     /* 9. WELCHE KANTE DIE KURZE IST, SAGT DER KOPF -- UND ER SAGT ES NICHT
        ALLEIN. `metadata()` liefert die Masse so, wie sie in der Datei stehen;
@@ -18877,7 +18877,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        DIE BROWSERFASSUNG KOMMT AUS jsdom UND NICHT AUS EINEM NACHBAU: eine
        zweite Kopie der Rechnung im Prueflauf belegte gar nichts. */
     {
-      const { zuschnittKiste: amServer } = require('./bilder');
+      const { cropSpecBox: amServer } = require('./bilder');
       let JSDOMz;
       try { ({ JSDOM: JSDOMz } = require('jsdom')); } catch { JSDOMz = null; }
       if (!JSDOMz) {
@@ -18909,7 +18909,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        EINE ZUGESCHNITTENE KACHEL IST QUADRATISCH -- das ist die ganze Regel, und
        sie haelt auch dort, wo die Zielkante NICHT erreicht wird. */
     {
-      const { traegtKeinenZuschnitt } = require('./bilder');
+      const { hasNoCropSpec } = require('./bilder');
       const faelle = [
         [{ width: 400, height: 225 }, true,  'der alte thumb aus 0.19.3'],
         [{ width: 910, height: 512 }, true,  'die ungeschnittene Ableitung aus 0.19.4'],
@@ -18920,13 +18920,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
         [{ width: 85,  height: 85  }, false, 'ein enger Ausschnitt aus kleiner Vorlage'],
         [null, true, 'kein lesbarer Kopf']
       ];
-      const daneben = faelle.filter(([m, s]) => traegtKeinenZuschnitt(m) !== s)
+      const daneben = faelle.filter(([m, s]) => hasNoCropSpec(m) !== s)
         .map(([m, , w]) => `${m ? m.width + 'x' + m.height : 'null'} (${w})`);
       pruefe('Die Regel trennt zugeschnittene von ungeschnittenen Kacheln an allen acht Fällen',
         daneben.length === 0, daneben.join(' · '));
       pruefe('Und sie ist ein Festpunkt: was zugeschnitten ist, fällt nicht zurück',
-        !traegtKeinenZuschnitt({ width: 512, height: 512 }) &&
-        !traegtKeinenZuschnitt({ width: 270, height: 270 }),
+        !hasNoCropSpec({ width: 512, height: 512 }) &&
+        !hasNoCropSpec({ width: 270, height: 270 }),
         'quadratisch = fertig');
     }
 
@@ -19415,9 +19415,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('PDF lädt weiterhin nichts nach',
     /default-src 'none'/.test(pdfK.h['content-security-policy'] || ''));
   pruefe('Die Lockerung gilt nur für PDF',
-    anh.sicherheitsRegel('text/plain') === "default-src 'none'; sandbox" &&
-    anh.sicherheitsRegel('image/png') === "default-src 'none'; sandbox" &&
-    anh.sicherheitsRegel('application/octet-stream') === "default-src 'none'; sandbox");
+    anh.securityRule('text/plain') === "default-src 'none'; sandbox" &&
+    anh.securityRule('image/png') === "default-src 'none'; sandbox" &&
+    anh.securityRule('application/octet-stream') === "default-src 'none'; sandbox");
   pruefe('PDF ohne inline=1 bleibt ein Download',
     /^attachment;/.test((await kopf(pdfA.id)).h['content-disposition']));
 
@@ -21603,7 +21603,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Bereitschaftspruefung bekommt ja eine Antwort (Stolperstein 139). Deshalb
      steht die Zahl hier ausdruecklich -- sie ist die einzige Stelle, an der
      eine doppelt vergebene Basis sichtbar wird.
-     7180, 7240 UND 7300 SIND DIE ERSTEN DREI FREIEN FENSTER, und sie liegen am
+     7180, 7240 UND 7300 SIND DIE ERSTEN DREI FREIEN WINDOW, und sie liegen am
      oberen Ende: die Spanne aller Basen misst damit 3460 und bleibt unter dem
      Versatz von 3500. Wer eine weitere Basis anhaengt, faellt an der Zeile
      „Der Versatz je Nebenspur ist groesser als die Spanne aller Basen" auf --
@@ -22825,7 +22825,7 @@ async function groessteAbweichung(a, b) {
 /* ECHTE VIDEODATEIEN, keine Nachbildung. Beide sind in einem Browser
    aufgenommen und tragen deshalb genau die Koepfe, die eine echte Datei
    traegt: die MP4 den ISO-Kasten ftyp mit der Marke isom an Byte 8, die WebM
-   den EBML-Kopf 1A 45 DF A3. Genau daran erkennt typAusBytes() sie -- eine
+   den EBML-Kopf 1A 45 DF A3. Genau daran erkennt typeFromBytes() sie -- eine
    von Hand zusammengesetzte Header bewiese darueber nichts.
    Klein gehalten (1418 und 1053 Bytes), damit sie im Pruefstand nichts
    kosten. */
@@ -23081,7 +23081,7 @@ async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen 
   const knopf = feld.closest('.modal')?.querySelector(abbrechen ? '[data-no]' : '[data-yes]');
   if (!knopf) return false;
   feld.value = passwort;
-  /* SEIT 0.10.0 KANN DASSELBE FENSTER EIN ZWEITES FELD TRAGEN -- aber nur bei
+  /* SEIT 0.10.0 KANN DASSELBE WINDOW EIN ZWEITES FELD TRAGEN -- aber nur bei
      Zugaengen mit zweitem Faktor. Gefuellt wird es nur, wenn es dasteht: eine
      Prueflage ohne Faktor soll hier nichts erfinden, sondern sehen, dass es
      fehlt. */
@@ -23253,22 +23253,22 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      DIESELBEN WERTE WIE IN mail.js -- dass sie es wirklich sind, prueft die
      Gruppe „Der Mailversand: das echte SMTP-Gespraech" am laufenden Server. */
   const MAIL_ANBIETER_MOCK = [
-    { schluessel: 'gmx', name: 'GMX', server: 'mail.gmx.net', port: 587, sicher: false,
+    { key: 'gmx', name: 'GMX', server: 'mail.gmx.net', port: 587, sicher: false,
       hinweis: 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
-    { schluessel: 'web', name: 'Web.de', server: 'smtp.web.de', port: 587, sicher: false,
+    { key: 'web', name: 'Web.de', server: 'smtp.web.de', port: 587, sicher: false,
       hinweis: 'Web.de verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
-    { schluessel: 'gmail', name: 'Gmail', server: 'smtp.gmail.com', port: 465, sicher: true,
+    { key: 'gmail', name: 'Gmail', server: 'smtp.gmail.com', port: 465, sicher: true,
       hinweis: 'Gmail verlangt Zwei-Faktor und ein App-Passwort — das Kontopasswort wird abgewiesen.' },
-    { schluessel: 'strato', name: 'Strato', server: 'smtp.strato.de', port: 465, sicher: true, hinweis: '' },
-    { schluessel: 'ionos', name: 'IONOS', server: 'smtp.ionos.de', port: 587, sicher: false, hinweis: '' },
-    { schluessel: 'eigen', name: 'Eigener Server', server: '', port: 587, sicher: false, hinweis: '' }
+    { key: 'strato', name: 'Strato', server: 'smtp.strato.de', port: 465, sicher: true, hinweis: '' },
+    { key: 'ionos', name: 'IONOS', server: 'smtp.ionos.de', port: 587, sicher: false, hinweis: '' },
+    { key: 'eigen', name: 'Eigener Server', server: '', port: 587, sicher: false, hinweis: '' }
   ];
   mailStand = mailStand || { anbieter: 'gmx', server: 'mail.gmx.net', port: 587, sicher: false,
     benutzer: 'instanz@gmx.de', absender: 'instanz@gmx.de', passwortGesetzt: true,
     getestetAm: '2026-08-20 08:30:00' };
   const mailKarteMock = () => ({
     anbieter: mailStand.anbieter || '',
-    anbieterName: (MAIL_ANBIETER_MOCK.find(a => a.schluessel === mailStand.anbieter) || {}).name || '',
+    anbieterName: (MAIL_ANBIETER_MOCK.find(a => a.key === mailStand.anbieter) || {}).name || '',
     server: mailStand.server || '', port: mailStand.port || 0, sicher: mailStand.sicher === true,
     benutzer: mailStand.benutzer || '', absender: mailStand.absender || '',
     passwortGesetzt: Boolean(mailStand.passwortGesetzt),
@@ -24502,7 +24502,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
           : statsBildFormate,
         umstellung: statsUmstellung,
         geometrie: statsGeometrie,
-        /* DIE VERFAHREN, seit 0.16.0 -- dieselben Werte, die db.js aus der
+        /* DIE ALGORITHM, seit 0.16.0 -- dieselben Werte, die db.js aus der
            geoeffneten Datei abliest. STELLBAR AUF null: eine Antwort ohne sie
            ist die Lage, in der der Abschnitt in der Karte gar nicht dastehen
            darf. Ohne diesen Fall waere „er steht da" nicht von „er steht
@@ -29041,7 +29041,7 @@ async function pruefeOberflaeche() {
      SEIT 0.19.5 GIBT ES SIE NICHT MEHR: der Server rechnet den Ausschnitt in
      die Kachel, und ein zweiter Zuschnitt im Browser zeigte einen Ausschnitt
      des Ausschnitts.
-     WAS AN IHRE STELLE GETRETEN IST, sind zwei Dinge: `zuschnittKiste()`
+     WAS AN IHRE STELLE GETRETEN IST, sind zwei Dinge: `cropSpecBox()`
      rechnet den Ausschnitt fuer den RAHMEN im Editor (und wird vom Pruefstand
      gegen die gleichnamige Funktion in bilder.js gehalten -- siehe die Gruppe
      „Der Ausschnitt steckt in der Kachel"), und `bildQuelle()` haengt die FASSUNG an
@@ -29243,7 +29243,7 @@ async function pruefeOberflaeche() {
 
   /* ZUERST DIE ENTSCHEIDUNG SELBST, UND ZWAR OHNE ZEIGER. `ausschnittGeste()`
      bekommt einen Rahmen und einen Punkt und antwortet mit einem Wort --
-     dieselbe Bauform wie `zuschnittKiste()` und aus demselben Grund: was der
+     dieselbe Bauform wie `cropSpecBox()` und aus demselben Grund: was der
      Pruefstand nur ueber ein Zeigerereignis erreicht, prueft er nicht. */
   pruefe('Die Gestenentscheidung steht als eigene Funktion da',
     typeof wb.ausschnittGeste === 'function', typeof wb.ausschnittGeste);
@@ -31107,12 +31107,12 @@ async function pruefeOberflaeche() {
     /zweiter Faktor ist eingeschaltet/.test(
       zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
     zkBest.w.document.querySelector('.modal .desc')?.textContent);
-  /* --- 0.12.3: die Beschriftung nennt das VERFAHREN, nicht das Geraet ---
+  /* --- 0.12.3: die Beschriftung nennt das ALGORITHM, nicht das Geraet ---
      "Code aus deiner App" war zweimal falsch. Es fragte nach der Herkunft
      statt nach der Sache -- und es stimmte fuer die Haelfte der Faelle nicht:
      dasselbe Feld nimmt auch einen Wiederherstellungscode entgegen, und der
      kommt von einem Zettel. Der Server sieht der Eingabe an, was gemeint ist
-     (istCodeform gegen istWiederform); die Beschriftung darf deshalb keine
+     (isCodeForm gegen isRecoveryForm); die Beschriftung darf deshalb keine
      der beiden Formen ausschliessen. */
   const zkLabel = [...zkBest.w.document.querySelectorAll('.modal .field label')]
     .map(l => l.textContent);
@@ -31594,7 +31594,7 @@ async function pruefeOberflaeche() {
     // leeren Hash, aber die Angabe waere eine Falschaussage.
     pruefe('Und ohne "noch kein Passwort"',
       !/noch kein Passwort/.test(zwReihen()[0].textContent || ''), zwReihen()[0].textContent);
-    /* DAS FENSTER SAGT, WARUM DER NAME NICHT DASTEHT. Die Frage kam aus dem
+    /* DAS WINDOW SAGT, WARUM DER NAME NICHT DASTEHT. Die Frage kam aus dem
        Betrieb ("was nuetzt mir 'Gelöschte 5'"), und die Antwort ist eine
        Entscheidung: der Grabstein IST die Anonymisierung. */
     pruefe('Es sagt, dass der urspruengliche Name nicht aufbewahrt wird',
@@ -32105,7 +32105,7 @@ async function pruefeOberflaeche() {
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-p')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
-    /* SEIT 0.22.0 KOMMT DAS FREMDE PASSWORT AUS EINEM EIGENEN FENSTER MIT
+    /* SEIT 0.22.0 KOMMT DAS FREMDE PASSWORT AUS EINEM EIGENEN WINDOW MIT
        PASSWORTFELD -- nicht mehr aus prompt(), wo es im Klartext stand
        (Bauabschnitt 4). Erst das Feld, dann die zweite Bestaetigung. */
     const npFeld = d.w.document.getElementById('np-pass');
@@ -32134,7 +32134,7 @@ async function pruefeOberflaeche() {
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
-    /* ---- 0.22.0: EIN FENSTER STATT DREI RUECKFRAGEN (Bauabschnitt 4) ----
+    /* ---- 0.22.0: EIN WINDOW STATT DREI RUECKFRAGEN (Bauabschnitt 4) ----
        Bis 0.21.1 stellte der Weg drei confirm() hintereinander, und in den
        ersten beiden hiess „Abbrechen" nicht abbrechen (Stolperstein 316).
        Jetzt: ein Fenster mit zwei Haekchen, dem Satz zum Sperren und zwei
@@ -33016,11 +33016,11 @@ async function pruefeOberflaeche() {
       /^2 · 2,5 KB$/.test(zeile?.querySelector('.v')?.textContent?.trim() || ''),
       zeile?.querySelector('.v')?.textContent);
 
-    /* ---- VERSION UND VERFAHREN — 0.16.0 ----
+    /* ---- VERSION UND ALGORITHM — 0.16.0 ----
        DIE VERSION STAND IN DER ANTWORT SCHON IMMER, gezeigt hat die Karte sie
        nie. Sie gehoert neben den Fingerprint: die Version sagt, WELCHER Stand
        laufen soll, der Fingerprint, ob die Dateien dazu zusammengehoeren.
-       UND DIE VERFAHREN DARUNTER, mit dem harten Vorbehalt: Verfahrensnamen
+       UND DIE ALGORITHM DARUNTER, mit dem harten Vorbehalt: Verfahrensnamen
        ja, Paketversionen nein. */
     const kvZeile = (k) => [...(karte?.querySelectorAll('.kv') || [])]
       .find(z => z.querySelector('.k')?.textContent.trim() === k);
@@ -35843,7 +35843,7 @@ async function pruefeOberflaeche() {
 
     /* EIN CODE, DER TRAEGT -- und die beiden Bedingungen dafuer stehen hier an
        EINER Stelle, statt an jeder Aufrufstelle noch einmal.
-       ERSTENS DAS FENSTER: faellt die Grenze der dreissig Sekunden zwischen
+       ERSTENS DAS WINDOW: faellt die Grenze der dreissig Sekunden zwischen
        Rechnung und Ankunft, wuerde eine Pruefung zufaellig rot, und roter
        Zufall kostet Vertrauen in alle anderen (Stolperstein 151).
        ZWEITENS DIE EINMALIGKEIT, und sie ist der Gegenstand dieser Gruppe: der
@@ -35856,10 +35856,10 @@ async function pruefeOberflaeche() {
     let tzVerbraucht = -1;
     const tzCode = async () => {
       for (;;) {
-        if (30000 - (Date.now() % 30000) >= 9000 && ZF2.jetztSchritt() + 1 > tzVerbraucht) break;
+        if (30000 - (Date.now() % 30000) >= 9000 && ZF2.nowStep() + 1 > tzVerbraucht) break;
         await new Promise(r => setTimeout(r, 200));
       }
-      tzVerbraucht = ZF2.jetztSchritt() + 1;
+      tzVerbraucht = ZF2.nowStep() + 1;
       return ZF2.code(tzGeheim, tzVerbraucht);
     };
     // Fuer die Absagen, die VOR der Codepruefung fallen. Er ist absichtlich
@@ -35878,7 +35878,7 @@ async function pruefeOberflaeche() {
     // alles Weitere trotzdem durch -- mit einem Wert, der zuverlaessig nicht
     // traegt, statt dass der Lauf hier abreisst.
     const tzGeheim = (tzStart.inhalt && tzStart.inhalt.geheim) || 'A'.repeat(32);
-    const tzZaehler = ZF2.jetztSchritt();
+    const tzZaehler = ZF2.nowStep();
     const tzAn = await tzS.ruf('POST', '/api/zweifaktor/an',
       { passwort: TZ_WORT, code: ZF2.code(tzGeheim, tzZaehler) });
     // DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT -- das ist die Zusage "ein
@@ -38335,7 +38335,7 @@ async function pruefeOberflaeche() {
     pruefe('Und schickt vorher nichts',
       !d.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/items/1'),
       JSON.stringify(d.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
-    /* DER GRIFF INS FENSTER WIRD ABGESICHERT, und das ist keine Vorsicht,
+    /* DER GRIFF INS WINDOW WIRD ABGESICHERT, und das ist keine Vorsicht,
        sondern ein Befund: Rueckbau 264 nimmt die Rueckfrage weg, das Fenster
        steht dann gar nicht da, und ein `ruhFrage.querySelector(...)` REISST
        DEN GANZEN LAUF AB. Die beiden Zeilen darueber werden richtig rot --
@@ -39652,7 +39652,7 @@ async function pruefeOberflaeche() {
        (Stolperstein 47). */
     pruefe('Und wiederholt die Grundregel nicht',
       !/flex:/.test(khSitz) && !/overflow/.test(khSitz), khSitz || '(keine Regel)');
-    /* ---- IN EINEM FENSTER GILT DER DECKEL NICHT — 0.17.4 ----
+    /* ---- IN EINEM WINDOW GILT DER DECKEL NICHT — 0.17.4 ----
        Glockentafel und Grabsteine tragen dieselbe Klasse, stehen aber in einem
        `.modal`. Dort gibt es keine Reihe und keine Nachbarin, und das Fenster
        deckelt laengst bei 88dvh. Ein zweiter Deckel darin waere eine Grenze in
@@ -40623,7 +40623,7 @@ async function pruefeOberflaeche() {
       gespeichert?.tested === 'all' && gespeichert?.sort === 'potenzial_desc',
       JSON.stringify(gespeichert));
     vorher.w.close();
-    // DAS ZWEITE FENSTER IST DAS NEULADEN. Der Merker faengt wieder bei
+    // DAS ZWEITE WINDOW IST DAS NEULADEN. Der Merker faengt wieder bei
     // „niemand hat geklickt" an, die Ableitung wird neu gerechnet.
     const d = await ksBaue(gespeichert);
     pruefe('Ein frisch gebautes Fenster mit derselben Stellung zeigt dieselbe Menge wie vorher',
@@ -41264,9 +41264,9 @@ async function pruefeOberflaeche() {
        faellt erst am Empfaenger auf. */
     const sdSrv = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     pruefe('server.js reicht den Übersetzer an mail.js und an auth.js',
-      /mail\.setzeUebersetzer\(t\);/.test(sdSrv) &&
+      /mail\.setTranslator\(t\);/.test(sdSrv) &&
       /auth\.setzeUebersetzer\(\(req, schluessel, werte\) =>/.test(sdSrv),
-      `mail: ${/mail\.setzeUebersetzer/.test(sdSrv)} · auth: ${/auth\.setzeUebersetzer/.test(sdSrv)}`);
+      `mail: ${/mail\.setTranslator/.test(sdSrv)} · auth: ${/auth\.setzeUebersetzer/.test(sdSrv)}`);
     /* DIE VORGABEN DER VIERZEHN VOKABELWOERTER KOMMEN AUS DER DATEI -- eine
        Vorgabe, ein Ort (Stolperstein 47). Bis 0.24.0 standen sie zweimal im
        Quelltext. */
@@ -41348,7 +41348,7 @@ async function pruefeOberflaeche() {
     for (const datei of spQuellen) {
       const q = ohneKommentar(fs.readFileSync(path.join(__dirname, datei), 'utf8'));
       // t('…'), tH('…'), t(sprache, '…'), new Meldung('…'), meldung('…')
-      for (const m of q.matchAll(/(?<![A-Za-z0-9_.$])(?:tH?|new Meldung|meldung)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
+      for (const m of q.matchAll(/(?<![A-Za-z0-9_.$])(?:tH?|new Meldung|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
         gerufen.add(m[1]);
       /* UND DIE TABELLEN, DIE EINEN SCHLUESSEL HALTEN statt eines Satzes
          (VORGANGSWORT, ROLLENWORT, THEMA_NAMEN …): dort steht der Schluessel
@@ -41412,7 +41412,7 @@ async function pruefeOberflaeche() {
     const gereicht = new Map();
     for (const datei of spQuellen) {
       const q = fs.readFileSync(path.join(__dirname, datei), 'utf8');
-      const ruf = /(?<![A-Za-z0-9_.$])(?:tH?|new Meldung|meldung)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
+      const ruf = /(?<![A-Za-z0-9_.$])(?:tH?|new Meldung|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
       for (const m of q.matchAll(ruf)) {
         let i = m.index + m[0].length, tiefe = 1;
         while (i < q.length && tiefe > 0) {
@@ -42615,8 +42615,8 @@ function pruefeSchluesselwechsel() {
   const a5probe = path.join(SW, 'abbruch-probe');
   fs.cpSync(a5.dir, a5probe, { recursive: true });
   const a5dauer = Number(swVersuch(() => swKurz(
-    "const { wechsleSchluessel } = require('./db');" +
-    `const t = Date.now(); wechsleSchluessel('${hexNeu()}'); console.log(Date.now() - t);`,
+    "const { changeKey } = require('./db');" +
+    `const t = Date.now(); changeKey('${hexNeu()}'); console.log(Date.now() - t);`,
     a5probe, null), '0'));
   pruefe(`Der Wechsel an ${Math.round(a5groesse / 1048576)} MB dauert lange genug zum Treffen`,
     a5dauer >= 150,
@@ -42629,7 +42629,7 @@ function pruefeSchluesselwechsel() {
      laufen statt den Lauf mit "sleep NaN" abreissen zu lassen. */
   const a5schlag = (a5dauer >= 150 ? a5dauer / 3000 : 0.05).toFixed(3);
   const a5kind = spawnSync('sh', ['-c',
-    `"${process.execPath}" -e "require('./db').wechsleSchluessel('${a5neu}')" & ` +
+    `"${process.execPath}" -e "require('./db').changeKey('${a5neu}')" & ` +
     `kind=$!; sleep ${a5schlag}; kill -9 $kind 2>/dev/null; wait $kind; echo fertig`],
     { cwd: __dirname, encoding: 'utf8', env: swUmgebung(a5.dir, null) });
   pruefe('Der Wechsel wurde mit kill -9 unterbrochen',
@@ -42717,9 +42717,9 @@ function pruefeSchluesselwechsel() {
        GEPRUEFT WIRD DESHALB HIER und nicht in der Journalgruppe: der
        Gegenstand liegt an diesem tmpfs. */
     const engJournal = swVersuch(() => swKurz(
-      "const { db, wechsleSchluessel } = require('./db');" +
+      "const { db, changeKey } = require('./db');" +
       "let gescheitert = false;" +
-      `try { wechsleSchluessel('${hexNeu()}'); } catch { gescheitert = true; }` +
+      `try { changeKey('${hexNeu()}'); } catch { gescheitert = true; }` +
       "console.log(gescheitert + ' ' + db.pragma('journal_mode', { simple: true }));",
       engDir, null), 'nichts');
     pruefe('Ein rekey auf vollem Dateitraeger scheitert',
@@ -43175,7 +43175,7 @@ async function pruefeBestandslauf() {
        wer den Thread baut und die alte Schleife daneben stehen laesst -- zwei
        Wege, die dasselbe tun, und einer davon haelt den Server wieder an. */
     pruefe('Die beiden Schleifen stehen nur noch in bestandslauf.js',
-      /for \(const \{ id \} of zeilen\)/.test(blLauf) &&
+      /for \(const \{ id \} of rows\)/.test(blLauf) &&
       !/for \(const \{ id \} of zeilen\)/.test(blServer) &&
       !/UPDATE photos SET thumb = \?, medium = \? WHERE id = \?/.test(blServer),
       (blServer.match(/UPDATE photos SET thumb[^\n]*/) || ['(nicht mehr im Server — richtig)'])[0]);
@@ -43268,11 +43268,11 @@ async function pruefeBestandslauf() {
        auseinander, und zwar unbemerkt -- beide saehen richtig aus
        (Stolperstein 47). Deshalb steht sie in bilder.js, und BEIDE Wege rufen
        dieselbe. */
-    pruefe('legeBildAb und makeVariants stehen genau einmal, in bilder.js',
-      /async function legeBildAb\(/.test(blBilder) && /async function makeVariants\(/.test(blBilder) &&
-      !/function legeBildAb\(|function makeVariants\(/.test(blServer) &&
-      !/function legeBildAb\(|function makeVariants\(/.test(blLauf),
-      (blServer.match(/function (legeBildAb|makeVariants)\(/) || ['(nur in bilder.js — richtig)'])[0]);
+    pruefe('storeImage und makeVariants stehen genau einmal, in bilder.js',
+      /async function storeImage\(/.test(blBilder) && /async function makeVariants\(/.test(blBilder) &&
+      !/function storeImage\(|function makeVariants\(/.test(blServer) &&
+      !/function storeImage\(|function makeVariants\(/.test(blLauf),
+      (blServer.match(/function (storeImage|makeVariants)\(/) || ['(nur in bilder.js — richtig)'])[0]);
     pruefe('Und beide Wege rufen dieselbe',
       /require\('\.\/bilder'\)/.test(blServer) && /require\('\.\/bilder'\)/.test(blLauf),
       'einer der beiden Wege laedt bilder.js nicht');

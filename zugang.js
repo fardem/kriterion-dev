@@ -21,12 +21,12 @@ const readline = require('readline');
 const { db } = require('./db');
 const auth = require('./auth');
 
-const ROT = (t) => `\x1b[31m${t}\x1b[0m`;
-const FETT = (t) => `\x1b[1m${t}\x1b[0m`;
+const RED = (t) => `\x1b[31m${t}\x1b[0m`;
+const BOLD = (t) => `\x1b[1m${t}\x1b[0m`;
 
-function hilfe() {
+function help() {
   console.log(`
-${FETT('Kriterion — Zugangsverwaltung')}
+${BOLD('Kriterion — Zugangsverwaltung')}
 
   node zugang.js liste
       Alle Zugaenge mit Nummer, Rolle, Status und Zahl der Eintraege.
@@ -69,121 +69,121 @@ ${FETT('Kriterion — Zugangsverwaltung')}
  * Am Terminal gibt es das Problem nicht, weil dort erst getippt wird, wenn
  * gefragt ist. Ohne Terminal wird deshalb alles auf einmal gelesen und
  * zeilenweise ausgegeben. */
-const amTerminal = Boolean(process.stdin.isTTY);
-let vorrat = null, schlange = null, versteckt = false;
+const onTerminal = Boolean(process.stdin.isTTY);
+let pool = null, schlange = null, versteckt = false;
 
-function naechsteZeile() {
-  if (vorrat === null) {
-    let alles = '';
-    try { alles = require('fs').readFileSync(0, 'utf8'); } catch { alles = ''; }
-    vorrat = alles.split('\n');
+function nextLine() {
+  if (pool === null) {
+    let all = '';
+    try { all = require('fs').readFileSync(0, 'utf8'); } catch { all = ''; }
+    pool = all.split('\n');
   }
-  return vorrat.length ? vorrat.shift() : '';
+  return pool.length ? pool.shift() : '';
 }
 
-function frage(text, geheim = false) {
-  if (!amTerminal) {
+function ask(text, hidden = false) {
+  if (!onTerminal) {
     process.stdout.write(text);
-    const a = naechsteZeile();
+    const a = nextLine();
     process.stdout.write('\n');
     return Promise.resolve(a);
   }
   if (!schlange) {
     schlange = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-    const schreib = schlange._writeToOutput.bind(schlange);
-    schlange._writeToOutput = (s) => { if (!versteckt || s.includes('\n')) schreib(s); };
+    const write = schlange._writeToOutput.bind(schlange);
+    schlange._writeToOutput = (s) => { if (!versteckt || s.includes('\n')) write(s); };
   }
-  return new Promise((fertig) => {
-    versteckt = geheim;
+  return new Promise((done) => {
+    versteckt = hidden;
     schlange.question(text, (a) => {
       if (versteckt) { versteckt = false; console.log(); }
-      fertig(a);
+      done(a);
     });
   });
 }
-const schlangeSchliessen = () => { if (schlange) schlange.close(); };
+const closeQueue = () => { if (schlange) schlange.close(); };
 
-function findeZugang(name) {
+function findUser(name) {
   const u = db.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').get(String(name || ''));
   if (!u) {
-    console.error(ROT(`Kein Zugang mit dem Namen "${name}".`));
+    console.error(RED(`Kein Zugang mit dem Namen "${name}".`));
     console.error('Vorhandene Namen zeigt: node zugang.js liste');
     process.exit(1);
   }
   return auth.holeZugang(u.id);
 }
 
-const ROLLENWORT = { user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer' };
+const ROLE_KEY = { user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer' };
 
-function befehlListe() {
-  const zeilen = auth.listeZugaenge();
-  if (!zeilen.length) { console.log('Es ist noch kein Zugang eingerichtet.'); return; }
-  const breite = Math.max(4, ...zeilen.map(z => z.username.length));
+function commandList() {
+  const lines = auth.listeZugaenge();
+  if (!lines.length) { console.log('Es ist noch kein Zugang eingerichtet.'); return; }
+  const width = Math.max(4, ...lines.map(z => z.username.length));
   // Die Spalte "2FA" . Sie sagt AN oder AUS und nie mehr -- das
   // Geheimnis steht auch hier nicht, und die Zahl der Wiederherstellungscodes
   // gehoert an den einen Ort, an dem sie jemanden angeht: die Karte "Zugang"
   // des Betroffenen und den Befehl `zweifaktor` daneben.
-  console.log(`\n  ${'Nr'.padStart(3)}  ${'Name'.padEnd(breite)}  ${'Rolle'.padEnd(11)}  ` +
+  console.log(`\n  ${'Nr'.padStart(3)}  ${'Name'.padEnd(width)}  ${'Rolle'.padEnd(11)}  ` +
               `${'Status'.padEnd(9)}  ${'2FA'.padEnd(4)}  ${'Einträge'.padStart(8)}  Letzte Anmeldung`);
-  console.log('  ' + '─'.repeat(breite + 58));
-  for (const z of zeilen) {
-    console.log(`  ${String(z.id).padStart(3)}  ${z.username.padEnd(breite)}  ` +
-      `${(ROLLENWORT[z.role] || z.role).padEnd(11)}  ${z.status.padEnd(9)}  ` +
+  console.log('  ' + '─'.repeat(width + 58));
+  for (const z of lines) {
+    console.log(`  ${String(z.id).padStart(3)}  ${z.username.padEnd(width)}  ` +
+      `${(ROLE_KEY[z.role] || z.role).padEnd(11)}  ${z.status.padEnd(9)}  ` +
       `${(auth.zweifaktorAn(z.id) ? 'an' : 'aus').padEnd(4)}  ` +
       `${String(z.eintraege).padStart(8)}  ${z.last_login || '—'}`);
   }
-  console.log(`\n  ${zeilen.length === 1 ? '1 Zugang' : zeilen.length + ' Zugänge'}, ` +
+  console.log(`\n  ${lines.length === 1 ? '1 Zugang' : lines.length + ' Zugänge'}, ` +
     `davon ${auth.zahlEigentuemer()} mit Eigentümerrecht.\n`);
 }
 
-async function befehlPasswort(name) {
-  const u = findeZugang(name);
+async function commandPassword(name) {
+  const u = findUser(name);
   if (u.status === 'geloescht') {
-    console.error(ROT(`"${u.username}" ist ein gelöschter Zugang und bekommt kein Passwort mehr.`));
+    console.error(RED(`"${u.username}" ist ein gelöschter Zugang und bekommt kein Passwort mehr.`));
     process.exit(1);
   }
-  console.log(`Neues Passwort für "${u.username}" (Nummer ${u.id}, ${ROLLENWORT[u.role] || u.role}).`);
+  console.log(`Neues Passwort für "${u.username}" (Nummer ${u.id}, ${ROLE_KEY[u.role] || u.role}).`);
   // Zweimal, weil es nicht angezeigt wird: ein Tippfehler waere sonst erst beim
   // naechsten Anmeldeversuch zu bemerken -- und dann waere der Zugang zu.
-  const a = await frage(`Passwort (mindestens ${auth.PASSWORT_MIN} Zeichen): `, true);
-  const b = await frage('Zur Bestätigung noch einmal: ', true);
-  if (a !== b) { console.error(ROT('Die beiden Eingaben stimmen nicht überein. Nichts geändert.')); process.exit(1); }
+  const a = await ask(`Passwort (mindestens ${auth.PASSWORT_MIN} Zeichen): `, true);
+  const b = await ask('Zur Bestätigung noch einmal: ', true);
+  if (a !== b) { console.error(RED('Die beiden Eingaben stimmen nicht überein. Nichts geändert.')); process.exit(1); }
   try {
     // VOM_WIRT statt einer Nummer: hier ist niemand angemeldet. Die Zeile im
     // Sicherheitsprotokoll traegt deshalb keinen Handelnden -- und genau daran
     // ist der Notweg spaeter zu erkennen.
     await auth.setzeNeuesPasswort(u.id, a, auth.VOM_WIRT);
-  } catch (e) { console.error(ROT(e.message)); process.exit(1); }
+  } catch (e) { console.error(RED(e.message)); process.exit(1); }
   console.log(`Passwort für "${u.username}" gesetzt. Alle bisherigen Sitzungen dieses Zugangs sind beendet.`);
 }
 
-async function befehlEntfernen(name, optionen) {
-  const u = findeZugang(name);
+async function commandRemove(name, options) {
+  const u = findUser(name);
   const z = auth.zaehleBestand(u.id);
-  console.log(`\nZugang "${u.username}" (Nummer ${u.id}, ${ROLLENWORT[u.role] || u.role}) entfernen.`);
+  console.log(`\nZugang "${u.username}" (Nummer ${u.id}, ${ROLE_KEY[u.role] || u.role}) entfernen.`);
   console.log(`  Eigene Einträge: ${z.eintraege}`);
   console.log(`  Eigene Beiträge in fremden Einträgen: ${z.kommentare} Kommentare, ` +
               `${z.bewertungen} Bewertungen, ${z.testtage} Testtage`);
-  if (optionen.eintraege) {
-    console.log(ROT(`  --eintraege: seine ${z.eintraege} Einträge werden gelöscht — mitsamt ` +
+  if (options.eintraege) {
+    console.log(RED(`  --eintraege: seine ${z.eintraege} Einträge werden gelöscht — mitsamt ` +
       `${z.fremdKommentare} fremden Kommentaren, ${z.fremdBewertungen} fremden Bewertungen ` +
       `und ${z.fremdTesttage} fremden Testtagen daran.`));
   } else {
     console.log('  Ohne --eintraege bleiben sie stehen und tragen künftig ' +
       `"Gelöschter Benutzer ${u.id}".`);
   }
-  if (optionen.beitraege) {
-    console.log(ROT('  --beitraege: seine Kommentare, Bewertungen und Testtage in fremden ' +
+  if (options.beitraege) {
+    console.log(RED('  --beitraege: seine Kommentare, Bewertungen und Testtage in fremden ' +
       'Einträgen werden gelöscht.'));
   }
   console.log('  Der Name wird freigegeben und ist danach wieder vergebbar.');
-  const antwort = (await frage('\nWirklich entfernen? [ja/nein] ')).trim().toLowerCase();
-  if (antwort !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
-  let ergebnis;
+  const answer = (await ask('\nWirklich entfernen? [ja/nein] ')).trim().toLowerCase();
+  if (answer !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
+  let result;
   try {
-    ergebnis = auth.entferneZugang(u.id, optionen, auth.VOM_WIRT);
-  } catch (e) { console.error(ROT(e.message)); process.exit(1); }
-  console.log(`"${ergebnis.name}" ist entfernt. Die Zeile bleibt als ${ergebnis.grabstein} stehen.`);
+    result = auth.entferneZugang(u.id, options, auth.VOM_WIRT);
+  } catch (e) { console.error(RED(e.message)); process.exit(1); }
+  console.log(`"${result.name}" ist entfernt. Die Zeile bleibt als ${result.grabstein} stehen.`);
 }
 
 /* DER NOTWEG AM ZWEITEN FAKTOR -- UND ER SCHALTET NUR AUS.
@@ -194,21 +194,21 @@ async function befehlEntfernen(name, optionen) {
    dagegen ist dieser Weg da.
    ES IST KEIN UMWEG UM DIE ANMELDUNG: das Passwort bleibt unberuehrt, und wer
    diesen Befehl ausfuehren kann, koennte ohnehin `passwort` setzen. */
-async function befehlZweifaktor(name) {
-  const u = findeZugang(name);
-  const stand = auth.zweifaktorStand(u.id);
-  if (!stand.an) {
+async function commandTwoFactor(name) {
+  const u = findUser(name);
+  const status = auth.zweifaktorStand(u.id);
+  if (!status.an) {
     console.log(`"${u.username}" hat keinen zweiten Faktor eingeschaltet. Nichts zu tun.`);
     return;
   }
   console.log(`\nZweiten Faktor von "${u.username}" (Nummer ${u.id}, ` +
-    `${ROLLENWORT[u.role] || u.role}) ausschalten.`);
-  console.log(`  Eingeschaltet seit: ${stand.seit}`);
-  console.log(`  Wiederherstellungscodes: ${stand.codesOffen} von ${stand.codesGesamt} noch offen`);
+    `${ROLE_KEY[u.role] || u.role}) ausschalten.`);
+  console.log(`  Eingeschaltet seit: ${status.seit}`);
+  console.log(`  Wiederherstellungscodes: ${status.codesOffen} von ${status.codesGesamt} noch offen`);
   console.log('  Danach genügt zum Anmelden wieder das Passwort allein.');
   console.log('  Einschalten kann ihn nur der Betroffene selbst, in der Karte „Zugang“.');
-  const antwort = (await frage('\nWirklich ausschalten? [ja/nein] ')).trim().toLowerCase();
-  if (antwort !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
+  const answer = (await ask('\nWirklich ausschalten? [ja/nein] ')).trim().toLowerCase();
+  if (answer !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
   // VOM_WIRT statt einer Nummer: hier ist niemand angemeldet. Das leere `wer`
   // im Protokoll heisst "ueber den Wirt" -- daran ist der Notweg zu erkennen.
   auth.schalteZweifaktorAus(u.id, auth.VOM_WIRT);
@@ -216,34 +216,34 @@ async function befehlZweifaktor(name) {
     'Die Wiederherstellungscodes sind mit weggefallen.');
 }
 
-function befehlEigentuemer(name) {
-  const u = findeZugang(name);
+function commandOwner(name) {
+  const u = findUser(name);
   try {
     auth.setzeRolle(u.id, 'eigentuemer', auth.VOM_WIRT);
-  } catch (e) { console.error(ROT(e.message)); process.exit(1); }
+  } catch (e) { console.error(RED(e.message)); process.exit(1); }
   console.log(`"${u.username}" ist jetzt Eigentümer der Instanz. ` +
     `Aktive Eigentümer: ${auth.zahlEigentuemer()}.`);
 }
 
-async function haupt() {
+async function main() {
   const [befehl, name, ...rest] = process.argv.slice(2);
-  const optionen = { eintraege: rest.includes('--eintraege'), beitraege: rest.includes('--beitraege') };
-  const brauchtNamen = () => {
-    if (!name) { console.error(ROT('Es fehlt der Benutzername.')); hilfe(); process.exit(1); }
+  const options = { eintraege: rest.includes('--eintraege'), beitraege: rest.includes('--beitraege') };
+  const needsName = () => {
+    if (!name) { console.error(RED('Es fehlt der Benutzername.')); help(); process.exit(1); }
   };
   switch (befehl) {
-    case 'liste': befehlListe(); break;
-    case 'passwort': brauchtNamen(); await befehlPasswort(name); break;
-    case 'entfernen': brauchtNamen(); await befehlEntfernen(name, optionen); break;
-    case 'eigentuemer': brauchtNamen(); befehlEigentuemer(name); break;
-    case 'zweifaktor': brauchtNamen(); await befehlZweifaktor(name); break;
+    case 'liste': commandList(); break;
+    case 'passwort': needsName(); await commandPassword(name); break;
+    case 'entfernen': needsName(); await commandRemove(name, options); break;
+    case 'eigentuemer': needsName(); commandOwner(name); break;
+    case 'zweifaktor': needsName(); await commandTwoFactor(name); break;
     default:
-      if (befehl) console.error(ROT(`Unbekannter Befehl: ${befehl}`));
-      hilfe();
+      if (befehl) console.error(RED(`Unbekannter Befehl: ${befehl}`));
+      help();
       process.exit(befehl ? 1 : 0);
   }
 }
 
-haupt()
-  .then(() => { schlangeSchliessen(); })
-  .catch((e) => { schlangeSchliessen(); console.error(ROT(e.message)); process.exit(1); });
+main()
+  .then(() => { closeQueue(); })
+  .catch((e) => { closeQueue(); console.error(RED(e.message)); process.exit(1); });

@@ -10,15 +10,15 @@ const nodemailer = require('nodemailer');
    vergessener Griff auffaellt statt still zu bleiben.
    DASSELBE t() UND KEINE ZWEITE AUSFERTIGUNG: eine eigene Ladung hier waere
    eine zweite Wahrheit ueber dieselbe Datei (Stolperstein 47). */
-let t = (sprache, schluessel) => `\u27e6${schluessel}\u27e7`;
-function setzeUebersetzer(fn) { t = fn; }
+let t = (locale, key) => `\u27e6${key}\u27e7`;
+function setTranslator(fn) { t = fn; }
 
 /* EIN FEHLER MIT SCHLUESSEL, OHNE DIE KLASSE `Meldung` -- 0.24.0. Die Klasse
    wohnt in auth.js, und auth.js requiret DIESE Datei; der Weg zurueck waere
    ein Ring. Was der Fehler-Handler in server.js braucht, ist nicht die Klasse,
-   sondern die FORM: ein `schluessel`, seine `werte` und ein `status`. */
-const meldung = (schluessel, werte = {}) =>
-  Object.assign(new Error(schluessel), { schluessel, werte, status: 400 });
+   sondern die FORM: ein `key`, seine `values` und ein `status`. */
+const message = (key, values = {}) =>
+  Object.assign(new Error(key), { schluessel: key, werte: values, status: 400 });
 
 /* ================= Der Mailversand =================
 
@@ -31,7 +31,7 @@ const meldung = (schluessel, werte = {}) =>
    Mailzugang laeuft vollstaendig. Jeder Link, der verschickt wird, ist im
    Verwaltungsbereich zusaetzlich zum Kopieren sichtbar; schlaegt der Versand
    fehl, bricht nichts ab. Deshalb wirft in dieser Datei NICHTS nach aussen:
-   versende() liefert ein Ergebnis, nie eine Ausnahme.
+   send() liefert ein Ergebnis, nie eine Ausnahme.
 
    NUR AUSGEHEND: kein Empfang, kein offener Port, kein Abholen.
 
@@ -52,13 +52,13 @@ const meldung = (schluessel, werte = {}) =>
    verschluesselt (implizites TLS), 587 beginnt im Klartext und schaltet mit
    STARTTLS um. Ein Port ohne die passende Angabe ergibt eine Verbindung, die
    entweder haengt oder im Klartext bleibt. */
-const ANBIETER = [
-  { schluessel: 'gmx',    name: 'GMX',           server: 'mail.gmx.net',       port: 587, sicher: false },
-  { schluessel: 'web',    name: 'Web.de',        server: 'smtp.web.de',        port: 587, sicher: false },
-  { schluessel: 'gmail',  name: 'Gmail',         server: 'smtp.gmail.com',     port: 465, sicher: true },
-  { schluessel: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, sicher: true },
-  { schluessel: 'ionos',  name: 'IONOS',         server: 'smtp.ionos.de',      port: 587, sicher: false },
-  { schluessel: 'eigen',  name: 'Eigener Server', server: '',                  port: 587, sicher: false }
+const PROVIDERS = [
+  { key: 'gmx',    name: 'GMX',           server: 'mail.gmx.net',       port: 587, sicher: false },
+  { key: 'web',    name: 'Web.de',        server: 'smtp.web.de',        port: 587, sicher: false },
+  { key: 'gmail',  name: 'Gmail',         server: 'smtp.gmail.com',     port: 465, sicher: true },
+  { key: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, sicher: true },
+  { key: 'ionos',  name: 'IONOS',         server: 'smtp.ionos.de',      port: 587, sicher: false },
+  { key: 'eigen',  name: 'Eigener Server', server: '',                  port: 587, sicher: false }
 ];
 
 /* DREI HINWEISE GEHOEREN AN DEN BILDSCHIRM, und sie stehen hier statt in
@@ -66,12 +66,12 @@ const ANBIETER = [
    Zwei Ausfertigungen derselben Hinweise liefen auseinander, sobald ein
    Anbieter dazukommt. Der dritte gilt fuer alle und steht deshalb ohne
    Schluessel darunter. */
-const HINWEISE = {
+const HINTS = {
   gmail: 'mail.hintGmail',
   gmx: 'mail.hintGmx',
   web: 'mail.hintWebDe'
 };
-const HINWEIS_IMMER = 'mail.hintAlways';
+const HINT_ALWAYS = 'mail.hintAlways';
 
 /* ---- Die Frist ----
    SMTP KANN MINUTENLANG NICHTS SAGEN, und nodemailers Vorgaben sind fuer
@@ -79,7 +79,7 @@ const HINWEIS_IMMER = 'mail.hintAlways';
 
    DIE ZAHL IST HERGELEITET: ein vollstaendiges SMTP-Gespraech ueber TLS sind
    rund acht Umlaeufe; bei schlechten 300 ms sind das unter drei Sekunden.
-   VERSAND_MS gibt dem den achtfachen Abstand.
+   SEND_MS gibt dem den achtfachen Abstand.
 
    DIE AEUSSERE SCHRANKE IST DIE TRAGENDE, und der Unterschied ist
    NACHGESTELLT: die drei Fristen darunter sind Fristen je ABSCHNITT und eine
@@ -89,9 +89,9 @@ const HINWEIS_IMMER = 'mail.hintAlways';
    Wettlauf ueber dem GANZEN Versand ist eine Frist auf die Gesamtdauer.
    DIE DREI DARUNTER BLEIBEN TROTZDEM STEHEN: sie sind der schnellere Weg und
    nennen den Abschnitt, an dem es klemmte. */
-const VERSAND_MS = 20 * 1000;
-const VERBINDUNG_MS = 7 * 1000;
-const GRUSS_MS = 7 * 1000;
+const SEND_MS = 20 * 1000;
+const CONNECT_MS = 7 * 1000;
+const GREETING_MS = 7 * 1000;
 
 /* ---- Was in settings liegt ----
    DER MAILZUGANG GEHOERT DEM EIGENTUEMER, NICHT DEM ADMIN, und das ist die
@@ -107,18 +107,18 @@ const GRUSS_MS = 7 * 1000;
 
    DER SCHLUESSEL IST EINER UND NICHT SECHS: sechs waeren sechs Stellen, an
    denen ein halb geschriebener Zugang entstehen kann. */
-const SCHLUESSEL = 'mailzugang';
+const SETTING_KEY = 'mailzugang';
 
-const LEER = { anbieter: '', server: '', port: 0, sicher: false, benutzer: '', passwort: '', absender: '' };
+const EMPTY = { anbieter: '', server: '', port: 0, sicher: false, benutzer: '', passwort: '', absender: '' };
 
 // Wie eine Adresse aussehen darf. BEWUSST GROB: eine Adresse laesst sich am
 // Muster ohnehin nicht auf Gueltigkeit pruefen -- den Beweis liefert erst die
 // Mail, die ankommt. Was hier abgewiesen wird, ist das, was gar keine Adresse
 // sein kann: kein @, Leerzeichen, zwei @, nichts davor oder dahinter.
-const ADRESSE_MUSTER = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
-const istAdresse = (a) => ADRESSE_MUSTER.test(String(a || '').trim());
+const ADDRESS_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+const isAddress = (a) => ADDRESS_PATTERN.test(String(a || '').trim());
 
-const anbieterZu = (schluessel) => ANBIETER.find(a => a.schluessel === schluessel) || null;
+const providerOf = (key) => PROVIDERS.find(a => a.key === key) || null;
 
 /* WAS DIE OBERFLAECHE JE ANBIETER BRAUCHT -- seit 0.17.3, und der Grund ist der
    Dialog. Dort wechselt mit der Auswahl ZWEIERLEI: der Hinweis, der zu genau
@@ -131,11 +131,11 @@ const anbieterZu = (schluessel) => ANBIETER.find(a => a.schluessel === schluesse
    Vorlagen und "Eigener Server".
    KEIN GEHEIMNIS DABEI. Server, Port und Verschluesselung stehen in jeder
    Anleitung des Anbieters; das PASSWORT kommt hier so wenig heraus wie in
-   zustand(). */
-const fuerDieAuswahl = () => ANBIETER.map(a => ({
-  schluessel: a.schluessel, name: a.name,
+   state(). */
+const forChoice = () => PROVIDERS.map(a => ({
+  key: a.key, name: a.name,
   server: a.server, port: a.port, sicher: a.sicher,
-  hinweis: HINWEISE[a.schluessel] || ''
+  hinweis: HINTS[a.key] || ''
 }));
 
 /* Loest den gespeicherten Zugang zu dem auf, was der Versand wirklich braucht.
@@ -143,11 +143,11 @@ const fuerDieAuswahl = () => ANBIETER.map(a => ({
    gewaehlt hat und bei dem der Anbieter morgen den Port wechselt, bekommt den
    neuen Port aus dem Quelltext. Stuenden die Werte auch bei einer Vorlage in
    der Datenbank, waeren sie eine eingefrorene Kopie und liefen auseinander. */
-function loeseAuf(roh) {
-  const z = { ...LEER, ...(roh && typeof roh === 'object' ? roh : {}) };
-  const v = anbieterZu(z.anbieter);
-  if (!v) return { ...LEER };
-  if (v.schluessel === 'eigen') {
+function resolve(raw) {
+  const z = { ...EMPTY, ...(raw && typeof raw === 'object' ? raw : {}) };
+  const v = providerOf(z.anbieter);
+  if (!v) return { ...EMPTY };
+  if (v.key === 'eigen') {
     return { ...z, server: String(z.server || '').trim(),
              port: Number(z.port) || 0, sicher: z.sicher === true };
   }
@@ -158,15 +158,15 @@ function loeseAuf(roh) {
    die Feststellung, DASS eines gesetzt ist. Nie die Laenge, nie der Anfang,
    nie Sternchen mit der richtigen Zahl: aus jedem davon liesse sich etwas
    ableiten, und keines davon hilft dem, der die Karte ansieht. */
-function zustand(roh) {
-  const z = loeseAuf(roh);
-  const v = anbieterZu(z.anbieter);
+function state(raw) {
+  const z = resolve(raw);
+  const v = providerOf(z.anbieter);
   return {
     anbieter: z.anbieter, anbieterName: v ? v.name : '',
     server: z.server, port: z.port, sicher: z.sicher,
     benutzer: z.benutzer, absender: z.absender,
     passwortGesetzt: Boolean(z.passwort),
-    hinweis: HINWEISE[z.anbieter] || '', hinweisImmer: HINWEIS_IMMER
+    hinweis: HINTS[z.anbieter] || '', hinweisImmer: HINT_ALWAYS
   };
 }
 
@@ -174,11 +174,11 @@ function zustand(roh) {
    (Stolperstein 81): ein leerer Zugang ist nicht "in Ordnung", er ist keiner.
    'eigen' braucht Server und Port zusaetzlich -- bei einer Vorlage stehen sie
    im Quelltext und koennen gar nicht fehlen. */
-function eingerichtet(roh) {
-  const z = loeseAuf(roh);
-  if (!anbieterZu(z.anbieter)) return false;
+function configured(raw) {
+  const z = resolve(raw);
+  if (!providerOf(z.anbieter)) return false;
   if (!z.server || !z.port) return false;
-  return Boolean(z.benutzer && z.passwort && istAdresse(z.absender));
+  return Boolean(z.benutzer && z.passwort && isAddress(z.absender));
 }
 
 /* Prueft, was von aussen hereinkommt, und liefert den Wert zum Speichern.
@@ -188,13 +188,13 @@ function eingerichtet(roh) {
    Formular, das ein Geheimnis zum Aendern einer Nebensache verlangt, wird
    irgendwann mit einem falschen Wert gespeichert. Ein leerer Zugang wird
    ausdruecklich zugelassen: so wird der Versand wieder abgeschaltet. */
-function pruefeEingabe(ein, bisher) {
+function checkInput(ein, before) {
   const e = ein && typeof ein === 'object' ? ein : {};
-  const alt = loeseAuf(bisher);
+  const old = resolve(before);
   const anbieter = String(e.anbieter || '').trim();
-  if (!anbieter) return { ...LEER };
-  const v = anbieterZu(anbieter);
-  if (!v) throw meldung('mail.providerUnknown');
+  if (!anbieter) return { ...EMPTY };
+  const v = providerOf(anbieter);
+  if (!v) throw message('mail.providerUnknown');
 
   const benutzer = String(e.benutzer ?? '').trim();
   const absender = String(e.absender ?? '').trim();
@@ -202,21 +202,21 @@ function pruefeEingabe(ein, bisher) {
   // Leerzeichen am Ende kann Teil des Passworts sein, und ein stillschweigend
   // abgeschnittenes Zeichen ergaebe eine Absage, die niemand erklaeren kann.
   const passwort = typeof e.passwort === 'string' && e.passwort !== ''
-    ? e.passwort : String(alt.passwort || '');
+    ? e.passwort : String(old.passwort || '');
 
-  if (!benutzer) throw meldung('mail.userMissing');
-  if (!passwort) throw meldung('mail.passwordMissing');
-  if (!istAdresse(absender)) throw meldung('mail.senderInvalid');
+  if (!benutzer) throw message('mail.userMissing');
+  if (!passwort) throw message('mail.passwordMissing');
+  if (!isAddress(absender)) throw message('mail.senderInvalid');
 
-  const raus = { anbieter, benutzer, passwort, absender, server: '', port: 0, sicher: false };
-  if (v.schluessel !== 'eigen') return raus;
+  const out = { anbieter, benutzer, passwort, absender, server: '', port: 0, sicher: false };
+  if (v.key !== 'eigen') return out;
 
   const server = String(e.server || '').trim();
   const port = Number(e.port);
-  if (!server) throw meldung('mail.serverMissing');
+  if (!server) throw message('mail.serverMissing');
   if (!Number.isInteger(port) || port < 1 || port > 65535)
-    throw meldung('mail.portRange', { min: 1, max: 65535 });
-  return { ...raus, server, port, sicher: e.sicher === true };
+    throw message('mail.portRange', { min: 1, max: 65535 });
+  return { ...out, server, port, sicher: e.sicher === true };
 }
 
 /* Eine Marke ueber den Zugang, mit der sich "seit dem Test hat sich nichts
@@ -225,8 +225,8 @@ function pruefeEingabe(ein, bisher) {
    Sie steht hier und nicht in server.js, weil sie die Felder dieser Datei
    kennt -- eine zweite Aufzaehlung daneben liefe beim naechsten Feld
    auseinander. */
-function marke(roh) {
-  const z = loeseAuf(roh);
+function mark(raw) {
+  const z = resolve(raw);
   return crypto.createHash('sha256')
     .update(JSON.stringify([z.anbieter, z.server, z.port, z.sicher, z.benutzer, z.passwort, z.absender]))
     .digest('hex').slice(0, 16);
@@ -247,40 +247,40 @@ function marke(roh) {
    Mailprogramm setzt ihn beim Anzeigen wieder zusammen. Wer im Pruefstand am
    rohen Brief nach dem Schluessel sucht, findet ihn nicht -- dort wird
    dekodiert, wie ein Empfaenger es auch tut (Stolperstein 90). */
-function baueVersender(z) {
+function buildTransport(z) {
   return nodemailer.createTransport({
     host: z.server, port: z.port, secure: z.sicher === true,
     auth: { user: z.benutzer, pass: z.passwort },
-    connectionTimeout: VERBINDUNG_MS, greetingTimeout: GRUSS_MS, socketTimeout: VERSAND_MS,
+    connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,
     // Die Instanz schickt eine Handvoll Mails im Monat. Eine offen gehaltene
     // Verbindung waere eine Verbindung nach draussen, die ohne Anlass steht.
     pool: false
   });
 }
 
-async function versende(sprache, roh, an, betreff, text) {
-  const z = loeseAuf(roh);
+async function send(locale, raw, to, subject, text) {
+  const z = resolve(raw);
   /* DER GRUND IST SEIT 0.24.0 EIN SCHLUESSEL, WO ER AUS DIESER DATEI KOMMT --
-     und ein SATZ, wo ihn der Anbieter geschrieben hat (kurzerGrund). Beides
+     und ein SATZ, wo ihn der Anbieter geschrieben hat (shortReason). Beides
      steht am Bildschirm; nur das erste laesst sich uebersetzen. */
-  if (!eingerichtet(z)) return { ok: false, grund: t(sprache, 'mail.noAccount') };
-  if (!istAdresse(an)) return { ok: false, grund: t(sprache, 'mail.recipientInvalid') };
-  let versender = null;
+  if (!configured(z)) return { ok: false, grund: t(locale, 'mail.noAccount') };
+  if (!isAddress(to)) return { ok: false, grund: t(locale, 'mail.recipientInvalid') };
+  let transport = null;
   try {
-    versender = baueVersender(z);
+    transport = buildTransport(z);
     /* DER WETTLAUF IST DIE ZUSAGE. Er steht hier und nicht beim Aufrufer:
        eine Frist, die jede Route selbst setzen muesste, waere an der Route
        vergessen, die als naechste dazukommt. */
-    let uhr;
-    const frist = new Promise((_, fehler) => {
-      uhr = setTimeout(() => fehler(new Error(t(sprache, 'mail.timeout'))), VERSAND_MS);
+    let clock;
+    const deadline = new Promise((_, error) => {
+      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);
     });
     try {
       await Promise.race([
-        versender.sendMail({ from: z.absender, to: an, subject: betreff, text }),
-        frist
+        transport.sendMail({ from: z.absender, to: to, subject: subject, text }),
+        deadline
       ]);
-    } finally { clearTimeout(uhr); }
+    } finally { clearTimeout(clock); }
     return { ok: true, grund: '' };
   } catch (e) {
     /* WAS AUS DER MELDUNG DES ANBIETERS UEBERNOMMEN WIRD, IST BESCHNITTEN --
@@ -288,18 +288,18 @@ async function versende(sprache, roh, an, betreff, text) {
        Anmeldedaten in der Absage zurueck ("535 5.7.8 Username and Password
        not accepted for <benutzer>"). Der Anfang traegt den Fehlercode, und
        der ist das, was hilft. */
-    return { ok: false, grund: kurzerGrund(sprache, e) };
+    return { ok: false, grund: shortReason(locale, e) };
   } finally {
     // Auch im Fehlerfall: eine haengende Verbindung nach draussen ist genau
     // das, was diese Instanz nicht offen halten soll (Stolperstein 134 in
     // seiner Form fuer Sockets).
-    try { if (versender) versender.close(); } catch {}
+    try { if (transport) transport.close(); } catch {}
   }
 }
 
-function kurzerGrund(sprache, e) {
-  const roh = String((e && e.message) || t(sprache, 'mail.unknownError')).replace(/\s+/g, ' ').trim();
-  return roh.length > 120 ? roh.slice(0, 117) + '…' : roh;
+function shortReason(locale, e) {
+  const raw = String((e && e.message) || t(locale, 'mail.unknownError')).replace(/\s+/g, ' ').trim();
+  return raw.length > 120 ? raw.slice(0, 117) + '…' : raw;
 }
 
 /* ---- Die vier Briefe ----
@@ -321,19 +321,19 @@ function kurzerGrund(sprache, e) {
    ausloesen.
    JEDER BRIEF LIEFERT BETREFF UND TEXT ZUSAMMEN: zwei Aufrufe fuer einen Brief
    liessen sich an der naechsten Stelle halb vergessen. */
-const brief = (sprache, art, werte) => ({
-  betreff: t(sprache, `mail.${art}.subject`, werte),
-  text: t(sprache, `mail.${art}.body`, werte)
+const mail = (locale, kind, values) => ({
+  subject: t(locale, `mail.${kind}.subject`, values),
+  text: t(locale, `mail.${kind}.body`, values)
 });
-const briefEinladung = (sprache, werte) => brief(sprache, 'invite', werte);
-const briefRuecksetzung = (sprache, werte) => brief(sprache, 'reset', werte);
-const briefBestaetigung = (sprache, werte) => brief(sprache, 'confirm', werte);
-const briefTest = (sprache, werte) => brief(sprache, 'test', werte);
+const mailInvite = (locale, values) => mail(locale, 'invite', values);
+const mailReset = (locale, values) => mail(locale, 'reset', values);
+const mailConfirm = (locale, values) => mail(locale, 'confirm', values);
+const mailTest = (locale, values) => mail(locale, 'test', values);
 
 module.exports = {
-  ANBIETER, HINWEISE, HINWEIS_IMMER, SCHLUESSEL,
-  VERSAND_MS, VERBINDUNG_MS, GRUSS_MS,
-  istAdresse, anbieterZu, fuerDieAuswahl, loeseAuf, zustand, eingerichtet, pruefeEingabe, marke,
-  versende, setzeUebersetzer,
-  briefEinladung, briefRuecksetzung, briefBestaetigung, briefTest
+  PROVIDERS, HINTS, HINT_ALWAYS, SETTING_KEY,
+  SEND_MS, CONNECT_MS, GREETING_MS,
+  isAddress, providerOf, forChoice, resolve, state, configured, checkInput, mark,
+  send, setTranslator,
+  mailInvite, mailReset, mailConfirm, mailTest
 };

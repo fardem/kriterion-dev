@@ -34,12 +34,12 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    Bestandslauf faehrt seit dieser Runde in einem eigenen Thread und braucht
    dieselbe Umwandlung wie der Anfrageweg (Stolperstein 47). Gerufen wird
    dasselbe wie vorher, nur aus einer Datei daneben. */
-/* `istPNG` STEHT HIER NICHT MEHR: die einzige Stelle, die es im Server rief,
+/* `isPng` STEHT HIER NICHT MEHR: die einzige Stelle, die es im Server rief,
    war die Schleife des Bestandslaufs -- und die faehrt seit dieser Runde im
    Thread. Ein Import, den niemand ruft, ist eine Zeile, die beim naechsten
    Lesen erklaert werden muss. Der KOMMENTAR ueber qOffenePNG nennt es
    weiterhin, und das ist richtig: die Byte-Folge dort ist dieselbe. */
-const { makeVariants, PNG_MAGIE_HEX, legeBildAb } = require('./bilder');
+const { makeVariants, PNG_MAGIC_HEX, storeImage } = require('./bilder');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
@@ -123,7 +123,7 @@ const Meldung = auth.Meldung;
    ein Blatt im Abhaengigkeitsbaum und darf server.js nicht requiren; die vier
    Briefe und seine Absagen brauchen t() trotzdem. Ein Griff beim Start, und
    beide Seiten lesen dieselbe Datei. */
-mail.setzeUebersetzer(t);
+mail.setTranslator(t);
 /* UND auth.js EBENSO -- fuer die zwei Antworten, die requireAuth() selbst gibt.
    Es bekommt die ANFRAGE gereicht und nicht die Sprache: welche Sprache eine
    Antwort traegt, entscheidet diese Datei. */
@@ -191,8 +191,8 @@ const linkAngabe = (klartext) => OEFFENTLICHE.adresse
    nicht verschickt, die Karte sagt warum, und der Browser des Admins baut den
    Link beim Kopieren weiter selbst. */
 async function versendeTokenLink(ziel, token) {
-  const zugang = mail.loeseAuf(getSetting(mail.SCHLUESSEL, null));
-  if (!mail.eingerichtet(zugang))
+  const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
+  if (!mail.configured(zugang))
     return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };
   if (!OEFFENTLICHE.adresse)
     return { versand: 'aus', versandGrund:
@@ -209,9 +209,9 @@ async function versendeTokenLink(ziel, token) {
      spracheVon() steht schon da (Bauabschnitt 1); Stufe 2 haengt hier die
      Sprache des Zugangs ein, und diese Zeile bleibt, wie sie ist. */
   const sprache = SPRACH_VORGABE;
-  const brief = einladung ? mail.briefEinladung(sprache, angaben)
-                          : mail.briefRuecksetzung(sprache, angaben);
-  const e = await mail.versende(sprache, zugang, ziel.email, brief.betreff, brief.text);
+  const brief = einladung ? mail.mailInvite(sprache, angaben)
+                          : mail.mailReset(sprache, angaben);
+  const e = await mail.send(sprache, zugang, ziel.email, brief.subject, brief.text);
   return e.ok ? { versand: 'ok', versandGrund: '' }
               : { versand: 'fehlgeschlagen', versandGrund: e.grund };
 }
@@ -224,7 +224,7 @@ async function versendeTokenLink(ziel, token) {
 const MAILTEST_SCHLUESSEL = 'mailtestOk';
 function mailtestStand(roh) {
   const test = getSetting(MAILTEST_SCHLUESSEL, null);
-  return test && test.marke && test.marke === mail.marke(roh) ? test : null;
+  return test && test.marke && test.marke === mail.mark(roh) ? test : null;
 }
 
 /* ---- Kann diese Instanz ueberhaupt verschicken --------------------------
@@ -233,8 +233,8 @@ function mailtestStand(roh) {
    OEFFENTLICHE_ADRESSE durch -- die Marke waere gruen, und die
    Bestaetigungsmail ginge nie hinaus. Der Grund steht daneben. */
 function versandBereit() {
-  const roh = getSetting(mail.SCHLUESSEL, null);
-  if (!mail.eingerichtet(roh))
+  const roh = getSetting(mail.SETTING_KEY, null);
+  if (!mail.configured(roh))
     return { ok: false, grund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.' };
   if (!mailtestStand(roh))
     return { ok: false, grund: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen. ' +
@@ -259,14 +259,14 @@ function versandBereit() {
    Server: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
    die Seite und bestaetigt damit gerade NICHT. */
 async function versendeBestaetigung(name, adresse, klartext) {
-  const zugang = mail.loeseAuf(getSetting(mail.SCHLUESSEL, null));
-  if (!mail.eingerichtet(zugang) || !OEFFENTLICHE.adresse) return { ok: false, grund: 'aus' };
+  const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
+  if (!mail.configured(zugang) || !OEFFENTLICHE.adresse) return { ok: false, grund: 'aus' };
   const titel = getSetting('title_public', 'Bewertungskatalog');
   const sprache = SPRACH_VORGABE;
-  const brief = mail.briefBestaetigung(sprache, { titel, username: name,
+  const brief = mail.mailConfirm(sprache, { titel, username: name,
     link: `${OEFFENTLICHE.adresse}/#/bestaetigung/${klartext}`,
     stunden: auth.ANFRAGE_STUNDEN });
-  return mail.versende(sprache, zugang, adresse, brief.betreff, brief.text);
+  return mail.send(sprache, zugang, adresse, brief.subject, brief.text);
 }
 
 const app = express();
@@ -484,7 +484,7 @@ const bestandsStand = (aufgabe) =>
   bestandsStaende[aufgabe] && { ...bestandsStaende[aufgabe] };
 
 /* WELCHE ZEILEN UEBERHAUPT IN FRAGE KOMMEN -- am INHALT erkannt, mit derselben
-   Byte-Folge wie istPNG(). AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die
+   Byte-Folge wie isPng(). AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die
    Videodatei.
    HIER DARF `art != 'video'` STEHEN, anders als in /api/stats: diese Abfrage
    laeuft nur auf Knopfdruck, sie liest ohnehin die ersten Bytes jedes Blobs,
@@ -1544,11 +1544,11 @@ app.delete('/api/users/:id', nurAdmin, (req, res) => {
    die Anfrage in der Hand liegt und damit feststeht, welche Sprache die
    Antwort traegt. mail.js kennt die Sprache nicht; es kennt den Anbieter. */
 function mailKarte(req) {
-  const roh = getSetting(mail.SCHLUESSEL, null);
+  const roh = getSetting(mail.SETTING_KEY, null);
   // Der Vergleich steht in mailtestStand() weiter oben -- eine
   // Rechnung, zwei Rufer (Stolperstein 145).
   const test = mailtestStand(roh);
-  const zustand = mail.zustand(roh);
+  const zustand = mail.state(roh);
   return {
     ...zustand,
     // Auch die beiden Hinweise am gewaehlten Anbieter sind Schluessel.
@@ -1557,16 +1557,16 @@ function mailKarte(req) {
     /* SAMT HINWEIS UND DEN DREI FESTEN WERTEN JE ANBIETER -- seit 0.17.3.
        Der Dialog wechselt mit der Auswahl beides, und beides steht in mail.js;
        zwei Ausfertigungen liefen auseinander (Stolperstein 102). */
-    anbieterListe: mail.fuerDieAuswahl().map(a =>
+    anbieterListe: mail.forChoice().map(a =>
       ({ ...a, hinweis: a.hinweis ? t(spracheVon(req), a.hinweis) : '' })),
-    eingerichtet: mail.eingerichtet(roh),
+    eingerichtet: mail.configured(roh),
     // Der ZUSTAND der oeffentlichen Adresse, nicht die Adresse selbst -- die
     // steht in der Karte "Zugaenge", wo der Link entsteht.
     adresseGesetzt: Boolean(OEFFENTLICHE.adresse),
     adresse: OEFFENTLICHE.adresse,
     fristMinuten: auth.TOKEN_FRIST_MINUTEN,
     getestetAm: test ? test.am : null,
-    sekunden: Math.round(mail.VERSAND_MS / 1000),
+    sekunden: Math.round(mail.SEND_MS / 1000),
     /* Die Folge der Testmarke fuer die Selbstanmeldung, : der
        Eigentuemer soll an DIESER Karte sehen, was er dem Schalter des Admins
        antut, wenn er den Mailzugang aendert. Es ist dieselbe Rechnung wie in
@@ -1579,9 +1579,9 @@ app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte(req)));
 
 app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res) => {
   let neu;
-  try { neu = mail.pruefeEingabe(req.body, getSetting(mail.SCHLUESSEL, null)); }
+  try { neu = mail.checkInput(req.body, getSetting(mail.SETTING_KEY, null)); }
   catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
-  putSetting.run(mail.SCHLUESSEL, JSON.stringify(neu));
+  putSetting.run(mail.SETTING_KEY, JSON.stringify(neu));
   /* DIE MARKE WIRD HIER AUSDRUECKLICH NICHT GELOESCHT: sie haengt am HASH
      UEBER DEN ZUGANG, den mailKarte(req) nachrechnet -- passt er nicht mehr,
      gilt sie nicht mehr. Ein zweites Loeschen waere eine zweite Wahrheit
@@ -1599,16 +1599,16 @@ app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
     return res.status(400).json({ error:
       t(spracheVon(req), 'server.ownEmailMissing')});
   }
-  const roh = getSetting(mail.SCHLUESSEL, null);
-  if (!mail.eingerichtet(roh))
+  const roh = getSetting(mail.SETTING_KEY, null);
+  if (!mail.configured(roh))
     return res.status(400).json({ error: t(spracheVon(req), 'server.mailAccountMissing')});
   const sprache = spracheVon(req);
-  const brief = mail.briefTest(sprache, { titel: getSetting('title_public', 'Bewertungskatalog'),
+  const brief = mail.mailTest(sprache, { titel: getSetting('title_public', 'Bewertungskatalog'),
                                           username: eigener.username });
-  const e = await mail.versende(sprache, roh, eigener.email, brief.betreff, brief.text);
+  const e = await mail.send(sprache, roh, eigener.email, brief.subject, brief.text);
   if (e.ok) {
     putSetting.run(MAILTEST_SCHLUESSEL,
-      JSON.stringify({ marke: mail.marke(roh), am: new Date().toISOString().slice(0, 19).replace('T', ' ') }));
+      JSON.stringify({ marke: mail.mark(roh), am: new Date().toISOString().slice(0, 19).replace('T', ' ') }));
   }
   // 200 AUCH BEIM FEHLSCHLAG: der Versuch ist gelaufen, und sein Ergebnis ist
   // die Antwort. Ein 500 hiesse, die Instanz haette einen Fehler -- den hat der
@@ -3010,7 +3010,7 @@ function detail(id, benutzerId) {
   it.attachments = qAttachments.all(id).map(a2 => ({
     id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
     sort_order: a2.sort_order, created_at: a2.created_at,
-    preview: anh.vorschauArt(a2.filename),
+    preview: anh.previewKind(a2.filename),
     mine: a2.user_id === benutzerId, verfasser: verfasserAus(karte, a2.user_id)
   }));
   /* Die Linkzeile sagt wie Kommentar, Testtag und Stimme, wem sie gehoert --
@@ -3819,7 +3819,7 @@ app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40
          Er braucht die Unterscheidung auch nicht: die Zwischenablage liefert
          IMMER PNG, eine Kamera JPEG. Die Regel „PNG umwandeln, JPEG in Ruhe
          lassen" trifft damit genau das, was gemeint ist. */
-      const ab = bilderUmwandeln() ? await legeBildAb(f.buffer, f.mimetype)
+      const ab = bilderUmwandeln() ? await storeImage(f.buffer, f.mimetype)
                                    : { data: f.buffer, mime: f.mimetype };
       ins.run(req.params.id, ab.mime, ab.data, v.thumb, v.medium, pos++);
     }
@@ -3846,7 +3846,7 @@ const videoUpload = multer({
   limits: { fileSize: VIDEO_MAX },
   // Erste, grobe Schranke am gemeldeten Typ, wie am Fotoweg. Sie haelt nichts
   // auf, was sich umbenennen laesst -- die tragenden Pruefungen stehen im
-  // Rumpf: typAusBytes() an der Videodatei, rasterBild() am Standbild.
+  // Rumpf: typeFromBytes() an der Videodatei, rasterBild() am Standbild.
   fileFilter: (req, file, cb) => {
     const gut = file.fieldname === 'video' ? /^video\//.test(file.mimetype)
                                            : /^image\//.test(file.mimetype);
@@ -3871,7 +3871,7 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
          Videozeile entstehen, die sich hinterher nicht abspielen laesst.
          AUF DIE VIDEODATEI WIRD rasterBild() AUSDRUECKLICH NICHT ANGEWANDT:
          der Server oeffnet nie ein Video. Gelesen werden zwoelf Bytes. */
-      if (!Object.values(anh.VIDEO_TYPEN).includes(anh.typAusBytes(video.buffer)))
+      if (!Object.values(anh.VIDEO_TYPES).includes(anh.typeFromBytes(video.buffer)))
         return res.status(400).json({ error: t(spracheVon(req), 'server.videosOnly')});
       // Das Standbild geht denselben Weg wie jedes Foto: was sharp nicht als
       // Bild lesen kann, kommt nicht herein.
@@ -3919,10 +3919,10 @@ app.get('/api/photos/:id/raw', (req, res) => {
   let rangefaehig = p.art === 'video';
   if (req.query.size === 'thumb' && p.thumb) { blob = p.thumb; rangefaehig = false; }
   else if (req.query.size === 'medium' && p.medium) { blob = p.medium; rangefaehig = false; }
-  anh.setzeBildHeader(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
+  anh.setImageHeader(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
   if (!rangefaehig) return res.send(blob);
   res.set('Accept-Ranges', 'bytes');
-  const b = anh.rangeAus(req.headers.range, blob.length);
+  const b = anh.rangeOut(req.headers.range, blob.length);
   if (!b) return res.send(blob);
   // Ungueltiges wird abgewiesen, nicht zurechtgebogen: ein Abspieler, der
   // etwas anderes bekommt als er verlangt hat, zeigt Bildsalat statt Fehler.
@@ -3930,8 +3930,8 @@ app.get('/api/photos/:id/raw', (req, res) => {
     res.set('Content-Range', `bytes */${blob.length}`);
     return res.status(416).end();
   }
-  res.set('Content-Range', `bytes ${b.von}-${b.bis}/${blob.length}`);
-  res.status(206).send(blob.slice(b.von, b.bis + 1));
+  res.set('Content-Range', `bytes ${b.from}-${b.bis}/${blob.length}`);
+  res.status(206).send(blob.slice(b.from, b.bis + 1));
 });
 
 /* --- Der Ausschnitt der Vorschau: drei Werte, EINE Spanne ----------------
@@ -4110,7 +4110,7 @@ app.post('/api/items/:id/attachments', anhangUpload.array('files', ANHANG_ZAHL),
 app.get('/api/attachments/:id/raw', (req, res) => {
   const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).end();
-  anh.setzeHeader(res, a.filename, { inline: req.query.inline === '1' });
+  anh.setHeader(res, a.filename, { inline: req.query.inline === '1' });
   res.send(a.data);
 });
 
@@ -4120,10 +4120,10 @@ app.get('/api/attachments/:id/raw', (req, res) => {
 app.get('/api/attachments/:id/preview', (req, res) => {
   const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).json({ error: t(spracheVon(req), 'server.fileGone')});
-  const art = anh.vorschauArt(a.filename);
-  if (art === 'text') return res.json({ art, ...anh.textVorschau(a.data) });
+  const art = anh.previewKind(a.filename);
+  if (art === 'text') return res.json({ art, ...anh.textPreview(a.data) });
   if (art === 'docx') {
-    const v = anh.docxVorschau(a.data);
+    const v = anh.docxPreview(a.data);
     if (!v) return res.status(422).json({ error: t(spracheVon(req), 'server.fileNotText')});
     return res.json({ art, ...v });
   }
@@ -4596,7 +4596,7 @@ app.delete('/api/comment-images/:id', (req, res) => {
 app.get('/api/comment-images/:id/raw', (req, res) => {
   const b = db.prepare('SELECT * FROM comment_images WHERE id = ?').get(req.params.id);
   if (!b) return res.status(404).end();
-  anh.setzeHeader(res, 'bild.jpg', { inline: true });
+  anh.setHeader(res, 'bild.jpg', { inline: true });
   res.send(req.query.size === 'thumb' && b.thumb ? b.thumb : b.data);
 });
 
@@ -4846,7 +4846,7 @@ app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bild
      zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
   if (bestandsStaende.umstellung && bestandsStaende.umstellung.laeuft)
     return res.status(409).json({ error: t(spracheVon(req), 'server.convertRunning')});
-  const zeilen = qOffenePNG.all(PNG_MAGIE_HEX);
+  const zeilen = qOffenePNG.all(PNG_MAGIC_HEX);
   bestandsStaende.umstellung = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
                                  umgestellt: 0, geblieben: 0, gespart: 0 };
   console.log(`[Kriterion] Bildumstellung gestartet: ${zeilen.length} PNG.`);
@@ -4906,13 +4906,13 @@ const AUSTAUSCH_WARN = 300 * 1024 * 1024;
 
 // Der Trichter der Exportdatei. Base64 blaeht um ein Drittel auf, und das ist
 // der Preis dafuer, dass eine Textdatei Bytes tragen kann.
-const TRICHTER_DATEI = { endung: '_base64', nimm: (buf) => buf.toString('base64') };
+const TRICHTER_DATEI = { extension: '_base64', nimm: (buf) => buf.toString('base64') };
 
 /* Der Trichter des Papierkorbs. Er sammelt die Bytes in einer Liste und legt
    nur ihre Nummer ins Paket; die Liste wandert danach zeilenweise nach
    papierkorb_bytes. So entsteht an keiner Stelle ein grosser String. */
 function trichterAblage(sammler) {
-  return { endung: '_ref', nimm: (buf) => { sammler.push(buf); return sammler.length - 1; } };
+  return { extension: '_ref', nimm: (buf) => { sammler.push(buf); return sammler.length - 1; } };
 }
 
 /* Die Gegenrichtung, einmal fuer beide Formen. Eine Datei traegt Base64, eine
@@ -4959,7 +4959,7 @@ function paketLage(benutzerId, schalter = {}) {
 // Pruefstand haelt das fest.
 function eintragAlsPaket(it, lage) {
   const { verfasserName, pins, trichter, mitFotos, mitDateien, mitVideos } = lage;
-  const endung = trichter.endung;
+  const extension = trichter.extension;
   const o = {
     title: it.title, description: it.description,
     rejected: !!it.rejected, tested: !!it.tested, favorite: pins.has(it.id),
@@ -5007,7 +5007,7 @@ function eintragAlsPaket(it, lage) {
         // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
         images: mitDateien
           ? db.prepare('SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id')
-              .all(c.id).map(b2 => ({ filename: b2.filename, ['data' + endung]: trichter.nimm(b2.data) }))
+              .all(c.id).map(b2 => ({ filename: b2.filename, ['data' + extension]: trichter.nimm(b2.data) }))
           : []
       })),
     photos: [], attachments: []
@@ -5021,7 +5021,7 @@ function eintragAlsPaket(it, lage) {
            aeltere Instanz uebergeht das zusaetzliche Feld wortlos. */
         const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,
                     zoom: p.zoom, art: p.art };
-        if (p.art !== 'video') { z['data' + endung] = trichter.nimm(p.data); return z; }
+        if (p.art !== 'video') { z['data' + extension] = trichter.nimm(p.data); return z; }
         z.dauer = p.dauer;
         /* OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN -- ohne Bytes.
            Sie legt beim Einspielen keinen Platz an (photos.data ist NOT
@@ -5030,12 +5030,12 @@ function eintragAlsPaket(it, lage) {
            Videos die Datei nicht enthielt. Ohne die Marke wuesste er es
            nicht, und der Verlust waere still. */
         if (mitVideos) {
-          z['data' + endung] = trichter.nimm(p.data);
+          z['data' + extension] = trichter.nimm(p.data);
           /* Das Standbild geht EIGENS mit. Der Import erzeugt die Varianten
              sonst aus data -- bei einem Video also aus der Videodatei, und
              das Standbild waere verloren. */
           const sb = p.medium || p.thumb;
-          if (sb) z['standbild' + endung] = trichter.nimm(sb);
+          if (sb) z['standbild' + extension] = trichter.nimm(sb);
         }
         return z;
       });
@@ -5046,7 +5046,7 @@ function eintragAlsPaket(it, lage) {
     o.attachments = db.prepare('SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id')
       .all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
-                    author: verfasserName(a2.user_id), ['data' + endung]: trichter.nimm(a2.data) }));
+                    author: verfasserName(a2.user_id), ['data' + extension]: trichter.nimm(a2.data) }));
   }
   return o;
 }
@@ -6973,9 +6973,9 @@ app.listen(PORT, () => {
      Anbieter, Server und Absender -- ein Geheimnis, das einmal im
      Containerprotokoll steht, steht dort, bis es jemand loescht. */
   {
-    const roh = getSetting(mail.SCHLUESSEL, null);
-    const z = mail.zustand(roh);
-    if (mail.eingerichtet(roh)) {
+    const roh = getSetting(mail.SETTING_KEY, null);
+    const z = mail.state(roh);
+    if (mail.configured(roh)) {
       console.log(`[Kriterion] Mailversand: ${z.anbieterName} über ${z.server}:${z.port} ` +
         `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}.` +
         (OEFFENTLICHE.adresse ? '' : ' Ohne OEFFENTLICHE_ADRESSE wird trotzdem nicht verschickt.'));

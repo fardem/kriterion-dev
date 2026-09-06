@@ -33,7 +33,7 @@ function open(file) {
    es entsteht kein halber Zustand. Faellt das Journal weg, ist alles verloren:
    DAS ist der Grund fuer die Sicherung davor. Es waechst auf die Groesse der
    Datenbank. */
-function wechsleSchluessel(neuHex) {
+function changeKey(neuHex) {
   if (!/^[0-9a-fA-F]{64}$/.test(String(neuHex)))
     throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
   const vorher = db.pragma('journal_mode', { simple: true });
@@ -1208,7 +1208,7 @@ renumberCriteria();
 // Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
-                   wechsleSchluessel, verfahren,
+                   changeKey, verfahren,
                    renumberCriteria, ordneBestandZu, eigentuemerId,
                    // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
                    migration083,

@@ -68,7 +68,16 @@ function ersetzeIdent(src, datei, map, opt = {}) {
    deutsche Woerter. Ersetzt wird deshalb nur, was sich als Code zu erkennen
    gibt -- ein Name mit Grossbuchstaben, Unterstrich oder Ziffer, oder einer,
    der in Ruecktasten steht oder eine Klammer nach sich zieht. */
-function istCodeName(n) { return /[A-Z0-9_$./]/.test(n); }
+/* WORAN MAN EINEN NAMEN VON EINEM WORT UNTERSCHEIDET. Die Papiere dieses
+   Projekts schreiben Woerter zur Betonung GROSS -- „EIN SCHLUESSEL JE BRIEF"
+   ist ein Satz und kein Bezeichner. Ein Name gibt sich deshalb erst zu
+   erkennen durch einen Unterstrich, einen Punkt, einen Schraegstrich, eine
+   Ziffer oder durch Hoeckerschrift; ein Wort in lauter Grossbuchstaben zaehlt
+   nur, wenn Ruecktasten oder eine Klammer daneben stehen. */
+function istCodeName(n) {
+  if (/[0-9_$./]/.test(n)) return true;
+  return /[a-z]/.test(n) && /[A-Z]/.test(n);
+}
 function ersetzeInKommentaren(teile, map) {
   let treffer = 0;
   const namen = Object.keys(map).sort((a, b) => b.length - a.length);
@@ -85,6 +94,25 @@ function ersetzeInKommentaren(teile, map) {
     });
   }
   return treffer;
+}
+
+/* EIN NAME MIT SEINEM TRAEGER -- `mail.zustand` -> `mail.state`. Fuer den
+   Rufer eines umbenannten Exports: `zustand` allein koennte in seiner Datei
+   etwas anderes heissen, `mail.zustand` nie. */
+function ersetzeQualifiziert(src, datei, map, opt = {}) {
+  const teile = zerlege(src, datei);
+  const vorher = texte(teile);
+  let treffer = 0;
+  const paare = Object.keys(map).sort((a, b) => b.length - a.length);
+  if (!paare.length) return { text: src, treffer: 0 };
+  const re = new RegExp('(?<![A-Za-z0-9_$.])(' + paare.map(esc).join('|') + ')(?![A-Za-z0-9_$])', 'g');
+  for (const t of teile) {
+    if (t.art !== CODE && !(opt.auchKommentare && t.art === KOMMENTAR)) continue;
+    t.wert = t.wert.replace(re, (m) => { treffer++; return map[m]; });
+  }
+  const neu = zusammen(teile);
+  probeGleich(vorher, texte(zerlege(neu, datei)), 'Zeichenketten', datei);
+  return { text: neu, treffer };
 }
 
 // --- ganze Zeichenketten ---------------------------------------------------
@@ -157,7 +185,8 @@ function nurKommentare(src, datei, map) {
 function wende(datei, art, map, opt = {}) {
   const src = fs.readFileSync(datei, 'utf8');
   const f = art === 'ident' ? ersetzeIdent : art === 'string' ? ersetzeString
-    : art === 'kommentar' ? nurKommentare : ersetzeInString;
+    : art === 'kommentar' ? nurKommentare
+    : art === 'qualifiziert' ? ersetzeQualifiziert : ersetzeInString;
   const { text, treffer } = f(src, datei, map, opt);
   if (!opt.probe) fs.writeFileSync(datei, text);
   return treffer;
@@ -194,4 +223,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ersetzeIdent, ersetzeString, ersetzeInString, ersetzeInKommentaren, nurKommentare, wende, bezeichner, probeGleich, istCodeName };
+module.exports = { ersetzeIdent, ersetzeString, ersetzeInString, ersetzeQualifiziert, ersetzeInKommentaren, nurKommentare, wende, bezeichner, probeGleich, istCodeName };
