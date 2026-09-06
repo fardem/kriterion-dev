@@ -1441,8 +1441,8 @@ const RUECKBAUTEN = [
   {
     nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
     datei: 'public/app.js',
-    suche: '        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>\n        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>',
-    ersatz: '        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>\n        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>',
+    suche: "        <span class=\"hint wer\" id=\"wer\">${tH('liste.angemeldetAls', { name: NAME })}</span>\n        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('liste.abmelden')}</button>",
+    ersatz: "        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('liste.abmelden')}</button>\n        <span class=\"hint wer\" id=\"wer\">${tH('liste.angemeldetAls', { name: NAME })}</span>",
     erwartet: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
   },
   /* DAS KREUZ AN DER KACHEL WAR EIN FUND AUS DEM FELD, kein Einfall am
@@ -1629,8 +1629,8 @@ const RUECKBAUTEN = [
        dabei vollkommen unauffaellig aus. */
     nr: '181', name: 'Das Codefeld fragt wieder nach der App statt nach dem Verfahren',
     datei: 'public/app.js',
-    suche: "<label>Zwei-Faktor-Code</label>",
-    ersatz: "<label>Code aus deiner App</label>",
+    suche: "<label>${tH('anmeldung.zweiFaktorCode')}</label>\n        <input class=\"input\" id=\"best-code\"",
+    ersatz: "<label>Code aus deiner App</label>\n        <input class=\"input\" id=\"best-code\"",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
@@ -1859,7 +1859,7 @@ const RUECKBAUTEN = [
        nicht tut. Der billigste Punkt der Runde mit dem groessten Schaden. */
     nr: '204', name: 'Der Loeschdialog verschweigt den umkehrbaren Weg wieder',
     datei: 'public/app.js',
-    suche: "      <p>Nur vorübergehend aussperren? Dann sperren statt löschen — das ist umkehrbar, und der\n        Name bleibt.</p>",
+    suche: "      <p>${tH('dialog.nurVoruebergehendAussperrenDann')}</p>",
     ersatz: "",
     erwartet: 'Die zweite Bestaetigung in der Oberflaeche'
   },
@@ -1886,8 +1886,8 @@ const RUECKBAUTEN = [
     /* SORTIEREN UND ANSICHTEN FALLEN WIEDER AUSEINANDER. */
     nr: '207', name: 'Sortieren und Ansichten bekommen wieder je eine Zeile',
     datei: 'public/app.js',
-    suche: "  const r5 = r4;\n  zweiteBeschriftung(r5, 'Ansichten');",
-    ersatz: "  const r5 = row('Ansichten');",
+    suche: "  const r5 = r4;\n  zweiteBeschriftung(r5, t('liste.ansichten'));",
+    ersatz: "  const r5 = row(t('liste.ansichten'));",
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
   {
@@ -2370,8 +2370,8 @@ const RUECKBAUTEN = [
        Merkmals. */
     nr: '254', name: 'Die zweite Gruppe ist nicht abgesetzt',
     datei: 'public/app.js',
-    suche: "  zweiteBeschriftung(r1, 'Ablehnung');",
-    ersatz: "  // zweiteBeschriftung(r1, 'Ablehnung');",
+    suche: "  zweiteBeschriftung(r1, t('liste.ablehnung'));",
+    ersatz: "  // zweiteBeschriftung(r1, t('liste.ablehnung'));",
     erwartet: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
@@ -2648,8 +2648,8 @@ const RUECKBAUTEN = [
        Nachziehen griffe der Rueckbau ins Leere (Stolperstein 192). */
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
     datei: 'public/app.js',
-    suche: "        ${GLOCKE_GESEHEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neuigkeiten\"",
-    ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neuigkeiten\"",
+    suche: "        ${GLOCKE_GESEHEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('liste.neuigkeiten'))}\"",
+    ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"${esc(t('liste.neuigkeiten'))}\"",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2774,8 +2774,8 @@ const RUECKBAUTEN = [
   {
     nr: '297', name: 'Das Vollbild bekommt seinen Papierkorb nicht',
     datei: 'public/app.js',
-    suche: "    ${loeschen ? `<button class=\"lb-btn weg\" title=\"Löschen\">${ICON_PAPIERKORB}</button>` : ''}",
-    ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"Löschen\">${ICON_PAPIERKORB}</button>` : ''}",
+    suche: "    ${loeschen ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.loeschen'))}\">${ICON_PAPIERKORB}</button>` : ''}",
+    ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.loeschen'))}\">${ICON_PAPIERKORB}</button>` : ''}",
     erwartet: 'Der Papierkorb im Vollbild'
   },
   {
@@ -2939,7 +2939,7 @@ const RUECKBAUTEN = [
        Beitraege" sagt nicht, WAS auf einen wartet. */
     nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
     datei: 'public/app.js',
-    suche: "  return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',\n          b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');",
+    suche: "  return [k ? `${k} ${k === 1 ? t('dialog.kommentar') : t('dialog.kommentare')}` : '',\n          b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');",
     ersatz: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2956,7 +2956,7 @@ const RUECKBAUTEN = [
     /* EINE FESTE ENDUNG MACHT AUS EINEM KOMMENTAR „1 Kommentare". */
     nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
     datei: 'public/app.js',
-    suche: "  return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',",
+    suche: "  return [k ? `${k} ${k === 1 ? t('dialog.kommentar') : t('dialog.kommentare')}` : '',",
     ersatz: "  return [k ? `${k} Kommentare` : '',",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -3306,8 +3306,8 @@ const RUECKBAUTEN = [
   {
     nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
     datei: 'public/app.js',
-    suche: "    <p>Neue Kommentare und ${esc(V.bewertungMehrzahl)} <strong>anderer Benutzer</strong>, seit du\n      diese Liste zuletzt geöffnet hast.</p>",
-    ersatz: "    <p>Neue Kommentare und ${esc(V.bewertungMehrzahl)}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
+    suche: "    <p>${tH('liste.neueKommentareUnd')} <strong>${tH('liste.andererBenutzer')}</strong>${tH('liste.seitDuDieseListeZuletzt')}</p>",
+    ersatz: "    <p>${tH('liste.neueKommentareUnd')}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3436,7 +3436,7 @@ const RUECKBAUTEN = [
   {
     nr: '385', name: 'Der Filterruecksetzer nennt seine Zahl nicht mehr',
     datei: 'public/app.js',
-    suche: "    bZurueck.textContent = `Filter zurücksetzen (${filterGesetzt})`;",
+    suche: "    bZurueck.textContent = t('liste.filterZuruecksetzen', { filterGesetzt: filterGesetzt });",
     ersatz: "    bZurueck.textContent = 'Filter zurücksetzen';",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
@@ -3647,14 +3647,14 @@ const RUECKBAUTEN = [
   {
     nr: '410', name: 'Der Ueberfahrtext nennt die weiteren Stellen nicht mehr',
     datei: 'public/app.js',
-    suche: "  f.weitere === 1 ? ' und 1 weitere Stelle'\n  : f.weitere > 1 ? ` und ${f.weitere} weitere Stellen` : '');",
+    suche: "  f.weitere === 1 ? t('liste.undWeitereStelle')\n  : f.weitere > 1 ? t('liste.undWeitereStellen', { weitere: f.weitere }) : '');",
     ersatz: "  '');",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '411', name: 'Eine unbekannte Quelle faellt aus der Zeile',
     datei: 'public/app.js',
-    suche: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => 'Fundstelle'))();",
+    suche: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => t('liste.fundstelle')))();",
     ersatz: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => ''))();",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
@@ -5853,8 +5853,8 @@ const RUECKBAUTEN = [
        wenn er richtig raet -- niemand erfuehre, warum die Liste kuerzer ist. */
     nr: '617', name: 'Neben den Statuspillen steht nicht mehr, woher sie kommen',
     datei: 'public/app.js',
-    suche: "  if (vorgabe) {\n    const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');",
-    ersatz: "  if (false) {\n    const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');",
+    suche: "  if (vorgabe) {\n    const woher = zweiteBeschriftung(r1, t('liste.folgtDerSortierung'));",
+    ersatz: "  if (false) {\n    const woher = zweiteBeschriftung(r1, t('liste.folgtDerSortierung'));",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5921,7 +5921,7 @@ const RUECKBAUTEN = [
        genau dann nirgends dran, wenn man sie am wenigsten sieht. */
     nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
     datei: 'public/app.js',
-    suche: "  const woher = statusAusSortierung(state.filters.sort) ? 'folgt der Sortierung' : '';",
+    suche: "  const woher = statusAusSortierung(state.filters.sort) ? t('liste.folgtDerSortierung') : '';",
     ersatz: "  const woher = '';",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5975,7 +5975,7 @@ const RUECKBAUTEN = [
     // Ein Bildschirmtext traegt wieder ein Wort der Verbotsliste (Konzept 4.3).
     nr: '625', name: 'Die Glocke sagt wieder „Blick"',
     datei: 'public/app.js',
-    suche: "    : 'Keine Neuigkeiten');",
+    suche: "    : t('liste.keineNeuigkeiten'));",
     ersatz: "    : 'Nichts Neues seit deinem letzten Blick');",
     erwartet: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
@@ -6096,8 +6096,8 @@ const RUECKBAUTEN = [
        den Platz weiter, und der Befund waere nur zur Haelfte behoben. */
     nr: '659', name: 'Die Tagzeile wird zugeklappt gebaut statt weggelassen',
     datei: 'public/app.js',
-    suche: "  if (tagsOffen) {\n    const r3 = row('Tags');",
-    ersatz: "  if (true) {\n    const r3 = row('Tags');",
+    suche: "  if (tagsOffen) {\n    const r3 = row(t('liste.tags2'));",
+    ersatz: "  if (true) {\n    const r3 = row(t('liste.tags2'));",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {

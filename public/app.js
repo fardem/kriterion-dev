@@ -71,11 +71,16 @@ function tH(schluessel, werte = {}) {
    Fingerprint deckt sie ab, ohne dass jemand daran denkt (Konzept 3.3). */
 async function ladeSprache(code) {
   const antwort = await fetch(`/sprachen/${code}.json`, { credentials: 'same-origin' });
-  if (!antwort.ok) throw new Error(`sprachen/${code}.json: ${antwort.status}`);
+  /* DIE BEIDEN WUERFE TRAGEN KEINEN SATZ, SONDERN EINE LAGE. Sie erreichen
+     keinen Bildschirm: boot() faengt sie und zeigt den einen festen Satz (A1).
+     Ein deutscher Satz hier waere ein Text, den nie jemand liest -- und der
+     dem Waechter als Rest in app.js aufstiesse. Die Lage steht trotzdem da:
+     sie landet auf der Konsole, und dort liest sie der Betreiber. */
+  if (!antwort.ok) throw new Error(`sprachen/${code}.json ${antwort.status}`);
   const daten = await antwort.json();
   // Ohne Locale kein Datum und keine Mehrzahl -- eine Datei ohne sie ist keine.
   if (!daten || typeof daten !== 'object' || typeof daten._locale !== 'string')
-    throw new Error(`sprachen/${code}.json ohne _locale`);
+    throw new Error(`sprachen/${code}.json _locale`);
   SPRACHE = code;
   LOCALE = daten._locale;
   PLURAL = new Intl.PluralRules(LOCALE);
@@ -134,7 +139,7 @@ async function api(method, url, body, isForm = false) {
     else { opts.headers = { 'Content-Type': 'application/json' }; opts.body = JSON.stringify(body); }
   }
   const res = await fetch(url, opts);
-  if (res.status === 401) { showLogin(); throw new Error('Sitzung abgelaufen'); }
+  if (res.status === 401) { showLogin(); throw new Error(t('dialog.sitzungAbgelaufen')); }
   if (!res.ok) {
     let m = t('fehler.serverStatus', { status: res.status });
     try { const j = await res.json(); if (j.error) m = j.error; } catch {}
@@ -360,8 +365,8 @@ function zuruecksetzKnopf(value, onReset) {
   z.type = 'button';
   z.className = 'rzurueck' + (value > 0 ? '' : ' leer');
   z.innerHTML = ICON_ZURUECKSETZEN;
-  z.title = 'Meine Sterne entfernen';
-  z.setAttribute('aria-label', 'Meine Sterne entfernen');
+  z.title = t('dialog.meineSterneEntfernen');
+  z.setAttribute('aria-label', t('dialog.meineSterneEntfernen'));
   z.onclick = (e) => { e.preventDefault(); e.stopPropagation(); onReset(); };
   return z;
 }
@@ -392,12 +397,12 @@ function autoGrow(el) {
 
 // `art`: die Farbe des Ja-Knopfs -- 'danger' fuer alles, was wegnimmt, 'accent'
 // fuer eine Handlung, die etwas anlegt (Freischalten, Link erzeugen). 0.22.0.
-function confirmBox(title, text, confirmLabel = 'Löschen', art = 'danger') {
+function confirmBox(title, text, confirmLabel = t('dialog.loeschen'), art = 'danger') {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p>${esc(text)}</p>
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.abbrechen')}</button>
       <button class="btn btn-${art === 'accent' ? 'accent' : 'danger'}" data-yes>${esc(confirmLabel)}</button></div></div>`;
     document.body.appendChild(bd);
     const done = v => { bd.remove(); resolve(v); };
@@ -415,14 +420,14 @@ function confirmBox(title, text, confirmLabel = 'Löschen', art = 'danger') {
    Browser wie diese Instanz aus und laesst sich nicht beschriften.
    Liefert den getrimmten Namen oder null bei Abbruch. Ein leerer Name ist ein
    Abbruch: eine Ansicht ohne Namen liesse sich nicht wiederfinden. */
-function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 40) {
+function nameBox(title, text, vorgabe = '', okLabel = t('dialog.speichern'), maxLaenge = 40) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p class="hint">${esc(text)}</p>
       <div class="field"><input class="input" id="nb-name" maxlength="${maxLaenge}"
-        value="${esc(vorgabe)}" placeholder="Name der Ansicht"></div>
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
+        value="${esc(vorgabe)}" placeholder="${esc(t('dialog.nameDerAnsicht'))}"></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.abbrechen')}</button>
       <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`;
     document.body.appendChild(bd);
     const feld = bd.querySelector('#nb-name');
@@ -449,8 +454,12 @@ function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 4
    Liefert true, wenn die Freigabe steht -- der Rufer handelt danach. Bei false
    ist entweder abgebrochen worden oder das Passwort war falsch; die Meldung
    steht dann schon. */
-const BESTAETIGUNG_GRUND = 'Diese Änderung betrifft die ganze Anwendung. Bitte mit deinem ' +
-  'Passwort bestätigen.';
+/* EINE FUNKTION UND KEINE KONSTANTE -- 0.24.0. Sie liest jetzt aus der
+   Sprachdatei, und die ist beim Auswerten dieser Zeile noch nicht da: ein
+   `const` haette hier fuer immer die Klammerform festgehalten. Gefragt wird
+   beim Gebrauch und nicht beim Laden. */
+const bestaetigungGrund = () => t('dialog.dieseAenderungBetrifftDieGanze') +
+  t('dialog.passwortBestaetigen');
 
 /* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
    zweiten Faktor eingeschaltet haben. Wer ihn nicht will, sieht denselben
@@ -467,7 +476,7 @@ function passwortFenster(titel, was, grund, mitCode) {
     bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2>
       <p>${esc(was)}</p>
       ${grund ? `<p class="desc" style="margin:0">${esc(grund)}</p>` : ''}
-      <div class="field" style="margin:0"><label>Dein Passwort</label>
+      <div class="field" style="margin:0"><label>${tH('dialog.deinPasswort')}</label>
         <input class="input" id="best-pass" type="password" autocomplete="current-password"></div>
       ${/* DAS FELD NENNT DAS VERFAHREN UND NICHT DAS GERAET. "Code aus deiner
            App" war zweimal falsch: es fragt nach der Herkunft statt nach der
@@ -476,11 +485,11 @@ function passwortFenster(titel, was, grund, mitCode) {
            EIN FELD FUER BEIDE FORMEN, wie an der Anmeldung: der Server sieht
            der Eingabe an, was gemeint ist (istCodeform gegen istWiederform).
            Deshalb darf die Beschriftung keine von beiden ausschliessen. */''}
-      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>Zwei-Faktor-Code</label>
+      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>${tH('anmeldung.zweiFaktorCode')}</label>
         <input class="input" id="best-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
-      <button class="btn btn-accent" data-yes>Bestätigen</button></div></div>`;
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.abbrechen')}</button>
+      <button class="btn btn-accent" data-yes>${tH('dialog.bestaetigen')}</button></div></div>`;
     document.body.appendChild(bd);
     const feld = bd.querySelector('#best-pass');
     const codeFeld = bd.querySelector('#best-code');
@@ -503,9 +512,9 @@ function passwortFenster(titel, was, grund, mitCode) {
    DER ZUSATZSATZ STEHT NUR DA, WENN DAS FELD DASTEHT: ein Grund fuer eine
    Frage, die gar nicht gestellt wird, waere Verwirrung ohne Gegenwert. */
 const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
-  BESTAETIGUNG_GRUND + (ZWEIFAKTOR
-    ? ' Dein zweiter Faktor ist eingeschaltet — bitte auch den Zwei-Faktor-Code eingeben. ' +
-      'Ein Wiederherstellungscode geht ebenfalls.'
+  bestaetigungGrund() + (ZWEIFAKTOR
+    ? t('dialog.deinZweiterFaktorIstEingeschaltet') +
+      t('dialog.einWiederherstellungscodeGeht')
     : ''), ZWEIFAKTOR);
 
 /* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, .
@@ -513,7 +522,7 @@ const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
    haengt das Codefeld an ZWEIFAKTOR, hier am WEG. Beim Einschalten gibt es noch
    keinen Code zu fragen, beim Ausschalten gehoert er dazu -- und beide Male ist
    ZWEIFAKTOR die falsche Auskunft darueber.
-   OHNE BESTAETIGUNG_GRUND: der steht fuer "das trifft die Instanz als Ganzes",
+   OHNE bestaetigungGrund(): der steht fuer "das trifft die Instanz als Ganzes",
    und das trifft hier nicht zu -- es geht um den eigenen Zugang. Der Grund
    kommt deshalb je Weg von der Aufrufstelle. */
 const bestaetigungsFeldFrei = (titel, was, mitCode) =>
@@ -563,10 +572,10 @@ function neuesPasswortFenster(titel, satz) {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2><p>${esc(satz)}</p>
-      <div class="field" style="margin:0"><label for="np-pass">Neues Passwort</label>
+      <div class="field" style="margin:0"><label for="np-pass">${tH('dialog.neuesPasswort')}</label>
         <input class="input" id="np-pass" type="password" autocomplete="new-password"></div>
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
-      <button class="btn btn-accent" data-yes>Passwort setzen</button></div></div>`;
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.abbrechen')}</button>
+      <button class="btn btn-accent" data-yes>${tH('anmeldung.passwortSetzen')}</button></div></div>`;
     document.body.appendChild(bd);
     const feld = bd.querySelector('#np-pass');
     const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
@@ -597,25 +606,24 @@ function benutzerLoeschenFenster(name, nummer, b) {
     const fremdDaran = (b.fremdKommentare || 0) + (b.fremdBewertungen || 0) + (b.fremdTesttage || 0)
       + (b.fremdLinks || 0) + (b.fremdDateien || 0);
     const beitraege = [
-      ...zaehl(b.kommentare, 'Kommentar', 'Kommentare'),
+      ...zaehl(b.kommentare, t('dialog.kommentar'), t('dialog.kommentare')),
       ...zaehl(b.bewertungen, V.bewertungEinzahl, V.bewertungMehrzahl),
       ...(b.testtage ? [`${b.testtage} ${vZeit(b.testtage)}`] : []),
-      ...zaehl(b.links, 'Link', 'Links'),
-      ...zaehl(b.dateien, 'Datei', 'Dateien')
+      ...zaehl(b.links, t('dialog.link'), t('dialog.links')),
+      ...zaehl(b.dateien, t('dialog.datei'), t('dialog.dateien'))
     ];
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal" id="benutzer-loeschen"><h2>Benutzer „${esc(name)}" löschen?</h2>
-      <p>Der Name wird frei. Was von „${esc(name)}" bleibt, steht künftig unter „Gelöschter Benutzer ${Number(nummer)}".</p>
+    bd.innerHTML = `<div class="modal" id="benutzer-loeschen"><h2>${tH('dialog.benutzerLoeschen', { name: name })}</h2>
+      <p>${tH('dialog.derNameWirdFreiWas', { name: name, nummer: nummer })}</p>
       ${b.eintraege ? `<label class="ex-files"><input type="checkbox" id="bl-eintraege">
-        ${b.eintraege} ${esc(vSache(b.eintraege))} von „${esc(name)}" mitlöschen${fremdDaran
-          ? ` — samt ${fremdDaran} ${fremdDaran === 1 ? 'fremdem Beitrag' : 'fremden Beiträgen'} daran` : ''}</label>` : ''}
+        ${tH('dialog.vonMitloeschen', { eintraege: b.eintraege, sache: vSache(b.eintraege), name: name })}${fremdDaran
+          ? ` — samt ${fremdDaran} ${fremdDaran === 1 ? t('dialog.fremdemBeitrag') : t('dialog.fremdenBeitraegen')} daran` : ''}</label>` : ''}
       ${beitraege.length ? `<label class="ex-files"><input type="checkbox" id="bl-beitraege">
-        Beiträge von „${esc(name)}" in ${esc(vSache(2))} anderer Benutzer mitlöschen: ${esc(beitraege.join(', '))}</label>` : ''}
-      <p>Nur vorübergehend aussperren? Dann sperren statt löschen — das ist umkehrbar, und der
-        Name bleibt.</p>
-      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
-      <button class="btn btn-danger" data-yes>Benutzer löschen</button></div></div>`;
+        ${tH('dialog.beitraegeVonInAndererBenutzer', { name: name, sache: vSache(2) })} ${esc(beitraege.join(', '))}</label>` : ''}
+      <p>${tH('dialog.nurVoruebergehendAussperrenDann')}</p>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.abbrechen')}</button>
+      <button class="btn btn-danger" data-yes>${tH('dialog.benutzerLoeschen2')}</button></div></div>`;
     document.body.appendChild(bd);
     const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
     const nimm = () => done({
@@ -2309,7 +2317,7 @@ async function sucheAusfuehren() {
     state.suchLaeuft = false; state.suchFehler = false;
   } catch (e) {
     if (lauf !== suchLauf) return;
-    if (e.message === 'Sitzung abgelaufen') return;   // die Anmeldeseite kommt
+    if (e.message === t('dialog.sitzungAbgelaufen')) return;   // die Anmeldeseite kommt
     // Stehen bleibt, was da ist. Die Zaehlzeile sagt es.
     state.suchLaeuft = false; state.suchFehler = true;
   }
@@ -2347,22 +2355,22 @@ async function ansichtenSchicken(liste) {
 
 async function ansichtSpeichern() {
   if (ANSICHTEN.length >= ANSICHTEN_DECKEL)
-    return toast(`Höchstens ${ANSICHTEN_DECKEL} Ansichten — erst eine löschen.`, true);
-  const name = await nameBox('Ansicht speichern',
-    'Filter und Suchbegriff werden unter diesem Namen gespeichert.', '', 'Speichern');
+    return toast(t('liste.hoechstensAnsichtenErstEine', { ansichtenDeckel: ANSICHTEN_DECKEL }), true);
+  const name = await nameBox(t('liste.ansichtSpeichern'),
+    t('liste.filterUndSuchbegriffWerdenUnter'), '', t('dialog.speichern'));
   if (!name) return;
   // Derselbe Vergleich wie im Server, und aus demselben Grund: der Name ist
   // das Einzige, woran ein Mensch zwei Ansichten auseinanderhaelt.
   if (ANSICHTEN.some(a => a.name.toLowerCase() === name.toLowerCase()))
-    return toast(`Eine Ansicht „${name}" gibt es schon.`, true);
+    return toast(t('liste.eineAnsichtGibtEsSchon', { name: name }), true);
   if (await ansichtenSchicken([...ANSICHTEN, { name, ...ansichtAusZustand() }])) {
-    toast('Gespeichert');
+    toast(t('liste.gespeichert'));
     drawFilters();
   }
 }
 
 async function ansichtLoeschen(name) {
-  if (!await confirmBox('Ansicht löschen?', `„${name}" wird aus der Liste entfernt.`)) return;
+  if (!await confirmBox(t('liste.ansichtLoeschen'), t('liste.wirdAusDerListeEntfernt', { name: name }))) return;
   if (await ansichtenSchicken(ANSICHTEN.filter(a => a.name !== name))) drawFilters();
 }
 
@@ -2515,7 +2523,7 @@ async function start() {
   // zweiten Klick und der Direkteinstieg auf einen Eintrag zeigt das
   // Vorgabevokabular.
   try { await ladeEinstellungen(); }
-  catch (e) { if (e.message === 'Sitzung abgelaufen') return; }
+  catch (e) { if (e.message === t('dialog.sitzungAbgelaufen')) return; }
   route();
 }
 /* Welche Ansicht zuletzt stand -- gebraucht wird das fuer genau eine Frage:
@@ -2630,7 +2638,7 @@ const offeneGesamt = () => (state.alle || []).reduce((n, i) => n + (Number(i.off
    Bewertung heissen in dieser Instanz ueberall so. */
 const neuWorte = (i) => {
   const k = Number(i.neuKommentare) || 0, b = Number(i.neuBewertungen) || 0;
-  return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',
+  return [k ? `${k} ${k === 1 ? t('dialog.kommentar') : t('dialog.kommentare')}` : '',
           b ? `${b} ${vBewertung(b)}` : ''].filter(Boolean).join(' · ');
 };
 
@@ -2669,7 +2677,7 @@ function zeichneKopfzahlen() {
   });
   amElement('offen', b => b.title = offen
     ? `${offen} ${vAufgabe(offen)} offen`
-    : `Offene ${V.aufgabeMehrzahl}`);
+    : t('liste.offene'));
   const neu = glockeNeu();
   /* EINE ZAHL IM TITEL, EIN PUNKT AM KNOPF. Der Titel bleibt EINE Zahl, auch
      seit die Tafel zwei nennt: er beantwortet „gibt es etwas", die Tafel
@@ -2677,8 +2685,8 @@ function zeichneKopfzahlen() {
      Liste. */
   amElement('glocke-punkt', el => { el.hidden = !neu; });
   amElement('glocke', b => b.title = neu
-    ? `${neu} ${neu === 1 ? 'Neuigkeit' : 'Neuigkeiten'} von anderen`
-    : 'Keine Neuigkeiten');
+    ? `${neu} ${neu === 1 ? t('liste.neuigkeit') : t('liste.neuigkeiten')} von anderen`
+    : t('liste.keineNeuigkeiten'));
 }
 
 /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke und nicht ihr Beiwerk:
@@ -2699,11 +2707,10 @@ function zeigeGlockentafel() {
     .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title)));
   const bd = document.createElement('div');
   bd.className = 'backdrop';
-  bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>Neuigkeiten</h2>
-    <p>Neue Kommentare und ${esc(V.bewertungMehrzahl)} <strong>anderer Benutzer</strong>, seit du
-      diese Liste zuletzt geöffnet hast.</p>
+  bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>${tH('liste.neuigkeiten')}</h2>
+    <p>${tH('liste.neueKommentareUnd')} <strong>${tH('liste.andererBenutzer')}</strong>${tH('liste.seitDuDieseListeZuletzt')}</p>
     <div class="manage-list" id="glocken-liste"></div>
-    <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+    <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('liste.schliessen')}</button></div></div>`;
   document.body.appendChild(bd);
   const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
   const onKey = e => {
@@ -2717,7 +2724,7 @@ function zeigeGlockentafel() {
 
   const box = bd.querySelector('#glocken-liste');
   if (!zeilen.length) {
-    box.innerHTML = `<span class="hint">Keine Neuigkeiten.</span>`;
+    box.innerHTML = `<span class="hint">${tH('liste.keineNeuigkeiten2')}</span>`;
   } else for (const it of zeilen) {
     /* EIN LINK UND KEIN KNOPF: er traegt eine Adresse, laesst sich kopieren
        und in einem neuen Fenster oeffnen. Geschlossen wird die Tafel trotzdem
@@ -2758,9 +2765,9 @@ function zeigeGlockentafel() {
 
 /* ================= Übersicht ================= */
 async function renderList() {
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('liste.laedt')}</p></div>`;
   try { await loadAll(); }
-  catch (e) { if (e.message !== 'Sitzung abgelaufen') app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`; return; }
+  catch (e) { if (e.message !== t('dialog.sitzungAbgelaufen')) app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`; return; }
 
   app.innerHTML = `<div class="shell">
     <div class="masthead">
@@ -2768,8 +2775,8 @@ async function renderList() {
         <div><h1>${esc(TITLE_APP)}</h1><div class="count" id="count"></div></div></div>
       <div class="search-box">
         <span class="ic">${ICON_SEARCH}</span>
-        <input class="input" id="q" placeholder="Suchen …" value="${esc(state.search)}">
-        <button class="clr" id="qclr" title="Suche leeren" style="display:none">${ICON_KREUZ}</button>
+        <input class="input" id="q" placeholder="${esc(t('liste.suchen'))}" value="${esc(state.search)}">
+        <button class="clr" id="qclr" title="${esc(t('liste.sucheLeeren'))}" style="display:none">${ICON_KREUZ}</button>
       </div>
       ${/* DIE VIER, DIE AUF DEM TELEFON HINTER DAS ZEICHEN WANDERN, stehen in
            einem eigenen Behaelter -- und sie stehen dort AUCH auf dem breiten
@@ -2801,12 +2808,12 @@ async function renderList() {
              DER PUNKT IST EIN EIGENER KNOTEN und kein Text im Knopf: er wird
              beim Zeichnen ein- und ausgeblendet, ohne dass das Zeichen daneben
              neu gebaut wird. */''}
-        ${GLOCKE_GESEHEN ? `<button class="icon-btn glocke" id="glocke" title="Neuigkeiten"
-          aria-label="Neuigkeiten">${ICON_GLOCKE}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">Neuigkeiten</span></button>` : ''}
-        <button class="icon-btn" id="offen" title="Offene ${esc(V.aufgabeMehrzahl)}">${ICON_OFFEN}<span class="offen-zahl" id="offen-zahl" hidden></span><span class="mast-wort">Offene ${esc(V.aufgabeMehrzahl)}</span></button>
-        <button class="icon-btn" id="sys" title="Einstellungen">${ICON_SYS}<span class="mast-wort">Einstellungen</span></button>
-        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>
-        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>
+        ${GLOCKE_GESEHEN ? `<button class="icon-btn glocke" id="glocke" title="${esc(t('liste.neuigkeiten'))}"
+          aria-label="${esc(t('liste.neuigkeiten'))}">${ICON_GLOCKE}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">${tH('liste.neuigkeiten')}</span></button>` : ''}
+        <button class="icon-btn" id="offen" title="${esc(t('liste.offene'))}">${ICON_OFFEN}<span class="offen-zahl" id="offen-zahl" hidden></span><span class="mast-wort">${tH('liste.offene')}</span></button>
+        <button class="icon-btn" id="sys" title="${esc(t('liste.einstellungen'))}">${ICON_SYS}<span class="mast-wort">${tH('liste.einstellungen')}</span></button>
+        <span class="hint wer" id="wer">${tH('liste.angemeldetAls', { name: NAME })}</span>
+        <button class="btn btn-ghost btn-sm" id="out">${tH('liste.abmelden')}</button>
       </div>
       <button class="btn btn-accent" id="new">+ ${esc(V.sacheEinzahl)}</button>
       ${/* Das Zeichen steht IM Markup hinter dem Anlegen-Knopf, damit es auf
@@ -2815,13 +2822,13 @@ async function renderList() {
            Markup fuer die Tastatur aber trotzdem die letzte, und das ist
            richtig: es fuehrt nirgendwohin, was nicht schon dasteht. */''}
       <button class="icon-btn mast-menue" id="menue" aria-expanded="false"
-        aria-controls="mast-rest" aria-label="Menü öffnen" title="Menü">${ICON_MENUE}</button>
+        aria-controls="mast-rest" aria-label="${esc(t('liste.menueOeffnen'))}" title="${esc(t('liste.menue'))}">${ICON_MENUE}</button>
     </div>
     ${/* Nur auf dem schmalen Schirm sichtbar. Die Zahl daneben nennt die
          Filter, die gerade greifen -- ohne sie waere eine eingeklappte
          Filterreihe eine Liste, die aus unerfindlichem Grund weniger zeigt. */''}
     <button class="btn btn-sm filter-schalter" id="filter-auf"
-      aria-expanded="true" aria-controls="filters">Filter<span class="fz" id="filter-zahl"></span></button>
+      aria-expanded="true" aria-controls="filters">${tH('liste.filter')}<span class="fz" id="filter-zahl"></span></button>
     <div class="filters" id="filters"></div>
     <div id="zeitleiste"></div>
     <div id="body"></div>
@@ -2867,7 +2874,7 @@ async function renderList() {
   const menueStellen = (auf) => {
     tafel.classList.toggle('offen', auf);
     menue.setAttribute('aria-expanded', auf ? 'true' : 'false');
-    menue.setAttribute('aria-label', auf ? 'Menü schließen' : 'Menü öffnen');
+    menue.setAttribute('aria-label', auf ? t('liste.menueSchliessen') : t('liste.menueOeffnen'));
   };
   menue.onclick = () => menueStellen(!tafel.classList.contains('offen'));
 
@@ -3018,12 +3025,12 @@ function zeichneFilterSchalter() {
      ausdruecklich nicht mit (die Begruendung steht dort), und `aktiv` bleibt
      deshalb an der Zahl haengen -- die Farbe sagt „du hast etwas eingestellt",
      und eingestellt hat das niemand. */
-  const woher = statusAusSortierung(state.filters.sort) ? 'folgt der Sortierung' : '';
+  const woher = statusAusSortierung(state.filters.sort) ? t('liste.folgtDerSortierung') : '';
   knopf.querySelector('.fz').textContent =
     [n ? `${n} aktiv` : '', woher].filter(Boolean).map(s => `· ${s}`).join(' ');
   knopf.classList.toggle('aktiv', n > 0);
   knopf.setAttribute('aria-expanded', zu ? 'false' : 'true');
-  knopf.title = zu ? 'Filter anzeigen' : 'Filter ausblenden';
+  knopf.title = zu ? t('liste.filterAnzeigen') : t('liste.filterAusblenden');
 }
 
 function drawFilters() {
@@ -3057,13 +3064,13 @@ function drawFilters() {
 
   // Merkmal (Vorgabe: Teststatus). Beschriftung generisch, weil das Wort
   // selbst aus dem Vokabular kommt.
-  const r1 = row('Status');
+  const r1 = row(t('liste.status'));
   const g1 = document.createElement('div'); g1.className = 'pills';
   /* WAS DIE SORTIERUNG GERADE VORGIBT -- 0.21.1, oder null. Gefragt wird
      dieselbe Funktion, die auch visibleItems() fragt: die Leiste soll nicht
      ihre eigene Rechnung ueber dieselbe Menge fuehren (Stolperstein 47). */
   const vorgabe = statusAusSortierung(f.sort);
-  [['all','Alle'],['tested',V.merkmalJa],['untested',V.merkmalNein]].forEach(([v,l]) => {
+  [['all',t('liste.alle')],['tested',V.merkmalJa],['untested',V.merkmalNein]].forEach(([v,l]) => {
     const b = document.createElement('button');
     /* GENAU EINE PILLE IST MARKIERT, UND SIE SAGT IMMER DASSELBE: „so steht die
        Liste gerade da". Greift die Ableitung, ist es ihre -- die gespeicherte
@@ -3075,7 +3082,7 @@ function drawFilters() {
     b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-abgeleitet' : '')
                                     : (f.tested === v ? ' on' : ''));
     b.textContent = l;
-    if (vorgabe === v) b.title = 'Vorgabe der Sortierung — ein Klick macht daraus deine eigene Wahl.';
+    if (vorgabe === v) b.title = t('liste.vorgabeDerSortierungEinKlick');
     /* EIN KLICK IST EINE HANDWAHL, AUCH AUF DIE ABGELEITETE PILLE. Sie ist kein
        toter Knopf: wer sie drueckt, hat sich entschieden, und die Ableitung
        endet -- sonst kaeme niemand mehr aus ihr heraus (Stolperstein 312). */
@@ -3088,8 +3095,8 @@ function drawFilters() {
   const bFav = document.createElement('button');
   bFav.className = 'pill pill-sep' + (f.favorit ? ' on' : '');
   bFav.id = 'f-fav';
-  bFav.textContent = '★ Favoriten';
-  bFav.title = f.favorit ? `Alle ${V.sacheMehrzahl} zeigen` : 'Nur Favoriten zeigen';
+  bFav.textContent = t('liste.favoriten');
+  bFav.title = f.favorit ? t('liste.alleZeigen') : t('liste.nurFavoritenZeigen');
   bFav.onclick = () => { f.favorit = !f.favorit; redraw(); };
   g1.appendChild(bFav);
 
@@ -3113,9 +3120,9 @@ function drawFilters() {
      DER KLARTEXT NENNT AUCH DEN WEG HINAUS. Das Wort allein sagt, woher es
      kommt; wie man es wieder loswird, gehoert daneben. */
   if (vorgabe) {
-    const woher = zweiteBeschriftung(r1, 'folgt der Sortierung');
+    const woher = zweiteBeschriftung(r1, t('liste.folgtDerSortierung'));
     woher.id = 'f-status-woher';
-    woher.title = 'Ein Klick auf eine der drei Pillen setzt den Filter selbst.';
+    woher.title = t('liste.einKlickAufEineDer');
   }
 
   /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
@@ -3130,10 +3137,10 @@ function drawFilters() {
      "Alle" HEISST DIE ERSTE PILLE -- seit 0.22.0 in jeder Gruppe der Leiste
      dasselbe Wort fuer denselben Zustand (Woerterbuch, Konzept 4.3); bis dahin
      sagte die Statusgruppe "Alles anzeigen". */
-  zweiteBeschriftung(r1, 'Ablehnung');
+  zweiteBeschriftung(r1, t('liste.ablehnung'));
   const g1b = document.createElement('div');
   g1b.className = 'pills'; g1b.id = 'f-abgelehnt';
-  [['all','Alle'],['ja','Abgelehnt'],['nein','Nicht abgelehnt']].forEach(([v,l]) => {
+  [['all',t('liste.alle')],['ja',t('liste.abgelehnt')],['nein',t('liste.nichtAbgelehnt')]].forEach(([v,l]) => {
     const b = document.createElement('button');
     b.className = 'pill' + (f.abgelehnt === v ? ' on' : '');
     b.textContent = l;
@@ -3156,7 +3163,7 @@ function drawFilters() {
      behaelt. Die Tagwolke ist offen und lang; ein dauernd hervorgehobenes
      "Alle" an ihrem Anfang laese sich als Tag. Und "zuruecksetzen" kaeme und
      ginge, waehrend "Alle" immer an derselben Stelle steht. */
-  const r2 = row('Kategorie');
+  const r2 = row(t('liste.kategorie'));
   const g2 = document.createElement('div'); g2.className = 'pills';
   // Ein Klick auf einen Wert nimmt ihn dazu oder wieder heraus -- dieselbe
   // Handhabung wie bei den Tags, und die Zeile verhaelt sich damit wie jene.
@@ -3167,7 +3174,7 @@ function drawFilters() {
   };
   const all = document.createElement('button');
   all.className = 'pill' + (f.categoryIds.length ? '' : ' on');
-  all.textContent = 'Alle';
+  all.textContent = t('liste.alle');
   all.onclick = () => { f.categoryIds = []; redraw(); };
   g2.appendChild(all);
   state.categories.forEach(c => {
@@ -3194,8 +3201,8 @@ function drawFilters() {
     const b = document.createElement('button');
     b.className = 'pill pill-sep' + (f.categoryIds.includes(KATEGORIE_OHNE) ? ' on' : '');
     b.id = 'f-kat-ohne';
-    b.innerHTML = `Ohne<span class="n">${ohneZahl}</span>`;
-    b.title = `${V.sacheMehrzahl} ohne Kategorie`;
+    b.innerHTML = `${tH('liste.ohne')}<span class="n">${ohneZahl}</span>`;
+    b.title = t('liste.ohneKategorie');
     b.onclick = () => katUm(KATEGORIE_OHNE);
     g2.appendChild(b);
   }
@@ -3255,7 +3262,7 @@ function drawFilters() {
        link-btn unterstreicht, und ein Strich unter dem Winkel saehe aus wie
        ein zweiter Winkel. Den Strich traegt deshalb das Wort. */
     const schalterText = document.createElement('span');
-    schalterText.textContent = f.tagIds.length ? `Tags (${f.tagIds.length})` : 'Tags';
+    schalterText.textContent = f.tagIds.length ? t('liste.tags', { length: f.tagIds.length }) : t('liste.tags2');
     schalter.appendChild(schalterText);
     schalter.onclick = () => { WEITERE_FILTER_OFFEN = !tagsOffen; drawFilters(); };
     rechts2.appendChild(schalter);
@@ -3267,7 +3274,7 @@ function drawFilters() {
 
   // Tags
   if (tagsOffen) {
-    const r3 = row('Tags');
+    const r3 = row(t('liste.tags2'));
     /* ZUGEKLAPPT IST DIE ZEILE GANZ WEG und nicht bloss verborgen: eine leere
        Zeile im Fluss kostete genau den Platz, um den es in diesem Befund geht.
        Die Kennung haengt am `aria-controls` des Umschalters. */
@@ -3278,8 +3285,8 @@ function drawFilters() {
     // solange weniger als zwei Tags gewaehlt sind.
     const modusBox = document.createElement('div');
     modusBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' ruht');
-    [['and', 'Und', `Nur ${V.sacheMehrzahl} mit allen gewählten Tags`],
-     ['or', 'Oder', `${V.sacheMehrzahl} mit mindestens einem der gewählten Tags`]]
+    [['and', t('liste.und'), t('liste.nurMitAllenGewaehltenTags')],
+     ['or', t('liste.oder'), t('liste.mitMindestensEinemDerGewaehlten')]]
       .forEach(([wert, text, erklaerung]) => {
         const b = document.createElement('button');
         b.className = 'pill pill-mode' + (f.tagMode === wert ? ' on' : '');
@@ -3312,7 +3319,7 @@ function drawFilters() {
       const gewaehlt = f.tagIds.includes(tag.id);
       b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(tag.id) ? ' leer' : '');
       b.textContent = tag.name;
-      if (leerlauf.has(tag.id)) b.title = 'Mit der aktuellen Auswahl keine Treffer';
+      if (leerlauf.has(tag.id)) b.title = t('liste.mitDerAktuellenAuswahlKeine');
       b.onclick = () => {
         f.tagIds = gewaehlt ? f.tagIds.filter(x => x !== tag.id) : [...f.tagIds, tag.id];
         redraw();
@@ -3349,13 +3356,13 @@ function drawFilters() {
     if (beschnitten || wolkeOffen.uebersicht) {
       const m = document.createElement('button');
       m.className = 'link-btn';
-      m.textContent = wolkeOffen.uebersicht ? 'weniger' : 'mehr';
+      m.textContent = wolkeOffen.uebersicht ? t('liste.weniger') : t('liste.mehr');
       m.onclick = () => { wolkeOffen.uebersicht = !wolkeOffen.uebersicht; drawFilters(); };
       rechts.appendChild(m);
     }
     if (f.tagIds.length) {
       const c = document.createElement('button');
-      c.className = 'link-btn'; c.textContent = 'Tags zurücksetzen';
+      c.className = 'link-btn'; c.textContent = t('liste.tagsZuruecksetzen');
       c.onclick = () => { f.tagIds = []; redraw(); };
       rechts.appendChild(c);
     }
@@ -3369,7 +3376,7 @@ function drawFilters() {
      DER SCHLIMMSTE FALL IST HARMLOS: stehen einmal acht gespeicherte Ansichten
      da (ANSICHTEN_DECKEL), bricht die Zeile um und sieht aus wie vorher. Nichts
      wird abgeschnitten, nichts geht verloren. */
-  const r4 = row('Sortieren');
+  const r4 = row(t('liste.sortieren'));
   const sel = document.createElement('select');
   // Eine Kennung wie am Favoritenknopf daneben: ohne sie liesse sich die
   // Sortierung nur ueber ihre Klasse ansprechen, und die tragen alle
@@ -3388,25 +3395,25 @@ function drawFilters() {
          geladen -- ladeEinstellungen() laeuft vor route(), und drawFilters()
          haengt daran. */''}
     <optgroup label="Allgemein">
-      <option value="updated_desc">Zuletzt geändert (neu → alt)</option>
-      <option value="updated_asc">Zuletzt geändert (alt → neu)</option>
-      <option value="title_asc">Titel (A → Z)</option>
+      <option value="updated_desc">${tH('liste.zuletztGeaendertNeuAlt')}</option>
+      <option value="updated_asc">${tH('liste.zuletztGeaendertAltNeu')}</option>
+      <option value="title_asc">${tH('liste.titelAZ')}</option>
     </optgroup>
     <optgroup label="${esc(V.bewertungEinzahl)}">
-      <option value="rating_desc">${esc(V.bewertungEinzahl)} (hoch → niedrig)</option>
-      <option value="rating_asc">${esc(V.bewertungEinzahl)} (niedrig → hoch)</option>
+      <option value="rating_desc">${tH('liste.hochNiedrig')}</option>
+      <option value="rating_asc">${tH('liste.niedrigHoch')}</option>
     </optgroup>
     <optgroup label="${esc(V.potenzial)}">
-      <option value="potenzial_desc">${esc(V.potenzial)} (hoch → niedrig)</option>
-      <option value="potenzial_asc">${esc(V.potenzial)} (niedrig → hoch)</option>
+      <option value="potenzial_desc">${tH('liste.hochNiedrig2')}</option>
+      <option value="potenzial_asc">${tH('liste.niedrigHoch2')}</option>
     </optgroup>
     <optgroup label="Verlauf">
-      <option value="tests_desc">${esc(V.zeitpunktMehrzahl)} (viele → wenige)</option>
-      <option value="tests_asc">${esc(V.zeitpunktMehrzahl)} (wenige → viele)</option>
-      <option value="testavg_desc">Durchschnittsnote (hoch → niedrig)</option>
-      <option value="testavg_asc">Durchschnittsnote (niedrig → hoch)</option>
-      <option value="testlast_desc">Letzte Note (hoch → niedrig)</option>
-      <option value="testlast_asc">Letzte Note (niedrig → hoch)</option>
+      <option value="tests_desc">${tH('liste.vieleWenige')}</option>
+      <option value="tests_asc">${tH('liste.wenigeViele')}</option>
+      <option value="testavg_desc">${tH('liste.durchschnittsnoteHochNiedrig')}</option>
+      <option value="testavg_asc">${tH('liste.durchschnittsnoteNiedrigHoch')}</option>
+      <option value="testlast_desc">${tH('liste.letzteNoteHochNiedrig')}</option>
+      <option value="testlast_asc">${tH('liste.letzteNoteNiedrigHoch')}</option>
     </optgroup>`;
   sel.value = f.sort;
   /* SEIT 0.21.1 WIRD DIE GANZE LEISTE NEU GEZEICHNET UND NICHT NUR DIE LISTE:
@@ -3425,7 +3432,7 @@ function drawFilters() {
      Bedienung -- was gezeigt wird, aendert sie nicht -- und beide brauchten je
      eine ganze Zeile fuer ein Auswahlfeld und ein paar Pillen. */
   const r5 = r4;
-  zweiteBeschriftung(r5, 'Ansichten');
+  zweiteBeschriftung(r5, t('liste.ansichten'));
   const g5 = document.createElement('div'); g5.className = 'pills';
   /* WELCHE ANSICHT GERADE GILT, wird verglichen und nicht gemerkt: ein
      gemerkter Zeiger auf "die aktive Ansicht" liefe auseinander, sobald jemand
@@ -3438,7 +3445,7 @@ function drawFilters() {
     const gleich = JSON.stringify({ filters: filterNormal(a.filters),
                                     q: typeof a.q === 'string' ? a.q.trim() : '' }) === jetzt;
     b.className = 'pill' + (gleich ? ' on' : '');
-    b.innerHTML = `<span>${esc(a.name)}</span><span class="an-weg" title="Ansicht löschen">${ICON_KREUZ}</span>`;
+    b.innerHTML = `<span>${esc(a.name)}</span><span class="an-weg" title="${esc(t('liste.ansichtLoeschen2'))}">${ICON_KREUZ}</span>`;
     b.onclick = () => ansichtAnwenden(a);
     // Das Kreuz liegt IM Knopf und muss deshalb den Klick anhalten -- sonst
     // wuerde die Ansicht im selben Zug angewandt und geloescht.
@@ -3451,8 +3458,8 @@ function drawFilters() {
     const bNeu = document.createElement('button');
     bNeu.className = 'pill' + (ANSICHTEN.length ? ' pill-sep' : '');
     bNeu.id = 'ansicht-neu';
-    bNeu.textContent = '+ Ansicht speichern';
-    bNeu.title = 'Aktuelle Filter und Suche als Ansicht speichern';
+    bNeu.textContent = t('liste.ansichtSpeichern2');
+    bNeu.title = t('liste.aktuelleFilterUndSucheAls');
     bNeu.onclick = ansichtSpeichern;
     g5.appendChild(bNeu);
   } else {
@@ -3460,7 +3467,7 @@ function drawFilters() {
     // ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein Fehler.
     const hin = document.createElement('span');
     hin.className = 'hint hint-sm';
-    hin.textContent = `Höchstens ${ANSICHTEN_DECKEL} Ansichten. Für eine neue erst eine löschen.`;
+    hin.textContent = t('liste.hoechstensAnsichtenFuerEineNeue', { ansichtenDeckel: ANSICHTEN_DECKEL });
     g5.appendChild(hin);
   }
   r5.appendChild(g5);
@@ -3490,8 +3497,8 @@ function drawFilters() {
     const bZurueck = document.createElement('button');
     bZurueck.className = 'link-btn';
     bZurueck.id = 'filter-zurueck';
-    bZurueck.textContent = `Filter zurücksetzen (${filterGesetzt})`;
-    bZurueck.title = 'Alle Filter zurücksetzen. Suchbegriff und Sortierung bleiben erhalten.';
+    bZurueck.textContent = t('liste.filterZuruecksetzen', { filterGesetzt: filterGesetzt });
+    bZurueck.title = t('liste.alleFilterZuruecksetzenSuchbegriff');
     bZurueck.onclick = () => {
       /* ZURUECKGESETZT WIRD AUF FILTER_VORGABE und sonst nichts -- und der Weg
          dorthin ist filterNormal(), derselbe wie beim Anwenden einer
@@ -3531,9 +3538,9 @@ function drawBody() {
   const cnt = document.getElementById('count');
   if (cnt) {
     let z = `${state.bestand} ${vSache(state.bestand)}` +
-      (list.length !== state.bestand ? ` · ${list.length} sichtbar` : '');
-    if (state.suchLaeuft) z += ' · sucht …';
-    else if (state.suchFehler) z += ' · Suche nicht erreichbar — letzter Stand';
+      (list.length !== state.bestand ? t('liste.sichtbar', { length: list.length }) : '');
+    if (state.suchLaeuft) z += t('liste.sucht');
+    else if (state.suchFehler) z += t('liste.sucheNichtErreichbarLetzterStand');
     cnt.textContent = z;
   }
 
@@ -3543,14 +3550,13 @@ function drawBody() {
   // Treffer ist kein leerer Bestand, und "Noch nichts erfasst" waere dort die
   // falsche Auskunft. Die Absage darunter ist die richtige.
   if (!state.bestand) {
-    body.innerHTML = `<div class="empty">${ICON_PH}<h2>Noch nichts erfasst</h2>
-      <p>Mit „+ ${esc(V.sacheEinzahl)}" anlegen. Fotos, Kategorie, ${esc(V.bewertungEinzahl)} und
-        ${esc(V.zeitpunktMehrzahl)} kommen danach dazu.</p></div>`;
+    body.innerHTML = `<div class="empty">${ICON_PH}<h2>${tH('liste.nochNichtsErfasst')}</h2>
+      <p>${tH('liste.mitAnlegenFotosKategorieUnd')}</p></div>`;
     return;
   }
   if (!list.length) {
-    body.innerHTML = `<div class="empty">${ICON_PH}<h2>Keine Treffer</h2>
-      <p>Zu Filter und Suche passt nichts.</p></div>`;
+    body.innerHTML = `<div class="empty">${ICON_PH}<h2>${tH('liste.keineTreffer')}</h2>
+      <p>${tH('liste.zuFilterUndSuchePasst')}</p></div>`;
     drawCompareBar();
     return;
   }
@@ -3632,7 +3638,7 @@ function drawZeitleiste(list) {
     d.style.left = (zeitAnteil(p.tag, von, bis) * 100) + '%';
     d.style.bottom = ((p.note - 1) / 4 * 100) + '%';
     d.dataset.item = p.itemId;
-    d.setAttribute('aria-label', `${p.titel}, ${fmtDay(p.tag)}, Note ${p.note}`);
+    d.setAttribute('aria-label', t('liste.note', { titel: p.titel, tag: p.tag, note: p.note }));
     d.onclick = () => { location.hash = `#/item/${p.itemId}`; };
     // Eigenes Hinweisfeld statt title: kein Wartezögern, und der Text bleibt
     // lesbar gesetzt. Auf dem Finger gibt es kein Überfahren — dort öffnet die
@@ -3682,7 +3688,7 @@ function zeigeHinweis(box, punkt, p) {
   versteckeHinweis(box);
   const h = document.createElement('div');
   h.className = 'zl-hinweis';
-  h.innerHTML = `<strong>${esc(p.titel)}</strong><span>${fmtDay(p.tag)} · Note ${p.note}</span>`;
+  h.innerHTML = `<strong>${esc(p.titel)}</strong><span>${tH('liste.note2', { tag: p.tag, note: p.note })}</span>`;
   h.style.left = punkt.style.left;
   box.querySelector('.zl').appendChild(h);
 }
@@ -3697,8 +3703,8 @@ function bestandText(it) {
   const f = it.photoCount || 0, v = it.videoCount || 0;
   if (f + v < 2) return '';
   const teile = [];
-  if (f) teile.push(`${f} ${f === 1 ? 'Foto' : 'Fotos'}`);
-  if (v) teile.push(`${v} ${v === 1 ? 'Video' : 'Videos'}`);
+  if (f) teile.push(`${f} ${f === 1 ? t('liste.foto') : t('liste.fotos')}`);
+  if (v) teile.push(`${v} ${v === 1 ? t('liste.video') : t('liste.videos')}`);
   return `<div class="photo-count">${teile.join(' · ')}</div>`;
 }
 
@@ -3718,20 +3724,20 @@ function bestandText(it) {
    sind es Funktionen und keine Strings, die einmal beim Laden
    festgelegt wuerden. */
 const FUND_WORTE = {
-  beschreibung: () => 'Beschreibung',
-  kommentar: () => 'Kommentar',
-  link: () => 'Link',
-  testtag: () => `${V.zeitpunktEinzahl} (Tag)`,
-  tag: () => 'Tag',
-  kategorie: () => 'Kategorie',
-  titel: () => 'Titel'
+  beschreibung: () => t('liste.beschreibung'),
+  kommentar: () => t('dialog.kommentar'),
+  link: () => t('dialog.link'),
+  testtag: () => t('liste.tag'),
+  tag: () => t('liste.tag2'),
+  kategorie: () => t('liste.kategorie'),
+  titel: () => t('liste.titel')
 };
 /* EINE UNBEKANNTE QUELLE HEISST "Fundstelle" UND FAELLT NICHT AUS DER ZEILE.
    Ein Server, der eine achte Quelle kennt, und eine Oberflaeche, die sie noch
    nicht kennt, sind derselbe Fall wie eine alte Oberflaeche an einer neuen
    Antwort: die Zeile sagt dann weniger, aber sie luegt nicht und sie
    verschwindet nicht. */
-const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => 'Fundstelle'))();
+const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => t('liste.fundstelle')))();
 
 /* DIE VOLLE AUSSAGE STEHT IM UEBERFAHRTEXT. In der Zeile selbst ist kein
    Platz dafuer: die schmalste Kachel ist 240 px breit, und "und 2 weitere
@@ -3739,8 +3745,8 @@ const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => 'Fundstelle'))();
    (gemessen, siehe Aenderungsprotokoll 0.18.0). Die Zahl steht deshalb kurz
    in der Zeile und ausgeschrieben darueber. */
 const fundUeberfahrt = (f) => `Gefunden in: ${fundWort(f.quelle)}` + (
-  f.weitere === 1 ? ' und 1 weitere Stelle'
-  : f.weitere > 1 ? ` und ${f.weitere} weitere Stellen` : '');
+  f.weitere === 1 ? t('liste.undWeitereStelle')
+  : f.weitere > 1 ? t('liste.undWeitereStellen', { weitere: f.weitere }) : '');
 
 function card(it) {
   const a = document.createElement('a');
@@ -3752,13 +3758,13 @@ function card(it) {
   a.href = eintragAdresse(it.id, begriff);
   a.className = 'card' + (state.compare.has(it.id) ? ' picked' : '') + (it.rejected ? ' rejected' : '');
   const badges = [];
-  if (it.rejected) badges.push(`<span class="badge badge-rejected">abgelehnt</span>`);
+  if (it.rejected) badges.push(`<span class="badge badge-rejected">${tH('liste.abgelehnt2')}</span>`);
   if (it.tested) badges.push(`<span class="badge badge-tested">${esc(V.merkmalJa)}</span>`);
 
   const testLine = it.testCount ? `<div class="card-test">
       <span>${it.testCount} ${esc(vZeit(it.testCount))}</span>
       <span class="sep">·</span><span>⌀ ${it.testAvg.toFixed(1).replace('.', ',')}</span>
-      <span class="sep">·</span><span>letzte Note ${it.testLast}</span>
+      <span class="sep">·</span><span>${tH('liste.letzteNote', { testLast: it.testLast })}</span>
     </div>` : '';
 
   /* DIE ZEILE STEHT UNTER DEM TITEL UND UEBER DEN TAGS -- bei dem, was sie
@@ -3778,8 +3784,8 @@ function card(it) {
     <div class="card-img">
       ${it.mainPhoto ? `<img src="${bildQuelle(it.mainPhoto, 'thumb')}" alt="" loading="lazy">` : ICON_PH}
       ${badges.length ? `<div class="card-badges">${badges.join('')}</div>` : ''}
-      ${it.favorite ? `<div class="card-pin" title="Favorit">★</div>` : ''}
-      ${istVideo(it.mainPhoto) ? `<div class="card-spielmarke" title="Video">▶</div>` : ''}
+      ${it.favorite ? `<div class="card-pin" title="${esc(t('liste.favorit'))}">★</div>` : ''}
+      ${istVideo(it.mainPhoto) ? `<div class="card-spielmarke" title="${esc(t('liste.video'))}">▶</div>` : ''}
       ${bestandText(it)}
     </div>
     <div class="card-body">
@@ -3801,9 +3807,9 @@ function card(it) {
                was fehlt: an einem ungetesteten Eintrag fehlt keine „Wertung",
                sondern die Einschaetzung. */''}
           ${kachelZahl(it)}
-          ${it.linkCount ? `<span class="link-count">${it.linkCount} ${it.linkCount === 1 ? 'Link' : 'Links'}</span>` : ''}
+          ${it.linkCount ? `<span class="link-count">${it.linkCount} ${it.linkCount === 1 ? t('dialog.link') : t('dialog.links')}</span>` : ''}
         </span>
-        <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="${state.compare.has(it.id) ? 'Aus dem Vergleich nehmen' : 'Zum Vergleich auswählen'}">${ICON_HAKEN}</button>
+        <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="${state.compare.has(it.id) ? t('liste.ausDemVergleichNehmen') : t('liste.zumVergleichAuswaehlen')}">${ICON_HAKEN}</button>
       </div>
     </div>`;
 
@@ -3843,7 +3849,7 @@ function kachelZahl(it) {
      „noch nicht bewertet" der Bewertung: zwei gleiche Texte fuer zwei
      verschiedene Kaesten waeren ein Raetsel. „keine Sterne" las sich bis
      0.21.1 wie null Sterne (Konzept 0.22.0, Anhang B und C). */
-  if (!wert) return `<span class="hint hint-sm">${potenzial ? 'noch nicht eingeschätzt' : 'noch nicht bewertet'}</span>`;
+  if (!wert) return `<span class="hint hint-sm">${potenzial ? t('liste.nochNichtEingeschaetzt') : 'noch nicht bewertet'}</span>`;
   const zeichen = potenzial ? '◆' : '★';
   const wort = potenzial ? V.potenzial : V.bewertungEinzahl;
   return `<span class="rating-inline${potenzial ? ' potenzial' : ''}" title="${esc(wort)}">` +
@@ -3855,9 +3861,9 @@ function drawCompareBar() {
   if (!state.compare.size) return;
   const bar = document.createElement('div');
   bar.className = 'cmp-bar';
-  bar.innerHTML = `<span>${state.compare.size} ausgewählt</span>
-    <button class="btn btn-sm"${state.compare.size < 2 ? ' disabled' : ''}>Vergleichen</button>
-    <button class="btn-x" title="Auswahl aufheben">${ICON_KREUZ}</button>`;
+  bar.innerHTML = `<span>${tH('liste.ausgewaehlt', { size: state.compare.size })}</span>
+    <button class="btn btn-sm"${state.compare.size < 2 ? ' disabled' : ''}>${tH('liste.vergleichen')}</button>
+    <button class="btn-x" title="${esc(t('liste.auswahlAufheben'))}">${ICON_KREUZ}</button>`;
   bar.querySelector('.btn').onclick = () => { if (state.compare.size >= 2) location.hash = '#/compare'; };
   bar.querySelector('.btn-x').onclick = () => { state.compare.clear(); drawBody(); };
   document.body.appendChild(bar);
@@ -3906,12 +3912,12 @@ function aehnlicheEintraege(titel) {
 function openCreate() {
   const bd = document.createElement('div');
   bd.className = 'backdrop';
-  bd.innerHTML = `<div class="modal"><h2>${esc(V.sacheEinzahl)} anlegen</h2>
-    <div class="field"><label>Titel</label><input class="input" id="nt" placeholder="Wie soll es heißen?">
+  bd.innerHTML = `<div class="modal"><h2>${tH('liste.anlegen')}</h2>
+    <div class="field"><label>${tH('liste.titel')}</label><input class="input" id="nt" placeholder="${esc(t('liste.wieSollEsHeissen'))}">
       <div class="hint hint-sm aehnlich" id="nt-aehnlich"></div></div>
-    <div class="field"><label>Kurzbeschreibung</label><textarea class="ta" id="nd" placeholder="Worum geht es?"></textarea></div>
-    <div class="modal-acts"><button class="btn btn-ghost" id="nc">Abbrechen</button>
-    <button class="btn btn-accent" id="ns">Anlegen</button></div></div>`;
+    <div class="field"><label>${tH('liste.kurzbeschreibung')}</label><textarea class="ta" id="nd" placeholder="${esc(t('liste.worumGehtEs'))}"></textarea></div>
+    <div class="modal-acts"><button class="btn btn-ghost" id="nc">${tH('dialog.abbrechen')}</button>
+    <button class="btn btn-accent" id="ns">${tH('liste.anlegen2')}</button></div></div>`;
   document.body.appendChild(bd);
   const close = () => bd.remove();
   bd.onclick = e => { if (e.target === bd) close(); };
@@ -3926,14 +3932,14 @@ function openCreate() {
     if (!treffer.length) { zeile.innerHTML = ''; return; }
     // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
     // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
-    zeile.innerHTML = 'Schon vorhanden? Ähnliche Titel: ' + treffer
+    zeile.innerHTML = t('liste.schonVorhandenAehnlicheTitel') + treffer
       .map(it => `<a href="#/item/${it.id}" data-zu>${esc(it.title)}</a>`).join(', ');
     zeile.querySelectorAll('[data-zu]').forEach(a => { a.onclick = () => close(); });
   };
   nt.addEventListener('input', zeichneAehnlich);
   const save = async () => {
     const title = nt.value.trim();
-    if (!title) return toast('Titel fehlt', true);
+    if (!title) return toast(t('liste.titelFehlt'), true);
     try {
       const it = await api('POST', '/api/items', { title, description: document.getElementById('nd').value.trim() });
       close(); location.hash = `#/item/${it.id}`;
@@ -3956,11 +3962,11 @@ function openCreate() {
    liest hier „Offene Mängel". Deshalb steht in dieser Funktion kein einziges
    der elf einstellbaren Wörter fest. */
 async function renderOffen() {
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('liste.laedt')}</p></div>`;
   let zeilen;
   try { zeilen = await api('GET', '/api/offen'); }
   catch (e) {
-    if (e.message !== 'Sitzung abgelaufen')
+    if (e.message !== t('dialog.sitzungAbgelaufen'))
       app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`;
     return;
   }
@@ -3976,9 +3982,9 @@ async function renderOffen() {
   let nurMeine = false;
 
   app.innerHTML = `<div class="shell">
-    <a href="#/" class="back">← Zurück zur Übersicht</a>
-    <h1 class="page-title">Offene ${esc(V.aufgabeMehrzahl)}</h1>
-    <p class="hint" id="off-hint" style="margin:0 0 ${mehrereBenutzer() ? '10px' : '20px'}"></p>
+    <a href="#/" class="back">${tH('liste.zurueckZurUebersicht')}</a>
+    <h1 class="page-title">${tH('liste.offene')}</h1>
+    <p class="hint" id="off-hint" style="margin:0 0 ${mehrereBenutzer() ? t('liste.10px') : t('liste.20px')}"></p>
     ${mehrereBenutzer() ? `<div class="pills" id="off-sicht" style="margin:0 0 20px"></div>` : ''}
     <div id="off-liste"></div>
   </div>`;
@@ -3991,7 +3997,7 @@ async function renderOffen() {
       const b = document.createElement('button');
       b.className = 'pill' + (meine === nurMeine ? ' on' : '');
       b.dataset.sicht = meine ? 'meine' : 'alle';
-      b.textContent = meine ? 'Meine' : 'Alle';
+      b.textContent = meine ? t('liste.meine') : t('liste.alle');
       b.onclick = () => { nurMeine = meine; zeichne(); };
       box.appendChild(b);
     });
@@ -4029,12 +4035,12 @@ async function renderOffen() {
     // Ein leerer Bildschirm ist eine schlechte Antwort. Und die beiden Fälle
     // sind verschieden: gar nichts offen, oder nichts von mir.
     document.getElementById('off-hint').textContent = !sichtbar.length
-      ? (zeilen.length ? `Von mir ist nichts offen.`
-                       : 'Nichts offen.')
-      : `${sichtbar.length} ${vAufgabe(sichtbar.length)} offen, gruppiert nach `
+      ? (zeilen.length ? t('liste.vonMirIstNichtsOffen')
+                       : t('liste.nichtsOffen'))
+      : t('liste.offenGruppiertNach', { length: sichtbar.length, aufgabe: vAufgabe(sichtbar.length) })
         + `${V.sacheEinzahl}.`
-        + (mehrereBenutzer() ? (nurMeine ? ' Gezeigt werden die eigenen.'
-                                         : ' Gezeigt werden alle.') : '');
+        + (mehrereBenutzer() ? (nurMeine ? t('liste.gezeigtWerdenDieEigenen')
+                                         : t('liste.gezeigtWerdenAlle')) : '');
 
     const box = document.getElementById('off-liste');
     box.innerHTML = '';
@@ -4063,8 +4069,8 @@ async function renderOffen() {
           haken.className = 'off-haken';
           haken.innerHTML = z.erledigt ? ICON_KASTEN_HAKEN : ICON_KASTEN;
           haken.classList.toggle('on', !!z.erledigt);
-          haken.title = z.erledigt ? 'Wieder öffnen'
-                                   : `Auf „${V.aufgabeErledigt}" setzen`;
+          haken.title = z.erledigt ? t('liste.wiederOeffnen')
+                                   : t('liste.aufSetzen');
           haken.onclick = () => setzeHaken(z, !z.erledigt);
           el.appendChild(haken);
         }
@@ -4096,7 +4102,7 @@ async function renderOffen() {
 async function renderCompare() {
   const ids = [...state.compare];
   if (ids.length < 2) { location.hash = '#/'; return; }
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">Lädt …</p></div>`;
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('liste.laedt')}</p></div>`;
   let items;
   try { items = await Promise.all(ids.map(id => api('GET', `/api/items/${id}`))); }
   catch (e) { toast(e.message, true); location.hash = '#/'; return; }
@@ -4136,9 +4142,9 @@ async function renderCompare() {
   let nurMeine = false;
 
   app.innerHTML = `<div class="shell">
-    <a href="#/" class="back">← Zurück zur Übersicht</a>
-    <h1 class="page-title">Vergleich</h1>
-    <p class="hint" id="cmp-hint" style="margin:0 0 ${mehrereBenutzer() ? '10px' : '20px'}"></p>
+    <a href="#/" class="back">${tH('liste.zurueckZurUebersicht')}</a>
+    <h1 class="page-title">${tH('liste.vergleich')}</h1>
+    <p class="hint" id="cmp-hint" style="margin:0 0 ${mehrereBenutzer() ? t('liste.10px') : t('liste.20px')}"></p>
     ${mehrereBenutzer() ? `<div class="pills" id="cmp-sicht" style="margin:0 0 20px"></div>` : ''}
     <div class="cmp-grid" id="cg" style="grid-template-columns:repeat(auto-fit,minmax(264px,1fr))"></div>
   </div>`;
@@ -4204,7 +4210,7 @@ async function renderCompare() {
       const b = document.createElement('button');
       b.className = 'pill' + (meine === nurMeine ? ' on' : '');
       b.dataset.sicht = meine ? 'meine' : 'alle';
-      b.textContent = meine ? 'Meine' : 'Alle';
+      b.textContent = meine ? t('liste.meine') : t('liste.alle');
       b.onclick = () => { nurMeine = meine; zeichne(); };
       box.appendChild(b);
     });
@@ -4213,10 +4219,10 @@ async function renderCompare() {
   function zeichne() {
     zeichneSicht();
     document.getElementById('cmp-hint').textContent =
-      `${items.length} ${vSache(items.length)} gegenübergestellt. `
-      + `Bester Wert je Kriterium ist hervorgehoben.`
+      t('liste.gegenuebergestellt', { length: items.length, sache: vSache(items.length) })
+      + t('liste.besterWertJeKriteriumIst')
       + (mehrereBenutzer()
-        ? (nurMeine ? ' Gezeigt werden die eigenen Werte.' : ' Gezeigt wird der Durchschnitt aller Benutzer.')
+        ? (nurMeine ? t('liste.gezeigtWerdenDieEigenenWerte') : t('liste.gezeigtWirdDerDurchschnittAller'))
         : '');
 
     const bestOf = (name) => Math.max(...items.map(o => wertVon(o, name)));
@@ -4244,7 +4250,7 @@ async function renderCompare() {
           // bei Gewicht 1 steht dort nichts.
           const marke = gewichtMarke(gewichte.get(n));
           return `<div class="cmp-crit"><span class="cn">${esc(n)}${
-              marke ? ` <span class="cgew" title="Gewicht im Durchschnitt">${esc(marke)}</span>` : ''}</span>
+              marke ? ` <span class="cgew" title="${esc(t('liste.gewichtImDurchschnitt'))}">${esc(marke)}</span>` : ''}</span>
             <span class="${best ? 'cmp-best' : ''}">${v > 0 ? alsZahl(v) + ' / 5' : '–'}</span></div>`;
         }).join('');
       }).join('');
@@ -4258,7 +4264,7 @@ async function renderCompare() {
           ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
           <h3>${esc(it.title)}</h3>
           ${gruppen}${testRow}
-          <div style="margin-top:12px"><a href="#/item/${it.id}" class="btn btn-sm" style="width:100%">Öffnen</a></div>
+          <div style="margin-top:12px"><a href="#/item/${it.id}" class="btn btn-sm" style="width:100%">${tH('liste.oeffnen')}</a></div>
         </div>`;
       cg.appendChild(col);
     });
@@ -4289,7 +4295,7 @@ let lightboxOpen = false;
    -- und damit genau das Verhalten bis 0.19.4, nicht `?v=undefined`. */
 function bildQuelle(p, groesse) {
   if (p.quelle === 'kommentar')
-    return `/api/comment-images/${p.id}/raw${groesse === 'thumb' ? '?size=thumb' : ''}`;
+    return `/api/comment-images/${p.id}/raw${groesse === 'thumb' ? t('liste.sizeThumb') : ''}`;
   if (!groesse) return `/api/photos/${p.id}/raw`;
   const f = Number(p.fassung);
   const fassung = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
@@ -4346,7 +4352,7 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
       <span class="lb-title">${esc(title || '')}</span>
       <div class="lb-tools">
         <span class="lb-count"></span>
-        <button class="lb-btn zoom" title="Auf Originalgröße zoomen">⊕</button>
+        <button class="lb-btn zoom" title="${esc(t('liste.aufOriginalgroesseZoomen'))}">⊕</button>
         ${/* DER PAPIERKORB STEHT ABGESETZT, mit einer groesseren Luecke davor
              -- dieselbe Ueberlegung wie ueber dem grossen Bild darunter: die
              Knoepfe davor stellen etwas ein, dieser hier nimmt etwas weg.
@@ -4355,14 +4361,14 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
              das Bild vernichtet, waeren die gefaehrlichste Nachbarschaft der
              Instanz. Deshalb traegt er das Papierkorbzeichen und steht vor dem
              Schliessen, nicht daneben. */''}
-        ${loeschen ? `<button class="lb-btn weg" title="Löschen">${ICON_PAPIERKORB}</button>` : ''}
-        <button class="lb-btn close" title="Schließen (Esc)">${ICON_KREUZ}</button>
+        ${loeschen ? `<button class="lb-btn weg" title="${esc(t('dialog.loeschen'))}">${ICON_PAPIERKORB}</button>` : ''}
+        <button class="lb-btn close" title="${esc(t('liste.schliessenEsc'))}">${ICON_KREUZ}</button>
       </div>
     </div>
-    <div class="lb-stage"><img alt="" title="Klick zoomt auf Originalgröße">
+    <div class="lb-stage"><img alt="" title="${esc(t('liste.klickZoomtAufOriginalgroesse'))}">
       <video class="lb-video" controls playsinline hidden></video></div>
-    ${photos.length > 1 ? `<button class="lb-nav prev" title="Vorheriges (←)">‹</button>
-                           <button class="lb-nav next" title="Nächstes (→)">›</button>` : ''}
+    ${photos.length > 1 ? `<button class="lb-nav prev" title="${esc(t('liste.vorheriges'))}">‹</button>
+                           <button class="lb-nav next" title="${esc(t('liste.naechstes'))}">›</button>` : ''}
     ${photos.length > 1 ? `<div class="lb-strip"></div>` : ''}`;
   document.body.appendChild(lb);
   document.body.classList.add('lb-open');
@@ -4474,7 +4480,7 @@ function openLightbox(photos, startIdx, title, loeschen, innen) {
     }
     // Ohne Original kein Zoomknopf -- ein Knopf, der nichts tut, wirkt kaputt.
     lb.querySelector('.zoom').hidden = !hatOriginal(photos[i]);
-    img.title = hatOriginal(photos[i]) ? 'Klick zoomt auf Originalgröße' : '';
+    img.title = hatOriginal(photos[i]) ? t('liste.klickZoomtAufOriginalgroesse') : '';
     lb.querySelector('.lb-count').textContent = `${i + 1} / ${photos.length}`;
     /* BLEIBT NUR EINES UEBRIG, VERSCHWINDEN PFEILE UND STREIFEN. Beim Oeffnen
        entscheidet die Zahl, OB es sie gibt; danach kann Loeschen sie

@@ -15079,8 +15079,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und der Waechter wuerde es wirklich finden',
     reAuthZaehle('// Die Re-Authentifizierung greift hier.') === 1,
     'der Waechter sieht das Wort nicht');
+  /* DER SATZ STEHT SEIT 0.24.0 IN DER SPRACHDATEI und nicht mehr im
+     Quelltext -- gesucht wird er dort, mitgezogen und nicht geloescht
+     (Stolperstein 201). */
   pruefe('Dafuer steht das gewaehlte Wort am Bildschirm',
-    /Bestätigen<\/button>/.test(fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')),
+    JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'))
+      ['dialog.bestaetigen'] === 'Bestätigen',
     'der Dialog nennt die Bestaetigung nicht beim Namen');
 
   /* DAS PASSWORT REIST IM RUMPF -- UND DARF NIRGENDS AUSGEGEBEN WERDEN. Im
@@ -25657,11 +25661,25 @@ async function pruefeOberflaeche() {
      zwei verschiedene Dinge. Wer eines der beiden Woerter global ersetzt,
      macht hier rot. */
   const appQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  /* DIE DREI TEXTE STEHEN SEIT 0.24.0 IN DER SPRACHDATEI. Der Waechter sucht
+     sie dort -- die Frage ist dieselbe geblieben: heisst es am Eintrag
+     „Favorit" und am Kommentar „angepinnt"? */
+  const appTexte = JSON.parse(fs.readFileSync(
+    path.join(__dirname, 'public', 'sprachen', 'de.json'), 'utf8'));
+  const appWerte = Object.values(appTexte)
+    .flatMap(v => typeof v === 'string' ? [v] : Object.values(v));
   pruefe('Der Eintrag spricht von Favoriten, nicht vom Anheften',
-    /title="Favorit"/.test(appQuelle) && !/title="Angeheftet"/.test(appQuelle),
+    appWerte.includes('Favorit') && !appWerte.includes('Angeheftet'),
     'die Uebersichtskarte traegt noch den alten Ueberfahrtext');
+  /* GESUCHT WIRD IN BEIDEM -- in der Sprachdatei und im Quelltext. Waehrend
+     Bauabschnitt 3 laeuft, ist die eine Ansicht umgezogen und die naechste
+     noch nicht; die FRAGE aendert sich dadurch nicht, und der Waechter soll
+     sie in beiden Staenden stellen koennen. Die Restprobe haelt am Ende
+     fest, dass nichts mehr im Quelltext steht. */
+  const appAlleTexte = appWerte.join('\u0000') + '\u0000' + appQuelle;
   pruefe('Der Knopf benennt die naechste Handlung',
-    /Als Favorit markieren/.test(appQuelle) && /Favorit entfernen/.test(appQuelle));
+    appAlleTexte.includes('Als Favorit markieren') && appAlleTexte.includes('Favorit entfernen'),
+    appWerte.filter(w => /Favorit/.test(w)).join(' · '));
   // DREI SEIT 0.22.0: das Formular, drawNeuMarken() (die Marke nennt seither
   // auch den Rueckweg „Nicht mehr anpinnen") und die Kommentarliste.
   pruefe('Die Kommentare sprechen vom Anpinnen, nicht vom Favoriten',
