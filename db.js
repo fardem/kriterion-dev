@@ -731,7 +731,7 @@ CREATE TABLE IF NOT EXISTS papierkorb_bytes (
                                   Haupt-Thread war zuerst da.
      die beiden CREATE INDEX      IF NOT EXISTS.
      das Auffangnetz              UPDATE ... AND NOT EXISTS (... eigentuemer)
-     ordneBestandZu()             UPDATE OR IGNORE ... WHERE user_id IS NULL
+     assignInventory()             UPDATE OR IGNORE ... WHERE user_id IS NULL
      die Grundausstattung         INSERT OR IGNORE
      renumberCriteria()           schreibt nur, wo die Nummer abweicht
    EIN VACUUM WAERE ES NICHT, und genau deshalb steht keines hier: es liegt in
@@ -1157,7 +1157,7 @@ function eigentuemerId() {
 // UPDATE OR IGNORE, weil user_id bei ratings und test_days im UNIQUE steht:
 // zwei herrenlose Zeilen zum selben Kriterium sind moeglich (NULL gilt im
 // UNIQUE als verschieden); ohne OR IGNORE stuerbe der Start an der Verletzung.
-function ordneBestandZu() {
+function assignInventory() {
   const zahlen = {};
   let summe = 0;
   const eigentuemer = eigentuemerId();
@@ -1178,7 +1178,7 @@ function ordneBestandZu() {
   }
   return zahlen;
 }
-ordneBestandZu();
+assignInventory();
 
 // --- Grundausstattung ---
 const seedCriteria = ['Optische Erscheinung', 'Verarbeitungsqualität', 'Funktionalität'];
@@ -1209,7 +1209,7 @@ renumberCriteria();
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
                    changeKey, verfahren,
-                   renumberCriteria, ordneBestandZu, eigentuemerId,
+                   renumberCriteria, assignInventory, eigentuemerId,
                    // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
                    migration083,
                    // MIGRATION 0.8.30 — ENTFAELLT MIT 1.0

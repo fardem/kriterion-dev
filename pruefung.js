@@ -236,7 +236,7 @@ function kurzlauf(code, datenVerzeichnis) {
    das seit 0.8.90 in jeder Prueflage, deren Zugaenge eine zweite Bestaetigung
    holen muessen: ein Zugang mit password_hash = 'x' kommt daran nicht vorbei,
    und das ist richtig so.
-   GEHASHT WIRD MIT auth.hashePasswort UND NICHT MIT EINER ZWEITEN AUSFERTIGUNG
+   GEHASHT WIRD MIT auth.hashPassword UND NICHT MIT EINER ZWEITEN AUSFERTIGUNG
    DES FORMATS -- eine zweite Wahrheit ueber den Hash waere genau die Sorte
    Fehler, die der Prueflauf finden soll.
    NICHT ueber setzeNeuesPasswort(): das raeumt die Sitzungen dieses Zugangs
@@ -244,7 +244,7 @@ function kurzlauf(code, datenVerzeichnis) {
 function setzePasswortImBestand(datenVerzeichnis, name, passwort) {
   return kurzlauf(
     `const a = require('./auth'); const { db } = require('./db');` +
-    `a.hashePasswort(${JSON.stringify(passwort)}).then(h => {` +
+    `a.hashPassword(${JSON.stringify(passwort)}).then(h => {` +
     `db.prepare('UPDATE users SET password_hash = ? WHERE username = ?')` +
     `.run(h, ${JSON.stringify(name)}); console.log('gesetzt'); });`,
     datenVerzeichnis);
@@ -252,7 +252,7 @@ function setzePasswortImBestand(datenVerzeichnis, name, passwort) {
 
 /* EIN KIND BEENDEN UND AUF SEIN ENDE WARTEN. DIE ABFRAGE VORHER IST DER GANZE
    PUNKT: ist der Prozess schon beendet, feuert 'exit' NIE wieder -- ein Warten
-   darauf haengt fuer immer, ohne CPU zu verbrauchen und ohne eine Meldung.
+   darauf haengt fuer immer, ohne CPU zu verbrauchen und ohne eine Message.
    Genau daran sind zwei Gegenproben haengengeblieben: ihre Fingerprintlage
    bekam den Port nicht, der Server endete sofort von selbst, und das
    anschliessende Aufraeumen wartete auf ein Ereignis aus der Vergangenheit. */
@@ -334,7 +334,7 @@ function smtpEmpfaenger(art = 'ok') {
      server.close() hoert nur auf zu HORCHEN und wartet danach auf das Ende
      aller offenen Verbindungen. Die Betriebsarten 'stumm' und 'schweigt'
      halten ihre Verbindung absichtlich offen -- ein close() darauf haengt fuer
-     immer, ohne CPU und ohne Meldung, und der Lauf steht still statt eine
+     immer, ohne CPU und ohne Message, und der Lauf steht still statt eine
      Pruefung rot zu faerben. Dasselbe Fehlerbild wie bei Stolperstein 139,
      nur an einem Socket statt an einem Kindprozess. */
   const draehte = new Set();
@@ -2294,7 +2294,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /db\.pragma\(`key="x'\$\{key\.hex\}'"`\)/.test(verfQuelleDb), 'die Zeile fehlt');
   // auth.js unmittelbar gefragt: das Verfahren steht vorn in jedem
   // gespeicherten Wert, und genau dieses Wort nennen die Kennzahlen.
-  const verfHash = await require('./auth').hashePasswort('probe-fuer-das-verfahren');
+  const verfHash = await require('./auth').hashPassword('probe-fuer-das-verfahren');
   pruefe('Ein gespeichertes Passwort traegt wirklich das genannte Verfahren',
     verfHash.startsWith('scrypt$'), verfHash.slice(0, 12));
   /* KEINE PAKETVERSION IN DER ANTWORT. Gesucht wird nach dem Muster einer
@@ -2593,7 +2593,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const { db } = require('./db');
     const auth = require('./auth');
     const r = db.prepare("INSERT INTO users (username, password_hash, role) VALUES ('probe','x','admin')").run();
-    const token = auth.legeSitzungAn(r.lastInsertRowid);
+    const token = auth.createSession(r.lastInsertRowid);
     function durchlauf(cookie) {
       const req = { headers: { cookie: cookie } };
       let stand = 0, weiter = false;
@@ -2605,7 +2605,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // erreichbar, deshalb von Hand gesetzt.
     db.prepare("INSERT INTO sessions (token) VALUES ('herrenlos')").run();
     let ohneId = null;
-    try { auth.legeSitzungAn(null); } catch (e) { ohneId = e.message; }
+    try { auth.createSession(null); } catch (e) { ohneId = e.message; }
     console.log(JSON.stringify({
       gut: durchlauf('kriterion_session=' + token),
       herrenlos: durchlauf('kriterion_session=herrenlos'),
@@ -2964,7 +2964,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   fs.rmSync(pDir, { recursive: true, force: true });
 
   /* --- Das Auffangnetz an der Einrichtung: herrenloser Bestand faellt dem
-     ersten Zugang zu. Beim Start hat ordneBestandZu() niemanden, dem es etwas
+     ersten Zugang zu. Beim Start hat assignInventory() niemanden, dem es etwas
      geben koennte, und muss es beim Anlegen des ersten Zugangs nachholen. */
   const eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-auffangnetz-'));
   kurzlauf(`require('./db'); console.log('da');`, eDir);
@@ -3792,7 +3792,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und nach allen Absagen steht der alte Wert unveraendert in der Datenbank',
     gGewichte().find(c => c.name === 'Preis')?.gewicht === gAlt,
     JSON.stringify(gGewichte()));
-  /* Die Meldung steht in einem deutschen Satz und traegt deshalb ein Komma.
+  /* Die Message steht in einem deutschen Satz und traegt deshalb ein Komma.
      "zwischen 0.2 und 2" waere ein Punkt mitten im Satz. */
   const gMeldung = (await gSetz('Preis', 9)).inhalt?.error || '';
   pruefe('Die Absage nennt die Spanne mit Komma, nicht mit Punkt',
@@ -4210,7 +4210,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
      schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
-     Meldung. */
+     Message. */
   await new Promise(r => setTimeout(r, 1100));
   await eRuf('cookie-e-eins', 'PUT', '/api/settings', { glockeGesehen: 1 });
   pruefe('Ein neuer Bezugspunkt setzt alles auf gesehen',
@@ -4362,7 +4362,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* Die herrenlose Zeile wird ERST JETZT gesetzt, nach dem Start -- und das ist
      kein Schoenheitsfehler, sondern der einzige Weg. Beim Anlegen des Bestands
-     eingetragen ueberlebt sie den Start nicht: ordneBestandZu() laeuft bei
+     eingetragen ueberlebt sie den Start nicht: assignInventory() laeuft bei
      JEDEM Start und weist alles Herrenlose dem Eigentuemer zu. Die Zeile stuende
      danach auf anna, und die Pruefung bestaetigte etwas anderes, als sie zu
      bestaetigen vorgibt: der Aufbau des Prueflaufs raeumte die
@@ -4815,7 +4815,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     e2VidNach[0]?.d === MP4().length && e2VidNach[0]?.t > 0 && e2VidNach[0]?.m > 0,
     JSON.stringify(e2VidNach));
 
-  /* Und dieselbe Datei OHNE die Videobytes: kein Platz, aber eine Meldung.
+  /* Und dieselbe Datei OHNE die Videobytes: kein Platz, aber eine Message.
      Nicht abbrechen, melden -- dieselbe Haltung wie bei unbekannten
      Verfassernamen und ungueltigen Gewichten. */
   const e2VidOhne = await e2Import('cookie-e2-anna', e2OhneVid, 'replace');
@@ -4986,7 +4986,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        dora  (4) wird nach dem Anlegen zum Grabstein: ihr Kommentar muss beim
                  Wiederherstellen WIEDER AN IHR landen.
      Dazu eine herrenlose Zeile, die erst NACH dem Start entsteht --
-     ordneBestandZu() schoebe sie sonst der Eigentuemerin zu (Stolperstein 104). */
+     assignInventory() schoebe sie sonst der Eigentuemerin zu (Stolperstein 104). */
   const pkPng = Buffer.from(PNG_BASE64, 'base64');
   const pkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-papierkorb-'));
   let pkKritId, pkKritZweiId;
@@ -5117,7 +5117,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.close();
   };
 
-  /* Erst JETZT, nach dem Start: ordneBestandZu() laeuft bei jedem Start und
+  /* Erst JETZT, nach dem Start: assignInventory() laeuft bei jedem Start und
      wiese die herrenlose Zeile sonst der Eigentuemerin zu. Und dora wird zum
      Grabstein -- ihre Zeile in users bleibt stehen, der Name wird der
      Grabsteinname. */
@@ -5944,7 +5944,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und die vorhandene Datei ist unangetastet',
       fs.statSync(ziel).size === vorher, `${fs.statSync(ziel).size} statt ${vorher}`);
     // Und dasselbe an einer Datei, die gar keine Datenbank ist: auch sie wird
-    // nicht ueberschrieben, nur mit einer anderen Meldung.
+    // nicht ueberschrieben, nur mit einer anderen Message.
     const fremd = path.join(siWurzel, 'leer', 'fremd.sqlite');
     fs.writeFileSync(fremd, 'nicht anfassen');
     const d2 = oeffne(path.join(siDir, 'katalog.sqlite'));
@@ -7004,12 +7004,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
       .run(Buffer.from('kein echtes Bild, wird nur geloescht'));
     /* Die Datei traegt ihren Verfasser ausdruecklich -- derselbe Grund wie an
        der Linkzeile darunter (Stolperstein 104): ohne user_id schoebe sie
-       ordneBestandZu() beim Start der Eigentuemerin zu, und "der Admin loescht
+       assignInventory() beim Start der Eigentuemerin zu, und "der Admin loescht
        eine FREMDE Datei" loeschte dann eine eigene. */
     d.prepare("INSERT INTO attachments (item_id, filename, mime_type, size, data, user_id) VALUES (2, 'zettel.txt', 'text/plain', 5, ?, 2)")
       .run(Buffer.from('hallo'));
     /* Der Link traegt seinen Verfasser ausdruecklich: ohne user_id schoebe ihn
-       ordneBestandZu() beim Start der Eigentuemerin zu, und "der Admin loescht
+       assignInventory() beim Start der Eigentuemerin zu, und "der Admin loescht
        einen FREMDEN Link" weiter unten loeschte dann einen eigenen -- gruen,
        aber ueber etwas anderes. */
     d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (2, 'https://beispiel.test', 0, 2)").run();
@@ -7096,7 +7096,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.close();
   };
 
-  /* Die herrenlose Zeile ERST JETZT, nach dem Start: ordneBestandZu() laeuft
+  /* Die herrenlose Zeile ERST JETZT, nach dem Start: assignInventory() laeuft
      bei jedem Start und wiese sie sonst der Eigentuemerin zu.
      Ein zweiter Schreiber neben dem laufenden Server ist im WAL-Modus erlaubt. */
   {
@@ -8226,7 +8226,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---- Weg 3: Tags am Testtag ----
      DER SONDERFALL: dort gibt es keine Wolke, die Eingabe ist der einzige
      Zuweisungsweg und bleibt auf dem Bildschirm stehen. Ein unbekannter Name
-     faellt deshalb hier durch, mit sprechender Meldung -- und ein bekannter
+     faellt deshalb hier durch, mit sprechender Message -- und ein bekannter
      kommt weiterhin an. Bert braucht dafuer einen EIGENEN Testtag: an einen
      fremden haengt er ohnehin nichts (nurSelbst). */
   const fTtagNeu = await fRuf('cookie-f-bert', 'POST', '/api/items/2/test-days',
@@ -8288,7 +8288,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Eine HERRENLOSE Aufgabe: der Verfasser fehlt, und das Feld muss trotzdem
   // dastehen -- null heisst "diese Zeile hat keinen Verfasser", ein fehlendes
   // Feld hiesse "diese Antwort kennt das Feld nicht". Erst nach dem Start
-  // geleert, sonst schoebe ordneBestandZu() sie der Eigentuemerin zu.
+  // geleert, sonst schoebe assignInventory() sie der Eigentuemerin zu.
   await oSchreib('cookie-f-anna', oB.id, 'B-zwei herrenlos', 'task');
   fSchreibe("UPDATE comments SET user_id = NULL WHERE text = 'B-zwei herrenlos'");
   // B ist juenger als A -- die Ansicht muss B deshalb zuerst nennen.
@@ -9270,7 +9270,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   let tkHash;
   {
     tkHash = kurzlauf(
-      `require('./auth').hashePasswort(${JSON.stringify(TK_PASSWORT)}).then(h => console.log(h));`, tkDir);
+      `require('./auth').hashPassword(${JSON.stringify(TK_PASSWORT)}).then(h => console.log(h));`, tkDir);
     kurzlauf(`require('./db'); console.log('da');`, tkDir);
     const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
     const ein = (name, rolle, status, hash) =>
@@ -9629,7 +9629,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const frAb = await FR.ruf('POST', '/api/token/pruefen', { token: frToken });
     pruefe('Nach der Frist traegt der Link nicht mehr', frAb.status === 400, `Status ${frAb.status}`);
     /* DIE ABSAGE BLEIBT DIE EINE aus 0.8.80 -- sie sagt NICHT, dass die Frist
-       schuld war. Eine eigene Meldung waere eine Auskunft an den, der raet,
+       schuld war. Eine eigene Message waere eine Auskunft an den, der raet,
        und dem Ehrlichen hilft sie nicht: das Heilmittel ist dasselbe. */
     pruefe('Und die Absage ist die eine bekannte, ohne eigenen Grund',
       frAb.inhalt?.error === 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.' &&
@@ -10024,7 +10024,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* EIGENER SERVER, und das ist keine Umstaendlichkeit: die Zaehler der
      Anmeldebremse liegen im Arbeitsspeicher des Prozesses, und zehn
      Fehlversuche vergifteten jede andere Prueflage auf derselben Adresse.
-     BELEGT WIRD AM ZAEHLERSTAND, nicht an der Meldung: die Absage vor der
+     BELEGT WIRD AM ZAEHLERSTAND, nicht an der Message: die Absage vor der
      Schwelle und die Sperre danach sind zwei verschiedene Antworten, und der
      Uebergang dazwischen ist der Beleg. Die Kennwerte selbst sind
      unangetastet -- weich ab 5, hart ab 10, fuenf Minuten. */
@@ -10986,10 +10986,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
     kurzlauf(`require('./db'); console.log('da');`, fwDir);
     const fwCode =
       `const a = require('./auth'); const t = 'ein-token-das-es-so-nicht-gibt';` +
-      `a.erzeugeFreigabe(t, 'export', null);` +
-      `const traegt = a.verbraucheFreigabe(t, 'export', null);` +
-      `a.erzeugeFreigabe(t, 'export', null); a.destroySession(t);` +
-      `const nachAbmelden = a.verbraucheFreigabe(t, 'export', null);` +
+      `a.createRelease(t, 'export', null);` +
+      `const traegt = a.useRelease(t, 'export', null);` +
+      `a.createRelease(t, 'export', null); a.destroySession(t);` +
+      `const nachAbmelden = a.useRelease(t, 'export', null);` +
       `console.log(JSON.stringify({ traegt, nachAbmelden }));`;
     const fw = JSON.parse(kurzlauf(fwCode, fwDir));
     pruefe('Eine frisch erzeugte Freigabe traegt ueberhaupt',
@@ -11172,7 +11172,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* EIGENER SERVER, und das ist keine Umstaendlichkeit: die Zaehler der
      Anmeldebremse liegen im Arbeitsspeicher des Prozesses, und zwoelf
      Fehlversuche vergifteten jede andere Prueflage auf derselben Adresse.
-     BELEGT WIRD AM UEBERGANG, nicht an der Meldung. Und die Schwelle wird
+     BELEGT WIRD AM UEBERGANG, nicht an der Message. Und die Schwelle wird
      NACHGERECHNET (Stolperstein 124): checkThrottle liest den Zaehlerstand,
      BEVOR noteFailure ihn erhoeht -- gesperrt wird deshalb ab dem ELFTEN
      Versuch, nicht ab dem zehnten.
@@ -11267,7 +11267,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     ];
     const oaCode = `const a = require('./auth');` +
       `console.log(JSON.stringify(${JSON.stringify(oaFaelle.map(f => f[0]))}` +
-      `.map(w => a.pruefeOeffentlicheAdresse(w))));`;
+      `.map(w => a.checkPublicAddress(w))));`;
     const oaErgebnis = JSON.parse(kurzlauf(oaCode, oaDir));
     pruefe('Die Pruefung liefert ueberhaupt zu jedem Wert eine Antwort',
       Array.isArray(oaErgebnis) && oaErgebnis.length === oaFaelle.length,
@@ -12006,7 +12006,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* DIE BENANNTE ABSAGE, nicht irgendein 400. Eine Gegenprobe, die die
        Klemme entfernte, blieb stumm: der naechste Griff lief dann in einen
        TypeError, den die Route ebenfalls als 400 herausgab -- abgewiesen war
-       es also, nur aus dem falschen Grund und mit einer Meldung, die niemand
+       es also, nur aus dem falschen Grund und mit einer Message, die niemand
        versteht. Geprueft wird deshalb der WORTLAUT. */
     await mailFrei(RA.S);
     const rErfunden = await RA.S.ruf('PUT', '/api/mail', { anbieter: 'erfunden',
@@ -13786,7 +13786,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und der mitgeschickte Code ist dabei NICHT verbraucht worden',
       (await zfS.ruf('POST', '/api/bestaetigung',
         { passwort: zfH.passwort, zweck: 'export', ziel: null, code: zfH.codes[2] })).status === 200);
-    // BESTAETIGUNG_ZWECKE bewegt sich hier nicht -- es kommt kein Zweck dazu,
+    // CONFIRM_PURPOSES bewegt sich hier nicht -- es kommt kein Zweck dazu,
     // sondern eine zweite Frage an derselben Stelle.
     const zfZweck = await zfS.ruf('POST', '/api/bestaetigung',
       { passwort: zfH.passwort, zweck: 'zweifaktor', ziel: null, code: zfH.codes[3] });
@@ -14370,7 +14370,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      eine Zahl in einem Papier ist eine Behauptung, eine Zahl im Pruefstand
      ist ein Beleg. VORGAENGE waechst mit 0.9.1 von fuenfzehn auf siebzehn
      (anfrage.frei und anfrage.ab); MERKMALE bleibt bei dreizehn, denn keiner
-     der beiden traegt eines. BESTAETIGUNG_ZWECKE steht seit 0.19.0 bei acht. */
+     der beiden traegt eines. CONFIRM_PURPOSES steht seit 0.19.0 bei acht. */
   /* GELESEN WIRD DIE LAUFENDE LISTE, NICHT DER QUELLTEXT DANEBEN: ein Waechter
      ueber den Quelltext faerbt sich am Warnschild statt an der Sache
      (Stolperstein 106). auth.js oeffnet beim Laden die Datenbank und laeuft
@@ -14378,11 +14378,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const fAuthDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-listen-'));
   const fAuth = JSON.parse(kurzlauf(
     `const a = require('./auth');` +
-    `console.log(JSON.stringify({ VORGAENGE: a.VORGAENGE, MERKMALE: a.MERKMALE,` +
-    ` BESTAETIGUNG_ZWECKE: a.BESTAETIGUNG_ZWECKE }));`, fAuthDir));
+    `console.log(JSON.stringify({ EVENTS: a.EVENTS, DETAILS: a.DETAILS,` +
+    ` CONFIRM_PURPOSES: a.CONFIRM_PURPOSES }));`, fAuthDir));
   fs.rmSync(fAuthDir, { recursive: true, force: true });
   pruefe('Es sind genau einundzwanzig Vorgaenge im Sicherheitsprotokoll',
-    fAuth.VORGAENGE.length === 21, `${fAuth.VORGAENGE.length}: ${fAuth.VORGAENGE.join(' ')}`);
+    fAuth.EVENTS.length === 21, `${fAuth.EVENTS.length}: ${fAuth.EVENTS.join(' ')}`);
   /* DER EINUNDZWANZIGSTE, seit 0.20.0. Er steht NEBEN 'sicherung' und nicht an
      seiner Stelle: das eine legt eine Kopie an, das andere wirft welche weg.
      UND ER TRAEGT KEIN MERKMAL -- die Zahl der entfernten Kopien ist die
@@ -14390,25 +14390,25 @@ const freigabeHaupt = (zweck, ziel = null) =>
      vierzehn, und die Verneinung steht hier neben der Zahl darueber und nicht
      an ihrer Stelle (Stolperstein 156). */
   pruefe('Und der einundzwanzigste heisst sicherung.weg',
-    fAuth.VORGAENGE.includes('sicherung.weg'), fAuth.VORGAENGE.join(' '));
+    fAuth.EVENTS.includes('sicherung.weg'), fAuth.EVENTS.join(' '));
   pruefe('Und die beiden aus 0.9.1 heissen anfrage.frei und anfrage.ab',
-    fAuth.VORGAENGE.includes('anfrage.frei') && fAuth.VORGAENGE.includes('anfrage.ab'),
-    fAuth.VORGAENGE.join(' '));
+    fAuth.EVENTS.includes('anfrage.frei') && fAuth.EVENTS.includes('anfrage.ab'),
+    fAuth.EVENTS.join(' '));
   /* DIE DREI AUS 0.10.0. Der dritte ist der, auf den es ankommt: er sagt, dass
      ein Wiederherstellungscode verbraucht wurde -- die einzige Zeile im ganzen
      Protokoll, die auf ein verlorenes Telefon zeigt. */
   pruefe('Und die drei aus 0.10.0 heissen zweifaktor.an, .aus und .wieder',
     ['zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder']
-      .every(v => fAuth.VORGAENGE.includes(v)),
-    fAuth.VORGAENGE.join(' '));
+      .every(v => fAuth.EVENTS.includes(v)),
+    fAuth.EVENTS.join(' '));
   /* UND KEIN VIERTER FUER DEN FALSCHEN CODE: eine gescheiterte zweite Stufe
      IST eine gescheiterte Anmeldung und schreibt 'anmeldung.fehl'. Die
      Verneinung steht neben der Zahl darueber und nicht an ihrer Stelle --
      zwei Zeilen sagen zusammen, was eine allein nicht sagen kann
      (Stolperstein 156). */
   pruefe('Und es gibt keinen eigenen Vorgang fuer einen falschen Code',
-    !fAuth.VORGAENGE.some(v => /^zweifaktor\.(fehl|falsch)/.test(v)),
-    fAuth.VORGAENGE.filter(v => v.startsWith('zweifaktor')).join(' '));
+    !fAuth.EVENTS.some(v => /^zweifaktor\.(fehl|falsch)/.test(v)),
+    fAuth.EVENTS.filter(v => v.startsWith('zweifaktor')).join(' '));
   /* VIERZEHN SEIT 0.13.0, VORHER DREIZEHN. 'teil' kommt dazu, und zwar als
      Nachlese zu einem Befund: 0.12.4 schrieb "teil 1/5" in die Spalte, das ist
      kein Wert aus dieser Liste, und protokolliere() verwarf damit die GANZE
@@ -14416,11 +14416,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gehalten, was sie zusagt; falsch war die Aufrufstelle.
      OHNE NUMMER: die Nummer des Teils waere Freitext, und den gibt es in
      dieser Spalte ausdruecklich nicht. Sie steht im Dateinamen. */
-  pruefe('Es sind jetzt vierzehn Merkmale', fAuth.MERKMALE.length === 14,
-    `${fAuth.MERKMALE.length}: ${fAuth.MERKMALE.join(' ')}`);
+  pruefe('Es sind jetzt vierzehn Merkmale', fAuth.DETAILS.length === 14,
+    `${fAuth.DETAILS.length}: ${fAuth.DETAILS.join(' ')}`);
   pruefe('Und das vierzehnte heisst "teil" und traegt keine Nummer',
-    fAuth.MERKMALE.includes('teil') && !fAuth.MERKMALE.some(m => /\d/.test(m)),
-    fAuth.MERKMALE.join(' '));
+    fAuth.DETAILS.includes('teil') && !fAuth.DETAILS.some(m => /\d/.test(m)),
+    fAuth.DETAILS.join(' '));
   /* ACHT SEIT 0.19.0, vorher sieben. Der achte heisst 'bilder' und war bis
      0.20.0 der einzige der Liste, der BYTES UEBERSCHREIBT statt Rechte oder
      Zugaenge zu verschieben -- und der einzige ohne Rueckweg: es gibt keinen
@@ -14430,11 +14430,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      sie gibt es keinen Papierkorb -- die Vorschau in der Karte ist der
      Ersatz. */
   pruefe('Und bei neun Zwecken der zweiten Bestaetigung',
-    fAuth.BESTAETIGUNG_ZWECKE.length === 9, fAuth.BESTAETIGUNG_ZWECKE.join(' '));
+    fAuth.CONFIRM_PURPOSES.length === 9, fAuth.CONFIRM_PURPOSES.join(' '));
   pruefe('Und der achte heisst bilder',
-    fAuth.BESTAETIGUNG_ZWECKE[7] === 'bilder', fAuth.BESTAETIGUNG_ZWECKE.join(' '));
+    fAuth.CONFIRM_PURPOSES[7] === 'bilder', fAuth.CONFIRM_PURPOSES.join(' '));
   pruefe('Und der neunte heisst sicherung',
-    fAuth.BESTAETIGUNG_ZWECKE[8] === 'sicherung', fAuth.BESTAETIGUNG_ZWECKE.join(' '));
+    fAuth.CONFIRM_PURPOSES[8] === 'sicherung', fAuth.CONFIRM_PURPOSES.join(' '));
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
   const ZWEIT_WORT = 'zweiteBestaetigung';
@@ -14505,12 +14505,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const selbstFehlt = (rumpf) =>
     !rumpf.includes('req.benutzer.id') || /req\.params\.(?!kennung)/.test(rumpf);
   pruefe('Und sie faende eine Route, die den Benutzer gar nicht nennt',
-    selbstFehlt('  res.json(auth.sitzungenVon(1));'), 'die fehlende Nennung faellt nicht auf');
+    selbstFehlt('  res.json(auth.sessionsOf(1));'), 'die fehlende Nennung faellt nicht auf');
   pruefe('Und eine, die die Nummer aus der Adresse nimmt',
-    selbstFehlt('  auth.sitzungenVon(req.benutzer.id, req.params.id);'),
+    selbstFehlt('  auth.sessionsOf(req.benutzer.id, req.params.id);'),
     'die fremde Nummer faellt nicht auf');
   pruefe('Den richtigen Fall laesst sie dagegen durch',
-    !selbstFehlt('  auth.beendeSitzung(req.benutzer.id, req.params.kennung);'),
+    !selbstFehlt('  auth.endSession(req.benutzer.id, req.params.kennung);'),
     'die Pruefung faerbt sich am richtigen Fall');
   // Die Gegenrichtung: wo "offen" steht, darf auch nichts stehen. Sonst waere
   // eine stillschweigend eingebaute Klemme von einer entschiedenen nicht zu
@@ -14860,12 +14860,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      schoebe der naechste Start jeden Loeschenden still dem Eigentuemer zu und
      machte aus einer Feststellung eine Falschaussage. */
   const fNetzRumpf = (() => {
-    const a = fDbQuelle.indexOf('function ordneBestandZu(');
+    const a = fDbQuelle.indexOf('function assignInventory(');
     if (a < 0) return '';
     const e = fDbQuelle.indexOf('\n}', a);
     return e < 0 ? '' : fDbQuelle.slice(a, e);
   })();
-  pruefe('Das Auffangnetz gibt es ueberhaupt', fNetzRumpf.length > 0, 'ordneBestandZu fehlt');
+  pruefe('Das Auffangnetz gibt es ueberhaupt', fNetzRumpf.length > 0, 'assignInventory fehlt');
   pruefe('Es kennt weiterhin genau die sechs Traeger mit user_id',
     /\['items', 'comments', 'test_days', 'ratings', 'links', 'attachments'\]/.test(fNetzRumpf),
     (fNetzRumpf.match(/for \(const tabelle of .*/) || [''])[0]);
@@ -14993,7 +14993,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const SICHERUNG_DATEIEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
                              'public/app.js', 'public/index.html', 'zugang.js'];
   /* GROSSGESCHRIEBEN GESUCHT, und das ist keine Nachlaessigkeit: gemeint ist
-     das deutsche SUBSTANTIV. `db.backup()` ist ein Bezeichner und die Meldung
+     das deutsche SUBSTANTIV. `db.backup()` ist ein Bezeichner und die Message
      "backup is not supported ..." ein Zitat aus SQLite -- beides ist Code und
      keine Sprache, dieselbe Trennlinie wie beim Sprachwaechter, der Backticks
      ueberspringt. */
@@ -15037,7 +15037,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Der Protokollwaechter sieht alle neun ausgelieferten Dateien an',
     PROT_DATEIEN.length === 9 && PROT_DATEIEN.every(n => fs.existsSync(path.join(__dirname, n))),
     JSON.stringify(PROT_DATEIEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
-  /* EIN VORKOMMEN SEIT 0.22.0, und es meint den Containerlog: die Meldung nach
+  /* EIN VORKOMMEN SEIT 0.22.0, und es meint den Containerlog: die Message nach
      einer gescheiterten Sicherung in server.js. Der zweite stand bis 0.21.1
      in der Kennzahlenkarte („im Protokoll … pruefen") und heisst seither am
      Bildschirm „Server-Log" (Woerterbuch, Konzept 4.3): „Protokoll" bleibt
@@ -15068,8 +15068,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Das lange Wort laesst er dagegen in Ruhe',
     protZaehle("  toast('Das Sicherheitsprotokoll ist leer');") === 0,
     'der Waechter faerbt sich am langen Wort');
-  pruefe('Den Bezeichner raeumeProtokollAuf ebenso',
-    protZaehle('  auth.raeumeProtokollAuf();') === 0, 'der Waechter faerbt sich am Bezeichner');
+  pruefe('Den Bezeichner cleanupLog ebenso',
+    protZaehle('  auth.cleanupLog();') === 0, 'der Waechter faerbt sich am Bezeichner');
   pruefe('Und den Kommentar daneben auch',
     protZaehle('// Die Zeile steht im Protokoll des Containers.') === 0,
     'der Waechter faerbt sich am Kommentar');
@@ -15840,7 +15840,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gZeilen('SELECT s.token FROM sessions s WHERE s.user_id = ?', gDoraId).length === 0,
     JSON.stringify(gZeilen('SELECT user_id FROM sessions')));
   /* Die Gegenrichtung, und sie ist der Grund fuer die Reihenfolge im Code:
-     mit FALSCHEM Passwort darf dieselbe Meldung nicht kommen. Sonst waere sie
+     mit FALSCHEM Passwort darf dieselbe Message nicht kommen. Sonst waere sie
      ein Werkzeug zum Durchprobieren von Benutzernamen. */
   const gDoraFalsch = await gAnmelden('dora', 'ganz-falsches-wort');
   pruefe('Mit falschem Passwort verraet dieselbe Anmeldung die Sperre nicht',
@@ -15890,7 +15890,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('Loeschen entwertet, es loescht nicht');
 
   /* Der Kern des Grabsteins. Wuerde die Zeile entfernt, machte ON DELETE SET
-     NULL den ganzen Bestand herrenlos und ordneBestandZu() schoebe ihn beim
+     NULL den ganzen Bestand herrenlos und assignInventory() schoebe ihn beim
      naechsten Start STILL dem Eigentuemer zu -- fremde Aussagen unter
      fremdem Namen, genau das, was verboten ist. Die Zeile bleibt stehen. */
   const gBertItem = (await gRuf(gBert, 'POST', '/api/items', { title: 'Berts Eintrag' })).inhalt;
@@ -16052,7 +16052,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---------------------------------------------------------------- */
   gruppe('Herrenloser Bestand faellt nicht an einen Grabstein');
 
-  /* ordneBestandZu() muss die ROLLE lesen, nicht die kleinste Nummer:
+  /* assignInventory() muss die ROLLE lesen, nicht die kleinste Nummer:
      die kleinste Nummer kann ein Grabstein sein -- ein Zugang, der sich nie
      wieder anmeldet. Der Bestand waere danach aus der Anwendung heraus nicht
      mehr erreichbar, und niemand saehe es.
@@ -16669,7 +16669,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     u30Zeilen().filter(z => /berts-/.test(z.url)).every(z => z.username !== 'chefin'),
     JSON.stringify(u30Zeilen()));
   /* Die zweite Regel, am selben Lauf: was die Migration nicht fuellen kann --
-     ein Link an einem herrenlosen Eintrag --, faengt ordneBestandZu() auf, und
+     ein Link an einem herrenlosen Eintrag --, faengt assignInventory() auf, und
      dort ist der Eigentuemer die eingefuehrte Antwort. Zwei Regeln fuer zwei
      Zeitpunkte, und beide sind hier zu sehen. */
   pruefe('Was die Migration nicht fuellen kann, faengt das Auffangnetz auf',
@@ -16988,14 +16988,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Die Vorgabe kommt aus dem DEFAULT, nicht aus einem UPDATE',
       u40Block.includes('DEFAULT 1.0') && !/UPDATE\s+rating_criteria/i.test(u40Block),
       JSON.stringify(u40Block.slice(0, 80)));
-    /* ordneBestandZu() wird ausdruecklich NICHT angefasst: dort geht es um
+    /* assignInventory() wird ausdruecklich NICHT angefasst: dort geht es um
        user_id und um die Frage, wem eine herrenlose Zeile gehoert. Ein Gewicht
        kann nicht herrenlos werden. Der Waechter haelt fest, dass die Tabelle
        dort nicht auftaucht. */
-    const u40Auffang = u40Quelle.slice(u40Quelle.indexOf('function ordneBestandZu'),
-                                       u40Quelle.indexOf('ordneBestandZu();'));
+    const u40Auffang = u40Quelle.slice(u40Quelle.indexOf('function assignInventory'),
+                                       u40Quelle.indexOf('assignInventory();'));
     pruefe('Das Auffangnetz kennt rating_criteria nicht',
-      !u40Auffang.includes('rating_criteria'), 'rating_criteria steht in ordneBestandZu()');
+      !u40Auffang.includes('rating_criteria'), 'rating_criteria steht in assignInventory()');
   }
 
   /* Der eigentliche Beleg der Runde, an derselben Instanz: der Gesamtschnitt
@@ -17216,13 +17216,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Block fragt jede Spalte einzeln ab',
       (u50Block.match(/spalten\.includes\(/g) || []).length === 2,
       `${(u50Block.match(/spalten\.includes\(/g) || []).length} Abfragen`);
-    /* ordneBestandZu() wird ausdruecklich NICHT angefasst: dort geht es um
+    /* assignInventory() wird ausdruecklich NICHT angefasst: dort geht es um
        user_id und um die Frage, wem eine herrenlose Zeile gehoert. Ein Foto
        gehoert seinem Eintrag, nicht einem Verfasser. */
-    const u50Auffang = u50Quelle.slice(u50Quelle.indexOf('function ordneBestandZu'),
-                                       u50Quelle.indexOf('ordneBestandZu();'));
+    const u50Auffang = u50Quelle.slice(u50Quelle.indexOf('function assignInventory'),
+                                       u50Quelle.indexOf('assignInventory();'));
     pruefe('Das Auffangnetz kennt photos nicht',
-      !u50Auffang.includes('photos'), 'photos steht in ordneBestandZu()');
+      !u50Auffang.includes('photos'), 'photos steht in assignInventory()');
   }
 
   // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
@@ -17469,15 +17469,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
       /db\.transaction\(/.test(u14Block) &&
       (u14Block.match(/ALTER TABLE items ADD COLUMN/g) || []).length === 3,
       JSON.stringify((u14Block.match(/db\.transaction\([^\n]*/g) || []).join(' | ')));
-    /* ordneBestandZu() wird ausdruecklich NICHT angefasst: dort geht es um
+    /* assignInventory() wird ausdruecklich NICHT angefasst: dort geht es um
        user_id und um die Frage, wem eine herrenlose Zeile gehoert.
        rejected_von ist keine Eigentumsangabe, sondern der Name unter einer
        Entscheidung -- sie dem Eigentuemer zuzuschieben setzte seinen Namen
        unter eine fremde Aussage. */
-    const u14Auffang = u14Quelle.slice(u14Quelle.indexOf('function ordneBestandZu'),
-                                       u14Quelle.indexOf('ordneBestandZu();'));
+    const u14Auffang = u14Quelle.slice(u14Quelle.indexOf('function assignInventory'),
+                                       u14Quelle.indexOf('assignInventory();'));
     pruefe('Das Auffangnetz kennt rejected_von nicht',
-      !u14Auffang.includes('rejected_von'), 'rejected_von steht in ordneBestandZu()');
+      !u14Auffang.includes('rejected_von'), 'rejected_von steht in assignInventory()');
   }
 
   // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
@@ -19782,7 +19782,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       rumpf.replace(/\s+/g, ' ').slice(0, 240));
     /* DAS NETZ BLEIBT DARUNTER: die Absage rechnet, sie misst nicht. Faellt
        die Schaetzung zu niedrig aus, wirft JSON.stringify -- und dann muss
-       auch der Dateikopf wieder weg, sonst laedt der Browser die Meldung als
+       auch der Dateikopf wieder weg, sonst laedt der Browser die Message als
        Exportdatei herunter. */
     pruefe('Und faengt den Wurf ab, falls die Schaetzung zu niedrig war',
       /RangeError/.test(rumpf) && /removeHeader\('Content-Disposition'\)/.test(rumpf),
@@ -19976,7 +19976,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const BF = starteWeiterenServer(bfDir, {}, 5740);
     await BF.bereit;
     // Das Nachruesten startet 1,5 Sekunden nach dem Zuhoeren und macht je
-    // Zeile 30 ms Pause. Gewartet wird auf die Meldung, nicht auf eine Uhr:
+    // Zeile 30 ms Pause. Gewartet wird auf die Message, nicht auf eine Uhr:
     // eine feste Wartezeit waere entweder zu kurz oder verschenkte Zeit.
     for (let i = 0; i < 60 && !/Vorschaubild\(er\) erzeugt/.test(BF.protokoll()); i++)
       await new Promise(r => setTimeout(r, 100));
@@ -20075,7 +20075,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('Fehler nach Rang');
 
   /* 400 heisst "du hast falsch gefragt", 500 heisst "bei mir ist etwas
-     kaputt". Vorher kam alles als 400 zurueck, samt der Meldung des Fehlers
+     kaputt". Vorher kam alles als 400 zurueck, samt der Message des Fehlers
      -- bei einem Fehler der Datenbank stuenden darin Tabellen- und
      Spaltennamen.
      Beide Haelften gehoeren zusammen geprueft: wuerde nur der Rang geprueft,
@@ -20083,7 +20083,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const fhItem = (await ruf('POST', '/api/items', { title: 'Fehlerprobe' })).inhalt;
 
   // ABSICHT BEHAELT IHREN RANG: ein Fehler von multer -- hier ein Feldname,
-  // den die Route nicht kennt -- ist eine echte 400 und behaelt seine Meldung.
+  // den die Route nicht kennt -- ist eine echte 400 und behaelt seine Message.
   const fhMulter = await sendeMultipart(`/api/items/${fhItem.id}/photos`, 'gibtsnicht',
     [{ name: 'a.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
   pruefe('Ein Fehler von multer bleibt eine 400', fhMulter.status === 400,
@@ -20091,7 +20091,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und behaelt seine Meldung', !!fhMulter.inhalt?.error, JSON.stringify(fhMulter.inhalt));
 
   // Und die markierten Fehler der Anwendung ebenso: eine Datei, die kein Bild
-  // ist, wird weiterhin mit ihrer eigenen Meldung abgewiesen.
+  // ist, wird weiterhin mit ihrer eigenen Message abgewiesen.
   const fhKeinBild = await sendeMultipart(`/api/items/${fhItem.id}/photos`, 'photos',
     [{ name: 'a.txt', typ: 'text/plain', inhalt: 'kein Bild' }]);
   pruefe('Eine abgewiesene Datei bleibt eine 400', fhKeinBild.status === 400,
@@ -20101,7 +20101,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* EIN ECHTER SERVERFEHLER. Eine Einspieldatei, in der "photos" keine Liste
      ist: der Server stolpert beim Durchgehen. Vorher kam das als 400 samt der
-     inneren Meldung zurueck -- jetzt als 500 mit festem Text. */
+     inneren Message zurueck -- jetzt als 500 mit festem Text. */
   const fhKaputt = await sendeImport(
     { version: 5, title: 'T', items: [{ title: 'Kaputt', photos: 5 }] }, 'merge');
   pruefe('Ein Fehler des Servers kommt als 500', fhKaputt.status === 500,
@@ -21088,7 +21088,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        (er gaebe 0 zurueck, und die Zeile belegte nichts). Deshalb steht in
        beiden Laeufen dasselbe: einmal oeffnen, dann fragen. */
     /* DIE MELDUNG WIRD EINGEFANGEN UND IN EINER ZEILE ZURUECKGEGEBEN --
-       kurzlauf() liefert nur die LETZTE Zeile der Ausgabe, und die Meldung des
+       kurzlauf() liefert nur die LETZTE Zeile der Ausgabe, und die Message des
        Blocks steht davor. Eingefangen wird VOR dem require: db.js fuehrt seine
        Bloecke beim Laden aus, so wie beim Start der Installation.
        UND DAS EINFANGEN WIRD ZWEIGETEILT -- das ist der Fund des Rueckbaus 581.
@@ -21096,7 +21096,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        geschah und was der ausdrueckliche Aufruf danach tat. Damit blieb die
        Gruppe auch dann gruen, wenn `migration0210();` in db.js gar nicht mehr
        gerufen wurde -- der Aufruf HIER holte die Migration nach, und die
-       Meldung stand im Topf. Der Rueckbau war STUMM.
+       Message stand im Topf. Der Rueckbau war STUMM.
        JETZT SAGT `OEFFNEN`, was das blosse Laden der Datei getan hat, und
        `DANACH`, was der ausdrueckliche Aufruf noch fand. Nur das erste belegt,
        dass der Block beim Start einer Installation wirklich laeuft. */
@@ -21773,7 +21773,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Nummer 430, weil die Nummern bis 429 vergeben sind; die ZAHL der Rueckbauten
   // und die HOECHSTE Nummer sind nicht dasselbe. ZWEI VORHANDENE
   // SIND MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 389 und 392
-  // zeigten auf die leere Meldung, die jetzt zwei Zeilen hoch ist -- sie bauen
+  // zeigten auf die leere Message, die jetzt zwei Zeilen hoch ist -- sie bauen
   // deshalb auf EINE Zeile zurueck und nicht mehr auf null.
   /* 450 SEIT 0.19.0: achtundzwanzig neue, ab Nummer 431 -- zwoelf an der
      Bildablage, sieben am engeren Ausschnitt, neun an der Oberflaeche dazu.
@@ -21813,7 +21813,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      laesst sich nicht mitnehmen: er hat keinen Ort mehr.** An ihre Stelle
      tritt 487, der die Tafel WIEDER EINBAUT -- dieselbe Sache, andersherum. */
   /* 497 SEIT 0.19.3: SECHZEHN neue, fuenfzehn ab Nummer 491 -- acht am Bestandslauf im
-     eigenen Thread (die Meldung je Zeile, ihr Empfaenger, der Schluessel in
+     eigenen Thread (die Message je Zeile, ihr Empfaenger, der Schluessel in
      workerData, der Abschluss, der stille Fehler, die Datei im Fingerprint,
      die Threadzahl von sharp und der wiederholte Schluesselhinweis), sechs an
      der Uebersicht (zweimal die verlorene zweite Ordnung, die fehlende
@@ -21832,7 +21832,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Geometrie selbst (die kurze Kante, der Deckel, `medium`, der EXIF-Vermerk,
      der ungelesene Kopf, die Erkennung an der falschen Kante und der
      unlesbare `thumb`), vier am Lauf (jede Zeile statt der faelligen, die
-     leere Ableitung, die Meldung je Zeile und die Seiten, die er nicht
+     leere Ableitung, die Message je Zeile und die Seiten, die er nicht
      freigibt), zwei am Server (die gebrochene Kette und die verengte Auswahl)
      und vier an der Oberflaeche (die Fortschrittszeile, ihre Gegenlage, die
      Uhr und die Angabe in der Karte).
@@ -21841,7 +21841,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      dieser Runde ohnehin. Es ist ein offener Punkt und keine Formalie.
      FUENF VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
      201): 439, 440, 492 und 495 zeigten auf den Stand der Umstellung, der
-     jetzt je Aufgabe steht; 491 zeigte auf die Meldung je Zeile, und dieselben
+     jetzt je Aufgabe steht; 491 zeigte auf die Message je Zeile, und dieselben
      zwei Zeilen stehen seit dieser Runde in einer zweiten Schleife -- sein
      Suchtext haette danach zweimal gepasst und der Rueckbau waere abgebrochen.
      KEINER IST WEGGEFALLEN. */
@@ -21851,7 +21851,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ohne Klammer am Rand, das Hochrechnen auf die Zielkante und der Lauf ohne
      Zuschnitt), vier an den Rufern (Hochladen, Einspielen, Videovorlage und
      die fehlende vierte Aufgabe), drei an der Route (sie schneidet nicht, sie
-     wartet nicht, die Meldung reist nicht zurueck), drei an der Fassung (die
+     wartet nicht, die Message reist nicht zurueck), drei an der Fassung (die
      Spalte, die Adresse) und der Rechnung im Browser, und einer, der den
      CSS-Zuschnitt ZURUECKHOLT -- damit auch die zweite Haelfte der Runde eine
      Gegenprobe hat -- und einer (540) an der Fortschrittszeile, die seit
@@ -21872,7 +21872,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Zeichenfunktion die Wache weg (Streifen und Betrachter), und der dritte
      nimmt nicht die Wache, sondern DAS, WAS SIE BEWACHT: der Streifen zeichnet
      gar keine Kachel mehr. Ohne ihn bliebe gruen, wer die Wache zum
-     Ausschalter macht -- eine Zusage „keine rote Meldung" ist an einer
+     Ausschalter macht -- eine Zusage „keine rote Message" ist an einer
      Funktion, die nichts tut, trivial wahr (Stolperstein 298).
      SECHS VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
      201): 516, 517, 532, 533, 534 und 535 zeigten auf Zeilen, in denen das
@@ -21886,7 +21886,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      nimmt und damit an beiden Stellen zugleich -- nur so faellt die fremde
      Datei im Sicherungsordner wirklich --, 551, der nach einer GESCHEITERTEN
      Sicherung doch aufraeumt, und 552, der aus einer gelungenen Sicherung eine
-     rote Meldung macht (Stolperstein 298).
+     rote Message macht (Stolperstein 298).
      ZWEI SIND AUSDRUECKLICH AUF DEN QUELLTEXTWAECHTER GEMUENZT (547 und 549):
      die zweite Musterpruefung und das zweite `lstatSync` stehen absichtlich
      doppelt da, und am Verhalten allein waeren sie stumm, solange die erste
@@ -22055,7 +22055,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ZWEI WEGE ENDEN OHNE SCHLUSSBLOCK, und nur EINER schreibt eine Zeile, die
      der Leser kennt: der aeussere Fang druckt „Prueflauf abgebrochen: ...".
      Ein unbehandeltes Ereignis ausserhalb der abgewarteten Kette druckt davon
-     nichts -- Node legt Meldung und Aufrufweg auf stderr und geht mit 1.
+     nichts -- Node legt Message und Aufrufweg auf stderr und geht mit 1.
      Fuer diesen zweiten Weg ist der Schwanz die einzige Auskunft. ---- */
   const gpAbriss = gpLese([
     '── Alte Sicherungen aufraeumen: der echte Ordner ─────',
@@ -22713,7 +22713,7 @@ async function pruefeErstanmeldung() {
   await C.stopp();
 
   /* --- Die zweite Aufrufstelle des Auffangnetzes ---------------------------
-     ordneBestandZu() steht an zwei Stellen; die zweite sitzt in
+     assignInventory() steht an zwei Stellen; die zweite sitzt in
      legeErstenBenutzerAn. Im Normalbetrieb entsteht die leere Benutzertabelle
      nicht -- die Prueflage stellt sie deshalb selbst her. */
   gruppe('Erstanmeldung: Einrichtung bei leerer Benutzertabelle');
@@ -22741,7 +22741,7 @@ async function pruefeErstanmeldung() {
   const neuItems = nachNeu.prepare('SELECT id, user_id FROM items').all();
   pruefe('Der herrenlose Bestand faellt an den neu eingerichteten Zugang',
     neuItems.length === 1 && neuItems[0].user_id === neuId, JSON.stringify(neuItems));
-  // Und der Neue ist Eigentuemer -- ohne das griffe ordneBestandZu() ins
+  // Und der Neue ist Eigentuemer -- ohne das griffe assignInventory() ins
   // Leere, weil eigentuemerId() niemanden faende.
   pruefe('Und der neu eingerichtete Zugang ist Eigentuemer',
     nachNeu.prepare('SELECT role FROM users WHERE id = ?').get(neuId)?.role === 'eigentuemer',
@@ -23041,7 +23041,7 @@ const DOM_PROTOKOLL = {
 const DOM_PROT_GRUPPEN = (() => {
   const q = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-protgruppen-'));
   const g = JSON.parse(kurzlauf(
-    `console.log(JSON.stringify(require('./auth').PROTOKOLL_GRUPPEN));`, q));
+    `console.log(JSON.stringify(require('./auth').LOG_GROUPS));`, q));
   fs.rmSync(q, { recursive: true, force: true });
   return g;
 })();
@@ -23133,7 +23133,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      waere die Regel gar nicht zu belegen. */
   ungetestet = false, offenBestand = null, papierkorbBestand = null, sicherungStand = null, sicherungKopien = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
-  tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null, statsExport = null,
+  tokenBremse = 0, registrierung = false, anfragenStand = null, twoFactorState = null, statsExport = null,
   statsVerfahren = undefined,
   /* DIE BILDABLAGE IN DEN KENNZAHLEN, seit 0.19.0 -- stellbar, weil die Karte
      drei Lagen zeigen muss: es liegt PNG da (der Knopf ist bedienbar), es
@@ -23240,7 +23240,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
   const ZF_MOCK_ZEILE = 'otpauth://totp/Kriterion%3Achefin?secret=' + ZF_MOCK_GEHEIM +
     '&issuer=Kriterion&algorithm=SHA1&digits=6&period=30';
   const ZF_MOCK_CODE = '123456';
-  let zfStandMock = zweifaktorStand || { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
+  let zfStandMock = twoFactorState || { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
   let zfAusweisMock = 'ausweis-1', zfAusweisZaehler = 1;
   let zfCodesMock = zweifaktorCodes ||
     ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
@@ -23699,7 +23699,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      load() melden sich als jsdomError. Das ist Laerm, kein Befund -- die
      Oberflaeche RUFT sie richtig, und genau das prueft die Gruppe "Videos am
      Bildschirm" an hidden und src. Gefiltert wird deshalb genau diese eine
-     Meldung; alles andere geht unveraendert durch, damit kein echter Fehler
+     Message; alles andere geht unveraendert durch, damit kein echter Fehler
      hier verschwindet. */
   const stilleKonsole = new VirtualConsole();
   stilleKonsole.forwardTo(console, { jsdomErrors: 'none' });
@@ -23774,7 +23774,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
     /* DER ZWEITE FAKTOR REIST SEIT 0.10.0 IN DIESER ANTWORT MIT, und der Mock
        liefert ihn -- sonst bliebe der Block in der Karte "Zugang" leer und
        jede Pruefung darauf blind (Stolperstein 102). Die Prueflage stellt
-       ueber zweifaktorStand den anderen Zustand; ohne beide liesse sich weder
+       ueber twoFactorState den anderen Zustand; ohne beide liesse sich weder
        "an seit ..." noch "aus" belegen.
        DER MOCK BRINGT NICHT SELBST MIT, WAS DIE PRUEFUNG BELEGEN SOLL: was
        hier steht, kommt aus der Prueflage und nicht aus der Oberflaeche --
@@ -25059,7 +25059,7 @@ async function pruefeOberflaeche() {
     JSON.stringify(pinGesendet));
   /* Der Kern der Sache: liefe der Klick auf e.currentTarget, das nach dem
      await null ist, waere der Eintrag zwar gespeichert, aber der Knopf
-     bliebe stehen und stattdessen erschiene eine rote Meldung. */
+     bliebe stehen und stattdessen erschiene eine rote Message. */
   pruefe('Danach traegt der Knopf den vollen Stern',
     pinKnopf()?.textContent === '★', JSON.stringify(pinKnopf()?.textContent));
   pruefe('Und ist als Favorit gekennzeichnet',
@@ -26172,7 +26172,7 @@ async function pruefeOberflaeche() {
 
   /* WAS EIN BETREIBER SIEHT, DER ALLEIN ARBEITET. Die Pille ist gestrichen,
      und die Glocke steht auch bei einem einzigen Zugang da -- der KNOPF, nicht
-     zwangslaeufig eine Meldung darin. Seit 0.17.2 meldet sie nur Fremdes und
+     zwangslaeufig eine Message darin. Seit 0.17.2 meldet sie nur Fremdes und
      bleibt bei einem einzigen Zugang deshalb still; die Lage dazu steht in der
      Gruppe „Die Glocke in der Kopfzeile". */
   const nsEiner = await nsBaue(nsVorgabe, { benutzerZahl: 1,
@@ -29573,7 +29573,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 120));
     const vfF = wf.document.querySelector('.vfocus');
     /* ERST DIE PRUEFLAGE, DANN DIE ZUSAGE. Ohne diese Zeile waere „keine rote
-       Meldung" trivial wahr, sobald der Ausschnittmodus gar nicht erst
+       Message" trivial wahr, sobald der Ausschnittmodus gar nicht erst
        aufgeht (Stolperstein 161). */
     pruefe('Die Prueflage steht: der Betrachter hat seinen Ausschnittschalter', !!vfF);
     vfF?.onclick();
@@ -30433,7 +30433,7 @@ async function pruefeOberflaeche() {
     /dora/.test(eiZurueck.w.document.body.textContent),
     eiZurueck.w.document.body.textContent.slice(0, 200));
 
-  /* DIE ABSAGE: zurueck auf die gewoehnliche Anmeldeseite, mit der Meldung
+  /* DIE ABSAGE: zurueck auf die gewoehnliche Anmeldeseite, mit der Message
      darueber -- und die Adresse wird geleert, damit ein Neuladen nicht
      denselben toten Link noch einmal versucht. */
   const eiWeg = await eiBau('9'.repeat(64));
@@ -31067,7 +31067,7 @@ async function pruefeOberflaeche() {
      hat -- dieselbe Ueberlegung wie bei den drei Abstufungen der Karte
      "Sicherung": eine Warnung, die immer dasteht, liest niemand mehr. */
   const zkKnapp = baueDom(JSDOM, { hash: '#/system',
-    zweifaktorStand: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 1, codesGesamt: 8 } });
+    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 1, codesGesamt: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkKnapp.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31079,7 +31079,7 @@ async function pruefeOberflaeche() {
   pruefe('Und nennt den Tag, an dem er eingeschaltet wurde',
     /14\.08\.2026/.test(zkKnappText) && !/2026-08-14/.test(zkKnappText), zkKnappText.slice(0, 120));
   const zkVoll = baueDom(JSDOM, { hash: '#/system',
-    zweifaktorStand: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
+    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkVoll.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31092,7 +31092,7 @@ async function pruefeOberflaeche() {
      BEIDEN Zustaenden -- eine Karte, die nur den einen kennt, belegt den
      anderen nicht (Stolperstein 81). */
   const zkBest = baueDom(JSDOM, { hash: '#/system',
-    zweifaktorStand: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
+    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkBest.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31927,9 +31927,9 @@ async function pruefeOberflaeche() {
     const wVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-woerter-'));
     const wListen = JSON.parse(kurzlauf(
       `const a = require('./auth'); console.log(JSON.stringify(` +
-      `{ VORGAENGE: a.VORGAENGE, MERKMALE: a.MERKMALE, GRUPPEN: a.PROTOKOLL_GRUPPEN }));`, wVerz));
+      `{ EVENTS: a.EVENTS, DETAILS: a.DETAILS, GRUPPEN: a.LOG_GROUPS }));`, wVerz));
     fs.rmSync(wVerz, { recursive: true, force: true });
-    const wZeilen = wListen.VORGAENGE.map((was, i) => ({
+    const wZeilen = wListen.EVENTS.map((was, i) => ({
       id: 100 + i, am: '2026-08-24 09:00:00', was,
       wer: was === 'anmeldung.fehl' ? null : 1, werName: was === 'anmeldung.fehl' ? null : 'chefin',
       ziel: null, zielName: null, merkmal: null }));
@@ -31939,8 +31939,8 @@ async function pruefeOberflaeche() {
     /* ERST DER GEGENSTAND: ohne Zeilen bliebe die Verneinung darunter wahr und
        belegte nichts (Stolperstein 81). */
     pruefe('Der Aufbau steht: jede Vorgangsart hat eine Zeile',
-      spReihen(d).length === wListen.VORGAENGE.length,
-      `${spReihen(d).length} von ${wListen.VORGAENGE.length}`);
+      spReihen(d).length === wListen.EVENTS.length,
+      `${spReihen(d).length} von ${wListen.EVENTS.length}`);
     /* KEIN ROHER SCHLUESSEL AM BILDSCHIRM. Erkennbar sind sie am Punkt:
        "anfrage.frei" steht so in keiner deutschen Beschriftung. */
     const wRoh = spReihen(d).filter(z =>
@@ -31952,7 +31952,7 @@ async function pruefeOberflaeche() {
        Merkmal ohne Wort verschwindet spurlos: merkmalsWort() faellt still auf
        den leeren String zurueck. */
     const wOhneVorgang = ['aktiv', 'gesperrt'];
-    const wZeilen2 = wListen.MERKMALE.filter(m => !wOhneVorgang.includes(m))
+    const wZeilen2 = wListen.DETAILS.filter(m => !wOhneVorgang.includes(m))
       .map((merkmal, i) => ({ id: 200 + i, am: '2026-08-24 09:00:00', was: 'zugang.selbst',
         wer: 1, werName: 'chefin', ziel: 1, zielName: 'chefin', merkmal }));
     const dm = await ziSystem({ istAdmin: true, istEigentuemer: true },
@@ -31968,7 +31968,7 @@ async function pruefeOberflaeche() {
     /* JEDER VORGANG STEHT IN GENAU EINER GRUPPE. Ein neuer, der in keiner
        steht, waere unter keiner Ansicht zu finden -- ausser unter "alle", und
        dort sucht ihn niemand. */
-    const wZuordnung = wListen.VORGAENGE.map(v =>
+    const wZuordnung = wListen.EVENTS.map(v =>
       [v, Object.entries(wListen.GRUPPEN).filter(([, arten]) => arten.includes(v)).length]);
     pruefe('Jeder Vorgang steht in genau einer Gruppe des Filters',
       wZuordnung.every(([, n]) => n === 1),
@@ -33102,7 +33102,7 @@ async function pruefeOberflaeche() {
      seit 0.19.1. 0.19.0 hatte sie ausdruecklich HINEINgesetzt -- fuer zwei
      Zeilen und einen Schalter war das richtig; fuer fuenf Formatzeilen, einen
      Schalter mit Erlaeuterung, einen Knopf, eine Fortschrittszeile und eine
-     Meldung ist die Karte darunter zu gross geworden.
+     Message ist die Karte darunter zu gross geworden.
      GEPRUEFT WIRD DESHALB IN DER EIGENEN KARTE -- und ausdruecklich, dass sie
      NICHT mehr als Unterabschnitt in „Kennzahlen" steht: eine Bedienung, die
      an zwei Orten stuende, waere die zweite Wahrheit (Stolperstein 201: die
@@ -35516,10 +35516,10 @@ async function pruefeOberflaeche() {
   /* ZU NENNEN IST DIE ZAHL, BEI DER ES KIPPT -- nicht die, bei der es
      unbequem wird. Und die ist NICHT unsere Marge, sondern Nodes Stringgrenze:
      `grenze` ist die Zahl, ab der die Route absagt, und die traegt Luft fuer
-     die Schaetzung. **Eine Meldung, die unsere Marge als Tatsache ausgibt,
+     die Schaetzung. **Eine Message, die unsere Marge als Tatsache ausgibt,
      sagt die Unwahrheit** -- ein Text kann sehr wohl groesser werden als
      460,8 MB, nur eben nicht groesser als 512. Der Schwellwert und die Marge
-     stehen in keiner Meldung. */
+     stehen in keiner Message. */
   pruefe('Und die Grenze, an der es wirklich kippt',
     warnText.includes(exG.fmtBytes(exGross.string)), warnText.slice(0, 220));
   pruefe('Und zwar Nodes Stringgrenze und nicht unsere Marge davor',
@@ -36432,7 +36432,7 @@ async function pruefeOberflaeche() {
 
   /* --- DIE ALTE FORM EINER GESPEICHERTEN ANSICHT ---
      Vor 0.13.0 stand dort EIN Kategoriewert. Ohne Uebersetzung verloeren alle
-     vorhandenen Ansichten ihre Kategorie, still und ohne Meldung. */
+     vorhandenen Ansichten ihre Kategorie, still und ohne Message. */
   const kmAlt = kmW.filterNormal({ categoryId: 21, tagIds: [], tagMode: 'and',
     tested: 'all', favorit: false, neu: false, sort: 'updated_desc' });
   pruefe('Eine Ansicht in der ALTEN Form wird uebersetzt',
@@ -39068,7 +39068,7 @@ async function pruefeOberflaeche() {
       dok.getElementById('offen-zahl')?.hidden === false,
       String(dok.getElementById('offen-zahl')?.hidden));
 
-    /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke: eine Meldung, die man
+    /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke: eine Message, die man
        nicht anspringen kann, ist eine Mitteilung ohne Weg. */
     dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
@@ -39625,7 +39625,7 @@ async function pruefeOberflaeche() {
     const khLeerBedien = eigeneRegel('\\.manage-list > \\.hint');
     const khLeerText = eigeneRegel('\\.prot-liste > \\.hint');
     /* ZWEI ZEILEN UND NICHT EINE -- SEIT 0.18.1. Mit einer war die Leere nicht
-       zu sehen: die Meldung stand als eine Textzeile zwischen zwei Absaetzen und
+       zu sehen: die Message stand als eine Textzeile zwischen zwei Absaetzen und
        las sich wie einer davon. Gemeldet am Bild der Karte „Anfragen".
        5.59rem SIND ZWEI `.mrow` zu 41,92 px, 4.666rem ZWEI `.prot-zeile` zu 35
        -- dieselben zwei Masse wie beim Deckel darueber, nur verdoppelt. */
@@ -41148,13 +41148,13 @@ async function pruefeOberflaeche() {
         && !/Auf dem Server ist ein Fehler aufgetreten/.test(spSrv)
         && !/'Unbekannter Fehler'/.test(spSrv),
       'Literale im Handler: ' + String(/Auf dem Server ist ein Fehler aufgetreten/.test(spSrv)));
-    /* DIE KLASSE `Meldung`: Schluessel, Werte, Status -- und sie erbt von
+    /* DIE KLASSE `Message`: Schluessel, Werte, Status -- und sie erbt von
        Error, damit jeder vorhandene try/catch sie weiter faengt. */
-    const spM = new (require('./auth').Meldung)('probe.schluessel', { n: 2 }, 409);
+    const spM = new (require('./auth').Message)('probe.schluessel', { n: 2 }, 409);
     pruefe('Eine Meldung ist ein Error und trägt Schlüssel, Werte und Status',
-      spM instanceof Error && spM.schluessel === 'probe.schluessel'
-        && spM.werte.n === 2 && spM.status === 409,
-      JSON.stringify([spM.schluessel, spM.werte, spM.status]));
+      spM instanceof Error && spM.key === 'probe.schluessel'
+        && spM.values.n === 2 && spM.status === 409,
+      JSON.stringify([spM.key, spM.values, spM.status]));
     // Und ihr `message` ist der SCHLUESSEL: wer sie versehentlich als Text
     // ausgibt, sieht einen Schluessel und keinen halben Satz.
     pruefe('Und ihre Meldung ist der Schlüssel selbst',
@@ -41206,7 +41206,7 @@ async function pruefeOberflaeche() {
   /* ================= Die Serverseite spricht aus der Datei — 0.24.0 ==========
      Bauabschnitt 2: server.js, auth.js und mail.js sagen keinen Satz mehr
      selbst. Diese Gruppe faehrt den Weg AM LAUFENDEN SERVER ab -- eine
-     `Meldung` aus auth.js kommt als `error` mit uebersetztem Satz und
+     `Message` aus auth.js kommt als `error` mit uebersetztem Satz und
      richtigem Status heraus, und die vier Briefe stehen mit ihren
      Platzhaltern in der Sprachdatei.
      AM LAUFENDEN SERVER UND NICHT AM QUELLTEXT: dass ein Schluessel im Code
@@ -41235,9 +41235,9 @@ async function pruefeOberflaeche() {
        zweite Faktor" ab -- sie liest den Satz und wuerde rot, sobald er
        nicht mehr herauskommt. */
     pruefe('Die Absage des zweiten Faktors ist ein Schlüssel mit Satz in der Datei',
-      require('./auth').ZWEITER_FAKTOR_ABSAGE === 'login.codeWrong' &&
+      require('./auth').TWO_FACTOR_DENIAL === 'login.codeWrong' &&
       sdDe['login.codeWrong'] === 'Der Code stimmt nicht.',
-      `${require('./auth').ZWEITER_FAKTOR_ABSAGE} · ${sdDe['login.codeWrong']}`);
+      `${require('./auth').TWO_FACTOR_DENIAL} · ${sdDe['login.codeWrong']}`);
     /* DIE VIER BRIEFE SAMT BETREFF. Sie sind aus mail.js in die Datei gezogen,
        die Betreffzeilen aus server.js dazu. Geprueft wird die FORM: ein
        Betreff und ein Text je Brief, und der Titel der Installation als
@@ -41265,8 +41265,8 @@ async function pruefeOberflaeche() {
     const sdSrv = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     pruefe('server.js reicht den Übersetzer an mail.js und an auth.js',
       /mail\.setTranslator\(t\);/.test(sdSrv) &&
-      /auth\.setzeUebersetzer\(\(req, schluessel, werte\) =>/.test(sdSrv),
-      `mail: ${/mail\.setTranslator/.test(sdSrv)} · auth: ${/auth\.setzeUebersetzer/.test(sdSrv)}`);
+      /auth\.setTranslator\(\(req, schluessel, werte\) =>/.test(sdSrv),
+      `mail: ${/mail\.setTranslator/.test(sdSrv)} · auth: ${/auth\.setTranslator/.test(sdSrv)}`);
     /* DIE VORGABEN DER VIERZEHN VOKABELWOERTER KOMMEN AUS DER DATEI -- eine
        Vorgabe, ein Ort (Stolperstein 47). Bis 0.24.0 standen sie zweimal im
        Quelltext. */
@@ -41347,8 +41347,8 @@ async function pruefeOberflaeche() {
     const gerufen = new Set();
     for (const datei of spQuellen) {
       const q = ohneKommentar(fs.readFileSync(path.join(__dirname, datei), 'utf8'));
-      // t('…'), tH('…'), t(sprache, '…'), new Meldung('…'), meldung('…')
-      for (const m of q.matchAll(/(?<![A-Za-z0-9_.$])(?:tH?|new Meldung|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
+      // t('…'), tH('…'), t(sprache, '…'), new Message('…'), meldung('…')
+      for (const m of q.matchAll(/(?<![A-Za-z0-9_.$])(?:tH?|new Message|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
         gerufen.add(m[1]);
       /* UND DIE TABELLEN, DIE EINEN SCHLUESSEL HALTEN statt eines Satzes
          (VORGANGSWORT, ROLLENWORT, THEMA_NAMEN …): dort steht der Schluessel
@@ -41412,7 +41412,7 @@ async function pruefeOberflaeche() {
     const gereicht = new Map();
     for (const datei of spQuellen) {
       const q = fs.readFileSync(path.join(__dirname, datei), 'utf8');
-      const ruf = /(?<![A-Za-z0-9_.$])(?:tH?|new Meldung|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
+      const ruf = /(?<![A-Za-z0-9_.$])(?:tH?|new Message|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
       for (const m of q.matchAll(ruf)) {
         let i = m.index + m[0].length, tiefe = 1;
         while (i < q.length && tiefe > 0) {
@@ -41911,7 +41911,7 @@ async function pruefeOberflaeche() {
 
   /* ================= Die Sternzeile — 0.22.0 =================
      Der Ruecksetzknopf wandert aus der Sternreihe ganz nach rechts, hinter die
-     Durchschnittszahl (E15), und die Meldung traegt „Rückgängig" (E16). Die
+     Durchschnittszahl (E15), und die Message traegt „Rückgängig" (E16). Die
      drei Auflagen aus dem Konzept 6.5a, jede geprueft. */
   gruppe('Die Sternzeile — 0.22.0');
   {
@@ -41983,7 +41983,7 @@ async function pruefeOberflaeche() {
     pruefe('Auf Beruehrungsgeraeten ist die Trefflaeche mindestens 32 Bildpunkte',
       /\.rzurueck \{ width: 32px; height: 32px; \}/.test(css123),
       (css123.match(/\.rzurueck \{[^}]*\}/g) || []).join(' | '));
-    /* DER KLICK: PUT MIT 0 -- und die Meldung traegt „Rückgängig", und der
+    /* DER KLICK: PUT MIT 0 -- und die Message traegt „Rückgängig", und der
        Knopf darin schreibt den ALTEN WERT zurueck: derselbe Ruf, derselbe
        Rumpf, nur mit 3 statt 0. Geprueft am gesendeten Rumpf, nicht an der
        Anzeige. */
@@ -42903,7 +42903,7 @@ async function pruefeBestandslauf() {
     um.code === 0 && um.fehler === null,
     `Rueckgabe ${um.code}: ${um.fehler && um.fehler.message}`);
   /* JE ZEILE EINE MELDUNG, DAZU DIE EINE AM ENDE. Die Karte im Systembereich
-     fragt alle 1500 ms; eine Meldung erst am Schluss liesse sie waehrend des
+     fragt alle 1500 ms; eine Message erst am Schluss liesse sie waehrend des
      ganzen Laufs dieselbe Null zeigen. */
   pruefe('Und meldet je Zeile einmal, dazu einmal am Ende',
     um.staende.length === ZEILEN + 1, `${um.staende.length} Meldungen`);
@@ -42916,7 +42916,7 @@ async function pruefeBestandslauf() {
       typeof m.stand.erledigt === 'number' && typeof m.stand.gesamt === 'number'),
     JSON.stringify(um.staende[0]));
   /* AUCH HIER GEHT JEDER ZUGRIFF DURCH EINE KLAMMER: Rueckbau 491 nimmt der
-     Schleife ihre Meldung, und eine Zeile, die dann auf `m.stand.erledigt`
+     Schleife ihre Message, und eine Zeile, die dann auf `m.stand.erledigt`
      greift, riesse den Lauf ab statt rot zu werden (Stolperstein 161). */
   const ueErledigt = um.staende.map(m => (m && m.stand && m.stand.erledigt));
   pruefe('Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind',
@@ -42933,7 +42933,7 @@ async function pruefeBestandslauf() {
     d.close();
     /* DER THREAD HAT WIRKLICH IN DIE VERSCHLUESSELTE DATEI GESCHRIEBEN --
        better-sqlite3-multiple-ciphers oeffnet sie aus einem Worker-Thread
-       heraus und beschreibt sie. Ohne diese Zeile belegte die Meldung nur,
+       heraus und beschreibt sie. Ohne diese Zeile belegte die Message nur,
        dass der Thread etwas GEZAEHLT hat. */
     pruefe('Der Thread hat wirklich in die verschluesselte Datei geschrieben',
       webp === ZEILEN && png === 0, `${webp} WebP, ${png} PNG`);
@@ -43019,7 +43019,7 @@ async function pruefeBestandslauf() {
       geo.code === 0 && geo.fehler === null,
       `Rueckgabe ${geo.code}: ${geo.fehler && geo.fehler.message}`);
     /* JE ZEILE EINE MELDUNG, DAZU DIE EINE AM ENDE -- wie bei der Umstellung.
-       Die Karte fragt alle 1500 ms; eine Meldung erst am Schluss liesse sie
+       Die Karte fragt alle 1500 ms; eine Message erst am Schluss liesse sie
        waehrend des ganzen Laufs dieselbe Null zeigen. */
     pruefe('Und meldet je Zeile einmal, dazu einmal am Ende',
       geo.staende.length === ZEILEN + ALT + 2, `${geo.staende.length} Meldungen`);

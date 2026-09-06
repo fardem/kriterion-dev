@@ -110,13 +110,13 @@ function findUser(name) {
     console.error('Vorhandene Namen zeigt: node zugang.js liste');
     process.exit(1);
   }
-  return auth.holeZugang(u.id);
+  return auth.getUser2(u.id);
 }
 
 const ROLE_KEY = { user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer' };
 
 function commandList() {
-  const lines = auth.listeZugaenge();
+  const lines = auth.listUsers();
   if (!lines.length) { console.log('Es ist noch kein Zugang eingerichtet.'); return; }
   const width = Math.max(4, ...lines.map(z => z.username.length));
   // Die Spalte "2FA" . Sie sagt AN oder AUS und nie mehr -- das
@@ -129,11 +129,11 @@ function commandList() {
   for (const z of lines) {
     console.log(`  ${String(z.id).padStart(3)}  ${z.username.padEnd(width)}  ` +
       `${(ROLE_KEY[z.role] || z.role).padEnd(11)}  ${z.status.padEnd(9)}  ` +
-      `${(auth.zweifaktorAn(z.id) ? 'an' : 'aus').padEnd(4)}  ` +
+      `${(auth.twoFactorOn(z.id) ? 'an' : 'aus').padEnd(4)}  ` +
       `${String(z.eintraege).padStart(8)}  ${z.last_login || '—'}`);
   }
   console.log(`\n  ${lines.length === 1 ? '1 Zugang' : lines.length + ' Zugänge'}, ` +
-    `davon ${auth.zahlEigentuemer()} mit Eigentümerrecht.\n`);
+    `davon ${auth.ownerCount()} mit Eigentümerrecht.\n`);
 }
 
 async function commandPassword(name) {
@@ -145,21 +145,21 @@ async function commandPassword(name) {
   console.log(`Neues Passwort für "${u.username}" (Nummer ${u.id}, ${ROLE_KEY[u.role] || u.role}).`);
   // Zweimal, weil es nicht angezeigt wird: ein Tippfehler waere sonst erst beim
   // naechsten Anmeldeversuch zu bemerken -- und dann waere der Zugang zu.
-  const a = await ask(`Passwort (mindestens ${auth.PASSWORT_MIN} Zeichen): `, true);
+  const a = await ask(`Passwort (mindestens ${auth.PASSWORD_MIN} Zeichen): `, true);
   const b = await ask('Zur Bestätigung noch einmal: ', true);
   if (a !== b) { console.error(RED('Die beiden Eingaben stimmen nicht überein. Nichts geändert.')); process.exit(1); }
   try {
     // VOM_WIRT statt einer Nummer: hier ist niemand angemeldet. Die Zeile im
     // Sicherheitsprotokoll traegt deshalb keinen Handelnden -- und genau daran
     // ist der Notweg spaeter zu erkennen.
-    await auth.setzeNeuesPasswort(u.id, a, auth.VOM_WIRT);
+    await auth.setNewPassword(u.id, a, auth.FROM_HOST);
   } catch (e) { console.error(RED(e.message)); process.exit(1); }
   console.log(`Passwort für "${u.username}" gesetzt. Alle bisherigen Sitzungen dieses Zugangs sind beendet.`);
 }
 
 async function commandRemove(name, options) {
   const u = findUser(name);
-  const z = auth.zaehleBestand(u.id);
+  const z = auth.countInventory(u.id);
   console.log(`\nZugang "${u.username}" (Nummer ${u.id}, ${ROLE_KEY[u.role] || u.role}) entfernen.`);
   console.log(`  Eigene Einträge: ${z.eintraege}`);
   console.log(`  Eigene Beiträge in fremden Einträgen: ${z.kommentare} Kommentare, ` +
@@ -181,7 +181,7 @@ async function commandRemove(name, options) {
   if (answer !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
   let result;
   try {
-    result = auth.entferneZugang(u.id, options, auth.VOM_WIRT);
+    result = auth.removeUser(u.id, options, auth.FROM_HOST);
   } catch (e) { console.error(RED(e.message)); process.exit(1); }
   console.log(`"${result.name}" ist entfernt. Die Zeile bleibt als ${result.grabstein} stehen.`);
 }
@@ -196,7 +196,7 @@ async function commandRemove(name, options) {
    diesen Befehl ausfuehren kann, koennte ohnehin `passwort` setzen. */
 async function commandTwoFactor(name) {
   const u = findUser(name);
-  const status = auth.zweifaktorStand(u.id);
+  const status = auth.twoFactorState(u.id);
   if (!status.an) {
     console.log(`"${u.username}" hat keinen zweiten Faktor eingeschaltet. Nichts zu tun.`);
     return;
@@ -211,7 +211,7 @@ async function commandTwoFactor(name) {
   if (answer !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
   // VOM_WIRT statt einer Nummer: hier ist niemand angemeldet. Das leere `wer`
   // im Protokoll heisst "ueber den Wirt" -- daran ist der Notweg zu erkennen.
-  auth.schalteZweifaktorAus(u.id, auth.VOM_WIRT);
+  auth.turnTwoFactorOff(u.id, auth.FROM_HOST);
   console.log(`Der zweite Faktor von "${u.username}" ist ausgeschaltet. ` +
     'Die Wiederherstellungscodes sind mit weggefallen.');
 }
@@ -219,10 +219,10 @@ async function commandTwoFactor(name) {
 function commandOwner(name) {
   const u = findUser(name);
   try {
-    auth.setzeRolle(u.id, 'eigentuemer', auth.VOM_WIRT);
+    auth.setRole(u.id, 'eigentuemer', auth.FROM_HOST);
   } catch (e) { console.error(RED(e.message)); process.exit(1); }
   console.log(`"${u.username}" ist jetzt Eigentümer der Instanz. ` +
-    `Aktive Eigentümer: ${auth.zahlEigentuemer()}.`);
+    `Aktive Eigentümer: ${auth.ownerCount()}.`);
 }
 
 async function main() {

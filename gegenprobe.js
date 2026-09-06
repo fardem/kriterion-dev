@@ -68,8 +68,8 @@ const RUECKBAUTEN = [
   {
     nr: '02', name: 'Der Link faellt aus der Antwort, wenn der Versand traegt',
     datei: 'server.js',
-    suche: "               ohnePasswort: token.ohnePasswort,\n               ...linkAngabe(token.klartext), ...v });",
-    ersatz: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkAngabe(token.klartext)), ...v });",
+    suche: "               ohnePasswort: token.ohnePasswort,\n               ...linkAngabe(token.plain), ...v });",
+    ersatz: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkAngabe(token.plain)), ...v });",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
@@ -122,8 +122,8 @@ const RUECKBAUTEN = [
   {
     nr: '08', name: 'Die Adresse wird aus dem Host-Kopf abgeleitet',
     datei: 'server.js',
-    suche: "    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${token.klartext}`,",
-    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${token.klartext}`,",
+    suche: "    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${token.plain}`,",
+    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${token.plain}`,",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   /* ---- Der Versand: der Empfaenger am Zugang ---- */
@@ -137,7 +137,7 @@ const RUECKBAUTEN = [
   {
     nr: '10', name: 'Die Adresse laesst sich beim Anlegen nicht mehr mitgeben',
     datei: 'auth.js',
-    suche: "    .run(sauber, hash, rolle, mailAdresse || null);",
+    suche: "    .run(clean, hash, role, mailAddress || null);",
     ersatz: "    .run(sauber, hash, rolle, null);",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
@@ -152,8 +152,8 @@ const RUECKBAUTEN = [
   {
     nr: '12', name: 'Die Testmail nimmt die Adresse aus dem Rumpf',
     datei: 'server.js',
-    suche: "  const eigener = auth.holeZugang(req.benutzer.id);",
-    ersatz: "  const eigener = { ...auth.holeZugang(req.benutzer.id), email: (req.body || {}).an || auth.holeZugang(req.benutzer.id)?.email };",
+    suche: "  const eigener = auth.getUser2(req.benutzer.id);",
+    ersatz: "  const eigener = { ...auth.getUser2(req.benutzer.id), email: (req.body || {}).an || auth.getUser2(req.benutzer.id)?.email };",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
@@ -236,8 +236,8 @@ const RUECKBAUTEN = [
   {
     nr: '22', name: 'Das erste Oeffnen startet die Frist nicht',
     datei: 'server.js',
-    suche: "  const minuten = auth.beginneTokenFrist(token.hash);",
-    ersatz: "  const minuten = auth.TOKEN_FRIST_MINUTEN;",
+    suche: "  const minuten = auth.startTokenDeadline(token.hash);",
+    ersatz: "  const minuten = auth.TOKEN_DEADLINE_MINUTES;",
     erwartet: 'Der Token: die Frist ab dem ersten Oeffnen'
   },
   {
@@ -318,8 +318,8 @@ const RUECKBAUTEN = [
        Der troepfelnde Empfaenger haelt ihn zwanzig Sekunden fest. */
     nr: '32', name: 'Die Antwort wartet wieder auf den Mailserver',
     datei: 'server.js',
-    suche: "  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;",
-    ersatz: "  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;\n" +
+    suche: "  const klartext = an ? auth.createRequest(name, adresse) : null;",
+    ersatz: "  const klartext = an ? auth.createRequest(name, adresse) : null;\n" +
             "  if (klartext) await versendeBestaetigung(String(name).trim(), String(adresse).trim(), klartext).catch(() => {});",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
@@ -335,35 +335,35 @@ const RUECKBAUTEN = [
   {
     nr: '34', name: 'Der Deckel faellt ganz weg',
     datei: 'auth.js',
-    suche: "  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;",
+    suche: "  if (countRequests() >= REQUEST_CAP) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: der Deckel'
   },
   {
     nr: '35', name: 'Der Deckel zaehlt nur die BESTAETIGTEN',
     datei: 'auth.js',
-    suche: "  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;",
-    ersatz: "  if (db.prepare('SELECT COUNT(*) n FROM anfragen WHERE bestaetigt_am IS NOT NULL').get().n >= ANFRAGE_DECKEL) return null;",
+    suche: "  if (countRequests() >= REQUEST_CAP) return null;",
+    ersatz: "  if (db.prepare('SELECT COUNT(*) n FROM anfragen WHERE bestaetigt_am IS NOT NULL').get().n >= REQUEST_CAP) return null;",
     erwartet: 'Die Selbstanmeldung: der Deckel'
   },
   {
     nr: '36', name: 'Eine zweite Anfrage je Adresse geht durch',
     datei: 'auth.js',
-    suche: "  if (qAnfrageMail.get(post)) return null;",
+    suche: "  if (qRequestMail.get(post)) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '37', name: 'Ein vergebener Benutzername kommt in die Warteschlange',
     datei: 'auth.js',
-    suche: "  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(sauber)) return null;",
+    suche: "  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(clean)) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '38', name: 'Eine vergebene Adresse ebenso',
     datei: 'auth.js',
-    suche: "  if (qBenutzerMail.get(post)) return null;",
+    suche: "  if (qUserMail.get(post)) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
@@ -374,14 +374,14 @@ const RUECKBAUTEN = [
        dieser Runde passiert. */
     nr: '67', name: 'Derselbe Wunschname darf zweimal in der Warteschlange stehen',
     datei: 'auth.js',
-    suche: "  if (qAnfrageName.get(sauber)) return null;",
+    suche: "  if (qRequestName.get(clean)) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '39', name: 'Name und Adresse von aussen sind wieder unbegrenzt lang',
     datei: 'auth.js',
-    suche: "  if (sauber.length > ANFRAGE_NAME_MAX || post.length > ANFRAGE_MAIL_MAX) return null;",
+    suche: "  if (clean.length > REQUEST_NAME_MAX || post.length > REQUEST_MAIL_MAX) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
@@ -389,7 +389,7 @@ const RUECKBAUTEN = [
   {
     nr: '40', name: 'Unbestaetigte Anfragen verfallen nicht mehr',
     datei: 'auth.js',
-    suche: "  const n = delAnfragenAlt.run(`-${ANFRAGE_STUNDEN} hours`).changes;",
+    suche: "  const n = delAnfragenAlt.run(`-${REQUEST_HOURS} hours`).changes;",
     ersatz: "  const n = 0;",
     erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
@@ -403,8 +403,8 @@ const RUECKBAUTEN = [
   {
     nr: '42', name: 'Die Anfrageroute raeumt nicht mehr vor der Deckelpruefung auf',
     datei: 'auth.js',
-    suche: "  raeumeAnfragenAuf();\n  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;",
-    ersatz: "  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;",
+    suche: "  cleanupRequests();\n  if (countRequests() >= REQUEST_CAP) return null;",
+    ersatz: "  if (countRequests() >= REQUEST_CAP) return null;",
     erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
   /* ---- Die Selbstanmeldung: der Schalter und seine Kopplung ---- */
@@ -440,15 +440,15 @@ const RUECKBAUTEN = [
   {
     nr: '48', name: 'Der Bestaetigungsschluessel steht im Klartext in der Tabelle',
     datei: 'auth.js',
-    suche: "    .run(tokenHash(klartext), sauber, post);",
+    suche: "    .run(tokenHash(plain), clean, post);",
     ersatz: "    .run(klartext, sauber, post);",
     erwartet: 'Die Selbstanmeldung: die Bestaetigungsmail'
   },
   {
     nr: '49', name: 'Die Bestaetigung nimmt jeden Schluessel an',
     datei: 'auth.js',
-    suche: "  return setzeBestaetigt.run(tokenHash(roh), `-${ANFRAGE_STUNDEN} hours`).changes > 0;",
-    ersatz: "  setzeBestaetigt.run(tokenHash(roh), `-${ANFRAGE_STUNDEN} hours`); return true;",
+    suche: "  return setConfirmed.run(tokenHash(raw), `-${REQUEST_HOURS} hours`).changes > 0;",
+    ersatz: "  setConfirmed.run(tokenHash(roh), `-${REQUEST_HOURS} hours`); return true;",
     erwartet: 'Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft'
   },
   {
@@ -468,44 +468,44 @@ const RUECKBAUTEN = [
   {
     nr: '52', name: 'Die unbestaetigte Anfrage laesst sich freischalten',
     datei: 'server.js',
-    suche: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});\n  let angelegt, token;",
-    ersatz: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});\n  let angelegt, token;",
+    suche: "  const a = auth.getRequest(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});\n  let angelegt, token;",
+    ersatz: "  const a = auth.getRequest(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});\n  let angelegt, token;",
     erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   /* ---- Die Selbstanmeldung: Freischaltung, Ablehnung, Rolle ---- */
   {
     nr: '53', name: 'Die Rolle kommt aus dem Rumpf der Anfrage',
     datei: 'server.js',
-    suche: "    angelegt = await auth.legeZugangAn(a.username, null, 'user', true, req.benutzer.id, a.email);",
-    ersatz: "    angelegt = await auth.legeZugangAn(a.username, null, (req.body || {}).rolle || 'user', true, req.benutzer.id, a.email);",
+    suche: "    angelegt = await auth.createUser(a.username, null, 'user', true, req.benutzer.id, a.email);",
+    ersatz: "    angelegt = await auth.createUser(a.username, null, (req.body || {}).rolle || 'user', true, req.benutzer.id, a.email);",
     erwartet: 'Die Selbstanmeldung: die Rolle ist immer user'
   },
   {
     nr: '54', name: 'Die Zeile bleibt nach der Freischaltung stehen',
     datei: 'server.js',
-    suche: "  auth.entferneAnfrage(a.id);\n  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
+    suche: "  auth.removeRequest(a.id);\n  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
     ersatz: "  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '55', name: 'Die Freischaltung erzeugt keinen Token',
     datei: 'server.js',
-    suche: "    token = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);",
+    suche: "    token = auth.createToken(angelegt.id, 'einladung', req.benutzer.id);",
     ersatz: "    token = { klartext: 'x'.repeat(64), zweck: 'einladung', tage: 7, id: angelegt.id, username: angelegt.username };",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '56', name: 'Die Protokollzeile der Freischaltung faellt weg',
     datei: 'server.js',
-    suche: "  auth.protokolliere('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
-    ersatz: "  // auth.protokolliere('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
+    suche: "  auth.log('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
+    ersatz: "  // auth.log('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '57', name: 'Die Ablehnung entfernt die Zeile nicht',
     datei: 'server.js',
-    suche: "  auth.entferneAnfrage(a.id);\n  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });",
-    ersatz: "  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });",
+    suche: "  auth.removeRequest(a.id);\n  auth.log('anfrage.ab', { wer: req.benutzer.id });",
+    ersatz: "  auth.log('anfrage.ab', { wer: req.benutzer.id });",
     erwartet: 'Die Selbstanmeldung: die Ablehnung'
   },
   {
@@ -516,16 +516,16 @@ const RUECKBAUTEN = [
        BAULICH wahr statt durchgesetzt. */
     nr: '58', name: 'Der Name des Abgewiesenen soll ins Protokoll',
     datei: 'server.js',
-    suche: "  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });",
-    ersatz: "  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id, merkmal: a.username });",
+    suche: "  auth.log('anfrage.ab', { wer: req.benutzer.id });",
+    ersatz: "  auth.log('anfrage.ab', { wer: req.benutzer.id, merkmal: a.username });",
     erwartet: 'Die Selbstanmeldung: die Ablehnung'
   },
   {
     nr: '59', name: 'Die Anfrage selbst schreibt eine Protokollzeile',
     datei: 'server.js',
-    suche: "  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;",
-    ersatz: "  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;\n" +
-            "  if (klartext) auth.protokolliere('anfrage.frei', { wer: 1 });",
+    suche: "  const klartext = an ? auth.createRequest(name, adresse) : null;",
+    ersatz: "  const klartext = an ? auth.createRequest(name, adresse) : null;\n" +
+            "  if (klartext) auth.log('anfrage.frei', { wer: 1 });",
     erwartet: 'Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann'
   },
   /* ---- Die Selbstanmeldung: die Bremse ---- */
@@ -539,8 +539,8 @@ const RUECKBAUTEN = [
   {
     nr: '61', name: 'Die Bremse fehlt an der Bestaetigungsroute',
     datei: 'server.js',
-    suche: "  const ip = auth.clientIp(req);\n  if (!await tokenBremseFrei(req, res)) return;\n  if (!auth.bestaetigeAnfrage((req.body || {}).schluessel)) {",
-    ersatz: "  const ip = auth.clientIp(req);\n  if (!auth.bestaetigeAnfrage((req.body || {}).schluessel)) {",
+    suche: "  const ip = auth.clientIp(req);\n  if (!await tokenBremseFrei(req, res)) return;\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
+    ersatz: "  const ip = auth.clientIp(req);\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
     erwartet: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
   },
   /* ---- Die Selbstanmeldung in der Oberflaeche ---- */
@@ -802,7 +802,7 @@ const RUECKBAUTEN = [
   {
     nr: '90', name: 'Der verbrauchte Zaehler wird gar nicht erst geschrieben',
     datei: 'auth.js',
-    suche: "    if (!verbraucheZaehler.run(zaehler, id, zaehler).changes) return null;\n    return 'app';",
+    suche: "    if (!useCounter.run(counter, id, counter).changes) return null;\n    return 'app';",
     ersatz: "    return 'app';",
     erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
@@ -812,7 +812,7 @@ const RUECKBAUTEN = [
        ERSTEN Anwendung falsch. */
     nr: '91', name: 'Der bestaetigende Code beim Einschalten zaehlt nicht als verbraucht',
     datei: 'auth.js',
-    suche: "    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?\n      WHERE user_id = ?`).run(zaehler, id);",
+    suche: "    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?\n      WHERE user_id = ?`).run(counter, id);",
     ersatz: "    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = NULL\n      WHERE user_id = ?`).run(id);",
     erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
@@ -820,7 +820,7 @@ const RUECKBAUTEN = [
   {
     nr: '92', name: 'Die Anmeldung meldet auch mit zweitem Faktor gleich an',
     datei: 'server.js',
-    suche: "  if (auth.zweifaktorAn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });\n  }",
+    suche: "  if (auth.twoFactorOn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.createLoginTicket(benutzer.id) });\n  }",
     ersatz: "",
     erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
@@ -834,14 +834,14 @@ const RUECKBAUTEN = [
     nr: '93', name: 'Die Absage verraet, ob der Zugang einen zweiten Faktor hat',
     datei: 'server.js',
     suche: "    return res.status(401).json({ error: t(spracheVon(req), 'server.loginWrong')});",
-    ersatz: "    return res.status(401).json({ error: t(spracheVon(req), 'server.loginWrong'),\n      zweifaktor: auth.zweifaktorAn((auth.holeBenutzerNachNamen(user) || {}).id) });",
+    ersatz: "    return res.status(401).json({ error: t(spracheVon(req), 'server.loginWrong'),\n      zweifaktor: auth.twoFactorOn((auth.getUserByName(user) || {}).id) });",
     erwartet: 'Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort'
   },
   {
     nr: '94', name: 'Der Ausweis wird nicht verbraucht',
     datei: 'auth.js',
-    suche: "  ausweise.delete(k);\n  return Date.now() <= a.bis ? a.id : null;",
-    ersatz: "  return Date.now() <= a.bis ? a.id : null;",
+    suche: "  tickets.delete(k);\n  return Date.now() <= a.until ? a.id : null;",
+    ersatz: "  return Date.now() <= a.until ? a.id : null;",
     erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
   {
@@ -852,8 +852,8 @@ const RUECKBAUTEN = [
        eine Regel, eine Gegenprobe. */
     nr: '95', name: 'Der Ausweis bekommt eine eigene, laengere Frist',
     datei: 'auth.js',
-    suche: 'const ANMELDE_AUSWEIS_MS = FREIGABE_MS;',
-    ersatz: 'const ANMELDE_AUSWEIS_MS = 3600 * 1000;',
+    suche: 'const LOGIN_TICKET_MS = RELEASE_MS;',
+    ersatz: 'const LOGIN_TICKET_MS = 3600 * 1000;',
     erwartet: 'Der zweite Faktor: der Rundlauf'
   },
   {
@@ -862,8 +862,8 @@ const RUECKBAUTEN = [
        fuer JEDEN anderen. */
     nr: '96', name: 'Die Benutzernummer im zweiten Schritt kommt aus dem Rumpf',
     datei: 'server.js',
-    suche: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
-    ersatz: "  const id = Number((req.body || {}).id) || auth.verbraucheAnmeldeAusweis(ausweis);",
+    suche: "  const id = auth.useLoginTicket(ausweis);",
+    ersatz: "  const id = Number((req.body || {}).id) || auth.useLoginTicket(ausweis);",
     erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
   /* ---- Der zweite Faktor: die Bremse ----
@@ -873,8 +873,8 @@ const RUECKBAUTEN = [
   {
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
     datei: 'server.js',
-    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
-    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.useLoginTicket(ausweis);",
+    ersatz: "  const id = auth.useLoginTicket(ausweis);",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
@@ -884,15 +884,15 @@ const RUECKBAUTEN = [
        daran ist die erste Fassung der Bremsprobe stumm geblieben. */
     nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
     datei: 'server.js',
-    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.sessionExpired')});\n  }",
-    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.sessionExpired')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
+    suche: "  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));\n  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.sessionExpired')});\n  }",
+    ersatz: "  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(spracheVon(req), 'server.sessionExpired')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
     nr: '98', name: 'Der Fehlversuch am zweiten Schritt wird nicht gezaehlt',
     datei: 'server.js',
-    suche: "  if (!auth.pruefeZweitenFaktor(id, code)) {\n    auth.noteFailure(ip, name);",
-    ersatz: "  if (!auth.pruefeZweitenFaktor(id, code)) {",
+    suche: "  if (!auth.checkTwoFactor(id, code)) {\n    auth.noteFailure(ip, name);",
+    ersatz: "  if (!auth.checkTwoFactor(id, code)) {",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
@@ -901,15 +901,15 @@ const RUECKBAUTEN = [
        Bremse schluege am zweiten Schritt nie zu. */
     nr: '99', name: 'Der erste Schritt setzt den Zaehler der Bremse wieder zurueck',
     datei: 'server.js',
-    suche: "  if (auth.zweifaktorAn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });\n  }\n  auth.noteSuccess(ip, user);",
-    ersatz: "  auth.noteSuccess(ip, user);\n  if (auth.zweifaktorAn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });\n  }",
+    suche: "  if (auth.twoFactorOn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.createLoginTicket(benutzer.id) });\n  }\n  auth.noteSuccess(ip, user);",
+    ersatz: "  auth.noteSuccess(ip, user);\n  if (auth.twoFactorOn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.createLoginTicket(benutzer.id) });\n  }",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   /* ---- Der zweite Faktor: die Wiederherstellungscodes ---- */
   {
     nr: '100', name: 'Die Wiederherstellungscodes liegen im Klartext in der Tabelle',
     datei: 'auth.js',
-    suche: "    for (const k of klartexte) insCode.run(tokenHash(k), id);",
+    suche: "    for (const k of plains) insCode.run(tokenHash(k), id);",
     ersatz: "    for (const k of klartexte) insCode.run(k, id);",
     erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
@@ -938,23 +938,23 @@ const RUECKBAUTEN = [
   {
     nr: '104', name: 'Das Geheimnis steht auch nach dem Bestaetigen in der Antwort',
     datei: 'server.js',
-    suche: "    res.json(auth.schalteZweifaktorEin(req.benutzer.id, code, req.benutzer.id));",
-    ersatz: "    res.json({ ...auth.schalteZweifaktorEin(req.benutzer.id, code, req.benutzer.id),\n" +
+    suche: "    res.json(auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id));",
+    ersatz: "    res.json({ ...auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id),\n" +
             "      geheim: db.prepare('SELECT geheim g FROM zweifaktor WHERE user_id = ?').get(req.benutzer.id).g });",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
   {
     nr: '105', name: 'Die Karte "Zugang" gibt das Geheimnis mit heraus',
     datei: 'server.js',
-    suche: "             zweifaktor: auth.zweifaktorStand(req.benutzer.id) });",
-    ersatz: "             zweifaktor: { ...auth.zweifaktorStand(req.benutzer.id),\n" +
+    suche: "             zweifaktor: auth.twoFactorState(req.benutzer.id) });",
+    ersatz: "             zweifaktor: { ...auth.twoFactorState(req.benutzer.id),\n" +
             "               geheim: (db.prepare('SELECT geheim g FROM zweifaktor WHERE user_id = ?').get(req.benutzer.id) || {}).g } });",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
   {
     nr: '106', name: 'Ein zweiter Start ueberschreibt einen laufenden zweiten Faktor',
     datei: 'auth.js',
-    suche: "  if (zweifaktorAn(id)) throw new Meldung('login.twoFactorAlreadyOn');",
+    suche: "  if (twoFactorOn(id)) throw new Message('login.twoFactorAlreadyOn');",
     ersatz: "",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
@@ -965,16 +965,16 @@ const RUECKBAUTEN = [
        und waere angemeldet -- am zweiten Faktor vorbei. */
     nr: '107', name: 'Der Tokenweg meldet wieder gleich an',
     datei: 'server.js',
-    suche: "  if (auth.zweifaktorAn(ergebnis.id)) {\n    return res.json({\n      ok: true, username: ergebnis.username, zweifaktor: true,\n      ...auth.erzeugeAnmeldeAusweis(ergebnis.id)\n    });\n  }",
+    suche: "  if (auth.twoFactorOn(ergebnis.id)) {\n    return res.json({\n      ok: true, username: ergebnis.username, zweifaktor: true,\n      ...auth.createLoginTicket(ergebnis.id)\n    });\n  }",
     ersatz: "",
     erwartet: 'Der zweite Faktor: der Tokenweg aus 0.8.80 fragt ebenfalls'
   },
   {
     nr: '108', name: 'Ein fremdes Passwort zu setzen raeumt den zweiten Faktor mit weg',
     datei: 'auth.js',
-    suche: "async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {",
-    ersatz: "async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {\n" +
-            "  db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(Number(benutzerId) || 0);",
+    suche: "async function setNewPassword(userId, newPassword, wer) {",
+    ersatz: "async function setNewPassword(userId, newPassword, wer) {\n" +
+            "  db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(Number(userId) || 0);",
     erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
   },
   {
@@ -984,29 +984,29 @@ const RUECKBAUTEN = [
        plausibel aussieht. */
     nr: '109', name: 'Sperren raeumt den zweiten Faktor mit weg',
     datei: 'auth.js',
-    suche: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('zugang.status'",
+    suche: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  log('zugang.status'",
     ersatz: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('zugang.status'",
     erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
   },
   {
     nr: '110', name: 'Ausschalten geht ohne Code',
     datei: 'server.js',
-    suche: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))\n    return res.status(403).json({ error: t(spracheVon(req), auth.ZWEITER_FAKTOR_ABSAGE)});\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
-    ersatz: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
+    suche: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  if (!auth.checkTwoFactor(req.benutzer.id, code))\n    return res.status(403).json({ error: t(spracheVon(req), auth.TWO_FACTOR_DENIAL)});\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
+    ersatz: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
     erwartet: 'Der zweite Faktor: der Rundlauf'
   },
   {
     nr: '111', name: 'zugang.js schaltet den zweiten Faktor nicht mehr ab',
     datei: 'zugang.js',
-    suche: "  auth.schalteZweifaktorAus(u.id, auth.VOM_WIRT);",
-    ersatz: "  // auth.schalteZweifaktorAus(u.id, auth.VOM_WIRT);",
+    suche: "  auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
+    ersatz: "  // auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
     erwartet: 'Der zweite Faktor: zugang.js auf dem Wirt'
   },
   /* ---- Der zweite Faktor: die zweite Bestaetigung ---- */
   {
     nr: '112', name: 'Die zweite Bestaetigung fragt den Code nicht mehr',
     datei: 'server.js',
-    suche: "  if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code)) {",
+    suche: "  if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code)) {",
     ersatz: "  if (false) {",
     erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
   },
@@ -1035,10 +1035,10 @@ const RUECKBAUTEN = [
        Passwort, ob am Zugang ein Faktor haengt. */
     nr: '114', name: 'Der Code wird VOR dem Passwort geprueft',
     datei: 'server.js',
-    suche: "  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!zeile || !await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) {",
-    ersatz: "  if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code))\n" +
-            "    return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE, zweifaktor: true });\n" +
-            "  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!zeile || !await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) {",
+    suche: "  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!zeile || !await auth.checkPassword(String(passwort || ''), zeile.password_hash)) {",
+    ersatz: "  if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code))\n" +
+            "    return res.status(403).json({ error: auth.TWO_FACTOR_DENIAL, zweifaktor: true });\n" +
+            "  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!zeile || !await auth.checkPassword(String(passwort || ''), zeile.password_hash)) {",
     erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
   },
   /* ---- Der zweite Faktor: die Tabellen und die Oberflaeche ---- */
@@ -1061,7 +1061,7 @@ const RUECKBAUTEN = [
   {
     nr: '116', name: 'Der Zustand faellt aus der Antwort der Karte "Zugang"',
     datei: 'server.js',
-    suche: "             zweifaktor: auth.zweifaktorStand(req.benutzer.id) });",
+    suche: "             zweifaktor: auth.twoFactorState(req.benutzer.id) });",
     ersatz: "             });",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1664,7 +1664,7 @@ const RUECKBAUTEN = [
   {
     /* EIN EINTRAG, DER IN KEINEN TEIL PASST, DARF NICHT STILL VERSCHWINDEN.
        Dieser Rueckbau uebergeht ihn wortlos -- genau der Ausgang, gegen den
-       die Meldung gebaut ist. */
+       die Message gebaut ist. */
     nr: '185', name: 'Ein zu grosser Eintrag wird still uebergangen',
     datei: 'server.js',
     suche: "    if (grund + b > AUSTAUSCH_MAX) { zuGross.push({ id: z.id, titel: z.titel, bytes: grund + b }); continue; }",
@@ -1790,7 +1790,7 @@ const RUECKBAUTEN = [
        gruen; der NAME ist die Pruefung. */
     nr: '197', name: 'Beide Wege bekommen denselben Cookienamen',
     datei: 'auth.js',
-    suche: "const cookieName = (req) => ueberProxy(req) ? COOKIE_SICHER : COOKIE_NAME;",
+    suche: "const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;",
     ersatz: "const cookieName = (req) => COOKIE_NAME;",
     erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
   },
@@ -1800,7 +1800,7 @@ const RUECKBAUTEN = [
        nur eine Ebene tiefer. */
     nr: '198', name: 'Auch der Heimnetzcookie traegt Secure',
     datei: 'auth.js',
-    suche: "  `${ueberProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;",
+    suche: "  `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;",
     ersatz: "  `; Secure; Max-Age=${SESSION_DAYS * 86400}`;",
     erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
   },
@@ -1810,7 +1810,7 @@ const RUECKBAUTEN = [
        Port 3100 keines. */
     nr: '199', name: 'HSTS geht wieder auf jedem Weg mit',
     datei: 'server.js',
-    suche: "  if (auth.ueberProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');",
+    suche: "  if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');",
     ersatz: "  if (auth.HINTER_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');",
     erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
   },
@@ -1821,8 +1821,8 @@ const RUECKBAUTEN = [
        Anmeldungen nicht. */
     nr: '200', name: 'Die Leseroute uebergeht die gewaehlte Ansicht',
     datei: 'server.js',
-    suche: '  res.json(auth.leseProtokoll(auth.PROTOKOLL_GRENZE, gruppe));',
-    ersatz: '  res.json(auth.leseProtokoll(auth.PROTOKOLL_GRENZE));',
+    suche: '  res.json(auth.readLog(auth.LOG_LIMIT, gruppe));',
+    ersatz: '  res.json(auth.readLog(auth.LOG_LIMIT));',
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
@@ -1906,7 +1906,7 @@ const RUECKBAUTEN = [
   /* ---- 0.13.0: die Kategoriezeile ---- */
   {
     /* DIE UEBERSETZUNG DER ALTEN FORM FAELLT WEG. Alle vorhandenen Ansichten
-       verloeren ihre Kategorie -- still und ohne Meldung. */
+       verloeren ihre Kategorie -- still und ohne Message. */
     nr: '209', name: 'Eine gespeicherte Ansicht in der alten Form verliert ihre Kategorie',
     datei: 'public/app.js',
     suche: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = f.categoryId != null ? [f.categoryId] : [];",
@@ -3792,7 +3792,7 @@ const RUECKBAUTEN = [
     erwartet: 'Die Trefferzeile im Stylesheet'
   },
 
-  /* ---- 0.18.1: der Deckel der Sitzungsliste, die leere Meldung ---- */
+  /* ---- 0.18.1: der Deckel der Sitzungsliste, die leere Message ---- */
   {
     nr: '430', name: 'Die Sitzungsliste deckelt wieder nach der fremden Zeile',
     datei: 'public/style.css',
@@ -4283,7 +4283,7 @@ const RUECKBAUTEN = [
   },
   {
     /* DER BILDSCHIRMTEXT SAGT WIEDER „der Instanz". Wer seine Anlage anders
-       benannt hat, liest eine Meldung ueber ein Wort, das nirgends auf seinem
+       benannt hat, liest eine Message ueber ein Wort, das nirgends auf seinem
        Bildschirm steht. */
     nr: '476', name: 'Die Absage nennt wieder „den Eigentümer der Instanz"',
     datei: 'public/languages/de.json',
@@ -4913,7 +4913,7 @@ const RUECKBAUTEN = [
   {
     /* DAS ERGEBNIS DER EINZELNEN ZEILE REIST NICHT ZURUECK. Der Haupt-Thread
        haengt seine Antwort an das Ende des Threads und nicht an diese
-       Meldung -- ohne sie weiss aber niemand, ob wirklich erneuert wurde. */
+       Message -- ohne sie weiss aber niemand, ob wirklich erneuert wurde. */
     nr: '533', name: 'Das Ergebnis der einzelnen Zeile wird nicht gemeldet',
     datei: 'bestandslauf.js',
     suche: "  parentPort.postMessage({ art: 'erneuert', id, ok });",
@@ -5003,7 +5003,7 @@ const RUECKBAUTEN = [
   {
     /* DER STREIFEN ZEICHNET WIEDER OHNE ZU FRAGEN. Genau der gemeldete
        Fehler: wer den Ausschnitt speichert und in die Uebersicht geht,
-       bekommt „can't access property innerHTML" als ROTE Meldung ueber einen
+       bekommt „can't access property innerHTML" als ROTE Message ueber einen
        Vorgang, der geglueckt ist. */
     nr: '541', name: 'Der Bilderstreifen fragt nicht, ob seine Ansicht noch steht',
     datei: 'public/app.js',
@@ -5023,7 +5023,7 @@ const RUECKBAUTEN = [
   },
   {
     /* UND DIE WACHE ALS AUSSCHALTER: der Streifen zeichnet gar nichts mehr.
-       Wer nur „keine rote Meldung" prueft, bleibt hier gruen -- deshalb steht
+       Wer nur „keine rote Message" prueft, bleibt hier gruen -- deshalb steht
        in derselben Gruppe die Gegenprobe an der STEHENDEN Ansicht. */
     nr: '543', name: 'Der Bilderstreifen zeichnet ueberhaupt keine Kacheln mehr',
     datei: 'public/app.js',
@@ -5129,7 +5129,7 @@ const RUECKBAUTEN = [
   {
     /* DAS AUFRAEUMEN REISST DIE GELUNGENE SICHERUNG MIT -- genau der Fehler aus
        0.19.6 (Stolperstein 298): aus einem geglueckten Vorgang wird eine rote
-       Meldung. Der Rueckbau nimmt dem `catch` seine Wirkung UND setzt einen
+       Message. Der Rueckbau nimmt dem `catch` seine Wirkung UND setzt einen
        Ausgang dahinter; einer von beiden allein bliebe stumm, weil im Prueflauf
        nichts wirft. */
     nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
@@ -5216,8 +5216,8 @@ const RUECKBAUTEN = [
        hinterlaesst, ist die, nach der hinterher niemand suchen kann. */
     nr: '559', name: 'Die entfernten Kopien stehen in keinem Protokoll mehr',
     datei: 'server.js',
-    suche: "  for (let i = 0; i < zahl; i++) auth.protokolliere('sicherung.weg', { wer });",
-    ersatz: "  for (let i = 0; i < 0; i++) auth.protokolliere('sicherung.weg', { wer });",
+    suche: "  for (let i = 0; i < zahl; i++) auth.log('sicherung.weg', { wer });",
+    ersatz: "  for (let i = 0; i < 0; i++) auth.log('sicherung.weg', { wer });",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -6121,7 +6121,7 @@ const RUECKBAUTEN = [
        Fleck des Waechters, den diese Runde geschlossen hat. */
     nr: '676', name: 'auth.js wirft wieder einen deutschen Satz',
     datei: 'auth.js',
-    suche: "  if (!ROLLEN.includes(rolle)) throw new Meldung('login.roleUnknown');\n  const sauber = String(name).trim();",
+    suche: "  if (!ROLES.includes(role)) throw new Message('login.roleUnknown');\n  const clean = String(name).trim();",
     ersatz: "  if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');\n  const sauber = String(name).trim();",
     erwartet: 'Der Bildschirmtext-Waechter'
   },
@@ -6166,7 +6166,7 @@ const RUECKBAUTEN = [
        als Klammerausdruck da. */
     nr: '681', name: 'auth.js bekommt den Uebersetzer nicht mehr gereicht',
     datei: 'server.js',
-    suche: "auth.setzeUebersetzer((req, schluessel, werte) => t(spracheVon(req), schluessel, werte));",
+    suche: "auth.setTranslator((req, schluessel, werte) => t(spracheVon(req), schluessel, werte));",
     ersatz: "void auth.setTranslator;",
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
@@ -6265,7 +6265,7 @@ const RUECKBAUTEN = [
   },
   {
     /* DER SERVER STARTET AUCH OHNE de.json. Eine Installation ohne Sprache ist
-       keine -- jede Meldung stuende als Klammerausdruck da. */
+       keine -- jede Message stuende als Klammerausdruck da. */
     nr: '672', name: 'Der Server startet auch ohne de.json',
     datei: 'server.js',
     suche: "  if (!raus.de) throw new Error(",
@@ -6828,7 +6828,7 @@ function leseLauf(ausgabe) {
        OHNE DIESE UNTERSCHEIDUNG KANN DIE TABELLE EINEN STUMMEN RUECKBAU GAR
        NICHT SEHEN: `rot.length` ist nie null, und „0 STUMM" waere eine
        Auskunft ueber nichts. Genau so ist Rueckbau 265 in 0.15.0 durch die
-       Meldung gerutscht -- gefunden wurde er beim Lesen der Tabelle von Hand
+       Message gerutscht -- gefunden wurde er beim Lesen der Tabelle von Hand
        (Stolperstein 213).
        AUSGEBLENDET WIRD DIE EINE ZEILE UND NICHT DIE GANZE GRUPPE. Bis 0.16.0
        fiel die Gruppe als Ganzes weg -- und damit jeder Rueckbau, dessen
@@ -6850,10 +6850,10 @@ function leseLauf(ausgabe) {
        ZWEI WEGE ENDEN OHNE SCHLUSSBLOCK, und nur EINER schreibt eine Zeile,
        die dieser Leser kennt: der aeussere Fang druckt „Prueflauf
        abgebrochen: ...". Ein unbehandeltes Ereignis ausserhalb der
-       abgewarteten Kette druckt gar nichts davon -- Node legt Meldung und
+       abgewarteten Kette druckt gar nichts davon -- Node legt Message und
        Aufrufweg auf stderr und geht mit 1. Fuer diesen zweiten Weg ist der
        Schwanz die EINZIGE Auskunft.
-       ZWANZIG ZEILEN, LEERE WEGGELASSEN: eine unbehandelte Meldung von Node
+       ZWANZIG ZEILEN, LEERE WEGGELASSEN: eine unbehandelte Message von Node
        ist rund zwoelf Zeilen lang, und davor sollen noch ein paar Zeilen des
        Laufs stehen, damit man sieht, WO er stand. */
     schwanz: ausgabe.split('\n').map(z => z.trimEnd()).filter(z => z).slice(-20)
@@ -6885,7 +6885,7 @@ function fahre(r, spur, stufe) {
     kind.stderr.on('data', d => { ausgabe += d; });
     /* EINE ZEITGRENZE JE RUECKBAU, . Ein Rueckbau kann den Prueflauf
        nicht nur rot machen, sondern HAENGEN lassen -- und ein haengender Lauf
-       blockiert seine Spur fuer immer, ohne CPU und ohne Meldung. Genau das
+       blockiert seine Spur fuer immer, ohne CPU und ohne Message. Genau das
        tut der Rueckbau, der das Aufraeumen des SMTP-Empfaengers wegnimmt.
        OHNE GRENZE STUENDE DER GANZE TREIBER STILL, und von aussen saehe es aus
        wie ein besonders langer Lauf. Die Grenze ist grosszuegig: ein

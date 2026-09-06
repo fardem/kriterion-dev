@@ -105,10 +105,17 @@ function ersetzeQualifiziert(src, datei, map, opt = {}) {
   let treffer = 0;
   const paare = Object.keys(map).sort((a, b) => b.length - a.length);
   if (!paare.length) return { text: src, treffer: 0 };
-  const re = new RegExp('(?<![A-Za-z0-9_$.])(' + paare.map(esc).join('|') + ')(?![A-Za-z0-9_$])', 'g');
+  const re = new RegExp('(?<![A-Za-z0-9_$])(' + paare.map(esc).join('|') + ')(?![A-Za-z0-9_$])', 'g');
   for (const t of teile) {
     if (t.art !== CODE && !(opt.auchKommentare && t.art === KOMMENTAR)) continue;
-    t.wert = t.wert.replace(re, (m) => { treffer++; return map[m]; });
+    t.wert = t.wert.replace(re, (m, name, i, s) => {
+      /* EIN PUNKT DAVOR HEISST: der Traeger ist ein anderer -- ausser bei
+         `...auth.x`, wo die drei Punkte die Ausbreitung sind und nicht der
+         Zugriff auf ein Feld. Gefunden an `...auth.erzeugeAnmeldeAusweis()`,
+         das sonst stehen blieb. */
+      if (s[i - 1] === '.' && s[i - 2] !== '.') return m;
+      treffer++; return map[m];
+    });
   }
   const neu = zusammen(teile);
   probeGleich(vorher, texte(zerlege(neu, datei)), 'Zeichenketten', datei);

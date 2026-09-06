@@ -51,7 +51,7 @@ const mail = require('./mail');
    Wahrheit, zwei Leser (Konzept 3.3).
 
    FEHLT de.json, STARTET DER SERVER NICHT. Eine Installation ohne Sprache ist
-   keine: jede Meldung stuende als ⟦…⟧ da, und das faellt beim ersten Fehler
+   keine: jede Message stuende als ⟦…⟧ da, und das faellt beim ersten Fehler
    auf und nicht beim Start. Lieber gleich.
 
    IM SPEICHER UND NICHT JE ANFRAGE VON DER PLATTE: die Datei aendert sich zur
@@ -101,7 +101,7 @@ function t(sprache, schluessel, werte = {}) {
     ? (regel.select(werte.n) === 'one' ? roh.eins : roh.andere) : roh;
   /* DAS VOKABULAR WIRD ERST GEHOLT, WENN EIN PLATZHALTER ES BRAUCHT -- es
      kommt aus der Datenbank, und die meisten Meldungen tragen kein
-     Vokabelwort. Einmal je Meldung, nicht einmal je Platzhalter. */
+     Vokabelwort. Einmal je Message, nicht einmal je Platzhalter. */
   let vok = null;
   return String(satz).replace(/\{(\w+)\}/g, (ganz, name) => {
     if (werte[name] !== undefined) return String(werte[name]);
@@ -117,7 +117,7 @@ function t(sprache, schluessel, werte = {}) {
    meisten Werfer stehen dort, und server.js requiret auth.js -- der Weg
    zurueck waere ein Ring. Eine eigene Datei dafuer verbietet der Auftrag, und
    sie waere fuer sechs Zeilen auch zu viel. */
-const Meldung = auth.Meldung;
+const Message = auth.Message;
 
 /* mail.js BEKOMMT DEN UEBERSETZER GEREICHT -- 0.24.0, Bauabschnitt 2. Es ist
    ein Blatt im Abhaengigkeitsbaum und darf server.js nicht requiren; die vier
@@ -127,20 +127,20 @@ mail.setTranslator(t);
 /* UND auth.js EBENSO -- fuer die zwei Antworten, die requireAuth() selbst gibt.
    Es bekommt die ANFRAGE gereicht und nicht die Sprache: welche Sprache eine
    Antwort traegt, entscheidet diese Datei. */
-auth.setzeUebersetzer((req, schluessel, werte) => t(spracheVon(req), schluessel, werte));
+auth.setTranslator((req, schluessel, werte) => t(spracheVon(req), schluessel, werte));
 
 /* WAS EIN GEFANGENER FEHLER SAGT -- 0.24.0, Bauabschnitt 2. Fuenfzehn Stellen
    fingen bis dahin einen Fehler und gaben `e.message` heraus; darin stand ein
    deutscher Satz aus auth.js oder mail.js.
    GEFRAGT WIRD NACH `schluessel` UND NICHT NACH DER KLASSE: auth.js wirft die
-   Klasse `Meldung`, mail.js baut sich dieselbe Form mit zwei Zeilen selbst --
+   Klasse `Message`, mail.js baut sich dieselbe Form mit zwei Zeilen selbst --
    es ist ein Blatt im Abhaengigkeitsbaum und darf auth.js nicht requiren, sonst
    entstuende ein Ring. Was zaehlt, ist die FORM und nicht die Herkunft.
    ALLES OHNE SCHLUESSEL IST EIN PROGRAMMIERFEHLER OHNE BILDSCHIRM und geht als
    der eine unbestimmte Satz heraus -- der Rumpf steht auf der Konsole, wo der
    Betreiber ihn liest. */
-const fehlerText = (req, e) => (e && e.schluessel)
-  ? t(spracheVon(req), e.schluessel, e.werte || {})
+const fehlerText = (req, e) => (e && e.key)
+  ? t(spracheVon(req), e.key, e.values || {})
   : t(spracheVon(req), 'server.errorUnknown');
 
 const PORT = process.env.PORT || 3000;
@@ -201,8 +201,8 @@ async function versendeTokenLink(ziel, token) {
     return { versand: 'aus', versandGrund: 'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
   const angaben = {
     titel: getSetting('title_public', 'Bewertungskatalog'),
-    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${token.klartext}`,
-    tage: auth.TOKEN_TAGE, minuten: auth.TOKEN_FRIST_MINUTEN
+    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${token.plain}`,
+    tage: auth.TOKEN_DAYS, minuten: auth.TOKEN_DEADLINE_MINUTES
   };
   const einladung = token.zweck === 'einladung';
   /* DIE SPRACHE DES EMPFAENGERS -- in dieser Runde immer die der Installation.
@@ -265,7 +265,7 @@ async function versendeBestaetigung(name, adresse, klartext) {
   const sprache = SPRACH_VORGABE;
   const brief = mail.mailConfirm(sprache, { titel, username: name,
     link: `${OEFFENTLICHE.adresse}/#/bestaetigung/${klartext}`,
-    stunden: auth.ANFRAGE_STUNDEN });
+    stunden: auth.REQUEST_HOURS });
   return mail.send(sprache, zugang, adresse, brief.subject, brief.text);
 }
 
@@ -302,7 +302,7 @@ const CSP_ANWENDUNG =
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Content-Security-Policy', CSP_ANWENDUNG);
-  if (auth.ueberProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');
+  if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');
   next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
@@ -316,7 +316,7 @@ const upload = multer({
   fileFilter: (req, file, cb) =>
     /^image\//.test(file.mimetype)
       ? cb(null, true)
-      : cb(new Meldung('server.imagesOnly'))
+      : cb(new Message('server.imagesOnly'))
 });
 
 /* Was als Foto hereinkommt, muss ein Rasterbild sein -- dem INHALT nach.
@@ -411,7 +411,7 @@ const putUserSettingS = db.prepare(
 );
 // Dieselbe Klemme auch auf dem Schreibweg: ein stilles INSERT mit user_id NULL
 // scheiterte zwar am NOT NULL, aber erst in der Datenbank und mit einer
-// Meldung, die nicht sagt, wer den Benutzer vergessen hat.
+// Message, die nicht sagt, wer den Benutzer vergessen hat.
 const putUserSetting = (benutzerId, k, wert) => {
   if (benutzerId == null)
     throw new Error(`putUserSetting('${k}') ohne Benutzer aufgerufen`);
@@ -614,7 +614,7 @@ app.get('/api/config', (req, res) => {
      die Adresse kennt; der Pruefstand nagelt die Namen fest. */
   res.json({
     title: getSetting('title_public', 'Bewertungskatalog'), version: VERSION,
-    setupRequired: !auth.benutzerVorhanden(), minPassword: auth.PASSWORT_MIN,
+    setupRequired: !auth.userExists(), minPassword: auth.PASSWORD_MIN,
     registrierung: getSetting('registrierung', false) === true
   });
 });
@@ -622,17 +622,17 @@ app.get('/api/config', (req, res) => {
 // Erste Einrichtung. Steht vor der Anmeldung, weil es dahinter noch nichts
 // gibt -- und ist genau deshalb nur solange offen, wie kein Zugang existiert.
 app.post('/api/setup', async (req, res) => {
-  if (auth.benutzerVorhanden()) {
+  if (auth.userExists()) {
     return res.status(409).json({ error: t(spracheVon(req), 'server.setupDone')});
   }
   const { user, password } = req.body || {};
   let angelegt;
   try {
-    angelegt = await auth.legeErstenBenutzerAn(user, password);
+    angelegt = await auth.createFirstUser(user, password);
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
   // Gleich angemeldet: ein zweites Formular unmittelbar nach dem ersten waere
   // nur eine Huerde ohne Gewinn.
-  res.set('Set-Cookie', auth.sessionCookie(req, auth.legeSitzungAn(angelegt.id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.createSession(angelegt.id)));
   res.json({ ok: true });
 });
 
@@ -649,14 +649,14 @@ app.post('/api/login', async (req, res) => {
   }
   if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
 
-  const benutzer = await auth.pruefeAnmeldung(user, password);
+  const benutzer = await auth.checkLogin(user, password);
   if (!benutzer) {
     auth.noteFailure(ip, user);
     return res.status(401).json({ error: t(spracheVon(req), 'server.loginWrong')});
   }
   /* Erste von zwei Stellen: ein gesperrter Zugang kommt nicht herein.
      ERST HIER, nach der Passwortpruefung: ein gesperrter Zugang soll
-     erfahren, dass er gesperrt ist. Vor der Pruefung waere dieselbe Meldung
+     erfahren, dass er gesperrt ist. Vor der Pruefung waere dieselbe Message
      ein Werkzeug zum Durchprobieren von Namen.
      Kein noteFailure -- das Passwort war richtig. */
   if (benutzer.status !== 'aktiv') {
@@ -676,12 +676,12 @@ app.post('/api/login', async (req, res) => {
      Passwort kennt, vor jedem Rateversuch einen frischen Ausweis -- und
      dieser Ruf loeschte den Zaehler, den der zweite Schritt gerade aufbaut.
      ZURUECKGESETZT WIRD ERST, WENN JEMAND WIRKLICH DRIN IST. */
-  if (auth.zweifaktorAn(benutzer.id)) {
-    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });
+  if (auth.twoFactorOn(benutzer.id)) {
+    return res.json({ zweifaktor: true, ...auth.createLoginTicket(benutzer.id) });
   }
   auth.noteSuccess(ip, user);
   auth.pruneSessions();
-  res.set('Set-Cookie', auth.sessionCookie(req, auth.legeSitzungAn(benutzer.id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.createSession(benutzer.id)));
   res.json({ ok: true });
 });
 
@@ -721,39 +721,39 @@ app.post('/api/login/zwei', async (req, res) => {
       error: t(spracheVon(req), 'server.throttled', { sekunden: bremse.retryInSec })});
   }
   if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
-  const id = auth.verbraucheAnmeldeAusweis(ausweis);
+  const id = auth.useLoginTicket(ausweis);
   if (!id) {
     auth.noteFailure(ip, null);
     return res.status(401).json({ error: t(spracheVon(req), 'server.sessionExpired')});
   }
-  const zugang = auth.holeZugang(id);
+  const zugang = auth.getUser2(id);
   const name = zugang ? zugang.username : null;
   /* ZWEITE NACHSCHAU AUF DEN STATUS. Zwischen den beiden Schritten liegen bis
      zu zwei Minuten, und in denen kann ein Admin gesperrt haben. Dieselbe
-     Meldung wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
+     Message wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
      belegt und darf deshalb erfahren, woran es liegt. */
   if (!zugang || zugang.status !== 'aktiv') {
     return res.status(403).json({ error: t(spracheVon(req), 'server.accountLocked')});
   }
-  if (!auth.pruefeZweitenFaktor(id, code)) {
+  if (!auth.checkTwoFactor(id, code)) {
     auth.noteFailure(ip, name);
     /* DIESELBE ZEILE WIE BEI EINEM FALSCHEN PASSWORT, und kein eigener Vorgang
        daneben: eine gescheiterte zweite Stufe IST eine gescheiterte Anmeldung.
-       Sie steht hier und nicht in auth.pruefeZweitenFaktor -- die Funktion
+       Sie steht hier und nicht in auth.checkTwoFactor -- die Funktion
        hat drei Rufer, und an den beiden anderen ist das Scheitern keine
        Anmeldung. */
-    auth.protokolliere('anmeldung.fehl', { wer: null, ziel: id });
+    auth.log('anmeldung.fehl', { wer: null, ziel: id });
     /* EIN FRISCHER AUSWEIS LIEGT DER ABSAGE BEI. Der alte ist verbraucht --
        "genau einmal" bleibt woertlich wahr. Ohne den neuen stuende ein Mensch
        nach EINEM Tippfehler wieder vor dem Passwortfeld.
        WAS DEN VERSUCH BEGRENZT, IST DIE BREMSE UND NICHT DIE FRIST: wer raet,
        tippt das Passwort eben noch einmal. */
     return res.status(401).json({
-      error: t(spracheVon(req), auth.ZWEITER_FAKTOR_ABSAGE), ...auth.erzeugeAnmeldeAusweis(id)});
+      error: t(spracheVon(req), auth.TWO_FACTOR_DENIAL), ...auth.createLoginTicket(id)});
   }
   auth.noteSuccess(ip, name);
   auth.pruneSessions();
-  res.set('Set-Cookie', auth.sessionCookie(req, auth.legeSitzungAn(id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.createSession(id)));
   res.json({ ok: true });
 });
 
@@ -776,7 +776,7 @@ app.post('/api/logout', (req, res) => {
 // Bewusst nur ja/nein: der Endpunkt liegt VOR der Anmeldung und darf ueber den
 // Benutzer nichts verraten. Deshalb das Boolean um die Zeile herum.
 app.get('/api/session', (req, res) => {
-  res.json({ authenticated: Boolean(auth.sitzungsBenutzer(auth.sitzungsToken(req))) });
+  res.json({ authenticated: Boolean(auth.sessionUser(auth.sessionToken(req))) });
 });
 
 /* ---- Der Token vor der Anmeldung ----
@@ -813,7 +813,7 @@ async function tokenBremseFrei(req, res) {
 app.post('/api/token/pruefen', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenBremseFrei(req, res)) return;
-  const token = auth.pruefeToken((req.body || {}).token);
+  const token = auth.checkToken((req.body || {}).token);
   if (!token) { auth.noteFailure(ip, null); return res.status(400).json({ error: t(spracheVon(req), TOKEN_ABSAGE)}); }
   /* HIER BEGINNT DIE FRIST, und nur hier: dies ist die eine Stelle, an der
      belegt ist, dass ein BROWSER den Schluessel in der Hand hat -- er steht im
@@ -821,17 +821,17 @@ app.post('/api/token/pruefen', async (req, res) => {
      WEITERE AUFRUFE RUEHREN NICHTS AN: beginneTokenFrist schreibt nur
      herunter, nie hinauf. Wer neu laedt, steht deshalb nicht vor einem toten
      Link.
-     NICHT in auth.pruefeToken: die wird auch von loeseTokenEin gerufen, und
+     NICHT in auth.checkToken: die wird auch von loeseTokenEin gerufen, und
      das Einloesen darf die Frist nicht noch einmal anfassen. */
-  const minuten = auth.beginneTokenFrist(token.hash);
+  const minuten = auth.startTokenDeadline(token.hash);
   res.json({
     username: token.username, ohnePasswort: token.ohnePasswort,
-    minPassword: auth.PASSWORT_MIN, minuten
+    minPassword: auth.PASSWORD_MIN, minuten
   });
 });
 
 /* Das Einloesen. Der Mindestwert von zehn Zeichen gilt unveraendert; die
-   Regel steht in auth.loeseTokenEin.
+   Regel steht in auth.redeemToken.
    ANGEMELDET WIRD GLEICH MIT, wie bei /api/setup: das Passwort wurde ja
    gerade hier gewaehlt. Die Sitzung entsteht NACH dem Einloesen, also
    nachdem alle bisherigen gefallen sind. */
@@ -840,7 +840,7 @@ app.post('/api/token/einloesen', async (req, res) => {
   if (!await tokenBremseFrei(req, res)) return;
   const { token, passwort } = req.body || {};
   let ergebnis;
-  try { ergebnis = await auth.loeseTokenEin(token, passwort); }
+  try { ergebnis = await auth.redeemToken(token, passwort); }
   catch (e) { auth.noteFailure(ip, null); return res.status(400).json({ error: fehlerText(req, e) }); }
   auth.noteSuccess(ip, null);
   /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT -- UND DAS IST EINE
@@ -860,14 +860,14 @@ app.post('/api/token/einloesen', async (req, res) => {
      DAS PASSWORT IST DABEI SCHON GESETZT und die alten Sitzungen sind
      gefallen: der Link hat getan, wofuer er da war. Was er NICHT mehr tut,
      ist anmelden. */
-  if (auth.zweifaktorAn(ergebnis.id)) {
+  if (auth.twoFactorOn(ergebnis.id)) {
     return res.json({
       ok: true, username: ergebnis.username, zweifaktor: true,
-      ...auth.erzeugeAnmeldeAusweis(ergebnis.id)
+      ...auth.createLoginTicket(ergebnis.id)
     });
   }
   auth.pruneSessions();
-  res.set('Set-Cookie', auth.sessionCookie(req, auth.legeSitzungAn(ergebnis.id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.createSession(ergebnis.id)));
   res.json({ ok: true, username: ergebnis.username });
 });
 
@@ -908,7 +908,7 @@ app.post('/api/registrierung', async (req, res) => {
      entsteht nichts. Keine Zeile, keine Mail. */
   const an = getSetting('registrierung', false) === true;
   const { name, adresse } = req.body || {};
-  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;
+  const klartext = an ? auth.createRequest(name, adresse) : null;
   res.json(ANFRAGE_ANTWORT);
   /* ERST DIE ANTWORT, DANN DER VERSAND (Begruendung bei
      versendeBestaetigung): ein Weg, der auf den Mailserver wartet, waere an
@@ -929,7 +929,7 @@ app.post('/api/registrierung', async (req, res) => {
 app.post('/api/registrierung/bestaetigen', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenBremseFrei(req, res)) return;
-  if (!auth.bestaetigeAnfrage((req.body || {}).schluessel)) {
+  if (!auth.confirmRequest((req.body || {}).schluessel)) {
     auth.noteFailure(ip, null);
     return res.status(400).json({ error:
       t(spracheVon(req), 'server.confirmExpired')});
@@ -1009,8 +1009,8 @@ const VERWEIGERT_BESTAETIGUNG = 'server.deniedConfirm';
 // 403 und NICHT 401: der Zugang gilt weiter, nur diese eine Handlung nicht.
 // Ein 401 wuerfe die Oberflaeche auf die Anmeldeseite.
 function zweiteBestaetigung(req, res, zweck, ziel = null) {
-  const token = auth.sitzungsToken(req);
-  if (auth.verbraucheFreigabe(token, zweck, ziel)) return true;
+  const token = auth.sessionToken(req);
+  if (auth.useRelease(token, zweck, ziel)) return true;
   res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_BESTAETIGUNG), bestaetigung: zweck});
   return false;
 }
@@ -1035,7 +1035,7 @@ const zweiteBestaetigungNoetig = (zweck) => (req, res, next) => {
 // Verfasser oder Admin. EINE HERRENLOSE ZEILE (user_id IS NULL) GEHOERT DEM
 // ADMIN: ohne die Klemme auf null waere sie fuer jeden offen -- und genau die
 // entsteht, wenn ein Fremdschluessel mit ON DELETE SET NULL zuschlaegt.
-// ordneBestandZu() raeumt sie beim naechsten Start dem Eigentuemer zu; bis
+// assignInventory() raeumt sie beim naechsten Start dem Eigentuemer zu; bis
 // dahin darf sie nicht jedem gehoeren.
 function darfAendern(req, verfasserId) {
   return istAdmin(req) || (verfasserId != null && verfasserId === req.benutzer.id);
@@ -1115,9 +1115,9 @@ app.get('/api/account', (req, res) => {
   /* DER ZUSTAND DES ZWEITEN FAKTORS REIST HIER MIT -- deshalb kommt keine
      lesende Route dazu: die Karte "Zugang" holt diese Antwort ohnehin.
      DAS GEHEIMNIS IST NIE DARIN, auch nicht fuer den Eigentuemer. */
-  res.json({ username: req.benutzer.username, minPassword: auth.PASSWORT_MIN,
-             email: auth.holeZugang(req.benutzer.id)?.email || '',
-             zweifaktor: auth.zweifaktorStand(req.benutzer.id) });
+  res.json({ username: req.benutzer.username, minPassword: auth.PASSWORD_MIN,
+             email: auth.getUser2(req.benutzer.id)?.email || '',
+             zweifaktor: auth.twoFactorState(req.benutzer.id) });
 });
 
 app.put('/api/account', async (req, res) => {
@@ -1129,14 +1129,14 @@ app.put('/api/account', async (req, res) => {
     // Die Adresse geht denselben Weg wie Name und Passwort -- hinter dem
     // BISHERIGEN Passwort. Sie entscheidet, wohin der naechste Ruecksetzlink
     // geht; eine uebernommene Sitzung soll sie nicht nebenbei umbiegen koennen.
-    ergebnis = await auth.aendereZugang(req.benutzer.id, oldPassword, username, newPassword, email);
+    ergebnis = await auth.changeUser(req.benutzer.id, oldPassword, username, newPassword, email);
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
   // Alle anderen Sitzungen DIESES Benutzers fallen. Wer das Passwort wechselt,
   // will meist genau das; die eigene bleibt, sonst wuerde man sich selbst
   // hinauswerfen. Die Zeile selbst steht in auth.js -- der Knopf "alle anderen
   // beenden" ruft dieselbe, und zwei Ausfuehrungen derselben Regel liefen
   // auseinander.
-  auth.beendeAndereSitzungen(req.benutzer.id, auth.sitzungsToken(req));
+  auth.endOtherSessions(req.benutzer.id, auth.sessionToken(req));
   res.json(ergebnis);
 });
 
@@ -1146,24 +1146,24 @@ app.put('/api/account', async (req, res) => {
    Beide schreibenden Routen tragen die Art 'selbstbezug'.
    DIE FESTE ROUTE STEHT VOR DER PLATZHALTERROUTE (Stolperstein 11). */
 app.get('/api/sessions', (req, res) => {
-  const eigener = auth.sitzungsToken(req);
-  res.json({ sitzungen: auth.sitzungenVon(req.benutzer.id, eigener), tage: auth.SESSION_DAYS });
+  const eigener = auth.sessionToken(req);
+  res.json({ sitzungen: auth.sessionsOf(req.benutzer.id, eigener), tage: auth.SESSION_DAYS });
 });
 
 app.delete('/api/sessions', (req, res) => {
-  const eigener = auth.sitzungsToken(req);
-  res.json({ beendet: auth.beendeAndereSitzungen(req.benutzer.id, eigener) });
+  const eigener = auth.sessionToken(req);
+  res.json({ beendet: auth.endOtherSessions(req.benutzer.id, eigener) });
 });
 
 app.delete('/api/sessions/:kennung', (req, res) => {
-  const eigener = auth.sitzungsToken(req);
+  const eigener = auth.sessionToken(req);
   // Die eigene ueber diesen Weg zu beenden waere ein zweiter Abmeldeweg neben
   // POST /api/logout -- und einer, nach dem die Oberflaeche weiterliefe, als
   // waere nichts gewesen.
-  if (auth.sitzungsKennung(eigener || '') === String(req.params.kennung)) {
+  if (auth.sessionIdOf(eigener || '') === String(req.params.kennung)) {
     return res.status(400).json({ error: t(spracheVon(req), 'server.sessionOwn')});
   }
-  const n = auth.beendeSitzung(req.benutzer.id, req.params.kennung);
+  const n = auth.endSession(req.benutzer.id, req.params.kennung);
   if (!n) return res.status(404).json({ error: t(spracheVon(req), 'server.sessionUnknown')});
   res.json({ beendet: n });
 });
@@ -1195,7 +1195,7 @@ app.delete('/api/sessions/:kennung', (req, res) => {
 // dieselbe Ueberlegung wie bei der zweiten Bestaetigung.
 async function eigenesPasswortStimmt(req, res, passwort) {
   const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
-  if (zeile && await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) return true;
+  if (zeile && await auth.checkPassword(String(passwort || ''), zeile.password_hash)) return true;
   res.status(403).json({ error: t(spracheVon(req), 'server.passwordWrong')});
   return false;
 }
@@ -1206,7 +1206,7 @@ async function eigenesPasswortStimmt(req, res, passwort) {
 app.post('/api/zweifaktor/start', async (req, res) => {
   if (!await eigenesPasswortStimmt(req, res, (req.body || {}).passwort)) return;
   try {
-    res.json(auth.beginneZweifaktor(req.benutzer.id,
+    res.json(auth.startTwoFactor(req.benutzer.id,
       getSetting('title_public', 'Bewertungskatalog'), req.benutzer.username));
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
 });
@@ -1219,7 +1219,7 @@ app.post('/api/zweifaktor/an', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!await eigenesPasswortStimmt(req, res, passwort)) return;
   try {
-    res.json(auth.schalteZweifaktorEin(req.benutzer.id, code, req.benutzer.id));
+    res.json(auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id));
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
 });
 
@@ -1231,16 +1231,16 @@ app.post('/api/zweifaktor/an', async (req, res) => {
 app.post('/api/zweifaktor/codes', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!await eigenesPasswortStimmt(req, res, passwort)) return;
-  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))
-    return res.status(403).json({ error: t(spracheVon(req), auth.ZWEITER_FAKTOR_ABSAGE)});
+  if (!auth.checkTwoFactor(req.benutzer.id, code))
+    return res.status(403).json({ error: t(spracheVon(req), auth.TWO_FACTOR_DENIAL)});
   try {
     /* ERST DIE CODES, DANN DER STAND -- und die Reihenfolge ist keine
        Geschmacksfrage. In einem Objektliteral wird von links nach rechts
-       ausgewertet: stuende zweifaktorStand() zuerst, meldete die Antwort die
+       ausgewertet: stuende twoFactorState() zuerst, meldete die Antwort die
        Zahl von VOR dem Erneuern, und die Karte zeigte "noch 4 von 8" neben
        acht frischen Codes. */
-    const codes = auth.erneuereWiederCodes(req.benutzer.id);
-    res.json({ ...auth.zweifaktorStand(req.benutzer.id), codes });
+    const codes = auth.refreshRecoveryCodes(req.benutzer.id);
+    res.json({ ...auth.twoFactorState(req.benutzer.id), codes });
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
 });
 
@@ -1251,13 +1251,13 @@ app.post('/api/zweifaktor/codes', async (req, res) => {
    einzige Weg daneben ist zugang.js auf dem Wirt. */
 app.delete('/api/zweifaktor', async (req, res) => {
   const { passwort, code } = req.body || {};
-  if (!auth.zweifaktorAn(req.benutzer.id))
+  if (!auth.twoFactorOn(req.benutzer.id))
     return res.status(400).json({ error: t(spracheVon(req), 'server.twoFactorOff')});
   if (!await eigenesPasswortStimmt(req, res, passwort)) return;
-  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))
-    return res.status(403).json({ error: t(spracheVon(req), auth.ZWEITER_FAKTOR_ABSAGE)});
-  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);
-  res.json({ ...auth.zweifaktorStand(req.benutzer.id) });
+  if (!auth.checkTwoFactor(req.benutzer.id, code))
+    return res.status(403).json({ error: t(spracheVon(req), auth.TWO_FACTOR_DENIAL)});
+  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);
+  res.json({ ...auth.twoFactorState(req.benutzer.id) });
 });
 
 /* ---- Die Freigabe holen ----
@@ -1282,7 +1282,7 @@ app.post('/api/bestaetigung', async (req, res) => {
   }
   if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));
   const { passwort, zweck, ziel, ziele, code } = req.body || {};
-  if (!auth.BESTAETIGUNG_ZWECKE.includes(zweck))
+  if (!auth.CONFIRM_PURPOSES.includes(zweck))
     return res.status(400).json({ error: t(spracheVon(req), 'server.purposeUnknown')});
   /* MEHRERE ZIELE IN EINER ANFRAGE, und der Grund ist der Code des zweiten
      Faktors: er gilt GENAU EINMAL. Das Passwort laeuft gegen einen Hash und
@@ -1319,12 +1319,12 @@ app.post('/api/bestaetigung', async (req, res) => {
       return res.status(400).json({ error: t(spracheVon(req), 'server.targetTwice')});
   } else zielListe = [ziel ?? null];
   const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
-  if (!zeile || !await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) {
+  if (!zeile || !await auth.checkPassword(String(passwort || ''), zeile.password_hash)) {
     auth.noteFailure(ip, name);
     // Die zweite der beiden Zeilen, bei denen das SCHEITERN der Vorgang ist.
     // Wer hier scheitert, sitzt an einer angemeldeten Sitzung und kennt das
     // Passwort nicht -- genau der Fall, gegen den diese Runde gebaut ist.
-    auth.protokolliere('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
+    auth.log('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
     return res.status(403).json({ error: t(spracheVon(req), 'server.passwordWrong')});
   }
   /* FRAGT DIESE STELLE ZUSAETZLICH DEN CODE -- aber NUR bei Zugaengen, die
@@ -1333,24 +1333,24 @@ app.post('/api/bestaetigung', async (req, res) => {
      UEBERNOMMENE OFFENE SITZUNG, und genau dort traegt ein zweiter Faktor am
      meisten -- das Passwort mag mitgelesen sein, das Telefon liegt woanders.
      DIESE FRAGE FUEGT KEINEN ZWECK HINZU: es ist eine zweite Frage an
-     derselben Stelle, kein weiterer Weg. (BESTAETIGUNG_ZWECKE steht seit
+     derselben Stelle, kein weiterer Weg. (CONFIRM_PURPOSES steht seit
      0.19.0 bei acht -- der achte ist die Umstellung der Bildablage und
      kommt aus einer eigenen Route, nicht von hier.)
      DIE REIHENFOLGE IST PASSWORT, DANN CODE: wer das Passwort nicht hat, soll
      nicht erfahren, ob am Zugang ein Faktor haengt. */
-  if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code)) {
+  if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code)) {
     auth.noteFailure(ip, name);
-    auth.protokolliere('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
-    return res.status(403).json({ error: t(spracheVon(req), auth.ZWEITER_FAKTOR_ABSAGE), zweifaktor: true});
+    auth.log('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
+    return res.status(403).json({ error: t(spracheVon(req), auth.TWO_FACTOR_DENIAL), zweifaktor: true});
   }
   auth.noteSuccess(ip, name);
-  const eigener = auth.sitzungsToken(req);
+  const eigener = auth.sessionToken(req);
   try {
     // Alle Freigaben in EINER Antwort. `ziele` steht auch dann darin, wenn nur
     // eine bestellt war -- eine Antwort, deren Form von der Zahl abhaengt,
     // braeuchte auf der Gegenseite zwei Lesearten.
     let letzte;
-    for (const z of zielListe) letzte = auth.erzeugeFreigabe(eigener, zweck, z);
+    for (const z of zielListe) letzte = auth.createRelease(eigener, zweck, z);
     res.json({ ok: true, ...letzte, ziele: zielListe });
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
 });
@@ -1363,7 +1363,7 @@ app.post('/api/bestaetigung', async (req, res) => {
    Protokoll, das der Betroffene selbst wegraeumen kann.
    ZWEITE AUFRUFSTELLE DES AUFRAEUMENS; die erste steht beim Start. */
 app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
-  auth.raeumeProtokollAuf();
+  auth.cleanupLog();
   /* DIE AUSWAHL GEHT AN DEN SERVER und nicht an den Browser: die Karte holt
      die hundert JUENGSTEN Zeilen, und darin findet man die gescheiterten
      Anmeldungen nicht -- sie stehen zwischen allem anderen. Mit der Auswahl
@@ -1372,9 +1372,9 @@ app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
      ein Tippfehler saehe sonst aus wie ein Erfolg.
      LESEND WIE VORHER -- F_ROUTEN bleibt bei 69. */
   const gruppe = req.query.gruppe;
-  if (gruppe !== undefined && !Object.prototype.hasOwnProperty.call(auth.PROTOKOLL_GRUPPEN, gruppe))
+  if (gruppe !== undefined && !Object.prototype.hasOwnProperty.call(auth.LOG_GROUPS, gruppe))
     return res.status(400).json({ error: t(spracheVon(req), 'server.viewUnknown')});
-  res.json(auth.leseProtokoll(auth.PROTOKOLL_GRENZE, gruppe));
+  res.json(auth.readLog(auth.LOG_LIMIT, gruppe));
 });
 
 /* ---- Zugaenge verwalten ----
@@ -1387,7 +1387,7 @@ app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
 // GEPRUEFT WIRD VOR JEDEM SCHREIBEN, in allen drei Routen -- eine Absage, die
 // die halbe Aenderung schon geschrieben hat, waere schlimmer als keine.
 function zielZugangFrei(req, res, id, selbstErlaubt = false) {
-  const ziel = auth.holeZugang(id);
+  const ziel = auth.getUser2(id);
   if (!ziel) { res.status(404).json({ error: t(spracheVon(req), 'server.userUnknown')}); return null; }
   if (ziel.status === 'geloescht') {
     res.status(400).json({ error: t(spracheVon(req), 'server.userDeleted')}); return null;
@@ -1404,20 +1404,20 @@ app.get('/api/users', nurAdmin, (req, res) => {
   // Bauform wie bei raeumePapierkorbAuf(): eine Instanz, die monatelang
   // durchlaeuft, raeumte sonst monatelang nicht auf. Hauswirtschaft, keine
   // Benutzerhandlung -- die Liste schreibender Routen bleibt unberuehrt.
-  auth.raeumeTokensAuf();
+  auth.cleanupTokens();
   res.json({
-    zugaenge: auth.listeZugaenge(),
+    zugaenge: auth.listUsers(),
     ich: req.benutzer.id,
     darfRollen: istEigentuemer(req),
-    eigentuemer: auth.zahlEigentuemer()
+    eigentuemer: auth.ownerCount()
   });
 });
 
 // Die Zahlen fuer den Loeschdialog. Lesend, deshalb kein Eintrag in F_ROUTEN.
 app.get('/api/users/:id/bestand', nurAdmin, (req, res) => {
-  const ziel = auth.holeZugang(req.params.id);
+  const ziel = auth.getUser2(req.params.id);
   if (!ziel) return res.status(404).json({ error: t(spracheVon(req), 'server.userUnknown')});
-  res.json({ username: ziel.username, ...auth.zaehleBestand(ziel.id) });
+  res.json({ username: ziel.username, ...auth.countInventory(ziel.id) });
 });
 
 // Anlegen. Der Admin darf das -- aber nur BENUTZER: eine Rolle zu vergeben ist
@@ -1435,15 +1435,15 @@ app.post('/api/users', nurAdmin, async (req, res) => {
        Zugang dasteht, in den niemand hereinkommt und an den auch niemand mehr
        denkt. `einladen` muss ausdruecklich true sein -- ein vergessenes
        Passwortfeld scheitert weiter wie bisher. */
-    const angelegt = await auth.legeZugangAn(username, passwort, gewuenscht, einladen === true,
+    const angelegt = await auth.createUser(username, passwort, gewuenscht, einladen === true,
                                              req.benutzer.id, email);
     if (einladen !== true) return res.json(angelegt);
-    const token = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
+    const token = auth.createToken(angelegt.id, 'einladung', req.benutzer.id);
     /* ERST DER TOKEN, DANN DER VERSAND, und die Reihenfolge ist die ganze
        Zusage: der Link steht in der Antwort, egal was der Mailserver sagt. */
     const v = await versendeTokenLink({ username: angelegt.username, email: angelegt.email }, token);
-    res.json({ ...angelegt, token: token.klartext, zweck: token.zweck, tage: token.tage,
-               minuten: auth.TOKEN_FRIST_MINUTEN, ...linkAngabe(token.klartext), ...v });
+    res.json({ ...angelegt, token: token.plain, zweck: token.zweck, tage: token.tage,
+               minuten: auth.TOKEN_DEADLINE_MINUTES, ...linkAngabe(token.plain), ...v });
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
 });
 
@@ -1461,14 +1461,14 @@ app.post('/api/users/:id/token', nurAdmin, async (req, res) => {
   if (!zweiteBestaetigung(req, res, 'link', ziel.id)) return;
   const zweck = (req.body || {}).zweck || 'einladung';
   try {
-    const token = auth.erzeugeToken(ziel.id, zweck, req.benutzer.id);
+    const token = auth.createToken(ziel.id, zweck, req.benutzer.id);
     // Erst der Token, dann der Versand -- dieselbe Reihenfolge wie am Anlegen,
     // und aus demselben Grund.
     const v = await versendeTokenLink(ziel, token);
-    res.json({ id: token.id, username: token.username, token: token.klartext,
-               zweck: token.zweck, tage: token.tage, minuten: auth.TOKEN_FRIST_MINUTEN,
+    res.json({ id: token.id, username: token.username, token: token.plain,
+               zweck: token.zweck, tage: token.tage, minuten: auth.TOKEN_DEADLINE_MINUTES,
                ohnePasswort: token.ohnePasswort,
-               ...linkAngabe(token.klartext), ...v });
+               ...linkAngabe(token.plain), ...v });
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
 });
 
@@ -1476,7 +1476,7 @@ app.post('/api/users/:id/token', nurAdmin, async (req, res) => {
 // dem ersten Schreiben geprueft:
 //   Rolle    -- nur der Eigentuemer, auch am eigenen Zugang (sich selbst
 //               herabstufen ist erlaubt, solange ein anderer Eigentuemer
-//               bleibt; das haelt auth.setzeRolle fest).
+//               bleibt; das haelt auth.setRole fest).
 //   Status   -- Admin an Benutzern, Eigentuemer an allen, nie am eigenen.
 //   Passwort -- dieselbe Regel wie Status; das EIGENE laeuft ueber
 //               PUT /api/account.
@@ -1497,9 +1497,9 @@ app.put('/api/users/:id', nurAdmin, async (req, res) => {
   if (passwort !== undefined && !zweiteBestaetigung(req, res, 'passwort', ziel.id)) return;
   try {
     let ergebnis = { id: ziel.id, username: ziel.username };
-    if (rolle !== undefined) ergebnis = { ...ergebnis, ...auth.setzeRolle(ziel.id, rolle, req.benutzer.id) };
-    if (status !== undefined) ergebnis = { ...ergebnis, ...auth.setzeStatus(ziel.id, status, req.benutzer.id) };
-    if (passwort !== undefined) { await auth.setzeNeuesPasswort(ziel.id, passwort, req.benutzer.id); ergebnis.passwortGesetzt = true; }
+    if (rolle !== undefined) ergebnis = { ...ergebnis, ...auth.setRole(ziel.id, rolle, req.benutzer.id) };
+    if (status !== undefined) ergebnis = { ...ergebnis, ...auth.setStatus(ziel.id, status, req.benutzer.id) };
+    if (passwort !== undefined) { await auth.setNewPassword(ziel.id, passwort, req.benutzer.id); ergebnis.passwortGesetzt = true; }
     res.json(ergebnis);
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
 });
@@ -1513,7 +1513,7 @@ app.delete('/api/users/:id', nurAdmin, (req, res) => {
   // Rechtefrage vor Bestaetigungsfrage, wie an der Tokenroute.
   if (!zweiteBestaetigung(req, res, 'entfernen', ziel.id)) return;
   try {
-    res.json(auth.entferneZugang(ziel.id, {
+    res.json(auth.removeUser(ziel.id, {
       eintraege: req.query.eintraege === '1',
       beitraege: req.query.beitraege === '1'
     }, req.benutzer.id));
@@ -1564,7 +1564,7 @@ function mailKarte(req) {
     // steht in der Karte "Zugaenge", wo der Link entsteht.
     adresseGesetzt: Boolean(OEFFENTLICHE.adresse),
     adresse: OEFFENTLICHE.adresse,
-    fristMinuten: auth.TOKEN_FRIST_MINUTEN,
+    fristMinuten: auth.TOKEN_DEADLINE_MINUTES,
     getestetAm: test ? test.am : null,
     sekunden: Math.round(mail.SEND_MS / 1000),
     /* Die Folge der Testmarke fuer die Selbstanmeldung, : der
@@ -1594,7 +1594,7 @@ app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res
    hinter einer Anmeldung. ES GIBT DESHALB KEIN ADRESSFELD: der Rumpf wird gar
    nicht angesehen. Ohne Adresse am Zugang wird abgesagt, mit dem Weg dorthin. */
 app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
-  const eigener = auth.holeZugang(req.benutzer.id);
+  const eigener = auth.getUser2(req.benutzer.id);
   if (!eigener || !eigener.email) {
     return res.status(400).json({ error:
       t(spracheVon(req), 'server.ownEmailMissing')});
@@ -1632,9 +1632,9 @@ function anfragenKarte() {
   return {
     an: getSetting('registrierung', false) === true,
     versandBereit: b.ok, versandGrund: b.grund,
-    anfragen: auth.listeAnfragen(),
-    deckel: auth.ANFRAGE_DECKEL, belegt: auth.zaehleAnfragen(),
-    stunden: auth.ANFRAGE_STUNDEN
+    anfragen: auth.listRequests(),
+    deckel: auth.REQUEST_CAP, belegt: auth.countRequests(),
+    stunden: auth.REQUEST_HOURS
   };
 }
 
@@ -1643,7 +1643,7 @@ app.get('/api/anfragen', nurAdmin, (req, res) => {
   // dritte an der Anfrageroute selbst. Dieselbe Bauform wie bei
   // raeumeTokensAuf() -- eine Instanz, die monatelang durchlaeuft, raeumte
   // sonst monatelang nicht auf. Hauswirtschaft, keine Benutzerhandlung.
-  auth.raeumeAnfragenAuf();
+  auth.cleanupRequests();
   res.json(anfragenKarte());
 });
 
@@ -1667,23 +1667,23 @@ app.put('/api/registrierung/schalter', nurAdmin, (req, res) => {
    ERST DER ZUGANG, DANN DER TOKEN, DANN DIE ZEILE WEG -- scheitert das
    Anlegen, bleibt die Anfrage stehen. Und dann erst der Versand. */
 app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
-  const a = auth.holeAnfrage(req.params.id);
+  const a = auth.getRequest(req.params.id);
   if (!a || !a.bestaetigt_am)
     return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});
   let angelegt, token;
   try {
-    angelegt = await auth.legeZugangAn(a.username, null, 'user', true, req.benutzer.id, a.email);
-    token = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
+    angelegt = await auth.createUser(a.username, null, 'user', true, req.benutzer.id, a.email);
+    token = auth.createToken(angelegt.id, 'einladung', req.benutzer.id);
   } catch (e) { return res.status(400).json({ error: fehlerText(req, e) }); }
-  auth.entferneAnfrage(a.id);
+  auth.removeRequest(a.id);
   /* DIE ZEILE NENNT DEN NEUEN ZUGANG UND NICHT DEN NAMEN DES ANFRAGENDEN.
      Sie sagt etwas, was zugang.neu und link.neu daneben nicht sagen: dass
      dieser Zugang aus einer SELBSTANMELDUNG kam und nicht aus der Hand des
      Admins. */
-  auth.protokolliere('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });
+  auth.log('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });
   const v = await versendeTokenLink({ username: angelegt.username, email: angelegt.email }, token);
-  res.json({ ...angelegt, token: token.klartext, zweck: token.zweck, tage: token.tage,
-             minuten: auth.TOKEN_FRIST_MINUTEN, ...linkAngabe(token.klartext), ...v,
+  res.json({ ...angelegt, token: token.plain, zweck: token.zweck, tage: token.tage,
+             minuten: auth.TOKEN_DEADLINE_MINUTES, ...linkAngabe(token.plain), ...v,
              ...anfragenKarte() });
 });
 
@@ -1693,11 +1693,11 @@ app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
    DIE PROTOKOLLZEILE TRAEGT DEN NAMEN NICHT: sie haelt fest, WER abgelehnt
    hat und WANN -- der Name des Abgewiesenen ist Freitext von aussen. */
 app.delete('/api/anfragen/:id', nurAdmin, (req, res) => {
-  const a = auth.holeAnfrage(req.params.id);
+  const a = auth.getRequest(req.params.id);
   if (!a || !a.bestaetigt_am)
     return res.status(404).json({ error: t(spracheVon(req), 'server.requestUnknown')});
-  auth.entferneAnfrage(a.id);
-  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });
+  auth.removeRequest(a.id);
+  auth.log('anfrage.ab', { wer: req.benutzer.id });
   res.json({ ok: true, ...anfragenKarte() });
 });
 
@@ -2062,7 +2062,7 @@ app.get('/api/settings', (req, res) => res.json({
      Bestaetigungsfenster steht auch vor Export und Import, und ohne die
      Angabe muesste es den ersten Versuch absichtlich scheitern lassen.
      NUR EIN JA/NEIN. */
-  zweifaktor: auth.zweifaktorAn(req.benutzer.id),
+  zweifaktor: auth.twoFactorOn(req.benutzer.id),
   // Die Frist des Papierkorbs. Sie steht HIER und nicht nur in
   // GET /api/papierkorb: den Loeschdialog sieht jeder, die Karte nur der
   // Admin. Eine Zahl, die die Oberflaeche selbst mitbraechte, waere eine
@@ -2307,7 +2307,7 @@ const GEWICHT_MIN = 0.2, GEWICHT_MAX = 2.0;
    Bewertung (das Urteil danach).
    DIE LISTE STEHT GENAU EINMAL, HIER UND NICHT AUCH IN db.js. Ein CHECK an der
    Spalte truege dieselbe Menge ein zweites Mal, und die zweite meldete sich
-   nicht als Absage mit Meldung, sondern als abgebrochene Schreibung --
+   nicht als Absage mit Message, sondern als abgebrochene Schreibung --
    dieselbe Ueberlegung wie bei GEWICHT_MIN/GEWICHT_MAX eine Zeile darueber.
    DEUTSCH, UND NICHT 'before'/'after': die Werte stehen in SELECTs, die
    jemand liest, und der Sprachwaechter liest mit. */
@@ -3850,7 +3850,7 @@ const videoUpload = multer({
   fileFilter: (req, file, cb) => {
     const gut = file.fieldname === 'video' ? /^video\//.test(file.mimetype)
                                            : /^image\//.test(file.mimetype);
-    cb(gut ? null : new Meldung('server.videoNeedsStill'), gut);
+    cb(gut ? null : new Message('server.videoNeedsStill'), gut);
   }
 });
 
@@ -4312,7 +4312,7 @@ app.post('/api/test-days/:id/tags', (req, res) => {
   if (!nurSelbst(req, testtag.user_id)) return res.status(403).json({ error: t(spracheVon(req), VERWEIGERT_SELBST)});
   /* AM TESTTAG GIBT ES KEINE WOLKE -- die Eingabe ist der einzige
      Zuweisungsweg und bleibt deshalb auf dem Bildschirm stehen. Ein
-     unbekannter Name faellt hier mit sprechender Meldung durch, statt dass die
+     unbekannter Name faellt hier mit sprechender Message durch, statt dass die
      Zeile verschwaende: sonst naehme der Schalter das Zuweisen mit, und
      "Zuweisen darf immer jeder" gilt. */
   let tag = findeTag(name);
@@ -4807,7 +4807,7 @@ app.get('/api/stats', nurAdmin, (req, res) => {
          `string`  so lang kann ein Text in Node ueberhaupt werden -- gemessen.
          GENANNT WIRD IN JEDER MELDUNG DIE LETZTE. Die beiden anderen sind
          unsere Entscheidungen; nur `string` ist eine Tatsache, und eine
-         Meldung, die unsere Marge als Tatsache ausgibt, sagt die Unwahrheit. */
+         Message, die unsere Marge als Tatsache ausgibt, sagt die Unwahrheit. */
       warnAb: AUSTAUSCH_WARN, grenze: AUSTAUSCH_MAX, string: AUSTAUSCH_STRING
     },
     itemCount: db.prepare('SELECT COUNT(*) n FROM items').get().n,
@@ -5365,7 +5365,7 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
      verschiedene Aufgaben: AUSTAUSCH_WARN nimmt niemandem etwas weg,
      AUSTAUSCH_MAX ist die Grenze, hinter der es keine Datei mehr gibt.
      KEIN STROM: hier wird nichts umgebaut, was funktioniert. Der Weg an der
-     Grenze vorbei steht in der Meldung und heisst Sicherung. */
+     Grenze vorbei steht in der Message und heisst Sicherung. */
   /* DAS FENSTER. Ohne `von`/`bis` ist es der ganze Bestand -- der Weg von
      0.12.3 und davor, Zeile fuer Zeile derselbe. Mit ihnen ist es ein Teil,
      und dann traegt der Dateiname seine Nummer.
@@ -5394,7 +5394,7 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
      DAS MERKMAL IST DAS WORT UND NICHT DIE NUMMER: merkmal traegt nur Werte
      aus MERKMALE, und "teil 1/5" stand nicht darin -- 0.12.4 hat damit gar
      keine Zeile geschrieben. Die Nummer des Teils steht im Dateinamen. */
-  auth.protokolliere('export', { wer: req.benutzer.id, merkmal: alsTeil ? 'teil' : null });
+  auth.log('export', { wer: req.benutzer.id, merkmal: alsTeil ? 'teil' : null });
   res.set('Content-Disposition',
     `attachment; filename="${exportName(alsTeil ? `-teil-${teil}-von-${teile}` : '')}"`);
   /* DAS NETZ UNTER DER SCHAETZUNG. Die Absage oben rechnet, sie misst nicht --
@@ -5615,7 +5615,7 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
   /* DER KONFLIKT UEBER DIE KAESTEN HINWEG, UND ER WIRD VOR DEM ERSTEN
      SCHREIBEN ABGEWIESEN -- 0.21.0.
      Traegt die Datei ein Kriterium, das es hier unter DEMSELBEN NAMEN im
-     ANDEREN Kasten gibt, ist das eine Absage mit Meldung, die das Kriterium
+     ANDEREN Kasten gibt, ist das eine Absage mit Message, die das Kriterium
      nennt. NICHT still in den vorhandenen Kasten einspielen: die Sterne
      landeten dann im falschen Durchschnitt, und die Datei sagte etwas anderes
      als die Installation.
@@ -5641,7 +5641,7 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
     /* EIN GANZER SATZ JE ZAHLFORM UND KEIN ZUSAMMENGEKLEBTER -- 0.24.0. Bis
        dahin waehlte der Code zwischen „steht" und „stehen"; das ist Satzbau im
        Quelltext, und er faellt (Konzept, Abschnitt 0, Satz 2). */
-    const e = new Meldung('server.criteriaConflict',
+    const e = new Message('server.criteriaConflict',
                           { n: konflikte.length, namen: konflikte.join(', ') });
     e.absage = true;
     throw e;
@@ -5898,11 +5898,11 @@ app.post('/api/import', nurEigentuemer, zweiteBestaetigungNoetig('import'),
     // neueIds bleibt hier liegen: eine Datei mit hundert Eintraegen liefert
     // hundert Nummern, mit denen die Oberflaeche nichts anfaengt.
     const { neueIds, ...antwort } = await spieleEin(payload, req.benutzer.id, mode);
-    auth.protokolliere('import', { wer: req.benutzer.id, merkmal: mode });
+    auth.log('import', { wer: req.benutzer.id, merkmal: mode });
     res.json(antwort);
   } catch (e) {
     /* EINE ABSAGE AUS spieleEin() IST KEIN FEHLER DER INSTANZ, sondern eine
-       Auskunft ueber die Datei -- sie geht als 400 mit Meldung hinaus und
+       Auskunft ueber die Datei -- sie geht als 400 mit Message hinaus und
        nicht als 500 durch das Auffangnetz. Sie faellt VOR der ersten
        Schreibung; der Bestand ist unveraendert. */
     if (e && e.absage) return res.status(400).json({ error: fehlerText(req, e) });
@@ -5954,16 +5954,16 @@ raeumePapierkorbAuf();
 // Und dasselbe fuer die abgelaufenen Token, nach derselben Bauform: erste
 // Aufrufstelle hier, zweite an GET /api/users. Die Funktion steht in auth.js,
 // weil dort auch alles andere zu den Token steht.
-auth.raeumeTokensAuf();
+auth.cleanupTokens();
 // Und dasselbe fuer das Sicherheitsprotokoll: erste Aufrufstelle hier, zweite
 // an GET /api/sicherheitsprotokoll.
-auth.raeumeProtokollAuf();
+auth.cleanupLog();
 /* Und die unbestaetigten Anfragen, . DREI Aufrufstellen statt
    zweier: hier, an GET /api/anfragen und -- das ist die besondere -- in
    legeAnfrageAn() selbst, vor der Deckelpruefung. Die dritte ist keine
    Hauswirtschaft, sondern Teil der Entscheidung: sonst blockierten zwanzig
    laengst verfallene Zeilen die Selbstanmeldung noch einen weiteren Tag. */
-auth.raeumeAnfragenAuf();
+auth.cleanupRequests();
 
 /* Der Weg hinein. EINE Transaktion, und das ist die Zusicherung der Runde:
    entweder liegt der Eintrag im Papierkorb UND ist geloescht, oder er steht
@@ -6476,7 +6476,7 @@ function aufraeumVorschau(pfad, behalten, tage) {
    DIE FREIGEGEBENEN BYTES STEHEN NICHT DARIN, sondern in der Antwort und in
    der Zeile im Containerprotokoll. */
 const protokolliereEntfernt = (wer, zahl) => {
-  for (let i = 0; i < zahl; i++) auth.protokolliere('sicherung.weg', { wer });
+  for (let i = 0; i < zahl; i++) auth.log('sicherung.weg', { wer });
 };
 
 function entferneSicherungen(ordner, namen) {
@@ -6624,7 +6624,7 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
   // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie der
   // Export. Der Pfad steht NICHT in der Zeile: das Protokoll haelt Vorgaenge
   // fest, keine Orte auf dem Wirt.
-  auth.protokolliere('sicherung', { wer: req.benutzer.id });
+  auth.log('sicherung', { wer: req.benutzer.id });
   /* ---- DAS AUFRAEUMEN, UND ZWAR HIER UND NIRGENDS SONST ----
      DER AUFRUF STEHT AM ENDE DIESER ROUTE, NACH dem `rename` und nach
      `statSync` -- an dem einen Augenblick, in dem feststeht, dass eine
@@ -6639,7 +6639,7 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
 
      UND DAS AUFRAEUMEN DARF DIE SICHERUNG NICHT MITREISSEN. Wer eine gelungene
      Kopie mit einem Fehler beantwortet, macht aus einem geglueckten Vorgang
-     eine rote Meldung -- genau der Fehler aus 0.19.6 (Stolperstein 298).
+     eine rote Message -- genau der Fehler aus 0.19.6 (Stolperstein 298).
      Der Aufruf steht deshalb in seinem eigenen `try`, und was er meldet, ist
      eine Angabe NEBEN der Sicherung, kein Ersatz fuer sie.
      ES GESCHIEHT NUR BEI EINGESCHALTETEM SCHALTER, und der steht auf AUS. */
@@ -6762,7 +6762,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 /* Der letzte Fehler-Handler. Zwei Regeln:
    Ein Fehler, den der Server ABSICHTLICH wirft, traegt eine Markierung
-   (err.status) und behaelt Rang und Meldung; Multer-Fehler ebenso.
+   (err.status) und behaelt Rang und Message; Multer-Fehler ebenso.
    Alles Uebrige ist ein Fehler DES SERVERS und wird 500 mit festem Text: ein
    SQL-Fehler nennt Tabellen und Spalten, ein sharp-Absturz den Pfad. Die
    Einzelheiten stehen im Protokoll, und dort gehoeren sie hin. */
@@ -6775,11 +6775,11 @@ app.use((err, req, res, next) => {
      traegt. Ihr Status steht an ihr; die Reihenfolge davor gilt weiter fuer
      alles andere. */
   /* GEFRAGT WIRD NACH `schluessel` UND NICHT NACH DER KLASSE: auth.js wirft
-     die Klasse `Meldung`, mail.js baut sich dieselbe Form selbst -- es ist ein
+     die Klasse `Message`, mail.js baut sich dieselbe Form selbst -- es ist ein
      Blatt im Abhaengigkeitsbaum und darf auth.js nicht requiren. Was zaehlt,
      ist die Form. */
-  if (err && err.schluessel)
-    return res.status(err.status || 400).json({ error: t(sprache, err.schluessel, err.werte || {}) });
+  if (err && err.key)
+    return res.status(err.status || 400).json({ error: t(sprache, err.key, err.values || {}) });
   const rang = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
   if (rang >= 500) return res.status(500).json({ error: t(sprache, 'server.error') });
   res.status(rang).json({ error: err.message || t(sprache, 'server.errorUnknown') });
@@ -6933,7 +6933,7 @@ app.listen(PORT, () => {
   // holeBenutzer() ist hier RICHTIG: beim Start gibt es keine Anfrage und
   // damit keinen angemeldeten Benutzer. Gemeint ist der Eigentuemer, und so
   // steht es auch in der Zeile.
-  const u = auth.holeBenutzer();
+  const u = auth.getUser();
   console.log(`[Kriterion] Läuft auf Port ${PORT} — ` +
     (u ? `Eigentümer: ${u.username}` : 'noch kein Zugang, Einrichtung im Browser'));
   /* Die Betriebsart gehoert ins Protokoll: an ihr haengt, ob die Koepfe des

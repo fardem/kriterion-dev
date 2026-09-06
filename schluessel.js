@@ -265,7 +265,7 @@ async function commandChange(options) {
      mitreisst, ueber den es berichten soll, waere schlimmer als keins. */
   db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('schluesselGewechseltAm', ?)")
     .run(JSON.stringify(stamp));
-  auth.protokolliere('schluessel', { wer: auth.VOM_WIRT });
+  auth.log('schluessel', { wer: auth.FROM_HOST });
 
   console.log(`\n${BOLD('Der Schlüssel ist gewechselt.')}`);
   console.log(`  Gedauert hat es ${ms} ms; das Journal stand auf ${journal.vorher} → DELETE → ${journal.nachher}.`);

@@ -13,12 +13,12 @@ const nodemailer = require('nodemailer');
 let t = (locale, key) => `\u27e6${key}\u27e7`;
 function setTranslator(fn) { t = fn; }
 
-/* EIN FEHLER MIT SCHLUESSEL, OHNE DIE KLASSE `Meldung` -- 0.24.0. Die Klasse
+/* EIN FEHLER MIT SCHLUESSEL, OHNE DIE KLASSE `Message` -- 0.24.0. Die Klasse
    wohnt in auth.js, und auth.js requiret DIESE Datei; der Weg zurueck waere
    ein Ring. Was der Fehler-Handler in server.js braucht, ist nicht die Klasse,
    sondern die FORM: ein `key`, seine `values` und ein `status`. */
 const message = (key, values = {}) =>
-  Object.assign(new Error(key), { schluessel: key, werte: values, status: 400 });
+  Object.assign(new Error(key), { key, values, status: 400 });
 
 /* ================= Der Mailversand =================
 
@@ -182,7 +182,7 @@ function configured(raw) {
 }
 
 /* Prueft, was von aussen hereinkommt, und liefert den Wert zum Speichern.
-   WIRFT MIT KLARTEXT -- der Aufrufer gibt die Meldung unveraendert weiter.
+   WIRFT MIT KLARTEXT -- der Aufrufer gibt die Message unveraendert weiter.
    DAS PASSWORT DARF LEER BLEIBEN UND HEISST DANN "unveraendert": sonst muesste
    der Eigentuemer es bei jeder Aenderung am Absender neu tippen, und ein
    Formular, das ein Geheimnis zum Aendern einer Nebensache verlangt, wird
