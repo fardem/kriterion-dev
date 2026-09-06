@@ -55,7 +55,7 @@ Datenbank, F8 über den Prüfstand, F9 über das, was ein Betreiber in seiner
 |---|---|---|---|
 | **F1** | **Werden die Namen im Datenbankschema mit umbenannt?** Sechs Tabellen heißen deutsch (`anfragen`, `sicherheitsprotokoll`, `papierkorb`, `papierkorb_bytes`, `zweifaktor`, `zweifaktor_codes`), dazu zwölf Spalten (`gewicht`, `phase`, `art`, `dauer`, `gesetzt_am`, `zoom`, `haengt`, `kann`, `mit`, `nimmt`, `rejected_grund`, `rejected_von`) | **Ja, mit Migrationsblock.** Ein Schemaname ist kein Inhalt, sondern Code — und `db.js` wäre sonst der eine Ort, an dem Deutsch stehen bliebe. `ALTER TABLE … RENAME` und `RENAME COLUMN` kann SQLite seit 3.25; der Block läuft einmal und ist danach ein Nichts. *Kostet: eine Datenbankstufe, und damit eine Sicherung vor dem Einspielen* | |
 | **F2** | **Werden auch die gespeicherten WERTE umbenannt?** Siebzehn Vorgangsschlüssel im Sicherheitsprotokoll (`anmeldung.ok`, `zugang.neu` …), die Phasen (`vorher`/`nachher`), die Zustände (`aktiv`/`gesperrt`/`geloescht`), die Schemata (`hell`/`dunkel`/`geraet`) und neunzehn Einstellungsschlüssel (`sicherungBehalten`, `bilderUmwandeln`, `bloecke`, `schrift` …) | **Ja — im selben Block, und das ist der teure Teil.** Sonst steht in jedem Vergleich weiter ein deutsches Wort (`z.was === 'zugang.status'`), und „nativ englisch" wäre eine Behauptung. **Der Block muss auch die Exportdateien lesen können, die es schon gibt:** ein Import übersetzt die alten Werte beim Einlesen, sonst wird ein Export von gestern morgen unlesbar | |
-| **F3** | **Wie heißen die Schlüssel der Sprachdatei?** Heute `karte.titelSpeichern`, `liste.keineNeuigkeiten`, neun deutsche Namensräume | **Englisch, nach derselben Regel wie bisher** — nach der Sache, mit Namensraum: `card.saveTitle`, `list.noNews`. Die neun Namensräume werden `login` · `dialog` · `entry` · `list` · `card` · `server` · `mail` · `vocabulary` · `error`. *Und das Verzeichnis heißt `public/languages/`; die Dateien behalten ihren ISO-Code (`de.json`)* | |
+| **F3** | **Wie heißen die Schlüssel der Sprachdatei?** Heute `karte.titelSpeichern`, `liste.keineNeuigkeiten` — aber auch `anmeldung.dankeDeineAdresseIstBestaetigt`; neun deutsche Namensräume | **Englisch, kurz, nach der SACHE — nicht nach dem Satz.** `card.saveTitle`, `list.noNews`, und aus `anmeldung.dankeDeineAdresseIstBestaetigt` wird **`login.confirmed`**. Die neun Namensräume werden `login` · `dialog` · `entry` · `list` · `card` · `server` · `mail` · `vocabulary` · `error`. **Latte: höchstens drei Wörter und 24 Zeichen hinter dem Punkt** (0.2). *Und das Verzeichnis heißt `public/languages/`; die Dateien behalten ihren ISO-Code (`de.json`)* | |
 | **F4** | **Was wird aus den Adressen?** `#/system/datenbank`, `#/offen`, `#/bestaetigung`, `#/einladung` und neun deutsche API-Wurzeln | **Alle englisch — und die alten werden übersetzt, nicht fallen gelassen.** Für `#/system` gibt es diesen Mechanismus schon dreimal (`anlage`, `instanz`, `scheune` aus 0.17.0 und 0.19.1); er bekommt die neuen Paare dazu. *Ein Lesezeichen auf eine Einstellungskarte darf nicht ins Leere zeigen* | |
 | **F5** | **Und die API-Wege?** | **Hart umbenannt, ohne Altwege.** Der einzige Rufer ist `public/app.js`, und der wird in derselben Runde umgestellt. **Eine API ohne fremde Rufer braucht keine Rücksicht** — anders als eine Adresse, die in einem Lesezeichen steht. *`F_ROUTEN` bleibt bei 70; der Wächter zählt sie weiter* | |
 | **F6** | **ids, Stilblattklassen und Stilblattvariablen?** 243 ids, 380 Klassen, 79 Variablen — davon rund 110 deutsch | **Ja, alle.** Sonst bleibt das Stilblatt der letzte deutsche Ort, und `document.getElementById('zug-name')` steht mitten im englischen Code. *Sie sind nirgends nach außen sichtbar: kein Lesezeichen, kein Export, keine Schnittstelle hängt daran* | |
@@ -144,7 +144,101 @@ fällt** — und danach ist sie die eine Wahrheit, aus der jeder Abschnitt liest
   400 bis 500 Einträge. *Ein Name, der nur an einer Stelle steht, braucht
   keinen Eintrag; einer, der an dreißig steht, braucht ihn zwingend.*
 
-### 0.2 Was dabei nicht verhandelbar ist
+### 0.2 Der gesunde Menschenverstand benennt — die Latte erinnert nur ans Hinsehen
+
+> **DIE REGEL, DIE ÜBER ALLEN ANDEREN DIESES ABSCHNITTS STEHT, HAT EINEN NAMEN,
+> UND DER BETREIBER HAT IHN AM 6. SEPTEMBER 2026 GENANNT: GESUNDER
+> MENSCHENVERSTAND.** *Er hat sie genannt, nachdem er zweimal gezeigt hatte,
+> wohin eine Regel ohne ihn führt — einmal zu lang, einmal fast gleich —, und
+> gleich dazugesagt, worauf sie hinausläuft: „es muss sinnvoll sein … aber eine
+> strenge Regel kann manchmal auch unsinnige kurze Namen machen".*
+>
+> **Daraus folgt die Reihenfolge, und die Reihenfolge ist der ganze Inhalt: ein
+> Name muss SINNVOLL sein; unter den sinnvollen nimmt man den kürzesten.** Ein
+> kurzer Name, bei dem man raten muss, ist schlechter als ein langer, bei dem
+> man es nicht muss. **Jede Zahl weiter unten ist deshalb eine Erinnerung ans
+> Hinsehen und keine Schranke.** *Wer hinsieht, nachdenkt und dann den längeren
+> Namen nimmt, hat diese Regel befolgt und nicht gebrochen. Wer die Zahl
+> einhält und dabei einen Namen hinterlässt, den der Nächste raten muss, hat
+> sie gebrochen — auch wenn die Prüfung dazu schweigt.*
+>
+> **Und weil der Menschenverstand nicht messbar ist, die Latte aber schon,
+> gilt: die Latte weist nichts ab.** *Wer über sie hinausmuss, darf; er
+> schreibt einen Satz dazu, warum. Die Prüfung zählt diese Sätze — damit eine
+> Entscheidung eine Entscheidung bleibt und nicht zur Gewohnheit wird.*
+
+**Ein Name soll so kurz sein, wie er sein kann, ohne zu raten zu geben.**
+*Der Betreiber hat es am 6. September 2026 gesagt, und das Beispiel war
+`anmeldung.dankeDeineAdresseIstBestaetigt`.* **Der Fehler daran ist nicht die
+Länge, sondern die Herkunft:** dieser Name ist aus dem SATZ gebildet worden und
+nicht aus der SACHE. Das Umzugswerkzeug aus 0.24.0 hat das so gemacht — es
+konnte gar nicht anders, es kannte nur den Satz. **Diese Runde macht es
+richtig herum:** der Schlüssel benennt, WOFÜR der Satz da ist, und der Satz
+steht daneben in der Datei. Aus `anmeldung.dankeDeineAdresseIstBestaetigt`
+wird **`login.confirmed`**.
+
+**Die Latte, aus dem heutigen Bestand gemessen — als Anlass zum Hinsehen:**
+
+| | heute | Latte |
+|---|---|---|
+| Schlüssel, Namensteil hinter dem Punkt | Median **17** Zeichen, längster **37** | **höchstens 24 Zeichen** |
+| Schlüssel, Wörter im Namensteil | 269 mit einem, 378 mit zwei, 166 mit drei — aber **261 mit fünf und mehr** | **höchstens drei Wörter** |
+| Bezeichner im Code | Median **10** Zeichen, längster **26**; nur zwei über 24 | **höchstens 24 Zeichen, in der Regel unter 16** |
+
+**782 der 1190 Schlüssel halten die Latte schon heute** — 408 müssen kürzer
+werden, davon 232 an beidem. *Bei den Bezeichnern sind es zwei; die Latte ist
+dort keine Arbeit, sondern eine Bremse für die Umbenennung: wer aus
+`zeichneZugaenge` ein `drawUserAccessTable` macht, hat das Ziel verfehlt.*
+
+**Was die Latte NICHT ist:** ein Grund für ein Kürzel. `cfg`, `usr`, `btn`
+unterschreiten sie und sagen weniger, nicht mehr. **Kurz heißt: wenige Wörter,
+und jedes davon trägt** — `login.confirmed` und nicht `login.cnf`.
+
+**UND DER ZWEITE FEHLER DERSELBEN HERKUNFT, den die Latte allein nicht fängt:
+zwei Sätze, die gleich anfangen, bekommen fast denselben Namen.** Der Betreiber
+hat auch dafür ein Beispiel genannt:
+
+```
+karte.umbenennenOderLoeschenBeimLoeschen   „Umbenennen oder löschen. Beim Löschen bleiben …"   (Kategorien)
+karte.umbenennenOderLoeschenEin            „Umbenennen oder löschen. Ein gelöschter Tag …"     (Tags)
+```
+
+*Zwei Karten, zwei verschiedene Sätze — und die Namen unterscheiden sich erst
+im vierten Wort, an einer Stelle, die nichts über die Sache sagt.* **Nach der
+Sache benannt heißen sie `card.categoriesHint` und `card.tagsHint`**, und der
+Unterschied steht vorn statt hinten.
+
+**Woran man diesen Fehler im Bestand erkennt, in zwei Zahlen:** **66 Schlüssel
+tragen eine angehängte Ziffer** (`eintrag.loeschen2` bis `eintrag.loeschen6`,
+`karte.linkZumZuruecksetzenErzeugen2`) — die Ziffer ist die Notlösung des
+Werkzeugs, wenn zwei Sätze denselben Namen ergaben. Und **133 Schlüssel in 65
+Gruppen stimmen in ihren ersten drei Wörtern überein.** *Beides verschwindet
+von selbst, sobald der Name die Sache nennt: zwei verschiedene Sachen haben
+verschiedene Namen, ohne dass man durchzählen müsste.*
+
+**Deshalb gilt in dieser Runde: keine angehängte Ziffer.** Wo eine steht, ist
+der Name nicht gefunden, sondern durchnummeriert. *Die Kürzeprobe hält es fest;
+die Ausnahme ist der Fall, in dem zwei Sachen wirklich dasselbe heißen — und
+den gibt es dann nur einmal, nicht sechsmal.*
+
+**Wo ein Name die Latte reißen muss, reißt er sie** — und zwar immer dann, wenn
+das kürzere Wort zweideutig wäre, zu allgemein, oder zwei verschiedene Sachen
+gleich benennen würde. *Solche Namen stehen im Wörterbuch mit einem Satz
+Begründung. Sie sind keine Verstöße, sondern Entscheidungen — die Prüfung
+zählt sie und nennt sie, sie weist keinen davon ab.*
+
+**Drei Fälle, in denen der längere Name der richtige ist:**
+
+* **Zwei Sachen, ein kurzes Wort.** `card.backups` und `card.oldBackups` sind
+  zwei Karten; `card.backups2` wäre kürzer und falsch.
+* **Ein Wort, das ohne Beiwerk etwas anderes heißt.** `entry.rating` ist im
+  Bestand zweideutig — es gibt den Kasten *vor* dem Test und den *nach* ihm;
+  `entry.ratingAfterTest` ist länger und sagt, welcher gemeint ist.
+* **Ein Satz, der wirklich ein Satz ist.** Ein Hinweis unter einer Karte hat
+  keinen kurzen Namen, den man nicht raten müsste; `card.backupKeyWarning` ist
+  fünf Silben lang und trotzdem der beste, den es gibt.
+
+### 0.3 Was dabei nicht verhandelbar ist
 
 * **Kein Kürzel, das man nachschlagen muss.** `usr`, `cfg`, `btn` sind keine
   englischen Namen, sondern eine dritte Sprache.
@@ -276,6 +370,7 @@ Rückbaunamen nein.**
 | **Adressprobe** | kein Weg (`#/…`, `/api/…`) trägt ein deutsches Wort — **und jede alte Adresse wird übersetzt**, namentlich geprüft |
 | **Gestaltprobe** | keine id, keine Klasse, keine Stilblattvariable trägt ein deutsches Wortstück |
 | **Wortlautprobe** | die **Werte** von `de.json` sind Zeichen für Zeichen die von `0681d42` — die Abnahme der Runde, als Prüfung |
+| **Kürzeprobe** | **kein Schlüssel trägt eine angehängte Ziffer** (heute 66) — und die Namen über der Latte (drei Wörter, 24 Zeichen) stehen **namentlich** da, je mit dem Satz aus dem Wörterbuch, der sie begründet. *Sie werden gezählt, nicht abgewiesen: die Zahl ist festgenagelt, damit eine Ausnahme eine Entscheidung bleibt und nicht zur Gewohnheit wird* |
 
 ### 7.3 Die Zahlen, die festgenagelt werden
 
@@ -283,6 +378,13 @@ Deutsche Bezeichner im ausgelieferten Code = **0** · deutsche Schlüssel = **0*
 · deutsche Wege = **0** · Schlüssel in `de.json` = **1190, unverändert** ·
 `F_ROUTEN` = **70, unverändert** · `PERSOENLICHE_SCHLUESSEL` = **10,
 unverändert** · Prüfungen = die gemessene Zahl.
+
+**Dazu die Zahlen der Kürze**, gegen die von heute gestellt: **Schlüssel mit
+angehängter Ziffer 66 → 0** · **Schlüssel mit fünf und mehr Wörtern 261 → die
+gemessene Zahl, und die steht namentlich da** · **längster Schlüsselname 37 →
+die gemessene Zahl**. *Die Zahl der begründeten Ausnahmen ist selbst
+festgenagelt — eine Ausnahme, die niemand zählt, wird zur Auslegung. Sie darf
+größer als null sein; sie darf nur nicht unbemerkt wachsen.*
 
 ---
 
@@ -307,6 +409,9 @@ unverändert** · Prüfungen = die gemessene Zahl.
 2. **Die Werte von `de.json` sind Byte für Byte die von `0681d42`.**
 3. **Kein deutscher Bezeichner, Schlüssel, Weg, id, Klasse oder Dateiname**
    im ausgelieferten Code — die Ausnahmen namentlich.
+3a. **Keine angehängte Ziffer in einem Schlüssel** (heute 66), und die Namen
+   über der Latte stehen namentlich mit Begründung da — gezählt, nicht
+   abgewiesen.
 4. **Jede alte Adresse wird übersetzt**, jede alte Umgebungsvariable gelesen.
 5. **Der jsdom-Durchgang und der Augenschein im Browser zeigen dieselben
    Ansichten wie `0681d42`** — in beiden Farbschemata.
@@ -328,6 +433,11 @@ unverändert** · Prüfungen = die gemessene Zahl.
   Ansichten, beide Schemata, ein Bild je Ansicht gegen den Stand von 0.24.0.
 * **Wer einen Namen findet, den das Wörterbuch nicht kennt, trägt ihn nach** —
   in das Wörterbuch, nicht nebenbei in den Code.
+* **Im Zweifel für den Sinn — der gesunde Menschenverstand steht über der
+  Latte.** Wer zwischen einem kurzen und einem klaren Namen wählen muss, nimmt
+  den klaren und schreibt ihn ins Wörterbuch. *Ein Name, den der Nächste
+  nachschlagen muss, hat nichts gespart; eine Zahl, die eingehalten wurde und
+  einen solchen Namen erzeugt hat, auch nicht.*
 * **Die Gegenprobe wird gefahren, nicht nur geschrieben.** Eine stumme
   Gegenprobe ist ein Fund.
 
