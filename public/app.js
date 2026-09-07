@@ -24,14 +24,14 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&
 let LANGUAGE = 'de';
 let LOCALE = 'de-DE';
 let TEXTS = {};
-let TEXTE_DE = {};
+let TEXTS_DE = {};
 /* EINMAL GEBAUT UND NICHT JE AUFRUF. `new Intl.PluralRules(...)` je Text waere
    bei 46 Mehrzahlstellen und jedem Neuzeichnen eine gut sichtbare Rechnung. */
 let PLURAL = new Intl.PluralRules(LOCALE);
 
 // Den Satz nachschlagen -- in der gewaehlten Sprache, sonst auf Deutsch.
 function languageSentence(key, values) {
-  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTE_DE[key];
+  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_DE[key];
   if (raw === undefined) return `⟦${key}⟧`;
   if (typeof raw !== 'object') return raw;
   /* DIE MEHRZAHL WAEHLT Intl.PluralRules UND NICHT `n === 1`. Fuer Deutsch
@@ -96,7 +96,7 @@ async function loadLanguage(code) {
   PLURAL = new Intl.PluralRules(LOCALE);
   TEXTS = data;
   // Deutsch ist die Rueckfalldatei. In dieser Runde ist es dieselbe.
-  if (code === 'de') TEXTE_DE = data;
+  if (code === 'de') TEXTS_DE = data;
   /* UND DIE VORGABE DES VOKABULARS -- 0.24.0. Sie ist Oberflaeche und kein
      Inhalt: bis der Server seinen Satz schickt, beschriftet sie den Bildschirm
      (siehe `V`). Gesetzt wird sie HIER und nicht an `V` selbst, weil die Zeile
@@ -418,10 +418,10 @@ function autoGrow(el) {
     // bei jedem Tastendruck. Deshalb Position merken und noch im selben
     // Durchlauf zuruecksetzen.
     const seite = document.scrollingElement || document.documentElement;
-    const vorher = seite ? seite.scrollTop : 0;
+    const before = seite ? seite.scrollTop : 0;
     el.style.height = 'auto';
     el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px';
-    if (seite && seite.scrollTop !== vorher) seite.scrollTop = vorher;
+    if (seite && seite.scrollTop !== before) seite.scrollTop = before;
   };
   el.addEventListener('input', fit);
   fit();
@@ -453,12 +453,12 @@ function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'dang
    Browser wie diese Instanz aus und laesst sich nicht beschriften.
    Liefert den getrimmten Namen oder null bei Abbruch. Ein leerer Name ist ein
    Abbruch: eine Ansicht ohne Namen liesse sich nicht wiederfinden. */
-function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLaenge = 40) {
+function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLength = 40) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p class="hint">${esc(text)}</p>
-      <div class="field"><input class="input" id="nb-name" maxlength="${maxLaenge}"
+      <div class="field"><input class="input" id="nb-name" maxlength="${maxLength}"
         value="${esc(fallback)}" placeholder="${esc(t('dialog.viewName'))}"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
       <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`;
@@ -1176,7 +1176,7 @@ function commentNumbers(kommentare) {
   const list = kommentare || [];
   const n = list.length;
   if (!n) return '';
-  const count = (...arten) => list.filter(c => arten.includes(c.kind)).length;
+  const count = (...kinds) => list.filter(c => kinds.includes(c.kind)).length;
   const reports = count('report');
   // Erledigtes zaehlt MIT zu den Aufgaben, nicht daneben.
   const tasks = count('task', 'done');
@@ -1757,21 +1757,21 @@ function trimLinkEnd(address) {
    eine Adresse, in der der Begriff steht, in mehrere Stuecke MIT demselben
    Ziel -- der Knotenbauer setzt sie danach wieder zu EINEM Link zusammen. */
 function splitAtTerm(text, term, rest = {}) {
-  const inhalt = String(text ?? '');
+  const content = String(text ?? '');
   const b = String(term ?? '');
-  if (!inhalt) return [];
-  if (!b) return [{ text: inhalt, ...rest }];
-  const lower = inhalt.toLocaleLowerCase(LOCALE), lowerB = b.toLocaleLowerCase(LOCALE);
+  if (!content) return [];
+  if (!b) return [{ text: content, ...rest }];
+  const lower = content.toLocaleLowerCase(LOCALE), lowerB = b.toLocaleLowerCase(LOCALE);
   const pieces = [];
   let from = 0;
   for (;;) {
     const i = lower.indexOf(lowerB, from);
     if (i < 0) break;
-    if (i > from) pieces.push({ text: inhalt.slice(from, i), ...rest });
-    pieces.push({ text: inhalt.slice(i, i + b.length), ...rest, treffer: true });
+    if (i > from) pieces.push({ text: content.slice(from, i), ...rest });
+    pieces.push({ text: content.slice(i, i + b.length), ...rest, treffer: true });
     from = i + b.length;
   }
-  if (from < inhalt.length) pieces.push({ text: inhalt.slice(from), ...rest });
+  if (from < content.length) pieces.push({ text: content.slice(from), ...rest });
   return pieces;
 }
 
@@ -2086,12 +2086,12 @@ const state = {
      die haeufigste Handhabung der Suche (tippen, wieder loeschen) die
      teuerste. `items` ist, was gerade gezeigt wird: entweder `all` oder die
      Antwort auf einen Suchbegriff.
-     `bestand` ist die Zahl des GANZEN Bestands fuer die Zaehlzeile. Ohne sie
+     `inventory` ist die Zahl des GANZEN Bestands fuer die Zaehlzeile. Ohne sie
      stuende dort waehrend einer Suche die Trefferzahl als Gesamtzahl -- "3
      Sachen · 3 sichtbar", und der Bestand von 300 waere verschwunden.
-     `suchLaeuft` und `suchFehler` sind Ansichtszustand und keine Einstellung:
+     `searchRunning` und `searchError` sind Ansichtszustand und keine Einstellung:
      beim naechsten Aufruf steht wieder die Vorgabe. */
-  all: [], bestand: 0, suchLaeuft: false, suchFehler: false,
+  all: [], inventory: 0, searchRunning: false, searchError: false,
 };
 
 // Die Einstellungen werden einmal beim Start geholt -- auch beim Direkteinstieg
@@ -2222,8 +2222,8 @@ async function loadAll() {
      wird ueber Kopien (`[...out].sort(...)` in visibleItems), und ein push oder
      splice darauf gibt es nirgends. Wer je eines einbaut, veraendert damit auch
      den ungefilterten Bestand. */
-  state.all = items; state.items = items; state.bestand = items.length;
-  state.suchFehler = false;
+  state.all = items; state.items = items; state.inventory = items.length;
+  state.searchError = false;
   state.categories = categories; state.tags = tags; state.criteria = criteria;
   TITLE_APP = titles.appTitle; TITLE_PUBLIC = titles.publicTitle;
   document.title = TITLE_APP;
@@ -2290,7 +2290,7 @@ function filterNormal(raw) {
      DER GESPEICHERTE WERT BLEIBT, WIE ER IST: gelesen wird er uebergangen, in
      der Ablage steht er weiter. Ein Lesevorgang, der die Ansicht eines
      Menschen umschreibt, ist schlimmer als ein alter Wert. */
-  delete f.neu;
+  delete f.fresh;
   return f;
 }
 
@@ -2340,22 +2340,22 @@ async function runSearch() {
   if (!term) {
     // Ohne Begriff ist der ganze Bestand die Antwort, und der liegt schon da.
     state.items = state.all;
-    state.suchLaeuft = false; state.suchFehler = false;
+    state.searchRunning = false; state.searchError = false;
     drawFilters(); drawBody();
     return;
   }
-  state.suchLaeuft = true;
+  state.searchRunning = true;
   drawBody();
   try {
     const treffer = await api('GET', `/api/items?q=${encodeURIComponent(term)}`);
     if (run !== searchRun) return;          // eine neuere Anfrage ist unterwegs
     state.items = treffer;
-    state.suchLaeuft = false; state.suchFehler = false;
+    state.searchRunning = false; state.searchError = false;
   } catch (e) {
     if (run !== searchRun) return;
     if (e.message === t('dialog.sessionExpired')) return;   // die Anmeldeseite kommt
     // Stehen bleibt, was da ist. Die Zaehlzeile sagt es.
-    state.suchLaeuft = false; state.suchFehler = true;
+    state.searchRunning = false; state.searchError = true;
   }
   drawFilters(); drawBody();
 }
@@ -2628,19 +2628,19 @@ const termOutAddress = (frage) => {
    Zurueck wieder auf den alten fiele. */
 const OLD_ADDRESSES = { '#/offen': '#/open' };
 const OLD_ADDRESS_ROOTS = { '#/einladung/': '#/invite/', '#/bestaetigung/': '#/confirm/' };
-const OLD_SECTIONS = { persoenlich: 'personal', bestand: 'inventory',
-                       users: 'users', datenbank: 'database' };
+const OLD_SECTIONS = { persoenlich: 'personal', inventory: 'inventory',
+                       users: 'users', database: 'database' };
 function translateAddress() {
   const h = location.hash || '';
-  let neu = OLD_ADDRESSES[h] || '';
-  if (!neu) for (const [alt, jetzt] of Object.entries(OLD_ADDRESS_ROOTS))
-    if (h.startsWith(alt)) { neu = jetzt + h.slice(alt.length); break; }
-  if (!neu) {
+  let fresh = OLD_ADDRESSES[h] || '';
+  if (!fresh) for (const [old, now] of Object.entries(OLD_ADDRESS_ROOTS))
+    if (h.startsWith(old)) { fresh = now + h.slice(old.length); break; }
+  if (!fresh) {
     const m = h.match(/^#\/system\/([a-z]+)$/);
-    if (m && OLD_SECTIONS[m[1]]) neu = `#/system/${OLD_SECTIONS[m[1]]}`;
+    if (m && OLD_SECTIONS[m[1]]) fresh = `#/system/${OLD_SECTIONS[m[1]]}`;
   }
-  if (!neu || neu === h) return false;
-  history.replaceState(null, '', neu);
+  if (!fresh || fresh === h) return false;
+  history.replaceState(null, '', fresh);
   return true;
 }
 
@@ -3607,10 +3607,10 @@ function drawBody() {
      ohnehin die Zahlen stehen. */
   const cnt = document.getElementById('count');
   if (cnt) {
-    let z = `${state.bestand} ${vThing(state.bestand)}` +
-      (list.length !== state.bestand ? t('list.visibleCount', { length: list.length }) : '');
-    if (state.suchLaeuft) z += t('list.searchingShort');
-    else if (state.suchFehler) z += t('list.searchOffline');
+    let z = `${state.inventory} ${vThing(state.inventory)}` +
+      (list.length !== state.inventory ? t('list.visibleCount', { length: list.length }) : '');
+    if (state.searchRunning) z += t('list.searchingShort');
+    else if (state.searchError) z += t('list.searchOffline');
     cnt.textContent = z;
   }
 
@@ -3619,7 +3619,7 @@ function drawBody() {
   // GEFRAGT WIRD DER BESTAND UND NICHT DIE GEZEIGTE MENGE: eine Suche ohne
   // Treffer ist kein leerer Bestand, und "Noch nichts erfasst" waere dort die
   // falsche Auskunft. Die Absage darunter ist die richtige.
-  if (!state.bestand) {
+  if (!state.inventory) {
     body.innerHTML = `<div class="empty">${ICON_PH}<h2>${tH('list.nothingYet')}</h2>
       <p>${tH('list.emptyHint')}</p></div>`;
     return;
@@ -3634,7 +3634,7 @@ function drawBody() {
   /* WAEHREND DIE SUCHE LAEUFT, BLEIBT DIE ALTE LISTE STEHEN und wird nur
      gedaempft. Eine Liste, die zwischen zwei Tastendruecken leer wird, ist
      schlechter als eine, die einen Augenblick alt ist. */
-  grid.className = 'grid' + (state.suchLaeuft ? ' searching' : '');
+  grid.className = 'grid' + (state.searchRunning ? ' searching' : '');
   list.forEach(it => grid.appendChild(card(it)));
   body.appendChild(grid);
   drawCompareBar();
@@ -3670,7 +3670,7 @@ function yearMarks(from, to) {
   const marks = [];
   for (let j = j1; j <= j2; j++) {
     const tag = j === j1 ? from : `${j}-01-01`;
-    marks.push({ jahr: j, anteil: timeShare(tag, from, to) });
+    marks.push({ year: j, share: timeShare(tag, from, to) });
   }
   return marks;
 }
@@ -3723,8 +3723,8 @@ function drawTimeline(list) {
   marks.forEach(m => {
     const s = document.createElement('span');
     s.className = 'timeline-year';
-    s.style.left = (m.anteil * 100) + '%';
-    s.textContent = m.jahr;
+    s.style.left = (m.share * 100) + '%';
+    s.textContent = m.year;
     years.appendChild(s);
   });
 
@@ -4469,7 +4469,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     const el = inner();
     const source = isVideo(photos[i]) ? imageSource(photos[i], '') : null;
     if (el && source && el.getAttribute('src') === source) {
-      handover = { source, stelle: el.currentTime || 0, lief: !el.paused, offen: true };
+      handover = { source, position: el.currentTime || 0, lief: !el.paused, offen: true };
       el.pause();
       el.removeAttribute('src');
       el.load();
@@ -4487,7 +4487,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
   const hold = () => {
     if (!player.hidden || player.src) {
       if (handover && player.getAttribute('src') === handover.source) {
-        handover.stelle = player.currentTime || 0;
+        handover.position = player.currentTime || 0;
         handover.lief = !player.paused;
       }
       player.pause();
@@ -4506,7 +4506,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     const el = inner();
     if (!el || el.getAttribute('src')) return;
     el.src = handover.source;
-    el.currentTime = handover.stelle;
+    el.currentTime = handover.position;
     if (handover.lief) el.play()?.catch?.(() => {});
     handover = null;
   };
@@ -4544,7 +4544,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
          nicht. */
       if (handover && handover.offen && player.getAttribute('src') === handover.source) {
         handover.offen = false;
-        player.currentTime = handover.stelle;
+        player.currentTime = handover.position;
         if (handover.lief) player.play()?.catch?.(() => {});
       }
     } else {
@@ -5279,7 +5279,7 @@ async function renderDetail(id, termAddress) {
        festen Kante nicht, er bleibt in ihrer Mitte. */
     const dragHandle = (gesture, k, p, f) => {
       const rechts = k.links + k.edge, unten = k.oben + k.edge;
-      const centerX = k.links + k.edge / 2, mitteY = k.oben + k.edge / 2;
+      const centerX = k.links + k.edge / 2, centerY = k.oben + k.edge / 2;
       // Wie weit eine Kante nach beiden Seiten reichen darf, ohne dass die
       // Mitte wandert -- die kleinere Haelfte gibt den Deckel.
       const aroundCenter = (m, whole) => 2 * Math.min(m, whole - m);
@@ -5293,9 +5293,9 @@ async function renderDetail(id, termAddress) {
         case 'rechts-unten': return setBox(Math.max(p.x - k.links, p.y - k.oben),
           (e) => ({ l: k.links, o: k.oben }), Math.min(f.width - k.links, f.height - k.oben));
         case 'links': return setBox(rechts - p.x,
-          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, aroundCenter(mitteY, f.height)));
+          (e) => ({ l: rechts - e, o: centerY - e / 2 }), Math.min(rechts, aroundCenter(centerY, f.height)));
         case 'rechts': return setBox(p.x - k.links,
-          (e) => ({ l: k.links, o: mitteY - e / 2 }), Math.min(f.width - k.links, aroundCenter(mitteY, f.height)));
+          (e) => ({ l: k.links, o: centerY - e / 2 }), Math.min(f.width - k.links, aroundCenter(centerY, f.height)));
         case 'oben': return setBox(unten - p.y,
           (e) => ({ l: centerX - e / 2, o: unten - e }), Math.min(unten, aroundCenter(centerX, f.width)));
         case 'unten': return setBox(p.y - k.oben,
@@ -5619,7 +5619,7 @@ async function renderDetail(id, termAddress) {
      gemeint, scrollt die Seite weiter, als waere nichts gewesen. */
   const stage = document.getElementById('viewer');
   const SWIPE_DISTANCE = 45;
-  let swipeX = 0, wischY = 0, wischt = false;
+  let swipeX = 0, swipeY = 0, wischt = false;
   stage.addEventListener('touchstart', e => {
     if (cropMode || e.touches.length !== 1 || item.photos.length < 2) return;
     /* NICHT AUF DEM ABSPIELER. Der steht als Kind im Bildbereich und bringt
@@ -5629,13 +5629,13 @@ async function renderDetail(id, termAddress) {
        im naechsten Bild. Der Wisch gilt dem Blaettern zwischen Bildern, und
        die Steuerung eines Videos ist kein Bild. */
     if (e.target.closest('video')) return;
-    swipeX = e.touches[0].clientX; wischY = e.touches[0].clientY; wischt = true;
+    swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; wischt = true;
   }, { passive: true });
   stage.addEventListener('touchend', e => {
     if (!wischt || cropMode) return;
     wischt = false;
     const dx = e.changedTouches[0].clientX - swipeX;
-    const dy = e.changedTouches[0].clientY - wischY;
+    const dy = e.changedTouches[0].clientY - swipeY;
     if (Math.abs(dx) > SWIPE_DISTANCE && Math.abs(dx) > Math.abs(dy)) {
       idx += dx < 0 ? 1 : -1;
       drawViewer(); markThumb();
@@ -6462,7 +6462,7 @@ async function renderDetail(id, termAddress) {
     function drawMatch() {
       const box = bd.querySelector('#vote-list');
       box.innerHTML = '';
-      const je = new Map(list.map(z => [z.criterion_id, z.votes]));
+      const per = new Map(list.map(z => [z.criterion_id, z.votes]));
       // Reihenfolge und Name kommen aus dem Eintrag: der Endpunkt liefert nur
       // Nummern, Werte und Verfasser. Zwei Quellen für denselben Namen wären
       // zwei Wahrheiten.
@@ -6471,7 +6471,7 @@ async function renderDetail(id, termAddress) {
       // gehoert aber zu einem der beiden Koepfe, und was darin steht, muss zu
       // dem Kopf passen, aus dem es aufgegangen ist.
       item.ratings.filter(r => r.phase === boxId.phase).forEach(r => {
-        const votes = je.get(r.criterion_id) || [];
+        const votes = per.get(r.criterion_id) || [];
         // Ein Kriterium ohne Stimme bekommt gar keine Zeile -- eine leere
         // Liste unter einem Namen sagt nichts.
         if (!votes.length) return;
@@ -7149,23 +7149,23 @@ async function renderDetail(id, termAddress) {
   // leerer Kommentar mit Bildern.
   const fitCtext = autoGrow(document.getElementById('ctext'));
   let newImages = [];
-  let newPinned = false, neueArt = 'note';
+  let newPinned = false, newKind = 'note';
 
   function drawNewMarks() {
     const pin = document.getElementById('cpin');
     pin.classList.toggle('on', newPinned);
     pin.title = newPinned ? t('entry.unpin') : t('entry.pinHint');
     const kind = document.getElementById('ckind');
-    kind.classList.toggle('on', neueArt === 'report');
+    kind.classList.toggle('on', newKind === 'report');
     kind.textContent = V.berichtEinzahl;
-    kind.title = neueArt === t('entry.reportKind') ? t('entry.unmarkReport') : t('entry.markReport');
+    kind.title = newKind === t('entry.reportKind') ? t('entry.unmarkReport') : t('entry.markReport');
     const taskBtn = document.getElementById('ctask');
-    const fertig = neueArt === 'done';
-    taskBtn.classList.toggle('on', neueArt === 'task' || fertig);
+    const fertig = newKind === 'done';
+    taskBtn.classList.toggle('on', newKind === 'task' || fertig);
     taskBtn.classList.toggle('done', fertig);
     taskBtn.textContent = fertig ? V.aufgabeErledigt : V.aufgabeEinzahl;
     taskBtn.title = fertig ? t('entry.unmark')
-      : neueArt === 'task' ? t('list.setDone')
+      : newKind === 'task' ? t('list.setDone')
                            : t('entry.markTask');
   }
   function drawNewImages() {
@@ -7193,9 +7193,9 @@ async function renderDetail(id, termAddress) {
 
   document.getElementById('cpin').onclick = () => { newPinned = !newPinned; drawNewMarks(); };
   document.getElementById('ckind').onclick =
-    () => { neueArt = neueArt === 'report' ? 'note' : 'report'; drawNewMarks(); };
+    () => { newKind = newKind === 'report' ? 'note' : 'report'; drawNewMarks(); };
   document.getElementById('ctask').onclick =
-    () => { neueArt = taskMore(neueArt); drawNewMarks(); };
+    () => { newKind = taskMore(newKind); drawNewMarks(); };
   document.getElementById('cimg').onclick = () => pickImages(takeImages);
 
   /* Der Sprung ans Schreibfeld. ZUERST AUFKLAPPEN, DANN SPRINGEN: ein
@@ -7229,13 +7229,13 @@ async function renderDetail(id, termAddress) {
     if (!v) return toast(t('server.textMissing'), true);
     const fd = new FormData();
     fd.append('text', v);
-    fd.append('kind', neueArt);
+    fd.append('kind', newKind);
     fd.append('pinned', newPinned ? '1' : '0');
     newImages.forEach(f => fd.append('images', f));
     try {
       item = await sendForm(`/api/items/${id}/comments`, fd);
       ta.value = ''; fitCtext();
-      newImages = []; newPinned = false; neueArt = 'note';
+      newImages = []; newPinned = false; newKind = 'note';
       drawNewImages(); drawNewMarks(); drawComments();
     } catch (e) { toast(e.message, true); }
   };
@@ -7254,7 +7254,7 @@ async function renderDetail(id, termAddress) {
     const countWord = (n, ein, mehr) => (n ? [`${n} ${plural(n, ein, mehr)}`] : []);
     // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
     // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
-    const inhalt = [
+    const content = [
       ...countWord(b.photos, t('list.photo'), t('list.photos')),
       // Eigene Zeile, nicht als Foto getarnt: ein Dialog, der "3 Fotos" sagt
       // und dabei ein Video mit wegwirft, verschweigt genau das, um
@@ -7282,7 +7282,7 @@ async function renderDetail(id, termAddress) {
        verloren geht, gehört anderen. Und wer wiederherstellen darf, steht
        dabei — es ist nicht der, der hier klickt. */
     const sentences = [t('entry.titleDeleteHint', { title: item.title })];
-    if (inhalt.length) sentences.push(t('entry.alsoGoes', { was: inhalt.join(', ') }));
+    if (content.length) sentences.push(t('entry.alsoGoes', { was: content.join(', ') }));
     if (own.length) sentences.push(t('entry.alsoFromMe', { was: own.join(', ') }));
     if (foreign.length) sentences.push(t('entry.andFromOthers', { was: foreign.join(', ') }));
     sentences.push(t('entry.trashHint', { papierkorbTage: TRASH_DAYS }) +
@@ -7465,18 +7465,18 @@ function saved(el = document.activeElement) {
    fuer fuenf Formatzeilen, einen Schalter mit Erlaeuterung, einen Knopf, eine
    Fortschrittszeile und eine Meldung nicht mehr. */
 const SYS_CARDS = [
-  { key: 'zugang',       abschnitt: 'personal', visible: () => true,
+  { key: 'zugang',       section: 'personal', visible: () => true,
     markup: cardUser,       ausruesten: setUpUserOut },
-  { key: 'sitzungen',    abschnitt: 'personal', visible: () => true,
+  { key: 'sitzungen',    section: 'personal', visible: () => true,
     markup: cardSessions,    ausruesten: setUpSessionsOut },
-  { key: 'darstellung',  abschnitt: 'personal', visible: () => true,
+  { key: 'darstellung',  section: 'personal', visible: () => true,
     markup: cardAppearance,  ausruesten: setUpAppearanceOut },
 
-  { key: 'kategorien',   abschnitt: 'inventory', visible: () => true,
+  { key: 'kategorien',   section: 'inventory', visible: () => true,
     markup: cardCategories,   ausruesten: setUpCategoriesOut },
-  { key: 'tags',         abschnitt: 'inventory', visible: () => true,
+  { key: 'tags',         section: 'inventory', visible: () => true,
     markup: cardTags,         ausruesten: setUpTagsOut },
-  { key: 'kriterien',    abschnitt: 'inventory', visible: () => true,
+  { key: 'kriterien',    section: 'inventory', visible: () => true,
     markup: () => cardCriteria('after'),
     ausruesten: (g) => setUpCriteriaOut(g, 'after') },
   /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. Sichtbar
@@ -7485,32 +7485,32 @@ const SYS_CARDS = [
      ZWEI KARTEN, EINE MASCHINE: dieselbe `manage-list`, derselbe Eintrag
      `crit`, dasselbe Ziehen, dasselbe Gewichtsfeld. Nur die Liste ist nach
      Phase gefiltert, und `POST` schickt die Phase mit. */
-  { key: 'potenzialkriterien', abschnitt: 'inventory', visible: () => true,
+  { key: 'potenzialkriterien', section: 'inventory', visible: () => true,
     markup: () => cardCriteria('before'),
     ausruesten: (g) => setUpCriteriaOut(g, 'before') },
-  { key: 'vokabular',    abschnitt: 'inventory', visible: () => ADMIN,
+  { key: 'vokabular',    section: 'inventory', visible: () => ADMIN,
     markup: cardVocabulary,    ausruesten: setUpVocabularyOut },
-  { key: 'links',        abschnitt: 'inventory', visible: () => true,
+  { key: 'links',        section: 'inventory', visible: () => true,
     markup: cardLinks,        ausruesten: setUpLinksOut },
-  { key: 'suchanbieter', abschnitt: 'inventory', visible: () => ADMIN,
+  { key: 'suchanbieter', section: 'inventory', visible: () => ADMIN,
     markup: cardSearchProvider, ausruesten: setUpSearchProviderOut },
-  { key: 'papierkorb',   abschnitt: 'inventory', visible: () => ADMIN,
+  { key: 'papierkorb',   section: 'inventory', visible: () => ADMIN,
     markup: cardTrash,   ausruesten: setUpTrashOut },
 
-  { key: 'zugaenge',     abschnitt: 'users', visible: () => ADMIN,
+  { key: 'zugaenge',     section: 'users', visible: () => ADMIN,
     markup: cardUsers,     ausruesten: setUpUsersOut },
-  { key: 'anfragen',     abschnitt: 'users', visible: (g) => ADMIN && !!g.requests,
+  { key: 'anfragen',     section: 'users', visible: (g) => ADMIN && !!g.requests,
     markup: cardRequests,     ausruesten: setUpRequestsOut },
-  { key: 'protokoll',    abschnitt: 'users', visible: (g) => OWNER && !!g.log,
+  { key: 'protokoll',    section: 'users', visible: (g) => OWNER && !!g.log,
     markup: cardLog,    ausruesten: setUpLogOut },
-  { key: 'mailversand',  abschnitt: 'users', visible: (g) => OWNER && !!g.mailstand,
+  { key: 'mailversand',  section: 'users', visible: (g) => OWNER && !!g.mailstand,
     markup: cardMailDelivery,  ausruesten: setUpMailDeliveryOut },
 
-  { key: 'kennzahlen',   abschnitt: 'database', visible: () => ADMIN,
+  { key: 'kennzahlen',   section: 'database', visible: () => ADMIN,
     markup: cardStats },
-  { key: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,
+  { key: 'bildablage',   section: 'database', visible: () => ADMIN,
     markup: cardImageStore,   ausruesten: setUpImageStoreOut },
-  { key: 'sicherung',    abschnitt: 'database', visible: () => OWNER,
+  { key: 'sicherung',    section: 'database', visible: () => OWNER,
     markup: cardBackup,    ausruesten: setUpBackupOut },
   /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und nicht
      zufaellig: die eine Karte legt Kopien an, die andere raeumt sie weg.
@@ -7522,12 +7522,12 @@ const SYS_CARDS = [
      UND EIN LOESCHKNOPF GEHOERT NICHT UNTER DEN SICHERUNGSKNOPF: die beiden
      Vorgaenge sind gegenlaeufig und stuenden untereinander in derselben
      Kachel -- die Verwechslung waere nicht wiedergutzumachen. */
-  { key: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,
+  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,
     markup: cardCleanup,   ausruesten: setUpCleanupOut },
-  { key: 'export',       abschnitt: 'database', visible: () => OWNER,
+  { key: 'export',       section: 'database', visible: () => OWNER,
     markup: cardExport,       ausruesten: setUpExportOut },
 
-  { key: 'titel',        abschnitt: 'installation', visible: () => ADMIN,
+  { key: 'titel',        section: 'installation', visible: () => ADMIN,
     markup: cardTitle,        ausruesten: setUpTitleOut }
 ];
 
@@ -7539,7 +7539,7 @@ const SYS_CARDS = [
    nie ins Leere. */
 function sysVisibleSections(fetched) {
   return SYS_SECTIONS.filter(a =>
-    SYS_CARDS.some(k => k.abschnitt === a.key && k.visible(fetched)));
+    SYS_CARDS.some(k => k.section === a.key && k.visible(fetched)));
 }
 
 
@@ -7564,7 +7564,7 @@ async function renderSystem() {
        Zusage weiter, auch wenn das Fenster laengst zu ist (Stolperstein 118).
        Es sind elf Abrufe. */
     [fetched.stats, fetched.titles, fetched.cats, fetched.tags, fetched.crits, fetched.zugang,
-     fetched.papierkorb, fetched.sicherung, fetched.sessions, fetched.log,
+     fetched.trash, fetched.backup, fetched.sessions, fetched.log,
      fetched.mailstand, fetched.requests] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
@@ -7576,7 +7576,7 @@ async function renderSystem() {
     ]);
   } catch (e) { if (e.message !== t('dialog.sessionExpired')) toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
-  if (fetched.papierkorb && fetched.papierkorb.days) TRASH_DAYS = fetched.papierkorb.days;
+  if (fetched.trash && fetched.trash.days) TRASH_DAYS = fetched.trash.days;
 
   /* WELCHER ABSCHNITT OFFEN IST, ENTSCHEIDET DIE ADRESSE -- und wenn die auf
      einen zeigt, den es fuer diesen Zugang nicht gibt, faellt sie auf den
@@ -7587,7 +7587,7 @@ async function renderSystem() {
   const fromAddress = (SYS_PATTERN.exec(location.hash || '') || [])[1] || '';
   const gewuenscht = fromAddress;
   const offen = visibleOnes.find(a => a.key === gewuenscht) || visibleOnes[0];
-  const cards = SYS_CARDS.filter(k => k.abschnitt === offen.key && k.visible(fetched));
+  const cards = SYS_CARDS.filter(k => k.section === offen.key && k.visible(fetched));
 
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">${tH('list.backToList')}</a>
@@ -8005,10 +8005,10 @@ function setUpAppearanceOut() {
   const zl = document.getElementById('timeline-on');
   zl.checked = TIMELINE_ON;
   zl.onchange = async () => {
-    const vorher = TIMELINE_ON;
+    const before = TIMELINE_ON;
     TIMELINE_ON = zl.checked;
     try { await api('PUT', '/api/settings', { timeline: TIMELINE_ON }); saved(); }
-    catch (e) { TIMELINE_ON = vorher; zl.checked = vorher; toast(e.message, true); }
+    catch (e) { TIMELINE_ON = before; zl.checked = before; toast(e.message, true); }
   };
   atElement('breset', breset => breset.onclick = async () => {
     if (!await confirmBox(t('card.restoreLayoutAsk'),
@@ -8033,12 +8033,12 @@ function setUpAppearanceOut() {
       b.className = 'pill' + (THEME === level ? ' on' : '');
       b.textContent = t(THEME_NAMES[level]);
       b.onclick = async () => {
-        const vorher = THEME;
+        const before = THEME;
         THEME = level;
         applyTheme();
         drawTheme();
         try { await api('PUT', '/api/settings', { theme: level }); saved(b); }
-        catch (e) { THEME = vorher; applyTheme(); drawTheme(); toast(e.message, true); }
+        catch (e) { THEME = before; applyTheme(); drawTheme(); toast(e.message, true); }
       };
       box.appendChild(b);
     });
@@ -8052,12 +8052,12 @@ function setUpAppearanceOut() {
       b.className = 'pill' + (FONT === level ? ' on' : '');
       b.textContent = level + ' %';
       b.onclick = async () => {
-        const vorher = FONT;
+        const before = FONT;
         FONT = level;
         applyFont();          // sofort sichtbar, auch wenn das Speichern scheitert
         drawFont();
         try { await api('PUT', '/api/settings', { font: level }); saved(b); }
-        catch (e) { FONT = vorher; applyFont(); drawFont(); toast(e.message, true); }
+        catch (e) { FONT = before; applyFont(); drawFont(); toast(e.message, true); }
       };
       box.appendChild(b);
     });
@@ -8073,12 +8073,12 @@ function setUpAppearanceOut() {
       b.className = 'pill' + (STRIP === level ? ' on' : '');
       b.textContent = level + t('card.px');
       b.onclick = async () => {
-        const vorher = STRIP;
+        const before = STRIP;
         STRIP = level;
         applyTiles();
         drawStrip();
         try { await api('PUT', '/api/settings', { strip: level }); saved(b); }
-        catch (e) { STRIP = vorher; applyTiles(); drawStrip(); toast(e.message, true); }
+        catch (e) { STRIP = before; applyTiles(); drawStrip(); toast(e.message, true); }
       };
       box.appendChild(b);
     });
@@ -8141,13 +8141,13 @@ const CRIT_CARD = {
 };
 
 function cardCriteria(phase) {
-  const vorher = phase === 'before';
+  const before = phase === 'before';
   const k = CRIT_CARD[phase];
   return `<div class="sys-card">
-        <h3>${esc(vorher ? V.potenzial : V.bewertungEinzahl)}${tH('card.criteriaLabel')}</h3>
+        <h3>${esc(before ? V.potenzial : V.bewertungEinzahl)}${tH('card.criteriaLabel')}</h3>
         ${/* EIN SATZ AN DER KARTE, DIE FOLGEN HINTER „Mehr" (Konzept 4.5) -- und der
              Benutzer liest nur, was er tun kann (Regel S5). */''}
-        ${vorher ? `<p class="desc">${tH('card.stars')} <strong>${tH('card.before')}</strong> ${tH('card.potentialHint')}
+        ${before ? `<p class="desc">${tH('card.stars')} <strong>${tH('card.before')}</strong> ${tH('card.potentialHint')}
              ${ADMIN ? t('card.criteriaHint') : t('card.listAdminHint')}</p>
            ${ADMIN ? mehr(`${tH('card.criteriaTip')} <em>${tH('card.wanted')}</em> ${tH('card.weight')}
              <em>${tH('card.use')}</em>, <em>${tH('card.feasibility')}</em>${tH('card.orderAppliesHint')}`) : ''}`
@@ -8172,7 +8172,7 @@ function cardCriteria(phase) {
              `datalist` mit derselben Kennung waeren zwei Knoten fuer einen
              Verweis. Die zweite Karte liegt hinter der ersten; ihre
              Gewichtsfelder finden die eine. */''}
-        ${vorher ? '' : `<datalist id="weightsug">
+        ${before ? '' : `<datalist id="weightsug">
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
         ${ADMIN ? `<div class="row-in" style="margin-top:12px">
@@ -8215,10 +8215,10 @@ function setUpCriteriaOut(fetched, phase) {
     if (!el) return;
     el.checked = read();
     el.onchange = async () => {
-      const vorher = read();
+      const before = read();
       remember(el.checked);
       try { await api('PUT', '/api/settings', { [key]: el.checked }); saved(); }
-      catch (e) { remember(vorher); el.checked = vorher; toast(e.message, true); }
+      catch (e) { remember(before); el.checked = before; toast(e.message, true); }
     };
   };
 
@@ -8540,11 +8540,11 @@ function setUpLinksOut() {
       b2.className = 'pill' + (LINK_ROWS === n ? ' on' : '');
       b2.textContent = n + t('card.rows');
       b2.onclick = async () => {
-        const vorher = LINK_ROWS;
+        const before = LINK_ROWS;
         LINK_ROWS = n;
         drawLinkRows();
         try { await api('PUT', '/api/settings', { linkRows: n }); saved(); }
-        catch (e) { LINK_ROWS = vorher; drawLinkRows(); toast(e.message, true); }
+        catch (e) { LINK_ROWS = before; drawLinkRows(); toast(e.message, true); }
       };
       box.appendChild(b2);
     });
@@ -8559,11 +8559,11 @@ function setUpLinksOut() {
       b3.className = 'pill' + (SEARCH_NAMES === n ? ' on' : '');
       b3.textContent = t('card.names', { n: n });
       b3.onclick = async () => {
-        const vorher = SEARCH_NAMES;
+        const before = SEARCH_NAMES;
         SEARCH_NAMES = n;
         drawSearchNames();
         try { await api('PUT', '/api/settings', { searchNames: n }); saved(); }
-        catch (e) { SEARCH_NAMES = vorher; drawSearchNames(); toast(e.message, true); }
+        catch (e) { SEARCH_NAMES = before; drawSearchNames(); toast(e.message, true); }
       };
       box.appendChild(b3);
     });
@@ -8706,7 +8706,7 @@ function setUpTrashOut(fetched) {
      JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
      soll die Karte etwas sagen und nicht der Lauf abreissen. */
   async function trashNew(fetched) {
-    try { fetched.papierkorb = await api('GET', '/api/trash'); }
+    try { fetched.trash = await api('GET', '/api/trash'); }
     catch (e) {
       const box = document.getElementById('mtrash');
       if (box) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
@@ -8717,7 +8717,7 @@ function setUpTrashOut(fetched) {
   function drawTrash(fetched) {
     const box = document.getElementById('mtrash');
     if (!box) return;
-    const rows = Array.isArray(fetched.papierkorb && fetched.papierkorb.rows) ? fetched.papierkorb.rows : [];
+    const rows = Array.isArray(fetched.trash && fetched.trash.rows) ? fetched.trash.rows : [];
     box.innerHTML = '';
     if (!rows.length) {
       box.innerHTML = `<span class="hint">${tH('card.noDeletedEntries')}</span>`;
@@ -8879,7 +8879,7 @@ function setUpUsersOut() {
   const ROLE_WORD = { user: 'card.user', admin: 'card.admin', owner: 'card.owner' };
   const rolesWord = (rolle) => (ROLE_WORD[rolle] ? t(ROLE_WORD[rolle]) : rolle);
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
-  const STATUS_WORD = { active: 'card.active', gesperrt: 'card.locked', deleted: 'card.deletedLower' };
+  const STATUS_WORD = { active: 'card.active', locked: 'card.locked', deleted: 'card.deletedLower' };
   const statusWord = (status) => (STATUS_WORD[status] ? t(STATUS_WORD[status]) : status);
 
   /* DIE VOLLSTÄNDIGE ADRESSE BAUT DER BROWSER, nicht der Server. Der Server
@@ -9413,13 +9413,13 @@ function setUpLogOut(fetched) {
      Vorgang zu erkennen: bei einer gescheiterten Anmeldung war niemand
      angemeldet. */
   const logActor = (z) => {
-    if (z.actor != null) return authorName({ id: z.actor, name: z.werName, deleted: z.werName == null });
+    if (z.actor != null) return authorName({ id: z.actor, name: z.actorName, deleted: z.actorName == null });
     return z.event === 'login.fail' ? '—' : t('card.viaCommandLine');
   };
   const logTarget = (z) => {
     if (z.target == null) return z.event === 'login.fail' ? t('card.unknownName') : '';
     if (z.target === z.actor) return '';
-    return authorName({ id: z.target, name: z.zielName, deleted: z.zielName == null });
+    return authorName({ id: z.target, name: z.targetName, deleted: z.targetName == null });
   };
 
   /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
@@ -10044,7 +10044,7 @@ function cardStats(fetched) {
    Systembereich unter der Hand die Gestalt wechseln. */
 function cardImageStore(fetched) {
   const stats = fetched.stats || {};
-  const bf = stats.bildFormate || {};
+  const bf = stats.imageFormats || {};
   const rows = IMAGE_FORMATS.filter(f => bf[f.key] && bf[f.key].count);
   const png = bf.png ? bf.png.count : 0;
   // Solange einer laeuft, ist der Knopf tot: der Server sagt dem zweiten Ruf
@@ -10149,7 +10149,7 @@ function setUpImageStoreOut(fetched) {
 
   atElement('convert-run', (button) => {
     button.onclick = async () => {
-      const bf = (fetched.stats && fetched.stats.bildFormate) || {};
+      const bf = (fetched.stats && fetched.stats.imageFormats) || {};
       const png = bf.png || { count: 0, bytes: 0 };
       /* DER DIALOG SAGT ES VORHER UND BESCHOENIGT NICHTS: wie viele Bilder,
          wie viel Platz, dass die PNG-Fassung danach nicht mehr da ist, und
@@ -10224,7 +10224,7 @@ function setUpBackupOut(fetched) {
   function drawBackup(fetched) {
     const box = document.getElementById('backup-box');
     if (!box) return;
-    const d = fetched.sicherung || {};
+    const d = fetched.backup || {};
     if (!d.eingerichtet) {
       box.innerHTML = `<div class="warn-box">${esc(d.reason || t('card.noBackupDir'))}</div>`;
       return;
@@ -10306,7 +10306,7 @@ function setUpBackupOut(fetched) {
         // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
         // Kasten ueber die alten Sicherungen beim ersten Speichern des
         // Zielorts, und die Karte saehe danach harmloser aus als die Lage ist.
-        fetched.sicherung = { ...fetched.sicherung, place: r.place, pfad: r.pfad, error: null,
+        fetched.backup = { ...fetched.backup, place: r.place, pfad: r.pfad, error: null,
                       erreichbar: r.erreichbar, last: r.last, number: r.number,
                       gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
         saved();
@@ -10322,7 +10322,7 @@ function setUpBackupOut(fetched) {
       button.textContent = t('card.backupRunning');
       try {
         const r = await api('POST', '/api/backup');
-        fetched.sicherung = { ...fetched.sicherung, erreichbar: r.erreichbar, last: r.last, number: r.number,
+        fetched.backup = { ...fetched.backup, erreichbar: r.erreichbar, last: r.last, number: r.number,
                       gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
         /* EINE MELDUNG UND NICHT ZWEI: toast() raeumt die vorige weg, zwei
            hintereinander hiessen also, die erste zu verschlucken. Das
@@ -10403,7 +10403,7 @@ function setUpCleanupOut(fetched) {
   function drawCleanup(fetched) {
     const box = document.getElementById('cleanup-box');
     if (!box) return;
-    const d = fetched.sicherung || {};
+    const d = fetched.backup || {};
     const a = d.cleanup || {};
     /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS. Ein
        Schalter, der nie greifen kann, verspricht etwas und haelt es nie -- und
@@ -10510,13 +10510,13 @@ function setUpCleanupOut(fetched) {
        sonst zeigte der Bildschirm etwas anderes an, als der Server haelt. */
     atElement('cleanup-toggle', (el) => {
       el.onchange = async () => {
-        const vorher = !el.checked;
+        const before = !el.checked;
         try {
           await api('PUT', '/api/settings', { backupCleanup: el.checked });
-          fetched.sicherung = { ...fetched.sicherung,
+          fetched.backup = { ...fetched.backup,
                                cleanup: { ...a, an: el.checked } };
           toast(el.checked ? t('card.cleanupOn') : t('card.cleanupOff'));
-        } catch (e) { el.checked = vorher; toast(e.message, true); }
+        } catch (e) { el.checked = before; toast(e.message, true); }
       };
     });
 
@@ -10551,7 +10551,7 @@ function setUpCleanupOut(fetched) {
          0.19.6: die Ansicht kann fort sein). */
       if (run !== previewRun) return;
       if (!document.getElementById('cleanup-box')) return;
-      fetched.sicherung = frisch;
+      fetched.backup = frisch;
       drawCleanup(fetched);
     };
     for (const [id, key] of [['cleanup-keep', 'backupKeep'],
@@ -10562,8 +10562,8 @@ function setUpCleanupOut(fetched) {
           const n = Number(el.value);
           try {
             await api('PUT', '/api/settings', { [key]: n });
-            fetched.sicherung = { ...fetched.sicherung,
-                                 cleanup: { ...(fetched.sicherung || {}).cleanup,
+            fetched.backup = { ...fetched.backup,
+                                 cleanup: { ...(fetched.backup || {}).cleanup,
                                                [id === 'cleanup-keep' ? 'keep' : 'days']: n } };
             saved();
           } catch (e) { toast(e.message, true); }
@@ -10583,9 +10583,9 @@ function setUpCleanupOut(fetched) {
       let r;
       try { r = await api('POST', '/api/backup/cleanup', { kind }); }
       catch (e) { return toast(e.message, true); }
-      fetched.sicherung = { ...fetched.sicherung, erreichbar: r.erreichbar, last: r.last,
+      fetched.backup = { ...fetched.backup, erreichbar: r.erreichbar, last: r.last,
                            number: r.number, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
-                           cleanup: { ...(fetched.sicherung || {}).cleanup, ...r.cleanup } };
+                           cleanup: { ...(fetched.backup || {}).cleanup, ...r.cleanup } };
       toast(t('card.backupsDeleted', { n: r.weg, bytes: fmtBytes(r.bytes),
         zusatz: r.nicht ? t('card.notDeleted', { nicht: r.nicht }) : '' }));
       /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
@@ -10929,7 +10929,7 @@ function askImport(file, grenzen) {
           photos: r.photos, videos: r.videos || 0, attachments: r.attachments }));
         /* Nicht abbrechen, melden -- und laut genug, dass es auffaellt: fehlt
            ein Video, kann das naechste Foto zum Hauptbild geworden sein. */
-        const missing = (r.videosOhneDatei || 0) + (r.videosUnlesbar || 0);
+        const missing = (r.videosWithoutFile || 0) + (r.videosUnlesbar || 0);
         if (missing) toast(t('card.videosMissing', { n: missing }), true);
         location.hash = '#/';
         if (location.hash === '#/') renderList();

@@ -46,9 +46,9 @@
 (function () {
   try {
     var t = localStorage.getItem('kriterion.theme') || localStorage.getItem('kriterion.thema');
-    var hell = t === 'light' || (t === 'device' && window.matchMedia
+    var light = t === 'light' || (t === 'device' && window.matchMedia
       && window.matchMedia('(prefers-color-scheme: light)').matches);
-    document.documentElement.dataset.theme = hell ? 'light' : 'dark';
+    document.documentElement.dataset.theme = light ? 'light' : 'dark';
   } catch (e) {
     document.documentElement.dataset.theme = 'dark';
   }

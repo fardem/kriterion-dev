@@ -111,11 +111,11 @@ async function convertInventory(rows) {
       // Die Zeile kann waehrend des Laufs geloescht oder schon umgestellt
       // worden sein. Beides ist kein Fehler -- nur nichts zu tun.
       if (z && isPng(z.data)) {
-        const ab = await storeImage(z.data, 'image/png');
-        if (ab.umgewandelt) {
-          write.run(ab.mime, ab.data, id);
+        const start = await storeImage(z.data, 'image/png');
+        if (start.umgewandelt) {
+          write.run(start.mime, start.data, id);
           status.umgestellt++;
-          status.gespart += z.data.length - ab.data.length;
+          status.gespart += z.data.length - start.data.length;
         } else status.geblieben++;
       }
     } catch (e) {

@@ -33,17 +33,17 @@ function open(file) {
    es entsteht kein halber Zustand. Faellt das Journal weg, ist alles verloren:
    DAS ist der Grund fuer die Sicherung davor. Es waechst auf die Groesse der
    Datenbank. */
-function changeKey(neuHex) {
-  if (!/^[0-9a-fA-F]{64}$/.test(String(neuHex)))
+function changeKey(newHex) {
+  if (!/^[0-9a-fA-F]{64}$/.test(String(newHex)))
     throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
-  const vorher = db.pragma('journal_mode', { simple: true });
+  const before = db.pragma('journal_mode', { simple: true });
   db.pragma('journal_mode = DELETE');
   try {
-    db.pragma(`rekey="x'${String(neuHex).toLowerCase()}'"`);
+    db.pragma(`rekey="x'${String(newHex).toLowerCase()}'"`);
   } finally {
     db.pragma('journal_mode = WAL');
   }
-  return { vorher, nachher: db.pragma('journal_mode', { simple: true }) };
+  return { before, after: db.pragma('journal_mode', { simple: true }) };
 }
 
 /* --- Welche Verfahren wirklich laufen -----------------------------------
@@ -797,7 +797,7 @@ const ALTE_INDIZES = Object.keys(WOERTERBUCH.indexes);
 function migration0241Tabellen() {
   const da = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
-  const umzug = Object.entries(WOERTERBUCH.tables).filter(([alt, neu]) => da.has(alt) && !da.has(neu));
+  const umzug = Object.entries(WOERTERBUCH.tables).filter(([old, fresh]) => da.has(old) && !da.has(fresh));
   /* DIE INDIZES FALLEN IN JEDEM FALL, auch wenn keine Tabelle mehr umzuziehen
      ist: `idx_photos_art` und `idx_photos_kachel` haengen an Tabellen, die
      ihren Namen behalten -- nur die Indizes selbst heissen deutsch. */
@@ -805,8 +805,8 @@ function migration0241Tabellen() {
     .all().map(z => z.name).filter(n => ALTE_INDIZES.includes(n));
   if (!umzug.length && !alteIndizes.length) return 0;
   db.transaction(() => {
-    for (const alt of alteIndizes) db.exec(`DROP INDEX IF EXISTS ${alt}`);
-    for (const [alt, neu] of umzug) db.exec(`ALTER TABLE ${alt} RENAME TO ${neu}`);
+    for (const old of alteIndizes) db.exec(`DROP INDEX IF EXISTS ${old}`);
+    for (const [old, fresh] of umzug) db.exec(`ALTER TABLE ${old} RENAME TO ${fresh}`);
   })();
   if (!umzug.length) {
     console.log(`[Kriterion] ${alteIndizes.length} ${alteIndizes.length === 1 ? 'Index' : 'Indizes'} ` +
@@ -835,26 +835,26 @@ migration0241Tabellen();
 
    `ALTER TABLE … RENAME COLUMN` kann SQLite seit 3.25 und zieht dabei jeden
    Index, jeden Fremdschluessel und jede Sicht mit. */
-function migration0241Spalten() {
+function migration0241Columns() {
   const tabellen = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
   const umzug = [];
-  for (const [place, neu] of Object.entries(WOERTERBUCH.columns)) {
-    const [tabelle, alt] = place.split('.');
+  for (const [place, fresh] of Object.entries(WOERTERBUCH.columns)) {
+    const [tabelle, old] = place.split('.');
     if (!tabellen.has(tabelle)) continue;
-    const spalten = db.prepare(`PRAGMA table_info(${tabelle})`).all().map(c => c.name);
-    if (spalten.includes(alt) && !spalten.includes(neu)) umzug.push([tabelle, alt, neu]);
+    const columns = db.prepare(`PRAGMA table_info(${tabelle})`).all().map(c => c.name);
+    if (columns.includes(old) && !columns.includes(fresh)) umzug.push([tabelle, old, fresh]);
   }
   if (!umzug.length) return 0;
   db.transaction(() => {
-    for (const [tabelle, alt, neu] of umzug)
-      db.exec(`ALTER TABLE ${tabelle} RENAME COLUMN ${alt} TO ${neu}`);
+    for (const [tabelle, old, fresh] of umzug)
+      db.exec(`ALTER TABLE ${tabelle} RENAME COLUMN ${old} TO ${fresh}`);
   })();
   console.log(`[Kriterion] ${umzug.length} ${umzug.length === 1 ? 'Spalte' : 'Spalten'} umbenannt ` +
     `(Migration auf 0.24.1): ${umzug.map(([t, a, b]) => `${t}.${a} → ${b}`).join(', ')}.`);
   return umzug.length;
 }
-migration0241Spalten();
+migration0241Columns();
 
 /* DIE PAARE BLEIBEN ERREICHBAR, UND ZWAR GENAU DIESE. Eine Exportdatei ist
    ein Abzug des Bestands: eine Datei von vor 0.24.1 traegt an ihren Fotos
@@ -890,7 +890,7 @@ const COLUMNS_0241 = WOERTERBUCH.columns;
 
    WIEDERHOLBAR UND IM NORMALFALL STUMM, wie die beiden Bloecke darueber:
    gefragt wird die Zeile selbst, nicht ein Merker. */
-const WERTE_0241 = [
+const VALUE_COLUMNS_0241 = [
   ['security_log',    'event',    WOERTERBUCH.values.event],
   ['security_log',    'detail',   WOERTERBUCH.values.detail],
   ['users',           'role',     WOERTERBUCH.values.role],
@@ -901,28 +901,28 @@ const WERTE_0241 = [
   ['settings',        'key',      WOERTERBUCH.values.setting],
   ['user_settings',   'key',      WOERTERBUCH.values.userSetting]
 ];
-function migration0241Werte() {
+function migration0241Values() {
   const tabellen = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
   let n = 0;
   const gezaehlt = [];
-  for (const [tabelle, spalte, paare] of WERTE_0241) {
+  for (const [tabelle, column, paare] of VALUE_COLUMNS_0241) {
     if (!tabellen.has(tabelle)) continue;
-    const spalten = db.prepare(`PRAGMA table_info(${tabelle})`).all().map(c => c.name);
-    if (!spalten.includes(spalte)) continue;
-    const setze = db.prepare(`UPDATE ${tabelle} SET ${spalte} = ? WHERE ${spalte} = ?`);
-    for (const [alt, neu] of Object.entries(paare)) {
-      const r = setze.run(neu, alt);
-      if (r.changes) { n += r.changes; gezaehlt.push(`${tabelle}.${spalte} ${alt} → ${neu} (${r.changes})`); }
+    const columns = db.prepare(`PRAGMA table_info(${tabelle})`).all().map(c => c.name);
+    if (!columns.includes(column)) continue;
+    const set = db.prepare(`UPDATE ${tabelle} SET ${column} = ? WHERE ${column} = ?`);
+    for (const [old, fresh] of Object.entries(paare)) {
+      const r = set.run(fresh, old);
+      if (r.changes) { n += r.changes; gezaehlt.push(`${tabelle}.${column} ${old} → ${fresh} (${r.changes})`); }
     }
   }
   // Das Schema steht als JSON-String in user_settings.
   if (tabellen.has('user_settings')) {
-    const setze = db.prepare(
+    const set = db.prepare(
       "UPDATE user_settings SET value = ? WHERE key = 'theme' AND value = ?");
-    for (const [alt, neu] of Object.entries(WOERTERBUCH.values.theme)) {
-      const r = setze.run(JSON.stringify(neu), JSON.stringify(alt));
-      if (r.changes) { n += r.changes; gezaehlt.push(`user_settings.theme ${alt} → ${neu} (${r.changes})`); }
+    for (const [old, fresh] of Object.entries(WOERTERBUCH.values.theme)) {
+      const r = set.run(JSON.stringify(fresh), JSON.stringify(old));
+      if (r.changes) { n += r.changes; gezaehlt.push(`user_settings.theme ${old} → ${fresh} (${r.changes})`); }
     }
   }
   // Der Grabstein: sein Name traegt seine eigene Nummer und wird daraus gebaut.
@@ -935,7 +935,7 @@ function migration0241Werte() {
   console.log(`[Kriterion] ${n} Werte umbenannt (Migration auf 0.24.1): ${gezaehlt.join(', ')}.`);
   return 1;
 }
-migration0241Werte();
+migration0241Values();
 
 /* AUCH DIE WERTE BLEIBEN ERREICHBAR -- aus demselben Grund wie die Spalten
    darueber: eine Exportdatei von vor 0.24.1 traegt `bild` an ihren Fotos und
@@ -954,8 +954,8 @@ db.exec(SCHEMA);
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
 function migration083() {
-  const spalten = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
-  if (spalten.includes('images_removed')) return 0;
+  const columns = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
+  if (columns.includes('images_removed')) return 0;
   db.exec('ALTER TABLE comments ADD COLUMN images_removed INTEGER NOT NULL DEFAULT 0');
   console.log('[Kriterion] comments um images_removed ergaenzt (Migration auf 0.8.3).');
   return 1;
@@ -977,8 +977,8 @@ migration083();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
 function migration0830() {
-  const spalten = db.prepare('PRAGMA table_info(links)').all().map(c => c.name);
-  if (spalten.includes('user_id')) return 0;
+  const columns = db.prepare('PRAGMA table_info(links)').all().map(c => c.name);
+  if (columns.includes('user_id')) return 0;
   db.exec('ALTER TABLE links ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
   const n = db.prepare(
     'UPDATE links SET user_id = (SELECT user_id FROM items WHERE items.id = links.item_id)' +
@@ -1003,8 +1003,8 @@ migration0830();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
 function migration0831() {
-  const spalten = db.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
-  if (spalten.includes('user_id')) return 0;
+  const columns = db.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
+  if (columns.includes('user_id')) return 0;
   db.exec('ALTER TABLE attachments ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
   const n = db.prepare(
     'UPDATE attachments SET user_id = (SELECT user_id FROM items WHERE items.id = attachments.item_id)' +
@@ -1032,8 +1032,8 @@ migration0831();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
 function migration0840() {
-  const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
-  if (spalten.includes('weight')) return 0;
+  const columns = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
+  if (columns.includes('weight')) return 0;
   db.exec('ALTER TABLE rating_criteria ADD COLUMN weight REAL NOT NULL DEFAULT 1.0');
   const n = db.prepare('SELECT COUNT(*) AS n FROM rating_criteria').get().n;
   console.log(`[Kriterion] rating_criteria um weight ergaenzt (Migration auf 0.8.40); ` +
@@ -1061,19 +1061,19 @@ migration0840();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalten in der DDL bleiben.
 function migration0850() {
-  const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
-  const fehlend = [];
-  if (!spalten.includes('kind')) {
+  const columns = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
+  const missing = [];
+  if (!columns.includes('kind')) {
     db.exec("ALTER TABLE photos ADD COLUMN kind TEXT NOT NULL DEFAULT 'image'");
-    fehlend.push('kind');
+    missing.push('kind');
   }
-  if (!spalten.includes('duration')) {
+  if (!columns.includes('duration')) {
     db.exec('ALTER TABLE photos ADD COLUMN duration INTEGER');
-    fehlend.push('duration');
+    missing.push('duration');
   }
-  if (!fehlend.length) return 0;
+  if (!missing.length) return 0;
   const n = db.prepare('SELECT COUNT(*) AS n FROM photos').get().n;
-  console.log(`[Kriterion] photos um ${fehlend.join(' und ')} ergaenzt (Migration auf 0.8.50); ` +
+  console.log(`[Kriterion] photos um ${missing.join(' und ')} ergaenzt (Migration auf 0.8.50); ` +
     `${n} Zeilen stehen auf der Vorgabeart 'bild'.`);
   return 1;
 }
@@ -1106,17 +1106,17 @@ migration0850();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalten in der DDL bleiben.
 function migration0140() {
-  const spalten = db.prepare('PRAGMA table_info(items)').all().map(c => c.name);
-  const fehlend = [];
-  if (!spalten.includes('rejected_at')) fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);
-  if (!spalten.includes('rejected_reason')) fehlend.push(['rejected_reason', 'ALTER TABLE items ADD COLUMN rejected_reason TEXT']);
-  if (!spalten.includes('rejected_by')) fehlend.push(['rejected_by',
+  const columns = db.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+  const missing = [];
+  if (!columns.includes('rejected_at')) missing.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);
+  if (!columns.includes('rejected_reason')) missing.push(['rejected_reason', 'ALTER TABLE items ADD COLUMN rejected_reason TEXT']);
+  if (!columns.includes('rejected_by')) missing.push(['rejected_by',
     'ALTER TABLE items ADD COLUMN rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL']);
-  if (!fehlend.length) return 0;
-  db.transaction(() => { for (const [, sql] of fehlend) db.exec(sql); })();
+  if (!missing.length) return 0;
+  db.transaction(() => { for (const [, sql] of missing) db.exec(sql); })();
   // "a, b und c" statt "a und b und c" -- bei drei Namen liest sich das
   // andere wie ein Fehler in der Zeile.
-  const namen = fehlend.map(f => f[0]);
+  const namen = missing.map(f => f[0]);
   const aufzaehlung = namen.length > 1
     ? `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}` : namen[0];
   const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;
@@ -1141,8 +1141,8 @@ migration0140();
    WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
    PRAGMA table_info, nicht ein Merker. */
 function migration0160() {
-  const spalten = db.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
-  if (spalten.includes('set_at')) return 0;
+  const columns = db.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
+  if (columns.includes('set_at')) return 0;
   db.exec('ALTER TABLE ratings ADD COLUMN set_at TEXT');
   const n = db.prepare('SELECT COUNT(*) AS n FROM ratings WHERE value > 0').get().n;
   console.log(`[Kriterion] ratings um set_at ergaenzt (Migration auf 0.16.0); ` +
@@ -1169,8 +1169,8 @@ migration0160();
    WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
    PRAGMA table_info, nicht ein Merker. */
 function migration0190() {
-  const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
-  if (spalten.includes('zoom')) return 0;
+  const columns = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
+  if (columns.includes('zoom')) return 0;
   db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');
   const n = db.prepare("SELECT COUNT(*) AS n FROM photos WHERE kind != 'video'").get().n;
   console.log(`[Kriterion] photos um zoom ergaenzt (Migration auf 0.19.0); ` +
@@ -1202,8 +1202,8 @@ migration0190();
    table_info, nicht ein Merker. Zu 1.0 faellt der Block weg, die Spalte in der
    DDL bleibt. */
 function migration0210() {
-  const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
-  if (spalten.includes('phase')) return 0;
+  const columns = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
+  if (columns.includes('phase')) return 0;
   db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT 'after'");
   const n = db.prepare("SELECT COUNT(*) AS n FROM rating_criteria WHERE phase = 'after'").get().n;
   console.log(`[Kriterion] rating_criteria um phase ergaenzt (Migration auf 0.21.0); ` +
@@ -1320,7 +1320,7 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile
 // meldet sich nie wieder an. Gibt es mehrere Eigentuemer, nimmt der aelteste.
 // Blankes SQL statt eines Aufrufs in auth.js: db.js darf von auth.js nichts
 // wissen, die Abhaengigkeit laeuft andersherum.
-function eigentuemerId() {
+function ownerId() {
   return db.prepare("SELECT MIN(id) AS id FROM users WHERE role = 'owner'").get().id;
 }
 
@@ -1343,7 +1343,7 @@ function eigentuemerId() {
 function assignInventory() {
   const counts = {};
   let sum = 0;
-  const owner = eigentuemerId();
+  const owner = ownerId();
   if (owner == null) {
     return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
   }
@@ -1365,9 +1365,9 @@ assignInventory();
 
 // --- Grundausstattung ---
 const seedCriteria = ['Optische Erscheinung', 'Verarbeitungsqualität', 'Funktionalität'];
-const insCrit = db.prepare('INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');
+const insertCriterion = db.prepare('INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');
 if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {
-  for (const c of seedCriteria) insCrit.run(c);
+  for (const c of seedCriteria) insertCriterion.run(c);
 }
 
 // Reihenfolge der Kriterien lueckenlos durchnummerieren; reihenfolgetreu und
@@ -1393,7 +1393,7 @@ renumberCriteria();
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
                    COLUMNS_0241, VALUES_0241,
                    changeKey, method,
-                   renumberCriteria, assignInventory, eigentuemerId,
+                   renumberCriteria, assignInventory, ownerId,
                    // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
                    migration083,
                    // MIGRATION 0.8.30 — ENTFAELLT MIT 1.0

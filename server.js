@@ -1590,10 +1590,10 @@ function mailCard(req) {
 app.get('/api/mail', ownerOnly, (req, res) => res.json(mailCard(req)));
 
 app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {
-  let neu;
-  try { neu = mail.checkInput(req.body, getSetting(mail.SETTING_KEY, null)); }
+  let fresh;
+  try { fresh = mail.checkInput(req.body, getSetting(mail.SETTING_KEY, null)); }
   catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
-  putSetting.run(mail.SETTING_KEY, JSON.stringify(neu));
+  putSetting.run(mail.SETTING_KEY, JSON.stringify(fresh));
   /* DIE MARKE WIRD HIER AUSDRUECKLICH NICHT GELOESCHT: sie haengt am HASH
      UEBER DEN ZUGANG, den mailCard(req) nachrechnet -- passt er nicht mehr,
      gilt sie nicht mehr. Ein zweites Loeschen waere eine zweite Wahrheit
@@ -1769,7 +1769,7 @@ const THEME_DEFAULT = 'dark';
 
 // Anordnung und Einklappzustand der Bloecke in der Detailansicht. Verschoben
 // wird nur innerhalb des jeweiligen Bereichs, deshalb zwei getrennte Listen.
-const BLOCK_VORGABE = {
+const BLOCK_DEFAULT = {
   // VORHER STEHT VOR NACHHER: geschaetzt wird, bevor bewertet wird, und die
   // Anordnung sagt es. Wer eine gespeicherte Reihenfolge hat, bekommt den
   // neuen Block ueber sortArea() hinten angehaengt -- die vorhandene
@@ -1777,7 +1777,7 @@ const BLOCK_VORGABE = {
   seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
   unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
 };
-const ALL_BLOCKS = [...BLOCK_VORGABE.seite, ...BLOCK_VORGABE.unten];
+const ALL_BLOCKS = [...BLOCK_DEFAULT.seite, ...BLOCK_DEFAULT.unten];
 
 /* WELCHE BLOECKE IHREN EINKLAPPZUSTAND NICHT MEHR SPEICHERN -- 0.21.0.
    Fuer die beiden Sternkaesten entscheidet ab jetzt der ZUSTAND DES EINTRAGS,
@@ -1809,8 +1809,8 @@ function sortArea(stored, fallback) {
 function blocks(userId) {
   const g = getUserSetting(userId, 'blocks', null) || {};
   return {
-    seite: sortArea(g.seite, BLOCK_VORGABE.seite),
-    unten: sortArea(g.unten, BLOCK_VORGABE.unten),
+    seite: sortArea(g.seite, BLOCK_DEFAULT.seite),
+    unten: sortArea(g.unten, BLOCK_DEFAULT.unten),
     zu: (Array.isArray(g.zu) ? g.zu : []).filter(k => CLOSED_BLOCKS.includes(k))
   };
 }
@@ -2193,8 +2193,8 @@ app.put('/api/settings', (req, res) => {
   if (req.body.blocks !== undefined) {
     const ein = req.body.blocks || {};
     putUserSetting(req.user.id, 'blocks', JSON.stringify({
-      seite: sortArea(ein.seite, BLOCK_VORGABE.seite),
-      unten: sortArea(ein.unten, BLOCK_VORGABE.unten),
+      seite: sortArea(ein.seite, BLOCK_DEFAULT.seite),
+      unten: sortArea(ein.unten, BLOCK_DEFAULT.unten),
       zu: (Array.isArray(ein.zu) ? ein.zu : []).filter(k => CLOSED_BLOCKS.includes(k))
     }));
   }
@@ -2312,7 +2312,7 @@ app.put('/api/settings', (req, res) => {
    Aussage um und braeche die Zusicherung, dass der Gesamtschnitt zwischen 1
    und 5 liegt.
    In der Schnittstelle steht eine ZAHL, kein Text. */
-const WEIGHT_MIN = 0.2, GEWICHT_MAX = 2.0;
+const WEIGHT_MIN = 0.2, WEIGHT_MAX = 2.0;
 
 /* ZU WELCHEM KASTEN EIN KRITERIUM GEHOEREN KANN -- 0.21.0. 'before' ist das
    Potenzial (die Einschaetzung, bevor etwas ausprobiert wurde), 'after' die
@@ -2320,7 +2320,7 @@ const WEIGHT_MIN = 0.2, GEWICHT_MAX = 2.0;
    DIE LISTE STEHT GENAU EINMAL, HIER UND NICHT AUCH IN db.js. Ein CHECK an der
    Spalte truege dieselbe Menge ein zweites Mal, und die zweite meldete sich
    nicht als Absage mit Message, sondern als abgebrochene Schreibung --
-   dieselbe Ueberlegung wie bei WEIGHT_MIN/GEWICHT_MAX eine Zeile darueber.
+   dieselbe Ueberlegung wie bei WEIGHT_MIN/WEIGHT_MAX eine Zeile darueber.
    DEUTSCH, UND NICHT 'before'/'after': die Werte stehen in SELECTs, die
    jemand liest, und der Sprachwaechter liest mit. */
 const PHASES = ['before', 'after'];
@@ -2336,7 +2336,7 @@ const PHASE_DEFAULT = 'after';
    Hand getippt. */
 function validWeight(raw) {
   const g = Number(raw);
-  if (!Number.isFinite(g) || g < WEIGHT_MIN || g > GEWICHT_MAX) return null;
+  if (!Number.isFinite(g) || g < WEIGHT_MIN || g > WEIGHT_MAX) return null;
   // Auf Hundertstel festlegen. Nicht als Schranke gedacht, sondern gegen den
   // Rest der Gleitkommarechnung: 1.2000000000000002 hat niemand eingegeben.
   return Math.round(g * 100) / 100;
@@ -2444,7 +2444,7 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
     weight = validWeight(req.body.weight);
     if (weight === null) return res.status(400).json({
       error: t(localeOf(req), 'server.weightRange',
-        { min: number(WEIGHT_MIN, localeOf(req)), max: number(GEWICHT_MAX, localeOf(req)) })});
+        { min: number(WEIGHT_MIN, localeOf(req)), max: number(WEIGHT_MAX, localeOf(req)) })});
   }
   // Name und Gewicht in EINEM UPDATE: zwei Anweisungen hintereinander koennten
   // halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
@@ -2944,16 +2944,16 @@ const qAllTestDaysNarrow = db.prepare(
 
 function testDaysPerEntry(userId) {
   if (userId == null) throw new Error('testTageJeEintrag() ohne Benutzer aufgerufen');
-  const je = new Map();
+  const per = new Map();
   for (const tag of qAllTestDaysNarrow.all()) {
-    if (!je.has(tag.item_id)) je.set(tag.item_id, []);
+    if (!per.has(tag.item_id)) per.set(tag.item_id, []);
     // mine kommt vom Server, wie in qTestDays(): die Zeitleiste zeichnet die
     // eigenen Punkte gefuellt und fremde als Ring. Die Verfassernummer geht
     // nicht hinaus -- hier so wenig wie dort.
-    je.get(tag.item_id).push({ id: tag.id, day: tag.day, rating: tag.rating,
+    per.get(tag.item_id).push({ id: tag.id, day: tag.day, rating: tag.rating,
                              mine: tag.user_id === userId });
   }
-  return je;
+  return per;
 }
 const qTestStats = db.prepare(`
   SELECT COUNT(*) AS cnt, AVG(rating * 1.0) AS avg,
@@ -3403,7 +3403,7 @@ app.get('/api/items', (req, res) => {
      Summe neben ihren Teilen waere eine zweite Wahrheit ueber dieselbe Sache
      (Stolperstein 47). Gebildet wird sie in der Oberflaeche, an einer Stelle. */
   const reference = bellSeen(req.user.id);
-  const newCommentsPer = new Map(), neuBewJe = new Map(), neuVonJe = new Map();
+  const newCommentsPer = new Map(), newRatingsPer = new Map(), newFromPer = new Map();
   if (reference) {
     /* WER EINEN KOMMENTAR GESCHRIEBEN HAT -- je Eintrag eine Menge von
        Zugangsnummern. Eine Nummer, die zweimal vorkommt, steht einmal darin:
@@ -3431,8 +3431,8 @@ app.get('/api/items', (req, res) => {
        weil es nichts zu entdoppeln gibt. Die Zusage haengt am GROUP BY, und
        dort greift seit 0.17.0 auch der Rueckbau (Stolperstein 235). */
     const actor = (id, uid) => {
-      if (!neuVonJe.has(id)) neuVonJe.set(id, new Set());
-      neuVonJe.get(id).add(uid);
+      if (!newFromPer.has(id)) newFromPer.set(id, new Set());
+      newFromPer.get(id).add(uid);
     };
     /* BEIDE ABFRAGEN BEKOMMEN DENSELBEN ZWEITEN WERT. Zoege man ihn nur an
        einer nach, meldete die Tafel Bewertungen von jemandem, dessen Kommentare
@@ -3446,7 +3446,7 @@ app.get('/api/items', (req, res) => {
       actor(z.item_id, z.user_id);
     }
     for (const z of qNewRatings.all(reference, req.user.id))
-      neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);
+      newRatingsPer.set(z.item_id, (newRatingsPer.get(z.item_id) || 0) + z.n);
   }
   /* DIE FOTOS ALLER EINTRAEGE IN EINER ABFRAGE, seit 0.19.2 -- vorher eine je
      Eintrag. DIESELBE BAUFORM WIE bei den neuen Kommentaren und Bewertungen
@@ -3594,8 +3594,8 @@ app.get('/api/items', (req, res) => {
        als dieselben Objekte hinaus wie ueberall sonst -- aus authorCard(),
        nicht als nackte Zugangsnummern. */
     if (reference) it.newComments = newCommentsPer.get(it.id) || 0;
-    if (reference) it.newRatings = neuBewJe.get(it.id) || 0;
-    if (reference) it.newFrom = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(card, uid));
+    if (reference) it.newRatings = newRatingsPer.get(it.id) || 0;
+    if (reference) it.newFrom = [...(newFromPer.get(it.id) || [])].map(uid => authorFrom(card, uid));
   }
   res.json(rows);
 });
@@ -3831,9 +3831,9 @@ app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), a
          Er braucht die Unterscheidung auch nicht: die Zwischenablage liefert
          IMMER PNG, eine Kamera JPEG. Die Regel „PNG umwandeln, JPEG in Ruhe
          lassen" trifft damit genau das, was gemeint ist. */
-      const ab = convertImages() ? await storeImage(f.buffer, f.mimetype)
+      const start = convertImages() ? await storeImage(f.buffer, f.mimetype)
                                    : { data: f.buffer, mime: f.mimetype };
-      into.run(req.params.id, ab.mime, ab.data, v.thumb, v.medium, pos++);
+      into.run(req.params.id, start.mime, start.data, v.thumb, v.medium, pos++);
     }
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id));
@@ -4099,8 +4099,8 @@ app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMEN
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
     const da = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(req.params.id).n;
-    const neu = (req.files || []).length;
-    if (da + neu > ATTACHMENT_COUNT)
+    const fresh = (req.files || []).length;
+    if (da + fresh > ATTACHMENT_COUNT)
       return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { deckel: ATTACHMENT_COUNT })});
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
       .get(req.params.id).m + 1;
@@ -4497,9 +4497,9 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
 
     const pinned = req.body.pinned === '1' || req.body.pinned === true;
     // Der Schreibende ist der Verfasser.
-    const neu = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id) VALUES (?, ?, ?, ?, ?)')
+    const fresh = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id) VALUES (?, ?, ?, ?, ?)')
       .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id);
-    if (k.images.length) saveCommentImages(neu.lastInsertRowid, k.images);
+    if (k.images.length) saveCommentImages(fresh.lastInsertRowid, k.images);
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id));
   } catch (e) { next(e); }
@@ -4716,7 +4716,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
      gemeint. */
   const kinds = qImageKinds.all().map(z => z.a);
   const p = { n: 0, o: 0 }, vi = { n: 0, o: 0 };
-  const bildFormate = {};
+  const imageFormats = {};
   /* DIE EXPORTGROESSE DER BILDER FAELLT HIER MIT AB. Sie stand bis 0.19.1 in
      zwei eigenen Abfragen mit `WHERE kind != 'video'` und kostete damit
      dasselbe zweite und dritte Mal -- gemessen 1363 und 1310 ms. Es ist
@@ -4739,7 +4739,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
        Zahl daneben. */
     for (const g of qPerFormat.all(kind)) {
       const k = formatFromMime(g.m);
-      const f = bildFormate[k] || (bildFormate[k] = { count: 0, bytes: 0 });
+      const f = imageFormats[k] || (imageFormats[k] = { count: 0, bytes: 0 });
       f.count += g.n; f.bytes += g.o;
     }
   }
@@ -4783,7 +4783,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
        gross ist, und sie sagt, ob der Knopf daneben noch etwas zu tun hat.
        NUR DAS ORIGINAL. thumb und medium sind immer JPEG und stehen in keiner
        eigenen Zeile; sie werden von dieser Runde nicht angefasst. */
-    bildFormate,
+    imageFormats,
     /* WIE WEIT DIE UMSTELLUNG IST -- ODER null. KEINE ZWEITE ROUTE dafuer:
        die Karte fragt ohnehin die Kennzahlen ab, und ein eigener Endpunkt fuer
        drei Zahlen liefe als zweite Wahrheit ueber denselben Lauf mit. */
@@ -4956,14 +4956,14 @@ function authorNames() {
    NICHT zum Favoriten -- er ist eine Aussage ueber einen Eintrag und nicht
    sein Inhalt. Folge: beim Wiederherstellen aus dem Papierkorb kommen die
    Favoriten ANDERER nicht zurueck. */
-function bundleState(userId, schalter = {}) {
+function bundleState(userId, switches = {}) {
   return {
     authorName: authorNames(),
     pins: new Set(qMyPins.all(userId).map(p => p.item_id)),
-    funnel: schalter.funnel || FUNNEL_FILE,
-    withPhotos: schalter.withPhotos !== false,
-    withFiles: !!schalter.withFiles,
-    withVideos: !!schalter.withVideos
+    funnel: switches.funnel || FUNNEL_FILE,
+    withPhotos: switches.withPhotos !== false,
+    withFiles: !!switches.withFiles,
+    withVideos: !!switches.withVideos
   };
 }
 
@@ -5115,7 +5115,7 @@ function exportName(zusatz) {
    Video steht neben den Daten das Standbild (`medium`, ersatzweise `thumb`).
    Eine Summe ueber alle Blob-Spalten faellt deshalb zu hoch aus, und eine
    Warnung, die zu frueh kommt, wird weggeklickt. */
-function exchangeParts(itemId, schalter) {
+function exchangeParts(itemId, switches) {
   const onlyOne = itemId !== null;
   const values = onlyOne ? [itemId] : [];
   const one = (sql) => db.prepare(sql).get(...values).n || 0;
@@ -5125,17 +5125,17 @@ function exchangeParts(itemId, schalter) {
   const wo = (column) => onlyOne ? ` WHERE ${column} = ?` : '';
   const base64 = (n) => Math.round(n * 4 / 3);
   const parts = { photos: 0, videos: 0, anhaenge: 0, kommentarbilder: 0 };
-  if (schalter.withPhotos)
+  if (switches.withPhotos)
     parts.photos = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));
   /* Der Videoschalter haengt am Fotoschalter, wie in entryAsBundle(): ohne
      Fotos wird die Liste gar nicht erst gebaut, und der Haken an den Videos
      bliebe eine Angabe ohne Wirkung. */
-  if (schalter.withPhotos && schalter.withVideos)
+  if (switches.withPhotos && switches.withVideos)
     parts.videos = base64(one(
       `SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) n
          FROM photos WHERE kind = 'video'${and('item_id')}`));
-  if (schalter.withFiles) {
+  if (switches.withFiles) {
     parts.anhaenge = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM attachments${wo('item_id')}`));
     // Kommentarbilder folgen dem Schalter der Dateien -- dort und hier.
@@ -5239,12 +5239,12 @@ const qPartSizes = db.prepare(`
 
 // Was EIN Eintrag in der Datei kostet -- Blobs nach Schalter, Text und Form
 // immer. Dieselbe Rechnung wie exchangeBytes(), nur aus einer fertigen Zeile.
-function partBytes(z, schalter) {
+function partBytes(z, switches) {
   const base64 = (n) => Math.round(n * 4 / 3);
   let n = 0;
-  if (schalter.withPhotos) n += z.photo;
-  if (schalter.withPhotos && schalter.withVideos) n += z.video;
-  if (schalter.withFiles) n += z.attachment + z.kbild;
+  if (switches.withPhotos) n += z.photo;
+  if (switches.withPhotos && switches.withVideos) n += z.video;
+  if (switches.withFiles) n += z.attachment + z.kbild;
   return base64(n) + z.text + z.ktext + z.tagtext + z.linktext
     + ENVELOPE_PER.entry + z.nk * ENVELOPE_PER.comment + z.nb * ENVELOPE_PER.rating
     + z.nz * ENVELOPE_PER.testDay + z.nf * ENVELOPE_PER.photo + z.nd * ENVELOPE_PER.file;
@@ -5272,7 +5272,7 @@ function partBytes(z, schalter) {
    entstuenden bei tausend Eintraegen tausend Dateien, und der Import waere
    tausend Handgriffe. */
 const EXCHANGE_PART_MIN = 1024 * 1024;
-function exchangePlan(schalter, targetWanted) {
+function exchangePlan(switches, targetWanted) {
   const zielGroesse = Math.min(EXCHANGE_WARN,
     Math.max(EXCHANGE_PART_MIN, Number(targetWanted) > 0 ? Number(targetWanted) : EXCHANGE_WARN));
   const rows = qPartSizes.all();
@@ -5281,7 +5281,7 @@ function exchangePlan(schalter, targetWanted) {
   const tooBig = [];
   let offen = null;
   for (const z of rows) {
-    const b = partBytes(z, schalter);
+    const b = partBytes(z, switches);
     if (reason + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: reason + b }); continue; }
     // Ein neuer Teil, sobald dieser Eintrag den laufenden ueber den Zielwert
     // hoebe. Der erste Eintrag eroeffnet immer -- sonst entstuende ein leerer.
@@ -5322,8 +5322,8 @@ function exchangeEnvelopeFrame() {
 /* Wie viele Bytes eine Datei traegt, BEVOR sie gebaut wird -- als eine Zahl.
    Der Umschlag gehoert dazu: eine Absage, die nur die Blobs zaehlt, laesst
    genau die Datei durch, die am Umschlag zerbricht. */
-function exchangeBytes(itemId, schalter) {
-  const parts = exchangeParts(itemId, schalter);
+function exchangeBytes(itemId, switches) {
+  const parts = exchangeParts(itemId, switches);
   return parts.photos + parts.videos + parts.anhaenge + parts.kommentarbilder + exchangeEnvelopeBytes(itemId);
 }
 
@@ -5355,7 +5355,7 @@ app.get('/api/export/plan', ownerOnly, (req, res) => {
 });
 
 app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
-  const schalter = {
+  const switches = {
     withPhotos: req.query.photos !== '0',
     // Eigener Schalter, Vorgabe aus: bei 50 MB je Datei waere die Exportdatei
     // sonst schnell unhandlich -- Base64 blaeht zusaetzlich um ein Drittel auf.
@@ -5397,11 +5397,11 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   if (asPart && (from > to || part > parts || parts > EXCHANGE_PART_MAX))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportMismatch')});
 
-  const big = exchangeBytes(null, schalter);
+  const big = exchangeBytes(null, switches);
   if (!asPart && big > EXCHANGE_MAX)
     return res.status(413).json({ error:
       t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
-  const situation = bundleState(req.user.id, schalter);
+  const situation = bundleState(req.user.id, switches);
   const items = (asPart
     ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(from, to)
     : db.prepare('SELECT * FROM items ORDER BY id').all()).map(it => entryAsBundle(it, situation));
@@ -5439,11 +5439,11 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
 app.get('/api/items/:id/export', ownerOnly, (req, res) => {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
   if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
-  const schalter = { withPhotos: true, withFiles: true, withVideos: true };
-  const big = exchangeBytes(it.id, schalter);
+  const switches = { withPhotos: true, withFiles: true, withVideos: true };
+  const big = exchangeBytes(it.id, switches);
   if (big > EXCHANGE_MAX)
     return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
-  const bundle = entryAsBundle(it, bundleState(req.user.id, schalter));
+  const bundle = entryAsBundle(it, bundleState(req.user.id, switches));
   res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
   res.json(exportEnvelope([bundle]));
 });
@@ -5474,7 +5474,7 @@ const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
    mehr im Umlauf, die die alten Namen traegt. */
 const PHOTO_FIELDS_0240 = Object.entries(COLUMNS_0241)
   .filter(([place]) => place.startsWith('photos.'))
-  .map(([place, neu]) => [place.slice('photos.'.length), neu]);
+  .map(([place, fresh]) => [place.slice('photos.'.length), fresh]);
 /* UND DIE WERTE EBENSO. Eine Datei von vorher traegt `bild` an ihren Fotos
    und `vorher` an ihren Kriterien. Beim Foto waere das Uebergehen still
    folgenlos ('bild' ist ohnehin nicht 'video'); bei der Phase waere es ein
@@ -5488,8 +5488,8 @@ const valueFromFile = (group, value) =>
 
 function photoFromFile(p) {
   const z = { ...p };
-  for (const [alt, neu] of PHOTO_FIELDS_0240)
-    if (z[neu] === undefined && z[alt] !== undefined) z[neu] = z[alt];
+  for (const [old, fresh] of PHOTO_FIELDS_0240)
+    if (z[fresh] === undefined && z[old] !== undefined) z[fresh] = z[old];
   if (z.kind !== undefined) z.kind = valueFromFile('photoKind', z.kind);
   return z;
 }
@@ -5513,11 +5513,11 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   const commentImages = new Map();
   /* Die laute Haelfte der Videos: nicht abbrechen, melden -- dieselbe Haltung
      wie bei unbekannten Verfassernamen und ungueltigen Gewichten. */
-  let videosOhneDatei = 0, videosUnlesbar = 0;
+  let videosWithoutFile = 0, videosUnlesbar = 0;
   for (const it of payload.items) {
     const photos = [];
-    for (const pRoh of it.photos || []) {
-      const p = photoFromFile(pRoh);
+    for (const pRaw of it.photos || []) {
+      const p = photoFromFile(pRaw);
       /* ENTSCHIEDEN WIRD UEBER DAS VORHANDENSEIN DER FELDER, nicht ueber die
          Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung.
          Eine Datei ohne kind an ihren Fotos ist eine aeltere, und alles darin
@@ -5530,7 +5530,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         // sondern gezaehlt und genannt. HINZUNEHMENDE FOLGE, und sie gehoert
         // gesagt: stand das Video an erster Stelle, wird das naechste Foto
         // zum Hauptbild.
-        if (isVideo) videosOhneDatei++;
+        if (isVideo) videosWithoutFile++;
         continue;
       }
       /* Bei einem Video kommen die Varianten aus dem STANDBILD, nie aus
@@ -5638,16 +5638,16 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      sucht.
      EIN UNGUELTIGES GEWICHT BRICHT NICHT AB, sondern faellt auf 1,0 und wird
      genannt. */
-  const dateiGewichte = new Map();
+  const fileWeights = new Map();
   const weightsDropped = new Set();
-  const rohGewichte = payload.criteriaGewichte;
-  if (rohGewichte && typeof rohGewichte === 'object' && !Array.isArray(rohGewichte)) {
-    for (const [name, raw] of Object.entries(rohGewichte)) {
+  const rawWeights = payload.criteriaGewichte;
+  if (rawWeights && typeof rawWeights === 'object' && !Array.isArray(rawWeights)) {
+    for (const [name, raw] of Object.entries(rawWeights)) {
       const clean = String(name || '').trim();
       if (!clean) continue;
       const g = validWeight(raw);
       if (g === null) { weightsDropped.add(clean); continue; }
-      dateiGewichte.set(clean.toLowerCase(), g);
+      fileWeights.set(clean.toLowerCase(), g);
     }
   }
 
@@ -5658,18 +5658,18 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      EIN UNSINNIGER WERT FAELLT AUF 'after' und bricht nichts ab -- dieselbe
      Haltung wie beim ungueltigen Gewicht. Er sagt nichts, was diese
      Installation nicht schon annimmt. */
-  const dateiPhasen = new Map();
-  const rohPhasen = payload.criteriaPhase;
-  if (rohPhasen && typeof rohPhasen === 'object' && !Array.isArray(rohPhasen)) {
-    for (const [name, raw] of Object.entries(rohPhasen)) {
+  const filePhases = new Map();
+  const rawPhases = payload.criteriaPhase;
+  if (rawPhases && typeof rawPhases === 'object' && !Array.isArray(rawPhases)) {
+    for (const [name, raw] of Object.entries(rawPhases)) {
       const clean = String(name || '').trim();
       const value = valueFromFile('phase', raw);
       if (!clean || !PHASES.includes(value)) continue;
-      dateiPhasen.set(clean.toLowerCase(), value);
+      filePhases.set(clean.toLowerCase(), value);
     }
   }
   const phaseFrom = (name) =>
-    dateiPhasen.get(String(name).trim().toLowerCase()) || PHASE_DEFAULT;
+    filePhases.get(String(name).trim().toLowerCase()) || PHASE_DEFAULT;
 
   /* DER KONFLIKT UEBER DIE KAESTEN HINWEG, UND ER WIRD VOR DEM ERSTEN
      SCHREIBEN ABGEWIESEN -- 0.21.0.
@@ -5737,7 +5737,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       if (f) return f.id;
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
       // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
-      const g = dateiGewichte.get(String(name).trim().toLowerCase());
+      const g = fileWeights.get(String(name).trim().toLowerCase());
       /* UND SEINEN KASTEN AUS DER DATEI, sonst 'after'. Ein VORHANDENES
          behaelt den seinen -- so wie es sein Gewicht behaelt; anders als beim
          Gewicht kann es hier aber gar nicht abweichen, denn die Absage
@@ -5920,15 +5920,15 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      denn stand ein Video an erster Stelle, wird jetzt das naechste Foto zum
      Hauptbild. Antwort UND Protokoll -- die Antwort fuer den Pruefstand und
      die Abfrage von Hand, das Protokoll fuer den Betrieb. */
-  if (videosOhneDatei)
-    console.log(`[Kriterion] Import: ${videosOhneDatei} Video(s) waren nicht in der Datei ` +
+  if (videosWithoutFile)
+    console.log(`[Kriterion] Import: ${videosWithoutFile} Video(s) waren nicht in der Datei ` +
                 `enthalten und wurden uebergangen.`);
   if (videosUnlesbar)
     console.log(`[Kriterion] Import: ${videosUnlesbar} Video(s) ohne lesbares Standbild ` +
                 `uebergangen.`);
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
-           weightsDropped: dropped, videosOhneDatei, videosUnlesbar, newIds };
+           weightsDropped: dropped, videosWithoutFile, videosUnlesbar, newIds };
 }
 
 /* Nur der Eigentuemer. EINE EXPORTDATEI KANN UNTER FREMDEM NAMEN SCHREIBEN:
@@ -5987,9 +5987,9 @@ app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
 
 const TRASH_DAYS = 30;
 
-const insTrash = db.prepare(
+const insertTrash = db.prepare(
   'INSERT INTO trash (title, content, deleted_by) VALUES (?, ?, ?)');
-const insTrashBytes = db.prepare(
+const insertTrashBytes = db.prepare(
   'INSERT INTO trash_bytes (trash_id, part, data) VALUES (?, ?, ?)');
 const qTrashBytes = db.prepare(
   'SELECT data FROM trash_bytes WHERE trash_id = ? AND part = ?');
@@ -6041,8 +6041,8 @@ function intoTrash(itemId, actor) {
   });
   return db.transaction(() => {
     const envelope = exportEnvelope([entryAsBundle(it, situation)]);
-    const p = insTrash.run(it.title, JSON.stringify(envelope), actor);
-    collector.forEach((buf, nr) => insTrashBytes.run(p.lastInsertRowid, nr, buf));
+    const p = insertTrash.run(it.title, JSON.stringify(envelope), actor);
+    collector.forEach((buf, nr) => insertTrashBytes.run(p.lastInsertRowid, nr, buf));
     db.prepare('DELETE FROM items WHERE id = ?').run(it.id);
     return p.lastInsertRowid;
   })();
@@ -6458,7 +6458,7 @@ function cleanupPreview(pfad, keep, days) {
   if (files === null) return { erreichbar: false, files: [], treffer: [], bytes: 0, reason: '' };
   const mark = changeMark();
   const now = Date.now();
-  const alt = mark ? files.filter(d => d.time < mark.ms) : [];
+  const old = mark ? files.filter(d => d.time < mark.ms) : [];
   const usable = mark ? files.filter(d => d.time >= mark.ms) : files;
   const treffer = ruleHit(files, keep, days, now, mark ? mark.ms : null);
   let reason = '';
@@ -6504,9 +6504,9 @@ function cleanupPreview(pfad, keep, days) {
     treffer: treffer.map(d => cleanupRow(d, now)),
     bytes: treffer.reduce((n, d) => n + d.bytes, 0),
     reason,
-    oldCount: alt.length,
-    oldBytes: alt.reduce((n, d) => n + d.bytes, 0),
-    oldFiles: alt.map(d => cleanupRow(d, now))
+    oldCount: old.length,
+    oldBytes: old.reduce((n, d) => n + d.bytes, 0),
+    oldFiles: old.map(d => cleanupRow(d, now))
   };
 }
 
@@ -6858,7 +6858,7 @@ app.use((err, req, res, next) => {
    DIE FRAGE, OB ES ETWAS ZU TUN GIBT, BLEIBT HIER. Ohne sie entstuende bei
    jedem Start ein Thread fuer eine leere Liste -- 19 ms fuer die Verbindung
    und 76 ms fuer sharp, fuer nichts. */
-function ruesteVorschaubilderNach() {
+function backfillThumbnails() {
   const offen = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND kind != 'video'").all();
   if (!offen.length) return refreshTiles();
@@ -7051,5 +7051,5 @@ app.listen(PORT, () => {
      Am Ende der Kette steht maintainStorage(). Der Fehlerfall haengt am
      Thread (worker.on('error')) -- und er beendet die Kette: der Abschluss
      laeuft am 'exit', und den gibt es auch nach einem Fehler. */
-  setTimeout(ruesteVorschaubilderNach, 1500);
+  setTimeout(backfillThumbnails, 1500);
 });

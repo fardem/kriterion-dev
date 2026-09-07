@@ -96,11 +96,11 @@ class Message extends Error {
 function fromEnv(name, alterName) {
   const value = process.env[name];
   if (String(value ?? '').trim() !== '') return value;
-  const alt = process.env[alterName];
-  if (String(alt ?? '').trim() !== '') {
+  const old = process.env[alterName];
+  if (String(old ?? '').trim() !== '') {
     console.warn(`[Kriterion] ${alterName} heisst jetzt ${name} — der alte Name ` +
       'wird noch gelesen. Bitte in der .env nachziehen.');
-    return alt;
+    return old;
   }
   return value;
 }
@@ -228,12 +228,12 @@ async function checkPassword(password, stored) {
   if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
   const want = Buffer.from(parts[4 + 1], 'hex');
   if (!want.length) return false;
-  let ist;
+  let got;
   try {
-    ist = await scryptCompute(String(password), Buffer.from(parts[4], 'hex'),
+    got = await scryptCompute(String(password), Buffer.from(parts[4], 'hex'),
       { N: +parts[1], r: +parts[2], p: +parts[3], keylen: want.length });
   } catch { return false; }
-  return ist.length === want.length && crypto.timingSafeEqual(ist, want);
+  return got.length === want.length && crypto.timingSafeEqual(got, want);
 }
 
 // Gegen Zeitmessung am Benutzernamen: ein unbekannter Name darf nicht messbar
@@ -354,12 +354,12 @@ async function changeUser(userId, oldPassword, newName, newPassword, newAddress)
   const hash = changes ? await hashPassword(newPassword) : u.password_hash;
   /* Die Adresse wird GEPRUEFT, bevor irgendetwas geschrieben wird -- eine
      Absage, die den Namen schon gewechselt hat, waere schlimmer als keine. */
-  const adresseGemeint = newAddress !== undefined;
-  const address = adresseGemeint ? String(newAddress || '').trim() : null;
-  if (adresseGemeint && address && !mail.isAddress(address))
+  const addressMeant = newAddress !== undefined;
+  const address = addressMeant ? String(newAddress || '').trim() : null;
+  if (addressMeant && address && !mail.isAddress(address))
     throw new Message('login.emailInvalid');
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(name, hash, u.id);
-  if (adresseGemeint)
+  if (addressMeant)
     db.prepare('UPDATE users SET email = ? WHERE id = ?').run(address || null, u.id);
   /* Der eigene Zugang ist der erste Griff einer uebernommenen Sitzung: er
      sperrt den Richtigen aus. Ein Aufruf, der nichts bewegt, ist kein Vorgang
@@ -367,11 +367,11 @@ async function changeUser(userId, oldPassword, newName, newPassword, newAddress)
      entscheidet, WOHIN der naechste Ruecksetzlink geht. 'both' heisst "mehr
      als eines", deshalb wird GEZAEHLT statt verschachtelt. */
   const renamed = name !== u.username;
-  const adresseNeu = adresseGemeint && (address || null) !== (u.email || null);
-  const moved = [renamed && 'name', changes && 'password', adresseNeu && 'address'].filter(Boolean);
+  const addressNew = addressMeant && (address || null) !== (u.email || null);
+  const moved = [renamed && 'name', changes && 'password', addressNew && 'address'].filter(Boolean);
   const detail = moved.length > 1 ? 'both' : moved[0] || null;
   if (detail) log('user.self', { actor: u.id, target: u.id, detail });
-  return { username: name, passwordChanged: changes, email: adresseGemeint ? address : (u.email || '') };
+  return { username: name, passwordChanged: changes, email: addressMeant ? address : (u.email || '') };
 }
 
 /* --- Zugangsverwaltung --------------------------------------------------
@@ -894,9 +894,9 @@ const tokenHash = (raw) => crypto.createHash('sha256').update(String(raw)).diges
    drei Monate durchlaeuft, raeumte sonst drei Monate lang nicht auf.
    ZWEI MODIFIKATOREN WAEREN ZWEI ARGUMENTE (Stolperstein 119); hier steht
    einer, und er wird gebunden statt in den String geschrieben. */
-const delTokenAlt = db.prepare("DELETE FROM tokens WHERE expires_at < datetime('now', ?)");
+const delTokensOld = db.prepare("DELETE FROM tokens WHERE expires_at < datetime('now', ?)");
 function cleanupTokens() {
-  const n = delTokenAlt.run(`-${TOKEN_TRACE_DAYS} days`).changes;
+  const n = delTokensOld.run(`-${TOKEN_TRACE_DAYS} days`).changes;
   if (n) console.log(`[Kriterion] Token: ${n} Zeile(n) laenger als ` +
     `${TOKEN_TRACE_DAYS} Tage abgelaufen und entfernt.`);
   return n;
@@ -1027,10 +1027,10 @@ const countRequests = () => qRequestCount.get().n;
    den Admin, so lange es dauert.
    EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
    (Stolperstein 119). */
-const delAnfragenAlt = db.prepare(
+const delRequestsOld = db.prepare(
   "DELETE FROM requests WHERE confirmed_at IS NULL AND created_at < datetime('now', ?)");
 function cleanupRequests() {
-  const n = delAnfragenAlt.run(`-${REQUEST_HOURS} hours`).changes;
+  const n = delRequestsOld.run(`-${REQUEST_HOURS} hours`).changes;
   if (n) console.log(`[Kriterion] Selbstanmeldung: ${n} unbestaetigte Anfrage(n) aelter als ` +
     `${REQUEST_HOURS} Stunden entfernt.`);
   return n;
@@ -1215,7 +1215,7 @@ const LOG_DAYS = 180;
 // damit aus "hundert Zeilen" nicht "hundert Vorgaenge" gelesen wird.
 const LOG_LIMIT = 100;
 
-const insLog = db.prepare(
+const insertLog = db.prepare(
   'INSERT INTO security_log (event, actor, target, detail) VALUES (?, ?, ?, ?)');
 
 /* WER HANDELT -- die Nummer des Angemeldeten oder FROM_HOST fuer usertool.js.
@@ -1250,7 +1250,7 @@ function log(event, { actor = null, target = null, detail = null } = {}) {
       const n = Number(v);
       return Number.isInteger(n) && n > 0 ? n : null;
     };
-    insLog.run(event, nr(actor), nr(target), detail);
+    insertLog.run(event, nr(actor), nr(target), detail);
   } catch (e) {
     console.error('[Kriterion] Sicherheitsprotokoll:', e.message);
   }
@@ -1262,9 +1262,9 @@ function log(event, { actor = null, target = null, detail = null } = {}) {
    nicht auf.
    EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
    (Stolperstein 119). */
-const delProtokollAlt = db.prepare("DELETE FROM security_log WHERE at < datetime('now', ?)");
+const delLogOld = db.prepare("DELETE FROM security_log WHERE at < datetime('now', ?)");
 function cleanupLog() {
-  const n = delProtokollAlt.run(`-${LOG_DAYS} days`).changes;
+  const n = delLogOld.run(`-${LOG_DAYS} days`).changes;
   if (n) console.log(`[Kriterion] Sicherheitsprotokoll: ${n} Zeile(n) aelter als ` +
     `${LOG_DAYS} Tage entfernt.`);
   return n;
@@ -1302,8 +1302,8 @@ const LOG_GROUPS = {
 
 const LOG_COLUMNS =
   `SELECT p.id, p.at, p.event, p.actor, p.target, p.detail,
-          CASE WHEN uw.status = 'deleted' THEN NULL ELSE uw.username END AS werName,
-          CASE WHEN uz.status = 'deleted' THEN NULL ELSE uz.username END AS zielName
+          CASE WHEN uw.status = 'deleted' THEN NULL ELSE uw.username END AS actorName,
+          CASE WHEN uz.status = 'deleted' THEN NULL ELSE uz.username END AS targetName
      FROM security_log p
      LEFT JOIN users uw ON uw.id = p.actor
      LEFT JOIN users uz ON uz.id = p.target`;
@@ -1311,8 +1311,8 @@ const qLog = db.prepare(`${LOG_COLUMNS} ORDER BY p.id DESC LIMIT ?`);
 /* JE GRUPPE EINE VORBEREITETE ABFRAGE, beim Laden gebaut. Die Fragezeichen
    entstehen aus der GESCHLOSSENEN Liste und nie aus einer Anfrage; die Werte
    werden gebunden und nicht in den String geschrieben (Stolperstein 119). */
-const qLogGroup = Object.fromEntries(Object.entries(LOG_GROUPS).map(([k, arten]) =>
-  [k, db.prepare(`${LOG_COLUMNS} WHERE p.event IN (${arten.map(() => '?').join(',')})` +
+const qLogGroup = Object.fromEntries(Object.entries(LOG_GROUPS).map(([k, kinds]) =>
+  [k, db.prepare(`${LOG_COLUMNS} WHERE p.event IN (${kinds.map(() => '?').join(',')})` +
                  ' ORDER BY p.id DESC LIMIT ?')]));
 const qLogCount = db.prepare('SELECT COUNT(*) n FROM security_log');
 const qLogPerKind = db.prepare('SELECT event, COUNT(*) n FROM security_log GROUP BY event');
@@ -1324,8 +1324,8 @@ const qLogPerKind = db.prepare('SELECT event, COUNT(*) n FROM security_log GROUP
 function logCounts() {
   const perKind = Object.fromEntries(qLogPerKind.all().map(z => [z.event, z.n]));
   const out = { all: 0 };
-  for (const [k, arten] of Object.entries(LOG_GROUPS))
-    out[k] = arten.reduce((n, a) => n + (perKind[a] || 0), 0);
+  for (const [k, kinds] of Object.entries(LOG_GROUPS))
+    out[k] = kinds.reduce((n, a) => n + (perKind[a] || 0), 0);
   out.all = Object.values(perKind).reduce((n, x) => n + x, 0);
   return out;
 }
@@ -1528,7 +1528,7 @@ function startTwoFactor(userId, instanceName, username) {
    zurueck -- danach stehen sie nirgends mehr, auch nicht in der Datenbank.
    EINE TRANSAKTION: entweder sind die alten fort UND die neuen da, oder es hat
    sich nichts bewegt. Ein halber Satz waere schlimmer als der alte. */
-const insCode = db.prepare(
+const insertCode = db.prepare(
   'INSERT INTO two_factor_codes (hash, user_id) VALUES (?, ?)');
 function createRecoveryCodes(userId) {
   const id = Number(userId) || 0;
@@ -1538,7 +1538,7 @@ function createRecoveryCodes(userId) {
     // tokenHash() WIRD WIEDERVERWENDET und nicht ein zweites Mal geschrieben:
     // zwei Ausfertigungen derselben Rechnung liefen beim naechsten Griff
     // auseinander. Dieselbe Ueberlegung wie bei der Selbstanmeldung.
-    for (const k of plains) insCode.run(tokenHash(k), id);
+    for (const k of plains) insertCode.run(tokenHash(k), id);
   })();
   return plains.map(zf.recoveryDisplay);
 }

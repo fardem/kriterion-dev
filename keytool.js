@@ -268,7 +268,7 @@ async function commandChange(options) {
   auth.log('key', { actor: auth.FROM_HOST });
 
   console.log(`\n${BOLD('Der Schlüssel ist gewechselt.')}`);
-  console.log(`  Gedauert hat es ${ms} ms; das Journal stand auf ${journal.vorher} → DELETE → ${journal.nachher}.`);
+  console.log(`  Gedauert hat es ${ms} ms; das Journal stand auf ${journal.before} → DELETE → ${journal.after}.`);
   console.log(`  integrity_check: ${intact}`);
   if (options.env) {
     console.log(`  ${options.env}: der neue Wert steht aktiv, der alte auskommentiert darüber.`);

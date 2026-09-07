@@ -231,21 +231,21 @@ function commandOwner(name) {
 }
 
 async function main() {
-  const [befehl, name, ...rest] = process.argv.slice(2);
+  const [command, name, ...rest] = process.argv.slice(2);
   const options = { entries: rest.includes('--eintraege'), beitraege: rest.includes('--beitraege') };
   const needsName = () => {
     if (!name) { console.error(RED('Es fehlt der Benutzername.')); help(); process.exit(1); }
   };
-  switch (befehl) {
+  switch (command) {
     case 'liste': commandList(); break;
     case 'passwort': needsName(); await commandPassword(name); break;
     case 'entfernen': needsName(); await commandRemove(name, options); break;
     case 'eigentuemer': needsName(); commandOwner(name); break;
     case 'zweifaktor': needsName(); await commandTwoFactor(name); break;
     default:
-      if (befehl) console.error(RED(`Unbekannter Befehl: ${befehl}`));
+      if (command) console.error(RED(`Unbekannter Befehl: ${command}`));
       help();
-      process.exit(befehl ? 1 : 0);
+      process.exit(command ? 1 : 0);
   }
 }
 

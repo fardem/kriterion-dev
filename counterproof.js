@@ -389,7 +389,7 @@ const RUECKBAUTEN = [
   {
     nr: '40', name: 'Unbestaetigte Anfragen verfallen nicht mehr',
     file: 'auth.js',
-    search: "  const n = delAnfragenAlt.run(`-${REQUEST_HOURS} hours`).changes;",
+    search: "  const n = delRequestsOld.run(`-${REQUEST_HOURS} hours`).changes;",
     ersatz: "  const n = 0;",
     erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
@@ -909,7 +909,7 @@ const RUECKBAUTEN = [
   {
     nr: '100', name: 'Die Wiederherstellungscodes liegen im Klartext in der Tabelle',
     file: 'auth.js',
-    search: "    for (const k of plains) insCode.run(tokenHash(k), id);",
+    search: "    for (const k of plains) insertCode.run(tokenHash(k), id);",
     ersatz: "    for (const k of klartexte) insCode.run(k, id);",
     erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
@@ -1249,21 +1249,21 @@ const RUECKBAUTEN = [
   {
     nr: '140', name: 'Bei gescheiterter Suche wird die Liste leer',
     file: 'public/app.js',
-    search: "    state.suchLaeuft = false; state.suchFehler = true;",
+    search: "    state.searchRunning = false; state.searchError = true;",
     ersatz: "    state.suchLaeuft = false; state.suchFehler = true; state.items = [];",
     erwartet: 'Die Suche fragt den Server'
   },
   {
     nr: '141', name: 'Die Zaehlzeile nennt die Trefferzahl als Bestand',
     file: 'public/app.js',
-    search: "    let z = `${state.bestand} ${vThing(state.bestand)}`",
+    search: "    let z = `${state.inventory} ${vThing(state.inventory)}`",
     ersatz: "    let z = `${state.items.length} ${vSache(state.items.length)}`",
     erwartet: 'Die Suche fragt den Server'
   },
   {
     nr: '142', name: 'Das Leeren holt den Bestand neu vom Server',
     file: 'public/app.js',
-    search: "    state.items = state.all;\n    state.suchLaeuft = false; state.suchFehler = false;",
+    search: "    state.items = state.all;\n    state.searchRunning = false; state.searchError = false;",
     ersatz: "    state.items = await api('GET', '/api/items');\n    state.suchLaeuft = false; state.suchFehler = false;",
     erwartet: 'Die Suche fragt den Server'
   },
@@ -1547,7 +1547,7 @@ const RUECKBAUTEN = [
   {
     nr: '173', name: 'Der Export baut erst und sagt danach ab',
     file: 'server.js',
-    search: '  const big = exchangeBytes(null, schalter);\n  if (!asPart && big > EXCHANGE_MAX)',
+    search: '  const big = exchangeBytes(null, switches);\n  if (!asPart && big > EXCHANGE_MAX)',
     ersatz: '  const gross = 0;\n  if (!asPart && gross > EXCHANGE_MAX)',
     erwartet: 'Videos: Kennzahlen und Austausch'
   },
@@ -2020,7 +2020,7 @@ const RUECKBAUTEN = [
        Fassung hinterlaesst. */
     nr: '220', name: 'Der Migrationsblock fragt nur noch die erste Spalte ab',
     file: 'db.js',
-    search: "  const fehlend = [];\n  if (!spalten.includes('rejected_at')) fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
+    search: "  const missing = [];\n  if (!columns.includes('rejected_at')) missing.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
     ersatz: "  const fehlend = [];\n  if (spalten.includes('rejected_at')) return 0;\n  fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
@@ -2030,7 +2030,7 @@ const RUECKBAUTEN = [
        ohne sie ueberlebt bei einem Abbruch die erste Spalte allein. */
     nr: '221', name: 'Die drei ALTER TABLE laufen nicht mehr in einer Transaktion',
     file: 'db.js',
-    search: "  db.transaction(() => { for (const [, sql] of fehlend) db.exec(sql); })();",
+    search: "  db.transaction(() => { for (const [, sql] of missing) db.exec(sql); })();",
     ersatz: "  for (const [, sql] of fehlend) db.exec(sql);",
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
@@ -2546,14 +2546,14 @@ const RUECKBAUTEN = [
   {
     nr: '272', name: 'Der Systembereich zeigt wieder alle Karten auf einmal',
     file: 'public/app.js',
-    search: "  const cards = SYS_CARDS.filter(k => k.abschnitt === offen.key && k.visible(fetched));",
+    search: "  const cards = SYS_CARDS.filter(k => k.section === offen.key && k.visible(fetched));",
     ersatz: "  const karten = SYS_KARTEN.filter(k => k.sichtbar(geholt));",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '273', name: 'Ein Abschnitt ohne sichtbare Karte erscheint trotzdem',
     file: 'public/app.js',
-    search: "  return SYS_SECTIONS.filter(a =>\n    SYS_CARDS.some(k => k.abschnitt === a.key && k.visible(fetched)));",
+    search: "  return SYS_SECTIONS.filter(a =>\n    SYS_CARDS.some(k => k.section === a.key && k.visible(fetched)));",
     ersatz: "  return SYS_ABSCHNITTE;",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -2669,7 +2669,7 @@ const RUECKBAUTEN = [
        Antwort mit nur einer davon waere eine dritte Lage, die niemand kennt. */
     nr: '314', name: 'Die Verfasser stehen auch ohne Bezugspunkt an jedem Eintrag',
     file: 'server.js',
-    search: "    if (reference) it.newFrom = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(card, uid));",
+    search: "    if (reference) it.newFrom = [...(newFromPer.get(it.id) || [])].map(uid => authorFrom(card, uid));",
     ersatz: "    it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(karte, uid));",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
@@ -2965,7 +2965,7 @@ const RUECKBAUTEN = [
        Server wirft die Auskunft wieder weg, noch bevor sie hinausgeht. */
     nr: '318', name: 'Der Server legt beide Zahlen wieder in eine Kiste',
     file: 'server.js',
-    search: "      neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);",
+    search: "      newRatingsPer.set(z.item_id, (newRatingsPer.get(z.item_id) || 0) + z.n);",
     ersatz: "      newCommentsPer.set(z.item_id, (newCommentsPer.get(z.item_id) || 0) + z.n);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
@@ -3018,7 +3018,7 @@ const RUECKBAUTEN = [
        Frage, und die Filterzeile ist wieder eine Pille laenger. */
     nr: '323', name: 'Der Schluessel der gestrichenen Pille bleibt in der Stellung stehen',
     file: 'public/app.js',
-    search: "  delete f.neu;\n  return f;",
+    search: "  delete f.fresh;\n  return f;",
     ersatz: "  return f;",
     erwartet: 'Die gestrichene Pille „Neu seit …" — 0.17.0'
   },
@@ -3215,7 +3215,7 @@ const RUECKBAUTEN = [
   {
     nr: '350', name: 'Das Vollbild uebernimmt den inneren Abspieler nicht mehr',
     file: 'public/app.js',
-    search: "      handover = { source, stelle: el.currentTime || 0, lief: !el.paused, offen: true };\n" +
+    search: "      handover = { source, position: el.currentTime || 0, lief: !el.paused, offen: true };\n" +
            "      el.pause();\n      el.removeAttribute('src');\n      el.load();",
     ersatz: "      el.pause();",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
@@ -3223,7 +3223,7 @@ const RUECKBAUTEN = [
   {
     nr: '351', name: 'Die uebernommene Stelle wird nicht gesetzt',
     file: 'public/app.js',
-    search: "        player.currentTime = handover.stelle;\n",
+    search: "        player.currentTime = handover.position;\n",
     ersatz: "",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
   },
@@ -3946,7 +3946,7 @@ const RUECKBAUTEN = [
        Zeile daneben. */
     nr: '441', name: 'Die Aufstellung nach Format faellt aus den Kennzahlen',
     file: 'server.js',
-    search: "    bildFormate,\n",
+    search: "    imageFormats,\n",
     ersatz: "",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4215,7 +4215,7 @@ const RUECKBAUTEN = [
        weder als Karte noch als Abschnitt in „Kennzahlen". */
     nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,\n" +
+    search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,\n" +
            "    markup: cardImageStore,   ausruesten: setUpImageStoreOut },\n",
     ersatz: "",
     erwartet: 'Die Bildablage in der Oberflaeche'
@@ -4225,7 +4225,7 @@ const RUECKBAUTEN = [
        laege dann bei den Kategorien und Tags. */
     nr: '470', name: 'Die Karte „Bildablage" steht im Abschnitt „Bestand"',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   abschnitt: 'database',",
+    search: "  { key: 'bildablage',   section: 'database',",
     ersatz: "  { schluessel: 'bildablage',   abschnitt: 'inventory',",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4235,8 +4235,8 @@ const RUECKBAUTEN = [
        Installation, neunzehn auf einer benutzten. */
     nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,",
-    ersatz: "  { key: 'bildablage',   abschnitt: 'database',\n" +
+    search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,",
+    ersatz: "  { key: 'bildablage',   section: 'database',\n" +
             "    sichtbar: (g) => ADMIN && !!Object.keys((g.stats && g.stats.bildFormate) || {}).length,",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -5235,7 +5235,7 @@ const RUECKBAUTEN = [
        Knoepfe stehen darauf. */
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     file: 'public/app.js',
-    search: "  { key: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,\n" +
+    search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,\n" +
            "    markup: cardCleanup,   ausruesten: setUpCleanupOut },",
     ersatz: "",
     erwartet: 'Der Systembereich nach Rolle'
@@ -5245,8 +5245,8 @@ const RUECKBAUTEN = [
        Karte "Sicherung" daneben faellt damit weg. */
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
     file: 'public/app.js',
-    search: "  { key: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,",
-    ersatz: "  { key: 'aufraeumen',   abschnitt: 'database', sichtbar: () => ADMIN,",
+    search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,",
+    ersatz: "  { key: 'aufraeumen',   section: 'database', sichtbar: () => ADMIN,",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
@@ -6250,7 +6250,7 @@ const RUECKBAUTEN = [
        Stufe 2 auf, wo er gebraucht wird. */
     nr: '670', name: 'Der Rueckfall auf Deutsch faellt weg',
     file: 'public/app.js',
-    search: "  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTE_DE[key];",
+    search: "  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_DE[key];",
     ersatz: "  const roh = TEXTE[schluessel];",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6417,7 +6417,7 @@ const RUECKBAUTEN = [
        rutscht dabei seitlich weg. */
     nr: '647', name: 'Die Kante verschiebt den Mittelpunkt wieder',
     file: 'public/app.js',
-    search: "          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, aroundCenter(mitteY, f.height)));",
+    search: "          (e) => ({ l: rechts - e, o: centerY - e / 2 }), Math.min(rechts, aroundCenter(centerY, f.height)));",
     ersatz: "          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
