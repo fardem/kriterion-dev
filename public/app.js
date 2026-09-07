@@ -245,7 +245,11 @@ function exportSum(ex, s) {
 const exportTotal = (stats) => exportSum(stats && stats.export,
   { withPhotos: true, withFiles: true, withVideos: true });
 
-async function api(method, url, body, isForm = false) {
+/* `language` SEIT 0.24.3: eine Anfrage darf ausdruecklich eine ANDERE Sprache
+   verlangen als die, die der Leser gerade liest. Gebraucht wird das an genau
+   einer Stelle -- der Eigentuemer pflegt in den Adminkarten die Namen einer
+   Sprache, die er selbst nicht liest (Bauabschnitt 6a). */
+async function api(method, url, body, isForm = false, language = LANGUAGE) {
   /* `Accept-Language` AN JEDER ANFRAGE -- 0.24.3, Bauabschnitt 4. Er ist die
      zweite der drei Quellen von localeOf(req) und traegt die Sprache, die
      DIESES GERAET gewaehlt hat: der persoenliche Schluessel schlaegt ihn am
@@ -255,7 +259,7 @@ async function api(method, url, body, isForm = false) {
      schickte die Sprache des Betriebssystems, und die hat mit der Wahl in der
      Karte „Darstellung" nichts zu tun. */
   const opts = { method, credentials: 'same-origin',
-                 headers: { 'Accept-Language': LANGUAGE } };
+                 headers: { 'Accept-Language': language } };
   if (body !== undefined) {
     if (isForm) opts.body = body;
     else { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
@@ -1807,6 +1811,17 @@ let LANGUAGES = [];
    die Oberflaeche sich beschriftet, und der gehoert dem Leser. Diese Tafel
    braucht allein die Karte „Vokabular", um umschalten zu koennen. */
 let VOCABULARIES = {};
+/* WELCHE SPRACHE DIE ADMINLISTEN ZEIGEN -- 0.24.3, Bauabschnitt 6a. Dieselbe
+   Bauform wie VOCABULARY_SHOWN bei den vierzehn Woertern: sie faengt bei der
+   des Lesers an, steht als Zustand der Karte und nicht in der Adresse, und
+   faellt beim Neuzeichnen des Systembereichs auf die des Lesers zurueck. */
+let NAMES_SHOWN = null;
+/* WAS DER SERVER FUER DIESE SPRACHE LIEFERT, je Kennung gemerkt. Der
+   Umschalter braucht die Listen in einer Sprache, die der Leser NICHT liest --
+   also einen zweiten Abruf. Gemerkt wird er, damit ein Hin und Her nicht bei
+   jedem Klick zwei Umlaeufe kostet; geleert wird er, sobald sich etwas
+   aendert. */
+let NAMES_FETCHED = {};
 let SEARCH_NAMES = 2;          // wie viele Namen unter einer Suchzeile stehen
 const SEARCH_NAME_LEVELS = [1, 2, 3, 4];
 
@@ -8406,6 +8421,11 @@ function cardCategories() {
         <p class="desc">${ADMIN
           ? tH('card.categoriesHint')
           : t('card.categoriesAdminHint')}</p>
+        ${/* DIE SPRACHZEILE -- 0.24.3, F8b. Nur fuer den Admin: wer die Liste
+              nur LIEST, sieht sie ohnehin in seiner Sprache, und ein
+              Umschalter ohne Schreibrecht waere ein Knopf ohne Folge. */''}
+        ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
+          ? `<div class="pills" id="ncatlang" style="margin-bottom:12px"></div>` : ''}
         <div class="manage-list" id="mcats"></div>
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
         <label class="ex-files"><input type="checkbox" id="cat-free">
@@ -8413,7 +8433,8 @@ function cardCategories() {
       </div>`;
 }
 function setUpCategoriesOut(fetched) {
-  manageList('mcats', fetched.cats, 'cat', fetched);
+  drawNameLanguages('ncatlang');
+  manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
   createToggle('cat-free', 'categoriesFreeCreate', () => CATEGORIES_FREE, v => { CATEGORIES_FREE = v; });
 }
 
@@ -8467,6 +8488,12 @@ function cardCriteria(phase) {
           ? t('card.criteriaHintDelete')
           : tH('card.criteriaAdminHint')}</p>
            ${ADMIN ? more(tH('card.orderAppliesNote')) : ''}`}
+        ${/* DIESELBE SPRACHZEILE WIE AN DEN KATEGORIEN, und aus demselben
+              Grund. Sie steht an BEIDEN Kriterienkarten: es ist EIN
+              Umschalter fuer den ganzen Abschnitt, und wer ihn an der einen
+              Karte umlegt, sieht ihn an der anderen mitgehen. */''}
+        ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
+          ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
         <div class="manage-list" id="${k.list}"></div>
         <p class="desc" style="margin:10px 0 0">${tH('card.the')} <strong>${tH('entry.weight')}</strong> ${tH('card.weightHint')} ${ADMIN
             ? t('card.weightRangeHint')
@@ -8498,7 +8525,8 @@ function setUpCriteriaOut(fetched, phase) {
   // NUR DIE ZEILEN DIESES KASTENS. Die Antwort von /api/criteria traegt beide
   // und ist nach sort_order, id sortiert -- gefiltert bleibt jede Karte in
   // sich richtig geordnet, ohne dass irgendwo eine zweite Ordnung stuende.
-  manageList(k.list, fetched.crits.filter(c => c.phase === phase), 'crit', fetched);
+  drawNameLanguages(`${k.list}-lang`);
+  manageList(k.list, namesFrom(fetched, 'crits').filter(c => c.phase === phase), 'crit', fetched);
   // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
   // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
   const critField = document.getElementById(k.field);
@@ -8544,6 +8572,13 @@ function setUpCriteriaOut(fetched, phase) {
      fuer immer als ⟦…⟧. */
   const MANAGE_KIND = {
     cat: {
+      /* `perLanguage` SEIT 0.24.3: diese Liste traegt einen Namen JE SPRACHE,
+         und das Umbenennen sagt deshalb, welche gemeint ist. Die Tags tragen
+         keinen -- sie sind fuer alle Sprachen dieselben (Nachtrag zu E9/E11,
+         Punkt 2). Die Unterscheidung laeuft ueber diesen Eintrag und nicht
+         ueber eine Abfrage auf den Kartennamen, wie schon bei `sortable`,
+         `counter` und `weight`. */
+      perLanguage: true,
       url: '/api/product-categories', askKey: 'card.deleteCategoryAsk',
       warning: e => t('card.categoryDeleteHint', { name: e.name, usage_count: e.usage_count, sache: vThing(e.usage_count) })
     },
@@ -8565,6 +8600,7 @@ function setUpCriteriaOut(fetched, phase) {
       // `sortable` und `counter`, und nicht ueber eine Abfrage auf den
       // Kartennamen.
       weight: true,
+      perLanguage: true,
       warning: e => t('card.criterionDeleteHint', { name: e.name })
     }
   };
@@ -8664,7 +8700,16 @@ function setUpCriteriaOut(fetched, phase) {
         const save = async () => {
           const name = inp.value.trim();
           if (!name || name === entry.name) return adminNew(fetched);
-          try { await api('PUT', `${url}/${entry.id}`, { name }); toast(t('card.renamed')); adminNew(fetched); }
+          /* DIE SPRACHE GEHT MIT -- 0.24.3, Bauabschnitt 6a, und NUR an den
+             beiden Listen, die eine haben. An den Tags gibt es keine: sie sind
+             fuer alle Sprachen dieselben (Nachtrag zu E9/E11, Punkt 2).
+             OHNE DIESE ANGABE BENENNTE DER SERVER DIE GRUNDZEILE UM. Genau das
+             ist beim Bauen aufgefallen: wer sie weglaesst, hat umbenannt und
+             nichts geaendert, sobald die gezeigte Sprache nicht die der
+             Grundzeile ist. */
+          const body = spec.perLanguage ? { name, language: namesLanguage() } : { name };
+          try { await api('PUT', `${url}/${entry.id}`, body); toast(t('card.renamed'));
+                NAMES_FETCHED = {}; adminNew(fetched); }
           catch (e) { toast(e.message, true); adminNew(fetched); }
         };
         inp.onblur = save;
@@ -8759,6 +8804,56 @@ const VOCABULARY_FIELDS = [
   ['v13', 'bewertungEinzahl', () => t('card.ratingOne')],
   ['v14', 'bewertungMehrzahl', () => t('card.ratingMany')]
 ];
+/* WELCHE SPRACHE DIE KARTEN „KATEGORIEN" UND „KRITERIEN" GERADE ZEIGEN.
+   Sie ist die des Lesers, solange niemand umschaltet -- und nur eine aus dem
+   VORRAT: was der Eigentuemer nicht freigegeben hat, pflegt er auch nicht. */
+const namesLanguage = () => {
+  const ok = LANGUAGES.some(a => a.active && a.code === NAMES_SHOWN);
+  return ok ? NAMES_SHOWN : LANGUAGE;
+};
+/* DIE LISTE IN DER GEZEIGTEN SPRACHE. Fuer die des Lesers ist das, was
+   renderSystem() ohnehin geholt hat; fuer jede andere der gemerkte Abruf.
+   IST ER NOCH NICHT DA, STEHT DIE LISTE DES LESERS -- und der Abruf laeuft
+   los. Eine leere Liste waere schlechter: sie saehe aus wie „nichts
+   angelegt". */
+function namesFrom(fetched, key) {
+  const code = namesLanguage();
+  if (code === LANGUAGE) return fetched[key];
+  const got = NAMES_FETCHED[code];
+  if (got) return got[key];
+  fetchNames(code);
+  return fetched[key];
+}
+/* HOLT BEIDE LISTEN IN EINER SPRACHE UND ZEICHNET DANN NEU. Beide zugleich:
+   die zwei Karten stehen im selben Abschnitt, und wer eine umschaltet, sieht
+   die andere im selben Augenblick. */
+async function fetchNames(code) {
+  if (NAMES_FETCHED[code]) return;
+  try {
+    const [cats, crits] = await Promise.all([
+      api('GET', '/api/product-categories', undefined, false, code),
+      api('GET', '/api/criteria', undefined, false, code)
+    ]);
+    NAMES_FETCHED[code] = { cats, crits };
+    if (namesLanguage() === code) renderSystem();
+  } catch { /* dann bleibt die Liste des Lesers stehen */ }
+}
+/* DIE PILLENREIHE UEBER EINER ADMINLISTE. Sie steht nur da, wenn es etwas zu
+   wechseln gibt, und zeichnet nach dem Klick den ganzen Systembereich neu --
+   beide Karten zugleich, weil beide dieselbe Sprache zeigen. */
+function drawNameLanguages(boxId) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  box.innerHTML = '';
+  LANGUAGES.filter(a => a.active).forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');
+    b.textContent = a.name;
+    b.onclick = () => { NAMES_SHOWN = a.code; renderSystem(); };
+    box.appendChild(b);
+  });
+}
+
 /* WELCHE SPRACHE DIE KARTE „VOKABULAR" GERADE ZEIGT -- 0.24.3. Sie faengt bei
    der des Lesers an: wer die Oberflaeche auf Deutsch liest, will in aller
    Regel die deutschen Woerter pflegen.

@@ -5461,7 +5461,40 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
 // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
 // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
 // Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle.
-const EXCHANGE_FORMAT = 13;
+/* VIERZEHN SEIT 0.24.3 (F8c): die Namen der Kriterien und Kategorien JE
+   SPRACHE gehen mit hinaus. Ohne sie verloere ein Rundlauf ueber Export und
+   Import genau die Arbeit, die der Eigentuemer gerade von Hand eingetragen hat
+   -- und eine Sicherung ueber den Export waere keine vollstaendige.
+   AELTERE DATEIEN BLEIBEN LESBAR, und das ist keine Zusage, die hier neu
+   getroffen wird: der Import entscheidet ueber das VORHANDENSEIN der Felder
+   und nie ueber die Nummer. Eine Datei mit Format 13 traegt die beiden Felder
+   nicht, und dann gibt es eben keine Uebersetzungen einzuspielen. */
+const EXCHANGE_FORMAT = 14;
+
+/* DIE NAMEN JE SPRACHE, WIE SIE IN DIE DATEI GEHEN -- 0.24.3, Bauabschnitt 6a.
+   { <sprachkennung>: { <name der grundzeile>: <name in dieser sprache> } }
+
+   UEBER DEN NAMEN DER GRUNDZEILE UND NICHT UEBER DIE KENNUNG: der Import
+   findet ein Kriterium ueber seinen NAMEN wieder -- die Kennungen einer
+   Zweitinstanz sind andere. Dieselbe Bauform wie criteriaGewichte und
+   criteriaPhase daneben, und aus demselben Grund.
+   LEER HEISST LEER: hat niemand etwas uebersetzt, steht ein leeres Objekt in
+   der Datei. Das ist eine Angabe und kein fehlendes Feld -- wer die Datei
+   liest, sieht, dass die Instanz die Sache kennt. */
+function exchangeNames(sql) {
+  const out = {};
+  for (const z of db.prepare(sql).all())
+    (out[z.language] || (out[z.language] = {}))[z.base] = z.name;
+  return out;
+}
+const exchangeCriterionNames = () => exchangeNames(`
+  SELECT n.language, c.name AS base, n.name FROM criterion_names n
+  JOIN rating_criteria c ON c.id = n.criterion_id
+  ORDER BY n.language, c.sort_order, c.id`);
+const exchangeCategoryNames = () => exchangeNames(`
+  SELECT n.language, c.name AS base, n.name FROM category_names n
+  JOIN product_categories c ON c.id = n.category_id
+  ORDER BY n.language, c.name COLLATE NOCASE`);
 
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
 // hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
@@ -5654,7 +5687,9 @@ function exportEnvelope(items) {
   const criteriaPhase = {};
   for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;
   return { exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
-           criteria: critRows.map(c => c.name), criteriaGewichte, criteriaPhase, items };
+           criteria: critRows.map(c => c.name), criteriaGewichte, criteriaPhase,
+           criteriaNames: exchangeCriterionNames(),
+           categoryNames: exchangeCategoryNames(), items };
 }
 
 // Der Dateiname einer Exportdatei. Aus dem Titel der Instanz, damit zwei
@@ -5875,6 +5910,8 @@ function exchangeEnvelopeFrame() {
                           criteria: critRows.map(c => c.name),
                           criteriaGewichte: Object.fromEntries(
                             critRows.filter(c => c.weight !== 1).map(c => [c.name, c.weight])),
+                          criteriaNames: exchangeCriterionNames(),
+                          categoryNames: exchangeCategoryNames(),
                           // Der Rahmen misst, was der Umschlag KOSTET -- also
                           // gehoert das dritte Feld hier genauso hinein wie in
                           // die Datei. Ohne es faellt die Messung je Teil um
@@ -6163,7 +6200,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     prepared.push({ it, photos, attachments });
   }
 
-  const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0, attachments: 0 };
+  /* `names` SEIT 0.24.3: die eingespielten Namen je Sprache. Sie stehen in
+     derselben Zaehlung wie alles andere -- was der Import anlegt, zaehlt er. */
+  const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0,
+                  attachments: 0, names: 0 };
   // Die Nummern der neu angelegten Eintraege. Der Papierkorb braucht sie, um
   // nach dem Wiederherstellen in den Eintrag springen zu koennen; die
   // Dateieinspielung laesst sie liegen.
@@ -6458,6 +6498,39 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
                       VALUES (?, ?, ?, ?, ?, ?, ?)`)
             .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i,
                  a2.hasAuthor ? authorId(a2.author) : itemAuthor); stats.attachments++; });
+    }
+    /* DIE NAMEN JE SPRACHE -- 0.24.3, Formatnummer 14 (F8c). ZULETZT und
+       INNERHALB derselben Transaktion: die Kriterien und Kategorien entstehen
+       oben in der Schleife, und vorher gibt es nichts, woran ein zweiter Name
+       haengen koennte.
+
+       AELTERE DATEIEN TRAGEN DIE FELDER NICHT -- dann laeuft die Schleife
+       leer, und es gibt nichts einzuspielen. Genau so bleibt Format 13
+       lesbar, ohne dass irgendwo nach der Nummer gefragt wird.
+
+       EINE SPRACHE, FUER DIE HIER KEINE DATEI LIEGT, WIRD UEBERGANGEN: die
+       Zweitinstanz hat vielleicht weniger Sprachen als die erste, und ein
+       Name, den niemand je zu sehen bekaeme, waere nur Ballast in der
+       Ablage. Ein Name, der dem der Grundzeile gleicht, ebenso -- er ist
+       keine Uebersetzung, sondern der Rueckfall selbst.
+
+       OR REPLACE UND NICHT OR IGNORE: beim ZUSAMMENFUEHRENDEN Import gilt,
+       was die Datei sagt -- dieselbe Regel wie bei den Bewertungen darueber. */
+    for (const [table, column, byName, raw] of [
+      ['criterion_names', 'criterion_id', critByName, payload.criteriaNames],
+      ['category_names', 'category_id', catByName, payload.categoryNames]]) {
+      if (!raw || typeof raw !== 'object') continue;
+      for (const [language, words] of Object.entries(raw)) {
+        if (!LANGUAGES[language] || !words || typeof words !== 'object') continue;
+        for (const [base, name] of Object.entries(words)) {
+          const clean = String(name || '').trim();
+          const id = clean && base ? byName(base) : null;
+          if (!id || clean === base) continue;
+          db.prepare(`INSERT OR REPLACE INTO ${table} (${column}, language, name)
+                      VALUES (?, ?, ?)`).run(id, language, clean);
+          stats.names++;
+        }
+      }
     }
   })();
 

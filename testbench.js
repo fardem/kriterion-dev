@@ -3920,7 +3920,7 @@ const shareMain = (purpose, target = null) =>
   await gSet('Preis', 1); await gSet('Kundendienst', 1);
   const eOneF = includingShare((m, p, k) => eCall('cookie-e-eins', m, p, k), eWord);
   const gOut = (await eOneF('GET', '/api/export?photos=0')).content;
-  check('Die Formatnummer steht auf 13', gOut?.version === 13, JSON.stringify(gOut?.version));
+  check('Die Formatnummer steht auf 14', gOut?.version === 14, JSON.stringify(gOut?.version));
   check('criteria bleibt eine Liste von Namen',
     Array.isArray(gOut?.criteria) && gOut.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gOut?.criteria));
@@ -4491,7 +4491,7 @@ const shareMain = (purpose, target = null) =>
     e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  check('Die Formatnummer der Datei steht auf 13', e2Out?.version === 13, JSON.stringify(e2Out?.version));
+  check('Die Formatnummer der Datei steht auf 14', e2Out?.version === 14, JSON.stringify(e2Out?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -5721,7 +5721,7 @@ const shareMain = (purpose, target = null) =>
     // Dieselbe Nummer wie beim vollen Export: ein Einzelexport ist ein
     // vollstaendiges Paket mit einem Eintrag darin, kein halbes.
     check('Die Formatnummer ist dieselbe wie beim vollen Export',
-      singleExport.content?.version === 13 && full.content?.version === 13,
+      singleExport.content?.version === 14 && full.content?.version === 14,
       JSON.stringify([singleExport.content?.version, full.content?.version]));
     check('Der Umschlag traegt dieselben Felder wie beim vollen Export',
       equal(Object.keys(singleExport.content || {}).sort(), Object.keys(full.content || {}).sort()),
@@ -8848,7 +8848,7 @@ const shareMain = (purpose, target = null) =>
   const agCallF = includingShare((m, p, k) => agCall('cookie-ag-anna', m, p, k), AG_WORD);
   const agFile = (await agCallF('GET', '/api/export?fotos=0')).content;
   const agPackage = agFile?.items?.find(i => i.title === 'Berts Saege');
-  check('Die Formatnummer der Datei steht auf 13', agFile?.version === 13,
+  check('Die Formatnummer der Datei steht auf 14', agFile?.version === 14,
     JSON.stringify(agFile?.version));
   check('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPackage?.rejected_at === agBefore.rejected_at &&
@@ -22043,7 +22043,7 @@ const shareMain = (purpose, target = null) =>
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
-  check('Die Formatnummer steht auf 13', phEx.version === 13, `${phEx.version}`);
+  check('Die Formatnummer steht auf 14', phEx.version === 14, `${phEx.version}`);
   /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
      criteriaPhase gar nicht auf. Eine Datei ohne Vorher-Kriterien sieht damit
      aus wie bisher, plus einer Formatnummer. */
@@ -36421,7 +36421,7 @@ async function checkUi() {
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
   // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p.version === 13), JSON.stringify(tlPackages.map(p => p.version)));
+    tlPackages.every(p => p.version === 14), JSON.stringify(tlPackages.map(p => p.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPackages.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPackages.flatMap(p => p.items.map(i => i.title))).size === 6,

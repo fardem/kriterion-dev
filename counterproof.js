@@ -2155,10 +2155,10 @@ const REGRESSIONS = [
        Formatnummer steht auf 13, der Rueckbau nimmt sie wie immer um eins
        zurueck. Was er belegt, ist unveraendert -- dass die Nummer mit dem
        Format steigt und nicht stehen bleibt. */
-    nr: '233', name: 'Die Formatnummer bleibt auf 12',
+    nr: '233', name: 'Die Formatnummer bleibt auf 13',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 13;",
-    replacement: "const EXCHANGE_FORMAT = 12;",
+    search: "const EXCHANGE_FORMAT = 14;",
+    replacement: "const EXCHANGE_FORMAT = 13;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -4007,10 +4007,10 @@ const REGRESSIONS = [
   {
     /* MITGEGANGEN MIT 0.21.0, wie 233 -- derselbe Suchtext, eine andere
        Zusage: dort die Entscheidung, hier die Exportdatei. */
-    nr: '448', name: 'Die Formatnummer bleibt bei 12, obwohl der Ausschnitt mitgeht',
+    nr: '448', name: 'Die Formatnummer bleibt bei 13, obwohl die Namen je Sprache mitgehen',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 13;",
-    replacement: "const EXCHANGE_FORMAT = 12;",
+    search: "const EXCHANGE_FORMAT = 14;",
+    replacement: "const EXCHANGE_FORMAT = 13;",
     expected: 'Die Exportdatei'
   },
 
@@ -5626,8 +5626,8 @@ const REGRESSIONS = [
        saehe sein Kriterium in beiden. */
     nr: '597', name: 'Die zweite Kriterienkarte filtert nicht nach Phase',
     file: 'public/app.js',
-    search: "  manageList(k.list, fetched.crits.filter(c => c.phase === phase), 'crit', fetched);",
-    replacement: "  verwaltungsListe(k.liste, geholt.crits, 'crit', geholt);",
+    search: "  manageList(k.list, namesFrom(fetched, 'crits').filter(c => c.phase === phase), 'crit', fetched);",
+    replacement: "  manageList(k.list, namesFrom(fetched, 'crits'), 'crit', fetched);",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
