@@ -213,8 +213,38 @@ Satz NENNT die Umgebungsvariable, und die heißt seit Bauabschnitt 5.2
 
 **Jeder Wächter hat seine Gegenprobe** (694 bis 699): eine Stelle, an der
 ein deutscher Name zurückkehrt — ein Bezeichner, ein Schlüssel, eine
-Adresse, eine Klasse, ein Satz, eine angehängte Ziffer. *Ein Wächter, der
-nie rot wird, ist eine Behauptung und keine Zusage.*
+Adresse, eine Klasse, ein Satz, eine angehängte Ziffer. **Und sie sind
+gefahren, nicht behauptet** — jede in einer eigenen Kopie aus
+`git archive HEAD`:
+
+| Rückbau | holt zurück | rot |
+|---|---|---|
+| 694 | einen deutschen Bezeichner im Server | 2 |
+| 695 | einen deutschen Schlüssel der Sprachdatei | 4 |
+| 696 | eine deutsche Adresse | 2 |
+| 697 | eine deutsche Klasse im Stilblatt | 1 |
+| 698 | einen umformulierten Satz der Oberfläche | 3 |
+| 699 | einen Schlüssel mit angehängter Ziffer | 9 |
+| 700 | den Griff der Vorschaukachel an den Sprachhelfer | 1 |
+| 701 | die Stellung des zugeklappten Linkblocks | 1 |
+
+*Ein Wächter, der nie rot wird, ist eine Behauptung und keine Zusage.*
+
+### Zwei Wächter sind erst durch ihre Gegenprobe brauchbar geworden
+
+**Der erste Anlauf meldete achtmal ABGERISSEN statt einer roten Zeile.**
+Die Wortlautprobe holte die Werte der Abnahme mit `git show` — und eine
+Gegenprobenkopie entsteht aus `git archive` und hat kein `.git`. Der Aufruf
+brach ab und mit ihm der ganze Lauf. *Ein abgerissener Lauf belegt nichts
+(Stolpersteine 138, 161 und 170).* Die Werte stehen jetzt als
+`tools/wording-0681d42.json` daneben, erzeugt aus genau diesem Commit.
+
+**Und 700 blieb STUMM — ein Fund am Wächter selbst.** Er schloss jeden
+Punkt vor dem `t` aus; in `[...t.parentElement]` gehört der Punkt aber zum
+AUSBREITEN und nicht zu einem Eigentumszugriff. **Genau die Stelle aus dem
+Betrieb wäre ihm durchgegangen.** Er unterscheidet jetzt wie der Umbenenner:
+ein EINZELNER Punkt davor heißt Eigenschaft (`obj.t.name`), zwei heißen
+Ausbreiten — mit drei gestellten Fällen belegt.
 
 ### Die Gestaltprobe hat gleich beim Bauen etwas gefunden
 
@@ -276,7 +306,24 @@ eine Benennung.** Es sind GRENZEN:
 
 * **Schlüssel der Sprachdatei und ihre Platzhalter** — `{tage}`,
   `{minuten}`, `{deckel}`, `{verfasser}`, `{stimmen}` und siebzig weitere.
-  *Ein Platzhalter zieht mit seinem Satz um, und die Sätze fasst Stufe 2 an.*
+
+  **WARUM SIE NICHT JETZT FALLEN — an einem echten Beispiel.** In `de.json`
+  steht `"card.inDays": "{tage} Tagen"`, in `public/app.js` daneben
+  `tH('card.inDays', { tage: log.days })`. **Das Wort steht zweimal: als
+  Marke IM SATZ und als Name IM CODE, und beide müssen buchstabengleich
+  sein** — sonst findet die Marke ihren Wert nicht, und am Bildschirm steht
+  `{tage} Tagen` statt „30 Tagen". *Derselbe Platzhalter steckt in den
+  Briefen `mail.invite.body` und `mail.reset.body`, dort neben `{minuten}`.*
+
+  Ein Umbenennen auf `days` verlangt also, den deutschen Satz mitzuändern
+  (`"{days} Tagen"`). **Und genau das ist die Abnahme dieser Runde: kein
+  Wert in `de.json` ändert sich.** Der Name wäre nur zu holen, indem man die
+  Zusage bricht.
+
+  **In Stufe 2 wird der Satz ohnehin angefasst**, weil `en.json` daneben
+  kommt (`"in {days} days"`). Dann ändern sich Satz, Marke und Name in EINEM
+  Griff — deutsch, englisch, türkisch und Code zugleich. *Das ist der Grund,
+  und der einzige.*
 * **Die Namen des Vokabulars** — `sacheEinzahl`, `bewertungMehrzahl`,
   `merkmalJa` und elf weitere. *Sie stehen als Werte in der Datenbank.*
 * **Die Mehrzahlformen** `eins` und `andere` — 68 Vorkommen.
