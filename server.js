@@ -152,7 +152,7 @@ const PORT = process.env.PORT || 3000;
    die, die der Empfaenger benutzen soll.
 
    SIE GEHOERT IN DIE .env UND NICHT IN settings, dieselbe Linie wie
-   HINTER_PROXY: Netzwerkvertrauen, nicht Vorliebe. Ein Admin kommt nicht an
+   BEHIND_PROXY: Netzwerkvertrauen, nicht Vorliebe. Ein Admin kommt nicht an
    einen anderen Admin -- duerfte er die oeffentliche Adresse setzen, zeigte
    jede verschickte Ruecksetzmail auf seinen Server. Der Systembereich ZEIGT
    sie deshalb, er setzt sie nicht.
@@ -162,7 +162,7 @@ const PORT = process.env.PORT || 3000;
 
    Zur Form (was ? und # angeht, und warum ein unbrauchbarer Wert den Start
    nicht abbricht) siehe auth.js, wo der Wert gelesen wird. */
-const PUBLIC = auth.OEFFENTLICHE_ADRESSE;
+const PUBLIC = auth.PUBLIC_ADDRESS;
 
 /* Was die Antwort ueber den Link sagt. IST DIE EINSTELLUNG LEER, GIBT DER
    SERVER KEINEN LINK HERAUS -- der Browser baut ihn selbst, und die
@@ -196,7 +196,7 @@ async function sendTokenLink(ziel, token) {
     return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };
   if (!PUBLIC.adresse)
     return { versand: 'aus', versandGrund:
-      'Ohne OEFFENTLICHE_ADRESSE in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
+      'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
   if (!ziel.email)
     return { versand: 'aus', versandGrund: 'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
   const values2 = {
@@ -230,7 +230,7 @@ function mailtestState(roh) {
 /* ---- Kann diese Instanz ueberhaupt verschicken --------------------------
    DREI VORAUSSETZUNGEN, UND ALLE DREI SIND NOETIG. Die Testmarke allein
    traegt nicht: DIE TESTMAIL ENTHAELT KEINEN LINK und geht auch ohne
-   OEFFENTLICHE_ADRESSE durch -- die Marke waere gruen, und die
+   PUBLIC_ADDRESS durch -- die Marke waere gruen, und die
    Bestaetigungsmail ginge nie hinaus. Der Grund steht daneben. */
 function versandBereit() {
   const roh = getSetting(mail.SETTING_KEY, null);
@@ -241,7 +241,7 @@ function versandBereit() {
       'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };
   if (!PUBLIC.adresse)
     return { ok: false, grund:
-      'Ohne OEFFENTLICHE_ADRESSE in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
+      'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
   return { ok: true, grund: '' };
 }
 
@@ -6101,7 +6101,7 @@ app.delete('/api/trash/:id', ownerOnly, (req, res) => {
    DER ZIELORT IST EINGABE UND WIRD ZU EINEM DATEIPFAD -- die erste Stelle im
    Projekt, an der der Server an einen Ort schreibt, den jemand angeben darf.
    Er ist deshalb zweistufig gebaut:
-     die WURZEL kommt aus der Umgebung (SICHERUNG_DIR) und ist ueber die
+     die WURZEL kommt aus der Umgebung (BACKUP_DIR) und ist ueber die
        Oberflaeche nicht zu erreichen. KEIN Vorgabewert: ein Pfad, den es nur
        im Container gibt, verschwaende beim naechsten Bau -- er muss eingehaengt
        sein, und wer ihn einhaengt, benennt ihn auch.
@@ -6111,7 +6111,7 @@ app.delete('/api/trash/:id', ownerOnly, (req, res) => {
    auf. Ein Verzeichnis, das es nicht gibt, ist eine Absage mit Begruendung --
    kein stilles Anlegen. */
 
-const SICHERUNG_DIR = (process.env.SICHERUNG_DIR || '').trim();
+const BACKUP_DIR = String(auth.fromEnv('BACKUP_DIR', 'SICHERUNG_DIR') || '').trim();
 // Gemessen an einer verschluesselten Instanz: rund 10 ms je MB. Verdoppelt,
 // weil der Betrieb auf einem N100 laeuft und eine zu niedrige Ansage
 // schlimmer ist als eine zu hohe.
@@ -6175,14 +6175,14 @@ function backupState() {
   /* DER GRUND IST SEIT 0.24.0 EIN SCHLUESSEL UND KEIN SATZ (Bauabschnitt 2).
      Er reist mit seinen Werten -- wer ihn zeigt, uebersetzt ihn dort, wo die
      Anfrage in der Hand liegt. */
-  if (!SICHERUNG_DIR)
+  if (!BACKUP_DIR)
     return { ein: false, grund: 'server.backupDirNotSet', values: {} };
   let wurzel;
-  try { wurzel = fs.realpathSync(SICHERUNG_DIR); }
-  catch { return { ein: false, grund: 'server.backupDirGone', values: { ordner: SICHERUNG_DIR } }; }
+  try { wurzel = fs.realpathSync(BACKUP_DIR); }
+  catch { return { ein: false, grund: 'server.backupDirGone', values: { ordner: BACKUP_DIR } }; }
   try { if (!fs.statSync(wurzel).isDirectory())
-    return { ein: false, grund: 'server.backupDirNotDir', values: { ordner: SICHERUNG_DIR } }; }
-  catch { return { ein: false, grund: 'server.backupDirUnreadable', values: { ordner: SICHERUNG_DIR } }; }
+    return { ein: false, grund: 'server.backupDirNotDir', values: { ordner: BACKUP_DIR } }; }
+  catch { return { ein: false, grund: 'server.backupDirUnreadable', values: { ordner: BACKUP_DIR } }; }
   let data;
   try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
   // EINE SICHERUNG NEBEN DEM ORIGINAL IST KEINE. Beide Richtungen, denn beide
@@ -6942,8 +6942,8 @@ app.listen(PORT, () => {
      SIE NENNT SEIT 0.13.0 BEIDE WEGE: Cookiename, Secure und HSTS haengen
      nicht mehr an ihr, sondern an der einzelnen Anfrage. Eine Zeile, die eine
      Buendelung behauptet, die es nicht mehr gibt, waere schlechter als keine. */
-  console.log(`[Kriterion] Hinter Proxy: ${auth.HINTER_PROXY ? 'an' : 'aus'} — ` +
-    (auth.HINTER_PROXY
+  console.log(`[Kriterion] Hinter Proxy: ${auth.BEHIND_PROXY ? 'an' : 'aus'} — ` +
+    (auth.BEHIND_PROXY
       ? 'X-Forwarded-For und X-Forwarded-Proto werden gelesen; über HTTPS gilt ' +
         `${auth.COOKIE_SICHER} mit Secure und HSTS, über das Heimnetz ${auth.COOKIE_NAME}`
       : `kein Kopf wird gelesen, jede Anfrage gilt als Klartext: ${auth.COOKIE_NAME} ohne Secure`));
@@ -6951,16 +6951,16 @@ app.listen(PORT, () => {
      Link ein Empfaenger bekommt. Wer sie falsch stehen hat, sieht es hier und
      nicht erst am toten Link beim Empfaenger. */
   if (PUBLIC.fehler) {
-    console.warn(`[Kriterion] OEFFENTLICHE_ADRESSE ist unbrauchbar: ${PUBLIC.fehler} ` +
+    console.warn(`[Kriterion] PUBLIC_ADDRESS ist unbrauchbar: ${PUBLIC.fehler} ` +
       'Die Instanz laeuft weiter; den Einladungslink baut wie bisher der Browser des Admins.');
   } else if (PUBLIC.adresse) {
     console.log(`[Kriterion] Oeffentliche Adresse: ${PUBLIC.adresse} — ` +
       'Einladungslinks werden damit gebaut.');
-    if (auth.HINTER_PROXY && PUBLIC.adresse.startsWith('http://')) {
+    if (auth.BEHIND_PROXY && PUBLIC.adresse.startsWith('http://')) {
       // Widerspruch, aber kein Verlust: ein falscher Link ist ein toter Link.
       // Eine Absage waere hier haerter als der Schaden.
       console.warn('[Kriterion] Hinter einem Proxy und trotzdem http:// in ' +
-        'OEFFENTLICHE_ADRESSE — verschickte Links fuehren dann am Proxy vorbei ' +
+        'PUBLIC_ADDRESS — verschickte Links fuehren dann am Proxy vorbei ' +
         'und ohne HTTPS ins Haus.');
     }
   } else {
@@ -6978,7 +6978,7 @@ app.listen(PORT, () => {
     if (mail.configured(roh)) {
       console.log(`[Kriterion] Mailversand: ${z.anbieterName} über ${z.server}:${z.port} ` +
         `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}.` +
-        (PUBLIC.adresse ? '' : ' Ohne OEFFENTLICHE_ADRESSE wird trotzdem nicht verschickt.'));
+        (PUBLIC.adresse ? '' : ' Ohne PUBLIC_ADDRESS wird trotzdem nicht verschickt.'));
     } else {
       console.log('[Kriterion] Mailversand: nicht eingerichtet — Einladungs- und ' +
         'Ruecksetzlinks stehen wie bisher im Verwaltungsbereich zum Kopieren.');

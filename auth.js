@@ -56,8 +56,8 @@ class Message extends Error {
    (die Anmeldebremse je Adresse greift dann nie) und den anderen, um sich als
    HTTPS auszugeben.
 
-   HINTER_PROXY=1 (an):  die beiden Koepfe werden ueberhaupt angesehen, und ein
-                         http:// in OEFFENTLICHE_ADRESSE meldet sich am Start.
+   BEHIND_PROXY=1 (an):  die beiden Koepfe werden ueberhaupt angesehen, und ein
+                         http:// in PUBLIC_ADDRESS meldet sich am Start.
    fehlt (aus, Vorgabe): kein Kopf wird angesehen -- allein
                          req.socket.remoteAddress, und jede Anfrage gilt als
                          Klartext. Richtig fuer "direkt im Heimnetz, Port 3100".
@@ -66,7 +66,7 @@ class Message extends Error {
    entscheidet seit 0.13.0 die EINZELNE ANFRAGE ueber X-Forwarded-Proto, und
    der Grund ist der Betrieb: die Instanz ist aus zwei Netzen zugleich
    erreichbar, und eine Einstellung je Prozess kann immer nur einen davon
-   bedienen. Mit HINTER_PROXY=1 kam ueber http://<server-ip>:3100 niemand mehr
+   bedienen. Mit BEHIND_PROXY=1 kam ueber http://<server-ip>:3100 niemand mehr
    herein -- der Server antwortete mit 200, der Browser verwarf den
    Secure-Cookie stillschweigend, und im Serverprotokoll stand davon nichts.
 
@@ -84,20 +84,41 @@ class Message extends Error {
    Adresse des Proxys zieht: ein einziger Angreifer sperrte damit fuenf Minuten
    lang ALLE aus. In eine Runde, die den Zugang offenhalten soll, gehoert kein
    neuer Weg, ihn zu verlieren. */
-const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_PROXY || '').trim());
+/* DIE UMGEBUNGSVARIABLEN HEISSEN SEIT 0.24.1 ENGLISCH -- UND DER ALTE NAME
+   GILT WEITER (F9). Eine `.env`, die nach dem Einspielen nicht mehr gilt, ist
+   der eine Fall, in dem ein Betreiber im Dunkeln steht: die Instanz startet
+   und verhaelt sich anders, ohne dass etwas rot waere. Wer den alten Namen
+   stehen laesst, bekommt stattdessen eine Zeile ins Containerprotokoll und
+   Zeit zum Nachziehen.
+   LEER ZAEHLT ALS NICHT GESETZT: in der `.env.example` stehen die Zeilen
+   auskommentiert oder leer da, und ein leerer neuer Name darf einen gesetzten
+   alten nicht verdecken. */
+function fromEnv(name, alterName) {
+  const wert = process.env[name];
+  if (String(wert ?? '').trim() !== '') return wert;
+  const alt = process.env[alterName];
+  if (String(alt ?? '').trim() !== '') {
+    console.warn(`[Kriterion] ${alterName} heisst jetzt ${name} — der alte Name ` +
+      'wird noch gelesen. Bitte in der .env nachziehen.');
+    return alt;
+  }
+  return wert;
+}
+
+const BEHIND_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(fromEnv('BEHIND_PROXY', 'HINTER_PROXY') || '').trim());
 
 /* KAM DIESE ANFRAGE UEBER DEN PROXY? Die eine Frage, an der seit 0.13.0
    Cookiename, Secure und HSTS haengen -- je Anfrage und nicht je Prozess.
    DER LETZTE EINTRAG DER KETTE und nicht der erste, aus demselben Grund wie
    bei der Adresse: was davor steht, kann der Aufrufer selbst hineingeschrieben
    haben; was der naechste Proxy anhaengt, sieht er wirklich.
-   NUR MIT HINTER_PROXY: ohne die Einstellung steht kein Proxy davor, und dann
+   NUR MIT BEHIND_PROXY: ohne die Einstellung steht kein Proxy davor, und dann
    ist der Kopf nichts als eine Behauptung.
    OHNE req.socket UND OHNE req.protocol: diese Frage sieht ausschliesslich in
    die Kopfzeilen. Sie wird auch aus requireAuth heraus gestellt, und dort
    reicht der Pruefstand ein req herein, das nur `headers` traegt. */
 function viaProxy(req) {
-  if (!HINTER_PROXY) return false;
+  if (!BEHIND_PROXY) return false;
   const chain = String((req && req.headers && req.headers['x-forwarded-proto']) || '')
     .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   return chain.length > 0 && chain[chain.length - 1] === 'https';
@@ -129,7 +150,7 @@ const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;
 
 /* --- Die oeffentliche Adresse -------------------------------------------
    SIE STEHT HIER UND NICHT IN server.js, weil sie dieselbe Sorte Einstellung
-   ist wie HINTER_PROXY darueber: Netzwerkvertrauen, nicht Vorliebe -- also
+   ist wie BEHIND_PROXY darueber: Netzwerkvertrauen, nicht Vorliebe -- also
    .env und nicht settings. GEBAUT wird der Link in server.js; hier steht nur,
    welcher Wert gilt.
 
@@ -160,7 +181,7 @@ function checkPublicAddress(raw) {
   const adresse = (u.origin + u.pathname).replace(/\/+$/, '');
   return { adresse, gesetzt: true };
 }
-const OEFFENTLICHE_ADRESSE = checkPublicAddress(process.env.OEFFENTLICHE_ADRESSE);
+const PUBLIC_ADDRESS = checkPublicAddress(fromEnv('PUBLIC_ADDRESS', 'OEFFENTLICHE_ADRESSE'));
 
 const SESSION_DAYS = 30;
 
@@ -605,7 +626,7 @@ function delay(count) {
    die er wirklich sieht, hinten an -- alles davor kann der Aufrufer selbst
    hineingeschrieben haben. */
 function clientIp(req) {
-  if (HINTER_PROXY) {
+  if (BEHIND_PROXY) {
     const chain = String(req.headers['x-forwarded-for'] || '')
       .split(',').map(s => s.trim()).filter(Boolean);
     if (chain.length) return chain[chain.length - 1];
@@ -1716,8 +1737,8 @@ module.exports = {
   // Die Fehlerklasse; Rufer sind server.js (uebersetzt) und diese Datei.
   Message, setTranslator,
   COOKIE_NAME, COOKIE_SICHER, cookieName, sessionToken, viaProxy,
-  HINTER_PROXY, PASSWORD_MIN, SESSION_DAYS,
-  OEFFENTLICHE_ADRESSE, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
+  BEHIND_PROXY, PASSWORD_MIN, SESSION_DAYS, fromEnv,
+  PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
   sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,
   clientIp, checkThrottle, noteFailure, noteSuccess,
   // Meine Sitzungen und die Token; Rufer ist server.js.

@@ -131,14 +131,14 @@ const setzeFeld = (dok, id, wert) => {
   return !!f;
 };
 
-/* SELBSTPROBE DES RAHMENS. Mit gesetztem PRUEFRAHMEN_PROBE laeuft NICHT der
+/* SELBSTPROBE DES RAHMENS. Mit gesetztem TESTBENCH_PROBE laeuft NICHT der
    Prueflauf, sondern nur der Rahmen darueber: zwei gestellte Gruppen mit
    gestellten Ergebnissen. Damit ist die Regel des gefilterten Laufs pruefbar,
    ohne den ganzen Durchlauf ein zweites Mal zu fahren -- und ohne dass der
    Rahmen sich selbst bestaetigt: die Gruppe "Der Gruppenfilter" faehrt diese
    Probe als eigenen Prozess und sieht sich Ausgabe und Rueckgabewert an. */
-if (process.env.PRUEFRAHMEN_PROBE) {
-  const lage = process.env.PRUEFRAHMEN_PROBE;
+if (process.env.TESTBENCH_PROBE) {
+  const lage = process.env.TESTBENCH_PROBE;
   gruppe('Rechte am Eintrag');
   pruefe('gezeigt und grün', true);
   pruefe('gezeigt und rot', lage !== 'rot-gezeigt');
@@ -152,7 +152,7 @@ if (process.env.PRUEFRAHMEN_PROBE) {
 /* ================= Umgebung ================= */
 const KEY = crypto.randomBytes(32).toString('hex');
 
-/* PORT_VERSATZ -- eine Zahl, die auf JEDE Portbasis dieses Laufs addiert wird.
+/* PORT_OFFSET -- eine Zahl, die auf JEDE Portbasis dieses Laufs addiert wird.
    Damit faehrt counterproof.js mehrere Rueckbauten NEBENEINANDER: jede Nebenspur
    bekommt ihren eigenen Versatz, und die Spuren kommen sich nicht ins Gehege.
    Ohne die Variable bleibt alles, wie es war -- der gewoehnliche Lauf setzt sie
@@ -186,8 +186,11 @@ const VERSATZ_SPUREN = 4;
 const PORT_BREITE = 60;
 const HAUPT_BREITE = 90;
 const HAUPT_BASIS = 3900;
-const PORT_VERSATZ = Number(process.env.PORT_VERSATZ || 0);
-const PORT = HAUPT_BASIS + PORT_VERSATZ + Math.floor(Math.random() * HAUPT_BREITE);
+/* DER ALTE NAME GILT WEITER (F9). Der Pruefstand liest ihn ohne Umschweife
+   selbst: `auth.js` haengt an `db.js`, und das oeffnete beim Laden eine
+   Datenbank -- hier, vor jedem Aufbau, waere das die falsche. */
+const PORT_OFFSET = Number(process.env.PORT_OFFSET ?? process.env.PORT_VERSATZ ?? 0);
+const PORT = HAUPT_BASIS + PORT_OFFSET + Math.floor(Math.random() * HAUPT_BREITE);
 const BASIS = `http://127.0.0.1:${PORT}`;
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-pruefung-'));
 const NUTZER = 'pruefer', PASSWORT = 'pruef-passwort-' + crypto.randomBytes(4).toString('hex');
@@ -328,7 +331,7 @@ let smtpPort = SMTP_BASIS;
 const SMTP_LAGEN = [];
 function smtpEmpfaenger(art = 'ok') {
   const net = require('net');
-  const port = (smtpPort++) + PORT_VERSATZ;
+  const port = (smtpPort++) + PORT_OFFSET;
   const post = [];
   /* JEDE OFFENE VERBINDUNG WIRD VERMERKT, und das ist keine Zierde:
      server.close() hoert nur auf zu HORCHEN und wartet danach auf das Ende
@@ -405,7 +408,7 @@ function smtpEmpfaenger(art = 'ok') {
 // eigenem Cookie. Gebraucht fuer alle Prueflagen, die eine eigene Instanz
 // brauchen: frische Einrichtung, Rechte mit mehreren Zugaengen, Sperren.
 function starteWeiterenServer(datenVerzeichnis, zusatz, portBasis) {
-  const port = portBasis + PORT_VERSATZ + Math.floor(Math.random() * PORT_BREITE);
+  const port = portBasis + PORT_OFFSET + Math.floor(Math.random() * PORT_BREITE);
   const basis = `http://127.0.0.1:${port}`;
   let protokoll = '', cookieB = '';
   const umgebung = { ...process.env, PORT: String(port), DATA_DIR: datenVerzeichnis, ENCRYPTION_KEY: KEY };
@@ -623,7 +626,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /^ {2}kriterion:$/m.test(composeText) && /container_name: kriterion$/m.test(composeText));
   pruefe('package.json nennt den Namen kriterion', paketJson.name === 'kriterion', paketJson.name);
 
-  /* DIE EINHAENGUNG UND DIE VARIABLE GEHOEREN ZUSAMMEN. Ein SICHERUNG_DIR
+  /* DIE EINHAENGUNG UND DIE VARIABLE GEHOEREN ZUSAMMEN. Ein BACKUP_DIR
      ohne passende Einhaengung schriebe in eine Schicht des Containers, die
      beim naechsten Bau verschwindet -- die Sicherung waere weg, und niemand
      saehe es. Deshalb steht beides in DERSELBEN Datei, und deshalb prueft
@@ -631,7 +634,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      GEPRUEFT WIRD DIE INNERE HAELFTE: was links vom Doppelpunkt steht, ist
      der Wirt und geht den Prozess nichts an. */
   const composeZiele = [...composeText.matchAll(/^\s*-\s+[^\s#][^\s]*:(\/[^\s:]+)/gm)].map(m => m[1]);
-  const composeSich = (composeText.match(/^\s*-\s*SICHERUNG_DIR=(\S+)/m) || [])[1];
+  const composeSich = (composeText.match(/^\s*-\s*BACKUP_DIR=(\S+)/m) || [])[1];
   pruefe('Die docker-compose.example.yml nennt einen Sicherungsort', !!composeSich, composeSich);
   pruefe('Und er ist wirklich eingehaengt -- Einhaengung und Variable laufen nicht auseinander',
     !!composeSich && composeZiele.includes(composeSich),
@@ -840,7 +843,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Fetch-Spezifikation. Der Server laeuft dann und meldet es auch, nur
      kommt die Pruefung nicht an ihn heran ("bad port"). curl kommt durch,
      fetch nicht. */
-  /* AUCH DIESE LAGE GEHT UEBER PORT_VERSATZ. Sie startet ihre Server nicht
+  /* AUCH DIESE LAGE GEHT UEBER PORT_OFFSET. Sie startet ihre Server nicht
      ueber starteWeiterenServer -- sie braucht eine KOPIE des Quelltextes als
      Arbeitsverzeichnis --, und genau deshalb ist sie einmal am Versatz vorbei
      gelaufen: drei Gegenproben griffen gleichzeitig nach 6100, zwei bekamen
@@ -850,7 +853,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   let fingerprintPort = FINGERPRINT_BASIS;
   async function fingerprintAus(verzeichnis) {
     const datenVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fingerprint-'));
-    const port = (fingerprintPort++) + PORT_VERSATZ;
+    const port = (fingerprintPort++) + PORT_OFFSET;
     const basis = `http://127.0.0.1:${port}`;
     const umgebung = { ...process.env, PORT: String(port), DATA_DIR: datenVerz, ENCRYPTION_KEY: KEY };
     delete umgebung.AUTH_RESET;
@@ -1069,7 +1072,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const rahmenProbe = (lage, filter) => {
     const r = require('child_process').spawnSync(process.execPath,
       filter ? ['testbench.js', filter] : ['testbench.js'],
-      { cwd: __dirname, encoding: 'utf8', env: { ...process.env, PRUEFRAHMEN_PROBE: lage } });
+      { cwd: __dirname, encoding: 'utf8', env: { ...process.env, TESTBENCH_PROBE: lage } });
     return { text: r.stdout || '', code: r.status };
   };
 
@@ -5721,7 +5724,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      DATENVERZEICHNIS. Am String sieht "zeigtAufDaten" harmlos aus; erst der
      aufgeloeste Pfad verraet ihn. Genau daran haengt die Pruefung. */
   fs.symlinkSync(siDir, path.join(siWurzel, 'zeigtAufDaten'));
-  const SI = starteWeiterenServer(siDir, { SICHERUNG_DIR: siWurzel }, 4300);
+  const SI = starteWeiterenServer(siDir, { BACKUP_DIR: siWurzel }, 4300);
   await SI.bereit;
   // bert bekommt die Adminrolle -- OHNE Eigentuemerrolle.
   {
@@ -5781,7 +5784,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-si-innen', 1)").run();
         d.close();
       }
-      const SI2 = starteWeiterenServer(siInnenDaten, { SICHERUNG_DIR: siInnen }, 4500);
+      const SI2 = starteWeiterenServer(siInnenDaten, { BACKUP_DIR: siInnen }, 4500);
       await SI2.bereit;
       const a = await fetch(SI2.basis + '/api/backup',
         { headers: { cookie: 'kriterion_session=cookie-si-innen' } });
@@ -6154,7 +6157,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
     d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-sd-anna', 1)").run();
     d.close();
-    const SD = starteWeiterenServer(dDir, { SICHERUNG_DIR: path.join(dDir, 'sicherung') }, 4360);
+    const SD = starteWeiterenServer(dDir, { BACKUP_DIR: path.join(dDir, 'sicherung') }, 4360);
     await SD.bereit;
     const a = await fetch(SD.basis + '/api/backup',
       { headers: { cookie: 'kriterion_session=cookie-sd-anna' } });
@@ -6173,7 +6176,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     fs.rmSync(dDir, { recursive: true, force: true });
   }
 
-  /* --- OHNE SICHERUNG_DIR bleibt die Karte aus und sagt es. Das ist der
+  /* --- OHNE BACKUP_DIR bleibt die Karte aus und sagt es. Das ist der
      Zustand jeder Instanz, die den Einhaengepunkt noch nicht hat. --- */
   {
     const oDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherung-ohne-'));
@@ -6182,7 +6185,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
     d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-so-anna', 1)").run();
     d.close();
-    const SO = starteWeiterenServer(oDir, { SICHERUNG_DIR: '' }, 4420);
+    const SO = starteWeiterenServer(oDir, { BACKUP_DIR: '' }, 4420);
     await SO.bereit;
     const inhalt = await (await fetch(SO.basis + '/api/backup',
       { headers: { cookie: 'kriterion_session=cookie-so-anna' } })).json().catch(() => null);
@@ -6400,7 +6403,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.close();
   }
   setzePasswortImBestand(auDir, 'anna', AU_WORT);
-  const AU = starteWeiterenServer(auDir, { SICHERUNG_DIR: auWurzel }, 4300);
+  const AU = starteWeiterenServer(auDir, { BACKUP_DIR: auWurzel }, 4300);
   await AU.bereit;
   /* bert BEKOMMT DIE ADMINROLLE ERST JETZT -- ohne ihn waere "Eigentuemer" von
      "Admin" gar nicht zu unterscheiden (Stolperstein 73). UND ERST NACH DEM
@@ -11242,7 +11245,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* GEPRUEFT UEBER EINEN KURZEN LAUF, nicht ueber zwoelf Serverstarts: die
      Pruefung des Werts steht in auth.js -- dieselbe Sorte Einstellung wie
-     HINTER_PROXY, und beide entscheiden ueber Netzwerkvertrauen statt ueber
+     BEHIND_PROXY, und beide entscheiden ueber Netzwerkvertrauen statt ueber
      eine Vorliebe.
      JEDER FALL EINZELN, denn eine Sammelpruefung sagt nicht, WELCHER Wert
      durchrutscht. */
@@ -11325,7 +11328,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       !JSON.stringify(ohneCfg.inhalt).toLowerCase().includes('adresse'),
       JSON.stringify(ohneCfg.inhalt));
 
-    const mit = await oaMachen({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de/' }, 4760);
+    const mit = await oaMachen({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de/' }, 4760);
     pruefe('Mit der Einstellung gibt der Server den fertigen Link heraus',
       mit.neu.inhalt?.link === `https://kriterion.beispiel.de/#/invite/${mit.neu.inhalt?.token}`,
       JSON.stringify(mit.neu.inhalt?.link));
@@ -11355,11 +11358,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
        AUTH_RESET und beim fehlenden Sicherungsort. Ein Start, der an einem
        Tippfehler in einer OPTIONALEN Einstellung abbraeche, waere schlimmer
        als der Tippfehler. */
-    const kaputt = await oaMachen({ OEFFENTLICHE_ADRESSE: 'kein-richtiger-wert' }, 4820);
+    const kaputt = await oaMachen({ PUBLIC_ADDRESS: 'kein-richtiger-wert' }, 4820);
     pruefe('Ein unbrauchbarer Wert bricht den Start nicht ab',
       kaputt.neu.status === 200, `Status ${kaputt.neu.status}`);
     pruefe('Er wird aber laut gemeldet',
-      /OEFFENTLICHE_ADRESSE ist unbrauchbar/.test(kaputt.S.protokoll()),
+      /PUBLIC_ADDRESS ist unbrauchbar/.test(kaputt.S.protokoll()),
       kaputt.S.protokoll().split('\n').filter(z => /ADRESSE/.test(z)).join(' | ') || '(keine Zeile)');
     pruefe('Und der Rueckfall ist der Browserweg',
       kaputt.neu.inhalt?.link === null && kaputt.neu.inhalt?.linkQuelle === 'browser',
@@ -11369,7 +11372,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        nur eine Warnung: ein falscher Link ist ein toter Link, kein Verlust.
        Eine Absage waere hier haerter als der Schaden. */
     const widerspruch = await oaMachen(
-      { HINTER_PROXY: '1', OEFFENTLICHE_ADRESSE: 'http://kriterion.beispiel.de' }, 4880);
+      { BEHIND_PROXY: '1', PUBLIC_ADDRESS: 'http://kriterion.beispiel.de' }, 4880);
     pruefe('http hinter einem Proxy wird gewarnt, nicht abgewiesen',
       /Hinter einem Proxy und trotzdem http/.test(widerspruch.S.protokoll()),
       widerspruch.S.protokoll().split('\n').filter(z => /Proxy/.test(z)).join(' | '));
@@ -11452,7 +11455,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gruppe('Der Mailversand: das echte SMTP-Gespraech');
 
     const E = smtpEmpfaenger('ok');
-    const A = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6430);
+    const A = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6430);
     const gesetzt = await mailSetzen(A.S, E);
     pruefe('Der Mailzugang laesst sich setzen', gesetzt.status === 200, `Status ${gesetzt.status}`);
     pruefe('Und die Karte sagt danach "eingerichtet"',
@@ -11616,7 +11619,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* DER EMPFAENGER ANTWORTET MIT EINEM FEHLER. Der Token entsteht trotzdem,
        der Link steht da, und der GRUND steht daneben. */
     const F = smtpEmpfaenger('fehler');
-    const FA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5320);
+    const FA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5320);
     await mailSetzen(FA.S, F);
     const fNeu = await FA.S.ruf('POST', '/api/users',
       { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
@@ -11631,7 +11634,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     /* DER EMPFAENGER BRICHT DIE VERBINDUNG AB. Dieselbe Zusage. */
     const X = smtpEmpfaenger('abbruch');
-    const XA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5380);
+    const XA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5380);
     await mailSetzen(XA.S, X);
     const xNeu = await XA.S.ruf('POST', '/api/users',
       { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
@@ -11672,7 +11675,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
                    die aeussere Schranke rechtfertigt -- und die einzige, an
                    der sich zeigen laesst, dass sie etwas tut. */
     const St = smtpEmpfaenger('stumm');
-    const StA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5440);
+    const StA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5440);
     await mailSetzen(StA.S, St);
     const t0 = Date.now();
     const stNeu = await mitNetz(StA.S.ruf('POST', '/api/users',
@@ -11686,7 +11689,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       `${stNeu.inhalt?.versand} · ${stNeu.inhalt?.token}`);
 
     const Sw = smtpEmpfaenger('schweigt');
-    const SwA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5500);
+    const SwA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5500);
     await mailSetzen(SwA.S, Sw);
     const t1 = Date.now();
     const swNeu = await mitNetz(SwA.S.ruf('POST', '/api/users',
@@ -11709,7 +11712,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Sekunden immer noch. Faellt sie weg, wird DIESE Prueflage rot und keine
        andere. */
     const Tr = smtpEmpfaenger('troepfelt');
-    const TrA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6490);
+    const TrA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6490);
     await mailSetzen(TrA.S, Tr);
     const t2 = Date.now();
     const trNeu = await mitNetz(TrA.S.ruf('POST', '/api/users',
@@ -11740,7 +11743,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ohne oeffentliche Adresse wird NICHT verschickt',
       oNeu.inhalt?.versand === 'aus', JSON.stringify(oNeu.inhalt?.versand));
     pruefe('Und der Grund nennt die Einstellung',
-      /OEFFENTLICHE_ADRESSE/.test(oNeu.inhalt?.versandGrund || ''),
+      /PUBLIC_ADDRESS/.test(oNeu.inhalt?.versandGrund || ''),
       JSON.stringify(oNeu.inhalt?.versandGrund));
     await new Promise(r => setTimeout(r, 200));
     pruefe('Der Empfaenger hat wirklich nichts bekommen',
@@ -11757,7 +11760,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        gefaelschten Kopf an einer Instanz, die die Einstellung GESETZT hat --
        der Link muss ihr folgen und nicht dem Kopf. */
     const H = smtpEmpfaenger('ok');
-    const HA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6130);
+    const HA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6130);
     await mailSetzen(HA.S, H);
     const hInhalt = (await mailRohRuf(HA.S, '/api/users',
       { host: 'boeser.beispiel.net', 'x-forwarded-host': 'boeser.beispiel.net' },
@@ -11827,7 +11830,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Geheimnis, und ohne sie liesse sich nicht nachsehen, ob der richtige
        Zugang geladen ist. Das PASSWORT nicht, und das steht darunter. */
     await A.S.stopp();
-    const A2 = starteWeiterenServer(A.dir, { OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6370);
+    const A2 = starteWeiterenServer(A.dir, { PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6370);
     await A2.bereit;
     pruefe('Nach einem Neustart nennt die Startzeile Anbieter, Server und Absender',
       /Mailversand: Eigener Server über 127\.0\.0\.1:/.test(A2.protokoll()) &&
@@ -11844,7 +11847,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        wird gar nicht angesehen; das ist die einzige Bauform, in der die
        Zusage baulich wahr ist statt durchgesetzt. */
     const T = smtpEmpfaenger('ok');
-    const TA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6190);
+    const TA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6190);
     await mailSetzen(TA.S, T);
     const tOhneAdresse = await TA.S.ruf('POST', '/api/mail/test', {});
     pruefe('Ohne eigene Adresse wird die Testmail abgesagt',
@@ -11929,7 +11932,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* NUR DER EIGENTUEMER -- eintragen, einsehen UND testen. Ein Admin kommt
        an keines der drei. Geprueft an einem ECHTEN zweiten Zugang, nicht an
        einer gestellten Rolle. */
-    const RA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6250);
+    const RA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6250);
     await RA.S.ruf('POST', '/api/users', { username: 'carla', passwort: MAIL_PASSWORT_CARLA });
     const rListe = (await RA.S.ruf('GET', '/api/users')).inhalt?.zugaenge || [];
     const rCarla = rListe.find(z => z.username === 'carla');
@@ -12152,7 +12155,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     const gOk = smtpEmpfaenger('ok');
     const gTr = smtpEmpfaenger('troepfelt');
-    const gA = await regInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6700);
+    const gA = await regInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6700);
     const gTest = await regVersandStellen(gA.S, gOk);
     pruefe('Die Testmail dieser Instanz kommt durch', gTest.inhalt?.ok === true,
       `${gTest.inhalt?.ok} · ${gTest.inhalt?.grund}`);
@@ -12361,8 +12364,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const iOhneAdresse = await iA.S.ruf('PUT', '/api/signup/toggle', { an: true });
     pruefe('Und trotzdem laesst sich der Schalter nicht einschalten',
       iOhneAdresse.status === 400, `Status ${iOhneAdresse.status}`);
-    pruefe('Denn ohne OEFFENTLICHE_ADRESSE traegt der Link in der Mail nicht',
-      /OEFFENTLICHE_ADRESSE/.test(iOhneAdresse.inhalt?.error || ''),
+    pruefe('Denn ohne PUBLIC_ADDRESS traegt der Link in der Mail nicht',
+      /PUBLIC_ADDRESS/.test(iOhneAdresse.inhalt?.error || ''),
       JSON.stringify(iOhneAdresse.inhalt?.error));
     pruefe('Er bleibt danach aus',
       (await iA.S.ruf('GET', '/api/requests')).inhalt?.an === false,
@@ -12371,7 +12374,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gruppe('Die Selbstanmeldung: die Bestaetigungsmail');
 
     const hOk = smtpEmpfaenger('ok');
-    const hA = await regInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6820);
+    const hA = await regInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6820);
     await regVersandStellen(hA.S, hOk);
     await hA.S.ruf('PUT', '/api/signup/toggle', { an: true });
     const hVorBriefe = hOk.briefe().length;
@@ -14908,7 +14911,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     'der Waechter sieht die Verletzung nicht');
 
   /* DER COOKIENAME KOMMT AUS auth.COOKIE_NAME UND WIRD NIRGENDS ABGESCHRIEBEN.
-     Seit 0.8.20 haengt er an HINTER_PROXY: ohne Proxy heisst er
+     Seit 0.8.20 haengt er an BEHIND_PROXY: ohne Proxy heisst er
      kriterion_session, mit Proxy traegt er das Praefix __Host-. Wer ihn
      irgendwo als festen String hinschreibt, baut eine Stelle, die bei
      umgelegter Einstellung still den falschen Cookie liest -- und still
@@ -16128,7 +16131,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      DARF. */
   const gProtoKopf = await fetch(G.basis + '/api/config',
     { headers: { 'x-forwarded-proto': 'https' } });
-  pruefe('Ohne HINTER_PROXY bewirkt ein X-Forwarded-Proto gar nichts',
+  pruefe('Ohne BEHIND_PROXY bewirkt ein X-Forwarded-Proto gar nichts',
     !gProtoKopf.headers.get('strict-transport-security'),
     String(gProtoKopf.headers.get('strict-transport-security')));
   const gProtoAnmeldung = await fetch(G.basis + '/api/login', { method: 'POST',
@@ -16155,11 +16158,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('Hinter dem Proxy wird der Kopf gelesen');
 
   /* DIESELBE INSTANZ, EINE EINSTELLUNG ANDERS. Derselbe Bestand, derselbe
-     Zugang -- nur HINTER_PROXY=1. Eine Pruefung, die nur die Vorgabe ansieht,
+     Zugang -- nur BEHIND_PROXY=1. Eine Pruefung, die nur die Vorgabe ansieht,
      belegt die Einstellung nicht; deshalb beide Lagen.
      Der Prozess ist neu, die Zaehler der vorigen Gruppe sind damit weg -- sie
      stehen im Arbeitsspeicher und nicht in der Datenbank. */
-  const P = starteWeiterenServer(gDir, { HINTER_PROXY: '1' }, 5700);
+  const P = starteWeiterenServer(gDir, { BEHIND_PROXY: '1' }, 5700);
   await P.bereit;
   /* SEIT 0.13.0 TRAEGT DER RUFER DEN WEG. `proto` ist X-Forwarded-Proto: mit
      'https' ist es der Weg ueber den Proxy, ohne den Kopf der Weg aus dem
@@ -16217,7 +16220,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('Zwei Netze, ein Zugang — 0.13.0');
 
   /* DERSELBE SERVER, DIESELBE EINSTELLUNG, DER ANDERE WEG. Bis 0.12.4 kam ueber
-     http://<server-ip>:3100 mit HINTER_PROXY=1 niemand mehr herein: der Server
+     http://<server-ip>:3100 mit BEHIND_PROXY=1 niemand mehr herein: der Server
      antwortete mit 200 und setzte einen Secure-Cookie, den der Browser
      stillschweigend verwarf. Der Prueflauf konnte das nicht sehen -- er ist
      kein Browser und nimmt jeden Cookie, den er bekommt.
@@ -16226,7 +16229,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Namen bekaemen -- und genau das waere der Fehler, den diese Runde nicht
      baut. */
   const pHeim = await pAnmelden('anna', 'annas-langes-wort', '10.1.0.2');
-  pruefe('Die Anmeldung gelingt auch ueber das Heimnetz, mit HINTER_PROXY=1',
+  pruefe('Die Anmeldung gelingt auch ueber das Heimnetz, mit BEHIND_PROXY=1',
     pHeim.status === 200, `${pHeim.status}: ${JSON.stringify(pHeim.inhalt)}`);
   pruefe('Dort traegt der Cookie KEIN Secure — sonst verwirft ihn der Browser',
     !/;\s*Secure/i.test(pHeim.setzCookie), pHeim.setzCookie);
@@ -21624,9 +21627,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // das Fenster deckt, laufen ihre Nummern in die naechste Basis hinein --
   // und der Waechter darueber saehe davon nichts.
   pruefe('Und bleibt dabei in seinem Fenster',
-    SMTP_LAGEN.every(l => l.port - PORT_VERSATZ >= SMTP_BASIS &&
-                          l.port - PORT_VERSATZ < SMTP_BASIS + SMTP_BREITE),
-    `hoechste ${Math.max(...SMTP_LAGEN.map(l => l.port - PORT_VERSATZ))}, Fenster bis ${SMTP_BASIS + SMTP_BREITE - 1}`);
+    SMTP_LAGEN.every(l => l.port - PORT_OFFSET >= SMTP_BASIS &&
+                          l.port - PORT_OFFSET < SMTP_BASIS + SMTP_BREITE),
+    `hoechste ${Math.max(...SMTP_LAGEN.map(l => l.port - PORT_OFFSET))}, Fenster bis ${SMTP_BASIS + SMTP_BREITE - 1}`);
 
   /* JEDE STELLE, DIE EINEN SERVER STARTET, GEHT UEBER EINE DIESER BASEN. Der
      Waechter zaehlt die Startstellen im Quelltext nach: der Hauptserver,
@@ -23293,7 +23296,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
     const k = mailKarteMock();
     if (!k.eingerichtet) return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };
     if (!k.adresseGesetzt) return { versand: 'aus', versandGrund:
-      'Ohne OEFFENTLICHE_ADRESSE in der .env wird nicht verschickt — der Server wüsste nicht, ' +
+      'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, ' +
       'worauf der Link zeigen soll.' };
     if (!empfaenger) return { versand: 'aus', versandGrund:
       'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
@@ -32215,7 +32218,7 @@ async function pruefeOberflaeche() {
     pruefe('Ohne Einstellung sagt sie: aus deinem Browser',
       /aus deinem Browser/.test(zeile?.textContent || ''), zeile?.textContent);
     pruefe('Und nennt die Einstellung dabei NICHT',
-      !/OEFFENTLICHE_ADRESSE/.test(zeile?.textContent || ''), zeile?.textContent);
+      !/PUBLIC_ADDRESS/.test(zeile?.textContent || ''), zeile?.textContent);
     pruefe('Sie nennt die Adresse, auf die der Link zeigt',
       (zeile?.textContent || '').includes(d.w.location.origin), zeile?.textContent);
     pruefe('Und das Feld traegt die vom Browser gebaute Adresse',
@@ -32228,7 +32231,7 @@ async function pruefeOberflaeche() {
     const zeile = d.w.document.getElementById('user-link-origin');
     pruefe('Mit Einstellung steht die Herkunftszeile ebenfalls da', !!zeile, 'keine Zeile');
     pruefe('Und sie nennt die Einstellung beim Namen',
-      /OEFFENTLICHE_ADRESSE/.test(zeile?.textContent || ''), zeile?.textContent);
+      /PUBLIC_ADDRESS/.test(zeile?.textContent || ''), zeile?.textContent);
     pruefe('Vom Browser ist dann NICHT die Rede',
       !/aus deinem Browser/.test(zeile?.textContent || ''), zeile?.textContent);
     pruefe('Sie nennt die Adresse aus der Einstellung',
@@ -39984,7 +39987,7 @@ async function pruefeOberflaeche() {
 
     /* DIE EINE ZEILE, DIE BLEIBT, UND SIE STEHT NAMENTLICH DA. server.js
        schreibt „Die Instanz laeuft weiter …" ins Containerprotokoll, wenn
-       OEFFENTLICHE_ADRESSE unbrauchbar ist. Das ist eine Zeile fuer den
+       PUBLIC_ADDRESS unbrauchbar ist. Das ist eine Zeile fuer den
        BETREIBER und keine Bildschirmmeldung; sie bleibt, und sie bleibt
        gezaehlt -- eine Ausnahme ohne Zahl deckte den naechsten echten Treffer
        mit zu. */
@@ -41183,7 +41186,7 @@ async function pruefeOberflaeche() {
     fs.rmSync(path.join(spKopie, 'public', 'languages', 'de.json'));
     const spStart = await new Promise((fertig) => {
       const datenVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sprachdaten-'));
-      const spPort = SPRACHE_BASIS + PORT_VERSATZ;
+      const spPort = SPRACHE_BASIS + PORT_OFFSET;
       const kindS = spawn(process.execPath, ['server.js'], { cwd: spKopie,
         env: { ...process.env, PORT: String(spPort), DATA_DIR: datenVerz, ENCRYPTION_KEY: KEY } });
       // Vermerkt, damit beide Waechter am Ende auch diese Lage ansehen -- und
@@ -41534,7 +41537,7 @@ async function pruefeOberflaeche() {
       'docker compose exec kriterion node usertool.js passwort <name>',
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
       // Markup um einen technischen Namen herum
-      '<code>OEFFENTLICHE_ADRESSE</code>', '<code>ENCRYPTION_KEY</code>',
+      '<code>PUBLIC_ADDRESS</code>', '<code>ENCRYPTION_KEY</code>',
       '<code>data/</code>', '<code>http://</code>',
       '<code>ENCRYPTION_KEY</code>. <strong><code>.env</code>',
       '</p>\n              <code class="keyline" id="keyline">ENCRYPTION_KEY=',
@@ -42443,8 +42446,8 @@ function pruefeSchluesselwechsel() {
     '# ENCRYPTION_KEY= steht hier auskommentiert und darf NICHT getroffen werden\n' +
     `ENCRYPTION_KEY=${envAlt}\n` +
     '\n' +
-    '# HINTER_PROXY=1\n' +
-    'OEFFENTLICHE_ADRESSE=https://beispiel.test\n';
+    '# BEHIND_PROXY=1\n' +
+    'PUBLIC_ADDRESS=https://beispiel.test\n';
   fs.writeFileSync(envDatei, envVorher);
 
   const w4ohne = swRuf(['wechseln', '--ja'], a4.dir, envAlt);
@@ -42462,7 +42465,7 @@ function pruefeSchluesselwechsel() {
     !swOeffnetNicht(a4.dir, envAlt), 'der alte Schluessel oeffnet nicht mehr');
 
   const envOhne = path.join(SW, 'ohne.env');
-  fs.writeFileSync(envOhne, '# ENCRYPTION_KEY=nur ein Kommentar\nHINTER_PROXY=1\n');
+  fs.writeFileSync(envOhne, '# ENCRYPTION_KEY=nur ein Kommentar\nBEHIND_PROXY=1\n');
   const w4leer = swRuf(['wechseln', '--env', envOhne, '--ja'], a4.dir, envAlt);
   pruefe('Eine .env ohne AKTIVE Schluesselzeile wird abgewiesen',
     w4leer.code === 1 && /0 aktive Zeilen/.test(w4leer.aus), w4leer.aus.slice(0, 200));

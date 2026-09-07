@@ -17,7 +17,7 @@ services:
       #
       # AUSSERHALB IST DIE EMPFOHLENE LAGE. Dafuer beide Zeilen zusammen auf
       #   - ../kriterion-sicherung:/sicherung
-      #   - SICHERUNG_DIR=/sicherung
+      #   - BACKUP_DIR=/sicherung
       # aendern. Ein relativer Pfad loest docker gegen den Ort DIESER Datei
       # auf, also zeigt ../kriterion-sicherung vor und nach dem Einspielen auf
       # dasselbe Verzeichnis. Beide Haelften gehoeren zusammen und duerfen
@@ -35,4 +35,4 @@ services:
       # steht hier und nicht in der .env: sie gehoert zur Einhaengung darueber,
       # und ein Pfad ohne Einhaengung schriebe in eine Schicht, die beim
       # naechsten Bau verschwindet.
-      - SICHERUNG_DIR=/app/sicherung
+      - BACKUP_DIR=/app/sicherung

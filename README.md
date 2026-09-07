@@ -150,7 +150,7 @@ Rollenvergabe, der Mailzugang und der Schlüsselwert; alles Weitere steht unter
 | **Weitere Benutzer** | Einstellungen › Benutzer, Karte „Benutzer" | anlegen oder über einen Einladungslink einladen |
 | **Mailversand** | Einstellungen › Benutzer, Karte „Mailversand" | nur für Einladungslinks und Links zum Zurücksetzen; ohne ihn läuft alles weiter |
 | **Sicherungsordner** | `docker-compose.yml` | Vorgabe liegt im Projektordner; die empfohlene Lage ist daneben — siehe „Sichern" |
-| **Reverse Proxy** | `.env`, `HINTER_PROXY=1` | nur wenn die Installation über einen Proxy und HTTPS nach außen geht. **Der Weg über `http://<server-ip>:3100` bleibt daneben offen** — siehe „Anmeldung" |
+| **Reverse Proxy** | `.env`, `BEHIND_PROXY=1` | nur wenn die Installation über einen Proxy und HTTPS nach außen geht. **Der Weg über `http://<server-ip>:3100` bleibt daneben offen** — siehe „Anmeldung" |
 
 ### Wenn niemand mehr hereinkommt
 
@@ -399,6 +399,29 @@ was darin steht, bleibt stehen, aber niemand zeigt es mehr.
 Bestand wird nicht übernommen; er braucht den Zwischenschritt über 0.8.0, die
 letzte Version, die ihn noch lesen konnte.
 
+### Die alten Namen in der `.env`
+
+**Drei Werte hießen früher deutsch. Die alten Namen werden weiter gelesen.**
+
+| früher | heute | wo er steht |
+|---|---|---|
+| `HINTER_PROXY` | `BEHIND_PROXY` | `.env` |
+| `OEFFENTLICHE_ADRESSE` | `PUBLIC_ADDRESS` | `.env` |
+| `SICHERUNG_DIR` | `BACKUP_DIR` | `docker-compose.yml` |
+
+**Eine `.env` von gestern gilt unverändert weiter.** Steht der alte Name da,
+wird er gelesen, und die Instanz schreibt beim Start eine Zeile ins
+Containerprotokoll:
+
+```
+[Kriterion] HINTER_PROXY heisst jetzt BEHIND_PROXY — der alte Name wird noch
+gelesen. Bitte in der .env nachziehen.
+```
+
+**Wer beide setzt, bekommt den neuen.** *Eine `.env`, die nach dem Einspielen
+stillschweigend nicht mehr gilt, ist der eine Fall, in dem eine Installation im
+Dunkeln steht: sie startet und verhält sich anders.*
+
 ## Verschlüsselung
 
 Die **gesamte Datenbankdatei** ist verschlüsselt (SQLCipher, AES-256). Ohne
@@ -504,7 +527,7 @@ sie nicht; er packt Einträge samt Anhängen, keine Benutzerkonten.
 
 Wird Kriterion über einen Reverse Proxy nach außen gegeben, dann **nur über
 HTTPS** — sonst wandert das Passwort im Klartext durchs Netz. Und dann gehört
-`HINTER_PROXY=1` in die `.env`.
+`BEHIND_PROXY=1` in die `.env`.
 
 **Warum die Einstellung nötig ist.** Ein Reverse Proxy nimmt die Verbindung des
 Besuchers entgegen und öffnet eine **eigene** zum Container. Kriterion sieht an
@@ -517,11 +540,11 @@ dass ein Proxy davorsteht.
 
 Eine Einstellung, zwei Wirkungen:
 
-| | `HINTER_PROXY` fehlt (Vorgabe) | `HINTER_PROXY=1` |
+| | `BEHIND_PROXY` fehlt (Vorgabe) | `BEHIND_PROXY=1` |
 |---|---|---|
 | `X-Forwarded-For` und `X-Forwarded-Proto` | werden **nicht angesehen** | werden gelesen |
 | Adresse des Aufrufers | die tatsächliche Verbindung | der **letzte** Eintrag aus `X-Forwarded-For` |
-| `http://` in `OEFFENTLICHE_ADRESSE` | wird hingenommen | **Warnung beim Start**, keine Absage |
+| `http://` in `PUBLIC_ADDRESS` | wird hingenommen | **Warnung beim Start**, keine Absage |
 | richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
 
 Der **letzte** Eintrag der Kette und nicht der erste: ein Proxy hängt die
@@ -554,7 +577,7 @@ verbogene Klartextverbindung setzen, und die HTTPS-Seite nähme ihn an. **Jede
 Anfrage liest deshalb genau einen der beiden Namen** — der Heimnetzcookie gilt
 auf der HTTPS-Seite nicht und umgekehrt.
 
-**Das Umlegen von `HINTER_PROXY` meldet weiterhin alle einmalig ab, die über
+**Das Umlegen von `BEHIND_PROXY` meldet weiterhin alle einmalig ab, die über
 HTTPS kommen** — ihr Cookiename wird dann nicht mehr gelesen. Kein
 Datenverlust, nur eine neue Anmeldung.
 
@@ -589,7 +612,7 @@ Zugriffsprotokoll stehen.** Ein CrowdSec-Szenario auf `POST /api/login`, das
 auf 401, 403 und 429 achtet, sperrt die Adresse damit heute — es liest das
 Protokoll des Proxys, nicht das der Installation. *Das ist auch die richtige Stelle:
 hinter dem Proxy sieht Kriterion ohnehin nur dessen Adresse, solange
-`HINTER_PROXY` nicht gesetzt ist — und mit der Einstellung nur das, was im Kopf
+`BEHIND_PROXY` nicht gesetzt ist — und mit der Einstellung nur das, was im Kopf
 steht. Der Proxy schreibt auf, was er wirklich gesehen hat.*
 
 **Die Rotation des Containerprotokolls ist Dockers Sache**, nicht Kriterions.
@@ -714,7 +737,7 @@ nicht in fremde Hand.
 Kommt **niemand mehr** herein, hilft weiterhin der Weg über den Server:
 `docker compose exec kriterion node usertool.js passwort <name>`.
 
-#### Wohin der Link zeigt — `OEFFENTLICHE_ADRESSE`
+#### Wohin der Link zeigt — `PUBLIC_ADDRESS`
 
 Den vollständigen Link baut **der Browser des Admins** aus der Adresse, an der
 er ohnehin steht. Das ist sicher, braucht keine Einstellung und bleibt die
@@ -728,7 +751,7 @@ einen Link ins Leere.
 Dagegen steht eine **optionale** Zeile in der `.env`:
 
 ```bash
-OEFFENTLICHE_ADRESSE=https://kriterion.beispiel.de
+PUBLIC_ADDRESS=https://kriterion.beispiel.de
 ```
 
 Ist sie gesetzt, gibt der Server den fertigen Link heraus; ist sie leer, baut
@@ -741,7 +764,7 @@ wird abgewiesen. **Ein unbrauchbarer Wert bricht den Start nicht ab**: er wird
 im Protokoll gemeldet, und der Browserweg trägt weiter.
 
 **Warum in der `.env` und nicht in den Einstellungen**, obwohl es dort bequemer
-wäre: dieselbe Linie wie `HINTER_PROXY` — die Einstellung entscheidet über
+wäre: dieselbe Linie wie `BEHIND_PROXY` — die Einstellung entscheidet über
 Netzwerkvertrauen, nicht über eine Vorliebe. Ein Admin kommt nicht an einen
 anderen Admin; dürfte er die öffentliche Adresse setzen, zeigte später jede
 verschickte Mail auf seinen Server. Die Einstellungen **zeigen** sie, sie
@@ -884,7 +907,7 @@ lässt** — und beides prüft die Installation selbst, statt es zu empfehlen:
 - **Ein Mailzugang, mit dem eine Testmail wirklich durchgekommen ist.** Ändert
   sich danach irgendetwas am Mailzugang, gilt der Beleg nicht mehr, und der
   Schalter lässt sich erst nach einer neuen Testmail wieder einschalten.
-- **`OEFFENTLICHE_ADRESSE` in der `.env`.** Ohne sie wüsste der Server nicht,
+- **`PUBLIC_ADDRESS` in der `.env`.** Ohne sie wüsste der Server nicht,
   worauf der Bestätigungslink zeigen soll. Die Testmail allein genügt als
   Beleg **nicht**: sie enthält gar keinen Link und geht auch ohne diesen Wert
   durch.
@@ -2313,7 +2336,7 @@ bringt ihn mit:
       - ./data:/app/data
       - ./kriterion-sicherung:/app/sicherung
     environment:
-      - SICHERUNG_DIR=/app/sicherung
+      - BACKUP_DIR=/app/sicherung
 ```
 
 Beide Zeilen gehören zusammen und stehen deshalb in **derselben** Datei: ein
@@ -2336,7 +2359,7 @@ keines.
 > ```yaml
 >       - ../kriterion-sicherung:/sicherung
 >     environment:
->       - SICHERUNG_DIR=/sicherung
+>       - BACKUP_DIR=/sicherung
 > ```
 >
 > Dann entfällt auch die zusätzliche Zeile im Einspielweg. Ein relativer Pfad

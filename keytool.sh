@@ -49,7 +49,7 @@ fi
 lauf() {
   docker compose run --rm --no-deps \
     ${ENV_EINHAENGUNG:+-v "$PWD:/app/wirt:rw"} \
-    ${NEUER_SCHLUESSEL:+-e "NEUER_SCHLUESSEL=$NEUER_SCHLUESSEL"} \
+    ${NEW_KEY:+-e "NEW_KEY=$NEW_KEY"} \
     kriterion node keytool.js "$@"
 }
 
@@ -88,8 +88,8 @@ case "$BEFEHL" in
       rot "openssl fehlt — ohne es gibt es keinen neuen Schluessel."
       exit 1
     fi
-    NEUER_SCHLUESSEL="$(openssl rand -hex 32)"
-    export NEUER_SCHLUESSEL
+    NEW_KEY="$(openssl rand -hex 32)"
+    export NEW_KEY
 
     # 3. Die Instanz anhalten.
     echo "  Instanz anhalten …"

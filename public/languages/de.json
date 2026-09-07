@@ -1158,7 +1158,7 @@
   "server.backupConcurrent": "In dieser Sekunde wurde dort schon eine Sicherung angelegt — bitte noch einmal.",
   "server.backupDirGone": "Den Sicherungsordner {ordner} gibt es nicht. Er wird nicht angelegt — häng ihn auf dem Server ein.",
   "server.backupDirNotDir": "{ordner} ist kein Verzeichnis.",
-  "server.backupDirNotSet": "Es ist kein Sicherungsordner eingerichtet. Die docker-compose.yml hängt ihn ein und benennt ihn als SICHERUNG_DIR — beides gehört zusammen.",
+  "server.backupDirNotSet": "Es ist kein Sicherungsordner eingerichtet. Die docker-compose.yml hängt ihn ein und benennt ihn als BACKUP_DIR — beides gehört zusammen.",
   "server.backupDirUnreachable": "Der Sicherungsordner ist nicht erreichbar.",
   "server.backupDirUnreadable": "{ordner} ist nicht lesbar.",
   "server.backupFailed": "Die Sicherung ist gescheitert. Die Einzelheiten stehen im Protokoll des Containers.",

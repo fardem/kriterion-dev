@@ -1778,9 +1778,9 @@ const RUECKBAUTEN = [
     /* DER KOPF WIRD OHNE DIE EINSTELLUNG GEGLAUBT. Dann holt sich jeder
        Aufrufer auf Port 3100 einen __Host--Cookie samt HSTS -- und sperrt sich
        damit selbst aus, weil sein Browser den Cookie verwirft. */
-    nr: '196', name: 'X-Forwarded-Proto wird auch ohne HINTER_PROXY geglaubt',
+    nr: '196', name: 'X-Forwarded-Proto wird auch ohne BEHIND_PROXY geglaubt',
     datei: 'auth.js',
-    suche: '  if (!HINTER_PROXY) return false;',
+    suche: '  if (!BEHIND_PROXY) return false;',
     ersatz: '  if (false) return false;',
     erwartet: 'Ohne Proxy ist der Kopf nur eine Behauptung'
   },
@@ -1811,7 +1811,7 @@ const RUECKBAUTEN = [
     nr: '199', name: 'HSTS geht wieder auf jedem Weg mit',
     datei: 'server.js',
     suche: "  if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');",
-    ersatz: "  if (auth.HINTER_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');",
+    ersatz: "  if (auth.BEHIND_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');",
     erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
   },
   /* ---- 0.13.0: der Filter am Sicherheitsprotokoll ---- */
@@ -6878,7 +6878,7 @@ function fahre(r, spur, stufe) {
     } catch (e) { return ende({ fehler: e.message }); }
     const kind = spawn(process.execPath, ['testbench.js'], {
       cwd: kopie,
-      env: { ...process.env, PORT_VERSATZ: String(spur * stufe) }
+      env: { ...process.env, PORT_OFFSET: String(spur * stufe) }
     });
     let ausgabe = '';
     kind.stdout.on('data', d => { ausgabe += d; });

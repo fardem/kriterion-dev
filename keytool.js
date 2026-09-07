@@ -186,9 +186,9 @@ async function commandChange(options) {
     process.exit(1);
   }
 
-  const fresh = (process.env.NEUER_SCHLUESSEL || '').trim() || keys.createKey();
+  const fresh = String(auth.fromEnv('NEW_KEY', 'NEUER_SCHLUESSEL') || '').trim() || keys.createKey();
   if (!keys.HEX_PATTERN.test(fresh)) {
-    console.error(RED('NEUER_SCHLUESSEL ist kein 64-stelliger Hexwert.')); process.exit(1);
+    console.error(RED('NEW_KEY ist kein 64-stelliger Hexwert.')); process.exit(1);
   }
   if (fresh.toLowerCase() === keyHex.toLowerCase()) {
     console.error(RED('Der neue Schlüssel ist derselbe wie der alte. Nichts geändert.')); process.exit(1);

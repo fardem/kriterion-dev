@@ -8892,9 +8892,9 @@ function setUpUsersOut() {
      Wer den falschen Fall vor sich hat, soll ihn an dieser Zeile erkennen und
      nicht am toten Link beim Empfaenger. Die Einstellung selbst wird hier nur
      GEZEIGT und nicht gesetzt -- sie steht in der .env, aus demselben Grund
-     wie HINTER_PROXY. */
+     wie BEHIND_PROXY. */
   const linkOrigin = (d) => d.linkQuelle === 'einstellung'
-    ? `${tH('card.fromServerSetting')} <code>OEFFENTLICHE_ADRESSE</code>`
+    ? `${tH('card.fromServerSetting')} <code>PUBLIC_ADDRESS</code>`
     : t('card.fromYourBrowser');
 
   /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
@@ -9636,7 +9636,7 @@ function cardMailDelivery(fetched) {
         <div class="kv"><span class="k">${tH('card.lastTestedOk')}</span><span class="v">${mailstand.getestetAm
           ? esc(mailstand.getestetAm) : tH('card.never')}</span></div>
         ${mailstand.adresseGesetzt ? '' : `<p class="warn-box" style="margin:10px 0 0">
-          <strong>${tH('card.withoutServerSetting')} <code>OEFFENTLICHE_ADRESSE</code> ${tH('card.nothingSent')}</strong> ${tH('card.addressNeededHint')}</p>`}
+          <strong>${tH('card.withoutServerSetting')} <code>PUBLIC_ADDRESS</code> ${tH('card.nothingSent')}</strong> ${tH('card.addressNeededHint')}</p>`}
         ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn noch
               nichts steht, ändern, wenn etwas steht. „Speichern" hieß er bis
               0.17.2 — an einer Karte, in der die Felder schon dastanden. Ein
