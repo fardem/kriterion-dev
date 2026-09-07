@@ -102,10 +102,10 @@ CREATE TABLE IF NOT EXISTS items (
   -- tested bekommt bewusst NICHTS davon: "getestet" ist ein Zustand und keine
   -- Entscheidung. Wer beides gleich behandelt, baut die Haelfte umsonst.
   rejected_at TEXT,
-  rejected_grund TEXT,
+  rejected_reason TEXT,
   -- ON DELETE SET NULL wie an jedem Traeger (Stolperstein 54): ein entfernter
   -- Zugang nimmt die Entscheidung nicht mit, nur seinen Namen davon.
-  rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   tested INTEGER NOT NULL DEFAULT 0,
   -- favorite wird nicht mehr beschrieben. Der Favorit gehoert einem Benutzer
   -- und steht in item_pins; die Spalte bleibt nur stehen, damit eine
@@ -128,16 +128,16 @@ CREATE TABLE IF NOT EXISTS items (
 -- braechte nichts.
 --
 -- WAS DIE VORHANDENEN SPALTEN BEI EINEM VIDEO BEDEUTEN -- die einzige Stelle,
--- an der steht, warum data je nach art etwas anderes ist:
+-- an der steht, warum data je nach kind etwas anderes ist:
 --
---   Spalte           bei art = 'bild'      bei art = 'video'
+--   Spalte           bei kind = 'bild'      bei kind = 'video'
 --   ---------------  --------------------  ----------------------------
 --   data             das Originalbild      die VIDEODATEI
 --   thumb            Kachel 400 px         STANDBILD 400 px
 --   medium           1600 px               STANDBILD 1600 px
 --   focus_x/focus_y  Ausschnitt der Kachel dasselbe, am Standbild
 --   zoom             wie eng der Ausschn. dasselbe, am Standbild
---   dauer            NULL                  Sekunden
+--   duration            NULL                  Sekunden
 --
 -- Das Standbild erzeugt der Browser des Hochladenden, nicht der Server: er
 -- oeffnet nie ein Video. Damit ist das Standbild AUCH NICHT UEBERPRUEFBAR --
@@ -152,8 +152,8 @@ CREATE TABLE IF NOT EXISTS photos (
   -- Kein CHECK auf die beiden erlaubten Werte, obwohl SQLite einen annaehme:
   -- die Menge stuende dann zweimal -- hier und dort, wo der Server sie prueft.
   -- Zwei Stellen fuer dieselbe Liste laufen auseinander.
-  art TEXT NOT NULL DEFAULT 'bild',   -- 'bild' | 'video'
-  dauer INTEGER,                      -- Sekunden, nur bei Video
+  kind TEXT NOT NULL DEFAULT 'bild',   -- 'bild' | 'video'
+  duration INTEGER,                      -- Sekunden, nur bei Video
   -- Fokuspunkt in Prozent. DAS ORIGINAL BLEIBT UNANGETASTET; geschnitten wird
   -- ausschliesslich die Ableitung thumb, und zwar seit 0.19.5 am Server.
   -- Bis 0.19.4 stand hier: „Schneidet nichts weg ... die beiden Werte
@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS photos (
   -- Reihenfolgen, und der Pruefstand haelt genau das fest (Stolperstein 273 --
   -- gefunden hat es die Zeile, die 0.16.0 dafuer hinterlassen hat, beim
   -- allerersten Lauf der Migrationsgruppe dieser Runde).
-  -- gesetzt_am an ratings steht aus demselben Grund am Ende seiner Tabelle.
+  -- set_at an ratings steht aus demselben Grund am Ende seiner Tabelle.
   --
   -- DIE VORGABE IST DER HEUTIGE ZUSTAND, wie bei focus_x/focus_y: jede
   -- vorhandene Zeile steht damit ohne Umschreiben richtig da.
@@ -252,13 +252,13 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   -- Meldung, sondern als abgebrochene Schreibung.
   -- REAL und nicht Hundertstel als INTEGER: eine Umrechnung an jeder
   -- Lesestelle vergisst irgendwann jemand. photos.focus_x geht denselben Weg.
-  gewicht REAL NOT NULL DEFAULT 1.0,
+  weight REAL NOT NULL DEFAULT 1.0,
   -- ZU WELCHEM KASTEN DIESES KRITERIUM GEHOERT -- 0.21.0. 'vorher' heisst
   -- Potenzial (die Einschaetzung vor dem Test), 'nachher' heisst Bewertung
   -- (das Urteil danach). Zwei Werte, und sonst keiner.
   -- DEUTSCH, weil der Sprachwaechter mitliest -- und weil die Werte in SELECTs
   -- stehen, die jemand liest.
-  -- KEIN CHECK an dieser Stelle, aus demselben Grund wie bei gewicht darueber:
+  -- KEIN CHECK an dieser Stelle, aus demselben Grund wie bei weight darueber:
   -- die Menge der Werte stuende sonst zweimal, hier und in PHASEN im Server,
   -- und die zweite meldete sich nicht als Absage mit Meldung, sondern als
   -- abgebrochene Schreibung. PHASEN steht genau einmal, in server.js.
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS ratings (
   -- seien eben erst vergeben worden. Die Glocke uebergeht Zeilen ohne Zeitpunkt.
   -- ALTER TABLE ADD COLUMN kann in SQLite ohnehin keinen nicht-konstanten
   -- Vorgabewert setzen; frisch angelegt und migriert sehen damit gleich aus.
-  gesetzt_am TEXT,
+  set_at TEXT,
   UNIQUE(item_id, criterion_id, user_id)
 );
 
@@ -433,16 +433,16 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
    hat hier nichts zu tun. Mit Salz je Zeile muesste eine Route VOR der
    Anmeldung bei jedem Versuch jede Zeile durchrechnen.
 
-   zweck IST DIE FESTSTELLUNG EINES VORGANGS -- welcher Knopf gedrueckt wurde.
-   Daran haengt kein Recht, kein Filter und kein Ablauf; der Text am
+   purpose IST DIE FESTSTELLUNG EINES VORGANGS -- welcher Knopf gedrueckt wurde.
+   Daran haengt kein Recht, kein Filter und kein Ablauf; der Text at
    Bildschirm leitet sich aus dem ZUSTAND ab (hat der Zugang schon ein
    Passwort), nicht aus dieser Spalte.
 
-   benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen: es ist die einzige
+   used_at BLEIBT STEHEN statt die Zeile zu loeschen: es ist die einzige
    Spur, dass eine Einladung angenommen wurde. raeumeTokensAuf() haelt die
    Tabelle klein.
 
-   created_at steht ausdruecklich da: aus ablauf minus sieben Tage
+   created_at steht ausdruecklich da: aus expires_at minus sieben Tage
    zurueckzurechnen waere richtig, bis die Frist wechselt -- und danach still
    falsch.
 
@@ -454,9 +454,9 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE TABLE IF NOT EXISTS tokens (
   hash TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  zweck TEXT NOT NULL,
-  ablauf TEXT NOT NULL,
-  benutzt_am TEXT,
+  purpose TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 -- Gefragt wird ueber den Hash (Primaerschluessel) ODER nach allen Token EINES
@@ -481,7 +481,7 @@ CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
    der Verlaufsliste und womoeglich im Referrer.
 
    DER LINK IN DER BESTAETIGUNGSMAIL HAT KEINE PASSWORTKRAFT: er setzt
-   bestaetigt_am, mehr nicht. Deshalb steht hier kein password_hash und keine
+   confirmed_at, mehr nicht. Deshalb steht hier kein password_hash und keine
    Rolle -- was es nicht gibt, kann kein Weg hereinlassen.
 
    username UND email SIND FREITEXT VON AUSSEN -- der einzige, der ueberhaupt
@@ -489,7 +489,7 @@ CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
    wie ein echter Zugang (pruefeName, mail.istAdresse), und von hier aus NIE
    ins Sicherheitsprotokoll.
 
-   bestaetigt_am NULL HEISST "noch nicht bestaetigt". Diese Zeilen erscheinen
+   confirmed_at NULL HEISST "noch nicht bestaetigt". Diese Zeilen erscheinen
    beim Admin nicht und verfallen nach ANFRAGE_STUNDEN; die bestaetigten
    warten, so lange es dauert. Ein zweites Feld fuer den Zustand waere eine
    zweite Wahrheit neben dem Zeitpunkt.
@@ -504,7 +504,7 @@ CREATE TABLE IF NOT EXISTS requests (
   hash TEXT NOT NULL UNIQUE,
   username TEXT NOT NULL,
   email TEXT NOT NULL,
-  bestaetigt_am TEXT,
+  confirmed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -516,19 +516,19 @@ CREATE TABLE IF NOT EXISTS requests (
    Zeilen an einem Zugang und damit zwei Wahrheiten darueber, welches
    Geheimnis gilt.
 
-   geheim LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und
+   secret LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und
    Token: ein Passwort wird GEPRUEFT, also genuegt sein Hash; ein
    TOTP-Geheimnis wird NACHGERECHNET, also braucht die Instanz den Wert selbst.
    DIE VERSCHLUESSELTE DATENBANK IST DIE EINZIGE SCHICHT DARUEBER
    (Projektstand, Abschnitt 3). Der JSON-Export traegt es nicht, die Sicherung
    ueber VACUUM INTO sehr wohl, eine Kontrollausgabe nie.
 
-   bestaetigt_am NULL HEISST "angefangen, noch nicht bestaetigt" -- erst ein
+   confirmed_at NULL HEISST "angefangen, noch nicht bestaetigt" -- erst ein
    gueltiger Code aus dem Telefon setzt den Zeitpunkt. SOLANGE ER LEER IST,
    VERLANGT DIE ANMELDUNG NICHTS, sonst sperrte ein abgebrochenes Einschalten
    den Zugang aus.
 
-   letzter_zaehler IST DIE GANZE BAUFORM GEGEN WIEDERVERWENDUNG: angenommen
+   last_counter IST DIE GANZE BAUFORM GEGEN WIEDERVERWENDUNG: angenommen
    wird nur ein Zeitschritt, der ECHT GROESSER ist als der zuletzt
    verbrauchte. Etwas schaerfer als "derselbe Code nicht zweimal" -- dafuer
    EINE Regel statt einer Liste, die jemand raeumen muesste. NULL heisst
@@ -541,9 +541,9 @@ CREATE TABLE IF NOT EXISTS requests (
    der Weg, an dem ein Admin einen FREMDEN zweiten Faktor abstreift. */
 CREATE TABLE IF NOT EXISTS two_factor (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  geheim TEXT NOT NULL,
-  bestaetigt_am TEXT,
-  letzter_zaehler INTEGER,
+  secret TEXT NOT NULL,
+  confirmed_at TEXT,
+  last_counter INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -557,7 +557,7 @@ CREATE TABLE IF NOT EXISTS two_factor (
    DER KLARTEXT STEHT IN KEINER SPALTE KEINER ZEILE: er entsteht einmal, wird
    einmal gezeigt und ist danach fort.
 
-   benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen -- nur so kann die
+   used_at BLEIBT STEHEN statt die Zeile zu loeschen -- nur so kann die
    Karte "noch 6 von 8" sagen.
 
    GERAEUMT WIRD NICHT NACH EINER FRIST, anders als bei Token und Anfragen:
@@ -569,7 +569,7 @@ CREATE TABLE IF NOT EXISTS two_factor (
 CREATE TABLE IF NOT EXISTS two_factor_codes (
   hash TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  benutzt_am TEXT,
+  used_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 -- Gefragt wird ueber den Hash (Primaerschluessel) ODER nach allen Codes EINES
@@ -595,22 +595,22 @@ CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id
    username, und eine Kopie hier waere die eine Stelle im Projekt, die den
    Grabstein rueckgaengig macht. Gespeichert werden Nummern.
 
-   wer UND ziel SIND DIE FESTSTELLUNG EINES VORGANGS -- wer den Knopf
+   actor UND target SIND DIE FESTSTELLUNG EINES VORGANGS -- wer den Knopf
    gedrueckt hat und an wem. Daran haengt kein Recht und kein Filter, und
    beide gehoeren deshalb ausdruecklich NICHT in ordneBestandZu(): dort
    stillschweigend den Eigentuemer einzusetzen machte aus einer Feststellung
    eine Falschaussage.
 
-   wer IS NULL HEISST "UEBER usertool.js AUF DEM WIRT" -- mit genau einer
-   Ausnahme, und die ist an der Spalte was zu erkennen: bei einer
+   actor IS NULL HEISST "UEBER usertool.js AUF DEM WIRT" -- mit genau einer
+   Ausnahme, und die ist an der Spalte event zu erkennen: bei einer
    gescheiterten Anmeldung gibt es keinen angemeldeten Benutzer.
 
-   BEI EINER GESCHEITERTEN ANMELDUNG STEHT DER GETIPPTE NAME NIRGENDS. ziel
+   BEI EINER GESCHEITERTEN ANMELDUNG STEHT DER GETIPPTE NAME NIRGENDS. target
    traegt die Nummer nur, wenn der Name einen vorhandenen Zugang traf --
    sonst NULL. Freitext von aussen kommt in diese Tabelle nicht hinein; sonst
    landete frueher oder spaeter ein ins falsche Feld getipptes Passwort darin.
 
-   merkmal TRAEGT AUSSCHLIESSLICH WERTE AUS EINER GESCHLOSSENEN LISTE im
+   detail TRAEGT AUSSCHLIESSLICH WERTE AUS EINER GESCHLOSSENEN LISTE im
    Quelltext (MERKMALE in auth.js). Damit ist "in keiner Zeile steht etwas,
    was dort nicht hingehoert" baulich wahr statt durchgesetzt.
 
@@ -618,15 +618,15 @@ CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id
    nicht. */
 CREATE TABLE IF NOT EXISTS security_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  am TEXT NOT NULL DEFAULT (datetime('now')),
-  was TEXT NOT NULL,
-  wer INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  ziel INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  merkmal TEXT
+  at TEXT NOT NULL DEFAULT (datetime('now')),
+  event TEXT NOT NULL,
+  actor INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  target INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  detail TEXT
 );
 -- Gefragt wird immer nach den JUENGSTEN Zeilen und geraeumt nach dem Alter --
--- beides ueber am. Wie bei idx_trash_at ist ein Index keine Migration.
-CREATE INDEX IF NOT EXISTS idx_log_at ON security_log(am);
+-- beides ueber at. Wie bei idx_trash_at ist ein Index keine Migration.
+CREATE INDEX IF NOT EXISTS idx_log_at ON security_log(at);
 
 -- Der Favorit: eine Aussage eines Benutzers ueber einen Eintrag, keine
 -- Eigenschaft des Eintrags -- deshalb eine eigene Tabelle. Es gibt nur Zeilen
@@ -668,7 +668,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
 -- Pruefstand entfernt sie von Hand aus einer bestehenden Instanz, startet
 -- einmal und sieht nach -- dieselbe Probe wie beim Index auf sessions.user_id.
 --
--- geloescht_von IST KEIN TRAEGER WIE items.user_id. Es ist die Feststellung
+-- deleted_by IST KEIN TRAEGER WIE items.user_id. Es ist die Feststellung
 -- eines VORGANGS, so wie created_at -- wer den Knopf gedrueckt hat. Daran
 -- haengt kein Recht und kein Filter. Die Spalte gehoert deshalb ausdruecklich
 -- NICHT in ordneBestandZu(): das Auffangnetz beantwortet, wem herrenloser
@@ -676,13 +676,13 @@ CREATE TABLE IF NOT EXISTS user_settings (
 -- aus einer Feststellung eine Falschaussage. Ein entfernter Zugang erscheint
 -- wie ueberall als "Gelöschter Benutzer <nr>".
 --
--- titel STEHT ABSICHTLICH ZWEIMAL -- hier und im Paket. Er steht hier, damit
+-- title STEHT ABSICHTLICH ZWEIMAL -- hier und im Paket. Er steht hier, damit
 -- die Liste lesbar ist, ohne jede Zeile zu entpacken; bei zwanzig Zeilen waere
 -- das zwanzigmal JSON.parse ueber ein Paket. Eine zweite Wahrheit kann daraus
--- nicht werden: das Wiederherstellen liest ausschliesslich inhalt und diese
+-- nicht werden: das Wiederherstellen liest ausschliesslich content und diese
 -- Spalte nie.
 --
--- inhalt IST EIN VOLLSTAENDIGER EXPORTUMSCHLAG MIT EINEM EINTRAG -- bis auf
+-- content IST EIN VOLLSTAENDIGER EXPORTUMSCHLAG MIT EINEM EINTRAG -- bis auf
 -- die Bytes. Fotos, Videos, Dateien und Kommentarbilder tragen statt Base64
 -- eine NUMMER und liegen in trash_bytes daneben. Der Grund ist gemessen:
 -- zwanzig Videos zu je 20 MB sind als Base64 533 MB in EINEM String, und Node
@@ -690,14 +690,14 @@ CREATE TABLE IF NOT EXISTS user_settings (
 -- davor. Deshalb TEXT und eine zweite Tabelle statt eines gezippten BLOB.
 CREATE TABLE IF NOT EXISTS trash (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  geloescht_am TEXT NOT NULL DEFAULT (datetime('now')),
-  geloescht_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  titel TEXT NOT NULL,
-  inhalt TEXT NOT NULL
+  deleted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_trash_at ON trash(geloescht_am);
+CREATE INDEX IF NOT EXISTS idx_trash_at ON trash(deleted_at);
 
--- Eine Zeile je Blob. Die Nummer nr ist die, die im Paket steht; UNIQUE haelt
+-- Eine Zeile je Blob. Die Nummer part ist die, die im Paket steht; UNIQUE haelt
 -- fest, dass zu einer Nummer genau ein Paket Bytes gehoert.
 -- ON DELETE CASCADE: eine Papierkorbzeile ohne ihre Bytes waere ein Paket, das
 -- sich nicht mehr auspacken laesst.
@@ -705,13 +705,13 @@ CREATE INDEX IF NOT EXISTS idx_trash_at ON trash(geloescht_am);
 -- nicht stueckweise gelesen, sondern ganz in den Arbeitsspeicher. Je Zeile
 -- sind das hoechstens 50 MB (die Grenze am Anhang). Und wenn Teil II des
 -- Videopapiers Dateien bis 2 GB bringt, teilt sich eine Datei hier auf
--- mehrere nr auf -- SQLite traegt in einer Zelle rund 950 MB.
+-- mehrere part auf -- SQLite traegt in einer Zelle rund 950 MB.
 CREATE TABLE IF NOT EXISTS trash_bytes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  papierkorb_id INTEGER NOT NULL REFERENCES trash(id) ON DELETE CASCADE,
-  nr INTEGER NOT NULL,
-  daten BLOB NOT NULL,
-  UNIQUE(papierkorb_id, nr)
+  trash_id INTEGER NOT NULL REFERENCES trash(id) ON DELETE CASCADE,
+  part INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  UNIQUE(trash_id, part)
 );
 `;
 
@@ -792,23 +792,77 @@ const WOERTERBUCH = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'di
    denselben Index ein zweites Mal unter dem neuen an. Zwei Indizes ueber
    dieselben Spalten sind kein Fehler, aber doppelte Arbeit bei jedem
    Schreiben. Sie fallen deshalb hier weg; die DDL baut sie neu auf. */
-const ALTE_INDIZES = ['idx_papierkorb_am', 'idx_protokoll_am', 'idx_zweifaktor_codes_user'];
+const ALTE_INDIZES = Object.keys(WOERTERBUCH.indexes);
 
 function migration0241Tabellen() {
   const da = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
   const umzug = Object.entries(WOERTERBUCH.tables).filter(([alt, neu]) => da.has(alt) && !da.has(neu));
-  if (!umzug.length) return 0;
+  /* DIE INDIZES FALLEN IN JEDEM FALL, auch wenn keine Tabelle mehr umzuziehen
+     ist: `idx_photos_art` und `idx_photos_kachel` haengen an Tabellen, die
+     ihren Namen behalten -- nur die Indizes selbst heissen deutsch. */
+  const alteIndizes = db.prepare("SELECT name FROM sqlite_master WHERE type = 'index'")
+    .all().map(z => z.name).filter(n => ALTE_INDIZES.includes(n));
+  if (!umzug.length && !alteIndizes.length) return 0;
   db.transaction(() => {
-    for (const alt of ALTE_INDIZES) db.exec(`DROP INDEX IF EXISTS ${alt}`);
+    for (const alt of alteIndizes) db.exec(`DROP INDEX IF EXISTS ${alt}`);
     for (const [alt, neu] of umzug) db.exec(`ALTER TABLE ${alt} RENAME TO ${neu}`);
   })();
+  if (!umzug.length) {
+    console.log(`[Kriterion] ${alteIndizes.length} ${alteIndizes.length === 1 ? 'Index' : 'Indizes'} ` +
+      `umbenannt (Migration auf 0.24.1): ${alteIndizes.join(', ')}.`);
+    return alteIndizes.length;
+  }
   console.log(`[Kriterion] ${umzug.length} ${umzug.length === 1 ? 'Tabelle' : 'Tabellen'} umbenannt ` +
     `(Migration auf 0.24.1): ${umzug.map(([a, b]) => `${a} → ${b}`).join(', ')}.`);
   return umzug.length;
 }
 migration0241Tabellen();
-// ENDE MIGRATION 0.24.1 (Tabellen)
+
+/* DIE SPALTEN, UNMITTELBAR HINTER DEN TABELLEN UND VOR ALLEM ANDEREN.
+   ZWEI GRUENDE FUER GENAU DIESE STELLE:
+
+   ERSTENS DIE DDL: `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
+   Tabelle nicht an -- eine frische Instanz bekommt die neuen Namen aus dem
+   Schema, eine vorhandene aus diesem Block. Beide sehen danach gleich aus.
+
+   ZWEITENS DIE AELTEREN MIGRATIONSBLOECKE, und das ist der schaerfere Grund:
+   `migration0160()` fragt, ob `ratings` die Spalte `set_at` traegt, und legt
+   sie sonst an. Liefe sie VOR dieser Umbenennung, saehe sie in einem Bestand
+   aus 0.16.0 nur das alte `gesetzt_am`, legte `set_at` ein ZWEITES Mal daneben
+   -- und diese Umbenennung scheiterte danach an einem Namen, den es schon
+   gibt. Dieselbe Falle steht an `zoom`, `phase`, `kind` und `duration`.
+
+   `ALTER TABLE … RENAME COLUMN` kann SQLite seit 3.25 und zieht dabei jeden
+   Index, jeden Fremdschluessel und jede Sicht mit. */
+function migration0241Spalten() {
+  const tabellen = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  const umzug = [];
+  for (const [ort, neu] of Object.entries(WOERTERBUCH.columns)) {
+    const [tabelle, alt] = ort.split('.');
+    if (!tabellen.has(tabelle)) continue;
+    const spalten = db.prepare(`PRAGMA table_info(${tabelle})`).all().map(c => c.name);
+    if (spalten.includes(alt) && !spalten.includes(neu)) umzug.push([tabelle, alt, neu]);
+  }
+  if (!umzug.length) return 0;
+  db.transaction(() => {
+    for (const [tabelle, alt, neu] of umzug)
+      db.exec(`ALTER TABLE ${tabelle} RENAME COLUMN ${alt} TO ${neu}`);
+  })();
+  console.log(`[Kriterion] ${umzug.length} ${umzug.length === 1 ? 'Spalte' : 'Spalten'} umbenannt ` +
+    `(Migration auf 0.24.1): ${umzug.map(([t, a, b]) => `${t}.${a} → ${b}`).join(', ')}.`);
+  return umzug.length;
+}
+migration0241Spalten();
+
+/* DIE PAARE BLEIBEN ERREICHBAR, UND ZWAR GENAU DIESE. Eine Exportdatei ist
+   ein Abzug des Bestands: eine Datei von vor 0.24.1 traegt an ihren Fotos
+   `art` und `dauer`, weil die Spalten so hiessen. Der Import in server.js
+   uebersetzt sie beim Einlesen -- und nimmt die Paare von HIER, nicht aus
+   einer zweiten Liste. Zwei Listen laufen auseinander, sobald eine wandert. */
+const COLUMNS_0241 = WOERTERBUCH.columns;
+// ENDE MIGRATION 0.24.1 (Tabellen und Spalten)
 
 db.exec(SCHEMA);
 
@@ -884,7 +938,7 @@ migration0831();
 // ENDE MIGRATION 0.8.31
 
 // MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
-// Die Spalte gewicht steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
+// Die Spalte weight steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
 // eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.0
 // bis 0.8.31 traegt rating_criteria ohne diese Spalte.
 // DIE BESTANDSZEILEN BEKOMMEN 1,0, und zwar aus dem DEFAULT der Spalte, nicht
@@ -899,10 +953,10 @@ migration0831();
 // weg, die Spalte in der DDL bleibt.
 function migration0840() {
   const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
-  if (spalten.includes('gewicht')) return 0;
-  db.exec('ALTER TABLE rating_criteria ADD COLUMN gewicht REAL NOT NULL DEFAULT 1.0');
+  if (spalten.includes('weight')) return 0;
+  db.exec('ALTER TABLE rating_criteria ADD COLUMN weight REAL NOT NULL DEFAULT 1.0');
   const n = db.prepare('SELECT COUNT(*) AS n FROM rating_criteria').get().n;
-  console.log(`[Kriterion] rating_criteria um gewicht ergaenzt (Migration auf 0.8.40); ` +
+  console.log(`[Kriterion] rating_criteria um weight ergaenzt (Migration auf 0.8.40); ` +
     `${n} Kriterien stehen auf dem Vorgabegewicht 1,0.`);
   return 1;
 }
@@ -910,16 +964,16 @@ migration0840();
 // ENDE MIGRATION 0.8.40
 
 // MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
-// Die Spalten art und dauer stehen in der DDL, aber CREATE TABLE IF NOT EXISTS
+// Die Spalten kind und duration stehen in der DDL, aber CREATE TABLE IF NOT EXISTS
 // ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus
 // 0.8.0 bis 0.8.40 traegt photos ohne diese Spalten.
 // DIE BESTANDSZEILEN BEKOMMEN 'bild', und zwar aus dem DEFAULT der Spalte,
 // nicht aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit
-// NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. dauer bleibt dabei
+// NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. duration bleibt dabei
 // NULL, und das ist richtig -- ein Foto hat keine Dauer.
 // JEDE SPALTE WIRD EINZELN GEFRAGT, nicht der Block als Ganzes. Zwei
 // ALTER TABLE sind zwei Anweisungen: scheitert die zweite, bleibt die erste
-// stehen. Ein Block, der beim Vorhandensein von art zurueckkehrt, liesse dauer
+// stehen. Ein Block, der beim Vorhandensein von kind zurueckkehrt, liesse duration
 // dann fuer immer fehlen. So heilt der naechste Start den zerrissenen Stand.
 // KEINE FRAGE NACH EINEM VERFASSER, wie schon bei 0.8.40: ein Foto gehoert
 // seinem Eintrag, nicht einem Verfasser. Das Auffangnetz weiter unten geht
@@ -929,13 +983,13 @@ migration0840();
 function migration0850() {
   const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
   const fehlend = [];
-  if (!spalten.includes('art')) {
-    db.exec("ALTER TABLE photos ADD COLUMN art TEXT NOT NULL DEFAULT 'bild'");
-    fehlend.push('art');
+  if (!spalten.includes('kind')) {
+    db.exec("ALTER TABLE photos ADD COLUMN kind TEXT NOT NULL DEFAULT 'bild'");
+    fehlend.push('kind');
   }
-  if (!spalten.includes('dauer')) {
-    db.exec('ALTER TABLE photos ADD COLUMN dauer INTEGER');
-    fehlend.push('dauer');
+  if (!spalten.includes('duration')) {
+    db.exec('ALTER TABLE photos ADD COLUMN duration INTEGER');
+    fehlend.push('duration');
   }
   if (!fehlend.length) return 0;
   const n = db.prepare('SELECT COUNT(*) AS n FROM photos').get().n;
@@ -948,7 +1002,7 @@ migration0850();
 
 
 // MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
-// Die Spalten rejected_at, rejected_grund und rejected_von stehen in der DDL,
+// Die Spalten rejected_at, rejected_reason und rejected_by stehen in der DDL,
 // aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
 // (Stolperstein 13). Ein Bestand aus 0.8.0 bis 0.13.2 traegt items ohne sie.
 // KEIN NACHGESCHOBENES UPDATE, und das ist entschieden und nicht vergessen:
@@ -964,7 +1018,7 @@ migration0850();
 // einem Abbruch die erste Spalte, und die uebrigen fehlen. Die Transaktion
 // verhindert den Riss, die Einzelabfrage ueberlebt ihn -- nur das Zweite hilft
 // gegen einen Riss, der in einer frueheren Version entstanden ist.
-// rejected_von TRAEGT SEINEN FREMDSCHLUESSEL AUCH ALS NACHRUESTUNG: SQLite
+// rejected_by TRAEGT SEINEN FREMDSCHLUESSEL AUCH ALS NACHRUESTUNG: SQLite
 // schreibt die Spaltendefinition samt REFERENCES in den Schematext, und
 // ON DELETE SET NULL greift danach wie in der DDL -- nachgemessen, nicht
 // abgeschrieben. Was NICHT geht, ist eine Vorgabe ungleich NULL daneben
@@ -975,9 +1029,9 @@ function migration0140() {
   const spalten = db.prepare('PRAGMA table_info(items)').all().map(c => c.name);
   const fehlend = [];
   if (!spalten.includes('rejected_at')) fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);
-  if (!spalten.includes('rejected_grund')) fehlend.push(['rejected_grund', 'ALTER TABLE items ADD COLUMN rejected_grund TEXT']);
-  if (!spalten.includes('rejected_von')) fehlend.push(['rejected_von',
-    'ALTER TABLE items ADD COLUMN rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL']);
+  if (!spalten.includes('rejected_reason')) fehlend.push(['rejected_reason', 'ALTER TABLE items ADD COLUMN rejected_reason TEXT']);
+  if (!spalten.includes('rejected_by')) fehlend.push(['rejected_by',
+    'ALTER TABLE items ADD COLUMN rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL']);
   if (!fehlend.length) return 0;
   db.transaction(() => { for (const [, sql] of fehlend) db.exec(sql); })();
   // "a, b und c" statt "a und b und c" -- bei drei Namen liest sich das
@@ -1008,10 +1062,10 @@ migration0140();
    PRAGMA table_info, nicht ein Merker. */
 function migration0160() {
   const spalten = db.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
-  if (spalten.includes('gesetzt_am')) return 0;
-  db.exec('ALTER TABLE ratings ADD COLUMN gesetzt_am TEXT');
+  if (spalten.includes('set_at')) return 0;
+  db.exec('ALTER TABLE ratings ADD COLUMN set_at TEXT');
   const n = db.prepare('SELECT COUNT(*) AS n FROM ratings WHERE value > 0').get().n;
-  console.log(`[Kriterion] ratings um gesetzt_am ergaenzt (Migration auf 0.16.0); ` +
+  console.log(`[Kriterion] ratings um set_at ergaenzt (Migration auf 0.16.0); ` +
     `${n} vorhandene ${n === 1 ? 'Bewertung steht' : 'Bewertungen stehen'} ohne Zeitpunkt da ` +
     `und bleiben fuer die Glocke unsichtbar.`);
   return 1;
@@ -1023,7 +1077,7 @@ migration0160();
 /* DER AUSSCHNITT BEKOMMT EIN DRITTES MASS. Bis 0.18.1 trug ein Foto zwei
    Prozentwerte -- wohin das quadratische Fenster rutscht --, aber keinen
    dafuer, wie eng es sitzt. `zoom` ist dieser dritte Wert.
-   MIT VORGABE, ANDERS ALS gesetzt_am AUS 0.16.0, und der Unterschied ist
+   MIT VORGABE, ANDERS ALS set_at AUS 0.16.0, und der Unterschied ist
    keine Geschmacksfrage: dort waere jeder nachgetragene Zeitpunkt eine
    ERFINDUNG gewesen (die Instanz weiss nicht, wann eine alte Bewertung
    entstand). Hier weiss sie es: jedes vorhandene Foto stand bisher auf
@@ -1038,7 +1092,7 @@ function migration0190() {
   const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
   if (spalten.includes('zoom')) return 0;
   db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');
-  const n = db.prepare("SELECT COUNT(*) AS n FROM photos WHERE art != 'video'").get().n;
+  const n = db.prepare("SELECT COUNT(*) AS n FROM photos WHERE kind != 'video'").get().n;
   console.log(`[Kriterion] photos um zoom ergaenzt (Migration auf 0.19.0); ` +
     `${n} vorhandene ${n === 1 ? 'Foto steht' : 'Fotos stehen'} auf dem weitesten ` +
     `Ausschnitt und sehen damit aus wie bisher.`);
@@ -1055,12 +1109,12 @@ migration0190();
    DIE BESTANDSZEILEN BEKOMMEN 'nachher', und zwar aus dem DEFAULT der Spalte,
    nicht aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit
    NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. Dieselbe Regel wie
-   bei gewicht in Migration 0.8.40, und derselbe Grund: jeder andere Wert
+   bei weight in Migration 0.8.40, und derselbe Grund: jeder andere Wert
    aenderte beim Einspielen still saemtliche Gesamtschnitte. Was heute
    Kriterium ist, ist Bewertungskriterium. Punkt.
    DIE VORGABE TRAEGT DAMIT KEINE BEHAUPTUNG, SONDERN DEN BISHERIGEN ZUSTAND
    -- dieselbe Ueberlegung wie bei zoom in 0.19.0 und ausdruecklich nicht die
-   von gesetzt_am in 0.16.0, wo jeder nachgetragene Wert eine Erfindung
+   von set_at in 0.16.0, wo jeder nachgetragene Wert eine Erfindung
    gewesen waere.
    'nachher' IST EINE KONSTANTE Vorgabe, und nur solche nimmt ALTER TABLE ADD
    COLUMN in SQLite an (Stolperstein 105).
@@ -1087,7 +1141,7 @@ migration0210();
    EIN INDEX AUF EINER NACHGERUESTETEN SPALTE GEHOERT HINTER IHRE MIGRATION
    (Stolperstein 281). `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
    Tabelle nicht an (Stolperstein 13): eine Datenbank aus 0.8.40 traegt
-   `photos.art` erst, nachdem migration0850() gelaufen ist, und `photos.zoom`
+   `photos.kind` erst, nachdem migration0850() gelaufen ist, und `photos.zoom`
    erst nach migration0190(). Ein CREATE INDEX weiter oben scheitert dort mit
    „no such column" -- beim OEFFNEN der Datei, also bevor der Server ueberhaupt
    startet. Kein Fehlerbild, keine halbe Funktion: die Anwendung kommt nicht
@@ -1098,7 +1152,7 @@ migration0210();
    und ein Index, der zwei nachgeruestete Spalten nennt, haette gar keinen
    richtigen Platz. **Hinter der letzten Migration ist jede Spalte da.**
    *Gefunden hat das der Pruefstand: der erste Anlauf stellte den einen Index in
-   die DDL (scheiterte an `art` aus 0.8.40), der zweite hinter migration0850()
+   die DDL (scheiterte an `kind` aus 0.8.40), der zweite hinter migration0850()
    -- und scheiterte am `zoom` aus 0.19.0.*
 
    ZU 1.0 FALLEN DIE MIGRATIONSBLOECKE WEG, die Spalten in der DDL bleiben --
@@ -1108,7 +1162,7 @@ migration0210();
    KEINE VON BEIDEN IST EINE DATENBANKSTUFE: kein Migrationsblock, keine
    Spalte, keine neue Formatnummer. */
 
-/* WOZU DER ERSTE: `art` steht in der Spaltenreihenfolge hinter drei Blobs
+/* WOZU DER ERSTE: `kind` steht in der Spaltenreihenfolge hinter drei Blobs
    (data, thumb, medium). Wer sie aus dem SATZ liest, muss ihn bis dorthin
    durchlaufen -- und das heisst bei einem 512-kB-Bild: die ganze Kette der
    Overflow-Seiten lesen und entschluesseln. Gemessen an einer SQLCipher-Datei
@@ -1116,22 +1170,22 @@ migration0210();
 
      COUNT(*)                                        0,0 ms
      mime_type gruppiert  (Spalte 2, VOR den Blobs)  8,7 ms
-     art gruppiert        (Spalte 6, HINTER ihnen)   1338,8 ms
+     kind gruppiert       (Spalte 6, HINTER ihnen)   1338,8 ms
      SUM(length(data))    (Spalte 3)                 7,2 ms
-     SUM(length(data)) mit WHERE art != 'video'      1334,1 ms
-     art gruppiert, MIT diesem Index                 0,1 ms
+     SUM(length(data)) mit WHERE kind != 'video'      1334,1 ms
+     kind gruppiert, MIT diesem Index                0,1 ms
 
    DER UNTERSCHIED IST NICHT DIE MENGE, SONDERN DIE LAGE DER SPALTE
-   (Stolperstein 279). EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE art !=
-   'video'` schlaegt den Index aus, `WHERE art IS ?` nutzt ihn. Die Abfragen in
+   (Stolperstein 279). EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE kind !=
+   'video'` schlaegt den Index aus, `WHERE kind IS ?` nutzt ihn. Die Abfragen in
    /api/stats holen deshalb erst die vorhandenen Arten und fragen dann je Art.
 
    Beim ersten Start nach dem Einspielen baut SQLite ihn einmal auf --
    gemessen 1,4 s bei 312 MB, danach steht er. */
-db.exec('CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');
 
 /* WOZU DER ZWEITE: `/api/items` holt je Eintrag die Fotoliste; jede dieser
-   Zeilen traegt focus_x, focus_y, zoom, sort_order, created_at, art und dauer
+   Zeilen traegt focus_x, focus_y, zoom, sort_order, created_at, kind und duration
    -- SIEBEN Spalten, die hinter data, thumb und medium stehen. Der Index
    `idx_photos_item` deckt davon nur `sort_order` ab; alles andere kaeme aus
    dem Satz.
@@ -1160,8 +1214,8 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art)');
    WER IN DER UEBERSICHT EINE SPALTE ERGAENZT, ergaenzt sie AUCH HIER. Die
    Abfrage fuehrt ihre Liste als PHOTO_SPALTEN an einer Stelle, und eine
    Pruefung haelt beide gegeneinander. */
-db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_kachel
-           ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, art, dauer)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile
+           ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, kind, duration)`);
 
 // --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
@@ -1257,6 +1311,7 @@ renumberCriteria();
 // Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
+                   COLUMNS_0241,
                    changeKey, verfahren,
                    renumberCriteria, assignInventory, eigentuemerId,
                    // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0

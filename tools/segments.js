@@ -116,6 +116,24 @@ function leseAusdruck(src, i, tiefe) {
     }
     if (c === '/' && src[i + 1] === '/') { while (i < src.length && src[i] !== '\n') i++; continue; }
     if (c === '/' && src[i + 1] === '*') { i += 2; while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++; i += 2; continue; }
+    /* AUCH IN EINEM AUSDRUCK STEHT EIN REGULAERER AUSDRUCK. Ohne diese Zeile
+       las `replace(/"/g, '')` das Anfuehrungszeichen IM Muster als Anfang
+       einer Zeichenkette -- und von da an lief die ganze Datei um eine Art
+       verschoben weiter: Code galt als Text. Der Umbenenner fasste ihn
+       daraufhin nicht mehr an (er fasst nur Code an), und ein Werkzeug, das
+       in Texten sucht, fasste ihn doppelt an. Beides ist beim Umbenennen der
+       Spalten aufgefallen. */
+    if (c === '/' && !wertDavor(src.slice(anfang, i))) {
+      let j = i + 1, klasse = false, ok = false;
+      while (j < src.length && src[j] !== '\n') {
+        if (src[j] === '\\') { j += 2; continue; }
+        if (src[j] === '[') klasse = true;
+        else if (src[j] === ']') klasse = false;
+        else if (src[j] === '/' && !klasse) { ok = true; j++; break; }
+        j++;
+      }
+      if (ok) { while (j < src.length && /[a-z]/.test(src[j])) j++; i = j; continue; }
+    }
     i++;
   }
   const stueck = src.slice(anfang, i);

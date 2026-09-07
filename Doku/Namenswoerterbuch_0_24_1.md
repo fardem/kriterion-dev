@@ -24,196 +24,197 @@ links vom Punkt steht, wird rechts davon nicht wiederholt.
 
 ## 1. Die Wörter — nach der Sache, nicht Wort für Wort
 
-**549 Paare.** Sie tragen die Sache und nicht die Grammatik: wer
+**550 Paare.** Sie tragen die Sache und nicht die Grammatik: wer
 `zeichneZugaenge` liest, findet `zeichne → draw` und `zugaenge → users` und
 schreibt `drawUsers`. *`items` in der Datenbank und in `/api/items` heißt
 schon so und bleibt — der Bestand ist älter als dieses Blatt.*
 
 | deutsch | englisch | deutsch | englisch | deutsch | englisch |
 |---|---|---|---|---|---|
-| `ab` | `from` | `gleich` | `equal` | `schalte` | `toggle` |
-| `abbruch` | `cancel` | `gleiche` | `same` | `schalter` | `toggle` |
-| `abgelehnt` | `rejected` | `glocke` | `bell` | `schicken` | `send` |
-| `abgeleitet` | `derived` | `glocken` | `bell` | `schiebe` | `shift` |
-| `ablage` | `store` | `glockentafel` | `bellPanel` | `schieber` | `slider` |
-| `ablauf` | `expires` | `grabstein` | `tombstone` | `schleier` | `scrim` |
-| `ablehnung` | `rejection` | `grabsteine` | `tombstones` | `schliessen` | `close` |
-| `absage` | `denial` | `grabsteinliste` | `tombstoneList` | `schluessel` | `key` |
-| `absatz` | `paragraph` | `grenze` | `limit` | `schmal` | `narrow` |
-| `abschnitt` | `section` | `griff` | `handle` | `schnitt` | `average` |
-| `abschnitte` | `sections` | `griffbereit` | `gripReady` | `schnitte` | `averages` |
-| `absender` | `sender` | `groesse` | `size` | `schreib` | `write` |
-| `abspieler` | `player` | `gross` | `big` | `schreibe` | `write` |
-| `abstand` | `gap` | `grund` | `reason` | `schrift` | `font` |
-| `abzeichen` | `badge` | `gruppe` | `group` | `schritt` | `step` |
-| `achse` | `axis` | `gruppen` | `groups` | `sekunde` | `second` |
-| `achsen` | `axis` | `haken` | `check` | `selbst` | `self` |
-| `adresse` | `address` | `halt` | `stop` | `sende` | `send` |
-| `aehnlich` | `similar` | `haltezeit` | `hold` | `setze` | `set` |
-| `aktion` | `action` | `handelnder` | `actor` | `sicherheitsprotokoll` | `securityLog` |
-| `aktiv` | `active` | `hashe` | `hash` | `sicherung` | `backup` |
-| `alle` | `all` | `hat` | `has` | `sicht` | `view` |
-| `als` | `as` | `hebe` | `raise` | `sichtbar` | `visible` |
-| `alt` | `old` | `hell` | `light` | `sichtbare` | `visible` |
-| `anbieter` | `provider` | `hervor` | `highlight` | `sitzung` | `session` |
-| `andere` | `other` | `hilfe` | `help` | `sitzungen` | `sessions` |
-| `anfrage` | `request` | `hinweis` | `hint` | `sitzungs` | `session` |
-| `anfragen` | `requests` | `hochgeladen` | `uploaded` | `sortiere` | `sort` |
-| `angelegt` | `created` | `hole` | `get` | `sortierung` | `sort` |
-| `angemeldet` | `loggedIn` | `inhalt` | `content` | `spaeter` | `later` |
-| `angepinnt` | `pinned` | `innerer` | `inner` | `spalte` | `column` |
-| `angestossen` | `triggered` | `ins` | `into` | `spalten` | `columns` |
-| `anhang` | `attachment` | `instanz` | `instance` | `speichere` | `save` |
-| `anlege` | `create` | `ist` | `is` | `sperren` | `lock` |
-| `anlegen` | `create` | `jahr` | `year` | `spiel` | `play` |
-| `anmelde` | `login` | `jahre` | `years` | `spielmarke` | `playBadge` |
-| `anmeldung` | `login` | `jahres` | `year` | `sprach` | `language` |
-| `anordnung` | `layout` | `je` | `per` | `sprache` | `language` |
-| `ansicht` | `view` | `jetzt` | `now` | `sprachen` | `languages` |
-| `ansichten` | `views` | `kachel` | `tile` | `springe` | `jump` |
-| `anteil` | `share` | `kaesten` | `boxes` | `staerke` | `strokeWidth` |
-| `antwort` | `response` | `kann` | `can` | `stand` | `status` |
-| `anwenden` | `apply` | `kante` | `edge` | `standard` | `default` |
-| `anwendung` | `app` | `karte` | `card` | `standbild` | `stillFrame` |
-| `anzahl` | `count` | `karten` | `cards` | `stelle` | `place` |
-| `anzeige` | `display` | `kasten` | `box` | `stellen` | `places` |
-| `art` | `kind` | `kategorie` | `category` | `stern` | `star` |
-| `arten` | `kinds` | `kategorien` | `categories` | `sterne` | `stars` |
-| `auch` | `also` | `kennung` | `id` | `stift` | `pen` |
-| `auf` | `on` | `kennzahlen` | `stats` | `stimme` | `vote` |
-| `aufgabe` | `task` | `kern` | `core` | `stimmen` | `match` |
-| `aufgaben` | `tasks` | `kinder` | `children` | `stimmliste` | `voteList` |
-| `aufraeum` | `cleanup` | `kiste` | `box` | `stimmt` | `matches` |
-| `aufraeumen` | `cleanup` | `klammern` | `brackets` | `stimmzeile` | `voteRow` |
-| `aus` | `out` | `klasse` | `cls` | `streifen` | `strip` |
-| `ausfuehren` | `run` | `klassen` | `classes` | `stueck` | `piece` |
-| `ausgewaehlt` | `selected` | `klein` | `lower` | `stuecke` | `pieces` |
-| `aussage` | `note` | `klick` | `clickable` | `stufe` | `level` |
-| `ausschnitt` | `crop` | `knopf` | `button` | `stufen` | `levels` |
-| `ausschnittrahmen` | `cropFrame` | `knoten` | `node` | `such` | `search` |
-| `austausch` | `exchange` | `kodiere` | `encode` | `suchanbieter` | `searchProvider` |
-| `auswahl` | `selection` | `koerper` | `body` | `suche` | `search` |
-| `ausweis` | `ticket` | `kommentar` | `comment` | `suchknopf` | `searchBtn` |
-| `baue` | `build` | `kommentartext` | `commentText` | `suchname` | `searchName` |
-| `bedienung` | `tools` | `kopf` | `head` | `suchnamen` | `searchNames` |
-| `beende` | `end` | `kopfzahlen` | `headCounts` | `sucht` | `searching` |
-| `befehl` | `command` | `kopfzeile` | `masthead` | `suchvorlage` | `searchTemplate` |
-| `beginne` | `begin` | `kopiere` | `copy` | `summe` | `sum` |
-| `begrenze` | `limit` | `kreuz` | `x` | `tafel` | `panel` |
-| `begriff` | `term` | `kriterien` | `criteria` | `tage` | `days` |
-| `behalten` | `keep` | `kriterium` | `criterion` | `taste` | `key` |
-| `beitrag` | `post` | `kuerze` | `trim` | `teil` | `part` |
-| `benutzer` | `user` | `lade` | `load` | `teile` | `parts` |
-| `benutzt` | `used` | `laenge` | `length` | `teiler` | `divisor` |
-| `bereich` | `area` | `laeuft` | `running` | `teilplan` | `partPlan` |
-| `bereit` | `ready` | `lage` | `state` | `text` | `text` |
-| `bericht` | `report` | `lauf` | `run` | `texte` | `texts` |
-| `beschnitten` | `trimmed` | `leer` | `empty` | `thema` | `theme` |
-| `beschreibung` | `description` | `leerlauf` | `idle` | `tipp` | `tap` |
-| `bestaetigt` | `confirmed` | `lege` | `put` | `titel` | `title` |
-| `bestaetigung` | `confirm` | `leiste` | `bar` | `toleranz` | `tolerance` |
-| `bestaetigungs` | `confirm` | `lese` | `read` | `treffer` | `hit` |
-| `bestand` | `inventory` | `letzte` | `last` | `trenner` | `divider` |
-| `bestands` | `inventory` | `letzter` | `last` | `trichter` | `funnel` |
-| `bestandslaeufe` | `batchRuns` | `letztes` | `last` | `typ` | `type` |
-| `bestandslauf` | `batchRun` | `link` | `link` | `typen` | `types` |
-| `betrachter` | `viewer` | `linkende` | `linkEnd` | `ueber` | `over` |
-| `bewertung` | `rating` | `linkzeilen` | `linkRows` | `ueberfahrt` | `hover` |
-| `bild` | `image` | `liste` | `list` | `uebergabe` | `handover` |
-| `bildablage` | `imageStore` | `loesche` | `delete` | `uebernimm` | `take` |
-| `bilder` | `images` | `loeschen` | `remove` | `uhr` | `clock` |
-| `bildformate` | `imageFormats` | `loese` | `resolve` | `umschalten` | `flip` |
-| `blaetterpfeile` | `pageArrows` | `luecke` | `gap` | `umschlag` | `envelope` |
-| `block` | `block` | `magie` | `magic` | `umstellungs` | `switch` |
-| `bloecke` | `blocks` | `mail` | `mail` | `umwandeln` | `convert` |
-| `breite` | `width` | `mailtest` | `mailTest` | `unten` | `bottom` |
-| `bremse` | `throttle` | `mailversand` | `mailDelivery` | `verbrauche` | `consume` |
-| `brief` | `mail` | `marke` | `mark` | `verfahren` | `method` |
-| `buehne` | `stage` | `marken` | `marks` | `verfasser` | `author` |
-| `codeliste` | `codes` | `maskieren` | `mask` | `verfolge` | `follow` |
-| `codes` | `codes` | `masse` | `size` | `vergleichsleiste` | `compareBar` |
-| `codestand` | `count` | `mehrere` | `multiple` | `versand` | `delivery` |
-| `daempfung` | `dimmed` | `mehrzahl` | `plural` | `versende` | `send` |
-| `daneben` | `outside` | `meine` | `my` | `versender` | `sender` |
-| `darf` | `may` | `meins` | `mine` | `verstecke` | `hide` |
-| `darstellung` | `appearance` | `meldung` | `message` | `verwaltung` | `manage` |
-| `datei` | `file` | `menue` | `menu` | `verwaltungs` | `manage` |
-| `dateien` | `files` | `merke` | `remember` | `verweigert` | `denied` |
-| `daten` | `data` | `merker` | `key` | `verzeichnis` | `directory` |
-| `datenbank` | `database` | `merkmal` | `detail` | `verzoegerung` | `delay` |
-| `dauer` | `duration` | `minuten` | `minutes` | `video` | `video` |
-| `davor` | `before` | `mit` | `including` | `videos` | `videos` |
-| `deckel` | `cap` | `mitte` | `center` | `vokabular` | `vocabulary` |
-| `dok` | `doc` | `modus` | `mode` | `vollbild` | `fullscreen` |
-| `doppeltipp` | `doubleTap` | `moeglich` | `possible` | `volltext` | `fulltext` |
-| `dunkel` | `dark` | `muster` | `pattern` | `von` | `from` |
-| `eigen` | `own` | `nach` | `after` | `vorgabe` | `default` |
-| `eigene` | `own` | `nachher` | `after` | `vorgang` | `event` |
-| `eigener` | `own` | `nachreichen` | `addLater` | `vorher` | `before` |
-| `eigentuemer` | `owner` | `naechste` | `next` | `vorlage` | `template` |
-| `ein` | `in` | `name` | `name` | `vorrat` | `pool` |
-| `eingabe` | `input` | `namen` | `names` | `vorschau` | `preview` |
-| `eingriff` | `edited` | `namens` | `name` | `waechter` | `guard` |
-| `einl` | `invite` | `namensfeld` | `nameField` | `waehle` | `pick` |
-| `einladung` | `invite` | `neu` | `fresh` | `wahl` | `choice` |
-| `einladungs` | `invite` | `neue` | `new` | `wann` | `when` |
-| `einrichtung` | `setup` | `neues` | `new` | `wartet` | `waiting` |
-| `einstellung` | `setting` | `neuzeichnen` | `redraw` | `warum` | `why` |
-| `einstellungen` | `settings` | `nimm` | `take` | `wechsel` | `change` |
-| `eintrag` | `entry` | `noetig` | `needed` | `weg` | `path` |
-| `endung` | `extension` | `normal` | `normal` | `weiter` | `more` |
-| `endungen` | `extensions` | `note` | `grade` | `wende` | `apply` |
-| `entferne` | `remove` | `nummer` | `number` | `werkzeug` | `tool` |
-| `entfernt` | `removed` | `nur` | `only` | `wert` | `value` |
-| `ergebnis` | `result` | `oeffentlich` | `public` | `werte` | `values` |
-| `erlaubt` | `allowed` | `oeffentliche` | `public` | `wieder` | `again` |
-| `erneuere` | `refresh` | `oeffne` | `open` | `wiederher` | `restore` |
-| `erste` | `first` | `oeffnend` | `opening` | `wiederherstellungscode` | `recoveryCode` |
-| `erzeuge` | `create` | `offen` | `open` | `wirksam` | `effective` |
-| `faktor` | `factor` | `offene` | `open` | `wirksames` | `effective` |
-| `fassung` | `version` | `ohne` | `without` | `wisch` | `swipe` |
-| `fehlend` | `missing` | `ordne` | `sort` | `wolke` | `cloud` |
-| `fehler` | `error` | `original` | `original` | `wort` | `word` |
-| `feld` | `field` | `ort` | `place` | `worte` | `words` |
-| `felder` | `fields` | `paket` | `package` | `wunsch` | `wanted` |
-| `fenster` | `dialog` | `papierkorb` | `trash` | `zaehl` | `count` |
-| `fest` | `fixed` | `passt` | `matches` | `zaehle` | `count` |
-| `finde` | `find` | `passwort` | `password` | `zaehler` | `counter` |
-| `flaeche` | `rect` | `pfeil` | `arrow` | `zahl` | `number` |
-| `folge` | `follow` | `phase` | `phase` | `zahlen` | `numbers` |
-| `formate` | `formats` | `phasen` | `phases` | `zeichen` | `char` |
-| `formular` | `form` | `platzhalter` | `placeholder` | `zeichne` | `draw` |
-| `foto` | `photo` | `potenzial` | `potential` | `zeige` | `show` |
-| `fotos` | `photos` | `protokoll` | `log` | `zeiger` | `cursor` |
-| `frag` | `ask` | `protokolliere` | `log` | `zeigt` | `shows` |
-| `frei` | `free` | `pruefe` | `check` | `zeile` | `row` |
-| `freigabe` | `share` | `pruefstand` | `testbench` | `zeilen` | `rows` |
-| `fremd` | `foreign` | `punkt` | `point` | `zeit` | `time` |
-| `fremde` | `foreign` | `punkte` | `points` | `zeitleiste` | `timeline` |
-| `frist` | `deadline` | `quelle` | `source` | `zeitpunkt` | `day` |
-| `fund` | `finding` | `quer` | `landscape` | `zeitpunkte` | `days` |
-| `fuss` | `foot` | `raeume` | `clear` | `zentriere` | `center` |
-| `ganz` | `whole` | `rahmen` | `frame` | `zerlege` | `split` |
-| `gegenprobe` | `counterproof` | `rand` | `edge` | `ziehe` | `drag` |
-| `geheim` | `secret` | `raster` | `grid` | `ziel` | `target` |
-| `geheimnis` | `secret` | `rechenweg` | `calculation` | `zug` | `user` |
-| `geholt` | `fetched` | `rechnung` | `calc` | `zugaenge` | `users` |
-| `geloescht` | `deleted` | `rechteck` | `rect` | `zugang` | `user` |
-| `gemerkt` | `remembered` | `regel` | `rule` | `zugeordnet` | `assigned` |
-| `geometrie` | `geometry` | `registrierung` | `signup` | `zuletzt` | `last` |
-| `geprueft` | `tested` | `roh` | `raw` | `zurueck` | `back` |
-| `geraet` | `device` | `roll` | `scroll` | `zuruecksetz` | `reset` |
-| `gerechnet` | `calc` | `rolle` | `role` | `zuruecksetzen` | `reset` |
-| `gerollt` | `scrolled` | `rollen` | `roles` | `zusammenfassung` | `summary` |
-| `gesamt` | `total` | `rueckbau` | `regression` | `zusatz` | `extra` |
-| `gesehen` | `seen` | `ruecksetzung` | `reset` | `zuschnitt` | `crop` |
-| `gesetzt` | `set` | `rueste` | `setUp` | `zustand` | `state` |
-| `gespeichert` | `saved` | `ruht` | `idle` | `zweck` | `purpose` |
-| `gesperrt` | `locked` | `rumpf` | `core` | `zwecke` | `purposes` |
-| `geste` | `gesture` | `saetze` | `sentences` | `zweifaktor` | `twoFactor` |
-| `gewechselt` | `changed` | `satz` | `sentence` | `zweite` | `second` |
-| `gewicht` | `weight` | `satzzeichen` | `punctuation` | `zweiter` | `second` |
-| `gewichte` | `weights` | `sauber` | `clean` | `zwischenablage` | `clipboard` |
+| `ab` | `from` | `gleiche` | `same` | `schicken` | `send` |
+| `abbruch` | `cancel` | `glocke` | `bell` | `schiebe` | `shift` |
+| `abgelehnt` | `rejected` | `glocken` | `bell` | `schieber` | `slider` |
+| `abgeleitet` | `derived` | `glockentafel` | `bellPanel` | `schleier` | `scrim` |
+| `ablage` | `store` | `grabstein` | `tombstone` | `schliessen` | `close` |
+| `ablauf` | `expires` | `grabsteine` | `tombstones` | `schluessel` | `key` |
+| `ablehnung` | `rejection` | `grabsteinliste` | `tombstoneList` | `schmal` | `narrow` |
+| `absage` | `denial` | `grenze` | `limit` | `schnitt` | `average` |
+| `absatz` | `paragraph` | `griff` | `handle` | `schnitte` | `averages` |
+| `abschnitt` | `section` | `griffbereit` | `gripReady` | `schreib` | `write` |
+| `abschnitte` | `sections` | `groesse` | `size` | `schreibe` | `write` |
+| `absender` | `sender` | `gross` | `big` | `schrift` | `font` |
+| `abspieler` | `player` | `grund` | `reason` | `schritt` | `step` |
+| `abstand` | `gap` | `gruppe` | `group` | `sekunde` | `second` |
+| `abzeichen` | `badge` | `gruppen` | `groups` | `selbst` | `self` |
+| `achse` | `axis` | `haken` | `check` | `sende` | `send` |
+| `achsen` | `axis` | `halt` | `stop` | `setze` | `set` |
+| `adresse` | `address` | `haltezeit` | `hold` | `sicherheitsprotokoll` | `securityLog` |
+| `aehnlich` | `similar` | `handelnder` | `actor` | `sicherung` | `backup` |
+| `aktion` | `action` | `hashe` | `hash` | `sicht` | `view` |
+| `aktiv` | `active` | `hat` | `has` | `sichtbar` | `visible` |
+| `alle` | `all` | `hebe` | `raise` | `sichtbare` | `visible` |
+| `als` | `as` | `hell` | `light` | `sitzung` | `session` |
+| `alt` | `old` | `hervor` | `highlight` | `sitzungen` | `sessions` |
+| `anbieter` | `provider` | `hilfe` | `help` | `sitzungs` | `session` |
+| `andere` | `other` | `hinweis` | `hint` | `sortiere` | `sort` |
+| `anfrage` | `request` | `hochgeladen` | `uploaded` | `sortierung` | `sort` |
+| `anfragen` | `requests` | `hole` | `get` | `spaeter` | `later` |
+| `angelegt` | `created` | `inhalt` | `content` | `spalte` | `column` |
+| `angemeldet` | `loggedIn` | `innerer` | `inner` | `spalten` | `columns` |
+| `angepinnt` | `pinned` | `ins` | `into` | `speichere` | `save` |
+| `angestossen` | `triggered` | `instanz` | `instance` | `sperren` | `lock` |
+| `anhang` | `attachment` | `ist` | `is` | `spiel` | `play` |
+| `anlege` | `create` | `jahr` | `year` | `spielmarke` | `playBadge` |
+| `anlegen` | `create` | `jahre` | `years` | `sprach` | `language` |
+| `anmelde` | `login` | `jahres` | `year` | `sprache` | `language` |
+| `anmeldung` | `login` | `je` | `per` | `sprachen` | `languages` |
+| `anordnung` | `layout` | `jetzt` | `now` | `springe` | `jump` |
+| `ansicht` | `view` | `kachel` | `tile` | `staerke` | `strokeWidth` |
+| `ansichten` | `views` | `kaesten` | `boxes` | `stand` | `status` |
+| `anteil` | `share` | `kann` | `can` | `standard` | `default` |
+| `antwort` | `response` | `kante` | `edge` | `standbild` | `stillFrame` |
+| `anwenden` | `apply` | `karte` | `card` | `stelle` | `place` |
+| `anwendung` | `app` | `karten` | `cards` | `stellen` | `places` |
+| `anzahl` | `count` | `kasten` | `box` | `stern` | `star` |
+| `anzeige` | `display` | `kategorie` | `category` | `sterne` | `stars` |
+| `art` | `kind` | `kategorien` | `categories` | `stift` | `pen` |
+| `arten` | `kinds` | `kennung` | `id` | `stimme` | `vote` |
+| `auch` | `also` | `kennzahlen` | `stats` | `stimmen` | `match` |
+| `auf` | `on` | `kern` | `core` | `stimmliste` | `voteList` |
+| `aufgabe` | `task` | `kinder` | `children` | `stimmt` | `matches` |
+| `aufgaben` | `tasks` | `kiste` | `box` | `stimmzeile` | `voteRow` |
+| `aufraeum` | `cleanup` | `klammern` | `brackets` | `streifen` | `strip` |
+| `aufraeumen` | `cleanup` | `klasse` | `cls` | `stueck` | `piece` |
+| `aus` | `out` | `klassen` | `classes` | `stuecke` | `pieces` |
+| `ausfuehren` | `run` | `klein` | `lower` | `stufe` | `level` |
+| `ausgewaehlt` | `selected` | `klick` | `clickable` | `stufen` | `levels` |
+| `aussage` | `note` | `knopf` | `button` | `such` | `search` |
+| `ausschnitt` | `crop` | `knoten` | `node` | `suchanbieter` | `searchProvider` |
+| `ausschnittrahmen` | `cropFrame` | `kodiere` | `encode` | `suche` | `search` |
+| `austausch` | `exchange` | `koerper` | `body` | `suchknopf` | `searchBtn` |
+| `auswahl` | `selection` | `kommentar` | `comment` | `suchname` | `searchName` |
+| `ausweis` | `ticket` | `kommentartext` | `commentText` | `suchnamen` | `searchNames` |
+| `baue` | `build` | `kopf` | `head` | `sucht` | `searching` |
+| `bedienung` | `tools` | `kopfzahlen` | `headCounts` | `suchvorlage` | `searchTemplate` |
+| `beende` | `end` | `kopfzeile` | `masthead` | `summe` | `sum` |
+| `befehl` | `command` | `kopiere` | `copy` | `tafel` | `panel` |
+| `beginne` | `begin` | `kreuz` | `x` | `tage` | `days` |
+| `begrenze` | `limit` | `kriterien` | `criteria` | `taste` | `key` |
+| `begriff` | `term` | `kriterium` | `criterion` | `teil` | `part` |
+| `behalten` | `keep` | `kuerze` | `trim` | `teile` | `parts` |
+| `beitrag` | `post` | `lade` | `load` | `teiler` | `divisor` |
+| `benutzer` | `user` | `laenge` | `length` | `teilplan` | `partPlan` |
+| `benutzt` | `used` | `laeuft` | `running` | `text` | `text` |
+| `bereich` | `area` | `lage` | `state` | `texte` | `texts` |
+| `bereit` | `ready` | `lauf` | `run` | `thema` | `theme` |
+| `bericht` | `report` | `leer` | `empty` | `tipp` | `tap` |
+| `beschnitten` | `trimmed` | `leerlauf` | `idle` | `titel` | `title` |
+| `beschreibung` | `description` | `lege` | `put` | `toleranz` | `tolerance` |
+| `bestaetigt` | `confirmed` | `leiste` | `bar` | `treffer` | `hit` |
+| `bestaetigung` | `confirm` | `lese` | `read` | `trenner` | `divider` |
+| `bestaetigungs` | `confirm` | `letzte` | `last` | `trichter` | `funnel` |
+| `bestand` | `inventory` | `letzter` | `last` | `typ` | `type` |
+| `bestands` | `inventory` | `letztes` | `last` | `typen` | `types` |
+| `bestandslaeufe` | `batchRuns` | `link` | `link` | `ueber` | `over` |
+| `bestandslauf` | `batchRun` | `linkende` | `linkEnd` | `ueberfahrt` | `hover` |
+| `betrachter` | `viewer` | `linkzeilen` | `linkRows` | `uebergabe` | `handover` |
+| `bewertung` | `rating` | `liste` | `list` | `uebernimm` | `take` |
+| `bild` | `image` | `loesche` | `delete` | `uhr` | `clock` |
+| `bildablage` | `imageStore` | `loeschen` | `remove` | `umschalten` | `flip` |
+| `bilder` | `images` | `loese` | `resolve` | `umschlag` | `envelope` |
+| `bildformate` | `imageFormats` | `luecke` | `gap` | `umstellungs` | `switch` |
+| `blaetterpfeile` | `pageArrows` | `magie` | `magic` | `umwandeln` | `convert` |
+| `block` | `block` | `mail` | `mail` | `unten` | `bottom` |
+| `bloecke` | `blocks` | `mailtest` | `mailTest` | `verbrauche` | `consume` |
+| `breite` | `width` | `mailversand` | `mailDelivery` | `verfahren` | `method` |
+| `bremse` | `throttle` | `marke` | `mark` | `verfasser` | `author` |
+| `brief` | `mail` | `marken` | `marks` | `verfolge` | `follow` |
+| `buehne` | `stage` | `maskieren` | `mask` | `vergleichsleiste` | `compareBar` |
+| `codeliste` | `codes` | `masse` | `size` | `versand` | `delivery` |
+| `codes` | `codes` | `mehrere` | `multiple` | `versende` | `send` |
+| `codestand` | `count` | `mehrzahl` | `plural` | `versender` | `sender` |
+| `daempfung` | `dimmed` | `meine` | `my` | `verstecke` | `hide` |
+| `daneben` | `outside` | `meins` | `mine` | `verwaltung` | `manage` |
+| `darf` | `may` | `meldung` | `message` | `verwaltungs` | `manage` |
+| `darstellung` | `appearance` | `menue` | `menu` | `verweigert` | `denied` |
+| `datei` | `file` | `merke` | `remember` | `verzeichnis` | `directory` |
+| `dateien` | `files` | `merker` | `key` | `verzoegerung` | `delay` |
+| `daten` | `data` | `merkmal` | `detail` | `video` | `video` |
+| `datenbank` | `database` | `minuten` | `minutes` | `videos` | `videos` |
+| `dauer` | `duration` | `mit` | `including` | `vokabular` | `vocabulary` |
+| `davor` | `before` | `mitte` | `center` | `vollbild` | `fullscreen` |
+| `deckel` | `cap` | `modus` | `mode` | `volltext` | `fulltext` |
+| `dok` | `doc` | `moeglich` | `possible` | `von` | `from` |
+| `doppeltipp` | `doubleTap` | `muster` | `pattern` | `vorgabe` | `default` |
+| `dunkel` | `dark` | `nach` | `after` | `vorgaben` | `rules` |
+| `eigen` | `own` | `nachher` | `after` | `vorgang` | `event` |
+| `eigene` | `own` | `nachreichen` | `addLater` | `vorher` | `before` |
+| `eigener` | `own` | `naechste` | `next` | `vorlage` | `template` |
+| `eigentuemer` | `owner` | `name` | `name` | `vorrat` | `pool` |
+| `ein` | `in` | `namen` | `names` | `vorschau` | `preview` |
+| `eingabe` | `input` | `namens` | `name` | `waechter` | `guard` |
+| `eingriff` | `edited` | `namensfeld` | `nameField` | `waehle` | `pick` |
+| `einl` | `invite` | `neu` | `fresh` | `wahl` | `choice` |
+| `einladung` | `invite` | `neue` | `new` | `wann` | `when` |
+| `einladungs` | `invite` | `neues` | `new` | `wartet` | `waiting` |
+| `einrichtung` | `setup` | `neuzeichnen` | `redraw` | `warum` | `why` |
+| `einstellung` | `setting` | `nimm` | `take` | `wechsel` | `change` |
+| `einstellungen` | `settings` | `noetig` | `needed` | `weg` | `path` |
+| `eintrag` | `entry` | `normal` | `normal` | `weiter` | `more` |
+| `endung` | `extension` | `note` | `grade` | `wende` | `apply` |
+| `endungen` | `extensions` | `nummer` | `number` | `werkzeug` | `tool` |
+| `entferne` | `remove` | `nur` | `only` | `wert` | `value` |
+| `entfernt` | `removed` | `oeffentlich` | `public` | `werte` | `values` |
+| `ergebnis` | `result` | `oeffentliche` | `public` | `wieder` | `again` |
+| `erlaubt` | `allowed` | `oeffne` | `open` | `wiederher` | `restore` |
+| `erneuere` | `refresh` | `oeffnend` | `opening` | `wiederherstellungscode` | `recoveryCode` |
+| `erste` | `first` | `offen` | `open` | `wirksam` | `effective` |
+| `erzeuge` | `create` | `offene` | `open` | `wirksames` | `effective` |
+| `faktor` | `factor` | `ohne` | `without` | `wisch` | `swipe` |
+| `fassung` | `version` | `ordne` | `sort` | `wolke` | `cloud` |
+| `fehlend` | `missing` | `original` | `original` | `wort` | `word` |
+| `fehler` | `error` | `ort` | `place` | `worte` | `words` |
+| `feld` | `field` | `paket` | `package` | `wunsch` | `wanted` |
+| `felder` | `fields` | `papierkorb` | `trash` | `zaehl` | `count` |
+| `fenster` | `dialog` | `passt` | `matches` | `zaehle` | `count` |
+| `fest` | `fixed` | `passwort` | `password` | `zaehler` | `counter` |
+| `finde` | `find` | `pfeil` | `arrow` | `zahl` | `number` |
+| `flaeche` | `rect` | `phase` | `phase` | `zahlen` | `numbers` |
+| `folge` | `follow` | `phasen` | `phases` | `zeichen` | `char` |
+| `formate` | `formats` | `platzhalter` | `placeholder` | `zeichne` | `draw` |
+| `formular` | `form` | `potenzial` | `potential` | `zeige` | `show` |
+| `foto` | `photo` | `protokoll` | `log` | `zeiger` | `cursor` |
+| `fotos` | `photos` | `protokolliere` | `log` | `zeigt` | `shows` |
+| `frag` | `ask` | `pruefe` | `check` | `zeile` | `row` |
+| `frei` | `free` | `pruefstand` | `testbench` | `zeilen` | `rows` |
+| `freigabe` | `share` | `punkt` | `point` | `zeit` | `time` |
+| `fremd` | `foreign` | `punkte` | `points` | `zeitleiste` | `timeline` |
+| `fremde` | `foreign` | `quelle` | `source` | `zeitpunkt` | `day` |
+| `frist` | `deadline` | `quer` | `landscape` | `zeitpunkte` | `days` |
+| `fund` | `finding` | `raeume` | `clear` | `zentriere` | `center` |
+| `fuss` | `foot` | `rahmen` | `frame` | `zerlege` | `split` |
+| `ganz` | `whole` | `rand` | `edge` | `ziehe` | `drag` |
+| `gegenprobe` | `counterproof` | `raster` | `grid` | `ziel` | `target` |
+| `geheim` | `secret` | `rechenweg` | `calculation` | `zug` | `user` |
+| `geheimnis` | `secret` | `rechnung` | `calc` | `zugaenge` | `users` |
+| `geholt` | `fetched` | `rechteck` | `rect` | `zugang` | `user` |
+| `geloescht` | `deleted` | `regel` | `rule` | `zugeordnet` | `assigned` |
+| `gemerkt` | `remembered` | `registrierung` | `signup` | `zuletzt` | `last` |
+| `geometrie` | `geometry` | `roh` | `raw` | `zurueck` | `back` |
+| `geprueft` | `tested` | `roll` | `scroll` | `zuruecksetz` | `reset` |
+| `geraet` | `device` | `rolle` | `role` | `zuruecksetzen` | `reset` |
+| `gerechnet` | `calc` | `rollen` | `roles` | `zusammenfassung` | `summary` |
+| `gerollt` | `scrolled` | `rueckbau` | `regression` | `zusatz` | `extra` |
+| `gesamt` | `total` | `ruecksetzung` | `reset` | `zuschnitt` | `crop` |
+| `gesehen` | `seen` | `rueste` | `setUp` | `zustand` | `state` |
+| `gesetzt` | `set` | `ruht` | `idle` | `zweck` | `purpose` |
+| `gespeichert` | `saved` | `rumpf` | `core` | `zwecke` | `purposes` |
+| `gesperrt` | `locked` | `saetze` | `sentences` | `zweifaktor` | `twoFactor` |
+| `geste` | `gesture` | `satz` | `sentence` | `zweite` | `second` |
+| `gewechselt` | `changed` | `satzzeichen` | `punctuation` | `zweiter` | `second` |
+| `gewicht` | `weight` | `sauber` | `clean` | `zwischenablage` | `clipboard` |
+| `gewichte` | `weights` | `schalte` | `toggle` |  |  |
+| `gleich` | `equal` | `schalter` | `toggle` |  |  |
 
 ## 2. Die Namensräume der Sprachdatei
 
@@ -746,23 +747,23 @@ Schnittstelle hängt daran; deshalb ziehen sie ohne Rückfall um.
 | `tokens.zweck` | `tokens.purpose` |
 | `tokens.ablauf` | `tokens.expires_at` |
 | `tokens.benutzt_am` | `tokens.used_at` |
-| `anfragen.bestaetigt_am` | `anfragen.confirmed_at` |
-| `zweifaktor.geheim` | `zweifaktor.secret` |
-| `zweifaktor.bestaetigt_am` | `zweifaktor.confirmed_at` |
-| `zweifaktor.letzter_zaehler` | `zweifaktor.last_counter` |
-| `zweifaktor_codes.benutzt_am` | `zweifaktor_codes.used_at` |
-| `sicherheitsprotokoll.am` | `sicherheitsprotokoll.at` |
-| `sicherheitsprotokoll.was` | `sicherheitsprotokoll.event` |
-| `sicherheitsprotokoll.wer` | `sicherheitsprotokoll.actor` |
-| `sicherheitsprotokoll.ziel` | `sicherheitsprotokoll.target` |
-| `sicherheitsprotokoll.merkmal` | `sicherheitsprotokoll.detail` |
-| `papierkorb.geloescht_am` | `papierkorb.deleted_at` |
-| `papierkorb.geloescht_von` | `papierkorb.deleted_by` |
-| `papierkorb.titel` | `papierkorb.title` |
-| `papierkorb.inhalt` | `papierkorb.content` |
-| `papierkorb_bytes.papierkorb_id` | `papierkorb_bytes.trash_id` |
-| `papierkorb_bytes.nr` | `papierkorb_bytes.part` |
-| `papierkorb_bytes.daten` | `papierkorb_bytes.data` |
+| `requests.bestaetigt_am` | `requests.confirmed_at` |
+| `two_factor.geheim` | `two_factor.secret` |
+| `two_factor.bestaetigt_am` | `two_factor.confirmed_at` |
+| `two_factor.letzter_zaehler` | `two_factor.last_counter` |
+| `two_factor_codes.benutzt_am` | `two_factor_codes.used_at` |
+| `security_log.am` | `security_log.at` |
+| `security_log.was` | `security_log.event` |
+| `security_log.wer` | `security_log.actor` |
+| `security_log.ziel` | `security_log.target` |
+| `security_log.merkmal` | `security_log.detail` |
+| `trash.geloescht_am` | `trash.deleted_at` |
+| `trash.geloescht_von` | `trash.deleted_by` |
+| `trash.titel` | `trash.title` |
+| `trash.inhalt` | `trash.content` |
+| `trash_bytes.papierkorb_id` | `trash_bytes.trash_id` |
+| `trash_bytes.nr` | `trash_bytes.part` |
+| `trash_bytes.daten` | `trash_bytes.data` |
 
 ### 7.3 Die gespeicherten Werte
 

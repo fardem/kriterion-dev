@@ -190,7 +190,7 @@ function toast(msg, isErr = false, action = null) {
   const el = document.createElement('div');
   el.className = 'toast' + (isErr ? ' err' : '') + (action ? ' with-btn' : '');
   el.textContent = msg;
-  const dauer = action ? 6000 : 2600;
+  const duration = action ? 6000 : 2600;
   if (action) {
     const sep = document.createElement('span');
     sep.className = 'toast-sep';
@@ -201,10 +201,10 @@ function toast(msg, isErr = false, action = null) {
     b.textContent = action.text;
     b.onclick = () => { el.remove(); action.tu(); };
     el.append(sep, b);
-    el.style.animationDuration = dauer + 'ms';
+    el.style.animationDuration = duration + 'ms';
   }
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), dauer);
+  setTimeout(() => el.remove(), duration);
 }
 
 const ICON_PH = `<svg class="ph" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3.5 17l5-4.5 3.5 3 3-2.5 5.5 4.5"/></svg>`;
@@ -428,15 +428,15 @@ function autoGrow(el) {
   return fit;
 }
 
-// `art`: die Farbe des Ja-Knopfs -- 'danger' fuer alles, was wegnimmt, 'accent'
+// `kind`: die Farbe des Ja-Knopfs -- 'danger' fuer alles, was wegnimmt, 'accent'
 // fuer eine Handlung, die etwas anlegt (Freischalten, Link erzeugen). 0.22.0.
-function confirmBox(title, text, confirmLabel = t('dialog.delete'), art = 'danger') {
+function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'danger') {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p>${esc(text)}</p>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-${art === 'accent' ? 'accent' : 'danger'}" data-yes>${esc(confirmLabel)}</button></div></div>`;
+      <button class="btn btn-${kind === 'accent' ? 'accent' : 'danger'}" data-yes>${esc(confirmLabel)}</button></div></div>`;
     document.body.appendChild(bd);
     const done = v => { bd.remove(); resolve(v); };
     bd.querySelector('[data-no]').onclick = () => done(false);
@@ -502,12 +502,12 @@ const confirmReason = () => t('dialog.appWideHint') +
    den ersten Versuch absichtlich scheitern lassen, um zu erfahren, dass ein
    Code fehlt -- und schriebe dabei bei JEDEM Vorgang eine Zeile
    'bestaetigung.fehl' ins Sicherheitsprotokoll. */
-function passwordDialog(titel, was, grund, withCode) {
+function passwordDialog(title, event, grund, withCode) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2>
-      <p>${esc(was)}</p>
+    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2>
+      <p>${esc(event)}</p>
       ${grund ? `<p class="desc" style="margin:0">${esc(grund)}</p>` : ''}
       <div class="field" style="margin:0"><label>${tH('dialog.yourPassword')}</label>
         <input class="input" id="confirm-pass" type="password" autocomplete="current-password"></div>
@@ -544,7 +544,7 @@ function passwordDialog(titel, was, grund, withCode) {
    ZWEIFAKTOR und damit der Server -- die Oberflaeche raet es nie.
    DER ZUSATZSATZ STEHT NUR DA, WENN DAS FELD DASTEHT: ein Grund fuer eine
    Frage, die gar nicht gestellt wird, waere Verwirrung ohne Gegenwert. */
-const confirmField = (titel, was) => passwordDialog(titel, was,
+const confirmField = (title, event) => passwordDialog(title, event,
   confirmReason() + (TWO_FACTOR
     ? t('dialog.twoFactorOn') +
       t('dialog.recoveryCodeToo')
@@ -558,8 +558,8 @@ const confirmField = (titel, was) => passwordDialog(titel, was,
    OHNE confirmReason(): der steht fuer "das trifft die Instanz als Ganzes",
    und das trifft hier nicht zu -- es geht um den eigenen Zugang. Der Grund
    kommt deshalb je Weg von der Aufrufstelle. */
-const confirmFieldFree = (titel, was, withCode) =>
-  passwordDialog(titel, was, '', withCode === true);
+const confirmFieldFree = (title, event, withCode) =>
+  passwordDialog(title, event, '', withCode === true);
 
 /* EINE ABFRAGE, EINE ANFRAGE, MEHRERE FREIGABEN. Ein Bestand, der in fuenf
    Teilen hinausgeht, braucht fuenf Freigaben -- eine Freigabe wird verbraucht,
@@ -577,21 +577,21 @@ const confirmFieldFree = (titel, was, withCode) =>
    Teilen griff die harte Sperre), und der verbrannte Wiederherstellungscode.
    WAS BLEIBT: das Laden eines Teils verbraucht genau eine Freigabe. Was
    zusammengefasst wird, ist die ABFRAGE und nicht die Schranke. */
-async function confirmTwiceMany(zweck, ziele, titel, was) {
-  const input = await confirmField(titel, was);
+async function confirmTwiceMany(purpose, ziele, title, event) {
+  const input = await confirmField(title, event);
   if (input === null) return false;
-  try { await api('POST', '/api/confirm', { ...input, zweck, ziele }); }
+  try { await api('POST', '/api/confirm', { ...input, purpose, ziele }); }
   catch (e) { toast(e.message, true); return false; }
   return true;
 }
 
-async function secondConfirm(zweck, ziel, titel, was) {
-  const input = await confirmField(titel, was);
+async function secondConfirm(purpose, target, title, event) {
+  const input = await confirmField(title, event);
   // null heisst abgebrochen -- ein Abbruch, der trotzdem handelt, waere der
   // schlimmere Fehler. Ein LEERES Feld ist keine Bestaetigung, sondern ein
   // falsches Passwort und geht als solches an den Server.
   if (input === null) return false;
-  try { await api('POST', '/api/confirm', { ...input, zweck, ziel: ziel ?? null }); }
+  try { await api('POST', '/api/confirm', { ...input, purpose, target: target ?? null }); }
   catch (e) { toast(e.message, true); return false; }
   return true;
 }
@@ -600,11 +600,11 @@ async function secondConfirm(zweck, ziel, titel, was) {
    prompt(): dort stand das fremde Passwort im Klartext auf dem Bildschirm.
    Ein Passwortfeld, darueber die Vorgabe und die Folge. Liefert das Passwort
    oder null bei Abbruch; ein leeres Feld ist ein Abbruch. */
-function newPasswordDialog(titel, sentence) {
+function newPasswordDialog(title, sentence) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2><p>${esc(sentence)}</p>
+    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p>${esc(sentence)}</p>
       <div class="field" style="margin:0"><label for="np-pass">${tH('dialog.newPassword')}</label>
         <input class="input" id="np-pass" type="password" autocomplete="new-password"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
@@ -1607,8 +1607,8 @@ let V = {};
 // Eine Abfolge, kein Entweder-oder -- deshalb ein Knopf statt dreier.
 // Funktionsdeklaration, nicht const: sonst haengt sie nicht am window und der
 // Pruefstand kaeme nicht heran.
-function taskMore(art) {
-  return { note: 'task', task: 'done', done: 'note', report: 'task' }[art] || 'task';
+function taskMore(kind) {
+  return { note: 'task', task: 'done', done: 'note', report: 'task' }[kind] || 'task';
 }
 /* --- Das Gewicht eines Kriteriums: Komma herein, Komma hinaus -------------
    "1,2" und "1.2" ergeben beide 1.2; alles andere ergibt NaN und faellt damit
@@ -1796,7 +1796,7 @@ function splitCommentText(roh, term) {
     if (treffer.index > last) nimm(text.slice(last, treffer.index), {});
     nimm(adresse, {
       // angezeigt wird die Adresse, wie geschrieben
-      ziel: /^www\./i.test(adresse) ? 'https://' + adresse : adresse
+      target: /^www\./i.test(adresse) ? 'https://' + adresse : adresse
     });
     last = treffer.index + adresse.length;
   }
@@ -1827,9 +1827,9 @@ function buildCommentNodes(pieces) {
     const s = list[i];
     // Schranke 2: unmittelbar vor dem Setzen von href noch einmal pruefen.
     // Faellt der String durch, wird sie gewoehnlicher Text, nicht Link.
-    if (s.ziel && /^https?:\/\//i.test(String(s.ziel))) {
+    if (s.target && /^https?:\/\//i.test(String(s.target))) {
       const a = document.createElement('a');
-      a.href = String(s.ziel);
+      a.href = String(s.target);
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       /* EINE ADRESSE BLEIBT EIN LINK, AUCH WENN DER BEGRIFF MITTEN DARIN
@@ -1839,7 +1839,7 @@ function buildCommentNodes(pieces) {
          Vorleseprogramm drei Ziele statt einem, und beim Kopieren drei
          Stuecke statt einer Adresse. */
       let j = i;
-      while (j < list.length && String(list[j].ziel ?? '') === String(s.ziel))
+      while (j < list.length && String(list[j].target ?? '') === String(s.target))
         a.appendChild(pieceNode(list[j++]));
       i = j - 1;
       teil.appendChild(a);
@@ -3646,7 +3646,7 @@ function timelinePoints(list) {
     for (const d of it.testDays || [])
       // mine kommt vom Server: eigene Punkte werden gefuellt
       // gezeichnet, fremde als Ring. Kein neuer Farbkanal -- Gold bleibt Gold.
-      points.push({ itemId: it.id, titel: it.title, tag: d.day, note: d.rating, mine: d.mine !== false });
+      points.push({ itemId: it.id, title: it.title, tag: d.day, note: d.rating, mine: d.mine !== false });
   return points.sort((a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
 }
 
@@ -3701,7 +3701,7 @@ function drawTimeline(list) {
     d.style.left = (timeShare(p.tag, von, bis) * 100) + '%';
     d.style.bottom = ((p.note - 1) / 4 * 100) + '%';
     d.dataset.item = p.itemId;
-    d.setAttribute('aria-label', t('list.gradeLong', { titel: p.titel, tag: fmtDay(p.tag), note: p.note }));
+    d.setAttribute('aria-label', t('list.gradeLong', { titel: p.title, tag: fmtDay(p.tag), note: p.note }));
     d.onclick = () => { location.hash = `#/item/${p.itemId}`; };
     // Eigenes Hinweisfeld statt title: kein Wartezögern, und der Text bleibt
     // lesbar gesetzt. Auf dem Finger gibt es kein Überfahren — dort öffnet die
@@ -3751,7 +3751,7 @@ function showHint(box, point, p) {
   hideHint(box);
   const h = document.createElement('div');
   h.className = 'timeline-hint';
-  h.innerHTML = `<strong>${esc(p.titel)}</strong><span>${tH('list.gradeShort', { tag: fmtDay(p.tag), note: p.note })}</span>`;
+  h.innerHTML = `<strong>${esc(p.title)}</strong><span>${tH('list.gradeShort', { tag: fmtDay(p.tag), note: p.note })}</span>`;
   h.style.left = point.style.left;
   box.querySelector('.timeline').appendChild(h);
 }
@@ -3793,7 +3793,7 @@ const FINDING_WORDS = {
   testtag: () => t('list.sortDay'),
   tag: () => t('list.tag'),
   kategorie: () => t('list.category'),
-  titel: () => t('list.title')
+  title: () => t('list.title')
 };
 /* EINE UNBEKANNTE QUELLE HEISST "Fundstelle" UND FAELLT NICHT AUS DER ZEILE.
    Ein Server, der eine achte Quelle kennt, und eine Oberflaeche, die sie noch
@@ -3955,8 +3955,8 @@ const SIMILAR_SHOW = 5;
 // andere faellt weg. "Bosch GSR 18V-60" wird zu "boschgsr18v60".
 const titleCore = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
 
-function similarEntries(titel) {
-  const core = titleCore(titel);
+function similarEntries(title) {
+  const core = titleCore(title);
   if (core.length < SIMILAR_DIALOG) return [];
   const dialog = [];
   for (let i = 0; i + SIMILAR_DIALOG <= core.length; i++)
@@ -4181,7 +4181,7 @@ async function renderCompare() {
   const phases = new Map();
   items.forEach(i => i.ratings.forEach(r => {
     if (!names.includes(r.name)) {
-      names.push(r.name); weights.set(r.name, r.gewicht); phases.set(r.name, r.phase);
+      names.push(r.name); weights.set(r.name, r.weight); phases.set(r.name, r.phase);
     }
   }));
   // Die beiden Gruppen, in der Reihenfolge der Kaesten am Eintrag: vorher,
@@ -4242,7 +4242,7 @@ async function renderCompare() {
     let counter = 0, nenner = 0;
     for (const r of it.ratings) {
       if (r.phase !== phase) continue;
-      if (r.value > 0) { counter += r.value * r.gewicht; nenner += r.gewicht; }
+      if (r.value > 0) { counter += r.value * r.weight; nenner += r.weight; }
     }
     if (!nenner) return null;
     return Math.round((counter / nenner) * 10) / 10;
@@ -4368,7 +4368,7 @@ function imageSource(p, groesse) {
 }
 // Woran die Oberflaeche ein Video erkennt: an art aus der Antwort, an nichts
 // sonst. Kein Raten am ausgelieferten Typ, keine zweite Wahrheit.
-const isVideo = (p) => p?.art === 'video';
+const isVideo = (p) => p?.kind === 'video';
 // Beim Video gehoert der zweite Klick der Abspielsteuerung, nicht dem Zoom.
 // Kommentarbilder haben ohnehin kein Original.
 const hasOriginal = (p) => p.quelle !== 'kommentar' && !isVideo(p);
@@ -5447,7 +5447,7 @@ async function renderDetail(id, termAddress) {
       tile.dataset.pid = p.id;
       // Abgeleitet aus art und dauer, kein Schalter: das ▶ in der Ecke und,
       // wenn die Dauer bekannt ist, die Laenge daneben.
-      const length = isVideo(p) ? durationText(p.dauer) : '';
+      const length = isVideo(p) ? durationText(p.duration) : '';
       const wort = isVideo(p) ? t('list.video') : t('list.photo');
       tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
         (isVideo(p) ? `<span class="play-badge">▶</span>` : '') +
@@ -5513,7 +5513,7 @@ async function renderDetail(id, termAddress) {
       c.getContext('2d').drawImage(v, 0, 0);
       const image = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
       if (!image) throw new Error(t('entry.videoNoThumb'));
-      return { image, dauer: Math.round(v.duration) || null };
+      return { image, duration: Math.round(v.duration) || null };
     } finally { URL.revokeObjectURL(v.src); }
   }
 
@@ -5536,12 +5536,12 @@ async function renderDetail(id, termAddress) {
       }
       for (const f of videos) {
         drop.textContent = t('entry.thumbBuilding');
-        const { image, dauer } = await stillFrame(f);
+        const { image, duration } = await stillFrame(f);
         drop.textContent = t('entry.uploading');
         const fd = new FormData();
         fd.append('video', f, f.name);
         fd.append('standbild', image, 'standbild.jpg');
-        if (dauer) fd.append('dauer', String(dauer));
+        if (duration) fd.append('duration', String(duration));
         item = await api('POST', `/api/items/${id}/videos`, fd, true);
         fertig++;
       }
@@ -5703,7 +5703,7 @@ async function renderDetail(id, termAddress) {
     const may = item.mine === true || ADMIN;
     const mine = may && (item.rejectedMine === true || !item.rejectedVerfasser);
     const verwalten = may;
-    const grund = (item.rejected_grund || '').trim();
+    const grund = (item.rejected_reason || '').trim();
 
     /* WANN DAS FELD DASTEHT -- die Regel aus dem Betrieb, 29. August 2026:
        ABGELEHNT UND KEIN GRUND. Das ist der Zustand, in dem etwas fehlt, und
@@ -5719,7 +5719,7 @@ async function renderDetail(id, termAddress) {
     // Der Vorschlag zum Ueberschreiben: beim Oeffnen steht die alte
     // Begruendung im Feld. Waehrend getippt wird, NICHT ueberschreiben --
     // drawSwitches() laeuft auch nach dem Speichern des Grundes.
-    if (offen && document.activeElement !== field) field.value = item.rejected_grund || '';
+    if (offen && document.activeElement !== field) field.value = item.rejected_reason || '';
 
     const teile = [];
     if (item.rejected_at) teile.push(`am ${fmtDate(item.rejected_at)}`);
@@ -5832,7 +5832,7 @@ async function renderDetail(id, termAddress) {
        wo sie sind. */
     const core = item.rejected
       ? { rejected: false }
-      : { rejected: true, rejectedGrund: item.rejected_grund || '' };
+      : { rejected: true, rejectedGrund: item.rejected_reason || '' };
     try {
       item = await api('PUT', `/api/items/${id}`, core);
       /* BEIM EINSCHALTEN STEHT DAS FELD OFFEN, WENN KEIN GRUND DASTEHT -- und
@@ -5864,9 +5864,9 @@ async function renderDetail(id, termAddress) {
     const field = document.getElementById('rej-reason');
     const save = async () => {
       const v = field.value.trim();
-      if (v !== (item.rejected_grund || '')) {
+      if (v !== (item.rejected_reason || '')) {
         try { item = await api('PUT', `/api/items/${id}`, { rejectedGrund: v }); toast(t('list.saved')); }
-        catch (e) { toast(e.message, true); field.value = item.rejected_grund || ''; }
+        catch (e) { toast(e.message, true); field.value = item.rejected_reason || ''; }
       }
       reasonOpen = false;
       drawSwitches();
@@ -5881,7 +5881,7 @@ async function renderDetail(id, termAddress) {
       if (e.key === 'Enter') { e.preventDefault(); field.blur(); }
       else if (e.key === 'Escape') {
         e.preventDefault();
-        field.value = item.rejected_grund || '';
+        field.value = item.rejected_reason || '';
         reasonOpen = false;
         drawRejection();
       }
@@ -6060,9 +6060,9 @@ async function renderDetail(id, termAddress) {
      vom Server; der Browser filtert und schreibt hin. */
   const BOXES = [
     { phase: 'nachher', box: 'ratings',           head: 'rhead', button: 'weight-open',
-      wer: 'rwho', schnitt: 'avgRating',       weg: 'rechenweg' },
+      actor: 'rwho', schnitt: 'avgRating',       weg: 'rechenweg' },
     { phase: 'vorher',  box: 'potential-ratings', head: 'phead', button: 'pweight-open',
-      wer: 'pwho', schnitt: 'potenzialRating', weg: 'potenzialRechenweg' }
+      actor: 'pwho', schnitt: 'potenzialRating', weg: 'potenzialRechenweg' }
   ];
 
   function drawRatings() { for (const k of BOXES) drawBox(k); setUpBlocksOut(item); }
@@ -6107,7 +6107,7 @@ async function renderDetail(id, termAddress) {
        Rechnung gar nicht ein. Das Wort stuende dann an einer Zahl, an der
        keine Gewichtung stattgefunden hat. */
     const weightedCalc = zeilen
-      .some(r => (r.value > 0 || r.avg != null) && Number(r.gewicht) !== 1);
+      .some(r => (r.value > 0 || r.avg != null) && Number(r.weight) !== 1);
     /* DIE KOPFZAHL IST SEIT 0.16.0 EIN KNOPF, und er fuehrt zur eigenen
        Rechnung dieses Eintrags. „⌀ 4,2 gewichtet" war zwar richtig, hat sich
        aber nirgends erklaert -- auch nicht in der Karte, in der die Gewichte
@@ -6155,7 +6155,7 @@ async function renderDetail(id, termAddress) {
       // aus -- mit Gewichten ist sie aus den Zeilenwerten nicht mehr durch
       // Mitteln nachzuvollziehen. Eigener Knoten statt Text im Namen: der Name
       // ist Eingabe und wird gesetzt, nicht zusammengebaut.
-      const mark = weightMark(r.gewicht);
+      const mark = weightMark(r.weight);
       if (mark) {
         const m = document.createElement('span');
         m.className = 'rweight'; m.textContent = mark;
@@ -6314,7 +6314,7 @@ async function renderDetail(id, termAddress) {
     if (!weg || !Array.isArray(weg.zeilen) || !weg.zeilen.length)
       return toast(t('entry.nothingRatedYet'), true);
     const namen = new Map(item.ratings.map(r => [r.criterion_id, r.name]));
-    const withWeight = weg.zeilen.some(z => Number(z.gewicht) !== 1);
+    const withWeight = weg.zeilen.some(z => Number(z.weight) !== 1);
     /* OB DIE GEWICHTUNG UEBERHAUPT ETWAS AENDERT. Verglichen werden die beiden
        ANGEZEIGTEN Zahlen und nicht die ungerundeten: der Kasten sagt etwas
        ueber das, was dasteht. Zwei Rechnungen, die sich erst in der dritten
@@ -6348,7 +6348,7 @@ async function renderDetail(id, termAddress) {
         ${weg.zeilen.map(z => `<div class="calc-row" data-krit="${Number(z.criterionId)}">
           <span class="calc-name">${esc(namen.get(z.criterionId) || '—')}</span>
           <span>${esc(weightNumber(z.schnitt))}</span>
-          <span>× ${esc(weightNumber(z.gewicht))}</span>
+          <span>× ${esc(weightNumber(z.weight))}</span>
           <span>${esc(weightNumber(z.produkt))}</span></div>`).join('')}
         <div class="calc-row calc-sum"><span>${tH('entry.sum')}</span><span></span><span></span>
           <span id="calc-sum">${esc(weightNumber(weg.summe))}</span></div>
@@ -6429,11 +6429,11 @@ async function renderDetail(id, termAddress) {
     let list;
     try { list = await api('GET', `/api/items/${id}/votes`); }
     catch (e) { return toast(e.message, true); }
-    const titel = t('entry.whoRatedWord',
+    const title = t('entry.whoRatedWord',
       { wort: boxId.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl });
     const bd = document.createElement('div');
     bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal" id="votes-modal"><h2>${esc(titel)}</h2>
+    bd.innerHTML = `<div class="modal" id="votes-modal"><h2>${esc(title)}</h2>
       <p>${tH('entry.adminOnlyHint')}</p>
       <div class="vote-list" id="vote-list"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
@@ -6473,8 +6473,8 @@ async function renderDetail(id, termAddress) {
         row.className = 'vote-row';
         const n = document.createElement('span');
         n.className = 'rname'; n.textContent = r.name;
-        const wer = document.createElement('div');
-        wer.className = 'rvotes';
+        const actor = document.createElement('div');
+        actor.className = 'rvotes';
         stimmen.forEach(st => {
           const s2 = document.createElement('span');
           s2.className = 'rvote' + (st.mine ? ' mine' : '');
@@ -6501,9 +6501,9 @@ async function renderDetail(id, termAddress) {
             };
             s2.appendChild(x);
           }
-          wer.appendChild(s2);
+          actor.appendChild(s2);
         });
-        row.append(n, wer);
+        row.append(n, actor);
         box.appendChild(row);
       });
       if (!etwas) box.innerHTML = `<span class="hint">${tH('entry.noRatingsYet')}</span>`;
@@ -6512,7 +6512,7 @@ async function renderDetail(id, termAddress) {
   // Der Knopf steht nur beim Admin ab zwei Zugängen; ohne ihn gibt es hier
   // nichts anzuhängen. ZWEI KOEPFE, ZWEI KNOEPFE, EINE SCHLEIFE.
   for (const k of BOXES) {
-    const el = document.getElementById(k.wer);
+    const el = document.getElementById(k.actor);
     if (el) el.onclick = () => showMatch(k);
   }
   /* HIER HING BIS 0.20.1 DER KNOPF „Meine Bewertung zuruecksetzen" -- samt
@@ -7148,10 +7148,10 @@ async function renderDetail(id, termAddress) {
     const pin = document.getElementById('cpin');
     pin.classList.toggle('on', newPinned);
     pin.title = newPinned ? t('entry.unpin') : t('entry.pinHint');
-    const art = document.getElementById('ckind');
-    art.classList.toggle('on', neueArt === 'report');
-    art.textContent = V.berichtEinzahl;
-    art.title = neueArt === t('entry.reportKind') ? t('entry.unmarkReport') : t('entry.markReport');
+    const kind = document.getElementById('ckind');
+    kind.classList.toggle('on', neueArt === 'report');
+    kind.textContent = V.berichtEinzahl;
+    kind.title = neueArt === t('entry.reportKind') ? t('entry.unmarkReport') : t('entry.markReport');
     const taskBtn = document.getElementById('ctask');
     const fertig = neueArt === 'done';
     taskBtn.classList.toggle('on', neueArt === 'task' || fertig);
@@ -7774,7 +7774,7 @@ function setUpUserOut(fetched) {
        offensichtliche und genauso wichtige Fall — eine übernommene offene
        Anmeldung könnte sonst einen zweiten Faktor auf ein FREMDES Telefon
        legen und dich damit aussperren. */
-    const ask = (titel, was, withCode) => confirmFieldFree(titel, was, withCode);
+    const ask = (title, event, withCode) => confirmFieldFree(title, event, withCode);
 
     atElement('two-factor-on', b => b.onclick = async () => {
       const e = await ask(t('card.twoFactorOn'),
@@ -7840,7 +7840,7 @@ function setUpUserOut(fetched) {
     const field = document.getElementById('two-factor-check');
     document.getElementById('two-factor-copy').onclick = () => {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(d.geheim).then(() => toast(t('card.keyCopied')),
+        navigator.clipboard.writeText(d.secret).then(() => toast(t('card.keyCopied')),
           () => toast(t('card.typeByHand'), true));
       } else toast(t('card.typeByHand'), true);
     };
@@ -8245,7 +8245,7 @@ function setUpCriteriaOut(fetched, phase) {
       // mit. Die Unterscheidung laeuft ueber diesen Eintrag, wie schon bei
       // `sortierbar` und `counter`, und nicht ueber eine Abfrage auf den
       // Kartennamen.
-      gewicht: true,
+      weight: true,
       warnung: e => t('card.criterionDeleteHint', { name: e.name })
     }
   };
@@ -8253,7 +8253,7 @@ function setUpCriteriaOut(fetched, phase) {
   function manageList(boxId, list, kind, fetched) {
     const box = document.getElementById(boxId);
     if (!box) return;
-    const art = MANAGE_KIND[kind];
+    const spec = MANAGE_KIND[kind];
     // Umbenennen und Loeschen gehoeren dem Admin -- bei allen dreien, und bei
     // den Kriterien auch das Sortieren. Fuer andere bleibt die Karte eine
     // LISTE: kein Griff, kein ✎, kein ✕ und kein Anlegefeld. Der Server
@@ -8267,9 +8267,9 @@ function setUpCriteriaOut(fetched, phase) {
     if (!list.length) { box.innerHTML = `<span class="hint">${tH('card.nothingCreatedYet')}</span>`; return; }
     list.forEach(entry => {
       const row = document.createElement('div');
-      row.className = 'mrow' + (art.sortierbar && may ? ' drag' : '');
+      row.className = 'mrow' + (spec.sortierbar && may ? ' drag' : '');
       row.dataset.mid = entry.id;
-      const url = art.url;
+      const url = spec.url;
       /* Die Zeile war schon besetzt: Griff, Name, Verwendungszaehler, ✎ und ✕.
          Das Gewichtsfeld steht ZWISCHEN Name und Zaehler -- der Name traegt
          flex:1 und schiebt alles Weitere nach rechts, das Feld sitzt damit an
@@ -8278,21 +8278,21 @@ function setUpCriteriaOut(fetched, phase) {
          WER NICHT VERWALTEN DARF, SIEHT DAS GEWICHT TROTZDEM -- es erklaert
          die Kopfzahl an jedem Eintrag, und die sieht er ja auch. Nur als Text
          statt als Feld, wie bei Name und Zaehler daneben. */
-      const weightField = art.gewicht
+      const weightField = spec.weight
         ? (may
           ? `<span class="mweight" title="${esc(t('list.weightedAvg'))}">×<input class="mweight-field"
                type="text" inputmode="decimal" list="weightsug" aria-label="${esc(t('entry.weight'))}"
-               value="${esc(weightText(entry.gewicht))}"></span>`
-          : `<span class="mweight mweight-fixed" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.gewicht))}</span>`)
+               value="${esc(weightText(entry.weight))}"></span>`
+          : `<span class="mweight mweight-fixed" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.weight))}</span>`)
         : '';
-      row.innerHTML = `${art.sortierbar && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
+      row.innerHTML = `${spec.sortierbar && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="mname">${esc(entry.name)}</span>
         ${weightField}
-        <span class="mcount">${esc(art.counter ? art.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}</span>
+        <span class="mcount">${esc(spec.counter ? spec.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}</span>
         ${may ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_PEN}</button>
         <button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}`;
       if (!may) { box.appendChild(row); return; }
-      if (art.sortierbar) {
+      if (spec.sortierbar) {
         // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
         // Die Knoepfe und das Umbenennfeld bleiben ausgenommen.
         makeSortable(row, {
@@ -8321,20 +8321,20 @@ function setUpCriteriaOut(fetched, phase) {
         // Ein leeres oder unlesbares Feld schickt GAR NICHTS: wer den Inhalt
         // loescht und wegklickt, hat es sich anders ueberlegt und meint nicht
         // "Gewicht 0".
-        if (Number.isNaN(g)) { weightInput.value = weightText(entry.gewicht); return; }
+        if (Number.isNaN(g)) { weightInput.value = weightText(entry.weight); return; }
         try {
-          const now = await api('PUT', `${url}/${entry.id}`, { name: entry.name, gewicht: g });
+          const now = await api('PUT', `${url}/${entry.id}`, { name: entry.name, weight: g });
           // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
           // zeigte die naechste Zeichnung wieder den alten Wert.
-          entry.gewicht = now.gewicht;
+          entry.weight = now.weight;
           // Zeigt die Rundung mit: 1,234 steht danach als 1,23 im Feld. Die
           // Rundung ist damit nicht still.
-          weightInput.value = weightText(now.gewicht);
+          weightInput.value = weightText(now.weight);
           toast(t('card.weightSaved'));
         } catch (e) {
           toast(e.message, true);
           // Kein Wert im Feld, der nicht gespeichert ist.
-          weightInput.value = weightText(entry.gewicht);
+          weightInput.value = weightText(entry.weight);
         }
       };
       row.querySelector('.ed').onclick = () => {
@@ -8352,7 +8352,7 @@ function setUpCriteriaOut(fetched, phase) {
         inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') adminNew(fetched); };
       };
       row.querySelector('.rm').onclick = async () => {
-        if (!await confirmBox(t(art.frage), art.warnung(entry))) return;
+        if (!await confirmBox(t(spec.frage), spec.warnung(entry))) return;
         try { await api('DELETE', `${url}/${entry.id}`); toast(t('card.deleted')); adminNew(fetched); }
         catch (e) { toast(e.message, true); }
       };
@@ -8456,7 +8456,7 @@ function setUpVocabularyOut() {
     const b1 = w.berichtEinzahl.trim() || V.berichtEinzahl;
     const bm = w.berichtMehrzahl.trim() || V.berichtMehrzahl;
     const a1 = w.aufgabeEinzahl.trim() || V.aufgabeEinzahl;
-    const am = w.aufgabeMehrzahl.trim() || V.aufgabeMehrzahl;
+    const at = w.aufgabeMehrzahl.trim() || V.aufgabeMehrzahl;
     const ae = w.aufgabeErledigt.trim() || V.aufgabeErledigt;
     const po = w.potenzial.trim() || V.potenzial;
     const rateOne = w.bewertungEinzahl.trim() || V.bewertungEinzahl;
@@ -8467,7 +8467,7 @@ function setUpVocabularyOut() {
        <span>${esc(ja)} / ${esc(nein)}</span>
        <span>1 ${esc(z1)}</span><span>3 ${esc(zm)}</span>
        <span>${tH('card.markAs', { b1: b1 })}</span><span>2 ${esc(bm)}</span>
-       <span>${tH('card.markAs', { b1: a1 })}</span><span>4 ${esc(am)}</span>
+       <span>${tH('card.markAs', { b1: a1 })}</span><span>4 ${esc(at)}</span>
        <span>${tH('card.setTo', { ae: ae })}</span>
        ${/* DIE PROBE ZEIGT DAS WORT SO, WIE ES SPAETER STEHT -- getrennt und
             nie verbaut. Wer „Erwartung" eintippt, sieht hier „Erwartung:
@@ -8722,14 +8722,14 @@ function setUpTrashOut(fetched) {
       row.dataset.pkid = z.id;
       const offen = Number(z.tageOffen);
       const meta = [
-        t('card.deletedByOn', { geloescht_am: fmtDate(z.geloescht_am), loeschender: authorName(z.loeschender) }),
+        t('card.deletedByOn', { geloescht_am: fmtDate(z.deleted_at), loeschender: authorName(z.loeschender) }),
         t('card.daysLeft', { n: offen }),
         fmtBytes(z.bytes)
       ];
       // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.
-      row.innerHTML = `<span class="mname">${esc(z.titel)}</span>
+      row.innerHTML = `<span class="mname">${esc(z.title)}</span>
         ${OWNER ? `<button class="mact trash-back" title="${esc(t('card.restore'))}">${tH('card.restoreIcon', { iconWiederher: ICON_RESTORE })}</button>
         <button class="mact rm trash-remove" title="${esc(t('card.deleteForGood'))}">${ICON_X}</button>` : ''}
         <span class="trash-meta">${esc(meta.join(' · '))}</span>`;
@@ -8741,7 +8741,7 @@ function setUpTrashOut(fetched) {
           // Die unbekannten Verfasser stehen in der Antwort und gehoeren
           // gesagt: sie sind beim Zurueckholen an MICH gefallen.
           const open = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
-          toast(t('card.restored', { titel: z.titel }) +
+          toast(t('card.restored', { titel: z.title }) +
             (open.length ? t('card.postsAssignedHint', { namen: open.join(', ') }) : ''));
           trashNew(fetched);
         } catch (e) { toast(e.message, true); }
@@ -8749,7 +8749,7 @@ function setUpTrashOut(fetched) {
       const weg = row.querySelector('.trash-remove');
       if (weg) weg.onclick = async () => {
         if (!await confirmBox(t('card.deleteForGoodAsk'),
-          t('card.purgeHint', { titel: z.titel }),
+          t('card.purgeHint', { titel: z.title }),
           t('card.deleteForGood'))) return;
         try {
           await api('DELETE', `/api/trash/${z.id}`);
@@ -8944,7 +8944,7 @@ function setUpUsersOut() {
     // Sonst baut ihn der Browser wie bisher.
     const adresse = d.link || buildInviteUrl(d.token);
     box.innerHTML = `<div class="warn-box user-linkbox" style="margin:12px 0 0">
-      <strong>${d.zweck === 'ruecksetzung' ? t('card.resetLink') : t('card.inviteLink')}
+      <strong>${d.purpose === 'ruecksetzung' ? t('card.resetLink') : t('card.inviteLink')}
       ${tH('card.forQuote')}${esc(d.username || '')}${tH('card.shownOnce')}</strong>
       ${tH('card.linkHolderHint')} <strong>${d.tage || 7} ${tH('card.days')}</strong> ${tH('card.valid')}
       <strong>${tH('card.once')}</strong> ${tH('card.usableAfterOpen')} <strong>${d.minuten || 15} ${tH('card.minutes')}</strong> ${tH('card.linkCarefulHint')}
@@ -9067,14 +9067,14 @@ function setUpUsersOut() {
            Weg kommt ohne den Browser des anderen aus — für jemanden, der
            danebensteht, ist er der kürzere. */
         tool.querySelector('.user-link-btn').onclick = async () => {
-          const zweck = z.ohnePasswort ? 'einladung' : 'ruecksetzung';
-          if (zweck === 'ruecksetzung' && !await confirmBox(t('card.resetLinkAsk'),
+          const purpose = z.ohnePasswort ? 'einladung' : 'ruecksetzung';
+          if (purpose === 'ruecksetzung' && !await confirmBox(t('card.resetLinkAsk'),
             t('card.oldPasswordValid', { username: z.username }) +
             t('card.oldLinkVoid'), t('card.create'))) return;
           if (!await secondConfirm('link', z.id,
-            zweck === 'ruecksetzung' ? t('card.resetLink') : t('card.inviteLink'),
+            purpose === 'ruecksetzung' ? t('card.resetLink') : t('card.inviteLink'),
             t('card.linkHolderUser', { username: z.username }))) return;
-          try { showLink(await api('POST', `/api/users/${z.id}/token`, { zweck })); }
+          try { showLink(await api('POST', `/api/users/${z.id}/token`, { purpose })); }
           catch (e) { toast(e.message, true); }
           drawUsers();
         };
@@ -9274,7 +9274,7 @@ function setUpRequestsOut(fetched) {
       row.innerHTML = `<span class="mname">${esc(a.username)}</span>
         <span class="user-role">${esc(a.email)}</span>
         <span class="user-status">${tH('card.requestedAt', { created_at: fmtDate(a.created_at) })}</span>
-        <span class="mcount">${tH('card.confirmed', { bestaetigt_am: fmtDate(a.bestaetigt_am) })}</span>`;
+        <span class="mcount">${tH('card.confirmed', { bestaetigt_am: fmtDate(a.confirmed_at) })}</span>`;
       const tool = doc.createElement('span');
       tool.className = 'user-act';
       tool.innerHTML =
@@ -9372,9 +9372,9 @@ function setUpLogOut(fetched) {
   // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "gesperrt"
   // und "entsperrt" sind zwei verschiedene Aussagen und sollen auch zwei
   // verschiedene Zeilen sein.
-  const eventWord = (z) => z.was === 'zugang.status'
-    ? (z.merkmal === 'aktiv' ? t('card.userUnlocked') : t('card.userLocked'))
-    : (EVENT_WORD[z.was] ? t(EVENT_WORD[z.was]) : z.was);
+  const eventWord = (z) => z.event === 'zugang.status'
+    ? (z.detail === 'aktiv' ? t('card.userUnlocked') : t('card.userLocked'))
+    : (EVENT_WORD[z.event] ? t(EVENT_WORD[z.event]) : z.event);
   // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
   // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
   /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- detailWord() faellt still
@@ -9398,21 +9398,21 @@ function setUpLogOut(fetched) {
     name: 'card.name', passwort: 'login.password', adresse: 'card.address',
     beides: 'card.severalValues', teil: 'card.inParts'
   };
-  const detailWord = (z) => (z.was === 'zugang.status' || !DETAIL_WORD[z.merkmal]
-    ? '' : t(DETAIL_WORD[z.merkmal]));
+  const detailWord = (z) => (z.event === 'zugang.status' || !DETAIL_WORD[z.detail]
+    ? '' : t(DETAIL_WORD[z.detail]));
 
   /* WER GEHANDELT HAT. Eine leere Nummer heisst "per Kommandozeile am Server"
      (usertool.js auf dem Wirt) -- mit genau einer Ausnahme, und die ist am
      Vorgang zu erkennen: bei einer gescheiterten Anmeldung war niemand
      angemeldet. */
   const logActor = (z) => {
-    if (z.wer != null) return authorName({ id: z.wer, name: z.werName, geloescht: z.werName == null });
-    return z.was === 'anmeldung.fehl' ? '—' : t('card.viaCommandLine');
+    if (z.actor != null) return authorName({ id: z.actor, name: z.werName, geloescht: z.werName == null });
+    return z.event === 'anmeldung.fehl' ? '—' : t('card.viaCommandLine');
   };
   const logTarget = (z) => {
-    if (z.ziel == null) return z.was === 'anmeldung.fehl' ? t('card.unknownName') : '';
-    if (z.ziel === z.wer) return '';
-    return authorName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
+    if (z.target == null) return z.event === 'anmeldung.fehl' ? t('card.unknownName') : '';
+    if (z.target === z.actor) return '';
+    return authorName({ id: z.target, name: z.zielName, geloescht: z.zielName == null });
   };
 
   /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
@@ -9544,27 +9544,27 @@ function setUpLogOut(fetched) {
     for (const z of zeilen) {
       const row = doc.createElement('div');
       row.className = 'log-row';
-      row.dataset.event = z.was;
+      row.dataset.event = z.event;
       const wen = logTarget(z), merk = detailWord(z);
       const zeit = doc.createElement('span');
-      zeit.className = 'log-time'; zeit.textContent = fmtDate(z.am);
-      const was = doc.createElement('span');
-      was.className = 'log-event'; was.textContent = eventWord(z);
-      row.appendChild(zeit); row.appendChild(was);
+      zeit.className = 'log-time'; zeit.textContent = fmtDate(z.at);
+      const event = doc.createElement('span');
+      event.className = 'log-event'; event.textContent = eventWord(z);
+      row.appendChild(zeit); row.appendChild(event);
       // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
       // "ueber usertool.js auf dem Wirt" haben keine.
       row.appendChild(logNameField(doc, 'log-actor', logActor(z),
-        z.wer != null ? z.wer : null));
+        z.actor != null ? z.actor : null));
       row.appendChild(logNameField(doc, 'log-target', wen,
-        z.ziel != null ? z.ziel : null, '→ '));
+        z.target != null ? z.target : null, '→ '));
       const detailEl = doc.createElement('span');
       detailEl.className = 'log-detail';
       /* DIESELBE MARKE WIE IN DER BENUTZERLISTE hinter dem Rollenwort -- 0.22.0
          (Konzept 6.7). Alles andere bleibt Text; die Marke selbst entsteht
          als Knoten und nicht als Vorlage, der Wortlaut geht durch textContent. */
-      if (merk && ROLE_WORD[z.merkmal]) {
+      if (merk && ROLE_WORD[z.detail]) {
         const mark = doc.createElement('span');
-        mark.className = 'role-badge ' + z.merkmal;
+        mark.className = 'role-badge ' + z.detail;
         mark.textContent = merk;
         detailEl.appendChild(mark);
       } else detailEl.textContent = merk || '';
@@ -9573,10 +9573,10 @@ function setUpLogOut(fetched) {
     }
     if (foot) {
       const gesamt = Number(d.gesamt) || zeilen.length;
-      const art = logGroup ? t('card.ofThisKind') : '';
+      const kind = logGroup ? t('card.ofThisKind') : '';
       foot.textContent = gesamt > zeilen.length
-        ? t('card.logNewestHint', { length: zeilen.length, gesamt: gesamt, art: art })
-        : t('card.eventCount', { n: gesamt, art: art });
+        ? t('card.logNewestHint', { length: zeilen.length, gesamt: gesamt, art: kind })
+        : t('card.eventCount', { n: gesamt, art: kind });
     }
   }
 
@@ -10434,7 +10434,7 @@ function setUpCleanupOut(fetched) {
       const mark = z.faellt ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.veraltet ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
-        <span class="mname">#${z.nr} · ${esc(fmtDate(z.am))}</span>${mark}
+        <span class="mname">#${z.nr} · ${esc(fmtDate(z.at))}</span>${mark}
         <span class="mcount">${tH('card.daysAgo', { n: z.tageHer })} · ${
           esc(fmtBytes(z.bytes))}</span></div>`;
     };
@@ -10571,10 +10571,10 @@ function setUpCleanupOut(fetched) {
        und Knopfdruck kann sich der Ordner geaendert haben. Die Antwort nennt
        deshalb, was WIRKLICH geloescht wurde, und die Karte zeichnet sich
        daraus neu. */
-    const clear = async (art, titel, was) => {
-      if (!(await secondConfirm('sicherung', null, titel, was))) return;
+    const clear = async (kind, title, event) => {
+      if (!(await secondConfirm('sicherung', null, title, event))) return;
       let r;
-      try { r = await api('POST', '/api/backup/cleanup', { art }); }
+      try { r = await api('POST', '/api/backup/cleanup', { kind }); }
       catch (e) { return toast(e.message, true); }
       fetched.sicherung = { ...fetched.sicherung, erreichbar: r.erreichbar, letzte: r.letzte,
                            zahl: r.zahl, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
@@ -10764,10 +10764,10 @@ function setUpExportOut(fetched) {
   async function drawPartPlan() {
     const boxId = document.getElementById('ex-plan-out');
     if (!boxId) return;
-    const ziel = document.getElementById('ex-target')?.value || '';
+    const target = document.getElementById('ex-target')?.value || '';
     boxId.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">${tH('card.calculating')}</p>`;
     let plan;
-    try { plan = await api('GET', `/api/export/plan?${partSwitch()}&ziel=${encodeURIComponent(ziel)}`); }
+    try { plan = await api('GET', `/api/export/plan?${partSwitch()}&target=${encodeURIComponent(target)}`); }
     catch (e) { boxId.innerHTML = `<p class="hint hint-sm">${esc(e.message)}</p>`; return; }
 
     const n = (plan.teile || []).length;
@@ -10783,7 +10783,7 @@ function setUpExportOut(fetched) {
       <strong>${plan.zuGross.length} ${esc(vThing(plan.zuGross.length))}
       ${plural(plan.zuGross.length, tH('card.matches'), tH('card.match'))} ${tH('card.inNoPart')}</strong> ${tH('card.aloneOverLimit', { string: fmtBytes(plan.string) })}
       <ul style="margin:6px 0 0 18px">${plan.zuGross.map(z =>
-        `<li>${esc(z.titel)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
+        `<li>${esc(z.title)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
       <p style="margin:8px 0 0">${tH('card.withoutVideosHint')}</p></div>` : '';
 
     boxId.innerHTML = `${tooBig}

@@ -175,7 +175,7 @@ async function convertInventory(rows) {
    zwar, aber es entstuende aus sich selbst -- eine dritte JPEG-Kodierung
    desselben Standbilds, die kein Bildpunkt besser wird. Eine Ableitung, die
    schlechter ist als die alte, gibt es nicht. */
-const isVideoRow = (z) => z && z.art === 'video';
+const isVideoRow = (z) => z && z.kind === 'video';
 const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);
 const cropFrom = (z) => ({ fx: Number(z.focus_x), fy: Number(z.focus_y),
                                zoom: Number(z.zoom) });
@@ -196,7 +196,7 @@ async function backfillThumbnails(rows) {
      im Bild); ohne sie entstuende hier eine ungeschnittene Kachel, die der
      Lauf gleich danach ein zweites Mal anfassen muesste. */
   const get = db.prepare(
-    'SELECT data, art, medium, focus_x, focus_y, zoom FROM photos WHERE id = ?');
+    'SELECT data, kind, medium, focus_x, focus_y, zoom FROM photos WHERE id = ?');
   const upd = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
   let done = 0;
   for (const { id } of rows) {
@@ -274,7 +274,7 @@ async function refreshTiles(rows) {
   const status = { laeuft: true, gesamt: rows.length, erledigt: 0,
                   geprueft: 0, nachgezogen: 0, uebersprungen: 0, zugenommen: 0 };
   const get = db.prepare(
-    'SELECT data, thumb, medium, art, focus_x, focus_y, zoom FROM photos WHERE id = ?');
+    'SELECT data, thumb, medium, kind, focus_x, focus_y, zoom FROM photos WHERE id = ?');
   for (const { id } of rows) {
     try {
       const z = get.get(id);
@@ -399,7 +399,7 @@ async function refreshRow(id, z) {
 async function refreshOneTile(rows) {
   const id = rows && rows[0] && rows[0].id;
   const z = id ? db.prepare(
-    'SELECT data, thumb, medium, art, focus_x, focus_y, zoom FROM photos WHERE id = ?')
+    'SELECT data, thumb, medium, kind, focus_x, focus_y, zoom FROM photos WHERE id = ?')
     .get(id) : null;
   let ok = false;
   if (z) {

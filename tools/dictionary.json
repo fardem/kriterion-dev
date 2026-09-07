@@ -484,6 +484,7 @@
   "volltext": "fulltext",
   "von": "from",
   "vorgabe": "default",
+  "vorgaben": "rules",
   "vorgang": "event",
   "vorher": "before",
   "vorlage": "template",
@@ -631,23 +632,23 @@
   "tokens.zweck": "purpose",
   "tokens.ablauf": "expires_at",
   "tokens.benutzt_am": "used_at",
-  "anfragen.bestaetigt_am": "confirmed_at",
-  "zweifaktor.geheim": "secret",
-  "zweifaktor.bestaetigt_am": "confirmed_at",
-  "zweifaktor.letzter_zaehler": "last_counter",
-  "zweifaktor_codes.benutzt_am": "used_at",
-  "sicherheitsprotokoll.am": "at",
-  "sicherheitsprotokoll.was": "event",
-  "sicherheitsprotokoll.wer": "actor",
-  "sicherheitsprotokoll.ziel": "target",
-  "sicherheitsprotokoll.merkmal": "detail",
-  "papierkorb.geloescht_am": "deleted_at",
-  "papierkorb.geloescht_von": "deleted_by",
-  "papierkorb.titel": "title",
-  "papierkorb.inhalt": "content",
-  "papierkorb_bytes.papierkorb_id": "trash_id",
-  "papierkorb_bytes.nr": "part",
-  "papierkorb_bytes.daten": "data"
+  "requests.bestaetigt_am": "confirmed_at",
+  "two_factor.geheim": "secret",
+  "two_factor.bestaetigt_am": "confirmed_at",
+  "two_factor.letzter_zaehler": "last_counter",
+  "two_factor_codes.benutzt_am": "used_at",
+  "security_log.am": "at",
+  "security_log.was": "event",
+  "security_log.wer": "actor",
+  "security_log.ziel": "target",
+  "security_log.merkmal": "detail",
+  "trash.geloescht_am": "deleted_at",
+  "trash.geloescht_von": "deleted_by",
+  "trash.titel": "title",
+  "trash.inhalt": "content",
+  "trash_bytes.papierkorb_id": "trash_id",
+  "trash_bytes.nr": "part",
+  "trash_bytes.daten": "data"
  },
  "values": {
   "event": {
@@ -1164,5 +1165,12 @@
   "einloesen": "redeem",
   "pruefen": "check",
   "an": "on"
+ },
+ "indexes": {
+  "idx_papierkorb_am": "idx_trash_at",
+  "idx_protokoll_am": "idx_log_at",
+  "idx_zweifaktor_codes_user": "idx_two_factor_codes_user",
+  "idx_photos_art": "idx_photos_kind",
+  "idx_photos_kachel": "idx_photos_tile"
  }
 }
