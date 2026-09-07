@@ -4738,8 +4738,8 @@ app.get('/api/stats', adminOnly, (req, res) => {
      Bedeutung und bekommen einen Nachbarn -- itemCount zaehlt weiterhin die
      Eintraege, und ein geloeschter ist keiner mehr. */
   const pk = db.prepare(`SELECT COUNT(*) AS n,
-      COALESCE(SUM(length(inhalt)),0) + COALESCE((SELECT SUM(length(daten)) FROM papierkorb_bytes),0) AS o
-    FROM papierkorb`).get();
+      COALESCE(SUM(length(inhalt)),0) + COALESCE((SELECT SUM(length(daten)) FROM trash_bytes),0) AS o
+    FROM trash`).get();
   /* Kommentarbilder standen bisher in keiner Zeile. Sie liegen als Blob in
      derselben Datei wie Fotos und Anhaenge, gehen mit dem Dateischalter in den
      Export -- und fehlten damit ausgerechnet in der Aufstellung, die erklaeren
@@ -4872,7 +4872,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('bilder'), (req, 
    DIE BYTES GEHEN UEBER EINEN TRICHTER, nicht ueber ein festes Feld:
      Exportdatei -- Base64 im Feld <name>_base64. Die Datei ist EIN String.
      Papierkorb  -- eine NUMMER im Feld <name>_ref; die Bytes liegen daneben
-                    in papierkorb_bytes, als Bytes.
+                    in trash_bytes, als Bytes.
    Der Grund ist gemessen: ein Eintrag darf zwanzig Videos zu je 20 MB tragen.
    Als Base64 sind das 533 MB in EINEM String, und Node haelt keinen String
    ueber 512 MB (MAX_STRING_LENGTH = 536.870.888) -- JSON.stringify antwortet
@@ -4910,7 +4910,7 @@ const FUNNEL_FILE = { extension: '_base64', nimm: (buf) => buf.toString('base64'
 
 /* Der Trichter des Papierkorbs. Er sammelt die Bytes in einer Liste und legt
    nur ihre Nummer ins Paket; die Liste wandert danach zeilenweise nach
-   papierkorb_bytes. So entsteht an keiner Stelle ein grosser String. */
+   trash_bytes. So entsteht an keiner Stelle ein grosser String. */
 function funnelStore(collector) {
   return { extension: '_ref', nimm: (buf) => { collector.push(buf); return collector.length - 1; } };
 }
@@ -5929,13 +5929,13 @@ app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
 const TRASH_DAYS = 30;
 
 const insTrash = db.prepare(
-  'INSERT INTO papierkorb (titel, inhalt, geloescht_von) VALUES (?, ?, ?)');
+  'INSERT INTO trash (titel, inhalt, geloescht_von) VALUES (?, ?, ?)');
 const insTrashBytes = db.prepare(
-  'INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (?, ?, ?)');
+  'INSERT INTO trash_bytes (papierkorb_id, nr, daten) VALUES (?, ?, ?)');
 const qTrashBytes = db.prepare(
-  'SELECT daten FROM papierkorb_bytes WHERE papierkorb_id = ? AND nr = ?');
+  'SELECT daten FROM trash_bytes WHERE papierkorb_id = ? AND nr = ?');
 const delTrashOld = db.prepare(
-  "DELETE FROM papierkorb WHERE geloescht_am < datetime('now', ?)");
+  "DELETE FROM trash WHERE geloescht_am < datetime('now', ?)");
 
 /* ZWEI AUFRUFSTELLEN, beide noetig -- beim Start und beim Oeffnen der Karte.
    Eine Instanz, die drei Monate durchlaeuft, raeumte sonst drei Monate lang
@@ -5998,10 +5998,10 @@ function intoTrash(itemId, wer) {
    unter FREMDEM Namen an -- das ist naeher am Import als am Loeschen, und der
    steht hinter ownerOnly. */
 const qTrash = db.prepare(`SELECT p.id, p.titel, p.geloescht_am, p.geloescht_von,
-    (SELECT COUNT(*) FROM papierkorb_bytes b WHERE b.papierkorb_id = p.id) AS dateien,
+    (SELECT COUNT(*) FROM trash_bytes b WHERE b.papierkorb_id = p.id) AS dateien,
     length(p.inhalt) + COALESCE(
-      (SELECT SUM(length(b.daten)) FROM papierkorb_bytes b WHERE b.papierkorb_id = p.id), 0) AS bytes
-  FROM papierkorb p ORDER BY p.geloescht_am DESC, p.id DESC`);
+      (SELECT SUM(length(b.daten)) FROM trash_bytes b WHERE b.papierkorb_id = p.id), 0) AS bytes
+  FROM trash p ORDER BY p.geloescht_am DESC, p.id DESC`);
 
 app.get('/api/trash', adminOnly, (req, res) => {
   cleanupTrash();
@@ -6036,7 +6036,7 @@ app.get('/api/trash', adminOnly, (req, res) => {
    steht in keiner Exportdatei, und der Papierkorb ist eine. */
 app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
   try {
-    const z = db.prepare('SELECT * FROM papierkorb WHERE id = ?').get(req.params.id);
+    const z = db.prepare('SELECT * FROM trash WHERE id = ?').get(req.params.id);
     if (!z) return res.status(404).json({ error: t(localeOf(req), 'server.trashGone')});
     let umschlag;
     try { umschlag = JSON.parse(z.inhalt); }
@@ -6050,7 +6050,7 @@ app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
     };
     const ergebnis = await importInto(umschlag, req.benutzer.id, 'merge', quelle);
     // Erst nach dem Einspielen: scheitert es, bleibt die Zeile liegen.
-    db.prepare('DELETE FROM papierkorb WHERE id = ?').run(z.id);
+    db.prepare('DELETE FROM trash WHERE id = ?').run(z.id);
     reclaim();
     res.json({ ...ergebnis, itemId: ergebnis.newIds[0] ?? null, titel: z.titel });
   } catch (e) {
@@ -6067,7 +6067,7 @@ app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
 // einen Rueckweg nehmen darf, darf ihn auch schliessen. Die Bytes fallen ueber
 // ON DELETE CASCADE mit.
 app.delete('/api/trash/:id', ownerOnly, (req, res) => {
-  const n = db.prepare('DELETE FROM papierkorb WHERE id = ?').run(req.params.id).changes;
+  const n = db.prepare('DELETE FROM trash WHERE id = ?').run(req.params.id).changes;
   if (!n) return res.status(404).json({ error: t(localeOf(req), 'server.trashGone')});
   reclaim();
   res.status(204).end();

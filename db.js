@@ -499,7 +499,7 @@ CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
    CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
    (Stolperstein 13 gilt der Spalte). Es bleibt bei fuenf markierten
    Bloecken. */
-CREATE TABLE IF NOT EXISTS anfragen (
+CREATE TABLE IF NOT EXISTS requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   hash TEXT NOT NULL UNIQUE,
   username TEXT NOT NULL,
@@ -539,7 +539,7 @@ CREATE TABLE IF NOT EXISTS anfragen (
    UND setzeStatus() TUT DAS AUSDRUECKLICH NICHT: ein gesperrter Zugang
    behaelt seinen zweiten Faktor. Sonst waere "sperren und wieder freigeben"
    der Weg, an dem ein Admin einen FREMDEN zweiten Faktor abstreift. */
-CREATE TABLE IF NOT EXISTS zweifaktor (
+CREATE TABLE IF NOT EXISTS two_factor (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   geheim TEXT NOT NULL,
   bestaetigt_am TEXT,
@@ -566,7 +566,7 @@ CREATE TABLE IF NOT EXISTS zweifaktor (
    beim Neuerzeugen oder Abschalten, beides in einer Transaktion.
 
    ON DELETE CASCADE aus demselben Grund wie oben. */
-CREATE TABLE IF NOT EXISTS zweifaktor_codes (
+CREATE TABLE IF NOT EXISTS two_factor_codes (
   hash TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   benutzt_am TEXT,
@@ -577,7 +577,7 @@ CREATE TABLE IF NOT EXISTS zweifaktor_codes (
 -- Ueberlegung wie bei idx_tokens_user, und wie dort ist ein Index keine
 -- Migration: er fasst die Zeilenform nicht an und legt sich bei jedem Start
 -- selbst nach.
-CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id);
+CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);
 
 /* KEIN MIGRATIONSBLOCK FUER DIE BEIDEN: anders als eine SPALTE legt
    CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
@@ -616,7 +616,7 @@ CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id
 
    ON DELETE SET NULL statt CASCADE: mit dem Menschen verschwindet der Vorgang
    nicht. */
-CREATE TABLE IF NOT EXISTS sicherheitsprotokoll (
+CREATE TABLE IF NOT EXISTS security_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   am TEXT NOT NULL DEFAULT (datetime('now')),
   was TEXT NOT NULL,
@@ -625,8 +625,8 @@ CREATE TABLE IF NOT EXISTS sicherheitsprotokoll (
   merkmal TEXT
 );
 -- Gefragt wird immer nach den JUENGSTEN Zeilen und geraeumt nach dem Alter --
--- beides ueber am. Wie bei idx_papierkorb_am ist ein Index keine Migration.
-CREATE INDEX IF NOT EXISTS idx_protokoll_am ON sicherheitsprotokoll(am);
+-- beides ueber am. Wie bei idx_trash_at ist ein Index keine Migration.
+CREATE INDEX IF NOT EXISTS idx_log_at ON security_log(am);
 
 -- Der Favorit: eine Aussage eines Benutzers ueber einen Eintrag, keine
 -- Eigenschaft des Eintrags -- deshalb eine eigene Tabelle. Es gibt nur Zeilen
@@ -684,18 +684,18 @@ CREATE TABLE IF NOT EXISTS user_settings (
 --
 -- inhalt IST EIN VOLLSTAENDIGER EXPORTUMSCHLAG MIT EINEM EINTRAG -- bis auf
 -- die Bytes. Fotos, Videos, Dateien und Kommentarbilder tragen statt Base64
--- eine NUMMER und liegen in papierkorb_bytes daneben. Der Grund ist gemessen:
+-- eine NUMMER und liegen in trash_bytes daneben. Der Grund ist gemessen:
 -- zwanzig Videos zu je 20 MB sind als Base64 533 MB in EINEM String, und Node
 -- haelt keinen String ueber 512 MB. Zippen half nicht -- der String entstuende
 -- davor. Deshalb TEXT und eine zweite Tabelle statt eines gezippten BLOB.
-CREATE TABLE IF NOT EXISTS papierkorb (
+CREATE TABLE IF NOT EXISTS trash (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   geloescht_am TEXT NOT NULL DEFAULT (datetime('now')),
   geloescht_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
   titel TEXT NOT NULL,
   inhalt TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_papierkorb_am ON papierkorb(geloescht_am);
+CREATE INDEX IF NOT EXISTS idx_trash_at ON trash(geloescht_am);
 
 -- Eine Zeile je Blob. Die Nummer nr ist die, die im Paket steht; UNIQUE haelt
 -- fest, dass zu einer Nummer genau ein Paket Bytes gehoert.
@@ -706,9 +706,9 @@ CREATE INDEX IF NOT EXISTS idx_papierkorb_am ON papierkorb(geloescht_am);
 -- sind das hoechstens 50 MB (die Grenze am Anhang). Und wenn Teil II des
 -- Videopapiers Dateien bis 2 GB bringt, teilt sich eine Datei hier auf
 -- mehrere nr auf -- SQLite traegt in einer Zelle rund 950 MB.
-CREATE TABLE IF NOT EXISTS papierkorb_bytes (
+CREATE TABLE IF NOT EXISTS trash_bytes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  papierkorb_id INTEGER NOT NULL REFERENCES papierkorb(id) ON DELETE CASCADE,
+  papierkorb_id INTEGER NOT NULL REFERENCES trash(id) ON DELETE CASCADE,
   nr INTEGER NOT NULL,
   daten BLOB NOT NULL,
   UNIQUE(papierkorb_id, nr)
@@ -760,6 +760,55 @@ const db = open(DB_FILE);
    damit kein "kein Treffer", sondern ein Wert, mit dem sich nicht rechnen
    laesst. */
 db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));
+
+/* ================= MIGRATION 0.24.1 — DIE NAMEN DES BESTANDS ==============
+   ENTFAELLT MIT 1.0.
+
+   SECHS TABELLEN, SECHSUNDZWANZIG SPALTEN UND VIERUNDFUENFZIG WERTE heissen
+   ab dieser Runde englisch. Ein Schemaname ist kein Inhalt, sondern Code --
+   und `db.js` waere sonst der eine Ort, an dem Deutsch stehen bliebe.
+
+   SIE STEHT VOR `db.exec(SCHEMA)` UND NICHT DAHINTER, und das ist keine
+   Geschmacksfrage: die DDL legt `trash` mit `CREATE TABLE IF NOT EXISTS` an.
+   Liefe sie zuerst, staende neben dem vollen `papierkorb` ein leeres `trash`,
+   und `ALTER TABLE papierkorb RENAME TO trash` scheiterte an einem Namen, den
+   es schon gibt. Die Zeilen waeren nicht verloren, aber unsichtbar -- der
+   schlimmste aller Ausgaenge.
+
+   DIE LISTE STEHT IN `tools/dictionary.json` UND NUR DORT (Auftrag,
+   Bauabschnitt 6): dieselbe Datei, aus der das Namenswoerterbuch entsteht und
+   aus der der Import alte Exportdateien uebersetzt. Zwei Listen ueber
+   dieselbe Sache laufen auseinander.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
+   der Bestand selbst (`sqlite_master`), nicht ein Merker. Beim zweiten Lauf
+   -- und den gibt es, der Bestandslauf oeffnet dieselbe Datei aus seinem
+   Thread -- ist jede Tabelle laengst umbenannt, und der Block kehrt wortlos
+   zurueck. */
+const WOERTERBUCH = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
+
+/* DIE INDIZES DER UMBENANNTEN TABELLEN. `ALTER TABLE … RENAME TO` nimmt sie
+   mit, laesst ihnen aber ihren alten NAMEN -- und die DDL legt gleich darauf
+   denselben Index ein zweites Mal unter dem neuen an. Zwei Indizes ueber
+   dieselben Spalten sind kein Fehler, aber doppelte Arbeit bei jedem
+   Schreiben. Sie fallen deshalb hier weg; die DDL baut sie neu auf. */
+const ALTE_INDIZES = ['idx_papierkorb_am', 'idx_protokoll_am', 'idx_zweifaktor_codes_user'];
+
+function migration0241Tabellen() {
+  const da = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  const umzug = Object.entries(WOERTERBUCH.tables).filter(([alt, neu]) => da.has(alt) && !da.has(neu));
+  if (!umzug.length) return 0;
+  db.transaction(() => {
+    for (const alt of ALTE_INDIZES) db.exec(`DROP INDEX IF EXISTS ${alt}`);
+    for (const [alt, neu] of umzug) db.exec(`ALTER TABLE ${alt} RENAME TO ${neu}`);
+  })();
+  console.log(`[Kriterion] ${umzug.length} ${umzug.length === 1 ? 'Tabelle' : 'Tabellen'} umbenannt ` +
+    `(Migration auf 0.24.1): ${umzug.map(([a, b]) => `${a} → ${b}`).join(', ')}.`);
+  return umzug.length;
+}
+migration0241Tabellen();
+// ENDE MIGRATION 0.24.1 (Tabellen)
 
 db.exec(SCHEMA);
 

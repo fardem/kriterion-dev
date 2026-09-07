@@ -343,7 +343,7 @@ const RUECKBAUTEN = [
     nr: '35', name: 'Der Deckel zaehlt nur die BESTAETIGTEN',
     datei: 'auth.js',
     suche: "  if (countRequests() >= REQUEST_CAP) return null;",
-    ersatz: "  if (db.prepare('SELECT COUNT(*) n FROM anfragen WHERE bestaetigt_am IS NOT NULL').get().n >= REQUEST_CAP) return null;",
+    ersatz: "  if (db.prepare('SELECT COUNT(*) n FROM requests WHERE bestaetigt_am IS NOT NULL').get().n >= REQUEST_CAP) return null;",
     erwartet: 'Die Selbstanmeldung: der Deckel'
   },
   {
@@ -396,8 +396,8 @@ const RUECKBAUTEN = [
   {
     nr: '41', name: 'Auch die BESTAETIGTEN verfallen',
     datei: 'auth.js',
-    suche: "  \"DELETE FROM anfragen WHERE bestaetigt_am IS NULL AND created_at < datetime('now', ?)\");",
-    ersatz: "  \"DELETE FROM anfragen WHERE created_at < datetime('now', ?)\");",
+    suche: "  \"DELETE FROM requests WHERE bestaetigt_am IS NULL AND created_at < datetime('now', ?)\");",
+    ersatz: "  \"DELETE FROM requests WHERE created_at < datetime('now', ?)\");",
     erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
   {
@@ -454,15 +454,15 @@ const RUECKBAUTEN = [
   {
     nr: '50', name: 'Die Karte gibt den Hash der Anfrage mit heraus',
     datei: 'auth.js',
-    suche: "  `SELECT id, username, email, created_at, bestaetigt_am\n     FROM anfragen WHERE bestaetigt_am IS NOT NULL",
-    ersatz: "  `SELECT id, username, email, created_at, bestaetigt_am, hash\n     FROM anfragen WHERE bestaetigt_am IS NOT NULL",
+    suche: "  `SELECT id, username, email, created_at, bestaetigt_am\n     FROM requests WHERE bestaetigt_am IS NOT NULL",
+    ersatz: "  `SELECT id, username, email, created_at, bestaetigt_am, hash\n     FROM requests WHERE bestaetigt_am IS NOT NULL",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '51', name: 'Die unbestaetigte Anfrage erscheint beim Admin',
     datei: 'auth.js',
-    suche: "     FROM anfragen WHERE bestaetigt_am IS NOT NULL ORDER BY bestaetigt_am ASC, id ASC`);",
-    ersatz: "     FROM anfragen ORDER BY created_at ASC, id ASC`);",
+    suche: "     FROM requests WHERE bestaetigt_am IS NOT NULL ORDER BY bestaetigt_am ASC, id ASC`);",
+    ersatz: "     FROM requests ORDER BY created_at ASC, id ASC`);",
     erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   {
@@ -812,8 +812,8 @@ const RUECKBAUTEN = [
        ERSTEN Anwendung falsch. */
     nr: '91', name: 'Der bestaetigende Code beim Einschalten zaehlt nicht als verbraucht',
     datei: 'auth.js',
-    suche: "    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?\n      WHERE user_id = ?`).run(counter, id);",
-    ersatz: "    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = NULL\n      WHERE user_id = ?`).run(id);",
+    suche: "    `UPDATE two_factor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?\n      WHERE user_id = ?`).run(counter, id);",
+    ersatz: "    `UPDATE two_factor SET bestaetigt_am = datetime('now'), letzter_zaehler = NULL\n      WHERE user_id = ?`).run(id);",
     erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
   /* ---- Der zweite Faktor: die Anmeldung ---- */
@@ -930,7 +930,7 @@ const RUECKBAUTEN = [
   {
     nr: '103', name: 'Die alten Codes bleiben beim Erneuern stehen',
     datei: 'auth.js',
-    suche: "    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);\n    // tokenHash() WIRD WIEDERVERWENDET",
+    suche: "    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);\n    // tokenHash() WIRD WIEDERVERWENDET",
     ersatz: "    // tokenHash() WIRD WIEDERVERWENDET",
     erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
@@ -940,7 +940,7 @@ const RUECKBAUTEN = [
     datei: 'server.js',
     suche: "    res.json(auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id));",
     ersatz: "    res.json({ ...auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id),\n" +
-            "      geheim: db.prepare('SELECT geheim g FROM zweifaktor WHERE user_id = ?').get(req.benutzer.id).g });",
+            "      geheim: db.prepare('SELECT geheim g FROM two_factor WHERE user_id = ?').get(req.benutzer.id).g });",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
   {
@@ -948,7 +948,7 @@ const RUECKBAUTEN = [
     datei: 'server.js',
     suche: "             zweifaktor: auth.twoFactorState(req.benutzer.id) });",
     ersatz: "             zweifaktor: { ...auth.twoFactorState(req.benutzer.id),\n" +
-            "               geheim: (db.prepare('SELECT geheim g FROM zweifaktor WHERE user_id = ?').get(req.benutzer.id) || {}).g } });",
+            "               geheim: (db.prepare('SELECT geheim g FROM two_factor WHERE user_id = ?').get(req.benutzer.id) || {}).g } });",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
   {
@@ -974,7 +974,7 @@ const RUECKBAUTEN = [
     datei: 'auth.js',
     suche: "async function setNewPassword(userId, newPassword, wer) {",
     ersatz: "async function setNewPassword(userId, newPassword, wer) {\n" +
-            "  db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(Number(userId) || 0);",
+            "  db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(Number(userId) || 0);",
     erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
   },
   {
@@ -985,7 +985,7 @@ const RUECKBAUTEN = [
     nr: '109', name: 'Sperren raeumt den zweiten Faktor mit weg',
     datei: 'auth.js',
     suche: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  log('zugang.status'",
-    ersatz: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('zugang.status'",
+    ersatz: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('zugang.status'",
     erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
   },
   {
@@ -1054,7 +1054,7 @@ const RUECKBAUTEN = [
        zuruecknehmen und traegt dieselbe Aussage ueber CREATE ... IF NOT EXISTS. */
     nr: '115', name: 'Der Index auf zweifaktor_codes wird nicht mehr angelegt',
     datei: 'db.js',
-    suche: 'CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id);',
+    suche: 'CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);',
     ersatz: '',
     erwartet: 'Der zweite Faktor: die Tabellen legen sich selbst an'
   },

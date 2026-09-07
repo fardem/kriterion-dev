@@ -4890,42 +4890,42 @@ const freigabeHaupt = (zweck, ziel = null) =>
       return n;
     };
     const frisch = tTabellen();
-    pruefe('Eine frische Instanz traegt papierkorb ohne Migration',
-      frisch.includes('papierkorb'), JSON.stringify(frisch));
-    pruefe('Und papierkorb_bytes daneben',
-      frisch.includes('papierkorb_bytes'), JSON.stringify(frisch));
+    pruefe('Eine frische Instanz traegt trash ohne Migration',
+      frisch.includes('trash'), JSON.stringify(frisch));
+    pruefe('Und trash_bytes daneben',
+      frisch.includes('trash_bytes'), JSON.stringify(frisch));
 
     // Eine Zeile hinein, damit die Kaskade etwas zu tun bekommt.
     {
       const d = oeffne(tDatei);
-      const p = d.prepare("INSERT INTO papierkorb (titel, inhalt) VALUES ('X', '{}')").run().lastInsertRowid;
-      d.prepare('INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (?, 0, ?)')
+      const p = d.prepare("INSERT INTO trash (titel, inhalt) VALUES ('X', '{}')").run().lastInsertRowid;
+      d.prepare('INSERT INTO trash_bytes (papierkorb_id, nr, daten) VALUES (?, 0, ?)')
         .run(p, Buffer.from('bytes'));
       // Beide Tabellen von Hand entfernen -- UND eine vorhandene Spalte dazu.
-      d.exec('DROP TABLE papierkorb_bytes');
-      d.exec('DROP TABLE papierkorb');
+      d.exec('DROP TABLE trash_bytes');
+      d.exec('DROP TABLE trash');
       d.close();
     }
     const ohne = tTabellen();
     pruefe('Von Hand entfernt sind sie wirklich weg',
-      !ohne.includes('papierkorb') && !ohne.includes('papierkorb_bytes'), JSON.stringify(ohne));
+      !ohne.includes('trash') && !ohne.includes('trash_bytes'), JSON.stringify(ohne));
 
     kurzlauf(`require('./db'); console.log('da');`, tDir);
     const wieder = tTabellen();
-    pruefe('Ein einziger Start legt papierkorb wieder an',
-      wieder.includes('papierkorb'), JSON.stringify(wieder));
-    pruefe('Und papierkorb_bytes ebenso',
-      wieder.includes('papierkorb_bytes'), JSON.stringify(wieder));
+    pruefe('Ein einziger Start legt trash wieder an',
+      wieder.includes('trash'), JSON.stringify(wieder));
+    pruefe('Und trash_bytes ebenso',
+      wieder.includes('trash_bytes'), JSON.stringify(wieder));
     {
       const d = oeffne(tDatei);
-      const spalten = d.prepare('PRAGMA table_info(papierkorb)').all().map(c => c.name);
+      const spalten = d.prepare('PRAGMA table_info(trash)').all().map(c => c.name);
       pruefe('Sie traegt alle fuenf Spalten',
         gleich(spalten, ['id', 'geloescht_am', 'geloescht_von', 'titel', 'inhalt']),
         JSON.stringify(spalten));
-      const idx = d.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='papierkorb'")
+      const idx = d.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='trash'")
         .all().map(z => z.name);
       pruefe('Und den Index auf das Datum, ebenfalls ohne Migration',
-        idx.includes('idx_papierkorb_am'), JSON.stringify(idx));
+        idx.includes('idx_trash_at'), JSON.stringify(idx));
       /* UND DIE TRAGENDE REGEL DER PAPIERKORBRUNDE AN DER SCHMALSTEN STELLE:
          items bekommt KEINEN ZUSTAND. Ein `geloescht` dort beruehrte jede
          Abfrage im ganzen System. Gezaehlt wird gegen eine feste Liste, nicht
@@ -5182,14 +5182,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Der Eintrag daneben steht unveraendert da',
     pkZeilen("SELECT id FROM items WHERE title = 'Bleibt stehen'").length === 1);
   pruefe('Genau EINE Zeile liegt im Papierkorb',
-    pkZeilen('SELECT id FROM papierkorb').length === 1,
-    JSON.stringify(pkZeilen('SELECT id, titel FROM papierkorb')));
+    pkZeilen('SELECT id FROM trash').length === 1,
+    JSON.stringify(pkZeilen('SELECT id, titel FROM trash')));
 
   /* JEDE LESESTELLE ABGEFANGEN (Stolperstein 103): faellt die Zeile weg, sollen
      die Pruefungen darunter ROT werden und nicht der Lauf abreissen. Beim Bau
      ist genau das passiert -- eine Gegenprobe, die den Papierkorb gar nicht
      mehr fuellte, nahm den ganzen Lauf mit. */
-  const pkZeile = pkEine('SELECT id, titel, geloescht_von, length(inhalt) AS n FROM papierkorb') || {};
+  const pkZeile = pkEine('SELECT id, titel, geloescht_von, length(inhalt) AS n FROM trash') || {};
   pruefe('Sie traegt den Titel als eigene Spalte',
     pkZeile?.titel === 'Vollständig', JSON.stringify(pkZeile?.titel));
   pruefe('Und den Loeschenden', pkZeile?.geloescht_von === 3, JSON.stringify(pkZeile?.geloescht_von));
@@ -5198,7 +5198,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      liegen NICHT in der JSON. Der Umschlag bleibt klein, obwohl der Eintrag
      eine Videodatei traegt -- sonst entstuende bei zwanzig Videos ein String
      ueber der Grenze von Node. */
-  const pkBytesZeilen = pkZeilen('SELECT nr, length(daten) AS n FROM papierkorb_bytes ' +
+  const pkBytesZeilen = pkZeilen('SELECT nr, length(daten) AS n FROM trash_bytes ' +
     'WHERE papierkorb_id = ? ORDER BY nr', pkZeile.id ?? -1);
   pruefe('Die Bytes liegen daneben, eine Zeile je Blob',
     pkBytesZeilen.length === 6, JSON.stringify(pkBytesZeilen));
@@ -5210,15 +5210,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
      String ueber der Grenze von Node. Gesucht wird der Anfang genau dieser
      Datei, nicht irgendein Muster. */
   pruefe('Die Videobytes stehen nicht in der JSON',
-    !(pkEine('SELECT inhalt FROM papierkorb')?.inhalt || '').includes(MP4().toString('base64').slice(0, 60)),
+    !(pkEine('SELECT inhalt FROM trash')?.inhalt || '').includes(MP4().toString('base64').slice(0, 60)),
     MP4().toString('base64').slice(0, 60));
   pruefe('Sie liegen als eigene Zeile daneben',
     pkBytesZeilen.some(z => z.n === MP4().length), JSON.stringify(pkBytesZeilen.map(z => z.n)));
   pruefe('In der JSON steht kein data_base64',
-    !!pkZeile.n && !(pkEine('SELECT inhalt FROM papierkorb')?.inhalt || '').includes('data_base64'),
-    (pkEine('SELECT inhalt FROM papierkorb')?.inhalt || '(keine Zeile)').slice(0, 200));
+    !!pkZeile.n && !(pkEine('SELECT inhalt FROM trash')?.inhalt || '').includes('data_base64'),
+    (pkEine('SELECT inhalt FROM trash')?.inhalt || '(keine Zeile)').slice(0, 200));
   pruefe('Sondern data_ref',
-    (pkEine('SELECT inhalt FROM papierkorb')?.inhalt || '').includes('"data_ref"'));
+    (pkEine('SELECT inhalt FROM trash')?.inhalt || '').includes('"data_ref"'));
 
   /* DIE KENNZAHLEN WEISEN IHN GETRENNT AUS -- sonst wundert sich jemand ueber
      eine Datenbank, die nach dem Aufraeumen groesser ist als vorher. */
@@ -5255,9 +5255,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Eigentuemerin holt den Eintrag zurueck',
     pkZurueck.status === 200, JSON.stringify(pkZurueck.inhalt));
   pruefe('Die Papierkorbzeile ist danach weg',
-    pkZeilen('SELECT id FROM papierkorb').length === 0);
+    pkZeilen('SELECT id FROM trash').length === 0);
   pruefe('Und ihre Bytes mit ihr',
-    pkZeilen('SELECT id FROM papierkorb_bytes').length === 0);
+    pkZeilen('SELECT id FROM trash_bytes').length === 0);
   const pkNeuId = pkZurueck.inhalt?.itemId;
   pruefe('Die Antwort nennt die NEUE Nummer',
     Number.isInteger(pkNeuId) && pkNeuId !== pkItemId, JSON.stringify(pkNeuId));
@@ -5378,7 +5378,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     /* ERSTE LAGE: das EINFUEGEN scheitert. Danach darf nichts geschehen sein --
        weder eine Zeile im Papierkorb noch ein geloeschter Eintrag. */
-    pkSchreibe(`CREATE TRIGGER pk_bremse BEFORE INSERT ON papierkorb
+    pkSchreibe(`CREATE TRIGGER pk_bremse BEFORE INSERT ON trash
                 BEGIN SELECT RAISE(ABORT, 'Probe: der Papierkorb nimmt nichts an'); END`);
     const gescheitert2 = await pkRuf('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
     pruefe('Scheitert das Einfuegen, scheitert das Loeschen mit',
@@ -5387,8 +5387,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
       gleich(pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem), vorher),
       JSON.stringify(pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem)));
     pruefe('Und im Papierkorb liegt nichts',
-      pkZeilen('SELECT id FROM papierkorb').length === 0,
-      JSON.stringify(pkZeilen('SELECT id, titel FROM papierkorb')));
+      pkZeilen('SELECT id FROM trash').length === 0,
+      JSON.stringify(pkZeilen('SELECT id, titel FROM trash')));
     pkSchreibe('DROP TRIGGER pk_bremse');
 
     /* ZWEITE LAGE, UND SIE IST DIE, FUER DIE DIE TRANSAKTION DA IST: das
@@ -5408,25 +5408,25 @@ const freigabeHaupt = (zweck, ziel = null) =>
       gleich(pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem), vorher),
       JSON.stringify(pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem)));
     pruefe('UND es bleibt KEINE Papierkorbzeile zurueck',
-      pkZeilen('SELECT id FROM papierkorb').length === 0,
-      JSON.stringify(pkZeilen('SELECT id, titel FROM papierkorb')));
+      pkZeilen('SELECT id FROM trash').length === 0,
+      JSON.stringify(pkZeilen('SELECT id, titel FROM trash')));
     pruefe('Auch keine Bytes',
-      pkZeilen('SELECT id FROM papierkorb_bytes').length === 0,
-      JSON.stringify(pkZeilen('SELECT id FROM papierkorb_bytes')));
+      pkZeilen('SELECT id FROM trash_bytes').length === 0,
+      JSON.stringify(pkZeilen('SELECT id FROM trash_bytes')));
     pkSchreibe('DROP TRIGGER pk_bremse2');
     // Und der Beleg, dass es ohne die Bremse durchgeht -- sonst bliebe die
     // Probe daruber auch dann gruen, wenn das Loeschen gar nicht mehr ginge.
     const geht = await pkRuf('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
     pruefe('Ohne die Bremse geht derselbe Griff durch', geht.status === 204, `Status ${geht.status}`);
     pruefe('Und die Zeile liegt jetzt im Papierkorb',
-      pkZeilen('SELECT id FROM papierkorb').length === 1);
+      pkZeilen('SELECT id FROM trash').length === 1);
     // Aufraeumen: die Zeile endgueltig entfernen, damit die Lagen darunter
     // von einem bekannten Stand ausgehen.
-    const weg = pkEine('SELECT id FROM papierkorb').id;
+    const weg = pkEine('SELECT id FROM trash').id;
     pruefe('Endgueltig entfernen nimmt die Zeile',
       (await pkRuf('cookie-pk-anna', 'DELETE', `/api/trash/${weg}`)).status === 204);
     pruefe('Und ihre Bytes ueber die Kaskade mit',
-      pkZeilen('SELECT id FROM papierkorb_bytes').length === 0);
+      pkZeilen('SELECT id FROM trash_bytes').length === 0);
   }
 
   /* ---------------------------------------------------------------- */
@@ -5440,19 +5440,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
        in EINEM String ergibt NULL, und die Spalte ist NOT NULL. Nachgestellt
        beim ersten Lauf: der Prueflauf riss daran ab. */
     const setze = (titel, ...versatz) => {
-      pkSchreibe("INSERT INTO papierkorb (titel, inhalt, geloescht_von, geloescht_am) " +
+      pkSchreibe("INSERT INTO trash (titel, inhalt, geloescht_von, geloescht_am) " +
                  `VALUES (?, '{}', 1, datetime('now'${versatz.map(() => ', ?').join('')}))`,
                  titel, ...versatz);
-      return pkEine('SELECT id FROM papierkorb WHERE titel = ?', titel).id;
+      return pkEine('SELECT id FROM trash WHERE titel = ?', titel).id;
     };
     const idAlt = setze('zu alt', '-31 days');
     const idNeu = setze('von gestern', '-1 days');
     const idKnappDrin = setze('knapp drin', '-30 days', '+1 seconds');
     const idKnappDraussen = setze('knapp draussen', '-30 days', '-1 seconds');
-    pkSchreibe('INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (?, 0, ?)',
+    pkSchreibe('INSERT INTO trash_bytes (papierkorb_id, nr, daten) VALUES (?, 0, ?)',
       idAlt, Buffer.from('faellt mit'));
     pruefe('Vier Zeilen liegen bereit',
-      pkZeilen('SELECT id FROM papierkorb').length === 4);
+      pkZeilen('SELECT id FROM trash').length === 4);
 
     // ZWEITE AUFRUFSTELLE: das Oeffnen der Karte.
     const nachKarte = (await pkRuf('cookie-pk-anna', 'GET', '/api/trash')).inhalt;
@@ -5460,13 +5460,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Beim Oeffnen der Karte faellt heraus, was aelter als dreissig Tage ist',
       gleich(uebrig, ['knapp drin', 'von gestern']), JSON.stringify(uebrig));
     pruefe('Die Zeile von gestern bleibt',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idNeu).length === 1);
+      pkZeilen('SELECT id FROM trash WHERE id = ?', idNeu).length === 1);
     pruefe('Die Grenze traegt auf der einen Seite: eine Sekunde davor bleibt',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idKnappDrin).length === 1);
+      pkZeilen('SELECT id FROM trash WHERE id = ?', idKnappDrin).length === 1);
     pruefe('Und auf der anderen: eine Sekunde danach faellt heraus',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idKnappDraussen).length === 0);
+      pkZeilen('SELECT id FROM trash WHERE id = ?', idKnappDraussen).length === 0);
     pruefe('Die Bytes der herausgefallenen Zeile fallen mit',
-      pkZeilen('SELECT id FROM papierkorb_bytes WHERE papierkorb_id = ?', idAlt).length === 0);
+      pkZeilen('SELECT id FROM trash_bytes WHERE papierkorb_id = ?', idAlt).length === 0);
     pruefe('Die verbleibenden Tage stehen an jeder Zeile',
       (nachKarte.zeilen || []).every(z => Number.isInteger(z.tageOffen) && z.tageOffen >= 0),
       JSON.stringify((nachKarte.zeilen || []).map(z => [z.titel, z.tageOffen])));
@@ -5476,23 +5476,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     // ERSTE AUFRUFSTELLE: der Start. Eigens belegt, sonst bliebe offen, ob
     // ueberhaupt zwei Stellen aufraeumen.
-    pkSchreibe("UPDATE papierkorb SET geloescht_am = datetime('now', '-40 days') WHERE id = ?", idNeu);
+    pkSchreibe("UPDATE trash SET geloescht_am = datetime('now', '-40 days') WHERE id = ?", idNeu);
     pruefe('Die Zeile ist von Hand alt gemacht worden',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idNeu).length === 1);
+      pkZeilen('SELECT id FROM trash WHERE id = ?', idNeu).length === 1);
     // Ein eigener kurzer Lauf auf demselben Verzeichnis -- er laedt server.js
     // nicht, sondern nur db.js; deshalb wird der Start hier ueber einen
     // zweiten Server gefahren.
     const PK2 = starteWeiterenServer(pkDir, {}, 4260);
     await PK2.bereit;
     pruefe('Schon der Start raeumt sie weg',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idNeu).length === 0,
-      JSON.stringify(pkZeilen('SELECT id, titel, geloescht_am FROM papierkorb')));
+      pkZeilen('SELECT id FROM trash WHERE id = ?', idNeu).length === 0,
+      JSON.stringify(pkZeilen('SELECT id, titel, geloescht_am FROM trash')));
     pruefe('Und sagt es im Protokoll',
       /Papierkorb: \d+ Zeile\(n\) aelter als 30 Tage entfernt/.test(PK2.protokoll()),
       PK2.protokoll().slice(-400));
     await PK2.stopp();
     // Aufraeumen fuer die Lagen darunter.
-    pkSchreibe('DELETE FROM papierkorb');
+    pkSchreibe('DELETE FROM trash');
   }
 
   /* ---------------------------------------------------------------- */
@@ -5506,7 +5506,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const opferId = (await pkRuf('cookie-pk-carla', 'POST', '/api/items',
       { title: 'Zum Wegwerfen' })).inhalt?.id;
     await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${opferId}`);
-    const zeile = pkEine('SELECT id FROM papierkorb') || {};
+    const zeile = pkEine('SELECT id FROM trash') || {};
     pruefe('Eine Zeile liegt bereit', Number.isInteger(zeile.id), JSON.stringify(zeile));
 
     // --- Sehen ---
@@ -5527,7 +5527,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ein gewoehnlicher Benutzer stellt nichts wieder her',
       zurueckCarla.status === 403, `Status ${zurueckCarla.status}`);
     pruefe('Und danach steht die Zeile unveraendert im Papierkorb',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', zeile.id ?? -1).length === 1);
+      pkZeilen('SELECT id FROM trash WHERE id = ?', zeile.id ?? -1).length === 1);
     pruefe('Und es ist KEIN Eintrag entstanden',
       pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 0);
     const zurueckBert = await pkRuf('cookie-pk-bert', 'POST', `/api/trash/${zeile.id ?? -1}/restore`);
@@ -5545,7 +5545,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const wegBert = await pkRuf('cookie-pk-bert', 'DELETE', `/api/trash/${zeile.id ?? -1}`);
     pruefe('Der Admin ohne Eigentuemerrolle auch nicht', wegBert.status === 403, `Status ${wegBert.status}`);
     pruefe('Und die Zeile liegt nach beiden Absagen noch da',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', zeile.id ?? -1).length === 1);
+      pkZeilen('SELECT id FROM trash WHERE id = ?', zeile.id ?? -1).length === 1);
 
     // Der Erfolgsfall, beide Wege.
     const zurueckAnna = await pkRuf('cookie-pk-anna', 'POST', `/api/trash/${zeile.id ?? -1}/restore`);
@@ -5555,18 +5555,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     const zweiterId = (await pkRuf('cookie-pk-carla', 'POST', '/api/items', { title: 'Zweites Opfer' })).inhalt?.id;
     await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${zweiterId}`);
-    const zweiteZeile = pkEine('SELECT id FROM papierkorb') || {};
+    const zweiteZeile = pkEine('SELECT id FROM trash') || {};
     pruefe('Die Eigentuemerin entfernt endgueltig',
       (await pkRuf('cookie-pk-anna', 'DELETE', `/api/trash/${zweiteZeile.id ?? -1}`)).status === 204);
     pruefe('Und danach ist die Zeile weg',
-      pkZeilen('SELECT id FROM papierkorb').length === 0);
+      pkZeilen('SELECT id FROM trash').length === 0);
     pruefe('Eine Zeile, die es nicht gibt, ist eine 404 und kein stiller Erfolg',
       (await pkRuf('cookie-pk-anna', 'DELETE', `/api/trash/${zweiteZeile.id ?? -1}`)).status === 404);
     pruefe('Dasselbe beim Wiederherstellen',
       (await pkRuf('cookie-pk-anna', 'POST', `/api/trash/${zweiteZeile.id ?? -1}/restore`)).status === 404);
     // Aufraeumen
     pkSchreibe("DELETE FROM items WHERE title IN ('Zum Wegwerfen', 'Zweites Opfer')");
-    pkSchreibe('DELETE FROM papierkorb');
+    pkSchreibe('DELETE FROM trash');
   }
 
   /* ---------------------------------------------------------------- */
@@ -5898,7 +5898,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     siMit.zahl === siVorherEintraege && siMit.zugaenge === 3 && siMit.sitzungen === 3,
     JSON.stringify([siMit.zahl, siMit.zugaenge, siMit.sitzungen]));
   pruefe('Auch die Tabellen des Papierkorbs stehen darin',
-    (siMit.tabellen || []).includes('papierkorb') && (siMit.tabellen || []).includes('papierkorb_bytes'),
+    (siMit.tabellen || []).includes('trash') && (siMit.tabellen || []).includes('trash_bytes'),
     JSON.stringify(siMit.tabellen));
   pruefe('Der Ausgangsstand ist danach unveraendert',
     (() => { const d = oeffne(path.join(siDir, 'katalog.sqlite'));
@@ -6736,7 +6736,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   {
     const d = oeffne(path.join(auDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
-    const zeilen = d.prepare("SELECT * FROM sicherheitsprotokoll WHERE was = 'sicherung.weg'").all();
+    const zeilen = d.prepare("SELECT * FROM security_log WHERE was = 'sicherung.weg'").all();
     d.close();
     pruefe('Das Protokoll traegt eine Zeile je entfernter Kopie',
       zeilen.length === 3, `${zeilen.length} Zeilen`);
@@ -10326,33 +10326,33 @@ const freigabeHaupt = (zweck, ziel = null) =>
       return n;
     };
     const spFrisch = spTabellen();
-    pruefe('Eine frische Instanz traegt sicherheitsprotokoll ohne Migration',
-      spFrisch.includes('sicherheitsprotokoll'), JSON.stringify(spFrisch));
+    pruefe('Eine frische Instanz traegt security_log ohne Migration',
+      spFrisch.includes('security_log'), JSON.stringify(spFrisch));
 
     {
       const d = oeffne(spDatei);
       d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
-      d.prepare("INSERT INTO sicherheitsprotokoll (was, wer, ziel) VALUES ('export', 1, NULL)").run();
-      d.exec('DROP TABLE sicherheitsprotokoll');
+      d.prepare("INSERT INTO security_log (was, wer, ziel) VALUES ('export', 1, NULL)").run();
+      d.exec('DROP TABLE security_log');
       d.close();
     }
     const spOhne = spTabellen();
     pruefe('Von Hand entfernt ist sie wirklich weg',
-      !spOhne.includes('sicherheitsprotokoll'), JSON.stringify(spOhne));
+      !spOhne.includes('security_log'), JSON.stringify(spOhne));
 
     kurzlauf(`require('./db'); console.log('da');`, spDir);
     const spWieder = spTabellen();
     pruefe('Ein einziger Start legt sie wieder an',
-      spWieder.includes('sicherheitsprotokoll'), JSON.stringify(spWieder));
+      spWieder.includes('security_log'), JSON.stringify(spWieder));
     {
       const d = oeffne(spDatei);
-      const spalten = d.prepare('PRAGMA table_info(sicherheitsprotokoll)').all().map(c => c.name);
+      const spalten = d.prepare('PRAGMA table_info(security_log)').all().map(c => c.name);
       pruefe('Sie traegt alle sechs Spalten',
         gleich(spalten, ['id', 'am', 'was', 'wer', 'ziel', 'merkmal']), JSON.stringify(spalten));
-      const idx = d.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='sicherheitsprotokoll'")
+      const idx = d.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='security_log'")
         .all().map(z => z.name);
       pruefe('Und den Index auf am, ebenfalls ohne Migration',
-        idx.includes('idx_protokoll_am'), JSON.stringify(idx));
+        idx.includes('idx_log_at'), JSON.stringify(idx));
       /* UND DIE ANDERE HAELFTE DERSELBEN ENTSCHEIDUNG: sessions bekommt KEINE
          Spalte. Eine "zuletzt bestaetigt am"-Spalte waere der SECHSTE
          Migrationsblock gewesen -- die Freigabe liegt stattdessen im
@@ -10435,9 +10435,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
   };
   // Alles seit der letzten Marke. Ohne diese Form zaehlte jede Pruefung die
   // Zeilen aller vorherigen mit, und "genau eine" waere nie wahr.
-  const prMarke = () => prZeilen('SELECT COALESCE(MAX(id), 0) m FROM sicherheitsprotokoll')[0].m;
+  const prMarke = () => prZeilen('SELECT COALESCE(MAX(id), 0) m FROM security_log')[0].m;
   const prSeit = (m) => prZeilen(
-    'SELECT id, am, was, wer, ziel, merkmal FROM sicherheitsprotokoll WHERE id > ? ORDER BY id', m);
+    'SELECT id, am, was, wer, ziel, merkmal FROM security_log WHERE id > ? ORDER BY id', m);
 
   const PR_ANNA = 'annas-langes-wort', PR_BERT = 'berts-langes-wort';
   const PR_CARLA = 'carlas-langes-wort', PR_DORA = 'doras-langes-wort';
@@ -10445,7 +10445,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* Die Einrichtung ist der erste Vorgang der Instanz -- und sie schreibt ZWEI
      Zeilen: der Zugang entsteht, und die Anmeldung gelingt gleich mit. */
   await PR.ruf('POST', '/api/setup', { user: 'anna', password: PR_ANNA });
-  const prErste = prZeilen('SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll ORDER BY id');
+  const prErste = prZeilen('SELECT was, wer, ziel, merkmal FROM security_log ORDER BY id');
   pruefe('Die Einrichtung schreibt genau zwei Zeilen',
     prErste.length === 2, JSON.stringify(prErste));
   pruefe('Die erste sagt, dass der Zugang entstand -- als Eigentuemer',
@@ -10487,7 +10487,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel]), [['anmeldung.fehl', null, null]]),
     JSON.stringify(prSeit(m)));
   pruefe('Und der getippte Name steht in KEINER Spalte KEINER Zeile',
-    !JSON.stringify(prZeilen('SELECT * FROM sicherheitsprotokoll')).includes('gibtesnicht'),
+    !JSON.stringify(prZeilen('SELECT * FROM security_log')).includes('gibtesnicht'),
     'der getippte Name ist in der Tabelle gelandet');
 
   /* DIE VIER SCHWEREN WEGE AN EINEM FREMDEN ZUGANG, jeder einzeln und jeder
@@ -10620,7 +10620,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* GEPRUEFT AM VOLLSTAENDIGEN ZEILENINHALT UEBER ALLE SPALTEN ALLER ZEILEN,
      nicht an einem Feld: eine Pruefung, die nur merkmal ansieht, bliebe gruen,
      wenn ein Geheimnis in was oder in einer neuen Spalte landete. */
-  const prAlles = () => JSON.stringify(prZeilen('SELECT * FROM sicherheitsprotokoll'));
+  const prAlles = () => JSON.stringify(prZeilen('SELECT * FROM security_log'));
   /* EIN FRISCHER LINK FUER DIESE GRUPPE. Der aus der Gruppe darueber gehoerte
      einem Zugang, der inzwischen entfernt ist -- und mit ihm sind seine Token
      gefallen. Die Gegenprobe unten braucht aber eine Zeile, die es wirklich
@@ -10629,8 +10629,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const prFrisch = await prAnnaF('POST', `/api/users/${prCarlaId}/token`, { zweck: 'ruecksetzung' });
   const prFrischHash = crypto.createHash('sha256').update(String(prFrisch.inhalt?.token)).digest('hex');
   pruefe('Es liegen ueberhaupt Zeilen vor',
-    prZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n > 15,
-    `${prZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n} Zeilen`);
+    prZeilen('SELECT COUNT(*) n FROM security_log')[0].n > 15,
+    `${prZeilen('SELECT COUNT(*) n FROM security_log')[0].n} Zeilen`);
   pruefe('Der Klartext eines Links steht in KEINER Spalte KEINER Zeile',
     !prAlles().includes(prFrisch.inhalt?.token || 'kein-token') &&
     !prAlles().includes(prLink.inhalt?.token || 'kein-token'),
@@ -10669,16 +10669,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ohne sie loeschte die Frist eine Zeile mit am = NULL und die Pruefung
      waere gruen aus dem falschen Grund. */
   const prSetzeAlter = (id, modifikator) => {
-    prSchreibe("UPDATE sicherheitsprotokoll SET am = datetime('now', ?) WHERE id = ?", modifikator, id);
-    return prZeilen('SELECT am FROM sicherheitsprotokoll WHERE id = ?', id)[0]?.am;
+    prSchreibe("UPDATE security_log SET am = datetime('now', ?) WHERE id = ?", modifikator, id);
+    return prZeilen('SELECT am FROM security_log WHERE id = ?', id)[0]?.am;
   };
-  const prAnzahl = () => prZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n;
-  const prDa = (id) => prZeilen('SELECT id FROM sicherheitsprotokoll WHERE id = ?', id).length === 1;
+  const prAnzahl = () => prZeilen('SELECT COUNT(*) n FROM security_log')[0].n;
+  const prDa = (id) => prZeilen('SELECT id FROM security_log WHERE id = ?', id).length === 1;
 
-  prSchreibe("INSERT INTO sicherheitsprotokoll (was, wer, ziel) VALUES ('export', 1, NULL)");
-  const prJung = prZeilen('SELECT MAX(id) m FROM sicherheitsprotokoll')[0].m;
-  prSchreibe("INSERT INTO sicherheitsprotokoll (was, wer, ziel) VALUES ('export', 1, NULL)");
-  const prAlt = prZeilen('SELECT MAX(id) m FROM sicherheitsprotokoll')[0].m;
+  prSchreibe("INSERT INTO security_log (was, wer, ziel) VALUES ('export', 1, NULL)");
+  const prJung = prZeilen('SELECT MAX(id) m FROM security_log')[0].m;
+  prSchreibe("INSERT INTO security_log (was, wer, ziel) VALUES ('export', 1, NULL)");
+  const prAlt = prZeilen('SELECT MAX(id) m FROM security_log')[0].m;
 
   const prJungWert = prSetzeAlter(prJung, '-179 days');
   pruefe('Der von Hand gesetzte Ausgangswert steht wirklich da',
@@ -10717,24 +10717,24 @@ const freigabeHaupt = (zweck, ziel = null) =>
     {
       const d = oeffne(path.join(raDir, 'katalog.sqlite'));
       d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
-      d.prepare("INSERT INTO sicherheitsprotokoll (was, wer, am) VALUES ('export', 1, datetime('now', ?))")
+      d.prepare("INSERT INTO security_log (was, wer, am) VALUES ('export', 1, datetime('now', ?))")
         .run('-181 days');
-      d.prepare("INSERT INTO sicherheitsprotokoll (was, wer, am) VALUES ('export', 1, datetime('now', ?))")
+      d.prepare("INSERT INTO security_log (was, wer, am) VALUES ('export', 1, datetime('now', ?))")
         .run('-179 days');
       d.close();
     }
     pruefe('Es liegen zwei Zeilen vor, eine alt und eine jung',
-      raZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n === 2 &&
-      raZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE am IS NULL")[0].n === 0,
-      JSON.stringify(raZeilen('SELECT id, am FROM sicherheitsprotokoll')));
+      raZeilen('SELECT COUNT(*) n FROM security_log')[0].n === 2 &&
+      raZeilen("SELECT COUNT(*) n FROM security_log WHERE am IS NULL")[0].n === 0,
+      JSON.stringify(raZeilen('SELECT id, am FROM security_log')));
     const RA = starteWeiterenServer(raDir, {}, 4440);
     await RA.bereit;
     pruefe('Ein ECHTER Serverstart raeumt die alte Zeile weg',
-      raZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n === 1,
-      JSON.stringify(raZeilen('SELECT id, am FROM sicherheitsprotokoll')));
+      raZeilen('SELECT COUNT(*) n FROM security_log')[0].n === 1,
+      JSON.stringify(raZeilen('SELECT id, am FROM security_log')));
     pruefe('Und die junge bleibt stehen',
-      raZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE am > datetime('now', '-180 days')")[0].n === 1,
-      JSON.stringify(raZeilen('SELECT id, am FROM sicherheitsprotokoll')));
+      raZeilen("SELECT COUNT(*) n FROM security_log WHERE am > datetime('now', '-180 days')")[0].n === 1,
+      JSON.stringify(raZeilen('SELECT id, am FROM security_log')));
     pruefe('Der Start sagt es auch im Protokoll des Containers',
       /Sicherheitsprotokoll: 1 Zeile\(n\) aelter als 180 Tage entfernt/.test(RA.protokoll()),
       RA.protokoll().split('\n').filter(z => /Sicherheits/.test(z)).join(' | ') || '(keine Zeile)');
@@ -10861,7 +10861,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Ein 401 wuerfe die Oberflaeche auf die Anmeldeseite -- api() behandelt ihn
      so, und dann verschwaende der Bildschirm mitten in einer Handlung. */
   pruefe('Und zwar mit 403, nicht mit 401', zbFalsch.status !== 401, `Status ${zbFalsch.status}`);
-  const zbFehlZeilen = zbZeilen("SELECT was, wer, ziel FROM sicherheitsprotokoll WHERE was = 'bestaetigung.fehl'");
+  const zbFehlZeilen = zbZeilen("SELECT was, wer, ziel FROM security_log WHERE was = 'bestaetigung.fehl'");
   pruefe('Eine gescheiterte Bestaetigung steht im Sicherheitsprotokoll',
     zbFehlZeilen.length === 1 && zbFehlZeilen[0].wer === 1, JSON.stringify(zbFehlZeilen));
   pruefe('Ein leeres Passwort ist keine Bestaetigung, sondern ein falsches',
@@ -11042,7 +11042,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   // 1. Der Export.
   const zbExportZahl = () => zbZeilen(
-    "SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'export'")[0].n;
+    "SELECT COUNT(*) n FROM security_log WHERE was = 'export'")[0].n;
   const zbExportVorher = zbExportZahl();
   await zbOhne('Export', 'GET', '/api/export?photos=0', undefined, zbExportZahl, zbExportVorher);
   await zbMitFalschem('Export', 'export', null, 'GET', '/api/export?photos=0', undefined,
@@ -11229,8 +11229,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
       return r;
     };
     pruefe('Und die gesperrten Versuche schreiben keine Zeile mehr',
-      bbZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'bestaetigung.fehl'")[0].n === 10,
-      JSON.stringify(bbZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'bestaetigung.fehl'")));
+      bbZeilen("SELECT COUNT(*) n FROM security_log WHERE was = 'bestaetigung.fehl'")[0].n === 10,
+      JSON.stringify(bbZeilen("SELECT COUNT(*) n FROM security_log WHERE was = 'bestaetigung.fehl'")));
     /* Und die Gegenrichtung: die Sperre gilt der ADRESSE, also auch dem
        richtigen Passwort. Sonst waere sie an dieser Route wirkungslos. */
     pruefe('Auch das richtige Passwort kommt waehrend der Sperre nicht durch',
@@ -12222,11 +12222,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der troepfelnde Empfaenger haelt den Versand dabei wirklich fest',
       gTr.briefe().length === 0, `${gTr.briefe().length} Briefe angekommen`);
     pruefe('Die Anfrage steht trotzdem in der Tabelle',
-      regSql(gA.dir, 'SELECT username, email FROM anfragen').length === 1,
-      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM anfragen')));
+      regSql(gA.dir, 'SELECT username, email FROM requests').length === 1,
+      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM requests')));
     pruefe('Und keine der vier stillen Lagen hat eine zweite angelegt',
-      regSql(gA.dir, 'SELECT username FROM anfragen').every(z => z.username === 'neuling'),
-      JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen')));
+      regSql(gA.dir, 'SELECT username FROM requests').every(z => z.username === 'neuling'),
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests')));
 
     /* JE ADRESSE HOECHSTENS EINE OFFENE ANFRAGE -- UND JE NAME EBENSO, und
        beide muessen EINZELN geprueft werden. Die Lage "schon offene Anfrage"
@@ -12245,24 +12245,24 @@ const freigabeHaupt = (zweck, ziel = null) =>
       gGleicheAdresse.status === 200 && gGleicheAdresse.roh === REG_ANTWORT,
       gGleicheAdresse.roh.slice(0, 60));
     pruefe('Und wird still verworfen -- es entsteht keine zweite Zeile',
-      regSql(gA.dir, 'SELECT username FROM anfragen').length === 1,
-      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM anfragen')));
+      regSql(gA.dir, 'SELECT username FROM requests').length === 1,
+      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM requests')));
     const gGleicherName = await regRoh(gA.S, '/api/signup',
       { name: 'neuling', adresse: 'ganz-andere@beispiel.de' });
     pruefe('Derselbe Name unter anderer Adresse ebenso',
       gGleicherName.status === 200 && gGleicherName.roh === REG_ANTWORT,
       gGleicherName.roh.slice(0, 60));
     pruefe('Und auch dabei bleibt es bei der einen Zeile',
-      regSql(gA.dir, 'SELECT username FROM anfragen').length === 1,
-      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM anfragen')));
+      regSql(gA.dir, 'SELECT username FROM requests').length === 1,
+      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM requests')));
     /* UND DIE GEGENLAGE ZU BEIDEN (Stolperstein 81): eine Anfrage mit NEUEM
        Namen UND NEUER Adresse geht durch. Ohne sie belegten die vier Zeilen
        darueber nur, dass gar nichts mehr entsteht. */
     await regRoh(gA.S, '/api/signup',
       { name: 'beides-neu', adresse: 'beides-neu@beispiel.de' });
     pruefe('Neuer Name UND neue Adresse gehen dagegen durch',
-      regSql(gA.dir, "SELECT id FROM anfragen WHERE username = 'beides-neu'").length === 1,
-      JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen').map(z => z.username)));
+      regSql(gA.dir, "SELECT id FROM requests WHERE username = 'beides-neu'").length === 1,
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests').map(z => z.username)));
 
     /* WAS VON AUSSEN HEREINKOMMT, IST BEGRENZT -- und zwar an der einzigen
        Stelle im Projekt, an der ein FREMDER in die Datenbank schreibt. Ohne
@@ -12279,8 +12279,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Eine zu lange Adresse ebenso',
       gLangMail.status === 200 && gLangMail.roh === REG_ANTWORT, gLangMail.roh.slice(0, 60));
     pruefe('Und keine von beiden hat eine Zeile angelegt',
-      regSql(gA.dir, 'SELECT username FROM anfragen').length === 2,
-      JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen').map(z => z.username.length)));
+      regSql(gA.dir, 'SELECT username FROM requests').length === 2,
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests').map(z => z.username.length)));
     /* UND DIE GEGENLAGE ZUR GRENZE (Stolperstein 81): ein Name knapp DARUNTER
        geht durch. Ohne sie belegte die Pruefung oben nur, dass ueberhaupt
        etwas abgewiesen wird -- und nicht, dass die Grenze dort liegt, wo sie
@@ -12289,8 +12289,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
       { name: 'z'.repeat(64), adresse: 'knapp@beispiel.de' });
     pruefe('Ein Name von genau 64 Zeichen geht dagegen durch',
       gKnapp.status === 200 &&
-      regSql(gA.dir, 'SELECT username FROM anfragen').some(z => z.username === 'z'.repeat(64)),
-      JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen').map(z => z.username.length)));
+      regSql(gA.dir, 'SELECT username FROM requests').some(z => z.username === 'z'.repeat(64)),
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests').map(z => z.username.length)));
 
     gruppe('Die Selbstanmeldung: der Schalter aus');
 
@@ -12311,7 +12311,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und GET /api/config sagt es',
       (await gA.S.ruf('GET', '/api/config')).inhalt?.registrierung === false,
       JSON.stringify((await gA.S.ruf('GET', '/api/config')).inhalt?.registrierung));
-    const gVorher = regSql(gA.dir, 'SELECT id FROM anfragen').length;
+    const gVorher = regSql(gA.dir, 'SELECT id FROM requests').length;
     const gZu = await regRoh(gA.S, '/api/signup',
       { name: 'waehrend-aus', adresse: 'aus@beispiel.de' });
     /* DER SCHALTER AUS FUEHRT ZU DERSELBEN ANTWORT und nicht zu einer eigenen
@@ -12321,8 +12321,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Die Anfrage bei ausgeschaltetem Schalter bekommt DIESELBE Antwort',
       gZu.status === 200 && gZu.roh === REG_ANTWORT, `${gZu.status} · ${gZu.roh.slice(0, 60)}`);
     pruefe('Und es entsteht dabei keine Zeile',
-      regSql(gA.dir, 'SELECT id FROM anfragen').length === gVorher,
-      `vorher ${gVorher}, nachher ${regSql(gA.dir, 'SELECT id FROM anfragen').length}`);
+      regSql(gA.dir, 'SELECT id FROM requests').length === gVorher,
+      `vorher ${gVorher}, nachher ${regSql(gA.dir, 'SELECT id FROM requests').length}`);
     /* UND DER SCHALTER LAESST SICH JETZT NICHT MEHR EINSCHALTEN. Das ist die
        zweite Haelfte der Kopplung: die Marke der Testmail haengt am Hash ueber
        den Zugang, und der hat sich beim Umstellen auf den troepfelnden
@@ -12424,12 +12424,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
       !/<html|<body|Content-Type: text\/html/i.test(hBrief.roh), 'HTML im Brief');
     // Der Schluessel selbst steht in der Datenbank NICHT im Klartext.
     pruefe('In der Tabelle steht nur der Hash, nie der Schluessel',
-      Boolean(hSchluessel) && (regSql(hA.dir, 'SELECT hash FROM anfragen')[0] || {}).hash ===
+      Boolean(hSchluessel) && (regSql(hA.dir, 'SELECT hash FROM requests')[0] || {}).hash ===
         crypto.createHash('sha256').update(String(hSchluessel)).digest('hex'),
-      JSON.stringify(regSql(hA.dir, 'SELECT hash FROM anfragen')[0]));
+      JSON.stringify(regSql(hA.dir, 'SELECT hash FROM requests')[0]));
     pruefe('Und der Klartext steht in KEINER Spalte dieser Zeile',
       Boolean(hSchluessel) &&
-      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM anfragen')).includes(String(hSchluessel)),
+      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM requests')).includes(String(hSchluessel)),
       'der Schluessel steht in der Tabelle');
 
     gruppe('Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft');
@@ -12459,8 +12459,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
       regSql(hA.dir, 'SELECT token FROM sessions').length === hSitzungenVor,
       `vorher ${hSitzungenVor}, nachher ${regSql(hA.dir, 'SELECT token FROM sessions').length}`);
     pruefe('Die Zeile traegt jetzt einen Bestaetigungszeitpunkt',
-      Boolean((regSql(hA.dir, 'SELECT bestaetigt_am FROM anfragen')[0] || {}).bestaetigt_am),
-      JSON.stringify(regSql(hA.dir, 'SELECT bestaetigt_am FROM anfragen')[0]));
+      Boolean((regSql(hA.dir, 'SELECT bestaetigt_am FROM requests')[0] || {}).bestaetigt_am),
+      JSON.stringify(regSql(hA.dir, 'SELECT bestaetigt_am FROM requests')[0]));
     // Zweimal klicken ist unschaedlich -- wer neu laedt, soll nicht vor einer
     // Absage stehen.
     const hZweimal = await hA.S.ruf('POST', '/api/signup/confirm',
@@ -12488,8 +12488,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     await regWarteAufBrief(hOk, 'dora@beispiel.de');
     const hKarte = (await hA.S.ruf('GET', '/api/requests')).inhalt || { anfragen: [] };
     pruefe('In der Tabelle stehen jetzt zwei Zeilen',
-      regSql(hA.dir, 'SELECT id FROM anfragen').length === 2,
-      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+      regSql(hA.dir, 'SELECT id FROM requests').length === 2,
+      `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
     pruefe('Der Admin sieht davon nur die bestaetigte',
       (hKarte.anfragen || []).length === 1 &&
       ((hKarte.anfragen || [])[0] || {}).username === 'clara',
@@ -12499,7 +12499,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* UND SIE LAESST SICH AUCH NICHT UEBER IHRE NUMMER FREISCHALTEN. Die Karte
        zeigt sie nicht, aber eine Nummer laesst sich tippen -- die Route
        verlaesst sich deshalb nicht auf die Karte. */
-    const hDoraId = (regSql(hA.dir, 'SELECT id, username FROM anfragen')
+    const hDoraId = (regSql(hA.dir, 'SELECT id, username FROM requests')
       .find(z => z.username === 'dora') || { id: 0 }).id;
     const hDoraFrei = await hA.S.ruf('POST', `/api/requests/${hDoraId}/approve`);
     pruefe('Und sie laesst sich auch ueber ihre Nummer nicht freischalten',
@@ -12507,8 +12507,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const hDoraAb = await hA.S.ruf('DELETE', `/api/requests/${hDoraId}`);
     pruefe('Und ebenso wenig ablehnen', hDoraAb.status === 404, `Status ${hDoraAb.status}`);
     pruefe('Sie steht danach unveraendert da',
-      regSql(hA.dir, 'SELECT id FROM anfragen').length === 2,
-      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+      regSql(hA.dir, 'SELECT id FROM requests').length === 2,
+      `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
 
     gruppe('Die Selbstanmeldung: das Verfallen und das Aufraeumen');
 
@@ -12520,20 +12520,20 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Prueflage, die 24 Stunden wartet, ist keine. */
     const hAlt = (stunden) => kurzlauf(
       `const { db } = require('./db');` +
-      `db.prepare("UPDATE anfragen SET created_at = datetime('now', ?) WHERE username = 'dora'")` +
+      `db.prepare("UPDATE requests SET created_at = datetime('now', ?) WHERE username = 'dora'")` +
       `.run('-${stunden} hours'); console.log('gesetzt');`, hA.dir);
     hAlt(23);
     pruefe('Die unbestaetigte Zeile liegt fuer die Fristprobe ueberhaupt vor',
-      regSql(hA.dir, "SELECT created_at FROM anfragen WHERE username = 'dora'").length === 1,
-      JSON.stringify(regSql(hA.dir, "SELECT created_at FROM anfragen WHERE username = 'dora'")));
+      regSql(hA.dir, "SELECT created_at FROM requests WHERE username = 'dora'").length === 1,
+      JSON.stringify(regSql(hA.dir, "SELECT created_at FROM requests WHERE username = 'dora'")));
     await hA.S.ruf('GET', '/api/requests');
     pruefe('Eine Anfrage von 23 Stunden bleibt stehen',
-      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'dora'").length === 1,
+      regSql(hA.dir, "SELECT id FROM requests WHERE username = 'dora'").length === 1,
       'sie ist schon weg');
     hAlt(25);
     await hA.S.ruf('GET', '/api/requests');
     pruefe('Eine von 25 Stunden faellt -- zweite Aufrufstelle, die Karte',
-      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'dora'").length === 0,
+      regSql(hA.dir, "SELECT id FROM requests WHERE username = 'dora'").length === 0,
       'sie steht noch da');
     /* NUR DAS UNBESTAETIGTE VERFAELLT, und das wird an einer BESTAETIGTEN
        ZEILE GLEICHEN ALTERS geprueft. Eine frische bestaetigte Zeile belegt
@@ -12543,15 +12543,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Runde passiert. Die bestaetigte Zeile wird deshalb ebenso alt gemacht. */
     kurzlauf(
       `const { db } = require('./db');` +
-      `db.prepare("UPDATE anfragen SET created_at = datetime('now', '-72 hours') ` +
+      `db.prepare("UPDATE requests SET created_at = datetime('now', '-72 hours') ` +
       `WHERE username = 'clara'").run(); console.log('gesetzt');`, hA.dir);
     pruefe('Die bestaetigte Zeile ist jetzt drei Tage alt',
       /^\d{4}-/.test((regSql(hA.dir,
-        "SELECT created_at FROM anfragen WHERE username = 'clara'")[0] || {}).created_at || ''),
-      JSON.stringify(regSql(hA.dir, "SELECT created_at, bestaetigt_am FROM anfragen WHERE username = 'clara'")));
+        "SELECT created_at FROM requests WHERE username = 'clara'")[0] || {}).created_at || ''),
+      JSON.stringify(regSql(hA.dir, "SELECT created_at, bestaetigt_am FROM requests WHERE username = 'clara'")));
     await hA.S.ruf('GET', '/api/requests');
     pruefe('Und sie bleibt trotzdem stehen -- eine bestaetigte Anfrage verfaellt NICHT',
-      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'clara'").length === 1,
+      regSql(hA.dir, "SELECT id FROM requests WHERE username = 'clara'").length === 1,
       'die bestaetigte ist mitgefallen');
     pruefe('Der Admin sieht sie unveraendert',
       ((await hA.S.ruf('GET', '/api/requests')).inhalt.anfragen || [])
@@ -12563,22 +12563,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
        die den Deckel sonst NICHT mehr durchliesse. */
     kurzlauf(
       `const { db } = require('./db'); const s = db.prepare(` +
-      `"INSERT INTO anfragen (hash, username, email, created_at) VALUES (?, ?, ?, datetime('now','-48 hours'))");` +
+      `"INSERT INTO requests (hash, username, email, created_at) VALUES (?, ?, ?, datetime('now','-48 hours'))");` +
       `for (let i = 0; i < 19; i++) s.run('alt'+i, 'alter'+i, 'alt'+i+'@beispiel.de');` +
-      `console.log(db.prepare('SELECT COUNT(*) n FROM anfragen').get().n);`, hA.dir);
+      `console.log(db.prepare('SELECT COUNT(*) n FROM requests').get().n);`, hA.dir);
     pruefe('Zwanzig Zeilen liegen vor -- der Deckel ist damit erreicht',
-      regSql(hA.dir, 'SELECT id FROM anfragen').length === 20,
-      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+      regSql(hA.dir, 'SELECT id FROM requests').length === 20,
+      `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
     const hNachRaum = await regRoh(hA.S, '/api/signup',
       { name: 'emil', adresse: 'emil@beispiel.de' });
     pruefe('Die Anfrage bekommt dieselbe Antwort wie immer',
       hNachRaum.status === 200 && hNachRaum.roh === REG_ANTWORT, hNachRaum.roh.slice(0, 60));
     pruefe('Und sie geht durch, weil die Anfrageroute selbst aufgeraeumt hat',
-      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'emil'").length === 1,
-      JSON.stringify(regSql(hA.dir, 'SELECT username FROM anfragen').map(z => z.username)));
+      regSql(hA.dir, "SELECT id FROM requests WHERE username = 'emil'").length === 1,
+      JSON.stringify(regSql(hA.dir, 'SELECT username FROM requests').map(z => z.username)));
     pruefe('Die neunzehn alten sind dabei gefallen',
-      regSql(hA.dir, 'SELECT id FROM anfragen').length === 2,
-      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+      regSql(hA.dir, 'SELECT id FROM requests').length === 2,
+      `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
 
     gruppe('Die Selbstanmeldung: der Deckel');
 
@@ -12588,22 +12588,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
        nichts.
        DIE EINUNDZWANZIGSTE WIRD STILL VERWORFEN: gleiche Antwort, keine Zeile. */
     kurzlauf(
-      `const { db } = require('./db'); db.prepare('DELETE FROM anfragen').run();` +
-      `const s = db.prepare('INSERT INTO anfragen (hash, username, email) VALUES (?, ?, ?)');` +
+      `const { db } = require('./db'); db.prepare('DELETE FROM requests').run();` +
+      `const s = db.prepare('INSERT INTO requests (hash, username, email) VALUES (?, ?, ?)');` +
       `for (let i = 0; i < 20; i++) s.run('deckel'+i, 'voll'+i, 'voll'+i+'@beispiel.de');` +
-      `console.log(db.prepare('SELECT COUNT(*) n FROM anfragen').get().n);`, hA.dir);
+      `console.log(db.prepare('SELECT COUNT(*) n FROM requests').get().n);`, hA.dir);
     pruefe('Zwanzig frische Anfragen liegen vor',
-      regSql(hA.dir, 'SELECT id FROM anfragen').length === 20,
-      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+      regSql(hA.dir, 'SELECT id FROM requests').length === 20,
+      `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
     const hDeckel = await regRoh(hA.S, '/api/signup',
       { name: 'einundzwanzig', adresse: 'einundzwanzig@beispiel.de' });
     pruefe('Die einundzwanzigste bekommt DIESELBE Antwort',
       hDeckel.status === 200 && hDeckel.roh === REG_ANTWORT, hDeckel.roh.slice(0, 60));
     pruefe('Und sie wird still verworfen -- die Liste bleibt bei zwanzig',
-      regSql(hA.dir, 'SELECT id FROM anfragen').length === 20,
-      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+      regSql(hA.dir, 'SELECT id FROM requests').length === 20,
+      `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
     pruefe('Ihr Name steht in keiner Zeile',
-      !JSON.stringify(regSql(hA.dir, 'SELECT username FROM anfragen')).includes('einundzwanzig'),
+      !JSON.stringify(regSql(hA.dir, 'SELECT username FROM requests')).includes('einundzwanzig'),
       'der Name steht doch da');
     const hDeckelKarte = (await hA.S.ruf('GET', '/api/requests')).inhalt || {};
     pruefe('Die Karte nennt den Stand gegen den Deckel',
@@ -12612,10 +12612,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // Platz schaffen, und die naechste geht wieder durch -- sonst belegte die
     // Pruefung nur, dass gar nichts mehr geht.
     kurzlauf(`const { db } = require('./db');` +
-      `db.prepare("DELETE FROM anfragen WHERE username = 'voll0'").run(); console.log('weg');`, hA.dir);
+      `db.prepare("DELETE FROM requests WHERE username = 'voll0'").run(); console.log('weg');`, hA.dir);
     await regRoh(hA.S, '/api/signup', { name: 'zwanzigster', adresse: 'zwanzig@beispiel.de' });
     pruefe('Unter dem Deckel geht die naechste wieder durch',
-      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'zwanzigster'").length === 1,
+      regSql(hA.dir, "SELECT id FROM requests WHERE username = 'zwanzigster'").length === 1,
       'sie ist nicht entstanden');
 
     gruppe('Die Selbstanmeldung: die Freischaltung');
@@ -12624,7 +12624,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Protokollzeilen stehen. Der Token oeffnet danach den Passwortweg aus
        0.8.80 UNVERAENDERT -- geprueft wird der ganze Weg bis zum gesetzten
        Passwort, nicht nur, dass ein Token entstanden ist. */
-    kurzlauf(`const { db } = require('./db'); db.prepare('DELETE FROM anfragen').run();` +
+    kurzlauf(`const { db } = require('./db'); db.prepare('DELETE FROM requests').run();` +
       `console.log('leer');`, hA.dir);
     const fVorBriefe = hOk.briefe().length;
     await regRoh(hA.S, '/api/signup', { name: 'frieda', adresse: 'frieda@beispiel.de' });
@@ -12674,8 +12674,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
       fFrei.inhalt?.link === `https://kriterion.beispiel.de/#/invite/${fFrei.inhalt?.token}`,
       JSON.stringify(fFrei.inhalt?.link));
     pruefe('Die Zeile in der Warteschlange ist weg',
-      regSql(hA.dir, 'SELECT id FROM anfragen').length === 0,
-      JSON.stringify(regSql(hA.dir, 'SELECT username FROM anfragen')));
+      regSql(hA.dir, 'SELECT id FROM requests').length === 0,
+      JSON.stringify(regSql(hA.dir, 'SELECT username FROM requests')));
     pruefe('Und die Antwort traegt die neue, leere Liste gleich mit',
       Array.isArray(fFrei.inhalt?.anfragen) && fFrei.inhalt.anfragen.length === 0,
       JSON.stringify(fFrei.inhalt?.anfragen));
@@ -12703,7 +12703,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        ist nicht doppelt: die beiden anderen sagen nicht, dass der Zugang aus
        einer SELBSTANMELDUNG kam. */
     const fProtokoll = regSql(hA.dir,
-      "SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll ORDER BY id");
+      "SELECT was, wer, ziel, merkmal FROM security_log ORDER BY id");
     const fFrei1 = fProtokoll.filter(z => z.was === 'anfrage.frei');
     pruefe('Eine Zeile anfrage.frei steht im Sicherheitsprotokoll',
       fFrei1.length === 1, JSON.stringify(fProtokoll.map(z => z.was)));
@@ -12720,10 +12720,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Freitext von aussen -- geprueft an JEDER Spalte JEDER Zeile, nicht nur
        an der neuen. */
     pruefe('Und der Name steht in KEINER Spalte KEINER Zeile',
-      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM sicherheitsprotokoll')).includes('frieda'),
+      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM security_log')).includes('frieda'),
       'der Name steht im Protokoll');
     pruefe('Die Adresse ebenso wenig',
-      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM sicherheitsprotokoll')).includes('beispiel.de'),
+      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM security_log')).includes('beispiel.de'),
       'die Adresse steht im Protokoll');
     /* UND DER TOKENWEG AUS 0.8.80 IST UNVERAENDERT: pruefen, einloesen,
        angemeldet. Ein eigener Weg fuer diesen Token waere ein zweiter
@@ -12806,7 +12806,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const ab = await hA.S.ruf('DELETE', `/api/requests/${abId}`);
     pruefe('Die Ablehnung geht durch', ab.status === 200, `Status ${ab.status}`);
     pruefe('Die Zeile ist weg',
-      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'konrad'").length === 0,
+      regSql(hA.dir, "SELECT id FROM requests WHERE username = 'konrad'").length === 0,
       'sie steht noch da');
     pruefe('Und die Antwort traegt die neue Liste gleich mit',
       Array.isArray(ab.inhalt?.anfragen) &&
@@ -12822,7 +12822,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Es geht keine Absagemail hinaus -- Benachrichtigungen gibt es nicht',
       hOk.briefe().length === abBriefeVor, `${hOk.briefe().length - abBriefeVor} neue Briefe`);
     const abZeilen = regSql(hA.dir,
-      "SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll WHERE was = 'anfrage.ab'");
+      "SELECT was, wer, ziel, merkmal FROM security_log WHERE was = 'anfrage.ab'");
     pruefe('Die Protokollzeile anfrage.ab steht', abZeilen.length === 1,
       JSON.stringify(abZeilen));
     pruefe('Sie nennt den handelnden Admin',
@@ -12830,7 +12830,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und traegt kein Ziel -- es gibt keinen Zugang, auf den es zeigen koennte',
       abZeilen.length === 1 && abZeilen[0].ziel === null, JSON.stringify(abZeilen[0]));
     pruefe('Und der Name des Abgewiesenen steht NICHT darin',
-      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM sicherheitsprotokoll')).includes('konrad'),
+      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM security_log')).includes('konrad'),
       'der Name steht im Protokoll');
 
     gruppe('Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann');
@@ -12838,15 +12838,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* DIE GESCHEITERTE ANMELDUNG IST DIE EINZIGE ZEILE, DIE EIN FREMDER
        AUSLOESEN KANN, und ihr Deckel ist die Bremse. Anfrage und Bestaetigung
        kaemen ohne Deckel dazu -- deshalb schreiben sie nichts. */
-    kurzlauf(`const { db } = require('./db'); db.prepare('DELETE FROM sicherheitsprotokoll').run();` +
-      `db.prepare('DELETE FROM anfragen').run(); console.log('leer');`, hA.dir);
+    kurzlauf(`const { db } = require('./db'); db.prepare('DELETE FROM security_log').run();` +
+      `db.prepare('DELETE FROM requests').run(); console.log('leer');`, hA.dir);
     await regRoh(hA.S, '/api/signup', { name: 'ludwig', adresse: 'ludwig@beispiel.de' });
     await hA.S.ruf('POST', '/api/signup/confirm',
       { schluessel: await regWarteAufBrief(hOk, 'ludwig@beispiel.de') });
     await hA.S.ruf('POST', '/api/signup/confirm', { schluessel: 'b'.repeat(64) });
     pruefe('Anfrage, Bestaetigung und geratene Bestaetigung schreiben zusammen keine Zeile',
-      regSql(hA.dir, 'SELECT id FROM sicherheitsprotokoll').length === 0,
-      JSON.stringify(regSql(hA.dir, 'SELECT was FROM sicherheitsprotokoll')));
+      regSql(hA.dir, 'SELECT id FROM security_log').length === 0,
+      JSON.stringify(regSql(hA.dir, 'SELECT was FROM security_log')));
     /* ERST DER GEGENSTAND (Stolperstein 81): die Tabelle muss ueberhaupt
        beschreibbar sein. Waere sie es nicht, waere die Pruefung darueber gruen
        und belegte nichts. */
@@ -12854,8 +12854,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
       .anfragen || []).find(a => a.username === 'ludwig') || { id: 0 }).id;
     await hA.S.ruf('DELETE', `/api/requests/${ludwigId}`);
     pruefe('Die Entscheidung des Admins schreibt dagegen sehr wohl eine',
-      regSql(hA.dir, 'SELECT id FROM sicherheitsprotokoll').length === 1,
-      JSON.stringify(regSql(hA.dir, 'SELECT was FROM sicherheitsprotokoll')));
+      regSql(hA.dir, 'SELECT id FROM security_log').length === 1,
+      JSON.stringify(regSql(hA.dir, 'SELECT was FROM security_log')));
 
     gruppe('Die Selbstanmeldung: die Bremse greift an beiden Routen');
 
@@ -12902,9 +12902,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* UND DIE GESPERRTEN VERSUCHE SCHREIBEN NICHTS -- weder in anfragen noch
        ins Protokoll. */
     pruefe('Es ist dabei keine Zeile entstanden',
-      regSql(bA.dir, 'SELECT id FROM anfragen').length === 0 &&
-      regSql(bA.dir, "SELECT id FROM sicherheitsprotokoll WHERE was LIKE 'anfrage%'").length === 0,
-      JSON.stringify(regSql(bA.dir, 'SELECT username FROM anfragen')));
+      regSql(bA.dir, 'SELECT id FROM requests').length === 0 &&
+      regSql(bA.dir, "SELECT id FROM security_log WHERE was LIKE 'anfrage%'").length === 0,
+      JSON.stringify(regSql(bA.dir, 'SELECT username FROM requests')));
 
     gruppe('Die Selbstanmeldung: die Tabelle legt sich selbst an');
 
@@ -12934,25 +12934,25 @@ const freigabeHaupt = (zweck, ziel = null) =>
         d.close();
         return c;
       };
-      pruefe('Eine frische Instanz traegt anfragen ohne Migration',
-        nTabellen().includes('anfragen'), JSON.stringify(nTabellen()));
-      const nFrisch = nSpaltenVon('anfragen');
+      pruefe('Eine frische Instanz traegt requests ohne Migration',
+        nTabellen().includes('requests'), JSON.stringify(nTabellen()));
+      const nFrisch = nSpaltenVon('requests');
       pruefe('Und zwar mit genau ihren sechs Spalten',
         gleich(nFrisch, ['id', 'hash', 'username', 'email', 'bestaetigt_am', 'created_at']),
         JSON.stringify(nFrisch));
       {
         const d = oeffne(nDatei);
-        d.prepare("INSERT INTO anfragen (hash, username, email) VALUES ('abc', 'anna', 'a@b.de')").run();
-        d.exec('DROP TABLE anfragen');
+        d.prepare("INSERT INTO requests (hash, username, email) VALUES ('abc', 'anna', 'a@b.de')").run();
+        d.exec('DROP TABLE requests');
         d.close();
       }
       pruefe('Von Hand entfernt ist sie wirklich weg',
-        !nTabellen().includes('anfragen'), JSON.stringify(nTabellen()));
+        !nTabellen().includes('requests'), JSON.stringify(nTabellen()));
       kurzlauf(`require('./db'); console.log('da');`, nDir);
       pruefe('Ein einziger Start legt sie wieder an',
-        nTabellen().includes('anfragen'), JSON.stringify(nTabellen()));
+        nTabellen().includes('requests'), JSON.stringify(nTabellen()));
       pruefe('Und das Schema ist danach dasselbe wie in einer frischen Instanz',
-        gleich(nSpaltenVon('anfragen'), nFrisch), JSON.stringify(nSpaltenVon('anfragen')));
+        gleich(nSpaltenVon('requests'), nFrisch), JSON.stringify(nSpaltenVon('requests')));
       /* UND DIE ZUSAGE, DIE DER PRUEFSTAND DIESER RUNDE AUSDRUECKLICH GIBT:
          das Schema einer GEWACHSENEN Instanz ist nach dem Start dasselbe wie
          das einer frischen. Verglichen werden alle Tabellen, nicht nur die
@@ -12977,15 +12977,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
          dass es gerade der Unterschied zwischen Tabelle und Spalte ist. */
       {
         const d = oeffne(nDatei);
-        d.exec('ALTER TABLE anfragen DROP COLUMN bestaetigt_am');
+        d.exec('ALTER TABLE requests DROP COLUMN bestaetigt_am');
         d.close();
       }
       pruefe('Die Spalte ist von Hand entfernt',
-        !nSpaltenVon('anfragen').includes('bestaetigt_am'), JSON.stringify(nSpaltenVon('anfragen')));
+        !nSpaltenVon('requests').includes('bestaetigt_am'), JSON.stringify(nSpaltenVon('requests')));
       let nNachStart = [];
       try {
         kurzlauf(`require('./db'); console.log('da');`, nDir);
-        nNachStart = nSpaltenVon('anfragen');
+        nNachStart = nSpaltenVon('requests');
       } catch { nNachStart = ['(Start gescheitert)']; }
       pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !nNachStart.includes('bestaetigt_am'), JSON.stringify(nNachStart));
@@ -13297,7 +13297,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         zwischen === vorher && Boolean(eins.inhalt.ausweis), `${vorher} → ${zwischen}`);
       pruefe('Und der Ausweis steht in keiner Tabelle -- er liegt im Arbeitsspeicher',
         !JSON.stringify(zfSql('SELECT * FROM sessions')).includes(eins.inhalt.ausweis) &&
-        !JSON.stringify(zfSql('SELECT * FROM zweifaktor')).includes(eins.inhalt.ausweis));
+        !JSON.stringify(zfSql('SELECT * FROM two_factor')).includes(eins.inhalt.ausweis));
     }
     // Ausschalten: hinter Passwort UND Code, und danach ist der Zugang wieder
     // einstufig. Der letzte Wiederherstellungscode belegt hier den Faktor.
@@ -13307,15 +13307,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ausschalten mit Passwort und gueltigem Code',
       zfAus.status === 200 && zfAus.inhalt.an === false, JSON.stringify(zfAus.inhalt));
     pruefe('Danach sind beide Zeilen fort',
-      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfA.id}`).length === 0 &&
-      zfSql(`SELECT * FROM zweifaktor_codes WHERE user_id = ${zfA.id}`).length === 0);
+      zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfA.id}`).length === 0 &&
+      zfSql(`SELECT * FROM two_factor_codes WHERE user_id = ${zfA.id}`).length === 0);
     await zfS.cookieLoeschen();
     const zfEinstufig = await zfS.ruf('POST', '/api/login',
       { user: zfA.name, password: zfA.passwort });
     pruefe('Und die Anmeldung geht wieder in einem Schritt',
       zfEinstufig.status === 200 && zfEinstufig.inhalt.ok === true &&
       !zfEinstufig.inhalt.zweifaktor, JSON.stringify(zfEinstufig.inhalt));
-    const zfProt = zfSql('SELECT was, wer, ziel FROM sicherheitsprotokoll ORDER BY id');
+    const zfProt = zfSql('SELECT was, wer, ziel FROM security_log ORDER BY id');
     pruefe('Das Sicherheitsprotokoll traegt zweifaktor.an und zweifaktor.aus',
       zfProt.some(z => z.was === 'zweifaktor.an' && z.ziel === zfA.id && z.wer === zfA.id) &&
       zfProt.some(z => z.was === 'zweifaktor.aus' && z.ziel === zfA.id && z.wer === zfA.id),
@@ -13335,7 +13335,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       await zfS.cookieLoeschen();
       await zfS.ruf('POST', '/api/login', { user: 'halb', password: 'halbs-langes-wort-100' });
       await zfS.ruf('POST', '/api/two-factor/start', { passwort: 'halbs-langes-wort-100' });
-      const hZeile = zfSql("SELECT user_id, bestaetigt_am FROM zweifaktor")
+      const hZeile = zfSql("SELECT user_id, bestaetigt_am FROM two_factor")
         .find(z => z.bestaetigt_am === null);
       pruefe('Nach Schritt 1 steht eine Zeile ohne bestaetigt_am da',
         Boolean(hZeile), JSON.stringify(hZeile));
@@ -13366,8 +13366,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und die Absage nennt nicht, ob er falsch oder verbraucht war',
       zfZweit.zwei.inhalt.error === 'Der Code stimmt nicht.', zfZweit.zwei.inhalt.error);
     pruefe('Der verbrauchte Zaehler steht in der Zeile',
-      zfSql(`SELECT letzter_zaehler l FROM zweifaktor WHERE user_id = ${zfB.id}`)[0].l === zfEinmal,
-      JSON.stringify(zfSql(`SELECT letzter_zaehler l FROM zweifaktor WHERE user_id = ${zfB.id}`)));
+      zfSql(`SELECT letzter_zaehler l FROM two_factor WHERE user_id = ${zfB.id}`)[0].l === zfEinmal,
+      JSON.stringify(zfSql(`SELECT letzter_zaehler l FROM two_factor WHERE user_id = ${zfB.id}`)));
     /* SCHAERFER ALS "DERSELBE CODE NICHT ZWEIMAL": nach einer Anmeldung ist
        auch das Fenster DAVOR tot. Der Zaehler muss echt groesser sein -- eine
        Regel statt einer Liste verbrauchter Werte, die jemand raeumen muesste. */
@@ -13394,7 +13394,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        einer Lage und keine Pruefung: die Zusage darueber steht in der Gruppe
        davor und wird hier nicht noch einmal behauptet. */
     kurzlauf(`const { db } = require('./db');` +
-      `db.prepare('UPDATE zweifaktor SET letzter_zaehler = NULL').run(); console.log('zurueck');`,
+      `db.prepare('UPDATE two_factor SET letzter_zaehler = NULL').run(); console.log('zurueck');`,
       zfDir);
     pruefe('Ein Code aus dem Fenster DAVOR traegt',
       (await zfAnmelden(zfW.vor, zfJetzt - 1)).zwei.status === 200);
@@ -13510,7 +13510,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     await zfRuhig();
     const zfD = await zfZugangMitFaktor('erik');
-    const zfDb = zfSql(`SELECT hash, benutzt_am FROM zweifaktor_codes WHERE user_id = ${zfD.id}`);
+    const zfDb = zfSql(`SELECT hash, benutzt_am FROM two_factor_codes WHERE user_id = ${zfD.id}`);
     pruefe('Acht Zeilen stehen in der Tabelle', zfDb.length === 8, String(zfDb.length));
     pruefe('Und jede traegt einen SHA-256, nicht den Klartext',
       zfDb.every(z => /^[0-9a-f]{64}$/.test(z.hash)) &&
@@ -13549,8 +13549,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
       (await zfS.ruf('GET', '/api/account')).inhalt?.zweifaktor?.codesOffen === 6,
       JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt?.zweifaktor));
     pruefe('Die verbrauchten Zeilen bleiben stehen, damit "von acht" wahr bleibt',
-      zfSql(`SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ${zfD.id}`)[0].n === 8 &&
-      zfSql(`SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ${zfD.id} AND benutzt_am IS NOT NULL`)[0].n === 2);
+      zfSql(`SELECT COUNT(*) n FROM two_factor_codes WHERE user_id = ${zfD.id}`)[0].n === 8 &&
+      zfSql(`SELECT COUNT(*) n FROM two_factor_codes WHERE user_id = ${zfD.id} AND benutzt_am IS NOT NULL`)[0].n === 2);
     const zfErfundenW = await zfAnmelden(zfD, 0, 'ZZZZZZZZZZ');
     pruefe('Ein erfundener Wiederherstellungscode traegt nicht',
       zfErfundenW.zwei.status === 401, JSON.stringify(zfErfundenW.zwei.inhalt));
@@ -13606,7 +13606,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       !JSON.stringify(zfZweitStart.inhalt).includes(zfE.geheim),
       JSON.stringify(zfZweitStart.inhalt));
     pruefe('Und das Geheimnis steht danach unveraendert da',
-      zfSql(`SELECT geheim FROM zweifaktor WHERE user_id = ${zfE.id}`)[0].geheim === zfE.geheim);
+      zfSql(`SELECT geheim FROM two_factor WHERE user_id = ${zfE.id}`)[0].geheim === zfE.geheim);
     /* IN KEINER KONTROLLAUSGABE. Dieselbe Linie wie beim Mailpasswort aus
        0.9.0: die Startzeile nennt, was laeuft, und kein Geheimnis. */
     pruefe('Und in keiner Zeile der Serverausgabe',
@@ -13667,7 +13667,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ein Zugang ohne Passwort entsteht mit Einladungslink',
       zfErstLink.status === 200 && typeof zfErstLink.inhalt.token === 'string');
     pruefe('Und er hat keinen zweiten Faktor -- einschalten setzt Anmeldung voraus',
-      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfErstLink.inhalt.id}`).length === 0);
+      zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfErstLink.inhalt.id}`).length === 0);
     await zfS.cookieLoeschen();
     const zfErstEin = await zfS.ruf('POST', '/api/token/redeem',
       { token: zfErstLink.inhalt.token, passwort: 'neulings-langes-wort' });
@@ -13689,7 +13689,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const zfG = await zfZugangMitFaktor('helga');
     await zfS.cookieLoeschen();
     await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
-    const zfVorher = zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`);
+    const zfVorher = zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`);
     await zfS.ruf('POST', '/api/confirm',
       { passwort: ZF_PASSWORT, zweck: 'passwort', ziel: zfG.id });
     const zfFremdWort = await zfS.ruf('PUT', `/api/users/${zfG.id}`,
@@ -13697,8 +13697,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ein Admin darf ein fremdes Passwort setzen, wie bisher',
       zfFremdWort.status === 200, JSON.stringify(zfFremdWort.inhalt));
     pruefe('Der zweite Faktor des Betroffenen steht danach unveraendert da',
-      gleich(zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`), zfVorher),
-      JSON.stringify(zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`)));
+      gleich(zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`), zfVorher),
+      JSON.stringify(zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`)));
     await zfS.cookieLoeschen();
     const zfAdminRein = await zfS.ruf('POST', '/api/login',
       { user: zfG.name, password: 'vom-admin-gesetzt-100' });
@@ -13714,13 +13714,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
     await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
     await zfS.ruf('PUT', `/api/users/${zfG.id}`, { status: 'gesperrt' });
     pruefe('Sperren raeumt Sitzungen und Token -- den zweiten Faktor NICHT',
-      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`).length === 1 &&
-      zfSql(`SELECT * FROM zweifaktor_codes WHERE user_id = ${zfG.id}`).length === 8 &&
+      zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`).length === 1 &&
+      zfSql(`SELECT * FROM two_factor_codes WHERE user_id = ${zfG.id}`).length === 8 &&
       zfSql(`SELECT * FROM tokens WHERE user_id = ${zfG.id}`).length === 0,
-      JSON.stringify(zfSql(`SELECT user_id FROM zweifaktor WHERE user_id = ${zfG.id}`)));
+      JSON.stringify(zfSql(`SELECT user_id FROM two_factor WHERE user_id = ${zfG.id}`)));
     await zfS.ruf('PUT', `/api/users/${zfG.id}`, { status: 'aktiv' });
     pruefe('Und nach dem Freigeben verlangt die Anmeldung ihn weiterhin',
-      gleich(zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`), zfVorher));
+      gleich(zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`), zfVorher));
     // Es gibt keine Adresse, unter der ein Fremder gemeint sein koennte.
     const zfKeinPfad = await zfS.ruf('DELETE', `/api/two-factor/${zfG.id}`,
       { passwort: ZF_PASSWORT });
@@ -13733,14 +13733,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* UND DER EIGENTUEMER AUCH NICHT. Ohne diese Zeile bliebe offen, ob die
        Sperre eine Rollenfrage ist -- sie ist keine, sie ist die Bauform. */
     pruefe('Auch der Eigentuemer hat keinen Weg an einen fremden Faktor',
-      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`).length === 1);
+      zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`).length === 1);
     // Entfernen nimmt ihn dagegen mit -- den Zugang gibt es danach nicht mehr.
     await zfS.ruf('POST', '/api/confirm',
       { passwort: ZF_PASSWORT, zweck: 'entfernen', ziel: zfG.id });
     await zfS.ruf('DELETE', `/api/users/${zfG.id}`);
     pruefe('Beim ENTFERNEN eines Zugangs geht sein zweiter Faktor mit',
-      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`).length === 0 &&
-      zfSql(`SELECT * FROM zweifaktor_codes WHERE user_id = ${zfG.id}`).length === 0);
+      zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`).length === 0 &&
+      zfSql(`SELECT * FROM two_factor_codes WHERE user_id = ${zfG.id}`).length === 0);
 
     /* ---------------------------------------------------------------- */
     gruppe('Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich');
@@ -13852,14 +13852,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* JEDER FEHLSCHLAG SCHREIBT anmeldung.fehl UND KEINEN EIGENEN VORGANG:
        eine gescheiterte zweite Stufe IST eine gescheiterte Anmeldung. */
     const zfFehl = zfSql(
-      `SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'anmeldung.fehl' AND ziel = ${zfI.id}`);
+      `SELECT COUNT(*) n FROM security_log WHERE was = 'anmeldung.fehl' AND ziel = ${zfI.id}`);
     /* NEUN, und nicht zehn: der Ruf mit dem erfundenen Ausweis scheitert, BEVOR
        ein Zugang bekannt ist -- er zaehlt in der Bremse und schreibt keine
        Zeile. Das ist richtig so: eine Protokollzeile ohne Ziel saegte nichts. */
     pruefe('Und jeder Fehlschlag an einem bekannten Zugang steht als anmeldung.fehl im Protokoll',
       zfFehl[0].n === 9, String(zfFehl[0].n));
     pruefe('Ein eigener Vorgang fuer den falschen Code steht nirgends',
-      zfSql("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was LIKE 'zweifaktor.f%'")[0].n === 0);
+      zfSql("SELECT COUNT(*) n FROM security_log WHERE was LIKE 'two_factor.f%'")[0].n === 0);
 
     await zfS.stopp();
 
@@ -13893,7 +13893,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const zfNein = zfBefehl(['zweifaktor', 'jonas'], 'nein\n');
     pruefe('usertool.js zweifaktor fragt nach und laesst bei "nein" alles stehen',
       /Wirklich ausschalten/.test(zfNein.aus) && /Abgebrochen/.test(zfNein.aus) &&
-      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfI.id}`).length === 1,
+      zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfI.id}`).length === 1,
       zfNein.aus.trim().split('\n').pop());
     pruefe('Und nennt vorher den Stand samt Zahl der uebrigen Codes',
       /Eingeschaltet seit/.test(zfNein.aus) && /von 8 noch offen/.test(zfNein.aus),
@@ -13901,8 +13901,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const zfJa = zfBefehl(['zweifaktor', 'jonas'], 'ja\n');
     pruefe('Bei "ja" ist der zweite Faktor aus',
       zfJa.code === 0 && /ist ausgeschaltet/.test(zfJa.aus) &&
-      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfI.id}`).length === 0 &&
-      zfSql(`SELECT * FROM zweifaktor_codes WHERE user_id = ${zfI.id}`).length === 0,
+      zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfI.id}`).length === 0 &&
+      zfSql(`SELECT * FROM two_factor_codes WHERE user_id = ${zfI.id}`).length === 0,
       zfJa.aus.trim().split('\n').pop());
     pruefe('Das Passwort bleibt dabei unangetastet',
       zfSql(`SELECT password_hash h FROM users WHERE id = ${zfI.id}`)[0].h.startsWith('scrypt'),
@@ -13911,7 +13911,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Protokoll zu erkennen, und ein eigenes Feld dafuer waere eine zweite
        Wahrheit daneben. */
     const zfWirt = zfSql(
-      `SELECT wer, ziel FROM sicherheitsprotokoll WHERE was = 'zweifaktor.aus' ORDER BY id DESC LIMIT 1`);
+      `SELECT wer, ziel FROM security_log WHERE was = 'zweifaktor.aus' ORDER BY id DESC LIMIT 1`);
     pruefe('Die Protokollzeile traegt das leere wer des Wirts',
       zfWirt[0].wer === null && zfWirt[0].ziel === zfI.id, JSON.stringify(zfWirt[0]));
     const zfNochmal = zfBefehl(['zweifaktor', 'jonas']);
@@ -13957,49 +13957,49 @@ const freigabeHaupt = (zweck, ziel = null) =>
         return i;
       };
       pruefe('Eine frische Instanz traegt beide Tabellen ohne Migration',
-        tTabellen().includes('zweifaktor') && tTabellen().includes('zweifaktor_codes'),
-        JSON.stringify(tTabellen().filter(n => n.startsWith('zweifaktor'))));
-      const tFrisch = tSpalten('zweifaktor'), tFrischC = tSpalten('zweifaktor_codes');
-      pruefe('zweifaktor traegt genau ihre fuenf Spalten',
+        tTabellen().includes('two_factor') && tTabellen().includes('two_factor_codes'),
+        JSON.stringify(tTabellen().filter(n => n.startsWith('two_factor'))));
+      const tFrisch = tSpalten('two_factor'), tFrischC = tSpalten('two_factor_codes');
+      pruefe('two_factor traegt genau ihre fuenf Spalten',
         gleich(tFrisch, ['user_id', 'geheim', 'bestaetigt_am', 'letzter_zaehler', 'created_at']),
         JSON.stringify(tFrisch));
-      pruefe('Und zweifaktor_codes genau ihre vier',
+      pruefe('Und two_factor_codes genau ihre vier',
         gleich(tFrischC, ['hash', 'user_id', 'benutzt_am', 'created_at']), JSON.stringify(tFrischC));
-      pruefe('user_id ist der Primaerschluessel von zweifaktor -- ein Faktor je Zugang',
+      pruefe('user_id ist der Primaerschluessel von two_factor -- ein Faktor je Zugang',
         (() => { const d = oeffne(tDatei);
-          const pk = d.prepare('PRAGMA table_info(zweifaktor)').all().filter(x => x.pk).map(x => x.name);
+          const pk = d.prepare('PRAGMA table_info(two_factor)').all().filter(x => x.pk).map(x => x.name);
           d.close(); return gleich(pk, ['user_id']); })());
-      pruefe('Und der Index auf zweifaktor_codes(user_id) steht',
-        tIndizes().includes('idx_zweifaktor_codes_user'),
-        JSON.stringify(tIndizes().filter(n => n.includes('zweifaktor'))));
+      pruefe('Und der Index auf two_factor_codes(user_id) steht',
+        tIndizes().includes('idx_two_factor_codes_user'),
+        JSON.stringify(tIndizes().filter(n => n.includes('two_factor'))));
       {
         const d = oeffne(tDatei);
-        d.exec('DROP TABLE zweifaktor'); d.exec('DROP TABLE zweifaktor_codes');
+        d.exec('DROP TABLE two_factor'); d.exec('DROP TABLE two_factor_codes');
         d.close();
       }
       pruefe('Von Hand entfernt sind beide wirklich weg',
-        !tTabellen().some(n => n.startsWith('zweifaktor')), JSON.stringify(tTabellen()));
+        !tTabellen().some(n => n.startsWith('two_factor')), JSON.stringify(tTabellen()));
       kurzlauf(`require('./db'); console.log('da');`, tDir);
       pruefe('Ein einziger Start legt beide wieder an',
-        tTabellen().includes('zweifaktor') && tTabellen().includes('zweifaktor_codes'));
+        tTabellen().includes('two_factor') && tTabellen().includes('two_factor_codes'));
       pruefe('Und das Schema ist danach dasselbe wie in einer frischen Instanz',
-        gleich(tSpalten('zweifaktor'), tFrisch) && gleich(tSpalten('zweifaktor_codes'), tFrischC));
+        gleich(tSpalten('two_factor'), tFrisch) && gleich(tSpalten('two_factor_codes'), tFrischC));
       pruefe('Der Index kommt dabei mit zurueck',
-        tIndizes().includes('idx_zweifaktor_codes_user'));
+        tIndizes().includes('idx_two_factor_codes_user'));
       /* DIE GEGENLAGE: eine SPALTE kommt nicht von selbst zurueck. Ohne sie
          belegte die Probe oben nur, dass irgendetwas nachwaechst -- und nicht,
          dass es gerade der Unterschied zwischen Tabelle und Spalte ist. */
       {
         const d = oeffne(tDatei);
-        d.exec('ALTER TABLE zweifaktor DROP COLUMN letzter_zaehler');
+        d.exec('ALTER TABLE two_factor DROP COLUMN letzter_zaehler');
         d.close();
       }
       pruefe('Die Spalte ist von Hand entfernt',
-        !tSpalten('zweifaktor').includes('letzter_zaehler'), JSON.stringify(tSpalten('zweifaktor')));
+        !tSpalten('two_factor').includes('letzter_zaehler'), JSON.stringify(tSpalten('two_factor')));
       let tNach = [];
       try {
         kurzlauf(`require('./db'); console.log('da');`, tDir);
-        tNach = tSpalten('zweifaktor');
+        tNach = tSpalten('two_factor');
       } catch { tNach = ['(Start gescheitert)']; }
       pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !tNach.includes('letzter_zaehler'), JSON.stringify(tNach));
@@ -14854,8 +14854,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und keine davon heisst migration0870',
     !fDbQuelle.includes('migration0870'), 'migration0870 steht in db.js');
   pruefe('Der Papierkorb steht als vollstaendige DDL im Schema',
-    fDbQuelle.includes('CREATE TABLE IF NOT EXISTS papierkorb (') &&
-    fDbQuelle.includes('CREATE TABLE IF NOT EXISTS papierkorb_bytes ('),
+    fDbQuelle.includes('CREATE TABLE IF NOT EXISTS trash (') &&
+    fDbQuelle.includes('CREATE TABLE IF NOT EXISTS trash_bytes ('),
     'die DDL fehlt');
   /* UND geloescht_von GEHOERT AUSDRUECKLICH NICHT INS AUFFANGNETZ. Es ist die
      Feststellung eines Vorgangs, nicht die Zugehoerigkeit von Bestand -- daran
@@ -14873,7 +14873,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /\['items', 'comments', 'test_days', 'ratings', 'links', 'attachments'\]/.test(fNetzRumpf),
     (fNetzRumpf.match(/for \(const tabelle of .*/) || [''])[0]);
   pruefe('Und den Papierkorb ausdruecklich nicht',
-    !fNetzRumpf.includes('papierkorb'), 'papierkorb steht im Auffangnetz');
+    !fNetzRumpf.includes('trash'), 'papierkorb steht im Auffangnetz');
 
   /* DIE FRIST STEHT IM SERVER, NICHT IN DER OBERFLAECHE. Die Karte und der
      Loeschdialog nennen sie beide -- gerechnet wird sie an einer Stelle, und
@@ -16463,7 +16463,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     await ZJ.stopp();
 
     const zjSeit = () => zjZeilen(
-      "SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll WHERE wer IS NULL AND was <> 'anmeldung.fehl' ORDER BY id");
+      "SELECT was, wer, ziel, merkmal FROM security_log WHERE wer IS NULL AND was <> 'anmeldung.fehl' ORDER BY id");
     pruefe('Vor den Befehlen steht keine Zeile ohne Handelnden da',
       zjSeit().length === 0, JSON.stringify(zjSeit()));
 
@@ -16490,8 +16490,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Handelnder. Ohne sie bliebe "wer IS NULL heisst Wirt" auch dann gruen,
        wenn NIE ein Handelnder eingetragen wuerde. */
     pruefe('Ueber eine Route steht dagegen ein Handelnder',
-      zjZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'zugang.neu' AND wer IS NOT NULL")[0].n === 3,
-      JSON.stringify(zjZeilen("SELECT was, wer FROM sicherheitsprotokoll WHERE was = 'zugang.neu'")));
+      zjZeilen("SELECT COUNT(*) n FROM security_log WHERE was = 'zugang.neu' AND wer IS NOT NULL")[0].n === 3,
+      JSON.stringify(zjZeilen("SELECT was, wer FROM security_log WHERE was = 'zugang.neu'")));
 
     fs.rmSync(zjDir, { recursive: true, force: true });
   }
@@ -42285,7 +42285,7 @@ function pruefeSchluesselwechsel() {
   };
 
   // Die beiden Tabellen, in die der Wechsel seine eigene Spur schreibt.
-  const SW_EIGENE = ['settings', 'sicherheitsprotokoll'];
+  const SW_EIGENE = ['settings', 'security_log'];
 
   /* JEDER ZERBRECHLICHE SCHRITT WIRD ZU EINEM ROTEN PUNKT, NICHT ZU EINEM
      ABRISS. Diese Gruppen pruefen einen Vorgang, der scheitern KANN und in den
@@ -42529,7 +42529,7 @@ function pruefeSchluesselwechsel() {
      VOLLSTAENDIGEN Zeileninhalt ueber ALLE Spalten ALLER Zeilen -- weder der
      alte noch der neue Wert darf irgendwo auftauchen. */
   const d4 = swVersuch(() => swOeffne(a4.dir, envNeu));
-  const protoZeilen = swVersuch(() => d4.prepare('SELECT * FROM sicherheitsprotokoll').all(), []);
+  const protoZeilen = swVersuch(() => d4.prepare('SELECT * FROM security_log').all(), []);
   const alleZeilen = JSON.stringify(protoZeilen);
   pruefe('Genau eine Zeile im Sicherheitsprotokoll, und sie heisst schluessel',
     protoZeilen.filter(z => z.was === 'schluessel').length === 1, alleZeilen);
@@ -42599,8 +42599,8 @@ function pruefeSchluesselwechsel() {
     const d = swOeffne(a5.dir, a5.hex);
     // Das Fuellen selbst darf nicht abreissen -- die Instanz ist frisch, aber
     // eine Gegenprobe kann jede Annahme darueber umstossen.
-    d.exec("INSERT INTO papierkorb (id, titel, inhalt) VALUES (1, 'Brocken', '{}')");
-    const ins = d.prepare('INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (1, ?, ?)');
+    d.exec("INSERT INTO trash (id, titel, inhalt) VALUES (1, 'Brocken', '{}')");
+    const ins = d.prepare('INSERT INTO trash_bytes (papierkorb_id, nr, daten) VALUES (1, ?, ?)');
     // ZUFALLSBYTES, nicht Nullen: eine Datenbank voller Nullen komprimiert der
     // Dateicache weg, und der Wechsel waere wieder zu schnell zum Treffen.
     const brocken = crypto.randomBytes(1024 * 1024);
@@ -42651,8 +42651,8 @@ function pruefeSchluesselwechsel() {
     pruefe('Und der Abbruch hat weder Marke noch Protokollzeile hinterlassen',
       swVersuch(() => d.prepare(
         "SELECT COUNT(*) n FROM settings WHERE key = 'schluesselGewechseltAm'").get().n) === 0 &&
-      swVersuch(() => d.prepare('SELECT COUNT(*) n FROM sicherheitsprotokoll').get().n) === 0,
-      JSON.stringify(swVersuch(() => d.prepare('SELECT * FROM sicherheitsprotokoll').all())));
+      swVersuch(() => d.prepare('SELECT COUNT(*) n FROM security_log').get().n) === 0,
+      JSON.stringify(swVersuch(() => d.prepare('SELECT * FROM security_log').all())));
     swVersuch(() => d.close());
   }
 

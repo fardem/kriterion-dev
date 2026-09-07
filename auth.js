@@ -559,8 +559,8 @@ function removeUser(userId, optionen = {}, wer) {
        haette in "sperren und freigeben" einen Weg, einen fremden zweiten
        Faktor abzustreifen. Hier gibt es den Zugang danach nicht mehr; der Name
        wird frei, und wer ihn neu vergibt, bekommt eine neue Nummer. */
-    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(u.id);
-    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(u.id);
+    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);
+    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(u.id);
     db.prepare("UPDATE users SET username = ?, password_hash = '', role = 'user', " +
                "status = 'geloescht', email = NULL WHERE id = ?")
       .run(tombstoneName(u.id), u.id);
@@ -1005,7 +1005,7 @@ const REQUEST_MAIL_MAX = 254;
 /* Der Deckel zaehlt BESTAETIGTE UND UNBESTAETIGTE ZUSAMMEN. Zaehlte er nur
    die bestaetigten, fuellte ein Angreifer die Tabelle mit Unbestaetigten,
    ohne je eine Mail zu lesen -- und der Admin saehe davon nichts. */
-const qRequestCount = db.prepare('SELECT COUNT(*) n FROM anfragen');
+const qRequestCount = db.prepare('SELECT COUNT(*) n FROM requests');
 const countRequests = () => qRequestCount.get().n;
 
 /* Dieselbe Bauform wie cleanupTokens(), aber mit DREI Aufrufstellen --
@@ -1017,7 +1017,7 @@ const countRequests = () => qRequestCount.get().n;
    EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
    (Stolperstein 119). */
 const delAnfragenAlt = db.prepare(
-  "DELETE FROM anfragen WHERE bestaetigt_am IS NULL AND created_at < datetime('now', ?)");
+  "DELETE FROM requests WHERE bestaetigt_am IS NULL AND created_at < datetime('now', ?)");
 function cleanupRequests() {
   const n = delAnfragenAlt.run(`-${REQUEST_HOURS} hours`).changes;
   if (n) console.log(`[Kriterion] Selbstanmeldung: ${n} unbestaetigte Anfrage(n) aelter als ` +
@@ -1045,8 +1045,8 @@ function cleanupRequests() {
    Warteschlange. VERGLICHEN WIRD OHNE RUECKSICHT AUF GROSS UND KLEIN -- zwei
    Adressen, die sich nur in der Schreibweise unterscheiden, sind dasselbe
    Postfach. */
-const qRequestName = db.prepare('SELECT 1 FROM anfragen WHERE username = ? COLLATE NOCASE');
-const qRequestMail = db.prepare('SELECT 1 FROM anfragen WHERE email = ? COLLATE NOCASE');
+const qRequestName = db.prepare('SELECT 1 FROM requests WHERE username = ? COLLATE NOCASE');
+const qRequestMail = db.prepare('SELECT 1 FROM requests WHERE email = ? COLLATE NOCASE');
 const qUserMail = db.prepare('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE');
 function createRequest(name, adresse) {
   const clean = String(name || '').trim();
@@ -1063,7 +1063,7 @@ function createRequest(name, adresse) {
   if (qRequestName.get(clean)) return null;
   if (qRequestMail.get(post)) return null;
   const plain = crypto.randomBytes(32).toString('hex');
-  db.prepare('INSERT INTO anfragen (hash, username, email) VALUES (?, ?, ?)')
+  db.prepare('INSERT INTO requests (hash, username, email) VALUES (?, ?, ?)')
     .run(tokenHash(plain), clean, post);
   /* KEINE PROTOKOLLZEILE. Sie waere die einzige neben der gescheiterten
      Anmeldung, die ein FREMDER ausloesen kann -- und damit die zweite Stelle,
@@ -1083,7 +1083,7 @@ function createRequest(name, adresse) {
    leer ist, und der zweite Aufruf trifft dieselbe Zeile und meldet ebenfalls
    Erfolg. Wer neu laedt, soll nicht vor einer Absage stehen. */
 const setConfirmed = db.prepare(
-  `UPDATE anfragen SET bestaetigt_am = datetime('now')
+  `UPDATE requests SET bestaetigt_am = datetime('now')
     WHERE hash = ? AND created_at > datetime('now', ?)`);
 function confirmRequest(plain) {
   const raw = String(plain || '');
@@ -1102,13 +1102,13 @@ function confirmRequest(plain) {
    braucht die Nummer, und mehr hat sie mit dem Geheimnis nicht zu tun. */
 const qRequests = db.prepare(
   `SELECT id, username, email, created_at, bestaetigt_am
-     FROM anfragen WHERE bestaetigt_am IS NOT NULL ORDER BY bestaetigt_am ASC, id ASC`);
+     FROM requests WHERE bestaetigt_am IS NOT NULL ORDER BY bestaetigt_am ASC, id ASC`);
 const listRequests = () => qRequests.all();
 const getRequest = (id) => db.prepare(
-  'SELECT id, username, email, created_at, bestaetigt_am FROM anfragen WHERE id = ?')
+  'SELECT id, username, email, created_at, bestaetigt_am FROM requests WHERE id = ?')
   .get(Number(id) || 0) || null;
 const removeRequest = (id) =>
-  db.prepare('DELETE FROM anfragen WHERE id = ?').run(Number(id) || 0).changes > 0;
+  db.prepare('DELETE FROM requests WHERE id = ?').run(Number(id) || 0).changes > 0;
 
 /* --- Das Sicherheitsprotokoll -------------------------------------------
    ES HAELT FEST, WER ZUGANG HATTE UND WER DIE INSTANZ ALS GANZES ANGEFASST
@@ -1205,7 +1205,7 @@ const LOG_DAYS = 180;
 const LOG_LIMIT = 100;
 
 const insLog = db.prepare(
-  'INSERT INTO sicherheitsprotokoll (was, wer, ziel, merkmal) VALUES (?, ?, ?, ?)');
+  'INSERT INTO security_log (was, wer, ziel, merkmal) VALUES (?, ?, ?, ?)');
 
 /* WER HANDELT -- die Nummer des Angemeldeten oder FROM_HOST fuer usertool.js.
    KEIN VORGABEWERT, und die Klemme darunter ist keine Zierde: ein vergessenes
@@ -1251,7 +1251,7 @@ function log(was, { wer = null, ziel = null, merkmal = null } = {}) {
    nicht auf.
    EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
    (Stolperstein 119). */
-const delProtokollAlt = db.prepare("DELETE FROM sicherheitsprotokoll WHERE am < datetime('now', ?)");
+const delProtokollAlt = db.prepare("DELETE FROM security_log WHERE am < datetime('now', ?)");
 function cleanupLog() {
   const n = delProtokollAlt.run(`-${LOG_DAYS} days`).changes;
   if (n) console.log(`[Kriterion] Sicherheitsprotokoll: ${n} Zeile(n) aelter als ` +
@@ -1293,7 +1293,7 @@ const LOG_COLUMNS =
   `SELECT p.id, p.am, p.was, p.wer, p.ziel, p.merkmal,
           CASE WHEN uw.status = 'geloescht' THEN NULL ELSE uw.username END AS werName,
           CASE WHEN uz.status = 'geloescht' THEN NULL ELSE uz.username END AS zielName
-     FROM sicherheitsprotokoll p
+     FROM security_log p
      LEFT JOIN users uw ON uw.id = p.wer
      LEFT JOIN users uz ON uz.id = p.ziel`;
 const qLog = db.prepare(`${LOG_COLUMNS} ORDER BY p.id DESC LIMIT ?`);
@@ -1303,8 +1303,8 @@ const qLog = db.prepare(`${LOG_COLUMNS} ORDER BY p.id DESC LIMIT ?`);
 const qLogGroup = Object.fromEntries(Object.entries(LOG_GROUPS).map(([k, arten]) =>
   [k, db.prepare(`${LOG_COLUMNS} WHERE p.was IN (${arten.map(() => '?').join(',')})` +
                  ' ORDER BY p.id DESC LIMIT ?')]));
-const qLogCount = db.prepare('SELECT COUNT(*) n FROM sicherheitsprotokoll');
-const qLogPerKind = db.prepare('SELECT was, COUNT(*) n FROM sicherheitsprotokoll GROUP BY was');
+const qLogCount = db.prepare('SELECT COUNT(*) n FROM security_log');
+const qLogPerKind = db.prepare('SELECT was, COUNT(*) n FROM security_log GROUP BY was');
 
 /* WELCHE GRUPPE WIE VIELE ZEILEN HAT -- die Zahlen an den Filterpillen. Sie
    zaehlen ueber die GANZE Tabelle und nicht ueber die geholten hundert: eine
@@ -1443,7 +1443,7 @@ function dropRelease(token) {
    DIE RECHTEFRAGE STEHT HIER AUSDRUECKLICH NICHT: welche Nummer
    hereingereicht wird, entscheidet server.js an der Route. */
 const qTwoFactor = db.prepare(
-  'SELECT user_id, geheim, bestaetigt_am, letzter_zaehler FROM zweifaktor WHERE user_id = ?');
+  'SELECT user_id, geheim, bestaetigt_am, letzter_zaehler FROM two_factor WHERE user_id = ?');
 const getTwoFactor = (userId) => qTwoFactor.get(Number(userId) || 0) || null;
 
 /* DIE EINE FRAGE, AN DER ALLES HAENGT: verlangt dieser Zugang einen zweiten
@@ -1458,8 +1458,8 @@ const twoFactorOn = (userId) => {
 };
 
 const qCodesLeft = db.prepare(
-  'SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ? AND benutzt_am IS NULL');
-const qCodesTotal = db.prepare('SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ?');
+  'SELECT COUNT(*) n FROM two_factor_codes WHERE user_id = ? AND benutzt_am IS NULL');
+const qCodesTotal = db.prepare('SELECT COUNT(*) n FROM two_factor_codes WHERE user_id = ?');
 
 /* WAS DIE KARTE SIEHT -- UND DAS GEHEIMNIS IST NIE DARIN. Dieselbe Linie wie
    beim Mailpasswort: die Karte sagt "an" oder "aus", nie den Wert, nie die
@@ -1499,7 +1499,7 @@ function startTwoFactor(userId, instanceName, username) {
   if (twoFactorOn(id)) throw new Message('login.twoFactorAlreadyOn');
   const secret = zf.newSecret();
   db.prepare(
-    `INSERT INTO zweifaktor (user_id, geheim, bestaetigt_am, letzter_zaehler)
+    `INSERT INTO two_factor (user_id, geheim, bestaetigt_am, letzter_zaehler)
      VALUES (?, ?, NULL, NULL)
      ON CONFLICT(user_id) DO UPDATE SET
        geheim = excluded.geheim, bestaetigt_am = NULL, letzter_zaehler = NULL,
@@ -1518,12 +1518,12 @@ function startTwoFactor(userId, instanceName, username) {
    EINE TRANSAKTION: entweder sind die alten fort UND die neuen da, oder es hat
    sich nichts bewegt. Ein halber Satz waere schlimmer als der alte. */
 const insCode = db.prepare(
-  'INSERT INTO zweifaktor_codes (hash, user_id) VALUES (?, ?)');
+  'INSERT INTO two_factor_codes (hash, user_id) VALUES (?, ?)');
 function createRecoveryCodes(userId) {
   const id = Number(userId) || 0;
   const plains = zf.newRecoveryCodes();
   db.transaction(() => {
-    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);
     // tokenHash() WIRD WIEDERVERWENDET und nicht ein zweites Mal geschrieben:
     // zwei Ausfertigungen derselben Rechnung liefen beim naechsten Griff
     // auseinander. Dieselbe Ueberlegung wie bei der Selbstanmeldung.
@@ -1546,7 +1546,7 @@ function turnTwoFactorOn(userId, input, wer, now = Date.now()) {
   const counter = zf.checkCode(z.geheim, input, now);
   if (counter === null) throw new Message(TWO_FACTOR_DENIAL);
   db.prepare(
-    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?
+    `UPDATE two_factor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?
       WHERE user_id = ?`).run(counter, id);
   const codes = createRecoveryCodes(id);
   log('zweifaktor.an', { wer: actor(wer), ziel: id });
@@ -1567,10 +1567,10 @@ function turnTwoFactorOn(userId, input, wer, now = Date.now()) {
    DER ZAEHLER MUSS ECHT GROESSER SEIN als der zuletzt verbrauchte -- damit ist
    nach einer Anmeldung auch das Fenster DAVOR tot. */
 const useCounter = db.prepare(
-  `UPDATE zweifaktor SET letzter_zaehler = ?
+  `UPDATE two_factor SET letzter_zaehler = ?
     WHERE user_id = ? AND (letzter_zaehler IS NULL OR letzter_zaehler < ?)`);
 const useRecoveryCode = db.prepare(
-  `UPDATE zweifaktor_codes SET benutzt_am = datetime('now')
+  `UPDATE two_factor_codes SET benutzt_am = datetime('now')
     WHERE hash = ? AND user_id = ? AND benutzt_am IS NULL`);
 function checkTwoFactor(userId, input, now = Date.now()) {
   const id = Number(userId) || 0;
@@ -1617,8 +1617,8 @@ function turnTwoFactorOff(userId, wer) {
   const id = Number(userId) || 0;
   if (!getTwoFactor(id)) return false;
   db.transaction(() => {
-    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(id);
-    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);
   })();
   log('zweifaktor.aus', { wer: actor(wer), ziel: id });
   return true;
