@@ -203,13 +203,13 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 
 **Was hier bleibt, bleibt aus einem Grund:** die **elf** Punkte unten haben
 **keine Nummer**, weil die meisten von ihnen jetzt nicht gebaut werden sollen —
-*mit inzwischen drei Ausnahmen. Seit dem 5. September 2026: **Punkt 11** ist
-empfohlen und wartet nur auf eine Runde; er ist am selben Tag dazugekommen, als
-0.22.1 ihn ausdrücklich nicht mitgenommen hat. Und seit dem 7. September 2026,
-aus dem Rundlauf mit 0.24.2: **Punkt 13**, zwei Fehler mit benannter Ursache,
-und **Punkt 14**, der als einziger Punkt dieses Blatts nicht mehr zur Wahl
-steht — **der Betreiber hat ihn entschieden, und ihm fehlt nur noch die
-Nummer.*** — zwei sind
+*mit inzwischen zwei Ausnahmen: **Punkt 11** ist seit dem 5. September 2026
+empfohlen und wartet nur auf eine Runde — er ist am selben Tag dazugekommen, als
+0.22.1 ihn ausdrücklich nicht mitgenommen hat —, und **Punkt 13** ist seit dem
+7. September 2026 empfohlen: zwei Fehler aus dem Rundlauf mit 0.24.2, jeder mit
+benannter Ursache. **Punkt 14 ist ein dritter Fall und der einzige seiner Art:**
+ein Wunsch aus dem Betrieb, der **besprochen wird, bevor er festgelegt wird** —
+weder empfohlen noch abgelehnt, sondern offen.* — zwei sind
 `nicht empfohlen`, drei sind `später`, einer wartet auf die Runde, in der über
 die Verfahren entschieden wird, **und einer ist am 3. September 2026
 dazugekommen: Punkt 9, die gepackte Sicherung** — *sein Kern ist gemessen und
@@ -1354,11 +1354,19 @@ so alt wie die Fortschrittsmeldung im Ablagefeld.*
 
 ## 14. Blättern im Eintrag — vor und zurück in der Reihenfolge der Übersicht
 
-**Art: Funktion · Einschätzung: VOM BETREIBER ENTSCHIEDEN am 7. September 2026
-— sie wird gebaut, die Nummer steht noch aus · Draußen üblich: ja**
+**Art: Funktion · Einschätzung: NOCH ZU BESPRECHEN — der Wunsch steht,
+die Form nicht · Draußen üblich: ja**
 
-*Dieser Punkt ist keine Empfehlung und keine Frage. Er steht hier, weil er noch
-keine Rundennummer hat — nicht, weil er noch zur Wahl stünde.*
+> **AM 7. SEPTEMBER 2026 AUSDRÜCKLICH OFFEN GELASSEN.** *Der Punkt ist an
+> diesem Tag zunächst als entschieden aufgeschrieben und vom Betreiber noch am
+> selben Tag zurückgenommen worden:* **er wird besprochen, bevor er festgelegt
+> wird.** *Was feststeht, ist der Wunsch — nicht, wie er gebaut wird und in
+> welcher Runde.*
+>
+> **Und der Grund, ihn nicht durchzuwinken, steht drei Absätze weiter unten:**
+> die Pfeiltasten sind in dieser Ansicht bereits belegt. *Eine Funktion, die
+> eine vorhandene ersetzt, ist keine Ergänzung — sie ist ein Tausch, und über
+> einen Tausch entscheidet man nicht nebenbei.*
 
 ### Woher
 
@@ -1379,7 +1387,7 @@ zum vierten dieser Liste.
 nächsten öffnen. Bei einem Rundlauf über zehn Einträge ist das zwanzigmal
 hin und her.*
 
-### Drei Fragen, die vor dem Bau zu beantworten sind
+### Drei Fragen — sie sind der Stoff der Besprechung
 
 **1 · Die Pfeiltasten sind schon belegt.** In der Eintragsansicht blättern
 `ArrowLeft` und `ArrowRight` heute durch die **Vorschaubilder** des Eintrags
@@ -1387,7 +1395,7 @@ hin und her.*
 Taste gibt es nicht.* Also: **Knöpfe am linken und rechten Rand** und die
 Tasten bleiben bei den Bildern? Oder die Tasten wechseln den Eintrag und die
 Bilder bekommen einen anderen Griff? **Der Betreiber hat „Pfeiltasten rechts
-links" geschrieben — das kann beides heißen, und der Auftrag entscheidet es.**
+links" geschrieben — das kann beides heißen, und es wird besprochen.**
 
 **2 · Woher kommt die Reihenfolge?** Sie lebt heute in der Übersicht
 (`state.items` samt Filter und Sortierung) und nur dort. **Ein Eintrag, den
