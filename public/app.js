@@ -5472,7 +5472,7 @@ async function renderDetail(id, termAddress) {
       };
       makeSortable(tile, {
         axis: 'x', selector: '.thumb', ignore: '.del',
-        onClick: () => { idx = [...t.parentElement.children].indexOf(tile); drawViewer(); markThumb(); },
+        onClick: () => { idx = [...tile.parentElement.children].indexOf(tile); drawViewer(); markThumb(); },
         onDrop: async (children) => {
           const order = children.map(c => +c.dataset.pid);
           const currentId = item.photos[idx]?.id;
@@ -6582,9 +6582,9 @@ async function renderDetail(id, termAddress) {
         const c = document.createElement('span');
         c.className = 'chip chip-xs';
         // Mit Namen, damit „Tag" und „Testtag" nicht zusammenfallen (Woerterbuch).
-        c.innerHTML = `${esc(t.name)}<button title="${esc(t('entry.tagQuote', { name: t.name }))}" entfernen">${ICON_X}</button>`;
+        c.innerHTML = `${esc(tag.name)}<button title="${esc(t('entry.tagQuote', { name: tag.name }))}">${ICON_X}</button>`;
         c.querySelector('button').onclick = async () => {
-          try { item = await api('DELETE', `/api/test-days/${d.id}/tags/${t.id}`); drawTestDays(); loadTagList(); }
+          try { item = await api('DELETE', `/api/test-days/${d.id}/tags/${tag.id}`); drawTestDays(); loadTagList(); }
           catch (e) { toast(e.message, true); }
         };
         tagBox.appendChild(c);
@@ -6824,6 +6824,15 @@ async function renderDetail(id, termAddress) {
     const gap = 5;   // entspricht dem margin-bottom von .lrow
     box.style.maxHeight = (LINK_ROWS * h + (LINK_ROWS - 1) * gap) + 'px';
     box.style.overflowY = 'hidden';
+    /* UND AN DEN ANFANG DER LISTE -- 7. September 2026, aus dem Betrieb.
+       ZUGEKLAPPT HEISST: DIE ERSTEN N ZEILEN, und der Rest steht hinter dem
+       Knopf. Ohne diese Zeile behielt der Kasten die Stellung, die das
+       Hinzufuegen eines Links ihm gegeben hatte (ans Ende), und der
+       zugeklappte Block zeigte die LETZTEN fuenf statt der ersten -- bei acht
+       Links die Nummern 4 bis 8. Der Bildlauf ist hier auf `hidden`; eine
+       Stellung ungleich null ist deshalb von aussen nicht mehr zu ändern und
+       bleibt, bis jemand aufklappt. */
+    box.scrollTop = 0;
     button.hidden = false;
     button.textContent = `alle ${rows.length} anzeigen`;
     button.onclick = () => { linksOpen = true; drawLinks(); };
@@ -6836,7 +6845,14 @@ async function renderDetail(id, termAddress) {
     try {
       item = await api('POST', `/api/items/${id}/links`, { url });
       el.value = ''; drawLinks();
-      document.getElementById('links').scrollTop = 1e6;
+      /* ANS ENDE NUR, WENN DIE LISTE NICHT GEKLEMMT IST. Der neue Link steht
+         unten; steht die Liste zugeklappt da, ist er ohnehin nicht zu sehen,
+         und ein Bildlauf hinterliesse den Kasten mit einer Stellung, die
+         `limitLinks()` beim naechsten Zeichnen als falschen Ausschnitt zeigt
+         (7. September 2026, aus dem Betrieb). Der Knopf sagt die neue Zahl --
+         das ist die Rueckmeldung. */
+      const linkBox = document.getElementById('links');
+      if (!linkBox.style.maxHeight) linkBox.scrollTop = 1e6;
     } catch (e) { toast(e.message, true); }
   };
   document.getElementById('newlink-b').onclick = addLink;

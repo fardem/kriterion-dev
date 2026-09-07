@@ -6636,6 +6636,73 @@ const REGRESSIONS = [
     search: '"card.personal":',
     replacement: '"karte.persoenlichNicht":',
     expected: 'Der Systembereich nach Rolle'
+  },
+
+  /* ---- Die sechs Waechter der Runde 0.24.1 ----------------------------
+     Ein Waechter, der nie rot wird, ist eine Behauptung. Jeder der sechs
+     bekommt hier seinen Rueckbau: eine Stelle, an der ein deutscher Name
+     zurueckkehrt -- und der Lauf muss es merken. */
+  {
+    nr: '694', name: 'Ein deutscher Bezeichner kehrt in den Server zurueck',
+    file: 'server.js',
+    search: 'const EXCHANGE_PART_MIN = 1024 * 1024;',
+    replacement: 'const EXCHANGE_PART_MIN = 1024 * 1024;\nconst teilGroesseKlein = EXCHANGE_PART_MIN;',
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  {
+    nr: '695', name: 'Ein Schluessel der Sprachdatei heisst wieder deutsch',
+    file: 'public/languages/de.json',
+    search: '"list.description":',
+    replacement: '"list.beschreibungLang":',
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  {
+    nr: '696', name: 'Eine deutsche Adresse kommt dazu',
+    file: 'public/app.js',
+    search: "const OLD_ADDRESSES = { '#/offen': '#/open' };",
+    replacement: "const OLD_ADDRESSES = { '#/offen': '#/open', '#/uebersicht': '#/list' };",
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  {
+    nr: '697', name: 'Eine deutsche Klasse kehrt ins Stilblatt zurueck',
+    file: 'public/style.css',
+    search: '.role-badge.owner {',
+    replacement: '.role-badge.owner, .role-badge.eigentuemer {',
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  {
+    nr: '698', name: 'Ein Satz der Oberflaeche wird umformuliert',
+    file: 'public/languages/de.json',
+    search: '"card.never": "noch nie"',
+    replacement: '"card.never": "bisher nie"',
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  {
+    nr: '699', name: 'Ein Schluessel bekommt eine angehaengte Ziffer',
+    file: 'public/languages/de.json',
+    search: '"card.mailAccount":',
+    replacement: '"card.mailAccount2":',
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+
+  /* ---- Der Sprachhelfer, nach zwei Befunden aus dem Betrieb ------------
+     Am 7. September 2026 gemeldet: die Vorschaukachel im Eintrag war mit der
+     Maus nicht mehr anzuklicken. Ursache war `t.parentElement` -- `t` ist
+     seit 0.24.0 der Sprachhelfer, die Kachel heisst `tile`. Dieser Rueckbau
+     stellt genau das wieder her. */
+  {
+    nr: '700', name: 'Die Vorschaukachel fragt wieder den Sprachhelfer nach ihrem Vater',
+    file: 'public/app.js',
+    search: 'idx = [...tile.parentElement.children].indexOf(tile);',
+    replacement: 'idx = [...t.parentElement.children].indexOf(tile);',
+    expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
+  },
+  {
+    nr: '701', name: 'Der zugeklappte Linkblock behaelt seine Stellung am Ende',
+    file: 'public/app.js',
+    search: '    box.scrollTop = 0;',
+    replacement: '    box.scrollTop = 1;',
+    expected: 'Zugeklappt heisst: die ersten Zeilen — 0.24.1'
   }
 ];
 
@@ -6646,9 +6713,9 @@ const REGRESSIONS = [
    Treiber ab, statt still auf einen Vorgabewert zu fallen. */
 function offsetLevel() {
   const t = fs.readFileSync(path.join(__dirname, 'testbench.js'), 'utf8');
-  const m = t.match(/^const VERSATZ_STUFE = (\d+);$/m);
+  const m = t.match(/^const OFFSET_LEVEL = (\d+);$/m);
   if (!m) {
-    console.error('In testbench.js steht keine Zeile "const VERSATZ_STUFE = <Zahl>;".');
+    console.error('In testbench.js steht keine Zeile "const OFFSET_LEVEL = <Zahl>;".');
     console.error('Ohne sie faehrt der Treiber keine Nebenspuren.');
     process.exit(1);
   }

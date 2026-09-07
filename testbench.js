@@ -35,6 +35,12 @@ const attachments = require('./attachments');
    gegen Pixel haelt. Ohne sharp bliebe an dieser Stelle eine Behauptung.
    ES IST KEINE NEUE ABHAENGIGKEIT: sharp traegt der Server ohnehin. */
 const sharp = require('sharp');
+/* DER ZERLEGER DER RUNDE 0.24.1 -- er trennt Code von Text, Vorlage und
+   Kommentar. Die sechs Waechter weiter unten brauchen ihn: ein Name in einem
+   Kommentar ist keine Benennung, und ein Weg in einer Erzaehlung ist keine
+   Adresse. Er ist WERKZEUG und wird nicht ausgeliefert -- deshalb steht er
+   hier und nicht in einer Serverdatei. */
+const { zerlege, CODE, TEXT } = require('./tools/segments.js');
 
 /* DIE README ALS EIN LANGER STRING, EINMAL GELESEN. Gebraucht wird sie
    ueberall dort, wo ein Text die Oberflaeche VERLAESST: was aus der Instanz
@@ -15404,6 +15410,284 @@ const shareMain = (purpose, target = null) =>
     ('300 MB und 0,5 Sekunden'.match(/\b0\.\d+\.\d+\b/g) || []).length === 0,
     'der Waechter faerbt sich an einer Zahl');
 
+
+  /* ================= Die sechs Waechter der Runde 0.24.1 =================
+     „Der Quelltext spricht Englisch" ist eine Zusage ueber den ganzen
+     Bestand, und eine solche Zusage haelt nur, wenn sie GEZAEHLT wird. Die
+     sechs hier lesen dieselbe Liste wie der Migrationsblock in `db.js` --
+     `tools/dictionary.json` und nur die. Zwei Listen ueber dieselbe Sache
+     duerfen sich nicht widersprechen (Auftrag, Bauabschnitt 6).
+
+     WAS SIE NICHT TUN: sie weisen nichts ab. Sie ZAEHLEN, und jede Ausnahme
+     steht NAMENTLICH da. Eine Ausnahme, die niemand zaehlt, wird zur
+     Auslegung; eine, die einen Namen hat, bleibt eine Entscheidung. */
+  group('Der Quelltext spricht Englisch — die sechs Waechter');
+  {
+    const DICTIONARY = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
+    /* Ein Wortpaar, dessen beide Seiten gleich lauten, ist kein deutsches
+       Wort -- `tags` heisst auf beiden Seiten `tags`. */
+    const GERMAN = Object.create(null);
+    for (const [word, english] of Object.entries(DICTIONARY.words))
+      if (word !== english) GERMAN[word] = english;
+    const pieces = (name) => name
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      .replace(/[_-]/g, ' ').split(/\s+/).filter(Boolean).map(x => x.toLowerCase());
+    const isGerman = (name) => pieces(name).some(w => GERMAN[w]);
+    const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
+      'images.js', 'batchrun.js', 'usertool.js', 'twofactor.js', 'keytool.js',
+      'public/app.js', 'public/theme.js'];
+    const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+
+    /* ERST DER LESER SELBST. Ein Waechter, dessen Leser nichts findet, ist
+       gruen und sagt nichts -- dieselbe Bauform wie beim Sprachwaechter. */
+    check('Das Woerterbuch traegt seine Wortpaare',
+      Object.keys(GERMAN).length > 1000, `${Object.keys(GERMAN).length} Paare`);
+    check('Und der Leser erkennt ein deutsches Wortstueck',
+      isGerman('sicherungOrdner') && isGerman('LOESCH_MARKE') && isGerman('papierkorb_tage'),
+      'der Leser sieht kein deutsches Wort');
+    check('Und faerbt sich an einem englischen Namen nicht',
+      !isGerman('backupFolder') && !isGerman('DELETE_MARK') && !isGerman('trash_days'),
+      'der Leser faerbt sich an einem englischen Namen');
+
+    /* ---- 1. Die Namensprobe ---------------------------------------------
+       KEIN BEZEICHNER DES AUSGELIEFERTEN CODES TRAEGT EIN DEUTSCHES
+       WORTSTUECK -- ausser den hier benannten. Gelesen wird nur CODE: was in
+       einem Text oder einem Kommentar steht, ist keine Benennung. */
+    const identifiers = new Set();
+    for (const f of SHIPPED)
+      for (const part of zerlege(readShipped(f), f))
+        if (part.art === CODE)
+          for (const m of part.wert.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
+    check('Der Waechter sieht wirklich den ganzen ausgelieferten Code',
+      identifiers.size > 2000 && SHIPPED.length === 13, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
+
+    /* FALSCHE FREUNDE. Das Woerterbuch kennt sie als deutsche Woerter, und
+       an diesen Stellen sind sie englisch: eine `note` ist ein Vermerk und
+       keine Note, `liesIn` ist „liegt darin" und kein Lesebefehl, und
+       `MAILTEST_KEY` traegt den englischen Namen des Mailtests. */
+    const FALSE_FRIENDS = ['MAILTEST_KEY', 'cleanNote', 'liesIn', 'note', 'noteFailure', 'noteSuccess'];
+    /* WAS AUF STUFE 2 WARTET. Es sind keine BENENNUNGEN, sondern GRENZEN:
+       Schluessel der Sprachdatei und ihre Platzhalter, die Namen des
+       Vokabulars, gespeicherte Werte (Bloecke, Filter, Sortierungen) und die
+       Felder, deren Satz erst mit `en.json` umzieht. Sie ziehen mit ihrer
+       Sache um und nicht vor ihr. */
+    const WAITING_FOR_STAGE_TWO = ['abgelehnt', 'andere', 'angemeldetAm', 'ansichtenDeckel',
+      'anzahl', 'art', 'aufgabe', 'aufgabeEinzahl', 'aufgabeErledigt', 'aufgabeMehrzahl',
+      'behalten', 'beitraege', 'belegt', 'berichtEinzahl', 'berichtMehrzahl', 'beschreibung',
+      'bestaetigt_am', 'bewertungEinzahl', 'bewertungMehrzahl', 'bis', 'codesGesamt',
+      'codesOffen', 'criteriaGewichte', 'danach', 'datei', 'dauerSekunden', 'deckel', 'ein',
+      'eins', 'eintraege', 'erledigt', 'fassung', 'filterGesetzt', 'geblieben', 'geloescht_am',
+      'geprueft', 'gesamt', 'gescheitert', 'gespart', 'gewechseltAm', 'grenze', 'groesse',
+      'grund', 'iconWiederher', 'kategorie', 'letzter', 'loeschender', 'merkmalJa',
+      'merkmalNein', 'minPasswort', 'minuten', 'mit', 'nachgezogen', 'namen', 'nicht',
+      'nummer', 'oben', 'offen', 'ohne', 'ordner', 'papierkorbTage', 'persoenlich', 'potenzial',
+      'potenzial_asc', 'potenzial_desc', 'quelle', 'reicht', 'rolle', 'sache', 'sacheEinzahl',
+      'sacheMehrzahl', 'schluesselBits', 'schnitt', 'seit', 'seite', 'sekunden', 'sicher',
+      'stimmen', 'stunden', 'tage', 'teil', 'teile', 'testtag', 'titel', 'uebersprungen',
+      'umgestellt', 'umstellung', 'unten', 'veraltet', 'verfasser', 'von', 'vorne', 'wer',
+      'wort', 'zeit', 'zeitpunktEinzahl', 'zeitpunktMehrzahl', 'zielGroesse', 'ziffern',
+      'zugang', 'zugenommen', 'zuletzt', 'zuletztGesehen', 'zusatz'];
+    const NAMED = [...FALSE_FRIENDS, ...WAITING_FOR_STAGE_TWO].sort();
+    const germanNames = [...identifiers].filter(isGerman).sort();
+    check('Namensprobe: kein deutscher Bezeichner ausser den benannten',
+      equal(germanNames, NAMED),
+      `zu viel: ${germanNames.filter(n => !NAMED.includes(n)).join(' ') || '—'} · fehlt: ${NAMED.filter(n => !germanNames.includes(n)).join(' ') || '—'}`);
+    /* DIE ZAHL STEHT AUSDRUECKLICH DA. Ohne sie waere die Liste oben eine
+       Selbstbestaetigung: wer einen Namen hinzufuegt, macht sie wieder gruen. */
+    check('Und es sind genau 110 — sechs falsche Freunde und 104 Grenzen',
+      germanNames.length === 110 && FALSE_FRIENDS.length === 6 && WAITING_FOR_STAGE_TWO.length === 104,
+      `${germanNames.length} deutsch, ${FALSE_FRIENDS.length} falsche Freunde, ${WAITING_FOR_STAGE_TWO.length} Grenzen`);
+    check('Und jeder benannte steht wirklich im Code — keine Karteileiche',
+      NAMED.every(n => identifiers.has(n)),
+      NAMED.filter(n => !identifiers.has(n)).join(' '));
+
+    /* ---- 2. Die Schluesselprobe -----------------------------------------
+       KEIN SCHLUESSEL DER SPRACHDATEI TRAEGT EIN DEUTSCHES WORTSTUECK.
+       Die Mehrzahlformen `eins`/`andere` und die Namen des Vokabulars sind
+       INHALT und keine Benennung -- sie ziehen mit Stufe 2 um. */
+    const LANGUAGE_FILE = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+    const languageKeys = [];
+    for (const [k, v] of Object.entries(LANGUAGE_FILE)) {
+      languageKeys.push(k);
+      if (v && typeof v === 'object') for (const x of Object.keys(v)) languageKeys.push(k + '.' + x);
+    }
+    const germanKeys = languageKeys.filter(k => k.split('.').some(isGerman));
+    const pluralKeys = germanKeys.filter(k => /\.(eins|andere)$/.test(k));
+    const vocabularyKeys = germanKeys.filter(k => k.startsWith('vocabulary.'));
+    /* Drei falsche Freunde: `Note` heisst hier Vermerk, `standard` ist das
+       englische Wort und steht so am Bildschirm. */
+    const KEY_FALSE_FRIENDS = ['card.heWill', 'card.keepAtLeastNote', 'card.orderAppliesNote',
+      'card.standard', 'list.saveViewNote'];
+    check('Schluesselprobe: deutsch sind nur Mehrzahl, Vokabular und die benannten fuenf',
+      equal(germanKeys.filter(k => !pluralKeys.includes(k) && !vocabularyKeys.includes(k)).sort(),
+            KEY_FALSE_FRIENDS),
+      germanKeys.filter(k => !pluralKeys.includes(k) && !vocabularyKeys.includes(k)).join(' '));
+    check('Und die Zahlen stehen: 1259 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1259 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
+      `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
+
+    /* ---- 3. Die Adressprobe ---------------------------------------------
+       KEIN WEG TRAEGT EIN DEUTSCHES WORT -- ausser den alten, und JEDE alte
+       Adresse wird uebersetzt. Gelesen werden nur die Strings: ein Weg in
+       einem Kommentar ist eine Erzaehlung und keine Adresse. */
+    const addresses = new Set();
+    for (const f of SHIPPED)
+      for (const part of zerlege(readShipped(f), f)) {
+        /* NUR DIE STRINGS. Ein Weg in einem Kommentar ist eine Erzaehlung
+           ueber frueher -- `#/system/datenbank` steht dort als Beispiel fuer
+           ein altes Lesezeichen und nicht als Adresse dieser Fassung. */
+        if (part.art !== TEXT) continue;
+        for (const m of part.wert.matchAll(/(\/api\/[A-Za-z0-9/:_-]+)/g)) addresses.add(m[1]);
+        for (const m of part.wert.matchAll(/(#\/[A-Za-z0-9/:_-]*)/g)) addresses.add(m[1]);
+      }
+    const germanAddresses = [...addresses]
+      .filter(a => a.split(/[/:#]/).filter(Boolean).some(isGerman)).sort();
+    const OLD_ADDRESSES_NAMED = ['#/bestaetigung/', '#/einladung/', '#/offen'];
+    check('Adressprobe: deutsch sind nur die drei alten Adressen',
+      equal(germanAddresses, OLD_ADDRESSES_NAMED), germanAddresses.join(' '));
+    /* UND JEDE VON IHNEN WIRD UEBERSETZT. Ein alter Weg, den niemand
+       uebersetzt, ist ein toter Link in einer verschickten Mail. */
+    const appSource = readShipped('public/app.js');
+    check('Und jede von ihnen steht in der Uebersetzungstafel',
+      /const OLD_ADDRESSES = \{ '#\/offen': '#\/open' \};/.test(appSource) &&
+      /'#\/einladung\/': '#\/invite\/'/.test(appSource) &&
+      /'#\/bestaetigung\/': '#\/confirm\/'/.test(appSource),
+      (appSource.match(/const OLD_ADDRESS[^\n]*/g) || ['(nicht gefunden)']).join(' · '));
+    check('Und der Waechter sieht ueberhaupt Adressen',
+      addresses.size > 80, `${addresses.size} Wege`);
+
+    /* ---- 4. Die Gestaltprobe --------------------------------------------
+       KEINE id, KEINE KLASSE, KEINE STILBLATTVARIABLE TRAEGT EIN DEUTSCHES
+       WORTSTUECK. Drei falsche Freunde bleiben: `note` heisst Vermerk,
+       `alt` ist das englische Attribut fuer den Ersatztext. */
+    const styleSheet = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const pageSource = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+    const shapes = new Set();
+    for (const m of styleSheet.matchAll(/--([a-z0-9-]+)\s*:/gi)) shapes.add('--' + m[1]);
+    for (const m of styleSheet.matchAll(/\.([a-zA-Z][\w-]*)/g)) shapes.add('.' + m[1]);
+    for (const m of styleSheet.matchAll(/#([a-zA-Z][\w-]*)/g)) shapes.add('#' + m[1]);
+    for (const text of [pageSource, appSource]) {
+      for (const m of text.matchAll(/\bid=["']([\w-]+)["']/g)) shapes.add('#' + m[1]);
+      for (const m of text.matchAll(/\bclass=["']([^"'${}]+)["']/g))
+        for (const one of m[1].split(/\s+/)) if (/^[a-zA-Z][\w-]*$/.test(one)) shapes.add('.' + one);
+    }
+    const germanShapes = [...shapes].filter(s => isGerman(s.replace(/^(--|[.#])/, ''))).sort();
+    const SHAPE_FALSE_FRIENDS = ['#calc-same-note', '.login-alt', '.rej-note'];
+    check('Gestaltprobe: deutsch ist keine id, keine Klasse, keine Variable',
+      equal(germanShapes, SHAPE_FALSE_FRIENDS), germanShapes.join(' '));
+    check('Und der Waechter sieht wirklich die ganze Gestalt',
+      shapes.size > 600, `${shapes.size} Gestaltnamen`);
+
+    /* ---- 5. Die Wortlautprobe -------------------------------------------
+       DIE WERTE DER SPRACHDATEI SIND ZEICHEN FUER ZEICHEN DIE VON 0681d42 --
+       der Abnahme von 0.24.0, als Pruefung. Diese Runde hat SCHLUESSEL
+       umbenannt und keinen einzigen Satz angefasst.
+       EINE AUSNAHME, UND SIE IST BENANNT: `server.backupDirNotSet` NENNT die
+       Umgebungsvariable, und die heisst seit Bauabschnitt 5.2 anders. Der
+       Satz musste mitziehen, weil er sonst auf etwas zeigte, das es nicht
+       mehr gibt. */
+    const oldLanguage = JSON.parse(execFileSync('git',
+      ['-C', __dirname, 'show', '0681d42:public/sprachen/de.json'],
+      { encoding: 'utf8', maxBuffer: 1 << 28 }));
+    const valuesOf = (o) => { const out = []; for (const v of Object.values(o))
+      if (v && typeof v === 'object') out.push(...Object.values(v)); else out.push(v); return out; };
+    const wordingThen = valuesOf(oldLanguage).sort();
+    const wordingNow = valuesOf(LANGUAGE_FILE).sort();
+    const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
+    const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
+    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme',
+      wordingThen.length === wordingNow.length && wordingNow.length === 1225,
+      `${wordingThen.length} damals, ${wordingNow.length} heute`);
+    check('Und genau ein Satz ist ein anderer — der, der BACKUP_DIR nennt',
+      onlyThen.length === 1 && onlyNow.length === 1 &&
+      onlyThen[0].includes('SICHERUNG_DIR') && onlyNow[0].includes('BACKUP_DIR') &&
+      LANGUAGE_FILE['server.backupDirNotSet'] === onlyNow[0],
+      `${onlyThen.length} damals / ${onlyNow.length} heute: ${JSON.stringify(onlyNow[0] || '').slice(0, 80)}`);
+    /* UND SONST KEIN ZEICHEN. Die eine Ausnahme wird aus BEIDEN Listen
+       genommen, und was bleibt, muss Satz fuer Satz dasselbe sein -- nicht
+       „ungefaehr gleich viele", sondern derselbe Wortlaut. */
+    const withoutOne = (list, sentence) => {
+      const at = list.indexOf(sentence);
+      return at < 0 ? list : list.slice(0, at).concat(list.slice(at + 1));
+    };
+    const restThen = withoutOne(wordingThen, onlyThen[0]);
+    const restNow = withoutOne(wordingNow, onlyNow[0]);
+    check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
+      equal(restThen, restNow) && restNow.length === 1224,
+      `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
+
+    /* ---- 6. Die Kuerzeprobe ---------------------------------------------
+       KEIN SCHLUESSEL TRAEGT EINE ANGEHAENGTE ZIFFER. Aus `hinweis2` wurde
+       nie ein Name, sondern eine Nummerierung -- und eine Nummerierung sagt
+       nicht, WAS der Satz ist. Acht Schluessel tragen trotzdem eine Ziffer,
+       und bei allen achten ist sie die SACHE: 50 MB, Schritt 1, 10 Pixel. */
+    const DIGIT_KEYS = ['card.mb50', 'card.mb100', 'card.mb200', 'card.mb300',
+      'card.twoFactorStep1', 'card.twoFactorStep2', 'list.px10', 'list.px20'];
+    const withDigit = languageKeys.filter(k => /[0-9]$/.test(k)).sort();
+    check('Kuerzeprobe: eine Ziffer traegt nur, wo sie die Sache ist',
+      equal(withDigit, [...DIGIT_KEYS].sort()), withDigit.join(' '));
+    /* DIE LATTE: drei Woerter. Ein Fachwort aus zwei Teilen zaehlt als eins,
+       und welche das sind, steht im Woerterbuch und nicht in einer Regel. */
+    const TERMS = new Set((DICTIONARY.begriffe || []).map(x => x.toLowerCase()));
+    const nameWords = (key) => {
+      const raw = key.split('.').pop()
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+        .split(/\s+/).filter(Boolean);
+      const out = [];
+      for (let i = 0; i < raw.length; i++) {
+        if (raw[i + 1] && TERMS.has((raw[i] + raw[i + 1]).toLowerCase())) { out.push(raw[i] + raw[i + 1]); i++; }
+        else out.push(raw[i]);
+      }
+      return out;
+    };
+    const overTheBar = languageKeys.filter(k => nameWords(k).length > 3
+      || k.split('.').pop().length > 24).sort();
+    const NAMED_EXCEPTIONS = DICTIONARY.exceptions.map(e => e.name).sort();
+    check('Und ueber der Latte stehen nur die vier begruendeten',
+      equal(overTheBar, NAMED_EXCEPTIONS), overTheBar.join(' '));
+    check('Und jede der vier traegt ihren Satz im Woerterbuch',
+      DICTIONARY.exceptions.length === 4 &&
+      DICTIONARY.exceptions.every(e => typeof e.grund === 'string' && e.grund.length > 40),
+      DICTIONARY.exceptions.map(e => `${e.name}: ${e.grund.length}`).join(' · '));
+    const longestKey = languageKeys.map(k => k.split('.').pop())
+      .reduce((a, b) => (b.length > a.length ? b : a), '');
+    check('Und der laengste Schluesselname bleibt unter der Latte',
+      longestKey.length === 20 && longestKey === 'backupUnopenableHint',
+      `${longestKey} (${longestKey.length})`);
+  }
+
+  /* ================= Zugeklappt heisst: die ERSTEN Zeilen — 0.24.1 =========
+     Aus dem Betrieb am 7. September 2026, mit zwei Bildern gemeldet: der Block
+     „Links" zeigte zugeklappt die Nummern 4 bis 8 von acht und nicht 1 bis 5.
+     DIE URSACHE WAR EINE STELLUNG, DIE NIEMAND ZURUECKSETZTE: das Hinzufuegen
+     eines Links scrollt den Kasten ans Ende, danach klemmt `limitLinks()` ihn
+     auf `LINK_ROWS` Zeilen -- und der geklemmte Kasten behielt die Stellung.
+     Der Bildlauf steht dort auf `hidden`, also war sie von aussen auch nicht
+     mehr zu aendern.
+     GEPRUEFT WIRD AM QUELLTEXT und nicht am Verhalten: jsdom rechnet keine
+     Hoehen, `offsetHeight` ist dort null, und eine Klemme, die nie greift,
+     belegt nichts. Dieselbe Bauform wie bei den anderen Waechtern ueber
+     public/app.js. */
+  group('Zugeklappt heisst: die ersten Zeilen — 0.24.1');
+  {
+    const zzApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const zzLimit = (zzApp.match(/function limitLinks\(\)[\s\S]*?\n  \}/) || [''])[0];
+    check('Es gibt die Klemme ueberhaupt', zzLimit.length > 200, `${zzLimit.length} Zeichen`);
+    check('Der geklemmte Kasten steht am Anfang der Liste',
+      /box\.style\.overflowY = 'hidden';[\s\S]{0,900}?box\.scrollTop = 0;/.test(zzLimit),
+      (zzLimit.match(/box\.scrollTop = [^\n]*/g) || ['(keine Stellung gesetzt)']).join(' · '));
+    /* UND DIE GEGENLAGE: der Weg, der die Stellung ueberhaupt erst setzt, fragt
+       vorher nach der Klemme. Ohne diese Zeile liefe das Zuruecksetzen
+       augenblicklich ins Leere -- `drawLinks()` laeuft VOR dem Bildlauf. */
+    check('Und das Hinzufuegen scrollt nur, wenn die Liste nicht geklemmt ist',
+      /if \(!linkBox\.style\.maxHeight\) linkBox\.scrollTop = 1e6;/.test(zzApp),
+      (zzApp.match(/linkBox\.scrollTop = [^\n]*/g) || ['(nicht gefunden)']).join(' · '));
+    check('Der Leser wuerde eine fehlende Stellung wirklich melden',
+      !/box\.scrollTop = 0;/.test("box.style.overflowY = 'hidden';\n    button.hidden = false;"),
+      'der Leser sieht die gestellte Luecke nicht');
+  }
+
   /* ================= Der Bildschirmtext-Waechter — 0.22.0 =================
      Der zweite Durchgang: die Texte in Anfuehrungszeichen und Backticks von
      public/app.js und die error:-Texte der Serverdateien gegen die
@@ -21961,8 +22245,18 @@ const shareMain = (purpose, target = null) =>
      UND 685 SEIT 0.24.0: neun neue (685 bis 693) -- eines je Waechter der
      Sprachdatei, dazu zwei fuer die Rueckfallprobe, die in zwei Gruppen
      zuhause ist. Sechsundzwanzig vorhandene sind mitgezogen, sechs davon
-     zeigen jetzt auf public/languages/de.json statt auf den Quelltext. */
-  check('Es sind genau 685 Rueckbauten', gpList.length === 685, `${gpList.length}`);
+     zeigen jetzt auf public/languages/de.json statt auf den Quelltext.
+     UND 693 SEIT 0.24.1: acht neue (694 bis 701) -- sechs JE WAECHTER der
+     Runde „Der Quelltext spricht Englisch". Jedes holt an genau einer Stelle
+     einen deutschen Namen zurueck -- einen Bezeichner, einen Schluessel, eine
+     Adresse, eine Klasse, einen Satz, eine angehaengte Ziffer. Ein Waechter,
+     der nie rot wird, ist eine Behauptung und keine Zusage. Das siebte (700)
+     gehoert nicht zu ihnen: es haelt einen Befund aus dem Betrieb vom
+     7. September 2026 fest -- die Vorschaukachel im Eintrag, die den
+     Sprachhelfer nach ihrem Vater fragte, und das achte (701) einen zweiten
+     vom selben Tag: den zugeklappten Linkblock, der die letzten Zeilen zeigte
+     statt der ersten. */
+  check('Es sind genau 693 Rueckbauten', gpList.length === 693, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -40992,6 +41286,33 @@ async function checkUi() {
      darunter. Der Helfer kann sie trotzdem, und das gehoert belegt. */
   group('Der Sprachhelfer und die Ladung — 0.24.0');
   {
+    /* DER HELFER WIRD NIE NACH EINER EIGENSCHAFT GEFRAGT -- und genau daran
+       hingen zwei Befunde aus dem Betrieb vom 7. September 2026.
+       `t` gehoert seit 0.24.0 dem Sprachhelfer. Zwei Schleifen- und
+       Kachelnamen, die vorher so hiessen, sind damals umbenannt worden, ihre
+       Rumpfe aber nicht: `t.parentElement` gab `undefined`, und die
+       Vorschaukachel im Eintrag war mit der Maus nicht mehr anzuklicken
+       (mit den Pfeiltasten schon -- die laufen einen anderen Weg);
+       `t.name` gab den Namen der FUNKTION zurueck, und ein Tag am Testtag
+       hiess seither „t".
+       WARUM ES NIEMAND SAH: beides wirft keinen Fehler. Eine Funktion HAT
+       eine Eigenschaft `name`, und `undefined` faellt erst beim Ausbreiten
+       auf -- im Rumpf eines Hoerers, den niemand ruft, wenn er kaputt ist.
+       DER LESER SIEHT NUR CODE: ein `t.` in einem Satz oder einem Kommentar
+       ist keine Benennung. */
+    const spAppCode = zerlege(
+      fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'), 'public/app.js')
+      .filter(z => z.art === CODE).map(z => z.wert).join('\n');
+    const spReach = [...spAppCode.matchAll(/(?<![A-Za-z0-9_$.])t\.([A-Za-z_$][\w$]*)/g)]
+      .map(m => 't.' + m[1]);
+    check('Der Sprachhelfer wird nie nach einer Eigenschaft gefragt',
+      spReach.length === 0, spReach.join(' ') || '(keine)');
+    /* UND DER LESER FINDET SO ETWAS WIRKLICH -- sonst waere die Zeile darueber
+       gruen, weil sie nichts sieht. */
+    check('Und der Leser wuerde eine solche Stelle finden',
+      [...'const x = t.parentElement;'.matchAll(/(?<![A-Za-z0-9_$.])t\.([A-Za-z_$][\w$]*)/g)].length === 1,
+      'der Leser sieht die gestellte Stelle nicht');
+
     const spFile = path.join(__dirname, 'public', 'languages', 'de.json');
     check('Die Sprachdatei liegt unter public/languages/ und heisst de.json',
       fs.existsSync(spFile), spFile);

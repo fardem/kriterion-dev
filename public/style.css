@@ -2013,12 +2013,12 @@ mark {
   color: var(--muted); white-space: nowrap;
 }
 .role-badge.admin { border-color: var(--accent-line); color: var(--text-2); }
-.role-badge.eigentuemer { background: var(--accent-dim); border-color: var(--accent-line); color: var(--accent-text-hi); }
+.role-badge.owner { background: var(--accent-dim); border-color: var(--accent-line); color: var(--accent-text-hi); }
 .user-dot {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   background: var(--faint); flex-shrink: 0;
 }
-.user-dot.aktiv { background: var(--green); }
+.user-dot.active { background: var(--green); }
 .user-dot.invited { background: var(--accent); }
 .mrow.user .user-status {
   display: inline-flex; align-items: center; gap: 6px;
