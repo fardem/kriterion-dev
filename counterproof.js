@@ -1274,8 +1274,8 @@ const REGRESSIONS = [
        192). Er nimmt weiterhin genau die Ansichten heraus. */
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
     file: 'server.js',
-    search: "                                'bellSeen', 'views', 'strip', 'theme'];",
-    replacement: "                                'bellSeen', 'strip', 'theme'];",
+    search: "                                'bellSeen', 'views', 'strip', 'theme', 'language'];",
+    replacement: "                                'bellSeen', 'strip', 'theme', 'language'];",
     expected: 'Gespeicherte Ansichten'
   },
   {
@@ -2638,8 +2638,8 @@ const REGRESSIONS = [
        Der Rueckbau nimmt weiterhin genau den Bezugspunkt der Glocke heraus. */
     nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
     file: 'server.js',
-    search: "'searchNames',\n                                'bellSeen', 'views', 'strip', 'theme'];",
-    replacement: "'searchNames',\n                                'views', 'strip', 'theme'];",
+    search: "'searchNames',\n                                'bellSeen', 'views', 'strip', 'theme', 'language'];",
+    replacement: "'searchNames',\n                                'views', 'strip', 'theme', 'language'];",
     expected: 'Persoenliche Einstellungen'
   },
   {
@@ -6252,8 +6252,8 @@ const REGRESSIONS = [
        Stufe 2 auf, wo er gebraucht wird. */
     nr: '670', name: 'Der Rueckfall auf Deutsch faellt weg',
     file: 'public/app.js',
-    search: "  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_DE[key];",
-    replacement: "  const roh = TEXTE[schluessel];",
+    search: "  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_FALLBACK[key];",
+    replacement: "  const raw = TEXTS[key];",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {

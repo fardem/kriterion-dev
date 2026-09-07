@@ -584,8 +584,16 @@ const putSetting = { run: (k, v) => {
    Maschine wie die beiden davor, und aus demselben Grund persoenlich: es ist
    eine Aussage ueber die Augen dessen, der hinsieht, und nicht ueber den
    Bestand. Keine neue Route -- die Karte „Darstellung" schickt sie mit. */
+/* ELF SEIT 0.24.3: `language` -- die Sprache, in der DIESER Zugang die
+   Oberflaeche, die Meldungen und seine Mails liest. Dieselbe Maschine wie
+   `theme` daneben und aus demselben Grund persoenlich: zwei Leute an
+   derselben Installation duerfen gleichzeitig verschiedene Sprachen lesen,
+   und keiner sieht etwas von der Wahl des anderen.
+   NICHT ZU VERWECHSELN MIT `languageDefault` IN OWNER_KEYS: das ist die
+   Vorgabe der INSTALLATION. Zwei Sachen, zwei Namen -- der Rumpf dieser Route
+   entscheidet ueber den Namen, wem ein Wert gehoert. */
 const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
-                                'bellSeen', 'views', 'strip', 'theme'];
+                                'bellSeen', 'views', 'strip', 'theme', 'language'];
 
 /* DER DRITTE RANG IN DERSELBEN ROUTE, seit 0.19.0. Bis dahin kannte
    PUT /api/settings zwei Haelften: was in dieser Liste steht, ist persoenlich,
@@ -2204,6 +2212,21 @@ const theme = (userId) => {
   const s = String(getUserSetting(userId, 'theme', THEME_DEFAULT));
   return THEME_LEVELS.includes(s) ? s : THEME_DEFAULT;
 };
+/* DIE SPRACHE DIESES ZUGANGS -- 0.24.3, Bauabschnitt 3. Dieselbe Bauform wie
+   `theme()` darueber: gelesen, gegen eine Liste geklemmt, im Zweifel die
+   Vorgabe. Die Liste ist hier der VORRAT und keine Konstante.
+   GEKLEMMT WIRD AUCH BEIM LESEN UND NICHT NUR BEIM SCHREIBEN: der Eigentuemer
+   kann eine Sprache aus dem Vorrat nehmen, nachdem jemand sie gewaehlt hat --
+   und eine Datei kann verschwinden. Beides darf keinen Zugang auf einer
+   Sprache stehen lassen, die es nicht mehr gibt.
+   DER GESPEICHERTE WERT BLEIBT DABEI STEHEN: wer die Sprache spaeter wieder
+   freigibt, findet seine Wahl vor. Eine Klemme, die loescht, verliert eine
+   Angabe, die niemand mehr wiederherstellen kann. */
+const languageOf = (userId) => {
+  const chosen = getUserSetting(userId, 'language', null);
+  return typeof chosen === 'string' && languagePool().includes(chosen)
+    ? chosen : languageDefault();
+};
 // Persoenlich, wie die Schrift: die Kachelgroesse im Bildstreifen (0.22.0).
 const strip = (userId) => {
   const n = Number(getUserSetting(userId, 'strip', 80));
@@ -2276,6 +2299,7 @@ app.get('/api/settings', (req, res) => res.json({
   font: fontSize(req.user.id),
   strip: strip(req.user.id),
   theme: theme(req.user.id),
+  language: languageOf(req.user.id),
   blocks: blocks(req.user.id),
   linkRows: linkRows(req.user.id),
   timeline: timelineOn(req.user.id),
@@ -2499,6 +2523,17 @@ app.put('/api/settings', (req, res) => {
       return res.status(400).json({ error: t(localeOf(req), 'server.searchEngineLast')});
     writePool(ein[0], ein);
   }
+  /* DIE SPRACHE GEGEN DEN VORRAT -- 0.24.3, Bauabschnitt 3. GEPRUEFT UND
+     ABGESAGT statt still auf die Vorgabe gedreht: wer eine Sprache setzt, die
+     der Eigentuemer nicht freigegeben hat, soll es erfahren. Dieselbe Bauform
+     wie die Klemme an `searchNames` darunter.
+     VOR DEM ERSTEN SCHREIBEN, wie alle Klemmen dieser Route. */
+  if (req.body.language !== undefined) {
+    const wanted = String(req.body.language);
+    if (!languagePool().includes(wanted))
+      return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+    putUserSetting(req.user.id, 'language', JSON.stringify(wanted));
+  }
   if (req.body.searchNames !== undefined) {
     const n = Number(req.body.searchNames);
     if (!SEARCH_NAME_LEVELS.includes(n))
@@ -2536,6 +2571,7 @@ app.put('/api/settings', (req, res) => {
              views: views(req.user.id), viewsCap: VIEWS_CAP,
              font: fontSize(req.user.id), strip: strip(req.user.id),
              theme: theme(req.user.id),
+             language: languageOf(req.user.id),
              blocks: blocks(req.user.id),
              linkRows: linkRows(req.user.id), timeline: timelineOn(req.user.id),
              search: searchTemplate(), searchProviders: searchProviders(),

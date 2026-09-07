@@ -16,22 +16,38 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&
    er faellt erst beim Laden auf. Flach koennen sie es, und das Objekt bleibt
    der Mehrzahl vorbehalten: WAS EIN OBJEKT IST, IST EINE MEHRZAHLFORM.
 
-   DER RUECKFALL AUF DEUTSCH steht schon hier, obwohl es in dieser Runde nur
-   Deutsch gibt: er ist die Regel, nach der Stufe 2 eine Luecke fuellt, und
-   eine Regel, die man erst dann baut, wenn sie gebraucht wird, ist ungeprueft
-   (Konzept 4.4). Fehlt der Schluessel auch dort, steht `⟦schluessel⟧` am
-   Bildschirm -- sichtbar und nie still. */
-let LANGUAGE = 'de';
-let LOCALE = 'de-DE';
+   DER RUECKFALL GEHT AUF DIE VORGABESPRACHE DER INSTALLATION und nicht auf
+   eine feste Sprache. Bis 0.24.2 hiess die Rueckfalltafel `TEXTS_DE` und
+   wurde mit `if (code === 'de')` gefuellt -- fest auf Deutsch verdrahtet, weil
+   es damals nur Deutsch gab. Mit Englisch als Vorgabe und einer Wahl je
+   Benutzer heisst sie, was sie ist. Fehlt der Schluessel auch dort, steht
+   `⟦schluessel⟧` am Bildschirm -- sichtbar und nie still (Konzept 4.4).
+   DIE ANFANGSWERTE SIND EIN NOTNAGEL UND KEINE AUSSAGE: sie gelten die
+   Millisekunden bis loadLanguage(), damit ein Ruf vor der Datei nicht auf
+   `undefined` trifft. */
+let LANGUAGE = 'en';
+let LOCALE = 'en-GB';
 let TEXTS = {};
-let TEXTS_DE = {};
+let TEXTS_FALLBACK = {};
+/* WELCHE SPRACHE DIE INSTALLATION VORGIBT -- aus /api/config. Sie ist die
+   dritte und letzte der drei Quellen (Konzept 5.3) und zugleich die Sprache
+   der Rueckfalltafel. */
+let LANGUAGE_DEFAULT = 'en';
+/* DER VORRAT, aus dem gewaehlt werden darf: [{ code, name }]. Vor der
+   Anmeldung aus /api/config, danach aus /api/settings -- dieselbe Liste. */
+let LANGUAGE_CHOICES = [];
+/* DAS GEDAECHTNIS DES GERAETS -- die zweite Quelle. Es traegt die Wahl von der
+   Anmeldeseite in die Sitzung und ueber das Abmelden hinaus; der persoenliche
+   Schluessel schlaegt es, sobald es einen gibt. Derselbe Namensraum wie
+   THEME_KEY. */
+const LANGUAGE_KEY = 'kriterion.language';
 /* EINMAL GEBAUT UND NICHT JE AUFRUF. `new Intl.PluralRules(...)` je Text waere
    bei 46 Mehrzahlstellen und jedem Neuzeichnen eine gut sichtbare Rechnung. */
 let PLURAL = new Intl.PluralRules(LOCALE);
 
-// Den Satz nachschlagen -- in der gewaehlten Sprache, sonst auf Deutsch.
+// Den Satz nachschlagen -- in der gewaehlten Sprache, sonst in der Vorgabe.
 function languageSentence(key, values) {
-  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_DE[key];
+  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_FALLBACK[key];
   if (raw === undefined) return `⟦${key}⟧`;
   if (typeof raw !== 'object') return raw;
   /* DIE MEHRZAHL WAEHLT Intl.PluralRules UND NICHT `n === 1`. Fuer Deutsch
@@ -91,12 +107,14 @@ async function loadLanguage(code) {
   // Ohne Locale kein Datum und keine Mehrzahl -- eine Datei ohne sie ist keine.
   if (!data || typeof data !== 'object' || typeof data._locale !== 'string')
     throw new Error(`languages/${code}.json _locale`);
+  /* DIE RUECKFALLTAFEL WIRD GEFUELLT, WENN DIESE DATEI DIE VORGABE IST --
+     und das ist sie im Regelfall: nur wer eine ANDERE Sprache gewaehlt hat,
+     braucht ueberhaupt zwei Dateien (siehe loadLanguages()). */
+  if (code === LANGUAGE_DEFAULT) TEXTS_FALLBACK = data;
   LANGUAGE = code;
   LOCALE = data._locale;
   PLURAL = new Intl.PluralRules(LOCALE);
   TEXTS = data;
-  // Deutsch ist die Rueckfalldatei. In dieser Runde ist es dieselbe.
-  if (code === 'de') TEXTS_DE = data;
   /* UND DIE VORGABE DES VOKABULARS -- 0.24.0. Sie ist Oberflaeche und kein
      Inhalt: bis der Server seinen Satz schickt, beschriftet sie den Bildschirm
      (siehe `V`). Gesetzt wird sie HIER und nicht an `V` selbst, weil die Zeile
@@ -106,6 +124,43 @@ async function loadLanguage(code) {
   V = { ...Object.fromEntries(Object.entries(VOCABULARY_DEFAULT).map(([k, call]) => [k, call()])), ...V };
   return data;
 }
+
+/* ZWEI DATEIEN, ABER NUR WENN ES SEIN MUSS -- 0.24.3, Bauabschnitt 3.
+   Wer die Vorgabesprache liest, holt EINE Datei; sie ist zugleich ihr eigener
+   Rueckfall. Wer eine andere gewaehlt hat, holt zwei -- die eigene und die,
+   auf die ein fehlender Schluessel faellt.
+   DIE VORGABE ZUERST UND DIE GEWAEHLTE DANACH, und die Reihenfolge ist keine
+   Geschmacksfrage: loadLanguage() setzt TEXTS, und die Rueckfalltafel nur
+   dann, wenn die Datei die Vorgabe IST. Wer die Vorgabe zuletzt holte, laese
+   sie am Bildschirm.
+   SCHLAEGT DIE GEWAEHLTE FEHL, BLEIBT DIE VORGABE STEHEN. Eine Sprache, deren
+   Datei gerade verschwunden ist, darf die Oberflaeche nicht leer machen: der
+   Rueckfall ist dann eben alles, was da ist. Schlaegt die VORGABE fehl, wirft
+   der Ruf -- dann gibt es gar nichts, und boot() zeigt seinen einen Satz. */
+async function loadLanguages(wanted) {
+  await loadLanguage(LANGUAGE_DEFAULT);
+  if (!wanted || wanted === LANGUAGE_DEFAULT) return;
+  try { await loadLanguage(wanted); }
+  catch (e) { console.error(`languages/${wanted}.json`, e); }
+}
+
+/* WELCHE SPRACHE DIESES GERAET ZULETZT GEWAEHLT HAT. Nur lesen; geschrieben
+   wird an genau zwei Stellen (die Pillenreihe und die Zeile unter der
+   Anmeldemaske). GEKLAMMERT, weil localStorage in einem privaten Fenster
+   werfen kann -- dieselbe Klammer wie bei THEME_KEY. */
+function rememberedLanguage() {
+  try { return localStorage.getItem(LANGUAGE_KEY) || null; } catch { return null; }
+}
+function rememberLanguage(code) {
+  try { localStorage.setItem(LANGUAGE_KEY, code); } catch { /* dann eben nicht */ }
+}
+/* WAS AM WURZELELEMENT STEHT -- daran haengen Silbentrennung und Vorleser.
+   ES HIESS BIS 0.24.2 `document.documentElement.long`, und das war ein Fund
+   dieser Runde: der Umbenenner aus 0.24.1 hat das deutsch aussehende `lang`
+   fuer ein Wort gehalten und zu `long` uebersetzt. Seither wurde das Attribut
+   nie gesetzt -- eine Eigenschaft `long` an einem Element tut nichts, und
+   niemandem faellt etwas auf, weil auch nichts falsch aussieht. */
+const applyLanguage = () => { document.documentElement.lang = LANGUAGE; };
 
 function fmtDate(iso) {
   if (!iso) return '';
@@ -740,6 +795,33 @@ function showSetup(errMsg) {
   u.focus();
 }
 
+/* DIE PILLEN UNTER DER ANMELDEMASKE -- 0.24.3, Bauabschnitt 3.
+   SIE SCHREIBEN NUR DAS GEDAECHTNIS DES GERAETS: es gibt hier keinen Zugang,
+   an dem eine Wahl haengen koennte, und keine Sitzung, in der sie stuende.
+   GEZEICHNET WIRD DIE SEITE DANACH NEU -- ein Klick, der die Sprache wechselt
+   und die Maske stehen laesst, waere ein Knopf, der nichts tut.
+   `showLogin()` OHNE MELDUNG: eine Fehlermeldung von vorhin stuende sonst in
+   der neuen Sprache als alter Satz da -- sie kommt aus dem Server und nicht
+   aus der Datei. Wer die Sprache wechselt, faengt die Anmeldung neu an. */
+async function drawLoginLanguages() {
+  const box = document.getElementById('login-langs');
+  if (!box) return;
+  box.innerHTML = '';
+  LANGUAGE_CHOICES.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'pill' + (LANGUAGE === a.code ? ' on' : '');
+    b.textContent = a.name;
+    b.onclick = async () => {
+      if (LANGUAGE === a.code) return;
+      rememberLanguage(a.code);
+      try { await loadLanguages(a.code); } catch { return; }
+      applyLanguage();
+      showLogin();
+    };
+    box.appendChild(b);
+  });
+}
+
 function showLogin(errMsg) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
@@ -767,9 +849,18 @@ function showLogin(errMsg) {
           zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
     ${SIGNUP ? `<p class="sub login-divider">${tH('login.noAccountYet')}</p>
       <button class="btn login-alt" id="l-request">${tH('login.requestAccess')}</button>` : ''}
+    ${/* DIE SPRACHZEILE — 0.24.3, Bauabschnitt 3. Der eine Ort, an dem noch
+          kein Konto dasteht, aus dem sich eine Sprache lesen ließe. Ein Klick
+          schreibt NUR das Gedächtnis des Geräts; sobald sich jemand anmeldet,
+          schlägt sein persönlicher Schlüssel es wieder.
+          SIE STEHT NUR DA, WENN ES ETWAS ZU WÄHLEN GIBT — eine Reihe mit einer
+          Pille wäre eine Frage ohne Antwortmöglichkeit. */''}
+    ${LANGUAGE_CHOICES.length > 1
+        ? `<div class="pills" id="login-langs" style="margin-top:18px"></div>` : ''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
   if (SIGNUP) document.getElementById('l-request').onclick = () => showRequest();
+  drawLoginLanguages();
 
   const u = document.getElementById('lu'), p = document.getElementById('lp'), b = document.getElementById('lb');
   const submit = async () => {
@@ -2190,6 +2281,20 @@ async function loadSettings() {
   if (SETTINGS.bellSeen) BELL_SEEN = SETTINGS.bellSeen;
   if (Array.isArray(SETTINGS.searchProviders)) SEARCH_PROVIDERS = SETTINGS.searchProviders;
   if (Array.isArray(SETTINGS.languages)) LANGUAGES = SETTINGS.languages;
+  /* DIE ERSTE DER DREI QUELLEN (Konzept 5.3), und sie schlaegt die beiden
+     anderen: was am ZUGANG steht, gilt -- auf jedem Geraet, an dem er sich
+     anmeldet. Der Server hat den Wert schon gegen den Vorrat geklemmt.
+     GELADEN WIRD NUR, WENN ES EINE ANDERE IST. loadSettings() laeuft bei
+     jedem Start; ein Ruf je Start waere ein Umlauf fuer nichts.
+     UND DAS GEDAECHTNIS ZIEHT MIT: wer sich anmeldet, sieht danach auch die
+     Anmeldeseite in seiner Sprache. */
+  if (typeof SETTINGS.language === 'string' && SETTINGS.language) {
+    rememberLanguage(SETTINGS.language);
+    if (SETTINGS.language !== LANGUAGE) {
+      await loadLanguages(SETTINGS.language);
+      applyLanguage();
+    }
+  }
   if (SETTINGS.searchNames) SEARCH_NAMES = SETTINGS.searchNames;
   // Der Server leitet beide beim Lesen ab und liefert sie immer; die Vorgabe
   // hier greift nur, wenn die Antwort das Feld gar nicht kennt.
@@ -8097,7 +8202,14 @@ function setUpSessionsOut(fetched) {
 function cardAppearance() {
   return `<div class="sys-card">
         <h3>${tH('card.appearance')}</h3>
-        <p class="desc">${tH('card.themeHint')}</p>
+        ${/* DIE SPRACHE STEHT UEBER DEM FARBSCHEMA: sie entscheidet ueber
+              jedes Wort der Karte darunter, und was weiter reicht, steht
+              weiter oben. KEIN SCHALTER IN DER KOPFZEILE daneben -- zwei Orte
+              fuer eine Frage. */''}
+        <p class="desc">${tH('card.languageHint')}</p>
+        <div class="pills" id="lang"></div>
+
+        <p class="desc" style="margin:16px 0 8px">${tH('card.themeHint')}</p>
         <div class="pills" id="theme"></div>
 
         <p class="desc" style="margin:16px 0 8px">${tH('card.fontSizeHint')}</p>
@@ -8114,6 +8226,7 @@ function cardAppearance() {
       </div>`;
 }
 function setUpAppearanceOut() {
+  drawLanguagePills();
   drawTheme();
   drawFont();
   drawStrip();
@@ -8135,6 +8248,44 @@ function setUpAppearanceOut() {
     catch (e) { toast(e.message, true); }
   });
 }
+
+  /* --- Sprache — 0.24.3, dieselbe Bauform wie das Farbschema darunter ---
+     DIE NAMEN STEHEN IN IHRER EIGENEN SPRACHE und kommen als freier Text vom
+     Server: wer die Oberfläche gerade nicht lesen kann, findet seine
+     trotzdem. textContent statt innerHTML, damit Maskierung nicht
+     vergessbar ist.
+     DER WECHSEL ZEICHNET NEU — OHNE NEULADEN. Anders als beim Farbschema
+     reicht kein applyX(): jedes Wort der Seite hängt daran, und app.js
+     zeichnet ohnehin ganze Ansichten.
+     ERST SPEICHERN, DANN ZEICHNEN — und das ist der Unterschied zu den drei
+     Reihen darunter. Die zeigen sofort und nehmen bei einem Fehlschlag
+     zurück; hier hinge zwischen Anzeige und Antwort eine Oberfläche in einer
+     Sprache, die der Server gerade abgelehnt hat. */
+  function drawLanguagePills() {
+    const box = document.getElementById('lang');
+    if (!box) return;
+    box.innerHTML = '';
+    // Nur der Vorrat, und nur, wenn es ueberhaupt etwas zu waehlen gibt.
+    const choices = LANGUAGES.filter(a => a.active);
+    if (choices.length < 2) return;
+    choices.forEach(a => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (LANGUAGE === a.code ? ' on' : '');
+      b.textContent = a.name;
+      b.onclick = async () => {
+        if (LANGUAGE === a.code) return;
+        try {
+          await api('PUT', '/api/settings', { language: a.code });
+          rememberLanguage(a.code);
+          await loadLanguages(a.code);
+          applyLanguage();
+          // Die ganze Ansicht neu -- die Karte selbst steht mitten darin.
+          await renderSystem();
+        } catch (e) { toast(e.message, true); }
+      };
+      box.appendChild(b);
+    });
+  }
 
   /* --- Farbschema — 0.23.0, dieselbe Bauform wie die Schriftgröße darunter ---
      DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. Sofort sichtbar,
@@ -11059,17 +11210,37 @@ function askImport(file, limits) {
 /* ================= Start ================= */
 let setupNeeded = false;
 (async function boot() {
-  /* DIE SPRACHDATEI UND DIE KONFIGURATION NEBENEINANDER -- 0.24.0,
-     Bauabschnitt 1. Beide werden gebraucht, bevor das erste Zeichen steht;
-     nacheinander kosteten sie zwei Umlaeufe statt einem.
-     UND VOR DEM ERSTEN ZEICHNEN: hier steht noch nichts am Bildschirm, also
-     blitzt auch nichts auf. Das Farbschema brauchte 0.23.0 einen Vorgriff im
-     Kopf der Seite, weil das Stilblatt vor app.js greift -- Text zeichnet
-     allein app.js (Konzept 5.3). */
-  const configLoading = fetch('/api/config', { credentials: 'same-origin' })
-    .then(r => r.json()).catch(() => null);
+  /* BEIDES VOR DEM ERSTEN ZEICHNEN -- 0.24.0, Bauabschnitt 1: hier steht noch
+     nichts am Bildschirm, also blitzt auch nichts auf. Das Farbschema brauchte
+     0.23.0 einen Vorgriff im Kopf der Seite, weil das Stilblatt vor app.js
+     greift; Text zeichnet allein app.js (Konzept 5.3).
+     DIE KONFIGURATION ZUERST UND DIE SPRACHDATEI DANACH -- 0.24.3,
+     Bauabschnitt 3. Bis 0.24.2 gingen beide NEBENEINANDER hinaus, und das war
+     nur moeglich, weil die Sprache eine Konstante war. Jetzt sagt erst die
+     Konfiguration, welche die Installation vorgibt und welche zur Wahl
+     stehen -- ein Vorgriff waere ein Aufblitzen der falschen Sprache.
+     DAS KOSTET EINEN UMLAUF, und der Satz steht hier, damit ihn niemand fuer
+     ein Versehen haelt. */
+  let cfg = null;
   try {
-    await loadLanguage(LANGUAGE);
+    cfg = await fetch('/api/config', { credentials: 'same-origin' }).then(r => r.json());
+    if (cfg && cfg.title) TITLE_PUBLIC = cfg.title;
+    if (cfg && cfg.version) VERSION = cfg.version;
+    if (cfg && cfg.minPassword) MIN_PASSWORD = cfg.minPassword;
+    if (cfg && cfg.setupRequired) setupNeeded = true;
+    SIGNUP = Boolean(cfg && cfg.signup);
+  } catch {}
+  /* DIE ZWEITE UND DRITTE QUELLE DER SPRACHE (Konzept 5.3). Die erste -- der
+     persoenliche Schluessel -- gibt es hier noch nicht; sie kommt mit
+     loadSettings(), sobald jemand angemeldet ist.
+     DAS GEDAECHTNIS WIRD GEGEN DEN VORRAT GEHALTEN: was der Eigentuemer nicht
+     freigegeben hat, gilt auch dann nicht, wenn es einmal darin stand. */
+  if (cfg && cfg.language) LANGUAGE_DEFAULT = cfg.language;
+  if (Array.isArray(cfg && cfg.languages)) LANGUAGE_CHOICES = cfg.languages;
+  const remembered = rememberedLanguage();
+  const allowed = LANGUAGE_CHOICES.some(a => a.code === remembered);
+  try {
+    await loadLanguages(allowed ? remembered : LANGUAGE_DEFAULT);
   } catch (e) {
     /* DER EINE FESTE SATZ IM QUELLTEXT -- Entscheidung A1 des Auftrags. Ohne
        die Datei gibt es keinen Schluessel, mit dem sich sagen liesse, dass sie
@@ -11082,16 +11253,8 @@ let setupNeeded = false;
      Der Vorleser waehlt danach seine Stimme, der Browser danach seine
      Silbentrennung. Das Attribut in index.html bleibt `de`: es gilt, bis die
      Datei da ist, und sagt bis dahin die Wahrheit. */
-  document.documentElement.long = LANGUAGE;
-  try {
-    const cfg = await configLoading;
-    if (cfg && cfg.title) TITLE_PUBLIC = cfg.title;
-    if (cfg && cfg.version) VERSION = cfg.version;
-    if (cfg && cfg.minPassword) MIN_PASSWORD = cfg.minPassword;
-    if (cfg && cfg.setupRequired) setupNeeded = true;
-    SIGNUP = Boolean(cfg && cfg.signup);
-    showVersion();
-  } catch {}
+  applyLanguage();
+  try { showVersion(); } catch {}
   document.title = TITLE_PUBLIC;
   // Die Einrichtung geht vor: ohne Zugang hilft keine Anmeldemaske.
   if (setupNeeded) return showSetup();

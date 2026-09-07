@@ -3116,9 +3116,14 @@ const shareMain = (purpose, target = null) =>
      Maschine wie `font` und `strip`, und aus demselben Grund
      persoenlich: es ist eine Aussage ueber die Augen dessen, der hinsieht,
      und nicht ueber den Bestand. */
-  const dExpected = ['bellSeen', 'blocks', 'filters', 'font', 'linkRows',
+  /* ELF SEIT 0.24.3: `language` -- die Sprache, in der DIESER Zugang liest.
+     Dieselbe Maschine wie `theme` daneben und aus demselben Grund persoenlich:
+     zwei Leute an derselben Installation duerfen gleichzeitig verschiedene
+     Sprachen lesen. NICHT ZU VERWECHSELN MIT `languageDefault` in OWNER_KEYS
+     -- das ist die Vorgabe der Installation, und die gehoert dem Eigentuemer. */
+  const dExpected = ['bellSeen', 'blocks', 'filters', 'font', 'language', 'linkRows',
                  'searchNames', 'strip', 'theme', 'timeline', 'views'];
-  check('server.js kennt genau die zehn persoenlichen Schluessel — 0.23.0',
+  check('server.js kennt genau die elf persoenlichen Schluessel — 0.24.3',
     equal(dListSrv, dExpected), JSON.stringify(dListSrv));
   /* UND `zuletztGesehen` STEHT WIRKLICH NIRGENDS MEHR IN server.js -- ausser
      als Vermerk in einem Kommentar. Ohne diese Zeile bliebe die Aufzaehlung
@@ -3216,8 +3221,11 @@ const shareMain = (purpose, target = null) =>
     return { status: a.status, content };
   };
 
+  /* `language` STEHT MIT DABEI, seit 0.24.3. Der Wert ist `de` und nicht `en`:
+     es muss eine Sprache aus dem VORRAT sein, sonst sagt die Klemme ab -- und
+     der Vorrat einer frischen Installation ist alles, was an Dateien liegt. */
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
-    { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100 });
+    { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100, language: 'de' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings',
     { font: 80, linkRows: 3, searchNames: 1 });
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
@@ -3389,7 +3397,7 @@ const shareMain = (purpose, target = null) =>
   const dMissing = dExpected.filter(k => !personalDa(k, 1));
   check('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dWrongGlobal.length === 0, `global gefunden: ${JSON.stringify(dWrongGlobal)}`);
-  check('Alle zehn stehen beim Benutzer, der sie gesetzt hat — 0.23.0',
+  check('Alle elf stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
     dMissing.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dMissing)}`);
   check('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('searchOn') && !personalDa('searchOn', 1),
@@ -15581,8 +15589,8 @@ const shareMain = (purpose, target = null) =>
       equal(germanKeys.filter(k => !pluralKeys.includes(k) && !vocabularyKeys.includes(k)).sort(),
             KEY_FALSE_FRIENDS),
       germanKeys.filter(k => !pluralKeys.includes(k) && !vocabularyKeys.includes(k)).join(' '));
-    check('Und die Zahlen stehen: 1268 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1268 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
+    check('Und die Zahlen stehen: 1270 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1270 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -15675,9 +15683,11 @@ const shareMain = (purpose, target = null) =>
        Sinn: eine Zeile mehr im Pruefstand gegen einen Satz mehr am Bildschirm,
        den sonst niemand bemerkt haette. */
     const WORDING_NEW_0243 = ['_name',
-      'card.languageDefaultSaved', 'card.languageDefaultTip', 'card.languagePoolSaved',
+      'card.languageDefaultSaved', 'card.languageDefaultTip', 'card.languageHint',
+      'card.languagePoolSaved',
       'card.languages', 'card.languagesFileAfter', 'card.languagesFileBefore',
-      'card.languagesHint', 'card.languagesUsersHint'];
+      'card.languagesHint', 'card.languagesUsersHint',
+      'server.languageUnknown'];
     const wordingMissing = WORDING_NEW_0243.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -24343,7 +24353,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        gueltig, wie sie sind, und laufen weiter auf Deutsch. Ein nachgebauter
        Satz waere eine zweite Wahrheit -- und die Pruefung liefe gruen, waehrend
        die ausgelieferte Datei etwas anderes sagt (Stolperstein 47). */
-    const languageFile = /^\/languages\/([a-z]{2})\.json$/.exec(String(url));
+    /* DASSELBE MUSTER WIE readLanguages() IM SERVER -- BCP 47 und nicht „zwei
+       Kleinbuchstaben". Ein engeres Muster hier liesse eine Datei `pt-BR.json`
+       im Mock ins Leere laufen, waehrend der Server sie laedt. */
+    const languageFile = /^\/languages\/([a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?)\.json$/
+      .exec(String(url));
     if (languageFile) {
       // `withoutLanguage`: die Lage, in der die Datei fehlt (Entscheidung A1).
       if (withoutLanguage) return give({}, 404);
@@ -24351,8 +24365,20 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (!fs.existsSync(file)) return give({}, 404);
       return give(JSON.parse(fs.readFileSync(file, 'utf8')));
     }
+    /* DIE ZWEI SPRACHFELDER SEIT 0.24.3. DIE VORGABE IST `de` UND NICHT `en`:
+       dieser Mock stellt eine Installation dar, deren Eigentuemer Deutsch
+       vorgibt -- also genau die Lage des BESTANDS nach der Migration (F2). Die
+       312 Zusicherungen mit deutschem Text bleiben damit gueltig, wie sie sind.
+       DER VORRAT KOMMT AUS DEM ECHTEN VERZEICHNIS und ist keine Liste hier:
+       wer eine Sprachdatei dazulegt, soll sie im Mock vorfinden, ohne diese
+       Zeile zu suchen -- dieselbe Ueberlegung wie bei der Datei selbst
+       darueber. */
     if (url === '/api/config') return give({ title: 'Oeffentlich', version: require('./package.json').version,
-      setupRequired: setup, minPassword: 10, signup });
+      setupRequired: setup, minPassword: 10, signup,
+      language: 'de',
+      languages: fs.readdirSync(path.join(__dirname, 'public', 'languages'))
+        .filter(f => f.endsWith('.json')).sort()
+        .map(f => ({ code: f.slice(0, -5), name: f.slice(0, -5) })) });
     if (url === '/api/session') return give({ authenticated: loggedIn });
     /* Der Weg VOR der Anmeldung. Zwei gueltige Schluessel, damit sich beide
        Anlaesse unterscheiden lassen -- einer zu einem Zugang OHNE Passwort
@@ -41707,8 +41733,8 @@ async function checkUi() {
        Eigenschaft, sondern als Bindung -- w.eval() ist der Weg dorthin.
        ZURUECKGESETZT WIRD DANACH, damit die uebrigen Zeilen dieser Gruppe die
        echte Datei sehen. */
-    const spSet = (obj) => spW.eval(`TEXTS = ${JSON.stringify(obj)}; TEXTS_DE = TEXTS;`);
-    const spReal = () => spW.eval(`TEXTS = ${spRaw}; TEXTS_DE = TEXTS;`);
+    const spSet = (obj) => spW.eval(`TEXTS = ${JSON.stringify(obj)}; TEXTS_FALLBACK = TEXTS;`);
+    const spReal = () => spW.eval(`TEXTS = ${spRaw}; TEXTS_FALLBACK = TEXTS;`);
     spSet({
       _locale: 'de-DE',
       'probe.einfach': 'Ein fester Satz.',
@@ -41759,11 +41785,13 @@ async function checkUi() {
     /* EIN FEHLENDER SCHLUESSEL IST SICHTBAR UND NIE STILL. */
     check('Ein fehlender Schlüssel liefert ⟦schluessel⟧',
       spW.t('gibt.es.nicht') === '⟦gibt.es.nicht⟧', spW.t('gibt.es.nicht'));
-    /* DER RUECKFALL AUF DEUTSCH. In dieser Runde ist er leer -- es gibt nur
-       Deutsch --, und er wird trotzdem jetzt gebaut und belegt: eine Regel,
-       die man erst dann baut, wenn sie gebraucht wird, ist ungeprueft. */
+    /* DER RUECKFALL AUF DIE VORGABESPRACHE. Bis 0.24.2 hiess die Tafel
+       `TEXTS_DE` und war fest auf Deutsch verdrahtet; seit 0.24.3 heisst sie
+       `TEXTS_FALLBACK` und traegt, was die Installation vorgibt. Die Regel
+       dahinter ist unveraendert die von 0.24.0 -- sie hat jetzt nur einen
+       Gegenstand. */
     spW.eval("TEXTS = { _locale: 'de-DE' };");
-    check('Fehlt ein Schlüssel in der gewählten Sprache, greift Deutsch',
+    check('Fehlt ein Schlüssel in der gewählten Sprache, greift die Vorgabesprache',
       spW.t('probe.einfach') === 'Ein fester Satz.', spW.t('probe.einfach'));
     check('Und fehlt er auch dort, steht ⟦…⟧ da',
       spW.t('probe.nichtda') === '⟦probe.nichtda⟧', spW.t('probe.nichtda'));
