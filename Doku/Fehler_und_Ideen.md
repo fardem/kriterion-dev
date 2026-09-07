@@ -201,11 +201,15 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.26.0** *MINOR* *(war 0.21.0, dann 0.22.0, dann 0.24.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
 | **0.28.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, dann 0.26.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
-**Was hier bleibt, bleibt aus einem Grund:** die **acht** Punkte unten haben
-**keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — *mit einer
-Ausnahme seit dem 5. September 2026: **Punkt 11** ist empfohlen und wartet nur
-auf eine Runde; er ist am selben Tag dazugekommen, als 0.22.1 ihn ausdrücklich
-nicht mitgenommen hat* — zwei sind
+**Was hier bleibt, bleibt aus einem Grund:** die **elf** Punkte unten haben
+**keine Nummer**, weil die meisten von ihnen jetzt nicht gebaut werden sollen —
+*mit inzwischen drei Ausnahmen. Seit dem 5. September 2026: **Punkt 11** ist
+empfohlen und wartet nur auf eine Runde; er ist am selben Tag dazugekommen, als
+0.22.1 ihn ausdrücklich nicht mitgenommen hat. Und seit dem 7. September 2026,
+aus dem Rundlauf mit 0.24.2: **Punkt 13**, zwei Fehler mit benannter Ursache,
+und **Punkt 14**, der als einziger Punkt dieses Blatts nicht mehr zur Wahl
+steht — **der Betreiber hat ihn entschieden, und ihm fehlt nur noch die
+Nummer.*** — zwei sind
 `nicht empfohlen`, drei sind `später`, einer wartet auf die Runde, in der über
 die Verfahren entschieden wird, **und einer ist am 3. September 2026
 dazugekommen: Punkt 9, die gepackte Sicherung** — *sein Kern ist gemessen und
@@ -1249,6 +1253,163 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   Punkt, der beides meint, geht nie ganz weg. *Draußen trennt es jeder:
   Instagram, Facebook, GitHub, Jira, Linear.* Siehe Fahrplan 0.16.0, „Die Glocke".
 
+
+---
+
+## 13. Zwei Fehler aus dem Rundlauf mit 0.24.2
+
+**Art: Fehler** (zwei) · **Einschätzung: empfohlen** — *der zweite ist eine
+einzige Zeile, und er nimmt einen Weg ganz weg* · **Draußen üblich: ja**
+
+### Woher
+
+**Aus dem Betrieb, 7. September 2026**, unmittelbar nach dem Einspielen von
+0.24.2 (`ae0084d8`). Der erste ist mit Bild gemeldet.
+
+*Beide sind ÄLTER als 0.24.2 — die Runde hat sie weder verursacht noch
+angefasst. Sie sind beim Durchsehen aufgefallen.*
+
+---
+
+### A · Die Sitzungsliste läuft unten aus dem Kasten
+
+**Was zu sehen ist:** die Karte „Meine Sitzungen" zeigt zehn Sitzungen, und
+darunter bricht der Satz *„Außer dieser gibt es 9 weitere Sitzungen. Eine
+Sitzung läuft…"* mitten in der Zeile ab. **Der Knopf „Andere Sitzungen
+beenden" steht gar nicht mehr da** — man kommt an ihn nur noch über einen
+Bildlauf, der von außen nicht als solcher zu erkennen ist.
+
+**Die Ursache steht im Stilblatt, und sie ist dort sogar ausgerechnet:**
+
+```
+#msessions { max-height: 55.23rem; }
+```
+
+Der Kommentar daneben sagt, woraus die Zahl kommt — *„55.23rem SIND ZEHN
+SITZUNGSZEILEN UND DIE FUSSZEILE: 10 × 72,55 = 725,5, dazu die 102,88 der
+`.session-foot`, die INNERHALB der Liste steht"*. **Gemessen wurde auf einem
+breiten Schirm.** Auf einem schmalen ist eine Sitzungszeile höher als 72,55
+Pixel, und damit passen zehn Zeilen samt Fußzeile nicht mehr unter den Deckel.
+Die Fußzeile ist die, die herausfällt — sie steht als letztes Kind **in** der
+rollenden Liste (`box.appendChild(foot)` in `drawSessions()`).
+
+**Was der Betreiber will:** *„die zu vielen Einträge in ein Scrollbalken
+unterbringen, und der Kopf sowie Fuß darf nicht aus dem Kasten heraus gehen."*
+
+> **Vorschlag von Claude:** die Fußzeile **aus** `#msessions` heraus und als
+> Geschwister daneben in die Karte. Dann deckelt der Deckel nur noch die
+> Zeilen, die Liste rollt, und Kopf wie Fuß stehen immer da. **Das Maß wird
+> damit wieder das, was es sagt** — zehn Zeilen, ohne die Fußzeile
+> hineinzurechnen —, und der Grund, aus dem sie 0.17.3 hineingerechnet wurde
+> (*„sonst müsste man an zehn Sitzungen vorbeirollen, um den Knopf darunter zu
+> sehen"*), fällt weg: außerhalb der rollenden Liste ist der Knopf ohne Rollen
+> zu sehen.
+
+*Zu klären wäre nur noch, ob dieselbe Bauform für die anderen sechs Listen mit
+`.manage-list` gilt — die haben heute keine Fußzeile, und eine Regel, die
+nirgends sonst greift, gehört an die eine Liste und nicht in die gemeinsame.*
+
+---
+
+### B · Nach dem ersten Bild öffnet die Dateiauswahl nicht mehr
+
+**Was zu sehen ist:** ein Bild über „Datei hochladen" in einen Eintrag
+einfügen; danach ein zweites — **die Dateiauswahl geht nicht mehr auf.** Erst
+nach F5 geht es wieder. **STRG+V funktioniert die ganze Zeit.**
+
+**Die Ursache ist EINE Zeile** — `public/app.js`, in `uploadFiles()`:
+
+```
+const drop = document.getElementById('drop');
+const old = drop.textContent;
+drop.textContent = t('entry.uploading');
+```
+
+`drop` ist das `<label class="drop" id="drop">`, und **in ihm steht das
+Eingabefeld**:
+
+```
+<label class="drop" id="drop"><input type="file" id="file" accept="…" multiple>
+  Hinweistext</label>
+```
+
+`textContent` zu setzen wirft **alle Kinder** des Labels weg — den Hinweistext
+*und das Eingabefeld*. Am Ende setzt `drop.textContent = old` nur den Text
+zurück; **das Feld kommt nicht wieder.** Ein Label ohne Feld hat nichts zu
+öffnen, und der `onchange`, der an das alte Feld gebunden war, hängt an einem
+Element, das nicht mehr im Baum steht.
+
+**Und genau daraus folgt, warum STRG+V weiter geht:** der Einfügeweg hängt als
+Zuhörer am `document` und braucht das Feld überhaupt nicht.
+
+> **Vorschlag von Claude:** den Hinweistext in ein eigenes `<span>` legen und
+> nur dessen Text tauschen. **Nicht** `innerHTML` neu setzen — dann wäre der
+> `onchange` wieder weg, nur eine Ebene später.
+
+**Schwere:** der Weg „mehrere Bilder nacheinander per Datei einfügen" ist damit
+ganz hin, und niemand kommt von selbst darauf, dass F5 hilft. *Der Fehler ist
+so alt wie die Fortschrittsmeldung im Ablagefeld.*
+
+---
+
+## 14. Blättern im Eintrag — vor und zurück in der Reihenfolge der Übersicht
+
+**Art: Funktion · Einschätzung: VOM BETREIBER ENTSCHIEDEN am 7. September 2026
+— sie wird gebaut, die Nummer steht noch aus · Draußen üblich: ja**
+
+*Dieser Punkt ist keine Empfehlung und keine Frage. Er steht hier, weil er noch
+keine Rundennummer hat — nicht, weil er noch zur Wahl stünde.*
+
+### Woher
+
+**Aus dem Betrieb, 7. September 2026:** *„Blättern in der Eintragsansicht durch
+die Pfeiltasten rechts/links. Also zum nächsten Eintrag der vorhergehenden
+Filter- und Sortieransicht im Overview. Ohne dass man immer zurück zur
+Übersicht muss."*
+
+### Was es ist
+
+**Der Eintrag bekommt ein Vor und ein Zurück**, und die Reihenfolge ist
+**genau die der Übersicht, aus der man gekommen ist** — nach dem Filter und
+der Sortierung, die dort gerade gelten. Wer in der Übersicht „ungetestet, nach
+Potenzial" stehen hat und den dritten Eintrag öffnet, kommt mit einem Griff
+zum vierten dieser Liste.
+
+*Der heutige Weg ist: zurück zur Übersicht, dort die Stelle wiederfinden, den
+nächsten öffnen. Bei einem Rundlauf über zehn Einträge ist das zwanzigmal
+hin und her.*
+
+### Drei Fragen, die vor dem Bau zu beantworten sind
+
+**1 · Die Pfeiltasten sind schon belegt.** In der Eintragsansicht blättern
+`ArrowLeft` und `ArrowRight` heute durch die **Vorschaubilder** des Eintrags
+(`public/app.js`, und im Vollbild noch einmal). *Zwei Bedeutungen für eine
+Taste gibt es nicht.* Also: **Knöpfe am linken und rechten Rand** und die
+Tasten bleiben bei den Bildern? Oder die Tasten wechseln den Eintrag und die
+Bilder bekommen einen anderen Griff? **Der Betreiber hat „Pfeiltasten rechts
+links" geschrieben — das kann beides heißen, und der Auftrag entscheidet es.**
+
+**2 · Woher kommt die Reihenfolge?** Sie lebt heute in der Übersicht
+(`state.items` samt Filter und Sortierung) und nur dort. **Ein Eintrag, den
+jemand über ein Lesezeichen oder einen Link öffnet, hat keine** — dann gibt es
+kein Vor und kein Zurück. *Entweder die Pfeile fehlen dort, oder die Ansicht
+holt die Reihenfolge nach.* **Die Reihenfolge gehört nicht auf den Server:**
+sie ist die Stellung eines Bildschirms, keine Eigenschaft des Bestands.
+
+**3 · Was, wenn der Bestand sich unter der Liste ändert?** Wer mit dem Filter
+„ungetestet" blättert und den Eintrag dabei auf „getestet" setzt, fällt aus
+seiner eigenen Liste heraus. *Die Reihenfolge einmal beim Betreten festhalten
+und dabei bleiben — oder mitziehen?* **Ein Blättern, das einem unter der Hand
+umsortiert wird, ist schlimmer als keines.**
+
+**Und am Telefon:** Wischgeste oder nur die Knöpfe? *Wischen kollidiert mit dem
+Bildstreifen, der dort schon gewischt wird.*
+
+### Draußen üblich
+
+**Ja, durchweg.** Jede Galerie, jedes Ticketsystem und jede Bilderverwaltung
+hat „vorheriger / nächster **in dieser Ansicht**" — und alle merken sich die
+Liste beim Betreten, statt sie neu zu rechnen.
 
 ---
 
