@@ -1611,7 +1611,7 @@ const RUECKBAUTEN = [
   },
   {
     /* NICHT `zaehle('task')` ALS ERSATZ: das ist DASSELBE. `aufgaben` zaehlt
-       task UND done, `fertig` zaehlt done -- die Differenz IST die Zahl der
+       task UND done, `done` zaehlt done -- die Differenz IST die Zahl der
        task-Zeilen. Der erste Anlauf hat genau das versucht und blieb stumm,
        weil er gar nichts veraenderte. **Ein Rueckbau, der rechnerisch ein
        No-op ist, sieht aus wie eine Luecke im Pruefstand und ist keine.**
@@ -2653,7 +2653,7 @@ const RUECKBAUTEN = [
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): aus `neuFremd` sind drei
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): aus `freshForeign` sind drei
        Angaben geworden, und der Suchtext griff ins Leere (Stolperstein 192).
        DIE ZUSAGE IST DIESELBE: ohne Bezugspunkt fehlt die Angabe GANZ und
        steht nicht auf 0 -- die Oberflaeche unterscheidet „nichts Neues" von
@@ -4014,7 +4014,7 @@ const RUECKBAUTEN = [
 
   /* ---- 0.19.0: die Bildablage in der Oberflaeche ---- */
   {
-    /* DER ZOOM GEHT NICHT MEHR AN DIE KACHEL. ausschnitt() rechnet ihn
+    /* DER ZOOM GEHT NICHT MEHR AN DIE KACHEL. crop() rechnet ihn
        weiterhin richtig aus und schreibt ihn nirgends hin -- genau der Fall,
        den eine Pruefung an der Funktion allein nicht faende. */
     nr: '449', name: 'Der Zoom kommt nicht in den Zuschnitt (bis 0.19.4: nicht an die Kachel)',
@@ -5677,7 +5677,7 @@ const RUECKBAUTEN = [
     /* HIER HAENGT DIE ZENTRALE ZUSAGE DIESER RUNDE -- am SELECT und nicht am
        GROUP BY. Faellt `c.phase` aus der Spaltenliste, kommt die Schnittzeile
        ohne Phase an; karteJePhase() legt sie in KEINEN der beiden Kaesten
-       (`kasten[undefined]` gibt es nicht), und beide Durchschnitte fallen auf
+       (`box[undefined]` gibt es nicht), und beide Durchschnitte fallen auf
        null. Die Kachel zeigte dann an jedem Eintrag gar keine Zahl mehr.
        NACHGETRAGEN NACH DER GEGENPROBE: die Runde hatte fuer diese beiden
        Abfragen nur den Griff ans GROUP BY, und der ist am Verhalten stumm
@@ -5712,7 +5712,7 @@ const RUECKBAUTEN = [
        greifenden. EINE FALSCHE TABELLE IST SCHLIMMER ALS GAR KEINE. */
     nr: '604', name: 'Der Treiber faehrt los, ohne nach fremden Servern zu sehen',
     file: 'counterproof.js',
-    search: '  const fremde = fremdeServer();\n  if (fremde.length) {',
+    search: '  const fremde = foreignServer();\n  if (fremde.length) {',
     ersatz: '  const fremde = [];\n  if (fremde.length) {',
     erwartet: 'Die Gegenproben greifen'
   },
@@ -6501,14 +6501,14 @@ const RUECKBAUTEN = [
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
     file: 'testbench.js',
-    search: '  const B = starteWeiterenServer(frischDir, {}, 5130);',
+    search: '  const B = starteWeiterenServer(freshDir, {}, 5130);',
     ersatz: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
     erwartet: 'Die Portbasen und der Versatz'
   },
   {
     nr: 'W5', name: 'Der SMTP-Empfaenger wird nicht mehr vermerkt',
     file: 'testbench.js',
-    search: '  SMTP_LAGEN.push(lage);',
+    search: '  SMTP_LAGEN.push(state);',
     ersatz: '  // SMTP_LAGEN.push(lage);',
     erwartet: 'Die Portbasen und der Versatz'
   },
@@ -6540,7 +6540,7 @@ const RUECKBAUTEN = [
   {
     nr: 'W16', name: 'Der Leser hebt die letzten Zeilen gar nicht erst auf',
     file: 'counterproof.js',
-    search: "    schwanz: ausgabe.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
+    search: "    schwanz: output.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
     ersatz: '    schwanz: []',
     erwartet: 'Die Gegenproben greifen'
   },
@@ -6550,7 +6550,7 @@ const RUECKBAUTEN = [
      Gegenprobe ist eine Behauptung (Projektstand, Abschnitt 12). */
   {
     /* EINE ZWEITE SPRACHDATEI MIT GANZ ANDEREN SCHLUESSELN. package.json ist
-       lesbares JSON und traegt kein einziges `karte.`; die Deckungsprobe muss
+       lesbares JSON und traegt kein einziges `card.`; die Deckungsprobe muss
        das sehen -- und die Formatprobe die fehlende Locale. */
     nr: '685', name: 'Eine zweite Sprachdatei traegt andere Schluessel',
     file: 'package.json',
@@ -6640,7 +6640,7 @@ const RUECKBAUTEN = [
 ];
 
 /* ================= Spuren und Versatz =================
-   Der Versatz je Nebenspur steht im PRUEFSTAND (VERSATZ_STUFE) und wird von
+   Der Versatz je Nebenspur steht im PRUEFSTAND (OFFSET_LEVEL) und wird von
    dort gelesen -- der Waechter, der ihn nachrechnet, liegt dort, und zwei
    Zahlen an zwei Orten laufen auseinander. Faellt die Zeile weg, bricht der
    Treiber ab, statt still auf einen Vorgabewert zu fallen. */
@@ -6714,7 +6714,7 @@ function prozesseUnter(pfad) {
    Image, `npm start` und der Prueflauf starten alle `node server.js`. Wer von
    Hand etwas anderes tut, weiss, dass er es getan hat -- und findet seinen
    Prozess ueber den Port. */
-function fremdeServer() {
+function foreignServer() {
   const raus = [];
   let entries;
   try { entries = fs.readdirSync('/proc'); } catch { return raus; }
@@ -6803,10 +6803,10 @@ function baueZurueck(kopie, r) {
    aendert sich ihr Name im Pruefstand, faellt es an einer Stelle auf. */
 const SELBSTPROBE = 'Jeder Suchtext kommt in seiner Datei genau einmal vor';
 
-function leseLauf(ausgabe) {
+function readRun(output) {
   const rot = [];
   let group = '(vor der ersten Gruppe)';
-  for (const row of ausgabe.split('\n')) {
+  for (const row of output.split('\n')) {
     // ─* und nicht ─+: eine Ueberschrift, die die Zeile fuellt, traegt gar
     // keinen Strich mehr. Der Pruefstand setzt seit dieser Runde mindestens
     // zwei -- der Leser hier gibt sich trotzdem mit keinem zufrieden, denn er
@@ -6816,8 +6816,8 @@ function leseLauf(ausgabe) {
     const p = row.match(/^ {2}✗ (.+)$/);
     if (p) rot.push({ group, name: p[1] });
   }
-  const schluss = ausgabe.match(/^\s+(\d+) von (\d+) Pruefungen bestanden/m);
-  const abriss = ausgabe.match(/^Prueflauf abgebrochen: (.+)$/m);
+  const schluss = output.match(/^\s+(\d+) von (\d+) Pruefungen bestanden/m);
+  const abriss = output.match(/^Prueflauf abgebrochen: (.+)$/m);
   return {
     rot,
     /* DIE INHALTLICH ROTEN PUNKTE, OHNE DIE SELBSTPROBE. Die Gruppe „Die
@@ -6856,20 +6856,20 @@ function leseLauf(ausgabe) {
        ZWANZIG ZEILEN, LEERE WEGGELASSEN: eine unbehandelte Message von Node
        ist rund zwoelf Zeilen lang, und davor sollen noch ein paar Zeilen des
        Laufs stehen, damit man sieht, WO er stand. */
-    schwanz: ausgabe.split('\n').map(z => z.trimEnd()).filter(z => z).slice(-20)
+    schwanz: output.split('\n').map(z => z.trimEnd()).filter(z => z).slice(-20)
   };
 }
 
 /* ================= Eine Gegenprobe ================= */
 
-function fahre(r, spur, stufe) {
-  return new Promise((fertig) => {
+function fahre(r, trace, level) {
+  return new Promise((done) => {
     const kopie = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-gegenprobe-${r.nr}-`));
     const beginn = Date.now();
     const ende = (result) => {
       let cleanup = { geraeumt: 0, uebrig: 0 };
       try { cleanup = raeumeAuf(kopie); } catch (e) { result.raeumFehler = e.message; }
-      fertig({ ...r, spur, sekunden: Math.round((Date.now() - beginn) / 1000),
+      done({ ...r, trace, sekunden: Math.round((Date.now() - beginn) / 1000),
                ...cleanup, ...result });
     };
     try {
@@ -6878,11 +6878,11 @@ function fahre(r, spur, stufe) {
     } catch (e) { return ende({ error: e.message }); }
     const kind = spawn(process.execPath, ['testbench.js'], {
       cwd: kopie,
-      env: { ...process.env, PORT_OFFSET: String(spur * stufe) }
+      env: { ...process.env, PORT_OFFSET: String(trace * level) }
     });
-    let ausgabe = '';
-    kind.stdout.on('data', d => { ausgabe += d; });
-    kind.stderr.on('data', d => { ausgabe += d; });
+    let output = '';
+    kind.stdout.on('data', d => { output += d; });
+    kind.stderr.on('data', d => { output += d; });
     /* EINE ZEITGRENZE JE RUECKBAU, . Ein Rueckbau kann den Prueflauf
        nicht nur rot machen, sondern HAENGEN lassen -- und ein haengender Lauf
        blockiert seine Spur fuer immer, ohne CPU und ohne Message. Genau das
@@ -6891,27 +6891,27 @@ function fahre(r, spur, stufe) {
        wie ein besonders langer Lauf. Die Grenze ist grosszuegig: ein
        vollstaendiger Lauf dauert rund sechs Minuten, die Grenze liegt beim Doppelten. */
     const GRENZE_MS = 12 * 60 * 1000;
-    const uhr = setTimeout(() => { try { kind.kill('SIGKILL'); } catch {} }, GRENZE_MS);
+    const clock = setTimeout(() => { try { kind.kill('SIGKILL'); } catch {} }, GRENZE_MS);
     kind.on('exit', (code, signal) => {
       const ueberfaellig = Date.now() - beginn >= GRENZE_MS;
-      clearTimeout(uhr);
-      ende({ code, signal, ueberfaellig, ...leseLauf(ausgabe) });
+      clearTimeout(clock);
+      ende({ code, signal, ueberfaellig, ...readRun(output) });
     });
   });
 }
 
 /* ================= Die Spuren ================= */
 
-async function fahreAlle(liste, spuren, stufe) {
-  const ergebnisse = new Array(liste.length);
+async function fahreAlle(list, spuren, level) {
+  const ergebnisse = new Array(list.length);
   let naechster = 0;
-  const spur = async (nr) => {
+  const trace = async (nr) => {
     for (;;) {
       const i = naechster++;
-      if (i >= liste.length) return;
-      const r = liste[i];
+      if (i >= list.length) return;
+      const r = list[i];
       console.log(`  [Spur ${nr}] ${r.nr} — ${r.name}`);
-      ergebnisse[i] = await fahre(r, nr, stufe);
+      ergebnisse[i] = await fahre(r, nr, level);
       const e = ergebnisse[i];
       /* EIN ABGERISSENER LAUF IST KEIN STUMMER. Beide zeigen null rote Punkte,
          und sie sagen das Gegenteil: der eine, dass niemand prueft, der andere,
@@ -6925,7 +6925,7 @@ async function fahreAlle(liste, spuren, stufe) {
     }
   };
   // Spur 0 gibt es auch: sie faehrt ohne Versatz, wie ein gewoehnlicher Lauf.
-  await Promise.all(Array.from({ length: spuren }, (_, k) => spur(k)));
+  await Promise.all(Array.from({ length: spuren }, (_, k) => trace(k)));
   return ergebnisse;
 }
 
@@ -6933,7 +6933,7 @@ async function fahreAlle(liste, spuren, stufe) {
    EINE Tabelle, und zwar in der Form, in der sie im Aenderungsprotokoll steht.
    Was sie NICHT tut: einen stummen Rueckbau als Erfolg zeigen. Er bekommt sein
    eigenes Wort und darunter seinen eigenen Absatz. */
-function schreibeTabelle(ergebnisse) {
+function writeTable(ergebnisse) {
   console.log('\n| # | Rückbau | Namentlich rot |');
   console.log('|---|---|---|');
   for (const e of ergebnisse) {
@@ -6958,7 +6958,7 @@ function schreibeTabelle(ergebnisse) {
 
   console.log('\n### Im Einzelnen\n');
   for (const e of ergebnisse) {
-    console.log(`**${e.nr} — ${e.name}** (${e.file}, Spur ${e.spur}, ${e.sekunden}s)`);
+    console.log(`**${e.nr} — ${e.name}** (${e.file}, Spur ${e.trace}, ${e.sekunden}s)`);
     if (e.error) { console.log(`  RÜCKBAU GESCHEITERT: ${e.error}\n`); continue; }
     if (!e.durchgelaufen) {
       console.log(`  LAUF ABGERISSEN: ${e.abriss || `Rückgabewert ${e.code}`}`);
@@ -7015,23 +7015,23 @@ function schreibeTabelle(ergebnisse) {
    nichts -- passt keine, ist das ein Fehler und kein stiller Beifang.
    Die Wortnummern (W2, W5, W6) sind keine reinen Ziffernfolgen und gehen
    deshalb weiter ueber beide Wege. */
-const passtRueckbau = (r, argument) => {
+const matchesRegression = (r, argument) => {
   const a = String(argument).toLowerCase();
   if (/^\d+$/.test(a)) return r.nr.toLowerCase() === a;
   return r.nr.toLowerCase() === a || r.name.toLowerCase().includes(a);
 };
 
-/* leseLauf GEHT MIT HINAUS, damit der Pruefstand die Regel „was gilt als
+/* readRun GEHT MIT HINAUS, damit der Pruefstand die Regel „was gilt als
    stumm" an gestellten Ausgaben nachsehen kann -- in Millisekunden statt in
    Minuten. Ein Werkzeug, das seinen eigenen Fund nicht melden kann, ist
    schlimmer als keines (Stolperstein 213).
-   passtRueckbau EBENSO: die Regel, welches Argument welchen Rueckbau meint,
+   matchesRegression EBENSO: die Regel, welches Argument welchen Rueckbau meint,
    laesst sich damit an gestellten Faellen nachsehen, statt Minuten lang einen
    Lauf zu fahren, um zu sehen, WAS er gefahren hat. */
-/* fremdeServer GEHT EBENFALLS MIT HINAUS: die Regel, was als fremder Server
+/* foreignServer GEHT EBENFALLS MIT HINAUS: die Regel, was als fremder Server
    gilt, laesst sich damit am laufenden Prueflauf selbst nachsehen -- er ist
    ja einer. Ein Waechter, den niemand pruefen kann, ist ein Versprechen. */
-module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau, schreibeTabelle, fremdeServer };
+module.exports = { RUECKBAUTEN, readRun, matchesRegression, writeTable, foreignServer };
 if (require.main !== module) return;
 
 (async function haupt() {
@@ -7043,13 +7043,13 @@ if (require.main !== module) return;
                   `gleichzeitige Server, und der Rechner hat nicht beliebig viele Kerne.`);
     process.exit(1);
   }
-  const liste = argumente.length
-    ? RUECKBAUTEN.filter(r => argumente.some(a => passtRueckbau(r, a)))
+  const list = argumente.length
+    ? RUECKBAUTEN.filter(r => argumente.some(a => matchesRegression(r, a)))
     : RUECKBAUTEN;
   /* Ein Filter, auf den KEIN Rueckbau passt, ist ein Fehler und kein leerer
      Lauf -- sonst meldete ein Tippfehler wortlos Erfolg. Dieselbe Regel wie
      beim Gruppenfilter des Pruefstands. */
-  if (!liste.length) {
+  if (!list.length) {
     console.error(`Kein Rueckbau passt auf ${argumente.join(', ')}.`);
     console.error('Vorhanden: ' + RUECKBAUTEN.map(r => r.nr).join(', '));
     process.exit(1);
@@ -7058,7 +7058,7 @@ if (require.main !== module) return;
      kaputt, sondern die TABELLE -- und eine falsche Tabelle ist schlimmer als
      gar keine. Abgebrochen wird deshalb, statt zu warnen: wer eine Warnung
      ueberliest, liest hinterher Zahlen, die nichts bedeuten. */
-  const fremde = fremdeServer();
+  const fremde = foreignServer();
   if (fremde.length) {
     console.error(`\n${fremde.length} fremde(r) Server laufen noch -- sie belegen Ports, ` +
                   `auf die die Prueflaeufe warten (Stolperstein 139).`);
@@ -7069,13 +7069,13 @@ if (require.main !== module) return;
                   fremde.map(f => f.pid).join(' '));
     process.exit(1);
   }
-  const stufe = versatzStufe();
-  console.log(`\nGegenproben: ${liste.length} Rückbauten, ${spuren} Nebenspur(en), ` +
-              `Versatz ${stufe} je Spur.`);
+  const level = versatzStufe();
+  console.log(`\nGegenproben: ${list.length} Rückbauten, ${spuren} Nebenspur(en), ` +
+              `Versatz ${level} je Spur.`);
   console.log('Jede läuft in einer eigenen Kopie aus `git archive HEAD`; ' +
               'der Arbeitsbaum wird nicht angefasst.\n');
-  const ergebnisse = await fahreAlle(liste, spuren, stufe);
-  process.exit(schreibeTabelle(ergebnisse));
+  const ergebnisse = await fahreAlle(list, spuren, level);
+  process.exit(writeTable(ergebnisse));
 })().catch(e => {
   console.error('\nGegenproben abgebrochen:', e.message);
   process.exit(1);
