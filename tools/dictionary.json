@@ -388,6 +388,7 @@
   "merke": "remember",
   "merker": "key",
   "merkmal": "detail",
+  "methode": "method",
   "minuten": "minutes",
   "mit": "including",
   "mitte": "center",
@@ -436,6 +437,7 @@
   "papierkorb": "trash",
   "passt": "matches",
   "passwort": "password",
+  "pfad": "path",
   "pfeil": "arrow",
   "phase": "phase",
   "phasen": "phases",
@@ -1367,5 +1369,61 @@
   "idx_zweifaktor_codes_user": "idx_two_factor_codes_user",
   "idx_photos_art": "idx_photos_kind",
   "idx_photos_kachel": "idx_photos_tile"
- }
+ },
+ "gleichlaut": [
+  {
+   "woerter": "klemme · wächter",
+   "gemeinsam": "guard",
+   "ausweich": "wächter → watcher",
+   "grund": "Eine Klemme hält fest, ein Wächter sieht zu — im Papier dieses Projekts sind das zwei Sachen."
+  },
+  {
+   "woerter": "rechteck · fläche",
+   "gemeinsam": "rect",
+   "ausweich": "fläche → area",
+   "grund": "Das Rechteck ist die Kiste mit vier Zahlen, die Fläche ist das, was darin liegt."
+  },
+  {
+   "woerter": "fenster · dialog",
+   "gemeinsam": "dialog",
+   "ausweich": "fenster → window, wo das Fenster von jsdom gemeint ist",
+   "grund": "Im ausgelieferten Code ist ein Fenster immer ein Dialog; im Prüfstand ist es das Fenster von jsdom."
+  },
+  {
+   "woerter": "prüfe · haken",
+   "gemeinsam": "check",
+   "ausweich": "haken → checkbox",
+   "grund": "Der Haken ist das Kästchen im Formular, das Prüfen ist die Zusicherung selbst."
+  },
+  {
+   "woerter": "erwartet · soll",
+   "gemeinsam": "expected",
+   "ausweich": "soll → wanted",
+   "grund": "Beide stehen im selben Geltungsbereich: 268 Zeilen Abstand sind im Prüfstand dieselbe Prüflage."
+  },
+  {
+   "woerter": "mehr · weiter",
+   "gemeinsam": "more",
+   "ausweich": "weiter → next",
+   "grund": "„Mehr\" ist eine Menge, „weiter\" ist eine Richtung."
+  },
+  {
+   "woerter": "neu · frisch",
+   "gemeinsam": "fresh",
+   "ausweich": "wo beide zusammentreffen, trägt `neu` ein `-New` am Namensende",
+   "grund": "`new` ist ein Schlüsselwort und kein Bezeichner."
+  },
+  {
+   "woerter": "ausgabe · aus",
+   "gemeinsam": "output",
+   "ausweich": "aus → stdout",
+   "grund": "Was ein Werkzeug auf die Konsole schreibt, ist die Standardausgabe und nicht irgendeine."
+  },
+  {
+   "woerter": "zweit · zweiter",
+   "gemeinsam": "second",
+   "ausweich": "in der einen Prüflage, in der beide stehen: `zweiter` → secondItem",
+   "grund": "Zwei gleiche Namen im selben Geltungsbereich sind ein Syntaxfehler, kein Stilfehler."
+  }
+ ]
 }
