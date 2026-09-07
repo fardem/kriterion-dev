@@ -37,7 +37,7 @@ const { spawn, spawnSync } = require('child_process');
 
 /* ================= Die Rueckbauten =================
    DIE LISTE IST DIE ENTSCHEIDUNG, und sie steht deshalb hier oben und nicht in
-   einer Datei daneben -- dieselbe Bauform wie F_ROUTEN im Pruefstand: man sucht
+   einer Datei daneben -- dieselbe Bauform wie F_ROUTES im Pruefstand: man sucht
    sie dort, wo sie steht.
 
    Ein Eintrag traegt fuenf Angaben:
@@ -49,7 +49,7 @@ const { spawn, spawnSync } = require('child_process');
              wird als solcher gemeldet. Ein Rueckbau, der ins Leere greift,
              saehe sonst aus wie einer, der nichts bewirkt.
      ersatz  wodurch er ersetzt wird
-   Statt `suche`/`ersatz` darf ein Eintrag auch `kopie` tragen: dann wird
+   Statt `suche`/`replacement` darf ein Eintrag auch `copy` tragen: dann wird
    `datei` in der Kopie ein zweites Mal unter diesem Namen abgelegt. Damit
    laesst sich eine entfernte Datei zurueckholen -- eine Textersetzung kann
    das nicht, weil es dabei um die Datei geht und nicht um ihren Inhalt.
@@ -62,28 +62,28 @@ const REGRESSIONS = [
     nr: '01', name: 'Der Token entsteht erst NACH dem Versand',
     file: 'server.js',
     search: "    const v = await sendTokenLink(target, token);",
-    ersatz: "    const v = await sendTokenLink(ziel, token); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
+    replacement: "    const v = await sendTokenLink(ziel, token); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
     expected: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   {
     nr: '02', name: 'Der Link faellt aus der Antwort, wenn der Versand traegt',
     file: 'server.js',
     search: "               withoutPassword: token.withoutPassword,\n               ...linkInfo(token.plain), ...v });",
-    ersatz: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkInfo(token.plain)), ...v });",
+    replacement: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkInfo(token.plain)), ...v });",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '03', name: 'Das Feld versand faellt ganz weg',
     file: 'server.js',
     search: "  return e.ok ? { delivery: 'ok', deliveryReason: '' }",
-    ersatz: "  return e.ok ? {}",
+    replacement: "  return e.ok ? {}",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '04', name: 'Der Grund faellt weg -- "aus" steht ohne Auskunft da',
     file: 'server.js',
     search: "    return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };",
-    ersatz: "    return { versand: 'aus' };",
+    replacement: "    return { versand: 'aus' };",
     expected: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   /* ---- Der Versand: die Frist ---- */
@@ -97,14 +97,14 @@ const REGRESSIONS = [
        Lauf reisst ab, statt eine Pruefung rot zu faerben (Stolperstein 138).
        So bleibt alles stehen, und nur die Wirkung faellt weg. */
     search: "      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);",
-    ersatz: "      uhr = setTimeout(() => {}, SEND_MS);",
+    replacement: "      uhr = setTimeout(() => {}, SEND_MS);",
     expected: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
   {
     nr: '06', name: 'Die Fristen von nodemailer stehen wieder auf ihren Vorgaben',
     file: 'mail.js',
     search: "    connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,",
-    ersatz: "",
+    replacement: "",
     expected: '(erwartet STUMM — die aeussere Schranke traegt die Zusage allein; nodemailers Fristen sind der schnellere, nicht der tragende Weg)'
   },
   /* ---- Der Versand: die oeffentliche Adresse ---- */
@@ -116,14 +116,14 @@ const REGRESSIONS = [
        nimmt die Zeile am VERSAND, und die naechste Zeile macht ihn
        eindeutig. */
     search: "  if (!PUBLIC.address)\n    return { delivery: 'aus', deliveryReason:",
-    ersatz: "  if (false)\n    return { versand: 'aus', versandGrund:",
+    replacement: "  if (false)\n    return { versand: 'aus', versandGrund:",
     expected: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   {
     nr: '08', name: 'Die Adresse wird aus dem Host-Kopf abgeleitet',
     file: 'server.js',
     search: "    username: target.username, link: `${PUBLIC.address}/#/invite/${token.plain}`,",
-    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/invite/${token.plain}`,",
+    replacement: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/invite/${token.plain}`,",
     expected: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   /* ---- Der Versand: der Empfaenger am Zugang ---- */
@@ -131,21 +131,21 @@ const REGRESSIONS = [
     nr: '09', name: 'Ein Zugang ohne Adresse wird trotzdem beschickt',
     file: 'server.js',
     search: "  if (!target.email)",
-    ersatz: "  if (false)",
+    replacement: "  if (false)",
     expected: 'Der Versandzustand neben dem Link'
   },
   {
     nr: '10', name: 'Die Adresse laesst sich beim Anlegen nicht mehr mitgeben',
     file: 'auth.js',
     search: "    .run(clean, hash, role, mailAddress || null);",
-    ersatz: "    .run(sauber, hash, rolle, null);",
+    replacement: "    .run(sauber, hash, rolle, null);",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '11', name: 'Die eigene Adresse laesst sich nicht mehr setzen',
     file: 'auth.js',
     search: "    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(address || null, u.id);",
-    ersatz: "    db.prepare('UPDATE users SET email = email WHERE id = ?').run(u.id);",
+    replacement: "    db.prepare('UPDATE users SET email = email WHERE id = ?').run(u.id);",
     expected: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   /* ---- Die Testmail ---- */
@@ -153,14 +153,14 @@ const REGRESSIONS = [
     nr: '12', name: 'Die Testmail nimmt die Adresse aus dem Rumpf',
     file: 'server.js',
     search: "  const ownOne = auth.getUser2(req.user.id);",
-    ersatz: "  const eigener = { ...auth.getUser2(req.user.id), email: (req.body || {}).an || auth.getUser2(req.user.id)?.email };",
+    replacement: "  const eigener = { ...auth.getUser2(req.user.id), email: (req.body || {}).an || auth.getUser2(req.user.id)?.email };",
     expected: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
     nr: '13', name: 'Die Absage ohne eigene Adresse nennt den Weg dorthin nicht',
     file: 'public/languages/de.json',
     search: "\"server.ownEmailMissing\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt. Trag sie unter Einstellungen › Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.\",",
-    ersatz: "\"server.ownEmailMissing\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt.\",",
+    replacement: "\"server.ownEmailMissing\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt.\",",
     expected: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
@@ -177,7 +177,7 @@ const REGRESSIONS = [
        (Stolperstein 145), und deshalb faerbt dieser Rueckbau jetzt BEIDE
        Seiten rot. */
     search: "  return test && test.mark && test.mark === mail.mark(raw) ? test : null;",
-    ersatz: "  return test || null;",
+    replacement: "  return test || null;",
     expected: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   /* ---- Die Rollenleiter am Mailzugang ---- */
@@ -185,21 +185,21 @@ const REGRESSIONS = [
     nr: '15', name: 'Der Mailzugang steht auch dem Admin offen',
     file: 'server.js',
     search: "app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {",
-    ersatz: "app.put('/api/mail', adminOnly, secondConfirmNeeded('mail'), (req, res) => {",
+    replacement: "app.put('/api/mail', adminOnly, secondConfirmNeeded('mail'), (req, res) => {",
     expected: 'Der Mailzugang: wer ihn setzen darf'
   },
   {
     nr: '16', name: 'Die Testmail steht auch dem Admin offen',
     file: 'server.js',
     search: "app.post('/api/mail/test', ownerOnly, async (req, res) => {",
-    ersatz: "app.post('/api/mail/test', adminOnly, async (req, res) => {",
+    replacement: "app.post('/api/mail/test', adminOnly, async (req, res) => {",
     expected: 'Der Mailzugang: wer ihn setzen darf'
   },
   {
     nr: '17', name: 'Die zweite Bestaetigung faellt am Mailzugang weg',
     file: 'server.js',
     search: "app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {",
-    ersatz: "app.put('/api/mail', ownerOnly, (req, res) => {",
+    replacement: "app.put('/api/mail', ownerOnly, (req, res) => {",
     expected: 'Der Mailzugang: wer ihn setzen darf'
   },
   /* ---- Das Passwort ---- */
@@ -207,14 +207,14 @@ const REGRESSIONS = [
     nr: '18', name: 'Das Mailpasswort steht in der Antwort',
     file: 'server.js',
     search: "app.get('/api/mail', ownerOnly, (req, res) => res.json(mailCard(req)));",
-    ersatz: "app.get('/api/mail', ownerOnly, (req, res) => res.json({ ...mailCard(req), passwort: mail.resolve(getSetting(mail.SETTING_KEY, null)).passwort }));",
+    replacement: "app.get('/api/mail', ownerOnly, (req, res) => res.json({ ...mailCard(req), passwort: mail.resolve(getSetting(mail.SETTING_KEY, null)).passwort }));",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '19', name: 'Das Mailpasswort geht in die Kontrollausgabe',
     file: 'server.js',
     search: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +",
-    ersatz: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}, Passwort ${mail.resolve(roh).passwort}.` +",
+    replacement: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}, Passwort ${mail.resolve(roh).passwort}.` +",
     expected: 'Der Mailversand: das Passwort steht nirgends'
   },
   /* ---- Die Anbietervorlagen ---- */
@@ -222,14 +222,14 @@ const REGRESSIONS = [
     nr: '20', name: 'Ein mitgeschickter Server ueberschreibt die Vorlage',
     file: 'mail.js',
     search: "  return { ...z, server: v.server, port: v.port, sicher: v.sicher };",
-    ersatz: "  return { ...z, server: z.server || v.server, port: z.port || v.port, sicher: z.sicher === true };",
+    replacement: "  return { ...z, server: z.server || v.server, port: z.port || v.port, sicher: z.sicher === true };",
     expected: 'Der Mailzugang: wer ihn setzen darf'
   },
   {
     nr: '21', name: 'Ein unbekannter Anbieter wird durchgelassen',
     file: 'mail.js',
     search: "  if (!v) throw message('mail.providerUnknown');",
-    ersatz: "  const vv = v;",
+    replacement: "  const vv = v;",
     expected: 'Der Mailzugang: wer ihn setzen darf'
   },
   /* ---- Die Frist ab dem ersten Oeffnen ---- */
@@ -237,21 +237,21 @@ const REGRESSIONS = [
     nr: '22', name: 'Das erste Oeffnen startet die Frist nicht',
     file: 'server.js',
     search: "  const minutes = auth.startTokenDeadline(token.hash);",
-    ersatz: "  const minuten = auth.TOKEN_DEADLINE_MINUTES;",
+    replacement: "  const minuten = auth.TOKEN_DEADLINE_MINUTES;",
     expected: 'Der Token: die Frist ab dem ersten Oeffnen'
   },
   {
     nr: '23', name: 'Jedes Oeffnen schiebt die Frist weiter',
     file: 'auth.js',
     search: "    WHERE hash = ? AND used_at IS NULL AND expires_at > datetime('now', ?)`);",
-    ersatz: "    WHERE hash = ? AND used_at IS NULL AND ? IS NOT NULL`);",
+    replacement: "    WHERE hash = ? AND used_at IS NULL AND ? IS NOT NULL`);",
     expected: 'Der Token: die Frist ab dem ersten Oeffnen'
   },
   {
     nr: '24', name: 'Die Absage nach der Frist bekommt einen eigenen Wortlaut',
     file: 'public/languages/de.json',
     search: "\"server.linkExpired\": \"Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.\",",
-    ersatz: "\"server.linkExpired\": \"Die Frist von 15 Minuten ist abgelaufen.\",",
+    replacement: "\"server.linkExpired\": \"Die Frist von 15 Minuten ist abgelaufen.\",",
     expected: 'Der Token: die Absage sieht immer gleich aus'
   },
   /* ---- Befund G: die voruebergehende Absage ---- */
@@ -259,14 +259,14 @@ const REGRESSIONS = [
     nr: '25', name: 'Jede Absage wirft den Schluessel wieder aus der Adresse',
     file: 'public/app.js',
     search: "    if (res.status === 400) {",
-    ersatz: "    if (!res.ok) {",
+    replacement: "    if (!res.ok) {",
     expected: 'Die Einladungsseite in der Oberflaeche'
   },
   {
     nr: '26', name: 'Der zweite Anlauf nach der Bremse faellt weg',
     file: 'public/app.js',
     search: "    document.getElementById('eb-again').onclick = () => showInvite(key);",
-    ersatz: "    document.getElementById('eb-again').onclick = () => {};",
+    replacement: "    document.getElementById('eb-again').onclick = () => {};",
     expected: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Oberflaeche ---- */
@@ -279,28 +279,28 @@ const REGRESSIONS = [
     nr: '27', name: 'Der Mailzugang wird auch fuer den Admin geholt',
     file: 'public/app.js',
     search: "      ADMIN ? api('GET', '/api/requests') : null",
-    ersatz: "      ADMIN ? api('GET', '/api/mail') : null",
+    replacement: "      ADMIN ? api('GET', '/api/mail') : null",
     expected: 'Die Karten des Systembereichs nach Rolle (viele rot — der Abruf reisst den ganzen Bereich mit)'
   },
   {
     nr: '28', name: 'Der Versandzustand verschwindet aus dem Linkkasten',
     file: 'public/app.js',
     search: "      ${deliveryRow(d)}",
-    ersatz: "      ",
+    replacement: "      ",
     expected: 'Der Versandzustand neben dem Link'
   },
   {
     nr: '29', name: 'Das Adressfeld am eigenen Zugang schickt nichts mehr mit',
     file: 'public/app.js',
     search: "        oldPassword: old, username: name, newPassword: new1, email: address",
-    ersatz: "        oldPassword: alt, username: name, newPassword: neu1",
+    replacement: "        oldPassword: alt, username: name, newPassword: neu1",
     expected: 'Die eigene Adresse in der Karte „Zugang“'
   },
   {
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     file: 'public/app.js',
     search: "        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { minuten: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
-    ersatz: "        ${false ? `<strong>${tH('login.linkValidMinutes', { minuten: stand.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}",
+    replacement: "        ${false ? `<strong>${tH('login.linkValidMinutes', { minuten: stand.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}",
     expected: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
@@ -308,7 +308,7 @@ const REGRESSIONS = [
     nr: '31', name: 'Die Antwort verraet, dass still verworfen wurde',
     file: 'server.js',
     search: "  res.json(REQUEST_ANSWER);",
-    ersatz: "  res.json(klartext ? REQUEST_ANSWER : { ok: false, error: 'Name oder Adresse ist schon vergeben.' });",
+    replacement: "  res.json(klartext ? REQUEST_ANSWER : { ok: false, error: 'Name oder Adresse ist schon vergeben.' });",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
@@ -319,7 +319,7 @@ const REGRESSIONS = [
     nr: '32', name: 'Die Antwort wartet wieder auf den Mailserver',
     file: 'server.js',
     search: "  const plain = an ? auth.createRequest(name, address) : null;",
-    ersatz: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
+    replacement: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
             "  if (klartext) await sendConfirm(String(name).trim(), String(adresse).trim(), klartext).catch(() => {});",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
@@ -327,7 +327,7 @@ const REGRESSIONS = [
     nr: '33', name: 'Der Schalter aus fuehrt zu einer eigenen Absage',
     file: 'server.js',
     search: "  const an = getSetting('signup', false) === true;",
-    ersatz: "  const an = getSetting('signup', false) === true;\n" +
+    replacement: "  const an = getSetting('signup', false) === true;\n" +
             "  if (!an) return res.status(403).json({ error: 'Die Selbstanmeldung ist ausgeschaltet.' });",
     expected: 'Die Selbstanmeldung: der Schalter aus'
   },
@@ -336,35 +336,35 @@ const REGRESSIONS = [
     nr: '34', name: 'Der Deckel faellt ganz weg',
     file: 'auth.js',
     search: "  if (countRequests() >= REQUEST_CAP) return null;",
-    ersatz: "  if (false) return null;",
+    replacement: "  if (false) return null;",
     expected: 'Die Selbstanmeldung: der Deckel'
   },
   {
     nr: '35', name: 'Der Deckel zaehlt nur die BESTAETIGTEN',
     file: 'auth.js',
     search: "  if (countRequests() >= REQUEST_CAP) return null;",
-    ersatz: "  if (db.prepare('SELECT COUNT(*) n FROM requests WHERE confirmed_at IS NOT NULL').get().n >= REQUEST_CAP) return null;",
+    replacement: "  if (db.prepare('SELECT COUNT(*) n FROM requests WHERE confirmed_at IS NOT NULL').get().n >= REQUEST_CAP) return null;",
     expected: 'Die Selbstanmeldung: der Deckel'
   },
   {
     nr: '36', name: 'Eine zweite Anfrage je Adresse geht durch',
     file: 'auth.js',
     search: "  if (qRequestMail.get(post)) return null;",
-    ersatz: "  if (false) return null;",
+    replacement: "  if (false) return null;",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '37', name: 'Ein vergebener Benutzername kommt in die Warteschlange',
     file: 'auth.js',
     search: "  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(clean)) return null;",
-    ersatz: "  if (false) return null;",
+    replacement: "  if (false) return null;",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '38', name: 'Eine vergebene Adresse ebenso',
     file: 'auth.js',
     search: "  if (qUserMail.get(post)) return null;",
-    ersatz: "  if (false) return null;",
+    replacement: "  if (false) return null;",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
@@ -375,14 +375,14 @@ const REGRESSIONS = [
     nr: '67', name: 'Derselbe Wunschname darf zweimal in der Warteschlange stehen',
     file: 'auth.js',
     search: "  if (qRequestName.get(clean)) return null;",
-    ersatz: "  if (false) return null;",
+    replacement: "  if (false) return null;",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '39', name: 'Name und Adresse von aussen sind wieder unbegrenzt lang',
     file: 'auth.js',
     search: "  if (clean.length > REQUEST_NAME_MAX || post.length > REQUEST_MAIL_MAX) return null;",
-    ersatz: "  if (false) return null;",
+    replacement: "  if (false) return null;",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   /* ---- Die Selbstanmeldung: das Verfallen ---- */
@@ -390,21 +390,21 @@ const REGRESSIONS = [
     nr: '40', name: 'Unbestaetigte Anfragen verfallen nicht mehr',
     file: 'auth.js',
     search: "  const n = delRequestsOld.run(`-${REQUEST_HOURS} hours`).changes;",
-    ersatz: "  const n = 0;",
+    replacement: "  const n = 0;",
     expected: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
   {
     nr: '41', name: 'Auch die BESTAETIGTEN verfallen',
     file: 'auth.js',
     search: "  \"DELETE FROM requests WHERE confirmed_at IS NULL AND created_at < datetime('now', ?)\");",
-    ersatz: "  \"DELETE FROM requests WHERE created_at < datetime('now', ?)\");",
+    replacement: "  \"DELETE FROM requests WHERE created_at < datetime('now', ?)\");",
     expected: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
   {
     nr: '42', name: 'Die Anfrageroute raeumt nicht mehr vor der Deckelpruefung auf',
     file: 'auth.js',
     search: "  cleanupRequests();\n  if (countRequests() >= REQUEST_CAP) return null;",
-    ersatz: "  if (countRequests() >= REQUEST_CAP) return null;",
+    replacement: "  if (countRequests() >= REQUEST_CAP) return null;",
     expected: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
   /* ---- Die Selbstanmeldung: der Schalter und seine Kopplung ---- */
@@ -412,28 +412,28 @@ const REGRESSIONS = [
     nr: '43', name: 'Der Schalter laesst sich ohne durchgekommene Testmail einschalten',
     file: 'server.js',
     search: "  if (!mailTestState(raw))",
-    ersatz: "  if (false)",
+    replacement: "  if (false)",
     expected: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
   {
     nr: '44', name: 'Der Schalter laesst sich ohne oeffentliche Adresse einschalten',
     file: 'server.js',
     search: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (!PUBLIC.address)",
-    ersatz: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (false)",
+    replacement: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (false)",
     expected: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
   {
     nr: '46', name: 'Ausschalten wird an dieselbe Bedingung gehaengt wie Einschalten',
     file: 'server.js',
     search: "  if (an) {\n    const b = deliveryReady();",
-    ersatz: "  if (true) {\n    const b = versandBereit();",
+    replacement: "  if (true) {\n    const b = versandBereit();",
     expected: 'Die Selbstanmeldung: der Schalter aus'
   },
   {
     nr: '47', name: 'Der Schalter legt sich bei kaputtem Versand selbst um',
     file: 'server.js',
     search: "    an: getSetting('signup', false) === true,\n    deliveryReady: b.ok,",
-    ersatz: "    an: getSetting('signup', false) === true && b.ok,\n    versandBereit: b.ok,",
+    replacement: "    an: getSetting('signup', false) === true && b.ok,\n    versandBereit: b.ok,",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   /* ---- Die Selbstanmeldung: der Bestaetigungslink ---- */
@@ -441,35 +441,35 @@ const REGRESSIONS = [
     nr: '48', name: 'Der Bestaetigungsschluessel steht im Klartext in der Tabelle',
     file: 'auth.js',
     search: "    .run(tokenHash(plain), clean, post);",
-    ersatz: "    .run(klartext, sauber, post);",
+    replacement: "    .run(klartext, sauber, post);",
     expected: 'Die Selbstanmeldung: die Bestaetigungsmail'
   },
   {
     nr: '49', name: 'Die Bestaetigung nimmt jeden Schluessel an',
     file: 'auth.js',
     search: "  return setConfirmed.run(tokenHash(raw), `-${REQUEST_HOURS} hours`).changes > 0;",
-    ersatz: "  setConfirmed.run(tokenHash(roh), `-${REQUEST_HOURS} hours`); return true;",
+    replacement: "  setConfirmed.run(tokenHash(roh), `-${REQUEST_HOURS} hours`); return true;",
     expected: 'Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft'
   },
   {
     nr: '50', name: 'Die Karte gibt den Hash der Anfrage mit heraus',
     file: 'auth.js',
     search: "  `SELECT id, username, email, created_at, confirmed_at\n     FROM requests WHERE confirmed_at IS NOT NULL",
-    ersatz: "  `SELECT id, username, email, created_at, confirmed_at, hash\n     FROM requests WHERE confirmed_at IS NOT NULL",
+    replacement: "  `SELECT id, username, email, created_at, confirmed_at, hash\n     FROM requests WHERE confirmed_at IS NOT NULL",
     expected: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '51', name: 'Die unbestaetigte Anfrage erscheint beim Admin',
     file: 'auth.js',
     search: "     FROM requests WHERE confirmed_at IS NOT NULL ORDER BY confirmed_at ASC, id ASC`);",
-    ersatz: "     FROM requests ORDER BY created_at ASC, id ASC`);",
+    replacement: "     FROM requests ORDER BY created_at ASC, id ASC`);",
     expected: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   {
     nr: '52', name: 'Die unbestaetigte Anfrage laesst sich freischalten',
     file: 'server.js',
     search: "  const a = auth.getRequest(req.params.id);\n  if (!a || !a.confirmed_at)\n    return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});\n  let created, token;",
-    ersatz: "  const a = auth.getRequest(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});\n  let angelegt, token;",
+    replacement: "  const a = auth.getRequest(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});\n  let angelegt, token;",
     expected: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   /* ---- Die Selbstanmeldung: Freischaltung, Ablehnung, Rolle ---- */
@@ -477,35 +477,35 @@ const REGRESSIONS = [
     nr: '53', name: 'Die Rolle kommt aus dem Rumpf der Anfrage',
     file: 'server.js',
     search: "    created = await auth.createUser(a.username, null, 'user', true, req.user.id, a.email);",
-    ersatz: "    angelegt = await auth.createUser(a.username, null, (req.body || {}).rolle || 'user', true, req.user.id, a.email);",
+    replacement: "    angelegt = await auth.createUser(a.username, null, (req.body || {}).rolle || 'user', true, req.user.id, a.email);",
     expected: 'Die Selbstanmeldung: die Rolle ist immer user'
   },
   {
     nr: '54', name: 'Die Zeile bleibt nach der Freischaltung stehen',
     file: 'server.js',
     search: "  auth.removeRequest(a.id);\n  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
-    ersatz: "  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
+    replacement: "  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
     expected: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '55', name: 'Die Freischaltung erzeugt keinen Token',
     file: 'server.js',
     search: "    token = auth.createToken(created.id, 'invite', req.user.id);",
-    ersatz: "    token = { klartext: 'x'.repeat(64), zweck: 'invite', tage: 7, id: angelegt.id, username: angelegt.username };",
+    replacement: "    token = { klartext: 'x'.repeat(64), zweck: 'invite', tage: 7, id: angelegt.id, username: angelegt.username };",
     expected: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '56', name: 'Die Protokollzeile der Freischaltung faellt weg',
     file: 'server.js',
     search: "  auth.log('request.approve', { actor: req.user.id, target: created.id });",
-    ersatz: "  // auth.log('request.approve', { wer: req.user.id, ziel: angelegt.id });",
+    replacement: "  // auth.log('request.approve', { wer: req.user.id, ziel: angelegt.id });",
     expected: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '57', name: 'Die Ablehnung entfernt die Zeile nicht',
     file: 'server.js',
     search: "  auth.removeRequest(a.id);\n  auth.log('request.reject', { actor: req.user.id });",
-    ersatz: "  auth.log('request.reject', { wer: req.user.id });",
+    replacement: "  auth.log('request.reject', { wer: req.user.id });",
     expected: 'Die Selbstanmeldung: die Ablehnung'
   },
   {
@@ -517,14 +517,14 @@ const REGRESSIONS = [
     nr: '58', name: 'Der Name des Abgewiesenen soll ins Protokoll',
     file: 'server.js',
     search: "  auth.log('request.reject', { actor: req.user.id });",
-    ersatz: "  auth.log('request.reject', { wer: req.user.id, merkmal: a.username });",
+    replacement: "  auth.log('request.reject', { wer: req.user.id, merkmal: a.username });",
     expected: 'Die Selbstanmeldung: die Ablehnung'
   },
   {
     nr: '59', name: 'Die Anfrage selbst schreibt eine Protokollzeile',
     file: 'server.js',
     search: "  const plain = an ? auth.createRequest(name, address) : null;",
-    ersatz: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
+    replacement: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
             "  if (klartext) auth.log('request.approve', { wer: 1 });",
     expected: 'Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann'
   },
@@ -533,14 +533,14 @@ const REGRESSIONS = [
     nr: '60', name: 'Die Bremse fehlt an der Anfrageroute',
     file: 'server.js',
     search: "app.post('/api/signup', async (req, res) => {\n  if (!await tokenThrottleFree(req, res)) return;",
-    ersatz: "app.post('/api/signup', async (req, res) => {",
+    replacement: "app.post('/api/signup', async (req, res) => {",
     expected: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
   },
   {
     nr: '61', name: 'Die Bremse fehlt an der Bestaetigungsroute',
     file: 'server.js',
     search: "  const ip = auth.clientIp(req);\n  if (!await tokenThrottleFree(req, res)) return;\n  if (!auth.confirmRequest((req.body || {}).key)) {",
-    ersatz: "  const ip = auth.clientIp(req);\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
+    replacement: "  const ip = auth.clientIp(req);\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
     expected: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
   },
   /* ---- Die Selbstanmeldung in der Oberflaeche ---- */
@@ -548,7 +548,7 @@ const REGRESSIONS = [
     nr: '62', name: 'Das Anfrageformular steht auch bei ausgeschaltetem Schalter da',
     file: 'public/app.js',
     search: "    ${SIGNUP ? `<p class=\"sub login-divider\">${tH('login.noAccountYet')}</p>",
-    ersatz: "    ${true ? `<p class=\"sub login-divider\">${tH('login.noAccountYet')}</p>",
+    replacement: "    ${true ? `<p class=\"sub login-divider\">${tH('login.noAccountYet')}</p>",
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -563,7 +563,7 @@ const REGRESSIONS = [
     nr: '63', name: 'Die Karte „Anfragen“ verschwindet, solange der Schalter aus ist',
     file: 'public/app.js',
     search: "visible: (g) => ADMIN && !!g.requests,",
-    ersatz: "sichtbar: (g) => ADMIN && !!g.anfragen && (g.anfragen.an || g.anfragen.anfragen.length),",
+    replacement: "sichtbar: (g) => ADMIN && !!g.anfragen && (g.anfragen.an || g.anfragen.anfragen.length),",
     expected: 'Die Karten im Systembereich'
   },
   {
@@ -573,7 +573,7 @@ const REGRESSIONS = [
     nr: '68', name: 'Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes',
     file: 'public/app.js',
     search: "      <button class=\"btn login-alt\" id=\"l-request\">${tH('login.requestAccess')}</button>",
-    ersatz: "      <a href=\"#\" id=\"l-request\">${tH('login.requestAccess')}</a>",
+    replacement: "      <a href=\"#\" id=\"l-request\">${tH('login.requestAccess')}</a>",
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -582,7 +582,7 @@ const REGRESSIONS = [
     nr: '69', name: 'Der gedaempfte Knopf verliert auch seine Umrandung',
     file: 'public/style.css',
     search: "  background: var(--accent-dim); border-color: var(--accent-line);",
-    ersatz: "  background: var(--accent-dim); border-color: transparent;",
+    replacement: "  background: var(--accent-dim); border-color: transparent;",
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -592,7 +592,7 @@ const REGRESSIONS = [
     nr: '73', name: 'Der Strich ueber dem Anfrageknopf kommt zurueck',
     file: 'public/style.css',
     search: "  margin: 28px 0 0; font-size: .87rem;",
-    ersatz: "  margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line); font-size: .87rem;",
+    replacement: "  margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line); font-size: .87rem;",
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -601,7 +601,7 @@ const REGRESSIONS = [
     nr: '74', name: 'Und der Abstand, der ihn ersetzt, schrumpft auf nichts',
     file: 'public/style.css',
     search: "  margin: 28px 0 0; font-size: .87rem;",
-    ersatz: "  margin: 10px 0 0; font-size: .87rem;",
+    replacement: "  margin: 10px 0 0; font-size: .87rem;",
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -610,7 +610,7 @@ const REGRESSIONS = [
     nr: '75', name: 'Der Anfrageknopf verliert seine leichte Faerbung',
     file: 'public/style.css',
     search: "  background: var(--accent-dim); border-color: var(--accent-line);",
-    ersatz: "  background: transparent; border-color: var(--line);",
+    replacement: "  background: transparent; border-color: var(--line);",
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -620,21 +620,21 @@ const REGRESSIONS = [
     nr: '76', name: 'Der Anfrageknopf wird so laut wie "Anmelden"',
     file: 'public/style.css',
     search: "  background: var(--accent-dim); border-color: var(--accent-line);",
-    ersatz: "  background: var(--accent); border-color: var(--accent);",
+    replacement: "  background: var(--accent); border-color: var(--accent);",
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
     nr: '64', name: 'Die rote Zeile bei kaputtem Versand faellt weg',
     file: 'public/app.js',
     search: "        ${requests.an && !requests.deliveryReady ? `<p class=\"warn-box\" id=\"signup-broken\"",
-    ersatz: "        ${false ? `<p class=\"warn-box\" id=\"signup-broken\"",
+    replacement: "        ${false ? `<p class=\"warn-box\" id=\"signup-broken\"",
     expected: 'Die Karte „Anfragen“'
   },
   {
     nr: '65', name: 'Die Bestaetigungsseite meldet gleich an',
     file: 'public/app.js',
     search: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showConfirm(best[1]);",
-    ersatz: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showInvite(best[1]);",
+    replacement: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showInvite(best[1]);",
     expected: 'Die Bestaetigungsseite in der Oberflaeche'
   },
   {
@@ -644,7 +644,7 @@ const REGRESSIONS = [
        Genommen wird die der EINLADUNG; die naechsten Zeilen machen sie
        eindeutig. */
     search: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt herein",
-    ersatz: "\\nWer diesen Link hat, kommt herein",
+    replacement: "\\nWer diesen Link hat, kommt herein",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   /* ---- Die Marke der Instanz ---- */
@@ -655,7 +655,7 @@ const REGRESSIONS = [
     nr: '70', name: 'Die Marke folgt dem Schema nicht mehr',
     file: 'public/app.js',
     search: '<path d="M8 6 V26" stroke="var(--brand-grey)"/>',
-    ersatz: '<path d="M8 6 V26" stroke="#838c95"/>',
+    replacement: '<path d="M8 6 V26" stroke="#838c95"/>',
     expected: 'Die Marke der Instanz'
   },
   {
@@ -664,14 +664,14 @@ const REGRESSIONS = [
     nr: '71', name: 'Die Marke heisst wieder wie die Kommentarknoepfe',
     file: 'public/app.js',
     search: '<svg class="logo" viewBox=',
-    ersatz: '<svg class="mark" viewBox=',
+    replacement: '<svg class="mark" viewBox=',
     expected: 'Die Marke der Instanz'
   },
   {
     nr: '72', name: 'Der Tab bekommt kein Favicon mehr',
     file: 'public/index.html',
     search: '<link rel="icon" href="favicon.svg" type="image/svg+xml">',
-    ersatz: '',
+    replacement: '',
     expected: 'Die Marke der Instanz'
   },
   /* ---- Die Markenzeile der Anmeldeseiten ---- */
@@ -682,7 +682,7 @@ const REGRESSIONS = [
     nr: '77', name: 'Marke und Name stapeln sich wieder uebereinander',
     file: 'public/app.js',
     search: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
-    ersatz: '  `${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>`;',
+    replacement: '  `${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>`;',
     expected: 'Die Markenzeile der Anmeldeseiten'
   },
   {
@@ -691,7 +691,7 @@ const REGRESSIONS = [
     nr: '78', name: 'Erst das Wort, dann das Zeichen',
     file: 'public/app.js',
     search: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
-    ersatz: '  `<div class="login-brand"><h1>${esc(TITLE_PUBLIC)}</h1>${MARK(36)}</div>`;',
+    replacement: '  `<div class="login-brand"><h1>${esc(TITLE_PUBLIC)}</h1>${MARK(36)}</div>`;',
     expected: 'Die Markenzeile der Anmeldeseiten'
   },
   {
@@ -701,7 +701,7 @@ const REGRESSIONS = [
     nr: '79', name: 'Die Markenzeile ist keine Zeile mehr',
     file: 'public/style.css',
     search: '  display: flex; align-items: center; gap: 11px; margin: 0 0 5px;',
-    ersatz: '  display: block; margin: 0 0 5px;',
+    replacement: '  display: block; margin: 0 0 5px;',
     expected: 'Die Marke der Instanz'
   },
   {
@@ -711,7 +711,7 @@ const REGRESSIONS = [
     nr: '80', name: 'Die Ueberschrift in der Zeile traegt wieder einen Unterrand',
     file: 'public/style.css',
     search: '.login-card .login-brand h1 { margin: 0; }',
-    ersatz: '.login-card .login-brand h1 { margin: 0 0 5px; }',
+    replacement: '.login-card .login-brand h1 { margin: 0 0 5px; }',
     expected: 'Die Marke der Instanz'
   },
   {
@@ -719,7 +719,7 @@ const REGRESSIONS = [
        zweiten Namen. Genau der Zustand, der aufgeraeumt wurde. */
     nr: '81', name: 'Dieselbe Datei liegt wieder unter zwei Namen in public/',
     file: 'public/favicon.svg',
-    kopie: 'public/marke-hell.svg',
+    copy: 'public/marke-hell.svg',
     expected: 'Die Marke der Instanz'
   },
   /* ---- Der zweite Faktor: die Rechnung, 0.10.0 ----
@@ -731,21 +731,21 @@ const REGRESSIONS = [
     nr: '82', name: 'Acht Ziffern statt sechs',
     file: 'twofactor.js',
     search: 'const DIGITS = 6;',
-    ersatz: 'const DIGITS = 8;',
+    replacement: 'const DIGITS = 8;',
     expected: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '83', name: 'SHA-256 statt SHA-1',
     file: 'twofactor.js',
     search: "const ALGORITHM = 'sha1';",
-    ersatz: "const ALGORITHM = 'sha256';",
+    replacement: "const ALGORITHM = 'sha256';",
     expected: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '84', name: 'Sechzig Sekunden statt dreissig',
     file: 'twofactor.js',
     search: 'const STEP_SECONDS = 30;',
-    ersatz: 'const STEP_SECONDS = 60;',
+    replacement: 'const STEP_SECONDS = 60;',
     expected: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
@@ -756,7 +756,7 @@ const REGRESSIONS = [
     nr: '85', name: 'Der Anfang des Abgreifens steht fest statt aus dem Hash zu kommen',
     file: 'twofactor.js',
     search: '  const o = h[h.length - 1] & 0x0f;',
-    ersatz: '  const o = 0;',
+    replacement: '  const o = 0;',
     expected: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
@@ -766,7 +766,7 @@ const REGRESSIONS = [
     nr: '86', name: 'Der Zaehler wird nur in seiner unteren Haelfte geschrieben',
     file: 'twofactor.js',
     search: "  z.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);",
-    ersatz: "  z.writeUInt32BE(0, 0);",
+    replacement: "  z.writeUInt32BE(0, 0);",
     expected: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   /* ---- Der zweite Faktor: das Fenster und die Wiederverwendung ---- */
@@ -774,14 +774,14 @@ const REGRESSIONS = [
     nr: '87', name: 'Das Fenster wird auf zwei Schritte geweitet',
     file: 'twofactor.js',
     search: 'const WINDOW = 1;',
-    ersatz: 'const WINDOW = 2;',
+    replacement: 'const WINDOW = 2;',
     expected: 'Der zweite Faktor: das Zeitfenster'
   },
   {
     nr: '88', name: 'Es gibt gar kein Nachbarfenster mehr',
     file: 'twofactor.js',
     search: 'const WINDOW = 1;',
-    ersatz: 'const WINDOW = 0;',
+    replacement: 'const WINDOW = 0;',
     expected: 'Der zweite Faktor: das Zeitfenster'
   },
   {
@@ -796,14 +796,14 @@ const REGRESSIONS = [
     nr: '89', name: 'Der verbrauchte Zaehler wird nicht mehr geprueft',
     file: 'auth.js',
     search: "    WHERE user_id = ? AND (last_counter IS NULL OR last_counter < ?)`);",
-    ersatz: "    WHERE user_id = ? AND (last_counter IS NULL OR ? IS NOT NULL)`);",
+    replacement: "    WHERE user_id = ? AND (last_counter IS NULL OR ? IS NOT NULL)`);",
     expected: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
   {
     nr: '90', name: 'Der verbrauchte Zaehler wird gar nicht erst geschrieben',
     file: 'auth.js',
     search: "    if (!useCounter.run(counter, id, counter).changes) return null;\n    return 'app';",
-    ersatz: "    return 'app';",
+    replacement: "    return 'app';",
     expected: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
   {
@@ -813,7 +813,7 @@ const REGRESSIONS = [
     nr: '91', name: 'Der bestaetigende Code beim Einschalten zaehlt nicht als verbraucht',
     file: 'auth.js',
     search: "    `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = ?\n      WHERE user_id = ?`).run(counter, id);",
-    ersatz: "    `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = NULL\n      WHERE user_id = ?`).run(id);",
+    replacement: "    `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = NULL\n      WHERE user_id = ?`).run(id);",
     expected: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
   /* ---- Der zweite Faktor: die Anmeldung ---- */
@@ -821,7 +821,7 @@ const REGRESSIONS = [
     nr: '92', name: 'Die Anmeldung meldet auch mit zweitem Faktor gleich an',
     file: 'server.js',
     search: "  if (auth.twoFactorOn(user.id)) {\n    return res.json({ twoFactor: true, ...auth.createLoginTicket(user.id) });\n  }",
-    ersatz: "",
+    replacement: "",
     expected: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
   {
@@ -834,14 +834,14 @@ const REGRESSIONS = [
     nr: '93', name: 'Die Absage verraet, ob der Zugang einen zweiten Faktor hat',
     file: 'server.js',
     search: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong')});",
-    ersatz: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong'),\n      zweifaktor: auth.twoFactorOn((auth.getUserByName(user) || {}).id) });",
+    replacement: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong'),\n      zweifaktor: auth.twoFactorOn((auth.getUserByName(user) || {}).id) });",
     expected: 'Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort'
   },
   {
     nr: '94', name: 'Der Ausweis wird nicht verbraucht',
     file: 'auth.js',
     search: "  tickets.delete(k);\n  return Date.now() <= a.until ? a.id : null;",
-    ersatz: "  return Date.now() <= a.until ? a.id : null;",
+    replacement: "  return Date.now() <= a.until ? a.id : null;",
     expected: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
   {
@@ -853,7 +853,7 @@ const REGRESSIONS = [
     nr: '95', name: 'Der Ausweis bekommt eine eigene, laengere Frist',
     file: 'auth.js',
     search: 'const LOGIN_TICKET_MS = RELEASE_MS;',
-    ersatz: 'const LOGIN_TICKET_MS = 3600 * 1000;',
+    replacement: 'const LOGIN_TICKET_MS = 3600 * 1000;',
     expected: 'Der zweite Faktor: der Rundlauf'
   },
   {
@@ -863,7 +863,7 @@ const REGRESSIONS = [
     nr: '96', name: 'Die Benutzernummer im zweiten Schritt kommt aus dem Rumpf',
     file: 'server.js',
     search: "  const id = auth.useLoginTicket(ticket);",
-    ersatz: "  const id = Number((req.body || {}).id) || auth.useLoginTicket(ausweis);",
+    replacement: "  const id = Number((req.body || {}).id) || auth.useLoginTicket(ausweis);",
     expected: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
   /* ---- Der zweite Faktor: die Bremse ----
@@ -874,7 +874,7 @@ const REGRESSIONS = [
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
     file: 'server.js',
     search: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ticket);",
-    ersatz: "  const id = auth.useLoginTicket(ausweis);",
+    replacement: "  const id = auth.useLoginTicket(ausweis);",
     expected: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
@@ -885,14 +885,14 @@ const REGRESSIONS = [
     nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
     file: 'server.js',
     search: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ticket);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }",
-    ersatz: "  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
+    replacement: "  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
     expected: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
     nr: '98', name: 'Der Fehlversuch am zweiten Schritt wird nicht gezaehlt',
     file: 'server.js',
     search: "  if (!auth.checkTwoFactor(id, code)) {\n    auth.noteFailure(ip, name);",
-    ersatz: "  if (!auth.checkTwoFactor(id, code)) {",
+    replacement: "  if (!auth.checkTwoFactor(id, code)) {",
     expected: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
@@ -902,7 +902,7 @@ const REGRESSIONS = [
     nr: '99', name: 'Der erste Schritt setzt den Zaehler der Bremse wieder zurueck',
     file: 'server.js',
     search: "  if (auth.twoFactorOn(user.id)) {\n    return res.json({ twoFactor: true, ...auth.createLoginTicket(user.id) });\n  }\n  auth.noteSuccess(ip, username);",
-    ersatz: "  auth.noteSuccess(ip, username);\n  if (auth.twoFactorOn(user.id)) {\n    return res.json({ zweifaktor: true, ...auth.createLoginTicket(user.id) });\n  }",
+    replacement: "  auth.noteSuccess(ip, username);\n  if (auth.twoFactorOn(user.id)) {\n    return res.json({ zweifaktor: true, ...auth.createLoginTicket(user.id) });\n  }",
     expected: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   /* ---- Der zweite Faktor: die Wiederherstellungscodes ---- */
@@ -910,28 +910,28 @@ const REGRESSIONS = [
     nr: '100', name: 'Die Wiederherstellungscodes liegen im Klartext in der Tabelle',
     file: 'auth.js',
     search: "    for (const k of plains) insertCode.run(tokenHash(k), id);",
-    ersatz: "    for (const k of klartexte) insCode.run(k, id);",
+    replacement: "    for (const k of klartexte) insCode.run(k, id);",
     expected: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
   {
     nr: '101', name: 'Ein Wiederherstellungscode wird nicht verbraucht',
     file: 'auth.js',
     search: "    WHERE hash = ? AND user_id = ? AND used_at IS NULL`);",
-    ersatz: "    WHERE hash = ? AND user_id = ?`);",
+    replacement: "    WHERE hash = ? AND user_id = ?`);",
     expected: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
   {
     nr: '102', name: 'Es entstehen sieben Codes statt acht',
     file: 'twofactor.js',
     search: 'const RECOVERY_COUNT = 8;',
-    ersatz: 'const RECOVERY_COUNT = 7;',
+    replacement: 'const RECOVERY_COUNT = 7;',
     expected: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '103', name: 'Die alten Codes bleiben beim Erneuern stehen',
     file: 'auth.js',
     search: "    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);\n    // tokenHash() WIRD WIEDERVERWENDET",
-    ersatz: "    // tokenHash() WIRD WIEDERVERWENDET",
+    replacement: "    // tokenHash() WIRD WIEDERVERWENDET",
     expected: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
   /* ---- Der zweite Faktor: das Geheimnis ---- */
@@ -939,7 +939,7 @@ const REGRESSIONS = [
     nr: '104', name: 'Das Geheimnis steht auch nach dem Bestaetigen in der Antwort',
     file: 'server.js',
     search: "    res.json(auth.turnTwoFactorOn(req.user.id, code, req.user.id));",
-    ersatz: "    res.json({ ...auth.turnTwoFactorOn(req.user.id, code, req.user.id),\n" +
+    replacement: "    res.json({ ...auth.turnTwoFactorOn(req.user.id, code, req.user.id),\n" +
             "      secret: db.prepare('SELECT secret g FROM two_factor WHERE user_id = ?').get(req.user.id).g });",
     expected: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
@@ -947,7 +947,7 @@ const REGRESSIONS = [
     nr: '105', name: 'Die Karte "Zugang" gibt das Geheimnis mit heraus',
     file: 'server.js',
     search: "             twoFactor: auth.twoFactorState(req.user.id) });",
-    ersatz: "             zweifaktor: { ...auth.twoFactorState(req.user.id),\n" +
+    replacement: "             zweifaktor: { ...auth.twoFactorState(req.user.id),\n" +
             "               secret: (db.prepare('SELECT secret g FROM two_factor WHERE user_id = ?').get(req.user.id) || {}).g } });",
     expected: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
@@ -955,7 +955,7 @@ const REGRESSIONS = [
     nr: '106', name: 'Ein zweiter Start ueberschreibt einen laufenden zweiten Faktor',
     file: 'auth.js',
     search: "  if (twoFactorOn(id)) throw new Message('login.twoFactorAlreadyOn');",
-    ersatz: "",
+    replacement: "",
     expected: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
   /* ---- Der zweite Faktor: der Tokenweg und der Admin ---- */
@@ -966,14 +966,14 @@ const REGRESSIONS = [
     nr: '107', name: 'Der Tokenweg meldet wieder gleich an',
     file: 'server.js',
     search: "  if (auth.twoFactorOn(result.id)) {\n    return res.json({\n      ok: true, username: result.username, twoFactor: true,\n      ...auth.createLoginTicket(result.id)\n    });\n  }",
-    ersatz: "",
+    replacement: "",
     expected: 'Der zweite Faktor: der Tokenweg aus 0.8.80 fragt ebenfalls'
   },
   {
     nr: '108', name: 'Ein fremdes Passwort zu setzen raeumt den zweiten Faktor mit weg',
     file: 'auth.js',
     search: "async function setNewPassword(userId, newPassword, actor) {",
-    ersatz: "async function setNewPassword(userId, newPassword, wer) {\n" +
+    replacement: "async function setNewPassword(userId, newPassword, wer) {\n" +
             "  db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(Number(userId) || 0);",
     expected: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
   },
@@ -985,21 +985,21 @@ const REGRESSIONS = [
     nr: '109', name: 'Sperren raeumt den zweiten Faktor mit weg',
     file: 'auth.js',
     search: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  log('user.status'",
-    ersatz: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('user.status'",
+    replacement: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('user.status'",
     expected: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
   },
   {
     nr: '110', name: 'Ausschalten geht ohne Code',
     file: 'server.js',
     search: "  if (!await ownPasswordMatches(req, res, password)) return;\n  if (!auth.checkTwoFactor(req.user.id, code))\n    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});\n  auth.turnTwoFactorOff(req.user.id, req.user.id);",
-    ersatz: "  if (!await ownPasswordMatches(req, res, passwort)) return;\n  auth.turnTwoFactorOff(req.user.id, req.user.id);",
+    replacement: "  if (!await ownPasswordMatches(req, res, passwort)) return;\n  auth.turnTwoFactorOff(req.user.id, req.user.id);",
     expected: 'Der zweite Faktor: der Rundlauf'
   },
   {
     nr: '111', name: 'usertool.js schaltet den zweiten Faktor nicht mehr ab',
     file: 'usertool.js',
     search: "  auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
-    ersatz: "  // auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
+    replacement: "  // auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
     expected: 'Der zweite Faktor: usertool.js auf dem Wirt'
   },
   /* ---- Der zweite Faktor: die zweite Bestaetigung ---- */
@@ -1007,7 +1007,7 @@ const REGRESSIONS = [
     nr: '112', name: 'Die zweite Bestaetigung fragt den Code nicht mehr',
     file: 'server.js',
     search: "  if (auth.twoFactorOn(req.user.id) && !auth.checkTwoFactor(req.user.id, code)) {",
-    ersatz: "  if (false) {",
+    replacement: "  if (false) {",
     expected: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
   },
   {
@@ -1027,7 +1027,7 @@ const REGRESSIONS = [
     nr: '113', name: 'Das Bestaetigungsfenster zeigt sein Codefeld immer',
     file: 'public/app.js',
     search: "    : ''), TWO_FACTOR);",
-    ersatz: "    : ''), true);",
+    replacement: "    : ''), true);",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
@@ -1036,7 +1036,7 @@ const REGRESSIONS = [
     nr: '114', name: 'Der Code wird VOR dem Passwort geprueft',
     file: 'server.js',
     search: "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);\n  if (!row || !await auth.checkPassword(String(password || ''), row.password_hash)) {",
-    ersatz: "  if (auth.twoFactorOn(req.user.id) && !auth.checkTwoFactor(req.user.id, code))\n" +
+    replacement: "  if (auth.twoFactorOn(req.user.id) && !auth.checkTwoFactor(req.user.id, code))\n" +
             "    return res.status(403).json({ error: auth.TWO_FACTOR_DENIAL, zweifaktor: true });\n" +
             "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);\n  if (!row || !await auth.checkPassword(String(password || ''), row.password_hash)) {",
     expected: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
@@ -1055,21 +1055,21 @@ const REGRESSIONS = [
     nr: '115', name: 'Der Index auf zweifaktor_codes wird nicht mehr angelegt',
     file: 'db.js',
     search: 'CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);',
-    ersatz: '',
+    replacement: '',
     expected: 'Der zweite Faktor: die Tabellen legen sich selbst an'
   },
   {
     nr: '116', name: 'Der Zustand faellt aus der Antwort der Karte "Zugang"',
     file: 'server.js',
     search: "             twoFactor: auth.twoFactorState(req.user.id) });",
-    ersatz: "             });",
+    replacement: "             });",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '117', name: 'Die Zahl der uebrigen Wiederherstellungscodes faellt weg',
     file: 'public/app.js',
     search: "          <strong>${tH('card.codesLeft', { codesOffen: status.codesOpen, codesGesamt: status.codesTotal })}</strong>",
-    ersatz: "          <strong>vorhanden</strong>",
+    replacement: "          <strong>vorhanden</strong>",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
@@ -1080,35 +1080,35 @@ const REGRESSIONS = [
     nr: '118', name: 'Der Kasten sagt nicht mehr, dass die Codes nicht wiederkommen',
     file: 'public/app.js',
     search: "    boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>",
-    ersatz: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes.</strong>",
+    replacement: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes.</strong>",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '122', name: 'Die Liste der Wiederherstellungscodes wird um einen gekuerzt',
     file: 'public/app.js',
     search: "      <div class=\"two-factor-codes\">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>",
-    ersatz: "      <div class=\"two-factor-codes\">${codes.slice(1).map(c => `<span>${esc(c)}</span>`).join('')}</div>",
+    replacement: "      <div class=\"two-factor-codes\">${codes.slice(1).map(c => `<span>${esc(c)}</span>`).join('')}</div>",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '119', name: 'Das Bestaetigungsfenster zeigt das Codefeld nie',
     file: 'public/app.js',
     search: "    : ''), TWO_FACTOR);",
-    ersatz: "    : ''), false);",
+    replacement: "    : ''), false);",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '120', name: 'Die Anmeldeseite geht ueber den zweiten Schritt hinweg',
     file: 'public/app.js',
     search: "      if (j.twoFactor) return showSecondFactor(j.ticket);",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Anmeldeseite: der zweite Schritt'
   },
   {
     nr: '121', name: 'F_ROUTEN kennt den zweiten Schritt der Anmeldung nicht',
     file: 'testbench.js',
     search: "    ['POST',   '/api/login/second',                'offen'],",
-    ersatz: "",
+    replacement: "",
     expected: 'Der Waechter ueber den Quelltext'
   },
   /* ---- Die Volltextsuche: der Weg ueberhaupt ---- */
@@ -1116,14 +1116,14 @@ const REGRESSIONS = [
     nr: '124', name: 'Der Parameter q wird nicht mehr gelesen',
     file: 'server.js',
     search: "  const term = fulltextTerm(req.query.q, localeOf(req));",
-    ersatz: "  const begriff = '';",
+    replacement: "  const begriff = '';",
     expected: 'Die Volltextsuche'
   },
   {
     nr: '125', name: 'searchText steht wieder in der Antwort',
     file: 'server.js',
     search: "    delete it.description;",
-    ersatz: "    it.searchText = (it.title || '').toLowerCase();\n    delete it.description;",
+    replacement: "    it.searchText = (it.title || '').toLowerCase();\n    delete it.description;",
     expected: 'searchText ist fort, und sonst nichts'
   },
   /* ---- Die sieben Quellen, einzeln ----
@@ -1136,49 +1136,49 @@ const REGRESSIONS = [
     nr: '126', name: 'Die Suche sieht den Titel nicht mehr an',
     file: 'server.js',
     search: "instr(kkl(i.title), :q) > 0",
-    ersatz: "0 > 1",
+    replacement: "0 > 1",
     expected: 'Die Volltextsuche'
   },
   {
     nr: '127', name: 'Und die Beschreibung nicht',
     file: 'server.js',
     search: "instr(kkl(i.description), :q) > 0",
-    ersatz: "0 > 1",
+    replacement: "0 > 1",
     expected: 'Die Volltextsuche'
   },
   {
     nr: '128', name: 'Und den Namen der Kategorie nicht',
     file: 'server.js',
     search: "instr(kkl(c.name), :q) > 0",
-    ersatz: "0 > 1",
+    replacement: "0 > 1",
     expected: 'Die Volltextsuche'
   },
   {
     nr: '129', name: 'Und die Tags am Eintrag nicht',
     file: 'server.js',
     search: "instr(kkl(t.name), :q) > 0",
-    ersatz: "0 > 1",
+    replacement: "0 > 1",
     expected: 'Die Volltextsuche'
   },
   {
     nr: '130', name: 'Und die Tags an den Testtagen nicht',
     file: 'server.js',
     search: "instr(kkl(tt.name), :q) > 0",
-    ersatz: "0 > 1",
+    replacement: "0 > 1",
     expected: 'Die Volltextsuche'
   },
   {
     nr: '131', name: 'Und die Adressen der Links nicht',
     file: 'server.js',
     search: "instr(kkl(l.url), :q) > 0",
-    ersatz: "0 > 1",
+    replacement: "0 > 1",
     expected: 'Die Volltextsuche'
   },
   {
     nr: '132', name: 'Und die Kommentartexte nicht',
     file: 'server.js',
     search: "instr(kkl(k.text), :q) > 0",
-    ersatz: "0 > 1",
+    replacement: "0 > 1",
     expected: 'Die Volltextsuche'
   },
   /* ---- Die Schreibung und die Wildcards ---- */
@@ -1191,14 +1191,14 @@ const REGRESSIONS = [
     nr: '133', name: 'Die Kleinschreibung faltet nur noch ASCII',
     file: 'db.js',
     search: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));",
-    ersatz: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).replace(/[A-Z]/g, (c) => c.toLowerCase())));",
+    replacement: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).replace(/[A-Z]/g, (c) => c.toLowerCase())));",
     expected: 'Die Volltextsuche'
   },
   {
     nr: '134', name: 'Der Titel wird wieder ueber LIKE gesucht -- Wildcards wirken',
     file: 'server.js',
     search: "instr(kkl(i.title), :q) > 0",
-    ersatz: "kkl(i.title) LIKE '%' || :q || '%'",
+    replacement: "kkl(i.title) LIKE '%' || :q || '%'",
     expected: 'Die Volltextsuche'
   },
   {
@@ -1209,7 +1209,7 @@ const REGRESSIONS = [
     nr: '135', name: 'Die Liste ohne Begriff verschweigt die abgelehnten Eintraege',
     file: 'server.js',
     search: "  let rows = qAllItems.all();",
-    ersatz: "  let rows = qAllItems.all();\n  if (!fulltextTerm(req.query.q)) rows = rows.filter(r => !r.rejected);",
+    replacement: "  let rows = qAllItems.all();\n  if (!fulltextTerm(req.query.q)) rows = rows.filter(r => !r.rejected);",
     expected: 'Die Volltextsuche'
   },
   /* ---- testDays und die Zeitleiste ---- */
@@ -1220,7 +1220,7 @@ const REGRESSIONS = [
     nr: '136', name: 'testDays kommt wieder immer mit',
     file: 'server.js',
     search: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
-    ersatz: "    it.testDays = testDaysPerEntry(req.user.id).get(it.id) || [];",
+    replacement: "    it.testDays = testDaysPerEntry(req.user.id).get(it.id) || [];",
     expected: 'testDays haengt an der Zeitleiste'
   },
   {
@@ -1228,7 +1228,7 @@ const REGRESSIONS = [
     nr: '137', name: 'testDays fehlt immer, auch mit eingeschalteter Zeitleiste',
     file: 'server.js',
     search: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
-    ersatz: "    if (false) it.testDays = testDaysPer.get(it.id) || [];",
+    replacement: "    if (false) it.testDays = testDaysPer.get(it.id) || [];",
     expected: 'testDays haengt an der Zeitleiste'
   },
   /* ---- Die Suche am Bildschirm ---- */
@@ -1236,35 +1236,35 @@ const REGRESSIONS = [
     nr: '138', name: 'Der Debounce faellt weg -- jeder Anschlag fragt',
     file: 'public/app.js',
     search: "  searchClock = setTimeout(() => { searchClock = null; runSearch(); }, SEARCH_DELAY_MS);",
-    ersatz: "  sucheAusfuehren();",
+    replacement: "  sucheAusfuehren();",
     expected: 'Die Suche fragt den Server'
   },
   {
     nr: '139', name: 'Die Reihenfolge der Antworten wird nicht mehr geachtet',
     file: 'public/app.js',
     search: "    if (run !== searchRun) return;          // eine neuere Anfrage ist unterwegs",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Suche fragt den Server'
   },
   {
     nr: '140', name: 'Bei gescheiterter Suche wird die Liste leer',
     file: 'public/app.js',
     search: "    state.searchRunning = false; state.searchError = true;",
-    ersatz: "    state.suchLaeuft = false; state.suchFehler = true; state.items = [];",
+    replacement: "    state.suchLaeuft = false; state.suchFehler = true; state.items = [];",
     expected: 'Die Suche fragt den Server'
   },
   {
     nr: '141', name: 'Die Zaehlzeile nennt die Trefferzahl als Bestand',
     file: 'public/app.js',
     search: "    let z = `${state.inventory} ${vThing(state.inventory)}`",
-    ersatz: "    let z = `${state.items.length} ${vSache(state.items.length)}`",
+    replacement: "    let z = `${state.items.length} ${vSache(state.items.length)}`",
     expected: 'Die Suche fragt den Server'
   },
   {
     nr: '142', name: 'Das Leeren holt den Bestand neu vom Server',
     file: 'public/app.js',
     search: "    state.items = state.all;\n    state.searchRunning = false; state.searchError = false;",
-    ersatz: "    state.items = await api('GET', '/api/items');\n    state.suchLaeuft = false; state.suchFehler = false;",
+    replacement: "    state.items = await api('GET', '/api/items');\n    state.suchLaeuft = false; state.suchFehler = false;",
     expected: 'Die Suche fragt den Server'
   },
   /* ---- Die gespeicherten Ansichten ---- */
@@ -1275,42 +1275,42 @@ const REGRESSIONS = [
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
     file: 'server.js',
     search: "                                'bellSeen', 'views', 'strip', 'theme'];",
-    ersatz: "                                'bellSeen', 'strip', 'theme'];",
+    replacement: "                                'bellSeen', 'strip', 'theme'];",
     expected: 'Gespeicherte Ansichten'
   },
   {
     nr: '144', name: 'Der Deckel fuer Ansichten faellt weg',
     file: 'server.js',
     search: "    if (ein.length > VIEWS_CAP)",
-    ersatz: "    if (false)",
+    replacement: "    if (false)",
     expected: 'Gespeicherte Ansichten'
   },
   {
     nr: '145', name: 'Zwei Ansichten duerfen wieder denselben Namen tragen',
     file: 'server.js',
     search: "      if (namen.has(key))",
-    ersatz: "      if (false)",
+    replacement: "      if (false)",
     expected: 'Gespeicherte Ansichten'
   },
   {
     nr: '146', name: 'Die Ansichten werden geprueft, NACHDEM filters geschrieben ist',
     file: 'server.js',
     search: "  let viewsText = null;",
-    ersatz: "  let viewsText = null;\n  if (req.body.filters !== undefined)\n    putUserSetting(req.user.id, 'filters', JSON.stringify(req.body.filters));",
+    replacement: "  let viewsText = null;\n  if (req.body.filters !== undefined)\n    putUserSetting(req.user.id, 'filters', JSON.stringify(req.body.filters));",
     expected: 'Gespeicherte Ansichten'
   },
   {
     nr: '147', name: 'Das Speichern einer Ansicht raeumt die gemerkte Stellung weg',
     file: 'server.js',
     search: "  if (viewsText !== null)\n    putUserSetting(req.user.id, 'views', viewsText);",
-    ersatz: "  if (viewsText !== null) {\n    putUserSetting(req.user.id, 'views', viewsText);\n    putUserSetting(req.user.id, 'filters', 'null');\n  }",
+    replacement: "  if (viewsText !== null) {\n    putUserSetting(req.user.id, 'views', viewsText);\n    putUserSetting(req.user.id, 'filters', 'null');\n  }",
     expected: 'Gespeicherte Ansichten'
   },
   {
     nr: '148', name: 'Der Suchbegriff faellt aus der gespeicherten Ansicht',
     file: 'public/app.js',
     search: "const viewOutState = () => ({ filters: { ...state.filters }, q: state.search.trim() });",
-    ersatz: "const viewOutState = () => ({ filters: { ...state.filters }, q: '' });",
+    replacement: "const viewOutState = () => ({ filters: { ...state.filters }, q: '' });",
     expected: 'Gespeicherte Ansichten in der Oberflaeche'
   },
   {
@@ -1320,7 +1320,7 @@ const REGRESSIONS = [
     nr: '149', name: 'Eine geloeschte Kategorie bleibt in der angewandten Ansicht stehen',
     file: 'public/app.js',
     search: "  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>\n    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
-    ersatz: "  f.categoryIds = [...new Set(f.categoryIds)];",
+    replacement: "  f.categoryIds = [...new Set(f.categoryIds)];",
     expected: 'Gespeicherte Ansichten in der Oberflaeche'
   },
   /* ---- Die Doppelerkennung ---- */
@@ -1328,21 +1328,21 @@ const REGRESSIONS = [
     nr: '150', name: 'Der Titelvergleich achtet wieder auf Gross- und Kleinschreibung',
     file: 'public/app.js',
     search: "const titleCore = (raw) => String(raw || '').toLocaleLowerCase(LOCALE).replace(",
-    ersatz: "const titleCore = (roh) => String(roh || '').replace(",
+    replacement: "const titleCore = (roh) => String(roh || '').replace(",
     expected: 'Doppelte Eintraege beim Anlegen'
   },
   {
     nr: '151', name: 'Der Hinweis greift erst ab acht Zeichen',
     file: 'public/app.js',
     search: "const SIMILAR_DIALOG = 4;",
-    ersatz: "const SIMILAR_DIALOG = 8;",
+    replacement: "const SIMILAR_DIALOG = 8;",
     expected: 'Doppelte Eintraege beim Anlegen'
   },
   {
     nr: '152', name: 'Der Hinweis vergleicht nur die Trefferliste statt des Bestands',
     file: 'public/app.js',
     search: "  for (const it of state.all) {",
-    ersatz: "  for (const it of state.items) {",
+    replacement: "  for (const it of state.items) {",
     expected: 'Doppelte Eintraege beim Anlegen'
   },
   /* ---- Die Marke ---- */
@@ -1350,7 +1350,7 @@ const REGRESSIONS = [
     nr: '153', name: 'Der Markenstrich traegt wieder Gold',
     file: 'public/style.css',
     search: '--brand-line: var(--accent-text);',
-    ersatz: '--brand-line: var(--gold);',
+    replacement: '--brand-line: var(--gold);',
     expected: 'Die Marke der Instanz'
   },
   {
@@ -1360,28 +1360,28 @@ const REGRESSIONS = [
     nr: '154', name: 'Die Fassung mit Kachel traegt wieder Gold',
     file: 'public/favicon.svg',
     search: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
-    ersatz: '<path d="M8 16 H24" stroke="#ffc531"/>',
+    replacement: '<path d="M8 16 H24" stroke="#ffc531"/>',
     expected: 'Die Marke der Instanz'
   },
   {
     nr: '155', name: 'Das viewBox umschliesst wieder die Kachel statt der Farbe',
     file: 'public/app.js',
     search: 'viewBox="6.5 4.5 19 23" width=',
-    ersatz: 'viewBox="0 0 32 32" width=',
+    replacement: 'viewBox="0 0 32 32" width=',
     expected: 'Die Marke der Instanz'
   },
   {
     nr: '156', name: 'Die Hoehe der Marke steht wieder in Pixel',
     file: 'public/style.css',
     search: '.brand .logo { height: 3.1rem; }',
-    ersatz: '.brand .marke { height: 46px; }',
+    replacement: '.brand .marke { height: 46px; }',
     expected: 'Die Marke der Instanz'
   },
   {
     nr: '157', name: 'Das Markup gibt die Marke wieder quadratisch an',
     file: 'public/app.js',
     search: 'width="${Math.round(s * 19 / 23)}" height="${s}"',
-    ersatz: 'width="${s}" height="${s}"',
+    replacement: 'width="${s}" height="${s}"',
     expected: 'Die Marke der Instanz'
   },
   /* ---- Telefon und Tablett (0.12.0) ----
@@ -1396,35 +1396,35 @@ const REGRESSIONS = [
     nr: '158', name: 'Die Spalte des Systembereichs darf sich wieder aufblaehen',
     file: 'public/style.css',
     search: '.sys-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }',
-    ersatz: '.sys-grid { grid-template-columns: 1fr; gap: 0; }',
+    replacement: '.sys-grid { grid-template-columns: 1fr; gap: 0; }',
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
     nr: '159', name: 'Die Bedingung in app.js laeuft von der im Stylesheet weg',
     file: 'public/app.js',
     search: "const NARROW = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';",
-    ersatz: "const SCHMAL = '(max-width: 640px)';",
+    replacement: "const SCHMAL = '(max-width: 640px)';",
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
     nr: '160', name: 'Der Behaelter des Menues steht auch am breiten Schirm im Weg',
     file: 'public/style.css',
     search: '.mast-rest { display: contents; }',
-    ersatz: '.mast-rest { display: flex; }',
+    replacement: '.mast-rest { display: flex; }',
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
     nr: '161', name: 'Die Seite bekommt die Aussparung nicht mehr',
     file: 'public/index.html',
     search: '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
-    ersatz: '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    replacement: '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
     nr: '162', name: 'Der Blaetterpfeil verschwindet auf dem Finger wieder',
     file: 'public/style.css',
     search: '@media (hover: none) { .vnav { opacity: 1; } }',
-    ersatz: '',
+    replacement: '',
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* DER ERSTE ANLAUF DIESES RUECKBAUS HAT DEN LAUF ABGERISSEN, und das belegt
@@ -1442,7 +1442,7 @@ const REGRESSIONS = [
     nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
     file: 'public/app.js',
     search: "        <span class=\"hint who\" id=\"who\">${tH('list.signedInAs', { name: NAME })}</span>\n        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>",
-    ersatz: "        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>\n        <span class=\"hint who\" id=\"who\">${tH('list.signedInAs', { name: NAME })}</span>",
+    replacement: "        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>\n        <span class=\"hint who\" id=\"who\">${tH('list.signedInAs', { name: NAME })}</span>",
     expected: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
   },
   /* DAS KREUZ AN DER KACHEL WAR EIN FUND AUS DEM FELD, kein Einfall am
@@ -1454,7 +1454,7 @@ const REGRESSIONS = [
     nr: '164', name: 'Das Kreuz kehrt auf die Vorschaukachel zurueck',
     file: 'public/style.css',
     search: '@media (hover: none) { .thumb .del { display: none; } }',
-    ersatz: '',
+    replacement: '',
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* Und der Abstand, der das Wegnehmen vom Einstellen trennt. Ohne ihn
@@ -1464,7 +1464,7 @@ const REGRESSIONS = [
     nr: '165', name: 'Der Papierkorb rueckt an die Einstellknoepfe heran',
     file: 'public/style.css',
     search: '.vremove { margin-left: 14px; }',
-    ersatz: '.vweg { margin-left: 0; }',
+    replacement: '.vweg { margin-left: 0; }',
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* UNSICHTBAR IST NICHT DASSELBE WIE UNANTASTBAR, und genau darauf kam der
@@ -1477,7 +1477,7 @@ const REGRESSIONS = [
     nr: '166', name: 'Das Kreuz an der Kachel wird nur durchsichtig, nicht herausgenommen',
     file: 'public/style.css',
     search: '@media (hover: none) { .thumb .del { display: none; } }',
-    ersatz: '@media (hover: none) { .thumb .del { opacity: 0; } }',
+    replacement: '@media (hover: none) { .thumb .del { opacity: 0; } }',
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* Die Rasterregel faellt weg -- die Kachelreihe steht wieder als
@@ -1487,7 +1487,7 @@ const REGRESSIONS = [
     nr: '167', name: 'Die Vorschaureihe faellt auf den umbrechenden Kasten zurueck',
     file: 'public/style.css',
     search: ".thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr)); gap: 7px; margin: 10px 0; }",
-    ersatz: ".thumbs { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0; }",
+    replacement: ".thumbs { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0; }",
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* auto-fit statt auto-fill: mit zwoelf Fotos faellt das gar nicht auf, mit
@@ -1497,7 +1497,7 @@ const REGRESSIONS = [
     nr: '168', name: 'Die leeren Spalten klappen zusammen (auto-fit)',
     file: 'public/style.css',
     search: "grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));",
-    ersatz: "grid-template-columns: repeat(auto-fit, minmax(var(--tile-min), 1fr));",
+    replacement: "grid-template-columns: repeat(auto-fit, minmax(var(--tile-min), 1fr));",
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* Die Kachel behaelt ihre feste Hoehe, waehrend die Breite rechnet: aus dem
@@ -1507,7 +1507,7 @@ const REGRESSIONS = [
     nr: '169', name: 'Die Kachel behaelt ihre feste Hoehe und wird zum Rechteck',
     file: 'public/style.css',
     search: "  width: auto; height: auto; aspect-ratio: 1/1; border-radius: 8px; overflow: hidden;",
-    ersatz: "  width: auto; height: 62px; border-radius: 8px; overflow: hidden;",
+    replacement: "  width: auto; height: 62px; border-radius: 8px; overflow: hidden;",
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* UND EINER IN DIE GEGENRICHTUNG: die Grundregel der Kachel wird angefasst.
@@ -1519,7 +1519,7 @@ const REGRESSIONS = [
     nr: '170', name: 'Die Grundgroesse der Kachel verrutscht',
     file: 'public/style.css',
     search: "  --tile-min: 80px;",
-    ersatz: "  --tile-min: 86px;",
+    replacement: "  --tile-min: 86px;",
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* ---- 0.12.3: der Export sagt seine Groesse an ---- */
@@ -1530,7 +1530,7 @@ const REGRESSIONS = [
     nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
     file: 'server.js',
     search: '  return parts.photos + parts.videos + parts.anhaenge + parts.kommentarbilder + exchangeEnvelopeBytes(itemId);',
-    ersatz: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
+    replacement: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
     expected: 'Die Exportgroesse sagt sich an'
   },
   {
@@ -1541,21 +1541,21 @@ const REGRESSIONS = [
     nr: '172', name: 'Die Vorschaubilder werden mitgezaehlt, obwohl sie nie mitgehen',
     file: 'server.js',
     search: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));",
-    ersatz: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE kind != 'video'${und('item_id')}`));",
+    replacement: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE kind != 'video'${und('item_id')}`));",
     expected: 'Videos: Kennzahlen und Austausch'
   },
   {
     nr: '173', name: 'Der Export baut erst und sagt danach ab',
     file: 'server.js',
     search: '  const big = exchangeBytes(null, switches);\n  if (!asPart && big > EXCHANGE_MAX)',
-    ersatz: '  const gross = 0;\n  if (!asPart && gross > EXCHANGE_MAX)',
+    replacement: '  const gross = 0;\n  if (!asPart && gross > EXCHANGE_MAX)',
     expected: 'Videos: Kennzahlen und Austausch'
   },
   {
     nr: '174', name: 'Der Warnwert liegt auf der Grenze statt darunter',
     file: 'server.js',
     search: 'const EXCHANGE_WARN = 300 * 1024 * 1024;',
-    ersatz: 'const EXCHANGE_WARN = EXCHANGE_MAX;',
+    replacement: 'const EXCHANGE_WARN = EXCHANGE_MAX;',
     expected: 'Die Exportgroesse sagt sich an'
   },
   {
@@ -1565,7 +1565,7 @@ const REGRESSIONS = [
     nr: '175', name: 'Die Videos zaehlen auch ohne Fotos mit',
     file: 'public/app.js',
     search: '    + (s.withPhotos && s.withVideos ? (ex.videos || 0) : 0)',
-    ersatz: '    + (s.mitVideos ? (ex.videos || 0) : 0)',
+    replacement: '    + (s.mitVideos ? (ex.videos || 0) : 0)',
     expected: 'Die Exportgroesse sagt sich an'
   },
   /* ---- 0.12.3: die Anzeige zieht nach ---- */
@@ -1573,7 +1573,7 @@ const REGRESSIONS = [
     nr: '176', name: 'Die Kachel zeichnet wieder alles, auch was niemand sieht',
     file: 'public/style.css',
     search: '  content-visibility: auto;\n  contain-intrinsic-size: auto 400px;',
-    ersatz: '  contain-intrinsic-size: auto 400px;',
+    replacement: '  contain-intrinsic-size: auto 400px;',
     expected: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
@@ -1584,14 +1584,14 @@ const REGRESSIONS = [
     nr: '177', name: 'Die geschaetzte Kachelhoehe gilt fuer immer statt nur bis zum ersten Zeichnen',
     file: 'public/style.css',
     search: '  contain-intrinsic-size: auto 400px;',
-    ersatz: '  contain-intrinsic-size: 400px;',
+    replacement: '  contain-intrinsic-size: 400px;',
     expected: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
     nr: '178', name: 'Der angepinnte Bericht traegt wieder zwei Farben',
     file: 'public/style.css',
     search: '.cmt.pinned.report {\n  border-top-color: var(--accent);',
-    ersatz: '.cmt.pinned.bericht {\n  border-top-color: var(--gold-line);',
+    replacement: '.cmt.pinned.bericht {\n  border-top-color: var(--gold-line);',
     expected: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
@@ -1606,7 +1606,7 @@ const REGRESSIONS = [
     nr: '179', name: 'Der Verweis rutscht wieder VOR die Wolke',
     file: 'public/app.js',
     search: '  if (right.childElementCount) r3.appendChild(right);',
-    ersatz: '  if (rechts.childElementCount) r3.insertBefore(rechts, g3);',
+    replacement: '  if (rechts.childElementCount) r3.insertBefore(rechts, g3);',
     expected: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
@@ -1620,7 +1620,7 @@ const REGRESSIONS = [
     nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
     file: 'public/app.js',
     search: "    + (fertig ? t('list.openCount', { n: tasks - fertig }) : ''));",
-    ersatz: "    + (fertig ? t('list.openCount', { n: aufgaben }) : ''));",
+    replacement: "    + (fertig ? t('list.openCount', { n: aufgaben }) : ''));",
     expected: 'Kommentare in der Oberflaeche'
   },
   {
@@ -1630,14 +1630,14 @@ const REGRESSIONS = [
     nr: '181', name: 'Das Codefeld fragt wieder nach der App statt nach dem Verfahren',
     file: 'public/app.js',
     search: "<label>${tH('dialog.twoFactorCode')}</label>\n        <input class=\"input\" id=\"confirm-code\"",
-    ersatz: "<label>Code aus deiner App</label>\n        <input class=\"input\" id=\"confirm-code\"",
+    replacement: "<label>Code aus deiner App</label>\n        <input class=\"input\" id=\"confirm-code\"",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '182', name: 'Der Sprungknopf springt, klappt den Block aber nicht auf',
     file: 'public/app.js',
     search: "    if (BLOCKS.zu.includes('kommentare')) {",
-    ersatz: '    if (false) {',
+    replacement: '    if (false) {',
     expected: 'Kommentare in der Oberflaeche'
   },
   /* ---- 0.12.4: der Export in Teilen ---- */
@@ -1648,7 +1648,7 @@ const REGRESSIONS = [
     nr: '183', name: 'Der Schnitt laesst die Fenster ueberlappen',
     file: 'server.js',
     search: '    offen.to = z.id;\n    offen.count++;',
-    ersatz: '    offen.bis = z.id + 1;\n    offen.anzahl++;',
+    replacement: '    offen.bis = z.id + 1;\n    offen.anzahl++;',
     expected: 'Der Export in Teilen'
   },
   {
@@ -1658,7 +1658,7 @@ const REGRESSIONS = [
     nr: '184', name: 'Der Umschlag je Teil faellt aus der Rechnung',
     file: 'server.js',
     search: '      offen = { nr: parts.length + 1, from: z.id, to: z.id, count: 0, bytes: reason };',
-    ersatz: '      offen = { nr: teile.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: 0 };',
+    replacement: '      offen = { nr: teile.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: 0 };',
     expected: 'Der Export in Teilen'
   },
   {
@@ -1668,7 +1668,7 @@ const REGRESSIONS = [
     nr: '185', name: 'Ein zu grosser Eintrag wird still uebergangen',
     file: 'server.js',
     search: "    if (reason + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: reason + b }); continue; }",
-    ersatz: '    if (grund + b > EXCHANGE_MAX) { continue; }',
+    replacement: '    if (grund + b > EXCHANGE_MAX) { continue; }',
     expected: 'Der Export in Teilen'
   },
   {
@@ -1678,7 +1678,7 @@ const REGRESSIONS = [
     nr: '186', name: 'Eine halbe Fensterangabe geht als Vollexport durch',
     file: 'server.js',
     search: '  if (asPart && (from === null || to === null || part === null || parts === null))',
-    ersatz: '  if (false)',
+    replacement: '  if (false)',
     expected: 'Der Export in Teilen'
   },
   {
@@ -1688,7 +1688,7 @@ const REGRESSIONS = [
     nr: '187', name: 'Eine Freigabe gilt wieder fuer alle Teile',
     file: 'server.js',
     search: "             : (req.query && req.query.teil !== undefined ? req.query.teil : null);",
-    ersatz: '             : null;',
+    replacement: '             : null;',
     expected: 'Der Export in Teilen'
   },
   {
@@ -1698,14 +1698,14 @@ const REGRESSIONS = [
     nr: '188', name: 'Jeder Teil traegt den ganzen Bestand',
     file: 'server.js',
     search: "    ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(from, to)",
-    ersatz: "    ? db.prepare('SELECT * FROM items ORDER BY id').all()",
+    replacement: "    ? db.prepare('SELECT * FROM items ORDER BY id').all()",
     expected: 'Der Export in Teilen'
   },
   {
     nr: '189', name: 'Die Teilgroesse laesst sich ueber den Warnwert stellen',
     file: 'server.js',
     search: '  const zielGroesse = Math.min(EXCHANGE_WARN,',
-    ersatz: '  const zielGroesse = Math.min(Number.MAX_SAFE_INTEGER,',
+    replacement: '  const zielGroesse = Math.min(Number.MAX_SAFE_INTEGER,',
     expected: 'Der Export in Teilen'
   },
   {
@@ -1715,7 +1715,7 @@ const REGRESSIONS = [
     nr: '190', name: 'Alle Teile heissen gleich',
     file: 'server.js',
     search: "    `attachment; filename=\"${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}\"`);",
-    ersatz: "    `attachment; filename=\"${exportName('')}\"`);",
+    replacement: "    `attachment; filename=\"${exportName('')}\"`);",
     expected: 'Der Export in Teilen'
   },
   {
@@ -1729,7 +1729,7 @@ const REGRESSIONS = [
     nr: '191', name: 'Die Oberflaeche fragt wieder je Teil statt einmal fuer alle',
     file: 'public/app.js',
     search: "  try { await api('POST', '/api/confirm', { ...input, purpose, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
-    ersatz: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/confirm', { ...eingabe, zweck, ziel }); }\n    catch (e) { toast(e.message, true); return false; }\n  }\n  return true;",
+    replacement: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/confirm', { ...eingabe, zweck, ziel }); }\n    catch (e) { toast(e.message, true); return false; }\n  }\n  return true;",
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   {
@@ -1739,7 +1739,7 @@ const REGRESSIONS = [
     nr: '192', name: 'Die Route nimmt wieder nur ein einzelnes Ziel',
     file: 'server.js',
     search: '  } else targetList = [target ?? null];',
-    ersatz: '  }\n  targetList = [ziel ?? null];',
+    replacement: '  }\n  targetList = [ziel ?? null];',
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   {
@@ -1749,7 +1749,7 @@ const REGRESSIONS = [
     nr: '193', name: 'Doppelte Zielnummern gehen als halbierte Bestellung durch',
     file: 'server.js',
     search: '    if (new Set(targetList).size !== targetList.length)',
-    ersatz: '    if (false)',
+    replacement: '    if (false)',
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   {
@@ -1759,7 +1759,7 @@ const REGRESSIONS = [
     nr: '194', name: 'Eine Anfrage darf beliebig viele Freigaben bestellen',
     file: 'server.js',
     search: '    if (ziele.length > EXCHANGE_PART_MAX)',
-    ersatz: '    if (false)',
+    replacement: '    if (false)',
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   {
@@ -1770,7 +1770,7 @@ const REGRESSIONS = [
     nr: '195', name: 'Der Teilexport schreibt wieder "teil 1/5" und faellt damit aus dem Protokoll',
     file: 'server.js',
     search: "detail: asPart ? 'part' : null });",
-    ersatz: 'merkmal: asPart ? `teil ${teil}/${teile}` : null });',
+    replacement: 'merkmal: asPart ? `teil ${teil}/${teile}` : null });',
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   /* ---- 0.13.0: zwei Netze, ein Zugang ---- */
@@ -1781,7 +1781,7 @@ const REGRESSIONS = [
     nr: '196', name: 'X-Forwarded-Proto wird auch ohne BEHIND_PROXY geglaubt',
     file: 'auth.js',
     search: '  if (!BEHIND_PROXY) return false;',
-    ersatz: '  if (false) return false;',
+    replacement: '  if (false) return false;',
     expected: 'Ohne Proxy ist der Kopf nur eine Behauptung'
   },
   {
@@ -1791,7 +1791,7 @@ const REGRESSIONS = [
     nr: '197', name: 'Beide Wege bekommen denselben Cookienamen',
     file: 'auth.js',
     search: "const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;",
-    ersatz: "const cookieName = (req) => COOKIE_NAME;",
+    replacement: "const cookieName = (req) => COOKIE_NAME;",
     expected: 'Zwei Netze, ein Zugang — 0.13.0'
   },
   {
@@ -1801,7 +1801,7 @@ const REGRESSIONS = [
     nr: '198', name: 'Auch der Heimnetzcookie traegt Secure',
     file: 'auth.js',
     search: "  `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;",
-    ersatz: "  `; Secure; Max-Age=${SESSION_DAYS * 86400}`;",
+    replacement: "  `; Secure; Max-Age=${SESSION_DAYS * 86400}`;",
     expected: 'Zwei Netze, ein Zugang — 0.13.0'
   },
   {
@@ -1811,7 +1811,7 @@ const REGRESSIONS = [
     nr: '199', name: 'HSTS geht wieder auf jedem Weg mit',
     file: 'server.js',
     search: "  if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');",
-    ersatz: "  if (auth.BEHIND_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');",
+    replacement: "  if (auth.BEHIND_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');",
     expected: 'Zwei Netze, ein Zugang — 0.13.0'
   },
   /* ---- 0.13.0: der Filter am Sicherheitsprotokoll ---- */
@@ -1822,7 +1822,7 @@ const REGRESSIONS = [
     nr: '200', name: 'Die Leseroute uebergeht die gewaehlte Ansicht',
     file: 'server.js',
     search: '  res.json(auth.readLog(auth.LOG_LIMIT, group));',
-    ersatz: '  res.json(auth.readLog(auth.LOG_LIMIT));',
+    replacement: '  res.json(auth.readLog(auth.LOG_LIMIT));',
     expected: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
@@ -1831,7 +1831,7 @@ const REGRESSIONS = [
     nr: '201', name: 'Die Namen im Protokoll sind wieder nur Text',
     file: 'public/app.js',
     search: "    if (id == null) { field.appendChild(doc.createTextNode(text)); return field; }",
-    ersatz: "    feld.appendChild(dok.createTextNode(text)); return feld;",
+    replacement: "    feld.appendChild(dok.createTextNode(text)); return feld;",
     expected: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
@@ -1840,7 +1840,7 @@ const REGRESSIONS = [
     nr: '202', name: 'Auch "unbekannter Name" wird ein Knopf',
     file: 'public/app.js',
     search: "      row.appendChild(logNameField(doc, 'log-actor', logActor(z),\n        z.actor != null ? z.actor : null));",
-    ersatz: "      zeile.appendChild(protNamensFeld(dok, 'log-actor', protHandelnder(z), z.wer ?? 0));",
+    replacement: "      zeile.appendChild(protNamensFeld(dok, 'log-actor', protHandelnder(z), z.wer ?? 0));",
     expected: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
@@ -1849,7 +1849,7 @@ const REGRESSIONS = [
     nr: '203', name: 'Fuenf Vorgaenge stehen wieder als roher Schluessel da',
     file: 'public/app.js',
     search: "    'request.approve': 'card.requestApproved',",
-    ersatz: "",
+    replacement: "",
     expected: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   /* ---- 0.13.0: der Loeschdialog und die Grabsteine ---- */
@@ -1860,7 +1860,7 @@ const REGRESSIONS = [
     nr: '204', name: 'Der Loeschdialog verschweigt den umkehrbaren Weg wieder',
     file: 'public/app.js',
     search: "      <p>${tH('dialog.lockInsteadHint')}</p>",
-    ersatz: "",
+    replacement: "",
     expected: 'Die zweite Bestaetigung in der Oberflaeche'
   },
   {
@@ -1868,7 +1868,7 @@ const REGRESSIONS = [
     nr: '205', name: 'Grabsteine stehen wieder in der Zugangsliste',
     file: 'public/app.js',
     search: "    for (const z of data.users.filter(z => z.status !== 'deleted')) {",
-    ersatz: "    for (const z of daten.zugaenge) {",
+    replacement: "    for (const z of daten.zugaenge) {",
     expected: 'Der Einladungslink in der Karte Zugaenge'
   },
   /* ---- 0.13.0: die Filterleiste ---- */
@@ -1879,7 +1879,7 @@ const REGRESSIONS = [
     nr: '206', name: 'Die selbsttaetige Aussenkante frisst die Zeile wieder',
     file: 'public/style.css',
     search: '.frow-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }',
-    ersatz: '.frow-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }',
+    replacement: '.frow-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }',
     expected: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
@@ -1887,7 +1887,7 @@ const REGRESSIONS = [
     nr: '207', name: 'Sortieren und Ansichten bekommen wieder je eine Zeile',
     file: 'public/app.js',
     search: "  const r5 = r4;\n  secondLabel(r5, t('list.views'));",
-    ersatz: "  const r5 = row(t('list.views'));",
+    replacement: "  const r5 = row(t('list.views'));",
     expected: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
   {
@@ -1900,7 +1900,7 @@ const REGRESSIONS = [
     nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
     file: 'public/app.js',
     search: "    b.className = 'pill pill-tag' + (chosen ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');",
-    ersatz: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '');",
+    replacement: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '');",
     expected: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
   /* ---- 0.13.0: die Kategoriezeile ---- */
@@ -1910,7 +1910,7 @@ const REGRESSIONS = [
     nr: '209', name: 'Eine gespeicherte Ansicht in der alten Form verliert ihre Kategorie',
     file: 'public/app.js',
     search: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = f.categoryId != null ? [f.categoryId] : [];",
-    ersatz: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = [];",
+    replacement: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = [];",
     expected: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
   {
@@ -1919,7 +1919,7 @@ const REGRESSIONS = [
     nr: '210', name: 'Aus der Vereinigung wird ein Schnitt',
     file: 'public/app.js',
     search: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.includes(i.category ? i.category.id : CATEGORY_NONE));",
-    ersatz: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.every(v => v === (i.category ? i.category.id : CATEGORY_NONE)));",
+    replacement: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.every(v => v === (i.category ? i.category.id : CATEGORY_NONE)));",
     expected: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
   {
@@ -1928,7 +1928,7 @@ const REGRESSIONS = [
     nr: '211', name: '"Ohne" ueberlebt das Zurechtruecken nicht',
     file: 'public/app.js',
     search: "    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
-    ersatz: "    state.categories.some(c => c.id === v));",
+    replacement: "    state.categories.some(c => c.id === v));",
     expected: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
   {
@@ -1937,7 +1937,7 @@ const REGRESSIONS = [
     nr: '212', name: 'Die Pille "Ohne" wird gar nicht erst gezeichnet',
     file: 'public/app.js',
     search: "  if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {",
-    ersatz: "  if (false) {",
+    replacement: "  if (false) {",
     expected: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
   /* ---- Die Beschriftungen stehen oben — 0.13.1 ---- */
@@ -1948,7 +1948,7 @@ const REGRESSIONS = [
     nr: '213', name: 'Die Filterzeile mittelt wieder ueber die ganze Hoehe',
     file: 'public/style.css',
     search: '.frow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }',
-    ersatz: '.frow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }',
+    replacement: '.frow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }',
     expected: 'Die Beschriftungen stehen oben — 0.13.1'
   },
   {
@@ -1958,7 +1958,7 @@ const REGRESSIONS = [
     nr: '214', name: 'Die Beschriftung schert aus der Grundlinie aus',
     file: 'public/style.css',
     search: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; }',
-    ersatz: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; align-self: center; }',
+    replacement: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; align-self: center; }',
     expected: 'Die Beschriftungen stehen oben — 0.13.1'
   },
   /* ---- Der angepinnte Rahmen schliesst — 0.13.2 ---- */
@@ -1968,7 +1968,7 @@ const REGRESSIONS = [
     nr: '215', name: 'Die angepinnte Notiz bekommt ihre linke Kante nicht',
     file: 'public/style.css',
     search: '.cmt.pinned { border-color: var(--gold-line); }',
-    ersatz: '.cmt.pinned {\n  border-top-color: var(--gold-line);\n' +
+    replacement: '.cmt.pinned {\n  border-top-color: var(--gold-line);\n' +
       '  border-right-color: var(--gold-line);\n  border-bottom-color: var(--gold-line);\n}',
     expected: 'Der angepinnte Rahmen schliesst — 0.13.2'
   },
@@ -1979,7 +1979,7 @@ const REGRESSIONS = [
     nr: '216', name: 'Der angepinnte Bericht verliert seine orange Kante an das Gold',
     file: 'public/style.css',
     search: '  border-bottom-color: var(--accent);\n  border-left-color: var(--accent);\n}',
-    ersatz: '  border-bottom-color: var(--accent);\n}',
+    replacement: '  border-bottom-color: var(--accent);\n}',
     expected: 'Der angepinnte Rahmen schliesst — 0.13.2'
   },
   /* ---- 0.14.0: der kaputte Cookiewert ---- */
@@ -1991,7 +1991,7 @@ const REGRESSIONS = [
     file: 'auth.js',
     search: "    let value;\n    try { value = decodeURIComponent(part.slice(i + 1).trim()); }\n" +
       "    catch { continue; }\n    out[part.slice(0, i).trim()] = value;",
-    ersatz: "    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());",
+    replacement: "    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());",
     expected: 'Der kaputte Cookiewert — 0.14.0'
   },
   {
@@ -2002,7 +2002,7 @@ const REGRESSIONS = [
     nr: '218', name: 'Ein kaputter Wert nimmt den ganzen Cookiekopf mit',
     file: 'auth.js',
     search: "    catch { continue; }",
-    ersatz: "    catch { return {}; }",
+    replacement: "    catch { return {}; }",
     expected: 'Der kaputte Cookiewert — 0.14.0'
   },
   /* ---- 0.14.0: die drei Spalten und der Migrationsblock ---- */
@@ -2010,7 +2010,7 @@ const REGRESSIONS = [
     nr: '219', name: 'Der Migrationsblock laeuft gar nicht mehr',
     file: 'db.js',
     search: "migration0140();\n// ENDE MIGRATION 0.14.0",
-    ersatz: "// migration0140();\n// ENDE MIGRATION 0.14.0",
+    replacement: "// migration0140();\n// ENDE MIGRATION 0.14.0",
     expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
   {
@@ -2021,7 +2021,7 @@ const REGRESSIONS = [
     nr: '220', name: 'Der Migrationsblock fragt nur noch die erste Spalte ab',
     file: 'db.js',
     search: "  const missing = [];\n  if (!columns.includes('rejected_at')) missing.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
-    ersatz: "  const fehlend = [];\n  if (spalten.includes('rejected_at')) return 0;\n  fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
+    replacement: "  const fehlend = [];\n  if (spalten.includes('rejected_at')) return 0;\n  fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
     expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
   {
@@ -2031,7 +2031,7 @@ const REGRESSIONS = [
     nr: '221', name: 'Die drei ALTER TABLE laufen nicht mehr in einer Transaktion',
     file: 'db.js',
     search: "  db.transaction(() => { for (const [, sql] of missing) db.exec(sql); })();",
-    ersatz: "  for (const [, sql] of fehlend) db.exec(sql);",
+    replacement: "  for (const [, sql] of fehlend) db.exec(sql);",
     expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
   {
@@ -2041,7 +2041,7 @@ const REGRESSIONS = [
     nr: '222', name: 'Die Migration traegt erfundene Angaben in den Bestand',
     file: 'db.js',
     search: "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${enumeration} ergaenzt `",
-    ersatz: "  db.exec(\"UPDATE items SET rejected_at = datetime('now') WHERE rejected = 1\");\n" +
+    replacement: "  db.exec(\"UPDATE items SET rejected_at = datetime('now') WHERE rejected = 1\");\n" +
       "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
     expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
@@ -2052,7 +2052,7 @@ const REGRESSIONS = [
     nr: '223', name: 'Die nachgeruestete Spalte bekommt keinen Fremdschluessel',
     file: 'db.js',
     search: "    'ALTER TABLE items ADD COLUMN rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL']);",
-    ersatz: "    'ALTER TABLE items ADD COLUMN rejected_by INTEGER']);",
+    replacement: "    'ALTER TABLE items ADD COLUMN rejected_by INTEGER']);",
     expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
   {
@@ -2062,7 +2062,7 @@ const REGRESSIONS = [
     nr: '224', name: 'Die drei Spalten stehen nicht mehr in der DDL',
     file: 'db.js',
     search: "  rejected_at TEXT,\n  rejected_reason TEXT,",
-    ersatz: "",
+    replacement: "",
     expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
   /* ---- 0.14.0: die Klemme an der Begruendung ---- */
@@ -2073,7 +2073,7 @@ const REGRESSIONS = [
     nr: '225', name: 'An der Begruendung gilt wieder mayChange statt selfOnly',
     file: 'server.js',
     search: "      it.rejected_by != null && !selfOnly(req, it.rejected_by))",
-    ersatz: "      it.rejected_von != null && !mayChange(req, it.rejected_von))",
+    replacement: "      it.rejected_von != null && !mayChange(req, it.rejected_von))",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2083,7 +2083,7 @@ const REGRESSIONS = [
     nr: '226', name: 'Die Begruendung faellt aus den Verfasserfeldern heraus',
     file: 'server.js',
     search: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected', 'rejectedReason',\n                              'tested', 'productCategoryId'];",
-    ersatz: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected',\n                              'tested', 'productCategoryId'];",
+    replacement: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected',\n                              'tested', 'productCategoryId'];",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2093,7 +2093,7 @@ const REGRESSIONS = [
     nr: '227', name: 'Eine Ablehnung ohne Verfasser laesst sich nicht mehr begruenden',
     file: 'server.js',
     search: "  if (b.rejectedReason !== undefined && !turnsOn && !removedReason &&\n      it.rejected_by != null && !selfOnly(req, it.rejected_by))",
-    ersatz: "  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&\n      !selfOnly(req, it.rejected_von))",
+    replacement: "  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&\n      !selfOnly(req, it.rejected_von))",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2103,7 +2103,7 @@ const REGRESSIONS = [
     nr: '228', name: 'Ein neues Ablehnen uebernimmt den fremden Satz',
     file: 'server.js',
     search: "    put('rejected_by', req.user.id);\n    put('rejected_reason', reasonText(b.rejectedReason));",
-    ersatz: "    put('rejected_von', req.user.id);",
+    replacement: "    put('rejected_von', req.user.id);",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2112,7 +2112,7 @@ const REGRESSIONS = [
     nr: '229', name: 'Das Ablehnungsdatum kommt aus dem Rumpf statt vom Server',
     file: 'server.js',
     search: "    sets.push(`rejected_at = datetime('now')`);",
-    ersatz: "    put('rejected_at', b.rejectedAt || new Date().toISOString().slice(0, 19).replace('T', ' '));",
+    replacement: "    put('rejected_at', b.rejectedAt || new Date().toISOString().slice(0, 19).replace('T', ' '));",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2122,7 +2122,7 @@ const REGRESSIONS = [
     nr: '230', name: 'Der Ablehnende geht als nackte Nummer hinaus',
     file: 'server.js',
     search: "  it.rejectedAuthor = authorFrom(card, it.rejected_by);\n  delete it.rejected_by;",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2132,7 +2132,7 @@ const REGRESSIONS = [
     nr: '231', name: 'Die Uebersicht schickt Grund und Nummer mit hinaus',
     file: 'server.js',
     search: "    delete it.rejected_at; delete it.rejected_reason; delete it.rejected_by;",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2141,7 +2141,7 @@ const REGRESSIONS = [
     nr: '232', name: 'Die Begruendung wird weder eingeebnet noch gekappt',
     file: 'server.js',
     search: "const reasonText = (v) =>\n  typeof v === 'string' ? v.replace(/\\s+/g, ' ').trim().slice(0, REASON_LENGTH) : '';",
-    ersatz: "const reasonText = (v) => (typeof v === 'string' ? v : '');",
+    replacement: "const reasonText = (v) => (typeof v === 'string' ? v : '');",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   /* ---- 0.14.0: das Austauschformat ---- */
@@ -2158,7 +2158,7 @@ const REGRESSIONS = [
     nr: '233', name: 'Die Formatnummer bleibt auf 12',
     file: 'server.js',
     search: "const EXCHANGE_FORMAT = 13;",
-    ersatz: "const EXCHANGE_FORMAT = 12;",
+    replacement: "const EXCHANGE_FORMAT = 12;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2168,7 +2168,7 @@ const REGRESSIONS = [
     nr: '234', name: 'Der Ablehnende wandert als Nummer statt als Name hinaus',
     file: 'server.js',
     search: "    rejected_author: authorName(it.rejected_by),",
-    ersatz: "    rejected_author: it.rejected_von,",
+    replacement: "    rejected_author: it.rejected_von,",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2177,7 +2177,7 @@ const REGRESSIONS = [
     nr: '235', name: 'Die drei Angaben gehen gar nicht erst in die Datei',
     file: 'server.js',
     search: "    rejected_at: it.rejected_at, rejected_reason: it.rejected_reason,\n    rejected_author: authorName(it.rejected_by),",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2187,7 +2187,7 @@ const REGRESSIONS = [
     nr: '236', name: 'Ein fehlender Ablehnender faellt an den Einspielenden',
     file: 'server.js',
     search: "      const rejectedBy = String(it.rejected_author == null ? '' : it.rejected_author).trim()\n        ? authorId(it.rejected_author) : null;",
-    ersatz: "      const rejectedBy = verfasser(it.rejected_author);",
+    replacement: "      const rejectedBy = verfasser(it.rejected_author);",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   /* ---- 0.14.0: die Sternreihe der Kriterienliste ---- */
@@ -2203,7 +2203,7 @@ const REGRESSIONS = [
        52 px reichen fuer „⌀ 4,2 (9)" nicht, und in Pixeln folgt die Spalte der
        Schriftstufe nicht mehr. */
     search: "  white-space: nowrap; padding-left: 9px;\n  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;",
-    ersatz: "  white-space: nowrap; padding-left: 9px;\n  min-width: 52px; text-align: right;",
+    replacement: "  white-space: nowrap; padding-left: 9px;\n  min-width: 52px; text-align: right;",
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
@@ -2218,7 +2218,7 @@ const REGRESSIONS = [
     nr: '238', name: 'Aus dem Raster wird wieder ein gewoehnlicher Kasten',
     file: 'public/style.css',
     search: ".rlist { display: grid; grid-template-columns: 1fr auto auto auto; }",
-    ersatz: ".rlist { display: block; }",
+    replacement: ".rlist { display: block; }",
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
@@ -2232,7 +2232,7 @@ const REGRESSIONS = [
     nr: '239', name: 'Die Kriterienliste bekommt ihre Rasterklasse nicht',
     file: 'public/app.js',
     search: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
@@ -2246,7 +2246,7 @@ const REGRESSIONS = [
     nr: '240', name: 'Die Zahl steckt wieder in den Sternen statt im Raster',
     file: 'public/app.js',
     search: "        row.append(a);",
-    ersatz: "        acts.append(a);",
+    replacement: "        acts.append(a);",
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
@@ -2255,7 +2255,7 @@ const REGRESSIONS = [
     nr: '241', name: 'Die Trennlinie wird wieder an der Zeile gezogen',
     file: 'public/style.css',
     search: ".rrow > * { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type > * { border-bottom: none; }",
-    ersatz: ".rrow { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type { border-bottom: none; }",
+    replacement: ".rrow { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type { border-bottom: none; }",
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   /* ---- 0.14.0: die Oberflaeche an der Marke ---- */
@@ -2265,7 +2265,7 @@ const REGRESSIONS = [
     nr: '242', name: 'Die Marke sagt wieder nur "Abgelehnt"',
     file: 'public/app.js',
     search: "    drawRejection();\n  }",
-    ersatz: "  }",
+    replacement: "  }",
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
@@ -2275,7 +2275,7 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "    if (item.rejectedAuthor && multipleUsers())\n" +
       "      parts.push(`von ${authorName(item.rejectedAuthor)}`);",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
@@ -2285,7 +2285,7 @@ const REGRESSIONS = [
     nr: '247', name: 'Der Name steht auch bei einem einzigen Zugang da',
     file: 'public/app.js',
     search: "    if (item.rejectedAuthor && multipleUsers())",
-    ersatz: "    if (item.rejectedAuthor)",
+    replacement: "    if (item.rejectedAuthor)",
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
@@ -2295,7 +2295,7 @@ const REGRESSIONS = [
     nr: '244', name: 'Der Vorschlag zum Ueberschreiben geht verloren',
     file: 'public/app.js',
     search: "      : { rejected: true, rejectedReason: item.rejected_reason || '' };",
-    ersatz: "      : { rejected: true };",
+    replacement: "      : { rejected: true };",
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
@@ -2307,7 +2307,7 @@ const REGRESSIONS = [
     nr: '245', name: 'Das Feld fuer den Grund erscheint nicht',
     file: 'public/app.js',
     search: "    row.hidden = !offen;",
-    ersatz: "    zeile.hidden = true;",
+    replacement: "    zeile.hidden = true;",
     expected: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
   {
@@ -2317,7 +2317,7 @@ const REGRESSIONS = [
     nr: '246', name: 'Die Aussage steht auch da, wenn sie nichts sagt',
     file: 'public/app.js',
     search: "    mark.hidden = !item.rejected || offen || (!head && !reason && !showPen);",
-    ersatz: "    marke.hidden = !item.rejected;",
+    replacement: "    marke.hidden = !item.rejected;",
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
 
@@ -2328,7 +2328,7 @@ const REGRESSIONS = [
     nr: '250', name: 'Der Filter „abgelehnt" nimmt nichts weg',
     file: 'public/app.js',
     search: "  if (f.abgelehnt === 'ja') out = out.filter(i => i.rejected);",
-    ersatz: "  if (false) out = out.filter(i => i.rejected);",
+    replacement: "  if (false) out = out.filter(i => i.rejected);",
     expected: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
@@ -2338,7 +2338,7 @@ const REGRESSIONS = [
     nr: '251', name: 'Die Gegenrichtung des Filters faellt weg',
     file: 'public/app.js',
     search: "  else if (f.abgelehnt === 'nein') out = out.filter(i => !i.rejected);",
-    ersatz: "  else if (false) out = out.filter(i => !i.rejected);",
+    replacement: "  else if (false) out = out.filter(i => !i.rejected);",
     expected: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
@@ -2352,7 +2352,7 @@ const REGRESSIONS = [
     nr: '252', name: 'Der neue Filter fehlt in der Vorgabe',
     file: 'public/app.js',
     search: "                         abgelehnt: 'all', favorit: false,",
-    ersatz: "                         favorit: false,",
+    replacement: "                         favorit: false,",
     expected: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
@@ -2361,7 +2361,7 @@ const REGRESSIONS = [
     nr: '253', name: 'Der Ablehnungsfilter zaehlt nicht mit',
     file: 'public/app.js',
     search: "  if (f.abgelehnt !== v.abgelehnt) n++;",
-    ersatz: "  if (false) n++;",
+    replacement: "  if (false) n++;",
     expected: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
@@ -2371,7 +2371,7 @@ const REGRESSIONS = [
     nr: '254', name: 'Die zweite Gruppe ist nicht abgesetzt',
     file: 'public/app.js',
     search: "  secondLabel(r1, t('list.rejection'));",
-    ersatz: "  // zweiteBeschriftung(r1, t('list.rejection'));",
+    replacement: "  // zweiteBeschriftung(r1, t('list.rejection'));",
     expected: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
@@ -2381,7 +2381,7 @@ const REGRESSIONS = [
     nr: '255', name: 'rejectedMine geht nicht mehr hinaus',
     file: 'server.js',
     search: "  it.rejectedMine = it.rejected_by != null && it.rejected_by === userId;",
-    ersatz: "  it.rejectedMine = false;",
+    replacement: "  it.rejectedMine = false;",
     expected: 'Entfernen darf auch der Admin — 0.15.0'
   },
   {
@@ -2390,7 +2390,7 @@ const REGRESSIONS = [
     nr: '256', name: 'mine geht am Eintrag nicht mehr hinaus',
     file: 'server.js',
     search: "  it.mine = it.user_id === userId;",
-    ersatz: "  it.mine = false;",
+    replacement: "  it.mine = false;",
     expected: 'Entfernen darf auch der Admin — 0.15.0'
   },
   {
@@ -2400,7 +2400,7 @@ const REGRESSIONS = [
     nr: '257', name: 'Entfernen laeuft wieder ueber selfOnly',
     file: 'server.js',
     search: "  const removedReason = b.rejectedReason !== undefined && !reasonText(b.rejectedReason);",
-    ersatz: "  const removedReason = false;",
+    replacement: "  const removedReason = false;",
     expected: 'Entfernen darf auch der Admin — 0.15.0'
   },
   {
@@ -2410,7 +2410,7 @@ const REGRESSIONS = [
     nr: '258', name: 'Auch das Umschreiben kommt durch',
     file: 'server.js',
     search: "  if (b.rejectedReason !== undefined && !turnsOn && !removedReason &&",
-    ersatz: "  if (false &&",
+    replacement: "  if (false &&",
     expected: 'Entfernen darf auch der Admin — 0.15.0'
   },
   {
@@ -2419,7 +2419,7 @@ const REGRESSIONS = [
     nr: '259', name: 'Wer entfernt, wird Verfasser',
     file: 'server.js',
     search: "    if (it.rejected_by == null && !removedReason) put('rejected_by', req.user.id);",
-    ersatz: "    if (it.rejected_von == null) put('rejected_von', req.user.id);",
+    replacement: "    if (it.rejected_von == null) put('rejected_von', req.user.id);",
     expected: 'Entfernen darf auch der Admin — 0.15.0'
   },
   {
@@ -2429,7 +2429,7 @@ const REGRESSIONS = [
     nr: '260', name: 'Das Feld bleibt nach dem Speichern offen',
     file: 'public/app.js',
     search: "      reasonOpen = false;\n      drawSwitches();\n    };\n    field.onblur = save;",
-    ersatz: "      drawSwitches();\n    };\n    feld.onblur = speichere;",
+    replacement: "      drawSwitches();\n    };\n    feld.onblur = speichere;",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2442,7 +2442,7 @@ const REGRESSIONS = [
     nr: '261', name: 'Beim Einschalten bleibt das Feld zu',
     file: 'public/app.js',
     search: "    const offen = item.rejected && mine && (!reason || reasonOpen);",
-    ersatz: "    const offen = item.rejected && meins && reasonOpen;",
+    replacement: "    const offen = item.rejected && meins && reasonOpen;",
     expected: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
   {
@@ -2451,7 +2451,7 @@ const REGRESSIONS = [
     nr: '262', name: 'Der Stift steht jedem da',
     file: 'public/app.js',
     search: "    const showPen = item.rejected && mine;",
-    ersatz: "    const showPen = item.rejected;",
+    replacement: "    const showPen = item.rejected;",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2460,7 +2460,7 @@ const REGRESSIONS = [
     nr: '263', name: 'Der Papierkorb steht jedem da',
     file: 'public/app.js',
     search: "    const showPath = item.rejected && manage && !!reason;",
-    ersatz: "    const showPath = item.rejected && !!grund;",
+    replacement: "    const showPath = item.rejected && !!grund;",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2469,7 +2469,7 @@ const REGRESSIONS = [
     nr: '264', name: 'Der Papierkorb fragt nicht mehr nach',
     file: 'public/app.js',
     search: "    if (!await confirmBox(t('entry.reasonDeleteAsk'),",
-    ersatz: "    if (false && !await confirmBox(t('entry.reasonDeleteAsk'),",
+    replacement: "    if (false && !await confirmBox(t('entry.reasonDeleteAsk'),",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2479,7 +2479,7 @@ const REGRESSIONS = [
     nr: '265', name: 'Escape verwirft nicht mehr, sondern speichert',
     file: 'public/app.js',
     search: "        field.value = item.rejected_reason || '';\n        reasonOpen = false;\n        drawRejection();",
-    ersatz: "        reasonOpen = false;\n        drawAblehnung();",
+    replacement: "        reasonOpen = false;\n        drawAblehnung();",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2489,7 +2489,7 @@ const REGRESSIONS = [
     nr: '266', name: 'An der herrenlosen Ablehnung fehlt der Weg hinein',
     file: 'public/app.js',
     search: "    const mine = may && (item.rejectedMine === true || !item.rejectedAuthor);",
-    ersatz: "    const meins = darf && item.rejectedMine === true;",
+    replacement: "    const meins = darf && item.rejectedMine === true;",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2499,7 +2499,7 @@ const REGRESSIONS = [
     nr: '267', name: 'Die Hervorhebung des Grundes faellt weg',
     file: 'public/style.css',
     search: ".rej-note .rej-why { color: var(--red); font-weight: 500; }",
-    ersatz: ".rej-note .rej-why { font-weight: 500; }",
+    replacement: ".rej-note .rej-why { font-weight: 500; }",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   /* ---- 0.15.1: `hidden` wirkt wieder ---- */
@@ -2511,7 +2511,7 @@ const REGRESSIONS = [
     nr: '268', name: 'Die Regel fuer hidden verliert ihre Kraft',
     file: 'public/style.css',
     search: "[hidden] { display: none !important; }",
-    ersatz: "[hidden] { display: none; }",
+    replacement: "[hidden] { display: none; }",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2520,7 +2520,7 @@ const REGRESSIONS = [
     nr: '269', name: 'Die Regel fuer hidden fehlt ganz',
     file: 'public/style.css',
     search: "[hidden] { display: none !important; }\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
@@ -2529,7 +2529,7 @@ const REGRESSIONS = [
     nr: '270', name: 'Aussage und Feld stehen wieder zugleich da',
     file: 'public/app.js',
     search: "    mark.hidden = !item.rejected || offen || (!head && !reason && !showPen);",
-    ersatz: "    marke.hidden = !item.rejected || (!kopf && !grund && !showPen);",
+    replacement: "    marke.hidden = !item.rejected || (!kopf && !grund && !showPen);",
     expected: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
   {
@@ -2538,7 +2538,7 @@ const REGRESSIONS = [
     nr: '271', name: 'Das Feld steht auch dem offen, der nicht schreiben darf',
     file: 'public/app.js',
     search: "    const offen = item.rejected && mine && (!reason || reasonOpen);",
-    ersatz: "    const offen = item.rejected && (!grund || reasonOpen);",
+    replacement: "    const offen = item.rejected && (!grund || reasonOpen);",
     expected: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
 
@@ -2547,28 +2547,28 @@ const REGRESSIONS = [
     nr: '272', name: 'Der Systembereich zeigt wieder alle Karten auf einmal',
     file: 'public/app.js',
     search: "  const cards = SYS_CARDS.filter(k => k.section === offen.key && k.visible(fetched));",
-    ersatz: "  const karten = SYS_KARTEN.filter(k => k.sichtbar(geholt));",
+    replacement: "  const karten = SYS_KARTEN.filter(k => k.sichtbar(geholt));",
     expected: 'Der Systembereich nach Rolle'
   },
   {
     nr: '273', name: 'Ein Abschnitt ohne sichtbare Karte erscheint trotzdem',
     file: 'public/app.js',
     search: "  return SYS_SECTIONS.filter(a =>\n    SYS_CARDS.some(k => k.section === a.key && k.visible(fetched)));",
-    ersatz: "  return SYS_ABSCHNITTE;",
+    replacement: "  return SYS_ABSCHNITTE;",
     expected: 'Der Systembereich nach Rolle'
   },
   {
     nr: '274', name: 'Die Adresse wird nicht mehr nachgezogen',
     file: 'public/app.js',
     search: "    history.replaceState(null, '', sysUrl(offen.key));",
-    ersatz: "    void 0;",
+    replacement: "    void 0;",
     expected: 'Der Systembereich nach Rolle'
   },
   {
     nr: '275', name: 'Eine Adresse auf einen unsichtbaren Abschnitt zeigt ins Leere',
     file: 'public/app.js',
     search: "  const offen = visibleOnes.find(a => a.key === desired) || visibleOnes[0];",
-    ersatz: "  const offen = SYS_ABSCHNITTE.find(a => a.schluessel === gewuenscht) || sichtbare[0];",
+    replacement: "  const offen = SYS_ABSCHNITTE.find(a => a.schluessel === gewuenscht) || sichtbare[0];",
     expected: 'Der Systembereich nach Rolle'
   },
   {
@@ -2578,21 +2578,21 @@ const REGRESSIONS = [
     nr: '276', name: 'Die Reiter tragen keine eigene Adresse mehr',
     file: 'public/app.js',
     search: "      ${visibleOnes.map(a => `<a class=\"sys-tab${a === offen ? ' on' : ''}\"",
-    ersatz: "      ${sichtbare.map(a => `<button class=\"sys-tab${a === offen ? ' on' : ''}\"",
+    replacement: "      ${sichtbare.map(a => `<button class=\"sys-tab${a === offen ? ' on' : ''}\"",
     expected: 'Der Systembereich nach Rolle'
   },
   {
     nr: '277', name: 'Der Import steht wieder gleichrangig neben dem Export',
     file: 'public/app.js',
     search: "        <h4 class=\"sys-sub\">${tH('card.import')}</h4>",
-    ersatz: "        <h3>${tH('card.import')}</h3>",
+    replacement: "        <h3>${tH('card.import')}</h3>",
     expected: 'Export und Import stehen in einer Karte'
   },
   {
     nr: '278', name: 'Das Ablagefeld des Imports wird wieder gleich laut gezeichnet',
     file: 'public/app.js',
     search: '        <label class="drop drop-quiet" id="imp-drop">',
-    ersatz: '        <label class="drop" id="imp-drop">',
+    replacement: '        <label class="drop" id="imp-drop">',
     expected: 'Export und Import stehen in einer Karte'
   },
   {
@@ -2602,7 +2602,7 @@ const REGRESSIONS = [
     nr: '279', name: 'Die Kopfzahl ist wieder blosser Text',
     file: 'public/app.js',
     search: "        b.onclick = () => showCalc(boxId);",
-    ersatz: "        b.onclick = null;",
+    replacement: "        b.onclick = null;",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -2611,14 +2611,14 @@ const REGRESSIONS = [
     nr: '280', name: 'Der Erklaerkasten rechnet wieder selbst nach',
     file: 'public/app.js',
     search: "          <span id=\"calc-result\">⌀ ${esc(weightNumber(weg.result))}</span></div>",
-    ersatz: "          <span id=\"calc-result\">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>",
+    replacement: "          <span id=\"calc-result\">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '281', name: 'Der Rechenweg faellt aus der Antwort',
     file: 'server.js',
     search: "  it.calc = { ...calc, result: it.avgRating };",
-    ersatz: "  void rechenweg;",
+    replacement: "  void rechenweg;",
     expected: 'Der Rechenweg reist mit'
   },
   {
@@ -2630,7 +2630,7 @@ const REGRESSIONS = [
     nr: '282', name: 'Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert',
     file: 'server.js',
     search: "    { rows, sum: counter, divisor: nenner, raw: nenner ? counter / nenner : null,",
-    ersatz: "    { zeilen, summe: Math.round(zaehler * 100) / 100, teiler: nenner,\n      roh: nenner ? Math.round((zaehler / nenner) * 100) / 100 : null,",
+    replacement: "    { zeilen, summe: Math.round(zaehler * 100) / 100, teiler: nenner,\n      roh: nenner ? Math.round((zaehler / nenner) * 100) / 100 : null,",
     expected: 'Der Rechenweg reist mit'
   },
   {
@@ -2639,7 +2639,7 @@ const REGRESSIONS = [
     nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
     file: 'server.js',
     search: "'searchNames',\n                                'bellSeen', 'views', 'strip', 'theme'];",
-    ersatz: "'searchNames',\n                                'views', 'strip', 'theme'];",
+    replacement: "'searchNames',\n                                'views', 'strip', 'theme'];",
     expected: 'Persoenliche Einstellungen'
   },
   {
@@ -2649,7 +2649,7 @@ const REGRESSIONS = [
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
     file: 'public/app.js',
     search: "        ${BELL_SEEN ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
-    ersatz: "        ${true ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
+    replacement: "        ${true ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2661,7 +2661,7 @@ const REGRESSIONS = [
     nr: '285', name: 'Die Zahl der Kommentare steht auch ohne Bezugspunkt da',
     file: 'server.js',
     search: "    if (reference) it.newComments = newCommentsPer.get(it.id) || 0;",
-    ersatz: "    it.neuKommentare = newCommentsPer.get(it.id) || 0;",
+    replacement: "    it.neuKommentare = newCommentsPer.get(it.id) || 0;",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -2670,7 +2670,7 @@ const REGRESSIONS = [
     nr: '314', name: 'Die Verfasser stehen auch ohne Bezugspunkt an jedem Eintrag',
     file: 'server.js',
     search: "    if (reference) it.newFrom = [...(newFromPer.get(it.id) || [])].map(uid => authorFrom(card, uid));",
-    ersatz: "    it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(karte, uid));",
+    replacement: "    it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(karte, uid));",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -2688,21 +2688,21 @@ const REGRESSIONS = [
     nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare wieder mit',
     file: 'server.js',
     search: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
-    ersatz: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT NULL GROUP BY item_id, user_id`);",
+    replacement: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT NULL GROUP BY item_id, user_id`);",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
     nr: '287', name: 'Bewertungen ohne Zeitpunkt gelten wieder als neu',
     file: 'server.js',
     search: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0",
-    ersatz: "    WHERE IFNULL(set_at, '9999-12-31') > ? AND value > 0",
+    replacement: "    WHERE IFNULL(set_at, '9999-12-31') > ? AND value > 0",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
     nr: '288', name: 'Der Zeitpunkt zieht beim Ueberschreiben nicht mehr mit',
     file: 'server.js',
     search: "              DO UPDATE SET value = excluded.value, set_at = excluded.set_at`)",
-    ersatz: "              DO UPDATE SET value = excluded.value`)",
+    replacement: "              DO UPDATE SET value = excluded.value`)",
     expected: 'Die Bewertung traegt ihren Zeitpunkt'
   },
   {
@@ -2711,14 +2711,14 @@ const REGRESSIONS = [
     nr: '289', name: 'Der Punkt an der Glocke wird wieder eine Zahl',
     file: 'public/app.js',
     search: "  atElement('bell-dot', el => { el.hidden = !fresh; });",
-    ersatz: "  amElement('bell-dot', el => { el.textContent = String(neu); el.hidden = !neu; });",
+    replacement: "  amElement('bell-dot', el => { el.textContent = String(neu); el.hidden = !neu; });",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
     nr: '290', name: 'Der Zaehler „Offen" zeigt auch die Null',
     file: 'public/app.js',
     search: "    el.textContent = offen ? String(offen) : '';\n    el.hidden = !offen;",
-    ersatz: "    el.textContent = String(offen);\n    el.hidden = false;",
+    replacement: "    el.textContent = String(offen);\n    el.hidden = false;",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2730,7 +2730,7 @@ const REGRESSIONS = [
     nr: '291', name: 'Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach',
     file: 'public/app.js',
     search: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});",
-    ersatz: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  void 0;",
+    replacement: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  void 0;",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2739,28 +2739,28 @@ const REGRESSIONS = [
     nr: '292', name: 'Die Zeilen der Tafel fuehren nicht mehr zum Eintrag',
     file: 'public/app.js',
     search: "    a.href = `#/item/${it.id}`;\n    a.dataset.mid = String(it.id);",
-    ersatz: "    a.href = '#/';\n    a.dataset.mid = String(it.id);",
+    replacement: "    a.href = '#/';\n    a.dataset.mid = String(it.id);",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
     nr: '293', name: 'Die Kennzahlen nennen die Verfahren nicht mehr',
     file: 'server.js',
     search: "    method: { ...method(), passwoerter: 'scrypt' },",
-    ersatz: "",
+    replacement: "",
     expected: 'Der Versions-Fingerprint'
   },
   {
     nr: '294', name: 'Die Kennzahlen nennen zusaetzlich die Paketversion',
     file: 'server.js',
     search: "    method: { ...method(), passwoerter: 'scrypt' },",
-    ersatz: "    verfahren: { ...verfahren(), passwoerter: 'scrypt',\n      paket: require('./package.json').dependencies['better-sqlite3-multiple-ciphers'] },",
+    replacement: "    verfahren: { ...verfahren(), passwoerter: 'scrypt',\n      paket: require('./package.json').dependencies['better-sqlite3-multiple-ciphers'] },",
     expected: 'Der Versions-Fingerprint'
   },
   {
     nr: '295', name: 'Das Journal wird behauptet statt abgelesen',
     file: 'db.js',
     search: "    journal: String(db.pragma('journal_mode', { simple: true }) || '').toUpperCase()",
-    ersatz: "    journal: 'DELETE'",
+    replacement: "    journal: 'DELETE'",
     expected: 'Der Versions-Fingerprint'
   },
   {
@@ -2768,21 +2768,21 @@ const REGRESSIONS = [
     nr: '296', name: 'Der Papierkorb loescht wieder ohne Rueckfrage',
     file: 'public/app.js',
     search: "    if (!await confirmBox(t('entry.deleteWordAsk', { wort: wort }), t('entry.deleteHint', { wort: wort }))) return false;",
-    ersatz: "    if (false) return false;",
+    replacement: "    if (false) return false;",
     expected: 'Der Papierkorb im Vollbild'
   },
   {
     nr: '297', name: 'Das Vollbild bekommt seinen Papierkorb nicht',
     file: 'public/app.js',
     search: "        ${remove ? `<button class=\"lb-btn remove\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
-    ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
+    replacement: "    ${false ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
     expected: 'Der Papierkorb im Vollbild'
   },
   {
     nr: '298', name: 'Der Vorschaustreifen im Vollbild zieht nach dem Loeschen nicht nach',
     file: 'public/app.js',
     search: "    buildStrip();\n    show();",
-    ersatz: "    show();",
+    replacement: "    show();",
     expected: 'Der Papierkorb im Vollbild'
   },
   {
@@ -2790,15 +2790,15 @@ const REGRESSIONS = [
        ALS KEINES (Stolperstein 213). */
     nr: '299', name: 'Die Groessenmessung findet gar nichts mehr',
     file: 'testbench.js',
-    search: "    return gefunden.sort((a, b) => b.rows - a.rows || a.name.localeCompare(b.name));",
-    ersatz: "    return [];",
+    search: "    return found.sort((a, b) => b.rows - a.rows || a.name.localeCompare(b.name));",
+    replacement: "    return [];",
     expected: 'Die Groesse der Funktionen wird gemessen'
   },
   {
     nr: '300', name: 'Der Nummernfilter der Gegenprobe greift wieder in die Namen',
     file: 'counterproof.js',
     search: "  if (/^\\d+$/.test(a)) return r.nr.toLowerCase() === a;",
-    ersatz: "  if (false) return r.nr.toLowerCase() === a;",
+    replacement: "  if (false) return r.nr.toLowerCase() === a;",
     expected: 'Die Gegenproben greifen'
   },
 
@@ -2809,7 +2809,7 @@ const REGRESSIONS = [
     nr: '301', name: 'Die Spaltenzahl folgt dem Zustand nicht mehr',
     file: 'public/app.js',
     search: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
-    ersatz: "    box.className = 'rlist';",
+    replacement: "    box.className = 'rlist';",
     expected: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
   {
@@ -2819,7 +2819,7 @@ const REGRESSIONS = [
     nr: '302', name: 'Die Regel fuer den einen Zugang faellt aus dem Stilblatt',
     file: 'public/style.css',
     search: ".rlist.no-average { grid-template-columns: 1fr auto auto; }",
-    ersatz: "",
+    replacement: "",
     expected: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
 
@@ -2830,7 +2830,7 @@ const REGRESSIONS = [
     nr: '303', name: 'Die Anmeldeseite misst die Hoehe wieder in vh',
     file: 'public/style.css',
     search: "body.login { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }",
-    ersatz: "body.login { display: flex; flex-direction: column; min-height: 100vh; }",
+    replacement: "body.login { display: flex; flex-direction: column; min-height: 100vh; }",
     expected: 'Zwei Masse vom echten Geraet — 0.17.0'
   },
   {
@@ -2839,7 +2839,7 @@ const REGRESSIONS = [
     nr: '304', name: 'Der Rueckfall 100vh steht hinter dem dvh statt davor',
     file: 'public/style.css',
     search: "  min-height: 100vh; min-height: 100dvh;",
-    ersatz: "  min-height: 100dvh; min-height: 100vh;",
+    replacement: "  min-height: 100dvh; min-height: 100vh;",
     expected: 'Zwei Masse vom echten Geraet — 0.17.0'
   },
   {
@@ -2856,7 +2856,7 @@ const REGRESSIONS = [
        nicht mehr am Umbruch, sondern an der nachgebenden Namensspalte. */
     search: `.mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; column-gap: 9px; row-gap: 2px; }`,
-    ersatz: ".mrow.sitz { display: grid; grid-template-columns: max-content auto; }",
+    replacement: ".mrow.sitz { display: grid; grid-template-columns: max-content auto; }",
     expected: 'Zwei Masse vom echten Geraet — 0.17.0'
   },
   {
@@ -2864,7 +2864,7 @@ const REGRESSIONS = [
     nr: '306', name: 'Die Karte „Mailversand" verliert ihre Breite wieder',
     file: 'public/app.js',
     search: "  return `<div class=\"sys-card wide\">\n        <h3>${tH('card.mailDelivery')}</h3>",
-    ersatz: "  return `<div class=\"sys-card\">\n        <h3>${tH('card.mailDelivery')}</h3>",
+    replacement: "  return `<div class=\"sys-card\">\n        <h3>${tH('card.mailDelivery')}</h3>",
     expected: 'Der Systembereich nach Rolle'
   },
   {
@@ -2875,7 +2875,7 @@ const REGRESSIONS = [
     nr: '307', name: 'Aus den Rasterzellen wird wieder eine eigene Zeile',
     file: 'public/style.css',
     search: ".rrow { display: contents; }",
-    ersatz: ".rrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }",
+    replacement: ".rrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }",
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
 
@@ -2886,7 +2886,7 @@ const REGRESSIONS = [
     nr: '308', name: 'Die Vergleichszahl faellt aus dem Rechenweg',
     file: 'server.js',
     search: "      equalSum: sameCounter, equalDivisor: rows.length,",
-    ersatz: "      gleichSumme: 0, gleichTeiler: 0,",
+    replacement: "      gleichSumme: 0, gleichTeiler: 0,",
     expected: 'Der Rechenweg reist mit'
   },
   {
@@ -2895,7 +2895,7 @@ const REGRESSIONS = [
     nr: '309', name: 'Die Vergleichszahl rechnet die Gewichte doch wieder ein',
     file: 'server.js',
     search: "    sameCounter += z.average;",
-    ersatz: "    sameCounter += produkt;",
+    replacement: "    sameCounter += produkt;",
     expected: 'Der Rechenweg reist mit'
   },
   {
@@ -2903,7 +2903,7 @@ const REGRESSIONS = [
     nr: '310', name: 'Die Vergleichszahl wird ungerundet ausgeliefert',
     file: 'server.js',
     search: "      equalResult: rows.length\n        ? Math.round((sameCounter / rows.length) * 10) / 10 : null });",
-    ersatz: "      gleichErgebnis: zeilen.length ? sameCounter / zeilen.length : null });",
+    replacement: "      gleichErgebnis: zeilen.length ? sameCounter / zeilen.length : null });",
     expected: 'Der Rechenweg reist mit'
   },
   {
@@ -2911,7 +2911,7 @@ const REGRESSIONS = [
     nr: '311', name: 'Der Erklaerkasten laesst die Vergleichszahl weg',
     file: 'public/app.js',
     search: "        ${withWeight ? `<div class=\"calc-row calc-same\"><span>${tH('entry.calcNoWeights')}</span>",
-    ersatz: "        ${false ? `<div class=\"rz calc-same\"><span>${tH('entry.calcNoWeights')}</span>",
+    replacement: "        ${false ? `<div class=\"rz calc-same\"><span>${tH('entry.calcNoWeights')}</span>",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -2920,7 +2920,7 @@ const REGRESSIONS = [
     nr: '312', name: 'Die Vergleichszahl steht auch ohne jede Gewichtung da',
     file: 'public/app.js',
     search: "    const sameNumber = Number(weg.equalResult) === Number(weg.result);",
-    ersatz: "    const gleicheZahl = false;",
+    replacement: "    const gleicheZahl = false;",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
@@ -2929,7 +2929,7 @@ const REGRESSIONS = [
     nr: '313', name: 'Der Kasten rechnet die Vergleichszahl selbst nach',
     file: 'public/app.js',
     search: "          <span id=\"calc-same\">⌀ ${esc(weightNumber(weg.equalResult))}</span></div>` : ''}",
-    ersatz: "          <span id=\"calc-same\">⌀ ${esc(gewZahl(Math.round((weg.zeilen.reduce((n, z) => n + z.schnitt, 0) / weg.zeilen.length) * 10) / 10))}</span></div>` : ''}",
+    replacement: "          <span id=\"calc-same\">⌀ ${esc(gewZahl(Math.round((weg.zeilen.reduce((n, z) => n + z.schnitt, 0) / weg.zeilen.length) * 10) / 10))}</span></div>` : ''}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
 
@@ -2940,7 +2940,7 @@ const REGRESSIONS = [
     nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
     file: 'public/app.js',
     search: "  return [k ? t('list.commentCount', { n: k }) : '',\n          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
-    ersatz: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
+    replacement: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2949,7 +2949,7 @@ const REGRESSIONS = [
     nr: '316', name: 'Die Tafel schreibt auch die Null hin',
     file: 'public/app.js',
     search: "b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
-    ersatz: "`${b} ${vBewertung(b)}`].join(' · ');",
+    replacement: "`${b} ${vBewertung(b)}`].join(' · ');",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2957,7 +2957,7 @@ const REGRESSIONS = [
     nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
     file: 'public/languages/de.json',
     search: "\"list.commentCount\": {\n    \"eins\": \"{n} Kommentar\",",
-    ersatz: "\"list.commentCount\": {\n    \"eins\": \"{n} Kommentare\",",
+    replacement: "\"list.commentCount\": {\n    \"eins\": \"{n} Kommentare\",",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2966,7 +2966,7 @@ const REGRESSIONS = [
     nr: '318', name: 'Der Server legt beide Zahlen wieder in eine Kiste',
     file: 'server.js',
     search: "      newRatingsPer.set(z.item_id, (newRatingsPer.get(z.item_id) || 0) + z.n);",
-    ersatz: "      newCommentsPer.set(z.item_id, (newCommentsPer.get(z.item_id) || 0) + z.n);",
+    replacement: "      newCommentsPer.set(z.item_id, (newCommentsPer.get(z.item_id) || 0) + z.n);",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -2976,7 +2976,7 @@ const REGRESSIONS = [
     nr: '319', name: 'Die Tafel ordnet nach den Kommentaren statt nach der Summe',
     file: 'public/app.js',
     search: "    .slice().sort((a, b) => (freshCount(b) - freshCount(a)) || String(a.title).localeCompare(String(b.title), LOCALE));",
-    ersatz: "    .slice().sort((a, b) => ((b.neuKommentare || 0) - (a.neuKommentare || 0)) || String(a.title).localeCompare(String(b.title), LOCALE));",
+    replacement: "    .slice().sort((a, b) => ((b.neuKommentare || 0) - (a.neuKommentare || 0)) || String(a.title).localeCompare(String(b.title), LOCALE));",
     expected: 'Die Glocke in der Kopfzeile'
   },
 
@@ -2987,7 +2987,7 @@ const REGRESSIONS = [
     nr: '320', name: 'Die Tafel sagt nicht mehr, von wem etwas kommt',
     file: 'public/app.js',
     search: "    a.querySelector('.bell-from').textContent = newFromWords(it);",
-    ersatz: "    a.querySelector('.bell-from').textContent = '';",
+    replacement: "    a.querySelector('.bell-from').textContent = '';",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3001,7 +3001,7 @@ const REGRESSIONS = [
     nr: '321', name: 'Die Abfrage gruppiert nicht mehr nach Verfasser',
     file: 'server.js',
     search: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
-    ersatz: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id`);",
+    replacement: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id`);",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -3010,7 +3010,7 @@ const REGRESSIONS = [
     nr: '322', name: 'Die Namen werden mit Kommas bis zum Schluss aufgezaehlt',
     file: 'public/app.js',
     search: "  const letzter = namen[namen.length - 1], vorne = namen.slice(0, -1).join(', ');\n  return t('list.byNames',\n    { namen: vorne ? t('list.namesAndLast', { vorne: vorne, letzter: letzter }) : letzter });",
-    ersatz: "  return t('list.byNames', { namen: namen.join(', ') });",
+    replacement: "  return t('list.byNames', { namen: namen.join(', ') });",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3019,7 +3019,7 @@ const REGRESSIONS = [
     nr: '323', name: 'Der Schluessel der gestrichenen Pille bleibt in der Stellung stehen',
     file: 'public/app.js',
     search: "  delete f.fresh;\n  return f;",
-    ersatz: "  return f;",
+    replacement: "  return f;",
     expected: 'Die gestrichene Pille „Neu seit …" — 0.17.0'
   },
   {
@@ -3029,7 +3029,7 @@ const REGRESSIONS = [
     nr: '324', name: 'Der Bezugspunkt faellt bei jedem Verlassen der Uebersicht',
     file: 'public/app.js',
     search: "  if (BELL_SEEN) return;\n  BELL_SEEN = true;",
-    ersatz: "  BELL_SEEN = true;",
+    replacement: "  BELL_SEEN = true;",
     expected: 'Der Bezugspunkt der Glocke in der Oberflaeche'
   },
   {
@@ -3038,7 +3038,7 @@ const REGRESSIONS = [
     nr: '325', name: 'Die Zeile der Glockentafel bricht nicht mehr um',
     file: 'public/style.css',
     search: ".mrow.bell-row { flex-wrap: wrap; row-gap: 2px; }",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3046,7 +3046,7 @@ const REGRESSIONS = [
     nr: '326', name: 'Die Angabe „von wem" bekommt keine eigene Zeile',
     file: 'public/style.css',
     search: ".bell-row .bell-from { flex-basis: 100%; font-size: .76rem; color: var(--faint); }",
-    ersatz: ".bell-row .bell-from { font-size: .76rem; color: var(--faint); }",
+    replacement: ".bell-row .bell-from { font-size: .76rem; color: var(--faint); }",
     expected: 'Die Glocke in der Kopfzeile'
   },
 
@@ -3059,14 +3059,14 @@ const REGRESSIONS = [
     nr: '327', name: 'Die Kennzahlen begruenden den Vorbehalt wieder an der Oberflaeche',
     file: 'public/app.js',
     search: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.method.passwoerter || '—')}</span></div>` : ''}",
-    ersatz: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>\n        <p class=\"desc\" style=\"margin:10px 0 0\"><strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
+    replacement: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>\n        <p class=\"desc\" style=\"margin:10px 0 0\"><strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
     expected: 'Der Papierkorb in der Oberflaeche'
   },
   {
     nr: '328', name: 'Die Glockentafel begruendet sich wieder selbst',
     file: 'public/app.js',
     search: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <div class=\"modal-acts\">",
-    ersatz: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <p class=\"hint hint-sm\" style=\"margin:2px 0 0\"><strong>Was die Glocke nicht verspricht:</strong>\n      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.</p>\n    <div class=\"modal-acts\">",
+    replacement: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <p class=\"hint hint-sm\" style=\"margin:2px 0 0\"><strong>Was die Glocke nicht verspricht:</strong>\n      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.</p>\n    <div class=\"modal-acts\">",
     expected: 'Die Glocke in der Kopfzeile'
   },
   /* DIE GEGENRICHTUNG ZU 301. Dort faellt die KLASSE weg und das Raster bleibt
@@ -3078,7 +3078,7 @@ const REGRESSIONS = [
     nr: '329', name: 'Die Durchschnittszelle haengt nicht mehr an derselben Bedingung',
     file: 'public/app.js',
     search: "      if (withAverage) {",
-    ersatz: "      if (true) {",
+    replacement: "      if (true) {",
     expected: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
   /* DER SATZ ZEIGT WIEDER AUS DEM KASTEN HINAUS -- auf die Durchschnittsspalte
@@ -3092,7 +3092,7 @@ const REGRESSIONS = [
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     file: 'public/app.js',
     search: "${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}",
-    ersatz: "${tH('entry.calcFirstAvg')}${tH('entry.calcThenAvg')}",
+    replacement: "${tH('entry.calcFirstAvg')}${tH('entry.calcThenAvg')}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
@@ -3104,7 +3104,7 @@ const REGRESSIONS = [
     nr: '331', name: 'Das Raster des Erklaerkastens verliert eine Spalte',
     file: 'public/style.css',
     search: ".calc { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }",
-    ersatz: ".rechnung { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; }",
+    replacement: ".rechnung { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; }",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIE REGEL, DIE DIE VERGLEICHSZAHL UNTERORDNET. Ihr Kommentar macht vier
@@ -3113,14 +3113,14 @@ const REGRESSIONS = [
     nr: '332', name: 'Die Vergleichszeile wird dem Ergebnis gleichgestellt',
     file: 'public/style.css',
     search: ".calc-same > span { color: var(--muted); border-bottom: 0; border-top: 1px solid var(--line-2); }",
-    ersatz: ".calc-same > span { font-weight: 640; color: #8a8a8a; border-bottom: 0; }",
+    replacement: ".calc-same > span { font-weight: 640; color: #8a8a8a; border-bottom: 0; }",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '333', name: 'Die Vergleichszeile bekommt eine Zelle zu wenig',
     file: 'public/app.js',
     search: "          <span></span><span></span>\n          <span id=\"calc-same\">",
-    ersatz: "          <span></span>\n          <span id=\"calc-same\">",
+    replacement: "          <span></span>\n          <span id=\"calc-same\">",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
 
@@ -3129,35 +3129,35 @@ const REGRESSIONS = [
     nr: '334', name: 'Die Marke am Adressfeld behauptet wieder immer „freiwillig"',
     file: 'public/app.js',
     search: "        <div class=\"field\"><label>${tH('login.email')} <span class=\"hint\">${\n          SIGNUP ? t('card.required') : t('card.optional')}</span></label>",
-    ersatz: "        <div class=\"field\"><label>${tH('login.email')} <span class=\"hint\">${t('card.optional')}</span></label>",
+    replacement: "        <div class=\"field\"><label>${tH('login.email')} <span class=\"hint\">${t('card.optional')}</span></label>",
     expected: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
     nr: '335', name: 'Der Absatz richtet sich nicht mehr nach der Selbstanmeldung',
     file: 'public/app.js',
     search: "        <p class=\"desc\" style=\"margin:0 0 10px\">${SIGNUP",
-    ersatz: "        <p class=\"desc\" style=\"margin:0 0 10px\">${false",
+    replacement: "        <p class=\"desc\" style=\"margin:0 0 10px\">${false",
     expected: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
     nr: '336', name: 'Der Merker der Selbstanmeldung bleibt beim Umlegen stehen',
     file: 'public/app.js',
     search: "      SIGNUP = !!d.an;\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
     nr: '337', name: 'Der Wirtsbefehl steht wieder bei jedem',
     file: 'public/app.js',
     search: "function serverBox(sentence, command) {\n  if (!OWNER) return '';",
-    ersatz: "function serverKasten(satz, befehl) {\n  if (false) return '';",
+    replacement: "function serverKasten(satz, befehl) {\n  if (false) return '';",
     expected: 'Der Systembereich nach Rolle'
   },
   {
     nr: '338', name: 'Die Laengenvorgabe faellt vom Passwortfeld weg',
     file: 'public/app.js',
     search: "        <div class=\"field\"><label>${tH('dialog.newPassword')}\n          <span class=\"hint\">${tH('card.minCharsHint', { minPasswort: MIN_PASSWORD })}</span></label>",
-    ersatz: "        <div class=\"field\"><label>${tH('dialog.newPassword')}</label>",
+    replacement: "        <div class=\"field\"><label>${tH('dialog.newPassword')}</label>",
     expected: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
@@ -3165,28 +3165,28 @@ const REGRESSIONS = [
     file: 'public/style.css',
     search: `.manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }`,
-    ersatz: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
+    replacement: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
     file: 'public/style.css',
     search: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
-    ersatz: ".log-list { flex: 0 1 auto; max-height: 35rem;",
+    replacement: ".log-list { flex: 0 1 auto; max-height: 35rem;",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '341', name: 'Die Kachel ist wieder keine Spalte',
     file: 'public/style.css',
     search: "padding: 18px 20px 20px;\n  display: flex; flex-direction: column; }",
-    ersatz: "padding: 18px 20px 20px; }",
+    replacement: "padding: 18px 20px 20px; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '342', name: 'Der Knopf in der Kachel wird wieder ueber die volle Breite gezogen',
     file: 'public/style.css',
     search: ".sys-card > .btn { align-self: flex-start; }",
-    ersatz: "",
+    replacement: "",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
@@ -3195,21 +3195,21 @@ const REGRESSIONS = [
     nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
     file: 'public/app.js',
     search: "  { key: 'installation', name: () => t('card.installation') }",
-    ersatz: "  { schluessel: 'installation', name: () => 'Anlage' }",
+    replacement: "  { schluessel: 'installation', name: () => 'Anlage' }",
     expected: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
   {
     nr: '348', name: 'Die Zeitangaben stehen wieder linksbuendig',
     file: 'public/style.css',
     search: ".mrow.session .session-time { grid-column: 1 / -1; justify-self: end; text-align: right; }",
-    ersatz: ".mrow.sitz .session-time { grid-column: 1 / -1; }",
+    replacement: ".mrow.sitz .session-time { grid-column: 1 / -1; }",
     expected: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
     nr: '349', name: 'Der Name teilt seine Reihe wieder mit den Zeiten',
     file: 'public/style.css',
     search: ".mrow.session .mname { grid-column: 1; grid-row: 1; }",
-    ersatz: ".mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 3; }",
+    replacement: ".mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 3; }",
     expected: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
@@ -3217,28 +3217,28 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "      handover = { source, position: el.currentTime || 0, lief: !el.paused, offen: true };\n" +
            "      el.pause();\n      el.removeAttribute('src');\n      el.load();",
-    ersatz: "      el.pause();",
+    replacement: "      el.pause();",
     expected: 'Genau ein Abspieler laeuft — 0.17.1'
   },
   {
     nr: '351', name: 'Die uebernommene Stelle wird nicht gesetzt',
     file: 'public/app.js',
     search: "        player.currentTime = handover.position;\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Genau ein Abspieler laeuft — 0.17.1'
   },
   {
     nr: '352', name: 'Der Rueckweg beim Schliessen faellt weg',
     file: 'public/app.js',
     search: "    hold();\n    restore();\n    lightboxOpen = false;",
-    ersatz: "    halteAn();\n    lightboxOpen = false;",
+    replacement: "    halteAn();\n    lightboxOpen = false;",
     expected: 'Genau ein Abspieler laeuft — 0.17.1'
   },
   {
     nr: '353', name: 'Die geloeschte Quelle wandert wieder zurueck',
     file: 'public/app.js',
     search: "    if (handover && imageSource(weg, '') === handover.source) handover = null;\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Genau ein Abspieler laeuft — 0.17.1'
   },
 
@@ -3247,21 +3247,21 @@ const REGRESSIONS = [
     nr: '354', name: 'Das Raster der Sitzungszeile bekommt seine dritte Spalte zurueck',
     file: 'public/style.css',
     search: ".mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;",
-    ersatz: ".mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;",
+    replacement: ".mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;",
     expected: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
     nr: '355', name: 'Die Liste fordert wieder so viele Zeilen, wie sie hat',
     file: 'public/style.css',
     search: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;",
-    ersatz: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: none;",
+    replacement: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: none;",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '356', name: 'Das Sicherheitsprotokoll fordert wieder alle seine Zeilen',
     file: 'public/style.css',
     search: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;\n",
-    ersatz: ".log-list { flex: 0 1 auto; min-height: 0; max-height: none;\n",
+    replacement: ".log-list { flex: 0 1 auto; min-height: 0; max-height: none;\n",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
@@ -3269,49 +3269,49 @@ const REGRESSIONS = [
     file: 'public/style.css',
     search: "  .manage-list, .log-list, .test-scroll, .atext, #ex-part-list {\n" +
            "    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }",
-    ersatz: "",
+    replacement: "",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
     file: 'public/languages/de.json',
     search: "\"card.mailTimeoutHint\": \". Antwortet der Mailserver nicht, bricht der",
-    ersatz: "\"card.mailTimeoutHint\": \" — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
+    replacement: "\"card.mailTimeoutHint\": \" — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
     expected: 'Die Karte „Mailversand“'
   },
   {
     nr: '364', name: 'Die Klammer steht wieder auch bei einer einzigen Stimme',
     file: 'public/app.js',
     search: "          a.textContent = r.count > 1 ? `⌀ ${average} (${r.count})` : `⌀ ${average}`;",
-    ersatz: "          a.textContent = `⌀ ${schnitt} (${r.count})`;",
+    replacement: "          a.textContent = `⌀ ${schnitt} (${r.count})`;",
     expected: 'Die Klammer steht erst ab zwei Stimmen — 0.17.2'
   },
   {
     nr: '365', name: 'Die Glocke meldet wieder die eigenen Kommentare',
     file: 'server.js',
     search: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
-    ersatz: "    WHERE created_at > ? AND (user_id IS NOT ? OR 1) GROUP BY item_id, user_id`);",
+    replacement: "    WHERE created_at > ? AND (user_id IS NOT ? OR 1) GROUP BY item_id, user_id`);",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
     nr: '366', name: 'Die Glocke meldet wieder die eigenen Bewertungen',
     file: 'server.js',
     search: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND user_id IS NOT ?",
-    ersatz: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND (user_id IS NOT ? OR 1)",
+    replacement: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND (user_id IS NOT ? OR 1)",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
     nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
     file: 'public/app.js',
     search: "    <p>${tH('list.newCommentsAnd')} <strong>${tH('list.otherUser')}</strong>${tH('list.sinceLastVisit')}</p>",
-    ersatz: "    <p>${tH('list.newCommentsAnd')}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
+    replacement: "    <p>${tH('list.newCommentsAnd')}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
     nr: '368', name: 'Die README erzaehlt wieder, seit wann etwas gilt',
     file: 'README.md',
     search: "**Über der Liste steht eine Reihe von Ansichten**",
-    ersatz: "**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**",
+    replacement: "**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**",
     expected: 'Der Sprachwaechter'
   },
 
@@ -3320,133 +3320,133 @@ const REGRESSIONS = [
     nr: '369', name: 'Das Kachelraster streckt seine Kinder wieder nicht',
     file: 'public/style.css',
     search: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; }",
-    ersatz: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; align-items: start; }",
+    replacement: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; align-items: start; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '370', name: 'Die Liste fordert wieder zwoelf Zeilen',
     file: 'public/style.css',
     search: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;\n",
-    ersatz: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 33.5rem;\n",
+    replacement: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 33.5rem;\n",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '371', name: 'Das Sicherheitsprotokoll deckelt wieder bei zehn Zeilen',
     file: 'public/style.css',
     search: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
-    ersatz: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 23.3rem;",
+    replacement: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 23.3rem;",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '372', name: 'Die Karte bekommt ihre Passwortzeile zurueck',
     file: 'public/app.js',
     search: "        <div class=\"kv\"><span class=\"k\">${tH('card.provider')}</span>",
-    ersatz: "        <div class=\"kv\"><span class=\"k\">Passwort</span><span class=\"v\">${mailstand.passwortGesetzt\n          ? 'gesetzt' : 'nicht gesetzt'}</span></div>\n        <div class=\"kv\"><span class=\"k\">${tH('card.provider')}</span>",
+    replacement: "        <div class=\"kv\"><span class=\"k\">Passwort</span><span class=\"v\">${mailstand.passwortGesetzt\n          ? 'gesetzt' : 'nicht gesetzt'}</span></div>\n        <div class=\"kv\"><span class=\"k\">${tH('card.provider')}</span>",
     expected: 'Die Karte „Mailversand“'
   },
   {
     nr: '373', name: 'Die Anbieterzeile nennt wieder nur den Namen',
     file: 'public/app.js',
     search: "  const parts = [esc(m.providerName || m.provider)];\n  if (m.server && m.port) {",
-    ersatz: "  const teile = [esc(m.anbieterName || m.anbieter)];\n  if (false) {",
+    replacement: "  const teile = [esc(m.anbieterName || m.anbieter)];\n  if (false) {",
     expected: 'Die Karte „Mailversand“'
   },
   {
     nr: '374', name: 'Der Knopf heisst wieder „Mailzugang speichern"',
     file: 'public/app.js',
     search: "id=\"mail-setup\">${tH('card.mailAccount')} ${\n            mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</button>",
-    ersatz: "id=\"mail-setup\">${tH('card.mailAccount')} speichern</button>",
+    replacement: "id=\"mail-setup\">${tH('card.mailAccount')} speichern</button>",
     expected: 'Die Karte „Mailversand“'
   },
   {
     nr: '375', name: 'Der Anbieterhinweis wechselt nicht mehr mit der Auswahl',
     file: 'public/app.js',
     search: "      hint.textContent = v && v.hint ? v.hint : '';",
-    ersatz: "      hinweis.textContent = mailstand.hinweis || '';",
+    replacement: "      hinweis.textContent = mailstand.hinweis || '';",
     expected: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '376', name: 'Die gelesene Zeile steht auch bei „Eigener Server"',
     file: 'public/app.js',
     search: "      fixedField.hidden = !v || own;",
-    ersatz: "      fixedField.hidden = !v;",
+    replacement: "      fixedField.hidden = !v;",
     expected: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '377', name: 'Der Dialog kuerzt die zweite Bestaetigung ab',
     file: 'public/app.js',
     search: "      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),\n        t('card.mailServerHint') +\n        t('card.toSetPassword'))) return;\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '378', name: 'Die Anbieterliste kommt wieder ohne Hinweise und feste Werte',
     file: 'server.js',
     search: "    providerList: mail.forChoice().map(a =>\n      ({ ...a, hint: a.hint ? t(localeOf(req), a.hint) : '' })),",
-    ersatz: "    anbieterListe: mail.PROVIDERS.map(a => ({ schluessel: a.schluessel, name: a.name })),",
+    replacement: "    anbieterListe: mail.PROVIDERS.map(a => ({ schluessel: a.schluessel, name: a.name })),",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '379', name: 'Der Hinweis rueckt nicht mehr an seine Sache heran',
     file: 'public/style.css',
     search: ".mail-hint { margin: -7px 0 0; }",
-    ersatz: ".mail-hint { margin: 0; }",
+    replacement: ".mail-hint { margin: 0; }",
     expected: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '380', name: 'Die Felder im Dialog tragen wieder ihren zweiten Abstand',
     file: 'public/style.css',
     search: ".mail-dialog .field { margin-bottom: 0; }",
-    ersatz: ".mail-dialog .field { margin-bottom: 14px; }",
+    replacement: ".mail-dialog .field { margin-bottom: 14px; }",
     expected: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '381', name: 'Die Zeilen der Rechnung ruecken wieder auseinander',
     file: 'public/style.css',
     search: ".calc-row > span { padding: 3px 0;",
-    ersatz: ".rz > span { padding: 6px 0;",
+    replacement: ".rz > span { padding: 6px 0;",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '382', name: 'Der Erklaerkasten wird wieder schmal',
     file: 'public/style.css',
     search: ".calc-modal { max-width: 620px; }",
-    ersatz: ".calc-modal { max-width: 540px; }",
+    replacement: ".calc-modal { max-width: 540px; }",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '383', name: 'Die ausgeschriebene Rechnung steht wieder unter der Tabelle',
     file: 'public/app.js',
     search: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')}",
-    ersatz: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')} ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))}",
+    replacement: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')} ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '384', name: 'Der Filterruecksetzer steht immer da',
     file: 'public/app.js',
     search: "  const filterGesetzt = filterNumber();\n  if (filterGesetzt) {",
-    ersatz: "  const filterGesetzt = filterNumber();\n  if (true) {",
+    replacement: "  const filterGesetzt = filterNumber();\n  if (true) {",
     expected: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
   {
     nr: '385', name: 'Der Filterruecksetzer nennt seine Zahl nicht mehr',
     file: 'public/app.js',
     search: "    bBack.textContent = t('list.resetFilters', { filterGesetzt: filterGesetzt });",
-    ersatz: "    bZurueck.textContent = 'Filter zurücksetzen';",
+    replacement: "    bZurueck.textContent = 'Filter zurücksetzen';",
     expected: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
   {
     nr: '386', name: 'Der Filterruecksetzer raeumt die Sortierung mit',
     file: 'public/app.js',
     search: "      state.filters = filterNormal({ sort: state.filters.sort });",
-    ersatz: "      state.filters = filterNormal({});",
+    replacement: "      state.filters = filterNormal({});",
     expected: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
   {
     nr: '387', name: 'Der Filterruecksetzer raeumt die Suche mit',
     file: 'public/app.js',
     search: "      redraw();\n    };\n    right5.appendChild(bBack);",
-    ersatz: "      const qf = document.getElementById('q'); if (qf) qf.value = '';\n" +
+    replacement: "      const qf = document.getElementById('q'); if (qf) qf.value = '';\n" +
             "      redraw();\n    };\n    rechts5.appendChild(bZurueck);",
     expected: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
@@ -3454,7 +3454,7 @@ const REGRESSIONS = [
     nr: '388', name: 'Der Filterruecksetzer steht nicht mehr am rechten Rand',
     file: 'public/style.css',
     search: ".frow-right-wide { margin-left: auto; }",
-    ersatz: ".frow-right-wide { margin-right: 0; }",
+    replacement: ".frow-right-wide { margin-right: 0; }",
     expected: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
 
@@ -3463,35 +3463,35 @@ const REGRESSIONS = [
     nr: '389', name: 'Die leere Bedienliste wird wieder eine Zeile hoch',
     file: 'public/style.css',
     search: ".manage-list > .hint { min-height: 5.59rem; padding: 0 9px; }",
-    ersatz: ".manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }",
+    replacement: ".manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '392', name: 'Das leere Protokoll wird wieder eine Zeile hoch',
     file: 'public/style.css',
     search: ".log-list > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }",
-    ersatz: ".log-list > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }",
+    replacement: ".log-list > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '393', name: 'Die leere Meldung traegt die Vorgabemarge wieder mit',
     file: 'public/style.css',
     search: "  display: flex; align-items: center; margin: 0; }\n.manage-list > .hint {",
-    ersatz: "  display: flex; align-items: center; }\n.manage-list > .hint {",
+    replacement: "  display: flex; align-items: center; }\n.manage-list > .hint {",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '390', name: 'Die Liste im Fenster bekommt den Deckel wieder',
     file: 'public/style.css',
     search: ".modal .manage-list { max-height: none; }",
-    ersatz: ".modal .manage-list { max-height: 27.95rem; }",
+    replacement: ".modal .manage-list { max-height: 27.95rem; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '391', name: 'Die Liste haengt wieder am Schluesselwort',
     file: 'public/style.css',
     search: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;",
-    ersatz: ".manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;",
+    replacement: ".manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
 
@@ -3500,28 +3500,28 @@ const REGRESSIONS = [
     nr: '394', name: 'Die Spalten gehoeren wieder der Zeile',
     file: 'public/style.css',
     search: "  display: grid; grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }",
-    ersatz: "  grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }",
+    replacement: "  grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '395', name: 'Die Zeile wird wieder ein eigener Kasten',
     file: 'public/style.css',
     search: ".log-row { display: contents; }",
-    ersatz: ".log-row { display: block; }",
+    replacement: ".log-row { display: block; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '396', name: 'Die Felder richten sich wieder an der Schriftlinie aus',
     file: 'public/style.css',
     search: "  font-size: .86rem; align-self: end; }",
-    ersatz: "  font-size: .86rem; align-self: baseline; }",
+    replacement: "  font-size: .86rem; align-self: baseline; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '397', name: 'Auf dem Telefon bleibt die Liste ein Raster',
     file: 'public/style.css',
     search: "  .log-list { display: block; }\n  .log-row { display: grid;",
-    ersatz: "  .log-row { display: grid;",
+    replacement: "  .log-row { display: grid;",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
 
@@ -3530,7 +3530,7 @@ const REGRESSIONS = [
     nr: '398', name: 'Der Trefferkontext faellt ganz aus der Antwort',
     file: 'server.js',
     search: "    if (term) it.fundstelle = hits.get(it.id);",
-    ersatz: "    if (false) it.fundstelle = fundstellen.get(it.id);",
+    replacement: "    if (false) it.fundstelle = fundstellen.get(it.id);",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
@@ -3546,14 +3546,14 @@ const REGRESSIONS = [
     nr: '399', name: 'Der Trefferkontext steht auch ohne Suche in der Antwort',
     file: 'server.js',
     search: "    if (term) it.fundstelle = hits.get(it.id);",
-    ersatz: "    it.fundstelle = fundstellen.get(it.id) || null;",
+    replacement: "    it.fundstelle = fundstellen.get(it.id) || null;",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '400', name: 'Der Ausschnitt wird vorn geschnitten statt an der Fundstelle',
     file: 'server.js',
     search: "const SNIPPET_LEAD = 4;",
-    ersatz: "const SNIPPET_LEAD = 1000;",
+    replacement: "const SNIPPET_LEAD = 1000;",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
@@ -3563,28 +3563,28 @@ const REGRESSIONS = [
     nr: '401', name: 'Der Ausschnitt beginnt genau bei der Fundstelle',
     file: 'server.js',
     search: "const SNIPPET_LEAD = 4;",
-    ersatz: "const SNIPPET_LEAD = 0;",
+    replacement: "const SNIPPET_LEAD = 0;",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '402', name: 'Der Ausschnitt wird nicht mehr eingeebnet',
     file: 'server.js',
     search: "const oneLine = (s) => String(s ?? '').replace(/\\s+/g, ' ').trim();",
-    ersatz: "const oneLine = (s) => String(s ?? '');",
+    replacement: "const oneLine = (s) => String(s ?? '');",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '403', name: 'Der Ausschnitt wird gar nicht mehr gekuerzt',
     file: 'server.js',
     search: "const SNIPPET_LENGTH = 56;",
-    ersatz: "const SNIPPET_LENGTH = 100000;",
+    replacement: "const SNIPPET_LENGTH = 100000;",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '404', name: 'Die Zahl der weiteren Stellen ist immer null',
     file: 'server.js',
     search: "    weitere: hit.length - 1",
-    ersatz: "    weitere: 0",
+    replacement: "    weitere: 0",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
@@ -3593,7 +3593,7 @@ const REGRESSIONS = [
     nr: '405', name: 'Die Folge der Quellen kehrt sich um',
     file: 'server.js',
     search: "  const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.key] != null);",
-    ersatz: "  const getroffen = [...FULLTEXT_SOURCES].reverse().filter(q => r['f_' + q.schluessel] != null);",
+    replacement: "  const getroffen = [...FULLTEXT_SOURCES].reverse().filter(q => r['f_' + q.schluessel] != null);",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
@@ -3604,7 +3604,7 @@ const REGRESSIONS = [
     nr: '406', name: 'Der genannte Kommentar ist der juengste statt der aeltesten',
     file: 'server.js',
     search: "             ORDER BY k.id LIMIT 1)",
-    ersatz: "             ORDER BY k.id DESC LIMIT 1)",
+    replacement: "             ORDER BY k.id DESC LIMIT 1)",
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
@@ -3617,7 +3617,7 @@ const REGRESSIONS = [
     nr: '407', name: 'Die Kachel baut keine Trefferzeile mehr',
     file: 'public/app.js',
     search: "  const f = it.fundstelle;",
-    ersatz: "  const f = null;",
+    replacement: "  const f = null;",
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -3629,28 +3629,28 @@ const REGRESSIONS = [
     nr: '408', name: 'Die Trefferzeile rutscht ueber den Titel',
     file: 'public/app.js',
     search: "      <h3 class=\"card-title\">${esc(it.title)}</h3>\n      ${findingRow}",
-    ersatz: "      ${findingRow}\n      <h3 class=\"card-title\">${esc(it.title)}</h3>",
+    replacement: "      ${findingRow}\n      <h3 class=\"card-title\">${esc(it.title)}</h3>",
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '409', name: 'Die Zahl der weiteren Stellen faellt aus der Zeile',
     file: 'public/app.js',
     search: "class=\"find-text\"></span>${f.weitere ? `<span class=\"find-more\">+${f.weitere}</span>` : ''}",
-    ersatz: "class=\"find-text\"></span>${''}",
+    replacement: "class=\"find-text\"></span>${''}",
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '410', name: 'Der Ueberfahrtext nennt die weiteren Stellen nicht mehr',
     file: 'public/app.js',
     search: "  f.weitere > 0 ? t('list.moreHits', { n: f.weitere }) : '');",
-    ersatz: "  '');",
+    replacement: "  '');",
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '411', name: 'Eine unbekannte Quelle faellt aus der Zeile',
     file: 'public/app.js',
     search: "const findingWord = (source) => (FINDING_WORDS[source] || (() => t('list.hitPlace')))();",
-    ersatz: "const findingWord = (quelle) => (FINDING_WORDS[quelle] || (() => ''))();",
+    replacement: "const findingWord = (quelle) => (FINDING_WORDS[quelle] || (() => ''))();",
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -3660,7 +3660,7 @@ const REGRESSIONS = [
     nr: '412', name: 'Der Ausschnitt kommt ueber innerHTML in die Kachel',
     file: 'public/app.js',
     search: "  if (f) a.querySelector('.find-text').replaceChildren(raiseHighlight(f.text, term));",
-    ersatz: "  if (f) a.querySelector('.find-text').innerHTML = f.text;",
+    replacement: "  if (f) a.querySelector('.find-text').innerHTML = f.text;",
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -3670,21 +3670,21 @@ const REGRESSIONS = [
     nr: '413', name: 'Die Marke wird ueber innerHTML gefuellt',
     file: 'public/app.js',
     search: "  const m = document.createElement('mark');\n  m.textContent = text;",
-    ersatz: "  const m = document.createElement('mark');\n  m.innerHTML = text;",
+    replacement: "  const m = document.createElement('mark');\n  m.innerHTML = text;",
     expected: 'Links im Kommentartext'
   },
   {
     nr: '414', name: 'Der Titel der Kachel wird nicht mehr hervorgehoben',
     file: 'public/app.js',
     search: "  highlightInNode(a.querySelector('.card-title'), it.title, term);",
-    ersatz: "  hebeImKnoten(a.querySelector('.card-title'), it.title, '');",
+    replacement: "  hebeImKnoten(a.querySelector('.card-title'), it.title, '');",
     expected: 'Die Hervorhebung in der Uebersicht'
   },
   {
     nr: '415', name: 'Nur die erste Fundstelle wird hervorgehoben',
     file: 'public/app.js',
     search: "    from = i + b.length;\n  }",
-    ersatz: "    von = i + b.length;\n    break;\n  }",
+    replacement: "    von = i + b.length;\n    break;\n  }",
     expected: 'Die Hervorhebung in der Uebersicht'
   },
   {
@@ -3694,56 +3694,56 @@ const REGRESSIONS = [
     nr: '416', name: 'Der Begriff wird als Muster gelesen',
     file: 'public/app.js',
     search: "    const i = lower.indexOf(lowerB, from);",
-    ersatz: "    const i = klein.slice(von).search(new RegExp(kleinB, 'i')) < 0 ? -1 : von + klein.slice(von).search(new RegExp(kleinB, 'i'));",
+    replacement: "    const i = klein.slice(von).search(new RegExp(kleinB, 'i')) < 0 ? -1 : von + klein.slice(von).search(new RegExp(kleinB, 'i'));",
     expected: 'Die Hervorhebung in der Uebersicht'
   },
   {
     nr: '417', name: 'Die Hervorhebung erreicht den Kommentartext nicht mehr',
     file: 'public/app.js',
     search: "        .appendChild(buildCommentNodes(splitCommentText(c.text, term)));",
-    ersatz: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text)));",
+    replacement: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text)));",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '418', name: 'Eine Adresse mit Begriff zerfaellt in mehrere Anker',
     file: 'public/app.js',
     search: "      let j = i;\n      while (j < list.length && String(list[j].target ?? '') === String(s.target))\n        a.appendChild(pieceNode(list[j++]));\n      i = j - 1;",
-    ersatz: "      a.appendChild(stueckKnoten(s));",
+    replacement: "      a.appendChild(stueckKnoten(s));",
     expected: 'Links im Kommentartext'
   },
   {
     nr: '419', name: 'In der Linkliste wird der Anzeigename hervorgehoben',
     file: 'public/app.js',
     search: "          nameBox.appendChild(s);",
-    ersatz: "          hebeImKnoten(s, a.name, begriff);\n          nameBox.appendChild(s);",
+    replacement: "          hebeImKnoten(s, a.name, begriff);\n          nameBox.appendChild(s);",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '420', name: 'Die Adresse in der Linkliste wird nicht mehr hervorgehoben',
     file: 'public/app.js',
     search: "      highlightInNode(row.querySelector('.dom'), oben, term);",
-    ersatz: "      hebeImKnoten(row.querySelector('.dom'), oben, '');",
+    replacement: "      hebeImKnoten(row.querySelector('.dom'), oben, '');",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '421', name: 'Das Adressmuster nimmt keinen Begriff mehr an',
     file: 'public/app.js',
     search: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
-    ersatz: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)$/;",
+    replacement: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)$/;",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '422', name: 'Das Adressmuster ist hinten nicht mehr verankert',
     file: 'public/app.js',
     search: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
-    ersatz: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)/;",
+    replacement: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)/;",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '423', name: 'Die Detailansicht zieht die Adresse nicht mehr nach',
     file: 'public/app.js',
     search: "  if (location.hash !== wanted &&\n      typeof history !== 'undefined' && typeof history.replaceState === 'function')\n    history.replaceState(null, '', wanted);",
-    ersatz: "  void gewollt;",
+    replacement: "  void gewollt;",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
@@ -3753,42 +3753,42 @@ const REGRESSIONS = [
     nr: '424', name: 'Die Adresse wird ueber location.hash gesetzt',
     file: 'public/app.js',
     search: "    history.replaceState(null, '', wanted);",
-    ersatz: "    location.hash = gewollt;",
+    replacement: "    location.hash = gewollt;",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '425', name: 'Die Kachel haengt den Begriff nicht an ihre Adresse',
     file: 'public/app.js',
     search: "  a.href = entryAddress(it.id, term);",
-    ersatz: "  a.href = entryAddress(it.id, '');",
+    replacement: "  a.href = entryAddress(it.id, '');",
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '426', name: 'Der Begriff aus der Adresse wird nicht entschluesselt',
     file: 'public/app.js',
     search: "  try { return new URLSearchParams(frage || '').get('q') || ''; }",
-    ersatz: "  try { return (String(frage || '').match(/(?:^|&)q=([^&]*)/) || [])[1] || ''; }",
+    replacement: "  try { return (String(frage || '').match(/(?:^|&)q=([^&]*)/) || [])[1] || ''; }",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '427', name: 'Die Marke bringt wieder Schwarz auf Gelb mit',
     file: 'public/style.css',
     search: "mark {\n  background: var(--accent-dim); color: var(--accent-text-hi);",
-    ersatz: "mark {\n  border-radius: 3px;",
+    replacement: "mark {\n  border-radius: 3px;",
     expected: 'Die Trefferzeile im Stylesheet'
   },
   {
     nr: '428', name: 'Die Trefferzeile darf wieder umbrechen',
     file: 'public/style.css',
     search: "  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\n}\n/* Die Zahl in der Schreibmaschinenschrift",
-    ersatz: "}\n/* Die Zahl in der Schreibmaschinenschrift",
+    replacement: "}\n/* Die Zahl in der Schreibmaschinenschrift",
     expected: 'Die Trefferzeile im Stylesheet'
   },
   {
     nr: '429', name: 'Die Quelle gibt in der Trefferzeile nach statt der Ausschnitt',
     file: 'public/style.css',
     search: ".card-find .find-source { flex-shrink: 0; color: var(--faint); font-weight: 600; }",
-    ersatz: ".card-find .find-source { color: var(--faint); font-weight: 600; }",
+    replacement: ".card-find .find-source { color: var(--faint); font-weight: 600; }",
     expected: 'Die Trefferzeile im Stylesheet'
   },
 
@@ -3797,7 +3797,7 @@ const REGRESSIONS = [
     nr: '430', name: 'Die Sitzungsliste deckelt wieder nach der fremden Zeile',
     file: 'public/style.css',
     search: "#msessions { max-height: 55.23rem; }",
-    ersatz: "#msitzungen { max-height: 27.95rem; }",
+    replacement: "#msitzungen { max-height: 27.95rem; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
 
@@ -3818,7 +3818,7 @@ const REGRESSIONS = [
     nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
     file: 'images.js',
     search: "  if (!isPng(buf)) return { data: buf, mime: reportedType, umgewandelt: false };",
-    ersatz: "  if (true) return { data: buf, mime: reportedType, umgewandelt: false };",
+    replacement: "  if (true) return { data: buf, mime: reportedType, umgewandelt: false };",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3829,7 +3829,7 @@ const REGRESSIONS = [
     nr: '432', name: 'Der mime_type wird nicht mitgezogen',
     file: 'images.js',
     search: "      return { data: webp, mime: 'image/webp', umgewandelt: true };",
-    ersatz: "      return { data: webp, mime: reportedType, umgewandelt: true };",
+    replacement: "      return { data: webp, mime: reportedType, umgewandelt: true };",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3862,7 +3862,7 @@ const REGRESSIONS = [
     nr: '433', name: 'Auch ein groesseres Ergebnis wird genommen',
     file: 'images.js',
     search: "    if (webp.length < buf.length)",
-    ersatz: "    if (true)",
+    replacement: "    if (true)",
     expected: '(erwartet STUMM — achtzehn Laborversuche ohne Gegenbeispiel, und am echten Bestand 679 von 679 umgestellt; nur die Kantengrenze laesst PNG liegen, und die ist Rueckbau 458)'
   },
   {
@@ -3872,7 +3872,7 @@ const REGRESSIONS = [
     nr: '458', name: 'Ein Bild, das WebP nicht fassen kann, reisst den Upload ab',
     file: 'images.js',
     search: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
-    ersatz: "    throw e;",
+    replacement: "    throw e;",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3882,7 +3882,7 @@ const REGRESSIONS = [
     nr: '434', name: 'Die Erkennung glaubt dem gemeldeten Typ',
     file: 'images.js',
     search: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);",
-    ersatz: "  Buffer.isBuffer(buf) && buf.length >= 8;",
+    replacement: "  Buffer.isBuffer(buf) && buf.length >= 8;",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3892,14 +3892,14 @@ const REGRESSIONS = [
     nr: '435', name: 'Der verlustbehaftete Kodierer statt nearLossless',
     file: 'images.js',
     search: "const WEBP_STORE = { nearLossless: true, quality: 60, effort: 4 };",
-    ersatz: "const WEBP_STORE = { quality: 60, effort: 4 };",
+    replacement: "const WEBP_STORE = { quality: 60, effort: 4 };",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
     nr: '436', name: 'Der Schalter wirkt nicht mehr -- es wird immer umgewandelt',
     file: 'server.js',
     search: "const convertImages = () => getSetting('convertImages', true) !== false;",
-    ersatz: "const convertImages = () => true;",
+    replacement: "const convertImages = () => true;",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3913,21 +3913,21 @@ const REGRESSIONS = [
     file: 'server.js',
     search: "const OWNER_KEYS = ['convertImages',\n" +
            "                                'backupCleanup', 'backupKeep', 'backupDays'];",
-    ersatz: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays'];",
+    replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays'];",
     expected: 'Die Bildablage: die Rechte'
   },
   {
     nr: '438', name: 'Die Umstellung laeuft ohne zweite Bestaetigung',
     file: 'server.js',
     search: "app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, res) => {",
-    ersatz: "app.post('/api/images/convert', ownerOnly, (req, res) => {",
+    replacement: "app.post('/api/images/convert', ownerOnly, (req, res) => {",
     expected: 'Die Bildablage: die Rechte'
   },
   {
     nr: '439', name: 'Zweimal druecken startet zwei Laeufe',
     file: 'server.js',
     search: "  if (batchStates.umstellung && batchStates.umstellung.running)\n    return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});",
-    ersatz: "  if (false)\n    return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});",
+    replacement: "  if (false)\n    return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3937,7 +3937,7 @@ const REGRESSIONS = [
     nr: '440', name: 'Der Fortschritt steht nicht mehr in den Kennzahlen',
     file: 'server.js',
     search: "const batchState = (aufgabe) =>\n  batchStates[aufgabe] && { ...batchStates[aufgabe] };",
-    ersatz: "const batchState = () => null;",
+    replacement: "const batchState = () => null;",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3947,7 +3947,7 @@ const REGRESSIONS = [
     nr: '441', name: 'Die Aufstellung nach Format faellt aus den Kennzahlen',
     file: 'server.js',
     search: "    imageFormats,\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
 
@@ -3956,7 +3956,7 @@ const REGRESSIONS = [
     nr: '442', name: 'Der Zoomwert wird gar nicht erst gespeichert',
     file: 'server.js',
     search: "  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')\n    .run(x, y, z, req.params.id);",
-    ersatz: "  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ? WHERE id = ?')\n    .run(x, y, req.params.id);",
+    replacement: "  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ? WHERE id = ?')\n    .run(x, y, req.params.id);",
     expected: 'Fokuspunkt der Vorschau'
   },
   {
@@ -3965,7 +3965,7 @@ const REGRESSIONS = [
     nr: '443', name: 'Der Zoomwert wird nicht mehr beschnitten',
     file: 'server.js',
     search: "  zoom:    { min: ZOOM_MIN, max: ZOOM_MAX, fallback: ZOOM_MIN, digits: 0 }",
-    ersatz: "  zoom:    { min: 0, max: 100000, vorgabe: ZOOM_MIN, stellen: 0 }",
+    replacement: "  zoom:    { min: 0, max: 100000, vorgabe: ZOOM_MIN, stellen: 0 }",
     expected: 'Fokuspunkt der Vorschau'
   },
   {
@@ -3975,21 +3975,21 @@ const REGRESSIONS = [
     nr: '444', name: 'Ein Ruf ohne Zoomwert setzt ihn auf die Vorgabe zurueck',
     file: 'server.js',
     search: "  let z = p.zoom;\n  if (req.body.zoom !== undefined) {",
-    ersatz: "  let z = ANZEIGEWERTE.zoom.vorgabe;\n  if (req.body.zoom !== undefined) {",
+    replacement: "  let z = ANZEIGEWERTE.zoom.vorgabe;\n  if (req.body.zoom !== undefined) {",
     expected: 'Fokuspunkt der Vorschau'
   },
   {
     nr: '445', name: 'Der Ausschnitt geht nicht in die Exportdatei',
     file: 'server.js',
     search: "        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,\n                    zoom: p.zoom, kind: p.kind };",
-    ersatz: "        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,\n                    art: p.art };",
+    replacement: "        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,\n                    art: p.art };",
     expected: 'Fokuspunkt der Vorschau'
   },
   {
     nr: '446', name: 'Der eingespielte Ausschnitt wird verworfen',
     file: 'server.js',
     search: "                    fx: crop.fx, fy: crop.fy, zoom: crop.zoom,",
-    ersatz: "                    fx: 50, fy: 50, zoom: ANZEIGEWERTE.zoom.vorgabe,",
+    replacement: "                    fx: 50, fy: 50, zoom: ANZEIGEWERTE.zoom.vorgabe,",
     expected: 'Fokuspunkt der Vorschau'
   },
   {
@@ -3999,7 +3999,7 @@ const REGRESSIONS = [
     nr: '447', name: 'Der achte Migrationsblock ruestet die Spalte nicht nach',
     file: 'db.js',
     search: "  db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
-    ersatz: "  // db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
+    replacement: "  // db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
     expected: 'MIGRATION 0.19.0 — ENTFAELLT MIT 1.0'
   },
   {
@@ -4008,7 +4008,7 @@ const REGRESSIONS = [
     nr: '448', name: 'Die Formatnummer bleibt bei 12, obwohl der Ausschnitt mitgeht',
     file: 'server.js',
     search: "const EXCHANGE_FORMAT = 13;",
-    ersatz: "const EXCHANGE_FORMAT = 12;",
+    replacement: "const EXCHANGE_FORMAT = 12;",
     expected: 'Die Exportdatei'
   },
 
@@ -4024,14 +4024,14 @@ const REGRESSIONS = [
        nicht mehr, der Zuschnitt steckt im Bild. Die Zusage ist dieselbe
        geblieben: der eingestellte Zoom muss ankommen. */
     search: "                               zoom: Number(z.zoom) });",
-    ersatz: "                               zoom: 100 });",
+    replacement: "                               zoom: 100 });",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
     nr: '450', name: 'Der Schieber fuer die Weite steht nicht mehr im Betrachter',
     file: 'public/app.js',
     search: "      ${cropMode && !showsVideo ? `<div class=\"vzoom\">",
-    ersatz: "      ${false ? `<div class=\"vzoom\">",
+    replacement: "      ${false ? `<div class=\"vzoom\">",
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
@@ -4040,7 +4040,7 @@ const REGRESSIONS = [
     nr: '451', name: 'Der Schieber schickt bei jedem Zwischenschritt',
     file: 'public/app.js',
     search: "        draw();\n      };\n      slider.onchange = save;",
-    ersatz: "        zeichne();\n        speichere();\n      };\n      schieber.onchange = speichere;",
+    replacement: "        zeichne();\n        speichere();\n      };\n      schieber.onchange = speichere;",
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
@@ -4049,7 +4049,7 @@ const REGRESSIONS = [
     nr: '452', name: 'Der Griff an den Schieber setzt den Fokuspunkt mit',
     file: 'public/app.js',
     search: "      if (e.target.closest('.vfocus, .vnav, .vzoom')) return;",
-    ersatz: "      if (e.target.closest('.vfocus, .vnav')) return;",
+    replacement: "      if (e.target.closest('.vfocus, .vnav')) return;",
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
@@ -4062,14 +4062,14 @@ const REGRESSIONS = [
        jetzt ZURUECK -- und damit den zweiten Zuschnitt, den diese Runde
        gerade weggeraeumt hat. */
     search: ".card:hover .card-img img { transform: scale(1.02); }",
-    ersatz: ".card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.02)); }",
+    replacement: ".card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.02)); }",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
     file: 'public/app.js',
     search: "      const ok = await secondConfirm('images', null, t('card.convertPngWebp'),",
-    ersatz: "      const ok = true || await secondConfirm('images', null, t('card.convertPngWebp'),",
+    replacement: "      const ok = true || await secondConfirm('images', null, t('card.convertPngWebp'),",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4078,14 +4078,14 @@ const REGRESSIONS = [
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
     file: 'public/app.js',
     search: "        t('card.pngConverting', { n: png.count, bytes: fmtBytes(png.bytes),\n          danach: fmtBytes(Math.round(png.bytes * 0.37)) }));",
-    ersatz: "        `${png.anzahl} PNG-Fotos (${fmtBytes(png.bytes)}) werden umgewandelt. Dauer: Minuten bis Stunden.`);",
+    replacement: "        `${png.anzahl} PNG-Fotos (${fmtBytes(png.bytes)}) werden umgewandelt. Dauer: Minuten bis Stunden.`);",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
     nr: '456', name: 'Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht',
     file: 'public/app.js',
     search: "id=\"convert-run\"${png && !running ? '' : ' disabled'}",
-    ersatz: "id=\"convert-run\"${''}",
+    replacement: "id=\"convert-run\"${''}",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4095,7 +4095,7 @@ const REGRESSIONS = [
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
     file: 'public/app.js',
     search: "        ${OWNER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
-    ersatz: "        ${true ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
+    replacement: "        ${true ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4115,7 +4115,7 @@ const REGRESSIONS = [
     nr: '460', name: 'Die Aufteilung nach Format liest wieder den Inhalt',
     file: 'server.js',
     search: "    SELECT mime_type AS m, length(data) AS o FROM photos WHERE kind IS ?)",
-    ersatz: "    SELECT CASE\n" +
+    replacement: "    SELECT CASE\n" +
             "             WHEN hex(substr(data,1,8)) = '89504E470D0A1A0A' THEN 'image/png'\n" +
             "             WHEN hex(substr(data,1,3)) = 'FFD8FF'           THEN 'image/jpeg'\n" +
             "             WHEN hex(substr(data,1,4)) = '52494646'\n" +
@@ -4135,7 +4135,7 @@ const REGRESSIONS = [
     nr: '461', name: 'Die Arten kommen wieder aus dem Satz statt aus dem Index',
     file: 'server.js',
     search: "const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1');",
-    ersatz: "const qImageKinds = db.prepare('SELECT DISTINCT kind || \\'\\' AS a FROM photos');",
+    replacement: "const qImageKinds = db.prepare('SELECT DISTINCT kind || \\'\\' AS a FROM photos');",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4145,7 +4145,7 @@ const REGRESSIONS = [
     nr: '462', name: 'Der Knopf sucht am gemeldeten Typ statt am Inhalt',
     file: 'server.js',
     search: "  \"SELECT id FROM photos WHERE kind != 'video' AND hex(substr(data,1,8)) = ?\");",
-    ersatz: "  \"SELECT id FROM photos WHERE kind != 'video' AND mime_type = 'image/png' AND ? IS NOT NULL\");",
+    replacement: "  \"SELECT id FROM photos WHERE kind != 'video' AND mime_type = 'image/png' AND ? IS NOT NULL\");",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4154,7 +4154,7 @@ const REGRESSIONS = [
     nr: '463', name: 'Die Zuordnung von mime_type auf den Schluessel ist leer',
     file: 'server.js',
     search: "const IMAGE_MIME_FORMAT = {\n  'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'\n};",
-    ersatz: "const IMAGE_MIME_FORMAT = {};",
+    replacement: "const IMAGE_MIME_FORMAT = {};",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4167,7 +4167,7 @@ const REGRESSIONS = [
        nicht mehr; die Zusage dahinter -- der Ausschnitt folgt dem Fokuspunkt
        in BEIDEN Richtungen -- gilt unveraendert und steht jetzt hier. */
     search: "  return { links: fx / 100 * (width - tight), oben: fy / 100 * (height - tight), edge: tight };",
-    ersatz: "  return { links: fx / 100 * (breite - eng), oben: 0, kante: eng };",
+    replacement: "  return { links: fx / 100 * (breite - eng), oben: 0, kante: eng };",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4179,7 +4179,7 @@ const REGRESSIONS = [
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201): dieselbe Zusage an der
        Stelle, an der der Ausschnitt jetzt entsteht. */
     search: "  const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);",
-    ersatz: "  const k = cropSpecBox(breite, hoehe, 50, 50, zuschnitt.zoom);",
+    replacement: "  const k = cropSpecBox(breite, hoehe, 50, 50, zuschnitt.zoom);",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4188,7 +4188,7 @@ const REGRESSIONS = [
     nr: '466', name: 'Der Dialog liegt wieder unter dem Vollbild',
     file: 'public/style.css',
     search: "  --z-dialog: 100;",
-    ersatz: "  --z-dialog: 60;",
+    replacement: "  --z-dialog: 60;",
     expected: 'Die Stapelordnung — 0.19.1'
   },
   {
@@ -4198,7 +4198,7 @@ const REGRESSIONS = [
     nr: '467', name: 'Der Dialog traegt seine Stufe wieder als Zahl in der Regel',
     file: 'public/style.css',
     search: "padding: 22px; z-index: var(--z-dialog);",
-    ersatz: "padding: 22px; z-index: 60;",
+    replacement: "padding: 22px; z-index: 60;",
     expected: 'Die Stapelordnung — 0.19.1'
   },
   {
@@ -4207,7 +4207,7 @@ const REGRESSIONS = [
     nr: '468', name: 'Die Meldung liegt unter dem Dialog',
     file: 'public/style.css',
     search: "  --z-toast: 120;",
-    ersatz: "  --z-toast: 95;",
+    replacement: "  --z-toast: 95;",
     expected: 'Die Stapelordnung — 0.19.1'
   },
   {
@@ -4217,7 +4217,7 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,\n" +
            "    markup: cardImageStore,   ausruesten: setUpImageStoreOut },\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4226,7 +4226,7 @@ const REGRESSIONS = [
     nr: '470', name: 'Die Karte „Bildablage" steht im Abschnitt „Bestand"',
     file: 'public/app.js',
     search: "  { key: 'bildablage',   section: 'database',",
-    ersatz: "  { schluessel: 'bildablage',   abschnitt: 'inventory',",
+    replacement: "  { schluessel: 'bildablage',   abschnitt: 'inventory',",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4236,7 +4236,7 @@ const REGRESSIONS = [
     nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
     file: 'public/app.js',
     search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,",
-    ersatz: "  { key: 'bildablage',   section: 'database',\n" +
+    replacement: "  { key: 'bildablage',   section: 'database',\n" +
             "    sichtbar: (g) => ADMIN && !!Object.keys((g.stats && g.stats.bildFormate) || {}).length,",
     expected: 'Die Bildablage in der Oberflaeche'
   },
@@ -4249,7 +4249,7 @@ const REGRESSIONS = [
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     file: 'public/languages/de.json',
     search: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
-    ersatz: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
+    replacement: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4259,7 +4259,7 @@ const REGRESSIONS = [
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
     file: 'public/languages/de.json',
     search: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"\n  },",
-    ersatz: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: etwa 20 Minuten.\"\n  },",
+    replacement: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: etwa 20 Minuten.\"\n  },",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4269,7 +4269,7 @@ const REGRESSIONS = [
     nr: '474', name: 'Die Threadzahl von sharp wird nicht mehr gesetzt',
     file: 'server.js',
     search: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Threadzahl von sharp — 0.19.1'
   },
   {
@@ -4278,7 +4278,7 @@ const REGRESSIONS = [
     nr: '475', name: 'Die Threadzahl von sharp ist die volle Kernzahl',
     file: 'server.js',
     search: "Math.max(1, Math.floor(os.cpus().length / 2))",
-    ersatz: "os.cpus().length",
+    replacement: "os.cpus().length",
     expected: 'Die Threadzahl von sharp — 0.19.1'
   },
   {
@@ -4288,7 +4288,7 @@ const REGRESSIONS = [
     nr: '476', name: 'Die Absage nennt wieder „den Eigentümer der Instanz"',
     file: 'public/languages/de.json',
     search: "\"server.deniedOwner\": \"Das kann nur der Eigentümer dieser Installation.\",",
-    ersatz: "\"server.deniedOwner\": \"Das kann nur der Eigentümer der Instanz.\",",
+    replacement: "\"server.deniedOwner\": \"Das kann nur der Eigentümer der Instanz.\",",
     expected: 'Die Rechte am Papierkorb'
   },
   {
@@ -4297,7 +4297,7 @@ const REGRESSIONS = [
     nr: '477', name: 'Die docker-compose.yml steht nicht mehr in der .gitignore',
     file: '.gitignore',
     search: "\ndocker-compose.yml",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Compose-Datei wird nicht ueberschrieben'
   },
   {
@@ -4307,7 +4307,7 @@ const REGRESSIONS = [
     nr: '478', name: 'Die README nennt den Pflichtschritt zur Compose-Datei nicht mehr',
     file: 'README.md',
     search: "**Der Schritt `cp docker-compose.example.yml docker-compose.yml` ist Pflicht.**",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Compose-Datei wird nicht ueberschrieben'
   },
   {
@@ -4317,7 +4317,7 @@ const REGRESSIONS = [
     nr: '479', name: 'Die Berichtigung zu substr() faellt aus dem Quelltext',
     file: 'server.js',
     search: "     -- substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei 205 MB,",
-    ersatz: "     -- substr() liest wenig, gemessen 657 ms bei 205 MB,",
+    replacement: "     -- substr() liest wenig, gemessen 657 ms bei 205 MB,",
     expected: 'Die berichtigten Behauptungen stehen nirgends mehr'
   },
 
@@ -4329,7 +4329,7 @@ const REGRESSIONS = [
     nr: '480', name: 'Der Index auf photos(art) faellt weg',
     file: 'db.js',
     search: "db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4340,7 +4340,7 @@ const REGRESSIONS = [
     nr: '486', name: 'Der Index steht wieder vor seiner Migration',
     file: 'db.js',
     search: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);",
-    ersatz: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);\n" +
+    replacement: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);\n" +
             "CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind);",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4350,7 +4350,7 @@ const REGRESSIONS = [
     nr: '481', name: 'Die Aufteilung fragt wieder mit einer Ungleichheit',
     file: 'server.js',
     search: "  'SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE kind IS ?');",
-    ersatz: "  \"SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE kind != 'video' AND ? IS NOT NULL\");",
+    replacement: "  \"SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE kind != 'video' AND ? IS NOT NULL\");",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4361,7 +4361,7 @@ const REGRESSIONS = [
     nr: '482', name: 'Die Exportgroesse der Bilder wird ein zweites Mal gefragt',
     file: 'server.js',
     search: "      ...exchangeParts(null, { withFiles: true }),",
-    ersatz: "      ...exchangeParts(null, { mitFotos: true, mitDateien: true, mitVideos: true }),",
+    replacement: "      ...exchangeParts(null, { mitFotos: true, mitDateien: true, mitVideos: true }),",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4372,7 +4372,7 @@ const REGRESSIONS = [
     nr: '483', name: 'Der Spielraum des Ausschnitts rechnet den Zoom nicht ein',
     file: 'public/app.js',
     search: "               playX: f.width - k.edge, playY: f.height - k.edge };",
-    ersatz: "               playX: f.breite - Math.min(f.breite, f.hoehe), playY: f.hoehe - Math.min(f.breite, f.hoehe) };",
+    replacement: "               playX: f.breite - Math.min(f.breite, f.hoehe), playY: f.hoehe - Math.min(f.breite, f.hoehe) };",
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
@@ -4382,7 +4382,7 @@ const REGRESSIONS = [
     nr: '484', name: 'Der Griff setzt den Punkt neben die Mitte des Rahmens',
     file: 'public/app.js',
     search: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / playX * 100)) : 50;",
-    ersatz: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - seite / 2) / playX * 100)) : 50;",
+    replacement: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - seite / 2) / playX * 100)) : 50;",
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
@@ -4391,7 +4391,7 @@ const REGRESSIONS = [
     nr: '485', name: 'Der Dialog sagt nicht mehr, dass es nahezu verlustfrei ist',
     file: 'public/languages/de.json',
     search: "WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und",
-    ersatz: "WebP gespeichert — etwa zwei Drittel kleiner. JPEG, GIF und",
+    replacement: "WebP gespeichert — etwa zwei Drittel kleiner. JPEG, GIF und",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4402,7 +4402,7 @@ const REGRESSIONS = [
     nr: '487', name: 'Die Uebersetzung der alten Abschnittsadressen kommt zurueck',
     file: 'public/app.js',
     search: "  const desired = fromAddress;",
-    ersatz: "  const gewuenscht = { anlage: 'installation', instanz: 'installation' }[ausDerAdresse] || ausDerAdresse;",
+    replacement: "  const gewuenscht = { anlage: 'installation', instanz: 'installation' }[ausDerAdresse] || ausDerAdresse;",
     expected: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
 
@@ -4413,7 +4413,7 @@ const REGRESSIONS = [
     nr: '488', name: 'Der deckende Index fuer die Uebersicht faellt weg',
     file: 'db.js',
     search: "db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile",
-    ersatz: "db.exec(`SELECT 1 -- (",
+    replacement: "db.exec(`SELECT 1 -- (",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4423,7 +4423,7 @@ const REGRESSIONS = [
     nr: '489', name: 'Dem deckenden Index fehlt eine Spalte',
     file: 'db.js',
     search: "zoom, created_at, kind, duration)`);",
-    ersatz: "zoom, art, dauer)`);",
+    replacement: "zoom, art, dauer)`);",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4432,7 +4432,7 @@ const REGRESSIONS = [
     nr: '490', name: 'Die Uebersicht fragt die Fotos wieder je Eintrag',
     file: 'server.js',
     search: "    const ph = photosPer.get(it.id) || [];",
-    ersatz: "    const ph = qPhotos.all(it.id);",
+    replacement: "    const ph = qPhotos.all(it.id);",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
 
@@ -4455,7 +4455,7 @@ const REGRESSIONS = [
        zweimal passt, bricht den Rueckbau ab (Stolperstein 201 -- mitziehen,
        nicht loeschen). Das Nachziehen bekommt seinen eigenen Rueckbau. */
     search: "    status.erledigt++;\n    report(status);\n    await new Promise(r => setTimeout(r, 30));",
-    ersatz: "    stand.erledigt++;\n    await new Promise(r => setTimeout(r, 30));",
+    replacement: "    stand.erledigt++;\n    await new Promise(r => setTimeout(r, 30));",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4466,7 +4466,7 @@ const REGRESSIONS = [
     nr: '492', name: 'Der Haupt-Thread hoert die Meldungen des Threads nicht mehr',
     file: 'server.js',
     search: "  w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });",
-    ersatz: "  w.on('message', () => {});",
+    replacement: "  w.on('message', () => {});",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4477,7 +4477,7 @@ const REGRESSIONS = [
     nr: '493', name: 'Der Schluessel reist ueber workerData in den Thread',
     file: 'server.js',
     search: "  const w = new Worker(BATCHRUN, { workerData: { task, rows } });",
-    ersatz: "  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen, schluessel: keyHex } });",
+    replacement: "  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen, schluessel: keyHex } });",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4487,7 +4487,7 @@ const REGRESSIONS = [
     nr: '494', name: 'SIGTERM kuerzt die WAL, waehrend der Thread noch schreibt',
     file: 'server.js',
     search: "    for (const w of batchThreads) { try { w.terminate(); } catch {} }",
-    ersatz: "    // die Threads laufen weiter",
+    replacement: "    // die Threads laufen weiter",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4497,7 +4497,7 @@ const REGRESSIONS = [
     nr: '495', name: 'Ein Fehler im Thread laesst den Lauf auf „laeuft" stehen',
     file: 'server.js',
     search: "    if (batchStates[task]) batchStates[task].running = false;",
-    ersatz: "    if (false) batchStates[aufgabe].laeuft = false;",
+    replacement: "    if (false) batchStates[aufgabe].laeuft = false;",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4507,7 +4507,7 @@ const REGRESSIONS = [
     nr: '496', name: 'Der Fingerprint kennt die Datei des Threads nicht',
     file: 'server.js',
     search: "  const list = [...new Set([...ran, BATCHRUN,",
-    ersatz: "  const liste = [...new Set([...ausgefuehrt,",
+    replacement: "  const liste = [...new Set([...ausgefuehrt,",
     expected: 'Der Versions-Fingerprint'
   },
   {
@@ -4517,7 +4517,7 @@ const REGRESSIONS = [
     nr: '497', name: 'Der Thread ueberlaesst sharp seine Vorgabe',
     file: 'batchrun.js',
     search: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
-    ersatz: "// sharp nimmt sich, was es will",
+    replacement: "// sharp nimmt sich, was es will",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4527,7 +4527,7 @@ const REGRESSIONS = [
     nr: '498', name: 'Der Schluesselhinweis wiederholt sich in jedem Thread',
     file: 'keys.js',
     search: "function warnKeyBesideData() {\n  if (!isMainThread) return;",
-    ersatz: "function warnKeyBesideData() {",
+    replacement: "function warnKeyBesideData() {",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
 
@@ -4541,14 +4541,14 @@ const REGRESSIONS = [
     nr: '499', name: 'Die gebuendelten Schlagworte verlieren ihre zweite Ordnung',
     file: 'server.js',
     search: "  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id, t.name COLLATE NOCASE`);",
-    ersatz: "  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id`);",
+    replacement: "  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id`);",
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
     nr: '500', name: 'Die gebuendelten Testtage verlieren ihre zweite Ordnung',
     file: 'server.js',
     search: "  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC');",
-    ersatz: "  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id');",
+    replacement: "  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id');",
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
@@ -4558,7 +4558,7 @@ const REGRESSIONS = [
     nr: '501', name: 'Die Linkzahl fehlt ganz, wo kein Link ist',
     file: 'server.js',
     search: "    it.linkCount = linkCountPer.get(it.id) || 0;",
-    ersatz: "    it.linkCount = linkCountPer.get(it.id);",
+    replacement: "    it.linkCount = linkCountPer.get(it.id);",
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
@@ -4568,7 +4568,7 @@ const REGRESSIONS = [
     nr: '502', name: 'Die gebuendelte Schlagwortabfrage liest eine Spalte mehr',
     file: 'server.js',
     search: "const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t",
-    ersatz: "const qAllTags = db.prepare(`SELECT it.item_id, t.id, t.name, t.created_at FROM tags t",
+    replacement: "const qAllTags = db.prepare(`SELECT it.item_id, t.id, t.name, t.created_at FROM tags t",
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
@@ -4578,7 +4578,7 @@ const REGRESSIONS = [
     nr: '503', name: 'Die Testtage der Liste tragen wieder Schlagworte und Verfasser',
     file: 'server.js',
     search: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
-    ersatz: "    if (timeline) it.testDays = qTestDays(it.id, req.user.id, karte);",
+    replacement: "    if (timeline) it.testDays = qTestDays(it.id, req.user.id, karte);",
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
@@ -4588,7 +4588,7 @@ const REGRESSIONS = [
     nr: '504', name: 'Die Schlagwortabfrage liest wieder alle Spalten',
     file: 'server.js',
     search: "const TAG_COLUMNS = 't.id, t.name';",
-    ersatz: "const TAG_COLUMNS = 't.*';",
+    replacement: "const TAG_COLUMNS = 't.*';",
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
 
@@ -4599,7 +4599,7 @@ const REGRESSIONS = [
     nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
     file: 'public/languages/de.json',
     search: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt Kriterion",
-    ersatz: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt die Instanz",
+    replacement: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt die Instanz",
     expected: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
 
@@ -4614,7 +4614,7 @@ const REGRESSIONS = [
     nr: '506', name: 'Die kurze Kante des thumb steht wieder auf 400',
     file: 'images.js',
     search: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
-    ersatz: "  thumb:  { kurz: 400,  lang: 1280, q: 78, schneidet: true  },",
+    replacement: "  thumb:  { kurz: 400,  lang: 1280, q: 78, schneidet: true  },",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4624,7 +4624,7 @@ const REGRESSIONS = [
     nr: '507', name: 'Der Deckel auf der langen Kante faellt weg',
     file: 'images.js',
     search: "lang: 1280, q: 78, schneidet: true  }",
-    ersatz: "lang: 99999, q: 78, schneidet: true  }",
+    replacement: "lang: 99999, q: 78, schneidet: true  }",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4635,7 +4635,7 @@ const REGRESSIONS = [
     nr: '508', name: 'medium bekommt dieselbe Kiste wie thumb',
     file: 'images.js',
     search: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
-    ersatz: "  medium: { kurz: 512, lang: 1280, q: 84, schneidet: false }",
+    replacement: "  medium: { kurz: 512, lang: 1280, q: 84, schneidet: false }",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4646,7 +4646,7 @@ const REGRESSIONS = [
     nr: '509', name: 'Der EXIF-Vermerk zaehlt bei der Kante nicht mehr mit',
     file: 'images.js',
     search: "  const rotated = m && m.orientation >= 5;",
-    ersatz: "  const gedreht = false;",
+    replacement: "  const gedreht = false;",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4656,7 +4656,7 @@ const REGRESSIONS = [
     nr: '510', name: 'Der Kopf wird nicht gelesen -- die Kiste liegt immer quer',
     file: 'images.js',
     search: "  const landscape = size ? isLandscape(size) : true;",
-    ersatz: "  const quer = true;",
+    replacement: "  const quer = true;",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4673,7 +4673,7 @@ const REGRESSIONS = [
        zugeschnittene Kachel unter 512 (kleines Original, enger Ausschnitt) waere
        damit bei JEDEM Start wieder faellig. */
     search: "  return size.width !== size.height;",
-    ersatz: "  return masse.width !== masse.height || masse.width !== VARIANTS.thumb.kurz;",
+    replacement: "  return masse.width !== masse.height || masse.width !== VARIANTS.thumb.kurz;",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4683,7 +4683,7 @@ const REGRESSIONS = [
     nr: '512', name: 'Ein unlesbarer thumb bleibt liegen',
     file: 'images.js',
     search: "  catch { return true; }",
-    ersatz: "  catch { return false; }",
+    replacement: "  catch { return false; }",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4693,7 +4693,7 @@ const REGRESSIONS = [
     nr: '513', name: 'Der Lauf erneuert jede Zeile, nicht nur die faelligen',
     file: 'batchrun.js',
     search: "        if (await isUncropped(z.thumb)) {",
-    ersatz: "        if (true) {",
+    replacement: "        if (true) {",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4703,7 +4703,7 @@ const REGRESSIONS = [
     nr: '514', name: 'Der Lauf schreibt auch, wenn die Ableitung leer zurueckkommt',
     file: 'batchrun.js',
     search: "  if (!v.thumb) return null;",
-    ersatz: "  if (!v.thumb) v.thumb = null;",
+    replacement: "  if (!v.thumb) v.thumb = null;",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4713,7 +4713,7 @@ const REGRESSIONS = [
     nr: '515', name: 'Das Nachziehen meldet seinen Stand erst am Ende',
     file: 'batchrun.js',
     search: "    status.erledigt++;\n    report(status);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
-    ersatz: "    stand.erledigt++;\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
+    replacement: "    stand.erledigt++;\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4731,7 +4731,7 @@ const REGRESSIONS = [
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
     file: 'batchrun.js',
     search: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Kacheln erneuert:",
-    ersatz: "  melde(stand);\n  console.log(`[Kriterion] Kacheln erneuert:",
+    replacement: "  melde(stand);\n  console.log(`[Kriterion] Kacheln erneuert:",
     expected: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
   },
   {
@@ -4741,7 +4741,7 @@ const REGRESSIONS = [
     nr: '517', name: 'Das Nachziehen wird beim Start nicht mehr gerufen',
     file: 'server.js',
     search: "  if (!offen.length) return refreshTiles();",
-    ersatz: "  if (!offen.length) return maintainStorage();",
+    replacement: "  if (!offen.length) return maintainStorage();",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4753,7 +4753,7 @@ const REGRESSIONS = [
     nr: '518', name: 'Die Auswahl der faelligen Zeilen verengt sich auf ein Wort',
     file: 'server.js',
     search: "const qTileRows = db.prepare('SELECT id FROM photos');",
-    ersatz: "const qTileRows = db.prepare(\"SELECT id FROM photos WHERE kind IS 'image'\");",
+    replacement: "const qTileRows = db.prepare(\"SELECT id FROM photos WHERE kind IS 'image'\");",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -4763,7 +4763,7 @@ const REGRESSIONS = [
     nr: '519', name: 'Die Fortschrittszeile des Nachziehens faellt aus der Karte',
     file: 'public/app.js',
     search: "        ${geometryRow(stats.geometry)}",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4774,7 +4774,7 @@ const REGRESSIONS = [
     nr: '520', name: 'Die Zeile des Nachziehens steht auch ohne Fund da',
     file: 'public/app.js',
     search: "  if (!g.nachgezogen && !g.uebersprungen) return '';",
-    ersatz: "  if (false) return '';",
+    replacement: "  if (false) return '';",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4784,7 +4784,7 @@ const REGRESSIONS = [
     nr: '521', name: 'Die Uhr verfolgt nur noch die Umstellung',
     file: 'public/app.js',
     search: "  { field: 'geometry', id: 'thumbs-running',",
-    ersatz: "  { feld: 'gibtsnicht', id: 'gibtsnicht',",
+    replacement: "  { feld: 'gibtsnicht', id: 'gibtsnicht',",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4794,7 +4794,7 @@ const REGRESSIONS = [
     nr: '522', name: 'Die Karte nennt wieder 400 px, ohne die Kante zu sagen',
     file: 'public/languages/de.json',
     search: "(JPEG) sind nicht mitgezählt.\"",
-    ersatz: "(JPEG, 400 px) sind nicht mitgezählt.\"",
+    replacement: "(JPEG, 400 px) sind nicht mitgezählt.\"",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4812,7 +4812,7 @@ const REGRESSIONS = [
     nr: '523', name: 'Die Kachel wird wieder ungeschnitten abgeleitet',
     file: 'images.js',
     search: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
-    ersatz: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: false },",
+    replacement: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: false },",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4822,7 +4822,7 @@ const REGRESSIONS = [
     nr: '524', name: 'medium wird mitgeschnitten',
     file: 'images.js',
     search: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
-    ersatz: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: true }",
+    replacement: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: true }",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4833,7 +4833,7 @@ const REGRESSIONS = [
     nr: '525', name: 'Der Zuschnitt rechnet in den gespeicherten statt in den gedrehten Massen',
     file: 'images.js',
     search: "  const { width, height } = rotatedSize(size);",
-    ersatz: "  const breite = masse.width, hoehe = masse.height;",
+    replacement: "  const breite = masse.width, hoehe = masse.height;",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4844,7 +4844,7 @@ const REGRESSIONS = [
     nr: '526', name: 'Die Zuschnittkiste wird nicht gegen den Rand geklammert',
     file: 'images.js',
     search: "  return { left:  Math.max(0, Math.min(width - edge, Math.round(k.links))),\n           top:   Math.max(0, Math.min(height  - edge, Math.round(k.oben))),",
-    ersatz: "  return { left:  Math.round(k.links) + 1,\n           top:   Math.round(k.oben) + 1,",
+    replacement: "  return { left:  Math.round(k.links) + 1,\n           top:   Math.round(k.oben) + 1,",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4854,7 +4854,7 @@ const REGRESSIONS = [
     nr: '527', name: 'Ein zu kleiner Ausschnitt wird auf die Zielkante hochgerechnet',
     file: 'images.js',
     search: "withoutEnlargement: true })",
-    ersatz: "withoutEnlargement: false })",
+    replacement: "withoutEnlargement: false })",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4865,7 +4865,7 @@ const REGRESSIONS = [
     nr: '528', name: 'Beim Hochladen wird die Kachel nicht zugeschnitten',
     file: 'server.js',
     search: "      const v = await makeVariants(f.buffer, DEFAULT_CROP);",
-    ersatz: "      const v = await makeVariants(f.buffer);",
+    replacement: "      const v = await makeVariants(f.buffer);",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4876,7 +4876,7 @@ const REGRESSIONS = [
     nr: '529', name: 'Beim Einspielen wird die Kachel nicht zugeschnitten',
     file: 'server.js',
     search: "      const v = template ? await makeVariants(template, crop) : { thumb: null, medium: null };",
-    ersatz: "      const v = vorlage ? await makeVariants(vorlage) : { thumb: null, medium: null };",
+    replacement: "      const v = vorlage ? await makeVariants(vorlage) : { thumb: null, medium: null };",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4886,7 +4886,7 @@ const REGRESSIONS = [
     nr: '530', name: 'Der Bestandslauf erneuert ohne Zuschnitt',
     file: 'batchrun.js',
     search: "  const v = await makeVariants(source, cropFrom(z));",
-    ersatz: "  const v = await makeVariants(vorlage);",
+    replacement: "  const v = await makeVariants(vorlage);",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4897,7 +4897,7 @@ const REGRESSIONS = [
     nr: '531', name: 'Die Videozeile erzeugt aus der Videodatei statt aus ihrem Standbild',
     file: 'batchrun.js',
     search: "const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);",
-    ersatz: "const sourceFrom = (z) => z.data;",
+    replacement: "const sourceFrom = (z) => z.data;",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4907,7 +4907,7 @@ const REGRESSIONS = [
     nr: '532', name: 'Der Thread kennt die Aufgabe zuschnitt nicht',
     file: 'batchrun.js',
     search: "  else if (workerData.task === 'zuschnitt') await refreshOneTile(workerData.rows);\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4917,7 +4917,7 @@ const REGRESSIONS = [
     nr: '533', name: 'Das Ergebnis der einzelnen Zeile wird nicht gemeldet',
     file: 'batchrun.js',
     search: "  parentPort.postMessage({ kind: 'refreshed', id, ok });",
-    ersatz: "",
+    replacement: "",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4927,7 +4927,7 @@ const REGRESSIONS = [
     nr: '534', name: 'Das Speichern des Ausschnitts erzeugt die Kachel nicht neu',
     file: 'server.js',
     search: "  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id)));",
-    ersatz: "  res.json(detail(p.item_id, req.user.id));",
+    replacement: "  res.json(detail(p.item_id, req.user.id));",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4937,7 +4937,7 @@ const REGRESSIONS = [
     nr: '535', name: 'Die Antwort kommt, bevor die Kachel steht',
     file: 'server.js',
     search: "  const clock = setTimeout(once, REFRESH_MS);",
-    ersatz: "  const uhr = setTimeout(einmal, 0);",
+    replacement: "  const uhr = setTimeout(einmal, 0);",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4947,7 +4947,7 @@ const REGRESSIONS = [
     nr: '536', name: 'Die Fassung faellt aus der Fotoabfrage',
     file: 'server.js',
     search: "const PHOTO_VERSION = 'length(thumb) AS fassung';",
-    ersatz: "const PHOTO_VERSION = 'NULL AS fassung';",
+    replacement: "const PHOTO_VERSION = 'NULL AS fassung';",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4957,7 +4957,7 @@ const REGRESSIONS = [
     nr: '537', name: 'Die Bildadresse traegt die Fassung nicht mehr',
     file: 'public/app.js',
     search: "  const version = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';",
-    ersatz: "  const fassung = '';",
+    replacement: "  const fassung = '';",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4967,7 +4967,7 @@ const REGRESSIONS = [
     nr: '538', name: 'Der Zuschnitt im Browser kommt zurueck -- es wird zweimal geschnitten',
     file: 'public/style.css',
     search: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }",
-    ersatz: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; transform: scale(var(--zoom, 1)); }",
+    replacement: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; transform: scale(var(--zoom, 1)); }",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4979,7 +4979,7 @@ const REGRESSIONS = [
     nr: '539', name: 'Die Rechnung im Browser laeuft der im Server davon',
     file: 'public/app.js',
     search: "  const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt",
-    ersatz: "  const eng = seite;                       // was sie beim eingestellten Zoom zeigt",
+    replacement: "  const eng = seite;                       // was sie beim eingestellten Zoom zeigt",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4991,7 +4991,7 @@ const REGRESSIONS = [
     nr: '540', name: 'Die Fortschrittszeile kennt nur eine Richtung',
     file: 'public/app.js',
     search: "${d > 0 ? 'mehr' : 'weniger'}",
-    ersatz: "mehr",
+    replacement: "mehr",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -5008,7 +5008,7 @@ const REGRESSIONS = [
     nr: '541', name: 'Der Bilderstreifen fragt nicht, ob seine Ansicht noch steht',
     file: 'public/app.js',
     search: "    // erste, die den fehlenden Knoten anfasste.\n    if (!box) return;\n",
-    ersatz: "    // erste, die den fehlenden Knoten anfasste.\n",
+    replacement: "    // erste, die den fehlenden Knoten anfasste.\n",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
   {
@@ -5018,7 +5018,7 @@ const REGRESSIONS = [
     nr: '542', name: 'Der Betrachter fragt nicht, ob seine Ansicht noch steht',
     file: 'public/app.js',
     search: "    if (!v) return;\n    // Der Betrachter bleibt bei jedem Neuzeichnen",
-    ersatz: "    // Der Betrachter bleibt bei jedem Neuzeichnen",
+    replacement: "    // Der Betrachter bleibt bei jedem Neuzeichnen",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
   {
@@ -5028,7 +5028,7 @@ const REGRESSIONS = [
     nr: '543', name: 'Der Bilderstreifen zeichnet ueberhaupt keine Kacheln mehr',
     file: 'public/app.js',
     search: "    box.innerHTML = '';\n    item.photos.forEach((p, i) => {",
-    ersatz: "    box.innerHTML = '';\n    [].forEach((p, i) => {",
+    replacement: "    box.innerHTML = '';\n    [].forEach((p, i) => {",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
 
@@ -5045,7 +5045,7 @@ const REGRESSIONS = [
     nr: '544', name: 'Die Regel kennt nur das Alter -- der Boden faellt weg',
     file: 'server.js',
     search: "  return usable.slice(keep).filter(d => d.time < limit);",
-    ersatz: "  return brauchbar.filter(d => d.zeit < grenze);",
+    replacement: "  return brauchbar.filter(d => d.zeit < grenze);",
     expected: 'Die Aufraeumregel an der Tafel'
   },
   {
@@ -5055,7 +5055,7 @@ const REGRESSIONS = [
     nr: '545', name: 'Die Regel kennt nur die Zahl -- die Schere faellt weg',
     file: 'server.js',
     search: "  return usable.slice(keep).filter(d => d.time < limit);",
-    ersatz: "  return brauchbar.slice(behalten);",
+    replacement: "  return brauchbar.slice(behalten);",
     expected: 'Die Aufraeumregel an der Tafel'
   },
   {
@@ -5067,7 +5067,7 @@ const REGRESSIONS = [
     nr: '546', name: 'Die Musterpruefung faellt weg -- die fremde Datei faellt mit',
     file: 'server.js',
     search: "const BACKUP_PATTERN = /^kriterion-.+\\.sqlite$/;",
-    ersatz: "const BACKUP_PATTERN = /./;",
+    replacement: "const BACKUP_PATTERN = /./;",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5080,7 +5080,7 @@ const REGRESSIONS = [
     nr: '547', name: 'Die zweite Musterpruefung vor dem unlink faellt weg',
     file: 'server.js',
     search: "    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { geblieben.push(short); continue; }",
-    ersatz: "    if (false) { geblieben.push(kurz); continue; }",
+    replacement: "    if (false) { geblieben.push(kurz); continue; }",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5091,7 +5091,7 @@ const REGRESSIONS = [
     nr: '548', name: 'Die Liste folgt dem Symlink statt ihn zu sehen',
     file: 'server.js',
     search: "      const st = fs.lstatSync(path.join(pfad, n));",
-    ersatz: "      const st = fs.statSync(path.join(pfad, n));",
+    replacement: "      const st = fs.statSync(path.join(pfad, n));",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5102,7 +5102,7 @@ const REGRESSIONS = [
     nr: '549', name: 'Das Entfernen folgt dem Symlink',
     file: 'server.js',
     search: "      const st = fs.lstatSync(full);",
-    ersatz: "      const st = fs.statSync(voll);",
+    replacement: "      const st = fs.statSync(voll);",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5112,7 +5112,7 @@ const REGRESSIONS = [
     nr: '550', name: 'Der Boden zaehlt auch die veralteten Kopien mit',
     file: 'server.js',
     search: "    .filter(d => changeMs == null || d.time >= changeMs)",
-    ersatz: "    .filter(() => true)",
+    replacement: "    .filter(() => true)",
     expected: 'Die Aufraeumregel an der Tafel'
   },
   {
@@ -5123,7 +5123,7 @@ const REGRESSIONS = [
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
     file: 'server.js',
     search: "  if (fs.existsSync(file))\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});",
-    ersatz: "  if (fs.existsSync(datei)) {\n    const r = cleanupStatus();\n    if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});\n  }",
+    replacement: "  if (fs.existsSync(datei)) {\n    const r = cleanupStatus();\n    if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});\n  }",
     expected: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
   {
@@ -5137,7 +5137,7 @@ const REGRESSIONS = [
     search: "    console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);\n" +
            "    aufgeraeumt = { weg: 0, nicht: 0, bytes: 0, gescheitert: true };\n" +
            "  }",
-    ersatz: "    throw e;\n" +
+    replacement: "    throw e;\n" +
             "  }\n" +
             "  if (aufgeraeumt && aufgeraeumt.weg)\n" +
             "    return res.status(500).json({ error: 'Die Sicherung ist gescheitert.' });",
@@ -5151,7 +5151,7 @@ const REGRESSIONS = [
     nr: '553', name: 'Der Schalter steht bei einer frischen Installation auf AN',
     file: 'server.js',
     search: "    an: getSetting('backupCleanup', false) === true,",
-    ersatz: "    an: getSetting('backupCleanup', true) !== false,",
+    replacement: "    an: getSetting('backupCleanup', true) !== false,",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5161,7 +5161,7 @@ const REGRESSIONS = [
     nr: '554', name: 'Die Grenzen der beiden Werte halten nicht mehr am Server',
     file: 'server.js',
     search: "  if (!Number.isInteger(n) || n < range.min || n > range.max)",
-    ersatz: "  if (false)",
+    replacement: "  if (false)",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5171,7 +5171,7 @@ const REGRESSIONS = [
     nr: '555', name: 'Die Vorschau rechnet mit einem anderen Boden als das Loeschen',
     file: 'server.js',
     search: "  const treffer = ruleHit(files, keep, days, now, mark ? mark.ms : null);",
-    ersatz: "  const treffer = ruleHit(dateien, Math.max(1, behalten - 1), tage, jetzt,\n" +
+    replacement: "  const treffer = ruleHit(dateien, Math.max(1, behalten - 1), tage, jetzt,\n" +
             "                               marke ? marke.ms : null);",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5183,7 +5183,7 @@ const REGRESSIONS = [
     nr: '556', name: 'Die Loeschroute nimmt einen Dateinamen aus dem Rumpf',
     file: 'server.js',
     search: "  const kind = String(req.body?.kind || '');",
-    ersatz: "  const art = String(req.body?.art || '');\n" +
+    replacement: "  const art = String(req.body?.art || '');\n" +
             "  if (req.body?.datei) {\n" +
             "    const einzeln = removeBackups(ziel.pfad, [req.body.datei]);\n" +
             "    return res.json({ ok: true, art, weg: einzeln.weg, nicht: einzeln.geblieben.length,\n" +
@@ -5196,7 +5196,7 @@ const REGRESSIONS = [
     file: 'server.js',
     search: "app.post('/api/backup/cleanup', ownerOnly,\n" +
            "         secondConfirmNeeded('backup'), (req, res) => {",
-    ersatz: "app.post('/api/backup/cleanup', ownerOnly, (req, res) => {",
+    replacement: "app.post('/api/backup/cleanup', ownerOnly, (req, res) => {",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5207,7 +5207,7 @@ const REGRESSIONS = [
     file: 'server.js',
     search: "app.post('/api/backup/cleanup', ownerOnly,\n" +
            "         secondConfirmNeeded('backup'), (req, res) => {",
-    ersatz: "app.post('/api/backup/cleanup', adminOnly,\n" +
+    replacement: "app.post('/api/backup/cleanup', adminOnly,\n" +
             "         secondConfirmNeeded('backup'), (req, res) => {",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5217,7 +5217,7 @@ const REGRESSIONS = [
     nr: '559', name: 'Die entfernten Kopien stehen in keinem Protokoll mehr',
     file: 'server.js',
     search: "  for (let i = 0; i < number; i++) auth.log('backup.delete', { actor });",
-    ersatz: "  for (let i = 0; i < 0; i++) auth.log('backup.delete', { wer });",
+    replacement: "  for (let i = 0; i < 0; i++) auth.log('backup.delete', { wer });",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5226,7 +5226,7 @@ const REGRESSIONS = [
     nr: '560', name: 'Der Vorgang sicherung.weg steht in keiner Gruppe',
     file: 'auth.js',
     search: "  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']",
-    ersatz: "  bestand: ['export', 'import', 'backup', 'key']",
+    replacement: "  bestand: ['export', 'import', 'backup', 'key']",
     expected: 'Das Sicherheitsprotokoll: die Gruppen des Filters'
   },
   {
@@ -5237,7 +5237,7 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,\n" +
            "    markup: cardCleanup,   ausruesten: setUpCleanupOut },",
-    ersatz: "",
+    replacement: "",
     expected: 'Der Systembereich nach Rolle'
   },
   {
@@ -5246,7 +5246,7 @@ const REGRESSIONS = [
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
     file: 'public/app.js',
     search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,",
-    ersatz: "  { key: 'aufraeumen',   section: 'database', sichtbar: () => ADMIN,",
+    replacement: "  { key: 'aufraeumen',   section: 'database', sichtbar: () => ADMIN,",
     expected: 'Der Systembereich nach Rolle'
   },
   {
@@ -5256,7 +5256,7 @@ const REGRESSIONS = [
     nr: '563', name: 'Eine Aenderung am Feld rechnet die Vorschau nicht neu',
     file: 'public/app.js',
     search: "        el.oninput = previewNew;",
-    ersatz: "        el.oninput = null;",
+    replacement: "        el.oninput = null;",
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5266,7 +5266,7 @@ const REGRESSIONS = [
     nr: '564', name: 'Die Karte schickt die Dateinamen an die Loeschroute mit',
     file: 'public/app.js',
     search: "      try { r = await api('POST', '/api/backup/cleanup', { kind }); }",
-    ersatz: "      try { r = await api('POST', '/api/backup/cleanup',\n" +
+    replacement: "      try { r = await api('POST', '/api/backup/cleanup',\n" +
             "        { art, dateien: (a.treffer || []).map(t => t.datei) }); }",
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5278,7 +5278,7 @@ const REGRESSIONS = [
     // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
     // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
     search: "id=\"cleanup-run\"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
-    ersatz: "id=\"cleanup-run\">${tH('card.deleteNow')}",
+    replacement: "id=\"cleanup-run\">${tH('card.deleteNow')}",
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5293,7 +5293,7 @@ const REGRESSIONS = [
        Stilblatt, und die ist die Sache. Die Zusage ist dieselbe geblieben:
        eine Liste ohne Deckel zieht die Karte auf. */
     search: '#cleanup-list { flex: none; max-height: 13.98rem; }',
-    ersatz: '#cleanup-list { flex: none; }',
+    replacement: '#cleanup-list { flex: none; }',
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5304,7 +5304,7 @@ const REGRESSIONS = [
     nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
     file: 'public/app.js',
     search: '           <div class="manage-list" id="cleanup-list">${all.map(row).join(\'\')}</div>`',
-    ersatz: '           <div class="manage-list" id="cleanup-list"></div>`',
+    replacement: '           <div class="manage-list" id="cleanup-list"></div>`',
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5314,7 +5314,7 @@ const REGRESSIONS = [
     nr: '568', name: 'Die Nummern laufen von der aeltesten zur juengsten',
     file: 'server.js',
     search: '      ...cleanupRow(d, now), nr: i + 1,',
-    ersatz: '      ...cleanupRow(d, jetzt), nr: dateien.length - i,',
+    replacement: '      ...cleanupRow(d, jetzt), nr: dateien.length - i,',
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -5324,7 +5324,7 @@ const REGRESSIONS = [
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     file: 'public/app.js',
     search: "      const mark = z.faellt ? `<span class=\"cleanup-badge remove\">${tH('card.deleteLower')}</span>`",
-    ersatz: "      const marke = z.faellt ? ''",
+    replacement: "      const marke = z.faellt ? ''",
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
 
@@ -5349,7 +5349,7 @@ const REGRESSIONS = [
     nr: '570', name: 'Der Gesamtschnitt der Uebersicht kennt die Phase nicht mehr',
     file: 'server.js',
     search: '   GROUP BY r.item_id, r.criterion_id, c.weight, c.phase`);',
-    ersatz: '   GROUP BY r.item_id, r.criterion_id, c.weight`);',
+    replacement: '   GROUP BY r.item_id, r.criterion_id, c.weight`);',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5361,7 +5361,7 @@ const REGRESSIONS = [
     nr: '571', name: 'Der Gesamtschnitt des Eintrags kennt die Phase nicht mehr',
     file: 'server.js',
     search: '   GROUP BY r.criterion_id, c.weight, c.phase`);',
-    ersatz: '   GROUP BY r.criterion_id, c.weight`);',
+    replacement: '   GROUP BY r.criterion_id, c.weight`);',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5371,7 +5371,7 @@ const REGRESSIONS = [
     nr: '572', name: 'potenzialRating faellt aus der Uebersicht',
     file: 'server.js',
     search: '    it.potentialRating = totalAverage(boxes.before);',
-    ersatz: '    it.potenzialRating = null;',
+    replacement: '    it.potenzialRating = null;',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5381,7 +5381,7 @@ const REGRESSIONS = [
     nr: '573', name: 'Der Rechenweg des Potenzials faellt aus der Antwort',
     file: 'server.js',
     search: '  it.potentialCalc = { ...potentialCalc, result: it.potentialRating };',
-    ersatz: '  void potenzialRechenweg;',
+    replacement: '  void potenzialRechenweg;',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5390,7 +5390,7 @@ const REGRESSIONS = [
     nr: '574', name: 'Die Sternzeilen des Details tragen ihre Phase nicht mehr',
     file: 'server.js',
     search: '    SELECT c.id AS criterion_id, c.name, c.weight, c.phase, COALESCE(r.value, 0) AS value',
-    ersatz: '    SELECT c.id AS criterion_id, c.name, c.weight, COALESCE(r.value, 0) AS value',
+    replacement: '    SELECT c.id AS criterion_id, c.name, c.weight, COALESCE(r.value, 0) AS value',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5400,7 +5400,7 @@ const REGRESSIONS = [
     nr: '575', name: 'POST /api/criteria nimmt jede Phase an',
     file: 'server.js',
     search: "  if (!PHASES.includes(phase))",
-    ersatz: "  if (false)",
+    replacement: "  if (false)",
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5410,7 +5410,7 @@ const REGRESSIONS = [
     nr: '576', name: 'PUT /api/criteria/:id uebergeht die Phase stillschweigend',
     file: 'server.js',
     search: "  if (req.body.phase !== undefined)",
-    ersatz: "  if (false)",
+    replacement: "  if (false)",
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5420,7 +5420,7 @@ const REGRESSIONS = [
     nr: '577', name: 'Der Export nennt die Kaesten nicht mehr',
     file: 'server.js',
     search: "  for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;",
-    ersatz: '  void criteriaPhase;',
+    replacement: '  void criteriaPhase;',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5431,7 +5431,7 @@ const REGRESSIONS = [
     nr: '578', name: 'Der Import spielt ueber die Kaesten hinweg ein',
     file: 'server.js',
     search: '  if (conflicts.length) {',
-    ersatz: '  if (false) {',
+    replacement: '  if (false) {',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5441,7 +5441,7 @@ const REGRESSIONS = [
     nr: '579', name: 'GET /api/criteria liefert die Phase nicht mehr',
     file: 'server.js',
     search: '  SELECT c.id, c.name, c.sort_order, c.weight, c.phase, c.created_at,',
-    ersatz: '  SELECT c.id, c.name, c.sort_order, c.weight, c.created_at,',
+    replacement: '  SELECT c.id, c.name, c.sort_order, c.weight, c.created_at,',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5451,7 +5451,7 @@ const REGRESSIONS = [
     nr: '580', name: 'Die Migration stellt den Bestand auf vorher',
     file: 'db.js',
     search: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'after\'");',
-    ersatz: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'before\'");',
+    replacement: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'before\'");',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5462,7 +5462,7 @@ const REGRESSIONS = [
     nr: '581', name: 'Der Migrationsblock 0.21.0 wird nicht mehr gerufen',
     file: 'db.js',
     search: '\nmigration0210();',
-    ersatz: '\n// migration0210();',
+    replacement: '\n// migration0210();',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5472,7 +5472,7 @@ const REGRESSIONS = [
     nr: '582', name: 'Die Sternkaesten speichern ihren Einklappzustand wieder',
     file: 'server.js',
     search: "const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_WITHOUT_TO.includes(k));",
-    ersatz: "const CLOSED_BLOCKS = ALL_BLOCKS;",
+    replacement: "const CLOSED_BLOCKS = ALL_BLOCKS;",
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
 
@@ -5484,7 +5484,7 @@ const REGRESSIONS = [
     nr: '583', name: 'Das × verschwindet mit seinem Platz statt nur mit seiner Farbe',
     file: 'public/app.js',
     search: "  z.className = 'rreset' + (value > 0 ? '' : ' blank');",
-    ersatz: "  z.className = 'rzurueck'; if (!(value > 0)) z.hidden = true;",
+    replacement: "  z.className = 'rzurueck'; if (!(value > 0)) z.hidden = true;",
     expected: "Die Sternzeile — 0.22.0"
   },
   {
@@ -5494,7 +5494,7 @@ const REGRESSIONS = [
     nr: '584', name: 'Das × steht auch an einer Sternreihe ohne Ruecksetzer',
     file: 'public/app.js',
     search: "  w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });\n  return w;\n}",
-    ersatz: "  w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });\n  w.appendChild(zuruecksetzKnopf(value, () => onPick(0)));\n  return w;\n}",
+    replacement: "  w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });\n  w.appendChild(zuruecksetzKnopf(value, () => onPick(0)));\n  return w;\n}",
     expected: "Die Sternzeile — 0.22.0"
   },
   {
@@ -5503,7 +5503,7 @@ const REGRESSIONS = [
     nr: '585', name: 'Die leere Durchschnittszelle zeigt wieder gar nichts',
     file: 'public/app.js',
     search: "          a.textContent = '–';\n          a.title = t('entry.notRatedYet');",
-    ersatz: "          a.textContent = '';",
+    replacement: "          a.textContent = '';",
     expected: 'Die Sternzeile — 0.21.0'
   },
   {
@@ -5513,7 +5513,7 @@ const REGRESSIONS = [
     nr: '586', name: 'Die Durchschnittsspalte verliert ihre Mindestbreite wieder',
     file: 'public/style.css',
     search: '  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;',
-    ersatz: '  display: flex; align-items: center; justify-content: flex-end;',
+    replacement: '  display: flex; align-items: center; justify-content: flex-end;',
     expected: 'Die Sternzeile — 0.21.0'
   },
 
@@ -5525,7 +5525,7 @@ const REGRESSIONS = [
     nr: '587', name: 'Der Potenzialblock steht hinter der Bewertung',
     file: 'public/app.js',
     search: "  seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],",
-    ersatz: "  seite: ['kategorie', 'tags', 'bewertung', 'potenzial'],",
+    replacement: "  seite: ['kategorie', 'tags', 'bewertung', 'potenzial'],",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5535,7 +5535,7 @@ const REGRESSIONS = [
     nr: '588', name: 'Der Zeichner zeigt in beiden Kaesten alle Zeilen',
     file: 'public/app.js',
     search: '    const rows = item.ratings.filter(r => r.phase === boxId.phase);',
-    ersatz: '    const zeilen = item.ratings;',
+    replacement: '    const zeilen = item.ratings;',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5545,7 +5545,7 @@ const REGRESSIONS = [
     nr: '589', name: 'Die Sternkaesten folgen wieder der gespeicherten Einstellung',
     file: 'public/app.js',
     search: '    const afterState = BLOCKS_ALWAYS_OPEN.includes(name);',
-    ersatz: '    const afterState = false;',
+    replacement: '    const afterState = false;',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5555,7 +5555,7 @@ const REGRESSIONS = [
     nr: '590', name: 'Bewertungssterne an einem ungetesteten Eintrag bleiben zugeklappt',
     file: 'public/app.js',
     search: "  return !item.tested && !hasStars(item, 'after');",
-    ersatz: '  return !item.tested;',
+    replacement: '  return !item.tested;',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5565,7 +5565,7 @@ const REGRESSIONS = [
     nr: '591', name: 'Ein Klick auf den Kastenkopf speichert wieder',
     file: 'public/app.js',
     search: '        if (GLANCE.has(name)) GLANCE.delete(name); else GLANCE.add(name);',
-    ersatz: "        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];\n        saveBlocks();",
+    replacement: "        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];\n        saveBlocks();",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5575,7 +5575,7 @@ const REGRESSIONS = [
     nr: '592', name: 'Der Schalter „Getestet" leert den Blick nicht mehr',
     file: 'public/app.js',
     search: '      GLANCE.clear();\n      drawSwitches(); drawTestDays(); drawRatings();',
-    ersatz: '      drawSwitches(); drawTestDays(); drawRatings();',
+    replacement: '      drawSwitches(); drawTestDays(); drawRatings();',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5585,7 +5585,7 @@ const REGRESSIONS = [
     nr: '593', name: 'Der Blick ueberlebt den Wechsel des Eintrags',
     file: 'public/app.js',
     search: '  GLANCE.clear();\n  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
-    ersatz: '  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
+    replacement: '  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5595,7 +5595,7 @@ const REGRESSIONS = [
     nr: '594', name: 'Die Kachel zeigt an einer Idee wieder die Bewertung',
     file: 'public/app.js',
     search: '  const value = potenzial ? it.potentialRating : it.avgRating;',
-    ersatz: '  const wert = it.avgRating;',
+    replacement: '  const wert = it.avgRating;',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5605,7 +5605,7 @@ const REGRESSIONS = [
     nr: '595', name: 'Das Potenzial traegt auf der Kachel wieder den Stern',
     file: 'public/app.js',
     search: "  const char = potenzial ? '◆' : '★';",
-    ersatz: "  const zeichen = '★';",
+    replacement: "  const zeichen = '★';",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5615,7 +5615,7 @@ const REGRESSIONS = [
     nr: '596', name: 'Eintraege ohne Potenzialzahl stehen in einer Richtung vorn',
     file: 'public/app.js',
     search: "      case 'potenzial_asc':  return (a.potentialRating ?? 99) - (b.potentialRating ?? 99);",
-    ersatz: "      case 'potenzial_asc':  return (a.potenzialRating ?? 0) - (b.potenzialRating ?? 0);",
+    replacement: "      case 'potenzial_asc':  return (a.potenzialRating ?? 0) - (b.potenzialRating ?? 0);",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5625,7 +5625,7 @@ const REGRESSIONS = [
     nr: '597', name: 'Die zweite Kriterienkarte filtert nicht nach Phase',
     file: 'public/app.js',
     search: "  manageList(k.list, fetched.crits.filter(c => c.phase === phase), 'crit', fetched);",
-    ersatz: "  verwaltungsListe(k.liste, geholt.crits, 'crit', geholt);",
+    replacement: "  verwaltungsListe(k.liste, geholt.crits, 'crit', geholt);",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5635,7 +5635,7 @@ const REGRESSIONS = [
     nr: '598', name: 'Die zweite Kriterienkarte legt im falschen Kasten an',
     file: 'public/app.js',
     search: "      try { await api('POST', '/api/criteria', { name, phase }); critField.value = '';",
-    ersatz: "      try { await api('POST', '/api/criteria', { name }); critField.value = '';",
+    replacement: "      try { await api('POST', '/api/criteria', { name }); critField.value = '';",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5646,7 +5646,7 @@ const REGRESSIONS = [
     nr: '599', name: 'Der eigene Schnitt im Vergleich mischt die Kaesten',
     file: 'public/app.js',
     search: "      if (r.phase !== phase) continue;",
-    ersatz: "      if (false) continue;",
+    replacement: "      if (false) continue;",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -5656,7 +5656,7 @@ const REGRESSIONS = [
     nr: '600', name: 'Der Blockkopf traegt das Wort aus dem Quelltext',
     file: 'public/app.js',
     search: '<div class="block-head"><span class="label">${esc(V.potenzial)}</span>',
-    ersatz: '<div class="block-head"><span class="label">Potenzial</span>',
+    replacement: '<div class="block-head"><span class="label">Potenzial</span>',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
 
@@ -5670,7 +5670,7 @@ const REGRESSIONS = [
     nr: '601', name: 'Die Vorgabe der Oberflaeche kennt das neue Wort nicht',
     file: 'public/languages/de.json',
     search: "\"vocabulary.potenzial\":",
-    ersatz: "\"vocabulary.potenzialWeg\":",
+    replacement: "\"vocabulary.potenzialWeg\":",
     expected: 'Oberflaeche mit eigenem Vokabular'
   },
   {
@@ -5687,7 +5687,7 @@ const REGRESSIONS = [
     file: 'server.js',
     search: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,\n' +
            '         c.weight, c.phase\n',
-    ersatz: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,\n' +
+    replacement: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,\n' +
             '         c.weight\n',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5700,7 +5700,7 @@ const REGRESSIONS = [
     file: 'server.js',
     search: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,\n' +
            '         c.weight, c.phase\n',
-    ersatz: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,\n' +
+    replacement: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,\n' +
             '         c.weight\n',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5713,7 +5713,7 @@ const REGRESSIONS = [
     nr: '604', name: 'Der Treiber faehrt los, ohne nach fremden Servern zu sehen',
     file: 'counterproof.js',
     search: '  const foreign = foreignServer();\n  if (foreign.length) {',
-    ersatz: '  const fremde = [];\n  if (fremde.length) {',
+    replacement: '  const fremde = [];\n  if (fremde.length) {',
     expected: 'Die Gegenproben greifen'
   },
   {
@@ -5722,8 +5722,8 @@ const REGRESSIONS = [
        gebliebener Server -- er startet ja welche. */
     nr: '605', name: 'Die Suche nach fremden Servern kennt den Prueflauf nicht mehr',
     file: 'counterproof.js',
-    search: "    const skript = parts.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
-    ersatz: "    const skript = parts.find(t => /(^|\\/)server\\.js$/.test(t));",
+    search: "    const script = parts.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
+    replacement: "    const script = parts.find(t => /(^|\\/)server\\.js$/.test(t));",
     expected: 'Die Gegenproben greifen'
   },
 
@@ -5738,7 +5738,7 @@ const REGRESSIONS = [
            "  rating_desc: 'tested',      rating_asc: 'tested',\n" +
            "  potenzial_desc: 'untested', potenzial_asc: 'untested'\n" +
            "};",
-    ersatz: "const SORT_STATUS = {};",
+    replacement: "const SORT_STATUS = {};",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5748,7 +5748,7 @@ const REGRESSIONS = [
     nr: '607', name: 'Nur die Bewertung gibt vor, das Potenzial nicht mehr',
     file: 'public/app.js',
     search: "  potenzial_desc: 'untested', potenzial_asc: 'untested'\n",
-    ersatz: "",
+    replacement: "",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5757,7 +5757,7 @@ const REGRESSIONS = [
     nr: '608', name: 'Die Titelsortierung koppelt mit',
     file: 'public/app.js',
     search: "const SORT_STATUS = {\n",
-    ersatz: "const SORT_STATUS = {\n  title_asc: 'tested',\n",
+    replacement: "const SORT_STATUS = {\n  title_asc: 'tested',\n",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5768,7 +5768,7 @@ const REGRESSIONS = [
     nr: '609', name: 'Die Verlaufssortierungen koppeln mit',
     file: 'public/app.js',
     search: "const SORT_STATUS = {\n  rating_desc:",
-    ersatz: "const SORT_STATUS = {\n  testavg_desc: 'tested', testavg_asc: 'tested',\n  tests_desc: 'tested', tests_asc: 'tested',\n  rating_desc:",
+    replacement: "const SORT_STATUS = {\n  testavg_desc: 'tested', testavg_asc: 'tested',\n  tests_desc: 'tested', tests_asc: 'tested',\n  rating_desc:",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5778,7 +5778,7 @@ const REGRESSIONS = [
     nr: '610', name: 'Die Liste liest die Ableitung nicht mehr',
     file: 'public/app.js',
     search: "  const status = statusEffective(f);",
-    ersatz: "  const status = f.tested;",
+    replacement: "  const status = f.tested;",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5788,7 +5788,7 @@ const REGRESSIONS = [
     nr: '611', name: 'Ein Klick auf eine Statuspille gilt nicht mehr als Handwahl',
     file: 'public/app.js',
     search: "    b.onclick = () => { f.tested = v; STATUS_BY_HAND = true; redraw(); };",
-    ersatz: "    b.onclick = () => { f.tested = v; redraw(); };",
+    replacement: "    b.onclick = () => { f.tested = v; redraw(); };",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5798,7 +5798,7 @@ const REGRESSIONS = [
     nr: '612', name: 'Die Ableitung schlaegt die Handwahl statt umgekehrt',
     file: 'public/app.js',
     search: "const statusOutSort = (sort) => STATUS_BY_HAND ? null : defaultClosed(sort);",
-    ersatz: "const statusOutSort = (sort) => vorgabeZu(sort);",
+    replacement: "const statusOutSort = (sort) => vorgabeZu(sort);",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5811,7 +5811,7 @@ const REGRESSIONS = [
     nr: '613', name: 'Die Ableitung wird mitgespeichert',
     file: 'public/app.js',
     search: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
-    ersatz: "  sel.onchange = () => { f.sort = sel.value;\n" +
+    replacement: "  sel.onchange = () => { f.sort = sel.value;\n" +
             "    f.tested = statusOutSort(sel.value) || f.tested; redraw(); };",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5823,7 +5823,7 @@ const REGRESSIONS = [
     nr: '614', name: 'Der Wechsel der Sortierung zeichnet nur noch die Liste',
     file: 'public/app.js',
     search: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
-    ersatz: "  sel.onchange = () => { f.sort = sel.value; saveFilters(); drawBody(); };",
+    replacement: "  sel.onchange = () => { f.sort = sel.value; saveFilters(); drawBody(); };",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5833,7 +5833,7 @@ const REGRESSIONS = [
     nr: '615', name: 'Eine gespeicherte Ansicht schlaegt die Ableitung nicht mehr',
     file: 'public/app.js',
     search: "  STATUS_BY_HAND = true;\n  state.search = typeof a.q === 'string' ? a.q : '';",
-    ersatz: "  state.search = typeof a.q === 'string' ? a.q : '';",
+    replacement: "  state.search = typeof a.q === 'string' ? a.q : '';",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5843,7 +5843,7 @@ const REGRESSIONS = [
     nr: '616', name: 'Der Ruecksetzer stellt die Automatik nicht wieder her',
     file: 'public/app.js',
     search: "      STATUS_BY_HAND = false;\n      redraw();",
-    ersatz: "      redraw();",
+    replacement: "      redraw();",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5852,7 +5852,7 @@ const REGRESSIONS = [
     nr: '617', name: 'Neben den Statuspillen steht nicht mehr, woher sie kommen',
     file: 'public/app.js',
     search: "  if (fallback) {\n    const from = secondLabel(r1, t('list.followsSort'));",
-    ersatz: "  if (false) {\n    const woher = zweiteBeschriftung(r1, t('list.followsSort'));",
+    replacement: "  if (false) {\n    const woher = zweiteBeschriftung(r1, t('list.followsSort'));",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5862,7 +5862,7 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "    b.className = 'pill' + (fallback ? (fallback === v ? ' pill-derived' : '')\n" +
            "                                    : (f.tested === v ? ' on' : ''));",
-    ersatz: "    b.className = 'pill' + ((vorgabe ? vorgabe === v : f.tested === v) ? ' on' : '');",
+    replacement: "    b.className = 'pill' + ((vorgabe ? vorgabe === v : f.tested === v) ? ' on' : '');",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5872,7 +5872,7 @@ const REGRESSIONS = [
     nr: '619', name: 'Das Stilblatt gibt der abgeleiteten Pille den Fuellgrund der gewaehlten',
     file: 'public/style.css',
     search: "  border-color: var(--accent); border-style: dashed;",
-    ersatz: "  border-color: var(--accent); background: var(--accent);",
+    replacement: "  border-color: var(--accent); background: var(--accent);",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5883,7 +5883,7 @@ const REGRESSIONS = [
     nr: '620', name: 'Die Ableitung zaehlt als gesetzter Filter mit',
     file: 'public/app.js',
     search: "  if (statusEffective(f) !== statusIdle(f)) n++;",
-    ersatz: "  if (statusEffective(f) !== statusRuhestellung(f)) n++;\n" +
+    replacement: "  if (statusEffective(f) !== statusRuhestellung(f)) n++;\n" +
             "  if (statusOutSort(f.sort)) n++;",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5903,14 +5903,14 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)\n" +
            "    ? SORT_STATUS[sort] : null;",
-    ersatz: "  SORT_STATUS[sort] || null;",
+    replacement: "  SORT_STATUS[sort] || null;",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
     nr: '622', name: 'Die Ruhestellung der Statuszeile ist wieder fest „alles"',
     file: 'public/app.js',
     search: "  if (statusEffective(f) !== statusIdle(f)) n++;",
-    ersatz: "  if (f.tested !== v.tested) n++;",
+    replacement: "  if (f.tested !== v.tested) n++;",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5920,7 +5920,7 @@ const REGRESSIONS = [
     nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
     file: 'public/app.js',
     search: "  const from = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';",
-    ersatz: "  const woher = '';",
+    replacement: "  const woher = '';",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
 
@@ -5934,7 +5934,7 @@ const REGRESSIONS = [
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
     file: 'testbench.js',
     search: "                          'images.js', 'batchrun.js'];",
-    ersatz: "                          ];",
+    replacement: "                          ];",
     expected: 'Der Sprachwaechter'
   },
   {
@@ -5945,7 +5945,7 @@ const REGRESSIONS = [
     nr: 'W13', name: 'Die Sprachliste verliert ihren juengsten Eintrag',
     file: 'testbench.js',
     search: "    ['Faden', 'Thread']\n  ];",
-    ersatz: "  ];",
+    replacement: "  ];",
     expected: 'Der Sprachwaechter'
   },
   /* ================= 0.22.0: die Runde „Die Oberflaeche wird ruhiger" =================
@@ -5966,7 +5966,7 @@ const REGRESSIONS = [
     nr: '624', name: 'Das Milchglas kommt an die Kopfzeile zurueck',
     file: 'public/style.css',
     search: ".masthead.scrolled { box-shadow: var(--sh-sm); }",
-    ersatz: ".masthead.scrolled { box-shadow: var(--sh-sm); backdrop-filter: blur(10px); }",
+    replacement: ".masthead.scrolled { box-shadow: var(--sh-sm); backdrop-filter: blur(10px); }",
     expected: 'Kein Milchglas im Stilblatt — 0.22.0'
   },
   {
@@ -5974,7 +5974,7 @@ const REGRESSIONS = [
     nr: '625', name: 'Die Glocke sagt wieder „Blick"',
     file: 'public/app.js',
     search: "    : t('list.noNews'));",
-    ersatz: "    : 'Nichts Neues seit deinem letzten Blick');",
+    replacement: "    : 'Nichts Neues seit deinem letzten Blick');",
     expected: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
   {
@@ -5982,7 +5982,7 @@ const REGRESSIONS = [
     nr: '626', name: 'Die Servermeldung zur Phase eines Kriteriums sagt wieder „Kasten"',
     file: 'public/languages/de.json',
     search: "\"server.criterionEitherOr\": \"Ein Kriterium gehört entweder zu „{potenzial}“ oder zu „{bewertungEinzahl}“.\",",
-    ersatz: "\"server.criterionEitherOr\": \"Der Kasten muss „{potenzial}“ oder „{bewertungEinzahl}“ sein.\",",
+    replacement: "\"server.criterionEitherOr\": \"Der Kasten muss „{potenzial}“ oder „{bewertungEinzahl}“ sein.\",",
     expected: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
   {
@@ -5990,7 +5990,7 @@ const REGRESSIONS = [
     nr: '627', name: 'Das Beenden der anderen Sitzungen fragt wieder ueber confirm()',
     file: 'public/app.js',
     search: "      if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;",
-    ersatz: "      if (!confirm(t('card.endSessionsAsk'))) return;",
+    replacement: "      if (!confirm(t('card.endSessionsAsk'))) return;",
     expected: 'Keine Browserfenster mehr — 0.22.0'
   },
   {
@@ -6000,7 +6000,7 @@ const REGRESSIONS = [
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     file: 'public/languages/de.json',
     search: "Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.\"",
-    ersatz: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node usertool.js passwort <name>.\"",
+    replacement: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node usertool.js passwort <name>.\"",
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -6008,7 +6008,7 @@ const REGRESSIONS = [
     nr: '629', name: 'Ein fuenfter Kasten „Auf dem Server" kommt an die Karte Sicherung',
     file: 'public/app.js',
     search: "        <div id=\"backup-box\"></div>\n      </div>`;",
-    ersatz: "        <div id=\"backup-box\"></div>\n        ${serverKasten('Die Sicherung von Hand:', 'docker compose exec kriterion node sicherung.js')}\n      </div>`;",
+    replacement: "        <div id=\"backup-box\"></div>\n        ${serverKasten('Die Sicherung von Hand:', 'docker compose exec kriterion node sicherung.js')}\n      </div>`;",
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -6016,7 +6016,7 @@ const REGRESSIONS = [
     nr: '630', name: 'Das fremde Passwort wird wieder ueber prompt() abgefragt',
     file: 'public/app.js',
     search: "          const fresh = await newPasswordDialog(t('card.setPasswordFor', { username: z.username }),",
-    ersatz: "          const neu = prompt(t('card.setPasswordFor', { username: z.username }),",
+    replacement: "          const neu = prompt(t('card.setPasswordFor', { username: z.username }),",
     expected: 'Keine Browserfenster mehr — 0.22.0'
   },
   {
@@ -6024,7 +6024,7 @@ const REGRESSIONS = [
     nr: '631', name: 'Der Bildstreifen laesst eine ungueltige Stufe durch',
     file: 'server.js',
     search: "    if (!STRIP_LEVELS.includes(n))",
-    ersatz: "    if (!Number.isFinite(n))",
+    replacement: "    if (!Number.isFinite(n))",
     expected: 'Die Einstellung strip — 0.22.0'
   },
   {
@@ -6032,7 +6032,7 @@ const REGRESSIONS = [
     nr: '632', name: 'Die Vorgabe des Vokabulars vergisst die Mehrzahl der Bewertung',
     file: 'public/languages/de.json',
     search: "\"vocabulary.bewertungMehrzahl\": \"Bewertungen\",",
-    ersatz: "\"vocabulary.bewertungMehrzahl\": \"\",",
+    replacement: "\"vocabulary.bewertungMehrzahl\": \"\",",
     expected: 'Einstellungen: Vokabular und Schriftgroesse'
   },
   {
@@ -6042,7 +6042,7 @@ const REGRESSIONS = [
     nr: '633', name: 'Der Ruecksetzknopf steht wieder in der Sternzelle statt in seiner eigenen Spalte',
     file: 'public/app.js',
     search: "      const zz = document.createElement('span');\n      zz.className = 'rreset-cell';\n      zz.appendChild(back);\n      row.append(zz);",
-    ersatz: "      acts.appendChild(zurueck);",
+    replacement: "      acts.appendChild(zurueck);",
     expected: 'Die Sternzeile — 0.22.0'
   },
   {
@@ -6050,7 +6050,7 @@ const REGRESSIONS = [
     nr: '634', name: 'Rueckgaengig schreibt die Null statt des alten Werts',
     file: 'public/app.js',
     search: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(old) });",
-    ersatz: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(0) });",
+    replacement: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(0) });",
     expected: 'Die Sternzeile — 0.22.0'
   },
   {
@@ -6058,7 +6058,7 @@ const REGRESSIONS = [
     nr: '635', name: 'Die Zelle des Ruecksetzknopfs verliert ihren Abstand',
     file: 'public/style.css',
     search: ".rrow .rreset-cell { display: flex; align-items: center; justify-content: flex-end; padding-left: 12px; }",
-    ersatz: ".rrow .rzz { display: flex; align-items: center; justify-content: flex-end; padding-left: 4px; }",
+    replacement: ".rrow .rzz { display: flex; align-items: center; justify-content: flex-end; padding-left: 4px; }",
     expected: 'Die Sternzeile — 0.22.0'
   },
   {
@@ -6069,7 +6069,7 @@ const REGRESSIONS = [
     nr: '636', name: 'Die Tagzeile bleibt bei greifendem Tagfilter zugeklappt',
     file: 'public/app.js',
     search: "    (MORE_FILTERS_OPEN === null ? f.tagIds.length > 0 : MORE_FILTERS_OPEN);",
-    ersatz: "    (WEITERE_FILTER_OFFEN === null ? false : WEITERE_FILTER_OFFEN);",
+    replacement: "    (WEITERE_FILTER_OFFEN === null ? false : WEITERE_FILTER_OFFEN);",
     expected: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
@@ -6077,7 +6077,7 @@ const REGRESSIONS = [
     nr: '637', name: 'filterNumber() zaehlt die Tags hinter dem Umschalter nicht mehr',
     file: 'public/app.js',
     search: "  n += f.tagIds.length;",
-    ersatz: "  n += 0;",
+    replacement: "  n += 0;",
     expected: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
@@ -6086,7 +6086,7 @@ const REGRESSIONS = [
     nr: '658', name: 'Der Umschalter der Tagzeile steht nicht in der Kategoriezeile',
     file: 'public/app.js',
     search: "    r2.appendChild(right2);",
-    ersatz: "    box.appendChild(rechts2);",
+    replacement: "    box.appendChild(rechts2);",
     expected: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
@@ -6095,7 +6095,7 @@ const REGRESSIONS = [
     nr: '659', name: 'Die Tagzeile wird zugeklappt gebaut statt weggelassen',
     file: 'public/app.js',
     search: "  if (tagsOpen) {\n    const r3 = row(t('list.tags'));",
-    ersatz: "  if (true) {\n    const r3 = row(t('list.tags'));",
+    replacement: "  if (true) {\n    const r3 = row(t('list.tags'));",
     expected: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
@@ -6104,7 +6104,7 @@ const REGRESSIONS = [
     nr: '660', name: 'Der Umschalter steht auch da, wenn kein Tag dahinter ist',
     file: 'public/app.js',
     search: "  const tagsPossible = filterTags.length > 0 || f.tagIds.length > 0;",
-    ersatz: "  const tagsMoeglich = true;",
+    replacement: "  const tagsMoeglich = true;",
     expected: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
@@ -6113,7 +6113,7 @@ const REGRESSIONS = [
     nr: '675', name: 'Eine Servermeldung steht wieder als Satz im Quelltext',
     file: 'server.js',
     search: "  if (!title) return res.status(400).json({ error: t(localeOf(req), 'server.titleMissing')});",
-    ersatz: "  if (!title) return res.status(400).json({ error: 'Bitte einen Titel eingeben.' });",
+    replacement: "  if (!title) return res.status(400).json({ error: 'Bitte einen Titel eingeben.' });",
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
@@ -6122,7 +6122,7 @@ const REGRESSIONS = [
     nr: '676', name: 'auth.js wirft wieder einen deutschen Satz',
     file: 'auth.js',
     search: "  if (!ROLES.includes(role)) throw new Message('login.roleUnknown');\n  const clean = String(name).trim();",
-    ersatz: "  if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');\n  const sauber = String(name).trim();",
+    replacement: "  if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');\n  const sauber = String(name).trim();",
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
@@ -6131,7 +6131,7 @@ const REGRESSIONS = [
     nr: '677', name: 'Ein Programmierfehler ohne Bildschirm faellt weg',
     file: 'auth.js',
     search: "    throw new Error('Eine Sitzung braucht einen Benutzer.');",
-    ersatz: "    return null;",
+    replacement: "    return null;",
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
@@ -6140,7 +6140,7 @@ const REGRESSIONS = [
     nr: '678', name: 'Eine benannte Altlast verschwindet aus der Sprachdatei',
     file: 'public/languages/de.json',
     search: '  "login.noUserYet": "Es ist noch kein Zugang eingerichtet.",',
-    ersatz: '  "login.noUserYetX": "Es ist noch kein Zugang eingerichtet.",',
+    replacement: '  "login.noUserYetX": "Es ist noch kein Zugang eingerichtet.",',
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
@@ -6149,7 +6149,7 @@ const REGRESSIONS = [
     nr: '679', name: 'Eine Altlast ist behoben und steht doch noch auf der Liste',
     file: 'public/languages/de.json',
     search: '  "server.deniedOwnUser": "Den eigenen Zugang ändert man unter „Zugang“, nicht hier.",',
-    ersatz: '  "server.deniedOwnUser": "Das eigene Konto ändert man an anderer Stelle.",',
+    replacement: '  "server.deniedOwnUser": "Das eigene Konto ändert man an anderer Stelle.",',
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
@@ -6158,7 +6158,7 @@ const REGRESSIONS = [
     nr: '680', name: 'mail.js bekommt den Uebersetzer nicht mehr gereicht',
     file: 'server.js',
     search: "mail.setTranslator(t);",
-    ersatz: "void mail.setTranslator;",
+    replacement: "void mail.setTranslator;",
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6167,7 +6167,7 @@ const REGRESSIONS = [
     nr: '681', name: 'auth.js bekommt den Uebersetzer nicht mehr gereicht',
     file: 'server.js',
     search: "auth.setTranslator((req, key, values) => t(localeOf(req), key, values));",
-    ersatz: "void auth.setTranslator;",
+    replacement: "void auth.setTranslator;",
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6177,7 +6177,7 @@ const REGRESSIONS = [
     nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
     file: 'server.js',
     search: "const vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
-    ersatz: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
+    replacement: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6186,7 +6186,7 @@ const REGRESSIONS = [
     nr: '683', name: 'Der Betreff eines Briefes verliert seinen Platzhalter',
     file: 'public/languages/de.json',
     search: '  "mail.invite.subject": "Dein Zugang zu „{titel}“",',
-    ersatz: '  "mail.invite.subject": "Dein Zugang",',
+    replacement: '  "mail.invite.subject": "Dein Zugang",',
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6194,7 +6194,7 @@ const REGRESSIONS = [
     nr: '684', name: 'Die Testmail traegt ploetzlich einen Link',
     file: 'public/languages/de.json',
     search: 'das ist die Testmail aus „{titel}“.',
-    ersatz: 'das ist die Testmail aus „{titel}“: {link}',
+    replacement: 'das ist die Testmail aus „{titel}“: {link}',
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6203,7 +6203,7 @@ const REGRESSIONS = [
     nr: '665', name: 'Die Sprachdatei verliert ihren Kopf _locale',
     file: 'public/languages/de.json',
     search: '  "_locale": "de-DE",',
-    ersatz: '  "_hinweis": "de-DE",',
+    replacement: '  "_hinweis": "de-DE",',
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6213,7 +6213,7 @@ const REGRESSIONS = [
     nr: '666', name: 'Ein Wert der Sprachdatei traegt eine spitze Klammer',
     file: 'public/languages/de.json',
     search: '"server.errorUnknown": "Unbekannter Fehler"',
-    ersatz: '"server.errorUnknown": "<b>Unbekannter Fehler</b>"',
+    replacement: '"server.errorUnknown": "<b>Unbekannter Fehler</b>"',
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6222,7 +6222,7 @@ const REGRESSIONS = [
     nr: '667', name: 'tH() maskiert die eingesetzten Werte nicht mehr',
     file: 'public/app.js',
     search: "    return mask ? esc(String(value)) : String(value);",
-    ersatz: "    return String(wert);",
+    replacement: "    return String(wert);",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6231,7 +6231,7 @@ const REGRESSIONS = [
     nr: '668', name: 'Ein unbekannter Platzhalter verschwindet still',
     file: 'public/app.js',
     search: "    if (value === undefined) return whole;",
-    ersatz: "    if (wert === undefined) return '';",
+    replacement: "    if (wert === undefined) return '';",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6241,7 +6241,7 @@ const REGRESSIONS = [
     nr: '669', name: 'Die Mehrzahl waehlt wieder ueber n === 1',
     file: 'public/app.js',
     search: "  return PLURAL.select(values.n) === 'one' ? raw.eins : raw.andere;",
-    ersatz: "  return werte.n === 1 ? roh.eins : roh.andere;",
+    replacement: "  return werte.n === 1 ? roh.eins : roh.andere;",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6251,7 +6251,7 @@ const REGRESSIONS = [
     nr: '670', name: 'Der Rueckfall auf Deutsch faellt weg',
     file: 'public/app.js',
     search: "  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_DE[key];",
-    ersatz: "  const roh = TEXTE[schluessel];",
+    replacement: "  const roh = TEXTE[schluessel];",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6260,7 +6260,7 @@ const REGRESSIONS = [
     nr: '671', name: 'boot() haelt bei fehlender Sprachdatei nicht an',
     file: 'public/app.js',
     search: "    app.textContent = 'Die Sprachdatei fehlt.';\n    return;",
-    ersatz: "    app.textContent = 'Die Sprachdatei fehlt.';",
+    replacement: "    app.textContent = 'Die Sprachdatei fehlt.';",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6269,7 +6269,7 @@ const REGRESSIONS = [
     nr: '672', name: 'Der Server startet auch ohne de.json',
     file: 'server.js',
     search: "  if (!out2.de) throw new Error(",
-    ersatz: "  if (false) throw new Error(",
+    replacement: "  if (false) throw new Error(",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6277,7 +6277,7 @@ const REGRESSIONS = [
     nr: '673', name: 'api() traegt seinen Rueckfallsatz wieder im Quelltext',
     file: 'public/app.js',
     search: "    let m = t('error.serverStatus', { status: res.status });",
-    ersatz: "    let m = `Der Server meldet einen Fehler (${res.status}).`;",
+    replacement: "    let m = `Der Server meldet einen Fehler (${res.status}).`;",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6285,7 +6285,7 @@ const REGRESSIONS = [
     nr: '674', name: 'Der Fehler-Handler traegt seinen Satz wieder im Quelltext',
     file: 'server.js',
     search: "  if (rank >= 500) return res.status(500).json({ error: t(locale, 'server.error') });",
-    ersatz: "  if (rang >= 500) return res.status(500).json({ error: 'Auf dem Server ist ein Fehler aufgetreten.' });",
+    replacement: "  if (rang >= 500) return res.status(500).json({ error: 'Auf dem Server ist ein Fehler aufgetreten.' });",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -6294,7 +6294,7 @@ const REGRESSIONS = [
     nr: '661', name: 'Die Hilfslinie der Zeitleiste ist im hellen Schema wieder unsichtbar',
     file: 'public/style.css',
     search: "  --timeline-line: var(--line-hover);",
-    ersatz: "  --timeline-line: var(--line-2);",
+    replacement: "  --timeline-line: var(--line-2);",
     expected: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {
@@ -6304,7 +6304,7 @@ const REGRESSIONS = [
     nr: '662', name: 'Die Jahreszahl der Zeitleiste faellt unter die Latte fuer Text',
     file: 'public/style.css',
     search: "  --timeline-year: var(--muted);",
-    ersatz: "  --timeline-year: var(--faint);",
+    replacement: "  --timeline-year: var(--faint);",
     expected: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {
@@ -6313,7 +6313,7 @@ const REGRESSIONS = [
     nr: '663', name: 'Das dunkle Schema bekommt einen anderen Wert fuer die Zeitleiste',
     file: 'public/style.css',
     search: "  --timeline-mid: var(--line);\n  --timeline-year: var(--faint);",
-    ersatz: "  --timeline-mid: var(--line-hover);\n  --timeline-year: var(--faint);",
+    replacement: "  --timeline-mid: var(--line-hover);\n  --timeline-year: var(--faint);",
     expected: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {
@@ -6322,7 +6322,7 @@ const REGRESSIONS = [
     nr: '664', name: 'Die Hilfslinie liest die allgemeine Randfarbe statt ihrer eigenen',
     file: 'public/style.css',
     search: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--timeline-line); }",
-    ersatz: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }",
+    replacement: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }",
     expected: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {
@@ -6330,7 +6330,7 @@ const REGRESSIONS = [
     nr: '638', name: 'Der Knopf „Eintrag löschen" steht wieder fuer jede Rolle',
     file: 'public/app.js',
     search: "    ${item.mine === true || ADMIN\n      ? `<div class=\"danger-row\">",
-    ersatz: "    ${true\n      ? `<div class=\"danger-row\">",
+    replacement: "    ${true\n      ? `<div class=\"danger-row\">",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -6338,7 +6338,7 @@ const REGRESSIONS = [
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     file: 'public/app.js',
     search: "          : (OWNER\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
-    ersatz: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
+    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -6346,7 +6346,7 @@ const REGRESSIONS = [
     nr: '640', name: 'Die Karte Kategorien erklaert dem Benutzer wieder die Werkzeuge des Admins',
     file: 'public/app.js',
     search: "        <p class=\"desc\">${ADMIN\n          ? tH('card.categoriesHint')",
-    ersatz: "        <p class=\"desc\">${true\n          ? tH('card.categoriesHint')",
+    replacement: "        <p class=\"desc\">${true\n          ? tH('card.categoriesHint')",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -6355,7 +6355,7 @@ const REGRESSIONS = [
     nr: '641', name: 'Abbrechen im Loeschfenster fuer einen Benutzer bricht nicht ab',
     file: 'public/app.js',
     search: "    bd.querySelector('[data-no]').onclick = () => done(null);\n    bd.querySelector('[data-yes]').onclick = take;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
-    ersatz: "    bd.querySelector('[data-no]').onclick = nimm;\n    bd.querySelector('[data-yes]').onclick = nimm;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
+    replacement: "    bd.querySelector('[data-no]').onclick = nimm;\n    bd.querySelector('[data-yes]').onclick = nimm;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
     expected: 'Keine Browserfenster mehr — 0.22.0'
   },
   /* ================= 0.22.1 — die fuenf Gesten, die Kopfzahl, der Kasten ====
@@ -6369,7 +6369,7 @@ const REGRESSIONS = [
     nr: '642', name: 'Der Rahmen verliert seine acht Griffe',
     file: 'public/app.js',
     search: "const HANDLE = 12;",
-    ersatz: "const GRIFF = 0;",
+    replacement: "const GRIFF = 0;",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6378,7 +6378,7 @@ const REGRESSIONS = [
     nr: '643', name: 'Die Kante gewinnt wieder gegen die Ecke',
     file: 'public/app.js',
     search: "  if (n && w) return 'links-oben';",
-    ersatz: "  if (n) return 'oben';\n  if (n && w) return 'links-oben';",
+    replacement: "  if (n) return 'oben';\n  if (n && w) return 'links-oben';",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6388,7 +6388,7 @@ const REGRESSIONS = [
     nr: '644', name: 'Die Greifzone wird am kleinen Rahmen nicht mehr gedeckelt',
     file: 'public/app.js',
     search: "  const g = Math.min(handle, edge / 4);",
-    ersatz: "  const g = griff;",
+    replacement: "  const g = griff;",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6398,7 +6398,7 @@ const REGRESSIONS = [
     nr: '645', name: 'Das Schieben aendert die Weite wieder mit',
     file: 'public/app.js',
     search: "      setState(user.crate.links + (p.x - user.p0.x), user.crate.oben + (p.y - user.p0.y));",
-    ersatz: "      setBox(zug.kiste.kante * 0.9,\n        () => ({ l: zug.kiste.links + (p.x - zug.p0.x), o: zug.kiste.oben + (p.y - zug.p0.y) }));",
+    replacement: "      setBox(zug.kiste.kante * 0.9,\n        () => ({ l: zug.kiste.links + (p.x - zug.p0.x), o: zug.kiste.oben + (p.y - zug.p0.y) }));",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6408,7 +6408,7 @@ const REGRESSIONS = [
     nr: '646', name: 'Die feste Ecke wandert wieder mit der Rastung',
     file: 'public/app.js',
     search: "      const { l, o } = situation(narrow);\n      setState(l, o);",
-    ersatz: "      const { l, o } = lage(k);\n      setState(l, o);",
+    replacement: "      const { l, o } = lage(k);\n      setState(l, o);",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6418,7 +6418,7 @@ const REGRESSIONS = [
     nr: '647', name: 'Die Kante verschiebt den Mittelpunkt wieder',
     file: 'public/app.js',
     search: "          (e) => ({ l: right - e, o: centerY - e / 2 }), Math.min(right, aroundCenter(centerY, f.height)));",
-    ersatz: "          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
+    replacement: "          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6428,7 +6428,7 @@ const REGRESSIONS = [
     nr: '648', name: 'Ein Griff ohne Weg setzt wieder den Punkt',
     file: 'public/app.js',
     search: "      if (prev.gesture !== 'neu') return;\n      outPoint(e);",
-    ersatz: "      outPoint(e);",
+    replacement: "      outPoint(e);",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6437,7 +6437,7 @@ const REGRESSIONS = [
     nr: '649', name: 'Der Zeiger sagt wieder nicht, was geschehen wird',
     file: 'public/app.js',
     search: "      const kl = HANDLE_CURSORS[gesture];\n      if (kl) v.classList.add(kl);",
-    ersatz: "      const kl = null;\n      if (kl) v.classList.add(kl);",
+    replacement: "      const kl = null;\n      if (kl) v.classList.add(kl);",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6447,7 +6447,7 @@ const REGRESSIONS = [
     nr: '650', name: 'Der Finger bekommt die acht Griffe doch',
     file: 'public/app.js',
     search: "      if (e.pointerType === 'touch' && gesture !== 'neu') gesture = 'schieben';",
-    ersatz: "      if (false && e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';",
+    replacement: "      if (false && e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
@@ -6456,7 +6456,7 @@ const REGRESSIONS = [
     nr: '651', name: 'Die Kopfzahl steht wieder zweimal da',
     file: 'public/app.js',
     search: "    case 'potenzial': return item.potentialRating ? '' : t('list.notEstimatedYet');",
-    ersatz: "    case 'potenzial': return item.potenzialRating\n      ? '⌀ ' + zahl(item.potenzialRating, 1) : t('list.notEstimatedYet');",
+    replacement: "    case 'potenzial': return item.potenzialRating\n      ? '⌀ ' + zahl(item.potenzialRating, 1) : t('list.notEstimatedYet');",
     expected: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
@@ -6465,7 +6465,7 @@ const REGRESSIONS = [
     nr: '652', name: 'Der Bewertungskasten steht wieder an jeder Idee',
     file: 'public/app.js',
     search: "  return name === 'bewertung' && !item.tested && !hasStars(item, 'after');",
-    ersatz: "  return false && name === 'bewertung' && !item.tested && !hasStars(item, 'after');",
+    replacement: "  return false && name === 'bewertung' && !item.tested && !hasStars(item, 'after');",
     expected: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
@@ -6475,7 +6475,7 @@ const REGRESSIONS = [
     nr: '653', name: 'Der Server nimmt die Bewertung am ungetesteten Eintrag wieder an',
     file: 'server.js',
     search: "    if (crit && crit.phase === 'after' && entry && !entry.tested)",
-    ersatz: "    if (false && krit && krit.phase === 'after' && eintrag && !eintrag.tested)",
+    replacement: "    if (false && krit && krit.phase === 'after' && eintrag && !eintrag.tested)",
     expected: 'Rechte und Sichtbarkeit'
   },
   {
@@ -6484,7 +6484,7 @@ const REGRESSIONS = [
     nr: '654', name: 'Die Kopfzahl sagt nicht mehr, wessen Zahl sie ist',
     file: 'public/app.js',
     search: "        b.title = t('entry.avgAllHint');",
-    ersatz: "        b.title = 'Wie diese Zahl zustande kommt';",
+    replacement: "        b.title = 'Wie diese Zahl zustande kommt';",
     expected: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
@@ -6495,21 +6495,21 @@ const REGRESSIONS = [
     nr: '655', name: 'Die Rastung springt wieder ueber den Deckel',
     file: 'public/app.js',
     search: "      if (narrow > up + 1e-9 && zoom < 400) {",
-    ersatz: "      if (false && eng > hoch + 1e-9 && zoom < 400) {",
+    replacement: "      if (false && eng > hoch + 1e-9 && zoom < 400) {",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
     file: 'testbench.js',
-    search: '  const B = starteWeiterenServer(freshDir, {}, 5130);',
-    ersatz: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
+    search: '  const B = startFurtherServer(freshDir, {}, 5130);',
+    replacement: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
     expected: 'Die Portbasen und der Versatz'
   },
   {
     nr: 'W5', name: 'Der SMTP-Empfaenger wird nicht mehr vermerkt',
     file: 'testbench.js',
-    search: '  SMTP_LAGEN.push(state);',
-    ersatz: '  // SMTP_LAGEN.push(lage);',
+    search: '  SMTP_CASES.push(state);',
+    replacement: '  // SMTP_LAGEN.push(lage);',
     expected: 'Die Portbasen und der Versatz'
   },
   {
@@ -6522,7 +6522,7 @@ const REGRESSIONS = [
     nr: 'W6', name: 'Der SMTP-Empfaenger hoert nicht auf zu horchen',
     file: 'testbench.js',
     search: '    server.close(() => r());',
-    ersatz: '    r();',
+    replacement: '    r();',
     expected: 'Keine Prueflage laesst ihren Server zurueck'
   },
   /* ---- 0.20.1: der Bericht ueber einen abgerissenen Lauf ---- */
@@ -6533,15 +6533,15 @@ const REGRESSIONS = [
        genau die Lage, in der Rueckbau 568 seinen Abriss unerklaert liess. */
     nr: 'W15', name: 'Der Bericht druckt die letzten Zeilen eines Abrisses nicht mehr',
     file: 'counterproof.js',
-    search: '      for (const z of e.schwanz || []) console.log(`     \u2502 ${z}`);',
-    ersatz: '      for (const z of []) console.log(`     \u2502 ${z}`);',
+    search: '      for (const z of e.tail || []) console.log(`     \u2502 ${z}`);',
+    replacement: '      for (const z of []) console.log(`     \u2502 ${z}`);',
     expected: 'Die Gegenproben greifen'
   },
   {
     nr: 'W16', name: 'Der Leser hebt die letzten Zeilen gar nicht erst auf',
     file: 'counterproof.js',
-    search: "    schwanz: output.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
-    ersatz: '    schwanz: []',
+    search: "    tail: output.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
+    replacement: '    tail: []',
     expected: 'Die Gegenproben greifen'
   },
   /* ---- Die sieben Waechter der Sprachdatei -- 0.24.0 ------------------
@@ -6554,7 +6554,7 @@ const REGRESSIONS = [
        das sehen -- und die Formatprobe die fehlende Locale. */
     nr: '685', name: 'Eine zweite Sprachdatei traegt andere Schluessel',
     file: 'package.json',
-    kopie: 'public/languages/en.json',
+    copy: 'public/languages/en.json',
     expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
   {
@@ -6564,7 +6564,7 @@ const REGRESSIONS = [
     nr: '686', name: 'Ein Schluessel der Sprachdatei heisst anders als im Code',
     file: 'public/languages/de.json',
     search: '"list.open": "\u00d6ffnen",',
-    ersatz: '"liste.oeffnen2": "\u00d6ffnen",',
+    replacement: '"liste.oeffnen2": "\u00d6ffnen",',
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -6574,7 +6574,7 @@ const REGRESSIONS = [
     nr: '687', name: 'Ein Platzhalter heisst beinahe wie ein Vokabelwort',
     file: 'public/languages/de.json',
     search: '"list.foundIn": "Gefunden in: {quelle}",',
-    ersatz: '"list.foundIn": "Gefunden in: {sache}",',
+    replacement: '"list.foundIn": "Gefunden in: {sache}",',
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -6583,7 +6583,7 @@ const REGRESSIONS = [
     nr: '688', name: 'Einer Mehrzahlform fehlt die Einzahl',
     file: 'public/languages/de.json',
     search: '"list.commentCount": {\n    "eins": "{n} Kommentar",\n    "andere": "{n} Kommentare"\n  },',
-    ersatz: '"list.commentCount": {\n    "andere": "{n} Kommentare"\n  },',
+    replacement: '"list.commentCount": {\n    "andere": "{n} Kommentare"\n  },',
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -6592,7 +6592,7 @@ const REGRESSIONS = [
     nr: '689', name: 'Eine Mehrzahl waehlt ihre Form wieder ueber `=== 1 ?`',
     file: 'public/app.js',
     search: 'const vThing = (n) => plural(n, V.sacheEinzahl, V.sacheMehrzahl);',
-    ersatz: 'const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);',
+    replacement: 'const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);',
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -6602,7 +6602,7 @@ const REGRESSIONS = [
     nr: '690', name: 'Ein deutscher Satz bleibt wieder in app.js stehen',
     file: 'public/app.js',
     search: "      button.textContent = t('entry.showLess');",
-    ersatz: "      knopf.textContent = 'Weniger anzeigen, bitte sehr';",
+    replacement: "      knopf.textContent = 'Weniger anzeigen, bitte sehr';",
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -6616,7 +6616,7 @@ const REGRESSIONS = [
     nr: '691', name: 'Die Sprachdatei nennt eine Locale, die Intl nicht kennt',
     file: 'public/languages/de.json',
     search: "\"_locale\": \"de-DE\",",
-    ersatz: "\"_locale\": \"xx-XX\",",
+    replacement: "\"_locale\": \"xx-XX\",",
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -6625,7 +6625,7 @@ const REGRESSIONS = [
     nr: '692', name: 'Ein Schluessel der Liste fehlt und steht als \u27e6\u2026\u27e7 am Bildschirm',
     file: 'public/languages/de.json',
     search: '"list.loading":',
-    ersatz: '"liste.laedtNicht":',
+    replacement: '"liste.laedtNicht":',
     expected: 'Oberflaeche'
   },
   {
@@ -6634,7 +6634,7 @@ const REGRESSIONS = [
     nr: '693', name: 'Ein Schluessel des Systembereichs fehlt und steht als \u27e6\u2026\u27e7 da',
     file: 'public/languages/de.json',
     search: '"card.personal":',
-    ersatz: '"karte.persoenlichNicht":',
+    replacement: '"karte.persoenlichNicht":',
     expected: 'Der Systembereich nach Rolle'
   }
 ];
@@ -6676,17 +6676,17 @@ function makeCopy(target) {
 
 /* Wer laeuft noch unter diesem Pfad? Erkannt am Arbeitsverzeichnis und nicht an
    der Befehlszeile (Stolperstein 133). Liefert die Nummern der Prozesse. */
-function prozesseUnter(pfad) {
-  const raus = [];
+function processesUnder(dirPath) {
+  const outcome = [];
   let entries;
-  try { entries = fs.readdirSync('/proc'); } catch { return raus; }
+  try { entries = fs.readdirSync('/proc'); } catch { return outcome; }
   for (const e of entries) {
     if (!/^\d+$/.test(e)) continue;
     let cwd;
     try { cwd = fs.readlinkSync(`/proc/${e}/cwd`); } catch { continue; }
-    if (cwd === pfad || cwd.startsWith(pfad + path.sep)) raus.push(Number(e));
+    if (cwd === dirPath || cwd.startsWith(dirPath + path.sep)) outcome.push(Number(e));
   }
-  return raus;
+  return outcome;
 }
 
 /* ================= Fremde Server VOR dem Lauf =================
@@ -6701,7 +6701,7 @@ function prozesseUnter(pfad) {
    EIN ZWEITER SERVER AUF DEMSELBEN PORT FAELLT NICHT VON SELBST AUF (Stolper-
    stein 139) -- die Bereitschaftspruefung bekommt ja eine Antwort. Deshalb
    wird hier VOR dem ersten Rueckbau nachgesehen und nicht hinterher gedeutet.
-   GESUCHT WIRD UEBER `/proc`, wie bei prozesseUnter(): keine neue Abhaengig-
+   GESUCHT WIRD UEBER `/proc`, wie bei processesUnder(): keine neue Abhaengig-
    keit, kein `ps`, und dieselbe Auskunft. Ein Prozess zaehlt als fremd, wenn
    sein Befehl auf server.js oder testbench.js endet -- eigene Kinder gibt es zu
    diesem Zeitpunkt noch keine.
@@ -6715,9 +6715,9 @@ function prozesseUnter(pfad) {
    Hand etwas anderes tut, weiss, dass er es getan hat -- und findet seinen
    Prozess ueber den Port. */
 function foreignServer() {
-  const raus = [];
+  const outcome = [];
   let entries;
-  try { entries = fs.readdirSync('/proc'); } catch { return raus; }
+  try { entries = fs.readdirSync('/proc'); } catch { return outcome; }
   for (const e of entries) {
     if (!/^\d+$/.test(e) || Number(e) === process.pid) continue;
     let row;
@@ -6726,8 +6726,8 @@ function foreignServer() {
     /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. `node testbench.js sterne` endet
        auf dem Filterwort -- wer die Zeile daran erkennen will, bekommt dann
        „sterne" gemeldet und sucht nach etwas, das es nicht gibt. */
-    const skript = parts.find(t => /(^|\/)(server|pruefung)\.js$/.test(t));
-    if (!skript) continue;
+    const script = parts.find(t => /(^|\/)(server|pruefung)\.js$/.test(t));
+    if (!script) continue;
     /* DER PORT AUS DER UMGEBUNG, wenn er dasteht: ohne ihn muesste der Leser
        raten, welches Fenster belegt ist -- und genau das Raten hat in dieser
        Runde zwei Stunden gekostet. */
@@ -6738,36 +6738,36 @@ function foreignServer() {
     } catch { /* ein fremder Prozess muss seine Umgebung nicht hergeben */ }
     let wo = '';
     try { wo = fs.readlinkSync(`/proc/${e}/cwd`); } catch { /* ebenso */ }
-    raus.push({ pid: Number(e), port, wo, script: path.basename(skript) });
+    outcome.push({ pid: Number(e), port, wo, script: path.basename(script) });
   }
-  return raus;
+  return outcome;
 }
 
 /* Raeumt auf UND SIEHT NACH. Ein Aufraeumen, das nie greift, sieht aus wie
    eines, das greift -- wer eines baut, sieht hinterher nach, ob wirklich
    keiner ueberlebt hat. Liefert die Zahl der Prozesse, die es NICHT
    ueberlebt haben, und wirft, wenn einer stehenbleibt. */
-function cleanUp(pfad) {
-  const first = prozesseUnter(pfad);
+function cleanUp(dirPath) {
+  const first = processesUnder(dirPath);
   for (const pid of first) { try { process.kill(pid, 'SIGKILL'); } catch {} }
   // Ein SIGKILL wirkt nicht in derselben Zeile: dem Kern bleibt ein Augenblick.
   // Gewartet wird SYNCHRON -- die Nachschau gehoert vor das Loeschen, und ein
   // await mitten im Aufraeumen liesse die anderen Spuren dazwischenfunken.
   const wait = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
   const to = Date.now() + 5000;
-  let uebrig = prozesseUnter(pfad);
-  while (uebrig.length && Date.now() < to) { wait(100); uebrig = prozesseUnter(pfad); }
-  fs.rmSync(pfad, { recursive: true, force: true });
-  return { geraeumt: first.length, uebrig: uebrig.length };
+  let left = processesUnder(dirPath);
+  while (left.length && Date.now() < to) { wait(100); left = processesUnder(dirPath); }
+  fs.rmSync(dirPath, { recursive: true, force: true });
+  return { cleared: first.length, left: left.length };
 }
 
 /* ================= Den Rueckbau anbringen ================= */
 
-function applyRegression(kopie, r) {
-  const file = path.join(kopie, r.file);
+function applyRegression(copy, r) {
+  const file = path.join(copy, r.file);
   if (!fs.existsSync(file)) throw new Error(`${r.file} gibt es in der Kopie nicht.`);
   /* DER ZWEITE RUECKBAUWEG: eine ENTFERNTE DATEI WIEDER HINLEGEN. Er ersetzt
-     keinen Text, sondern legt `datei` ein zweites Mal unter dem Namen `kopie`
+     keinen Text, sondern legt `datei` ein zweites Mal unter dem Namen `copy`
      ab. Gebraucht wird er fuer die Zeile, die haelt, dass in public/ keine
      Datei zweimal unter zwei Namen liegt -- die laesst sich mit einer
      Textersetzung nicht zurueckbauen, weil es dabei um die Datei selbst
@@ -6775,10 +6775,10 @@ function applyRegression(kopie, r) {
      ER LIEGT ABSICHTLICH IM ZURUECK STATT DANEBEN: so faellt er unter
      dieselbe Kopie, dieselbe Nachschau und dasselbe Aufraeumen wie jeder
      andere -- der Arbeitsbaum wird auch hier NIE angefasst. */
-  if (r.kopie) {
-    const target = path.join(kopie, r.kopie);
+  if (r.copy) {
+    const target = path.join(copy, r.copy);
     if (fs.existsSync(target))
-      throw new Error(`${r.kopie} liegt schon da -- der Rueckbau haette nichts zu tun.`);
+      throw new Error(`${r.copy} liegt schon da -- der Rueckbau haette nichts zu tun.`);
     fs.copyFileSync(file, target);
     return;
   }
@@ -6790,7 +6790,7 @@ function applyRegression(kopie, r) {
      welche Stelle gemeint ist. Beides bricht ab und wird gemeldet. */
   if (parts.length !== 2)
     throw new Error(`Der gesuchte Text steht ${parts.length - 1}-mal in ${r.file}, erwartet ist genau einmal.`);
-  fs.writeFileSync(file, parts.join(r.ersatz));
+  fs.writeFileSync(file, parts.join(r.replacement));
 }
 
 /* ================= Den Prueflauf lesen =================
@@ -6801,10 +6801,10 @@ function applyRegression(kopie, r) {
 /* DER NAME DER EINEN SELBSTPROBE, die bei JEDEM gefahrenen Rueckbau rot wird.
    Sie steht hier als Konstante und nicht als String mitten im Filter:
    aendert sich ihr Name im Pruefstand, faellt es an einer Stelle auf. */
-const SELBSTPROBE = 'Jeder Suchtext kommt in seiner Datei genau einmal vor';
+const SELF_CHECK = 'Jeder Suchtext kommt in seiner Datei genau einmal vor';
 
 function readRun(output) {
-  const rot = [];
+  const red = [];
   let group = '(vor der ersten Gruppe)';
   for (const row of output.split('\n')) {
     // ─* und nicht ─+: eine Ueberschrift, die die Zeile fuellt, traegt gar
@@ -6814,19 +6814,19 @@ function readRun(output) {
     const g = row.match(/^── (.+?) ─*\s*$/);
     if (g) { group = g[1]; continue; }
     const p = row.match(/^ {2}✗ (.+)$/);
-    if (p) rot.push({ group, name: p[1] });
+    if (p) red.push({ group, name: p[1] });
   }
   const end = output.match(/^\s+(\d+) von (\d+) Pruefungen bestanden/m);
-  const abriss = output.match(/^Prueflauf abgebrochen: (.+)$/m);
+  const teardown = output.match(/^Prueflauf abgebrochen: (.+)$/m);
   return {
-    rot,
+    red,
     /* DIE INHALTLICH ROTEN PUNKTE, OHNE DIE SELBSTPROBE. Die Gruppe „Die
        Gegenproben greifen" prueft, dass JEDER Suchtext in seiner Datei genau
        einmal vorkommt -- und ein gefahrener Rueckbau hat seine Zeile gerade
        ersetzt. Diese eine Pruefung wird deshalb bei JEDEM Rueckbau rot, ganz
        gleich, ob er sonst etwas bewirkt.
        OHNE DIESE UNTERSCHEIDUNG KANN DIE TABELLE EINEN STUMMEN RUECKBAU GAR
-       NICHT SEHEN: `rot.length` ist nie null, und „0 STUMM" waere eine
+       NICHT SEHEN: `red.length` ist nie null, und „0 STUMM" waere eine
        Auskunft ueber nichts. Genau so ist Rueckbau 265 in 0.15.0 durch die
        Message gerutscht -- gefunden wurde er beim Lesen der Tabelle von Hand
        (Stolperstein 213).
@@ -6836,12 +6836,12 @@ function readRun(output) {
        (Rueckbau 300) machte zwei Pruefungen sauber rot und wurde trotzdem als
        STUMM gemeldet. Ein zu grober Filter macht aus einem Beleg einen Fund
        und schickt den naechsten Leser auf eine Suche nach nichts. */
-    inhaltlichRot: rot.filter(t => !(t.group === 'Die Gegenproben greifen' &&
-      t.name === SELBSTPROBE)),
-    durchgelaufen: Boolean(end),
-    bestanden: end ? Number(end[1]) : null,
+    byContentRed: red.filter(t => !(t.group === 'Die Gegenproben greifen' &&
+      t.name === SELF_CHECK)),
+    ranThrough: Boolean(end),
+    passedCount: end ? Number(end[1]) : null,
     total: end ? Number(end[2]) : null,
-    abriss: abriss ? abriss[1] : null,
+    teardown: teardown ? teardown[1] : null,
     /* DIE LETZTEN ZEILEN DER AUSGABE -- damit ein ABGERISSENER Lauf sagen
        kann, WARUM er abriss. Der Treiber faengt stdout UND stderr ein und warf
        den Grund bis 0.20.1 weg: die Tabelle zeigte die roten Punkte davor und
@@ -6856,28 +6856,28 @@ function readRun(output) {
        ZWANZIG ZEILEN, LEERE WEGGELASSEN: eine unbehandelte Message von Node
        ist rund zwoelf Zeilen lang, und davor sollen noch ein paar Zeilen des
        Laufs stehen, damit man sieht, WO er stand. */
-    schwanz: output.split('\n').map(z => z.trimEnd()).filter(z => z).slice(-20)
+    tail: output.split('\n').map(z => z.trimEnd()).filter(z => z).slice(-20)
   };
 }
 
 /* ================= Eine Gegenprobe ================= */
 
-function fahre(r, trace, level) {
+function drive(r, trace, level) {
   return new Promise((done) => {
-    const kopie = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-gegenprobe-${r.nr}-`));
-    const beginn = Date.now();
-    const ende = (result) => {
-      let cleanup = { geraeumt: 0, uebrig: 0 };
-      try { cleanup = cleanUp(kopie); } catch (e) { result.cleanupError = e.message; }
-      done({ ...r, trace, sekunden: Math.round((Date.now() - beginn) / 1000),
+    const copy = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-gegenprobe-${r.nr}-`));
+    const startedAt = Date.now();
+    const endRecord = (result) => {
+      let cleanup = { cleared: 0, left: 0 };
+      try { cleanup = cleanUp(copy); } catch (e) { result.cleanupError = e.message; }
+      done({ ...r, trace, seconds: Math.round((Date.now() - startedAt) / 1000),
                ...cleanup, ...result });
     };
     try {
-      makeCopy(kopie);
-      applyRegression(kopie, r);
-    } catch (e) { return ende({ error: e.message }); }
+      makeCopy(copy);
+      applyRegression(copy, r);
+    } catch (e) { return endRecord({ error: e.message }); }
     const kind = spawn(process.execPath, ['testbench.js'], {
-      cwd: kopie,
+      cwd: copy,
       env: { ...process.env, PORT_OFFSET: String(trace * level) }
     });
     let output = '';
@@ -6893,9 +6893,9 @@ function fahre(r, trace, level) {
     const LIMIT_MS = 12 * 60 * 1000;
     const clock = setTimeout(() => { try { kind.kill('SIGKILL'); } catch {} }, LIMIT_MS);
     kind.on('exit', (code, signal) => {
-      const ueberfaellig = Date.now() - beginn >= LIMIT_MS;
+      const overdue = Date.now() - startedAt >= LIMIT_MS;
       clearTimeout(clock);
-      ende({ code, signal, ueberfaellig, ...readRun(output) });
+      endRecord({ code, signal, overdue, ...readRun(output) });
     });
   });
 }
@@ -6903,53 +6903,53 @@ function fahre(r, trace, level) {
 /* ================= Die Spuren ================= */
 
 async function runAll(list, traces, level) {
-  const ergebnisse = new Array(list.length);
-  let naechster = 0;
+  const results = new Array(list.length);
+  let nextIndex = 0;
   const trace = async (nr) => {
     for (;;) {
-      const i = naechster++;
+      const i = nextIndex++;
       if (i >= list.length) return;
       const r = list[i];
       console.log(`  [Spur ${nr}] ${r.nr} — ${r.name}`);
-      ergebnisse[i] = await fahre(r, nr, level);
-      const e = ergebnisse[i];
+      results[i] = await drive(r, nr, level);
+      const e = results[i];
       /* EIN ABGERISSENER LAUF IST KEIN STUMMER. Beide zeigen null rote Punkte,
          und sie sagen das Gegenteil: der eine, dass niemand prueft, der andere,
          dass der Lauf gar nicht so weit gekommen ist (Stolperstein 138). Die
          Tabelle unterscheidet sie seit jeher -- diese Zeile jetzt auch. */
       const word = e.error ? 'FEHLER'
-        : e.ueberfaellig ? 'ZEITGRENZE'
-        : !e.durchgelaufen ? 'ABGERISSEN'
-        : e.inhaltlichRot?.length ? `${e.inhaltlichRot.length} rot` : 'STUMM';
-      console.log(`  [Spur ${nr}] ${r.nr} fertig nach ${e.sekunden}s — ${word}`);
+        : e.overdue ? 'ZEITGRENZE'
+        : !e.ranThrough ? 'ABGERISSEN'
+        : e.byContentRed?.length ? `${e.byContentRed.length} rot` : 'STUMM';
+      console.log(`  [Spur ${nr}] ${r.nr} fertig nach ${e.seconds}s — ${word}`);
     }
   };
   // Spur 0 gibt es auch: sie faehrt ohne Versatz, wie ein gewoehnlicher Lauf.
   await Promise.all(Array.from({ length: traces }, (_, k) => trace(k)));
-  return ergebnisse;
+  return results;
 }
 
 /* ================= Die Tabelle =================
    EINE Tabelle, und zwar in der Form, in der sie im Aenderungsprotokoll steht.
    Was sie NICHT tut: einen stummen Rueckbau als Erfolg zeigen. Er bekommt sein
    eigenes Wort und darunter seinen eigenen Absatz. */
-function writeTable(ergebnisse) {
+function writeTable(results) {
   console.log('\n| # | Rückbau | Namentlich rot |');
   console.log('|---|---|---|');
-  for (const e of ergebnisse) {
+  for (const e of results) {
     let right;
     if (e.error) right = `**RÜCKBAU GESCHEITERT** — ${e.error}`;
-    else if (e.ueberfaellig)
+    else if (e.overdue)
       right = '**LAUF AN DER ZEITGRENZE ABGEBROCHEN** — er hängt, statt rot zu werden';
-    else if (!e.durchgelaufen)
-      right = `**LAUF ABGERISSEN** — ${e.abriss || `Code ${e.code}`}` +
-               (e.rot.length ? ` (davor ${e.rot.length} rot)` : '');
-    else if (!e.inhaltlichRot?.length) right = '**STUMM — das ist ein FUND**';
-    else if (e.rot.length <= 3)
-      right = e.rot.map(p => `„${p.name}"`).join(', ');
+    else if (!e.ranThrough)
+      right = `**LAUF ABGERISSEN** — ${e.teardown || `Code ${e.code}`}` +
+               (e.red.length ? ` (davor ${e.red.length} rot)` : '');
+    else if (!e.byContentRed?.length) right = '**STUMM — das ist ein FUND**';
+    else if (e.red.length <= 3)
+      right = e.red.map(p => `„${p.name}"`).join(', ');
     else {
-      const groups = [...new Set(e.rot.map(p => p.group))];
-      right = `${e.rot.length} Prüfungen, darunter „${e.rot[0].name}"` +
+      const groups = [...new Set(e.red.map(p => p.group))];
+      right = `${e.red.length} Prüfungen, darunter „${e.red[0].name}"` +
                (groups.length === 1 ? ` (Gruppe „${groups[0]}")`
                                      : ` (${groups.length} Gruppen)`);
     }
@@ -6957,43 +6957,43 @@ function writeTable(ergebnisse) {
   }
 
   console.log('\n### Im Einzelnen\n');
-  for (const e of ergebnisse) {
-    console.log(`**${e.nr} — ${e.name}** (${e.file}, Spur ${e.trace}, ${e.sekunden}s)`);
+  for (const e of results) {
+    console.log(`**${e.nr} — ${e.name}** (${e.file}, Spur ${e.trace}, ${e.seconds}s)`);
     if (e.error) { console.log(`  RÜCKBAU GESCHEITERT: ${e.error}\n`); continue; }
-    if (!e.durchgelaufen) {
-      console.log(`  LAUF ABGERISSEN: ${e.abriss || `Rückgabewert ${e.code}`}`);
+    if (!e.ranThrough) {
+      console.log(`  LAUF ABGERISSEN: ${e.teardown || `Rückgabewert ${e.code}`}`);
       /* UND DARUNTER DIE LETZTEN ZEILEN, DIE ER GEDRUCKT HAT. Ein Abriss ohne
          Grund schickt den Leser auf eine Suche nach nichts: der Grund liegt in
          der eingefangenen Ausgabe, und dorthin kommt niemand mehr, denn die
          Kopie ist beim Aufraeumen weg. Deshalb steht er hier. */
-      for (const z of e.schwanz || []) console.log(`     │ ${z}`);
+      for (const z of e.tail || []) console.log(`     │ ${z}`);
     } else
-      console.log(`  ${e.bestanden} von ${e.total} bestanden, erwartet in „${e.expected}"`);
-    if (!e.inhaltlichRot?.length && e.durchgelaufen)
+      console.log(`  ${e.passedCount} von ${e.total} bestanden, erwartet in „${e.expected}"`);
+    if (!e.byContentRed?.length && e.ranThrough)
       console.log('  STUMM — kein einziger roter Punkt. Das ist ein FUND und gehört untersucht.');
     let last = null;
-    for (const p of e.rot) {
+    for (const p of e.red) {
       if (p.group !== last) { console.log(`  ── ${p.group}`); last = p.group; }
       console.log(`     ✗ ${p.name}`);
     }
-    if (e.uebrig) console.log(`  ACHTUNG: ${e.uebrig} Prozess(e) haben das Aufräumen überlebt.`);
+    if (e.left) console.log(`  ACHTUNG: ${e.left} Prozess(e) haben das Aufräumen überlebt.`);
     if (e.cleanupError) console.log(`  ACHTUNG: Aufräumen gescheitert — ${e.cleanupError}`);
     console.log('');
   }
 
-  const stumm = ergebnisse.filter(e => e.durchgelaufen && !e.inhaltlichRot?.length);
-  const kaputt = ergebnisse.filter(e => e.error || !e.durchgelaufen);
-  const leichen = ergebnisse.filter(e => e.uebrig || e.cleanupError);
+  const silent = results.filter(e => e.ranThrough && !e.byContentRed?.length);
+  const broken = results.filter(e => e.error || !e.ranThrough);
+  const corpses = results.filter(e => e.left || e.cleanupError);
   console.log('══════════════════════════════════════════════════════════════');
-  console.log(`  ${ergebnisse.length} Gegenproben gefahren.`);
-  console.log(`  ${stumm.length} STUMM${stumm.length ? ': ' + stumm.map(e => e.nr).join(', ') : ''}` +
-              (stumm.length ? '  — jede davon ist ein Fund.' : ''));
-  if (kaputt.length)
-    console.log(`  ${kaputt.length} nicht auswertbar: ${kaputt.map(e => e.nr).join(', ')}`);
-  if (leichen.length)
-    console.log(`  ${leichen.length} mit übriggebliebenen Prozessen: ${leichen.map(e => e.nr).join(', ')}`);
+  console.log(`  ${results.length} Gegenproben gefahren.`);
+  console.log(`  ${silent.length} STUMM${silent.length ? ': ' + silent.map(e => e.nr).join(', ') : ''}` +
+              (silent.length ? '  — jede davon ist ein Fund.' : ''));
+  if (broken.length)
+    console.log(`  ${broken.length} nicht auswertbar: ${broken.map(e => e.nr).join(', ')}`);
+  if (corpses.length)
+    console.log(`  ${corpses.length} mit übriggebliebenen Prozessen: ${corpses.map(e => e.nr).join(', ')}`);
   console.log('══════════════════════════════════════════════════════════════\n');
-  return (stumm.length || kaputt.length || leichen.length) ? 1 : 0;
+  return (silent.length || broken.length || corpses.length) ? 1 : 0;
 }
 
 /* ================= Bedienung =================
@@ -7074,8 +7074,8 @@ if (require.main !== module) return;
               `Versatz ${level} je Spur.`);
   console.log('Jede läuft in einer eigenen Kopie aus `git archive HEAD`; ' +
               'der Arbeitsbaum wird nicht angefasst.\n');
-  const ergebnisse = await runAll(list, traces, level);
-  process.exit(writeTable(ergebnisse));
+  const results = await runAll(list, traces, level);
+  process.exit(writeTable(results));
 })().catch(e => {
   console.error('\nGegenproben abgebrochen:', e.message);
   process.exit(1);
