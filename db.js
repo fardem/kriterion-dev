@@ -1038,6 +1038,65 @@ function migration0242Shapes() {
 migration0242Shapes();
 // ENDE MIGRATION 0.24.2 (die Feldnamen in gespeicherten Werten)
 
+/* ============ MIGRATION 0.24.3 — DIE VORGABESPRACHE DES BESTANDS ==========
+
+   DER BESTAND BEHAELT DEUTSCH, EINE FRISCHE INSTALLATION STARTET AUF ENGLISCH
+   -- Frage F2 des Auftrags 0.24.3, vom Betreiber am 7. September 2026
+   entschieden.
+
+   Bis 0.24.2 stand die Vorgabesprache als `const LANGUAGE_DEFAULT = 'de'` im
+   Quelltext. Ab 0.24.3 steht sie in `settings`, und die Auslieferung gibt
+   Englisch vor. Ohne diesen Block spraeche eine laufende Instanz nach dem
+   Einspielen ploetzlich Englisch -- und „am Bildschirm aendert sich kein Wort"
+   waere zum ersten Mal in dieser Reihe gebrochen, ohne dass es jemand bestellt
+   haette.
+
+   UND ES MUSS EIN GESCHRIEBENER WERT SEIN, KEIN ABGELEITETER. Die naechste
+   Ueberlegung waere „kein `language` in settings UND es gibt Zugaenge, also
+   Deutsch", beim LESEN abgeleitet und ohne Migrationscode -- so, wie es diese
+   Datei an mehreren Stellen macht. Sie traegt hier nicht: eine FRISCH auf
+   Englisch eingerichtete Installation hat im Augenblick der Einrichtung noch
+   keinen Zugang und danach einen. Sie kippte in genau dem Augenblick auf
+   Deutsch, in dem der erste Mensch sein Konto anlegt.
+
+   DIE FRAGE IST DESHALB „gab es SCHON Zugaenge, als diese Fassung zum ersten
+   Mal hochkam" -- und die laesst sich nur beim Hochkommen stellen.
+
+   VOR db.exec(SCHEMA), wie die beiden Bloecke darueber: existiert die Tabelle
+   `users` an dieser Stelle noch nicht, ist es eine frische Installation, und
+   es gibt nichts zu schuetzen.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Zeile selbst -- steht
+   schon eine Vorgabesprache da? --, nicht ein Merker. Ein zweiter Lauf findet
+   sie und sagt nichts. Und wer die Sprache spaeter auf Englisch stellt,
+   bekommt sie beim naechsten Start nicht zurueck auf Deutsch: dann STEHT eine
+   da.
+
+   ZU 1.0 FAELLT DER BLOCK WEG, wie jeder andere hier -- dann ist Englisch die
+   Vorgabe fuer alle, und wer Deutsch will, hat es eingestellt. */
+const LANGUAGE_BEFORE_0243 = 'de';
+function migration0243Language() {
+  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  // Keine der beiden Tabellen? Dann ist hier nichts gewachsen.
+  if (!tables.has('settings') || !tables.has('users')) return 0;
+  // Steht schon eine Vorgabe da, ist die Frage beantwortet -- von wem auch immer.
+  if (db.prepare("SELECT 1 FROM settings WHERE key = 'language'").get()) return 0;
+  /* GEZAEHLT WERDEN ALLE ZEILEN, AUCH GELOESCHTE ZUGAENGE. Die Frage ist nicht,
+     wer sich anmelden kann, sondern ob hier schon einmal jemand gearbeitet hat
+     -- und ein geloeschter Zugang beweist genau das. */
+  const grown = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0;
+  if (!grown) return 0;
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
+    .run('language', JSON.stringify(LANGUAGE_BEFORE_0243));
+  console.log(`[Kriterion] Die Vorgabesprache dieser Installation steht jetzt ` +
+    `ausdruecklich auf "${LANGUAGE_BEFORE_0243}" (Migration auf 0.24.3) — ` +
+    `am Bildschirm aendert sich damit kein Wort.`);
+  return 1;
+}
+migration0243Language();
+// ENDE MIGRATION 0.24.3 (die Vorgabesprache des Bestands)
+
 
 db.exec(SCHEMA);
 

@@ -50,53 +50,166 @@ const mail = require('./mail');
    Browser holt sich die eine, die er braucht, ueber express.static. Eine
    Wahrheit, zwei Leser (Konzept 3.3).
 
-   FEHLT de.json, STARTET DER SERVER NICHT. Eine Installation ohne Sprache ist
-   keine: jede Message stuende als ⟦…⟧ da, und das faellt beim ersten Fehler
-   auf und nicht beim Start. Lieber gleich.
+   DAS VERZEICHNIS IST DIE LISTE -- 0.24.3, Vorgabe (2) des Betreibers. Wer
+   <sprachbezeichnung>.json hier hineinlegt, hat eine Sprache mehr: kein
+   Eintrag im Quelltext, kein Neubau, keine Liste, die daneben gepflegt werden
+   muesste und auseinanderlaufen koennte.
+
+   UND GENAU DESHALB STIRBT DER SERVER AN KEINER DIESER DATEIEN MEHR (F6).
+   Bis 0.24.2 gab es DREI Wege, ihn mit einer Datei umzubringen, und alle drei
+   standen nackt da: JSON.parse an kaputtem JSON, new Intl.PluralRules an einer
+   erfundenen Locale, und der harte Wurf bei fehlender Pflichtdatei. Solange
+   die Liste im Quelltext stand, war das vertretbar -- die Dateien kamen aus
+   dem Image. Seit das Verzeichnis die Liste IST, kommt eine davon vielleicht
+   vom Eigentuemer, und eine Instanz, die nicht hochkommt, kann niemand mehr
+   richten. Jede der drei Stellen meldet jetzt und wirft nicht.
+
+   GEPRUEFT WIRD DER NAME, NICHT DER INHALT (F6). Was nicht wie eine
+   Sprachkennung aussieht, zaehlt nicht und steht namentlich im
+   Containerprotokoll -- eine Datei, die STILLSCHWEIGEND nicht zaehlt, sucht
+   der Eigentuemer eine Stunde. Ein fehlender SCHLUESSEL dagegen faellt auf die
+   Vorgabesprache zurueck und ist kein Grund, die ganze Datei zu verwerfen: wer
+   eine Sprache anfaengt, soll sehen koennen, wie weit er ist. Der
+   Deckungswaechter gilt fuer die Dateien IM REPO; eine hineingelegte kann er
+   nicht pruefen.
 
    IM SPEICHER UND NICHT JE ANFRAGE VON DER PLATTE: die Datei aendert sich zur
    Laufzeit nicht, und wer sie tauscht, tauscht damit den Fingerprint -- also
    den Server. */
 const LANGUAGE_DIR = path.join(__dirname, 'public', 'languages');
+
+/* DIE SPRACHE DER AUSLIEFERUNG -- 0.24.3, Vorgabe (1) des Betreibers.
+   Sie ist zweierlei und beides steht hier: die Vorgabe einer FRISCHEN
+   Installation, und die Datei, die dasein MUSS, weil jeder Rueckfall auf sie
+   zeigt. Ein Bestand liest stattdessen `language` aus den Einstellungen -- der
+   Migrationsblock hat es ihm einmalig hineingeschrieben (F2). */
+const LANGUAGE_FALLBACK = 'en';
+
+/* WIE EINE SPRACHKENNUNG AUSSIEHT -- BCP 47, und nicht aus Geschmack:
+   GENAU DIESE Zeichenfolge steht in <html lang>, und Intl erwartet sie fuer
+   Datum, Zahl und Sortierung. Der zweibuchstabige ISO-639-1-Code ist der
+   Regelfall (`de`, `en`, `tr`); wo eine Sprache sich nach Region oder Schrift
+   unterscheidet, kommt sie mit Bindestrich dazu (`pt-BR`, `zh-Hans`,
+   `zh-Hans-CN`). Drei Buchstaben stehen fuer die Sprachen, die ISO 639-1 nicht
+   fuehrt. */
+const LANGUAGE_NAME = /^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?$/;
+
+/* EINE ZEILE INS CONTAINERPROTOKOLL, und die Datei zaehlt nicht. Sie geht auf
+   stderr und nicht auf stdout: es ist eine Lage, die jemand richten muss, und
+   kein Betriebsvermerk. */
+const languageSkip = (file, why) => console.error(
+  `[languages] ${file} zaehlt nicht als Sprache: ${why}`);
+
 function readLanguages() {
-  const out2 = {};
-  for (const name of fs.readdirSync(LANGUAGE_DIR).sort()) {
-    if (!name.endsWith('.json')) continue;
-    out2[name.slice(0, -'.json'.length)] =
-      JSON.parse(fs.readFileSync(path.join(LANGUAGE_DIR, name), 'utf8'));
+  const out = {};
+  for (const file of fs.readdirSync(LANGUAGE_DIR).sort()) {
+    if (!file.endsWith('.json')) continue;
+    const code = file.slice(0, -'.json'.length);
+    if (!LANGUAGE_NAME.test(code)) {
+      languageSkip(file, 'der vordere Teil ist keine Sprachkennung nach BCP 47');
+      continue;
+    }
+    let texts;
+    try {
+      texts = JSON.parse(fs.readFileSync(path.join(LANGUAGE_DIR, file), 'utf8'));
+    } catch (e) {
+      languageSkip(file, `sie laesst sich nicht lesen (${e.message})`);
+      continue;
+    }
+    // Ein Array ist auch ein Objekt -- und traegt trotzdem keine Schluessel.
+    if (!texts || typeof texts !== 'object' || Array.isArray(texts)) {
+      languageSkip(file, 'sie traegt kein Objekt');
+      continue;
+    }
+    if (typeof texts._locale !== 'string') {
+      languageSkip(file, '_locale fehlt im Kopf der Datei');
+      continue;
+    }
+    /* DIE LOCALE WIRD AN Intl GEHALTEN UND NICHT AN EINEM MUSTER GEMESSEN:
+       wer entscheidet, ob eine Locale brauchbar ist, ist der, der sie
+       benutzt. Genau dieser Aufruf stand bis 0.24.2 ungeklammert weiter
+       unten und nahm den Server mit. */
+    try { new Intl.PluralRules(texts._locale); }
+    catch {
+      languageSkip(file, `Intl kennt die Locale "${texts._locale}" nicht`);
+      continue;
+    }
+    out[code] = texts;
   }
-  if (!out2.de) throw new Error(
-    'public/languages/de.json fehlt -- ohne sie hat die Oberflaeche keine Texte.');
-  return out2;
+  return out;
 }
 const LANGUAGES = readLanguages();
-const LANGUAGE_DEFAULT = 'de';
+/* IN DER FOLGE DES VERZEICHNISSES, und die ist sortiert gelesen -- damit die
+   Pillenreihe in jeder Ansicht dieselbe Reihenfolge hat. */
+const LANGUAGE_CODES = Object.keys(LANGUAGES);
+if (!LANGUAGES[LANGUAGE_FALLBACK]) console.error(
+  `[languages] ${LANGUAGE_FALLBACK}.json fehlt oder zaehlt nicht -- der ` +
+  `Rueckfall zeigt stattdessen auf ${LANGUAGE_CODES[0] || '(keine Sprache)'}.`);
+
+/* WORAUF JEDER RUECKFALL ZEIGT. Im Normalfall die Auslieferungssprache; fehlt
+   sie, die erste Datei, die es gibt. GIBT ES GAR KEINE, ist das Ergebnis
+   `undefined`, und textsOf() faengt es auf: dann steht jeder Satz als ⟦…⟧ da
+   -- sichtbar, benannt und zu richten, statt eines Servers, der nicht kommt. */
+const languageBase = () =>
+  LANGUAGES[LANGUAGE_FALLBACK] ? LANGUAGE_FALLBACK : LANGUAGE_CODES[0];
+const NO_TEXTS = {};
+const textsOf = (locale) =>
+  LANGUAGES[locale] || LANGUAGES[languageBase()] || NO_TEXTS;
+
 // Eine Mehrzahlregel je Sprache, einmal gebaut. Sie kommt aus der Locale IM
 // KOPF DER DATEI und nicht aus dem Dateinamen: welche Locale eine Sprache
 // hat, entscheidet die Datei (Konzept 6).
 const LANGUAGE_PLURAL = Object.fromEntries(Object.entries(LANGUAGES)
   .map(([code, texts]) => [code, new Intl.PluralRules(texts._locale)]));
+const PLURAL_LAST_RESORT = new Intl.PluralRules(LANGUAGE_FALLBACK);
+const pluralOf = (locale) =>
+  LANGUAGE_PLURAL[locale] || LANGUAGE_PLURAL[languageBase()] || PLURAL_LAST_RESORT;
 // Und dieselbe Locale fuer Zahlen und Daten -- aus derselben einen Quelle.
-const localeTag = (locale) =>
-  (LANGUAGES[locale] || LANGUAGES[LANGUAGE_DEFAULT])._locale;
+const localeTag = (locale) => textsOf(locale)._locale || LANGUAGE_FALLBACK;
 
-/* WELCHE SPRACHE EINE ANTWORT TRAEGT. In dieser Runde immer Deutsch -- die
-   Funktion steht trotzdem schon da, damit Stufe 2 nur ihre drei Quellen
-   einhaengt (Benutzerschluessel, Accept-Language aus api(), Vorgabe der
-   Installation) und keine 125 Aufrufstellen anfassen muss. */
+/* DIE VORGABESPRACHE DER INSTALLATION -- GELESEN UND NICHT GESCHRIEBEN.
+   Bis 0.24.2 stand hier `const LANGUAGE_DEFAULT = 'de'`, eine Konstante im
+   Quelltext. Sie gehoert dem Eigentuemer und steht deshalb in `settings`
+   (F9, Karte „Sprachen").
+
+   GEFRAGT WIRD BEI JEDEM RUF UND NICHT EINMAL BEIM START: der Eigentuemer
+   stellt sie im laufenden Betrieb um, und ein gemerkter Wert daneben waere
+   eine zweite Wahrheit -- dieselbe Ueberlegung wie bei `searchPool()` und
+   `theme()`. Die Abfrage ist ein Schluesselzugriff auf eine winzige Tabelle.
+
+   EINE SPRACHE, FUER DIE KEINE DATEI (MEHR) LIEGT, ZAEHLT NICHT: wer `de` als
+   Vorgabe gesetzt und danach `de.json` entfernt hat, bekommt den Rueckfall und
+   keine Instanz voller ⟦…⟧. */
+const qLanguageDefault = db.prepare(`SELECT value FROM settings WHERE key = 'language'`);
+function languageDefault() {
+  const row = qLanguageDefault.get();
+  let stored = null;
+  if (row) { try { stored = JSON.parse(row.value); } catch { stored = row.value; } }
+  return typeof stored === 'string' && LANGUAGES[stored] ? stored : languageBase();
+}
+
+/* WELCHE SPRACHE EINE ANTWORT TRAEGT. In dieser Runde noch die der
+   Installation -- die beiden anderen Quellen (der persoenliche Schluessel und
+   Accept-Language aus api()) haengt Bauabschnitt 4 ein, und keine der 179
+   Aufrufstellen aendert sich dabei. */
 function localeOf(req) {
-  return LANGUAGE_DEFAULT;
+  return languageDefault();
 }
 
 /* DER HELFER -- dieselbe Regel wie im Browser, mit der Sprache davor.
    MASKIERT WIRD HIER NICHTS: eine Servermeldung geht als JSON heraus, und die
-   Oberflaeche entscheidet, wie sie sie zeigt. */
+   Oberflaeche entscheidet, wie sie sie zeigt.
+   DER RUECKFALL GEHT AUF DIE VORGABESPRACHE DER INSTALLATION und nicht auf die
+   Auslieferungssprache (F6): wer `de` vorgibt und `tr.json` mit Loechern
+   hineinlegt, soll die Loecher auf Deutsch lesen und nicht auf Englisch.
+   GEFRAGT WIRD DIE VORGABE ERST BEIM FEHLSCHLAG -- der Normalfall ist ein
+   Treffer in der ersten Zeile und kostet keine Abfrage. */
 function t(locale, key, values = {}) {
-  const texts = LANGUAGES[locale] || LANGUAGES[LANGUAGE_DEFAULT];
+  const texts = textsOf(locale);
   const raw = texts[key] !== undefined
-    ? texts[key] : LANGUAGES[LANGUAGE_DEFAULT][key];
-  if (raw === undefined) return `\u27e6${key}\u27e7`;
-  const rule = LANGUAGE_PLURAL[locale] || LANGUAGE_PLURAL[LANGUAGE_DEFAULT];
+    ? texts[key] : textsOf(languageDefault())[key];
+  if (raw === undefined) return `⟦${key}⟧`;
+  const rule = pluralOf(locale);
   const record = typeof raw === 'object'
     ? (rule.select(values.n) === 'one' ? raw.eins : raw.andere) : raw;
   /* DAS VOKABULAR WIRD ERST GEHOLT, WENN EIN PLATZHALTER ES BRAUCHT -- es
@@ -207,10 +320,11 @@ async function sendTokenLink(target, token) {
     tage: auth.TOKEN_DAYS, minuten: auth.TOKEN_DEADLINE_MINUTES
   };
   const invite = token.purpose === 'invite';
-  /* DIE SPRACHE DES EMPFAENGERS -- in dieser Runde immer die der Installation.
-     localeOf() steht schon da (Bauabschnitt 1); Stufe 2 haengt hier die
-     Sprache des Zugangs ein, und diese Zeile bleibt, wie sie ist. */
-  const locale = LANGUAGE_DEFAULT;
+  /* DIE SPRACHE DES EMPFAENGERS -- in diesem Bauabschnitt noch die der
+     Installation. Bauabschnitt 4 haengt hier die Sprache des ZUGANGS ein, an
+     den der Brief geht (Konzept 4.6), und diese eine Zeile ist die ganze
+     Aenderung. */
+  const locale = languageDefault();
   const letter = invite ? mail.mailInvite(locale, values2)
                           : mail.mailReset(locale, values2);
   const e = await mail.send(locale, zugang, target.email, letter.subject, letter.text);
@@ -264,7 +378,10 @@ async function sendConfirm(name, address, plain) {
   const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
   if (!mail.configured(zugang) || !PUBLIC.address) return { ok: false, reason: 'aus' };
   const title = getSetting('title_public', 'Bewertungskatalog');
-  const locale = LANGUAGE_DEFAULT;
+  /* HIER GIBT ES NOCH KEINEN ZUGANG, an dem eine Sprache haengen koennte --
+     der Brief geht an jemanden, der sich gerade erst anmeldet. Bauabschnitt 4
+     nimmt stattdessen die Sprache des FORMULARS (Konzept S2.4, Punkt 2). */
+  const locale = languageDefault();
   const letter = mail.mailConfirm(locale, { title, username: name,
     link: `${PUBLIC.address}/#/confirm/${plain}`,
     stunden: auth.REQUEST_HOURS });
@@ -1746,7 +1863,7 @@ app.put('/api/titles', adminOnly, (req, res) => {
    ein Benutzer die Oberflaeche umschaltet. */
 const VOCABULARY_PREFIX = 'vocabulary.';
 const vocabularyDefault = () => Object.fromEntries(
-  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])
+  Object.entries(textsOf(languageDefault()))
     .filter(([k]) => k.startsWith(VOCABULARY_PREFIX))
     .map(([k, v]) => [k.slice(VOCABULARY_PREFIX.length), v]));
 
@@ -2349,7 +2466,7 @@ function validWeight(raw) {
    OHNE GRUPPIERUNG, wie in der Oberflaeche: aus "1234" darf nicht "1.234"
    werden. Hoechstens zwei Nachkommastellen, mindestens keine -- die Gewichte
    dieser Meldungen haben genau diese Form. */
-const number = (n, locale = LANGUAGE_DEFAULT) => new Intl.NumberFormat(
+const number = (n, locale = languageDefault()) => new Intl.NumberFormat(
   localeTag(locale), { maximumFractionDigits: 2, useGrouping: false })
   .format(Number(n) || 0);
 
@@ -3257,7 +3374,7 @@ const oneLine = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 /* DIE SPRACHE STEHT DABEI -- 0.24.0, Bauabschnitt 4. Kleinschreibung ist
    keine feste Rechnung: das tuerkische I wird zu ı und nicht zu i. Verglichen
    wird hier Sprache, also fragt der Vergleich die Sprache. */
-function snippet(text, term, locale = LANGUAGE_DEFAULT) {
+function snippet(text, term, locale = languageDefault()) {
   const row = oneLine(text);
   const b = String(term ?? '');
   if (!b) return row.slice(0, SNIPPET_LENGTH);
@@ -3279,7 +3396,7 @@ function snippet(text, term, locale = LANGUAGE_DEFAULT) {
    ist KEINE Suche und keine Suche ohne Treffer -- die Liste bleibt dann die
    ganze Liste. Zurueck kommt eine Abbildung Nummer -> Trefferkontext und
    keine Reihenfolge: sortiert wird die Liste selbst, an einer Stelle. */
-const fulltextTerm = (raw, locale = LANGUAGE_DEFAULT) =>
+const fulltextTerm = (raw, locale = languageDefault()) =>
   (typeof raw === 'string' ? raw.trim().toLocaleLowerCase(localeTag(locale)) : '');
 
 /* WAS JE EINTRAG HERAUSKOMMT: die erste getroffene Quelle der festen Folge,
@@ -3292,7 +3409,7 @@ const fulltextTerm = (raw, locale = LANGUAGE_DEFAULT) =>
    DIE BENENNUNG DER QUELLE BLEIBT DER OBERFLAECHE UEBERLASSEN: hier steht ein
    Schluessel, kein Wort. „Tag am Testtag" heisst je nach eingestelltem
    Vokabular anders, und das weiss die Oberflaeche. */
-const fulltextHits = (term, locale = LANGUAGE_DEFAULT) => new Map(qFulltext.all({ q: term }).map(r => {
+const fulltextHits = (term, locale = languageDefault()) => new Map(qFulltext.all({ q: term }).map(r => {
   const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.key] != null);
   const first = hit[0];
   return [r.id, first ? {

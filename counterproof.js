@@ -6176,8 +6176,8 @@ const REGRESSIONS = [
        sich nur halb. */
     nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
     file: 'server.js',
-    search: "const vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
-    replacement: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
+    search: "const vocabularyDefault = () => Object.fromEntries(\n  Object.entries(textsOf(languageDefault()))",
+    replacement: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vocabularyDefault = () => Object.fromEntries(\n  Object.entries(textsOf(languageDefault()))",
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6264,12 +6264,16 @@ const REGRESSIONS = [
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
-    /* DER SERVER STARTET AUCH OHNE de.json. Eine Installation ohne Sprache ist
-       keine -- jede Message stuende als Klammerausdruck da. */
-    nr: '672', name: 'Der Server startet auch ohne de.json',
+    /* DER SERVER STIRBT WIEDER AN EINER FEHLENDEN PFLICHTDATEI -- 0.24.3, F6.
+       DIE ZUSAGE HAT SICH MIT DIESER RUNDE UMGEDREHT: bis 0.24.2 stellte
+       dieser Rueckbau den WURF ab und machte damit rot, dass der Server ohne
+       Sprachdatei anhaelt. Seit das Verzeichnis die Liste ist, ist das
+       Anhalten der Fehler -- also stellt er den Wurf WIEDER HER.
+       Die Nummer bleibt, weil es dieselbe Stelle und dieselbe Frage ist. */
+    nr: '672', name: 'Der Server stirbt wieder an einer fehlenden Pflichtdatei',
     file: 'server.js',
-    search: "  if (!out2.de) throw new Error(",
-    replacement: "  if (false) throw new Error(",
+    search: "if (!LANGUAGES[LANGUAGE_FALLBACK]) console.error(",
+    replacement: "if (!LANGUAGES[LANGUAGE_FALLBACK]) throw new Error('Pflichtdatei fehlt'); if (false) console.error(",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {

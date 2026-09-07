@@ -41789,19 +41789,42 @@ async function checkUi() {
     // ausgibt, sieht einen Schluessel und keinen halben Satz.
     check('Und ihre Meldung ist der Schlüssel selbst',
       spM.message === 'probe.schluessel', spM.message);
-    /* spracheVon() LIEFERT IN DIESER RUNDE IMMER `de` -- kein
-       Accept-Language, kein Benutzerschluessel, kein Feld in /api/config. */
-    /* GESUCHT WIRD DIE BENUTZUNG UND NICHT DAS WORT: „Accept-Language" steht im
-       Kommentar daneben, weil dort steht, was Stufe 2 einhaengt. Ein Waechter
-       ueber das Wort verboete, die Absicht aufzuschreiben. */
-    check('localeOf(req) kennt in dieser Runde keine Quelle',
-      /function localeOf\(req\) \{\s*return LANGUAGE_DEFAULT;\s*\}/.test(spSrv)
-        && !/headers\[[^\]]*accept-language/i.test(spSrv)
-        && !/getUserSetting\([^)]*'sprache'/.test(spSrv),
-      (spSrv.match(/function localeOf[\s\S]{0,80}/) || ['(nicht gefunden)'])[0]);
-    /* FEHLT de.json, STARTET DER SERVER NICHT. Gefahren aus einer KOPIE des
-       Quelltextes -- der laufende Prueflauf darf sich dabei nicht selbst
-       veraendern. */
+    /* DIE VORGABESPRACHE STEHT NICHT MEHR IM QUELLTEXT -- 0.24.3,
+       Bauabschnitt 1. Bis 0.24.2 war sie `const LANGUAGE_DEFAULT = 'de'`; sie
+       gehoert dem Eigentuemer und steht in `settings` (F9).
+       GEPRUEFT WIRD DIE ABWESENHEIT DER KONSTANTE UND DIE ANWESENHEIT DER
+       ABFRAGE -- nicht der Wortlaut von localeOf(): Bauabschnitt 4 haengt dort
+       zwei weitere Quellen ein, und ein Waechter ueber den Wortlaut verboete
+       genau das, was die Runde bauen soll. */
+    /* GELESEN WIRD DER CODE UND NICHT DIE DATEI: der Kommentar an dieser
+       Stelle ZITIERT die alte Konstante, weil dort steht, was sie ersetzt hat
+       -- und ein Waechter, der ein Zitat fuer eine Benennung haelt, verboete
+       das Aufschreiben. Dieselbe Trennung wie in der Namensprobe. */
+    const spSrvCode = zerlege(spSrv, 'server.js')
+      .filter(z => z.art === CODE).map(z => z.wert).join('\n');
+    check('Die Vorgabesprache steht nicht mehr als Konstante im Quelltext',
+      !/const LANGUAGE_DEFAULT\s*=/.test(spSrvCode), 'const LANGUAGE_DEFAULT steht noch da');
+    // Und der Leser wuerde sie wirklich finden -- an einem gestellten Fall.
+    check('Und der Leser wuerde eine solche Konstante melden',
+      /const LANGUAGE_DEFAULT\s*=/.test("const LANGUAGE_DEFAULT = 'de';"),
+      'der Leser sieht die Konstante nicht');
+    check('Sie wird aus den Einstellungen gelesen',
+      /SELECT value FROM settings WHERE key = 'language'/.test(spSrv)
+        && /function languageDefault\(\)/.test(spSrv),
+      (spSrv.match(/function languageDefault[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+    // Und localeOf() haengt daran und nicht an einem eigenen zweiten Weg.
+    check('Und localeOf(req) haengt an ihr',
+      /function localeOf\(req\)[\s\S]{0,400}?languageDefault\(\)/.test(spSrv),
+      (spSrv.match(/function localeOf[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+    /* FEHLT DIE PFLICHTDATEI, STARTET DER SERVER TROTZDEM -- 0.24.3, F6.
+       Bis 0.24.2 warf readLanguages() an dieser Stelle, und das war
+       vertretbar, solange die Dateien aus dem Image kamen. Seit das
+       VERZEICHNIS die Liste ist, kommt eine davon vielleicht vom Eigentuemer
+       -- und eine Instanz, die nicht hochkommt, kann niemand mehr richten.
+       GEFAHREN AUS EINER KOPIE des Quelltextes: der laufende Prueflauf darf
+       sich dabei nicht selbst veraendern.
+       ENTFERNT WERDEN BEIDE DATEIEN, nicht nur eine: mit en.json daneben faele
+       der Rueckfall auf sie, und die Lage waere gar keine. */
     const spCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sprache-'));
     for (const e of fs.readdirSync(__dirname, { withFileTypes: true })) {
       if (['node_modules', 'data', '.git'].includes(e.name)) continue;
@@ -41810,7 +41833,8 @@ async function checkUi() {
       else if (e.isFile()) fs.copyFileSync(path.join(__dirname, e.name), target);
     }
     fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(spCopy, 'node_modules'));
-    fs.rmSync(path.join(spCopy, 'public', 'languages', 'de.json'));
+    for (const f of fs.readdirSync(path.join(spCopy, 'public', 'languages')))
+      fs.rmSync(path.join(spCopy, 'public', 'languages', f));
     const spStart = await new Promise((done) => {
       const dataVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sprachdaten-'));
       const spPort = LANGUAGE_BASE + PORT_OFFSET;
@@ -41826,10 +41850,16 @@ async function checkUi() {
                                    done({ code, prot }); });
       setTimeout(() => { kindS.kill('SIGKILL'); }, 20000);
     });
-    check('Ohne de.json startet der Server nicht',
-      spStart.code !== 0, `Rueckgabe ${spStart.code}`);
-    check('Und er sagt, warum',
-      /de\.json fehlt/.test(spStart.prot), spStart.prot.split('\n').find(z => /de\.json/.test(z)) || '(kein Wort davon)');
+    /* code === null HEISST: er lief noch, als der SIGKILL nach 20 Sekunden
+       kam. GENAU DAS ist hier die Zusage -- und deshalb wird gegen null
+       geprueft und nicht gegen `!== 0`: ein abgestuerzter Server haette
+       ebenfalls einen Code ungleich null, und die Zeile waere gruen, ohne
+       etwas zu sagen. */
+    check('Ohne eine einzige Sprachdatei startet der Server trotzdem',
+      spStart.code === null, `Rueckgabe ${spStart.code}`);
+    check('Und er sagt namentlich, welche fehlt',
+      /\[languages\][^\n]*en\.json fehlt/.test(spStart.prot),
+      spStart.prot.split('\n').find(z => /\[languages\]/.test(z)) || '(kein Wort davon)');
     fs.rmSync(spCopy, { recursive: true, force: true });
   }
 
