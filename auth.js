@@ -829,7 +829,7 @@ const TOKEN_PURPOSES = ['einladung', 'ruecksetzung'];
 
    WARUM DAS HIER TRAEGT: der uebliche Grund gegen kurze Fristen an
    Einmal-Links sind Vorschaudienste, die Links vorab holen und verbrennen.
-   Der Schluessel steht im FRAGMENT (#/einladung/…), und ein Fragment geht nie
+   Der Schluessel steht im FRAGMENT (#/invite/…), und ein Fragment geht nie
    an den Server -- ein Vorschaudienst loest die Frist also gerade NICHT aus.
 
    INNERHALB DER FRIST DARF BELIEBIG OFT GEOEFFNET WERDEN: NUR DER ERSTE

@@ -169,7 +169,7 @@ const PUBLIC = auth.OEFFENTLICHE_ADRESSE;
    Oberflaeche sagt daneben, woher die Adresse kam. Zwei Felder statt eines:
    aus einer Abwesenheit eine Aussage zu machen waere die zweite Wahrheit. */
 const linkInfo = (plain) => PUBLIC.adresse
-  ? { link: `${PUBLIC.adresse}/#/einladung/${plain}`, linkQuelle: 'einstellung' }
+  ? { link: `${PUBLIC.adresse}/#/invite/${plain}`, linkQuelle: 'einstellung' }
   : { link: null, linkQuelle: 'browser' };
 
 /* ---- Der Versand eines Tokenlinks ----
@@ -201,7 +201,7 @@ async function sendTokenLink(ziel, token) {
     return { versand: 'aus', versandGrund: 'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
   const values2 = {
     titel: getSetting('title_public', 'Bewertungskatalog'),
-    username: ziel.username, link: `${PUBLIC.adresse}/#/einladung/${token.plain}`,
+    username: ziel.username, link: `${PUBLIC.adresse}/#/invite/${token.plain}`,
     tage: auth.TOKEN_DAYS, minuten: auth.TOKEN_DEADLINE_MINUTES
   };
   const invite = token.zweck === 'einladung';
@@ -255,7 +255,7 @@ function versandBereit() {
    liesse sich ablesen, welcher gelaufen ist. Der Pruefstand haelt beide Wege
    am troepfelnden Empfaenger gegeneinander.
 
-   DER SCHLUESSEL STEHT IM FRAGMENT (#/bestaetigung/…) und geht nie an den
+   DER SCHLUESSEL STEHT IM FRAGMENT (#/confirm/…) und geht nie an den
    Server: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
    die Seite und bestaetigt damit gerade NICHT. */
 async function sendConfirm(name, adresse, plain) {
@@ -264,7 +264,7 @@ async function sendConfirm(name, adresse, plain) {
   const titel = getSetting('title_public', 'Bewertungskatalog');
   const locale = LANGUAGE_DEFAULT;
   const letter = mail.mailConfirm(locale, { titel, username: name,
-    link: `${PUBLIC.adresse}/#/bestaetigung/${plain}`,
+    link: `${PUBLIC.adresse}/#/confirm/${plain}`,
     stunden: auth.REQUEST_HOURS });
   return mail.send(locale, zugang, adresse, letter.subject, letter.text);
 }
@@ -467,7 +467,7 @@ const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;
    der Geometrie beim Start. WUERDEN BEIDE IN DIESELBE VARIABLE SCHREIBEN,
    saehe die Karte bei jedem Start „Umstellung laeuft — 5 von 1032" und der
    Umstellungsknopf waere tot, obwohl gar keine Umstellung laeuft; POST
-   /api/bilder/umstellen antwortete mit 409. Ein Stand je Aufgabe ist die
+   /api/images/convert antwortete mit 409. Ein Stand je Aufgabe ist die
    einzige Form, in der beide gleichzeitig die Wahrheit sagen koennen.
    DER SCHLUESSEL IST DIE AUFGABE, mit der der Thread erzeugt wird -- dieselbe
    Zeichenfolge, die bestandslauf.js unten in seiner Verzweigung liest. Eine
@@ -701,11 +701,11 @@ app.post('/api/login', async (req, res) => {
 
    DIE ABSAGE IST DIE EINE aus auth.js und nennt nicht, ob der Code falsch
    oder abgelaufen war. */
-app.post('/api/login/zwei', async (req, res) => {
+app.post('/api/login/second', async (req, res) => {
   const ip = auth.clientIp(req);
   const { ausweis, code } = req.body || {};
   /* DIE BREMSE STEHT GANZ VORN -- dieselbe Reihenfolge wie an
-     POST /api/login und POST /api/bestaetigung: ein gesperrter Aufrufer
+     POST /api/login und POST /api/confirm: ein gesperrter Aufrufer
      bekommt an JEDER Stelle dieselbe 429 und nirgends stattdessen eine
      Auskunft ueber seinen Ausweis.
      UND SIE IST DIE EINZIGE FORM, IN DER SICH DIE ZUSAGE BELEGEN LAESST:
@@ -810,7 +810,7 @@ async function tokenThrottleFree(req, res) {
    den Benutzernamen erst, wenn der Token traegt -- vorher verriete ein
    geratener Token einen Namen. Das Formular selbst ist damit schon die
    Bestaetigung, dass der Link gilt. */
-app.post('/api/token/pruefen', async (req, res) => {
+app.post('/api/token/check', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenThrottleFree(req, res)) return;
   const token = auth.checkToken((req.body || {}).token);
@@ -835,7 +835,7 @@ app.post('/api/token/pruefen', async (req, res) => {
    ANGEMELDET WIRD GLEICH MIT, wie bei /api/setup: das Passwort wurde ja
    gerade hier gewaehlt. Die Sitzung entsteht NACH dem Einloesen, also
    nachdem alle bisherigen gefallen sind. */
-app.post('/api/token/einloesen', async (req, res) => {
+app.post('/api/token/redeem', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenThrottleFree(req, res)) return;
   const { token, passwort } = req.body || {};
@@ -899,7 +899,7 @@ const REQUEST_ANSWER = { ok: true, meldung:
   'Danke. Wenn zu diesen Angaben eine Anfrage möglich war, hast du jetzt eine E-Mail ' +
   'bekommen — bitte bestätige darin deine Adresse. Danach entscheidet ein Admin.' };
 
-app.post('/api/registrierung', async (req, res) => {
+app.post('/api/signup', async (req, res) => {
   if (!await tokenThrottleFree(req, res)) return;
   /* DER SCHALTER FUEHRT ZU DERSELBEN ANTWORT WIE ALLES ANDERE und nicht zu
      einer Absage. Eine eigene Absage waere eine zweite Auskunftsstelle ueber
@@ -926,7 +926,7 @@ app.post('/api/registrierung', async (req, res) => {
    ZWEI ANTWORTEN HIER, kein Widerspruch zur einen oben: dort raet jemand
    Namen, hier braeuchte er 256 Bit. Die Absage ist DIE EINE fuer alle Faelle.
    DER NAME STEHT AUCH IN DER GUTEN ANTWORT NICHT. */
-app.post('/api/registrierung/bestaetigen', async (req, res) => {
+app.post('/api/signup/confirm', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenThrottleFree(req, res)) return;
   if (!auth.confirmRequest((req.body || {}).schluessel)) {
@@ -993,8 +993,8 @@ function ownerOnly(req, res, next) {
      entfernen  DELETE /api/users/:id
      link       POST   /api/users/:id/token
      mail       PUT    /api/mail
-     bilder     POST   /api/bilder/umstellen
-     sicherung  POST   /api/sicherung/aufraeumen
+     bilder     POST   /api/images/convert
+     sicherung  POST   /api/backup/cleanup
 
    AUSDRUECKLICH NICHT DAHINTER: Sperren und Freigeben (umkehrbar), das
    Anlegen eines Zugangs (es nimmt niemandem etwas) und POST /api/setup (dort
@@ -1175,8 +1175,8 @@ app.delete('/api/sessions/:kennung', (req, res) => {
    AUS, und es gibt keine Adresse, unter der ein Fremder gemeint waere.
 
    EINSCHALTEN GEHT IN ZWEI SCHRITTEN, und der zweite ist der Beleg:
-     POST /api/zweifaktor/start  erzeugt das Geheimnis und gibt es EINMAL heraus
-     POST /api/zweifaktor/an     nimmt einen Code aus der App entgegen und
+     POST /api/two-factor/start  erzeugt das Geheimnis und gibt es EINMAL heraus
+     POST /api/two-factor/on     nimmt einen Code aus der App entgegen und
                                  schaltet ein -- erst hier entstehen die
                                  Wiederherstellungscodes
    Ein Schritt allein waere ein Zugang, den niemand mehr oeffnet.
@@ -1203,7 +1203,7 @@ async function ownPasswordMatches(req, res, passwort) {
 /* Schritt eins. DER OEFFENTLICHE TITEL WIRD MITGEGEBEN, damit in der App
    steht, wozu der Code gehoert -- er steht ohnehin auf der Anmeldeseite und
    verraet nichts, was nicht jeder sieht, der die Adresse kennt. */
-app.post('/api/zweifaktor/start', async (req, res) => {
+app.post('/api/two-factor/start', async (req, res) => {
   if (!await ownPasswordMatches(req, res, (req.body || {}).passwort)) return;
   try {
     res.json(auth.startTwoFactor(req.benutzer.id,
@@ -1215,7 +1215,7 @@ app.post('/api/zweifaktor/start', async (req, res) => {
    dieser einen Antwort. Danach nirgends mehr -- auch nicht in der Datenbank,
    dort liegt nur ihr SHA-256. Wer sie verliert, holt sich neue; wer beides
    verliert, geht ueber zugang.js auf dem Wirt. */
-app.post('/api/zweifaktor/an', async (req, res) => {
+app.post('/api/two-factor/on', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!await ownPasswordMatches(req, res, passwort)) return;
   try {
@@ -1228,7 +1228,7 @@ app.post('/api/zweifaktor/an', async (req, res) => {
    wer neue Codes bekaeme, ohne den laufenden Faktor zu belegen, haette einen
    Weg an ihm vorbei. Ein Wiederherstellungscode zaehlt dabei als Beleg -- genau
    dafuer ist er da, und der letzte holt so die naechsten acht. */
-app.post('/api/zweifaktor/codes', async (req, res) => {
+app.post('/api/two-factor/codes', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!await ownPasswordMatches(req, res, passwort)) return;
   if (!auth.checkTwoFactor(req.benutzer.id, code))
@@ -1249,7 +1249,7 @@ app.post('/api/zweifaktor/codes', async (req, res) => {
    Faktor ja gerade gebaut.
    EIN ADMIN KOMMT HIER NICHT HEREIN: die Nummer kommt aus req.benutzer. Der
    einzige Weg daneben ist zugang.js auf dem Wirt. */
-app.delete('/api/zweifaktor', async (req, res) => {
+app.delete('/api/two-factor', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!auth.twoFactorOn(req.benutzer.id))
     return res.status(400).json({ error: t(localeOf(req), 'server.twoFactorOff')});
@@ -1272,7 +1272,7 @@ app.delete('/api/zweifaktor', async (req, res) => {
    DIE ABSAGE IST KLAR UND DEUTLICH, anders als an den Tokenrouten: dort weiss
    der Server nicht, wer fragt, hier ist der Fragende angemeldet und
    namentlich bekannt -- eine verschleierte Absage schuetzte niemanden. */
-app.post('/api/bestaetigung', async (req, res) => {
+app.post('/api/confirm', async (req, res) => {
   const ip = auth.clientIp(req);
   const name = req.benutzer.username;
   const throttle = auth.checkThrottle(ip, name);
@@ -1362,7 +1362,7 @@ app.post('/api/bestaetigung', async (req, res) => {
    ES GIBT KEINEN WEG HINAUS AUSSER DER FRIST -- eine Loeschroute waere ein
    Protokoll, das der Betroffene selbst wegraeumen kann.
    ZWEITE AUFRUFSTELLE DES AUFRAEUMENS; die erste steht beim Start. */
-app.get('/api/sicherheitsprotokoll', ownerOnly, (req, res) => {
+app.get('/api/security-log', ownerOnly, (req, res) => {
   auth.cleanupLog();
   /* DIE AUSWAHL GEHT AN DEN SERVER und nicht an den Browser: die Karte holt
      die hundert JUENGSTEN Zeilen, und darin findet man die gescheiterten
@@ -1414,7 +1414,7 @@ app.get('/api/users', adminOnly, (req, res) => {
 });
 
 // Die Zahlen fuer den Loeschdialog. Lesend, deshalb kein Eintrag in F_ROUTEN.
-app.get('/api/users/:id/bestand', adminOnly, (req, res) => {
+app.get('/api/users/:id/inventory', adminOnly, (req, res) => {
   const ziel = auth.getUser2(req.params.id);
   if (!ziel) return res.status(404).json({ error: t(localeOf(req), 'server.userUnknown')});
   res.json({ username: ziel.username, ...auth.countInventory(ziel.id) });
@@ -1618,7 +1618,7 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
 
 /* ---- Die Selbstanmeldung hinter der Anmeldung ---------------------------
    VIER ENDPUNKTE, EINE RECHTEZEILE: ADMIN -- sehen, schalten, freischalten,
-   ablehnen. GET /api/anfragen ist lesend und steht nicht in F_ROUTEN.
+   ablehnen. GET /api/requests ist lesend und steht nicht in F_ROUTEN.
 
    WARUM ADMIN UND NICHT EIGENTUEMER: aus einer Anfrage wird NIE etwas
    anderes als ein Zugang mit der Rolle 'user', und den legt der Admin ohnehin
@@ -1638,7 +1638,7 @@ function requestCard() {
   };
 }
 
-app.get('/api/anfragen', adminOnly, (req, res) => {
+app.get('/api/requests', adminOnly, (req, res) => {
   // Zweite Aufrufstelle des Aufraeumens; die erste steht beim Start, die
   // dritte an der Anfrageroute selbst. Dieselbe Bauform wie bei
   // raeumeTokensAuf() -- eine Instanz, die monatelang durchlaeuft, raeumte
@@ -1647,7 +1647,7 @@ app.get('/api/anfragen', adminOnly, (req, res) => {
   res.json(requestCard());
 });
 
-app.put('/api/registrierung/schalter', adminOnly, (req, res) => {
+app.put('/api/signup/toggle', adminOnly, (req, res) => {
   const an = (req.body || {}).an === true;
   /* NUR DAS EINSCHALTEN IST GEBUNDEN. Ein Schalter, der sich nicht mehr
      ausschalten laesst, weil inzwischen der Mailzugang fehlt, waere eine
@@ -1666,7 +1666,7 @@ app.put('/api/registrierung/schalter', adminOnly, (req, res) => {
    gelesen. NUR BESTAETIGTE ANFRAGEN, denn eine Nummer laesst sich tippen.
    ERST DER ZUGANG, DANN DER TOKEN, DANN DIE ZEILE WEG -- scheitert das
    Anlegen, bleibt die Anfrage stehen. Und dann erst der Versand. */
-app.post('/api/anfragen/:id/frei', adminOnly, async (req, res) => {
+app.post('/api/requests/:id/approve', adminOnly, async (req, res) => {
   const a = auth.getRequest(req.params.id);
   if (!a || !a.bestaetigt_am)
     return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});
@@ -1692,7 +1692,7 @@ app.post('/api/anfragen/:id/frei', adminOnly, async (req, res) => {
    ein Weg, jemandem auf Zuruf Post zu schicken.
    DIE PROTOKOLLZEILE TRAEGT DEN NAMEN NICHT: sie haelt fest, WER abgelehnt
    hat und WANN -- der Name des Abgewiesenen ist Freitext von aussen. */
-app.delete('/api/anfragen/:id', adminOnly, (req, res) => {
+app.delete('/api/requests/:id', adminOnly, (req, res) => {
   const a = auth.getRequest(req.params.id);
   if (!a || !a.bestaetigt_am)
     return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});
@@ -2064,7 +2064,7 @@ app.get('/api/settings', (req, res) => res.json({
      NUR EIN JA/NEIN. */
   zweifaktor: auth.twoFactorOn(req.benutzer.id),
   // Die Frist des Papierkorbs. Sie steht HIER und nicht nur in
-  // GET /api/papierkorb: den Loeschdialog sieht jeder, die Karte nur der
+  // GET /api/trash: den Loeschdialog sieht jeder, die Karte nur der
   // Admin. Eine Zahl, die die Oberflaeche selbst mitbraechte, waere eine
   // zweite Wahrheit ueber dieselbe Frist.
   papierkorbTage: TRASH_DAYS
@@ -3047,7 +3047,7 @@ function detail(id, userId) {
   // WER WELCHEN WERT VERGEBEN HAT, STEHT HIER AUSDRUECKLICH NICHT: diese
   // Antwort geht an jeden, und eine Angabe darueber, wie eine EINZELNE PERSON
   // bewertet hat, ist mehr, als eine Bewertung aussagen soll. Die Liste holt
-  // der Admin ueber GET /api/items/:id/stimmen. avg und count bleiben.
+  // der Admin ueber GET /api/items/:id/votes. avg und count bleiben.
   for (const r of it.ratings) {
     // Aus dem Kasten, zu dem das Kriterium gehoert. Ein Griff in den anderen
     // ginge ins Leere -- die beiden Karten teilen keine Kennung.
@@ -3402,7 +3402,7 @@ app.get('/api/items', (req, res) => {
        ist keine Nachlaessigkeit: WER WELCHE BEWERTUNG ABGEGEBEN HAT, IST EINE
        ANGABE UEBER EINZELNE PERSONEN. Sie geht aus keiner Antwort hinaus, die
        jeder bekommt -- die Liste „Wer hat bewertet" holt der Admin ueber einen
-       eigenen Weg (GET /api/items/:id/stimmen), und die Zeile am Eintrag zeigt
+       eigenen Weg (GET /api/items/:id/votes), und die Zeile am Eintrag zeigt
        Schnitt und Zahl der Bewerter, nie einen Namen.
        EIN KOMMENTAR TRAEGT SEINEN VERFASSER OHNEHIN SICHTBAR am Eintrag; ein
        Name in der Tafel gibt daran nichts preis, was nicht schon dastuende.
@@ -3566,7 +3566,7 @@ app.get('/api/items', (req, res) => {
     delete it.rejected_at; delete it.rejected_grund; delete it.rejected_von;
     /* DIE ZAHL DER OFFENEN AUFGABEN AN DIESEM EINTRAG. Der Knopf in der
        Kopfzeile summiert sie; die Ansicht „Offene Aufgaben" holt weiterhin
-       ihre eigene Liste ueber /api/offen -- die braucht die Texte, nicht nur
+       ihre eigene Liste ueber /api/open -- die braucht die Texte, nicht nur
        die Zahl. Gerechnet wird beides aus DERSELBEN Bedingung (kind = 'task'),
        sonst naennten Knopf und Ansicht zwei verschiedene Zahlen. */
     it.offeneAufgaben = openPer.get(it.id) || 0;
@@ -3755,7 +3755,7 @@ app.put('/api/items/:id', (req, res) => {
    NUR DIE FOTOS STEHEN MIT EINER EIGENEN ZAHL DA -- sie haengen am Eintrag;
    Links und Dateien koennen fremd sein.
    value > 0: eine zurueckgesetzte Zeile ist keine Stimme. */
-app.get('/api/items/:id/bestand', entryAuthorOnly, (req, res) => {
+app.get('/api/items/:id/inventory', entryAuthorOnly, (req, res) => {
   const id = req.params.id, ich = req.benutzer.id;
   const one = (sql, ...w) => db.prepare(sql).get(...w).n;
   res.json({
@@ -3781,7 +3781,7 @@ app.get('/api/items/:id/bestand', entryAuthorOnly, (req, res) => {
 // fremde Kommentare, Bewertungen und Favoriten mit weg -- richtig, ein
 // Kommentar ohne Eintrag ergibt nichts, aber es darf nicht wortlos geschehen:
 // der Dialog in der Oberflaeche nennt die Zahlen vorher, getrennt nach eigen
-// und fremd, aus GET /api/items/:id/bestand.
+// und fremd, aus GET /api/items/:id/inventory.
 app.delete('/api/items/:id', entryAuthorOnly, (req, res) => {
   // Das Loeschen geht durch den Papierkorb: der Eintrag wird serialisiert und
   // in DERSELBEN Transaktion entfernt. Danach laeuft die Kaskade wie zuvor,
@@ -4404,7 +4404,7 @@ app.put('/api/items/:id/ratings', (req, res) => {
    Sie ist zugleich die VORAUSSETZUNG DES LOESCHWEGS -- ohne die id gaebe es
    vom Bildschirm aus keinen Weg zu einer einzelnen fremden Bewertung.
    Nur Kriterien MIT Stimmen; den Namen hat die Oberflaeche aus dem Eintrag. */
-app.get('/api/items/:id/stimmen', adminOnly, (req, res) => {
+app.get('/api/items/:id/votes', adminOnly, (req, res) => {
   const stimmen = votesPerCriterion(req.params.id, req.benutzer.id, authorCard());
   res.json([...stimmen].map(([criterion_id, list]) => ({ criterion_id, stimmen: list })));
 });
@@ -4622,7 +4622,7 @@ const qOpenTasks = db.prepare(`
     FROM comments c JOIN items i ON i.id = c.item_id
    WHERE c.kind = 'task'
    ORDER BY i.updated_at DESC, c.id`);
-app.get('/api/offen', (req, res) => {
+app.get('/api/open', (req, res) => {
   const card = authorCard();
   res.json(qOpenTasks.all().map(z => ({
     id: z.id, text: z.text, created_at: z.created_at,
@@ -4839,7 +4839,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
    UND SIE KEHRT SOFORT ZURUECK (202). Acht Minuten Rechenzeit an einer offenen
    HTTP-Verbindung sind das, was beim Import ausdruecklich vermieden wird --
    hier gilt derselbe Satz. Der Fortschritt geht als Feld in /api/stats. */
-app.post('/api/bilder/umstellen', ownerOnly, secondConfirmNeeded('bilder'), (req, res) => {
+app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('bilder'), (req, res) => {
   /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. Zwei Schleifen ueber dieselben
      Zeilen taeten der zweiten nichts (nach der ersten ist kein PNG mehr da),
      aber sie liefen doppelt, und der gemeldete Fortschritt waere der der
@@ -5949,17 +5949,17 @@ function cleanupTrash() {
     `${TRASH_DAYS} Tage entfernt.`);
   return n;
 }
-// Erste Aufrufstelle: der Start. Die zweite steht an GET /api/papierkorb.
+// Erste Aufrufstelle: der Start. Die zweite steht an GET /api/trash.
 cleanupTrash();
 // Und dasselbe fuer die abgelaufenen Token, nach derselben Bauform: erste
 // Aufrufstelle hier, zweite an GET /api/users. Die Funktion steht in auth.js,
 // weil dort auch alles andere zu den Token steht.
 auth.cleanupTokens();
 // Und dasselbe fuer das Sicherheitsprotokoll: erste Aufrufstelle hier, zweite
-// an GET /api/sicherheitsprotokoll.
+// an GET /api/security-log.
 auth.cleanupLog();
 /* Und die unbestaetigten Anfragen, . DREI Aufrufstellen statt
-   zweier: hier, an GET /api/anfragen und -- das ist die besondere -- in
+   zweier: hier, an GET /api/requests und -- das ist die besondere -- in
    legeAnfrageAn() selbst, vor der Deckelpruefung. Die dritte ist keine
    Hauswirtschaft, sondern Teil der Entscheidung: sonst blockierten zwanzig
    laengst verfallene Zeilen die Selbstanmeldung noch einen weiteren Tag. */
@@ -6003,7 +6003,7 @@ const qTrash = db.prepare(`SELECT p.id, p.titel, p.geloescht_am, p.geloescht_von
       (SELECT SUM(length(b.daten)) FROM papierkorb_bytes b WHERE b.papierkorb_id = p.id), 0) AS bytes
   FROM papierkorb p ORDER BY p.geloescht_am DESC, p.id DESC`);
 
-app.get('/api/papierkorb', adminOnly, (req, res) => {
+app.get('/api/trash', adminOnly, (req, res) => {
   cleanupTrash();
   const card = authorCard();
   res.json({
@@ -6034,7 +6034,7 @@ app.get('/api/papierkorb', adminOnly, (req, res) => {
    WAS NICHT ZURUECKKOMMT und benannt gehoert: die Favoriten ANDERER (favorite
    heisst "habe ICH markiert") und der Eingriffsvermerk am Kommentar -- beides
    steht in keiner Exportdatei, und der Papierkorb ist eine. */
-app.post('/api/papierkorb/:id/wiederherstellen', ownerOnly, async (req, res, next) => {
+app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
   try {
     const z = db.prepare('SELECT * FROM papierkorb WHERE id = ?').get(req.params.id);
     if (!z) return res.status(404).json({ error: t(localeOf(req), 'server.trashGone')});
@@ -6066,7 +6066,7 @@ app.post('/api/papierkorb/:id/wiederherstellen', ownerOnly, async (req, res, nex
 // Endgueltig entfernen. Dieselbe Rechtezeile wie das Wiederherstellen: wer
 // einen Rueckweg nehmen darf, darf ihn auch schliessen. Die Bytes fallen ueber
 // ON DELETE CASCADE mit.
-app.delete('/api/papierkorb/:id', ownerOnly, (req, res) => {
+app.delete('/api/trash/:id', ownerOnly, (req, res) => {
   const n = db.prepare('DELETE FROM papierkorb WHERE id = ?').run(req.params.id).changes;
   if (!n) return res.status(404).json({ error: t(localeOf(req), 'server.trashGone')});
   reclaim();
@@ -6501,7 +6501,7 @@ function removeBackups(ordner, namen) {
 
 // Lesend, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht trotzdem
 // davor, und zwar der des Exports: die Antwort nennt einen Pfad des Wirts.
-app.get('/api/sicherung', ownerOnly, (req, res) => {
+app.get('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
   const ort = getSetting('sicherungOrt', '');
   let dbBytes = 0;
@@ -6573,14 +6573,14 @@ app.get('/api/sicherung', ownerOnly, (req, res) => {
    EIGENE ROUTE statt PUT /api/settings: die leitet ihre Rechte aus
    PERSONAL_KEYS ab -- was nicht persoenlich ist, ist dort Adminsache.
    Der Sicherungsort gehoert aber in dieselbe Zeile wie Export und Import. */
-app.put('/api/sicherung/ort', ownerOnly, (req, res) => {
+app.put('/api/backup/dir', ownerOnly, (req, res) => {
   const geprueft = checkPlace(req.body?.ort);
   if (geprueft.fehler) return res.status(400).json({ error: t(localeOf(req), geprueft.fehler, geprueft.values) });
   putSetting.run('sicherungOrt', JSON.stringify(geprueft.ort));
   res.json({ ok: true, ort: geprueft.ort, pfad: geprueft.pfad, ...lastBackup(geprueft.pfad) });
 });
 
-app.post('/api/sicherung', ownerOnly, (req, res) => {
+app.post('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
   if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.grund, situation.values) });
   const ziel = checkPlace(getSetting('sicherungOrt', ''));
@@ -6671,7 +6671,7 @@ app.post('/api/sicherung', ownerOnly, (req, res) => {
 });
 
 /* ---- DIE LOESCHROUTE ----------------------------------------------------
-   POST /api/sicherung/aufraeumen -- die einundsiebzigste schreibende Route.
+   POST /api/backup/cleanup -- die einundsiebzigste schreibende Route.
    Beim Eigentuemer und zweitbestaetigt, dieselbe Zeile wie Export, Import,
    Sicherung und die Bildumstellung: sie entfernt Bytes unwiderruflich.
 
@@ -6698,7 +6698,7 @@ app.post('/api/sicherung', ownerOnly, (req, res) => {
    DER ORDNER KOMMT AUS getSetting('sicherungOrt') UND GEHT DURCH checkPlace()
    -- dieselbe Pruefung wie beim Schreiben, dieselbe Funktion, kein zweites Mal
    hingeschrieben: Positivliste zuerst, `realpathSync` danach. */
-app.post('/api/sicherung/aufraeumen', ownerOnly,
+app.post('/api/backup/cleanup', ownerOnly,
          secondConfirmNeeded('sicherung'), (req, res) => {
   const situation = backupState();
   if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.grund, situation.values) });

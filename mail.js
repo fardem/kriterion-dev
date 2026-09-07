@@ -314,7 +314,7 @@ function shortReason(locale, e) {
    DER BETREFF ZIEHT AUS server.js MIT HIERHER (Konzept 4.6): der Text gehoert
    zur Sache, und der Betreff ist Teil des Briefes. Der Titel der Installation
    bleibt ein Platzhalter -- er ist Inhalt und wird nicht uebersetzt.
-   DER LINK STEHT IM FRAGMENT (#/einladung/…) UND GEHT DAMIT NIE AN DEN SERVER
+   DER LINK STEHT IM FRAGMENT (#/invite/…) UND GEHT DAMIT NIE AN DEN SERVER
    -- in der Mail genauso wie beim Kopieren. Das traegt hier zusaetzlich: ein
    Vorschaudienst, der Links im Postfach vorab abruft, holt nur die Seite und
    nie das Fragment. Die Frist ab dem ersten Oeffnen kann er deshalb nicht

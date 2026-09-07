@@ -122,8 +122,8 @@ const RUECKBAUTEN = [
   {
     nr: '08', name: 'Die Adresse wird aus dem Host-Kopf abgeleitet',
     datei: 'server.js',
-    suche: "    username: ziel.username, link: `${PUBLIC.adresse}/#/einladung/${token.plain}`,",
-    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${token.plain}`,",
+    suche: "    username: ziel.username, link: `${PUBLIC.adresse}/#/invite/${token.plain}`,",
+    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/invite/${token.plain}`,",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   /* ---- Der Versand: der Empfaenger am Zugang ---- */
@@ -278,7 +278,7 @@ const RUECKBAUTEN = [
        deshalb dort. */
     nr: '27', name: 'Der Mailzugang wird auch fuer den Admin geholt',
     datei: 'public/app.js',
-    suche: "      ADMIN ? api('GET', '/api/anfragen') : null",
+    suche: "      ADMIN ? api('GET', '/api/requests') : null",
     ersatz: "      ADMIN ? api('GET', '/api/mail') : null",
     erwartet: 'Die Karten des Systembereichs nach Rolle (viele rot — der Abruf reisst den ganzen Bereich mit)'
   },
@@ -532,8 +532,8 @@ const RUECKBAUTEN = [
   {
     nr: '60', name: 'Die Bremse fehlt an der Anfrageroute',
     datei: 'server.js',
-    suche: "app.post('/api/registrierung', async (req, res) => {\n  if (!await tokenThrottleFree(req, res)) return;",
-    ersatz: "app.post('/api/registrierung', async (req, res) => {",
+    suche: "app.post('/api/signup', async (req, res) => {\n  if (!await tokenThrottleFree(req, res)) return;",
+    ersatz: "app.post('/api/signup', async (req, res) => {",
     erwartet: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
   },
   {
@@ -633,8 +633,8 @@ const RUECKBAUTEN = [
   {
     nr: '65', name: 'Die Bestaetigungsseite meldet gleich an',
     datei: 'public/app.js',
-    suche: "  const best = (location.hash || '').match(/^#\\/bestaetigung\\/([0-9a-f]{16,128})$/);\n  if (best) return showConfirm(best[1]);",
-    ersatz: "  const best = (location.hash || '').match(/^#\\/bestaetigung\\/([0-9a-f]{16,128})$/);\n  if (best) return showInvite(best[1]);",
+    suche: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showConfirm(best[1]);",
+    ersatz: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showInvite(best[1]);",
     erwartet: 'Die Bestaetigungsseite in der Oberflaeche'
   },
   {
@@ -1107,7 +1107,7 @@ const RUECKBAUTEN = [
   {
     nr: '121', name: 'F_ROUTEN kennt den zweiten Schritt der Anmeldung nicht',
     datei: 'pruefung.js',
-    suche: "    ['POST',   '/api/login/zwei',                'offen'],",
+    suche: "    ['POST',   '/api/login/second',                'offen'],",
     ersatz: "",
     erwartet: 'Der Waechter ueber den Quelltext'
   },
@@ -1728,8 +1728,8 @@ const RUECKBAUTEN = [
        Gruppe rot werden und nicht die alte. */
     nr: '191', name: 'Die Oberflaeche fragt wieder je Teil statt einmal fuer alle',
     datei: 'public/app.js',
-    suche: "  try { await api('POST', '/api/bestaetigung', { ...input, zweck, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
-    ersatz: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }\n    catch (e) { toast(e.message, true); return false; }\n  }\n  return true;",
+    suche: "  try { await api('POST', '/api/confirm', { ...input, zweck, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
+    ersatz: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/confirm', { ...eingabe, zweck, ziel }); }\n    catch (e) { toast(e.message, true); return false; }\n  }\n  return true;",
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
   {
@@ -3919,8 +3919,8 @@ const RUECKBAUTEN = [
   {
     nr: '438', name: 'Die Umstellung laeuft ohne zweite Bestaetigung',
     datei: 'server.js',
-    suche: "app.post('/api/bilder/umstellen', ownerOnly, secondConfirmNeeded('bilder'), (req, res) => {",
-    ersatz: "app.post('/api/bilder/umstellen', ownerOnly, (req, res) => {",
+    suche: "app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('bilder'), (req, res) => {",
+    ersatz: "app.post('/api/images/convert', ownerOnly, (req, res) => {",
     erwartet: 'Die Bildablage: die Rechte'
   },
   {
@@ -4215,7 +4215,7 @@ const RUECKBAUTEN = [
        weder als Karte noch als Abschnitt in „Kennzahlen". */
     nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank', visible: () => ADMIN,\n" +
+    suche: "  { schluessel: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,\n" +
            "    markup: cardImageStore,   ausruesten: setUpImageStoreOut },\n",
     ersatz: "",
     erwartet: 'Die Bildablage in der Oberflaeche'
@@ -4225,8 +4225,8 @@ const RUECKBAUTEN = [
        laege dann bei den Kategorien und Tags. */
     nr: '470', name: 'Die Karte „Bildablage" steht im Abschnitt „Bestand"',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank',",
-    ersatz: "  { schluessel: 'bildablage',   abschnitt: 'bestand',",
+    suche: "  { schluessel: 'bildablage',   abschnitt: 'database',",
+    ersatz: "  { schluessel: 'bildablage',   abschnitt: 'inventory',",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4235,8 +4235,8 @@ const RUECKBAUTEN = [
        Installation, neunzehn auf einer benutzten. */
     nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank', visible: () => ADMIN,",
-    ersatz: "  { schluessel: 'bildablage',   abschnitt: 'datenbank',\n" +
+    suche: "  { schluessel: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,",
+    ersatz: "  { schluessel: 'bildablage',   abschnitt: 'database',\n" +
             "    sichtbar: (g) => ADMIN && !!Object.keys((g.stats && g.stats.bildFormate) || {}).length,",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -5194,9 +5194,9 @@ const RUECKBAUTEN = [
   {
     nr: '557', name: 'Das Aufraeumen laeuft ohne zweite Bestaetigung',
     datei: 'server.js',
-    suche: "app.post('/api/sicherung/aufraeumen', ownerOnly,\n" +
+    suche: "app.post('/api/backup/cleanup', ownerOnly,\n" +
            "         secondConfirmNeeded('sicherung'), (req, res) => {",
-    ersatz: "app.post('/api/sicherung/aufraeumen', ownerOnly, (req, res) => {",
+    ersatz: "app.post('/api/backup/cleanup', ownerOnly, (req, res) => {",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5205,9 +5205,9 @@ const RUECKBAUTEN = [
        Sicherung -- beim Eigentuemer. */
     nr: '558', name: 'Ein gewoehnlicher Admin darf alte Sicherungen entfernen',
     datei: 'server.js',
-    suche: "app.post('/api/sicherung/aufraeumen', ownerOnly,\n" +
+    suche: "app.post('/api/backup/cleanup', ownerOnly,\n" +
            "         secondConfirmNeeded('sicherung'), (req, res) => {",
-    ersatz: "app.post('/api/sicherung/aufraeumen', adminOnly,\n" +
+    ersatz: "app.post('/api/backup/cleanup', adminOnly,\n" +
             "         secondConfirmNeeded('sicherung'), (req, res) => {",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5235,7 +5235,7 @@ const RUECKBAUTEN = [
        Knoepfe stehen darauf. */
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', visible: () => OWNER,\n" +
+    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,\n" +
            "    markup: cardCleanup,   ausruesten: setUpCleanupOut },",
     ersatz: "",
     erwartet: 'Der Systembereich nach Rolle'
@@ -5245,8 +5245,8 @@ const RUECKBAUTEN = [
        Karte "Sicherung" daneben faellt damit weg. */
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', visible: () => OWNER,",
-    ersatz: "  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', sichtbar: () => ADMIN,",
+    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,",
+    ersatz: "  { schluessel: 'aufraeumen',   abschnitt: 'database', sichtbar: () => ADMIN,",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
@@ -5265,8 +5265,8 @@ const RUECKBAUTEN = [
        Handgriff zu einer Route, die sie liest. */
     nr: '564', name: 'Die Karte schickt die Dateinamen an die Loeschroute mit',
     datei: 'public/app.js',
-    suche: "      try { r = await api('POST', '/api/sicherung/aufraeumen', { art }); }",
-    ersatz: "      try { r = await api('POST', '/api/sicherung/aufraeumen',\n" +
+    suche: "      try { r = await api('POST', '/api/backup/cleanup', { art }); }",
+    ersatz: "      try { r = await api('POST', '/api/backup/cleanup',\n" +
             "        { art, dateien: (a.treffer || []).map(t => t.datei) }); }",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },

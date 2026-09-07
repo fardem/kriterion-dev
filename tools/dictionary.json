@@ -1149,5 +1149,20 @@
    "zug-x": "user-x",
    "zusatz": "extra"
   }
+ },
+ "apiSegments": {
+  "frei": "approve",
+  "umstellen": "convert",
+  "bestand": "inventory",
+  "stimmen": "votes",
+  "zwei": "second",
+  "wiederherstellen": "restore",
+  "bestaetigen": "confirm",
+  "schalter": "toggle",
+  "aufraeumen": "cleanup",
+  "ort": "dir",
+  "einloesen": "redeem",
+  "pruefen": "check",
+  "an": "on"
  }
 }

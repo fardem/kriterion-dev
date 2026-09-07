@@ -580,7 +580,7 @@ const confirmFieldFree = (titel, was, withCode) =>
 async function confirmTwiceMany(zweck, ziele, titel, was) {
   const input = await confirmField(titel, was);
   if (input === null) return false;
-  try { await api('POST', '/api/bestaetigung', { ...input, zweck, ziele }); }
+  try { await api('POST', '/api/confirm', { ...input, zweck, ziele }); }
   catch (e) { toast(e.message, true); return false; }
   return true;
 }
@@ -591,7 +591,7 @@ async function secondConfirm(zweck, ziel, titel, was) {
   // schlimmere Fehler. Ein LEERES Feld ist keine Bestaetigung, sondern ein
   // falsches Passwort und geht als solches an den Server.
   if (input === null) return false;
-  try { await api('POST', '/api/bestaetigung', { ...input, zweck, ziel: ziel ?? null }); }
+  try { await api('POST', '/api/confirm', { ...input, zweck, ziel: ziel ?? null }); }
   catch (e) { toast(e.message, true); return false; }
   return true;
 }
@@ -832,7 +832,7 @@ function showSecondFactor(ausweis, errMsg) {
   const submit = async () => {
     b.disabled = true; b.textContent = t('login.signingIn');
     try {
-      const res = await fetch('/api/login/zwei', {
+      const res = await fetch('/api/login/second', {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ausweis, code: c.value })
@@ -891,7 +891,7 @@ function showRequest(errMsg, values = {}) {
   const submit = async () => {
     b.disabled = true; b.textContent = t('login.sending');
     try {
-      const res = await fetch('/api/registrierung', {
+      const res = await fetch('/api/signup', {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: n.value, adresse: m.value })
@@ -929,7 +929,7 @@ function showRequestThanks(meldung) {
    auf der Anmeldeseite. Sie schickt genau einen Aufruf ab und zeigt sein
    Ergebnis.
 
-   DER SCHLÜSSEL STEHT IM FRAGMENT (#/bestaetigung/…) und geht damit nie an den
+   DER SCHLÜSSEL STEHT IM FRAGMENT (#/confirm/…) und geht damit nie an den
    Server — dieselbe Bauform wie beim Einladungslink. Ein Vorschaudienst, der
    Links im Postfach vorab abruft, holt nur die Seite und bestätigt gerade
    NICHT: der Browser schickt den Schlüssel erst von hier aus im Rumpf. */
@@ -942,7 +942,7 @@ async function showConfirm(schluessel) {
   document.title = TITLE_PUBLIC;
   let res, j = {};
   try {
-    res = await fetch('/api/registrierung/bestaetigen', {
+    res = await fetch('/api/signup/confirm', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ schluessel })
@@ -982,7 +982,7 @@ async function showConfirm(schluessel) {
    Seite hieße eine zweite Stelle für Kopfzeilen, für die
    Content-Security-Policy und für die Sicherheitsregel.
 
-   DER SCHLÜSSEL STEHT IM FRAGMENT DER ADRESSE (#/einladung/…), und das ist
+   DER SCHLÜSSEL STEHT IM FRAGMENT DER ADRESSE (#/invite/…), und das ist
    der Grund für diese Bauform: ein Fragment geht nie an den Server und steht
    damit in keinem Zugriffsprotokoll und in keinem Referrer.
 
@@ -1000,7 +1000,7 @@ async function showInvite(schluessel) {
 
   let status;
   try {
-    const res = await fetch('/api/token/pruefen', {
+    const res = await fetch('/api/token/check', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: schluessel })
@@ -1070,7 +1070,7 @@ async function showInvite(schluessel) {
       if (p1.value !== p2.value) return draw(t('login.passwordsDiffer'));
       b.disabled = true; b.textContent = t('login.settingPassword');
       try {
-        const res = await fetch('/api/token/einloesen', {
+        const res = await fetch('/api/token/redeem', {
           method: 'POST', credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: schluessel, passwort: p1.value })
@@ -2608,7 +2608,37 @@ const termOutAddress = (frage) => {
   catch { return ''; }
 };
 
+/* JEDE ALTE ADRESSE WIRD UEBERSETZT UND NICHT FALLEN GELASSEN -- 0.24.1 (F4).
+   Ein Einladungslink steht in einer Mail, die vor Wochen verschickt wurde;
+   ein Lesezeichen zeigt auf `#/system/datenbank`. Beides fuehrt weiter
+   dorthin, wohin es immer fuehrte.
+   EINE TAFEL UND KEINE VERZWEIGUNG, und sie ist NICHT verkettet: jeder alte
+   Name zeigt unmittelbar auf den heutigen. `{ alt: 'zwischen', zwischen:
+   'neu' }` schickte den aeltesten Link auf einen Namen, den es nicht mehr
+   gibt -- das ist die Falle, die 0.19.1 beinahe gestellt haette.
+   UMGESCHRIEBEN WIRD MIT replaceState: danach steht in der Zeile des Browsers
+   der neue Name, und im Verlauf liegt kein zweiter Eintrag, ueber den ein
+   Zurueck wieder auf den alten fiele. */
+const OLD_ADDRESSES = { '#/offen': '#/open' };
+const OLD_ADDRESS_ROOTS = { '#/einladung/': '#/invite/', '#/bestaetigung/': '#/confirm/' };
+const OLD_SECTIONS = { persoenlich: 'personal', bestand: 'inventory',
+                       zugaenge: 'users', datenbank: 'database' };
+function translateAddress() {
+  const h = location.hash || '';
+  let neu = OLD_ADDRESSES[h] || '';
+  if (!neu) for (const [alt, jetzt] of Object.entries(OLD_ADDRESS_ROOTS))
+    if (h.startsWith(alt)) { neu = jetzt + h.slice(alt.length); break; }
+  if (!neu) {
+    const m = h.match(/^#\/system\/([a-z]+)$/);
+    if (m && OLD_SECTIONS[m[1]]) neu = `#/system/${OLD_SECTIONS[m[1]]}`;
+  }
+  if (!neu || neu === h) return false;
+  history.replaceState(null, '', neu);
+  return true;
+}
+
 function route() {
+  translateAddress();
   const h = location.hash || '#/';
   // Die alte Ansicht ist gleich fort; ihre Wolke darf niemand mehr zeichnen.
   redrawCloud = null;
@@ -2620,13 +2650,13 @@ function route() {
      und die beiden Stellen liefen auseinander.
      `#/systemisch` DARF NICHT TREFFEN: das Muster ist verankert und verlangt
      hinter „system" entweder nichts oder einen Schraegstrich. */
-  const view = SYS_PATTERN.test(h) ? 'system' : h === '#/compare' ? 'vergleich'
-    : h === '#/offen' ? 'offen' : m ? 'eintrag' : 'liste';
-  if (LAST_VIEW === 'liste' && view !== 'liste') rememberSeen();
+  const view = SYS_PATTERN.test(h) ? 'system' : h === '#/compare' ? 'compare'
+    : h === '#/open' ? 'open' : m ? 'entry' : 'list';
+  if (LAST_VIEW === 'list' && view !== 'list') rememberSeen();
   LAST_VIEW = view;
   if (view === 'system') return renderSystem();
-  if (view === 'vergleich') return renderCompare();
-  if (view === 'offen') return renderOffen();
+  if (view === 'compare') return renderCompare();
+  if (view === 'open') return renderOpen();
   if (m) return renderDetail(+m[1], termOutAddress(m[2]));
   return renderList();
 }
@@ -2868,7 +2898,7 @@ async function renderList() {
   </div>`;
 
   document.getElementById('new').onclick = openCreate;
-  document.getElementById('open').onclick = () => { location.hash = '#/offen'; };
+  document.getElementById('open').onclick = () => { location.hash = '#/open'; };
   atElement('bell', b => b.onclick = showBellPanel);
   drawHeadCounts();
   document.getElementById('sys').onclick = () => { location.hash = '#/system'; };
@@ -3993,10 +4023,10 @@ function openCreate() {
    DIE ÜBERSCHRIFT KOMMT AUS DEM VOKABULAR: wer seine Aufgaben „Mängel" nennt,
    liest hier „Offene Mängel". Deshalb steht in dieser Funktion kein einziges
    der elf einstellbaren Wörter fest. */
-async function renderOffen() {
+async function renderOpen() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   let zeilen;
-  try { zeilen = await api('GET', '/api/offen'); }
+  try { zeilen = await api('GET', '/api/open'); }
   catch (e) {
     if (e.message !== t('dialog.sessionExpired'))
       app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`;
@@ -6397,7 +6427,7 @@ async function renderDetail(id, termAddress) {
      Kasten waere eine Route mehr fuer nichts -- die Antwort ist dieselbe. */
   async function showMatch(boxId) {
     let list;
-    try { list = await api('GET', `/api/items/${id}/stimmen`); }
+    try { list = await api('GET', `/api/items/${id}/votes`); }
     catch (e) { return toast(e.message, true); }
     const titel = t('entry.whoRatedWord',
       { wort: boxId.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl });
@@ -6465,7 +6495,7 @@ async function renderDetail(id, termAddress) {
                 t('entry.remove'))) return;
               try {
                 item = await api('DELETE', `/api/ratings/${st.id}`);
-                list = await api('GET', `/api/items/${id}/stimmen`);
+                list = await api('GET', `/api/items/${id}/votes`);
                 drawRatings(); drawMatch(); toast(`${V.bewertungEinzahl} entfernt`);
               } catch (e) { toast(e.message, true); }
             };
@@ -7211,7 +7241,7 @@ async function renderDetail(id, termAddress) {
      Satz; ein Zugang allein sieht den Dialog deshalb wie vorher. */
   atElement('del', del => del.onclick = async () => {
     let b;
-    try { b = await api('GET', `/api/items/${id}/bestand`); }
+    try { b = await api('GET', `/api/items/${id}/inventory`); }
     catch (e) { return toast(e.message, true); }
 
     const countWord = (n, ein, mehr) => (n ? [`${n} ${plural(n, ein, mehr)}`] : []);
@@ -7308,12 +7338,12 @@ async function renderDetail(id, termAddress) {
    fuer immer als ⟦card.personal⟧ am Reiter. Gefragt wird beim Zeichnen.
    Dieselbe Ueberlegung wie bei FINDING_WORDS und confirmReason(). */
 const SYS_SECTIONS = [
-  { schluessel: 'persoenlich',  name: () => t('card.personal') },
-  { schluessel: 'bestand',      name: () => t('card.inventory') },
+  { schluessel: 'personal',     name: () => t('card.personal') },
+  { schluessel: 'inventory',    name: () => t('card.inventory') },
   // „Benutzer" seit 0.22.0 (E2); der Schluessel bleibt, ein Bildschirmtext
   // benennt keine Adresse um.
-  { schluessel: 'zugaenge',     name: () => t('card.user') },
-  { schluessel: 'datenbank',    name: () => t('card.database') },
+  { schluessel: 'users',        name: () => t('card.user') },
+  { schluessel: 'database',     name: () => t('card.database') },
   { schluessel: 'installation', name: () => t('card.installation') }
 ];
 
@@ -7326,29 +7356,30 @@ const SYS_SECTIONS = [
 const SYS_PATTERN = /^#\/system(?:\/([a-z]+))?$/;
 const sysUrl = (schluessel) => `#/system/${schluessel}`;
 
-/* DIE UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0.19.2 ABGEBAUT WORDEN,
-   und der Grund ist eine Entscheidung des Betreibers und keine Nachlaessigkeit.
+/* DIE UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0.19.2 ABGEBAUT WORDEN --
+   UND IN 0.24.1 ZURUECKGEKOMMEN. Beides mit Grund, und der Grund ist ein
+   anderer geworden.
 
-   WAS HIER STAND: eine Tafel `SYS_ALTE_ABSCHNITTE`, die `#/system/anlage`
-   (bis 0.17.0) und `#/system/instanz` (bis 0.19.1) still auf `installation`
-   uebersetzte -- damit ein Lesezeichen oder ein Link aus einer Mail nicht ins
-   Leere fuehrt.
+   WARUM SIE WEG WAR: `#/system/anlage` (bis 0.17.0) und `#/system/instanz`
+   (bis 0.19.1) waren Namen aus einer Zeit mit EINEM Zugang. Es gab keine
+   fremden Lesezeichen und keine verschickten Links auf einen Abschnitt --
+   eine Tafel, die einen Fall abfaengt, den es nicht gibt, ist Aufwand ohne
+   Gegenwert.
 
-   WARUM SIE WEG IST: dieser Fall tritt hier nicht ein. Die Anlage hat EINEN
-   Zugang; es gibt keine fremden Lesezeichen und keine verschickten Links auf
-   einen Abschnitt des Systembereichs. **Eine Tafel, die einen Fall abfaengt,
-   den es nicht gibt, ist Aufwand ohne Gegenwert** -- sie will gepflegt,
-   geprueft und bei jeder weiteren Umbenennung nachgezogen werden.
+   WARUM SIE WIEDER DA IST: diese Runde benennt VIER Abschnitte auf einmal um,
+   und die Anlage hat heute mehrere Zugaenge mit eigenen Lesezeichen. Der
+   Betreiber hat am 6. September 2026 entschieden (F4), dass keine alte
+   Adresse ins Leere faellt. Die Tafel steht bei `route()` unter
+   `OLD_SECTIONS`, zusammen mit den beiden Wegen aus verschickten Mails.
 
-   WAS STATTDESSEN GESCHIEHT: eine unbekannte Adresse faellt auf den ersten
-   sichtbaren Abschnitt zurueck -- derselbe Weg, den `#/system/scheune` schon
-   immer nimmt. Kein Fehler, keine leere Seite, nur ein anderer Ort.
-
-   WER SIE WIEDER BRAUCHT, BRAUCHT SIE ALS TAFEL UND NICHT ALS VERZWEIGUNG:
-   `{ alt: 'neu', … }`, einmal nachgeschlagen und nicht verkettet. Der Satz
-   steht hier, weil das die Falle war, die 0.19.1 beinahe gestellt haette --
+   SIE IST EINE TAFEL UND KEINE VERZWEIGUNG, und sie ist nicht verkettet:
    `{ anlage: 'instanz', instanz: 'installation' }` haette den aeltesten Link
-   auf einen Schluessel geschickt, den es nicht mehr gibt. */
+   auf einen Schluessel geschickt, den es nicht mehr gibt. Genau das war die
+   Falle, die 0.19.1 beinahe gestellt haette.
+
+   WAS EINE UNBEKANNTE ADRESSE WEITERHIN TUT: sie faellt auf den ersten
+   sichtbaren Abschnitt zurueck -- derselbe Weg, den `#/system/scheune` schon
+   immer nimmt. Kein Fehler, keine leere Seite, nur ein anderer Ort. */
 
 /* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. EIN Ort fuer die
    Frage nach einem fehlenden Element: stuende vor jedem Behandler dieselbe
@@ -7427,18 +7458,18 @@ function saved(el = document.activeElement) {
    fuer fuenf Formatzeilen, einen Schalter mit Erlaeuterung, einen Knopf, eine
    Fortschrittszeile und eine Meldung nicht mehr. */
 const SYS_CARDS = [
-  { schluessel: 'zugang',       abschnitt: 'persoenlich', visible: () => true,
+  { schluessel: 'zugang',       abschnitt: 'personal', visible: () => true,
     markup: cardUser,       ausruesten: setUpUserOut },
-  { schluessel: 'sitzungen',    abschnitt: 'persoenlich', visible: () => true,
+  { schluessel: 'sitzungen',    abschnitt: 'personal', visible: () => true,
     markup: cardSessions,    ausruesten: setUpSessionsOut },
-  { schluessel: 'darstellung',  abschnitt: 'persoenlich', visible: () => true,
+  { schluessel: 'darstellung',  abschnitt: 'personal', visible: () => true,
     markup: cardAppearance,  ausruesten: setUpAppearanceOut },
 
-  { schluessel: 'kategorien',   abschnitt: 'bestand', visible: () => true,
+  { schluessel: 'kategorien',   abschnitt: 'inventory', visible: () => true,
     markup: cardCategories,   ausruesten: setUpCategoriesOut },
-  { schluessel: 'tags',         abschnitt: 'bestand', visible: () => true,
+  { schluessel: 'tags',         abschnitt: 'inventory', visible: () => true,
     markup: cardTags,         ausruesten: setUpTagsOut },
-  { schluessel: 'kriterien',    abschnitt: 'bestand', visible: () => true,
+  { schluessel: 'kriterien',    abschnitt: 'inventory', visible: () => true,
     markup: () => cardCriteria('nachher'),
     ausruesten: (g) => setUpCriteriaOut(g, 'nachher') },
   /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. Sichtbar
@@ -7447,32 +7478,32 @@ const SYS_CARDS = [
      ZWEI KARTEN, EINE MASCHINE: dieselbe `manage-list`, derselbe Eintrag
      `crit`, dasselbe Ziehen, dasselbe Gewichtsfeld. Nur die Liste ist nach
      Phase gefiltert, und `POST` schickt die Phase mit. */
-  { schluessel: 'potenzialkriterien', abschnitt: 'bestand', visible: () => true,
+  { schluessel: 'potenzialkriterien', abschnitt: 'inventory', visible: () => true,
     markup: () => cardCriteria('vorher'),
     ausruesten: (g) => setUpCriteriaOut(g, 'vorher') },
-  { schluessel: 'vokabular',    abschnitt: 'bestand', visible: () => ADMIN,
+  { schluessel: 'vokabular',    abschnitt: 'inventory', visible: () => ADMIN,
     markup: cardVocabulary,    ausruesten: setUpVocabularyOut },
-  { schluessel: 'links',        abschnitt: 'bestand', visible: () => true,
+  { schluessel: 'links',        abschnitt: 'inventory', visible: () => true,
     markup: cardLinks,        ausruesten: setUpLinksOut },
-  { schluessel: 'suchanbieter', abschnitt: 'bestand', visible: () => ADMIN,
+  { schluessel: 'suchanbieter', abschnitt: 'inventory', visible: () => ADMIN,
     markup: cardSearchProvider, ausruesten: setUpSearchProviderOut },
-  { schluessel: 'papierkorb',   abschnitt: 'bestand', visible: () => ADMIN,
+  { schluessel: 'papierkorb',   abschnitt: 'inventory', visible: () => ADMIN,
     markup: cardTrash,   ausruesten: setUpTrashOut },
 
-  { schluessel: 'zugaenge',     abschnitt: 'zugaenge', visible: () => ADMIN,
+  { schluessel: 'zugaenge',     abschnitt: 'users', visible: () => ADMIN,
     markup: cardUsers,     ausruesten: setUpUsersOut },
-  { schluessel: 'anfragen',     abschnitt: 'zugaenge', visible: (g) => ADMIN && !!g.anfragen,
+  { schluessel: 'anfragen',     abschnitt: 'users', visible: (g) => ADMIN && !!g.anfragen,
     markup: cardRequests,     ausruesten: setUpRequestsOut },
-  { schluessel: 'protokoll',    abschnitt: 'zugaenge', visible: (g) => OWNER && !!g.log,
+  { schluessel: 'protokoll',    abschnitt: 'users', visible: (g) => OWNER && !!g.log,
     markup: cardLog,    ausruesten: setUpLogOut },
-  { schluessel: 'mailversand',  abschnitt: 'zugaenge', visible: (g) => OWNER && !!g.mailstand,
+  { schluessel: 'mailversand',  abschnitt: 'users', visible: (g) => OWNER && !!g.mailstand,
     markup: cardMailDelivery,  ausruesten: setUpMailDeliveryOut },
 
-  { schluessel: 'kennzahlen',   abschnitt: 'datenbank', visible: () => ADMIN,
+  { schluessel: 'kennzahlen',   abschnitt: 'database', visible: () => ADMIN,
     markup: cardStats },
-  { schluessel: 'bildablage',   abschnitt: 'datenbank', visible: () => ADMIN,
+  { schluessel: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,
     markup: cardImageStore,   ausruesten: setUpImageStoreOut },
-  { schluessel: 'sicherung',    abschnitt: 'datenbank', visible: () => OWNER,
+  { schluessel: 'sicherung',    abschnitt: 'database', visible: () => OWNER,
     markup: cardBackup,    ausruesten: setUpBackupOut },
   /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und nicht
      zufaellig: die eine Karte legt Kopien an, die andere raeumt sie weg.
@@ -7484,9 +7515,9 @@ const SYS_CARDS = [
      UND EIN LOESCHKNOPF GEHOERT NICHT UNTER DEN SICHERUNGSKNOPF: die beiden
      Vorgaenge sind gegenlaeufig und stuenden untereinander in derselben
      Kachel -- die Verwechslung waere nicht wiedergutzumachen. */
-  { schluessel: 'aufraeumen',   abschnitt: 'datenbank', visible: () => OWNER,
+  { schluessel: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,
     markup: cardCleanup,   ausruesten: setUpCleanupOut },
-  { schluessel: 'export',       abschnitt: 'datenbank', visible: () => OWNER,
+  { schluessel: 'export',       abschnitt: 'database', visible: () => OWNER,
     markup: cardExport,       ausruesten: setUpExportOut },
 
   { schluessel: 'titel',        abschnitt: 'installation', visible: () => ADMIN,
@@ -7530,11 +7561,11 @@ async function renderSystem() {
      fetched.mailstand, fetched.anfragen] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
-      api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null,
-      OWNER ? api('GET', '/api/sicherung') : null, api('GET', '/api/sessions'),
-      OWNER ? api('GET', '/api/sicherheitsprotokoll') : null,
+      api('GET', '/api/account'), ADMIN ? api('GET', '/api/trash') : null,
+      OWNER ? api('GET', '/api/backup') : null, api('GET', '/api/sessions'),
+      OWNER ? api('GET', '/api/security-log') : null,
       OWNER ? api('GET', '/api/mail') : null,
-      ADMIN ? api('GET', '/api/anfragen') : null
+      ADMIN ? api('GET', '/api/requests') : null
     ]);
   } catch (e) { if (e.message !== t('dialog.sessionExpired')) toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
@@ -7749,7 +7780,7 @@ function setUpUserOut(fetched) {
       const e = await ask(t('card.twoFactorOn'),
         t('card.passwordNeeded'), false);
       if (e === null) return;
-      try { showSecret(await api('POST', '/api/zweifaktor/start', { passwort: e.passwort })); }
+      try { showSecret(await api('POST', '/api/two-factor/start', { passwort: e.passwort })); }
       catch (err) { toast(err.message, true); }
     });
 
@@ -7758,7 +7789,7 @@ function setUpUserOut(fetched) {
         t('card.codesInvalidHint'), true);
       if (e === null) return;
       try {
-        const r = await api('POST', '/api/zweifaktor/codes', e);
+        const r = await api('POST', '/api/two-factor/codes', e);
         drawTwoFactor(r);
         showAgainCodes(r.codes);
         toast(t('card.recoveryCodesMade'));
@@ -7771,7 +7802,7 @@ function setUpUserOut(fetched) {
         t('card.becomeInvalid'), true);
       if (e === null) return;
       try {
-        drawTwoFactor(await api('DELETE', '/api/zweifaktor', e));
+        drawTwoFactor(await api('DELETE', '/api/two-factor', e));
         TWO_FACTOR = false;
         toast(t('card.twoFactorTurnedOff'));
       } catch (err) { toast(err.message, true); }
@@ -7819,7 +7850,7 @@ function setUpUserOut(fetched) {
         t('card.passwordAgainHint'), false);
       if (e === null) return;
       try {
-        const r = await api('POST', '/api/zweifaktor/an', { passwort: e.passwort, code: field.value });
+        const r = await api('POST', '/api/two-factor/on', { passwort: e.passwort, code: field.value });
         drawTwoFactor(r);
         showAgainCodes(r.codes);
         TWO_FACTOR = true;
@@ -8668,7 +8699,7 @@ function setUpTrashOut(fetched) {
      JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
      soll die Karte etwas sagen und nicht der Lauf abreissen. */
   async function trashNew(fetched) {
-    try { fetched.papierkorb = await api('GET', '/api/papierkorb'); }
+    try { fetched.papierkorb = await api('GET', '/api/trash'); }
     catch (e) {
       const box = document.getElementById('mtrash');
       if (box) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
@@ -8706,7 +8737,7 @@ function setUpTrashOut(fetched) {
       const back = row.querySelector('.trash-back');
       if (back) back.onclick = async () => {
         try {
-          const r = await api('POST', `/api/papierkorb/${z.id}/wiederherstellen`);
+          const r = await api('POST', `/api/trash/${z.id}/restore`);
           // Die unbekannten Verfasser stehen in der Antwort und gehoeren
           // gesagt: sie sind beim Zurueckholen an MICH gefallen.
           const open = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
@@ -8721,7 +8752,7 @@ function setUpTrashOut(fetched) {
           t('card.purgeHint', { titel: z.titel }),
           t('card.deleteForGood'))) return;
         try {
-          await api('DELETE', `/api/papierkorb/${z.id}`);
+          await api('DELETE', `/api/trash/${z.id}`);
           toast(t('card.deletedForGood'));
           trashNew(fetched);
         } catch (e) { toast(e.message, true); }
@@ -8850,7 +8881,7 @@ function setUpUsersOut() {
      sich ein Link sonst auf einen fremden Server umbiegen. Der Browser des
      Admins steht bereits an der richtigen Adresse. */
   const buildInviteUrl = (schluessel) =>
-    `${location.origin}${location.pathname}#/einladung/${schluessel}`;
+    `${location.origin}${location.pathname}#/invite/${schluessel}`;
 
   /* WER DEN LINK KOPIERT, MUSS AN DIESER STELLE LESEN, WAS ER IN DER HAND
      HÄLT. Der Weitergabeweg ist der Admin selbst — mündlich, per Zettel, per
@@ -9061,7 +9092,7 @@ function setUpUsersOut() {
 
         tool.querySelector('.user-x').onclick = async () => {
           let b;
-          try { b = await api('GET', `/api/users/${z.id}/bestand`); }
+          try { b = await api('GET', `/api/users/${z.id}/inventory`); }
           catch (e) { return toast(e.message, true); }
           /* EIN FENSTER MIT ZWEI HAEKCHEN -- 0.22.0, Bauabschnitt 4. Bis 0.21.1
              standen hier drei confirm() hintereinander, und in den ersten
@@ -9187,7 +9218,7 @@ function setUpRequestsOut(fetched) {
     // Vor dem await lesen: danach steht am Knopf schon der andere Text.
     const fresh = !(fetched.anfragen && fetched.anfragen.an);
     try {
-      const d = await api('PUT', '/api/registrierung/schalter', { an: fresh });
+      const d = await api('PUT', '/api/signup/toggle', { an: fresh });
       fetched.anfragen = d;
       /* DER EINE MERKER ZIEHT MIT. `SIGNUP` kommt beim Start aus
          /api/config und traegt die Anmeldeseite; seit 0.17.1 haengt auch der
@@ -9255,7 +9286,7 @@ function setUpRequestsOut(fetched) {
           t('card.signupResultHint', { email: a.email }),
           t('card.approve'), 'accent')) return;
         try {
-          const d = await api('POST', `/api/anfragen/${a.id}/frei`);
+          const d = await api('POST', `/api/requests/${a.id}/approve`);
           toast(t('card.approvedLinkBelow'));
           showLink(d, 'signup-link');
           drawRequests(d);
@@ -9266,7 +9297,7 @@ function setUpRequestsOut(fetched) {
         if (!await confirmBox(t('card.rejectRequestAsk', { username: a.username }),
           t('card.rejectQuietHint'), t('card.reject'))) return;
         try {
-          const d = await api('DELETE', `/api/anfragen/${a.id}`);
+          const d = await api('DELETE', `/api/requests/${a.id}`);
           toast(t('card.requestRejected'));
           drawRequests(d);
         } catch (e) { toast(e.message, true); }
@@ -9482,7 +9513,7 @@ function setUpLogOut(fetched) {
     logGroup = group || '';
     let d;
     try {
-      d = await api('GET', '/api/sicherheitsprotokoll' +
+      d = await api('GET', '/api/security-log' +
         (logGroup ? `?gruppe=${encodeURIComponent(logGroup)}` : ''));
     } catch (e) {
       const box = document.getElementById('log-list');
@@ -10141,7 +10172,7 @@ function setUpImageStoreOut(fetched) {
         t('card.pngConverting', { n: png.anzahl, bytes: fmtBytes(png.bytes),
           danach: fmtBytes(Math.round(png.bytes * 0.37)) }));
       if (!ok) return;
-      try { await api('POST', '/api/bilder/umstellen', {}); }
+      try { await api('POST', '/api/images/convert', {}); }
       catch (e) { return toast(e.message, true); }
       /* NEU ZEICHNEN STATT DIE ZEILE VON HAND EINZUSETZEN: die Antwort auf
          /api/stats traegt den Lauf jetzt, die Karte baut sich daraus auf, und
@@ -10264,7 +10295,7 @@ function setUpBackupOut(fetched) {
     document.getElementById('backup-dir-save').onclick = async () => {
       const wert = document.getElementById('backup-dir').value;
       try {
-        const r = await api('PUT', '/api/sicherung/ort', { ort: wert });
+        const r = await api('PUT', '/api/backup/dir', { ort: wert });
         // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
         // Kasten ueber die alten Sicherungen beim ersten Speichern des
         // Zielorts, und die Karte saehe danach harmloser aus als die Lage ist.
@@ -10283,7 +10314,7 @@ function setUpBackupOut(fetched) {
       button.disabled = true;
       button.textContent = t('card.backupRunning');
       try {
-        const r = await api('POST', '/api/sicherung');
+        const r = await api('POST', '/api/backup');
         fetched.sicherung = { ...fetched.sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
                       gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
         /* EINE MELDUNG UND NICHT ZWEI: toast() raeumt die vorige weg, zwei
@@ -10333,7 +10364,7 @@ function setUpBackupOut(fetched) {
    nicht die Ankuendigung eines Laufs. OHNE VORSCHAU IST ES EINE WETTE.
 
    DIE REGEL RECHNET DER SERVER, AUCH FUER DIE VORSCHAU. Die Karte schickt die
-   beiden Werte als Abfrage an GET /api/sicherung und zeichnet, was
+   beiden Werte als Abfrage an GET /api/backup und zeichnet, was
    zurueckkommt -- sie rechnet nichts selbst nach. Eine zweite Fassung der
    Regel im Browser waere eine zweite Wahrheit darueber, was gleich passiert
    (Stolperstein 47), und die Vorschau verloere genau das, wofuer es sie gibt. */
@@ -10504,7 +10535,7 @@ function setUpCleanupOut(fetched) {
       const run = ++previewRun;
       let frisch;
       try {
-        frisch = await api('GET', `/api/sicherung?behalten=${w.behalten}&tage=${w.tage}`);
+        frisch = await api('GET', `/api/backup?behalten=${w.behalten}&tage=${w.tage}`);
       } catch { return; }   // eine Zahl ausserhalb der Grenzen: die Liste bleibt stehen
       /* NUR DIE JUENGSTE ANTWORT ZAEHLT. Wer schnell tippt, hat mehrere
          Abrufe unterwegs, und sie koennen in beliebiger Reihenfolge
@@ -10543,7 +10574,7 @@ function setUpCleanupOut(fetched) {
     const clear = async (art, titel, was) => {
       if (!(await secondConfirm('sicherung', null, titel, was))) return;
       let r;
-      try { r = await api('POST', '/api/sicherung/aufraeumen', { art }); }
+      try { r = await api('POST', '/api/backup/cleanup', { art }); }
       catch (e) { return toast(e.message, true); }
       fetched.sicherung = { ...fetched.sicherung, erreichbar: r.erreichbar, letzte: r.letzte,
                            zahl: r.zahl, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
@@ -10946,7 +10977,8 @@ let setupNeeded = false;
      Passwort eingeben, das er ja gerade nicht kennt. Er geht auch vor der
      Frage nach einer laufenden Anmeldung -- wer den Link aus einem Browser
      öffnet, in dem noch jemand angemeldet ist, meint trotzdem den Link. */
-  const invite = (location.hash || '').match(/^#\/einladung\/([0-9a-f]{16,128})$/);
+  translateAddress();
+  const invite = (location.hash || '').match(/^#\/invite\/([0-9a-f]{16,128})$/);
   if (invite) return showInvite(invite[1]);
   /* Der Bestätigungslink der Selbstanmeldung, — an derselben
      Stelle und aus demselben Grund wie der Einladungslink: wer ihn anklickt,
@@ -10954,7 +10986,7 @@ let setupNeeded = false;
      ausdrücklich NICHT vom Schalter abhängig gemacht: wird die Selbstanmeldung
      abgeschaltet, während eine Bestätigung unterwegs ist, soll der Link nicht
      stumm auf der Anmeldeseite enden — der Server sagt dann, was gilt. */
-  const best = (location.hash || '').match(/^#\/bestaetigung\/([0-9a-f]{16,128})$/);
+  const best = (location.hash || '').match(/^#\/confirm\/([0-9a-f]{16,128})$/);
   if (best) return showConfirm(best[1]);
   try {
     const s = await fetch('/api/session', { credentials: 'same-origin' }).then(r => r.json());
