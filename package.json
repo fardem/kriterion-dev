@@ -1,11 +1,11 @@
 {
   "name": "kriterion",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "description": "Kriterion - selbstgehostetes Bewertungsarchiv mit verschluesselter Datenbank",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node pruefung.js"
+    "test": "node testbench.js"
   },
   "dependencies": {
     "better-sqlite3-multiple-ciphers": "^11.5.0",

@@ -1,4 +1,4 @@
-/* ================= bestandslauf.js — DIE BESTANDSLAEUFE, IN EINEM EIGENEN THREAD ==
+/* ================= batchrun.js — DIE BESTANDSLAEUFE, IN EINEM EIGENEN THREAD ==
 
    WAS HIER LAEUFT UND WARUM ES NICHT MEHR IM HAUPT-THREAD LAEUFT.
    DREI Schleifen fahren ueber den ganzen Bildbestand: die Umstellung von PNG
@@ -6,7 +6,7 @@
    seit 0.19.4 -- das Erneuern der Kacheln (beide einmal beim Start). Seit
    0.19.5 kommt eine VIERTE Aufgabe dazu, und sie ist keine Schleife: EINE
    Zeile, gerufen beim Speichern des Ausschnitts. Warum auch sie hier faehrt
-   und nicht im Haupt-Thread, steht als Messung bei erneuereEineKachel(). Die ersten beiden lasen bis 0.19.2 im
+   und nicht im Haupt-Thread, steht als Messung bei refreshOneTile(). Die ersten beiden lasen bis 0.19.2 im
    Haupt-Thread eine halbe Megabyte Blob, wandelten sie um und schrieben sie
    zurueck --
    `better-sqlite3` ist SYNCHRON, und jede seiner Zeilen haelt die
@@ -70,7 +70,7 @@ const sharp = require('sharp');
    Kontingent). Gemessen laedt sharp im Thread in 76 ms. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
 const { db } = require('./db');
-const { makeVariants, istPNG, legeBildAb, istOhneZuschnitt } = require('./bilder');
+const { makeVariants, isPng, storeImage, isUncropped } = require('./images');
 
 /* WIE DER STAND ZURUECKREIST -- EINE MELDUNG JE ZEILE, UND SIE TRAEGT DEN
    GANZEN STAND.
@@ -87,7 +87,7 @@ const { makeVariants, istPNG, legeBildAb, istOhneZuschnitt } = require('./bilder
    Vollstaendigkeit der Meldungsfolge; ein voller Stand kann gar nicht
    auseinanderlaufen. Zwei Wahrheiten ueber denselben Fortschritt gibt es so
    nicht (Stolperstein 47). */
-const melde = (stand) => parentPort.postMessage({ art: 'stand', stand });
+const report = (status) => parentPort.postMessage({ kind: 'status', status });
 
 /* ---- Die Umstellung von PNG auf WebP ----
    WORTGLEICH ZUR FASSUNG AUS 0.19.2, bis auf zwei Dinge: der Stand steht in
@@ -100,36 +100,36 @@ const melde = (stand) => parentPort.postMessage({ art: 'stand', stand });
    WAS AUSDRUECKLICH NICHT PASSIERT: thumb und medium werden NICHT neu
    gerechnet. Sie sind aus demselben Bild entstanden und bleiben gueltig; ein
    Neurechnen kostete Zeit und aenderte nichts. */
-async function stelleBestandUm(zeilen) {
-  const stand = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
+async function convertInventory(rows) {
+  const status = { running: true, total: rows.length, erledigt: 0,
                   umgestellt: 0, geblieben: 0, gespart: 0 };
-  const hole = db.prepare('SELECT data FROM photos WHERE id = ?');
-  const schreib = db.prepare('UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');
-  for (const { id } of zeilen) {
+  const get = db.prepare('SELECT data FROM photos WHERE id = ?');
+  const write = db.prepare('UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');
+  for (const { id } of rows) {
     try {
-      const z = hole.get(id);
+      const z = get.get(id);
       // Die Zeile kann waehrend des Laufs geloescht oder schon umgestellt
       // worden sein. Beides ist kein Fehler -- nur nichts zu tun.
-      if (z && istPNG(z.data)) {
-        const ab = await legeBildAb(z.data, 'image/png');
-        if (ab.umgewandelt) {
-          schreib.run(ab.mime, ab.data, id);
-          stand.umgestellt++;
-          stand.gespart += z.data.length - ab.data.length;
-        } else stand.geblieben++;
+      if (z && isPng(z.data)) {
+        const start = await storeImage(z.data, 'image/png');
+        if (start.converted) {
+          write.run(start.mime, start.data, id);
+          status.umgestellt++;
+          status.gespart += z.data.length - start.data.length;
+        } else status.geblieben++;
       }
     } catch (e) {
       // EINE ZEILE REISST DEN LAUF NICHT AB. Sie bleibt, wie sie ist, wird
       // gezaehlt und genannt -- dieselbe Regel wie beim Nachruesten der
       // Vorschaubilder.
-      stand.geblieben++;
+      status.geblieben++;
       console.error(`[Kriterion] Foto ${id} nicht umgestellt:`, e.message);
     }
-    stand.erledigt++;
-    melde(stand);
+    status.erledigt++;
+    report(status);
     await new Promise(r => setTimeout(r, 30));
   }
-  stand.laeuft = false;
+  status.running = false;
   /* reclaim() DANACH, UND ES LAEUFT IM THREAD. Ohne ihn waechst die Datei
      erst und schrumpft nie: die alten Blobs geben ihre Seiten frei, aber
      SQLite gibt sie ohne incremental_vacuum nicht ans Dateisystem zurueck.
@@ -143,16 +143,16 @@ async function stelleBestandUm(zeilen) {
      danach sind kein Fehler: nach dem Kuerzen ist nichts mehr da, was zu
      uebertragen waere. */
   reclaim();
-  melde(stand);
-  console.log(`[Kriterion] Bildumstellung fertig: ${stand.umgestellt} von ` +
-    `${stand.gesamt} umgestellt, ${stand.geblieben} blieben PNG, ` +
-    `${stand.gespart} Bytes gespart.`);
+  report(status);
+  console.log(`[Kriterion] Bildumstellung fertig: ${status.umgestellt} von ` +
+    `${status.total} umgestellt, ${status.geblieben} blieben PNG, ` +
+    `${status.gespart} Bytes gespart.`);
 }
 
 /* ---- WORAUS EINE ZEILE IHRE KACHEL ENTSTEHT -- 0.19.5 ----
 
    ZWEI SCHLEIFEN UND EINE ROUTE FRAGEN DASSELBE, also steht es einmal.
-   `zuschnittAus()` macht aus den drei Spalten das Rezept, `vorlageAus()`
+   `cropFrom()` macht aus den drei Spalten das Rezept, `sourceFrom()`
    sagt, aus welchem Blob sie erzeugt wird.
 
    AM FOTO IST DIE VORLAGE `data` -- das Original. AM VIDEO STEHT DORT DIE
@@ -175,9 +175,9 @@ async function stelleBestandUm(zeilen) {
    zwar, aber es entstuende aus sich selbst -- eine dritte JPEG-Kodierung
    desselben Standbilds, die kein Bildpunkt besser wird. Eine Ableitung, die
    schlechter ist als die alte, gibt es nicht. */
-const istVideoZeile = (z) => z && z.art === 'video';
-const vorlageAus = (z) => (istVideoZeile(z) ? z.medium : z.data);
-const zuschnittAus = (z) => ({ fx: Number(z.focus_x), fy: Number(z.focus_y),
+const isVideoRow = (z) => z && z.kind === 'video';
+const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);
+const cropFrom = (z) => ({ fx: Number(z.focus_x), fy: Number(z.focus_y),
                                zoom: Number(z.zoom) });
 
 /* ---- Die fehlenden Vorschaubilder nachruesten ----
@@ -189,21 +189,21 @@ const zuschnittAus = (z) => ({ fx: Number(z.focus_x), fy: Number(z.focus_y),
    WELCHE ZEILEN OFFEN SIND, FRAGT DER HAUPT-THREAD -- er faellt sonst gar
    nicht auf, dass es nichts zu tun gibt, und erzeugte einen Thread fuer eine
    leere Liste. */
-async function ruesteVorschaubilderNach(zeilen) {
-  console.log(`[Kriterion] Erzeuge Vorschaubilder für ${zeilen.length} Foto(s) ...`);
+async function backfillThumbnails(rows) {
+  console.log(`[Kriterion] Erzeuge Vorschaubilder für ${rows.length} Foto(s) ...`);
   /* DER ZUSCHNITT GEHT MIT -- 0.19.5. Eine Zeile, der die Ableitung fehlt,
      traegt ihre drei Zahlen trotzdem (sie stehen in eigenen Spalten und nicht
      im Bild); ohne sie entstuende hier eine ungeschnittene Kachel, die der
      Lauf gleich danach ein zweites Mal anfassen muesste. */
   const get = db.prepare(
-    'SELECT data, art, medium, focus_x, focus_y, zoom FROM photos WHERE id = ?');
+    'SELECT data, kind, medium, focus_x, focus_y, zoom FROM photos WHERE id = ?');
   const upd = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
   let done = 0;
-  for (const { id } of zeilen) {
+  for (const { id } of rows) {
     try {
       const row = get.get(id);
       if (!row) continue;
-      const v = await makeVariants(row.data, zuschnittAus(row));
+      const v = await makeVariants(row.data, cropFrom(row));
       upd.run(v.thumb, v.medium, id);
       done++;
     } catch (e) { console.error(`[Kriterion] Foto ${id} übersprungen:`, e.message); }
@@ -268,49 +268,49 @@ async function ruesteVorschaubilderNach(zeilen) {
    herauskommt, ist fuer `medium` dasselbe Bild wie vorher -- die Kiste ist
    dort unveraendert, und geschnitten wird es ausdruecklich nicht.
    AM VIDEO WIRD ES NICHT MITGESCHRIEBEN, und der Grund steht oben bei
-   vorlageAus(): dort IST `medium` die Vorlage, und es aus sich selbst neu zu
+   sourceFrom(): dort IST `medium` die Vorlage, und es aus sich selbst neu zu
    kodieren machte es nur schlechter. */
-async function erneuereKacheln(zeilen) {
-  const stand = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
+async function refreshTiles(rows) {
+  const status = { running: true, total: rows.length, erledigt: 0,
                   geprueft: 0, nachgezogen: 0, uebersprungen: 0, zugenommen: 0 };
-  const hole = db.prepare(
-    'SELECT data, thumb, medium, art, focus_x, focus_y, zoom FROM photos WHERE id = ?');
-  for (const { id } of zeilen) {
+  const get = db.prepare(
+    'SELECT data, thumb, medium, kind, focus_x, focus_y, zoom FROM photos WHERE id = ?');
+  for (const { id } of rows) {
     try {
-      const z = hole.get(id);
+      const z = get.get(id);
       /* DIE ZEILE KANN WAEHRENDDESSEN VERSCHWUNDEN SEIN oder ihre Ableitung
          verloren haben. Beides ist kein Fehler -- ohne `thumb` ist sie Sache
          des Nachruestens und nicht dieses Laufs. */
       if (z && z.thumb) {
-        stand.geprueft++;
-        if (await istOhneZuschnitt(z.thumb)) {
-          const gewachsen = await erneuereZeile(id, z);
-          if (gewachsen === null) stand.uebersprungen++;
-          else { stand.nachgezogen++; stand.zugenommen += gewachsen; }
+        status.geprueft++;
+        if (await isUncropped(z.thumb)) {
+          const grown = await refreshRow(id, z);
+          if (grown === null) status.uebersprungen++;
+          else { status.nachgezogen++; status.zugenommen += grown; }
         }
       }
     } catch (e) {
-      stand.uebersprungen++;
+      status.uebersprungen++;
       console.error(`[Kriterion] Foto ${id} nicht nachgezogen:`, e.message);
     }
-    stand.erledigt++;
-    melde(stand);
+    status.erledigt++;
+    report(status);
     /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN. Sie sind im Thread
        nicht mehr noetig, um den Haupt-Thread zu schonen -- sie halten aber
        die Maschine frei, auf der auch noch etwas anderes laufen darf. */
     await new Promise(r => setTimeout(r, 30));
   }
-  stand.laeuft = false;
+  status.running = false;
   /* reclaim() AUS DEMSELBEN GRUND WIE BEI DER UMSTELLUNG: jede ersetzte
      Ableitung gibt ihre alten Seiten frei, und ohne incremental_vacuum gibt
      SQLite sie nicht ans Dateisystem zurueck. Ob der neue `thumb` groesser
      oder kleiner ist als der alte, aendert daran nichts -- die Datei waechst
      oder schrumpft dann eben um die Differenz und nicht um die Summe. */
   reclaim();
-  melde(stand);
-  console.log(`[Kriterion] Kacheln erneuert: ${stand.nachgezogen} von ` +
-    `${stand.geprueft} geprüften Zeilen, ${stand.uebersprungen} übersprungen, ` +
-    `${stand.zugenommen} Bytes mehr.`);
+  report(status);
+  console.log(`[Kriterion] Kacheln erneuert: ${status.nachgezogen} von ` +
+    `${status.geprueft} geprüften Zeilen, ${status.uebersprungen} übersprungen, ` +
+    `${status.zugenommen} Bytes mehr.`);
 }
 
 /* ---- EINE ZEILE ERNEUERN -- die Stelle, an der beide Rufer zusammenkommen ---
@@ -328,16 +328,16 @@ async function erneuereKacheln(zeilen) {
    alte, schon.
 
    DIE VIDEOZEILE BEKOMMT NUR IHRE KACHEL. Ihr `medium` ist die Vorlage --
-   siehe vorlageAus() weiter oben. */
-const schreibBeide = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
-const schreibKachel = db.prepare('UPDATE photos SET thumb = ? WHERE id = ?');
-async function erneuereZeile(id, z) {
-  const vorlage = vorlageAus(z);
-  if (!vorlage) return null;
-  const v = await makeVariants(vorlage, zuschnittAus(z));
+   siehe sourceFrom() weiter oben. */
+const writeBoth = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
+const writeTile = db.prepare('UPDATE photos SET thumb = ? WHERE id = ?');
+async function refreshRow(id, z) {
+  const source = sourceFrom(z);
+  if (!source) return null;
+  const v = await makeVariants(source, cropFrom(z));
   if (!v.thumb) return null;
-  if (istVideoZeile(z)) schreibKachel.run(v.thumb, id);
-  else schreibBeide.run(v.thumb, v.medium || null, id);
+  if (isVideoRow(z)) writeTile.run(v.thumb, id);
+  else writeBoth.run(v.thumb, v.medium || null, id);
   return v.thumb.length - (z.thumb ? z.thumb.length : 0);
 }
 
@@ -396,17 +396,17 @@ async function erneuereZeile(id, z) {
    der Benutzer wartet vor einem Knopf und nicht vor einer Fortschrittszeile.
    Gemeldet wird das Ergebnis, damit der Haupt-Thread weiss, ob er die
    Antwort mit einer neuen Fassung beschriften darf. */
-async function erneuereEineKachel(zeilen) {
-  const id = zeilen && zeilen[0] && zeilen[0].id;
+async function refreshOneTile(rows) {
+  const id = rows && rows[0] && rows[0].id;
   const z = id ? db.prepare(
-    'SELECT data, thumb, medium, art, focus_x, focus_y, zoom FROM photos WHERE id = ?')
+    'SELECT data, thumb, medium, kind, focus_x, focus_y, zoom FROM photos WHERE id = ?')
     .get(id) : null;
   let ok = false;
   if (z) {
-    try { ok = await erneuereZeile(id, z) !== null; }
+    try { ok = await refreshRow(id, z) !== null; }
     catch (e) { console.error(`[Kriterion] Kachel ${id} nicht erneuert:`, e.message); }
   }
-  parentPort.postMessage({ art: 'erneuert', id, ok });
+  parentPort.postMessage({ kind: 'refreshed', id, ok });
 }
 
 /* DIESELBE SPEICHERPFLEGE WIE IN server.js, und sie steht in beiden Dateien:
@@ -428,11 +428,11 @@ function reclaim() {
    parentPort.close() DANACH -- ohne ihn haelt der offene Kanal den Thread am
    Leben, und der Haupt-Thread bekaeme sein 'exit' nie. */
 (async () => {
-  if (workerData.aufgabe === 'umstellung') await stelleBestandUm(workerData.zeilen);
-  else if (workerData.aufgabe === 'vorschaubilder') await ruesteVorschaubilderNach(workerData.zeilen);
-  else if (workerData.aufgabe === 'geometrie') await erneuereKacheln(workerData.zeilen);
-  else if (workerData.aufgabe === 'zuschnitt') await erneuereEineKachel(workerData.zeilen);
-  else throw new Error(`Unbekannte Aufgabe: ${workerData.aufgabe}`);
+  if (workerData.task === 'umstellung') await convertInventory(workerData.rows);
+  else if (workerData.task === 'vorschaubilder') await backfillThumbnails(workerData.rows);
+  else if (workerData.task === 'geometrie') await refreshTiles(workerData.rows);
+  else if (workerData.task === 'zuschnitt') await refreshOneTile(workerData.rows);
+  else throw new Error(`Unbekannte Aufgabe: ${workerData.task}`);
   db.close();
   parentPort.close();
 })();

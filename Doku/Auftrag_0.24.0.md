@@ -1,5 +1,27 @@
 # Auftrag 0.24.0 — „Das Deutsche wandert in eine eigene Datei"
 
+> **DIESE RUNDE IST GEBAUT UND HERAUSGEGEBEN — am 6. September 2026.** Was
+> gebaut wurde, steht im Änderungsprotokoll 0.24.0; dieses Blatt ist die
+> Anweisung davor und hat seinen Zweck erfüllt.
+>
+> **UND ES LIEGT ABSICHTLICH NOCH HIER, ENTGEGEN DER REGEL „es liegt immer nur
+> einer im Repo".** *Der Betreiber hat es am 6. September 2026 beim Stellen des
+> Auftrags 0.24.1 entschieden: das Blatt darf bleiben, solange der Umbau zur
+> Mehrsprachigkeit nicht durch ist.* **Der Grund ist eine Zeile im
+> Änderungsprotokoll 0.24.0:** dessen Abschnitt 1 nennt die acht Fragen nur
+> kurz und sagt dazu „sie stehen vollständig im Auftrag" — F3 und F4 legen
+> fest, was Stufe 2 mit Vokabular, Kriterien, Kategorien und Tags tut. *Solange
+> diese Zeile auf dieses Blatt zeigt, ist es kein vergessener Rest, sondern der
+> Beleg dahinter.*
+>
+> **Es fällt weg, sobald Stufe 3 (Türkisch) heraus ist** — und dann ziehen die
+> Verweise darauf mit, wie beim Wegfall des Auftrags 0.22.1 am 5. September
+> 2026: Projektstand (Fahrplan und Versionsgeschichte), Konzept
+> Mehrsprachigkeit E12, Änderungsprotokoll 0.24.0 Abschnitt 1.
+>
+> *Der Auftrag, an dem gerade gebaut wird, ist `Doku/Auftrag_0.24.1.md`.
+> Dieses Blatt ist Beleg und keine Anweisung mehr.*
+
 **WAS IN DIESER RUNDE PASSIERT, IN EINEM ABSATZ:** Kriterion redet heute
 Deutsch, und jedes deutsche Wort steht fest im Quelltext — in `app.js`, in den
 Servermeldungen, in den Mails. **In dieser Runde wird jeder dieser Texte aus

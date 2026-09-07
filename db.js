@@ -19,7 +19,7 @@ function open(file) {
 }
 
 /* --- Den Schluessel der Datei wechseln -----------------------------------
-   Gerufen ausschliesslich von schluessel.js auf dem Wirt, bei angehaltener
+   Gerufen ausschliesslich von keytool.js auf dem Wirt, bei angehaltener
    Instanz. Es steht hier, weil hier auch journal_mode gesetzt wird.
 
    PRAGMA rekey LAEUFT IM WAL-MODUS NICHT ("Rekeying is not supported in WAL
@@ -33,17 +33,17 @@ function open(file) {
    es entsteht kein halber Zustand. Faellt das Journal weg, ist alles verloren:
    DAS ist der Grund fuer die Sicherung davor. Es waechst auf die Groesse der
    Datenbank. */
-function wechsleSchluessel(neuHex) {
-  if (!/^[0-9a-fA-F]{64}$/.test(String(neuHex)))
+function changeKey(newHex) {
+  if (!/^[0-9a-fA-F]{64}$/.test(String(newHex)))
     throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
-  const vorher = db.pragma('journal_mode', { simple: true });
+  const before = db.pragma('journal_mode', { simple: true });
   db.pragma('journal_mode = DELETE');
   try {
-    db.pragma(`rekey="x'${String(neuHex).toLowerCase()}'"`);
+    db.pragma(`rekey="x'${String(newHex).toLowerCase()}'"`);
   } finally {
     db.pragma('journal_mode = WAL');
   }
-  return { vorher, nachher: db.pragma('journal_mode', { simple: true }) };
+  return { before, after: db.pragma('journal_mode', { simple: true }) };
 }
 
 /* --- Welche Verfahren wirklich laufen -----------------------------------
@@ -59,7 +59,7 @@ function wechsleSchluessel(neuHex) {
    KEINE PAKETVERSION, NICHT EINE. Ein Verfahrensname sagt, WIE gerechnet wird,
    und das ist unbedenklich: wer die Instanz betreibt, darf wissen, worauf seine
    Daten liegen. Eine Versionsnummer sagt dagegen, WELCHE Luecke passt. */
-function verfahren() {
+function method() {
   return {
     cipher: String(db.pragma('cipher', { simple: true }) || ''),
     schluesselBits: key.hex.length * 4,
@@ -102,10 +102,10 @@ CREATE TABLE IF NOT EXISTS items (
   -- tested bekommt bewusst NICHTS davon: "getestet" ist ein Zustand und keine
   -- Entscheidung. Wer beides gleich behandelt, baut die Haelfte umsonst.
   rejected_at TEXT,
-  rejected_grund TEXT,
+  rejected_reason TEXT,
   -- ON DELETE SET NULL wie an jedem Traeger (Stolperstein 54): ein entfernter
   -- Zugang nimmt die Entscheidung nicht mit, nur seinen Namen davon.
-  rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   tested INTEGER NOT NULL DEFAULT 0,
   -- favorite wird nicht mehr beschrieben. Der Favorit gehoert einem Benutzer
   -- und steht in item_pins; die Spalte bleibt nur stehen, damit eine
@@ -128,16 +128,16 @@ CREATE TABLE IF NOT EXISTS items (
 -- braechte nichts.
 --
 -- WAS DIE VORHANDENEN SPALTEN BEI EINEM VIDEO BEDEUTEN -- die einzige Stelle,
--- an der steht, warum data je nach art etwas anderes ist:
+-- an der steht, warum data je nach kind etwas anderes ist:
 --
---   Spalte           bei art = 'bild'      bei art = 'video'
+--   Spalte           bei kind = 'image'      bei kind = 'video'
 --   ---------------  --------------------  ----------------------------
 --   data             das Originalbild      die VIDEODATEI
 --   thumb            Kachel 400 px         STANDBILD 400 px
 --   medium           1600 px               STANDBILD 1600 px
 --   focus_x/focus_y  Ausschnitt der Kachel dasselbe, am Standbild
 --   zoom             wie eng der Ausschn. dasselbe, am Standbild
---   dauer            NULL                  Sekunden
+--   duration            NULL                  Sekunden
 --
 -- Das Standbild erzeugt der Browser des Hochladenden, nicht der Server: er
 -- oeffnet nie ein Video. Damit ist das Standbild AUCH NICHT UEBERPRUEFBAR --
@@ -152,8 +152,8 @@ CREATE TABLE IF NOT EXISTS photos (
   -- Kein CHECK auf die beiden erlaubten Werte, obwohl SQLite einen annaehme:
   -- die Menge stuende dann zweimal -- hier und dort, wo der Server sie prueft.
   -- Zwei Stellen fuer dieselbe Liste laufen auseinander.
-  art TEXT NOT NULL DEFAULT 'bild',   -- 'bild' | 'video'
-  dauer INTEGER,                      -- Sekunden, nur bei Video
+  kind TEXT NOT NULL DEFAULT 'image',   -- 'image' | 'video'
+  duration INTEGER,                      -- Sekunden, nur bei Video
   -- Fokuspunkt in Prozent. DAS ORIGINAL BLEIBT UNANGETASTET; geschnitten wird
   -- ausschliesslich die Ableitung thumb, und zwar seit 0.19.5 am Server.
   -- Bis 0.19.4 stand hier: „Schneidet nichts weg ... die beiden Werte
@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS photos (
   -- Reihenfolgen, und der Pruefstand haelt genau das fest (Stolperstein 273 --
   -- gefunden hat es die Zeile, die 0.16.0 dafuer hinterlassen hat, beim
   -- allerersten Lauf der Migrationsgruppe dieser Runde).
-  -- gesetzt_am an ratings steht aus demselben Grund am Ende seiner Tabelle.
+  -- set_at an ratings steht aus demselben Grund am Ende seiner Tabelle.
   --
   -- DIE VORGABE IST DER HEUTIGE ZUSTAND, wie bei focus_x/focus_y: jede
   -- vorhandene Zeile steht damit ohne Umschreiben richtig da.
@@ -252,17 +252,17 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   -- Meldung, sondern als abgebrochene Schreibung.
   -- REAL und nicht Hundertstel als INTEGER: eine Umrechnung an jeder
   -- Lesestelle vergisst irgendwann jemand. photos.focus_x geht denselben Weg.
-  gewicht REAL NOT NULL DEFAULT 1.0,
-  -- ZU WELCHEM KASTEN DIESES KRITERIUM GEHOERT -- 0.21.0. 'vorher' heisst
-  -- Potenzial (die Einschaetzung vor dem Test), 'nachher' heisst Bewertung
+  weight REAL NOT NULL DEFAULT 1.0,
+  -- ZU WELCHEM KASTEN DIESES KRITERIUM GEHOERT -- 0.21.0. 'before' heisst
+  -- Potenzial (die Einschaetzung vor dem Test), 'after' heisst Bewertung
   -- (das Urteil danach). Zwei Werte, und sonst keiner.
   -- DEUTSCH, weil der Sprachwaechter mitliest -- und weil die Werte in SELECTs
   -- stehen, die jemand liest.
-  -- KEIN CHECK an dieser Stelle, aus demselben Grund wie bei gewicht darueber:
+  -- KEIN CHECK an dieser Stelle, aus demselben Grund wie bei weight darueber:
   -- die Menge der Werte stuende sonst zweimal, hier und in PHASEN im Server,
   -- und die zweite meldete sich nicht als Absage mit Meldung, sondern als
   -- abgebrochene Schreibung. PHASEN steht genau einmal, in server.js.
-  -- DEFAULT 'nachher', und die Bestandszeilen bekommen ihn aus dem DEFAULT,
+  -- DEFAULT 'after', und die Bestandszeilen bekommen ihn aus dem DEFAULT,
   -- nicht aus einem UPDATE (Migration 0.21.0): jeder andere Wert aenderte beim
   -- Einspielen still saemtliche Gesamtschnitte. Was heute Kriterium ist, ist
   -- Bewertungskriterium.
@@ -270,7 +270,7 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   -- ein Kasten. Die Einschraenkung zu aendern hiesse Tabellenneubau (SQLite
   -- kennt kein ALTER CONSTRAINT), und „Wunsch" in beiden Kaesten waere fuer
   -- den Benutzer ohnehin ein Raetsel.
-  phase TEXT NOT NULL DEFAULT 'nachher',
+  phase TEXT NOT NULL DEFAULT 'after',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS ratings (
   -- seien eben erst vergeben worden. Die Glocke uebergeht Zeilen ohne Zeitpunkt.
   -- ALTER TABLE ADD COLUMN kann in SQLite ohnehin keinen nicht-konstanten
   -- Vorgabewert setzen; frisch angelegt und migriert sehen damit gleich aus.
-  gesetzt_am TEXT,
+  set_at TEXT,
   UNIQUE(item_id, criterion_id, user_id)
 );
 
@@ -381,17 +381,17 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
--- Zugang. role ist eine Leiter: user < admin < eigentuemer -- ein Wert, kein
+-- Zugang. role ist eine Leiter: user < admin < owner -- ein Wert, kein
 -- zweites Feld, damit "ein Eigentuemer ist immer auch Admin" baulich wahr ist.
 --   user        -- schreibt eigene Beitraege, sonst nichts
 --   admin       -- verwaltet den Bestand, sperrt und loescht BENUTZER
---   eigentuemer -- dazu: Rollen vergeben, an Admins ran, Export, Import,
+--   owner -- dazu: Rollen vergeben, an Admins ran, Export, Import,
 --                  Schluesselwert
--- status: aktiv | gesperrt | geloescht.
---   gesperrt  -- Anmeldung abgewiesen, laufende Sitzung faellt, Inhalte bleiben
---   geloescht -- der GRABSTEIN: die Zeile bleibt mit ihrer id stehen, damit
+-- status: active | locked | deleted.
+--   locked    -- Anmeldung abgewiesen, laufende Sitzung faellt, Inhalte bleiben
+--   deleted -- der GRABSTEIN: die Zeile bleibt mit ihrer id stehen, damit
 --                user_id weiterhin auf etwas zeigt; der Name ist mit
---                geloescht-<id> ueberschrieben und damit freigegeben. Ein
+--                deleted-<id> ueberschrieben und damit freigegeben. Ein
 --                Zugang wird NIE aus der Tabelle entfernt: ON DELETE SET NULL
 --                machte seinen Bestand sonst herrenlos, und ordneBestandZu()
 --                schoebe ihn beim naechsten Start still dem Eigentuemer zu.
@@ -401,7 +401,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user',
   email TEXT,
-  status TEXT NOT NULL DEFAULT 'aktiv',
+  status TEXT NOT NULL DEFAULT 'active',
   last_login TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -433,16 +433,16 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
    hat hier nichts zu tun. Mit Salz je Zeile muesste eine Route VOR der
    Anmeldung bei jedem Versuch jede Zeile durchrechnen.
 
-   zweck IST DIE FESTSTELLUNG EINES VORGANGS -- welcher Knopf gedrueckt wurde.
-   Daran haengt kein Recht, kein Filter und kein Ablauf; der Text am
+   purpose IST DIE FESTSTELLUNG EINES VORGANGS -- welcher Knopf gedrueckt wurde.
+   Daran haengt kein Recht, kein Filter und kein Ablauf; der Text at
    Bildschirm leitet sich aus dem ZUSTAND ab (hat der Zugang schon ein
    Passwort), nicht aus dieser Spalte.
 
-   benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen: es ist die einzige
+   used_at BLEIBT STEHEN statt die Zeile zu loeschen: es ist die einzige
    Spur, dass eine Einladung angenommen wurde. raeumeTokensAuf() haelt die
    Tabelle klein.
 
-   created_at steht ausdruecklich da: aus ablauf minus sieben Tage
+   created_at steht ausdruecklich da: aus expires_at minus sieben Tage
    zurueckzurechnen waere richtig, bis die Frist wechselt -- und danach still
    falsch.
 
@@ -454,9 +454,9 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE TABLE IF NOT EXISTS tokens (
   hash TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  zweck TEXT NOT NULL,
-  ablauf TEXT NOT NULL,
-  benutzt_am TEXT,
+  purpose TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 -- Gefragt wird ueber den Hash (Primaerschluessel) ODER nach allen Token EINES
@@ -481,7 +481,7 @@ CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
    der Verlaufsliste und womoeglich im Referrer.
 
    DER LINK IN DER BESTAETIGUNGSMAIL HAT KEINE PASSWORTKRAFT: er setzt
-   bestaetigt_am, mehr nicht. Deshalb steht hier kein password_hash und keine
+   confirmed_at, mehr nicht. Deshalb steht hier kein password_hash und keine
    Rolle -- was es nicht gibt, kann kein Weg hereinlassen.
 
    username UND email SIND FREITEXT VON AUSSEN -- der einzige, der ueberhaupt
@@ -489,7 +489,7 @@ CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
    wie ein echter Zugang (pruefeName, mail.istAdresse), und von hier aus NIE
    ins Sicherheitsprotokoll.
 
-   bestaetigt_am NULL HEISST "noch nicht bestaetigt". Diese Zeilen erscheinen
+   confirmed_at NULL HEISST "noch nicht bestaetigt". Diese Zeilen erscheinen
    beim Admin nicht und verfallen nach ANFRAGE_STUNDEN; die bestaetigten
    warten, so lange es dauert. Ein zweites Feld fuer den Zustand waere eine
    zweite Wahrheit neben dem Zeitpunkt.
@@ -499,12 +499,12 @@ CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
    CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
    (Stolperstein 13 gilt der Spalte). Es bleibt bei fuenf markierten
    Bloecken. */
-CREATE TABLE IF NOT EXISTS anfragen (
+CREATE TABLE IF NOT EXISTS requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   hash TEXT NOT NULL UNIQUE,
   username TEXT NOT NULL,
   email TEXT NOT NULL,
-  bestaetigt_am TEXT,
+  confirmed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -516,19 +516,19 @@ CREATE TABLE IF NOT EXISTS anfragen (
    Zeilen an einem Zugang und damit zwei Wahrheiten darueber, welches
    Geheimnis gilt.
 
-   geheim LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und
+   secret LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und
    Token: ein Passwort wird GEPRUEFT, also genuegt sein Hash; ein
    TOTP-Geheimnis wird NACHGERECHNET, also braucht die Instanz den Wert selbst.
    DIE VERSCHLUESSELTE DATENBANK IST DIE EINZIGE SCHICHT DARUEBER
    (Projektstand, Abschnitt 3). Der JSON-Export traegt es nicht, die Sicherung
    ueber VACUUM INTO sehr wohl, eine Kontrollausgabe nie.
 
-   bestaetigt_am NULL HEISST "angefangen, noch nicht bestaetigt" -- erst ein
+   confirmed_at NULL HEISST "angefangen, noch nicht bestaetigt" -- erst ein
    gueltiger Code aus dem Telefon setzt den Zeitpunkt. SOLANGE ER LEER IST,
    VERLANGT DIE ANMELDUNG NICHTS, sonst sperrte ein abgebrochenes Einschalten
    den Zugang aus.
 
-   letzter_zaehler IST DIE GANZE BAUFORM GEGEN WIEDERVERWENDUNG: angenommen
+   last_counter IST DIE GANZE BAUFORM GEGEN WIEDERVERWENDUNG: angenommen
    wird nur ein Zeitschritt, der ECHT GROESSER ist als der zuletzt
    verbrauchte. Etwas schaerfer als "derselbe Code nicht zweimal" -- dafuer
    EINE Regel statt einer Liste, die jemand raeumen muesste. NULL heisst
@@ -539,11 +539,11 @@ CREATE TABLE IF NOT EXISTS anfragen (
    UND setzeStatus() TUT DAS AUSDRUECKLICH NICHT: ein gesperrter Zugang
    behaelt seinen zweiten Faktor. Sonst waere "sperren und wieder freigeben"
    der Weg, an dem ein Admin einen FREMDEN zweiten Faktor abstreift. */
-CREATE TABLE IF NOT EXISTS zweifaktor (
+CREATE TABLE IF NOT EXISTS two_factor (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  geheim TEXT NOT NULL,
-  bestaetigt_am TEXT,
-  letzter_zaehler INTEGER,
+  secret TEXT NOT NULL,
+  confirmed_at TEXT,
+  last_counter INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -557,7 +557,7 @@ CREATE TABLE IF NOT EXISTS zweifaktor (
    DER KLARTEXT STEHT IN KEINER SPALTE KEINER ZEILE: er entsteht einmal, wird
    einmal gezeigt und ist danach fort.
 
-   benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen -- nur so kann die
+   used_at BLEIBT STEHEN statt die Zeile zu loeschen -- nur so kann die
    Karte "noch 6 von 8" sagen.
 
    GERAEUMT WIRD NICHT NACH EINER FRIST, anders als bei Token und Anfragen:
@@ -566,10 +566,10 @@ CREATE TABLE IF NOT EXISTS zweifaktor (
    beim Neuerzeugen oder Abschalten, beides in einer Transaktion.
 
    ON DELETE CASCADE aus demselben Grund wie oben. */
-CREATE TABLE IF NOT EXISTS zweifaktor_codes (
+CREATE TABLE IF NOT EXISTS two_factor_codes (
   hash TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  benutzt_am TEXT,
+  used_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 -- Gefragt wird ueber den Hash (Primaerschluessel) ODER nach allen Codes EINES
@@ -577,7 +577,7 @@ CREATE TABLE IF NOT EXISTS zweifaktor_codes (
 -- Ueberlegung wie bei idx_tokens_user, und wie dort ist ein Index keine
 -- Migration: er fasst die Zeilenform nicht an und legt sich bei jedem Start
 -- selbst nach.
-CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id);
+CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);
 
 /* KEIN MIGRATIONSBLOCK FUER DIE BEIDEN: anders als eine SPALTE legt
    CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
@@ -595,38 +595,38 @@ CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id
    username, und eine Kopie hier waere die eine Stelle im Projekt, die den
    Grabstein rueckgaengig macht. Gespeichert werden Nummern.
 
-   wer UND ziel SIND DIE FESTSTELLUNG EINES VORGANGS -- wer den Knopf
+   actor UND target SIND DIE FESTSTELLUNG EINES VORGANGS -- wer den Knopf
    gedrueckt hat und an wem. Daran haengt kein Recht und kein Filter, und
    beide gehoeren deshalb ausdruecklich NICHT in ordneBestandZu(): dort
    stillschweigend den Eigentuemer einzusetzen machte aus einer Feststellung
    eine Falschaussage.
 
-   wer IS NULL HEISST "UEBER zugang.js AUF DEM WIRT" -- mit genau einer
-   Ausnahme, und die ist an der Spalte was zu erkennen: bei einer
+   actor IS NULL HEISST "UEBER usertool.js AUF DEM WIRT" -- mit genau einer
+   Ausnahme, und die ist an der Spalte event zu erkennen: bei einer
    gescheiterten Anmeldung gibt es keinen angemeldeten Benutzer.
 
-   BEI EINER GESCHEITERTEN ANMELDUNG STEHT DER GETIPPTE NAME NIRGENDS. ziel
+   BEI EINER GESCHEITERTEN ANMELDUNG STEHT DER GETIPPTE NAME NIRGENDS. target
    traegt die Nummer nur, wenn der Name einen vorhandenen Zugang traf --
    sonst NULL. Freitext von aussen kommt in diese Tabelle nicht hinein; sonst
    landete frueher oder spaeter ein ins falsche Feld getipptes Passwort darin.
 
-   merkmal TRAEGT AUSSCHLIESSLICH WERTE AUS EINER GESCHLOSSENEN LISTE im
+   detail TRAEGT AUSSCHLIESSLICH WERTE AUS EINER GESCHLOSSENEN LISTE im
    Quelltext (MERKMALE in auth.js). Damit ist "in keiner Zeile steht etwas,
    was dort nicht hingehoert" baulich wahr statt durchgesetzt.
 
    ON DELETE SET NULL statt CASCADE: mit dem Menschen verschwindet der Vorgang
    nicht. */
-CREATE TABLE IF NOT EXISTS sicherheitsprotokoll (
+CREATE TABLE IF NOT EXISTS security_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  am TEXT NOT NULL DEFAULT (datetime('now')),
-  was TEXT NOT NULL,
-  wer INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  ziel INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  merkmal TEXT
+  at TEXT NOT NULL DEFAULT (datetime('now')),
+  event TEXT NOT NULL,
+  actor INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  target INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  detail TEXT
 );
 -- Gefragt wird immer nach den JUENGSTEN Zeilen und geraeumt nach dem Alter --
--- beides ueber am. Wie bei idx_papierkorb_am ist ein Index keine Migration.
-CREATE INDEX IF NOT EXISTS idx_protokoll_am ON sicherheitsprotokoll(am);
+-- beides ueber at. Wie bei idx_trash_at ist ein Index keine Migration.
+CREATE INDEX IF NOT EXISTS idx_log_at ON security_log(at);
 
 -- Der Favorit: eine Aussage eines Benutzers ueber einen Eintrag, keine
 -- Eigenschaft des Eintrags -- deshalb eine eigene Tabelle. Es gibt nur Zeilen
@@ -657,7 +657,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
 );
 
 -- DER PAPIERKORB FASST KEINE EINZIGE BESTEHENDE ABFRAGE AN, und das ist die
--- tragende Regel seiner Bauform. Kein Zustand 'geloescht' an items: der
+-- tragende Regel seiner Bauform. Kein Zustand 'deleted' an items: der
 -- beruehrte jede Abfrage im ganzen System, und jede vergessene Stelle waere
 -- ein stiller Fehler. Ein geloeschter Eintrag ist WIRKLICH weg -- er liegt nur
 -- zusaetzlich noch als Paket daneben.
@@ -668,7 +668,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
 -- Pruefstand entfernt sie von Hand aus einer bestehenden Instanz, startet
 -- einmal und sieht nach -- dieselbe Probe wie beim Index auf sessions.user_id.
 --
--- geloescht_von IST KEIN TRAEGER WIE items.user_id. Es ist die Feststellung
+-- deleted_by IST KEIN TRAEGER WIE items.user_id. Es ist die Feststellung
 -- eines VORGANGS, so wie created_at -- wer den Knopf gedrueckt hat. Daran
 -- haengt kein Recht und kein Filter. Die Spalte gehoert deshalb ausdruecklich
 -- NICHT in ordneBestandZu(): das Auffangnetz beantwortet, wem herrenloser
@@ -676,28 +676,28 @@ CREATE TABLE IF NOT EXISTS user_settings (
 -- aus einer Feststellung eine Falschaussage. Ein entfernter Zugang erscheint
 -- wie ueberall als "Gelöschter Benutzer <nr>".
 --
--- titel STEHT ABSICHTLICH ZWEIMAL -- hier und im Paket. Er steht hier, damit
+-- title STEHT ABSICHTLICH ZWEIMAL -- hier und im Paket. Er steht hier, damit
 -- die Liste lesbar ist, ohne jede Zeile zu entpacken; bei zwanzig Zeilen waere
 -- das zwanzigmal JSON.parse ueber ein Paket. Eine zweite Wahrheit kann daraus
--- nicht werden: das Wiederherstellen liest ausschliesslich inhalt und diese
+-- nicht werden: das Wiederherstellen liest ausschliesslich content und diese
 -- Spalte nie.
 --
--- inhalt IST EIN VOLLSTAENDIGER EXPORTUMSCHLAG MIT EINEM EINTRAG -- bis auf
+-- content IST EIN VOLLSTAENDIGER EXPORTUMSCHLAG MIT EINEM EINTRAG -- bis auf
 -- die Bytes. Fotos, Videos, Dateien und Kommentarbilder tragen statt Base64
--- eine NUMMER und liegen in papierkorb_bytes daneben. Der Grund ist gemessen:
+-- eine NUMMER und liegen in trash_bytes daneben. Der Grund ist gemessen:
 -- zwanzig Videos zu je 20 MB sind als Base64 533 MB in EINEM String, und Node
 -- haelt keinen String ueber 512 MB. Zippen half nicht -- der String entstuende
 -- davor. Deshalb TEXT und eine zweite Tabelle statt eines gezippten BLOB.
-CREATE TABLE IF NOT EXISTS papierkorb (
+CREATE TABLE IF NOT EXISTS trash (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  geloescht_am TEXT NOT NULL DEFAULT (datetime('now')),
-  geloescht_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  titel TEXT NOT NULL,
-  inhalt TEXT NOT NULL
+  deleted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_papierkorb_am ON papierkorb(geloescht_am);
+CREATE INDEX IF NOT EXISTS idx_trash_at ON trash(deleted_at);
 
--- Eine Zeile je Blob. Die Nummer nr ist die, die im Paket steht; UNIQUE haelt
+-- Eine Zeile je Blob. Die Nummer part ist die, die im Paket steht; UNIQUE haelt
 -- fest, dass zu einer Nummer genau ein Paket Bytes gehoert.
 -- ON DELETE CASCADE: eine Papierkorbzeile ohne ihre Bytes waere ein Paket, das
 -- sich nicht mehr auspacken laesst.
@@ -705,13 +705,13 @@ CREATE INDEX IF NOT EXISTS idx_papierkorb_am ON papierkorb(geloescht_am);
 -- nicht stueckweise gelesen, sondern ganz in den Arbeitsspeicher. Je Zeile
 -- sind das hoechstens 50 MB (die Grenze am Anhang). Und wenn Teil II des
 -- Videopapiers Dateien bis 2 GB bringt, teilt sich eine Datei hier auf
--- mehrere nr auf -- SQLite traegt in einer Zelle rund 950 MB.
-CREATE TABLE IF NOT EXISTS papierkorb_bytes (
+-- mehrere part auf -- SQLite traegt in einer Zelle rund 950 MB.
+CREATE TABLE IF NOT EXISTS trash_bytes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  papierkorb_id INTEGER NOT NULL REFERENCES papierkorb(id) ON DELETE CASCADE,
-  nr INTEGER NOT NULL,
-  daten BLOB NOT NULL,
-  UNIQUE(papierkorb_id, nr)
+  trash_id INTEGER NOT NULL REFERENCES trash(id) ON DELETE CASCADE,
+  part INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  UNIQUE(trash_id, part)
 );
 `;
 
@@ -731,7 +731,7 @@ CREATE TABLE IF NOT EXISTS papierkorb_bytes (
                                   Haupt-Thread war zuerst da.
      die beiden CREATE INDEX      IF NOT EXISTS.
      das Auffangnetz              UPDATE ... AND NOT EXISTS (... eigentuemer)
-     ordneBestandZu()             UPDATE OR IGNORE ... WHERE user_id IS NULL
+     assignInventory()             UPDATE OR IGNORE ... WHERE user_id IS NULL
      die Grundausstattung         INSERT OR IGNORE
      renumberCriteria()           schreibt nur, wo die Nummer abweicht
    EIN VACUUM WAERE ES NICHT, und genau deshalb steht keines hier: es liegt in
@@ -761,6 +761,189 @@ const db = open(DB_FILE);
    laesst. */
 db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));
 
+/* ================= MIGRATION 0.24.1 — DIE NAMEN DES BESTANDS ==============
+   ENTFAELLT MIT 1.0.
+
+   SECHS TABELLEN, SECHSUNDZWANZIG SPALTEN UND VIERUNDFUENFZIG WERTE heissen
+   ab dieser Runde englisch. Ein Schemaname ist kein Inhalt, sondern Code --
+   und `db.js` waere sonst der eine Ort, an dem Deutsch stehen bliebe.
+
+   SIE STEHT VOR `db.exec(SCHEMA)` UND NICHT DAHINTER, und das ist keine
+   Geschmacksfrage: die DDL legt `trash` mit `CREATE TABLE IF NOT EXISTS` an.
+   Liefe sie zuerst, staende neben dem vollen `papierkorb` ein leeres `trash`,
+   und `ALTER TABLE papierkorb RENAME TO trash` scheiterte an einem Namen, den
+   es schon gibt. Die Zeilen waeren nicht verloren, aber unsichtbar -- der
+   schlimmste aller Ausgaenge.
+
+   DIE LISTE STEHT IN `tools/dictionary.json` UND NUR DORT (Auftrag,
+   Bauabschnitt 6): dieselbe Datei, aus der das Namenswoerterbuch entsteht und
+   aus der der Import alte Exportdateien uebersetzt. Zwei Listen ueber
+   dieselbe Sache laufen auseinander.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
+   der Bestand selbst (`sqlite_master`), nicht ein Merker. Beim zweiten Lauf
+   -- und den gibt es, der Bestandslauf oeffnet dieselbe Datei aus seinem
+   Thread -- ist jede Tabelle laengst umbenannt, und der Block kehrt wortlos
+   zurueck. */
+const DICTIONARY = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
+
+/* DIE INDIZES DER UMBENANNTEN TABELLEN. `ALTER TABLE … RENAME TO` nimmt sie
+   mit, laesst ihnen aber ihren alten NAMEN -- und die DDL legt gleich darauf
+   denselben Index ein zweites Mal unter dem neuen an. Zwei Indizes ueber
+   dieselben Spalten sind kein Fehler, aber doppelte Arbeit bei jedem
+   Schreiben. Sie fallen deshalb hier weg; die DDL baut sie neu auf. */
+const OLD_INDEXES = Object.keys(DICTIONARY.indexes);
+
+function migration0241Tables() {
+  const da = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  const move = Object.entries(DICTIONARY.tables).filter(([old, fresh]) => da.has(old) && !da.has(fresh));
+  /* DIE INDIZES FALLEN IN JEDEM FALL, auch wenn keine Tabelle mehr umzuziehen
+     ist: `idx_photos_art` und `idx_photos_kachel` haengen an Tabellen, die
+     ihren Namen behalten -- nur die Indizes selbst heissen deutsch. */
+  const oldIndexes = db.prepare("SELECT name FROM sqlite_master WHERE type = 'index'")
+    .all().map(z => z.name).filter(n => OLD_INDEXES.includes(n));
+  if (!move.length && !oldIndexes.length) return 0;
+  db.transaction(() => {
+    for (const old of oldIndexes) db.exec(`DROP INDEX IF EXISTS ${old}`);
+    for (const [old, fresh] of move) db.exec(`ALTER TABLE ${old} RENAME TO ${fresh}`);
+  })();
+  if (!move.length) {
+    console.log(`[Kriterion] ${oldIndexes.length} ${oldIndexes.length === 1 ? 'Index' : 'Indizes'} ` +
+      `umbenannt (Migration auf 0.24.1): ${oldIndexes.join(', ')}.`);
+    return oldIndexes.length;
+  }
+  console.log(`[Kriterion] ${move.length} ${move.length === 1 ? 'Tabelle' : 'Tabellen'} umbenannt ` +
+    `(Migration auf 0.24.1): ${move.map(([a, b]) => `${a} → ${b}`).join(', ')}.`);
+  return move.length;
+}
+migration0241Tables();
+
+/* DIE SPALTEN, UNMITTELBAR HINTER DEN TABELLEN UND VOR ALLEM ANDEREN.
+   ZWEI GRUENDE FUER GENAU DIESE STELLE:
+
+   ERSTENS DIE DDL: `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
+   Tabelle nicht an -- eine frische Instanz bekommt die neuen Namen aus dem
+   Schema, eine vorhandene aus diesem Block. Beide sehen danach gleich aus.
+
+   ZWEITENS DIE AELTEREN MIGRATIONSBLOECKE, und das ist der schaerfere Grund:
+   `migration0160()` fragt, ob `ratings` die Spalte `set_at` traegt, und legt
+   sie sonst an. Liefe sie VOR dieser Umbenennung, saehe sie in einem Bestand
+   aus 0.16.0 nur das alte `gesetzt_am`, legte `set_at` ein ZWEITES Mal daneben
+   -- und diese Umbenennung scheiterte danach an einem Namen, den es schon
+   gibt. Dieselbe Falle steht an `zoom`, `phase`, `kind` und `duration`.
+
+   `ALTER TABLE … RENAME COLUMN` kann SQLite seit 3.25 und zieht dabei jeden
+   Index, jeden Fremdschluessel und jede Sicht mit. */
+function migration0241Columns() {
+  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  const move = [];
+  for (const [place, fresh] of Object.entries(DICTIONARY.columns)) {
+    const [table, old] = place.split('.');
+    if (!tables.has(table)) continue;
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+    if (columns.includes(old) && !columns.includes(fresh)) move.push([table, old, fresh]);
+  }
+  if (!move.length) return 0;
+  db.transaction(() => {
+    for (const [table, old, fresh] of move)
+      db.exec(`ALTER TABLE ${table} RENAME COLUMN ${old} TO ${fresh}`);
+  })();
+  console.log(`[Kriterion] ${move.length} ${move.length === 1 ? 'Spalte' : 'Spalten'} umbenannt ` +
+    `(Migration auf 0.24.1): ${move.map(([t, a, b]) => `${t}.${a} → ${b}`).join(', ')}.`);
+  return move.length;
+}
+migration0241Columns();
+
+/* DIE PAARE BLEIBEN ERREICHBAR, UND ZWAR GENAU DIESE. Eine Exportdatei ist
+   ein Abzug des Bestands: eine Datei von vor 0.24.1 traegt an ihren Fotos
+   `art` und `dauer`, weil die Spalten so hiessen. Der Import in server.js
+   uebersetzt sie beim Einlesen -- und nimmt die Paare von HIER, nicht aus
+   einer zweiten Liste. Zwei Listen laufen auseinander, sobald eine wandert. */
+const COLUMNS_0241 = DICTIONARY.columns;
+
+/* DIE WERTE, ALS DRITTES UND LETZTES. Ein Name im Schema ist Code; ein Wert
+   IN einer Zeile ist es genauso, sobald der Quelltext ihn vergleicht --
+   `z.event === 'zugang.status'` waere sonst der Ort, an dem Deutsch
+   stehenbliebe (F2).
+
+   ZWEIUNDSECHZIG PAARE: achtundfuenfzig in neun Spalten, drei am Schema und
+   eines am Grabstein -- alle aus derselben Liste, aus der der
+   Quelltext liest. Eine zweite Liste hier waere die eine Stelle, an der
+   Umbenennung und Vergleich auseinanderlaufen koennten, ohne dass es jemand
+   merkt: der Vergleich griffe einfach nie mehr.
+
+   JEDES `UPDATE` FRAGT VORHER NACH SEINER SPALTE. Ein Bestand aus 0.8.0
+   traegt `photos.kind` noch nicht -- die Spalte kommt erst aus
+   migration0850() weiter unten, und die legt sie gleich mit dem neuen
+   Vorgabewert an. Ohne die Frage brach der Block dort ab, bevor er die
+   uebrigen acht Spalten erreicht haette.
+
+   DER GRABSTEIN IST EIN WERT WIE JEDER ANDERE: `geloescht-7` steht als
+   Benutzername in users und wird `deleted-7`. Die Oberflaeche zeigt ihn
+   ohnehin nie -- sie bildet aus der NUMMER „Gelöschter Benutzer 7".
+
+   DAS SCHEMA IN user_settings STEHT ALS JSON: der Wert ist `"dunkel"` mit
+   Anfuehrungszeichen und nicht `dunkel`. Deshalb steht dieses eine Paar
+   eigens da und nicht in der Schleife darueber.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie die beiden Bloecke darueber:
+   gefragt wird die Zeile selbst, nicht ein Merker. */
+const VALUE_COLUMNS_0241 = [
+  ['security_log',    'event',    DICTIONARY.values.event],
+  ['security_log',    'detail',   DICTIONARY.values.detail],
+  ['users',           'role',     DICTIONARY.values.role],
+  ['users',           'status',   DICTIONARY.values.userStatus],
+  ['rating_criteria', 'phase',    DICTIONARY.values.phase],
+  ['photos',          'kind',     DICTIONARY.values.photoKind],
+  ['tokens',          'purpose',  DICTIONARY.values.tokenPurpose],
+  ['settings',        'key',      DICTIONARY.values.setting],
+  ['user_settings',   'key',      DICTIONARY.values.userSetting]
+];
+function migration0241Values() {
+  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  let n = 0;
+  const counted = [];
+  for (const [table, column, pairs] of VALUE_COLUMNS_0241) {
+    if (!tables.has(table)) continue;
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+    if (!columns.includes(column)) continue;
+    const set = db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`);
+    for (const [old, fresh] of Object.entries(pairs)) {
+      const r = set.run(fresh, old);
+      if (r.changes) { n += r.changes; counted.push(`${table}.${column} ${old} → ${fresh} (${r.changes})`); }
+    }
+  }
+  // Das Schema steht als JSON-String in user_settings.
+  if (tables.has('user_settings')) {
+    const set = db.prepare(
+      "UPDATE user_settings SET value = ? WHERE key = 'theme' AND value = ?");
+    for (const [old, fresh] of Object.entries(DICTIONARY.values.theme)) {
+      const r = set.run(JSON.stringify(fresh), JSON.stringify(old));
+      if (r.changes) { n += r.changes; counted.push(`user_settings.theme ${old} → ${fresh} (${r.changes})`); }
+    }
+  }
+  // Der Grabstein: sein Name traegt seine eigene Nummer und wird daraus gebaut.
+  if (tables.has('users')) {
+    const r = db.prepare(
+      "UPDATE users SET username = 'deleted-' || id WHERE username = 'geloescht-' || id").run();
+    if (r.changes) { n += r.changes; counted.push(`users.username geloescht- → deleted- (${r.changes})`); }
+  }
+  if (!n) return 0;
+  console.log(`[Kriterion] ${n} Werte umbenannt (Migration auf 0.24.1): ${counted.join(', ')}.`);
+  return 1;
+}
+migration0241Values();
+
+/* AUCH DIE WERTE BLEIBEN ERREICHBAR -- aus demselben Grund wie die Spalten
+   darueber: eine Exportdatei von vor 0.24.1 traegt `bild` an ihren Fotos und
+   `vorher` an ihren Kriterien, und der Import uebersetzt beides beim
+   Einlesen. */
+const VALUES_0241 = DICTIONARY.values;
+// ENDE MIGRATION 0.24.1 (Tabellen, Spalten und Werte)
+
 db.exec(SCHEMA);
 
 // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
@@ -771,8 +954,8 @@ db.exec(SCHEMA);
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
 function migration083() {
-  const spalten = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
-  if (spalten.includes('images_removed')) return 0;
+  const columns = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
+  if (columns.includes('images_removed')) return 0;
   db.exec('ALTER TABLE comments ADD COLUMN images_removed INTEGER NOT NULL DEFAULT 0');
   console.log('[Kriterion] comments um images_removed ergaenzt (Migration auf 0.8.3).');
   return 1;
@@ -794,8 +977,8 @@ migration083();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
 function migration0830() {
-  const spalten = db.prepare('PRAGMA table_info(links)').all().map(c => c.name);
-  if (spalten.includes('user_id')) return 0;
+  const columns = db.prepare('PRAGMA table_info(links)').all().map(c => c.name);
+  if (columns.includes('user_id')) return 0;
   db.exec('ALTER TABLE links ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
   const n = db.prepare(
     'UPDATE links SET user_id = (SELECT user_id FROM items WHERE items.id = links.item_id)' +
@@ -820,8 +1003,8 @@ migration0830();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
 function migration0831() {
-  const spalten = db.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
-  if (spalten.includes('user_id')) return 0;
+  const columns = db.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
+  if (columns.includes('user_id')) return 0;
   db.exec('ALTER TABLE attachments ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
   const n = db.prepare(
     'UPDATE attachments SET user_id = (SELECT user_id FROM items WHERE items.id = attachments.item_id)' +
@@ -835,7 +1018,7 @@ migration0831();
 // ENDE MIGRATION 0.8.31
 
 // MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
-// Die Spalte gewicht steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
+// Die Spalte weight steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
 // eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.0
 // bis 0.8.31 traegt rating_criteria ohne diese Spalte.
 // DIE BESTANDSZEILEN BEKOMMEN 1,0, und zwar aus dem DEFAULT der Spalte, nicht
@@ -849,11 +1032,11 @@ migration0831();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
 function migration0840() {
-  const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
-  if (spalten.includes('gewicht')) return 0;
-  db.exec('ALTER TABLE rating_criteria ADD COLUMN gewicht REAL NOT NULL DEFAULT 1.0');
+  const columns = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
+  if (columns.includes('weight')) return 0;
+  db.exec('ALTER TABLE rating_criteria ADD COLUMN weight REAL NOT NULL DEFAULT 1.0');
   const n = db.prepare('SELECT COUNT(*) AS n FROM rating_criteria').get().n;
-  console.log(`[Kriterion] rating_criteria um gewicht ergaenzt (Migration auf 0.8.40); ` +
+  console.log(`[Kriterion] rating_criteria um weight ergaenzt (Migration auf 0.8.40); ` +
     `${n} Kriterien stehen auf dem Vorgabegewicht 1,0.`);
   return 1;
 }
@@ -861,16 +1044,16 @@ migration0840();
 // ENDE MIGRATION 0.8.40
 
 // MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
-// Die Spalten art und dauer stehen in der DDL, aber CREATE TABLE IF NOT EXISTS
+// Die Spalten kind und duration stehen in der DDL, aber CREATE TABLE IF NOT EXISTS
 // ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus
 // 0.8.0 bis 0.8.40 traegt photos ohne diese Spalten.
-// DIE BESTANDSZEILEN BEKOMMEN 'bild', und zwar aus dem DEFAULT der Spalte,
+// DIE BESTANDSZEILEN BEKOMMEN 'image', und zwar aus dem DEFAULT der Spalte,
 // nicht aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit
-// NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. dauer bleibt dabei
+// NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. duration bleibt dabei
 // NULL, und das ist richtig -- ein Foto hat keine Dauer.
 // JEDE SPALTE WIRD EINZELN GEFRAGT, nicht der Block als Ganzes. Zwei
 // ALTER TABLE sind zwei Anweisungen: scheitert die zweite, bleibt die erste
-// stehen. Ein Block, der beim Vorhandensein von art zurueckkehrt, liesse dauer
+// stehen. Ein Block, der beim Vorhandensein von kind zurueckkehrt, liesse duration
 // dann fuer immer fehlen. So heilt der naechste Start den zerrissenen Stand.
 // KEINE FRAGE NACH EINEM VERFASSER, wie schon bei 0.8.40: ein Foto gehoert
 // seinem Eintrag, nicht einem Verfasser. Das Auffangnetz weiter unten geht
@@ -878,19 +1061,19 @@ migration0840();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalten in der DDL bleiben.
 function migration0850() {
-  const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
-  const fehlend = [];
-  if (!spalten.includes('art')) {
-    db.exec("ALTER TABLE photos ADD COLUMN art TEXT NOT NULL DEFAULT 'bild'");
-    fehlend.push('art');
+  const columns = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
+  const missing = [];
+  if (!columns.includes('kind')) {
+    db.exec("ALTER TABLE photos ADD COLUMN kind TEXT NOT NULL DEFAULT 'image'");
+    missing.push('kind');
   }
-  if (!spalten.includes('dauer')) {
-    db.exec('ALTER TABLE photos ADD COLUMN dauer INTEGER');
-    fehlend.push('dauer');
+  if (!columns.includes('duration')) {
+    db.exec('ALTER TABLE photos ADD COLUMN duration INTEGER');
+    missing.push('duration');
   }
-  if (!fehlend.length) return 0;
+  if (!missing.length) return 0;
   const n = db.prepare('SELECT COUNT(*) AS n FROM photos').get().n;
-  console.log(`[Kriterion] photos um ${fehlend.join(' und ')} ergaenzt (Migration auf 0.8.50); ` +
+  console.log(`[Kriterion] photos um ${missing.join(' und ')} ergaenzt (Migration auf 0.8.50); ` +
     `${n} Zeilen stehen auf der Vorgabeart 'bild'.`);
   return 1;
 }
@@ -899,7 +1082,7 @@ migration0850();
 
 
 // MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
-// Die Spalten rejected_at, rejected_grund und rejected_von stehen in der DDL,
+// Die Spalten rejected_at, rejected_reason und rejected_by stehen in der DDL,
 // aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
 // (Stolperstein 13). Ein Bestand aus 0.8.0 bis 0.13.2 traegt items ohne sie.
 // KEIN NACHGESCHOBENES UPDATE, und das ist entschieden und nicht vergessen:
@@ -915,7 +1098,7 @@ migration0850();
 // einem Abbruch die erste Spalte, und die uebrigen fehlen. Die Transaktion
 // verhindert den Riss, die Einzelabfrage ueberlebt ihn -- nur das Zweite hilft
 // gegen einen Riss, der in einer frueheren Version entstanden ist.
-// rejected_von TRAEGT SEINEN FREMDSCHLUESSEL AUCH ALS NACHRUESTUNG: SQLite
+// rejected_by TRAEGT SEINEN FREMDSCHLUESSEL AUCH ALS NACHRUESTUNG: SQLite
 // schreibt die Spaltendefinition samt REFERENCES in den Schematext, und
 // ON DELETE SET NULL greift danach wie in der DDL -- nachgemessen, nicht
 // abgeschrieben. Was NICHT geht, ist eine Vorgabe ungleich NULL daneben
@@ -923,21 +1106,21 @@ migration0850();
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalten in der DDL bleiben.
 function migration0140() {
-  const spalten = db.prepare('PRAGMA table_info(items)').all().map(c => c.name);
-  const fehlend = [];
-  if (!spalten.includes('rejected_at')) fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);
-  if (!spalten.includes('rejected_grund')) fehlend.push(['rejected_grund', 'ALTER TABLE items ADD COLUMN rejected_grund TEXT']);
-  if (!spalten.includes('rejected_von')) fehlend.push(['rejected_von',
-    'ALTER TABLE items ADD COLUMN rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL']);
-  if (!fehlend.length) return 0;
-  db.transaction(() => { for (const [, sql] of fehlend) db.exec(sql); })();
+  const columns = db.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+  const missing = [];
+  if (!columns.includes('rejected_at')) missing.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);
+  if (!columns.includes('rejected_reason')) missing.push(['rejected_reason', 'ALTER TABLE items ADD COLUMN rejected_reason TEXT']);
+  if (!columns.includes('rejected_by')) missing.push(['rejected_by',
+    'ALTER TABLE items ADD COLUMN rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL']);
+  if (!missing.length) return 0;
+  db.transaction(() => { for (const [, sql] of missing) db.exec(sql); })();
   // "a, b und c" statt "a und b und c" -- bei drei Namen liest sich das
   // andere wie ein Fehler in der Zeile.
-  const namen = fehlend.map(f => f[0]);
-  const aufzaehlung = namen.length > 1
+  const namen = missing.map(f => f[0]);
+  const enumeration = namen.length > 1
     ? `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}` : namen[0];
   const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;
-  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt ` +
+  console.log(`[Kriterion] items um ${enumeration} ergaenzt ` +
     `(Migration auf 0.14.0); ${n} bereits abgelehnte ${n === 1 ? 'Eintrag steht' : 'Eintraege stehen'} ` +
     `ohne Datum, Grund und Verfasser da.`);
   return 1;
@@ -958,11 +1141,11 @@ migration0140();
    WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
    PRAGMA table_info, nicht ein Merker. */
 function migration0160() {
-  const spalten = db.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
-  if (spalten.includes('gesetzt_am')) return 0;
-  db.exec('ALTER TABLE ratings ADD COLUMN gesetzt_am TEXT');
+  const columns = db.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
+  if (columns.includes('set_at')) return 0;
+  db.exec('ALTER TABLE ratings ADD COLUMN set_at TEXT');
   const n = db.prepare('SELECT COUNT(*) AS n FROM ratings WHERE value > 0').get().n;
-  console.log(`[Kriterion] ratings um gesetzt_am ergaenzt (Migration auf 0.16.0); ` +
+  console.log(`[Kriterion] ratings um set_at ergaenzt (Migration auf 0.16.0); ` +
     `${n} vorhandene ${n === 1 ? 'Bewertung steht' : 'Bewertungen stehen'} ohne Zeitpunkt da ` +
     `und bleiben fuer die Glocke unsichtbar.`);
   return 1;
@@ -974,7 +1157,7 @@ migration0160();
 /* DER AUSSCHNITT BEKOMMT EIN DRITTES MASS. Bis 0.18.1 trug ein Foto zwei
    Prozentwerte -- wohin das quadratische Fenster rutscht --, aber keinen
    dafuer, wie eng es sitzt. `zoom` ist dieser dritte Wert.
-   MIT VORGABE, ANDERS ALS gesetzt_am AUS 0.16.0, und der Unterschied ist
+   MIT VORGABE, ANDERS ALS set_at AUS 0.16.0, und der Unterschied ist
    keine Geschmacksfrage: dort waere jeder nachgetragene Zeitpunkt eine
    ERFINDUNG gewesen (die Instanz weiss nicht, wann eine alte Bewertung
    entstand). Hier weiss sie es: jedes vorhandene Foto stand bisher auf
@@ -986,10 +1169,10 @@ migration0160();
    WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
    PRAGMA table_info, nicht ein Merker. */
 function migration0190() {
-  const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
-  if (spalten.includes('zoom')) return 0;
+  const columns = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
+  if (columns.includes('zoom')) return 0;
   db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');
-  const n = db.prepare("SELECT COUNT(*) AS n FROM photos WHERE art != 'video'").get().n;
+  const n = db.prepare("SELECT COUNT(*) AS n FROM photos WHERE kind != 'video'").get().n;
   console.log(`[Kriterion] photos um zoom ergaenzt (Migration auf 0.19.0); ` +
     `${n} vorhandene ${n === 1 ? 'Foto steht' : 'Fotos stehen'} auf dem weitesten ` +
     `Ausschnitt und sehen damit aus wie bisher.`);
@@ -1003,28 +1186,28 @@ migration0190();
    aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
    (Stolperstein 13) -- ein Bestand aus 0.8.40 bis 0.20.1 traegt
    rating_criteria ohne sie. Deshalb ueberhaupt dieser Block.
-   DIE BESTANDSZEILEN BEKOMMEN 'nachher', und zwar aus dem DEFAULT der Spalte,
+   DIE BESTANDSZEILEN BEKOMMEN 'after', und zwar aus dem DEFAULT der Spalte,
    nicht aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit
    NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. Dieselbe Regel wie
-   bei gewicht in Migration 0.8.40, und derselbe Grund: jeder andere Wert
+   bei weight in Migration 0.8.40, und derselbe Grund: jeder andere Wert
    aenderte beim Einspielen still saemtliche Gesamtschnitte. Was heute
    Kriterium ist, ist Bewertungskriterium. Punkt.
    DIE VORGABE TRAEGT DAMIT KEINE BEHAUPTUNG, SONDERN DEN BISHERIGEN ZUSTAND
    -- dieselbe Ueberlegung wie bei zoom in 0.19.0 und ausdruecklich nicht die
-   von gesetzt_am in 0.16.0, wo jeder nachgetragene Wert eine Erfindung
+   von set_at in 0.16.0, wo jeder nachgetragene Wert eine Erfindung
    gewesen waere.
-   'nachher' IST EINE KONSTANTE Vorgabe, und nur solche nimmt ALTER TABLE ADD
+   'after' IST EINE KONSTANTE Vorgabe, und nur solche nimmt ALTER TABLE ADD
    COLUMN in SQLite an (Stolperstein 105).
    Einmalig, wiederholbar und im Normalfall stumm: gefragt wird PRAGMA
    table_info, nicht ein Merker. Zu 1.0 faellt der Block weg, die Spalte in der
    DDL bleibt. */
 function migration0210() {
-  const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
-  if (spalten.includes('phase')) return 0;
-  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT 'nachher'");
-  const n = db.prepare("SELECT COUNT(*) AS n FROM rating_criteria WHERE phase = 'nachher'").get().n;
+  const columns = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
+  if (columns.includes('phase')) return 0;
+  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT 'after'");
+  const n = db.prepare("SELECT COUNT(*) AS n FROM rating_criteria WHERE phase = 'after'").get().n;
   console.log(`[Kriterion] rating_criteria um phase ergaenzt (Migration auf 0.21.0); ` +
-    `${n} ${n === 1 ? 'Kriterium steht' : 'Kriterien stehen'} auf 'nachher' und ` +
+    `${n} ${n === 1 ? 'Kriterium steht' : 'Kriterien stehen'} auf 'after' und ` +
     `${n === 1 ? 'zaehlt' : 'zaehlen'} damit weiter in die Bewertung.`);
   return 1;
 }
@@ -1038,7 +1221,7 @@ migration0210();
    EIN INDEX AUF EINER NACHGERUESTETEN SPALTE GEHOERT HINTER IHRE MIGRATION
    (Stolperstein 281). `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
    Tabelle nicht an (Stolperstein 13): eine Datenbank aus 0.8.40 traegt
-   `photos.art` erst, nachdem migration0850() gelaufen ist, und `photos.zoom`
+   `photos.kind` erst, nachdem migration0850() gelaufen ist, und `photos.zoom`
    erst nach migration0190(). Ein CREATE INDEX weiter oben scheitert dort mit
    „no such column" -- beim OEFFNEN der Datei, also bevor der Server ueberhaupt
    startet. Kein Fehlerbild, keine halbe Funktion: die Anwendung kommt nicht
@@ -1049,7 +1232,7 @@ migration0210();
    und ein Index, der zwei nachgeruestete Spalten nennt, haette gar keinen
    richtigen Platz. **Hinter der letzten Migration ist jede Spalte da.**
    *Gefunden hat das der Pruefstand: der erste Anlauf stellte den einen Index in
-   die DDL (scheiterte an `art` aus 0.8.40), der zweite hinter migration0850()
+   die DDL (scheiterte an `kind` aus 0.8.40), der zweite hinter migration0850()
    -- und scheiterte am `zoom` aus 0.19.0.*
 
    ZU 1.0 FALLEN DIE MIGRATIONSBLOECKE WEG, die Spalten in der DDL bleiben --
@@ -1059,7 +1242,7 @@ migration0210();
    KEINE VON BEIDEN IST EINE DATENBANKSTUFE: kein Migrationsblock, keine
    Spalte, keine neue Formatnummer. */
 
-/* WOZU DER ERSTE: `art` steht in der Spaltenreihenfolge hinter drei Blobs
+/* WOZU DER ERSTE: `kind` steht in der Spaltenreihenfolge hinter drei Blobs
    (data, thumb, medium). Wer sie aus dem SATZ liest, muss ihn bis dorthin
    durchlaufen -- und das heisst bei einem 512-kB-Bild: die ganze Kette der
    Overflow-Seiten lesen und entschluesseln. Gemessen an einer SQLCipher-Datei
@@ -1067,22 +1250,22 @@ migration0210();
 
      COUNT(*)                                        0,0 ms
      mime_type gruppiert  (Spalte 2, VOR den Blobs)  8,7 ms
-     art gruppiert        (Spalte 6, HINTER ihnen)   1338,8 ms
+     kind gruppiert       (Spalte 6, HINTER ihnen)   1338,8 ms
      SUM(length(data))    (Spalte 3)                 7,2 ms
-     SUM(length(data)) mit WHERE art != 'video'      1334,1 ms
-     art gruppiert, MIT diesem Index                 0,1 ms
+     SUM(length(data)) mit WHERE kind != 'video'      1334,1 ms
+     kind gruppiert, MIT diesem Index                0,1 ms
 
    DER UNTERSCHIED IST NICHT DIE MENGE, SONDERN DIE LAGE DER SPALTE
-   (Stolperstein 279). EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE art !=
-   'video'` schlaegt den Index aus, `WHERE art IS ?` nutzt ihn. Die Abfragen in
+   (Stolperstein 279). EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE kind !=
+   'video'` schlaegt den Index aus, `WHERE kind IS ?` nutzt ihn. Die Abfragen in
    /api/stats holen deshalb erst die vorhandenen Arten und fragen dann je Art.
 
    Beim ersten Start nach dem Einspielen baut SQLite ihn einmal auf --
    gemessen 1,4 s bei 312 MB, danach steht er. */
-db.exec('CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');
 
 /* WOZU DER ZWEITE: `/api/items` holt je Eintrag die Fotoliste; jede dieser
-   Zeilen traegt focus_x, focus_y, zoom, sort_order, created_at, art und dauer
+   Zeilen traegt focus_x, focus_y, zoom, sort_order, created_at, kind und duration
    -- SIEBEN Spalten, die hinter data, thumb und medium stehen. Der Index
    `idx_photos_item` deckt davon nur `sort_order` ab; alles andere kaeme aus
    dem Satz.
@@ -1111,22 +1294,22 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art)');
    WER IN DER UEBERSICHT EINE SPALTE ERGAENZT, ergaenzt sie AUCH HIER. Die
    Abfrage fuehrt ihre Liste als PHOTO_SPALTEN an einer Stelle, und eine
    Pruefung haelt beide gegeneinander. */
-db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_kachel
-           ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, art, dauer)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile
+           ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, kind, duration)`);
 
 // --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
 // ueber den Admin verhindert, dass ein ausdruecklich herabgestufter Erstzugang
-// still wieder befoerdert wird. Ein Grabstein (status = 'geloescht') erbt nie:
+// still wieder befoerdert wird. Ein Grabstein (status = 'deleted') erbt nie:
 // er meldet sich nie wieder an. Wiederholbar und im Normalfall stumm.
 {
   const n = db.prepare(
-    "UPDATE users SET role = 'eigentuemer' WHERE id = (" +
-    "  SELECT MIN(id) FROM users WHERE status != 'geloescht' AND (" +
+    "UPDATE users SET role = 'owner' WHERE id = (" +
+    "  SELECT MIN(id) FROM users WHERE status != 'deleted' AND (" +
     "    role = 'admin' OR NOT EXISTS (" +
-    "      SELECT 1 FROM users WHERE role = 'admin' AND status != 'geloescht')))" +
-    " AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'eigentuemer')"
+    "      SELECT 1 FROM users WHERE role = 'admin' AND status != 'deleted')))" +
+    " AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'owner')"
   ).run().changes;
   if (n) console.log('[Kriterion] Die Instanz hatte keinen Eigentuemer; der aelteste ' +
     'berechtigte Zugang ist es jetzt (role=eigentuemer).');
@@ -1137,8 +1320,8 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_kachel
 // meldet sich nie wieder an. Gibt es mehrere Eigentuemer, nimmt der aelteste.
 // Blankes SQL statt eines Aufrufs in auth.js: db.js darf von auth.js nichts
 // wissen, die Abhaengigkeit laeuft andersherum.
-function eigentuemerId() {
-  return db.prepare("SELECT MIN(id) AS id FROM users WHERE role = 'eigentuemer'").get().id;
+function ownerId() {
+  return db.prepare("SELECT MIN(id) AS id FROM users WHERE role = 'owner'").get().id;
 }
 
 // --- Auffangnetz: kein Bestand ohne Benutzer ---
@@ -1157,34 +1340,34 @@ function eigentuemerId() {
 // UPDATE OR IGNORE, weil user_id bei ratings und test_days im UNIQUE steht:
 // zwei herrenlose Zeilen zum selben Kriterium sind moeglich (NULL gilt im
 // UNIQUE als verschieden); ohne OR IGNORE stuerbe der Start an der Verletzung.
-function ordneBestandZu() {
-  const zahlen = {};
-  let summe = 0;
-  const eigentuemer = eigentuemerId();
-  if (eigentuemer == null) {
+function assignInventory() {
+  const counts = {};
+  let sum = 0;
+  const owner = ownerId();
+  if (owner == null) {
     return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
   }
-  for (const tabelle of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
+  for (const table of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
     const n = db.prepare(
-      `UPDATE OR IGNORE ${tabelle} SET user_id = ? WHERE user_id IS NULL`
-    ).run(eigentuemer).changes;
-    zahlen[tabelle] = n;
-    summe += n;
+      `UPDATE OR IGNORE ${table} SET user_id = ? WHERE user_id IS NULL`
+    ).run(owner).changes;
+    counts[table] = n;
+    sum += n;
   }
-  if (summe) {
+  if (sum) {
     console.log('[Kriterion] Bestand ohne Benutzer dem Eigentuemer zugeordnet: ' +
-      `${zahlen.items} Eintraege, ${zahlen.comments} Kommentare, ${zahlen.test_days} Testtage, ` +
-      `${zahlen.ratings} Bewertungen, ${zahlen.links} Links, ${zahlen.attachments} Dateien.`);
+      `${counts.items} Eintraege, ${counts.comments} Kommentare, ${counts.test_days} Testtage, ` +
+      `${counts.ratings} Bewertungen, ${counts.links} Links, ${counts.attachments} Dateien.`);
   }
-  return zahlen;
+  return counts;
 }
-ordneBestandZu();
+assignInventory();
 
 // --- Grundausstattung ---
 const seedCriteria = ['Optische Erscheinung', 'Verarbeitungsqualität', 'Funktionalität'];
-const insCrit = db.prepare('INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');
+const insertCriterion = db.prepare('INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');
 if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {
-  for (const c of seedCriteria) insCrit.run(c);
+  for (const c of seedCriteria) insertCriterion.run(c);
 }
 
 // Reihenfolge der Kriterien lueckenlos durchnummerieren; reihenfolgetreu und
@@ -1208,8 +1391,9 @@ renumberCriteria();
 // Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
-                   wechsleSchluessel, verfahren,
-                   renumberCriteria, ordneBestandZu, eigentuemerId,
+                   COLUMNS_0241, VALUES_0241,
+                   changeKey, method,
+                   renumberCriteria, assignInventory, ownerId,
                    // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
                    migration083,
                    // MIGRATION 0.8.30 — ENTFAELLT MIT 1.0

@@ -36,16 +36,20 @@
    OHNE GEDÄCHTNIS: DUNKEL. Wer nichts eingestellt hat, sieht, was er heute
    sieht — auch vor der Anmeldung, denn start() läuft erst danach.
 
-   DER NAME DES SCHLÜSSELS STEHT HIER UND IN app.js (THEMA_MERKER). Zwei
+   DER NAME DES SCHLÜSSELS STEHT HIER UND IN app.js (THEME_KEY). Zwei
    Stellen für dasselbe Wort, und es geht nicht anders: diese Datei läuft,
-   bevor es app.js gibt. Eine Prüfung hält beide gegeneinander. */
+   bevor es app.js gibt. Eine Prüfung hält beide gegeneinander.
+
+   DER ALTE NAME WIRD NOCH GELESEN — 0.24.1. Bis 0.24.0 hieß der Schlüssel
+   `kriterion.thema`; ohne diese Zeile zeigte die Seite beim ERSTEN Aufschlag
+   nach dem Einspielen das Vorgabeschema statt des gewählten. */
 (function () {
   try {
-    var t = localStorage.getItem('kriterion.thema');
-    var hell = t === 'hell' || (t === 'geraet' && window.matchMedia
+    var t = localStorage.getItem('kriterion.theme') || localStorage.getItem('kriterion.thema');
+    var light = t === 'light' || (t === 'device' && window.matchMedia
       && window.matchMedia('(prefers-color-scheme: light)').matches);
-    document.documentElement.dataset.thema = hell ? 'hell' : 'dunkel';
+    document.documentElement.dataset.theme = light ? 'light' : 'dark';
   } catch (e) {
-    document.documentElement.dataset.thema = 'dunkel';
+    document.documentElement.dataset.theme = 'dark';
   }
 })();

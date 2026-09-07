@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { db, ordneBestandZu } = require('./db');
+const { db, assignInventory } = require('./db');
 // Nur wegen istAdresse: die Frage "sieht das ueberhaupt nach einer Adresse
 // aus" wird an drei Stellen gestellt (Anlegen, eigener Zugang, Versand), und
 // drei Muster nebeneinander liefen auseinander. Die Antwort steht deshalb dort,
@@ -7,9 +7,9 @@ const { db, ordneBestandZu } = require('./db');
 const mail = require('./mail');
 /* Nur wegen der Rechnung: Base32, HMAC ueber den Zaehler, das Fenster. Alles,
    was eine Zeile hat, steht hier -- dieselbe Teilung wie bei mail.js. */
-const zf = require('./zweifaktor');
+const zf = require('./twofactor');
 
-/* ================= Die Fehlerklasse „Meldung" ================= */
+/* ================= Die Fehlerklasse „Message" ================= */
 /* EIN FEHLER IST EIN SCHLUESSEL UND KEIN SATZ -- 0.24.0, Bauabschnitt 1.
    Bis dahin warf diese Datei rund vierzig deutsche Saetze als `new Error`,
    die server.js faengt und im Feld `error` weiterreicht -- der
@@ -34,15 +34,15 @@ const zf = require('./zweifaktor');
    ER NIMMT DIE ANFRAGE UND NICHT DIE SPRACHE: welche Sprache eine Antwort
    traegt, entscheidet server.js -- hier ist nur bekannt, WELCHE Anfrage es
    ist. */
-let uebersetze = (req, schluessel) => `\u27e6${schluessel}\u27e7`;
-function setzeUebersetzer(fn) { uebersetze = fn; }
+let translate = (req, key) => `\u27e6${key}\u27e7`;
+function setTranslator(fn) { translate = fn; }
 
-class Meldung extends Error {
-  constructor(schluessel, werte = {}, status = 400) {
-    super(schluessel);
-    this.name = 'Meldung';
-    this.schluessel = schluessel;
-    this.werte = werte;
+class Message extends Error {
+  constructor(key, values = {}, status = 400) {
+    super(key);
+    this.name = 'Message';
+    this.key = key;
+    this.values = values;
     this.status = status;
   }
 }
@@ -56,8 +56,8 @@ class Meldung extends Error {
    (die Anmeldebremse je Adresse greift dann nie) und den anderen, um sich als
    HTTPS auszugeben.
 
-   HINTER_PROXY=1 (an):  die beiden Koepfe werden ueberhaupt angesehen, und ein
-                         http:// in OEFFENTLICHE_ADRESSE meldet sich am Start.
+   BEHIND_PROXY=1 (an):  die beiden Koepfe werden ueberhaupt angesehen, und ein
+                         http:// in PUBLIC_ADDRESS meldet sich am Start.
    fehlt (aus, Vorgabe): kein Kopf wird angesehen -- allein
                          req.socket.remoteAddress, und jede Anfrage gilt als
                          Klartext. Richtig fuer "direkt im Heimnetz, Port 3100".
@@ -66,7 +66,7 @@ class Meldung extends Error {
    entscheidet seit 0.13.0 die EINZELNE ANFRAGE ueber X-Forwarded-Proto, und
    der Grund ist der Betrieb: die Instanz ist aus zwei Netzen zugleich
    erreichbar, und eine Einstellung je Prozess kann immer nur einen davon
-   bedienen. Mit HINTER_PROXY=1 kam ueber http://<server-ip>:3100 niemand mehr
+   bedienen. Mit BEHIND_PROXY=1 kam ueber http://<server-ip>:3100 niemand mehr
    herein -- der Server antwortete mit 200, der Browser verwarf den
    Secure-Cookie stillschweigend, und im Serverprotokoll stand davon nichts.
 
@@ -84,23 +84,44 @@ class Meldung extends Error {
    Adresse des Proxys zieht: ein einziger Angreifer sperrte damit fuenf Minuten
    lang ALLE aus. In eine Runde, die den Zugang offenhalten soll, gehoert kein
    neuer Weg, ihn zu verlieren. */
-const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_PROXY || '').trim());
+/* DIE UMGEBUNGSVARIABLEN HEISSEN SEIT 0.24.1 ENGLISCH -- UND DER ALTE NAME
+   GILT WEITER (F9). Eine `.env`, die nach dem Einspielen nicht mehr gilt, ist
+   der eine Fall, in dem ein Betreiber im Dunkeln steht: die Instanz startet
+   und verhaelt sich anders, ohne dass etwas rot waere. Wer den alten Namen
+   stehen laesst, bekommt stattdessen eine Zeile ins Containerprotokoll und
+   Zeit zum Nachziehen.
+   LEER ZAEHLT ALS NICHT GESETZT: in der `.env.example` stehen die Zeilen
+   auskommentiert oder leer da, und ein leerer neuer Name darf einen gesetzten
+   alten nicht verdecken. */
+function fromEnv(name, oldName) {
+  const value = process.env[name];
+  if (String(value ?? '').trim() !== '') return value;
+  const old = process.env[oldName];
+  if (String(old ?? '').trim() !== '') {
+    console.warn(`[Kriterion] ${oldName} heisst jetzt ${name} — der alte Name ` +
+      'wird noch gelesen. Bitte in der .env nachziehen.');
+    return old;
+  }
+  return value;
+}
+
+const BEHIND_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(fromEnv('BEHIND_PROXY', 'HINTER_PROXY') || '').trim());
 
 /* KAM DIESE ANFRAGE UEBER DEN PROXY? Die eine Frage, an der seit 0.13.0
    Cookiename, Secure und HSTS haengen -- je Anfrage und nicht je Prozess.
    DER LETZTE EINTRAG DER KETTE und nicht der erste, aus demselben Grund wie
    bei der Adresse: was davor steht, kann der Aufrufer selbst hineingeschrieben
    haben; was der naechste Proxy anhaengt, sieht er wirklich.
-   NUR MIT HINTER_PROXY: ohne die Einstellung steht kein Proxy davor, und dann
+   NUR MIT BEHIND_PROXY: ohne die Einstellung steht kein Proxy davor, und dann
    ist der Kopf nichts als eine Behauptung.
    OHNE req.socket UND OHNE req.protocol: diese Frage sieht ausschliesslich in
    die Kopfzeilen. Sie wird auch aus requireAuth heraus gestellt, und dort
    reicht der Pruefstand ein req herein, das nur `headers` traegt. */
-function ueberProxy(req) {
-  if (!HINTER_PROXY) return false;
-  const kette = String((req && req.headers && req.headers['x-forwarded-proto']) || '')
+function viaProxy(req) {
+  if (!BEHIND_PROXY) return false;
+  const chain = String((req && req.headers && req.headers['x-forwarded-proto']) || '')
     .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  return kette.length > 0 && kette[kette.length - 1] === 'https';
+  return chain.length > 0 && chain[chain.length - 1] === 'https';
 }
 
 /* ZWEI NAMEN NEBENEINANDER, UND KEIN NAME MIT BEDINGTEM Secure.
@@ -124,12 +145,12 @@ function ueberProxy(req) {
    Literal daneben liefe auseinander, und ein Waechter im Pruefstand haelt
    genau das fest. */
 const COOKIE_NAME = 'kriterion_session';
-const COOKIE_SICHER = `__Host-${COOKIE_NAME}`;
-const cookieName = (req) => ueberProxy(req) ? COOKIE_SICHER : COOKIE_NAME;
+const COOKIE_SECURE = `__Host-${COOKIE_NAME}`;
+const cookieName = (req) => viaProxy(req) ? COOKIE_SECURE : COOKIE_NAME;
 
 /* --- Die oeffentliche Adresse -------------------------------------------
    SIE STEHT HIER UND NICHT IN server.js, weil sie dieselbe Sorte Einstellung
-   ist wie HINTER_PROXY darueber: Netzwerkvertrauen, nicht Vorliebe -- also
+   ist wie BEHIND_PROXY darueber: Netzwerkvertrauen, nicht Vorliebe -- also
    .env und nicht settings. GEBAUT wird der Link in server.js; hier steht nur,
    welcher Wert gilt.
 
@@ -142,25 +163,31 @@ const cookieName = (req) => ueberProxy(req) ? COOKIE_SICHER : COOKIE_NAME;
    und faellt auf den Browserweg zurueck. Ein Start, der an einem Tippfehler
    in einer OPTIONALEN Einstellung abbricht, ist schlimmer als der
    Tippfehler. */
-function pruefeOeffentlicheAdresse(roh) {
-  const wert = String(roh || '').trim();
-  if (!wert) return { adresse: '', gesetzt: false };
+/* DAS FELD HEISST `problem` UND NICHT WIE DIE ABSAGE EINER ROUTE: der Satz
+   darin ist der eine Text dieser Datei, der auf dem BILDSCHIRM DES WIRTS
+   landet und nicht am Bildschirm des Benutzers -- er hat keinen Schluessel in
+   der Sprachdatei und soll auch keinen bekommen. Der Waechter ueber die drei
+   Serverdateien verlangt hinter dem Absagefeld einen Schluessel; hier stuende
+   einer falsch. */
+function checkPublicAddress(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return { address: '', set: false };
   let u;
-  try { u = new URL(wert); }
-  catch { return { adresse: '', gesetzt: true, fehler: 'Das ist keine vollständige Adresse.' }; }
+  try { u = new URL(value); }
+  catch { return { address: '', set: true, problem: 'Das ist keine vollständige Adresse.' }; }
   if (u.protocol !== 'http:' && u.protocol !== 'https:')
-    return { adresse: '', gesetzt: true, fehler: 'Nur http:// und https:// sind möglich.' };
+    return { address: '', set: true, problem: 'Nur http:// und https:// sind möglich.' };
   if (!u.hostname)
-    return { adresse: '', gesetzt: true, fehler: 'Es fehlt der Rechnername.' };
+    return { address: '', set: true, problem: 'Es fehlt der Rechnername.' };
   if (u.username || u.password)
-    return { adresse: '', gesetzt: true, fehler: 'Zugangsdaten gehören nicht in die Adresse.' };
-  if (u.search) return { adresse: '', gesetzt: true, fehler: 'Eine Abfrage (?) ist nicht erlaubt.' };
-  if (u.hash) return { adresse: '', gesetzt: true, fehler: 'Ein Fragment (#) ist nicht erlaubt.' };
+    return { address: '', set: true, problem: 'Zugangsdaten gehören nicht in die Adresse.' };
+  if (u.search) return { address: '', set: true, problem: 'Eine Abfrage (?) ist nicht erlaubt.' };
+  if (u.hash) return { address: '', set: true, problem: 'Ein Fragment (#) ist nicht erlaubt.' };
   // Ohne abschliessenden Schraegstrich, damit der Link genau eine Form hat.
-  const adresse = (u.origin + u.pathname).replace(/\/+$/, '');
-  return { adresse, gesetzt: true };
+  const address = (u.origin + u.pathname).replace(/\/+$/, '');
+  return { address, set: true };
 }
-const OEFFENTLICHE_ADRESSE = pruefeOeffentlicheAdresse(process.env.OEFFENTLICHE_ADRESSE);
+const PUBLIC_ADDRESS = checkPublicAddress(fromEnv('PUBLIC_ADDRESS', 'OEFFENTLICHE_ADRESSE'));
 
 const SESSION_DAYS = 30;
 
@@ -168,122 +195,127 @@ const SESSION_DAYS = 30;
 // scrypt aus Nodes eingebautem crypto, keine neue Abhaengigkeit. Die Kennwerte
 // stehen im gespeicherten Wert mit drin, damit sie sich spaeter anheben lassen,
 // ohne alte Eintraege unlesbar zu machen.
-const PASSWORT_MIN = 10;
+const PASSWORD_MIN = 10;
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
 
-function scryptRechne(passwort, salz, k) {
-  return new Promise((fertig, fehler) => {
-    crypto.scrypt(passwort, salz, k.keylen, { N: k.N, r: k.r, p: k.p },
-      (e, buf) => e ? fehler(e) : fertig(buf));
+function scryptCompute(password, salt, k) {
+  return new Promise((done, error) => {
+    crypto.scrypt(password, salt, k.keylen, { N: k.N, r: k.r, p: k.p },
+      (e, buf) => e ? error(e) : done(buf));
   });
 }
 
-function baueWert(salz, hash, k) {
-  return `scrypt$${k.N}$${k.r}$${k.p}$${salz.toString('hex')}$${hash.toString('hex')}`;
+function buildValue(salt, hash, k) {
+  return `scrypt$${k.N}$${k.r}$${k.p}$${salt.toString('hex')}$${hash.toString('hex')}`;
 }
 
-async function hashePasswort(passwort) {
-  const salz = crypto.randomBytes(16);
-  return baueWert(salz, await scryptRechne(String(passwort), salz, SCRYPT), SCRYPT);
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  return buildValue(salt, await scryptCompute(String(password), salt, SCRYPT), SCRYPT);
 }
 
 // Gleiche Rechnung, aber ohne Event Loop -- nur fuer den Startvorgang,
 // wo ohnehin niemand wartet.
-function hashePasswortSync(passwort) {
-  const salz = crypto.randomBytes(16);
-  const h = crypto.scryptSync(String(passwort), salz, SCRYPT.keylen,
+function hashPasswordSync(password) {
+  const salt = crypto.randomBytes(16);
+  const h = crypto.scryptSync(String(password), salt, SCRYPT.keylen,
     { N: SCRYPT.N, r: SCRYPT.r, p: SCRYPT.p });
-  return baueWert(salz, h, SCRYPT);
+  return buildValue(salt, h, SCRYPT);
 }
 
-async function pruefePasswort(passwort, gespeichert) {
-  const teile = String(gespeichert || '').split('$');
-  if (teile.length !== 6 || teile[0] !== 'scrypt') return false;
-  const soll = Buffer.from(teile[4 + 1], 'hex');
-  if (!soll.length) return false;
-  let ist;
+async function checkPassword(password, stored) {
+  const parts = String(stored || '').split('$');
+  if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
+  const want = Buffer.from(parts[4 + 1], 'hex');
+  if (!want.length) return false;
+  let got;
   try {
-    ist = await scryptRechne(String(passwort), Buffer.from(teile[4], 'hex'),
-      { N: +teile[1], r: +teile[2], p: +teile[3], keylen: soll.length });
+    got = await scryptCompute(String(password), Buffer.from(parts[4], 'hex'),
+      { N: +parts[1], r: +parts[2], p: +parts[3], keylen: want.length });
   } catch { return false; }
-  return ist.length === soll.length && crypto.timingSafeEqual(ist, soll);
+  return got.length === want.length && crypto.timingSafeEqual(got, want);
 }
 
 // Gegen Zeitmessung am Benutzernamen: ein unbekannter Name darf nicht messbar
 // schneller abgewiesen werden als ein falsches Passwort. Deshalb rechnet die
 // Pruefung auch dann, wenn es gar keinen Zugang gibt -- gegen diesen Blindwert.
-const BLINDWERT = hashePasswortSync(crypto.randomBytes(16).toString('hex'));
+const DUMMY_VALUE = hashPasswordSync(crypto.randomBytes(16).toString('hex'));
 
 // --- Zugang ------------------------------------------------------------
 // Drei Rollen als Leiter: user < admin < eigentuemer (Begruendung am Schema
 // in db.js).
-const ROLLEN = ['user', 'admin', 'eigentuemer'];
-const ZUSTAENDE = ['aktiv', 'gesperrt', 'geloescht'];
+const ROLES = ['user', 'admin', 'owner'];
+const STATES = ['active', 'locked', 'deleted'];
 
 // Der Name eines geloeschten Zugangs. Der urspruengliche wird ueberschrieben
 // und ist damit wieder frei. Die Zahl ist die alte id, und genau die steht
 // auch in user_id -- die Oberflaeche bildet daraus "Geloeschter Benutzer 7",
 // ohne dass irgendwo ein Name aufbewahrt wird.
-const grabsteinName = (id) => `geloescht-${id}`;
-// Damit ein lebender Zugang nicht wie ein Grabstein aussehen kann. Der Preis
-// dieser Namensvergabe, ehrlich benannt: das Muster ist als Benutzername
-// gesperrt.
-const GRABSTEIN_MUSTER = /^geloescht-\d+$/i;
+const tombstoneName = (id) => `deleted-${id}`;
+/* Damit ein lebender Zugang nicht wie ein Grabstein aussehen kann. Der Preis
+   dieser Namensvergabe, ehrlich benannt: das Muster ist als Benutzername
+   gesperrt.
+   BEIDE SCHREIBWEISEN BLEIBEN GESPERRT -- 0.24.1. Bis 0.24.0 hiess der
+   Grabstein `geloescht-<nr>`; die Migration schreibt ihn um. Bliebe die alte
+   Schreibweise danach frei, koennte sich jemand `geloescht-7` nennen und
+   saehe aus wie der Grabstein, der diese Zeile einmal war. Das Wort steht
+   hier als WERT in einem Muster und nicht als Name im Quelltext. */
+const TOMBSTONE_PATTERN = /^(deleted|geloescht)-\d+$/i;
 
 // Der EIGENTUEMER mit der kleinsten Nummer -- wer ihn ruft, meint den
 // Eigentuemer der Instanz, nie den Angemeldeten (dafuer gibt es req.benutzer).
 // Gefragt wird die ROLLE, nicht die kleinste id: sonst nennte das Protokoll
 // einen geloeschten Zugang als Eigentuemer.
-const holeBenutzer = () =>
+const getUser = () =>
   db.prepare("SELECT id, username, password_hash FROM users " +
-             "WHERE role = 'eigentuemer' ORDER BY id LIMIT 1").get() || null;
+             "WHERE role = 'owner' ORDER BY id LIMIT 1").get() || null;
 
 // Der Kandidat zur Anmeldung. Die Spalte traegt COLLATE NOCASE, das Suchen
 // findet also auch eine abweichende Schreibweise -- entschieden wird trotzdem
 // erst danach mit safeEqual, Zeichen fuer Zeichen.
-const holeBenutzerNachNamen = (name) =>
+const getUserByName = (name) =>
   db.prepare('SELECT id, username, password_hash, role, status FROM users WHERE username = ?')
     .get(String(name || '')) || null;
 
-const benutzerVorhanden = () => db.prepare('SELECT COUNT(*) n FROM users').get().n > 0;
+const userExists = () => db.prepare('SELECT COUNT(*) n FROM users').get().n > 0;
 
 // Der Name steht fuer sich, weil er an zwei Wegen geprueft wird: beim Anlegen
-// (immer mit Passwort) und beim blossen Umbenennen in aendereZugang(). Ohne die
+// (immer mit Passwort) und beim blossen Umbenennen in changeUser(). Ohne die
 // zweite Stelle koennte sich jemand in geloescht-7 umbenennen und saehe aus wie
 // der Grabstein eines anderen.
-function pruefeName(name) {
+function checkName(name) {
   const n = String(name || '').trim();
-  if (!n) throw new Meldung('anmeldung.benutzernameFehlt');
-  if (GRABSTEIN_MUSTER.test(n))
-    throw new Meldung('anmeldung.nameReserviert');
+  if (!n) throw new Message('login.usernameMissing');
+  if (TOMBSTONE_PATTERN.test(n))
+    throw new Message('login.nameReserved');
   return n;
 }
 
-function pruefeVorgaben(name, passwort) {
-  pruefeName(name);
-  if (String(passwort || '').length < PASSWORT_MIN)
-    throw new Meldung('anmeldung.passwortZuKurz', { min: PASSWORT_MIN });
+function checkRules(name, password) {
+  checkName(name);
+  if (String(password || '').length < PASSWORD_MIN)
+    throw new Message('login.passwordTooShort', { min: PASSWORD_MIN });
 }
 
 // Legt den ersten Zugang an. Das Einfuegen entscheidet selbst, ob es der erste
 // ist -- eine Pruefung davor liesse zwischen Pruefung und Einfuegen Platz fuer
-// einen zweiten Aufruf. Die Rolle steht fest auf 'eigentuemer': wer die Instanz
+// einen zweiten Aufruf. Die Rolle steht fest auf 'owner': wer die Instanz
 // einrichtet, dem gehoert sie.
-async function legeErstenBenutzerAn(name, passwort) {
-  pruefeVorgaben(name, passwort);
-  const hash = await hashePasswort(passwort);
+async function createFirstUser(name, password) {
+  checkRules(name, password);
+  const hash = await hashPassword(password);
   const r = db.prepare(
     "INSERT INTO users (username, password_hash, role) " +
-    "SELECT ?, ?, 'eigentuemer' WHERE NOT EXISTS (SELECT 1 FROM users)"
+    "SELECT ?, ?, 'owner' WHERE NOT EXISTS (SELECT 1 FROM users)"
   ).run(String(name).trim(), hash);
-  if (r.changes === 0) throw new Meldung('server.einrichtungFertig');
+  if (r.changes === 0) throw new Message('server.setupDone');
   // Zweite Aufrufstelle des Auffangnetzes aus db.js: beim Start einer leeren
   // Instanz lief es ins Leere, weil es noch keinen Benutzer gab -- dieser Weg
   // liefert ihn erst jetzt nach.
-  ordneBestandZu();
+  assignInventory();
   // Die erste Zeile des Sicherheitsprotokolls: die Instanz bekommt ihren
   // Eigentuemer. Er handelt an sich selbst -- es gibt sonst niemanden.
-  protokolliere('zugang.neu', { wer: r.lastInsertRowid, ziel: r.lastInsertRowid, merkmal: 'eigentuemer' });
+  log('user.new', { actor: r.lastInsertRowid, target: r.lastInsertRowid, detail: 'owner' });
   return { id: r.lastInsertRowid, username: String(name).trim() };
 }
 
@@ -300,55 +332,55 @@ async function legeErstenBenutzerAn(name, passwort) {
    hat die Einladungsmail keinen Empfaenger.
    undefined HEISST "nicht angefasst", der leere String "loeschen". Ohne diese
    Unterscheidung koennte eine Adresse nie wieder entfernt werden. */
-async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort, neueAdresse) {
-  const id = Number(benutzerId);
+async function changeUser(userId, oldPassword, newName, newPassword, newAddress) {
+  const id = Number(userId);
   if (!Number.isInteger(id) || id <= 0)
     throw new Error('Ein Zugangswechsel braucht den angemeldeten Benutzer.');
   const u = db.prepare('SELECT id, username, password_hash, email FROM users WHERE id = ?').get(id);
-  if (!u) throw new Meldung('anmeldung.keinZugang');
-  if (!await pruefePasswort(String(altesPasswort || ''), u.password_hash))
-    throw new Meldung('anmeldung.altesPasswortFalsch');
-  const name = String(neuerName || '').trim() || u.username;
-  const wechselt = String(neuesPasswort || '').length > 0;
-  // pruefeName laeuft auf BEIDEN Wegen; pruefeVorgaben greift nur beim
+  if (!u) throw new Message('login.noUserYet');
+  if (!await checkPassword(String(oldPassword || ''), u.password_hash))
+    throw new Message('login.oldPasswordWrong');
+  const name = String(newName || '').trim() || u.username;
+  const changes = String(newPassword || '').length > 0;
+  // checkName laeuft auf BEIDEN Wegen; checkRules greift nur beim
   // Passwortwechsel.
-  if (wechselt) pruefeVorgaben(name, neuesPasswort);
-  else pruefeName(name);
+  if (changes) checkRules(name, newPassword);
+  else checkName(name);
   // Die Spalte traegt UNIQUE COLLATE NOCASE. Ohne diese Frage kaeme ab dem
   // zweiten Zugang die rohe SQLite-Meldung als 400 heraus -- unverstaendlich
   // an einer Stelle, an der man nur einen Namen tippt.
   if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE AND id != ?').get(name, u.id))
-    throw new Meldung('anmeldung.benutzernameDoppelt');
-  const hash = wechselt ? await hashePasswort(neuesPasswort) : u.password_hash;
+    throw new Message('login.usernameTaken');
+  const hash = changes ? await hashPassword(newPassword) : u.password_hash;
   /* Die Adresse wird GEPRUEFT, bevor irgendetwas geschrieben wird -- eine
      Absage, die den Namen schon gewechselt hat, waere schlimmer als keine. */
-  const adresseGemeint = neueAdresse !== undefined;
-  const adresse = adresseGemeint ? String(neueAdresse || '').trim() : null;
-  if (adresseGemeint && adresse && !mail.istAdresse(adresse))
-    throw new Meldung('anmeldung.mailUngueltig');
+  const addressMeant = newAddress !== undefined;
+  const address = addressMeant ? String(newAddress || '').trim() : null;
+  if (addressMeant && address && !mail.isAddress(address))
+    throw new Message('login.emailInvalid');
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(name, hash, u.id);
-  if (adresseGemeint)
-    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(adresse || null, u.id);
+  if (addressMeant)
+    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(address || null, u.id);
   /* Der eigene Zugang ist der erste Griff einer uebernommenen Sitzung: er
      sperrt den Richtigen aus. Ein Aufruf, der nichts bewegt, ist kein Vorgang
      und schreibt deshalb keine Zeile. Die Adresse zaehlt mit -- sie
-     entscheidet, WOHIN der naechste Ruecksetzlink geht. 'beides' heisst "mehr
+     entscheidet, WOHIN der naechste Ruecksetzlink geht. 'both' heisst "mehr
      als eines", deshalb wird GEZAEHLT statt verschachtelt. */
-  const umbenannt = name !== u.username;
-  const adresseNeu = adresseGemeint && (adresse || null) !== (u.email || null);
-  const bewegt = [umbenannt && 'name', wechselt && 'passwort', adresseNeu && 'adresse'].filter(Boolean);
-  const merkmal = bewegt.length > 1 ? 'beides' : bewegt[0] || null;
-  if (merkmal) protokolliere('zugang.selbst', { wer: u.id, ziel: u.id, merkmal });
-  return { username: name, passwortGewechselt: wechselt, email: adresseGemeint ? adresse : (u.email || '') };
+  const renamed = name !== u.username;
+  const addressNew = addressMeant && (address || null) !== (u.email || null);
+  const moved = [renamed && 'name', changes && 'password', addressNew && 'address'].filter(Boolean);
+  const detail = moved.length > 1 ? 'both' : moved[0] || null;
+  if (detail) log('user.self', { actor: u.id, target: u.id, detail });
+  return { username: name, passwordChanged: changes, email: addressMeant ? address : (u.email || '') };
 }
 
 /* --- Zugangsverwaltung --------------------------------------------------
    EIN Ort, zwei Rufer: die Verwaltungskarte in server.js und der Befehl
-   zugang.js auf dem Wirt. Die Rechtefrage steht hier ausdruecklich NICHT --
-   wer etwas darf, entscheidet server.js an der Route; zugang.js laeuft auf dem
+   usertool.js auf dem Wirt. Die Rechtefrage steht hier ausdruecklich NICHT --
+   wer etwas darf, entscheidet server.js an der Route; usertool.js laeuft auf dem
    Wirt und hat damit ohnehin alles. Diese Funktionen fuehren nur aus. */
 
-const holeZugang = (id) =>
+const getUser2 = (id) =>
   db.prepare('SELECT id, username, role, status, email, last_login, created_at FROM users WHERE id = ?')
     .get(Number(id)) || null;
 
@@ -358,95 +390,95 @@ const holeZugang = (id) =>
 /* ohnePasswort WIRD AUS password_hash ABGELEITET UND NICHT AUS last_login:
    last_login IS NULL heisst "hat sich noch nie angemeldet", und das ist nicht
    dasselbe wie "kann sich nicht anmelden". Die Karte braucht das Zweite, und
-   es steht dort, wo auch pruefeAnmeldung entscheidet.
+   es steht dort, wo auch checkLogin entscheidet.
    AUSGELIEFERT WIRD DER HASH NICHT, nur die abgeleitete Frage darauf. */
-const listeZugaenge = () => db.prepare(
+const listUsers = () => db.prepare(
   `SELECT u.id, u.username, u.role, u.status, u.last_login, u.created_at,
-          (u.password_hash = '') AS ohnePasswort,
-          (SELECT COUNT(*) FROM items i WHERE i.user_id = u.id) AS eintraege
+          (u.password_hash = '') AS withoutPassword,
+          (SELECT COUNT(*) FROM items i WHERE i.user_id = u.id) AS entries
      FROM users u ORDER BY u.id`
-).all().map(z => ({ ...z, ohnePasswort: Boolean(z.ohnePasswort) }));
+).all().map(z => ({ ...z, withoutPassword: Boolean(z.withoutPassword) }));
 
 // Zaehlt die Eigentuemer, die sich noch anmelden koennen. Ein gesperrter oder
 // geloeschter zaehlt nicht mit -- sonst liesse sich die Instanz verriegeln,
 // indem man den letzten Eigentuemer sperrt statt ihn herabzustufen.
-const zahlEigentuemer = () => db.prepare(
-  "SELECT COUNT(*) AS n FROM users WHERE role = 'eigentuemer' AND status = 'aktiv'"
+const ownerCount = () => db.prepare(
+  "SELECT COUNT(*) AS n FROM users WHERE role = 'owner' AND status = 'active'"
 ).get().n;
 
 /* OHNE PASSWORT WIRD AUSDRUECKLICH VERLANGT, nie durch blosses Weglassen:
    ohnePasswort === true ist die einzige Form. Sonst legte ein Fehler im
    Aufrufer wortlos einen Zugang an, in den sich niemand anmelden kann.
-   DER LEERE HASH IST DIE SPERRE, und zwar doppelt: pruefeAnmeldung faellt bei
-   leerem Hash auf BLINDWERT zurueck, und pruefePasswort weist einen Wert, der
+   DER LEERE HASH IST DIE SPERRE, und zwar doppelt: checkLogin faellt bei
+   leerem Hash auf BLINDWERT zurueck, und checkPassword weist einen Wert, der
    nicht nach scrypt aussieht, schon am Format ab. */
-async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false, wer, adresse) {
-  if (ohnePasswort === true) pruefeName(name);
-  else pruefeVorgaben(name, passwort);
-  if (!ROLLEN.includes(rolle)) throw new Meldung('anmeldung.rolleFehlt');
-  const sauber = String(name).trim();
-  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(sauber))
-    throw new Meldung('anmeldung.benutzernameDoppelt');
+async function createUser(name, password, role = 'user', withoutPassword = false, actor, address) {
+  if (withoutPassword === true) checkName(name);
+  else checkRules(name, password);
+  if (!ROLES.includes(role)) throw new Message('login.roleUnknown');
+  const clean = String(name).trim();
+  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(clean))
+    throw new Message('login.usernameTaken');
   /* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die Einladungsmail
      keinen Empfaenger, und den Zugang gibt es in diesem Augenblick noch nicht,
      also kann ihn auch niemand selbst eintragen. Alles Spaetere laeuft ueber
-     aendereZugang und damit ueber den Betroffenen -- die Begruendung steht
+     changeUser und damit ueber den Betroffenen -- die Begruendung steht
      dort. Geprueft VOR dem Anlegen: ein Zugang, der steht, und eine Absage
      daneben waeren zwei Aussagen ueber denselben Aufruf. */
-  const mailAdresse = String(adresse || '').trim();
-  if (mailAdresse && !mail.istAdresse(mailAdresse))
-    throw new Meldung('anmeldung.mailUngueltig');
-  const hash = ohnePasswort === true ? '' : await hashePasswort(passwort);
-  const handelt = handelnder(wer);
+  const mailAddress = String(address || '').trim();
+  if (mailAddress && !mail.isAddress(mailAddress))
+    throw new Message('login.emailInvalid');
+  const hash = withoutPassword === true ? '' : await hashPassword(password);
+  const acting = checkActor(actor);
   const r = db.prepare('INSERT INTO users (username, password_hash, role, email) VALUES (?, ?, ?, ?)')
-    .run(sauber, hash, rolle, mailAdresse || null);
-  protokolliere('zugang.neu', { wer: handelt, ziel: r.lastInsertRowid, merkmal: rolle });
-  return { id: r.lastInsertRowid, username: sauber, role: rolle,
-           ohnePasswort: hash === '', email: mailAdresse };
+    .run(clean, hash, role, mailAddress || null);
+  log('user.new', { actor: acting, target: r.lastInsertRowid, detail: role });
+  return { id: r.lastInsertRowid, username: clean, role: role,
+           withoutPassword: hash === '', email: mailAddress };
 }
 
 // Setzt ein Passwort ohne das bisherige zu kennen -- fuer den Admin, der es
-// zuruecksetzt, und fuer zugang.js. Die Sitzungen fallen dabei ALLE: wer ein
+// zuruecksetzt, und fuer usertool.js. Die Sitzungen fallen dabei ALLE: wer ein
 // fremdes Passwort neu setzt, will den bisherigen Inhaber draussen haben.
-async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {
-  const handelt = handelnder(wer);
-  const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status === 'geloescht') throw new Meldung('server.benutzerGeloescht');
-  if (String(neuesPasswort || '').length < PASSWORT_MIN)
-    throw new Meldung('anmeldung.passwortZuKurz', { min: PASSWORT_MIN });
-  const hash = await hashePasswort(neuesPasswort);
+async function setNewPassword(userId, newPassword, actor) {
+  const acting = checkActor(actor);
+  const u = getUser2(userId);
+  if (!u) throw new Message('server.userUnknown');
+  if (u.status === 'deleted') throw new Message('server.userDeleted');
+  if (String(newPassword || '').length < PASSWORD_MIN)
+    throw new Message('login.passwordTooShort', { min: PASSWORD_MIN });
+  const hash = await hashPassword(newPassword);
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, u.id);
   db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
-  protokolliere('zugang.passwort', { wer: handelt, ziel: u.id });
+  log('user.password', { actor: acting, target: u.id });
   return { id: u.id, username: u.username };
 }
 
-function setzeRolle(benutzerId, rolle, wer) {
-  const handelt = handelnder(wer);
-  const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status === 'geloescht') throw new Meldung('server.benutzerGeloescht');
-  if (!ROLLEN.includes(rolle)) throw new Meldung('anmeldung.rolleFehlt');
+function setRole(userId, role, actor) {
+  const acting = checkActor(actor);
+  const u = getUser2(userId);
+  if (!u) throw new Message('server.userUnknown');
+  if (u.status === 'deleted') throw new Message('server.userDeleted');
+  if (!ROLES.includes(role)) throw new Message('login.roleUnknown');
   // Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
   // noch weiter unten durch Sperren oder Loeschen. Ohne ihn kaeme niemand mehr
-  // an Rollen, Export und Import, und der einzige Ausweg waere zugang.js.
-  if (u.role === 'eigentuemer' && rolle !== 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Meldung('anmeldung.letzterEigentuemer');
-  db.prepare('UPDATE users SET role = ? WHERE id = ?').run(rolle, u.id);
-  protokolliere('zugang.rolle', { wer: handelt, ziel: u.id, merkmal: rolle });
-  return { id: u.id, username: u.username, role: rolle };
+  // an Rollen, Export und Import, und der einzige Ausweg waere usertool.js.
+  if (u.role === 'owner' && role !== 'owner' && ownerCount() <= 1)
+    throw new Message('login.lastOwner');
+  db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, u.id);
+  log('user.role', { actor: acting, target: u.id, detail: role });
+  return { id: u.id, username: u.username, role: role };
 }
 
-function setzeStatus(benutzerId, status, wer) {
-  const handelt = handelnder(wer);
-  const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status === 'geloescht') throw new Meldung('server.benutzerGeloescht');
-  if (status !== 'aktiv' && status !== 'gesperrt')
-    throw new Meldung('anmeldung.statusNichtSetzbar');
-  if (u.role === 'eigentuemer' && status !== 'aktiv' && zahlEigentuemer() <= 1)
-    throw new Meldung('anmeldung.letzterEigentuemer');
+function setStatus(userId, status, actor) {
+  const acting = checkActor(actor);
+  const u = getUser2(userId);
+  if (!u) throw new Message('server.userUnknown');
+  if (u.status === 'deleted') throw new Message('server.userDeleted');
+  if (status !== 'active' && status !== 'locked')
+    throw new Message('login.statusNotSettable');
+  if (u.role === 'owner' && status !== 'active' && ownerCount() <= 1)
+    throw new Message('login.lastOwner');
   db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, u.id);
   // Erste von zwei Schichten. requireAuth wuerde eine laufende Sitzung ohnehin
   // abweisen; das Wegraeumen haelt die Tabelle sauber und wirkt sofort.
@@ -460,11 +492,11 @@ function setzeStatus(benutzerId, status, wer) {
      FREMDEN zweiten Faktor abstreift -- und danach mit einem selbst gesetzten
      Passwort hereinkaeme. Ein Sperren ist umkehrbar und nimmt niemandem etwas;
      der Faktor gehoert dem Betroffenen und ueberlebt es. */
-  if (status !== 'aktiv') {
+  if (status !== 'active') {
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);
   }
-  protokolliere('zugang.status', { wer: handelt, ziel: u.id, merkmal: status });
+  log('user.status', { actor: acting, target: u.id, detail: status });
   return { id: u.id, username: u.username, status };
 }
 
@@ -474,50 +506,50 @@ function setzeStatus(benutzerId, status, wer) {
    geschehen.
    IS NOT statt != , weil user_id nullbar ist: eine herrenlose Zeile ist eine
    fremde und faellt bei != aus dem Vergleich heraus. */
-function zaehleBestand(benutzerId) {
-  const id = Number(benutzerId);
-  const eins = (sql, ...w) => db.prepare(sql).get(...w).n;
-  const seine = 'SELECT id FROM items WHERE user_id = ?';
+function countInventory(userId) {
+  const id = Number(userId);
+  const one = (sql, ...w) => db.prepare(sql).get(...w).n;
+  const ownItems = 'SELECT id FROM items WHERE user_id = ?';
   return {
-    eintraege: eins('SELECT COUNT(*) n FROM items WHERE user_id = ?', id),
+    entries: one('SELECT COUNT(*) n FROM items WHERE user_id = ?', id),
     // an SEINEN Eintraegen, von anderen geschrieben -- faellt mit den Eintraegen
-    fremdKommentare: eins(`SELECT COUNT(*) n FROM comments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    fremdBewertungen: eins(`SELECT COUNT(*) n FROM ratings WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    fremdTesttage: eins(`SELECT COUNT(*) n FROM test_days WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    fremdLinks: eins(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    fremdDateien: eins(`SELECT COUNT(*) n FROM attachments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
+    foreignComments: one(`SELECT COUNT(*) n FROM comments WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignRatings: one(`SELECT COUNT(*) n FROM ratings WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignTestDays: one(`SELECT COUNT(*) n FROM test_days WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignLinks: one(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignFiles: one(`SELECT COUNT(*) n FROM attachments WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
     // SEINE Beitraege in FREMDEN Eintraegen -- das zweite Haekchen
-    kommentare: eins(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
-    bewertungen: eins(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
-    testtage: eins(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
+    comments: one(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    ratings: one(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    testDays: one(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
     // Der fuenfte und der sechste Traeger. Ohne sie saehe ein Zugang, der
     // zwanzig Links und ein Dutzend Dateien in fremden Eintraegen hinterlassen
     // hat, im Dialog leer aus.
-    links: eins(`SELECT COUNT(*) n FROM links WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
-    dateien: eins(`SELECT COUNT(*) n FROM attachments WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id)
+    links: one(`SELECT COUNT(*) n FROM links WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    files: one(`SELECT COUNT(*) n FROM attachments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id)
   };
 }
 
 /* Der Grabstein. Die Zeile wird NICHT entfernt -- sie bleibt mit ihrer id
    stehen, damit user_id weiterhin auf etwas zeigt und die Beitraege sichtbar
    bleiben, nur ohne Namen. Entfernte man sie, machte ON DELETE SET NULL den
-   Bestand herrenlos und ordneBestandZu() schoebe ihn beim naechsten Start still
+   Bestand herrenlos und assignInventory() schoebe ihn beim naechsten Start still
    dem Eigentuemer zu: fremde Aussagen unter fremdem Namen.
    Mitgeloescht wird, was rein persoenlich ist: Sitzungen, Favoriten,
    Einstellungen. Inhalte nur auf ausdrueckliche Ansage. */
-function entferneZugang(benutzerId, optionen = {}, wer) {
-  const handelt = handelnder(wer);
-  const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status === 'geloescht') throw new Meldung('anmeldung.benutzerSchonGeloescht');
-  if (u.role === 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Meldung('anmeldung.letzterEigentuemer');
-  const zahlen = zaehleBestand(u.id);
+function removeUser(userId, options = {}, actor) {
+  const acting = checkActor(actor);
+  const u = getUser2(userId);
+  if (!u) throw new Message('server.userUnknown');
+  if (u.status === 'deleted') throw new Message('login.userDeleted');
+  if (u.role === 'owner' && ownerCount() <= 1)
+    throw new Message('login.lastOwner');
+  const counts = countInventory(u.id);
   db.transaction(() => {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
     // zweite Haekchen Zeilen mit, die das erste ohnehin mitgenommen haette.
-    if (optionen.eintraege) db.prepare('DELETE FROM items WHERE user_id = ?').run(u.id);
-    if (optionen.beitraege) {
+    if (options.entries) db.prepare('DELETE FROM items WHERE user_id = ?').run(u.id);
+    if (options.beitraege) {
       db.prepare('DELETE FROM comments WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM ratings WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM test_days WHERE user_id = ?').run(u.id);
@@ -538,31 +570,31 @@ function entferneZugang(benutzerId, optionen = {}, wer) {
        haette in "sperren und freigeben" einen Weg, einen fremden zweiten
        Faktor abzustreifen. Hier gibt es den Zugang danach nicht mehr; der Name
        wird frei, und wer ihn neu vergibt, bekommt eine neue Nummer. */
-    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(u.id);
-    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(u.id);
+    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);
+    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(u.id);
     db.prepare("UPDATE users SET username = ?, password_hash = '', role = 'user', " +
-               "status = 'geloescht', email = NULL WHERE id = ?")
-      .run(grabsteinName(u.id), u.id);
+               "status = 'deleted', email = NULL WHERE id = ?")
+      .run(tombstoneName(u.id), u.id);
   })();
   /* NACH der Transaktion, nicht darin: eine Protokollzeile, die einen Vorgang
      mitreisst, ueber den sie berichtet, waere die falsche Reihenfolge. Die
-     Zeile bleibt stehen -- der Grabstein traegt seine Nummer weiter, ziel
+     Zeile bleibt stehen -- der Grabstein traegt seine Nummer weiter, target
      zeigt also weiterhin auf etwas. */
-  protokolliere('zugang.weg', { wer: handelt, ziel: u.id });
-  return { id: u.id, name: u.username, grabstein: grabsteinName(u.id), zahlen, optionen };
+  log('user.delete', { actor: acting, target: u.id });
+  return { id: u.id, name: u.username, tombstone: tombstoneName(u.id), counts, options };
 }
 
 // --- AUTH_RESET wird abgelehnt ------------------------------------------
 // Ein Zuruecksetzen ueber eine Umgebungsvariable gibt es nicht: es machte alle
 // Zugaenge und Zuordnungen mit einem Schlag kaputt. Passwort und Zugaenge
-// verwaltet zugang.js auf dem Wirt. Still weglassen waere falsch: wer die
+// verwaltet usertool.js auf dem Wirt. Still weglassen waere falsch: wer die
 // Zeile in der .env stehen hat, muss es erfahren -- der Start bricht nicht ab,
 // sagt es aber laut.
 if (process.env.AUTH_RESET) {
   console.warn('[Kriterion] AUTH_RESET wird seit Version 0.8.0 nicht mehr ausgefuehrt und ist ' +
     'wirkungslos. Die Zeile kann aus der .env entfernt werden. Passwort vergessen: ' +
-    'docker compose exec kriterion node zugang.js passwort <name> -- ' +
-    'Zugang entfernen: node zugang.js entfernen <name>.');
+    'docker compose exec kriterion node usertool.js passwort <name> -- ' +
+    'Zugang entfernen: node usertool.js entfernen <name>.');
 }
 
 // AUTH_USER/AUTH_PASSWORD werden nicht mehr gelesen. Der erste Zugang entsteht
@@ -588,14 +620,14 @@ const SOFT_LIMIT = 5;    // ab hier verzoegerte Antwort
 const HARD_LIMIT = 10;   // ab hier gesperrt -- NUR bei der IP
 const BLOCK_MS = 5 * 60 * 1000;
 
-const schluesselIp = (ip) => `ip:${ip}`;
-const schluesselName = (name) => `name:${String(name || '').trim().toLowerCase()}`;
+const keyIp = (ip) => `ip:${ip}`;
+const keyName = (name) => `name:${String(name || '').trim().toLowerCase()}`;
 
 // Dieselbe Kurve fuer beide Zaehler: eine zweite Rechnung daneben waere eine
 // zweite Wahrheit darueber, wie stark gebremst wird.
-function verzoegerung(count) {
-  const ueber = Math.max(0, count - SOFT_LIMIT + 1);
-  return ueber > 0 ? Math.min(ueber * 700, 4000) : 0;
+function delay(count) {
+  const over = Math.max(0, count - SOFT_LIMIT + 1);
+  return over > 0 ? Math.min(over * 700, 4000) : 0;
 }
 
 /* Die Adresse des Aufrufers -- Grundlage der Anmeldebremse.
@@ -605,45 +637,45 @@ function verzoegerung(count) {
    die er wirklich sieht, hinten an -- alles davor kann der Aufrufer selbst
    hineingeschrieben haben. */
 function clientIp(req) {
-  if (HINTER_PROXY) {
-    const kette = String(req.headers['x-forwarded-for'] || '')
+  if (BEHIND_PROXY) {
+    const chain = String(req.headers['x-forwarded-for'] || '')
       .split(',').map(s => s.trim()).filter(Boolean);
-    if (kette.length) return kette[kette.length - 1];
+    if (chain.length) return chain[chain.length - 1];
   }
   return req.socket.remoteAddress || 'unbekannt';
 }
 
 function checkThrottle(ip, name) {
   let delayMs = 0;
-  const a = attempts.get(schluesselIp(ip));
+  const a = attempts.get(keyIp(ip));
   if (a) {
     if (a.until && Date.now() < a.until) {
       return { blocked: true, retryInSec: Math.ceil((a.until - Date.now()) / 1000) };
     }
-    if (a.until) attempts.delete(schluesselIp(ip));
-    else delayMs = verzoegerung(a.count);
+    if (a.until) attempts.delete(keyIp(ip));
+    else delayMs = delay(a.count);
   }
-  const b = attempts.get(schluesselName(name));
-  if (b) delayMs = Math.max(delayMs, verzoegerung(b.count));
+  const b = attempts.get(keyName(name));
+  if (b) delayMs = Math.max(delayMs, delay(b.count));
   return { blocked: false, delayMs };
 }
 
 function noteFailure(ip, name) {
-  const a = attempts.get(schluesselIp(ip)) || { count: 0, until: 0 };
+  const a = attempts.get(keyIp(ip)) || { count: 0, until: 0 };
   a.count++;
   if (a.count >= HARD_LIMIT) a.until = Date.now() + BLOCK_MS;
-  attempts.set(schluesselIp(ip), a);
+  attempts.set(keyIp(ip), a);
   // Ohne until: der Name bekommt bewusst keine harte Sperre.
   if (String(name || '').trim()) {
-    const b = attempts.get(schluesselName(name)) || { count: 0, until: 0 };
+    const b = attempts.get(keyName(name)) || { count: 0, until: 0 };
     b.count++;
-    attempts.set(schluesselName(name), b);
+    attempts.set(keyName(name), b);
   }
 }
 
 function noteSuccess(ip, name) {
-  attempts.delete(schluesselIp(ip));
-  if (String(name || '').trim()) attempts.delete(schluesselName(name));
+  attempts.delete(keyIp(ip));
+  if (String(name || '').trim()) attempts.delete(keyName(name));
 }
 
 // --- Sitzungen ---------------------------------------------------------
@@ -659,7 +691,7 @@ function noteSuccess(ip, name) {
 
    DER NAME BLEIBT ROH, DER WERT WIRD VERSUCHT: ein Cookie, dessen Wert sich
    nicht dekodieren laesst, ist fuer diese Instanz kein Cookie und faellt
-   stillschweigend heraus. Kein eigener Fehlerpfad, keine Meldung, keine Zeile
+   stillschweigend heraus. Kein eigener Fehlerpfad, keine Message, keine Zeile
    im Sicherheitsprotokoll -- ein fremder Cookie ist kein Vorgang dieser
    Instanz, und eine Zeile, die ein Fremder ausloesen kann, gibt es schon.
    UND ER FAELLT EINZELN HERAUS UND NICHT ALS GANZER KOPF: neben dem kaputten
@@ -671,10 +703,10 @@ function parseCookies(req) {
   for (const part of h.split(';')) {
     const i = part.indexOf('=');
     if (i === -1) continue;
-    let wert;
-    try { wert = decodeURIComponent(part.slice(i + 1).trim()); }
+    let value;
+    try { value = decodeURIComponent(part.slice(i + 1).trim()); }
     catch { continue; }
-    out[part.slice(0, i).trim()] = wert;
+    out[part.slice(0, i).trim()] = value;
   }
   return out;
 }
@@ -689,18 +721,18 @@ function safeEqual(a, b) {
 // angemeldet hat.
 // DER STATUS WIRD HIER NICHT GEPRUEFT: ein gesperrter Zugang soll erfahren,
 // dass er gesperrt ist -- aber erst, wenn er sein Passwort richtig eingegeben
-// hat. Sonst waere die Meldung ein Werkzeug zum Durchprobieren von Namen. Die
+// hat. Sonst waere die Message ein Werkzeug zum Durchprobieren von Namen. Die
 // Entscheidung faellt eine Ebene hoeher, in der Anmelderoute.
-async function pruefeAnmeldung(name, passwort) {
-  const u = holeBenutzerNachNamen(name);
+async function checkLogin(name, password) {
+  const u = getUserByName(name);
   // Auch ohne Zugang wird gerechnet, sonst verraet die Antwortzeit, ob der
   // Benutzername stimmt. Ein GRABSTEIN traegt einen leeren Hash -- ohne den
   // Rueckfall auf den Blindwert waere er messbar schneller abgewiesen als ein
   // lebender Zugang mit falschem Passwort.
-  const nameStimmt = u ? safeEqual(name || '', u.username) : false;
-  const passwortStimmt = await pruefePasswort(passwort || '',
-    (u && u.password_hash) ? u.password_hash : BLINDWERT);
-  if (nameStimmt && passwortStimmt) return u;
+  const nameMatches = u ? safeEqual(name || '', u.username) : false;
+  const passwordMatches = await checkPassword(password || '',
+    (u && u.password_hash) ? u.password_hash : DUMMY_VALUE);
+  if (nameMatches && passwordMatches) return u;
   /* DIE EINZIGE ZEILE, DIE EIN FREMDER AUSLOESEN KANN -- und sie steht HIER,
      weil nur hier bekannt ist, ob der getippte Name ueberhaupt einen Zugang
      traf. Der getippte Name selbst geht NICHT in die Tabelle: sonst landete
@@ -708,7 +740,7 @@ async function pruefeAnmeldung(name, passwort) {
      Geschrieben wird nur, wenn es bis hierher gekommen ist -- der gesperrte
      Fall ruft diese Funktion gar nicht erst, und damit ist die Bremse der
      Deckel ueber der Tabelle. */
-  protokolliere('anmeldung.fehl', { wer: null, ziel: nameStimmt ? u.id : null });
+  log('login.fail', { actor: null, target: nameMatches ? u.id : null });
   return null;
 }
 
@@ -716,8 +748,8 @@ async function pruefeAnmeldung(name, passwort) {
 // Anmeldung -- ueber die Anmeldeseite oder ueber die Ersteinrichtung. Deshalb
 // wird last_login genau hier mitgeschrieben und nicht an beiden Aufrufstellen
 // einzeln: eine Stelle kann nicht auseinanderlaufen.
-function legeSitzungAn(benutzerId) {
-  const id = Number(benutzerId);
+function createSession(userId) {
+  const id = Number(userId);
   if (!Number.isInteger(id) || id <= 0) {
     throw new Error('Eine Sitzung braucht einen Benutzer.');
   }
@@ -728,14 +760,14 @@ function legeSitzungAn(benutzerId) {
      wie last_login darueber: eine Sitzung entsteht ausschliesslich durch eine
      Anmeldung, ueber die Anmeldeseite, die Ersteinrichtung oder das Einloesen
      eines Links. Eine Stelle kann nicht auseinanderlaufen. */
-  protokolliere('anmeldung.ok', { wer: id, ziel: id });
+  log('login.ok', { actor: id, target: id });
   return token;
 }
 
 function destroySession(token) {
   if (token) db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
   // Mit der Sitzung faellt ihre offene Freigabe.
-  verwirfFreigabe(token);
+  dropRelease(token);
 }
 
 function pruneSessions() {
@@ -755,14 +787,14 @@ function pruneSessions() {
    keinen Browserkopf -- die Instanz speichert beides nicht. Die Karte kann
    damit "diese hier" von "alle anderen" trennen und die ZAHL nennen, und mehr
    braucht der Knopf daneben nicht. */
-const sitzungsKennung = (token) =>
+const sessionIdOf = (token) =>
   crypto.createHash('sha256').update(String(token)).digest('hex');
 
 /* SQLite kann SHA-256 nicht rechnen, also wird die Kennung hier gebildet und
    nicht in der Abfrage. Das traegt, weil je Benutzer eine Handvoll Zeilen
    dastehen -- die Abfrage selbst greift ueber idx_sessions_user. */
-function sitzungenVon(benutzerId, eigenerToken) {
-  const id = Number(benutzerId);
+function sessionsOf(userId, ownToken) {
+  const id = Number(userId);
   if (!Number.isInteger(id) || id <= 0)
     throw new Error('Eine Sitzungsliste braucht den angemeldeten Benutzer.');
   return db.prepare(
@@ -770,24 +802,24 @@ function sitzungenVon(benutzerId, eigenerToken) {
       WHERE user_id = ? AND last_seen >= datetime('now', '-${SESSION_DAYS} days')
       ORDER BY last_seen DESC, created_at DESC`
   ).all(id).map(z => ({
-    kennung: sitzungsKennung(z.token),
-    angemeldetAm: z.created_at,
-    zuletztGesehen: z.last_seen,
+    id: sessionIdOf(z.token),
+    loggedInAt: z.created_at,
+    lastSeen: z.last_seen,
     // Die eigene ist markiert, damit die Karte sie nicht mit "alle anderen"
     // wegnimmt -- man wuerde sich sonst selbst hinauswerfen.
-    diese: Boolean(eigenerToken) && z.token === eigenerToken
+    current: Boolean(ownToken) && z.token === ownToken
   }));
 }
 
 // Beendet EINE Sitzung des angemeldeten Benutzers. Die Klemme auf user_id ist
 // die ganze Rechtefrage dieser Funktion: ohne sie beendete eine fremde Kennung
 // eine fremde Sitzung.
-function beendeSitzung(benutzerId, kennung) {
-  const id = Number(benutzerId);
+function endSession(userId, sessionId) {
+  const id = Number(userId);
   if (!Number.isInteger(id) || id <= 0)
     throw new Error('Das Beenden braucht den angemeldeten Benutzer.');
   const z = db.prepare('SELECT token FROM sessions WHERE user_id = ?').all(id)
-    .find(r => sitzungsKennung(r.token) === String(kennung || ''));
+    .find(r => sessionIdOf(r.token) === String(sessionId || ''));
   if (!z) return 0;
   return db.prepare('DELETE FROM sessions WHERE token = ? AND user_id = ?')
     .run(z.token, id).changes;
@@ -799,12 +831,12 @@ function beendeSitzung(benutzerId, kennung) {
    von beiden traegt allein eine Gegenprobe.
    "AND user_id = ?" GEHOERT DAZU: ohne die Klemme wirft ein Passwortwechsel
    jeden anderen Benutzer gleich mit hinaus. */
-function beendeAndereSitzungen(benutzerId, eigenerToken) {
-  const id = Number(benutzerId);
+function endOtherSessions(userId, ownToken) {
+  const id = Number(userId);
   if (!Number.isInteger(id) || id <= 0)
     throw new Error('Das Beenden braucht den angemeldeten Benutzer.');
   return db.prepare('DELETE FROM sessions WHERE token != ? AND user_id = ?')
-    .run(String(eigenerToken || ''), id).changes;
+    .run(String(ownToken || ''), id).changes;
 }
 
 /* --- Token: ein Mechanismus, zwei Anlaesse ------------------------------
@@ -815,11 +847,11 @@ function beendeAndereSitzungen(benutzerId, eigenerToken) {
    DER LINK IST EIN PASSWORTERSATZ AUF ZEIT: er steht nach der Weitergabe in
    einem fremden Verlauf, deshalb ist er kurzlebig und gilt genau einmal. Die
    Oberflaeche sagt das an der Stelle, an der er kopiert wird. */
-const TOKEN_TAGE = 7;
+const TOKEN_DAYS = 7;
 // Wie lange die BENUTZTE Zeile als Spur stehen bleibt, gerechnet ab Ablauf.
 // Eine Schwelle statt zweier: ein Wert, eine Regel, eine Gegenprobe.
-const TOKEN_SPUR_TAGE = 30;
-const TOKEN_ZWECKE = ['einladung', 'ruecksetzung'];
+const TOKEN_TRACE_DAYS = 30;
+const TOKEN_PURPOSES = ['invite', 'reset'];
 
 /* --- Die Frist ab dem ersten Oeffnen ------------------------------------
    SIEBEN TAGE SIND DIE FRIST FUER DAS LESEN DER MAIL, NICHT FUER DAS LIEGEN
@@ -829,7 +861,7 @@ const TOKEN_ZWECKE = ['einladung', 'ruecksetzung'];
 
    WARUM DAS HIER TRAEGT: der uebliche Grund gegen kurze Fristen an
    Einmal-Links sind Vorschaudienste, die Links vorab holen und verbrennen.
-   Der Schluessel steht im FRAGMENT (#/einladung/…), und ein Fragment geht nie
+   Der Schluessel steht im FRAGMENT (#/invite/…), und ein Fragment geht nie
    an den Server -- ein Vorschaudienst loest die Frist also gerade NICHT aus.
 
    INNERHALB DER FRIST DARF BELIEBIG OFT GEOEFFNET WERDEN: NUR DER ERSTE
@@ -839,34 +871,34 @@ const TOKEN_ZWECKE = ['einladung', 'ruecksetzung'];
    KEINE NEUE SPALTE: geschrieben wird ablauf, die es laengst gibt. Der Preis,
    ehrlich benannt -- hinterher ist nicht mehr zu sehen, OB ein Link schon
    einmal geoeffnet wurde, nur noch, wann er ablaeuft. */
-const TOKEN_FRIST_MINUTEN = 15;
+const TOKEN_DEADLINE_MINUTES = 15;
 
 // Liefert den Ablauf, der danach gilt -- fuer den Aufrufer, der ihn nennen
 // will. Schreibt HOECHSTENS herunter, nie hinauf: ein zweiter Aufruf darf die
 // Frist nicht verlaengern, sonst haelt sie ein Neuladen im Minutentakt offen.
-const setzeFrist = db.prepare(
-  `UPDATE tokens SET ablauf = datetime('now', ?)
-    WHERE hash = ? AND benutzt_am IS NULL AND ablauf > datetime('now', ?)`);
-function beginneTokenFrist(hash) {
-  const modifikator = `+${TOKEN_FRIST_MINUTEN} minutes`;
+const setDeadline = db.prepare(
+  `UPDATE tokens SET expires_at = datetime('now', ?)
+    WHERE hash = ? AND used_at IS NULL AND expires_at > datetime('now', ?)`);
+function startTokenDeadline(hash) {
+  const modifier = `+${TOKEN_DEADLINE_MINUTES} minutes`;
   // ZWEI MODIFIKATOREN WAEREN ZWEI ARGUMENTE (Stolperstein 119) -- hier steht
   // derselbe zweimal, einmal als neuer Wert und einmal als Schranke davor.
-  setzeFrist.run(modifikator, String(hash || ''), modifikator);
-  return TOKEN_FRIST_MINUTEN;
+  setDeadline.run(modifier, String(hash || ''), modifier);
+  return TOKEN_DEADLINE_MINUTES;
 }
 
-const tokenHash = (roh) => crypto.createHash('sha256').update(String(roh)).digest('hex');
+const tokenHash = (raw) => crypto.createHash('sha256').update(String(raw)).digest('hex');
 
 /* Dieselbe Bauform wie raeumePapierkorbAuf(): EINE Funktion, ZWEI
    Aufrufstellen -- beim Start und beim Oeffnen der Karte. Eine Instanz, die
    drei Monate durchlaeuft, raeumte sonst drei Monate lang nicht auf.
    ZWEI MODIFIKATOREN WAEREN ZWEI ARGUMENTE (Stolperstein 119); hier steht
    einer, und er wird gebunden statt in den String geschrieben. */
-const delTokenAlt = db.prepare("DELETE FROM tokens WHERE ablauf < datetime('now', ?)");
-function raeumeTokensAuf() {
-  const n = delTokenAlt.run(`-${TOKEN_SPUR_TAGE} days`).changes;
+const delTokensOld = db.prepare("DELETE FROM tokens WHERE expires_at < datetime('now', ?)");
+function cleanupTokens() {
+  const n = delTokensOld.run(`-${TOKEN_TRACE_DAYS} days`).changes;
   if (n) console.log(`[Kriterion] Token: ${n} Zeile(n) laenger als ` +
-    `${TOKEN_SPUR_TAGE} Tage abgelaufen und entfernt.`);
+    `${TOKEN_TRACE_DAYS} Tage abgelaufen und entfernt.`);
   return n;
 }
 
@@ -876,27 +908,27 @@ function raeumeTokensAuf() {
    Die Rechtefrage steht hier ausdruecklich NICHT: wer einladen darf,
    entscheidet server.js an der Route -- dieselbe Trennung wie bei der
    uebrigen Zugangsverwaltung. */
-function erzeugeToken(benutzerId, zweck, wer) {
-  const handelt = handelnder(wer);
-  const u = holeZugang(benutzerId);
-  if (!u) throw new Meldung('server.benutzerFehlt');
-  if (u.status !== 'aktiv') throw new Meldung('anmeldung.benutzerNichtAktiv');
-  if (!TOKEN_ZWECKE.includes(zweck)) throw new Meldung('server.zweckFehlt');
-  const klartext = crypto.randomBytes(32).toString('hex');
+function createToken(userId, purpose, actor) {
+  const acting = checkActor(actor);
+  const u = getUser2(userId);
+  if (!u) throw new Message('server.userUnknown');
+  if (u.status !== 'active') throw new Message('login.userInactive');
+  if (!TOKEN_PURPOSES.includes(purpose)) throw new Message('server.purposeUnknown');
+  const plain = crypto.randomBytes(32).toString('hex');
   db.prepare(
-    `INSERT INTO tokens (hash, user_id, zweck, ablauf)
+    `INSERT INTO tokens (hash, user_id, purpose, expires_at)
      VALUES (?, ?, ?, datetime('now', ?))`
-  ).run(tokenHash(klartext), u.id, zweck, `+${TOKEN_TAGE} days`);
+  ).run(tokenHash(plain), u.id, purpose, `+${TOKEN_DAYS} days`);
   // Ein Link IST ein Passwortersatz auf Zeit -- deshalb steht sein Entstehen im
   // Sicherheitsprotokoll, und zwar mit dem Anlass. Der Schluessel selbst nie.
-  protokolliere('link.neu', { wer: handelt, ziel: u.id, merkmal: zweck });
+  log('link.new', { actor: acting, target: u.id, detail: purpose });
   return {
-    klartext, zweck, id: u.id, username: u.username,
+    plain, purpose, id: u.id, username: u.username,
     // Der Bildschirmtext leitet sich aus dem ZUSTAND ab, nicht aus zweck --
     // sonst stuenden zwei Wahrheiten nebeneinander, sobald jemand einen
     // Einladungslink an einen Zugang schickt, der laengst ein Passwort hat.
-    ohnePasswort: !db.prepare('SELECT password_hash h FROM users WHERE id = ?').get(u.id).h,
-    tage: TOKEN_TAGE
+    withoutPassword: !db.prepare('SELECT password_hash h FROM users WHERE id = ?').get(u.id).h,
+    days: TOKEN_DAYS
   };
 }
 
@@ -911,18 +943,18 @@ function erzeugeToken(benutzerId, zweck, wer) {
    Liefert die Benutzerzeile oder null -- nie ja/nein: der Aufrufer muss den
    Namen nennen koennen, sobald der Token traegt. VORHER nennt ihn niemand,
    sonst verriete ein geratener Token einen Benutzernamen. */
-function pruefeToken(klartext) {
-  const roh = String(klartext || '');
-  if (!roh) return null;
+function checkToken(plain) {
+  const raw = String(plain || '');
+  if (!raw) return null;
   const z = db.prepare(
-    `SELECT t.hash, t.user_id, t.zweck, t.ablauf, u.username, u.status, u.password_hash
+    `SELECT t.hash, t.user_id, t.purpose, t.expires_at, u.username, u.status, u.password_hash
        FROM tokens t JOIN users u ON u.id = t.user_id
-      WHERE t.hash = ? AND t.benutzt_am IS NULL AND t.ablauf > datetime('now')`
-  ).get(tokenHash(roh));
-  if (!z || z.status !== 'aktiv') return null;
+      WHERE t.hash = ? AND t.used_at IS NULL AND t.expires_at > datetime('now')`
+  ).get(tokenHash(raw));
+  if (!z || z.status !== 'active') return null;
   return {
-    hash: z.hash, id: z.user_id, username: z.username, zweck: z.zweck,
-    ablauf: z.ablauf, ohnePasswort: !z.password_hash
+    hash: z.hash, id: z.user_id, username: z.username, purpose: z.purpose,
+    expires_at: z.expires_at, withoutPassword: !z.password_hash
   };
 }
 
@@ -932,26 +964,26 @@ function pruefeToken(klartext) {
    nicht im Konzeptpapier und gehoert trotzdem hierher: laege noch ein
    aelterer Link in einem fremden Verlauf, setzte er hinterher ein zweites Mal
    ein Passwort. "Einmal gueltig" waere dann nur fuer den einen Link wahr.
-   DIE SITZUNGEN FALLEN ueber setzeNeuesPasswort -- dort steht die Regel schon,
+   DIE SITZUNGEN FALLEN ueber setNewPassword -- dort steht die Regel schon,
    und ein zweiter Ort dafuer waere ein zweiter, der auseinanderlaufen kann. */
-async function loeseTokenEin(klartext, neuesPasswort) {
-  const token = pruefeToken(klartext);
-  if (!token) throw new Meldung('server.linkAbgelaufen');
-  if (String(neuesPasswort || '').length < PASSWORT_MIN)
-    throw new Meldung('anmeldung.passwortZuKurz', { min: PASSWORT_MIN });
+async function redeemToken(plain, newPassword) {
+  const token = checkToken(plain);
+  if (!token) throw new Message('server.linkExpired');
+  if (String(newPassword || '').length < PASSWORD_MIN)
+    throw new Message('login.passwordTooShort', { min: PASSWORD_MIN });
   // Ausserhalb der Transaktion: scrypt rechnet absichtlich lange, und eine
   // Transaktion soll nicht so lange offen stehen.
-  const hash = await hashePasswort(neuesPasswort);
+  const hash = await hashPassword(newPassword);
   db.transaction(() => {
-    db.prepare("UPDATE tokens SET benutzt_am = datetime('now') WHERE hash = ?").run(token.hash);
-    db.prepare('DELETE FROM tokens WHERE user_id = ? AND benutzt_am IS NULL').run(token.id);
+    db.prepare("UPDATE tokens SET used_at = datetime('now') WHERE hash = ?").run(token.hash);
+    db.prepare('DELETE FROM tokens WHERE user_id = ? AND used_at IS NULL').run(token.id);
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, token.id);
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(token.id);
   })();
   // Der Einloesende handelt an sich selbst -- er ist ja gerade dabei, sein
   // eigenes Passwort zu setzen. Die Zeile steht NACH der Transaktion.
-  protokolliere('link.ein', { wer: token.id, ziel: token.id, merkmal: token.zweck });
-  return { id: token.id, username: token.username, zweck: token.zweck };
+  log('link.use', { actor: token.id, target: token.id, detail: token.purpose });
+  return { id: token.id, username: token.username, purpose: token.purpose };
 }
 
 /* --- Die Selbstanmeldung ------------------------------------------------
@@ -965,29 +997,29 @@ async function loeseTokenEin(klartext, neuesPasswort) {
 
    DER SCHLUESSEL GEHT DENSELBEN WEG WIE EIN TOKEN -- 32 Zufallsbytes, nur der
    Hash wird gespeichert; tokenHash() wird dabei WIEDERVERWENDET. */
-const ANFRAGE_STUNDEN = 24;
+const REQUEST_HOURS = 24;
 /* WARUM DEUTLICH KUERZER ALS DIE SIEBEN TAGE DES EINLADUNGSLINKS: dort ist
    geprueft, WER den Link bekommt -- ein Admin hat den Zugang angelegt. Hier
    ist noch gar nichts geprueft; die Zeile steht auf nichts als der Behauptung
    eines Fremden. Eine Anfrage, die einen Tag lang nicht bestaetigt wird, ist
    entweder verirrt oder nie gewollt gewesen. */
-const ANFRAGE_DECKEL = 20;
+const REQUEST_CAP = 20;
 /* EINE LAENGENGRENZE, UND SIE GILT NUR HIER: das ist die einzige Stelle im
    Projekt, an der ein FREMDER etwas in die Datenbank schreibt. Ohne Grenze
    passte in jede der zwanzig Zeilen, was der Rumpf hergibt (zwei Megabyte).
-   SIE IST KEINE ZWEITE WAHRHEIT UEBER BENUTZERNAMEN -- pruefeName bleibt
+   SIE IST KEINE ZWEITE WAHRHEIT UEBER BENUTZERNAMEN -- checkName bleibt
    unveraendert, begrenzt wird die EINGABE VON AUSSEN. 254 ist die Laenge, die
    eine Mailadresse ueberhaupt haben darf. */
-const ANFRAGE_NAME_MAX = 64;
-const ANFRAGE_MAIL_MAX = 254;
+const REQUEST_NAME_MAX = 64;
+const REQUEST_MAIL_MAX = 254;
 
 /* Der Deckel zaehlt BESTAETIGTE UND UNBESTAETIGTE ZUSAMMEN. Zaehlte er nur
    die bestaetigten, fuellte ein Angreifer die Tabelle mit Unbestaetigten,
    ohne je eine Mail zu lesen -- und der Admin saehe davon nichts. */
-const qAnfragenZahl = db.prepare('SELECT COUNT(*) n FROM anfragen');
-const zaehleAnfragen = () => qAnfragenZahl.get().n;
+const qRequestCount = db.prepare('SELECT COUNT(*) n FROM requests');
+const countRequests = () => qRequestCount.get().n;
 
-/* Dieselbe Bauform wie raeumeTokensAuf(), aber mit DREI Aufrufstellen --
+/* Dieselbe Bauform wie cleanupTokens(), aber mit DREI Aufrufstellen --
    Start, Karte und die Anfrageroute. Die dritte steht VOR der Deckelpruefung,
    sonst blockierten zwanzig laengst verfallene Zeilen die Selbstanmeldung
    noch einen weiteren Tag.
@@ -995,12 +1027,12 @@ const zaehleAnfragen = () => qAnfragenZahl.get().n;
    den Admin, so lange es dauert.
    EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
    (Stolperstein 119). */
-const delAnfragenAlt = db.prepare(
-  "DELETE FROM anfragen WHERE bestaetigt_am IS NULL AND created_at < datetime('now', ?)");
-function raeumeAnfragenAuf() {
-  const n = delAnfragenAlt.run(`-${ANFRAGE_STUNDEN} hours`).changes;
+const delRequestsOld = db.prepare(
+  "DELETE FROM requests WHERE confirmed_at IS NULL AND created_at < datetime('now', ?)");
+function cleanupRequests() {
+  const n = delRequestsOld.run(`-${REQUEST_HOURS} hours`).changes;
   if (n) console.log(`[Kriterion] Selbstanmeldung: ${n} unbestaetigte Anfrage(n) aelter als ` +
-    `${ANFRAGE_STUNDEN} Stunden entfernt.`);
+    `${REQUEST_HOURS} Stunden entfernt.`);
   return n;
 }
 
@@ -1019,37 +1051,37 @@ function raeumeAnfragenAuf() {
    benannt -- geht die eine Mail verloren, wartet der Anfragende bis zum
    Verfall.
 
-   GEPRUEFT WIRD MIT pruefeName UND mail.istAdresse, wie an einem echten
+   GEPRUEFT WIRD MIT checkName UND mail.isAddress, wie an einem echten
    Zugang: was nie ein Zugang werden koennte, kommt gar nicht erst in die
    Warteschlange. VERGLICHEN WIRD OHNE RUECKSICHT AUF GROSS UND KLEIN -- zwei
    Adressen, die sich nur in der Schreibweise unterscheiden, sind dasselbe
    Postfach. */
-const qAnfrageName = db.prepare('SELECT 1 FROM anfragen WHERE username = ? COLLATE NOCASE');
-const qAnfrageMail = db.prepare('SELECT 1 FROM anfragen WHERE email = ? COLLATE NOCASE');
-const qBenutzerMail = db.prepare('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE');
-function legeAnfrageAn(name, adresse) {
-  const sauber = String(name || '').trim();
-  const post = String(adresse || '').trim();
-  if (sauber.length > ANFRAGE_NAME_MAX || post.length > ANFRAGE_MAIL_MAX) return null;
-  try { pruefeName(sauber); } catch { return null; }
-  if (!mail.istAdresse(post)) return null;
+const qRequestName = db.prepare('SELECT 1 FROM requests WHERE username = ? COLLATE NOCASE');
+const qRequestMail = db.prepare('SELECT 1 FROM requests WHERE email = ? COLLATE NOCASE');
+const qUserMail = db.prepare('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE');
+function createRequest(name, address) {
+  const clean = String(name || '').trim();
+  const post = String(address || '').trim();
+  if (clean.length > REQUEST_NAME_MAX || post.length > REQUEST_MAIL_MAX) return null;
+  try { checkName(clean); } catch { return null; }
+  if (!mail.isAddress(post)) return null;
   // Erst raeumen, dann zaehlen: der Deckel soll sich auf das beziehen, was
   // wirklich noch offen ist.
-  raeumeAnfragenAuf();
-  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;
-  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(sauber)) return null;
-  if (qBenutzerMail.get(post)) return null;
-  if (qAnfrageName.get(sauber)) return null;
-  if (qAnfrageMail.get(post)) return null;
-  const klartext = crypto.randomBytes(32).toString('hex');
-  db.prepare('INSERT INTO anfragen (hash, username, email) VALUES (?, ?, ?)')
-    .run(tokenHash(klartext), sauber, post);
+  cleanupRequests();
+  if (countRequests() >= REQUEST_CAP) return null;
+  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(clean)) return null;
+  if (qUserMail.get(post)) return null;
+  if (qRequestName.get(clean)) return null;
+  if (qRequestMail.get(post)) return null;
+  const plain = crypto.randomBytes(32).toString('hex');
+  db.prepare('INSERT INTO requests (hash, username, email) VALUES (?, ?, ?)')
+    .run(tokenHash(plain), clean, post);
   /* KEINE PROTOKOLLZEILE. Sie waere die einzige neben der gescheiterten
      Anmeldung, die ein FREMDER ausloesen kann -- und damit die zweite Stelle,
      an der sich die Tabelle von aussen vollschreiben liesse. Beim Anmelden
      traegt die Bremse den Deckel; hier gaebe es keinen. Der Vorgang, auf den
      es ankommt, ist ohnehin die Entscheidung des Admins, und die steht drin. */
-  return klartext;
+  return plain;
 }
 
 /* Bestaetigt eine Anfrage. LIEFERT ja/nein UND NICHTS UEBER DIE ZEILE -- der
@@ -1058,19 +1090,19 @@ function legeAnfrageAn(name, adresse) {
    EINE EINZIGE ABSAGE FUER ALLE FAELLE -- erfunden, verfallen, schon
    bestaetigt, laengst freigeschaltet. Dieselbe Ueberlegung wie beim Token:
    das Heilmittel ist in jedem Fall dasselbe, naemlich die Anfrage neu stellen.
-   ZWEIMAL KLICKEN IST UNSCHAEDLICH: bestaetigt_am wird nur gesetzt, wo es noch
+   ZWEIMAL KLICKEN IST UNSCHAEDLICH: confirmed_at wird nur gesetzt, wo es noch
    leer ist, und der zweite Aufruf trifft dieselbe Zeile und meldet ebenfalls
    Erfolg. Wer neu laedt, soll nicht vor einer Absage stehen. */
-const setzeBestaetigt = db.prepare(
-  `UPDATE anfragen SET bestaetigt_am = datetime('now')
+const setConfirmed = db.prepare(
+  `UPDATE requests SET confirmed_at = datetime('now')
     WHERE hash = ? AND created_at > datetime('now', ?)`);
-function bestaetigeAnfrage(klartext) {
-  const roh = String(klartext || '');
-  if (!roh) return false;
+function confirmRequest(plain) {
+  const raw = String(plain || '');
+  if (!raw) return false;
   // Erst raeumen: eine verfallene Zeile darf sich nicht nachtraeglich
   // bestaetigen lassen, nur weil sie noch dasteht.
-  raeumeAnfragenAuf();
-  return setzeBestaetigt.run(tokenHash(roh), `-${ANFRAGE_STUNDEN} hours`).changes > 0;
+  cleanupRequests();
+  return setConfirmed.run(tokenHash(raw), `-${REQUEST_HOURS} hours`).changes > 0;
 }
 
 /* Was der Admin sieht: AUSSCHLIESSLICH DIE BESTAETIGTEN. Eine unbestaetigte
@@ -1079,15 +1111,15 @@ function bestaetigeAnfrage(klartext) {
    freischalten. Genau die Luecke schliesst die Bestaetigungsmail.
    DER SCHLUESSEL KOMMT HIER NIE HERAUS, auch nicht sein Hash: die Karte
    braucht die Nummer, und mehr hat sie mit dem Geheimnis nicht zu tun. */
-const qAnfragen = db.prepare(
-  `SELECT id, username, email, created_at, bestaetigt_am
-     FROM anfragen WHERE bestaetigt_am IS NOT NULL ORDER BY bestaetigt_am ASC, id ASC`);
-const listeAnfragen = () => qAnfragen.all();
-const holeAnfrage = (id) => db.prepare(
-  'SELECT id, username, email, created_at, bestaetigt_am FROM anfragen WHERE id = ?')
+const qRequests = db.prepare(
+  `SELECT id, username, email, created_at, confirmed_at
+     FROM requests WHERE confirmed_at IS NOT NULL ORDER BY confirmed_at ASC, id ASC`);
+const listRequests = () => qRequests.all();
+const getRequest = (id) => db.prepare(
+  'SELECT id, username, email, created_at, confirmed_at FROM requests WHERE id = ?')
   .get(Number(id) || 0) || null;
-const entferneAnfrage = (id) =>
-  db.prepare('DELETE FROM anfragen WHERE id = ?').run(Number(id) || 0).changes > 0;
+const removeRequest = (id) =>
+  db.prepare('DELETE FROM requests WHERE id = ?').run(Number(id) || 0).changes > 0;
 
 /* --- Das Sicherheitsprotokoll -------------------------------------------
    ES HAELT FEST, WER ZUGANG HATTE UND WER DIE INSTANZ ALS GANZES ANGEFASST
@@ -1114,12 +1146,12 @@ const entferneAnfrage = (id) =>
    Der Preis, ehrlich benannt: verteiltes Raten aus vielen Adressen schreibt
    weiterhin viele Zeilen. Die Frist traegt es, und die ersten zehn je Adresse
    sind die Spur, auf die es ankommt. */
-const VORGAENGE = [
-  'anmeldung.ok', 'anmeldung.fehl', 'bestaetigung.fehl',
-  'zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
-  'zugang.weg', 'zugang.selbst',
-  'link.neu', 'link.ein',
-  /* 'anfrage.frei' und 'anfrage.ab' -- die Entscheidung des Admins ueber
+const EVENTS = [
+  'login.ok', 'login.fail', 'confirm.fail',
+  'user.new', 'user.role', 'user.status', 'user.password',
+  'user.delete', 'user.self',
+  'link.new', 'link.use',
+  /* 'request.approve' und 'request.reject' -- die Entscheidung des Admins ueber
      eine Selbstanmeldung. NICHT DOPPELT zu zugang.neu und link.neu: keine der
      beiden sagt, dass der Zugang aus einer SELBSTANMELDUNG kam. Die Ablehnung
      hinterliesse ohne ihre Zeile gar keine Spur.
@@ -1128,113 +1160,113 @@ const VORGAENGE = [
      KEINE ZEILE FUER DIE ANFRAGE UND DIE BESTAETIGUNG -- das waeren die
      einzigen neben der gescheiterten Anmeldung, die ein Fremder ausloesen
      kann. */
-  'anfrage.frei', 'anfrage.ab',
-  /* 'schluessel' -- der Wechsel des Datenbankschluessels. Er
-     laeuft ueber schluessel.js auf dem Wirt und traegt deshalb IMMER das leere
-     `wer` von dort: "ueber den Wirt". Ein Handelnder stuende hier nur als
+  'request.approve', 'request.reject',
+  /* 'key' -- der Wechsel des Datenbankschluessels. Er
+     laeuft ueber keytool.js auf dem Wirt und traegt deshalb IMMER das leere
+     `actor` von dort: "ueber den Wirt". Ein Handelnder stuende hier nur als
      Behauptung, denn wer den Befehl ausfuehren kann, koennte sie setzen.
      DIE ZEILE NENNT, DASS GEWECHSELT WURDE, NIE WOHIN. Kein Merkmal, kein
      Ziel, kein Wert -- weder der alte noch der neue. Das ist die schaerfste
      Auslegung des Merksatzes zu Kontrollausgaben, und sie gilt hier ohne jede
      Ausnahme: die eine Stelle, an der ein Schluessel zum Abschreiben steht,
      ist der Bildschirm des Wirts, nicht diese Tabelle. */
-  /* 'zweifaktor.an', 'zweifaktor.aus' und 'zweifaktor.wieder'.
+  /* 'twofactor.on', 'twofactor.off' und 'twofactor.reset'.
      DER DRITTE IST DER, AUF DEN ES ANKOMMT: ein verbrauchter
      Wiederherstellungscode ist die einzige Zeile im ganzen Protokoll, die
      sagt, dass jemandem das Telefon abhanden gekommen ist.
      KEIN VIERTER FUER DEN FALSCHEN CODE: eine gescheiterte zweite Stufe IST
-     eine gescheiterte Anmeldung und schreibt 'anmeldung.fehl'.
+     eine gescheiterte Anmeldung und schreibt 'login.fail'.
      KEIN NEUES MERKMAL -- 'an' und 'aus' tragen den Betroffenen als wer UND
      als ziel. MERKMALE bleibt bei dreizehn. */
-  'zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder',
-  /* 'sicherung.weg' -- eine entfernte alte Sicherung, seit 0.20.0. Sie steht
-     NEBEN 'sicherung' und nicht an seiner Stelle: das eine legt eine Kopie an,
+  'twofactor.on', 'twofactor.off', 'twofactor.reset',
+  /* 'backup.delete' -- eine entfernte alte Sicherung, seit 0.20.0. Sie steht
+     NEBEN 'backup' und nicht an seiner Stelle: das eine legt eine Kopie an,
      das andere wirft welche weg, und die beiden Vorgaenge sind gegenlaeufig.
      EINE ZEILE JE ENTFERNTER KOPIE. Die ZAHL der entfernten Kopien gehoert ins
-     Protokoll, eine Spalte dafuer gibt es aber nicht -- `wer` und `ziel` sind
-     Benutzernummern, `merkmal` ist eine geschlossene Liste ohne Ziffern, und
+     Protokoll, eine Spalte dafuer gibt es aber nicht -- `actor` und `target` sind
+     Benutzernummern, `detail` ist eine geschlossene Liste ohne Ziffern, und
      Freitext gibt es hier ausdruecklich nicht. Damit ist die Zahl die
      ZEILENZAHL, und das ist dieselbe Aussage in der Form, die die Tabelle
      traegt.
      KEIN DATEINAME, KEIN PFAD, KEINE BYTES: das Protokoll haelt Vorgaenge
      fest, keine Orte auf dem Wirt -- dieselbe Regel wie beim
-     `sicherung`-Eintrag daneben. Die freigegebenen Bytes stehen in der Antwort
+     `backup`-Eintrag daneben. Die freigegebenen Bytes stehen in der Antwort
      und im Containerprotokoll. MERKMALE bleibt deshalb bei vierzehn. */
-  'export', 'import', 'sicherung', 'sicherung.weg', 'schluessel'
+  'export', 'import', 'backup', 'backup.delete', 'key'
 ];
 /* Die geschlossene Liste fuer merkmal. NICHTS ausserhalb davon kommt in die
    Tabelle -- damit ist "kein Freitext von aussen" baulich wahr und nicht bloss
    beabsichtigt. Wer einen Vorgang ergaenzt, ergaenzt hier oder nimmt null.
-   'teil' SEIT 0.13.0 UND OHNE NUMMER: 0.12.4 schrieb "teil 1/5" hierher, und
+   'part' SEIT 0.13.0 UND OHNE NUMMER: 0.12.4 schrieb "teil 1/5" hierher, und
    weil das kein Merkmal aus dieser Liste ist, fiel die GANZE Zeile weg -- ein
    Bestand, der in fuenf Teilen hinausging, hinterliess im Protokoll nichts.
    Die geschlossene Liste hat also gehalten, was sie zusagt; falsch war die
    Aufrufstelle. DIE NUMMER DES TEILS STEHT IM DATEINAMEN und gehoert nicht
    hierher: sie waere Freitext, und genau den gibt es in dieser Spalte nicht. */
-const MERKMALE = ['user', 'admin', 'eigentuemer', 'aktiv', 'gesperrt',
-                  'einladung', 'ruecksetzung', 'merge', 'replace',
-                  'name', 'passwort', 'adresse', 'beides', 'teil'];
+const DETAILS = ['user', 'admin', 'owner', 'active', 'locked',
+                  'invite', 'reset', 'merge', 'replace',
+                  'name', 'password', 'address', 'both', 'part'];
 
 // Eine Frist, laenger als die dreissig Tage von Papierkorb und Tokenspur: ein
 // Protokoll, das den Vorfall vergisst, bevor jemand ihn bemerkt, ist keins.
 // Ein halbes Jahr deckt auch eine lange Abwesenheit ab.
-const PROTOKOLL_TAGE = 180;
+const LOG_DAYS = 180;
 // Wie viele Zeilen die Karte hoechstens holt. Die GESAMTZAHL steht daneben,
 // damit aus "hundert Zeilen" nicht "hundert Vorgaenge" gelesen wird.
-const PROTOKOLL_GRENZE = 100;
+const LOG_LIMIT = 100;
 
-const insProtokoll = db.prepare(
-  'INSERT INTO sicherheitsprotokoll (was, wer, ziel, merkmal) VALUES (?, ?, ?, ?)');
+const insertLog = db.prepare(
+  'INSERT INTO security_log (event, actor, target, detail) VALUES (?, ?, ?, ?)');
 
-/* WER HANDELT -- die Nummer des Angemeldeten oder VOM_WIRT fuer zugang.js.
+/* WER HANDELT -- die Nummer des Angemeldeten oder FROM_HOST fuer usertool.js.
    KEIN VORGABEWERT, und die Klemme darunter ist keine Zierde: ein vergessenes
    Argument waere still eine FALSCHAUSSAGE -- die Zeile behauptete dann, der
    Vorgang sei ueber den Wirt gelaufen. Dieselbe Ueberlegung wie bei qComments
    in server.js, nur mit umgekehrtem Vorzeichen: null ist hier ein gueltiger
    Wert, undefined nicht. */
-const VOM_WIRT = 'wirt';
-function handelnder(wer) {
-  if (wer === VOM_WIRT) return null;
-  const n = Number(wer);
+const FROM_HOST = 'wirt';
+function checkActor(actor) {
+  if (actor === FROM_HOST) return null;
+  const n = Number(actor);
   if (!Number.isInteger(n) || n <= 0)
     throw new Error('Dieser Vorgang braucht den Handelnden — eine Nummer oder VOM_WIRT.');
   return n;
 }
 
 /* Schreibt EINE Zeile. Die Rechtefrage steht hier ausdruecklich NICHT -- wer
-   etwas darf, entscheidet server.js an der Route; zugang.js laeuft auf dem
+   etwas darf, entscheidet server.js an der Route; usertool.js laeuft auf dem
    Wirt und hat ohnehin alles. Diese Funktion haelt nur fest.
    SIE WIRFT NIE. Ein Protokoll, das den Vorgang mitreisst, ueber den es
    berichten soll, waere schlimmer als keins -- geschrieben wird deshalb NACH
    dem Vorgang, und ein Fehlschlag geht ins Containerprotokoll.
    DIE BEIDEN LISTEN WERDEN GEPRUEFT, nicht vorausgesetzt: ein vertippter
    Vorgangsname faellt sonst erst auf, wenn ihn jemand in der Karte sucht. */
-function protokolliere(was, { wer = null, ziel = null, merkmal = null } = {}) {
+function log(event, { actor = null, target = null, detail = null } = {}) {
   try {
-    if (!VORGAENGE.includes(was)) throw new Error(`Unbekannter Vorgang: ${was}`);
-    if (merkmal != null && !MERKMALE.includes(merkmal))
-      throw new Error(`Unbekanntes Merkmal: ${merkmal}`);
+    if (!EVENTS.includes(event)) throw new Error(`Unbekannter Vorgang: ${event}`);
+    if (detail != null && !DETAILS.includes(detail))
+      throw new Error(`Unbekanntes Merkmal: ${detail}`);
     const nr = (v) => {
       const n = Number(v);
       return Number.isInteger(n) && n > 0 ? n : null;
     };
-    insProtokoll.run(was, nr(wer), nr(ziel), merkmal);
+    insertLog.run(event, nr(actor), nr(target), detail);
   } catch (e) {
     console.error('[Kriterion] Sicherheitsprotokoll:', e.message);
   }
 }
 
-/* Dieselbe Bauform wie raeumeTokensAuf() und raeumePapierkorbAuf(): EINE
+/* Dieselbe Bauform wie cleanupTokens() und raeumePapierkorbAuf(): EINE
    Funktion, ZWEI Aufrufstellen -- beim Start und beim Oeffnen der Karte. Eine
    Instanz, die ein halbes Jahr durchlaeuft, raeumte sonst ein halbes Jahr lang
    nicht auf.
    EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
    (Stolperstein 119). */
-const delProtokollAlt = db.prepare("DELETE FROM sicherheitsprotokoll WHERE am < datetime('now', ?)");
-function raeumeProtokollAuf() {
-  const n = delProtokollAlt.run(`-${PROTOKOLL_TAGE} days`).changes;
+const delLogOld = db.prepare("DELETE FROM security_log WHERE at < datetime('now', ?)");
+function cleanupLog() {
+  const n = delLogOld.run(`-${LOG_DAYS} days`).changes;
   if (n) console.log(`[Kriterion] Sicherheitsprotokoll: ${n} Zeile(n) aelter als ` +
-    `${PROTOKOLL_TAGE} Tage entfernt.`);
+    `${LOG_DAYS} Tage entfernt.`);
   return n;
 }
 
@@ -1253,68 +1285,70 @@ function raeumeProtokollAuf() {
    Ansicht zu finden -- ausser unter "alle", und dort sucht ihn niemand.
    DIE WOERTER AM BILDSCHIRM STEHEN IN DER OBERFLAECHE, wie bei den Vorgaengen
    selbst: hier stehen Schluessel und Zuordnung, dort die deutsche Beschriftung. */
-const PROTOKOLL_GRUPPEN = {
+const LOG_GROUPS = {
   // Die Ansicht, um die es geht: wer an der Tuer gescheitert ist. Beide Zeilen
   // sagen dasselbe -- jemand konnte nicht belegen, wer er ist.
-  gescheitert: ['anmeldung.fehl', 'bestaetigung.fehl'],
-  anmeldungen: ['anmeldung.ok'],
-  zugaenge: ['zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
-             'zugang.weg', 'zugang.selbst', 'link.neu', 'link.ein',
-             'anfrage.frei', 'anfrage.ab'],
-  zweifaktor: ['zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder'],
-  // 'sicherung.weg' steht in DERSELBEN Gruppe wie 'sicherung': wer nachsieht,
+  failed: ['login.fail', 'confirm.fail'],
+  logins: ['login.ok'],
+  users: ['user.new', 'user.role', 'user.status', 'user.password',
+          'user.delete', 'user.self', 'link.new', 'link.use',
+          'request.approve', 'request.reject'],
+  twofactor: ['twofactor.on', 'twofactor.off', 'twofactor.reset'],
+  // 'backup.delete' steht in DERSELBEN Gruppe wie 'backup': wer nachsieht,
   // was mit dem Bestand geschehen ist, sucht das Anlegen und das Wegraeumen
   // einer Kopie am selben Ort.
-  bestand: ['export', 'import', 'sicherung', 'sicherung.weg', 'schluessel']
+  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']
 };
 
-const PROT_SPALTEN =
-  `SELECT p.id, p.am, p.was, p.wer, p.ziel, p.merkmal,
-          CASE WHEN uw.status = 'geloescht' THEN NULL ELSE uw.username END AS werName,
-          CASE WHEN uz.status = 'geloescht' THEN NULL ELSE uz.username END AS zielName
-     FROM sicherheitsprotokoll p
-     LEFT JOIN users uw ON uw.id = p.wer
-     LEFT JOIN users uz ON uz.id = p.ziel`;
-const qProtokoll = db.prepare(`${PROT_SPALTEN} ORDER BY p.id DESC LIMIT ?`);
+const LOG_COLUMNS =
+  `SELECT p.id, p.at, p.event, p.actor, p.target, p.detail,
+          CASE WHEN uw.status = 'deleted' THEN NULL ELSE uw.username END AS actorName,
+          CASE WHEN uz.status = 'deleted' THEN NULL ELSE uz.username END AS targetName
+     FROM security_log p
+     LEFT JOIN users uw ON uw.id = p.actor
+     LEFT JOIN users uz ON uz.id = p.target`;
+const qLog = db.prepare(`${LOG_COLUMNS} ORDER BY p.id DESC LIMIT ?`);
 /* JE GRUPPE EINE VORBEREITETE ABFRAGE, beim Laden gebaut. Die Fragezeichen
    entstehen aus der GESCHLOSSENEN Liste und nie aus einer Anfrage; die Werte
    werden gebunden und nicht in den String geschrieben (Stolperstein 119). */
-const qProtokollGruppe = Object.fromEntries(Object.entries(PROTOKOLL_GRUPPEN).map(([k, arten]) =>
-  [k, db.prepare(`${PROT_SPALTEN} WHERE p.was IN (${arten.map(() => '?').join(',')})` +
+const qLogGroup = Object.fromEntries(Object.entries(LOG_GROUPS).map(([k, kinds]) =>
+  [k, db.prepare(`${LOG_COLUMNS} WHERE p.event IN (${kinds.map(() => '?').join(',')})` +
                  ' ORDER BY p.id DESC LIMIT ?')]));
-const qProtokollZahl = db.prepare('SELECT COUNT(*) n FROM sicherheitsprotokoll');
-const qProtokollJeArt = db.prepare('SELECT was, COUNT(*) n FROM sicherheitsprotokoll GROUP BY was');
+const qLogCount = db.prepare('SELECT COUNT(*) n FROM security_log');
+const qLogPerKind = db.prepare('SELECT event, COUNT(*) n FROM security_log GROUP BY event');
 
 /* WELCHE GRUPPE WIE VIELE ZEILEN HAT -- die Zahlen an den Filterpillen. Sie
    zaehlen ueber die GANZE Tabelle und nicht ueber die geholten hundert: eine
    Zahl, die nur ihren eigenen Ausschnitt zaehlt, sagt genau das nicht, was man
    von ihr wissen will. */
-function protokollZahlen() {
-  const jeArt = Object.fromEntries(qProtokollJeArt.all().map(z => [z.was, z.n]));
-  const raus = { alle: 0 };
-  for (const [k, arten] of Object.entries(PROTOKOLL_GRUPPEN))
-    raus[k] = arten.reduce((n, a) => n + (jeArt[a] || 0), 0);
-  raus.alle = Object.values(jeArt).reduce((n, x) => n + x, 0);
-  return raus;
+function logCounts() {
+  const perKind = Object.fromEntries(qLogPerKind.all().map(z => [z.event, z.n]));
+  const out = { all: 0 };
+  for (const [k, kinds] of Object.entries(LOG_GROUPS))
+    out[k] = kinds.reduce((n, a) => n + (perKind[a] || 0), 0);
+  out.all = Object.values(perKind).reduce((n, x) => n + x, 0);
+  return out;
 }
 
-/* `gruppe` ist ein Schluessel aus PROTOKOLL_GRUPPEN oder null fuer alle. Ein
+/* `group` ist ein Schluessel aus LOG_GROUPS oder null fuer alle. Ein
    unbekannter Wert wird HIER nicht abgefangen -- die Route weist ihn ab, denn
    ein stillschweigendes "dann eben alles" saehe aus wie ein Erfolg. */
-function leseProtokoll(grenze = PROTOKOLL_GRENZE, gruppe = null) {
-  const zeilen = gruppe
-    ? qProtokollGruppe[gruppe].all(...PROTOKOLL_GRUPPEN[gruppe], grenze)
-    : qProtokoll.all(grenze);
-  const zahlen = protokollZahlen();
+function readLog(limit = LOG_LIMIT, group = null) {
+  const rows = group
+    ? qLogGroup[group].all(...LOG_GROUPS[group], limit)
+    : qLog.all(limit);
+  const counts = logCounts();
+  /* DIE FELDNAMEN DIESER ANTWORT SIND NOCH DEUTSCH -- sie ziehen mit
+     public/app.js in Bauabschnitt 4 um, wo ihr einziger Leser steht. */
   return {
-    zeilen,
+    rows: rows,
     // Die Zahl der Zeilen DIESER Ansicht -- sonst stuende unter einer
     // gefilterten Liste die Gesamtzahl aller Vorgaenge und widerspraeche ihr.
-    gesamt: gruppe ? zahlen[gruppe] : qProtokollZahl.get().n,
-    zahlen,
-    gruppe: gruppe || null,
-    tage: PROTOKOLL_TAGE,
-    grenze
+    total: group ? counts[group] : qLogCount.get().n,
+    counts,
+    group: group || null,
+    days: LOG_DAYS,
+    limit: limit
   };
 }
 
@@ -1339,18 +1373,18 @@ function leseProtokoll(grenze = PROTOKOLL_GRENZE, gruppe = null) {
    Sitzung desselben Menschen muss selbst bestaetigen. GEBUNDEN AN ZWECK UND
    ZIEL: eine Freigabe fuer den Export entfernt keinen Zugang.
    EINMAL GUELTIG. */
-const FREIGABE_MS = 120 * 1000;
+const RELEASE_MS = 120 * 1000;
 /* ACHT WEGE UEBER SIEBEN ROUTEN. 'mail' kam mit 0.9.0 dazu: wer den
    Mailzugang setzt, entscheidet, ueber wessen Server JEDER kuenftige
    Ruecksetzlink dieser Instanz laeuft; das trifft die Instanz als Ganzes und
    liegt damit in derselben Zeile wie Export und Import.
-   'bilder' kommt mit 0.19.0 dazu und ist der einzige Zweck der Liste, der
+   'images' kommt mit 0.19.0 dazu und ist der einzige Zweck der Liste, der
    BYTES UEBERSCHREIBT: die Umstellung der Bildablage schreibt jeden PNG-Blob
    der Instanz um, und die alte Fassung ist danach weg. Es gibt dafuer keinen
    Papierkorb und keinen Rueckweg -- die Rueckfahrkarte ist die Sicherung des
    Datenverzeichnisses. Genau deshalb steht er hier und nicht bloss hinter
    nurEigentuemer.
-   'sicherung' kommt mit 0.20.0 dazu und ist der ZWEITE, der Bytes entfernt --
+   'backup' kommt mit 0.20.0 dazu und ist der ZWEITE, der Bytes entfernt --
    und der erste, der GANZE DATEIEN vom Dateisystem des Wirts nimmt. Eine
    geloeschte Sicherung holt nichts zurueck: es gibt keinen Papierkorb dafuer,
    und die Vorschau in der Karte ist der Ersatz. Der Zweck deckt beide Wege der
@@ -1358,27 +1392,27 @@ const FREIGABE_MS = 120 * 1000;
    wegraeumen; beide entfernen Dateien, und der Unterschied ist, WELCHE.
    Die Zahl steht im Projektstand und wird dort nachgezaehlt, nicht
    abgeschrieben -- Stolperstein 137. */
-const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link', 'mail',
-                             'bilder', 'sicherung'];
+const CONFIRM_PURPOSES = ['export', 'import', 'role', 'password', 'remove', 'link', 'mail',
+                             'images', 'backup'];
 /* DER SCHLUESSEL IST DIE GANZE BINDUNG: Sitzungstoken, Zweck und Ziel. Ein
    einziger Platz je Sitzung waere eine stille Falle -- eine Anfrage, die zwei
    Zwecke braucht (Rolle UND Passwort in einem Rumpf), verloere mit dem ersten
    Verbrauch den zweiten und schiene an der Schranke zu scheitern, obwohl beide
    bestaetigt waren. */
-const freigaben = new Map(); // "token|zweck|ziel" -> Ablauf in ms
+const releases = new Map(); // "token|zweck|ziel" -> Ablauf in ms
 
-const freigabeZiel = (z) => {
+const releaseTarget = (z) => {
   const n = Number(z);
   return Number.isInteger(n) && n > 0 ? n : null;
 };
-const freigabeSchluessel = (token, zweck, ziel) =>
-  `${String(token)}|${zweck}|${freigabeZiel(ziel) ?? ''}`;
+const releaseKey = (token, purpose, target) =>
+  `${String(token)}|${purpose}|${releaseTarget(target) ?? ''}`;
 
-function erzeugeFreigabe(token, zweck, ziel) {
+function createRelease(token, purpose, target) {
   if (!token) throw new Error('Eine Freigabe braucht die Sitzung.');
-  if (!BESTAETIGUNG_ZWECKE.includes(zweck)) throw new Meldung('server.zweckFehlt');
-  freigaben.set(freigabeSchluessel(token, zweck, ziel), Date.now() + FREIGABE_MS);
-  return { zweck, sekunden: FREIGABE_MS / 1000 };
+  if (!CONFIRM_PURPOSES.includes(purpose)) throw new Message('server.purposeUnknown');
+  releases.set(releaseKey(token, purpose, target), Date.now() + RELEASE_MS);
+  return { purpose, sekunden: RELEASE_MS / 1000 };
 }
 
 /* Prueft UND verbraucht in einem. Zwei Funktionen -- eine, die nachsieht, und
@@ -1386,28 +1420,28 @@ function erzeugeFreigabe(token, zweck, ziel) {
    vergisst, saehe von aussen genauso aus wie die richtige.
    VERBRAUCHT WIRD AUCH DIE ABGELAUFENE: sonst bliebe sie liegen und ein
    zweiter Versuch sagte dasselbe. */
-function verbraucheFreigabe(token, zweck, ziel) {
+function useRelease(token, purpose, target) {
   if (!token) return false;
-  const k = freigabeSchluessel(token, zweck, ziel);
-  const bis = freigaben.get(k);
-  if (bis === undefined) return false;
-  freigaben.delete(k);
-  return Date.now() <= bis;
+  const k = releaseKey(token, purpose, target);
+  const until = releases.get(k);
+  if (until === undefined) return false;
+  releases.delete(k);
+  return Date.now() <= until;
 }
 
 // Mit der Sitzung fallen ihre Freigaben. Ohne das ueberlebten sie eine
 // Abmeldung im Arbeitsspeicher und stuenden einer neuen Sitzung mit demselben
 // Token -- den es zwar nicht zweimal gibt, aber eine Zusicherung, die von
 // dieser Annahme lebt, ist keine.
-function verwirfFreigabe(token) {
+function dropRelease(token) {
   if (!token) return;
-  const vorn = `${String(token)}|`;
-  for (const k of freigaben.keys()) if (k.startsWith(vorn)) freigaben.delete(k);
+  const front = `${String(token)}|`;
+  for (const k of releases.keys()) if (k.startsWith(front)) releases.delete(k);
 }
 
 /* --- Der zweite Faktor ---------------------------------------------------
    WER WILL, SICHERT SEINEN ZUGANG MIT EINEM CODE AUS EINER APP AUF SEINEM
-   TELEFON. Die Rechnung steht in zweifaktor.js; hier stehen die Zeilen und
+   TELEFON. Die Rechnung steht in twofactor.js; hier stehen die Zeilen und
    die Regeln darum herum.
 
    FREIWILLIG, JE ZUGANG, UND JEDER SCHALTET IHN FUER SICH SELBST EIN -- nicht
@@ -1415,41 +1449,41 @@ function verwirfFreigabe(token) {
    Geheimnis auf sein Telefon bekommt; ein Admin, der es fuer einen anderen
    taete, sperrte ihn aus. AUSSCHALTEN darf nur der Betroffene, sonst waere
    der zweite Faktor an der Rollenleiter vorbei abschaltbar. Der einzige Weg
-   daneben ist zugang.js auf dem Wirt.
+   daneben ist usertool.js auf dem Wirt.
 
    DIE RECHTEFRAGE STEHT HIER AUSDRUECKLICH NICHT: welche Nummer
    hereingereicht wird, entscheidet server.js an der Route. */
-const qZweifaktor = db.prepare(
-  'SELECT user_id, geheim, bestaetigt_am, letzter_zaehler FROM zweifaktor WHERE user_id = ?');
-const holeZweifaktor = (benutzerId) => qZweifaktor.get(Number(benutzerId) || 0) || null;
+const qTwoFactor = db.prepare(
+  'SELECT user_id, secret, confirmed_at, last_counter FROM two_factor WHERE user_id = ?');
+const getTwoFactor = (userId) => qTwoFactor.get(Number(userId) || 0) || null;
 
 /* DIE EINE FRAGE, AN DER ALLES HAENGT: verlangt dieser Zugang einen zweiten
-   Faktor? Sie sieht auf bestaetigt_am und nicht auf das Vorhandensein der
+   Faktor? Sie sieht auf confirmed_at und nicht auf das Vorhandensein der
    Zeile -- ein angefangenes, nie bestaetigtes Einschalten darf niemanden
    aussperren. Genau daran kippte die Sache sonst: wer den Knopf drueckt, den
    Bildschirm schliesst und sich neu anmeldet, stuende vor einer Frage, deren
    Antwort auf keinem Telefon steht. */
-const zweifaktorAn = (benutzerId) => {
-  const z = holeZweifaktor(benutzerId);
-  return Boolean(z && z.bestaetigt_am);
+const twoFactorOn = (userId) => {
+  const z = getTwoFactor(userId);
+  return Boolean(z && z.confirmed_at);
 };
 
-const qCodesOffen = db.prepare(
-  'SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ? AND benutzt_am IS NULL');
-const qCodesGesamt = db.prepare('SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ?');
+const qCodesLeft = db.prepare(
+  'SELECT COUNT(*) n FROM two_factor_codes WHERE user_id = ? AND used_at IS NULL');
+const qCodesTotal = db.prepare('SELECT COUNT(*) n FROM two_factor_codes WHERE user_id = ?');
 
 /* WAS DIE KARTE SIEHT -- UND DAS GEHEIMNIS IST NIE DARIN. Dieselbe Linie wie
    beim Mailpasswort: die Karte sagt "an" oder "aus", nie den Wert, nie die
    Laenge, nie den Anfang. Was sie zusaetzlich sagt, ist die ZAHL der uebrigen
    Wiederherstellungscodes -- "noch 6 von 8". Sie verraet nichts und ist das
    Einzige, was rechtzeitig warnt, bevor der letzte verbraucht ist. */
-function zweifaktorStand(benutzerId) {
-  const id = Number(benutzerId) || 0;
-  const z = holeZweifaktor(id);
-  if (!z || !z.bestaetigt_am) return { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
+function twoFactorState(userId) {
+  const id = Number(userId) || 0;
+  const z = getTwoFactor(id);
+  if (!z || !z.confirmed_at) return { an: false, seit: null, codesOpen: 0, codesTotal: 0 };
   return {
-    an: true, seit: z.bestaetigt_am,
-    codesOffen: qCodesOffen.get(id).n, codesGesamt: qCodesGesamt.get(id).n
+    an: true, seit: z.confirmed_at,
+    codesOpen: qCodesLeft.get(id).n, codesTotal: qCodesTotal.get(id).n
   };
 }
 
@@ -1459,53 +1493,54 @@ function zweifaktorStand(benutzerId) {
    dieser Faelle dasselbe, naemlich einen frischen Code vom Telefon ablesen.
    "Der Code ist abgelaufen" waere ausserdem eine Auskunft an den, der raet --
    er wuesste, dass er die richtige Ziffernfolge hat und nur zu spaet war. */
-const ZWEITER_FAKTOR_ABSAGE = 'anmeldung.codeFalsch';
+const TWO_FACTOR_DENIAL = 'login.codeWrong';
 
 /* SCHRITT EINS: das Geheimnis entsteht und geht EINMAL ueber das Netz --
    danach nie wieder, auch nicht an den Eigentuemer.
 
-   NOCH IST NICHTS EINGESCHALTET: bestaetigt_am bleibt leer, bis ein Code aus
+   NOCH IST NICHTS EINGESCHALTET: confirmed_at bleibt leer, bis ein Code aus
    dem Telefon belegt, dass die App dasselbe rechnet.
 
    EIN ZWEITER AUFRUF ERSETZT DAS ANGEFANGENE GEHEIMNIS. AN EINEM BESTAETIGTEN
    FAKTOR WIRD ABGEWIESEN: erst ausschalten -- sonst waere dieser Knopf der
    Weg, einen laufenden zweiten Faktor aus einer uebernommenen Sitzung heraus
    gegen einen eigenen zu tauschen. */
-function beginneZweifaktor(benutzerId, instanzName, benutzername) {
-  const id = Number(benutzerId) || 0;
-  if (zweifaktorAn(id)) throw new Meldung('anmeldung.zweiterFaktorSchonAn');
-  const geheim = zf.neuesGeheimnis();
+function startTwoFactor(userId, instanceName, username) {
+  const id = Number(userId) || 0;
+  if (twoFactorOn(id)) throw new Message('login.twoFactorAlreadyOn');
+  const secret = zf.newSecret();
   db.prepare(
-    `INSERT INTO zweifaktor (user_id, geheim, bestaetigt_am, letzter_zaehler)
+    `INSERT INTO two_factor (user_id, secret, confirmed_at, last_counter)
      VALUES (?, ?, NULL, NULL)
      ON CONFLICT(user_id) DO UPDATE SET
-       geheim = excluded.geheim, bestaetigt_am = NULL, letzter_zaehler = NULL,
+       secret = excluded.secret, confirmed_at = NULL, last_counter = NULL,
        created_at = datetime('now')`
-  ).run(id, geheim);
+  ).run(id, secret);
   return {
-    geheim, gruppen: zf.inVierergruppen(geheim),
-    zeile: zf.otpauthZeile(instanzName, benutzername, geheim),
-    ziffern: zf.ZIFFERN, sekunden: zf.SCHRITT_SEKUNDEN
+    // Der Feldname bleibt deutsch, bis app.js in Bauabschnitt 4 mitzieht.
+    secret: secret, groups: zf.groupsOfFour(secret),
+    row: zf.otpauthLine(instanceName, username, secret),
+    ziffern: zf.DIGITS, sekunden: zf.STEP_SECONDS
   };
 }
 
-/* Legt WIEDER_ZAHL frische Codes an und liefert die KLARTEXTE genau einmal
+/* Legt RECOVERY_COUNT frische Codes an und liefert die KLARTEXTE genau einmal
    zurueck -- danach stehen sie nirgends mehr, auch nicht in der Datenbank.
    EINE TRANSAKTION: entweder sind die alten fort UND die neuen da, oder es hat
    sich nichts bewegt. Ein halber Satz waere schlimmer als der alte. */
-const insCode = db.prepare(
-  'INSERT INTO zweifaktor_codes (hash, user_id) VALUES (?, ?)');
-function legeWiederCodesAn(benutzerId) {
-  const id = Number(benutzerId) || 0;
-  const klartexte = zf.neueWiederCodes();
+const insertCode = db.prepare(
+  'INSERT INTO two_factor_codes (hash, user_id) VALUES (?, ?)');
+function createRecoveryCodes(userId) {
+  const id = Number(userId) || 0;
+  const plains = zf.newRecoveryCodes();
   db.transaction(() => {
-    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);
     // tokenHash() WIRD WIEDERVERWENDET und nicht ein zweites Mal geschrieben:
     // zwei Ausfertigungen derselben Rechnung liefen beim naechsten Griff
     // auseinander. Dieselbe Ueberlegung wie bei der Selbstanmeldung.
-    for (const k of klartexte) insCode.run(tokenHash(k), id);
+    for (const k of plains) insertCode.run(tokenHash(k), id);
   })();
-  return klartexte.map(zf.wiederAnzeige);
+  return plains.map(zf.recoveryDisplay);
 }
 
 /* SCHRITT ZWEI: ein gueltiger Code aus dem Telefon schaltet ein. Erst hier
@@ -1514,19 +1549,19 @@ function legeWiederCodesAn(benutzerId) {
    DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT. Ohne das truege er unmittelbar
    danach ein zweites Mal, naemlich an der ersten Anmeldung, und "ein Code gilt
    genau einmal" waere an seiner ersten Anwendung falsch. */
-function schalteZweifaktorEin(benutzerId, eingabe, wer, jetzt = Date.now()) {
-  const id = Number(benutzerId) || 0;
-  const z = holeZweifaktor(id);
-  if (!z) throw new Meldung('anmeldung.zweiterFaktorNichtBegonnen');
-  if (z.bestaetigt_am) throw new Meldung('anmeldung.zweiterFaktorSchonAn');
-  const zaehler = zf.pruefeCode(z.geheim, eingabe, jetzt);
-  if (zaehler === null) throw new Meldung(ZWEITER_FAKTOR_ABSAGE);
+function turnTwoFactorOn(userId, input, actor, now = Date.now()) {
+  const id = Number(userId) || 0;
+  const z = getTwoFactor(id);
+  if (!z) throw new Message('login.twoFactorNotBegun');
+  if (z.confirmed_at) throw new Message('login.twoFactorAlreadyOn');
+  const counter = zf.checkCode(z.secret, input, now);
+  if (counter === null) throw new Message(TWO_FACTOR_DENIAL);
   db.prepare(
-    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?
-      WHERE user_id = ?`).run(zaehler, id);
-  const codes = legeWiederCodesAn(id);
-  protokolliere('zweifaktor.an', { wer: handelnder(wer), ziel: id });
-  return { ...zweifaktorStand(id), codes };
+    `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = ?
+      WHERE user_id = ?`).run(counter, id);
+  const codes = createRecoveryCodes(id);
+  log('twofactor.on', { actor: checkActor(actor), target: id });
+  return { ...twoFactorState(id), codes };
 }
 
 /* Prueft einen zweiten Faktor UND verbraucht ihn in einem Zug. Liefert die
@@ -1542,31 +1577,31 @@ function schalteZweifaktorEin(benutzerId, eingabe, wer, jetzt = Date.now()) {
 
    DER ZAEHLER MUSS ECHT GROESSER SEIN als der zuletzt verbrauchte -- damit ist
    nach einer Anmeldung auch das Fenster DAVOR tot. */
-const verbraucheZaehler = db.prepare(
-  `UPDATE zweifaktor SET letzter_zaehler = ?
-    WHERE user_id = ? AND (letzter_zaehler IS NULL OR letzter_zaehler < ?)`);
-const verbraucheWieder = db.prepare(
-  `UPDATE zweifaktor_codes SET benutzt_am = datetime('now')
-    WHERE hash = ? AND user_id = ? AND benutzt_am IS NULL`);
-function pruefeZweitenFaktor(benutzerId, eingabe, jetzt = Date.now()) {
-  const id = Number(benutzerId) || 0;
-  const z = holeZweifaktor(id);
-  if (!z || !z.bestaetigt_am) return null;
-  if (zf.istCodeform(eingabe)) {
-    const zaehler = zf.pruefeCode(z.geheim, eingabe, jetzt);
-    if (zaehler === null) return null;
-    if (!verbraucheZaehler.run(zaehler, id, zaehler).changes) return null;
+const useCounter = db.prepare(
+  `UPDATE two_factor SET last_counter = ?
+    WHERE user_id = ? AND (last_counter IS NULL OR last_counter < ?)`);
+const useRecoveryCode = db.prepare(
+  `UPDATE two_factor_codes SET used_at = datetime('now')
+    WHERE hash = ? AND user_id = ? AND used_at IS NULL`);
+function checkTwoFactor(userId, input, now = Date.now()) {
+  const id = Number(userId) || 0;
+  const z = getTwoFactor(id);
+  if (!z || !z.confirmed_at) return null;
+  if (zf.isCodeForm(input)) {
+    const counter = zf.checkCode(z.secret, input, now);
+    if (counter === null) return null;
+    if (!useCounter.run(counter, id, counter).changes) return null;
     return 'app';
   }
-  if (zf.istWiederform(eingabe)) {
-    const hash = tokenHash(zf.wiederNormal(eingabe));
-    if (!verbraucheWieder.run(hash, id).changes) return null;
+  if (zf.isRecoveryForm(input)) {
+    const hash = tokenHash(zf.recoveryNormal(input));
+    if (!useRecoveryCode.run(hash, id).changes) return null;
     /* DIE EINZIGE ZEILE IM PROTOKOLL, DIE SAGT, DASS EIN TELEFON WEG IST. Sie
        steht HIER und nicht an der Route: es gibt drei Rufer (Anmeldung,
        Tokenweg, zweite Bestaetigung), und drei Ausfertigungen derselben Zeile
        liefen auseinander. wer und ziel sind derselbe Mensch -- er handelt an
        sich selbst, wie beim Einloesen eines Links. */
-    protokolliere('zweifaktor.wieder', { wer: id, ziel: id });
+    log('twofactor.reset', { actor: id, target: id });
     return 'wieder';
   }
   return null;
@@ -1575,28 +1610,28 @@ function pruefeZweitenFaktor(benutzerId, eingabe, jetzt = Date.now()) {
 /* Frische Wiederherstellungscodes fuer den, der seine verbraucht hat. Hinter
    Passwort UND gueltigem Code -- die Route stellt beides sicher.
    DER FALL, DEN NIEMAND PLANT, IST DER LETZTE VERBRAUCHTE CODE. Ohne diesen Weg
-   bliebe dafuer nur zugang.js auf dem Wirt; mit ihm sieht der Betroffene an
+   bliebe dafuer nur usertool.js auf dem Wirt; mit ihm sieht der Betroffene an
    der Karte, dass es eng wird ("noch 1 von 8"), und holt sich neue. */
-function erneuereWiederCodes(benutzerId) {
-  const id = Number(benutzerId) || 0;
-  if (!zweifaktorAn(id)) throw new Meldung('server.zweiterFaktorAus');
-  return legeWiederCodesAn(id);
+function refreshRecoveryCodes(userId) {
+  const id = Number(userId) || 0;
+  if (!twoFactorOn(id)) throw new Message('server.twoFactorOff');
+  return createRecoveryCodes(id);
 }
 
-/* Ausschalten. ALLEIN DER BETROFFENE -- oder zugang.js auf dem Wirt, und das
-   ist am leeren `wer` zu erkennen.
+/* Ausschalten. ALLEIN DER BETROFFENE -- oder usertool.js auf dem Wirt, und das
+   ist am leeren `actor` zu erkennen.
    BEIDE TABELLEN IN EINER TRANSAKTION: ein Faktor ohne Codes oder Codes ohne
    Faktor waeren beide ein halber Zustand.
    LIEFERT ja/nein: war gar keiner an, ist nichts geschehen, und der Aufrufer
    soll das sagen koennen. */
-function schalteZweifaktorAus(benutzerId, wer) {
-  const id = Number(benutzerId) || 0;
-  if (!holeZweifaktor(id)) return false;
+function turnTwoFactorOff(userId, actor) {
+  const id = Number(userId) || 0;
+  if (!getTwoFactor(id)) return false;
   db.transaction(() => {
-    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(id);
-    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);
   })();
-  protokolliere('zweifaktor.aus', { wer: handelnder(wer), ziel: id });
+  log('twofactor.off', { actor: checkActor(actor), target: id });
   return true;
 }
 
@@ -1615,41 +1650,41 @@ function schalteZweifaktorAus(benutzerId, wer) {
    liest sie NIE aus dem Rumpf -- sonst waere der Ausweis eine Eintrittskarte
    fuer einen beliebigen Zugang, und das richtige Passwort eines Zugangs
    oeffnete jeden anderen. */
-const ANMELDE_AUSWEIS_MS = FREIGABE_MS;
-const ausweise = new Map(); // schluessel -> { id, bis }
+const LOGIN_TICKET_MS = RELEASE_MS;
+const tickets = new Map(); // schluessel -> { id, bis }
 
-function erzeugeAnmeldeAusweis(benutzerId) {
-  const id = Number(benutzerId);
+function createLoginTicket(userId) {
+  const id = Number(userId);
   if (!Number.isInteger(id) || id <= 0) throw new Error('Ein Ausweis braucht einen Zugang.');
   // Beim Anlegen einmal durchsehen. Die Karte waechst sonst mit jeder
   // Anmeldung, die zwischen den beiden Schritten abgebrochen wird -- und wer
   // sie fuellen will, braucht dafuer jedes Mal das richtige Passwort.
-  const jetzt = Date.now();
-  for (const [k, a] of ausweise) if (a.bis <= jetzt) ausweise.delete(k);
-  const schluessel = crypto.randomBytes(32).toString('hex');
-  ausweise.set(schluessel, { id, bis: jetzt + ANMELDE_AUSWEIS_MS });
-  return { ausweis: schluessel, sekunden: ANMELDE_AUSWEIS_MS / 1000 };
+  const now = Date.now();
+  for (const [k, a] of tickets) if (a.until <= now) tickets.delete(k);
+  const key = crypto.randomBytes(32).toString('hex');
+  tickets.set(key, { id, until: now + LOGIN_TICKET_MS });
+  return { ticket: key, sekunden: LOGIN_TICKET_MS / 1000 };
 }
 
-/* Prueft UND verbraucht in einem, wie verbraucheFreigabe. Zwei Funktionen --
+/* Prueft UND verbraucht in einem, wie useRelease. Zwei Funktionen --
    eine, die nachsieht, und eine, die verbraucht -- waeren zwei Stellen, und die
    Route, die die zweite vergisst, saehe von aussen genauso aus wie die richtige.
    VERBRAUCHT WIRD AUCH DER ABGELAUFENE: sonst bliebe er liegen und ein zweiter
    Versuch sagte dasselbe. */
-function verbraucheAnmeldeAusweis(schluessel) {
-  const k = String(schluessel || '');
+function useLoginTicket(key) {
+  const k = String(key || '');
   if (!k) return null;
-  const a = ausweise.get(k);
+  const a = tickets.get(k);
   if (a === undefined) return null;
-  ausweise.delete(k);
-  return Date.now() <= a.bis ? a.id : null;
+  tickets.delete(k);
+  return Date.now() <= a.until ? a.id : null;
 }
 
 // Liefert den Benutzer hinter dem Cookie oder null. Der JOIN ist die Aussage:
 // eine Sitzung ohne Benutzer gilt nicht -- bliebe doch eine herrenlose Zeile
 // liegen, waere sie ein Schluessel zu niemandem.
 // Nebenwirkung mit Absicht: der Zugriff frischt last_seen auf.
-function sitzungsBenutzer(token) {
+function sessionUser(token) {
   if (!token) return null;
   const b = db.prepare(
     `SELECT u.id, u.username, u.role, u.status
@@ -1668,7 +1703,7 @@ function sitzungsBenutzer(token) {
    Weg -- und keine Bedingung, die man falsch stellen kann. */
 const sessionCookie = (req, token) =>
   `${cookieName(req)}=${token}; HttpOnly; Path=/; SameSite=Lax` +
-  `${ueberProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;
+  `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;
 /* GELOESCHT WERDEN BEIDE NAMEN, nicht nur der des eigenen Wegs. Wer sich
    abmeldet, meint diesen Browser und nicht diese Verbindungsart -- ein
    stehengebliebener Cookie des anderen Wegs waere ein Zugang, den niemand mehr
@@ -1676,7 +1711,7 @@ const sessionCookie = (req, token) =>
    Secure-Loeschzeile ueber http laesst er liegen, und dort gibt es diesen
    Cookie ohnehin nicht. */
 const clearCookie = () => [
-  `${COOKIE_SICHER}=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0`,
+  `${COOKIE_SECURE}=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0`,
   `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`
 ];
 
@@ -1685,7 +1720,7 @@ const clearCookie = () => [
    die Rechteschranke haengen alle daran; zwei Lesewege nebeneinander liefen
    auseinander, und der Unterschied faellt erst auf, wenn eine Freigabe nicht
    passt oder jemand sich selbst hinauswirft. */
-const sitzungsToken = (req) => parseCookies(req)[cookieName(req)];
+const sessionToken = (req) => parseCookies(req)[cookieName(req)];
 
 // req.benutzer ist ab hier fuer jeden geschuetzten Endpunkt gesetzt:
 // { id, username, role, status }. Genau EINE Abfrage je Anfrage.
@@ -1693,52 +1728,52 @@ const sitzungsToken = (req) => parseCookies(req)[cookieName(req)];
 // Anmelderoute; ohne diese bliebe ein gerade gesperrter Zugang bis zum Ablauf
 // seines Cookies drin. 401 und nicht 403: der Zugang gilt nicht mehr.
 function requireAuth(req, res, next) {
-  const token = sitzungsToken(req);
-  const benutzer = sitzungsBenutzer(token);
-  if (!benutzer) {
-    return res.status(401).json({ error: uebersetze(req, 'anmeldung.nichtAngemeldet') });
+  const token = sessionToken(req);
+  const user = sessionUser(token);
+  if (!user) {
+    return res.status(401).json({ error: translate(req, 'login.notSignedIn') });
   }
-  if (benutzer.status !== 'aktiv') {
+  if (user.status !== 'active') {
     destroySession(token);
     return res.status(401).json({
-      error: uebersetze(req, benutzer.status === 'geloescht'
-        ? 'server.kontoWeg' : 'anmeldung.kontoGesperrt')
+      error: translate(req, user.status === 'deleted'
+        ? 'server.accountGone' : 'login.accountLocked')
     });
   }
-  req.benutzer = benutzer;
+  req.user = user;
   next();
 }
 
 module.exports = {
   // Die Fehlerklasse; Rufer sind server.js (uebersetzt) und diese Datei.
-  Meldung, setzeUebersetzer,
-  COOKIE_NAME, COOKIE_SICHER, cookieName, sitzungsToken, ueberProxy,
-  HINTER_PROXY, PASSWORT_MIN, SESSION_DAYS,
-  OEFFENTLICHE_ADRESSE, pruefeOeffentlicheAdresse, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,
-  sitzungsBenutzer, pruneSessions, sessionCookie, clearCookie, requireAuth,
+  Message, setTranslator,
+  COOKIE_NAME, COOKIE_SECURE, cookieName, sessionToken, viaProxy,
+  BEHIND_PROXY, PASSWORD_MIN, SESSION_DAYS, fromEnv,
+  PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
+  sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,
   clientIp, checkThrottle, noteFailure, noteSuccess,
   // Meine Sitzungen und die Token; Rufer ist server.js.
-  sitzungsKennung, sitzungenVon, beendeSitzung, beendeAndereSitzungen,
-  TOKEN_TAGE, TOKEN_SPUR_TAGE, TOKEN_ZWECKE, TOKEN_FRIST_MINUTEN, tokenHash,
-  raeumeTokensAuf, erzeugeToken, pruefeToken, loeseTokenEin, beginneTokenFrist,
+  sessionIdOf, sessionsOf, endSession, endOtherSessions,
+  TOKEN_DAYS, TOKEN_TRACE_DAYS, TOKEN_PURPOSES, TOKEN_DEADLINE_MINUTES, tokenHash,
+  cleanupTokens, createToken, checkToken, redeemToken, startTokenDeadline,
   // Die Selbstanmeldung; Rufer ist server.js.
-  ANFRAGE_STUNDEN, ANFRAGE_DECKEL, ANFRAGE_NAME_MAX, ANFRAGE_MAIL_MAX,
-  zaehleAnfragen, raeumeAnfragenAuf,
-  legeAnfrageAn, bestaetigeAnfrage, listeAnfragen, holeAnfrage, entferneAnfrage,
-  // Das Sicherheitsprotokoll; Rufer sind server.js und zugang.js.
-  VORGAENGE, MERKMALE, PROTOKOLL_TAGE, PROTOKOLL_GRENZE, PROTOKOLL_GRUPPEN, VOM_WIRT,
-  protokolliere, raeumeProtokollAuf, leseProtokoll,
+  REQUEST_HOURS, REQUEST_CAP, REQUEST_NAME_MAX, REQUEST_MAIL_MAX,
+  countRequests, cleanupRequests,
+  createRequest, confirmRequest, listRequests, getRequest, removeRequest,
+  // Das Sicherheitsprotokoll; Rufer sind server.js und usertool.js.
+  EVENTS, DETAILS, LOG_DAYS, LOG_LIMIT, LOG_GROUPS, FROM_HOST,
+  log, cleanupLog, readLog,
   // Die zweite Bestaetigung.
-  BESTAETIGUNG_ZWECKE, FREIGABE_MS, erzeugeFreigabe, verbraucheFreigabe, verwirfFreigabe,
-  // Der zweite Faktor; Rufer sind server.js und zugang.js.
-  ZWEITER_FAKTOR_ABSAGE, ANMELDE_AUSWEIS_MS,
-  zweifaktorAn, zweifaktorStand, beginneZweifaktor, schalteZweifaktorEin,
-  pruefeZweitenFaktor, erneuereWiederCodes, schalteZweifaktorAus,
-  erzeugeAnmeldeAusweis, verbraucheAnmeldeAusweis,
-  holeBenutzer, holeBenutzerNachNamen, benutzerVorhanden, legeErstenBenutzerAn, aendereZugang,
-  hashePasswort, pruefePasswort,
-  // Zugangsverwaltung; Rufer sind server.js und zugang.js.
-  ROLLEN, ZUSTAENDE, grabsteinName, GRABSTEIN_MUSTER,
-  holeZugang, listeZugaenge, zahlEigentuemer,
-  legeZugangAn, setzeNeuesPasswort, setzeRolle, setzeStatus, zaehleBestand, entferneZugang
+  CONFIRM_PURPOSES, RELEASE_MS, createRelease, useRelease, dropRelease,
+  // Der zweite Faktor; Rufer sind server.js und usertool.js.
+  TWO_FACTOR_DENIAL, LOGIN_TICKET_MS,
+  twoFactorOn, twoFactorState, startTwoFactor, turnTwoFactorOn,
+  checkTwoFactor, refreshRecoveryCodes, turnTwoFactorOff,
+  createLoginTicket, useLoginTicket,
+  getUser, getUserByName, userExists, createFirstUser, changeUser,
+  hashPassword, checkPassword,
+  // Zugangsverwaltung; Rufer sind server.js und usertool.js.
+  ROLES, STATES, tombstoneName, TOMBSTONE_PATTERN,
+  getUser2, listUsers, ownerCount,
+  createUser, setNewPassword, setRole, setStatus, countInventory, removeUser
 };

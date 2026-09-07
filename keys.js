@@ -14,7 +14,7 @@ const { isMainThread } = require('worker_threads');
 
 // Genau 64 Hex-Zeichen -- an EINER Stelle, weil die Frage an dreien gestellt
 // wird: beim Laden, beim Erzeugen und beim Nachziehen der Ablage.
-const HEX_MUSTER = /^[0-9a-fA-F]{64}$/;
+const HEX_PATTERN = /^[0-9a-fA-F]{64}$/;
 
 // Der Schluessel wird gebraucht, um die Datenbankdatei ueberhaupt zu oeffnen.
 // Er kann deshalb nicht in der Datenbank liegen, sondern nur aus der Umgebung
@@ -23,7 +23,7 @@ function loadKey(dataDir) {
   const fromEnv = process.env.ENCRYPTION_KEY;
   if (fromEnv && fromEnv.trim()) {
     const clean = fromEnv.trim();
-    if (!HEX_MUSTER.test(clean)) {
+    if (!HEX_PATTERN.test(clean)) {
       throw new Error('ENCRYPTION_KEY muss genau 64 Hex-Zeichen lang sein (erzeugen mit: openssl rand -hex 32)');
     }
     if (isMainThread) console.log('[Kriterion] Schluessel aus ENCRYPTION_KEY geladen.');
@@ -63,7 +63,7 @@ function warnKeyBesideData() {
 }
 
 /* --- Den Schluessel wechseln ---------------------------------------------
-   WER DAS HIER RUFT: ausschliesslich schluessel.js auf dem Wirt. Der Server
+   WER DAS HIER RUFT: ausschliesslich keytool.js auf dem Wirt. Der Server
    ruft NICHTS davon -- er liest seinen Schluessel beim Start und danach nie
    wieder. Es steht trotzdem hier und nicht dort: "woher der Schluessel kommt"
    und "wohin der neue geschrieben wird" sind dieselbe Frage, und zwei Stellen
@@ -78,33 +78,33 @@ function warnKeyBesideData() {
                       gefuehrt werden und wird deshalb gar nicht erst
                       angefangen. */
 
-function erzeugeSchluessel() {
+function createKey() {
   return crypto.randomBytes(32).toString('hex');
 }
 
 // Die Ablage neben der Datenbank. Erst daneben, dann umbenannt: eine
 // halbgeschriebene Schluesseldatei ist genauso toedlich wie ein halber Wechsel
 // (Stolperstein 8).
-function schreibeSchluesselDatei(dataDir, hex) {
-  if (!HEX_MUSTER.test(hex)) throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
-  const ziel = path.join(dataDir, 'encryption.key');
-  const werdend = ziel + '.wird';
-  fs.writeFileSync(werdend, hex, { mode: 0o600 });
-  fs.renameSync(werdend, ziel);
-  return ziel;
+function writeKeyFile(dataDir, hex) {
+  if (!HEX_PATTERN.test(hex)) throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
+  const target = path.join(dataDir, 'encryption.key');
+  const becoming = target + '.wird';
+  fs.writeFileSync(becoming, hex, { mode: 0o600 });
+  fs.renameSync(becoming, target);
+  return target;
 }
 
 /* Die aktive ENCRYPTION_KEY-Zeile einer .env -- und ausdruecklich nur eine
    AKTIVE. Eine auskommentierte Zeile ist keine Einstellung, sondern ein
    Hinweis; in der .env.example stehen sechs davon. Liefert Nummer und Wert
    oder null. */
-function findeEnvZeile(zeilen) {
-  const treffer = [];
-  zeilen.forEach((z, i) => {
+function findEnvLine(lines) {
+  const hit = [];
+  lines.forEach((z, i) => {
     const m = z.match(/^\s*ENCRYPTION_KEY\s*=\s*(.*?)\s*$/);
-    if (m) treffer.push({ nr: i, wert: m[1] });
+    if (m) hit.push({ nr: i, value: m[1] });
   });
-  return treffer;
+  return hit;
 }
 
 /* Schreibt den neuen Wert in die .env und kommentiert den alten aus.
@@ -115,61 +115,61 @@ function findeEnvZeile(zeilen) {
    NUR DIESE EINE ZEILE WIRD ANGEFASST. Alles andere -- Kommentare,
    Leerzeilen, andere Werte, die Reihenfolge -- bleibt Zeichen fuer Zeichen
    stehen.
-   `wer` ist eine NOTIZ und keine Feststellung: wer den Befehl auf dem Wirt
+   `who` ist eine NOTIZ und keine Feststellung: wer den Befehl auf dem Wirt
    ausfuehren kann, kann sie auch setzen. Sie steht deshalb in der .env und
    ausdruecklich NICHT im Sicherheitsprotokoll -- dort traegt der Vorgang das
-   leere `wer` von zugang.js, und das heisst "ueber den Wirt". */
+   leere `who` von usertool.js, und das heisst "ueber den Wirt". */
 /* Die Notiz, WER gewechselt hat, landet in einer Datei, die beim naechsten
    Start Zeile fuer Zeile gelesen wird. Ein Zeilenumbruch darin schoebe eine
    erfundene Einstellung dazwischen -- deshalb bleibt vom Text nur, was in eine
    Zeile gehoert, und er wird gekuerzt. Es ist ohnehin eine Notiz und keine
    Feststellung. */
-function saubereNotiz(text) {
+function cleanNote(text) {
   const s = String(text == null ? '' : text).replace(/[\r\n]+/g, ' ').trim();
   return (s ? s.slice(0, 80) : 'unbekannt');
 }
 
-function schreibeEnvZeile(pfad, altHex, neuHex, wer, zeitpunkt) {
-  if (!HEX_MUSTER.test(neuHex)) throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
-  const roh = fs.readFileSync(pfad, 'utf8');
+function writeEnvLine(file, oldHex, newHex, who, stamp) {
+  if (!HEX_PATTERN.test(newHex)) throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
+  const raw = fs.readFileSync(file, 'utf8');
   // Die Zeilenenden bleiben, wie sie sind: eine .env, die nach dem Wechsel
   // ploetzlich CRLF traegt, waere eine Aenderung, die niemand bestellt hat.
-  const zeilen = roh.split('\n');
-  const treffer = findeEnvZeile(zeilen);
-  if (!treffer.length)
-    throw new Error(`In ${pfad} steht keine aktive Zeile ENCRYPTION_KEY=. ` +
+  const lines = raw.split('\n');
+  const hit = findEnvLine(lines);
+  if (!hit.length)
+    throw new Error(`In ${file} steht keine aktive Zeile ENCRYPTION_KEY=. ` +
       'Der Schluessel kommt dann aus einer anderen Quelle (etwa environment: ' +
       'in der docker-compose.yml), und die kennt dieser Befehl nicht.');
-  if (treffer.length > 1)
-    throw new Error(`In ${pfad} stehen ${treffer.length} aktive Zeilen ENCRYPTION_KEY=. ` +
+  if (hit.length > 1)
+    throw new Error(`In ${file} stehen ${hit.length} aktive Zeilen ENCRYPTION_KEY=. ` +
       'Welche gemeint ist, entscheidet dieser Befehl nicht.');
-  const alt = treffer[0].wert.trim();
+  const old = hit[0].value.trim();
   /* DIE .ENV MUSS ZU DIESER INSTANZ GEHOEREN. Steht dort ein anderer Wert als
      der, mit dem die Datenbank gerade offen ist, ist es die falsche Datei --
      und sie zu ueberschreiben naehme jemandem den Schluessel zu einer anderen
      Instanz weg. */
-  if (alt.toLowerCase() !== String(altHex).toLowerCase())
-    throw new Error(`Die Zeile ENCRYPTION_KEY in ${pfad} traegt einen anderen Wert als den, ` +
+  if (old.toLowerCase() !== String(oldHex).toLowerCase())
+    throw new Error(`Die Zeile ENCRYPTION_KEY in ${file} traegt einen anderen Wert als den, ` +
       'mit dem diese Datenbank offen ist. Das ist nicht die .env dieser Instanz.');
-  zeilen.splice(treffer[0].nr, 1,
-    `# Abgeloest am ${zeitpunkt} durch ${saubereNotiz(wer)} (schluessel.js).`,
+  lines.splice(hit[0].nr, 1,
+    `# Abgeloest am ${stamp} durch ${cleanNote(who)} (keytool.js).`,
     '# ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT -- nicht loeschen,',
     '# bevor er im Passwortspeicher steht.',
-    `#ENCRYPTION_KEY=${alt}`,
-    `ENCRYPTION_KEY=${neuHex}`);
+    `#ENCRYPTION_KEY=${old}`,
+    `ENCRYPTION_KEY=${newHex}`);
   /* Danebenschreiben, dann umbenennen -- eine halbgeschriebene .env startet
      nichts mehr (Stolperstein 8).
      DARAUS FOLGT EINE BEDINGUNG AN DEN AUFRUFER: die .env muss ueber ihr
      VERZEICHNIS erreichbar sein, nicht als einzeln eingehaengte Datei. Eine
      Datei-Einhaengung haengt am Inode; ein Umbenennen daneben tauscht den
      Verzeichniseintrag und liesse die Einhaengung auf der alten Datei stehen.
-     schluessel.sh haengt deshalb das Projektverzeichnis ein und nicht die
+     keytool.sh haengt deshalb das Projektverzeichnis ein und nicht die
      Datei. */
-  const werdend = pfad + '.wird';
-  fs.writeFileSync(werdend, zeilen.join('\n'), { mode: 0o600 });
-  fs.renameSync(werdend, pfad);
-  return alt;
+  const becoming = file + '.wird';
+  fs.writeFileSync(becoming, lines.join('\n'), { mode: 0o600 });
+  fs.renameSync(becoming, file);
+  return old;
 }
 
-module.exports = { loadKey, HEX_MUSTER, erzeugeSchluessel, saubereNotiz,
-                   schreibeSchluesselDatei, findeEnvZeile, schreibeEnvZeile };
+module.exports = { loadKey, HEX_PATTERN, createKey, cleanNote,
+                   writeKeyFile, findEnvLine, writeEnvLine };
