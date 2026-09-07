@@ -465,6 +465,34 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
            stop: () => endKind(kindB) };
 }
 
+/* ================= DIESER PRUEFLAUF LIEST DEUTSCH -- 0.24.3 ==============
+   Bis 0.24.2 sprach eine frische Installation Deutsch, weil die
+   Vorgabesprache eine Konstante im Quelltext war. Seit F2 startet eine
+   FRISCHE Installation auf Englisch, und nur ein BESTAND behaelt Deutsch --
+   die Prueflagen legen aber alle frische an.
+
+   DAMIT WAEREN 46 ZUSICHERUNGEN MIT DEUTSCHEM WORTLAUT ROT GEWORDEN, und
+   keine davon haette etwas Falsches gemeldet: der Server antwortet richtig,
+   nur eben auf Englisch.
+
+   DER EHRLICHE WEG IST DER, DEN EIN DEUTSCHER BROWSER AUCH GEHT: er sagt im
+   Kopf, welche Sprache er liest. `Accept-Language` ist die zweite der drei
+   Quellen von localeOf(req) -- damit pruefen die 46 Zeilen weiterhin ihren
+   Gegenstand, UND sie fahren nebenbei den neuen Weg ab.
+
+   AN EINER STELLE UND NICHT IN ACHT HELFERN: der Lauf hat mehrere Rufer, und
+   acht Stellen liefen auseinander. Wer den Kopf ausdruecklich setzt, behaelt
+   ihn -- so pruefen die englischen Zeilen dieser Runde ihre eigene Sprache.
+   DER MOCK IN buildDom() IST NICHT BETROFFEN: er ersetzt `w.fetch` im
+   JSDOM-Fenster und geht hier gar nicht vorbei. */
+const RAW_FETCH = globalThis.fetch;
+globalThis.fetch = (url, opt = {}) => {
+  const headers = { ...(opt.headers || {}) };
+  if (!Object.keys(headers).some(h => h.toLowerCase() === 'accept-language'))
+    headers['accept-language'] = 'de';
+  return RAW_FETCH(url, { ...opt, headers });
+};
+
 let cookie = '';
 async function call(method, filePath, body) {
   const opt = { method: method, headers: {} };
@@ -11344,6 +11372,14 @@ const shareMain = (purpose, target = null) =>
       const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
+      /* DIESE INSTALLATION GIBT DEUTSCH VOR -- 0.24.3, F2. Eine MAIL geht in
+         der Sprache des EMPFAENGERS (Konzept 4.6), und `bert` hat noch keine
+         gewaehlt: fuer ihn gilt die Vorgabe der Installation. Ein
+         `Accept-Language` des Ausloesenden hilft hier ausdruecklich NICHT --
+         der Brief geht an jemand anderen.
+         DAMIT IST DIE LAGE EIN BESTAND und keine frische Installation, und
+         genau den beschreiben die deutschen Zusicherungen darunter. */
+      await S.call('PUT', '/api/settings', { languageDefault: 'de' });
       const fresh = await S.call('POST', '/api/users', { username: 'bert', sendInvite: true });
       return { dir, S, fresh };
     };
@@ -11476,6 +11512,14 @@ const shareMain = (purpose, target = null) =>
       const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: MAIL_PASSWORD_ANNA });
+      /* DIESE INSTALLATION GIBT DEUTSCH VOR -- 0.24.3, F2. Ein Brief geht in
+         der Sprache des EMPFAENGERS (Konzept 4.6), und der hat hier noch keine
+         gewaehlt: fuer ihn gilt die Vorgabe der Installation. Das
+         `Accept-Language` des Ausloesenden hilft ausdruecklich NICHT -- der
+         Brief geht an jemand anderen.
+         DAMIT IST DIE LAGE EIN BESTAND und keine frische Installation, und
+         genau den beschreiben die deutschen Zusicherungen an den Briefen. */
+      await S.call('PUT', '/api/settings', { languageDefault: 'de' });
       return { dir, S };
     };
     // Die Freigabe fuer die zweite Bestaetigung. Sie steht hier als eigener
@@ -42024,11 +42068,12 @@ async function checkUi() {
         fs.readFileSync(path.join(spVerz, name), 'utf8')); }
       catch { spBroken.push(name); }
     }
-    /* ERST DER GEGENSTAND: eine Datei, und sie heisst de.json. Die Zahl steht
-       ausdruecklich da -- mit der zweiten Sprache aendert sie sich, und dann
-       soll jemand hinsehen und nicht bloss zustimmen. */
-    check('Eine Sprachdatei, und sie heisst de.json',
-      equal(spNames, ['de.json']), spNames.join(' · '));
+    /* ERST DER GEGENSTAND: zwei Dateien, de.json und en.json -- 0.24.3,
+       Bauabschnitt 5. Die Zahl steht ausdruecklich da; mit Tuerkisch (0.24.4)
+       aendert sie sich wieder, und dann soll jemand hinsehen und nicht bloss
+       zustimmen. */
+    check('Zwei Sprachdateien: de.json und en.json',
+      equal(spNames, ['de.json', 'en.json']), spNames.join(' · '));
     check('Und jede Sprachdatei ist lesbares JSON',
       spBroken.length === 0, spBroken.join(' · ') || 'alle lesbar');
 
@@ -42090,6 +42135,21 @@ async function checkUi() {
     const LETTERS = ['confirm', 'invite', 'reset', 'test']
       .flatMap(kind => [`mail.${kind}.subject`, `mail.${kind}.body`]);
     for (const k of LETTERS) called.add(k);
+    /* DIE VIERZEHN VOKABELVORGABEN WERDEN AUS DEM VORSATZ ABGELEITET und nicht
+       einzeln gerufen -- 0.24.3, Bauabschnitt 6. server.js und app.js filtern
+       beide `vocabulary.` aus der geladenen Datei; eine zweite Aufzaehlung im
+       Quelltext gaebe es nur, damit dieser Waechter sie findet, und genau die
+       war bis 0.24.2 der Stolperstein 47 in app.js.
+       ALS VORSATZ UND NICHT ALS REGEL „alles unter vocabulary. ist in
+       Ordnung": geprueft wird, dass BEIDE Seiten wirklich so ableiten -- sonst
+       liesse diese Ausnahme eine Karteileiche durch. */
+    const VOCABULARY_DERIVED = deKey.filter(k => k.startsWith('vocabulary.'));
+    for (const k of VOCABULARY_DERIVED) called.add(k);
+    const derivesBoth = ["public/app.js", "server.js"].every(f =>
+      /startsWith\(VOCABULARY_PREFIX\)/.test(fs.readFileSync(path.join(__dirname, f), 'utf8')));
+    check('Beide Seiten leiten die Vokabelvorgaben aus dem Vorsatz ab',
+      derivesBoth && VOCABULARY_DERIVED.length === 14,
+      `${VOCABULARY_DERIVED.length} Schluessel · beide Seiten: ${derivesBoth}`);
     /* `_locale` UND `_name` SIND KEIN TEXT, SONDERN DER KOPF DER DATEI: sie
        sagen, welche Locale die Sprache hat und wie sie in ihrer eigenen
        Sprache heisst. Der Server liest sie ueber LANGUAGES[code]._locale bzw.
@@ -42266,6 +42326,10 @@ async function checkUi() {
          technischer Name wie ein MIME-Typ und in jeder Sprache derselbe;
          gelesen wird er von keinem Menschen. */
       'Accept-Language',
+      /* DER VORSATZ DER VOKABELSCHLUESSEL -- 0.24.3, Bauabschnitt 6. Ein
+         Namensraum der Sprachdatei und kein Satz; er steht in server.js
+         genauso. */
+      'vocabulary.',
       // Die vier Serverbefehle -- in jeder Sprache dieselben
       'docker compose exec kriterion node usertool.js passwort <name>',
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
@@ -42282,7 +42346,7 @@ async function checkUi() {
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
     check('Restprobe: weniger als sechzig lesbare Texte in app.js',
       rest.length < 60, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die siebenundvierzig benannten',
+    check('Und es sind genau die achtundvierzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
@@ -42331,8 +42395,8 @@ async function checkUi() {
     const cfgCore = ((fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/app\.get\('\/api\/config'[\s\S]*?res\.json\(\{([\s\S]*?)\}\);/) || ['', ''])[1]);
     const cfgFields = (cfgCore.match(/(?:^|[,{\n])\s*(\w+):/g) || []).length;
-    check('Die Zahlen dieser Runde: eine Sprachdatei, sieben Felder in /api/config',
-      spNames.length === 1 && cfgFields === 7,
+    check('Die Zahlen dieser Runde: zwei Sprachdateien, sieben Felder in /api/config',
+      spNames.length === 2 && cfgFields === 7,
       `${spNames.length} Datei(en) · ${cfgFields} Felder`);
   }
 

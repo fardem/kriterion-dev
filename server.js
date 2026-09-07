@@ -368,7 +368,11 @@ function t(locale, key, values = {}) {
   let vocab = null;
   return String(record).replace(/\{(\w+)\}/g, (whole, name) => {
     if (values[name] !== undefined) return String(values[name]);
-    if (vocab === null) vocab = vocabulary();
+    /* IN DER SPRACHE DES SATZES UND NICHT IN DER DER INSTALLATION -- 0.24.3,
+       Bauabschnitt 6. Ein deutscher Satz mit englischen Vokabelwoertern waere
+       ein halb uebersetzter Satz, und genau den bekaeme ein deutscher Leser
+       auf einer englischen Installation. */
+    if (vocab === null) vocab = vocabulary(locale);
     return vocab[name] !== undefined ? String(vocab[name]) : whole;
   });
 }
@@ -2043,14 +2047,19 @@ app.put('/api/titles', adminOnly, (req, res) => {
    ABGELEITET AUS DEM VORSATZ `vokabular.` und nicht als zweite Liste daneben:
    wer ein Wort hinzufuegt, fuegt es in der Datei hinzu, und beide Seiten
    sehen es.
-   AUS DER SPRACHE DER INSTALLATION UND NICHT DER DES BENUTZERS -- Frage F3 des
-   Auftrags, vom Betreiber am 5. September 2026 entschieden: es gibt EINEN Satz
-   von vierzehn Woertern je Installation, wie den Titel. In dieser Runde ist
-   das Deutsch; in Stufe 2 bleibt es die Sprache der Installation, auch wenn
-   ein Benutzer die Oberflaeche umschaltet. */
+   JE SPRACHE UND NICHT JE INSTALLATION -- Frage F3 des Auftrags 0.24.3, vom
+   Betreiber am 7. September 2026 entschieden. Die Entscheidung vom
+   5. September („EIN Satz je Installation, wie der Titel") war fuer eine Runde
+   MIT EINER Sprache richtig; mit zweien stellt sich die Frage neu, und der
+   Nachtrag zu E9 beantwortet sie: der Eigentuemer pflegt seine Woerter je
+   Sprache, und wer eine Sprache dazulegt, ohne Woerter zu pflegen, sieht die
+   des Bestands statt Loecher.
+   DIE VORGABEN KOMMEN AUS DER SPRACHDATEI DES LESERS: wer die Oberflaeche auf
+   Deutsch liest, bekommt „Eintrag", wer sie auf Englisch liest, „Entry" -- und
+   zwar ohne dass jemand ein Wort eingetragen haette. */
 const VOCABULARY_PREFIX = 'vocabulary.';
-const vocabularyDefault = () => Object.fromEntries(
-  Object.entries(textsOf(languageDefault()))
+const vocabularyDefault = (locale) => Object.fromEntries(
+  Object.entries(textsOf(locale || languageDefault()))
     .filter(([k]) => k.startsWith(VOCABULARY_PREFIX))
     .map(([k, v]) => [k.slice(VOCABULARY_PREFIX.length), v]));
 
@@ -2119,15 +2128,65 @@ function blocks(userId) {
   };
 }
 
-function vocabulary() {
-  const stored = getSetting('vocabulary', null) || {};
+/* DIE GESPEICHERTE FORM -- 0.24.3, Bauabschnitt 6, und sie ist die EINE
+   gespeicherte Form dieses Abschnitts. Bis 0.24.2 lag unter `vocabulary` ein
+   FLACHES Objekt mit vierzehn Woertern; seit dieser Runde liegt dort ein
+   Objekt JE SPRACHE.
+
+   DER ALTE WERT WIRD BEIM LESEN GEDEUTET UND NICHT MIGRIERT -- eine Zeile
+   hier statt eines Blocks in db.js. Er gilt als der Satz der VORGABESPRACHE,
+   und das ist beim Bestand Deutsch (F2). Erkannt wird er an der Form und
+   nicht an einem Merker: die alte traegt Zeichenfolgen als Werte, die neue
+   Objekte. Stolperstein 324 in seiner freundlichen Fassung -- ein
+   gespeicherter Wert hat eine Form, auch wenn die Datenbank sie nicht kennt.
+
+   GESCHRIEBEN WIRD ER ERST BEIM NAECHSTEN SPEICHERN in der neuen Form. Bis
+   dahin liegt er unveraendert da und wird bei jedem Lesen gedeutet -- wer die
+   Fassung zurueckdreht, findet seine Woerter vor. */
+function vocabularyStored(raw, code) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const flat = Object.values(raw).some(v => typeof v === 'string');
+  return flat ? { [code]: raw } : raw;
+}
+
+/* DAS VOKABULAR IN DER SPRACHE DES LESERS, mit zwei Rueckfaellen in dieser
+   Folge (Nachtrag zu E9, Punkt 4):
+
+     1. was fuer DIESE Sprache eingetragen ist,
+     2. sonst der ZUERST ANGELEGTE Satz -- lieber ein Wort in der falschen
+        Sprache als gar keines,
+     3. sonst die Vorgabe aus der Sprachdatei des Lesers.
+
+   „ZUERST ANGELEGT" IST DIE ERSTE SPRACHE IM GESPEICHERTEN OBJEKT. JSON
+   behaelt die Einfuegereihenfolge von Zeichenfolgenschluesseln, und geschrieben
+   wird immer ueber das vorhandene Objekt -- die erste bleibt damit die erste.
+   Ein zweiter Merker daneben („welche war zuerst") waere eine zweite Wahrheit.
+
+   DER RUECKFALL IST KEIN ZUSTAND, SONDERN EINE LAGE: er gilt genau so lange,
+   wie fuer eine Sprache noch nichts dasteht. Sobald der Eigentuemer sie einmal
+   speichert, hat sie ihren eigenen Satz. */
+function vocabulary(locale) {
+  const read = locale || languageDefault();
+  /* DIE GESPEICHERTE flache Form ist die der VORGABESPRACHE -- sie stammt aus
+     einer Zeit, in der es nur eine gab, und das war beim Bestand Deutsch. */
+  const perLanguage = vocabularyStored(getSetting('vocabulary', null), languageDefault());
+  const own = perLanguage[read] || {};
+  const first = perLanguage[Object.keys(perLanguage)[0]] || {};
   const out = {};
-  for (const [k, fallback] of Object.entries(vocabularyDefault())) {
-    const v = typeof stored[k] === 'string' ? stored[k].trim() : '';
-    out[k] = v || fallback;   // leeres Feld faellt auf die Vorgabe zurueck
+  for (const [k, fallback] of Object.entries(vocabularyDefault(read))) {
+    const mine = typeof own[k] === 'string' ? own[k].trim() : '';
+    const earliest = typeof first[k] === 'string' ? first[k].trim() : '';
+    out[k] = mine || earliest || fallback;   // leeres Feld faellt zurueck
   }
   return out;
 }
+
+/* WAS DIE KARTE „VOKABULAR" BRAUCHT: je Sprache, fuer die eine Datei liegt,
+   der Satz, den ein Leser DIESER Sprache saehe. Damit steht der Umschalter
+   ohne einen zweiten Umlauf da, und was er zeigt, ist genau das, was gilt --
+   samt Rueckfall. */
+const vocabularyAll = () =>
+  Object.fromEntries(LANGUAGE_CODES.map(code => [code, vocabulary(code)]));
 // Sichtbare Zeilen der Linkliste, bevor aufgeklappt werden muss.
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
 // Persoenlich.
@@ -2360,7 +2419,12 @@ app.get('/api/settings', (req, res) => res.json({
   // Oberflaeche laesst danach den Knopf zum Speichern weg, und der Server
   // verweigert es ohnehin.
   viewsCap: VIEWS_CAP,
-  vocabulary: vocabulary(),
+  vocabulary: vocabulary(localeOf(req)),
+  /* UND DIE VIERZEHN WOERTER JE SPRACHE -- fuer den Umschalter in der Karte
+     „Vokabular". Sie stehen neben `vocabulary` und ersetzen es nicht: die
+     Oberflaeche beschriftet sich aus dem einen Satz ihres Lesers, und nur die
+     Karte braucht alle. */
+  vocabularies: vocabularyAll(),
   font: fontSize(req.user.id),
   strip: strip(req.user.id),
   theme: theme(req.user.id),
@@ -2484,15 +2548,36 @@ app.put('/api/settings', (req, res) => {
     putUserSetting(req.user.id, 'filters', JSON.stringify(req.body.filters));
   if (viewsText !== null)
     putUserSetting(req.user.id, 'views', viewsText);
+  /* DAS VOKABULAR JE SPRACHE -- 0.24.3, Bauabschnitt 6. Der Rumpf traegt
+     dieselbe Form wie die Ablage: ein Objekt je Sprachkennung. Wer die alte,
+     FLACHE Form schickt, meint die Vorgabesprache -- dieselbe Deutung wie beim
+     Lesen, und damit an einer Stelle statt an zweien.
+     GESCHRIEBEN WIRD UEBER DAS VORHANDENE und nicht daneben: die Karte
+     schickt immer nur die Sprache, die gerade offen ist, und die uebrigen
+     sollen dabei stehen bleiben. Dadurch bleibt auch die REIHENFOLGE erhalten,
+     und die ist die Antwort auf „welche war zuerst".
+     EINE SPRACHE OHNE DATEI WIRD UEBERGANGEN: sonst wuechse die Ablage um
+     Saetze, die niemand je zu sehen bekaeme. */
   if (req.body.vocabulary !== undefined) {
-    const ein = req.body.vocabulary || {};
-    const clean = {};
-    const fallback = vocabularyDefault();
-    for (const k of Object.keys(fallback)) {
-      const v = typeof ein[k] === 'string' ? ein[k].trim().slice(0, 40) : '';
-      clean[k] = v || fallback[k];
+    /* EINE FLACHE FORM IM RUMPF MEINT DIE SPRACHE DES RUFERS und nicht die
+       der Installation: wer vierzehn Woerter ohne Sprachkennung schickt, meint
+       den Satz, den er gerade vor sich hat. Beim gespeicherten Wert ist es
+       umgekehrt -- der stammt aus einer Zeit, in der es nur eine Sprache gab,
+       und die war die der Installation. Zwei Deutungen, zwei Stellen, und
+       beide stehen ausdruecklich da. */
+    const incoming = vocabularyStored(req.body.vocabulary, localeOf(req));
+    const next = { ...vocabularyStored(getSetting('vocabulary', null), languageDefault()) };
+    for (const [code, words] of Object.entries(incoming)) {
+      if (!LANGUAGES[code] || !words || typeof words !== 'object') continue;
+      const fallback = vocabularyDefault(code);
+      const clean = {};
+      for (const k of Object.keys(fallback)) {
+        const v = typeof words[k] === 'string' ? words[k].trim().slice(0, 40) : '';
+        clean[k] = v || fallback[k];
+      }
+      next[code] = clean;
     }
-    putSetting.run('vocabulary', JSON.stringify(clean));
+    putSetting.run('vocabulary', JSON.stringify(next));
   }
   if (req.body.font !== undefined) {
     const n = Number(req.body.font);
@@ -2632,7 +2717,8 @@ app.put('/api/settings', (req, res) => {
     writeLanguages(
       req.body.languageDefault !== undefined ? String(req.body.languageDefault) : languageDefault(),
       req.body.languageOn);
-  res.json({ filters: getUserSetting(req.user.id, 'filters', null), vocabulary: vocabulary(),
+  res.json({ filters: getUserSetting(req.user.id, 'filters', null),
+             vocabulary: vocabulary(localeOf(req)), vocabularies: vocabularyAll(),
              views: views(req.user.id), viewsCap: VIEWS_CAP,
              font: fontSize(req.user.id), strip: strip(req.user.id),
              theme: theme(req.user.id),
@@ -4044,7 +4130,7 @@ app.put('/api/items/:id', (req, res) => {
   if (b.tested === false) {
     const n = db.prepare('SELECT COUNT(*) n FROM test_days WHERE item_id = ?').get(req.params.id).n;
     if (n > 0) {
-      const v = vocabulary();
+      const v = vocabulary(localeOf(req));
       // Vokabelwoerter stehen ohne Artikel und ohne Fall da: nach einer Zahl
       // im Nominativ und in Anfuehrungszeichen. Beides bleibt bei jedem Wort
       // richtig, gleich welches Geschlecht.

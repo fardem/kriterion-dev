@@ -6178,8 +6178,8 @@ const REGRESSIONS = [
        sich nur halb. */
     nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
     file: 'server.js',
-    search: "const vocabularyDefault = () => Object.fromEntries(\n  Object.entries(textsOf(languageDefault()))",
-    replacement: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vocabularyDefault = () => Object.fromEntries(\n  Object.entries(textsOf(languageDefault()))",
+    search: "const vocabularyDefault = (locale) => Object.fromEntries(\n  Object.entries(textsOf(locale || languageDefault()))",
+    replacement: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vocabularyDefault = (locale) => Object.fromEntries(\n  Object.entries(textsOf(locale || languageDefault()))",
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {

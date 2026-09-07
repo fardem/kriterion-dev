@@ -121,7 +121,7 @@ async function loadLanguage(code) {
      dort beim Laden der Datei ausgewertet wird -- da gibt es noch keinen Text.
      Was schon in `V` steht, bleibt: der Satz des Servers wiegt schwerer als
      die Vorgabe. */
-  V = { ...Object.fromEntries(Object.entries(VOCABULARY_DEFAULT).map(([k, call]) => [k, call()])), ...V };
+  V = { ...vocabularyDefault(), ...V };
   return data;
 }
 
@@ -171,6 +171,21 @@ const applyLanguage = () => { document.documentElement.lang = LANGUAGE; };
    Code die Vorgabe ist. Der Rueckfall auf LOCALE gilt die Millisekunden vor
    der ersten geladenen Datei. */
 const compareLocale = () => TEXTS_FALLBACK._locale || LOCALE;
+
+/* DIE VORGABEN DES VOKABULARS -- 0.24.3, Bauabschnitt 6. Bis 0.24.2 stand hier
+   VOCABULARY_DEFAULT: eine Tafel aus vierzehn Rufen, die dieselben vierzehn
+   Namen ein zweites Mal aufzaehlte. Jetzt kommt die Liste aus der GELADENEN
+   SPRACHDATEI, abgeleitet aus dem Vorsatz `vocabulary.` -- Zeichen fuer
+   Zeichen dieselbe Ableitung wie in server.js.
+   EINE WAHRHEIT JE SPRACHE STATT ZWEI JE CODE: wer ein fuenfzehntes Wort
+   einfuehrt, traegt es in die Sprachdateien ein, und beide Seiten sehen es.
+   Genau daran ist `potenzial` beim Bauen von 0.21.0 gescheitert -- es fehlte
+   in der zweiten Liste, und das Feld stand leer. */
+const VOCABULARY_PREFIX = 'vocabulary.';
+const vocabularyDefault = () => Object.fromEntries(
+  Object.entries(TEXTS)
+    .filter(([k]) => k.startsWith(VOCABULARY_PREFIX))
+    .map(([k, v]) => [k.slice(VOCABULARY_PREFIX.length), v]));
 
 function fmtDate(iso) {
   if (!iso) return '';
@@ -1709,8 +1724,10 @@ let redrawCloud = null;
    SEIT 0.24.0 STEHT SIE NUR NOCH AN EINER STELLE: in der Sprachdatei, unter
    `vokabular.`. Diese Zeile faengt leer an und wird gefuellt, sobald die Datei
    da ist (loadLanguage) -- ein Wort hier haette beim Laden der Datei noch
-   keinen Text. VOCABULARY_DEFAULT nennt dieselben vierzehn Namen und ist die eine
-   Liste, aus der beides liest (Stolperstein 47). */
+   keinen Text. Seit 0.24.3 kommt auch die LISTE der vierzehn Namen aus der
+   Datei -- vocabularyDefault() leitet sie aus dem Vorsatz `vocabulary.` ab,
+   Zeichen fuer Zeichen wie server.js. Eine zweite Aufzaehlung im Quelltext
+   gibt es nicht mehr (Stolperstein 47). */
 let V = {};
 
 // Weiterschaltung des Aufgabenknopfes: Notiz -> Aufgabe -> erledigt -> Notiz.
@@ -1785,6 +1802,11 @@ let SEARCH_PROVIDERS = [];      // alle neun Plaetze, wie der Server sie liefert
    Liste als Rueckfall: welche Sprachen es gibt, weiss allein das Verzeichnis
    auf dem Server. Jeder Eintrag traegt { code, name, isDefault, active }. */
 let LANGUAGES = [];
+/* DIE VIERZEHN WOERTER JE SPRACHE, { <kennung>: { ...vierzehn } } -- 0.24.3.
+   Sie stehen NEBEN `V` und ersetzen es nicht: `V` ist der eine Satz, mit dem
+   die Oberflaeche sich beschriftet, und der gehoert dem Leser. Diese Tafel
+   braucht allein die Karte „Vokabular", um umschalten zu koennen. */
+let VOCABULARIES = {};
 let SEARCH_NAMES = 2;          // wie viele Namen unter einer Suchzeile stehen
 const SEARCH_NAME_LEVELS = [1, 2, 3, 4];
 
@@ -2300,6 +2322,9 @@ async function loadSettings() {
   if (SETTINGS.bellSeen) BELL_SEEN = SETTINGS.bellSeen;
   if (Array.isArray(SETTINGS.searchProviders)) SEARCH_PROVIDERS = SETTINGS.searchProviders;
   if (Array.isArray(SETTINGS.languages)) LANGUAGES = SETTINGS.languages;
+  // Die vierzehn Woerter JE SPRACHE -- nur die Karte „Vokabular" liest sie.
+  if (SETTINGS.vocabularies && typeof SETTINGS.vocabularies === 'object')
+    VOCABULARIES = SETTINGS.vocabularies;
   /* DIE ERSTE DER DREI QUELLEN (Konzept 5.3), und sie schlaegt die beiden
      anderen: was am ZUGANG steht, gilt -- auf jedem Geraet, an dem er sich
      anmeldet. Der Server hat den Wert schon gegen den Vorrat geklemmt.
@@ -8685,10 +8710,16 @@ function cardVocabulary() {
              die drei Stellen lesen sie.
              JEDER FELDNAME NENNT DIE VORGABE: „Sache, Einzahl" allein sagte
              einem Admin nicht, welches Wort er da umbenennt. */''}
+        ${/* DIE SPRACHZEILE UEBER DEN VIERZEHN FELDERN -- 0.24.3, F3. EINE
+              Karte, kein zweiter Ort: sie zeigt die vierzehn Felder der
+              GEWAEHLTEN Sprache, und ein Umschalter darueber wechselt sie.
+              Sie steht nur da, wenn es ueberhaupt etwas zu wechseln gibt. */''}
+        ${LANGUAGES.filter(a => a.active).length > 1
+          ? `<div class="pills" id="vlang" style="margin-bottom:12px"></div>` : ''}
         <div class="vocabulary-grid">
           ${VOCABULARY_FIELDS.map(([id, key, name]) => `<div class="field"><label for="${id}">${esc(name())}
-            <span class="hint">${tH('card.defaultValue', { w1: VOCABULARY_DEFAULT[key]() })}</span></label>
-            <input class="input input-sm" id="${id}" maxlength="40" value="${esc(V[key])}"></div>`).join('')}
+            <span class="hint">${tH('card.defaultValue', { w1: vocabularyDefault()[key] })}</span></label>
+            <input class="input input-sm" id="${id}" maxlength="40" value="${esc(vocabularyShown()[key])}"></div>`).join('')}
         </div>
         <div class="vocabulary-preview" id="vpreview"></div>
         <div class="row-in" style="margin-top:12px">
@@ -8700,23 +8731,17 @@ function cardVocabulary() {
 /* DIE TABELLE DER VOKABELFELDER: Kennung, Schluessel, Beschriftung. Die
    Kennungen v1 bis v14 bleiben in der Reihenfolge, in der die Woerter dazu-
    gekommen sind -- der Pruefstand spricht die Felder darueber an.
-   VOCABULARY_DEFAULT ist die Vorgabe des Servers, hier ein zweites Mal, weil die
+   vocabularyDefault() liest die Vorgabe aus der geladenen Sprachdatei, weil die
    Karte sie NENNEN muss („Vorgabe: Eintrag") und der Server sie nur beim
    Speichern einsetzt. `V` selbst taugt dafuer nicht: es traegt nach dem
-   ersten Abruf das gespeicherte Wort. */
+   ersten Abruf das gespeicherte Wort.
+   SEIT 0.24.3 IST DAS DIE VORGABE DER GELESENEN SPRACHE -- wer die Karte auf
+   Englisch oeffnet, liest „(default: Entry)". */
 /* AUCH HIER RUFE STATT WERTE -- 0.24.0, aus demselben Grund wie bei
    SYS_SECTIONS: die Vorgabe steht in der Sprachdatei, und die ist beim
    Auswerten dieser Zeile noch nicht geladen. */
-const VOCABULARY_DEFAULT = {
-  sacheEinzahl: () => t('vocabulary.sacheEinzahl'), sacheMehrzahl: () => t('vocabulary.sacheMehrzahl'),
-  merkmalJa: () => t('vocabulary.merkmalJa'), merkmalNein: () => t('vocabulary.merkmalNein'),
-  zeitpunktEinzahl: () => t('vocabulary.zeitpunktEinzahl'), zeitpunktMehrzahl: () => t('vocabulary.zeitpunktMehrzahl'),
-  berichtEinzahl: () => t('vocabulary.berichtEinzahl'), berichtMehrzahl: () => t('vocabulary.berichtMehrzahl'),
-  aufgabeEinzahl: () => t('vocabulary.aufgabeEinzahl'), aufgabeMehrzahl: () => t('vocabulary.aufgabeMehrzahl'),
-  aufgabeErledigt: () => t('vocabulary.aufgabeErledigt'), potenzial: () => t('vocabulary.potenzial'),
-  bewertungEinzahl: () => t('vocabulary.bewertungEinzahl'), bewertungMehrzahl: () => t('vocabulary.bewertungMehrzahl')
-};
-/* UND DRITTENS DIE BESCHRIFTUNGEN -- Rufe, nicht Werte (siehe VOCABULARY_DEFAULT). */
+/* UND DIE BESCHRIFTUNGEN -- Rufe und keine Werte: diese Zeile wird beim Laden
+   der Datei ausgewertet, und da gibt es noch keinen Text. */
 const VOCABULARY_FIELDS = [
   ['v1', 'sacheEinzahl', () => t('card.itemOne')], ['v2', 'sacheMehrzahl', () => t('card.itemMany')],
   ['v3', 'merkmalJa', () => t('card.testedYes')], ['v4', 'merkmalNein', () => t('card.testedNo')],
@@ -8734,7 +8759,29 @@ const VOCABULARY_FIELDS = [
   ['v13', 'bewertungEinzahl', () => t('card.ratingOne')],
   ['v14', 'bewertungMehrzahl', () => t('card.ratingMany')]
 ];
+/* WELCHE SPRACHE DIE KARTE „VOKABULAR" GERADE ZEIGT -- 0.24.3. Sie faengt bei
+   der des Lesers an: wer die Oberflaeche auf Deutsch liest, will in aller
+   Regel die deutschen Woerter pflegen.
+   SIE STEHT ALS ZUSTAND DER KARTE UND NICHT IN DER ADRESSE: ein Umschalten
+   innerhalb einer Karte ist keine Ansicht, und der Weg zurueck ist der Reiter
+   daneben. Beim Neuzeichnen des Systembereichs faellt sie auf die Sprache des
+   Lesers zurueck -- das ist gewollt: eine gemerkte Sprache, die niemand sieht,
+   waere eine zweite Wahrheit ueber „was steht da gerade". */
+let VOCABULARY_SHOWN = null;
+const vocabularyLanguage = () =>
+  (VOCABULARY_SHOWN && VOCABULARIES[VOCABULARY_SHOWN]) ? VOCABULARY_SHOWN : LANGUAGE;
+/* DIE VIERZEHN WOERTER, DIE IN DEN FELDERN STEHEN. Fuer die Sprache des Lesers
+   ist das `V` -- der Satz, mit dem sich die Oberflaeche gerade beschriftet.
+   Fuer jede andere kommt er aus der Tafel, die der Server mitgeschickt hat;
+   dort steht schon der Rueckfall drin. */
+const vocabularyShown = () => {
+  const code = vocabularyLanguage();
+  if (code === LANGUAGE) return V;
+  return VOCABULARIES[code] || V;
+};
+
 function setUpVocabularyOut() {
+  drawVocabularyLanguages();
   // Die Probe zeigt dieselben Textbausteine, die die Oberfläche später
   // benutzt — damit sich Einzahl und Mehrzahl vor dem Speichern prüfen lassen.
   const vFields = () => Object.fromEntries(VOCABULARY_FIELDS.map(([id, key]) =>
@@ -8769,6 +8816,25 @@ function setUpVocabularyOut() {
        <span>${tH('card.criteriaPotential', { po: po })}</span><span>${tH('card.sortPotentialDesc', { po: po })}</span>
        <span>${tH('card.criteriaPotential', { po: rateOne })}</span><span>${tH('card.sortPotentialDesc', { po: rateOne })}</span><span>2 ${esc(rateMany)}</span>`;
   }
+  /* DER UMSCHALTER. Er zeichnet NUR die Karte neu und nicht die Seite: die
+     Oberflaeche bleibt in der Sprache ihres Lesers, waehrend der Eigentuemer
+     die Woerter einer anderen pflegt. Genau das ist der Sinn -- „der
+     Eigentuemer schaltet im Adminbereich kurz um" (Nachtrag zu E9, Punkt 4). */
+  function drawVocabularyLanguages() {
+    const box = document.getElementById('vlang');
+    if (!box) return;
+    box.innerHTML = '';
+    LANGUAGES.filter(a => a.active).forEach(a => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (vocabularyLanguage() === a.code ? ' on' : '');
+      b.textContent = a.name;
+      b.onclick = () => {
+        VOCABULARY_SHOWN = a.code;
+        renderSystem();
+      };
+      box.appendChild(b);
+    });
+  }
   // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
   // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
   // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
@@ -8776,9 +8842,14 @@ function setUpVocabularyOut() {
     atElement(id, field => field.addEventListener('input', drawPreview)));
   if (document.getElementById('vpreview')) drawPreview();
 
+  /* GESPEICHERT WIRD JE SPRACHE -- 0.24.3, F3. Der Rumpf traegt dieselbe Form
+     wie die Ablage: ein Objekt je Sprachkennung, und die Karte schickt genau
+     die eine, die gerade offen ist. Die uebrigen bleiben am Server stehen. */
+  const vocabularyBody = (words) => ({ [vocabularyLanguage()]: words });
   atElement('vsave', vsave => vsave.onclick = async () => {
     try {
-      const r = await api('PUT', '/api/settings', { vocabulary: vFields() });
+      const r = await api('PUT', '/api/settings', { vocabulary: vocabularyBody(vFields()) });
+      if (r.vocabularies) VOCABULARIES = r.vocabularies;
       V = { ...V, ...r.vocabulary };
       toast(t('card.vocabularySaved'));
       renderSystem();          // leere Felder kommen mit der Vorgabe zurück
@@ -8790,8 +8861,9 @@ function setUpVocabularyOut() {
       t('card.reset'))) return;
     try {
       // Leer heisst Vorgabe: der Server setzt fuer jedes leere Feld sein Wort ein.
-      const empty = Object.fromEntries(Object.keys(VOCABULARY_DEFAULT).map(k => [k, '']));
-      const r = await api('PUT', '/api/settings', { vocabulary: empty });
+      const empty = Object.fromEntries(VOCABULARY_FIELDS.map(([, k]) => [k, '']));
+      const r = await api('PUT', '/api/settings', { vocabulary: vocabularyBody(empty) });
+      if (r.vocabularies) VOCABULARIES = r.vocabularies;
       V = { ...V, ...r.vocabulary };
       toast(t('card.defaultsRestored'));
       renderSystem();
