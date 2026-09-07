@@ -161,6 +161,16 @@ function rememberLanguage(code) {
    nie gesetzt -- eine Eigenschaft `long` an einem Element tut nichts, und
    niemandem faellt etwas auf, weil auch nichts falsch aussieht. */
 const applyLanguage = () => { document.documentElement.lang = LANGUAGE; };
+/* DIE LOCALE DES VERGLEICHS -- 0.24.3, Bauabschnitt 4, und sie ist NICHT die
+   des Lesers (LOCALE). Wo getippter Text ohne Ruecksicht auf Gross- und
+   Kleinschreibung verglichen wird, muss die Regel fuer alle dieselbe sein:
+   sonst waeren „İstanbul" und „istanbul" fuer den einen derselbe Name und
+   fuer den anderen zwei (T3). Der Server hat dieselbe Funktion unter
+   demselben Namen; beide nehmen die Locale der VORGABESPRACHE.
+   TEXTS_FALLBACK IST GENAU DIESE DATEI -- loadLanguage() fuellt sie, wenn der
+   Code die Vorgabe ist. Der Rueckfall auf LOCALE gilt die Millisekunden vor
+   der ersten geladenen Datei. */
+const compareLocale = () => TEXTS_FALLBACK._locale || LOCALE;
 
 function fmtDate(iso) {
   if (!iso) return '';
@@ -221,10 +231,19 @@ const exportTotal = (stats) => exportSum(stats && stats.export,
   { withPhotos: true, withFiles: true, withVideos: true });
 
 async function api(method, url, body, isForm = false) {
-  const opts = { method, credentials: 'same-origin' };
+  /* `Accept-Language` AN JEDER ANFRAGE -- 0.24.3, Bauabschnitt 4. Er ist die
+     zweite der drei Quellen von localeOf(req) und traegt die Sprache, die
+     DIESES GERAET gewaehlt hat: der persoenliche Schluessel schlaegt ihn am
+     Server, aber wer noch keinen gesetzt hat oder noch gar nicht angemeldet
+     ist, bekommt seine Servermeldungen ueber diesen Kopf.
+     AUSDRUECKLICH GESETZT UND NICHT DEM BROWSER UEBERLASSEN: der Browser
+     schickte die Sprache des Betriebssystems, und die hat mit der Wahl in der
+     Karte „Darstellung" nichts zu tun. */
+  const opts = { method, credentials: 'same-origin',
+                 headers: { 'Accept-Language': LANGUAGE } };
   if (body !== undefined) {
     if (isForm) opts.body = body;
-    else { opts.headers = { 'Content-Type': 'application/json' }; opts.body = JSON.stringify(body); }
+    else { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
   }
   const res = await fetch(url, opts);
   if (res.status === 401) { showLogin(); throw new Error(t('dialog.sessionExpired')); }
@@ -2509,7 +2528,8 @@ async function saveView() {
   if (!name) return;
   // Derselbe Vergleich wie im Server, und aus demselben Grund: der Name ist
   // das Einzige, woran ein Mensch zwei Ansichten auseinanderhaelt.
-  if (VIEWS.some(a => a.name.toLowerCase() === name.toLowerCase()))
+  if (VIEWS.some(a => a.name.toLocaleLowerCase(compareLocale())
+                      === name.toLocaleLowerCase(compareLocale())))
     return toast(t('list.viewExists', { name: name }), true);
   if (await sendViews([...VIEWS, { name, ...viewOutState() }])) {
     toast(t('list.saved'));

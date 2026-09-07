@@ -37,6 +37,19 @@ const zf = require('./twofactor');
 let translate = (req, key) => `\u27e6${key}\u27e7`;
 function setTranslator(fn) { translate = fn; }
 
+/* DIE LOCALE DES VERGLEICHS -- 0.24.3, Bauabschnitt 4. Gereicht wird sie beim
+   Start wie der Uebersetzer daneben und aus demselben Grund: sie haengt an der
+   Vorgabesprache der Installation, und die kennt server.js.
+   GEBRAUCHT WIRD SIE AN GENAU EINER STELLE -- dem Schluessel der Anmeldebremse
+   (keyName). `'I'.toLowerCase()` ist auf Tuerkisch `'ı'` und nicht `'i'`, und
+   ohne eine Regel FUER ALLE braemste „İSTANBUL" einen anderen Zaehler als
+   „istanbul" (T3).
+   DER RUECKFALL IST `undefined` UND DAMIT DIE LOCALE DES WIRTS -- genau das,
+   was toLowerCase() vorher tat. Wer diese Datei ohne server.js benutzt,
+   bekommt das bisherige Verhalten und keinen Wurf. */
+let comparisonLocale = () => undefined;
+function setCompareLocale(fn) { comparisonLocale = fn; }
+
 class Message extends Error {
   constructor(key, values = {}, status = 400) {
     super(key);
@@ -621,7 +634,8 @@ const HARD_LIMIT = 10;   // ab hier gesperrt -- NUR bei der IP
 const BLOCK_MS = 5 * 60 * 1000;
 
 const keyIp = (ip) => `ip:${ip}`;
-const keyName = (name) => `name:${String(name || '').trim().toLowerCase()}`;
+const keyName = (name) =>
+  `name:${String(name || '').trim().toLocaleLowerCase(comparisonLocale())}`;
 
 // Dieselbe Kurve fuer beide Zaehler: eine zweite Rechnung daneben waere eine
 // zweite Wahrheit darueber, wie stark gebremst wird.
@@ -1745,6 +1759,7 @@ function requireAuth(req, res, next) {
 }
 
 module.exports = {
+  setCompareLocale,
   // Die Fehlerklasse; Rufer sind server.js (uebersetzt) und diese Datei.
   Message, setTranslator,
   COOKIE_NAME, COOKIE_SECURE, cookieName, sessionToken, viaProxy,

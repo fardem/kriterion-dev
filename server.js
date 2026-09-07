@@ -282,13 +282,69 @@ function writeLanguages(isDefault, active) {
   putSetting.run('languageOn', JSON.stringify(ordered));
 }
 
-/* WELCHE SPRACHE EINE ANTWORT TRAEGT. In dieser Runde noch die der
-   Installation -- die beiden anderen Quellen (der persoenliche Schluessel und
-   Accept-Language aus api()) haengt Bauabschnitt 4 ein, und keine der 179
-   Aufrufstellen aendert sich dabei. */
-function localeOf(req) {
-  return languageDefault();
+/* WAS DER BROWSER VERLANGT -- der Kopf `Accept-Language`. Er ist die ZWEITE
+   Quelle und traegt zweierlei: von der eigenen Oberflaeche die Sprache, die
+   das Geraet sich gemerkt hat (api() setzt sie ausdruecklich), und von jedem
+   anderen Aufrufer das, was sein Browser eingestellt hat.
+   DIE GEWICHTE ZAEHLEN. `de;q=0.9, en;q=1.0` ist nicht dasselbe wie die
+   Reihenfolge im Kopf -- ein Browser darf sie beliebig schreiben. Ohne `q`
+   gilt 1.
+   `de-AT` ZAEHLT ALS `de`: wer eine Region verlangt, fuer die es keine Datei
+   gibt, bekommt die Sprache. Der umgekehrte Weg gilt nicht -- wer `de`
+   verlangt, bekommt kein `de-AT`, denn eine Region ist eine Aussage und keine
+   Ungenauigkeit.
+   NUR AUS DEM VORRAT: was der Eigentuemer nicht freigegeben hat, bekommt auch
+   niemand ueber einen Kopf, den er selbst schreibt. */
+function acceptedLanguage(req, pool) {
+  const header = String((req && req.headers && req.headers['accept-language']) || '');
+  if (!header) return null;
+  const wishes = header.split(',').map(part => {
+    const [tag, ...rest] = part.split(';');
+    const q = rest.map(x => /^\s*q\s*=\s*([0-9.]+)\s*$/.exec(x))
+      .filter(Boolean).map(m => Number(m[1]))[0];
+    return { tag: tag.trim(), q: Number.isFinite(q) ? q : 1 };
+  }).filter(w => w.tag && w.tag !== '*');
+  // Stabil sortiert: bei gleichem Gewicht bleibt die Reihenfolge des Kopfes.
+  wishes.sort((a, b) => b.q - a.q);
+  for (const { tag } of wishes) {
+    if (pool.includes(tag)) return tag;
+    const base = tag.split('-')[0];
+    if (pool.includes(base)) return base;
+  }
+  return null;
 }
+
+/* WELCHE SPRACHE EINE ANTWORT TRAEGT -- 0.24.3, Bauabschnitt 4. DREI QUELLEN,
+   UND DIE REIHENFOLGE STEHT (Konzept 5.3):
+
+     1. der persoenliche Schluessel des angemeldeten Zugangs,
+     2. `Accept-Language` -- von der eigenen Oberflaeche das Gedaechtnis des
+        Geraets, von jedem anderen Aufrufer sein Browser,
+     3. die Vorgabe der Installation.
+
+   KEINE DER 179 AUFRUFSTELLEN AENDERT SICH DABEI. Genau dafuer stand die
+   Funktion seit 0.24.0 da und gab die Konstante zurueck.
+   GEKLEMMT WIRD IN JEDER QUELLE GEGEN DEN VORRAT -- auch beim persoenlichen
+   Schluessel: der Eigentuemer kann eine Sprache herausnehmen, nachdem jemand
+   sie gewaehlt hat. */
+function localeOf(req) {
+  const pool = languagePool();
+  const chosen = req && req.user ? getUserSetting(req.user.id, 'language', null) : null;
+  if (typeof chosen === 'string' && pool.includes(chosen)) return chosen;
+  return acceptedLanguage(req, pool) || languageDefault();
+}
+
+/* DIE LOCALE DES VERGLEICHS -- 0.24.3, Bauabschnitt 4, und sie ist NICHT die
+   des Lesers. Wo getippter Text ohne Ruecksicht auf Gross- und
+   Kleinschreibung verglichen wird, muss die Regel fuer ALLE dieselbe sein:
+   sonst waeren „İstanbul" und „istanbul" fuer den einen derselbe Name und
+   fuer den anderen zwei (T3 -- `'I'.toLowerCase()` ist auf Tuerkisch `'ı'`
+   und nicht `'i'`). Ein Vergleich, dessen Ergebnis vom Leser abhaengt, ist
+   keiner.
+   DIE VORGABESPRACHE DER INSTALLATION ist die eine Regel: sie gilt fuer alle
+   zugleich und ist die Sprache, in der der Bestand ueberwiegend eingetragen
+   ist. Der Browser hat dieselbe Funktion mit demselben Namen. */
+const compareLocale = () => localeTag(languageDefault());
 
 /* DER HELFER -- dieselbe Regel wie im Browser, mit der Sprache davor.
    MASKIERT WIRD HIER NICHTS: eine Servermeldung geht als JSON heraus, und die
@@ -335,6 +391,11 @@ mail.setTranslator(t);
    Es bekommt die ANFRAGE gereicht und nicht die Sprache: welche Sprache eine
    Antwort traegt, entscheidet diese Datei. */
 auth.setTranslator((req, key, values) => t(localeOf(req), key, values));
+/* UND DIE LOCALE DES VERGLEICHS DAZU -- aus demselben Grund und auf demselben
+   Weg: auth.js darf server.js nicht requiren, braucht die Regel aber fuer den
+   Schluessel seiner Anmeldebremse. Gereicht wird die FUNKTION und nicht der
+   Wert: die Vorgabesprache aendert sich im laufenden Betrieb. */
+auth.setCompareLocale(compareLocale);
 
 /* WAS EIN GEFANGENER FEHLER SAGT -- 0.24.0, Bauabschnitt 2. Fuenfzehn Stellen
    fingen bis dahin einen Fehler und gaben `e.message` heraus; darin stand ein
@@ -414,11 +475,15 @@ async function sendTokenLink(target, token) {
     tage: auth.TOKEN_DAYS, minuten: auth.TOKEN_DEADLINE_MINUTES
   };
   const invite = token.purpose === 'invite';
-  /* DIE SPRACHE DES EMPFAENGERS -- in diesem Bauabschnitt noch die der
-     Installation. Bauabschnitt 4 haengt hier die Sprache des ZUGANGS ein, an
-     den der Brief geht (Konzept 4.6), und diese eine Zeile ist die ganze
-     Aenderung. */
-  const locale = languageDefault();
+  /* DIE SPRACHE DES EMPFAENGERS UND NICHT DIE DES ABSENDERS (Konzept 4.6).
+     Ein Admin, der auf Englisch arbeitet, laedt damit einen Kollegen auf
+     Deutsch ein, wenn dessen Zugang auf Deutsch steht. `token.id` IST die
+     Kennung des Zugangs, an den der Brief geht -- createToken() gibt sie
+     zurueck, und sie ist die des EMPFAENGERS und nicht die des Ausloesenden.
+     EIN FRISCH ANGELEGTER ZUGANG HAT NOCH KEINE WAHL GETROFFEN: languageOf()
+     gibt dann die Vorgabe der Installation, und genau die ist richtig -- der
+     Empfaenger kann noch gar nichts eingestellt haben. */
+  const locale = languageOf(token.id);
   const letter = invite ? mail.mailInvite(locale, values2)
                           : mail.mailReset(locale, values2);
   const e = await mail.send(locale, zugang, target.email, letter.subject, letter.text);
@@ -468,14 +533,14 @@ function deliveryReady() {
    DER SCHLUESSEL STEHT IM FRAGMENT (#/confirm/…) und geht nie an den
    Server: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
    die Seite und bestaetigt damit gerade NICHT. */
-async function sendConfirm(name, address, plain) {
+async function sendConfirm(name, address, plain, locale) {
   const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
   if (!mail.configured(zugang) || !PUBLIC.address) return { ok: false, reason: 'aus' };
   const title = getSetting('title_public', 'Bewertungskatalog');
   /* HIER GIBT ES NOCH KEINEN ZUGANG, an dem eine Sprache haengen koennte --
-     der Brief geht an jemanden, der sich gerade erst anmeldet. Bauabschnitt 4
-     nimmt stattdessen die Sprache des FORMULARS (Konzept S2.4, Punkt 2). */
-  const locale = languageDefault();
+     der Brief geht an jemanden, der sich gerade erst anmeldet. Genommen wird
+     deshalb die Sprache des FORMULARS (Konzept S2.4, Punkt 2): der Aufrufer
+     reicht sie herein, weil nur er die Anfrage in der Hand hat. */
   const letter = mail.mailConfirm(locale, { title, username: name,
     link: `${PUBLIC.address}/#/confirm/${plain}`,
     stunden: auth.REQUEST_HOURS });
@@ -1161,7 +1226,7 @@ app.post('/api/signup', async (req, res) => {
      DAS AUFFANGNETZ IST KEINE ZIERDE -- hier haengt kein Aufrufer mehr an der
      Zusage. */
   if (plain) {
-    sendConfirm(String(name).trim(), String(address).trim(), plain)
+    sendConfirm(String(name).trim(), String(address).trim(), plain, localeOf(req))
       .catch(e => console.error('[Kriterion] Bestaetigungsmail:', e && e.message));
   }
 });
@@ -2400,7 +2465,7 @@ app.put('/api/settings', (req, res) => {
          das Einzige, woran ein Mensch sie auseinanderhaelt. Verglichen wird
          ohne Ruecksicht auf Gross- und Kleinschreibung -- "Bosch" und "bosch"
          nebeneinander waeren dieselbe Falle mit einem Buchstaben Abstand. */
-      const key = name.toLowerCase();
+      const key = name.toLocaleLowerCase(compareLocale());
       if (namen.has(key))
         return res.status(400).json({ error: t(localeOf(req), 'server.viewExists', { name })});
       namen.add(key);
@@ -5930,7 +5995,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       if (!clean) continue;
       const g = validWeight(raw);
       if (g === null) { weightsDropped.add(clean); continue; }
-      fileWeights.set(clean.toLowerCase(), g);
+      fileWeights.set(clean.toLocaleLowerCase(compareLocale()), g);
     }
   }
 
@@ -5948,11 +6013,13 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       const clean = String(name || '').trim();
       const value = valueFromFile('phase', raw);
       if (!clean || !PHASES.includes(value)) continue;
-      filePhases.set(clean.toLowerCase(), value);
+      filePhases.set(clean.toLocaleLowerCase(compareLocale()), value);
     }
   }
+  /* DIESELBE LOCALE WIE BEIM SCHREIBEN DER TAFEL DARUEBER -- zwei
+     verschiedene Regeln fuer denselben Schluessel faenden einander nie. */
   const phaseFrom = (name) =>
-    filePhases.get(String(name).trim().toLowerCase()) || PHASE_DEFAULT;
+    filePhases.get(String(name).trim().toLocaleLowerCase(compareLocale())) || PHASE_DEFAULT;
 
   /* DER KONFLIKT UEBER DIE KAESTEN HINWEG, UND ER WIRD VOR DEM ERSTEN
      SCHREIBEN ABGEWIESEN -- 0.21.0.
@@ -6020,7 +6087,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       if (f) return f.id;
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
       // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
-      const g = fileWeights.get(String(name).trim().toLowerCase());
+      const g = fileWeights.get(String(name).trim().toLocaleLowerCase(compareLocale()));
       /* UND SEINEN KASTEN AUS DER DATEI, sonst 'after'. Ein VORHANDENES
          behaelt den seinen -- so wie es sein Gewicht behaelt; anders als beim
          Gewicht kann es hier aber gar nicht abweichen, denn die Absage

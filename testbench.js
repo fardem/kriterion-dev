@@ -42262,6 +42262,10 @@ async function checkUi() {
       '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
       // Stuecke einer Adresse
       '?eintraege=', '&beitraege=', '?gruppe=', '&days=', '&target=',
+      /* DER NAME EINES HTTP-KOPFES -- 0.24.3, Bauabschnitt 4. Er ist ein
+         technischer Name wie ein MIME-Typ und in jeder Sprache derselbe;
+         gelesen wird er von keinem Menschen. */
+      'Accept-Language',
       // Die vier Serverbefehle -- in jeder Sprache dieselben
       'docker compose exec kriterion node usertool.js passwort <name>',
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
@@ -42278,7 +42282,7 @@ async function checkUi() {
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
     check('Restprobe: weniger als sechzig lesbare Texte in app.js',
       rest.length < 60, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die sechsundvierzig benannten',
+    check('Und es sind genau die siebenundvierzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
