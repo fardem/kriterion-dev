@@ -54,7 +54,7 @@ mitgezogen, die Werte übersetzt — samt Grabstein (`geloescht-3` →
 | Wortpaare im Wörterbuch | — | **1186** |
 | Deutsche Bezeichner im ausgelieferten Code | 808 *(Auftrag, F0)* | **110, alle benannt** |
 | Deutsche Bezeichner in `counterproof.js` | 16 | **0** |
-| Schlüssel in `de.json` | 1190 | **1191** *(+68 Mehrzahlformen darunter = 1259)* |
+| Schlüssel in `de.json` | 1191 | **1191** *(+68 Mehrzahlformen darunter = 1259; **diese Runde legt keinen an und nimmt keinen weg** — sie benennt sie um. Das Protokoll 0.24.0 nennt 1190; am Grundstein dieser Runde (`3be57cc`) sind es 1191)* |
 | Werte in `de.json` | 1225 | **1225, davon 1224 Zeichen für Zeichen dieselben** |
 | Tabellen · Spalten · Werte umbenannt | — | **6 · 26 · 75** |
 | Zeilen `server.js` | 6996 | **7056** |
