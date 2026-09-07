@@ -112,7 +112,7 @@ async function convertInventory(rows) {
       // worden sein. Beides ist kein Fehler -- nur nichts zu tun.
       if (z && isPng(z.data)) {
         const start = await storeImage(z.data, 'image/png');
-        if (start.umgewandelt) {
+        if (start.converted) {
           write.run(start.mime, start.data, id);
           status.umgestellt++;
           status.gespart += z.data.length - start.data.length;

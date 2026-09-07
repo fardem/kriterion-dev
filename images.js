@@ -81,8 +81,8 @@ const sharp = require('sharp');
    Haelfte mehr an Bytes, und die reisen in jeder Sicherung mit.
 
    DIE TAFEL TRAEGT DIE UNTERSCHEIDUNG UND KEIN `if` IN DER SCHLEIFE. Jede
-   Ableitung nennt eine KISTE: `kurz` ist, worauf die kurze Kante gebracht
-   wird, `lang` der Deckel auf der langen. Was zuerst greift, gewinnt --
+   Ableitung nennt eine KISTE: `short` ist, worauf die kurze Kante gebracht
+   wird, `long` der Deckel auf der langen. Was zuerst greift, gewinnt --
    `fit: 'inside'` auf dieser Kiste rechnet genau das aus. Bei `medium` sind
    beide Zahlen gleich, und damit greift immer der Deckel: das ist das
    Verhalten bis 0.19.3, Bild fuer Bild dasselbe.
@@ -123,13 +123,13 @@ const sharp = require('sharp');
    davonlaufen. Die 1280 stehen trotzdem in der Tafel, denn `makeVariants()`
    wird auch ohne Zuschnitt gerufen (der Bestandslauf an einer Zeile ohne
    lesbare Masse, und jeder kuenftige Rufer).
-   `medium` WIRD NICHT GESCHNITTEN, und das steht als `schneidet: false` in
+   `medium` WIRD NICHT GESCHNITTEN, und das steht als `crops: false` in
    der Tafel und nicht als `if` in der Schleife: es wird mit `object-fit:
    contain` gezeigt, also GANZ, und der Editor zeichnet den Rahmen darauf.
    Ein geschnittenes `medium` naehme dem Editor seine Vorlage. */
 const VARIANTS = {
-  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },
-  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }
+  thumb:  { short: 512,  long: 1280, q: 78, crops: true  },
+  medium: { short: 1600, long: 1600, q: 84, crops: false }
 };
 
 /* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ----
@@ -253,15 +253,15 @@ async function makeVariants(buf, cropSpec) {
   const cropRect = cropRectOf(size, cropSpec);
   for (const [name, v] of Object.entries(VARIANTS)) {
     try {
-      /* DIE TAFEL ENTSCHEIDET, OB GESCHNITTEN WIRD (`schneidet`), UND DIE
+      /* DIE TAFEL ENTSCHEIDET, OB GESCHNITTEN WIRD (`crops`), UND DIE
          KISTE FOLGT DARAUS: der Zuschnitt ist quadratisch, also traegt die
          Kiste zweimal die kurze Kante. Eine Verzweigung auf den NAMEN der
          Ableitung stuende als zweite Wahrheit neben der Tafel. */
       const raw = sharp(buf, { failOn: 'none' }).rotate();
-      const cropped = v.schneidet && cropRect;
+      const cropped = v.crops && cropRect;
       out[name] = await (cropped ? raw.extract(cropRect) : raw)
-        .resize(cropped ? v.kurz : (landscape ? v.lang : v.kurz),
-                cropped ? v.kurz : (landscape ? v.kurz : v.lang),
+        .resize(cropped ? v.short : (landscape ? v.long : v.short),
+                cropped ? v.short : (landscape ? v.short : v.long),
                 { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();
     } catch { out[name] = null; }
@@ -415,17 +415,17 @@ const isPng = (buf) =>
    umgewandelt werden. Sie faellt in den Rueckfall und bleibt unberuehrt --
    bei einer Ableitung ist ein Rest besser als nichts, beim Original nicht. */
 async function storeImage(buf, reportedType) {
-  if (!isPng(buf)) return { data: buf, mime: reportedType, umgewandelt: false };
+  if (!isPng(buf)) return { data: buf, mime: reportedType, converted: false };
   try {
     const webp = await sharp(buf).webp(WEBP_STORE).toBuffer();
     if (webp.length < buf.length)
-      return { data: webp, mime: 'image/webp', umgewandelt: true };
+      return { data: webp, mime: 'image/webp', converted: true };
   } catch (e) {
     // Laut ins Protokoll, still in der Antwort: das Bild ist gespeichert, nur
     // eben als PNG. Wer es wissen will, sieht es an der Formatzeile der Karte.
     console.error('[Kriterion] PNG blieb PNG:', e.message);
   }
-  return { data: buf, mime: reportedType, umgewandelt: false };
+  return { data: buf, mime: reportedType, converted: false };
 }
 
 /* AUSGEGEBEN WIRD, WAS GERUFEN WIRD, UND SONST NICHTS. `VARIANTS`,

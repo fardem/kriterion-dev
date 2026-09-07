@@ -167,8 +167,8 @@ async function commandRemove(name, options) {
   const z = auth.countInventory(u.id);
   console.log(`\nZugang "${u.username}" (Nummer ${u.id}, ${ROLE_KEY[u.role] || u.role}) entfernen.`);
   console.log(`  Eigene Einträge: ${z.entries}`);
-  console.log(`  Eigene Beiträge in fremden Einträgen: ${z.kommentare} Kommentare, ` +
-              `${z.bewertungen} Bewertungen, ${z.testtage} Testtage`);
+  console.log(`  Eigene Beiträge in fremden Einträgen: ${z.comments} Kommentare, ` +
+              `${z.ratings} Bewertungen, ${z.testDays} Testtage`);
   if (options.entries) {
     console.log(RED(`  --eintraege: seine ${z.entries} Einträge werden gelöscht — mitsamt ` +
       `${z.foreignComments} fremden Kommentaren, ${z.foreignRatings} fremden Bewertungen ` +

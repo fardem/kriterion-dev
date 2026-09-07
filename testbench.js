@@ -418,11 +418,11 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
   CASES.push({ base: portBase, port, kind: kindB, directory: dataDirectory });
   kindB.stdout.on('data', d => { log += d; });
   kindB.stderr.on('data', d => { log += d; });
-  const callB = async (method, pfad, body) => {
+  const callB = async (method, filePath, body) => {
     const opt = { method: method, headers: {} };
     if (cookieB) opt.headers.cookie = cookieB;
     if (body !== undefined) { opt.headers['content-type'] = 'application/json'; opt.body = JSON.stringify(body); }
-    const a = await fetch(base + pfad, opt);
+    const a = await fetch(base + filePath, opt);
     const setCookieHeader = a.headers.get('set-cookie');
     if (setCookieHeader) cookieB = setCookieHeader.split(';')[0];
     let content = null;
@@ -447,11 +447,11 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
 }
 
 let cookie = '';
-async function call(method, pfad, body) {
+async function call(method, filePath, body) {
   const opt = { method: method, headers: {} };
   if (cookie) opt.headers.cookie = cookie;
   if (body !== undefined) { opt.headers['content-type'] = 'application/json'; opt.body = JSON.stringify(body); }
-  const a = await fetch(BASE + pfad, opt);
+  const a = await fetch(BASE + filePath, opt);
   const setCookieHeader = a.headers.get('set-cookie');
   if (setCookieHeader) cookie = setCookieHeader.split(';')[0];
   let content = null;
@@ -480,8 +480,8 @@ const namen = (list) => list.map(c => c.name);
 
    WELCHER ZWECK ZU WELCHEM WEG GEHOERT, steht hier genau einmal. Passt keiner,
    ruft er unveraendert durch. */
-function confirmNeeded(method, pfad, body) {
-  const withoutQuery = String(pfad).split('?')[0];
+function confirmNeeded(method, filePath, body) {
+  const withoutQuery = String(filePath).split('?')[0];
   if (method === 'GET' && withoutQuery === '/api/export') return [['export', null]];
   if (method === 'POST' && withoutQuery === '/api/import') return [['import', null]];
   const user = withoutQuery.match(/^\/api\/users\/(\d+)$/);
@@ -507,11 +507,11 @@ function confirmNeeded(method, pfad, body) {
    Passwort gehoert dazu -- ohne es gibt es keine Freigabe, und genau das ist
    die Aussage der Runde. */
 function includingShare(raw, password) {
-  return async (method, pfad, body) => {
-    for (const [purpose, target] of confirmNeeded(method, pfad, body)) {
+  return async (method, filePath, body) => {
+    for (const [purpose, target] of confirmNeeded(method, filePath, body)) {
       await raw('POST', '/api/confirm', { password, purpose, target });
     }
-    return raw(method, pfad, body);
+    return raw(method, filePath, body);
   };
 }
 
@@ -1969,8 +1969,8 @@ const shareMain = (purpose, target = null) =>
   check('Leeres Feld faellt auf die Vorgabe zurueck', half.content.vocabulary.sacheEinzahl === 'Eintrag');
   check('Nicht gesendete Felder fallen ebenfalls zurueck',
     half.content.vocabulary.sacheMehrzahl === 'Einträge');
-  const lang = await call('PUT', '/api/settings', { vocabulary: { sacheEinzahl: 'x'.repeat(120) } });
-  check('Ueberlanges Wort wird gekuerzt', lang.content.vocabulary.sacheEinzahl.length === 40);
+  const long = await call('PUT', '/api/settings', { vocabulary: { sacheEinzahl: 'x'.repeat(120) } });
+  check('Ueberlanges Wort wird gekuerzt', long.content.vocabulary.sacheEinzahl.length === 40);
 
   // Geprueft wird am SERVER, nicht gegen die clientseitige Vorgabe: ein
   // Wort, das der Server nicht kennt, taucht in der Karte trotzdem auf,
@@ -2186,9 +2186,9 @@ const shareMain = (purpose, target = null) =>
   check('Solcher Tag hat null Einträge und fällt damit aus der Filterwolke',
     nurhier.usage_count === 0 && nurhier.test_usage_count === 1);
 
-  const weg = await call('DELETE', `/api/test-days/${tag1.id}/tags/${nurhier.id}`);
+  const removed = await call('DELETE', `/api/test-days/${tag1.id}/tags/${nurhier.id}`);
   check('Tag lässt sich vom Testtag lösen',
-    weg.status === 200 && !weg.content.testDays[0].tags.some(t => t.name === 'Nurhier'));
+    removed.status === 200 && !removed.content.testDays[0].tags.some(t => t.name === 'Nurhier'));
 
   const outT = await callF('GET', '/api/export?photos=0');
   const outTag = outT.content.items.find(i => i.title === 'Tagprobe');
@@ -2413,17 +2413,17 @@ const shareMain = (purpose, target = null) =>
   const anb0 = s0.searchProviders || [];
   const key = (list) => (list || []).map(a => a.key);
   const imPool = (list) => (list || []).filter(a => a.active).map(a => a.key);
-  const defaultFrom = (list) => (list || []).find(a => a.standard)?.key;
+  const defaultFrom = (list) => (list || []).find(a => a.isDefault)?.key;
 
   // Die Liste liegt im Server, nicht in app.js. Neun Plaetze:
   // sechs eingebaute, drei eigene.
   check('Der Server liefert neun Anbieterplätze', anb0.length === 9, `${anb0.length}`);
   check('Die sechs eingebauten stehen vorn und sind vorhanden',
     equal(key(anb0).slice(0, 6), ['google', 'bing', 'ddg', 'startpage', 'brave', 'ecosia']) &&
-    anb0.slice(0, 6).every(a => a.vorhanden && !a.own),
+    anb0.slice(0, 6).every(a => a.present && !a.own),
     JSON.stringify(key(anb0)));
   check('Die drei eigenen Plätze sind zunächst leer',
-    anb0.slice(6).every(a => a.own && !a.vorhanden && !a.name && !a.template));
+    anb0.slice(6).every(a => a.own && !a.present && !a.name && !a.template));
   check('Vorgabe ist Google, aktiv und Standard',
     defaultFrom(anb0) === 'google' && equal(imPool(anb0), ['google']),
     JSON.stringify(imPool(anb0)));
@@ -2460,9 +2460,9 @@ const shareMain = (purpose, target = null) =>
     { name: 'Modellforum', template: 'https://forum.beispiel.de/suche?q=%s' }] })).content;
   const eigen1 = (se1.searchProviders || []).find(a => a.key === 'eigen1');
   check('Ein eigener Anbieter wird angelegt',
-    eigen1?.vorhanden === true && eigen1?.name === 'Modellforum', JSON.stringify(eigen1));
+    eigen1?.present === true && eigen1?.name === 'Modellforum', JSON.stringify(eigen1));
   check('Die beiden anderen Plätze bleiben leer',
-    (se1.searchProviders || []).filter(a => a.own && a.vorhanden).length === 1);
+    (se1.searchProviders || []).filter(a => a.own && a.present).length === 1);
   check('Ein eigener Anbieter darf in den Vorrat',
     imPool((await call('PUT', '/api/settings', { searchOn: ['bing', 'eigen1'] })).content.searchProviders)
       .includes('eigen1'));
@@ -2509,7 +2509,7 @@ const shareMain = (purpose, target = null) =>
   // nachrueckt (dieselbe Regel wie beim Deaktivieren).
   const sePath = (await call('PUT', '/api/settings', { searchOwn: [{ name: '', template: '' }] })).content;
   check('Ein geräumter Platz gilt als nicht vorhanden',
-    sePath.searchProviders.find(a => a.key === 'eigen1')?.vorhanden === false);
+    sePath.searchProviders.find(a => a.key === 'eigen1')?.present === false);
   check('War er Standard, rückt der erste aktive nach',
     defaultFrom(sePath.searchProviders) === 'bing' && sePath.search === 'https://www.bing.com/search?q=%s',
     `${defaultFrom(sePath.searchProviders)} / ${sePath.search}`);
@@ -2550,10 +2550,10 @@ const shareMain = (purpose, target = null) =>
   }, 4400);
   const wHalfA = (await wHalf.get()).searchProviders || [];
   check('Ein Platz ohne Vorlage gilt auch aus der Datenbank nicht',
-    wHalfA.find(a => a.key === 'eigen1')?.vorhanden === false,
+    wHalfA.find(a => a.key === 'eigen1')?.present === false,
     JSON.stringify(wHalfA.find(a => a.key === 'eigen1')));
   check('Ein Platz ohne Namen ebenso wenig',
-    wHalfA.find(a => a.key === 'eigen2')?.vorhanden === false,
+    wHalfA.find(a => a.key === 'eigen2')?.present === false,
     JSON.stringify(wHalfA.find(a => a.key === 'eigen2')));
   check('Und beide stehen dann auch nicht im Vorrat',
     equal(wHalfA.filter(a => a.active).map(a => a.key), ['bing']),
@@ -2896,13 +2896,13 @@ const shareMain = (purpose, target = null) =>
   const pDir = putFavoritesInventoryAn();
   const P1 = startFurtherServer(pDir, {}, 4950);
   await P1.ready;
-  const pCall = async (cookieName, method, pfad, body) => {
+  const pCall = async (cookieName, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieName}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(P1.base + pfad, opt);
+    const a = await fetch(P1.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -3174,13 +3174,13 @@ const shareMain = (purpose, target = null) =>
   // Zwei echte Cookies nebeneinander, ohne den gemeinsamen Cookiespeicher von
   // startFurtherServer zu benutzen -- sonst ueberschriebe der zweite den
   // ersten und es gaebe wieder nur einen Rufer.
-  const dCall = async (cookieValue, method, pfad, body) => {
+  const dCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(D1.base + pfad, opt);
+    const a = await fetch(D1.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -3338,7 +3338,7 @@ const shareMain = (purpose, target = null) =>
   // ACHTUNG, nicht ['ddg','bing']: imPool liest die Liste in KANONISCHER
   // Reihenfolge (google, bing, ddg, ...), nicht in Vorratsreihenfolge. Wer hier
   // Standard zuerst erwartet, prueft die falsche Zusicherung -- wer Standard
-  // ist, sagt allein das Kennzeichen `standard` eine Zeile darueber.
+  // ist, sagt allein das Kennzeichen `isDefault` eine Zeile darueber.
   check('Der Vorrat bleibt global',
     equal(imPool(dGlobOne.searchProviders), ['bing', 'ddg']) &&
     equal(imPool(dGlobTwo.searchProviders), ['bing', 'ddg']),
@@ -3491,13 +3491,13 @@ const shareMain = (purpose, target = null) =>
   const SE1 = startFurtherServer(levelEDir, {}, 5560);
   await SE1.ready;
   // Drei echte Cookies nebeneinander, am gemeinsamen Cookiespeicher vorbei.
-  const eCall = async (cookieValue, method, pfad, body) => {
+  const eCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(SE1.base + pfad, opt);
+    const a = await fetch(SE1.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -3898,12 +3898,12 @@ const shareMain = (purpose, target = null) =>
   check('Jede Zeile traegt Schnitt, Gewicht und Produkt',
     (rw?.rows || []).every(z =>
       typeof z.average === 'number' && typeof z.weight === 'number' &&
-      Math.abs(z.produkt - z.average * z.weight) < 1e-9),
+      Math.abs(z.product - z.average * z.weight) < 1e-9),
     JSON.stringify(rw?.rows));
   /* SUMME UND TEILER SIND DIE DER ZEILEN -- nachgerechnet HIER, aus der
      Antwort. Eine fest hingeschriebene Zahl belegte nur, dass sie einmal
      jemand getippt hat. */
-  const rwSum = (rw?.rows || []).reduce((n, z) => n + z.produkt, 0);
+  const rwSum = (rw?.rows || []).reduce((n, z) => n + z.product, 0);
   const rwDivisor = (rw?.rows || []).reduce((n, z) => n + z.weight, 0);
   check('Summe und Teiler sind die der Zeilen',
     Math.abs(rw?.sum - rwSum) < 1e-9 && Math.abs(rw?.divisor - rwDivisor) < 1e-9,
@@ -4321,13 +4321,13 @@ const shareMain = (purpose, target = null) =>
   const SE2 = startFurtherServer(e2Dir, {}, 5620);
   await SE2.ready;
 
-  const e2Call = async (cookieValue, method, pfad, body) => {
+  const e2Call = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(SE2.base + pfad, opt);
+    const a = await fetch(SE2.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -4764,7 +4764,7 @@ const shareMain = (purpose, target = null) =>
       content, Buffer.from('\r\n', 'utf8')];
     const parts = [
       ...part('video', 'clip.mp4', 'video/mp4', MP4()),
-      ...part('standbild', 'standbild.png', 'image/png', Buffer.from(PNG_BASE64, 'base64')),
+      ...part('stillFrame', 'stillframe.png', 'image/png', Buffer.from(PNG_BASE64, 'base64')),
       Buffer.from(`--${limit}\r\nContent-Disposition: form-data; name="duration"\r\n\r\n17\r\n`, 'utf8'),
       Buffer.from(`--${limit}--\r\n`, 'utf8')
     ];
@@ -5078,13 +5078,13 @@ const shareMain = (purpose, target = null) =>
   const PK = startFurtherServer(pkDir, {}, 4200);
   await PK.ready;
 
-  const pkCall = async (cookieValue, method, pfad, body) => {
+  const pkCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(PK.base + pfad, opt);
+    const a = await fetch(PK.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -5161,8 +5161,8 @@ const shareMain = (purpose, target = null) =>
     pkBefore?.photos?.length === 2 && pkBefore?.comments?.length === 4 &&
     pkBefore?.links?.length === 2 && pkBefore?.testDays?.length === 2 &&
     pkBefore?.tags?.length === 2 && pkBefore?.attachments?.length === 2,
-    JSON.stringify({ photos: pkBefore?.photos?.length, kommentare: pkBefore?.comments?.length,
-                     links: pkBefore?.links?.length, testtage: pkBefore?.testDays?.length,
+    JSON.stringify({ photos: pkBefore?.photos?.length, comments: pkBefore?.comments?.length,
+                     links: pkBefore?.links?.length, testDays: pkBefore?.testDays?.length,
                      tags: pkBefore?.tags?.length, files: pkBefore?.attachments?.length }));
   check('Und Beitraege mehrerer Verfasser',
     new Set((pkBefore.comments || []).map(c => JSON.stringify(c.author))).size === 4,
@@ -5231,7 +5231,7 @@ const shareMain = (purpose, target = null) =>
     pkStats?.itemCount === 1 && pkStats?.photoCount === 0 && pkStats?.videoCount === 0 &&
     pkStats?.commentCount === 0 && pkStats?.linkCount === 0 && pkStats?.attachmentCount === 0,
     JSON.stringify({ items: pkStats?.itemCount, photos: pkStats?.photoCount,
-                     videos: pkStats?.videoCount, kommentare: pkStats?.commentCount }));
+                     videos: pkStats?.videoCount, comments: pkStats?.commentCount }));
 
   // Die Liste, wie die Karte sie sieht.
   const pkList = (await pkCall('cookie-pk-anna', 'GET', '/api/trash')).content || {};
@@ -5422,9 +5422,9 @@ const shareMain = (purpose, target = null) =>
       pkRows('SELECT id FROM trash').length === 1);
     // Aufraeumen: die Zeile endgueltig entfernen, damit die Lagen darunter
     // von einem bekannten Stand ausgehen.
-    const weg = pkOne('SELECT id FROM trash').id;
+    const removed = pkOne('SELECT id FROM trash').id;
     check('Endgueltig entfernen nimmt die Zeile',
-      (await pkCall('cookie-pk-anna', 'DELETE', `/api/trash/${weg}`)).status === 204);
+      (await pkCall('cookie-pk-anna', 'DELETE', `/api/trash/${removed}`)).status === 204);
     check('Und ihre Bytes ueber die Kaskade mit',
       pkRows('SELECT id FROM trash_bytes').length === 0);
   }
@@ -5733,13 +5733,13 @@ const shareMain = (purpose, target = null) =>
     d.prepare("UPDATE users SET role = 'admin' WHERE username = 'bert'").run();
     d.close();
   }
-  const siCall = async (cookieValue, method, pfad, body) => {
+  const siCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(SI.base + pfad, opt);
+    const a = await fetch(SI.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -5752,12 +5752,12 @@ const shareMain = (purpose, target = null) =>
   check('Die Karte ist eingerichtet',
     siStatus.content?.configured === true, JSON.stringify(siStatus.content));
   check('Sie nennt die eingerichtete Wurzel',
-    siStatus.content?.wurzel === fs.realpathSync(siRoot), JSON.stringify(siStatus.content?.wurzel));
+    siStatus.content?.root === fs.realpathSync(siRoot), JSON.stringify(siStatus.content?.root));
   check('Und die erwartete Dauer aus der Groesse der Datenbank',
     Number.isInteger(siStatus.content?.durationSeconds) && siStatus.content.durationSeconds >= 1,
     JSON.stringify([siStatus.content?.dbBytes, siStatus.content?.durationSeconds]));
   check('Noch liegt dort keine Sicherung',
-    siStatus.content?.erreichbar === true && siStatus.content?.last === null,
+    siStatus.content?.reachable === true && siStatus.content?.last === null,
     JSON.stringify(siStatus.content?.last));
 
   /* --- LIEGT DER SICHERUNGSORT IM ARBEITSVERZEICHNIS? ---
@@ -5769,8 +5769,8 @@ const shareMain = (purpose, target = null) =>
      kennt, belegt nichts ueber den anderen -- und ein Feld, das schlicht immer
      false ist, saehe von aussen genauso aus. */
   check('Ein Ort ausserhalb des Arbeitsverzeichnisses meldet sich als solcher',
-    siStatus.content?.imArbeitsverzeichnis === false,
-    JSON.stringify(siStatus.content?.imArbeitsverzeichnis));
+    siStatus.content?.inWorkDir === false,
+    JSON.stringify(siStatus.content?.inWorkDir));
 
   {
     // Die Wurzel liegt diesmal UNTER dem Verzeichnis, in dem server.js steht.
@@ -5791,7 +5791,7 @@ const shareMain = (purpose, target = null) =>
       let inside = null;
       try { inside = await a.json(); } catch {}
       check('Ein Ort IM Arbeitsverzeichnis meldet sich als solcher',
-        inside?.imArbeitsverzeichnis === true, JSON.stringify(inside?.imArbeitsverzeichnis));
+        inside?.inWorkDir === true, JSON.stringify(inside?.inWorkDir));
       check('Und er ist trotzdem eingerichtet -- benannt, nicht abgewiesen',
         inside?.configured === true && !inside?.error,
         JSON.stringify([inside?.configured, inside?.reason, inside?.error]));
@@ -6417,13 +6417,13 @@ const shareMain = (purpose, target = null) =>
     d.close();
   }
 
-  const auCall = async (cookieValue, method, pfad, body) => {
+  const auCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(AU.base + pfad, opt);
+    const a = await fetch(AU.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -6506,9 +6506,9 @@ const shareMain = (purpose, target = null) =>
     check('Und die beiden Werte tragen die Vorgaben 3 und 30',
       a.keep === 3 && a.days === 30, JSON.stringify([a.keep, a.days]));
     check('Die Grenzen kommen vom Server: 1 bis 20 und 7 bis 365',
-      a.grenzen?.keep?.min === 1 && a.grenzen?.keep?.max === 20 &&
-      a.grenzen?.days?.min === 7 && a.grenzen?.days?.max === 365,
-      JSON.stringify(a.grenzen));
+      a.limits?.keep?.min === 1 && a.limits?.keep?.max === 20 &&
+      a.limits?.days?.min === 7 && a.limits?.days?.max === 365,
+      JSON.stringify(a.limits));
     check('Die Vorschau nennt genau die drei Kopien, die die Regel trifft',
       equal((a.matched || []).map(t => t.file).sort(), AU_CASES),
       (a.matched || []).map(t => t.file).join(' · '));
@@ -6556,12 +6556,12 @@ const shareMain = (purpose, target = null) =>
       list.every(z => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(z.at) &&
         Number.isInteger(z.daysAgo) && z.bytes > 0),
       JSON.stringify(list[0]));
-    /* DIE MARKE `faellt` STEHT AN GENAU DEN DREI EINTRAEGEN, die die Regel
+    /* DIE MARKE `affected` STEHT AN GENAU DEN DREI EINTRAEGEN, die die Regel
        trifft -- gegen die Trefferliste daneben gehalten. Zwei Felder ueber
        dieselbe Frage duerfen sich nicht widersprechen (Stolperstein 47). */
     check('Die Marke `faellt` steht an genau den Kopien, die die Regel trifft',
-      equal(list.filter(z => z.faellt).map(z => z.file).sort(), AU_CASES),
-      list.filter(z => z.faellt).map(z => z.file).join(' · '));
+      equal(list.filter(z => z.affected).map(z => z.file).sort(), AU_CASES),
+      list.filter(z => z.affected).map(z => z.file).join(' · '));
     check('Und ohne Schluesselwechsel traegt keine die Marke `veraltet`',
       list.every(z => z.veraltet === false), JSON.stringify(list.map(z => z.veraltet)));
     /* UND KEIN DATEINAME FEHLT IN DER ANTWORT: die Karte zeigt ihn nicht mehr,
@@ -6687,8 +6687,8 @@ const shareMain = (purpose, target = null) =>
       { kind: 'rule', file: '../../etc/passwd', files: ['notizen.txt'],
         ordner: '/etc', name: 'kriterion-2026-09-03-10-00-00.sqlite' });
     check('Ein Rumpf mit Dateinamen aendert am Ergebnis nichts',
-      r.status === 200 && r.content?.weg === 3,
-      `Status ${r.status} · ${JSON.stringify(r.content?.weg)}`);
+      r.status === 200 && r.content?.removed === 3,
+      `Status ${r.status} · ${JSON.stringify(r.content?.removed)}`);
     /* WAS DIE REGEL GENANNT HAT, IST WEG -- und ALLES ANDERE IST NOCH DA,
        namentlich nachgesehen. Die fremde Datei, die Datei mit dem fast
        richtigen Namen, das Unterverzeichnis und der Symlink stehen einzeln
@@ -6713,8 +6713,8 @@ const shareMain = (purpose, target = null) =>
        gefallen, und es sind dieselben. */
     check('Die Vorschau und das Loeschen sagen dasselbe',
       AU_CASES.every(n => !fs.existsSync(path.join(auFolder, n))) &&
-      r.content?.weg === AU_CASES.length,
-      `${r.content?.weg} entfernt, ${AU_CASES.length} angekuendigt`);
+      r.content?.removed === AU_CASES.length,
+      `${r.content?.removed} entfernt, ${AU_CASES.length} angekuendigt`);
     check('Und die Antwort nennt die freigegebenen Bytes',
       Number.isInteger(r.content?.bytes) && r.content.bytes > 0 && r.content?.nicht === 0,
       JSON.stringify([r.content?.bytes, r.content?.nicht]));
@@ -6729,7 +6729,7 @@ const shareMain = (purpose, target = null) =>
     await auFree();
     const second = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'rule' });
     check('Ein zweiter Lauf entfernt nichts mehr und sagt es mit 0',
-      second.status === 200 && second.content?.weg === 0, JSON.stringify(second.content?.weg));
+      second.status === 200 && second.content?.removed === 0, JSON.stringify(second.content?.removed));
   }
   /* --- DAS SICHERHEITSPROTOKOLL. EINE ZEILE JE ENTFERNTER KOPIE, ohne
      Dateinamen und ohne Pfad. --- */
@@ -6783,11 +6783,11 @@ const shareMain = (purpose, target = null) =>
              ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-07-25-10-00-00.sqlite']),
       (a.matched || []).map(x => x.file).join(' · '));
     await auFree();
-    const weg = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'outdated' });
+    const removed = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'outdated' });
     check('Der zweite Weg entfernt genau die veraltete Kopie',
-      weg.status === 200 && weg.content?.weg === 1 &&
+      removed.status === 200 && removed.content?.removed === 1 &&
       !fs.existsSync(path.join(auFolder, 'kriterion-2026-09-03-23-59-59.sqlite')),
-      `Status ${weg.status} · ${JSON.stringify(weg.content?.weg)}`);
+      `Status ${removed.status} · ${JSON.stringify(removed.content?.removed)}`);
     check('Und nichts sonst -- die beiden alten brauchbaren liegen noch da',
       ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-07-25-10-00-00.sqlite']
         .every(n => fs.existsSync(path.join(auFolder, n))),
@@ -6824,9 +6824,9 @@ const shareMain = (purpose, target = null) =>
     const before = auDa().length;
     const backupOut = await auCall('cookie-au-anna', 'POST', '/api/backup');
     check('Bei ausgeschaltetem Schalter raeumt die Sicherung nichts weg',
-      backupOut.status === 200 && backupOut.content?.aufgeraeumt === null &&
+      backupOut.status === 200 && backupOut.content?.cleaned === null &&
       auDa().length === before + 1,
-      `Status ${backupOut.status} · ${JSON.stringify(backupOut.content?.aufgeraeumt)} · ${auDa().length} Dateien`);
+      `Status ${backupOut.status} · ${JSON.stringify(backupOut.content?.cleaned)} · ${auDa().length} Dateien`);
     // Die eben geschriebene Kopie wieder weg -- sie ist die juengste und
     // verschoebe sonst den Boden der naechsten Lage.
     for (const n of auDa())
@@ -6885,8 +6885,8 @@ const shareMain = (purpose, target = null) =>
     await new Promise(r => setTimeout(r, 1100));
     const ok = await auCall('cookie-au-anna', 'POST', '/api/backup');
     check('Nach einer gelungenen Sicherung raeumt der Anschluss auf',
-      ok.status === 200 && ok.content?.aufgeraeumt?.weg === 3,
-      `Status ${ok.status} · ${JSON.stringify(ok.content?.aufgeraeumt)}`);
+      ok.status === 200 && ok.content?.cleaned?.removed === 3,
+      `Status ${ok.status} · ${JSON.stringify(ok.content?.cleaned)}`);
     check('Und zwar genau die drei, die die Regel nennt',
       AU_CASES.every(n => !fs.existsSync(path.join(auFolder, n))) &&
       ['notizen.txt', 'kriterion-alt.sqlite.bak', 'unterordner', 'kriterion-verweis.sqlite']
@@ -6935,8 +6935,8 @@ const shareMain = (purpose, target = null) =>
       core.indexOf('bytes = fs.statSync(datei).size;') < callAn,
       `rename ${core.indexOf('fs.renameSync(becoming, datei);')}, Aufruf ${callAn}`);
     check('Und er haengt in seinem eigenen try',
-      /let aufgeraeumt = null;\n  try \{\n    const rule = cleanupStatus\(\);/.test(core),
-      (core.match(/let aufgeraeumt[^\n]*\n[^\n]*\n[^\n]*/) || ['(nicht gefunden)'])[0]);
+      /let cleaned = null;\n  try \{\n    const rule = cleanupStatus\(\);/.test(core),
+      (core.match(/let cleaned[^\n]*\n[^\n]*\n[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* UND DIE LOESCHROUTE LIEST AUS DEM RUMPF NUR DIE ART. Ein zweiter Zugriff
        auf req.body waere die Stelle, an der ein Dateiname hereinkaeme -- und
        er stuende einen Handgriff davon entfernt, ungeprueft zu bleiben. */
@@ -7048,13 +7048,13 @@ const shareMain = (purpose, target = null) =>
   const F = startFurtherServer(fDir, { ENCRYPTION_KEY: '' }, 5680);
   await F.ready;
 
-  const fCall = async (cookieValue, method, pfad, body) => {
+  const fCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(F.base + pfad, opt);
+    const a = await fetch(F.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -7233,7 +7233,7 @@ const shareMain = (purpose, target = null) =>
       content, Buffer.from('\r\n', 'utf8')];
     const parts = [
       ...part('video', 'clip.mp4', 'video/mp4', MP4()),
-      ...part('standbild', 'standbild.jpg', 'image/jpeg', Buffer.from(PNG_BASE64, 'base64')),
+      ...part('stillFrame', 'stillframe.jpg', 'image/jpeg', Buffer.from(PNG_BASE64, 'base64')),
       Buffer.from(`--${limit}\r\nContent-Disposition: form-data; name="duration"\r\n\r\n5\r\n`, 'utf8'),
       Buffer.from(`--${limit}--\r\n`, 'utf8')
     ];
@@ -8566,13 +8566,13 @@ const shareMain = (purpose, target = null) =>
   setPasswordImInventory(agDir, 'anna', AG_WORD);
   const AG = startFurtherServer(agDir, {}, 7060);
   await AG.ready;
-  const agCall = async (actor, method, pfad, body) => {
+  const agCall = async (actor, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${actor}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(AG.base + pfad, opt);
+    const a = await fetch(AG.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -8813,13 +8813,13 @@ const shareMain = (purpose, target = null) =>
   setPasswordImInventory(agTargetDir, 'anna', AG_WORD);
   const AGZ = startFurtherServer(agTargetDir, {}, 7120);
   await AGZ.ready;
-  const agzCall = async (method, pfad, body) => {
+  const agzCall = async (method, filePath, body) => {
     const opt = { method: method, headers: { cookie: 'kriterion_session=cookie-agz-anna' } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(AGZ.base + pfad, opt);
+    const a = await fetch(AGZ.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -9091,13 +9091,13 @@ const shareMain = (purpose, target = null) =>
     d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, 1)').run('cookie-sb-anna-zwei');
     d.close();
   }
-  const sbCall = async (cookieValue, method, pfad, body) => {
+  const sbCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(SB.base + pfad, opt);
+    const a = await fetch(SB.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -9303,14 +9303,14 @@ const shareMain = (purpose, target = null) =>
   const TK = startFurtherServer(tkDir, {}, 4680);
   await TK.ready;
 
-  const tkCall = async (cookieValue, method, pfad, body) => {
+  const tkCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
     if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(TK.base + pfad, opt);
+    const a = await fetch(TK.base + filePath, opt);
     let content = null, raw = '';
     try { raw = await a.text(); content = JSON.parse(raw); } catch {}
     return { status: a.status, content, raw, cookie: (a.headers.get('set-cookie') || '') };
@@ -9328,7 +9328,7 @@ const shareMain = (purpose, target = null) =>
 
   // 1. Der Admin laedt ein -- ein NEUER Zugang, ohne Passwort, in einem Zug.
   const tkNew = await tkCall('cookie-tk-anna', 'POST', '/api/users',
-    { username: 'neuling', einladen: true });
+    { username: 'neuling', sendInvite: true });
   check('Der Admin legt einen Zugang mit Einladung an',
     tkNew.status === 200 && tkNew.content?.username === 'neuling',
     `${tkNew.status} ${tkNew.raw}`);
@@ -9437,10 +9437,10 @@ const shareMain = (purpose, target = null) =>
   /* DER SCHLUESSEL STEHT IN KEINER ANTWORT AN DEN BILDSCHIRM ausser der einen,
      die ihn erzeugt. Geprueft am VOLLSTAENDIGEN Antwortrumpf, nicht an einem
      Feld: ein Feld, das man nicht kennt, prueft man auch nicht. */
-  for (const [name, pfad] of [['die Zugangsliste', '/api/users'],
+  for (const [name, filePath] of [['die Zugangsliste', '/api/users'],
                               ['die eigenen Anmeldungen', '/api/sessions'],
                               ['der eigene Zugang', '/api/account']]) {
-    const a = await tkCall('cookie-tk-anna', 'GET', pfad);
+    const a = await tkCall('cookie-tk-anna', 'GET', filePath);
     check(`Der Schluessel steht nicht in der Antwort: ${name}`,
       a.status === 200 && !a.raw.includes(tkSecret), `${a.status} ${a.raw.slice(0, 160)}`);
   }
@@ -9567,7 +9567,7 @@ const shareMain = (purpose, target = null) =>
     const FR = startFurtherServer(frDir, {}, 6310);
     await FR.ready;
     await FR.call('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
-    const frFresh = await FR.call('POST', '/api/users', { username: 'bert', einladen: true });
+    const frFresh = await FR.call('POST', '/api/users', { username: 'bert', sendInvite: true });
     const frToken = frFresh.content?.token;
     const frExpires = () => {
       const d = open(path.join(frDir, 'katalog.sqlite'));
@@ -9870,7 +9870,7 @@ const shareMain = (purpose, target = null) =>
      Format ab. Zwei voneinander unabhaengige Gruende -- eine Sperre, die es
      nicht gibt, kann nicht vergessen werden. */
   const tkWithout = await tkCall('cookie-tk-anna', 'POST', '/api/users',
-    { username: 'stumm', einladen: true });
+    { username: 'stumm', sendInvite: true });
   check('Ein Zugang ohne Passwort ist angelegt',
     tkWithout.status === 200 &&
     tkRows("SELECT password_hash h FROM users WHERE username='stumm'")[0]?.h === '',
@@ -9944,9 +9944,9 @@ const shareMain = (purpose, target = null) =>
      Absage, die hier der Gegenstand ist -- die Pruefung waere gruen und
      belegte etwas anderes (Stolperstein 74). Wo die Rollenleiter absagt,
      bleibt die Freigabe ungenutzt liegen; sie kann keine Absage aufheben. */
-  const tkNothing = async (name, cookieValue, pfad, body, expected) => {
+  const tkNothing = async (name, cookieValue, filePath, body, expected) => {
     const before = tkOpen();
-    const a = await tkF(cookieValue)('POST', pfad, body);
+    const a = await tkF(cookieValue)('POST', filePath, body);
     check(name, a.status === expected, `${a.status} statt ${expected}: ${a.raw}`);
     check(`Und dabei wurde nichts geschrieben: ${name}`,
       tkOpen() === before, `${before} -> ${tkOpen()}`);
@@ -9990,13 +9990,13 @@ const shareMain = (purpose, target = null) =>
      vergabe ueber das Anlegen fuer jeden Admin offen, ohne dass irgendwo
      "Rolle" steht. */
   const tkBertPutsAn = await tkCall('cookie-tk-bert', 'POST', '/api/users',
-    { username: 'berts-neuer', einladen: true });
+    { username: 'berts-neuer', sendInvite: true });
   check('Ein Admin legt einen Benutzer mit Einladung an',
     tkBertPutsAn.status === 200 && /^[0-9a-f]{64}$/.test(tkBertPutsAn.content?.token || ''),
     `${tkBertPutsAn.status} ${tkBertPutsAn.raw}`);
   const tkVorAdmin = tkOpen();
   const tkBertAdmin = await tkCall('cookie-tk-bert', 'POST', '/api/users',
-    { username: 'berts-admin', rolle: 'admin', einladen: true });
+    { username: 'berts-admin', rolle: 'admin', sendInvite: true });
   check('Aber keinen Admin -- Rollen vergibt der Eigentuemer',
     tkBertAdmin.status === 403, `${tkBertAdmin.status} ${tkBertAdmin.raw}`);
   check('Und dabei entsteht weder Zugang noch Link',
@@ -10004,7 +10004,7 @@ const shareMain = (purpose, target = null) =>
     tkRows("SELECT id FROM users WHERE username = 'berts-admin'").length === 0,
     JSON.stringify(tkRows("SELECT username FROM users WHERE username = 'berts-admin'")));
   const tkAnnaAdmin = await tkCall('cookie-tk-anna', 'POST', '/api/users',
-    { username: 'annas-admin', rolle: 'admin', einladen: true });
+    { username: 'annas-admin', rolle: 'admin', sendInvite: true });
   check('Die Eigentuemerin darf es',
     tkAnnaAdmin.status === 200 && tkAnnaAdmin.content?.role === 'admin',
     `${tkAnnaAdmin.status} ${tkAnnaAdmin.raw}`);
@@ -10046,14 +10046,14 @@ const shareMain = (purpose, target = null) =>
   setPasswordImInventory(tbDir, 'anna', tbWord);
   const TB = startFurtherServer(tbDir, {}, 4740);
   await TB.ready;
-  const tbCall = async (cookieValue, method, pfad, body) => {
+  const tbCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
     if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(TB.base + pfad, opt);
+    const a = await fetch(TB.base + filePath, opt);
     let raw = '';
     try { raw = await a.text(); } catch {}
     return { status: a.status, raw };
@@ -10142,9 +10142,9 @@ const shareMain = (purpose, target = null) =>
   }
   const MS = startFurtherServer(msDir, {}, 4560);
   await MS.ready;
-  const msCall = async (cookieValue, method, pfad) => {
+  const msCall = async (cookieValue, method, filePath) => {
     const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
-    const a = await fetch(MS.base + pfad, opt);
+    const a = await fetch(MS.base + filePath, opt);
     let content = null, raw = '';
     try { raw = await a.text(); content = JSON.parse(raw); } catch {}
     return { status: a.status, content, raw };
@@ -10216,24 +10216,24 @@ const shareMain = (purpose, target = null) =>
   group('Meine Sitzungen: die eigene ist markiert');
 
   check('Genau eine der beiden ist als die eigene markiert',
-    msList(msAnna).filter(z => z.diese).length === 1,
-    JSON.stringify(msList(msAnna).map(z => z.diese)));
+    msList(msAnna).filter(z => z.current).length === 1,
+    JSON.stringify(msList(msAnna).map(z => z.current)));
   check('Und es ist die, mit der gefragt wurde',
-    msList(msAnna).find(z => z.diese)?.id === msId('cookie-ms-anna-1'),
-    JSON.stringify(msList(msAnna).find(z => z.diese)));
+    msList(msAnna).find(z => z.current)?.id === msId('cookie-ms-anna-1'),
+    JSON.stringify(msList(msAnna).find(z => z.current)));
   /* DIE GEGENLAGE: dieselbe Liste, aus der ANDEREN Sitzung gefragt, markiert
      die andere. Ohne sie bliebe die Pruefung auch dann gruen, wenn immer die
      erste Zeile markiert waere. */
   const msAnna2 = await msCall('cookie-ms-anna-2', 'GET', '/api/sessions');
   check('Aus der anderen Sitzung gefragt, ist die andere markiert',
-    msList(msAnna2).find(z => z.diese)?.id === msId('cookie-ms-anna-2'),
-    JSON.stringify(msList(msAnna2).find(z => z.diese)));
+    msList(msAnna2).find(z => z.current)?.id === msId('cookie-ms-anna-2'),
+    JSON.stringify(msList(msAnna2).find(z => z.current)));
 
   // Eine einzelne fremde Sitzung beenden.
   const msPath = await msCall('cookie-ms-anna-1', 'DELETE',
     `/api/sessions/${msId('cookie-ms-anna-2')}`);
   check('Eine einzelne andere Anmeldung laesst sich beenden',
-    msPath.status === 200 && msPath.content?.beendet === 1, `${msPath.status} ${msPath.raw}`);
+    msPath.status === 200 && msPath.content?.ended === 1, `${msPath.status} ${msPath.raw}`);
   check('Sie ist danach WIRKLICH abgewiesen',
     (await msCall('cookie-ms-anna-2', 'GET', '/api/account')).status === 401,
     'die beendete Sitzung traegt noch');
@@ -10275,7 +10275,7 @@ const shareMain = (purpose, target = null) =>
     'die vorbereiteten Sitzungen tragen nicht');
   const msAll = await msCall('cookie-ms-anna-1', 'DELETE', '/api/sessions');
   check('Alle anderen lassen sich in einem Zug beenden',
-    msAll.status === 200 && msAll.content?.beendet === 2, `${msAll.status} ${msAll.raw}`);
+    msAll.status === 200 && msAll.content?.ended === 2, `${msAll.status} ${msAll.raw}`);
   check('Die eigene faellt dabei NICHT mit',
     (await msCall('cookie-ms-anna-1', 'GET', '/api/account')).status === 200,
     'die eigene ist mitgefallen');
@@ -10288,7 +10288,7 @@ const shareMain = (purpose, target = null) =>
     JSON.stringify(msRows('SELECT token FROM sessions WHERE user_id = 2')));
   const msAfterwards = await msCall('cookie-ms-anna-1', 'GET', '/api/sessions');
   check('Die Liste zeigt danach nur noch die eine',
-    msList(msAfterwards).length === 1 && msList(msAfterwards)[0]?.diese === true,
+    msList(msAfterwards).length === 1 && msList(msAfterwards)[0]?.current === true,
     JSON.stringify(msList(msAfterwards)));
 
   await MS.stop();
@@ -10400,14 +10400,14 @@ const shareMain = (purpose, target = null) =>
   const PR = startFurtherServer(prDir, {}, 4380);
   await PR.ready;
 
-  const prCall = async (cookieValue, method, pfad, body) => {
+  const prCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
     if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(PR.base + pfad, opt);
+    const a = await fetch(PR.base + filePath, opt);
     let raw = '', content = null;
     try { raw = await a.text(); content = JSON.parse(raw); } catch {}
     return { status: a.status, content, raw };
@@ -10806,14 +10806,14 @@ const shareMain = (purpose, target = null) =>
   const ZB = startFurtherServer(zbDir, {}, 4520);
   await ZB.ready;
 
-  const zbCall = async (cookieValue, method, pfad, body) => {
+  const zbCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
     if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(ZB.base + pfad, opt);
+    const a = await fetch(ZB.base + filePath, opt);
     let raw = '', content = null;
     try { raw = await a.text(); content = JSON.parse(raw); } catch {}
     return { status: a.status, content, raw };
@@ -11023,18 +11023,18 @@ const shareMain = (purpose, target = null) =>
      weiss -- und "ohne Bestaetigung abgewiesen" waere gruen aus dem falschen
      Grund oder rot ohne Fehler im Code. */
   zbAnna = await zbLogin('anna', ZB_ANNA);
-  const zbWithout = async (name, method, pfad, body, lookup, expectedValue) => {
-    const a = await zbCall(zbAnna, method, pfad, body);
+  const zbWithout = async (name, method, filePath, body, lookup, expectedValue) => {
+    const a = await zbCall(zbAnna, method, filePath, body);
     check(`Ohne Bestaetigung abgewiesen: ${name}`, a.status === 403,
       `${a.status} ${a.raw.slice(0, 100)}`);
     check(`Und dabei wurde nichts geschrieben: ${name}`,
       equal(lookup(), expectedValue), JSON.stringify(lookup()));
   };
-  const zbIncludingWrong = async (name, purpose, target, method, pfad, body, lookup, expectedValue) => {
+  const zbIncludingWrong = async (name, purpose, target, method, filePath, body, lookup, expectedValue) => {
     const f = await zbFree(zbAnna, 'ganz-falsch-hier', purpose, target);
     check(`Ein falsches Passwort gibt keine Freigabe: ${name}`, f.status === 403,
       `Status ${f.status}`);
-    const a = await zbCall(zbAnna, method, pfad, body);
+    const a = await zbCall(zbAnna, method, filePath, body);
     check(`Und der Weg bleibt zu: ${name}`, a.status === 403, `Status ${a.status}`);
     check(`Auch dabei wurde nichts geschrieben: ${name}`,
       equal(lookup(), expectedValue), JSON.stringify(lookup()));
@@ -11144,7 +11144,7 @@ const shareMain = (purpose, target = null) =>
     (await zbCall(zbAnna, 'POST', '/api/users', { username: 'heinz', password: 'heinz-langes-wort' })).status === 200,
     'das Anlegen verlangt eine Bestaetigung');
   check('Auch mit Einladung, denn der Zugang ist NEU',
-    (await zbCall(zbAnna, 'POST', '/api/users', { username: 'ida', einladen: true })).status === 200,
+    (await zbCall(zbAnna, 'POST', '/api/users', { username: 'ida', sendInvite: true })).status === 200,
     'das Anlegen mit Link verlangt eine Bestaetigung');
   check('Der eigene Zugang ebenso -- dort ist das bisherige Passwort schon Pflicht',
     (await zbCall(zbAnna, 'PUT', '/api/account', { oldPassword: ZB_ANNA, username: 'anna' })).status === 200,
@@ -11185,14 +11185,14 @@ const shareMain = (purpose, target = null) =>
     const bbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-bestbremse-'));
     const BB = startFurtherServer(bbDir, {}, 4640);
     await BB.ready;
-    const bbCall = async (cookieValue, method, pfad, body) => {
+    const bbCall = async (cookieValue, method, filePath, body) => {
       const opt = { method: method, headers: {} };
       if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
       if (body !== undefined) {
         opt.headers['content-type'] = 'application/json';
         opt.body = JSON.stringify(body);
       }
-      const a = await fetch(BB.base + pfad, opt);
+      const a = await fetch(BB.base + filePath, opt);
       let raw = '';
       try { raw = await a.text(); } catch {}
       return { status: a.status, raw };
@@ -11306,7 +11306,7 @@ const shareMain = (purpose, target = null) =>
       const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
-      const fresh = await S.call('POST', '/api/users', { username: 'bert', einladen: true });
+      const fresh = await S.call('POST', '/api/users', { username: 'bert', sendInvite: true });
       return { dir, S, fresh };
     };
 
@@ -11411,9 +11411,9 @@ const shareMain = (purpose, target = null) =>
      aendert nichts" waere darueber gruen, ohne je einen geschickt zu haben
      (Stolperstein 81 in seiner unangenehmsten Form: der Gegenstand fehlt).
      Deshalb hier http.request, das jeden Kopf schickt, den man ihm gibt. */
-  const mailRawCall = (S, pfad, head, body) => new Promise((done, error) => {
+  const mailRawCall = (S, filePath, head, body) => new Promise((done, error) => {
     const http = require('http');
-    const u = new URL(S.base + pfad);
+    const u = new URL(S.base + filePath);
     const core = Buffer.from(JSON.stringify(body), 'utf8');
     const request = http.request({
       hostname: u.hostname, port: u.port, path: u.pathname + u.search, method: 'POST',
@@ -11488,7 +11488,7 @@ const shareMain = (purpose, target = null) =>
       JSON.stringify([emptyCard.content?.passwordSet, emptyCard.content?.configured]));
 
     const fresh = await A.S.call('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
+      { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' });
     check('Eine Einladung geht hinaus', fresh.content?.delivery === 'ok',
       `${fresh.content?.delivery} · ${fresh.content?.deliveryReason}`);
     await new Promise(r => setTimeout(r, 300));
@@ -11580,7 +11580,7 @@ const shareMain = (purpose, target = null) =>
     /* OHNE MAILZUGANG ENTSTEHT DER TOKEN TROTZDEM. Das ist die Lage jeder
        Instanz, die vor dieser Runde lief -- und sie muss nach dem Einspielen
        GENAU SO vollstaendig laufen wie vorher. */
-    const withoutFresh = await emptyA.S.call('POST', '/api/users', { username: 'bert', einladen: true });
+    const withoutFresh = await emptyA.S.call('POST', '/api/users', { username: 'bert', sendInvite: true });
     check('Ohne Mailzugang entsteht der Token trotzdem',
       /^[0-9a-f]{64}$/.test(withoutFresh.content?.token || ''), JSON.stringify(withoutFresh.content?.token));
     check('Und der Versand sagt "aus"', withoutFresh.content?.delivery === 'aus',
@@ -11601,7 +11601,7 @@ const shareMain = (purpose, target = null) =>
        liefe der Versuch bis zum Mailserver und kaeme als
        'fehlgeschlagen' zurueck, und der Admin suchte den Fehler beim
        Anbieter statt am Zugang. */
-    const withoutAdr = await A.S.call('POST', '/api/users', { username: 'egon', einladen: true });
+    const withoutAdr = await A.S.call('POST', '/api/users', { username: 'egon', sendInvite: true });
     check('Ein Zugang ohne Adresse wird gar nicht erst beschickt',
       withoutAdr.content?.delivery === 'aus', JSON.stringify(withoutAdr.content?.delivery));
     check('Und der Grund nennt die fehlende Adresse, nicht den Mailserver',
@@ -11622,7 +11622,7 @@ const shareMain = (purpose, target = null) =>
     const FA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5320);
     await mailSet(FA.S, F);
     const fFresh = await FA.S.call('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
+      { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' });
     check('Antwortet der Empfaenger mit einem Fehler, entsteht der Token trotzdem',
       /^[0-9a-f]{64}$/.test(fFresh.content?.token || ''), JSON.stringify(fFresh.content?.token));
     check('Der Link steht in der Antwort',
@@ -11637,7 +11637,7 @@ const shareMain = (purpose, target = null) =>
     const XA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5380);
     await mailSet(XA.S, X);
     const xFresh = await XA.S.call('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
+      { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' });
     check('Bricht der Empfaenger ab, entsteht der Token trotzdem',
       /^[0-9a-f]{64}$/.test(xFresh.content?.token || '') && Boolean(xFresh.content?.link),
       JSON.stringify([xFresh.content?.token, xFresh.content?.link]));
@@ -11679,7 +11679,7 @@ const shareMain = (purpose, target = null) =>
     await mailSet(StA.S, St);
     const t0 = Date.now();
     const stFresh = await includingNet(StA.S.call('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' }));
+      { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' }));
     const stDuration = Date.now() - t0;
     check('Ein Empfaenger, der nicht gruesst, haelt die Antwort nicht laenger als 20 s auf',
       !stFresh.overdue && stDuration < 21000,
@@ -11693,7 +11693,7 @@ const shareMain = (purpose, target = null) =>
     await mailSet(SwA.S, Sw);
     const t1 = Date.now();
     const swFresh = await includingNet(SwA.S.call('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' }));
+      { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' }));
     const swDuration = Date.now() - t1;
     check('Ein Empfaenger, der gruesst und dann schweigt, ebenso wenig',
       !swFresh.overdue && swDuration < 21000,
@@ -11716,7 +11716,7 @@ const shareMain = (purpose, target = null) =>
     await mailSet(TrA.S, Tr);
     const t2 = Date.now();
     const trFresh = await includingNet(TrA.S.call('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' }));
+      { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' }));
     const trDuration = Date.now() - t2;
     check('Ein Empfaenger, der troepfelt, haelt die Antwort trotzdem nicht laenger als 20 s auf',
       !trFresh.overdue && trDuration < 21000,
@@ -11739,7 +11739,7 @@ const shareMain = (purpose, target = null) =>
     const OA = await mailInstance({}, 6020);
     await mailSet(OA.S, O);
     const oFresh = await OA.S.call('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
+      { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' });
     check('Ohne oeffentliche Adresse wird NICHT verschickt',
       oFresh.content?.delivery === 'aus', JSON.stringify(oFresh.content?.delivery));
     check('Und der Grund nennt die Einstellung',
@@ -11764,7 +11764,7 @@ const shareMain = (purpose, target = null) =>
     await mailSet(HA.S, H);
     const hContent = (await mailRawCall(HA.S, '/api/users',
       { host: 'boeser.beispiel.net', 'x-forwarded-host': 'boeser.beispiel.net' },
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' })).content;
+      { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' })).content;
     check('Ein gefaelschter Host-Kopf aendert den Link nicht',
       hContent.link === `https://kriterion.beispiel.de/#/invite/${hContent.token}`,
       JSON.stringify(hContent.link));
@@ -12141,9 +12141,9 @@ const shareMain = (purpose, target = null) =>
       dir));
     // Ein roher Ruf OHNE Cookie: die Anfrageroute steht vor der Anmeldung, und
     // verglichen wird der Antwortkoerper als Text, nicht ein Feld daraus.
-    const regRaw = async (S, pfad, body) => {
+    const regRaw = async (S, filePath, body) => {
       const t0 = process.hrtime.bigint();
-      const a = await fetch(S.base + pfad, {
+      const a = await fetch(S.base + filePath, {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body)
       });
@@ -13663,7 +13663,7 @@ const shareMain = (purpose, target = null) =>
     await zfS.cookieRemove();
     await zfS.call('POST', '/api/login', { user: 'anna', password: ZF_PASSWORD });
     const zfFirstLink = await zfS.call('POST', '/api/users',
-      { username: 'neuling', einladen: true });
+      { username: 'neuling', sendInvite: true });
     check('Ein Zugang ohne Passwort entsteht mit Einladungslink',
       zfFirstLink.status === 200 && typeof zfFirstLink.content.token === 'string');
     check('Und er hat keinen zweiten Faktor -- einschalten setzt Anmeldung voraus',
@@ -14284,11 +14284,11 @@ const shareMain = (purpose, target = null) =>
         if (z.startsWith(prefix)) { method = m; rest = z.slice(prefix.length); }
       }
       if (!method) continue;
-      const pfad = rest.slice(0, rest.indexOf("'"));
+      const filePath = rest.slice(0, rest.indexOf("'"));
       const head = rest.slice(rest.indexOf("'") + 1);
       let core = '';
       for (let j = i + 1; j < rows.length && !rows[j].startsWith('app.'); j++) core += rows[j] + '\n';
-      outcome.push({ key: `${method} ${pfad}`, head, core });
+      outcome.push({ key: `${method} ${filePath}`, head, core });
     }
     return outcome;
   }
@@ -15600,14 +15600,14 @@ const shareMain = (purpose, target = null) =>
   const G = startFurtherServer(gDir, {}, 5820);
   await G.ready;
 
-  const gCall = async (cookieValue, method, pfad, body) => {
+  const gCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
     if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(G.base + pfad, opt);
+    const a = await fetch(G.base + filePath, opt);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -15916,7 +15916,7 @@ const shareMain = (purpose, target = null) =>
   const gInventory = await gCall(gAnna, 'GET', `/api/users/${gBertId}/inventory`);
   check('Der Loeschdialog bekommt die Zahlen, getrennt nach eigen und fremd',
     gInventory.content?.entries === 1 && gInventory.content?.foreignComments === 1 &&
-    gInventory.content?.kommentare === 1 && gInventory.content?.testtage === 1,
+    gInventory.content?.comments === 1 && gInventory.content?.testDays === 1,
     JSON.stringify(gInventory.content));
   /* Der fuenfte Traeger, in beiden Richtungen. Ohne ihn saehe ein Zugang, der
      zwanzig Links in fremden Eintraegen hinterlassen hat, im Dialog leer aus. */
@@ -16013,7 +16013,7 @@ const shareMain = (purpose, target = null) =>
   const gEmilInventory = (await gCall(gAnna, 'GET', `/api/users/${gEmilId}/inventory`)).content;
   check('Die Zahlen nennen den fremden Kommentar an seinem Eintrag',
     gEmilInventory?.entries === 1 && gEmilInventory?.foreignComments === 1 &&
-    gEmilInventory?.kommentare === 1, JSON.stringify(gEmilInventory));
+    gEmilInventory?.comments === 1, JSON.stringify(gEmilInventory));
   check('Und den fremden Link daran ebenso',
     gEmilInventory?.foreignLinks === 1 && gEmilInventory?.links === 1,
     JSON.stringify(gEmilInventory));
@@ -18662,11 +18662,11 @@ const shareMain = (purpose, target = null) =>
        `if (name === 'thumb')` in der Schleife. */
     const quGeoImages = fs.readFileSync(path.join(__dirname, 'images.js'), 'utf8');
     check('Die Tafel nennt jeder Ableitung ihre Kiste aus kurzer und langer Kante',
-      /thumb:\s*\{ kurz: 512,\s*lang: 1280, q: 78, schneidet: true\s*\}/.test(quGeoImages) &&
-      /medium:\s*\{ kurz: 1600, lang: 1600, q: 84, schneidet: false \}/.test(quGeoImages),
+      /thumb:\s*\{ short: 512,\s*long: 1280, q: 78, crops: true\s*\}/.test(quGeoImages) &&
+      /medium:\s*\{ short: 1600, long: 1600, q: 84, crops: false \}/.test(quGeoImages),
       (quGeoImages.match(/const VARIANTS = \{[\s\S]{0,180}/) || ['(nicht gefunden)'])[0]);
     check('Und die Schleife wählt ohne Verzweigung je Ableitung',
-      /const cropped = v\.schneidet && cropRect;/.test(quGeoImages) &&
+      /const cropped = v\.crops && cropRect;/.test(quGeoImages) &&
       !/if \([^)]*name === 'thumb'/.test(quGeoImages),
       (quGeoImages.match(/const cropped = [^\n]*/) || ['(nicht gefunden)'])[0]);
 
@@ -18984,8 +18984,8 @@ const shareMain = (purpose, target = null) =>
        eine Videokachel mit `zoom > 100` nach dieser Runde den Mittenschnitt,
        obwohl der Editor am Video offen ist und etwas anderes einstellt. */
     {
-      const standbild = await quartered(1600, 1200);
-      const response = await sendVideo(zu.id, { standbild, stillFrameName: 's.png',
+      const stillFrame = await quartered(1600, 1200);
+      const response = await sendVideo(zu.id, { stillFrame, stillFrameName: 's.png',
                                                 stillFrameType: 'image/png', duration: 5 });
       const list = ((response.content || {}).photos) || [];
       const video = list.find(p2 => p2.kind === 'video');
@@ -19620,7 +19620,7 @@ const shareMain = (purpose, target = null) =>
   const vWithoutSb = await sendVideo(vi.id, { withoutStillFrame: true });
   check('Ohne Standbild kein Video', vWithoutSb.status === 400,
     `${vWithoutSb.status}: ${JSON.stringify(vWithoutSb.content)}`);
-  const vBrokenSb = await sendVideo(vi.id, { standbild: Buffer.from('kein Bild, nur Text') });
+  const vBrokenSb = await sendVideo(vi.id, { stillFrame: Buffer.from('kein Bild, nur Text') });
   check('Ein unlesbares Standbild wird abgewiesen', vBrokenSb.status === 400,
     `${vBrokenSb.status}: ${JSON.stringify(vBrokenSb.content)}`);
   // Die grobe erste Schranke am gemeldeten Typ, wie am Fotoweg.
@@ -20401,17 +20401,17 @@ const shareMain = (purpose, target = null) =>
 
      JE QUELLE EINE EIGENE ZEILE, wie oben bei der Suche selbst: faellt eine
      aus der Spaltenliste, soll GENAU SIE namentlich rot werden. */
-  const fkFinding = async (q, id) => (await vsSearch(q) || []).find(i => i.id === id)?.fundstelle;
+  const fkFinding = async (q, id) => (await vsSearch(q) || []).find(i => i.id === id)?.foundAt;
 
   check('Ohne Begriff traegt kein Eintrag einen Trefferkontext',
-    (await call('GET', '/api/items')).content.every(i => i.fundstelle === undefined),
+    (await call('GET', '/api/items')).content.every(i => i.foundAt === undefined),
     'das Feld steht auch ohne Suche da');
   const fkAllHit = await vsSearch('volltext');
   check('Der Aufbau steht: die Suche liefert ueberhaupt Treffer',
     fkAllHit.length >= 5, `${fkAllHit.length}`);
   check('Mit Begriff traegt JEDER Treffer einen',
-    fkAllHit.every(i => i.fundstelle && typeof i.fundstelle.source === 'string'),
-    JSON.stringify(fkAllHit.filter(i => !i.fundstelle).map(i => i.id)));
+    fkAllHit.every(i => i.foundAt && typeof i.foundAt.source === 'string'),
+    JSON.stringify(fkAllHit.filter(i => !i.foundAt).map(i => i.id)));
 
   for (const [event, wort, target, source] of [
     ['den Titel', 'stichsäge', () => vsTitle.id, 'titel'],
@@ -20494,7 +20494,7 @@ const shareMain = (purpose, target = null) =>
   check('Trifft der Begriff alle sieben Quellen, nennt die Antwort die Beschreibung',
     fkS?.source === 'beschreibung', JSON.stringify(fkS));
   check('Und zaehlt die uebrigen sechs als weitere Stellen',
-    fkS?.weitere === 6, `${fkS?.weitere}`);
+    fkS?.others === 6, `${fkS?.others}`);
 
   /* DIE FOLGE WIRD SCHRITT FUER SCHRITT ABGERAEUMT. Faellt die Beschreibung
      weg, uebernimmt der Kommentar; faellt der weg, der Link -- und so fort.
@@ -20525,7 +20525,7 @@ const shareMain = (purpose, target = null) =>
      Quellen, die die Kachel nicht zeigt. */
   const fkOnlyTitle = await fkFinding('siebenfach', fkSeven.id);
   check('Trifft nur der Titel, steht die Zeile trotzdem da',
-    fkOnlyTitle?.source === 'titel' && fkOnlyTitle?.weitere === 0,
+    fkOnlyTitle?.source === 'titel' && fkOnlyTitle?.others === 0,
     JSON.stringify(fkOnlyTitle));
 
   /* WELCHER KOMMENTAR GENANNT WIRD, IST BESTIMMT UND NICHT ZUFAELLIG. Ohne
@@ -20977,14 +20977,14 @@ const shareMain = (purpose, target = null) =>
   check('Der Aufbau steht: ein zweiter Zugang ist angelegt',
     vaSecond.status === 200, `${vaSecond.status} ${JSON.stringify(vaSecond.content).slice(0, 120)}`);
   let vaCookie = '';
-  const vaCall = async (method, pfad, body) => {
+  const vaCall = async (method, filePath, body) => {
     const opt = { method: method, headers: {} };
     if (vaCookie) opt.headers.cookie = vaCookie;
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
-    const a = await fetch(BASE + pfad, opt);
+    const a = await fetch(BASE + filePath, opt);
     const setCookieHeader = a.headers.get('set-cookie');
     if (setCookieHeader) vaCookie = setCookieHeader.split(';')[0];
     let content = null;
@@ -22278,9 +22278,9 @@ const shareMain = (purpose, target = null) =>
   console.log('');
   console.log('  ── Die laengsten Funktionen je Datei ──────────────────────');
   for (const name of flFiles) {
-    const pfad = path.join(__dirname, name);
-    if (!fs.existsSync(pfad)) continue;
-    const source = fs.readFileSync(pfad, 'utf8');
+    const filePath = path.join(__dirname, name);
+    if (!fs.existsSync(filePath)) continue;
+    const source = fs.readFileSync(filePath, 'utf8');
     const list = functionLengths(source);
     flStatus.set(name, { list, rows: source.split('\n').length });
     const peak = list.slice(0, 3)
@@ -22880,12 +22880,12 @@ const WEBM = () => Buffer.from(WEBM_BASE64, 'base64');
    so wie die Oberflaeche es schickt. Das Standbild ist ein echtes PNG; der
    Server macht daraus wie bei jedem Foto Kachel und mittlere Variante. */
 function sendVideo(itemId, { video = MP4(), name = 'clip.mp4', type = 'video/mp4',
-                              standbild = Buffer.from(PNG_BASE64, 'base64'),
-                              stillFrameName = 'standbild.jpg', stillFrameType = 'image/jpeg',
+                              stillFrame = Buffer.from(PNG_BASE64, 'base64'),
+                              stillFrameName = 'stillframe.jpg', stillFrameType = 'image/jpeg',
                               duration = 42, withoutStillFrame = false } = {}) {
   const files = [{ field: 'video', name, type, content: video }];
   if (!withoutStillFrame)
-    files.push({ field: 'standbild', name: stillFrameName, type: stillFrameType, content: standbild });
+    files.push({ field: 'stillFrame', name: stillFrameName, type: stillFrameType, content: stillFrame });
   return sendMultipart(`/api/items/${itemId}/videos`, 'video', files,
                          duration === null ? {} : { duration: String(duration) });
 }
@@ -22907,7 +22907,7 @@ const sendFiles = (itemId, files) =>
 // Multipart-Formularkoerper von Hand: die Pruefung soll ohne zusaetzliche
 // Bibliothek auskommen, und Buffer duerfen nicht ueber Strings laufen --
 // sonst zerfaellt jedes Byte ueber 127.
-async function sendMultipart(pfad, field, files, fields = {}) {
+async function sendMultipart(filePath, field, files, fields = {}) {
   const limit = '----pruefung' + crypto.randomBytes(6).toString('hex');
   const parts = [];
   for (const [k, v] of Object.entries(fields)) {
@@ -22925,7 +22925,7 @@ async function sendMultipart(pfad, field, files, fields = {}) {
     parts.push(Buffer.from('\r\n', 'utf8'));
   }
   parts.push(Buffer.from(`--${limit}--\r\n`, 'utf8'));
-  const a = await fetch(BASE + pfad, {
+  const a = await fetch(BASE + filePath, {
     method: 'POST',
     headers: { cookie: cookie, 'content-type': `multipart/form-data; boundary=${limit}` },
     body: Buffer.concat(parts)
@@ -23097,21 +23097,21 @@ async function confirmImDom(d, password = 'chefinnen-langes-wort', cancel = fals
 
 const DOM_PROVIDER = [
   { key: 'google', name: 'Google', template: 'https://www.google.com/search?q=%s',
-    own: false, vorhanden: true, active: false, standard: false },
+    own: false, present: true, active: false, isDefault: false },
   { key: 'bing', name: 'Bing', template: 'https://www.bing.com/search?q=%s',
-    own: false, vorhanden: true, active: true, standard: false },
+    own: false, present: true, active: true, isDefault: false },
   { key: 'ddg', name: 'DuckDuckGo', template: 'https://duckduckgo.com/?q=%s',
-    own: false, vorhanden: true, active: false, standard: false },
+    own: false, present: true, active: false, isDefault: false },
   { key: 'startpage', name: 'Startpage', template: 'https://www.startpage.com/sp/search?query=%s',
-    own: false, vorhanden: true, active: true, standard: true },
+    own: false, present: true, active: true, isDefault: true },
   { key: 'brave', name: 'Brave Search', template: 'https://search.brave.com/search?q=%s',
-    own: false, vorhanden: true, active: false, standard: false },
+    own: false, present: true, active: false, isDefault: false },
   { key: 'ecosia', name: 'Ecosia', template: 'https://www.ecosia.org/search?q=%s',
-    own: false, vorhanden: true, active: false, standard: false },
+    own: false, present: true, active: false, isDefault: false },
   { key: 'eigen1', name: 'Forum <b>X</b>', template: 'https://forum.beispiel.de/suche?q=%s',
-    own: true, vorhanden: true, active: true, standard: false },
-  { key: 'eigen2', name: '', template: '', own: true, vorhanden: false, active: false, standard: false },
-  { key: 'eigen3', name: '', template: '', own: true, vorhanden: false, active: false, standard: false }
+    own: true, present: true, active: true, isDefault: false },
+  { key: 'eigen2', name: '', template: '', own: true, present: false, active: false, isDefault: false },
+  { key: 'eigen3', name: '', template: '', own: true, present: false, active: false, isDefault: false }
 ];
 
 /* criteriaWeights und ownValues sind die beiden Stellschrauben der
@@ -23312,11 +23312,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   const userAddresses = { 1: 'chefin@beispiel.de', 2: 'bert@beispiel.de', 3: '', 4: '' };
   const sessions = sessionsInventory || [
     { id: 'a'.repeat(64), loggedInAt: '2026-08-20 08:00:00',
-      lastSeen: '2026-08-24 07:30:00', diese: true },
+      lastSeen: '2026-08-24 07:30:00', current: true },
     { id: 'b'.repeat(64), loggedInAt: '2026-08-18 19:15:00',
-      lastSeen: '2026-08-23 21:00:00', diese: false },
+      lastSeen: '2026-08-23 21:00:00', current: false },
     { id: 'c'.repeat(64), loggedInAt: '2026-08-01 11:00:00',
-      lastSeen: '2026-08-22 09:45:00', diese: false }
+      lastSeen: '2026-08-22 09:45:00', current: false }
   ];
 
   const trash = trashInventory || [
@@ -23332,11 +23332,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      hat drei Zustaende (nicht eingerichtet, Zielort mit Fehler, in Ordnung),
      und jeder braucht seinen eigenen Aufbau. */
   const backup = backupStatus || {
-    configured: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
+    configured: true, root: '/sicherung', place: 'taeglich', filePath: '/sicherung/taeglich',
     // Die Vorgabe ist die EMPFOHLENE Lage -- ausserhalb. Die Gegenlage steht
     // als eigener Aufbau in der Gruppe darunter.
-    imArbeitsverzeichnis: false,
-    dbBytes: 52428800, durationSeconds: 1, erreichbar: true, number: 2,
+    inWorkDir: false,
+    dbBytes: 52428800, durationSeconds: 1, reachable: true, number: 2,
     last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
               at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: false },
     // Seit 0.8.91: die Vorgabe ist "nie gewechselt". Die drei Lagen des
@@ -23351,18 +23351,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        ihre Felder, statt sie ein zweites Mal zu kennen. */
     cleanup: {
       an: false, keep: 3, days: 30,
-      grenzen: { keep: { fallback: 3, min: 1, max: 20 },
+      limits: { keep: { fallback: 3, min: 1, max: 20 },
                  days: { fallback: 30, min: 7, max: 365 } },
-      erreichbar: true, matched: [], bytes: 0,
+      reachable: true, matched: [], bytes: 0,
       reason: 'Alle 2 Kopien sind unter den jüngsten 3.',
       /* DIE VOLLSTAENDIGE LISTE -- in der Vorgabelage die beiden Kopien, die
          `zahl: 2` daneben behauptet. Eine leere Liste neben einer Zahl waeren
          zwei Wahrheiten ueber denselben Ort. */
       files: [
         { nr: 1, file: 'kriterion-2026-08-20-03-00-00.sqlite', at: '2026-08-20 03:00:00',
-          daysAgo: 3, bytes: 52428800, faellt: false, veraltet: false },
+          daysAgo: 3, bytes: 52428800, affected: false, veraltet: false },
         { nr: 2, file: 'kriterion-2026-08-13-03-00-00.sqlite', at: '2026-08-13 03:00:00',
-          daysAgo: 10, bytes: 52428800, faellt: false, veraltet: false }
+          daysAgo: 10, bytes: 52428800, affected: false, veraltet: false }
       ],
       oldCount: 0, oldBytes: 0, oldFiles: []
     }
@@ -23570,8 +23570,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         // diese Runde baulich ausschliesst (Stolperstein 102).
         .filter(z => z.phase === 'after')
         .filter(z => z.average != null)
-        .map(z => ({ ...z, produkt: z.average * z.weight }));
-      const sum = rows.reduce((n, z) => n + z.produkt, 0);
+        .map(z => ({ ...z, product: z.average * z.weight }));
+      const sum = rows.reduce((n, z) => n + z.product, 0);
       const divisor = rows.reduce((n, z) => n + z.weight, 0);
       /* OHNE JEDE BEWERTUNG GIBT ES KEINE ZAHL UND KEINEN RECHENWEG -- der
          echte Server liefert dann avgRating null und einen Weg ohne Zeilen.
@@ -23613,8 +23613,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                           phase: c.phase }))
         .filter(z => z.phase === 'before')
         .filter(z => z.average != null)
-        .map(z => ({ ...z, produkt: z.average * z.weight }));
-      const sum = rows.reduce((n, z) => n + z.produkt, 0);
+        .map(z => ({ ...z, product: z.average * z.weight }));
+      const sum = rows.reduce((n, z) => n + z.product, 0);
       const divisor = rows.reduce((n, z) => n + z.weight, 0);
       const equalSum = rows.reduce((n, z) => n + z.average, 0);
       return { rows, sum, divisor, raw: divisor ? sum / divisor : null,
@@ -24031,7 +24031,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         const m = q.match(new RegExp(`(?:^|&)${n}=([^&]*)`));
         return m ? Number(decodeURIComponent(m[1])) : null;
       };
-      const gr = backup.cleanup && backup.cleanup.grenzen;
+      const gr = backup.cleanup && backup.cleanup.limits;
       if (!gr || !q) return give(backup);
       const b = numberOut('keep'), t = numberOut('days');
       for (const [value, span, event] of [[b, gr.keep, 'Immer behalten'],
@@ -24053,7 +24053,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const oldNames = new Set((backup.cleanup.oldFiles || []).map(z => z.file));
       return give({ ...backup, cleanup: { ...backup.cleanup, keep, days,
         files: cleanupCopies.map((z, i) => ({ ...z, nr: i + 1,
-          faellt: namen.has(z.file), veraltet: oldNames.has(z.file) })),
+          affected: namen.has(z.file), veraltet: oldNames.has(z.file) })),
         matched, bytes: matched.reduce((n, z) => n + z.bytes, 0),
         reason: matched.length ? '' : (cleanupCopies.length <= keep
           ? `Alle ${cleanupCopies.length} Kopien sind unter den jüngsten ${keep}.`
@@ -24084,8 +24084,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                                   a.oldFiles = []; }
       backup.cleanup = { ...a, matched: [], bytes: 0,
                                reason: 'Alle Kopien sind unter den jüngsten ' + a.keep + '.' };
-      return give({ ok: true, kind: k.kind, weg: outdatedFiles.length, nicht: 0, bytes,
-                   erreichbar: true, number: backup.number, last: backup.last,
+      return give({ ok: true, kind: k.kind, removed: outdatedFiles.length, nicht: 0, bytes,
+                   reachable: true, number: backup.number, last: backup.last,
                    gewechseltAm: backup.gewechseltAm ?? null,
                    veraltet: backup.veraltet ?? 0,
                    cleanup: backup.cleanup });
@@ -24099,12 +24099,12 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (place.includes('..') || place.startsWith('/'))
         return give({ error: 'Der Ort ist ein Unterverzeichnis des eingerichteten Sicherungsorts.' }, 400);
       backup.place = place;
-      backup.pfad = place ? `/sicherung/${place}` : '/sicherung';
+      backup.filePath = place ? `/sicherung/${place}` : '/sicherung';
       backup.error = null;
       // gewechseltAm und veraltet gehen MIT -- der echte Server breitet
       // letzteSicherung() auch hier aus, und ein Mock, der sie weglaesst,
       // liesse die Karte nach dem Speichern harmloser aussehen als die Lage.
-      return give({ ok: true, place, pfad: backup.pfad, erreichbar: true,
+      return give({ ok: true, place, filePath: backup.filePath, reachable: true,
                    number: backup.number, last: backup.last,
                    gewechseltAm: backup.gewechseltAm ?? null,
                    veraltet: backup.veraltet ?? 0 });
@@ -24113,15 +24113,15 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const file = 'kriterion-2026-08-23-19-00-00.sqlite';
       backup.number = (backup.number || 0) + 1;
       backup.last = { file, bytes: 52428800, at: '2026-08-23 19:00:00', daysAgo: 0 };
-      backup.erreichbar = true;
-      /* `aufgeraeumt` STEHT AUSDRUECKLICH DA UND IST null: der Schalter der
+      backup.reachable = true;
+      /* `cleaned` STEHT AUSDRUECKLICH DA UND IST null: der Schalter der
          Prueflage ist aus, also hat der Anschluss nichts getan. Ein fehlendes
          Feld waere von "nichts getan" nicht zu unterscheiden, und die Karte
          entscheidet daran, ob sie den ganzen Bereich neu zeichnet. */
-      return give({ ok: true, file, pfad: backup.pfad, bytes: 52428800, ms: 512,
-                   erreichbar: true, number: backup.number, last: backup.last,
+      return give({ ok: true, file, filePath: backup.filePath, bytes: 52428800, ms: 512,
+                   reachable: true, number: backup.number, last: backup.last,
                    gewechseltAm: backup.gewechseltAm ?? null,
-                   veraltet: backup.veraltet ?? 0, aufgeraeumt: null });
+                   veraltet: backup.veraltet ?? 0, cleaned: null });
     }
     /* Und die beiden Wege, die den Bestand WIRKLICH aendern (Stolperstein 90):
        ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe Liste
@@ -24129,17 +24129,17 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        stehen" ununterscheidbar -- beide Faelle blieben gruen. */
     if (/^\/api\/trash\/\d+\/restore$/.test(url) && opt.method === 'POST') {
       const nr = Number(url.split('/')[3]);
-      const weg = trash.findIndex(z => z.id === nr);
-      if (weg < 0) return give({ error: 'Nicht gefunden' }, 404);
-      const [row] = trash.splice(weg, 1);
+      const removed = trash.findIndex(z => z.id === nr);
+      if (removed < 0) return give({ error: 'Nicht gefunden' }, 404);
+      const [row] = trash.splice(removed, 1);
       return give({ ok: true, itemId: 77, title: row.title, items: 1,
                    authorUnknown: row.id === 502 ? ['dora'] : [] });
     }
     if (/^\/api\/trash\/\d+$/.test(url) && opt.method === 'DELETE') {
       const nr = Number(url.split('/').pop());
-      const weg = trash.findIndex(z => z.id === nr);
-      if (weg < 0) return give({ error: 'Nicht gefunden' }, 404);
-      trash.splice(weg, 1);
+      const removed = trash.findIndex(z => z.id === nr);
+      if (removed < 0) return give({ error: 'Nicht gefunden' }, 404);
+      trash.splice(removed, 1);
       return { ok: true, status: 204, json: async () => ({}) };
     }
     /* Die eigenen Anmeldungen. WIE BEIM PAPIERKORB AENDERT DER MOCK SEINE
@@ -24151,21 +24151,21 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (url === '/api/sessions' && (opt.method || 'GET') === 'GET')
       return give({ sessions: sessions.slice(), days: 30 });
     if (url === '/api/sessions' && opt.method === 'DELETE') {
-      const n = sessions.filter(z => !z.diese).length;
-      for (let i = sessions.length - 1; i >= 0; i--) if (!sessions[i].diese) sessions.splice(i, 1);
-      return give({ beendet: n });
+      const n = sessions.filter(z => !z.current).length;
+      for (let i = sessions.length - 1; i >= 0; i--) if (!sessions[i].current) sessions.splice(i, 1);
+      return give({ ended: n });
     }
     if (/^\/api\/sessions\/[0-9a-f]+$/.test(url) && opt.method === 'DELETE') {
       const k = url.split('/').pop();
-      const weg = sessions.findIndex(z => z.id === k);
-      if (weg < 0) return give({ error: 'Diese Anmeldung gibt es nicht mehr.' }, 404);
-      sessions.splice(weg, 1);
-      return give({ beendet: 1 });
+      const removed = sessions.findIndex(z => z.id === k);
+      if (removed < 0) return give({ error: 'Diese Anmeldung gibt es nicht mehr.' }, 404);
+      sessions.splice(removed, 1);
+      return give({ ended: 1 });
     }
     if (url === '/api/users' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
       const newerUser = { id: 9, username: k.username, role: k.rolle || 'user',
-                            status: 'active', withoutPassword: k.einladen === true };
+                            status: 'active', withoutPassword: k.sendInvite === true };
       // Auch hier zieht der Mock wirklich mit: die Liste danach ist eine andere.
       users.users.push({ ...newerUser, last_login: null,
                                created_at: '2026-08-24 09:00:00', entries: 0 });
@@ -24174,7 +24174,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
          etwas hinaus, ohne eines von beiden nicht. Ein Mock, der stur 'ok'
          lieferte, deckte genau die Serverseite zu, um die es geht
          (Stolperstein 102), und der Zweig "aus" waere nie gelaufen. */
-      return give(k.einladen === true
+      return give(k.sendInvite === true
         ? { ...newerUser, token: 'e'.repeat(64), purpose: 'invite', days: 7, minutes: 15,
             ...deliveryState(k.email) }
         : newerUser);
@@ -24230,7 +24230,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
 
     if (/^\/api\/users\/\d+\/inventory$/.test(url))
       return give({ username: 'bert', entries: 2, foreignComments: 3, foreignRatings: 1,
-                   foreignTestDays: 0, kommentare: 4, bewertungen: 2, testtage: 1 });
+                   foreignTestDays: 0, comments: 4, ratings: 2, testDays: 1 });
     /* GET /api/items?q=... -- der Suchweg, seit 0.11.0. ER STEHT VOR DEM FALL
        OHNE PARAMETER, sonst faenge der Vergleich auf Gleichheit ihn nie und
        die Oberflaeche bekaeme auf jede Suche den ganzen Bestand.
@@ -24270,7 +24270,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
          er gebraucht wird (Stolperstein 102): "die Zeile steht nur waehrend
          einer Suche da" waere von "sie steht immer da" nicht zu
          unterscheiden. */
-      if (!wasSearch) delete row.fundstelle;
+      if (!wasSearch) delete row.foundAt;
       return row;
     });
     if (url.startsWith('/api/items?q=')) {
@@ -24373,8 +24373,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     // das zweite waere ein Neuzeichnen der Adminansicht von einem
     // stehengebliebenen Stand nicht zu unterscheiden.
     if (/^\/api\/ratings\/\d+$/.test(url) && opt.method === 'DELETE') {
-      const weg = Number(url.split('/').pop());
-      for (const z of matchResponse) z.votes = z.votes.filter(st => st.id !== weg);
+      const removed = Number(url.split('/').pop());
+      for (const z of matchResponse) z.votes = z.votes.filter(st => st.id !== removed);
       return give(example);
     }
     /* PUT auf ein Kriterium. Der echte Server antwortet mit der GESPEICHERTEN
@@ -24460,7 +24460,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         /^\/api\/items\/1\/comments$/.test(url))
       return give(example);
     if (url.startsWith('/api/attachments/41/preview'))
-      return give({ kind: 'text', text: 'Erste Zeile\nZweite Zeile', gekuerzt: false });
+      return give({ kind: 'text', text: 'Erste Zeile\nZweite Zeile', shortened: false });
     /* Die Kennzahlen stehen seit 0.8.5 hinter nurAdmin, und der Mock
        macht das mit. Antwortete er jedem mit 200, verdeckte er genau die
        Falle, um die es in dieser Stufe geht: renderSystem() haengt sechs
@@ -26297,9 +26297,9 @@ async function checkUi() {
   check('Eingeklappte Kopfzeile nennt den Inhalt',
     links.querySelector('.bsum').textContent === '(8)',
     links.querySelector('.bsum').textContent);
-  const kommentare = wb.document.querySelector('[data-block="kommentare"]');
+  const comments = wb.document.querySelector('[data-block="kommentare"]');
   check('Offener Block zeigt keine Zusammenfassung',
-    kommentare.querySelector('.bsum').textContent === '');
+    comments.querySelector('.bsum').textContent === '');
 
   // Aufklappen per Klick auf die Kopfzeile
   links.querySelector('.block-head').onclick({ target: links.querySelector('.label') });
@@ -26335,20 +26335,20 @@ async function checkUi() {
      deshalb von selbst stehen; die Kurzfassung daneben bleibt leer, sonst
      stuende derselbe Satz zweimal in einer Zeile. Und eine leere Kurzfassung
      erzeugt KEINE leere Klammer: "()" waere eine Klammer um nichts. */
-  kommentare.querySelector('.block-head').onclick({ target: kommentare.querySelector('.label') });
+  comments.querySelector('.block-head').onclick({ target: comments.querySelector('.label') });
   await new Promise(r => setTimeout(r, 20));
-  check('Der Kommentarblock laesst sich einklappen', kommentare.classList.contains('closed'));
+  check('Der Kommentarblock laesst sich einklappen', comments.classList.contains('closed'));
   check('Eingeklappt steht dort keine leere Klammer',
-    kommentare.querySelector('.bsum').textContent === '',
-    `"${kommentare.querySelector('.bsum').textContent}"`);
+    comments.querySelector('.bsum').textContent === '',
+    `"${comments.querySelector('.bsum').textContent}"`);
   check('Und derselbe volle Satz steht weiterhin in der Kopfzeile',
-    kommentare.querySelector('#ccount')?.textContent
+    comments.querySelector('#ccount')?.textContent
       === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen)',
-    kommentare.querySelector('#ccount')?.textContent);
+    comments.querySelector('#ccount')?.textContent);
   // Wieder aufklappen, damit die Gruppen darunter denselben Aufbau vorfinden.
-  kommentare.querySelector('.block-head').onclick({ target: kommentare.querySelector('.label') });
+  comments.querySelector('.block-head').onclick({ target: comments.querySelector('.label') });
   await new Promise(r => setTimeout(r, 20));
-  check('Und wieder auf', !kommentare.classList.contains('closed'));
+  check('Und wieder auf', !comments.classList.contains('closed'));
 
   /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). Bis hierher zaehlte die
      Kurzfassung die Kommentare; jetzt traegt der Block seinen vollen Satz an
@@ -26522,7 +26522,7 @@ async function checkUi() {
     return async function (url, opt) {
       if (String(url).startsWith('/api/attachments/41/preview'))
         return { ok: true, status: 200, json: async () => ({
-          kind: 'text', text: '<img src=x onerror=1><b id="boese-datei">X</b>', gekuerzt: true }) };
+          kind: 'text', text: '<img src=x onerror=1><b id="boese-datei">X</b>', shortened: true }) };
       return old(url, opt);
     };
   })(dangerous.w.fetch);
@@ -27425,7 +27425,7 @@ async function checkUi() {
   // Sind weniger im Vorrat als eingestellt, stehen weniger da -- keine leeren
   // Plaetze und kein Auffuellen mit Anbietern, die niemand gewaehlt hat.
   const fewerActive = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, searchNames: 4,
-    searchProviders: DOM_PROVIDER.map(a => ({ ...a, active: a.key === 'startpage', standard: a.key === 'startpage' })) } });
+    searchProviders: DOM_PROVIDER.map(a => ({ ...a, active: a.key === 'startpage', isDefault: a.key === 'startpage' })) } });
   await new Promise(r => setTimeout(r, 60));
   const fewRow = [...fewerActive.w.document.querySelectorAll('#links .lrow')][7];
   check('Sind weniger im Vorrat als bestellt, stehen weniger da',
@@ -28137,8 +28137,8 @@ async function checkUi() {
   // ist still: die spaetere gewinnt, und je nach Reihenfolge faerbt man damit
   // unbemerkt die halbe Oberflaeche um -- --green gibt es laengst fuer die
   // Getestet-Marke und den besten Wert im Vergleich.
-  const wurzel = (cssM.match(/:root \{[^}]*\}/) || [''])[0];
-  const namen = (wurzel.match(/--[a-z0-9-]+(?=:)/g) || []);
+  const root = (cssM.match(/:root \{[^}]*\}/) || [''])[0];
+  const namen = (root.match(/--[a-z0-9-]+(?=:)/g) || []);
   const twice = namen.filter((n, i) => namen.indexOf(n) !== i);
   check('Keine Farbe wird zweimal erklärt',
     twice.length === 0 && namen.length > 20,
@@ -28470,22 +28470,22 @@ async function checkUi() {
   // Schranke 1 einzeln: die Erkennung wird unmittelbar gefragt. Ueber den
   // DOM allein waere sie nicht zu pruefen -- dort faengt Schranke 2 alles
   // ab, was hier durchrutschte.
-  const ziele = (raw) => wb.splitCommentText(raw).filter(s => s.target);
-  const inTarget = (raw) => ziele(raw)[0]?.target ?? null;
-  const inText = (raw) => ziele(raw)[0]?.text ?? null;
+  const targets = (raw) => wb.splitCommentText(raw).filter(s => s.target);
+  const inTarget = (raw) => targets(raw)[0]?.target ?? null;
+  const inText = (raw) => targets(raw)[0]?.text ?? null;
 
   check('Erkennung: javascript: ist keine Adresse',
-    ziele('Vorsicht javascript:alert(1) hier').length === 0,
-    JSON.stringify(ziele('Vorsicht javascript:alert(1) hier')));
+    targets('Vorsicht javascript:alert(1) hier').length === 0,
+    JSON.stringify(targets('Vorsicht javascript:alert(1) hier')));
   check('Erkennung: data: ebenso wenig',
-    ziele('data:text/html;base64,AAAA').length === 0);
+    targets('data:text/html;base64,AAAA').length === 0);
   check('Erkennung: mailto: bleibt Text',
-    ziele('post@beispiel.de und mailto:post@beispiel.de').length === 0);
+    targets('post@beispiel.de und mailto:post@beispiel.de').length === 0);
   check('Erkennung: „z.B." und „usw." erzeugen keine Fehltreffer',
-    ziele('Das gilt z.B. für Schrauben usw. und sonst nichts').length === 0,
-    JSON.stringify(ziele('Das gilt z.B. für Schrauben usw. und sonst nichts')));
+    targets('Das gilt z.B. für Schrauben usw. und sonst nichts').length === 0,
+    JSON.stringify(targets('Das gilt z.B. für Schrauben usw. und sonst nichts')));
   check('Erkennung: ein nacktes https:// ohne Rest bleibt Text',
-    ziele('kaputt: https:// und weiter').length === 0);
+    targets('kaputt: https:// und weiter').length === 0);
   check('Erkennung: Großschreibung zählt auch',
     inTarget('Siehe HTTPS://BEISPIEL.DE/X') === 'HTTPS://BEISPIEL.DE/X',
     inTarget('Siehe HTTPS://BEISPIEL.DE/X'));
@@ -28519,7 +28519,7 @@ async function checkUi() {
        wb.splitCommentText(raw).map(s => s.text).join('') === raw),
     JSON.stringify(wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')));
   check('Zwei Adressen in einer Zeile werden beide erkannt',
-    ziele('https://a.de und www.b.de').length === 2);
+    targets('https://a.de und www.b.de').length === 2);
 
   // Schranke 2 einzeln: dem Knotenbauer wird unmittelbar ein Ziel vorgelegt,
   // das durch die Erkennung nie kaeme.
@@ -31450,7 +31450,7 @@ async function checkUi() {
   /* DER LEERE FALL -- nur die eigene, mit eigenem Aufbau. */
   const msuOne = await msSystem({ isAdmin: true, isOwner: true },
     { sessionsInventory: [{ id: 'a'.repeat(64), loggedInAt: '2026-08-20 08:00:00',
-                           lastSeen: '2026-08-24 07:30:00', diese: true }] });
+                           lastSeen: '2026-08-24 07:30:00', current: true }] });
   check('Bei nur einer Anmeldung steht die Karte trotzdem da', !!msCard(msuOne));
   check('Mit genau einer Zeile', msSessionRows(msuOne).length === 1, `${msSessionRows(msuOne).length}`);
   check('Und sie sagt, dass es die einzige ist',
@@ -32309,7 +32309,7 @@ async function checkUi() {
     check('Der Knopf legt den Zugang an',
       !!create && create.body?.username === 'neuling', JSON.stringify(create));
     check('Und zwar ausdruecklich mit Einladung',
-      create?.body?.einladen === true, JSON.stringify(create?.body));
+      create?.body?.sendInvite === true, JSON.stringify(create?.body));
     check('Ohne ein Passwort mitzuschicken',
       create?.body?.password === undefined, JSON.stringify(create?.body));
     check('Der Link erscheint gleich mit',
@@ -32336,7 +32336,7 @@ async function checkUi() {
     check('Der gewoehnliche Weg schickt das Passwort',
       create?.body?.password === 'ein-passwort-1', JSON.stringify(create?.body));
     check('Und ausdruecklich KEINE Einladung',
-      create?.body?.einladen === undefined, JSON.stringify(create?.body));
+      create?.body?.sendInvite === undefined, JSON.stringify(create?.body));
     check('Und es erscheint kein Linkkasten',
       !d.w.document.getElementById('user-link-field'), 'der Kasten steht doch da');
   }
@@ -32974,11 +32974,11 @@ async function checkUi() {
     pkTrashRows(d)[0]?.querySelector('.trash-remove')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const frage = d.w.document.querySelector('.backdrop .modal');
-    check('Das Kreuz fragt zuerst nach', !!frage, d.w.document.body.innerHTML.slice(0, 120));
+    const askKey = d.w.document.querySelector('.backdrop .modal');
+    check('Das Kreuz fragt zuerst nach', !!askKey, d.w.document.body.innerHTML.slice(0, 120));
     check('Und die Frage nennt den Titel und sagt, dass es danach keinen Rueckweg gibt',
-      /Weggeworfenes/.test(frage?.textContent || '') && /nicht rückgängig machen/.test(frage?.textContent || ''),
-      frage?.textContent);
+      /Weggeworfenes/.test(askKey?.textContent || '') && /nicht rückgängig machen/.test(askKey?.textContent || ''),
+      askKey?.textContent);
     // Erst abbrechen: danach darf NICHTS geschickt worden sein.
     d.w.document.querySelector('.backdrop [data-no]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -33428,9 +33428,9 @@ async function checkUi() {
 
   {
     const siInn = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { configured: true, wurzel: '/app/sicherung', place: '',
-        pfad: '/app/sicherung', imArbeitsverzeichnis: true, dbBytes: 1048576,
-        durationSeconds: 1, erreichbar: true, number: 0, last: null } });
+      { backupStatus: { configured: true, root: '/app/sicherung', place: '',
+        filePath: '/app/sicherung', inWorkDir: true, dbBytes: 1048576,
+        durationSeconds: 1, reachable: true, number: 0, last: null } });
     const box = siState(siInn);
     check('Im Arbeitsverzeichnis ist der Kasten rot', !!box &&
       box.classList.contains('warn-box') === true &&
@@ -33461,9 +33461,9 @@ async function checkUi() {
      der Gruppe "Die Sicherung: zwei Schluessel im Umlauf". */
   {
     const siStatusIncluding = (extraEnv) => ({
-      configured: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
-      imArbeitsverzeichnis: false, dbBytes: 52428800, durationSeconds: 1,
-      erreichbar: true, number: 3,
+      configured: true, root: '/sicherung', place: 'taeglich', filePath: '/sicherung/taeglich',
+      inWorkDir: false, dbBytes: 52428800, durationSeconds: 1,
+      reachable: true, number: 3,
       last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
                 at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: false },
       gewechseltAm: null, veraltet: 0, ...extraEnv
@@ -33604,7 +33604,7 @@ async function checkUi() {
     const d = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: { configured: false, reason: 'Es ist kein Sicherungsort eingerichtet. ' +
         'Die docker-compose.yml hängt ihn ein.', place: '', dbBytes: 1, durationSeconds: 1,
-        erreichbar: false, last: null } });
+        reachable: false, last: null } });
     check('Ohne eingerichteten Ort steht die Karte trotzdem da', !!siCard(d));
     check('Und sagt, warum sie nicht kann',
       /kein Sicherungsort eingerichtet/.test(siCard(d)?.textContent || ''),
@@ -33619,9 +33619,9 @@ async function checkUi() {
      behaupten -- das ist der Preis der Entscheidung fuer das Dateisystem. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { configured: true, wurzel: '/sicherung', place: 'weg',
+      { backupStatus: { configured: true, root: '/sicherung', place: 'weg',
         error: 'Das Verzeichnis „weg“ gibt es unter dem Sicherungsort nicht.',
-        dbBytes: 1024, durationSeconds: 1, erreichbar: false, last: null } });
+        dbBytes: 1024, durationSeconds: 1, reachable: false, last: null } });
     check('Ein Zielort mit Fehler bekommt keine Zahl, sondern die Begruendung',
       /gibt es unter dem Sicherungsort nicht/.test(siCard(d)?.textContent || ''),
       siCard(d)?.textContent?.slice(0, 400));
@@ -33631,8 +33631,8 @@ async function checkUi() {
   }
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { configured: true, wurzel: '/sicherung', place: '',
-        pfad: '/sicherung', dbBytes: 1024, durationSeconds: 1, erreichbar: true,
+      { backupStatus: { configured: true, root: '/sicherung', place: '',
+        filePath: '/sicherung', dbBytes: 1024, durationSeconds: 1, reachable: true,
         last: null, number: 0 } });
     check('Ein leerer Ort sagt, dass dort noch keine Sicherung liegt',
       /noch keine Sicherung/.test(siCard(d)?.textContent || ''),
@@ -33721,26 +33721,26 @@ async function checkUi() {
     { file: 'kriterion-2026-07-05-10-00-00.sqlite', at: '2026-07-05 10:00:00', daysAgo: 60, bytes: 52428800 }
   ];
   /* DIE LISTE WIE DER SERVER SIE LIEFERT: Nummer von der juengsten an, und je
-     Zeile die beiden Marken. `faellt` und `outdated` schliessen sich aus --
+     Zeile die beiden Marken. `affected` und `outdated` schliessen sich aus --
      die Regel laesst die veralteten gar nicht erst durch. */
   const afFiles = (keep = 3, days = 30, oldNames = []) => {
     const old = new Set(oldNames);
     const matched = new Set(AF_COPIES.slice(keep)
       .filter(z => z.daysAgo > days && !old.has(z.file)).map(z => z.file));
     return AF_COPIES.map((z, i) => ({ ...z, nr: i + 1,
-      faellt: matched.has(z.file), veraltet: old.has(z.file) }));
+      affected: matched.has(z.file), veraltet: old.has(z.file) }));
   };
   const afStatus = (extraEnv = {}, cleanupExtra = {}) => ({
-    configured: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
-    imArbeitsverzeichnis: false, dbBytes: 52428800, durationSeconds: 1, erreichbar: true, number: 5,
+    configured: true, root: '/sicherung', place: 'taeglich', filePath: '/sicherung/taeglich',
+    inWorkDir: false, dbBytes: 52428800, durationSeconds: 1, reachable: true, number: 5,
     last: { file: AF_COPIES[0].file, bytes: 52428800, at: AF_COPIES[0].at,
               daysAgo: 0, veraltet: false },
     gewechseltAm: null, veraltet: 0,
     cleanup: {
       an: false, keep: 3, days: 30,
-      grenzen: { keep: { fallback: 3, min: 1, max: 20 },
+      limits: { keep: { fallback: 3, min: 1, max: 20 },
                  days: { fallback: 30, min: 7, max: 365 } },
-      erreichbar: true, files: afFiles(), matched: AF_COPIES.slice(3),
+      reachable: true, files: afFiles(), matched: AF_COPIES.slice(3),
       bytes: AF_COPIES.slice(3).reduce((n, k) => n + k.bytes, 0),
       reason: '', oldCount: 0, oldBytes: 0, oldFiles: [], ...cleanupExtra
     },
@@ -34758,12 +34758,12 @@ async function checkUi() {
       mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
       testCount: 0, testAvg: null, testLast: null, testDays: [],
       updated_at: '2026-08-01 10:00:00',
-      fundstelle: { source: 'comment', text: '…hat mir der Bosch-Händler empfohlen…', weitere: 2 } },
+      foundAt: { source: 'comment', text: '…hat mir der Bosch-Händler empfohlen…', others: 2 } },
     { id: 2, title: 'Bosch Bohrhammer', rejected: false, tested: false, favorite: false,
       category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
       testCount: 0, testAvg: null, testLast: null, testDays: [],
       updated_at: '2026-08-01 10:00:00',
-      fundstelle: { source: 'link', text: '…bosch.example/werkzeug…', weitere: 0 } }
+      foundAt: { source: 'link', text: '…bosch.example/werkzeug…', others: 0 } }
   ];
   const trDom = buildDom(JSDOM, { overviewItems: trInventory });
   const tr = trDom.w;
@@ -34856,8 +34856,8 @@ async function checkUi() {
      fuellt sie mit echten Knoten. Ohne diese Lage bliebe ein Rueckbau, der
      dort innerHTML setzt, vollstaendig gruen. */
   const trUnknown = buildDom(JSDOM, { overviewItems: [{ ...trInventory[1],
-    fundstelle: { source: 'anhangname',
-                  text: 'Bosch <img src=x onerror=alert(1)> Handbuch', weitere: 0 } }] });
+    foundAt: { source: 'anhangname',
+                  text: 'Bosch <img src=x onerror=alert(1)> Handbuch', others: 0 } }] });
   const tu = trUnknown.w;
   await new Promise(r => setTimeout(r, 80));
   const tuField = tu.document.getElementById('q');
@@ -34892,7 +34892,7 @@ async function checkUi() {
     mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
     testCount: 0, testAvg: null, testLast: null, testDays: [],
     updated_at: '2026-08-01 10:00:00',
-    fundstelle: { source: 'beschreibung', text: '…urobella im Text…', weitere: 1 } }];
+    foundAt: { source: 'beschreibung', text: '…urobella im Text…', others: 1 } }];
   const hvDom = buildDom(JSDOM, { overviewItems: hvInventory });
   const hv = hvDom.w;
   await new Promise(r => setTimeout(r, 80));
@@ -35081,7 +35081,7 @@ async function checkUi() {
     mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
     testCount: 0, testAvg: null, testLast: null, testDays: [],
     updated_at: '2026-08-01 10:00:00',
-    fundstelle: { source: 'titel', text: 'Beispiel', weitere: 0 } }] });
+    foundAt: { source: 'titel', text: 'Beispiel', others: 0 } }] });
   const adN = adAfterDom.w;
   await new Promise(r => setTimeout(r, 80));
   const adNField = adN.document.getElementById('q');
@@ -35655,7 +35655,7 @@ async function checkUi() {
     (await tlPlanCall('&target=999999999')).content.zielGroesse === tlPlan.fallback,
     JSON.stringify((await tlPlanCall('&target=999999999')).content.zielGroesse));
   check('Und ein zu kleiner auf das kleinste zulaessige Mass',
-    (await tlPlanCall('&target=1')).content.zielGroesse === tlPlan.kleinstes,
+    (await tlPlanCall('&target=1')).content.zielGroesse === tlPlan.smallest,
     JSON.stringify((await tlPlanCall('&target=1')).content.zielGroesse));
   check('Ohne Angabe gilt der Warnwert',
     (await tlPlanCall()).content.zielGroesse === tlPlan.fallback);
@@ -35742,8 +35742,8 @@ async function checkUi() {
   async function tlCapture(S) {
     const list = (await S.call('GET', '/api/items')).content;
     const outcome = [];
-    for (const kurz of list) {
-      const it = (await S.call('GET', `/api/items/${kurz.id}`)).content;
+    for (const short of list) {
+      const it = (await S.call('GET', `/api/items/${short.id}`)).content;
       outcome.push([it.title, it.description, !!it.rejected, !!it.tested, !!it.favorite,
         (it.tags || []).map(t => t.name).sort().join(','),
         (it.links || []).map(l => l.url).sort().join(','),
@@ -35954,16 +35954,16 @@ async function checkUi() {
     const tzCodeB = await tzCode();
     check('Eine unbrauchbare Bestellung wird abgewiesen, bevor der Code geprueft wird',
       (await tzS.call('POST', '/api/confirm',
-        { password: TZ_WORD, purpose: 'export', ziele: [1, 1], code: tzCodeB })).status === 400);
+        { password: TZ_WORD, purpose: 'export', targets: [1, 1], code: tzCodeB })).status === 400);
     const tzAll = await tzS.call('POST', '/api/confirm',
-      { password: TZ_WORD, purpose: 'export', ziele: tzParts.map(t => t.nr), code: tzCodeB });
+      { password: TZ_WORD, purpose: 'export', targets: tzParts.map(t => t.nr), code: tzCodeB });
     check('Eine Anfrage mit allen Teilnummern und EINEM Code wird angenommen',
       tzAll.status === 200 && tzAll.content?.ok === true,
       `${tzAll.status} · ${JSON.stringify(tzAll.content)}`);
     check('Und die Antwort nennt jede bestellte Nummer',
-      Array.isArray(tzAll.content?.ziele) &&
-      tzAll.content.ziele.join(',') === tzParts.map(t => t.nr).join(','),
-      JSON.stringify(tzAll.content?.ziele));
+      Array.isArray(tzAll.content?.targets) &&
+      tzAll.content.targets.join(',') === tzParts.map(t => t.nr).join(','),
+      JSON.stringify(tzAll.content?.targets));
 
     /* JEDER TEIL LAEDT, UND JEDER VERBRAUCHT GENAU EINE FREIGABE. Das ist die
        Eigenschaft, die NICHT mit weggeraeumt werden darf: zusammengefasst wird
@@ -36008,22 +36008,22 @@ async function checkUi() {
     const tzLimit = (core) => tzS.call('POST', '/api/confirm',
       { password: TZ_WORD, purpose: 'export', code: TZ_NO_CODE, ...core });
     check('Doppelte Nummern sind ein Fehler und keine halbierte Bestellung',
-      (await tzLimit({ ziele: [1, 2, 2] })).status === 400);
+      (await tzLimit({ targets: [1, 2, 2] })).status === 400);
     check('Zehntausend Freigaben auf einmal gehen nicht durch',
-      (await tzLimit({ ziele: Array.from({ length: 10000 }, (_, i) => i + 1) })).status === 400);
+      (await tzLimit({ targets: Array.from({ length: 10000 }, (_, i) => i + 1) })).status === 400);
     check('Eine leere Liste ebenso wenig',
-      (await tzLimit({ ziele: [] })).status === 400 &&
-      (await tzLimit({ ziele: 'alle' })).status === 400);
+      (await tzLimit({ targets: [] })).status === 400 &&
+      (await tzLimit({ targets: 'alle' })).status === 400);
     check('Und eine Nummer, die keine ist, auch nicht',
-      (await tzLimit({ ziele: [1, 'zwei'] })).status === 400 &&
-      (await tzLimit({ ziele: [1, 0] })).status === 400);
+      (await tzLimit({ targets: [1, 'zwei'] })).status === 400 &&
+      (await tzLimit({ targets: [1, 0] })).status === 400);
     check('Ein Ziel UND mehrere zugleich ist ein Fehler, kein stiller Vorzug',
-      (await tzLimit({ target: 1, ziele: [1, 2] })).status === 400);
+      (await tzLimit({ target: 1, targets: [1, 2] })).status === 400);
     // Der Deckel liegt bei 999 und nicht irgendwo: eine Bestellung genau auf
     // der Grenze muss durchgehen, sonst belegte die Zeile darueber nur, dass
     // IRGENDWO abgewiesen wird.
     check('999 Ziele liegen noch darunter — die Absage kommt nicht vom Passwort',
-      (await tzLimit({ ziele: Array.from({ length: 999 }, (_, i) => i + 1) })).status === 403);
+      (await tzLimit({ targets: Array.from({ length: 999 }, (_, i) => i + 1) })).status === 403);
 
     /* --- Die Oberflaeche schickt EINE Anfrage --- */
     /* GEPRUEFT AM QUELLTEXT, weil jsdom keinen Server hat: die Schleife ueber
@@ -36035,7 +36035,7 @@ async function checkUi() {
     check('zweiteBestaetigungMehrfach steht im Quelltext',
       tzMultiple.length > 60, String(tzMultiple.length));
     check('Und sie schickt die Ziele in EINER Anfrage statt eine je Ziel',
-      /ziele\s*\}\)/.test(tzMultiple) && !/for\s*\(\s*const\s+ziel\s+of\s+ziele/.test(tzMultiple),
+      /targets\s*\}\)/.test(tzMultiple) && !/for\s*\(\s*const\s+target\s+of\s+targets/.test(tzMultiple),
       tzMultiple.slice(-220));
 
     /* --- Der Knopf sagt, was er tut --- */
@@ -39357,8 +39357,8 @@ async function checkUi() {
     doc.querySelector('#viewer img')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     check('Das Vollbild geht auf', !!doc.querySelector('.lightbox'));
-    const weg = () => doc.querySelector('.lightbox .lb-btn.remove');
-    check('Und es traegt einen Papierkorb', !!weg(), 'kein Papierkorb im Vollbild');
+    const removed = () => doc.querySelector('.lightbox .lb-btn.remove');
+    check('Und es traegt einen Papierkorb', !!removed(), 'kein Papierkorb im Vollbild');
     /* ER STEHT NICHT NEBEN DEM SCHLIESSEN: zwei Kreuze nebeneinander, von
        denen eines die Ansicht zumacht und das andere das Bild vernichtet,
        waeren die gefaehrlichste Nachbarschaft der Instanz. */
@@ -39369,16 +39369,16 @@ async function checkUi() {
 
     const imagesBefore = [...doc.querySelectorAll('.lightbox .lb-thumb')].length;
     /* MIT FRAGEZEICHEN, und das ist keine Zierde: nimmt ein Rueckbau den
-       Papierkorb weg, ist `weg()` null. Ohne das Zeichen risse der Lauf hier
+       Papierkorb weg, ist `removed()` null. Ohne das Zeichen risse der Lauf hier
        ab, statt die Zusagen darunter rot zu faerben -- und eine abgerissene
        Gegenprobe belegt gar nichts (Stolperstein 161). Genau das hat Rueckbau
        297 vorgefuehrt. */
-    weg()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    removed()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    const frage = doc.querySelector('.backdrop .modal');
-    check('Der Papierkorb fragt zuerst nach', !!frage, doc.body.innerHTML.slice(0, 140));
+    const askKey = doc.querySelector('.backdrop .modal');
+    check('Der Papierkorb fragt zuerst nach', !!askKey, doc.body.innerHTML.slice(0, 140));
     check('Und die Frage nennt, was verschwindet',
-      /wird endgültig gelöscht/.test(frage?.textContent || ''), frage?.textContent);
+      /wird endgültig gelöscht/.test(askKey?.textContent || ''), askKey?.textContent);
     // Abbrechen: es darf nichts hinausgehen und nichts verschwinden.
     doc.querySelector('.backdrop [data-no]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -39390,7 +39390,7 @@ async function checkUi() {
       [...doc.querySelectorAll('.lightbox .lb-thumb')].length === imagesBefore,
       `${[...doc.querySelectorAll('.lightbox .lb-thumb')].length} statt ${imagesBefore}`);
 
-    weg()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    removed()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     doc.querySelector('.backdrop [data-yes]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -39738,7 +39738,7 @@ async function checkUi() {
     const khSessions = Array.from({ length: 10 }, (_, n) => ({
       id: String.fromCharCode(97 + n).repeat(64),
       loggedInAt: '2026-08-20 08:00:00', lastSeen: '2026-08-24 07:30:00',
-      diese: n === 0 }));
+      current: n === 0 }));
     const d = buildDom(JSDOM, { sessionsInventory: khSessions,
       settings: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
@@ -41801,7 +41801,7 @@ async function checkUi() {
     await new Promise(r => setTimeout(r, 60));
     const blW = blDom.w;
     const blStatus = { entries: 5, foreignComments: 3, foreignRatings: 0, foreignTestDays: 0, foreignLinks: 0, foreignFiles: 0,
-                      kommentare: 2, bewertungen: 1, testtage: 0, links: 0, files: 0 };
+                      comments: 2, ratings: 1, testDays: 0, links: 0, files: 0 };
     const blP = blW.userDeleteDialog('bert', 2, blStatus);
     await new Promise(r => setTimeout(r, 20));
     const blDialog = blW.document.getElementById('delete-user');

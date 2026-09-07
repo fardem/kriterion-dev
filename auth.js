@@ -519,9 +519,9 @@ function countInventory(userId) {
     foreignLinks: one(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
     foreignFiles: one(`SELECT COUNT(*) n FROM attachments WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
     // SEINE Beitraege in FREMDEN Eintraegen -- das zweite Haekchen
-    kommentare: one(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
-    bewertungen: one(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
-    testtage: one(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    comments: one(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    ratings: one(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    testDays: one(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
     // Der fuenfte und der sechste Traeger. Ohne sie saehe ein Zugang, der
     // zwanzig Links und ein Dutzend Dateien in fremden Eintraegen hinterlassen
     // hat, im Dialog leer aus.
@@ -807,7 +807,7 @@ function sessionsOf(userId, ownToken) {
     lastSeen: z.last_seen,
     // Die eigene ist markiert, damit die Karte sie nicht mit "alle anderen"
     // wegnimmt -- man wuerde sich sonst selbst hinauswerfen.
-    diese: Boolean(ownToken) && z.token === ownToken
+    current: Boolean(ownToken) && z.token === ownToken
   }));
 }
 

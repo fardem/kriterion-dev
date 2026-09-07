@@ -577,10 +577,10 @@ const confirmFieldFree = (title, event, withCode) =>
    Teilen griff die harte Sperre), und der verbrannte Wiederherstellungscode.
    WAS BLEIBT: das Laden eines Teils verbraucht genau eine Freigabe. Was
    zusammengefasst wird, ist die ABFRAGE und nicht die Schranke. */
-async function confirmTwiceMany(purpose, ziele, title, event) {
+async function confirmTwiceMany(purpose, targets, title, event) {
   const input = await confirmField(title, event);
   if (input === null) return false;
-  try { await api('POST', '/api/confirm', { ...input, purpose, ziele }); }
+  try { await api('POST', '/api/confirm', { ...input, purpose, targets }); }
   catch (e) { toast(e.message, true); return false; }
   return true;
 }
@@ -639,9 +639,9 @@ function userDeleteDialog(name, number, b) {
     const foreignCount = (b.foreignComments || 0) + (b.foreignRatings || 0) + (b.foreignTestDays || 0)
       + (b.foreignLinks || 0) + (b.foreignFiles || 0);
     const beitraege = [
-      ...countWord(b.kommentare, t('dialog.comment'), t('dialog.comments')),
-      ...countWord(b.bewertungen, V.bewertungEinzahl, V.bewertungMehrzahl),
-      ...(b.testtage ? [`${b.testtage} ${vTime(b.testtage)}`] : []),
+      ...countWord(b.comments, t('dialog.comment'), t('dialog.comments')),
+      ...countWord(b.ratings, V.bewertungEinzahl, V.bewertungMehrzahl),
+      ...(b.testDays ? [`${b.testDays} ${vTime(b.testDays)}`] : []),
       ...countWord(b.links, t('dialog.link'), t('dialog.links')),
       ...countWord(b.files, t('dialog.file'), t('dialog.files'))
     ];
@@ -1158,7 +1158,7 @@ function sortBlocks() {
    Summanden. Die Klammer nistet die zweite Ebene ein -- das Erledigte steckt
    IN den Aufgaben, sonst schrumpfte die Zahl beim Abhaken.
    DIE OFFENEN STEHEN VORAN, denn danach wird im Alltag gefragt. Sie werden
-   ABGEZOGEN und nicht gezaehlt: `tasks - fertig` kann nicht von der Summe
+   ABGEZOGEN und nicht gezaehlt: `tasks - finished` kann nicht von der Summe
    abweichen, eine zweite Zaehlung ueber `kind = 'task'` schon.
    DIE KLAMMER ERSCHEINT NUR, WENN ETWAS ERLEDIGT IST. Sonst stuende dort
    "5 Aufgaben (5 offen)" -- eine Zahl, die nichts hinzufuegt, weil die davor
@@ -1172,19 +1172,19 @@ function sortBlocks() {
    Achse, und zwei Achsen in einer Zeile sind nicht mehr lesbar.
    "Kommentar" ist eine FESTE Beschriftung und kein zwoelftes Vokabelwort --
    anders als Sache und Zeitpunkt verschiebt es sich nicht mit dem Gegenstand. */
-function commentNumbers(kommentare) {
-  const list = kommentare || [];
+function commentNumbers(comments) {
+  const list = comments || [];
   const n = list.length;
   if (!n) return '';
   const count = (...kinds) => list.filter(c => kinds.includes(c.kind)).length;
   const reports = count('report');
   // Erledigtes zaehlt MIT zu den Aufgaben, nicht daneben.
   const tasks = count('task', 'done');
-  const fertig = count('done');
+  const finished = count('done');
   const parts = [];
   if (reports) parts.push(`${reports} ${vReport(reports)}`);
   if (tasks) parts.push(`${tasks} ${vTask(tasks)}`
-    + (fertig ? t('list.openCount', { n: tasks - fertig }) : ''));
+    + (finished ? t('list.openCount', { n: tasks - finished }) : ''));
   return t('list.commentCount', { n: n })
     + (parts.length ? t('list.ofWhich', { teile: parts.join(t('list.and')) }) : '');
 }
@@ -1331,8 +1331,8 @@ function setUpBlocksOut(item) {
     head.querySelector('.bcaret').textContent = zu ? '▸' : '▾';
     const sum = head.querySelector('.bsum');
     // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts.
-    const kurz = zu ? blockSummary(name, item) : '';
-    sum.textContent = kurz ? `(${kurz})` : '';
+    const short = zu ? blockSummary(name, item) : '';
+    sum.textContent = short ? `(${short})` : '';
 
     // Klick auf die Kopfzeile klappt ein und aus. Griff und alles Bedienbare
     // darin sind ausgenommen, sonst löst das Zurücksetzen der Bewertung
@@ -1356,8 +1356,8 @@ function setUpBlocksOut(item) {
       if (name === 'tags' && zu && redrawCloud) redrawCloud();
     };
 
-    if (!block.dataset.ziehbar) {
-      block.dataset.ziehbar = '1';
+    if (!block.dataset.draggable) {
+      block.dataset.draggable = '1';
       const area = BLOCK_DEFAULT.seite.includes(name) ? 'seite' : 'unten';
       makeSortable(block, {
         axis: 'y', selector: '.block[data-block]', handle: '.bgrip',
@@ -1402,12 +1402,12 @@ function imagesFromClipboard(e) {
 }
 
 // Dateiauswahl fuer Bilder, ohne dass ein Feld im Aufbau stehen muss.
-function pickImages(fertig) {
+function pickImages(finished) {
   const inp = document.createElement('input');
   inp.type = 'file';
   inp.accept = 'image/*';
   inp.multiple = true;
-  inp.onchange = () => { fertig([...inp.files]); inp.remove(); };
+  inp.onchange = () => { finished([...inp.files]); inp.remove(); };
   inp.style.display = 'none';
   document.body.appendChild(inp);
   inp.click();
@@ -1560,7 +1560,7 @@ function limitCloud(box, rows) {
 // Aufklappzustand der beiden Wolken, absichtlich nur fuer die Sitzung im
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
-const cloudOpen = { uebersicht: false, detail: false };
+const cloudOpen = { overview: false, detail: false };
 /* OB DIE TAGZEILE OFFEN STEHT -- 0.22.0 (E8), umgebaut in 0.24.0
    (Bauabschnitt 0.2). Nur fuer die Dauer der Sitzung, wie cloudOpen: keine
    Einstellung und kein Feld in `filters`.
@@ -1689,8 +1689,8 @@ function searchTemplateOk(v) {
 // Namen, nicht nur die Alternativen: Stufe 1 zeigt damit genau den Standard.
 function searchList() {
   return SEARCH_PROVIDERS
-    .filter(a => a.active && a.vorhanden && searchTemplateOk(a.template))
-    .sort((a, b) => (b.standard ? 1 : 0) - (a.standard ? 1 : 0))
+    .filter(a => a.active && a.present && searchTemplateOk(a.template))
+    .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
     .slice(0, SEARCH_NAMES);
 }
 // Der Standard ist das Ziel des Zeilenklicks. Faellt er durch die Schranke,
@@ -2610,8 +2610,8 @@ const rememberSeen = () => {
 const ENTRY_PATTERN = /^#\/item\/(\d+)(?:\?(.*))?$/;
 const entryAddress = (id, term) =>
   `#/item/${id}` + (term ? `?q=${encodeURIComponent(term)}` : '');
-const termOutAddress = (frage) => {
-  try { return new URLSearchParams(frage || '').get('q') || ''; }
+const termOutAddress = (askKey) => {
+  try { return new URLSearchParams(askKey || '').get('q') || ''; }
   catch { return ''; }
 };
 
@@ -3399,7 +3399,7 @@ function drawFilters() {
     r3.appendChild(g3);
     // Eine Zeile, Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
     // abgeschnitten ist.
-    const trimmed = limitCloud(g3, cloudOpen.uebersicht ? 0 : 1);
+    const trimmed = limitCloud(g3, cloudOpen.overview ? 0 : 1);
     /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche Geschwister
        -- und seit 0.13.0 ist das wieder die natuerliche Reihenfolge: "mehr"
        gehoert hinter das, was es aufklappt.
@@ -3423,11 +3423,11 @@ function drawFilters() {
        120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
     const right = document.createElement('div');
     right.className = 'frow-right';
-    if (trimmed || cloudOpen.uebersicht) {
+    if (trimmed || cloudOpen.overview) {
       const m = document.createElement('button');
       m.className = 'link-btn';
-      m.textContent = cloudOpen.uebersicht ? t('list.less') : t('list.more');
-      m.onclick = () => { cloudOpen.uebersicht = !cloudOpen.uebersicht; drawFilters(); };
+      m.textContent = cloudOpen.overview ? t('list.less') : t('list.more');
+      m.onclick = () => { cloudOpen.overview = !cloudOpen.overview; drawFilters(); };
       right.appendChild(m);
     }
     if (f.tagIds.length) {
@@ -3815,7 +3815,7 @@ const findingWord = (source) => (FINDING_WORDS[source] || (() => t('list.hitPlac
    (gemessen, siehe Aenderungsprotokoll 0.18.0). Die Zahl steht deshalb kurz
    in der Zeile und ausgeschrieben darueber. */
 const findHover = (f) => t('list.foundIn', { quelle: findingWord(f.source) }) + (
-  f.weitere > 0 ? t('list.moreHits', { n: f.weitere }) : '');
+  f.others > 0 ? t('list.moreHits', { n: f.others }) : '');
 
 function card(it) {
   const a = document.createElement('a');
@@ -3843,10 +3843,10 @@ function card(it) {
      innerHTML in die Seite (Projektstand 5.6). Gefuellt wird er weiter unten
      mit echten Knoten -- mit Hervorhebung, wenn ein Begriff da ist, und ohne,
      wenn nicht. */
-  const f = it.fundstelle;
+  const f = it.foundAt;
   const findingRow = f ? `<div class="card-find" title="${esc(findHover(f))}">
         <span class="find-source">${esc(findingWord(f.source))}:</span><span
-          class="find-text"></span>${f.weitere ? `<span class="find-more">+${f.weitere}</span>` : ''}
+          class="find-text"></span>${f.others ? `<span class="find-more">+${f.others}</span>` : ''}
       </div>` : '';
 
   a.innerHTML = `
@@ -4083,10 +4083,10 @@ async function renderOpen() {
      verschwindet, nimmt die Möglichkeit, den Haken gleich wieder wegzunehmen.
      Der Vermerk steht nur hier im Speicher; beim nächsten Aufbau holt die
      Ansicht die Wahrheit wieder vom Server. */
-  const setCheck = async (z, fertig) => {
+  const setCheck = async (z, finished) => {
     try {
-      await api('PUT', `/api/comments/${z.id}`, { kind: fertig ? 'done' : 'task' });
-      z.erledigt = fertig;
+      await api('PUT', `/api/comments/${z.id}`, { kind: finished ? 'done' : 'task' });
+      z.erledigt = finished;
       draw();
     } catch (e) { toast(e.message, true); }
   };
@@ -4246,13 +4246,13 @@ async function renderCompare() {
      allein, dass sie ihn je Kasten bildet -- eine Zahl aus beiden Mengen waere
      genau die Vermischung, die diese Runde abschafft. */
   const ownAverage = (it, phase) => {
-    let counter = 0, nenner = 0;
+    let counter = 0, denominator = 0;
     for (const r of it.ratings) {
       if (r.phase !== phase) continue;
-      if (r.value > 0) { counter += r.value * r.weight; nenner += r.weight; }
+      if (r.value > 0) { counter += r.value * r.weight; denominator += r.weight; }
     }
-    if (!nenner) return null;
-    return Math.round((counter / nenner) * 10) / 10;
+    if (!denominator) return null;
+    return Math.round((counter / denominator) * 10) / 10;
   };
   // Drei Zahlen, ein Schalter: Kriterienwert, Kopfzahl und Testtagzeile
   // schalten gemeinsam um. Schaltete nur eine, waere es derselbe Widerspruch
@@ -4469,7 +4469,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     const el = inner();
     const source = isVideo(photos[i]) ? imageSource(photos[i], '') : null;
     if (el && source && el.getAttribute('src') === source) {
-      handover = { source, position: el.currentTime || 0, lief: !el.paused, offen: true };
+      handover = { source, position: el.currentTime || 0, wasPlaying: !el.paused, offen: true };
       el.pause();
       el.removeAttribute('src');
       el.load();
@@ -4488,7 +4488,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     if (!player.hidden || player.src) {
       if (handover && player.getAttribute('src') === handover.source) {
         handover.position = player.currentTime || 0;
-        handover.lief = !player.paused;
+        handover.wasPlaying = !player.paused;
       }
       player.pause();
       player.removeAttribute('src');
@@ -4507,7 +4507,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     if (!el || el.getAttribute('src')) return;
     el.src = handover.source;
     el.currentTime = handover.position;
-    if (handover.lief) el.play()?.catch?.(() => {});
+    if (handover.wasPlaying) el.play()?.catch?.(() => {});
     handover = null;
   };
 
@@ -4545,7 +4545,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
       if (handover && handover.offen && player.getAttribute('src') === handover.source) {
         handover.offen = false;
         player.currentTime = handover.position;
-        if (handover.lief) player.play()?.catch?.(() => {});
+        if (handover.wasPlaying) player.play()?.catch?.(() => {});
       }
     } else {
       img.src = imageSource(photos[i], 'medium');
@@ -4605,12 +4605,12 @@ function openLightbox(photos, startIdx, title, remove, inside) {
      WAR ES DAS LETZTE BILD, GEHT DAS VOLLBILD ZU. Ein leeres Vollbild mit
      „0 / 0" waere die Ansicht eines Nichts. */
   lb.querySelector('.remove')?.addEventListener('click', async () => {
-    const weg = photos[i];
-    if (!await remove(weg)) return;
+    const removed = photos[i];
+    if (!await remove(removed)) return;
     /* WAS GELOESCHT IST, WANDERT NICHT ZURUECK. Der Betrachter darunter hat
        sich beim Loeschen bereits neu gezeichnet; eine Quelle, die es nicht
        mehr gibt, darf ihm hier nicht noch einmal untergeschoben werden. */
-    if (handover && imageSource(weg, '') === handover.source) handover = null;
+    if (handover && imageSource(removed, '') === handover.source) handover = null;
     photos.splice(i, 1);
     if (!photos.length) { close(); return; }
     buildStrip();
@@ -4704,10 +4704,10 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
     const cancel = () => { el.classList.remove('handle-ready', 'dragging'); cleanup(); };
 
     const up = () => {
-      const gezogen = dragging;
+      const dragged = dragging;
       el.classList.remove('handle-ready');
       cleanup();
-      if (!gezogen) { onClick && onClick(); return; }
+      if (!dragged) { onClick && onClick(); return; }
       el.classList.remove('dragging');
       onDrop && onDrop([...box.children]);
     };
@@ -5371,7 +5371,7 @@ async function renderDetail(id, termAddress) {
          der auf dem Telefon danebengeht, ist schlechter als keiner. Wer den
          Rahmen antippt, schiebt ihn; die Weite bleibt beim Schieber (E9). */
       if (e.pointerType === 'touch' && gesture !== 'neu') gesture = 'schieben';
-      user = { gesture, x: e.clientX, y: e.clientY, crate, p0, gezogen: false };
+      user = { gesture, x: e.clientX, y: e.clientY, crate, p0, dragged: false };
       v.setPointerCapture?.(e.pointerId);
       e.preventDefault();
     };
@@ -5382,8 +5382,8 @@ async function renderDetail(id, termAddress) {
     };
     v.onpointermove = (e) => {
       if (!user) { const p = inImage(e); showHandle(cropGesture(frameBox(), p.x, p.y)); return; }
-      if (!user.gezogen && Math.hypot(e.clientX - user.x, e.clientY - user.y) < DISTANCE_MIN) return;
-      user.gezogen = true;
+      if (!user.dragged && Math.hypot(e.clientX - user.x, e.clientY - user.y) < DISTANCE_MIN) return;
+      user.dragged = true;
       carry(user, e);
     };
     v.onpointerleave = () => { if (!user) showHandle('neu'); };
@@ -5395,7 +5395,7 @@ async function renderDetail(id, termAddress) {
          wirkte ein zweites Mal. */
       const prev = user;
       user = null;
-      if (prev.gezogen) {
+      if (prev.dragged) {
         carry(prev, e);
         if (prev.gesture !== 'schieben') showZoom();
         return save();
@@ -5409,9 +5409,9 @@ async function renderDetail(id, termAddress) {
        Zeitpunkt bereits den neuen Ausschnitt; ihn unbemerkt zu verwerfen
        hiesse, dem Bildschirm zu widersprechen. */
     v.onpointercancel = () => {
-      const gezogen = user && user.gezogen;
+      const dragged = user && user.dragged;
       user = null;
-      if (gezogen) save();
+      if (dragged) save();
     };
 
     /* DER SCHIEBER: `input` zeichnet mit, `change` speichert. Beim Ziehen des
@@ -5533,13 +5533,13 @@ async function renderDetail(id, termAddress) {
     const drop = document.getElementById('drop');
     const old = drop.textContent;
     drop.textContent = t('entry.uploading');
-    let fertig = 0;
+    let finished = 0;
     try {
       if (images.length) {
         const fd = new FormData();
         for (const f of images) fd.append('photos', f);
         item = await api('POST', `/api/items/${id}/photos`, fd, true);
-        fertig += images.length;
+        finished += images.length;
       }
       for (const f of videos) {
         drop.textContent = t('entry.thumbBuilding');
@@ -5547,20 +5547,20 @@ async function renderDetail(id, termAddress) {
         drop.textContent = t('entry.uploading');
         const fd = new FormData();
         fd.append('video', f, f.name);
-        fd.append('standbild', image, 'standbild.jpg');
+        fd.append('stillFrame', image, 'stillframe.jpg');
         if (duration) fd.append('duration', String(duration));
         item = await api('POST', `/api/items/${id}/videos`, fd, true);
-        fertig++;
+        finished++;
       }
       drawViewer(); drawThumbs();
       // „1 Foto", „1 Video", sonst „3 Dateien" -- „Element" sagt niemand.
-      if (fertig) toast(t('entry.added', { anzahl: fertig,
-        was: plural(fertig, videos.length ? t('list.video') : t('list.photo'),
+      if (finished) toast(t('entry.added', { anzahl: finished,
+        was: plural(finished, videos.length ? t('list.video') : t('list.photo'),
           videos.length ? (images.length ? t('dialog.files') : t('list.videos')) : t('list.photos')) }));
     } catch (err) {
       toast(err.message, true);
       // Was schon durchging, ist durch -- die Anzeige muss es zeigen.
-      if (fertig) { drawViewer(); drawThumbs(); }
+      if (finished) { drawViewer(); drawThumbs(); }
     }
     drop.textContent = old;
   }
@@ -6067,9 +6067,9 @@ async function renderDetail(id, termAddress) {
      vom Server; der Browser filtert und schreibt hin. */
   const BOXES = [
     { phase: 'after', box: 'ratings',           head: 'rhead', button: 'weight-open',
-      actor: 'rwho', average: 'avgRating',       weg: 'calc' },
+      actor: 'rwho', average: 'avgRating',       removed: 'calc' },
     { phase: 'before',  box: 'potential-ratings', head: 'phead', button: 'pweight-open',
-      actor: 'pwho', average: 'potentialRating', weg: 'potentialCalc' }
+      actor: 'pwho', average: 'potentialRating', removed: 'potentialCalc' }
   ];
 
   function drawRatings() { for (const k of BOXES) drawBox(k); setUpBlocksOut(item); }
@@ -6315,23 +6315,23 @@ async function renderDetail(id, termAddress) {
      entstehen im Server IN gesamtSchnitt(), also in derselben Schleife wie die
      Zahl darueber. Zwei Kaesten, ein Fenster. */
   function showCalc(boxId) {
-    const weg = item[boxId.weg];
+    const removed = item[boxId.removed];
     // Ohne Aufstellung kein Kasten. Sie fehlt nur, wenn nichts bewertet ist --
     // dann steht aber auch keine Kopfzahl da, an der man klicken koennte.
-    if (!weg || !Array.isArray(weg.rows) || !weg.rows.length)
+    if (!removed || !Array.isArray(removed.rows) || !removed.rows.length)
       return toast(t('entry.nothingRatedYet'), true);
     const namen = new Map(item.ratings.map(r => [r.criterion_id, r.name]));
-    const withWeight = weg.rows.some(z => Number(z.weight) !== 1);
+    const withWeight = removed.rows.some(z => Number(z.weight) !== 1);
     /* OB DIE GEWICHTUNG UEBERHAUPT ETWAS AENDERT. Verglichen werden die beiden
        ANGEZEIGTEN Zahlen und nicht die ungerundeten: der Kasten sagt etwas
        ueber das, was dasteht. Zwei Rechnungen, die sich erst in der dritten
        Stelle unterscheiden, ergeben am Bildschirm dieselbe Zahl -- und dann
        ist „hier steht 3,7 statt 3,7" keine Auskunft. */
-    const sameNumber = Number(weg.equalResult) === Number(weg.result);
+    const sameNumber = Number(removed.equalResult) === Number(removed.result);
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal calc-modal" id="calc-modal">
-      <h2>${tH('entry.calcHowAvg')} ${esc(weightNumber(weg.result))} ${tH('entry.calcComesFrom')}</h2>
+      <h2>${tH('entry.calcHowAvg')} ${esc(weightNumber(removed.result))} ${tH('entry.calcComesFrom')}</h2>
       ${/* DER VERWEIS ZEIGT IN DEN KASTEN UND NICHT AUS IHM HINAUS. Hier stand
            bis 0.17.0 „die Zahlen rechts in den Zeilen" -- gemeint war die
            Durchschnittsspalte der Kriterienliste dahinter, und die gibt es bei
@@ -6352,17 +6352,17 @@ async function renderDetail(id, termAddress) {
           : t('entry.calcAllEqual')}.</p>
       <div class="calc" id="calc">
         <div class="calc-row calc-head"><span>${tH('entry.criterion')}</span><span>${tH('entry.grade')}</span><span>${tH('entry.weight')}</span><span>${tH('entry.calcGradeWeight')}</span></div>
-        ${weg.rows.map(z => `<div class="calc-row" data-krit="${Number(z.criterionId)}">
+        ${removed.rows.map(z => `<div class="calc-row" data-krit="${Number(z.criterionId)}">
           <span class="calc-name">${esc(namen.get(z.criterionId) || '—')}</span>
           <span>${esc(weightNumber(z.average))}</span>
           <span>× ${esc(weightNumber(z.weight))}</span>
-          <span>${esc(weightNumber(z.produkt))}</span></div>`).join('')}
+          <span>${esc(weightNumber(z.product))}</span></div>`).join('')}
         <div class="calc-row calc-sum"><span>${tH('entry.sum')}</span><span></span><span></span>
-          <span id="calc-sum">${esc(weightNumber(weg.sum))}</span></div>
+          <span id="calc-sum">${esc(weightNumber(removed.sum))}</span></div>
         <div class="calc-row calc-sum"><span>${tH('entry.calcDividedBy')}</span><span></span><span></span>
-          <span id="calc-divisor">${esc(weightNumber(weg.divisor))}</span></div>
+          <span id="calc-divisor">${esc(weightNumber(removed.divisor))}</span></div>
         <div class="calc-row calc-result"><span>${tH('entry.result')}</span><span></span><span></span>
-          <span id="calc-result">⌀ ${esc(weightNumber(weg.result))}</span></div>
+          <span id="calc-result">⌀ ${esc(weightNumber(removed.result))}</span></div>
         ${/* DIE VERGLEICHSZAHL -- 0.17.0. Die Formel stand Zeile fuer Zeile da
              und liess trotzdem offen, WOFUER die Gewichte gut sind. Erst der
              Unterschied macht die Gewichtung sichtbar.
@@ -6377,7 +6377,7 @@ async function renderDetail(id, termAddress) {
              darueber. */''}
         ${withWeight ? `<div class="calc-row calc-same"><span>${tH('entry.calcNoWeights')}</span>
           <span></span><span></span>
-          <span id="calc-same">⌀ ${esc(weightNumber(weg.equalResult))}</span></div>` : ''}
+          <span id="calc-same">⌀ ${esc(weightNumber(removed.equalResult))}</span></div>` : ''}
       </div>
       ${/* ZWEI ABSAETZE UNTER DER TABELLE UND NICHT DREI -- 0.17.3. Bei sieben
            Kriterien lief der Kasten ueber `88dvh` hinaus und rollte.
@@ -6408,10 +6408,10 @@ async function renderDetail(id, termAddress) {
       ${withWeight ? (sameNumber
         ? `<p id="calc-same-note"><strong>${tH('entry.calcNoChange')}</strong>
             ${tH('entry.calcWithoutWeights')}
-            <strong>⌀ ${esc(weightNumber(weg.result))}</strong> ${tH('entry.calcOut')}</p>`
+            <strong>⌀ ${esc(weightNumber(removed.result))}</strong> ${tH('entry.calcOut')}</p>`
         : `<p id="calc-same-note">${tH('entry.calcIfEqual')} <strong>${tH('entry.calcEquals')}</strong>${tH('entry.calcWouldBe')}
-            <strong>⌀ ${esc(weightNumber(weg.equalResult))}</strong> ${tH('entry.calcInstead')}
-            <strong>⌀ ${esc(weightNumber(weg.result))}</strong>.
+            <strong>⌀ ${esc(weightNumber(removed.equalResult))}</strong> ${tH('entry.calcInstead')}
+            <strong>⌀ ${esc(weightNumber(removed.result))}</strong>.
             <strong>${tH('entry.calcDifference')}</strong></p>`) : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
     document.body.appendChild(bd);
@@ -6664,7 +6664,7 @@ async function renderDetail(id, termAddress) {
       // Rechts steht die Lupe statt des Pfeils; das ist der Platz, an dem eine
       // Zeile in Kriterion ansagt, was ein Klick tut.
       const provider = search ? searchList() : [];
-      const standard = provider[0] || null;
+      const isDefault = provider[0] || null;
       const oben = search ? l.url : dom;
 
       /* WANN DER NAME AN DER ZEILE STEHT -- die Regel steht hier und nirgends
@@ -6700,7 +6700,7 @@ async function renderDetail(id, termAddress) {
       row.className = 'lrow' + (search ? ' search' : '');
       row.dataset.lid = l.id;
       const reasonText = search
-        ? (standard ? t('entry.searchForAt', { url: l.url, name: standard.name }) : t('entry.searchFor', { url: l.url }))
+        ? (isDefault ? t('entry.searchForAt', { url: l.url, name: isDefault.name }) : t('entry.searchFor', { url: l.url }))
         : l.url;
       row.title = entered ? `${reasonText} · ${entered}` : reasonText;
       /* Die zweite Zeile traegt den Pfad (bei einer Suchzeile die
@@ -6780,10 +6780,10 @@ async function renderDetail(id, termAddress) {
           if (!search) return window.open(l.url, t('entry.targetBlank'), t('entry.linkRel'));
           // Ohne gueltigen Standard wird nicht ersatzweise woanders gesucht --
           // die Zeile sagt dann, dass nichts eingestellt ist.
-          if (!standard) return toast(ADMIN
+          if (!isDefault) return toast(ADMIN
             ? t('entry.noSearchEngineHint')
             : t('entry.noSearchEngine'), true);
-          window.open(searchAddress(standard.template, l.url), t('entry.targetBlank'), t('entry.linkRel'));
+          window.open(searchAddress(isDefault.template, l.url), t('entry.targetBlank'), t('entry.linkRel'));
         },
         onDrop: async (children) => {
           try {
@@ -6949,7 +6949,7 @@ async function renderDetail(id, termAddress) {
         pre.className = 'atext';
         pre.textContent = v.text || t('entry.empty');
         boxId.appendChild(pre);
-        if (v.gekuerzt) {
+        if (v.shortened) {
           const h = document.createElement('p');
           h.className = 'hint';
           h.textContent = t('entry.previewTruncated');
@@ -7160,11 +7160,11 @@ async function renderDetail(id, termAddress) {
     kind.textContent = V.berichtEinzahl;
     kind.title = newKind === t('entry.reportKind') ? t('entry.unmarkReport') : t('entry.markReport');
     const taskBtn = document.getElementById('ctask');
-    const fertig = newKind === 'done';
-    taskBtn.classList.toggle('on', newKind === 'task' || fertig);
-    taskBtn.classList.toggle('done', fertig);
-    taskBtn.textContent = fertig ? V.aufgabeErledigt : V.aufgabeEinzahl;
-    taskBtn.title = fertig ? t('entry.unmark')
+    const finished = newKind === 'done';
+    taskBtn.classList.toggle('on', newKind === 'task' || finished);
+    taskBtn.classList.toggle('done', finished);
+    taskBtn.textContent = finished ? V.aufgabeErledigt : V.aufgabeEinzahl;
+    taskBtn.title = finished ? t('entry.unmark')
       : newKind === 'task' ? t('list.setDone')
                            : t('entry.markTask');
   }
@@ -7321,7 +7321,7 @@ async function renderDetail(id, termAddress) {
    danach eine Karte, die ihm vorher verwehrt war, und keiner verliert eine.
 
    EINE KARTE, DIE NICHT GEZEICHNET WIRD, BEKOMMT AUCH KEINEN BEHANDLER --
-   `ausruesten` laeuft nur fuer die Karten, die wirklich dastehen. Das ist
+   `wireUp` laeuft nur fuer die Karten, die wirklich dastehen. Das ist
    nicht Sparsamkeit, sondern die Bedingung: die Behandler greifen mit
    getElementById auf ihre Felder zu, und ein Griff ins Leere risse den ganzen
    Systembereich mit (Stolperstein 211). Vorher hing dieselbe Frage an EINER
@@ -7449,8 +7449,8 @@ function saved(el = document.activeElement) {
 
 
 /* ---- DIE NEUNZEHN KARTEN ----
-   `visible` ist die Klemme, `markup` das Aussehen, `ausruesten` die
-   Behandler. Eine Karte ohne Behandler laesst `ausruesten` weg, und eine leere
+   `visible` ist die Klemme, `markup` das Aussehen, `wireUp` die
+   Behandler. Eine Karte ohne Behandler laesst `wireUp` weg, und eine leere
    Funktion daneben waere eine Zeile, die behauptet, es gaebe dort etwas zu tun.
    "Kennzahlen" ist wieder die einzige ohne: sie zeigt nur Zahlen.
    ZWANZIG SEIT 0.20.0, vorher neunzehn. "Alte Sicherungen" kommt dazu und
@@ -7466,19 +7466,19 @@ function saved(el = document.activeElement) {
    Fortschrittszeile und eine Meldung nicht mehr. */
 const SYS_CARDS = [
   { key: 'zugang',       section: 'personal', visible: () => true,
-    markup: cardUser,       ausruesten: setUpUserOut },
+    markup: cardUser,       wireUp: setUpUserOut },
   { key: 'sitzungen',    section: 'personal', visible: () => true,
-    markup: cardSessions,    ausruesten: setUpSessionsOut },
+    markup: cardSessions,    wireUp: setUpSessionsOut },
   { key: 'darstellung',  section: 'personal', visible: () => true,
-    markup: cardAppearance,  ausruesten: setUpAppearanceOut },
+    markup: cardAppearance,  wireUp: setUpAppearanceOut },
 
   { key: 'kategorien',   section: 'inventory', visible: () => true,
-    markup: cardCategories,   ausruesten: setUpCategoriesOut },
+    markup: cardCategories,   wireUp: setUpCategoriesOut },
   { key: 'tags',         section: 'inventory', visible: () => true,
-    markup: cardTags,         ausruesten: setUpTagsOut },
+    markup: cardTags,         wireUp: setUpTagsOut },
   { key: 'kriterien',    section: 'inventory', visible: () => true,
     markup: () => cardCriteria('after'),
-    ausruesten: (g) => setUpCriteriaOut(g, 'after') },
+    wireUp: (g) => setUpCriteriaOut(g, 'after') },
   /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. Sichtbar
      fuer alle, bedienbar fuer den Admin, wie die Nachbarkarte: die Namen sind
      die Auswahl, aus der jeder am Eintrag schoepft.
@@ -7487,31 +7487,31 @@ const SYS_CARDS = [
      Phase gefiltert, und `POST` schickt die Phase mit. */
   { key: 'potenzialkriterien', section: 'inventory', visible: () => true,
     markup: () => cardCriteria('before'),
-    ausruesten: (g) => setUpCriteriaOut(g, 'before') },
+    wireUp: (g) => setUpCriteriaOut(g, 'before') },
   { key: 'vokabular',    section: 'inventory', visible: () => ADMIN,
-    markup: cardVocabulary,    ausruesten: setUpVocabularyOut },
+    markup: cardVocabulary,    wireUp: setUpVocabularyOut },
   { key: 'links',        section: 'inventory', visible: () => true,
-    markup: cardLinks,        ausruesten: setUpLinksOut },
+    markup: cardLinks,        wireUp: setUpLinksOut },
   { key: 'suchanbieter', section: 'inventory', visible: () => ADMIN,
-    markup: cardSearchProvider, ausruesten: setUpSearchProviderOut },
+    markup: cardSearchProvider, wireUp: setUpSearchProviderOut },
   { key: 'papierkorb',   section: 'inventory', visible: () => ADMIN,
-    markup: cardTrash,   ausruesten: setUpTrashOut },
+    markup: cardTrash,   wireUp: setUpTrashOut },
 
   { key: 'zugaenge',     section: 'users', visible: () => ADMIN,
-    markup: cardUsers,     ausruesten: setUpUsersOut },
+    markup: cardUsers,     wireUp: setUpUsersOut },
   { key: 'anfragen',     section: 'users', visible: (g) => ADMIN && !!g.requests,
-    markup: cardRequests,     ausruesten: setUpRequestsOut },
+    markup: cardRequests,     wireUp: setUpRequestsOut },
   { key: 'protokoll',    section: 'users', visible: (g) => OWNER && !!g.log,
-    markup: cardLog,    ausruesten: setUpLogOut },
+    markup: cardLog,    wireUp: setUpLogOut },
   { key: 'mailversand',  section: 'users', visible: (g) => OWNER && !!g.mailStatus,
-    markup: cardMailDelivery,  ausruesten: setUpMailDeliveryOut },
+    markup: cardMailDelivery,  wireUp: setUpMailDeliveryOut },
 
   { key: 'kennzahlen',   section: 'database', visible: () => ADMIN,
     markup: cardStats },
   { key: 'bildablage',   section: 'database', visible: () => ADMIN,
-    markup: cardImageStore,   ausruesten: setUpImageStoreOut },
+    markup: cardImageStore,   wireUp: setUpImageStoreOut },
   { key: 'sicherung',    section: 'database', visible: () => OWNER,
-    markup: cardBackup,    ausruesten: setUpBackupOut },
+    markup: cardBackup,    wireUp: setUpBackupOut },
   /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und nicht
      zufaellig: die eine Karte legt Kopien an, die andere raeumt sie weg.
      DIESELBE KLEMME WIE DIE KARTE DANEBEN -- `OWNER`.
@@ -7523,12 +7523,12 @@ const SYS_CARDS = [
      Vorgaenge sind gegenlaeufig und stuenden untereinander in derselben
      Kachel -- die Verwechslung waere nicht wiedergutzumachen. */
   { key: 'aufraeumen',   section: 'database', visible: () => OWNER,
-    markup: cardCleanup,   ausruesten: setUpCleanupOut },
+    markup: cardCleanup,   wireUp: setUpCleanupOut },
   { key: 'export',       section: 'database', visible: () => OWNER,
-    markup: cardExport,       ausruesten: setUpExportOut },
+    markup: cardExport,       wireUp: setUpExportOut },
 
   { key: 'titel',        section: 'installation', visible: () => ADMIN,
-    markup: cardTitle,        ausruesten: setUpTitleOut }
+    markup: cardTitle,        wireUp: setUpTitleOut }
 ];
 
 /* WELCHE ABSCHNITTE FUER DIESEN ZUGANG ETWAS ZU ZEIGEN HABEN. Ein Abschnitt
@@ -7611,7 +7611,7 @@ async function renderSystem() {
       ${cards.map(k => k.markup(fetched)).join('\n')}
     </div></div>`;
 
-  for (const k of cards) if (k.ausruesten) k.ausruesten(fetched);
+  for (const k of cards) if (k.wireUp) k.wireUp(fetched);
 
   /* DIE ADRESSE WIRD NACHGEZOGEN, NICHT DIE ANSICHT VERBOGEN. Stuende in der
      Adresse weiter "datenbank", waehrend "Persoenlich" dasteht, gaebe es zwei
@@ -7918,16 +7918,16 @@ function setUpSessionsOut(fetched) {
       return;
     }
     box.innerHTML = '';
-    const other = list.filter(z => !z.diese).length;
+    const other = list.filter(z => !z.current).length;
     for (const z of list) {
       const row = doc.createElement('div');
-      row.className = 'mrow session' + (z.diese ? ' session-mine' : '');
+      row.className = 'mrow session' + (z.current ? ' session-mine' : '');
       row.dataset.session = z.id || '';
-      row.innerHTML = `<span class="mname">${z.diese
+      row.innerHTML = `<span class="mname">${z.current
           ? `${tH('card.thisSession')} <span class="user-mine">${tH('card.here')}</span>` : tH('card.otherSession')}</span>
         <span class="session-time">${tH('card.signedInAt', { angemeldetAm: fmtDate(z.loggedInAt) })}</span>
         <span class="session-time">${tH('card.lastSeen', { zuletztGesehen: fmtDate(z.lastSeen) })}</span>`;
-      if (!z.diese) {
+      if (!z.current) {
         const w = doc.createElement('span');
         w.className = 'user-act';
         w.innerHTML = `<button class="mact rm session-x" title="${esc(t('card.endThisSession'))}">${ICON_X}</button>`;
@@ -7958,7 +7958,7 @@ function setUpSessionsOut(fetched) {
       if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;
       try {
         const r = await api('DELETE', '/api/sessions');
-        const n = r && r.beendet ? r.beendet : 0;
+        const n = r && r.ended ? r.ended : 0;
         toast(t('card.sessionsEnded', { n: n }));
       } catch (e) { return toast(e.message, true); }
       sessionsNew();
@@ -8232,28 +8232,28 @@ function setUpCriteriaOut(fetched, phase) {
      fuer immer als ⟦…⟧. */
   const MANAGE_KIND = {
     cat: {
-      url: '/api/product-categories', frage: 'card.deleteCategoryAsk',
-      warnung: e => t('card.categoryDeleteHint', { name: e.name, usage_count: e.usage_count, sache: vThing(e.usage_count) })
+      url: '/api/product-categories', askKey: 'card.deleteCategoryAsk',
+      warning: e => t('card.categoryDeleteHint', { name: e.name, usage_count: e.usage_count, sache: vThing(e.usage_count) })
     },
     tag: {
-      url: '/api/tags', frage: 'card.deleteTagAsk',
+      url: '/api/tags', askKey: 'card.deleteTagAsk',
       // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
       // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
       counter: e => `${e.usage_count} ${vThing(e.usage_count)} · ${e.test_usage_count} ${vTime(e.test_usage_count)}`,
-      warnung: e => t('card.tagDeleteHint', { name: e.name }) +
+      warning: e => t('card.tagDeleteHint', { name: e.name }) +
         `${e.usage_count} ${vThing(e.usage_count)} und ${e.test_usage_count} ${vTime(e.test_usage_count)}` +
         `${e.test_usage_count ? t('card.marksGoneToo') : '.'}`
     },
     crit: {
-      url: '/api/criteria', frage: 'card.deleteCriterionAsk', sortierbar: true,
+      url: '/api/criteria', askKey: 'card.deleteCriterionAsk', sortable: true,
       // DAS GEWICHTSFELD GEHOERT ALLEIN HIERHER. manageList() zeichnet dieselbe
       // Zeile auch fuer Kategorien und Tags, und dort gibt es kein Gewicht --
       // ein Kriterium wiegt im Gesamtschnitt, eine Kategorie rechnet nirgends
       // mit. Die Unterscheidung laeuft ueber diesen Eintrag, wie schon bei
-      // `sortierbar` und `counter`, und nicht ueber eine Abfrage auf den
+      // `sortable` und `counter`, und nicht ueber eine Abfrage auf den
       // Kartennamen.
       weight: true,
-      warnung: e => t('card.criterionDeleteHint', { name: e.name })
+      warning: e => t('card.criterionDeleteHint', { name: e.name })
     }
   };
 
@@ -8274,7 +8274,7 @@ function setUpCriteriaOut(fetched, phase) {
     if (!list.length) { box.innerHTML = `<span class="hint">${tH('card.nothingCreatedYet')}</span>`; return; }
     list.forEach(entry => {
       const row = document.createElement('div');
-      row.className = 'mrow' + (spec.sortierbar && may ? ' drag' : '');
+      row.className = 'mrow' + (spec.sortable && may ? ' drag' : '');
       row.dataset.mid = entry.id;
       const url = spec.url;
       /* Die Zeile war schon besetzt: Griff, Name, Verwendungszaehler, ✎ und ✕.
@@ -8292,14 +8292,14 @@ function setUpCriteriaOut(fetched, phase) {
                value="${esc(weightText(entry.weight))}"></span>`
           : `<span class="mweight mweight-fixed" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.weight))}</span>`)
         : '';
-      row.innerHTML = `${spec.sortierbar && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
+      row.innerHTML = `${spec.sortable && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="mname">${esc(entry.name)}</span>
         ${weightField}
         <span class="mcount">${esc(spec.counter ? spec.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}</span>
         ${may ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_PEN}</button>
         <button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}`;
       if (!may) { box.appendChild(row); return; }
-      if (spec.sortierbar) {
+      if (spec.sortable) {
         // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
         // Die Knoepfe und das Umbenennfeld bleiben ausgenommen.
         makeSortable(row, {
@@ -8359,7 +8359,7 @@ function setUpCriteriaOut(fetched, phase) {
         inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') adminNew(fetched); };
       };
       row.querySelector('.rm').onclick = async () => {
-        if (!await confirmBox(t(spec.frage), spec.warnung(entry))) return;
+        if (!await confirmBox(t(spec.askKey), spec.warning(entry))) return;
         try { await api('DELETE', `${url}/${entry.id}`); toast(t('card.deleted')); adminNew(fetched); }
         catch (e) { toast(e.message, true); }
       };
@@ -8596,7 +8596,7 @@ function setUpSearchProviderOut() {
   // in der der Server sie speichert. Zurueck kommt immer der aufgeraeumte
   // Zustand; gezeichnet wird daraus, nicht aus der eigenen Annahme.
   const poolList = () => {
-    const std = SEARCH_PROVIDERS.find(a => a.active && a.standard);
+    const std = SEARCH_PROVIDERS.find(a => a.active && a.isDefault);
     const rest = SEARCH_PROVIDERS.filter(a => a.active && a !== std).map(a => a.key);
     return std ? [std.key, ...rest] : rest;
   };
@@ -8616,12 +8616,12 @@ function setUpSearchProviderOut() {
     box.innerHTML = '';
     SEARCH_PROVIDERS.forEach(a => {
       const row = document.createElement('div');
-      row.className = 'engine' + (a.vorhanden ? '' : ' blank');
+      row.className = 'engine' + (a.present ? '' : ' blank');
       row.dataset.k = a.key;
       const hk = document.createElement('input');
       hk.type = 'checkbox';
       hk.checked = !!a.active;
-      hk.disabled = !a.vorhanden;
+      hk.disabled = !a.present;
       hk.title = t('card.addToSelection');
       hk.onchange = () => {
         const keys = poolList();
@@ -8630,9 +8630,9 @@ function setUpSearchProviderOut() {
       };
       const st = document.createElement('button');
       st.type = 'button';
-      st.className = 'sdefault' + (a.standard ? ' on' : '');
+      st.className = 'sdefault' + (a.isDefault ? ' on' : '');
       st.textContent = t('card.standard');
-      st.disabled = !a.vorhanden;
+      st.disabled = !a.present;
       st.title = t('card.searchLineHint');
       // Start nimmt zugleich in die Auswahl auf: ein Startanbieter ausserhalb
       // des Vorrats ist ein Zustand, den es nicht geben darf.
@@ -8643,7 +8643,7 @@ function setUpSearchProviderOut() {
       // textContent statt innerHTML, damit Maskierung nicht vergessbar ist.
       const nm = document.createElement('span');
       nm.className = 'engine-name';
-      nm.textContent = a.vorhanden ? a.name : '—';
+      nm.textContent = a.present ? a.name : '—';
       row.append(hk, st, nm);
       box.appendChild(row);
     });
@@ -8753,8 +8753,8 @@ function setUpTrashOut(fetched) {
           trashNew(fetched);
         } catch (e) { toast(e.message, true); }
       };
-      const weg = row.querySelector('.trash-remove');
-      if (weg) weg.onclick = async () => {
+      const removed = row.querySelector('.trash-remove');
+      if (removed) removed.onclick = async () => {
         if (!await confirmBox(t('card.deleteForGoodAsk'),
           t('card.purgeHint', { titel: z.title }),
           t('card.deleteForGood'))) return;
@@ -8854,7 +8854,7 @@ function setUpUsersOut() {
     const byInvite = !userKind || userKind.value === 'link';
     const body = { username: nameField.value.trim() };
     if (mailField && mailField.value.trim()) body.email = mailField.value.trim();
-    if (byInvite) body.einladen = true;
+    if (byInvite) body.sendInvite = true;
     else body.password = userPass.value;
     if (roleField) body.rolle = roleField.value;
     if (!body.username) return toast(t('login.usernameMissing'), true);
@@ -9775,7 +9775,7 @@ function mailDialog(mailStatus) {
     selection.onchange = afterSelection;
     afterSelection();
 
-    const fertig = (v) => {
+    const finished = (v) => {
       document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v);
     };
     /* Escape schliesst nur den OBERSTEN Dialog -- steht die zweite
@@ -9784,11 +9784,11 @@ function mailDialog(mailStatus) {
     const onKey = e => {
       if (e.key !== 'Escape') return;
       if ([...document.querySelectorAll('.backdrop')].pop() !== bd) return;
-      fertig(false);
+      finished(false);
     };
     document.addEventListener('keydown', onKey, true);
-    bd.querySelector('[data-no]').onclick = () => fertig(false);
-    bd.onclick = e => { if (e.target === bd) fertig(false); };
+    bd.querySelector('[data-no]').onclick = () => finished(false);
+    bd.onclick = e => { if (e.target === bd) finished(false); };
 
     bd.querySelector('#mail-save').onclick = async () => {
       const body = {
@@ -9811,7 +9811,7 @@ function mailDialog(mailStatus) {
       try {
         await api('PUT', '/api/mail', body);
         toast(t('card.mailAccountSaved'));
-        fertig(true);
+        finished(true);
       } catch (e) { toast(e.message, true); }
     };
     selection.focus();
@@ -10094,10 +10094,10 @@ function cardImageStore(fetched) {
 const BATCH_RUNS = [
   { field: 'umstellung', id: 'convert-running',
     text: (u) => t('card.convertProgress', { erledigt: u.erledigt, gesamt: u.total }),
-    fertig: () => t('card.convertDone') },
+    finished: () => t('card.convertDone') },
   { field: 'geometry', id: 'thumbs-running',
     text: (g) => t('card.thumbnailsProgress', { erledigt: g.erledigt, gesamt: g.total }),
-    fertig: () => t('card.thumbnailsRefreshed') }
+    finished: () => t('card.thumbnailsRefreshed') }
 ];
 
 /* DIE UHR, DIE DEN LAEUFEN ZUSIEHT. Sie steht ausserhalb der Karte, weil es
@@ -10122,12 +10122,12 @@ function followBatchRun() {
     // Ein Fehlschlag haelt an, statt im Sekundentakt weiterzufragen: wer die
     // Sitzung verloren hat, bekommt sonst eine Meldung je Umlauf.
     try { s = await api('GET', '/api/stats'); } catch { return stop(); }
-    const fertig = [];
+    const finished = [];
     for (const l of BATCH_RUNS) {
       const row = document.getElementById(l.id), status = s[l.field];
       if (!row || !status) continue;
       if (status.running) { row.textContent = l.text(status); inFlight.add(l.field); }
-      else if (inFlight.delete(l.field)) fertig.push(l.fertig());
+      else if (inFlight.delete(l.field)) finished.push(l.finished());
     }
     if (inFlight.size) return;
     stop();
@@ -10135,8 +10135,8 @@ function followBatchRun() {
        jetzt eine andere, und nur die Fortschrittszeile nachzuziehen hiesse,
        zwei Staende nebeneinander stehen zu lassen -- unten „fertig", darueber
        die alte PNG-Zahl. */
-    for (const message of fertig) toast(message);
-    if (fertig.length) renderSystem();
+    for (const message of finished) toast(message);
+    if (finished.length) renderSystem();
   }, 1500);
 }
 
@@ -10246,7 +10246,7 @@ function setUpBackupOut(fetched) {
     const last = d.last;
     const status = d.error
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error)}</div>`
-      : (!d.erreichbar
+      : (!d.reachable
         ? `<div class="warn-box" style="margin:0 0 12px">${tH('server.backupDirUnreachable')}</div>`
         : (last
           ? `<div class="kv"><span class="k">${tH('card.lastBackup')}</span><span class="v">${tH('card.daysAgo', { n: last.daysAgo })}</span></div>
@@ -10282,14 +10282,14 @@ function setUpBackupOut(fetched) {
        benannt. Wer hier rot sieht, soll wissen, WARUM, und nicht bloss, DASS.
        Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
        sonst liest ihn beim nächsten Umbau niemand mehr. */
-    const situation = d.imArbeitsverzeichnis
+    const situation = d.inWorkDir
       ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px"><strong>${tH('card.backupDirInProject')}</strong> ${tH('card.backupDirAdvice')} <code>${tH('card.composeFile')}</code>.</div>`
       : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tH('card.backupDirIs')}
            <strong>${tH('card.outsideProject')}</strong> ${tH('card.untouchedByUpdates')}</div>`;
     box.innerHTML = `
       ${situation}
       <div class="field"><label>${tH('card.backupDir')}</label>
-        <p class="desc" style="margin:0 0 6px">${tH('card.configuredIs')} <code>${esc(d.wurzel || '')}</code>${tH('card.subDirOptional')}</p>
+        <p class="desc" style="margin:0 0 6px">${tH('card.configuredIs')} <code>${esc(d.root || '')}</code>${tH('card.subDirOptional')}</p>
         <input class="input" id="backup-dir" value="${esc(d.place || '')}" placeholder="${esc(t('card.noSubDir'))}"
           autocapitalize="off" spellcheck="false"></div>
       <button class="btn btn-sm" id="backup-dir-save">${tH('dialog.save')}</button>
@@ -10306,8 +10306,8 @@ function setUpBackupOut(fetched) {
         // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
         // Kasten ueber die alten Sicherungen beim ersten Speichern des
         // Zielorts, und die Karte saehe danach harmloser aus als die Lage ist.
-        fetched.backup = { ...fetched.backup, place: r.place, pfad: r.pfad, error: null,
-                      erreichbar: r.erreichbar, last: r.last, number: r.number,
+        fetched.backup = { ...fetched.backup, place: r.place, filePath: r.filePath, error: null,
+                      reachable: r.reachable, last: r.last, number: r.number,
                       gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
         saved();
         drawBackup(fetched);
@@ -10322,16 +10322,16 @@ function setUpBackupOut(fetched) {
       button.textContent = t('card.backupRunning');
       try {
         const r = await api('POST', '/api/backup');
-        fetched.backup = { ...fetched.backup, erreichbar: r.erreichbar, last: r.last, number: r.number,
+        fetched.backup = { ...fetched.backup, reachable: r.reachable, last: r.last, number: r.number,
                       gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
         /* EINE MELDUNG UND NICHT ZWEI: toast() raeumt die vorige weg, zwei
            hintereinander hiessen also, die erste zu verschlucken. Das
            Aufraeumen ist eine Angabe NEBEN der Sicherung und steht deshalb im
            selben Satz dahinter. */
         toast(t('card.backupWrittenFile', { datei: r.file, bytes: fmtBytes(r.bytes) }) +
-              (r.aufgeraeumt && r.aufgeraeumt.weg
+              (r.cleaned && r.cleaned.removed
                 ? t('card.oldBackupsFreed',
-                    { n: r.aufgeraeumt.weg, bytes: fmtBytes(r.aufgeraeumt.bytes) })
+                    { n: r.cleaned.removed, bytes: fmtBytes(r.cleaned.bytes) })
                 : ''));
         /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU --
            dieselbe Bauform wie bei der Bildumstellung, und aus demselben
@@ -10343,7 +10343,7 @@ function setUpBackupOut(fetched) {
            OHNE AUFGERAEUMTE KOPIE bleibt es beim Neuzeichnen dieser einen
            Karte: ein Neuaufbau des ganzen Bereichs leerte die Felder daneben
            (derselbe Grund wie beim Papierkorb). */
-        if (r.aufgeraeumt && r.aufgeraeumt.weg) return renderSystem();
+        if (r.cleaned && r.cleaned.removed) return renderSystem();
         drawBackup(fetched);
       } catch (err) {
         toast(err.message, true);
@@ -10413,8 +10413,8 @@ function setUpCleanupOut(fetched) {
         <strong>${tH('card.backup')}</strong>).</div>`;
       return;
     }
-    const gB = (a.grenzen && a.grenzen.keep) || { min: 1, max: 20, fallback: 3 };
-    const gT = (a.grenzen && a.grenzen.days) || { min: 7, max: 365, fallback: 30 };
+    const gB = (a.limits && a.limits.keep) || { min: 1, max: 20, fallback: 3 };
+    const gT = (a.limits && a.limits.days) || { min: 7, max: 365, fallback: 30 };
     const keep = Number.isInteger(a.keep) ? a.keep : gB.fallback;
     const days = Number.isInteger(a.days) ? a.days : gT.fallback;
 
@@ -10438,7 +10438,7 @@ function setUpCleanupOut(fetched) {
        mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
        und dieselbe Begruendung wie bei `#ex-part-list`. */
     const row = (z) => {
-      const mark = z.faellt ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
+      const mark = z.affected ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.veraltet ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.at))}</span>${mark}
@@ -10449,7 +10449,7 @@ function setUpCleanupOut(fetched) {
     const matched = Array.isArray(a.matched) ? a.matched : [];
     const oldCount = Number(a.oldCount) || 0;
 
-    const list = !a.erreichbar
+    const list = !a.reachable
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error ||
            t('server.backupDirUnreachable'))}</div>`
       : (all.length
@@ -10463,7 +10463,7 @@ function setUpCleanupOut(fetched) {
        aufzuzaehlen waere dieselbe Auskunft an zwei Stellen.
        TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
        Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server. */
-    const status = !a.erreichbar ? '' : (matched.length
+    const status = !a.reachable ? '' : (matched.length
       ? `<p class="desc" style="margin:10px 0 6px"><strong>${
            tH('card.backupsDeleteHint', { n: matched.length })}</strong> —
            ${esc(fmtBytes(a.bytes || 0))} ${tH('card.free')}</p>`
@@ -10583,10 +10583,10 @@ function setUpCleanupOut(fetched) {
       let r;
       try { r = await api('POST', '/api/backup/cleanup', { kind }); }
       catch (e) { return toast(e.message, true); }
-      fetched.backup = { ...fetched.backup, erreichbar: r.erreichbar, last: r.last,
+      fetched.backup = { ...fetched.backup, reachable: r.reachable, last: r.last,
                            number: r.number, gewechseltAm: r.gewechseltAm, veraltet: r.veraltet,
                            cleanup: { ...(fetched.backup || {}).cleanup, ...r.cleanup } };
-      toast(t('card.backupsDeleted', { n: r.weg, bytes: fmtBytes(r.bytes),
+      toast(t('card.backupsDeleted', { n: r.removed, bytes: fmtBytes(r.bytes),
         zusatz: r.nicht ? t('card.notDeleted', { nicht: r.nicht }) : '' }));
       /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
          andere sein. Zwei Staende nebeneinander stehen zu lassen waere genau
@@ -10853,10 +10853,10 @@ function setUpExportOut(fetched) {
    lesen", und das ist die falsche Auskunft. Sie klingt nach einer kaputten
    Datei; in Wahrheit ist sie zu gross.
    GEWARNT WIRD, VERWEIGERT NICHT -- dieselbe Regel wie am Export. */
-async function importSizeTested(file, grenzen) {
-  const warnFrom = grenzen && grenzen.warnFrom;
+async function importSizeTested(file, limits) {
+  const warnFrom = limits && limits.warnFrom;
   if (!warnFrom || file.size <= warnFrom) return true;
-  const limit = grenzen.string;
+  const limit = limits.string;
   return confirmBox(t('card.fileVeryBig'),
     t('card.fileTooBig', { size: fmtBytes(file.size), grenze: fmtBytes(limit) }) +
     t('card.importAbortsHint') +
@@ -10864,7 +10864,7 @@ async function importSizeTested(file, grenzen) {
     t('card.tryAnyway'));
 }
 
-function askImport(file, grenzen) {
+function askImport(file, limits) {
   let info = null;
   const reader = new FileReader();
   reader.onload = () => {
@@ -10877,7 +10877,7 @@ function askImport(file, grenzen) {
   };
   // Erst fragen, dann lesen. Andersherum stuende der Browser schon minutenlang
   // an der Datei, bevor die Warnung ueberhaupt erscheinen koennte.
-  importSizeTested(file, grenzen).then(more => { if (more) reader.readAsText(file); });
+  importSizeTested(file, limits).then(more => { if (more) reader.readAsText(file); });
 
   function show() {
     const bd = document.createElement('div');
@@ -10966,7 +10966,7 @@ let setupNeeded = false;
      Der Vorleser waehlt danach seine Stimme, der Browser danach seine
      Silbentrennung. Das Attribut in index.html bleibt `de`: es gilt, bis die
      Datei da ist, und sagt bis dahin die Wahrheit. */
-  document.documentElement.lang = LANGUAGE;
+  document.documentElement.long = LANGUAGE;
   try {
     const cfg = await configLoading;
     if (cfg && cfg.title) TITLE_PUBLIC = cfg.title;

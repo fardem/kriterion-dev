@@ -260,19 +260,19 @@ function rangeOut(header, size) {
   const [, a, e] = m;
   if (a === '' && e === '') return null;
   // Eine leere Datei hat keinen Range, den man verlangen koennte.
-  if (size <= 0) return { ungueltig: true };
+  if (size <= 0) return { invalid: true };
   let from, to;
   if (a === '') {
     // bytes=-500 -- die letzten 500 Bytes. Null Bytes gibt es nicht.
     const howMany = Number(e);
-    if (howMany <= 0) return { ungueltig: true };
+    if (howMany <= 0) return { invalid: true };
     from = Math.max(0, size - howMany);
     to = size - 1;
   } else {
     from = Number(a);
     to = e === '' ? size - 1 : Number(e);
-    if (from >= size) return { ungueltig: true };
-    if (to < from) return { ungueltig: true };
+    if (from >= size) return { invalid: true };
+    if (to < from) return { invalid: true };
     // Nur das: ein Ende hinter dem Dateiende meint das Dateiende.
     if (to >= size) to = size - 1;
   }
@@ -288,7 +288,7 @@ const PREVIEW_CHARS = 200 * 1024;   // mehr liest niemand im Browser
 function textPreview(buf) {
   const raw = buf.slice(0, PREVIEW_CHARS).toString('utf8');
   const text = raw.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
-  return { text, gekuerzt: buf.length > PREVIEW_CHARS };
+  return { text, shortened: buf.length > PREVIEW_CHARS };
 }
 
 /* ================= .docx-Vorschau ================= */
@@ -353,7 +353,7 @@ function docxPreview(buf) {
     .replace(/&amp;/g, '&')                        // amp zuletzt, sonst doppelt
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-  return { text: text.slice(0, PREVIEW_CHARS), gekuerzt: text.length > PREVIEW_CHARS };
+  return { text: text.slice(0, PREVIEW_CHARS), shortened: text.length > PREVIEW_CHARS };
 }
 
 module.exports = {

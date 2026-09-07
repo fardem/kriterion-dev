@@ -1619,7 +1619,7 @@ const REGRESSIONS = [
        statt der offenen. */
     nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
     file: 'public/app.js',
-    search: "    + (fertig ? t('list.openCount', { n: tasks - fertig }) : ''));",
+    search: "    + (finished ? t('list.openCount', { n: tasks - finished }) : ''));",
     replacement: "    + (fertig ? t('list.openCount', { n: aufgaben }) : ''));",
     expected: 'Kommentare in der Oberflaeche'
   },
@@ -1728,7 +1728,7 @@ const REGRESSIONS = [
        Gruppe rot werden und nicht die alte. */
     nr: '191', name: 'Die Oberflaeche fragt wieder je Teil statt einmal fuer alle',
     file: 'public/app.js',
-    search: "  try { await api('POST', '/api/confirm', { ...input, purpose, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
+    search: "  try { await api('POST', '/api/confirm', { ...input, purpose, targets }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
     replacement: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/confirm', { ...eingabe, zweck, ziel }); }\n    catch (e) { toast(e.message, true); return false; }\n  }\n  return true;",
     expected: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1758,7 +1758,7 @@ const REGRESSIONS = [
        ihrem Ablauf wieder weg. */
     nr: '194', name: 'Eine Anfrage darf beliebig viele Freigaben bestellen',
     file: 'server.js',
-    search: '    if (ziele.length > EXCHANGE_PART_MAX)',
+    search: '    if (targets.length > EXCHANGE_PART_MAX)',
     replacement: '    if (false)',
     expected: 'Der Teilexport mit zweitem Faktor'
   },
@@ -2610,7 +2610,7 @@ const REGRESSIONS = [
        gibt es zwei Wege zu derselben Zahl -- und sie laufen auseinander. */
     nr: '280', name: 'Der Erklaerkasten rechnet wieder selbst nach',
     file: 'public/app.js',
-    search: "          <span id=\"calc-result\">⌀ ${esc(weightNumber(weg.result))}</span></div>",
+    search: "          <span id=\"calc-result\">⌀ ${esc(weightNumber(removed.result))}</span></div>",
     replacement: "          <span id=\"calc-result\">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -2629,7 +2629,7 @@ const REGRESSIONS = [
        vorher gerundet hat -- Summe und rohen Quotienten. */
     nr: '282', name: 'Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert',
     file: 'server.js',
-    search: "    { rows, sum: counter, divisor: nenner, raw: nenner ? counter / nenner : null,",
+    search: "    { rows, sum: counter, divisor: denominator, raw: denominator ? counter / denominator : null,",
     replacement: "    { zeilen, summe: Math.round(zaehler * 100) / 100, teiler: nenner,\n      roh: nenner ? Math.round((zaehler / nenner) * 100) / 100 : null,",
     expected: 'Der Rechenweg reist mit'
   },
@@ -2919,7 +2919,7 @@ const REGRESSIONS = [
        dieselbe Zahl im Kasten, und das ist eine Auskunft ueber nichts. */
     nr: '312', name: 'Die Vergleichszahl steht auch ohne jede Gewichtung da',
     file: 'public/app.js',
-    search: "    const sameNumber = Number(weg.equalResult) === Number(weg.result);",
+    search: "    const sameNumber = Number(removed.equalResult) === Number(removed.result);",
     replacement: "    const gleicheZahl = false;",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -2928,7 +2928,7 @@ const REGRESSIONS = [
        Rechenstelle im Browser (Stolperstein 217). */
     nr: '313', name: 'Der Kasten rechnet die Vergleichszahl selbst nach',
     file: 'public/app.js',
-    search: "          <span id=\"calc-same\">⌀ ${esc(weightNumber(weg.equalResult))}</span></div>` : ''}",
+    search: "          <span id=\"calc-same\">⌀ ${esc(weightNumber(removed.equalResult))}</span></div>` : ''}",
     replacement: "          <span id=\"calc-same\">⌀ ${esc(gewZahl(Math.round((weg.zeilen.reduce((n, z) => n + z.schnitt, 0) / weg.zeilen.length) * 10) / 10))}</span></div>` : ''}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -3215,7 +3215,7 @@ const REGRESSIONS = [
   {
     nr: '350', name: 'Das Vollbild uebernimmt den inneren Abspieler nicht mehr',
     file: 'public/app.js',
-    search: "      handover = { source, position: el.currentTime || 0, lief: !el.paused, offen: true };\n" +
+    search: "      handover = { source, position: el.currentTime || 0, wasPlaying: !el.paused, offen: true };\n" +
            "      el.pause();\n      el.removeAttribute('src');\n      el.load();",
     replacement: "      el.pause();",
     expected: 'Genau ein Abspieler laeuft — 0.17.1'
@@ -3237,7 +3237,7 @@ const REGRESSIONS = [
   {
     nr: '353', name: 'Die geloeschte Quelle wandert wieder zurueck',
     file: 'public/app.js',
-    search: "    if (handover && imageSource(weg, '') === handover.source) handover = null;\n",
+    search: "    if (handover && imageSource(removed, '') === handover.source) handover = null;\n",
     replacement: "",
     expected: 'Genau ein Abspieler laeuft — 0.17.1'
   },
@@ -3529,7 +3529,7 @@ const REGRESSIONS = [
   {
     nr: '398', name: 'Der Trefferkontext faellt ganz aus der Antwort',
     file: 'server.js',
-    search: "    if (term) it.fundstelle = hits.get(it.id);",
+    search: "    if (term) it.foundAt = hits.get(it.id);",
     replacement: "    if (false) it.fundstelle = fundstellen.get(it.id);",
     expected: 'Der Trefferkontext an der Antwort'
   },
@@ -3545,7 +3545,7 @@ const REGRESSIONS = [
        traegt, nicht eine daneben. */
     nr: '399', name: 'Der Trefferkontext steht auch ohne Suche in der Antwort',
     file: 'server.js',
-    search: "    if (term) it.fundstelle = hits.get(it.id);",
+    search: "    if (term) it.foundAt = hits.get(it.id);",
     replacement: "    it.fundstelle = fundstellen.get(it.id) || null;",
     expected: 'Der Trefferkontext an der Antwort'
   },
@@ -3583,7 +3583,7 @@ const REGRESSIONS = [
   {
     nr: '404', name: 'Die Zahl der weiteren Stellen ist immer null',
     file: 'server.js',
-    search: "    weitere: hit.length - 1",
+    search: "    others: hit.length - 1",
     replacement: "    weitere: 0",
     expected: 'Der Trefferkontext an der Antwort'
   },
@@ -3616,7 +3616,7 @@ const REGRESSIONS = [
        welche Pruefung ihn bemerkt haette (Stolperstein 138). */
     nr: '407', name: 'Die Kachel baut keine Trefferzeile mehr',
     file: 'public/app.js',
-    search: "  const f = it.fundstelle;",
+    search: "  const f = it.foundAt;",
     replacement: "  const f = null;",
     expected: 'Die Trefferzeile an der Kachel'
   },
@@ -3635,14 +3635,14 @@ const REGRESSIONS = [
   {
     nr: '409', name: 'Die Zahl der weiteren Stellen faellt aus der Zeile',
     file: 'public/app.js',
-    search: "class=\"find-text\"></span>${f.weitere ? `<span class=\"find-more\">+${f.weitere}</span>` : ''}",
+    search: "class=\"find-text\"></span>${f.others ? `<span class=\"find-more\">+${f.others}</span>` : ''}",
     replacement: "class=\"find-text\"></span>${''}",
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '410', name: 'Der Ueberfahrtext nennt die weiteren Stellen nicht mehr',
     file: 'public/app.js',
-    search: "  f.weitere > 0 ? t('list.moreHits', { n: f.weitere }) : '');",
+    search: "  f.others > 0 ? t('list.moreHits', { n: f.others }) : '');",
     replacement: "  '');",
     expected: 'Die Trefferzeile an der Kachel'
   },
@@ -3766,7 +3766,7 @@ const REGRESSIONS = [
   {
     nr: '426', name: 'Der Begriff aus der Adresse wird nicht entschluesselt',
     file: 'public/app.js',
-    search: "  try { return new URLSearchParams(frage || '').get('q') || ''; }",
+    search: "  try { return new URLSearchParams(askKey || '').get('q') || ''; }",
     replacement: "  try { return (String(frage || '').match(/(?:^|&)q=([^&]*)/) || [])[1] || ''; }",
     expected: 'Der Suchbegriff in der Adresse'
   },
@@ -3817,7 +3817,7 @@ const REGRESSIONS = [
   {
     nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
     file: 'images.js',
-    search: "  if (!isPng(buf)) return { data: buf, mime: reportedType, umgewandelt: false };",
+    search: "  if (!isPng(buf)) return { data: buf, mime: reportedType, converted: false };",
     replacement: "  if (true) return { data: buf, mime: reportedType, umgewandelt: false };",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3828,7 +3828,7 @@ const REGRESSIONS = [
        Pruefung an der SPALTE haengen und nicht nur am Kopf der Antwort. */
     nr: '432', name: 'Der mime_type wird nicht mitgezogen',
     file: 'images.js',
-    search: "      return { data: webp, mime: 'image/webp', umgewandelt: true };",
+    search: "      return { data: webp, mime: 'image/webp', converted: true };",
     replacement: "      return { data: webp, mime: reportedType, umgewandelt: true };",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4216,7 +4216,7 @@ const REGRESSIONS = [
     nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
     file: 'public/app.js',
     search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,\n" +
-           "    markup: cardImageStore,   ausruesten: setUpImageStoreOut },\n",
+           "    markup: cardImageStore,   wireUp: setUpImageStoreOut },\n",
     replacement: "",
     expected: 'Die Bildablage in der Oberflaeche'
   },
@@ -4613,7 +4613,7 @@ const REGRESSIONS = [
        diese eine Zahl gemessen wird und nicht zwei zugleich. */
     nr: '506', name: 'Die kurze Kante des thumb steht wieder auf 400',
     file: 'images.js',
-    search: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
+    search: "  thumb:  { short: 512,  long: 1280, q: 78, crops: true  },",
     replacement: "  thumb:  { kurz: 400,  lang: 1280, q: 78, schneidet: true  },",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4623,7 +4623,7 @@ const REGRESSIONS = [
        groessten Ableitung der Tabelle -- groesser als sein eigenes `medium`. */
     nr: '507', name: 'Der Deckel auf der langen Kante faellt weg',
     file: 'images.js',
-    search: "lang: 1280, q: 78, schneidet: true  }",
+    search: "long: 1280, q: 78, crops: true  }",
     replacement: "lang: 99999, q: 78, schneidet: true  }",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4634,7 +4634,7 @@ const REGRESSIONS = [
        schlechter und die Datenbank groesser. */
     nr: '508', name: 'medium bekommt dieselbe Kiste wie thumb',
     file: 'images.js',
-    search: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
+    search: "  medium: { short: 1600, long: 1600, q: 84, crops: false }",
     replacement: "  medium: { kurz: 512, lang: 1280, q: 84, schneidet: false }",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4811,7 +4811,7 @@ const REGRESSIONS = [
        Browser, der sie zurechtzoege, ist weg. */
     nr: '523', name: 'Die Kachel wird wieder ungeschnitten abgeleitet',
     file: 'images.js',
-    search: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
+    search: "  thumb:  { short: 512,  long: 1280, q: 78, crops: true  },",
     replacement: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: false },",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4821,7 +4821,7 @@ const REGRESSIONS = [
        geschnittenes `medium` naehme ihm seine Vorlage. */
     nr: '524', name: 'medium wird mitgeschnitten',
     file: 'images.js',
-    search: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
+    search: "  medium: { short: 1600, long: 1600, q: 84, crops: false }",
     replacement: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: true }",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -5090,7 +5090,7 @@ const REGRESSIONS = [
        Ziel ist eigens alt, sonst deckte ihn der Boden. */
     nr: '548', name: 'Die Liste folgt dem Symlink statt ihn zu sehen',
     file: 'server.js',
-    search: "      const st = fs.lstatSync(path.join(pfad, n));",
+    search: "      const st = fs.lstatSync(path.join(filePath, n));",
     replacement: "      const st = fs.statSync(path.join(pfad, n));",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5135,11 +5135,11 @@ const REGRESSIONS = [
     nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
     file: 'server.js',
     search: "    console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);\n" +
-           "    aufgeraeumt = { weg: 0, nicht: 0, bytes: 0, gescheitert: true };\n" +
+           "    cleaned = { removed: 0, nicht: 0, bytes: 0, gescheitert: true };\n" +
            "  }",
     replacement: "    throw e;\n" +
             "  }\n" +
-            "  if (aufgeraeumt && aufgeraeumt.weg)\n" +
+            "  if (cleaned && cleaned.removed)\n" +
             "    return res.status(500).json({ error: 'Die Sicherung ist gescheitert.' });",
     expected: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
@@ -5236,7 +5236,7 @@ const REGRESSIONS = [
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     file: 'public/app.js',
     search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,\n" +
-           "    markup: cardCleanup,   ausruesten: setUpCleanupOut },",
+           "    markup: cardCleanup,   wireUp: setUpCleanupOut },",
     replacement: "",
     expected: 'Der Systembereich nach Rolle'
   },
@@ -5323,7 +5323,7 @@ const REGRESSIONS = [
        der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     file: 'public/app.js',
-    search: "      const mark = z.faellt ? `<span class=\"cleanup-badge remove\">${tH('card.deleteLower')}</span>`",
+    search: "      const mark = z.affected ? `<span class=\"cleanup-badge remove\">${tH('card.deleteLower')}</span>`",
     replacement: "      const marke = z.faellt ? ''",
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
