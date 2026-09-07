@@ -3,8 +3,8 @@
  * Prueft die Kriterienverwaltung (umbenennen, sortieren, Wirkung auf
  * Detailansicht, Vergleich und Export) und die mitwachsenden Textfelder.
  *
- *   node pruefung.js            alles
- *   node pruefung.js Rechte     nur Gruppen mit "Rechte" im Namen
+ *   node testbench.js            alles
+ *   node testbench.js Rechte     nur Gruppen mit "Rechte" im Namen
  *
  * Der Name filtert die AUSGABE, nicht die ARBEIT: die Prueflagen bauen
  * aufeinander auf, es wird also nichts schneller. Ein gefilterter Lauf sagt am
@@ -27,7 +27,7 @@ const { spawn, spawnSync, execFileSync } = require('child_process');
    genau das ist der Sinn der Runde. */
 const { Worker } = require('worker_threads');
 const Database = require('better-sqlite3-multiple-ciphers');
-const anh = require('./anhaenge');
+const anh = require('./attachments');
 /* SHARP STEHT HIER, SEIT 0.19.0, UND ZWAR AUS EINEM GENAUEN GRUND: die Runde
    legt jedes ankommende PNG als WebP ab, und die Zusage lautet nicht „eine
    Funktion wurde gerufen", sondern „das Bild ist unversehrt". Das laesst sich
@@ -47,8 +47,8 @@ const liesmichText = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8')
 /* ================= Kleiner Pruefrahmen ================= */
 /* EIN NAMENSFILTER AUF DER AUSGABE, NICHT AUF DER ARBEIT.
 
-     node pruefung.js            alles, wie bisher
-     node pruefung.js Rechte     nur Gruppen mit "Rechte" im Namen
+     node testbench.js            alles, wie bisher
+     node testbench.js Rechte     nur Gruppen mit "Rechte" im Namen
 
    Diese Datei ist EIN langer Ablauf: die Prueflagen bauen aufeinander auf,
    Server werden einmal gestartet, Bestaende nacheinander erzeugt. Ein
@@ -77,7 +77,7 @@ const gruppe = (name) => {
   gruppenGezeigt++;
   /* MINDESTENS ZWEI STRICHE, auch bei einem langen Namen. Eine Ueberschrift
      von 58 Zeichen erzeugte sonst gar keinen -- und wer die Ausgabe liest
-     (gegenprobe.js tut das), erkennt die Zeile dann nicht als Gruppe und
+     (counterproof.js tut das), erkennt die Zeile dann nicht als Gruppe und
      schreibt die roten Punkte der VORIGEN zu. Genau das ist in der ersten
      Gegenprobentabelle dieser Runde passiert. */
   console.log(`\n── ${name} ${'─'.repeat(Math.max(2, 58 - name.length))}`);
@@ -153,7 +153,7 @@ if (process.env.PRUEFRAHMEN_PROBE) {
 const KEY = crypto.randomBytes(32).toString('hex');
 
 /* PORT_VERSATZ -- eine Zahl, die auf JEDE Portbasis dieses Laufs addiert wird.
-   Damit faehrt gegenprobe.js mehrere Rueckbauten NEBENEINANDER: jede Nebenspur
+   Damit faehrt counterproof.js mehrere Rueckbauten NEBENEINANDER: jede Nebenspur
    bekommt ihren eigenen Versatz, und die Spuren kommen sich nicht ins Gehege.
    Ohne die Variable bleibt alles, wie es war -- der gewoehnliche Lauf setzt sie
    nicht, und dann ist der Versatz null.
@@ -166,7 +166,7 @@ const KEY = crypto.randomBytes(32).toString('hex');
        Server liefe dort und meldete es auch; nur die Bereitschaftspruefung
        kaeme nie an ihn heran, und der Lauf risse ab, statt eine Pruefung rot zu
        faerben.
-   VERSATZ_STUFE ist der Wert, den gegenprobe.js je Nebenspur vervielfacht. Er
+   VERSATZ_STUFE ist der Wert, den counterproof.js je Nebenspur vervielfacht. Er
    steht HIER und nicht dort: der Waechter, der ihn nachrechnet, liegt hier, und
    zwei Zahlen an zwei Orten laufen auseinander. */
 /* 3500 SEIT 0.12.4, VORHER 3000. Die Spanne aller Basen ist mit dem Rundlauf
@@ -613,7 +613,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* GELESEN WIRD DIE VORLAGE, nicht die Arbeitsdatei. Seit 0.19.1 liegt im
      Repo `docker-compose.example.yml`; `docker-compose.yml` entsteht beim
      Einrichten aus ihr und steht in der .gitignore -- der Pruefstand faende
-     sie in einer frischen Kopie gar nicht (und in gegenprobe.js, das ueber
+     sie in einer frischen Kopie gar nicht (und in counterproof.js, das ueber
      `git archive HEAD` kopiert, erst recht nicht). Geprueft wird deshalb das,
      was ausgeliefert wird. */
   const composeText = fs.readFileSync(path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
@@ -670,13 +670,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* Waechter: in den ausgelieferten Dateien steht nichts vom alten Namen --
      ausser den Zeichenfolgen, die ausdruecklich bleiben. Der Dateiname der
      Datenbank ist kein Projektname und wandert bei keiner Umbenennung mit.
-     pruefung.js steht absichtlich nicht auf der Liste, sonst faende diese
+     testbench.js steht absichtlich nicht auf der Liste, sonst faende diese
      Pruefung ihre eigenen Suchmuster. */
   const ERLAUBT = ['katalog.sqlite', 'Bewertungskatalog'];
   /* DIE SPRACHDATEI GEHOERT DAZU -- 0.24.0. Seit dieser Runde wohnt der Text
      dort; ein alter Name wuerde sich sonst genau dorthin retten, wo der
      Waechter nicht hinsieht. */
-  const GEPRUEFT = ['server.js', 'db.js', 'auth.js', 'keys.js', 'zugang.js', 'anhaenge.js',
+  const GEPRUEFT = ['server.js', 'db.js', 'auth.js', 'keys.js', 'usertool.js', 'attachments.js',
     'package.json', 'docker-compose.example.yml', 'Dockerfile', '.env.example',
     'public/app.js', 'public/index.html', 'public/style.css',
     'public/languages/de.json'];
@@ -775,7 +775,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Zeile bliebe die Pruefung darueber auch dann gruen, wenn alsMuster() nie
   // etwas traefe -- eine Pruefung, die nicht scheitern kann.
   pruefe('Und das Muster greift nachweislich',
-    ausschluesse.some(z => alsMuster(z).test('pruefung.js')) &&
+    ausschluesse.some(z => alsMuster(z).test('testbench.js')) &&
     ausschluesse.some(z => alsMuster(z).test('kriterion.log')),
     ausschluesse.join(' · '));
 
@@ -899,7 +899,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return fingerprintAus(quellKopie);
   };
 
-  /* DIE FALLE, UND SIE IST DER GRUND FUER DIE ABLEITUNG: pruefung.js und Doku/
+  /* DIE FALLE, UND SIE IST DER GRUND FUER DIE ABLEITUNG: testbench.js und Doku/
      liegen im Repo, aber nicht im Image (.dockerignore). Zaehlten sie mit,
      waere der Fingerprint im Container ein anderer als auf der Platte -- und damit
      wertlos. */
@@ -913,16 +913,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Und wieder zurueck: die folgenden Zeilen vergleichen gegen den Ausgangswert.
   fs.copyFileSync(path.join(__dirname, 'public', 'languages', 'de.json'),
                   path.join(quellKopie, 'public', 'languages', 'de.json'));
-  pruefe('Eine Änderung an pruefung.js lässt ihn unberührt',
-    await nachAenderung('pruefung.js', '// nicht ausgeliefert\n') === fingerprintKopie);
+  pruefe('Eine Änderung an testbench.js lässt ihn unberührt',
+    await nachAenderung('testbench.js', '// nicht ausgeliefert\n') === fingerprintKopie);
   pruefe('Eine neue Datei unter Doku ebenfalls',
     await nachAenderung('Doku/Neu.md', '# nicht ausgeliefert\n') === fingerprintKopie);
   /* Die bewusste Grenze, ausdruecklich festgehalten, damit sie nicht
-     stillschweigend kippt: zugang.js liegt im Image, wird aber nur von Hand
+     stillschweigend kippt: usertool.js liegt im Image, wird aber nur von Hand
      aufgerufen und nie vom Server geladen. Der Fingerprint sagt, welcher SERVER
      laeuft. */
-  pruefe('Und eine an zugang.js auch — es läuft nicht im Server',
-    await nachAenderung('zugang.js', '// von Hand, nicht im Server\n') === fingerprintKopie);
+  pruefe('Und eine an usertool.js auch — es läuft nicht im Server',
+    await nachAenderung('usertool.js', '// von Hand, nicht im Server\n') === fingerprintKopie);
 
   /* Und die Gegenrichtung. Ohne sie koennte der Fingerprint eine feste
      String sein und alle Pruefungen darueber blieben gruen. */
@@ -940,18 +940,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `${fingerprintDb} gegen ${fingerprintKopie} und ${fingerprintApp}`);
   fs.writeFileSync(path.join(quellKopie, 'db.js'), dbVorher);
 
-  /* UND EINE AN bestandslauf.js EBENSO — 0.19.3, und das ist die Zeile, um die
+  /* UND EINE AN batchrun.js EBENSO — 0.19.3, und das ist die Zeile, um die
      es in dieser Runde geht. Der Bestandslauf wird NICHT requiret, sondern an
      `new Worker` gereicht: er steht in keiner require.cache des Haupt-Threads.
      Ein Fingerprint, der ihn aus der require.cache allein ableitete, kennte
      eine ausgelieferte Datei nicht -- und das waere eine halbe Aussage. */
-  const laufVorher = fs.readFileSync(path.join(__dirname, 'bestandslauf.js'), 'utf8');
-  const fingerprintLauf = await nachAenderung('bestandslauf.js',
+  const laufVorher = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
+  const fingerprintLauf = await nachAenderung('batchrun.js',
     laufVorher + '\n// eine Zeile mehr\n');
-  pruefe('Eine Änderung an bestandslauf.js ändert ihn — obwohl nur der Thread ihn lädt',
+  pruefe('Eine Änderung an batchrun.js ändert ihn — obwohl nur der Thread ihn lädt',
     fingerprintLauf !== fingerprintKopie && fingerprintLauf !== fingerprintDb,
     `${fingerprintLauf} gegen ${fingerprintKopie} und ${fingerprintDb}`);
-  fs.writeFileSync(path.join(quellKopie, 'bestandslauf.js'), laufVorher);
+  fs.writeFileSync(path.join(quellKopie, 'batchrun.js'), laufVorher);
 
   /* DER NAME GEHOERT MIT HINEIN, nicht nur der Inhalt. Zwei Dateien mit
      GLEICHEM Inhalt und verschiedenem Namen muessen zu verschiedenen Abdruecken
@@ -980,12 +980,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      wuerde still unvollstaendig, ohne dass irgendetwas rot wird.
 
      Geprueft wird an dem, was WIRKLICH im Fingerprint steht, also am Modulgraphen
-     ab server.js. Auch das eine Ableitung und keine zweite Liste. zugang.js
-     und pruefung.js fallen heraus -- beide laden innerhalb von Funktionen und
+     ab server.js. Auch das eine Ableitung und keine zweite Liste. usertool.js
+     und testbench.js fallen heraus -- beide laden innerhalb von Funktionen und
      duerfen das auch, weil der Server sie nie laedt.
 
      UND SEIT 0.19.3 FOLGT DER GRAPH AUCH DEM, WAS AN EINEN THREAD GEHT.
-     bestandslauf.js wird nicht requiret, sondern an `new Worker` gereicht --
+     batchrun.js wird nicht requiret, sondern an `new Worker` gereicht --
      es stuende in keiner require.cache des Haupt-Threads und fiele aus jeder
      Ableitung heraus, die nur require() liest. DER SERVER FUEHRT ES TROTZDEM
      AUS, und das ist der Massstab dieser Liste. Der Anker ist derselbe wie im
@@ -1017,18 +1017,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // einzige der anderen Dateien gelesen zu haben (Stolperstein 81).
   pruefe('Der Modulgraph nennt mehr als server.js allein',
     imFingerprint.length >= 5, imFingerprint.join(' · '));
-  pruefe('Und weder zugang.js noch pruefung.js stehen darauf',
-    !imFingerprint.includes('zugang.js') && !imFingerprint.includes('pruefung.js'),
+  pruefe('Und weder usertool.js noch testbench.js stehen darauf',
+    !imFingerprint.includes('usertool.js') && !imFingerprint.includes('testbench.js'),
     imFingerprint.join(' · '));
   pruefe('Kein Modul des Servers wird erst innerhalb einer Funktion geladen',
     spaetGeladen.length === 0, spaetGeladen.join(', '));
   /* DIE BEIDEN NEUEN AUS 0.19.3 STEHEN NAMENTLICH DA, und aus zwei
-     verschiedenen Gruenden: bilder.js kommt ueber require() herein und belegt,
-     dass die gewohnte Ableitung greift; bestandslauf.js kommt NUR ueber die
+     verschiedenen Gruenden: images.js kommt ueber require() herein und belegt,
+     dass die gewohnte Ableitung greift; batchrun.js kommt NUR ueber die
      Zeile, mit der der Thread erzeugt wird. Ohne diese Pruefung faellt es aus
      dem Handgriff und aus dem Fingerprint, ohne dass irgendetwas rot wird. */
-  pruefe('bilder.js und bestandslauf.js stehen beide im Graphen',
-    imFingerprint.includes('bilder.js') && imFingerprint.includes('bestandslauf.js'),
+  pruefe('images.js und batchrun.js stehen beide im Graphen',
+    imFingerprint.includes('images.js') && imFingerprint.includes('batchrun.js'),
     imFingerprint.join(' · '));
 
   /* DER HANDGRIFF IM README NENNT DIESELBEN DATEIEN -- und das ist seit 0.10.0
@@ -1068,7 +1068,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      zweites Mal zu fahren, kostete eine Minute und brachte nichts dazu. */
   const rahmenProbe = (lage, filter) => {
     const r = require('child_process').spawnSync(process.execPath,
-      filter ? ['pruefung.js', filter] : ['pruefung.js'],
+      filter ? ['testbench.js', filter] : ['testbench.js'],
       { cwd: __dirname, encoding: 'utf8', env: { ...process.env, PRUEFRAHMEN_PROBE: lage } });
     return { text: r.stdout || '', code: r.status };
   };
@@ -6008,7 +6008,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('Die Sicherung: zwei Schluessel im Umlauf');
 
   /* ZWEI SCHLUESSEL IM UMLAUF -- seit 0.8.91. Wird der Schluessel gewechselt
-     (schluessel.js auf dem Wirt), bleiben die Sicherungen, die dann schon
+     (keytool.js auf dem Wirt), bleiben die Sicherungen, die dann schon
      dastehen, mit dem ALTEN verschluesselt. Die Marke schluesselGewechseltAm
      steht in settings, und die Karte haelt sie gegen die Aenderungszeiten der
      Dateien.
@@ -6025,7 +6025,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         .run(JSON.stringify(wert));
       d.close();
     };
-    // Die Schreibweise der Instanz, in UTC -- dieselbe, die schluessel.js
+    // Die Schreibweise der Instanz, in UTC -- dieselbe, die keytool.js
     // schreibt und die letzteSicherung() zurueckliest.
     const alsMarke = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
     // Die beiden Dateien liegen aus der Gruppe darueber auf 9 und 4 Tagen.
@@ -13015,7 +13015,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Grund: der verbrauchte Zaehler steht je Zugang, und zwei Lagen an einem
      Zugang verdeckten einander (Stolperstein 154). */
   {
-    const ZF = require('./zweifaktor');
+    const ZF = require('./twofactor');
 
     gruppe('Der zweite Faktor: die Rechnung gegen den Standard');
 
@@ -13059,7 +13059,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Haelfte laeuft er erst ab dem Jahr 6053.
        GEPRUEFT WIRD SIE TROTZDEM, und zwar gegen eine ZWEITE, UNABHAENGIGE
        Bauform des Zaehlers: writeBigUInt64BE schreibt die acht Bytes in einem
-       Zug, zweifaktor.js schreibt sie in zwei Haelften. Stimmen beide Wege
+       Zug, twofactor.js schreibt sie in zwei Haelften. Stimmen beide Wege
        ueberein, ist die Teilung richtig -- und das ist kein Vergleich der
        Instanz mit sich selbst, sondern zweier verschiedener Wege. */
     pruefe('Kein Testvektor aus RFC 6238 erreicht die obere Haelfte des Zaehlers',
@@ -13861,25 +13861,25 @@ const freigabeHaupt = (zweck, ziel = null) =>
     await zfS.stopp();
 
     /* ---------------------------------------------------------------- */
-    gruppe('Der zweite Faktor: zugang.js auf dem Wirt');
+    gruppe('Der zweite Faktor: usertool.js auf dem Wirt');
 
     /* DER NOTWEG, UND ER SCHALTET NUR AUS. Ohne ihn waere "Telefon weg und
        Wiederherstellungscodes verbraucht" ein Zustand ohne Ausweg.
        AN EINEM ECHTEN PROZESS, nicht an einer abgefangenen Funktion -- der
-       Server ist dafuer angehalten, wie bei den uebrigen zugang.js-Proben. */
+       Server ist dafuer angehalten, wie bei den uebrigen usertool.js-Proben. */
     const zfBefehl = (args, eingabe = '') => {
       const { execFileSync } = require('child_process');
       const umgebung = { ...process.env, DATA_DIR: zfDir, ENCRYPTION_KEY: KEY };
       delete umgebung.AUTH_RESET;
       try {
-        return { code: 0, aus: execFileSync(process.execPath, ['zugang.js', ...args],
+        return { code: 0, aus: execFileSync(process.execPath, ['usertool.js', ...args],
           { cwd: __dirname, encoding: 'utf8', input: eingabe, env: umgebung }) };
       } catch (e) {
         return { code: e.status == null ? 1 : e.status, aus: (e.stdout || '') + (e.stderr || '') };
       }
     };
     const zfListeAus = zfBefehl(['liste']);
-    pruefe('zugang.js liste nennt eine Spalte 2FA',
+    pruefe('usertool.js liste nennt eine Spalte 2FA',
       /2FA/.test(zfListeAus.aus) && /jonas\s+Benutzer\s+aktiv\s+an/.test(zfListeAus.aus),
       zfListeAus.aus.split('\n').filter(z => /jonas|2FA/.test(z)).join(' | '));
     pruefe('Und sie steht bei einem Zugang ohne Faktor auf aus',
@@ -13888,7 +13888,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ein Geheimnis steht in der Liste nicht',
       !zfListeAus.aus.includes(zfI.geheim));
     const zfNein = zfBefehl(['zweifaktor', 'jonas'], 'nein\n');
-    pruefe('zugang.js zweifaktor fragt nach und laesst bei "nein" alles stehen',
+    pruefe('usertool.js zweifaktor fragt nach und laesst bei "nein" alles stehen',
       /Wirklich ausschalten/.test(zfNein.aus) && /Abgebrochen/.test(zfNein.aus) &&
       zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfI.id}`).length === 1,
       zfNein.aus.trim().split('\n').pop());
@@ -13916,7 +13916,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       zfNochmal.code === 0 && /keinen zweiten Faktor/.test(zfNochmal.aus),
       zfNochmal.aus.trim());
     pruefe('Und die Hilfe nennt den Befehl samt der Grenze "nur ausschalten"',
-      /zugang\.js zweifaktor/.test(zfBefehl([]).aus) &&
+      /usertool\.js zweifaktor/.test(zfBefehl([]).aus) &&
       /EINSCHALTEN GEHT VON HIER AUS NICHT/.test(zfBefehl([]).aus));
     pruefe('Einen Befehl zum EINSCHALTEN gibt es nicht',
       zfBefehl(['zweifaktor', 'jonas', '--an']).code === 0 &&
@@ -14135,7 +14135,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        gemeint waere -- ein nurAdmin daneben haette nichts zu entscheiden.
        EIN ADMIN SCHALTET EINEN FREMDEN FAKTOR NICHT AB, und der Grund ist
        baulich: kein Pfad, keine Nummer, kein Weg. Der einzige daneben ist
-       zugang.js auf dem Wirt. */
+       usertool.js auf dem Wirt. */
     ['POST',   '/api/two-factor/start',          'selbstbezug'],
     ['POST',   '/api/two-factor/on',             'selbstbezug'],
     ['POST',   '/api/two-factor/codes',          'selbstbezug'],
@@ -14686,7 +14686,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Dagegen hilft kein Merksatz, sondern ein Waechter: server.js setzt den
      Content-Type ueberhaupt nicht mehr selbst. Wer eine Auslieferung ergaenzt
      -- ein Video ab 0.8.50 --, wird hier namentlich rot und muss sich fuer
-     einen der beiden Wege in anhaenge.js entscheiden: Typ nach Endung
+     einen der beiden Wege in attachments.js entscheiden: Typ nach Endung
      (setHeader) oder Typ nach den ersten Bytes (setImageHeader).
      Gezaehlt wird woertlich, ohne zusammengesetztes Muster. */
   const TYP_WOERTER = ["res.set('Content-Type'", 'res.set("Content-Type"',
@@ -14704,11 +14704,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und er wuerde eine ergaenzte Auslieferung wirklich finden',
     typZaehle("app.get('/x', (req, res) => { res.set('Content-Type', 'video/mp4'); });").length === 1,
     'der Waechter sieht die Verletzung nicht');
-  const fAnhQuelle = fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8');
+  const fAnhQuelle = fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8');
   // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne die
   // Funktion belegte die Zeile darunter nichts.
   pruefe('Die Ableitung aus den Bytes gibt es', fAnhQuelle.includes('function typeFromBytes('),
-    'typeFromBytes fehlt in anhaenge.js');
+    'typeFromBytes fehlt in attachments.js');
   const fRohRumpf = (() => {
     const a = fQuelle.indexOf("app.get('/api/photos/:id/raw'");
     if (a < 0) return '';
@@ -14917,11 +14917,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      zwangslaeufig.
      GEPRUEFT WIRD CODE, NICHT DER KOMMENTAR DANEBEN (Stolperstein 106) --
      sonst faerbte sich der Waechter an der Erklaerung, warum der Name nicht
-     dastehen darf. pruefung.js steht ausdruecklich NICHT auf der Liste: der
+     dastehen darf. testbench.js steht ausdruecklich NICHT auf der Liste: der
      Pruefstand ist keine ausgelieferte Datei, laeuft immer ohne Proxy und
      schickt den Cookie von Hand. */
-  const COOKIE_DATEIEN = ['server.js', 'db.js', 'anhaenge.js', 'keys.js',
-                          'public/app.js', 'public/index.html', 'zugang.js'];
+  const COOKIE_DATEIEN = ['server.js', 'db.js', 'attachments.js', 'keys.js',
+                          'public/app.js', 'public/index.html', 'usertool.js'];
   // Derselbe Schnitt wie beim Sprachwaechter, nur andersherum: dort bleiben
   // die Kommentare uebrig, hier faellt genau das weg.
   function ohneKommentare(text) {
@@ -14990,8 +14990,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      der Einspielweg, der Stufenplan und das Ideenpapier sagen es laengst so.
      Der Waechter sieht die ausgelieferten Dateien an -- Code UND Kommentare,
      denn das Wort steht in Meldungen und in Beschriftungen. */
-  const SICHERUNG_DATEIEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
-                             'public/app.js', 'public/index.html', 'zugang.js'];
+  const SICHERUNG_DATEIEN = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
+                             'public/app.js', 'public/index.html', 'usertool.js'];
   /* GROSSGESCHRIEBEN GESUCHT, und das ist keine Nachlaessigkeit: gemeint ist
      das deutsche SUBSTANTIV. `db.backup()` ist ein Bezeichner und die Message
      "backup is not supported ..." ein Zitat aus SQLite -- beides ist Code und
@@ -15027,8 +15027,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ausgeliefert; seit dieser Runde steht der Bildschirmtext DORT, und ein
      Waechter ueber Bildschirmtexte, der sie nicht ansieht, sieht die halbe
      Anwendung nicht (Auftrag 0.24.0, Bauabschnitt 5.1). */
-  const PROT_DATEIEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
-                        'public/app.js', 'public/index.html', 'zugang.js',
+  const PROT_DATEIEN = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
+                        'public/app.js', 'public/index.html', 'usertool.js',
                         'public/languages/de.json'];
   const protZaehle = (text) => (ohneKommentare(text).match(/(?<!Sicherheits)\bProtokoll\b/g) || []).length;
   const fProt = PROT_DATEIEN
@@ -15221,19 +15221,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return raus;
   }
 
-  /* zweifaktor.js SEIT 0.10.0 -- eine neue Quelltextdatei mit deutschen
+  /* twofactor.js SEIT 0.10.0 -- eine neue Quelltextdatei mit deutschen
      Kommentaren, die der Waechter nicht saehe, stuende sie nicht hier.
-     UND bilder.js UND bestandslauf.js SEIT 0.19.3, aus demselben Grund. Beide
+     UND images.js UND batchrun.js SEIT 0.19.3, aus demselben Grund. Beide
      tragen lange deutsche Kommentare; ohne diese Zeile stuenden sie ausserhalb
      jeder Sprachpruefung -- und der erste Lauf hat es bewiesen: in
-     bestandslauf.js stand `Ereignisschleife`, und der Waechter sah es nicht.
+     batchrun.js stand `Ereignisschleife`, und der Waechter sah es nicht.
      DAS ZITIERTE WORT STEHT IN BACKTICKS, sonst faenge der Waechter seine
      eigene Begruendung -- er liest Kommentare und laesst zitierten Code in
      Ruhe. */
-  const SPRACH_QUELLEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
-                          'zugang.js', 'schluessel.js', 'zweifaktor.js', 'pruefung.js',
-                          'gegenprobe.js', 'public/app.js',
-                          'bilder.js', 'bestandslauf.js'];
+  const SPRACH_QUELLEN = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
+                          'usertool.js', 'keytool.js', 'twofactor.js', 'testbench.js',
+                          'counterproof.js', 'public/app.js',
+                          'images.js', 'batchrun.js'];
   const sprachQuelltext = SPRACH_QUELLEN.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p)
@@ -15793,7 +15793,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
      noch durch Sperren noch durch Loeschen. Ohne diese Klemme koennte sich die
-     Instanz verriegeln, und der einzige Ausweg waere zugang.js auf dem Wirt. */
+     Instanz verriegeln, und der einzige Ausweg waere usertool.js auf dem Wirt. */
   const gLetzterWeg = await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' });
   pruefe('Der letzte Eigentuemer stuft sich nicht selbst herab',
     gLetzterWeg.status === 400 && /letzte Eigentümer/.test(gLetzterWeg.inhalt?.error || ''),
@@ -16338,7 +16338,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   fs.rmSync(gDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
-  gruppe('AUTH_RESET und zugang.js');
+  gruppe('AUTH_RESET und usertool.js');
 
   /* AUTH_RESET ist wirkungslos; an seiner Stelle steht ein Befehl
      auf dem Wirt, wie ihn Nextcloud, GitLab und Grafana halten. Die Vorgaenge
@@ -16351,7 +16351,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const umgebung = { ...process.env, DATA_DIR: zDir, ENCRYPTION_KEY: KEY };
     delete umgebung.AUTH_RESET;
     try {
-      return { code: 0, aus: execFileSync(process.execPath, ['zugang.js', ...args],
+      return { code: 0, aus: execFileSync(process.execPath, ['usertool.js', ...args],
         { cwd: __dirname, encoding: 'utf8', input: eingabe, env: umgebung }) };
     } catch (e) {
       return { code: e.status == null ? 1 : e.status, aus: (e.stdout || '') + (e.stderr || '') };
@@ -16372,12 +16372,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await Z.stopp();
 
   const zListe = zBefehl(['liste']);
-  pruefe('zugang.js liste nennt die Zugaenge samt Rolle',
+  pruefe('usertool.js liste nennt die Zugaenge samt Rolle',
     /anna/.test(zListe.aus) && /Eigentümer/.test(zListe.aus) && /bert/.test(zListe.aus),
     zListe.aus.split('\n').filter(Boolean).slice(-4).join(' | '));
 
   const zPass = zBefehl(['passwort', 'bert'], 'berts-neues-wort\nberts-neues-wort\n');
-  pruefe('zugang.js passwort setzt das Passwort', /gesetzt/.test(zPass.aus) && zPass.code === 0,
+  pruefe('usertool.js passwort setzt das Passwort', /gesetzt/.test(zPass.aus) && zPass.code === 0,
     zPass.aus.split('\n').filter(Boolean).pop());
   const Z2 = starteWeiterenServer(zDir, {}, 5900);
   await Z2.bereit;
@@ -16412,18 +16412,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
     zZeilen('SELECT COUNT(*) n FROM items')[0].n === 1);
 
   const zEig = zBefehl(['eigentuemer', 'anna']);
-  pruefe('zugang.js eigentuemer laeuft auch, wenn es schon stimmt',
+  pruefe('usertool.js eigentuemer laeuft auch, wenn es schon stimmt',
     zEig.code === 0 && zZeilen('SELECT role FROM users WHERE username = ?', 'anna')[0]?.role === 'eigentuemer');
   const zNichts = zBefehl(['passwort', 'gibtesnicht']);
   pruefe('Ein unbekannter Name endet mit Fehlercode und nennt den Weg zur Liste',
-    zNichts.code === 1 && /zugang\.js liste/.test(zNichts.aus),
+    zNichts.code === 1 && /usertool\.js liste/.test(zNichts.aus),
     zNichts.aus.split('\n').filter(Boolean).pop());
   const zHilfe = zBefehl([]);
-  pruefe('Ohne Befehl kommt die Hilfe', /node zugang\.js passwort/.test(zHilfe.aus) && zHilfe.code === 0);
+  pruefe('Ohne Befehl kommt die Hilfe', /node usertool\.js passwort/.test(zHilfe.aus) && zHilfe.code === 0);
 
   fs.rmSync(zDir, { recursive: true, force: true });
   /* ---------------------------------------------------------------- */
-  gruppe('zugang.js schreibt ins Sicherheitsprotokoll');
+  gruppe('usertool.js schreibt ins Sicherheitsprotokoll');
 
   /* DER NOTWEG BEKOMMT KEINE RECHTEFRAGE -- Zugriff auf den Wirt IST die
      Berechtigung, und eine Rechtefrage dort waere eine Kulisse. Das bleibt.
@@ -16440,7 +16440,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       const umgebung = { ...process.env, DATA_DIR: zjDir, ENCRYPTION_KEY: KEY };
       delete umgebung.AUTH_RESET;
       try {
-        return { code: 0, aus: execFileSync(process.execPath, ['zugang.js', ...args],
+        return { code: 0, aus: execFileSync(process.execPath, ['usertool.js', ...args],
           { cwd: __dirname, encoding: 'utf8', input: eingabe, env: umgebung }) };
       } catch (e) {
         return { code: e.status == null ? 1 : e.status, aus: (e.stdout || '') + (e.stderr || '') };
@@ -16467,7 +16467,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // ES TUT SEINE DINGE WEITERHIN OHNE RUECKFRAGE -- keine Bestaetigung,
     // keine Rechtefrage, nur der Befehl.
     const zjPass = zjBefehl(['passwort', 'bert'], 'berts-neues-wort\nberts-neues-wort\n');
-    pruefe('zugang.js setzt das Passwort weiterhin ohne jede Rueckfrage',
+    pruefe('usertool.js setzt das Passwort weiterhin ohne jede Rueckfrage',
       zjPass.code === 0 && /gesetzt/.test(zjPass.aus), zjPass.aus.split('\n').filter(Boolean).pop());
     const zjEig = zjBefehl(['eigentuemer', 'carla']);
     pruefe('Und macht weiterhin ohne Rueckfrage zum Eigentuemer', zjEig.code === 0);
@@ -18581,7 +18581,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      DIE VORLAGEN SIND EINFARBIGE FLAECHEN und keine Fotos: gemessen wird die
      GROESSE, nicht die Guete, und eine Flaeche kodiert in Millisekunden. */
   {
-    const { makeVariants: mvGeo } = require('./bilder');
+    const { makeVariants: mvGeo } = require('./images');
     const flaeche = (b, h) => sharp({ create: { width: b, height: h, channels: 3,
       background: { r: 30, g: 90, b: 200 } } }).png().toBuffer();
     const ohneZuschnitt = async (b, h) => {
@@ -18657,7 +18657,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        naechsten Lesen eine Suche. SEIT 0.19.5 TRAEGT SIE EINE DRITTE ANGABE:
        ob geschnitten wird. Auch die steht in der Tafel und nicht als
        `if (name === 'thumb')` in der Schleife. */
-    const quGeoBilder = fs.readFileSync(path.join(__dirname, 'bilder.js'), 'utf8');
+    const quGeoBilder = fs.readFileSync(path.join(__dirname, 'images.js'), 'utf8');
     pruefe('Die Tafel nennt jeder Ableitung ihre Kiste aus kurzer und langer Kante',
       /thumb:\s*\{ kurz: 512,\s*lang: 1280, q: 78, schneidet: true\s*\}/.test(quGeoBilder) &&
       /medium:\s*\{ kurz: 1600, lang: 1600, q: 84, schneidet: false \}/.test(quGeoBilder),
@@ -18877,7 +18877,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        DIE BROWSERFASSUNG KOMMT AUS jsdom UND NICHT AUS EINEM NACHBAU: eine
        zweite Kopie der Rechnung im Prueflauf belegte gar nichts. */
     {
-      const { cropSpecBox: amServer } = require('./bilder');
+      const { cropSpecBox: amServer } = require('./images');
       let JSDOMz;
       try { ({ JSDOM: JSDOMz } = require('jsdom')); } catch { JSDOMz = null; }
       if (!JSDOMz) {
@@ -18909,7 +18909,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        EINE ZUGESCHNITTENE KACHEL IST QUADRATISCH -- das ist die ganze Regel, und
        sie haelt auch dort, wo die Zielkante NICHT erreicht wird. */
     {
-      const { hasNoCropSpec } = require('./bilder');
+      const { hasNoCropSpec } = require('./images');
       const faelle = [
         [{ width: 400, height: 225 }, true,  'der alte thumb aus 0.19.3'],
         [{ width: 910, height: 512 }, true,  'die ungeschnittene Ableitung aus 0.19.4'],
@@ -18969,7 +18969,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
          die ganze Uebung. Faellt sie weg, ist die Fassung ueberfluessig; sie
          faellt aber nicht weg, denn ohne sie holte der Browser jede Kachel
          der Uebersicht bei jedem Zeichnen neu. */
-      const anhQ = fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8');
+      const anhQ = fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8');
       const srvQ = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
       pruefe('Und die Auslieferung setzt weiterhin max-age',
         /private, max-age=/.test(anhQ) && /maxAge: 86400/.test(srvQ),
@@ -21633,7 +21633,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      starteWeiterenServer und die Fingerprintlage. Wer eine vierte ergaenzt und
      sie nicht vermerkt, faellt hier auf -- ihre Ports gingen sonst am Versatz
      vorbei, und genau daran sind zwei Gegenproben haengengeblieben. */
-  const pbStarts = (fs.readFileSync(path.join(__dirname, 'pruefung.js'), 'utf8')
+  const pbStarts = (fs.readFileSync(path.join(__dirname, 'testbench.js'), 'utf8')
     .match(/spawn\(process\.execPath, \['server\.js'\]/g) || []).length;
   /* VIER SEIT 0.24.0: dazu die Lage, die einen Server OHNE de.json startet und
      festhaelt, dass er nicht hochkommt (Bauabschnitt 1). */
@@ -21692,7 +21692,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* ================= Die Gegenproben greifen — 0.13.0 ==================
      EIN RUECKBAU, DER INS LEERE GREIFT, SIEHT AUS WIE EINER, DER NICHTS
-     BEWIRKT. gegenprobe.js meldet das zwar -- aber erst im vollen Lauf, und
+     BEWIRKT. counterproof.js meldet das zwar -- aber erst im vollen Lauf, und
      der dauert bei 197 Rueckbauten ueber zwanzig Stunden und steht seit fuenf
      Runden aus. In dieser Zeit sind DREI Suchtexte still veraltet: die
      Markenzeile trug 34 statt 36, und die Absage am Export bekam mit 0.12.4
@@ -21700,12 +21700,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      DIESE GRUPPE ERSETZT DEN LAUF NICHT -- sie sagt nichts darueber, ob ein
      Rueckbau eine Pruefung ROT macht. Sie sagt nur, dass er ueberhaupt noch
      etwas anfasst, und das kostet Millisekunden statt Stunden.
-     DIE LISTE KOMMT UEBER require UND NICHT UEBER EINEN REGEX: gegenprobe.js
+     DIE LISTE KOMMT UEBER require UND NICHT UEBER EINEN REGEX: counterproof.js
      gibt sie seit 0.13.0 heraus und faehrt nur beim direkten Aufruf los. Ein
      zweiter Leser daneben liefe irgendwann auseinander. */
   gruppe('Die Gegenproben greifen');
 
-  const gpListe = require('./gegenprobe').RUECKBAUTEN;
+  const gpListe = require('./counterproof').RUECKBAUTEN;
   /* DIE ZAHL AUSDRUECKLICH, wie bei F_ROUTEN und den Listen aus auth.js
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
@@ -21824,7 +21824,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      zur Zahl der Rueckbauten, aber nicht zur Reihe ab 491.
      ACHT VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
      201): 431 bis 435 und 458 zeigten auf die Umwandlung, die jetzt in
-     bilder.js steht -- derselbe Fund, andere Datei; 136 und 137 auf die Zeile
+     images.js steht -- derselbe Fund, andere Datei; 136 und 137 auf die Zeile
      der Testtage in der Uebersichtsschleife, die jetzt anders lautet.
      KEINER IST WEGGEFALLEN: diese Runde hat nichts abgebaut, sie hat
      verschoben. */
@@ -21863,7 +21863,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      VIER SIND DABEI IN EINE ANDERE DATEI GEWANDERT, und das ist der
      bemerkenswerte Teil: 449, 453, 464 und 465 bauten den Zuschnitt IM
      BROWSER zurueck -- den gibt es nicht mehr. Sie zeigen jetzt auf die
-     Stelle, die ihn ERSETZT hat (bilder.js und bestandslauf.js), und tragen
+     Stelle, die ihn ERSETZT hat (images.js und batchrun.js), und tragen
      dieselbe Zusage wie vorher. 453 kehrt sich dabei um: er hat die Zeile aus
      dem Stilblatt genommen und setzt sie jetzt WIEDER -- ein zurueckgenommener
      Beschluss laesst eine Spur zurueck, sonst kommt er wieder.
@@ -22002,7 +22002,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Genau daran ist Rueckbau 265 in 0.15.0 durchgerutscht (Stolperstein 213).
      GEPRUEFT WIRD AN GESTELLTEN AUSGABEN und nicht am laufenden Werkzeug: ein
      Gegenprobenlauf dauert Minuten, diese drei Zeilen Millisekunden. ---- */
-  const gpLese = require('./gegenprobe').leseLauf;
+  const gpLese = require('./counterproof').leseLauf;
   pruefe('Der Leser der Gegenprobe ist von aussen erreichbar',
     typeof gpLese === 'function', typeof gpLese);
   const gpNurSelbst = gpLese([
@@ -22076,7 +22076,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      der ECHTEN Ausgabe der echten Berichtsfunktion und nicht am Quelltext --
      ein Suchmuster ueber den Quelltext bliebe gruen, wenn die Schleife zwar
      dasteht, aber ueber die falsche Liste laeuft. */
-  const gpTabelle = require('./gegenprobe').schreibeTabelle;
+  const gpTabelle = require('./counterproof').schreibeTabelle;
   const gedruckt = [];
   const echtesLog = console.log;
   console.log = (...teile) => gedruckt.push(teile.join(' '));
@@ -22090,14 +22090,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     JSON.stringify(gedruckt.filter(z => /ABGERISSEN|│/.test(z))));
 
   /* ---- WELCHES ARGUMENT WELCHEN RUECKBAU MEINT -- 0.16.0.
-     DER BEFUND: `node gegenprobe.js 2 256` fuhr neben Rueckbau 256 auch die 83
+     DER BEFUND: `node counterproof.js 2 256` fuhr neben Rueckbau 256 auch die 83
      mit, denn deren Name „SHA-256 statt SHA-1" traegt die Zeichenfolge 256.
      Der Beifang war STUMM und verfaelschte damit die Gegenprobentabelle -- ein
      Rueckbau ohne roten Punkt, den niemand angefordert hatte.
      GEPRUEFT WIRD AN GESTELLTEN FAELLEN und nicht an einem Lauf: die Frage ist
      eine Frage an die Regel, und die Regel steht als eigene Funktion da. Ein
      Lauf beantwortete dieselbe Frage in Minuten. ---- */
-  const gpPasst = require('./gegenprobe').passtRueckbau;
+  const gpPasst = require('./counterproof').passtRueckbau;
   pruefe('Die Regel, welches Argument welchen Rueckbau meint, ist von aussen erreichbar',
     typeof gpPasst === 'function', typeof gpPasst);
   const gpFall = { nr: '83', name: 'SHA-256 statt SHA-1' };
@@ -22145,7 +22145,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      GEPRUEFT WIRD AM LAUFENDEN PRUEFLAUF SELBST -- er IST ein solcher Prozess,
      und damit hat diese Zeile einen Gegenstand und ist nicht die Frage, ob
      eine leere Liste leer ist (Stolperstein 81). */
-  const gpFremd = require('./gegenprobe').fremdeServer;
+  const gpFremd = require('./counterproof').fremdeServer;
   pruefe('Die Suche nach fremden Servern ist von aussen erreichbar',
     typeof gpFremd === 'function', typeof gpFremd);
   const gpGefunden = typeof gpFremd === 'function' ? gpFremd() : [];
@@ -22172,7 +22172,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Aufruf, und ein zweiter Gegenprobenlauf aus dem Prueflauf heraus waere
      genau der Unfug, gegen den diese Zeile gebaut ist. Also der Quelltext --
      dieselbe Bauform wie beim zweiten Musterwaechter von 0.20.0. */
-  const gpQuelle = fs.readFileSync(path.join(__dirname, 'gegenprobe.js'), 'utf8');
+  const gpQuelle = fs.readFileSync(path.join(__dirname, 'counterproof.js'), 'utf8');
   const gpEinzeilig = gpQuelle.replace(/\s+/g, ' ');
   pruefe('Der Treiber sieht vor dem ersten Rueckbau nach und bricht ab',
     gpEinzeilig.includes('const fremde = fremdeServer(); if (fremde.length) {') &&
@@ -22268,9 +22268,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
      GENANNT, NICHT GEPRUEFT: der Block darunter ist eine Auskunft. Er steht im
      Prueflauf, damit die Zahlen beim Bauen vor Augen sind und nicht erst beim
      Schreiben der Papiere gesucht werden muessen. */
-  const flDateien = ['public/app.js', 'server.js', 'auth.js', 'db.js', 'anhaenge.js',
-                     'zweifaktor.js', 'zugang.js', 'schluessel.js', 'mail.js', 'keys.js',
-                     'pruefung.js', 'gegenprobe.js'];
+  const flDateien = ['public/app.js', 'server.js', 'auth.js', 'db.js', 'attachments.js',
+                     'twofactor.js', 'usertool.js', 'keytool.js', 'mail.js', 'keys.js',
+                     'testbench.js', 'counterproof.js'];
   const flStand = new Map();
   console.log('');
   console.log('  ── Die laengsten Funktionen je Datei ──────────────────────');
@@ -22324,15 +22324,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* ZWEI HAELFTEN, DIE ZUSAMMENGEHOEREN -- dieselbe Bauform wie beim
      Sicherungsort (Einhaengung und Variable).
-     BEFUND AUS DEM BETRIEB: schluessel.sh traegt im Repo den Modus 100755,
+     BEFUND AUS DEM BETRIEB: keytool.sh traegt im Repo den Modus 100755,
      kam auf dem Wirt aber ohne das Ausfuehrungsrecht an. Der Einspielweg packt
      das ZIP mit `python3 -m zipfile -e` aus, und das stellt KEINE Rechte
      wieder her -- unzip dagegen schon. Nachgestellt statt geglaubt.
      Deshalb wird BEIDES gehalten: das Recht an der Datei UND die chmod-Zeile
-     im Einspielweg. Faellt eine der beiden weg, antwortet ./schluessel.sh auf
+     im Einspielweg. Faellt eine der beiden weg, antwortet ./keytool.sh auf
      dem Wirt mit "Keine Berechtigung" (Stolperstein 140). */
   {
-    const wirtSkripte = ['schluessel.sh'];
+    const wirtSkripte = ['keytool.sh'];
     pruefe('Der Lauf kennt das Skript auf dem Wirt',
       wirtSkripte.every(n => fs.existsSync(path.join(__dirname, n))),
       wirtSkripte.join(' · '));
@@ -22346,8 +22346,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Ohne sie steht das Recht zwar im Repo, kommt auf dem Wirt aber nicht an. */
     const liesmich = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
     pruefe('Der Einspielweg in der README zieht das Recht nach',
-      /chmod \+x kriterion\/schluessel\.sh/.test(liesmich),
-      'die Zeile "chmod +x kriterion/schluessel.sh" fehlt');
+      /chmod \+x kriterion\/keytool\.sh/.test(liesmich),
+      'die Zeile "chmod +x kriterion/keytool.sh" fehlt');
     pruefe('Und er sagt, warum sie noetig ist',
       /python3 -m zipfile -e[\s\S]{0,200}?Ausführungsrecht/.test(liesmich),
       'der Grund steht nicht daneben');
@@ -22381,7 +22381,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       ['kommt am echten Bestand vor', 'der widerlegte Satz zu Rueckbau 433'],
       ['kommt am ECHTEN Bestand vor', 'der widerlegte Satz zu Rueckbau 433']
     ];
-    const durchsucht = ['server.js', 'public/app.js', 'gegenprobe.js', 'README.md',
+    const durchsucht = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
                         'CHANGELOG.md', 'Doku/Aenderungsprotokoll_0.19.0.md'];
     const treffer = [];
     for (const datei of durchsucht) {
@@ -22412,11 +22412,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und die nachgefahrene Messung mit ihrer Datenbankgroesse daneben',
       /400 ZEILEN A 512 kB \(312 MB\)/.test(serverText) && /1338,8 ms/.test(serverText),
       'die nachgefahrene Messung fehlt');
-    const gpText = fs.readFileSync(path.join(__dirname, 'gegenprobe.js'), 'utf8');
+    const gpText = fs.readFileSync(path.join(__dirname, 'counterproof.js'), 'utf8');
     /* RUECKBAU 433 BLEIBT UND BLEIBT ALS STUMM ERWARTET -- er bewacht das
        Vorhandensein der Regel, auch wo er ihre Wirkung nicht zeigen kann.
        Berichtigt wird nur seine BEGRUENDUNG. */
-    const rb433 = require('./gegenprobe').RUECKBAUTEN.find(r => r.nr === '433');
+    const rb433 = require('./counterproof').RUECKBAUTEN.find(r => r.nr === '433');
     pruefe('Rueckbau 433 steht weiter in der Liste und weiter als STUMM erwartet',
       !!rb433 && /STUMM/.test(rb433.erwartet), JSON.stringify(rb433 && rb433.erwartet));
     pruefe('Und seine Begruendung nennt jetzt die achtzehn Versuche und den echten Bestand',
@@ -22680,7 +22680,7 @@ async function pruefeErstanmeldung() {
      DELETE FROM users ab. Im Mehrbenutzerbetrieb waere das eine Katastrophe:
      alle Zugaenge weg, aller Bestand ueber ON DELETE SET NULL herrenlos, und
      der naechste Start schoebe ihn dem zu, der sich als Erster neu
-     einrichtet. An ihre Stelle tritt zugang.js auf dem Wirt. */
+     einrichtet. An ihre Stelle tritt usertool.js auf dem Wirt. */
   gruppe('AUTH_RESET wird abgelehnt');
   const C = starteWeiterenServer(frischDir, { AUTH_RESET: '1' }, 4100);
   await C.bereit;
@@ -22689,7 +22689,7 @@ async function pruefeErstanmeldung() {
   // Still weglassen waere falsch: wer die Zeile in seiner .env stehen hat,
   // muss den neuen Weg erfahren, und zwar ohne nachzuschlagen.
   pruefe('Und nennt den Weg, der an seine Stelle tritt',
-    /zugang\.js passwort/.test(C.protokoll()));
+    /usertool\.js passwort/.test(C.protokoll()));
   pruefe('Der Start bricht deswegen nicht ab',
     (await C.ruf('GET', '/api/config')).status === 200);
   pruefe('Es ist KEINE Einrichtung noetig',
@@ -29043,7 +29043,7 @@ async function pruefeOberflaeche() {
      des Ausschnitts.
      WAS AN IHRE STELLE GETRETEN IST, sind zwei Dinge: `cropSpecBox()`
      rechnet den Ausschnitt fuer den RAHMEN im Editor (und wird vom Pruefstand
-     gegen die gleichnamige Funktion in bilder.js gehalten -- siehe die Gruppe
+     gegen die gleichnamige Funktion in images.js gehalten -- siehe die Gruppe
      „Der Ausschnitt steckt in der Kachel"), und `bildQuelle()` haengt die FASSUNG an
      die Adresse. */
   pruefe('ausschnitt() gibt es nicht mehr', typeof wb.ausschnitt === 'undefined',
@@ -30252,7 +30252,7 @@ async function pruefeOberflaeche() {
      GEPRUEFT -- eine Verneinung allein belegte nichts darueber, ob der Befehl
      ueberhaupt noch irgendwo steht (Stolperstein 81). */
   pruefe('Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da',
-    !!rZugangKarte && !/zugang\.js passwort/.test(rZugangKarte.textContent || ''),
+    !!rZugangKarte && !/usertool\.js passwort/.test(rZugangKarte.textContent || ''),
     rZugangKarte?.textContent?.slice(0, 300));
   pruefe('Sondern der Satz, der ihm wirklich hilft',
     !!rZugangKarte && /Ein Admin kann einen Link zum Zurücksetzen erzeugen/.test(rZugangKarte.textContent || ''),
@@ -30262,7 +30262,7 @@ async function pruefeOberflaeche() {
     const eigZugang = [...rEig.w.document.querySelectorAll('.sys-card')]
       .find(k => k.querySelector('h3')?.textContent.trim() === 'Mein Konto');
     pruefe('Beim Eigentuemer steht er sehr wohl — im Kasten „Auf dem Server"',
-      !!eigZugang && /zugang\.js passwort/.test(eigZugang.textContent || ''),
+      !!eigZugang && /usertool\.js passwort/.test(eigZugang.textContent || ''),
       eigZugang?.textContent?.slice(0, 300));
   }
   // Und ausdruecklich in der ganzen Oberflaeche nicht mehr als Anleitung:
@@ -31020,7 +31020,7 @@ async function pruefeOberflaeche() {
     /getrennt vom Handy/.test(zkKasten()?.textContent || ''),
     zkKasten()?.textContent?.slice(0, 220));
   pruefe('Er nennt den Notweg ueber den Wirt fuer den Fall, dass alles weg ist',
-    /zugang\.js zweifaktor/.test(zkKasten()?.textContent || ''),
+    /usertool\.js zweifaktor/.test(zkKasten()?.textContent || ''),
     zkKasten()?.textContent?.slice(-160));
   // Und beim naechsten Aufbau der Karte sind sie fort.
   await zkAus.w.renderSystem();
@@ -31784,7 +31784,7 @@ async function pruefeOberflaeche() {
       (spZeile('export')?.querySelector('.log-target')?.textContent || '').trim() === '',
       spZeile('export')?.textContent?.replace(/\s+/g, ' '));
 
-    /* wer IS NULL HEISST "UEBER zugang.js AUF DEM WIRT" -- mit genau einer
+    /* wer IS NULL HEISST "UEBER usertool.js AUF DEM WIRT" -- mit genau einer
        Ausnahme, und die ist am Vorgang zu erkennen. Beide Lagen stehen hier
        nebeneinander; ohne die zweite bliebe die erste auch dann gruen, wenn
        die Oberflaeche jede leere Nummer so beschriftete. */
@@ -31794,7 +31794,7 @@ async function pruefeOberflaeche() {
       spZeile('zugang.passwort')?.textContent?.replace(/\s+/g, ' '));
     pruefe('Die gescheiterte Anmeldung ist ueberhaupt da', !!spZeile('anmeldung.fehl'));
     pruefe('Sie sagt NICHT, dass sie ueber den Wirt kam',
-      !/zugang\.js/.test(spZeile('anmeldung.fehl')?.textContent || ''),
+      !/usertool\.js/.test(spZeile('anmeldung.fehl')?.textContent || ''),
       spZeile('anmeldung.fehl')?.textContent?.replace(/\s+/g, ' '));
     pruefe('Sondern nennt den Namen als unbekannt',
       /unbekannter Name/.test(spZeile('anmeldung.fehl')?.textContent || ''),
@@ -31899,7 +31899,7 @@ async function pruefeOberflaeche() {
     pruefe('"unbekannter Name" bleibt Text und wird kein Knopf',
       !!spFehl && /unbekannter Name/.test(spFehl.textContent) &&
       !spFehl.querySelector('.log-jump'), spFehl?.innerHTML);
-    // Und "über zugang.js auf dem Wirt" ebenso wenig -- dort ist niemand.
+    // Und "über usertool.js auf dem Wirt" ebenso wenig -- dort ist niemand.
     const spWirt = spReihen(d).find(z => z.dataset.event === 'zugang.passwort');
     pruefe('Der Wirt wird ebenso wenig anklickbar',
       !spWirt?.querySelector('.log-actor .log-jump'),
@@ -35402,7 +35402,7 @@ async function pruefeOberflaeche() {
     ml.document.querySelector('.login-card')?.innerHTML.slice(0, 120) || '(keine Karte)');
   /* UND AUS DEMSELBEN HELFER -- vier Striche, nicht drei und nicht fuenf.
      Die Anmeldeseite kennt das Schema noch nicht (start() laeuft erst nach
-     der Anmeldung), aber der Vorgriff aus thema.js hat data-theme laengst
+     der Anmeldung), aber der Vorgriff aus theme.js hat data-theme laengst
      gesetzt: die Marke steht dort schon richtig. */
   pruefe('Und aus demselben Helfer, mit allen vier Strichen',
     !!mlMarke && mlMarke.querySelectorAll('path').length === 4,
@@ -35829,7 +35829,7 @@ async function pruefeOberflaeche() {
      Schadens, den sonst niemand sieht -- drei Teile hinterliessen drei Zeilen
      'bestaetigung.fehl' ueber den Eigentuemer selbst. */
   {
-    const ZF2 = require('./zweifaktor');
+    const ZF2 = require('./twofactor');
     gruppe('Der Teilexport mit zweitem Faktor');
 
     const tzDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-teile-zf-'));
@@ -39858,13 +39858,13 @@ async function pruefeOberflaeche() {
        DIE AUSNAHMEN STEHEN NAMENTLICH DA UND SIND FALSCHE FREUNDE: sie meinen
        ANHAENGE und nicht die Installation. Eine Zeile, die sie stillschweigend
        ueberginge, uebersaehe auch den naechsten echten Treffer.
-       `anhaenge.js` FEHLT IN DER LISTE, und das ist Absicht: dort meint JEDE
+       `attachments.js` FEHLT IN DER LISTE, und das ist Absicht: dort meint JEDE
        der drei Stellen einen Anhang. Die Datei steht deshalb als eigene Zeile
        darunter -- gepruefte Abwesenheit ist etwas anderes als eine Datei, an
        die niemand gedacht hat. */
     const ausgeliefert = ['public/app.js', 'public/style.css', 'public/index.html',
-                          'server.js', 'auth.js', 'db.js', 'zugang.js', 'mail.js',
-                          'keys.js', 'schluessel.js', 'zweifaktor.js'];
+                          'server.js', 'auth.js', 'db.js', 'usertool.js', 'mail.js',
+                          'keys.js', 'keytool.js', 'twofactor.js'];
     /* WAS STEHENBLEIBEN DARF, STEHT MIT SEINER ZAHL DA und nicht als blosse
        Erlaubnis: verglichen wird die ganze Liste. Eine Erlaubnis, die
        „irgendwie oft" hiesse, deckte den naechsten echten Treffer mit zu.
@@ -39899,9 +39899,9 @@ async function pruefeOberflaeche() {
     pruefe('Und neun der elf ausgelieferten Dateien kennen es gar nicht mehr',
       ausgeliefert.filter(d => gefunden[d].length === 0).length === 9,
       `${ausgeliefert.filter(d => gefunden[d].length === 0).length}`);
-    pruefe('In anhaenge.js meint jede der drei Stellen einen Anhang',
-      (fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8').match(/[Aa]nlage/g) || []).length === 3,
-      `${(fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8').match(/[Aa]nlage/g) || []).length}`);
+    pruefe('In attachments.js meint jede der drei Stellen einen Anhang',
+      (fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8').match(/[Aa]nlage/g) || []).length === 3,
+      `${(fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8').match(/[Aa]nlage/g) || []).length}`);
   }
 
   /* ---- 4a. Und das Wort selbst steht in keinem Bildschirmtext mehr ---- */
@@ -40863,10 +40863,10 @@ async function pruefeOberflaeche() {
     const tHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
     const tApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const tCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
-    const tBoot = fs.existsSync(path.join(__dirname, 'public', 'thema.js'))
-      ? fs.readFileSync(path.join(__dirname, 'public', 'thema.js'), 'utf8') : null;
+    const tBoot = fs.existsSync(path.join(__dirname, 'public', 'theme.js'))
+      ? fs.readFileSync(path.join(__dirname, 'public', 'theme.js'), 'utf8') : null;
 
-    pruefe('Der Vorgriff liegt als eigene Datei public/thema.js', tBoot !== null,
+    pruefe('Der Vorgriff liegt als eigene Datei public/theme.js', tBoot !== null,
       tBoot === null ? '(fehlt)' : `${tBoot.length} Zeichen`);
     /* ALS DATEI UND NICHT INLINE, und das ist keine Geschmacksfrage: die CSP
        des Servers sagt `script-src 'self'`, und ein Inline-Script wird vom
@@ -40878,23 +40878,23 @@ async function pruefeOberflaeche() {
     /* ER MUSS VOR DEM STILBLATT STEHEN. Danach hat er seinen Zweck verfehlt:
        der Browser hat dann schon einmal falsch gemalt. */
     pruefe('Er steht vor dem Stilblatt',
-      tHtml.indexOf('thema.js') > -1
-        && tHtml.indexOf('thema.js') < tHtml.indexOf('href="style.css"'),
-      `thema.js bei ${tHtml.indexOf('thema.js')}, style.css bei ${tHtml.indexOf('href="style.css"')}`);
+      tHtml.indexOf('theme.js') > -1
+        && tHtml.indexOf('theme.js') < tHtml.indexOf('href="style.css"'),
+      `theme.js bei ${tHtml.indexOf('theme.js')}, style.css bei ${tHtml.indexOf('href="style.css"')}`);
     /* UND ER MUSS SYNCHRON LADEN. `defer` oder `async` liessen ihn NACH dem
        Stilblatt laufen -- die Datei waere da, und das Blitzen auch. */
     pruefe('Und er laedt synchron, ohne defer und ohne async',
-      /<script src="thema\.js"><\/script>/.test(tHtml),
-      (tHtml.match(/<script[^>]*thema\.js[^>]*>/) || ['(nicht gefunden)'])[0]);
+      /<script src="theme\.js"><\/script>/.test(tHtml),
+      (tHtml.match(/<script[^>]*theme\.js[^>]*>/) || ['(nicht gefunden)'])[0]);
     /* DER NAME DES SCHLUESSELS STEHT AN ZWEI STELLEN, und es geht nicht
-       anders: thema.js laeuft, bevor es app.js gibt. Also haelt sie eine
+       anders: theme.js laeuft, bevor es app.js gibt. Also haelt sie eine
        Pruefung gegeneinander -- sonst laufen sie beim naechsten Umbenennen
        auseinander, und der Vorgriff liest ins Leere (Stolperstein 47). */
     const schluesselBoot = (tBoot || '').match(/getItem\('([^']+)'\)/);
     const schluesselApp = tApp.match(/THEME_KEY = '([^']+)'/);
     pruefe('Der Name des gemerkten Schluessels stimmt in beiden Dateien ueberein',
       !!schluesselBoot && !!schluesselApp && schluesselBoot[1] === schluesselApp[1],
-      `thema.js: ${schluesselBoot?.[1]} · app.js: ${schluesselApp?.[1]}`);
+      `theme.js: ${schluesselBoot?.[1]} · app.js: ${schluesselApp?.[1]}`);
     pruefe('Ohne Gedaechtnis steht dunkel da — die Vorgabe, auch vor der Anmeldung',
       /\? 'hell' : 'dunkel'/.test(tBoot || '') && /catch[\s\S]{0,80}= 'dunkel'/.test(tBoot || ''),
       tBoot === null ? '(keine Datei)' : 'Rueckfall geprueft');
@@ -41286,7 +41286,7 @@ async function pruefeOberflaeche() {
      JETZT, obwohl es in dieser Runde nur eine Datei gibt -- eine Regel, die
      man erst dann baut, wenn sie gebraucht wird, ist ungeprueft. Stufe 2
      findet sie vor und faellt nicht in dieselben Gruben.
-     JEDE HAT IHRE GEGENPROBE in gegenprobe.js; eine stumme Gegenprobe ist ein
+     JEDE HAT IHRE GEGENPROBE in counterproof.js; eine stumme Gegenprobe ist ein
      Fund (Projektstand, Abschnitt 12). */
   gruppe('Die sieben Waechter der Sprachdatei — 0.24.0');
   {
@@ -41531,8 +41531,8 @@ async function pruefeOberflaeche() {
       // Stuecke einer Adresse
       '?eintraege=', '&beitraege=', '?gruppe=', '&tage=', '&ziel=',
       // Die vier Serverbefehle -- in jeder Sprache dieselben
-      'docker compose exec kriterion node zugang.js passwort <name>',
-      'docker compose exec kriterion node zugang.js zweifaktor <name>',
+      'docker compose exec kriterion node usertool.js passwort <name>',
+      'docker compose exec kriterion node usertool.js zweifaktor <name>',
       // Markup um einen technischen Namen herum
       '<code>OEFFENTLICHE_ADRESSE</code>', '<code>ENCRYPTION_KEY</code>',
       '<code>data/</code>', '<code>http://</code>',
@@ -41852,7 +41852,7 @@ async function pruefeOberflaeche() {
   {
     const appRoh = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const appZeilen = appRoh.split('\n');
-    const befehle = bildschirmtexteVon(appRoh).filter(t => /docker compose|zugang\.js/.test(t.text));
+    const befehle = bildschirmtexteVon(appRoh).filter(t => /docker compose|usertool\.js/.test(t.text));
     const imKasten = befehle.filter(t => /serverBox\(/.test(appZeilen[t.zeile - 1] || ''));
     pruefe('Jeder Server-Befehl in app.js steht auf einer Zeile serverBox(',
       befehle.length > 0 && imKasten.length === befehle.length,
@@ -41866,7 +41866,7 @@ async function pruefeOberflaeche() {
     const befehleDe = Object.entries(JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(w => [k, w]))
-      .filter(([, w]) => /docker compose|zugang\.js/.test(w));
+      .filter(([, w]) => /docker compose|usertool\.js/.test(w));
     pruefe('Und keiner steht in der Sprachdatei',
       befehleDe.length === 0, befehleDe.map(([k]) => k).join(' · '));
     pruefe('Der Kasten selbst prueft die Rolle — nicht jede Karte fuer sich',
@@ -41899,9 +41899,9 @@ async function pruefeOberflaeche() {
     const skAdm = await skRollen({ istAdmin: true, istEigentuemer: false });
     const skEig = await skRollen({ istAdmin: true, istEigentuemer: true });
     pruefe('Ein Benutzer sieht keinen Kasten „Auf dem Server" und keinen Befehl',
-      skUser.kaesten === 0 && !/docker compose|zugang\.js/.test(skUser.text), String(skUser.kaesten));
+      skUser.kaesten === 0 && !/docker compose|usertool\.js/.test(skUser.text), String(skUser.kaesten));
     pruefe('Ein Admin ebenso wenig',
-      skAdm.kaesten === 0 && !/docker compose|zugang\.js/.test(skAdm.text), String(skAdm.kaesten));
+      skAdm.kaesten === 0 && !/docker compose|usertool\.js/.test(skAdm.text), String(skAdm.kaesten));
     pruefe('Die Eigentuemerin sieht drei: Mein Konto, Benutzer und Kennzahlen',
       skEig.kaesten === 3 && /Auf dem Server/.test(skEig.text), String(skEig.kaesten));
     pruefe('Und jeder Kasten traegt Ueberschrift, Befehl und Kopierknopf',
@@ -42247,7 +42247,7 @@ async function pruefeOberflaeche() {
 }
 
 /* ================= Der Schluesselwechsel =================
-   GEWECHSELT WIRD BEI ANGEHALTENER INSTANZ, auf dem Wirt, ueber schluessel.js.
+   GEWECHSELT WIRD BEI ANGEHALTENER INSTANZ, auf dem Wirt, ueber keytool.js.
    Genau so wird hier auch geprueft: kein Server, sondern echte Prozesse gegen
    echte, verschluesselte Instanzen in Wegwerfverzeichnissen.
 
@@ -42276,7 +42276,7 @@ function pruefeSchluesselwechsel() {
       .trim().split('\n').pop();
 
   const swRuf = (args, verzeichnis, schluessel) => {
-    const r = spawnSync(process.execPath, ['schluessel.js', ...args],
+    const r = spawnSync(process.execPath, ['keytool.js', ...args],
       { cwd: __dirname, encoding: 'utf8', env: swUmgebung(verzeichnis, schluessel), input: '' });
     return { code: r.status, aus: (r.stdout || '') + (r.stderr || '') };
   };
@@ -42491,7 +42491,7 @@ function pruefeSchluesselwechsel() {
   pruefe('Mit dem Satz daneben, wofuer er noch gut ist',
     /ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT/.test(envNachher));
   pruefe('Und mit der Notiz, wer gewechselt hat',
-    /^# Abgeloest am \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} durch pruefstand \(schluessel\.js\)\.$/m
+    /^# Abgeloest am \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} durch pruefstand \(keytool\.js\)\.$/m
       .test(envNachher), envZeilen.find(z => z.startsWith('# Abgeloest')));
   /* JEDE ANDERE ZEILE BLEIBT ZEICHEN FUER ZEICHEN STEHEN -- die
      auskommentierte Zeile mit demselben Namen eingeschlossen. Geprueft an der
@@ -42657,7 +42657,7 @@ function pruefeSchluesselwechsel() {
   gruppe('Der Schluesselwechsel: zu wenig Platz');
 
   /* DIE ANSAGE STEHT IMMER: was der Wechsel an Platz braucht, rechnet
-     schluessel.js aus der Groesse der Datenbank -- das Journal waechst auf
+     keytool.js aus der Groesse der Datenbank -- das Journal waechst auf
      ihre Groesse. Das laesst sich an jeder Instanz nachrechnen. */
   const zeigen = swRuf(['zeigen'], a5.dir, null);
   const zGross = Number((zeigen.aus.match(/Datenbank\s+([\d.]+) MB/) || [])[1]);
@@ -42828,7 +42828,7 @@ async function pruefeBestandslauf() {
      ENCRYPTION_KEY -- der Schluessel kommt damit AUS DER UMGEBUNG und nicht
      ueber workerData, genau wie im Betrieb. */
   const fahre = (aufgabe, zeilen, daneben) => new Promise((fertig) => {
-    const w = new Worker(path.join(__dirname, 'bestandslauf.js'),
+    const w = new Worker(path.join(__dirname, 'batchrun.js'),
       { workerData: { task: aufgabe, rows: zeilen }, env: umgebung, stdout: true, stderr: true });
     const staende = [];
     let fehler = null;
@@ -43166,15 +43166,15 @@ async function pruefeBestandslauf() {
      aussaehe. */
   {
     const blServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-    const blLauf = fs.readFileSync(path.join(__dirname, 'bestandslauf.js'), 'utf8');
-    const blBilder = fs.readFileSync(path.join(__dirname, 'bilder.js'), 'utf8');
+    const blLauf = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
+    const blBilder = fs.readFileSync(path.join(__dirname, 'images.js'), 'utf8');
     const blDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
     const einzeilig = (t) => t.replace(/\s+/g, ' ');
 
     /* 1. DIE SCHLEIFE STEHT NUR NOCH IM THREAD. Ohne diese Zeile bliebe gruen,
        wer den Thread baut und die alte Schleife daneben stehen laesst -- zwei
        Wege, die dasselbe tun, und einer davon haelt den Server wieder an. */
-    pruefe('Die beiden Schleifen stehen nur noch in bestandslauf.js',
+    pruefe('Die beiden Schleifen stehen nur noch in batchrun.js',
       /for \(const \{ id \} of rows\)/.test(blLauf) &&
       !/for \(const \{ id \} of zeilen\)/.test(blServer) &&
       !/UPDATE photos SET thumb = \?, medium = \? WHERE id = \?/.test(blServer),
@@ -43209,7 +43209,7 @@ async function pruefeBestandslauf() {
        Umbenennung auseinander -- und der Fingerprint kennte dann eine
        ausgelieferte Datei nicht. */
     pruefe('Der Pfad des Threads steht an einer Stelle',
-      /const BATCHRUN = path\.join\(__dirname, 'bestandslauf\.js'\);/.test(blServer) &&
+      /const BATCHRUN = path\.join\(__dirname, 'batchrun\.js'\);/.test(blServer) &&
       /new Worker\(BATCHRUN,/.test(blServer) &&
       /\.\.\.ran, BATCHRUN,/.test(einzeilig(blServer)),
       (blServer.match(/const BATCHRUN = [^\n]*/) || ['(nicht gefunden)'])[0]);
@@ -43266,16 +43266,16 @@ async function pruefeBestandslauf() {
       (blServer.match(/w\.on\('exit'[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 8. DIE UMWANDLUNG GIBT ES GENAU EINMAL. Zwei Fassungen liefen
        auseinander, und zwar unbemerkt -- beide saehen richtig aus
-       (Stolperstein 47). Deshalb steht sie in bilder.js, und BEIDE Wege rufen
+       (Stolperstein 47). Deshalb steht sie in images.js, und BEIDE Wege rufen
        dieselbe. */
-    pruefe('storeImage und makeVariants stehen genau einmal, in bilder.js',
+    pruefe('storeImage und makeVariants stehen genau einmal, in images.js',
       /async function storeImage\(/.test(blBilder) && /async function makeVariants\(/.test(blBilder) &&
       !/function storeImage\(|function makeVariants\(/.test(blServer) &&
       !/function storeImage\(|function makeVariants\(/.test(blLauf),
-      (blServer.match(/function (storeImage|makeVariants)\(/) || ['(nur in bilder.js — richtig)'])[0]);
+      (blServer.match(/function (storeImage|makeVariants)\(/) || ['(nur in images.js — richtig)'])[0]);
     pruefe('Und beide Wege rufen dieselbe',
-      /require\('\.\/bilder'\)/.test(blServer) && /require\('\.\/bilder'\)/.test(blLauf),
-      'einer der beiden Wege laedt bilder.js nicht');
+      /require\('\.\/images'\)/.test(blServer) && /require\('\.\/images'\)/.test(blLauf),
+      'einer der beiden Wege laedt images.js nicht');
     /* 9. UND DIE THREADZAHL VON sharp WIRD IM THREAD EIGENS GESETZT. sharp wird
        dort neu geladen und traegt sonst wieder seine Vorgabe -- unter musl
        oder mit jemalloc die Kernzahl (Stolperstein 278). */

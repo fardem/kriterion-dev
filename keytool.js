@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* Der Schluesselwechsel -- auf dem Wirt, bei ANGEHALTENER Instanz.
  *
- *   node schluessel.js zeigen
- *   node schluessel.js wechseln [--env <pfad>] [--wer <text>] [--ja]
+ *   node keytool.js zeigen
+ *   node keytool.js wechseln [--env <pfad>] [--wer <text>] [--ja]
  *
  * ES IST DER EINZIGE VORGANG IM GANZEN PROJEKT, DER BEI FALSCHER HANDHABUNG
  * ALLES VERLIERT. Deshalb steht er hier und nicht als Knopf in der Oberflaeche:
@@ -13,8 +13,8 @@
  *     offen, und der Wechsel muss auf DELETE umschalten. Ein Knopf im laufenden
  *     Betrieb muesste um genau diesen Umstand herumbauen.
  *   * ZUGRIFF AUF DEN WIRT IST DIE BERECHTIGUNG -- dieselbe Linie wie bei
- *     zugang.js. Eine Rechtefrage waere hier eine Kulisse.
- * Gerufen wird er ueber schluessel.sh, das die Instanz anhaelt, sichert und
+ *     usertool.js. Eine Rechtefrage waere hier eine Kulisse.
+ * Gerufen wird er ueber keytool.sh, das die Instanz anhaelt, sichert und
  * hinterher wieder startet. Von Hand geht es auch; dann gilt die Reihenfolge
  * aus der README.
  *
@@ -44,21 +44,21 @@ function help() {
   console.log(`
 ${BOLD('Kriterion — Schlüsselwechsel')}
 
-  node schluessel.js zeigen
+  node keytool.js zeigen
       Sagt, woher der Schlüssel kommt, wie groß die Datenbank ist, wie viel
       Platz frei ist und wann zuletzt gewechselt wurde. Ändert nichts.
 
-  node schluessel.js wechseln [--env <pfad>] [--wer <text>] [--ja]
+  node keytool.js wechseln [--env <pfad>] [--wer <text>] [--ja]
       Gibt der Datenbank einen neuen Schlüssel und zieht die Ablage nach.
       --env <pfad>   die .env des Wirts. PFLICHT, wenn der Schlüssel aus der
                      Umgebung kommt — ohne sie ließe sich der Wechsel nicht zu
                      Ende führen, und dann wird er gar nicht erst angefangen.
       --wer <text>   wer den Wechsel ausgelöst hat. Steht als Notiz in der .env
                      neben dem abgelösten Wert, nicht im Sicherheitsprotokoll.
-      --ja           ohne Rückfrage. Für schluessel.sh und den Prüfstand.
+      --ja           ohne Rückfrage. Für keytool.sh und den Prüfstand.
 
 ${RED('  DIE INSTANZ MUSS DABEI STEHEN.')} Ein laufender Server hält die Datei im
-  WAL-Modus offen; der Wechsel schaltet auf DELETE um. schluessel.sh nimmt
+  WAL-Modus offen; der Wechsel schaltet auf DELETE um. keytool.sh nimmt
   einem das ab.
 
 ${RED('  VORHER SICHERN — Datenverzeichnis UND .env.')} Bricht der Wechsel ab,
@@ -67,7 +67,7 @@ ${RED('  VORHER SICHERN — Datenverzeichnis UND .env.')} Bricht der Wechsel ab,
 `);
 }
 
-/* Liest eine Zeile -- dieselben zwei Wege wie in zugang.js, und aus demselben
+/* Liest eine Zeile -- dieselben zwei Wege wie in usertool.js, und aus demselben
  * Grund: readline liest bei geroehrter Eingabe VORAUS, und die zweite Frage
  * bekaeme dann nie eine Antwort. */
 const onTerminal = Boolean(process.stdin.isTTY);
@@ -147,7 +147,7 @@ async function commandChange(options) {
     console.error('wenn sie ihm eingehängt und mit --env genannt wird. Ohne sie ließe sich der');
     console.error('Wechsel nicht zu Ende führen: die Datenbank trüge den neuen Schlüssel, die');
     console.error('.env den alten, und der nächste Start öffnete nichts mehr.');
-    console.error('\nDer bequeme Weg ist  ./schluessel.sh  im Projektverzeichnis.');
+    console.error('\nDer bequeme Weg ist  ./keytool.sh  im Projektverzeichnis.');
     process.exit(1);
   }
   if (options.env && !keyFromEnv) {
@@ -279,7 +279,7 @@ async function commandChange(options) {
     console.log(`  ${path.join(DATA_DIR, 'encryption.key')} trägt den neuen Wert.`);
     console.log(RED(`\n  DER ALTE WERT ÖFFNET ALLE SICHERUNGEN VON VOR ${stamp} UTC.`));
     /* Nicht "nirgends mehr": die Sicherung des Datenverzeichnisses, die
-       schluessel.sh vorher angelegt hat, traegt die alte Schluesseldatei mit.
+       keytool.sh vorher angelegt hat, traegt die alte Schluesseldatei mit.
        Wer sie weglegt, legt den alten Schluessel mit weg -- und das ist die
        einzige Stelle, an der er dann noch steht. */
     console.log(RED('  Er steht ab jetzt nur noch in der Sicherung, die vor dem Wechsel'));
@@ -289,7 +289,7 @@ async function commandChange(options) {
   console.log('  Jetzt die Instanz starten und im Protokoll nachsehen, dass sie öffnet.');
 
   /* SAUBER SCHLIESSEN, dieselbe Form wie beim Herunterfahren des Servers: die
-     WAL wird eingearbeitet, bevor der Prozess endet. schluessel.sh startet die
+     WAL wird eingearbeitet, bevor der Prozess endet. keytool.sh startet die
      Instanz unmittelbar danach, und wer in genau diesem Augenblick das
      Datenverzeichnis sichert, soll keinen Zustand mit offener WAL erwischen.
      Der Abschluss darf nichts werfen -- der Wechsel ist an dieser Stelle

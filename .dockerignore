@@ -4,8 +4,8 @@ data
 *.log
 .git
 .DS_Store
-pruefung.js
-gegenprobe.js
-schluessel.sh
+testbench.js
+counterproof.js
+keytool.sh
 Doku
 kriterion-sicherung

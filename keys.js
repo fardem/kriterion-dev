@@ -63,7 +63,7 @@ function warnKeyBesideData() {
 }
 
 /* --- Den Schluessel wechseln ---------------------------------------------
-   WER DAS HIER RUFT: ausschliesslich schluessel.js auf dem Wirt. Der Server
+   WER DAS HIER RUFT: ausschliesslich keytool.js auf dem Wirt. Der Server
    ruft NICHTS davon -- er liest seinen Schluessel beim Start und danach nie
    wieder. Es steht trotzdem hier und nicht dort: "woher der Schluessel kommt"
    und "wohin der neue geschrieben wird" sind dieselbe Frage, und zwei Stellen
@@ -118,7 +118,7 @@ function findEnvLine(lines) {
    `who` ist eine NOTIZ und keine Feststellung: wer den Befehl auf dem Wirt
    ausfuehren kann, kann sie auch setzen. Sie steht deshalb in der .env und
    ausdruecklich NICHT im Sicherheitsprotokoll -- dort traegt der Vorgang das
-   leere `who` von zugang.js, und das heisst "ueber den Wirt". */
+   leere `who` von usertool.js, und das heisst "ueber den Wirt". */
 /* Die Notiz, WER gewechselt hat, landet in einer Datei, die beim naechsten
    Start Zeile fuer Zeile gelesen wird. Ein Zeilenumbruch darin schoebe eine
    erfundene Einstellung dazwischen -- deshalb bleibt vom Text nur, was in eine
@@ -152,7 +152,7 @@ function writeEnvLine(file, oldHex, newHex, who, stamp) {
     throw new Error(`Die Zeile ENCRYPTION_KEY in ${file} traegt einen anderen Wert als den, ` +
       'mit dem diese Datenbank offen ist. Das ist nicht die .env dieser Instanz.');
   lines.splice(hit[0].nr, 1,
-    `# Abgeloest am ${stamp} durch ${cleanNote(who)} (schluessel.js).`,
+    `# Abgeloest am ${stamp} durch ${cleanNote(who)} (keytool.js).`,
     '# ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT -- nicht loeschen,',
     '# bevor er im Passwortspeicher steht.',
     `#ENCRYPTION_KEY=${old}`,
@@ -163,7 +163,7 @@ function writeEnvLine(file, oldHex, newHex, who, stamp) {
      VERZEICHNIS erreichbar sein, nicht als einzeln eingehaengte Datei. Eine
      Datei-Einhaengung haengt am Inode; ein Umbenennen daneben tauscht den
      Verzeichniseintrag und liesse die Einhaengung auf der alten Datei stehen.
-     schluessel.sh haengt deshalb das Projektverzeichnis ein und nicht die
+     keytool.sh haengt deshalb das Projektverzeichnis ein und nicht die
      Datei. */
   const becoming = file + '.wird';
   fs.writeFileSync(becoming, lines.join('\n'), { mode: 0o600 });

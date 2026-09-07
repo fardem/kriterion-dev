@@ -19,7 +19,7 @@ function open(file) {
 }
 
 /* --- Den Schluessel der Datei wechseln -----------------------------------
-   Gerufen ausschliesslich von schluessel.js auf dem Wirt, bei angehaltener
+   Gerufen ausschliesslich von keytool.js auf dem Wirt, bei angehaltener
    Instanz. Es steht hier, weil hier auch journal_mode gesetzt wird.
 
    PRAGMA rekey LAEUFT IM WAL-MODUS NICHT ("Rekeying is not supported in WAL
@@ -601,7 +601,7 @@ CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id
    stillschweigend den Eigentuemer einzusetzen machte aus einer Feststellung
    eine Falschaussage.
 
-   wer IS NULL HEISST "UEBER zugang.js AUF DEM WIRT" -- mit genau einer
+   wer IS NULL HEISST "UEBER usertool.js AUF DEM WIRT" -- mit genau einer
    Ausnahme, und die ist an der Spalte was zu erkennen: bei einer
    gescheiterten Anmeldung gibt es keinen angemeldeten Benutzer.
 

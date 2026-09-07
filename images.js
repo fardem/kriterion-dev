@@ -1,7 +1,7 @@
-/* ================= bilder.js — EINE WAHRHEIT UEBER DIE BILDABLAGE =================
+/* ================= images.js — EINE WAHRHEIT UEBER DIE BILDABLAGE =================
 
    WARUM ES DIESE DATEI GIBT, und der Grund ist nicht Ordnung. Seit 0.19.3
-   faehrt der Bestandslauf in einem EIGENEN THREAD (bestandslauf.js), und der
+   faehrt der Bestandslauf in einem EIGENEN THREAD (batchrun.js), und der
    braucht dieselbe Umwandlung wie der Anfrageweg. Zwei Fassungen derselben
    Ableitung liefen frueher oder spaeter auseinander -- und zwar unbemerkt,
    denn beide saehen richtig aus (Stolperstein 47). Also gibt es sie genau
@@ -15,7 +15,7 @@
    WAS HIER NICHT STEHT: sharp.concurrency(). Wie viele Threads sich libvips
    nehmen darf, ist eine Frage an den PROZESS und nicht an die Ableitung --
    der Haupt-Thread setzt sie in server.js, der Bestandslauf in
-   bestandslauf.js, und beide setzen dieselbe Zahl. Eine Zeile hier setzte sie
+   batchrun.js, und beide setzen dieselbe Zahl. Eine Zeile hier setzte sie
    ein drittes Mal und aenderte je nach Ladereihenfolge etwas anderes. */
 const sharp = require('sharp');
 

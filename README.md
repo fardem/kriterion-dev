@@ -92,7 +92,7 @@ unter „Code" → „Download ZIP":
 python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion                  # der Ordner heißt nach dem Branch
 cd kriterion
-chmod +x schluessel.sh                       # siehe unten
+chmod +x keytool.sh                       # siehe unten
 cp .env.example .env
 cp docker-compose.example.yml docker-compose.yml
 docker compose up -d --build
@@ -103,8 +103,8 @@ Erreichbar unter `http://<server-ip>:3100`. **Der Port steht in der
 
 > **DIE `chmod`-ZEILE BRAUCHT NUR, WER MIT `python3 -m zipfile` AUSPACKT** —
 > oder unter Windows. **`unzip` und `git clone` bringen das Ausführungsrecht
-> mit.** *Fehlt es, antwortet `./schluessel.sh` später mit „Keine
-> Berechtigung"; dann hilft `chmod +x schluessel.sh`.*
+> mit.** *Fehlt es, antwortet `./keytool.sh` später mit „Keine
+> Berechtigung"; dann hilft `chmod +x keytool.sh`.*
 
 **Der Schritt `cp .env.example .env` ist Pflicht, auch wenn nichts darin steht.**
 `docker compose` liest die Datei ein und bricht sonst ab, bevor der Container
@@ -159,7 +159,7 @@ Der gewöhnliche Weg läuft über die Karte „Benutzer": ein Admin erzeugt eine
 Kommt **niemand mehr** herein, hilft der Weg auf dem Server — nicht die `.env`:
 
 ```bash
-docker compose exec kriterion node zugang.js passwort <name>
+docker compose exec kriterion node usertool.js passwort <name>
 ```
 
 Das Passwort wird zweimal abgefragt und gleich dort gesetzt; alle Sitzungen
@@ -168,14 +168,14 @@ Datenbankschlüssel hängt nicht am Passwort.
 
 | Befehl | was er tut |
 |---|---|
-| `node zugang.js liste` | zeigt die vorhandenen Namen, ihre Rolle und ob der zweite Faktor an ist |
-| `node zugang.js passwort <name>` | setzt ein neues Passwort |
-| `node zugang.js zweifaktor <name>` | schaltet den zweiten Faktor **aus** — einschalten geht von dort ausdrücklich nicht |
-| `node zugang.js entfernen <name>` | legt einen Zugang still |
-| `node zugang.js eigentuemer <name>` | der Notausgang, wenn sich der bisherige Eigentümer nicht mehr anmeldet |
+| `node usertool.js liste` | zeigt die vorhandenen Namen, ihre Rolle und ob der zweite Faktor an ist |
+| `node usertool.js passwort <name>` | setzt ein neues Passwort |
+| `node usertool.js zweifaktor <name>` | schaltet den zweiten Faktor **aus** — einschalten geht von dort ausdrücklich nicht |
+| `node usertool.js entfernen <name>` | legt einen Zugang still |
+| `node usertool.js eigentuemer <name>` | der Notausgang, wenn sich der bisherige Eigentümer nicht mehr anmeldet |
 
 Läuft der Container gar nicht erst an, tut es
-`docker compose run --rm kriterion node zugang.js …` ebenso.
+`docker compose run --rm kriterion node usertool.js …` ebenso.
 
 Das alles setzt Zugriff auf den Server voraus und ist deshalb kein Umweg um die
 Anmeldung. **Der Zugang lässt sich über keine Umgebungsvariable setzen oder
@@ -193,13 +193,13 @@ kann, ist keine Hilfe.*
 
 | Handgriff | Befehl | wo der Kasten steht |
 |---|---|---|
-| **Ein vergessenes Passwort zurücksetzen** — wenn kein Admin mehr hereinkommt | `docker compose exec kriterion node zugang.js passwort <name>` | Karte „Mein Konto" und Karte „Benutzer" |
-| **Den zweiten Faktor eines Benutzers ausschalten** — wenn Handy und Wiederherstellungscodes weg sind | `docker compose exec kriterion node zugang.js zweifaktor <name>` | Karte „Mein Konto", beim zweiten Faktor |
+| **Ein vergessenes Passwort zurücksetzen** — wenn kein Admin mehr hereinkommt | `docker compose exec kriterion node usertool.js passwort <name>` | Karte „Mein Konto" und Karte „Benutzer" |
+| **Den zweiten Faktor eines Benutzers ausschalten** — wenn Handy und Wiederherstellungscodes weg sind | `docker compose exec kriterion node usertool.js zweifaktor <name>` | Karte „Mein Konto", beim zweiten Faktor |
 | **Den Schlüssel in die `.env` nehmen** und danach neu starten | `docker compose up -d` | Karte „Kennzahlen", solange der Schlüssel neben der Datenbank liegt |
 
-Die beiden `zugang.js`-Befehle fragen auf dem Server nach, bevor sie etwas
+Die beiden `usertool.js`-Befehle fragen auf dem Server nach, bevor sie etwas
 tun, und stehen danach im Sicherheitsprotokoll als „per Kommandozeile am
-Server". Was `zugang.js` sonst kann (`liste`, `entfernen`, `eigentuemer`),
+Server". Was `usertool.js` sonst kann (`liste`, `entfernen`, `eigentuemer`),
 steht im Kopf der Datei.
 
 ## Der Schlüssel — bitte einmal aufmerksam lesen
@@ -282,7 +282,7 @@ mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
 mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
-chmod +x kriterion/schluessel.sh          # python3 legt das Recht nicht an
+chmod +x kriterion/keytool.sh          # python3 legt das Recht nicht an
 cd kriterion && docker compose up -d --build
 ```
 
@@ -332,8 +332,8 @@ Zeile ohne Wirkung und stört nicht.
 
 **Die `chmod`-Zeile.** `python3 -m zipfile -e` legt das Ausführungsrecht beim
 Auspacken nicht an — `unzip` und `git clone` tun es. **Wer einen davon nimmt,
-braucht die Zeile nicht.** Ohne das Recht antwortet `./schluessel.sh` mit „Keine
-Berechtigung"; es geht dann auch `bash schluessel.sh zeigen`.
+braucht die Zeile nicht.** Ohne das Recht antwortet `./keytool.sh` mit „Keine
+Berechtigung"; es geht dann auch `bash keytool.sh zeigen`.
 
 **`--build` ist nicht optional.** Ohne es startet stillschweigend die alte
 Version weiter — der Quelltext steckt im Image, nicht im eingehängten
@@ -368,8 +368,8 @@ erwarteter Namen.
 Container (`docker compose exec kriterion sh`):
 
 ```bash
-for f in anhaenge.js auth.js bestandslauf.js bilder.js db.js keys.js mail.js \
-         package.json server.js zweifaktor.js public/*; do
+for f in attachments.js auth.js batchrun.js images.js db.js keys.js mail.js \
+         package.json server.js twofactor.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```
@@ -490,7 +490,7 @@ gültigen Code; die alten verfallen dabei alle.
 derselbe wie beim vergessenen Passwort:
 
 ```bash
-docker compose exec kriterion node zugang.js zweifaktor <name>
+docker compose exec kriterion node usertool.js zweifaktor <name>
 ```
 
 Er schaltet den zweiten Faktor **aus** und lässt Passwort, Rolle und Bestand in
@@ -712,7 +712,7 @@ nicht in fremde Hand.
   Anmeldungen dieses Zugangs fallen sofort.
 
 Kommt **niemand mehr** herein, hilft weiterhin der Weg über den Server:
-`docker compose exec kriterion node zugang.js passwort <name>`.
+`docker compose exec kriterion node usertool.js passwort <name>`.
 
 #### Wohin der Link zeigt — `OEFFENTLICHE_ADRESSE`
 
@@ -980,7 +980,7 @@ Browserkennung**: Kriterion speichert beides nicht, und dabei bleibt es.
 
 Ein gelöschter Benutzer erscheint auch hier als „Gelöschter Benutzer 7" — der
 Name wird nirgends aufbewahrt. Und ein Vorgang über den Server
-(`node zugang.js …`) trägt als Handelnden „per Kommandozeile am Server".
+(`node usertool.js …`) trägt als Handelnden „per Kommandozeile am Server".
 
 **Die Zeilen bleiben 180 Tage stehen** und werden danach von selbst geräumt.
 **Einen anderen Weg hinaus gibt es nicht** — ein Sicherheitsprotokoll, das sich
@@ -2090,7 +2090,7 @@ bleibt bei der Vorgabegröße, weil der Endpunkt vor der Anmeldung nur den
 ## Dateien am Eintrag — wie sie abgesichert sind
 
 **Eine Installation darf niemals so ausgeliefert werden, dass der Browser sie als
-Webseite ausführt.** Wer an `anhaenge.js` etwas ändert, sollte das hier gelesen
+Webseite ausführt.** Wer an `attachments.js` etwas ändert, sollte das hier gelesen
 haben. Die Verteidigung liegt in Schichten, damit kein einzelner Fehler genügt:
 
 1. **Der gemeldete Typ des Hochladenden wird nie ausgeliefert.** Er wird
@@ -2400,7 +2400,7 @@ auch **ein einzelner Eintrag** als Datei ziehen.
 > Papierkorb liegt, ist dann nicht wiederherstellbar; ein Zugang, der über
 > einen Link angelegt und noch nicht eingelöst wurde, hat kein Passwort und
 > bekommt von der älteren Version auch keinen neuen Link — dort hilft nur
-> `node zugang.js passwort <name>`.
+> `node usertool.js passwort <name>`.
 
 ## Datenmodell
 
@@ -2492,7 +2492,7 @@ Start eine leere Neuinstallation vermuten.
   angefasst hat**. Eine Zeile je Vorgang: Zeitpunkt, was, wer, an
   wem und ein kurzes Merkmal aus einer festen Liste — **kein Freitext, keine
   Namen, keine Adresse**. Beide Benutzerspalten halten einen **Vorgang** fest,
-  keine Zugehörigkeit; ein leeres `wer` heißt „über `zugang.js` auf dem Wirt",
+  keine Zugehörigkeit; ein leeres `wer` heißt „über `usertool.js` auf dem Wirt",
   außer bei einer gescheiterten Anmeldung. 180 Tage haltbar, und die Frist ist
   der einzige Weg hinaus
 - `papierkorb` / `papierkorb_bytes` — der **Papierkorb**. Eine
@@ -2523,7 +2523,7 @@ Der Prüfstand legt echte Server mit echten, verschlüsselten Datenbanken in
 Wegwerfverzeichnissen an — `./data` bleibt unangetastet, alle Installationen entstehen
 frisch über Einrichtungsseite und Verwaltung. Geprüft werden unter anderem die
 Rechteschicht mit mehreren Benutzern nebeneinander, die Benutzerverwaltung samt
-`zugang.js` als echtem Prozess, die Kriterienverwaltung samt Reihenfolge **und
+`usertool.js` als echtem Prozess, die Kriterienverwaltung samt Reihenfolge **und
 Gewicht**, deren Wirkung auf Detailansicht, Vergleich und Export, die
 Auslieferungsregeln für
 Anhänge, **Fotos und Videos** — samt echtem Upload einer SVG sowie einer echten
@@ -2598,14 +2598,14 @@ ohne Namen in der Protokollzeile, und dass die neue Tabelle sich an einer
 bestehenden Installation beim Start selbst wieder anlegt — **eine Spalte dagegen
 nicht**.
 
-Die Dateien `pruefung.js` und `gegenprobe.js` sind per `.dockerignore`
+Die Dateien `testbench.js` und `counterproof.js` sind per `.dockerignore`
 ausgeschlossen und landen nicht im Image.
 
-**Die Gegenproben laufen über `gegenprobe.js`** — ein eigener Aufruf, nicht Teil
+**Die Gegenproben laufen über `counterproof.js`** — ein eigener Aufruf, nicht Teil
 von `npm test`:
 
 ```bash
-node gegenprobe.js 3     # alle Rückbauten, drei Nebenspuren
+node counterproof.js 3     # alle Rückbauten, drei Nebenspuren
 ```
 
 Er baut jede geprüfte Sache **probeweise zurück**, in einer eigenen Kopie aus
@@ -2629,14 +2629,14 @@ löschen hilft nur gegen künftige Kopien.
 Gewechselt wird **auf dem Wirt**, im Projektverzeichnis:
 
 ```bash
-./schluessel.sh zeigen       # Lage ansehen, ändert nichts
-./schluessel.sh wechseln     # anhalten, sichern, wechseln, starten
+./keytool.sh zeigen       # Lage ansehen, ändert nichts
+./keytool.sh wechseln     # anhalten, sichern, wechseln, starten
 ```
 
 > **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht — das
 > passiert beim Auspacken mit `python3 -m zipfile -e` und unter Windows. Einmal
-> `chmod +x schluessel.sh`, und es ist erledigt; ohne das Recht geht auch
-> `bash schluessel.sh zeigen`.
+> `chmod +x keytool.sh`, und es ist erledigt; ohne das Recht geht auch
+> `bash keytool.sh zeigen`.
 
 **Warum nicht auf Knopfdruck in der Oberfläche?** Zwei Gründe. Der Anlass ist
 **einmalig** — ein dauerhafter Knopf für ein einmaliges Ereignis, und
@@ -2686,10 +2686,10 @@ cd kriterion-probe
 rm -rf kriterion-sicherung .git .env.vor-*   # data BLEIBT. .env BLEIBT.
 sed -i 's/^    container_name: kriterion$/    container_name: kriterion-probe/' docker-compose.yml
 sed -i 's/"3100:3000"/"3199:3000"/' docker-compose.yml
-chmod +x schluessel.sh
+chmod +x keytool.sh
 docker compose up -d --build
 # auf http://<server>:3199 anmelden — dieselben Benutzer, derselbe Bestand
-./schluessel.sh wechseln
+./keytool.sh wechseln
 docker compose logs --tail 30 kriterion
 ```
 
@@ -2699,7 +2699,7 @@ docker compose logs --tail 30 kriterion
 > Datenbank; das läuft durch und belegt nichts. Wird umgekehrt `data/` behalten
 > und trotzdem ein frischer Schlüssel geschrieben, geht die Datenbank **gar
 > nicht mehr auf** — dann scheitert nicht der Wechsel, sondern schon der Start.
-> `schluessel.sh` selbst stört sich an einem vorhandenen `data/` nicht.
+> `keytool.sh` selbst stört sich an einem vorhandenen `data/` nicht.
 
 **Woran du erkennst, dass die Probe etwas wert war** — vier Zeilen, und alle
 vier müssen stimmen:

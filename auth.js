@@ -7,7 +7,7 @@ const { db, assignInventory } = require('./db');
 const mail = require('./mail');
 /* Nur wegen der Rechnung: Base32, HMAC ueber den Zaehler, das Fenster. Alles,
    was eine Zeile hat, steht hier -- dieselbe Teilung wie bei mail.js. */
-const zf = require('./zweifaktor');
+const zf = require('./twofactor');
 
 /* ================= Die Fehlerklasse „Message" ================= */
 /* EIN FEHLER IST EIN SCHLUESSEL UND KEIN SATZ -- 0.24.0, Bauabschnitt 1.
@@ -344,8 +344,8 @@ async function changeUser(userId, oldPassword, newName, newPassword, newAddress)
 
 /* --- Zugangsverwaltung --------------------------------------------------
    EIN Ort, zwei Rufer: die Verwaltungskarte in server.js und der Befehl
-   zugang.js auf dem Wirt. Die Rechtefrage steht hier ausdruecklich NICHT --
-   wer etwas darf, entscheidet server.js an der Route; zugang.js laeuft auf dem
+   usertool.js auf dem Wirt. Die Rechtefrage steht hier ausdruecklich NICHT --
+   wer etwas darf, entscheidet server.js an der Route; usertool.js laeuft auf dem
    Wirt und hat damit ohnehin alles. Diese Funktionen fuehren nur aus. */
 
 const getUser2 = (id) =>
@@ -406,7 +406,7 @@ async function createUser(name, password, role = 'user', ohnePasswort = false, w
 }
 
 // Setzt ein Passwort ohne das bisherige zu kennen -- fuer den Admin, der es
-// zuruecksetzt, und fuer zugang.js. Die Sitzungen fallen dabei ALLE: wer ein
+// zuruecksetzt, und fuer usertool.js. Die Sitzungen fallen dabei ALLE: wer ein
 // fremdes Passwort neu setzt, will den bisherigen Inhaber draussen haben.
 async function setNewPassword(userId, newPassword, wer) {
   const acting = actor(wer);
@@ -430,7 +430,7 @@ function setRole(userId, role, wer) {
   if (!ROLES.includes(role)) throw new Message('login.roleUnknown');
   // Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
   // noch weiter unten durch Sperren oder Loeschen. Ohne ihn kaeme niemand mehr
-  // an Rollen, Export und Import, und der einzige Ausweg waere zugang.js.
+  // an Rollen, Export und Import, und der einzige Ausweg waere usertool.js.
   if (u.role === 'eigentuemer' && role !== 'eigentuemer' && ownerCount() <= 1)
     throw new Message('login.lastOwner');
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, u.id);
@@ -555,14 +555,14 @@ function removeUser(userId, optionen = {}, wer) {
 // --- AUTH_RESET wird abgelehnt ------------------------------------------
 // Ein Zuruecksetzen ueber eine Umgebungsvariable gibt es nicht: es machte alle
 // Zugaenge und Zuordnungen mit einem Schlag kaputt. Passwort und Zugaenge
-// verwaltet zugang.js auf dem Wirt. Still weglassen waere falsch: wer die
+// verwaltet usertool.js auf dem Wirt. Still weglassen waere falsch: wer die
 // Zeile in der .env stehen hat, muss es erfahren -- der Start bricht nicht ab,
 // sagt es aber laut.
 if (process.env.AUTH_RESET) {
   console.warn('[Kriterion] AUTH_RESET wird seit Version 0.8.0 nicht mehr ausgefuehrt und ist ' +
     'wirkungslos. Die Zeile kann aus der .env entfernt werden. Passwort vergessen: ' +
-    'docker compose exec kriterion node zugang.js passwort <name> -- ' +
-    'Zugang entfernen: node zugang.js entfernen <name>.');
+    'docker compose exec kriterion node usertool.js passwort <name> -- ' +
+    'Zugang entfernen: node usertool.js entfernen <name>.');
 }
 
 // AUTH_USER/AUTH_PASSWORD werden nicht mehr gelesen. Der erste Zugang entsteht
@@ -1130,7 +1130,7 @@ const EVENTS = [
      kann. */
   'anfrage.frei', 'anfrage.ab',
   /* 'schluessel' -- der Wechsel des Datenbankschluessels. Er
-     laeuft ueber schluessel.js auf dem Wirt und traegt deshalb IMMER das leere
+     laeuft ueber keytool.js auf dem Wirt und traegt deshalb IMMER das leere
      `wer` von dort: "ueber den Wirt". Ein Handelnder stuende hier nur als
      Behauptung, denn wer den Befehl ausfuehren kann, koennte sie setzen.
      DIE ZEILE NENNT, DASS GEWECHSELT WURDE, NIE WOHIN. Kein Merkmal, kein
@@ -1186,7 +1186,7 @@ const LOG_LIMIT = 100;
 const insLog = db.prepare(
   'INSERT INTO sicherheitsprotokoll (was, wer, ziel, merkmal) VALUES (?, ?, ?, ?)');
 
-/* WER HANDELT -- die Nummer des Angemeldeten oder FROM_HOST fuer zugang.js.
+/* WER HANDELT -- die Nummer des Angemeldeten oder FROM_HOST fuer usertool.js.
    KEIN VORGABEWERT, und die Klemme darunter ist keine Zierde: ein vergessenes
    Argument waere still eine FALSCHAUSSAGE -- die Zeile behauptete dann, der
    Vorgang sei ueber den Wirt gelaufen. Dieselbe Ueberlegung wie bei qComments
@@ -1202,7 +1202,7 @@ function actor(wer) {
 }
 
 /* Schreibt EINE Zeile. Die Rechtefrage steht hier ausdruecklich NICHT -- wer
-   etwas darf, entscheidet server.js an der Route; zugang.js laeuft auf dem
+   etwas darf, entscheidet server.js an der Route; usertool.js laeuft auf dem
    Wirt und hat ohnehin alles. Diese Funktion haelt nur fest.
    SIE WIRFT NIE. Ein Protokoll, das den Vorgang mitreisst, ueber den es
    berichten soll, waere schlimmer als keins -- geschrieben wird deshalb NACH
@@ -1409,7 +1409,7 @@ function dropRelease(token) {
 
 /* --- Der zweite Faktor ---------------------------------------------------
    WER WILL, SICHERT SEINEN ZUGANG MIT EINEM CODE AUS EINER APP AUF SEINEM
-   TELEFON. Die Rechnung steht in zweifaktor.js; hier stehen die Zeilen und
+   TELEFON. Die Rechnung steht in twofactor.js; hier stehen die Zeilen und
    die Regeln darum herum.
 
    FREIWILLIG, JE ZUGANG, UND JEDER SCHALTET IHN FUER SICH SELBST EIN -- nicht
@@ -1417,7 +1417,7 @@ function dropRelease(token) {
    Geheimnis auf sein Telefon bekommt; ein Admin, der es fuer einen anderen
    taete, sperrte ihn aus. AUSSCHALTEN darf nur der Betroffene, sonst waere
    der zweite Faktor an der Rollenleiter vorbei abschaltbar. Der einzige Weg
-   daneben ist zugang.js auf dem Wirt.
+   daneben ist usertool.js auf dem Wirt.
 
    DIE RECHTEFRAGE STEHT HIER AUSDRUECKLICH NICHT: welche Nummer
    hereingereicht wird, entscheidet server.js an der Route. */
@@ -1578,7 +1578,7 @@ function checkTwoFactor(userId, input, now = Date.now()) {
 /* Frische Wiederherstellungscodes fuer den, der seine verbraucht hat. Hinter
    Passwort UND gueltigem Code -- die Route stellt beides sicher.
    DER FALL, DEN NIEMAND PLANT, IST DER LETZTE VERBRAUCHTE CODE. Ohne diesen Weg
-   bliebe dafuer nur zugang.js auf dem Wirt; mit ihm sieht der Betroffene an
+   bliebe dafuer nur usertool.js auf dem Wirt; mit ihm sieht der Betroffene an
    der Karte, dass es eng wird ("noch 1 von 8"), und holt sich neue. */
 function refreshRecoveryCodes(userId) {
   const id = Number(userId) || 0;
@@ -1586,7 +1586,7 @@ function refreshRecoveryCodes(userId) {
   return createRecoveryCodes(id);
 }
 
-/* Ausschalten. ALLEIN DER BETROFFENE -- oder zugang.js auf dem Wirt, und das
+/* Ausschalten. ALLEIN DER BETROFFENE -- oder usertool.js auf dem Wirt, und das
    ist am leeren `wer` zu erkennen.
    BEIDE TABELLEN IN EINER TRANSAKTION: ein Faktor ohne Codes oder Codes ohne
    Faktor waeren beide ein halber Zustand.
@@ -1728,19 +1728,19 @@ module.exports = {
   REQUEST_HOURS, REQUEST_CAP, REQUEST_NAME_MAX, REQUEST_MAIL_MAX,
   countRequests, cleanupRequests,
   createRequest, confirmRequest, listRequests, getRequest, removeRequest,
-  // Das Sicherheitsprotokoll; Rufer sind server.js und zugang.js.
+  // Das Sicherheitsprotokoll; Rufer sind server.js und usertool.js.
   EVENTS, DETAILS, LOG_DAYS, LOG_LIMIT, LOG_GROUPS, FROM_HOST,
   log, cleanupLog, readLog,
   // Die zweite Bestaetigung.
   CONFIRM_PURPOSES, RELEASE_MS, createRelease, useRelease, dropRelease,
-  // Der zweite Faktor; Rufer sind server.js und zugang.js.
+  // Der zweite Faktor; Rufer sind server.js und usertool.js.
   TWO_FACTOR_DENIAL, LOGIN_TICKET_MS,
   twoFactorOn, twoFactorState, startTwoFactor, turnTwoFactorOn,
   checkTwoFactor, refreshRecoveryCodes, turnTwoFactorOff,
   createLoginTicket, useLoginTicket,
   getUser, getUserByName, userExists, createFirstUser, changeUser,
   hashPassword, checkPassword,
-  // Zugangsverwaltung; Rufer sind server.js und zugang.js.
+  // Zugangsverwaltung; Rufer sind server.js und usertool.js.
   ROLES, STATES, tombstoneName, TOMBSTONE_PATTERN,
   getUser2, listUsers, ownerCount,
   createUser, setNewPassword, setRole, setStatus, countInventory, removeUser

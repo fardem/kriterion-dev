@@ -3,11 +3,11 @@
  * (occ user:resetpassword), GitLab und Grafana gehen: ein Befehl auf dem
  * Wirt, ein Name, ein Vorgang.
  *
- *   node zugang.js liste
- *   node zugang.js passwort <name>
- *   node zugang.js entfernen <name> [--eintraege] [--beitraege]
- *   node zugang.js eigentuemer <name>
- *   node zugang.js zweifaktor <name>
+ *   node usertool.js liste
+ *   node usertool.js passwort <name>
+ *   node usertool.js entfernen <name> [--eintraege] [--beitraege]
+ *   node usertool.js eigentuemer <name>
+ *   node usertool.js zweifaktor <name>
  *
  * Die Vorgaenge selbst stehen in auth.js und werden von der Verwaltungskarte
  * genauso gerufen. Hier steht nur die Bedienung: einlesen, fragen, ausgeben.
@@ -28,15 +28,15 @@ function help() {
   console.log(`
 ${BOLD('Kriterion — Zugangsverwaltung')}
 
-  node zugang.js liste
+  node usertool.js liste
       Alle Zugaenge mit Nummer, Rolle, Status und Zahl der Eintraege.
 
-  node zugang.js passwort <name>
+  node usertool.js passwort <name>
       Setzt das Passwort neu. Fragt es zweimal ab; alle Sitzungen dieses
       Zugangs fallen. Rolle, Nummer und Bestand bleiben unangetastet.
       Das ist der haeufige Fall: Passwort vergessen.
 
-  node zugang.js entfernen <name> [--eintraege] [--beitraege]
+  node usertool.js entfernen <name> [--eintraege] [--beitraege]
       Macht aus dem Zugang einen Grabstein: die Zeile bleibt mit ihrer Nummer
       stehen, der Name wird freigegeben, die Beitraege bleiben sichtbar und
       tragen kuenftig "Geloeschter Benutzer <nr>". Fragt vorher nach.
@@ -45,11 +45,11 @@ ${BOLD('Kriterion — Zugangsverwaltung')}
         --beitraege   loescht zusaetzlich seine Kommentare, Bewertungen und
                       Testtage in fremden Eintraegen.
 
-  node zugang.js eigentuemer <name>
+  node usertool.js eigentuemer <name>
       Macht den Zugang zum Eigentuemer der Instanz. Der Notausgang, wenn sich
       der bisherige nicht mehr anmeldet.
 
-  node zugang.js zweifaktor <name>
+  node usertool.js zweifaktor <name>
       Schaltet den zweiten Faktor AUS. Der Notausgang, wenn das Telefon weg
       ist und auch die Wiederherstellungscodes aufgebraucht sind. Fragt vorher
       nach; Passwort, Rolle und Bestand bleiben unangetastet.
@@ -107,7 +107,7 @@ function findUser(name) {
   const u = db.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').get(String(name || ''));
   if (!u) {
     console.error(RED(`Kein Zugang mit dem Namen "${name}".`));
-    console.error('Vorhandene Namen zeigt: node zugang.js liste');
+    console.error('Vorhandene Namen zeigt: node usertool.js liste');
     process.exit(1);
   }
   return auth.getUser2(u.id);

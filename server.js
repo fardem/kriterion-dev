@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
 const { Worker } = require('worker_threads');
-const anh = require('./anhaenge');
+const anh = require('./attachments');
 // Eine Quelle fuer die Versionsnummer: die package.json. Die fuehrende Null
 // sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
 const VERSION = require('./package.json').version;
@@ -29,7 +29,7 @@ const sharp = require('sharp');
    trotzdem die halbe Kernzahl des Wirts. Ob daraus mehr wird -- das Lesen der
    cgroup-Grenze --, ist eine Frage fuer 0.19.2 und nicht fuer diese Runde. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
-/* DIE BILDABLEITUNGEN STEHEN SEIT 0.19.3 IN bilder.js und nicht mehr hier.
+/* DIE BILDABLEITUNGEN STEHEN SEIT 0.19.3 IN images.js und nicht mehr hier.
    Der Grund ist nicht Ordnung, sondern EINE Wahrheit ueber die Ablage: der
    Bestandslauf faehrt seit dieser Runde in einem eigenen Thread und braucht
    dieselbe Umwandlung wie der Anfrageweg (Stolperstein 47). Gerufen wird
@@ -39,7 +39,7 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    Thread. Ein Import, den niemand ruft, ist eine Zeile, die beim naechsten
    Lesen erklaert werden muss. Der KOMMENTAR ueber qOpenPng nennt es
    weiterhin, und das ist richtig: die Byte-Folge dort ist dieselbe. */
-const { makeVariants, PNG_MAGIC_HEX, storeImage } = require('./bilder');
+const { makeVariants, PNG_MAGIC_HEX, storeImage } = require('./images');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
@@ -441,8 +441,8 @@ const formatFromMime = (m) => IMAGE_MIME_FORMAT[String(m || '').trim().toLowerCa
 const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;
 
 /* ---- Den vorhandenen Bestand nachziehen ----
-   DIES WAR ALS WIRTSSKRIPT `bilder.js` GEPLANT, in der Bauform von zugang.js
-   und schluessel.js. Es ist ein Knopf geworden, und das ist die bessere Wahl,
+   DIES WAR ALS WIRTSSKRIPT `images.js` GEPLANT, in der Bauform von usertool.js
+   und keytool.js. Es ist ein Knopf geworden, und das ist die bessere Wahl,
    nicht die bequemere:
      * Es ist KEINE einmalige Umstellung, sondern eine Funktion, die bleibt.
        Der Schalter kann ein Jahr aus stehen; eine alte Sicherung bringt PNG
@@ -470,7 +470,7 @@ const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;
    /api/images/convert antwortete mit 409. Ein Stand je Aufgabe ist die
    einzige Form, in der beide gleichzeitig die Wahrheit sagen koennen.
    DER SCHLUESSEL IST DIE AUFGABE, mit der der Thread erzeugt wird -- dieselbe
-   Zeichenfolge, die bestandslauf.js unten in seiner Verzweigung liest. Eine
+   Zeichenfolge, die batchrun.js unten in seiner Verzweigung liest. Eine
    zweite Liste der Aufgabennamen liefe auseinander. */
 const batchStates = { umstellung: null, geometrie: null };
 
@@ -503,7 +503,7 @@ const qOpenPng = db.prepare(
    stand hier `art != 'video'`, weil eine Videozeile in `data` die Videodatei
    traegt und es fuer sie keine Vorlage gab. DIE HAT SIE DOCH: ihr `medium`
    ist die Ableitung ihres Standbilds, und daraus laesst sich die Kachel
-   erzeugen (siehe vorlageAus() in bestandslauf.js). Sie MUSS es sogar -- der
+   erzeugen (siehe vorlageAus() in batchrun.js). Sie MUSS es sogar -- der
    CSS-Zuschnitt faellt in dieser Runde weg, und eine Videokachel mit
    `zoom > 100` zeigte danach den Mittenschnitt statt des eingestellten
    Ausschnitts. Der Ausschnitteditor ist am Video offen, Schieber
@@ -542,7 +542,7 @@ const qVideoExportBytes = db.prepare(`
 
 /* ================= DER BESTANDSLAUF IN EINEM EIGENEN THREAD — 0.19.3 =========
 
-   DIE SCHLEIFEN SELBST STEHEN IN bestandslauf.js, und die Begruendung mit
+   DIE SCHLEIFEN SELBST STEHEN IN batchrun.js, und die Begruendung mit
    ihren Messungen steht dort im Kopf. Hier steht nur, was der Haupt-Thread
    damit zu tun hat: den Thread erzeugen, seine Meldungen entgegennehmen und
    ihn beim Herunterfahren mitnehmen.
@@ -572,7 +572,7 @@ const batchThreads = new Set();
    Fingerprint, der eine ausgelieferte Datei nicht kennt, ist eine halbe
    Aussage. Beide lesen deshalb DIESE Zeile, und eine Pruefung haelt sie
    gegeneinander. */
-const BATCHRUN = path.join(__dirname, 'bestandslauf.js');
+const BATCHRUN = path.join(__dirname, 'batchrun.js');
 
 /* EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB -- dieselbe Regel wie
    heute fuer eine einzelne Zeile. Was hier ankommt, ist alles, was die
@@ -1214,7 +1214,7 @@ app.post('/api/two-factor/start', async (req, res) => {
 /* Schritt zwei. HIER ENTSTEHEN DIE WIEDERHERSTELLUNGSCODES, und sie stehen in
    dieser einen Antwort. Danach nirgends mehr -- auch nicht in der Datenbank,
    dort liegt nur ihr SHA-256. Wer sie verliert, holt sich neue; wer beides
-   verliert, geht ueber zugang.js auf dem Wirt. */
+   verliert, geht ueber usertool.js auf dem Wirt. */
 app.post('/api/two-factor/on', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!await ownPasswordMatches(req, res, passwort)) return;
@@ -1248,7 +1248,7 @@ app.post('/api/two-factor/codes', async (req, res) => {
    nicht: gegen eine uebernommene Sitzung mit mitgelesenem Passwort ist der
    Faktor ja gerade gebaut.
    EIN ADMIN KOMMT HIER NICHT HEREIN: die Nummer kommt aus req.benutzer. Der
-   einzige Weg daneben ist zugang.js auf dem Wirt. */
+   einzige Weg daneben ist usertool.js auf dem Wirt. */
 app.delete('/api/two-factor', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!auth.twoFactorOn(req.benutzer.id))
@@ -1378,7 +1378,7 @@ app.get('/api/security-log', ownerOnly, (req, res) => {
 });
 
 /* ---- Zugaenge verwalten ----
-   Die Vorgaenge selbst stehen in auth.js, weil zugang.js auf dem Wirt
+   Die Vorgaenge selbst stehen in auth.js, weil usertool.js auf dem Wirt
    dieselben ruft -- zwei Wege zum selben Grabstein liefen auseinander.
    Hier steht nur, WER sie ausloesen darf. */
 
@@ -2638,7 +2638,7 @@ const PHOTO_COLUMNS = 'id, item_id, mime_type, focus_x, focus_y, zoom, sort_orde
 
    WOZU SIE UEBERHAUPT DA IST -- UND SIE IST KEINE KUER, SONDERN VORAUSSETZUNG.
    Die Auslieferung setzt `Cache-Control: private, max-age=86400`
-   (anhaenge.js, gerufen mit maxAge: 86400 an /api/photos/:id/raw). Solange
+   (attachments.js, gerufen mit maxAge: 86400 an /api/photos/:id/raw). Solange
    der Eintrag frisch ist, FRAGT DER BROWSER GAR NICHT ERST NACH; der schwache
    ETag von Express wird erst geprueft, wenn er abgelaufen ist. Bis 0.19.4 fiel
    das nicht auf, weil der Ausschnitt im Browser gerechnet wurde und die
@@ -3908,7 +3908,7 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
 
 /* Der ausgelieferte Typ kommt aus den ersten Bytes, nie aus photos.mime_type:
    die Spalte ist eine Angabe des Hochladenden. Damit ist auch geschuetzt, was
-   schon in der Datenbank liegt -- dieselbe Regel wie in anhaenge.js.
+   schon in der Datenbank liegt -- dieselbe Regel wie in attachments.js.
    Bei einem Video ist der Blob je nach Groesse etwas anderes: mit size= das
    Standbild, ohne die Videodatei; der Erkenner sieht das den Bytes an.
    BEREICHE NUR AM VIDEO UND NUR AN DER GANZEN DATEI. */
@@ -3993,7 +3993,7 @@ const DEFAULT_CROP = { fx: DISPLAY_VALUES.focus_x.vorgabe,
    wartet davor, und eine Kachel, die „gleich" richtig wird, ist schlechter
    als eine, die es beim Zurueckkommen ist.
    ERZEUGT WIRD IM THREAD, und das ist eine Messung -- sie steht bei
-   erneuereEineKachel() in bestandslauf.js: das Erzeugen 157,3 ms im Median und
+   erneuereEineKachel() in batchrun.js: das Erzeugen 157,3 ms im Median und
    247,0 ms im 95. Perzentil, das Zurueckschreiben der Kachel noch einmal bis
    zu 473,7 ms (SQLite schreibt den ganzen Satz neu, und der traegt das
    Original). AN DIESER ROUTE GEMESSEN: 494 bis 873 ms von der Anfrage bis zur
@@ -4070,7 +4070,7 @@ app.put('/api/photos/:id/focus', (req, res) => {
 });
 
 /* ---- Anhaenge ----
- * Die Sicherheit haengt vollstaendig an der Auslieferung, siehe anhaenge.js.
+ * Die Sicherheit haengt vollstaendig an der Auslieferung, siehe attachments.js.
  * Deshalb wird beim Hochladen bewusst NICHT nach Typen gefiltert: eine
  * Positivliste dort waere leicht zu umgehen und wiegte in falscher Sicherheit.
  */
@@ -4852,7 +4852,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('bilder'), (req, 
   console.log(`[Kriterion] Bildumstellung gestartet: ${zeilen.length} PNG.`);
   res.status(202).json(batchState('umstellung'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
-     laeuft die Schleife nicht mehr hier, sondern in bestandslauf.js. Was der
+     laeuft die Schleife nicht mehr hier, sondern in batchrun.js. Was der
      Aufrufer bekommt, ist unveraendert: 202 mit dem Anfangsstand, und der
      Fortschritt geht weiter als Feld in /api/stats.
      DAS NETZ GEGEN DAS, WAS DANEBEN SCHIEFGEHEN KANN, HAENGT JETZT AM THREAD
@@ -6227,7 +6227,7 @@ function checkPlace(roh) {
    worden. Der Preis steht daneben: ein unerreichbarer Zielort liefert keine
    Auskunft, und dann sagt die Karte GENAU DAS statt einer Zahl. */
 /* ZWEI SCHLUESSEL IM UMLAUF -- die unangenehmste Falle des ganzen Projekts.
-   Wird der Schluessel der Datenbank gewechselt (schluessel.js auf dem Wirt),
+   Wird der Schluessel der Datenbank gewechselt (keytool.js auf dem Wirt),
    bleiben die vorhandenen Sicherungen mit dem ALTEN verschluesselt. Sie sind
    nicht kaputt -- sie brauchen nur einen anderen Schluessel, und wer das
    nicht weiss, haelt sie im Ernstfall fuer defekt.
@@ -6792,7 +6792,7 @@ app.use((err, req, res, next) => {
    bei jedem Start aufs Neue faellig. Und der Kernsatz gilt auch hier: der
    Server oeffnet nie ein Video. Das Standbild kommt vom Browser.
 
-   DIE SCHLEIFE SELBST LAEUFT SEIT 0.19.3 IM THREAD (bestandslauf.js) --
+   DIE SCHLEIFE SELBST LAEUFT SEIT 0.19.3 IM THREAD (batchrun.js) --
    dieselbe Bauform und derselbe Grund wie bei der Umstellung: sie liest und
    schreibt Blobs, und better-sqlite3 ist synchron.
    DIE FRAGE, OB ES ETWAS ZU TUN GIBT, BLEIBT HIER. Ohne sie entstuende bei
@@ -6862,10 +6862,10 @@ function maintainStorage() {
 // DIE LISTE WIRD ABGELEITET, NICHT GEPFLEGT, und zwar aus dem, was der Server
 // wirklich tut: alles unter public/ liefert express.static aus, alles in
 // require.cache unterhalb dieses Verzeichnisses fuehrt er aus. Eine zweite,
-// gepflegte Liste liefe auseinander -- und pruefung.js und Doku/ koennen so
+// gepflegte Liste liefe auseinander -- und testbench.js und Doku/ koennen so
 // gar nicht erst hineingeraten (sie liegen nicht im Image).
 //
-// DIE GRENZE, DIE DARAUS FOLGT, IST ABSICHT: zugang.js liegt im Image, wird
+// DIE GRENZE, DIE DARAUS FOLGT, IST ABSICHT: usertool.js liegt im Image, wird
 // aber nur von Hand aufgerufen und steht deshalb nicht im Fingerprint. Er
 // sagt, WELCHER SERVER LAEUFT.
 function filesUnder(directory) {
@@ -6881,7 +6881,7 @@ function filesUnder(directory) {
 function buildFingerprint() {
   const ran = Object.keys(require.cache).filter(f =>
     f.startsWith(__dirname + path.sep) && !f.split(path.sep).includes('node_modules'));
-  /* UND DIE DATEI, DIE NUR IM THREAD LEBT -- 0.19.3. bestandslauf.js wird
+  /* UND DIE DATEI, DIE NUR IM THREAD LEBT -- 0.19.3. batchrun.js wird
      nicht requiret, sondern an `new Worker` gereicht; es steht deshalb in
      keiner require.cache des Haupt-Threads und fiele aus der Ableitung
      heraus. DER SERVER FUEHRT ES TROTZDEM AUS, und genau das ist der Massstab

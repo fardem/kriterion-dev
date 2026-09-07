@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /* Der Gegenprobentreiber.
  *
- *   node gegenprobe.js            alle Rueckbauten, zwei Nebenspuren
- *   node gegenprobe.js 4          alle Rueckbauten, vier Nebenspuren
- *   node gegenprobe.js 2 W2 W3    nur die Rueckbauten, deren Nummer oder Name
+ *   node counterproof.js            alle Rueckbauten, zwei Nebenspuren
+ *   node counterproof.js 4          alle Rueckbauten, vier Nebenspuren
+ *   node counterproof.js 2 W2 W3    nur die Rueckbauten, deren Nummer oder Name
  *                                 auf eines der Woerter passt
  *
  * WOZU. Eine Pruefung, die gruen ist, belegt nichts, solange niemand gezeigt
@@ -729,21 +729,21 @@ const RUECKBAUTEN = [
      an nichts. */
   {
     nr: '82', name: 'Acht Ziffern statt sechs',
-    datei: 'zweifaktor.js',
+    datei: 'twofactor.js',
     suche: 'const DIGITS = 6;',
     ersatz: 'const DIGITS = 8;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '83', name: 'SHA-256 statt SHA-1',
-    datei: 'zweifaktor.js',
+    datei: 'twofactor.js',
     suche: "const ALGORITHM = 'sha1';",
     ersatz: "const ALGORITHM = 'sha256';",
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '84', name: 'Sechzig Sekunden statt dreissig',
-    datei: 'zweifaktor.js',
+    datei: 'twofactor.js',
     suche: 'const STEP_SECONDS = 30;',
     ersatz: 'const STEP_SECONDS = 60;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
@@ -754,7 +754,7 @@ const RUECKBAUTEN = [
        andere Codes -- die eine Stelle, an der eine eigene Umsetzung typisch
        danebenliegt. */
     nr: '85', name: 'Der Anfang des Abgreifens steht fest statt aus dem Hash zu kommen',
-    datei: 'zweifaktor.js',
+    datei: 'twofactor.js',
     suche: '  const o = h[h.length - 1] & 0x0f;',
     ersatz: '  const o = 0;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
@@ -764,7 +764,7 @@ const RUECKBAUTEN = [
        stimmt bis zum Jahr 6053 -- und der Testvektor T = 20 000 000 000 liegt
        darueber. Ohne ihn bliebe genau diese Zeile ungeprueft. */
     nr: '86', name: 'Der Zaehler wird nur in seiner unteren Haelfte geschrieben',
-    datei: 'zweifaktor.js',
+    datei: 'twofactor.js',
     suche: "  z.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);",
     ersatz: "  z.writeUInt32BE(0, 0);",
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
@@ -772,14 +772,14 @@ const RUECKBAUTEN = [
   /* ---- Der zweite Faktor: das Fenster und die Wiederverwendung ---- */
   {
     nr: '87', name: 'Das Fenster wird auf zwei Schritte geweitet',
-    datei: 'zweifaktor.js',
+    datei: 'twofactor.js',
     suche: 'const WINDOW = 1;',
     ersatz: 'const WINDOW = 2;',
     erwartet: 'Der zweite Faktor: das Zeitfenster'
   },
   {
     nr: '88', name: 'Es gibt gar kein Nachbarfenster mehr',
-    datei: 'zweifaktor.js',
+    datei: 'twofactor.js',
     suche: 'const WINDOW = 1;',
     ersatz: 'const WINDOW = 0;',
     erwartet: 'Der zweite Faktor: das Zeitfenster'
@@ -922,7 +922,7 @@ const RUECKBAUTEN = [
   },
   {
     nr: '102', name: 'Es entstehen sieben Codes statt acht',
-    datei: 'zweifaktor.js',
+    datei: 'twofactor.js',
     suche: 'const RECOVERY_COUNT = 8;',
     ersatz: 'const RECOVERY_COUNT = 7;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
@@ -996,11 +996,11 @@ const RUECKBAUTEN = [
     erwartet: 'Der zweite Faktor: der Rundlauf'
   },
   {
-    nr: '111', name: 'zugang.js schaltet den zweiten Faktor nicht mehr ab',
-    datei: 'zugang.js',
+    nr: '111', name: 'usertool.js schaltet den zweiten Faktor nicht mehr ab',
+    datei: 'usertool.js',
     suche: "  auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
     ersatz: "  // auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
-    erwartet: 'Der zweite Faktor: zugang.js auf dem Wirt'
+    erwartet: 'Der zweite Faktor: usertool.js auf dem Wirt'
   },
   /* ---- Der zweite Faktor: die zweite Bestaetigung ---- */
   {
@@ -1106,7 +1106,7 @@ const RUECKBAUTEN = [
   },
   {
     nr: '121', name: 'F_ROUTEN kennt den zweiten Schritt der Anmeldung nicht',
-    datei: 'pruefung.js',
+    datei: 'testbench.js',
     suche: "    ['POST',   '/api/login/second',                'offen'],",
     ersatz: "",
     erwartet: 'Der Waechter ueber den Quelltext'
@@ -2789,14 +2789,14 @@ const RUECKBAUTEN = [
     /* EIN WERKZEUG, DAS SEINEN EIGENEN FUND NICHT SEHEN KANN, IST SCHLIMMER
        ALS KEINES (Stolperstein 213). */
     nr: '299', name: 'Die Groessenmessung findet gar nichts mehr',
-    datei: 'pruefung.js',
+    datei: 'testbench.js',
     suche: "    return gefunden.sort((a, b) => b.zeilen - a.zeilen || a.name.localeCompare(b.name));",
     ersatz: "    return [];",
     erwartet: 'Die Groesse der Funktionen wird gemessen'
   },
   {
     nr: '300', name: 'Der Nummernfilter der Gegenprobe greift wieder in die Namen',
-    datei: 'gegenprobe.js',
+    datei: 'counterproof.js',
     suche: "  if (/^\\d+$/.test(a)) return r.nr.toLowerCase() === a;",
     ersatz: "  if (false) return r.nr.toLowerCase() === a;",
     erwartet: 'Die Gegenproben greifen'
@@ -3808,7 +3808,7 @@ const RUECKBAUTEN = [
      unversehrt bleibt. Ein Rueckbau, der alles zugleich abschaltet, sagte nur,
      dass irgendetwas fehlt.
 
-     SECHS DAVON ZEIGEN SEIT 0.19.3 AUF bilder.js -- 431 bis 435 und 458. Die
+     SECHS DAVON ZEIGEN SEIT 0.19.3 AUF images.js -- 431 bis 435 und 458. Die
      Umwandlung steht nicht mehr in server.js, weil der Bestandslauf sie aus
      einem eigenen Thread braucht; die Rueckbauten sind MITGEGANGEN und nicht
      geloescht worden (Stolperstein 201). Es ist derselbe Fund an derselben
@@ -3816,7 +3816,7 @@ const RUECKBAUTEN = [
      greift, ist stumm und verfaelscht die Tabelle (Stolperstein 192). */
   {
     nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  if (!isPng(buf)) return { data: buf, mime: reportedType, umgewandelt: false };",
     ersatz: "  if (true) return { data: buf, mime: reportedType, umgewandelt: false };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -3827,7 +3827,7 @@ const RUECKBAUTEN = [
        aber der naechste Export traegt die Luege weiter. Genau deshalb muss die
        Pruefung an der SPALTE haengen und nicht nur am Kopf der Antwort. */
     nr: '432', name: 'Der mime_type wird nicht mitgezogen',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "      return { data: webp, mime: 'image/webp', umgewandelt: true };",
     ersatz: "      return { data: webp, mime: reportedType, umgewandelt: true };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -3860,7 +3860,7 @@ const RUECKBAUTEN = [
        Der Rueckbau bewacht damit das Vorhandensein der Regel, auch wo er ihre
        Wirkung nicht zeigen kann. */
     nr: '433', name: 'Auch ein groesseres Ergebnis wird genommen',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "    if (webp.length < buf.length)",
     ersatz: "    if (true)",
     erwartet: '(erwartet STUMM — achtzehn Laborversuche ohne Gegenbeispiel, und am echten Bestand 679 von 679 umgestellt; nur die Kantengrenze laesst PNG liegen, und die ist Rueckbau 458)'
@@ -3870,7 +3870,7 @@ const RUECKBAUTEN = [
        16383 px je Kante. Faengt niemand den Fehler ab, scheitert der ganze
        Upload mit 500, statt das PNG unveraendert abzulegen. */
     nr: '458', name: 'Ein Bild, das WebP nicht fassen kann, reisst den Upload ab',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
     ersatz: "    throw e;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -3880,7 +3880,7 @@ const RUECKBAUTEN = [
        Bytes. Sie sieht damit richtig aus und glaubt dem Browser aufs Wort --
        ein JPEG, das sich image/png nennt, ginge durch den Kodierer. */
     nr: '434', name: 'Die Erkennung glaubt dem gemeldeten Typ',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);",
     ersatz: "  Buffer.isBuffer(buf) && buf.length >= 8;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -3890,7 +3890,7 @@ const RUECKBAUTEN = [
        und heisst weiterhin WebP -- nur franst sie an harten Kanten aus. Ohne
        eine Pruefung, die PIXEL vergleicht, bliebe dieser Rueckbau stumm. */
     nr: '435', name: 'Der verlustbehaftete Kodierer statt nearLossless',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "const WEBP_STORE = { nearLossless: true, quality: 60, effort: 4 };",
     ersatz: "const WEBP_STORE = { quality: 60, effort: 4 };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -4018,7 +4018,7 @@ const RUECKBAUTEN = [
        weiterhin richtig aus und schreibt ihn nirgends hin -- genau der Fall,
        den eine Pruefung an der Funktion allein nicht faende. */
     nr: '449', name: 'Der Zoom kommt nicht in den Zuschnitt (bis 0.19.4: nicht an die Kachel)',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     /* MITGEGANGEN MIT 0.19.5, NICHT GELOESCHT (Stolperstein 201). Bis dahin
        nahm dieser Rueckbau der Kachel ihr `--zoom` -- die Eigenschaft gibt es
        nicht mehr, der Zuschnitt steckt im Bild. Die Zusage ist dieselbe
@@ -4162,7 +4162,7 @@ const RUECKBAUTEN = [
        Mitte, und von der eingestellten Bildecke ist nichts zu sehen --
        gemessen 0,0 % in allen vier Richtungen. */
     nr: '464', name: 'Der Zuschnitt verliert eine seiner beiden Achsen (bis 0.19.4: transform-origin)',
-    datei: 'bilder.js',
+    datei: 'images.js',
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). `transform-origin` gibt es
        nicht mehr; die Zusage dahinter -- der Ausschnitt folgt dem Fokuspunkt
        in BEIDEN Richtungen -- gilt unveraendert und steht jetzt hier. */
@@ -4175,7 +4175,7 @@ const RUECKBAUTEN = [
        Eigenschaft ist vorhanden, und wer nur nachsieht, OB sie dasteht, findet
        nichts. */
     nr: '465', name: 'Der Zuschnitt sitzt in der Mitte statt auf dem Fokuspunkt',
-    datei: 'bilder.js',
+    datei: 'images.js',
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201): dieselbe Zusage an der
        Stelle, an der der Ausschnitt jetzt entsteht. */
     suche: "  const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);",
@@ -4449,7 +4449,7 @@ const RUECKBAUTEN = [
        alle 1500 ms und saehe waehrend des ganzen Laufs dieselbe Null -- am
        Ergebnis aendert sich nichts, an der Auskunft alles. */
     nr: '491', name: 'Der Thread meldet seinen Stand erst am Ende',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     /* DIE ZEILE DANACH GEHOERT SEIT 0.19.4 ZUM SUCHTEXT: dieselben zwei
        Zeilen stehen jetzt auch in der dritten Schleife, und ein Suchtext, der
        zweimal passt, bricht den Rueckbau ab (Stolperstein 201 -- mitziehen,
@@ -4515,7 +4515,7 @@ const RUECKBAUTEN = [
        geladen; unter musl oder mit jemalloc ist die Vorgabe die Kernzahl, und
        ausgerechnet der Wartungslauf naehme sich dann die ganze Maschine. */
     nr: '497', name: 'Der Thread ueberlaesst sharp seine Vorgabe',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
     ersatz: "// sharp nimmt sich, was es will",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
@@ -4612,7 +4612,7 @@ const RUECKBAUTEN = [
     /* DIE KURZE KANTE STEHT WIEDER AUF 400. Der Deckel bleibt, damit genau
        diese eine Zahl gemessen wird und nicht zwei zugleich. */
     nr: '506', name: 'Die kurze Kante des thumb steht wieder auf 400',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
     ersatz: "  thumb:  { kurz: 400,  lang: 1280, q: 78, schneidet: true  },",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
@@ -4622,7 +4622,7 @@ const RUECKBAUTEN = [
        Grenze fuer die lange: ein Bildschirmfoto ueber zwei Monitore wird zur
        groessten Ableitung der Tabelle -- groesser als sein eigenes `medium`. */
     nr: '507', name: 'Der Deckel auf der langen Kante faellt weg',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "lang: 1280, q: 78, schneidet: true  }",
     ersatz: "lang: 99999, q: 78, schneidet: true  }",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
@@ -4633,7 +4633,7 @@ const RUECKBAUTEN = [
        Ableitungen „der Ordnung halber" gleich behandelt, macht `medium`
        schlechter und die Datenbank groesser. */
     nr: '508', name: 'medium bekommt dieselbe Kiste wie thumb',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
     ersatz: "  medium: { kurz: 512, lang: 1280, q: 84, schneidet: false }",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
@@ -4644,7 +4644,7 @@ const RUECKBAUTEN = [
        hochkantes Bild mit Ausrichtung 6 bekommt damit die Kiste hochkant und
        kommt quer heraus -- mit 1280 auf der kurzen Kante. */
     nr: '509', name: 'Der EXIF-Vermerk zaehlt bei der Kante nicht mehr mit',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  const rotated = m && m.orientation >= 5;",
     ersatz: "  const gedreht = false;",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
@@ -4654,7 +4654,7 @@ const RUECKBAUTEN = [
        und jedes hochkante Bild bekommt 512 auf der LANGEN statt auf der
        kurzen Kante. */
     nr: '510', name: 'Der Kopf wird nicht gelesen -- die Kiste liegt immer quer',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  const landscape = size ? isLandscape(size) : true;",
     ersatz: "  const quer = true;",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
@@ -4665,7 +4665,7 @@ const RUECKBAUTEN = [
        und das Panorama mit, und beide kaemen unveraendert heraus -- also bei
        JEDEM Start aufs Neue. Die Abfrage waere kein Festpunkt mehr. */
     nr: '511', name: 'Die Faelligkeit wird wieder an der Zielkante erkannt',
-    datei: 'bilder.js',
+    datei: 'images.js',
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). Die alte Frage lautete
        „traegt die lange Kante genau 400?"; sie ist von „ist die Kachel
        quadratisch?" abgeloest. DIESER RUECKBAU SETZT DIE ZIELKANTE ALS
@@ -4681,7 +4681,7 @@ const RUECKBAUTEN = [
        fuer immer kaputt: das Nachruesten sucht `thumb IS NULL` und sieht
        einen kaputten `thumb` gar nicht an. */
     nr: '512', name: 'Ein unlesbarer thumb bleibt liegen',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  catch { return true; }",
     ersatz: "  catch { return false; }",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
@@ -4691,7 +4691,7 @@ const RUECKBAUTEN = [
        Zeilen neu ab, die laengst richtig liegen -- bei jedem Start, mit dem
        vollen Preis fuer das Lesen des Originals. */
     nr: '513', name: 'Der Lauf erneuert jede Zeile, nicht nur die faelligen',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "        if (await isUncropped(z.thumb)) {",
     ersatz: "        if (true) {",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
@@ -4701,7 +4701,7 @@ const RUECKBAUTEN = [
        Spalte, die vorher ein Bild trug -- eine Videozeile verliert so ihr
        Standbild, und zwar still. */
     nr: '514', name: 'Der Lauf schreibt auch, wenn die Ableitung leer zurueckkommt',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "  if (!v.thumb) return null;",
     ersatz: "  if (!v.thumb) v.thumb = null;",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
@@ -4711,7 +4711,7 @@ const RUECKBAUTEN = [
        Schleife weiter. Die Karte im Systembereich fragt alle 1500 ms und
        saehe waehrend des ganzen Laufs dieselbe Null. */
     nr: '515', name: 'Das Nachziehen meldet seinen Stand erst am Ende',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "    status.erledigt++;\n    report(status);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
     ersatz: "    stand.erledigt++;\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
@@ -4729,7 +4729,7 @@ const RUECKBAUTEN = [
        0.19.3 an der Umstellung; sie ist im Aenderungsprotokoll als
        Offengebliebenes benannt. */
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Kacheln erneuert:",
     ersatz: "  melde(stand);\n  console.log(`[Kriterion] Kacheln erneuert:",
     erwartet: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
@@ -4810,7 +4810,7 @@ const RUECKBAUTEN = [
        abgeleitet -- die Kachel ist danach 910 x 512 statt 512 x 512, und der
        Browser, der sie zurechtzoege, ist weg. */
     nr: '523', name: 'Die Kachel wird wieder ungeschnitten abgeleitet',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
     ersatz: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: false },",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4820,7 +4820,7 @@ const RUECKBAUTEN = [
        gezeigt -- ganz --, und der Editor zeichnet den Rahmen darauf. Ein
        geschnittenes `medium` naehme ihm seine Vorlage. */
     nr: '524', name: 'medium wird mitgeschnitten',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
     ersatz: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: true }",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4831,7 +4831,7 @@ const RUECKBAUTEN = [
        EXIF-Vermerk nicht mitzaehlt, schneidet an der falschen Stelle, und bei
        3024 Breite laege ein `left` von 3500 sogar ausserhalb. */
     nr: '525', name: 'Der Zuschnitt rechnet in den gespeicherten statt in den gedrehten Massen',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  const { width, height } = rotatedSize(size);",
     ersatz: "  const breite = masse.width, hoehe = masse.height;",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4842,7 +4842,7 @@ const RUECKBAUTEN = [
        das mit einem Fehler, und die Kachel entsteht gar nicht erst. Trifft
        genau den Ausschnitt in einer Ecke (fx = 100). */
     nr: '526', name: 'Die Zuschnittkiste wird nicht gegen den Rand geklammert',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "  return { left:  Math.max(0, Math.min(width - edge, Math.round(k.links))),\n           top:   Math.max(0, Math.min(height  - edge, Math.round(k.oben))),",
     ersatz: "  return { left:  Math.round(k.links) + 1,\n           top:   Math.round(k.oben) + 1,",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4852,7 +4852,7 @@ const RUECKBAUTEN = [
        und ein Ausschnitt unter der Zielkante wird auf 512 aufgeblasen. Es
        kostete Bytes und truege keinen einzigen Bildpunkt mehr. */
     nr: '527', name: 'Ein zu kleiner Ausschnitt wird auf die Zielkante hochgerechnet',
-    datei: 'bilder.js',
+    datei: 'images.js',
     suche: "withoutEnlargement: true })",
     ersatz: "withoutEnlargement: false })",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4884,7 +4884,7 @@ const RUECKBAUTEN = [
        Ableitung, die 0.19.4 hinterlassen hat -- und die Zeile bliebe bei
        jedem Start aufs Neue faellig, weil sie nicht quadratisch wird. */
     nr: '530', name: 'Der Bestandslauf erneuert ohne Zuschnitt',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "  const v = await makeVariants(source, cropFrom(z));",
     ersatz: "  const v = await makeVariants(vorlage);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4895,7 +4895,7 @@ const RUECKBAUTEN = [
        ungeschnittene Kachel. Der Kernsatz bleibt: der Server oeffnet nie ein
        Video. */
     nr: '531', name: 'Die Videozeile erzeugt aus der Videodatei statt aus ihrem Standbild',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);",
     ersatz: "const sourceFrom = (z) => z.data;",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4905,7 +4905,7 @@ const RUECKBAUTEN = [
        „Unbekannte Aufgabe", die Route bekommt ihren Abschluss ueber den
        Fehlerweg -- und die Kachel bleibt, wie sie war. */
     nr: '532', name: 'Der Thread kennt die Aufgabe zuschnitt nicht',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "  else if (workerData.task === 'zuschnitt') await refreshOneTile(workerData.rows);\n",
     ersatz: "",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4915,7 +4915,7 @@ const RUECKBAUTEN = [
        haengt seine Antwort an das Ende des Threads und nicht an diese
        Message -- ohne sie weiss aber niemand, ob wirklich erneuert wurde. */
     nr: '533', name: 'Das Ergebnis der einzelnen Zeile wird nicht gemeldet',
-    datei: 'bestandslauf.js',
+    datei: 'batchrun.js',
     suche: "  parentPort.postMessage({ kind: 'refreshed', id, ok });",
     ersatz: "",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -5711,7 +5711,7 @@ const RUECKBAUTEN = [
        Versatz dagegen, und die Tabelle zeigt einen stummen Rueckbau als
        greifenden. EINE FALSCHE TABELLE IST SCHLIMMER ALS GAR KEINE. */
     nr: '604', name: 'Der Treiber faehrt los, ohne nach fremden Servern zu sehen',
-    datei: 'gegenprobe.js',
+    datei: 'counterproof.js',
     suche: '  const fremde = fremdeServer();\n  if (fremde.length) {',
     ersatz: '  const fremde = [];\n  if (fremde.length) {',
     erwartet: 'Die Gegenproben greifen'
@@ -5721,7 +5721,7 @@ const RUECKBAUTEN = [
        liegengebliebener PRUEFLAUF belegt genauso Ports wie ein liegen-
        gebliebener Server -- er startet ja welche. */
     nr: '605', name: 'Die Suche nach fremden Servern kennt den Prueflauf nicht mehr',
-    datei: 'gegenprobe.js',
+    datei: 'counterproof.js',
     suche: "    const skript = teile.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
     ersatz: "    const skript = teile.find(t => /(^|\\/)server\\.js$/.test(t));",
     erwartet: 'Die Gegenproben greifen'
@@ -5930,10 +5930,10 @@ const RUECKBAUTEN = [
        0.19.3. Sie ist eine gepflegte Liste und keine abgeleitete; wer eine
        Quelltextdatei anlegt und sie hier vergisst, bekommt einen Waechter, der
        ueber sie schweigt. GENAU DAS IST IN DIESER RUNDE PASSIERT: in
-       bestandslauf.js stand ein Wort aus der Sperrliste, und niemand sah es. */
+       batchrun.js stand ein Wort aus der Sperrliste, und niemand sah es. */
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
-    datei: 'pruefung.js',
-    suche: "                          'bilder.js', 'bestandslauf.js'];",
+    datei: 'testbench.js',
+    suche: "                          'images.js', 'batchrun.js'];",
     ersatz: "                          ];",
     erwartet: 'Der Sprachwaechter'
   },
@@ -5943,7 +5943,7 @@ const RUECKBAUTEN = [
        davon sein wird. Ein Waechter, dem ein Wort fehlt, sieht aus wie einer,
        der nichts zu beanstanden hat. */
     nr: 'W13', name: 'Die Sprachliste verliert ihren juengsten Eintrag',
-    datei: 'pruefung.js',
+    datei: 'testbench.js',
     suche: "    ['Faden', 'Thread']\n  ];",
     ersatz: "  ];",
     erwartet: 'Der Sprachwaechter'
@@ -6000,7 +6000,7 @@ const RUECKBAUTEN = [
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     datei: 'public/languages/de.json',
     suche: "Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.\"",
-    ersatz: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node zugang.js passwort <name>.\"",
+    ersatz: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node usertool.js passwort <name>.\"",
     erwartet: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -6500,14 +6500,14 @@ const RUECKBAUTEN = [
   },
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
-    datei: 'pruefung.js',
+    datei: 'testbench.js',
     suche: '  const B = starteWeiterenServer(frischDir, {}, 5130);',
     ersatz: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
     erwartet: 'Die Portbasen und der Versatz'
   },
   {
     nr: 'W5', name: 'Der SMTP-Empfaenger wird nicht mehr vermerkt',
-    datei: 'pruefung.js',
+    datei: 'testbench.js',
     suche: '  SMTP_LAGEN.push(lage);',
     ersatz: '  // SMTP_LAGEN.push(lage);',
     erwartet: 'Die Portbasen und der Versatz'
@@ -6520,7 +6520,7 @@ const RUECKBAUTEN = [
        (Stolperstein 138). So bleibt der Lauf ganz, die Empfaenger horchen
        weiter, und genau der Waechter faerbt sich, der dafuer da ist. */
     nr: 'W6', name: 'Der SMTP-Empfaenger hoert nicht auf zu horchen',
-    datei: 'pruefung.js',
+    datei: 'testbench.js',
     suche: '    server.close(() => r());',
     ersatz: '    r();',
     erwartet: 'Keine Prueflage laesst ihren Server zurueck'
@@ -6532,14 +6532,14 @@ const RUECKBAUTEN = [
        das Drucken weg, steht der Grund im Ergebnis und niemand sieht ihn --
        genau die Lage, in der Rueckbau 568 seinen Abriss unerklaert liess. */
     nr: 'W15', name: 'Der Bericht druckt die letzten Zeilen eines Abrisses nicht mehr',
-    datei: 'gegenprobe.js',
+    datei: 'counterproof.js',
     suche: '      for (const z of e.schwanz || []) console.log(`     \u2502 ${z}`);',
     ersatz: '      for (const z of []) console.log(`     \u2502 ${z}`);',
     erwartet: 'Die Gegenproben greifen'
   },
   {
     nr: 'W16', name: 'Der Leser hebt die letzten Zeilen gar nicht erst auf',
-    datei: 'gegenprobe.js',
+    datei: 'counterproof.js',
     suche: "    schwanz: ausgabe.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
     ersatz: '    schwanz: []',
     erwartet: 'Die Gegenproben greifen'
@@ -6645,10 +6645,10 @@ const RUECKBAUTEN = [
    Zahlen an zwei Orten laufen auseinander. Faellt die Zeile weg, bricht der
    Treiber ab, statt still auf einen Vorgabewert zu fallen. */
 function versatzStufe() {
-  const t = fs.readFileSync(path.join(__dirname, 'pruefung.js'), 'utf8');
+  const t = fs.readFileSync(path.join(__dirname, 'testbench.js'), 'utf8');
   const m = t.match(/^const VERSATZ_STUFE = (\d+);$/m);
   if (!m) {
-    console.error('In pruefung.js steht keine Zeile "const VERSATZ_STUFE = <Zahl>;".');
+    console.error('In testbench.js steht keine Zeile "const VERSATZ_STUFE = <Zahl>;".');
     console.error('Ohne sie faehrt der Treiber keine Nebenspuren.');
     process.exit(1);
   }
@@ -6703,7 +6703,7 @@ function prozesseUnter(pfad) {
    wird hier VOR dem ersten Rueckbau nachgesehen und nicht hinterher gedeutet.
    GESUCHT WIRD UEBER `/proc`, wie bei prozesseUnter(): keine neue Abhaengig-
    keit, kein `ps`, und dieselbe Auskunft. Ein Prozess zaehlt als fremd, wenn
-   sein Befehl auf server.js oder pruefung.js endet -- eigene Kinder gibt es zu
+   sein Befehl auf server.js oder testbench.js endet -- eigene Kinder gibt es zu
    diesem Zeitpunkt noch keine.
    WAS DIESER WAECHTER NICHT FINDET, und das gehoert dazugesagt: einen Server,
    den jemand ueber `node -e "require('./server.js')"` startet. Sein Befehl
@@ -6723,7 +6723,7 @@ function fremdeServer() {
     let zeile;
     try { zeile = fs.readFileSync(`/proc/${e}/cmdline`, 'utf8'); } catch { continue; }
     const teile = zeile.split('\0').filter(Boolean);
-    /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. `node pruefung.js sterne` endet
+    /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. `node testbench.js sterne` endet
        auf dem Filterwort -- wer die Zeile daran erkennen will, bekommt dann
        „sterne" gemeldet und sucht nach etwas, das es nicht gibt. */
     const skript = teile.find(t => /(^|\/)(server|pruefung)\.js$/.test(t));
@@ -6876,7 +6876,7 @@ function fahre(r, spur, stufe) {
       legeKopieAn(kopie);
       baueZurueck(kopie, r);
     } catch (e) { return ende({ fehler: e.message }); }
-    const kind = spawn(process.execPath, ['pruefung.js'], {
+    const kind = spawn(process.execPath, ['testbench.js'], {
       cwd: kopie,
       env: { ...process.env, PORT_VERSATZ: String(spur * stufe) }
     });
@@ -7002,11 +7002,11 @@ function schreibeTabelle(ergebnisse) {
    Datei genau einmal vorkommt. Ein Rueckbau, der ins Leere greift, sieht sonst
    aus wie einer, der nichts bewirkt -- und faellt erst beim vollen Lauf auf,
    der Stunden dauert. Drei davon lagen so fuenf Runden lang unbemerkt.
-   NUR BEIM DIREKTEN AUFRUF WIRD GEFAHREN: `require('./gegenprobe')` liefert
+   NUR BEIM DIREKTEN AUFRUF WIRD GEFAHREN: `require('./counterproof')` liefert
    die Liste und startet keinen einzigen Server. */
 /* ---- WELCHER RUECKBAU AUF EIN ARGUMENT PASST ----
    GREIFT EIN ARGUMENT ALS NUMMER, GILT NUR DIE NUMMER. Vorher stand hier ein
-   ODER: Nummer gleich ODER Name enthaelt -- und damit fuhr `node gegenprobe.js
+   ODER: Nummer gleich ODER Name enthaelt -- und damit fuhr `node counterproof.js
    2 256` neben Rueckbau 256 auch die 83 mit, weil deren Name „SHA-256 statt
    SHA-1" die Zeichenfolge 256 traegt. Der zweite Lauf stand dann stumm in der
    Tabelle, ohne dass ihn jemand angefordert haette.

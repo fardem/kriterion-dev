@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Schluesselwechsel auf dem Wirt -- der ganze Ablauf in einem Aufruf.
 #
-#   ./schluessel.sh zeigen      sagt die Lage, aendert nichts
-#   ./schluessel.sh wechseln    haelt an, sichert, wechselt, startet
+#   ./keytool.sh zeigen      sagt die Lage, aendert nichts
+#   ./keytool.sh wechseln    haelt an, sichert, wechselt, startet
 #
 # DIESES SKRIPT MACHT DEN ABLAUF, NICHT DEN WECHSEL. Der steht in
-# schluessel.js und laeuft im Container: PRAGMA rekey braucht SQLCipher, und
+# keytool.js und laeuft im Container: PRAGMA rekey braucht SQLCipher, und
 # die Bibliothek liegt im Image. Auf dem Wirt liegt dafuer die .env -- sie wird
 # dem Wegwerf-Container eigens eingehaengt. Der LAUFENDE Container bekommt sie
 # nie zu sehen.
@@ -41,7 +41,7 @@ fi
 # weiterhin nicht sehen.
 #
 # EINGEHAENGT WIRD DAS VERZEICHNIS UND NICHT DIE DATEI. Eine Datei-Einhaengung
-# haengt am Inode; schluessel.js schreibt die neue .env daneben und benennt sie
+# haengt am Inode; keytool.js schreibt die neue .env daneben und benennt sie
 # um (Stolperstein 8), und ein Umbenennen tauscht den Verzeichniseintrag --
 # die Einhaengung bliebe dann auf der alten Datei stehen, und auf dem Wirt
 # aendert sich nichts. Der Wegwerf-Container sieht das Projektverzeichnis
@@ -50,7 +50,7 @@ lauf() {
   docker compose run --rm --no-deps \
     ${ENV_EINHAENGUNG:+-v "$PWD:/app/wirt:rw"} \
     ${NEUER_SCHLUESSEL:+-e "NEUER_SCHLUESSEL=$NEUER_SCHLUESSEL"} \
-    kriterion node schluessel.js "$@"
+    kriterion node keytool.js "$@"
 }
 
 case "$BEFEHL" in
@@ -131,11 +131,11 @@ case "$BEFEHL" in
 
 Kriterion — Schluesselwechsel auf dem Wirt
 
-  ./schluessel.sh zeigen
+  ./keytool.sh zeigen
       Woher der Schluessel kommt, wie gross die Datenbank ist, wie viel Platz
       frei ist, wann zuletzt gewechselt wurde. Aendert nichts.
 
-  ./schluessel.sh wechseln
+  ./keytool.sh wechseln
       Sichert .env und Datenverzeichnis, haelt die Instanz an, gibt der
       Datenbank einen neuen Schluessel, zieht die Ablage nach und startet
       wieder. Der alte Wert bleibt auskommentiert in der .env stehen -- er

@@ -1,4 +1,4 @@
-/* ================= bestandslauf.js — DIE BESTANDSLAEUFE, IN EINEM EIGENEN THREAD ==
+/* ================= batchrun.js — DIE BESTANDSLAEUFE, IN EINEM EIGENEN THREAD ==
 
    WAS HIER LAEUFT UND WARUM ES NICHT MEHR IM HAUPT-THREAD LAEUFT.
    DREI Schleifen fahren ueber den ganzen Bildbestand: die Umstellung von PNG
@@ -70,7 +70,7 @@ const sharp = require('sharp');
    Kontingent). Gemessen laedt sharp im Thread in 76 ms. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
 const { db } = require('./db');
-const { makeVariants, isPng, storeImage, isUncropped } = require('./bilder');
+const { makeVariants, isPng, storeImage, isUncropped } = require('./images');
 
 /* WIE DER STAND ZURUECKREIST -- EINE MELDUNG JE ZEILE, UND SIE TRAEGT DEN
    GANZEN STAND.

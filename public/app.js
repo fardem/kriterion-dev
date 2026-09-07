@@ -1448,7 +1448,7 @@ async function sendForm(path, form) {
 /* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ----
 
    SIE STEHT ZWEIMAL, UND DAS IST DER PUNKT. Diese Funktion ist Zeichen fuer
-   Zeichen dieselbe wie `cropSpecBox()` in bilder.js: der Browser muss den
+   Zeichen dieselbe wie `cropSpecBox()` in images.js: der Browser muss den
    Rahmen live zeichnen, der Server muss erzeugen, und zwischen beiden liegt
    HTTP -- eine gemeinsame Fassung gibt es nicht. Also steht sie auf jeder
    Seite in GENAU EINER Funktion und nicht verstreut, und der Pruefstand haelt
@@ -7695,7 +7695,7 @@ function cardUser(fetched) {
         <p class="desc" style="margin:0 0 10px">${SIGNUP
           ? `<strong>${tH('card.addressRequired')}</strong>${tH('card.whileSignupOn')} `
           : ''}${tH('card.resetMailHint')}</p>
-        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node zugang.js passwort <name>')}
+        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}
         <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.save')}</button>
 
         ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
@@ -7876,7 +7876,7 @@ function setUpUserOut(fetched) {
       ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER (Stolperstein
            315). Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
-      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node zugang.js zweifaktor <name>')}`;
+      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js zweifaktor <name>')}`;
     box.appendChild(boxId);
   }
 
@@ -8807,7 +8807,7 @@ function cardUsers() {
               Zugänge über diese Karte und kommt an den Server nicht heran —
               ihm hilft der Name dessen, der es kann. */''}
         ${OWNER
-          ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node zugang.js passwort <name>')}</div>`
+          ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}</div>`
           : `<p class="desc" style="margin:16px 0 0">${tH('card.lockedOutOwner')}
                <strong>${tH('card.owner')}</strong> ${tH('card.resetOnServer')}</p>`}
       </div>`;
@@ -9402,7 +9402,7 @@ function setUpLogOut(fetched) {
     ? '' : t(DETAIL_WORD[z.merkmal]));
 
   /* WER GEHANDELT HAT. Eine leere Nummer heisst "per Kommandozeile am Server"
-     (zugang.js auf dem Wirt) -- mit genau einer Ausnahme, und die ist am
+     (usertool.js auf dem Wirt) -- mit genau einer Ausnahme, und die ist am
      Vorgang zu erkennen: bei einer gescheiterten Anmeldung war niemand
      angemeldet. */
   const logActor = (z) => {
@@ -9552,7 +9552,7 @@ function setUpLogOut(fetched) {
       was.className = 'log-event'; was.textContent = eventWord(z);
       row.appendChild(zeit); row.appendChild(was);
       // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
-      // "ueber zugang.js auf dem Wirt" haben keine.
+      // "ueber usertool.js auf dem Wirt" haben keine.
       row.appendChild(logNameField(doc, 'log-actor', logActor(z),
         z.wer != null ? z.wer : null));
       row.appendChild(logNameField(doc, 'log-target', wen,
