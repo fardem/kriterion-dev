@@ -245,12 +245,12 @@ const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
    zeichnete sie anders, und das Emoji bunt. Jetzt sind sie SVG aus demselben
    Satz wie Suche, Glocke und Zahnrad -- 24er Raster, Strich 1,8, keine
    Zeichenschrift, kein CDN: die Installation laeuft ohne Internet.
-   OHNE FESTE BREITE: die Klasse `zg` im Stilblatt setzt 1em, das Zeichen
+   OHNE FESTE BREITE: die Klasse `icon` im Stilblatt setzt 1em, das Zeichen
    misst sich damit an der Schrift, in der es steht.
    aria-hidden, weil jeder Knopf seinen Sinn im `title` traegt; ein
    Vorleseprogramm soll nicht „Grafik" vorlesen. */
 const char = (paths, strokeWidth = 1.8) =>
-  `<svg class="zg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+  `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 const ICON_X = char('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
 const ICON_PEN = char('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/>');
 const ICON_CHECK = char('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.1);
@@ -269,7 +269,7 @@ const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 
 /* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT -- 0.22.0 (Ideentafel
    N3): das vorhandene Platzhalterzeichen ueber dem Satz. Der Satz geht durch
    esc() -- er ist fest, aber innerHTML ist innerHTML. */
-const emptyState = (sentence) => `<div class="leer-zustand">${ICON_PH}<span class="hint">${esc(sentence)}</span></div>`;
+const emptyState = (sentence) => `<div class="empty-state">${ICON_PH}<span class="hint">${esc(sentence)}</span></div>`;
 
 /* Die Marke der Instanz — EIN EINGEBAUTES SVG, seit 0.23.0 wieder.
 
@@ -325,7 +325,7 @@ const emptyState = (sentence) => `<div class="leer-zustand">${ICON_PH}<span clas
    von 80 bis 120 Prozent. Die Attribute hier halten nur das Seitenverhaeltnis
    und den Platz, bis das Stylesheet greift. */
 const MARK = (s = 30) =>
-  `<svg class="marke" viewBox="6.5 4.5 19 23" width="${Math.round(s * 19 / 23)}" height="${s}"`
+  `<svg class="logo" viewBox="6.5 4.5 19 23" width="${Math.round(s * 19 / 23)}" height="${s}"`
   + ` aria-hidden="true" focusable="false" fill="none" stroke-linecap="round" stroke-width="3">`
   + `<path d="M8 6 V26" stroke="var(--brand-grey)"/>`
   + `<path d="M8 10 H15" stroke="var(--brand-grey)"/>`
@@ -396,7 +396,7 @@ function stars(value, onPick) {
 function resetButton(value, onReset) {
   const z = document.createElement('button');
   z.type = 'button';
-  z.className = 'rreset' + (value > 0 ? '' : ' leer');
+  z.className = 'rreset' + (value > 0 ? '' : ' blank');
   z.innerHTML = ICON_RESET;
   z.title = t('dialog.removeMyStars');
   z.setAttribute('aria-label', t('dialog.removeMyStars'));
@@ -1110,7 +1110,7 @@ const BLOCK_DEFAULT = {
   seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
   unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
 };
-/* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN `zu`
+/* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN `closed`
    -- 0.21.0. Fuer sie entscheidet der Zustand des Eintrags; die Begruendung
    steht bei BLICK weiter unten. Dieselbe Liste wie im Server, und aus
    demselben Grund gefiltert: ein gespeichertes `bewertung` aus einer aelteren
@@ -1327,7 +1327,7 @@ function setUpBlocksOut(item) {
        Reihenfolge der Bloecke gilt fuer ALLE Eintraege, und ein Eintrag, an dem
        ein Block fehlt, darf sie nicht umschreiben. */
     block.hidden = blockPathAfterState(name, item);
-    block.classList.toggle('zu', zu);
+    block.classList.toggle('closed', zu);
     head.querySelector('.bcaret').textContent = zu ? '▸' : '▾';
     const summe = head.querySelector('.bsum');
     // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts.
@@ -1516,13 +1516,13 @@ function cropGesture(frame, px, py, handle = HANDLE) {
    'neu' steht NICHT darin -- es ist die Ruhestellung, und die traegt das
    Stylesheet am `.focus-mode` selbst. */
 const HANDLE_CURSORS = {
-  'links-oben': 'griff-nwse', 'rechts-unten': 'griff-nwse',
-  'rechts-oben': 'griff-nesw', 'links-unten': 'griff-nesw',
-  'oben': 'griff-ns', 'unten': 'griff-ns',
-  'links': 'griff-ew', 'rechts': 'griff-ew',
-  'schieben': 'griff-schieben'
+  'links-oben': 'handle-nwse', 'rechts-unten': 'handle-nwse',
+  'rechts-oben': 'handle-nesw', 'links-unten': 'handle-nesw',
+  'oben': 'handle-ns', 'unten': 'handle-ns',
+  'links': 'handle-ew', 'rechts': 'handle-ew',
+  'schieben': 'handle-move'
 };
-const HANDLE_CLASSES = ['griff-nwse', 'griff-nesw', 'griff-ns', 'griff-ew', 'griff-schieben'];
+const HANDLE_CLASSES = ['handle-nwse', 'handle-nesw', 'handle-ns', 'handle-ew', 'handle-move'];
 
 /* ================= Tagwolken ================= */
 // Sortierung: hervorgehobene Tags (aktiver Filter bzw. vergebener Tag) immer
@@ -1886,7 +1886,7 @@ function applyTiles() {
 
 /* ================= DAS FARBSCHEMA -- 0.23.0 =================
    DREI STUFEN HIER, ZWEI IM STILBLATT. `hell` und `dunkel` sind Werte von
-   `data-thema` am Wurzelelement; `geraet` ist KEINER -- er wird hier
+   `data-theme` am Wurzelelement; `geraet` ist KEINER -- er wird hier
    aufgeloest und kommt dort nie an. Der Grund steht im Stilblatt am zweiten
    Block: sonst muesste jeder der vierzig Werte dreimal geschrieben werden.
    DIE STUFEN STEHEN HIER UND IM SERVER; der Server entscheidet, die Karte
@@ -1922,7 +1922,7 @@ const effectiveTheme = () => THEME === 'geraet'
    diese Datei anzufassen. */
 function applyTheme() {
   const effective = effectiveTheme();
-  document.documentElement.dataset.thema = effective;
+  document.documentElement.dataset.theme = effective;
   const metaBar = document.querySelector('meta[name="theme-color"]');
   if (metaBar) {
     const grund = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
@@ -1931,7 +1931,7 @@ function applyTheme() {
   try { localStorage.setItem(THEME_KEY, THEME); } catch (e) { /* privates Fenster */ }
 }
 /* SOFORT UND NICHT ERST NACH DEM ABRUF: der Achtzeiler im Kopf setzt
-   `data-thema`, aber er kann die Leistenfarbe nicht kennen -- das Stilblatt
+   `data-theme`, aber er kann die Leistenfarbe nicht kennen -- das Stilblatt
    gibt es dort noch nicht. Hier gibt es beides. */
 applyTheme();
 /* UND WER „wie das Geraet" gewaehlt hat, folgt ihm OHNE NEULADEN. Der Horcher
@@ -2939,10 +2939,10 @@ async function renderList() {
      die Frage saesse ein breites Fenster vor eingeklappten Filtern und
      haette keinen sichtbaren Knopf, sie zu oeffnen. */
   const filterBox = document.getElementById('filters');
-  if (isNarrow()) filterBox.classList.add('zu');
+  if (isNarrow()) filterBox.classList.add('closed');
   document.getElementById('filter-toggle').onclick = () => {
-    const wasClosed = filterBox.classList.contains('zu');
-    filterBox.classList.toggle('zu');
+    const wasClosed = filterBox.classList.contains('closed');
+    filterBox.classList.toggle('closed');
     /* BEIM AUFKLAPPEN WIRD NEU GEZEICHNET, beim Einklappen nicht.
        Der Grund steht bei limitCloud(): die Tagwolke wird auf eine Zeile
        begrenzt, und die Zeilenhoehe wird an der ERSTEN Marke GEMESSEN statt
@@ -3050,7 +3050,7 @@ function drawFilterSwitch() {
   const box = document.getElementById('filters');
   if (!button || !box) return;
   const n = filterNumber();
-  const zu = box.classList.contains('zu');
+  const zu = box.classList.contains('closed');
   /* UND EINGEKLAPPT STEHT AUCH DIE ABLEITUNG DRAN -- 0.21.1. Das Wort neben den
      Statuspillen ist dann nicht zu sehen, und der Schalter ist der einzige
      Ort, der fuer die zugeklappte Leiste noch spricht. Regel 4 gilt auch hier.
@@ -3350,7 +3350,7 @@ function drawFilters() {
     sortCloud(filterTags, new Set(f.tagIds)).forEach(tag => {
       const b = document.createElement('button');
       const gewaehlt = f.tagIds.includes(tag.id);
-      b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (idle.has(tag.id) ? ' leer' : '');
+      b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');
       b.textContent = tag.name;
       if (idle.has(tag.id)) b.title = t('list.noHitsSelection');
       b.onclick = () => {
@@ -3965,8 +3965,8 @@ function openCreate() {
     // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
     // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
     row.innerHTML = t('list.similarTitles') + treffer
-      .map(it => `<a href="#/item/${it.id}" data-zu>${esc(it.title)}</a>`).join(', ');
-    row.querySelectorAll('[data-zu]').forEach(a => { a.onclick = () => close(); });
+      .map(it => `<a href="#/item/${it.id}" data-close>${esc(it.title)}</a>`).join(', ');
+    row.querySelectorAll('[data-close]').forEach(a => { a.onclick = () => close(); });
   };
   nt.addEventListener('input', drawSimilar);
   const save = async () => {
@@ -4028,7 +4028,7 @@ async function renderOffen() {
     [true, false].forEach(my => {
       const b = document.createElement('button');
       b.className = 'pill' + (my === onlyMy ? ' on' : '');
-      b.dataset.sicht = my ? 'meine' : 'alle';
+      b.dataset.view = my ? 'meine' : 'alle';
       b.textContent = my ? t('list.mine') : t('list.all');
       b.onclick = () => { onlyMy = my; draw(); };
       box.appendChild(b);
@@ -4089,7 +4089,7 @@ async function renderOffen() {
       g.zeilen.forEach(z => {
         const el = document.createElement('div');
         el.className = 'open-row' + (z.erledigt ? ' done' : '');
-        el.dataset.kommentar = z.id;
+        el.dataset.comment = z.id;
 
         /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. Die Art eines
            Kommentars darf setzen, wer ihn geschrieben hat, und der Admin --
@@ -4244,7 +4244,7 @@ async function renderCompare() {
     [true, false].forEach(my => {
       const b = document.createElement('button');
       b.className = 'pill' + (my === onlyMy ? ' on' : '');
-      b.dataset.sicht = my ? 'meine' : 'alle';
+      b.dataset.view = my ? 'meine' : 'alle';
       b.textContent = my ? t('list.mine') : t('list.all');
       b.onclick = () => { onlyMy = my; draw(); };
       box.appendChild(b);
@@ -4396,7 +4396,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
              das Bild vernichtet, waeren die gefaehrlichste Nachbarschaft der
              Instanz. Deshalb traegt er das Papierkorbzeichen und steht vor dem
              Schliessen, nicht daneben. */''}
-        ${remove ? `<button class="lb-btn weg" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
+        ${remove ? `<button class="lb-btn remove" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
         <button class="lb-btn close" title="${esc(t('list.closeEsc'))}">${ICON_X}</button>
       </div>
     </div>
@@ -4567,7 +4567,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
      stellt der Rufer; hier wird nur nachgezogen, was danach uebrig ist.
      WAR ES DAS LETZTE BILD, GEHT DAS VOLLBILD ZU. Ein leeres Vollbild mit
      „0 / 0" waere die Ansicht eines Nichts. */
-  lb.querySelector('.weg')?.addEventListener('click', async () => {
+  lb.querySelector('.remove')?.addEventListener('click', async () => {
     const weg = photos[i];
     if (!await remove(weg)) return;
     /* WAS GELOESCHT IST, WANDERT NICHT ZURUECK. Der Betrachter darunter hat
@@ -4664,11 +4664,11 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
       }
     };
 
-    const cancel = () => { el.classList.remove('griffbereit', 'dragging'); aufraeumen(); };
+    const cancel = () => { el.classList.remove('handle-ready', 'dragging'); aufraeumen(); };
 
     const up = () => {
       const gezogen = dragging;
-      el.classList.remove('griffbereit');
+      el.classList.remove('handle-ready');
       aufraeumen();
       if (!gezogen) { onClick && onClick(); return; }
       el.classList.remove('dragging');
@@ -4679,7 +4679,7 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
       halten = setTimeout(() => {
         ready = true;
         // Sichtbare Rueckmeldung: von jetzt an haengt die Zeile am Finger.
-        el.classList.add('griffbereit');
+        el.classList.add('handle-ready');
         if (navigator.vibrate) navigator.vibrate(12);
         document.addEventListener('touchmove', stopFixed, { passive: false });
       }, HOLD_MS);
@@ -7364,11 +7364,11 @@ function copyText(text, meldung = t('card.copied')) {
       () => toast(t('card.copyByHand'), true));
   } else toast(t('card.copyByHand'), true);
 }
-// Ein Horcher fuer alle Kopierknoepfe mit data-kopie -- auch fuer die, die
+// Ein Horcher fuer alle Kopierknoepfe mit data-copy -- auch fuer die, die
 // erst spaeter in die Seite kommen (die Wiederherstellungscodes).
 document.addEventListener('click', e => {
-  const b = e.target && e.target.closest ? e.target.closest('[data-kopie]') : null;
-  if (b) copyText(b.dataset.kopie);
+  const b = e.target && e.target.closest ? e.target.closest('[data-copy]') : null;
+  if (b) copyText(b.dataset.copy);
 });
 
 /* DER KASTEN „Auf dem Server" -- 0.22.0, Regel S5. Die EINZIGE Stelle, an der
@@ -7384,7 +7384,7 @@ function serverBox(sentence, command) {
   return `<div class="server-box"><div class="server-head">${tH('card.onTheServer')}</div>
     <p class="desc">${esc(sentence)}</p>
     <div class="server-row"><code>${esc(command)}</code><button type="button" class="btn btn-sm"
-      data-kopie="${esc(command)}">${tH('card.copy')}</button></div></div>`;
+      data-copy="${esc(command)}">${tH('card.copy')}</button></div></div>`;
 }
 
 /* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE -- 0.22.0, Konzept 4.5. Ein
@@ -7392,7 +7392,7 @@ function serverBox(sentence, command) {
    zu entscheiden. Immer eingeklappt beim Aufbau, keine Einstellung dafuer.
    Kein Tooltip: ein Finger kann nicht ueberfahren. Der Inhalt kommt fertig
    als Markup, wie der Rest der Karte. */
-const mehr = (html) => `<details class="mehr"><summary>${tH('card.more')}</summary><div class="mehr-text">${html}</div></details>`;
+const mehr = (html) => `<details class="more"><summary>${tH('card.more')}</summary><div class="more-text">${html}</div></details>`;
 
 /* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen (Woerterbuch):
    der Toast, und die Karte, in der gespeichert wurde, zeigt es 400 ms lang am
@@ -7403,10 +7403,10 @@ function saved(el = document.activeElement) {
   toast(t('list.saved'));
   const card = el && el.closest ? el.closest('.sys-card') : null;
   if (!card) return;
-  card.classList.remove('gespeichert');
+  card.classList.remove('saved');
   void card.offsetWidth;   // erzwingt den Neustart der Animation
-  card.classList.add('gespeichert');
-  card.addEventListener('animationend', () => card.classList.remove('gespeichert'), { once: true });
+  card.classList.add('saved');
+  card.addEventListener('animationend', () => card.classList.remove('saved'), { once: true });
 }
 
 
@@ -7566,7 +7566,7 @@ async function renderSystem() {
          Zurueck-Taste verlassen -- ein Knopf koennte davon nichts. */''}
     <nav class="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
       ${visibleOnes.map(a => `<a class="sys-tab${a === offen ? ' on' : ''}"
-        href="${sysUrl(a.schluessel)}" data-abschnitt="${esc(a.schluessel)}"${
+        href="${sysUrl(a.schluessel)}" data-section="${esc(a.schluessel)}"${
         a === offen ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
     </nav>
     <div class="sys-grid">
@@ -7884,7 +7884,7 @@ function setUpSessionsOut(fetched) {
     for (const z of list) {
       const row = doc.createElement('div');
       row.className = 'mrow session' + (z.diese ? ' session-mine' : '');
-      row.dataset.kennung = z.kennung || '';
+      row.dataset.session = z.kennung || '';
       row.innerHTML = `<span class="mname">${z.diese
           ? `${tH('card.thisSession')} <span class="user-mine">${tH('card.here')}</span>` : tH('card.otherSession')}</span>
         <span class="session-time">${tH('card.signedInAt', { angemeldetAm: fmtDate(z.angemeldetAm) })}</span>
@@ -8578,7 +8578,7 @@ function setUpSearchProviderOut() {
     box.innerHTML = '';
     SEARCH_PROVIDERS.forEach(a => {
       const row = document.createElement('div');
-      row.className = 'engine' + (a.vorhanden ? '' : ' leer');
+      row.className = 'engine' + (a.vorhanden ? '' : ' blank');
       row.dataset.k = a.schluessel;
       const hk = document.createElement('input');
       hk.type = 'checkbox';
@@ -8732,7 +8732,7 @@ function setUpTrashOut(fetched) {
 
 /* ---- Karte „Zugänge" — Abschnitt „Zugänge" ---- */
 function cardUsers() {
-  return `<div class="sys-card breit">
+  return `<div class="sys-card wide">
         <h3>${tH('card.user')}</h3>
         <p class="desc">${tH('card.usersHint')}</p>
         ${mehr(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${OWNER
@@ -9156,7 +9156,7 @@ function setUpUsersOut() {
 /* ---- Karte „Anfragen" — Abschnitt „Zugänge" ---- */
 function cardRequests(fetched) {
   const { anfragen } = fetched;
-  return `<div class="sys-card breit">
+  return `<div class="sys-card wide">
         <h3>${tH('card.requests')}</h3>
         <p class="desc"><strong>${tH('card.signupLabel')}</strong> ${tH('card.signupFlowHint')}${anfragen.an ? '' : ` <strong>${tH('card.signupOffNow')}</strong>`}</p>
         ${mehr(`${tH('card.requestExpiryHint', { stunden: anfragen.stunden })} <strong>${tH('card.approve')}</strong>
@@ -9279,7 +9279,7 @@ function setUpRequestsOut(fetched) {
 /* ---- Karte „Sicherheitsprotokoll" — Abschnitt „Zugänge" ---- */
 function cardLog(fetched) {
   const { log } = fetched;
-  return `<div class="sys-card breit">
+  return `<div class="sys-card wide">
         <h3>${tH('card.securityLog')}</h3>
         <p class="desc">${tH('card.logHint')} <strong>${tH('card.notIncluded')}</strong> ${tH('card.logContentHint')}</p>
         <p class="desc">${tH('card.rowsSortedBy')} <strong>${tH('card.inDays', { tage: log.tage })}</strong> ${tH('card.autoDeleteHint')}</p>
@@ -9463,7 +9463,7 @@ function setUpLogOut(fetched) {
          eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste.
          Anklickbar bleibt sie -- man sieht nur vorher, dass nichts kommt. */
       const empty = n === 0 && logGroup !== schluessel;
-      b.className = 'pill' + (logGroup === schluessel ? ' on' : '') + (empty ? ' leer' : '');
+      b.className = 'pill' + (logGroup === schluessel ? ' on' : '') + (empty ? ' blank' : '');
       b.dataset.group = schluessel;
       b.innerHTML = `${esc(t(wort))}<span class="n">${n}</span>`;
       b.title = LOG_VIEW_HELP[schluessel] ? t(LOG_VIEW_HELP[schluessel]) : '';
@@ -9513,7 +9513,7 @@ function setUpLogOut(fetched) {
     for (const z of zeilen) {
       const row = doc.createElement('div');
       row.className = 'log-row';
-      row.dataset.was = z.was;
+      row.dataset.event = z.was;
       const wen = logTarget(z), merk = detailWord(z);
       const zeit = doc.createElement('span');
       zeit.className = 'log-time'; zeit.textContent = fmtDate(z.am);
@@ -9560,7 +9560,7 @@ function cardMailDelivery(fetched) {
      plus ein Rest -- und seit 0.17.3 traegt sie die Breite mit ihrer laengsten
      Zeile, „Eigener Server · smtp.beispiel.de:587 · STARTTLS", statt mit
      Feldern. */
-  return `<div class="sys-card breit">
+  return `<div class="sys-card wide">
         <h3>${tH('card.mailDelivery')}</h3>
         ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
               Admin, obwohl der die Einladungen verschickt. Der SMTP-Server
@@ -10400,8 +10400,8 @@ function setUpCleanupOut(fetched) {
        mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
        und dieselbe Begruendung wie bei `#ex-part-list`. */
     const row = (z) => {
-      const mark = z.faellt ? `<span class="cleanup-badge weg">${tH('card.deleteLower')}</span>`
-                  : z.veraltet ? `<span class="cleanup-badge alt">${tH('card.oldKey')}</span>` : '';
+      const mark = z.faellt ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
+                  : z.veraltet ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.am))}</span>${mark}
         <span class="mcount">${tH('card.daysAgo', { n: z.tageHer })} · ${
@@ -10760,7 +10760,7 @@ function setUpExportOut(fetched) {
       <div class="manage-list" id="ex-part-list">${plan.teile.map(teil => `
         <div class="mrow">
           <span class="mname">${tH('card.partOf', { nr: teil.nr, anzahl: teil.anzahl })} ${esc(vThing(teil.anzahl))}</span>
-          <button class="mact ex-part-load" data-nr="${teil.nr}" data-von="${teil.von}" data-bis="${teil.bis}"
+          <button class="mact ex-part-load" data-nr="${teil.nr}" data-from="${teil.von}" data-to="${teil.bis}"
             disabled>${tH('card.load')}</button>
           <span class="trash-meta">${esc(fmtBytes(teil.bytes))}</span>
         </div>`).join('')}</div>
@@ -10799,7 +10799,7 @@ function setUpExportOut(fetched) {
     boxId.querySelectorAll('.ex-part-load').forEach(k => {
       k.onclick = () => {
         window.location = `/api/export?${partSwitch()}` +
-          t('card.partQuery', { von: k.dataset.von, bis: k.dataset.bis, nr: k.dataset.nr, n: n });
+          t('card.partQuery', { von: k.dataset.from, bis: k.dataset.to, nr: k.dataset.nr, n: n });
         k.disabled = true;
         k.innerHTML = `${ICON_CHECK} geladen`;
       };

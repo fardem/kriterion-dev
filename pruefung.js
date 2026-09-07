@@ -1432,7 +1432,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   const mkApp = fs.readFileSync(path.join(mkVerz, 'app.js'), 'utf8');
   pruefe('Die Oberflaeche zeichnet die Marke selbst',
-    /<svg class="marke"/.test(mkApp) && !/<img class="marke"/.test(mkApp),
+    /<svg class="logo"/.test(mkApp) && !/<img class="logo"/.test(mkApp),
     (mkApp.match(/const MARK = [\s\S]{0,120}/) || [''])[0].replace(/\s+/g, ' '));
   /* UND ZWAR MIT VARIABLEN -- das ist der ganze Zweck der Ruecknahme. Vier
      Striche, drei graue und einer in der Marke; stuende an einem davon eine
@@ -1461,13 +1461,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ZWEI DINGE MIT DEMSELBEN NAMEN SIND EINES ZU VIEL. `.mark` gibt es in
      style.css fuer die kleinen Knoepfe am Kommentar -- Rahmen, runder
      Fuellgrund. Die Marke hat das eine Zeit lang mitgetragen und sass deshalb
-     in einem Kaestchen, das niemand gewollt hat. Sie heisst jetzt `marke`. */
+     in einem Kaestchen, das niemand gewollt hat. Sie heisst jetzt `logo`. */
   pruefe('Die Marke traegt NICHT die Klasse der Kommentarknoepfe',
-    !/class="mark"/.test(mkApp) && /class="marke"/.test(mkApp),
-    (mkApp.match(/class="marke?"/g) || []).join(' '));
+    !/class="mark"/.test(mkApp) && /class="logo"/.test(mkApp),
+    (mkApp.match(/class="logo?"/g) || []).join(' '));
   const mkCss = fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8').replace(/\s+/g, ' ');
   pruefe('Und das Stylesheet kennt beide getrennt',
-    /\.marke \{[^}]*\}/.test(mkCss) && /\.mark \{[^}]*border-radius: 999px/.test(mkCss),
+    /\.logo \{[^}]*\}/.test(mkCss) && /\.mark \{[^}]*border-radius: 999px/.test(mkCss),
     'die beiden Regeln sind nicht getrennt');
 
   /* MARKE UND NAME STEHEN NEBENEINANDER, NICHT UEBEREINANDER. Aus dem
@@ -1604,13 +1604,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const mkTitel = mkGroesse('.brand h1'), mkZaehl = mkGroesse('.brand .count');
   pruefe('Und die beiden Schriftgroessen des Stapels ebenso',
     mkTitel === 1.23 && mkZaehl === 0.77, `${mkTitel} / ${mkZaehl}`);
-  const mkMarkeHoch = mkZahl('.brand .marke', 'height');
+  const mkMarkeHoch = mkZahl('.brand .logo', 'height');
   pruefe('Die Marke der Kopfzeile steht so hoch wie Titel und Zaehlzeile zusammen',
     mkMarkeHoch !== null
       && Math.abs(mkMarkeHoch - (mkTitel + mkZaehl) * mkZeilenhoehe) < 0.011,
     `${mkMarkeHoch}rem gegen ${((mkTitel + mkZaehl) * mkZeilenhoehe).toFixed(3)}rem`);
   const mkLoginGross = mkGroesse('.login-card h1');
-  const mkLoginHoch = mkZahl('.login-card .login-brand .marke', 'height');
+  const mkLoginHoch = mkZahl('.login-card .login-brand .logo', 'height');
   pruefe('Und die der Anmeldeseite so hoch wie die eine Zeile daneben',
     mkLoginHoch !== null && mkLoginGross !== null
       && Math.abs(mkLoginHoch - mkLoginGross * mkZeilenhoehe) < 0.011,
@@ -1618,14 +1618,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* KEINE PIXELHOEHE DANEBEN. Eine zweite Angabe in px schluege die rem-Zeile
      je nach Reihenfolge und macht die Rechnung darueber wertlos. */
   pruefe('Und keine der beiden traegt daneben eine Hoehe in Pixel',
-    !/\.brand \.marke \{[^}]*height: *\d+px/.test(mkCss)
-      && !/\.login-brand \.marke \{[^}]*height: *\d+px/.test(mkCss),
+    !/\.brand \.logo \{[^}]*height: *\d+px/.test(mkCss)
+      && !/\.login-brand \.logo \{[^}]*height: *\d+px/.test(mkCss),
     'eine Pixelhoehe steht daneben');
   /* DIE BREITE FOLGT DEM SEITENVERHAELTNIS. Ohne `width: auto` schluege das
      Attribut aus dem Markup zu und die Marke waere verzerrt. */
   pruefe('Die Breite folgt dem Seitenverhaeltnis der Datei',
-    /\.marke \{[^}]*width: *auto/.test(mkCss),
-    (mkCss.match(/\.marke \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /\.logo \{[^}]*width: *auto/.test(mkCss),
+    (mkCss.match(/\.logo \{[^}]*\}/) || ['(keine Regel)'])[0]);
   // Und das Markup traegt dasselbe Verhaeltnis, damit nichts springt, bevor
   // das Stylesheet greift.
   pruefe('Und das Markup traegt dasselbe Verhaeltnis',
@@ -23709,7 +23709,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
   });
   const dom = new JSDOM(
     `<!DOCTYPE html><html lang="de"><body><div id="app"></div>` +
-    `<p class="version-zeile" id="version"></p></body></html>`,
+    `<p class="version-row" id="version"></p></body></html>`,
     { runScripts: 'dangerously', url: `${BASIS}/${hash}`, virtualConsole: stilleKonsole });
   const w = dom.window;
   w.fetch = async (url, opt = {}) => {
@@ -25438,7 +25438,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   const tagBlock = zw.document.querySelector('.block[data-block="tags"]');
   pruefe('Der Tagblock kommt eingeklappt herein',
-    tagBlock?.classList.contains('zu'), tagBlock?.className);
+    tagBlock?.classList.contains('closed'), tagBlock?.className);
   pruefe('Und seine Wolke traegt dabei keine feste Hoehe',
     zw.document.getElementById('tagcloud')?.style.maxHeight === '',
     JSON.stringify(zw.document.getElementById('tagcloud')?.style.maxHeight));
@@ -25451,7 +25451,7 @@ async function pruefeOberflaeche() {
     .dispatchEvent(new zw.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 30));
   pruefe('Der Klick auf die Kopfzeile klappt den Block auf',
-    !tagBlock.classList.contains('zu'), tagBlock.className);
+    !tagBlock.classList.contains('closed'), tagBlock.className);
   const nachherPille = zw.document.querySelector('#tagcloud .pill');
   pruefe('Und dabei wird die Wolke neu gezeichnet',
     !!nachherPille && nachherPille !== vorherPille,
@@ -25544,18 +25544,18 @@ async function pruefeOberflaeche() {
   // Sackgassen: im UND-Modus muss vorher sichtbar sein, was leer laeuft.
   modus('and').onclick();
   await new Promise(r => setTimeout(r, 20));
-  const leerMarken = [...wf.document.querySelectorAll('#filters .pill-tag.leer')].map(b => b.textContent);
+  const leerMarken = [...wf.document.querySelectorAll('#filters .pill-tag.blank')].map(b => b.textContent);
   pruefe('Aussichtslose Tags werden gedämpft',
     gleich(leerMarken, ['Leicht']), JSON.stringify(leerMarken));
   pruefe('Gewählte Tags gelten nie als aussichtslos',
-    !marke('Grün').classList.contains('leer') && !marke('Schwer').classList.contains('leer'));
+    !marke('Grün').classList.contains('blank') && !marke('Schwer').classList.contains('blank'));
   pruefe('Gedämpfte Tags bleiben anklickbar', typeof marke('Leicht').onclick === 'function');
   pruefe('Ein Hinweis erklärt die Dämpfung', /keine Treffer/i.test(marke('Leicht').title || ''));
 
   modus('or').onclick();
   await new Promise(r => setTimeout(r, 20));
   pruefe('Im ODER-Modus wird nichts gedämpft',
-    wf.document.querySelectorAll('#filters .pill-tag.leer').length === 0);
+    wf.document.querySelectorAll('#filters .pill-tag.blank').length === 0);
 
   // Der Fall, in dem der Schutz für gewählte Tags erst greift: eine Auswahl
   // ohne jeden Treffer. Dann ist die sichtbare Liste leer, und ohne die
@@ -25569,10 +25569,10 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 20));
   pruefe('Diese Auswahl ergibt wirklich keinen Treffer', titel().length === 0, JSON.stringify(titel()));
   pruefe('Auch bei leerem Ergebnis bleiben gewählte Tags ungedämpft',
-    !marke('Schwer').classList.contains('leer') && !marke('Leicht').classList.contains('leer'),
-    [...wf.document.querySelectorAll('#filters .pill-tag.leer')].map(b => b.textContent).join(' '));
+    !marke('Schwer').classList.contains('blank') && !marke('Leicht').classList.contains('blank'),
+    [...wf.document.querySelectorAll('#filters .pill-tag.blank')].map(b => b.textContent).join(' '));
   pruefe('Der übrige Tag wird dabei sehr wohl gedämpft',
-    marke('Grün').classList.contains('leer'));
+    marke('Grün').classList.contains('blank'));
   wf.close();
 
   // Aeltere gespeicherte Filter kennen die Verknuepfung nicht.
@@ -25848,7 +25848,7 @@ async function pruefeOberflaeche() {
   /* Der Umschalter -- erst das Vorhandensein bei drei Zugaengen, dann die
      Abwesenheit bei einem (Stolperstein 81). */
   const offSicht = (d, welche) =>
-    d.w.document.querySelector(`#open-view [data-sicht="${welche}"]`);
+    d.w.document.querySelector(`#open-view [data-view="${welche}"]`);
   pruefe('Bei mehreren Zugaengen steht der Umschalter „meine / alle" da',
     !!offSicht(offAlle, 'meine') && !!offSicht(offAlle, 'alle'));
   pruefe('Vorgabestellung ist „alle"',
@@ -25928,7 +25928,7 @@ async function pruefeOberflaeche() {
   // Zustand `on` und am Zeichen im Kaestchen zu erkennen, nicht am Glyph.
   pruefe('Das Kaestchen zeigt jetzt den Haken',
     offZeilen(offAdmin)[0].querySelector('.open-check')?.classList.contains('on') === true &&
-    !!offZeilen(offAdmin)[0].querySelector('.open-check svg.zg'),
+    !!offZeilen(offAdmin)[0].querySelector('.open-check svg.icon'),
     offZeilen(offAdmin)[0].querySelector('.open-check')?.outerHTML.slice(0, 120));
 
   offAdmin.gesendet.length = 0;
@@ -26290,7 +26290,7 @@ async function pruefeOberflaeche() {
     [...wb.document.querySelectorAll('.block[data-block]')].every(b => b.querySelector('.bgrip')));
 
   const links = wb.document.querySelector('[data-block="links"]');
-  pruefe('Gespeicherter Einklappzustand wird angewandt', links.classList.contains('zu'));
+  pruefe('Gespeicherter Einklappzustand wird angewandt', links.classList.contains('closed'));
   pruefe('Eingeklappte Kopfzeile nennt den Inhalt',
     links.querySelector('.bsum').textContent === '(8)',
     links.querySelector('.bsum').textContent);
@@ -26301,7 +26301,7 @@ async function pruefeOberflaeche() {
   // Aufklappen per Klick auf die Kopfzeile
   links.querySelector('.block-head').onclick({ target: links.querySelector('.label') });
   await new Promise(r => setTimeout(r, 20));
-  pruefe('Klick auf die Kopfzeile klappt auf', !links.classList.contains('zu'));
+  pruefe('Klick auf die Kopfzeile klappt auf', !links.classList.contains('closed'));
   const gespeichertB = bd.gesendet.filter(x => x.koerper && x.koerper.bloecke).pop();
   pruefe('Einklappzustand wird serverseitig gespeichert',
     gespeichertB && gleich(gespeichertB.koerper.bloecke.zu, []), JSON.stringify(gespeichertB && gespeichertB.koerper.bloecke));
@@ -26317,15 +26317,15 @@ async function pruefeOberflaeche() {
      ERST DER GEGENSTAND, DANN DIE ZUSAGE (Stolperstein 81): ohne den Knopf
      bliebe die Zeile darunter gruen, ohne etwas zu belegen. */
   const bewertung = wb.document.querySelector('[data-block="bewertung"]');
-  const vorher = bewertung.classList.contains('zu');
+  const vorher = bewertung.classList.contains('closed');
   const kopfKnopf = bewertung.querySelector('.block-head button');
   pruefe('Die Prueflage traegt wirklich einen Knopf in der Kopfzeile', !!kopfKnopf,
     bewertung.querySelector('.block-head').innerHTML.slice(0, 200));
   bewertung.querySelector('.block-head').onclick({ target: kopfKnopf });
   pruefe('Knopf in der Kopfzeile klappt nicht mit ein',
-    bewertung.classList.contains('zu') === vorher);
+    bewertung.classList.contains('closed') === vorher);
   bewertung.querySelector('.block-head').onclick({ target: bewertung.querySelector('.bgrip') });
-  pruefe('Der Griff klappt nicht mit ein', bewertung.classList.contains('zu') === vorher);
+  pruefe('Der Griff klappt nicht mit ein', bewertung.classList.contains('closed') === vorher);
 
   /* DERSELBE VOLLE SATZ AUCH EINGEKLAPPT -- eingeklappt ist gerade der Moment,
      in dem man nicht hineinsieht. Der Hinweis steht in der Kopfzeile und bleibt
@@ -26334,7 +26334,7 @@ async function pruefeOberflaeche() {
      erzeugt KEINE leere Klammer: "()" waere eine Klammer um nichts. */
   kommentare.querySelector('.block-head').onclick({ target: kommentare.querySelector('.label') });
   await new Promise(r => setTimeout(r, 20));
-  pruefe('Der Kommentarblock laesst sich einklappen', kommentare.classList.contains('zu'));
+  pruefe('Der Kommentarblock laesst sich einklappen', kommentare.classList.contains('closed'));
   pruefe('Eingeklappt steht dort keine leere Klammer',
     kommentare.querySelector('.bsum').textContent === '',
     `"${kommentare.querySelector('.bsum').textContent}"`);
@@ -26345,7 +26345,7 @@ async function pruefeOberflaeche() {
   // Wieder aufklappen, damit die Gruppen darunter denselben Aufbau vorfinden.
   kommentare.querySelector('.block-head').onclick({ target: kommentare.querySelector('.label') });
   await new Promise(r => setTimeout(r, 20));
-  pruefe('Und wieder auf', !kommentare.classList.contains('zu'));
+  pruefe('Und wieder auf', !kommentare.classList.contains('closed'));
 
   /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). Bis hierher zaehlte die
      Kurzfassung die Kommentare; jetzt traegt der Block seinen vollen Satz an
@@ -26818,11 +26818,11 @@ async function pruefeOberflaeche() {
     JSON.stringify(eSchalter?.querySelector('.fcount')?.textContent));
   eSchalter?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
   pruefe('Ein Druck klappt die Filter weg',
-    eFilter?.classList.contains('zu') && eSchalter?.getAttribute('aria-expanded') === 'false',
+    eFilter?.classList.contains('closed') && eSchalter?.getAttribute('aria-expanded') === 'false',
     `${eFilter?.className} / ${eSchalter?.getAttribute('aria-expanded')}`);
   eSchalter?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
   pruefe('Und der naechste holt sie zurueck',
-    !eFilter?.classList.contains('zu'), eFilter?.className);
+    !eFilter?.classList.contains('closed'), eFilter?.className);
   // Und die Zahl folgt der Filterstellung. Ein Klick auf "Getestet" ist EIN
   // greifender Filter; die Sortierung zaehlt ausdruecklich nicht mit, sie
   // nimmt nichts weg.
@@ -27910,7 +27910,7 @@ async function pruefeOberflaeche() {
   pruefe('Sofortiges Wischen sortiert nichts — das ist Scrollen',
     gleich(seite(), jetzt), JSON.stringify(seite()));
   pruefe('Und hinterlässt keinen Ziehzustand',
-    !wb.document.querySelector('.dragging, .griffbereit'));
+    !wb.document.querySelector('.dragging, .handle-ready'));
 
   // Der eigentliche Schaden ohne Abbruch: ein langsamer Wisch greift nach
   // Ablauf der Haltezeit doch zu, und beim Loslassen zaehlt er als Klick --
@@ -27920,7 +27920,7 @@ async function pruefeOberflaeche() {
   zeigerAuf(null, 'pointermove', 0, 120, 'touch');     // gewischt = gescrollt
   await new Promise(r => setTimeout(r, 480));           // und die Zeit laeuft ab
   pruefe('Ein langsamer Wisch greift auch nach der Haltezeit nicht zu',
-    !wb.document.querySelector('.griffbereit'));
+    !wb.document.querySelector('.handle-ready'));
   zeigerAuf(null, 'pointerup', 0, 120, 'touch');
   await new Promise(r => setTimeout(r, 20));
   pruefe('Und sortiert nichts um', gleich(seite(), jetzt), JSON.stringify(seite()));
@@ -27946,16 +27946,16 @@ async function pruefeOberflaeche() {
   zeigerAuf(b3.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
   zeigerAuf(null, 'pointermove', 0, 3, 'touch');   // winzige Bewegung ist erlaubt
   pruefe('Vor Ablauf der Haltezeit ist noch nichts gegriffen',
-    !wb.document.querySelector('.griffbereit'));
+    !wb.document.querySelector('.handle-ready'));
   await new Promise(r => setTimeout(r, 480));
   pruefe('Nach der Haltezeit meldet die Zeile, dass sie am Finger hängt',
-    !!wb.document.querySelector('.griffbereit'));
+    !!wb.document.querySelector('.handle-ready'));
   zeigerAuf(null, 'pointermove', 0, 200, 'touch');
   zeigerAuf(null, 'pointerup', 0, 200, 'touch');
   await new Promise(r => setTimeout(r, 20));
   pruefe('Nach dem Halten wird gezogen', !gleich(seite(), jetzt), JSON.stringify(seite()));
   pruefe('Danach bleibt kein Ziehzustand übrig',
-    !wb.document.querySelector('.dragging, .griffbereit'));
+    !wb.document.querySelector('.dragging, .handle-ready'));
 
   // Ein abgebrochener Zeiger (der Browser übernimmt das Scrollen) räumt auf.
   const b4 = wb.document.querySelector('#blocks-side > .block');
@@ -27963,7 +27963,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 480));
   zeigerAuf(null, 'pointercancel', 0, 0, 'touch');
   pruefe('Ein abgebrochener Zeiger räumt auf',
-    !wb.document.querySelector('.griffbereit'));
+    !wb.document.querySelector('.handle-ready'));
 
   /* ================= Kommentare in der Oberflaeche ================= */
   gruppe('Kommentare in der Oberflaeche');
@@ -28026,7 +28026,7 @@ async function pruefeOberflaeche() {
     pruefe('Und setzt den Zeiger hinein', wb.document.activeElement === feld,
       wb.document.activeElement?.id || '(nichts)');
     pruefe('Der Block bleibt dabei offen',
-      !feld.closest('.block').classList.contains('zu'), feld.closest('.block').className);
+      !feld.closest('.block').classList.contains('closed'), feld.closest('.block').className);
 
     /* UND DERSELBE KLICK AM EINGEKLAPPTEN BLOCK. Ohne diese Lage belegte die
        Zeile darueber nichts: der Block war in der Prueflage ohnehin offen, und
@@ -28038,13 +28038,13 @@ async function pruefeOberflaeche() {
       .onclick({ target: wb.document.querySelector('[data-block="kommentare"] .label') });
     await new Promise(r => setTimeout(r, 40));
     pruefe('Die Prueflage bekommt den Block wirklich zu',
-      cjBlock.classList.contains('zu'), cjBlock.className);
+      cjBlock.classList.contains('closed'), cjBlock.className);
     gerollt = 0;
     wb.document.getElementById('cjump')
       .dispatchEvent(new wb.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Der Sprungknopf klappt einen geschlossenen Block zuerst auf',
-      !cjBlock.classList.contains('zu'), cjBlock.className);
+      !cjBlock.classList.contains('closed'), cjBlock.className);
     pruefe('Und rollt danach trotzdem ans Feld',
       gerollt === 1, `${gerollt}`);
   }
@@ -29480,12 +29480,12 @@ async function pruefeOberflaeche() {
     const r1 = rahmen();
     const klasse = (x, y) => { zeiger('pointermove', x, y); return betr.className; };
     pruefe('Ueber dem Rahmen zeigt der Zeiger das Schieben an',
-      /griff-schieben/.test(klasse(...mitte(r1))), klasse(...mitte(r1)));
+      /handle-move/.test(klasse(...mitte(r1))), klasse(...mitte(r1)));
     pruefe('An der Ecke zeigt er die Diagonale',
-      /griff-nwse/.test(klasse(r1.links + 4, r1.oben + 4)),
+      /handle-nwse/.test(klasse(r1.links + 4, r1.oben + 4)),
       klasse(r1.links + 4, r1.oben + 4));
     pruefe('An der Kante zeigt er die Achse',
-      /griff-ew/.test(klasse(r1.links + 4, r1.oben + r1.edge / 2)),
+      /handle-ew/.test(klasse(r1.links + 4, r1.oben + r1.edge / 2)),
       klasse(r1.links + 4, r1.oben + r1.edge / 2));
     /* DER PUNKT AUSSERHALB WIRD AM AKTUELLEN RAHMEN BESTIMMT. Ein Punkt, der
        vor drei Gesten ausserhalb lag, kann inzwischen darin liegen -- und die
@@ -30293,7 +30293,7 @@ async function pruefeOberflaeche() {
     .find(k => k.querySelector('h3')?.textContent.trim() === 'Benutzer');
   pruefe('Die Kachel "Benutzer" ist da', !!rKachel);
   pruefe('Und sie ist als breite Kachel gekennzeichnet',
-    !!rKachel && rKachel.classList.contains('breit'),
+    !!rKachel && rKachel.classList.contains('wide'),
     rKachel?.className);
   /* Und ausdruecklich nicht alle: eine Kennzeichnung, die jede Kachel traegt,
      ist keine. SEIT 0.8.90 SIND ES ZWEI -- das Sicherheitsprotokoll ist die
@@ -30307,7 +30307,7 @@ async function pruefeOberflaeche() {
      wenn eine andere Kachel die Klasse bekaeme.
      DIE VIER SIND ZUGLEICH DER GANZE ABSCHNITT „Zugaenge" -- damit laesst sich
      „alle" weiterhin an EINER Zeichnung abzaehlen. */
-  const rBreite = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit')]
+  const rBreite = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.wide')]
     .map(k => k.querySelector('h3')?.textContent.trim());
   pruefe('Als eine von genau vieren, und alle vier namentlich',
     gleich(rBreite, ['Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand']),
@@ -30316,7 +30316,7 @@ async function pruefeOberflaeche() {
      Aufzaehlung darueber auch dann gruen, wenn eine fuenfte Karte dazukaeme,
      die keine Breite traegt -- genau die Lage, aus der der Befund kam. */
   const rSchmal = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .filter(k => !k.classList.contains('breit'))
+    .filter(k => !k.classList.contains('wide'))
     .map(k => k.querySelector('h3')?.textContent.trim());
   pruefe('Und im Abschnitt „Zugaenge" steht keine schmale Kachel mehr',
     rSchmal.length === 0, JSON.stringify(rSchmal));
@@ -30325,10 +30325,10 @@ async function pruefeOberflaeche() {
     .replace(/\s+/g, ' ');
   const rRegel = (w) => (rCss.match(new RegExp(w.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
   pruefe('Die Regel fuer die breite Kachel steht ueberhaupt im Stylesheet',
-    rRegel('.sys-card.breit').length > 0, '(keine Regel)');
+    rRegel('.sys-card.wide').length > 0, '(keine Regel)');
   pruefe('Und sie zieht die Kachel ueber alle Rasterspalten',
-    /grid-column: 1 \/ -1/.test(rRegel('.sys-card.breit')),
-    rRegel('.sys-card.breit') || '(keine Regel)');
+    /grid-column: 1 \/ -1/.test(rRegel('.sys-card.wide')),
+    rRegel('.sys-card.wide') || '(keine Regel)');
   /* Die Luecke, die eine breite Kachel davor hinterlaesst. Im Abschnitt
      „Zugaenge" gibt es sie seit 0.17.0 nicht mehr -- dort sind alle vier
      Kacheln breit --, in den uebrigen Abschnitten sehr wohl: „Kennzahlen"
@@ -30608,7 +30608,7 @@ async function pruefeOberflaeche() {
      eingebetteten SVG ist `tagName` kleingeschrieben, und `className` ist
      kein String, sondern ein SVGAnimatedString. */
   pruefe('Erst das Zeichen',
-    mzKinder[0]?.tagName?.toLowerCase() === 'svg' && mzKinder[0]?.classList.contains('marke'),
+    mzKinder[0]?.tagName?.toLowerCase() === 'svg' && mzKinder[0]?.classList.contains('logo'),
     `${mzKinder[0]?.tagName} ${mzKinder[0]?.getAttribute('class') || ''}`);
   pruefe('Dann das Wort',
     mzKinder[1]?.tagName === 'H1' && /\S/.test(mzKinder[1]?.textContent || ''),
@@ -30617,8 +30617,8 @@ async function pruefeOberflaeche() {
      bliebe gruen, dass eine Seite die Zeile ANLEGT und die alte Marke
      darueber stehen laesst -- dann saesse sie zweimal da. */
   pruefe('Und ausserhalb der Zeile steht keine zweite Marke',
-    mzDom.w.document.querySelectorAll('.login-card .marke').length === 1,
-    `${mzDom.w.document.querySelectorAll('.login-card .marke').length} Marken in der Karte`);
+    mzDom.w.document.querySelectorAll('.login-card .logo').length === 1,
+    `${mzDom.w.document.querySelectorAll('.login-card .logo').length} Marken in der Karte`);
   /* DAS ZEICHEN BLEIBT STUMM: es steht unmittelbar neben dem Namen der
      Instanz, ein Vorleseprogramm saegte ihn sonst zweimal. Nebeneinander ist
      das noch dringender als gestapelt. */
@@ -31766,7 +31766,7 @@ async function pruefeOberflaeche() {
 
     /* JEDE DER VIER LAGEN EINZELN -- und erst das Vorhandensein der Zeile,
        dann ihre Eigenschaft (Stolperstein 81). */
-    const spZeile = (was) => spReihen(d).find(z => z.dataset.was === was);
+    const spZeile = (was) => spReihen(d).find(z => z.dataset.event === was);
     pruefe('Die Zeile zum Rollenwechsel ist ueberhaupt da', !!spZeile('zugang.rolle'));
     pruefe('Sie nennt den Vorgang, den Handelnden, das Ziel und die neue Rolle',
       /Rolle vergeben/.test(spZeile('zugang.rolle')?.textContent || '') &&
@@ -31846,10 +31846,10 @@ async function pruefeOberflaeche() {
       JSON.stringify(spFilter().map(b => b.textContent)));
     // Eine Ansicht ohne Zeilen wird gedaempft -- wie jede Pille in dieser Lage.
     const spZf = spFilter().find(b => b.dataset.group === 'zweifaktor');
-    pruefe('Eine Ansicht ohne Zeilen ist gedaempft', spZf?.classList.contains('leer'),
+    pruefe('Eine Ansicht ohne Zeilen ist gedaempft', spZf?.classList.contains('blank'),
       spZf?.className);
     pruefe('Und "Alle" mit Zeilen ist es nicht',
-      !spFilter()[0].classList.contains('leer'), spFilter()[0].className);
+      !spFilter()[0].classList.contains('blank'), spFilter()[0].className);
     pruefe('"Alle" steht anfangs auf an', spFilter()[0].classList.contains('on'),
       spFilter()[0].className);
 
@@ -31863,8 +31863,8 @@ async function pruefeOberflaeche() {
       JSON.stringify(d.gesendet.filter(x => String(x.url).startsWith('/api/sicherheitsprotokoll'))
         .map(x => x.url)));
     pruefe('Und danach steht nur noch die gescheiterte Anmeldung da',
-      spReihen(d).length === 1 && spReihen(d)[0].dataset.was === 'anmeldung.fehl',
-      JSON.stringify(spReihen(d).map(z => z.dataset.was)));
+      spReihen(d).length === 1 && spReihen(d)[0].dataset.event === 'anmeldung.fehl',
+      JSON.stringify(spReihen(d).map(z => z.dataset.event)));
     pruefe('Die gewaehlte Pille ist markiert und "Alle" nicht mehr',
       spGescheitert().classList.contains('on') && !spFilter()[0].classList.contains('on'),
       JSON.stringify(spFilter().map(b => b.className)));
@@ -31879,7 +31879,7 @@ async function pruefeOberflaeche() {
       spReihen(d).length === 4, `${spReihen(d).length} Zeilen`);
 
     /* ---- 0.13.0: die Namen sind anklickbar ---- */
-    const spRolle = spReihen(d).find(z => z.dataset.was === 'zugang.rolle');
+    const spRolle = spReihen(d).find(z => z.dataset.event === 'zugang.rolle');
     const spWerKnopf = spRolle?.querySelector('.log-actor .log-jump');
     pruefe('Der Handelnde ist ein Knopf und kein blosser Text', !!spWerKnopf,
       spRolle?.querySelector('.log-actor')?.innerHTML);
@@ -31895,12 +31895,12 @@ async function pruefeOberflaeche() {
     /* "UNBEKANNTER NAME" WIRD NIE EIN KNOPF: er ist der getippte Name eines
        Versuchs, der an keinen Zugang traf -- es gaebe nichts, wohin er
        springen koennte. Ein Knopf ins Leere ist schlimmer als Text. */
-    const spFehl = spReihen(d).find(z => z.dataset.was === 'anmeldung.fehl');
+    const spFehl = spReihen(d).find(z => z.dataset.event === 'anmeldung.fehl');
     pruefe('"unbekannter Name" bleibt Text und wird kein Knopf',
       !!spFehl && /unbekannter Name/.test(spFehl.textContent) &&
       !spFehl.querySelector('.log-jump'), spFehl?.innerHTML);
     // Und "über zugang.js auf dem Wirt" ebenso wenig -- dort ist niemand.
-    const spWirt = spReihen(d).find(z => z.dataset.was === 'zugang.passwort');
+    const spWirt = spReihen(d).find(z => z.dataset.event === 'zugang.passwort');
     pruefe('Der Wirt wird ebenso wenig anklickbar',
       !spWirt?.querySelector('.log-actor .log-jump'),
       spWirt?.querySelector('.log-actor')?.innerHTML);
@@ -31946,7 +31946,7 @@ async function pruefeOberflaeche() {
     const wRoh = spReihen(d).filter(z =>
       (z.querySelector('.log-event')?.textContent || '').includes('.'));
     pruefe('Kein Vorgang steht als roher Schluessel am Bildschirm',
-      wRoh.length === 0, wRoh.map(z => z.dataset.was).join(' '));
+      wRoh.length === 0, wRoh.map(z => z.dataset.event).join(' '));
     /* UND JEDES MERKMAL HAT SEIN WORT -- ausser den beiden, deren Wort schon
        der Vorgang traegt ("Zugang gesperrt" / "Zugang freigegeben"). Ein
        Merkmal ohne Wort verschwindet spurlos: merkmalsWort() faellt still auf
@@ -34402,7 +34402,7 @@ async function pruefeOberflaeche() {
   const cmpKopf = (n) => cmpGruppen(n)[0].lastElementChild.textContent.trim();
   const cmpBeste = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-crit')]
     .map(z => !!z.querySelector('.cmp-best'));
-  const cmpSicht = (wert) => wVgl.document.querySelector(`#cmp-view [data-sicht="${wert}"]`);
+  const cmpSicht = (wert) => wVgl.document.querySelector(`#cmp-view [data-view="${wert}"]`);
 
   pruefe('Der Umschalter steht da und traegt beide Stellungen',
     !!cmpSicht('meine') && !!cmpSicht('alle'), 'ein Knopf fehlt');
@@ -34538,7 +34538,7 @@ async function pruefeOberflaeche() {
      und geprueft wird der ZWEITE Eintrag: er hat im Potenzialkasten KEINEN
      eigenen Stern (Zuletzt steht auf 0), also bleibt dort der Strich, waehrend
      die Bewertung 4,6 zeigt. Eine gemischte Rechnung koennte das nicht. */
-  const zSicht = cmpZwei.w.document.querySelector('#cmp-view [data-sicht="meine"]');
+  const zSicht = cmpZwei.w.document.querySelector('#cmp-view [data-view="meine"]');
   zSicht.dispatchEvent(new cmpZwei.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   pruefe('In Stellung „meine" rechnet jede Gruppe fuer sich',
@@ -35377,7 +35377,7 @@ async function pruefeOberflaeche() {
   const mbDom = baueDom(JSDOM, { uebersichtItems: suBestand });
   const mb = mbDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const mbMarke = mb.document.querySelector('.masthead .brand svg.marke');
+  const mbMarke = mb.document.querySelector('.masthead .brand svg.logo');
   pruefe('Die Kopfzeile zeichnet die Marke selbst', !!mbMarke,
     mb.document.querySelector('.masthead .brand')?.innerHTML.slice(0, 120) || '(keine Kopfzeile)');
   pruefe('Und faerbt sie ueber die Schemavariablen',
@@ -35397,12 +35397,12 @@ async function pruefeOberflaeche() {
   const mlDom = baueDom(JSDOM, { angemeldet: false });
   const ml = mlDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const mlMarke = ml.document.querySelector('.login-brand svg.marke');
+  const mlMarke = ml.document.querySelector('.login-brand svg.logo');
   pruefe('Die Anmeldeseite traegt sie ebenso', !!mlMarke,
     ml.document.querySelector('.login-card')?.innerHTML.slice(0, 120) || '(keine Karte)');
   /* UND AUS DEMSELBEN HELFER -- vier Striche, nicht drei und nicht fuenf.
      Die Anmeldeseite kennt das Schema noch nicht (start() laeuft erst nach
-     der Anmeldung), aber der Vorgriff aus thema.js hat data-thema laengst
+     der Anmeldung), aber der Vorgriff aus thema.js hat data-theme laengst
      gesetzt: die Marke steht dort schon richtig. */
   pruefe('Und aus demselben Helfer, mit allen vier Strichen',
     !!mlMarke && mlMarke.querySelectorAll('path').length === 4,
@@ -36318,7 +36318,7 @@ async function pruefeOberflaeche() {
   pruefe('Und die Vorauswahl steht wirklich',
     flPille(flAltW, 'Grün')?.classList.contains('on'), flPille(flAltW, 'Grün')?.className);
   pruefe('Bei null Treffern ist sie gedaempft',
-    flLeerePille?.classList.contains('leer'), flLeerePille?.className);
+    flLeerePille?.classList.contains('blank'), flLeerePille?.className);
   pruefe('Und sie sagt, warum',
     flLeerePille?.title === 'Mit der aktuellen Auswahl keine Treffer',
     flLeerePille?.title);
@@ -36328,8 +36328,8 @@ async function pruefeOberflaeche() {
      bleibt stehen, obwohl die Pille, fuer die sie 0.13.0 verallgemeinert hat,
      gestrichen ist: die Verallgemeinerung ist der Gewinn, nicht die Pille. */
   pruefe('Das Stilblatt daempft jede Pille in dieser Lage, nicht nur Tags',
-    /opacity: \.34/.test(regel123('.pill.leer')) && !regel123('.pill-tag.leer'),
-    `${regel123('.pill.leer')} | ${regel123('.pill-tag.leer')}`);
+    /opacity: \.34/.test(regel123('.pill.blank')) && !regel123('.pill-tag.blank'),
+    `${regel123('.pill.blank')} | ${regel123('.pill-tag.blank')}`);
   flAltW.close();
 
   // Und die Gegenprobe: mit Treffern ist sie NICHT gedaempft. Ohne diese Zeile
@@ -36344,7 +36344,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   const flVollePille = flPille(flNeuW, 'Blau');
   pruefe('Mit Treffern steht sie in voller Helligkeit da',
-    !!flVollePille && !flVollePille.classList.contains('leer'), flVollePille?.className);
+    !!flVollePille && !flVollePille.classList.contains('blank'), flVollePille?.className);
   flNeuW.close();
 
   /* ================= Die Kategoriezeile lernt die Mehrzahl — 0.13.0 ====
@@ -36482,7 +36482,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   const vzZeile = vzW.document.getElementById('version');
   // Seit 0.23.0 ein SVG und kein Bild -- es muss die Schemavariablen lesen.
-  const vzMarke = vzZeile?.querySelector('svg.marke');
+  const vzMarke = vzZeile?.querySelector('svg.logo');
   pruefe('Die Versionszeile traegt das Zeichen davor', !!vzMarke, vzZeile?.innerHTML.slice(0, 160));
   pruefe('Und zwar aus demselben Helfer wie ueberall sonst',
     vzMarke?.querySelectorAll('path').length === 4,
@@ -36500,21 +36500,21 @@ async function pruefeOberflaeche() {
      und die Instanz stellt die Schrift von 80 bis 120 Prozent. Eine feste
      Pixelzahl bliebe stehen, waehrend die Schrift daneben mitwaechst. */
   pruefe('Die Groesse steht im Stylesheet und waechst mit der Schrift',
-    /\.version-zeile \.marke \{ height: [\d.]+em; \}/.test(css123),
-    (css123.match(/\.version-zeile \.marke \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /\.version-row \.logo \{ height: [\d.]+em; \}/.test(css123),
+    (css123.match(/\.version-row \.logo \{[^}]*\}/) || ['(keine Regel)'])[0]);
   vzW.close();
 
   /* 2h ist ein TELEFONBEFUND und kein Desktopbefund: auf der Anmeldeseite
      drueckt der Flex-Aufbau von body.login die Zeile ohnehin ans untere
      Ende, die 26 Pixel und der Streifen fuer den Home-Indikator kommen
      obendrauf. Im angemeldeten Bereich bleibt alles, wie es war. */
-  const regelAnm = (css123.match(/body\.login \.version-zeile \{[^}]*\}/) || [''])[0];
+  const regelAnm = (css123.match(/body\.login \.version-row \{[^}]*\}/) || [''])[0];
   pruefe('Der Abstand darunter faellt nur auf der Anmeldeseite kleiner aus',
     /margin-bottom: calc\(\d+px \+ env\(safe-area-inset-bottom\)\)/.test(regelAnm),
     regelAnm || '(keine Regel)');
   pruefe('Und die Zeile im Allgemeinen behaelt ihre 26 Pixel',
-    /margin-bottom: calc\(26px \+ env\(safe-area-inset-bottom\)\)/.test(regel123('.version-zeile')),
-    regel123('.version-zeile').slice(0, 200));
+    /margin-bottom: calc\(26px \+ env\(safe-area-inset-bottom\)\)/.test(regel123('.version-row')),
+    regel123('.version-row').slice(0, 200));
   /* DER STREIFEN BLEIBT: er ist kein Abstand, sondern die Flaeche, in der das
      Telefon seinen eigenen Balken zeichnet. Ohne ihn saesse die Zeile
      darunter. */
@@ -36712,7 +36712,7 @@ async function pruefeOberflaeche() {
        eigene Schalter entscheidet, ob es dasteht. */
     pruefe('Das Feld fuer den Grund steht im Ruhezustand nicht offen',
       amZeile(d)?.hidden === true && !amZeile(d)?.closest('details') &&
-      !amZeile(d)?.closest('.zu'), JSON.stringify(amZeile(d)?.hidden));
+      !amZeile(d)?.closest('.closed'), JSON.stringify(amZeile(d)?.hidden));
     pruefe('Der Schalter selbst sagt weiterhin nur "Abgelehnt"',
       d.w.document.getElementById('sw-rej-t')?.textContent === 'Abgelehnt',
       JSON.stringify(d.w.document.getElementById('sw-rej-t')?.textContent));
@@ -37095,17 +37095,17 @@ async function pruefeOberflaeche() {
        naehme dem × seinen Platz; die Sterne rutschten dann beim ERSTEN Stern
        nach links -- genau der Sprung, den dieselbe Runde abschafft. */
     pruefe('Bei eigenem Stern ist es sichtbar',
-      szZeilen.slice(0, 2).every(z => !z.querySelector('.rreset')?.classList.contains('leer')),
+      szZeilen.slice(0, 2).every(z => !z.querySelector('.rreset')?.classList.contains('blank')),
       JSON.stringify(szZeilen.map(z => z.querySelector('.rreset')?.className)));
     pruefe('Ohne eigenen Stern ist es unsichtbar, behaelt aber seinen Platz',
-      szNullZeilen[2]?.querySelector('.rreset')?.classList.contains('leer') === true &&
+      szNullZeilen[2]?.querySelector('.rreset')?.classList.contains('blank') === true &&
       szNullZeilen[2]?.querySelector('.rreset')?.hidden === false,
       JSON.stringify([szNullZeilen[2]?.querySelector('.rreset')?.className,
                       szNullZeilen[2]?.querySelector('.rreset')?.hidden]));
     /* UND DIE REGEL DAZU IM STILBLATT: `visibility: hidden` und ausdruecklich
        nicht `display: none`. Ohne diese Zeile bliebe die Zusage darueber auch
        dann gruen, wenn die Klasse den Platz doch naehme (Stolperstein 223). */
-    const szRegel = regel123('.rreset.leer');
+    const szRegel = regel123('.rreset.blank');
     pruefe('Und die Regel nimmt ihm die Sichtbarkeit, nicht seinen Platz',
       /visibility: hidden/.test(szRegel) && !/display: none/.test(szRegel),
       szRegel || '(keine Regel)');
@@ -37258,7 +37258,7 @@ async function pruefeOberflaeche() {
 
     /* DER EINKLAPPZUSTAND FOLGT DEM ZUSTAND DES EINTRAGS. Der Mockeintrag
        steht auf `tested: true`: Bewertung offen, Potenzial zu. */
-    const zkZu = (name) => zkDoc.querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
+    const zkZu = (name) => zkDoc.querySelector(`.block[data-block="${name}"]`)?.classList.contains('closed');
     pruefe('An einem getesteten Eintrag steht die Bewertung offen und das Potenzial zu',
       zkZu('bewertung') === false && zkZu('potenzial') === true,
       JSON.stringify([zkZu('bewertung'), zkZu('potenzial')]));
@@ -37345,7 +37345,7 @@ async function pruefeOberflaeche() {
       einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const zkIdeeZu = (name) => zkIdee.w.document
-      .querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
+      .querySelector(`.block[data-block="${name}"]`)?.classList.contains('closed');
     pruefe('An einer Idee ohne Bewertungssterne steht das Potenzial offen',
       zkIdeeZu('potenzial') === false, JSON.stringify(zkIdeeZu('potenzial')));
     /* UND DEN BEWERTUNGSKASTEN GIBT ES DORT GAR NICHT -- 0.22.1, und das ist
@@ -37397,7 +37397,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     pruefe('Eine Idee MIT Bewertungssternen zeigt sie trotzdem',
       zkAlt.w.document.querySelector('.block[data-block="bewertung"]')
-        ?.classList.contains('zu') === false,
+        ?.classList.contains('closed') === false,
       JSON.stringify(zkAlt.w.document.querySelector('.block[data-block="bewertung"]')?.className));
     /* UND SIE ZEIGT IHN WIRKLICH -- 0.22.1 (Entscheidung E6). „Offen" allein
        genuegt seit dieser Runde nicht mehr: ein versteckter Block kann offen
@@ -37422,7 +37422,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     const zkLeerDoc = zkLeer.w.document;
     pruefe('Die Prueflage steht: der Potenzialkasten ist zu und hat keine Zahl',
-      zkLeerDoc.querySelector('.block[data-block="potenzial"]')?.classList.contains('zu') === true &&
+      zkLeerDoc.querySelector('.block[data-block="potenzial"]')?.classList.contains('closed') === true &&
       (zkLeerDoc.getElementById('phead')?.textContent || '') === '',
       JSON.stringify([zkLeerDoc.querySelector('.block[data-block="potenzial"]')?.className,
                       zkLeerDoc.getElementById('phead')?.textContent]));
@@ -37467,7 +37467,7 @@ async function pruefeOberflaeche() {
       einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const zkWZu = (name) => zkWechsel.w.document
-      .querySelector(`.block[data-block="${name}"]`)?.classList.contains('zu');
+      .querySelector(`.block[data-block="${name}"]`)?.classList.contains('closed');
     pruefe('An Eintrag 1 steht das Potenzial nach der Regel offen',
       zkWZu('potenzial') === false, JSON.stringify(zkWZu('potenzial')));
     zkWechsel.w.document.querySelector('.block[data-block="potenzial"] .block-head')
@@ -39354,7 +39354,7 @@ async function pruefeOberflaeche() {
     dok.querySelector('#viewer img')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Das Vollbild geht auf', !!dok.querySelector('.lightbox'));
-    const weg = () => dok.querySelector('.lightbox .lb-btn.weg');
+    const weg = () => dok.querySelector('.lightbox .lb-btn.remove');
     pruefe('Und es traegt einen Papierkorb', !!weg(), 'kein Papierkorb im Vollbild');
     /* ER STEHT NICHT NEBEN DEM SCHLIESSEN: zwei Kreuze nebeneinander, von
        denen eines die Ansicht zumacht und das andere das Bild vernichtet,
@@ -39362,7 +39362,7 @@ async function pruefeOberflaeche() {
     const werkzeuge = [...dok.querySelectorAll('.lightbox .lb-tools .lb-btn')]
       .map(b => b.className.replace('lb-btn ', ''));
     pruefe('Und er steht vor dem Schliessen, nicht daneben',
-      gleich(werkzeuge, ['zoom', 'weg', 'close']), JSON.stringify(werkzeuge));
+      gleich(werkzeuge, ['zoom', 'remove', 'close']), JSON.stringify(werkzeuge));
 
     const bilderVorher = [...dok.querySelectorAll('.lightbox .lb-thumb')].length;
     /* MIT FRAGEZEICHEN, und das ist keine Zierde: nimmt ein Rueckbau den
@@ -39415,7 +39415,7 @@ async function pruefeOberflaeche() {
       await new Promise(r => setTimeout(r, 40));
     }
     pruefe('Ein Kommentarbild im Vollbild traegt keinen Papierkorb',
-      !bild || !d.w.document.querySelector('.lightbox .lb-btn.weg'),
+      !bild || !d.w.document.querySelector('.lightbox .lb-btn.remove'),
       bild ? 'der Papierkorb steht auch dort' : '(kein Kommentarbild in der Prueflage)');
     d.w.close();
   }
@@ -40124,7 +40124,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 30));
     klick(betrachter?.querySelector('.vfull'));
     await new Promise(r => setTimeout(r, 40));
-    klick(dok.querySelector('.lightbox .lb-btn.weg'));
+    klick(dok.querySelector('.lightbox .lb-btn.remove'));
     await new Promise(r => setTimeout(r, 40));
     klick(dok.querySelector('.backdrop [data-yes]'));
     await new Promise(r => setTimeout(r, 120));
@@ -40157,7 +40157,7 @@ async function pruefeOberflaeche() {
     pruefe('Auch hier gibt der innere Abspieler zuerst ab',
       !innen.getAttribute('src') && !!dok.querySelector('.lightbox'),
       innen.getAttribute('src'));
-    dok.querySelector('.lightbox .lb-btn.weg')
+    dok.querySelector('.lightbox .lb-btn.remove')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Nach dem letzten Bild geht das Vollbild zu',
@@ -40903,18 +40903,18 @@ async function pruefeOberflaeche() {
        app.js auf; stuende es hier, muesste jeder Wert dreimal geschrieben
        werden. */
     pruefe('Das Stilblatt kennt genau einen zweiten Block',
-      (tCss.match(/:root\[data-thema="hell"\]/g) || []).length === 1
-        && !/data-thema="geraet"/.test(tCss),
-      `hell: ${(tCss.match(/:root\[data-thema="hell"\]/g) || []).length} · geraet: ${/data-thema="geraet"/.test(tCss)}`);
+      (tCss.match(/:root\[data-theme="hell"\]/g) || []).length === 1
+        && !/data-theme="geraet"/.test(tCss),
+      `hell: ${(tCss.match(/:root\[data-theme="hell"\]/g) || []).length} · geraet: ${/data-theme="geraet"/.test(tCss)}`);
     pruefe('Und der Betrachter bekommt seine eigenen Werte',
-      /\[data-thema="hell"\] \.lightbox \{/.test(tCss),
-      /\[data-thema="hell"\] \.lightbox/.test(tCss) ? 'Insel da' : '(keine Insel)');
+      /\[data-theme="hell"\] \.lightbox \{/.test(tCss),
+      /\[data-theme="hell"\] \.lightbox/.test(tCss) ? 'Insel da' : '(keine Insel)');
     /* color-scheme GEHOERT DEM BLOCK und nicht mehr einem einzelnen Element:
        davon haengen Auswahlfelder, Rollbalken und Datumswaehler ab. */
     pruefe('color-scheme steht in beiden Schemabloecken und nirgends sonst',
       (tCss.match(/color-scheme: */g) || []).length === 3
         && /:root \{[\s\S]*?color-scheme: dark/.test(tCss)
-        && /:root\[data-thema="hell"\] \{[\s\S]*?color-scheme: light/.test(tCss),
+        && /:root\[data-theme="hell"\] \{[\s\S]*?color-scheme: light/.test(tCss),
       `${(tCss.match(/color-scheme: [a-z]+/g) || []).join(' · ')}`);
     pruefe('Und der Kopf der Seite nennt beide',
       /<meta name="color-scheme" content="light dark">/.test(tHtml));
@@ -40946,7 +40946,7 @@ async function pruefeOberflaeche() {
       (tCss.match(/\.card\.rejected[^}]*\}/) || ['(keine Regel)'])[0]);
     pruefe('Und sie nimmt im Hellen opacity statt brightness',
       /:root \{[\s\S]*?--dimmed: grayscale\(\.85\) brightness\(\.5\);/.test(tCss)
-        && /:root\[data-thema="hell"\] \{[\s\S]*?--dimmed: grayscale\(\.85\) opacity\(\.45\);/.test(tCss),
+        && /:root\[data-theme="hell"\] \{[\s\S]*?--dimmed: grayscale\(\.85\) opacity\(\.45\);/.test(tCss),
       (tCss.match(/--dimmed:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
     const stufenApp = (tApp.match(/THEME_LEVELS = \[([^\]]*)\]/) || [])[1];
     const stufenSrv = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
@@ -41627,7 +41627,7 @@ async function pruefeOberflaeche() {
     const zlDunkel = zlPaare(':root {');
     // Das helle Schema ueberschreibt nur, was es nennt -- der Rest kommt aus
     // :root. Genau so liest es auch der Browser.
-    const zlHell = { ...zlDunkel, ...zlPaare(':root[data-thema="hell"] {') };
+    const zlHell = { ...zlDunkel, ...zlPaare(':root[data-theme="hell"] {') };
     /* `var(--x)` wird aufgeloest, und zwar IM SELBEN SCHEMA: --timeline-line steht
        im hellen Block auf var(--line-hover), und --line-hover ist dort ein
        anderer Wert als im dunklen. Wer die Kette im falschen Block aufloest,
@@ -41739,8 +41739,8 @@ async function pruefeOberflaeche() {
     const fremdeBloecke = [...ohneK.matchAll(/(?:^|\})\s*([^{}@]+)\{([^}]*)\}/g)]
       .filter(m => /(^|[;\s])--[a-z0-9-]+: *(#|rgba?\()/.test(m[2]))
       .map(m => m[1].trim().replace(/\s+/g, ' '))
-      .filter(s => !/^:root(\[data-thema="(hell|dunkel)"\])?$/.test(s)
-                && !/^\[data-thema="(hell|dunkel)"\] \.lightbox$/.test(s));
+      .filter(s => !/^:root(\[data-theme="(hell|dunkel)"\])?$/.test(s)
+                && !/^\[data-theme="(hell|dunkel)"\] \.lightbox$/.test(s));
     pruefe('Und Farbwerte stehen nur in den bekannten Schemabloecken',
       fremdeBloecke.length === 0,
       fremdeBloecke.length ? fremdeBloecke.slice(0, 4).join(' · ') : 'keine fremden');
@@ -41889,7 +41889,7 @@ async function pruefeOberflaeche() {
           kaesten++;
           if (k.querySelector('.server-head')?.textContent.trim() !== 'Auf dem Server' ||
               !/docker compose/.test(k.querySelector('.server-row code')?.textContent || '') ||
-              !k.querySelector('.server-row button[data-kopie]')) vollstaendig = false;
+              !k.querySelector('.server-row button[data-copy]')) vollstaendig = false;
         }
       }
       d.w.close();
@@ -41944,13 +41944,13 @@ async function pruefeOberflaeche() {
        ueber `visibility`, nicht ueber `display`. */
     pruefe('Ohne eigenen Stern ist der Knopf unsichtbar, seine Zelle bleibt',
       stNullZeilen[2]?.children.length === 4 &&
-      stNullZeilen[2]?.querySelector('.rreset')?.classList.contains('leer') === true &&
+      stNullZeilen[2]?.querySelector('.rreset')?.classList.contains('blank') === true &&
       stNullZeilen[2]?.querySelector('.rreset')?.hidden === false &&
-      stNullZeilen.slice(0, 2).every(z => !z.querySelector('.rreset').classList.contains('leer')),
+      stNullZeilen.slice(0, 2).every(z => !z.querySelector('.rreset').classList.contains('blank')),
       JSON.stringify(stNullZeilen.map(z => z.querySelector('.rreset')?.className)));
     pruefe('Und die Regel nimmt ihm die Sichtbarkeit, nicht seinen Platz',
-      /visibility: hidden/.test(regel123('.rreset.leer')) && !/display: none/.test(regel123('.rreset.leer')),
-      regel123('.rreset.leer') || '(keine Regel)');
+      /visibility: hidden/.test(regel123('.rreset.blank')) && !/display: none/.test(regel123('.rreset.blank')),
+      regel123('.rreset.blank') || '(keine Regel)');
     /* (3) SICHTBAR ABGESETZT: ein runder Knopf mit Hoverflaeche, das Zeichen ↺,
        und der Hinweistext behaelt das Wort „Meine". */
     pruefe('Er ist ein runder Knopf mit 26 Bildpunkten und roter Hoverflaeche',
@@ -41958,7 +41958,7 @@ async function pruefeOberflaeche() {
       /\.rreset:hover \{ color: var\(--red\); background: var\(--red-dim\); \}/.test(css123),
       regel123('.rreset') || '(keine Regel)');
     pruefe('Er traegt das Zeichen „zurücksetzen" und nicht ein ×',
-      stZeilen.every(z => !!z.querySelector('.rreset svg.zg') && !/×/.test(z.querySelector('.rreset').textContent)),
+      stZeilen.every(z => !!z.querySelector('.rreset svg.icon') && !/×/.test(z.querySelector('.rreset').textContent)),
       stZeilen[0]?.querySelector('.rreset')?.innerHTML.slice(0, 80));
     pruefe('Und sein Hinweistext sagt „Meine Sterne entfernen"',
       stZeilen.every(z => z.querySelector('.rreset').title === 'Meine Sterne entfernen'),

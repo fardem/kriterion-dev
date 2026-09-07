@@ -663,7 +663,7 @@ const RUECKBAUTEN = [
        damit wieder in einem Kaestchen mit Rahmen und rundem Fuellgrund. */
     nr: '71', name: 'Die Marke heisst wieder wie die Kommentarknoepfe',
     datei: 'public/app.js',
-    suche: '<svg class="marke" viewBox=',
+    suche: '<svg class="logo" viewBox=',
     ersatz: '<svg class="mark" viewBox=',
     erwartet: 'Die Marke der Instanz'
   },
@@ -1373,7 +1373,7 @@ const RUECKBAUTEN = [
   {
     nr: '156', name: 'Die Hoehe der Marke steht wieder in Pixel',
     datei: 'public/style.css',
-    suche: '.brand .marke { height: 3.1rem; }',
+    suche: '.brand .logo { height: 3.1rem; }',
     ersatz: '.brand .marke { height: 46px; }',
     erwartet: 'Die Marke der Instanz'
   },
@@ -1899,7 +1899,7 @@ const RUECKBAUTEN = [
        (Stolperstein 192). */
     nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
     datei: 'public/app.js',
-    suche: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (idle.has(tag.id) ? ' leer' : '');",
+    suche: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');",
     ersatz: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '');",
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
@@ -2774,7 +2774,7 @@ const RUECKBAUTEN = [
   {
     nr: '297', name: 'Das Vollbild bekommt seinen Papierkorb nicht',
     datei: 'public/app.js',
-    suche: "        ${remove ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
+    suche: "        ${remove ? `<button class=\"lb-btn remove\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
     ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
     erwartet: 'Der Papierkorb im Vollbild'
   },
@@ -2863,7 +2863,7 @@ const RUECKBAUTEN = [
     /* DIE VIERTE KACHEL STEHT WIEDER SCHMAL UNTER DREI BREITEN. */
     nr: '306', name: 'Die Karte „Mailversand" verliert ihre Breite wieder',
     datei: 'public/app.js',
-    suche: "  return `<div class=\"sys-card breit\">\n        <h3>${tH('card.mailDelivery')}</h3>",
+    suche: "  return `<div class=\"sys-card wide\">\n        <h3>${tH('card.mailDelivery')}</h3>",
     ersatz: "  return `<div class=\"sys-card\">\n        <h3>${tH('card.mailDelivery')}</h3>",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -5323,7 +5323,7 @@ const RUECKBAUTEN = [
        der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     datei: 'public/app.js',
-    suche: "      const mark = z.faellt ? `<span class=\"cleanup-badge weg\">${tH('card.deleteLower')}</span>`",
+    suche: "      const mark = z.faellt ? `<span class=\"cleanup-badge remove\">${tH('card.deleteLower')}</span>`",
     ersatz: "      const marke = z.faellt ? ''",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5483,7 +5483,7 @@ const RUECKBAUTEN = [
        -- genau der Sprung, den dieselbe Runde eine Spalte weiter abschafft. */
     nr: '583', name: 'Das × verschwindet mit seinem Platz statt nur mit seiner Farbe',
     datei: 'public/app.js',
-    suche: "  z.className = 'rreset' + (value > 0 ? '' : ' leer');",
+    suche: "  z.className = 'rreset' + (value > 0 ? '' : ' blank');",
     ersatz: "  z.className = 'rzurueck'; if (!(value > 0)) z.hidden = true;",
     erwartet: "Die Sternzeile — 0.22.0"
   },

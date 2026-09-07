@@ -44,8 +44,8 @@
     var t = localStorage.getItem('kriterion.thema');
     var hell = t === 'hell' || (t === 'geraet' && window.matchMedia
       && window.matchMedia('(prefers-color-scheme: light)').matches);
-    document.documentElement.dataset.thema = hell ? 'hell' : 'dunkel';
+    document.documentElement.dataset.theme = hell ? 'hell' : 'dunkel';
   } catch (e) {
-    document.documentElement.dataset.thema = 'dunkel';
+    document.documentElement.dataset.theme = 'dunkel';
   }
 })();

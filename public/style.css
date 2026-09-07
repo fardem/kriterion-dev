@@ -263,7 +263,7 @@
 }
 
 /* ═════════════════ DAS HELLE SCHEMA — 0.23.0 ═════════════════
-   EIN ZWEITER BLOCK, UND ES BLEIBT BEI EINEM. `data-thema` traegt genau zwei
+   EIN ZWEITER BLOCK, UND ES BLEIBT BEI EINEM. `data-theme` traegt genau zwei
    Werte, `hell` und `dunkel`; die dritte Stufe der Einstellung -- „wie das
    Geraet" -- wird in app.js aufgeloest und kommt hier nie an. Stuende sie
    hier, muesste jeder Wert DREIMAL geschrieben werden: in :root, hier, und
@@ -287,7 +287,7 @@
      --tool-rgb, --lb-surface-rgb und --edge-on-dark-rgb fehlen
      ABSICHTLICH: was auf einem Foto oder auf einer gefuellten Flaeche liegt,
      folgt seinem Grund und nicht dem Schema. */
-:root[data-thema="hell"] {
+:root[data-theme="hell"] {
   color-scheme: light;
 
   --bg: #eaedf1;
@@ -399,7 +399,7 @@
    WAS HIER STEHT, IST DAS DUNKLE SCHEMA -- nur der Grund ist angehoben. So
    ist es auch gemeint und so ist es am leichtesten zu lesen: im Vollbild
    gelten die Werte, die ueberall gelten, wenn es dunkel ist. */
-[data-thema="hell"] .lightbox {
+[data-theme="hell"] .lightbox {
   /* Auch hier, und aus demselben Grund: der Bildstreifen des Vollbilds rollt
      (`overflow-x: auto`), und ein heller Rollbalken auf dunklem Grund waere
      der letzte Rest des falschen Schemas. */
@@ -533,7 +533,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Buchstaben. Die Breite folgt dem Seitenverhaeltnis der Datei; `width: auto`
    schlaegt dabei das Attribut im Markup, das nur den Platz bewahrt, bis
    dieses Stylesheet greift. */
-.marke { flex-shrink: 0; display: block; width: auto; }
+.logo { flex-shrink: 0; display: block; width: auto; }
 /* EIN ZEICHEN AUS DEM EIGENEN SATZ -- 0.22.0 (Ideentafel N1). Die
    Zeilenaktionen waren bis 0.21.1 Schriftzeichen und ein Emoji (✎ ✕ ↩ ☐ ☑ 🔗
    🔑 ⃠ 📌), und jedes System zeichnete sie anders, das Emoji bunt. Jetzt sind
@@ -541,7 +541,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Raster, Strich 1,8, im Quelltext von app.js, keine Zeichenschrift und kein
    CDN. Sie messen sich an der Schrift, in der sie stehen (1em), und sitzen
    auf deren Grundlinie. */
-.zg { width: 1em; height: 1em; display: inline-block; vertical-align: -.125em; flex-shrink: 0; }
+.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -.125em; flex-shrink: 0; }
 
 /* ---------- Schaltflaechen ---------- */
 .btn {
@@ -596,7 +596,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .login-card .login-brand h1 { margin: 0; }
 /* Dieselbe Regel wie in der Kopfzeile, nur steht hier EINE Zeile daneben und
    kein Stapel: 1,53 rem x Zeilenhoehe 1,55 = 2,372 rem. */
-.login-card .login-brand .marke { height: 2.372rem; }
+.login-card .login-brand .logo { height: 2.372rem; }
 .login-card h1 { font-size: 1.53rem; font-weight: 640; letter-spacing: -.028em; margin: 0 0 5px; }
 .login-card .sub { color: var(--muted); font-size: .9rem; margin: 0 0 24px; }
 .field { margin-bottom: 14px; }
@@ -689,7 +689,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    damit (1,23 + 0,77) x 1,55 = 3,10 rem. Die Zahl steht hier ausgerechnet und
    nicht geschaetzt -- wer eine der beiden Schriftgroessen aendert, aendert
    diese Zeile mit. */
-.brand .marke { height: 3.1rem; }
+.brand .logo { height: 3.1rem; }
 /* Wer gerade angemeldet ist, neben dem Knopf zum Abmelden. Keine neue Farbe:
    .hint gibt es laengst und bedeutet dort schon "Auskunft, kein
    Bedienelement". Umbrechen darf die Angabe nicht -- sie stuende sonst
@@ -808,7 +808,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    SIE WIRKT UND IST TROTZDEM NICHT GEWAEHLT, und genau das muss sie zeigen:
    die Farbe der Wahl (Orange, wie jedes Bedienelement), aber NICHT ihren
    Fuellgrund. Gefuellt saehe sie aus wie angeklickt und behauptete eine
-   Einstellung, die niemand vorgenommen hat; gedaempft (`.pill.leer`) saehe sie
+   Einstellung, die niemand vorgenommen hat; gedaempft (`.pill.blank`) saehe sie
    aus wie ein toter Knopf, und sie ist keiner -- ein Klick darauf ist eine
    Handwahl und beendet die Vorgabe.
    DER GESTRICHELTE RAHMEN IST DAS ZEICHEN: derselbe Umriss, andere Linie.
@@ -1066,8 +1066,8 @@ mark {
 .empty h2 { font-size: 1.2rem; font-weight: 620; margin: 0 0 7px; letter-spacing: -.02em; }
 /* Dasselbe fuer die leeren Listen im Eintrag: Zeichen ueber dem Satz, mittig,
    kleiner als in der Uebersicht. */
-.leer-zustand { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0 8px; text-align: center; }
-.leer-zustand .ph { width: 30px; height: 30px; color: var(--placeholder); }
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0 8px; text-align: center; }
+.empty-state .ph { width: 30px; height: 30px; color: var(--placeholder); }
 .empty p { color: var(--muted); margin: 0; font-size: .93rem; }
 
 /* ---------- Detail ---------- */
@@ -1285,14 +1285,14 @@ mark {
   display: inline-flex; align-items: center; justify-content: center;
   transition: color .15s var(--ease), background .15s var(--ease);
 }
-.rreset .zg { width: 15px; height: 15px; }
+.rreset .icon { width: 15px; height: 15px; }
 .rreset:hover { color: var(--red); background: var(--red-dim); }
 /* KEIN STERN GESETZT -- DER KNOPF VERSCHWINDET, SEIN PLATZ BLEIBT.
    `visibility` und ausdruecklich NICHT `display: none`: mit `display` naehme er
    seinen Platz mit, und die Zelle fiele aus dem Raster. `visibility` nimmt ihn
    dabei auch aus Tastaturreihenfolge und Vorleseprogramm, ohne das Raster zu
    bewegen. */
-.rreset.leer { visibility: hidden; }
+.rreset.blank { visibility: hidden; }
 .star { font-size: 1.2rem; line-height: 1; color: var(--star-off); transition: color .15s var(--ease), transform .1s var(--ease); }
 .star.on { color: var(--gold); }
 .stars .star { cursor: pointer; }
@@ -1552,7 +1552,7 @@ mark {
   display: flex; align-items: center; gap: 10px;
   padding: 6px 10px; border-radius: var(--r-sm); background: var(--surface-2);
 }
-.engine.leer .engine-name { color: var(--faint); }
+.engine.blank .engine-name { color: var(--faint); }
 .engine-name { font-size: .85rem; }
 .engine .sdefault {
   font-size: .68rem; padding: 2px 8px; border-radius: 999px;
@@ -1725,7 +1725,7 @@ mark {
    abgeschlossen"; keine neue Farbe. Gesetzt wird die Klasse von
    gespeichert() in app.js und nach dem Ablauf wieder genommen, damit die
    naechste Speicherung wieder von vorn anfaengt. */
-.sys-card.gespeichert { animation: card-saved .4s var(--ease); }
+.sys-card.saved { animation: card-saved .4s var(--ease); }
 @keyframes card-saved {
   0% { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
   100% { border-color: var(--line-2); box-shadow: none; }
@@ -1736,15 +1736,15 @@ mark {
 /* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE -- 0.22.0 (Konzept 4.5). Ein
    Aufklapper unter dem Satz der Karte, immer eingeklappt beim Aufbau. Kein
    Tooltip: ein Finger kann nicht ueberfahren. */
-.mehr { margin: -6px 0 14px; }
-.mehr > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); user-select: none; transition: color .15s var(--ease); }
-.mehr > summary::-webkit-details-marker { display: none; }
-.mehr > summary::before { content: ''; width: .45em; height: .45em; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s var(--ease); }
-.mehr[open] > summary::before { transform: rotate(45deg); }
-.mehr > summary:hover { color: var(--text-2); }
-.mehr-text { color: var(--muted); font-size: .87rem; line-height: 1.55; margin-top: 6px; }
-.mehr-text strong { color: var(--text-2); font-weight: 600; }
-.mehr-text code { font-family: var(--mono); font-size: .8rem; }
+.more { margin: -6px 0 14px; }
+.more > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); user-select: none; transition: color .15s var(--ease); }
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::before { content: ''; width: .45em; height: .45em; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s var(--ease); }
+.more[open] > summary::before { transform: rotate(45deg); }
+.more > summary:hover { color: var(--text-2); }
+.more-text { color: var(--muted); font-size: .87rem; line-height: 1.55; margin-top: 6px; }
+.more-text strong { color: var(--text-2); font-weight: 600; }
+.more-text code { font-family: var(--mono); font-size: .8rem; }
 /* DER KASTEN „Auf dem Server" -- 0.22.0 (Regel S5). Die einzige Stelle, an der
    ein Server-Befehl am Bildschirm steht, und nur der Eigentuemer sieht ihn:
    Ueberschrift, ein Satz, der Befehl in Schreibmaschinenschrift mit
@@ -1759,7 +1759,7 @@ mark {
 /* Eine Karte ueber die volle Breite des Rasters. Die Zugangsliste traegt je
    Zeile Name, Rolle, Status, Eintragszahl und bis zu vier Bedienelemente --
    in einer Rasterspalte von 300 px bricht das um. */
-.sys-card.breit { grid-column: 1 / -1; }
+.sys-card.wide { grid-column: 1 / -1; }
 /* Abschnitt innerhalb einer Karte, mit dezenter Trennlinie darueber. Wo
    mehrere Einstellungen untereinander stehen, laufen sie ohne Linie zu einem
    Textblock zusammen. Dieselbe Linienfarbe wie der Kartenrand, damit keine
@@ -1934,8 +1934,8 @@ mark {
    Lauf", gedaempft heisst „liegt hier und die Regel fasst sie nicht an". Eine
    Farbe fuer beides waere die Verwechslung, gegen die diese Karte gebaut ist. */
 .mrow .cleanup-badge { flex-shrink: 0; font-size: .7rem; letter-spacing: .03em; text-transform: uppercase; }
-.mrow .cleanup-badge.weg { color: var(--red); }
-.mrow .cleanup-badge.alt { color: var(--faint); }
+.mrow .cleanup-badge.remove { color: var(--red); }
+.mrow .cleanup-badge.old { color: var(--faint); }
 /* JEDE ZEILE ANTWORTET GLEICH -- 0.22.0. `.mrow`, `.trow` und `.arow` geben
    beim Ueberfahren Hintergrund und Rand eine Stufe heller, 150 ms, wie
    `.lrow` es schon tat. Bis 0.21.1 antwortete von den vieren nur die
@@ -2320,8 +2320,8 @@ mark {
    rot -- dieselbe Sprache wie jedes andere ✕, das etwas wegnimmt. Die Luecke
    davor ist der ganze Punkt: neben dem Schliessenkreuz waere er die
    gefaehrlichste Nachbarschaft der Instanz. */
-.lb-btn.weg { margin-left: 10px; }
-.lb-btn.weg:hover { color: var(--red); border-color: var(--red); background: var(--surface-3); }
+.lb-btn.remove { margin-left: 10px; }
+.lb-btn.remove:hover { color: var(--red); border-color: var(--red); background: var(--surface-3); }
 /* display: flex oben schlaegt das display:none, das der Browser einem
    hidden-Attribut mitgibt -- ohne eine Gegenregel bleibt der Zoomknopf stehen,
    wo er nichts tut: am Kommentarbild und seit 0.8.50 am Video. Ein Knopf, der
@@ -2482,9 +2482,9 @@ body.lb-open { overflow: hidden; }
 .bgrip:hover { color: var(--accent-text); }
 .bcaret { color: var(--faint); font-size: .73rem; width: .8em; flex-shrink: 0; }
 .bsum { color: var(--muted); font-size: .83rem; font-family: var(--mono); }
-.block.zu > *:not(.block-head) { display: none; }
-.block.zu { padding-bottom: 15px; }
-.block.zu .block-head { margin-bottom: 0; }
+.block.closed > *:not(.block-head) { display: none; }
+.block.closed { padding-bottom: 15px; }
+.block.closed .block-head { margin-bottom: 0; }
 /* Waehrend des Ziehens schrumpft der Block auf seine Kopfzeile. Sonst muesste
    man einen 250 Pixel hohen Block erst ganz ueberwinden, bevor ueberhaupt
    getauscht wird. */
@@ -2496,8 +2496,8 @@ body.lb-open { overflow: hidden; }
 
 /* Der Finger hat gegriffen: ab hier wird gezogen statt gescrollt. Ohne diese
    Rueckmeldung weiss man nicht, ob das Halten lang genug war. */
-.griffbereit { outline: 2px solid var(--accent); outline-offset: 1px; }
-.thumb.griffbereit, .lrow.griffbereit, .mrow.griffbereit, .block.griffbereit { border-radius: var(--r-sm); }
+.handle-ready { outline: 2px solid var(--accent); outline-offset: 1px; }
+.thumb.handle-ready, .lrow.handle-ready, .mrow.handle-ready, .block.handle-ready { border-radius: var(--r-sm); }
 
 /* ================= Bildausschnitt der Vorschau ================= */
 /* EINE REIHE OBEN RECHTS, und darin sitzen alle Knoepfe des Bildbereichs.
@@ -2568,11 +2568,11 @@ body.lb-open { overflow: hidden; }
    nicht. Die Klasse steht am Betrachter, weil nur er die Lage kennt.
    DIE RUHESTELLUNG BLEIBT DAS FADENKREUZ -- sie steht oben und hat deshalb
    hier keine eigene Zeile. */
-.viewer.focus-mode.griff-schieben, .viewer.focus-mode.griff-schieben img { cursor: move; }
-.viewer.focus-mode.griff-nwse, .viewer.focus-mode.griff-nwse img { cursor: nwse-resize; }
-.viewer.focus-mode.griff-nesw, .viewer.focus-mode.griff-nesw img { cursor: nesw-resize; }
-.viewer.focus-mode.griff-ns, .viewer.focus-mode.griff-ns img { cursor: ns-resize; }
-.viewer.focus-mode.griff-ew, .viewer.focus-mode.griff-ew img { cursor: ew-resize; }
+.viewer.focus-mode.handle-move, .viewer.focus-mode.handle-move img { cursor: move; }
+.viewer.focus-mode.handle-nwse, .viewer.focus-mode.handle-nwse img { cursor: nwse-resize; }
+.viewer.focus-mode.handle-nesw, .viewer.focus-mode.handle-nesw img { cursor: nesw-resize; }
+.viewer.focus-mode.handle-ns, .viewer.focus-mode.handle-ns img { cursor: ns-resize; }
+.viewer.focus-mode.handle-ew, .viewer.focus-mode.handle-ew img { cursor: ew-resize; }
 .focus-frame {
   position: absolute; pointer-events: none; z-index: var(--z-crop-frame);
   border: 2px solid var(--accent); border-radius: 2px;
@@ -2672,8 +2672,8 @@ body.lb-open { overflow: hidden; }
    Dieselbe Sache darf nicht zwei Verhalten haben (Stolperstein 47, im
    Kleinen). Die Pille, an der es auffiel, ist mit 0.17.0 gestrichen; die
    Verallgemeinerung ist der Gewinn und bleibt. */
-.pill.leer { opacity: .34; }
-.pill.leer:hover { opacity: .7; }
+.pill.blank { opacity: .34; }
+.pill.blank:hover { opacity: .7; }
 
 /* ================= Berichte, Anpinnung, Kommentarbilder ================= */
 /* Bericht und Notiz müssen optisch klar unterscheidbar sein — das bricht die
@@ -2819,12 +2819,12 @@ body.lb-open { overflow: hidden; }
 /* Versionsnummer. Eine Zeile ausserhalb von #app, deshalb auf jeder Ansicht
    sichtbar. Mittig unter dem Inhalt statt fest in der Ecke -- so ueberlappt sie
    garantiert nichts, auch nicht auf schmalen Bildschirmen. */
-.version-zeile {
+.version-row {
   margin: 0 0 26px; margin-bottom: calc(26px + env(safe-area-inset-bottom));
   padding: 0 20px; text-align: center;
   font-family: var(--mono); font-size: .67rem; color: var(--faint);
   user-select: none;
-  /* Flex statt Textfluss, seit das Zeichen davorsteht: .marke ist ein Block
+  /* Flex statt Textfluss, seit das Zeichen davorsteht: .logo ist ein Block
      und saesse im Textfluss auf einer eigenen Zeile. Zentriert bleibt die
      Zeile trotzdem -- nur entscheidet das jetzt justify-content. */
   display: flex; align-items: center; justify-content: center; gap: .55em;
@@ -2832,7 +2832,7 @@ body.lb-open { overflow: hidden; }
 /* In em und nicht in px: die Zeile laeuft auf .67rem, und die Instanz stellt
    die Schrift von 80 bis 120 Prozent. Das Zeichen waechst damit mit dem Wort
    daneben statt daneben stehenzubleiben. */
-.version-zeile .marke { height: 1.5em; }
+.version-row .logo { height: 1.5em; }
 /* DER ABSTAND DARUNTER IST EIN TELEFONBEFUND UND KEIN DESKTOPBEFUND, und
    deshalb faellt er hier und nicht an der Zeile im Allgemeinen.
    Auf der Anmeldeseite drueckt der Flex-Aufbau von body.login die Zeile
@@ -2842,9 +2842,9 @@ body.lb-open { overflow: hidden; }
    26 Pixel; dort bleibt alles, wie es war.
    DER STREIFEN BLEIBT: er ist kein Abstand, sondern die Flaeche, in der das
    Telefon seinen eigenen Balken zeichnet. */
-body.login .version-zeile { margin-bottom: calc(10px + env(safe-area-inset-bottom)); }
+body.login .version-row { margin-bottom: calc(10px + env(safe-area-inset-bottom)); }
 /* Im Vollbild waere sie nur im Weg. */
-body.lb-open .version-zeile { display: none; }
+body.lb-open .version-row { display: none; }
 
 /* Der Schluessel zum Abschreiben. Umbrechend, damit 64 Zeichen auch auf dem
    Handy vollstaendig dastehen -- abgeschnitten waere er wertlos. */
@@ -3384,7 +3384,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      und was vorher sichtbar war, soll nicht ohne Not verschwinden. Neu ist
      allein die Moeglichkeit, sie wegzuklappen. */
   .filter-toggle { display: inline-flex; }
-  .filters.zu { display: none; }
+  .filters.closed { display: none; }
 }
 
 /* ---------------------------------------------------------------
@@ -3543,7 +3543,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   }
   #blocks-side { gap: 0; }
   .block-wide { margin-top: 0; }
-  .block.zu { padding-bottom: 16px; }
+  .block.closed { padding-bottom: 16px; }
   /* Der Block schrumpft beim Ziehen auf seine Kopfzeile -- und die muss
      hineinpassen. Bei border-box zaehlen die Innenabstaende mit: 16 + 16 von
      46 lassen 14 Pixel fuer eine Zeile, die 21 braucht. Die 52 sind
