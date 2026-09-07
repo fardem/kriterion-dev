@@ -105,7 +105,7 @@ function state() {
   const needed = Math.ceil(bytes * SPACE_MARGIN);
   let changed = null;
   try {
-    const z = db.prepare("SELECT value FROM settings WHERE key = 'schluesselGewechseltAm'").get();
+    const z = db.prepare("SELECT value FROM settings WHERE key = 'keyChangedAt'").get();
     if (z) changed = JSON.parse(z.value);
   } catch {}
   return {
@@ -263,9 +263,9 @@ async function commandChange(options) {
   /* ---- Die Spur ----
      Beides NACH dem Vorgang, wie ueberall: ein Protokoll, das den Vorgang
      mitreisst, ueber den es berichten soll, waere schlimmer als keins. */
-  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('schluesselGewechseltAm', ?)")
+  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('keyChangedAt', ?)")
     .run(JSON.stringify(stamp));
-  auth.log('schluessel', { wer: auth.FROM_HOST });
+  auth.log('key', { actor: auth.FROM_HOST });
 
   console.log(`\n${BOLD('Der Schlüssel ist gewechselt.')}`);
   console.log(`  Gedauert hat es ${ms} ms; das Journal stand auf ${journal.vorher} → DELETE → ${journal.nachher}.`);

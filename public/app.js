@@ -501,7 +501,7 @@ const confirmReason = () => t('dialog.appWideHint') +
    GET /api/settings) und wird hier nie geraten. Ohne sie muesste der Dialog
    den ersten Versuch absichtlich scheitern lassen, um zu erfahren, dass ein
    Code fehlt -- und schriebe dabei bei JEDEM Vorgang eine Zeile
-   'bestaetigung.fehl' ins Sicherheitsprotokoll. */
+   'confirm.fail' ins Sicherheitsprotokoll. */
 function passwordDialog(title, event, grund, withCode) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
@@ -572,7 +572,7 @@ const confirmFieldFree = (title, event, withCode) =>
    verbraucht. Fuer das Passwort gilt das nicht: es laeuft gegen einen Hash und
    laesst sich beliebig oft vergleichen. Der Unterschied ist die Stelle, an der
    ein n-facher Aufruf kippt.
-   NEBENHER FAELLT DAMIT DREIERLEI WEG: n-1 Zeilen 'bestaetigung.fehl' ueber
+   NEBENHER FAELLT DAMIT DREIERLEI WEG: n-1 Zeilen 'confirm.fail' ueber
    den Eigentuemer selbst, n-1 Fehlschlaege in der Anmeldebremse (bei elf
    Teilen griff die harte Sperre), und der verbrannte Wiederherstellungscode.
    WAS BLEIBT: das Laden eines Teils verbraucht genau eine Freigabe. Was
@@ -1136,7 +1136,7 @@ function takeBlocks(roh) {
 }
 
 const saveBlocks = () =>
-  api('PUT', '/api/settings', { bloecke: BLOCKS }).catch(e => toast(e.message, true));
+  api('PUT', '/api/settings', { blocks: BLOCKS }).catch(e => toast(e.message, true));
 
 function sortBlocks() {
   [['seite', 'blocks-side'], ['unten', 'blocks-bottom']].forEach(([area, boxId]) => {
@@ -1263,7 +1263,7 @@ const hasStars = (item, phase) => (item.ratings || [])
 
 function closedByState(name, item) {
   if (name === 'potenzial') return !!item.tested;
-  return !item.tested && !hasStars(item, 'nachher');
+  return !item.tested && !hasStars(item, 'after');
 }
 
 /* WELCHER BLOCK AN DIESEM EINTRAG GAR NICHT DASTEHT -- 0.22.1.
@@ -1289,7 +1289,7 @@ function closedByState(name, item) {
    Eintrag stehen: was man vor dem Test wollte, ist nach dem Test die
    interessantere Haelfte der Frage. */
 function blockPathAfterState(name, item) {
-  return name === 'bewertung' && !item.tested && !hasStars(item, 'nachher');
+  return name === 'bewertung' && !item.tested && !hasStars(item, 'after');
 }
 
 // Wird nach jedem Neuzeichnen aufgerufen und muss deshalb mehrfach ausführbar
@@ -1885,15 +1885,15 @@ function applyTiles() {
 }
 
 /* ================= DAS FARBSCHEMA -- 0.23.0 =================
-   DREI STUFEN HIER, ZWEI IM STILBLATT. `hell` und `dunkel` sind Werte von
-   `data-theme` am Wurzelelement; `geraet` ist KEINER -- er wird hier
+   DREI STUFEN HIER, ZWEI IM STILBLATT. `light` und `dark` sind Werte von
+   `data-theme` am Wurzelelement; `device` ist KEINER -- er wird hier
    aufgeloest und kommt dort nie an. Der Grund steht im Stilblatt am zweiten
    Block: sonst muesste jeder der vierzig Werte dreimal geschrieben werden.
    DIE STUFEN STEHEN HIER UND IM SERVER; der Server entscheidet, die Karte
-   „Darstellung" zeigt die Liste -- dieselbe Bauform wie `schrift`. */
-const THEME_LEVELS = ['hell', 'dunkel', 'geraet'];
+   „Darstellung" zeigt die Liste -- dieselbe Bauform wie `font`. */
+const THEME_LEVELS = ['light', 'dark', 'device'];
 // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
-const THEME_NAMES = { hell: 'card.light', dunkel: 'card.dark', geraet: 'card.likeDevice' };
+const THEME_NAMES = { light: 'card.light', dark: 'card.dark', device: 'card.likeDevice' };
 const DEVICE_LIGHT = '(prefers-color-scheme: light)';
 /* DER GEMERKTE WERT IST KEINE ZWEITE WAHRHEIT, SONDERN DAS GEDAECHTNIS DER
    LETZTEN. Der Server bleibt die Wahrheit: loadSettings() ueberschreibt
@@ -1904,16 +1904,23 @@ const DEVICE_LIGHT = '(prefers-color-scheme: light)';
    DERSELBE SCHLUESSEL STEHT IM KOPF DER SEITE, im Achtzeiler vor dem
    Stilblatt. Zwei Stellen fuer denselben Namen -- es geht nicht anders: der
    Achtzeiler laeuft, bevor es diese Datei gibt. */
-const THEME_KEY = 'kriterion.thema';
+/* DER SCHLUESSEL IM BROWSERSPEICHER, und der alte wird noch gelesen -- 0.24.1.
+   Er hiess bis 0.24.0 `kriterion.thema`. Faende die Seite nach dem Einspielen
+   nur den neuen und der stuende leer, zeigte sie beim ERSTEN Aufschlag das
+   Vorgabeschema statt des gewaehlten -- ein sichtbarer Sprung fuer etwas, das
+   niemand geaendert hat. Geschrieben wird nur noch der neue; der alte bleibt
+   liegen und faellt beim naechsten Leeren des Speichers weg. */
+const THEME_KEY = 'kriterion.theme';
+const THEME_KEY_0240 = 'kriterion.thema';
 let THEME = (() => {
   try {
-    const remembered = localStorage.getItem(THEME_KEY);
-    return THEME_LEVELS.includes(remembered) ? remembered : 'dunkel';
-  } catch (e) { return 'dunkel'; }
+    const remembered = localStorage.getItem(THEME_KEY) || localStorage.getItem(THEME_KEY_0240);
+    return THEME_LEVELS.includes(remembered) ? remembered : 'dark';
+  } catch (e) { return 'dark'; }
 })();
-const effectiveTheme = () => THEME === 'geraet'
-  ? (window.matchMedia && window.matchMedia(DEVICE_LIGHT).matches ? 'hell' : 'dunkel')
-  : (THEME === 'hell' ? 'hell' : 'dunkel');
+const effectiveTheme = () => THEME === 'device'
+  ? (window.matchMedia && window.matchMedia(DEVICE_LIGHT).matches ? 'light' : 'dark')
+  : (THEME === 'light' ? 'light' : 'dark');
 /* DIE FARBE DER BROWSERLEISTE WIRD GELESEN UND NICHT ABGESCHRIEBEN. Der Kopf
    der Seite sagt seit jeher, sie sei `--bg` und duerfe keine zweite Wahrheit
    sein -- als Zeichenfolge im Meta-Element war sie aber genau das. Zwei
@@ -1940,7 +1947,7 @@ applyTheme();
    Fassungen kennen `addEventListener` an einer Medienabfrage nicht. */
 if (window.matchMedia) {
   const mq = window.matchMedia(DEVICE_LIGHT);
-  const follow = () => { if (THEME === 'geraet') applyTheme(); };
+  const follow = () => { if (THEME === 'device') applyTheme(); };
   if (mq.addEventListener) mq.addEventListener('change', follow);
   else if (mq.addListener) mq.addListener(follow);
 }
@@ -2162,28 +2169,28 @@ async function loadSettings() {
   if (SETTINGS.name) NAME = SETTINGS.name;
   if (SETTINGS.istAdmin !== undefined) ADMIN = !!SETTINGS.istAdmin;
   if (SETTINGS.istEigentuemer !== undefined) OWNER = !!SETTINGS.istEigentuemer;
-  if (SETTINGS.vokabular) V = { ...V, ...SETTINGS.vokabular };
-  if (SETTINGS.schrift) FONT = SETTINGS.schrift;
-  if (SETTINGS.streifen) STRIP = SETTINGS.streifen;
-  if (THEME_LEVELS.includes(SETTINGS.thema)) THEME = SETTINGS.thema;
-  takeBlocks(SETTINGS.bloecke);
-  if (SETTINGS.linkZeilen) LINK_ROWS = SETTINGS.linkZeilen;
-  if (SETTINGS.zeitleiste !== undefined) TIMELINE_ON = SETTINGS.zeitleiste !== false;
-  if (Array.isArray(SETTINGS.ansichten)) VIEWS = SETTINGS.ansichten;
+  if (SETTINGS.vocabulary) V = { ...V, ...SETTINGS.vocabulary };
+  if (SETTINGS.font) FONT = SETTINGS.font;
+  if (SETTINGS.strip) STRIP = SETTINGS.strip;
+  if (THEME_LEVELS.includes(SETTINGS.theme)) THEME = SETTINGS.theme;
+  takeBlocks(SETTINGS.blocks);
+  if (SETTINGS.linkRows) LINK_ROWS = SETTINGS.linkRows;
+  if (SETTINGS.timeline !== undefined) TIMELINE_ON = SETTINGS.timeline !== false;
+  if (Array.isArray(SETTINGS.views)) VIEWS = SETTINGS.views;
   if (SETTINGS.ansichtenDeckel) VIEWS_CAP = SETTINGS.ansichtenDeckel;
   // Ausdruecklich nur beim ERSTEN Laden. loadSettings() laeuft nur in
   // start(); ein spaeterer Aufruf duerfte den Bezugszeitpunkt nicht mehr
   // nachziehen, sonst verschwaende die Menge unter dem Zeiger.
-  if (SETTINGS.glockeGesehen) BELL_SEEN = SETTINGS.glockeGesehen;
+  if (SETTINGS.bellSeen) BELL_SEEN = SETTINGS.bellSeen;
   if (Array.isArray(SETTINGS.suchAnbieter)) SEARCH_PROVIDERS = SETTINGS.suchAnbieter;
-  if (SETTINGS.suchNamen) SEARCH_NAMES = SETTINGS.suchNamen;
+  if (SETTINGS.searchNames) SEARCH_NAMES = SETTINGS.searchNames;
   // Der Server leitet beide beim Lesen ab und liefert sie immer; die Vorgabe
   // hier greift nur, wenn die Antwort das Feld gar nicht kennt.
-  if (SETTINGS.tagsFreiAnlegen !== undefined) TAGS_FREE = SETTINGS.tagsFreiAnlegen !== false;
-  if (SETTINGS.kategorienFreiAnlegen !== undefined)
-    CATEGORIES_FREE = SETTINGS.kategorienFreiAnlegen !== false;
-  if (SETTINGS.bilderUmwandeln !== undefined)
-    IMAGES_CONVERT = SETTINGS.bilderUmwandeln !== false;
+  if (SETTINGS.tagsFreeCreate !== undefined) TAGS_FREE = SETTINGS.tagsFreeCreate !== false;
+  if (SETTINGS.categoriesFreeCreate !== undefined)
+    CATEGORIES_FREE = SETTINGS.categoriesFreeCreate !== false;
+  if (SETTINGS.convertImages !== undefined)
+    IMAGES_CONVERT = SETTINGS.convertImages !== false;
   if (SETTINGS.papierkorbTage) TRASH_DAYS = SETTINGS.papierkorbTage;
   TWO_FACTOR = SETTINGS.zweifaktor === true;
   applyFont();
@@ -2375,9 +2382,9 @@ const viewOutState = () => ({ filters: { ...state.filters }, q: state.search.tri
    Ansicht, die es nicht gibt. */
 async function sendViews(list) {
   try {
-    await api('PUT', '/api/settings', { ansichten: list });
+    await api('PUT', '/api/settings', { views: list });
     VIEWS = list;
-    if (SETTINGS) SETTINGS.ansichten = list;
+    if (SETTINGS) SETTINGS.views = list;
     return true;
   } catch (e) { toast(e.message, true); return false; }
 }
@@ -2583,7 +2590,7 @@ let LAST_VIEW = null;
 const rememberSeen = () => {
   if (BELL_SEEN) return;
   BELL_SEEN = true;
-  api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});
+  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});
 };
 /* ================= Der Suchbegriff in der Adresse -- 0.18.0 =================
    BIS 0.17.5 LEBTE DER BEGRIFF NUR IN state.search. Wer einen Treffer oeffnete
@@ -2814,7 +2821,7 @@ function showBellPanel() {
      Tafel gesehen hat, hat sie gesehen. Und die Zahlen im Speicher gehen im
      selben Zug auf null -- sonst stuende der Punkt bis zum naechsten Laden
      weiter da und behauptete etwas, das nicht mehr gilt. */
-  api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});
+  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});
   /* NUR WAS DASTEHT, WIRD ZURUECKGESETZT -- und nichts angelegt. Ohne
      Bezugspunkt gibt es die Felder gar nicht, und wer sie hier auf 0 setzte,
      machte aus „es gibt keinen Bezugspunkt" ein „nichts Neues". */
@@ -4188,8 +4195,8 @@ async function renderCompare() {
   // dann nachher. Eine leere Gruppe zeichnet gar nichts -- eine Trennzeile
   // ueber nichts waere eine Ueberschrift ohne Inhalt.
   const GROUPS = [
-    { phase: 'vorher',  wort: () => V.potenzial, schnitt: 'potenzialRating' },
-    { phase: 'nachher', wort: () => V.bewertungEinzahl, schnitt: 'avgRating' }
+    { phase: 'before',  wort: () => V.potenzial, schnitt: 'potenzialRating' },
+    { phase: 'after', wort: () => V.bewertungEinzahl, schnitt: 'avgRating' }
   ].map(g => ({ ...g, namen: names.filter(n => phases.get(n) === g.phase) }));
 
   /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie linksOpen und
@@ -6059,9 +6066,9 @@ async function renderDetail(id, termAddress) {
      GERECHNET WIRD HIER NICHTS. Beide Kopfzahlen und beide Rechenwege kommen
      vom Server; der Browser filtert und schreibt hin. */
   const BOXES = [
-    { phase: 'nachher', box: 'ratings',           head: 'rhead', button: 'weight-open',
+    { phase: 'after', box: 'ratings',           head: 'rhead', button: 'weight-open',
       actor: 'rwho', schnitt: 'avgRating',       weg: 'rechenweg' },
-    { phase: 'vorher',  box: 'potential-ratings', head: 'phead', button: 'pweight-open',
+    { phase: 'before',  box: 'potential-ratings', head: 'phead', button: 'pweight-open',
       actor: 'pwho', schnitt: 'potenzialRating', weg: 'potenzialRechenweg' }
   ];
 
@@ -6392,7 +6399,7 @@ async function renderDetail(id, termAddress) {
            die Gewichte eingestellt werden, liest nur, wer dorthin kommt
            (Regel S5). */''}
       <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')}${ADMIN ? ` ${tH('entry.weightsWhere')}
-        <strong>${esc(boxId.phase === 'vorher' ? t('entry.criteriaPotential') : t('entry.criteriaRating'))}</strong> ${tH('entry.calcIn')}` : ''}</p>
+        <strong>${esc(boxId.phase === 'before' ? t('entry.criteriaPotential') : t('entry.criteriaRating'))}</strong> ${tH('entry.calcIn')}` : ''}</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
            steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
            eine Auskunft ueber nichts.
@@ -6430,7 +6437,7 @@ async function renderDetail(id, termAddress) {
     try { list = await api('GET', `/api/items/${id}/votes`); }
     catch (e) { return toast(e.message, true); }
     const title = t('entry.whoRatedWord',
-      { wort: boxId.phase === 'vorher' ? V.potenzial : V.bewertungEinzahl });
+      { wort: boxId.phase === 'before' ? V.potenzial : V.bewertungEinzahl });
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="votes-modal"><h2>${esc(title)}</h2>
@@ -6880,7 +6887,7 @@ async function renderDetail(id, termAddress) {
       // Das ✕ folgt dem Recht, nicht der Anzeige -- wie am Link.
       const mayPath = a.mine === true || ADMIN;
 
-      row.innerHTML = `<span class="aicon">${a.preview === 'bild' ? '▣' : a.preview === 'pdf' ? '▤' : a.preview === 'keine' ? '▪' : '▥'}</span>
+      row.innerHTML = `<span class="aicon">${a.preview === 'image' ? '▣' : a.preview === 'pdf' ? '▤' : a.preview === 'keine' ? '▪' : '▥'}</span>
         <span class="aname">${esc(a.filename)}</span>
         <span class="asize">${groesse(a.size)}</span>
         ${showFrom ? `<span class="afrom">(${esc(authorName(a.verfasser))})</span>` : ''}
@@ -6916,7 +6923,7 @@ async function renderDetail(id, termAddress) {
   function buildPreview(a) {
     const boxId = document.createElement('div');
     boxId.className = 'apreview';
-    if (a.preview === 'bild') {
+    if (a.preview === 'image') {
       // Bilder in einem img-Element: dort wird nichts ausgeführt, und der
       // Server schickt sie mit nosniff und enger Sicherheitsregel.
       boxId.innerHTML = `<img src="/api/attachments/${a.id}/raw?inline=1" alt="${esc(a.filename)}">`;
@@ -7470,8 +7477,8 @@ const SYS_CARDS = [
   { schluessel: 'tags',         abschnitt: 'inventory', visible: () => true,
     markup: cardTags,         ausruesten: setUpTagsOut },
   { schluessel: 'kriterien',    abschnitt: 'inventory', visible: () => true,
-    markup: () => cardCriteria('nachher'),
-    ausruesten: (g) => setUpCriteriaOut(g, 'nachher') },
+    markup: () => cardCriteria('after'),
+    ausruesten: (g) => setUpCriteriaOut(g, 'after') },
   /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. Sichtbar
      fuer alle, bedienbar fuer den Admin, wie die Nachbarkarte: die Namen sind
      die Auswahl, aus der jeder am Eintrag schoepft.
@@ -7479,8 +7486,8 @@ const SYS_CARDS = [
      `crit`, dasselbe Ziehen, dasselbe Gewichtsfeld. Nur die Liste ist nach
      Phase gefiltert, und `POST` schickt die Phase mit. */
   { schluessel: 'potenzialkriterien', abschnitt: 'inventory', visible: () => true,
-    markup: () => cardCriteria('vorher'),
-    ausruesten: (g) => setUpCriteriaOut(g, 'vorher') },
+    markup: () => cardCriteria('before'),
+    ausruesten: (g) => setUpCriteriaOut(g, 'before') },
   { schluessel: 'vokabular',    abschnitt: 'inventory', visible: () => ADMIN,
     markup: cardVocabulary,    ausruesten: setUpVocabularyOut },
   { schluessel: 'links',        abschnitt: 'inventory', visible: () => true,
@@ -8000,7 +8007,7 @@ function setUpAppearanceOut() {
   zl.onchange = async () => {
     const vorher = TIMELINE_ON;
     TIMELINE_ON = zl.checked;
-    try { await api('PUT', '/api/settings', { zeitleiste: TIMELINE_ON }); saved(); }
+    try { await api('PUT', '/api/settings', { timeline: TIMELINE_ON }); saved(); }
     catch (e) { TIMELINE_ON = vorher; zl.checked = vorher; toast(e.message, true); }
   };
   atElement('breset', breset => breset.onclick = async () => {
@@ -8008,7 +8015,7 @@ function setUpAppearanceOut() {
       t('card.blocksResetHint'),
       t('card.restore'))) return;
     BLOCKS = { seite: [...BLOCK_DEFAULT.seite], unten: [...BLOCK_DEFAULT.unten], zu: [] };
-    try { await api('PUT', '/api/settings', { bloecke: BLOCKS }); toast(t('card.layoutRestored')); }
+    try { await api('PUT', '/api/settings', { blocks: BLOCKS }); toast(t('card.layoutRestored')); }
     catch (e) { toast(e.message, true); }
   });
 }
@@ -8030,7 +8037,7 @@ function setUpAppearanceOut() {
         THEME = level;
         applyTheme();
         drawTheme();
-        try { await api('PUT', '/api/settings', { thema: level }); saved(b); }
+        try { await api('PUT', '/api/settings', { theme: level }); saved(b); }
         catch (e) { THEME = vorher; applyTheme(); drawTheme(); toast(e.message, true); }
       };
       box.appendChild(b);
@@ -8049,7 +8056,7 @@ function setUpAppearanceOut() {
         FONT = level;
         applyFont();          // sofort sichtbar, auch wenn das Speichern scheitert
         drawFont();
-        try { await api('PUT', '/api/settings', { schrift: level }); saved(b); }
+        try { await api('PUT', '/api/settings', { font: level }); saved(b); }
         catch (e) { FONT = vorher; applyFont(); drawFont(); toast(e.message, true); }
       };
       box.appendChild(b);
@@ -8070,7 +8077,7 @@ function setUpAppearanceOut() {
         STRIP = level;
         applyTiles();
         drawStrip();
-        try { await api('PUT', '/api/settings', { streifen: level }); saved(b); }
+        try { await api('PUT', '/api/settings', { strip: level }); saved(b); }
         catch (e) { STRIP = vorher; applyTiles(); drawStrip(); toast(e.message, true); }
       };
       box.appendChild(b);
@@ -8095,7 +8102,7 @@ function cardCategories() {
 }
 function setUpCategoriesOut(fetched) {
   manageList('mcats', fetched.cats, 'cat', fetched);
-  createToggle('cat-free', 'kategorienFreiAnlegen', () => CATEGORIES_FREE, v => { CATEGORIES_FREE = v; });
+  createToggle('cat-free', 'categoriesFreeCreate', () => CATEGORIES_FREE, v => { CATEGORIES_FREE = v; });
 }
 
 /* ---- Karte „Tags" — Abschnitt „Bestand" ---- */
@@ -8113,7 +8120,7 @@ function cardTags() {
 }
 function setUpTagsOut(fetched) {
   manageList('mtags', fetched.tags, 'tag', fetched);
-  createToggle('tag-free', 'tagsFreiAnlegen', () => TAGS_FREE, v => { TAGS_FREE = v; });
+  createToggle('tag-free', 'tagsFreeCreate', () => TAGS_FREE, v => { TAGS_FREE = v; });
 }
 
 /* ---- Karte „Bewertungskriterien" — Abschnitt „Bestand" ---- */
@@ -8129,12 +8136,12 @@ function setUpTagsOut(fetched) {
    Kartenschluessel `kriterien` bleibt: ein Bildschirmtext benennt keine
    Adresse um. */
 const CRIT_CARD = {
-  nachher: { list: 'mcrits',  field: 'newcrit',  button: 'newcrit-b' },
-  vorher:  { list: 'mpcrits', field: 'newpcrit', button: 'newpcrit-b' }
+  after:  { list: 'mcrits',  field: 'newcrit',  button: 'newcrit-b' },
+  before: { list: 'mpcrits', field: 'newpcrit', button: 'newpcrit-b' }
 };
 
 function cardCriteria(phase) {
-  const vorher = phase === 'vorher';
+  const vorher = phase === 'before';
   const k = CRIT_CARD[phase];
   return `<div class="sys-card">
         <h3>${esc(vorher ? V.potenzial : V.bewertungEinzahl)}${tH('card.criteriaLabel')}</h3>
@@ -8188,7 +8195,7 @@ function setUpCriteriaOut(fetched, phase) {
       const name = critField.value.trim();
       if (!name) return;
       // DIE PHASE SCHICKT DIE KARTE MIT. Ohne sie legte die zweite Karte
-      // Bewertungskriterien an -- der Server hat die Vorgabe 'nachher'.
+      // Bewertungskriterien an -- der Server hat die Vorgabe 'after'.
       try { await api('POST', '/api/criteria', { name, phase }); critField.value = ''; toast(t('card.criterionCreated')); adminNew(fetched); }
       catch (e) { toast(e.message, true); }
     };
@@ -8484,8 +8491,8 @@ function setUpVocabularyOut() {
 
   atElement('vsave', vsave => vsave.onclick = async () => {
     try {
-      const r = await api('PUT', '/api/settings', { vokabular: vFields() });
-      V = { ...V, ...r.vokabular };
+      const r = await api('PUT', '/api/settings', { vocabulary: vFields() });
+      V = { ...V, ...r.vocabulary };
       toast(t('card.vocabularySaved'));
       renderSystem();          // leere Felder kommen mit der Vorgabe zurück
     } catch (e) { toast(e.message, true); }
@@ -8497,8 +8504,8 @@ function setUpVocabularyOut() {
     try {
       // Leer heisst Vorgabe: der Server setzt fuer jedes leere Feld sein Wort ein.
       const empty = Object.fromEntries(Object.keys(VOCABULARY_DEFAULT).map(k => [k, '']));
-      const r = await api('PUT', '/api/settings', { vokabular: empty });
-      V = { ...V, ...r.vokabular };
+      const r = await api('PUT', '/api/settings', { vocabulary: empty });
+      V = { ...V, ...r.vocabulary };
       toast(t('card.defaultsRestored'));
       renderSystem();
     } catch (e) { toast(e.message, true); }
@@ -8536,7 +8543,7 @@ function setUpLinksOut() {
         const vorher = LINK_ROWS;
         LINK_ROWS = n;
         drawLinkRows();
-        try { await api('PUT', '/api/settings', { linkZeilen: n }); saved(); }
+        try { await api('PUT', '/api/settings', { linkRows: n }); saved(); }
         catch (e) { LINK_ROWS = vorher; drawLinkRows(); toast(e.message, true); }
       };
       box.appendChild(b2);
@@ -8555,7 +8562,7 @@ function setUpLinksOut() {
         const vorher = SEARCH_NAMES;
         SEARCH_NAMES = n;
         drawSearchNames();
-        try { await api('PUT', '/api/settings', { suchNamen: n }); saved(); }
+        try { await api('PUT', '/api/settings', { searchNames: n }); saved(); }
         catch (e) { SEARCH_NAMES = vorher; drawSearchNames(); toast(e.message, true); }
       };
       box.appendChild(b3);
@@ -8618,7 +8625,7 @@ function setUpSearchProviderOut() {
       hk.title = t('card.addToSelection');
       hk.onchange = () => {
         const keys = poolList();
-        sendProvider({ sucheAktiv: hk.checked ? [...keys, a.schluessel] : keys.filter(k => k !== a.schluessel) },
+        sendProvider({ searchOn: hk.checked ? [...keys, a.schluessel] : keys.filter(k => k !== a.schluessel) },
           t('card.selectionSaved'));
       };
       const st = document.createElement('button');
@@ -8630,7 +8637,7 @@ function setUpSearchProviderOut() {
       // Start nimmt zugleich in die Auswahl auf: ein Startanbieter ausserhalb
       // des Vorrats ist ein Zustand, den es nicht geben darf.
       st.onclick = () => sendProvider(
-        { sucheAktiv: [a.schluessel, ...poolList().filter(k => k !== a.schluessel)] },
+        { searchOn: [a.schluessel, ...poolList().filter(k => k !== a.schluessel)] },
         t('list.saved'));
       // Der Name kommt aus dem Verwaltungsbereich und ist freier Text --
       // textContent statt innerHTML, damit Maskierung nicht vergessbar ist.
@@ -8672,7 +8679,7 @@ function setUpSearchProviderOut() {
       name: document.getElementById(`se-name-${i}`)?.value || '',
       vorlage: document.getElementById(`se-vorlage-${i}`)?.value || ''
     }));
-    return sendProvider({ sucheEigene: list }, t('list.saved'));
+    return sendProvider({ searchOwn: list }, t('list.saved'));
   }
 
 
@@ -8944,7 +8951,7 @@ function setUpUsersOut() {
     // Sonst baut ihn der Browser wie bisher.
     const adresse = d.link || buildInviteUrl(d.token);
     box.innerHTML = `<div class="warn-box user-linkbox" style="margin:12px 0 0">
-      <strong>${d.purpose === 'ruecksetzung' ? t('card.resetLink') : t('card.inviteLink')}
+      <strong>${d.purpose === 'reset' ? t('card.resetLink') : t('card.inviteLink')}
       ${tH('card.forQuote')}${esc(d.username || '')}${tH('card.shownOnce')}</strong>
       ${tH('card.linkHolderHint')} <strong>${d.tage || 7} ${tH('card.days')}</strong> ${tH('card.valid')}
       <strong>${tH('card.once')}</strong> ${tH('card.usableAfterOpen')} <strong>${d.minuten || 15} ${tH('card.minutes')}</strong> ${tH('card.linkCarefulHint')}
@@ -8986,18 +8993,18 @@ function setUpUsersOut() {
        Zugang, den man verwalten kann -- kein Werkzeug, keine Rolle, kein
        Passwort --, und sie wachsen mit jeder Löschung. Sie stehen deshalb in
        einem eigenen Fenster; das Vorbild ist "Wer hat bewertet".
-       DIE ERKENNUNG BLEIBT DIE EINE: `status === 'geloescht'`. Kein zweiter
+       DIE ERKENNUNG BLEIBT DIE EINE: `status === 'deleted'`. Kein zweiter
        Test am Namen -- der geht gar nicht hinaus.
        DER SERVER GIBT SIE WEITERHIN MIT. Getrennt wird in der Oberfläche; die
        Antwort der Route bleibt, wie sie ist. */
-    userTombstones = data.zugaenge.filter(z => z.status === 'geloescht');
-    for (const z of data.zugaenge.filter(z => z.status !== 'geloescht')) {
+    userTombstones = data.zugaenge.filter(z => z.status === 'deleted');
+    for (const z of data.zugaenge.filter(z => z.status !== 'deleted')) {
       const self = z.id === data.ich;
       // Genau die Regel des Servers, einmal hier: an einen Admin oder den
       // Eigentuemer kommt nur der Eigentuemer.
       const may = !self && (z.role === 'user' ? true : data.darfRollen);
       const row = doc.createElement('div');
-      row.className = 'mrow user' + (z.status === 'gesperrt' ? ' user-locked' : '');
+      row.className = 'mrow user' + (z.status === 'locked' ? ' user-locked' : '');
       row.dataset.mid = z.id;
       // Dieselbe Beschriftung wie an jedem Beitrag im Eintrag -- eine
       // Funktion, zwei Rufer. Stuende die Bildung des Grabsteinnamens hier ein
@@ -9030,10 +9037,10 @@ function setUpUsersOut() {
           `${data.darfRollen ? `<select class="input input-sm user-role-sel">
              <option value="user"${z.role === 'user' ? ' selected' : ''}>${tH('card.user')}</option>
              <option value="admin"${z.role === 'admin' ? ' selected' : ''}>${tH('card.admin')}</option>
-             <option value="eigentuemer"${z.role === 'eigentuemer' ? ' selected' : ''}>${tH('card.owner')}</option>
+             <option value="eigentuemer"${z.role === 'owner' ? ' selected' : ''}>${tH('card.owner')}</option>
            </select>` : ''}
-           <button class="mact user-lock-btn" title="${z.status === 'aktiv' ? t('card.lock') : t('card.unlock')}">${
-             z.status === 'aktiv' ? ICON_LOCK : ICON_CHECK}</button>
+           <button class="mact user-lock-btn" title="${z.status === 'active' ? t('card.lock') : t('card.unlock')}">${
+             z.status === 'active' ? ICON_LOCK : ICON_CHECK}</button>
            <button class="mact user-link-btn" title="${z.ohnePasswort ? t('card.createInviteLink')
              : t('card.createResetLink')}">${ICON_LINK}</button>
            <button class="mact user-pass-btn" title="${esc(t('card.presetPassword'))}">${ICON_KEY}</button>
@@ -9044,7 +9051,7 @@ function setUpUsersOut() {
         if (roleField) roleField.onchange = async () => {
           // Vor dem ersten await lesen: danach ist das Feld schon neu gezeichnet.
           const fresh = roleField.value;
-          if (!await secondConfirm('rolle', z.id, t('card.roleGiven'),
+          if (!await secondConfirm('role', z.id, t('card.roleGiven'),
             t('card.getsRoleHint', { username: z.username, rolle: rolesWord(fresh) }))) { drawUsers(); return; }
           try { await api('PUT', `/api/users/${z.id}`, { rolle: fresh }); toast(t('card.roleChanged')); }
           catch (e) { toast(e.message, true); }
@@ -9052,11 +9059,11 @@ function setUpUsersOut() {
         };
 
         tool.querySelector('.user-lock-btn').onclick = async () => {
-          const fresh = z.status === 'aktiv' ? 'gesperrt' : 'aktiv';
-          if (fresh === 'gesperrt' && !await confirmBox(t('card.lockAsk', { username: z.username }),
+          const fresh = z.status === 'active' ? 'locked' : 'active';
+          if (fresh === 'locked' && !await confirmBox(t('card.lockAsk', { username: z.username }),
             t('card.lockUserHint'),
             t('card.lock'))) return;
-          try { await api('PUT', `/api/users/${z.id}`, { status: fresh }); toast(fresh === 'aktiv' ? t('card.unlocked') : t('card.locked')); }
+          try { await api('PUT', `/api/users/${z.id}`, { status: fresh }); toast(fresh === 'active' ? t('card.unlocked') : t('card.locked')); }
           catch (e) { toast(e.message, true); }
           drawUsers();
         };
@@ -9067,12 +9074,12 @@ function setUpUsersOut() {
            Weg kommt ohne den Browser des anderen aus — für jemanden, der
            danebensteht, ist er der kürzere. */
         tool.querySelector('.user-link-btn').onclick = async () => {
-          const purpose = z.ohnePasswort ? 'einladung' : 'ruecksetzung';
-          if (purpose === 'ruecksetzung' && !await confirmBox(t('card.resetLinkAsk'),
+          const purpose = z.ohnePasswort ? 'invite' : 'reset';
+          if (purpose === 'reset' && !await confirmBox(t('card.resetLinkAsk'),
             t('card.oldPasswordValid', { username: z.username }) +
             t('card.oldLinkVoid'), t('card.create'))) return;
           if (!await secondConfirm('link', z.id,
-            purpose === 'ruecksetzung' ? t('card.resetLink') : t('card.inviteLink'),
+            purpose === 'reset' ? t('card.resetLink') : t('card.inviteLink'),
             t('card.linkHolderUser', { username: z.username }))) return;
           try { showLink(await api('POST', `/api/users/${z.id}/token`, { purpose })); }
           catch (e) { toast(e.message, true); }
@@ -9083,7 +9090,7 @@ function setUpUsersOut() {
           const fresh = await newPasswordDialog(t('card.setPasswordFor', { username: z.username }),
             t('card.minCharsSessions', { minPasswort: MIN_PASSWORD }));
           if (fresh === null || !fresh.trim()) return;
-          if (!await secondConfirm('passwort', z.id, t('card.presetPassword'),
+          if (!await secondConfirm('password', z.id, t('card.presetPassword'),
             t('card.getsPasswordHint', { username: z.username }))) return;
           try { await api('PUT', `/api/users/${z.id}`, { passwort: fresh }); toast(t('card.passwordSet')); }
           catch (e) { toast(e.message, true); }
@@ -9103,7 +9110,7 @@ function setUpUsersOut() {
              0.12.4). Danach, wie bisher, die Passwortabfrage. */
           const choice = await userDeleteDialog(z.username, z.id, b);
           if (!choice) return;
-          if (!await secondConfirm('entfernen', z.id, t('dialog.deleteUser'),
+          if (!await secondConfirm('remove', z.id, t('dialog.deleteUser'),
             t('card.deleteUserHint', { username: z.username }))) return;
           try {
             await api('DELETE', `/api/users/${z.id}?eintraege=${choice.eintraege ? 1 : 0}&beitraege=${choice.beitraege ? 1 : 0}`);
@@ -9114,7 +9121,7 @@ function setUpUsersOut() {
       }
       box.appendChild(row);
     }
-    if (!data.zugaenge.some(z => z.status !== 'geloescht'))
+    if (!data.zugaenge.some(z => z.status !== 'deleted'))
       box.innerHTML = `<span class="hint">${tH('card.noUsersYet')}</span>`;
     drawTombstoneButton();
   }
@@ -9336,69 +9343,69 @@ function setUpLogOut(fetched) {
      leer und sagt es, statt den Lauf abzureissen. */
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const EVENT_WORD = {
-    'anmeldung.ok': 'card.signedIn',
-    'anmeldung.fehl': 'card.loginFailed',
-    'bestaetigung.fehl': 'card.confirmFailed',
-    'zugang.neu': 'card.userCreated',
-    'zugang.rolle': 'card.roleGiven',
-    'zugang.passwort': 'card.passwordSet',
-    'zugang.weg': 'card.userDeleted',
-    'zugang.selbst': 'card.ownAccountChanged',
-    'link.neu': 'card.linkCreated',
-    'link.ein': 'card.linkUsed',
+    'login.ok': 'card.signedIn',
+    'login.fail': 'card.loginFailed',
+    'confirm.fail': 'card.confirmFailed',
+    'user.new': 'card.userCreated',
+    'user.role': 'card.roleGiven',
+    'user.password': 'card.passwordSet',
+    'user.delete': 'card.userDeleted',
+    'user.self': 'card.ownAccountChanged',
+    'link.new': 'card.linkCreated',
+    'link.use': 'card.linkUsed',
     /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. Sie fielen auf den Rueckfall `|| z.was`
-       und standen als roher Schluessel am Bildschirm -- "anfrage.frei" statt
+       und standen als roher Schluessel am Bildschirm -- "request.approve" statt
        eines Wortes. Zwanzig Vorgaenge und vierzehn Woerter: der Filter dieser
        Runde macht die Luecke unuebersehbar, gefehlt hat sie seit 0.9.1 und
        0.10.0. */
-    'anfrage.frei': 'card.requestApproved',
-    'anfrage.ab': 'card.requestRejected',
-    'zweifaktor.an': 'card.twoFactorTurnedOn',
-    'zweifaktor.aus': 'card.twoFactorTurnedOff',
-    'zweifaktor.wieder': 'card.recoveryCodeUsed',
+    'request.approve': 'card.requestApproved',
+    'request.reject': 'card.requestRejected',
+    'twofactor.on': 'card.twoFactorTurnedOn',
+    'twofactor.off': 'card.twoFactorTurnedOff',
+    'twofactor.reset': 'card.recoveryCodeUsed',
     'export': 'card.exportCreated',
     'import': 'card.imported',
-    'sicherung': 'card.backupWritten',
+    'backup': 'card.backupWritten',
     /* EINE ZEILE JE ENTFERNTER KOPIE, deshalb der Singular: vier entfernte
        Kopien sind vier Zeilen. Die Zahl steht damit in der Tabelle, ohne dass
        es eine Spalte dafuer braeuchte -- die Begruendung steht in auth.js an
        der Liste. */
-    'sicherung.weg': 'card.oldBackupDeleted',
+    'backup.delete': 'card.oldBackupDeleted',
     // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
     // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
     // gewechselt wird auf dem Wirt.
-    'schluessel': 'card.keyChanged'
+    'key': 'card.keyChanged'
   };
-  // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "gesperrt"
+  // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "locked"
   // und "entsperrt" sind zwei verschiedene Aussagen und sollen auch zwei
   // verschiedene Zeilen sein.
-  const eventWord = (z) => z.event === 'zugang.status'
-    ? (z.detail === 'aktiv' ? t('card.userUnlocked') : t('card.userLocked'))
+  const eventWord = (z) => z.event === 'user.status'
+    ? (z.detail === 'active' ? t('card.userUnlocked') : t('card.userLocked'))
     : (EVENT_WORD[z.event] ? t(EVENT_WORD[z.event]) : z.event);
   // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
   // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
   /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- detailWord() faellt still
      auf den leeren String zurueck, und genau deshalb ist bis 0.12.4 niemandem
      aufgefallen, dass Woerter fehlten.
-     'teil' KAM MIT 0.13.0 DAZU: ohne das Wort waere ein Teilexport von einem
+     'part' KAM MIT 0.13.0 DAZU: ohne das Wort waere ein Teilexport von einem
      vollen nicht zu unterscheiden -- und das war der Grund, aus dem er
      ueberhaupt ein Merkmal traegt.
-     'adresse' FEHLTE seit 0.9.1, und 'beides' war seither falsch beschriftet:
+     'address' FEHLTE seit 0.9.1, und 'both' war seither falsch beschriftet:
      es heisst am Server "mehr als eines" und kann Name, Passwort und Adresse
      in jeder Mischung meinen -- "Name und Passwort" behauptete zwei bestimmte.
-     'aktiv' UND 'gesperrt' STEHEN HIER AUSDRUECKLICH NICHT: ihr Wort traegt
+     'active' UND 'locked' STEHEN HIER AUSDRUECKLICH NICHT: ihr Wort traegt
      schon der Vorgang ("Benutzer gesperrt" / "Benutzer entsperrt"), und zweimal
      dasselbe in einer Zeile ist eines zu viel. Ein Waechter im Pruefstand
      nimmt genau diese beiden aus und verlangt fuer jedes uebrige ein Wort. */
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const DETAIL_WORD = {
-    user: 'card.user', admin: 'card.admin', eigentuemer: 'card.owner',
-    einladung: 'card.invite', ruecksetzung: 'card.resetLabel',
+    user: 'card.user', admin: 'card.admin', owner: 'card.owner',
+    invite: 'card.invite', reset: 'card.resetLabel',
     merge: 'card.merged', replace: 'card.replacing',
-    name: 'card.name', passwort: 'login.password', adresse: 'card.address',
-    beides: 'card.severalValues', teil: 'card.inParts'
+    name: 'card.name', password: 'login.password', address: 'card.address',
+    both: 'card.severalValues', part: 'card.inParts'
   };
-  const detailWord = (z) => (z.event === 'zugang.status' || !DETAIL_WORD[z.detail]
+  const detailWord = (z) => (z.event === 'user.status' || !DETAIL_WORD[z.detail]
     ? '' : t(DETAIL_WORD[z.detail]));
 
   /* WER GEHANDELT HAT. Eine leere Nummer heisst "per Kommandozeile am Server"
@@ -9407,16 +9414,16 @@ function setUpLogOut(fetched) {
      angemeldet. */
   const logActor = (z) => {
     if (z.actor != null) return authorName({ id: z.actor, name: z.werName, geloescht: z.werName == null });
-    return z.event === 'anmeldung.fehl' ? '—' : t('card.viaCommandLine');
+    return z.event === 'login.fail' ? '—' : t('card.viaCommandLine');
   };
   const logTarget = (z) => {
-    if (z.target == null) return z.event === 'anmeldung.fehl' ? t('card.unknownName') : '';
+    if (z.target == null) return z.event === 'login.fail' ? t('card.unknownName') : '';
     if (z.target === z.actor) return '';
     return authorName({ id: z.target, name: z.zielName, geloescht: z.zielName == null });
   };
 
   /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
-     (PROTOKOLL_GRUPPEN), die Woerter stehen hier -- dieselbe Teilung wie bei
+     (LOG_GROUPS), die Woerter stehen hier -- dieselbe Teilung wie bei
      den Vorgaengen selbst.
      "GESCHEITERT" HEISST NICHT "gescheiterte Anmeldungen": die Gruppe traegt
      auch die gescheiterte zweite Bestaetigung, und beide sagen dasselbe --
@@ -9425,19 +9432,19 @@ function setUpLogOut(fetched) {
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const LOG_VIEW = [
     ['', 'list.all'],
-    ['gescheitert', 'card.failed'],
-    ['anmeldungen', 'card.logins'],
-    ['zugaenge', 'card.user'],
-    ['zweifaktor', 'card.twoFactor'],
-    ['bestand', 'card.database']
+    ['failed', 'card.failed'],
+    ['logins', 'card.logins'],
+    ['users', 'card.user'],
+    ['twofactor', 'card.twoFactor'],
+    ['inventory', 'card.database']
   ];
   const LOG_VIEW_HELP = {
     '': 'card.logAllHint',
-    gescheitert: 'card.loginsFailed',
-    anmeldungen: 'card.loginsOk',
-    zugaenge: 'card.logUsersHint',
-    zweifaktor: 'card.logTwoFactorHint',
-    bestand: 'card.logDataHint'
+    failed: 'card.loginsFailed',
+    logins: 'card.loginsOk',
+    users: 'card.logUsersHint',
+    twofactor: 'card.logTwoFactorHint',
+    inventory: 'card.logDataHint'
   };
   // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
   // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
@@ -9854,7 +9861,7 @@ function setUpMailDeliveryOut(fetched) {
 /* ---- Die Bildablage in der Karte „Kennzahlen" ----
    DIE NAMEN UND DIE REIHENFOLGE STEHEN AN EINER STELLE. Die Schluessel kommen
    aus /api/stats, wo sie an den ERSTEN BYTES erkannt werden -- nicht am
-   gemeldeten Typ. Was der Server nicht einordnen kann, faellt in 'anderes';
+   gemeldeten Typ. Was der Server nicht einordnen kann, faellt in 'other';
    die Zeile erscheint nur, wenn es wirklich etwas gibt, und dann ist sie ein
    Befund und keine Verzierung. */
 /* RUFE STATT WERTE -- 0.24.0 (siehe SYS_SECTIONS). Auch die drei festen
@@ -9866,7 +9873,7 @@ const IMAGE_FORMATS = [
   { schluessel: 'jpeg',    name: () => 'JPEG', hinweis: () => t('card.staysUnchanged') },
   { schluessel: 'webp',    name: () => t('card.webp'), hinweis: () => t('card.targetFormat') },
   { schluessel: 'gif',     name: () => 'GIF',  hinweis: () => t('card.staysUnchanged') },
-  { schluessel: 'anderes', name: () => t('card.otherFormat'), hinweis: () => '' }
+  { schluessel: 'other', name: () => t('card.otherFormat'), hinweis: () => '' }
 ];
 
 /* Die Fortschrittszeile. EIN Ort fuer den Satz, den drei Zustaende brauchen --
@@ -10137,7 +10144,7 @@ function setUpImageStoreOut(fetched) {
   /* DERSELBE HELFER WIE BEI DEN BEIDEN ANLEGEN-SCHALTERN. Er nimmt die
      Stellung bei einem Fehlschlag zurueck -- sonst zeigte der Bildschirm
      etwas anderes an, als der Server haelt. */
-  createToggle('convert-images', 'bilderUmwandeln',
+  createToggle('convert-images', 'convertImages',
     () => IMAGES_CONVERT, v => { IMAGES_CONVERT = v; });
 
   atElement('convert-run', (button) => {
@@ -10168,7 +10175,7 @@ function setUpImageStoreOut(fetched) {
          KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE, aus demselben Grund: sie
          waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
          eine Anzeige, die bei jedem Umlauf springt. */
-      const ok = await secondConfirm('bilder', null, t('card.convertPngWebp'),
+      const ok = await secondConfirm('images', null, t('card.convertPngWebp'),
         t('card.pngConverting', { n: png.anzahl, bytes: fmtBytes(png.bytes),
           danach: fmtBytes(Math.round(png.bytes * 0.37)) }));
       if (!ok) return;
@@ -10505,7 +10512,7 @@ function setUpCleanupOut(fetched) {
       el.onchange = async () => {
         const vorher = !el.checked;
         try {
-          await api('PUT', '/api/settings', { sicherungAufraeumen: el.checked });
+          await api('PUT', '/api/settings', { backupCleanup: el.checked });
           fetched.sicherung = { ...fetched.sicherung,
                                aufraeumen: { ...a, an: el.checked } };
           toast(el.checked ? t('card.cleanupOn') : t('card.cleanupOff'));
@@ -10547,8 +10554,8 @@ function setUpCleanupOut(fetched) {
       fetched.sicherung = frisch;
       drawCleanup(fetched);
     };
-    for (const [id, schluessel] of [['cleanup-keep', 'sicherungBehalten'],
-                                    ['cleanup-days', 'sicherungTage']])
+    for (const [id, schluessel] of [['cleanup-keep', 'backupKeep'],
+                                    ['cleanup-days', 'backupDays']])
       atElement(id, (el) => {
         el.oninput = previewNew;
         el.onchange = async () => {
@@ -10572,7 +10579,7 @@ function setUpCleanupOut(fetched) {
        deshalb, was WIRKLICH geloescht wurde, und die Karte zeichnet sich
        daraus neu. */
     const clear = async (kind, title, event) => {
-      if (!(await secondConfirm('sicherung', null, title, event))) return;
+      if (!(await secondConfirm('backup', null, title, event))) return;
       let r;
       try { r = await api('POST', '/api/backup/cleanup', { kind }); }
       catch (e) { return toast(e.message, true); }
@@ -10588,12 +10595,12 @@ function setUpCleanupOut(fetched) {
       renderSystem();
     };
     atElement('cleanup-run', (button) => {
-      button.onclick = () => clear('regel', t('card.deleteBackups'),
+      button.onclick = () => clear('rule', t('card.deleteBackups'),
         t('card.backupsPurgeHint',
           { n: treffer.length, bytes: fmtBytes(a.bytes || 0) }));
     });
     atElement('cleanup-old', (button) => {
-      button.onclick = () => clear('veraltet', t('card.deleteOldKeyBackups'),
+      button.onclick = () => clear('outdated', t('card.deleteOldKeyBackups'),
         t('card.oldKeyBackupsPurge',
           { n: altZahl, bytes: fmtBytes(a.altBytes || 0) }));
     });
@@ -10966,7 +10973,7 @@ let setupNeeded = false;
     if (cfg && cfg.version) VERSION = cfg.version;
     if (cfg && cfg.minPassword) MIN_PASSWORD = cfg.minPassword;
     if (cfg && cfg.setupRequired) setupNeeded = true;
-    SIGNUP = Boolean(cfg && cfg.registrierung);
+    SIGNUP = Boolean(cfg && cfg.signup);
     showVersion();
   } catch {}
   document.title = TITLE_PUBLIC;

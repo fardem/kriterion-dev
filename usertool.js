@@ -113,7 +113,12 @@ function findUser(name) {
   return auth.getUser2(u.id);
 }
 
-const ROLE_KEY = { user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer' };
+const ROLE_KEY = { user: 'Benutzer', admin: 'Admin', owner: 'Eigentümer' };
+/* DIE ZUSTAENDE HEISSEN SEIT 0.24.1 ENGLISCH -- auf dem Bildschirm des Wirts
+   stehen sie weiter so, wie sie dort immer standen. Dieselbe Tafel wie
+   ROLE_KEY darueber und derselbe Grund: der gespeicherte Wert ist Code, das
+   Wort daneben ist Text fuer den, der hinsieht. */
+const STATUS_WORD = { active: 'aktiv', locked: 'gesperrt', deleted: 'geloescht' };
 
 function commandList() {
   const lines = auth.listUsers();
@@ -128,7 +133,7 @@ function commandList() {
   console.log('  ' + '─'.repeat(width + 58));
   for (const z of lines) {
     console.log(`  ${String(z.id).padStart(3)}  ${z.username.padEnd(width)}  ` +
-      `${(ROLE_KEY[z.role] || z.role).padEnd(11)}  ${z.status.padEnd(9)}  ` +
+      `${(ROLE_KEY[z.role] || z.role).padEnd(11)}  ${(STATUS_WORD[z.status] || z.status).padEnd(9)}  ` +
       `${(auth.twoFactorOn(z.id) ? 'an' : 'aus').padEnd(4)}  ` +
       `${String(z.eintraege).padStart(8)}  ${z.last_login || '—'}`);
   }
@@ -138,7 +143,7 @@ function commandList() {
 
 async function commandPassword(name) {
   const u = findUser(name);
-  if (u.status === 'geloescht') {
+  if (u.status === 'deleted') {
     console.error(RED(`"${u.username}" ist ein gelöschter Zugang und bekommt kein Passwort mehr.`));
     process.exit(1);
   }
@@ -219,7 +224,7 @@ async function commandTwoFactor(name) {
 function commandOwner(name) {
   const u = findUser(name);
   try {
-    auth.setRole(u.id, 'eigentuemer', auth.FROM_HOST);
+    auth.setRole(u.id, 'owner', auth.FROM_HOST);
   } catch (e) { console.error(RED(e.message)); process.exit(1); }
   console.log(`"${u.username}" ist jetzt Eigentümer der Instanz. ` +
     `Aktive Eigentümer: ${auth.ownerCount()}.`);

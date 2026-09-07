@@ -40,7 +40,7 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    Lesen erklaert werden muss. Der KOMMENTAR ueber qOpenPng nennt es
    weiterhin, und das ist richtig: die Byte-Folge dort ist dieselbe. */
 const { makeVariants, PNG_MAGIC_HEX, storeImage } = require('./images');
-const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren, COLUMNS_0241 } = require('./db');
+const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren, COLUMNS_0241, VALUES_0241 } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
 
@@ -105,7 +105,7 @@ function t(locale, schluessel, values = {}) {
   let vocab = null;
   return String(record).replace(/\{(\w+)\}/g, (whole, name) => {
     if (values[name] !== undefined) return String(values[name]);
-    if (vocab === null) vocab = vokabular();
+    if (vocab === null) vocab = vocabulary();
     return vocab[name] !== undefined ? String(vocab[name]) : whole;
   });
 }
@@ -132,7 +132,7 @@ auth.setTranslator((req, schluessel, values) => t(localeOf(req), schluessel, val
 /* WAS EIN GEFANGENER FEHLER SAGT -- 0.24.0, Bauabschnitt 2. Fuenfzehn Stellen
    fingen bis dahin einen Fehler und gaben `e.message` heraus; darin stand ein
    deutscher Satz aus auth.js oder mail.js.
-   GEFRAGT WIRD NACH `schluessel` UND NICHT NACH DER KLASSE: auth.js wirft die
+   GEFRAGT WIRD NACH `key` UND NICHT NACH DER KLASSE: auth.js wirft die
    Klasse `Message`, mail.js baut sich dieselbe Form mit zwei Zeilen selbst --
    es ist ein Blatt im Abhaengigkeitsbaum und darf auth.js nicht requiren, sonst
    entstuende ein Ring. Was zaehlt, ist die FORM und nicht die Herkunft.
@@ -204,7 +204,7 @@ async function sendTokenLink(target, token) {
     username: target.username, link: `${PUBLIC.adresse}/#/invite/${token.plain}`,
     tage: auth.TOKEN_DAYS, minuten: auth.TOKEN_DEADLINE_MINUTES
   };
-  const invite = token.purpose === 'einladung';
+  const invite = token.purpose === 'invite';
   /* DIE SPRACHE DES EMPFAENGERS -- in dieser Runde immer die der Installation.
      localeOf() steht schon da (Bauabschnitt 1); Stufe 2 haengt hier die
      Sprache des Zugangs ein, und diese Zeile bleibt, wie sie ist. */
@@ -364,15 +364,15 @@ const putSetting = { run: (k, v) => {
    ..." und hat mit ihr keinen Rufer mehr. Vorhandene Zeilen in user_settings
    bleiben stehen und werden nicht gelesen -- eine Migration, die persoenliche
    Zeilen loescht, waere teurer als die Zeilen selbst. */
-/* NEUN SEIT 0.22.0: `streifen` -- die Mindestgroesse der Kacheln im Bildstreifen,
+/* NEUN SEIT 0.22.0: `strip` -- die Mindestgroesse der Kacheln im Bildstreifen,
    persoenlich je Zugang, ein Wert fuer alle Geraete, dieselbe Maschine wie
-   `schrift` (E11). */
-/* ZEHN SEIT 0.23.0: `thema` -- hell, dunkel oder wie das Geraet. Dieselbe
+   `font` (E11). */
+/* ZEHN SEIT 0.23.0: `theme` -- hell, dunkel oder wie das Geraet. Dieselbe
    Maschine wie die beiden davor, und aus demselben Grund persoenlich: es ist
    eine Aussage ueber die Augen dessen, der hinsieht, und nicht ueber den
    Bestand. Keine neue Route -- die Karte „Darstellung" schickt sie mit. */
-const PERSONAL_KEYS = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen',
-                                'glockeGesehen', 'ansichten', 'streifen', 'thema'];
+const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
+                                'bellSeen', 'views', 'strip', 'theme'];
 
 /* DER DRITTE RANG IN DERSELBEN ROUTE, seit 0.19.0. Bis dahin kannte
    PUT /api/settings zwei Haelften: was in dieser Liste steht, ist persoenlich,
@@ -385,13 +385,13 @@ const PERSONAL_KEYS = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleist
    Adminsache.
    VIER SEIT 0.20.0, vorher einer. Die drei neuen sind die Aufraeumregel der
    Sicherungen: der Schalter und die beiden Werte. Sie gehen denselben Weg wie
-   `bilderUmwandeln` -- eine eigene schreibende Route liesse F_ROUTEN wachsen,
+   `convertImages` -- eine eigene schreibende Route liesse F_ROUTEN wachsen,
    ohne dass es etwas Neues zu bewachen gaebe, und die Karte steht ohnehin
    hinter `ownerOnly`. Genau dafuer war diese Liste angelegt: "der zweite
    Schluessel dieser Art steht dann daneben und nicht als zweite
    Verzweigung." */
-const OWNER_KEYS = ['bilderUmwandeln',
-                                'sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];
+const OWNER_KEYS = ['convertImages',
+                                'backupCleanup', 'backupKeep', 'backupDays'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -423,14 +423,14 @@ const putUserSetting = (userId, k, wert) => {
    nur noch die Schluessel und die Namen dazu (BILDFORMATE in public/app.js);
    zwei Tabellen ueber dieselbe Sache duerfen sich nicht widersprechen
    (Stolperstein 47).
-   WAS SIE NICHT KENNT, FAELLT IN 'anderes' -- ein leeres oder unbekanntes
+   WAS SIE NICHT KENNT, FAELLT IN 'other' -- ein leeres oder unbekanntes
    mime_type ist eine Aussage und keine Zeile weniger.
    KLEINGESCHRIEBEN VERGLICHEN: `IMAGE/PNG` ist derselbe Typ, und die Spalte
    traegt, was der Hochladende gemeldet hat. */
 const IMAGE_MIME_FORMAT = {
   'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'
 };
-const formatFromMime = (m) => IMAGE_MIME_FORMAT[String(m || '').trim().toLowerCase()] || 'anderes';
+const formatFromMime = (m) => IMAGE_MIME_FORMAT[String(m || '').trim().toLowerCase()] || 'other';
 
 /* Der Schalter aus dem Reiter „Datenbank". VORGABE AN -- und „aus" heisst
    wirklich aus: ankommende PNG bleiben dann byte-genau PNG. Das ist die
@@ -438,7 +438,7 @@ const formatFromMime = (m) => IMAGE_MIME_FORMAT[String(m || '').trim().toLowerCa
    DER SCHALTER IST NIE ENDGUELTIG: in beide Richtungen holt der Knopf
    „Alle PNG nach WebP umstellen" nach, was in der anderen Stellung entstanden
    ist. Genau deshalb ist er billig. */
-const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;
+const convertImages = () => getSetting('convertImages', true) !== false;
 
 /* ---- Den vorhandenen Bestand nachziehen ----
    DIES WAR ALS WIRTSSKRIPT `images.js` GEPLANT, in der Bauform von usertool.js
@@ -615,7 +615,7 @@ app.get('/api/config', (req, res) => {
   res.json({
     title: getSetting('title_public', 'Bewertungskatalog'), version: VERSION,
     setupRequired: !auth.userExists(), minPassword: auth.PASSWORD_MIN,
-    registrierung: getSetting('registrierung', false) === true
+    signup: getSetting('signup', false) === true
   });
 });
 
@@ -659,9 +659,9 @@ app.post('/api/login', async (req, res) => {
      erfahren, dass er gesperrt ist. Vor der Pruefung waere dieselbe Message
      ein Werkzeug zum Durchprobieren von Namen.
      Kein noteFailure -- das Passwort war richtig. */
-  if (benutzer.status !== 'aktiv') {
+  if (benutzer.status !== 'active') {
     return res.status(403).json({
-      error: t(localeOf(req), benutzer.status === 'geloescht' ? 'server.accountGone' : 'server.accountLocked')});
+      error: t(localeOf(req), benutzer.status === 'deleted' ? 'server.accountGone' : 'server.accountLocked')});
   }
   /* DER ZWEITE FAKTOR -- UND HIER, NACH DER PASSWORTPRUEFUNG.
      DIE AUSKUNFT "DIESER ZUGANG HAT EINEN ZWEITEN FAKTOR" KOMMT ERST NACH
@@ -732,7 +732,7 @@ app.post('/api/login/second', async (req, res) => {
      zu zwei Minuten, und in denen kann ein Admin gesperrt haben. Dieselbe
      Message wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
      belegt und darf deshalb erfahren, woran es liegt. */
-  if (!zugang || zugang.status !== 'aktiv') {
+  if (!zugang || zugang.status !== 'active') {
     return res.status(403).json({ error: t(localeOf(req), 'server.accountLocked')});
   }
   if (!auth.checkTwoFactor(id, code)) {
@@ -742,7 +742,7 @@ app.post('/api/login/second', async (req, res) => {
        Sie steht hier und nicht in auth.checkTwoFactor -- die Funktion
        hat drei Rufer, und an den beiden anderen ist das Scheitern keine
        Anmeldung. */
-    auth.log('anmeldung.fehl', { actor: null, target: id });
+    auth.log('login.fail', { actor: null, target: id });
     /* EIN FRISCHER AUSWEIS LIEGT DER ABSAGE BEI. Der alte ist verbraucht --
        "genau einmal" bleibt woertlich wahr. Ohne den neuen stuende ein Mensch
        nach EINEM Tippfehler wieder vor dem Passwortfeld.
@@ -906,7 +906,7 @@ app.post('/api/signup', async (req, res) => {
      den Schalter neben /api/config -- und vor allem waere sie die eine Lage,
      an der sich die Antwort doch unterscheidet. "Abgewiesen" heisst hier: es
      entsteht nichts. Keine Zeile, keine Mail. */
-  const an = getSetting('registrierung', false) === true;
+  const an = getSetting('signup', false) === true;
   const { name, adresse } = req.body || {};
   const plain = an ? auth.createRequest(name, adresse) : null;
   res.json(REQUEST_ANSWER);
@@ -961,7 +961,7 @@ app.use('/api', auth.requireAuth);
 
    Die Eigentuemerfrage steht ZUERST, weil die Adminfrage sie ruft -- damit
    ist "ein Eigentuemer ist immer auch Admin" baulich wahr. */
-function istEigentuemer(req) { return req.benutzer.role === 'eigentuemer'; }
+function istEigentuemer(req) { return req.benutzer.role === 'owner'; }
 function istAdmin(req) { return req.benutzer.role === 'admin' || istEigentuemer(req); }
 
 const DENIED_ADMIN = 'server.deniedAdmin';
@@ -1017,7 +1017,7 @@ function secondConfirm(req, res, purpose, target = null) {
 
 /* Dieselbe Frage als Waechter in der Routenzeile. Das Ziel kommt aus der
    Adresse -- beim vollen Export und beim Import gibt es keins.
-   SEIT 0.12.4 ZAEHLT DIE ABFRAGE MIT, und zwar nur `teil`: ein Bestand, der in
+   SEIT 0.12.4 ZAEHLT DIE ABFRAGE MIT, und zwar nur `part`: ein Bestand, der in
    fuenf Teilen hinausgeht, braucht fuenf Freigaben, sonst muesste der Mensch
    sein Passwort fuenfmal tippen. Eine Freigabe wird verbraucht (auth.js), und
    fuenf mit demselben Ziel waeren EINE -- der Schluessel ist Token, Zweck und
@@ -1324,7 +1324,7 @@ app.post('/api/confirm', async (req, res) => {
     // Die zweite der beiden Zeilen, bei denen das SCHEITERN der Vorgang ist.
     // Wer hier scheitert, sitzt an einer angemeldeten Sitzung und kennt das
     // Passwort nicht -- genau der Fall, gegen den diese Runde gebaut ist.
-    auth.log('bestaetigung.fehl', { actor: req.benutzer.id, target: req.benutzer.id });
+    auth.log('confirm.fail', { actor: req.benutzer.id, target: req.benutzer.id });
     return res.status(403).json({ error: t(localeOf(req), 'server.passwordWrong')});
   }
   /* FRAGT DIESE STELLE ZUSAETZLICH DEN CODE -- aber NUR bei Zugaengen, die
@@ -1340,7 +1340,7 @@ app.post('/api/confirm', async (req, res) => {
      nicht erfahren, ob am Zugang ein Faktor haengt. */
   if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code)) {
     auth.noteFailure(ip, name);
-    auth.log('bestaetigung.fehl', { actor: req.benutzer.id, target: req.benutzer.id });
+    auth.log('confirm.fail', { actor: req.benutzer.id, target: req.benutzer.id });
     return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL), zweifaktor: true});
   }
   auth.noteSuccess(ip, name);
@@ -1389,7 +1389,7 @@ app.get('/api/security-log', ownerOnly, (req, res) => {
 function targetUserFree(req, res, id, selfAllowed = false) {
   const target = auth.getUser2(id);
   if (!target) { res.status(404).json({ error: t(localeOf(req), 'server.userUnknown')}); return null; }
-  if (target.status === 'geloescht') {
+  if (target.status === 'deleted') {
     res.status(400).json({ error: t(localeOf(req), 'server.userDeleted')}); return null;
   }
   if (!selfAllowed && target.id === req.benutzer.id) {
@@ -1438,7 +1438,7 @@ app.post('/api/users', adminOnly, async (req, res) => {
     const created = await auth.createUser(username, passwort, wanted, einladen === true,
                                              req.benutzer.id, email);
     if (einladen !== true) return res.json(created);
-    const token = auth.createToken(created.id, 'einladung', req.benutzer.id);
+    const token = auth.createToken(created.id, 'invite', req.benutzer.id);
     /* ERST DER TOKEN, DANN DER VERSAND, und die Reihenfolge ist die ganze
        Zusage: der Link steht in der Antwort, egal was der Mailserver sagt. */
     const v = await sendTokenLink({ username: created.username, email: created.email }, token);
@@ -1459,7 +1459,7 @@ app.post('/api/users/:id/token', adminOnly, async (req, res) => {
      Geschmacksfrage: wer ohnehin nicht darf, soll erfahren, DASS er nicht
      darf -- und nicht erst nach seinem Passwort gefragt werden. */
   if (!secondConfirm(req, res, 'link', target.id)) return;
-  const purpose = (req.body || {}).purpose || 'einladung';
+  const purpose = (req.body || {}).purpose || 'invite';
   try {
     const token = auth.createToken(target.id, purpose, req.benutzer.id);
     // Erst der Token, dann der Versand -- dieselbe Reihenfolge wie am Anlegen,
@@ -1493,8 +1493,8 @@ app.put('/api/users/:id', adminOnly, async (req, res) => {
      das ist umkehrbar und uebergibt nichts. Beide vor dem ersten Schreiben:
      eine Absage, die die halbe Aenderung schon geschrieben hat, waere
      schlimmer als keine. */
-  if (rolle !== undefined && !secondConfirm(req, res, 'rolle', target.id)) return;
-  if (passwort !== undefined && !secondConfirm(req, res, 'passwort', target.id)) return;
+  if (rolle !== undefined && !secondConfirm(req, res, 'role', target.id)) return;
+  if (passwort !== undefined && !secondConfirm(req, res, 'password', target.id)) return;
   try {
     let ergebnis = { id: target.id, username: target.username };
     if (rolle !== undefined) ergebnis = { ...ergebnis, ...auth.setRole(target.id, rolle, req.benutzer.id) };
@@ -1511,7 +1511,7 @@ app.delete('/api/users/:id', adminOnly, (req, res) => {
   const target = targetUserFree(req, res, req.params.id);
   if (!target) return;
   // Rechtefrage vor Bestaetigungsfrage, wie an der Tokenroute.
-  if (!secondConfirm(req, res, 'entfernen', target.id)) return;
+  if (!secondConfirm(req, res, 'remove', target.id)) return;
   try {
     res.json(auth.removeUser(target.id, {
       eintraege: req.query.eintraege === '1',
@@ -1571,7 +1571,7 @@ function mailCard(req) {
        Eigentuemer soll an DIESER Karte sehen, was er dem Schalter des Admins
        antut, wenn er den Mailzugang aendert. Es ist dieselbe Rechnung wie in
        der Karte "Anfragen", nicht eine zweite daneben. */
-    registrierung: getSetting('registrierung', false) === true
+    signup: getSetting('signup', false) === true
   };
 }
 
@@ -1630,7 +1630,7 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
 function requestCard() {
   const b = versandBereit();
   return {
-    an: getSetting('registrierung', false) === true,
+    an: getSetting('signup', false) === true,
     versandBereit: b.ok, versandGrund: b.grund,
     anfragen: auth.listRequests(),
     deckel: auth.REQUEST_CAP, belegt: auth.countRequests(),
@@ -1657,7 +1657,7 @@ app.put('/api/signup/toggle', adminOnly, (req, res) => {
     if (!b.ok) return res.status(400).json({ error:
       t(localeOf(req), 'server.signupNeedsMail', { grund: b.grund })});
   }
-  putSetting.run('registrierung', JSON.stringify(an));
+  putSetting.run('signup', JSON.stringify(an));
   res.json(requestCard());
 });
 
@@ -1673,14 +1673,14 @@ app.post('/api/requests/:id/approve', adminOnly, async (req, res) => {
   let created, token;
   try {
     created = await auth.createUser(a.username, null, 'user', true, req.benutzer.id, a.email);
-    token = auth.createToken(created.id, 'einladung', req.benutzer.id);
+    token = auth.createToken(created.id, 'invite', req.benutzer.id);
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
   auth.removeRequest(a.id);
   /* DIE ZEILE NENNT DEN NEUEN ZUGANG UND NICHT DEN NAMEN DES ANFRAGENDEN.
      Sie sagt etwas, was zugang.neu und link.neu daneben nicht sagen: dass
      dieser Zugang aus einer SELBSTANMELDUNG kam und nicht aus der Hand des
      Admins. */
-  auth.log('anfrage.frei', { actor: req.benutzer.id, target: created.id });
+  auth.log('request.approve', { actor: req.benutzer.id, target: created.id });
   const v = await sendTokenLink({ username: created.username, email: created.email }, token);
   res.json({ ...created, token: token.plain, purpose: token.purpose, tage: token.tage,
              minuten: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v,
@@ -1697,7 +1697,7 @@ app.delete('/api/requests/:id', adminOnly, (req, res) => {
   if (!a || !a.confirmed_at)
     return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});
   auth.removeRequest(a.id);
-  auth.log('anfrage.ab', { actor: req.benutzer.id });
+  auth.log('request.reject', { actor: req.benutzer.id });
   res.json({ ok: true, ...requestCard() });
 });
 
@@ -1744,16 +1744,16 @@ const FONT_LEVELS = [80, 90, 100, 110, 120];
    der kurzen Kante, und darueber verliesse die Anzeige ihre Reserve. Kein
    Bestandslauf. */
 const STRIP_LEVELS = [60, 80, 100, 120, 150];
-/* DIE DREI STUFEN DES FARBSCHEMAS -- 0.23.0. DIE VORGABE IST `dunkel` UND
-   NICHT `geraet`: wer nichts einstellt, sieht, was er heute sieht. „Wie das
+/* DIE DREI STUFEN DES FARBSCHEMAS -- 0.23.0. DIE VORGABE IST `dark` UND
+   NICHT `device`: wer nichts einstellt, sieht, was er heute sieht. „Wie das
    Geraet" ist eine ausdrueckliche Wahl und kein Rueckfall.
-   DER SERVER KENNT ALLE DREI, DAS STILBLATT NUR ZWEI. `geraet` loest die
-   Oberflaeche ueber matchMedia auf und schreibt `hell` oder `dunkel` an das
+   DER SERVER KENNT ALLE DREI, DAS STILBLATT NUR ZWEI. `device` loest die
+   Oberflaeche ueber matchMedia auf und schreibt `light` oder `dark` an das
    Wurzelelement; stuende die dritte Stufe auch im Stilblatt, muesste jeder
    der vierzig Werte DREIMAL geschrieben werden -- in :root, im zweiten Block
    und noch einmal in einer Medienabfrage. */
-const THEME_LEVELS = ['hell', 'dunkel', 'geraet'];
-const THEME_DEFAULT = 'dunkel';
+const THEME_LEVELS = ['light', 'dark', 'device'];
+const THEME_DEFAULT = 'dark';
 
 // Anordnung und Einklappzustand der Bloecke in der Detailansicht. Verschoben
 // wird nur innerhalb des jeweiligen Bereichs, deshalb zwei getrennte Listen.
@@ -1794,8 +1794,8 @@ function sortArea(stored, vorgabe) {
 
 // Persoenlich. Anordnung und Einklappzustand gelten global ueber alle
 // Eintraege hinweg -- aber je Benutzer, nicht fuer alle gemeinsam.
-function bloecke(userId) {
-  const g = getUserSetting(userId, 'bloecke', null) || {};
+function blocks(userId) {
+  const g = getUserSetting(userId, 'blocks', null) || {};
   return {
     seite: sortArea(g.seite, BLOCK_VORGABE.seite),
     unten: sortArea(g.unten, BLOCK_VORGABE.unten),
@@ -1803,8 +1803,8 @@ function bloecke(userId) {
   };
 }
 
-function vokabular() {
-  const stored = getSetting('vokabular', null) || {};
+function vocabulary() {
+  const stored = getSetting('vocabulary', null) || {};
   const out = {};
   for (const [k, vorgabe] of Object.entries(vocabularyDefault())) {
     const v = typeof stored[k] === 'string' ? stored[k].trim() : '';
@@ -1815,11 +1815,11 @@ function vokabular() {
 // Sichtbare Zeilen der Linkliste, bevor aufgeklappt werden muss.
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
 // Persoenlich.
-const linkZeilen = (userId) => {
-  const n = Number(getUserSetting(userId, 'linkZeilen', 5));
+const linkRows = (userId) => {
+  const n = Number(getUserSetting(userId, 'linkRows', 5));
   return LINK_ROW_LEVELS.includes(n) ? n : 5;
 };
-const timelineOn = (userId) => getUserSetting(userId, 'zeitleiste', true) !== false;
+const timelineOn = (userId) => getUserSetting(userId, 'timeline', true) !== false;
 
 /* ---- Suchanbieter ---- */
 // Fuer Linkzeilen, die keine Adresse sind. Gespeichert wird eine Vorlage mit
@@ -1861,7 +1861,7 @@ const searchNameClean = (v) =>
 // Eigene Anbieter. Ein Platz zaehlt nur, wenn Name UND Vorlage dastehen --
 // halb ausgefuellt gibt es ihn nicht, weder im Vorrat noch in der Auswahl.
 function searchOwn() {
-  const g = getSetting('sucheEigene', null);
+  const g = getSetting('searchOwn', null);
   const out = [];
   for (let i = 0; i < OWN_SLOTS; i++) {
     const e = Array.isArray(g) ? g[i] : null;
@@ -1893,7 +1893,7 @@ function allProviders() {
 function searchPool() {
   const alle = allProviders();
   const da = (k) => alle.some(a => a.schluessel === k && a.vorhanden);
-  const stored = getSetting('sucheAktiv', null);
+  const stored = getSetting('searchOn', null);
   // Hier faellt ein weggefallener Anbieter aus dem Vorrat -- war er der
   // Standard, rueckt damit keys[0] nach. ACHTUNG: dieselbe Wirkung hat die
   // Klemme in writePool; eine Gegenprobe muss beide zugleich zurueckbauen,
@@ -1939,31 +1939,31 @@ function writePool(standard, active) {
   if (!set.includes(standard)) set.push(standard);
   const rest = alle.map(a => a.schluessel)
     .filter(k => k !== standard && set.includes(k));
-  putSetting.run('sucheAktiv', JSON.stringify([standard, ...rest]));
+  putSetting.run('searchOn', JSON.stringify([standard, ...rest]));
 }
 
 // Zahl der Namen unter einer Suchzeile -- persoenlich, als einzige der vier
 // Sucheinstellungen. Vorrat, eigene Anbieter und Startanbieter bleiben global
 // und Sache des Admins: der Admin kuratiert, der Benutzer bestimmt die Dichte.
-const suchNamen = (userId) => {
-  const n = Number(getUserSetting(userId, 'suchNamen', 2));
+const searchNames = (userId) => {
+  const n = Number(getUserSetting(userId, 'searchNames', 2));
   return SEARCH_NAME_LEVELS.includes(n) ? n : 2;
 };
 
 // Persoenlich.
 const fontSize = (userId) => {
-  const n = Number(getUserSetting(userId, 'schrift', 100));
+  const n = Number(getUserSetting(userId, 'font', 100));
   return FONT_LEVELS.includes(n) ? n : 100;
 };
 // Persoenlich, wie die Schrift: das Farbschema (0.23.0). Dieselbe Maschine --
 // ein Wert je Zugang, ein Wert fuer alle Geraete.
 const theme = (userId) => {
-  const s = String(getUserSetting(userId, 'thema', THEME_DEFAULT));
+  const s = String(getUserSetting(userId, 'theme', THEME_DEFAULT));
   return THEME_LEVELS.includes(s) ? s : THEME_DEFAULT;
 };
 // Persoenlich, wie die Schrift: die Kachelgroesse im Bildstreifen (0.22.0).
 const strip = (userId) => {
-  const n = Number(getUserSetting(userId, 'streifen', 80));
+  const n = Number(getUserSetting(userId, 'strip', 80));
   return STRIP_LEVELS.includes(n) ? n : 80;
 };
 
@@ -1976,7 +1976,7 @@ const strip = (userId) => {
    „Neu seit ...". Die Pille ist gestrichen -- zwei Anzeigen fuer dieselbe
    Frage sind eine zu viel --, und der Merker mit ihr. Der Vermerk steht hier,
    damit ihn niemand als Luecke wieder einbaut. */
-const glockeGesehen = (userId) => getUserSetting(userId, 'glockeGesehen', null);
+const bellSeen = (userId) => getUserSetting(userId, 'bellSeen', null);
 
 /* --- Die gespeicherten Ansichten -----------------------------------------
    MEHRERE BENANNTE FILTERSTELLUNGEN NEBEN DER EINEN, DIE ES SCHON GIBT.
@@ -1993,8 +1993,8 @@ const VIEWS_CAP = 8;
 const VIEW_NAME_LENGTH = 40;
 const VIEW_TERM_LENGTH = 200;
 const VIEWS_CHARS = 8000;
-const ansichten = (userId) => {
-  const w = getUserSetting(userId, 'ansichten', []);
+const views = (userId) => {
+  const w = getUserSetting(userId, 'views', []);
   return Array.isArray(w) ? w : [];
 };
 
@@ -2012,7 +2012,7 @@ const ansichten = (userId) => {
 //     -- das lieferte den ERSTEN Benutzer, nicht den angemeldeten.
 //   Eigentuemerfrage: erspart der Oberflaeche eine zweite Wahrheit darueber,
 //     wem die Instanz gehoert.
-const qUserCount = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status != 'geloescht'");
+const qUserCount = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status != 'deleted'");
 
 app.get('/api/settings', (req, res) => res.json({
   benutzerZahl: qUserCount.get().n,
@@ -2024,31 +2024,31 @@ app.get('/api/settings', (req, res) => res.json({
   istAdmin: istAdmin(req),
   istEigentuemer: istEigentuemer(req),
   filters: getUserSetting(req.benutzer.id, 'filters', null),
-  ansichten: ansichten(req.benutzer.id),
+  views: views(req.benutzer.id),
   // Der Deckel kommt vom Server, damit die Zahl an einer Stelle steht: die
   // Oberflaeche laesst danach den Knopf zum Speichern weg, und der Server
   // verweigert es ohnehin.
   ansichtenDeckel: VIEWS_CAP,
-  vokabular: vokabular(),
-  schrift: fontSize(req.benutzer.id),
-  streifen: strip(req.benutzer.id),
-  thema: theme(req.benutzer.id),
-  bloecke: bloecke(req.benutzer.id),
-  linkZeilen: linkZeilen(req.benutzer.id),
-  zeitleiste: timelineOn(req.benutzer.id),
+  vocabulary: vocabulary(),
+  font: fontSize(req.benutzer.id),
+  strip: strip(req.benutzer.id),
+  theme: theme(req.benutzer.id),
+  blocks: blocks(req.benutzer.id),
+  linkRows: linkRows(req.benutzer.id),
+  timeline: timelineOn(req.benutzer.id),
   /* DER BEZUGSPUNKT DER GLOCKE. Bis einschliesslich 0.16.0 stand
      `zuletztGesehen` daneben, der Merker der Pille „Neu seit ..."; er faellt
      mit ihr weg. Eine Antwort, die ein Feld weniger traegt, ist kein Bruch:
      die Oberflaeche wird im selben Dateisatz ausgeliefert. */
-  glockeGesehen: glockeGesehen(req.benutzer.id),
+  bellSeen: bellSeen(req.benutzer.id),
   suche: searchTemplate(),
   suchAnbieter: suchAnbieter(),
-  suchNamen: suchNamen(req.benutzer.id),
+  searchNames: searchNames(req.benutzer.id),
   // Abgeleitet beim Lesen, nicht in der Datenbank nachgetragen. Die Oberflaeche
   // laesst danach die Zeile "+ neu anlegen" weg; die Auswahl aus dem
   // Vorhandenen bleibt in jedem Fall stehen.
-  tagsFreiAnlegen: freeCreate('tagsFreiAnlegen'),
-  kategorienFreiAnlegen: freeCreate('kategorienFreiAnlegen'),
+  tagsFreeCreate: freeCreate('tagsFreeCreate'),
+  categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
   /* DER SCHALTER DER BILDABLAGE, seit 0.19.0. Er steht in DIESER Antwort und
      nicht nur in /api/stats: die Karte im Reiter „Datenbank" zeigt ihn, aber
      die Stellung ist eine EINSTELLUNG und keine Kennzahl. Gelesen wird er
@@ -2056,7 +2056,7 @@ app.get('/api/settings', (req, res) => res.json({
      steht. Ausgeliefert an jeden, geschrieben nur vom Eigentuemer: die
      Stellung ist nichts Schuetzenswertes, sie steht auch an der Formatzeile
      der Kennzahlen ablesbar da. */
-  bilderUmwandeln: bilderUmwandeln(),
+  convertImages: convertImages(),
   /* Fragt die zweite Bestaetigung bei DIESEM Zugang zusaetzlich den Code?
      Gebraucht wird es ausserhalb des Systembereichs -- das
      Bestaetigungsfenster steht auch vor Export und Import, und ohne die
@@ -2096,8 +2096,8 @@ app.put('/api/settings', (req, res) => {
      GEPRUEFT MIT DERSELBEN FUNKTION WIE DIE VORSCHAU UND DAS LOESCHEN -- eine
      zweite Spanne daneben liefe auseinander. */
   const ruleValues = {};
-  for (const [k, range, event] of [['sicherungBehalten', CLEANUP_KEEP, 'server.ruleKeep'],
-                                  ['sicherungTage', CLEANUP_DAYS, 'server.ruleDays']]) {
+  for (const [k, range, event] of [['backupKeep', CLEANUP_KEEP, 'server.ruleKeep'],
+                                  ['backupDays', CLEANUP_DAYS, 'server.ruleDays']]) {
     if (req.body[k] === undefined) continue;
     const g = checkRuleValue(req.body[k], range, event);
     if (g.fehler) return res.status(400).json({ error: t(localeOf(req), g.fehler, g.values) });
@@ -2110,8 +2110,8 @@ app.put('/api/settings', (req, res) => {
      GEPRUEFT WIRD DIE GANZE LISTE AUF EINMAL -- es ist EIN Schluessel mit
      EINEM Wert. */
   let viewsText = null;
-  if (req.body.ansichten !== undefined) {
-    const ein = Array.isArray(req.body.ansichten) ? req.body.ansichten : [];
+  if (req.body.views !== undefined) {
+    const ein = Array.isArray(req.body.views) ? req.body.views : [];
     if (ein.length > VIEWS_CAP)
       return res.status(400).json({
         error: t(localeOf(req), 'server.viewCap', { deckel: VIEWS_CAP })});
@@ -2146,54 +2146,54 @@ app.put('/api/settings', (req, res) => {
   if (req.body.filters !== undefined)
     putUserSetting(req.benutzer.id, 'filters', JSON.stringify(req.body.filters));
   if (viewsText !== null)
-    putUserSetting(req.benutzer.id, 'ansichten', viewsText);
-  if (req.body.vokabular !== undefined) {
-    const ein = req.body.vokabular || {};
+    putUserSetting(req.benutzer.id, 'views', viewsText);
+  if (req.body.vocabulary !== undefined) {
+    const ein = req.body.vocabulary || {};
     const sauber = {};
     const vorgabe = vocabularyDefault();
     for (const k of Object.keys(vorgabe)) {
       const v = typeof ein[k] === 'string' ? ein[k].trim().slice(0, 40) : '';
       sauber[k] = v || vorgabe[k];
     }
-    putSetting.run('vokabular', JSON.stringify(sauber));
+    putSetting.run('vocabulary', JSON.stringify(sauber));
   }
-  if (req.body.schrift !== undefined) {
-    const n = Number(req.body.schrift);
+  if (req.body.font !== undefined) {
+    const n = Number(req.body.font);
     if (!FONT_LEVELS.includes(n))
       return res.status(400).json({ error: t(localeOf(req), 'server.fontUnknown')});
-    putUserSetting(req.benutzer.id, 'schrift', JSON.stringify(n));
+    putUserSetting(req.benutzer.id, 'font', JSON.stringify(n));
   }
-  if (req.body.streifen !== undefined) {
-    const n = Number(req.body.streifen);
+  if (req.body.strip !== undefined) {
+    const n = Number(req.body.strip);
     if (!STRIP_LEVELS.includes(n))
       return res.status(400).json({ error: t(localeOf(req), 'server.stripUnknown')});
-    putUserSetting(req.benutzer.id, 'streifen', JSON.stringify(n));
+    putUserSetting(req.benutzer.id, 'strip', JSON.stringify(n));
   }
   /* DIE KLEMME STEHT AM SERVER UND NICHT NUR IN DER PILLENREIHE -- dieselbe
      Bauform wie bei der Schrift daruber. Eine Auswahl in der Oberflaeche ist
      eine Bitte; was in user_settings landet, entscheidet diese Zeile. */
-  if (req.body.thema !== undefined) {
-    const s = String(req.body.thema);
+  if (req.body.theme !== undefined) {
+    const s = String(req.body.theme);
     if (!THEME_LEVELS.includes(s))
       return res.status(400).json({ error: t(localeOf(req), 'server.themeUnknown')});
-    putUserSetting(req.benutzer.id, 'thema', JSON.stringify(s));
+    putUserSetting(req.benutzer.id, 'theme', JSON.stringify(s));
   }
-  if (req.body.bloecke !== undefined) {
-    const ein = req.body.bloecke || {};
-    putUserSetting(req.benutzer.id, 'bloecke', JSON.stringify({
+  if (req.body.blocks !== undefined) {
+    const ein = req.body.blocks || {};
+    putUserSetting(req.benutzer.id, 'blocks', JSON.stringify({
       seite: sortArea(ein.seite, BLOCK_VORGABE.seite),
       unten: sortArea(ein.unten, BLOCK_VORGABE.unten),
       zu: (Array.isArray(ein.zu) ? ein.zu : []).filter(k => CLOSED_BLOCKS.includes(k))
     }));
   }
-  if (req.body.linkZeilen !== undefined) {
-    const n = Number(req.body.linkZeilen);
+  if (req.body.linkRows !== undefined) {
+    const n = Number(req.body.linkRows);
     if (!LINK_ROW_LEVELS.includes(n))
       return res.status(400).json({ error: t(localeOf(req), 'server.linkRowsUnknown')});
-    putUserSetting(req.benutzer.id, 'linkZeilen', JSON.stringify(n));
+    putUserSetting(req.benutzer.id, 'linkRows', JSON.stringify(n));
   }
-  if (req.body.zeitleiste !== undefined)
-    putUserSetting(req.benutzer.id, 'zeitleiste', JSON.stringify(!!req.body.zeitleiste));
+  if (req.body.timeline !== undefined)
+    putUserSetting(req.benutzer.id, 'timeline', JSON.stringify(!!req.body.timeline));
   /* DER MERKZEITPUNKT KOMMT VON DER SERVERUHR, NIE VOM AUFRUFER. Was der
      Aufrufer schickt, ist ein Signal ("ich habe die Tafel geoeffnet") und keine
      Feststellung -- eine mitgeschickte Zeit waere eine Behauptung.
@@ -2209,13 +2209,13 @@ app.put('/api/settings', (req, res) => {
      GESETZT WIRD BEIM ERSTEN VERLASSEN DER UEBERSICHT UND DANACH BEIM OEFFNEN
      DER TAFEL -- das entscheidet die Oberflaeche. Der Server nimmt das Signal
      entgegen und setzt seine Uhr. */
-  if (req.body.glockeGesehen !== undefined)
-    putUserSetting(req.benutzer.id, 'glockeGesehen',
+  if (req.body.bellSeen !== undefined)
+    putUserSetting(req.benutzer.id, 'bellSeen',
       JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
   // Eigene Anbieter zuerst: ein frisch angelegter muss im selben Zug in den
   // Vorrat aufgenommen werden koennen.
-  if (req.body.sucheEigene !== undefined) {
-    const ein = Array.isArray(req.body.sucheEigene) ? req.body.sucheEigene : [];
+  if (req.body.searchOwn !== undefined) {
+    const ein = Array.isArray(req.body.searchOwn) ? req.body.searchOwn : [];
     const sauber = [];
     for (let i = 0; i < OWN_SLOTS; i++) {
       const e = ein[i] || {};
@@ -2231,7 +2231,7 @@ app.put('/api/settings', (req, res) => {
           error: t(localeOf(req), 'server.searchUrlForm')});
       sauber.push({ name, vorlage });
     }
-    putSetting.run('sucheEigene', JSON.stringify(sauber));
+    putSetting.run('searchOwn', JSON.stringify(sauber));
     // Faellt ein Anbieter weg, der im Vorrat oder sogar Standard war, raeumt
     // das Zurueckschreiben das auf: der erste aktive rueckt nach.
     const pool = searchPool();
@@ -2240,9 +2240,9 @@ app.put('/api/settings', (req, res) => {
   // Der Vorrat kommt als Liste von Schluesseln, Standard zuerst. Unbekannte
   // Schluessel und einen Standard ausserhalb des Vorrats richtet
   // writePool gerade.
-  if (req.body.sucheAktiv !== undefined) {
+  if (req.body.searchOn !== undefined) {
     const alle = allProviders();
-    const ein = (Array.isArray(req.body.sucheAktiv) ? req.body.sucheAktiv : [])
+    const ein = (Array.isArray(req.body.searchOn) ? req.body.searchOn : [])
       .filter(k => typeof k === 'string' && alle.some(a => a.schluessel === k && a.vorhanden));
     // Den letzten aus dem Vorrat zu nehmen macht jede Suchzeile unbenutzbar.
     // Ersatzweise auf den eingebauten ersten zu wechseln waere schlimmer als
@@ -2251,40 +2251,40 @@ app.put('/api/settings', (req, res) => {
       return res.status(400).json({ error: t(localeOf(req), 'server.searchEngineLast')});
     writePool(ein[0], ein);
   }
-  if (req.body.suchNamen !== undefined) {
-    const n = Number(req.body.suchNamen);
+  if (req.body.searchNames !== undefined) {
+    const n = Number(req.body.searchNames);
     if (!SEARCH_NAME_LEVELS.includes(n))
       return res.status(400).json({ error: t(localeOf(req), 'server.searchNamesUnknown')});
-    putUserSetting(req.benutzer.id, 'suchNamen', JSON.stringify(n));
+    putUserSetting(req.benutzer.id, 'searchNames', JSON.stringify(n));
   }
   // Die beiden Anlegen-Schalter sind global und damit Adminsache -- ueber die
   // Ableitung ganz oben, ohne zweite Liste und ohne eigene Route.
-  for (const k of ['tagsFreiAnlegen', 'kategorienFreiAnlegen'])
+  for (const k of ['tagsFreeCreate', 'categoriesFreeCreate'])
     if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
   /* DER SCHALTER DER BILDABLAGE. Er geht denselben Weg wie die beiden
      darueber -- eine eigene schreibende Route liesse F_ROUTEN wachsen, ohne
      dass es etwas Neues zu bewachen gaebe. Die Rechtefrage steht ganz oben in
      EINER Zeile (OWNER_KEYS) und nicht hier ein zweites Mal. */
-  if (req.body.bilderUmwandeln !== undefined)
-    putSetting.run('bilderUmwandeln', JSON.stringify(!!req.body.bilderUmwandeln));
+  if (req.body.convertImages !== undefined)
+    putSetting.run('convertImages', JSON.stringify(!!req.body.convertImages));
   /* DIE AUFRAEUMREGEL DER SICHERUNGEN, 0.20.0 -- derselbe Weg, dieselbe
      Rechtezeile (OWNER_KEYS ganz oben), und die beiden Zahlen
      sind oben schon geprueft. DER SCHALTER STEHT AUF AUS, wenn nichts
      dasteht: abgeleitet beim Lesen in cleanupStatus(), ohne Migrationscode. */
-  if (req.body.sicherungAufraeumen !== undefined)
-    putSetting.run('sicherungAufraeumen', JSON.stringify(!!req.body.sicherungAufraeumen));
+  if (req.body.backupCleanup !== undefined)
+    putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
   for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
-  res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vokabular: vokabular(),
-             ansichten: ansichten(req.benutzer.id), ansichtenDeckel: VIEWS_CAP,
-             schrift: fontSize(req.benutzer.id), streifen: strip(req.benutzer.id),
-             thema: theme(req.benutzer.id),
-             bloecke: bloecke(req.benutzer.id),
-             linkZeilen: linkZeilen(req.benutzer.id), zeitleiste: timelineOn(req.benutzer.id),
+  res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vocabulary: vocabulary(),
+             views: views(req.benutzer.id), ansichtenDeckel: VIEWS_CAP,
+             font: fontSize(req.benutzer.id), strip: strip(req.benutzer.id),
+             theme: theme(req.benutzer.id),
+             blocks: blocks(req.benutzer.id),
+             linkRows: linkRows(req.benutzer.id), timeline: timelineOn(req.benutzer.id),
              suche: searchTemplate(), suchAnbieter: suchAnbieter(),
-             suchNamen: suchNamen(req.benutzer.id),
-             tagsFreiAnlegen: freeCreate('tagsFreiAnlegen'),
-             kategorienFreiAnlegen: freeCreate('kategorienFreiAnlegen'),
-             bilderUmwandeln: bilderUmwandeln() });
+             searchNames: searchNames(req.benutzer.id),
+             tagsFreeCreate: freeCreate('tagsFreeCreate'),
+             categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
+             convertImages: convertImages() });
 });
 
 /* ---- Bewertungskriterien (Skala fest 1-5) ---- */
@@ -2302,8 +2302,8 @@ app.put('/api/settings', (req, res) => {
    In der Schnittstelle steht eine ZAHL, kein Text. */
 const WEIGHT_MIN = 0.2, GEWICHT_MAX = 2.0;
 
-/* ZU WELCHEM KASTEN EIN KRITERIUM GEHOEREN KANN -- 0.21.0. 'vorher' ist das
-   Potenzial (die Einschaetzung, bevor etwas ausprobiert wurde), 'nachher' die
+/* ZU WELCHEM KASTEN EIN KRITERIUM GEHOEREN KANN -- 0.21.0. 'before' ist das
+   Potenzial (die Einschaetzung, bevor etwas ausprobiert wurde), 'after' die
    Bewertung (das Urteil danach).
    DIE LISTE STEHT GENAU EINMAL, HIER UND NICHT AUCH IN db.js. Ein CHECK an der
    Spalte truege dieselbe Menge ein zweites Mal, und die zweite meldete sich
@@ -2311,8 +2311,8 @@ const WEIGHT_MIN = 0.2, GEWICHT_MAX = 2.0;
    dieselbe Ueberlegung wie bei WEIGHT_MIN/GEWICHT_MAX eine Zeile darueber.
    DEUTSCH, UND NICHT 'before'/'after': die Werte stehen in SELECTs, die
    jemand liest, und der Sprachwaechter liest mit. */
-const PHASES = ['vorher', 'nachher'];
-const PHASE_DEFAULT = 'nachher';
+const PHASES = ['before', 'after'];
+const PHASE_DEFAULT = 'after';
 
 /* ABGEWIESEN WIRD, WAS ETWAS ANDERES BEDEUTET -- GERUNDET WIRD, WAS DASSELBE
    BEDEUTET. Wer 5 eintippt, meint 5; den Wert still auf 2 zu ziehen hiesse,
@@ -2376,11 +2376,11 @@ app.get('/api/criteria', (req, res) => res.json(qCriteria.all()));
 app.post('/api/criteria', adminOnly, (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
-  /* DIE PHASE IST FREIWILLIG UND HAT DIE VORGABE 'nachher' -- so legt die
+  /* DIE PHASE IST FREIWILLIG UND HAT DIE VORGABE 'after' -- so legt die
      Karte „Bewertungskriterien" weiter an, ohne ein Feld mitzuschicken.
      ETWAS ANDERES ALS DIE ZWEI WERTE IST EINE ABSAGE MIT MELDUNG und nicht
      ein stilles Zurechtbiegen: wer 'spaeter' schickt, meint etwas, das es
-     nicht gibt, und ein auf 'nachher' gebogenes Kriterium stuende danach im
+     nicht gibt, und ein auf 'after' gebogenes Kriterium stuende danach im
      falschen Kasten, ohne dass es jemand saehe. */
   const phase = req.body.phase === undefined ? PHASE_DEFAULT : String(req.body.phase);
   if (!PHASES.includes(phase))
@@ -2460,7 +2460,7 @@ app.post('/api/product-categories', (req, res) => {
   // HINTER dem Nachschlagen: eine VORHANDENE Kategorie zuzuweisen bleibt fuer
   // jeden offen, nur ein NEUER Name haengt am Schalter. Stuende die Klemme
   // davor, naehme sie das Zuweisen mit.
-  if (!mayCreate(req, 'kategorienFreiAnlegen'))
+  if (!mayCreate(req, 'categoriesFreeCreate'))
     return res.status(403).json({ error: t(localeOf(req), DENIED_CATEGORY_NEW)});
   const i = db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name);
   res.status(201).json(db.prepare('SELECT * FROM product_categories WHERE id = ?').get(i.lastInsertRowid));
@@ -2539,7 +2539,7 @@ app.post('/api/items/:id/tags', entryAuthorOnly, (req, res) => {
   // bedienbar, wenn der Schalter aus ist -- nur die Eingabezeile verschwindet.
   let tag = findTag(name);
   if (!tag) {
-    if (!mayCreate(req, 'tagsFreiAnlegen')) return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
+    if (!mayCreate(req, 'tagsFreeCreate')) return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
     tag = createTag(name);
   }
   db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(req.params.id, tag.id);
@@ -2587,7 +2587,7 @@ const qAuthorRows = db.prepare('SELECT id, username, status FROM users');
 function authorCard() {
   const m = new Map();
   for (const u of qAuthorRows.all()) {
-    const weg = u.status === 'geloescht';
+    const weg = u.status === 'deleted';
     // Der Grabsteinname geht NICHT hinaus. Er ist freigegeben und kann laengst
     // einem anderen Menschen gehoeren; eine Antwort, die ihn mitschickt, laedt
     // dazu ein, ihn irgendwann anzuzeigen. Was die Oberflaeche braucht, ist
@@ -2741,7 +2741,7 @@ const qAveragePerCriterion = db.prepare(`
    ueber dieselbe Tabelle und koennten auseinanderlaufen; hier faellt jede
    Zeile in genau einen der beiden Kaesten, und zwar an einer Stelle. */
 function cardPerPhase(zeilen) {
-  const box = { vorher: new Map(), nachher: new Map() };
+  const box = { before: new Map(), after: new Map() };
   for (const z of zeilen) {
     // Ein unbekannter Wert in der Spalte kaeme nur aus einer Schreibung an
     // PHASEN vorbei. Er faellt in keinen der beiden Kaesten, statt still im
@@ -2787,7 +2787,7 @@ function averagesPerEntry() {
 // Was ein Eintrag OHNE eine einzige Sternzeile mitbringt -- zwei leere Kaesten.
 // Es steht hier, weil die Uebersicht es fuer jeden Eintrag ohne Bewertung
 // braucht und `new Map()` dort die falsche Gestalt haette.
-const EMPTY_BOXES = () => ({ vorher: new Map(), nachher: new Map() });
+const EMPTY_BOXES = () => ({ before: new Map(), after: new Map() });
 
 /* Wer welchen Wert vergeben hat -- je Kriterium eine Liste. Wieder eine
    EIGENE Abfrage, Begruendung bei qAveragePerCriterion. Nur Werte > 0.
@@ -3071,10 +3071,10 @@ function detail(id, userId) {
      (Stolperstein 217): die Erklaerung der Kopfzahl gibt es in beiden
      Kaesten, also braucht sie es auch beide Male. */
   const calc = {};
-  it.avgRating = totalAverage(averages.nachher, calc);
+  it.avgRating = totalAverage(averages.after, calc);
   it.rechenweg = { ...calc, ergebnis: it.avgRating };
   const potentialCalc = {};
-  it.potenzialRating = totalAverage(averages.vorher, potentialCalc);
+  it.potenzialRating = totalAverage(averages.before, potentialCalc);
   it.potenzialRechenweg = { ...potentialCalc, ergebnis: it.potenzialRating };
   Object.assign(it, testStats(id));
   return it;
@@ -3362,7 +3362,7 @@ app.get('/api/items', (req, res) => {
      Ist sie aus, faellt `testDays` aus der Antwort -- gemessen 6 Prozent.
      AUS DER LISTENANTWORT LIEST DAS FELD GENAU EINE STELLE, zeitleistePunkte();
      Kachel und Vergleich rechnen aus anderen Feldern. */
-  const zeitleiste = timelineOn(req.benutzer.id);
+  const timeline = timelineOn(req.benutzer.id);
   // Eine Abfrage fuer die ganze Liste statt einer je Zeile. Die
   // Sortierung bleibt updated_at fuer alle -- die Uebersicht zeigt, wo etwas
   // geschieht, nicht wo ich zuletzt war. Nach vorn zieht der eigene Favorit
@@ -3390,7 +3390,7 @@ app.get('/api/items', (req, res) => {
      KEINE SUMME AN DER ANTWORT: sie folgt aus den beiden Zahlen, und eine
      Summe neben ihren Teilen waere eine zweite Wahrheit ueber dieselbe Sache
      (Stolperstein 47). Gebildet wird sie in der Oberflaeche, an einer Stelle. */
-  const reference = glockeGesehen(req.benutzer.id);
+  const reference = bellSeen(req.benutzer.id);
   const newCommentsPer = new Map(), neuBewJe = new Map(), neuVonJe = new Map();
   if (reference) {
     /* WER EINEN KOMMENTAR GESCHRIEBEN HAT -- je Eintrag eine Menge von
@@ -3510,7 +3510,7 @@ app.get('/api/items', (req, res) => {
   const averagesPer = averagesPerEntry();
   const catPer = new Map(qAllCategories.all().map(k => [k.id, k]));
   // Die Testtage nur, wenn die Zeitleiste ueberhaupt an ist -- wie bisher.
-  const testDaysPer = zeitleiste ? testDaysPerEntry(req.benutzer.id) : null;
+  const testDaysPer = timeline ? testDaysPerEntry(req.benutzer.id) : null;
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
     it.verfasser = authorFrom(card, it.user_id);
@@ -3537,13 +3537,13 @@ app.get('/api/items', (req, res) => {
     // ueber dieselbe Zahl. Was sich geaendert hat, ist woher die Karte kommt --
     // nicht, was mit ihr geschieht.
     const boxes = averagesPer.get(it.id) || EMPTY_BOXES();
-    it.avgRating = totalAverage(boxes.nachher);
+    it.avgRating = totalAverage(boxes.after);
     /* DIE ZWEITE ZAHL STEHT NEBEN DER ERSTEN UND NICHT STATT IHRER -- auch an
        einem getesteten Eintrag. Welche die Kachel zeigt, entscheidet der
        Browser; welche es GIBT, entscheidet der Bestand. Eine Antwort, die je
        nach `tested` mal die eine und mal die andere traegt, machte aus dem
        Sortieren nach Potenzial eine Sortierung ueber eine luckenhafte Menge. */
-    it.potenzialRating = totalAverage(boxes.vorher);
+    it.potenzialRating = totalAverage(boxes.before);
     Object.assign(it, testStats(it.id));
     /* DIE ZEITLEISTE BRAUCHT DIE TESTTAGE SELBST, nicht nur ihre Anzahl -- und
        dazu, wem sie gehoeren. Ohne sie braucht die Liste sie nicht.
@@ -3551,7 +3551,7 @@ app.get('/api/items', (req, res) => {
        Schlagworte und der Verfasser jedes Testtags stehen weiter am EINTRAG
        (detail() ruft qTestDays), nur nicht mehr in der Liste -- gelesen hat
        sie dort niemand. Die Begruendung steht bei qAllTestDaysNarrow. */
-    if (zeitleiste) it.testDays = testDaysPer.get(it.id) || [];
+    if (timeline) it.testDays = testDaysPer.get(it.id) || [];
     /* DIE BESCHREIBUNG FAELLT AUS DER LISTE, WIE BISHER. Sie stand nie in
        dieser Antwort -- gebraucht wurde sie allein zum Bilden des Suchfelds,
        und das gibt es nicht mehr. Die Kachel zeigt keine Beschreibung; wer sie
@@ -3684,7 +3684,7 @@ app.put('/api/items/:id', (req, res) => {
   if (b.tested === false) {
     const n = db.prepare('SELECT COUNT(*) n FROM test_days WHERE item_id = ?').get(req.params.id).n;
     if (n > 0) {
-      const v = vokabular();
+      const v = vocabulary();
       // Vokabelwoerter stehen ohne Artikel und ohne Fall da: nach einer Zahl
       // im Nominativ und in Anfuehrungszeichen. Beides bleibt bei jedem Wort
       // richtig, gleich welches Geschlecht.
@@ -3819,7 +3819,7 @@ app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), a
          Er braucht die Unterscheidung auch nicht: die Zwischenablage liefert
          IMMER PNG, eine Kamera JPEG. Die Regel „PNG umwandeln, JPEG in Ruhe
          lassen" trifft damit genau das, was gemeint ist. */
-      const ab = bilderUmwandeln() ? await storeImage(f.buffer, f.mimetype)
+      const ab = convertImages() ? await storeImage(f.buffer, f.mimetype)
                                    : { data: f.buffer, mime: f.mimetype };
       into.run(req.params.id, ab.mime, ab.data, v.thumb, v.medium, pos++);
     }
@@ -4317,7 +4317,7 @@ app.post('/api/test-days/:id/tags', (req, res) => {
      "Zuweisen darf immer jeder" gilt. */
   let tag = findTag(name);
   if (!tag) {
-    if (!mayCreate(req, 'tagsFreiAnlegen')) return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
+    if (!mayCreate(req, 'tagsFreeCreate')) return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
     tag = createTag(name);
   }
   db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(testDay.id, tag.id);
@@ -4356,12 +4356,12 @@ app.put('/api/items/:id/ratings', (req, res) => {
      Sternen steht der Kasten ausdruecklich da (Entscheidung E6), und sein
      einziger Zweck ist, die Sterne loswerden zu koennen. Eine Klemme, die auch
      die Null abwiese, sperrte genau den Weg, fuer den der Kasten noch da ist.
-     UND NUR DIE PHASE „nachher". Das Potenzial ist die Frage VOR dem Test --
+     UND NUR DIE PHASE „after". Das Potenzial ist die Frage VOR dem Test --
      an einem ungetesteten Eintrag ist es die einzige, die sich stellt. */
   if (v > 0) {
     const crit = qCritPhase.get(req.body.criterionId);
     const entry = qItemTested.get(req.params.id);
-    if (crit && crit.phase === 'nachher' && entry && !entry.tested)
+    if (crit && crit.phase === 'after' && entry && !entry.tested)
       return res.status(400).json({
         error: t(localeOf(req), 'server.ratingBeforeTest')});
   }
@@ -4839,7 +4839,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
    UND SIE KEHRT SOFORT ZURUECK (202). Acht Minuten Rechenzeit an einer offenen
    HTTP-Verbindung sind das, was beim Import ausdruecklich vermieden wird --
    hier gilt derselbe Satz. Der Fortschritt geht als Feld in /api/stats. */
-app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('bilder'), (req, res) => {
+app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, res) => {
   /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. Zwei Schleifen ueber dieselben
      Zeilen taeten der zweiten nichts (nach der ersten ist kein PNG mehr da),
      aber sie liefen doppelt, und der gemeldete Fortschritt waere der der
@@ -5069,13 +5069,13 @@ function exportEnvelope(items) {
   const criteriaGewichte = {};
   for (const c of critRows) if (c.weight !== 1) criteriaGewichte[c.name] = c.weight;
   /* UND DIE PHASE IM SELBEN MUSTER -- 0.21.0, ein drittes Feld neben den
-     beiden. NUR ABWEICHUNGEN: ein Kriterium des Kastens „nachher" taucht gar
+     beiden. NUR ABWEICHUNGEN: ein Kriterium des Kastens „after" taucht gar
      nicht auf, so wie ein Gewicht von 1 nicht auftaucht.
      EINE DATEI OHNE VORHER-KRITERIEN SIEHT DAMIT AUS WIE BISHER, plus einer
      Formatnummer -- und eine aeltere Instanz uebergeht das zusaetzliche Feld
      wortlos, genau wie seinerzeit criteriaGewichte. */
   const criteriaPhase = {};
-  for (const c of critRows) if (c.phase !== 'nachher') criteriaPhase[c.name] = c.phase;
+  for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;
   return { exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
            criteria: critRows.map(c => c.name), criteriaGewichte, criteriaPhase, items };
 }
@@ -5303,7 +5303,7 @@ function exchangeEnvelopeFrame() {
                           // die Datei. Ohne es faellt die Messung je Teil um
                           // die Vorher-Kriterien zu niedrig aus.
                           criteriaPhase: Object.fromEntries(
-                            critRows.filter(c => c.phase !== 'nachher').map(c => [c.name, c.phase])),
+                            critRows.filter(c => c.phase !== 'after').map(c => [c.name, c.phase])),
                           items: [] }).length;
 }
 
@@ -5394,7 +5394,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
      DAS MERKMAL IST DAS WORT UND NICHT DIE NUMMER: merkmal traegt nur Werte
      aus MERKMALE, und "teil 1/5" stand nicht darin -- 0.12.4 hat damit gar
      keine Zeile geschrieben. Die Nummer des Teils steht im Dateinamen. */
-  auth.log('export', { actor: req.benutzer.id, detail: asPart ? 'teil' : null });
+  auth.log('export', { actor: req.benutzer.id, detail: asPart ? 'part' : null });
   res.set('Content-Disposition',
     `attachment; filename="${exportName(asPart ? `-teil-${teil}-von-${teile}` : '')}"`);
   /* DAS NETZ UNTER DER SCHAETZUNG. Die Absage oben rechnet, sie misst nicht --
@@ -5459,12 +5459,33 @@ const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
 const PHOTO_FIELDS_0240 = Object.entries(COLUMNS_0241)
   .filter(([ort]) => ort.startsWith('photos.'))
   .map(([ort, neu]) => [ort.slice('photos.'.length), neu]);
+/* UND DIE WERTE EBENSO. Eine Datei von vorher traegt `bild` an ihren Fotos
+   und `vorher` an ihren Kriterien. Beim Foto waere das Uebergehen still
+   folgenlos ('bild' ist ohnehin nicht 'video'); bei der Phase waere es ein
+   Schaden: ein unbekannter Wert faellt auf PHASE_DEFAULT, und ein Kriterium
+   aus dem Potenzialkasten landete beim Einspielen im Bewertungskasten. Auch
+   hier kommen die Paare aus db.VALUES_0241 und nicht aus einer zweiten
+   Liste. */
+const valueFromFile = (gruppe, wert) =>
+  (Object.prototype.hasOwnProperty.call(VALUES_0241[gruppe], wert)
+    ? VALUES_0241[gruppe][wert] : wert);
+
 function photoFromFile(p) {
   const z = { ...p };
   for (const [alt, neu] of PHOTO_FIELDS_0240)
     if (z[neu] === undefined && z[alt] !== undefined) z[neu] = z[alt];
+  if (z.kind !== undefined) z.kind = valueFromFile('photoKind', z.kind);
   return z;
 }
+
+/* DER GRABSTEIN IN EINER AELTEREN DATEI. Sein Name ist der Schluessel, unter
+   dem der Import den Verfasser wiederfindet; ohne die Uebersetzung fiele
+   jeder Beitrag eines entfernten Zugangs auf „kein Verfasser" zurueck. */
+const authorFromFile = (name) => {
+  const s2 = String(name ?? '');
+  const m = /^geloescht-(\d+)$/i.exec(s2);
+  return m ? `deleted-${m[1]}` : name;
+};
 
 async function importInto(payload, userId, mode2, bytesSource = null) {
   // Ableitungen vorab erzeugen: das geht nicht innerhalb einer Transaktion,
@@ -5528,7 +5549,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       photos.push({ mime: p.mime_type || (isVideo ? 'video/mp4' : 'image/jpeg'),
                     buf, thumb: v.thumb, medium: v.medium,
                     fx: crop.fx, fy: crop.fy, zoom: crop.zoom,
-                    kind: isVideo ? 'video' : 'bild',
+                    kind: isVideo ? 'video' : 'image',
                     duration: isVideo && Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null });
     }
     const attachments = [];
@@ -5580,7 +5601,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   let assigned = 0;
   const qByName = db.prepare('SELECT id FROM users WHERE username = ?');
   const verfasser = (name) => {
-    const sauber = String(name == null ? '' : name).trim();
+    const sauber = String(authorFromFile(name == null ? '' : name)).trim();
     if (!sauber) return userId;
     let id = nameStore.get(sauber);
     if (id === undefined) {
@@ -5615,10 +5636,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   }
 
   /* DIE KAESTEN AUS DER DATEI, im selben Muster wie die Gewichte darueber --
-     0.21.0. Ein Kriterium OHNE Eintrag in criteriaPhase ist 'nachher'; damit
+     0.21.0. Ein Kriterium OHNE Eintrag in criteriaPhase ist 'after'; damit
      ist jede Datei aus einem aelteren Format ohne Sonderweg lesbar, und
      nirgends steht eine Fallunterscheidung nach Formatnummer.
-     EIN UNSINNIGER WERT FAELLT AUF 'nachher' und bricht nichts ab -- dieselbe
+     EIN UNSINNIGER WERT FAELLT AUF 'after' und bricht nichts ab -- dieselbe
      Haltung wie beim ungueltigen Gewicht. Er sagt nichts, was diese
      Installation nicht schon annimmt. */
   const dateiPhasen = new Map();
@@ -5626,8 +5647,9 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   if (rohPhasen && typeof rohPhasen === 'object' && !Array.isArray(rohPhasen)) {
     for (const [name, roh] of Object.entries(rohPhasen)) {
       const sauber = String(name || '').trim();
-      if (!sauber || !PHASES.includes(roh)) continue;
-      dateiPhasen.set(sauber.toLowerCase(), roh);
+      const wert = valueFromFile('phase', roh);
+      if (!sauber || !PHASES.includes(wert)) continue;
+      dateiPhasen.set(sauber.toLowerCase(), wert);
     }
   }
   const phaseFrom = (name) =>
@@ -5700,7 +5722,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
       // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
       const g = dateiGewichte.get(String(name).trim().toLowerCase());
-      /* UND SEINEN KASTEN AUS DER DATEI, sonst 'nachher'. Ein VORHANDENES
+      /* UND SEINEN KASTEN AUS DER DATEI, sonst 'after'. Ein VORHANDENES
          behaelt den seinen -- so wie es sein Gewicht behaelt; anders als beim
          Gewicht kann es hier aber gar nicht abweichen, denn die Absage
          darueber hat den Fall schon abgefangen. */
@@ -6155,7 +6177,7 @@ const BACKUP_PATTERN = /^kriterion-.+\.sqlite$/;
    ist eine Bitte, keine Klemme. Ein Feld, in das jemand 0 schreiben kann, ist
    eine Falle -- ein Boden von 0 hiesse "alles darf fallen".
    VORGABE DES SCHALTERS IST AUS, und das ist die Abweichung von
-   `bilderUmwandeln`: eine umgewandelte PNG-Datei holt der Knopf in der
+   `convertImages`: eine umgewandelte PNG-Datei holt der Knopf in der
    Gegenrichtung zurueck, eine geloeschte Sicherung holt nichts zurueck. Was
    nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet. */
 const CLEANUP_KEEP = { vorgabe: 3, min: 1, max: 20 };
@@ -6260,7 +6282,7 @@ function checkPlace(roh) {
    VERGLICHEN WIRD IN UTC -- ohne das Z lese der Rechner die Marke als
    Ortszeit, und die Grenze verschoebe sich um den Zeitzonenabstand. */
 function changeMark() {
-  const roh = getSetting('schluesselGewechseltAm', null);
+  const roh = getSetting('keyChangedAt', null);
   if (!roh) return null;
   const ms = Date.parse(String(roh).replace(' ', 'T') + 'Z');
   return Number.isFinite(ms) ? { at: roh, ms } : null;
@@ -6364,7 +6386,7 @@ function ruleHit(dateien, behalten, tage, now, changeMs) {
    `null`, `"drei"` UND EIN BRUCH WERDEN ABGEWIESEN und nicht stillschweigend
    gerundet: eine Zahl, die der Server anders liest, als sie eingetippt wurde,
    ist schlimmer als eine Absage. */
-/* `schluessel` UND NICHT MEHR DER NAME DER REGEL -- 0.24.0, Bauabschnitt 2.
+/* `key` UND NICHT MEHR DER NAME DER REGEL -- 0.24.0, Bauabschnitt 2.
    Bis dahin reichte der Rufer das deutsche Wort „Immer behalten" herein, und
    der Satz wurde hier zusammengesetzt. Ein Satz aus Stuecken laesst sich nicht
    uebersetzen (Konzept, Abschnitt 0, Satz 2): auf Englisch stuende das Wort
@@ -6384,12 +6406,12 @@ function checkRuleValue(roh, range, schluessel) {
    ausserhalb der Grenzen faellt hier auf die Vorgabe zurueck und weitet die
    Regel nicht. Die Klemme steht an der Stelle, an der der Fehler wehtut. */
 function cleanupStatus() {
-  const b = checkRuleValue(getSetting('sicherungBehalten', CLEANUP_KEEP.vorgabe),
+  const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.vorgabe),
                             CLEANUP_KEEP, 'server.ruleKeep');
-  const rule = checkRuleValue(getSetting('sicherungTage', CLEANUP_DAYS.vorgabe),
+  const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.vorgabe),
                             CLEANUP_DAYS, 'server.ruleDays');
   return {
-    an: getSetting('sicherungAufraeumen', false) === true,
+    an: getSetting('backupCleanup', false) === true,
     behalten: b.fehler ? CLEANUP_KEEP.vorgabe : b.wert,
     tage: rule.fehler ? CLEANUP_DAYS.vorgabe : rule.wert
   };
@@ -6497,7 +6519,7 @@ function cleanupPreview(pfad, behalten, tage) {
    DIE FREIGEGEBENEN BYTES STEHEN NICHT DARIN, sondern in der Antwort und in
    der Zeile im Containerprotokoll. */
 const logRemoved = (actor, zahl) => {
-  for (let i = 0; i < zahl; i++) auth.log('sicherung.weg', { actor });
+  for (let i = 0; i < zahl; i++) auth.log('backup.delete', { actor });
 };
 
 function removeBackups(ordner, namen) {
@@ -6524,7 +6546,7 @@ function removeBackups(ordner, namen) {
 // davor, und zwar der des Exports: die Antwort nennt einen Pfad des Wirts.
 app.get('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
-  const ort = getSetting('sicherungOrt', '');
+  const ort = getSetting('backupPlace', '');
   let dbBytes = 0;
   // MIT wal_checkpoint, wie bei den Kennzahlen: ohne ihn steht der frisch
   // geschriebene Bestand noch in der WAL, die Datei sieht winzig aus, und die
@@ -6597,14 +6619,14 @@ app.get('/api/backup', ownerOnly, (req, res) => {
 app.put('/api/backup/dir', ownerOnly, (req, res) => {
   const geprueft = checkPlace(req.body?.ort);
   if (geprueft.fehler) return res.status(400).json({ error: t(localeOf(req), geprueft.fehler, geprueft.values) });
-  putSetting.run('sicherungOrt', JSON.stringify(geprueft.ort));
+  putSetting.run('backupPlace', JSON.stringify(geprueft.ort));
   res.json({ ok: true, ort: geprueft.ort, pfad: geprueft.pfad, ...lastBackup(geprueft.pfad) });
 });
 
 app.post('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
   if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.grund, situation.values) });
-  const target = checkPlace(getSetting('sicherungOrt', ''));
+  const target = checkPlace(getSetting('backupPlace', ''));
   if (target.fehler) return res.status(400).json({ error: t(localeOf(req), target.fehler, target.values) });
   /* NAME MIT DATUM UND UHRZEIT. Ueberschreiben waere die schlechteste Antwort:
      eine Sicherung, die die vorige frisst, ist keine. VACUUM INTO scheitert an
@@ -6645,7 +6667,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie der
   // Export. Der Pfad steht NICHT in der Zeile: das Protokoll haelt Vorgaenge
   // fest, keine Orte auf dem Wirt.
-  auth.log('sicherung', { actor: req.benutzer.id });
+  auth.log('backup', { actor: req.benutzer.id });
   /* ---- DAS AUFRAEUMEN, UND ZWAR HIER UND NIRGENDS SONST ----
      DER AUFRUF STEHT AM ENDE DIESER ROUTE, NACH dem `rename` und nach
      `statSync` -- an dem einen Augenblick, in dem feststeht, dass eine
@@ -6709,24 +6731,24 @@ app.post('/api/backup', ownerOnly, (req, res) => {
    Karte zeichnet sich daraus neu.
 
    ZWEI WEGE, EINE ROUTE, unterschieden durch ein Feld im Rumpf:
-     art: 'regel'    -- die Regel einmal anwenden.
-     art: 'veraltet' -- ALLE Kopien von vor dem Schluesselwechsel und NICHTS
+     art: 'rule'    -- die Regel einmal anwenden.
+     art: 'outdated' -- ALLE Kopien von vor dem Schluesselwechsel und NICHTS
                         SONST. Ausdruecklich und getrennt: eine automatische
                         Regel entfernt Ueberfluessiges, nicht Fremdes.
    Zwei Routen fuer dasselbe Loeschen waeren zwei Stellen, an denen die
    Pfadpruefung stehen muss.
 
-   DER ORDNER KOMMT AUS getSetting('sicherungOrt') UND GEHT DURCH checkPlace()
+   DER ORDNER KOMMT AUS getSetting('backupPlace') UND GEHT DURCH checkPlace()
    -- dieselbe Pruefung wie beim Schreiben, dieselbe Funktion, kein zweites Mal
    hingeschrieben: Positivliste zuerst, `realpathSync` danach. */
 app.post('/api/backup/cleanup', ownerOnly,
-         secondConfirmNeeded('sicherung'), (req, res) => {
+         secondConfirmNeeded('backup'), (req, res) => {
   const situation = backupState();
   if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.grund, situation.values) });
-  const target = checkPlace(getSetting('sicherungOrt', ''));
+  const target = checkPlace(getSetting('backupPlace', ''));
   if (target.fehler) return res.status(400).json({ error: t(localeOf(req), target.fehler, target.values) });
   const kind = String(req.body?.kind || '');
-  if (kind !== 'regel' && kind !== 'veraltet')
+  if (kind !== 'rule' && kind !== 'outdated')
     return res.status(400).json({ error: t(localeOf(req), 'server.cleanupUnknown')});
   const dateien = backupList(target.pfad);
   if (dateien === null)
@@ -6736,15 +6758,15 @@ app.post('/api/backup/cleanup', ownerOnly,
      settings und nicht aus dem Rumpf; steht dort einer ausserhalb der Spanne,
      ist das eine Absage und keine stille Rundung. */
   let treffer;
-  if (kind === 'veraltet') {
+  if (kind === 'outdated') {
     if (!mark) return res.status(400).json({
       error: t(localeOf(req), 'server.keyNeverChanged')});
     treffer = dateien.filter(d => d.zeit < mark.ms);
   } else {
-    const b = checkRuleValue(getSetting('sicherungBehalten', CLEANUP_KEEP.vorgabe),
+    const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.vorgabe),
                               CLEANUP_KEEP, 'server.ruleKeep');
     if (b.fehler) return res.status(400).json({ error: t(localeOf(req), b.fehler, b.values) });
-    const rule = checkRuleValue(getSetting('sicherungTage', CLEANUP_DAYS.vorgabe),
+    const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.vorgabe),
                               CLEANUP_DAYS, 'server.ruleDays');
     if (rule.fehler) return res.status(400).json({ error: t(localeOf(req), rule.fehler, rule.values) });
     treffer = ruleHit(dateien, b.wert, rule.wert, Date.now(), mark ? mark.ms : null);
@@ -6755,7 +6777,7 @@ app.post('/api/backup/cleanup', ownerOnly,
       `(${out2.bytes} Bytes frei)${out2.geblieben.length ? `, ${out2.geblieben.length} nicht` : ''}.`);
     /* NUR DIE ZAHL INS SICHERHEITSPROTOKOLL. Kein Freitext, kein Dateiname,
        kein Pfad -- das Protokoll haelt Vorgaenge fest, keine Orte auf dem Wirt
-       (dieselbe Regel wie beim `sicherung`-Eintrag daneben). DIE
+       (dieselbe Regel wie beim `backup`-Eintrag daneben). DIE
        FREIGEGEBENEN BYTES GEHOEREN NICHT IN DIE TABELLE, sondern in die
        Antwort und in die Zeile darueber: MERKMALE ist eine geschlossene Liste
        und bleibt bei vierzehn. */
@@ -6795,7 +6817,7 @@ app.use((err, req, res, next) => {
      und erst hier ist die Anfrage in der Hand, die sagt, welche Sprache sie
      traegt. Ihr Status steht an ihr; die Reihenfolge davor gilt weiter fuer
      alles andere. */
-  /* GEFRAGT WIRD NACH `schluessel` UND NICHT NACH DER KLASSE: auth.js wirft
+  /* GEFRAGT WIRD NACH `key` UND NICHT NACH DER KLASSE: auth.js wirft
      die Klasse `Message`, mail.js baut sich dieselbe Form selbst -- es ist ein
      Blatt im Abhaengigkeitsbaum und darf auth.js nicht requiren. Was zaehlt,
      ist die Form. */

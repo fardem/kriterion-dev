@@ -264,7 +264,7 @@
 
 /* ═════════════════ DAS HELLE SCHEMA — 0.23.0 ═════════════════
    EIN ZWEITER BLOCK, UND ES BLEIBT BEI EINEM. `data-theme` traegt genau zwei
-   Werte, `hell` und `dunkel`; die dritte Stufe der Einstellung -- „wie das
+   Werte, `light` und `dark`; die dritte Stufe der Einstellung -- „wie das
    Geraet" -- wird in app.js aufgeloest und kommt hier nie an. Stuende sie
    hier, muesste jeder Wert DREIMAL geschrieben werden: in :root, hier, und
    noch einmal in einer Medienabfrage.
@@ -287,7 +287,7 @@
      --tool-rgb, --lb-surface-rgb und --edge-on-dark-rgb fehlen
      ABSICHTLICH: was auf einem Foto oder auf einer gefuellten Flaeche liegt,
      folgt seinem Grund und nicht dem Schema. */
-:root[data-theme="hell"] {
+:root[data-theme="light"] {
   color-scheme: light;
 
   --bg: #eaedf1;
@@ -399,7 +399,7 @@
    WAS HIER STEHT, IST DAS DUNKLE SCHEMA -- nur der Grund ist angehoben. So
    ist es auch gemeint und so ist es am leichtesten zu lesen: im Vollbild
    gelten die Werte, die ueberall gelten, wenn es dunkel ist. */
-[data-theme="hell"] .lightbox {
+[data-theme="light"] .lightbox {
   /* Auch hier, und aus demselben Grund: der Bildstreifen des Vollbilds rollt
      (`overflow-x: auto`), und ein heller Rollbalken auf dunklem Grund waere
      der letzte Rest des falschen Schemas. */

@@ -238,18 +238,23 @@ const DUMMY_VALUE = hashPasswordSync(crypto.randomBytes(16).toString('hex'));
 // --- Zugang ------------------------------------------------------------
 // Drei Rollen als Leiter: user < admin < eigentuemer (Begruendung am Schema
 // in db.js).
-const ROLES = ['user', 'admin', 'eigentuemer'];
-const STATES = ['aktiv', 'gesperrt', 'geloescht'];
+const ROLES = ['user', 'admin', 'owner'];
+const STATES = ['active', 'locked', 'deleted'];
 
 // Der Name eines geloeschten Zugangs. Der urspruengliche wird ueberschrieben
 // und ist damit wieder frei. Die Zahl ist die alte id, und genau die steht
 // auch in user_id -- die Oberflaeche bildet daraus "Geloeschter Benutzer 7",
 // ohne dass irgendwo ein Name aufbewahrt wird.
-const tombstoneName = (id) => `geloescht-${id}`;
-// Damit ein lebender Zugang nicht wie ein Grabstein aussehen kann. Der Preis
-// dieser Namensvergabe, ehrlich benannt: das Muster ist als Benutzername
-// gesperrt.
-const TOMBSTONE_PATTERN = /^geloescht-\d+$/i;
+const tombstoneName = (id) => `deleted-${id}`;
+/* Damit ein lebender Zugang nicht wie ein Grabstein aussehen kann. Der Preis
+   dieser Namensvergabe, ehrlich benannt: das Muster ist als Benutzername
+   gesperrt.
+   BEIDE SCHREIBWEISEN BLEIBEN GESPERRT -- 0.24.1. Bis 0.24.0 hiess der
+   Grabstein `geloescht-<nr>`; die Migration schreibt ihn um. Bliebe die alte
+   Schreibweise danach frei, koennte sich jemand `geloescht-7` nennen und
+   saehe aus wie der Grabstein, der diese Zeile einmal war. Das Wort steht
+   hier als WERT in einem Muster und nicht als Name im Quelltext. */
+const TOMBSTONE_PATTERN = /^(deleted|geloescht)-\d+$/i;
 
 // Der EIGENTUEMER mit der kleinsten Nummer -- wer ihn ruft, meint den
 // Eigentuemer der Instanz, nie den Angemeldeten (dafuer gibt es req.benutzer).
@@ -257,7 +262,7 @@ const TOMBSTONE_PATTERN = /^geloescht-\d+$/i;
 // einen geloeschten Zugang als Eigentuemer.
 const getUser = () =>
   db.prepare("SELECT id, username, password_hash FROM users " +
-             "WHERE role = 'eigentuemer' ORDER BY id LIMIT 1").get() || null;
+             "WHERE role = 'owner' ORDER BY id LIMIT 1").get() || null;
 
 // Der Kandidat zur Anmeldung. Die Spalte traegt COLLATE NOCASE, das Suchen
 // findet also auch eine abweichende Schreibweise -- entschieden wird trotzdem
@@ -288,14 +293,14 @@ function checkRules(name, password) {
 
 // Legt den ersten Zugang an. Das Einfuegen entscheidet selbst, ob es der erste
 // ist -- eine Pruefung davor liesse zwischen Pruefung und Einfuegen Platz fuer
-// einen zweiten Aufruf. Die Rolle steht fest auf 'eigentuemer': wer die Instanz
+// einen zweiten Aufruf. Die Rolle steht fest auf 'owner': wer die Instanz
 // einrichtet, dem gehoert sie.
 async function createFirstUser(name, password) {
   checkRules(name, password);
   const hash = await hashPassword(password);
   const r = db.prepare(
     "INSERT INTO users (username, password_hash, role) " +
-    "SELECT ?, ?, 'eigentuemer' WHERE NOT EXISTS (SELECT 1 FROM users)"
+    "SELECT ?, ?, 'owner' WHERE NOT EXISTS (SELECT 1 FROM users)"
   ).run(String(name).trim(), hash);
   if (r.changes === 0) throw new Message('server.setupDone');
   // Zweite Aufrufstelle des Auffangnetzes aus db.js: beim Start einer leeren
@@ -304,7 +309,7 @@ async function createFirstUser(name, password) {
   assignInventory();
   // Die erste Zeile des Sicherheitsprotokolls: die Instanz bekommt ihren
   // Eigentuemer. Er handelt an sich selbst -- es gibt sonst niemanden.
-  log('zugang.neu', { actor: r.lastInsertRowid, target: r.lastInsertRowid, detail: 'eigentuemer' });
+  log('user.new', { actor: r.lastInsertRowid, target: r.lastInsertRowid, detail: 'owner' });
   return { id: r.lastInsertRowid, username: String(name).trim() };
 }
 
@@ -353,13 +358,13 @@ async function changeUser(userId, oldPassword, newName, newPassword, newAddress)
   /* Der eigene Zugang ist der erste Griff einer uebernommenen Sitzung: er
      sperrt den Richtigen aus. Ein Aufruf, der nichts bewegt, ist kein Vorgang
      und schreibt deshalb keine Zeile. Die Adresse zaehlt mit -- sie
-     entscheidet, WOHIN der naechste Ruecksetzlink geht. 'beides' heisst "mehr
+     entscheidet, WOHIN der naechste Ruecksetzlink geht. 'both' heisst "mehr
      als eines", deshalb wird GEZAEHLT statt verschachtelt. */
   const renamed = name !== u.username;
   const adresseNeu = adresseGemeint && (adresse || null) !== (u.email || null);
-  const moved = [renamed && 'name', changes && 'passwort', adresseNeu && 'adresse'].filter(Boolean);
-  const detail = moved.length > 1 ? 'beides' : moved[0] || null;
-  if (detail) log('zugang.selbst', { actor: u.id, target: u.id, detail });
+  const moved = [renamed && 'name', changes && 'password', adresseNeu && 'address'].filter(Boolean);
+  const detail = moved.length > 1 ? 'both' : moved[0] || null;
+  if (detail) log('user.self', { actor: u.id, target: u.id, detail });
   return { username: name, passwortGewechselt: changes, email: adresseGemeint ? adresse : (u.email || '') };
 }
 
@@ -392,7 +397,7 @@ const listUsers = () => db.prepare(
 // geloeschter zaehlt nicht mit -- sonst liesse sich die Instanz verriegeln,
 // indem man den letzten Eigentuemer sperrt statt ihn herabzustufen.
 const ownerCount = () => db.prepare(
-  "SELECT COUNT(*) AS n FROM users WHERE role = 'eigentuemer' AND status = 'aktiv'"
+  "SELECT COUNT(*) AS n FROM users WHERE role = 'owner' AND status = 'active'"
 ).get().n;
 
 /* OHNE PASSWORT WIRD AUSDRUECKLICH VERLANGT, nie durch blosses Weglassen:
@@ -421,7 +426,7 @@ async function createUser(name, password, role = 'user', ohnePasswort = false, a
   const acting = checkActor(actor);
   const r = db.prepare('INSERT INTO users (username, password_hash, role, email) VALUES (?, ?, ?, ?)')
     .run(clean, hash, role, mailAddress || null);
-  log('zugang.neu', { actor: acting, target: r.lastInsertRowid, detail: role });
+  log('user.new', { actor: acting, target: r.lastInsertRowid, detail: role });
   return { id: r.lastInsertRowid, username: clean, role: role,
            ohnePasswort: hash === '', email: mailAddress };
 }
@@ -433,13 +438,13 @@ async function setNewPassword(userId, newPassword, actor) {
   const acting = checkActor(actor);
   const u = getUser2(userId);
   if (!u) throw new Message('server.userUnknown');
-  if (u.status === 'geloescht') throw new Message('server.userDeleted');
+  if (u.status === 'deleted') throw new Message('server.userDeleted');
   if (String(newPassword || '').length < PASSWORD_MIN)
     throw new Message('login.passwordTooShort', { min: PASSWORD_MIN });
   const hash = await hashPassword(newPassword);
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, u.id);
   db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
-  log('zugang.passwort', { actor: acting, target: u.id });
+  log('user.password', { actor: acting, target: u.id });
   return { id: u.id, username: u.username };
 }
 
@@ -447,15 +452,15 @@ function setRole(userId, role, actor) {
   const acting = checkActor(actor);
   const u = getUser2(userId);
   if (!u) throw new Message('server.userUnknown');
-  if (u.status === 'geloescht') throw new Message('server.userDeleted');
+  if (u.status === 'deleted') throw new Message('server.userDeleted');
   if (!ROLES.includes(role)) throw new Message('login.roleUnknown');
   // Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
   // noch weiter unten durch Sperren oder Loeschen. Ohne ihn kaeme niemand mehr
   // an Rollen, Export und Import, und der einzige Ausweg waere usertool.js.
-  if (u.role === 'eigentuemer' && role !== 'eigentuemer' && ownerCount() <= 1)
+  if (u.role === 'owner' && role !== 'owner' && ownerCount() <= 1)
     throw new Message('login.lastOwner');
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, u.id);
-  log('zugang.rolle', { actor: acting, target: u.id, detail: role });
+  log('user.role', { actor: acting, target: u.id, detail: role });
   return { id: u.id, username: u.username, role: role };
 }
 
@@ -463,10 +468,10 @@ function setStatus(userId, status, actor) {
   const acting = checkActor(actor);
   const u = getUser2(userId);
   if (!u) throw new Message('server.userUnknown');
-  if (u.status === 'geloescht') throw new Message('server.userDeleted');
-  if (status !== 'aktiv' && status !== 'gesperrt')
+  if (u.status === 'deleted') throw new Message('server.userDeleted');
+  if (status !== 'active' && status !== 'locked')
     throw new Message('login.statusNotSettable');
-  if (u.role === 'eigentuemer' && status !== 'aktiv' && ownerCount() <= 1)
+  if (u.role === 'owner' && status !== 'active' && ownerCount() <= 1)
     throw new Message('login.lastOwner');
   db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, u.id);
   // Erste von zwei Schichten. requireAuth wuerde eine laufende Sitzung ohnehin
@@ -481,11 +486,11 @@ function setStatus(userId, status, actor) {
      FREMDEN zweiten Faktor abstreift -- und danach mit einem selbst gesetzten
      Passwort hereinkaeme. Ein Sperren ist umkehrbar und nimmt niemandem etwas;
      der Faktor gehoert dem Betroffenen und ueberlebt es. */
-  if (status !== 'aktiv') {
+  if (status !== 'active') {
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);
   }
-  log('zugang.status', { actor: acting, target: u.id, detail: status });
+  log('user.status', { actor: acting, target: u.id, detail: status });
   return { id: u.id, username: u.username, status };
 }
 
@@ -530,8 +535,8 @@ function removeUser(userId, optionen = {}, actor) {
   const acting = checkActor(actor);
   const u = getUser2(userId);
   if (!u) throw new Message('server.userUnknown');
-  if (u.status === 'geloescht') throw new Message('login.userDeleted');
-  if (u.role === 'eigentuemer' && ownerCount() <= 1)
+  if (u.status === 'deleted') throw new Message('login.userDeleted');
+  if (u.role === 'owner' && ownerCount() <= 1)
     throw new Message('login.lastOwner');
   const zahlen = countInventory(u.id);
   db.transaction(() => {
@@ -562,14 +567,14 @@ function removeUser(userId, optionen = {}, actor) {
     db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(u.id);
     db.prepare("UPDATE users SET username = ?, password_hash = '', role = 'user', " +
-               "status = 'geloescht', email = NULL WHERE id = ?")
+               "status = 'deleted', email = NULL WHERE id = ?")
       .run(tombstoneName(u.id), u.id);
   })();
   /* NACH der Transaktion, nicht darin: eine Protokollzeile, die einen Vorgang
      mitreisst, ueber den sie berichtet, waere die falsche Reihenfolge. Die
      Zeile bleibt stehen -- der Grabstein traegt seine Nummer weiter, target
      zeigt also weiterhin auf etwas. */
-  log('zugang.weg', { actor: acting, target: u.id });
+  log('user.delete', { actor: acting, target: u.id });
   return { id: u.id, name: u.username, grabstein: tombstoneName(u.id), zahlen, optionen };
 }
 
@@ -729,7 +734,7 @@ async function checkLogin(name, password) {
      Geschrieben wird nur, wenn es bis hierher gekommen ist -- der gesperrte
      Fall ruft diese Funktion gar nicht erst, und damit ist die Bremse der
      Deckel ueber der Tabelle. */
-  log('anmeldung.fehl', { actor: null, target: nameMatches ? u.id : null });
+  log('login.fail', { actor: null, target: nameMatches ? u.id : null });
   return null;
 }
 
@@ -749,7 +754,7 @@ function createSession(userId) {
      wie last_login darueber: eine Sitzung entsteht ausschliesslich durch eine
      Anmeldung, ueber die Anmeldeseite, die Ersteinrichtung oder das Einloesen
      eines Links. Eine Stelle kann nicht auseinanderlaufen. */
-  log('anmeldung.ok', { actor: id, target: id });
+  log('login.ok', { actor: id, target: id });
   return token;
 }
 
@@ -840,7 +845,7 @@ const TOKEN_DAYS = 7;
 // Wie lange die BENUTZTE Zeile als Spur stehen bleibt, gerechnet ab Ablauf.
 // Eine Schwelle statt zweier: ein Wert, eine Regel, eine Gegenprobe.
 const TOKEN_TRACE_DAYS = 30;
-const TOKEN_PURPOSES = ['einladung', 'ruecksetzung'];
+const TOKEN_PURPOSES = ['invite', 'reset'];
 
 /* --- Die Frist ab dem ersten Oeffnen ------------------------------------
    SIEBEN TAGE SIND DIE FRIST FUER DAS LESEN DER MAIL, NICHT FUER DAS LIEGEN
@@ -901,7 +906,7 @@ function createToken(userId, purpose, actor) {
   const acting = checkActor(actor);
   const u = getUser2(userId);
   if (!u) throw new Message('server.userUnknown');
-  if (u.status !== 'aktiv') throw new Message('login.userInactive');
+  if (u.status !== 'active') throw new Message('login.userInactive');
   if (!TOKEN_PURPOSES.includes(purpose)) throw new Message('server.purposeUnknown');
   const plain = crypto.randomBytes(32).toString('hex');
   db.prepare(
@@ -910,7 +915,7 @@ function createToken(userId, purpose, actor) {
   ).run(tokenHash(plain), u.id, purpose, `+${TOKEN_DAYS} days`);
   // Ein Link IST ein Passwortersatz auf Zeit -- deshalb steht sein Entstehen im
   // Sicherheitsprotokoll, und zwar mit dem Anlass. Der Schluessel selbst nie.
-  log('link.neu', { actor: acting, target: u.id, detail: purpose });
+  log('link.new', { actor: acting, target: u.id, detail: purpose });
   return {
     plain, purpose, id: u.id, username: u.username,
     // Der Bildschirmtext leitet sich aus dem ZUSTAND ab, nicht aus zweck --
@@ -940,7 +945,7 @@ function checkToken(plain) {
        FROM tokens t JOIN users u ON u.id = t.user_id
       WHERE t.hash = ? AND t.used_at IS NULL AND t.expires_at > datetime('now')`
   ).get(tokenHash(raw));
-  if (!z || z.status !== 'aktiv') return null;
+  if (!z || z.status !== 'active') return null;
   return {
     hash: z.hash, id: z.user_id, username: z.username, purpose: z.purpose,
     expires_at: z.expires_at, ohnePasswort: !z.password_hash
@@ -971,7 +976,7 @@ async function redeemToken(plain, newPassword) {
   })();
   // Der Einloesende handelt an sich selbst -- er ist ja gerade dabei, sein
   // eigenes Passwort zu setzen. Die Zeile steht NACH der Transaktion.
-  log('link.ein', { actor: token.id, target: token.id, detail: token.purpose });
+  log('link.use', { actor: token.id, target: token.id, detail: token.purpose });
   return { id: token.id, username: token.username, purpose: token.purpose };
 }
 
@@ -1136,11 +1141,11 @@ const removeRequest = (id) =>
    weiterhin viele Zeilen. Die Frist traegt es, und die ersten zehn je Adresse
    sind die Spur, auf die es ankommt. */
 const EVENTS = [
-  'anmeldung.ok', 'anmeldung.fehl', 'bestaetigung.fehl',
-  'zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
-  'zugang.weg', 'zugang.selbst',
-  'link.neu', 'link.ein',
-  /* 'anfrage.frei' und 'anfrage.ab' -- die Entscheidung des Admins ueber
+  'login.ok', 'login.fail', 'confirm.fail',
+  'user.new', 'user.role', 'user.status', 'user.password',
+  'user.delete', 'user.self',
+  'link.new', 'link.use',
+  /* 'request.approve' und 'request.reject' -- die Entscheidung des Admins ueber
      eine Selbstanmeldung. NICHT DOPPELT zu zugang.neu und link.neu: keine der
      beiden sagt, dass der Zugang aus einer SELBSTANMELDUNG kam. Die Ablehnung
      hinterliesse ohne ihre Zeile gar keine Spur.
@@ -1149,8 +1154,8 @@ const EVENTS = [
      KEINE ZEILE FUER DIE ANFRAGE UND DIE BESTAETIGUNG -- das waeren die
      einzigen neben der gescheiterten Anmeldung, die ein Fremder ausloesen
      kann. */
-  'anfrage.frei', 'anfrage.ab',
-  /* 'schluessel' -- der Wechsel des Datenbankschluessels. Er
+  'request.approve', 'request.reject',
+  /* 'key' -- der Wechsel des Datenbankschluessels. Er
      laeuft ueber keytool.js auf dem Wirt und traegt deshalb IMMER das leere
      `actor` von dort: "ueber den Wirt". Ein Handelnder stuende hier nur als
      Behauptung, denn wer den Befehl ausfuehren kann, koennte sie setzen.
@@ -1159,17 +1164,17 @@ const EVENTS = [
      Auslegung des Merksatzes zu Kontrollausgaben, und sie gilt hier ohne jede
      Ausnahme: die eine Stelle, an der ein Schluessel zum Abschreiben steht,
      ist der Bildschirm des Wirts, nicht diese Tabelle. */
-  /* 'zweifaktor.an', 'zweifaktor.aus' und 'zweifaktor.wieder'.
+  /* 'twofactor.on', 'twofactor.off' und 'twofactor.reset'.
      DER DRITTE IST DER, AUF DEN ES ANKOMMT: ein verbrauchter
      Wiederherstellungscode ist die einzige Zeile im ganzen Protokoll, die
      sagt, dass jemandem das Telefon abhanden gekommen ist.
      KEIN VIERTER FUER DEN FALSCHEN CODE: eine gescheiterte zweite Stufe IST
-     eine gescheiterte Anmeldung und schreibt 'anmeldung.fehl'.
+     eine gescheiterte Anmeldung und schreibt 'login.fail'.
      KEIN NEUES MERKMAL -- 'an' und 'aus' tragen den Betroffenen als wer UND
      als ziel. MERKMALE bleibt bei dreizehn. */
-  'zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder',
-  /* 'sicherung.weg' -- eine entfernte alte Sicherung, seit 0.20.0. Sie steht
-     NEBEN 'sicherung' und nicht an seiner Stelle: das eine legt eine Kopie an,
+  'twofactor.on', 'twofactor.off', 'twofactor.reset',
+  /* 'backup.delete' -- eine entfernte alte Sicherung, seit 0.20.0. Sie steht
+     NEBEN 'backup' und nicht an seiner Stelle: das eine legt eine Kopie an,
      das andere wirft welche weg, und die beiden Vorgaenge sind gegenlaeufig.
      EINE ZEILE JE ENTFERNTER KOPIE. Die ZAHL der entfernten Kopien gehoert ins
      Protokoll, eine Spalte dafuer gibt es aber nicht -- `actor` und `target` sind
@@ -1179,22 +1184,22 @@ const EVENTS = [
      traegt.
      KEIN DATEINAME, KEIN PFAD, KEINE BYTES: das Protokoll haelt Vorgaenge
      fest, keine Orte auf dem Wirt -- dieselbe Regel wie beim
-     `sicherung`-Eintrag daneben. Die freigegebenen Bytes stehen in der Antwort
+     `backup`-Eintrag daneben. Die freigegebenen Bytes stehen in der Antwort
      und im Containerprotokoll. MERKMALE bleibt deshalb bei vierzehn. */
-  'export', 'import', 'sicherung', 'sicherung.weg', 'schluessel'
+  'export', 'import', 'backup', 'backup.delete', 'key'
 ];
 /* Die geschlossene Liste fuer merkmal. NICHTS ausserhalb davon kommt in die
    Tabelle -- damit ist "kein Freitext von aussen" baulich wahr und nicht bloss
    beabsichtigt. Wer einen Vorgang ergaenzt, ergaenzt hier oder nimmt null.
-   'teil' SEIT 0.13.0 UND OHNE NUMMER: 0.12.4 schrieb "teil 1/5" hierher, und
+   'part' SEIT 0.13.0 UND OHNE NUMMER: 0.12.4 schrieb "teil 1/5" hierher, und
    weil das kein Merkmal aus dieser Liste ist, fiel die GANZE Zeile weg -- ein
    Bestand, der in fuenf Teilen hinausging, hinterliess im Protokoll nichts.
    Die geschlossene Liste hat also gehalten, was sie zusagt; falsch war die
    Aufrufstelle. DIE NUMMER DES TEILS STEHT IM DATEINAMEN und gehoert nicht
    hierher: sie waere Freitext, und genau den gibt es in dieser Spalte nicht. */
-const DETAILS = ['user', 'admin', 'eigentuemer', 'aktiv', 'gesperrt',
-                  'einladung', 'ruecksetzung', 'merge', 'replace',
-                  'name', 'passwort', 'adresse', 'beides', 'teil'];
+const DETAILS = ['user', 'admin', 'owner', 'active', 'locked',
+                  'invite', 'reset', 'merge', 'replace',
+                  'name', 'password', 'address', 'both', 'part'];
 
 // Eine Frist, laenger als die dreissig Tage von Papierkorb und Tokenspur: ein
 // Protokoll, das den Vorfall vergisst, bevor jemand ihn bemerkt, ist keins.
@@ -1277,22 +1282,22 @@ function cleanupLog() {
 const LOG_GROUPS = {
   // Die Ansicht, um die es geht: wer an der Tuer gescheitert ist. Beide Zeilen
   // sagen dasselbe -- jemand konnte nicht belegen, wer er ist.
-  gescheitert: ['anmeldung.fehl', 'bestaetigung.fehl'],
-  anmeldungen: ['anmeldung.ok'],
-  zugaenge: ['zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
-             'zugang.weg', 'zugang.selbst', 'link.neu', 'link.ein',
-             'anfrage.frei', 'anfrage.ab'],
-  zweifaktor: ['zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder'],
-  // 'sicherung.weg' steht in DERSELBEN Gruppe wie 'sicherung': wer nachsieht,
+  failed: ['login.fail', 'confirm.fail'],
+  logins: ['login.ok'],
+  users: ['user.new', 'user.role', 'user.status', 'user.password',
+          'user.delete', 'user.self', 'link.new', 'link.use',
+          'request.approve', 'request.reject'],
+  twofactor: ['twofactor.on', 'twofactor.off', 'twofactor.reset'],
+  // 'backup.delete' steht in DERSELBEN Gruppe wie 'backup': wer nachsieht,
   // was mit dem Bestand geschehen ist, sucht das Anlegen und das Wegraeumen
   // einer Kopie am selben Ort.
-  bestand: ['export', 'import', 'sicherung', 'sicherung.weg', 'schluessel']
+  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']
 };
 
 const LOG_COLUMNS =
   `SELECT p.id, p.at, p.event, p.actor, p.target, p.detail,
-          CASE WHEN uw.status = 'geloescht' THEN NULL ELSE uw.username END AS werName,
-          CASE WHEN uz.status = 'geloescht' THEN NULL ELSE uz.username END AS zielName
+          CASE WHEN uw.status = 'deleted' THEN NULL ELSE uw.username END AS werName,
+          CASE WHEN uz.status = 'deleted' THEN NULL ELSE uz.username END AS zielName
      FROM security_log p
      LEFT JOIN users uw ON uw.id = p.actor
      LEFT JOIN users uz ON uz.id = p.target`;
@@ -1367,13 +1372,13 @@ const RELEASE_MS = 120 * 1000;
    Mailzugang setzt, entscheidet, ueber wessen Server JEDER kuenftige
    Ruecksetzlink dieser Instanz laeuft; das trifft die Instanz als Ganzes und
    liegt damit in derselben Zeile wie Export und Import.
-   'bilder' kommt mit 0.19.0 dazu und ist der einzige Zweck der Liste, der
+   'images' kommt mit 0.19.0 dazu und ist der einzige Zweck der Liste, der
    BYTES UEBERSCHREIBT: die Umstellung der Bildablage schreibt jeden PNG-Blob
    der Instanz um, und die alte Fassung ist danach weg. Es gibt dafuer keinen
    Papierkorb und keinen Rueckweg -- die Rueckfahrkarte ist die Sicherung des
    Datenverzeichnisses. Genau deshalb steht er hier und nicht bloss hinter
    nurEigentuemer.
-   'sicherung' kommt mit 0.20.0 dazu und ist der ZWEITE, der Bytes entfernt --
+   'backup' kommt mit 0.20.0 dazu und ist der ZWEITE, der Bytes entfernt --
    und der erste, der GANZE DATEIEN vom Dateisystem des Wirts nimmt. Eine
    geloeschte Sicherung holt nichts zurueck: es gibt keinen Papierkorb dafuer,
    und die Vorschau in der Karte ist der Ersatz. Der Zweck deckt beide Wege der
@@ -1381,8 +1386,8 @@ const RELEASE_MS = 120 * 1000;
    wegraeumen; beide entfernen Dateien, und der Unterschied ist, WELCHE.
    Die Zahl steht im Projektstand und wird dort nachgezaehlt, nicht
    abgeschrieben -- Stolperstein 137. */
-const CONFIRM_PURPOSES = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link', 'mail',
-                             'bilder', 'sicherung'];
+const CONFIRM_PURPOSES = ['export', 'import', 'role', 'password', 'remove', 'link', 'mail',
+                             'images', 'backup'];
 /* DER SCHLUESSEL IST DIE GANZE BINDUNG: Sitzungstoken, Zweck und Ziel. Ein
    einziger Platz je Sitzung waere eine stille Falle -- eine Anfrage, die zwei
    Zwecke braucht (Rolle UND Passwort in einem Rumpf), verloere mit dem ersten
@@ -1549,7 +1554,7 @@ function turnTwoFactorOn(userId, input, actor, now = Date.now()) {
     `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = ?
       WHERE user_id = ?`).run(counter, id);
   const codes = createRecoveryCodes(id);
-  log('zweifaktor.an', { actor: checkActor(actor), target: id });
+  log('twofactor.on', { actor: checkActor(actor), target: id });
   return { ...twoFactorState(id), codes };
 }
 
@@ -1590,7 +1595,7 @@ function checkTwoFactor(userId, input, now = Date.now()) {
        Tokenweg, zweite Bestaetigung), und drei Ausfertigungen derselben Zeile
        liefen auseinander. wer und ziel sind derselbe Mensch -- er handelt an
        sich selbst, wie beim Einloesen eines Links. */
-    log('zweifaktor.wieder', { actor: id, target: id });
+    log('twofactor.reset', { actor: id, target: id });
     return 'wieder';
   }
   return null;
@@ -1620,7 +1625,7 @@ function turnTwoFactorOff(userId, actor) {
     db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(id);
     db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);
   })();
-  log('zweifaktor.aus', { actor: checkActor(actor), target: id });
+  log('twofactor.off', { actor: checkActor(actor), target: id });
   return true;
 }
 
@@ -1722,10 +1727,10 @@ function requireAuth(req, res, next) {
   if (!benutzer) {
     return res.status(401).json({ error: translate(req, 'login.notSignedIn') });
   }
-  if (benutzer.status !== 'aktiv') {
+  if (benutzer.status !== 'active') {
     destroySession(token);
     return res.status(401).json({
-      error: translate(req, benutzer.status === 'geloescht'
+      error: translate(req, benutzer.status === 'deleted'
         ? 'server.accountGone' : 'login.accountLocked')
     });
   }

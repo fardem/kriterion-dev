@@ -672,6 +672,17 @@
    "zweifaktor.aus": "twofactor.off",
    "zweifaktor.wieder": "twofactor.reset"
   },
+  "detail": {
+   "eigentuemer": "owner",
+   "aktiv": "active",
+   "gesperrt": "locked",
+   "einladung": "invite",
+   "ruecksetzung": "reset",
+   "passwort": "password",
+   "adresse": "address",
+   "beides": "both",
+   "teil": "part"
+  },
   "role": {
    "eigentuemer": "owner"
   },
@@ -694,16 +705,35 @@
   },
   "tokenPurpose": {
    "einladung": "invite",
-   "ruecksetzung": "reset",
-   "passwort": "password",
+   "ruecksetzung": "reset"
+  },
+  "confirmPurpose": {
    "rolle": "role",
-   "entfernen": "remove"
+   "passwort": "password",
+   "entfernen": "remove",
+   "bilder": "images",
+   "sicherung": "backup"
+  },
+  "logGroup": {
+   "gescheitert": "failed",
+   "anmeldungen": "logins",
+   "zugaenge": "users",
+   "zweifaktor": "twofactor",
+   "bestand": "inventory"
   },
   "imageFormat": {
    "anderes": "other"
   },
+  "cleanupKind": {
+   "regel": "rule",
+   "veraltet": "outdated"
+  },
+  "tombstone": {
+   "geloescht-": "deleted-"
+  },
   "setting": {
    "bilderUmwandeln": "convertImages",
+   "kategorienFreiAnlegen": "categoriesFreeCreate",
    "registrierung": "signup",
    "schluesselGewechseltAm": "keyChangedAt",
    "sicherungAufraeumen": "backupCleanup",
@@ -712,18 +742,19 @@
    "sicherungTage": "backupDays",
    "sucheAktiv": "searchOn",
    "sucheEigene": "searchOwn",
+   "tagsFreiAnlegen": "tagsFreeCreate",
    "vokabular": "vocabulary"
   },
   "userSetting": {
-   "schrift": "font",
-   "bloecke": "blocks",
-   "linkZeilen": "linkRows",
-   "zeitleiste": "timeline",
-   "suchNamen": "searchNames",
-   "glockeGesehen": "bellSeen",
    "ansichten": "views",
+   "bloecke": "blocks",
+   "glockeGesehen": "bellSeen",
+   "linkZeilen": "linkRows",
+   "schrift": "font",
    "streifen": "strip",
-   "thema": "theme"
+   "suchNamen": "searchNames",
+   "thema": "theme",
+   "zeitleiste": "timeline"
   }
  },
  "exceptions": [

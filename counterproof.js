@@ -326,8 +326,8 @@ const RUECKBAUTEN = [
   {
     nr: '33', name: 'Der Schalter aus fuehrt zu einer eigenen Absage',
     datei: 'server.js',
-    suche: "  const an = getSetting('registrierung', false) === true;",
-    ersatz: "  const an = getSetting('registrierung', false) === true;\n" +
+    suche: "  const an = getSetting('signup', false) === true;",
+    ersatz: "  const an = getSetting('signup', false) === true;\n" +
             "  if (!an) return res.status(403).json({ error: 'Die Selbstanmeldung ist ausgeschaltet.' });",
     erwartet: 'Die Selbstanmeldung: der Schalter aus'
   },
@@ -432,8 +432,8 @@ const RUECKBAUTEN = [
   {
     nr: '47', name: 'Der Schalter legt sich bei kaputtem Versand selbst um',
     datei: 'server.js',
-    suche: "    an: getSetting('registrierung', false) === true,\n    versandBereit: b.ok,",
-    ersatz: "    an: getSetting('registrierung', false) === true && b.ok,\n    versandBereit: b.ok,",
+    suche: "    an: getSetting('signup', false) === true,\n    versandBereit: b.ok,",
+    ersatz: "    an: getSetting('signup', false) === true && b.ok,\n    versandBereit: b.ok,",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   /* ---- Die Selbstanmeldung: der Bestaetigungslink ---- */
@@ -490,22 +490,22 @@ const RUECKBAUTEN = [
   {
     nr: '55', name: 'Die Freischaltung erzeugt keinen Token',
     datei: 'server.js',
-    suche: "    token = auth.createToken(created.id, 'einladung', req.benutzer.id);",
-    ersatz: "    token = { klartext: 'x'.repeat(64), zweck: 'einladung', tage: 7, id: angelegt.id, username: angelegt.username };",
+    suche: "    token = auth.createToken(created.id, 'invite', req.benutzer.id);",
+    ersatz: "    token = { klartext: 'x'.repeat(64), zweck: 'invite', tage: 7, id: angelegt.id, username: angelegt.username };",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '56', name: 'Die Protokollzeile der Freischaltung faellt weg',
     datei: 'server.js',
-    suche: "  auth.log('anfrage.frei', { actor: req.benutzer.id, target: created.id });",
-    ersatz: "  // auth.log('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
+    suche: "  auth.log('request.approve', { actor: req.benutzer.id, target: created.id });",
+    ersatz: "  // auth.log('request.approve', { wer: req.benutzer.id, ziel: angelegt.id });",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '57', name: 'Die Ablehnung entfernt die Zeile nicht',
     datei: 'server.js',
-    suche: "  auth.removeRequest(a.id);\n  auth.log('anfrage.ab', { actor: req.benutzer.id });",
-    ersatz: "  auth.log('anfrage.ab', { wer: req.benutzer.id });",
+    suche: "  auth.removeRequest(a.id);\n  auth.log('request.reject', { actor: req.benutzer.id });",
+    ersatz: "  auth.log('request.reject', { wer: req.benutzer.id });",
     erwartet: 'Die Selbstanmeldung: die Ablehnung'
   },
   {
@@ -516,8 +516,8 @@ const RUECKBAUTEN = [
        BAULICH wahr statt durchgesetzt. */
     nr: '58', name: 'Der Name des Abgewiesenen soll ins Protokoll',
     datei: 'server.js',
-    suche: "  auth.log('anfrage.ab', { actor: req.benutzer.id });",
-    ersatz: "  auth.log('anfrage.ab', { wer: req.benutzer.id, merkmal: a.username });",
+    suche: "  auth.log('request.reject', { actor: req.benutzer.id });",
+    ersatz: "  auth.log('request.reject', { wer: req.benutzer.id, merkmal: a.username });",
     erwartet: 'Die Selbstanmeldung: die Ablehnung'
   },
   {
@@ -525,7 +525,7 @@ const RUECKBAUTEN = [
     datei: 'server.js',
     suche: "  const plain = an ? auth.createRequest(name, adresse) : null;",
     ersatz: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
-            "  if (klartext) auth.log('anfrage.frei', { wer: 1 });",
+            "  if (klartext) auth.log('request.approve', { wer: 1 });",
     erwartet: 'Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann'
   },
   /* ---- Die Selbstanmeldung: die Bremse ---- */
@@ -984,8 +984,8 @@ const RUECKBAUTEN = [
        plausibel aussieht. */
     nr: '109', name: 'Sperren raeumt den zweiten Faktor mit weg',
     datei: 'auth.js',
-    suche: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  log('zugang.status'",
-    ersatz: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('zugang.status'",
+    suche: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  log('user.status'",
+    ersatz: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('user.status'",
     erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
   },
   {
@@ -1219,7 +1219,7 @@ const RUECKBAUTEN = [
        Derselbe Fund, andere Zeile. */
     nr: '136', name: 'testDays kommt wieder immer mit',
     datei: 'server.js',
-    suche: "    if (zeitleiste) it.testDays = testDaysPer.get(it.id) || [];",
+    suche: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
     ersatz: "    it.testDays = testDaysPerEntry(req.benutzer.id).get(it.id) || [];",
     erwartet: 'testDays haengt an der Zeitleiste'
   },
@@ -1227,7 +1227,7 @@ const RUECKBAUTEN = [
     /* MITGEGANGEN MIT 0.19.3, wie 136 daneben. */
     nr: '137', name: 'testDays fehlt immer, auch mit eingeschalteter Zeitleiste',
     datei: 'server.js',
-    suche: "    if (zeitleiste) it.testDays = testDaysPer.get(it.id) || [];",
+    suche: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
     ersatz: "    if (false) it.testDays = testDaysPer.get(it.id) || [];",
     erwartet: 'testDays haengt an der Zeitleiste'
   },
@@ -1274,8 +1274,8 @@ const RUECKBAUTEN = [
        192). Er nimmt weiterhin genau die Ansichten heraus. */
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
     datei: 'server.js',
-    suche: "                                'glockeGesehen', 'ansichten', 'streifen', 'thema'];",
-    ersatz: "                                'glockeGesehen', 'streifen', 'thema'];",
+    suche: "                                'bellSeen', 'views', 'strip', 'theme'];",
+    ersatz: "                                'bellSeen', 'strip', 'theme'];",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
@@ -1302,8 +1302,8 @@ const RUECKBAUTEN = [
   {
     nr: '147', name: 'Das Speichern einer Ansicht raeumt die gemerkte Stellung weg',
     datei: 'server.js',
-    suche: "  if (viewsText !== null)\n    putUserSetting(req.benutzer.id, 'ansichten', viewsText);",
-    ersatz: "  if (viewsText !== null) {\n    putUserSetting(req.benutzer.id, 'ansichten', viewsText);\n    putUserSetting(req.benutzer.id, 'filters', 'null');\n  }",
+    suche: "  if (viewsText !== null)\n    putUserSetting(req.benutzer.id, 'views', viewsText);",
+    ersatz: "  if (viewsText !== null) {\n    putUserSetting(req.benutzer.id, 'views', viewsText);\n    putUserSetting(req.benutzer.id, 'filters', 'null');\n  }",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
@@ -1769,7 +1769,7 @@ const RUECKBAUTEN = [
        DAS IST DER BEFUND AUS 0.12.4, wortwoertlich zurueckgebaut. */
     nr: '195', name: 'Der Teilexport schreibt wieder "teil 1/5" und faellt damit aus dem Protokoll',
     datei: 'server.js',
-    suche: "detail: asPart ? 'teil' : null });",
+    suche: "detail: asPart ? 'part' : null });",
     ersatz: 'merkmal: asPart ? `teil ${teil}/${teile}` : null });',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1845,10 +1845,10 @@ const RUECKBAUTEN = [
   },
   {
     /* DIE FUENF WOERTER FALLEN WIEDER WEG. Die Vorgaenge stehen dann als rohe
-       Schluessel am Bildschirm -- "anfrage.frei" statt eines Satzes. */
+       Schluessel am Bildschirm -- "request.approve" statt eines Satzes. */
     nr: '203', name: 'Fuenf Vorgaenge stehen wieder als roher Schluessel da',
     datei: 'public/app.js',
-    suche: "    'anfrage.frei': 'card.requestApproved',",
+    suche: "    'request.approve': 'card.requestApproved',",
     ersatz: "",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -1867,7 +1867,7 @@ const RUECKBAUTEN = [
     /* DIE GRABSTEINE STEHEN WIEDER ZWISCHEN DEN LEBENDEN. */
     nr: '205', name: 'Grabsteine stehen wieder in der Zugangsliste',
     datei: 'public/app.js',
-    suche: "    for (const z of data.zugaenge.filter(z => z.status !== 'geloescht')) {",
+    suche: "    for (const z of data.zugaenge.filter(z => z.status !== 'deleted')) {",
     ersatz: "    for (const z of daten.zugaenge) {",
     erwartet: 'Der Einladungslink in der Karte Zugaenge'
   },
@@ -2638,8 +2638,8 @@ const RUECKBAUTEN = [
        Der Rueckbau nimmt weiterhin genau den Bezugspunkt der Glocke heraus. */
     nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
     datei: 'server.js',
-    suche: "'suchNamen',\n                                'glockeGesehen', 'ansichten', 'streifen', 'thema'];",
-    ersatz: "'suchNamen',\n                                'ansichten', 'streifen', 'thema'];",
+    suche: "'searchNames',\n                                'bellSeen', 'views', 'strip', 'theme'];",
+    ersatz: "'searchNames',\n                                'views', 'strip', 'theme'];",
     erwartet: 'Persoenliche Einstellungen'
   },
   {
@@ -2729,7 +2729,7 @@ const RUECKBAUTEN = [
        eindeutig. */
     nr: '291', name: 'Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach',
     datei: 'public/app.js',
-    suche: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});",
+    suche: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});",
     ersatz: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  void 0;",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -3898,8 +3898,8 @@ const RUECKBAUTEN = [
   {
     nr: '436', name: 'Der Schalter wirkt nicht mehr -- es wird immer umgewandelt',
     datei: 'server.js',
-    suche: "const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;",
-    ersatz: "const bilderUmwandeln = () => true;",
+    suche: "const convertImages = () => getSetting('convertImages', true) !== false;",
+    ersatz: "const convertImages = () => true;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3907,19 +3907,19 @@ const RUECKBAUTEN = [
        Adminsache. Er bestimmt, wie die ganze Instanz ablegt.
        DER SUCHTEXT IST MIT 0.20.0 MITGEGANGEN, nicht geloescht (Stolperstein
        201): die Liste traegt seit dieser Runde vier Schluessel statt einem.
-       Der Rueckbau nimmt weiterhin GENAU `bilderUmwandeln` heraus und laesst
+       Der Rueckbau nimmt weiterhin GENAU `convertImages` heraus und laesst
        die drei neuen stehen -- sonst pruefte er nicht mehr dasselbe. */
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     datei: 'server.js',
-    suche: "const OWNER_KEYS = ['bilderUmwandeln',\n" +
-           "                                'sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];",
-    ersatz: "const OWNER_KEYS = ['sicherungAufraeumen', 'sicherungBehalten', 'sicherungTage'];",
+    suche: "const OWNER_KEYS = ['convertImages',\n" +
+           "                                'backupCleanup', 'backupKeep', 'backupDays'];",
+    ersatz: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays'];",
     erwartet: 'Die Bildablage: die Rechte'
   },
   {
     nr: '438', name: 'Die Umstellung laeuft ohne zweite Bestaetigung',
     datei: 'server.js',
-    suche: "app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('bilder'), (req, res) => {",
+    suche: "app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, res) => {",
     ersatz: "app.post('/api/images/convert', ownerOnly, (req, res) => {",
     erwartet: 'Die Bildablage: die Rechte'
   },
@@ -4068,8 +4068,8 @@ const RUECKBAUTEN = [
   {
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
     datei: 'public/app.js',
-    suche: "      const ok = await secondConfirm('bilder', null, t('card.convertPngWebp'),",
-    ersatz: "      const ok = true || await secondConfirm('bilder', null, t('card.convertPngWebp'),",
+    suche: "      const ok = await secondConfirm('images', null, t('card.convertPngWebp'),",
+    ersatz: "      const ok = true || await secondConfirm('images', null, t('card.convertPngWebp'),",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4121,7 +4121,7 @@ const RUECKBAUTEN = [
             "             WHEN hex(substr(data,1,4)) = '52494646'\n" +
             "              AND hex(substr(data,9,4)) = '57454250'         THEN 'image/webp'\n" +
             "             WHEN hex(substr(data,1,3)) = '474946'           THEN 'image/gif'\n" +
-            "             ELSE 'anderes'\n" +
+            "             ELSE 'other'\n" +
             "           END AS m, length(data) AS o FROM photos WHERE kind IS ?)",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4149,7 +4149,7 @@ const RUECKBAUTEN = [
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* DIE ZUORDNUNG KENNT KEIN FORMAT MEHR -- jede Zeile faellt in 'anderes'.
+    /* DIE ZUORDNUNG KENNT KEIN FORMAT MEHR -- jede Zeile faellt in 'other'.
        Ohne diese Tafel stuende die Aufstellung leer da. */
     nr: '463', name: 'Die Zuordnung von mime_type auf den Schluessel ist leer',
     datei: 'server.js',
@@ -4577,8 +4577,8 @@ const RUECKBAUTEN = [
        dazu. Gelesen hat beides in der Uebersicht nie jemand. */
     nr: '503', name: 'Die Testtage der Liste tragen wieder Schlagworte und Verfasser',
     datei: 'server.js',
-    suche: "    if (zeitleiste) it.testDays = testDaysPer.get(it.id) || [];",
-    ersatz: "    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
+    suche: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
+    ersatz: "    if (timeline) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
@@ -4745,7 +4745,7 @@ const RUECKBAUTEN = [
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DIE AUSWAHL VERENGT SICH AUF EIN WORT. `art` traegt laut Schema 'bild'
+    /* DIE AUSWAHL VERENGT SICH AUF EIN WORT. `art` traegt laut Schema 'image'
        oder 'video' -- aber der Import schreibt den Wert aus der
        Austauschdatei ungeprueft durch, und der Pruefstand legt seit 0.19.3
        Zeilen mit `art = 'foto'` an. Die verengte Abfrage laesst sie still
@@ -4753,7 +4753,7 @@ const RUECKBAUTEN = [
     nr: '518', name: 'Die Auswahl der faelligen Zeilen verengt sich auf ein Wort',
     datei: 'server.js',
     suche: "const qTileRows = db.prepare('SELECT id FROM photos');",
-    ersatz: "const qTileRows = db.prepare(\"SELECT id FROM photos WHERE kind IS 'bild'\");",
+    ersatz: "const qTileRows = db.prepare(\"SELECT id FROM photos WHERE kind IS 'image'\");",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -5145,13 +5145,13 @@ const RUECKBAUTEN = [
   },
   {
     /* DER SCHALTER STEHT WIEDER AUF AN, wenn nichts dasteht -- die Abweichung
-       von `bilderUmwandeln` faellt weg. Eine umgewandelte PNG-Datei holt der
+       von `convertImages` faellt weg. Eine umgewandelte PNG-Datei holt der
        Knopf in der Gegenrichtung zurueck; eine geloeschte Sicherung holt
        nichts zurueck. */
     nr: '553', name: 'Der Schalter steht bei einer frischen Installation auf AN',
     datei: 'server.js',
-    suche: "    an: getSetting('sicherungAufraeumen', false) === true,",
-    ersatz: "    an: getSetting('sicherungAufraeumen', true) !== false,",
+    suche: "    an: getSetting('backupCleanup', false) === true,",
+    ersatz: "    an: getSetting('backupCleanup', true) !== false,",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5195,7 +5195,7 @@ const RUECKBAUTEN = [
     nr: '557', name: 'Das Aufraeumen laeuft ohne zweite Bestaetigung',
     datei: 'server.js',
     suche: "app.post('/api/backup/cleanup', ownerOnly,\n" +
-           "         secondConfirmNeeded('sicherung'), (req, res) => {",
+           "         secondConfirmNeeded('backup'), (req, res) => {",
     ersatz: "app.post('/api/backup/cleanup', ownerOnly, (req, res) => {",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5206,9 +5206,9 @@ const RUECKBAUTEN = [
     nr: '558', name: 'Ein gewoehnlicher Admin darf alte Sicherungen entfernen',
     datei: 'server.js',
     suche: "app.post('/api/backup/cleanup', ownerOnly,\n" +
-           "         secondConfirmNeeded('sicherung'), (req, res) => {",
+           "         secondConfirmNeeded('backup'), (req, res) => {",
     ersatz: "app.post('/api/backup/cleanup', adminOnly,\n" +
-            "         secondConfirmNeeded('sicherung'), (req, res) => {",
+            "         secondConfirmNeeded('backup'), (req, res) => {",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
@@ -5216,17 +5216,17 @@ const RUECKBAUTEN = [
        hinterlaesst, ist die, nach der hinterher niemand suchen kann. */
     nr: '559', name: 'Die entfernten Kopien stehen in keinem Protokoll mehr',
     datei: 'server.js',
-    suche: "  for (let i = 0; i < zahl; i++) auth.log('sicherung.weg', { actor });",
-    ersatz: "  for (let i = 0; i < 0; i++) auth.log('sicherung.weg', { wer });",
+    suche: "  for (let i = 0; i < zahl; i++) auth.log('backup.delete', { actor });",
+    ersatz: "  for (let i = 0; i < 0; i++) auth.log('backup.delete', { wer });",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* DER VORGANG FAELLT AUS DER GRUPPE `bestand`. Er stuende dann unter keiner
+    /* DER VORGANG FAELLT AUS DER GRUPPE `inventory`. Er stuende dann unter keiner
        Ansicht des Filters -- ausser unter "alle", und dort sucht ihn niemand. */
     nr: '560', name: 'Der Vorgang sicherung.weg steht in keiner Gruppe',
     datei: 'auth.js',
-    suche: "  bestand: ['export', 'import', 'sicherung', 'sicherung.weg', 'schluessel']",
-    ersatz: "  bestand: ['export', 'import', 'sicherung', 'schluessel']",
+    suche: "  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']",
+    ersatz: "  bestand: ['export', 'import', 'backup', 'key']",
     erwartet: 'Das Sicherheitsprotokoll: die Gruppen des Filters'
   },
   {
@@ -5370,7 +5370,7 @@ const RUECKBAUTEN = [
        Eintrags zeigte nichts. */
     nr: '572', name: 'potenzialRating faellt aus der Uebersicht',
     datei: 'server.js',
-    suche: '    it.potenzialRating = totalAverage(boxes.vorher);',
+    suche: '    it.potenzialRating = totalAverage(boxes.before);',
     ersatz: '    it.potenzialRating = null;',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5419,7 +5419,7 @@ const RUECKBAUTEN = [
        und die Sterne landeten im falschen Durchschnitt. */
     nr: '577', name: 'Der Export nennt die Kaesten nicht mehr',
     datei: 'server.js',
-    suche: "  for (const c of critRows) if (c.phase !== 'nachher') criteriaPhase[c.name] = c.phase;",
+    suche: "  for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;",
     ersatz: '  void criteriaPhase;',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5446,12 +5446,12 @@ const RUECKBAUTEN = [
   },
   {
     /* DIE SPALTE BEKOMMT EINE ANDERE VORGABE. Der Bestand stuende nach dem
-       Einspielen im Kasten „vorher", und saemtliche Gesamtschnitte waeren
+       Einspielen im Kasten „before", und saemtliche Gesamtschnitte waeren
        still weg -- der teuerste denkbare Fehler dieser Runde. */
     nr: '580', name: 'Die Migration stellt den Bestand auf vorher',
     datei: 'db.js',
-    suche: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'nachher\'");',
-    ersatz: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'vorher\'");',
+    suche: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'after\'");',
+    ersatz: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'before\'");',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -5554,7 +5554,7 @@ const RUECKBAUTEN = [
        das jemand eingetragen hat, waere versteckt. */
     nr: '590', name: 'Bewertungssterne an einem ungetesteten Eintrag bleiben zugeklappt',
     datei: 'public/app.js',
-    suche: "  return !item.tested && !hasStars(item, 'nachher');",
+    suche: "  return !item.tested && !hasStars(item, 'after');",
     ersatz: '  return !item.tested;',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5631,7 +5631,7 @@ const RUECKBAUTEN = [
   {
     /* DIE KARTE SCHICKT DIE PHASE NICHT MIT. Was in der Potenzialkarte
        angelegt wird, landete als Bewertungskriterium -- der Server hat die
-       Vorgabe 'nachher'. */
+       Vorgabe 'after'. */
     nr: '598', name: 'Die zweite Kriterienkarte legt im falschen Kasten an',
     datei: 'public/app.js',
     suche: "      try { await api('POST', '/api/criteria', { name, phase }); critField.value = '';",
@@ -6025,7 +6025,7 @@ const RUECKBAUTEN = [
     datei: 'server.js',
     suche: "    if (!STRIP_LEVELS.includes(n))",
     ersatz: "    if (!Number.isFinite(n))",
-    erwartet: 'Die Einstellung streifen — 0.22.0'
+    erwartet: 'Die Einstellung strip — 0.22.0'
   },
   {
     // Die Vorgabe vergisst eines der zwei neuen Woerter -- dreizehn statt vierzehn.
@@ -6464,8 +6464,8 @@ const RUECKBAUTEN = [
        sichtbar, und ein Klick liesse Sterne vergeben. */
     nr: '652', name: 'Der Bewertungskasten steht wieder an jeder Idee',
     datei: 'public/app.js',
-    suche: "  return name === 'bewertung' && !item.tested && !hasStars(item, 'nachher');",
-    ersatz: "  return false && name === 'bewertung' && !item.tested && !hasStars(item, 'nachher');",
+    suche: "  return name === 'bewertung' && !item.tested && !hasStars(item, 'after');",
+    ersatz: "  return false && name === 'bewertung' && !item.tested && !hasStars(item, 'after');",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
@@ -6474,8 +6474,8 @@ const RUECKBAUTEN = [
        Gewohnheit. */
     nr: '653', name: 'Der Server nimmt die Bewertung am ungetesteten Eintrag wieder an',
     datei: 'server.js',
-    suche: "    if (crit && crit.phase === 'nachher' && entry && !entry.tested)",
-    ersatz: "    if (false && krit && krit.phase === 'nachher' && eintrag && !eintrag.tested)",
+    suche: "    if (crit && crit.phase === 'after' && entry && !entry.tested)",
+    ersatz: "    if (false && krit && krit.phase === 'after' && eintrag && !eintrag.tested)",
     erwartet: 'Rechte und Sichtbarkeit'
   },
   {

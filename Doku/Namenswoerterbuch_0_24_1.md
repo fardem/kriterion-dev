@@ -791,6 +791,20 @@ Schnittstelle hängt daran; deshalb ziehen sie ohne Rückfall um.
 | `zweifaktor.aus` | `twofactor.off` |
 | `zweifaktor.wieder` | `twofactor.reset` |
 
+**`detail`**
+
+| heute | ab 0.24.1 |
+|---|---|
+| `eigentuemer` | `owner` |
+| `aktiv` | `active` |
+| `gesperrt` | `locked` |
+| `einladung` | `invite` |
+| `ruecksetzung` | `reset` |
+| `passwort` | `password` |
+| `adresse` | `address` |
+| `beides` | `both` |
+| `teil` | `part` |
+
 **`role`**
 
 | heute | ab 0.24.1 |
@@ -832,9 +846,26 @@ Schnittstelle hängt daran; deshalb ziehen sie ohne Rückfall um.
 |---|---|
 | `einladung` | `invite` |
 | `ruecksetzung` | `reset` |
-| `passwort` | `password` |
+
+**`confirmPurpose`**
+
+| heute | ab 0.24.1 |
+|---|---|
 | `rolle` | `role` |
+| `passwort` | `password` |
 | `entfernen` | `remove` |
+| `bilder` | `images` |
+| `sicherung` | `backup` |
+
+**`logGroup`**
+
+| heute | ab 0.24.1 |
+|---|---|
+| `gescheitert` | `failed` |
+| `anmeldungen` | `logins` |
+| `zugaenge` | `users` |
+| `zweifaktor` | `twofactor` |
+| `bestand` | `inventory` |
 
 **`imageFormat`**
 
@@ -842,11 +873,25 @@ Schnittstelle hängt daran; deshalb ziehen sie ohne Rückfall um.
 |---|---|
 | `anderes` | `other` |
 
+**`cleanupKind`**
+
+| heute | ab 0.24.1 |
+|---|---|
+| `regel` | `rule` |
+| `veraltet` | `outdated` |
+
+**`tombstone`**
+
+| heute | ab 0.24.1 |
+|---|---|
+| `geloescht-` | `deleted-` |
+
 **`setting`**
 
 | heute | ab 0.24.1 |
 |---|---|
 | `bilderUmwandeln` | `convertImages` |
+| `kategorienFreiAnlegen` | `categoriesFreeCreate` |
 | `registrierung` | `signup` |
 | `schluesselGewechseltAm` | `keyChangedAt` |
 | `sicherungAufraeumen` | `backupCleanup` |
@@ -855,21 +900,22 @@ Schnittstelle hängt daran; deshalb ziehen sie ohne Rückfall um.
 | `sicherungTage` | `backupDays` |
 | `sucheAktiv` | `searchOn` |
 | `sucheEigene` | `searchOwn` |
+| `tagsFreiAnlegen` | `tagsFreeCreate` |
 | `vokabular` | `vocabulary` |
 
 **`userSetting`**
 
 | heute | ab 0.24.1 |
 |---|---|
-| `schrift` | `font` |
-| `bloecke` | `blocks` |
-| `linkZeilen` | `linkRows` |
-| `zeitleiste` | `timeline` |
-| `suchNamen` | `searchNames` |
-| `glockeGesehen` | `bellSeen` |
 | `ansichten` | `views` |
+| `bloecke` | `blocks` |
+| `glockeGesehen` | `bellSeen` |
+| `linkZeilen` | `linkRows` |
+| `schrift` | `font` |
 | `streifen` | `strip` |
+| `suchNamen` | `searchNames` |
 | `thema` | `theme` |
+| `zeitleiste` | `timeline` |
 
 **Der Migrationsblock liest diese Liste**, und der Import übersetzt alte
 Exportdateien beim Einlesen mit derselben (F2).

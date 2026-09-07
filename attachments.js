@@ -110,7 +110,7 @@ function outType(filename) {
 // Art der Vorschau. Entscheidet allein die Endung, nicht der gemeldete Typ.
 function previewKind(filename) {
   const e = extension(filename);
-  if (IMAGE_TYPES[e]) return 'bild';
+  if (IMAGE_TYPES[e]) return 'image';
   if (e === 'pdf') return 'pdf';
   if (TEXT_EXTENSIONS.includes(e)) return 'text';
   if (e === 'docx') return 'docx';
@@ -217,7 +217,7 @@ function typeFromBytes(buf) {
 // gespeichert ist kein Name, und der gemeldete Typ zaehlt ohnehin nicht.
 // Unerkanntes geht als Download heraus statt als Anzeige; ein Bild, das der
 // Browser nicht kennt, kann er auch nicht zeigen.
-function setImageHeader(res, buf, { name = 'bild', maxAge = 3600 } = {}) {
+function setImageHeader(res, buf, { name = 'image', maxAge = 3600 } = {}) {
   const type = typeFromBytes(buf) || 'application/octet-stream';
   const inline = INLINE_ALLOWED.has(type);
   // Der Name traegt die Endung des ERKANNTEN Typs, nicht die einer Angabe.
