@@ -171,8 +171,8 @@ async function commandRemove(name, options) {
               `${z.bewertungen} Bewertungen, ${z.testtage} Testtage`);
   if (options.eintraege) {
     console.log(RED(`  --eintraege: seine ${z.eintraege} Einträge werden gelöscht — mitsamt ` +
-      `${z.fremdKommentare} fremden Kommentaren, ${z.fremdBewertungen} fremden Bewertungen ` +
-      `und ${z.fremdTesttage} fremden Testtagen daran.`));
+      `${z.foreignComments} fremden Kommentaren, ${z.foreignRatings} fremden Bewertungen ` +
+      `und ${z.foreignTestDays} fremden Testtagen daran.`));
   } else {
     console.log('  Ohne --eintraege bleiben sie stehen und tragen künftig ' +
       `"Gelöschter Benutzer ${u.id}".`);
@@ -188,7 +188,7 @@ async function commandRemove(name, options) {
   try {
     result = auth.removeUser(u.id, options, auth.FROM_HOST);
   } catch (e) { console.error(RED(e.message)); process.exit(1); }
-  console.log(`"${result.name}" ist entfernt. Die Zeile bleibt als ${result.grabstein} stehen.`);
+  console.log(`"${result.name}" ist entfernt. Die Zeile bleibt als ${result.tombstone} stehen.`);
 }
 
 /* DER NOTWEG AM ZWEITEN FAKTOR -- UND ER SCHALTET NUR AUS.
@@ -209,7 +209,7 @@ async function commandTwoFactor(name) {
   console.log(`\nZweiten Faktor von "${u.username}" (Nummer ${u.id}, ` +
     `${ROLE_KEY[u.role] || u.role}) ausschalten.`);
   console.log(`  Eingeschaltet seit: ${status.seit}`);
-  console.log(`  Wiederherstellungscodes: ${status.codesOffen} von ${status.codesGesamt} noch offen`);
+  console.log(`  Wiederherstellungscodes: ${status.codesOpen} von ${status.codesTotal} noch offen`);
   console.log('  Danach genügt zum Anmelden wieder das Passwort allein.');
   console.log('  Einschalten kann ihn nur der Betroffene selbst, in der Karte „Zugang“.');
   const answer = (await ask('\nWirklich ausschalten? [ja/nein] ')).trim().toLowerCase();

@@ -82,23 +82,23 @@ const gruppe = (name) => {
      Gegenprobentabelle dieser Runde passiert. */
   console.log(`\n── ${name} ${'─'.repeat(Math.max(2, 58 - name.length))}`);
 };
-function pruefe(name, bedingung, hinweis = '') {
+function pruefe(name, bedingung, hint = '') {
   // Die Bedingung ist beim Aufruf laengst gerechnet -- der Filter nimmt die
   // Zeile weg, nicht die Arbeit. Gezaehlt wird sie trotzdem, damit der
   // Schlussblock sagen kann, ob im Uebergangenen etwas rot war.
   if (stumm) { if (bedingung) stillBestanden++; else stillGescheitert++; return; }
   if (bedingung) { bestanden++; console.log(`  ✓ ${name}`); }
-  else { gescheitert++; console.log(`  ✗ ${name}${hinweis ? `\n      ${hinweis}` : ''}`); }
+  else { gescheitert++; console.log(`  ✗ ${name}${hint ? `\n      ${hint}` : ''}`); }
 }
 // EINE Stelle fuer den Schlussblock: der gefilterte und der volle Lauf enden
 // gleich, und die Selbstprobe weiter unten pruefT genau diese Stelle.
 function schlussBlock() {
   console.log(`\n${'═'.repeat(62)}`);
-  const summe = bestanden + gescheitert;
+  const sum = bestanden + gescheitert;
   // "0 von 0 bestanden -- alles in Ordnung" waere die schlimmste Zeile des
   // ganzen Prueflaufs: sie meldet Erfolg fuer nichts.
-  if (!summe) console.log('  KEINE PRUEFUNG GEZEIGT — nichts belegt.');
-  else console.log(`  ${bestanden} von ${summe} Pruefungen bestanden` +
+  if (!sum) console.log('  KEINE PRUEFUNG GEZEIGT — nichts belegt.');
+  else console.log(`  ${bestanden} von ${sum} Pruefungen bestanden` +
               (uebersprungen ? `, ${uebersprungen} uebersprungen` : '') +
               (gescheitert ? `  —  ${gescheitert} GESCHEITERT` : '  —  alles in Ordnung'));
   if (FILTER) {
@@ -195,8 +195,8 @@ const BASIS = `http://127.0.0.1:${PORT}`;
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-pruefung-'));
 const NUTZER = 'pruefer', PASSWORT = 'pruef-passwort-' + crypto.randomBytes(4).toString('hex');
 
-function oeffne(datei) {
-  const d = new Database(datei);
+function oeffne(file) {
+  const d = new Database(file);
   d.pragma("cipher='sqlcipher'");
   d.pragma(`key="x'${KEY}'"`);
   return d;
@@ -244,10 +244,10 @@ function kurzlauf(code, datenVerzeichnis) {
    Fehler, die der Prueflauf finden soll.
    NICHT ueber setzeNeuesPasswort(): das raeumt die Sitzungen dieses Zugangs
    mit weg, und die Prueflagen setzen ihre Sitzungen von Hand. */
-function setzePasswortImBestand(datenVerzeichnis, name, passwort) {
+function setzePasswortImBestand(datenVerzeichnis, name, password) {
   return kurzlauf(
     `const a = require('./auth'); const { db } = require('./db');` +
-    `a.hashPassword(${JSON.stringify(passwort)}).then(h => {` +
+    `a.hashPassword(${JSON.stringify(password)}).then(h => {` +
     `db.prepare('UPDATE users SET password_hash = ? WHERE username = ?')` +
     `.run(h, ${JSON.stringify(name)}); console.log('gesetzt'); });`,
     datenVerzeichnis);
@@ -359,19 +359,19 @@ function smtpEmpfaenger(kind = 'ok') {
       puffer += d.toString();
       let i;
       while ((i = puffer.indexOf('\r\n')) >= 0) {
-        const zeile = puffer.slice(0, i); puffer = puffer.slice(i + 2);
+        const row = puffer.slice(0, i); puffer = puffer.slice(i + 2);
         if (inDaten) {
-          if (zeile === '.') {
+          if (row === '.') {
             inDaten = false; post.push(brief); brief = '';
             sock.write(kind === 'fehler' ? '550 abgelehnt\r\n' : '250 angenommen\r\n');
           } else {
             // Die Punktverdopplung des Protokolls wieder zurueck, wie sie
             // jeder Empfaenger macht.
-            brief += (zeile.startsWith('..') ? zeile.slice(1) : zeile) + '\n';
+            brief += (row.startsWith('..') ? row.slice(1) : row) + '\n';
           }
           continue;
         }
-        const b = zeile.toUpperCase();
+        const b = row.toUpperCase();
         if (b.startsWith('EHLO') || b.startsWith('HELO')) sock.write('250-kriterion-probe\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (b.startsWith('AUTH')) sock.write('235 angemeldet\r\n');
         else if (b.startsWith('DATA')) { inDaten = true; sock.write('354 los\r\n'); }
@@ -385,14 +385,14 @@ function smtpEmpfaenger(kind = 'ok') {
   SMTP_LAGEN.push(lage);
   // Kopf und Rumpf getrennt, und der Rumpf dekodiert -- so sieht ihn ein
   // Empfaenger, und nur so laesst sich nach dem Link darin suchen.
-  lage.briefe = () => post.map(roh => {
-    const trenn = roh.indexOf('\n\n');
-    const kopf = trenn < 0 ? roh : roh.slice(0, trenn);
-    const rumpf = trenn < 0 ? '' : roh.slice(trenn + 2);
+  lage.briefe = () => post.map(raw => {
+    const trenn = raw.indexOf('\n\n');
+    const kopf = trenn < 0 ? raw : raw.slice(0, trenn);
+    const rumpf = trenn < 0 ? '' : raw.slice(trenn + 2);
     const klar = /quoted-printable/i.test(kopf)
       ? rumpf.replace(/=\r?\n/g, '').replace(/=([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)))
       : rumpf;
-    return { roh, kopf, rumpf: Buffer.from(klar, 'binary').toString('utf8') };
+    return { raw, kopf, rumpf: Buffer.from(klar, 'binary').toString('utf8') };
   });
   lage.stopp = () => new Promise(r => {
     // Erst die Verbindungen, dann der Horchposten -- in dieser Reihenfolge,
@@ -491,7 +491,7 @@ function bestaetigungNoetig(methode, pfad, koerper) {
     if (methode === 'PUT') {
       const raus = [];
       if (koerper && koerper.rolle !== undefined) raus.push(['role', id]);
-      if (koerper && koerper.passwort !== undefined) raus.push(['password', id]);
+      if (koerper && koerper.password !== undefined) raus.push(['password', id]);
       return raus;
     }
   }
@@ -506,12 +506,12 @@ function bestaetigungNoetig(methode, pfad, koerper) {
 /* Macht aus einem rohen Rufer einen, der die Freigabe vorher holt. Das
    Passwort gehoert dazu -- ohne es gibt es keine Freigabe, und genau das ist
    die Aussage der Runde. */
-function mitFreigabe(roh, passwort) {
+function mitFreigabe(raw, password) {
   return async (methode, pfad, koerper) => {
     for (const [purpose, target] of bestaetigungNoetig(methode, pfad, koerper)) {
-      await roh('POST', '/api/confirm', { passwort, purpose, target });
+      await raw('POST', '/api/confirm', { password, purpose, target });
     }
-    return roh(methode, pfad, koerper);
+    return raw(methode, pfad, koerper);
   };
 }
 
@@ -522,7 +522,7 @@ const rufF = (...w) => mitFreigabe(ruf, PASSWORT)(...w);
 // zwei Stellen ueber fetch statt ueber ruf(), weil dort die KOPFZEILEN der
 // Antwort gebraucht werden.
 const freigabeHaupt = (purpose, target = null) =>
-  ruf('POST', '/api/confirm', { passwort: PASSWORT, purpose, target });
+  ruf('POST', '/api/confirm', { password: PASSWORT, purpose, target });
 
 /* ================= Ablauf ================= */
 (async function lauf() {
@@ -684,11 +684,11 @@ const freigabeHaupt = (purpose, target = null) =>
     'public/app.js', 'public/index.html', 'public/style.css',
     'public/languages/de.json'];
   const funde = [];
-  for (const datei of GEPRUEFT) {
-    fs.readFileSync(path.join(__dirname, datei), 'utf8').split('\n').forEach((zeile, i) => {
-      let rest = zeile;
+  for (const file of GEPRUEFT) {
+    fs.readFileSync(path.join(__dirname, file), 'utf8').split('\n').forEach((row, i) => {
+      let rest = row;
       for (const erlaubt of ERLAUBT) rest = rest.split(erlaubt).join('');
-      if (/katalog|kartei/i.test(rest)) funde.push(`${datei}:${i + 1}`);
+      if (/katalog|kartei/i.test(rest)) funde.push(`${file}:${i + 1}`);
     });
   }
   pruefe('Kein alter Name mehr in den ausgelieferten Dateien', funde.length === 0, funde.join(', '));
@@ -767,7 +767,7 @@ const freigabeHaupt = (purpose, target = null) =>
      etwas findet: was .dockerignore nennt, geht nicht mit in den Bauzusammen-
      hang, und dann bricht der Bau ab. Geprueft wird gegen JEDE Zeile, nicht
      gegen den blossen Dateinamen -- ein `*.json` wuerde sonst durchrutschen. */
-  const alsMuster = (zeile) => new RegExp('^' + zeile.trim()
+  const alsMuster = (row) => new RegExp('^' + row.trim()
     .replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000')
     .replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*') + '$');
   const ausschluesse = fs.readFileSync(path.join(__dirname, '.dockerignore'), 'utf8')
@@ -1001,8 +1001,8 @@ const freigabeHaupt = (purpose, target = null) =>
       gesehen.add(rel);
       for (const t of fs.readFileSync(path.join(__dirname, rel), 'utf8')
         .matchAll(/require\('\.\/([\w.-]+)'\)|__dirname, '([\w.-]+\.js)'/g)) {
-        const roh = t[1] || t[2];
-        const name = /\.(js|json)$/.test(roh) ? roh : roh + '.js';
+        const raw = t[1] || t[2];
+        const name = /\.(js|json)$/.test(raw) ? raw : raw + '.js';
         if (fs.existsSync(path.join(__dirname, name))) holen(name);
       }
     };
@@ -1422,9 +1422,9 @@ const freigabeHaupt = (purpose, target = null) =>
   const mkGesehen = new Map();
   const mkDoppelt = [];
   for (const n of mkAlle) {
-    const roh = fs.readFileSync(path.join(mkVerz, n)).toString('base64');
-    if (mkGesehen.has(roh)) mkDoppelt.push(`${mkGesehen.get(roh)} = ${n}`);
-    else mkGesehen.set(roh, n);
+    const raw = fs.readFileSync(path.join(mkVerz, n)).toString('base64');
+    if (mkGesehen.has(raw)) mkDoppelt.push(`${mkGesehen.get(raw)} = ${n}`);
+    else mkGesehen.set(raw, n);
   }
   pruefe('In public/ liegt keine Datei zweimal unter zwei Namen',
     mkDoppelt.length === 0, mkDoppelt.join(' \u00b7 '));
@@ -1930,11 +1930,11 @@ const freigabeHaupt = (purpose, target = null) =>
   /* ---------------------------------------------------------------- */
   gruppe('Einstellungen: Vokabular und Schriftgroesse');
 
-  const vorgabe = (await ruf('GET', '/api/settings')).inhalt;
+  const fallback = (await ruf('GET', '/api/settings')).inhalt;
   pruefe('Vorgabevokabular wird geliefert',
-    vorgabe.vocabulary.sacheEinzahl === 'Eintrag' && vorgabe.vocabulary.zeitpunktMehrzahl === 'Testtage',
-    JSON.stringify(vorgabe.vocabulary));
-  pruefe('Vorgabe der Schriftgroesse ist 100', vorgabe.font === 100);
+    fallback.vocabulary.sacheEinzahl === 'Eintrag' && fallback.vocabulary.zeitpunktMehrzahl === 'Testtage',
+    JSON.stringify(fallback.vocabulary));
+  pruefe('Vorgabe der Schriftgroesse ist 100', fallback.font === 100);
   /* Die Liste steht seit 0.22.0 bei VIERZEHN Woertern -- `bewertungEinzahl` und
      `bewertungMehrzahl` sind dazugekommen (E14), das Paar fuer den zweiten
      Sternkasten; 0.21.0 hatte ihn bewusst ausgelassen, und die Schieflage
@@ -1947,21 +1947,21 @@ const freigabeHaupt = (purpose, target = null) =>
      F_ROUTEN -- ein Wort, das still dazukommt oder verschwindet, faellt sonst
      niemandem auf. */
   pruefe('Das Vokabular hat vierzehn Woerter, nicht mehr — 0.22.0',
-    Object.keys(vorgabe.vocabulary).length === 14,
-    `${Object.keys(vorgabe.vocabulary).length}: ${Object.keys(vorgabe.vocabulary).join(', ')}`);
+    Object.keys(fallback.vocabulary).length === 14,
+    `${Object.keys(fallback.vocabulary).length}: ${Object.keys(fallback.vocabulary).join(', ')}`);
   pruefe('Und das zwoelfte ist das Wort fuer den Potenzialkasten',
-    vorgabe.vocabulary.potenzial === 'Potenzial', JSON.stringify(vorgabe.vocabulary.potenzial));
+    fallback.vocabulary.potenzial === 'Potenzial', JSON.stringify(fallback.vocabulary.potenzial));
   pruefe('Und das dreizehnte und vierzehnte sind das Paar fuer die Bewertung — 0.22.0',
-    vorgabe.vocabulary.bewertungEinzahl === 'Bewertung' && vorgabe.vocabulary.bewertungMehrzahl === 'Bewertungen',
-    JSON.stringify([vorgabe.vocabulary.bewertungEinzahl, vorgabe.vocabulary.bewertungMehrzahl]));
+    fallback.vocabulary.bewertungEinzahl === 'Bewertung' && fallback.vocabulary.bewertungMehrzahl === 'Bewertungen',
+    JSON.stringify([fallback.vocabulary.bewertungEinzahl, fallback.vocabulary.bewertungMehrzahl]));
 
-  const gesetzt = await ruf('PUT', '/api/settings', { vocabulary: {
+  const set = await ruf('PUT', '/api/settings', { vocabulary: {
     sacheEinzahl: '  Maschine  ', sacheMehrzahl: 'Maschinen',
     merkmalJa: 'Geprüft', merkmalNein: 'Ungeprüft',
     zeitpunktEinzahl: 'Sitzung', zeitpunktMehrzahl: 'Sitzungen'
   }});
-  pruefe('Vokabular wird gespeichert', gesetzt.inhalt.vocabulary.sacheMehrzahl === 'Maschinen');
-  pruefe('Leerzeichen werden abgeschnitten', gesetzt.inhalt.vocabulary.sacheEinzahl === 'Maschine');
+  pruefe('Vokabular wird gespeichert', set.inhalt.vocabulary.sacheMehrzahl === 'Maschinen');
+  pruefe('Leerzeichen werden abgeschnitten', set.inhalt.vocabulary.sacheEinzahl === 'Maschine');
   pruefe('Vokabular ueberlebt den naechsten Abruf',
     (await ruf('GET', '/api/settings')).inhalt.vocabulary.zeitpunktEinzahl === 'Sitzung');
 
@@ -1979,9 +1979,9 @@ const freigabeHaupt = (purpose, target = null) =>
     ['sacheEinzahl', 'sacheMehrzahl', 'merkmalJa', 'merkmalNein',
      'zeitpunktEinzahl', 'zeitpunktMehrzahl', 'berichtEinzahl', 'berichtMehrzahl',
      'aufgabeEinzahl', 'aufgabeMehrzahl', 'aufgabeErledigt',
-     'potenzial', 'bewertungEinzahl', 'bewertungMehrzahl'].every(k => k in vorgabe.vocabulary) &&
-    Object.keys(vorgabe.vocabulary).length === 14,
-    JSON.stringify(Object.keys(vorgabe.vocabulary)));
+     'potenzial', 'bewertungEinzahl', 'bewertungMehrzahl'].every(k => k in fallback.vocabulary) &&
+    Object.keys(fallback.vocabulary).length === 14,
+    JSON.stringify(Object.keys(fallback.vocabulary)));
   /* UND DAS ZWOELFTE LAESST SICH SETZEN -- 0.21.0. Die Zeile darueber sagt
      nur, dass der Schluessel BEKANNT ist; ohne diese bliebe sie auch dann
      gruen, wenn PUT ihn wegwuerfe (Stolperstein 81). */
@@ -2008,13 +2008,13 @@ const freigabeHaupt = (purpose, target = null) =>
     bwZurueck.bewertungEinzahl === 'Bewertung' && bwZurueck.bewertungMehrzahl === 'Bewertungen',
     JSON.stringify([bwZurueck.bewertungEinzahl, bwZurueck.bewertungMehrzahl]));
   pruefe('Auch das Wort fuer erledigt liegt am Server',
-    vorgabe.vocabulary.aufgabeErledigt === 'Erledigt' &&
+    fallback.vocabulary.aufgabeErledigt === 'Erledigt' &&
     (await ruf('PUT', '/api/settings', { vocabulary: { aufgabeErledigt: ' Fertig ' } }))
       .inhalt.vocabulary.aufgabeErledigt === 'Fertig');
   pruefe('Die Aufgabe hat ihre Vorgabe',
-    vorgabe.vocabulary.aufgabeEinzahl === 'Aufgabe' &&
-    vorgabe.vocabulary.aufgabeMehrzahl === 'Aufgaben',
-    JSON.stringify([vorgabe.vocabulary.aufgabeEinzahl, vorgabe.vocabulary.aufgabeMehrzahl]));
+    fallback.vocabulary.aufgabeEinzahl === 'Aufgabe' &&
+    fallback.vocabulary.aufgabeMehrzahl === 'Aufgaben',
+    JSON.stringify([fallback.vocabulary.aufgabeEinzahl, fallback.vocabulary.aufgabeMehrzahl]));
   const aufV = await ruf('PUT', '/api/settings', {
     vocabulary: { aufgabeEinzahl: '  Todo  ', aufgabeMehrzahl: 'Todos' } });
   pruefe('Ein eigenes Wort fuer die Aufgabe wird gespeichert',
@@ -2272,7 +2272,7 @@ const freigabeHaupt = (purpose, target = null) =>
      UND DER HARTE VORBEHALT: Verfahrensnamen ja, PAKETVERSIONEN NEIN. Eine
      Bibliotheksversion sagt, welche Luecke passt. Die Pruefung darunter ist
      die einzige Stelle, an der das ueberhaupt auffallen kann. */
-  const statsVerf = (await ruf('GET', '/api/stats')).inhalt.verfahren;
+  const statsVerf = (await ruf('GET', '/api/stats')).inhalt.method;
   pruefe('Die Kennzahlen nennen die Verfahren', !!statsVerf && typeof statsVerf === 'object',
     JSON.stringify(statsVerf));
   pruefe('Und zwar genau vier Angaben und keine weitere',
@@ -2410,7 +2410,7 @@ const freigabeHaupt = (purpose, target = null) =>
   gruppe('Suchanbieter');
 
   const s0 = (await ruf('GET', '/api/settings')).inhalt;
-  const anb0 = s0.suchAnbieter || [];
+  const anb0 = s0.searchProviders || [];
   const schluessel = (liste) => (liste || []).map(a => a.schluessel);
   const imVorrat = (liste) => (liste || []).filter(a => a.aktiv).map(a => a.schluessel);
   const standardVon = (liste) => (liste || []).find(a => a.standard)?.schluessel;
@@ -2423,96 +2423,96 @@ const freigabeHaupt = (purpose, target = null) =>
     anb0.slice(0, 6).every(a => a.vorhanden && !a.eigen),
     JSON.stringify(schluessel(anb0)));
   pruefe('Die drei eigenen Plätze sind zunächst leer',
-    anb0.slice(6).every(a => a.eigen && !a.vorhanden && !a.name && !a.vorlage));
+    anb0.slice(6).every(a => a.eigen && !a.vorhanden && !a.name && !a.template));
   pruefe('Vorgabe ist Google, aktiv und Standard',
     standardVon(anb0) === 'google' && gleich(imVorrat(anb0), ['google']),
     JSON.stringify(imVorrat(anb0)));
-  pruefe('Die Vorlage des Standards trägt den Platzhalter', String(s0.suche).includes('%s'));
+  pruefe('Die Vorlage des Standards trägt den Platzhalter', String(s0.search).includes('%s'));
   pruefe('Vorgabe für die Zahl der Namen ist zwei', s0.searchNames === 2, `${s0.searchNames}`);
 
   // Vorrat: mehrere gleichzeitig, Standard zuerst.
   const sv1 = (await ruf('PUT', '/api/settings', { searchOn: ['ddg', 'bing'] })).inhalt;
   pruefe('Mehrere Anbieter lassen sich in den Vorrat nehmen',
-    gleich(imVorrat(sv1.suchAnbieter).sort(), ['bing', 'ddg']), JSON.stringify(imVorrat(sv1.suchAnbieter)));
-  pruefe('Der erste der Liste ist der Standard', standardVon(sv1.suchAnbieter) === 'ddg',
-    standardVon(sv1.suchAnbieter));
+    gleich(imVorrat(sv1.searchProviders).sort(), ['bing', 'ddg']), JSON.stringify(imVorrat(sv1.searchProviders)));
+  pruefe('Der erste der Liste ist der Standard', standardVon(sv1.searchProviders) === 'ddg',
+    standardVon(sv1.searchProviders));
   pruefe('Die Vorlage des Standards wird mitgeführt',
-    sv1.suche === 'https://duckduckgo.com/?q=%s', sv1.suche);
+    sv1.search === 'https://duckduckgo.com/?q=%s', sv1.search);
   // Wird der Standard aus dem Vorrat genommen, rueckt der erste aktive nach --
   // sonst liefe der Zeilenklick ins Leere.
   const sv2 = (await ruf('PUT', '/api/settings', { searchOn: ['bing'] })).inhalt;
   pruefe('Fällt der Standard weg, rückt der erste aktive nach',
-    standardVon(sv2.suchAnbieter) === 'bing' && gleich(imVorrat(sv2.suchAnbieter), ['bing']),
-    `${standardVon(sv2.suchAnbieter)} / ${JSON.stringify(imVorrat(sv2.suchAnbieter))}`);
+    standardVon(sv2.searchProviders) === 'bing' && gleich(imVorrat(sv2.searchProviders), ['bing']),
+    `${standardVon(sv2.searchProviders)} / ${JSON.stringify(imVorrat(sv2.searchProviders))}`);
   // Ein leerer Vorrat macht jede Suchzeile unbenutzbar. Abgesagt wird das
   // ausdruecklich -- ein stiller Wechsel auf den eingebauten ersten hiesse,
   // ab jetzt wortlos woanders zu suchen.
   const sv3 = await ruf('PUT', '/api/settings', { searchOn: [] });
   pruefe('Ein leerer Vorrat wird abgewiesen', sv3.status === 400, `${sv3.status}`);
   pruefe('Und der bisherige Vorrat steht danach unverändert',
-    gleich(imVorrat((await ruf('GET', '/api/settings')).inhalt.suchAnbieter), ['bing']));
+    gleich(imVorrat((await ruf('GET', '/api/settings')).inhalt.searchProviders), ['bing']));
   pruefe('Unbekannte Schlüssel fallen heraus',
-    !imVorrat((await ruf('PUT', '/api/settings', { searchOn: ['bing', 'gibtsnicht'] })).inhalt.suchAnbieter)
+    !imVorrat((await ruf('PUT', '/api/settings', { searchOn: ['bing', 'gibtsnicht'] })).inhalt.searchProviders)
       .includes('gibtsnicht'));
 
   // Eigene Anbieter: Name UND Vorlage, sonst gibt es den Platz nicht.
   const se1 = (await ruf('PUT', '/api/settings', { searchOwn: [
-    { name: 'Modellforum', vorlage: 'https://forum.beispiel.de/suche?q=%s' }] })).inhalt;
-  const eigen1 = (se1.suchAnbieter || []).find(a => a.schluessel === 'eigen1');
+    { name: 'Modellforum', template: 'https://forum.beispiel.de/suche?q=%s' }] })).inhalt;
+  const eigen1 = (se1.searchProviders || []).find(a => a.schluessel === 'eigen1');
   pruefe('Ein eigener Anbieter wird angelegt',
     eigen1?.vorhanden === true && eigen1?.name === 'Modellforum', JSON.stringify(eigen1));
   pruefe('Die beiden anderen Plätze bleiben leer',
-    (se1.suchAnbieter || []).filter(a => a.eigen && a.vorhanden).length === 1);
+    (se1.searchProviders || []).filter(a => a.eigen && a.vorhanden).length === 1);
   pruefe('Ein eigener Anbieter darf in den Vorrat',
-    imVorrat((await ruf('PUT', '/api/settings', { searchOn: ['bing', 'eigen1'] })).inhalt.suchAnbieter)
+    imVorrat((await ruf('PUT', '/api/settings', { searchOn: ['bing', 'eigen1'] })).inhalt.searchProviders)
       .includes('eigen1'));
   const se2 = (await ruf('PUT', '/api/settings', { searchOn: ['eigen1', 'bing'] })).inhalt;
   pruefe('Ein eigener Anbieter darf Standard sein',
-    standardVon(se2.suchAnbieter) === 'eigen1', standardVon(se2.suchAnbieter));
+    standardVon(se2.searchProviders) === 'eigen1', standardVon(se2.searchProviders));
   pruefe('Dann trägt auch die Antwort dessen Vorlage',
-    se2.suche === 'https://forum.beispiel.de/suche?q=%s', se2.suche);
+    se2.search === 'https://forum.beispiel.de/suche?q=%s', se2.search);
   // Vier Namen a 20 Zeichen sind auf dem Handy die Obergrenze.
   const seLang = (await ruf('PUT', '/api/settings', { searchOwn: [
-    { name: 'Ein sehr langer Anbietername', vorlage: 'https://forum.beispiel.de/suche?q=%s' }] })).inhalt;
+    { name: 'Ein sehr langer Anbietername', template: 'https://forum.beispiel.de/suche?q=%s' }] })).inhalt;
   pruefe('Der Name wird auf 20 Zeichen begrenzt',
-    (seLang.suchAnbieter || []).find(a => a.schluessel === 'eigen1')?.name === 'Ein sehr langer Anbi',
-    (seLang.suchAnbieter || []).find(a => a.schluessel === 'eigen1')?.name);
+    (seLang.searchProviders || []).find(a => a.schluessel === 'eigen1')?.name === 'Ein sehr langer Anbi',
+    (seLang.searchProviders || []).find(a => a.schluessel === 'eigen1')?.name);
   pruefe('Ein Platz ohne Namen wird abgewiesen',
-    (await ruf('PUT', '/api/settings', { searchOwn: [{ name: '', vorlage: 'https://a.de/?q=%s' }] }))
+    (await ruf('PUT', '/api/settings', { searchOwn: [{ name: '', template: 'https://a.de/?q=%s' }] }))
       .status === 400);
   pruefe('Ein Platz ohne Vorlage wird abgewiesen',
-    (await ruf('PUT', '/api/settings', { searchOwn: [{ name: 'Nur Name', vorlage: '' }] })).status === 400);
+    (await ruf('PUT', '/api/settings', { searchOwn: [{ name: 'Nur Name', template: '' }] })).status === 400);
 
   // Die Vorlage ist Eingabe und landet in einem window.open. Ohne diese
   // Schranke waere javascript: moeglich -- dieselbe Denkweise wie in 5a.
   const svBoese = await ruf('PUT', '/api/settings', {
-    searchOwn: [{ name: 'Böse', vorlage: 'javascript:alert(1)/*%s*/' }] });
+    searchOwn: [{ name: 'Böse', template: 'javascript:alert(1)/*%s*/' }] });
   pruefe('javascript: wird abgewiesen', svBoese.status === 400, JSON.stringify(svBoese.inhalt));
   pruefe('Die Begründung nennt beide Bedingungen',
     /https?:\/\//.test(svBoese.inhalt?.error || '') && (svBoese.inhalt?.error || '').includes('%s'),
     svBoese.inhalt?.error);
   pruefe('data: wird ebenfalls abgewiesen',
     (await ruf('PUT', '/api/settings', {
-      searchOwn: [{ name: 'Böse', vorlage: 'data:text/html,%s' }] })).status === 400);
+      searchOwn: [{ name: 'Böse', template: 'data:text/html,%s' }] })).status === 400);
   pruefe('Eine Vorlage ohne Platzhalter wird abgewiesen',
     (await ruf('PUT', '/api/settings', {
-      searchOwn: [{ name: 'Ohne', vorlage: 'https://beispiel.de/suche' }] })).status === 400);
+      searchOwn: [{ name: 'Ohne', template: 'https://beispiel.de/suche' }] })).status === 400);
   pruefe('Eine eigene Vorlage im Heimnetz darf http sein',
     (await ruf('PUT', '/api/settings', {
-      searchOwn: [{ name: 'Heimsuche', vorlage: 'http://192.168.1.9:8888/search?q=%s' }] }))
-      .inhalt.suchAnbieter.find(a => a.schluessel === 'eigen1')?.vorlage === 'http://192.168.1.9:8888/search?q=%s');
+      searchOwn: [{ name: 'Heimsuche', template: 'http://192.168.1.9:8888/search?q=%s' }] }))
+      .inhalt.searchProviders.find(a => a.schluessel === 'eigen1')?.template === 'http://192.168.1.9:8888/search?q=%s');
   pruefe('Nach den Fehlversuchen steht der zuletzt gültige Anbieter noch',
-    (await ruf('GET', '/api/settings')).inhalt.suchAnbieter
+    (await ruf('GET', '/api/settings')).inhalt.searchProviders
       .find(a => a.schluessel === 'eigen1')?.name === 'Heimsuche');
 
   // Ein geraeumter Platz verschwindet -- und nimmt den Standard mit, der dann
   // nachrueckt (dieselbe Regel wie beim Deaktivieren).
-  const seWeg = (await ruf('PUT', '/api/settings', { searchOwn: [{ name: '', vorlage: '' }] })).inhalt;
+  const seWeg = (await ruf('PUT', '/api/settings', { searchOwn: [{ name: '', template: '' }] })).inhalt;
   pruefe('Ein geräumter Platz gilt als nicht vorhanden',
-    seWeg.suchAnbieter.find(a => a.schluessel === 'eigen1')?.vorhanden === false);
+    seWeg.searchProviders.find(a => a.schluessel === 'eigen1')?.vorhanden === false);
   pruefe('War er Standard, rückt der erste aktive nach',
-    standardVon(seWeg.suchAnbieter) === 'bing' && seWeg.suche === 'https://www.bing.com/search?q=%s',
-    `${standardVon(seWeg.suchAnbieter)} / ${seWeg.suche}`);
+    standardVon(seWeg.searchProviders) === 'bing' && seWeg.search === 'https://www.bing.com/search?q=%s',
+    `${standardVon(seWeg.searchProviders)} / ${seWeg.search}`);
 
   // Zahl der Namen: vier feste Stufen, wie schrift und linkZeilen.
   pruefe('Die Zahl der Namen lässt sich setzen',
@@ -2545,10 +2545,10 @@ const freigabeHaupt = (purpose, target = null) =>
   }
 
   const wHalb = await instanzMitEinstellungen({
-    searchOwn: [{ name: 'Nur Name', vorlage: '' }, { name: '', vorlage: 'https://a.de/?q=%s' }, null],
+    searchOwn: [{ name: 'Nur Name', template: '' }, { name: '', template: 'https://a.de/?q=%s' }, null],
     searchOn: ['eigen1', 'eigen2', 'bing']
   }, 4400);
-  const wHalbA = (await wHalb.hole()).suchAnbieter || [];
+  const wHalbA = (await wHalb.hole()).searchProviders || [];
   pruefe('Ein Platz ohne Vorlage gilt auch aus der Datenbank nicht',
     wHalbA.find(a => a.schluessel === 'eigen1')?.vorhanden === false,
     JSON.stringify(wHalbA.find(a => a.schluessel === 'eigen1')));
@@ -2605,7 +2605,7 @@ const freigabeHaupt = (purpose, target = null) =>
       return { weiter, stand, benutzer: req.benutzer || null };
     }
     // Eine Sitzung, die niemandem gehoert: ueber die Anwendung nicht
-    // erreichbar, deshalb von Hand gesetzt.
+    // erreichbar, deshalb von Hand set.
     db.prepare("INSERT INTO sessions (token) VALUES ('herrenlos')").run();
     let ohneId = null;
     try { auth.createSession(null); } catch (e) { ohneId = e.message; }
@@ -3005,11 +3005,11 @@ const freigabeHaupt = (purpose, target = null) =>
      wortlos favorite: false und lauter Nullen bei den Sternen, statt
      aufzufallen. Ueber die Schnittstelle ist das nicht zu erwischen: man
      muesste eine Aufrufstelle vergessen, um es zu sehen. */
-  const quelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   /* Kommentare erst herausnehmen -- sie sprechen ueber detail() und wuerden
      sonst als Aufrufstellen gezaehlt. Der leere Fall detail() aus der
      Fehlermeldung faellt durch das + im Muster heraus. */
-  const ohneKommentar = quelle.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const ohneKommentar = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const rufe = [...ohneKommentar.matchAll(/detail\(([^)]+)\)/g)]
     .map(m => m[1]).filter(a => a !== 'id, userId');
   /* VIERUNDZWANZIG SEIT 0.21.0, vorher fuenfundzwanzig: DELETE
@@ -3022,7 +3022,7 @@ const freigabeHaupt = (purpose, target = null) =>
     `${rufe.length} Aufrufe, ohne Benutzer: ` +
     JSON.stringify(rufe.filter(a => !/,\s*req\.benutzer\.id\s*$/.test(a))));
   pruefe('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
-    /function detail\(id, userId\) \{\s*\n\s*if \(userId == null\) throw/.test(quelle),
+    /function detail\(id, userId\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
     'ohne die Klemme bindet better-sqlite3 das fehlende Argument als NULL');
 
   /* ---------------------------------------------------------------- */
@@ -3285,8 +3285,8 @@ const freigabeHaupt = (purpose, target = null) =>
      nachgesehen, sonst pruefte die Zeile darunter womoeglich einen zweiten
      Admin (Stolperstein 87). */
   pruefe('Der zweite Zugang traegt wirklich keine Adminrolle',
-    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin === false,
-    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin));
+    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.isAdmin === false,
+    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.isAdmin));
   /* GESETZT WIRD BEI BEIDEN ZUGAENGEN, damit die Zaehlung weiter unten den
      Bezugspunkt wirklich in der persoenlichen Tabelle findet. */
   await dRuf('cookie-d-eins', 'PUT', '/api/settings', { bellSeen: 1 });
@@ -3333,16 +3333,16 @@ const freigabeHaupt = (purpose, target = null) =>
   // eine zweite Ausfertigung daneben waere eine Doppelung, die sich nur
   // halb prueft.
   pruefe('Der Startanbieter bleibt global -- beide sehen denselben',
-    standardVon(dGlobEins.suchAnbieter) === 'ddg' && standardVon(dGlobZwei.suchAnbieter) === 'ddg',
-    `erster ${standardVon(dGlobEins.suchAnbieter)}, zweiter ${standardVon(dGlobZwei.suchAnbieter)}`);
+    standardVon(dGlobEins.searchProviders) === 'ddg' && standardVon(dGlobZwei.searchProviders) === 'ddg',
+    `erster ${standardVon(dGlobEins.searchProviders)}, zweiter ${standardVon(dGlobZwei.searchProviders)}`);
   // ACHTUNG, nicht ['ddg','bing']: imVorrat liest die Liste in KANONISCHER
   // Reihenfolge (google, bing, ddg, ...), nicht in Vorratsreihenfolge. Wer hier
   // Standard zuerst erwartet, prueft die falsche Zusicherung -- wer Standard
   // ist, sagt allein das Kennzeichen `standard` eine Zeile darueber.
   pruefe('Der Vorrat bleibt global',
-    gleich(imVorrat(dGlobEins.suchAnbieter), ['bing', 'ddg']) &&
-    gleich(imVorrat(dGlobZwei.suchAnbieter), ['bing', 'ddg']),
-    JSON.stringify([imVorrat(dGlobEins.suchAnbieter), imVorrat(dGlobZwei.suchAnbieter)]));
+    gleich(imVorrat(dGlobEins.searchProviders), ['bing', 'ddg']) &&
+    gleich(imVorrat(dGlobZwei.searchProviders), ['bing', 'ddg']),
+    JSON.stringify([imVorrat(dGlobEins.searchProviders), imVorrat(dGlobZwei.searchProviders)]));
   pruefe('Das Vokabular bleibt global -- es ist die Sprache, keine Ansichtssache',
     dGlobEins.vocabulary?.sacheEinzahl === 'Maschine' &&
     dGlobZwei.vocabulary?.sacheEinzahl === 'Maschine',
@@ -3598,11 +3598,11 @@ const freigabeHaupt = (purpose, target = null) =>
   const eStellE = (await eRuf('cookie-e-eins', 'GET', '/api/settings')).inhalt;
   const eStellZ = (await eRuf('cookie-e-zwei', 'GET', '/api/settings')).inhalt;
   pruefe('Die Einstellungen nennen die Zahl der Zugaenge',
-    eStellE?.benutzerZahl === 3 && eStellZ?.benutzerZahl === 3,
-    JSON.stringify([eStellE?.benutzerZahl, eStellZ?.benutzerZahl]));
+    eStellE?.userCount === 3 && eStellZ?.userCount === 3,
+    JSON.stringify([eStellE?.userCount, eStellZ?.userCount]));
   pruefe('Und sagen jedem, ob er Admin ist',
-    eStellE?.istAdmin === true && eStellZ?.istAdmin === false,
-    JSON.stringify([eStellE?.istAdmin, eStellZ?.istAdmin]));
+    eStellE?.isAdmin === true && eStellZ?.isAdmin === false,
+    JSON.stringify([eStellE?.isAdmin, eStellZ?.isAdmin]));
 
   /* --- Die Klemme an den Kriterien -----------------------------------------
      Vier Wege, vier eigene Verweigerungen. Eine Pruefung, die nur den
@@ -3888,8 +3888,8 @@ const freigabeHaupt = (purpose, target = null) =>
   /* UND DIE LAGE WIRD SELBST GEPRUEFT, nicht bloss angenommen: taugt sie
      nicht mehr, wird DIESE Zeile rot statt der Zusage darunter stumm. */
   pruefe('Die Prueflage taugt: der rohe Quotient hat mehr als zwei Stellen',
-    typeof rw?.roh === 'number' && Math.round(rw.roh * 100) / 100 !== rw.roh,
-    `${rw?.roh}`);
+    typeof rw?.raw === 'number' && Math.round(rw.raw * 100) / 100 !== rw.raw,
+    `${rw?.raw}`);
   /* NUR DIE BEWERTETEN KRITERIEN. "Service" hat keine Stimme und geht in die
      Rechnung gar nicht ein -- stuende es im Weg, waere die Aufstellung eine
      andere Rechnung als die Zahl darueber. */
@@ -3897,8 +3897,8 @@ const freigabeHaupt = (purpose, target = null) =>
     rw?.zeilen?.length === 3, JSON.stringify(rw?.zeilen?.map(z => z.criterionId)));
   pruefe('Jede Zeile traegt Schnitt, Gewicht und Produkt',
     (rw?.zeilen || []).every(z =>
-      typeof z.schnitt === 'number' && typeof z.weight === 'number' &&
-      Math.abs(z.produkt - z.schnitt * z.weight) < 1e-9),
+      typeof z.average === 'number' && typeof z.weight === 'number' &&
+      Math.abs(z.produkt - z.average * z.weight) < 1e-9),
     JSON.stringify(rw?.zeilen));
   /* SUMME UND TEILER SIND DIE DER ZEILEN -- nachgerechnet HIER, aus der
      Antwort. Eine fest hingeschriebene Zahl belegte nur, dass sie einmal
@@ -3906,19 +3906,19 @@ const freigabeHaupt = (purpose, target = null) =>
   const rwSumme = (rw?.zeilen || []).reduce((n, z) => n + z.produkt, 0);
   const rwTeiler = (rw?.zeilen || []).reduce((n, z) => n + z.weight, 0);
   pruefe('Summe und Teiler sind die der Zeilen',
-    Math.abs(rw?.summe - rwSumme) < 1e-9 && Math.abs(rw?.teiler - rwTeiler) < 1e-9,
-    `${rw?.summe}/${rw?.teiler} gegen ${rwSumme}/${rwTeiler}`);
+    Math.abs(rw?.sum - rwSumme) < 1e-9 && Math.abs(rw?.divisor - rwTeiler) < 1e-9,
+    `${rw?.sum}/${rw?.divisor} gegen ${rwSumme}/${rwTeiler}`);
   /* DAS ERGEBNIS IST DIE ZAHL DARUEBER, und zwar bitgleich. Zwei Wege zu
      derselben Zahl waeren zwei Wahrheiten -- der Kasten am Bildschirm zeigt
      diese hier und rechnet nicht nach. */
   pruefe('Das Ergebnis ist genau avgRating',
-    rw?.ergebnis === rwSicht?.avgRating, `${rw?.ergebnis} gegen ${rwSicht?.avgRating}`);
+    rw?.result === rwSicht?.avgRating, `${rw?.result} gegen ${rwSicht?.avgRating}`);
   /* UND DER ROHE QUOTIENT IST UNGERUNDET. Ohne ihn koennte der Kasten „gerundet
      wird genau einmal" nicht zeigen, sondern nur behaupten. */
   pruefe('Der rohe Quotient steht ungerundet daneben',
-    Math.abs(rw?.roh - rw?.summe / rw?.teiler) < 1e-12 &&
-    Math.round(rw?.roh * 10) / 10 === rw?.ergebnis,
-    `${rw?.roh} -> ${rw?.ergebnis}`);
+    Math.abs(rw?.raw - rw?.sum / rw?.divisor) < 1e-12 &&
+    Math.round(rw?.raw * 10) / 10 === rw?.result,
+    `${rw?.raw} -> ${rw?.result}`);
   /* ---- DIE VERGLEICHSZAHL OHNE GEWICHTE — 0.17.0 ----
      WAS KAEME HERAUS, WENN ALLE KRITERIEN GLEICH ZAEHLTEN? Sie entsteht in
      DERSELBEN Schleife und aus DERSELBEN Menge wie die Zahl darueber -- eine
@@ -3928,30 +3928,30 @@ const freigabeHaupt = (purpose, target = null) =>
      Zahlen gleich, belegte die Gruppe nichts ueber den Unterschied -- dann
      wird DIESE Zeile rot und keine Zusage darunter stumm. */
   pruefe('Der Rechenweg traegt die Zahl ohne Gewichte',
-    typeof rw?.gleichErgebnis === 'number' && typeof rw?.gleichRoh === 'number',
-    JSON.stringify([rw?.gleichErgebnis, rw?.gleichRoh]));
+    typeof rw?.equalResult === 'number' && typeof rw?.equalRaw === 'number',
+    JSON.stringify([rw?.equalResult, rw?.equalRaw]));
   pruefe('Die Prueflage taugt: gewichtet und ungewichtet ergeben Verschiedenes',
-    rw?.gleichErgebnis !== rw?.ergebnis,
-    `${rw?.ergebnis} gegen ${rw?.gleichErgebnis}`);
+    rw?.equalResult !== rw?.result,
+    `${rw?.result} gegen ${rw?.equalResult}`);
   /* IHR TEILER IST DIE ZAHL DER BEWERTETEN KRITERIEN und nicht die aller:
      sonst verglichen sich zwei Rechnungen ueber verschiedene Mengen, und der
      Unterschied saehe nach Gewichtung aus, wo er keiner ist. */
   pruefe('Ihr Teiler ist die Zahl der bewerteten Kriterien',
-    rw?.gleichTeiler === (rw?.zeilen || []).length,
-    `${rw?.gleichTeiler} gegen ${(rw?.zeilen || []).length}`);
-  const rwGleichSumme = (rw?.zeilen || []).reduce((n, z) => n + z.schnitt, 0);
+    rw?.equalDivisor === (rw?.zeilen || []).length,
+    `${rw?.equalDivisor} gegen ${(rw?.zeilen || []).length}`);
+  const rwGleichSumme = (rw?.zeilen || []).reduce((n, z) => n + z.average, 0);
   pruefe('Ihre Summe ist die der Kriterienschnitte, ohne jedes Gewicht',
-    Math.abs(rw?.gleichSumme - rwGleichSumme) < 1e-9,
-    `${rw?.gleichSumme} gegen ${rwGleichSumme}`);
+    Math.abs(rw?.equalSum - rwGleichSumme) < 1e-9,
+    `${rw?.equalSum} gegen ${rwGleichSumme}`);
   /* UND SIE GEHT NICHT UEBER DIE GEWICHTE. Ohne diese Zeile bliebe die
      Gruppe auch dann gruen, wenn jemand die Gewichte doch wieder einrechnete
      und der „Vergleich" dieselbe Rechnung ein zweites Mal waere. */
   pruefe('Und sie rechnet wirklich ohne Gewichte',
-    Math.abs(rw?.gleichRoh - rwGleichSumme / (rw?.zeilen || []).length) < 1e-12,
-    `${rw?.gleichRoh}`);
+    Math.abs(rw?.equalRaw - rwGleichSumme / (rw?.zeilen || []).length) < 1e-12,
+    `${rw?.equalRaw}`);
   pruefe('Gerundet wird auch bei ihr genau einmal',
-    Math.round(rw?.gleichRoh * 10) / 10 === rw?.gleichErgebnis,
-    `${rw?.gleichRoh} -> ${rw?.gleichErgebnis}`);
+    Math.round(rw?.equalRaw * 10) / 10 === rw?.equalResult,
+    `${rw?.equalRaw} -> ${rw?.equalResult}`);
   /* IN DER UEBERSICHT STEHT ER AUSDRUECKLICH NICHT. Tausend Eintraege
      traegen tausend Aufstellungen fuer eine Zahl, die niemand aufklappt. */
   const rwListe = (await eRuf('cookie-e-eins', 'GET', '/api/items')).inhalt;
@@ -4040,7 +4040,7 @@ const freigabeHaupt = (purpose, target = null) =>
     (await glListe('cookie-e-eins')).every(i =>
       !('neuKommentare' in i) && !('neuBewertungen' in i) && !('neuVon' in i)),
     JSON.stringify((await glListe('cookie-e-eins'))
-      .map(i => [i.neuKommentare, i.neuBewertungen, i.neuVon])));
+      .map(i => [i.newComments, i.newRatings, i.newFrom])));
   /* UND DAS ALTE FELD GIBT ES NICHT MEHR. Ohne diese Zeile bliebe offen, ob
      die Summe daneben weiterlebt -- und dann stuenden Teile und Summe
      nebeneinander (Stolperstein 47). */
@@ -4082,40 +4082,40 @@ const freigabeHaupt = (purpose, target = null) =>
 
   pruefe('Mit Bezugspunkt stehen beide Zahlen an jedem Eintrag',
     (await glListe('cookie-e-eins')).every(i =>
-      typeof i.neuKommentare === 'number' && typeof i.neuBewertungen === 'number' &&
-      Array.isArray(i.neuVon)),
+      typeof i.newComments === 'number' && typeof i.newRatings === 'number' &&
+      Array.isArray(i.newFrom)),
     JSON.stringify((await glListe('cookie-e-eins'))
-      .map(i => [i.neuKommentare, i.neuBewertungen, i.neuVon])));
+      .map(i => [i.newComments, i.newRatings, i.newFrom])));
   pruefe('Und sie sind zunaechst ueberall null',
     (await glListe('cookie-e-eins')).every(i =>
-      i.neuKommentare === 0 && i.neuBewertungen === 0 &&
-      Array.isArray(i.neuVon) && i.neuVon.length === 0),
+      i.newComments === 0 && i.newRatings === 0 &&
+      Array.isArray(i.newFrom) && i.newFrom.length === 0),
     JSON.stringify((await glListe('cookie-e-eins'))
-      .map(i => [i.neuKommentare, i.neuBewertungen])));
+      .map(i => [i.newComments, i.newRatings])));
   /* DIE ALTEN BEWERTUNGEN OHNE ZEITPUNKT ZAEHLEN NICHT MIT -- sonst laeutete
      die Glocke beim ersten Start fuer den ganzen Bestand. */
   pruefe('Bewertungen ohne Zeitpunkt bleiben ihr unsichtbar',
-    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
+    (await glEintrag('cookie-e-eins', 1))?.newRatings === 0,
     JSON.stringify(await glEintrag('cookie-e-eins', 1)));
 
   // Ein FREMDER Kommentar -- der Fall, um den es geht.
   await new Promise(r => setTimeout(r, 1100));
   await eRuf('cookie-e-zwei', 'POST', '/api/items/1/comments', { text: 'Von zwei' });
   pruefe('Ein fremder Kommentar zaehlt',
-    (await glEintrag('cookie-e-eins', 1))?.neuKommentare === 1,
-    JSON.stringify((await glListe('cookie-e-eins')).map(i => `${i.id}:${i.neuKommentare}`)));
+    (await glEintrag('cookie-e-eins', 1))?.newComments === 1,
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => `${i.id}:${i.newComments}`)));
   /* UND ER STEHT ALS BEWERTUNG AUSDRUECKLICH NICHT DA. Ohne diese Zeile bliebe
      offen, ob die beiden Zahlen ueberhaupt auseinandergehalten werden -- genau
      das war der Befund: „7 neue Beitraege" sagte nicht, WAS neu ist. */
   pruefe('Und zwar als Kommentar und nicht als Bewertung',
-    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
+    (await glEintrag('cookie-e-eins', 1))?.newRatings === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.newRatings));
   /* WER ES WAR, STEHT DANEBEN -- als Verfasserobjekt wie ueberall sonst und
      nicht als nackte Zugangsnummer. */
   pruefe('Und wer es war, steht daneben',
-    (await glEintrag('cookie-e-eins', 1))?.neuVon?.length === 1 &&
-    (await glEintrag('cookie-e-eins', 1))?.neuVon?.[0]?.name === 'zwei',
-    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuVon));
+    (await glEintrag('cookie-e-eins', 1))?.newFrom?.length === 1 &&
+    (await glEintrag('cookie-e-eins', 1))?.newFrom?.[0]?.name === 'zwei',
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.newFrom));
   /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT (Stolperstein 201). Bis 0.16.0 hiess
      die Zeile „Der eigene zaehlt ausdruecklich nicht", 0.17.0 machte daraus
      „Der eigene zaehlt mit" -- mit der Begruendung, einer Betreiberin, die
@@ -4128,11 +4128,11 @@ const freigabeHaupt = (purpose, target = null) =>
      NICHT bewegen. */
   await eRuf('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Von eins selbst' });
   pruefe('Der eigene zaehlt seit 0.17.2 wieder nicht mit',
-    (await glEintrag('cookie-e-eins', 1))?.neuKommentare === 1,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuKommentare));
+    (await glEintrag('cookie-e-eins', 1))?.newComments === 1,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.newComments));
   pruefe('Und der eigene Name steht nicht bei den Verfassern',
-    ((await glEintrag('cookie-e-eins', 1))?.neuVon || []).map(v => v?.name).sort().join(',') === 'zwei',
-    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuVon));
+    ((await glEintrag('cookie-e-eins', 1))?.newFrom || []).map(v => v?.name).sort().join(',') === 'zwei',
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.newFrom));
   /* DIE ZAHL WIRD JE ZUGANG GERECHNET UND NICHT GLOBAL. Der zweite Zugang
      setzt seinen Strich spaeter und sieht deshalb weniger. Wieder eine Sekunde
      Abstand vor dem Strich, aus demselben Grund wie oben. */
@@ -4144,21 +4144,21 @@ const freigabeHaupt = (purpose, target = null) =>
      (fremd) und fuer „eins" nicht (eigen). Das ist die schaerfste Lage der
      Gruppe -- sie zeigt beides an EINEM Beitrag. */
   pruefe('Jeder Zugang zaehlt hinter seinem eigenen Strich und ohne die eigene Hand',
-    (await glEintrag('cookie-e-zwei', 1))?.neuKommentare === 1 &&
-    (await glEintrag('cookie-e-eins', 1))?.neuKommentare === 1,
-    `zwei: ${(await glEintrag('cookie-e-zwei', 1))?.neuKommentare}, ` +
-    `eins: ${(await glEintrag('cookie-e-eins', 1))?.neuKommentare}`);
+    (await glEintrag('cookie-e-zwei', 1))?.newComments === 1 &&
+    (await glEintrag('cookie-e-eins', 1))?.newComments === 1,
+    `zwei: ${(await glEintrag('cookie-e-zwei', 1))?.newComments}, ` +
+    `eins: ${(await glEintrag('cookie-e-eins', 1))?.newComments}`);
 
   // Eine fremde BEWERTUNG zaehlt ebenso -- dafuer gibt es set_at.
   await eRuf('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 5 });
   pruefe('Eine fremde Bewertung zaehlt ebenfalls',
-    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 1,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
+    (await glEintrag('cookie-e-eins', 1))?.newRatings === 1,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.newRatings));
   /* UND SIE VERMEHRT DIE KOMMENTARE NICHT. Zwei Zahlen, die sich gegenseitig
      hochzaehlen, waeren dieselbe Auskunft zweimal. */
   pruefe('Und sie steht in der anderen Zahl, nicht bei den Kommentaren',
-    (await glEintrag('cookie-e-eins', 1))?.neuKommentare === 1,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuKommentare));
+    (await glEintrag('cookie-e-eins', 1))?.newComments === 1,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.newComments));
   /* UND DER BEWERTER STEHT AUSDRUECKLICH NICHT BEI DEN VERFASSERN. Wer welche
      Bewertung abgegeben hat, ist eine Angabe ueber einzelne Personen und geht
      aus keiner Antwort hinaus, die jeder bekommt -- die Liste „Wer hat
@@ -4169,9 +4169,9 @@ const freigabeHaupt = (purpose, target = null) =>
      Eintrag nur eine neue Bewertung und ein Name daneben, weiss jeder, wer
      bewertet hat. Genau deshalb steht diese Zeile hier. */
   pruefe('Der Bewerter steht ausdruecklich nicht bei den Verfassern',
-    ((await glEintrag('cookie-e-eins', 1))?.neuVon || []).map(v => v?.name).sort().join(',') ===
+    ((await glEintrag('cookie-e-eins', 1))?.newFrom || []).map(v => v?.name).sort().join(',') ===
       'zwei',
-    JSON.stringify(((await glEintrag('cookie-e-eins', 1))?.neuVon || []).map(v => v?.name)));
+    JSON.stringify(((await glEintrag('cookie-e-eins', 1))?.newFrom || []).map(v => v?.name)));
   /* DIE SCHAERFERE LAGE: ein Eintrag, an dem AUSSCHLIESSLICH eine fremde
      Bewertung neu ist. Dort gibt es keinen Kommentar, hinter dem ein Name
      harmlos waere -- die Antwort muss die Liste leer lassen. Ohne diese Zeile
@@ -4179,18 +4179,18 @@ const freigabeHaupt = (purpose, target = null) =>
      schon dastuende. */
   await eRuf('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpKrit, value: 4 });
   pruefe('Die Prueflage taugt: am zweiten Eintrag ist nur eine Bewertung neu',
-    (await glEintrag('cookie-e-eins', 2))?.neuBewertungen === 1 &&
-    (await glEintrag('cookie-e-eins', 2))?.neuKommentare === 0,
-    JSON.stringify([(await glEintrag('cookie-e-eins', 2))?.neuKommentare,
-                    (await glEintrag('cookie-e-eins', 2))?.neuBewertungen]));
+    (await glEintrag('cookie-e-eins', 2))?.newRatings === 1 &&
+    (await glEintrag('cookie-e-eins', 2))?.newComments === 0,
+    JSON.stringify([(await glEintrag('cookie-e-eins', 2))?.newComments,
+                    (await glEintrag('cookie-e-eins', 2))?.newRatings]));
   pruefe('Und dort steht kein einziger Name',
-    (await glEintrag('cookie-e-eins', 2))?.neuVon?.length === 0,
-    JSON.stringify((await glEintrag('cookie-e-eins', 2))?.neuVon));
+    (await glEintrag('cookie-e-eins', 2))?.newFrom?.length === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 2))?.newFrom));
   // Eine zurueckgesetzte Bewertung ist keine Stimme und meldet nichts.
   await eRuf('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 0 });
   pruefe('Eine zurueckgesetzte Bewertung meldet nichts',
-    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
+    (await glEintrag('cookie-e-eins', 1))?.newRatings === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.newRatings));
   /* UND DIE EIGENE BEWERTUNG ZAEHLT SO WENIG WIE DER EIGENE KOMMENTAR -- seit
      0.17.2. DIESE ZEILE HAT GEFEHLT, und die Gegenprobe hat es gezeigt: der
      Rueckbau, der die Ausnahme aus der BEWERTUNGSABFRAGE nimmt, blieb STUMM.
@@ -4202,14 +4202,14 @@ const freigabeHaupt = (purpose, target = null) =>
      bewegen. */
   await eRuf('cookie-e-eins', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 5 });
   pruefe('Und die eigene Bewertung zaehlt ebenso wenig mit',
-    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
+    (await glEintrag('cookie-e-eins', 1))?.newRatings === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.newRatings));
   /* DIE GEGENLAGE AM ZWEITEN ZUGANG: fuer IHN ist dieselbe Bewertung fremd und
      zaehlt sehr wohl. Ohne sie belegte die Zeile darueber nur, dass die
      Bewertung ueberhaupt nicht ankommt. */
   pruefe('Fuer einen anderen Zugang zaehlt genau dieselbe Bewertung sehr wohl',
-    ((await glEintrag('cookie-e-zwei', 1))?.neuBewertungen || 0) > 0,
-    JSON.stringify((await glEintrag('cookie-e-zwei', 1))?.neuBewertungen));
+    ((await glEintrag('cookie-e-zwei', 1))?.newRatings || 0) > 0,
+    JSON.stringify((await glEintrag('cookie-e-zwei', 1))?.newRatings));
 
   /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
      schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
@@ -4218,10 +4218,10 @@ const freigabeHaupt = (purpose, target = null) =>
   await eRuf('cookie-e-eins', 'PUT', '/api/settings', { bellSeen: 1 });
   pruefe('Ein neuer Bezugspunkt setzt alles auf gesehen',
     (await glListe('cookie-e-eins')).every(i =>
-      i.neuKommentare === 0 && i.neuBewertungen === 0 &&
-      Array.isArray(i.neuVon) && i.neuVon.length === 0),
+      i.newComments === 0 && i.newRatings === 0 &&
+      Array.isArray(i.newFrom) && i.newFrom.length === 0),
     JSON.stringify((await glListe('cookie-e-eins'))
-      .map(i => [i.neuKommentare, i.neuBewertungen])));
+      .map(i => [i.newComments, i.newRatings])));
 
   /* ---- UND DIE ZAHL DER OFFENEN AUFGABEN ----
      SIE KOMMT AUS DERSELBEN BEDINGUNG WIE /api/open (kind = 'task'). Zwei
@@ -4230,17 +4230,17 @@ const freigabeHaupt = (purpose, target = null) =>
   const glKomm = (await eRuf('cookie-e-eins', 'GET', '/api/items/1')).inhalt.comments;
   await eRuf('cookie-e-eins', 'PUT', `/api/comments/${glKomm[0].id}`, { kind: 'task' });
   pruefe('Die Zahl der offenen Aufgaben steht an jedem Eintrag',
-    (await glListe('cookie-e-eins')).every(i => typeof i.offeneAufgaben === 'number'),
-    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.offeneAufgaben)));
+    (await glListe('cookie-e-eins')).every(i => typeof i.openTasks === 'number'),
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.openTasks)));
   const glOffen = (await eRuf('cookie-e-eins', 'GET', '/api/open')).inhalt;
   pruefe('Und sie stimmt mit der Ansicht „Offene Aufgaben" ueberein',
-    (await glListe('cookie-e-eins')).reduce((n, i) => n + i.offeneAufgaben, 0) === glOffen.length,
-    `${(await glListe('cookie-e-eins')).reduce((n, i) => n + i.offeneAufgaben, 0)} gegen ${glOffen.length}`);
+    (await glListe('cookie-e-eins')).reduce((n, i) => n + i.openTasks, 0) === glOffen.length,
+    `${(await glListe('cookie-e-eins')).reduce((n, i) => n + i.openTasks, 0)} gegen ${glOffen.length}`);
   /* DIE GEGENPROBE: eine erledigte Aufgabe faellt aus beiden Zahlen. Ohne sie
      bliebe die Zeile darueber auch dann gruen, wenn beide dasselbe Falsche
      zaehlten (Stolperstein 81). */
   await eRuf('cookie-e-eins', 'PUT', `/api/comments/${glKomm[0].id}`, { kind: 'done' });
-  const glNachher = (await glListe('cookie-e-eins')).reduce((n, i) => n + i.offeneAufgaben, 0);
+  const glNachher = (await glListe('cookie-e-eins')).reduce((n, i) => n + i.openTasks, 0);
   pruefe('Eine erledigte Aufgabe faellt aus beiden Zahlen',
     glNachher === (await eRuf('cookie-e-eins', 'GET', '/api/open')).inhalt.length &&
     glNachher < glOffen.length, `${glNachher} gegen ${glOffen.length}`);
@@ -4338,13 +4338,13 @@ const freigabeHaupt = (purpose, target = null) =>
     // Die Freigabe zuerst -- genau wie die Oberflaeche es tut. Sie steht VOR
     // der Handlung, weil multer sonst die ganze Datei einlaese, bevor die
     // Frage ueberhaupt gestellt waere.
-    await e2Ruf(cookieWert, 'POST', '/api/confirm', { passwort: e2Wort, purpose: 'import', target: null });
+    await e2Ruf(cookieWert, 'POST', '/api/confirm', { password: e2Wort, purpose: 'import', target: null });
     const grenze = '----pruefunge2' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, wert, dateiname) =>
+    const part = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
       (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${wert}\r\n`;
-    const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+    const koerper = part('mode', modus) + part('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
     const a = await fetch(SE2.basis + '/api/import', {
       method: 'POST',
       headers: { cookie: `kriterion_session=${cookieWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
@@ -4456,7 +4456,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const e2Rund = await e2Import('cookie-e2-anna', e2Aus, 'replace');
   pruefe('Der ersetzende Rundlauf gelingt', e2Rund.status === 200, JSON.stringify(e2Rund.inhalt));
   pruefe('Und meldet keinen unbekannten Verfasser',
-    gleich(e2Rund.inhalt?.verfasserUnbekannt, []), JSON.stringify(e2Rund.inhalt?.verfasserUnbekannt));
+    gleich(e2Rund.inhalt?.authorUnknown, []), JSON.stringify(e2Rund.inhalt?.authorUnknown));
 
   const e2NachRund = e2Namen(`SELECT i.title, u.username FROM items i
                               LEFT JOIN users u ON u.id = i.user_id ORDER BY i.title`);
@@ -4585,15 +4585,15 @@ const freigabeHaupt = (purpose, target = null) =>
   // Die laute Haelfte: ohne sie zoege beim Einspielen einer fremden Sicherung
   // der gesamte Bestand wortlos um.
   pruefe('Die Antwort nennt die unbekannten Namen',
-    gleich(e2Fremd.inhalt?.verfasserUnbekannt, ['dora']),
-    JSON.stringify(e2Fremd.inhalt?.verfasserUnbekannt));
+    gleich(e2Fremd.inhalt?.authorUnknown, ['dora']),
+    JSON.stringify(e2Fremd.inhalt?.authorUnknown));
   // Gezaehlt werden nur FREMDE Zuordnungen: 'BERT' am Eintrag, 'bert ' am
   // Kommentar, 'carla' am Kommentar, 'Bert' an der Bewertung -- vier. 'ohne
   // Angabe' nennt niemanden, 'dora' gibt es nicht, und anna ist der
   // Einspielende selbst.
   pruefe('Und zaehlt nur die wirklich fremden Zuordnungen',
-    e2Fremd.inhalt?.verfasserZugeordnet === 4,
-    JSON.stringify(e2Fremd.inhalt?.verfasserZugeordnet));
+    e2Fremd.inhalt?.authorAssigned === 4,
+    JSON.stringify(e2Fremd.inhalt?.authorAssigned));
   /* Ein unbekannter Name darf keinen Zugang anlegen -- sonst waere eine
      Exportdatei ein Weg an der Verwaltung und am Passwort vorbei. */
   const e2NachFremd = e2Namen('SELECT username FROM users ORDER BY id');
@@ -4618,8 +4618,8 @@ const freigabeHaupt = (purpose, target = null) =>
     e2AltZeilen.length === 4 && e2AltZeilen.every(z => z.username === 'anna'),
     JSON.stringify(e2AltZeilen));
   pruefe('Eine alte Datei meldet keinen unbekannten Verfasser',
-    gleich(e2Alt.inhalt?.verfasserUnbekannt, []) && e2Alt.inhalt?.verfasserZugeordnet === 0,
-    JSON.stringify([e2Alt.inhalt?.verfasserUnbekannt, e2Alt.inhalt?.verfasserZugeordnet]));
+    gleich(e2Alt.inhalt?.authorUnknown, []) && e2Alt.inhalt?.authorAssigned === 0,
+    JSON.stringify([e2Alt.inhalt?.authorUnknown, e2Alt.inhalt?.authorAssigned]));
 
   /* --- Beide Linkformen in einer Datei ------------------------------------
      Bis Formatnummer 6 war ein Link eine nackte String, ab 7 ein Objekt
@@ -4678,14 +4678,14 @@ const freigabeHaupt = (purpose, target = null) =>
     JSON.stringify(e2LinkNeuZeilen));
   // Die laute Haelfte, auch hier: der unbekannte Name steht im Protokoll.
   pruefe('Die Antwort nennt den unbekannten Namen der Linkzeile',
-    gleich(e2LinkNeu.inhalt?.verfasserUnbekannt, ['dora']),
-    JSON.stringify(e2LinkNeu.inhalt?.verfasserUnbekannt));
+    gleich(e2LinkNeu.inhalt?.authorUnknown, ['dora']),
+    JSON.stringify(e2LinkNeu.inhalt?.authorUnknown));
   // Gezaehlt wird eine einzige fremde Zuordnung: bert am Eintrag. carla an der
   // Linkzeile ist die zweite. dora gibt es nicht, null nennt niemanden, und
   // anna ist der Einspielende selbst.
   pruefe('Und zaehlt die fremde Zuordnung der Linkzeile mit',
-    e2LinkNeu.inhalt?.verfasserZugeordnet === 2,
-    JSON.stringify(e2LinkNeu.inhalt?.verfasserZugeordnet));
+    e2LinkNeu.inhalt?.authorAssigned === 2,
+    JSON.stringify(e2LinkNeu.inhalt?.authorAssigned));
 
   /* --- Beide Dateiformen ---------------------------------------------------
      Bis Formatnummer 7 trug ein Anhang kein Feld `author`, ab 8 trägt er eins.
@@ -4733,8 +4733,8 @@ const freigabeHaupt = (purpose, target = null) =>
     e2DateiNeuZeilen.find(z => z.filename === 'ohne.txt')?.username === 'anna',
     JSON.stringify(e2DateiNeuZeilen));
   pruefe('Die Antwort nennt den unbekannten Namen der Datei',
-    gleich(e2DateiNeu.inhalt?.verfasserUnbekannt, ['dora']),
-    JSON.stringify(e2DateiNeu.inhalt?.verfasserUnbekannt));
+    gleich(e2DateiNeu.inhalt?.authorUnknown, ['dora']),
+    JSON.stringify(e2DateiNeu.inhalt?.authorUnknown));
   pruefe('Und keine dieser Dateien bleibt herrenlos',
     e2Namen('SELECT COUNT(*) n FROM attachments WHERE user_id IS NULL')[0].n === 0,
     JSON.stringify(e2Namen('SELECT id, filename, user_id FROM attachments WHERE user_id IS NULL')));
@@ -4758,13 +4758,13 @@ const freigabeHaupt = (purpose, target = null) =>
     JSON.stringify(e2Namen('SELECT id, title FROM items')));
   const e2VidHoch = await (async () => {
     const grenze = '----pruefunge2v' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, dateiname, typ, inhalt) => [
+    const part = (name, dateiname, typ, inhalt) => [
       Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="${name}"; ` +
                   `filename="${dateiname}"\r\nContent-Type: ${typ}\r\n\r\n`, 'utf8'),
       inhalt, Buffer.from('\r\n', 'utf8')];
-    const teile = [
-      ...teil('video', 'clip.mp4', 'video/mp4', MP4()),
-      ...teil('standbild', 'standbild.png', 'image/png', Buffer.from(PNG_BASE64, 'base64')),
+    const parts = [
+      ...part('video', 'clip.mp4', 'video/mp4', MP4()),
+      ...part('standbild', 'standbild.png', 'image/png', Buffer.from(PNG_BASE64, 'base64')),
       Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="duration"\r\n\r\n17\r\n`, 'utf8'),
       Buffer.from(`--${grenze}--\r\n`, 'utf8')
     ];
@@ -4772,7 +4772,7 @@ const freigabeHaupt = (purpose, target = null) =>
       method: 'POST',
       headers: { cookie: 'kriterion_session=cookie-e2-anna',
                  'content-type': `multipart/form-data; boundary=${grenze}` },
-      body: Buffer.concat(teile)
+      body: Buffer.concat(parts)
     });
     return { status: a.status, inhalt: await a.json().catch(() => null) };
   })();
@@ -4781,7 +4781,7 @@ const freigabeHaupt = (purpose, target = null) =>
 
   const e2OhneVid = (await e2AnnaF('GET', '/api/export?photos=1')).inhalt;
   const e2MitVid = (await e2AnnaF('GET', '/api/export?photos=1&videos=1')).inhalt;
-  const vidZeile = (datei) => (datei?.items?.find(i => i.title === e2VidItem?.title)?.photos || [])
+  const vidZeile = (file) => (file?.items?.find(i => i.title === e2VidItem?.title)?.photos || [])
     .find(p2 => p2.kind === 'video');
   pruefe('Ohne den Schalter steht die Videozeile als Marke in der Datei',
     !!vidZeile(e2OhneVid) && vidZeile(e2OhneVid).duration === 17 &&
@@ -5035,7 +5035,7 @@ const freigabeHaupt = (purpose, target = null) =>
     d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                VALUES (?, 'zettel.txt', 'text/plain', 5, ?, 0, 3)`).run(itId, Buffer.from('hallo'));
     d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
-               VALUES (?, 'berts-datei.txt', 'text/plain', 4, ?, 1, 2)`).run(itId, Buffer.from('bert'));
+               VALUES (?, 'berts-file.txt', 'text/plain', 4, ?, 1, 2)`).run(itId, Buffer.from('bert'));
     // Zwei Links, verschiedene Eintrager.
     d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, 'https://eins.test', 0, 3)").run(itId);
     d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, 'https://zwei.test', 1, 2)").run(itId);
@@ -5090,13 +5090,13 @@ const freigabeHaupt = (purpose, target = null) =>
     return { status: a.status, inhalt };
   };
   const pkImport = async (cookieWert, objekt, modus) => {
-    await pkRuf(cookieWert, 'POST', '/api/confirm', { passwort: pkWort, purpose: 'import', target: null });
+    await pkRuf(cookieWert, 'POST', '/api/confirm', { password: pkWort, purpose: 'import', target: null });
     const grenze = '----pruefungpk' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, wert, dateiname) =>
+    const part = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
       (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${wert}\r\n`;
-    const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+    const koerper = part('mode', modus) + part('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
     const a = await fetch(PK.basis + '/api/import', {
       method: 'POST',
       headers: { cookie: `kriterion_session=${cookieWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
@@ -5134,14 +5134,14 @@ const freigabeHaupt = (purpose, target = null) =>
   const pkItemId = pkEine("SELECT id FROM items WHERE title = 'Vollständig'").id;
   const pkRollen = await pkRuf('cookie-pk-bert', 'GET', '/api/settings');
   pruefe('bert ist Admin, aber nicht Eigentuemer',
-    pkRollen.inhalt?.istAdmin === true && pkRollen.inhalt?.istEigentuemer === false,
-    JSON.stringify([pkRollen.inhalt?.istAdmin, pkRollen.inhalt?.istEigentuemer]));
+    pkRollen.inhalt?.isAdmin === true && pkRollen.inhalt?.isOwner === false,
+    JSON.stringify([pkRollen.inhalt?.isAdmin, pkRollen.inhalt?.isOwner]));
   pruefe('anna ist beides',
-    (await pkRuf('cookie-pk-anna', 'GET', '/api/settings')).inhalt?.istEigentuemer === true);
+    (await pkRuf('cookie-pk-anna', 'GET', '/api/settings')).inhalt?.isOwner === true);
   pruefe('carla ist keines von beiden',
-    (await pkRuf('cookie-pk-carla', 'GET', '/api/settings')).inhalt?.istAdmin === false);
+    (await pkRuf('cookie-pk-carla', 'GET', '/api/settings')).inhalt?.isAdmin === false);
   pruefe('Die Frist steht in den Einstellungen und nicht nur in der Karte',
-    pkRollen.inhalt?.papierkorbTage === 30, JSON.stringify(pkRollen.inhalt?.papierkorbTage));
+    pkRollen.inhalt?.trashDays === 30, JSON.stringify(pkRollen.inhalt?.trashDays));
 
   /* Der Ausgangsstand, an dem hinterher Feld fuer Feld gemessen wird. Gelesen
      wird die ECHTE Antwort des Servers -- eine selbst zusammengestellte
@@ -5224,9 +5224,9 @@ const freigabeHaupt = (purpose, target = null) =>
      eine Datenbank, die nach dem Aufraeumen groesser ist als vorher. */
   const pkStats = (await pkRuf('cookie-pk-anna', 'GET', '/api/stats')).inhalt;
   pruefe('Die Kennzahlen nennen den Papierkorb',
-    pkStats?.papierkorbCount === 1, JSON.stringify(pkStats?.papierkorbCount));
+    pkStats?.trashCount === 1, JSON.stringify(pkStats?.trashCount));
   pruefe('Mit seiner Groesse',
-    pkStats?.papierkorbBytes > pkBytesSumme, JSON.stringify(pkStats?.papierkorbBytes));
+    pkStats?.trashBytes > pkBytesSumme, JSON.stringify(pkStats?.trashBytes));
   pruefe('Und die alten Zahlen bedeuten unveraendert dasselbe',
     pkStats?.itemCount === 1 && pkStats?.photoCount === 0 && pkStats?.videoCount === 0 &&
     pkStats?.commentCount === 0 && pkStats?.linkCount === 0 && pkStats?.attachmentCount === 0,
@@ -5238,14 +5238,14 @@ const freigabeHaupt = (purpose, target = null) =>
   // Erst das Vorhandensein, dann jede Aussage darueber -- und jede Lesestelle
   // abgefangen (Stolpersteine 81 und 103).
   const pkErste = (pkListe.zeilen || [])[0] || {};
-  pruefe('Die Liste nennt die Frist', pkListe.tage === 30, JSON.stringify(pkListe.tage));
+  pruefe('Die Liste nennt die Frist', pkListe.days === 30, JSON.stringify(pkListe.days));
   pruefe('Und eine Zeile mit Titel, Datum und Loeschendem',
     pkListe.zeilen?.length === 1 && pkErste.title === 'Vollständig' &&
     /^\d{4}-\d{2}-\d{2} /.test(pkErste.deleted_at || '') &&
     pkErste.loeschender?.name === 'carla',
     JSON.stringify(pkErste));
   pruefe('Sie nennt die verbleibenden Tage',
-    pkErste.tageOffen === 30, JSON.stringify(pkErste.tageOffen));
+    pkErste.daysOpen === 30, JSON.stringify(pkErste.daysOpen));
   pruefe('Und Zahl und Groesse der Bytes daneben',
     pkErste.dateien === 6 && pkErste.bytes > pkBytesSumme,
     JSON.stringify({ dateien: pkErste.dateien, bytes: pkErste.bytes }));
@@ -5271,9 +5271,9 @@ const freigabeHaupt = (purpose, target = null) =>
      Ablehnung mit Angaben, verglichen die drei Zeilen darunter null mit null. */
   pruefe('Der Ausgangsstand trug wirklich eine begruendete Ablehnung',
     pkVorher.rejected === true && !!pkVorher.rejected_at && !!pkVorher.rejected_reason &&
-    pkVorher.rejectedVerfasser?.name === 'bert',
-    JSON.stringify({ at: pkVorher.rejected_at, grund: pkVorher.rejected_reason,
-                     actor: pkVorher.rejectedVerfasser }));
+    pkVorher.rejectedAuthor?.name === 'bert',
+    JSON.stringify({ at: pkVorher.rejected_at, reason: pkVorher.rejected_reason,
+                     actor: pkVorher.rejectedAuthor }));
   pruefe('Datum und Grund der Ablehnung ebenso',
     pkNachher?.rejected_at === pkVorher.rejected_at &&
     pkNachher?.rejected_reason === pkVorher.rejected_reason,
@@ -5282,8 +5282,8 @@ const freigabeHaupt = (purpose, target = null) =>
      wiederhergestellt. Faellt der Name auf die Einspielende zurueck, steht
      hier anna. */
   pruefe('Und der Ablehnende ist wieder bert und nicht die Einspielende',
-    pkNachher?.rejectedVerfasser?.name === 'bert',
-    JSON.stringify(pkNachher?.rejectedVerfasser));
+    pkNachher?.rejectedAuthor?.name === 'bert',
+    JSON.stringify(pkNachher?.rejectedAuthor));
   pruefe('Die Zeitstempel ebenso',
     pkNachher?.created_at === pkVorher.created_at && pkNachher?.updated_at === pkVorher.updated_at,
     JSON.stringify([pkNachher?.created_at, pkNachher?.updated_at]));
@@ -5316,23 +5316,23 @@ const freigabeHaupt = (purpose, target = null) =>
     JSON.stringify({ nachher: (pkNachher?.comments || []).map(c => c.verfasser),
                      vorher: (pkVorher.comments || []).map(c => c.verfasser) }));
   pruefe('Der Beitrag des Grabsteins landet WIEDER am Grabstein',
-    (pkNachher?.comments || []).some(c => c.text === 'Doras Aufgabe' && c.verfasser?.geloescht === true &&
+    (pkNachher?.comments || []).some(c => c.text === 'Doras Aufgabe' && c.verfasser?.deleted === true &&
       c.verfasser?.id === 4),
     JSON.stringify((pkNachher?.comments || []).find(c => c.text === 'Doras Aufgabe')?.verfasser));
   pruefe('Die herrenlose Zeile faellt an die Wiederherstellende',
     (pkNachher?.comments || []).find(c => c.text === 'Erledigt und herrenlos')?.verfasser?.name === 'anna',
     JSON.stringify((pkNachher?.comments || []).find(c => c.text === 'Erledigt und herrenlos')?.verfasser));
   pruefe('Kein Name blieb unbekannt',
-    gleich(pkZurueck.inhalt?.verfasserUnbekannt, []),
-    JSON.stringify(pkZurueck.inhalt?.verfasserUnbekannt));
+    gleich(pkZurueck.inhalt?.authorUnknown, []),
+    JSON.stringify(pkZurueck.inhalt?.authorUnknown));
   pruefe('Das Bild am Kommentar kommt mit',
     ((pkNachher?.comments || []).find(c => c.text === 'Eine Notiz')?.images || []).length === 1,
     JSON.stringify((pkNachher?.comments || []).find(c => c.text === 'Eine Notiz')?.images));
   pruefe('Die Bewertungen samt Werten',
-    gleich((pkNachher?.ratings || []).map(r => [r.name, r.wert, r.schnitt, r.anzahl]),
-           (pkVorher.ratings || []).map(r => [r.name, r.wert, r.schnitt, r.anzahl])),
-    JSON.stringify({ nachher: (pkNachher?.ratings || []).map(r => [r.name, r.schnitt, r.anzahl]),
-                     vorher: (pkVorher.ratings || []).map(r => [r.name, r.schnitt, r.anzahl]) }));
+    gleich((pkNachher?.ratings || []).map(r => [r.name, r.wert, r.average, r.anzahl]),
+           (pkVorher.ratings || []).map(r => [r.name, r.wert, r.average, r.anzahl])),
+    JSON.stringify({ nachher: (pkNachher?.ratings || []).map(r => [r.name, r.average, r.anzahl]),
+                     vorher: (pkVorher.ratings || []).map(r => [r.name, r.average, r.anzahl]) }));
   pruefe('Das Gewicht des Kriteriums ist unveraendert',
     pkEine("SELECT weight FROM rating_criteria WHERE name = 'Optik'")?.weight === 1.5,
     JSON.stringify(pkEine("SELECT weight FROM rating_criteria WHERE name = 'Optik'")));
@@ -5468,10 +5468,10 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Die Bytes der herausgefallenen Zeile fallen mit',
       pkZeilen('SELECT id FROM trash_bytes WHERE trash_id = ?', idAlt).length === 0);
     pruefe('Die verbleibenden Tage stehen an jeder Zeile',
-      (nachKarte.zeilen || []).every(z => Number.isInteger(z.tageOffen) && z.tageOffen >= 0),
-      JSON.stringify((nachKarte.zeilen || []).map(z => [z.title, z.tageOffen])));
+      (nachKarte.zeilen || []).every(z => Number.isInteger(z.daysOpen) && z.daysOpen >= 0),
+      JSON.stringify((nachKarte.zeilen || []).map(z => [z.title, z.daysOpen])));
     pruefe('Und die Zeile von gestern hat noch 29',
-      (nachKarte.zeilen || []).find(z => z.title === 'von gestern')?.tageOffen === 29,
+      (nachKarte.zeilen || []).find(z => z.title === 'von gestern')?.daysOpen === 29,
       JSON.stringify((nachKarte.zeilen || []).find(z => z.title === 'von gestern')));
 
     // ERSTE AUFRUFSTELLE: der Start. Eigens belegt, sonst bliebe offen, ob
@@ -5506,8 +5506,8 @@ const freigabeHaupt = (purpose, target = null) =>
     const opferId = (await pkRuf('cookie-pk-carla', 'POST', '/api/items',
       { title: 'Zum Wegwerfen' })).inhalt?.id;
     await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${opferId}`);
-    const zeile = pkEine('SELECT id FROM trash') || {};
-    pruefe('Eine Zeile liegt bereit', Number.isInteger(zeile.id), JSON.stringify(zeile));
+    const row = pkEine('SELECT id FROM trash') || {};
+    pruefe('Eine Zeile liegt bereit', Number.isInteger(row.id), JSON.stringify(row));
 
     // --- Sehen ---
     const sehenCarla = await pkRuf('cookie-pk-carla', 'GET', '/api/trash');
@@ -5523,14 +5523,14 @@ const freigabeHaupt = (purpose, target = null) =>
       (await pkRuf('cookie-pk-anna', 'GET', '/api/trash')).status === 200);
 
     // --- Wiederherstellen ---
-    const zurueckCarla = await pkRuf('cookie-pk-carla', 'POST', `/api/trash/${zeile.id ?? -1}/restore`);
+    const zurueckCarla = await pkRuf('cookie-pk-carla', 'POST', `/api/trash/${row.id ?? -1}/restore`);
     pruefe('Ein gewoehnlicher Benutzer stellt nichts wieder her',
       zurueckCarla.status === 403, `Status ${zurueckCarla.status}`);
     pruefe('Und danach steht die Zeile unveraendert im Papierkorb',
-      pkZeilen('SELECT id FROM trash WHERE id = ?', zeile.id ?? -1).length === 1);
+      pkZeilen('SELECT id FROM trash WHERE id = ?', row.id ?? -1).length === 1);
     pruefe('Und es ist KEIN Eintrag entstanden',
       pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 0);
-    const zurueckBert = await pkRuf('cookie-pk-bert', 'POST', `/api/trash/${zeile.id ?? -1}/restore`);
+    const zurueckBert = await pkRuf('cookie-pk-bert', 'POST', `/api/trash/${row.id ?? -1}/restore`);
     pruefe('Auch der Admin ohne Eigentuemerrolle nicht',
       zurueckBert.status === 403, `Status ${zurueckBert.status}`);
     pruefe('Die Absage nennt den Eigentuemer',
@@ -5539,16 +5539,16 @@ const freigabeHaupt = (purpose, target = null) =>
       pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 0);
 
     // --- Endgueltig entfernen ---
-    const wegCarla = await pkRuf('cookie-pk-carla', 'DELETE', `/api/trash/${zeile.id ?? -1}`);
+    const wegCarla = await pkRuf('cookie-pk-carla', 'DELETE', `/api/trash/${row.id ?? -1}`);
     pruefe('Ein gewoehnlicher Benutzer entfernt nichts endgueltig',
       wegCarla.status === 403, `Status ${wegCarla.status}`);
-    const wegBert = await pkRuf('cookie-pk-bert', 'DELETE', `/api/trash/${zeile.id ?? -1}`);
+    const wegBert = await pkRuf('cookie-pk-bert', 'DELETE', `/api/trash/${row.id ?? -1}`);
     pruefe('Der Admin ohne Eigentuemerrolle auch nicht', wegBert.status === 403, `Status ${wegBert.status}`);
     pruefe('Und die Zeile liegt nach beiden Absagen noch da',
-      pkZeilen('SELECT id FROM trash WHERE id = ?', zeile.id ?? -1).length === 1);
+      pkZeilen('SELECT id FROM trash WHERE id = ?', row.id ?? -1).length === 1);
 
     // Der Erfolgsfall, beide Wege.
-    const zurueckAnna = await pkRuf('cookie-pk-anna', 'POST', `/api/trash/${zeile.id ?? -1}/restore`);
+    const zurueckAnna = await pkRuf('cookie-pk-anna', 'POST', `/api/trash/${row.id ?? -1}/restore`);
     pruefe('Die Eigentuemerin kommt durch', zurueckAnna.status === 200, JSON.stringify(zurueckAnna.inhalt));
     pruefe('Und der Eintrag ist da',
       pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 1);
@@ -5627,7 +5627,7 @@ const freigabeHaupt = (purpose, target = null) =>
        Bestaetigung vergisst. */
     const knopfAnnaOhne = await pkRuf('cookie-pk-anna', 'POST', '/api/images/convert', {});
     pruefe('Und die Eigentuemerin braucht zusaetzlich ihr Passwort',
-      knopfAnnaOhne.status === 403 && knopfAnnaOhne.inhalt?.bestaetigung === 'images',
+      knopfAnnaOhne.status === 403 && knopfAnnaOhne.inhalt?.confirm === 'images',
       JSON.stringify(knopfAnnaOhne.inhalt));
   }
 
@@ -5754,11 +5754,11 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Sie nennt die eingerichtete Wurzel',
     siStand.inhalt?.wurzel === fs.realpathSync(siWurzel), JSON.stringify(siStand.inhalt?.wurzel));
   pruefe('Und die erwartete Dauer aus der Groesse der Datenbank',
-    Number.isInteger(siStand.inhalt?.dauerSekunden) && siStand.inhalt.dauerSekunden >= 1,
-    JSON.stringify([siStand.inhalt?.dbBytes, siStand.inhalt?.dauerSekunden]));
+    Number.isInteger(siStand.inhalt?.durationSeconds) && siStand.inhalt.durationSeconds >= 1,
+    JSON.stringify([siStand.inhalt?.dbBytes, siStand.inhalt?.durationSeconds]));
   pruefe('Noch liegt dort keine Sicherung',
-    siStand.inhalt?.erreichbar === true && siStand.inhalt?.letzte === null,
-    JSON.stringify(siStand.inhalt?.letzte));
+    siStand.inhalt?.erreichbar === true && siStand.inhalt?.last === null,
+    JSON.stringify(siStand.inhalt?.last));
 
   /* --- LIEGT DER SICHERUNGSORT IM ARBEITSVERZEICHNIS? ---
      Eine Sicherung neben der Anwendung ist die bequeme, nicht die sichere
@@ -5794,10 +5794,10 @@ const freigabeHaupt = (purpose, target = null) =>
         innen?.imArbeitsverzeichnis === true, JSON.stringify(innen?.imArbeitsverzeichnis));
       pruefe('Und er ist trotzdem eingerichtet -- benannt, nicht abgewiesen',
         innen?.eingerichtet === true && !innen?.fehler,
-        JSON.stringify([innen?.eingerichtet, innen?.grund, innen?.fehler]));
+        JSON.stringify([innen?.eingerichtet, innen?.reason, innen?.fehler]));
       pruefe('Und es laesst sich dort wirklich sichern',
         (await (await fetch(SI2.basis + '/api/backup',
-          { method: 'POST', headers: { cookie: 'kriterion_session=cookie-si-innen' } })).json())?.datei
+          { method: 'POST', headers: { cookie: 'kriterion_session=cookie-si-innen' } })).json())?.file
           !== undefined);
       pruefe('Die Datei liegt danach im Arbeitsverzeichnis',
         fs.readdirSync(siInnen).some(n => /^kriterion-.*\.sqlite$/.test(n)),
@@ -5855,10 +5855,10 @@ const freigabeHaupt = (purpose, target = null) =>
   const siLos = await siRuf('cookie-si-anna', 'POST', '/api/backup');
   pruefe('Die Sicherung geht durch', siLos.status === 200, JSON.stringify(siLos.inhalt));
   pruefe('Der Name traegt Datum und Uhrzeit',
-    /^kriterion-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.sqlite$/.test(siLos.inhalt?.datei || ''),
-    siLos.inhalt?.datei);
+    /^kriterion-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.sqlite$/.test(siLos.inhalt?.file || ''),
+    siLos.inhalt?.file);
   pruefe('Die Datei liegt am eingestellten Ort',
-    siDateien('taeglich').includes(siLos.inhalt?.datei), siDateien('taeglich').join(' · '));
+    siDateien('taeglich').includes(siLos.inhalt?.file), siDateien('taeglich').join(' · '));
   pruefe('Und nirgendwo sonst',
     siDateien('').length === 0 && siDateien('leer').length === 0,
     siAlleDateien().join(' · '));
@@ -5867,7 +5867,7 @@ const freigabeHaupt = (purpose, target = null) =>
      abreissen. Beim Bau hat genau das drei Gegenproben um ihre Auskunft
      gebracht. */
   const siKopie = path.join(siWurzel, 'taeglich',
-    siLos.inhalt?.datei || '(keine-datei-in-der-antwort)');
+    siLos.inhalt?.file || '(keine-datei-in-der-antwort)');
   /* OHNE SCHLUESSEL IST SIE NICHT LESBAR -- das ist die Zusicherung, um
      derentwillen VACUUM INTO gewaehlt wurde, und sie steht nicht nur im
      Projektstand. */
@@ -5885,18 +5885,18 @@ const freigabeHaupt = (purpose, target = null) =>
     try {
       if (!fs.existsSync(siKopie)) return { fehler: '(die Kopie gibt es nicht)' };
       const k = oeffne(siKopie);
-      const zahl = k.prepare('SELECT COUNT(*) n FROM items').get().n;
+      const number = k.prepare('SELECT COUNT(*) n FROM items').get().n;
       const tabellen = k.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(z => z.name);
-      const zugaenge = k.prepare('SELECT COUNT(*) n FROM users').get().n;
-      const sitzungen = k.prepare('SELECT COUNT(*) n FROM sessions').get().n;
+      const users = k.prepare('SELECT COUNT(*) n FROM users').get().n;
+      const sessions = k.prepare('SELECT COUNT(*) n FROM sessions').get().n;
       k.close();
-      return { zahl, tabellen, zugaenge, sitzungen };
+      return { number, tabellen, users, sessions };
     } catch (e) { return { fehler: e.message }; }
   })();
   pruefe('Mit Schluessel laesst sie sich oeffnen', !siMit.fehler, siMit.fehler);
   pruefe('Und sie ist vollstaendig -- Bestand, Zugaenge UND Sitzungen',
-    siMit.zahl === siVorherEintraege && siMit.zugaenge === 3 && siMit.sitzungen === 3,
-    JSON.stringify([siMit.zahl, siMit.zugaenge, siMit.sitzungen]));
+    siMit.number === siVorherEintraege && siMit.users === 3 && siMit.sessions === 3,
+    JSON.stringify([siMit.number, siMit.users, siMit.sessions]));
   pruefe('Auch die Tabellen des Papierkorbs stehen darin',
     (siMit.tabellen || []).includes('trash') && (siMit.tabellen || []).includes('trash_bytes'),
     JSON.stringify(siMit.tabellen));
@@ -5922,8 +5922,8 @@ const freigabeHaupt = (purpose, target = null) =>
     fs.writeFileSync(liegengeblieben, 'halbe Kopie');
     const vorher = await siRuf('cookie-si-anna', 'GET', '/api/backup');
     pruefe('Eine liegengebliebene Arbeitsdatei zaehlt nicht als Sicherung',
-      vorher.inhalt?.zahl === 1 && vorher.inhalt?.letzte?.datei === siLos.inhalt?.datei,
-      JSON.stringify({ zahl: vorher.inhalt?.zahl, letzte: vorher.inhalt?.letzte?.datei }));
+      vorher.inhalt?.number === 1 && vorher.inhalt?.last?.file === siLos.inhalt?.file,
+      JSON.stringify({ number: vorher.inhalt?.number, last: vorher.inhalt?.last?.file }));
     pruefe('Und sie liegt trotzdem noch da -- angefasst wird sie nicht',
       fs.existsSync(liegengeblieben), 'die fremde Datei wurde entfernt');
     fs.unlinkSync(liegengeblieben);
@@ -5966,8 +5966,8 @@ const freigabeHaupt = (purpose, target = null) =>
   await new Promise(r => setTimeout(r, 1100));
   const siZweite = await siRuf('cookie-si-anna', 'POST', '/api/backup');
   pruefe('Ein zweiter Griff legt eine zweite Datei an',
-    siZweite.status === 200 && siZweite.inhalt?.datei !== siLos.inhalt?.datei,
-    JSON.stringify([siLos.inhalt?.datei, siZweite.inhalt?.datei]));
+    siZweite.status === 200 && siZweite.inhalt?.file !== siLos.inhalt?.file,
+    JSON.stringify([siLos.inhalt?.file, siZweite.inhalt?.file]));
   pruefe('Und die erste liegt unveraendert daneben',
     siDateien('taeglich').length === 2 && fs.existsSync(siKopie),
     siDateien('taeglich').join(' · '));
@@ -5987,11 +5987,11 @@ const freigabeHaupt = (purpose, target = null) =>
     if (fs.existsSync(siKopie)) fs.utimesSync(siKopie, vorTagen(4), vorTagen(4));
     const r = await siRuf('cookie-si-anna', 'GET', '/api/backup');
     pruefe('Die Zahl folgt dem Datum der Datei',
-      r.inhalt?.letzte?.tageHer === 4 && !!siLos.inhalt?.datei &&
-      r.inhalt?.letzte?.datei === siLos.inhalt.datei,
-      JSON.stringify(r.inhalt?.letzte));
+      r.inhalt?.last?.daysAgo === 4 && !!siLos.inhalt?.file &&
+      r.inhalt?.last?.file === siLos.inhalt.file,
+      JSON.stringify(r.inhalt?.last));
     pruefe('Und die juengste Datei ist die genannte',
-      r.inhalt?.zahl === 2, JSON.stringify(r.inhalt?.zahl));
+      r.inhalt?.number === 2, JSON.stringify(r.inhalt?.number));
     // Ein Schluessel in settings darf nichts bewirken -- es gibt ihn nicht,
     // und wer ihn einfuehrt, faellt hier auf.
     const d = oeffne(path.join(siDir, 'katalog.sqlite'));
@@ -6001,7 +6001,7 @@ const freigabeHaupt = (purpose, target = null) =>
     d.close();
     const r2 = await siRuf('cookie-si-anna', 'GET', '/api/backup');
     pruefe('Ein Schluessel in settings bewegt die Zahl NICHT',
-      r2.inhalt?.letzte?.tageHer === 4, JSON.stringify(r2.inhalt?.letzte));
+      r2.inhalt?.last?.daysAgo === 4, JSON.stringify(r2.inhalt?.last));
     const d2 = oeffne(path.join(siDir, 'katalog.sqlite'));
     d2.pragma('busy_timeout = 4000');
     d2.prepare("DELETE FROM settings WHERE key = 'lastBackup'").run();
@@ -6038,8 +6038,8 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Ohne Wechsel steht keine Marke in der Antwort',
       ohne.inhalt?.gewechseltAm === null, JSON.stringify(ohne.inhalt?.gewechseltAm));
     pruefe('Und dann ist KEINE Kopie veraltet -- nicht etwa jede',
-      ohne.inhalt?.veraltet === 0 && ohne.inhalt?.letzte?.veraltet === false,
-      JSON.stringify([ohne.inhalt?.veraltet, ohne.inhalt?.letzte?.veraltet]));
+      ohne.inhalt?.veraltet === 0 && ohne.inhalt?.last?.veraltet === false,
+      JSON.stringify([ohne.inhalt?.veraltet, ohne.inhalt?.last?.veraltet]));
 
     // Zwischen die beiden gelegt: die von vor 9 Tagen ist veraltet, die von
     // vor 4 Tagen nicht.
@@ -6049,10 +6049,10 @@ const freigabeHaupt = (purpose, target = null) =>
       /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(halb.inhalt?.gewechseltAm)),
       JSON.stringify(halb.inhalt?.gewechseltAm));
     pruefe('Von zwei Kopien ist genau die aeltere veraltet',
-      halb.inhalt?.veraltet === 1 && halb.inhalt?.zahl === 2,
-      JSON.stringify([halb.inhalt?.veraltet, halb.inhalt?.zahl]));
+      halb.inhalt?.veraltet === 1 && halb.inhalt?.number === 2,
+      JSON.stringify([halb.inhalt?.veraltet, halb.inhalt?.number]));
     pruefe('Und die juengste ist es NICHT -- sie passt zum heutigen Schluessel',
-      halb.inhalt?.letzte?.veraltet === false, JSON.stringify(halb.inhalt?.letzte));
+      halb.inhalt?.last?.veraltet === false, JSON.stringify(halb.inhalt?.last));
 
     // Hinter beide gelegt: dann passt keine einzige mehr, und das ist die
     // schaerfste Lage -- es gibt ueberhaupt keine brauchbare Kopie.
@@ -6061,7 +6061,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Liegt der Wechsel hinter allen, sind alle veraltet',
       ganz.inhalt?.veraltet === 2, JSON.stringify(ganz.inhalt?.veraltet));
     pruefe('Und auch die juengste ist dann veraltet',
-      ganz.inhalt?.letzte?.veraltet === true, JSON.stringify(ganz.inhalt?.letzte));
+      ganz.inhalt?.last?.veraltet === true, JSON.stringify(ganz.inhalt?.last));
 
     /* DIE MARKE WIRD IN UTC GELESEN. Ohne das Z am Ende lese der Rechner die
        Schreibweise der Instanz als ORTSZEIT, und die Grenze verschoebe sich um
@@ -6098,7 +6098,7 @@ const freigabeHaupt = (purpose, target = null) =>
     fs.rmdirSync(path.join(siWurzel, 'verschwindet'));
     const r = await siRuf('cookie-si-anna', 'GET', '/api/backup');
     pruefe('Ein verschwundener Zielort ergibt keine Zahl, sondern eine Ansage',
-      r.inhalt?.letzte === null && !!r.inhalt?.fehler, JSON.stringify(r.inhalt));
+      r.inhalt?.last === null && !!r.inhalt?.fehler, JSON.stringify(r.inhalt));
     pruefe('Und die Ansage spricht',
       /gibt es im Sicherungsordner nicht/.test(r.inhalt?.fehler || ''), r.inhalt?.fehler);
     const los = await siRuf('cookie-si-anna', 'POST', '/api/backup');
@@ -6165,7 +6165,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Ein Sicherungsort IM Datenverzeichnis bleibt aus',
       inhalt?.eingerichtet === false, JSON.stringify(inhalt));
     pruefe('Und sagt, warum',
-      /nicht im Datenverzeichnis/.test(inhalt?.grund || ''), inhalt?.grund);
+      /nicht im Datenverzeichnis/.test(inhalt?.reason || ''), inhalt?.reason);
     pruefe('Der Knopf sagt dort ebenfalls ab',
       (await (await fetch(SD.basis + '/api/backup', { method: 'POST',
         headers: { cookie: 'kriterion_session=cookie-sd-anna' } })).json()
@@ -6192,7 +6192,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Ohne eingerichteten Ort bleibt die Karte aus',
       inhalt?.eingerichtet === false, JSON.stringify(inhalt));
     pruefe('Und nennt den Weg dorthin',
-      /docker-compose\.yml/.test(inhalt?.grund || ''), inhalt?.grund);
+      /docker-compose\.yml/.test(inhalt?.reason || ''), inhalt?.reason);
     await SO.stopp();
     fs.rmSync(oDir, { recursive: true, force: true });
   }
@@ -6264,14 +6264,14 @@ const freigabeHaupt = (purpose, target = null) =>
      der er faehrt. */
   const auJetzt = Date.parse('2026-09-03T12:00:00Z');
   const auTag = 86400000;
-  const auVor = (tage) => auJetzt - tage * auTag;
+  const auVor = (days) => auJetzt - days * auTag;
   /* DIE NAMEN SIND ABSICHTLICH IRREFUEHREND, und zwar in BEIDE Richtungen: eine
      Datei mit dem Namen von heute und dem Alter von 400 Tagen, und eine mit
      dem Namen von 2020 und dem Alter von null Tagen. DAS ALTER KOMMT AUS
      `mtimeMs` UND NICHT AUS DEM DATEINAMEN -- der Name traegt zwar eine
      Zeitmarke, aber er ist von aussen gestaltbar; die Angabe des Dateisystems
      ist es nicht. Ohne diese beiden Zeilen belegte die Tafel darueber nichts. */
-  const auK = (name, tage) => ({ name, zeit: auVor(tage), bytes: 1000 + tage });
+  const auK = (name, days) => ({ name, time: auVor(days), bytes: 1000 + days });
   const auNamen = (liste) => liste.map(d => d.name).sort();
   /* SIEBEN LAGEN, und keine ist entbehrlich: jede einzelne Bedingung der Regel
      ist ausgerechnet in einer davon falsch. */
@@ -6333,12 +6333,12 @@ const freigabeHaupt = (purpose, target = null) =>
      Ein Vergleich mit <= stuende hier rot. */
   {
     const grenz = [auK('a.sqlite', 0), auK('b.sqlite', 1), auK('c.sqlite', 2),
-                   { name: 'genau.sqlite', zeit: auVor(30), bytes: 1 }];
+                   { name: 'genau.sqlite', time: auVor(30), bytes: 1 }];
     pruefe('Genau X Tage alt faellt nicht',
       gleich(auNamen(regelTreffer(grenz, 3, 30, auJetzt, null)), []),
       auNamen(regelTreffer(grenz, 3, 30, auJetzt, null)).join(' ') || '—');
     const drueber = grenz.map(d => d.name === 'genau.sqlite'
-      ? { ...d, zeit: d.zeit - 1000 } : d);
+      ? { ...d, time: d.time - 1000 } : d);
     pruefe('Eine Sekunde aelter faellt sie',
       gleich(auNamen(regelTreffer(drueber, 3, 30, auJetzt, null)), ['genau.sqlite']),
       auNamen(regelTreffer(drueber, 3, 30, auJetzt, null)).join(' ') || '—');
@@ -6431,13 +6431,13 @@ const freigabeHaupt = (purpose, target = null) =>
   // Eine Freigabe holen. Sie wird VERBRAUCHT -- vor jedem Aufruf eine neue.
   const auFrei = (cookieWert = 'cookie-au-anna') =>
     auRuf(cookieWert, 'POST', '/api/confirm',
-          { passwort: AU_WORT, purpose: 'backup', target: null });
+          { password: AU_WORT, purpose: 'backup', target: null });
 
   const AU_TAG = 86400000;
-  const auLege = (name, tage) => {
+  const auLege = (name, days) => {
     const p = path.join(auOrdner, name);
     fs.writeFileSync(p, `Kopie ${name}`);
-    const s = (Date.now() - tage * AU_TAG) / 1000;
+    const s = (Date.now() - days * AU_TAG) / 1000;
     fs.utimesSync(p, s, s);
     return name;
   };
@@ -6500,21 +6500,21 @@ const freigabeHaupt = (purpose, target = null) =>
      sie ist die Auskunft darueber, was die Regel bei diesen Werten bedeutet. */
   {
     const r = await auRuf('cookie-au-anna', 'GET', '/api/backup');
-    const a = r.inhalt?.aufraeumen || {};
+    const a = r.inhalt?.cleanup || {};
     pruefe('Der Schalter steht bei einer frischen Installation auf AUS',
       a.an === false, JSON.stringify(a.an));
     pruefe('Und die beiden Werte tragen die Vorgaben 3 und 30',
-      a.behalten === 3 && a.tage === 30, JSON.stringify([a.behalten, a.tage]));
+      a.keep === 3 && a.days === 30, JSON.stringify([a.keep, a.days]));
     pruefe('Die Grenzen kommen vom Server: 1 bis 20 und 7 bis 365',
-      a.grenzen?.behalten?.min === 1 && a.grenzen?.behalten?.max === 20 &&
-      a.grenzen?.tage?.min === 7 && a.grenzen?.tage?.max === 365,
+      a.grenzen?.keep?.min === 1 && a.grenzen?.keep?.max === 20 &&
+      a.grenzen?.days?.min === 7 && a.grenzen?.days?.max === 365,
       JSON.stringify(a.grenzen));
     pruefe('Die Vorschau nennt genau die drei Kopien, die die Regel trifft',
-      gleich((a.treffer || []).map(t => t.datei).sort(), AU_FALLEN),
-      (a.treffer || []).map(t => t.datei).join(' · '));
+      gleich((a.treffer || []).map(t => t.file).sort(), AU_FALLEN),
+      (a.treffer || []).map(t => t.file).join(' · '));
     pruefe('Und sie nennt zu jeder Datum, Alter und Groesse',
       (a.treffer || []).every(t => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(t.at) &&
-        Number.isInteger(t.tageHer) && t.tageHer > 30 && t.bytes > 0),
+        Number.isInteger(t.daysAgo) && t.daysAgo > 30 && t.bytes > 0),
       JSON.stringify(a.treffer));
     pruefe('Und die Summe der Bytes, die frei wuerden',
       a.bytes === (a.treffer || []).reduce((n, t) => n + t.bytes, 0) && a.bytes > 0,
@@ -6536,7 +6536,7 @@ const freigabeHaupt = (purpose, target = null) =>
      geprueft.** --- */
   {
     const r = await auRuf('cookie-au-anna', 'GET', '/api/backup');
-    const liste = r.inhalt?.aufraeumen?.dateien || [];
+    const liste = r.inhalt?.cleanup?.dateien || [];
     pruefe('Die Antwort traegt die vollstaendige Liste der Sicherungen',
       liste.length === 7, `${liste.length} Eintraege, 7 erwartet`);
     /* JUENGSTE ZUERST, UND NUMMER 1 IST SIE -- dieselbe Richtung, in der die
@@ -6546,34 +6546,34 @@ const freigabeHaupt = (purpose, target = null) =>
       gleich(liste.map(z => z.nr), [1, 2, 3, 4, 5, 6, 7]),
       JSON.stringify(liste.map(z => z.nr)));
     pruefe('Und Nummer 1 ist die JUENGSTE',
-      liste[0]?.tageHer === 0 && liste[liste.length - 1]?.tageHer === 200,
-      JSON.stringify(liste.map(z => z.tageHer)));
+      liste[0]?.daysAgo === 0 && liste[liste.length - 1]?.daysAgo === 200,
+      JSON.stringify(liste.map(z => z.daysAgo)));
     // Und die Reihenfolge ist wirklich nach Alter geordnet und nicht zufaellig.
     pruefe('Die Liste ist nach Alter geordnet',
-      liste.every((z, i) => i === 0 || liste[i - 1].tageHer <= z.tageHer),
-      JSON.stringify(liste.map(z => z.tageHer)));
+      liste.every((z, i) => i === 0 || liste[i - 1].daysAgo <= z.daysAgo),
+      JSON.stringify(liste.map(z => z.daysAgo)));
     pruefe('Je Eintrag Datum, Alter und Groesse',
       liste.every(z => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(z.at) &&
-        Number.isInteger(z.tageHer) && z.bytes > 0),
+        Number.isInteger(z.daysAgo) && z.bytes > 0),
       JSON.stringify(liste[0]));
     /* DIE MARKE `faellt` STEHT AN GENAU DEN DREI EINTRAEGEN, die die Regel
        trifft -- gegen die Trefferliste daneben gehalten. Zwei Felder ueber
        dieselbe Frage duerfen sich nicht widersprechen (Stolperstein 47). */
     pruefe('Die Marke `faellt` steht an genau den Kopien, die die Regel trifft',
-      gleich(liste.filter(z => z.faellt).map(z => z.datei).sort(), AU_FALLEN),
-      liste.filter(z => z.faellt).map(z => z.datei).join(' · '));
+      gleich(liste.filter(z => z.faellt).map(z => z.file).sort(), AU_FALLEN),
+      liste.filter(z => z.faellt).map(z => z.file).join(' · '));
     pruefe('Und ohne Schluesselwechsel traegt keine die Marke `veraltet`',
       liste.every(z => z.veraltet === false), JSON.stringify(liste.map(z => z.veraltet)));
     /* UND KEIN DATEINAME FEHLT IN DER ANTWORT: die Karte zeigt ihn nicht mehr,
        die Antwort traegt ihn trotzdem -- er ist die einzige Angabe, an der sich
        ein Eintrag ueber zwei Abrufe hinweg wiedererkennen laesst. */
     pruefe('Jeder Eintrag traegt seinen Dateinamen, auch wenn die Karte ihn nicht zeigt',
-      liste.every(z => /^kriterion-.+\.sqlite$/.test(z.datei)),
-      JSON.stringify(liste.map(z => z.datei).slice(0, 2)));
+      liste.every(z => /^kriterion-.+\.sqlite$/.test(z.file)),
+      JSON.stringify(liste.map(z => z.file).slice(0, 2)));
     // Und die fremden Dinge im Ordner stehen NICHT darin.
     pruefe('Und nichts Fremdes steht in der Liste',
-      !liste.some(z => /notizen|\.bak|unterordner|verweis/.test(z.datei)),
-      liste.map(z => z.datei).join(' · '));
+      !liste.some(z => /notizen|\.bak|unterordner|verweis/.test(z.file)),
+      liste.map(z => z.file).join(' · '));
   }
 
   /* EIN ANDERER WERT RECHNET SIE NEU, OHNE ETWAS ZU SPEICHERN. Wer die Zahl
@@ -6582,19 +6582,19 @@ const freigabeHaupt = (purpose, target = null) =>
     /* EIN HOEHERER BODEN NIMMT DER REGEL EINE KOPIE WEG. Mit 5 statt 3 faellt
        die vierzig Tage alte nicht mehr -- die Vorschau sagt sofort, was die
        Stellung kostet, und sie sagt es AN DENSELBEN DATEIEN. */
-    const eng = await auRuf('cookie-au-anna', 'GET', '/api/backup?behalten=5&tage=30');
-    const a = eng.inhalt?.aufraeumen || {};
+    const eng = await auRuf('cookie-au-anna', 'GET', '/api/backup?keep=5&days=30');
+    const a = eng.inhalt?.cleanup || {};
     pruefe('Mit Boden 5 treffen es nur noch zwei Kopien',
-      gleich((a.treffer || []).map(t => t.datei).sort(),
+      gleich((a.treffer || []).map(t => t.file).sort(),
              ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-09-03-23-59-59.sqlite']),
-      (a.treffer || []).map(t => t.datei).join(' · '));
+      (a.treffer || []).map(t => t.file).join(' · '));
     /* UND GESPEICHERT WURDE DABEI NICHTS -- der naechste Abruf ohne Abfrage
        steht wieder auf 3 und 30. Eine Vorschau, die nebenbei die Einstellung
        verstellt, waere die schlimmste Ueberraschung dieser Karte. */
     const zurueck = await auRuf('cookie-au-anna', 'GET', '/api/backup');
     pruefe('Und gespeichert hat die Vorschau dabei nichts',
-      zurueck.inhalt?.aufraeumen?.behalten === 3 && zurueck.inhalt?.aufraeumen?.tage === 30,
-      JSON.stringify([zurueck.inhalt?.aufraeumen?.behalten, zurueck.inhalt?.aufraeumen?.tage]));
+      zurueck.inhalt?.cleanup?.keep === 3 && zurueck.inhalt?.cleanup?.days === 30,
+      JSON.stringify([zurueck.inhalt?.cleanup?.keep, zurueck.inhalt?.cleanup?.days]));
     pruefe('Und der Ordner ist auch danach unveraendert',
       auDa().length === 11, auDa().join(' · '));
   }
@@ -6602,24 +6602,24 @@ const freigabeHaupt = (purpose, target = null) =>
      Erklaerung sieht aus wie ein Fehler -- und die beiden Gruende sind
      verschieden, weil die beiden Bedingungen verschieden sind. */
   {
-    const weit = await auRuf('cookie-au-anna', 'GET', '/api/backup?behalten=20&tage=30');
+    const weit = await auRuf('cookie-au-anna', 'GET', '/api/backup?keep=20&days=30');
     pruefe('Deckt der Boden alles, sagt der Grund genau das',
-      (weit.inhalt?.aufraeumen?.treffer || []).length === 0 &&
-      /unter den jüngsten 20/.test(weit.inhalt?.aufraeumen?.grund || ''),
-      weit.inhalt?.aufraeumen?.grund);
-    const spaet = await auRuf('cookie-au-anna', 'GET', '/api/backup?behalten=3&tage=365');
+      (weit.inhalt?.cleanup?.treffer || []).length === 0 &&
+      /unter den jüngsten 20/.test(weit.inhalt?.cleanup?.reason || ''),
+      weit.inhalt?.cleanup?.reason);
+    const spaet = await auRuf('cookie-au-anna', 'GET', '/api/backup?keep=3&days=365');
     pruefe('Ist nichts alt genug, nennt der Grund das Alter der aeltesten',
-      (spaet.inhalt?.aufraeumen?.treffer || []).length === 0 &&
-      /^Die älteste ist 20[01] Tage alt\.$/.test(spaet.inhalt?.aufraeumen?.grund || ''),
-      spaet.inhalt?.aufraeumen?.grund);
+      (spaet.inhalt?.cleanup?.treffer || []).length === 0 &&
+      /^Die älteste ist 20[01] Tage alt\.$/.test(spaet.inhalt?.cleanup?.reason || ''),
+      spaet.inhalt?.cleanup?.reason);
   }
 
   /* --- DIE GRENZEN HALTEN AM SERVER, und zwar BEVOR irgendetwas geloescht
      wird. `min`/`max` im HTML ist eine Bitte, keine Klemme. --- */
   {
     const vorher = auDa();
-    for (const [feld, wert] of [['behalten', 0], ['behalten', 999], ['behalten', '"drei"'],
-                                ['tage', 3], ['tage', 4000], ['tage', 2.5]]) {
+    for (const [feld, wert] of [['keep', 0], ['keep', 999], ['keep', '"drei"'],
+                                ['days', 3], ['days', 4000], ['days', 2.5]]) {
       const q = `/api/backup?${feld}=${encodeURIComponent(String(wert).replace(/"/g, ''))}`;
       const r = await auRuf('cookie-au-anna', 'GET', q);
       pruefe(`Die Vorschau weist ${feld} = ${wert} ab`,
@@ -6639,8 +6639,8 @@ const freigabeHaupt = (purpose, target = null) =>
       gleich(auDa(), vorher), auDa().join(' · '));
     const stand = await auRuf('cookie-au-anna', 'GET', '/api/backup');
     pruefe('Und die eingestellten Werte stehen unveraendert auf 3 und 30',
-      stand.inhalt?.aufraeumen?.behalten === 3 && stand.inhalt?.aufraeumen?.tage === 30,
-      JSON.stringify(stand.inhalt?.aufraeumen));
+      stand.inhalt?.cleanup?.keep === 3 && stand.inhalt?.cleanup?.days === 30,
+      JSON.stringify(stand.inhalt?.cleanup));
     // Die Gegenlage: ein Wert INNERHALB der Grenzen geht durch. Ohne sie
     // bliebe die Reihe darueber auch dann gruen, wenn die Route jeden Wert
     // abwiese (Stolperstein 81).
@@ -6660,7 +6660,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Ohne zweite Bestaetigung antwortet die Route mit 403',
       ohne.status === 403, `Status ${ohne.status} · ${JSON.stringify(ohne.inhalt)}`);
     pruefe('Und der Zweck heisst in der Absage beim Namen',
-      ohne.inhalt?.bestaetigung === 'backup', JSON.stringify(ohne.inhalt));
+      ohne.inhalt?.confirm === 'backup', JSON.stringify(ohne.inhalt));
     for (const [actor, name] of [['cookie-au-carla', 'Ein gewoehnlicher Benutzer'],
                                ['cookie-au-bert', 'Ein Admin ohne Eigentuemerrolle']]) {
       const r = await auRuf(actor, 'POST', '/api/backup/cleanup', { kind: 'rule' });
@@ -6669,7 +6669,7 @@ const freigabeHaupt = (purpose, target = null) =>
       // Route nicht -- ohne diese Zeile bliebe offen, ob nur die Reihenfolge
       // der beiden Klemmen die Absage erzeugt hat.
       const frei = await auRuf(actor, 'POST', '/api/confirm',
-        { passwort: AU_WORT, purpose: 'backup', target: null });
+        { password: AU_WORT, purpose: 'backup', target: null });
       const nochmal = await auRuf(actor, 'POST', '/api/backup/cleanup', { kind: 'rule' });
       pruefe(`${name} kommt auch mit Freigabe nicht durch`,
         nochmal.status === 403, `Freigabe ${frei.status}, Route ${nochmal.status}`);
@@ -6684,7 +6684,7 @@ const freigabeHaupt = (purpose, target = null) =>
   {
     await auFrei();
     const r = await auRuf('cookie-au-anna', 'POST', '/api/backup/cleanup',
-      { kind: 'rule', datei: '../../etc/passwd', dateien: ['notizen.txt'],
+      { kind: 'rule', file: '../../etc/passwd', dateien: ['notizen.txt'],
         ordner: '/etc', name: 'kriterion-2026-09-03-10-00-00.sqlite' });
     pruefe('Ein Rumpf mit Dateinamen aendert am Ergebnis nichts',
       r.status === 200 && r.inhalt?.weg === 3,
@@ -6722,8 +6722,8 @@ const freigabeHaupt = (purpose, target = null) =>
        daraus neu; stuende dort der alte Stand, zeigte sie Dateien, die es
        nicht mehr gibt. */
     pruefe('Und die frische Vorschau daneben ist leer',
-      (r.inhalt?.aufraeumen?.treffer || []).length === 0 &&
-      !!r.inhalt?.aufraeumen?.grund, JSON.stringify(r.inhalt?.aufraeumen?.grund));
+      (r.inhalt?.cleanup?.treffer || []).length === 0 &&
+      !!r.inhalt?.cleanup?.reason, JSON.stringify(r.inhalt?.cleanup?.reason));
     /* EIN ZWEITER LAUF FINDET NICHTS MEHR und sagt das mit 0 statt mit einem
        Fehler -- ein Aufraeumen, das nichts zu tun hat, ist kein Fehlschlag. */
     await auFrei();
@@ -6770,18 +6770,18 @@ const freigabeHaupt = (purpose, target = null) =>
       d.close();
     }
     const r = await auRuf('cookie-au-anna', 'GET', '/api/backup');
-    const a = r.inhalt?.aufraeumen || {};
+    const a = r.inhalt?.cleanup || {};
     pruefe('Die veralteten Kopien stehen getrennt, mit eigener Zahl und Summe',
-      a.altZahl === 1 && a.altBytes > 0 &&
-      gleich((a.altDateien || []).map(x => x.datei), ['kriterion-2026-09-03-23-59-59.sqlite']),
-      JSON.stringify([a.altZahl, a.altBytes, (a.altDateien || []).map(x => x.datei)]));
+      a.oldCount === 1 && a.oldBytes > 0 &&
+      gleich((a.oldFiles || []).map(x => x.file), ['kriterion-2026-09-03-23-59-59.sqlite']),
+      JSON.stringify([a.oldCount, a.oldBytes, (a.oldFiles || []).map(x => x.file)]));
     /* UND DIE REGEL FASST SIE NICHT AN. Vorher trafen es drei Kopien; jetzt
        ist eine davon veraltet, und die Regel nennt nur noch die beiden
        anderen -- der Boden zaehlt nur die brauchbaren (Entscheidung 5). */
     pruefe('Und die Regel nennt sie nicht mehr',
-      gleich((a.treffer || []).map(x => x.datei).sort(),
+      gleich((a.treffer || []).map(x => x.file).sort(),
              ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-07-25-10-00-00.sqlite']),
-      (a.treffer || []).map(x => x.datei).join(' · '));
+      (a.treffer || []).map(x => x.file).join(' · '));
     await auFrei();
     const weg = await auRuf('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'outdated' });
     pruefe('Der zweite Weg entfernt genau die veraltete Kopie',
@@ -6836,7 +6836,7 @@ const freigabeHaupt = (purpose, target = null) =>
     await auRuf('cookie-au-anna', 'PUT', '/api/settings', { backupCleanup: true });
     const an = await auRuf('cookie-au-anna', 'GET', '/api/backup');
     pruefe('Der Schalter laesst sich einschalten und steht dann an',
-      an.inhalt?.aufraeumen?.an === true, JSON.stringify(an.inhalt?.aufraeumen?.an));
+      an.inhalt?.cleanup?.an === true, JSON.stringify(an.inhalt?.cleanup?.an));
 
     /* --- NACH EINER GESCHEITERTEN SICHERUNG WIRD NICHT AUFGERAEUMT
        (Entscheidung 3) -- die wichtigste Zeile der Runde.
@@ -6896,8 +6896,8 @@ const freigabeHaupt = (purpose, target = null) =>
        gelungenen Sicherung, und was das Aufraeumen meldet, steht NEBEN ihr
        (Stolperstein 298). */
     pruefe('Und die Antwort bleibt die einer gelungenen Sicherung',
-      ok.inhalt?.ok === true && /^kriterion-.+\.sqlite$/.test(ok.inhalt?.datei || '') &&
-      ok.inhalt?.bytes > 0, JSON.stringify(ok.inhalt?.datei));
+      ok.inhalt?.ok === true && /^kriterion-.+\.sqlite$/.test(ok.inhalt?.file || '') &&
+      ok.inhalt?.bytes > 0, JSON.stringify(ok.inhalt?.file));
     pruefe('Die Zeile im Containerprotokoll nennt Zahl und freigegebene Bytes',
       /\[Kriterion\] Alte Sicherungen entfernt: 3 \(\d+ Bytes frei\)\./.test(AU.protokoll()),
       (AU.protokoll().match(/\[Kriterion\] Alte Sicherungen entfernt.*/g) || []).join(' · '));
@@ -7066,7 +7066,7 @@ const freigabeHaupt = (purpose, target = null) =>
      multer, ein nachgereichter INSERT liefe an beidem vorbei. */
   const fUpload = async (cookieWert, itemId, name, inhalt) => {
     const grenze = '----pruefungf' + crypto.randomBytes(6).toString('hex');
-    const teile = [
+    const parts = [
       Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="files"; filename="${name}"\r\n` +
                   `Content-Type: text/plain\r\n\r\n`, 'utf8'),
       Buffer.from(inhalt, 'utf8'),
@@ -7076,7 +7076,7 @@ const freigabeHaupt = (purpose, target = null) =>
       method: 'POST',
       headers: { cookie: `kriterion_session=${cookieWert}`,
                  'content-type': `multipart/form-data; boundary=${grenze}` },
-      body: Buffer.concat(teile)
+      body: Buffer.concat(parts)
     });
     return { status: a.status, inhalt: await a.json().catch(() => null) };
   };
@@ -7227,13 +7227,13 @@ const freigabeHaupt = (purpose, target = null) =>
      nichts mehr hochladbar waere (Stolperstein 81). */
   const fVideoAn = async (cookieWert, itemId) => {
     const grenze = '----pruefungv' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, dateiname, typ, inhalt) => [
+    const part = (name, dateiname, typ, inhalt) => [
       Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="${name}"; ` +
                   `filename="${dateiname}"\r\nContent-Type: ${typ}\r\n\r\n`, 'utf8'),
       inhalt, Buffer.from('\r\n', 'utf8')];
-    const teile = [
-      ...teil('video', 'clip.mp4', 'video/mp4', MP4()),
-      ...teil('standbild', 'standbild.jpg', 'image/jpeg', Buffer.from(PNG_BASE64, 'base64')),
+    const parts = [
+      ...part('video', 'clip.mp4', 'video/mp4', MP4()),
+      ...part('standbild', 'standbild.jpg', 'image/jpeg', Buffer.from(PNG_BASE64, 'base64')),
       Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="duration"\r\n\r\n5\r\n`, 'utf8'),
       Buffer.from(`--${grenze}--\r\n`, 'utf8')
     ];
@@ -7241,7 +7241,7 @@ const freigabeHaupt = (purpose, target = null) =>
       method: 'POST',
       headers: { cookie: `kriterion_session=${cookieWert}`,
                  'content-type': `multipart/form-data; boundary=${grenze}` },
-      body: Buffer.concat(teile)
+      body: Buffer.concat(parts)
     });
     return { status: a.status, inhalt: await a.json().catch(() => null) };
   };
@@ -7417,7 +7417,7 @@ const freigabeHaupt = (purpose, target = null) =>
      nackte Spalte steht nirgends, wie schon bei user_id. */
   const fVermerkAntwort = fBildAdminWeg.inhalt.comments.find(k => k.id === 1);
   pruefe('Die Antwort nennt den Vermerk als bilderEntfernt',
-    fVermerkAntwort?.bilderEntfernt === 1, JSON.stringify(fVermerkAntwort?.bilderEntfernt));
+    fVermerkAntwort?.imagesRemoved === 1, JSON.stringify(fVermerkAntwort?.imagesRemoved));
   pruefe('Die nackte Spalte steht in keiner Antwort',
     !('images_removed' in (fVermerkAntwort || {})),
     JSON.stringify(Object.keys(fVermerkAntwort || {})));
@@ -7645,14 +7645,14 @@ const freigabeHaupt = (purpose, target = null) =>
   }
   const fCarlaRolle = await fRuf('cookie-f-carla', 'GET', '/api/settings');
   pruefe('Carla ist jetzt Admin, aber nicht Eigentuemerin',
-    fCarlaRolle.inhalt?.istAdmin === true && fCarlaRolle.inhalt?.istEigentuemer === false,
-    JSON.stringify([fCarlaRolle.inhalt?.istAdmin, fCarlaRolle.inhalt?.istEigentuemer]));
+    fCarlaRolle.inhalt?.isAdmin === true && fCarlaRolle.inhalt?.isOwner === false,
+    JSON.stringify([fCarlaRolle.inhalt?.isAdmin, fCarlaRolle.inhalt?.isOwner]));
   const fAnnaRolle = await fRuf('cookie-f-anna', 'GET', '/api/settings');
   pruefe('Anna ist beides',
-    fAnnaRolle.inhalt?.istAdmin === true && fAnnaRolle.inhalt?.istEigentuemer === true,
-    JSON.stringify([fAnnaRolle.inhalt?.istAdmin, fAnnaRolle.inhalt?.istEigentuemer]));
+    fAnnaRolle.inhalt?.isAdmin === true && fAnnaRolle.inhalt?.isOwner === true,
+    JSON.stringify([fAnnaRolle.inhalt?.isAdmin, fAnnaRolle.inhalt?.isOwner]));
   pruefe('Und bert ist keines von beiden',
-    (await fRuf('cookie-f-bert', 'GET', '/api/settings')).inhalt?.istEigentuemer === false);
+    (await fRuf('cookie-f-bert', 'GET', '/api/settings')).inhalt?.isOwner === false);
 
   const fExportBert = await fRuf('cookie-f-bert', 'GET', '/api/export?photos=0');
   pruefe('Ein Benutzer exportiert nicht', fExportBert.status === 403, `Status ${fExportBert.status}`);
@@ -7675,13 +7675,13 @@ const freigabeHaupt = (purpose, target = null) =>
      seinem Passwort gefragt. Genau das ist hier mitgeprueft. */
   const fImport = async (cookieWert, objekt, modus) => {
     if (cookieWert === 'cookie-f-anna')
-      await fRuf(cookieWert, 'POST', '/api/confirm', { passwort: fWort, purpose: 'import', target: null });
+      await fRuf(cookieWert, 'POST', '/api/confirm', { password: fWort, purpose: 'import', target: null });
     const grenze = '----pruefungf' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, wert, dateiname) =>
+    const part = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
       (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${wert}\r\n`;
-    const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+    const koerper = part('mode', modus) + part('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
     const a = await fetch(F.basis + '/api/import', {
       method: 'POST',
       headers: { cookie: `kriterion_session=${cookieWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
@@ -7809,7 +7809,7 @@ const freigabeHaupt = (purpose, target = null) =>
 
   const fVEintrag = (await fRuf('cookie-f-bert', 'GET', `/api/items/${fVId}`)).inhalt;
   pruefe('Der Eintrag nennt seinen Verfasser mit Namen',
-    fVEintrag?.verfasser?.name === 'bert' && fVEintrag?.verfasser?.geloescht === false,
+    fVEintrag?.verfasser?.name === 'bert' && fVEintrag?.verfasser?.deleted === false,
     JSON.stringify(fVEintrag?.verfasser));
   // Die nackte Nummer stand bis 0.8.1 in der Antwort und war nie zu gebrauchen.
   pruefe('Und nicht mehr die nackte Nummer', fVEintrag?.user_id === undefined,
@@ -7838,7 +7838,7 @@ const freigabeHaupt = (purpose, target = null) =>
      Oberflaechenpruefungen laufen gegen einen Mock, der das Feld
      selbst mitbringt, und die Rechtepruefungen sehen in die Datenbank statt in
      die Antwort. Das ist Luecke 3 des Pruefstands in Reinform. */
-  const fVLink = (teil) => (fVEintrag?.links || []).find(l => l.url.includes(teil));
+  const fVLink = (part) => (fVEintrag?.links || []).find(l => l.url.includes(part));
   pruefe('Die Linkliste der Antwort ist ueberhaupt gefuellt',
     (fVEintrag?.links || []).length === 2, JSON.stringify(fVEintrag?.links));
   pruefe('Jede Linkzeile nennt ihren Verfasser',
@@ -7926,52 +7926,52 @@ const freigabeHaupt = (purpose, target = null) =>
   const fBCarla = await fBestand('cookie-f-carla');
 
   pruefe('Der Verfasser sieht einen eigenen und zwei fremde Kommentare',
-    fBBert?.eigenKommentare === 1 && fBBert?.fremdKommentare === 2,
+    fBBert?.ownComments === 1 && fBBert?.foreignComments === 2,
     JSON.stringify(fBBert));
   pruefe('Und je einen eigenen und einen fremden Testtag',
-    fBBert?.eigenTesttage === 1 && fBBert?.fremdTesttage === 1, JSON.stringify(fBBert));
+    fBBert?.ownTestDays === 1 && fBBert?.foreignTestDays === 1, JSON.stringify(fBBert));
   pruefe('Und je eine eigene und eine fremde Bewertung',
-    fBBert?.eigenBewertungen === 1 && fBBert?.fremdBewertungen === 1, JSON.stringify(fBBert));
+    fBBert?.ownRatings === 1 && fBBert?.foreignRatings === 1, JSON.stringify(fBBert));
   pruefe('Fuer einen anderen Verfasser sind dieselben Zeilen anders verteilt',
-    fBAnna?.eigenKommentare === 1 && fBAnna?.fremdKommentare === 2 &&
-    fBAnna?.eigenBewertungen === 1 && fBAnna?.fremdBewertungen === 1 &&
-    fBAnna?.eigenTesttage === 1 && fBAnna?.fremdTesttage === 1,
+    fBAnna?.ownComments === 1 && fBAnna?.foreignComments === 2 &&
+    fBAnna?.ownRatings === 1 && fBAnna?.foreignRatings === 1 &&
+    fBAnna?.ownTestDays === 1 && fBAnna?.foreignTestDays === 1,
     JSON.stringify(fBAnna));
   /* Carla loescht als Admin einen Eintrag, an dem sie selbst nichts hat --
      dann ist ALLES fremd. Genau diese Zahl soll der Dialog nennen. */
   pruefe('Ein Admin ohne eigenen Beitrag sieht alles als fremd',
-    fBCarla?.eigenKommentare === 0 && fBCarla?.fremdKommentare === 3 &&
-    fBCarla?.eigenTesttage === 0 && fBCarla?.fremdTesttage === 2,
+    fBCarla?.ownComments === 0 && fBCarla?.foreignComments === 3 &&
+    fBCarla?.ownTestDays === 0 && fBCarla?.foreignTestDays === 2,
     JSON.stringify(fBCarla));
   /* IS NOT statt !=: die herrenlose Zeile ist eine fremde. Bei != fiele sie
      aus dem Vergleich heraus und taeuchte in keiner der drei Sichten auf. */
   pruefe('Die herrenlose Zeile zaehlt bei jedem als fremd',
-    fBBert?.fremdKommentare === 2 && fBAnna?.fremdKommentare === 2 &&
-    fBCarla?.fremdKommentare === 3,
-    JSON.stringify([fBBert?.fremdKommentare, fBAnna?.fremdKommentare, fBCarla?.fremdKommentare]));
+    fBBert?.foreignComments === 2 && fBAnna?.foreignComments === 2 &&
+    fBCarla?.foreignComments === 3,
+    JSON.stringify([fBBert?.foreignComments, fBAnna?.foreignComments, fBCarla?.foreignComments]));
   // Eine zurueckgesetzte Bewertung ist auch hier keine: carlas 0-Zeile darf
   // weder als ihre eigene noch als fremde auftauchen.
   pruefe('Eine zurueckgesetzte Bewertung erscheint in keiner Zahl',
-    fBCarla?.eigenBewertungen === 0 && fBCarla?.fremdBewertungen === 2,
+    fBCarla?.ownRatings === 0 && fBCarla?.foreignRatings === 2,
     JSON.stringify(fBCarla));
   pruefe('Die Fotos stehen mit einer Zahl im Dialog',
     fBBert?.fotos === 0, JSON.stringify(fBBert));
   /* UMGESTELLT MIT 0.8.31: die Dateien stehen nicht mehr mit EINER Zahl da.
      Seit sie einen Verfasser haben, koennen sie fremd sein. */
   pruefe('Und die Dateien getrennt nach eigen und fremd',
-    fBBert?.eigenDateien === 1 && fBBert?.fremdDateien === 1, JSON.stringify(fBBert));
+    fBBert?.ownFiles === 1 && fBBert?.foreignFiles === 1, JSON.stringify(fBBert));
   pruefe('Fuer den Admin ohne eigenen Beitrag sind beide Dateien fremd',
-    fBCarla?.eigenDateien === 0 && fBCarla?.fremdDateien === 2, JSON.stringify(fBCarla));
+    fBCarla?.ownFiles === 0 && fBCarla?.foreignFiles === 2, JSON.stringify(fBCarla));
   /* UMGESTELLT MIT 0.8.30, nicht geloescht: bis 0.8.20 stand hier EINE Zahl
      fuer die Links. Seit die Zeile einen Verfasser hat, kann sie fremd sein und
      gehoert auf dieselbe Seite wie Kommentar, Bewertung und Testtag. */
   pruefe('Und die Links getrennt nach eigen und fremd',
-    fBBert?.eigenLinks === 1 && fBBert?.fremdLinks === 1, JSON.stringify(fBBert));
+    fBBert?.ownLinks === 1 && fBBert?.foreignLinks === 1, JSON.stringify(fBBert));
   pruefe('Fuer den Admin ohne eigenen Beitrag sind beide Links fremd',
-    fBCarla?.eigenLinks === 0 && fBCarla?.fremdLinks === 2, JSON.stringify(fBCarla));
+    fBCarla?.ownLinks === 0 && fBCarla?.foreignLinks === 2, JSON.stringify(fBCarla));
   // Und die Gegenrichtung: fuer anna ist genau die andere Zeile die eigene.
   pruefe('Fuer den zweiten Verfasser sind dieselben zwei Zeilen andersherum verteilt',
-    fBAnna?.eigenLinks === 1 && fBAnna?.fremdLinks === 1, JSON.stringify(fBAnna));
+    fBAnna?.ownLinks === 1 && fBAnna?.foreignLinks === 1, JSON.stringify(fBAnna));
 
   const fBFremd = await fRuf('cookie-f-dirk', 'GET', `/api/items/${fVId}/inventory`);
   pruefe('Wer nicht loeschen darf, bekommt die Zahlen nicht', fBFremd.status === 403,
@@ -8024,37 +8024,37 @@ const freigabeHaupt = (purpose, target = null) =>
      Aussagen wie bis 0.8.5 an der Eintragsantwort -- nur eben hier. */
   const fStOptik = (fStCarla.inhalt || []).find(z => z.criterion_id === fOptikId);
   pruefe('Je Kriterium steht, wer welchen Wert vergeben hat',
-    gleich((fStOptik?.stimmen || []).map(s => `${s.verfasser?.name}/${s.wert}`), ['bert/4', 'anna/2']),
-    JSON.stringify(fStOptik?.stimmen));
+    gleich((fStOptik?.votes || []).map(s => `${s.verfasser?.name}/${s.wert}`), ['bert/4', 'anna/2']),
+    JSON.stringify(fStOptik?.votes));
   /* Die Bedingung value > 0 an genau dieser Stelle: carla hat bewertet und
      zurueckgesetzt, ihre Zeile steht mit 0 in der Tabelle. Sie ist keine
      Stimme -- dieselbe Regel wie beim Schnitt und beim Verwendungszaehler. */
   pruefe('Eine zurueckgesetzte Bewertung ist keine Stimme',
-    !(fStOptik?.stimmen || []).some(s => s.verfasser?.name === 'carla') &&
+    !(fStOptik?.votes || []).some(s => s.verfasser?.name === 'carla') &&
     fZeilen('SELECT value FROM ratings WHERE item_id = ? AND user_id = 3', fVId)[0]?.value === 0,
     JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = ?', fVId)));
   // Ohne die id gaebe es vom Bildschirm aus keinen Weg zu einer einzelnen
   // fremden Bewertung -- DELETE /api/ratings/:id waere unerreichbar.
   pruefe('Jede Stimme nennt ihre Nummer',
-    (fStOptik?.stimmen || []).every(s => Number.isInteger(s.id)),
-    JSON.stringify((fStOptik?.stimmen || []).map(s => s.id)));
+    (fStOptik?.votes || []).every(s => Number.isInteger(s.id)),
+    JSON.stringify((fStOptik?.votes || []).map(s => s.id)));
   /* `mine` haengt am ABRUFENDEN, nicht an der Zeile. Deshalb zwei Sichten
      nebeneinander: anna hat selbst bewertet, carla hat ihre Bewertung
      zurueckgesetzt und ist damit an keiner Stimme beteiligt. Waere nur eine
      Sicht geprueft, bliebe offen, ob das Feld ueberhaupt vom Rufer abhaengt. */
   const fStOptikAnna = (fStAnna.inhalt || []).find(z => z.criterion_id === fOptikId);
   pruefe('Die eigene Stimme ist als solche gekennzeichnet',
-    gleich((fStOptikAnna?.stimmen || []).map(s => s.mine), [false, true]),
-    JSON.stringify((fStOptikAnna?.stimmen || []).map(s => s.mine)));
+    gleich((fStOptikAnna?.votes || []).map(s => s.mine), [false, true]),
+    JSON.stringify((fStOptikAnna?.votes || []).map(s => s.mine)));
   pruefe('Und fuer einen Admin ohne eigene Bewertung ist es keine davon',
-    (fStOptik?.stimmen || []).length === 2 &&
-    (fStOptik?.stimmen || []).every(s => s.mine === false),
-    JSON.stringify((fStOptik?.stimmen || []).map(s => s.mine)));
+    (fStOptik?.votes || []).length === 2 &&
+    (fStOptik?.votes || []).every(s => s.mine === false),
+    JSON.stringify((fStOptik?.votes || []).map(s => s.mine)));
   // Der Grabsteinname verlaesst den Server nicht -- hier gibt es keinen, aber
   // die Form ist dieselbe wie ueberall: ein Objekt, nie die nackte Nummer.
   pruefe('Die Stimme nennt den Verfasser als Objekt, nicht als Nummer',
-    (fStOptik?.stimmen || []).every(s => s.verfasser && s.user_id === undefined),
-    JSON.stringify(fStOptik?.stimmen));
+    (fStOptik?.votes || []).every(s => s.verfasser && s.user_id === undefined),
+    JSON.stringify(fStOptik?.votes));
 
   /* ---------------------------------------------------------------- */
   gruppe('Eine fremde Bewertung entfernen');
@@ -8506,18 +8506,18 @@ const freigabeHaupt = (purpose, target = null) =>
      darueber nur zwei Strings und nichts ueber die Instanz. */
   pruefe('Und die Glocke meldet ihn auch',
     ((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
-      .find(i => i.id === oA.id)?.neuKommentare >= 1,
+      .find(i => i.id === oA.id)?.newComments >= 1,
     JSON.stringify(((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
-      .map(i => `${i.id}:${i.neuKommentare}`)));
+      .map(i => `${i.id}:${i.newComments}`)));
   /* Die Gegenrichtung gehoert dazu: was VOR dem Bezugspunkt liegt, ist nicht
      neu. Ohne sie bliebe der Vergleich auch dann gruen, wenn er schlichtweg
      alles durchliesse. */
   fSchreibe("UPDATE comments SET created_at = '2020-01-01 00:00:00' WHERE item_id = ?", oB.id);
   pruefe('Was aelter ist als der Bezugspunkt, ist nicht neu',
     ((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
-      .find(i => i.id === oB.id)?.neuKommentare === 0,
+      .find(i => i.id === oB.id)?.newComments === 0,
     JSON.stringify(((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
-      .map(i => `${i.id}:${i.neuKommentare}`)));
+      .map(i => `${i.id}:${i.newComments}`)));
 
   await F.stopp();
   fs.rmSync(fDir, { recursive: true, force: true });
@@ -8595,7 +8595,7 @@ const freigabeHaupt = (purpose, target = null) =>
 
   // --- Carla lehnt Berts Eintrag ab, mit Begruendung ---
   const agAb = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
-    { rejected: true, rejectedGrund: 'Lieferzeit über 6 Monate' });
+    { rejected: true, rejectedReason: 'Lieferzeit über 6 Monate' });
   pruefe('Die Adminin lehnt einen fremden Eintrag ab', agAb.status === 200,
     JSON.stringify(agAb.inhalt?.error));
   pruefe('Und die drei Angaben stehen zusammen in der Zeile',
@@ -8613,7 +8613,7 @@ const freigabeHaupt = (purpose, target = null) =>
      stumm. Genau das ist beim ersten Anlauf passiert (Rueckbau 229). */
   await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejected: false });
   const agDatumRumpf = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
-    { rejected: true, rejectedGrund: 'Lieferzeit über 6 Monate',
+    { rejected: true, rejectedReason: 'Lieferzeit über 6 Monate',
       rejectedAt: '1999-01-01 00:00:00', rejected_at: '1999-01-01 00:00:00' });
   pruefe('Das Einschalten geht durch', agDatumRumpf.status === 200,
     JSON.stringify(agDatumRumpf.inhalt?.error));
@@ -8627,17 +8627,17 @@ const freigabeHaupt = (purpose, target = null) =>
     const jetzt = new Date();
     const heute = jetzt.toISOString().slice(0, 10);
     const gestern = new Date(jetzt.getTime() - 86400000).toISOString().slice(0, 10);
-    const gesetzt = agZeile().rejected_at || '';
+    const set = agZeile().rejected_at || '';
     pruefe('Der Server setzt die jetzige Zeit',
-      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(gesetzt) &&
-      (gesetzt.startsWith(heute) || gesetzt.startsWith(gestern)),
-      `${JSON.stringify(gesetzt)} gegen ${heute}`);
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(set) &&
+      (set.startsWith(heute) || set.startsWith(gestern)),
+      `${JSON.stringify(set)} gegen ${heute}`);
   }
   /* UND EIN NACHGETRAGENER GRUND ERFINDET AUCH DANN KEIN DATUM, wenn eines im
      Rumpf steht: die Zeile bleibt, wie sie war. */
   const agVorDatum = agZeile().rejected_at;
   await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
-    { rejectedGrund: 'Lieferzeit über 6 Monate', rejectedAt: '1999-01-01 00:00:00' });
+    { rejectedReason: 'Lieferzeit über 6 Monate', rejectedAt: '1999-01-01 00:00:00' });
   pruefe('Und ein Nachtrag ruehrt das Datum ueberhaupt nicht an',
     agZeile().rejected_at === agVorDatum, JSON.stringify(agZeile().rejected_at));
   /* UND DIE NUMMER DES ABLEHNENDEN AUCH NICHT. Sie kommt aus req.benutzer und
@@ -8650,8 +8650,8 @@ const freigabeHaupt = (purpose, target = null) =>
   // --- Die Antwort: Name statt Nummer, und nur in der Detailansicht ---
   const agSicht = (await agRuf('cookie-ag-bert', 'GET', '/api/items/1')).inhalt;
   pruefe('Die Antwort nennt den Ablehnenden als Verfasserobjekt',
-    agSicht?.rejectedVerfasser?.name === 'carla' && agSicht?.rejectedVerfasser?.geloescht === false,
-    JSON.stringify(agSicht?.rejectedVerfasser));
+    agSicht?.rejectedAuthor?.name === 'carla' && agSicht?.rejectedAuthor?.deleted === false,
+    JSON.stringify(agSicht?.rejectedAuthor));
   pruefe('Und die nackte Nummer geht nicht hinaus',
     agSicht?.rejected_by === undefined, JSON.stringify(agSicht?.rejected_by));
   pruefe('Datum und Grund stehen in der Antwort',
@@ -8668,14 +8668,14 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Aber keine der drei Angaben',
     Array.isArray(agListe) && agListe.every(i =>
       i.rejected_at === undefined && i.rejected_reason === undefined &&
-      i.rejected_by === undefined && i.rejectedVerfasser === undefined),
+      i.rejected_by === undefined && i.rejectedAuthor === undefined),
     JSON.stringify(agListe?.find(i => i.id === 1)));
 
   /* ---- DIE KLEMME. Umschreiben darf die Begruendung nur, wer sie getroffen
      hat -- und das ist WEDER der Verfasser des Eintrags NOCH ein Admin. ---- */
   const agFremd = async (actor) => {
     const vorher = agZeile().rejected_reason;
-    const a = await agRuf(actor, 'PUT', '/api/items/1', { rejectedGrund: `Umgeschrieben von ${actor}` });
+    const a = await agRuf(actor, 'PUT', '/api/items/1', { rejectedReason: `Umgeschrieben von ${actor}` });
     return { status: a.status, fehler: a.inhalt?.error, unveraendert: agZeile().rejected_reason === vorher };
   };
   const agAnna = await agFremd('cookie-ag-anna');
@@ -8693,7 +8693,7 @@ const freigabeHaupt = (purpose, target = null) =>
     agDora.status === 403 && agDora.unveraendert, JSON.stringify(agDora));
   // Der Erfolgsfall daneben: die Verfasserin der Begruendung darf.
   const agCarla = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
-    { rejectedGrund: 'Lieferzeit über 8 Monate' });
+    { rejectedReason: 'Lieferzeit über 8 Monate' });
   pruefe('Die Verfasserin der Begruendung schreibt sie um',
     agCarla.status === 200 && agZeile().rejected_reason === 'Lieferzeit über 8 Monate',
     JSON.stringify([agCarla.status, agZeile().rejected_reason]));
@@ -8720,7 +8720,7 @@ const freigabeHaupt = (purpose, target = null) =>
      -- eine EIGENE darf sie sehr wohl setzen. Das ist dieselbe Regel und kein
      Loch: "Loeschen ja, umschreiben nein". ---- */
   const agNeu = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1',
-    { rejected: true, rejectedGrund: 'Preis zu hoch' });
+    { rejected: true, rejectedReason: 'Preis zu hoch' });
   pruefe('Wer neu ablehnt, wird Verfasser der neuen Begruendung',
     agNeu.status === 200 && agZeile().rejected_by === 1 &&
     agZeile().rejected_reason === 'Preis zu hoch', JSON.stringify(agZeile()));
@@ -8742,10 +8742,10 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Der Altbestand steht abgelehnt und ohne Verfasser da',
     agZeile(2).rejected === 1 && agZeile(2).rejected_by === null &&
     agZeile(2).rejected_at === null, JSON.stringify(agZeile(2)));
-  const agAltFremd = await agRuf('cookie-ag-dora', 'PUT', '/api/items/2', { rejectedGrund: 'Von der Fremden' });
+  const agAltFremd = await agRuf('cookie-ag-dora', 'PUT', '/api/items/2', { rejectedReason: 'Von der Fremden' });
   pruefe('Eine Fremde traegt auch dort nichts nach',
     agAltFremd.status === 403 && agZeile(2).rejected_reason === null, JSON.stringify(agZeile(2)));
-  const agAlt = await agRuf('cookie-ag-bert', 'PUT', '/api/items/2', { rejectedGrund: 'Nachgetragen' });
+  const agAlt = await agRuf('cookie-ag-bert', 'PUT', '/api/items/2', { rejectedReason: 'Nachgetragen' });
   pruefe('Wer den Eintrag aendern darf, traegt die fehlende Begruendung nach',
     agAlt.status === 200 && agZeile(2).rejected_reason === 'Nachgetragen' &&
     agZeile(2).rejected_by === 2, JSON.stringify(agZeile(2)));
@@ -8754,24 +8754,24 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Und erfindet dabei kein Datum', agZeile(2).rejected_at === null,
     JSON.stringify(agZeile(2).rejected_at));
   pruefe('Danach gilt die Klemme auch dort',
-    (await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedGrund: 'Doch nicht' })).status === 403 &&
+    (await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedReason: 'Doch nicht' })).status === 403 &&
     agZeile(2).rejected_reason === 'Nachgetragen', JSON.stringify(agZeile(2)));
 
   /* ---- DER ZUSCHNITT DES TEXTES. Eine Zeile heisst eine Zeile: Weissraum
      eingeebnet, aussen getrimmt, bei 200 Zeichen gekappt. Ohne das Einebnen
      risse ein eingefuegter Absatz die Marke in der Oberflaeche. ---- */
   await agRuf('cookie-ag-bert', 'PUT', '/api/items/2',
-    { rejectedGrund: '  Zwei\nZeilen   und   viel Raum  ' });
+    { rejectedReason: '  Zwei\nZeilen   und   viel Raum  ' });
   pruefe('Der Text wird auf eine Zeile eingeebnet und getrimmt',
     agZeile(2).rejected_reason === 'Zwei Zeilen und viel Raum', JSON.stringify(agZeile(2).rejected_reason));
-  await agRuf('cookie-ag-bert', 'PUT', '/api/items/2', { rejectedGrund: 'x'.repeat(500) });
+  await agRuf('cookie-ag-bert', 'PUT', '/api/items/2', { rejectedReason: 'x'.repeat(500) });
   pruefe('Und bei 200 Zeichen gekappt',
     agZeile(2).rejected_reason?.length === 200, `${agZeile(2).rejected_reason?.length} Zeichen`);
 
   /* ---- DER RUNDLAUF DURCH DAS AUSTAUSCHFORMAT, Feld fuer Feld. Ein Format,
      dessen Rundlauf nicht geprueft ist, ist eine Behauptung. ---- */
   await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
-    { rejected: true, rejectedGrund: 'Lieferzeit über 6 Monate' });
+    { rejected: true, rejectedReason: 'Lieferzeit über 6 Monate' });
   const agVorher = agZeile(1);
   const agRufF = mitFreigabe((m, p, k) => agRuf('cookie-ag-anna', m, p, k), AG_WORT);
   const agDatei = (await agRufF('GET', '/api/export?fotos=0')).inhalt;
@@ -8782,7 +8782,7 @@ const freigabeHaupt = (purpose, target = null) =>
     agPaket?.rejected_at === agVorher.rejected_at &&
     agPaket?.rejected_reason === 'Lieferzeit über 6 Monate' &&
     agPaket?.rejected_author === 'carla', JSON.stringify(agPaket && {
-      at: agPaket.rejected_at, grund: agPaket.rejected_reason, actor: agPaket.rejected_author }));
+      at: agPaket.rejected_at, reason: agPaket.rejected_reason, actor: agPaket.rejected_author }));
   pruefe('Und ausdruecklich keine Nummer',
     typeof agPaket?.rejected_author === 'string', JSON.stringify(agPaket?.rejected_author));
   /* DIE DREI GEHEN AUCH MIT, WENN rejected FALSCH IST -- beim Zuruecknehmen
@@ -8828,13 +8828,13 @@ const freigabeHaupt = (purpose, target = null) =>
      Oberflaeche es tut. Die Freigabe steht davor, weil multer sonst die ganze
      Datei einlaese, bevor die Frage ueberhaupt gestellt waere. */
   const agzEinspielen = async (objekt) => {
-    await agzRuf('POST', '/api/confirm', { passwort: AG_WORT, purpose: 'import', target: null });
+    await agzRuf('POST', '/api/confirm', { password: AG_WORT, purpose: 'import', target: null });
     const grenze = '----pruefungag' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, wert, dateiname) =>
+    const part = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
       (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${wert}\r\n`;
-    const koerper = teil('mode', 'merge') + teil('file', JSON.stringify(objekt), 'export.json') +
+    const koerper = part('mode', 'merge') + part('file', JSON.stringify(objekt), 'export.json') +
       `--${grenze}--\r\n`;
     const a = await fetch(AGZ.basis + '/api/import', {
       method: 'POST',
@@ -8853,9 +8853,9 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Und die drei Angaben kommen Feld fuer Feld wieder heraus',
     agzDetail?.rejected === true && agzDetail?.rejected_at === agVorher.rejected_at &&
     agzDetail?.rejected_reason === 'Lieferzeit über 6 Monate' &&
-    agzDetail?.rejectedVerfasser?.name === 'carla',
-    JSON.stringify(agzDetail && { at: agzDetail.rejected_at, grund: agzDetail.rejected_reason,
-                                  actor: agzDetail.rejectedVerfasser }));
+    agzDetail?.rejectedAuthor?.name === 'carla',
+    JSON.stringify(agzDetail && { at: agzDetail.rejected_at, reason: agzDetail.rejected_reason,
+                                  actor: agzDetail.rejectedAuthor }));
 
   /* ---- EINE DATEI DER NUMMER 10 BLEIBT EINSPIELBAR. Dieselbe Zusage wie bei
      jedem Formatsprung davor: die drei Felder fehlen dann und bleiben LEER.
@@ -8872,11 +8872,11 @@ const freigabeHaupt = (purpose, target = null) =>
   const agzAltDetail = agzAltEintrag ? (await agzRuf('GET', `/api/items/${agzAltEintrag.id}`)).inhalt : null;
   pruefe('Die Marke kommt mit, die drei Felder bleiben leer',
     agzAltDetail?.rejected === true && agzAltDetail?.rejected_at === null &&
-    agzAltDetail?.rejected_reason === null && agzAltDetail?.rejectedVerfasser === null,
-    JSON.stringify(agzAltDetail && { at: agzAltDetail.rejected_at, grund: agzAltDetail.rejected_reason,
-                                     actor: agzAltDetail.rejectedVerfasser }));
+    agzAltDetail?.rejected_reason === null && agzAltDetail?.rejectedAuthor === null,
+    JSON.stringify(agzAltDetail && { at: agzAltDetail.rejected_at, reason: agzAltDetail.rejected_reason,
+                                     actor: agzAltDetail.rejectedAuthor }));
   pruefe('Und der Ablehnende faellt nicht an den Einspielenden',
-    agzAltDetail?.rejectedVerfasser === null, JSON.stringify(agzAltDetail?.rejectedVerfasser));
+    agzAltDetail?.rejectedAuthor === null, JSON.stringify(agzAltDetail?.rejectedAuthor));
 
   await AGZ.stopp();
   fs.rmSync(agZielDir, { recursive: true, force: true });
@@ -8898,15 +8898,15 @@ const freigabeHaupt = (purpose, target = null) =>
 
   // ERST DER GEGENSTAND (Stolperstein 81): ohne eine Begruendung in der Zeile
   // belegt kein Entfernen darunter etwas.
-  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Lieferzeit über 6 Monate' });
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Lieferzeit über 6 Monate' });
   pruefe('Die Begruendung steht vor dem Entfernen wirklich da',
     agZeile().rejected_reason === 'Lieferzeit über 6 Monate' && agZeile().rejected_by === 3,
     JSON.stringify(agZeile()));
 
   /* ---- DIE FREMDE KOMMT NICHT DURCH, und zwar schon an der ERSTEN Klemme:
-     `rejectedGrund` steht in NUR_VERFASSER_FELDER, und dora darf den Eintrag
+     `rejectedReason` steht in AUTHOR_ONLY_FIELDS, und dora darf den Eintrag
      gar nicht aendern. Ohne diese Zeile stuende das Entfernen jedem offen. */
-  const agWegDora = await agRuf('cookie-ag-dora', 'PUT', '/api/items/1', { rejectedGrund: '' });
+  const agWegDora = await agRuf('cookie-ag-dora', 'PUT', '/api/items/1', { rejectedReason: '' });
   pruefe('Eine Fremde entfernt die Begruendung nicht',
     agWegDora.status === 403, JSON.stringify(agWegDora));
   pruefe('Und der Text steht danach unveraendert da',
@@ -8914,7 +8914,7 @@ const freigabeHaupt = (purpose, target = null) =>
 
   /* ---- DER FREMDE ADMIN ENTFERNT -- das ist die Entscheidung dieser Runde.
      Bis 0.14.0 war genau das ein 403. */
-  const agWegAnna = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1', { rejectedGrund: '' });
+  const agWegAnna = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1', { rejectedReason: '' });
   pruefe('Ein Admin entfernt eine fremde Begruendung',
     agWegAnna.status === 200, JSON.stringify(agWegAnna));
   pruefe('Und der Text ist danach wirklich weg',
@@ -8931,14 +8931,14 @@ const freigabeHaupt = (purpose, target = null) =>
      carla danach eine neue Begruendung schreiben -- anna, die geloescht hat,
      dagegen nicht. Das ist "Loeschen ja, umschreiben nein" in Reinform. ---- */
   const agNeuAnna = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1',
-    { rejectedGrund: 'Vom Admin nachgeschoben' });
+    { rejectedReason: 'Vom Admin nachgeschoben' });
   pruefe('Wer entfernt hat, darf danach trotzdem keine neue schreiben',
     agNeuAnna.status === 403 && agZeile().rejected_reason === '',
     JSON.stringify([agNeuAnna.status, agZeile().rejected_reason]));
   pruefe('Die Absage sagt weiterhin, dass nur der Verfasser aendert',
     /nur, wer es geschrieben hat/.test(agNeuAnna.inhalt?.error || ''), agNeuAnna.inhalt?.error);
   const agNeuCarla = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
-    { rejectedGrund: 'Neu von der Ablehnenden' });
+    { rejectedReason: 'Neu von der Ablehnenden' });
   pruefe('Die Ablehnende schreibt danach sehr wohl eine neue',
     agNeuCarla.status === 200 && agZeile().rejected_reason === 'Neu von der Ablehnenden',
     JSON.stringify([agNeuCarla.status, agZeile().rejected_reason]));
@@ -8948,19 +8948,19 @@ const freigabeHaupt = (purpose, target = null) =>
      eine nichts ueber die andere: bert laeuft durch darfAendern und faellt an
      nurSelbst. ---- */
   const agUmBert = await agRuf('cookie-ag-bert', 'PUT', '/api/items/1',
-    { rejectedGrund: 'Von Bert umgeschrieben' });
+    { rejectedReason: 'Von Bert umgeschrieben' });
   pruefe('Der Verfasser des Eintrags schreibt die fremde Begruendung nicht um',
     agUmBert.status === 403 && agZeile().rejected_reason === 'Neu von der Ablehnenden',
     JSON.stringify([agUmBert.status, agZeile().rejected_reason]));
-  const agWegBert = await agRuf('cookie-ag-bert', 'PUT', '/api/items/1', { rejectedGrund: '' });
+  const agWegBert = await agRuf('cookie-ag-bert', 'PUT', '/api/items/1', { rejectedReason: '' });
   pruefe('Entfernen darf er sie sehr wohl',
     agWegBert.status === 200 && agZeile().rejected_reason === '',
     JSON.stringify([agWegBert.status, agZeile().rejected_reason]));
 
   /* ---- DIE ABLEHNENDE ENTFERNT IHRE EIGENE -- der dritte Zugang, und er
      stand nie in Frage. Ohne ihn belegte die Gruppe nur die Ausnahmen. ---- */
-  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Noch einmal von carla' });
-  const agWegCarla = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: '' });
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Noch einmal von carla' });
+  const agWegCarla = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: '' });
   pruefe('Die Ablehnende entfernt ihre eigene Begruendung',
     agWegCarla.status === 200 && agZeile().rejected_reason === '',
     JSON.stringify([agWegCarla.status, agZeile().rejected_reason]));
@@ -8969,8 +8969,8 @@ const freigabeHaupt = (purpose, target = null) =>
      ROHWERT. Ein Rumpf aus lauter Leerzeichen ist nach dem Einebnen leer und
      damit ein Entfernen -- laeuft die Unterscheidung stattdessen am rohen
      String, faellt anna hier auf 403. ---- */
-  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Vor dem Leerraum' });
-  const agWegRaum = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1', { rejectedGrund: '  \n  ' });
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Vor dem Leerraum' });
+  const agWegRaum = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1', { rejectedReason: '  \n  ' });
   pruefe('Ein Rumpf aus lauter Leerraum gilt als Entfernen',
     agWegRaum.status === 200 && agZeile().rejected_reason === '',
     JSON.stringify([agWegRaum.status, agZeile().rejected_reason]));
@@ -8988,13 +8988,13 @@ const freigabeHaupt = (purpose, target = null) =>
               "rejected_reason = NULL WHERE id = 2").run();
     d.close();
   }
-  const agLeerAlt = await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedGrund: '   ' });
+  const agLeerAlt = await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedReason: '   ' });
   pruefe('Ein Entfernen an einer herrenlosen Ablehnung macht niemanden zum Verfasser',
     agLeerAlt.status === 200 && agZeile(2).rejected_by === null &&
     agZeile(2).rejected_reason === '', JSON.stringify(agZeile(2)));
   /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: derselbe Zugang,
      derselbe Eintrag, aber mit TEXT -- dann wird er sehr wohl Verfasser. */
-  const agTextAlt = await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedGrund: 'Von anna nachgetragen' });
+  const agTextAlt = await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedReason: 'Von anna nachgetragen' });
   pruefe('Wer aber einen Text nachtraegt, wird sein Verfasser',
     agTextAlt.status === 200 && agZeile(2).rejected_by === 1 &&
     agZeile(2).rejected_reason === 'Von anna nachgetragen', JSON.stringify(agZeile(2)));
@@ -9005,7 +9005,7 @@ const freigabeHaupt = (purpose, target = null) =>
      einem Grabstein ginge das gar nicht.
      BEIDE STELLUNGEN JEDES SCHALTERS, sonst belegt die Gruppe nichts: derselbe
      Eintrag, aus drei Blickwinkeln. ---- */
-  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Fuer die zwei Angaben' });
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Fuer die zwei Angaben' });
   const agSichtCarla = (await agRuf('cookie-ag-carla', 'GET', '/api/items/1')).inhalt;
   const agSichtBert = (await agRuf('cookie-ag-bert', 'GET', '/api/items/1')).inhalt;
   const agSichtDora = (await agRuf('cookie-ag-dora', 'GET', '/api/items/1')).inhalt;
@@ -9027,7 +9027,7 @@ const freigabeHaupt = (purpose, target = null) =>
   /* UND AN EINER ABLEHNUNG OHNE VERFASSER IST rejectedMine FALSE UND NICHT
      NULL: eine Begruendung, die niemandem gehoert, gehoert auch mir nicht. */
   const agSichtAlt = (await agRuf('cookie-ag-carla', 'GET', '/api/items/2')).inhalt;
-  await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedGrund: '' });
+  await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedReason: '' });
   {
     const d = oeffne(path.join(agDir, 'katalog.sqlite'));
     d.prepare('UPDATE items SET rejected_by = NULL WHERE id = 2').run();
@@ -9035,14 +9035,14 @@ const freigabeHaupt = (purpose, target = null) =>
   }
   const agSichtHerrenlos = (await agRuf('cookie-ag-carla', 'GET', '/api/items/2')).inhalt;
   pruefe('Ohne Ablehnenden steht rejectedMine auf false und nicht auf null',
-    agSichtHerrenlos?.rejectedMine === false && agSichtHerrenlos?.rejectedVerfasser === null,
-    JSON.stringify([agSichtHerrenlos?.rejectedMine, agSichtHerrenlos?.rejectedVerfasser]));
+    agSichtHerrenlos?.rejectedMine === false && agSichtHerrenlos?.rejectedAuthor === null,
+    JSON.stringify([agSichtHerrenlos?.rejectedMine, agSichtHerrenlos?.rejectedAuthor]));
   pruefe('Und mit Ablehnendem trug dieselbe Zeile sehr wohl einen Verfasser',
-    agSichtAlt?.rejectedVerfasser?.id === 1, JSON.stringify(agSichtAlt?.rejectedVerfasser));
+    agSichtAlt?.rejectedAuthor?.id === 1, JSON.stringify(agSichtAlt?.rejectedAuthor));
 
   // Die Zeile geht in dem Stand weiter, in dem die Gruppe von 0.14.0 sie
   // uebernimmt -- die Pruefung am Grabstein darunter liest genau diesen Text.
-  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Lieferzeit über 6 Monate' });
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Lieferzeit über 6 Monate' });
 
   /* ---------------------------------------------------------------- */
   gruppe('Die Entscheidung wird mitgeschrieben — 0.14.0');
@@ -9057,8 +9057,8 @@ const freigabeHaupt = (purpose, target = null) =>
   }
   const agGrab = (await agRuf('cookie-ag-bert', 'GET', '/api/items/1')).inhalt;
   pruefe('Am Grabstein steht die Nummer und kein Name',
-    agGrab?.rejectedVerfasser?.geloescht === true && agGrab?.rejectedVerfasser?.name === null &&
-    agGrab?.rejectedVerfasser?.id === 3, JSON.stringify(agGrab?.rejectedVerfasser));
+    agGrab?.rejectedAuthor?.deleted === true && agGrab?.rejectedAuthor?.name === null &&
+    agGrab?.rejectedAuthor?.id === 3, JSON.stringify(agGrab?.rejectedAuthor));
   pruefe('Und der freigegebene Grabsteinname geht nicht hinaus',
     !/deleted-3/.test(JSON.stringify(agGrab)), 'deleted-3 steht in der Antwort');
   pruefe('Die Begruendung selbst bleibt dabei stehen',
@@ -9135,7 +9135,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const sbWechsel = await sbRuf('cookie-sb-anna-zwei', 'PUT', '/api/account',
     { oldPassword: 'annas-langes-wort', username: 'anna', newPassword: 'annas-neues-wort' });
   pruefe('Die Eigentuemerin wechselt ihr Passwort',
-    sbWechsel.status === 200 && sbWechsel.inhalt?.passwortGewechselt === true,
+    sbWechsel.status === 200 && sbWechsel.inhalt?.passwordChanged === true,
     JSON.stringify(sbWechsel.inhalt));
   pruefe('Ihre andere Sitzung faellt',
     sbZeilen('SELECT token FROM sessions WHERE user_id = 1').length === 1,
@@ -9311,9 +9311,9 @@ const freigabeHaupt = (purpose, target = null) =>
       opt.body = JSON.stringify(koerper);
     }
     const a = await fetch(TK.basis + pfad, opt);
-    let inhalt = null, roh = '';
-    try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
-    return { status: a.status, inhalt, roh, cookie: (a.headers.get('set-cookie') || '') };
+    let inhalt = null, raw = '';
+    try { raw = await a.text(); inhalt = JSON.parse(raw); } catch {}
+    return { status: a.status, inhalt, raw, cookie: (a.headers.get('set-cookie') || '') };
   };
   /* Der Rufer mit Freigabe -- einer je Cookie. Wo die Rollenleiter absagt,
      kommt die Bestaetigungsfrage gar nicht erst dran; die Freigabe bleibt dann
@@ -9331,9 +9331,9 @@ const freigabeHaupt = (purpose, target = null) =>
     { username: 'neuling', einladen: true });
   pruefe('Der Admin legt einen Zugang mit Einladung an',
     tkNeu.status === 200 && tkNeu.inhalt?.username === 'neuling',
-    `${tkNeu.status} ${tkNeu.roh}`);
+    `${tkNeu.status} ${tkNeu.raw}`);
   pruefe('Und die Antwort sagt, dass er noch kein Passwort hat',
-    tkNeu.inhalt?.ohnePasswort === true, JSON.stringify(tkNeu.inhalt));
+    tkNeu.inhalt?.withoutPassword === true, JSON.stringify(tkNeu.inhalt));
   pruefe('Der Zugang steht in der Datenbank mit LEEREM Hash',
     tkZeilen("SELECT password_hash h FROM users WHERE username = 'neuling'")[0]?.h === '',
     JSON.stringify(tkZeilen("SELECT username, password_hash FROM users WHERE username = 'neuling'")));
@@ -9341,33 +9341,33 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Die Antwort traegt einen Schluessel aus 32 Zufallsbytes',
     /^[0-9a-f]{64}$/.test(tkLink), JSON.stringify(tkLink));
   pruefe('Und sie nennt die Frist von sieben Tagen',
-    tkNeu.inhalt?.tage === 7, JSON.stringify(tkNeu.inhalt?.tage));
+    tkNeu.inhalt?.days === 7, JSON.stringify(tkNeu.inhalt?.days));
 
   // 2. Der Link fuehrt zum Formular -- und nennt dabei den Namen.
   const tkPruef = await tkRuf(null, 'POST', '/api/token/check', { token: tkLink });
   pruefe('Der Link fuehrt zum Formular',
     tkPruef.status === 200 && tkPruef.inhalt?.username === 'neuling',
-    `${tkPruef.status} ${tkPruef.roh}`);
+    `${tkPruef.status} ${tkPruef.raw}`);
   pruefe('Und das Formular weiss, dass noch kein Passwort dasteht',
-    tkPruef.inhalt?.ohnePasswort === true, JSON.stringify(tkPruef.inhalt));
+    tkPruef.inhalt?.withoutPassword === true, JSON.stringify(tkPruef.inhalt));
   pruefe('Der Mindestwert kommt vom Server, nicht aus der Oberflaeche',
     tkPruef.inhalt?.minPassword === 10, JSON.stringify(tkPruef.inhalt?.minPassword));
 
   // 3. Der Mindestwert gilt auch auf diesem Weg -- die Regel ist alt, der Weg neu.
   const tkKurz = await tkRuf(null, 'POST', '/api/token/redeem',
-    { token: tkLink, passwort: 'kurz' });
+    { token: tkLink, password: 'kurz' });
   pruefe('Ein zu kurzes Passwort wird auch ueber den Link abgewiesen',
     tkKurz.status === 400 && /mindestens 10/.test(tkKurz.inhalt?.error || ''),
-    `${tkKurz.status} ${tkKurz.roh}`);
+    `${tkKurz.status} ${tkKurz.raw}`);
   pruefe('Und der Link ist danach noch nicht verbraucht',
     tkZeilen("SELECT used_at b FROM tokens WHERE user_id = (SELECT id FROM users WHERE username='neuling')")[0]?.b === null,
     JSON.stringify(tkZeilen('SELECT used_at FROM tokens')));
 
   // 4. Das Passwort wird gesetzt.
   const tkLoes = await tkRuf(null, 'POST', '/api/token/redeem',
-    { token: tkLink, passwort: 'neulings-passwort' });
+    { token: tkLink, password: 'neulings-passwort' });
   pruefe('Das Passwort wird ueber den Link gesetzt',
-    tkLoes.status === 200 && tkLoes.inhalt?.ok === true, `${tkLoes.status} ${tkLoes.roh}`);
+    tkLoes.status === 200 && tkLoes.inhalt?.ok === true, `${tkLoes.status} ${tkLoes.raw}`);
   pruefe('Und wer einloest, ist damit gleich angemeldet',
     /kriterion_session=[0-9a-f]{64}/.test(tkLoes.cookie), JSON.stringify(tkLoes.cookie));
   pruefe('Der Hash steht jetzt in der Datenbank',
@@ -9378,13 +9378,13 @@ const freigabeHaupt = (purpose, target = null) =>
   const tkAn = await tkRuf(null, 'POST', '/api/login',
     { user: 'neuling', password: 'neulings-passwort' });
   pruefe('Die Anmeldung mit dem neuen Passwort gelingt',
-    tkAn.status === 200, `${tkAn.status} ${tkAn.roh}`);
+    tkAn.status === 200, `${tkAn.status} ${tkAn.raw}`);
 
   // 6. DERSELBE LINK EIN ZWEITES MAL.
   const tkZweimal = await tkRuf(null, 'POST', '/api/token/redeem',
-    { token: tkLink, passwort: 'ein-anderes-passwort' });
+    { token: tkLink, password: 'ein-anderes-passwort' });
   pruefe('Derselbe Link ein zweites Mal gelingt NICHT',
-    tkZweimal.status === 400, `${tkZweimal.status} ${tkZweimal.roh}`);
+    tkZweimal.status === 400, `${tkZweimal.status} ${tkZweimal.raw}`);
   pruefe('Und das erste Passwort steht unveraendert',
     (await tkRuf(null, 'POST', '/api/login',
       { user: 'neuling', password: 'neulings-passwort' })).status === 200,
@@ -9442,7 +9442,7 @@ const freigabeHaupt = (purpose, target = null) =>
                               ['der eigene Zugang', '/api/account']]) {
     const a = await tkRuf('cookie-tk-anna', 'GET', pfad);
     pruefe(`Der Schluessel steht nicht in der Antwort: ${name}`,
-      a.status === 200 && !a.roh.includes(tkGeheim), `${a.status} ${a.roh.slice(0, 160)}`);
+      a.status === 200 && !a.raw.includes(tkGeheim), `${a.status} ${a.raw.slice(0, 160)}`);
   }
 
   /* ---------------------------------------------------------------- */
@@ -9486,10 +9486,10 @@ const freigabeHaupt = (purpose, target = null) =>
     /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(tkWeg || ''), JSON.stringify(tkWeg));
   const tkAbgelaufen = await tkRuf(null, 'POST', '/api/token/check', { token: tkGeheim });
   pruefe('Eine Sekunde nach Ablauf traegt er nicht mehr',
-    tkAbgelaufen.status === 400, `${tkAbgelaufen.status} ${tkAbgelaufen.roh}`);
+    tkAbgelaufen.status === 400, `${tkAbgelaufen.status} ${tkAbgelaufen.raw}`);
   pruefe('Und einloesen laesst er sich erst recht nicht',
     (await tkRuf(null, 'POST', '/api/token/redeem',
-      { token: tkGeheim, passwort: 'abgelaufenes-passwort' })).status === 400,
+      { token: tkGeheim, password: 'abgelaufenes-passwort' })).status === 400,
     'ein abgelaufener Link setzt noch ein Passwort');
   pruefe('doras Passwort steht danach unveraendert',
     (await tkRuf(null, 'POST', '/api/login', { user: 'dora', password: TK_PASSWORT })).status === 200,
@@ -9595,7 +9595,7 @@ const freigabeHaupt = (purpose, target = null) =>
     const frErst = await FR.ruf('POST', '/api/token/check', { token: frToken });
     pruefe('Das erste Oeffnen traegt', frErst.status === 200, `Status ${frErst.status}`);
     pruefe('Und die Antwort nennt die Frist als Zahl',
-      frErst.inhalt?.minuten === 15, JSON.stringify(frErst.inhalt?.minuten));
+      frErst.inhalt?.minutes === 15, JSON.stringify(frErst.inhalt?.minutes));
     const frNachErst = frAblauf();
     pruefe('Der Ablauf ist damit auf fuenfzehn Minuten heruntergeschrieben',
       Math.abs(frMinuten(frNachErst) - 15) < 1, `${frNachErst} — ${frMinuten(frNachErst).toFixed(1)} Minuten`);
@@ -9639,23 +9639,23 @@ const freigabeHaupt = (purpose, target = null) =>
       !/Minute|Frist/i.test(frAb.inhalt?.error || ''), JSON.stringify(frAb.inhalt?.error));
     pruefe('Einloesen laesst er sich danach erst recht nicht',
       (await FR.ruf('POST', '/api/token/redeem',
-        { token: frToken, passwort: 'verspaetetes-passwort' })).status === 400,
+        { token: frToken, password: 'verspaetetes-passwort' })).status === 400,
       'ein Link nach der Frist setzt noch ein Passwort');
 
     /* DER ZUGANG BLEIBT STEHEN. Wer die Frist verstreichen laesst, holt sich
        einen neuen Link -- der Zugang selbst wird nicht abgeraeumt. Einen vom
        Admin bereits angelegten Zugang wegen eines abgelaufenen Zeitgebers zu
        entfernen waere die haertere und ueberraschendere Wahl. */
-    const frListe = (await FR.ruf('GET', '/api/users')).inhalt?.zugaenge || [];
+    const frListe = (await FR.ruf('GET', '/api/users')).inhalt?.users || [];
     const frBert = frListe.find(z => z.username === 'bert');
     pruefe('Der Zugang steht danach unveraendert da',
-      Boolean(frBert) && frBert.status === 'active' && frBert.ohnePasswort === true,
+      Boolean(frBert) && frBert.status === 'active' && frBert.withoutPassword === true,
       JSON.stringify(frBert));
     /* UND EIN NEUER LINK TRAEGT WIEDER SIEBEN TAGE. Ohne diese Zeile bliebe
        offen, ob die heruntergeschriebene Frist an der ZEILE klebt oder am
        Mechanismus -- und der zweite Fall waere ein stiller Schaden. */
     await FR.ruf('POST', '/api/confirm',
-      { passwort: 'annas-langes-wort', purpose: 'link', target: frBert.id });
+      { password: 'annas-langes-wort', purpose: 'link', target: frBert.id });
     const frWieder = await FR.ruf('POST', `/api/users/${frBert.id}/token`, { purpose: 'invite' });
     pruefe('Ein neuer Link traegt wieder sieben Tage',
       frWieder.status === 200 && Math.abs(frMinuten(frAblauf()) - 7 * 24 * 60) < 30,
@@ -9683,7 +9683,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const tkBenutztLink = (await tkF('cookie-tk-anna')('POST', '/api/users/5/token',
     { purpose: 'invite' })).inhalt?.token || '';
   await tkRuf(null, 'POST', '/api/token/redeem',
-    { token: tkBenutztLink, passwort: 'ernas-passwort-1' });
+    { token: tkBenutztLink, password: 'ernas-passwort-1' });
   /* DIE BEIDEN LAGEN "locked" UND "Grabstein" WERDEN VON HAND GESETZT, und
      das ist kein Kunstgriff, sondern die einzige Art, sie ueberhaupt zu
      erreichen: das Sperren und das Entfernen raeumen die offenen Links selbst
@@ -9722,17 +9722,17 @@ const freigabeHaupt = (purpose, target = null) =>
                               ['erfunden', 'f'.repeat(64)], ['zu einem gesperrten Zugang', tkGesperrtLink],
                               ['zu einem Grabstein', tkGrabsteinLink], ['leer', '']]) {
     const a = await tkRuf(null, 'POST', '/api/token/check', { token: wert });
-    tkAbsagen.push({ name, status: a.status, roh: a.roh });
-    pruefe(`Abgewiesen wird: ${name}`, a.status === 400, `${a.status} ${a.roh}`);
+    tkAbsagen.push({ name, status: a.status, raw: a.raw });
+    pruefe(`Abgewiesen wird: ${name}`, a.status === 400, `${a.status} ${a.raw}`);
   }
   pruefe('Und alle sechs Absagen sind WORTGLEICH',
-    new Set(tkAbsagen.map(a => a.roh)).size === 1,
-    tkAbsagen.map(a => `${a.name}: ${a.roh}`).join(' · '));
+    new Set(tkAbsagen.map(a => a.raw)).size === 1,
+    tkAbsagen.map(a => `${a.name}: ${a.raw}`).join(' · '));
   pruefe('Auch der Statuscode ist derselbe',
     new Set(tkAbsagen.map(a => a.status)).size === 1,
     tkAbsagen.map(a => `${a.name}: ${a.status}`).join(' · '));
   pruefe('Die Absage nennt das Heilmittel',
-    /beim Admin einen neuen/.test(tkAbsagen[0].roh), tkAbsagen[0].roh);
+    /beim Admin einen neuen/.test(tkAbsagen[0].raw), tkAbsagen[0].raw);
   /* UND DIE GEGENPROBE ZUR PRUEFUNG SELBST: sie darf nicht deshalb gruen
      sein, weil alle Antworten leer sind (Stolperstein 81). Der ERFOLGSFALL
      daneben sieht anders aus -- und nennt den Namen. */
@@ -9740,11 +9740,11 @@ const freigabeHaupt = (purpose, target = null) =>
     { purpose: 'reset' })).inhalt?.token || '';
   const tkGutAntwort = await tkRuf(null, 'POST', '/api/token/check', { token: tkGut });
   pruefe('Der Erfolgsfall daneben sieht anders aus',
-    tkGutAntwort.status === 200 && tkGutAntwort.roh !== tkAbsagen[0].roh,
-    `${tkGutAntwort.status} ${tkGutAntwort.roh}`);
+    tkGutAntwort.status === 200 && tkGutAntwort.raw !== tkAbsagen[0].raw,
+    `${tkGutAntwort.status} ${tkGutAntwort.raw}`);
   pruefe('Und erst DANN steht der Benutzername in der Antwort',
-    tkGutAntwort.roh.includes('carla') && !tkAbsagen.some(a => a.roh.includes('carla')),
-    `${tkGutAntwort.roh} gegen ${tkAbsagen[0].roh}`);
+    tkGutAntwort.raw.includes('carla') && !tkAbsagen.some(a => a.raw.includes('carla')),
+    `${tkGutAntwort.raw} gegen ${tkAbsagen[0].raw}`);
   await tkRuf('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'active' });
   /* DIE VON HAND GESETZTEN ZEILEN WERDEN AUCH VON HAND WIEDER WEGGERAEUMT.
      Das Freigeben nimmt sie nicht mit -- nur das Sperren tut das --, und die
@@ -9799,9 +9799,9 @@ const freigabeHaupt = (purpose, target = null) =>
     'einer der beiden traegt schon vorher nicht');
 
   const tkEinl = await tkRuf(null, 'POST', '/api/token/redeem',
-    { token: tkErnaZwei, passwort: 'ernas-passwort-2' });
+    { token: tkErnaZwei, password: 'ernas-passwort-2' });
   pruefe('Der zweite Link wird eingeloest',
-    tkEinl.status === 200, `${tkEinl.status} ${tkEinl.roh}`);
+    tkEinl.status === 200, `${tkEinl.status} ${tkEinl.raw}`);
   pruefe('Ernas erste Sitzung wird danach WIRKLICH abgewiesen',
     (await tkRuf('cookie-tk-erna-1', 'GET', '/api/account')).status === 401,
     'die alte Sitzung traegt noch');
@@ -9874,7 +9874,7 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Ein Zugang ohne Passwort ist angelegt',
     tkOhne.status === 200 &&
     tkZeilen("SELECT password_hash h FROM users WHERE username='stumm'")[0]?.h === '',
-    `${tkOhne.status} ${tkOhne.roh}`);
+    `${tkOhne.status} ${tkOhne.raw}`);
   for (const [name, wert] of [['dem leeren', ''], ['einem Leerzeichen', ' '],
                               ['irgendeinem', 'irgendetwas12'],
                               ['dem Wert aus dem Feld', ''],
@@ -9883,7 +9883,7 @@ const freigabeHaupt = (purpose, target = null) =>
     const a = await tkRuf(null, 'POST', '/api/login',
       wert === undefined ? { user: 'stumm' } : { user: 'stumm', password: wert });
     pruefe(`Die Anmeldung scheitert mit ${name} Passwort`,
-      a.status === 401, `${a.status} ${a.roh}`);
+      a.status === 401, `${a.status} ${a.raw}`);
   }
   /* DER ERFOLGSFALL DANEBEN (Stolperstein 81): ohne ihn belegte die Reihe
      oben nur, dass sich ueberhaupt niemand anmelden kann. */
@@ -9894,22 +9894,22 @@ const freigabeHaupt = (purpose, target = null) =>
      Hash, nicht aus einem neuen Wert in status. Am GRABSTEIN steht dieselbe
      Ableitung -- und er wird trotzdem nicht als "eingeladen" gelesen, weil
      status ihn unterscheidet. */
-  const tkListe = (await tkRuf('cookie-tk-anna', 'GET', '/api/users')).inhalt?.zugaenge || [];
+  const tkListe = (await tkRuf('cookie-tk-anna', 'GET', '/api/users')).inhalt?.users || [];
   const tkFind = (n) => tkListe.find(z => z.username === n) || {};
   pruefe('Die Liste ist ueberhaupt gefuellt',
     tkListe.length >= 6, `${tkListe.length} Zeilen`);
   pruefe('Der eingeladene Zugang traegt ohnePasswort',
-    tkFind('stumm').ohnePasswort === true, JSON.stringify(tkFind('stumm')));
+    tkFind('stumm').withoutPassword === true, JSON.stringify(tkFind('stumm')));
   pruefe('Ein Zugang mit Passwort traegt es nicht',
-    tkFind('dora').ohnePasswort === false, JSON.stringify(tkFind('dora')));
+    tkFind('dora').withoutPassword === false, JSON.stringify(tkFind('dora')));
   pruefe('Der Grabstein traegt es auch -- und bleibt ueber status unterschieden',
-    tkFind('deleted-6').ohnePasswort === true && tkFind('deleted-6').status === 'deleted',
+    tkFind('deleted-6').withoutPassword === true && tkFind('deleted-6').status === 'deleted',
     JSON.stringify(tkFind('deleted-6')));
   pruefe('Und status kennt weiterhin nur die drei bekannten Werte',
     [...new Set(tkListe.map(z => z.status))].every(w => ['active', 'locked', 'deleted'].includes(w)),
     JSON.stringify([...new Set(tkListe.map(z => z.status))]));
   pruefe('Der Hash selbst steht in keiner Zeile der Antwort',
-    !(await tkRuf('cookie-tk-anna', 'GET', '/api/users')).roh.includes('password_hash'),
+    !(await tkRuf('cookie-tk-anna', 'GET', '/api/users')).raw.includes('password_hash'),
     'die Antwort traegt den Hash');
 
   /* ---------------------------------------------------------------- */
@@ -9929,12 +9929,12 @@ const freigabeHaupt = (purpose, target = null) =>
   const tkAnnaDarf = await tkF('cookie-tk-anna')('POST', '/api/users/4/token', { purpose: 'reset' });
   pruefe('Die Eigentuemerin darf einen Benutzer einladen',
     tkAnnaDarf.status === 200 && /^[0-9a-f]{64}$/.test(tkAnnaDarf.inhalt?.token || ''),
-    `${tkAnnaDarf.status} ${tkAnnaDarf.roh}`);
+    `${tkAnnaDarf.status} ${tkAnnaDarf.raw}`);
   pruefe('Und die Zeile ist wirklich geschrieben',
     tkOffen() === tkVorher + 1, `${tkVorher} -> ${tkOffen()}`);
   const tkBertDarf = await tkF('cookie-tk-bert')('POST', '/api/users/4/token', { purpose: 'reset' });
   pruefe('Ein Admin ohne Eigentuemerrolle darf einen Benutzer ebenfalls',
-    tkBertDarf.status === 200, `${tkBertDarf.status} ${tkBertDarf.roh}`);
+    tkBertDarf.status === 200, `${tkBertDarf.status} ${tkBertDarf.raw}`);
 
   /* Die Verweigerungen. Nach JEDER wird nachgesehen, dass die Zahl der
      offenen Zeilen unveraendert steht -- eine Absage, die die halbe
@@ -9947,7 +9947,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const tkNichts = async (name, cookieWert, pfad, koerper, erwartet) => {
     const vorher = tkOffen();
     const a = await tkF(cookieWert)('POST', pfad, koerper);
-    pruefe(name, a.status === erwartet, `${a.status} statt ${erwartet}: ${a.roh}`);
+    pruefe(name, a.status === erwartet, `${a.status} statt ${erwartet}: ${a.raw}`);
     pruefe(`Und dabei wurde nichts geschrieben: ${name}`,
       tkOffen() === vorher, `${vorher} -> ${tkOffen()}`);
   };
@@ -9983,7 +9983,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const tkAnnaAnAdmin = await tkF('cookie-tk-anna')('POST', '/api/users/2/token',
     { purpose: 'reset' });
   pruefe('An einen Admin kommt der Eigentuemer der Instanz',
-    tkAnnaAnAdmin.status === 200, `${tkAnnaAnAdmin.status} ${tkAnnaAnAdmin.roh}`);
+    tkAnnaAnAdmin.status === 200, `${tkAnnaAnAdmin.status} ${tkAnnaAnAdmin.raw}`);
 
   /* Dieselbe Frage am ANLEGEWEG: ein Admin darf einen Benutzer anlegen und
      einladen, eine Rolle vergeben darf er nicht -- sonst waere die Rollen-
@@ -9993,12 +9993,12 @@ const freigabeHaupt = (purpose, target = null) =>
     { username: 'berts-neuer', einladen: true });
   pruefe('Ein Admin legt einen Benutzer mit Einladung an',
     tkBertLegtAn.status === 200 && /^[0-9a-f]{64}$/.test(tkBertLegtAn.inhalt?.token || ''),
-    `${tkBertLegtAn.status} ${tkBertLegtAn.roh}`);
+    `${tkBertLegtAn.status} ${tkBertLegtAn.raw}`);
   const tkVorAdmin = tkOffen();
   const tkBertAdmin = await tkRuf('cookie-tk-bert', 'POST', '/api/users',
     { username: 'berts-admin', rolle: 'admin', einladen: true });
   pruefe('Aber keinen Admin -- Rollen vergibt der Eigentuemer',
-    tkBertAdmin.status === 403, `${tkBertAdmin.status} ${tkBertAdmin.roh}`);
+    tkBertAdmin.status === 403, `${tkBertAdmin.status} ${tkBertAdmin.raw}`);
   pruefe('Und dabei entsteht weder Zugang noch Link',
     tkOffen() === tkVorAdmin &&
     tkZeilen("SELECT id FROM users WHERE username = 'berts-admin'").length === 0,
@@ -10007,13 +10007,13 @@ const freigabeHaupt = (purpose, target = null) =>
     { username: 'annas-admin', rolle: 'admin', einladen: true });
   pruefe('Die Eigentuemerin darf es',
     tkAnnaAdmin.status === 200 && tkAnnaAdmin.inhalt?.role === 'admin',
-    `${tkAnnaAdmin.status} ${tkAnnaAdmin.roh}`);
+    `${tkAnnaAdmin.status} ${tkAnnaAdmin.raw}`);
   /* Und der Weg ohne Einladung bleibt, wie er war: ein vergessenes
      Passwortfeld legt KEINEN Zugang ohne Passwort an, sondern scheitert. */
   const tkVergessen = await tkRuf('cookie-tk-anna', 'POST', '/api/users', { username: 'vergessen' });
   pruefe('Ein vergessenes Passwortfeld scheitert weiter wie bisher',
     tkVergessen.status === 400 && /mindestens 10/.test(tkVergessen.inhalt?.error || ''),
-    `${tkVergessen.status} ${tkVergessen.roh}`);
+    `${tkVergessen.status} ${tkVergessen.raw}`);
   pruefe('Und legt keinen Zugang ohne Passwort an',
     tkZeilen("SELECT id FROM users WHERE username = 'vergessen'").length === 0,
     'der Zugang ist doch entstanden');
@@ -10054,9 +10054,9 @@ const freigabeHaupt = (purpose, target = null) =>
       opt.body = JSON.stringify(koerper);
     }
     const a = await fetch(TB.basis + pfad, opt);
-    let roh = '';
-    try { roh = await a.text(); } catch {}
-    return { status: a.status, roh };
+    let raw = '';
+    try { raw = await a.text(); } catch {}
+    return { status: a.status, raw };
   };
 
   // Ein gueltiger Link, damit der Erfolgsfall daneben steht.
@@ -10064,9 +10064,9 @@ const freigabeHaupt = (purpose, target = null) =>
      darunter: die Bremse zaehlt je Adresse, und eine Bestaetigung nach dem
      elften Versuch kaeme selbst nicht mehr durch. */
   await tbRuf('cookie-tb-anna', 'POST', '/api/confirm',
-    { passwort: tbWort, purpose: 'link', target: 2 });
+    { password: tbWort, purpose: 'link', target: 2 });
   const tbGut = JSON.parse((await tbRuf('cookie-tb-anna', 'POST', '/api/users/2/token',
-    { purpose: 'invite' })).roh || '{}').token || '';
+    { purpose: 'invite' })).raw || '{}').token || '';
   pruefe('Ein gueltiger Link liegt vor',
     /^[0-9a-f]{64}$/.test(tbGut), JSON.stringify(tbGut));
 
@@ -10090,11 +10090,11 @@ const freigabeHaupt = (purpose, target = null) =>
     'die Bremse laesst den gueltigen Link durch');
   pruefe('Auch das Einloesen steht hinter derselben Bremse',
     (await tbRuf(null, 'POST', '/api/token/redeem',
-      { token: tbGut, passwort: 'ein-gutes-passwort' })).status === 429,
+      { token: tbGut, password: 'ein-gutes-passwort' })).status === 429,
     'das Einloesen laeuft an der Bremse vorbei');
   pruefe('Und die Sperre nennt die verbleibende Zeit',
     /Sekunden erneut/.test((await tbRuf(null, 'POST', '/api/token/check',
-      { token: tbGut })).roh), 'die Sperre sagt nicht, wie lange');
+      { token: tbGut })).raw), 'die Sperre sagt nicht, wie lange');
   /* DIE ANMELDUNG STEHT HINTER DEMSELBEN ZAEHLER -- die IP-Haelfte ist EINE,
      und das gehoert belegt: sonst waere die neue Route ein Umweg, der den
      Zaehler der Anmeldung gar nicht beruehrt. */
@@ -10145,9 +10145,9 @@ const freigabeHaupt = (purpose, target = null) =>
   const msRuf = async (cookieWert, methode, pfad) => {
     const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
     const a = await fetch(MS.basis + pfad, opt);
-    let inhalt = null, roh = '';
-    try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
-    return { status: a.status, inhalt, roh };
+    let inhalt = null, raw = '';
+    try { raw = await a.text(); inhalt = JSON.parse(raw); } catch {}
+    return { status: a.status, inhalt, raw };
   };
   const msZeilen = (sql, ...w) => {
     const d = oeffne(path.join(msDir, 'katalog.sqlite'));
@@ -10162,14 +10162,14 @@ const freigabeHaupt = (purpose, target = null) =>
 
   const msAnna = await msRuf('cookie-ms-anna-1', 'GET', '/api/sessions');
   pruefe('Die eigenen Anmeldungen kommen ueberhaupt',
-    msAnna.status === 200 && Array.isArray(msAnna.inhalt?.sitzungen),
-    `${msAnna.status} ${msAnna.roh}`);
+    msAnna.status === 200 && Array.isArray(msAnna.inhalt?.sessions),
+    `${msAnna.status} ${msAnna.raw}`);
   /* JEDE LESESTELLE IST ABGEFANGEN (Stolperstein 103). Beim Bau dieser Gruppe
      hat eine Gegenprobe den Lauf abgerissen statt eine Prüfung rot zu faerben:
      fiel die eigene Sitzung mit, antwortete /api/sessions mit 401, und der
      Zugriff auf `.sitzungen.length` beendete den ganzen Lauf. */
-  const msListe = (a) => (a && a.inhalt && Array.isArray(a.inhalt.sitzungen))
-    ? a.inhalt.sitzungen : [];
+  const msListe = (a) => (a && a.inhalt && Array.isArray(a.inhalt.sessions))
+    ? a.inhalt.sessions : [];
   pruefe('Es sind genau die zwei eigenen',
     msListe(msAnna).length === 2, `${msListe(msAnna).length} Zeilen`);
   /* DIE NACHSCHAU, DASS KEINE FREMDE ZEILE DURCHKOMMT -- gerechnet gegen die
@@ -10194,23 +10194,23 @@ const freigabeHaupt = (purpose, target = null) =>
   /* DER SITZUNGSTOKEN SELBST STEHT IN KEINER ANTWORT -- er ist das Geheimnis,
      die Kennung ist nur sein Bild. Geprueft am vollen Rumpf. */
   pruefe('Der Sitzungstoken steht in keiner Antwort',
-    !msAnna.roh.includes('cookie-ms-anna-1') && !msAnna.roh.includes('cookie-ms-anna-2'),
-    msAnna.roh.slice(0, 200));
+    !msAnna.raw.includes('cookie-ms-anna-1') && !msAnna.raw.includes('cookie-ms-anna-2'),
+    msAnna.raw.slice(0, 200));
   pruefe('Die Kennung ist das Bild des Tokens, nicht der Token',
     msEigene.every(k => /^[0-9a-f]{64}$/.test(k)) && !msEigene.includes('cookie-ms-anna-1'),
     JSON.stringify(msEigene));
   pruefe('Die Zeiten kommen mit -- angemeldet am und zuletzt gesehen',
     msListe(msAnna).length > 0 &&
-    msListe(msAnna).every(z => /^\d{4}-\d\d-\d\d/.test(z.angemeldetAm || '') &&
-                               /^\d{4}-\d\d-\d\d/.test(z.zuletztGesehen || '')),
+    msListe(msAnna).every(z => /^\d{4}-\d\d-\d\d/.test(z.loggedInAt || '') &&
+                               /^\d{4}-\d\d-\d\d/.test(z.lastSeen || '')),
     JSON.stringify(msListe(msAnna)));
   pruefe('Und die Frist von dreissig Tagen rechnet der Server, nicht die Karte',
-    msAnna.inhalt.tage === 30, JSON.stringify(msAnna.inhalt.tage));
+    msAnna.inhalt.days === 30, JSON.stringify(msAnna.inhalt.days));
   /* WAS AUSDRUECKLICH NICHT DASTEHT: keine Adresse, kein Browserkopf. Das ist
      eine Eigenschaft der Instanz und kein Mangel -- und eine Pruefung darauf
      ist die einzige Art, sie festzuhalten. */
   pruefe('Weder Adresse noch Browserkopf stehen in der Antwort',
-    !/ip|agent|browser|gerae?t/i.test(msAnna.roh), msAnna.roh.slice(0, 200));
+    !/ip|agent|browser|gerae?t/i.test(msAnna.raw), msAnna.raw.slice(0, 200));
 
   /* ---------------------------------------------------------------- */
   gruppe('Meine Sitzungen: die eigene ist markiert');
@@ -10233,7 +10233,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const msWeg = await msRuf('cookie-ms-anna-1', 'DELETE',
     `/api/sessions/${msKennung('cookie-ms-anna-2')}`);
   pruefe('Eine einzelne andere Anmeldung laesst sich beenden',
-    msWeg.status === 200 && msWeg.inhalt?.beendet === 1, `${msWeg.status} ${msWeg.roh}`);
+    msWeg.status === 200 && msWeg.inhalt?.beendet === 1, `${msWeg.status} ${msWeg.raw}`);
   pruefe('Sie ist danach WIRKLICH abgewiesen',
     (await msRuf('cookie-ms-anna-2', 'GET', '/api/account')).status === 401,
     'die beendete Sitzung traegt noch');
@@ -10248,7 +10248,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const msFremd = await msRuf('cookie-ms-anna-1', 'DELETE',
     `/api/sessions/${msKennung('cookie-ms-carla-1')}`);
   pruefe('Eine fremde Anmeldung laesst sich nicht beenden',
-    msFremd.status === 404, `${msFremd.status} ${msFremd.roh}`);
+    msFremd.status === 404, `${msFremd.status} ${msFremd.raw}`);
   pruefe('Und carlas Sitzung traegt weiter',
     (await msRuf('cookie-ms-carla-1', 'GET', '/api/account')).status === 200,
     'die fremde Sitzung ist gefallen');
@@ -10257,7 +10257,7 @@ const freigabeHaupt = (purpose, target = null) =>
     `/api/sessions/${msKennung('cookie-ms-anna-1')}`);
   pruefe('Die eigene geht ueber Abmelden, nicht ueber diesen Weg',
     msSelbst.status === 400 && /Abmelden/.test(msSelbst.inhalt?.error || ''),
-    `${msSelbst.status} ${msSelbst.roh}`);
+    `${msSelbst.status} ${msSelbst.raw}`);
   pruefe('Und sie traegt danach weiter',
     (await msRuf('cookie-ms-anna-1', 'GET', '/api/account')).status === 200,
     'die eigene ist doch gefallen');
@@ -10275,7 +10275,7 @@ const freigabeHaupt = (purpose, target = null) =>
     'die vorbereiteten Sitzungen tragen nicht');
   const msAlle = await msRuf('cookie-ms-anna-1', 'DELETE', '/api/sessions');
   pruefe('Alle anderen lassen sich in einem Zug beenden',
-    msAlle.status === 200 && msAlle.inhalt?.beendet === 2, `${msAlle.status} ${msAlle.roh}`);
+    msAlle.status === 200 && msAlle.inhalt?.beendet === 2, `${msAlle.status} ${msAlle.raw}`);
   pruefe('Die eigene faellt dabei NICHT mit',
     (await msRuf('cookie-ms-anna-1', 'GET', '/api/account')).status === 200,
     'die eigene ist mitgefallen');
@@ -10408,14 +10408,14 @@ const freigabeHaupt = (purpose, target = null) =>
       opt.body = JSON.stringify(koerper);
     }
     const a = await fetch(PR.basis + pfad, opt);
-    let roh = '', inhalt = null;
-    try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
-    return { status: a.status, inhalt, roh };
+    let raw = '', inhalt = null;
+    try { raw = await a.text(); inhalt = JSON.parse(raw); } catch {}
+    return { status: a.status, inhalt, raw };
   };
-  const prAnmelden = async (name, passwort) => {
+  const prAnmelden = async (name, password) => {
     const a = await fetch(PR.basis + '/api/login', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ user: name, password: passwort })
+      body: JSON.stringify({ user: name, password: password })
     });
     const setz = a.headers.get('set-cookie') || '';
     return setz ? setz.split(';')[0].split('=')[1] : null;
@@ -10462,13 +10462,13 @@ const freigabeHaupt = (purpose, target = null) =>
   // Die uebrigen Zugaenge entstehen ueber die Verwaltung -- die ist ja gerade
   // einer der Vorgaenge, die festgehalten werden.
   let m = prMarke();
-  const prBertAn = await prRuf(prAnna, 'POST', '/api/users', { username: 'bert', passwort: PR_BERT });
+  const prBertAn = await prRuf(prAnna, 'POST', '/api/users', { username: 'bert', password: PR_BERT });
   const prBertId = prBertAn.inhalt?.id;
   pruefe('Ein angelegter Zugang schreibt genau eine Zeile, mit der Rolle',
     gleich(prSeit(m).map(z => [z.event, z.actor, z.target, z.detail]),
            [['user.new', 1, prBertId, 'user']]), JSON.stringify(prSeit(m)));
-  await prRuf(prAnna, 'POST', '/api/users', { username: 'carla', passwort: PR_CARLA, rolle: 'admin' });
-  await prRuf(prAnna, 'POST', '/api/users', { username: 'dora', passwort: PR_DORA });
+  await prRuf(prAnna, 'POST', '/api/users', { username: 'carla', password: PR_CARLA, rolle: 'admin' });
+  await prRuf(prAnna, 'POST', '/api/users', { username: 'dora', password: PR_DORA });
   const prCarlaId = prZeilen("SELECT id FROM users WHERE username='carla'")[0].id;
   const prDoraId = prZeilen("SELECT id FROM users WHERE username='dora'")[0].id;
 
@@ -10511,7 +10511,7 @@ const freigabeHaupt = (purpose, target = null) =>
     JSON.stringify(prSeit(m)));
 
   m = prMarke();
-  await prAnnaF('PUT', `/api/users/${prDoraId}`, { passwort: 'doras-neues-wort' });
+  await prAnnaF('PUT', `/api/users/${prDoraId}`, { password: 'doras-neues-wort' });
   pruefe('Ein fremdes Passwort schreibt eine Zeile ohne Merkmal',
     gleich(prSeit(m).map(z => [z.event, z.actor, z.target, z.detail]),
            [['user.password', 1, prDoraId, null]]), JSON.stringify(prSeit(m)));
@@ -10527,7 +10527,7 @@ const freigabeHaupt = (purpose, target = null) =>
      gehoeren dazu. */
   m = prMarke();
   await PR.ruf('POST', '/api/token/redeem',
-    { token: prLink.inhalt?.token, passwort: 'doras-linkwort-neu' });
+    { token: prLink.inhalt?.token, password: 'doras-linkwort-neu' });
   pruefe('Das Einloesen schreibt den Vorgang UND die Anmeldung',
     gleich(prSeit(m).map(z => [z.event, z.actor, z.target, z.detail]),
            [['link.use', prDoraId, prDoraId, 'reset'],
@@ -10564,15 +10564,15 @@ const freigabeHaupt = (purpose, target = null) =>
     gleich(prSeit(m).map(z => [z.event, z.actor, z.target]), [['export', 1, null]]),
     JSON.stringify(prSeit(m)));
 
-  const prImport = async (cookieWert, passwort, objekt, modus) => {
-    if (passwort) await prRuf(cookieWert, 'POST', '/api/confirm',
-      { passwort, purpose: 'import', target: null });
+  const prImport = async (cookieWert, password, objekt, modus) => {
+    if (password) await prRuf(cookieWert, 'POST', '/api/confirm',
+      { password, purpose: 'import', target: null });
     const grenze = '----pruefungpr' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, wert, dateiname) =>
+    const part = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
       (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${wert}\r\n`;
-    const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+    const koerper = part('mode', modus) + part('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
     const a = await fetch(PR.basis + '/api/import', {
       method: 'POST',
       headers: { cookie: `kriterion_session=${cookieWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
@@ -10608,7 +10608,7 @@ const freigabeHaupt = (purpose, target = null) =>
      Lagen: ein zu kurzes Passwort, eine Rolle, die es nicht gibt, und ein
      Zugang, den es nicht gibt. */
   m = prMarke();
-  await prAnnaF('PUT', `/api/users/${prCarlaId}`, { passwort: 'kurz' });
+  await prAnnaF('PUT', `/api/users/${prCarlaId}`, { password: 'kurz' });
   await prAnnaF('PUT', `/api/users/${prCarlaId}`, { rolle: 'kaiserin' });
   await prAnnaF('PUT', '/api/users/9999', { rolle: 'admin' });
   pruefe('Drei gescheiterte Vorgaenge schreiben zusammen keine einzige Zeile',
@@ -10694,8 +10694,8 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Und sonst faellt nichts', prAnzahl() === prVorRaeumen - 1,
     `${prVorRaeumen} -> ${prAnzahl()}`);
   pruefe('Die Antwort nennt die Frist',
-    (await prRuf(prAnna, 'GET', '/api/security-log')).inhalt?.tage === 180,
-    JSON.stringify((await prRuf(prAnna, 'GET', '/api/security-log')).inhalt?.tage));
+    (await prRuf(prAnna, 'GET', '/api/security-log')).inhalt?.days === 180,
+    JSON.stringify((await prRuf(prAnna, 'GET', '/api/security-log')).inhalt?.days));
 
   /* ---------------------------------------------------------------- */
   gruppe('Das Sicherheitsprotokoll: das Aufraeumen an beiden Aufrufstellen');
@@ -10757,7 +10757,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const prSicht = await prRuf(prAnna, 'GET', '/api/security-log');
   pruefe('Die Eigentuemerin sieht das Protokoll',
     prSicht.status === 200 && Array.isArray(prSicht.inhalt?.zeilen),
-    `${prSicht.status} ${prSicht.roh.slice(0, 120)}`);
+    `${prSicht.status} ${prSicht.raw.slice(0, 120)}`);
   const prSichtCarla = await prRuf(prCarla, 'GET', '/api/security-log');
   pruefe('Ein Admin OHNE Eigentuemerrecht sieht es nicht',
     prSichtCarla.status === 403, `Status ${prSichtCarla.status}`);
@@ -10780,8 +10780,8 @@ const freigabeHaupt = (purpose, target = null) =>
      die Gesamtzahl. Ohne die zweite Angabe liest sich "hundert Zeilen" wie
      "hundert Vorgaenge". */
   pruefe('Die Antwort nennt Grenze und Gesamtzahl',
-    prSicht.inhalt?.grenze === 100 && prSicht.inhalt?.gesamt >= prSicht.inhalt?.zeilen.length,
-    JSON.stringify({ grenze: prSicht.inhalt?.grenze, gesamt: prSicht.inhalt?.gesamt }));
+    prSicht.inhalt?.grenze === 100 && prSicht.inhalt?.total >= prSicht.inhalt?.zeilen.length,
+    JSON.stringify({ grenze: prSicht.inhalt?.grenze, total: prSicht.inhalt?.total }));
   pruefe('Die juengste Zeile steht oben',
     prSicht.inhalt?.zeilen[0]?.id > prSicht.inhalt?.zeilen[1]?.id,
     JSON.stringify(prSicht.inhalt?.zeilen.slice(0, 2).map(z => z.id)));
@@ -10814,14 +10814,14 @@ const freigabeHaupt = (purpose, target = null) =>
       opt.body = JSON.stringify(koerper);
     }
     const a = await fetch(ZB.basis + pfad, opt);
-    let roh = '', inhalt = null;
-    try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
-    return { status: a.status, inhalt, roh };
+    let raw = '', inhalt = null;
+    try { raw = await a.text(); inhalt = JSON.parse(raw); } catch {}
+    return { status: a.status, inhalt, raw };
   };
-  const zbAnmelden = async (name, passwort) => {
+  const zbAnmelden = async (name, password) => {
     const a = await fetch(ZB.basis + '/api/login', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ user: name, password: passwort })
+      body: JSON.stringify({ user: name, password: password })
     });
     const setz = a.headers.get('set-cookie') || '';
     return setz ? setz.split(';')[0].split('=')[1] : null;
@@ -10837,15 +10837,15 @@ const freigabeHaupt = (purpose, target = null) =>
   const ZB_ANNA = 'annas-langes-wort', ZB_CARLA = 'carlas-langes-wort';
   await ZB.ruf('POST', '/api/setup', { user: 'anna', password: ZB_ANNA });
   let zbAnna = await zbAnmelden('anna', ZB_ANNA);
-  await zbRuf(zbAnna, 'POST', '/api/users', { username: 'carla', passwort: ZB_CARLA, rolle: 'admin' });
+  await zbRuf(zbAnna, 'POST', '/api/users', { username: 'carla', password: ZB_CARLA, rolle: 'admin' });
   for (const n of ['emil', 'frida', 'gustav'])
-    await zbRuf(zbAnna, 'POST', '/api/users', { username: n, passwort: `${n}s-langes-wort` });
+    await zbRuf(zbAnna, 'POST', '/api/users', { username: n, password: `${n}s-langes-wort` });
   const zbId = (n) => zbZeilen('SELECT id FROM users WHERE username = ?', n)[0]?.id;
   const zbEmil = zbId('emil'), zbFrida = zbId('frida'), zbGustav = zbId('gustav');
   await zbRuf(zbAnna, 'POST', '/api/items', { title: 'Ein Eintrag' });
 
-  const zbFrei = (cookieWert, passwort, purpose, target = null) =>
-    zbRuf(cookieWert, 'POST', '/api/confirm', { passwort, purpose, target });
+  const zbFrei = (cookieWert, password, purpose, target = null) =>
+    zbRuf(cookieWert, 'POST', '/api/confirm', { password, purpose, target });
 
   pruefe('Ohne Anmeldung gibt es keine Freigabe',
     (await zbFrei(null, ZB_ANNA, 'export')).status === 401);
@@ -10870,7 +10870,7 @@ const freigabeHaupt = (purpose, target = null) =>
     (await zbFrei(zbAnna, ZB_ANNA, 'weltherrschaft')).status === 400);
   const zbGut = await zbFrei(zbAnna, ZB_ANNA, 'export');
   pruefe('Mit dem richtigen Passwort gibt es eine Freigabe',
-    zbGut.status === 200 && zbGut.inhalt?.ok === true, `${zbGut.status} ${zbGut.roh}`);
+    zbGut.status === 200 && zbGut.inhalt?.ok === true, `${zbGut.status} ${zbGut.raw}`);
   pruefe('Und die Antwort nennt Zweck und Frist',
     zbGut.inhalt?.purpose === 'export' && zbGut.inhalt?.sekunden === 120,
     JSON.stringify(zbGut.inhalt));
@@ -10886,7 +10886,7 @@ const freigabeHaupt = (purpose, target = null) =>
     zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role === zbVorRolle,
     zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role);
   pruefe('Die Absage nennt die Bestaetigung beim Namen',
-    zbFremderZweck.inhalt?.bestaetigung === 'role', JSON.stringify(zbFremderZweck.inhalt));
+    zbFremderZweck.inhalt?.confirm === 'role', JSON.stringify(zbFremderZweck.inhalt));
 
   /* UND DIE ZWECKBINDUNG BEI GLEICHEM ZIEL -- die drei Zeilen darueber taugen
      dafuer nicht, und das ist ein Befund aus der Gegenprobe: sie halten eine
@@ -10899,13 +10899,13 @@ const freigabeHaupt = (purpose, target = null) =>
      demselben Zugang). Erst damit steht die Bindung an den Zweck fuer sich. */
   await zbFrei(zbAnna, ZB_ANNA, 'export');
   const zbExportGegenImport = await zbRuf(zbAnna, 'POST', '/api/confirm',
-    { passwort: 'nur-damit-nichts-liegenbleibt', purpose: 'export', target: null });
+    { password: 'nur-damit-nichts-liegenbleibt', purpose: 'export', target: null });
   pruefe('Der Aufbau steht: die Export-Freigabe ist noch da',
     zbExportGegenImport.status === 403, 'der Aufbau taugt nicht');
   await zbFrei(zbAnna, ZB_ANNA, 'export');
   {
     const grenze = '----pruefungzk' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, wert, dateiname) =>
+    const part = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
       (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${wert}\r\n`;
@@ -10914,7 +10914,7 @@ const freigabeHaupt = (purpose, target = null) =>
       method: 'POST',
       headers: { cookie: `kriterion_session=${zbAnna}`,
                  'content-type': `multipart/form-data; boundary=${grenze}` },
-      body: teil('mode', 'merge') + teil('file', JSON.stringify(paket), 'export.json') +
+      body: part('mode', 'merge') + part('file', JSON.stringify(paket), 'export.json') +
             `--${grenze}--\r\n`
     });
     pruefe('Eine Freigabe fuer den Export traegt den Import NICHT -- beide ohne Ziel',
@@ -10965,7 +10965,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const zbEigeneSitzung = await zbRuf(zbAnna, 'POST', `/api/users/${zbGustav}/token`,
     { purpose: 'reset' });
   pruefe('Dieselbe Sitzung kommt damit durch',
-    zbEigeneSitzung.status === 200, `${zbEigeneSitzung.status} ${zbEigeneSitzung.roh.slice(0, 120)}`);
+    zbEigeneSitzung.status === 200, `${zbEigeneSitzung.status} ${zbEigeneSitzung.raw.slice(0, 120)}`);
 
   /* EINMAL GUELTIG: wer drei Zugaenge nacheinander entfernt, tippt dreimal.
      Der Preis ist benannt, und er wird auch geprueft. */
@@ -11026,7 +11026,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const zbOhne = async (name, methode, pfad, koerper, nachschau, sollWert) => {
     const a = await zbRuf(zbAnna, methode, pfad, koerper);
     pruefe(`Ohne Bestaetigung abgewiesen: ${name}`, a.status === 403,
-      `${a.status} ${a.roh.slice(0, 100)}`);
+      `${a.status} ${a.raw.slice(0, 100)}`);
     pruefe(`Und dabei wurde nichts geschrieben: ${name}`,
       gleich(nachschau(), sollWert), JSON.stringify(nachschau()));
   };
@@ -11056,12 +11056,12 @@ const freigabeHaupt = (purpose, target = null) =>
   // 2. Der Import.
   const zbImportSenden = async () => {
     const grenze = '----pruefungzb' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, wert, dateiname) =>
+    const part = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
       (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${wert}\r\n`;
     const paket = { version: 10, title: 'Z', items: [{ title: 'Aus der Datei' }] };
-    const koerper = teil('mode', 'merge') + teil('file', JSON.stringify(paket), 'export.json') +
+    const koerper = part('mode', 'merge') + part('file', JSON.stringify(paket), 'export.json') +
       `--${grenze}--\r\n`;
     const a = await fetch(ZB.basis + '/api/import', {
       method: 'POST',
@@ -11097,13 +11097,13 @@ const freigabeHaupt = (purpose, target = null) =>
   // 4. Das fremde Passwort.
   const zbEmilHash = () => zbZeilen('SELECT password_hash h FROM users WHERE id = ?', zbEmil)[0]?.h;
   const zbEmilVorher = zbEmilHash();
-  await zbOhne('Fremdes Passwort', 'PUT', `/api/users/${zbEmil}`, { passwort: 'emils-neues-wort' },
+  await zbOhne('Fremdes Passwort', 'PUT', `/api/users/${zbEmil}`, { password: 'emils-neues-wort' },
     zbEmilHash, zbEmilVorher);
   await zbMitFalschem('Fremdes Passwort', 'password', zbEmil, 'PUT', `/api/users/${zbEmil}`,
-    { passwort: 'emils-neues-wort' }, zbEmilHash, zbEmilVorher);
+    { password: 'emils-neues-wort' }, zbEmilHash, zbEmilVorher);
   await zbFrei(zbAnna, ZB_ANNA, 'password', zbEmil);
   pruefe('Mit Bestaetigung wird das fremde Passwort gesetzt',
-    (await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { passwort: 'emils-neues-wort' })).status === 200 &&
+    (await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { password: 'emils-neues-wort' })).status === 200 &&
     zbEmilHash() !== zbEmilVorher, 'der Hash steht unveraendert da');
 
   // 5. Der Link.
@@ -11141,7 +11141,7 @@ const freigabeHaupt = (purpose, target = null) =>
     (await zbRuf(zbAnna, 'PUT', `/api/users/${zbGustav}`, { status: 'active' })).status === 200 &&
     zbGustavStatus() === 'active', zbGustavStatus());
   pruefe('Einen Zugang anlegen geht ohne Bestaetigung -- es nimmt niemandem etwas',
-    (await zbRuf(zbAnna, 'POST', '/api/users', { username: 'heinz', passwort: 'heinz-langes-wort' })).status === 200,
+    (await zbRuf(zbAnna, 'POST', '/api/users', { username: 'heinz', password: 'heinz-langes-wort' })).status === 200,
     'das Anlegen verlangt eine Bestaetigung');
   pruefe('Auch mit Einladung, denn der Zugang ist NEU',
     (await zbRuf(zbAnna, 'POST', '/api/users', { username: 'ida', einladen: true })).status === 200,
@@ -11193,9 +11193,9 @@ const freigabeHaupt = (purpose, target = null) =>
         opt.body = JSON.stringify(koerper);
       }
       const a = await fetch(BB.basis + pfad, opt);
-      let roh = '';
-      try { roh = await a.text(); } catch {}
-      return { status: a.status, roh };
+      let raw = '';
+      try { raw = await a.text(); } catch {}
+      return { status: a.status, raw };
     };
     await BB.ruf('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
     const bbAn = await fetch(BB.basis + '/api/login', {
@@ -11206,7 +11206,7 @@ const freigabeHaupt = (purpose, target = null) =>
     const bbStufen = [];
     for (let i = 1; i <= 12; i++) {
       const a = await bbRuf(bbCookie, 'POST', '/api/confirm',
-        { passwort: 'immer-falsch-hier', purpose: 'export', target: null });
+        { password: 'immer-falsch-hier', purpose: 'export', target: null });
       bbStufen.push(a.status);
     }
     pruefe('Der zehnte Versuch wird noch beantwortet',
@@ -11235,7 +11235,7 @@ const freigabeHaupt = (purpose, target = null) =>
        richtigen Passwort. Sonst waere sie an dieser Route wirkungslos. */
     pruefe('Auch das richtige Passwort kommt waehrend der Sperre nicht durch',
       (await bbRuf(bbCookie, 'POST', '/api/confirm',
-        { passwort: 'annas-langes-wort', purpose: 'export', target: null })).status === 429);
+        { password: 'annas-langes-wort', purpose: 'export', target: null })).status === 429);
     await BB.stopp();
     fs.rmSync(bbDir, { recursive: true, force: true });
   }
@@ -11277,7 +11277,7 @@ const freigabeHaupt = (purpose, target = null) =>
       JSON.stringify(oaErgebnis).slice(0, 160));
     oaFaelle.forEach(([wert, soll, name], i) => {
       pruefe(`Die Adresse wird geprueft: ${name}`,
-        oaErgebnis[i]?.adresse === soll,
+        oaErgebnis[i]?.address === soll,
         `"${wert}" -> ${JSON.stringify(oaErgebnis[i])}`);
     });
     /* UND DER UNTERSCHIED ZWISCHEN "LEER" UND "UNBRAUCHBAR": beide fallen auf
@@ -11285,10 +11285,10 @@ const freigabeHaupt = (purpose, target = null) =>
        diese Unterscheidung meldete der Start bei jeder unbesetzten Einstellung
        einen Fehler. */
     pruefe('Ein leerer Wert ist kein Fehler',
-      oaErgebnis[6]?.gesetzt === false && !oaErgebnis[6]?.fehler,
+      oaErgebnis[6]?.set === false && !oaErgebnis[6]?.fehler,
       JSON.stringify(oaErgebnis[6]));
     pruefe('Ein unbrauchbarer sehr wohl, und er nennt den Grund',
-      oaErgebnis[7]?.gesetzt === true && typeof oaErgebnis[7]?.fehler === 'string' &&
+      oaErgebnis[7]?.set === true && typeof oaErgebnis[7]?.fehler === 'string' &&
       oaErgebnis[7].fehler.length > 10, JSON.stringify(oaErgebnis[7]));
     fs.rmSync(oaDir, { recursive: true, force: true });
   }
@@ -11314,7 +11314,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Ohne die Einstellung gibt der Server KEINEN fertigen Link heraus',
       ohne.neu.inhalt?.link === null, JSON.stringify(ohne.neu.inhalt?.link));
     pruefe('Und sagt ausdruecklich, dass der Browser ihn baut',
-      ohne.neu.inhalt?.linkQuelle === 'browser', JSON.stringify(ohne.neu.inhalt?.linkQuelle));
+      ohne.neu.inhalt?.linkSource === 'browser', JSON.stringify(ohne.neu.inhalt?.linkSource));
     pruefe('Der Schluessel steht trotzdem in der Antwort -- daraus baut der Browser',
       /^[0-9a-f]{64}$/.test(ohne.neu.inhalt?.token || ''), JSON.stringify(ohne.neu.inhalt?.token));
     pruefe('Der Start sagt, dass sie nicht gesetzt ist',
@@ -11333,7 +11333,7 @@ const freigabeHaupt = (purpose, target = null) =>
       mit.neu.inhalt?.link === `https://kriterion.beispiel.de/#/invite/${mit.neu.inhalt?.token}`,
       JSON.stringify(mit.neu.inhalt?.link));
     pruefe('Und sagt, woher die Adresse kam',
-      mit.neu.inhalt?.linkQuelle === 'einstellung', JSON.stringify(mit.neu.inhalt?.linkQuelle));
+      mit.neu.inhalt?.linkSource === 'einstellung', JSON.stringify(mit.neu.inhalt?.linkSource));
     pruefe('Der Start nennt die Adresse im Protokoll des Containers',
       /Oeffentliche Adresse: https:\/\/kriterion\.beispiel\.de —/.test(mit.S.protokoll()),
       mit.S.protokoll().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
@@ -11365,8 +11365,8 @@ const freigabeHaupt = (purpose, target = null) =>
       /PUBLIC_ADDRESS ist unbrauchbar/.test(kaputt.S.protokoll()),
       kaputt.S.protokoll().split('\n').filter(z => /ADRESSE/.test(z)).join(' | ') || '(keine Zeile)');
     pruefe('Und der Rueckfall ist der Browserweg',
-      kaputt.neu.inhalt?.link === null && kaputt.neu.inhalt?.linkQuelle === 'browser',
-      JSON.stringify(kaputt.neu.inhalt?.linkQuelle));
+      kaputt.neu.inhalt?.link === null && kaputt.neu.inhalt?.linkSource === 'browser',
+      JSON.stringify(kaputt.neu.inhalt?.linkSource));
 
     /* http:// HINTER EINEM PROXY IST EIN WIDERSPRUCH IN SICH -- und trotzdem
        nur eine Warnung: ein falscher Link ist ein toter Link, kein Verlust.
@@ -11377,8 +11377,8 @@ const freigabeHaupt = (purpose, target = null) =>
       /Hinter einem Proxy und trotzdem http/.test(widerspruch.S.protokoll()),
       widerspruch.S.protokoll().split('\n').filter(z => /Proxy/.test(z)).join(' | '));
     pruefe('Und die Adresse gilt trotzdem',
-      widerspruch.neu.inhalt?.linkQuelle === 'einstellung',
-      JSON.stringify(widerspruch.neu.inhalt?.linkQuelle));
+      widerspruch.neu.inhalt?.linkSource === 'einstellung',
+      JSON.stringify(widerspruch.neu.inhalt?.linkSource));
 
     for (const x of [ohne, mit, kaputt, widerspruch]) {
       await x.S.stopp();
@@ -11443,12 +11443,12 @@ const freigabeHaupt = (purpose, target = null) =>
     // Die Freigabe fuer die zweite Bestaetigung. Sie steht hier als eigener
     // Ruf, weil PUT /api/mail sie an JEDER Aufrufstelle braucht.
     const mailFrei = (S, purpose = 'mail') =>
-      S.ruf('POST', '/api/confirm', { passwort: MAIL_PASSWORT_ANNA, purpose, target: null });
+      S.ruf('POST', '/api/confirm', { password: MAIL_PASSWORT_ANNA, purpose, target: null });
     const mailSetzen = async (S, empf) => {
       await mailFrei(S);
       return S.ruf('PUT', '/api/mail', {
-        anbieter: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
-        benutzer: MAIL_BENUTZER, passwort: MAIL_GEHEIMNIS, absender: 'instanz@beispiel.de'
+        provider: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
+        benutzer: MAIL_BENUTZER, password: MAIL_GEHEIMNIS, sender: 'instanz@beispiel.de'
       });
     };
 
@@ -11456,19 +11456,19 @@ const freigabeHaupt = (purpose, target = null) =>
 
     const E = smtpEmpfaenger('ok');
     const A = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6430);
-    const gesetzt = await mailSetzen(A.S, E);
-    pruefe('Der Mailzugang laesst sich setzen', gesetzt.status === 200, `Status ${gesetzt.status}`);
+    const set = await mailSetzen(A.S, E);
+    pruefe('Der Mailzugang laesst sich setzen', set.status === 200, `Status ${set.status}`);
     pruefe('Und die Karte sagt danach "eingerichtet"',
-      gesetzt.inhalt?.eingerichtet === true, JSON.stringify(gesetzt.inhalt?.eingerichtet));
+      set.inhalt?.eingerichtet === true, JSON.stringify(set.inhalt?.eingerichtet));
     /* DAS PASSWORT STEHT IN KEINER ANTWORT -- geprueft am VOLLSTAENDIGEN
        Antwortkoerper und nicht an einem einzelnen Feld: eines, das nur das
        Feld `passwort` ansieht, bliebe gruen, wenn es woanders wieder
        herauskaeme. */
     pruefe('Das Passwort steht NICHT in der Antwort',
-      !JSON.stringify(gesetzt.inhalt).includes(MAIL_GEHEIMNIS),
+      !JSON.stringify(set.inhalt).includes(MAIL_GEHEIMNIS),
       'das Geheimnis steht im Antwortkoerper');
     pruefe('Sie sagt nur, DASS eines gesetzt ist',
-      gesetzt.inhalt?.passwortGesetzt === true, JSON.stringify(gesetzt.inhalt?.passwortGesetzt));
+      set.inhalt?.passwordSet === true, JSON.stringify(set.inhalt?.passwordSet));
     /* UND DASSELBE AN DER LESENDEN ANTWORT. Zwei Endpunkte sind zwei Stellen:
        eine Gegenprobe, die das Passwort in GET /api/mail zurueckgab, blieb
        stumm, weil nur die Antwort des SCHREIBENDEN Wegs durchsucht wurde.
@@ -11478,25 +11478,25 @@ const freigabeHaupt = (purpose, target = null) =>
       gelesen.status === 200 && !JSON.stringify(gelesen.inhalt).includes(MAIL_GEHEIMNIS),
       'das Geheimnis steht in der Antwort von GET /api/mail');
     pruefe('Und auch sie sagt nur, DASS eines gesetzt ist',
-      gelesen.inhalt?.passwortGesetzt === true, JSON.stringify(gelesen.inhalt?.passwortGesetzt));
+      gelesen.inhalt?.passwordSet === true, JSON.stringify(gelesen.inhalt?.passwordSet));
     /* Und die Gegenlage dazu: die Karte sagt es auch, wenn KEINES gesetzt ist.
        Ohne sie bliebe "passwortGesetzt" eine Behauptung, die immer wahr ist. */
     const leerA = await mailInstanz({}, 5260);
     const leerKarte = await leerA.S.ruf('GET', '/api/mail');
     pruefe('Ohne Zugang sagt die Karte "nicht gesetzt"',
-      leerKarte.inhalt?.passwortGesetzt === false && leerKarte.inhalt?.eingerichtet === false,
-      JSON.stringify([leerKarte.inhalt?.passwortGesetzt, leerKarte.inhalt?.eingerichtet]));
+      leerKarte.inhalt?.passwordSet === false && leerKarte.inhalt?.eingerichtet === false,
+      JSON.stringify([leerKarte.inhalt?.passwordSet, leerKarte.inhalt?.eingerichtet]));
 
     const neu = await A.S.ruf('POST', '/api/users',
       { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
-    pruefe('Eine Einladung geht hinaus', neu.inhalt?.versand === 'ok',
-      `${neu.inhalt?.versand} · ${neu.inhalt?.versandGrund}`);
+    pruefe('Eine Einladung geht hinaus', neu.inhalt?.delivery === 'ok',
+      `${neu.inhalt?.delivery} · ${neu.inhalt?.deliveryReason}`);
     await new Promise(r => setTimeout(r, 300));
     const briefe = E.briefe();
     pruefe('Der Empfaenger hat genau EINEN Brief bekommen', briefe.length === 1,
       `${briefe.length} Briefe`);
     // (Ein zweiter kommt weiter unten dazu, an der zweiten Tokenroute.)
-    const b1 = briefe[0] || { kopf: '', rumpf: '', roh: '' };
+    const b1 = briefe[0] || { kopf: '', rumpf: '', raw: '' };
     pruefe('Der Empfaenger stimmt', /^To: bert@beispiel\.de$/m.test(b1.kopf), b1.kopf.slice(0, 200));
     pruefe('Der Absender stimmt', /^From: instanz@beispiel\.de$/m.test(b1.kopf), b1.kopf.slice(0, 200));
     /* DER LINK IM RUMPF, und er wird DEKODIERT gesucht: quoted-printable
@@ -11510,7 +11510,7 @@ const freigabeHaupt = (purpose, target = null) =>
     // des weichen Umbruchs eben NICHT. Ohne diese Zeile waere nicht belegt,
     // dass die Dekodierung ueberhaupt etwas tut (Stolperstein 81).
     pruefe('Im rohen Brief steht er umbrochen -- die Dekodierung tut wirklich etwas',
-      !b1.roh.includes(neu.inhalt?.token) && /quoted-printable/i.test(b1.kopf),
+      !b1.raw.includes(neu.inhalt?.token) && /quoted-printable/i.test(b1.kopf),
       'der rohe Brief traegt den Schluessel unumbrochen');
     pruefe('Die Mail ist reiner Text -- kein HTML',
       /Content-Type: text\/plain/i.test(b1.kopf) && !/<html/i.test(b1.rumpf), b1.kopf.slice(0, 200));
@@ -11538,7 +11538,7 @@ const freigabeHaupt = (purpose, target = null) =>
     /* DAS PASSWORT STEHT IN KEINER MAIL. Der Mailserver sieht jede Zeile, die
        durch ihn geht -- ausgerechnet dort duerfte es am wenigsten stehen. */
     pruefe('Und das Mailpasswort steht in keinem Brief',
-      !b1.roh.includes(MAIL_GEHEIMNIS), 'das Geheimnis steht im Brief');
+      !b1.raw.includes(MAIL_GEHEIMNIS), 'das Geheimnis steht im Brief');
 
     /* Der Link steht ZUSAETZLICH in der Antwort, und das ist der Kern des
        ganzen Entwurfs: die Mail ersetzt ihn nicht. */
@@ -11546,7 +11546,7 @@ const freigabeHaupt = (purpose, target = null) =>
       neu.inhalt?.link === `https://kriterion.beispiel.de/#/invite/${neu.inhalt?.token}`,
       JSON.stringify(neu.inhalt?.link));
     pruefe('Und die Antwort nennt die Frist als Zahl',
-      neu.inhalt?.minuten === 15, JSON.stringify(neu.inhalt?.minuten));
+      neu.inhalt?.minutes === 15, JSON.stringify(neu.inhalt?.minutes));
 
     /* DIESELBE FRAGE AN DER ZWEITEN TOKENROUTE, und sie steht hier, weil eine
        Gegenprobe sie gefordert hat: der Rueckbau "der Link faellt aus der
@@ -11555,21 +11555,21 @@ const freigabeHaupt = (purpose, target = null) =>
        liest ihn zwar auch an dieser Route, aber gegen den Mock, und der bringt
        das Feld selbst mit (Stolperstein 102, zum dritten Mal).
        ZWEI ROUTEN SIND ZWEI STELLEN. Die eine deckt die andere nicht. */
-    const bertId = ((await A.S.ruf('GET', '/api/users')).inhalt?.zugaenge || [])
+    const bertId = ((await A.S.ruf('GET', '/api/users')).inhalt?.users || [])
       .find(z => z.username === 'bert')?.id;
     pruefe('Der eingeladene Zugang steht in der Liste', Boolean(bertId), JSON.stringify(bertId));
     await A.S.ruf('POST', '/api/confirm',
-      { passwort: MAIL_PASSWORT_ANNA, purpose: 'link', target: bertId });
+      { password: MAIL_PASSWORT_ANNA, purpose: 'link', target: bertId });
     const zweit = await A.S.ruf('POST', `/api/users/${bertId}/token`, { purpose: 'invite' });
-    pruefe('Auch die Tokenroute verschickt', zweit.inhalt?.versand === 'ok',
-      `${zweit.inhalt?.versand} · ${zweit.inhalt?.versandGrund}`);
+    pruefe('Auch die Tokenroute verschickt', zweit.inhalt?.delivery === 'ok',
+      `${zweit.inhalt?.delivery} · ${zweit.inhalt?.deliveryReason}`);
     pruefe('Und auch dort steht der Link trotzdem in der Antwort',
       zweit.inhalt?.link === `https://kriterion.beispiel.de/#/invite/${zweit.inhalt?.token}`,
       JSON.stringify(zweit.inhalt?.link));
     pruefe('Samt der Angabe, woher die Adresse kam',
-      zweit.inhalt?.linkQuelle === 'einstellung', JSON.stringify(zweit.inhalt?.linkQuelle));
+      zweit.inhalt?.linkSource === 'einstellung', JSON.stringify(zweit.inhalt?.linkSource));
     pruefe('Und der Frist',
-      zweit.inhalt?.minuten === 15, JSON.stringify(zweit.inhalt?.minuten));
+      zweit.inhalt?.minutes === 15, JSON.stringify(zweit.inhalt?.minutes));
     await new Promise(r => setTimeout(r, 300));
     const zweitBrief = E.briefe()[1] || { rumpf: '' };
     pruefe('Die zweite Mail traegt den zweiten Schluessel',
@@ -11583,15 +11583,15 @@ const freigabeHaupt = (purpose, target = null) =>
     const ohneNeu = await leerA.S.ruf('POST', '/api/users', { username: 'bert', einladen: true });
     pruefe('Ohne Mailzugang entsteht der Token trotzdem',
       /^[0-9a-f]{64}$/.test(ohneNeu.inhalt?.token || ''), JSON.stringify(ohneNeu.inhalt?.token));
-    pruefe('Und der Versand sagt "aus"', ohneNeu.inhalt?.versand === 'aus',
-      JSON.stringify(ohneNeu.inhalt?.versand));
+    pruefe('Und der Versand sagt "aus"', ohneNeu.inhalt?.delivery === 'aus',
+      JSON.stringify(ohneNeu.inhalt?.delivery));
     pruefe('Mit einem Grund, der den Weg nennt',
-      /kein Mailzugang/i.test(ohneNeu.inhalt?.versandGrund || ''),
-      JSON.stringify(ohneNeu.inhalt?.versandGrund));
+      /kein Mailzugang/i.test(ohneNeu.inhalt?.deliveryReason || ''),
+      JSON.stringify(ohneNeu.inhalt?.deliveryReason));
     // Ohne oeffentliche Adresse baut der Browser -- unveraendert aus 0.8.90.
     pruefe('Und der Browserweg traegt weiter',
-      ohneNeu.inhalt?.link === null && ohneNeu.inhalt?.linkQuelle === 'browser',
-      JSON.stringify([ohneNeu.inhalt?.link, ohneNeu.inhalt?.linkQuelle]));
+      ohneNeu.inhalt?.link === null && ohneNeu.inhalt?.linkSource === 'browser',
+      JSON.stringify([ohneNeu.inhalt?.link, ohneNeu.inhalt?.linkSource]));
 
     /* EIN ZUGANG OHNE ADRESSE -- an einer Instanz, an der der Versand STEHT.
        Das ist die dritte der drei Lagen hinter `versand: 'aus'`, und sie hat
@@ -11603,10 +11603,10 @@ const freigabeHaupt = (purpose, target = null) =>
        Anbieter statt am Zugang. */
     const ohneAdr = await A.S.ruf('POST', '/api/users', { username: 'egon', einladen: true });
     pruefe('Ein Zugang ohne Adresse wird gar nicht erst beschickt',
-      ohneAdr.inhalt?.versand === 'aus', JSON.stringify(ohneAdr.inhalt?.versand));
+      ohneAdr.inhalt?.delivery === 'aus', JSON.stringify(ohneAdr.inhalt?.delivery));
     pruefe('Und der Grund nennt die fehlende Adresse, nicht den Mailserver',
-      /keine E-Mail-Adresse hinterlegt/.test(ohneAdr.inhalt?.versandGrund || ''),
-      JSON.stringify(ohneAdr.inhalt?.versandGrund));
+      /keine E-Mail-Adresse hinterlegt/.test(ohneAdr.inhalt?.deliveryReason || ''),
+      JSON.stringify(ohneAdr.inhalt?.deliveryReason));
     pruefe('Der Token entsteht auch dort, und der Link steht in der Antwort',
       /^[0-9a-f]{64}$/.test(ohneAdr.inhalt?.token || '') && Boolean(ohneAdr.inhalt?.link),
       JSON.stringify([ohneAdr.inhalt?.token, ohneAdr.inhalt?.link]));
@@ -11628,9 +11628,9 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Der Link steht in der Antwort',
       Boolean(fNeu.inhalt?.link), JSON.stringify(fNeu.inhalt?.link));
     pruefe('Der Versand meldet den Fehlschlag',
-      fNeu.inhalt?.versand === 'fehlgeschlagen', JSON.stringify(fNeu.inhalt?.versand));
+      fNeu.inhalt?.delivery === 'fehlgeschlagen', JSON.stringify(fNeu.inhalt?.delivery));
     pruefe('Und nennt den Grund',
-      /550/.test(fNeu.inhalt?.versandGrund || ''), JSON.stringify(fNeu.inhalt?.versandGrund));
+      /550/.test(fNeu.inhalt?.deliveryReason || ''), JSON.stringify(fNeu.inhalt?.deliveryReason));
 
     /* DER EMPFAENGER BRICHT DIE VERBINDUNG AB. Dieselbe Zusage. */
     const X = smtpEmpfaenger('abbruch');
@@ -11642,8 +11642,8 @@ const freigabeHaupt = (purpose, target = null) =>
       /^[0-9a-f]{64}$/.test(xNeu.inhalt?.token || '') && Boolean(xNeu.inhalt?.link),
       JSON.stringify([xNeu.inhalt?.token, xNeu.inhalt?.link]));
     pruefe('Und der Fehlschlag steht in der Antwort',
-      xNeu.inhalt?.versand === 'fehlgeschlagen' && Boolean(xNeu.inhalt?.versandGrund),
-      `${xNeu.inhalt?.versand} · ${xNeu.inhalt?.versandGrund}`);
+      xNeu.inhalt?.delivery === 'fehlgeschlagen' && Boolean(xNeu.inhalt?.deliveryReason),
+      `${xNeu.inhalt?.delivery} · ${xNeu.inhalt?.deliveryReason}`);
 
     gruppe('Der Mailversand: die Frist wird gemessen, nicht behauptet');
 
@@ -11685,8 +11685,8 @@ const freigabeHaupt = (purpose, target = null) =>
       !stNeu.ueberfaellig && stDauer < 21000,
       stNeu.ueberfaellig ? `nach ${MESS_GRENZE_MS} ms keine Antwort` : `gemessen ${stDauer} ms`);
     pruefe('Und der Token ist trotzdem da',
-      /^[0-9a-f]{64}$/.test(stNeu.inhalt?.token || '') && stNeu.inhalt?.versand === 'fehlgeschlagen',
-      `${stNeu.inhalt?.versand} · ${stNeu.inhalt?.token}`);
+      /^[0-9a-f]{64}$/.test(stNeu.inhalt?.token || '') && stNeu.inhalt?.delivery === 'fehlgeschlagen',
+      `${stNeu.inhalt?.delivery} · ${stNeu.inhalt?.token}`);
 
     const Sw = smtpEmpfaenger('schweigt');
     const SwA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5500);
@@ -11728,8 +11728,8 @@ const freigabeHaupt = (purpose, target = null) =>
       /^[0-9a-f]{64}$/.test(trNeu.inhalt?.token || '') && Boolean(trNeu.inhalt?.link),
       JSON.stringify([trNeu.inhalt?.token, trNeu.inhalt?.link]));
     pruefe('Und der Grund nennt die Frist',
-      /nicht rechtzeitig/.test(trNeu.inhalt?.versandGrund || ''),
-      JSON.stringify(trNeu.inhalt?.versandGrund));
+      /nicht rechtzeitig/.test(trNeu.inhalt?.deliveryReason || ''),
+      JSON.stringify(trNeu.inhalt?.deliveryReason));
 
     gruppe('Der Mailversand: die oeffentliche Adresse ist Pflicht');
 
@@ -11741,18 +11741,18 @@ const freigabeHaupt = (purpose, target = null) =>
     const oNeu = await OA.S.ruf('POST', '/api/users',
       { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
     pruefe('Ohne oeffentliche Adresse wird NICHT verschickt',
-      oNeu.inhalt?.versand === 'aus', JSON.stringify(oNeu.inhalt?.versand));
+      oNeu.inhalt?.delivery === 'aus', JSON.stringify(oNeu.inhalt?.delivery));
     pruefe('Und der Grund nennt die Einstellung',
-      /PUBLIC_ADDRESS/.test(oNeu.inhalt?.versandGrund || ''),
-      JSON.stringify(oNeu.inhalt?.versandGrund));
+      /PUBLIC_ADDRESS/.test(oNeu.inhalt?.deliveryReason || ''),
+      JSON.stringify(oNeu.inhalt?.deliveryReason));
     await new Promise(r => setTimeout(r, 200));
     pruefe('Der Empfaenger hat wirklich nichts bekommen',
       O.briefe().length === 0, `${O.briefe().length} Briefe`);
     pruefe('Der Token entsteht trotzdem',
       /^[0-9a-f]{64}$/.test(oNeu.inhalt?.token || ''), JSON.stringify(oNeu.inhalt?.token));
     pruefe('Und die Karte markiert die fehlende Adresse',
-      (await OA.S.ruf('GET', '/api/mail')).inhalt?.adresseGesetzt === false,
-      JSON.stringify((await OA.S.ruf('GET', '/api/mail')).inhalt?.adresseGesetzt));
+      (await OA.S.ruf('GET', '/api/mail')).inhalt?.addressSet === false,
+      JSON.stringify((await OA.S.ruf('GET', '/api/mail')).inhalt?.addressSet));
 
     /* DIE ADRESSE KOMMT NIE AUS DEM Host-KOPF, und das ist die Stelle, an der
        ein gefaelschter Kopf am meisten wert waere: eine verschickte Mail
@@ -11870,7 +11870,7 @@ const freigabeHaupt = (purpose, target = null) =>
     const tMit = await TA.S.ruf('POST', '/api/mail/test',
       { an: 'fremd@boese.net', email: 'fremd@boese.net', to: 'fremd@boese.net' });
     pruefe('Die Testmail geht hinaus', tMit.inhalt?.ok === true,
-      `${tMit.inhalt?.ok} · ${tMit.inhalt?.grund}`);
+      `${tMit.inhalt?.ok} · ${tMit.inhalt?.reason}`);
     pruefe('Und zwar an die eigene Adresse', tMit.inhalt?.an === 'anna@beispiel.de',
       JSON.stringify(tMit.inhalt?.an));
     await new Promise(r => setTimeout(r, 300));
@@ -11879,7 +11879,7 @@ const freigabeHaupt = (purpose, target = null) =>
       tBriefe.length === 1 && /^To: anna@beispiel\.de$/m.test(tBriefe[0].kopf),
       tBriefe.map(b => b.kopf.split('\n')[1]).join(' | '));
     pruefe('Die fremde Adresse aus dem Rumpf taucht nirgends auf',
-      tBriefe.every(b => !b.roh.includes('fremd@boese.net')), 'die fremde Adresse steht im Brief');
+      tBriefe.every(b => !b.raw.includes('fremd@boese.net')), 'die fremde Adresse steht im Brief');
     // Dieselbe Frage ueber die Abfrage und ueber einen Kopf.
     const tQuery = await TA.S.ruf('POST', '/api/mail/test?an=fremd2@boese.net', {});
     pruefe('Auch ein Adressfeld in der Abfrage aendert nichts',
@@ -11890,9 +11890,9 @@ const freigabeHaupt = (purpose, target = null) =>
       JSON.stringify(tKopfInhalt.an));
     await new Promise(r => setTimeout(r, 300));
     pruefe('Keiner der drei Versuche hat eine fremde Adresse erreicht',
-      T.briefe().every(b => !/boese\.net/.test(b.roh)) && T.briefe().length === 3,
+      T.briefe().every(b => !/boese\.net/.test(b.raw)) && T.briefe().length === 3,
       `${T.briefe().length} Briefe, fremde Adressen: ` +
-      T.briefe().filter(b => /boese\.net/.test(b.roh)).length);
+      T.briefe().filter(b => /boese\.net/.test(b.raw)).length);
     pruefe('Und die Marke steht danach in der Karte',
       Boolean(tMit.inhalt?.getestetAm), JSON.stringify(tMit.inhalt?.getestetAm));
     /* DIE MARKE GILT NUR ZU DEN WERTEN, MIT DENEN SIE ENTSTANDEN IST, und das
@@ -11911,8 +11911,8 @@ const freigabeHaupt = (purpose, target = null) =>
        oder weil nichts mehr geht. */
     await mailFrei(TA.S);
     const tNachAenderung = await TA.S.ruf('PUT', '/api/mail', {
-      anbieter: 'eigen', server: '127.0.0.1', port: T.port, sicher: false,
-      benutzer: MAIL_BENUTZER, passwort: '', absender: 'anders@beispiel.de'
+      provider: 'eigen', server: '127.0.0.1', port: T.port, sicher: false,
+      benutzer: MAIL_BENUTZER, password: '', sender: 'anders@beispiel.de'
     });
     pruefe('Die Aenderung geht durch', tNachAenderung.status === 200,
       `Status ${tNachAenderung.status}`);
@@ -11924,8 +11924,8 @@ const freigabeHaupt = (purpose, target = null) =>
     // Und der Zugang steht trotzdem: das leere Passwortfeld hat ihn nicht
     // geleert, sondern unveraendert gelassen.
     pruefe('Der Zugang ist dabei erhalten geblieben',
-      tNachAenderung.inhalt?.eingerichtet === true && tNachAenderung.inhalt?.passwortGesetzt === true,
-      JSON.stringify([tNachAenderung.inhalt?.eingerichtet, tNachAenderung.inhalt?.passwortGesetzt]));
+      tNachAenderung.inhalt?.eingerichtet === true && tNachAenderung.inhalt?.passwordSet === true,
+      JSON.stringify([tNachAenderung.inhalt?.eingerichtet, tNachAenderung.inhalt?.passwordSet]));
 
     gruppe('Der Mailzugang: wer ihn setzen darf');
 
@@ -11933,25 +11933,25 @@ const freigabeHaupt = (purpose, target = null) =>
        an keines der drei. Geprueft an einem ECHTEN zweiten Zugang, nicht an
        einer gestellten Rolle. */
     const RA = await mailInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6250);
-    await RA.S.ruf('POST', '/api/users', { username: 'carla', passwort: MAIL_PASSWORT_CARLA });
-    const rListe = (await RA.S.ruf('GET', '/api/users')).inhalt?.zugaenge || [];
+    await RA.S.ruf('POST', '/api/users', { username: 'carla', password: MAIL_PASSWORT_CARLA });
+    const rListe = (await RA.S.ruf('GET', '/api/users')).inhalt?.users || [];
     const rCarla = rListe.find(z => z.username === 'carla');
     await RA.S.ruf('POST', '/api/confirm',
-      { passwort: MAIL_PASSWORT_ANNA, purpose: 'role', target: rCarla.id });
+      { password: MAIL_PASSWORT_ANNA, purpose: 'role', target: rCarla.id });
     await RA.S.ruf('PUT', `/api/users/${rCarla.id}`, { rolle: 'admin' });
     RA.S.cookieLoeschen();
     const rAnmeldung = await RA.S.ruf('POST', '/api/login',
       { user: 'carla', password: MAIL_PASSWORT_CARLA });
     pruefe('Der zweite Zugang ist wirklich Admin und angemeldet',
       rAnmeldung.status === 200 &&
-      (await RA.S.ruf('GET', '/api/settings')).inhalt?.istEigentuemer === false,
+      (await RA.S.ruf('GET', '/api/settings')).inhalt?.isOwner === false,
       `Status ${rAnmeldung.status}`);
     pruefe('Ein Admin sieht den Mailzugang NICHT',
       (await RA.S.ruf('GET', '/api/mail')).status === 403,
       `Status ${(await RA.S.ruf('GET', '/api/mail')).status}`);
     pruefe('Ein Admin setzt ihn NICHT',
-      (await RA.S.ruf('PUT', '/api/mail', { anbieter: 'gmx' })).status === 403,
-      `Status ${(await RA.S.ruf('PUT', '/api/mail', { anbieter: 'gmx' })).status}`);
+      (await RA.S.ruf('PUT', '/api/mail', { provider: 'gmx' })).status === 403,
+      `Status ${(await RA.S.ruf('PUT', '/api/mail', { provider: 'gmx' })).status}`);
     pruefe('Und ein Admin loest die Testmail NICHT aus',
       (await RA.S.ruf('POST', '/api/mail/test', {})).status === 403,
       `Status ${(await RA.S.ruf('POST', '/api/mail/test', {})).status}`);
@@ -11961,16 +11961,16 @@ const freigabeHaupt = (purpose, target = null) =>
     RA.S.cookieLoeschen();
     await RA.S.ruf('POST', '/api/login', { user: 'anna', password: MAIL_PASSWORT_ANNA });
     const rOhneFrei = await RA.S.ruf('PUT', '/api/mail',
-      { anbieter: 'gmx', benutzer: 'a@gmx.de', passwort: MAIL_GEHEIMNIS, absender: 'a@gmx.de' });
+      { provider: 'gmx', benutzer: 'a@gmx.de', password: MAIL_GEHEIMNIS, sender: 'a@gmx.de' });
     pruefe('Ohne zweite Bestaetigung kommt auch der Eigentuemer nicht durch',
-      rOhneFrei.status === 403 && rOhneFrei.inhalt?.bestaetigung === 'mail',
-      `${rOhneFrei.status} · ${JSON.stringify(rOhneFrei.inhalt?.bestaetigung)}`);
+      rOhneFrei.status === 403 && rOhneFrei.inhalt?.confirm === 'mail',
+      `${rOhneFrei.status} · ${JSON.stringify(rOhneFrei.inhalt?.confirm)}`);
     pruefe('Und dabei wurde nichts geschrieben',
       (await RA.S.ruf('GET', '/api/mail')).inhalt?.eingerichtet === false,
       JSON.stringify((await RA.S.ruf('GET', '/api/mail')).inhalt?.eingerichtet));
     await mailFrei(RA.S);
     const rMitFrei = await RA.S.ruf('PUT', '/api/mail',
-      { anbieter: 'gmx', benutzer: 'a@gmx.de', passwort: MAIL_GEHEIMNIS, absender: 'a@gmx.de' });
+      { provider: 'gmx', benutzer: 'a@gmx.de', password: MAIL_GEHEIMNIS, sender: 'a@gmx.de' });
     pruefe('Mit Bestaetigung geht es durch', rMitFrei.status === 200, `Status ${rMitFrei.status}`);
     /* DIE VORLAGE FUELLT SERVER UND PORT AUS DEM QUELLTEXT, nicht aus dem
        Rumpf: wer GMX waehlt, bekommt GMX -- auch wenn er etwas anderes
@@ -11980,8 +11980,8 @@ const freigabeHaupt = (purpose, target = null) =>
       JSON.stringify([rMitFrei.inhalt?.server, rMitFrei.inhalt?.port]));
     await mailFrei(RA.S);
     const rGeschmuggelt = await RA.S.ruf('PUT', '/api/mail',
-      { anbieter: 'gmx', server: 'boeser.beispiel.net', port: 2525, sicher: true,
-        benutzer: 'a@gmx.de', passwort: MAIL_GEHEIMNIS, absender: 'a@gmx.de' });
+      { provider: 'gmx', server: 'boeser.beispiel.net', port: 2525, sicher: true,
+        benutzer: 'a@gmx.de', password: MAIL_GEHEIMNIS, sender: 'a@gmx.de' });
     pruefe('Ein mitgeschickter Server wird bei einer Vorlage nicht uebernommen',
       rGeschmuggelt.inhalt?.server === 'mail.gmx.net' && rGeschmuggelt.inhalt?.port === 587,
       JSON.stringify([rGeschmuggelt.inhalt?.server, rGeschmuggelt.inhalt?.port]));
@@ -11996,9 +11996,9 @@ const freigabeHaupt = (purpose, target = null) =>
     {
       const d = oeffne(path.join(RA.dir, 'katalog.sqlite'));
       try {
-        const roh = JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'mailzugang'").get().value);
+        const raw = JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'mailzugang'").get().value);
         d.prepare("UPDATE settings SET value = ? WHERE key = 'mailzugang'")
-          .run(JSON.stringify({ ...roh, server: 'boeser.beispiel.net', port: 2525, sicher: true }));
+          .run(JSON.stringify({ ...raw, server: 'boeser.beispiel.net', port: 2525, sicher: true }));
       } finally { d.close(); }   // Stolperstein 134
     }
     const rGespeichert = await RA.S.ruf('GET', '/api/mail');
@@ -12012,8 +12012,8 @@ const freigabeHaupt = (purpose, target = null) =>
        es also, nur aus dem falschen Grund und mit einer Message, die niemand
        versteht. Geprueft wird deshalb der WORTLAUT. */
     await mailFrei(RA.S);
-    const rErfunden = await RA.S.ruf('PUT', '/api/mail', { anbieter: 'erfunden',
-      benutzer: 'a', passwort: 'b', absender: 'a@b.de' });
+    const rErfunden = await RA.S.ruf('PUT', '/api/mail', { provider: 'erfunden',
+      benutzer: 'a', password: 'b', sender: 'a@b.de' });
     pruefe('Ein unbekannter Anbieter wird abgewiesen',
       rErfunden.status === 400, `Status ${rErfunden.status}`);
     pruefe('Und zwar mit der benannten Absage, nicht mit einem Fehler',
@@ -12021,11 +12021,11 @@ const freigabeHaupt = (purpose, target = null) =>
       JSON.stringify(rErfunden.inhalt?.error));
     // Die drei Hinweise haengen am Anbieter und kommen vom Server.
     pruefe('Der Hinweis zum Anbieter kommt vom Server',
-      /fremde Programme/.test(rMitFrei.inhalt?.hinweis || ''),
-      JSON.stringify(rMitFrei.inhalt?.hinweis));
+      /fremde Programme/.test(rMitFrei.inhalt?.hint || ''),
+      JSON.stringify(rMitFrei.inhalt?.hint));
     pruefe('Und der Hinweis zur Absenderadresse steht immer da',
-      /Absenderadresse muss zum Konto/.test(rMitFrei.inhalt?.hinweisImmer || ''),
-      JSON.stringify(rMitFrei.inhalt?.hinweisImmer));
+      /Absenderadresse muss zum Konto/.test(rMitFrei.inhalt?.hintAlways || ''),
+      JSON.stringify(rMitFrei.inhalt?.hintAlways));
     /* ---- DIE ANBIETERLISTE TRAEGT, WAS DER DIALOG BRAUCHT — 0.17.3 ----
        Seit dieser Runde stellt ein Dialog den Zugang ein, und dort wechselt
        mit der Auswahl ZWEIERLEI: der Hinweis zu genau diesem Anbieter und die
@@ -12034,7 +12034,7 @@ const freigabeHaupt = (purpose, target = null) =>
        oder einer den Port wechselt (Stolperstein 102).
        DIE LISTE SELBST IST UNVERAENDERT: fuenf Vorlagen und „Eigener Server".
        Gezaehlt wird sie ausdruecklich, damit ein stiller Zuwachs auffaellt. */
-    const rAnbListe = rMitFrei.inhalt?.anbieterListe || [];
+    const rAnbListe = rMitFrei.inhalt?.providerList || [];
     pruefe('Die Anbieterliste kommt weiterhin mit sechs Eintraegen',
       rAnbListe.length === 6, `${rAnbListe.length}`);
     pruefe('Und in derselben Folge wie in mail.js',
@@ -12053,10 +12053,10 @@ const freigabeHaupt = (purpose, target = null) =>
        gehoert, steht ein leerer String und nicht `undefined` -- der Dialog
        fragt darauf ab, ob der Absatz ueberhaupt dasteht. */
     pruefe('Der Anbieterhinweis haengt am Eintrag',
-      /fremde Programme/.test(rAnbGmx?.hinweis || ''), JSON.stringify(rAnbGmx?.hinweis));
+      /fremde Programme/.test(rAnbGmx?.hint || ''), JSON.stringify(rAnbGmx?.hint));
     pruefe('Und ein Anbieter ohne Hinweis traegt einen leeren',
-      rAnbListe.find(a => a.key === 'strato')?.hinweis === '',
-      JSON.stringify(rAnbListe.find(a => a.schluessel === 'strato')?.hinweis));
+      rAnbListe.find(a => a.key === 'strato')?.hint === '',
+      JSON.stringify(rAnbListe.find(a => a.schluessel === 'strato')?.hint));
     /* DAS PASSWORT KOMMT AUCH HIER NICHT HERAUS -- die Liste ist eine neue
        Auskunft, und jede neue Auskunft wird daraufhin angesehen. */
     pruefe('Und aus der Liste kommt kein Geheimnis heraus',
@@ -12090,12 +12090,12 @@ const freigabeHaupt = (purpose, target = null) =>
       return { dir, S };
     };
     const regFrei = (S) => S.ruf('POST', '/api/confirm',
-      { passwort: REG_PASSWORT, purpose: 'mail', target: null });
+      { password: REG_PASSWORT, purpose: 'mail', target: null });
     const regMailSetzen = async (S, empf) => {
       await regFrei(S);
       return S.ruf('PUT', '/api/mail', {
-        anbieter: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
-        benutzer: 'kriterion@beispiel.de', passwort: REG_MAILWORT, absender: 'instanz@beispiel.de'
+        provider: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
+        benutzer: 'kriterion@beispiel.de', password: REG_MAILWORT, sender: 'instanz@beispiel.de'
       });
     };
     /* Mailzugang setzen, eigene Adresse eintragen, Testmail druecken. Ohne
@@ -12147,8 +12147,8 @@ const freigabeHaupt = (purpose, target = null) =>
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify(koerper)
       });
-      const roh = await a.text();
-      return { status: a.status, roh, ms: Number(process.hrtime.bigint() - t0) / 1e6 };
+      const raw = await a.text();
+      return { status: a.status, raw, ms: Number(process.hrtime.bigint() - t0) / 1e6 };
     };
 
     gruppe('Die Selbstanmeldung: die immer gleiche Antwort');
@@ -12158,14 +12158,14 @@ const freigabeHaupt = (purpose, target = null) =>
     const gA = await regInstanz({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6700);
     const gTest = await regVersandStellen(gA.S, gOk);
     pruefe('Die Testmail dieser Instanz kommt durch', gTest.inhalt?.ok === true,
-      `${gTest.inhalt?.ok} · ${gTest.inhalt?.grund}`);
+      `${gTest.inhalt?.ok} · ${gTest.inhalt?.reason}`);
     const gAn = await gA.S.ruf('PUT', '/api/signup/toggle', { an: true });
     pruefe('Und damit laesst sich der Schalter einschalten',
       gAn.status === 200 && gAn.inhalt?.an === true, JSON.stringify(gAn.inhalt));
     // Ein bestehender Zugang mit Adresse -- fuer "Name vergeben" und
     // "Adresse vergeben".
     await gA.S.ruf('POST', '/api/users',
-      { username: 'bert', passwort: 'berts-langes-wort', email: 'bert@beispiel.de' });
+      { username: 'bert', password: 'berts-langes-wort', email: 'bert@beispiel.de' });
     /* JETZT AUF DEN TROEPFELNDEN UMSTELLEN. Ab hier haengt jeder Versand
        zwanzig Sekunden -- und der Schalter bleibt trotzdem an. Beides wird
        gebraucht: die Messung unten und die Zusage, dass er sich nicht von
@@ -12176,33 +12176,33 @@ const freigabeHaupt = (purpose, target = null) =>
       JSON.stringify((await gA.S.ruf('GET', '/api/requests')).inhalt?.an));
     const gKaputt = (await gA.S.ruf('GET', '/api/requests')).inhalt || {};
     pruefe('Und die Karte sagt, dass der Versand nicht mehr traegt',
-      gKaputt?.versandBereit === false && /Testmail/.test(gKaputt?.versandGrund || ''),
-      JSON.stringify([gKaputt?.versandBereit, gKaputt?.versandGrund]));
+      gKaputt?.deliveryReady === false && /Testmail/.test(gKaputt?.deliveryReason || ''),
+      JSON.stringify([gKaputt?.deliveryReady, gKaputt?.deliveryReason]));
 
     /* FUENF LAGEN, UND VERGLICHEN WIRD DER ROHE ANTWORTKOERPER -- nicht ein
        Feld daraus. Ein Vergleich auf `ok === true` bliebe gruen, wenn daneben
        ein Feld auftauchte, das die Lage verriete. */
     const gLagen = [
-      ['unbekannter Name', { name: 'neuling', adresse: 'neuling@beispiel.de' }],
-      ['bekannter Name', { name: 'bert', adresse: 'ganz-anders@beispiel.de' }],
-      ['bekannte Adresse', { name: 'ganz-anders', adresse: 'bert@beispiel.de' }],
-      ['unbrauchbare Adresse', { name: 'dritter', adresse: 'keine-adresse' }],
-      ['schon offene Anfrage', { name: 'neuling', adresse: 'neuling@beispiel.de' }]
+      ['unbekannter Name', { name: 'neuling', address: 'neuling@beispiel.de' }],
+      ['bekannter Name', { name: 'bert', address: 'ganz-anders@beispiel.de' }],
+      ['bekannte Adresse', { name: 'ganz-anders', address: 'bert@beispiel.de' }],
+      ['unbrauchbare Adresse', { name: 'dritter', address: 'keine-adresse' }],
+      ['schon offene Anfrage', { name: 'neuling', address: 'neuling@beispiel.de' }]
     ];
     const gE = [];
     for (const [event, koerper] of gLagen) gE.push([event, await regRoh(gA.S, '/api/signup', koerper)]);
-    const REG_ANTWORT = gE[0][1].roh;
+    const REG_ANTWORT = gE[0][1].raw;
     pruefe('Alle fuenf Lagen antworten mit demselben Statuscode',
       gE.every(([, e]) => e.status === 200), gE.map(([w, e]) => `${w}: ${e.status}`).join(' · '));
     pruefe('Und mit demselben Rumpf -- Byte fuer Byte',
-      gE.every(([, e]) => e.roh === REG_ANTWORT),
-      gE.map(([w, e]) => `${w}: ${e.roh.length} Zeichen`).join(' · '));
+      gE.every(([, e]) => e.raw === REG_ANTWORT),
+      gE.map(([w, e]) => `${w}: ${e.raw.length} Zeichen`).join(' · '));
     /* ERST DER GEGENSTAND (Stolperstein 81): ein leerer Rumpf waere in allen
        fuenf Lagen gleich und belegte nichts. */
     pruefe('Der Rumpf sagt ueberhaupt etwas -- und nennt den naechsten Schritt',
       /E-Mail/.test(REG_ANTWORT) && /Admin/.test(REG_ANTWORT), REG_ANTWORT.slice(0, 160));
     pruefe('Und er verraet in keiner Lage, welche es war',
-      gE.every(([, e]) => !/vergeben|bereits|Deckel|unbekannt|ungültig|ungueltig/i.test(e.roh)),
+      gE.every(([, e]) => !/vergeben|bereits|Deckel|unbekannt|ungültig|ungueltig/i.test(e.raw)),
       REG_ANTWORT.slice(0, 160));
     /* DIE LAUFZEITEN. Die erste Lage verschickt wirklich, und der Empfaenger
        dahinter troepfelt zwanzig Sekunden. Die vier anderen verwerfen still.
@@ -12240,18 +12240,18 @@ const freigabeHaupt = (purpose, target = null) =>
        Adresse beliebig viele Bestaetigungsmails zu schicken -- ein neuer Name
        je Anfrage genuegte. */
     const gGleicheAdresse = await regRoh(gA.S, '/api/signup',
-      { name: 'ganz-anderer-name', adresse: 'neuling@beispiel.de' });
+      { name: 'ganz-anderer-name', address: 'neuling@beispiel.de' });
     pruefe('Dieselbe Adresse unter anderem Namen bekommt DIESELBE Antwort',
-      gGleicheAdresse.status === 200 && gGleicheAdresse.roh === REG_ANTWORT,
-      gGleicheAdresse.roh.slice(0, 60));
+      gGleicheAdresse.status === 200 && gGleicheAdresse.raw === REG_ANTWORT,
+      gGleicheAdresse.raw.slice(0, 60));
     pruefe('Und wird still verworfen -- es entsteht keine zweite Zeile',
       regSql(gA.dir, 'SELECT username FROM requests').length === 1,
       JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM requests')));
     const gGleicherName = await regRoh(gA.S, '/api/signup',
-      { name: 'neuling', adresse: 'ganz-andere@beispiel.de' });
+      { name: 'neuling', address: 'ganz-andere@beispiel.de' });
     pruefe('Derselbe Name unter anderer Adresse ebenso',
-      gGleicherName.status === 200 && gGleicherName.roh === REG_ANTWORT,
-      gGleicherName.roh.slice(0, 60));
+      gGleicherName.status === 200 && gGleicherName.raw === REG_ANTWORT,
+      gGleicherName.raw.slice(0, 60));
     pruefe('Und auch dabei bleibt es bei der einen Zeile',
       regSql(gA.dir, 'SELECT username FROM requests').length === 1,
       JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM requests')));
@@ -12259,7 +12259,7 @@ const freigabeHaupt = (purpose, target = null) =>
        Namen UND NEUER Adresse geht durch. Ohne sie belegten die vier Zeilen
        darueber nur, dass gar nichts mehr entsteht. */
     await regRoh(gA.S, '/api/signup',
-      { name: 'beides-neu', adresse: 'beides-neu@beispiel.de' });
+      { name: 'beides-neu', address: 'beides-neu@beispiel.de' });
     pruefe('Neuer Name UND neue Adresse gehen dagegen durch',
       regSql(gA.dir, "SELECT id FROM requests WHERE username = 'beides-neu'").length === 1,
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests').map(z => z.username)));
@@ -12271,13 +12271,13 @@ const freigabeHaupt = (purpose, target = null) =>
        DIE ANTWORT BLEIBT AUCH HIER DIESELBE: eine eigene Absage waere eine
        sechste Lage, an der sich etwas unterscheidet. */
     const gLang = await regRoh(gA.S, '/api/signup',
-      { name: 'x'.repeat(65), adresse: 'lang@beispiel.de' });
+      { name: 'x'.repeat(65), address: 'lang@beispiel.de' });
     pruefe('Ein zu langer Name bekommt DIESELBE Antwort',
-      gLang.status === 200 && gLang.roh === REG_ANTWORT, gLang.roh.slice(0, 60));
+      gLang.status === 200 && gLang.raw === REG_ANTWORT, gLang.raw.slice(0, 60));
     const gLangMail = await regRoh(gA.S, '/api/signup',
-      { name: 'kurzgenug', adresse: 'y'.repeat(250) + '@beispiel.de' });
+      { name: 'kurzgenug', address: 'y'.repeat(250) + '@beispiel.de' });
     pruefe('Eine zu lange Adresse ebenso',
-      gLangMail.status === 200 && gLangMail.roh === REG_ANTWORT, gLangMail.roh.slice(0, 60));
+      gLangMail.status === 200 && gLangMail.raw === REG_ANTWORT, gLangMail.raw.slice(0, 60));
     pruefe('Und keine von beiden hat eine Zeile angelegt',
       regSql(gA.dir, 'SELECT username FROM requests').length === 2,
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests').map(z => z.username.length)));
@@ -12286,7 +12286,7 @@ const freigabeHaupt = (purpose, target = null) =>
        etwas abgewiesen wird -- und nicht, dass die Grenze dort liegt, wo sie
        liegen soll. */
     const gKnapp = await regRoh(gA.S, '/api/signup',
-      { name: 'z'.repeat(64), adresse: 'knapp@beispiel.de' });
+      { name: 'z'.repeat(64), address: 'knapp@beispiel.de' });
     pruefe('Ein Name von genau 64 Zeichen geht dagegen durch',
       gKnapp.status === 200 &&
       regSql(gA.dir, 'SELECT username FROM requests').some(z => z.username === 'z'.repeat(64)),
@@ -12313,13 +12313,13 @@ const freigabeHaupt = (purpose, target = null) =>
       JSON.stringify((await gA.S.ruf('GET', '/api/config')).inhalt?.signup));
     const gVorher = regSql(gA.dir, 'SELECT id FROM requests').length;
     const gZu = await regRoh(gA.S, '/api/signup',
-      { name: 'waehrend-aus', adresse: 'aus@beispiel.de' });
+      { name: 'waehrend-aus', address: 'aus@beispiel.de' });
     /* DER SCHALTER AUS FUEHRT ZU DERSELBEN ANTWORT und nicht zu einer eigenen
        Absage -- sonst waere er die eine Lage, an der sich die Antwort doch
        unterscheidet, und die Route ein zweiter Weg, den Zustand abzufragen.
        "Abweisen" heisst hier: es entsteht nichts. */
     pruefe('Die Anfrage bei ausgeschaltetem Schalter bekommt DIESELBE Antwort',
-      gZu.status === 200 && gZu.roh === REG_ANTWORT, `${gZu.status} · ${gZu.roh.slice(0, 60)}`);
+      gZu.status === 200 && gZu.raw === REG_ANTWORT, `${gZu.status} · ${gZu.raw.slice(0, 60)}`);
     pruefe('Und es entsteht dabei keine Zeile',
       regSql(gA.dir, 'SELECT id FROM requests').length === gVorher,
       `vorher ${gVorher}, nachher ${regSql(gA.dir, 'SELECT id FROM requests').length}`);
@@ -12360,7 +12360,7 @@ const freigabeHaupt = (purpose, target = null) =>
       { oldPassword: REG_PASSWORT, username: 'anna', email: 'anna@beispiel.de' });
     const iTest = await iA.S.ruf('POST', '/api/mail/test', {});
     pruefe('Die Testmail kommt hier durch -- ganz ohne oeffentliche Adresse',
-      iTest.inhalt?.ok === true, `${iTest.inhalt?.ok} · ${iTest.inhalt?.grund}`);
+      iTest.inhalt?.ok === true, `${iTest.inhalt?.ok} · ${iTest.inhalt?.reason}`);
     const iOhneAdresse = await iA.S.ruf('PUT', '/api/signup/toggle', { an: true });
     pruefe('Und trotzdem laesst sich der Schalter nicht einschalten',
       iOhneAdresse.status === 400, `Status ${iOhneAdresse.status}`);
@@ -12379,9 +12379,9 @@ const freigabeHaupt = (purpose, target = null) =>
     await hA.S.ruf('PUT', '/api/signup/toggle', { an: true });
     const hVorBriefe = hOk.briefe().length;
     const hAnfrage = await regRoh(hA.S, '/api/signup',
-      { name: 'clara', adresse: 'clara@beispiel.de' });
-    pruefe('Die Anfrage wird angenommen', hAnfrage.status === 200 && hAnfrage.roh === REG_ANTWORT,
-      `${hAnfrage.status} · ${hAnfrage.roh.slice(0, 60)}`);
+      { name: 'clara', address: 'clara@beispiel.de' });
+    pruefe('Die Anfrage wird angenommen', hAnfrage.status === 200 && hAnfrage.raw === REG_ANTWORT,
+      `${hAnfrage.status} · ${hAnfrage.raw.slice(0, 60)}`);
     const hSchluessel = await regWarteAufBrief(hOk, 'clara@beispiel.de');
     /* GESUCHT WIRD DER BRIEF AN DIESE ADRESSE, nicht "einer mehr als vorher":
        der Versand laeuft NACH der Antwort, und unter mehreren Nebenspuren
@@ -12395,7 +12395,7 @@ const freigabeHaupt = (purpose, target = null) =>
        einer Gruppe ueber einen Vorgang, der scheitern KANN, laeuft jede
        Lesestelle danach ueber ein Auffangnetz (Stolperstein 138): kommt der
        Brief nicht, soll die Gruppe rot werden und nicht abreissen. */
-    const hBrief = hBriefe[0] || { kopf: '', rumpf: '', roh: '' };
+    const hBrief = hBriefe[0] || { kopf: '', rumpf: '', raw: '' };
     pruefe('Der Empfaenger ist die angefragte Adresse',
       /^To: clara@beispiel\.de$/m.test(hBrief.kopf), hBrief.kopf.split('\n').slice(0, 4).join(' | '));
     pruefe('Der Absender ist der eingetragene',
@@ -12421,7 +12421,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Und dass danach ein Admin entscheidet',
       /entscheidet danach ein Admin/.test(hBrief.rumpf), hBrief.rumpf.slice(0, 400));
     pruefe('Er ist reiner Text -- kein HTML im Brief',
-      !/<html|<body|Content-Type: text\/html/i.test(hBrief.roh), 'HTML im Brief');
+      !/<html|<body|Content-Type: text\/html/i.test(hBrief.raw), 'HTML im Brief');
     // Der Schluessel selbst steht in der Datenbank NICHT im Klartext.
     pruefe('In der Tabelle steht nur der Hash, nie der Schluessel',
       Boolean(hSchluessel) && (regSql(hA.dir, 'SELECT hash FROM requests')[0] || {}).hash ===
@@ -12484,18 +12484,18 @@ const freigabeHaupt = (purpose, target = null) =>
     /* SIE ERSCHEINT BEIM ADMIN NICHT -- sonst stuende dort die Adresse eines
        Menschen, der von der ganzen Sache nichts weiss, und der Admin koennte
        sie freischalten. Genau die Luecke schliesst die Bestaetigungsmail. */
-    await regRoh(hA.S, '/api/signup', { name: 'dora', adresse: 'dora@beispiel.de' });
+    await regRoh(hA.S, '/api/signup', { name: 'dora', address: 'dora@beispiel.de' });
     await regWarteAufBrief(hOk, 'dora@beispiel.de');
-    const hKarte = (await hA.S.ruf('GET', '/api/requests')).inhalt || { anfragen: [] };
+    const hKarte = (await hA.S.ruf('GET', '/api/requests')).inhalt || { requests: [] };
     pruefe('In der Tabelle stehen jetzt zwei Zeilen',
       regSql(hA.dir, 'SELECT id FROM requests').length === 2,
       `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
     pruefe('Der Admin sieht davon nur die bestaetigte',
-      (hKarte.anfragen || []).length === 1 &&
-      ((hKarte.anfragen || [])[0] || {}).username === 'clara',
-      JSON.stringify((hKarte.anfragen || []).map(a => a.username)));
+      (hKarte.requests || []).length === 1 &&
+      ((hKarte.requests || [])[0] || {}).username === 'clara',
+      JSON.stringify((hKarte.requests || []).map(a => a.username)));
     pruefe('Der Deckel zaehlt trotzdem beide',
-      hKarte.belegt === 2, `${hKarte.belegt} von ${hKarte.deckel}`);
+      hKarte.belegt === 2, `${hKarte.belegt} von ${hKarte.cap}`);
     /* UND SIE LAESST SICH AUCH NICHT UEBER IHRE NUMMER FREISCHALTEN. Die Karte
        zeigt sie nicht, aber eine Nummer laesst sich tippen -- die Route
        verlaesst sich deshalb nicht auf die Karte. */
@@ -12544,7 +12544,7 @@ const freigabeHaupt = (purpose, target = null) =>
     kurzlauf(
       `const { db } = require('./db');` +
       `db.prepare("UPDATE requests SET created_at = datetime('now', '-72 hours') ` +
-      `WHERE username = 'clara'").run(); console.log('gesetzt');`, hA.dir);
+      `WHERE username = 'clara'").run(); console.log('set');`, hA.dir);
     pruefe('Die bestaetigte Zeile ist jetzt drei Tage alt',
       /^\d{4}-/.test((regSql(hA.dir,
         "SELECT created_at FROM requests WHERE username = 'clara'")[0] || {}).created_at || ''),
@@ -12554,9 +12554,9 @@ const freigabeHaupt = (purpose, target = null) =>
       regSql(hA.dir, "SELECT id FROM requests WHERE username = 'clara'").length === 1,
       'die bestaetigte ist mitgefallen');
     pruefe('Der Admin sieht sie unveraendert',
-      ((await hA.S.ruf('GET', '/api/requests')).inhalt.anfragen || [])
+      ((await hA.S.ruf('GET', '/api/requests')).inhalt.requests || [])
         .some(a => a.username === 'clara'),
-      JSON.stringify((await hA.S.ruf('GET', '/api/requests')).inhalt.anfragen));
+      JSON.stringify((await hA.S.ruf('GET', '/api/requests')).inhalt.requests));
     /* DIE DRITTE AUFRUFSTELLE, und sie ist die besondere: sie steht VOR der
        Deckelpruefung. Ohne sie blockierten zwanzig laengst verfallene Zeilen
        die Selbstanmeldung noch einen weiteren Tag. Geprueft an einer Anfrage,
@@ -12570,9 +12570,9 @@ const freigabeHaupt = (purpose, target = null) =>
       regSql(hA.dir, 'SELECT id FROM requests').length === 20,
       `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
     const hNachRaum = await regRoh(hA.S, '/api/signup',
-      { name: 'emil', adresse: 'emil@beispiel.de' });
+      { name: 'emil', address: 'emil@beispiel.de' });
     pruefe('Die Anfrage bekommt dieselbe Antwort wie immer',
-      hNachRaum.status === 200 && hNachRaum.roh === REG_ANTWORT, hNachRaum.roh.slice(0, 60));
+      hNachRaum.status === 200 && hNachRaum.raw === REG_ANTWORT, hNachRaum.raw.slice(0, 60));
     pruefe('Und sie geht durch, weil die Anfrageroute selbst aufgeraeumt hat',
       regSql(hA.dir, "SELECT id FROM requests WHERE username = 'emil'").length === 1,
       JSON.stringify(regSql(hA.dir, 'SELECT username FROM requests').map(z => z.username)));
@@ -12596,9 +12596,9 @@ const freigabeHaupt = (purpose, target = null) =>
       regSql(hA.dir, 'SELECT id FROM requests').length === 20,
       `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
     const hDeckel = await regRoh(hA.S, '/api/signup',
-      { name: 'einundzwanzig', adresse: 'einundzwanzig@beispiel.de' });
+      { name: 'einundzwanzig', address: 'einundzwanzig@beispiel.de' });
     pruefe('Die einundzwanzigste bekommt DIESELBE Antwort',
-      hDeckel.status === 200 && hDeckel.roh === REG_ANTWORT, hDeckel.roh.slice(0, 60));
+      hDeckel.status === 200 && hDeckel.raw === REG_ANTWORT, hDeckel.raw.slice(0, 60));
     pruefe('Und sie wird still verworfen -- die Liste bleibt bei zwanzig',
       regSql(hA.dir, 'SELECT id FROM requests').length === 20,
       `${regSql(hA.dir, 'SELECT id FROM requests').length} Zeilen`);
@@ -12607,13 +12607,13 @@ const freigabeHaupt = (purpose, target = null) =>
       'der Name steht doch da');
     const hDeckelKarte = (await hA.S.ruf('GET', '/api/requests')).inhalt || {};
     pruefe('Die Karte nennt den Stand gegen den Deckel',
-      hDeckelKarte.belegt === 20 && hDeckelKarte.deckel === 20,
-      `${hDeckelKarte.belegt} von ${hDeckelKarte.deckel}`);
+      hDeckelKarte.belegt === 20 && hDeckelKarte.cap === 20,
+      `${hDeckelKarte.belegt} von ${hDeckelKarte.cap}`);
     // Platz schaffen, und die naechste geht wieder durch -- sonst belegte die
     // Pruefung nur, dass gar nichts mehr geht.
     kurzlauf(`const { db } = require('./db');` +
       `db.prepare("DELETE FROM requests WHERE username = 'voll0'").run(); console.log('weg');`, hA.dir);
-    await regRoh(hA.S, '/api/signup', { name: 'zwanzigster', adresse: 'zwanzig@beispiel.de' });
+    await regRoh(hA.S, '/api/signup', { name: 'zwanzigster', address: 'zwanzig@beispiel.de' });
     pruefe('Unter dem Deckel geht die naechste wieder durch',
       regSql(hA.dir, "SELECT id FROM requests WHERE username = 'zwanzigster'").length === 1,
       'sie ist nicht entstanden');
@@ -12627,14 +12627,14 @@ const freigabeHaupt = (purpose, target = null) =>
     kurzlauf(`const { db } = require('./db'); db.prepare('DELETE FROM requests').run();` +
       `console.log('leer');`, hA.dir);
     const fVorBriefe = hOk.briefe().length;
-    await regRoh(hA.S, '/api/signup', { name: 'frieda', adresse: 'frieda@beispiel.de' });
+    await regRoh(hA.S, '/api/signup', { name: 'frieda', address: 'frieda@beispiel.de' });
     const fSchluessel = await regWarteAufBrief(hOk, 'frieda@beispiel.de');
     await hA.S.ruf('POST', '/api/signup/confirm', { schluessel: fSchluessel });
-    const fKarte = (await hA.S.ruf('GET', '/api/requests')).inhalt || { anfragen: [] };
+    const fKarte = (await hA.S.ruf('GET', '/api/requests')).inhalt || { requests: [] };
     pruefe('Die bestaetigte Anfrage steht beim Admin',
-      (fKarte.anfragen || []).length === 1 &&
-      ((fKarte.anfragen || [])[0] || {}).username === 'frieda',
-      JSON.stringify(fKarte.anfragen));
+      (fKarte.requests || []).length === 1 &&
+      ((fKarte.requests || [])[0] || {}).username === 'frieda',
+      JSON.stringify(fKarte.requests));
     /* JEDE LESESTELLE DANACH UEBER EIN AUFFANGNETZ (Stolperstein 138): kommt
        die Zeile nicht, soll die Gruppe rot werden und nicht abreissen -- eine
        Gegenprobe, die den Lauf mitnimmt, sagt nichts darueber, welche Pruefung
@@ -12643,7 +12643,7 @@ const freigabeHaupt = (purpose, target = null) =>
        ANTWORT (Stolperstein 102) -- das ist die Quelle von vier stummen
        Gegenproben der Vorrunde. Die Karte zeichnet Name, Adresse, den
        Zeitpunkt der Anfrage und den der Bestaetigung. */
-    const fZeile = (fKarte.anfragen || [])[0] || {};
+    const fZeile = (fKarte.requests || [])[0] || {};
     pruefe('Die Antwort traegt den Namen', fZeile.username === 'frieda', JSON.stringify(fZeile));
     pruefe('Und die Adresse', fZeile.email === 'frieda@beispiel.de', JSON.stringify(fZeile));
     pruefe('Und den Zeitpunkt der Anfrage',
@@ -12665,8 +12665,8 @@ const freigabeHaupt = (purpose, target = null) =>
       fFrei.inhalt?.username === 'frieda', JSON.stringify(fFrei.inhalt?.username));
     pruefe('Und mit der angefragten Adresse',
       fFrei.inhalt?.email === 'frieda@beispiel.de', JSON.stringify(fFrei.inhalt?.email));
-    pruefe('Er hat noch kein Passwort', fFrei.inhalt?.ohnePasswort === true,
-      JSON.stringify(fFrei.inhalt?.ohnePasswort));
+    pruefe('Er hat noch kein Passwort', fFrei.inhalt?.withoutPassword === true,
+      JSON.stringify(fFrei.inhalt?.withoutPassword));
     pruefe('Ein Einladungstoken kommt mit',
       /^[0-9a-f]{64}$/.test(fFrei.inhalt?.token || '') && fFrei.inhalt?.purpose === 'invite',
       JSON.stringify([fFrei.inhalt?.purpose, String(fFrei.inhalt?.token).length]));
@@ -12677,11 +12677,11 @@ const freigabeHaupt = (purpose, target = null) =>
       regSql(hA.dir, 'SELECT id FROM requests').length === 0,
       JSON.stringify(regSql(hA.dir, 'SELECT username FROM requests')));
     pruefe('Und die Antwort traegt die neue, leere Liste gleich mit',
-      Array.isArray(fFrei.inhalt?.anfragen) && fFrei.inhalt.anfragen.length === 0,
-      JSON.stringify(fFrei.inhalt?.anfragen));
+      Array.isArray(fFrei.inhalt?.requests) && fFrei.inhalt.requests.length === 0,
+      JSON.stringify(fFrei.inhalt?.requests));
     await new Promise(r => setTimeout(r, 800));
-    pruefe('Die Einladungsmail geht hinaus', fFrei.inhalt?.versand === 'ok',
-      `${fFrei.inhalt?.versand} · ${fFrei.inhalt?.versandGrund}`);
+    pruefe('Die Einladungsmail geht hinaus', fFrei.inhalt?.delivery === 'ok',
+      `${fFrei.inhalt?.delivery} · ${fFrei.inhalt?.deliveryReason}`);
     /* GESUCHT WIRD DER BRIEF MIT DIESEM LINK und nicht der letzte in der Liste:
        die Bestaetigungsmails der vorigen Gruppen gehen NACH ihrer Antwort
        hinaus und koennen deshalb jederzeit dazwischenfallen. Eine Pruefung auf
@@ -12737,10 +12737,10 @@ const freigabeHaupt = (purpose, target = null) =>
       fPruefen.status === 200 && fPruefenInhalt.username === 'frieda',
       JSON.stringify(fPruefenInhalt));
     pruefe('Und die Frist ab dem ersten Oeffnen gilt auch hier',
-      fPruefenInhalt.minuten === 15, JSON.stringify(fPruefenInhalt.minuten));
+      fPruefenInhalt.minutes === 15, JSON.stringify(fPruefenInhalt.minutes));
     const fEin = await fetch(hA.S.basis + '/api/token/redeem', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: fFrei.inhalt?.token, passwort: 'friedas-langes-wort' })
+      body: JSON.stringify({ token: fFrei.inhalt?.token, password: 'friedas-langes-wort' })
     });
     pruefe('Das Passwort laesst sich darueber setzen', fEin.status === 200, `Status ${fEin.status}`);
     pruefe('Und wer einloest, ist damit gleich angemeldet',
@@ -12760,15 +12760,15 @@ const freigabeHaupt = (purpose, target = null) =>
        Anfrage. Geprueft in allen drei Formen -- Rumpf, Abfrage und Kopf --,
        denn eine Zusage ueber "wird nicht gelesen" muss an jeder Stelle halten,
        an der etwas hereinkommt. */
-    const rollenLage = async (name, adresse) => {
-      await regRoh(hA.S, '/api/signup', { name, adresse });
-      const s = await regWarteAufBrief(hOk, adresse);
+    const rollenLage = async (name, address) => {
+      await regRoh(hA.S, '/api/signup', { name, address });
+      const s = await regWarteAufBrief(hOk, address);
       await hA.S.ruf('POST', '/api/signup/confirm', { schluessel: s });
       const k = (await hA.S.ruf('GET', '/api/requests')).inhalt || {};
       // Ein Auffangnetz statt eines Griffs ins Leere (Stolperstein 138): eine
       // Nummer, die es nicht gibt, faerbt die Pruefung rot statt den Lauf
       // abzureissen.
-      return ((k.anfragen || []).find(a => a.username === name) || { id: 0 }).id;
+      return ((k.requests || []).find(a => a.username === name) || { id: 0 }).id;
     };
     const rRumpfId = await rollenLage('gustav', 'gustav@beispiel.de');
     const rRumpf = await hA.S.ruf('POST', `/api/requests/${rRumpfId}/approve`,
@@ -12809,9 +12809,9 @@ const freigabeHaupt = (purpose, target = null) =>
       regSql(hA.dir, "SELECT id FROM requests WHERE username = 'konrad'").length === 0,
       'sie steht noch da');
     pruefe('Und die Antwort traegt die neue Liste gleich mit',
-      Array.isArray(ab.inhalt?.anfragen) &&
-      !ab.inhalt.anfragen.some(a => a.username === 'konrad'),
-      JSON.stringify(ab.inhalt?.anfragen));
+      Array.isArray(ab.inhalt?.requests) &&
+      !ab.inhalt.requests.some(a => a.username === 'konrad'),
+      JSON.stringify(ab.inhalt?.requests));
     pruefe('Es ist KEIN Zugang entstanden',
       regSql(hA.dir, 'SELECT id FROM users').length === abZugaengeVor,
       `vorher ${abZugaengeVor}, nachher ${regSql(hA.dir, 'SELECT id FROM users').length}`);
@@ -12840,7 +12840,7 @@ const freigabeHaupt = (purpose, target = null) =>
        kaemen ohne Deckel dazu -- deshalb schreiben sie nichts. */
     kurzlauf(`const { db } = require('./db'); db.prepare('DELETE FROM security_log').run();` +
       `db.prepare('DELETE FROM requests').run(); console.log('leer');`, hA.dir);
-    await regRoh(hA.S, '/api/signup', { name: 'ludwig', adresse: 'ludwig@beispiel.de' });
+    await regRoh(hA.S, '/api/signup', { name: 'ludwig', address: 'ludwig@beispiel.de' });
     await hA.S.ruf('POST', '/api/signup/confirm',
       { schluessel: await regWarteAufBrief(hOk, 'ludwig@beispiel.de') });
     await hA.S.ruf('POST', '/api/signup/confirm', { schluessel: 'b'.repeat(64) });
@@ -12851,7 +12851,7 @@ const freigabeHaupt = (purpose, target = null) =>
        beschreibbar sein. Waere sie es nicht, waere die Pruefung darueber gruen
        und belegte nichts. */
     const ludwigId = ((((await hA.S.ruf('GET', '/api/requests')).inhalt || {})
-      .anfragen || []).find(a => a.username === 'ludwig') || { id: 0 }).id;
+      .requests || []).find(a => a.username === 'ludwig') || { id: 0 }).id;
     await hA.S.ruf('DELETE', `/api/requests/${ludwigId}`);
     pruefe('Die Entscheidung des Admins schreibt dagegen sehr wohl eine',
       regSql(hA.dir, 'SELECT id FROM security_log').length === 1,
@@ -12893,7 +12893,7 @@ const freigabeHaupt = (purpose, target = null) =>
        waere ein zweiter Mechanismus fuer dieselbe Sache. */
     const bAnfrage = await fetch(bA.S.basis + '/api/signup', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: 'waehrend-gesperrt', adresse: 'gesperrt@beispiel.de' })
+      body: JSON.stringify({ name: 'waehrend-gesperrt', address: 'gesperrt@beispiel.de' })
     });
     pruefe('Die Anfrageroute ist damit ebenfalls gesperrt', bAnfrage.status === 429,
       `Status ${bAnfrage.status}`);
@@ -13192,13 +13192,13 @@ const freigabeHaupt = (purpose, target = null) =>
        groesseren, und das ist kein Umweg, sondern genau die Zusage "ein Code
        gilt genau einmal" an ihrer ersten Anwendung. */
     const zfZugangMitFaktor = async (name) => {
-      const passwort = `${name}s-langes-wort-100`;
+      const password = `${name}s-langes-wort-100`;
       await zfS.cookieLoeschen();
       await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
-      const neu = await zfS.ruf('POST', '/api/users', { username: name, passwort });
+      const neu = await zfS.ruf('POST', '/api/users', { username: name, password });
       await zfS.cookieLoeschen();
-      await zfS.ruf('POST', '/api/login', { user: name, password: passwort });
-      const start = await zfS.ruf('POST', '/api/two-factor/start', { passwort });
+      await zfS.ruf('POST', '/api/login', { user: name, password: password });
+      const start = await zfS.ruf('POST', '/api/two-factor/start', { password });
       await zfRuhig();
       const zaehler = ZF.nowStep();
       /* AUFFANGNETZ (Stolperstein 138): gibt /start kein Geheimnis her, laeuft
@@ -13207,8 +13207,8 @@ const freigabeHaupt = (purpose, target = null) =>
          auf undefined und der Lauf risse ab. */
       const secret = (start.inhalt && start.inhalt.secret) || 'A'.repeat(32);
       const an = await zfS.ruf('POST', '/api/two-factor/on',
-        { passwort, code: ZF.code(secret, zaehler) });
-      return { name, passwort, id: (neu.inhalt || {}).id, secret,
+        { password, code: ZF.code(secret, zaehler) });
+      return { name, password, id: (neu.inhalt || {}).id, secret,
                codes: (an.inhalt && an.inhalt.codes) || [], zaehler,
                start: { status: start.status, inhalt: start.inhalt || {} },
                an: { status: an.status, inhalt: an.inhalt || {} } };
@@ -13224,14 +13224,14 @@ const freigabeHaupt = (purpose, target = null) =>
        zeigte keine einzige rote Pruefung. Genau das ist beim Bauen zweimal
        passiert. Status 0 gibt es nicht, also faellt jede Erwartung darauf
        ordentlich rot. */
-    const zfAnmelden = async (z, zaehler, roh) => {
+    const zfAnmelden = async (z, zaehler, raw) => {
       await zfS.cookieLoeschen();
-      const eins = await zfS.ruf('POST', '/api/login', { user: z.name, password: z.passwort });
+      const eins = await zfS.ruf('POST', '/api/login', { user: z.name, password: z.password });
       const leer = { status: 0, inhalt: { fehlt: 'Schritt 1 gab keinen Ausweis her' } };
-      if (!eins.inhalt || !eins.inhalt.ausweis) return { eins, zwei: leer };
-      const code = roh !== undefined ? roh : ZF.code(z.secret, zaehler);
+      if (!eins.inhalt || !eins.inhalt.ticket) return { eins, zwei: leer };
+      const code = raw !== undefined ? raw : ZF.code(z.secret, zaehler);
       const zwei = await zfS.ruf('POST', '/api/login/second',
-        { ausweis: eins.inhalt.ausweis, code });
+        { ticket: eins.inhalt.ticket, code });
       return { eins, zwei };
     };
 
@@ -13244,34 +13244,34 @@ const freigabeHaupt = (purpose, target = null) =>
       zfA.start.status === 200 && /^[A-Z2-7]{32}$/.test(zfA.start.inhalt.secret || ''),
       `${zfA.start.status} · ${zfA.start.inhalt?.secret}`);
     pruefe('Und daneben denselben Wert in Vierergruppen',
-      zfA.start.inhalt.gruppen.replace(/ /g, '') === zfA.start.inhalt.secret,
-      zfA.start.inhalt.gruppen);
+      zfA.start.inhalt.groups.replace(/ /g, '') === zfA.start.inhalt.secret,
+      zfA.start.inhalt.groups);
     pruefe('Und die otpauth-Zeile mit dem oeffentlichen Titel der Instanz',
-      zfA.start.inhalt.zeile.includes('otpauth://totp/') &&
-      zfA.start.inhalt.zeile.includes('Bewertungskatalog') &&
-      zfA.start.inhalt.zeile.includes(zfA.start.inhalt.secret), zfA.start.inhalt.zeile);
+      zfA.start.inhalt.row.includes('otpauth://totp/') &&
+      zfA.start.inhalt.row.includes('Bewertungskatalog') &&
+      zfA.start.inhalt.row.includes(zfA.start.inhalt.secret), zfA.start.inhalt.row);
     pruefe('Einschalten Schritt 2 nimmt den Code an und meldet "an"',
       zfA.an.status === 200 && zfA.an.inhalt.an === true, JSON.stringify(zfA.an.inhalt));
     pruefe('Und gibt genau acht Wiederherstellungscodes heraus',
       Array.isArray(zfA.codes) && zfA.codes.length === 8 &&
       zfA.codes.every(c => ZF.isRecoveryForm(c)), JSON.stringify(zfA.codes?.length));
     pruefe('Der Stand nennt acht von acht offen',
-      zfA.an.inhalt.codesOffen === 8 && zfA.an.inhalt.codesGesamt === 8,
-      `${zfA.an.inhalt.codesOffen}/${zfA.an.inhalt.codesGesamt}`);
+      zfA.an.inhalt.codesOpen === 8 && zfA.an.inhalt.codesTotal === 8,
+      `${zfA.an.inhalt.codesOpen}/${zfA.an.inhalt.codesTotal}`);
     const zfKarte = await zfS.ruf('GET', '/api/account');
     pruefe('Die Karte "Zugang" sieht den Zustand ohne einen zweiten Abruf',
-      zfKarte.inhalt.zweifaktor?.an === true &&
-      typeof zfKarte.inhalt.zweifaktor.seit === 'string' &&
-      zfKarte.inhalt.zweifaktor.codesOffen === 8, JSON.stringify(zfKarte.inhalt.zweifaktor));
+      zfKarte.inhalt.twoFactor?.an === true &&
+      typeof zfKarte.inhalt.twoFactor.seit === 'string' &&
+      zfKarte.inhalt.twoFactor.codesOpen === 8, JSON.stringify(zfKarte.inhalt.twoFactor));
     const zfEinst = await zfS.ruf('GET', '/api/settings');
     pruefe('Und GET /api/settings sagt dem Bestaetigungsfenster, dass ein Code dazugehoert',
-      zfEinst.inhalt.zweifaktor === true, JSON.stringify(zfEinst.inhalt.zweifaktor));
+      zfEinst.inhalt.twoFactor === true, JSON.stringify(zfEinst.inhalt.twoFactor));
 
     await zfRuhig();
     const zfRund = await zfAnmelden(zfA, ZF.nowStep() + 1);
     pruefe('Abmelden und mit Code wieder anmelden: Schritt 1 gibt keinen Cookie, sondern einen Ausweis',
-      zfRund.eins.status === 200 && zfRund.eins.inhalt.zweifaktor === true &&
-      typeof zfRund.eins.inhalt.ausweis === 'string' && !zfRund.eins.inhalt.ok,
+      zfRund.eins.status === 200 && zfRund.eins.inhalt.twoFactor === true &&
+      typeof zfRund.eins.inhalt.ticket === 'string' && !zfRund.eins.inhalt.ok,
       JSON.stringify(zfRund.eins.inhalt));
     /* DIE FRIST DES AUSWEISES WIRD UEBER DIE ZAHL GEHALTEN und nicht gemessen:
        zwei Minuten zu warten waere eine Prueflage, die jeder Lauf bezahlt.
@@ -13291,19 +13291,19 @@ const freigabeHaupt = (purpose, target = null) =>
       await zfS.cookieLoeschen();
       const vorher = zfSql('SELECT COUNT(*) n FROM sessions')[0].n;
       const eins = await zfS.ruf('POST', '/api/login',
-        { user: zfA.name, password: zfA.passwort });
+        { user: zfA.name, password: zfA.password });
       const zwischen = zfSql('SELECT COUNT(*) n FROM sessions')[0].n;
       pruefe('Zwischen den beiden Schritten entsteht KEINE Sitzung',
-        zwischen === vorher && Boolean(eins.inhalt.ausweis), `${vorher} → ${zwischen}`);
+        zwischen === vorher && Boolean(eins.inhalt.ticket), `${vorher} → ${zwischen}`);
       pruefe('Und der Ausweis steht in keiner Tabelle -- er liegt im Arbeitsspeicher',
-        !JSON.stringify(zfSql('SELECT * FROM sessions')).includes(eins.inhalt.ausweis) &&
-        !JSON.stringify(zfSql('SELECT * FROM two_factor')).includes(eins.inhalt.ausweis));
+        !JSON.stringify(zfSql('SELECT * FROM sessions')).includes(eins.inhalt.ticket) &&
+        !JSON.stringify(zfSql('SELECT * FROM two_factor')).includes(eins.inhalt.ticket));
     }
     // Ausschalten: hinter Passwort UND Code, und danach ist der Zugang wieder
     // einstufig. Der letzte Wiederherstellungscode belegt hier den Faktor.
     await zfAnmelden(zfA, 0, zfA.codes[7]);
     const zfAus = await zfS.ruf('DELETE', '/api/two-factor',
-      { passwort: zfA.passwort, code: zfA.codes[6] });
+      { password: zfA.password, code: zfA.codes[6] });
     pruefe('Ausschalten mit Passwort und gueltigem Code',
       zfAus.status === 200 && zfAus.inhalt.an === false, JSON.stringify(zfAus.inhalt));
     pruefe('Danach sind beide Zeilen fort',
@@ -13311,10 +13311,10 @@ const freigabeHaupt = (purpose, target = null) =>
       zfSql(`SELECT * FROM two_factor_codes WHERE user_id = ${zfA.id}`).length === 0);
     await zfS.cookieLoeschen();
     const zfEinstufig = await zfS.ruf('POST', '/api/login',
-      { user: zfA.name, password: zfA.passwort });
+      { user: zfA.name, password: zfA.password });
     pruefe('Und die Anmeldung geht wieder in einem Schritt',
       zfEinstufig.status === 200 && zfEinstufig.inhalt.ok === true &&
-      !zfEinstufig.inhalt.zweifaktor, JSON.stringify(zfEinstufig.inhalt));
+      !zfEinstufig.inhalt.twoFactor, JSON.stringify(zfEinstufig.inhalt));
     const zfProt = zfSql('SELECT event, actor, target FROM security_log ORDER BY id');
     pruefe('Das Sicherheitsprotokoll traegt zweifaktor.an und zweifaktor.aus',
       zfProt.some(z => z.event === 'twofactor.on' && z.target === zfA.id && z.actor === zfA.id) &&
@@ -13331,10 +13331,10 @@ const freigabeHaupt = (purpose, target = null) =>
     {
       await zfS.cookieLoeschen();
       await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
-      await zfS.ruf('POST', '/api/users', { username: 'halb', passwort: 'halbs-langes-wort-100' });
+      await zfS.ruf('POST', '/api/users', { username: 'halb', password: 'halbs-langes-wort-100' });
       await zfS.cookieLoeschen();
       await zfS.ruf('POST', '/api/login', { user: 'halb', password: 'halbs-langes-wort-100' });
-      await zfS.ruf('POST', '/api/two-factor/start', { passwort: 'halbs-langes-wort-100' });
+      await zfS.ruf('POST', '/api/two-factor/start', { password: 'halbs-langes-wort-100' });
       const hZeile = zfSql("SELECT user_id, confirmed_at FROM two_factor")
         .find(z => z.confirmed_at === null);
       pruefe('Nach Schritt 1 steht eine Zeile ohne confirmed_at da',
@@ -13343,7 +13343,7 @@ const freigabeHaupt = (purpose, target = null) =>
       const hAn = await zfS.ruf('POST', '/api/login',
         { user: 'halb', password: 'halbs-langes-wort-100' });
       pruefe('Ein angefangenes, nie bestaetigtes Einschalten sperrt niemanden aus',
-        hAn.status === 200 && !hAn.inhalt.zweifaktor && hAn.inhalt.ok === true,
+        hAn.status === 200 && !hAn.inhalt.twoFactor && hAn.inhalt.ok === true,
         JSON.stringify(hAn.inhalt));
     }
 
@@ -13418,10 +13418,10 @@ const freigabeHaupt = (purpose, target = null) =>
     const zfC = await zfZugangMitFaktor('dora');
     await zfS.cookieLoeschen();
     const zfNurWort = await zfS.ruf('POST', '/api/login',
-      { user: zfC.name, password: zfC.passwort });
+      { user: zfC.name, password: zfC.password });
     pruefe('Richtiges Passwort allein setzt KEINEN Cookie',
       zfNurWort.status === 200 && !zfNurWort.inhalt.ok &&
-      zfNurWort.inhalt.zweifaktor === true, JSON.stringify(zfNurWort.inhalt));
+      zfNurWort.inhalt.twoFactor === true, JSON.stringify(zfNurWort.inhalt));
     pruefe('Und damit ist niemand angemeldet',
       (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === false);
     pruefe('Auch die geschuetzten Endpunkte bleiben zu',
@@ -13431,7 +13431,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Ein Code OHNE Ausweis traegt nicht', zfOhneAusweis.status === 401,
       JSON.stringify(zfOhneAusweis.inhalt));
     const zfErfunden = await zfS.ruf('POST', '/api/login/second',
-      { ausweis: 'a'.repeat(64), code: ZF.code(zfC.secret, ZF.nowStep()) });
+      { ticket: 'a'.repeat(64), code: ZF.code(zfC.secret, ZF.nowStep()) });
     pruefe('Ein erfundener Ausweis ebenso wenig', zfErfunden.status === 401,
       JSON.stringify(zfErfunden.inhalt));
     /* DER AUSWEIS GILT GENAU EINMAL. Ohne das waere die eine Passwortprobe
@@ -13439,17 +13439,17 @@ const freigabeHaupt = (purpose, target = null) =>
        nur so lange etwas wert, wie niemand den Ausweis aufhebt. */
     await zfRuhig();
     const zfEinsB = await zfS.ruf('POST', '/api/login',
-      { user: zfC.name, password: zfC.passwort });
-    const zfAw = zfEinsB.inhalt.ausweis;
+      { user: zfC.name, password: zfC.password });
+    const zfAw = zfEinsB.inhalt.ticket;
     const zfNutz1 = await zfS.ruf('POST', '/api/login/second',
-      { ausweis: zfAw, code: ZF.code(zfC.secret, ZF.nowStep() + 1) });
+      { ticket: zfAw, code: ZF.code(zfC.secret, ZF.nowStep() + 1) });
     pruefe('Der Ausweis traegt einmal', zfNutz1.status === 200);
     await zfS.cookieLoeschen();
     const zfNutz2 = await zfS.ruf('POST', '/api/login/second',
-      { ausweis: zfAw, code: ZF.code(zfC.secret, ZF.nowStep() + 1) });
+      { ticket: zfAw, code: ZF.code(zfC.secret, ZF.nowStep() + 1) });
     pruefe('Und danach nie wieder', zfNutz2.status === 401, JSON.stringify(zfNutz2.inhalt));
     pruefe('Auch die Absage auf einen verbrauchten Ausweis fuehrt zurueck an den Anfang',
-      !zfNutz2.inhalt.ausweis, JSON.stringify(zfNutz2.inhalt));
+      !zfNutz2.inhalt.ticket, JSON.stringify(zfNutz2.inhalt));
     /* DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF. Stuende
        sie dort, waere das richtige Passwort EINES Zugangs die Eintrittskarte
        fuer JEDEN anderen. Nachgestellt: dora holt sich einen Ausweis und
@@ -13457,13 +13457,13 @@ const freigabeHaupt = (purpose, target = null) =>
     await zfRuhig();
     await zfS.cookieLoeschen();
     const zfFremd = await zfS.ruf('POST', '/api/login',
-      { user: zfC.name, password: zfC.passwort });
+      { user: zfC.name, password: zfC.password });
     /* MIT EINEM WIEDERHERSTELLUNGSCODE und nicht mit einem aus der App: die
        Zaehler dieses Zugangs sind in diesem Fenster verbraucht, und eine
        Prueflage, die auf das naechste Fenster wartet, haengt dreissig Sekunden
        an einer Frage, um die es hier gar nicht geht. */
     const zfFremdAus = await zfS.ruf('POST', '/api/login/second',
-      { ausweis: zfFremd.inhalt.ausweis, id: 1, user: 'anna', benutzer: 1,
+      { ticket: zfFremd.inhalt.ticket, id: 1, user: 'anna', benutzer: 1,
         code: zfC.codes[0] });
     pruefe('Eine mitgeschickte fremde Nummer aendert nichts',
       zfFremdAus.status === 200, JSON.stringify(zfFremdAus.inhalt));
@@ -13484,26 +13484,26 @@ const freigabeHaupt = (purpose, target = null) =>
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify(koerper)
       });
-      return { status: a.status, roh: await a.text() };
+      return { status: a.status, raw: await a.text() };
     };
     const zfMitFaktor = await zfRoh({ user: zfC.name, password: 'falsches-langes-wort' });
     const zfOhneFaktor = await zfRoh({ user: 'anna', password: 'falsches-langes-wort' });
     const zfUnbekannt = await zfRoh({ user: 'gibtesnicht', password: 'falsches-langes-wort' });
     pruefe('Bei falschem Passwort sieht die Antwort aus wie immer -- Byte fuer Byte',
-      zfMitFaktor.roh === zfOhneFaktor.roh && zfOhneFaktor.roh === zfUnbekannt.roh,
-      `${zfMitFaktor.roh} | ${zfOhneFaktor.roh} | ${zfUnbekannt.roh}`);
+      zfMitFaktor.raw === zfOhneFaktor.raw && zfOhneFaktor.raw === zfUnbekannt.raw,
+      `${zfMitFaktor.raw} | ${zfOhneFaktor.raw} | ${zfUnbekannt.raw}`);
     pruefe('Und mit demselben Statuscode',
       zfMitFaktor.status === 401 && zfOhneFaktor.status === 401 && zfUnbekannt.status === 401,
       `${zfMitFaktor.status} ${zfOhneFaktor.status} ${zfUnbekannt.status}`);
     pruefe('Kein Wort ueber den zweiten Faktor steht darin',
-      !/zweifaktor|ausweis|faktor|code/i.test(zfMitFaktor.roh), zfMitFaktor.roh);
+      !/zweifaktor|ausweis|faktor|code/i.test(zfMitFaktor.raw), zfMitFaktor.raw);
     /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): die drei
        Antworten oben waeren auch dann gleich, wenn die Instanz ueberhaupt nie
        etwas ueber den Faktor sagte. Erst diese Zeile belegt, dass sie es bei
        RICHTIGEM Passwort sehr wohl tut. */
-    const zfMitWort = await zfRoh({ user: zfC.name, password: zfC.passwort });
+    const zfMitWort = await zfRoh({ user: zfC.name, password: zfC.password });
     pruefe('Bei RICHTIGEM Passwort steht die Auskunft dann sehr wohl da',
-      zfMitWort.status === 200 && /"zweifaktor":true/.test(zfMitWort.roh), zfMitWort.roh);
+      zfMitWort.status === 200 && /"twoFactor":true/.test(zfMitWort.raw), zfMitWort.raw);
 
     /* ---------------------------------------------------------------- */
     gruppe('Der zweite Faktor: die Wiederherstellungscodes');
@@ -13546,8 +13546,8 @@ const freigabeHaupt = (purpose, target = null) =>
     // Ueber ?. gelesen: nimmt ein Rueckbau das Feld aus der Antwort, soll die
     // Pruefung ROT werden und der Lauf nicht abreissen (Stolperstein 138).
     pruefe('Und die Karte zaehlt herunter',
-      (await zfS.ruf('GET', '/api/account')).inhalt?.zweifaktor?.codesOffen === 6,
-      JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt?.zweifaktor));
+      (await zfS.ruf('GET', '/api/account')).inhalt?.twoFactor?.codesOpen === 6,
+      JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt?.twoFactor));
     pruefe('Die verbrauchten Zeilen bleiben stehen, damit "von acht" wahr bleibt',
       zfSql(`SELECT COUNT(*) n FROM two_factor_codes WHERE user_id = ${zfD.id}`)[0].n === 8 &&
       zfSql(`SELECT COUNT(*) n FROM two_factor_codes WHERE user_id = ${zfD.id} AND used_at IS NOT NULL`)[0].n === 2);
@@ -13559,19 +13559,19 @@ const freigabeHaupt = (purpose, target = null) =>
        zaehlt dabei als Beleg: genau dafuer ist er da. */
     await zfAnmelden(zfD, 0, zfD.codes[2]);
     const zfOhneCode = await zfS.ruf('POST', '/api/two-factor/codes',
-      { passwort: zfD.passwort });
+      { password: zfD.password });
     pruefe('Neue Codes ohne gueltigen Code werden abgewiesen',
       zfOhneCode.status === 403, JSON.stringify(zfOhneCode.inhalt));
     const zfOhneWort = await zfS.ruf('POST', '/api/two-factor/codes',
-      { passwort: 'falsches-langes-wort', code: zfD.codes[3] });
+      { password: 'falsches-langes-wort', code: zfD.codes[3] });
     pruefe('Und ohne richtiges Passwort ebenfalls',
       zfOhneWort.status === 403, JSON.stringify(zfOhneWort.inhalt));
     const zfNeu = await zfS.ruf('POST', '/api/two-factor/codes',
-      { passwort: zfD.passwort, code: zfD.codes[3] });
+      { password: zfD.password, code: zfD.codes[3] });
     pruefe('Mit beidem entstehen acht frische Codes',
       zfNeu.status === 200 && zfNeu.inhalt.codes.length === 8 &&
-      zfNeu.inhalt.codesOffen === 8 && zfNeu.inhalt.codesGesamt === 8,
-      JSON.stringify(zfNeu.inhalt.codesOffen));
+      zfNeu.inhalt.codesOpen === 8 && zfNeu.inhalt.codesTotal === 8,
+      JSON.stringify(zfNeu.inhalt.codesOpen));
     /* AUFFANGNETZ (Stolperstein 138): gibt die Route keine Codes her -- weil
        ein Rueckbau sie hat scheitern lassen --, laeuft die Zeile trotzdem
        durch und faellt rot. Ohne das griff sie auf undefined, und der Lauf
@@ -13600,7 +13600,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Ebenso wenig in den Einstellungen',
       !JSON.stringify((await zfS.ruf('GET', '/api/settings')).inhalt || {}).includes(zfE.secret));
     const zfZweitStart = await zfS.ruf('POST', '/api/two-factor/start',
-      { passwort: zfE.passwort });
+      { password: zfE.password });
     pruefe('Ein zweiter Aufruf von /start an einem eingeschalteten Faktor wird abgewiesen',
       zfZweitStart.status === 400 &&
       !JSON.stringify(zfZweitStart.inhalt).includes(zfE.secret),
@@ -13620,7 +13620,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Die Karte "Zugaenge" nennt fremde Faktoren mit keinem Wort',
       !JSON.stringify(zfListe.inhalt).includes(zfE.secret) &&
       !/zweifaktor/i.test(JSON.stringify(zfListe.inhalt)),
-      JSON.stringify(zfListe.inhalt.zugaenge?.[0]));
+      JSON.stringify(zfListe.inhalt.users?.[0]));
 
     /* ---------------------------------------------------------------- */
     gruppe('Der zweite Faktor: der Tokenweg aus 0.8.80 fragt ebenfalls');
@@ -13634,29 +13634,29 @@ const freigabeHaupt = (purpose, target = null) =>
     await zfS.cookieLoeschen();
     await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
     await zfS.ruf('POST', '/api/confirm',
-      { passwort: ZF_PASSWORT, purpose: 'link', target: zfF.id });
+      { password: ZF_PASSWORT, purpose: 'link', target: zfF.id });
     const zfLink = await zfS.ruf('POST', `/api/users/${zfF.id}/token`,
       { purpose: 'reset' });
     pruefe('Der Admin bekommt einen Ruecksetzlink wie bisher',
       zfLink.status === 200 && typeof zfLink.inhalt.token === 'string');
     await zfS.cookieLoeschen();
     const zfEin = await zfS.ruf('POST', '/api/token/redeem',
-      { token: zfLink.inhalt.token, passwort: 'ein-ganz-neues-wort-100' });
+      { token: zfLink.inhalt.token, password: 'ein-ganz-neues-wort-100' });
     pruefe('Das Passwort laesst sich damit setzen', zfEin.status === 200,
       JSON.stringify(zfEin.inhalt));
     pruefe('ABER es kommt kein Cookie -- der zweite Faktor wird verlangt',
-      zfEin.inhalt.zweifaktor === true && typeof zfEin.inhalt.ausweis === 'string' &&
+      zfEin.inhalt.twoFactor === true && typeof zfEin.inhalt.ticket === 'string' &&
       (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === false,
       JSON.stringify(zfEin.inhalt));
     const zfEinZwei = await zfS.ruf('POST', '/api/login/second',
-      { ausweis: zfEin.inhalt.ausweis, code: zfF.codes[0] });
+      { ticket: zfEin.inhalt.ticket, code: zfF.codes[0] });
     pruefe('Erst mit Code entsteht die Sitzung',
       zfEinZwei.status === 200 &&
       (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === true);
     pruefe('Und das neue Passwort gilt -- der Link hat getan, wofuer er da war',
       (await (async () => { await zfS.cookieLoeschen();
         return zfS.ruf('POST', '/api/login',
-          { user: zfF.name, password: 'ein-ganz-neues-wort-100' }); })()).inhalt.zweifaktor === true);
+          { user: zfF.name, password: 'ein-ganz-neues-wort-100' }); })()).inhalt.twoFactor === true);
     /* DER SONDERFALL: ein Zugang, der seinen ERSTEN Link einloest, hat noch
        kein Passwort -- und kann deshalb keinen bestaetigten Faktor haben.
        Baulich wahr, und hier nachgestellt statt behauptet. */
@@ -13670,9 +13670,9 @@ const freigabeHaupt = (purpose, target = null) =>
       zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfErstLink.inhalt.id}`).length === 0);
     await zfS.cookieLoeschen();
     const zfErstEin = await zfS.ruf('POST', '/api/token/redeem',
-      { token: zfErstLink.inhalt.token, passwort: 'neulings-langes-wort' });
+      { token: zfErstLink.inhalt.token, password: 'neulings-langes-wort' });
     pruefe('Der erste Link meldet deshalb gleich an, wie vor dieser Runde',
-      zfErstEin.status === 200 && !zfErstEin.inhalt.zweifaktor &&
+      zfErstEin.status === 200 && !zfErstEin.inhalt.twoFactor &&
       (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === true,
       JSON.stringify(zfErstEin.inhalt));
 
@@ -13691,9 +13691,9 @@ const freigabeHaupt = (purpose, target = null) =>
     await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
     const zfVorher = zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`);
     await zfS.ruf('POST', '/api/confirm',
-      { passwort: ZF_PASSWORT, purpose: 'password', target: zfG.id });
+      { password: ZF_PASSWORT, purpose: 'password', target: zfG.id });
     const zfFremdWort = await zfS.ruf('PUT', `/api/users/${zfG.id}`,
-      { passwort: 'vom-admin-gesetzt-100' });
+      { password: 'vom-admin-gesetzt-100' });
     pruefe('Ein Admin darf ein fremdes Passwort setzen, wie bisher',
       zfFremdWort.status === 200, JSON.stringify(zfFremdWort.inhalt));
     pruefe('Der zweite Faktor des Betroffenen steht danach unveraendert da',
@@ -13703,7 +13703,7 @@ const freigabeHaupt = (purpose, target = null) =>
     const zfAdminRein = await zfS.ruf('POST', '/api/login',
       { user: zfG.name, password: 'vom-admin-gesetzt-100' });
     pruefe('Und der Admin kaeme mit dem selbst gesetzten Passwort nicht herein',
-      zfAdminRein.inhalt.zweifaktor === true && !zfAdminRein.inhalt.ok,
+      zfAdminRein.inhalt.twoFactor === true && !zfAdminRein.inhalt.ok,
       JSON.stringify(zfAdminRein.inhalt));
     /* SPERREN UND FREIGEBEN STREIFT IHN NICHT AB. Das Sperren raeumt Sitzungen
        und Token -- naehme es den Faktor mit, waere "sperren und wieder
@@ -13723,11 +13723,11 @@ const freigabeHaupt = (purpose, target = null) =>
       gleich(zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`), zfVorher));
     // Es gibt keine Adresse, unter der ein Fremder gemeint sein koennte.
     const zfKeinPfad = await zfS.ruf('DELETE', `/api/two-factor/${zfG.id}`,
-      { passwort: ZF_PASSWORT });
+      { password: ZF_PASSWORT });
     pruefe('Es gibt keine Route DELETE /api/two-factor/:id',
       zfKeinPfad.status === 404, String(zfKeinPfad.status));
     const zfSelbstAus = await zfS.ruf('DELETE', '/api/two-factor',
-      { passwort: ZF_PASSWORT, code: '000000' });
+      { password: ZF_PASSWORT, code: '000000' });
     pruefe('Und der Admin schaltet ueber die eigene Route nur den EIGENEN ab -- den er nicht hat',
       zfSelbstAus.status === 400, JSON.stringify(zfSelbstAus.inhalt));
     /* UND DER EIGENTUEMER AUCH NICHT. Ohne diese Zeile bliebe offen, ob die
@@ -13736,7 +13736,7 @@ const freigabeHaupt = (purpose, target = null) =>
       zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`).length === 1);
     // Entfernen nimmt ihn dagegen mit -- den Zugang gibt es danach nicht mehr.
     await zfS.ruf('POST', '/api/confirm',
-      { passwort: ZF_PASSWORT, purpose: 'remove', target: zfG.id });
+      { password: ZF_PASSWORT, purpose: 'remove', target: zfG.id });
     await zfS.ruf('DELETE', `/api/users/${zfG.id}`);
     pruefe('Beim ENTFERNEN eines Zugangs geht sein zweiter Faktor mit',
       zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`).length === 0 &&
@@ -13756,23 +13756,23 @@ const freigabeHaupt = (purpose, target = null) =>
     await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
     await zfS.ruf('PUT', `/api/users/${zfH.id}`, { rolle: 'owner' });
     const zfRolleFrei = await zfS.ruf('POST', '/api/confirm',
-      { passwort: ZF_PASSWORT, purpose: 'role', target: zfH.id });
+      { password: ZF_PASSWORT, purpose: 'role', target: zfH.id });
     pruefe('Ein Zugang OHNE zweiten Faktor bestaetigt weiterhin mit dem Passwort allein',
       zfRolleFrei.status === 200 && zfRolleFrei.inhalt.ok === true,
       JSON.stringify(zfRolleFrei.inhalt));
     await zfS.ruf('PUT', `/api/users/${zfH.id}`, { rolle: 'owner' });
     await zfAnmelden(zfH, 0, zfH.codes[0]);
     const zfBestOhne = await zfS.ruf('POST', '/api/confirm',
-      { passwort: zfH.passwort, purpose: 'export', target: null });
+      { password: zfH.password, purpose: 'export', target: null });
     pruefe('Mit zweitem Faktor genuegt das Passwort allein NICHT',
-      zfBestOhne.status === 403 && zfBestOhne.inhalt.zweifaktor === true,
+      zfBestOhne.status === 403 && zfBestOhne.inhalt.twoFactor === true,
       JSON.stringify(zfBestOhne.inhalt));
     const zfBestFalsch = await zfS.ruf('POST', '/api/confirm',
-      { passwort: zfH.passwort, purpose: 'export', target: null, code: '000000' });
+      { password: zfH.password, purpose: 'export', target: null, code: '000000' });
     pruefe('Und ein falscher Code ebenso wenig',
       zfBestFalsch.status === 403, JSON.stringify(zfBestFalsch.inhalt));
     const zfBestMit = await zfS.ruf('POST', '/api/confirm',
-      { passwort: zfH.passwort, purpose: 'export', target: null, code: zfH.codes[1] });
+      { password: zfH.password, purpose: 'export', target: null, code: zfH.codes[1] });
     pruefe('Mit beidem steht die Freigabe',
       zfBestMit.status === 200 && zfBestMit.inhalt.ok === true,
       JSON.stringify(zfBestMit.inhalt));
@@ -13781,18 +13781,18 @@ const freigabeHaupt = (purpose, target = null) =>
     /* DIE REIHENFOLGE: PASSWORT, DANN CODE. Wer das Passwort nicht hat, soll
        nicht erfahren, ob am Zugang ein Faktor haengt. */
     const zfBestWort = await zfS.ruf('POST', '/api/confirm',
-      { passwort: 'falsches-langes-wort', purpose: 'export', target: null, code: zfH.codes[2] });
+      { password: 'falsches-langes-wort', purpose: 'export', target: null, code: zfH.codes[2] });
     pruefe('Bei falschem Passwort steht kein Wort ueber den Faktor in der Antwort',
-      zfBestWort.status === 403 && !zfBestWort.inhalt.zweifaktor &&
+      zfBestWort.status === 403 && !zfBestWort.inhalt.twoFactor &&
       zfBestWort.inhalt.error === 'Das Passwort stimmt nicht.',
       JSON.stringify(zfBestWort.inhalt));
     pruefe('Und der mitgeschickte Code ist dabei NICHT verbraucht worden',
       (await zfS.ruf('POST', '/api/confirm',
-        { passwort: zfH.passwort, purpose: 'export', target: null, code: zfH.codes[2] })).status === 200);
+        { password: zfH.password, purpose: 'export', target: null, code: zfH.codes[2] })).status === 200);
     // CONFIRM_PURPOSES bewegt sich hier nicht -- es kommt kein Zweck dazu,
     // sondern eine zweite Frage an derselben Stelle.
     const zfZweck = await zfS.ruf('POST', '/api/confirm',
-      { passwort: zfH.passwort, purpose: 'twofactor', target: null, code: zfH.codes[3] });
+      { password: zfH.password, purpose: 'twofactor', target: null, code: zfH.codes[3] });
     pruefe('Es gibt keinen Zweck namens zweifaktor',
       zfZweck.status === 400, JSON.stringify(zfZweck.inhalt));
 
@@ -13812,7 +13812,7 @@ const freigabeHaupt = (purpose, target = null) =>
        429 unten nur, dass diese Route ueberhaupt etwas sagt -- und nicht, dass
        es die Bremse ist, die es sagt. */
     const zfVorSperre = await zfS.ruf('POST', '/api/login/second',
-      { ausweis: 'f'.repeat(64), code: '000000' });
+      { ticket: 'f'.repeat(64), code: '000000' });
     pruefe('Ungesperrt antwortet der zweite Schritt mit 401 ueber den Ausweis',
       zfVorSperre.status === 401, `${zfVorSperre.status} · ${JSON.stringify(zfVorSperre.inhalt)}`);
     /* NEUN DURCHGAENGE, AUSGERECHNET UND NICHT GERATEN: der Ruf darueber hat
@@ -13825,10 +13825,10 @@ const freigabeHaupt = (purpose, target = null) =>
     for (let i = 0; i < 9; i++) {
       await zfS.cookieLoeschen();
       const eins = await zfS.ruf('POST', '/api/login',
-        { user: zfI.name, password: zfI.passwort });
-      if (!eins.inhalt || !eins.inhalt.ausweis) { zfBremse.push({ schritt: 1, status: eins.status }); continue; }
+        { user: zfI.name, password: zfI.password });
+      if (!eins.inhalt || !eins.inhalt.ticket) { zfBremse.push({ schritt: 1, status: eins.status }); continue; }
       const zwei = await zfS.ruf('POST', '/api/login/second',
-        { ausweis: eins.inhalt.ausweis, code: '000000' });
+        { ticket: eins.inhalt.ticket, code: '000000' });
       zfBremse.push({ schritt: 2, status: zwei.status });
     }
     pruefe('Bis zur zehnten Fehleingabe wird abgewiesen, aber nicht gesperrt',
@@ -13843,7 +13843,7 @@ const freigabeHaupt = (purpose, target = null) =>
        bevor der Ausweis ueberhaupt angesehen wird. Traegt sie nicht, kommt die
        401 ueber den Ausweis -- und die Zeile faellt rot. */
     const zfDirekt = await zfS.ruf('POST', '/api/login/second',
-      { ausweis: 'f'.repeat(64), code: '000000' });
+      { ticket: 'f'.repeat(64), code: '000000' });
     pruefe('Der ZWEITE SCHRITT selbst antwortet gesperrt mit 429, nicht mit einer Absage',
       zfDirekt.status === 429, `${zfDirekt.status} · ${JSON.stringify(zfDirekt.inhalt)}`);
     pruefe('Und die Sperre gilt ebenso fuer den ersten Schritt -- es ist dieselbe Bremse',
@@ -13859,7 +13859,7 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Und jeder Fehlschlag an einem bekannten Zugang steht als anmeldung.fehl im Protokoll',
       zfFehl[0].n === 9, String(zfFehl[0].n));
     pruefe('Ein eigener Vorgang fuer den falschen Code steht nirgends',
-      zfSql("SELECT COUNT(*) n FROM security_log WHERE event LIKE 'zweifaktor.f%'")[0].n === 0);
+      zfSql("SELECT COUNT(*) n FROM security_log WHERE event LIKE 'twoFactor.f%'")[0].n === 0);
 
     await zfS.stopp();
 
@@ -14084,8 +14084,8 @@ const freigabeHaupt = (purpose, target = null) =>
                        Befund aus 0.8.30 -- die Art sagte bis dahin nur, DASS
                        eine Klemme dasteht, nicht WELCHE. */
   const fQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-  const RUMPF_WOERTER = ['mayChange(', 'selfOnly(', 'entryFree(', 'istAdmin(',
-    'istEigentuemer(', 'targetUserFree(', 'mayCreate('];
+  const RUMPF_WOERTER = ['mayChange(', 'selfOnly(', 'entryFree(', 'isAdmin(',
+    'isOwner(', 'targetUserFree(', 'mayCreate('];
   const F_ROUTEN = [
     ['POST',   '/api/setup',                     'offen'],
     ['POST',   '/api/login',                     'offen'],
@@ -14818,7 +14818,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const bestandsAbfragen = (text) => text.split('\n')
     .filter(z => BESTANDSTABELLEN.some(t =>
       z.includes(`FROM ${t}`) || z.includes(`INTO ${t}`) || z.includes(`UPDATE ${t} `)));
-  const verunreinigt = (zeilen) => zeilen.filter(z => /papierkorb|geloescht/i.test(z));
+  const verunreinigt = (zeilen) => zeilen.filter(z => /trash|deleted/i.test(z));
   const fBestandsZeilen = bestandsAbfragen(fCodeZeilen);
   // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne
   // Zeilen bliebe jede Verneinung darauf wahr und belegte nichts.
@@ -14829,7 +14829,7 @@ const freigabeHaupt = (purpose, target = null) =>
     verunreinigt(fBestandsZeilen).slice(0, 3).join(' · '));
   pruefe('Und er wuerde einen solchen Zusatz wirklich finden',
     verunreinigt(bestandsAbfragen(
-      "  const x = db.prepare('SELECT * FROM items WHERE geloescht = 0').all();")).length === 1,
+      "  const x = db.prepare('SELECT * FROM items WHERE deleted = 0').all();")).length === 1,
     'der Waechter sieht den Zusatz nicht');
 
   /* KEIN BLOCK FUER EINE TABELLE. Die Probe aus der Gruppe "Der Papierkorb:
@@ -14898,11 +14898,11 @@ const freigabeHaupt = (purpose, target = null) =>
     'kein Rumpf gefunden');
   pruefe('Sie schreibt unter einem Arbeitsnamen und benennt erst danach um',
     /VACUUM INTO \?'\)\.run\(becoming\)/.test(fSicherungRumpf) &&
-    fSicherungRumpf.includes('fs.renameSync(becoming, datei)'),
+    fSicherungRumpf.includes('fs.renameSync(becoming, file)'),
     fSicherungRumpf ? 'kein Arbeitsname im Rumpf' : '(kein Rumpf)');
   pruefe('Und entfernt im Fehlerfall NUR den Arbeitsnamen',
     fSicherungRumpf.includes('fs.unlinkSync(becoming)') &&
-    !fSicherungRumpf.includes('fs.unlinkSync(datei)'),
+    !fSicherungRumpf.includes('fs.unlinkSync(file)'),
     (fSicherungRumpf.match(/.*fs\.unlinkSync\(.*/g) || []).join(' · '));
   /* Und die Gegenprobe zum Waechter selbst: er darf nicht deshalb gruen sein,
      weil er gar nichts mehr ansieht (Stolperstein 106). */
@@ -15433,7 +15433,7 @@ const freigabeHaupt = (purpose, target = null) =>
       gleich(bt("if (/['\"]/.test(s)) t = 'danach';"), ['danach']),
       JSON.stringify(bt("if (/['\"]/.test(s)) t = 'danach';")));
     pruefe('Und er nennt zu jedem Text die Zeile',
-      bildschirmtexteVon("a = 1;\nb = 'zwei';\n").map(t => t.zeile).join() === '2',
+      bildschirmtexteVon("a = 1;\nb = 'zwei';\n").map(t => t.row).join() === '2',
       JSON.stringify(bildschirmtexteVon("a = 1;\nb = 'zwei';\n")));
     pruefe('Aus einer Serverdatei liest er nur die Texte hinter error:',
       gleich(servertexteVon("const x = 'kein Text'; res.json({ error: 'Der Kasten fehlt. ' +\n  'Zweiter Satz.' }); y = 'auch nicht';").map(t => t.text),
@@ -15443,21 +15443,21 @@ const freigabeHaupt = (purpose, target = null) =>
        Ruhe. Ohne diese Zeilen bliebe ein Waechter mit leerer Liste gruen
        (Stolperstein 81). */
     pruefe('Die Verbotsliste faengt ein Wort aus der Liste',
-      bildschirmVerstoesse([{ text: 'Der Grabstein steht da', zeile: 1 }]).length === 1 &&
-      bildschirmVerstoesse([{ text: 'Neu seit deinem letzten Blick', zeile: 1 }]).length === 1 &&
-      bildschirmVerstoesse([{ text: 'Ein Zugang wird entfernt', zeile: 1 }]).length === 1,
+      bildschirmVerstoesse([{ text: 'Der Grabstein steht da', row: 1 }]).length === 1 &&
+      bildschirmVerstoesse([{ text: 'Neu seit deinem letzten Blick', row: 1 }]).length === 1 &&
+      bildschirmVerstoesse([{ text: 'Ein Zugang wird entfernt', row: 1 }]).length === 1,
       'eines der drei Muster greift nicht');
     pruefe('Und laesst die benannten Ausnahmen durch',
-      bildschirmVerstoesse([{ text: 'Die Note muss zwischen 1 und 5 liegen.', zeile: 1 },
-                            { text: 'Zugang beantragen', zeile: 1 }, { text: 'Noch keinen Zugang?', zeile: 1 },
-                            { text: 'Prüfsumme (Fingerprint)', zeile: 1 },
-                            { text: 'verschlüsselte Kopie der Datenbank', zeile: 1 },
-                            { text: '/api/items/1/ratings', zeile: 1 }]).length === 0,
-      JSON.stringify(bildschirmVerstoesse([{ text: 'Die Note muss zwischen 1 und 5 liegen.', zeile: 1 },
-                            { text: 'Zugang beantragen', zeile: 1 }, { text: 'Noch keinen Zugang?', zeile: 1 },
-                            { text: 'Prüfsumme (Fingerprint)', zeile: 1 },
-                            { text: 'verschlüsselte Kopie der Datenbank', zeile: 1 },
-                            { text: '/api/items/1/ratings', zeile: 1 }])));
+      bildschirmVerstoesse([{ text: 'Die Note muss zwischen 1 und 5 liegen.', row: 1 },
+                            { text: 'Zugang beantragen', row: 1 }, { text: 'Noch keinen Zugang?', row: 1 },
+                            { text: 'Prüfsumme (Fingerprint)', row: 1 },
+                            { text: 'verschlüsselte Kopie der Datenbank', row: 1 },
+                            { text: '/api/items/1/ratings', row: 1 }]).length === 0,
+      JSON.stringify(bildschirmVerstoesse([{ text: 'Die Note muss zwischen 1 und 5 liegen.', row: 1 },
+                            { text: 'Zugang beantragen', row: 1 }, { text: 'Noch keinen Zugang?', row: 1 },
+                            { text: 'Prüfsumme (Fingerprint)', row: 1 },
+                            { text: 'verschlüsselte Kopie der Datenbank', row: 1 },
+                            { text: '/api/items/1/ratings', row: 1 }])));
     pruefe('Die Liste traegt mindestens dreissig Zeilen',
       BILDSCHIRM_VERBOT.length >= 30, `${BILDSCHIRM_VERBOT.length} Zeilen`);
 
@@ -15488,11 +15488,11 @@ const freigabeHaupt = (purpose, target = null) =>
        eine Zeile tiefer in de.json. Alles andere ist ein Literal, das nicht
        umgezogen ist. Die beiden Filter stehen weiter oben, bei btApp. */
     const btServerRoh = ['server.js', 'auth.js', 'mail.js'].flatMap(d =>
-      servertexteVon(fs.readFileSync(path.join(__dirname, d), 'utf8')).map(t => ({ ...t, datei: d })))
+      servertexteVon(fs.readFileSync(path.join(__dirname, d), 'utf8')).map(t => ({ ...t, file: d })))
       .filter(t => !istSchluessel(t.text) && !istBezeichner(t.text));
     pruefe('Kein Literal steht mehr hinter „error:" in den drei Serverdateien',
       btServerRoh.length === 0,
-      btServerRoh.slice(0, 6).map(t => `${t.datei}:${t.zeile} „${t.text}"`).join(' · '));
+      btServerRoh.slice(0, 6).map(t => `${t.file}:${t.row} „${t.text}"`).join(' · '));
     // Und der Filter wirft nicht ALLES weg: ein deutscher Satz bleibt stehen.
     pruefe('Und der Filter laesst einen deutschen Satz stehen',
       !istSchluessel('Bitte einen Titel eingeben.') && !istBezeichner('Bitte einen Titel eingeben.')
@@ -15503,7 +15503,7 @@ const freigabeHaupt = (purpose, target = null) =>
     const btServer = Object.entries(spDe)
       .filter(([k]) => k.startsWith('server.') || k.startsWith('login.'))
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v))
-        .map(text => ({ text, zeile: k, datei: 'public/languages/de.json' })));
+        .map(text => ({ text, row: k, file: 'public/languages/de.json' })));
     pruefe('Und die Sprachdatei traegt dafuer mehr als hundert Servermeldungen',
       btServer.length > 100, `${btServer.length} Meldungen`);
     /* JEDER WERT DER DATEI, nicht nur die Servermeldungen -- der Waechter
@@ -15514,8 +15514,8 @@ const freigabeHaupt = (purpose, target = null) =>
        sonst faerbte sich die Verbotsliste an einem Bezeichner. */
     const btDe = Object.entries(spDe).filter(([k]) => k !== '_locale')
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v))
-        .map(text => ({ text: text.replace(/\{[^}]*\}/g, ' '), zeile: k,
-                        datei: 'public/languages/de.json' })));
+        .map(text => ({ text: text.replace(/\{[^}]*\}/g, ' '), row: k,
+                        file: 'public/languages/de.json' })));
     pruefe('Die Sprachdatei traegt mehr als achthundert lesbare Texte',
       btDe.filter(t => !istAdresse(t.text)).length > 800, `${btDe.length} Texte`);
     /* NULL DEUTSCHE SAETZE IN `throw new Error` IN auth.js -- der blinde Fleck
@@ -15569,12 +15569,12 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Die neun Altlasten stehen wirklich noch in der Sprachdatei',
       ALTLASTEN.every(k => spDe[k] !== undefined),
       ALTLASTEN.filter(k => spDe[k] === undefined).join(' · ') || 'alle neun da');
-    const vDe = bildschirmVerstoesse(btDe.filter(t => !ALTLASTEN.includes(t.zeile)));
+    const vDe = bildschirmVerstoesse(btDe.filter(t => !ALTLASTEN.includes(t.row)));
     pruefe('Kein Wert der Sprachdatei ebenso — ausser den neun benannten Altlasten',
       vDe.length === 0, vDe.slice(0, 12).join(' · '));
     // Und sie sind wirklich Verstoesse: ohne diese Zeile stuende die Liste
     // oben auch dann da, wenn sie laengst richtiggestellt waeren.
-    const vAlt = bildschirmVerstoesse(btDe.filter(t => ALTLASTEN.includes(t.zeile)));
+    const vAlt = bildschirmVerstoesse(btDe.filter(t => ALTLASTEN.includes(t.row)));
     pruefe('Und die neun sind wirklich Verstoesse, keine Vorratsliste',
       vAlt.length >= 9, `${vAlt.length} Verstoesse`);
   }
@@ -15614,11 +15614,11 @@ const freigabeHaupt = (purpose, target = null) =>
   };
   // Meldet an und gibt den Cookie zurueck. Die Anmeldung ist hier kein
   // Beiwerk -- ohne sie gaebe es keine Sitzung mit der richtigen Rolle.
-  const gAnmelden = async (name, passwort, adresse) => {
+  const gAnmelden = async (name, password, address) => {
     const kopf = { 'content-type': 'application/json' };
-    if (adresse) kopf['x-forwarded-for'] = adresse;
+    if (address) kopf['x-forwarded-for'] = address;
     const a = await fetch(G.basis + '/api/login',
-      { method: 'POST', headers: kopf, body: JSON.stringify({ user: name, password: passwort }) });
+      { method: 'POST', headers: kopf, body: JSON.stringify({ user: name, password: password }) });
     let inhalt = null;
     try { inhalt = await a.json(); } catch {}
     const setz = a.headers.get('set-cookie') || '';
@@ -15655,18 +15655,18 @@ const freigabeHaupt = (purpose, target = null) =>
     gRolle('anna') === 'owner', gRolle('anna'));
   const gAnnaStell = (await gRuf(gAnna, 'GET', '/api/settings')).inhalt;
   /* Die Leiter selbst: anna traegt role='owner' und NICHT 'admin'.
-     Waere istAdmin weiterhin nur "role === 'admin'", stuende hier false --
+     Waere isAdmin weiterhin nur "role === 'admin'", stuende hier false --
      und die Eigentuemerin kaeme an keine einzige Verwaltungskarte mehr. */
   pruefe('Der Eigentuemer ist ohne zweite Angabe auch Admin',
-    gAnnaStell?.istAdmin === true && gAnnaStell?.istEigentuemer === true,
-    JSON.stringify([gAnnaStell?.istAdmin, gAnnaStell?.istEigentuemer]));
+    gAnnaStell?.isAdmin === true && gAnnaStell?.isOwner === true,
+    JSON.stringify([gAnnaStell?.isAdmin, gAnnaStell?.isOwner]));
 
   const gBertAn = await gRuf(gAnna, 'POST', '/api/users',
-    { username: 'bert', passwort: 'berts-langes-wort' });
+    { username: 'bert', password: 'berts-langes-wort' });
   pruefe('Der Eigentuemer legt einen Zugang an', gBertAn.status === 200, JSON.stringify(gBertAn.inhalt));
   pruefe('Ein neuer Zugang ist gewoehnlicher Benutzer', gRolle('bert') === 'user', gRolle('bert'));
   const gCarlaAn = await gRuf(gAnna, 'POST', '/api/users',
-    { username: 'carla', passwort: 'carlas-langes-wort', rolle: 'admin' });
+    { username: 'carla', password: 'carlas-langes-wort', rolle: 'admin' });
   pruefe('Und mit ausdruecklicher Rolle auch einen Admin',
     gCarlaAn.status === 200 && gRolle('carla') === 'admin', gRolle('carla'));
 
@@ -15675,11 +15675,11 @@ const freigabeHaupt = (purpose, target = null) =>
   const gBertStell = (await gRuf(gBert, 'GET', '/api/settings')).inhalt;
   const gCarlaStell = (await gRuf(gCarla, 'GET', '/api/settings')).inhalt;
   pruefe('Ein Benutzer ist weder Admin noch Eigentuemer',
-    gBertStell?.istAdmin === false && gBertStell?.istEigentuemer === false,
-    JSON.stringify([gBertStell?.istAdmin, gBertStell?.istEigentuemer]));
+    gBertStell?.isAdmin === false && gBertStell?.isOwner === false,
+    JSON.stringify([gBertStell?.isAdmin, gBertStell?.isOwner]));
   pruefe('Ein Admin ist Admin, aber nicht Eigentuemer',
-    gCarlaStell?.istAdmin === true && gCarlaStell?.istEigentuemer === false,
-    JSON.stringify([gCarlaStell?.istAdmin, gCarlaStell?.istEigentuemer]));
+    gCarlaStell?.isAdmin === true && gCarlaStell?.isOwner === false,
+    JSON.stringify([gCarlaStell?.isAdmin, gCarlaStell?.isOwner]));
 
   /* ---------------------------------------------------------------- */
   gruppe('Wer an einen Zugang darf');
@@ -15689,14 +15689,14 @@ const freigabeHaupt = (purpose, target = null) =>
     `Status ${gListeBert.status}`);
   const gListeCarla = await gRuf(gCarla, 'GET', '/api/users');
   pruefe('Ein Admin sieht sie', gListeCarla.status === 200 &&
-    gListeCarla.inhalt?.zugaenge?.length === 3, JSON.stringify(gListeCarla.inhalt?.zugaenge?.length));
+    gListeCarla.inhalt?.users?.length === 3, JSON.stringify(gListeCarla.inhalt?.users?.length));
   pruefe('Und erfaehrt dabei, dass er keine Rollen vergeben darf',
-    gListeCarla.inhalt?.darfRollen === false, JSON.stringify(gListeCarla.inhalt?.darfRollen));
+    gListeCarla.inhalt?.mayRoles === false, JSON.stringify(gListeCarla.inhalt?.mayRoles));
   pruefe('Der Eigentuemer erfaehrt das Gegenteil',
-    (await gRuf(gAnna, 'GET', '/api/users')).inhalt?.darfRollen === true);
+    (await gRuf(gAnna, 'GET', '/api/users')).inhalt?.mayRoles === true);
 
   const gAnlegenBert = await gRuf(gBert, 'POST', '/api/users',
-    { username: 'heimlich', passwort: 'ein-langes-wort' });
+    { username: 'heimlich', password: 'ein-langes-wort' });
   pruefe('Ein Benutzer legt keinen Zugang an', gAnlegenBert.status === 403,
     `Status ${gAnlegenBert.status}`);
   pruefe('Und die Zeile entsteht auch nicht',
@@ -15707,23 +15707,23 @@ const freigabeHaupt = (purpose, target = null) =>
      dass irgendwo "Rolle" stuende: dieselbe Ueberlegung wie beim Import, den
      eine Exportdatei sonst unter fremdem Namen schreiben liesse. */
   const gAnlegenCarla = await gRuf(gCarla, 'POST', '/api/users',
-    { username: 'dora', passwort: 'doras-langes-wort' });
+    { username: 'dora', password: 'doras-langes-wort' });
   pruefe('Ein Admin legt einen Benutzer an', gAnlegenCarla.status === 200,
     JSON.stringify(gAnlegenCarla.inhalt));
   const gAdminAnlegen = await gRuf(gCarla, 'POST', '/api/users',
-    { username: 'emil', passwort: 'emils-langes-wort', rolle: 'admin' });
+    { username: 'emil', password: 'emils-langes-wort', rolle: 'admin' });
   pruefe('Aber keinen zweiten Admin', gAdminAnlegen.status === 403,
     `Status ${gAdminAnlegen.status}`);
   pruefe('Und dieser Zugang entsteht gar nicht erst',
     gZeilen('SELECT id FROM users WHERE username = ?', 'emil').length === 0,
     JSON.stringify(gZeilen('SELECT username, role FROM users')));
 
-  const gKurz = await gRuf(gAnna, 'POST', '/api/users', { username: 'kurz', passwort: 'zu-kurz' });
+  const gKurz = await gRuf(gAnna, 'POST', '/api/users', { username: 'kurz', password: 'zu-kurz' });
   pruefe('Ein zu kurzes Passwort wird abgewiesen',
     gKurz.status === 400 && /mindestens 10 Zeichen/.test(gKurz.inhalt?.error || ''),
     JSON.stringify(gKurz.inhalt));
   const gDoppelt = await gRuf(gAnna, 'POST', '/api/users',
-    { username: 'BERT', passwort: 'noch-ein-langes-wort' });
+    { username: 'BERT', password: 'noch-ein-langes-wort' });
   pruefe('Ein vergebener Name wird verstaendlich abgewiesen',
     gDoppelt.status === 400 && /gibt es bereits/.test(gDoppelt.inhalt?.error || ''),
     JSON.stringify(gDoppelt.inhalt));
@@ -15731,7 +15731,7 @@ const freigabeHaupt = (purpose, target = null) =>
      "geloescht-2" nennen und wie die Zeile eines Entfernten aussehen -- die
      Oberflaeche schreibt genau diesen Text aus der Nummer. */
   const gTarnung = await gRuf(gAnna, 'POST', '/api/users',
-    { username: 'geloescht-9', passwort: 'ein-langes-tarnwort' });
+    { username: 'geloescht-9', password: 'ein-langes-tarnwort' });
   pruefe('Ein Name im Grabsteinmuster wird abgewiesen',
     gTarnung.status === 400 && /reserviert/.test(gTarnung.inhalt?.error || ''),
     JSON.stringify(gTarnung.inhalt));
@@ -15761,7 +15761,7 @@ const freigabeHaupt = (purpose, target = null) =>
     `Status ${gSperrtEigen.status}`);
   pruefe('Und der Eigentuemer steht unveraendert auf aktiv', gStatus('anna') === 'active', gStatus('anna'));
   const gCarlaAdmin2 = await gRuf(gAnna, 'POST', '/api/users',
-    { username: 'frida', passwort: 'fridas-langes-wort', rolle: 'admin' });
+    { username: 'frida', password: 'fridas-langes-wort', rolle: 'admin' });
   const gFridaId = gCarlaAdmin2.inhalt?.id;
   const gSperrtAdmin = await gRuf(gCarla, 'PUT', `/api/users/${gFridaId}`, { status: 'locked' });
   pruefe('Ein Admin sperrt auch keinen anderen Admin', gSperrtAdmin.status === 403,
@@ -15879,7 +15879,7 @@ const freigabeHaupt = (purpose, target = null) =>
      Sitzungen des Betroffenen fallen -- wer ein fremdes Passwort neu setzt,
      will den bisherigen Inhaber draussen haben. */
   const gDora3 = (await gAnmelden('dora', 'doras-langes-wort')).cookie;
-  const gNeuesWort = await gF(gCarla, 'carla')('PUT', `/api/users/${gDoraId}`, { passwort: 'doras-neues-wort' });
+  const gNeuesWort = await gF(gCarla, 'carla')('PUT', `/api/users/${gDoraId}`, { password: 'doras-neues-wort' });
   pruefe('Ein Admin setzt das Passwort eines Benutzers zurueck', gNeuesWort.status === 200,
     JSON.stringify(gNeuesWort.inhalt));
   pruefe('Dabei fallen seine Sitzungen',
@@ -15915,16 +15915,16 @@ const freigabeHaupt = (purpose, target = null) =>
 
   const gBestand = await gRuf(gAnna, 'GET', `/api/users/${gBertId}/inventory`);
   pruefe('Der Loeschdialog bekommt die Zahlen, getrennt nach eigen und fremd',
-    gBestand.inhalt?.eintraege === 1 && gBestand.inhalt?.fremdKommentare === 1 &&
+    gBestand.inhalt?.eintraege === 1 && gBestand.inhalt?.foreignComments === 1 &&
     gBestand.inhalt?.kommentare === 1 && gBestand.inhalt?.testtage === 1,
     JSON.stringify(gBestand.inhalt));
   /* Der fuenfte Traeger, in beiden Richtungen. Ohne ihn saehe ein Zugang, der
      zwanzig Links in fremden Eintraegen hinterlassen hat, im Dialog leer aus. */
   pruefe('Und die Links in beiden Richtungen',
-    gBestand.inhalt?.fremdLinks === 1 && gBestand.inhalt?.links === 1,
+    gBestand.inhalt?.foreignLinks === 1 && gBestand.inhalt?.links === 1,
     JSON.stringify(gBestand.inhalt));
   pruefe('Und die Dateien ebenso',
-    gBestand.inhalt?.fremdDateien === 1 && gBestand.inhalt?.dateien === 1,
+    gBestand.inhalt?.foreignFiles === 1 && gBestand.inhalt?.dateien === 1,
     JSON.stringify(gBestand.inhalt));
 
   const gWeg = await gF(gAnna, 'anna')('DELETE', `/api/users/${gBertId}`);
@@ -15967,13 +15967,13 @@ const freigabeHaupt = (purpose, target = null) =>
   const gNachGrab = (await gRuf(gAnna, 'GET', `/api/items/${gAnnaItem.id}`)).inhalt;
   const gKomVomGrab = (gNachGrab?.comments || []).find(c => c.text === 'Berts Kommentar bei Anna');
   pruefe('Der Beitrag eines Grabsteins nennt ihn als geloescht, mit seiner Nummer',
-    gKomVomGrab?.verfasser?.geloescht === true && gKomVomGrab?.verfasser?.id === gBertId,
+    gKomVomGrab?.verfasser?.deleted === true && gKomVomGrab?.verfasser?.id === gBertId,
     JSON.stringify(gKomVomGrab?.verfasser));
   pruefe('Der freigegebene Name steht dabei nirgends in der Antwort',
     !JSON.stringify(gNachGrab).includes(`deleted-${gBertId}`),
     JSON.stringify(gKomVomGrab?.verfasser));
   pruefe('Der Testtag desselben Grabsteins ebenso',
-    (gNachGrab?.testDays || []).every(d => d.verfasser?.geloescht === true),
+    (gNachGrab?.testDays || []).every(d => d.verfasser?.deleted === true),
     JSON.stringify((gNachGrab?.testDays || []).map(d => d.verfasser)));
 
   pruefe('Anmelden kann sich der Grabstein nicht mehr',
@@ -15981,13 +15981,13 @@ const freigabeHaupt = (purpose, target = null) =>
   // Der Name ist frei. Das ist der Preis dafuer, dass er nirgends aufbewahrt
   // wird -- und zugleich der Gewinn.
   const gNeuBert = await gRuf(gAnna, 'POST', '/api/users',
-    { username: 'bert', passwort: 'zweiter-bert-lang' });
+    { username: 'bert', password: 'zweiter-bert-lang' });
   pruefe('Der Name ist danach wieder frei', gNeuBert.status === 200, JSON.stringify(gNeuBert.inhalt));
   pruefe('Und der neue bert ist eine andere Nummer',
     gNeuBert.inhalt?.id !== gBertId, `${gNeuBert.inhalt?.id} gegen ${gBertId}`);
   // Ein Grabstein ist kein zweiter Bewerter -- die Durchschnittsspalte haengt
   // an dieser Zahl.
-  const gZahl = (await gRuf(gAnna, 'GET', '/api/settings')).inhalt?.benutzerZahl;
+  const gZahl = (await gRuf(gAnna, 'GET', '/api/settings')).inhalt?.userCount;
   pruefe('Die Benutzerzahl zaehlt den Grabstein nicht mit',
     gZahl === gZeilen("SELECT COUNT(*) n FROM users WHERE status != 'deleted'")[0].n, `${gZahl}`);
   const gNochmal = await gF(gAnna, 'anna')('DELETE', `/api/users/${gBertId}`);
@@ -15998,7 +15998,7 @@ const freigabeHaupt = (purpose, target = null) =>
      das erste nimmt ueber die Kaskade FREMDE Beitraege mit, das zweite nur
      eigene in fremden Eintraegen. */
   const gEmil = await gRuf(gAnna, 'POST', '/api/users',
-    { username: 'emil', passwort: 'emils-langes-wort' });
+    { username: 'emil', password: 'emils-langes-wort' });
   const gEmilId = gEmil.inhalt.id;
   const gEmilCookie = (await gAnmelden('emil', 'emils-langes-wort')).cookie;
   const gEmilItem = (await gRuf(gEmilCookie, 'POST', '/api/items', { title: 'Emils Eintrag' })).inhalt;
@@ -16006,16 +16006,16 @@ const freigabeHaupt = (purpose, target = null) =>
   await gRuf(gEmilCookie, 'POST', `/api/items/${gAnnaItem.id}/comments`, { text: 'Emils Kommentar bei Anna' });
   await gRuf(gAnna, 'POST', `/api/items/${gEmilItem.id}/links`, { url: 'https://annas-link-bei-emil.test' });
   await gRuf(gEmilCookie, 'POST', `/api/items/${gAnnaItem.id}/links`, { url: 'https://emils-link-bei-anna.test' });
-  gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'annas-datei-bei-emil.txt', 3, ?, ?)",
+  gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'annas-file-bei-emil.txt', 3, ?, ?)",
     gEmilItem.id, Buffer.from('abc'), gAnnaId);
-  gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'emils-datei-bei-anna.txt', 3, ?, ?)",
+  gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'emils-file-bei-anna.txt', 3, ?, ?)",
     gAnnaItem.id, Buffer.from('abc'), gEmilId);
   const gEmilBestand = (await gRuf(gAnna, 'GET', `/api/users/${gEmilId}/inventory`)).inhalt;
   pruefe('Die Zahlen nennen den fremden Kommentar an seinem Eintrag',
-    gEmilBestand?.eintraege === 1 && gEmilBestand?.fremdKommentare === 1 &&
+    gEmilBestand?.eintraege === 1 && gEmilBestand?.foreignComments === 1 &&
     gEmilBestand?.kommentare === 1, JSON.stringify(gEmilBestand));
   pruefe('Und den fremden Link daran ebenso',
-    gEmilBestand?.fremdLinks === 1 && gEmilBestand?.links === 1,
+    gEmilBestand?.foreignLinks === 1 && gEmilBestand?.links === 1,
     JSON.stringify(gEmilBestand));
   const gAnnaKommentarVorher = gZeilen('SELECT COUNT(*) n FROM comments WHERE item_id = ?',
     gAnnaItem.id)[0].n;
@@ -16169,13 +16169,13 @@ const freigabeHaupt = (purpose, target = null) =>
      Heimnetz auf Port 3100 -- DERSELBE Server, dieselbe Einstellung, zwei
      Wege. Eine Prueflage, die nur einen davon kennt, belegt nichts ueber zwei
      (Stolperstein 189). */
-  const pAnmelden = async (name, passwort, adresse, proto) => {
+  const pAnmelden = async (name, password, address, proto) => {
     const kopf = { 'content-type': 'application/json' };
-    if (adresse) kopf['x-forwarded-for'] = adresse;
+    if (address) kopf['x-forwarded-for'] = address;
     if (proto) kopf['x-forwarded-proto'] = proto;
     const t0 = Date.now();
     const a = await fetch(P.basis + '/api/login',
-      { method: 'POST', headers: kopf, body: JSON.stringify({ user: name, password: passwort }) });
+      { method: 'POST', headers: kopf, body: JSON.stringify({ user: name, password: password }) });
     let inhalt = null;
     try { inhalt = await a.json(); } catch {}
     return { status: a.status, inhalt, ms: Date.now() - t0,
@@ -16283,8 +16283,8 @@ const freigabeHaupt = (purpose, target = null) =>
      Einstellung dieses Servers -- ohne sie waeren alle zwoelf Versuche
      dieselbe Adresse, und die Gruppe pruefte die IP-Bremse statt der
      Namensbremse. */
-  const gVersuch = async (name, adresse) => {
-    const a = await pAnmelden(name, 'ganz-sicher-falsch', adresse);
+  const gVersuch = async (name, address) => {
+    const a = await pAnmelden(name, 'ganz-sicher-falsch', address);
     return { ms: a.ms, status: a.status };
   };
   let gNamensSperre = 0;
@@ -16370,7 +16370,7 @@ const freigabeHaupt = (purpose, target = null) =>
   const Z = starteWeiterenServer(zDir, {}, 5900);
   await Z.bereit;
   await Z.ruf('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
-  await Z.ruf('POST', '/api/users', { username: 'bert', passwort: 'berts-langes-wort' });
+  await Z.ruf('POST', '/api/users', { username: 'bert', password: 'berts-langes-wort' });
   await Z.ruf('POST', '/api/items', { title: 'Ein Eintrag' });
   await Z.stopp();
 
@@ -16458,8 +16458,8 @@ const freigabeHaupt = (purpose, target = null) =>
     const ZJ = starteWeiterenServer(zjDir, {}, 4940);
     await ZJ.bereit;
     await ZJ.ruf('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
-    await ZJ.ruf('POST', '/api/users', { username: 'bert', passwort: 'berts-langes-wort' });
-    await ZJ.ruf('POST', '/api/users', { username: 'carla', passwort: 'carlas-langes-wort' });
+    await ZJ.ruf('POST', '/api/users', { username: 'bert', password: 'berts-langes-wort' });
+    await ZJ.ruf('POST', '/api/users', { username: 'carla', password: 'carlas-langes-wort' });
     await ZJ.stopp();
 
     const zjSeit = () => zjZeilen(
@@ -17077,14 +17077,14 @@ const freigabeHaupt = (purpose, target = null) =>
     const leer = versuch(
       'UPDATE rating_criteria SET weight = NULL WHERE id = (SELECT MIN(id) FROM rating_criteria)');
     d.close();
-    return { notnull: sp?.notnull, vorgabe: String(sp?.dflt_value), ausserhalb, leer };
+    return { notnull: sp?.notnull, fallback: String(sp?.dflt_value), ausserhalb, leer };
   };
   const u40BauMigriert = u40Bau(u40Dir), u40BauFrisch = u40Bau(u40FrischDir);
   pruefe('Migrierte und frische Instanz bauen die Spalte gleich',
     gleich(u40BauMigriert, u40BauFrisch),
     `${JSON.stringify(u40BauMigriert)} gegen ${JSON.stringify(u40BauFrisch)}`);
   pruefe('Sie ist NOT NULL mit Vorgabe 1.0',
-    u40BauFrisch.notnull === 1 && u40BauFrisch.vorgabe === '1.0' &&
+    u40BauFrisch.notnull === 1 && u40BauFrisch.fallback === '1.0' &&
     u40BauFrisch.leer === 'abgewiesen', JSON.stringify(u40BauFrisch));
   /* KEIN CHECK -- und zwar nicht, weil SQLite keinen nachruesten koennte
      (ADD COLUMN nimmt einen an, das ist nachgestellt), sondern weil die Spanne
@@ -17538,18 +17538,18 @@ const freigabeHaupt = (purpose, target = null) =>
     const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
     d.pragma('foreign_keys = ON');
     const eintrag = d.prepare('PRAGMA foreign_key_list(items)').all().find(f => f.from === 'rejected_by');
-    let gesetzt = null, fremd = 'angenommen';
+    let set = null, fremd = 'angenommen';
     try {
       d.prepare("INSERT INTO users (id, username, password_hash) VALUES (777, 'fkprobe', 'x')").run();
       d.prepare("INSERT INTO items (id, title, rejected, rejected_by) VALUES (777, 'FK-Probe', 1, 777)").run();
       d.prepare('DELETE FROM users WHERE id = 777').run();
-      gesetzt = d.prepare('SELECT rejected_by FROM items WHERE id = 777').get().rejected_by;
+      set = d.prepare('SELECT rejected_by FROM items WHERE id = 777').get().rejected_by;
       try { d.prepare('UPDATE items SET rejected_by = 999 WHERE id = 777').run(); }
       catch { fremd = 'abgewiesen'; }
       d.prepare('DELETE FROM items WHERE id = 777').run();
     } catch (e) { fremd = `Prueflage gescheitert: ${e.message}`; }
     d.close();
-    return { target: eintrag?.table, beiLoeschung: eintrag?.on_delete, nachDemLoeschen: gesetzt, fremd };
+    return { target: eintrag?.table, beiLoeschung: eintrag?.on_delete, nachDemLoeschen: set, fremd };
   };
   const u14FkMigriert = u14Fk(u14Dir), u14FkFrisch = u14Fk(u14FrischDir);
   pruefe('Migrierte und frische Instanz verhalten sich am Fremdschluessel gleich',
@@ -17827,11 +17827,11 @@ const freigabeHaupt = (purpose, target = null) =>
     const d = oeffne(path.join(u19Dir, 'katalog.sqlite'));
     d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
     d.prepare("INSERT INTO items (title, user_id) VALUES ('Altbestand', 1)").run();
-    const roh = Buffer.from(PNG_BASE64, 'base64');
+    const raw = Buffer.from(PNG_BASE64, 'base64');
     d.prepare(`INSERT INTO photos (item_id, mime_type, data, focus_x, focus_y, sort_order)
-               VALUES (1, 'image/png', ?, 50, 50, 0)`).run(roh);
+               VALUES (1, 'image/png', ?, 50, 50, 0)`).run(raw);
     d.prepare(`INSERT INTO photos (item_id, mime_type, data, focus_x, focus_y, sort_order)
-               VALUES (1, 'image/png', ?, 20, 80, 1)`).run(roh);
+               VALUES (1, 'image/png', ?, 20, 80, 1)`).run(raw);
     d.close();
   }
   u19Rueckbau(u19Dir);
@@ -18123,8 +18123,8 @@ const freigabeHaupt = (purpose, target = null) =>
      GENAU DAS HAT DIE GEGENPROBE ZU DIESER RUNDE GEFUNDEN, an Rueckbau 458.
      Ein leeres Objekt macht jede Zusage darunter rot und laesst den Lauf
      weiterlaufen -- so soll es sein. */
-  const letztesFoto = (antwort) => {
-    const liste = Array.isArray(antwort && antwort.photos) ? antwort.photos : [];
+  const letztesFoto = (response) => {
+    const liste = Array.isArray(response && response.photos) ? response.photos : [];
     return liste[liste.length - 1] || {};
   };
   // Dasselbe fuer die Aufstellung nach Format: faellt sie aus der Antwort
@@ -18313,7 +18313,7 @@ const freigabeHaupt = (purpose, target = null) =>
      Vorgang, fuer die es die zweite Bestaetigung gibt. */
   const ohneFreigabe = await ruf('POST', '/api/images/convert', {});
   pruefe('Ohne zweite Bestätigung sagt die Umstellung ab',
-    ohneFreigabe.status === 403 && ohneFreigabe.inhalt?.bestaetigung === 'images',
+    ohneFreigabe.status === 403 && ohneFreigabe.inhalt?.confirm === 'images',
     JSON.stringify(ohneFreigabe.inhalt));
   pruefe('Und der Bestand ist dabei unberührt geblieben',
     formatZahl((await ruf('GET', '/api/stats')).inhalt, 'png') === vorPNG);
@@ -18324,7 +18324,7 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Die Umstellung kehrt sofort zurück (202)', lauf.status === 202,
     `Status ${lauf.status}: ${JSON.stringify(lauf.inhalt)}`);
   pruefe('Und nennt dabei, wie viele Bilder sie vorhat',
-    !!lauf.inhalt && lauf.inhalt.laeuft === true && lauf.inhalt.gesamt === vorPNG,
+    !!lauf.inhalt && lauf.inhalt.running === true && lauf.inhalt.total === vorPNG,
     JSON.stringify(lauf.inhalt));
   /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. Eine Absage ist ehrlicher als
      eine zweite Schleife, die dem gemeldeten Fortschritt die Grundlage
@@ -18342,14 +18342,14 @@ const freigabeHaupt = (purpose, target = null) =>
   for (let i = 0; i < 400; i++) {
     const st = (await ruf('GET', '/api/stats')).inhalt;
     baStand = (st && st.umstellung) || null;
-    if (baStand && !baStand.laeuft) break;
+    if (baStand && !baStand.running) break;
     await new Promise(r => setTimeout(r, 50));
   }
   const stand = baStand || {};
   pruefe('Der Fortschritt steht in den Kennzahlen und läuft aus',
-    baStand && baStand.laeuft === false, JSON.stringify(baStand));
+    baStand && baStand.running === false, JSON.stringify(baStand));
   pruefe('Und am Ende ist jedes vorgesehene Bild erledigt',
-    baStand && baStand.erledigt === baStand.gesamt, JSON.stringify(baStand));
+    baStand && baStand.erledigt === baStand.total, JSON.stringify(baStand));
   const nachStats = (await ruf('GET', '/api/stats')).inhalt;
   /* DAS ZU BREITE PNG BLEIBT LIEGEN -- WebP kann es nicht fassen. Der Lauf
      zaehlt es als „geblieben" und laesst es in Ruhe; „kein PNG mehr da" waere
@@ -18424,11 +18424,11 @@ const freigabeHaupt = (purpose, target = null) =>
        kann und das jeder Lauf wieder liegen laesst. */
     const lauf2 = await rufF('POST', '/api/images/convert', {});
     pruefe('Der Knopf nimmt es dagegen nicht mit — er sucht am Inhalt',
-      lauf2.status === 202 && lauf2.inhalt && lauf2.inhalt.gesamt === stand.geblieben,
+      lauf2.status === 202 && lauf2.inhalt && lauf2.inhalt.total === stand.geblieben,
       `${JSON.stringify(lauf2.inhalt)} gegen geblieben ${stand.geblieben}`);
     for (let i = 0; i < 400; i++) {
       const st = (await ruf('GET', '/api/stats')).inhalt;
-      if (st && st.umstellung && !st.umstellung.laeuft) break;
+      if (st && st.umstellung && !st.umstellung.running) break;
       await new Promise(r => setTimeout(r, 50));
     }
     pruefe('Und die falsch benannte Zeile liegt danach unverändert da',
@@ -18501,7 +18501,7 @@ const freigabeHaupt = (purpose, target = null) =>
        Bis zum ersten Anlauf von 0.19.1 stellte austauschTeile(null, …)
        dieselbe teure Frage noch zweimal -- gemessen 1363 und 1310 ms. */
     pruefe('Die Exportgroesse der Bilder kommt aus derselben Schleife',
-      einzeilig.includes('...exchangeParts(null, { mitDateien: true })') &&
+      einzeilig.includes('...exchangeParts(null, { withFiles: true })') &&
       einzeilig.includes('fotos: Math.round(exportPhotoBytes * 4 / 3)'),
       (einzeilig.match(/\.\.\.exchangeParts\(null[^,]*,[^)]*\)/) || ['(nicht gefunden)'])[0]);
     /* 5. DIE UEBERSICHT LIEST IHRE FOTOS AUS EINEM DECKENDEN INDEX, und die
@@ -18697,8 +18697,8 @@ const freigabeHaupt = (purpose, target = null) =>
     pruefe('Die Uhr verfolgt beide Läufe und nicht nur die Umstellung',
       /const BATCH_RUNS = \[/.test(quGeoApp) &&
       /field: 'umstellung', id: 'convert-running'/.test(quGeoApp) &&
-      /field: 'geometrie', id: 'thumbs-running'/.test(quGeoApp) &&
-      /BATCH_RUNS\.some\(l => fetched\.stats\[l\.field\] && fetched\.stats\[l\.field\]\.laeuft\)/
+      /field: 'geometry', id: 'thumbs-running'/.test(quGeoApp) &&
+      /BATCH_RUNS\.some\(l => fetched\.stats\[l\.field\] && fetched\.stats\[l\.field\]\.running\)/
         .test(quGeoApp),
       (quGeoApp.match(/const BATCH_RUNS = \[[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     pruefe('Und es gibt genau eine Uhr für beide',
@@ -18723,8 +18723,8 @@ const freigabeHaupt = (purpose, target = null) =>
     const zu = (await ruf('POST', '/api/items', { title: 'Zuschnitt' })).inhalt;
     /* EINE UEBERGANGENE PRUEFUNG WIRD GEZAEHLT UND GENANNT, nicht verschwiegen:
        ein Lauf, der stillschweigend weniger prueft, meldet am Ende zu viel. */
-    const uebergehe = (name, grund) => {
-      uebersprungen++; console.log(`  … uebersprungen: ${name} (${grund})`);
+    const uebergehe = (name, reason) => {
+      uebersprungen++; console.log(`  … uebersprungen: ${name} (${reason})`);
     };
     /* VIER VIERTEL, VIER FARBEN: links oben rot, rechts oben gruen, links
        unten blau, rechts unten weiss. Aus dem Mittelwert der Kachel laesst
@@ -18740,19 +18740,19 @@ const freigabeHaupt = (purpose, target = null) =>
       return sharp(px, { raw: { width: b, height: h, channels: 3 } }).png().toBuffer();
     };
     const legeAn = async (name, buf, typ = 'image/png') => {
-      const antwort = await sendeMultipart(`/api/items/${zu.id}/photos`, 'photos',
+      const response = await sendeMultipart(`/api/items/${zu.id}/photos`, 'photos',
         [{ name, typ, inhalt: buf }]);
-      const liste = Array.isArray(antwort.inhalt && antwort.inhalt.photos)
-        ? antwort.inhalt.photos : [];
+      const liste = Array.isArray(response.inhalt && response.inhalt.photos)
+        ? response.inhalt.photos : [];
       return liste[liste.length - 1] || {};
     };
     const kachel = async (id) => {
       const a = await fetch(`${BASIS}/api/photos/${id}/raw?size=thumb`, { headers: { cookie: cookie } });
-      const roh = Buffer.from(await a.arrayBuffer());
-      const m = await sharp(roh).metadata();
-      const st = await sharp(roh).stats();
+      const raw = Buffer.from(await a.arrayBuffer());
+      const m = await sharp(raw).metadata();
+      const st = await sharp(raw).stats();
       const kanal = (n) => Math.round(st.channels[n].mean);
-      return { masse: `${m.width}x${m.height}`, bytes: roh.length,
+      return { masse: `${m.width}x${m.height}`, bytes: raw.length,
                farbe: `${kanal(0)},${kanal(1)},${kanal(2)}` };
     };
     /* WELCHE ECKE DIE KACHEL ZEIGT, aus ihrem Mittelwert. Rot heisst links
@@ -18769,8 +18769,8 @@ const freigabeHaupt = (purpose, target = null) =>
     /* 1. EIN FRISCH HOCHGELADENES FOTO TRAEGT SCHON EINE ZUGESCHNITTENE KACHEL.
        Bis 0.19.4 lag dort 910 x 512 und der Browser schnitt zu; jetzt ist die
        Kachel das sichtbare Quadrat. */
-    const foto = await legeAn('viertel.png', await geviertelt(1920, 1080));
-    const k0 = await kachel(foto.id);
+    const photo = await legeAn('viertel.png', await geviertelt(1920, 1080));
+    const k0 = await kachel(photo.id);
     pruefe('Ein frisch hochgeladenes 16:9-Foto trägt eine quadratische 512er Kachel',
       k0.masse === '512x512', `${k0.masse} statt 512x512`);
     /* UND SIE ZEIGT DIE MITTE, weil Vorgabe 50/50/100 ist -- an einem
@@ -18783,7 +18783,7 @@ const freigabeHaupt = (purpose, target = null) =>
        Zwischenspeicher des Browsers stehen (`max-age=86400`), und der
        Betreiber saehe seinen neuen Ausschnitt nicht. */
     pruefe('Die Fassung der Kachel steht an der Fotozeile',
-      foto.fassung === k0.bytes, `${foto.fassung} gegen ${k0.bytes} Bytes`);
+      photo.fassung === k0.bytes, `${photo.fassung} gegen ${k0.bytes} Bytes`);
     {
       const liste = (await ruf('GET', '/api/items')).inhalt || [];
       const karte = liste.find(i => i.id === zu.id);
@@ -18797,16 +18797,16 @@ const freigabeHaupt = (purpose, target = null) =>
        irgendwann etwas anderes die Zeile anfasst -- und die Antwort truege
        eine Fassung, die es noch gar nicht gibt. */
     const nachEcke = async (x, y, zoom) => {
-      const a = await ruf('PUT', `/api/photos/${foto.id}/focus`, { x, y, zoom });
-      const z = ((a.inhalt || {}).photos || []).find(p2 => p2.id === foto.id) || {};
-      return { zeile: z, kachel: await kachel(foto.id) };
+      const a = await ruf('PUT', `/api/photos/${photo.id}/focus`, { x, y, zoom });
+      const z = ((a.inhalt || {}).photos || []).find(p2 => p2.id === photo.id) || {};
+      return { row: z, kachel: await kachel(photo.id) };
     };
     const lo = await nachEcke(0, 0, 400);
     pruefe('Nach dem Speichern zeigt die Kachel die gewählte Ecke',
       ecke(lo.kachel.farbe) === 'links oben', ecke(lo.kachel.farbe));
     pruefe('Und die Fassung in der Antwort ist die der NEUEN Kachel',
-      lo.zeile.fassung === lo.kachel.bytes && lo.zeile.fassung !== foto.fassung,
-      `${lo.zeile.fassung} gegen ${lo.kachel.bytes} · vorher ${foto.fassung}`);
+      lo.row.fassung === lo.kachel.bytes && lo.row.fassung !== photo.fassung,
+      `${lo.row.fassung} gegen ${lo.kachel.bytes} · vorher ${photo.fassung}`);
     const ru = await nachEcke(100, 100, 400);
     pruefe('Die gegenüberliegende Ecke ebenso',
       ecke(ru.kachel.farbe) === 'rechts unten', ecke(ru.kachel.farbe));
@@ -18821,7 +18821,7 @@ const freigabeHaupt = (purpose, target = null) =>
        gezeigt -- ganz --, und der Editor zeichnet den Rahmen darauf. Ein
        geschnittenes `medium` naehme dem Editor seine Vorlage. */
     {
-      const a = await fetch(`${BASIS}/api/photos/${foto.id}/raw?size=medium`, { headers: { cookie: cookie } });
+      const a = await fetch(`${BASIS}/api/photos/${photo.id}/raw?size=medium`, { headers: { cookie: cookie } });
       const m = await sharp(Buffer.from(await a.arrayBuffer())).metadata();
       pruefe('`medium` bleibt ungeschnitten, auch wenn der Ausschnitt eng steht',
         m.width === 1600 && m.height === 900, `${m.width}x${m.height} statt 1600x900`);
@@ -18859,9 +18859,9 @@ const freigabeHaupt = (purpose, target = null) =>
       for (let y = 0; y < h / 3; y++) for (let x = 0; x < b / 3; x++) {
         const i = (y * b + x) * 3; px[i] = 255; px[i + 1] = 0; px[i + 2] = 0;
       }
-      const roh = await sharp(px, { raw: { width: b, height: h, channels: 3 } })
+      const raw = await sharp(px, { raw: { width: b, height: h, channels: 3 } })
         .jpeg({ quality: 95 }).withMetadata({ orientation: 6 }).toBuffer();
-      const gd = await legeAn('gedreht.jpg', roh, 'image/jpeg');
+      const gd = await legeAn('gedreht.jpg', raw, 'image/jpeg');
       const rechtsOben = async (x, y) => {
         await ruf('PUT', `/api/photos/${gd.id}/focus`, { x, y, zoom: 400 });
         return (await kachel(gd.id)).farbe.split(',').map(Number);
@@ -18985,9 +18985,9 @@ const freigabeHaupt = (purpose, target = null) =>
        obwohl der Editor am Video offen ist und etwas anderes einstellt. */
     {
       const standbild = await geviertelt(1600, 1200);
-      const antwort = await sendeVideo(zu.id, { standbild, standbildName: 's.png',
+      const response = await sendeVideo(zu.id, { standbild, standbildName: 's.png',
                                                 standbildTyp: 'image/png', duration: 5 });
-      const liste = ((antwort.inhalt || {}).photos) || [];
+      const liste = ((response.inhalt || {}).photos) || [];
       const video = liste.find(p2 => p2.kind === 'video');
       if (!video) {
         uebergehe('Die Videokachel entsteht aus `medium`', 'kein Video angelegt');
@@ -19018,11 +19018,11 @@ const freigabeHaupt = (purpose, target = null) =>
        Rueckbau ist ein Fund und keine Formalie -- er ist die Stelle, an der
        der Pruefstand wegsieht (Stolperstein 274). */
     {
-      const roh = await geviertelt(1200, 900);
+      const raw = await geviertelt(1200, 900);
       const imp = await sendeImport({ version: 12, title: 'Zuschnittprobe', items: [
         { title: 'Eingespielt mit Ausschnitt',
           photos: [{ mime_type: 'image/png', focus_x: 0, focus_y: 0, zoom: 400,
-                     data_base64: roh.toString('base64') }] }
+                     data_base64: raw.toString('base64') }] }
       ] }, 'merge');
       pruefe('Ein Foto mit Ausschnitt lässt sich einspielen',
         imp.status === 200, JSON.stringify(imp.inhalt));
@@ -19250,17 +19250,17 @@ const freigabeHaupt = (purpose, target = null) =>
     const a2 = await fetch(`${BASIS}/api/comment-images/${id2}/raw${abfrage}`, { headers: { cookie: cookie } });
     return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
   };
-  const roh = await bAntwort(bild1.id);
-  pruefe('Kommentarbild wird als JPEG ausgeliefert', roh.h['content-type'] === 'image/jpeg', roh.h['content-type']);
+  const raw = await bAntwort(bild1.id);
+  pruefe('Kommentarbild wird als JPEG ausgeliefert', raw.h['content-type'] === 'image/jpeg', raw.h['content-type']);
   pruefe('Es wird neu kodiert, nicht durchgereicht',
-    roh.bytes.slice(0, 2).toString('hex') === 'ffd8', roh.bytes.slice(0, 4).toString('hex'));
+    raw.bytes.slice(0, 2).toString('hex') === 'ffd8', raw.bytes.slice(0, 4).toString('hex'));
   pruefe('Auch hier gilt die Sicherheitsregel',
-    /default-src 'none'/.test(roh.h['content-security-policy'] || '') &&
-    roh.h['x-content-type-options'] === 'nosniff');
-  pruefe('Es wird eingebettet, nicht heruntergeladen', /^inline;/.test(roh.h['content-disposition']));
+    /default-src 'none'/.test(raw.h['content-security-policy'] || '') &&
+    raw.h['x-content-type-options'] === 'nosniff');
+  pruefe('Es wird eingebettet, nicht heruntergeladen', /^inline;/.test(raw.h['content-disposition']));
   const klein = await bAntwort(bild1.id, '?size=thumb');
-  pruefe('Es gibt ein kleineres Vorschaubild', klein.bytes.length > 0 && klein.bytes.length <= roh.bytes.length,
-    `${klein.bytes.length} / ${roh.bytes.length}`);
+  pruefe('Es gibt ein kleineres Vorschaubild', klein.bytes.length > 0 && klein.bytes.length <= raw.bytes.length,
+    `${klein.bytes.length} / ${raw.bytes.length}`);
 
   // Der entscheidende Unterschied zu den Anhaengen: hier kommt nur Bild rein.
   const keinBild = await sendeKommentar(bk.id, { text: 'Getarnt' },
@@ -19286,7 +19286,7 @@ const freigabeHaupt = (purpose, target = null) =>
   /* Und ausdruecklich NICHT den Eingriffsvermerk. An diesem Weg kann er gar
      nicht entstehen -- er steht dem Verfasser offen und sonst niemandem. */
   pruefe('Und dabei entsteht kein Eingriffsvermerk',
-    kNach?.bilderEntfernt === 0, JSON.stringify(kNach?.bilderEntfernt));
+    kNach?.imagesRemoved === 0, JSON.stringify(kNach?.imagesRemoved));
 
   /* Kein Bild, keine Bearbeitung. Ein eigener Kommentar dafuer, weil der
      obere sein "bearbeitet" schon traegt und die Pruefung dort gar nicht mehr
@@ -19316,7 +19316,7 @@ const freigabeHaupt = (purpose, target = null) =>
      (Stolperstein 60). */
   const kWeg = nachWeg.comments.find(k2 => k2.id === kid);
   pruefe('Räumt der Verfasser bei sich auf, entsteht auch hier kein Vermerk',
-    kWeg?.bilderEntfernt === 0, JSON.stringify(kWeg?.bilderEntfernt));
+    kWeg?.imagesRemoved === 0, JSON.stringify(kWeg?.imagesRemoved));
   pruefe('Entferntes Bild ist nicht mehr abrufbar',
     (await bAntwort(bilderVorher[0].id)).status === 404);
 
@@ -19711,30 +19711,30 @@ const freigabeHaupt = (purpose, target = null) =>
   // ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
   // dieses Feld blieben alle Pruefungen darunter auf undefined stehen.
   pruefe('Die Kennzahlen nennen die Teile der Exportgroesse',
-    exStats?.export && ['umschlag', 'fotos', 'videos', 'anhaenge', 'kommentarbilder']
+    exStats?.export && ['envelope', 'fotos', 'videos', 'anhaenge', 'kommentarbilder']
       .every(k => typeof exStats.export[k] === 'number'),
     JSON.stringify(exStats?.export));
   /* DIE GRENZEN GEHEN MIT. Ohne sie muesste die Oberflaeche 300 MB und die
      Stringgrenze selbst kennen -- und dann staende dieselbe Zahl an zwei
      Orten und liefe irgendwann auseinander. */
   pruefe('Und alle drei Grenzen dazu, damit die Oberflaeche sie nicht selbst kennt',
-    exStats?.export?.warnAb === 300 * 1024 * 1024 && exStats?.export?.grenze > 4e8 &&
+    exStats?.export?.warnFrom === 300 * 1024 * 1024 && exStats?.export?.grenze > 4e8 &&
     exStats?.export?.string === require('buffer').constants.MAX_STRING_LENGTH,
-    JSON.stringify(exStats?.export && { warnAb: exStats.export.warnAb,
+    JSON.stringify(exStats?.export && { warnFrom: exStats.export.warnFrom,
       grenze: exStats.export.grenze, string: exStats.export.string }));
   /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen: wo
      gewarnt wird, wo abgesagt wird, und wie lang ein Text ueberhaupt werden
      kann. Nur die letzte ist eine Tatsache; die beiden anderen sind
      Entscheidungen. */
   pruefe('Und sie stehen in dieser Ordnung: warnen, absagen, Tatsache',
-    exStats?.export?.warnAb < exStats?.export?.grenze &&
+    exStats?.export?.warnFrom < exStats?.export?.grenze &&
     exStats?.export?.grenze < exStats?.export?.string,
-    JSON.stringify(exStats?.export && [exStats.export.warnAb, exStats.export.grenze, exStats.export.string]));
+    JSON.stringify(exStats?.export && [exStats.export.warnFrom, exStats.export.grenze, exStats.export.string]));
   pruefe('Der Warnwert liegt deutlich unter der Grenze — das ist die Luft der Schaetzung',
-    exStats?.export?.warnAb < exStats?.export?.grenze * 0.75,
-    `${exStats?.export?.warnAb} gegen ${exStats?.export?.grenze}`);
+    exStats?.export?.warnFrom < exStats?.export?.grenze * 0.75,
+    `${exStats?.export?.warnFrom} gegen ${exStats?.export?.grenze}`);
   pruefe('Der Umschlag faellt an, auch ohne jeden Blob',
-    exStats?.export?.umschlag > 0, String(exStats?.export?.umschlag));
+    exStats?.export?.envelope > 0, String(exStats?.export?.envelope));
   {
     /* GEZAEHLT WIRD, WAS DER EXPORT WIRKLICH SCHREIBT -- nicht, was in der
        Datenbank liegt. `photos.thumb` geht nie mit, `comment_images.thumb`
@@ -19803,13 +19803,13 @@ const freigabeHaupt = (purpose, target = null) =>
        `austauschBytes()` nimmt, blieb deshalb STUMM (Gegenprobe 171): die
        Kennzahlen lesen den Umschlag getrennt und merkten davon nichts.
        Der Waechter schliesst genau diese Luecke. */
-    /* DIE VARIABLE HEISST SEIT 0.24.0 `teile` UND NICHT MEHR `t`: der Name `t`
+    /* DIE VARIABLE HEISST SEIT 0.24.0 `parts` UND NICHT MEHR `t`: der Name `t`
        gehoert seither dem Sprachhelfer, und eine lokale Bindung verdeckte ihn
        (Bauabschnitt 1). Der Waechter zieht mit, die Rechnung bleibt dieselbe. */
     pruefe('Und die Absage rechnet den Umschlag mit',
-      /return teile\.fotos \+ teile\.videos \+ teile\.anhaenge \+ teile\.kommentarbilder \+ exchangeEnvelopeBytes\(itemId\);/
+      /return parts\.fotos \+ parts\.videos \+ parts\.anhaenge \+ parts\.kommentarbilder \+ exchangeEnvelopeBytes\(itemId\);/
         .test(fQuelle),
-      (fQuelle.match(/return teile\.fotos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
+      (fQuelle.match(/return parts\.fotos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
     /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
        einen Namen zielt, den es gar nicht mehr gibt. */
     pruefe('Der Waechter zielt auf eine Rechnung, die es wirklich gibt',
@@ -20050,7 +20050,7 @@ const freigabeHaupt = (purpose, target = null) =>
      ohne diese Zeile stuende die Erweiterung ohne Grund da. Dieselbe Bauform
      wie bei der PDF-Vorschau eine Zeile tiefer. */
   pruefe('Die Standbildfunktion setzt wirklich eine blob-Adresse an ein <video>',
-    cspApp.includes('URL.createObjectURL(datei)') && /async function stillFrame\(/.test(cspApp),
+    cspApp.includes('URL.createObjectURL(file)') && /async function stillFrame\(/.test(cspApp),
     'die Standbildfunktion fehlt in app.js');
   pruefe('Die PDF-Vorschau bindet wirklich ein iframe ein',
     cspApp.includes('<iframe src="/api/attachments/'), 'kein iframe gefunden');
@@ -20410,21 +20410,21 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Der Aufbau steht: die Suche liefert ueberhaupt Treffer',
     fkAlleTreffer.length >= 5, `${fkAlleTreffer.length}`);
   pruefe('Mit Begriff traegt JEDER Treffer einen',
-    fkAlleTreffer.every(i => i.fundstelle && typeof i.fundstelle.quelle === 'string'),
+    fkAlleTreffer.every(i => i.fundstelle && typeof i.fundstelle.source === 'string'),
     JSON.stringify(fkAlleTreffer.filter(i => !i.fundstelle).map(i => i.id)));
 
-  for (const [event, wort, target, quelle] of [
+  for (const [event, wort, target, source] of [
     ['den Titel', 'stichsäge', () => vsTitel.id, 'titel'],
     ['die Beschreibung', 'münchenquelle', () => vsBeschr.id, 'beschreibung'],
     ['den Namen der Kategorie', 'vollkategorie', () => vsKatE.id, 'kategorie'],
     ['einen Tag am Eintrag', 'grünspanig', () => vsTag.id, 'tag'],
     ['einen Tag am Testtag', 'nebelfeucht', () => vsTagTag.id, 'testtag'],
     ['die Adresse eines Links', 'xyzzyquux', () => vsLink.id, 'link'],
-    ['den Text eines Kommentars', 'quastenflosser', () => vsKomm.id, 'kommentar']
+    ['den Text eines Kommentars', 'quastenflosser', () => vsKomm.id, 'comment']
   ]) {
     const f = await fkFund(wort, target());
-    pruefe(`Und sie sagt bei einem Treffer ueber ${event}, dass es ${quelle} war`,
-      f?.quelle === quelle, JSON.stringify(f));
+    pruefe(`Und sie sagt bei einem Treffer ueber ${event}, dass es ${source} war`,
+      f?.source === source, JSON.stringify(f));
     pruefe(`Und der Ausschnitt dazu traegt den Begriff`,
       !!f && f.text.toLowerCase().includes(wort), JSON.stringify(f?.text));
   }
@@ -20492,7 +20492,7 @@ const freigabeHaupt = (purpose, target = null) =>
   await sendeKommentar(fkSieben.id, { text: 'siebenfach auch im Kommentar' });
   const fkS = await fkFund('siebenfach', fkSieben.id);
   pruefe('Trifft der Begriff alle sieben Quellen, nennt die Antwort die Beschreibung',
-    fkS?.quelle === 'beschreibung', JSON.stringify(fkS));
+    fkS?.source === 'beschreibung', JSON.stringify(fkS));
   pruefe('Und zaehlt die uebrigen sechs als weitere Stellen',
     fkS?.weitere === 6, `${fkS?.weitere}`);
 
@@ -20502,22 +20502,22 @@ const freigabeHaupt = (purpose, target = null) =>
      vorn steht, und nichts ueber die Reihenfolge dahinter. */
   const fkFolge = [];
   await ruf('PUT', `/api/items/${fkSieben.id}`, { description: 'ohne das Wort' });
-  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.source);
   const fkKommentare = (await ruf('GET', `/api/items/${fkSieben.id}`)).inhalt.comments;
   await ruf('DELETE', `/api/comments/${fkKommentare[0].id}`);
-  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.source);
   const fkLinks = (await ruf('GET', `/api/items/${fkSieben.id}`)).inhalt.links;
   await ruf('DELETE', `/api/links/${fkLinks[0].id}`);
-  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.source);
   await ruf('DELETE', `/api/test-days/${fkTd.inhalt.testDays[0].id}`);
-  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.source);
   const fkTags = (await ruf('GET', `/api/items/${fkSieben.id}`)).inhalt.tags;
   await ruf('DELETE', `/api/items/${fkSieben.id}/tags/${fkTags[0].id}`);
-  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.source);
   await ruf('PUT', `/api/items/${fkSieben.id}`, { productCategoryId: null });
-  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.source);
   pruefe('Die Folge ist Kommentar, Link, Tag am Testtag, Tag, Kategorie, Titel',
-    gleich(fkFolge, ['kommentar', 'link', 'testtag', 'tag', 'kategorie', 'titel']),
+    gleich(fkFolge, ['comment', 'link', 'testtag', 'tag', 'kategorie', 'titel']),
     JSON.stringify(fkFolge));
   /* TRIFFT NUR DER TITEL, STEHT DIE ZEILE TROTZDEM DA -- eine Regel und keine
      Ausnahme. Sie wiederholt dort, was ohnehin zu sehen ist, und genau das ist
@@ -20525,7 +20525,7 @@ const freigabeHaupt = (purpose, target = null) =>
      Quellen, die die Kachel nicht zeigt. */
   const fkNurTitel = await fkFund('siebenfach', fkSieben.id);
   pruefe('Trifft nur der Titel, steht die Zeile trotzdem da',
-    fkNurTitel?.quelle === 'titel' && fkNurTitel?.weitere === 0,
+    fkNurTitel?.source === 'titel' && fkNurTitel?.weitere === 0,
     JSON.stringify(fkNurTitel));
 
   /* WELCHER KOMMENTAR GENANNT WIRD, IST BESTIMMT UND NICHT ZUFAELLIG. Ohne
@@ -20885,8 +20885,8 @@ const freigabeHaupt = (purpose, target = null) =>
   pruefe('Eine Instanz ohne gespeicherte Ansichten liefert die leere Liste',
     Array.isArray(vaVorher.views) && vaVorher.views.length === 0,
     JSON.stringify(vaVorher.views));
-  pruefe('Und der Deckel kommt vom Server', vaVorher.ansichtenDeckel === 8,
-    JSON.stringify(vaVorher.ansichtenDeckel));
+  pruefe('Und der Deckel kommt vom Server', vaVorher.viewsCap === 8,
+    JSON.stringify(vaVorher.viewsCap));
 
   const vaEine = { name: 'Ungetestet, nach Titel', q: 'volltext', filters: vaStellung };
   const vaSchreib = await ruf('PUT', '/api/settings', { views: [vaEine] });
@@ -20973,7 +20973,7 @@ const freigabeHaupt = (purpose, target = null) =>
      PERSOENLICHE_SCHLUESSEL und damit in user_settings. */
   await ruf('PUT', '/api/settings', { views: [{ name: 'Nur meine', q: 'secret', filters: {} }] });
   const vaZweiter = await ruf('POST', '/api/users',
-    { username: 'ansichtsleser', passwort: 'ansichts-wort-1234', rolle: 'user' });
+    { username: 'ansichtsleser', password: 'ansichts-wort-1234', rolle: 'user' });
   pruefe('Der Aufbau steht: ein zweiter Zugang ist angelegt',
     vaZweiter.status === 200, `${vaZweiter.status} ${JSON.stringify(vaZweiter.inhalt).slice(0, 120)}`);
   let vaKeks = '';
@@ -21046,18 +21046,18 @@ const freigabeHaupt = (purpose, target = null) =>
      Hauptserver, nur mit dem Rufer dieses Servers. Sie stehen hier und nicht
      oben, weil sie die BASIS des jeweiligen Servers brauchen. */
   const phExport = async (S) => {
-    await S.ruf('POST', '/api/confirm', { passwort: PH_WORT, purpose: 'export', target: null });
+    await S.ruf('POST', '/api/confirm', { password: PH_WORT, purpose: 'export', target: null });
     return (await S.ruf('GET', '/api/export')).inhalt;
   };
   const sendeImportAn = async (S, objekt, modus = 'merge') => {
-    await S.ruf('POST', '/api/confirm', { passwort: PH_WORT, purpose: 'import', target: null });
+    await S.ruf('POST', '/api/confirm', { password: PH_WORT, purpose: 'import', target: null });
     const grenze = '----pruefung' + crypto.randomBytes(6).toString('hex');
-    const teil = (name, wert, dateiname) =>
+    const part = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
       (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${wert}\r\n`;
-    const koerper = teil('mode', modus)
-      + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+    const koerper = part('mode', modus)
+      + part('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
     const a = await fetch(S.basis + '/api/import', {
       method: 'POST',
       headers: { cookie: S.cookieWert(), 'content-type': `multipart/form-data; boundary=${grenze}` },
@@ -21244,11 +21244,11 @@ const freigabeHaupt = (purpose, target = null) =>
   const phListe = () => PH.ruf('GET', '/api/items').then(a => a.inhalt.find(i => i.id === phItem.id));
   const phD = await phDetail(), phL = await phListe();
   pruefe('Im Detail stehen 4,0 und 1,0 nebeneinander',
-    phD.avgRating === 4 && phD.potenzialRating === 1,
-    `avgRating ${phD.avgRating}, potenzialRating ${phD.potenzialRating}`);
+    phD.avgRating === 4 && phD.potentialRating === 1,
+    `avgRating ${phD.avgRating}, potenzialRating ${phD.potentialRating}`);
   pruefe('Und in der Uebersicht dieselben beiden Zahlen',
-    phL.avgRating === 4 && phL.potenzialRating === 1,
-    `avgRating ${phL.avgRating}, potenzialRating ${phL.potenzialRating}`);
+    phL.avgRating === 4 && phL.potentialRating === 1,
+    `avgRating ${phL.avgRating}, potenzialRating ${phL.potentialRating}`);
   /* UND BEIDE ABFRAGEN NENNEN DIE PHASE -- im SELECT und im GROUP BY.
      DAS SELECT TRAEGT DAS VERHALTEN: ohne die Spalte kaeme die Zeile ohne
      Phase an, karteJePhase() legte sie in keinen der beiden Kaesten, und beide
@@ -21287,9 +21287,9 @@ const freigabeHaupt = (purpose, target = null) =>
   await PH.ruf('PUT', `/api/items/${phItem.id}`, { tested: false });
   const phNach = await phDetail(), phNachL = await phListe();
   pruefe('Nach dem Umlegen von tested stehen beide Zahlen unveraendert',
-    phNach.avgRating === 4 && phNach.potenzialRating === 1 &&
-    phNachL.avgRating === 4 && phNachL.potenzialRating === 1,
-    `${phNach.avgRating}/${phNach.potenzialRating} und ${phNachL.avgRating}/${phNachL.potenzialRating}`);
+    phNach.avgRating === 4 && phNach.potentialRating === 1 &&
+    phNachL.avgRating === 4 && phNachL.potentialRating === 1,
+    `${phNach.avgRating}/${phNach.potentialRating} und ${phNachL.avgRating}/${phNachL.potentialRating}`);
   /* ERST DAS OBJEKT, DANN SEIN INHALT -- Stolperstein 81, und hier nicht aus
      Ordnungsliebe: Rueckbau 573 nimmt `it.potenzialRechenweg` aus der Antwort,
      und die Kette `phD.potenzialRechenweg.zeilen.length` warf daraufhin, statt
@@ -21355,8 +21355,8 @@ const freigabeHaupt = (purpose, target = null) =>
        BEIDE Kaesten sperrt. */
     const phVorherOk = await phBew(phVorher.inhalt.id, 3);
     pruefe('Das Potenzial laesst sich am ungetesteten Eintrag weiter setzen',
-      phVorherOk.status === 200 && phVorherOk.inhalt.potenzialRating === 3,
-      `${phVorherOk.status}, potenzialRating ${phVorherOk.inhalt?.potenzialRating}`);
+      phVorherOk.status === 200 && phVorherOk.inhalt.potentialRating === 3,
+      `${phVorherOk.status}, potenzialRating ${phVorherOk.inhalt?.potentialRating}`);
 
     /* UND WEGNEHMEN MUSS IMMER GEHEN. Der Kasten steht an einem ungetesteten
        Eintrag MIT Sternen ausdruecklich da (E6), und sein einziger Zweck ist,
@@ -21445,8 +21445,8 @@ const freigabeHaupt = (purpose, target = null) =>
     phRund.status === 200, `${phRund.status} ${JSON.stringify(phRund.inhalt)}`);
   const phRundItem = (await PHN.ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Der Traeger');
   pruefe('Und beide Zahlen stehen danach wie vorher',
-    phRundItem && phRundItem.avgRating === 4 && phRundItem.potenzialRating === 1,
-    JSON.stringify(phRundItem && [phRundItem.avgRating, phRundItem.potenzialRating]));
+    phRundItem && phRundItem.avgRating === 4 && phRundItem.potentialRating === 1,
+    JSON.stringify(phRundItem && [phRundItem.avgRating, phRundItem.potentialRating]));
 
   /* --- Die Bloecke ------------------------------------------------------
      DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN `zu`.
@@ -21970,23 +21970,23 @@ const freigabeHaupt = (purpose, target = null) =>
      wertlos, und beides faellt hier auf, nicht erst nach zwanzig Stunden. */
   const gpFehl = [];
   for (const r of gpListe) {
-    const datei = path.join(__dirname, r.datei);
-    if (!fs.existsSync(datei)) { gpFehl.push(`${r.nr}: ${r.datei} gibt es nicht`); continue; }
+    const file = path.join(__dirname, r.file);
+    if (!fs.existsSync(file)) { gpFehl.push(`${r.nr}: ${r.file} gibt es nicht`); continue; }
     if (r.kopie) continue;
-    const n = fs.readFileSync(datei, 'utf8').split(r.suche).length - 1;
-    if (n !== 1) gpFehl.push(`${r.nr} (${r.datei}): ${n} Treffer`);
+    const n = fs.readFileSync(file, 'utf8').split(r.search).length - 1;
+    if (n !== 1) gpFehl.push(`${r.nr} (${r.file}): ${n} Treffer`);
   }
   pruefe('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFehl.length === 0, gpFehl.join(' · '));
   // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
   // waere wortgleich mit dem Kopf des Zweiges, und alles bliebe gruen.
-  const gpGleich = gpListe.filter(r => r.suche !== undefined && r.suche === r.ersatz);
+  const gpGleich = gpListe.filter(r => r.search !== undefined && r.search === r.ersatz);
   pruefe('Und kein Ersatz ist mit seinem Suchtext wortgleich',
     gpGleich.length === 0, gpGleich.map(r => r.nr).join(' '));
   // Jeder Eintrag traegt entweder eine Textersetzung ODER eine Kopie, nie
   // beides und nie keines von beiden.
   const gpForm = gpListe.filter(r =>
-    (r.kopie === undefined) === (r.suche === undefined || r.ersatz === undefined));
+    (r.kopie === undefined) === (r.search === undefined || r.ersatz === undefined));
   pruefe('Jeder Rueckbau traegt entweder Suche und Ersatz oder eine Kopie',
     gpForm.length === 0, gpForm.map(r => r.nr).join(' '));
   // Und er nennt die Gruppe, in der die roten Punkte erwartet werden. Sie ist
@@ -22082,9 +22082,9 @@ const freigabeHaupt = (purpose, target = null) =>
   const gpTabelle = require('./counterproof').schreibeTabelle;
   const gedruckt = [];
   const echtesLog = console.log;
-  console.log = (...teile) => gedruckt.push(teile.join(' '));
+  console.log = (...parts) => gedruckt.push(parts.join(' '));
   try {
-    gpTabelle([{ nr: '568', name: 'Ein Rueckbau', datei: 'server.js', spur: 0,
+    gpTabelle([{ nr: '568', name: 'Ein Rueckbau', file: 'server.js', spur: 0,
                  sekunden: 79, code: 1, ...gpAbriss }]);
   } finally { console.log = echtesLog; }
   pruefe('Und der Bericht druckt sie unter den Abriss',
@@ -22189,8 +22189,8 @@ const freigabeHaupt = (purpose, target = null) =>
      sich selbst nicht, und ob waehrend dieser Zeile ein zweiter Prueflauf
      laeuft, ist Zufall. Also der Quelltext (Stolperstein 307). */
   pruefe('Und sie sucht nach beiden Namen -- Server wie Prueflauf',
-    gpQuelle.includes('const skript = teile.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));'),
-    (gpQuelle.match(/const skript = teile\.find[^\n]*/g) || ['(nicht gefunden)']).pop());
+    gpQuelle.includes('const skript = parts.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));'),
+    (gpQuelle.match(/const skript = parts\.find[^\n]*/g) || ['(nicht gefunden)']).pop());
 
   /* ================= Die Groesse der Funktionen — 0.16.0 ================
      SIE MISST, SIE WEIST NICHT AB. Eine harte Grenze („keine Funktion ueber
@@ -22217,8 +22217,8 @@ const freigabeHaupt = (purpose, target = null) =>
      auch sehen kann (Stolperstein 213). */
   gruppe('Die Groesse der Funktionen wird gemessen');
 
-  function funktionsLaengen(quelle) {
-    const zeilen = String(quelle).split('\n');
+  function funktionsLaengen(source) {
+    const zeilen = String(source).split('\n');
     const gefunden = [];
     let offen = null;
     for (let i = 0; i < zeilen.length; i++) {
@@ -22280,12 +22280,12 @@ const freigabeHaupt = (purpose, target = null) =>
   for (const name of flDateien) {
     const pfad = path.join(__dirname, name);
     if (!fs.existsSync(pfad)) continue;
-    const quelle = fs.readFileSync(pfad, 'utf8');
-    const liste = funktionsLaengen(quelle);
-    flStand.set(name, { liste, zeilen: quelle.split('\n').length });
+    const source = fs.readFileSync(pfad, 'utf8');
+    const liste = funktionsLaengen(source);
+    flStand.set(name, { liste, zeilen: source.split('\n').length });
     const spitze = liste.slice(0, 3)
       .map(f => `${f.name} ${f.zeilen}`).join(' · ') || '—';
-    console.log(`     ${name.padEnd(16)} ${String(quelle.split('\n').length).padStart(6)} Zeilen` +
+    console.log(`     ${name.padEnd(16)} ${String(source.split('\n').length).padStart(6)} Zeilen` +
                 `  ·  ${String(liste.length).padStart(3)} Funktionen  ·  ${spitze}`);
   }
   console.log('  ──────────────────────────────────────────────────────────');
@@ -22294,7 +22294,7 @@ const freigabeHaupt = (purpose, target = null) =>
      ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): eine
      Messung, die gar nichts gefunden hat, liefert `undefined` -- und jede
      Aussage darueber waere entweder wahr oder unfalsifizierbar. */
-  const flLaengste = (datei) => (flStand.get(datei)?.liste || [])[0];
+  const flLaengste = (file) => (flStand.get(file)?.liste || [])[0];
   pruefe('Die Messung findet in public/app.js ueberhaupt Funktionen',
     (flStand.get('public/app.js')?.liste || []).length > 50,
     `${(flStand.get('public/app.js')?.liste || []).length} gefunden`);
@@ -22387,12 +22387,12 @@ const freigabeHaupt = (purpose, target = null) =>
     const durchsucht = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
                         'CHANGELOG.md', 'Doku/Aenderungsprotokoll_0.19.0.md'];
     const treffer = [];
-    for (const datei of durchsucht) {
-      const voll = path.join(__dirname, ...datei.split('/'));
-      if (!fs.existsSync(voll)) { treffer.push(`${datei}: gibt es nicht`); continue; }
+    for (const file of durchsucht) {
+      const voll = path.join(__dirname, ...file.split('/'));
+      if (!fs.existsSync(voll)) { treffer.push(`${file}: gibt es nicht`); continue; }
       const text = fs.readFileSync(voll, 'utf8');
       for (const [satz, event] of berichtigt)
-        if (text.includes(satz)) treffer.push(`${datei}: ${event} („${satz}")`);
+        if (text.includes(satz)) treffer.push(`${file}: ${event} („${satz}")`);
     }
     /* ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): ein Waechter,
        der auf null Dateien laeuft, ist gruen und belegt nichts. */
@@ -22637,11 +22637,11 @@ async function pruefeErstanmeldung() {
   const nurName = await B.ruf('PUT', '/api/account',
     { oldPassword: 'zehn-zeichen-und-mehr', username: 'chefin', newPassword: '' });
   pruefe('Leeres Passwortfeld aendert nur den Namen',
-    nurName.status === 200 && nurName.inhalt.username === 'chefin' && nurName.inhalt.passwortGewechselt === false,
+    nurName.status === 200 && nurName.inhalt.username === 'chefin' && nurName.inhalt.passwordChanged === false,
     JSON.stringify(nurName.inhalt));
   const gewechselt = await B.ruf('PUT', '/api/account',
     { oldPassword: 'zehn-zeichen-und-mehr', username: 'chefin', newPassword: 'ganz-neues-passwort' });
-  pruefe('Passwortwechsel gelingt', gewechselt.status === 200 && gewechselt.inhalt.passwortGewechselt === true);
+  pruefe('Passwortwechsel gelingt', gewechselt.status === 200 && gewechselt.inhalt.passwordChanged === true);
   pruefe('Die eigene Sitzung bleibt bestehen', (await B.ruf('GET', '/api/criteria')).status === 200);
 
   B.cookieLoeschen();
@@ -22791,19 +22791,19 @@ const GIF_BASE64 = 'R0lGODlhCAAIAIAAAAD/AP8AACH5BAQAAAAALAAAAAAIAAgAAAIMDIxwi5nM
    fuer die Zusage „verlustfrei" braucht es keine echte Aufnahme -- nur ein
    Bild, dessen Pixel man vorher kennt. */
 async function machPruefPNG(seite = 96) {
-  const roh = Buffer.alloc(seite * seite * 3);
+  const raw = Buffer.alloc(seite * seite * 3);
   for (let y = 0; y < seite; y++) {
     for (let x = 0; x < seite; x++) {
       const i = (y * seite + x) * 3;
-      roh[i]     = Math.round(120 + 90 * Math.sin(x / 7) * Math.cos(y / 5)) & 255;
-      roh[i + 1] = Math.round(110 + 80 * Math.sin((x + y) / 6)) & 255;
-      roh[i + 2] = Math.round(140 + 70 * Math.cos(x / 4)) & 255;
+      raw[i]     = Math.round(120 + 90 * Math.sin(x / 7) * Math.cos(y / 5)) & 255;
+      raw[i + 1] = Math.round(110 + 80 * Math.sin((x + y) / 6)) & 255;
+      raw[i + 2] = Math.round(140 + 70 * Math.cos(x / 4)) & 255;
       // Harte Kanten obenauf, sonst waere es ein reines Farbfeld.
-      if (y % 17 < 2) { roh[i] = 18; roh[i + 1] = 18; roh[i + 2] = 22; }
+      if (y % 17 < 2) { raw[i] = 18; raw[i + 1] = 18; raw[i + 2] = 22; }
     }
   }
   // Mit Alphakanal, wie ein Bildschirmfoto aus der Zwischenablage.
-  return sharp(roh, { raw: { width: seite, height: seite, channels: 3 } })
+  return sharp(raw, { raw: { width: seite, height: seite, channels: 3 } })
     .ensureAlpha().png({ compressionLevel: 9 }).toBuffer();
 }
 
@@ -22891,14 +22891,14 @@ function sendeVideo(itemId, { video = MP4(), name = 'clip.mp4', typ = 'video/mp4
 }
 
 async function legeFotoAn(itemId) {
-  const antwort = await sendeMultipart(`/api/items/${itemId}/photos`, 'photos',
+  const response = await sendeMultipart(`/api/items/${itemId}/photos`, 'photos',
     [{ name: 'p.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
-  return antwort.inhalt.photos[0];
+  return response.inhalt.photos[0];
 }
 
 // Kommentar anlegen: Multipart, weil Bilder mitkommen koennen.
-async function sendeKommentar(itemId, felder, bilder = []) {
-  return sendeMultipart(`/api/items/${itemId}/comments`, 'images', bilder, felder);
+async function sendeKommentar(itemId, felder, images = []) {
+  return sendeMultipart(`/api/items/${itemId}/comments`, 'images', images, felder);
 }
 
 const sendeDateien = (itemId, dateien) =>
@@ -22909,26 +22909,26 @@ const sendeDateien = (itemId, dateien) =>
 // sonst zerfaellt jedes Byte ueber 127.
 async function sendeMultipart(pfad, feld, dateien, felder = {}) {
   const grenze = '----pruefung' + crypto.randomBytes(6).toString('hex');
-  const teile = [];
+  const parts = [];
   for (const [k, v] of Object.entries(felder)) {
-    teile.push(Buffer.from(
+    parts.push(Buffer.from(
       `--${grenze}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`, 'utf8'));
   }
   for (const d of dateien) {
     const inhalt = Buffer.isBuffer(d.inhalt) ? d.inhalt : Buffer.from(d.inhalt, 'utf8');
     // Je Datei ein eigener Feldname, wenn sie einen nennt: der Videoweg
     // schickt zwei verschiedene Felder in einem Vorgang.
-    teile.push(Buffer.from(
+    parts.push(Buffer.from(
       `--${grenze}\r\nContent-Disposition: form-data; name="${d.feld || feld}"; filename="${d.name}"\r\n` +
       `Content-Type: ${d.typ}\r\n\r\n`, 'utf8'));
-    teile.push(inhalt);
-    teile.push(Buffer.from('\r\n', 'utf8'));
+    parts.push(inhalt);
+    parts.push(Buffer.from('\r\n', 'utf8'));
   }
-  teile.push(Buffer.from(`--${grenze}--\r\n`, 'utf8'));
+  parts.push(Buffer.from(`--${grenze}--\r\n`, 'utf8'));
   const a = await fetch(BASIS + pfad, {
     method: 'POST',
     headers: { cookie: cookie, 'content-type': `multipart/form-data; boundary=${grenze}` },
-    body: Buffer.concat(teile)
+    body: Buffer.concat(parts)
   });
   return { status: a.status, inhalt: await a.json().catch(() => null) };
 }
@@ -22948,7 +22948,7 @@ function baueDocx(text) {
   lokal.writeUInt32LE(crc, 14);
   lokal.writeUInt32LE(xml.length, 18); lokal.writeUInt32LE(xml.length, 22);
   lokal.writeUInt16LE(name.length, 26);
-  const datei = Buffer.concat([lokal, name, xml]);
+  const file = Buffer.concat([lokal, name, xml]);
 
   const zentral = Buffer.alloc(46);
   zentral.writeUInt32LE(0x02014b50, 0); zentral.writeUInt16LE(20, 4); zentral.writeUInt16LE(20, 6);
@@ -22963,8 +22963,8 @@ function baueDocx(text) {
   ende.writeUInt32LE(0x06054b50, 0);
   ende.writeUInt16LE(1, 8); ende.writeUInt16LE(1, 10);
   ende.writeUInt32LE(verzeichnis.length, 12);
-  ende.writeUInt32LE(datei.length, 16);
-  return Buffer.concat([datei, verzeichnis, ende]);
+  ende.writeUInt32LE(file.length, 16);
+  return Buffer.concat([file, verzeichnis, ende]);
 }
 
 function crc32(buf) {
@@ -22988,11 +22988,11 @@ function crc32(buf) {
 async function sendeImport(objekt, modus, ohneFreigabe = false) {
   if (!ohneFreigabe) await freigabeHaupt('import');
   const grenze = '----pruefung' + crypto.randomBytes(6).toString('hex');
-  const teil = (name, wert, dateiname) =>
+  const part = (name, wert, dateiname) =>
     `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
     (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
     `\r\n\r\n${wert}\r\n`;
-  const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+  const koerper = part('mode', modus) + part('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
   const a = await fetch(BASIS + '/api/import', {
     method: 'POST',
     headers: { cookie: cookie, 'content-type': `multipart/form-data; boundary=${grenze}` },
@@ -23024,7 +23024,7 @@ const DOM_PASSWORT = 'chefinnen-langes-wort';
    GANZE Tabelle und nicht ueber die vier geholten Zeilen -- deshalb sind sie
    groesser als das, was hier steht, genau wie am echten Server. */
 const DOM_PROTOKOLL = {
-  tage: 180, grenze: 100, gesamt: 7,
+  days: 180, grenze: 100, total: 7,
   zahlen: { alle: 7, failed: 2, logins: 1, users: 3, twofactor: 0, inventory: 1 },
   zeilen: [
     { id: 7, at: '2026-08-24 09:15:00', event: 'user.role', actor: 1, werName: 'chefin',
@@ -23078,12 +23078,12 @@ function stelleBestaetigung(w, ja = true, mitschrift = null) {
   return beobachter;
 }
 
-async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen = false, code) {
+async function bestaetigeImDom(d, password = 'chefinnen-langes-wort', abbrechen = false, code) {
   const feld = d.w.document.getElementById('confirm-pass');
   if (!feld) return false;
   const knopf = feld.closest('.modal')?.querySelector(abbrechen ? '[data-no]' : '[data-yes]');
   if (!knopf) return false;
-  feld.value = passwort;
+  feld.value = password;
   /* SEIT 0.10.0 KANN DASSELBE WINDOW EIN ZWEITES FELD TRAGEN -- aber nur bei
      Zugaengen mit zweitem Faktor. Gefuellt wird es nur, wenn es dasteht: eine
      Prueflage ohne Faktor soll hier nichts erfinden, sondern sehen, dass es
@@ -23096,22 +23096,22 @@ async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen 
 }
 
 const DOM_ANBIETER = [
-  { schluessel: 'google', name: 'Google', vorlage: 'https://www.google.com/search?q=%s',
+  { schluessel: 'google', name: 'Google', template: 'https://www.google.com/search?q=%s',
     eigen: false, vorhanden: true, aktiv: false, standard: false },
-  { schluessel: 'bing', name: 'Bing', vorlage: 'https://www.bing.com/search?q=%s',
+  { schluessel: 'bing', name: 'Bing', template: 'https://www.bing.com/search?q=%s',
     eigen: false, vorhanden: true, aktiv: true, standard: false },
-  { schluessel: 'ddg', name: 'DuckDuckGo', vorlage: 'https://duckduckgo.com/?q=%s',
+  { schluessel: 'ddg', name: 'DuckDuckGo', template: 'https://duckduckgo.com/?q=%s',
     eigen: false, vorhanden: true, aktiv: false, standard: false },
-  { schluessel: 'startpage', name: 'Startpage', vorlage: 'https://www.startpage.com/sp/search?query=%s',
+  { schluessel: 'startpage', name: 'Startpage', template: 'https://www.startpage.com/sp/search?query=%s',
     eigen: false, vorhanden: true, aktiv: true, standard: true },
-  { schluessel: 'brave', name: 'Brave Search', vorlage: 'https://search.brave.com/search?q=%s',
+  { schluessel: 'brave', name: 'Brave Search', template: 'https://search.brave.com/search?q=%s',
     eigen: false, vorhanden: true, aktiv: false, standard: false },
-  { schluessel: 'ecosia', name: 'Ecosia', vorlage: 'https://www.ecosia.org/search?q=%s',
+  { schluessel: 'ecosia', name: 'Ecosia', template: 'https://www.ecosia.org/search?q=%s',
     eigen: false, vorhanden: true, aktiv: false, standard: false },
-  { schluessel: 'eigen1', name: 'Forum <b>X</b>', vorlage: 'https://forum.beispiel.de/suche?q=%s',
+  { schluessel: 'eigen1', name: 'Forum <b>X</b>', template: 'https://forum.beispiel.de/suche?q=%s',
     eigen: true, vorhanden: true, aktiv: true, standard: false },
-  { schluessel: 'eigen2', name: '', vorlage: '', eigen: true, vorhanden: false, aktiv: false, standard: false },
-  { schluessel: 'eigen3', name: '', vorlage: '', eigen: true, vorhanden: false, aktiv: false, standard: false }
+  { schluessel: 'eigen2', name: '', template: '', eigen: true, vorhanden: false, aktiv: false, standard: false },
+  { schluessel: 'eigen3', name: '', template: '', eigen: true, vorhanden: false, aktiv: false, standard: false }
 ];
 
 /* kriterienGewichte und eigeneWerte sind die beiden Stellschrauben der
@@ -23119,7 +23119,7 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false,
+function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, users = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false,
   /* ZU WELCHEM KASTEN JEDES DER DREI KRITERIEN GEHOERT, seit 0.21.0. Vorgabe
      sind DREI Nachher-Kriterien -- genau die Lage, in der der Bestand nach der
      Migration steht, und genau die, in der jede Pruefung von vor dieser Runde
@@ -23179,23 +23179,23 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
   const { VirtualConsole } = require('jsdom');
   // Die Anbieter kommen ueber /api/settings. Wer eigene Einstellungen
   // mitgibt, ueberschreibt gezielt -- alles Uebrige bleibt bei der Vorgabe.
-  einstellungen = { suchAnbieter: DOM_ANBIETER, searchNames: 3, ...einstellungen };
+  einstellungen = { searchProviders: DOM_ANBIETER, searchNames: 3, ...einstellungen };
   /* Vier Zugaenge, und jeder steht fuer eine andere Lage --
      die Eigentuemerin (die Fragende selbst), ein zweiter Admin, ein
      gewoehnlicher Benutzer und ein Grabstein. Waeren sie gleichartig, liesse
      sich nicht pruefen, dass die Oberflaeche sie verschieden behandelt. */
-  zugaenge = zugaenge || {
-    ich: 1, darfRollen: true, eigentuemer: 1,
-    zugaenge: [
+  users = users || {
+    ich: 1, mayRoles: true, owner: 1,
+    users: [
       { id: 1, username: 'chefin', role: 'owner', status: 'active', last_login: '2026-08-01 09:00:00', created_at: '2026-01-01 09:00:00', eintraege: 5 },
       /* bert TRAEGT ohnePasswort UND der Grabstein AUCH, und das ist die
          eigentliche Lage: beide tragen in Wahrheit den leeren Hash. Nur an
          der aktiven Zeile darf "noch kein Passwort" stehen -- am Grabstein
          waere es eine Falschaussage. Ohne beide Zeilen liesse sich das nicht
          unterscheiden. */
-      { id: 2, username: 'bert', role: 'admin', status: 'active', last_login: null, created_at: '2026-02-01 09:00:00', eintraege: 2, ohnePasswort: true },
-      { id: 3, username: 'carla', role: 'user', status: 'locked', last_login: null, created_at: '2026-03-01 09:00:00', eintraege: 0, ohnePasswort: false },
-      { id: 4, username: 'deleted-4', role: 'user', status: 'deleted', last_login: null, created_at: '2026-04-01 09:00:00', eintraege: 1, ohnePasswort: true }
+      { id: 2, username: 'bert', role: 'admin', status: 'active', last_login: null, created_at: '2026-02-01 09:00:00', eintraege: 2, withoutPassword: true },
+      { id: 3, username: 'carla', role: 'user', status: 'locked', last_login: null, created_at: '2026-03-01 09:00:00', eintraege: 0, withoutPassword: false },
+      { id: 4, username: 'deleted-4', role: 'user', status: 'deleted', last_login: null, created_at: '2026-04-01 09:00:00', eintraege: 1, withoutPassword: true }
     ]
   };
   /* Der Papierkorb der Prueflage. Zwei Zeilen, zwei Lagen: eine von einem
@@ -23220,8 +23220,8 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      kaputtem Versand stellt eine Prueflage ueber anfragenStand -- ohne beide
      bliebe die halbe Karte ungeprueft (Stolperstein 81). */
   anfragenStand = anfragenStand || {
-    an: true, versandBereit: true, versandGrund: '', deckel: 20, stunden: 24,
-    anfragen: [
+    an: true, deliveryReady: true, deliveryReason: '', cap: 20, stunden: 24,
+    requests: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' },
       { id: 12, username: 'zweiter', email: 'zweiter@beispiel.de',
@@ -23230,7 +23230,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
   };
   // belegt wird GERECHNET und nicht gestellt -- am echten Server zaehlt es die
   // Zeilen, und ein Mock mit eigener Zahl deckte genau das zu.
-  const anfragenMock = () => ({ ...anfragenStand, belegt: anfragenStand.anfragen.length });
+  const anfragenMock = () => ({ ...anfragenStand, belegt: anfragenStand.requests.length });
   /* ---- Der zweite Faktor im Mock, 0.10.0 ----
      FESTE, ERFUNDENE WERTE. Der Prueflauf arbeitet nie mit einem echten
      Geheimnis, und ein Code, der aus der Uhr entstuende, machte die Prueflage
@@ -23243,7 +23243,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
   const ZF_MOCK_ZEILE = 'otpauth://totp/Kriterion%3Achefin?secret=' + ZF_MOCK_GEHEIM +
     '&issuer=Kriterion&algorithm=SHA1&digits=6&period=30';
   const ZF_MOCK_CODE = '123456';
-  let zfStandMock = twoFactorState || { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
+  let zfStandMock = twoFactorState || { an: false, seit: null, codesOpen: 0, codesTotal: 0 };
   let zfAusweisMock = 'ausweis-1', zfAusweisZaehler = 1;
   let zfCodesMock = zweifaktorCodes ||
     ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
@@ -23257,36 +23257,36 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      Gruppe „Der Mailversand: das echte SMTP-Gespraech" am laufenden Server. */
   const MAIL_ANBIETER_MOCK = [
     { key: 'gmx', name: 'GMX', server: 'mail.gmx.net', port: 587, sicher: false,
-      hinweis: 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
+      hint: 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
     { key: 'web', name: 'Web.de', server: 'smtp.web.de', port: 587, sicher: false,
-      hinweis: 'Web.de verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
+      hint: 'Web.de verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
     { key: 'gmail', name: 'Gmail', server: 'smtp.gmail.com', port: 465, sicher: true,
-      hinweis: 'Gmail verlangt Zwei-Faktor und ein App-Passwort — das Kontopasswort wird abgewiesen.' },
-    { key: 'strato', name: 'Strato', server: 'smtp.strato.de', port: 465, sicher: true, hinweis: '' },
-    { key: 'ionos', name: 'IONOS', server: 'smtp.ionos.de', port: 587, sicher: false, hinweis: '' },
-    { key: 'eigen', name: 'Eigener Server', server: '', port: 587, sicher: false, hinweis: '' }
+      hint: 'Gmail verlangt Zwei-Faktor und ein App-Passwort — das Kontopasswort wird abgewiesen.' },
+    { key: 'strato', name: 'Strato', server: 'smtp.strato.de', port: 465, sicher: true, hint: '' },
+    { key: 'ionos', name: 'IONOS', server: 'smtp.ionos.de', port: 587, sicher: false, hint: '' },
+    { key: 'eigen', name: 'Eigener Server', server: '', port: 587, sicher: false, hint: '' }
   ];
-  mailStand = mailStand || { anbieter: 'gmx', server: 'mail.gmx.net', port: 587, sicher: false,
-    benutzer: 'instanz@gmx.de', absender: 'instanz@gmx.de', passwortGesetzt: true,
+  mailStand = mailStand || { provider: 'gmx', server: 'mail.gmx.net', port: 587, sicher: false,
+    benutzer: 'instanz@gmx.de', sender: 'instanz@gmx.de', passwordSet: true,
     getestetAm: '2026-08-20 08:30:00' };
   const mailKarteMock = () => ({
-    anbieter: mailStand.anbieter || '',
-    anbieterName: (MAIL_ANBIETER_MOCK.find(a => a.key === mailStand.anbieter) || {}).name || '',
+    provider: mailStand.provider || '',
+    providerName: (MAIL_ANBIETER_MOCK.find(a => a.key === mailStand.provider) || {}).name || '',
     server: mailStand.server || '', port: mailStand.port || 0, sicher: mailStand.sicher === true,
-    benutzer: mailStand.benutzer || '', absender: mailStand.absender || '',
-    passwortGesetzt: Boolean(mailStand.passwortGesetzt),
-    hinweis: mailStand.anbieter === 'gmx'
+    benutzer: mailStand.benutzer || '', sender: mailStand.sender || '',
+    passwordSet: Boolean(mailStand.passwordSet),
+    hint: mailStand.provider === 'gmx'
       ? 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.'
-      : mailStand.anbieter === 'gmail'
+      : mailStand.provider === 'gmail'
         ? 'Gmail verlangt Zwei-Faktor und ein App-Passwort — das Kontopasswort wird abgewiesen.'
         : '',
-    hinweisImmer: 'Die Absenderadresse muss zum Konto gehören — über GMX lässt sich nicht ' +
+    hintAlways: 'Die Absenderadresse muss zum Konto gehören — über GMX lässt sich nicht ' +
                   'als fremde Adresse senden.',
-    anbieterListe: MAIL_ANBIETER_MOCK,
-    eingerichtet: Boolean(mailStand.anbieter && mailStand.benutzer &&
-                          mailStand.passwortGesetzt && mailStand.absender),
-    adresseGesetzt: Boolean(oeffentlicheAdresse), adresse: oeffentlicheAdresse,
-    fristMinuten: 15, getestetAm: mailStand.getestetAm || null, sekunden: 20
+    providerList: MAIL_ANBIETER_MOCK,
+    eingerichtet: Boolean(mailStand.provider && mailStand.benutzer &&
+                          mailStand.passwordSet && mailStand.sender),
+    addressSet: Boolean(oeffentlicheAdresse), address: oeffentlicheAdresse,
+    deadlineMinutes: 15, getestetAm: mailStand.getestetAm || null, sekunden: 20
   });
   /* Was der Server ueber den Versand sagt -- NACHGERECHNET, nicht gesetzt.
      Drei Zustaende, und die Reihenfolge ist dieselbe wie in server.js: kein
@@ -23294,15 +23294,15 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      Fehlschlag kommt ueber mailFehler. */
   const versandLage = (empfaenger) => {
     const k = mailKarteMock();
-    if (!k.eingerichtet) return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };
-    if (!k.adresseGesetzt) return { versand: 'aus', versandGrund:
+    if (!k.eingerichtet) return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };
+    if (!k.addressSet) return { delivery: 'aus', deliveryReason:
       'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, ' +
       'worauf der Link zeigen soll.' };
-    if (!empfaenger) return { versand: 'aus', versandGrund:
+    if (!empfaenger) return { delivery: 'aus', deliveryReason:
       'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
     return mailFehler
-      ? { versand: 'fehlgeschlagen', versandGrund: 'Message failed: 550 abgelehnt' }
-      : { versand: 'ok', versandGrund: '' };
+      ? { delivery: 'fehlgeschlagen', deliveryReason: 'Message failed: 550 abgelehnt' }
+      : { delivery: 'ok', deliveryReason: '' };
   };
   /* Welcher Zugang eine Adresse hinterlegt hat. Die Karte "Zugaenge" sieht sie
      NIE -- GET /api/users liefert sie nicht mit, und das ist die Entscheidung
@@ -23310,22 +23310,22 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      Tokenroute in die Zeile sieht. bert hat eine, carla nicht: ohne beide
      liesse sich der Zweig "keine Adresse hinterlegt" nicht stellen. */
   const zugangAdressen = { 1: 'chefin@beispiel.de', 2: 'bert@beispiel.de', 3: '', 4: '' };
-  const sitzungen = sitzungenBestand || [
-    { kennung: 'a'.repeat(64), angemeldetAm: '2026-08-20 08:00:00',
-      zuletztGesehen: '2026-08-24 07:30:00', diese: true },
-    { kennung: 'b'.repeat(64), angemeldetAm: '2026-08-18 19:15:00',
-      zuletztGesehen: '2026-08-23 21:00:00', diese: false },
-    { kennung: 'c'.repeat(64), angemeldetAm: '2026-08-01 11:00:00',
-      zuletztGesehen: '2026-08-22 09:45:00', diese: false }
+  const sessions = sitzungenBestand || [
+    { kennung: 'a'.repeat(64), loggedInAt: '2026-08-20 08:00:00',
+      lastSeen: '2026-08-24 07:30:00', diese: true },
+    { kennung: 'b'.repeat(64), loggedInAt: '2026-08-18 19:15:00',
+      lastSeen: '2026-08-23 21:00:00', diese: false },
+    { kennung: 'c'.repeat(64), loggedInAt: '2026-08-01 11:00:00',
+      lastSeen: '2026-08-22 09:45:00', diese: false }
   ];
 
   const papierkorb = papierkorbBestand || [
     { id: 501, title: 'Weggeworfenes', deleted_at: '2026-08-01 09:00:00',
-      loeschender: { id: 1, name: 'chefin', geloescht: false },
-      dateien: 3, bytes: 2048, tageOffen: 12 },
+      loeschender: { id: 1, name: 'chefin', deleted: false },
+      dateien: 3, bytes: 2048, daysOpen: 12 },
     { id: 502, title: 'Von einem Grabstein', deleted_at: '2026-08-10 11:30:00',
-      loeschender: { id: 4, name: null, geloescht: true },
-      dateien: 0, bytes: 512, tageOffen: 27 }
+      loeschender: { id: 4, name: null, deleted: true },
+      dateien: 0, bytes: 512, daysOpen: 27 }
   ];
   /* Die Sicherung der Prueflage. Vorgabe: eingerichtet, mit einer Sicherung
      von vor drei Tagen. Eine Prueflage kann sie ueberschreiben -- die Karte
@@ -23336,9 +23336,9 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
     // Die Vorgabe ist die EMPFOHLENE Lage -- ausserhalb. Die Gegenlage steht
     // als eigener Aufbau in der Gruppe darunter.
     imArbeitsverzeichnis: false,
-    dbBytes: 52428800, dauerSekunden: 1, erreichbar: true, zahl: 2,
-    letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
-              at: '2026-08-20 03:00:00', tageHer: 3, veraltet: false },
+    dbBytes: 52428800, durationSeconds: 1, erreichbar: true, number: 2,
+    last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
+              at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: false },
     // Seit 0.8.91: die Vorgabe ist "nie gewechselt". Die drei Lagen des
     // Wechsels bekommen ihre eigenen Aufbauten in der Gruppe darunter.
     gewechseltAm: null, veraltet: 0,
@@ -23349,22 +23349,22 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        gehoert das "und so sieht es mit etwas aus" daneben).
        DIE GRENZEN KOMMEN VOM SERVER, auch im Mock: die Karte schreibt sie an
        ihre Felder, statt sie ein zweites Mal zu kennen. */
-    aufraeumen: {
-      an: false, behalten: 3, tage: 30,
-      grenzen: { behalten: { vorgabe: 3, min: 1, max: 20 },
-                 tage: { vorgabe: 30, min: 7, max: 365 } },
+    cleanup: {
+      an: false, keep: 3, days: 30,
+      grenzen: { keep: { fallback: 3, min: 1, max: 20 },
+                 days: { fallback: 30, min: 7, max: 365 } },
       erreichbar: true, treffer: [], bytes: 0,
-      grund: 'Alle 2 Kopien sind unter den jüngsten 3.',
+      reason: 'Alle 2 Kopien sind unter den jüngsten 3.',
       /* DIE VOLLSTAENDIGE LISTE -- in der Vorgabelage die beiden Kopien, die
          `zahl: 2` daneben behauptet. Eine leere Liste neben einer Zahl waeren
          zwei Wahrheiten ueber denselben Ort. */
       dateien: [
-        { nr: 1, datei: 'kriterion-2026-08-20-03-00-00.sqlite', at: '2026-08-20 03:00:00',
-          tageHer: 3, bytes: 52428800, faellt: false, veraltet: false },
-        { nr: 2, datei: 'kriterion-2026-08-13-03-00-00.sqlite', at: '2026-08-13 03:00:00',
-          tageHer: 10, bytes: 52428800, faellt: false, veraltet: false }
+        { nr: 1, file: 'kriterion-2026-08-20-03-00-00.sqlite', at: '2026-08-20 03:00:00',
+          daysAgo: 3, bytes: 52428800, faellt: false, veraltet: false },
+        { nr: 2, file: 'kriterion-2026-08-13-03-00-00.sqlite', at: '2026-08-13 03:00:00',
+          daysAgo: 10, bytes: 52428800, faellt: false, veraltet: false }
       ],
-      altZahl: 0, altBytes: 0, altDateien: []
+      oldCount: 0, oldBytes: 0, oldFiles: []
     }
   };
   /* DIE KOPIEN AM ORT -- die Liste, aus der der Mock seine Vorschau WIRKLICH
@@ -23375,7 +23375,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      sie zeichnet, was zurueckkommt, und dass sie dabei nichts loescht.
      JUENGSTE ZUERST, wie beim echten Server: der Boden zaehlt von vorn. */
   const aufraeumKopien = (sicherungKopien || []).slice();
-  const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   /* Die dreistellige Stimmenzahl der zweiten Kriterienzeile. Sie steht als
      Zahl an EINER Stelle: `count` in der Zeile und die Laenge der Stimmliste
      muessen uebereinstimmen, und zwei getippte Zahlen liefen auseinander. */
@@ -23398,13 +23398,13 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      BEWUSST VERSCHIEDENE Lagen -- ein lebender Name, ein Grabstein (Name
      null, nur die Nummer) und eine herrenlose Zeile. Waeren alle gleich,
      liesse sich nicht sehen, ob die Beschriftung ihre eigene Zeile trifft. */
-  const vChefin = { id: 1, name: 'chefin', geloescht: false };
-  const vBert = { id: 2, name: 'bert', geloescht: false };
-  const vGrab = { id: 4, name: null, geloescht: true };
+  const vChefin = { id: 1, name: 'chefin', deleted: false };
+  const vBert = { id: 2, name: 'bert', deleted: false };
+  const vGrab = { id: 4, name: null, deleted: true };
   // Ein Benutzername ist Eingabe, keine Konstante. Die Linkzeile ist seit
   // 0.8.30 die zweite Stelle in der Linkliste, an der Eingabe als Beschriftung
   // gerendert wird -- die erste sind die Anbieternamen.
-  const vBoese = { id: 5, name: 'Verfasser <b id="boese-link">X</b>', geloescht: false };
+  const vBoese = { id: 5, name: 'Verfasser <b id="boese-link">X</b>', deleted: false };
   /* DIE KOPFZAHL DES POTENZIALKASTENS -- 0.21.0. Sie ist stellbar und wird
      NICHT aus den Zeilen gerechnet: der echte Server liefert sie, und der
      Browser soll sie LESEN. Rechnete der Mock sie nach, koennte er nicht
@@ -23422,8 +23422,8 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        ununterscheidbar und naehme genau die Pruefung weg, fuer die er gebaut
        ist (Stolperstein 102). */
     rejected_at: ablehnung?.at ?? null,
-    rejected_reason: ablehnung?.grund ?? null,
-    rejectedVerfasser: ablehnung?.verfasser ?? null,
+    rejected_reason: ablehnung?.reason ?? null,
+    rejectedAuthor: ablehnung?.verfasser ?? null,
     /* ZWEI ANGABEN NACH HAUSMUSTER, seit 0.15.0, und sie werden GERECHNET wie
        im echten Server: `mine` aus dem Verfasser des EINTRAGS, `rejectedMine`
        aus dem der BEGRUENDUNG -- beide gegen die Nummer der Fragenden. Ein
@@ -23433,7 +23433,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        (`NAME`) und nirgends ihre Nummer -- deshalb ist die Rechnung hier
        ehrlich und kein zweiter Weg zum selben Ergebnis. */
     mine: eintragMeins,
-    rejectedMine: !!(ablehnung?.verfasser && ablehnung.verfasser.id === zugaenge.ich),
+    rejectedMine: !!(ablehnung?.verfasser && ablehnung.verfasser.id === users.ich),
     verfasser: eintragMeins ? vChefin : vBert,
     /* ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART -- ein Mock mit
        lauter Bildern naehme genau die Pruefungen weg, fuer die er hier
@@ -23478,10 +23478,10 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
          Der Bericht traegt zwei Bilder UND einen Vermerk: nur dort laesst
          sich sehen, ob die Angabe ihre eigene Zeile trifft. */
       { id: 61, text: 'Angepinnte Notiz', kind: 'note', pinned: true, verfasser: vChefin,
-        mine: true, bilderEntfernt: 0,
+        mine: true, imagesRemoved: 0,
         created_at: '2026-08-03 09:00:00', updated_at: null, images: [] },
       { id: 62, text: 'Ein Bericht', kind: 'report', pinned: false, verfasser: vBert,
-        mine: false, bilderEntfernt: 1,
+        mine: false, imagesRemoved: 1,
         created_at: '2026-08-02 09:00:00', updated_at: null,
         images: [{ id: 71, filename: 'a.jpg', sort_order: 0 },
                  { id: 72, filename: 'b.jpg', sort_order: 1 }] },
@@ -23489,7 +23489,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       // entsteht in app.js. Und die herrenlose Zeile daneben -- zwei
       // verschiedene Aussagen, die nicht dieselbe Beschriftung bekommen duerfen.
       { id: 63, text: 'Gewöhnliche Notiz', kind: 'note', pinned: false, verfasser: vGrab,
-        mine: false, bilderEntfernt: 2,
+        mine: false, imagesRemoved: 2,
         created_at: '2026-08-01 09:00:00', updated_at: '2026-08-01 10:00:00', images: [] },
       // Der vierte traegt alles, was am Kommentartext haengt: Markup, das
       // niemals Markup werden darf; eine Adresse mit & in der Abfragezeile
@@ -23499,13 +23499,13 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       // das Schranke 1 gar nicht erst passieren darf.
       { id: 64, text: 'Siehe <b>hier</b>: https://beispiel.de/pfad?a=1&b=2, dazu www.beispiel.de. '
           + 'Nicht beispiel.de und nicht javascript:alert(1)',
-        kind: 'note', pinned: false, verfasser: null, mine: false, bilderEntfernt: 0,
+        kind: 'note', pinned: false, verfasser: null, mine: false, imagesRemoved: 0,
         created_at: '2026-07-31 09:00:00', updated_at: null, images: [] },
       { id: 65, text: 'Eine Aufgabe', kind: 'task', pinned: false, verfasser: vChefin,
-        mine: true, bilderEntfernt: 0,
+        mine: true, imagesRemoved: 0,
         created_at: '2026-07-30 09:00:00', updated_at: null, images: [] },
       { id: 66, text: 'Schon erledigt', kind: 'done', pinned: false, verfasser: vChefin,
-        mine: true, bilderEntfernt: 0,
+        mine: true, imagesRemoved: 0,
         created_at: '2026-07-29 09:00:00', updated_at: null, images: [] }
     ],
     attachments: [
@@ -23562,17 +23562,17 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        nicht `ergebnis` -- und genau daran faellt es auf (Stolperstein 102). */
     rechenweg: (() => {
       const zeilen = kriterien
-        .map((c, i) => ({ criterionId: c.id, schnitt: spalten[i].avg, weight: c.weight,
+        .map((c, i) => ({ criterionId: c.id, average: spalten[i].avg, weight: c.weight,
                           phase: c.phase }))
         // NUR DER KASTEN „after" -- wie im echten Server, wo die Menge nach
         // Phase geschnitten ist, BEVOR gesamtSchnitt() sie sieht. Ein Mock,
         // der beide Kaesten in einen Weg legte, behauptete genau das, was
         // diese Runde baulich ausschliesst (Stolperstein 102).
         .filter(z => z.phase === 'after')
-        .filter(z => z.schnitt != null)
-        .map(z => ({ ...z, produkt: z.schnitt * z.weight }));
-      const summe = zeilen.reduce((n, z) => n + z.produkt, 0);
-      const teiler = zeilen.reduce((n, z) => n + z.weight, 0);
+        .filter(z => z.average != null)
+        .map(z => ({ ...z, produkt: z.average * z.weight }));
+      const sum = zeilen.reduce((n, z) => n + z.produkt, 0);
+      const divisor = zeilen.reduce((n, z) => n + z.weight, 0);
       /* OHNE JEDE BEWERTUNG GIBT ES KEINE ZAHL UND KEINEN RECHENWEG -- der
          echte Server liefert dann avgRating null und einen Weg ohne Zeilen.
          Die Lage ist stellbar, weil ohne sie „ohne Zahl kein Knopf" gar nicht
@@ -23589,14 +23589,14 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
          beide gleich sind, koennte den Unterschied gar nicht zeigen
          (Stolperstein 189 und 224). Der gleiche Fall wird ueber
          `rechenwegGleich` gestellt. */
-      const gleichSumme = zeilen.reduce((n, z) => n + z.schnitt, 0);
+      const equalSum = zeilen.reduce((n, z) => n + z.average, 0);
       const gleich = rechenwegGleich === undefined ? 4 : rechenwegGleich;
-      if (ohneBewertung) return { zeilen: [], summe: 0, teiler: 0, roh: null, ergebnis: null,
-        gleichSumme: 0, gleichTeiler: 0, gleichRoh: null, gleichErgebnis: null };
-      return { zeilen, summe, teiler, roh: teiler ? summe / teiler : null, ergebnis: 3,
-        gleichSumme, gleichTeiler: zeilen.length,
-        gleichRoh: zeilen.length ? gleichSumme / zeilen.length : null,
-        gleichErgebnis: gleich };
+      if (ohneBewertung) return { zeilen: [], sum: 0, divisor: 0, raw: null, result: null,
+        equalSum: 0, equalDivisor: 0, equalRaw: null, equalResult: null };
+      return { zeilen, sum, divisor, raw: divisor ? sum / divisor : null, result: 3,
+        equalSum, equalDivisor: zeilen.length,
+        equalRaw: zeilen.length ? equalSum / zeilen.length : null,
+        equalResult: gleich };
     })(),
     /* ---- DIE ZWEITE KOPFZAHL UND IHR RECHENWEG -- 0.21.0 -------------------
        WIE DER ECHTE SERVER, und das heisst hier vor allem: aus der ANDEREN
@@ -23606,22 +23606,22 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        DIE ZAHL IST EINE ANDERE ALS avgRating (3): eine Prueflage, in der beide
        gleich sind, koennte eine Vermischung gar nicht zeigen
        (Stolperstein 189). */
-    potenzialRating: potenzialSchnitt,
+    potentialRating: potenzialSchnitt,
     potenzialRechenweg: (() => {
       const zeilen = kriterien
-        .map((c, i) => ({ criterionId: c.id, schnitt: spalten[i].avg, weight: c.weight,
+        .map((c, i) => ({ criterionId: c.id, average: spalten[i].avg, weight: c.weight,
                           phase: c.phase }))
         .filter(z => z.phase === 'before')
-        .filter(z => z.schnitt != null)
-        .map(z => ({ ...z, produkt: z.schnitt * z.weight }));
-      const summe = zeilen.reduce((n, z) => n + z.produkt, 0);
-      const teiler = zeilen.reduce((n, z) => n + z.weight, 0);
-      const gleichSumme = zeilen.reduce((n, z) => n + z.schnitt, 0);
-      return { zeilen, summe, teiler, roh: teiler ? summe / teiler : null,
-        ergebnis: potenzialSchnitt,
-        gleichSumme, gleichTeiler: zeilen.length,
-        gleichRoh: zeilen.length ? gleichSumme / zeilen.length : null,
-        gleichErgebnis: zeilen.length ? potenzialSchnitt : null };
+        .filter(z => z.average != null)
+        .map(z => ({ ...z, produkt: z.average * z.weight }));
+      const sum = zeilen.reduce((n, z) => n + z.produkt, 0);
+      const divisor = zeilen.reduce((n, z) => n + z.weight, 0);
+      const equalSum = zeilen.reduce((n, z) => n + z.average, 0);
+      return { zeilen, sum, divisor, raw: divisor ? sum / divisor : null,
+        result: potenzialSchnitt,
+        equalSum, equalDivisor: zeilen.length,
+        equalRaw: zeilen.length ? equalSum / zeilen.length : null,
+        equalResult: zeilen.length ? potenzialSchnitt : null };
     })(),
     // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
     // zeichnete die Zeile ins Leere und jede Pruefung darauf waere blind.
@@ -23636,12 +23636,12 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
      herrenlose. Das dritte Kriterium kommt GAR NICHT VOR -- der echte Server
      nimmt nur Kriterien mit Stimmen auf. */
   const stimmenAntwort = [
-    { criterion_id: 7, stimmen: [
+    { criterion_id: 7, votes: [
       { id: 501, wert: 3, mine: true, verfasser: vChefin },
       { id: 502, wert: 4, mine: false, verfasser: vBert },
       { id: 503, wert: 2, mine: false, verfasser: vGrab },
       { id: 504, wert: 4, mine: false, verfasser: null },
-      { id: 505, wert: 4, mine: false, verfasser: { id: 3, name: 'carla', geloescht: false } }] },
+      { id: 505, wert: 4, mine: false, verfasser: { id: 3, name: 'carla', deleted: false } }] },
     /* DIE ZWEITE ZEILE TRAEGT ABSICHTLICH EINE DREISTELLIGE STIMMENZAHL.
        Die Zusage seit 0.14.0 lautet, dass alle Sternreihen der Kriterienliste
        an derselben Stelle beginnen -- und sie gilt fuer die leere Zelle
@@ -23652,12 +23652,12 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        Mock, der sich hier widerspricht, macht jede Pruefung darauf wertlos
        (Stolperstein 90). Die zwei benannten Stimmen stehen vorn, der Rest
        zaehlt auf. */
-    { criterion_id: 8, stimmen: [
+    { criterion_id: 8, votes: [
       { id: 506, wert: 3, mine: true, verfasser: vChefin },
       { id: 507, wert: 5, mine: false, verfasser: vBert },
       ...Array.from({ length: STIMMEN_VIELE - 2 }, (unused, i) => ({
         id: 600 + i, wert: 4, mine: false,
-        verfasser: { id: 100 + i, name: `stimme${i}`, geloescht: false } }))] }
+        verfasser: { id: 100 + i, name: `stimme${i}`, deleted: false } }))] }
   ];
   const uebersicht = [{
     id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false,
@@ -23727,9 +23727,9 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
     if (sprachDatei) {
       // `ohneSprache`: die Lage, in der die Datei fehlt (Entscheidung A1).
       if (ohneSprache) return gib({}, 404);
-      const datei = path.join(__dirname, 'public', 'languages', `${sprachDatei[1]}.json`);
-      if (!fs.existsSync(datei)) return gib({}, 404);
-      return gib(JSON.parse(fs.readFileSync(datei, 'utf8')));
+      const file = path.join(__dirname, 'public', 'languages', `${sprachDatei[1]}.json`);
+      if (!fs.existsSync(file)) return gib({}, 404);
+      return gib(JSON.parse(fs.readFileSync(file, 'utf8')));
     }
     if (url === '/api/config') return gib({ title: 'Oeffentlich', version: require('./package.json').version,
       setupRequired: einrichtung, minPassword: 10, signup });
@@ -23739,8 +23739,8 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        (die Einladung) und einer zu einem MIT (die Ruecksetzung). Alles andere
        bekommt die eine Absage, wortgleich wie am echten Server. */
     const TOKEN_ABSAGE_MOCK = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.';
-    const tokenLage = { ['d'.repeat(64)]: { username: 'carla', ohnePasswort: true },
-                        ['f'.repeat(64)]: { username: 'dora', ohnePasswort: false } };
+    const tokenLage = { ['d'.repeat(64)]: { username: 'carla', withoutPassword: true },
+                        ['f'.repeat(64)]: { username: 'dora', withoutPassword: false } };
     if (url === '/api/token/check' && opt.method === 'POST') {
       /* DIE ANMELDEBREMSE ALS EIGENE LAGE, seit 0.9.0. Sie ist der Grund fuer
          Befund G: eine 429 ist eine VORUEBERGEHENDE Absage, und bis 0.8.91
@@ -23758,13 +23758,13 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       const t = tokenLage[JSON.parse(opt.body || '{}').token];
       // minuten: die Frist ab dem ersten Oeffnen, seit 0.9.0. Die Seite liest
       // sie aus der Antwort (Stolperstein 102).
-      return t ? gib({ ...t, minPassword: 10, minuten: 15 }) : gib({ error: TOKEN_ABSAGE_MOCK }, 400);
+      return t ? gib({ ...t, minPassword: 10, minutes: 15 }) : gib({ error: TOKEN_ABSAGE_MOCK }, 400);
     }
     if (url === '/api/token/redeem' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
       const t = tokenLage[k.token];
       if (!t) return gib({ error: TOKEN_ABSAGE_MOCK }, 400);
-      if (String(k.passwort || '').length < 10)
+      if (String(k.password || '').length < 10)
         return gib({ error: 'Das Passwort muss mindestens 10 Zeichen lang sein.' }, 400);
       return gib({ ok: true, username: t.username });
     }
@@ -23785,7 +23785,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        "Der zweite Faktor: ..." weiter oben. */
     if (url === '/api/account' && (opt.method || 'GET') === 'GET')
       return gib({ username: 'chefin', minPassword: 10, email: eigeneAdresse,
-                   zweifaktor: zfStandMock });
+                   twoFactor: zfStandMock });
     /* PUT auf den eigenen Zugang. DER MOCK ZIEHT WIRKLICH MIT (Stolperstein
        90): was die Karte schickt, ist danach der Stand -- sonst waere "die
        geaenderte Adresse steht danach im Feld" von "die Karte hat sich nicht
@@ -23794,7 +23794,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       const k = JSON.parse(opt.body || '{}');
       if (k.email !== undefined) eigeneAdresse = String(k.email || '');
       return gib({ username: k.username || 'chefin',
-                   passwortGewechselt: Boolean(k.newPassword), email: eigeneAdresse });
+                   passwordChanged: Boolean(k.newPassword), email: eigeneAdresse });
     }
     /* DIE ANMELDUNG IN ZWEI SCHRITTEN, 0.10.0. DER MOCK ANTWORTET WIE DER
        ECHTE SERVER (Stolperstein 90): bei richtigem Passwort und
@@ -23807,18 +23807,18 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       if (k.password !== 'chefins-wort-100')
         return gib({ error: 'Benutzername oder Passwort stimmt nicht.' }, 401);
       if (!anmeldeFaktor) return gib({ ok: true });
-      return gib({ zweifaktor: true, ausweis: zfAusweisMock, sekunden: 120 });
+      return gib({ twoFactor: true, ticket: zfAusweisMock, sekunden: 120 });
     }
     if (url === '/api/login/second' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
-      if (k.ausweis !== zfAusweisMock)
+      if (k.ticket !== zfAusweisMock)
         return gib({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' }, 401);
       const eingabe = String(k.code || '');
       if (eingabe !== ZF_MOCK_CODE && !zfCodesMock.includes(eingabe)) {
         // DER ALTE AUSWEIS IST VERBRAUCHT, ein frischer liegt der Absage bei --
         // sonst kostete ein Tippfehler das ganze Passwort noch einmal.
         zfAusweisMock = 'ausweis-' + (++zfAusweisZaehler);
-        return gib({ error: 'Der Code stimmt nicht.', ausweis: zfAusweisMock, sekunden: 120 }, 401);
+        return gib({ error: 'Der Code stimmt nicht.', ticket: zfAusweisMock, sekunden: 120 }, 401);
       }
       zfAusweisMock = 'ausweis-' + (++zfAusweisZaehler);
       return gib({ ok: true });
@@ -23833,32 +23833,32 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        der ganze Absagenzweig nie gelaufen. */
     if (url === '/api/two-factor/start' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
-      if (k.passwort !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
+      if (k.password !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
       if (zfStandMock.an) return gib({ error: 'Der zweite Faktor ist bereits eingeschaltet.' }, 400);
-      return gib({ secret: ZF_MOCK_GEHEIM, gruppen: ZF_MOCK_GRUPPEN,
-                   zeile: ZF_MOCK_ZEILE, ziffern: 6, sekunden: 30 });
+      return gib({ secret: ZF_MOCK_GEHEIM, groups: ZF_MOCK_GRUPPEN,
+                   row: ZF_MOCK_ZEILE, ziffern: 6, sekunden: 30 });
     }
     if (url === '/api/two-factor/on' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
-      if (k.passwort !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
+      if (k.password !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
       if (String(k.code) !== ZF_MOCK_CODE) return gib({ error: 'Der Code stimmt nicht.' }, 400);
-      zfStandMock = { an: true, seit: '2026-08-26 10:00:00', codesOffen: 8, codesGesamt: 8 };
+      zfStandMock = { an: true, seit: '2026-08-26 10:00:00', codesOpen: 8, codesTotal: 8 };
       return gib({ ...zfStandMock, codes: zfCodesMock });
     }
     if (url === '/api/two-factor/codes' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
-      if (k.passwort !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
+      if (k.password !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
       if (String(k.code) !== ZF_MOCK_CODE) return gib({ error: 'Der Code stimmt nicht.' }, 403);
       zfCodesMock = zfCodesMock.map((c, i) => `NEU${String(i)}A-BCDEF`);
-      zfStandMock = { ...zfStandMock, codesOffen: 8, codesGesamt: 8 };
+      zfStandMock = { ...zfStandMock, codesOpen: 8, codesTotal: 8 };
       return gib({ ...zfStandMock, codes: zfCodesMock });
     }
     if (url === '/api/two-factor' && opt.method === 'DELETE') {
       const k = JSON.parse(opt.body || '{}');
       if (!zfStandMock.an) return gib({ error: 'Der zweite Faktor ist nicht eingeschaltet.' }, 400);
-      if (k.passwort !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
+      if (k.password !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
       if (String(k.code) !== ZF_MOCK_CODE) return gib({ error: 'Der Code stimmt nicht.' }, 403);
-      zfStandMock = { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
+      zfStandMock = { an: false, seit: null, codesOpen: 0, codesTotal: 0 };
       return gib({ ...zfStandMock });
     }
     /* ---- Der Mailversand, 0.9.0 ----
@@ -23871,7 +23871,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        nach dem Speichern faellt es weg -- genau wie beim echten Server, wo die
        Marke an den Werten haengt. */
     if (url === '/api/mail' && (opt.method || 'GET') === 'GET') {
-      if (einstellungen.istEigentuemer === false) return gib({ error: MAIL_VERWEIGERT }, 403);
+      if (einstellungen.isOwner === false) return gib({ error: MAIL_VERWEIGERT }, 403);
       return gib(mailKarteMock());
     }
     /* ---- Die Selbstanmeldung, 0.9.1 ----
@@ -23905,49 +23905,49 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
         'Dieser Bestätigungslink gilt nicht mehr. Stell die Anfrage bitte noch einmal.' }, 400);
     }
     if (url === '/api/requests' && (opt.method || 'GET') === 'GET') {
-      if (einstellungen.istAdmin === false) return gib({ error: 'Das darf nur ein Admin.' }, 403);
+      if (einstellungen.isAdmin === false) return gib({ error: 'Das darf nur ein Admin.' }, 403);
       return gib(anfragenMock());
     }
     if (url === '/api/signup/toggle' && opt.method === 'PUT') {
-      if (einstellungen.istAdmin === false) return gib({ error: 'Das darf nur ein Admin.' }, 403);
+      if (einstellungen.isAdmin === false) return gib({ error: 'Das darf nur ein Admin.' }, 403);
       const an = JSON.parse(opt.body || '{}').an === true;
-      if (an && !anfragenStand.versandBereit)
+      if (an && !anfragenStand.deliveryReady)
         return gib({ error: 'Die Selbstanmeldung lässt sich ohne funktionierenden Versand nicht ' +
-          'einschalten. ' + anfragenStand.versandGrund }, 400);
+          'einschalten. ' + anfragenStand.deliveryReason }, 400);
       anfragenStand.an = an;
       return gib(anfragenMock());
     }
     if (/^\/api\/requests\/\d+\/approve$/.test(url) && opt.method === 'POST') {
       const nr = Number(url.split('/')[3]);
-      const zeile = anfragenStand.anfragen.find(a => a.id === nr);
-      if (!zeile) return gib({ error: 'Diese Anfrage gibt es nicht.' }, 404);
-      anfragenStand.anfragen = anfragenStand.anfragen.filter(a => a.id !== nr);
+      const row = anfragenStand.requests.find(a => a.id === nr);
+      if (!row) return gib({ error: 'Diese Anfrage gibt es nicht.' }, 404);
+      anfragenStand.requests = anfragenStand.requests.filter(a => a.id !== nr);
       // Die Rolle steht fest auf 'user' -- wie am echten Server, wo sie im
       // Aufruf verdrahtet ist und aus keiner Anfrage gelesen wird.
-      return gib({ id: 90 + nr, username: zeile.username, email: zeile.email, role: 'user',
-        ohnePasswort: true, token: 'e'.repeat(64), purpose: 'invite', tage: 7, minuten: 15,
+      return gib({ id: 90 + nr, username: row.username, email: row.email, role: 'user',
+        withoutPassword: true, token: 'e'.repeat(64), purpose: 'invite', days: 7, minutes: 15,
         link: `https://kriterion.beispiel.de/#/invite/${'e'.repeat(64)}`,
-        linkQuelle: 'einstellung', versand: 'ok', versandGrund: '', ...anfragenMock() });
+        linkSource: 'einstellung', delivery: 'ok', deliveryReason: '', ...anfragenMock() });
     }
     if (/^\/api\/requests\/\d+$/.test(url) && opt.method === 'DELETE') {
       const nr = Number(url.split('/')[3]);
-      if (!anfragenStand.anfragen.some(a => a.id === nr))
+      if (!anfragenStand.requests.some(a => a.id === nr))
         return gib({ error: 'Diese Anfrage gibt es nicht.' }, 404);
-      anfragenStand.anfragen = anfragenStand.anfragen.filter(a => a.id !== nr);
+      anfragenStand.requests = anfragenStand.requests.filter(a => a.id !== nr);
       return gib({ ok: true, ...anfragenMock() });
     }
     if (url === '/api/mail' && opt.method === 'PUT') {
-      if (einstellungen.istEigentuemer === false) return gib({ error: MAIL_VERWEIGERT }, 403);
+      if (einstellungen.isOwner === false) return gib({ error: MAIL_VERWEIGERT }, 403);
       const k = JSON.parse(opt.body || '{}');
-      mailStand.anbieter = String(k.anbieter || '');
-      if (mailStand.anbieter === 'eigen') {
+      mailStand.provider = String(k.provider || '');
+      if (mailStand.provider === 'eigen') {
         mailStand.server = String(k.server || ''); mailStand.port = Number(k.port) || 0;
         mailStand.sicher = k.sicher === true;
       }
       mailStand.benutzer = String(k.benutzer || '');
-      mailStand.absender = String(k.absender || '');
-      if (k.passwort) mailStand.passwortGesetzt = true;
-      if (!mailStand.anbieter) mailStand.passwortGesetzt = false;
+      mailStand.sender = String(k.sender || '');
+      if (k.password) mailStand.passwordSet = true;
+      if (!mailStand.provider) mailStand.passwordSet = false;
       /* DIE MARKE FAELLT, WEIL DER ZUGANG SICH GEAENDERT HAT -- so wie beim
          echten Server, der sie ueber den Hash ueber den Zugang verwirft und
          nicht ueber ein ausdrueckliches Loeschen. Ein Mock, der sie stehen liesse,
@@ -23956,16 +23956,16 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       return gib(mailKarteMock());
     }
     if (url === '/api/mail/test' && opt.method === 'POST') {
-      if (einstellungen.istEigentuemer === false) return gib({ error: MAIL_VERWEIGERT }, 403);
+      if (einstellungen.isOwner === false) return gib({ error: MAIL_VERWEIGERT }, 403);
       if (!eigeneAdresse)
         return gib({ error: 'Für deinen Zugang ist keine E-Mail-Adresse hinterlegt. ' +
           'Trag sie im Systembereich unter „Zugang“ ein — die Testmail geht ' +
           'ausschließlich an die eigene Adresse.' }, 400);
       if (mailFehler)
-        return gib({ ok: false, grund: 'Message failed: 550 abgelehnt',
+        return gib({ ok: false, reason: 'Message failed: 550 abgelehnt',
                      an: eigeneAdresse, ...mailKarteMock() });
       mailStand.getestetAm = '2026-08-25 12:00:00';
-      return gib({ ok: true, grund: '', an: eigeneAdresse, ...mailKarteMock() });
+      return gib({ ok: true, reason: '', an: eigeneAdresse, ...mailKarteMock() });
     }
     if (url === '/api/titles') return gib({ publicTitle: 'Oeffentlich', appTitle: 'Intern' });
     if (url === '/api/criteria') return gib(kriterien);
@@ -23984,8 +23984,8 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        zweites Feld zeigt. Es kommt aus DEMSELBEN Stand wie die Karte -- eine
        zweite Wahrheit im Mock waere genau der Fehler, den er finden soll. */
     if (url === '/api/settings' && (opt.method || 'GET') === 'GET')
-      return gib({ name: 'chefin', papierkorbTage: 30, convertImages,
-        zweifaktor: zfStandMock.an === true, ...einstellungen });
+      return gib({ name: 'chefin', trashDays: 30, convertImages,
+        twoFactor: zfStandMock.an === true, ...einstellungen });
     /* SCHREIBEND, seit 0.19.0 -- und der Mock AENDERT SEINE ANTWORT WIRKLICH
        (Stolperstein 90): sonst waere „der Haken ist gesetzt" von „der Haken
        springt zurueck" nicht zu unterscheiden. */
@@ -23998,8 +23998,8 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
          Verhalten von Prueflagen, die mit dieser Runde nichts zu tun haben. */
       return gib({ convertImages });
     }
-    if (url === '/api/settings') return gib({ name: 'chefin', papierkorbTage: 30,
-      convertImages, zweifaktor: zfStandMock.an === true, ...einstellungen });
+    if (url === '/api/settings') return gib({ name: 'chefin', trashDays: 30,
+      convertImages, twoFactor: zfStandMock.an === true, ...einstellungen });
     /* DER PAPIERKORB IM MOCK, und er muss BEIDE Zustaende koennen: gefuellt
        und leer. Eine Karte ohne Zeilen belegte nichts ueber die Zeilen, eine
        ohne den leeren Fall nichts ueber die Auskunft "hier liegt nichts"
@@ -24011,14 +24011,14 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        ER STEHT HINTER dem Admin, wie der echte Server -- antwortete er jedem
        mit 200, waere die Rolle unpruefbar. */
     if (url === '/api/trash') {
-      if (einstellungen.istAdmin === false)
+      if (einstellungen.isAdmin === false)
         return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
-      return gib({ tage: 30, zeilen: papierkorb });
+      return gib({ days: 30, zeilen: papierkorb });
     }
     /* Die Sicherung. Sie steht hinter dem EIGENTUEMER, und der Mock macht das
        mit -- antwortete er jedem mit 200, waere die Rolle unpruefbar. */
     if (String(url).split('?')[0] === '/api/backup' && (opt.method || 'GET') === 'GET') {
-      if (einstellungen.istEigentuemer === false)
+      if (einstellungen.isOwner === false)
         return gib({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
       /* DIE VORSCHAU RECHNET WIRKLICH -- und zwar aus den Werten der ABFRAGE,
          wie der echte Server. Sonst blieben "die Karte fragt neu" und "die
@@ -24031,33 +24031,33 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
         const m = q.match(new RegExp(`(?:^|&)${n}=([^&]*)`));
         return m ? Number(decodeURIComponent(m[1])) : null;
       };
-      const gr = sicherung.aufraeumen && sicherung.aufraeumen.grenzen;
+      const gr = sicherung.cleanup && sicherung.cleanup.grenzen;
       if (!gr || !q) return gib(sicherung);
-      const b = zahlAus('behalten'), t = zahlAus('tage');
-      for (const [wert, spanne, event] of [[b, gr.behalten, 'Immer behalten'],
-                                         [t, gr.tage, 'Erst löschen ab']]) {
+      const b = zahlAus('keep'), t = zahlAus('days');
+      for (const [wert, spanne, event] of [[b, gr.keep, 'Immer behalten'],
+                                         [t, gr.days, 'Erst löschen ab']]) {
         if (wert === null) continue;
         if (!Number.isInteger(wert) || wert < spanne.min || wert > spanne.max)
           return gib({ error: `${event} muss eine ganze Zahl von ${spanne.min} bis ` +
                               `${spanne.max} sein.` }, 400);
       }
-      const behalten = b === null ? sicherung.aufraeumen.behalten : b;
-      const tage = t === null ? sicherung.aufraeumen.tage : t;
+      const keep = b === null ? sicherung.cleanup.keep : b;
+      const days = t === null ? sicherung.cleanup.days : t;
       //          die Mindestzahl                  das Alter
-      const treffer = aufraeumKopien.slice(behalten).filter(z => z.tageHer > tage);
+      const treffer = aufraeumKopien.slice(keep).filter(z => z.daysAgo > days);
       /* DIE VOLLSTAENDIGE LISTE MIT NUMMER UND MARKEN, wie der echte Server sie
          liefert -- juengste zuerst. Ohne sie zeichnete die Karte hier eine
          leere Liste, und jede Zusage darauf waere trivial wahr
          (Stolperstein 81). */
-      const namen = new Set(treffer.map(z => z.datei));
-      const alteNamen = new Set((sicherung.aufraeumen.altDateien || []).map(z => z.datei));
-      return gib({ ...sicherung, aufraeumen: { ...sicherung.aufraeumen, behalten, tage,
+      const namen = new Set(treffer.map(z => z.file));
+      const alteNamen = new Set((sicherung.cleanup.oldFiles || []).map(z => z.file));
+      return gib({ ...sicherung, cleanup: { ...sicherung.cleanup, keep, days,
         dateien: aufraeumKopien.map((z, i) => ({ ...z, nr: i + 1,
-          faellt: namen.has(z.datei), veraltet: alteNamen.has(z.datei) })),
+          faellt: namen.has(z.file), veraltet: alteNamen.has(z.file) })),
         treffer, bytes: treffer.reduce((n, z) => n + z.bytes, 0),
-        grund: treffer.length ? '' : (aufraeumKopien.length <= behalten
-          ? `Alle ${aufraeumKopien.length} Kopien sind unter den jüngsten ${behalten}.`
-          : `Die älteste ist ${aufraeumKopien[aufraeumKopien.length - 1].tageHer} Tage alt.`) } });
+        reason: treffer.length ? '' : (aufraeumKopien.length <= keep
+          ? `Alle ${aufraeumKopien.length} Kopien sind unter den jüngsten ${keep}.`
+          : `Die älteste ist ${aufraeumKopien[aufraeumKopien.length - 1].daysAgo} Tage alt.`) } });
     }
     /* Und der Loeschweg. Er aendert den Stand WIRKLICH: die getroffenen
        Kopien fallen aus der Liste, und die Antwort traegt die frische
@@ -24066,29 +24066,29 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        ER NIMMT KEINE DATEINAMEN ENTGEGEN, genau wie der echte: was im Rumpf
        steht, ist die Art und sonst nichts. */
     if (url === '/api/backup/cleanup' && opt.method === 'POST') {
-      if (einstellungen.istEigentuemer === false)
+      if (einstellungen.isOwner === false)
         return gib({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
       const k = JSON.parse(opt.body || '{}');
       if (k.kind !== 'rule' && k.kind !== 'outdated')
         return gib({ error: 'Diese Art des Aufräumens gibt es nicht.' }, 400);
-      const a = sicherung.aufraeumen || {};
+      const a = sicherung.cleanup || {};
       const fallen = k.kind === 'outdated'
-        ? (a.altDateien || [])
-        : aufraeumKopien.slice(a.behalten).filter(z => z.tageHer > a.tage);
-      const namen = new Set(fallen.map(z => z.datei));
+        ? (a.oldFiles || [])
+        : aufraeumKopien.slice(a.keep).filter(z => z.daysAgo > a.days);
+      const namen = new Set(fallen.map(z => z.file));
       for (let i = aufraeumKopien.length - 1; i >= 0; i--)
-        if (namen.has(aufraeumKopien[i].datei)) aufraeumKopien.splice(i, 1);
+        if (namen.has(aufraeumKopien[i].file)) aufraeumKopien.splice(i, 1);
       const bytes = fallen.reduce((n, z) => n + z.bytes, 0);
-      sicherung.zahl = Math.max(0, (sicherung.zahl || 0) - fallen.length);
-      if (k.kind === 'outdated') { sicherung.veraltet = 0; a.altZahl = 0; a.altBytes = 0;
-                                  a.altDateien = []; }
-      sicherung.aufraeumen = { ...a, treffer: [], bytes: 0,
-                               grund: 'Alle Kopien sind unter den jüngsten ' + a.behalten + '.' };
+      sicherung.number = Math.max(0, (sicherung.number || 0) - fallen.length);
+      if (k.kind === 'outdated') { sicherung.veraltet = 0; a.oldCount = 0; a.oldBytes = 0;
+                                  a.oldFiles = []; }
+      sicherung.cleanup = { ...a, treffer: [], bytes: 0,
+                               reason: 'Alle Kopien sind unter den jüngsten ' + a.keep + '.' };
       return gib({ ok: true, kind: k.kind, weg: fallen.length, nicht: 0, bytes,
-                   erreichbar: true, zahl: sicherung.zahl, letzte: sicherung.letzte,
+                   erreichbar: true, number: sicherung.number, last: sicherung.last,
                    gewechseltAm: sicherung.gewechseltAm ?? null,
                    veraltet: sicherung.veraltet ?? 0,
-                   aufraeumen: sicherung.aufraeumen });
+                   cleanup: sicherung.cleanup });
     }
     /* Und die beiden Schreibwege, die ihren Stand WIRKLICH aendern
        (Stolperstein 90): ein Mock, der stur denselben Stand zurueckgaebe,
@@ -24105,21 +24105,21 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       // letzteSicherung() auch hier aus, und ein Mock, der sie weglaesst,
       // liesse die Karte nach dem Speichern harmloser aussehen als die Lage.
       return gib({ ok: true, ort, pfad: sicherung.pfad, erreichbar: true,
-                   zahl: sicherung.zahl, letzte: sicherung.letzte,
+                   number: sicherung.number, last: sicherung.last,
                    gewechseltAm: sicherung.gewechseltAm ?? null,
                    veraltet: sicherung.veraltet ?? 0 });
     }
     if (url === '/api/backup' && opt.method === 'POST') {
-      const datei = 'kriterion-2026-08-23-19-00-00.sqlite';
-      sicherung.zahl = (sicherung.zahl || 0) + 1;
-      sicherung.letzte = { datei, bytes: 52428800, at: '2026-08-23 19:00:00', tageHer: 0 };
+      const file = 'kriterion-2026-08-23-19-00-00.sqlite';
+      sicherung.number = (sicherung.number || 0) + 1;
+      sicherung.last = { file, bytes: 52428800, at: '2026-08-23 19:00:00', daysAgo: 0 };
       sicherung.erreichbar = true;
       /* `aufgeraeumt` STEHT AUSDRUECKLICH DA UND IST null: der Schalter der
          Prueflage ist aus, also hat der Anschluss nichts getan. Ein fehlendes
          Feld waere von "nichts getan" nicht zu unterscheiden, und die Karte
          entscheidet daran, ob sie den ganzen Bereich neu zeichnet. */
-      return gib({ ok: true, datei, pfad: sicherung.pfad, bytes: 52428800, ms: 512,
-                   erreichbar: true, zahl: sicherung.zahl, letzte: sicherung.letzte,
+      return gib({ ok: true, file, pfad: sicherung.pfad, bytes: 52428800, ms: 512,
+                   erreichbar: true, number: sicherung.number, last: sicherung.last,
                    gewechseltAm: sicherung.gewechseltAm ?? null,
                    veraltet: sicherung.veraltet ?? 0, aufgeraeumt: null });
     }
@@ -24131,9 +24131,9 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       const nr = Number(url.split('/')[3]);
       const weg = papierkorb.findIndex(z => z.id === nr);
       if (weg < 0) return gib({ error: 'Nicht gefunden' }, 404);
-      const [zeile] = papierkorb.splice(weg, 1);
-      return gib({ ok: true, itemId: 77, title: zeile.title, items: 1,
-                   verfasserUnbekannt: zeile.id === 502 ? ['dora'] : [] });
+      const [row] = papierkorb.splice(weg, 1);
+      return gib({ ok: true, itemId: 77, title: row.title, items: 1,
+                   authorUnknown: row.id === 502 ? ['dora'] : [] });
     }
     if (/^\/api\/trash\/\d+$/.test(url) && opt.method === 'DELETE') {
       const nr = Number(url.split('/').pop());
@@ -24149,25 +24149,25 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        WER DIE ZAHLEN DIESER PRUEFLAGE MISST, MISST SIE AN EINEM FRISCHEN
        AUFBAU (Stolperstein 115). */
     if (url === '/api/sessions' && (opt.method || 'GET') === 'GET')
-      return gib({ sitzungen: sitzungen.slice(), tage: 30 });
+      return gib({ sessions: sessions.slice(), days: 30 });
     if (url === '/api/sessions' && opt.method === 'DELETE') {
-      const n = sitzungen.filter(z => !z.diese).length;
-      for (let i = sitzungen.length - 1; i >= 0; i--) if (!sitzungen[i].diese) sitzungen.splice(i, 1);
+      const n = sessions.filter(z => !z.diese).length;
+      for (let i = sessions.length - 1; i >= 0; i--) if (!sessions[i].diese) sessions.splice(i, 1);
       return gib({ beendet: n });
     }
     if (/^\/api\/sessions\/[0-9a-f]+$/.test(url) && opt.method === 'DELETE') {
       const k = url.split('/').pop();
-      const weg = sitzungen.findIndex(z => z.kennung === k);
+      const weg = sessions.findIndex(z => z.kennung === k);
       if (weg < 0) return gib({ error: 'Diese Anmeldung gibt es nicht mehr.' }, 404);
-      sitzungen.splice(weg, 1);
+      sessions.splice(weg, 1);
       return gib({ beendet: 1 });
     }
     if (url === '/api/users' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
       const neuerZugang = { id: 9, username: k.username, role: k.rolle || 'user',
-                            status: 'active', ohnePasswort: k.einladen === true };
+                            status: 'active', withoutPassword: k.einladen === true };
       // Auch hier zieht der Mock wirklich mit: die Liste danach ist eine andere.
-      zugaenge.zugaenge.push({ ...neuerZugang, last_login: null,
+      users.users.push({ ...neuerZugang, last_login: null,
                                created_at: '2026-08-24 09:00:00', eintraege: 0 });
       /* DER VERSANDZUSTAND KOMMT VOM SERVER, seit 0.9.0 -- und der Mock
          rechnet ihn NACH statt ihn zu setzen: mit Mailzugang und Adresse geht
@@ -24175,7 +24175,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
          lieferte, deckte genau die Serverseite zu, um die es geht
          (Stolperstein 102), und der Zweig "aus" waere nie gelaufen. */
       return gib(k.einladen === true
-        ? { ...neuerZugang, token: 'e'.repeat(64), purpose: 'invite', tage: 7, minuten: 15,
+        ? { ...neuerZugang, token: 'e'.repeat(64), purpose: 'invite', days: 7, minutes: 15,
             ...versandLage(k.email) }
         : neuerZugang);
     }
@@ -24184,22 +24184,22 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
     // die Karte waere blind dafuer, ob sie ueberhaupt gefuellt wird.
     // DER SCHREIBWEG STEHT DARUEBER: dieser Zweig fragt nicht nach der
     // Methode und finge ein POST sonst mit ab.
-    if (url === '/api/users') return gib(zugaenge);
+    if (url === '/api/users') return gib(users);
     /* Der Link fuer einen vorhandenen Zugang. Der Mock liefert einen
        erkennbaren Wert statt eines zufaelligen: eine Pruefung soll die
        Adresse im Feld nachrechnen koennen. */
     if (/^\/api\/users\/\d+\/token$/.test(url) && opt.method === 'POST') {
       const nr = Number(url.split('/')[3]);
-      const z = (zugaenge.zugaenge || []).find(q => q.id === nr) || {};
+      const z = (users.users || []).find(q => q.id === nr) || {};
       /* WOHER DIE ADRESSE KAM, gehoert in die Antwort -- der echte Server sagt
          es seit 0.8.90. Die Vorgabe ist der Browserweg; eine Prueflage kann
          ueber oeffentlicheAdresse den anderen Zustand stellen, und ohne beide
          liesse sich die Zeile im Linkkasten gar nicht pruefen. */
       return gib({ id: nr, username: z.username, token: 'd'.repeat(64),
                    purpose: (JSON.parse(opt.body || '{}').purpose) || 'invite',
-                   tage: 7, minuten: 15, ohnePasswort: Boolean(z.ohnePasswort),
+                   days: 7, minutes: 15, withoutPassword: Boolean(z.withoutPassword),
                    link: oeffentlicheAdresse ? `${oeffentlicheAdresse}/#/invite/${'d'.repeat(64)}` : null,
-                   linkQuelle: oeffentlicheAdresse ? 'einstellung' : 'browser',
+                   linkSource: oeffentlicheAdresse ? 'einstellung' : 'browser',
                    // Am BESTEHENDEN Zugang haengt die Adresse an der Zeile und
                    // nicht am Formular; zugangAdressen sagt, welche eine hat.
                    ...versandLage(zugangAdressen[nr]) });
@@ -24209,7 +24209,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        stehenbleiben statt zu handeln. */
     if (url === '/api/confirm' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
-      if (k.passwort !== DOM_PASSWORT)
+      if (k.password !== DOM_PASSWORT)
         return Promise.resolve({ ok: false, status: 403,
           json: () => Promise.resolve({ error: 'Das Passwort stimmt nicht.' }) });
       return gib({ ok: true, purpose: k.purpose, sekunden: 120 });
@@ -24225,12 +24225,12 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       if (!arten) return gib({ error: 'Diese Ansicht gibt es nicht.' }, 400);
       const zeilen = (protokoll.zeilen || []).filter(z => arten.includes(z.event));
       return gib({ ...protokoll, zeilen, gruppe: decodeURIComponent(gruppe),
-                   gesamt: (protokoll.zahlen || {})[decodeURIComponent(gruppe)] ?? zeilen.length });
+                   total: (protokoll.zahlen || {})[decodeURIComponent(gruppe)] ?? zeilen.length });
     }
 
     if (/^\/api\/users\/\d+\/inventory$/.test(url))
-      return gib({ username: 'bert', eintraege: 2, fremdKommentare: 3, fremdBewertungen: 1,
-                   fremdTesttage: 0, kommentare: 4, bewertungen: 2, testtage: 1 });
+      return gib({ username: 'bert', eintraege: 2, foreignComments: 3, foreignRatings: 1,
+                   foreignTestDays: 0, kommentare: 4, bewertungen: 2, testtage: 1 });
     /* GET /api/items?q=... -- der Suchweg, seit 0.11.0. ER STEHT VOR DEM FALL
        OHNE PARAMETER, sonst faenge der Vergleich auf Gleichheit ihn nie und
        die Oberflaeche bekaeme auf jede Suche den ganzen Bestand.
@@ -24257,12 +24257,12 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        DIE PRUEFLAGE DARF BEIDES UEBERSCHREIBEN: was in uebersichtItems steht,
        gewinnt -- deshalb steht `...i` HINTER der gerechneten Zahl. */
     const mitKopfzahlen = (liste, gesucht) => liste.map(i => {
-      const zeile = {
-        offeneAufgaben: offen.filter(z => z.kind === 'task' && z.item?.id === i.id).length,
+      const row = {
+        openTasks: offen.filter(z => z.kind === 'task' && z.item?.id === i.id).length,
         ...i
       };
       if (!einstellungen.bellSeen)
-        for (const k of ['neuKommentare', 'neuBewertungen', 'neuVon']) delete zeile[k];
+        for (const k of ['neuKommentare', 'neuBewertungen', 'neuVon']) delete row[k];
       /* DER TREFFERKONTEXT STEHT NUR IN DER ANTWORT AUF EINE SUCHE -- 0.18.0,
          und der Mock macht das mit. Was die Prueflage am Eintrag hinterlegt,
          geht bei einer Suche mit hinaus und faellt ohne Begriff weg. Ein Mock,
@@ -24270,19 +24270,19 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
          er gebraucht wird (Stolperstein 102): "die Zeile steht nur waehrend
          einer Suche da" waere von "sie steht immer da" nicht zu
          unterscheiden. */
-      if (!gesucht) delete zeile.fundstelle;
-      return zeile;
+      if (!gesucht) delete row.fundstelle;
+      return row;
     });
     if (url.startsWith('/api/items?q=')) {
       if (suchFehler) return gib({ error: 'Die Suche ist gerade nicht erreichbar.' }, 500);
       const qRoh = decodeURIComponent(url.slice('/api/items?q='.length));
       const qMock = qRoh.trim().toLowerCase();
-      const quelle = uebersichtItems || uebersicht;
+      const source = uebersichtItems || uebersicht;
       // DIESELBE FORM WIE OHNE SUCHE: der echte Server geht durch dieselbe
       // Schleife. Ein Mock, der die beiden Wege verschieden beantwortete,
       // verschwaende die Kopfzahlen bei jeder Suche.
-      const antwort = gib(mitKopfzahlen(
-        qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle, !!qMock));
+      const response = gib(mitKopfzahlen(
+        qMock ? source.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : source, !!qMock));
       /* EINE STELLBARE VERZOEGERUNG JE ANFRAGE, seit 0.11.0. Ohne sie antwortet
          der Mock augenblicklich, und dann koennen sich zwei Anfragen gar nicht
          ueberholen -- der Rueckbau auf die laufende Nummer in
@@ -24292,9 +24292,9 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
          die zweite. Ohne die Angabe bleibt alles, wie es war. */
       if (Array.isArray(suchBremsen)) {
         const ms = suchBremsen[suchBremse++] || 0;
-        if (ms > 0) return new Promise(r => setTimeout(() => r(antwort), ms));
+        if (ms > 0) return new Promise(r => setTimeout(() => r(response), ms));
       }
-      return antwort;
+      return response;
     }
     if (url === '/api/items') return gib(mitKopfzahlen(uebersichtItems || uebersicht));
     /* Ein ZWEITER Eintrag, nur fuer den Vergleich: dort holt die Ansicht
@@ -24314,7 +24314,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
     if (url === '/api/items/1' && opt.method === 'PUT') {
       const rumpf = JSON.parse(opt.body || '{}');
       /* DIE DREI ANGABEN ZUR ABLEHNUNG SCHREIBT DER SERVER ZUSAMMEN, und der
-         Mock muss das nachmachen: die Oberflaeche schickt `rejectedGrund` und
+         Mock muss das nachmachen: die Oberflaeche schickt `rejectedReason` und
          bekommt `rejected_reason` samt Datum und Verfasserobjekt zurueck. Ein
          Mock, der den Rumpf stur durchreicht, legte ein Feld in die Antwort,
          das der echte Server nie liefert -- und die Marke bliebe leer, ohne
@@ -24323,25 +24323,25 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
          angezeigten Text vergleicht, braucht einen Wert, der sich nicht
          zwischen zwei Zeilen des Prueflaufs bewegt. */
       const schaltetEin = rumpf.rejected === true && !beispiel.rejected;
-      const grundRoh = String(rumpf.rejectedGrund ?? '').replace(/\s+/g, ' ').trim();
+      const grundRoh = String(rumpf.rejectedReason ?? '').replace(/\s+/g, ' ').trim();
       if (rumpf.rejected !== undefined) beispiel.rejected = !!rumpf.rejected;
       if (schaltetEin) {
         beispiel.rejected_at = '2026-08-29 09:12:00';
-        beispiel.rejectedVerfasser = vChefin;
-        beispiel.rejectedMine = vChefin.id === zugaenge.ich;
+        beispiel.rejectedAuthor = vChefin;
+        beispiel.rejectedMine = vChefin.id === users.ich;
         beispiel.rejected_reason = grundRoh;
-      } else if (rumpf.rejectedGrund !== undefined) {
+      } else if (rumpf.rejectedReason !== undefined) {
         beispiel.rejected_reason = grundRoh;
         /* WER ENTFERNT, WIRD NICHT VERFASSER -- wie im echten Server seit
            0.15.0. Ein leeres Feld hat keinen Verfasser, und ein Mock, der ihn
            trotzdem einträgt, verdeckte genau den Unterschied zwischen
            Entfernen und Nachtragen. */
-        if (!beispiel.rejectedVerfasser && grundRoh) {
-          beispiel.rejectedVerfasser = vChefin;
-          beispiel.rejectedMine = vChefin.id === zugaenge.ich;
+        if (!beispiel.rejectedAuthor && grundRoh) {
+          beispiel.rejectedAuthor = vChefin;
+          beispiel.rejectedMine = vChefin.id === users.ich;
         }
       }
-      delete rumpf.rejected; delete rumpf.rejectedGrund;
+      delete rumpf.rejected; delete rumpf.rejectedReason;
       Object.assign(beispiel, rumpf);
       return gib(beispiel);
     }
@@ -24351,11 +24351,11 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        richtigen Stelle nennt. */
     if (url === '/api/items/1/inventory')
       return gib({ fotos: 1,
-                   eigenDateien: 5, fremdDateien: 7,
-                   eigenLinks: 6, fremdLinks: 8,
-                   eigenKommentare: 2, fremdKommentare: 4,
-                   eigenBewertungen: 1, fremdBewertungen: 3,
-                   eigenTesttage: 1, fremdTesttage: 2 });
+                   ownFiles: 5, foreignFiles: 7,
+                   ownLinks: 6, foreignLinks: 8,
+                   ownComments: 2, foreignComments: 4,
+                   ownRatings: 1, foreignRatings: 3,
+                   ownTestDays: 1, foreignTestDays: 2 });
     /* Wer welchen Wert vergeben hat -- seit 0.8.6 ein eigener Endpunkt hinter
        nurAdmin, und der Mock macht BEIDES mit. Antwortete er jedem
        mit 200, waere die Rolle unpruefbar; antwortete er mit dem leeren
@@ -24364,7 +24364,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        VOR dem Sammelfall darunter: startsWith('/api/items/1') faenge den Pfad
        sonst ab und lieferte den ganzen Eintrag. */
     if (url === '/api/items/1/votes') {
-      if (einstellungen.istAdmin === false)
+      if (einstellungen.isAdmin === false)
         return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
       return gib(stimmenAntwort);
     }
@@ -24374,7 +24374,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
     // stehengebliebenen Stand nicht zu unterscheiden.
     if (/^\/api\/ratings\/\d+$/.test(url) && opt.method === 'DELETE') {
       const weg = Number(url.split('/').pop());
-      for (const z of stimmenAntwort) z.stimmen = z.stimmen.filter(st => st.id !== weg);
+      for (const z of stimmenAntwort) z.votes = z.votes.filter(st => st.id !== weg);
       return gib(beispiel);
     }
     /* PUT auf ein Kriterium. Der echte Server antwortet mit der GESPEICHERTEN
@@ -24413,8 +24413,8 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       const nr = Number(url.split('/').pop());
       const koerper = JSON.parse(opt.body || '{}');
       if (koerper.kind !== undefined) {
-        const zeile = offen.find(z => z.id === nr);
-        if (zeile) zeile.kind = koerper.kind;
+        const row = offen.find(z => z.id === nr);
+        if (row) row.kind = koerper.kind;
         const k = beispiel.comments.find(c => c.id === nr);
         if (k) k.kind = koerper.kind;
       }
@@ -24468,7 +24468,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
        Rumpf mit return -- der Systembereich bliebe fuer einen gewoehnlichen
        Benutzer vollstaendig leer, auch die Karten, die ihm zustehen. */
     if (url === '/api/stats') {
-      if (einstellungen.istAdmin === false)
+      if (einstellungen.isAdmin === false)
         return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
       /* Der Fingerprint gehoert seit 0.8.10 dazu. Ein Mock, der ihn
          auslaesst, macht jede Pruefung an der Karte blind: sie zeichnete
@@ -24490,11 +24490,11 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
       return gib({ dbBytes: 1, photoCount: 0, photoBytes: 0, itemCount: 1,
         videoCount: 0, videoBytes: 0,
         commentCount: 0, linkCount: 0, testDayCount: 0, attachmentCount: 4, attachmentBytes: 6144,
-        papierkorbCount: 2, papierkorbBytes: 2560,
+        trashCount: 2, trashBytes: 2560,
         commentImageCount: 3, commentImageBytes: 1536,
-        export: statsExport || { umschlag: 4096, fotos: 65536, videos: 32768,
+        export: statsExport || { envelope: 4096, fotos: 65536, videos: 32768,
           anhaenge: 8192, kommentarbilder: 2048,
-          warnAb: 300 * 1024 * 1024, grenze: 483183799 },
+          warnFrom: 300 * 1024 * 1024, grenze: 483183799 },
         version: require('./package.json').version, fingerprint: 'a1b2c3d4',
         /* DIE AUFTEILUNG NACH FORMAT und der Stand eines Laufs. Der Mock
            liefert sie wie der Server: erkannt an den ersten Bytes, nur
@@ -24504,13 +24504,13 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
               webp: { anzahl: 2, bytes: 65536 } }
           : statsBildFormate,
         umstellung: statsUmstellung,
-        geometrie: statsGeometrie,
+        geometry: statsGeometrie,
         /* DIE ALGORITHM, seit 0.16.0 -- dieselben Werte, die db.js aus der
            geoeffneten Datei abliest. STELLBAR AUF null: eine Antwort ohne sie
            ist die Lage, in der der Abschnitt in der Karte gar nicht dastehen
            darf. Ohne diesen Fall waere „er steht da" nicht von „er steht
            immer da" zu unterscheiden (Stolperstein 81). */
-        verfahren: statsVerfahren === undefined
+        method: statsVerfahren === undefined
           ? { cipher: 'sqlcipher', schluesselBits: 256, journal: 'WAL', passwoerter: 'scrypt' }
           : statsVerfahren,
         keyFromEnv: false, keyHex: 'ab'.repeat(32) });
@@ -24518,7 +24518,7 @@ function baueDom(JSDOM, { ohneSprache = false, einstellungen = { filters: null }
     return gib({});
   };
   const skript = w.document.createElement('script');
-  skript.textContent = quelle;
+  skript.textContent = source;
   // In den Kopf, nicht in den Rumpf: sonst steht der gesamte Quelltext in
   // document.body.textContent und jede Textpruefung findet dort Woerter,
   // die auf dem Bildschirm gar nicht stehen.
@@ -24610,7 +24610,7 @@ function bildschirmtexteVon(src) {
   const out = [];
   let i = 0;
   const n = src.length;
-  const zeile = (pos) => src.slice(0, pos).split('\n').length;
+  const row = (pos) => src.slice(0, pos).split('\n').length;
   // Ein Schraegstrich beginnt ein Ausdrucksliteral, wenn davor kein Wert steht.
   const regexErlaubt = (pos) => {
     let j = pos - 1;
@@ -24633,9 +24633,9 @@ function bildschirmtexteVon(src) {
           if (src[i] === '\n') break;
           s += src[i]; i++;
         }
-        i++; out.push({ text: s, zeile: zeile(start) }); continue;
+        i++; out.push({ text: s, row: row(start) }); continue;
       }
-      if (c === '`') { i++; vorlage(); continue; }
+      if (c === '`') { i++; template(); continue; }
       if (c === '/' && regexErlaubt(i)) {
         i++; let klasse = false;
         while (i < n && (klasse || src[i] !== '/') && src[i] !== '\n') {
@@ -24650,19 +24650,19 @@ function bildschirmtexteVon(src) {
     }
   }
   // Liest eine Vorlage: Text bis zum Backtick, ${…} geht zurueck in den Code.
-  function vorlage() {
+  function template() {
     let s = ''; const start = i;
     while (i < n) {
       const c = src[i];
       if (c === '\\') { s += src[i + 1]; i += 2; continue; }
       if (c === '`') { i++; break; }
       if (c === '$' && src[i + 1] === '{') {
-        if (s.trim()) out.push({ text: s, zeile: zeile(start) });
+        if (s.trim()) out.push({ text: s, row: row(start) });
         s = ''; i += 2; code(true); continue;
       }
       s += c; i++;
     }
-    if (s.trim()) out.push({ text: s, zeile: zeile(start) });
+    if (s.trim()) out.push({ text: s, row: row(start) });
   }
   code(false);
   return out;
@@ -24684,8 +24684,8 @@ function servertexteVon(src) {
       if (c === ';') break;
       ende++;
     }
-    const zeile = src.slice(0, m.index).split('\n').length;
-    for (const t of bildschirmtexteVon(src.slice(j, ende) + ' ')) out.push({ text: t.text, zeile });
+    const row = src.slice(0, m.index).split('\n').length;
+    for (const t of bildschirmtexteVon(src.slice(j, ende) + ' ')) out.push({ text: t.text, row });
   }
   return out;
 }
@@ -24726,7 +24726,7 @@ function bildschirmVerstoesse(texte) {
   for (const t of texte) {
     if (istAdresse(t.text)) continue;
     for (const [re, name] of BILDSCHIRM_VERBOT)
-      if (re.test(t.text)) out.push(`Z. ${t.zeile} [${name}]: ${t.text.trim().replace(/\s+/g, ' ').slice(0, 90)}`);
+      if (re.test(t.text)) out.push(`Z. ${t.row} [${name}]: ${t.text.trim().replace(/\s+/g, ' ').slice(0, 90)}`);
   }
   return out;
 }
@@ -24735,8 +24735,8 @@ async function sysDurchgang(d) {
   const karten = [], stuecke = [];
   const reiter = [...d.w.document.querySelectorAll('.sys-tab')]
     .map(a => a.getAttribute('href'));
-  for (const adresse of reiter) {
-    d.w.history.replaceState(null, '', adresse);
+  for (const address of reiter) {
+    d.w.history.replaceState(null, '', address);
     await d.w.renderSystem();
     await new Promise(r => setTimeout(r, 30));
     karten.push(...[...d.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
@@ -25805,7 +25805,7 @@ async function pruefeOberflaeche() {
      Prueflage des Mocks traegt neben den drei offenen Aufgaben eine
      erledigte, eine Notiz und einen Bericht -- der Mock filtert wie
      der echte Server, und was er nicht liefert, darf hier auch nicht stehen. */
-  const offAlle = await offBaue({ einstellungen: { filters: null, benutzerZahl: 3 } });
+  const offAlle = await offBaue({ einstellungen: { filters: null, userCount: 3 } });
 
   pruefe('Die Ansicht ist erreichbar und traegt eine Ueberschrift',
     offAlle.w.document.querySelector('.page-title')?.textContent === 'Offene Aufgaben',
@@ -25870,7 +25870,7 @@ async function pruefeOberflaeche() {
   pruefe('Und zurueck geht es auch', offTexte(offAlle).length === 3, JSON.stringify(offTexte(offAlle)));
   offAlle.w.close();
 
-  const offEiner = await offBaue({ einstellungen: { filters: null, benutzerZahl: 1 } });
+  const offEiner = await offBaue({ einstellungen: { filters: null, userCount: 1 } });
   pruefe('Bei einem Zugang stehen die Zeilen trotzdem da',
     offZeilen(offEiner).length === 3, `${offZeilen(offEiner).length} Zeilen`);
   pruefe('Aber der Umschalter erscheint nicht',
@@ -25887,14 +25887,14 @@ async function pruefeOberflaeche() {
   /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. Erst die Lage, in
      der es dasteht, dann die Gegenlage, in der es fehlt -- und in beiden wird
      zuerst geprueft, dass es die ZEILE ueberhaupt gibt (Stolperstein 81). */
-  const offAdmin = await offBaue({ einstellungen: { filters: null, benutzerZahl: 3 } });
+  const offAdmin = await offBaue({ einstellungen: { filters: null, userCount: 3 } });
   pruefe('Dem Admin steht an jeder Zeile ein Kaestchen',
     offZeilen(offAdmin).length === 3 &&
     offZeilen(offAdmin).every(z => !!z.querySelector('.open-check')),
     `${offZeilen(offAdmin).filter(z => z.querySelector('.open-check')).length} von ${offZeilen(offAdmin).length}`);
 
   const offBenutzer = await offBaue({
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: false } });
   pruefe('Ohne Adminrolle stehen die fremden Zeilen weiterhin da',
     offZeilen(offBenutzer).length === 3, `${offZeilen(offBenutzer).length} Zeilen`);
   pruefe('Aber nur an der eigenen steht ein Kaestchen',
@@ -25962,7 +25962,7 @@ async function pruefeOberflaeche() {
   offAdmin.w.close();
 
   /* Ein leerer Bildschirm ist eine schlechte Antwort. */
-  const offLeer = await offBaue({ offenBestand: [], einstellungen: { filters: null, benutzerZahl: 3 } });
+  const offLeer = await offBaue({ offenBestand: [], einstellungen: { filters: null, userCount: 3 } });
   pruefe('Ohne offene Aufgaben steht ein Satz da, kein leerer Bildschirm',
     /Nichts offen/.test(offLeer.w.document.getElementById('open-hint')?.textContent || ''),
     offLeer.w.document.getElementById('open-hint')?.textContent);
@@ -25971,7 +25971,7 @@ async function pruefeOberflaeche() {
 
   /* Nichts von MIR offen ist ein anderer Fall als gar nichts offen -- ein Satz
      fuer beides erklaerte den einen falsch. */
-  const offNichtMeine = await offBaue({ einstellungen: { filters: null, benutzerZahl: 3 } });
+  const offNichtMeine = await offBaue({ einstellungen: { filters: null, userCount: 3 } });
   offSicht(offNichtMeine, 'meine')
     .dispatchEvent(new offNichtMeine.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
@@ -25995,7 +25995,7 @@ async function pruefeOberflaeche() {
      Aufgaben" schreibt, waehrend der Betreiber sie „ToDo's" nennt, ist falsch
      beschriftet. Geprueft wird an einer Prueflage, die das Vokabular
      umstellt -- ohne sie bliebe jeder feste String unbemerkt. */
-  const offVok = await offBaue({ einstellungen: { ...eigenVoll, benutzerZahl: 3 } });
+  const offVok = await offBaue({ einstellungen: { ...eigenVoll, userCount: 3 } });
   pruefe('Die Ueberschrift benutzt das Vokabular, nicht das feste Wort',
     offVok.w.document.querySelector('.page-title')?.textContent === 'Offene ToDo’s',
     offVok.w.document.querySelector('.page-title')?.textContent);
@@ -26009,7 +26009,7 @@ async function pruefeOberflaeche() {
   offVok.w.close();
 
   const offLeerVok = await offBaue({ offenBestand: [],
-    einstellungen: { ...eigenVoll, benutzerZahl: 3 } });
+    einstellungen: { ...eigenVoll, userCount: 3 } });
   /* UMGEDREHT MIT 0.22.0 (Stolperstein 74): der leere Satz heisst „Nichts
      offen." -- zwei Woerter, und er braucht kein Vokabelwort mehr (Anlage C,
      Z. 3524: „Ton, doppelt"). Belegt wird, dass er kurz ist und dasteht. */
@@ -26019,7 +26019,7 @@ async function pruefeOberflaeche() {
   offLeerVok.w.close();
 
   /* Der Weg in die Ansicht: ein Knopf in der Kopfzeile, neben dem Zahnrad. */
-  const offKopf = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 3 } });
+  const offKopf = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 3 } });
   await new Promise(r => setTimeout(r, 90));
   const offKnopf = offKopf.w.document.getElementById('open');
   pruefe('Die Kopfzeile traegt einen Knopf in die Ansicht', !!offKnopf);
@@ -26178,7 +26178,7 @@ async function pruefeOberflaeche() {
      zwangslaeufig eine Message darin. Seit 0.17.2 meldet sie nur Fremdes und
      bleibt bei einem einzigen Zugang deshalb still; die Lage dazu steht in der
      Gruppe „Die Glocke in der Kopfzeile". */
-  const nsEiner = await nsBaue(nsVorgabe, { benutzerZahl: 1,
+  const nsEiner = await nsBaue(nsVorgabe, { userCount: 1,
     bellSeen: '2026-08-01 00:00:00' });
   pruefe('Bei einem einzigen Zugang steht die Pille ebenfalls nicht mehr da',
     !nsEiner.w.document.getElementById('f-neu'));
@@ -26319,16 +26319,16 @@ async function pruefeOberflaeche() {
      sie steht.
      ERST DER GEGENSTAND, DANN DIE ZUSAGE (Stolperstein 81): ohne den Knopf
      bliebe die Zeile darunter gruen, ohne etwas zu belegen. */
-  const bewertung = wb.document.querySelector('[data-block="bewertung"]');
-  const vorher = bewertung.classList.contains('closed');
-  const kopfKnopf = bewertung.querySelector('.block-head button');
+  const rating = wb.document.querySelector('[data-block="bewertung"]');
+  const vorher = rating.classList.contains('closed');
+  const kopfKnopf = rating.querySelector('.block-head button');
   pruefe('Die Prueflage traegt wirklich einen Knopf in der Kopfzeile', !!kopfKnopf,
-    bewertung.querySelector('.block-head').innerHTML.slice(0, 200));
-  bewertung.querySelector('.block-head').onclick({ target: kopfKnopf });
+    rating.querySelector('.block-head').innerHTML.slice(0, 200));
+  rating.querySelector('.block-head').onclick({ target: kopfKnopf });
   pruefe('Knopf in der Kopfzeile klappt nicht mit ein',
-    bewertung.classList.contains('closed') === vorher);
-  bewertung.querySelector('.block-head').onclick({ target: bewertung.querySelector('.bgrip') });
-  pruefe('Der Griff klappt nicht mit ein', bewertung.classList.contains('closed') === vorher);
+    rating.classList.contains('closed') === vorher);
+  rating.querySelector('.block-head').onclick({ target: rating.querySelector('.bgrip') });
+  pruefe('Der Griff klappt nicht mit ein', rating.classList.contains('closed') === vorher);
 
   /* DERSELBE VOLLE SATZ AUCH EINGEKLAPPT -- eingeklappt ist gerade der Moment,
      in dem man nicht hineinsieht. Der Hinweis steht in der Kopfzeile und bleibt
@@ -26412,9 +26412,9 @@ async function pruefeOberflaeche() {
   const dateiZeilen = [...wb.document.querySelectorAll('#atts .arow')];
   // Zeile anklicken, ohne ueber fehlende Teile zu stolpern: sonst reisst ein
   // Rueckbau in der Gegenprobe den ganzen Lauf mit.
-  const klick = (z, teil = '.aname') => {
+  const klick = (z, part = '.aname') => {
     if (!z || typeof z.onclick !== 'function') return false;
-    z.onclick({ target: z.querySelector(teil) || z });
+    z.onclick({ target: z.querySelector(part) || z });
     return true;
   };
   const text = (z, sel) => z?.querySelector(sel)?.textContent ?? '(fehlt)';
@@ -26598,7 +26598,7 @@ async function pruefeOberflaeche() {
   gruppe('Mehrbenutzer-Anzeigen in der Oberflaeche');
 
   const eMehr = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
   const eDoc = eMehr.w.document;
   const eSpalten = [...eDoc.querySelectorAll('#ratings .rrow .ravg')];
@@ -26670,7 +26670,7 @@ async function pruefeOberflaeche() {
     !eDoc.getElementById('newcrit'), 'newcrit steht noch in der Detailansicht');
 
   const eEinzeln = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 1, istAdmin: true } });
+    einstellungen: { filters: null, userCount: 1, isAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
   pruefe('Bei einem einzigen Zugang bleibt die Spalte weg',
     eEinzeln.w.document.querySelectorAll('#ratings .rrow .ravg').length === 0,
@@ -26750,7 +26750,7 @@ async function pruefeOberflaeche() {
      stehenbleibt. Deshalb steht die Lage mit einem Zugang hier VORNE: an ihr
      faellt auf, wenn jemand die Angabe hinter mehrereBenutzer() klemmt. */
   const eKopf1 = baueDom(JSDOM, {
-    einstellungen: { filters: null, benutzerZahl: 1, istAdmin: true, name: 'chefin' } });
+    einstellungen: { filters: null, userCount: 1, isAdmin: true, name: 'chefin' } });
   await new Promise(r => setTimeout(r, 80));
   pruefe('Die Kopfzeile nennt auch bei einem einzigen Zugang, wer angemeldet ist',
     /Angemeldet als chefin/.test(eKopf1.w.document.getElementById('who')?.textContent || ''),
@@ -26758,7 +26758,7 @@ async function pruefeOberflaeche() {
   eKopf1.w.close();
 
   const eKopf = baueDom(JSDOM, {
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true, name: 'bert' } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true, name: 'bert' } });
   await new Promise(r => setTimeout(r, 80));
   const eWer = eKopf.w.document.getElementById('who');
   pruefe('Und ab zwei Zugaengen ebenso, mit dem Namen des Angemeldeten',
@@ -26842,8 +26842,8 @@ async function pruefeOberflaeche() {
 
   /* Ein Benutzername ist Eingabe, keine Konstante -- spitze Klammern duerfen
      kein HTML werden. Dieselbe Regel wie beim Vokabular. */
-  const eBoese = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 3,
-    istAdmin: true, name: '<b id="boese9">X</b>' } });
+  const eBoese = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 3,
+    isAdmin: true, name: '<b id="boese9">X</b>' } });
   await new Promise(r => setTimeout(r, 80));
   pruefe('Aus einem Benutzernamen wird in der Kopfzeile kein HTML',
     !eBoese.w.document.getElementById('boese9') &&
@@ -26855,7 +26855,7 @@ async function pruefeOberflaeche() {
      ladeEinstellungen() laeuft nur beim Start -- ohne das Nachziehen stuende
      dort bis zum naechsten Laden der Seite der alte Name. */
   const eUm = baueDom(JSDOM, {
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true, name: 'chefin' } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true, name: 'chefin' } });
   await new Promise(r => setTimeout(r, 80));
   await eUm.w.renderSystem();
   await new Promise(r => setTimeout(r, 30));
@@ -26990,7 +26990,7 @@ async function pruefeOberflaeche() {
      Bedingung. Die zweite Haelfte (ein einziger Zugang) steht weiter oben an
      eEinzeln; ohne beide Lagen bliebe eine der beiden ungeprueft. */
   const eKeinAdmin = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
   /* Dieselbe Gegenprobe wie eine Lage weiter oben, und aus demselben Grund
      seit 0.21.0 an der Sternzeile statt am weggefallenen Ruecksetzer. */
@@ -27058,7 +27058,7 @@ async function pruefeOberflaeche() {
     { id: 22, name: 'Stahl', usage_count: 1, test_usage_count: 0 }
   ];
   const eSys = baueDom(JSDOM, { tags: eSysTags,
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true } });
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(eSys.w, 'inventory');
   const eFeld = eSys.w.document.getElementById('newcrit');
@@ -27089,13 +27089,13 @@ async function pruefeOberflaeche() {
   eSys.w.close();
 
   /* --- Und dasselbe fuer einen ohne Adminrolle ---
-     istEigentuemer MUSS hier mit auf false: die Rollen sind eine LEITER, ein
+     isOwner MUSS hier mit auf false: die Rollen sind eine LEITER, ein
      Eigentuemer ohne Adminrecht kann es gar nicht geben. Bliebe das Feld auf
      seiner Vorgabe true, baute die Prueflage eine Lage nach, die der Server
      nie ausliefert -- und pruefte den Systembereich gegen sie. */
   const eSysUser = baueDom(JSDOM, { tags: eSysTags,
-    einstellungen: { filters: null, benutzerZahl: 3,
-      istAdmin: false, istEigentuemer: false } });
+    einstellungen: { filters: null, userCount: 3,
+      isAdmin: false, isOwner: false } });
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(eSysUser.w, 'inventory');
   pruefe('Ohne Adminrolle gibt es kein Anlegefeld',
@@ -27131,8 +27131,8 @@ async function pruefeOberflaeche() {
      durchliesse -- ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
      sieht aus wie ein Fehler. Dieselbe Ueberlegung wie bei den Kriterien,
      nur mit drei Lagen statt zweien. */
-  const gvEig = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4,
-    istAdmin: true, istEigentuemer: true } });
+  const gvEig = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4,
+    isAdmin: true, isOwner: true } });
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(gvEig.w, 'users');
   const gvZeilen = [...gvEig.w.document.querySelectorAll('#musers .mrow')];
@@ -27190,8 +27190,8 @@ async function pruefeOberflaeche() {
      unterscheiden, ob die Karte die Rollenwahl ueberhaupt an etwas festmacht
      -- was im Pruefbestand immer wahr ist, ist ungeprueft. */
   const gvAdm = baueDom(JSDOM, {
-    einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: false },
-    zugaenge: { ich: 2, darfRollen: false, eigentuemer: 1, zugaenge: [
+    einstellungen: { filters: null, userCount: 4, isAdmin: true, isOwner: false },
+    users: { ich: 2, mayRoles: false, owner: 1, users: [
       { id: 1, username: 'chefin', role: 'owner', status: 'active', last_login: null, created_at: '', eintraege: 5 },
       { id: 2, username: 'bert', role: 'admin', status: 'active', last_login: null, created_at: '', eintraege: 2 },
       { id: 3, username: 'carla', role: 'user', status: 'active', last_login: null, created_at: '', eintraege: 0 }
@@ -27208,8 +27208,8 @@ async function pruefeOberflaeche() {
   gvAdm.w.close();
 
   /* Und ein gewoehnlicher Benutzer sieht die Karte gar nicht. */
-  const gvUser = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4,
-    istAdmin: false, istEigentuemer: false } });
+  const gvUser = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4,
+    isAdmin: false, isOwner: false } });
   /* DIE ADRESSE ZEIGT AUF EINEN ABSCHNITT, DEN ES FUER IHN NICHT GIBT -- und
      genau das ist hier zusaetzlich zu belegen: sie faellt auf den ersten
      sichtbaren zurueck, statt eine leere Seite zu zeigen. */
@@ -27234,7 +27234,7 @@ async function pruefeOberflaeche() {
     testDays: [{ id: i, day: `202${3 + (i % 3)}-01-15`, rating: 3, mine: i > 1 }]
   }));
   const eZl = baueDom(JSDOM, { uebersichtItems: eZlItems,
-    einstellungen: { filters: null, timeline: true, benutzerZahl: 3 } }).w;
+    einstellungen: { filters: null, timeline: true, userCount: 3 } }).w;
   await new Promise(r => setTimeout(r, 80));
   const eAlle = [...eZl.document.querySelectorAll('#timeline .timeline-dot')];
   pruefe('Alle Testtage stehen in der Zeitleiste, auch die fremden',
@@ -27248,7 +27248,7 @@ async function pruefeOberflaeche() {
   /* Die Verlaufskurve im Eintrag folgt derselben Regel. Drei Punkte sind das
      Mindeste, ab dem sie ueberhaupt gezeichnet wird. */
   const eSpark = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3 } });
+    einstellungen: { filters: null, userCount: 3 } });
   eSpark.beispiel.testDays = [
     { id: 1, day: '2026-08-03', rating: 5, mine: false, tags: [] },
     { id: 2, day: '2026-08-02', rating: 3, mine: true, tags: [] },
@@ -27391,7 +27391,7 @@ async function pruefeOberflaeche() {
   const eigGesendet = sysZl.gesendet.filter(x => x.koerper && x.koerper.searchOwn !== undefined).pop();
   pruefe('Ein eigener Anbieter wird mit Name und Vorlage gespeichert',
     eigGesendet?.koerper.searchOwn?.[1]?.name === 'Zweites Forum' &&
-    eigGesendet?.koerper.searchOwn?.[1]?.vorlage === 'https://zwei.beispiel.de/?q=%s',
+    eigGesendet?.koerper.searchOwn?.[1]?.template === 'https://zwei.beispiel.de/?q=%s',
     JSON.stringify(eigGesendet?.koerper.searchOwn));
   pruefe('Und immer alle drei Plätze auf einmal',
     (eigGesendet?.koerper.searchOwn || []).length === 3,
@@ -27425,7 +27425,7 @@ async function pruefeOberflaeche() {
   // Sind weniger im Vorrat als eingestellt, stehen weniger da -- keine leeren
   // Plaetze und kein Auffuellen mit Anbietern, die niemand gewaehlt hat.
   const wenigerAktiv = baueDom(JSDOM, { hash: '#/item/1', einstellungen: { filters: null, searchNames: 4,
-    suchAnbieter: DOM_ANBIETER.map(a => ({ ...a, aktiv: a.schluessel === 'startpage', standard: a.schluessel === 'startpage' })) } });
+    searchProviders: DOM_ANBIETER.map(a => ({ ...a, aktiv: a.schluessel === 'startpage', standard: a.schluessel === 'startpage' })) } });
   await new Promise(r => setTimeout(r, 60));
   const wenigZeile = [...wenigerAktiv.w.document.querySelectorAll('#links .lrow')][7];
   pruefe('Sind weniger im Vorrat als bestellt, stehen weniger da',
@@ -27437,8 +27437,8 @@ async function pruefeOberflaeche() {
   // Faellt sie durch, faellt DIESER Anbieter weg -- still einen anderen
   // einzusetzen hiesse, woanders zu suchen, als die Zeile anschreibt.
   const sysBoese = baueDom(JSDOM, { hash: '#/item/1', einstellungen: { filters: null,
-    suchAnbieter: DOM_ANBIETER.map(a => a.schluessel === 'startpage'
-      ? { ...a, vorlage: 'javascript:alert(1)/*%s*/' } : a) } });
+    searchProviders: DOM_ANBIETER.map(a => a.schluessel === 'startpage'
+      ? { ...a, template: 'javascript:alert(1)/*%s*/' } : a) } });
   await new Promise(r => setTimeout(r, 60));
   const bZeile = [...sysBoese.w.document.querySelectorAll('#links .lrow')][7];
   let bZiel = null;
@@ -27463,7 +27463,7 @@ async function pruefeOberflaeche() {
 
   // Faellt jede Vorlage durch, wird nicht ersatzweise irgendwo gesucht.
   const keinAnbieter = baueDom(JSDOM, { hash: '#/item/1', einstellungen: { filters: null,
-    suchAnbieter: DOM_ANBIETER.map(a => ({ ...a, vorlage: 'javascript:alert(1)/*%s*/' })) } });
+    searchProviders: DOM_ANBIETER.map(a => ({ ...a, template: 'javascript:alert(1)/*%s*/' })) } });
   await new Promise(r => setTimeout(r, 60));
   const kZeile = [...keinAnbieter.w.document.querySelectorAll('#links .lrow')][7];
   let kZiel = null;
@@ -27657,7 +27657,7 @@ async function pruefeOberflaeche() {
   const lvName = (z) => z?.querySelector('.lfrom')?.textContent || '';
 
   const lvMehr = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3 } });
+    einstellungen: { filters: null, userCount: 3 } });
   await new Promise(r => setTimeout(r, 80));
   const lvM = lvZeilen(lvMehr.w);
   // Erst das Vorhandensein, dann die Eigenschaft: ohne Zeilen waere jede
@@ -27737,7 +27737,7 @@ async function pruefeOberflaeche() {
      Schwelle steht in mehrereBenutzer() und nirgends sonst. Dieselben acht
      Zeilen, dieselben Verfasser -- nur die Zahl ist eine andere. */
   const lvEins = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 1 } });
+    einstellungen: { filters: null, userCount: 1 } });
   await new Promise(r => setTimeout(r, 80));
   const lvE = lvZeilen(lvEins.w);
   pruefe('Auch bei einem einzigen Zugang stehen alle Zeilen da',
@@ -27758,7 +27758,7 @@ async function pruefeOberflaeche() {
      trennen sich Anzeige und Recht sichtbar -- an der Grabsteinzeile steht ein
      Name und kein Kreuz. */
   const lvUser = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
   const lvU = lvZeilen(lvUser.w);
   pruefe('Ohne Adminrolle steht das Kreuz nur an der eigenen Zeile',
@@ -27805,7 +27805,7 @@ async function pruefeOberflaeche() {
   const avName = (z) => z?.querySelector('.afrom')?.textContent || '';
 
   const avMehr = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3 } });
+    einstellungen: { filters: null, userCount: 3 } });
   await new Promise(r => setTimeout(r, 80));
   const avM = avZeilen(avMehr.w);
   pruefe('Die Dateiliste steht bei mehreren Zugaengen vollstaendig da',
@@ -27836,7 +27836,7 @@ async function pruefeOberflaeche() {
 
   // Erste Gegenlage: ein Zugang -- kein Name, aber das Kreuz bleibt.
   const avEins = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 1 } });
+    einstellungen: { filters: null, userCount: 1 } });
   await new Promise(r => setTimeout(r, 80));
   const avE = avZeilen(avEins.w);
   pruefe('Auch bei einem einzigen Zugang stehen alle Dateien da',
@@ -27852,7 +27852,7 @@ async function pruefeOberflaeche() {
   // Zweite Gegenlage: mehrere Zugaenge ohne Adminrolle -- Anzeige und Recht
   // trennen sich sichtbar.
   const avUser = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
   const avU = avZeilen(avUser.w);
   pruefe('Ohne Adminrolle steht das Kreuz nur an der eigenen Datei',
@@ -28397,7 +28397,7 @@ async function pruefeOberflaeche() {
      Knoepfe haengen, weil der erste Teil des ODER ohnehin wahr ist
      (Stolperstein 73). */
   const bnA = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
   const nKmts = [...bnA.w.document.querySelectorAll('#cmts .cmt')];
   const nZahl = (wahl) => nKmts.filter(k => k.querySelector(wahl)).length;
@@ -28470,9 +28470,9 @@ async function pruefeOberflaeche() {
   // Schranke 1 einzeln: die Erkennung wird unmittelbar gefragt. Ueber den
   // DOM allein waere sie nicht zu pruefen -- dort faengt Schranke 2 alles
   // ab, was hier durchrutschte.
-  const ziele = (roh) => wb.splitCommentText(roh).filter(s => s.target);
-  const einZiel = (roh) => ziele(roh)[0]?.target ?? null;
-  const einText = (roh) => ziele(roh)[0]?.text ?? null;
+  const ziele = (raw) => wb.splitCommentText(raw).filter(s => s.target);
+  const einZiel = (raw) => ziele(raw)[0]?.target ?? null;
+  const einText = (raw) => ziele(raw)[0]?.text ?? null;
 
   pruefe('Erkennung: javascript: ist keine Adresse',
     ziele('Vorsicht javascript:alert(1) hier').length === 0,
@@ -28515,8 +28515,8 @@ async function pruefeOberflaeche() {
   pruefe('Die Zerlegung verliert und erfindet kein Zeichen',
     ['Vor https://a.de/x, mitte www.b.de. Ende',
      'nur Text ohne alles',
-     '(https://a.de/y_(z)) und [https://a.de/w]'].every(roh =>
-       wb.splitCommentText(roh).map(s => s.text).join('') === roh),
+     '(https://a.de/y_(z)) und [https://a.de/w]'].every(raw =>
+       wb.splitCommentText(raw).map(s => s.text).join('') === raw),
     JSON.stringify(wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')));
   pruefe('Zwei Adressen in einer Zeile werden beide erkannt',
     ziele('https://a.de und www.b.de').length === 2);
@@ -28598,8 +28598,8 @@ async function pruefeOberflaeche() {
   pruefe('Die Zerlegung verliert und erfindet auch mit Begriff kein Zeichen',
     ['Vor https://a.de/x, mitte www.b.de. Ende',
      'nur Text ohne alles',
-     '(https://a.de/y_(z)) und [https://a.de/w]'].every(roh =>
-       wb.splitCommentText(roh, 'a.de').map(s => s.text).join('') === roh),
+     '(https://a.de/y_(z)) und [https://a.de/w]'].every(raw =>
+       wb.splitCommentText(raw, 'a.de').map(s => s.text).join('') === raw),
     JSON.stringify(wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende', 'a.de')
       .map(s => s.text)));
   // Und ohne Begriff bleibt sie Stueck fuer Stueck die von vorher.
@@ -28622,7 +28622,7 @@ async function pruefeOberflaeche() {
     (cssK.match(/\.cmt-body \{[^}]*\}/) || ['(keine Regel)'])[0]);
 
   /* --- Vollbild: Pfeile und Zoom --- */
-  const mehrBilder = [{ id: 91, quelle: 'kommentar' }, { id: 92, quelle: 'kommentar' }];
+  const mehrBilder = [{ id: 91, source: 'comment' }, { id: 92, source: 'comment' }];
   wb.openLightbox(mehrBilder, 0, 'Probe');
   await new Promise(r => setTimeout(r, 20));
   const lb2 = wb.document.querySelector('.lightbox');
@@ -28962,8 +28962,8 @@ async function pruefeOberflaeche() {
 
   pruefe('Adressen: Foto und Kommentarbild werden unterschieden',
     wb.imageSource({ id: 9 }, 'medium') === '/api/photos/9/raw?size=medium' &&
-    wb.imageSource({ id: 9, quelle: 'kommentar' }, 'medium') === '/api/comment-images/9/raw' &&
-    wb.imageSource({ id: 9, quelle: 'kommentar' }, 'thumb') === '/api/comment-images/9/raw?size=thumb');
+    wb.imageSource({ id: 9, source: 'comment' }, 'medium') === '/api/comment-images/9/raw' &&
+    wb.imageSource({ id: 9, source: 'comment' }, 'thumb') === '/api/comment-images/9/raw?size=thumb');
 
   /* --- Neuer Kommentar --- */
   pruefe('Das Formular hat alle drei Markierungen',
@@ -29749,8 +29749,8 @@ async function pruefeOberflaeche() {
     { id: 1, name: 'Vorhanden', usage_count: 3, test_usage_count: 0 },
     { id: 2, name: 'Auch da', usage_count: 1, test_usage_count: 0, vergeben: true }
   ];
-  const anlegeDom = (istAdmin, frei) => baueDom(JSDOM, { hash: '#/item/1', tags: anlegeVorrat,
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin,
+  const anlegeDom = (isAdmin, frei) => baueDom(JSDOM, { hash: '#/item/1', tags: anlegeVorrat,
+    einstellungen: { filters: null, userCount: 3, isAdmin,
                      tagsFreeCreate: frei, categoriesFreeCreate: frei } });
 
   const ausDom = anlegeDom(false, false);
@@ -29822,7 +29822,7 @@ async function pruefeOberflaeche() {
   /* ---- Die Haken im Systembereich ----
      Nur der Admin bekommt sie zu sehen: ein Haken, der zuverlaessig eine
      Absage erzeugt, saehe aus wie ein Fehler. */
-  const sysDom = baueDom(JSDOM, { einstellungen: { filters: null, istAdmin: true,
+  const sysDom = baueDom(JSDOM, { einstellungen: { filters: null, isAdmin: true,
     tagsFreeCreate: false, categoriesFreeCreate: true } });
   const wSys = sysDom.w;
   await new Promise(r => setTimeout(r, 60));
@@ -29861,7 +29861,7 @@ async function pruefeOberflaeche() {
   wSys.close();
 
   const sysUser = baueDom(JSDOM, { einstellungen: { filters: null,
-    istAdmin: false, istEigentuemer: false } });
+    isAdmin: false, isOwner: false } });
   const wSysU = sysUser.w;
   await new Promise(r => setTimeout(r, 60));
   await sysAbschnitt(wSysU, 'inventory');
@@ -29894,7 +29894,7 @@ async function pruefeOberflaeche() {
   ];
   const baueSystem = async (rollen, anfragenStand = null) => {
     const d = baueDom(JSDOM, { tags: rTags, anfragenStand,
-      einstellungen: { filters: null, benutzerZahl: 4, ...rollen } });
+      einstellungen: { filters: null, userCount: 4, ...rollen } });
     await new Promise(r => setTimeout(r, 60));
     await d.w.renderSystem();
     await new Promise(r => setTimeout(r, 40));
@@ -29905,9 +29905,9 @@ async function pruefeOberflaeche() {
      SEIT 0.16.0 UEBER ALLE ABSCHNITTE: der Systembereich zeigt immer nur
      einen, und wer nur den ersten abzaehlt, zaehlt drei Karten statt
      achtzehn. */
-  const rEig = await baueSystem({ istAdmin: true, istEigentuemer: true });
-  const rAdm = await baueSystem({ istAdmin: true, istEigentuemer: false });
-  const rUser = await baueSystem({ istAdmin: false, istEigentuemer: false });
+  const rEig = await baueSystem({ isAdmin: true, isOwner: true });
+  const rAdm = await baueSystem({ isAdmin: true, isOwner: false });
+  const rUser = await baueSystem({ isAdmin: false, isOwner: false });
   const dEig = await sysDurchgang(rEig), dAdm = await sysDurchgang(rAdm),
         dUser = await sysDurchgang(rUser);
   const kEig = dEig.karten, kAdm = dAdm.karten, kUser = dUser.karten;
@@ -30102,9 +30102,9 @@ async function pruefeOberflaeche() {
      nichts offen, kein Versand. Und ausdruecklich, dass der Schalter darin
      erreichbar ist (Stolperstein 74: die Pruefung der Vorgaengerfassung ist die
      erste Betroffene, und sie wird umgedreht statt geloescht). */
-  const rAus = await baueSystem({ istAdmin: true, istEigentuemer: true },
-    { an: false, versandBereit: false, versandGrund: 'Es ist kein Mailzugang eingerichtet.',
-      deckel: 20, stunden: 24, anfragen: [] });
+  const rAus = await baueSystem({ isAdmin: true, isOwner: true },
+    { an: false, deliveryReady: false, deliveryReason: 'Es ist kein Mailzugang eingerichtet.',
+      cap: 20, stunden: 24, requests: [] });
   const kAus = (await sysDurchgang(rAus)).karten;
   pruefe('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kAus.includes('Anfragen'), kAus.join(' · '));
@@ -30127,9 +30127,9 @@ async function pruefeOberflaeche() {
   /* UND SIE IST AUCH DA, WENN DER SCHALTER AUS IST, ABER NOCH ANFRAGEN LIEGEN.
      Sonst verschwaende ein Ausschalten die Warteschlange aus dem Blick, ohne
      sie zu leeren -- und niemand koennte die offenen Anfragen mehr bescheiden. */
-  const rAusMitZeilen = await baueSystem({ istAdmin: true, istEigentuemer: true },
-    { an: false, versandBereit: true, versandGrund: '', deckel: 20, stunden: 24,
-      anfragen: [{ id: 11, username: 'neuling', email: 'neuling@beispiel.de',
+  const rAusMitZeilen = await baueSystem({ isAdmin: true, isOwner: true },
+    { an: false, deliveryReady: true, deliveryReason: '', cap: 20, stunden: 24,
+      requests: [{ id: 11, username: 'neuling', email: 'neuling@beispiel.de',
                    created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' }] });
   await sysAbschnitt(rAusMitZeilen.w, 'users');
   pruefe('Bei ausgeschaltetem Schalter mit offenen Anfragen steht die Liste darin',
@@ -30187,7 +30187,7 @@ async function pruefeOberflaeche() {
      jede Beschriftung der Oberflaeche -- ohne es haette der Benutzer einen
      Bildschirm ohne Woerter. Geprueft wird an einer Beschriftung, die aus dem
      Vokabular kommt und nicht aus dem Quelltext. */
-  const rVok = await baueSystem({ istAdmin: false, istEigentuemer: false,
+  const rVok = await baueSystem({ isAdmin: false, isOwner: false,
     vocabulary: { sacheMehrzahl: 'Geräte' } });
   /* Die Karte „Vokabular" steht im Abschnitt „Bestand", und die Beschriftung,
      an der das Vokabular abzulesen ist, ebenso -- die Karte „Kategorien" nennt
@@ -30573,12 +30573,12 @@ async function pruefeOberflaeche() {
     setzeFeld(d.w.document, 'ep2', 'ein-gutes-passwort');
     d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 120));
-    const gesetzt = d.gesendet.find(x => x.url === '/api/token/redeem');
+    const set = d.gesendet.find(x => x.url === '/api/token/redeem');
     pruefe('Zwei gleiche gehen an den Server',
-      !!gesetzt && gesetzt.methode === 'POST', JSON.stringify(gesetzt));
+      !!set && set.methode === 'POST', JSON.stringify(set));
     pruefe('Mit dem Schluessel und dem Passwort im Rumpf',
-      gesetzt?.koerper?.token === 'd'.repeat(64) &&
-      gesetzt?.koerper?.passwort === 'ein-gutes-passwort', JSON.stringify(gesetzt?.koerper));
+      set?.koerper?.token === 'd'.repeat(64) &&
+      set?.koerper?.password === 'ein-gutes-passwort', JSON.stringify(set?.koerper));
     pruefe('Danach ist die Adresse geleert -- der Link ist verbraucht',
       d.w.location.hash === '#/', d.w.location.hash);
     /* UND DIE SEITE GEHT WEITER, statt stehenzubleiben: angemeldet ist man
@@ -30771,10 +30771,10 @@ async function pruefeOberflaeche() {
     Boolean(sGesendet) && sGesendet.methode === 'POST',
     sAn.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
   pruefe('Und zwar mit Name und Adresse im Rumpf',
-    sGesendet?.koerper?.name === 'neuling' && sGesendet?.koerper?.adresse === 'neuling@beispiel.de',
+    sGesendet?.koerper?.name === 'neuling' && sGesendet?.koerper?.address === 'neuling@beispiel.de',
     JSON.stringify(sGesendet?.koerper));
   pruefe('Der Rumpf traegt sonst nichts -- keine Rolle, kein Passwort',
-    gleich(Object.keys(sGesendet?.koerper || {}).sort(), ['adresse', 'name']),
+    gleich(Object.keys(sGesendet?.koerper || {}).sort(), ['address', 'name']),
     JSON.stringify(Object.keys(sGesendet?.koerper || {})));
   /* DIE MELDUNG KOMMT VOM SERVER UND WIRD NICHT ERFUNDEN -- eine zweite
      Ausfertigung in der Oberflaeche liefe beim naechsten Wort auseinander
@@ -30880,14 +30880,14 @@ async function pruefeOberflaeche() {
       zdMit.w.document.querySelector('.login-error')?.textContent || ''),
     zdMit.w.document.querySelector('.login-error')?.textContent);
   pruefe('Der erste Ausweis ist dabei mitgegangen',
-    zdFalsch?.koerper?.ausweis === 'ausweis-1', JSON.stringify(zdFalsch?.koerper));
+    zdFalsch?.koerper?.ticket === 'ausweis-1', JSON.stringify(zdFalsch?.koerper));
 
   // Und jetzt der richtige.
   zfSetze(zdMit.w, 'two-factor-code', '123456');
   await zdKlick(zdMit.w, zdMit.w.document.getElementById('two-factor-send'));
   const zdRichtig = zdMit.gesendet.filter(g => g.url === '/api/login/second').pop();
   pruefe('Der zweite Anlauf nimmt den FRISCHEN Ausweis aus der Absage',
-    zdRichtig?.koerper?.ausweis === 'ausweis-2', JSON.stringify(zdRichtig?.koerper));
+    zdRichtig?.koerper?.ticket === 'ausweis-2', JSON.stringify(zdRichtig?.koerper));
   pruefe('Und mit richtigem Code fuehrt der Weg hinein',
     !zdMit.w.document.getElementById('two-factor-code') &&
     !zdMit.w.document.querySelector('.login-card'),
@@ -31070,7 +31070,7 @@ async function pruefeOberflaeche() {
      hat -- dieselbe Ueberlegung wie bei den drei Abstufungen der Karte
      "Sicherung": eine Warnung, die immer dasteht, liest niemand mehr. */
   const zkKnapp = baueDom(JSDOM, { hash: '#/system',
-    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 1, codesGesamt: 8 } });
+    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOpen: 1, codesTotal: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkKnapp.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31082,7 +31082,7 @@ async function pruefeOberflaeche() {
   pruefe('Und nennt den Tag, an dem er eingeschaltet wurde',
     /14\.08\.2026/.test(zkKnappText) && !/2026-08-14/.test(zkKnappText), zkKnappText.slice(0, 120));
   const zkVoll = baueDom(JSDOM, { hash: '#/system',
-    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
+    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkVoll.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31095,7 +31095,7 @@ async function pruefeOberflaeche() {
      BEIDEN Zustaenden -- eine Karte, die nur den einen kennt, belegt den
      anderen nicht (Stolperstein 81). */
   const zkBest = baueDom(JSDOM, { hash: '#/system',
-    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
+    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkBest.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31133,7 +31133,7 @@ async function pruefeOberflaeche() {
   await bestaetigeImDom(zkBest, 'chefins-wort-100', false, '123456');
   const zkBestRuf = zkBest.gesendet.filter(g => g.url === '/api/confirm').pop();
   pruefe('Der Code geht wirklich mit',
-    zkBestRuf?.koerper?.code === '123456' && zkBestRuf?.koerper?.passwort === 'chefins-wort-100',
+    zkBestRuf?.koerper?.code === '123456' && zkBestRuf?.koerper?.password === 'chefins-wort-100',
     JSON.stringify(zkBestRuf?.koerper));
   const zkOhne = baueDom(JSDOM, { hash: '#/system' });
   await new Promise(r => setTimeout(r, 60));
@@ -31229,14 +31229,14 @@ async function pruefeOberflaeche() {
      (Stolperstein 61). */
   const sKarteBau = async (stand) => {
     const d = baueDom(JSDOM, { anfragenStand: stand,
-      einstellungen: { filters: null, istAdmin: true, istEigentuemer: true } });
+      einstellungen: { filters: null, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'users');
     await new Promise(r => setTimeout(r, 40));
     return d;
   };
-  const sKarteStand = () => ({ an: true, versandBereit: true, versandGrund: '', deckel: 20,
-    stunden: 24, anfragen: [
+  const sKarteStand = () => ({ an: true, deliveryReady: true, deliveryReason: '', cap: 20,
+    stunden: 24, requests: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' },
       { id: 12, username: 'zweiter', email: 'zweiter@beispiel.de',
@@ -31333,8 +31333,8 @@ async function pruefeOberflaeche() {
   /* DIE ROTE ZEILE: DER VERSAND IST KAPUTT, DER SCHALTER BLEIBT AN. Ein
      Schalter, der sich selbst umlegt, stuende anders da, als der Mensch ihn
      gestellt hat -- und niemand wuesste, wann das passiert ist. */
-  const kRot = await sKarteBau({ ...sKarteStand(), versandBereit: false,
-    versandGrund: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen.' });
+  const kRot = await sKarteBau({ ...sKarteStand(), deliveryReady: false,
+    deliveryReason: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen.' });
   pruefe('Ist der Versand kaputt, steht die rote Zeile da',
     Boolean(kRot.w.document.getElementById('signup-broken')), 'die Zeile fehlt');
   pruefe('Sie nennt den Grund des Servers',
@@ -31355,9 +31355,9 @@ async function pruefeOberflaeche() {
   /* IST DER SCHALTER AUS UND DER VERSAND KAPUTT, laesst sich gar nicht erst
      einschalten -- und die Karte sagt, was fehlt, statt einen Knopf
      anzubieten, der nur absagt. */
-  const kNichtBereit = await sKarteBau({ an: false, versandBereit: false,
-    versandGrund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.',
-    deckel: 20, stunden: 24, anfragen: [
+  const kNichtBereit = await sKarteBau({ an: false, deliveryReady: false,
+    deliveryReason: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.',
+    cap: 20, stunden: 24, requests: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' }] });
   pruefe('Ohne Versand ist der Einschaltknopf gesperrt',
@@ -31377,7 +31377,7 @@ async function pruefeOberflaeche() {
      (Stolperstein 115): der Schreibweg unten veraendert den Bestand des Mocks
      wirklich, und was danach im selben Fenster laeuft, saehe etwas anderes. */
   const msSystem = async (rollen, opt = {}) => {
-    const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
+    const d = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4, ...rollen }, ...opt });
     await new Promise(r => setTimeout(r, 60));
     await d.w.renderSystem();
     await new Promise(r => setTimeout(r, 60));
@@ -31387,8 +31387,8 @@ async function pruefeOberflaeche() {
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Meine Sitzungen');
   const msReihen = (d) => [...(msKarte(d)?.querySelectorAll('#msessions .mrow.session') || [])];
 
-  const msuEig = await msSystem({ istAdmin: true, istEigentuemer: true });
-  const msuUser = await msSystem({ istAdmin: false, istEigentuemer: false });
+  const msuEig = await msSystem({ isAdmin: true, isOwner: true });
+  const msuUser = await msSystem({ isAdmin: false, isOwner: false });
 
   // ERST DAS VORHANDENSEIN, dann jede Aussage darueber (Stolperstein 81).
   pruefe('Die Karte steht bei der Eigentuemerin', !!msKarte(msuEig));
@@ -31448,9 +31448,9 @@ async function pruefeOberflaeche() {
     msKarte(msuEig)?.querySelector('.desc')?.textContent);
 
   /* DER LEERE FALL -- nur die eigene, mit eigenem Aufbau. */
-  const msuEine = await msSystem({ istAdmin: true, istEigentuemer: true },
-    { sitzungenBestand: [{ kennung: 'a'.repeat(64), angemeldetAm: '2026-08-20 08:00:00',
-                           zuletztGesehen: '2026-08-24 07:30:00', diese: true }] });
+  const msuEine = await msSystem({ isAdmin: true, isOwner: true },
+    { sitzungenBestand: [{ kennung: 'a'.repeat(64), loggedInAt: '2026-08-20 08:00:00',
+                           lastSeen: '2026-08-24 07:30:00', diese: true }] });
   pruefe('Bei nur einer Anmeldung steht die Karte trotzdem da', !!msKarte(msuEine));
   pruefe('Mit genau einer Zeile', msReihen(msuEine).length === 1, `${msReihen(msuEine).length}`);
   pruefe('Und sie sagt, dass es die einzige ist',
@@ -31464,7 +31464,7 @@ async function pruefeOberflaeche() {
      .click() genuegt nicht. Der Mock aendert seinen Bestand dabei wirklich
      (Stolperstein 90). */
   {
-    const d = await msSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await msSystem({ isAdmin: true, isOwner: true });
     const vorher = msReihen(d).length;
     msReihen(d).find(r => !r.classList.contains('session-mine'))?.querySelector('.session-x')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -31484,7 +31484,7 @@ async function pruefeOberflaeche() {
      wird deshalb gestellt, und zwar ausdruecklich auf beide Antworten: ein
      Abbruch, der trotzdem loescht, waere der schlimmere Fehler. */
   {
-    const d = await msSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await msSystem({ isAdmin: true, isOwner: true });
     const msNein = stelleBestaetigung(d.w, false);
     msKarte(d)?.querySelector('#sessions-all')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -31511,7 +31511,7 @@ async function pruefeOberflaeche() {
   /* JEDE LESESTELLE IST ABGEFANGEN (Stolperstein 103): fehlt die Antwort oder
      ein Feld darin, soll die Karte etwas sagen und nicht der Lauf abreissen. */
   {
-    const d = await msSystem({ istAdmin: true, istEigentuemer: true }, { sitzungenBestand: [] });
+    const d = await msSystem({ isAdmin: true, isOwner: true }, { sitzungenBestand: [] });
     pruefe('Auch ohne eine einzige Zeile steht die Karte',
       !!msKarte(d) && msReihen(d).length === 0, `${msReihen(d).length} Zeilen`);
     pruefe('Und der Lauf reisst dabei nicht ab', true);
@@ -31525,14 +31525,14 @@ async function pruefeOberflaeche() {
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Benutzer');
   const ziReihen = (d) => [...(ziKarte(d)?.querySelectorAll('#musers .mrow.user') || [])];
   const ziSystem = async (rollen, opt = {}) => {
-    const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
+    const d = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4, ...rollen }, ...opt });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'users');
     await new Promise(r => setTimeout(r, 40));
     return d;
   };
 
-  const ziEig = await ziSystem({ istAdmin: true, istEigentuemer: true });
+  const ziEig = await ziSystem({ isAdmin: true, isOwner: true });
   pruefe('Die Karte "Benutzer" steht da', !!ziKarte(ziEig));
   // Drei lebende Zugaenge; der Grabstein der Prueflage steht seit 0.13.0 im
   // eigenen Fenster und nicht mehr in dieser Liste.
@@ -31614,9 +31614,9 @@ async function pruefeOberflaeche() {
      einer zu viel -- und ohne diese Lage bliebe die Zeile darueber auch dann
      gruen, wenn der Knopf immer dastuende. */
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, { zugaenge: {
-      ich: 1, darfRollen: true, eigentuemer: 1,
-      zugaenge: [{ id: 1, username: 'chefin', role: 'owner', status: 'active',
+    const d = await ziSystem({ isAdmin: true, isOwner: true }, { users: {
+      ich: 1, mayRoles: true, owner: 1,
+      users: [{ id: 1, username: 'chefin', role: 'owner', status: 'active',
                    last_login: null, created_at: '2026-01-01 09:00:00', eintraege: 0 }] } });
     pruefe('Der Aufbau steht: eine Instanz ohne Grabstein zeigt ihre Zeile',
       ziReihen(d).length === 1, `${ziReihen(d).length} Zeilen`);
@@ -31629,10 +31629,10 @@ async function pruefeOberflaeche() {
   /* DEN LINK ERZEUGEN. Der Kasten erscheint, er nennt die Adresse VOLLSTAENDIG
      -- gebaut aus location, nicht vom Server --, und die Warnung steht daneben. */
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     stelleBestaetigung(d.w, true);
-    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const row = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     /* SEIT 0.8.90 STEHT DIE ZWEITE BESTAETIGUNG DAVOR. Sie gehoert hier
        mitgeprueft und nicht bloss weggeraeumt: ohne die erste Zeile bliebe
@@ -31685,12 +31685,12 @@ async function pruefeOberflaeche() {
      (Stolperstein 102): `versand` und `versandGrund` kommen vom Server, und
      der Mock rechnet sie nach statt sie zu setzen. */
   const vzLink = async (opt) => {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, opt);
+    const d = await ziSystem({ isAdmin: true, isOwner: true }, opt);
     stelleBestaetigung(d.w, true);
     // bert TRAEGT eine Adresse, carla nicht -- damit laesst sich der Zweig
     // "keine Adresse hinterlegt" ueberhaupt stellen.
-    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes(opt.actor || 'bert'));
-    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const row = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes(opt.actor || 'bert'));
+    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     await bestaetigeImDom(d);
     return d;
@@ -31759,7 +31759,7 @@ async function pruefeOberflaeche() {
   const spText = (d) => spKarte(d)?.textContent || '';
 
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     pruefe('Die Karte "Sicherheitsprotokoll" steht da', !!spKarte(d), 'keine Karte');
     pruefe('Sie wird beim Aufbau des Bereichs geholt, nicht nachgeladen',
       d.gesendet.filter(x => x.url === '/api/security-log').length === 1,
@@ -31936,8 +31936,8 @@ async function pruefeOberflaeche() {
       id: 100 + i, at: '2026-08-24 09:00:00', event,
       actor: event === 'login.fail' ? null : 1, werName: event === 'login.fail' ? null : 'chefin',
       target: null, zielName: null, detail: null }));
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
-      { protokollBestand: { zeilen: wZeilen, gesamt: wZeilen.length, tage: 180, grenze: 100,
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
+      { protokollBestand: { zeilen: wZeilen, total: wZeilen.length, days: 180, grenze: 100,
                             zahlen: { alle: wZeilen.length } } });
     /* ERST DER GEGENSTAND: ohne Zeilen bliebe die Verneinung darunter wahr und
        belegte nichts (Stolperstein 81). */
@@ -31958,8 +31958,8 @@ async function pruefeOberflaeche() {
     const wZeilen2 = wListen.DETAILS.filter(m => !wOhneVorgang.includes(m))
       .map((detail, i) => ({ id: 200 + i, at: '2026-08-24 09:00:00', event: 'user.self',
         actor: 1, werName: 'chefin', target: 1, zielName: 'chefin', detail }));
-    const dm = await ziSystem({ istAdmin: true, istEigentuemer: true },
-      { protokollBestand: { zeilen: wZeilen2, gesamt: wZeilen2.length, tage: 180, grenze: 100,
+    const dm = await ziSystem({ isAdmin: true, isOwner: true },
+      { protokollBestand: { zeilen: wZeilen2, total: wZeilen2.length, days: 180, grenze: 100,
                             zahlen: { alle: wZeilen2.length } } });
     pruefe('Der Aufbau steht: jedes Merkmal hat eine Zeile',
       spReihen(dm).length === wZeilen2.length, `${spReihen(dm).length} von ${wZeilen2.length}`);
@@ -31984,8 +31984,8 @@ async function pruefeOberflaeche() {
      ueber den anderen nichts -- und "keine Zeile" darf nicht wie "noch nicht
      geladen" aussehen. */
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
-      { protokollBestand: { zeilen: [], gesamt: 0, tage: 180, grenze: 100 } });
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
+      { protokollBestand: { zeilen: [], total: 0, days: 180, grenze: 100 } });
     pruefe('Auch ohne Vorgang steht die Karte da', !!spKarte(d));
     pruefe('Und sie sagt es, statt leer zu bleiben',
       /Noch kein Vorgang festgehalten/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 160));
@@ -31998,7 +31998,7 @@ async function pruefeOberflaeche() {
      403 ergibt, risse den ganzen Systembereich mit -- alle Abrufe haengen in
      EINEM Promise.all. */
   {
-    const dAdmin = await ziSystem({ istAdmin: true, istEigentuemer: false });
+    const dAdmin = await ziSystem({ isAdmin: true, isOwner: false });
     pruefe('Ohne Eigentuemerrolle wird das Protokoll gar nicht erst abgerufen',
       !dAdmin.gesendet.some(x => x.url === '/api/security-log'),
       dAdmin.gesendet.map(x => x.url).join(' · '));
@@ -32008,7 +32008,7 @@ async function pruefeOberflaeche() {
     const dAdminKarten = (await sysDurchgang(dAdmin)).karten;
     pruefe('Und der Systembereich bleibt dabei gefuellt',
       dAdminKarten.length > 5, `${dAdminKarten.length} Karten`);
-    const dUser = await ziSystem({ istAdmin: false, istEigentuemer: false });
+    const dUser = await ziSystem({ isAdmin: false, isOwner: false });
     pruefe('Ein gewoehnlicher Benutzer ruft es erst recht nicht ab',
       !dUser.gesendet.some(x => x.url === '/api/security-log'),
       dUser.gesendet.map(x => x.url).join(' · '));
@@ -32027,10 +32027,10 @@ async function pruefeOberflaeche() {
 
   // 1. DER LINK. Der Dialog steht davor, und vorher geht nichts an den Server.
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     stelleBestaetigung(d.w, true);
-    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const row = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Dialog steht da', !!zdDialog(d), 'kein Dialog');
     /* SEIT 0.19.2 KUERZER: der Nebensatz ueber die fremde offene Anmeldung ist
@@ -32058,10 +32058,10 @@ async function pruefeOberflaeche() {
   // 2. DAS FALSCHE PASSWORT. Die Freigabe wird gefragt und abgewiesen -- und
   //    die Handlung laeuft NICHT trotzdem.
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     stelleBestaetigung(d.w, true);
-    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const row = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     await bestaetigeImDom(d, 'ganz-falsch-hier');
     pruefe('Mit falschem Passwort wird die Freigabe gefragt',
@@ -32076,10 +32076,10 @@ async function pruefeOberflaeche() {
   //    Entfernen. Jeder Weg einzeln: eine Sammelpruefung sagt nicht, welcher
   //    Knopf die Bestaetigung vergessen hat.
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     stelleBestaetigung(d.w, true);
-    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    const feld = zeile?.querySelector('.user-role-sel');
+    const row = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    const feld = row?.querySelector('.user-role-sel');
     if (feld) { feld.value = 'admin'; feld.dispatchEvent(new d.w.Event('change', { bubbles: true })); }
     await new Promise(r => setTimeout(r, 60));
     pruefe('Vor dem Rollenwechsel steht der Dialog', !!zdDialog(d), 'kein Dialog');
@@ -32097,7 +32097,7 @@ async function pruefeOberflaeche() {
       d.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
   }
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     stelleBestaetigung(d.w, true);
     /* prompt() WIRD AUF „Abbrechen" GESTELLT, obwohl die Oberflaeche es seit
        0.22.0 nicht mehr ruft: jsdom liefert undefined, und ein Rueckbau auf
@@ -32105,8 +32105,8 @@ async function pruefeOberflaeche() {
        statt dass die Zeile zum Passwortfeld rot wuerde (Stolpersteine 161
        und 311; die Gegenprobe 630 hat es gezeigt). */
     d.w.prompt = () => null;
-    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.user-pass-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const row = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    row?.querySelector('.user-pass-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     /* SEIT 0.22.0 KOMMT DAS FREMDE PASSWORT AUS EINEM EIGENEN WINDOW MIT
        PASSWORTFELD -- nicht mehr aus prompt(), wo es im Klartext stand
@@ -32129,13 +32129,13 @@ async function pruefeOberflaeche() {
       d.gesendet.find(x => x.url === '/api/confirm')?.koerper?.purpose === 'password',
       JSON.stringify(d.gesendet.find(x => x.url === '/api/confirm')?.koerper));
     pruefe('Und danach wird das Passwort gesetzt',
-      d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/users/3' && x.koerper?.passwort),
+      d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/users/3' && x.koerper?.password),
       d.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
   }
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.user-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
+    const row = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    row?.querySelector('.user-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     /* ---- 0.22.0: EIN WINDOW STATT DREI RUECKFRAGEN (Bauabschnitt 4) ----
        Bis 0.21.1 stellte der Weg drei confirm() hintereinander, und in den
@@ -32177,7 +32177,7 @@ async function pruefeOberflaeche() {
      Beide Haelften stehen damit: dass der Dialog kommt, und dass ein Abbruch
      nichts ausloest. */
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     // Der Export steht seit 0.16.0 im Abschnitt „Datenbank" und in derselben
     // Karte wie der Import.
     await sysAbschnitt(d.w, 'database');
@@ -32203,24 +32203,24 @@ async function pruefeOberflaeche() {
      dasteht -- sonst bliebe eine Zeile, die BEIDE Formen nennt, in beiden
      Lagen gruen. */
   const oaLink = async (opt) => {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, opt);
+    const d = await ziSystem({ isAdmin: true, isOwner: true }, opt);
     stelleBestaetigung(d.w, true);
-    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    zeile?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const row = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     await bestaetigeImDom(d);
     return d;
   };
   {
     const d = await oaLink({});
-    const zeile = d.w.document.getElementById('user-link-origin');
-    pruefe('Die Herkunftszeile steht ueberhaupt da', !!zeile, 'keine Zeile');
+    const row = d.w.document.getElementById('user-link-origin');
+    pruefe('Die Herkunftszeile steht ueberhaupt da', !!row, 'keine Zeile');
     pruefe('Ohne Einstellung sagt sie: aus deinem Browser',
-      /aus deinem Browser/.test(zeile?.textContent || ''), zeile?.textContent);
+      /aus deinem Browser/.test(row?.textContent || ''), row?.textContent);
     pruefe('Und nennt die Einstellung dabei NICHT',
-      !/PUBLIC_ADDRESS/.test(zeile?.textContent || ''), zeile?.textContent);
+      !/PUBLIC_ADDRESS/.test(row?.textContent || ''), row?.textContent);
     pruefe('Sie nennt die Adresse, auf die der Link zeigt',
-      (zeile?.textContent || '').includes(d.w.location.origin), zeile?.textContent);
+      (row?.textContent || '').includes(d.w.location.origin), row?.textContent);
     pruefe('Und das Feld traegt die vom Browser gebaute Adresse',
       d.w.document.getElementById('user-link-field')?.value ===
         `${d.w.location.origin}${d.w.location.pathname}#/invite/${'d'.repeat(64)}`,
@@ -32228,14 +32228,14 @@ async function pruefeOberflaeche() {
   }
   {
     const d = await oaLink({ oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
-    const zeile = d.w.document.getElementById('user-link-origin');
-    pruefe('Mit Einstellung steht die Herkunftszeile ebenfalls da', !!zeile, 'keine Zeile');
+    const row = d.w.document.getElementById('user-link-origin');
+    pruefe('Mit Einstellung steht die Herkunftszeile ebenfalls da', !!row, 'keine Zeile');
     pruefe('Und sie nennt die Einstellung beim Namen',
-      /PUBLIC_ADDRESS/.test(zeile?.textContent || ''), zeile?.textContent);
+      /PUBLIC_ADDRESS/.test(row?.textContent || ''), row?.textContent);
     pruefe('Vom Browser ist dann NICHT die Rede',
-      !/aus deinem Browser/.test(zeile?.textContent || ''), zeile?.textContent);
+      !/aus deinem Browser/.test(row?.textContent || ''), row?.textContent);
     pruefe('Sie nennt die Adresse aus der Einstellung',
-      /kriterion\.beispiel\.de/.test(zeile?.textContent || ''), zeile?.textContent);
+      /kriterion\.beispiel\.de/.test(row?.textContent || ''), row?.textContent);
     pruefe('Und das Feld traegt den Link des Servers, nicht den des Browsers',
       d.w.document.getElementById('user-link-field')?.value ===
         `https://kriterion.beispiel.de/#/invite/${'d'.repeat(64)}`,
@@ -32249,7 +32249,7 @@ async function pruefeOberflaeche() {
      ueber den anderen nichts, und eine, die nur hinwechselt, nicht, dass der
      Rueckweg aufraeumt. */
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     const kind = d.w.document.getElementById('user-kind');
     const knopf = d.w.document.getElementById('user-create');
     const pass = d.w.document.getElementById('user-pass');
@@ -32299,7 +32299,7 @@ async function pruefeOberflaeche() {
 
   /* Die Vorgabe legt mit Link an. */
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     const vorher = ziReihen(d).length;
     setzeFeld(d.w.document, 'user-name', 'neuling');
     d.w.document.getElementById('user-create')
@@ -32311,7 +32311,7 @@ async function pruefeOberflaeche() {
     pruefe('Und zwar ausdruecklich mit Einladung',
       anlegen?.koerper?.einladen === true, JSON.stringify(anlegen?.koerper));
     pruefe('Ohne ein Passwort mitzuschicken',
-      anlegen?.koerper?.passwort === undefined, JSON.stringify(anlegen?.koerper));
+      anlegen?.koerper?.password === undefined, JSON.stringify(anlegen?.koerper));
     pruefe('Der Link erscheint gleich mit',
       d.w.document.getElementById('user-link-field')?.value
         === `${d.w.location.origin}${d.w.location.pathname}#/invite/${'e'.repeat(64)}`,
@@ -32323,7 +32323,7 @@ async function pruefeOberflaeche() {
   /* Die andere Betriebsart schickt das Passwort und KEINE Einladung -- sonst
      waere die Wahl eine Kulisse. */
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     const kind = d.w.document.getElementById('user-kind');
     kind.value = 'password';
     kind.dispatchEvent(new d.w.Event('change'));
@@ -32334,7 +32334,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 60));
     const anlegen = d.gesendet.find(x => x.methode === 'POST' && x.url === '/api/users');
     pruefe('Der gewoehnliche Weg schickt das Passwort',
-      anlegen?.koerper?.passwort === 'ein-passwort-1', JSON.stringify(anlegen?.koerper));
+      anlegen?.koerper?.password === 'ein-passwort-1', JSON.stringify(anlegen?.koerper));
     pruefe('Und ausdruecklich KEINE Einladung',
       anlegen?.koerper?.einladen === undefined, JSON.stringify(anlegen?.koerper));
     pruefe('Und es erscheint kein Linkkasten',
@@ -32344,7 +32344,7 @@ async function pruefeOberflaeche() {
   /* Das Adressfeld beim Anlegen, seit 0.9.0. FREIWILLIG -- ohne Adresse
      entsteht der Zugang wie bisher, und nur die Mail bleibt aus. */
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     pruefe('Beim Anlegen steht ein Adressfeld',
       !!d.w.document.getElementById('user-mail'), 'kein Adressfeld');
     setzeFeld(d.w.document, 'user-name', 'neuling');
@@ -32363,7 +32363,7 @@ async function pruefeOberflaeche() {
     // OHNE ADRESSE wird das Feld gar nicht erst mitgeschickt -- ein leeres
     // `email` waere am Server die Ansage "keine", und das ist beim ANLEGEN
     // dasselbe; mitzuschicken gibt es trotzdem nichts.
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
     setzeFeld(d.w.document, 'user-name', 'ohnemail');
     d.w.document.getElementById('user-create')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -32384,7 +32384,7 @@ async function pruefeOberflaeche() {
      GELESEN AUS DER ANTWORT (Stolperstein 102), und in BEIDEN Zustaenden:
      mit hinterlegter Adresse und ohne. */
   {
-    const d = await ziSystem({ istAdmin: false, istEigentuemer: false });
+    const d = await ziSystem({ isAdmin: false, isOwner: false });
     const feld = d.w.document.getElementById('acc-mail');
     pruefe('Das Adressfeld steht in der Karte „Mein Konto“', !!feld, 'kein Feld');
     pruefe('Und es traegt die Adresse aus der Antwort',
@@ -32400,7 +32400,7 @@ async function pruefeOberflaeche() {
       d.w.document.body.textContent.slice(0, 100));
   }
   {
-    const d = await ziSystem({ istAdmin: false, istEigentuemer: false }, { eigeneAdresse: '' });
+    const d = await ziSystem({ isAdmin: false, isOwner: false }, { eigeneAdresse: '' });
     const feld = d.w.document.getElementById('acc-mail');
     pruefe('Ohne hinterlegte Adresse ist das Feld leer',
       feld?.value === '', JSON.stringify(feld?.value));
@@ -32411,7 +32411,7 @@ async function pruefeOberflaeche() {
     /* GESPEICHERT WIRD SIE MIT DEM BISHERIGEN PASSWORT, ueber denselben Weg
        wie Name und Passwort. Ein WIRKLICH zugestelltes Ereignis
        (Stolperstein 61). */
-    const d = await ziSystem({ istAdmin: false, istEigentuemer: false });
+    const d = await ziSystem({ isAdmin: false, isOwner: false });
     setzeFeld(d.w.document, 'acc-old', DOM_PASSWORT);
     setzeFeld(d.w.document, 'acc-mail', 'neue@beispiel.de');
     d.w.document.getElementById('acc-save')
@@ -32433,7 +32433,7 @@ async function pruefeOberflaeche() {
     // LEEREN HEISST LOESCHEN, und das Feld muss es koennen: ein leeres Feld,
     // das als „unveraendert“ gelesen wird, liesse eine Adresse nie wieder
     // entfernen -- genau die stille Falle, die niemand bemerkt.
-    const d = await ziSystem({ istAdmin: false, istEigentuemer: false });
+    const d = await ziSystem({ isAdmin: false, isOwner: false });
     setzeFeld(d.w.document, 'acc-old', DOM_PASSWORT);
     setzeFeld(d.w.document, 'acc-mail', '');
     d.w.document.getElementById('acc-save')
@@ -32459,7 +32459,7 @@ async function pruefeOberflaeche() {
   const mvKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Mailversand');
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
     const k = mvKarte(d);
     pruefe('Die Karte „Mailversand“ steht da', !!k, 'keine Karte');
@@ -32516,7 +32516,7 @@ async function pruefeOberflaeche() {
   }
   {
     // OHNE OEFFENTLICHE ADRESSE markiert die Karte rot und nennt den Grund.
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, { oeffentlicheAdresse: '' });
+    const d = await ziSystem({ isAdmin: true, isOwner: true }, { oeffentlicheAdresse: '' });
     const k = mvKarte(d);
     pruefe('Ohne oeffentliche Adresse markiert die Karte das',
       /nicht gesetzt — es wird nicht verschickt/.test(k?.textContent || ''),
@@ -32530,7 +32530,7 @@ async function pruefeOberflaeche() {
   }
   {
     // OHNE ZUGANG: der Zustand jeder Instanz vor dieser Runde.
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, { mailStand: {} });
+    const d = await ziSystem({ isAdmin: true, isOwner: true }, { mailStand: {} });
     const k = mvKarte(d);
     pruefe('Ohne Mailzugang sagt die Karte "nicht eingerichtet"',
       /nicht eingerichtet/.test(k?.textContent || ''), k?.textContent?.slice(0, 400));
@@ -32555,7 +32555,7 @@ async function pruefeOberflaeche() {
        schreibt ihn ueber drei Quelltextzeilen, und `textContent` traegt den
        Umbruch samt Einrueckung mit. Eine Verneinung, die am Zeilenumbruch
        scheitert, ist gruen aus dem falschen Grund. */
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
     const t = (mvKarte(d)?.textContent || '').replace(/\s+/g, ' ');
     pruefe('Die Begruendung zum fehlenden Adressfeld steht nicht in der Karte',
@@ -32567,7 +32567,7 @@ async function pruefeOberflaeche() {
   {
     /* DIE TESTMAIL, und zwar in BEIDEN Ausgaengen -- Erfolg UND Fehlschlag.
        Ein Knopf, der nur im guten Fall geprueft ist, ist halb geprueft. */
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
     d.w.document.getElementById('mail-test')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -32591,7 +32591,7 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailFehler: true });
     d.w.document.getElementById('mail-test')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -32609,7 +32609,7 @@ async function pruefeOberflaeche() {
   }
   {
     // OHNE EIGENE ADRESSE sagt die Absage, wo sie einzutragen ist.
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de', eigeneAdresse: '' });
     d.w.document.getElementById('mail-test')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -32636,7 +32636,7 @@ async function pruefeOberflaeche() {
     return d.w.document.getElementById('mail-dialog');
   };
   {
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
     pruefe('Vor dem Klick steht kein Dialog da', !d.w.document.getElementById('mail-dialog'));
     const dlg = await mdOeffne(d);
@@ -32766,7 +32766,7 @@ async function pruefeOberflaeche() {
        zugestellten Ereignis (Stolperstein 61). DASS DER DIALOG SELBST SCHON
        EIN DIALOG IST, KUERZT DIE SCHRANKE NICHT AB: `mail` ist einer der
        sieben Zwecke, und der Weg ist derselbe wie vor dieser Runde. */
-    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await ziSystem({ isAdmin: true, isOwner: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailStand: {} });
     const dlg = await mdOeffne(d);
     pruefe('Ohne Zugang heisst die Ueberschrift „einrichten"',
@@ -32801,8 +32801,8 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     const put = d.gesendet.find(x => x.methode === 'PUT' && x.url === '/api/mail');
     pruefe('Danach geht der Zugang an den Server',
-      put?.koerper?.anbieter === 'gmail' && put?.koerper?.benutzer === 'instanz@gmail.com',
-      JSON.stringify({ ...put?.koerper, passwort: '(nicht abgedruckt)' }));
+      put?.koerper?.provider === 'gmail' && put?.koerper?.benutzer === 'instanz@gmail.com',
+      JSON.stringify({ ...put?.koerper, password: '(nicht abgedruckt)' }));
     pruefe('Und zwar ueber dieselbe Route wie vorher -- keine neue',
       d.gesendet.filter(x => x.methode === 'PUT' && /^\/api\/mail/.test(x.url)).length === 1,
       d.gesendet.filter(x => x.methode !== 'GET').map(x => `${x.methode} ${x.url}`).join(' · '));
@@ -32829,7 +32829,7 @@ async function pruefeOberflaeche() {
      des Mocks wirklich, und was danach im selben Fenster laeuft, saehe etwas
      anderes. Deshalb baut jede Lage ihren eigenen Systembereich. */
   const pkSystem = async (rollen, opt = {}) => {
-    const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
+    const d = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4, ...rollen }, ...opt });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'inventory');
     await new Promise(r => setTimeout(r, 40));
@@ -32839,9 +32839,9 @@ async function pruefeOberflaeche() {
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Papierkorb');
   const pkReihen = (d) => [...(pkKarte(d)?.querySelectorAll('#mtrash .mrow.trash') || [])];
 
-  const pkuEig = await pkSystem({ istAdmin: true, istEigentuemer: true });
-  const pkuAdm = await pkSystem({ istAdmin: true, istEigentuemer: false });
-  const pkuUser = await pkSystem({ istAdmin: false, istEigentuemer: false });
+  const pkuEig = await pkSystem({ isAdmin: true, isOwner: true });
+  const pkuAdm = await pkSystem({ isAdmin: true, isOwner: false });
+  const pkuUser = await pkSystem({ isAdmin: false, isOwner: false });
 
   // ERST DAS VORHANDENSEIN, dann jede Aussage darueber (Stolperstein 81).
   pruefe('Die Karte steht bei der Eigentuemerin', !!pkKarte(pkuEig));
@@ -32901,7 +32901,7 @@ async function pruefeOberflaeche() {
   /* DAS VOKABULAR. Wer seine Eintraege "Maschinen" nennt, liest hier
      "Gelöschte Maschinen" -- eine Karte, die den Bestand mit einem anderen
      Wort benennt als der Rest der Oberflaeche, ist falsch beschriftet. */
-  const pkuVok = await pkSystem({ istAdmin: true, istEigentuemer: true,
+  const pkuVok = await pkSystem({ isAdmin: true, isOwner: true,
     vocabulary: { sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen',
                  zeitpunktEinzahl: 'Prüfung', zeitpunktMehrzahl: 'Prüfungen' } });
   pruefe('Die Karte benutzt das Vokabular',
@@ -32915,13 +32915,13 @@ async function pruefeOberflaeche() {
     pkKarte(pkuVok)?.querySelector('.desc')?.textContent);
 
   /* DER LEERE FALL, mit eigenem Aufbau. */
-  const pkuLeer = await pkSystem({ istAdmin: true, istEigentuemer: true }, { papierkorbBestand: [] });
+  const pkuLeer = await pkSystem({ isAdmin: true, isOwner: true }, { papierkorbBestand: [] });
   pruefe('Ist der Papierkorb leer, steht die Karte trotzdem da', !!pkKarte(pkuLeer));
   pruefe('Und sie sagt es',
     /Keine gelöschten Einträge/.test(pkKarte(pkuLeer)?.textContent || ''),
     pkKarte(pkuLeer)?.textContent?.slice(0, 200));
   pruefe('Ohne eine einzige Zeile', pkReihen(pkuLeer).length === 0);
-  const pkuLeerVok = await pkSystem({ istAdmin: true, istEigentuemer: true,
+  const pkuLeerVok = await pkSystem({ isAdmin: true, isOwner: true,
     vocabulary: { sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen' } }, { papierkorbBestand: [] });
   pruefe('Auch der leere Fall benutzt das Vokabular',
     /Keine gelöschten Maschinen/.test(pkKarte(pkuLeerVok)?.textContent || ''),
@@ -32933,7 +32933,7 @@ async function pruefeOberflaeche() {
      wirklich; ohne das waere "die Karte zeichnet sich neu" von "die Karte
      blieb stehen" nicht zu unterscheiden (Stolperstein 90). */
   {
-    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await pkSystem({ isAdmin: true, isOwner: true });
     const vorher = pkReihen(d).length;
     pkReihen(d)[0]?.querySelector('.trash-back')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -32957,7 +32957,7 @@ async function pruefeOberflaeche() {
   /* Und die laute Haelfte: unbekannte Verfasser aus der Antwort werden
      genannt. Die zweite Zeile der Prueflage traegt sie. */
   {
-    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await pkSystem({ isAdmin: true, isOwner: true });
     pkReihen(d)[1]?.querySelector('.trash-back')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -32969,7 +32969,7 @@ async function pruefeOberflaeche() {
   /* ENDGUELTIG ENTFERNEN -- mit Rueckfrage davor. Ein Weg ohne Rueckweg
      bekommt eine. */
   {
-    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await pkSystem({ isAdmin: true, isOwner: true });
     const vorher = pkReihen(d).length;
     pkReihen(d)[0]?.querySelector('.trash-remove')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -33011,13 +33011,13 @@ async function pruefeOberflaeche() {
     const karte = [...pkuEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
     pruefe('Die Karte Kennzahlen ist ueberhaupt da', !!karte);
-    const zeile = [...(karte?.querySelectorAll('.kv') || [])]
+    const row = [...(karte?.querySelectorAll('.kv') || [])]
       .find(z => z.querySelector('.k')?.textContent.trim() === 'Papierkorb');
-    pruefe('Sie traegt eine Zeile mit der Beschriftung Papierkorb', !!zeile,
+    pruefe('Sie traegt eine Zeile mit der Beschriftung Papierkorb', !!row,
       [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
     pruefe('Und darin stehen Zahl und Groesse aus der Antwort',
-      /^2 · 2,5 KB$/.test(zeile?.querySelector('.v')?.textContent?.trim() || ''),
-      zeile?.querySelector('.v')?.textContent);
+      /^2 · 2,5 KB$/.test(row?.querySelector('.v')?.textContent?.trim() || ''),
+      row?.querySelector('.v')?.textContent);
 
     /* ---- VERSION UND ALGORITHM — 0.16.0 ----
        DIE VERSION STAND IN DER ANTWORT SCHON IMMER, gezeigt hat die Karte sie
@@ -33086,7 +33086,7 @@ async function pruefeOberflaeche() {
       'die README traegt die Begruendung nicht');
     /* DIE GEGENLAGE: liefert der Server die Verfahren nicht mit, steht der
        Abschnitt gar nicht da -- statt vier Zeilen mit Gedankenstrichen. */
-    const ohneVerf = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const ohneVerf = await pkSystem({ isAdmin: true, isOwner: true },
       { statsVerfahren: null });
     await sysAbschnitt(ohneVerf.w, 'database');
     const kOhne = [...ohneVerf.w.document.querySelectorAll('.sys-grid > .sys-card')]
@@ -33117,7 +33117,7 @@ async function pruefeOberflaeche() {
     const baZeilen = (k) => [...(k?.querySelectorAll('.kv .k') || [])]
       .map(z => z.textContent.trim());
 
-    const baEig = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    const baEig = await pkSystem({ isAdmin: true, isOwner: true });
     await sysAbschnitt(baEig.w, 'database');
     const kEig = baKarte(baEig);
     pruefe('Die Bildablage ist eine Karte fuer sich', !!kEig,
@@ -33136,11 +33136,11 @@ async function pruefeOberflaeche() {
       !!kEig?.querySelector('#convert-run'),
       kEig ? '(kein Knopf in der Karte)' : '(keine Karte)');
     for (const [wort, wert] of [['PNG', '12 · 6,0 MB'], ['JPEG', '5 · 512,0 KB'], ['WebP', '2 · 64,0 KB']]) {
-      const zeile = [...(kEig?.querySelectorAll('.kv') || [])]
+      const row = [...(kEig?.querySelectorAll('.kv') || [])]
         .find(z => z.querySelector('.k')?.textContent.trim().startsWith(wort));
       pruefe(`Die Zeile „${wort}" steht darin und nennt Zahl und Groesse`,
-        zeile?.querySelector('.v')?.textContent.trim() === wert,
-        `${wort}: ${zeile?.querySelector('.v')?.textContent}`);
+        row?.querySelector('.v')?.textContent.trim() === wert,
+        `${wort}: ${row?.querySelector('.v')?.textContent}`);
     }
     /* EIN FORMAT OHNE BILDER BEKOMMT KEINE ZEILE MIT EINER NULL. Eine Null ist
        eine Aussage, und sie lenkt von den beiden Zahlen ab, um die es geht. */
@@ -33252,7 +33252,7 @@ async function pruefeOberflaeche() {
 
     /* ---- DIE DREI GEGENLAGEN ---- */
     // Kein PNG mehr da: der Knopf ist tot, und die Karte sagt, warum.
-    const baLeer = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const baLeer = await pkSystem({ isAdmin: true, isOwner: true },
       { statsBildFormate: { webp: { anzahl: 9, bytes: 65536 } } });
     await sysAbschnitt(baLeer.w, 'database');
     pruefe('Ohne PNG ist der Knopf nicht bedienbar',
@@ -33263,8 +33263,8 @@ async function pruefeOberflaeche() {
     baLeer.w.close();
 
     // Ein Lauf ist unterwegs: die Zeile zaehlt mit, der Knopf ist tot.
-    const baLauf = await pkSystem({ istAdmin: true, istEigentuemer: true },
-      { statsUmstellung: { laeuft: true, gesamt: 12, erledigt: 5, umgestellt: 4, geblieben: 1, gespart: 100 } });
+    const baLauf = await pkSystem({ isAdmin: true, isOwner: true },
+      { statsUmstellung: { running: true, total: 12, erledigt: 5, umgestellt: 4, geblieben: 1, gespart: 100 } });
     await sysAbschnitt(baLauf.w, 'database');
     pruefe('Waehrend eines Laufs zeigt die Karte den Fortschritt',
       /5 von 12/.test(baLauf.w.document.getElementById('convert-running')?.textContent || ''),
@@ -33274,8 +33274,8 @@ async function pruefeOberflaeche() {
     baLauf.w.close();
 
     // Ein Lauf ist durch: die Zeile sagt, was herauskam.
-    const baFertig = await pkSystem({ istAdmin: true, istEigentuemer: true },
-      { statsUmstellung: { laeuft: false, gesamt: 12, erledigt: 12, umgestellt: 11, geblieben: 1, gespart: 4194304 } });
+    const baFertig = await pkSystem({ isAdmin: true, isOwner: true },
+      { statsUmstellung: { running: false, total: 12, erledigt: 12, umgestellt: 11, geblieben: 1, gespart: 4194304 } });
     await sysAbschnitt(baFertig.w, 'database');
     const fertigZeile = baFertig.w.document.getElementById('convert-running')?.textContent || '';
     pruefe('Nach einem Lauf sagt die Zeile, was herauskam',
@@ -33293,8 +33293,8 @@ async function pruefeOberflaeche() {
        ES IST EIN ZWEITER LAUF UND NICHT DERSELBE: er faehrt bei jedem Start,
        die Umstellung auf Knopfdruck. Stuenden beide in einem Feld, saehe die
        Karte bei jedem Start „Umstellung laeuft" und der Knopf waere tot. */
-    const geoLauf = await pkSystem({ istAdmin: true, istEigentuemer: true },
-      { statsGeometrie: { laeuft: true, gesamt: 1032, erledigt: 40, geprueft: 40,
+    const geoLauf = await pkSystem({ isAdmin: true, isOwner: true },
+      { statsGeometrie: { running: true, total: 1032, erledigt: 40, geprueft: 40,
                           nachgezogen: 31, uebersprungen: 0, zugenommen: 1000 } });
     await sysAbschnitt(geoLauf.w, 'database');
     pruefe('Waehrend des Nachziehens zeigt die Karte seinen Fortschritt',
@@ -33308,8 +33308,8 @@ async function pruefeOberflaeche() {
     geoLauf.w.close();
 
     // Und durch: die Zeile sagt, was herauskam.
-    const geoFertig = await pkSystem({ istAdmin: true, istEigentuemer: true },
-      { statsGeometrie: { laeuft: false, gesamt: 1032, erledigt: 1032, geprueft: 1032,
+    const geoFertig = await pkSystem({ isAdmin: true, isOwner: true },
+      { statsGeometrie: { running: false, total: 1032, erledigt: 1032, geprueft: 1032,
                           nachgezogen: 825, uebersprungen: 2, zugenommen: 61341696 } });
     await sysAbschnitt(geoFertig.w, 'database');
     const geoZeile = geoFertig.w.document.getElementById('thumbs-running')?.textContent || '';
@@ -33325,8 +33325,8 @@ async function pruefeOberflaeche() {
        Richtung kennt, verschwiege den haeufigeren Fall -- und zwar in genau
        der Zahl, an der der Betreiber ablesen will, was der Lauf gebracht
        hat. */
-    const geoKleiner = await pkSystem({ istAdmin: true, istEigentuemer: true },
-      { statsGeometrie: { laeuft: false, gesamt: 1032, erledigt: 1032, geprueft: 1032,
+    const geoKleiner = await pkSystem({ isAdmin: true, isOwner: true },
+      { statsGeometrie: { running: false, total: 1032, erledigt: 1032, geprueft: 1032,
                           nachgezogen: 825, uebersprungen: 0, zugenommen: -20971520 } });
     await sysAbschnitt(geoKleiner.w, 'database');
     const geoKleinerZeile = geoKleiner.w.document.getElementById('thumbs-running')?.textContent || '';
@@ -33338,8 +33338,8 @@ async function pruefeOberflaeche() {
     /* UND SIE STEHT NICHT DA, WENN ES NICHTS ZU SAGEN GAB. Der Lauf faehrt
        bei JEDEM Start und findet nach dem ersten Durchgang nichts mehr; eine
        Zeile „0 nachgezogen" staende von da an fuer immer in der Karte. */
-    const geoLeer = await pkSystem({ istAdmin: true, istEigentuemer: true },
-      { statsGeometrie: { laeuft: false, gesamt: 1032, erledigt: 1032, geprueft: 1032,
+    const geoLeer = await pkSystem({ isAdmin: true, isOwner: true },
+      { statsGeometrie: { running: false, total: 1032, erledigt: 1032, geprueft: 1032,
                           nachgezogen: 0, uebersprungen: 0, zugenommen: 0 } });
     await sysAbschnitt(geoLeer.w, 'database');
     pruefe('Ein Lauf ohne Fund hinterlaesst keine Zeile',
@@ -33367,7 +33367,7 @@ async function pruefeOberflaeche() {
        Der Admin ohne Eigentuemerrolle sieht die ZAHLEN -- sie stehen hinter
        nurAdmin --, aber weder Schalter noch Knopf. Ein Knopf, der
        zuverlaessig 403 erzeugt, sieht aus wie ein Fehler. */
-    const baAdm = await pkSystem({ istAdmin: true, istEigentuemer: false });
+    const baAdm = await pkSystem({ isAdmin: true, isOwner: false });
     await sysAbschnitt(baAdm.w, 'database');
     pruefe('Der Admin ohne Eigentuemerrolle sieht die Aufstellung',
       baZeilen(baKarte(baAdm)).some(z => z.startsWith('PNG')),
@@ -33396,8 +33396,8 @@ async function pruefeOberflaeche() {
   };
   const siKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Sicherung');
-  const siEig = await siSystem({ istAdmin: true, istEigentuemer: true });
-  const siAdm = await siSystem({ istAdmin: true, istEigentuemer: false });
+  const siEig = await siSystem({ isAdmin: true, isOwner: true });
+  const siAdm = await siSystem({ isAdmin: true, isOwner: false });
 
   pruefe('Die Karte steht bei der Eigentuemerin', !!siKarte(siEig));
   pruefe('Beim Admin ohne Eigentuemerrolle gibt es sie nicht', !siKarte(siAdm));
@@ -33427,10 +33427,10 @@ async function pruefeOberflaeche() {
     siLage(siEig)?.textContent);
 
   {
-    const siInn = await siSystem({ istAdmin: true, istEigentuemer: true },
+    const siInn = await siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: { eingerichtet: true, wurzel: '/app/sicherung', ort: '',
         pfad: '/app/sicherung', imArbeitsverzeichnis: true, dbBytes: 1048576,
-        dauerSekunden: 1, erreichbar: true, zahl: 0, letzte: null } });
+        durationSeconds: 1, erreichbar: true, number: 0, last: null } });
     const kasten = siLage(siInn);
     pruefe('Im Arbeitsverzeichnis ist der Kasten rot', !!kasten &&
       kasten.classList.contains('warn-box') === true &&
@@ -33462,10 +33462,10 @@ async function pruefeOberflaeche() {
   {
     const siStandMit = (zusatz) => ({
       eingerichtet: true, wurzel: '/sicherung', ort: 'taeglich', pfad: '/sicherung/taeglich',
-      imArbeitsverzeichnis: false, dbBytes: 52428800, dauerSekunden: 1,
-      erreichbar: true, zahl: 3,
-      letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
-                at: '2026-08-20 03:00:00', tageHer: 3, veraltet: false },
+      imArbeitsverzeichnis: false, dbBytes: 52428800, durationSeconds: 1,
+      erreichbar: true, number: 3,
+      last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
+                at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: false },
       gewechseltAm: null, veraltet: 0, ...zusatz
     });
     /* GESUCHT WIRD IM GEFALTETEN TEXT. textContent traegt die Zeilenumbrueche
@@ -33478,7 +33478,7 @@ async function pruefeOberflaeche() {
       [...(siKarte(d)?.querySelectorAll('.' + klasse) || [])].map(k => falte(k.textContent));
 
     // Ohne Wechsel: kein Kasten, kein Wort davon.
-    const ohne = await siSystem({ istAdmin: true, istEigentuemer: true },
+    const ohne = await siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: siStandMit({}) });
     pruefe('Ohne Wechsel steht nichts von zwei Schluesseln auf der Karte',
       !/Schlüsselwechsel|alten Schlüssel|gewechselt/.test(siText(ohne)),
@@ -33486,7 +33486,7 @@ async function pruefeOberflaeche() {
 
     // Ein Teil veraltet: roter Kasten mit der Zahl und dem Verbleib des alten
     // Werts.
-    const teils = await siSystem({ istAdmin: true, istEigentuemer: true },
+    const teils = await siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 2 }) });
     const teilsRot = siKaesten(teils, 'warn-box').join(' ');
     pruefe('Nach einem Wechsel nennt ein roter Kasten die Zahl der alten Kopien',
@@ -33513,7 +33513,7 @@ async function pruefeOberflaeche() {
 
     // Genau eine alte Kopie -- die Einzahl gehoert geprueft, sonst steht dort
     // "1 Kopien stammen".
-    const eine = await siSystem({ istAdmin: true, istEigentuemer: true },
+    const eine = await siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 1 }) });
     pruefe('Bei genau einer alten Kopie steht die Einzahl da',
       /1 Sicherung stammt von vor dem Schlüsselwechsel/.test(siKaesten(eine, 'warn-box').join(' ')),
@@ -33522,11 +33522,11 @@ async function pruefeOberflaeche() {
     // Alles veraltet -- die schaerfste Lage: es gibt ueberhaupt keine
     // brauchbare Kopie, und das ist eine ANDERE Aussage als "ein paar alte
     // liegen daneben".
-    const alles = await siSystem({ istAdmin: true, istEigentuemer: true },
+    const alles = await siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: siStandMit({
         gewechseltAm: '2026-08-22 08:00:00', veraltet: 3,
-        letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
-                  at: '2026-08-20 03:00:00', tageHer: 3, veraltet: true } }) });
+        last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
+                  at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: true } }) });
     const allesRot = siKaesten(alles, 'warn-box').join(' ');
     pruefe('Ist auch die juengste Kopie aelter, sagt die Karte GENAU DAS',
       /Keine Sicherung passt zum aktuellen Schlüssel/.test(allesRot), allesRot.slice(0, 300));
@@ -33537,7 +33537,7 @@ async function pruefeOberflaeche() {
 
     // Und die Gegenlage: alle Kopien juenger als der Wechsel -> gruen, mit
     // dem Grund daneben statt eines blossen "alles gut".
-    const gruen = await siSystem({ istAdmin: true, istEigentuemer: true },
+    const gruen = await siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-19 08:00:00', veraltet: 0 }) });
     const gruenKasten = siKaesten(gruen, 'ok-box').join(' ');
     pruefe('Sind alle Kopien juenger als der Wechsel, ist der Kasten gruen',
@@ -33601,10 +33601,10 @@ async function pruefeOberflaeche() {
 
   /* DER NICHT EINGERICHTETE FALL. */
   {
-    const d = await siSystem({ istAdmin: true, istEigentuemer: true },
-      { sicherungStand: { eingerichtet: false, grund: 'Es ist kein Sicherungsort eingerichtet. ' +
-        'Die docker-compose.yml hängt ihn ein.', ort: '', dbBytes: 1, dauerSekunden: 1,
-        erreichbar: false, letzte: null } });
+    const d = await siSystem({ isAdmin: true, isOwner: true },
+      { sicherungStand: { eingerichtet: false, reason: 'Es ist kein Sicherungsort eingerichtet. ' +
+        'Die docker-compose.yml hängt ihn ein.', ort: '', dbBytes: 1, durationSeconds: 1,
+        erreichbar: false, last: null } });
     pruefe('Ohne eingerichteten Ort steht die Karte trotzdem da', !!siKarte(d));
     pruefe('Und sagt, warum sie nicht kann',
       /kein Sicherungsort eingerichtet/.test(siKarte(d)?.textContent || ''),
@@ -33618,10 +33618,10 @@ async function pruefeOberflaeche() {
   /* DER UNERREICHBARE ZIELORT. Die Karte sagt es, statt eine Zahl zu
      behaupten -- das ist der Preis der Entscheidung fuer das Dateisystem. */
   {
-    const d = await siSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: { eingerichtet: true, wurzel: '/sicherung', ort: 'weg',
         fehler: 'Das Verzeichnis „weg“ gibt es unter dem Sicherungsort nicht.',
-        dbBytes: 1024, dauerSekunden: 1, erreichbar: false, letzte: null } });
+        dbBytes: 1024, durationSeconds: 1, erreichbar: false, last: null } });
     pruefe('Ein Zielort mit Fehler bekommt keine Zahl, sondern die Begruendung',
       /gibt es unter dem Sicherungsort nicht/.test(siKarte(d)?.textContent || ''),
       siKarte(d)?.textContent?.slice(0, 400));
@@ -33630,10 +33630,10 @@ async function pruefeOberflaeche() {
       siKarte(d)?.textContent?.slice(0, 400));
   }
   {
-    const d = await siSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: { eingerichtet: true, wurzel: '/sicherung', ort: '',
-        pfad: '/sicherung', dbBytes: 1024, dauerSekunden: 1, erreichbar: true,
-        letzte: null, zahl: 0 } });
+        pfad: '/sicherung', dbBytes: 1024, durationSeconds: 1, erreichbar: true,
+        last: null, number: 0 } });
     pruefe('Ein leerer Ort sagt, dass dort noch keine Sicherung liegt',
       /noch keine Sicherung/.test(siKarte(d)?.textContent || ''),
       siKarte(d)?.textContent?.slice(0, 400));
@@ -33641,7 +33641,7 @@ async function pruefeOberflaeche() {
 
   /* DER KNOPF, mit einem WIRKLICH zugestellten Ereignis. */
   {
-    const d = await siSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await siSystem({ isAdmin: true, isOwner: true });
     d.w.document.getElementById('backup-run')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -33662,7 +33662,7 @@ async function pruefeOberflaeche() {
   /* DER ZIELORT laesst sich umstellen -- und eine Absage des Servers wird
      gesagt, statt still zu bleiben. */
   {
-    const d = await siSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await siSystem({ isAdmin: true, isOwner: true });
     if (d.w.document.getElementById('backup-dir')) setzeFeld(d.w.document, 'backup-dir', 'woechentlich');
     d.w.document.getElementById('backup-dir-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -33714,40 +33714,40 @@ async function pruefeOberflaeche() {
      statt 3 sind es drei Dateien. Eine Lage, in der jede Stellung dieselbe Zahl
      ergibt, belegte darueber nichts (Stolperstein 90). */
   const AF_KOPIEN = [
-    { datei: 'kriterion-2026-09-03-10-00-00.sqlite', at: '2026-09-03 10:00:00', tageHer: 0, bytes: 52428800 },
-    { datei: 'kriterion-2026-09-02-10-00-00.sqlite', at: '2026-09-02 10:00:00', tageHer: 1, bytes: 52428800 },
-    { datei: 'kriterion-2026-07-30-10-00-00.sqlite', at: '2026-07-30 10:00:00', tageHer: 35, bytes: 52428800 },
-    { datei: 'kriterion-2026-07-25-10-00-00.sqlite', at: '2026-07-25 10:00:00', tageHer: 40, bytes: 52428800 },
-    { datei: 'kriterion-2026-07-05-10-00-00.sqlite', at: '2026-07-05 10:00:00', tageHer: 60, bytes: 52428800 }
+    { file: 'kriterion-2026-09-03-10-00-00.sqlite', at: '2026-09-03 10:00:00', daysAgo: 0, bytes: 52428800 },
+    { file: 'kriterion-2026-09-02-10-00-00.sqlite', at: '2026-09-02 10:00:00', daysAgo: 1, bytes: 52428800 },
+    { file: 'kriterion-2026-07-30-10-00-00.sqlite', at: '2026-07-30 10:00:00', daysAgo: 35, bytes: 52428800 },
+    { file: 'kriterion-2026-07-25-10-00-00.sqlite', at: '2026-07-25 10:00:00', daysAgo: 40, bytes: 52428800 },
+    { file: 'kriterion-2026-07-05-10-00-00.sqlite', at: '2026-07-05 10:00:00', daysAgo: 60, bytes: 52428800 }
   ];
   /* DIE LISTE WIE DER SERVER SIE LIEFERT: Nummer von der juengsten an, und je
      Zeile die beiden Marken. `faellt` und `outdated` schliessen sich aus --
      die Regel laesst die veralteten gar nicht erst durch. */
-  const afDateien = (behalten = 3, tage = 30, altNamen = []) => {
+  const afDateien = (keep = 3, days = 30, altNamen = []) => {
     const alt = new Set(altNamen);
-    const treffer = new Set(AF_KOPIEN.slice(behalten)
-      .filter(z => z.tageHer > tage && !alt.has(z.datei)).map(z => z.datei));
+    const treffer = new Set(AF_KOPIEN.slice(keep)
+      .filter(z => z.daysAgo > days && !alt.has(z.file)).map(z => z.file));
     return AF_KOPIEN.map((z, i) => ({ ...z, nr: i + 1,
-      faellt: treffer.has(z.datei), veraltet: alt.has(z.datei) }));
+      faellt: treffer.has(z.file), veraltet: alt.has(z.file) }));
   };
   const afStand = (zusatz = {}, aufraeumZusatz = {}) => ({
     eingerichtet: true, wurzel: '/sicherung', ort: 'taeglich', pfad: '/sicherung/taeglich',
-    imArbeitsverzeichnis: false, dbBytes: 52428800, dauerSekunden: 1, erreichbar: true, zahl: 5,
-    letzte: { datei: AF_KOPIEN[0].datei, bytes: 52428800, at: AF_KOPIEN[0].at,
-              tageHer: 0, veraltet: false },
+    imArbeitsverzeichnis: false, dbBytes: 52428800, durationSeconds: 1, erreichbar: true, number: 5,
+    last: { file: AF_KOPIEN[0].file, bytes: 52428800, at: AF_KOPIEN[0].at,
+              daysAgo: 0, veraltet: false },
     gewechseltAm: null, veraltet: 0,
-    aufraeumen: {
-      an: false, behalten: 3, tage: 30,
-      grenzen: { behalten: { vorgabe: 3, min: 1, max: 20 },
-                 tage: { vorgabe: 30, min: 7, max: 365 } },
+    cleanup: {
+      an: false, keep: 3, days: 30,
+      grenzen: { keep: { fallback: 3, min: 1, max: 20 },
+                 days: { fallback: 30, min: 7, max: 365 } },
       erreichbar: true, dateien: afDateien(), treffer: AF_KOPIEN.slice(3),
       bytes: AF_KOPIEN.slice(3).reduce((n, k) => n + k.bytes, 0),
-      grund: '', altZahl: 0, altBytes: 0, altDateien: [], ...aufraeumZusatz
+      reason: '', oldCount: 0, oldBytes: 0, oldFiles: [], ...aufraeumZusatz
     },
     ...zusatz
   });
   const afSystem = (zusatz = {}, aufraeumZusatz = {}) =>
-    siSystem({ istAdmin: true, istEigentuemer: true },
+    siSystem({ isAdmin: true, isOwner: true },
       { sicherungStand: afStand(zusatz, aufraeumZusatz), sicherungKopien: AF_KOPIEN });
 
   const afEig = await afSystem();
@@ -33869,7 +33869,7 @@ async function pruefeOberflaeche() {
      Erklaerung sieht aus wie ein Fehler. Und der Knopf ist dann tot. */
   {
     const d = await afSystem({}, { treffer: [], bytes: 0, dateien: afDateien(20, 30),
-      grund: 'Alle 5 Kopien sind unter den jüngsten 20.' });
+      reason: 'Alle 5 Kopien sind unter den jüngsten 20.' });
     pruefe('Trifft die Regel nichts, sagt die Karte das mit dem Grund',
       /Es wird nichts gelöscht\. Alle 5 Kopien sind unter den jüngsten 20\./.test(afText(d)),
       afText(d).slice(0, 600));
@@ -33884,8 +33884,8 @@ async function pruefeOberflaeche() {
   }
   /* LIEGT NICHTS DA, SAGT DIE KARTE GENAU DAS -- statt einer leeren Liste. */
   {
-    const d = await afSystem({ zahl: 0, letzte: null },
-      { dateien: [], treffer: [], bytes: 0, grund: 'An diesem Ort liegt noch keine Sicherung.' });
+    const d = await afSystem({ number: 0, last: null },
+      { dateien: [], treffer: [], bytes: 0, reason: 'An diesem Ort liegt noch keine Sicherung.' });
     pruefe('Ohne eine einzige Sicherung sagt die Karte das',
       /Im Sicherungsordner gibt es noch keine Sicherung\./.test(afText(d)), afText(d).slice(0, 400));
     pruefe('Und es steht keine leere Liste da',
@@ -33894,11 +33894,11 @@ async function pruefeOberflaeche() {
   /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: in derselben Liste markiert, mit
      eigener Zahl, eigener Summe und eigenem Knopf darunter. */
   {
-    const altNamen = AF_KOPIEN.slice(3).map(z => z.datei);
+    const altNamen = AF_KOPIEN.slice(3).map(z => z.file);
     const d = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 2 },
-      { altZahl: 2, altBytes: 104857600, altDateien: AF_KOPIEN.slice(3),
+      { oldCount: 2, oldBytes: 104857600, oldFiles: AF_KOPIEN.slice(3),
         treffer: [], bytes: 0, dateien: afDateien(3, 30, altNamen),
-        grund: 'Keine der 5 Kopien stammt von nach dem Schlüsselwechsel.' });
+        reason: 'Keine der 5 Kopien stammt von nach dem Schlüsselwechsel.' });
     pruefe('Die veralteten Kopien bekommen ihre eigene Marke in der Liste',
       gleich(afZeilen(d).filter(z => /ALTER SCHLÜSSEL|alter Schlüssel/i.test(z))
                .map(z => (z.match(/^#(\d+)/) || [])[1]), ['4', '5']),
@@ -33917,8 +33917,8 @@ async function pruefeOberflaeche() {
       d.w.document.getElementById('cleanup-old')?.textContent);
     // Die Einzahl gehoert geprueft, sonst steht dort "1 Sicherungen oeffnen".
     const eine = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 1 },
-      { altZahl: 1, altBytes: 52428800, altDateien: AF_KOPIEN.slice(4),
-        dateien: afDateien(3, 30, [AF_KOPIEN[4].datei]) });
+      { oldCount: 1, oldBytes: 52428800, oldFiles: AF_KOPIEN.slice(4),
+        dateien: afDateien(3, 30, [AF_KOPIEN[4].file]) });
     pruefe('Bei genau einer steht die Einzahl da',
       /1 Sicherung öffnet sich nur mit dem alten Schlüssel/.test(afText(eine)) &&
       /1 Sicherung mit altem Schlüssel löschen/.test(
@@ -33929,7 +33929,7 @@ async function pruefeOberflaeche() {
      Schalter, der nie greifen kann, verspricht etwas und haelt es nie. */
   {
     const d = await afSystem({ eingerichtet: false,
-      grund: 'Es ist kein Sicherungsort eingerichtet.' });
+      reason: 'Es ist kein Sicherungsort eingerichtet.' });
     pruefe('Ohne eingerichteten Ort steht die Karte trotzdem da', !!afKarte(d));
     pruefe('Und sagt, warum sie nichts zu tun hat',
       /kein Sicherungsordner eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
@@ -33952,7 +33952,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     const gefragt = d.gesendet.filter(x => String(x.url).startsWith('/api/backup?'));
     pruefe('Eine Aenderung am Feld fragt den Stand neu am Server',
-      gefragt.length === 1 && /behalten=2/.test(gefragt[0].url) &&
+      gefragt.length === 1 && /keep=2/.test(gefragt[0].url) &&
       (gefragt[0].methode || 'GET') === 'GET',
       d.gesendet.slice(-3).map(x => `${x.methode || 'GET'} ${x.url}`).join(' · '));
     /* UND SIE RECHNET DIE REGEL NICHT SELBST NACH: gefragt wird der Server,
@@ -34039,7 +34039,7 @@ async function pruefeOberflaeche() {
      3 · 3 · 3. Damit lassen sich Anzeige UND Nichtanzeige an derselben Lage
      belegen -- die mittlere Zeile steht auf 1 und darf nichts tragen. */
   const gwEintrag = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
   const gwDoc = gwEintrag.w.document;
   const gwMarken = () => [...gwDoc.querySelectorAll('#ratings .rrow .rname')]
@@ -34071,7 +34071,7 @@ async function pruefeOberflaeche() {
      Vorhandensein belegt, koennte einen fest eingebauten Text nicht von einer
      Ableitung unterscheiden. */
   const gwGleich = baueDom(JSDOM, { hash: '#/item/1', kriterienGewichte: [1, 1, 1],
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
   pruefe('Stehen alle Gewichte auf 1, steht keine Marke da',
     gwGleich.w.document.querySelectorAll('#ratings .rweight').length === 0,
@@ -34089,7 +34089,7 @@ async function pruefeOberflaeche() {
      von niemandem bewertet. */
   const gwUnbewertet = baueDom(JSDOM, { hash: '#/item/1',
     kriterienGewichte: [1, 1, 1.5], eigeneWerte: [3, 3, 0],
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
   const gwUDoc = gwUnbewertet.w.document;
   pruefe('Ein Gewicht an einem unbewerteten Kriterium steht trotzdem an der Zeile',
@@ -34108,7 +34108,7 @@ async function pruefeOberflaeche() {
   const gwSys = baueDom(JSDOM, { hash: '',
     tags: [{ id: 31, name: 'Grün', usage_count: 3, test_usage_count: 1 },
            { id: 32, name: 'Blau', usage_count: 0, test_usage_count: 0 }],
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
   await sysAbschnitt(gwSys.w, 'inventory');
   const gwSDoc = gwSys.w.document;
@@ -34300,12 +34300,12 @@ async function pruefeOberflaeche() {
 
   /* Wer nicht verwalten darf, sieht das Gewicht als Text statt als Feld -- es
      erklaert die Kopfzahl an jedem Eintrag, und die sieht er ja auch. */
-  /* istEigentuemer MUSS hier mit auf false: die Rollen sind eine LEITER, ein
+  /* isOwner MUSS hier mit auf false: die Rollen sind eine LEITER, ein
      Eigentuemer ohne Adminrecht kann es gar nicht geben. Bliebe das Feld auf
      seiner Vorgabe, baute die Prueflage eine Lage nach, die der Server nie
      ausliefert. */
   const gwNurLesen = baueDom(JSDOM, { hash: '',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false, istEigentuemer: false } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: false, isOwner: false } });
   await new Promise(r => setTimeout(r, 80));
   await sysAbschnitt(gwNurLesen.w, 'inventory');
   const gwNDoc = gwNurLesen.w.document;
@@ -34339,8 +34339,8 @@ async function pruefeOberflaeche() {
      Schnitt ueber alle -- dieselbe Zeile traegt also je nach Stellung "3 / 5"
      oder "–". Schaerfer laesst sich nicht belegen, dass zwei verschiedene
      Felder gelesen werden. */
-  const vChefin2 = { id: 1, name: 'chefin', geloescht: false };
-  const vBert2 = { id: 2, name: 'bert', geloescht: false };
+  const vChefin2 = { id: 1, name: 'chefin', deleted: false };
+  const vBert2 = { id: 2, name: 'bert', deleted: false };
   const zweit = {
     id: 2, title: 'Zweites', description: '', rejected: false, tested: false,
     favorite: false, category: null, verfasser: vBert2,
@@ -34362,7 +34362,7 @@ async function pruefeOberflaeche() {
       { criterion_id: 8, name: 'Dann', value: 4, weight: 1, phase: 'after', avg: 3, count: 2 },
       { criterion_id: 9, name: 'Zuletzt', value: 0, weight: 0.5, phase: 'after', avg: null, count: 0 }
     ],
-    avgRating: 2.5, potenzialRating: null, testCount: 3, testAvg: 4, testLast: 3
+    avgRating: 2.5, potentialRating: null, testCount: 3, testAvg: 4, testLast: 3
   };
   const zweiKarten = [
     { id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false, category: null,
@@ -34372,9 +34372,9 @@ async function pruefeOberflaeche() {
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 2.5, testCount: 3,
       testAvg: 4, testLast: 3, updated_at: '2026-08-01 10:00:00' }
   ];
-  const oeffneVergleich = async (benutzerZahl) => {
+  const oeffneVergleich = async (userCount) => {
     const dom = baueDom(JSDOM, { hash: '', uebersichtItems: zweiKarten, zweiterEintrag: zweit,
-      einstellungen: { filters: null, benutzerZahl } });
+      einstellungen: { filters: null, userCount } });
     const w = dom.w;
     await new Promise(r => setTimeout(r, 80));
     // Der echte Weg: beide Haken setzen, dann die Leiste druecken.
@@ -34507,7 +34507,7 @@ async function pruefeOberflaeche() {
      wird -- eine Ueberschrift ueber null Zeilen sagt nichts. */
   const cmpZwei = baueDom(JSDOM, { hash: '', uebersichtItems: zweiKarten,
     zweiterEintrag: zweit, kriterienPhasen: ['after', 'after', 'before'],
-    einstellungen: { filters: null, benutzerZahl: 3 } });
+    einstellungen: { filters: null, userCount: 3 } });
   await new Promise(r => setTimeout(r, 100));
   [...cmpZwei.w.document.querySelectorAll('.pick-box')].forEach(k =>
     k.dispatchEvent(new cmpZwei.w.MouseEvent('click', { bubbles: true })));
@@ -34758,12 +34758,12 @@ async function pruefeOberflaeche() {
       mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
       testCount: 0, testAvg: null, testLast: null, testDays: [],
       updated_at: '2026-08-01 10:00:00',
-      fundstelle: { quelle: 'kommentar', text: '…hat mir der Bosch-Händler empfohlen…', weitere: 2 } },
+      fundstelle: { source: 'comment', text: '…hat mir der Bosch-Händler empfohlen…', weitere: 2 } },
     { id: 2, title: 'Bosch Bohrhammer', rejected: false, tested: false, favorite: false,
       category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
       testCount: 0, testAvg: null, testLast: null, testDays: [],
       updated_at: '2026-08-01 10:00:00',
-      fundstelle: { quelle: 'link', text: '…bosch.example/werkzeug…', weitere: 0 } }
+      fundstelle: { source: 'link', text: '…bosch.example/werkzeug…', weitere: 0 } }
   ];
   const trDom = baueDom(JSDOM, { uebersichtItems: trBestand });
   const tr = trDom.w;
@@ -34856,7 +34856,7 @@ async function pruefeOberflaeche() {
      fuellt sie mit echten Knoten. Ohne diese Lage bliebe ein Rueckbau, der
      dort innerHTML setzt, vollstaendig gruen. */
   const trUnbekannt = baueDom(JSDOM, { uebersichtItems: [{ ...trBestand[1],
-    fundstelle: { quelle: 'anhangname',
+    fundstelle: { source: 'anhangname',
                   text: 'Bosch <img src=x onerror=alert(1)> Handbuch', weitere: 0 } }] });
   const tu = trUnbekannt.w;
   await new Promise(r => setTimeout(r, 80));
@@ -34892,7 +34892,7 @@ async function pruefeOberflaeche() {
     mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
     testCount: 0, testAvg: null, testLast: null, testDays: [],
     updated_at: '2026-08-01 10:00:00',
-    fundstelle: { quelle: 'beschreibung', text: '…urobella im Text…', weitere: 1 } }];
+    fundstelle: { source: 'beschreibung', text: '…urobella im Text…', weitere: 1 } }];
   const hvDom = baueDom(JSDOM, { uebersichtItems: hvBestand });
   const hv = hvDom.w;
   await new Promise(r => setTimeout(r, 80));
@@ -35081,7 +35081,7 @@ async function pruefeOberflaeche() {
     mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
     testCount: 0, testAvg: null, testLast: null, testDays: [],
     updated_at: '2026-08-01 10:00:00',
-    fundstelle: { quelle: 'titel', text: 'Beispiel', weitere: 0 } }] });
+    fundstelle: { source: 'titel', text: 'Beispiel', weitere: 0 } }] });
   const adN = adNachDom.w;
   await new Promise(r => setTimeout(r, 80));
   const adNFeld = adN.document.getElementById('q');
@@ -35116,7 +35116,7 @@ async function pruefeOberflaeche() {
   const ansBestand = suBestand;
   const ansDom = baueDom(JSDOM, {
     uebersichtItems: ansBestand,
-    einstellungen: { filters: null, views: [], ansichtenDeckel: 8 }
+    einstellungen: { filters: null, views: [], viewsCap: 8 }
   });
   const ansW = ansDom.w;
   await new Promise(r => setTimeout(r, 80));
@@ -35173,7 +35173,7 @@ async function pruefeOberflaeche() {
      Suchfeld auf dem Gespeicherten, und die Suche ist gelaufen. */
   const awDom = baueDom(JSDOM, {
     uebersichtItems: ansBestand,
-    einstellungen: { filters: null, ansichtenDeckel: 8, views: [
+    einstellungen: { filters: null, viewsCap: 8, views: [
       { name: 'Nur Bosch', q: 'bosch', filters: { categoryIds: [], tagIds: [], tagMode: 'and',
         tested: 'all', favorit: false, neu: false, sort: 'title_asc' } }
     ] }
@@ -35226,7 +35226,7 @@ async function pruefeOberflaeche() {
      der einfach nicht mehr da ist, sieht aus wie ein Fehler. */
   const adDom = baueDom(JSDOM, {
     uebersichtItems: ansBestand,
-    einstellungen: { filters: null, ansichtenDeckel: 8,
+    einstellungen: { filters: null, viewsCap: 8,
       views: Array.from({ length: 8 }, (_, i) => ({ name: 'A' + i, q: '', filters: {} })) }
   });
   const ad = adDom.w;
@@ -35245,7 +35245,7 @@ async function pruefeOberflaeche() {
      nichts: die Ansicht zeigt, was sie zeigen kann. */
   const agDom = baueDom(JSDOM, {
     uebersichtItems: ansBestand,
-    einstellungen: { filters: null, ansichtenDeckel: 8, views: [
+    einstellungen: { filters: null, viewsCap: 8, views: [
       /* IN DER ALTEN FORM MIT ABSICHT (`categoryId` statt `categoryIds`): so
          steht sie in jedem vorhandenen Bestand, und sie geht damit durch die
          Uebersetzung in filterNormal -- die Lage prueft seit 0.13.0 beides in
@@ -35425,16 +35425,16 @@ async function pruefeOberflaeche() {
      derselben Zahl haengt wie die Absage. */
   const exBau = async (statsExport) => {
     const d = baueDom(JSDOM, { statsExport,
-      einstellungen: { filters: null, istAdmin: true, istEigentuemer: true } });
+      einstellungen: { filters: null, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'database');
     await new Promise(r => setTimeout(r, 20));
     return d;
   };
   const MB = 1024 * 1024;
-  const exKlein = { umschlag: 1 * MB, fotos: 10 * MB, videos: 4 * MB,
+  const exKlein = { envelope: 1 * MB, fotos: 10 * MB, videos: 4 * MB,
                     anhaenge: 2 * MB, kommentarbilder: 1 * MB,
-                    warnAb: 300 * MB, grenze: 483183799, string: 536870888 };
+                    warnFrom: 300 * MB, grenze: 483183799, string: 536870888 };
   const dEx = await exBau(exKlein);
   const exW = dEx.w;
   const exText = (id) => exW.document.getElementById(id)?.textContent || '';
@@ -35445,24 +35445,24 @@ async function pruefeOberflaeche() {
   pruefe('Der Umschlag faellt auch ohne jeden Schalter an',
     exS({}) === 1 * MB, `${exS({})}`);
   pruefe('Mit Fotos kommen die Fotos dazu',
-    exS({ mitFotos: true }) === 11 * MB, `${exS({ mitFotos: true })}`);
+    exS({ withPhotos: true }) === 11 * MB, `${exS({ withPhotos: true })}`);
   pruefe('Die Dateien nehmen Anhaenge UND Kommentarbilder mit',
-    exS({ mitDateien: true }) === 4 * MB, `${exS({ mitDateien: true })}`);
+    exS({ withFiles: true }) === 4 * MB, `${exS({ withFiles: true })}`);
   /* Der Videoschalter haengt am Fotoschalter -- am Server wird die Fotoliste
      ohne ihn gar nicht erst gebaut. Ohne diese Bindung naennte die Karte eine
      Groesse, die kein Knopf erzeugen kann. */
   pruefe('Videos ohne Fotos zaehlen nicht mit — so wie der Server sie nicht schreibt',
-    exS({ mitVideos: true }) === 1 * MB, `${exS({ mitVideos: true })}`);
+    exS({ withVideos: true }) === 1 * MB, `${exS({ withVideos: true })}`);
   pruefe('Mit Fotos zaehlen sie dagegen mit',
-    exS({ mitFotos: true, mitVideos: true }) === 15 * MB,
-    `${exS({ mitFotos: true, mitVideos: true })}`);
+    exS({ withPhotos: true, withVideos: true }) === 15 * MB,
+    `${exS({ withPhotos: true, withVideos: true })}`);
   pruefe('Alles zusammen ist die Summe aller Teile',
-    exS({ mitFotos: true, mitVideos: true, mitDateien: true }) === 18 * MB,
-    `${exS({ mitFotos: true, mitVideos: true, mitDateien: true })}`);
+    exS({ withPhotos: true, withVideos: true, withFiles: true }) === 18 * MB,
+    `${exS({ withPhotos: true, withVideos: true, withFiles: true })}`);
   pruefe('Ohne Angaben vom Server bleibt die Zahl null statt zu raten',
-    exW.exportSum(null, { mitFotos: true }) === 0 &&
-    exW.exportSum(undefined, { mitFotos: true }) === 0,
-    `${exW.exportSum(null, { mitFotos: true })}`);
+    exW.exportSum(null, { withPhotos: true }) === 0 &&
+    exW.exportSum(undefined, { withPhotos: true }) === 0,
+    `${exW.exportSum(null, { withPhotos: true })}`);
 
   // Die Kennzahlen: die zweite Groessenangabe neben der Datenbankgroesse.
   const exKv = [...exW.document.querySelectorAll('.sys-card .kv')]
@@ -35507,9 +35507,9 @@ async function pruefeOberflaeche() {
 
   /* Die Lage darueber -- und ohne sie belegte die Zeile „keine Warnung"
      nichts: eine Warnung, die es gar nicht gibt, faellt auch nicht auf. */
-  const exGross = { umschlag: 20 * MB, fotos: 900 * MB, videos: 200 * MB,
+  const exGross = { envelope: 20 * MB, fotos: 900 * MB, videos: 200 * MB,
                     anhaenge: 400 * MB, kommentarbilder: 10 * MB,
-                    warnAb: 300 * MB, grenze: 483183799, string: 536870888 };
+                    warnFrom: 300 * MB, grenze: 483183799, string: 536870888 };
   const dExG = await exBau(exGross);
   const exG = dExG.w;
   const warnText = exG.document.getElementById('ex-warn')?.textContent || '';
@@ -35527,7 +35527,7 @@ async function pruefeOberflaeche() {
     warnText.includes(exG.fmtBytes(exGross.string)), warnText.slice(0, 220));
   pruefe('Und zwar Nodes Stringgrenze und nicht unsere Marge davor',
     !warnText.includes(exG.fmtBytes(exGross.grenze)) &&
-    !warnText.includes(exG.fmtBytes(exGross.warnAb)), warnText.slice(0, 220));
+    !warnText.includes(exG.fmtBytes(exGross.warnFrom)), warnText.slice(0, 220));
   pruefe('Sie verweist auf die Sicherung als den anderen Weg',
     /Sicherung/.test(warnText), warnText.slice(0, 200));
   /* GEWARNT WIRD, VERWEIGERT NICHT. Ein Knopf, der bei einer SCHAETZUNG
@@ -35591,7 +35591,7 @@ async function pruefeOberflaeche() {
     await S.ruf('POST', '/api/login', { user: 'chefin', password: TL_WORT });
   }
   const tlFrei = (S, purpose, target = null) =>
-    S.ruf('POST', '/api/confirm', { passwort: TL_WORT, purpose, target });
+    S.ruf('POST', '/api/confirm', { password: TL_WORT, purpose, target });
 
   /* DER BESTAND MUSS BYTES TRAGEN, sonst gibt es nichts zu schneiden. Die
      Anhaenge liefern sie: sie gehen als Bytes hinein und als Bytes wieder
@@ -35634,36 +35634,36 @@ async function pruefeOberflaeche() {
   const tlPlanRuf = (zusatz = '') => tlA.ruf('GET', `/api/export/plan?${tlSchalter}${zusatz}`);
   const tlPlan = (await tlPlanRuf('&target=1048576')).inhalt;
   pruefe('Der Plan schneidet den Bestand in mehrere Teile',
-    (tlPlan?.teile || []).length > 1, JSON.stringify((tlPlan?.teile || []).map(t => t.anzahl)));
+    (tlPlan?.parts || []).length > 1, JSON.stringify((tlPlan?.parts || []).map(t => t.anzahl)));
   /* GESCHNITTEN WIRD AN EINTRAGSGRENZEN, nie mitten hinein: ein halber Eintrag
      waere kein gueltiger Export, und der Import muesste zwei Teile kennen, um
      ihn zu verstehen. */
   pruefe('Jeder Teil traegt ganze Eintraege und keiner ist leer',
-    tlPlan.teile.every(t => t.anzahl >= 1 && t.von <= t.bis));
+    tlPlan.parts.every(t => t.anzahl >= 1 && t.von <= t.bis));
   pruefe('Die Fenster stossen aneinander und ueberlappen sich nicht',
-    tlPlan.teile.every((t, i) => i === 0 || t.von > tlPlan.teile[i - 1].bis),
-    JSON.stringify(tlPlan.teile.map(t => `${t.von}-${t.bis}`)));
+    tlPlan.parts.every((t, i) => i === 0 || t.von > tlPlan.parts[i - 1].bis),
+    JSON.stringify(tlPlan.parts.map(t => `${t.von}-${t.bis}`)));
   pruefe('Und zusammen decken sie jeden Eintrag genau einmal',
-    tlPlan.teile.reduce((n, t) => n + t.anzahl, 0) === 6,
-    String(tlPlan.teile.reduce((n, t) => n + t.anzahl, 0)));
+    tlPlan.parts.reduce((n, t) => n + t.anzahl, 0) === 6,
+    String(tlPlan.parts.reduce((n, t) => n + t.anzahl, 0)));
   pruefe('Die Teile sind durchnummeriert, bei eins beginnend',
-    tlPlan.teile.every((t, i) => t.nr === i + 1), JSON.stringify(tlPlan.teile.map(t => t.nr)));
+    tlPlan.parts.every((t, i) => t.nr === i + 1), JSON.stringify(tlPlan.parts.map(t => t.nr)));
   /* DER ZIELWERT LAESST SICH KLEINER STELLEN, ABER NICHT GROESSER: oberhalb
      des Warnwerts baute die Instanz Teile, vor denen sie im selben Atemzug
      warnt. Beide Richtungen einzeln, sonst belegte die eine die andere nicht. */
   pruefe('Ein zu grosser Zielwert wird auf den Warnwert gedeckelt',
-    (await tlPlanRuf('&target=999999999')).inhalt.zielGroesse === tlPlan.vorgabe,
+    (await tlPlanRuf('&target=999999999')).inhalt.zielGroesse === tlPlan.fallback,
     JSON.stringify((await tlPlanRuf('&target=999999999')).inhalt.zielGroesse));
   pruefe('Und ein zu kleiner auf das kleinste zulaessige Mass',
     (await tlPlanRuf('&target=1')).inhalt.zielGroesse === tlPlan.kleinstes,
     JSON.stringify((await tlPlanRuf('&target=1')).inhalt.zielGroesse));
   pruefe('Ohne Angabe gilt der Warnwert',
-    (await tlPlanRuf()).inhalt.zielGroesse === tlPlan.vorgabe);
+    (await tlPlanRuf()).inhalt.zielGroesse === tlPlan.fallback);
   // Ein groesserer Zielwert ergibt weniger Teile -- sonst schnitte der Plan
   // nach etwas anderem als der Groesse.
   pruefe('Ein groesserer Zielwert ergibt weniger Teile',
-    (await tlPlanRuf()).inhalt.teile.length < tlPlan.teile.length,
-    `${(await tlPlanRuf()).inhalt.teile.length} gegen ${tlPlan.teile.length}`);
+    (await tlPlanRuf()).inhalt.parts.length < tlPlan.parts.length,
+    `${(await tlPlanRuf()).inhalt.parts.length} gegen ${tlPlan.parts.length}`);
   /* DER PLAN VERLAESST DAS HAUS NICHT und braucht deshalb keine zweite
      Bestaetigung -- die steht an den Teilen selbst. Er bleibt aber am
      Eigentuemer: er nennt Titel und Groessen. */
@@ -35671,7 +35671,7 @@ async function pruefeOberflaeche() {
     (await tlPlanRuf()).status === 200);
 
   /* --- Das Fenster am Export --- */
-  const tlN = tlPlan.teile.length;
+  const tlN = tlPlan.parts.length;
   const tlAdresse = (t) =>
     `/api/export?${tlSchalter}&von=${t.von}&bis=${t.bis}&teil=${t.nr}&teile=${tlN}`;
   /* EINE HALBE ANGABE IST EIN FEHLER UND KEIN VOLLEXPORT: wer `von` schickt
@@ -35690,19 +35690,19 @@ async function pruefeOberflaeche() {
      geworden. */
   await tlFrei(tlA, 'export', 1);
   pruefe('Eine Freigabe fuer Teil 1 laesst Teil 2 nicht durch',
-    (await tlA.ruf('GET', tlAdresse({ ...tlPlan.teile[1], nr: 2 }))).status === 403);
+    (await tlA.ruf('GET', tlAdresse({ ...tlPlan.parts[1], nr: 2 }))).status === 403);
   await tlFrei(tlA, 'export', 1);
-  const tlEins = await tlA.ruf('GET', tlAdresse(tlPlan.teile[0]));
+  const tlEins = await tlA.ruf('GET', tlAdresse(tlPlan.parts[0]));
   pruefe('Mit der eigenen Freigabe geht der Teil durch', tlEins.status === 200,
     `${tlEins.status}`);
   pruefe('Und sie ist danach verbraucht',
-    (await tlA.ruf('GET', tlAdresse(tlPlan.teile[0]))).status === 403);
+    (await tlA.ruf('GET', tlAdresse(tlPlan.parts[0]))).status === 403);
   pruefe('Ohne Freigabe geht auch der volle Export nicht',
     (await tlA.ruf('GET', `/api/export?${tlSchalter}`)).status === 403);
 
   /* --- Jeder Teil ist eine vollstaendige Exportdatei --- */
   const tlDateien = [];
-  for (const t of tlPlan.teile) {
+  for (const t of tlPlan.parts) {
     await tlFrei(tlA, 'export', t.nr);
     const a = await fetch(`${tlA.basis}${tlAdresse(t)}`, { headers: { cookie: tlA.cookieWert() } });
     tlDateien.push({ kopf: a.headers.get('content-disposition') || '', text: await a.text() });
@@ -35729,9 +35729,9 @@ async function pruefeOberflaeche() {
   // Und die Schaetzung war keine Erfindung: die wirkliche Datei liegt in der
   // Naehe der angesagten Groesse und ueber ihr nicht.
   pruefe('Die angesagte Groesse trifft die wirkliche',
-    tlDateien.every((d, i) => d.text.length <= tlPlan.teile[i].bytes * 1.1
-                           && d.text.length >= tlPlan.teile[i].bytes * 0.7),
-    tlDateien.map((d, i) => `${d.text.length}/${tlPlan.teile[i].bytes}`).join(' '));
+    tlDateien.every((d, i) => d.text.length <= tlPlan.parts[i].bytes * 1.1
+                           && d.text.length >= tlPlan.parts[i].bytes * 0.7),
+    tlDateien.map((d, i) => `${d.text.length}/${tlPlan.parts[i].bytes}`).join(' '));
   pruefe('Und kein Teil reisst die Grenze, an der es kippt',
     tlDateien.every(d => d.text.length < tlPlan.string), JSON.stringify(tlPlan.string));
 
@@ -35802,8 +35802,8 @@ async function pruefeOberflaeche() {
       (p2.zuGross || []).length === 1 && p2.zuGross[0].title === 'Der Riese',
       JSON.stringify(p2.zuGross));
     pruefe('Und er steckt in keinem Teil',
-      p2.teile.every(t => t.bis < it.lastInsertRowid || t.von > it.lastInsertRowid),
-      JSON.stringify(p2.teile.map(t => `${t.von}-${t.bis}`)) + ` Riese ${it.lastInsertRowid}`);
+      p2.parts.every(t => t.bis < it.lastInsertRowid || t.von > it.lastInsertRowid),
+      JSON.stringify(p2.parts.map(t => `${t.von}-${t.bis}`)) + ` Riese ${it.lastInsertRowid}`);
     // Ohne die Dateien ist er klein genug -- der Hinweis an der Karte sagt
     // genau das, und ohne diese Zeile waere er eine Behauptung.
     const p3 = (await tlA.ruf('GET', '/api/export/plan?photos=1&target=1048576')).inhalt;
@@ -35876,14 +35876,14 @@ async function pruefeOberflaeche() {
     };
 
     await tzRuhig();
-    const tzStart = await tzS.ruf('POST', '/api/two-factor/start', { passwort: TZ_WORT });
+    const tzStart = await tzS.ruf('POST', '/api/two-factor/start', { password: TZ_WORT });
     // Auffangnetz (Stolperstein 138): gibt /start kein Geheimnis her, laeuft
     // alles Weitere trotzdem durch -- mit einem Wert, der zuverlaessig nicht
     // traegt, statt dass der Lauf hier abreisst.
     const tzGeheim = (tzStart.inhalt && tzStart.inhalt.secret) || 'A'.repeat(32);
     const tzZaehler = ZF2.nowStep();
     const tzAn = await tzS.ruf('POST', '/api/two-factor/on',
-      { passwort: TZ_WORT, code: ZF2.code(tzGeheim, tzZaehler) });
+      { password: TZ_WORT, code: ZF2.code(tzGeheim, tzZaehler) });
     // DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT -- das ist die Zusage "ein
     // Code gilt genau einmal" an ihrer ersten Anwendung.
     tzVerbraucht = tzZaehler;
@@ -35894,7 +35894,7 @@ async function pruefeOberflaeche() {
       tzAn.status === 200 && tzAn.inhalt?.an === true, JSON.stringify(tzAn.inhalt));
     const tzEinst = await tzS.ruf('GET', '/api/settings');
     pruefe('Und der Server sagt der Oberflaeche, dass ein Code dazugehoert',
-      tzEinst.inhalt?.zweifaktor === true, JSON.stringify(tzEinst.inhalt?.zweifaktor));
+      tzEinst.inhalt?.twoFactor === true, JSON.stringify(tzEinst.inhalt?.twoFactor));
 
     /* DER BESTAND MUSS BYTES TRAGEN, sonst gibt es nichts zu schneiden --
        dieselbe Bauform wie in der Gruppe darueber: Anhaenge gehen als Bytes
@@ -35909,7 +35909,7 @@ async function pruefeOberflaeche() {
     }
     const tzSchalter = 'photos=1&files=1&videos=1';
     const tzPlan = (await tzS.ruf('GET', `/api/export/plan?${tzSchalter}&target=1048576`)).inhalt;
-    const tzTeile = tzPlan?.teile || [];
+    const tzTeile = tzPlan?.parts || [];
     /* MEHR ALS EIN TEIL IST DIE BEDINGUNG DIESER GRUPPE. Bei einem einzigen
        bliebe jede Zeile darunter gruen, ohne etwas zu belegen: der Fehler
        beginnt beim zweiten Aufruf (Stolperstein 189, dieselbe Lehre). */
@@ -35928,14 +35928,14 @@ async function pruefeOberflaeche() {
        Behauptung ueber etwas, das es gar nicht gibt. */
     const tzCodeA = await tzCode();
     const tzEinzeln1 = await tzS.ruf('POST', '/api/confirm',
-      { passwort: TZ_WORT, purpose: 'export', target: tzTeile[0]?.nr ?? 1, code: tzCodeA });
+      { password: TZ_WORT, purpose: 'export', target: tzTeile[0]?.nr ?? 1, code: tzCodeA });
     const tzEinzeln2 = await tzS.ruf('POST', '/api/confirm',
-      { passwort: TZ_WORT, purpose: 'export', target: tzTeile[1]?.nr ?? 2, code: tzCodeA });
+      { password: TZ_WORT, purpose: 'export', target: tzTeile[1]?.nr ?? 2, code: tzCodeA });
     pruefe('Derselbe Code ein zweites Mal traegt nicht — ein Code gilt genau einmal',
       tzEinzeln1.status === 200 && tzEinzeln2.status === 403,
       `${tzEinzeln1.status} / ${tzEinzeln2.status}`);
     pruefe('Und die Absage ist die des zweiten Faktors, nicht die des Passworts',
-      tzEinzeln2.inhalt?.zweifaktor === true, JSON.stringify(tzEinzeln2.inhalt));
+      tzEinzeln2.inhalt?.twoFactor === true, JSON.stringify(tzEinzeln2.inhalt));
 
     /* --- Und so geht es seit 0.13.0: EINE Anfrage fuer alle Teile --- */
     // Der Fehlschlag darueber hat eine Zeile geschrieben. Gezaehlt wird
@@ -35954,9 +35954,9 @@ async function pruefeOberflaeche() {
     const tzCodeB = await tzCode();
     pruefe('Eine unbrauchbare Bestellung wird abgewiesen, bevor der Code geprueft wird',
       (await tzS.ruf('POST', '/api/confirm',
-        { passwort: TZ_WORT, purpose: 'export', ziele: [1, 1], code: tzCodeB })).status === 400);
+        { password: TZ_WORT, purpose: 'export', ziele: [1, 1], code: tzCodeB })).status === 400);
     const tzAlle = await tzS.ruf('POST', '/api/confirm',
-      { passwort: TZ_WORT, purpose: 'export', ziele: tzTeile.map(t => t.nr), code: tzCodeB });
+      { password: TZ_WORT, purpose: 'export', ziele: tzTeile.map(t => t.nr), code: tzCodeB });
     pruefe('Eine Anfrage mit allen Teilnummern und EINEM Code wird angenommen',
       tzAlle.status === 200 && tzAlle.inhalt?.ok === true,
       `${tzAlle.status} · ${JSON.stringify(tzAlle.inhalt)}`);
@@ -36006,7 +36006,7 @@ async function pruefeOberflaeche() {
        403, und die Zeile bleibt rot -- sie kann nicht aus Versehen gruen
        werden (Befund B aus 0.12.0: kein Massstab vom Prueflling). */
     const tzGrenze = (rumpf) => tzS.ruf('POST', '/api/confirm',
-      { passwort: TZ_WORT, purpose: 'export', code: TZ_KEIN_CODE, ...rumpf });
+      { password: TZ_WORT, purpose: 'export', code: TZ_KEIN_CODE, ...rumpf });
     pruefe('Doppelte Nummern sind ein Fehler und keine halbierte Bestellung',
       (await tzGrenze({ ziele: [1, 2, 2] })).status === 400);
     pruefe('Zehntausend Freigaben auf einmal gehen nicht durch',
@@ -36671,9 +36671,9 @@ async function pruefeOberflaeche() {
      braucht beide Lagen -- mit mehreren Zugaengen steht der Name in der
      Aussage, mit einem einzigen nicht. Vorgabe drei, weil das der Regelfall
      dieser Gruppe ist. */
-  const amLage = async (ablehnung, benutzerZahl = 3) => {
+  const amLage = async (ablehnung, userCount = 3) => {
     const d = baueDom(JSDOM, { hash: '#/item/1', ablehnung,
-      einstellungen: { filters: null, benutzerZahl } });
+      einstellungen: { filters: null, userCount } });
     await new Promise(r => setTimeout(r, 80));
     return d;
   };
@@ -36701,8 +36701,8 @@ async function pruefeOberflaeche() {
 
   // --- Vollstaendig: Datum, Verfasser und Grund ---
   {
-    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Lieferzeit über 6 Monate',
-      verfasser: { id: 2, name: 'Anna', geloescht: false } });
+    const d = await amLage({ at: '2026-03-14 09:12:00', reason: 'Lieferzeit über 6 Monate',
+      verfasser: { id: 2, name: 'Anna', deleted: false } });
     pruefe('Die Marke wird zur Aussage: wann, von wem und warum',
       amSatz(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate',
       JSON.stringify(amSatz(d)?.textContent));
@@ -36724,8 +36724,8 @@ async function pruefeOberflaeche() {
 
   // --- Der Grabstein: die Nummer, nie der freigegebene Name ---
   {
-    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
-      verfasser: { id: 4, name: null, geloescht: true } });
+    const d = await amLage({ at: '2026-03-14 09:12:00', reason: 'Zu teuer',
+      verfasser: { id: 4, name: null, deleted: true } });
     pruefe('Am Grabstein steht kein Name, sondern die Nummer',
       /von Gelöschter Benutzer 4 —/.test(amSatz(d)?.textContent || ''),
       JSON.stringify(amSatz(d)?.textContent));
@@ -36734,7 +36734,7 @@ async function pruefeOberflaeche() {
 
   // --- Der Bestand aus 0.13.2: abgelehnt, aber ohne Datum und ohne Namen ---
   {
-    const d = await amLage({ at: null, grund: 'Nachgetragen ohne Datum', verfasser: null });
+    const d = await amLage({ at: null, reason: 'Nachgetragen ohne Datum', verfasser: null });
     pruefe('Fehlt beides, steht der Grund allein da',
       amSatz(d)?.textContent === 'Nachgetragen ohne Datum' && amText(d)?.hidden === false,
       JSON.stringify(amSatz(d)?.textContent));
@@ -36745,15 +36745,15 @@ async function pruefeOberflaeche() {
 
   // --- Gar nichts bekannt: die Zeile bleibt weg ---
   {
-    const d = await amLage({ at: null, grund: null, verfasser: null });
+    const d = await amLage({ at: null, reason: null, verfasser: null });
     /* SIE BLEIBT NUR WEG, WENN AUCH KEIN ZEICHEN DASTEHT. Ohne Datum, ohne
        Namen und ohne Grund gaebe es sonst nur "Abgelehnt" -- dasselbe, was
        der Schalter darueber schon sagt. Wer schreiben darf, sieht seit
        0.15.0 trotzdem das ✎: sonst gaebe es gar keinen Weg mehr in das Feld.
-       Hier darf niemand: der Eintrag gehoert bert, und istAdmin steht aus. */
+       Hier darf niemand: der Eintrag gehoert bert, und isAdmin steht aus. */
     const dOhne = baueDom(JSDOM, { hash: '#/item/1',
-      ablehnung: { at: null, grund: null, verfasser: null },
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+      ablehnung: { at: null, reason: null, verfasser: null },
+      einstellungen: { filters: null, userCount: 3, isAdmin: false } });
     await new Promise(r => setTimeout(r, 80));
     pruefe('Ist gar nichts bekannt und darf niemand schreiben, bleibt die Zeile weg',
       amText(dOhne)?.hidden === true,
@@ -36773,8 +36773,8 @@ async function pruefeOberflaeche() {
      weg, verliert eine Instanz mit einem Zugang genau das, wofuer diese Runde
      gebaut ist. */
   {
-    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
-      verfasser: { id: 2, name: 'Anna', geloescht: false } }, 1);
+    const d = await amLage({ at: '2026-03-14 09:12:00', reason: 'Zu teuer',
+      verfasser: { id: 2, name: 'Anna', deleted: false } }, 1);
     pruefe('Bei einem einzigen Zugang steht der Name nicht dabei',
       amSatz(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 — Zu teuer',
       JSON.stringify(amSatz(d)?.textContent));
@@ -36785,8 +36785,8 @@ async function pruefeOberflaeche() {
       amZeile(d)?.hidden === true, JSON.stringify(amZeile(d)?.hidden));
     /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: dieselbe Ablage
        mit mehreren Zugaengen NENNT den Namen. */
-    const m = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
-      verfasser: { id: 2, name: 'Anna', geloescht: false } }, 3);
+    const m = await amLage({ at: '2026-03-14 09:12:00', reason: 'Zu teuer',
+      verfasser: { id: 2, name: 'Anna', deleted: false } }, 3);
     pruefe('Und mit mehreren Zugaengen steht er sehr wohl dabei',
       amSatz(m)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Zu teuer',
       JSON.stringify(amSatz(m)?.textContent));
@@ -36795,7 +36795,7 @@ async function pruefeOberflaeche() {
 
   // --- Freier Text bleibt Text: der Grund wird gesetzt, nicht gebaut ---
   {
-    const d = await amLage({ at: null, grund: 'Kaputt <b id="boese-grund">X</b>', verfasser: null });
+    const d = await amLage({ at: null, reason: 'Kaputt <b id="boese-grund">X</b>', verfasser: null });
     pruefe('Der Grund wird als Text gesetzt und nicht als Aufbau gelesen',
       !d.w.document.getElementById('boese-grund') &&
       /<b id=/.test(amSatz(d)?.textContent || ''), amText(d)?.innerHTML);
@@ -36805,8 +36805,8 @@ async function pruefeOberflaeche() {
   /* --- UND JETZT WIRKLICH DRAUFDRUECKEN. Ein gebauter DOM zeigt nicht, was
      beim Klicken hinausgeht. --- */
   {
-    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Alte Begründung',
-      verfasser: { id: 2, name: 'Anna', geloescht: false } });
+    const d = await amLage({ at: '2026-03-14 09:12:00', reason: 'Alte Begründung',
+      verfasser: { id: 2, name: 'Anna', deleted: false } });
     const w = d.w;
     const knopf = w.document.getElementById('sw-rej');
     // Ausschalten: NUR das Merkmal geht hinaus, die Angaben bleiben.
@@ -36827,7 +36827,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 40));
     const einRumpf = d.gesendet.filter(x => x.methode === 'PUT' && x.url === '/api/items/1').pop();
     pruefe('Ein Einschalten nimmt die alte Begruendung als Vorschlag mit',
-      einRumpf?.koerper?.rejected === true && einRumpf?.koerper?.rejectedGrund === 'Alte Begründung',
+      einRumpf?.koerper?.rejected === true && einRumpf?.koerper?.rejectedReason === 'Alte Begründung',
       JSON.stringify(einRumpf?.koerper));
     /* SEIT 0.15.1 STEHT SIE DANACH IN DER AUSSAGE UND NICHT IM FELD. Das Feld
        ist nur offen, solange KEIN Grund dasteht -- und hier steht einer. Die
@@ -36848,8 +36848,8 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 40));
     const grundRumpf = d.gesendet.filter(x => x.methode === 'PUT' && x.url === '/api/items/1').pop();
     pruefe('Der getippte Grund geht beim Verlassen des Feldes hinaus',
-      d.gesendet.length > vorher && gleich(Object.keys(grundRumpf?.koerper || {}), ['rejectedGrund']) &&
-      grundRumpf?.koerper?.rejectedGrund === 'Preis zu hoch', JSON.stringify(grundRumpf?.koerper));
+      d.gesendet.length > vorher && gleich(Object.keys(grundRumpf?.koerper || {}), ['rejectedReason']) &&
+      grundRumpf?.koerper?.rejectedReason === 'Preis zu hoch', JSON.stringify(grundRumpf?.koerper));
     pruefe('Und die Marke sagt danach den neuen Satz',
       /— Preis zu hoch$/.test(amSatz(d)?.textContent || ''), JSON.stringify(amSatz(d)?.textContent));
     /* UNVERAENDERT WIRD NICHT GESCHICKT: sonst schoebe jedes Anklicken den
@@ -36869,7 +36869,7 @@ async function pruefeOberflaeche() {
      an den Eintrag und nicht in eine Kachelreihe; wer ihn dort hineinschreibt,
      baut eine zweite Anzeige derselben Sache. --- */
   {
-    const d = baueDom(JSDOM, { hash: '#/', einstellungen: { filters: null, benutzerZahl: 3 },
+    const d = baueDom(JSDOM, { hash: '#/', einstellungen: { filters: null, userCount: 3 },
       uebersichtItems: [{ id: 1, title: 'Beispiel', rejected: true, tested: false, favorite: false,
         category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
         testCount: 0, testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00' }] });
@@ -36908,7 +36908,7 @@ async function pruefeOberflaeche() {
      sind alle Zahlen gleich lang, kann sie den Fehler gar nicht tragen
      (Stolperstein 189). */
   const slDom = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    einstellungen: { filters: null, userCount: 3, isAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
   const slDoc = slDom.w.document;
   const slKasten = slDoc.getElementById('ratings');
@@ -37072,7 +37072,7 @@ async function pruefeOberflaeche() {
 
   {
     const szDom = baueDom(JSDOM, { hash: '#/item/1',
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const szDoc = szDom.w.document;
     const szZeilen = [...szDoc.querySelectorAll('#ratings .rrow')];
@@ -37082,7 +37082,7 @@ async function pruefeOberflaeche() {
        Mocks gibt allen dreien den eigenen Wert 3; die dritte wird hier
        ausdruecklich auf 0 gestellt. */
     const szNull = baueDom(JSDOM, { hash: '#/item/1', eigeneWerte: [3, 3, 0],
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const szNullZeilen = [...szNull.w.document.querySelectorAll('#ratings .rrow')];
 
@@ -37216,7 +37216,7 @@ async function pruefeOberflaeche() {
        (Stolperstein 81). */
     const zkGetestet = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
       stimmspalten: [{ avg: 3.4, count: 5 }, { avg: 4.1, count: 128 }, { avg: 4.2, count: 2 }],
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const zkDoc = zkGetestet.w.document;
 
@@ -37345,7 +37345,7 @@ async function pruefeOberflaeche() {
     const zkIdee = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
       eigeneWerte: [0, 0, 4], stimmspalten: [{ avg: null, count: 0 }, { avg: null, count: 0 }, { avg: 4.2, count: 2 }],
       ungetestet: true,
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const zkIdeeZu = (name) => zkIdee.w.document
       .querySelector(`.block[data-block="${name}"]`)?.classList.contains('closed');
@@ -37396,7 +37396,7 @@ async function pruefeOberflaeche() {
        es eingetragen hat. */
     const zkAlt = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
       eigeneWerte: [4, 0, 4], ungetestet: true,
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     pruefe('Eine Idee MIT Bewertungssternen zeigt sie trotzdem',
       zkAlt.w.document.querySelector('.block[data-block="bewertung"]')
@@ -37421,7 +37421,7 @@ async function pruefeOberflaeche() {
        Vorher-Kriterium, das niemand eingeschaetzt hat. */
     const zkLeer = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
       potenzialWert: null, eigeneWerte: [4, 4, 0],
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const zkLeerDoc = zkLeer.w.document;
     pruefe('Die Prueflage steht: der Potenzialkasten ist zu und hat keine Zahl',
@@ -37460,14 +37460,14 @@ async function pruefeOberflaeche() {
         { criterion_id: 8, name: 'Dann', value: 0, weight: 1, phase: 'after', avg: null, count: 0 },
         { criterion_id: 9, name: 'Zuletzt', value: 0, weight: 0.5, phase: 'before', avg: null, count: 0 }
       ],
-      avgRating: null, potenzialRating: null, testCount: 0, testAvg: null, testLast: null,
+      avgRating: null, potentialRating: null, testCount: 0, testAvg: null, testLast: null,
       created_at: '2026-08-01 09:00:00', updated_at: '2026-08-01 09:00:00'
     };
     const zkWechsel = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
       eigeneWerte: [0, 0, 0],
       stimmspalten: [{ avg: null, count: 0 }, { avg: null, count: 0 }, { avg: null, count: 0 }],
       ungetestet: true, zweiterEintrag: zkZweit,
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const zkWZu = (name) => zkWechsel.w.document
       .querySelector(`.block[data-block="${name}"]`)?.classList.contains('closed');
@@ -37501,7 +37501,7 @@ async function pruefeOberflaeche() {
        GEBAUT WIRD DIE LAGE, DIE IHN SICHTBAR MACHT: zwei Kriterien im einen
        Kasten, eines im anderen. Erst dann sagt „nur seine Zeilen" etwas. */
     const zkSys = baueDom(JSDOM, { hash: '', kriterienPhasen: zkPhasen,
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     await sysAbschnitt(zkSys.w, 'inventory');
     const zkKartenNamen = (id) => [...(zkSys.w.document.getElementById(id)
@@ -37560,7 +37560,7 @@ async function pruefeOberflaeche() {
        „ERWARTUNG" IST DAS WORT AUS DEM KONZEPT und nicht irgendeines: der
        Betreiber, der es umstellt, stellt es vermutlich genau darauf um. */
     const zkWort = baueDom(JSDOM, { hash: '#/item/1', kriterienPhasen: zkPhasen,
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true,
+      einstellungen: { filters: null, userCount: 3, isAdmin: true,
                        vocabulary: { potenzial: 'Erwartung' } } });
     await new Promise(r => setTimeout(r, 80));
     const zkKopf = zkWort.w.document
@@ -37582,17 +37582,17 @@ async function pruefeOberflaeche() {
     /* --- Die Kachel --- */
     const zkKarten = [
       { id: 1, title: 'Geprueft', rejected: false, tested: true, favorite: false, category: null,
-        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3.8, potenzialRating: 4.2,
+        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3.8, potentialRating: 4.2,
         testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00' },
       { id: 2, title: 'Idee', rejected: false, tested: false, favorite: false, category: null,
-        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potenzialRating: 4.2,
+        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potentialRating: 4.2,
         testCount: 0, testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00' },
       { id: 3, title: 'Blanko', rejected: false, tested: false, favorite: false, category: null,
-        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potenzialRating: null,
+        tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potentialRating: null,
         testCount: 0, testAvg: null, testLast: null, updated_at: '2026-07-31 10:00:00' }
     ];
     const zkUeb = baueDom(JSDOM, { hash: '', uebersichtItems: zkKarten,
-      einstellungen: { filters: null, benutzerZahl: 3 } });
+      einstellungen: { filters: null, userCount: 3 } });
     await new Promise(r => setTimeout(r, 120));
     const zkKachel = (n) => [...zkUeb.w.document.querySelectorAll('.card')][n];
     const zkZahl = (n) => zkKachel(n)?.querySelector('.rating-inline')?.textContent.trim()
@@ -37725,7 +37725,7 @@ async function pruefeOberflaeche() {
 
   for (const [wieViele, wort] of [[3, 'mehreren Zugaengen'], [1, 'einem einzigen Zugang']]) {
     const rz = baueDom(JSDOM, { hash: '#/item/1',
-      einstellungen: { filters: null, benutzerZahl: wieViele, istAdmin: true } });
+      einstellungen: { filters: null, userCount: wieViele, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const rzKasten = rz.w.document.getElementById('ratings');
     const rzZeilen = [...(rzKasten?.querySelectorAll('.rrow') || [])];
@@ -37822,17 +37822,17 @@ async function pruefeOberflaeche() {
      gezaehlt und nicht ueber einen Ausdruck: eine Medienabfrage enthaelt
      selbst Klammerpaare. */
   const ohneMedien = (() => {
-    const roh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const raw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     let raus = '', i = 0;
-    while (i < roh.length) {
-      const a = roh.indexOf('@media', i);
-      if (a < 0) { raus += roh.slice(i); break; }
-      raus += roh.slice(i, a);
-      let j = roh.indexOf('{', a), tiefe = 0;
+    while (i < raw.length) {
+      const a = raw.indexOf('@media', i);
+      if (a < 0) { raus += raw.slice(i); break; }
+      raus += raw.slice(i, a);
+      let j = raw.indexOf('{', a), tiefe = 0;
       if (j < 0) break;
-      for (; j < roh.length; j++) {
-        if (roh[j] === '{') tiefe++;
-        else if (roh[j] === '}' && --tiefe === 0) { j++; break; }
+      for (; j < raw.length; j++) {
+        if (raw[j] === '{') tiefe++;
+        else if (raw[j] === '}' && --tiefe === 0) { j++; break; }
       }
       i = j;
     }
@@ -37879,7 +37879,7 @@ async function pruefeOberflaeche() {
      tragen, und die muessen wirklich nicht nachgeben. Sonst haette der Umbruch
      nichts, wovor er schuetzt. */
   {
-    const az = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true } });
+    const az = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4, isAdmin: true } });
     await new Promise(r => setTimeout(r, 60));
     await az.w.renderSystem();
     await new Promise(r => setTimeout(r, 60));
@@ -37947,11 +37947,11 @@ async function pruefeOberflaeche() {
      nichts ueber die anderen drei (Stolperstein 189). */
   gruppe('Das Feld steht nur, wo etwas fehlt — 0.15.1');
 
-  const fsBaue = async (abgelehnt, grund) => {
+  const fsBaue = async (abgelehnt, reason) => {
     const d = baueDom(JSDOM, { hash: '#/item/1',
-      ablehnung: abgelehnt ? { at: '2026-03-14 09:12:00', grund,
-        verfasser: { id: 1, name: 'chefin', geloescht: false } } : null,
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      ablehnung: abgelehnt ? { at: '2026-03-14 09:12:00', reason,
+        verfasser: { id: 1, name: 'chefin', deleted: false } } : null,
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     return d;
   };
@@ -37973,9 +37973,9 @@ async function pruefeOberflaeche() {
      bloss am fehlenden Text haenge und nicht am Merkmal. */
   {
     const d = baueDom(JSDOM, { hash: '#/item/1',
-      ablehnung: { at: '2026-03-14 09:12:00', grund: 'Ein Grund von frueher',
-                   verfasser: { id: 1, name: 'chefin', geloescht: false } },
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      ablehnung: { at: '2026-03-14 09:12:00', reason: 'Ein Grund von frueher',
+                   verfasser: { id: 1, name: 'chefin', deleted: false } },
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     // Das Merkmal zuruecknehmen -- Datum, Grund und Verfasser bleiben stehen.
     d.w.document.getElementById('sw-rej')
@@ -38028,9 +38028,9 @@ async function pruefeOberflaeche() {
      Eingabefeld da, dessen Inhalt der Server mit 403 abweist. --- */
   {
     const d = baueDom(JSDOM, { hash: '#/item/1',
-      ablehnung: { at: '2026-03-14 09:12:00', grund: null,
-                   verfasser: { id: 2, name: 'Anna', geloescht: false } },
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+      ablehnung: { at: '2026-03-14 09:12:00', reason: null,
+                   verfasser: { id: 2, name: 'Anna', deleted: false } },
+      einstellungen: { filters: null, userCount: 3, isAdmin: false } });
     await new Promise(r => setTimeout(r, 80));
     pruefe('Wer nicht schreiben darf, bekommt auch ohne Grund kein Feld',
       fsFeld(d)?.hidden === true, JSON.stringify(fsFeld(d)?.hidden));
@@ -38227,12 +38227,12 @@ async function pruefeOberflaeche() {
                        durchweg aus und belegte nichts.
      `vIch` ist die Fragende selbst (Nummer 1) -- daraus rechnet der Mock
      `rejectedMine`, so wie der echte Server. */
-  const ruhIch = { id: 1, name: 'chefin', geloescht: false };
-  const ruhAndere = { id: 2, name: 'Anna', geloescht: false };
-  const ruhBaue = async (verfasser, grund, { admin = true, eigner = false } = {}) => {
+  const ruhIch = { id: 1, name: 'chefin', deleted: false };
+  const ruhAndere = { id: 2, name: 'Anna', deleted: false };
+  const ruhBaue = async (verfasser, reason, { admin = true, eigner = false } = {}) => {
     const d = baueDom(JSDOM, { hash: '#/item/1', eintragMeins: eigner,
-      ablehnung: { at: '2026-03-14 09:12:00', grund, verfasser },
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: admin } });
+      ablehnung: { at: '2026-03-14 09:12:00', reason, verfasser },
+      einstellungen: { filters: null, userCount: 3, isAdmin: admin } });
     await new Promise(r => setTimeout(r, 80));
     return d;
   };
@@ -38313,8 +38313,8 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 60));
     const ruhGeschickt = d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/items/1').pop();
     pruefe('Enter schickt den neuen Grund und schliesst das Feld',
-      gleich(Object.keys(ruhGeschickt?.koerper || {}), ['rejectedGrund']) &&
-      ruhGeschickt?.koerper?.rejectedGrund === 'Zu laut' && ruhZeile(d)?.hidden === true,
+      gleich(Object.keys(ruhGeschickt?.koerper || {}), ['rejectedReason']) &&
+      ruhGeschickt?.koerper?.rejectedReason === 'Zu laut' && ruhZeile(d)?.hidden === true,
       JSON.stringify([ruhGeschickt?.koerper, ruhZeile(d)?.hidden]));
     pruefe('Und die Aussage sagt danach den neuen Satz',
       ruhWarum(d)?.textContent === 'Zu laut' && ruhMarke(d)?.hidden === false,
@@ -38350,8 +38350,8 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 60));
     const ruhWegRumpf = d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/items/1').pop();
     pruefe('Nach dem Ja geht ein leerer Grund hinaus, und sonst nichts',
-      gleich(Object.keys(ruhWegRumpf?.koerper || {}), ['rejectedGrund']) &&
-      ruhWegRumpf?.koerper?.rejectedGrund === '', JSON.stringify(ruhWegRumpf?.koerper));
+      gleich(Object.keys(ruhWegRumpf?.koerper || {}), ['rejectedReason']) &&
+      ruhWegRumpf?.koerper?.rejectedReason === '', JSON.stringify(ruhWegRumpf?.koerper));
     /* SEIT 0.15.1 TRITT DIE AUSSAGE DABEI ZURUECK, weil das Feld von selbst
        aufgeht: abgelehnt und kein Grund heisst offen. Der Grund ist weg, und
        das ist hier die Aussage der Zeile -- geprueft wird sie am naechsten
@@ -38474,7 +38474,7 @@ async function pruefeOberflaeche() {
      leer. Danach schliesst es sich. --- */
   {
     const d = baueDom(JSDOM, { hash: '#/item/1',
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     pruefe('Ohne Ablehnung steht das Feld zu Beginn nicht offen',
       ruhZeile(d)?.hidden === true, JSON.stringify(ruhZeile(d)?.hidden));
@@ -38588,7 +38588,7 @@ async function pruefeOberflaeche() {
 
   {
     const d = baueDom(JSDOM, {
-      einstellungen: { filters: null, istAdmin: true, istEigentuemer: true } });
+      einstellungen: { filters: null, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'database');
     const karten = [...d.w.document.querySelectorAll('.sys-grid > .sys-card')];
@@ -38939,7 +38939,7 @@ async function pruefeOberflaeche() {
      (Stolperstein 227). */
   {
     const d = baueDom(JSDOM, { hash: '#/item/1',
-      einstellungen: { filters: null, benutzerZahl: 1, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 1, isAdmin: true } });
     await new Promise(r => setTimeout(r, 90));
     const dok = d.w.document;
     /* ERST DIE LAGE SELBST: die Spalte hinter dem Kasten fehlt hier wirklich.
@@ -38982,10 +38982,10 @@ async function pruefeOberflaeche() {
      seine ABWESENHEIT und nicht mehr sein Dasein. Ohne einen Namen, von dem
      bekannt ist, dass er der eigene ist, liesse sich „er steht nicht darin"
      gar nicht pruefen. */
-  const glVon = { bert: { id: 2, name: 'bert', geloescht: false },
-                  carla: { id: 3, name: 'carla', geloescht: false },
-                  dora: { id: 4, name: 'dora', geloescht: false },
-                  ich: { id: 1, name: 'chefin', geloescht: false } };
+  const glVon = { bert: { id: 2, name: 'bert', deleted: false },
+                  carla: { id: 3, name: 'carla', deleted: false },
+                  dora: { id: 4, name: 'dora', deleted: false },
+                  ich: { id: 1, name: 'chefin', deleted: false } };
   /* JE EINTRAG ZWEI ZAHLEN UND EINE LISTE. Die beiden Zeilen sind bewusst
      UNGLEICH gebaut: die erste traegt beide Arten, die zweite nur eine -- ohne
      das liesse sich „bei einer Art steht auch nur eine Angabe da" gar nicht
@@ -38994,17 +38994,17 @@ async function pruefeOberflaeche() {
     { id: 1, title: 'Erster', rejected: false, tested: true, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
       testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-01 10:00:00',
-      offeneAufgaben: 2, neuKommentare: neu[0][0], neuBewertungen: neu[0][1],
-      neuVon: neu[0][2] || [] },
+      openTasks: 2, newComments: neu[0][0], newRatings: neu[0][1],
+      newFrom: neu[0][2] || [] },
     { id: 2, title: 'Zweiter', rejected: false, tested: true, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 4,
       testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00',
-      offeneAufgaben: 5, neuKommentare: neu[1][0], neuBewertungen: neu[1][1],
-      neuVon: neu[1][2] || [] }
+      openTasks: 5, newComments: neu[1][0], newRatings: neu[1][1],
+      newFrom: neu[1][2] || [] }
   ];
   const glBaue = async (neu, mehr = {}) => {
     const d = baueDom(JSDOM, { uebersichtItems: glBestand(neu),
-      einstellungen: { filters: null, benutzerZahl: 3,
+      einstellungen: { filters: null, userCount: 3,
         bellSeen: '2026-08-01 00:00:00', ...mehr } });
     await new Promise(r => setTimeout(r, 90));
     return d;
@@ -39204,8 +39204,8 @@ async function pruefeOberflaeche() {
     const leer = await glBaue([[0, 0, []], [0, 0, []]]);
     for (const it of [...leer.w.document.querySelectorAll('.card')]) it.remove();
     const ohneAufgaben = baueDom(JSDOM, {
-      uebersichtItems: glBestand([[0, 0, []], [0, 0, []]]).map(i => ({ ...i, offeneAufgaben: 0 })),
-      einstellungen: { filters: null, benutzerZahl: 3, bellSeen: '2026-08-01 00:00:00' } });
+      uebersichtItems: glBestand([[0, 0, []], [0, 0, []]]).map(i => ({ ...i, openTasks: 0 })),
+      einstellungen: { filters: null, userCount: 3, bellSeen: '2026-08-01 00:00:00' } });
     await new Promise(r => setTimeout(r, 90));
     pruefe('Ohne offene Aufgaben traegt der Knopf keine Zahl',
       ohneAufgaben.w.document.getElementById('open-count')?.hidden === true &&
@@ -39298,7 +39298,7 @@ async function pruefeOberflaeche() {
        DER KNOPF BLEIBT TROTZDEM STEHEN. Ein Bezugspunkt ist da, also gibt es
        die Glocke -- sie traegt nur keinen Punkt. Ohne diese Zeile liesse sich
        „still" von „gar nicht gebaut" nicht unterscheiden (Stolperstein 81). */
-    const d = await glBaue([[0, 0, []], [0, 0, []]], { benutzerZahl: 1 });
+    const d = await glBaue([[0, 0, []], [0, 0, []]], { userCount: 1 });
     const dok = d.w.document;
     pruefe('Auch bei einem einzigen Zugang steht die Glocke da',
       !!dok.getElementById('bell'), 'keine Glocke bei einem Zugang');
@@ -39440,7 +39440,7 @@ async function pruefeOberflaeche() {
      dasteht, bestuende sie genauso (Stolperstein 81 und 189). */
   const zt = async (signup) => {
     const d = baueDom(JSDOM, { signup,
-      einstellungen: { filters: null, benutzerZahl: 4, istAdmin: false, istEigentuemer: false } });
+      einstellungen: { filters: null, userCount: 4, isAdmin: false, isOwner: false } });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'personal');
     return d;
@@ -39512,9 +39512,9 @@ async function pruefeOberflaeche() {
        der jetzt gilt -- und nicht den von vorhin. Ohne diese Lage bliebe der
        Merker eine Behauptung im Kommentar (Stolperstein 199). */
     const d = baueDom(JSDOM, { signup: false,
-      anfragenStand: { an: false, versandBereit: true, versandGrund: '', deckel: 20,
-                       stunden: 24, anfragen: [] },
-      einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+      anfragenStand: { an: false, deliveryReady: true, deliveryReason: '', cap: 20,
+                       stunden: 24, requests: [] },
+      einstellungen: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'personal');
     const marke = () => d.w.document.getElementById('acc-mail')
@@ -39737,10 +39737,10 @@ async function pruefeOberflaeche() {
        Regel etwas verschluckt. */
     const khSitzungen = Array.from({ length: 10 }, (_, n) => ({
       kennung: String.fromCharCode(97 + n).repeat(64),
-      angemeldetAm: '2026-08-20 08:00:00', zuletztGesehen: '2026-08-24 07:30:00',
+      loggedInAt: '2026-08-20 08:00:00', lastSeen: '2026-08-24 07:30:00',
       diese: n === 0 }));
     const d = baueDom(JSDOM, { sitzungenBestand: khSitzungen,
-      einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+      einstellungen: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     await sysAbschnitt(d.w, 'personal');
     const reihen = [...d.w.document.querySelectorAll('#msessions .mrow.session')];
@@ -39821,7 +39821,7 @@ async function pruefeOberflaeche() {
      oben. */
   for (const alteAdresse of ['anlage', 'instanz', 'scheune']) {
     const d = baueDom(JSDOM,
-      { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+      { einstellungen: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     d.w.history.replaceState(null, '', `#/system/${alteAdresse}`);
     await d.w.renderSystem();
@@ -39835,24 +39835,24 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
   {
-    const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     /* DIE TAFEL IST WEG, UND ZWAR GANZ -- kein Rest, der beim naechsten Lesen
        wie ein vergessener Zweig aussieht. */
     pruefe('Die Tafel der alten Abschnittsadressen gibt es nicht mehr',
-      !/const SYS_ALTE_ABSCHNITTE/.test(quelle),
-      (quelle.match(/const SYS_ALTE_ABSCHNITTE[^\n]*/) || ['(keine Tafel — richtig)'])[0]);
+      !/const SYS_ALTE_ABSCHNITTE/.test(source),
+      (source.match(/const SYS_ALTE_ABSCHNITTE[^\n]*/) || ['(keine Tafel — richtig)'])[0]);
     /* UND DER GRUND STEHT DA. Was aufgehoben wird, wird mit dem Grund
        hingeschrieben und nicht geloescht (Stolperstein 201) -- sonst baut es
        beim naechsten Mal jemand wieder ein. */
     pruefe('Und der Grund fuer den Abbau steht im Quelltext daneben',
-      /UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0\.19\.2 ABGEBAUT WORDEN/.test(quelle),
+      /UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0\.19\.2 ABGEBAUT WORDEN/.test(source),
       'die Begruendung fehlt');
     /* DER RUECKFALL SELBST IST EINE ZEILE OHNE TAFEL. Ohne diese Zusage bliebe
        gruen, wer die Tafel durch ein `if` ersetzt -- und genau davor warnt der
        Kommentar dort. */
     pruefe('Und die Adresse wird ohne Umweg gelesen',
-      /const gewuenscht = fromAddress;/.test(quelle),
-      (quelle.match(/const gewuenscht = [^\n]*/) || ['(nicht gefunden)'])[0]);
+      /const gewuenscht = fromAddress;/.test(source),
+      (source.match(/const gewuenscht = [^\n]*/) || ['(nicht gefunden)'])[0]);
   }
   {
     /* DER WAECHTER UEBER DAS WORT SELBST. „Ueberall" laesst sich nur so
@@ -39883,8 +39883,8 @@ async function pruefeOberflaeche() {
       'public/app.js': ['Anlage', 'anlage', 'Anlage', 'anlage']
     };
     const gefunden = {};
-    for (const datei of ausgeliefert)
-      gefunden[datei] = fs.readFileSync(path.join(__dirname, ...datei.split('/')), 'utf8')
+    for (const file of ausgeliefert)
+      gefunden[file] = fs.readFileSync(path.join(__dirname, ...file.split('/')), 'utf8')
         .match(/[A-Za-zÄÖÜäöüß]*[Aa]nlage[A-Za-zÄÖÜäöüß]*/g) || [];
     const uebrig = ausgeliefert.filter(d => !gleich(gefunden[d], ERLAUBT[d] || []));
     pruefe('Das Wort „Anlage" steht nur noch, wo es ausdruecklich stehenbleibt',
@@ -39951,8 +39951,8 @@ async function pruefeOberflaeche() {
         return raus;
       }).join('\n');
     };
-    const bildschirmzeilen = (datei) => ohneJedenKommentar(
-      fs.readFileSync(path.join(__dirname, ...datei.split('/')), 'utf8'))
+    const bildschirmzeilen = (file) => ohneJedenKommentar(
+      fs.readFileSync(path.join(__dirname, ...file.split('/')), 'utf8'))
       .split('\n').map((z, i) => [i + 1, z]).filter(([, z]) => z.includes('Instanz'));
 
     const iApp = bildschirmzeilen('public/app.js');
@@ -40005,9 +40005,9 @@ async function pruefeOberflaeche() {
      STILBLATT und dass die Zeile wirklich beide Angaben traegt -- die
      Ausrichtung selbst rechnet jsdom nicht. */
   {
-    const zeit = (ohneMedien.match(/\.mrow\.session \.session-time \{[^}]*\}/g) || []);
-    pruefe('Es gibt ueberhaupt Regeln fuer die Zeitangaben', zeit.length > 0, '(keine Regel)');
-    const zAlle = zeit.join(' ');
+    const time = (ohneMedien.match(/\.mrow\.session \.session-time \{[^}]*\}/g) || []);
+    pruefe('Es gibt ueberhaupt Regeln fuer die Zeitangaben', time.length > 0, '(keine Regel)');
+    const zAlle = time.join(' ');
     pruefe('Beide Zeitangaben stehen ueber die ganze Breite, also untereinander',
       /grid-column: 1 \/ -1/.test(zAlle), zAlle || '(keine Regel)');
     pruefe('Und sie stehen rechtsbuendig',
@@ -40217,7 +40217,7 @@ async function pruefeOberflaeche() {
        einer Stimme waere eine Luege ueber die eigene Prueflage
        (Stolperstein 102). */
     const d = baueDom(JSDOM, { hash: '#/item/1',
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true },
+      einstellungen: { filters: null, userCount: 3, isAdmin: true },
       stimmspalten: [{ avg: 3.5, count: 2 }, { avg: 4, count: 1 }, { avg: null, count: 0 }] });
     await new Promise(r => setTimeout(r, 90));
     const kSpalten = [...d.w.document.querySelectorAll('#ratings .rrow .ravg')];
@@ -40307,10 +40307,10 @@ async function pruefeOberflaeche() {
       schalter === '· 4 aktiv', JSON.stringify(schalter));
     /* ER STEHT IN DER SORTIERZEILE, neben „+ Ansicht speichern" -- dort, wo er
        gesucht wurde, und nicht in einer eigenen Zeile darunter. */
-    const zeile = knopf?.closest('.frow');
+    const row = knopf?.closest('.frow');
     pruefe('Er steht in der Sortierzeile',
-      !!zeile?.querySelector('#f-sort') && !!zeile?.querySelector('#ansicht-neu'),
-      zeile ? [...zeile.querySelectorAll('.eyebrow')].map(e => e.textContent).join('+') : 'in keiner Zeile');
+      !!row?.querySelector('#f-sort') && !!row?.querySelector('#ansicht-neu'),
+      row ? [...row.querySelectorAll('.eyebrow')].map(e => e.textContent).join('+') : 'in keiner Zeile');
     pruefe('Und rechts in ihr',
       knopf?.parentElement?.classList.contains('frow-right-wide'),
       knopf?.parentElement?.className);
@@ -40425,16 +40425,16 @@ async function pruefeOberflaeche() {
      pruefbar. */
   const ksBestand = [
     { id: 1, title: 'Geprüft gut', rejected: false, tested: true, favorite: false, category: null,
-      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 5, potenzialRating: 2,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 5, potentialRating: 2,
       testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: '2026-08-01 10:00:00' },
     { id: 2, title: 'Geprüft mau', rejected: false, tested: true, favorite: false, category: null,
-      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 2, potenzialRating: 1,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 2, potentialRating: 1,
       testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: '2026-08-02 10:00:00' },
     { id: 3, title: 'Idee stark', rejected: false, tested: false, favorite: false, category: null,
-      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potenzialRating: 5,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potentialRating: 5,
       testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: '2026-08-03 10:00:00' },
     { id: 4, title: 'Idee schwach', rejected: false, tested: false, favorite: false, category: null,
-      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potenzialRating: 1,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, potentialRating: 1,
       testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: '2026-08-04 10:00:00' }
   ];
   // ALPHABETISCH, weil ksTitel() sortiert: verglichen wird die MENGE und nicht
@@ -41047,7 +41047,7 @@ async function pruefeOberflaeche() {
     spSetze({
       _locale: 'de-DE',
       'probe.einfach': 'Ein fester Satz.',
-      'probe.platzhalter': 'Es sind {n} von {gesamt}.',
+      'probe.platzhalter': 'Es sind {n} von {total}.',
       'probe.vokabel': 'Der Knopf heißt „{sacheEinzahl}".',
       'probe.plural': { eins: '{n} Kommentar', andere: '{n} Kommentare' },
       'probe.unbekannt': 'Hier fehlt {niemand}.'
@@ -41055,8 +41055,8 @@ async function pruefeOberflaeche() {
     pruefe('t() gibt einen festen Satz unverändert zurück',
       spW.t('probe.einfach') === 'Ein fester Satz.', spW.t('probe.einfach'));
     pruefe('t() setzt benannte Platzhalter ein',
-      spW.t('probe.platzhalter', { n: 3, gesamt: 7 }) === 'Es sind 3 von 7.',
-      spW.t('probe.platzhalter', { n: 3, gesamt: 7 }));
+      spW.t('probe.platzhalter', { n: 3, total: 7 }) === 'Es sind 3 von 7.',
+      spW.t('probe.platzhalter', { n: 3, total: 7 }));
     /* EIN VOKABELPLATZHALTER KOMMT AUS `V`, ohne dass ihn jemand mitgibt --
        die vierzehn Namen sind dieselben wie heute im Quelltext. */
     pruefe('Ein Vokabelplatzhalter kommt aus V, ohne ihn mitzugeben',
@@ -41077,7 +41077,7 @@ async function pruefeOberflaeche() {
     /* tH() MASKIERT JEDEN EINGESETZTEN WERT -- Stolperstein 18 in Dateiform.
        t() tut es NICHT, weil textContent, title und placeholder es nicht
        brauchen; ein doppelt maskierter Text stuende dort als &lt;b&gt; da. */
-    const spBoese = { n: '<b>', gesamt: 1 };
+    const spBoese = { n: '<b>', total: 1 };
     pruefe('tH() maskiert einen Wert mit einem <',
       spW.tH('probe.platzhalter', spBoese) === 'Es sind &lt;b&gt; von 1.',
       spW.tH('probe.platzhalter', spBoese));
@@ -41348,8 +41348,8 @@ async function pruefeOberflaeche() {
       .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
     const spQuellen = ['public/app.js', 'server.js', 'auth.js', 'mail.js'];
     const gerufen = new Set();
-    for (const datei of spQuellen) {
-      const q = ohneKommentar(fs.readFileSync(path.join(__dirname, datei), 'utf8'));
+    for (const file of spQuellen) {
+      const q = ohneKommentar(fs.readFileSync(path.join(__dirname, file), 'utf8'));
       // t('…'), tH('…'), t(sprache, '…'), new Message('…'), meldung('…')
       for (const m of q.matchAll(/(?<![A-Za-z0-9_.$])(?:tH?|new Message|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
         gerufen.add(m[1]);
@@ -41413,8 +41413,8 @@ async function pruefeOberflaeche() {
        Kurzform `{ name }`. DAZU DIE ZWEITE GESTALT: ein Pruefer, der
        `{ fehler: 'key', werte: {…} }` zurueckgibt, statt zu werfen. */
     const gereicht = new Map();
-    for (const datei of spQuellen) {
-      const q = fs.readFileSync(path.join(__dirname, datei), 'utf8');
+    for (const file of spQuellen) {
+      const q = fs.readFileSync(path.join(__dirname, file), 'utf8');
       const ruf = /(?<![A-Za-z0-9_.$])(?:tH?|new Message|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
       for (const m of q.matchAll(ruf)) {
         let i = m.index + m[0].length, tiefe = 1;
@@ -41428,7 +41428,7 @@ async function pruefeOberflaeche() {
         for (const n of rumpf.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) gereicht.get(m[1]).add(n[1]);
         for (const n of rumpf.matchAll(/[{,]\s*([A-Za-z_][A-Za-z0-9_]*)\s*[,}]/g)) gereicht.get(m[1]).add(n[1]);
       }
-      for (const m of q.matchAll(/(?:fehler|grund):\s*'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'\s*(?:,\s*(?:werte|values):\s*\{([^{}]*)\})?/g)) {
+      for (const m of q.matchAll(/(?:fehler|grund|reason):\s*'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'\s*(?:,\s*(?:werte|values):\s*\{([^{}]*)\})?/g)) {
         if (!gereicht.has(m[1])) gereicht.set(m[1], new Set());
         for (const n of (m[2] || '').matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) gereicht.get(m[1]).add(n[1]);
       }
@@ -41498,11 +41498,11 @@ async function pruefeOberflaeche() {
        bleibt, ist entweder ein Bezeichner, den die Sprache nicht anfasst
        (POST, Escape), ein technischer Ausdruck (eine Medienabfrage, ein
        Serverbefehl) oder der EINE feste Satz aus Bauabschnitt 1. */
-    const sichtbarerTeil = (roh) => String(roh)
+    const sichtbarerTeil = (raw) => String(raw)
       .replace(/<[^>]*>/g, ' ').replace(/<[^>]*$/, ' ').replace(/^[^<]*>/, ' ')
       .replace(/\$\{[^}]*\}/g, ' ').replace(/&[a-z]+;|&#\d+;/g, ' ').trim();
-    const lesbarerText = (roh) => {
-      const s = sichtbarerTeil(roh);
+    const lesbarerText = (raw) => {
+      const s = sichtbarerTeil(raw);
       if (!/[A-Za-zÄÖÜäöüß]{3}/.test(s)) return false;                  // kein Wort darin
       if (/^[\/#.\[]/.test(s)) return false;                            // Adresse, Selektor
       if (/[=:]"|"$|^"/.test(s)) return false;                          // Bruchstueck eines Attributs
@@ -41532,7 +41532,7 @@ async function pruefeOberflaeche() {
       '(prefers-color-scheme: light)',
       '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
       // Stuecke einer Adresse
-      '?eintraege=', '&beitraege=', '?gruppe=', '&tage=', '&target=',
+      '?eintraege=', '&beitraege=', '?gruppe=', '&days=', '&target=',
       // Die vier Serverbefehle -- in jeder Sprache dieselben
       'docker compose exec kriterion node usertool.js passwort <name>',
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
@@ -41574,8 +41574,8 @@ async function pruefeOberflaeche() {
     const ort = spInhalt.de._locale;
     const fmtProbe = (iso) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleString(ort,
       { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const zahlProbe = (n, stellen = 0, hoechstens = stellen) => new Intl.NumberFormat(ort,
-      { minimumFractionDigits: stellen, maximumFractionDigits: hoechstens, useGrouping: false })
+    const zahlProbe = (n, digits = 0, hoechstens = digits) => new Intl.NumberFormat(ort,
+      { minimumFractionDigits: digits, maximumFractionDigits: hoechstens, useGrouping: false })
       .format(Number(n));
     const tagProbe = (tag) => new Date(tag + 'T12:00:00').toLocaleDateString(ort, { weekday: 'long' });
     pruefe('Und fmtDate liefert fuer de-DE den Ausdruck von 0.23.0',
@@ -41797,10 +41797,10 @@ async function pruefeOberflaeche() {
        „stehen lassen und trotzdem weiter loeschen". Geprueft am Fenster
        selbst: zwei Haekchen, zwei Knoepfe, und der Abbruch liefert null --
        kein DELETE geht hinaus. */
-    const blDom = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+    const blDom = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     const blW = blDom.w;
-    const blStand = { eintraege: 5, fremdKommentare: 3, fremdBewertungen: 0, fremdTesttage: 0, fremdLinks: 0, fremdDateien: 0,
+    const blStand = { eintraege: 5, foreignComments: 3, foreignRatings: 0, foreignTestDays: 0, foreignLinks: 0, foreignFiles: 0,
                       kommentare: 2, bewertungen: 1, testtage: 0, links: 0, dateien: 0 };
     const blP = blW.userDeleteDialog('bert', 2, blStand);
     await new Promise(r => setTimeout(r, 20));
@@ -41856,10 +41856,10 @@ async function pruefeOberflaeche() {
     const appRoh = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const appZeilen = appRoh.split('\n');
     const befehle = bildschirmtexteVon(appRoh).filter(t => /docker compose|usertool\.js/.test(t.text));
-    const imKasten = befehle.filter(t => /serverBox\(/.test(appZeilen[t.zeile - 1] || ''));
+    const imKasten = befehle.filter(t => /serverBox\(/.test(appZeilen[t.row - 1] || ''));
     pruefe('Jeder Server-Befehl in app.js steht auf einer Zeile serverBox(',
       befehle.length > 0 && imKasten.length === befehle.length,
-      befehle.filter(t => !/serverBox\(/.test(appZeilen[t.zeile - 1] || '')).map(t => `Z. ${t.zeile}: ${t.text.trim()}`).join(' · '));
+      befehle.filter(t => !/serverBox\(/.test(appZeilen[t.row - 1] || '')).map(t => `Z. ${t.row}: ${t.text.trim()}`).join(' · '));
     pruefe('Und es sind genau vier: Passwort (Mein Konto), zweiter Faktor, Passwort (Benutzer), Neustart',
       befehle.length === 4, `${befehle.length}: ` + befehle.map(t => t.text.trim()).join(' · '));
     /* UND KEINER IN DER SPRACHDATEI -- 0.24.0. Seit die Saetze dort wohnen,
@@ -41878,14 +41878,14 @@ async function pruefeOberflaeche() {
     /* UND AM BILDSCHIRM: der Benutzer und der Admin sehen keinen einzigen
        Kasten, die Eigentuemerin drei -- Mein Konto, Benutzer, Kennzahlen. */
     const skRollen = async (rollen) => {
-      const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen } });
+      const d = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4, ...rollen } });
       await new Promise(r => setTimeout(r, 60));
       await d.w.renderSystem();
       await new Promise(r => setTimeout(r, 40));
       const dg = await sysDurchgang(d);
       let kaesten = 0, vollstaendig = true;
-      for (const adresse of dg.reiter) {
-        d.w.history.replaceState(null, '', adresse);
+      for (const address of dg.reiter) {
+        d.w.history.replaceState(null, '', address);
         await d.w.renderSystem();
         await new Promise(r => setTimeout(r, 30));
         for (const k of d.w.document.querySelectorAll('.server-box')) {
@@ -41898,9 +41898,9 @@ async function pruefeOberflaeche() {
       d.w.close();
       return { kaesten, vollstaendig, text: dg.text };
     };
-    const skUser = await skRollen({ istAdmin: false, istEigentuemer: false });
-    const skAdm = await skRollen({ istAdmin: true, istEigentuemer: false });
-    const skEig = await skRollen({ istAdmin: true, istEigentuemer: true });
+    const skUser = await skRollen({ isAdmin: false, isOwner: false });
+    const skAdm = await skRollen({ isAdmin: true, isOwner: false });
+    const skEig = await skRollen({ isAdmin: true, isOwner: true });
     pruefe('Ein Benutzer sieht keinen Kasten „Auf dem Server" und keinen Befehl',
       skUser.kaesten === 0 && !/docker compose|usertool\.js/.test(skUser.text), String(skUser.kaesten));
     pruefe('Ein Admin ebenso wenig',
@@ -41919,12 +41919,12 @@ async function pruefeOberflaeche() {
   gruppe('Die Sternzeile — 0.22.0');
   {
     const stDom = baueDom(JSDOM, { hash: '#/item/1',
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const stDoc = stDom.w.document;
     const stZeilen = [...stDoc.querySelectorAll('#ratings .rrow')];
     const stNull = baueDom(JSDOM, { hash: '#/item/1', eigeneWerte: [3, 3, 0],
-      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const stNullZeilen = [...stNull.w.document.querySelectorAll('#ratings .rrow')];
     /* (1) EIGENE RASTERSPALTE: jede Zeile hat vier Zellen, die letzte ist die
@@ -41970,7 +41970,7 @@ async function pruefeOberflaeche() {
        steht der Knopf als dritte Zelle hinter den Sternen und braucht seinen
        Abstand aus dem Raster: mindestens 12 px. */
     const stEins = baueDom(JSDOM, { hash: '#/item/1',
-      einstellungen: { filters: null, benutzerZahl: 1, istAdmin: true } });
+      einstellungen: { filters: null, userCount: 1, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
     const stEinsZeilen = [...stEins.w.document.querySelectorAll('#ratings .rrow')];
     pruefe('Bei einem einzigen Zugang hat die Zeile drei Zellen, die letzte ist der Knopf',
@@ -42175,16 +42175,16 @@ async function pruefeOberflaeche() {
   {
     const rwEintrag = async (rollen, meins) => {
       const d = baueDom(JSDOM, { hash: '#/item/1', eintragMeins: meins,
-        einstellungen: { filters: null, benutzerZahl: 3, ...rollen } });
+        einstellungen: { filters: null, userCount: 3, ...rollen } });
       await new Promise(r => setTimeout(r, 80));
       const da = !!d.w.document.getElementById('del');
       const danger = d.w.document.querySelectorAll('.danger-row').length;
       d.w.close();
       return { da, danger };
     };
-    const rwFremd = await rwEintrag({ istAdmin: false, istEigentuemer: false }, false);
-    const rwMeins = await rwEintrag({ istAdmin: false, istEigentuemer: false }, true);
-    const rwAdmin = await rwEintrag({ istAdmin: true, istEigentuemer: false }, false);
+    const rwFremd = await rwEintrag({ isAdmin: false, isOwner: false }, false);
+    const rwMeins = await rwEintrag({ isAdmin: false, isOwner: false }, true);
+    const rwAdmin = await rwEintrag({ isAdmin: true, isOwner: false }, false);
     pruefe('Ein Benutzer sieht an einem fremden Eintrag keinen Loeschknopf (E10)',
       !rwFremd.da && rwFremd.danger === 0, JSON.stringify(rwFremd));
     pruefe('An seinem eigenen Eintrag steht er da', rwMeins.da, JSON.stringify(rwMeins));
@@ -42193,14 +42193,14 @@ async function pruefeOberflaeche() {
        Admin liest einen Satz. Der Mock haelt den Schluessel neben der
        Datenbank (keyFromEnv: false) -- nur dann steht der Kasten ueberhaupt da. */
     const rwSystem = async (rollen, abschnitt) => {
-      const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen } });
+      const d = baueDom(JSDOM, { einstellungen: { filters: null, userCount: 4, ...rollen } });
       await new Promise(r => setTimeout(r, 60));
       await sysAbschnitt(d.w, abschnitt);
       await new Promise(r => setTimeout(r, 40));
       return d;
     };
-    const rwEigK = await rwSystem({ istAdmin: true, istEigentuemer: true }, 'database');
-    const rwAdmK = await rwSystem({ istAdmin: true, istEigentuemer: false }, 'database');
+    const rwEigK = await rwSystem({ isAdmin: true, isOwner: true }, 'database');
+    const rwAdmK = await rwSystem({ isAdmin: true, isOwner: false }, 'database');
     pruefe('Die Eigentuemerin sieht den Schluessel im Klartext und den Kasten „Auf dem Server"',
       !!rwEigK.w.document.getElementById('keyline') &&
       /ENCRYPTION_KEY=abab/.test(rwEigK.w.document.getElementById('keyline')?.textContent || '') &&
@@ -42216,8 +42216,8 @@ async function pruefeOberflaeche() {
     rwEigK.w.close(); rwAdmK.w.close();
     /* KATEGORIEN UND TAGS: der Benutzer sieht die Liste und einen Satz, der
        Admin die Werkzeuge und ihre Erklaerung. */
-    const rwUserB = await rwSystem({ istAdmin: false, istEigentuemer: false }, 'inventory');
-    const rwAdmB = await rwSystem({ istAdmin: true, istEigentuemer: false }, 'inventory');
+    const rwUserB = await rwSystem({ isAdmin: false, isOwner: false }, 'inventory');
+    const rwAdmB = await rwSystem({ isAdmin: true, isOwner: false }, 'inventory');
     const karteText = (d, name) => [...d.w.document.querySelectorAll('.sys-card')]
       .find(k => k.querySelector('h3')?.textContent.trim() === name);
     const kUserKat = karteText(rwUserB, 'Kategorien'), kUserTag = karteText(rwUserB, 'Tags');
@@ -42313,15 +42313,15 @@ function pruefeSchluesselwechsel() {
      Beim ABBRUCH steht die Liste leer: dort darf sich nichts geaendert haben,
      auch keine Marke. */
   const swAbdruck = (d, ohne = []) => {
-    const teile = [];
+    const parts = [];
     const tabellen = d.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
       .all().filter(t => !ohne.includes(t.name));
     for (const t of tabellen) {
       const zeilen = d.prepare(`SELECT * FROM "${t.name}" ORDER BY rowid`).all();
-      teile.push(t.name + '=' + JSON.stringify(zeilen));
+      parts.push(t.name + '=' + JSON.stringify(zeilen));
     }
-    return crypto.createHash('sha256').update(teile.join(' ')).digest('hex');
+    return crypto.createHash('sha256').update(parts.join(' ')).digest('hex');
   };
 
   /* Eine Instanz mit belastbarem Bestand. Angelegt ueber db.js, damit das
@@ -42815,14 +42815,14 @@ async function pruefeBestandslauf() {
   /* DIE VORLAGE IST EIN ECHTES PNG und kein Byte-Haufen: der Thread laedt
      sharp und wandelt wirklich um. Ohne Bild bliebe offen, ob er nur die
      Spalte umschreibt. */
-  const vorlage = await sharp({ create: { width: 240, height: 160, channels: 3,
+  const template = await sharp({ create: { width: 240, height: 160, channels: 3,
     background: { r: 30, g: 90, b: 200 } } }).png().toBuffer();
   const ZEILEN = 6;
   {
     const d = oeffne();
     const item = d.prepare("INSERT INTO items (title) VALUES ('Bestandslauf')").run().lastInsertRowid;
-    const ins = d.prepare("INSERT INTO photos (item_id, data, mime_type, kind) VALUES (?,?,?,'foto')");
-    for (let i = 0; i < ZEILEN; i++) ins.run(item, vorlage, 'image/png');
+    const ins = d.prepare("INSERT INTO photos (item_id, data, mime_type, kind) VALUES (?,?,?,'photo')");
+    for (let i = 0; i < ZEILEN; i++) ins.run(item, template, 'image/png');
     d.close();
   }
 
@@ -42883,7 +42883,7 @@ async function pruefeBestandslauf() {
   })();
   pruefe('Der Aufbau steht: sechs PNG liegen da', pngs.length === ZEILEN, `${pngs.length}`);
 
-  const nebenher = { ergebnis: null, starte: null };
+  const nebenher = { result: null, starte: null };
   nebenher.starte = (w) => {
     const d = oeffne();
     const schreib = d.prepare("INSERT INTO settings (key, value) VALUES (?, ?) " +
@@ -42898,7 +42898,7 @@ async function pruefeBestandslauf() {
     w.on('exit', () => {
       clearInterval(uhr);
       d.close();
-      nebenher.ergebnis = { geschrieben, abgewiesen, langsamste };
+      nebenher.result = { geschrieben, abgewiesen, langsamste };
     });
   };
   const um = await fahre('umstellung', pngs, nebenher);
@@ -42916,7 +42916,7 @@ async function pruefeBestandslauf() {
   const letzter = um.staende[um.staende.length - 1] || {};
   pruefe('Jede Meldung traegt den ganzen Stand und nicht eine Zunahme',
     um.staende.every(m => m && m.kind === 'status' && m.status &&
-      typeof m.status.erledigt === 'number' && typeof m.status.gesamt === 'number'),
+      typeof m.status.erledigt === 'number' && typeof m.status.total === 'number'),
     JSON.stringify(um.staende[0]));
   /* AUCH HIER GEHT JEDER ZUGRIFF DURCH EINE KLAMMER: Rueckbau 491 nimmt der
      Schleife ihre Message, und eine Zeile, die dann auf `m.status.erledigt`
@@ -42925,7 +42925,7 @@ async function pruefeBestandslauf() {
   pruefe('Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind',
     gleich(ueErledigt, [1, 2, 3, 4, 5, 6, 6]), JSON.stringify(ueErledigt));
   pruefe('Am Ende steht laeuft: false und jede Zeile umgestellt',
-    letzter.status && letzter.status.laeuft === false &&
+    letzter.status && letzter.status.running === false &&
     letzter.status.umgestellt === ZEILEN && letzter.status.gespart > 0,
     JSON.stringify(letzter.status));
   {
@@ -42944,7 +42944,7 @@ async function pruefeBestandslauf() {
   /* KEINE EINZIGE ABWEISUNG, und die Zahl der Schreibungen steht daneben: ein
      zweiter Schreiber, der gar nicht erst zum Zuge kam, belegte nichts
      (Stolperstein 81). */
-  const nb = nebenher.ergebnis || {};
+  const nb = nebenher.result || {};
   pruefe('Der zweite Schreiber kam waehrenddessen ueberhaupt zum Zuge',
     nb.geschrieben > 0, JSON.stringify(nb));
   pruefe('Und keine einzige seiner Schreibungen wurde abgewiesen',
@@ -43035,7 +43035,7 @@ async function pruefeBestandslauf() {
        kleinen sind durchs Nachruesten gelaufen und tragen laengst eine
        quadratische Kachel. */
     pruefe('Und erneuert genau die vier alten Zeilen und die Videozeile',
-      gStand.laeuft === false && gStand.nachgezogen === ALT + 1 &&
+      gStand.running === false && gStand.nachgezogen === ALT + 1 &&
       gStand.geprueft === ZEILEN + ALT + 1,
       JSON.stringify(gStand));
     /* DIE SECHS ZEILEN VON OBEN SIND GEPRUEFT UND NICHT ANGEFASST WORDEN.
@@ -43257,7 +43257,7 @@ async function pruefeBestandslauf() {
        SEIT 0.19.4 STEHT DER STAND JE AUFGABE, und die Zeile greift ihn ueber
        denselben Namen, mit dem der Thread erzeugt wurde. */
     pruefe('Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen',
-      /w\.on\('error', \(e\) => \{\s*\n\s*if \(batchStates\[task\]\) batchStates\[task\]\.laeuft = false;\s*\n\s*console\.error\(/
+      /w\.on\('error', \(e\) => \{\s*\n\s*if \(batchStates\[task\]\) batchStates\[task\]\.running = false;\s*\n\s*console\.error\(/
         .test(blServer),
       (blServer.match(/w\.on\('error'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     /* 7. UND ER WIRD JE LAUF ERZEUGT UND DANACH BEENDET -- kein Threadpool,

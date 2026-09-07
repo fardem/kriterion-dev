@@ -101,7 +101,7 @@ const report = (status) => parentPort.postMessage({ kind: 'status', status });
    gerechnet. Sie sind aus demselben Bild entstanden und bleiben gueltig; ein
    Neurechnen kostete Zeit und aenderte nichts. */
 async function convertInventory(rows) {
-  const status = { laeuft: true, gesamt: rows.length, erledigt: 0,
+  const status = { running: true, total: rows.length, erledigt: 0,
                   umgestellt: 0, geblieben: 0, gespart: 0 };
   const get = db.prepare('SELECT data FROM photos WHERE id = ?');
   const write = db.prepare('UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');
@@ -129,7 +129,7 @@ async function convertInventory(rows) {
     report(status);
     await new Promise(r => setTimeout(r, 30));
   }
-  status.laeuft = false;
+  status.running = false;
   /* reclaim() DANACH, UND ES LAEUFT IM THREAD. Ohne ihn waechst die Datei
      erst und schrumpft nie: die alten Blobs geben ihre Seiten frei, aber
      SQLite gibt sie ohne incremental_vacuum nicht ans Dateisystem zurueck.
@@ -145,7 +145,7 @@ async function convertInventory(rows) {
   reclaim();
   report(status);
   console.log(`[Kriterion] Bildumstellung fertig: ${status.umgestellt} von ` +
-    `${status.gesamt} umgestellt, ${status.geblieben} blieben PNG, ` +
+    `${status.total} umgestellt, ${status.geblieben} blieben PNG, ` +
     `${status.gespart} Bytes gespart.`);
 }
 
@@ -271,7 +271,7 @@ async function backfillThumbnails(rows) {
    sourceFrom(): dort IST `medium` die Vorlage, und es aus sich selbst neu zu
    kodieren machte es nur schlechter. */
 async function refreshTiles(rows) {
-  const status = { laeuft: true, gesamt: rows.length, erledigt: 0,
+  const status = { running: true, total: rows.length, erledigt: 0,
                   geprueft: 0, nachgezogen: 0, uebersprungen: 0, zugenommen: 0 };
   const get = db.prepare(
     'SELECT data, thumb, medium, kind, focus_x, focus_y, zoom FROM photos WHERE id = ?');
@@ -300,7 +300,7 @@ async function refreshTiles(rows) {
        die Maschine frei, auf der auch noch etwas anderes laufen darf. */
     await new Promise(r => setTimeout(r, 30));
   }
-  status.laeuft = false;
+  status.running = false;
   /* reclaim() AUS DEMSELBEN GRUND WIE BEI DER UMSTELLUNG: jede ersetzte
      Ableitung gibt ihre alten Seiten frei, und ohne incremental_vacuum gibt
      SQLite sie nicht ans Dateisystem zurueck. Ob der neue `thumb` groesser

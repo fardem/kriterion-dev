@@ -59,7 +59,7 @@ function changeKey(neuHex) {
    KEINE PAKETVERSION, NICHT EINE. Ein Verfahrensname sagt, WIE gerechnet wird,
    und das ist unbedenklich: wer die Instanz betreibt, darf wissen, worauf seine
    Daten liegen. Eine Versionsnummer sagt dagegen, WELCHE Luecke passt. */
-function verfahren() {
+function method() {
   return {
     cipher: String(db.pragma('cipher', { simple: true }) || ''),
     schluesselBits: key.hex.length * 4,
@@ -381,17 +381,17 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
--- Zugang. role ist eine Leiter: user < admin < eigentuemer -- ein Wert, kein
+-- Zugang. role ist eine Leiter: user < admin < owner -- ein Wert, kein
 -- zweites Feld, damit "ein Eigentuemer ist immer auch Admin" baulich wahr ist.
 --   user        -- schreibt eigene Beitraege, sonst nichts
 --   admin       -- verwaltet den Bestand, sperrt und loescht BENUTZER
---   eigentuemer -- dazu: Rollen vergeben, an Admins ran, Export, Import,
+--   owner -- dazu: Rollen vergeben, an Admins ran, Export, Import,
 --                  Schluesselwert
--- status: aktiv | gesperrt | geloescht.
+-- status: aktiv | gesperrt | deleted.
 --   gesperrt  -- Anmeldung abgewiesen, laufende Sitzung faellt, Inhalte bleiben
---   geloescht -- der GRABSTEIN: die Zeile bleibt mit ihrer id stehen, damit
+--   deleted -- der GRABSTEIN: die Zeile bleibt mit ihrer id stehen, damit
 --                user_id weiterhin auf etwas zeigt; der Name ist mit
---                geloescht-<id> ueberschrieben und damit freigegeben. Ein
+--                deleted-<id> ueberschrieben und damit freigegeben. Ein
 --                Zugang wird NIE aus der Tabelle entfernt: ON DELETE SET NULL
 --                machte seinen Bestand sonst herrenlos, und ordneBestandZu()
 --                schoebe ihn beim naechsten Start still dem Eigentuemer zu.
@@ -928,7 +928,7 @@ function migration0241Werte() {
   // Der Grabstein: sein Name traegt seine eigene Nummer und wird daraus gebaut.
   if (tabellen.has('users')) {
     const r = db.prepare(
-      "UPDATE users SET username = 'deleted-' || id WHERE username = 'geloescht-' || id").run();
+      "UPDATE users SET username = 'deleted-' || id WHERE username = 'deleted-' || id").run();
     if (r.changes) { n += r.changes; gezaehlt.push(`users.username geloescht- → deleted- (${r.changes})`); }
   }
   if (!n) return 0;
@@ -1342,19 +1342,19 @@ function eigentuemerId() {
 // UNIQUE als verschieden); ohne OR IGNORE stuerbe der Start an der Verletzung.
 function assignInventory() {
   const zahlen = {};
-  let summe = 0;
-  const eigentuemer = eigentuemerId();
-  if (eigentuemer == null) {
+  let sum = 0;
+  const owner = eigentuemerId();
+  if (owner == null) {
     return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
   }
   for (const tabelle of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
     const n = db.prepare(
       `UPDATE OR IGNORE ${tabelle} SET user_id = ? WHERE user_id IS NULL`
-    ).run(eigentuemer).changes;
+    ).run(owner).changes;
     zahlen[tabelle] = n;
-    summe += n;
+    sum += n;
   }
-  if (summe) {
+  if (sum) {
     console.log('[Kriterion] Bestand ohne Benutzer dem Eigentuemer zugeordnet: ' +
       `${zahlen.items} Eintraege, ${zahlen.comments} Kommentare, ${zahlen.test_days} Testtage, ` +
       `${zahlen.ratings} Bewertungen, ${zahlen.links} Links, ${zahlen.attachments} Dateien.`);
@@ -1392,7 +1392,7 @@ renumberCriteria();
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
                    COLUMNS_0241, VALUES_0241,
-                   changeKey, verfahren,
+                   changeKey, method,
                    renumberCriteria, assignInventory, eigentuemerId,
                    // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
                    migration083,

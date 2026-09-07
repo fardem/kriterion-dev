@@ -165,21 +165,21 @@ const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;
    Tippfehler. */
 function checkPublicAddress(raw) {
   const wert = String(raw || '').trim();
-  if (!wert) return { adresse: '', gesetzt: false };
+  if (!wert) return { address: '', set: false };
   let u;
   try { u = new URL(wert); }
-  catch { return { adresse: '', gesetzt: true, fehler: 'Das ist keine vollständige Adresse.' }; }
+  catch { return { address: '', set: true, fehler: 'Das ist keine vollständige Adresse.' }; }
   if (u.protocol !== 'http:' && u.protocol !== 'https:')
-    return { adresse: '', gesetzt: true, fehler: 'Nur http:// und https:// sind möglich.' };
+    return { address: '', set: true, fehler: 'Nur http:// und https:// sind möglich.' };
   if (!u.hostname)
-    return { adresse: '', gesetzt: true, fehler: 'Es fehlt der Rechnername.' };
+    return { address: '', set: true, fehler: 'Es fehlt der Rechnername.' };
   if (u.username || u.password)
-    return { adresse: '', gesetzt: true, fehler: 'Zugangsdaten gehören nicht in die Adresse.' };
-  if (u.search) return { adresse: '', gesetzt: true, fehler: 'Eine Abfrage (?) ist nicht erlaubt.' };
-  if (u.hash) return { adresse: '', gesetzt: true, fehler: 'Ein Fragment (#) ist nicht erlaubt.' };
+    return { address: '', set: true, fehler: 'Zugangsdaten gehören nicht in die Adresse.' };
+  if (u.search) return { address: '', set: true, fehler: 'Eine Abfrage (?) ist nicht erlaubt.' };
+  if (u.hash) return { address: '', set: true, fehler: 'Ein Fragment (#) ist nicht erlaubt.' };
   // Ohne abschliessenden Schraegstrich, damit der Link genau eine Form hat.
-  const adresse = (u.origin + u.pathname).replace(/\/+$/, '');
-  return { adresse, gesetzt: true };
+  const address = (u.origin + u.pathname).replace(/\/+$/, '');
+  return { address, set: true };
 }
 const PUBLIC_ADDRESS = checkPublicAddress(fromEnv('PUBLIC_ADDRESS', 'OEFFENTLICHE_ADRESSE'));
 
@@ -349,23 +349,23 @@ async function changeUser(userId, oldPassword, newName, newPassword, newAddress)
   /* Die Adresse wird GEPRUEFT, bevor irgendetwas geschrieben wird -- eine
      Absage, die den Namen schon gewechselt hat, waere schlimmer als keine. */
   const adresseGemeint = newAddress !== undefined;
-  const adresse = adresseGemeint ? String(newAddress || '').trim() : null;
-  if (adresseGemeint && adresse && !mail.isAddress(adresse))
+  const address = adresseGemeint ? String(newAddress || '').trim() : null;
+  if (adresseGemeint && address && !mail.isAddress(address))
     throw new Message('login.emailInvalid');
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(name, hash, u.id);
   if (adresseGemeint)
-    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(adresse || null, u.id);
+    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(address || null, u.id);
   /* Der eigene Zugang ist der erste Griff einer uebernommenen Sitzung: er
      sperrt den Richtigen aus. Ein Aufruf, der nichts bewegt, ist kein Vorgang
      und schreibt deshalb keine Zeile. Die Adresse zaehlt mit -- sie
      entscheidet, WOHIN der naechste Ruecksetzlink geht. 'both' heisst "mehr
      als eines", deshalb wird GEZAEHLT statt verschachtelt. */
   const renamed = name !== u.username;
-  const adresseNeu = adresseGemeint && (adresse || null) !== (u.email || null);
+  const adresseNeu = adresseGemeint && (address || null) !== (u.email || null);
   const moved = [renamed && 'name', changes && 'password', adresseNeu && 'address'].filter(Boolean);
   const detail = moved.length > 1 ? 'both' : moved[0] || null;
   if (detail) log('user.self', { actor: u.id, target: u.id, detail });
-  return { username: name, passwortGewechselt: changes, email: adresseGemeint ? adresse : (u.email || '') };
+  return { username: name, passwordChanged: changes, email: adresseGemeint ? address : (u.email || '') };
 }
 
 /* --- Zugangsverwaltung --------------------------------------------------
@@ -388,10 +388,10 @@ const getUser2 = (id) =>
    AUSGELIEFERT WIRD DER HASH NICHT, nur die abgeleitete Frage darauf. */
 const listUsers = () => db.prepare(
   `SELECT u.id, u.username, u.role, u.status, u.last_login, u.created_at,
-          (u.password_hash = '') AS ohnePasswort,
+          (u.password_hash = '') AS withoutPassword,
           (SELECT COUNT(*) FROM items i WHERE i.user_id = u.id) AS eintraege
      FROM users u ORDER BY u.id`
-).all().map(z => ({ ...z, ohnePasswort: Boolean(z.ohnePasswort) }));
+).all().map(z => ({ ...z, withoutPassword: Boolean(z.withoutPassword) }));
 
 // Zaehlt die Eigentuemer, die sich noch anmelden koennen. Ein gesperrter oder
 // geloeschter zaehlt nicht mit -- sonst liesse sich die Instanz verriegeln,
@@ -406,8 +406,8 @@ const ownerCount = () => db.prepare(
    DER LEERE HASH IST DIE SPERRE, und zwar doppelt: checkLogin faellt bei
    leerem Hash auf BLINDWERT zurueck, und checkPassword weist einen Wert, der
    nicht nach scrypt aussieht, schon am Format ab. */
-async function createUser(name, password, role = 'user', ohnePasswort = false, actor, adresse) {
-  if (ohnePasswort === true) checkName(name);
+async function createUser(name, password, role = 'user', withoutPassword = false, actor, address) {
+  if (withoutPassword === true) checkName(name);
   else checkRules(name, password);
   if (!ROLES.includes(role)) throw new Message('login.roleUnknown');
   const clean = String(name).trim();
@@ -419,16 +419,16 @@ async function createUser(name, password, role = 'user', ohnePasswort = false, a
      changeUser und damit ueber den Betroffenen -- die Begruendung steht
      dort. Geprueft VOR dem Anlegen: ein Zugang, der steht, und eine Absage
      daneben waeren zwei Aussagen ueber denselben Aufruf. */
-  const mailAddress = String(adresse || '').trim();
+  const mailAddress = String(address || '').trim();
   if (mailAddress && !mail.isAddress(mailAddress))
     throw new Message('login.emailInvalid');
-  const hash = ohnePasswort === true ? '' : await hashPassword(password);
+  const hash = withoutPassword === true ? '' : await hashPassword(password);
   const acting = checkActor(actor);
   const r = db.prepare('INSERT INTO users (username, password_hash, role, email) VALUES (?, ?, ?, ?)')
     .run(clean, hash, role, mailAddress || null);
   log('user.new', { actor: acting, target: r.lastInsertRowid, detail: role });
   return { id: r.lastInsertRowid, username: clean, role: role,
-           ohnePasswort: hash === '', email: mailAddress };
+           withoutPassword: hash === '', email: mailAddress };
 }
 
 // Setzt ein Passwort ohne das bisherige zu kennen -- fuer den Admin, der es
@@ -507,11 +507,11 @@ function countInventory(userId) {
   return {
     eintraege: one('SELECT COUNT(*) n FROM items WHERE user_id = ?', id),
     // an SEINEN Eintraegen, von anderen geschrieben -- faellt mit den Eintraegen
-    fremdKommentare: one(`SELECT COUNT(*) n FROM comments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    fremdBewertungen: one(`SELECT COUNT(*) n FROM ratings WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    fremdTesttage: one(`SELECT COUNT(*) n FROM test_days WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    fremdLinks: one(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    fremdDateien: one(`SELECT COUNT(*) n FROM attachments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
+    foreignComments: one(`SELECT COUNT(*) n FROM comments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
+    foreignRatings: one(`SELECT COUNT(*) n FROM ratings WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
+    foreignTestDays: one(`SELECT COUNT(*) n FROM test_days WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
+    foreignLinks: one(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
+    foreignFiles: one(`SELECT COUNT(*) n FROM attachments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
     // SEINE Beitraege in FREMDEN Eintraegen -- das zweite Haekchen
     kommentare: one(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
     bewertungen: one(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
@@ -575,7 +575,7 @@ function removeUser(userId, optionen = {}, actor) {
      Zeile bleibt stehen -- der Grabstein traegt seine Nummer weiter, target
      zeigt also weiterhin auf etwas. */
   log('user.delete', { actor: acting, target: u.id });
-  return { id: u.id, name: u.username, grabstein: tombstoneName(u.id), zahlen, optionen };
+  return { id: u.id, name: u.username, tombstone: tombstoneName(u.id), zahlen, optionen };
 }
 
 // --- AUTH_RESET wird abgelehnt ------------------------------------------
@@ -797,8 +797,8 @@ function sessionsOf(userId, ownToken) {
       ORDER BY last_seen DESC, created_at DESC`
   ).all(id).map(z => ({
     kennung: sessionIdOf(z.token),
-    angemeldetAm: z.created_at,
-    zuletztGesehen: z.last_seen,
+    loggedInAt: z.created_at,
+    lastSeen: z.last_seen,
     // Die eigene ist markiert, damit die Karte sie nicht mit "alle anderen"
     // wegnimmt -- man wuerde sich sonst selbst hinauswerfen.
     diese: Boolean(ownToken) && z.token === ownToken
@@ -921,8 +921,8 @@ function createToken(userId, purpose, actor) {
     // Der Bildschirmtext leitet sich aus dem ZUSTAND ab, nicht aus zweck --
     // sonst stuenden zwei Wahrheiten nebeneinander, sobald jemand einen
     // Einladungslink an einen Zugang schickt, der laengst ein Passwort hat.
-    ohnePasswort: !db.prepare('SELECT password_hash h FROM users WHERE id = ?').get(u.id).h,
-    tage: TOKEN_DAYS
+    withoutPassword: !db.prepare('SELECT password_hash h FROM users WHERE id = ?').get(u.id).h,
+    days: TOKEN_DAYS
   };
 }
 
@@ -948,7 +948,7 @@ function checkToken(plain) {
   if (!z || z.status !== 'active') return null;
   return {
     hash: z.hash, id: z.user_id, username: z.username, purpose: z.purpose,
-    expires_at: z.expires_at, ohnePasswort: !z.password_hash
+    expires_at: z.expires_at, withoutPassword: !z.password_hash
   };
 }
 
@@ -1053,9 +1053,9 @@ function cleanupRequests() {
 const qRequestName = db.prepare('SELECT 1 FROM requests WHERE username = ? COLLATE NOCASE');
 const qRequestMail = db.prepare('SELECT 1 FROM requests WHERE email = ? COLLATE NOCASE');
 const qUserMail = db.prepare('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE');
-function createRequest(name, adresse) {
+function createRequest(name, address) {
   const clean = String(name || '').trim();
-  const post = String(adresse || '').trim();
+  const post = String(address || '').trim();
   if (clean.length > REQUEST_NAME_MAX || post.length > REQUEST_MAIL_MAX) return null;
   try { checkName(clean); } catch { return null; }
   if (!mail.isAddress(post)) return null;
@@ -1338,10 +1338,10 @@ function readLog(limit = LOG_LIMIT, group = null) {
     zeilen: rows,
     // Die Zahl der Zeilen DIESER Ansicht -- sonst stuende unter einer
     // gefilterten Liste die Gesamtzahl aller Vorgaenge und widerspraeche ihr.
-    gesamt: group ? zahlen[group] : qLogCount.get().n,
+    total: group ? zahlen[group] : qLogCount.get().n,
     zahlen,
     gruppe: group || null,
-    tage: LOG_DAYS,
+    days: LOG_DAYS,
     grenze: limit
   };
 }
@@ -1474,10 +1474,10 @@ const qCodesTotal = db.prepare('SELECT COUNT(*) n FROM two_factor_codes WHERE us
 function twoFactorState(userId) {
   const id = Number(userId) || 0;
   const z = getTwoFactor(id);
-  if (!z || !z.confirmed_at) return { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
+  if (!z || !z.confirmed_at) return { an: false, seit: null, codesOpen: 0, codesTotal: 0 };
   return {
     an: true, seit: z.confirmed_at,
-    codesOffen: qCodesLeft.get(id).n, codesGesamt: qCodesTotal.get(id).n
+    codesOpen: qCodesLeft.get(id).n, codesTotal: qCodesTotal.get(id).n
   };
 }
 
@@ -1512,8 +1512,8 @@ function startTwoFactor(userId, instanceName, username) {
   ).run(id, secret);
   return {
     // Der Feldname bleibt deutsch, bis app.js in Bauabschnitt 4 mitzieht.
-    secret: secret, gruppen: zf.groupsOfFour(secret),
-    zeile: zf.otpauthLine(instanceName, username, secret),
+    secret: secret, groups: zf.groupsOfFour(secret),
+    row: zf.otpauthLine(instanceName, username, secret),
     ziffern: zf.DIGITS, sekunden: zf.STEP_SECONDS
   };
 }
@@ -1657,7 +1657,7 @@ function createLoginTicket(userId) {
   for (const [k, a] of tickets) if (a.until <= now) tickets.delete(k);
   const schluessel = crypto.randomBytes(32).toString('hex');
   tickets.set(schluessel, { id, until: now + LOGIN_TICKET_MS });
-  return { ausweis: schluessel, sekunden: LOGIN_TICKET_MS / 1000 };
+  return { ticket: schluessel, sekunden: LOGIN_TICKET_MS / 1000 };
 }
 
 /* Prueft UND verbraucht in einem, wie useRelease. Zwei Funktionen --

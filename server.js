@@ -40,7 +40,7 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    Lesen erklaert werden muss. Der KOMMENTAR ueber qOpenPng nennt es
    weiterhin, und das ist richtig: die Byte-Folge dort ist dieselbe. */
 const { makeVariants, PNG_MAGIC_HEX, storeImage } = require('./images');
-const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren, COLUMNS_0241, VALUES_0241 } = require('./db');
+const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, COLUMNS_0241, VALUES_0241 } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
 
@@ -93,12 +93,12 @@ function localeOf(req) {
    Oberflaeche entscheidet, wie sie sie zeigt. */
 function t(locale, schluessel, values = {}) {
   const texts = LANGUAGES[locale] || LANGUAGES[LANGUAGE_DEFAULT];
-  const roh = texts[schluessel] !== undefined
+  const raw = texts[schluessel] !== undefined
     ? texts[schluessel] : LANGUAGES[LANGUAGE_DEFAULT][schluessel];
-  if (roh === undefined) return `\u27e6${schluessel}\u27e7`;
+  if (raw === undefined) return `\u27e6${schluessel}\u27e7`;
   const rule = LANGUAGE_PLURAL[locale] || LANGUAGE_PLURAL[LANGUAGE_DEFAULT];
-  const record = typeof roh === 'object'
-    ? (rule.select(values.n) === 'one' ? roh.eins : roh.andere) : roh;
+  const record = typeof raw === 'object'
+    ? (rule.select(values.n) === 'one' ? raw.eins : raw.andere) : raw;
   /* DAS VOKABULAR WIRD ERST GEHOLT, WENN EIN PLATZHALTER ES BRAUCHT -- es
      kommt aus der Datenbank, und die meisten Meldungen tragen kein
      Vokabelwort. Einmal je Message, nicht einmal je Platzhalter. */
@@ -168,9 +168,9 @@ const PUBLIC = auth.PUBLIC_ADDRESS;
    SERVER KEINEN LINK HERAUS -- der Browser baut ihn selbst, und die
    Oberflaeche sagt daneben, woher die Adresse kam. Zwei Felder statt eines:
    aus einer Abwesenheit eine Aussage zu machen waere die zweite Wahrheit. */
-const linkInfo = (plain) => PUBLIC.adresse
-  ? { link: `${PUBLIC.adresse}/#/invite/${plain}`, linkQuelle: 'einstellung' }
-  : { link: null, linkQuelle: 'browser' };
+const linkInfo = (plain) => PUBLIC.address
+  ? { link: `${PUBLIC.address}/#/invite/${plain}`, linkSource: 'einstellung' }
+  : { link: null, linkSource: 'browser' };
 
 /* ---- Der Versand eines Tokenlinks ----
    DER TOKEN ENTSTEHT ZUERST, DIE ANTWORT TRAEGT DEN LINK IMMER, UND DER
@@ -193,15 +193,17 @@ const linkInfo = (plain) => PUBLIC.adresse
 async function sendTokenLink(target, token) {
   const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
   if (!mail.configured(zugang))
-    return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };
-  if (!PUBLIC.adresse)
-    return { versand: 'aus', versandGrund:
+    return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };
+  if (!PUBLIC.address)
+    return { delivery: 'aus', deliveryReason:
       'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
   if (!target.email)
-    return { versand: 'aus', versandGrund: 'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
+    return { delivery: 'aus', deliveryReason: 'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
   const values2 = {
     title: getSetting('title_public', 'Bewertungskatalog'),
-    username: target.username, link: `${PUBLIC.adresse}/#/invite/${token.plain}`,
+    username: target.username, link: `${PUBLIC.address}/#/invite/${token.plain}`,
+    // `tage` und `minuten` sind PLATZHALTER der Sprachdatei und keine
+    // Bezeichner -- sie heissen so, wie der Satz sie ruft.
     tage: auth.TOKEN_DAYS, minuten: auth.TOKEN_DEADLINE_MINUTES
   };
   const invite = token.purpose === 'invite';
@@ -212,8 +214,8 @@ async function sendTokenLink(target, token) {
   const letter = invite ? mail.mailInvite(locale, values2)
                           : mail.mailReset(locale, values2);
   const e = await mail.send(locale, zugang, target.email, letter.subject, letter.text);
-  return e.ok ? { versand: 'ok', versandGrund: '' }
-              : { versand: 'fehlgeschlagen', versandGrund: e.grund };
+  return e.ok ? { delivery: 'ok', deliveryReason: '' }
+              : { delivery: 'fehlgeschlagen', deliveryReason: e.reason };
 }
 
 /* ---- Der Beleg der letzten Testmail --------------------------------------
@@ -222,9 +224,9 @@ async function sendTokenLink(target, token) {
    Marke nicht mehr. Eine Funktion und zwei Rufer, nicht zwei Rechnungen
    (Stolperstein 145). */
 const MAILTEST_KEY = 'mailtestOk';
-function mailtestState(roh) {
+function mailtestState(raw) {
   const test = getSetting(MAILTEST_KEY, null);
-  return test && test.mark && test.mark === mail.mark(roh) ? test : null;
+  return test && test.mark && test.mark === mail.mark(raw) ? test : null;
 }
 
 /* ---- Kann diese Instanz ueberhaupt verschicken --------------------------
@@ -232,17 +234,17 @@ function mailtestState(roh) {
    traegt nicht: DIE TESTMAIL ENTHAELT KEINEN LINK und geht auch ohne
    PUBLIC_ADDRESS durch -- die Marke waere gruen, und die
    Bestaetigungsmail ginge nie hinaus. Der Grund steht daneben. */
-function versandBereit() {
-  const roh = getSetting(mail.SETTING_KEY, null);
-  if (!mail.configured(roh))
-    return { ok: false, grund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.' };
-  if (!mailtestState(roh))
-    return { ok: false, grund: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen. ' +
+function deliveryReady() {
+  const raw = getSetting(mail.SETTING_KEY, null);
+  if (!mail.configured(raw))
+    return { ok: false, reason: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.' };
+  if (!mailtestState(raw))
+    return { ok: false, reason: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen. ' +
       'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };
-  if (!PUBLIC.adresse)
-    return { ok: false, grund:
+  if (!PUBLIC.address)
+    return { ok: false, reason:
       'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
-  return { ok: true, grund: '' };
+  return { ok: true, reason: '' };
 }
 
 /* ---- Die Bestaetigungsmail der Selbstanmeldung -------------------------
@@ -258,15 +260,15 @@ function versandBereit() {
    DER SCHLUESSEL STEHT IM FRAGMENT (#/confirm/…) und geht nie an den
    Server: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
    die Seite und bestaetigt damit gerade NICHT. */
-async function sendConfirm(name, adresse, plain) {
+async function sendConfirm(name, address, plain) {
   const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
-  if (!mail.configured(zugang) || !PUBLIC.adresse) return { ok: false, grund: 'aus' };
+  if (!mail.configured(zugang) || !PUBLIC.address) return { ok: false, reason: 'aus' };
   const title = getSetting('title_public', 'Bewertungskatalog');
   const locale = LANGUAGE_DEFAULT;
   const letter = mail.mailConfirm(locale, { title, username: name,
-    link: `${PUBLIC.adresse}/#/confirm/${plain}`,
+    link: `${PUBLIC.address}/#/confirm/${plain}`,
     stunden: auth.REQUEST_HOURS });
-  return mail.send(locale, zugang, adresse, letter.subject, letter.text);
+  return mail.send(locale, zugang, address, letter.subject, letter.text);
 }
 
 const app = express();
@@ -472,7 +474,7 @@ const convertImages = () => getSetting('convertImages', true) !== false;
    DER SCHLUESSEL IST DIE AUFGABE, mit der der Thread erzeugt wird -- dieselbe
    Zeichenfolge, die batchrun.js unten in seiner Verzweigung liest. Eine
    zweite Liste der Aufgabennamen liefe auseinander. */
-const batchStates = { umstellung: null, geometrie: null };
+const batchStates = { umstellung: null, geometry: null };
 
 /* Der Stand fuer /api/stats -- oder null, solange in dieser Laufzeit nie einer
    lief. ER BLEIBT NACH DEM ENDE STEHEN, mit `laeuft: false`: die Karte fragt
@@ -588,7 +590,7 @@ function startBatchThread(task, rows, done) {
      dann haengt die Zahl an der Vollstaendigkeit der Meldungsfolge. */
   w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });
   w.on('error', (e) => {
-    if (batchStates[task]) batchStates[task].laeuft = false;
+    if (batchStates[task]) batchStates[task].running = false;
     console.error(`[Kriterion] Bestandslauf (${task}) abgebrochen:`, e.message);
   });
   w.on('exit', () => { batchThreads.delete(w); if (done) done(); });
@@ -677,7 +679,7 @@ app.post('/api/login', async (req, res) => {
      dieser Ruf loeschte den Zaehler, den der zweite Schritt gerade aufbaut.
      ZURUECKGESETZT WIRD ERST, WENN JEMAND WIRKLICH DRIN IST. */
   if (auth.twoFactorOn(benutzer.id)) {
-    return res.json({ zweifaktor: true, ...auth.createLoginTicket(benutzer.id) });
+    return res.json({ twoFactor: true, ...auth.createLoginTicket(benutzer.id) });
   }
   auth.noteSuccess(ip, user);
   auth.pruneSessions();
@@ -703,7 +705,7 @@ app.post('/api/login', async (req, res) => {
    oder abgelaufen war. */
 app.post('/api/login/second', async (req, res) => {
   const ip = auth.clientIp(req);
-  const { ausweis, code } = req.body || {};
+  const { ticket, code } = req.body || {};
   /* DIE BREMSE STEHT GANZ VORN -- dieselbe Reihenfolge wie an
      POST /api/login und POST /api/confirm: ein gesperrter Aufrufer
      bekommt an JEDER Stelle dieselbe 429 und nirgends stattdessen eine
@@ -721,7 +723,7 @@ app.post('/api/login/second', async (req, res) => {
       error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
-  const id = auth.useLoginTicket(ausweis);
+  const id = auth.useLoginTicket(ticket);
   if (!id) {
     auth.noteFailure(ip, null);
     return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});
@@ -823,10 +825,10 @@ app.post('/api/token/check', async (req, res) => {
      Link.
      NICHT in auth.checkToken: die wird auch von loeseTokenEin gerufen, und
      das Einloesen darf die Frist nicht noch einmal anfassen. */
-  const minuten = auth.startTokenDeadline(token.hash);
+  const minutes = auth.startTokenDeadline(token.hash);
   res.json({
-    username: token.username, ohnePasswort: token.ohnePasswort,
-    minPassword: auth.PASSWORD_MIN, minuten
+    username: token.username, withoutPassword: token.withoutPassword,
+    minPassword: auth.PASSWORD_MIN, minutes
   });
 });
 
@@ -838,9 +840,9 @@ app.post('/api/token/check', async (req, res) => {
 app.post('/api/token/redeem', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenThrottleFree(req, res)) return;
-  const { token, passwort } = req.body || {};
-  let ergebnis;
-  try { ergebnis = await auth.redeemToken(token, passwort); }
+  const { token, password } = req.body || {};
+  let result;
+  try { result = await auth.redeemToken(token, password); }
   catch (e) { auth.noteFailure(ip, null); return res.status(400).json({ error: errorText(req, e) }); }
   auth.noteSuccess(ip, null);
   /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT -- UND DAS IST EINE
@@ -860,15 +862,15 @@ app.post('/api/token/redeem', async (req, res) => {
      DAS PASSWORT IST DABEI SCHON GESETZT und die alten Sitzungen sind
      gefallen: der Link hat getan, wofuer er da war. Was er NICHT mehr tut,
      ist anmelden. */
-  if (auth.twoFactorOn(ergebnis.id)) {
+  if (auth.twoFactorOn(result.id)) {
     return res.json({
-      ok: true, username: ergebnis.username, zweifaktor: true,
-      ...auth.createLoginTicket(ergebnis.id)
+      ok: true, username: result.username, twoFactor: true,
+      ...auth.createLoginTicket(result.id)
     });
   }
   auth.pruneSessions();
-  res.set('Set-Cookie', auth.sessionCookie(req, auth.createSession(ergebnis.id)));
-  res.json({ ok: true, username: ergebnis.username });
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.createSession(result.id)));
+  res.json({ ok: true, username: result.username });
 });
 
 /* ---- Die Selbstanmeldung vor der Anmeldung ----
@@ -907,8 +909,8 @@ app.post('/api/signup', async (req, res) => {
      an der sich die Antwort doch unterscheidet. "Abgewiesen" heisst hier: es
      entsteht nichts. Keine Zeile, keine Mail. */
   const an = getSetting('signup', false) === true;
-  const { name, adresse } = req.body || {};
-  const plain = an ? auth.createRequest(name, adresse) : null;
+  const { name, address } = req.body || {};
+  const plain = an ? auth.createRequest(name, address) : null;
   res.json(REQUEST_ANSWER);
   /* ERST DIE ANTWORT, DANN DER VERSAND (Begruendung bei
      sendConfirm): ein Weg, der auf den Mailserver wartet, waere an
@@ -916,7 +918,7 @@ app.post('/api/signup', async (req, res) => {
      DAS AUFFANGNETZ IST KEINE ZIERDE -- hier haengt kein Aufrufer mehr an der
      Zusage. */
   if (plain) {
-    sendConfirm(String(name).trim(), String(adresse).trim(), plain)
+    sendConfirm(String(name).trim(), String(address).trim(), plain)
       .catch(e => console.error('[Kriterion] Bestaetigungsmail:', e && e.message));
   }
 });
@@ -961,8 +963,8 @@ app.use('/api', auth.requireAuth);
 
    Die Eigentuemerfrage steht ZUERST, weil die Adminfrage sie ruft -- damit
    ist "ein Eigentuemer ist immer auch Admin" baulich wahr. */
-function istEigentuemer(req) { return req.benutzer.role === 'owner'; }
-function istAdmin(req) { return req.benutzer.role === 'admin' || istEigentuemer(req); }
+function isOwner(req) { return req.benutzer.role === 'owner'; }
+function isAdmin(req) { return req.benutzer.role === 'admin' || isOwner(req); }
 
 const DENIED_ADMIN = 'server.deniedAdmin';
 const DENIED_OWNER = 'server.deniedOwner';
@@ -972,12 +974,12 @@ const DENIED_TAG_NEW = 'server.deniedTagNew';
 const DENIED_CATEGORY_NEW = 'server.deniedCategoryNew';
 
 function adminOnly(req, res, next) {
-  if (!istAdmin(req)) return res.status(403).json({ error: t(localeOf(req), DENIED_ADMIN)});
+  if (!isAdmin(req)) return res.status(403).json({ error: t(localeOf(req), DENIED_ADMIN)});
   next();
 }
 
 function ownerOnly(req, res, next) {
-  if (!istEigentuemer(req)) return res.status(403).json({ error: t(localeOf(req), DENIED_OWNER)});
+  if (!isOwner(req)) return res.status(403).json({ error: t(localeOf(req), DENIED_OWNER)});
   next();
 }
 
@@ -1011,7 +1013,7 @@ const DENIED_CONFIRM = 'server.deniedConfirm';
 function secondConfirm(req, res, purpose, target = null) {
   const token = auth.sessionToken(req);
   if (auth.useRelease(token, purpose, target)) return true;
-  res.status(403).json({ error: t(localeOf(req), DENIED_CONFIRM), bestaetigung: purpose});
+  res.status(403).json({ error: t(localeOf(req), DENIED_CONFIRM), confirm: purpose});
   return false;
 }
 
@@ -1038,7 +1040,7 @@ const secondConfirmNeeded = (purpose) => (req, res, next) => {
 // assignInventory() raeumt sie beim naechsten Start dem Eigentuemer zu; bis
 // dahin darf sie nicht jedem gehoeren.
 function mayChange(req, authorId) {
-  return istAdmin(req) || (authorId != null && authorId === req.benutzer.id);
+  return isAdmin(req) || (authorId != null && authorId === req.benutzer.id);
 }
 
 // Nur der Verfasser -- und ausdruecklich auch der Admin nicht. Fuer alles, was
@@ -1059,7 +1061,7 @@ function selfOnly(req, authorId) {
    bleibt "Zuweisen darf immer jeder" baulich wahr. */
 const freeCreate = (schluessel) => getSetting(schluessel, true) !== false;
 function mayCreate(req, schluessel) {
-  return istAdmin(req) || freeCreate(schluessel);
+  return isAdmin(req) || freeCreate(schluessel);
 }
 
 /* Alles, was an einem Eintrag haengt -- Fotos, Dateien, Links, Tags, Kategorie,
@@ -1085,12 +1087,12 @@ function entryAuthorOnly(req, res, next) {
 // steht bewusst NICHT dabei: der Favorit ist persoenlich, jeder setzt seinen
 // eigenen an jedem Eintrag. Deshalb sitzt die Klemme dort IM Rumpf und nicht
 // vor der Route.
-/* `rejectedGrund` STEHT MIT DABEI, UND DAS IST DIE GROBE HAELFTE DER KLEMME:
+/* `rejectedReason` STEHT MIT DABEI, UND DAS IST DIE GROBE HAELFTE DER KLEMME:
    an die Begruendung kommt ueberhaupt nur, wer den Eintrag aendern darf. Die
    feine Haelfte steht im Rumpf der Route -- umschreiben darf sie nur, wer sie
    getroffen hat. Ohne die grobe koennte jeder Angemeldete an einem Eintrag,
    dessen Ablehnung noch keinen Verfasser traegt, eine Begruendung hinsetzen. */
-const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected', 'rejectedGrund',
+const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected', 'rejectedReason',
                               'tested', 'productCategoryId'];
 
 /* Wer an einen fremden ZUGANG darf. Ein Admin ist der Sheriff im
@@ -1099,7 +1101,7 @@ const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected', 'rejectedGrund',
    Verwaltung ein Wettrennen, und der Schnellste bliebe allein uebrig.
    Die Regel steht hier und nirgends sonst; die vier Routen rufen sie. */
 function mayTouchUser(req, target) {
-  return target.role === 'user' ? istAdmin(req) : istEigentuemer(req);
+  return target.role === 'user' ? isAdmin(req) : isOwner(req);
 }
 const DENIED_USER = 'server.deniedUser';
 const DENIED_ROLE = 'server.deniedRole';
@@ -1117,19 +1119,19 @@ app.get('/api/account', (req, res) => {
      DAS GEHEIMNIS IST NIE DARIN, auch nicht fuer den Eigentuemer. */
   res.json({ username: req.benutzer.username, minPassword: auth.PASSWORD_MIN,
              email: auth.getUser2(req.benutzer.id)?.email || '',
-             zweifaktor: auth.twoFactorState(req.benutzer.id) });
+             twoFactor: auth.twoFactorState(req.benutzer.id) });
 });
 
 app.put('/api/account', async (req, res) => {
   const { oldPassword, username, newPassword, email } = req.body || {};
-  let ergebnis;
+  let result;
   try {
     // WESSEN Zugang. Ohne diese Angabe aenderte jeder den des Eigentuemers,
     // sobald er dessen Passwort raet.
     // Die Adresse geht denselben Weg wie Name und Passwort -- hinter dem
     // BISHERIGEN Passwort. Sie entscheidet, wohin der naechste Ruecksetzlink
     // geht; eine uebernommene Sitzung soll sie nicht nebenbei umbiegen koennen.
-    ergebnis = await auth.changeUser(req.benutzer.id, oldPassword, username, newPassword, email);
+    result = await auth.changeUser(req.benutzer.id, oldPassword, username, newPassword, email);
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
   // Alle anderen Sitzungen DIESES Benutzers fallen. Wer das Passwort wechselt,
   // will meist genau das; die eigene bleibt, sonst wuerde man sich selbst
@@ -1137,7 +1139,7 @@ app.put('/api/account', async (req, res) => {
   // beenden" ruft dieselbe, und zwei Ausfuehrungen derselben Regel liefen
   // auseinander.
   auth.endOtherSessions(req.benutzer.id, auth.sessionToken(req));
-  res.json(ergebnis);
+  res.json(result);
 });
 
 /* ---- Meine Sitzungen ----
@@ -1147,7 +1149,7 @@ app.put('/api/account', async (req, res) => {
    DIE FESTE ROUTE STEHT VOR DER PLATZHALTERROUTE (Stolperstein 11). */
 app.get('/api/sessions', (req, res) => {
   const ownOne = auth.sessionToken(req);
-  res.json({ sitzungen: auth.sessionsOf(req.benutzer.id, ownOne), tage: auth.SESSION_DAYS });
+  res.json({ sessions: auth.sessionsOf(req.benutzer.id, ownOne), days: auth.SESSION_DAYS });
 });
 
 app.delete('/api/sessions', (req, res) => {
@@ -1193,9 +1195,9 @@ app.delete('/api/sessions/:kennung', (req, res) => {
 // Antwort bereits geschrieben.
 // 403 und nicht 401: der Zugang gilt weiter, nur diese eine Handlung nicht --
 // dieselbe Ueberlegung wie bei der zweiten Bestaetigung.
-async function ownPasswordMatches(req, res, passwort) {
+async function ownPasswordMatches(req, res, password) {
   const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
-  if (row && await auth.checkPassword(String(passwort || ''), row.password_hash)) return true;
+  if (row && await auth.checkPassword(String(password || ''), row.password_hash)) return true;
   res.status(403).json({ error: t(localeOf(req), 'server.passwordWrong')});
   return false;
 }
@@ -1204,7 +1206,7 @@ async function ownPasswordMatches(req, res, passwort) {
    steht, wozu der Code gehoert -- er steht ohnehin auf der Anmeldeseite und
    verraet nichts, was nicht jeder sieht, der die Adresse kennt. */
 app.post('/api/two-factor/start', async (req, res) => {
-  if (!await ownPasswordMatches(req, res, (req.body || {}).passwort)) return;
+  if (!await ownPasswordMatches(req, res, (req.body || {}).password)) return;
   try {
     res.json(auth.startTwoFactor(req.benutzer.id,
       getSetting('title_public', 'Bewertungskatalog'), req.benutzer.username));
@@ -1216,8 +1218,8 @@ app.post('/api/two-factor/start', async (req, res) => {
    dort liegt nur ihr SHA-256. Wer sie verliert, holt sich neue; wer beides
    verliert, geht ueber usertool.js auf dem Wirt. */
 app.post('/api/two-factor/on', async (req, res) => {
-  const { passwort, code } = req.body || {};
-  if (!await ownPasswordMatches(req, res, passwort)) return;
+  const { password, code } = req.body || {};
+  if (!await ownPasswordMatches(req, res, password)) return;
   try {
     res.json(auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id));
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
@@ -1229,8 +1231,8 @@ app.post('/api/two-factor/on', async (req, res) => {
    Weg an ihm vorbei. Ein Wiederherstellungscode zaehlt dabei als Beleg -- genau
    dafuer ist er da, und der letzte holt so die naechsten acht. */
 app.post('/api/two-factor/codes', async (req, res) => {
-  const { passwort, code } = req.body || {};
-  if (!await ownPasswordMatches(req, res, passwort)) return;
+  const { password, code } = req.body || {};
+  if (!await ownPasswordMatches(req, res, password)) return;
   if (!auth.checkTwoFactor(req.benutzer.id, code))
     return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});
   try {
@@ -1250,10 +1252,10 @@ app.post('/api/two-factor/codes', async (req, res) => {
    EIN ADMIN KOMMT HIER NICHT HEREIN: die Nummer kommt aus req.benutzer. Der
    einzige Weg daneben ist usertool.js auf dem Wirt. */
 app.delete('/api/two-factor', async (req, res) => {
-  const { passwort, code } = req.body || {};
+  const { password, code } = req.body || {};
   if (!auth.twoFactorOn(req.benutzer.id))
     return res.status(400).json({ error: t(localeOf(req), 'server.twoFactorOff')});
-  if (!await ownPasswordMatches(req, res, passwort)) return;
+  if (!await ownPasswordMatches(req, res, password)) return;
   if (!auth.checkTwoFactor(req.benutzer.id, code))
     return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});
   auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);
@@ -1281,7 +1283,7 @@ app.post('/api/confirm', async (req, res) => {
       error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
-  const { passwort, purpose, target, ziele, code } = req.body || {};
+  const { password, purpose, target, ziele, code } = req.body || {};
   if (!auth.CONFIRM_PURPOSES.includes(purpose))
     return res.status(400).json({ error: t(localeOf(req), 'server.purposeUnknown')});
   /* MEHRERE ZIELE IN EINER ANFRAGE, und der Grund ist der Code des zweiten
@@ -1319,7 +1321,7 @@ app.post('/api/confirm', async (req, res) => {
       return res.status(400).json({ error: t(localeOf(req), 'server.targetTwice')});
   } else targetList = [target ?? null];
   const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
-  if (!row || !await auth.checkPassword(String(passwort || ''), row.password_hash)) {
+  if (!row || !await auth.checkPassword(String(password || ''), row.password_hash)) {
     auth.noteFailure(ip, name);
     // Die zweite der beiden Zeilen, bei denen das SCHEITERN der Vorgang ist.
     // Wer hier scheitert, sitzt an einer angemeldeten Sitzung und kennt das
@@ -1341,7 +1343,7 @@ app.post('/api/confirm', async (req, res) => {
   if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code)) {
     auth.noteFailure(ip, name);
     auth.log('confirm.fail', { actor: req.benutzer.id, target: req.benutzer.id });
-    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL), zweifaktor: true});
+    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL), twoFactor: true});
   }
   auth.noteSuccess(ip, name);
   const ownOne = auth.sessionToken(req);
@@ -1349,9 +1351,9 @@ app.post('/api/confirm', async (req, res) => {
     // Alle Freigaben in EINER Antwort. `targets` steht auch dann darin, wenn nur
     // eine bestellt war -- eine Antwort, deren Form von der Zahl abhaengt,
     // braeuchte auf der Gegenseite zwei Lesearten.
-    let letzte;
-    for (const z of targetList) letzte = auth.createRelease(ownOne, purpose, z);
-    res.json({ ok: true, ...letzte, ziele: targetList });
+    let last;
+    for (const z of targetList) last = auth.createRelease(ownOne, purpose, z);
+    res.json({ ok: true, ...last, ziele: targetList });
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
 
@@ -1406,10 +1408,10 @@ app.get('/api/users', adminOnly, (req, res) => {
   // Benutzerhandlung -- die Liste schreibender Routen bleibt unberuehrt.
   auth.cleanupTokens();
   res.json({
-    zugaenge: auth.listUsers(),
+    users: auth.listUsers(),
     ich: req.benutzer.id,
-    darfRollen: istEigentuemer(req),
-    eigentuemer: auth.ownerCount()
+    mayRoles: isOwner(req),
+    owner: auth.ownerCount()
   });
 });
 
@@ -1425,9 +1427,9 @@ app.get('/api/users/:id/inventory', adminOnly, (req, res) => {
 // Admin offen, ohne dass irgendwo "Rolle" steht. Dieselbe Ueberlegung wie beim
 // Import, den eine Exportdatei sonst unter fremdem Namen schreiben liesse.
 app.post('/api/users', adminOnly, async (req, res) => {
-  const { username, passwort, rolle, einladen, email } = req.body || {};
+  const { username, password, rolle, einladen, email } = req.body || {};
   const wanted = rolle || 'user';
-  if (wanted !== 'user' && !istEigentuemer(req))
+  if (wanted !== 'user' && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ROLE)});
   try {
     /* MIT EINLADUNG ENTSTEHT DER ZUGANG OHNE PASSWORT und bekommt den Link im
@@ -1435,15 +1437,15 @@ app.post('/api/users', adminOnly, async (req, res) => {
        Zugang dasteht, in den niemand hereinkommt und an den auch niemand mehr
        denkt. `einladen` muss ausdruecklich true sein -- ein vergessenes
        Passwortfeld scheitert weiter wie bisher. */
-    const created = await auth.createUser(username, passwort, wanted, einladen === true,
+    const created = await auth.createUser(username, password, wanted, einladen === true,
                                              req.benutzer.id, email);
     if (einladen !== true) return res.json(created);
     const token = auth.createToken(created.id, 'invite', req.benutzer.id);
     /* ERST DER TOKEN, DANN DER VERSAND, und die Reihenfolge ist die ganze
        Zusage: der Link steht in der Antwort, egal was der Mailserver sagt. */
     const v = await sendTokenLink({ username: created.username, email: created.email }, token);
-    res.json({ ...created, token: token.plain, purpose: token.purpose, tage: token.tage,
-               minuten: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v });
+    res.json({ ...created, token: token.plain, purpose: token.purpose, days: token.days,
+               minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v });
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
 
@@ -1466,8 +1468,8 @@ app.post('/api/users/:id/token', adminOnly, async (req, res) => {
     // und aus demselben Grund.
     const v = await sendTokenLink(target, token);
     res.json({ id: token.id, username: token.username, token: token.plain,
-               purpose: token.purpose, tage: token.tage, minuten: auth.TOKEN_DEADLINE_MINUTES,
-               ohnePasswort: token.ohnePasswort,
+               purpose: token.purpose, days: token.days, minutes: auth.TOKEN_DEADLINE_MINUTES,
+               withoutPassword: token.withoutPassword,
                ...linkInfo(token.plain), ...v });
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
@@ -1481,11 +1483,11 @@ app.post('/api/users/:id/token', adminOnly, async (req, res) => {
 //   Passwort -- dieselbe Regel wie Status; das EIGENE laeuft ueber
 //               PUT /api/account.
 app.put('/api/users/:id', adminOnly, async (req, res) => {
-  const { rolle, status, passwort } = req.body || {};
-  const roleOnly = rolle !== undefined && status === undefined && passwort === undefined;
+  const { rolle, status, password } = req.body || {};
+  const roleOnly = rolle !== undefined && status === undefined && password === undefined;
   const target = targetUserFree(req, res, req.params.id, roleOnly);
   if (!target) return;
-  if (rolle !== undefined && !istEigentuemer(req))
+  if (rolle !== undefined && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ROLE)});
   /* DIE ZWEITE BESTAETIGUNG STEHT HIER IM RUMPF UND NICHT IN DER ROUTENZEILE,
      weil erst der Rumpf sagt, WELCHE der drei Rechteklassen gemeint ist:
@@ -1494,13 +1496,13 @@ app.put('/api/users/:id', adminOnly, async (req, res) => {
      eine Absage, die die halbe Aenderung schon geschrieben hat, waere
      schlimmer als keine. */
   if (rolle !== undefined && !secondConfirm(req, res, 'role', target.id)) return;
-  if (passwort !== undefined && !secondConfirm(req, res, 'password', target.id)) return;
+  if (password !== undefined && !secondConfirm(req, res, 'password', target.id)) return;
   try {
-    let ergebnis = { id: target.id, username: target.username };
-    if (rolle !== undefined) ergebnis = { ...ergebnis, ...auth.setRole(target.id, rolle, req.benutzer.id) };
-    if (status !== undefined) ergebnis = { ...ergebnis, ...auth.setStatus(target.id, status, req.benutzer.id) };
-    if (passwort !== undefined) { await auth.setNewPassword(target.id, passwort, req.benutzer.id); ergebnis.passwortGesetzt = true; }
-    res.json(ergebnis);
+    let result = { id: target.id, username: target.username };
+    if (rolle !== undefined) result = { ...result, ...auth.setRole(target.id, rolle, req.benutzer.id) };
+    if (status !== undefined) result = { ...result, ...auth.setStatus(target.id, status, req.benutzer.id) };
+    if (password !== undefined) { await auth.setNewPassword(target.id, password, req.benutzer.id); result.passwordSet = true; }
+    res.json(result);
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
 
@@ -1544,27 +1546,27 @@ app.delete('/api/users/:id', adminOnly, (req, res) => {
    die Anfrage in der Hand liegt und damit feststeht, welche Sprache die
    Antwort traegt. mail.js kennt die Sprache nicht; es kennt den Anbieter. */
 function mailCard(req) {
-  const roh = getSetting(mail.SETTING_KEY, null);
+  const raw = getSetting(mail.SETTING_KEY, null);
   // Der Vergleich steht in mailtestState() weiter oben -- eine
   // Rechnung, zwei Rufer (Stolperstein 145).
-  const test = mailtestState(roh);
-  const state = mail.state(roh);
+  const test = mailtestState(raw);
+  const state = mail.state(raw);
   return {
     ...state,
     // Auch die beiden Hinweise am gewaehlten Anbieter sind Schluessel.
-    hinweis: state.hinweis ? t(localeOf(req), state.hinweis) : '',
-    hinweisImmer: t(localeOf(req), state.hinweisImmer),
+    hint: state.hint ? t(localeOf(req), state.hint) : '',
+    hintAlways: t(localeOf(req), state.hintAlways),
     /* SAMT HINWEIS UND DEN DREI FESTEN WERTEN JE ANBIETER -- seit 0.17.3.
        Der Dialog wechselt mit der Auswahl beides, und beides steht in mail.js;
        zwei Ausfertigungen liefen auseinander (Stolperstein 102). */
-    anbieterListe: mail.forChoice().map(a =>
-      ({ ...a, hinweis: a.hinweis ? t(localeOf(req), a.hinweis) : '' })),
-    eingerichtet: mail.configured(roh),
+    providerList: mail.forChoice().map(a =>
+      ({ ...a, hint: a.hint ? t(localeOf(req), a.hint) : '' })),
+    eingerichtet: mail.configured(raw),
     // Der ZUSTAND der oeffentlichen Adresse, nicht die Adresse selbst -- die
     // steht in der Karte "Zugaenge", wo der Link entsteht.
-    adresseGesetzt: Boolean(PUBLIC.adresse),
-    adresse: PUBLIC.adresse,
-    fristMinuten: auth.TOKEN_DEADLINE_MINUTES,
+    addressSet: Boolean(PUBLIC.address),
+    address: PUBLIC.address,
+    deadlineMinutes: auth.TOKEN_DEADLINE_MINUTES,
     getestetAm: test ? test.at : null,
     sekunden: Math.round(mail.SEND_MS / 1000),
     /* Die Folge der Testmarke fuer die Selbstanmeldung, : der
@@ -1599,21 +1601,21 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
     return res.status(400).json({ error:
       t(localeOf(req), 'server.ownEmailMissing')});
   }
-  const roh = getSetting(mail.SETTING_KEY, null);
-  if (!mail.configured(roh))
+  const raw = getSetting(mail.SETTING_KEY, null);
+  if (!mail.configured(raw))
     return res.status(400).json({ error: t(localeOf(req), 'server.mailAccountMissing')});
   const locale = localeOf(req);
   const letter = mail.mailTest(locale, { title: getSetting('title_public', 'Bewertungskatalog'),
                                           username: ownOne.username });
-  const e = await mail.send(locale, roh, ownOne.email, letter.subject, letter.text);
+  const e = await mail.send(locale, raw, ownOne.email, letter.subject, letter.text);
   if (e.ok) {
     putSetting.run(MAILTEST_KEY,
-      JSON.stringify({ mark: mail.mark(roh), at: new Date().toISOString().slice(0, 19).replace('T', ' ') }));
+      JSON.stringify({ mark: mail.mark(raw), at: new Date().toISOString().slice(0, 19).replace('T', ' ') }));
   }
   // 200 AUCH BEIM FEHLSCHLAG: der Versuch ist gelaufen, und sein Ergebnis ist
   // die Antwort. Ein 500 hiesse, die Instanz haette einen Fehler -- den hat der
   // Mailserver. Die Oberflaeche liest `ok` und nicht den Statuscode.
-  res.json({ ok: e.ok, grund: e.grund, an: ownOne.email, ...mailCard(req) });
+  res.json({ ok: e.ok, reason: e.reason, an: ownOne.email, ...mailCard(req) });
 });
 
 /* ---- Die Selbstanmeldung hinter der Anmeldung ---------------------------
@@ -1628,12 +1630,12 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
    bereitem Versand, AUSSCHALTEN GEHT IMMER. Geht der Versand spaeter kaputt,
    bleibt er an und die Karte sagt es rot. */
 function requestCard() {
-  const b = versandBereit();
+  const b = deliveryReady();
   return {
     an: getSetting('signup', false) === true,
-    versandBereit: b.ok, versandGrund: b.grund,
-    anfragen: auth.listRequests(),
-    deckel: auth.REQUEST_CAP, belegt: auth.countRequests(),
+    deliveryReady: b.ok, deliveryReason: b.reason,
+    requests: auth.listRequests(),
+    cap: auth.REQUEST_CAP, belegt: auth.countRequests(),
     stunden: auth.REQUEST_HOURS
   };
 }
@@ -1653,9 +1655,9 @@ app.put('/api/signup/toggle', adminOnly, (req, res) => {
      ausschalten laesst, weil inzwischen der Mailzugang fehlt, waere eine
      Falle: gerade dann will man ihn aus. */
   if (an) {
-    const b = versandBereit();
+    const b = deliveryReady();
     if (!b.ok) return res.status(400).json({ error:
-      t(localeOf(req), 'server.signupNeedsMail', { grund: b.grund })});
+      t(localeOf(req), 'server.signupNeedsMail', { grund: b.reason })});
   }
   putSetting.run('signup', JSON.stringify(an));
   res.json(requestCard());
@@ -1682,8 +1684,8 @@ app.post('/api/requests/:id/approve', adminOnly, async (req, res) => {
      Admins. */
   auth.log('request.approve', { actor: req.benutzer.id, target: created.id });
   const v = await sendTokenLink({ username: created.username, email: created.email }, token);
-  res.json({ ...created, token: token.plain, purpose: token.purpose, tage: token.tage,
-             minuten: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v,
+  res.json({ ...created, token: token.plain, purpose: token.purpose, days: token.days,
+             minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v,
              ...requestCard() });
 });
 
@@ -1786,10 +1788,10 @@ const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_WITHOUT_TO.includes(k));
 
 // Unbekanntes fliegt raus, Fehlendes haengt sich in der Vorgabereihenfolge
 // hinten an -- ein spaeter hinzugekommener Block taucht so von selbst auf.
-function sortArea(stored, vorgabe) {
+function sortArea(stored, fallback) {
   const sauber = (Array.isArray(stored) ? stored : [])
-    .filter((k, i, a) => vorgabe.includes(k) && a.indexOf(k) === i);
-  return [...sauber, ...vorgabe.filter(k => !sauber.includes(k))];
+    .filter((k, i, a) => fallback.includes(k) && a.indexOf(k) === i);
+  return [...sauber, ...fallback.filter(k => !sauber.includes(k))];
 }
 
 // Persoenlich. Anordnung und Einklappzustand gelten global ueber alle
@@ -1806,9 +1808,9 @@ function blocks(userId) {
 function vocabulary() {
   const stored = getSetting('vocabulary', null) || {};
   const out = {};
-  for (const [k, vorgabe] of Object.entries(vocabularyDefault())) {
+  for (const [k, fallback] of Object.entries(vocabularyDefault())) {
     const v = typeof stored[k] === 'string' ? stored[k].trim() : '';
-    out[k] = v || vorgabe;   // leeres Feld faellt auf die Vorgabe zurueck
+    out[k] = v || fallback;   // leeres Feld faellt auf die Vorgabe zurueck
   }
   return out;
 }
@@ -1828,14 +1830,14 @@ const timelineOn = (userId) => getUserSetting(userId, 'timeline', true) !== fals
 // Die Liste steht hier und nicht in app.js: der Server speichert Schluessel,
 // also muss er die Liste kennen.
 const SEARCH_PROVIDERS = [
-  { schluessel: 'google',    name: 'Google',       vorlage: 'https://www.google.com/search?q=%s' },
-  { schluessel: 'bing',      name: 'Bing',         vorlage: 'https://www.bing.com/search?q=%s' },
-  { schluessel: 'ddg',       name: 'DuckDuckGo',   vorlage: 'https://duckduckgo.com/?q=%s' },
-  { schluessel: 'startpage', name: 'Startpage',    vorlage: 'https://www.startpage.com/sp/search?query=%s' },
-  { schluessel: 'brave',     name: 'Brave Search', vorlage: 'https://search.brave.com/search?q=%s' },
-  { schluessel: 'ecosia',    name: 'Ecosia',       vorlage: 'https://www.ecosia.org/search?q=%s' }
+  { schluessel: 'google',    name: 'Google',       template: 'https://www.google.com/search?q=%s' },
+  { schluessel: 'bing',      name: 'Bing',         template: 'https://www.bing.com/search?q=%s' },
+  { schluessel: 'ddg',       name: 'DuckDuckGo',   template: 'https://duckduckgo.com/?q=%s' },
+  { schluessel: 'startpage', name: 'Startpage',    template: 'https://www.startpage.com/sp/search?query=%s' },
+  { schluessel: 'brave',     name: 'Brave Search', template: 'https://search.brave.com/search?q=%s' },
+  { schluessel: 'ecosia',    name: 'Ecosia',       template: 'https://www.ecosia.org/search?q=%s' }
 ];
-const SEARCH_DEFAULT = SEARCH_PROVIDERS[0].vorlage;
+const SEARCH_DEFAULT = SEARCH_PROVIDERS[0].template;
 // Drei Plaetze fuer eigene Anbieter. Der Schluessel haengt am Platz, nicht am
 // Namen: sonst verloere ein Umbenennen den Standard und den Vorrat.
 const OWN_SLOTS = 3;
@@ -1866,11 +1868,11 @@ function searchOwn() {
   for (let i = 0; i < OWN_SLOTS; i++) {
     const e = Array.isArray(g) ? g[i] : null;
     const name = searchNameClean(e && e.name);
-    const vorlage = e && typeof e.vorlage === 'string' ? e.vorlage.trim() : '';
+    const template = e && typeof e.template === 'string' ? e.template.trim() : '';
     // Halb ausgefuellt gibt es nicht. Dieselbe Regel steht noch einmal im
     // Schreibweg (dort mit 400); von aussen ist dieser Leseweg deshalb nur
     // ueber einen von Hand in die Datenbank gesetzten halben Platz erreichbar.
-    out.push(name && searchTemplateOk(vorlage) ? { name, vorlage } : null);
+    out.push(name && searchTemplateOk(template) ? { name, template } : null);
   }
   return out;
 }
@@ -1883,7 +1885,7 @@ function allProviders() {
     ...SEARCH_PROVIDERS.map(a => ({ ...a, eigen: false, vorhanden: true })),
     ...own.map((e, i) => ({
       schluessel: ownKey(i), name: e ? e.name : '',
-      vorlage: e ? e.vorlage : '', eigen: true, vorhanden: !!e
+      template: e ? e.template : '', eigen: true, vorhanden: !!e
     }))
   ];
 }
@@ -1910,10 +1912,10 @@ function searchPool() {
 // Was die Oberflaeche braucht: alle neun Plaetze mit Vorrat- und
 // Standardkennzeichnung, in kanonischer Reihenfolge. Wer angezeigt wird und
 // in welcher Reihenfolge, entscheidet allein `aktiv` und `standard`.
-function suchAnbieter() {
+function searchProviders() {
   const pool = searchPool();
   return allProviders().map(a => ({
-    schluessel: a.schluessel, name: a.name, vorlage: a.vorlage,
+    schluessel: a.schluessel, name: a.name, template: a.template,
     eigen: a.eigen, vorhanden: a.vorhanden,
     aktiv: pool.includes(a.schluessel),
     standard: pool[0] === a.schluessel
@@ -1924,7 +1926,7 @@ function suchAnbieter() {
 function searchTemplate() {
   const pool = searchPool();
   const treffer = allProviders().find(a => a.schluessel === pool[0]);
-  return treffer && searchTemplateOk(treffer.vorlage) ? treffer.vorlage : SEARCH_DEFAULT;
+  return treffer && searchTemplateOk(treffer.template) ? treffer.template : SEARCH_DEFAULT;
 }
 
 // Schreibt den Vorrat, normalisiert: Standard zuerst, die uebrigen in
@@ -2015,20 +2017,20 @@ const views = (userId) => {
 const qUserCount = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status != 'deleted'");
 
 app.get('/api/settings', (req, res) => res.json({
-  benutzerZahl: qUserCount.get().n,
+  userCount: qUserCount.get().n,
   // Der eigene Name fuer die Kopfzeile. Er steht auch in GET /api/account --
   // das ist keine zweite Wahrheit, beide lesen dieselbe angemeldete Zeile.
   // Hier, weil ladeEinstellungen() beim Start ohnehin laeuft und die Kopfzeile
   // ihn damit ohne zweiten Abruf hat.
   name: req.benutzer.username,
-  istAdmin: istAdmin(req),
-  istEigentuemer: istEigentuemer(req),
+  isAdmin: isAdmin(req),
+  isOwner: isOwner(req),
   filters: getUserSetting(req.benutzer.id, 'filters', null),
   views: views(req.benutzer.id),
   // Der Deckel kommt vom Server, damit die Zahl an einer Stelle steht: die
   // Oberflaeche laesst danach den Knopf zum Speichern weg, und der Server
   // verweigert es ohnehin.
-  ansichtenDeckel: VIEWS_CAP,
+  viewsCap: VIEWS_CAP,
   vocabulary: vocabulary(),
   font: fontSize(req.benutzer.id),
   strip: strip(req.benutzer.id),
@@ -2041,8 +2043,8 @@ app.get('/api/settings', (req, res) => res.json({
      mit ihr weg. Eine Antwort, die ein Feld weniger traegt, ist kein Bruch:
      die Oberflaeche wird im selben Dateisatz ausgeliefert. */
   bellSeen: bellSeen(req.benutzer.id),
-  suche: searchTemplate(),
-  suchAnbieter: suchAnbieter(),
+  search: searchTemplate(),
+  searchProviders: searchProviders(),
   searchNames: searchNames(req.benutzer.id),
   // Abgeleitet beim Lesen, nicht in der Datenbank nachgetragen. Die Oberflaeche
   // laesst danach die Zeile "+ neu anlegen" weg; die Auswahl aus dem
@@ -2062,12 +2064,12 @@ app.get('/api/settings', (req, res) => res.json({
      Bestaetigungsfenster steht auch vor Export und Import, und ohne die
      Angabe muesste es den ersten Versuch absichtlich scheitern lassen.
      NUR EIN JA/NEIN. */
-  zweifaktor: auth.twoFactorOn(req.benutzer.id),
+  twoFactor: auth.twoFactorOn(req.benutzer.id),
   // Die Frist des Papierkorbs. Sie steht HIER und nicht nur in
   // GET /api/trash: den Loeschdialog sieht jeder, die Karte nur der
   // Admin. Eine Zahl, die die Oberflaeche selbst mitbraechte, waere eine
   // zweite Wahrheit ueber dieselbe Frist.
-  papierkorbTage: TRASH_DAYS
+  trashDays: TRASH_DAYS
 }));
 
 app.put('/api/settings', (req, res) => {
@@ -2077,7 +2079,7 @@ app.put('/api/settings', (req, res) => {
      Adminsache, auch jeder Schluessel, der spaeter dazukommt.
      GEPRUEFT VOR DEM ERSTEN SCHREIBEN. */
   const foreign = Object.keys(req.body || {}).filter(k => !PERSONAL_KEYS.includes(k));
-  if (foreign.length && !istAdmin(req))
+  if (foreign.length && !isAdmin(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ADMIN)});
   /* DIE ENGERE FRAGE STEHT DANEBEN UND NICHT ANSTELLE DER OBEREN: was dem
      Eigentuemer gehoert, ist auch Adminsache -- nur eben nicht jedem Admin.
@@ -2085,7 +2087,7 @@ app.put('/api/settings', (req, res) => {
      weiter unten: eine Absage, die schon etwas geschrieben hat, waere
      schlimmer als gar keine. */
   const ownerOnly2 = Object.keys(req.body || {}).filter(k => OWNER_KEYS.includes(k));
-  if (ownerOnly2.length && !istEigentuemer(req))
+  if (ownerOnly2.length && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_OWNER)});
 
   /* DIE BEIDEN WERTE DER AUFRAEUMREGEL WERDEN HIER GEPRUEFT UND ERST WEITER
@@ -2150,10 +2152,10 @@ app.put('/api/settings', (req, res) => {
   if (req.body.vocabulary !== undefined) {
     const ein = req.body.vocabulary || {};
     const sauber = {};
-    const vorgabe = vocabularyDefault();
-    for (const k of Object.keys(vorgabe)) {
+    const fallback = vocabularyDefault();
+    for (const k of Object.keys(fallback)) {
       const v = typeof ein[k] === 'string' ? ein[k].trim().slice(0, 40) : '';
-      sauber[k] = v || vorgabe[k];
+      sauber[k] = v || fallback[k];
     }
     putSetting.run('vocabulary', JSON.stringify(sauber));
   }
@@ -2220,16 +2222,16 @@ app.put('/api/settings', (req, res) => {
     for (let i = 0; i < OWN_SLOTS; i++) {
       const e = ein[i] || {};
       const name = searchNameClean(e.name);
-      const vorlage = typeof e.vorlage === 'string' ? e.vorlage.trim() : '';
-      if (!name && !vorlage) { sauber.push(null); continue; }   // Platz geraeumt
+      const template = typeof e.template === 'string' ? e.template.trim() : '';
+      if (!name && !template) { sauber.push(null); continue; }   // Platz geraeumt
       // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
       // nicht, sonst sucht man den Anbieter spaeter in der Liste.
       if (!name)
         return res.status(400).json({ error: t(localeOf(req), 'server.searchEngineName')});
-      if (!searchTemplateOk(vorlage))
+      if (!searchTemplateOk(template))
         return res.status(400).json({
           error: t(localeOf(req), 'server.searchUrlForm')});
-      sauber.push({ name, vorlage });
+      sauber.push({ name, template });
     }
     putSetting.run('searchOwn', JSON.stringify(sauber));
     // Faellt ein Anbieter weg, der im Vorrat oder sogar Standard war, raeumt
@@ -2275,12 +2277,12 @@ app.put('/api/settings', (req, res) => {
     putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
   for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
   res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vocabulary: vocabulary(),
-             views: views(req.benutzer.id), ansichtenDeckel: VIEWS_CAP,
+             views: views(req.benutzer.id), viewsCap: VIEWS_CAP,
              font: fontSize(req.benutzer.id), strip: strip(req.benutzer.id),
              theme: theme(req.benutzer.id),
              blocks: blocks(req.benutzer.id),
              linkRows: linkRows(req.benutzer.id), timeline: timelineOn(req.benutzer.id),
-             suche: searchTemplate(), suchAnbieter: suchAnbieter(),
+             search: searchTemplate(), searchProviders: searchProviders(),
              searchNames: searchNames(req.benutzer.id),
              tagsFreeCreate: freeCreate('tagsFreeCreate'),
              categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
@@ -2322,8 +2324,8 @@ const PHASE_DEFAULT = 'after';
    Math.max(0, Math.min(5, ...)) zurechtgebogen wird: der kommt aus einem
    Sterne-Widget, das gar nichts anderes senden kann. Ein Gewicht wird von
    Hand getippt. */
-function validWeight(roh) {
-  const g = Number(roh);
+function validWeight(raw) {
+  const g = Number(raw);
   if (!Number.isFinite(g) || g < WEIGHT_MIN || g > GEWICHT_MAX) return null;
   // Auf Hundertstel festlegen. Nicht als Schranke gedacht, sondern gegen den
   // Rest der Gleitkommarechnung: 1.2000000000000002 hat niemand eingegeben.
@@ -2337,7 +2339,7 @@ function validWeight(roh) {
    OHNE GRUPPIERUNG, wie in der Oberflaeche: aus "1234" darf nicht "1.234"
    werden. Hoechstens zwei Nachkommastellen, mindestens keine -- die Gewichte
    dieser Meldungen haben genau diese Form. */
-const zahl = (n, locale = LANGUAGE_DEFAULT) => new Intl.NumberFormat(
+const number = (n, locale = LANGUAGE_DEFAULT) => new Intl.NumberFormat(
   localeTag(locale), { maximumFractionDigits: 2, useGrouping: false })
   .format(Number(n) || 0);
 
@@ -2432,7 +2434,7 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
     weight = validWeight(req.body.weight);
     if (weight === null) return res.status(400).json({
       error: t(localeOf(req), 'server.weightRange',
-        { min: zahl(WEIGHT_MIN, localeOf(req)), max: zahl(GEWICHT_MAX, localeOf(req)) })});
+        { min: number(WEIGHT_MIN, localeOf(req)), max: number(GEWICHT_MAX, localeOf(req)) })});
   }
   // Name und Gewicht in EINEM UPDATE: zwei Anweisungen hintereinander koennten
   // halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
@@ -2592,7 +2594,7 @@ function authorCard() {
     // einem anderen Menschen gehoeren; eine Antwort, die ihn mitschickt, laedt
     // dazu ein, ihn irgendwann anzuzeigen. Was die Oberflaeche braucht, ist
     // die Nummer -- daraus wird "Geloeschter Benutzer 7".
-    m.set(u.id, { id: u.id, name: weg ? null : u.username, geloescht: weg });
+    m.set(u.id, { id: u.id, name: weg ? null : u.username, deleted: weg });
   }
   return m;
 }
@@ -2615,7 +2617,7 @@ function qComments(itemId, userId, card) {
     // Der Eingriffsvermerk. Eine EIGENE Angabe neben dem Text, nie in ihm --
     // ein Admin, der in ein fremdes Textfeld schriebe, taete genau das, was
     // ihm verwehrt ist.
-    c.bilderEntfernt = c.images_removed;
+    c.imagesRemoved = c.images_removed;
     delete c.images_removed;
     delete c.user_id;
   }
@@ -2722,7 +2724,7 @@ const qAllCategories = db.prepare('SELECT id, name FROM product_categories');
    Gesamtschnitts gar nicht aus einer anderen Menge entstehen als der Zaehler.
    Gezaehlt wird ueber Werte > 0: eine zurueckgesetzte Zeile ist keine Stimme. */
 const qAveragePerCriterion = db.prepare(`
-  SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,
+  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS anzahl,
          c.weight, c.phase
     FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
    WHERE r.item_id = ? AND r.value > 0
@@ -2764,7 +2766,7 @@ function averagesPerCriterion(itemId) {
    waeren zwei Wahrheiten (Stolperstein 47); zwei Abfragen mit demselben
    Ergebnis sind es nicht -- eine Pruefung haelt sie gegeneinander. */
 const qAveragePerCriterionAll = db.prepare(`
-  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,
+  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS anzahl,
          c.weight, c.phase
     FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
    WHERE r.value > 0
@@ -2774,13 +2776,13 @@ const qAveragePerCriterionAll = db.prepare(`
 // cardPerPhase(). Ein zweiter Schnitt nach Phase, hier frisch geschrieben,
 // waere die zweite Wahrheit, die schon die zwei Abfragen vermeiden.
 function averagesPerEntry() {
-  const roh = new Map();
+  const raw = new Map();
   for (const z of qAveragePerCriterionAll.all()) {
-    if (!roh.has(z.item_id)) roh.set(z.item_id, []);
-    roh.get(z.item_id).push(z);
+    if (!raw.has(z.item_id)) raw.set(z.item_id, []);
+    raw.get(z.item_id).push(z);
   }
   const alle = new Map();
-  for (const [itemId, zeilen] of roh) alle.set(itemId, cardPerPhase(zeilen));
+  for (const [itemId, zeilen] of raw) alle.set(itemId, cardPerPhase(zeilen));
   return alle;
 }
 
@@ -2853,10 +2855,10 @@ function totalAverage(card, calc) {
   let sameCounter = 0;
   const zeilen = [];
   for (const z of card.values()) {
-    const produkt = z.schnitt * z.weight;
+    const produkt = z.average * z.weight;
     counter += produkt; nenner += z.weight;
-    sameCounter += z.schnitt;
-    zeilen.push({ criterionId: z.criterion_id, schnitt: z.schnitt, weight: z.weight, produkt });
+    sameCounter += z.average;
+    zeilen.push({ criterionId: z.criterion_id, average: z.average, weight: z.weight, produkt });
   }
   // UNGERUNDET, wie hier gerechnet wird. Gerundet wird genau einmal, unten am
   // Ergebnis -- die Oberflaeche rundet nur noch fuer die Anzeige und sagt das
@@ -2866,10 +2868,10 @@ function totalAverage(card, calc) {
   // hat keine Zahl darueber, an der sie sonst haengen koennte. Der ungerundete
   // Quotient reist daneben mit, wie beim gewichteten Ergebnis auch.
   if (calc) Object.assign(calc,
-    { zeilen, summe: counter, teiler: nenner, roh: nenner ? counter / nenner : null,
-      gleichSumme: sameCounter, gleichTeiler: zeilen.length,
-      gleichRoh: zeilen.length ? sameCounter / zeilen.length : null,
-      gleichErgebnis: zeilen.length
+    { zeilen, sum: counter, divisor: nenner, raw: nenner ? counter / nenner : null,
+      equalSum: sameCounter, equalDivisor: zeilen.length,
+      equalRaw: zeilen.length ? sameCounter / zeilen.length : null,
+      equalResult: zeilen.length
         ? Math.round((sameCounter / zeilen.length) * 10) / 10 : null });
   // Kein Nenner heisst: kein bewertetes Kriterium, also keine Zahl. Bei
   // mindestens einer Zeile ist er mindestens WEIGHT_MIN und damit nie null.
@@ -2889,8 +2891,8 @@ const qTestDayTags = db.prepare(`SELECT t.id, t.name FROM tags t
 // vergessene Aufrufstelle lieferte wortlos lauter fremde Punkte.
 function qTestDays(itemId, userId, card) {
   if (userId == null) throw new Error('qTestDays() ohne Benutzer aufgerufen');
-  const tage = qTestDaysRaw.all(itemId);
-  for (const tag of tage) {
+  const days = qTestDaysRaw.all(itemId);
+  for (const tag of days) {
     tag.tags = qTestDayTags.all(tag.id);
     tag.mine = tag.user_id === userId;
     // Der Name steht neben `mine`, er ersetzt es nicht: die Zeitleiste
@@ -2899,7 +2901,7 @@ function qTestDays(itemId, userId, card) {
     tag.verfasser = authorFrom(card, tag.user_id);
     delete tag.user_id;
   }
-  return tage;
+  return days;
 }
 
 /* ---- DIE SCHMALE FASSUNG FUER DIE LISTE — 0.19.3 -------------------------
@@ -2997,7 +2999,7 @@ function detail(id, userId) {
      Benutzer 7" und nicht sein freigegebener Name.
      rejected_at und rejected_reason bleiben, wie sie in der Zeile stehen; ein
      leeres Feld heisst "nicht bekannt" und wird hier nicht gefuellt. */
-  it.rejectedVerfasser = authorFrom(card, it.rejected_by);
+  it.rejectedAuthor = authorFrom(card, it.rejected_by);
   delete it.rejected_by;
   it.favorite = !!qMyPin.get(userId, id);
   it.category = it.product_category_id ? qCat.get(it.product_category_id) : null;
@@ -3053,7 +3055,7 @@ function detail(id, userId) {
     // ginge ins Leere -- die beiden Karten teilen keine Kennung.
     const box = averages[r.phase];
     const z = box && box.get(r.criterion_id);
-    r.avg = z ? Math.round(z.schnitt * 10) / 10 : null;
+    r.avg = z ? Math.round(z.average * 10) / 10 : null;
     r.count = z ? z.anzahl : 0;
   }
   /* DIE AUFSTELLUNG GEHT NUR AM EINZELNEN EINTRAG MIT -- dort steht die
@@ -3072,10 +3074,10 @@ function detail(id, userId) {
      Kaesten, also braucht sie es auch beide Male. */
   const calc = {};
   it.avgRating = totalAverage(averages.after, calc);
-  it.rechenweg = { ...calc, ergebnis: it.avgRating };
+  it.rechenweg = { ...calc, result: it.avgRating };
   const potentialCalc = {};
-  it.potenzialRating = totalAverage(averages.before, potentialCalc);
-  it.potenzialRechenweg = { ...potentialCalc, ergebnis: it.potenzialRating };
+  it.potentialRating = totalAverage(averages.before, potentialCalc);
+  it.potenzialRechenweg = { ...potentialCalc, result: it.potentialRating };
   Object.assign(it, testStats(id));
   return it;
 }
@@ -3166,7 +3168,7 @@ const qAttachmentCounts = db.prepare('SELECT item_id, COUNT(*) n FROM attachment
 const FULLTEXT_SOURCES = [
   { schluessel: 'beschreibung',
     wert: 'CASE WHEN instr(kkl(i.description), :q) > 0 THEN i.description END' },
-  { schluessel: 'kommentar',
+  { schluessel: 'comment',
     wert: `(SELECT k.text FROM comments k
              WHERE k.item_id = i.id AND instr(kkl(k.text), :q) > 0
              ORDER BY k.id LIMIT 1)` },
@@ -3267,8 +3269,8 @@ function snippet(text, term, locale = LANGUAGE_DEFAULT) {
    ist KEINE Suche und keine Suche ohne Treffer -- die Liste bleibt dann die
    ganze Liste. Zurueck kommt eine Abbildung Nummer -> Trefferkontext und
    keine Reihenfolge: sortiert wird die Liste selbst, an einer Stelle. */
-const fulltextTerm = (roh, locale = LANGUAGE_DEFAULT) =>
-  (typeof roh === 'string' ? roh.trim().toLocaleLowerCase(localeTag(locale)) : '');
+const fulltextTerm = (raw, locale = LANGUAGE_DEFAULT) =>
+  (typeof raw === 'string' ? raw.trim().toLocaleLowerCase(localeTag(locale)) : '');
 
 /* WAS JE EINTRAG HERAUSKOMMT: die erste getroffene Quelle der festen Folge,
    ihr Ausschnitt und die Zahl der WEITEREN getroffenen Quellen.
@@ -3284,7 +3286,7 @@ const fulltextHits = (term, locale = LANGUAGE_DEFAULT) => new Map(qFulltext.all(
   const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.schluessel] != null);
   const first = hit[0];
   return [r.id, first ? {
-    quelle: first.schluessel,
+    source: first.schluessel,
     text: snippet(r['f_' + first.schluessel], term, locale),
     weitere: hit.length - 1
   } : null];
@@ -3543,7 +3545,7 @@ app.get('/api/items', (req, res) => {
        Browser; welche es GIBT, entscheidet der Bestand. Eine Antwort, die je
        nach `tested` mal die eine und mal die andere traegt, machte aus dem
        Sortieren nach Potenzial eine Sortierung ueber eine luckenhafte Menge. */
-    it.potenzialRating = totalAverage(boxes.before);
+    it.potentialRating = totalAverage(boxes.before);
     Object.assign(it, testStats(it.id));
     /* DIE ZEITLEISTE BRAUCHT DIE TESTTAGE SELBST, nicht nur ihre Anzahl -- und
        dazu, wem sie gehoeren. Ohne sie braucht die Liste sie nicht.
@@ -3569,7 +3571,7 @@ app.get('/api/items', (req, res) => {
        ihre eigene Liste ueber /api/open -- die braucht die Texte, nicht nur
        die Zahl. Gerechnet wird beides aus DERSELBEN Bedingung (kind = 'task'),
        sonst naennten Knopf und Ansicht zwei verschiedene Zahlen. */
-    it.offeneAufgaben = openPer.get(it.id) || 0;
+    it.openTasks = openPer.get(it.id) || 0;
     /* DER TREFFERKONTEXT -- 0.18.0. WARUM EIN EINTRAG IN DER TREFFERLISTE
        STEHT, und zwar nur dann, wenn wirklich gesucht wurde: ohne Begriff
        faellt das Feld ganz aus der Antwort, wie testDays es bei
@@ -3581,9 +3583,9 @@ app.get('/api/items', (req, res) => {
     /* DREI ANGABEN, UND SIE STEHEN ODER FEHLEN GEMEINSAM. Die Verfasser gehen
        als dieselben Objekte hinaus wie ueberall sonst -- aus authorCard(),
        nicht als nackte Zugangsnummern. */
-    if (reference) it.neuKommentare = newCommentsPer.get(it.id) || 0;
-    if (reference) it.neuBewertungen = neuBewJe.get(it.id) || 0;
-    if (reference) it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(card, uid));
+    if (reference) it.newComments = newCommentsPer.get(it.id) || 0;
+    if (reference) it.newRatings = neuBewJe.get(it.id) || 0;
+    if (reference) it.newFrom = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(card, uid));
   }
   res.json(rows);
 });
@@ -3671,12 +3673,12 @@ app.put('/api/items/:id', (req, res) => {
      ein Rumpf mit lauter Leerzeichen ist ein Entfernen, und ein zweiter
      Massstab daneben liefe damit auseinander.
      DIE KLEMME DAFUER IST `mayChange`, UND SIE IST SCHON DURCH: die Zeile
-     oben laesst `rejectedGrund` nur passieren, wer den Eintrag aendern darf.
+     oben laesst `rejectedReason` nur passieren, wer den Eintrag aendern darf.
      Hier bleibt deshalb nur, den strengeren Fall zu ueberspringen -- keine
      zweite Klemme daneben. */
   const turnsOn = b.rejected !== undefined && !!b.rejected && !it.rejected;
-  const removedReason = b.rejectedGrund !== undefined && !reasonText(b.rejectedGrund);
-  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&
+  const removedReason = b.rejectedReason !== undefined && !reasonText(b.rejectedReason);
+  if (b.rejectedReason !== undefined && !turnsOn && !removedReason &&
       it.rejected_by != null && !selfOnly(req, it.rejected_by))
     return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
 
@@ -3730,9 +3732,9 @@ app.put('/api/items/:id', (req, res) => {
     // einer zweiten Quelle in JS, die um Sekunden danebenlaege.
     sets.push(`rejected_at = datetime('now')`);
     put('rejected_by', req.benutzer.id);
-    put('rejected_reason', reasonText(b.rejectedGrund));
-  } else if (b.rejectedGrund !== undefined) {
-    put('rejected_reason', reasonText(b.rejectedGrund));
+    put('rejected_reason', reasonText(b.rejectedReason));
+  } else if (b.rejectedReason !== undefined) {
+    put('rejected_reason', reasonText(b.rejectedReason));
     /* WER ENTFERNT, WIRD NICHT VERFASSER. Der Zweig traegt einen Verfasser
        nach, wo keiner steht -- das ist der Fall einer Ablehnung aus einer
        Instanz vor 0.14.0, in der jemand einen Text hinschreibt. Ein leeres Feld
@@ -3764,16 +3766,16 @@ app.get('/api/items/:id/inventory', entryAuthorOnly, (req, res) => {
     // dasteht. `fotos` behaelt seine Bedeutung und bekommt einen Nachbarn.
     fotos: one("SELECT COUNT(*) n FROM photos WHERE item_id = ? AND kind != 'video'", id),
     videos: one("SELECT COUNT(*) n FROM photos WHERE item_id = ? AND kind = 'video'", id),
-    eigenDateien: one('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id = ?', id, ich),
-    fremdDateien: one('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
-    eigenLinks: one('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id = ?', id, ich),
-    fremdLinks: one('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id IS NOT ?', id, ich),
-    eigenKommentare: one('SELECT COUNT(*) n FROM comments WHERE item_id = ? AND user_id = ?', id, ich),
-    fremdKommentare: one('SELECT COUNT(*) n FROM comments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
-    eigenBewertungen: one('SELECT COUNT(*) n FROM ratings WHERE item_id = ? AND value > 0 AND user_id = ?', id, ich),
-    fremdBewertungen: one('SELECT COUNT(*) n FROM ratings WHERE item_id = ? AND value > 0 AND user_id IS NOT ?', id, ich),
-    eigenTesttage: one('SELECT COUNT(*) n FROM test_days WHERE item_id = ? AND user_id = ?', id, ich),
-    fremdTesttage: one('SELECT COUNT(*) n FROM test_days WHERE item_id = ? AND user_id IS NOT ?', id, ich)
+    ownFiles: one('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id = ?', id, ich),
+    foreignFiles: one('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
+    ownLinks: one('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id = ?', id, ich),
+    foreignLinks: one('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id IS NOT ?', id, ich),
+    ownComments: one('SELECT COUNT(*) n FROM comments WHERE item_id = ? AND user_id = ?', id, ich),
+    foreignComments: one('SELECT COUNT(*) n FROM comments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
+    ownRatings: one('SELECT COUNT(*) n FROM ratings WHERE item_id = ? AND value > 0 AND user_id = ?', id, ich),
+    foreignRatings: one('SELECT COUNT(*) n FROM ratings WHERE item_id = ? AND value > 0 AND user_id IS NOT ?', id, ich),
+    ownTestDays: one('SELECT COUNT(*) n FROM test_days WHERE item_id = ? AND user_id = ?', id, ich),
+    foreignTestDays: one('SELECT COUNT(*) n FROM test_days WHERE item_id = ? AND user_id IS NOT ?', id, ich)
   });
 });
 
@@ -3956,18 +3958,18 @@ app.get('/api/photos/:id/raw', (req, res) => {
    etwas zeigt; wer weiter zoege, saehe die Ableitung und nicht das Motiv. */
 const ZOOM_MIN = 100, ZOOM_MAX = 400;
 const DISPLAY_VALUES = {
-  focus_x: { min: 0, max: 100, vorgabe: 50, stellen: 1 },
-  focus_y: { min: 0, max: 100, vorgabe: 50, stellen: 1 },
+  focus_x: { min: 0, max: 100, fallback: 50, digits: 1 },
+  focus_y: { min: 0, max: 100, fallback: 50, digits: 1 },
   // Ganze Prozent: ein Ausschnitt von 137,4 % ist keine Angabe, die jemand
   // machen wollte, und der Schieber kann sie gar nicht erzeugen.
-  zoom:    { min: ZOOM_MIN, max: ZOOM_MAX, vorgabe: ZOOM_MIN, stellen: 0 }
+  zoom:    { min: ZOOM_MIN, max: ZOOM_MAX, fallback: ZOOM_MIN, digits: 0 }
 };
 // null heisst "das war keine Zahl". Was das wert ist, entscheidet der Rufer.
-function displayValue(name, roh) {
+function displayValue(name, raw) {
   const g = DISPLAY_VALUES[name];
-  const n = Number(roh);
+  const n = Number(raw);
   if (!Number.isFinite(n)) return null;
-  const f = 10 ** g.stellen;
+  const f = 10 ** g.digits;
   return Math.min(g.max, Math.max(g.min, Math.round(n * f) / f));
 }
 
@@ -3977,9 +3979,9 @@ function displayValue(name, roh) {
    tragen. Die Zahlen stehen deshalb NICHT ein zweites Mal hier, sondern
    kommen aus ANZEIGEWERTE -- sonst liefe die Vorgabe des Uploads gegen die
    Vorgabe der Spalte. */
-const DEFAULT_CROP = { fx: DISPLAY_VALUES.focus_x.vorgabe,
-                            fy: DISPLAY_VALUES.focus_y.vorgabe,
-                            zoom: DISPLAY_VALUES.zoom.vorgabe };
+const DEFAULT_CROP = { fx: DISPLAY_VALUES.focus_x.fallback,
+                            fy: DISPLAY_VALUES.focus_y.fallback,
+                            zoom: DISPLAY_VALUES.zoom.fallback };
 
 /* ---- DIE KACHEL WIRD NACH DEM SPEICHERN NEU ERZEUGT -- 0.19.5 ------------
 
@@ -4190,11 +4192,11 @@ const ADDRESS_PATTERN = [
 // Bewusst keine Liste echter Endungen: sie waere pflegebeduerftig und trotzdem
 // lueckenhaft. Der Preis ist ein seltener Fehlgriff wie "v2.beta", das als
 // Adresse durchgeht. Die Zeile zeigt sofort, wofuer sie sich entschieden hat.
-function normalizeLink(roh) {
-  const adresse = String(roh || '').trim();
-  if (!adresse) return '';
-  if (/^https?:\/\//i.test(adresse)) return adresse;
-  return ADDRESS_PATTERN.some(m => m.test(adresse)) ? 'https://' + adresse : adresse;
+function normalizeLink(raw) {
+  const address = String(raw || '').trim();
+  if (!address) return '';
+  if (/^https?:\/\//i.test(address)) return address;
+  return ADDRESS_PATTERN.some(m => m.test(address)) ? 'https://' + address : address;
 }
 
 /* EINTRAGEN DARF JEDER -- wie den Kommentar, den Testtag und die Bewertung.
@@ -4405,8 +4407,8 @@ app.put('/api/items/:id/ratings', (req, res) => {
    vom Bildschirm aus keinen Weg zu einer einzelnen fremden Bewertung.
    Nur Kriterien MIT Stimmen; den Namen hat die Oberflaeche aus dem Eintrag. */
 app.get('/api/items/:id/votes', adminOnly, (req, res) => {
-  const stimmen = votesPerCriterion(req.params.id, req.benutzer.id, authorCard());
-  res.json([...stimmen].map(([criterion_id, list]) => ({ criterion_id, stimmen: list })));
+  const votes = votesPerCriterion(req.params.id, req.benutzer.id, authorCard());
+  res.json([...votes].map(([criterion_id, list]) => ({ criterion_id, votes: list })));
 });
 
 /* Eine EINZELNE fremde Bewertung entfernen. Die beiden Wege darueber
@@ -4468,7 +4470,7 @@ async function encodeAll(dateien) {
       out.push({ name: path.basename(String(f.originalname || 'bild.jpg')).slice(0, 200), big, small });
     } catch { return { fehler: 'server.imageUnreadable', values: { name: f.originalname } }; }
   }
-  return { bilder: out };
+  return { images: out };
 }
 
 // Bilder kommen zusammen mit dem Text, nicht danach: sonst entstuende bei
@@ -4487,7 +4489,7 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
     // Der Schreibende ist der Verfasser.
     const neu = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id) VALUES (?, ?, ?, ?, ?)')
       .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.benutzer.id);
-    if (k.bilder.length) saveCommentImages(neu.lastInsertRowid, k.bilder);
+    if (k.images.length) saveCommentImages(neu.lastInsertRowid, k.images);
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.benutzer.id));
   } catch (e) { next(e); }
@@ -4547,8 +4549,8 @@ app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_CO
        entstehen: der Admin haengt nichts an.
        KEIN BILD, KEINE BEARBEITUNG: ein Ruf ohne Datei hat nichts angehaengt,
        und "bearbeitet" waere dann eine Aussage ueber nichts. */
-    if (k.bilder.length) {
-      saveCommentImages(c.id, k.bilder);
+    if (k.images.length) {
+      saveCommentImages(c.id, k.images);
       commentEdited.run(c.id);
     }
     touch.run(c.item_id);
@@ -4760,11 +4762,11 @@ app.get('/api/stats', adminOnly, (req, res) => {
        lesen gaebe -- die Kennwerte des Verfahrens stehen in auth.js und in
        jedem gespeicherten Wert. Der Name ist derselbe, den baueWert() vorn
        hineinschreibt. */
-    verfahren: { ...verfahren(), passwoerter: 'scrypt' },
+    method: { ...method(), passwoerter: 'scrypt' },
     dbBytes, photoCount: p.n, photoBytes: p.o,
     videoCount: vi.n, videoBytes: vi.o,
     attachmentCount: an.n, attachmentBytes: an.o,
-    papierkorbCount: pk.n, papierkorbBytes: pk.o,
+    trashCount: pk.n, trashBytes: pk.o,
     commentImageCount: ci.n, commentImageBytes: ci.o,
     /* DIE FOTOS AM EINTRAG NACH FORMAT -- die Auskunft, um derentwillen die
        Abfrage oben zusammengelegt wurde. Sie sagt, wovon die Datenbank so
@@ -4779,7 +4781,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     /* DER ZWEITE LAUF SEIT 0.19.4, und er steht als EIGENES Feld daneben und
        nicht im selben: die Karte muss auseinanderhalten koennen, was gerade
        laeuft. */
-    geometrie: batchState('geometrie'),
+    geometry: batchState('geometrie'),
     /* DIE ERWARTETE EXPORTGROESSE, je Schalter getrennt. Sie steht hier als
        AUFTEILUNG und nicht als eine Summe: die Karte darunter hat drei
        Schalter, und wer nur eine Gesamtzahl bekaeme, koennte an keinem
@@ -4787,7 +4789,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
        DIE GRENZEN GEHEN MIT. Ohne sie muesste die Oberflaeche 300 MB und
        512 MB selbst kennen, und dann staende dieselbe Zahl an zwei Orten. */
     export: {
-      umschlag: exchangeEnvelopeBytes(null),
+      envelope: exchangeEnvelopeBytes(null),
       /* DIE BILDBYTES KOMMEN AUS DER SCHLEIFE OBEN und nicht aus zwei eigenen
          Abfragen. Bis 0.19.1 rief diese Zeile exchangeParts(null, …), und das
          stellte dieselbe teure Frage nach `kind != 'video'` ein zweites und
@@ -4798,7 +4800,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
          DIE UEBRIGEN ZWEI TEILE bleiben bei exchangeParts(): `attachments`
          und `comment_images` tragen ihre Blobs als LETZTE Spalte und kosten
          gemessen 1,2 und 0,1 ms. */
-      ...exchangeParts(null, { mitDateien: true }),
+      ...exchangeParts(null, { withFiles: true }),
       fotos: Math.round(exportPhotoBytes * 4 / 3),
       videos: Math.round(exportVideoBytes * 4 / 3),
       /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen:
@@ -4808,7 +4810,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
          GENANNT WIRD IN JEDER MELDUNG DIE LETZTE. Die beiden anderen sind
          unsere Entscheidungen; nur `string` ist eine Tatsache, und eine
          Message, die unsere Marge als Tatsache ausgibt, sagt die Unwahrheit. */
-      warnAb: EXCHANGE_WARN, grenze: EXCHANGE_MAX, string: EXCHANGE_STRING
+      warnFrom: EXCHANGE_WARN, grenze: EXCHANGE_MAX, string: EXCHANGE_STRING
     },
     itemCount: db.prepare('SELECT COUNT(*) n FROM items').get().n,
     commentCount: db.prepare('SELECT COUNT(*) n FROM comments').get().n,
@@ -4821,7 +4823,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     // Und nur an den Eigentuemer. Er steht in derselben Rechtezeile
     // wie Export und Import -- alles, was die Instanz als Ganzes
     // betrifft. Ein Admin verwaltet den Bestand, er oeffnet nicht die Datei.
-    keyHex: (keyFromEnv || !istEigentuemer(req)) ? null : keyHex
+    keyHex: (keyFromEnv || !isOwner(req)) ? null : keyHex
   });
 });
 
@@ -4844,10 +4846,10 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      Zeilen taeten der zweiten nichts (nach der ersten ist kein PNG mehr da),
      aber sie liefen doppelt, und der gemeldete Fortschritt waere der der
      zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
-  if (batchStates.umstellung && batchStates.umstellung.laeuft)
+  if (batchStates.umstellung && batchStates.umstellung.running)
     return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});
   const zeilen = qOpenPng.all(PNG_MAGIC_HEX);
-  batchStates.umstellung = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
+  batchStates.umstellung = { running: true, total: zeilen.length, erledigt: 0,
                                  umgestellt: 0, geblieben: 0, gespart: 0 };
   console.log(`[Kriterion] Bildumstellung gestartet: ${zeilen.length} PNG.`);
   res.status(202).json(batchState('umstellung'));
@@ -4906,24 +4908,24 @@ const EXCHANGE_WARN = 300 * 1024 * 1024;
 
 // Der Trichter der Exportdatei. Base64 blaeht um ein Drittel auf, und das ist
 // der Preis dafuer, dass eine Textdatei Bytes tragen kann.
-const FUNNEL_FILE = { extension: '_base64', nimm: (buf) => buf.toString('base64') };
+const FUNNEL_FILE = { extension: '_base64', take: (buf) => buf.toString('base64') };
 
 /* Der Trichter des Papierkorbs. Er sammelt die Bytes in einer Liste und legt
    nur ihre Nummer ins Paket; die Liste wandert danach zeilenweise nach
    trash_bytes. So entsteht an keiner Stelle ein grosser String. */
 function funnelStore(collector) {
-  return { extension: '_ref', nimm: (buf) => { collector.push(buf); return collector.length - 1; } };
+  return { extension: '_ref', take: (buf) => { collector.push(buf); return collector.length - 1; } };
 }
 
 /* Die Gegenrichtung, einmal fuer beide Formen. Eine Datei traegt Base64, eine
    Papierkorbzeile eine Nummer; `quelle` loest die Nummer auf und ist bei einer
    Datei null. ERST DAS VORHANDENSEIN, dann der Wert -- ein fehlendes Feld ist
    der Normalfall (Export ohne Videos, aeltere Datei) und kein Fehler. */
-function bytesOf(o, name, quelle) {
+function bytesOf(o, name, source) {
   const b64 = o[name + '_base64'];
   if (b64) return Buffer.from(b64, 'base64');
   const nr = o[name + '_ref'];
-  if (quelle && nr != null) return quelle(nr);
+  if (source && nr != null) return source(nr);
   return null;
 }
 
@@ -4949,16 +4951,16 @@ function bundleState(userId, schalter = {}) {
     authorName: authorNames(),
     pins: new Set(qMyPins.all(userId).map(p => p.item_id)),
     funnel: schalter.funnel || FUNNEL_FILE,
-    mitFotos: schalter.mitFotos !== false,
-    mitDateien: !!schalter.mitDateien,
-    mitVideos: !!schalter.mitVideos
+    withPhotos: schalter.withPhotos !== false,
+    withFiles: !!schalter.withFiles,
+    withVideos: !!schalter.withVideos
   };
 }
 
 // Die Abbildung je Eintrag. Sie kommt genau einmal vor; ein Waechter im
 // Pruefstand haelt das fest.
 function entryAsBundle(it, situation) {
-  const { authorName, pins, funnel, mitFotos, mitDateien, mitVideos } = situation;
+  const { authorName, pins, funnel, withPhotos, withFiles, withVideos } = situation;
   const extension = funnel.extension;
   const o = {
     title: it.title, description: it.description,
@@ -5005,14 +5007,14 @@ function entryAsBundle(it, situation) {
         created_at: c.created_at, updated_at: c.updated_at,
         // Kommentarbilder folgen dem Schalter der Dateien; ein dritter waere
         // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
-        images: mitDateien
+        images: withFiles
           ? db.prepare('SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id')
-              .all(c.id).map(b2 => ({ filename: b2.filename, ['data' + extension]: funnel.nimm(b2.data) }))
+              .all(c.id).map(b2 => ({ filename: b2.filename, ['data' + extension]: funnel.take(b2.data) }))
           : []
       })),
     photos: [], attachments: []
   };
-  if (mitFotos) {
+  if (withPhotos) {
     o.photos = db.prepare('SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id')
       .all(it.id).map(p => {
         /* DER AUSSCHNITT GEHT MIT -- alle DREI Werte, seit Formatnummer 12.
@@ -5021,7 +5023,7 @@ function entryAsBundle(it, situation) {
            aeltere Instanz uebergeht das zusaetzliche Feld wortlos. */
         const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,
                     zoom: p.zoom, kind: p.kind };
-        if (p.kind !== 'video') { z['data' + extension] = funnel.nimm(p.data); return z; }
+        if (p.kind !== 'video') { z['data' + extension] = funnel.take(p.data); return z; }
         z.duration = p.duration;
         /* OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN -- ohne Bytes.
            Sie legt beim Einspielen keinen Platz an (photos.data ist NOT
@@ -5029,24 +5031,24 @@ function entryAsBundle(it, situation) {
            Abspieler schwarz), aber der Import kann dadurch NENNEN, wie viele
            Videos die Datei nicht enthielt. Ohne die Marke wuesste er es
            nicht, und der Verlust waere still. */
-        if (mitVideos) {
-          z['data' + extension] = funnel.nimm(p.data);
+        if (withVideos) {
+          z['data' + extension] = funnel.take(p.data);
           /* Das Standbild geht EIGENS mit. Der Import erzeugt die Varianten
              sonst aus data -- bei einem Video also aus der Videodatei, und
              das Standbild waere verloren. */
           const sb = p.medium || p.thumb;
-          if (sb) z['standbild' + extension] = funnel.nimm(sb);
+          if (sb) z['standbild' + extension] = funnel.take(sb);
         }
         return z;
       });
   }
-  if (mitDateien) {
+  if (withFiles) {
     // author wie an den fuenf anderen Traegern; ohne das Feld kaemen
     // eingespielte Dateien herrenlos herein. Dafuer steht die Formatnummer 8.
     o.attachments = db.prepare('SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id')
       .all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
-                    author: authorName(a2.user_id), ['data' + extension]: funnel.nimm(a2.data) }));
+                    author: authorName(a2.user_id), ['data' + extension]: funnel.take(a2.data) }));
   }
   return o;
 }
@@ -5112,26 +5114,26 @@ function exchangeParts(itemId, schalter) {
   const and = (column) => onlyOne ? ` AND ${column} = ?` : '';
   const wo = (column) => onlyOne ? ` WHERE ${column} = ?` : '';
   const base64 = (n) => Math.round(n * 4 / 3);
-  const teile = { fotos: 0, videos: 0, anhaenge: 0, kommentarbilder: 0 };
-  if (schalter.mitFotos)
-    teile.fotos = base64(one(
+  const parts = { fotos: 0, videos: 0, anhaenge: 0, kommentarbilder: 0 };
+  if (schalter.withPhotos)
+    parts.fotos = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));
   /* Der Videoschalter haengt am Fotoschalter, wie in entryAsBundle(): ohne
      Fotos wird die Liste gar nicht erst gebaut, und der Haken an den Videos
      bliebe eine Angabe ohne Wirkung. */
-  if (schalter.mitFotos && schalter.mitVideos)
-    teile.videos = base64(one(
+  if (schalter.withPhotos && schalter.withVideos)
+    parts.videos = base64(one(
       `SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) n
          FROM photos WHERE kind = 'video'${and('item_id')}`));
-  if (schalter.mitDateien) {
-    teile.anhaenge = base64(one(
+  if (schalter.withFiles) {
+    parts.anhaenge = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM attachments${wo('item_id')}`));
     // Kommentarbilder folgen dem Schalter der Dateien -- dort und hier.
-    teile.kommentarbilder = base64(one(
+    parts.kommentarbilder = base64(one(
       `SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
          JOIN comments c ON c.id = ci.comment_id${wo('c.item_id')}`));
   }
-  return teile;
+  return parts;
 }
 
 /* DER UMSCHLAG -- alles, was die Datei traegt und keine Blob-Spalte ist.
@@ -5145,7 +5147,7 @@ function exchangeParts(itemId, schalter) {
    Eintrag traegt rund zwanzig Feldnamen, ein Kommentar sieben, eine Bewertung
    drei. DIE ZAHLEN SIND OBERGRENZEN JE DATENSATZ und keine Messung; sie
    stehen hier beieinander, damit niemand sie im Rumpf sucht. */
-const ENVELOPE_PER = { entry: 320, kommentar: 150, bewertung: 70, zeitpunkt: 90, foto: 110, datei: 130 };
+const ENVELOPE_PER = { entry: 320, comment: 150, rating: 70, testDay: 90, photo: 110, file: 130 };
 function exchangeEnvelopeBytes(itemId) {
   const onlyOne = itemId !== null;
   const values = onlyOne ? [itemId] : [];
@@ -5164,11 +5166,11 @@ function exchangeEnvelopeBytes(itemId) {
     + one(`SELECT COALESCE(SUM(length(url)),0) n FROM links${wo('item_id')}`);
   const form =
       one(`SELECT COUNT(*) n FROM items${wo('id')}`) * ENVELOPE_PER.entry
-    + one(`SELECT COUNT(*) n FROM comments${wo('item_id')}`) * ENVELOPE_PER.kommentar
-    + one(`SELECT COUNT(*) n FROM ratings${wo('item_id')}`) * ENVELOPE_PER.bewertung
-    + one(`SELECT COUNT(*) n FROM test_days${wo('item_id')}`) * ENVELOPE_PER.zeitpunkt
-    + one(`SELECT COUNT(*) n FROM photos${wo('item_id')}`) * ENVELOPE_PER.foto
-    + one(`SELECT COUNT(*) n FROM attachments${wo('item_id')}`) * ENVELOPE_PER.datei;
+    + one(`SELECT COUNT(*) n FROM comments${wo('item_id')}`) * ENVELOPE_PER.comment
+    + one(`SELECT COUNT(*) n FROM ratings${wo('item_id')}`) * ENVELOPE_PER.rating
+    + one(`SELECT COUNT(*) n FROM test_days${wo('item_id')}`) * ENVELOPE_PER.testDay
+    + one(`SELECT COUNT(*) n FROM photos${wo('item_id')}`) * ENVELOPE_PER.photo
+    + one(`SELECT COUNT(*) n FROM attachments${wo('item_id')}`) * ENVELOPE_PER.file;
   return text + form;
 }
 
@@ -5206,10 +5208,10 @@ const EXCHANGE_PART_MAX = 999;
 const qPartSizes = db.prepare(`
   SELECT i.id,
     COALESCE((SELECT SUM(length(p.data)) FROM photos p
-               WHERE p.item_id = i.id AND p.kind != 'video'), 0) AS foto,
+               WHERE p.item_id = i.id AND p.kind != 'video'), 0) AS photo,
     COALESCE((SELECT SUM(length(p.data) + COALESCE(length(p.medium), length(p.thumb), 0))
                 FROM photos p WHERE p.item_id = i.id AND p.kind = 'video'), 0) AS video,
-    COALESCE((SELECT SUM(length(a.data)) FROM attachments a WHERE a.item_id = i.id), 0) AS anhang,
+    COALESCE((SELECT SUM(length(a.data)) FROM attachments a WHERE a.item_id = i.id), 0) AS attachment,
     COALESCE((SELECT SUM(length(ci.data)) FROM comment_images ci
                 JOIN comments c ON c.id = ci.comment_id WHERE c.item_id = i.id), 0) AS kbild,
     length(COALESCE(i.title,'')) + length(COALESCE(i.description,'')) AS text,
@@ -5230,12 +5232,12 @@ const qPartSizes = db.prepare(`
 function partBytes(z, schalter) {
   const base64 = (n) => Math.round(n * 4 / 3);
   let n = 0;
-  if (schalter.mitFotos) n += z.foto;
-  if (schalter.mitFotos && schalter.mitVideos) n += z.video;
-  if (schalter.mitDateien) n += z.anhang + z.kbild;
+  if (schalter.withPhotos) n += z.photo;
+  if (schalter.withPhotos && schalter.withVideos) n += z.video;
+  if (schalter.withFiles) n += z.attachment + z.kbild;
   return base64(n) + z.text + z.ktext + z.tagtext + z.linktext
-    + ENVELOPE_PER.entry + z.nk * ENVELOPE_PER.kommentar + z.nb * ENVELOPE_PER.bewertung
-    + z.nz * ENVELOPE_PER.zeitpunkt + z.nf * ENVELOPE_PER.foto + z.nd * ENVELOPE_PER.datei;
+    + ENVELOPE_PER.entry + z.nk * ENVELOPE_PER.comment + z.nb * ENVELOPE_PER.rating
+    + z.nz * ENVELOPE_PER.testDay + z.nf * ENVELOPE_PER.photo + z.nd * ENVELOPE_PER.file;
 }
 
 /* Der Schnittplan. Er sagt, WIE VIELE Teile es gibt und WELCHE Eintraege in
@@ -5264,26 +5266,26 @@ function exchangePlan(schalter, targetWanted) {
   const zielGroesse = Math.min(EXCHANGE_WARN,
     Math.max(EXCHANGE_PART_MIN, Number(targetWanted) > 0 ? Number(targetWanted) : EXCHANGE_WARN));
   const zeilen = qPartSizes.all();
-  const grund = exchangeEnvelopeFrame();
-  const teile = [];
+  const reason = exchangeEnvelopeFrame();
+  const parts = [];
   const tooBig = [];
   let offen = null;
   for (const z of zeilen) {
     const b = partBytes(z, schalter);
-    if (grund + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: grund + b }); continue; }
+    if (reason + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: reason + b }); continue; }
     // Ein neuer Teil, sobald dieser Eintrag den laufenden ueber den Zielwert
     // hoebe. Der erste Eintrag eroeffnet immer -- sonst entstuende ein leerer.
     if (!offen || offen.bytes + b > zielGroesse) {
-      offen = { nr: teile.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: grund };
-      teile.push(offen);
+      offen = { nr: parts.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: reason };
+      parts.push(offen);
     }
     offen.bis = z.id;
     offen.anzahl++;
     offen.bytes += b;
   }
-  return { teile, zuGross: tooBig,
-           gesamt: teile.reduce((n, teil) => n + teil.bytes, 0),
-           zielGroesse, vorgabe: EXCHANGE_WARN, kleinstes: EXCHANGE_PART_MIN,
+  return { parts, zuGross: tooBig,
+           total: parts.reduce((n, part) => n + part.bytes, 0),
+           zielGroesse, fallback: EXCHANGE_WARN, kleinstes: EXCHANGE_PART_MIN,
            grenze: EXCHANGE_MAX, string: EXCHANGE_STRING };
 }
 
@@ -5311,8 +5313,8 @@ function exchangeEnvelopeFrame() {
    Der Umschlag gehoert dazu: eine Absage, die nur die Blobs zaehlt, laesst
    genau die Datei durch, die am Umschlag zerbricht. */
 function exchangeBytes(itemId, schalter) {
-  const teile = exchangeParts(itemId, schalter);
-  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder + exchangeEnvelopeBytes(itemId);
+  const parts = exchangeParts(itemId, schalter);
+  return parts.fotos + parts.videos + parts.anhaenge + parts.kommentarbilder + exchangeEnvelopeBytes(itemId);
 }
 
 /* ---- Export ---- */
@@ -5336,23 +5338,23 @@ function exchangeBytes(itemId, schalter) {
    Lesend, deshalb kein Eintrag in F_ROUTEN. */
 app.get('/api/export/plan', ownerOnly, (req, res) => {
   res.json(exchangePlan({
-    mitFotos: req.query.photos !== '0',
-    mitDateien: req.query.files === '1',
-    mitVideos: req.query.videos === '1'
+    withPhotos: req.query.photos !== '0',
+    withFiles: req.query.files === '1',
+    withVideos: req.query.videos === '1'
   }, req.query.target));
 });
 
 app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   const schalter = {
-    mitFotos: req.query.photos !== '0',
+    withPhotos: req.query.photos !== '0',
     // Eigener Schalter, Vorgabe aus: bei 50 MB je Datei waere die Exportdatei
     // sonst schnell unhandlich -- Base64 blaeht zusaetzlich um ein Drittel auf.
-    mitDateien: req.query.files === '1',
+    withFiles: req.query.files === '1',
     /* Dasselbe fuer die Videos, und aus demselben Grund nur schaerfer: ein
        20-MB-Video wird als Base64 zu 27 MB, und zwanzig davon sind 533 MB in
        EINEM String. Node haelt kein String ueber rund 512 MB; der
        Export risse. Vorgabe deshalb aus. */
-    mitVideos: req.query.videos === '1'
+    withVideos: req.query.videos === '1'
   };
   /* DIE ABSAGE STEHT VOR DEM BAU, nicht hinter dem Abbruch -- dieselbe Bauform
      wie am Einzelexport eine Seite weiter unten. Vorher lief dieser Weg bis in
@@ -5372,13 +5374,17 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
      GEPRUEFT WIRD BEIDES EINZELN, denn eine halbe Angabe ist ein Fehler und
      kein Vollexport: wer `von` schickt und `bis` vergisst, bekaeme sonst
      stillschweigend alles. */
-  const zahl = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
-  const von = zahl(req.query.von), bis = zahl(req.query.bis);
-  const teil = zahl(req.query.teil), teile = zahl(req.query.teile);
-  const asPart = von !== null || bis !== null || teil !== null || teile !== null;
-  if (asPart && (von === null || bis === null || teil === null || teile === null))
+  const number = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
+  const von = number(req.query.von), bis = number(req.query.bis);
+  /* DIE VIER ABFRAGEANGABEN HEISSEN NOCH DEUTSCH, und das ist kein
+     Uebersehen: die Oberflaeche baut sie aus `card.partQuery` -- einem WERT
+     der Sprachdatei --, und die Werte der Sprachdatei bleiben in dieser Runde
+     unangetastet. Sie ziehen mit, sobald der Satz selbst wandert. */
+  const part = number(req.query.teil), parts = number(req.query.teile);
+  const asPart = von !== null || bis !== null || part !== null || parts !== null;
+  if (asPart && (von === null || bis === null || part === null || parts === null))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportIncomplete')});
-  if (asPart && (von > bis || teil > teile || teile > EXCHANGE_PART_MAX))
+  if (asPart && (von > bis || part > parts || parts > EXCHANGE_PART_MAX))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportMismatch')});
 
   const big = exchangeBytes(null, schalter);
@@ -5396,7 +5402,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
      keine Zeile geschrieben. Die Nummer des Teils steht im Dateinamen. */
   auth.log('export', { actor: req.benutzer.id, detail: asPart ? 'part' : null });
   res.set('Content-Disposition',
-    `attachment; filename="${exportName(asPart ? `-teil-${teil}-von-${teile}` : '')}"`);
+    `attachment; filename="${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}"`);
   /* DAS NETZ UNTER DER SCHAETZUNG. Die Absage oben rechnet, sie misst nicht --
      faellt sie zu niedrig aus, wirft `res.json` genau hier. Express baut den
      String VOR dem Kopf und vor dem Senden; die Antwort ist an dieser Stelle
@@ -5423,7 +5429,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
 app.get('/api/items/:id/export', ownerOnly, (req, res) => {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
   if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
-  const schalter = { mitFotos: true, mitDateien: true, mitVideos: true };
+  const schalter = { withPhotos: true, withFiles: true, withVideos: true };
   const big = exchangeBytes(it.id, schalter);
   if (big > EXCHANGE_MAX)
     return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
@@ -5521,17 +5527,17 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
          data: dort steht die Videodatei. Laesst sich das Standbild nicht
          durch sharp lesen oder fehlt es, wird die Zeile uebergangen und
          genannt -- dieselbe Regel wie beim Hochladen. */
-      const vorlage = isVideo ? bytesOf(p, 'standbild', bytesSource) : buf;
+      const template = isVideo ? bytesOf(p, 'standbild', bytesSource) : buf;
       /* DER ZUSCHNITT AUS DER DATEI GEHT IN DIE ABLEITUNG -- 0.19.5. Er wird
          eine Zeile tiefer ohnehin gelesen; ohne ihn HIER truege jede
          eingespielte Zeile eine ungeschnittene Kachel, und der Bestandslauf
          muesste sie beim naechsten Start ein zweites Mal anfassen -- an einem
          Bestand, den gerade jemand eingespielt hat, ist das der ganze
          Bestand. */
-      const im = (name, roh) => displayValue(name, roh) ?? DISPLAY_VALUES[name].vorgabe;
+      const im = (name, raw) => displayValue(name, raw) ?? DISPLAY_VALUES[name].fallback;
       const crop = { fx: im('focus_x', p.focus_x), fy: im('focus_y', p.focus_y),
                           zoom: im('zoom', p.zoom) };
-      const v = vorlage ? await makeVariants(vorlage, crop) : { thumb: null, medium: null };
+      const v = template ? await makeVariants(template, crop) : { thumb: null, medium: null };
       // Dieselbe Schaerfe wie beim Hochladen: fehlt EINE der beiden
       // Varianten, wird die Zeile nicht angelegt. Das Nachruesten beim Start
       // holt sie an einer Videozeile nicht nach.
@@ -5562,7 +5568,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         // Roh mitgenommen und erst in der Transaktion aufgeloest: verfasser()
         // liegt dort und zaehlt mit. `hatAutor` unterscheidet "kein Name
         // genannt" (author: null) von "Feld gibt es nicht" (Format bis 7).
-        hatAutor: 'author' in a2, autor: a2.author
+        hasAuthor: 'author' in a2, autor: a2.author
       });
     }
     // Kommentarbilder vorab kodieren -- in der Transaktion darf nichts
@@ -5570,10 +5576,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     for (const c of it.comments || []) {
       const done = [];
       for (const b2 of c.images || []) {
-        const roh = bytesOf(b2, 'data', bytesSource);
-        if (!roh) continue;
+        const raw = bytesOf(b2, 'data', bytesSource);
+        if (!raw) continue;
         try {
-          const { big, small } = await encodeCommentImage(roh);
+          const { big, small } = await encodeCommentImage(raw);
           done.push({ name: path.basename(String(b2.filename || 'bild.jpg')).slice(0, 200), big, small });
         } catch { /* unlesbares Bild wird stillschweigend uebergangen */ }
       }
@@ -5626,10 +5632,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   const gewichteVerworfen = new Set();
   const rohGewichte = payload.criteriaGewichte;
   if (rohGewichte && typeof rohGewichte === 'object' && !Array.isArray(rohGewichte)) {
-    for (const [name, roh] of Object.entries(rohGewichte)) {
+    for (const [name, raw] of Object.entries(rohGewichte)) {
       const sauber = String(name || '').trim();
       if (!sauber) continue;
-      const g = validWeight(roh);
+      const g = validWeight(raw);
       if (g === null) { gewichteVerworfen.add(sauber); continue; }
       dateiGewichte.set(sauber.toLowerCase(), g);
     }
@@ -5645,9 +5651,9 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   const dateiPhasen = new Map();
   const rohPhasen = payload.criteriaPhase;
   if (rohPhasen && typeof rohPhasen === 'object' && !Array.isArray(rohPhasen)) {
-    for (const [name, roh] of Object.entries(rohPhasen)) {
+    for (const [name, raw] of Object.entries(rohPhasen)) {
       const sauber = String(name || '').trim();
-      const wert = valueFromFile('phase', roh);
+      const wert = valueFromFile('phase', raw);
       if (!sauber || !PHASES.includes(wert)) continue;
       dateiPhasen.set(sauber.toLowerCase(), wert);
     }
@@ -5686,7 +5692,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
        Quelltext, und er faellt (Konzept, Abschnitt 0, Satz 2). */
     const e = new Message('server.criteriaConflict',
                           { n: conflicts.length, namen: conflicts.join(', ') });
-    e.absage = true;
+    e.denial = true;
     throw e;
   }
 
@@ -5802,8 +5808,8 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
          verfasser() NICHT gefragt. */
       let lpos = 0;
       (it.links || []).forEach((entry) => {
-        const roh = (entry && typeof entry === 'object') ? entry.url : entry;
-        const sauber = normalizeLink(roh);
+        const raw = (entry && typeof entry === 'object') ? entry.url : entry;
+        const sauber = normalizeLink(raw);
         if (!sauber) return;
         const toWhom = (entry && typeof entry === 'object' && 'author' in entry)
           ? verfasser(entry.author) : itemAuthor;
@@ -5874,7 +5880,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         { db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                       VALUES (?, ?, ?, ?, ?, ?, ?)`)
             .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i,
-                 a2.hatAutor ? verfasser(a2.autor) : itemAuthor); stats.attachments++; });
+                 a2.hasAuthor ? verfasser(a2.autor) : itemAuthor); stats.attachments++; });
     }
   })();
 
@@ -5911,7 +5917,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     console.log(`[Kriterion] Import: ${videosUnlesbar} Video(s) ohne lesbares Standbild ` +
                 `uebergangen.`);
   return { ok: true, mode: mode2, ...stats,
-           verfasserZugeordnet: assigned, verfasserUnbekannt: unknown,
+           authorAssigned: assigned, authorUnknown: unknown,
            gewichteVerworfen: weightsDropped, videosOhneDatei, videosUnlesbar, newIds };
 }
 
@@ -5940,15 +5946,15 @@ app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
       return res.status(400).json({ error: t(localeOf(req), 'server.exportEmpty')});
     // newIds bleibt hier liegen: eine Datei mit hundert Eintraegen liefert
     // hundert Nummern, mit denen die Oberflaeche nichts anfaengt.
-    const { newIds, ...antwort } = await importInto(payload, req.benutzer.id, mode);
+    const { newIds, ...response } = await importInto(payload, req.benutzer.id, mode);
     auth.log('import', { actor: req.benutzer.id, detail: mode });
-    res.json(antwort);
+    res.json(response);
   } catch (e) {
     /* EINE ABSAGE AUS importInto() IST KEIN FEHLER DER INSTANZ, sondern eine
        Auskunft ueber die Datei -- sie geht als 400 mit Message hinaus und
        nicht als 500 durch das Auffangnetz. Sie faellt VOR der ersten
        Schreibung; der Bestand ist unveraendert. */
-    if (e && e.absage) return res.status(400).json({ error: errorText(req, e) });
+    if (e && e.denial) return res.status(400).json({ error: errorText(req, e) });
     next(e);
   }
 });
@@ -6021,11 +6027,11 @@ function intoTrash(itemId, actor) {
   const situation = bundleState(actor, {
     // Ohne Schalter: der Papierkorb ist kein Export, sondern der Rueckweg.
     // Ein Rueckweg, der die Videos wegliesse, waere keiner.
-    mitFotos: true, mitDateien: true, mitVideos: true, funnel: funnelStore(collector)
+    withPhotos: true, withFiles: true, withVideos: true, funnel: funnelStore(collector)
   });
   return db.transaction(() => {
-    const umschlag = exportEnvelope([entryAsBundle(it, situation)]);
-    const p = insTrash.run(it.title, JSON.stringify(umschlag), actor);
+    const envelope = exportEnvelope([entryAsBundle(it, situation)]);
+    const p = insTrash.run(it.title, JSON.stringify(envelope), actor);
     collector.forEach((buf, nr) => insTrashBytes.run(p.lastInsertRowid, nr, buf));
     db.prepare('DELETE FROM items WHERE id = ?').run(it.id);
     return p.lastInsertRowid;
@@ -6053,7 +6059,7 @@ app.get('/api/trash', adminOnly, (req, res) => {
     // Die Zahl steht in der Antwort und wird nicht aus der Liste gezaehlt: die
     // Karte nennt sie auch dann, wenn sie die Liste noch gar nicht gezeichnet
     // hat.
-    tage: TRASH_DAYS,
+    days: TRASH_DAYS,
     zeilen: qTrash.all().map(z => ({
       id: z.id, title: z.title, deleted_at: z.deleted_at,
       // Wer geloescht hat, in derselben Form wie jeder Verfasser -- damit die
@@ -6063,7 +6069,7 @@ app.get('/api/trash', adminOnly, (req, res) => {
       dateien: z.dateien, bytes: z.bytes,
       // Die Frist rechnet der Server: die Zahl TRASH_DAYS steht an einer
       // Stelle, und die Oberflaeche baut sie nicht nach.
-      tageOffen: Math.max(0, TRASH_DAYS - Math.floor(
+      daysOpen: Math.max(0, TRASH_DAYS - Math.floor(
         (Date.now() - Date.parse(z.deleted_at.replace(' ', 'T') + 'Z')) / 86400000))
     }))
   });
@@ -6081,27 +6087,27 @@ app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
   try {
     const z = db.prepare('SELECT * FROM trash WHERE id = ?').get(req.params.id);
     if (!z) return res.status(404).json({ error: t(localeOf(req), 'server.trashGone')});
-    let umschlag;
-    try { umschlag = JSON.parse(z.content); }
+    let envelope;
+    try { envelope = JSON.parse(z.content); }
     catch { return res.status(500).json({ error: t(localeOf(req), 'server.trashUnreadable')}); }
     // Die Bytes kommen aus der Nebentabelle, Zeile fuer Zeile -- nie alle
     // zugleich in einem String. Fehlt eine Nummer, wird die Zeile uebergangen
     // und genannt, wie bei einem Video ohne Datei.
-    const quelle = (nr) => {
+    const source = (nr) => {
       const b = qTrashBytes.get(z.id, nr);
       return b ? b.data : null;
     };
-    const ergebnis = await importInto(umschlag, req.benutzer.id, 'merge', quelle);
+    const result = await importInto(envelope, req.benutzer.id, 'merge', source);
     // Erst nach dem Einspielen: scheitert es, bleibt die Zeile liegen.
     db.prepare('DELETE FROM trash WHERE id = ?').run(z.id);
     reclaim();
-    res.json({ ...ergebnis, itemId: ergebnis.newIds[0] ?? null, title: z.title });
+    res.json({ ...result, itemId: result.newIds[0] ?? null, title: z.title });
   } catch (e) {
     /* DERSELBE WEG WIE AM IMPORT. Er kann hier nur greifen, wenn ein Kriterium
        nach dem Loeschen des Eintrags geloescht und im anderen Kasten neu
        angelegt wurde -- selten, aber genau dann soll die Zeile liegen bleiben
        und der Grund dastehen, statt eines 500. */
-    if (e && e.absage) return res.status(400).json({ error: errorText(req, e) });
+    if (e && e.denial) return res.status(400).json({ error: errorText(req, e) });
     next(e);
   }
 });
@@ -6180,8 +6186,8 @@ const BACKUP_PATTERN = /^kriterion-.+\.sqlite$/;
    `convertImages`: eine umgewandelte PNG-Datei holt der Knopf in der
    Gegenrichtung zurueck, eine geloeschte Sicherung holt nichts zurueck. Was
    nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet. */
-const CLEANUP_KEEP = { vorgabe: 3, min: 1, max: 20 };
-const CLEANUP_DAYS = { vorgabe: 30, min: 7, max: 365 };
+const CLEANUP_KEEP = { fallback: 3, min: 1, max: 20 };
+const CLEANUP_DAYS = { fallback: 30, min: 7, max: 365 };
 const DAY_MS = 86400000;
 // Positivliste statt Liste des Verbotenen: JEDES Segment faengt mit einem
 // Buchstaben oder einer Ziffer an. Damit sind '..', '.', ein fuehrender
@@ -6219,30 +6225,31 @@ function backupState() {
      Er reist mit seinen Werten -- wer ihn zeigt, uebersetzt ihn dort, wo die
      Anfrage in der Hand liegt. */
   if (!BACKUP_DIR)
-    return { ein: false, grund: 'server.backupDirNotSet', values: {} };
+    return { ein: false, reason: 'server.backupDirNotSet', values: {} };
   let wurzel;
   try { wurzel = fs.realpathSync(BACKUP_DIR); }
-  catch { return { ein: false, grund: 'server.backupDirGone', values: { ordner: BACKUP_DIR } }; }
+  catch { return { ein: false, reason: 'server.backupDirGone', values: { ordner: BACKUP_DIR } }; }
   try { if (!fs.statSync(wurzel).isDirectory())
-    return { ein: false, grund: 'server.backupDirNotDir', values: { ordner: BACKUP_DIR } }; }
-  catch { return { ein: false, grund: 'server.backupDirUnreadable', values: { ordner: BACKUP_DIR } }; }
+    return { ein: false, reason: 'server.backupDirNotDir', values: { ordner: BACKUP_DIR } }; }
+  catch { return { ein: false, reason: 'server.backupDirUnreadable', values: { ordner: BACKUP_DIR } }; }
   let data;
   try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
   // EINE SICHERUNG NEBEN DEM ORIGINAL IST KEINE. Beide Richtungen, denn beide
   // sind falsch: der Sicherungsort im Datenverzeichnis und umgekehrt.
   if (liesIn(wurzel, data) || liesIn(data, wurzel))
-    return { ein: false, grund: 'server.backupInDataDir', values: {} };
+    return { ein: false, reason: 'server.backupInDataDir', values: {} };
   return { ein: true, wurzel, imArbeitsverzeichnis: liesIn(wurzel, APP_DIR) };
 }
 
 /* Der eingestellte Ort, geprueft. Liefert entweder { ort, pfad } oder
    { fehler } -- und der Fehler ist eine sprechende Begruendung, kein
    "ungueltig". */
-function checkPlace(roh) {
+function checkPlace(raw) {
   const situation = backupState();
-  if (!situation.ein) return { fehler: situation.grund, values: situation.values };
-  const s = String(roh == null ? '' : roh).trim();
+  if (!situation.ein) return { fehler: situation.reason, values: situation.values };
+  const s = String(raw == null ? '' : raw).trim();
   if (!s) return { ort: '', pfad: situation.wurzel };
+  // `deckel` ist ein Platzhalter der Sprachdatei und kein Bezeichner.
   if (s.length > 200) return { fehler: 'server.subDirTooLong', values: { deckel: 200 } };
   if (!PLACE_PATTERN.test(s))
     return { fehler: 'server.subDirForm', values: {} };
@@ -6282,10 +6289,10 @@ function checkPlace(roh) {
    VERGLICHEN WIRD IN UTC -- ohne das Z lese der Rechner die Marke als
    Ortszeit, und die Grenze verschoebe sich um den Zeitzonenabstand. */
 function changeMark() {
-  const roh = getSetting('keyChangedAt', null);
-  if (!roh) return null;
-  const ms = Date.parse(String(roh).replace(' ', 'T') + 'Z');
-  return Number.isFinite(ms) ? { at: roh, ms } : null;
+  const raw = getSetting('keyChangedAt', null);
+  if (!raw) return null;
+  const ms = Date.parse(String(raw).replace(' ', 'T') + 'Z');
+  return Number.isFinite(ms) ? { at: raw, ms } : null;
 }
 
 /* DIE LISTE DER KOPIEN AM ORT -- EINMAL AUFGEBAUT UND VON DREIEN GENUTZT.
@@ -6316,10 +6323,10 @@ function backupList(pfad) {
     if (!BACKUP_PATTERN.test(n)) continue;
     try {
       const st = fs.lstatSync(path.join(pfad, n));
-      if (st.isFile()) dateien.push({ name: n, zeit: st.mtimeMs, bytes: st.size });
+      if (st.isFile()) dateien.push({ name: n, time: st.mtimeMs, bytes: st.size });
     } catch { /* eine Datei, die zwischen readdir und stat verschwindet */ }
   }
-  dateien.sort((a, b) => b.zeit - a.zeit);
+  dateien.sort((a, b) => b.time - a.time);
   return dateien;
 }
 
@@ -6328,24 +6335,24 @@ function lastBackup(pfad) {
   const gewechseltAm = mark ? mark.at : null;
   const dateien = backupList(pfad);
   if (dateien === null)
-    return { erreichbar: false, letzte: null, zahl: 0, gewechseltAm, veraltet: 0 };
+    return { erreichbar: false, last: null, number: 0, gewechseltAm, veraltet: 0 };
   // Ohne Wechsel ist KEINE Kopie veraltet -- und nicht etwa jede. Der
   // Unterschied zwischen "es gab keinen Wechsel" und "alle sind veraltet" ist
   // genau der, den diese Zeile haelt.
-  const veraltet = mark ? dateien.filter(d => d.zeit < mark.ms).length : 0;
+  const veraltet = mark ? dateien.filter(d => d.time < mark.ms).length : 0;
   if (!dateien.length)
-    return { erreichbar: true, letzte: null, zahl: 0, gewechseltAm, veraltet: 0 };
+    return { erreichbar: true, last: null, number: 0, gewechseltAm, veraltet: 0 };
   const j = dateien[0];
-  return { erreichbar: true, zahl: dateien.length, gewechseltAm, veraltet, letzte: {
-    datei: j.name, bytes: j.bytes,
+  return { erreichbar: true, number: dateien.length, gewechseltAm, veraltet, last: {
+    file: j.name, bytes: j.bytes,
     // Dieselbe Schreibweise wie jeder Zeitstempel der Instanz
     // ("2026-08-23 19:56:01", UTC): die Oberflaeche hat genau einen Weg, aus
     // einem Zeitstempel ein Datum zu machen, und der erwartet diese Form.
-    at: new Date(j.zeit).toISOString().slice(0, 19).replace('T', ' '),
-    tageHer: Math.max(0, Math.floor((Date.now() - j.zeit) / 86400000)),
+    at: new Date(j.time).toISOString().slice(0, 19).replace('T', ' '),
+    daysAgo: Math.max(0, Math.floor((Date.now() - j.time) / 86400000)),
     // Auch die JUENGSTE Kopie kann aelter sein als der Wechsel -- dann ist
     // ueberhaupt keine brauchbare da, und das ist die schaerfste Lage.
-    veraltet: Boolean(mark && j.zeit < mark.ms)
+    veraltet: Boolean(mark && j.time < mark.ms)
   } };
 }
 
@@ -6371,13 +6378,13 @@ function lastBackup(pfad) {
    OHNE WECHSEL ZAEHLEN ALLE: `changeMs` ist dann null, und die Filterzeile
    laesst jede Kopie durch. Der Unterschied zwischen "es gab keinen Wechsel"
    und "alle sind veraltet" ist derselbe wie in lastBackup() darueber. */
-function ruleHit(dateien, behalten, tage, now, changeMs) {
+function ruleHit(dateien, keep, days, now, changeMs) {
   const usable = dateien
-    .filter(d => changeMs == null || d.zeit >= changeMs)
-    .sort((a, b) => b.zeit - a.zeit);
-  const grenze = now - tage * DAY_MS;
+    .filter(d => changeMs == null || d.time >= changeMs)
+    .sort((a, b) => b.time - a.time);
+  const grenze = now - days * DAY_MS;
   //          der Boden                    die Schere
-  return usable.slice(behalten).filter(d => d.zeit < grenze);
+  return usable.slice(keep).filter(d => d.time < grenze);
 }
 
 /* Die beiden Werte, geprueft. EINE Stelle fuer beide Wege -- den Schreibweg
@@ -6392,8 +6399,8 @@ function ruleHit(dateien, behalten, tage, now, changeMs) {
    uebersetzen (Konzept, Abschnitt 0, Satz 2): auf Englisch stuende das Wort
    woanders. Jetzt bringt der Rufer den SCHLUESSEL des ganzen Satzes mit, und
    die Spanne reist als Werte. */
-function checkRuleValue(roh, range, schluessel) {
-  const n = Number(roh);
+function checkRuleValue(raw, range, schluessel) {
+  const n = Number(raw);
   if (!Number.isInteger(n) || n < range.min || n > range.max)
     return { fehler: schluessel, values: { min: range.min, max: range.max } };
   return { wert: n };
@@ -6406,14 +6413,14 @@ function checkRuleValue(roh, range, schluessel) {
    ausserhalb der Grenzen faellt hier auf die Vorgabe zurueck und weitet die
    Regel nicht. Die Klemme steht an der Stelle, an der der Fehler wehtut. */
 function cleanupStatus() {
-  const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.vorgabe),
+  const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
                             CLEANUP_KEEP, 'server.ruleKeep');
-  const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.vorgabe),
+  const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.fallback),
                             CLEANUP_DAYS, 'server.ruleDays');
   return {
     an: getSetting('backupCleanup', false) === true,
-    behalten: b.fehler ? CLEANUP_KEEP.vorgabe : b.wert,
-    tage: rule.fehler ? CLEANUP_DAYS.vorgabe : rule.wert
+    keep: b.fehler ? CLEANUP_KEEP.fallback : b.wert,
+    days: rule.fehler ? CLEANUP_DAYS.fallback : rule.wert
   };
 }
 
@@ -6421,9 +6428,9 @@ function cleanupStatus() {
    Instanz, damit die Oberflaeche genau einen Weg hat, daraus ein Datum zu
    machen. */
 const cleanupRow = (d, now) => ({
-  datei: d.name, bytes: d.bytes,
-  at: new Date(d.zeit).toISOString().slice(0, 19).replace('T', ' '),
-  tageHer: Math.max(0, Math.floor((now - d.zeit) / DAY_MS))
+  file: d.name, bytes: d.bytes,
+  at: new Date(d.time).toISOString().slice(0, 19).replace('T', ' '),
+  daysAgo: Math.max(0, Math.floor((now - d.time) / DAY_MS))
 });
 
 /* DIE VORSCHAU -- sie steht immer da, auch wenn der Schalter aus ist: sie ist
@@ -6436,30 +6443,30 @@ const cleanupRow = (d, now) => ({
    nennt die Zahl, um die es geht.
    DIE KOPIEN VON VOR DEM WECHSEL STEHEN GETRENNT, mit eigener Zahl und
    Summe: sie sind nicht entbehrlich, sondern etwas anderes. */
-function cleanupPreview(pfad, behalten, tage) {
+function cleanupPreview(pfad, keep, days) {
   const dateien = backupList(pfad);
-  if (dateien === null) return { erreichbar: false, dateien: [], treffer: [], bytes: 0, grund: '' };
+  if (dateien === null) return { erreichbar: false, dateien: [], treffer: [], bytes: 0, reason: '' };
   const mark = changeMark();
   const now = Date.now();
-  const alt = mark ? dateien.filter(d => d.zeit < mark.ms) : [];
-  const usable = mark ? dateien.filter(d => d.zeit >= mark.ms) : dateien;
-  const treffer = ruleHit(dateien, behalten, tage, now, mark ? mark.ms : null);
-  let grund = '';
+  const alt = mark ? dateien.filter(d => d.time < mark.ms) : [];
+  const usable = mark ? dateien.filter(d => d.time >= mark.ms) : dateien;
+  const treffer = ruleHit(dateien, keep, days, now, mark ? mark.ms : null);
+  let reason = '';
   if (!treffer.length) {
-    if (!dateien.length) grund = 'Hier gibt es noch keine Sicherung.';
+    if (!dateien.length) reason = 'Hier gibt es noch keine Sicherung.';
     else if (!usable.length)
-      grund = `Keine der ${dateien.length} ${dateien.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
+      reason = `Keine der ${dateien.length} ${dateien.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
               'stammt von nach dem Schlüsselwechsel.';
-    else if (usable.length <= behalten)
-      grund = `Alle ${usable.length} ${usable.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
-              `sind unter den jüngsten ${behalten}.`;
+    else if (usable.length <= keep)
+      reason = `Alle ${usable.length} ${usable.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
+              `sind unter den jüngsten ${keep}.`;
     else {
       // Die AELTESTE der Kopien, die der Boden nicht mehr deckt -- sie ist die,
       // die als naechste faellt, und ihr Alter ist die Auskunft, auf die es
       // ankommt.
       const next2 = usable[usable.length - 1];
-      const from2 = Math.max(0, Math.floor((now - next2.zeit) / DAY_MS));
-      grund = `Die älteste ist ${from2} ${from2 === 1 ? 'Tag' : 'Tage'} alt.`;
+      const from2 = Math.max(0, Math.floor((now - next2.time) / DAY_MS));
+      reason = `Die älteste ist ${from2} ${from2 === 1 ? 'Tag' : 'Tage'} alt.`;
     }
   }
   /* DIE VOLLSTAENDIGE LISTE, JUENGSTE ZUERST UND NUMMERIERT. Sie ist die
@@ -6482,14 +6489,14 @@ function cleanupPreview(pfad, behalten, tage) {
     dateien: dateien.map((d, i) => ({
       ...cleanupRow(d, now), nr: i + 1,
       faellt: hitNames.has(d.name),
-      veraltet: oldMs != null && d.zeit < oldMs
+      veraltet: oldMs != null && d.time < oldMs
     })),
     treffer: treffer.map(d => cleanupRow(d, now)),
     bytes: treffer.reduce((n, d) => n + d.bytes, 0),
-    grund,
-    altZahl: alt.length,
-    altBytes: alt.reduce((n, d) => n + d.bytes, 0),
-    altDateien: alt.map(d => cleanupRow(d, now))
+    reason,
+    oldCount: alt.length,
+    oldBytes: alt.reduce((n, d) => n + d.bytes, 0),
+    oldFiles: alt.map(d => cleanupRow(d, now))
   };
 }
 
@@ -6518,8 +6525,8 @@ function cleanupPreview(pfad, behalten, tage) {
    laesst.
    DIE FREIGEGEBENEN BYTES STEHEN NICHT DARIN, sondern in der Antwort und in
    der Zeile im Containerprotokoll. */
-const logRemoved = (actor, zahl) => {
-  for (let i = 0; i < zahl; i++) auth.log('backup.delete', { actor });
+const logRemoved = (actor, number) => {
+  for (let i = 0; i < number; i++) auth.log('backup.delete', { actor });
 };
 
 function removeBackups(ordner, namen) {
@@ -6572,42 +6579,42 @@ app.get('/api/backup', ownerOnly, (req, res) => {
      LESEND BLEIBT LESEND -- diese Route schreibt nichts, auch die Werte aus
      der Abfrage nicht. */
   const status2 = cleanupStatus();
-  let behalten = status2.behalten, tage = status2.tage;
-  if (req.query.behalten !== undefined) {
-    const g = checkRuleValue(req.query.behalten, CLEANUP_KEEP, 'server.ruleKeep');
+  let keep = status2.keep, days = status2.days;
+  if (req.query.keep !== undefined) {
+    const g = checkRuleValue(req.query.keep, CLEANUP_KEEP, 'server.ruleKeep');
     if (g.fehler) return res.status(400).json({ error: t(localeOf(req), g.fehler, g.values) });
-    behalten = g.wert;
+    keep = g.wert;
   }
-  if (req.query.tage !== undefined) {
-    const g = checkRuleValue(req.query.tage, CLEANUP_DAYS, 'server.ruleDays');
+  if (req.query.days !== undefined) {
+    const g = checkRuleValue(req.query.days, CLEANUP_DAYS, 'server.ruleDays');
     if (g.fehler) return res.status(400).json({ error: t(localeOf(req), g.fehler, g.values) });
-    tage = g.wert;
+    days = g.wert;
   }
   /* DIE GRENZEN GEHEN MIT HINAUS. Die Karte schreibt sie an ihre beiden
      Felder, statt sie ein zweites Mal zu kennen -- eine Zahl, die an zwei
      Orten steht, laeuft auseinander (Stolperstein 137). */
-  const rule = { ...status2, behalten, tage,
-                  grenzen: { behalten: CLEANUP_KEEP, tage: CLEANUP_DAYS } };
+  const rule = { ...status2, keep, days,
+                  grenzen: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS } };
   /* UEBERSETZT WIRD HIER -- 0.24.0. backupState() und checkPlace() liefern
      seit dieser Runde einen Schluessel samt Werten; welche Sprache die Antwort
      traegt, weiss erst die Route. */
   if (!situation.ein) return res.json({ eingerichtet: false,
-                                   grund: t(localeOf(req), situation.grund, situation.values), ort,
-                                   dbBytes, dauerSekunden: duration, erreichbar: false, letzte: null,
-                                   gewechseltAm, veraltet: 0, aufraeumen: rule });
+                                   reason: t(localeOf(req), situation.reason, situation.values), ort,
+                                   dbBytes, durationSeconds: duration, erreichbar: false, last: null,
+                                   gewechseltAm, veraltet: 0, cleanup: rule });
   const target = checkPlace(ort);
   if (target.fehler) return res.json({ eingerichtet: true, wurzel: situation.wurzel, ort,
                                      imArbeitsverzeichnis: situation.imArbeitsverzeichnis,
                                      fehler: t(localeOf(req), target.fehler, target.values),
-                                     dbBytes, dauerSekunden: duration,
-                                     erreichbar: false, letzte: null,
-                                     gewechseltAm, veraltet: 0, aufraeumen: rule });
+                                     dbBytes, durationSeconds: duration,
+                                     erreichbar: false, last: null,
+                                     gewechseltAm, veraltet: 0, cleanup: rule });
   // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
   // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
   res.json({ eingerichtet: true, wurzel: situation.wurzel, ort, pfad: target.pfad,
              imArbeitsverzeichnis: situation.imArbeitsverzeichnis,
-             dbBytes, dauerSekunden: duration, ...lastBackup(target.pfad),
-             aufraeumen: { ...rule, ...cleanupPreview(target.pfad, behalten, tage) } });
+             dbBytes, durationSeconds: duration, ...lastBackup(target.pfad),
+             cleanup: { ...rule, ...cleanupPreview(target.pfad, keep, days) } });
 });
 
 /* Der Ort ist eine Einstellung der INSTANZ und gehoert damit in settings, nicht
@@ -6625,7 +6632,7 @@ app.put('/api/backup/dir', ownerOnly, (req, res) => {
 
 app.post('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
-  if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.grund, situation.values) });
+  if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.fehler) return res.status(400).json({ error: t(localeOf(req), target.fehler, target.values) });
   /* NAME MIT DATUM UND UHRZEIT. Ueberschreiben waere die schlechteste Antwort:
@@ -6633,8 +6640,8 @@ app.post('/api/backup', ownerOnly, (req, res) => {
      einer vorhandenen Zieldatei ohnehin ("output file already exists") --
      nachgestellt statt geglaubt --, aber darauf verlaesst sich der Name nicht. */
   const mark = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  const datei = path.join(target.pfad, `kriterion-${mark}.sqlite`);
-  if (fs.existsSync(datei))
+  const file = path.join(target.pfad, `kriterion-${mark}.sqlite`);
+  if (fs.existsSync(file))
     return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});
   /* GESCHRIEBEN WIRD UNTER EINEM ARBEITSNAMEN, umbenannt wird erst danach.
      Stolperstein 8 verlangt, eine halbfertige Zieldatei nach einem Fehlschlag
@@ -6645,12 +6652,12 @@ app.post('/api/backup', ownerOnly, (req, res) => {
      ENTFERNT WIRD AUSSCHLIESSLICH DER ARBEITSNAME. Eine vorhandene fremde
      Datei fasst dieser Weg unter keinen Umstaenden an -- ein Aufraeumen, das
      die Datei des Nachbarn wegwirft, waere schlimmer als die halbe Kopie. */
-  const becoming = datei + '.wird';
+  const becoming = file + '.wird';
   try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
   const t0 = Date.now();
   try {
     db.prepare('VACUUM INTO ?').run(becoming);
-    fs.renameSync(becoming, datei);
+    fs.renameSync(becoming, file);
   } catch (e) {
     try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
     console.error('[Kriterion] Sicherung gescheitert:', e.message);
@@ -6661,8 +6668,8 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   }
   const ms = Date.now() - t0;
   let bytes = 0;
-  try { bytes = fs.statSync(datei).size; } catch {}
-  console.log(`[Kriterion] Sicherung geschrieben: ${path.basename(datei)} ` +
+  try { bytes = fs.statSync(file).size; } catch {}
+  console.log(`[Kriterion] Sicherung geschrieben: ${path.basename(file)} ` +
     `(${bytes} Bytes, ${ms} ms).`);
   // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie der
   // Export. Der Pfad steht NICHT in der Zeile: das Protokoll haelt Vorgaenge
@@ -6690,7 +6697,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   try {
     const rule = cleanupStatus();
     if (rule.an) {
-      const treffer = ruleHit(backupList(target.pfad) || [], rule.behalten, rule.tage,
+      const treffer = ruleHit(backupList(target.pfad) || [], rule.keep, rule.days,
                                    Date.now(), (changeMark() || {}).ms ?? null);
       if (treffer.length) {
         const out2 = removeBackups(target.pfad, treffer.map(d => d.name));
@@ -6709,7 +6716,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
     console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);
     aufgeraeumt = { weg: 0, nicht: 0, bytes: 0, gescheitert: true };
   }
-  res.json({ ok: true, datei: path.basename(datei), pfad: target.pfad, bytes, ms,
+  res.json({ ok: true, file: path.basename(file), pfad: target.pfad, bytes, ms,
              ...lastBackup(target.pfad), aufgeraeumt });
 });
 
@@ -6744,7 +6751,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
 app.post('/api/backup/cleanup', ownerOnly,
          secondConfirmNeeded('backup'), (req, res) => {
   const situation = backupState();
-  if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.grund, situation.values) });
+  if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.fehler) return res.status(400).json({ error: t(localeOf(req), target.fehler, target.values) });
   const kind = String(req.body?.kind || '');
@@ -6761,12 +6768,12 @@ app.post('/api/backup/cleanup', ownerOnly,
   if (kind === 'outdated') {
     if (!mark) return res.status(400).json({
       error: t(localeOf(req), 'server.keyNeverChanged')});
-    treffer = dateien.filter(d => d.zeit < mark.ms);
+    treffer = dateien.filter(d => d.time < mark.ms);
   } else {
-    const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.vorgabe),
+    const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
                               CLEANUP_KEEP, 'server.ruleKeep');
     if (b.fehler) return res.status(400).json({ error: t(localeOf(req), b.fehler, b.values) });
-    const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.vorgabe),
+    const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.fallback),
                               CLEANUP_DAYS, 'server.ruleDays');
     if (rule.fehler) return res.status(400).json({ error: t(localeOf(req), rule.fehler, rule.values) });
     treffer = ruleHit(dateien, b.wert, rule.wert, Date.now(), mark ? mark.ms : null);
@@ -6789,16 +6796,16 @@ app.post('/api/backup/cleanup', ownerOnly,
   const after = cleanupStatus();
   res.json({ ok: true, kind, weg: out2.weg, nicht: out2.geblieben.length, bytes: out2.bytes,
              ...lastBackup(target.pfad),
-             aufraeumen: { ...after,
-                           grenzen: { behalten: CLEANUP_KEEP, tage: CLEANUP_DAYS },
-                           ...cleanupPreview(target.pfad, after.behalten, after.tage) } });
+             cleanup: { ...after,
+                           grenzen: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
+                           ...cleanupPreview(target.pfad, after.keep, after.days) } });
 });
 
 // Einmal beim Start ins Protokoll -- wer den Ort falsch stehen hat, sieht es
 // hier und nicht erst am Knopf.
 {
   const situation = backupState();
-  console.log('[Kriterion] Sicherungsort: ' + (situation.ein ? situation.wurzel : `aus — ${situation.grund}`));
+  console.log('[Kriterion] Sicherungsort: ' + (situation.ein ? situation.wurzel : `aus — ${situation.reason}`));
 }
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
@@ -6996,10 +7003,10 @@ app.listen(PORT, () => {
   if (PUBLIC.fehler) {
     console.warn(`[Kriterion] PUBLIC_ADDRESS ist unbrauchbar: ${PUBLIC.fehler} ` +
       'Die Instanz laeuft weiter; den Einladungslink baut wie bisher der Browser des Admins.');
-  } else if (PUBLIC.adresse) {
-    console.log(`[Kriterion] Oeffentliche Adresse: ${PUBLIC.adresse} — ` +
+  } else if (PUBLIC.address) {
+    console.log(`[Kriterion] Oeffentliche Adresse: ${PUBLIC.address} — ` +
       'Einladungslinks werden damit gebaut.');
-    if (auth.BEHIND_PROXY && PUBLIC.adresse.startsWith('http://')) {
+    if (auth.BEHIND_PROXY && PUBLIC.address.startsWith('http://')) {
       // Widerspruch, aber kein Verlust: ein falscher Link ist ein toter Link.
       // Eine Absage waere hier haerter als der Schaden.
       console.warn('[Kriterion] Hinter einem Proxy und trotzdem http:// in ' +
@@ -7016,12 +7023,12 @@ app.listen(PORT, () => {
      Anbieter, Server und Absender -- ein Geheimnis, das einmal im
      Containerprotokoll steht, steht dort, bis es jemand loescht. */
   {
-    const roh = getSetting(mail.SETTING_KEY, null);
-    const z = mail.state(roh);
-    if (mail.configured(roh)) {
-      console.log(`[Kriterion] Mailversand: ${z.anbieterName} über ${z.server}:${z.port} ` +
-        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}.` +
-        (PUBLIC.adresse ? '' : ' Ohne PUBLIC_ADDRESS wird trotzdem nicht verschickt.'));
+    const raw = getSetting(mail.SETTING_KEY, null);
+    const z = mail.state(raw);
+    if (mail.configured(raw)) {
+      console.log(`[Kriterion] Mailversand: ${z.providerName} über ${z.server}:${z.port} ` +
+        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +
+        (PUBLIC.address ? '' : ' Ohne PUBLIC_ADDRESS wird trotzdem nicht verschickt.'));
     } else {
       console.log('[Kriterion] Mailversand: nicht eingerichtet — Einladungs- und ' +
         'Ruecksetzlinks stehen wie bisher im Verwaltungsbereich zum Kopieren.');

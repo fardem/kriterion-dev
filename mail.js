@@ -109,7 +109,7 @@ const GREETING_MS = 7 * 1000;
    denen ein halb geschriebener Zugang entstehen kann. */
 const SETTING_KEY = 'mailzugang';
 
-const EMPTY = { anbieter: '', server: '', port: 0, sicher: false, benutzer: '', passwort: '', absender: '' };
+const EMPTY = { provider: '', server: '', port: 0, sicher: false, benutzer: '', password: '', sender: '' };
 
 // Wie eine Adresse aussehen darf. BEWUSST GROB: eine Adresse laesst sich am
 // Muster ohnehin nicht auf Gueltigkeit pruefen -- den Beweis liefert erst die
@@ -135,7 +135,7 @@ const providerOf = (key) => PROVIDERS.find(a => a.key === key) || null;
 const forChoice = () => PROVIDERS.map(a => ({
   key: a.key, name: a.name,
   server: a.server, port: a.port, sicher: a.sicher,
-  hinweis: HINTS[a.key] || ''
+  hint: HINTS[a.key] || ''
 }));
 
 /* Loest den gespeicherten Zugang zu dem auf, was der Versand wirklich braucht.
@@ -145,7 +145,7 @@ const forChoice = () => PROVIDERS.map(a => ({
    der Datenbank, waeren sie eine eingefrorene Kopie und liefen auseinander. */
 function resolve(raw) {
   const z = { ...EMPTY, ...(raw && typeof raw === 'object' ? raw : {}) };
-  const v = providerOf(z.anbieter);
+  const v = providerOf(z.provider);
   if (!v) return { ...EMPTY };
   if (v.key === 'eigen') {
     return { ...z, server: String(z.server || '').trim(),
@@ -160,13 +160,13 @@ function resolve(raw) {
    ableiten, und keines davon hilft dem, der die Karte ansieht. */
 function state(raw) {
   const z = resolve(raw);
-  const v = providerOf(z.anbieter);
+  const v = providerOf(z.provider);
   return {
-    anbieter: z.anbieter, anbieterName: v ? v.name : '',
+    provider: z.provider, providerName: v ? v.name : '',
     server: z.server, port: z.port, sicher: z.sicher,
-    benutzer: z.benutzer, absender: z.absender,
-    passwortGesetzt: Boolean(z.passwort),
-    hinweis: HINTS[z.anbieter] || '', hinweisImmer: HINT_ALWAYS
+    benutzer: z.benutzer, sender: z.sender,
+    passwordSet: Boolean(z.password),
+    hint: HINTS[z.provider] || '', hintAlways: HINT_ALWAYS
   };
 }
 
@@ -176,9 +176,9 @@ function state(raw) {
    im Quelltext und koennen gar nicht fehlen. */
 function configured(raw) {
   const z = resolve(raw);
-  if (!providerOf(z.anbieter)) return false;
+  if (!providerOf(z.provider)) return false;
   if (!z.server || !z.port) return false;
-  return Boolean(z.benutzer && z.passwort && isAddress(z.absender));
+  return Boolean(z.benutzer && z.password && isAddress(z.sender));
 }
 
 /* Prueft, was von aussen hereinkommt, und liefert den Wert zum Speichern.
@@ -191,24 +191,24 @@ function configured(raw) {
 function checkInput(ein, before) {
   const e = ein && typeof ein === 'object' ? ein : {};
   const old = resolve(before);
-  const anbieter = String(e.anbieter || '').trim();
-  if (!anbieter) return { ...EMPTY };
-  const v = providerOf(anbieter);
+  const provider = String(e.provider || '').trim();
+  if (!provider) return { ...EMPTY };
+  const v = providerOf(provider);
   if (!v) throw message('mail.providerUnknown');
 
   const benutzer = String(e.benutzer ?? '').trim();
-  const absender = String(e.absender ?? '').trim();
+  const sender = String(e.sender ?? '').trim();
   // Ein neues Passwort wird genommen, wie es ist -- NICHT beschnitten. Ein
   // Leerzeichen am Ende kann Teil des Passworts sein, und ein stillschweigend
   // abgeschnittenes Zeichen ergaebe eine Absage, die niemand erklaeren kann.
-  const passwort = typeof e.passwort === 'string' && e.passwort !== ''
-    ? e.passwort : String(old.passwort || '');
+  const password = typeof e.password === 'string' && e.password !== ''
+    ? e.password : String(old.password || '');
 
   if (!benutzer) throw message('mail.userMissing');
-  if (!passwort) throw message('mail.passwordMissing');
-  if (!isAddress(absender)) throw message('mail.senderInvalid');
+  if (!password) throw message('mail.passwordMissing');
+  if (!isAddress(sender)) throw message('mail.senderInvalid');
 
-  const out = { anbieter, benutzer, passwort, absender, server: '', port: 0, sicher: false };
+  const out = { provider, benutzer, password, sender, server: '', port: 0, sicher: false };
   if (v.key !== 'eigen') return out;
 
   const server = String(e.server || '').trim();
@@ -228,7 +228,7 @@ function checkInput(ein, before) {
 function mark(raw) {
   const z = resolve(raw);
   return crypto.createHash('sha256')
-    .update(JSON.stringify([z.anbieter, z.server, z.port, z.sicher, z.benutzer, z.passwort, z.absender]))
+    .update(JSON.stringify([z.provider, z.server, z.port, z.sicher, z.benutzer, z.password, z.sender]))
     .digest('hex').slice(0, 16);
 }
 
@@ -250,7 +250,7 @@ function mark(raw) {
 function buildTransport(z) {
   return nodemailer.createTransport({
     host: z.server, port: z.port, secure: z.sicher === true,
-    auth: { user: z.benutzer, pass: z.passwort },
+    auth: { user: z.benutzer, pass: z.password },
     connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,
     // Die Instanz schickt eine Handvoll Mails im Monat. Eine offen gehaltene
     // Verbindung waere eine Verbindung nach draussen, die ohne Anlass steht.
@@ -263,8 +263,8 @@ async function send(locale, raw, to, subject, text) {
   /* DER GRUND IST SEIT 0.24.0 EIN SCHLUESSEL, WO ER AUS DIESER DATEI KOMMT --
      und ein SATZ, wo ihn der Anbieter geschrieben hat (shortReason). Beides
      steht am Bildschirm; nur das erste laesst sich uebersetzen. */
-  if (!configured(z)) return { ok: false, grund: t(locale, 'mail.noAccount') };
-  if (!isAddress(to)) return { ok: false, grund: t(locale, 'mail.recipientInvalid') };
+  if (!configured(z)) return { ok: false, reason: t(locale, 'mail.noAccount') };
+  if (!isAddress(to)) return { ok: false, reason: t(locale, 'mail.recipientInvalid') };
   let transport = null;
   try {
     transport = buildTransport(z);
@@ -277,18 +277,18 @@ async function send(locale, raw, to, subject, text) {
     });
     try {
       await Promise.race([
-        transport.sendMail({ from: z.absender, to: to, subject: subject, text }),
+        transport.sendMail({ from: z.sender, to: to, subject: subject, text }),
         deadline
       ]);
     } finally { clearTimeout(clock); }
-    return { ok: true, grund: '' };
+    return { ok: true, reason: '' };
   } catch (e) {
     /* WAS AUS DER MELDUNG DES ANBIETERS UEBERNOMMEN WIRD, IST BESCHNITTEN --
        und der Grund ist nicht die Laenge: manche Server geben die
        Anmeldedaten in der Absage zurueck ("535 5.7.8 Username and Password
        not accepted for <benutzer>"). Der Anfang traegt den Fehlercode, und
        der ist das, was hilft. */
-    return { ok: false, grund: shortReason(locale, e) };
+    return { ok: false, reason: shortReason(locale, e) };
   } finally {
     // Auch im Fehlerfall: eine haengende Verbindung nach draussen ist genau
     // das, was diese Instanz nicht offen halten soll (Stolperstein 134 in

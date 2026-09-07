@@ -60,106 +60,106 @@ const RUECKBAUTEN = [
   /* ---- Der Versand: das Offline-Prinzip ---- */
   {
     nr: '01', name: 'Der Token entsteht erst NACH dem Versand',
-    datei: 'server.js',
-    suche: "    const v = await sendTokenLink(target, token);",
+    file: 'server.js',
+    search: "    const v = await sendTokenLink(target, token);",
     ersatz: "    const v = await sendTokenLink(ziel, token); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
     erwartet: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   {
     nr: '02', name: 'Der Link faellt aus der Antwort, wenn der Versand traegt',
-    datei: 'server.js',
-    suche: "               ohnePasswort: token.ohnePasswort,\n               ...linkInfo(token.plain), ...v });",
+    file: 'server.js',
+    search: "               withoutPassword: token.withoutPassword,\n               ...linkInfo(token.plain), ...v });",
     ersatz: "               ohnePasswort: token.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkInfo(token.plain)), ...v });",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '03', name: 'Das Feld versand faellt ganz weg',
-    datei: 'server.js',
-    suche: "  return e.ok ? { versand: 'ok', versandGrund: '' }",
+    file: 'server.js',
+    search: "  return e.ok ? { delivery: 'ok', deliveryReason: '' }",
     ersatz: "  return e.ok ? {}",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '04', name: 'Der Grund faellt weg -- "aus" steht ohne Auskunft da',
-    datei: 'server.js',
-    suche: "    return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };",
+    file: 'server.js',
+    search: "    return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };",
     ersatz: "    return { versand: 'aus' };",
     erwartet: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   /* ---- Der Versand: die Frist ---- */
   {
     nr: '05', name: 'Die aeussere Schranke ueber dem Versand faellt weg',
-    datei: 'mail.js',
+    file: 'mail.js',
     /* DER RUECKBAU MACHT DIE FRIST WIRKUNGSLOS, ER ENTFERNT SIE NICHT AUS DEM
        WETTLAUF. Zwei Anlaeufe davor waren falsch, und der zweite lehrreich:
        `frist` aus dem Promise.race zu streichen laesst die Zusage zwar fallen,
        aber die Zusage wirft danach UNBEHANDELT -- der Server stirbt, und der
        Lauf reisst ab, statt eine Pruefung rot zu faerben (Stolperstein 138).
        So bleibt alles stehen, und nur die Wirkung faellt weg. */
-    suche: "      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);",
+    search: "      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);",
     ersatz: "      uhr = setTimeout(() => {}, SEND_MS);",
     erwartet: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
   {
     nr: '06', name: 'Die Fristen von nodemailer stehen wieder auf ihren Vorgaben',
-    datei: 'mail.js',
-    suche: "    connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,",
+    file: 'mail.js',
+    search: "    connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,",
     ersatz: "",
     erwartet: '(erwartet STUMM — die aeussere Schranke traegt die Zusage allein; nodemailers Fristen sind der schnellere, nicht der tragende Weg)'
   },
   /* ---- Der Versand: die oeffentliche Adresse ---- */
   {
     nr: '07', name: 'Ohne oeffentliche Adresse wird trotzdem verschickt',
-    datei: 'server.js',
+    file: 'server.js',
     /* STEHT DIESELBE FRAGE ZWEIMAL im Quelltext -- einmal am
        Versand des Tokenlinks und einmal in versandBereit(). Der Rueckbau
        nimmt die Zeile am VERSAND, und die naechste Zeile macht ihn
        eindeutig. */
-    suche: "  if (!PUBLIC.adresse)\n    return { versand: 'aus', versandGrund:",
+    search: "  if (!PUBLIC.address)\n    return { delivery: 'aus', deliveryReason:",
     ersatz: "  if (false)\n    return { versand: 'aus', versandGrund:",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   {
     nr: '08', name: 'Die Adresse wird aus dem Host-Kopf abgeleitet',
-    datei: 'server.js',
-    suche: "    username: target.username, link: `${PUBLIC.adresse}/#/invite/${token.plain}`,",
+    file: 'server.js',
+    search: "    username: target.username, link: `${PUBLIC.address}/#/invite/${token.plain}`,",
     ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/invite/${token.plain}`,",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   /* ---- Der Versand: der Empfaenger am Zugang ---- */
   {
     nr: '09', name: 'Ein Zugang ohne Adresse wird trotzdem beschickt',
-    datei: 'server.js',
-    suche: "  if (!target.email)",
+    file: 'server.js',
+    search: "  if (!target.email)",
     ersatz: "  if (false)",
     erwartet: 'Der Versandzustand neben dem Link'
   },
   {
     nr: '10', name: 'Die Adresse laesst sich beim Anlegen nicht mehr mitgeben',
-    datei: 'auth.js',
-    suche: "    .run(clean, hash, role, mailAddress || null);",
+    file: 'auth.js',
+    search: "    .run(clean, hash, role, mailAddress || null);",
     ersatz: "    .run(sauber, hash, rolle, null);",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '11', name: 'Die eigene Adresse laesst sich nicht mehr setzen',
-    datei: 'auth.js',
-    suche: "    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(adresse || null, u.id);",
+    file: 'auth.js',
+    search: "    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(address || null, u.id);",
     ersatz: "    db.prepare('UPDATE users SET email = email WHERE id = ?').run(u.id);",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   /* ---- Die Testmail ---- */
   {
     nr: '12', name: 'Die Testmail nimmt die Adresse aus dem Rumpf',
-    datei: 'server.js',
-    suche: "  const ownOne = auth.getUser2(req.benutzer.id);",
+    file: 'server.js',
+    search: "  const ownOne = auth.getUser2(req.benutzer.id);",
     ersatz: "  const eigener = { ...auth.getUser2(req.benutzer.id), email: (req.body || {}).an || auth.getUser2(req.benutzer.id)?.email };",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
     nr: '13', name: 'Die Absage ohne eigene Adresse nennt den Weg dorthin nicht',
-    datei: 'public/languages/de.json',
-    suche: "\"server.ownEmailMissing\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt. Trag sie unter Einstellungen › Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.\",",
+    file: 'public/languages/de.json',
+    search: "\"server.ownEmailMissing\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt. Trag sie unter Einstellungen › Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.\",",
     ersatz: "\"server.ownEmailMissing\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt.\",",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
@@ -170,102 +170,102 @@ const RUECKBAUTEN = [
        war folgenlos und ist entfernt; es gibt jetzt EINEN Mechanismus, und der
        Rueckbau greift ihn an. */
     nr: '14', name: 'Die Marke gilt auch nach einer Aenderung am Zugang weiter',
-    datei: 'server.js',
+    file: 'server.js',
     /* DER VERGLEICH IST IN mailtestStand() GEZOGEN -- eine
        Rechnung, zwei Rufer: die Karte und der Schalter der Selbstanmeldung.
        Zwei Mechanismen fuer eine Zusage waeren einer zu viel
        (Stolperstein 145), und deshalb faerbt dieser Rueckbau jetzt BEIDE
        Seiten rot. */
-    suche: "  return test && test.mark && test.mark === mail.mark(roh) ? test : null;",
+    search: "  return test && test.mark && test.mark === mail.mark(raw) ? test : null;",
     ersatz: "  return test || null;",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   /* ---- Die Rollenleiter am Mailzugang ---- */
   {
     nr: '15', name: 'Der Mailzugang steht auch dem Admin offen',
-    datei: 'server.js',
-    suche: "app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {",
+    file: 'server.js',
+    search: "app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {",
     ersatz: "app.put('/api/mail', adminOnly, secondConfirmNeeded('mail'), (req, res) => {",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
   {
     nr: '16', name: 'Die Testmail steht auch dem Admin offen',
-    datei: 'server.js',
-    suche: "app.post('/api/mail/test', ownerOnly, async (req, res) => {",
+    file: 'server.js',
+    search: "app.post('/api/mail/test', ownerOnly, async (req, res) => {",
     ersatz: "app.post('/api/mail/test', adminOnly, async (req, res) => {",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
   {
     nr: '17', name: 'Die zweite Bestaetigung faellt am Mailzugang weg',
-    datei: 'server.js',
-    suche: "app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {",
+    file: 'server.js',
+    search: "app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {",
     ersatz: "app.put('/api/mail', ownerOnly, (req, res) => {",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
   /* ---- Das Passwort ---- */
   {
     nr: '18', name: 'Das Mailpasswort steht in der Antwort',
-    datei: 'server.js',
-    suche: "app.get('/api/mail', ownerOnly, (req, res) => res.json(mailCard(req)));",
+    file: 'server.js',
+    search: "app.get('/api/mail', ownerOnly, (req, res) => res.json(mailCard(req)));",
     ersatz: "app.get('/api/mail', ownerOnly, (req, res) => res.json({ ...mailCard(req), passwort: mail.resolve(getSetting(mail.SETTING_KEY, null)).passwort }));",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '19', name: 'Das Mailpasswort geht in die Kontrollausgabe',
-    datei: 'server.js',
-    suche: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}.` +",
+    file: 'server.js',
+    search: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +",
     ersatz: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}, Passwort ${mail.resolve(roh).passwort}.` +",
     erwartet: 'Der Mailversand: das Passwort steht nirgends'
   },
   /* ---- Die Anbietervorlagen ---- */
   {
     nr: '20', name: 'Ein mitgeschickter Server ueberschreibt die Vorlage',
-    datei: 'mail.js',
-    suche: "  return { ...z, server: v.server, port: v.port, sicher: v.sicher };",
+    file: 'mail.js',
+    search: "  return { ...z, server: v.server, port: v.port, sicher: v.sicher };",
     ersatz: "  return { ...z, server: z.server || v.server, port: z.port || v.port, sicher: z.sicher === true };",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
   {
     nr: '21', name: 'Ein unbekannter Anbieter wird durchgelassen',
-    datei: 'mail.js',
-    suche: "  if (!v) throw message('mail.providerUnknown');",
+    file: 'mail.js',
+    search: "  if (!v) throw message('mail.providerUnknown');",
     ersatz: "  const vv = v;",
     erwartet: 'Der Mailzugang: wer ihn setzen darf'
   },
   /* ---- Die Frist ab dem ersten Oeffnen ---- */
   {
     nr: '22', name: 'Das erste Oeffnen startet die Frist nicht',
-    datei: 'server.js',
-    suche: "  const minuten = auth.startTokenDeadline(token.hash);",
+    file: 'server.js',
+    search: "  const minutes = auth.startTokenDeadline(token.hash);",
     ersatz: "  const minuten = auth.TOKEN_DEADLINE_MINUTES;",
     erwartet: 'Der Token: die Frist ab dem ersten Oeffnen'
   },
   {
     nr: '23', name: 'Jedes Oeffnen schiebt die Frist weiter',
-    datei: 'auth.js',
-    suche: "    WHERE hash = ? AND used_at IS NULL AND expires_at > datetime('now', ?)`);",
+    file: 'auth.js',
+    search: "    WHERE hash = ? AND used_at IS NULL AND expires_at > datetime('now', ?)`);",
     ersatz: "    WHERE hash = ? AND used_at IS NULL AND ? IS NOT NULL`);",
     erwartet: 'Der Token: die Frist ab dem ersten Oeffnen'
   },
   {
     nr: '24', name: 'Die Absage nach der Frist bekommt einen eigenen Wortlaut',
-    datei: 'public/languages/de.json',
-    suche: "\"server.linkExpired\": \"Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.\",",
+    file: 'public/languages/de.json',
+    search: "\"server.linkExpired\": \"Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.\",",
     ersatz: "\"server.linkExpired\": \"Die Frist von 15 Minuten ist abgelaufen.\",",
     erwartet: 'Der Token: die Absage sieht immer gleich aus'
   },
   /* ---- Befund G: die voruebergehende Absage ---- */
   {
     nr: '25', name: 'Jede Absage wirft den Schluessel wieder aus der Adresse',
-    datei: 'public/app.js',
-    suche: "    if (res.status === 400) {",
+    file: 'public/app.js',
+    search: "    if (res.status === 400) {",
     ersatz: "    if (!res.ok) {",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
   {
     nr: '26', name: 'Der zweite Anlauf nach der Bremse faellt weg',
-    datei: 'public/app.js',
-    suche: "    document.getElementById('eb-again').onclick = () => showInvite(schluessel);",
+    file: 'public/app.js',
+    search: "    document.getElementById('eb-again').onclick = () => showInvite(schluessel);",
     ersatz: "    document.getElementById('eb-again').onclick = () => {};",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
@@ -277,37 +277,37 @@ const RUECKBAUTEN = [
        nicht. DIE TRAGENDE ZEILE IST DER ABRUF, und der Rueckbau greift
        deshalb dort. */
     nr: '27', name: 'Der Mailzugang wird auch fuer den Admin geholt',
-    datei: 'public/app.js',
-    suche: "      ADMIN ? api('GET', '/api/requests') : null",
+    file: 'public/app.js',
+    search: "      ADMIN ? api('GET', '/api/requests') : null",
     ersatz: "      ADMIN ? api('GET', '/api/mail') : null",
     erwartet: 'Die Karten des Systembereichs nach Rolle (viele rot — der Abruf reisst den ganzen Bereich mit)'
   },
   {
     nr: '28', name: 'Der Versandzustand verschwindet aus dem Linkkasten',
-    datei: 'public/app.js',
-    suche: "      ${deliveryRow(d)}",
+    file: 'public/app.js',
+    search: "      ${deliveryRow(d)}",
     ersatz: "      ",
     erwartet: 'Der Versandzustand neben dem Link'
   },
   {
     nr: '29', name: 'Das Adressfeld am eigenen Zugang schickt nichts mehr mit',
-    datei: 'public/app.js',
-    suche: "        oldPassword: old, username: name, newPassword: new1, email: adresse",
+    file: 'public/app.js',
+    search: "        oldPassword: old, username: name, newPassword: new1, email: address",
     ersatz: "        oldPassword: alt, username: name, newPassword: neu1",
     erwartet: 'Die eigene Adresse in der Karte „Zugang“'
   },
   {
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
-    datei: 'public/app.js',
-    suche: "        ${status.minuten ? `<strong>${tH('login.linkValidMinutes', { minuten: status.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}",
+    file: 'public/app.js',
+    search: "        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { minuten: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
     ersatz: "        ${false ? `<strong>${tH('login.linkValidMinutes', { minuten: stand.minuten })}</strong> ${tH('login.thenNeedNew')}` : ''}",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
   {
     nr: '31', name: 'Die Antwort verraet, dass still verworfen wurde',
-    datei: 'server.js',
-    suche: "  res.json(REQUEST_ANSWER);",
+    file: 'server.js',
+    search: "  res.json(REQUEST_ANSWER);",
     ersatz: "  res.json(klartext ? REQUEST_ANSWER : { ok: false, error: 'Name oder Adresse ist schon vergeben.' });",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
@@ -317,16 +317,16 @@ const RUECKBAUTEN = [
        geprueft wird die LAUFZEIT der Antwort, und die haengt am await davor.
        Der troepfelnde Empfaenger haelt ihn zwanzig Sekunden fest. */
     nr: '32', name: 'Die Antwort wartet wieder auf den Mailserver',
-    datei: 'server.js',
-    suche: "  const plain = an ? auth.createRequest(name, adresse) : null;",
+    file: 'server.js',
+    search: "  const plain = an ? auth.createRequest(name, address) : null;",
     ersatz: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
             "  if (klartext) await sendConfirm(String(name).trim(), String(adresse).trim(), klartext).catch(() => {});",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '33', name: 'Der Schalter aus fuehrt zu einer eigenen Absage',
-    datei: 'server.js',
-    suche: "  const an = getSetting('signup', false) === true;",
+    file: 'server.js',
+    search: "  const an = getSetting('signup', false) === true;",
     ersatz: "  const an = getSetting('signup', false) === true;\n" +
             "  if (!an) return res.status(403).json({ error: 'Die Selbstanmeldung ist ausgeschaltet.' });",
     erwartet: 'Die Selbstanmeldung: der Schalter aus'
@@ -334,36 +334,36 @@ const RUECKBAUTEN = [
   /* ---- Die Selbstanmeldung: der Deckel und die stille Verwerfung ---- */
   {
     nr: '34', name: 'Der Deckel faellt ganz weg',
-    datei: 'auth.js',
-    suche: "  if (countRequests() >= REQUEST_CAP) return null;",
+    file: 'auth.js',
+    search: "  if (countRequests() >= REQUEST_CAP) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: der Deckel'
   },
   {
     nr: '35', name: 'Der Deckel zaehlt nur die BESTAETIGTEN',
-    datei: 'auth.js',
-    suche: "  if (countRequests() >= REQUEST_CAP) return null;",
+    file: 'auth.js',
+    search: "  if (countRequests() >= REQUEST_CAP) return null;",
     ersatz: "  if (db.prepare('SELECT COUNT(*) n FROM requests WHERE confirmed_at IS NOT NULL').get().n >= REQUEST_CAP) return null;",
     erwartet: 'Die Selbstanmeldung: der Deckel'
   },
   {
     nr: '36', name: 'Eine zweite Anfrage je Adresse geht durch',
-    datei: 'auth.js',
-    suche: "  if (qRequestMail.get(post)) return null;",
+    file: 'auth.js',
+    search: "  if (qRequestMail.get(post)) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '37', name: 'Ein vergebener Benutzername kommt in die Warteschlange',
-    datei: 'auth.js',
-    suche: "  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(clean)) return null;",
+    file: 'auth.js',
+    search: "  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(clean)) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '38', name: 'Eine vergebene Adresse ebenso',
-    datei: 'auth.js',
-    suche: "  if (qUserMail.get(post)) return null;",
+    file: 'auth.js',
+    search: "  if (qUserMail.get(post)) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
@@ -373,138 +373,138 @@ const RUECKBAUTEN = [
        der BEIDES noch einmal geschickt wird. Genau das ist beim ersten Lauf
        dieser Runde passiert. */
     nr: '67', name: 'Derselbe Wunschname darf zweimal in der Warteschlange stehen',
-    datei: 'auth.js',
-    suche: "  if (qRequestName.get(clean)) return null;",
+    file: 'auth.js',
+    search: "  if (qRequestName.get(clean)) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
     nr: '39', name: 'Name und Adresse von aussen sind wieder unbegrenzt lang',
-    datei: 'auth.js',
-    suche: "  if (clean.length > REQUEST_NAME_MAX || post.length > REQUEST_MAIL_MAX) return null;",
+    file: 'auth.js',
+    search: "  if (clean.length > REQUEST_NAME_MAX || post.length > REQUEST_MAIL_MAX) return null;",
     ersatz: "  if (false) return null;",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   /* ---- Die Selbstanmeldung: das Verfallen ---- */
   {
     nr: '40', name: 'Unbestaetigte Anfragen verfallen nicht mehr',
-    datei: 'auth.js',
-    suche: "  const n = delAnfragenAlt.run(`-${REQUEST_HOURS} hours`).changes;",
+    file: 'auth.js',
+    search: "  const n = delAnfragenAlt.run(`-${REQUEST_HOURS} hours`).changes;",
     ersatz: "  const n = 0;",
     erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
   {
     nr: '41', name: 'Auch die BESTAETIGTEN verfallen',
-    datei: 'auth.js',
-    suche: "  \"DELETE FROM requests WHERE confirmed_at IS NULL AND created_at < datetime('now', ?)\");",
+    file: 'auth.js',
+    search: "  \"DELETE FROM requests WHERE confirmed_at IS NULL AND created_at < datetime('now', ?)\");",
     ersatz: "  \"DELETE FROM requests WHERE created_at < datetime('now', ?)\");",
     erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
   {
     nr: '42', name: 'Die Anfrageroute raeumt nicht mehr vor der Deckelpruefung auf',
-    datei: 'auth.js',
-    suche: "  cleanupRequests();\n  if (countRequests() >= REQUEST_CAP) return null;",
+    file: 'auth.js',
+    search: "  cleanupRequests();\n  if (countRequests() >= REQUEST_CAP) return null;",
     ersatz: "  if (countRequests() >= REQUEST_CAP) return null;",
     erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
   },
   /* ---- Die Selbstanmeldung: der Schalter und seine Kopplung ---- */
   {
     nr: '43', name: 'Der Schalter laesst sich ohne durchgekommene Testmail einschalten',
-    datei: 'server.js',
-    suche: "  if (!mailtestState(roh))",
+    file: 'server.js',
+    search: "  if (!mailtestState(raw))",
     ersatz: "  if (false)",
     erwartet: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
   {
     nr: '44', name: 'Der Schalter laesst sich ohne oeffentliche Adresse einschalten',
-    datei: 'server.js',
-    suche: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (!PUBLIC.adresse)",
+    file: 'server.js',
+    search: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (!PUBLIC.address)",
     ersatz: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (false)",
     erwartet: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
   {
     nr: '46', name: 'Ausschalten wird an dieselbe Bedingung gehaengt wie Einschalten',
-    datei: 'server.js',
-    suche: "  if (an) {\n    const b = versandBereit();",
+    file: 'server.js',
+    search: "  if (an) {\n    const b = deliveryReady();",
     ersatz: "  if (true) {\n    const b = versandBereit();",
     erwartet: 'Die Selbstanmeldung: der Schalter aus'
   },
   {
     nr: '47', name: 'Der Schalter legt sich bei kaputtem Versand selbst um',
-    datei: 'server.js',
-    suche: "    an: getSetting('signup', false) === true,\n    versandBereit: b.ok,",
+    file: 'server.js',
+    search: "    an: getSetting('signup', false) === true,\n    deliveryReady: b.ok,",
     ersatz: "    an: getSetting('signup', false) === true && b.ok,\n    versandBereit: b.ok,",
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   /* ---- Die Selbstanmeldung: der Bestaetigungslink ---- */
   {
     nr: '48', name: 'Der Bestaetigungsschluessel steht im Klartext in der Tabelle',
-    datei: 'auth.js',
-    suche: "    .run(tokenHash(plain), clean, post);",
+    file: 'auth.js',
+    search: "    .run(tokenHash(plain), clean, post);",
     ersatz: "    .run(klartext, sauber, post);",
     erwartet: 'Die Selbstanmeldung: die Bestaetigungsmail'
   },
   {
     nr: '49', name: 'Die Bestaetigung nimmt jeden Schluessel an',
-    datei: 'auth.js',
-    suche: "  return setConfirmed.run(tokenHash(raw), `-${REQUEST_HOURS} hours`).changes > 0;",
+    file: 'auth.js',
+    search: "  return setConfirmed.run(tokenHash(raw), `-${REQUEST_HOURS} hours`).changes > 0;",
     ersatz: "  setConfirmed.run(tokenHash(roh), `-${REQUEST_HOURS} hours`); return true;",
     erwartet: 'Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft'
   },
   {
     nr: '50', name: 'Die Karte gibt den Hash der Anfrage mit heraus',
-    datei: 'auth.js',
-    suche: "  `SELECT id, username, email, created_at, confirmed_at\n     FROM requests WHERE confirmed_at IS NOT NULL",
+    file: 'auth.js',
+    search: "  `SELECT id, username, email, created_at, confirmed_at\n     FROM requests WHERE confirmed_at IS NOT NULL",
     ersatz: "  `SELECT id, username, email, created_at, confirmed_at, hash\n     FROM requests WHERE confirmed_at IS NOT NULL",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '51', name: 'Die unbestaetigte Anfrage erscheint beim Admin',
-    datei: 'auth.js',
-    suche: "     FROM requests WHERE confirmed_at IS NOT NULL ORDER BY confirmed_at ASC, id ASC`);",
+    file: 'auth.js',
+    search: "     FROM requests WHERE confirmed_at IS NOT NULL ORDER BY confirmed_at ASC, id ASC`);",
     ersatz: "     FROM requests ORDER BY created_at ASC, id ASC`);",
     erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   {
     nr: '52', name: 'Die unbestaetigte Anfrage laesst sich freischalten',
-    datei: 'server.js',
-    suche: "  const a = auth.getRequest(req.params.id);\n  if (!a || !a.confirmed_at)\n    return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});\n  let created, token;",
+    file: 'server.js',
+    search: "  const a = auth.getRequest(req.params.id);\n  if (!a || !a.confirmed_at)\n    return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});\n  let created, token;",
     ersatz: "  const a = auth.getRequest(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});\n  let angelegt, token;",
     erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
   },
   /* ---- Die Selbstanmeldung: Freischaltung, Ablehnung, Rolle ---- */
   {
     nr: '53', name: 'Die Rolle kommt aus dem Rumpf der Anfrage',
-    datei: 'server.js',
-    suche: "    created = await auth.createUser(a.username, null, 'user', true, req.benutzer.id, a.email);",
+    file: 'server.js',
+    search: "    created = await auth.createUser(a.username, null, 'user', true, req.benutzer.id, a.email);",
     ersatz: "    angelegt = await auth.createUser(a.username, null, (req.body || {}).rolle || 'user', true, req.benutzer.id, a.email);",
     erwartet: 'Die Selbstanmeldung: die Rolle ist immer user'
   },
   {
     nr: '54', name: 'Die Zeile bleibt nach der Freischaltung stehen',
-    datei: 'server.js',
-    suche: "  auth.removeRequest(a.id);\n  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
+    file: 'server.js',
+    search: "  auth.removeRequest(a.id);\n  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
     ersatz: "  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '55', name: 'Die Freischaltung erzeugt keinen Token',
-    datei: 'server.js',
-    suche: "    token = auth.createToken(created.id, 'invite', req.benutzer.id);",
+    file: 'server.js',
+    search: "    token = auth.createToken(created.id, 'invite', req.benutzer.id);",
     ersatz: "    token = { klartext: 'x'.repeat(64), zweck: 'invite', tage: 7, id: angelegt.id, username: angelegt.username };",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '56', name: 'Die Protokollzeile der Freischaltung faellt weg',
-    datei: 'server.js',
-    suche: "  auth.log('request.approve', { actor: req.benutzer.id, target: created.id });",
+    file: 'server.js',
+    search: "  auth.log('request.approve', { actor: req.benutzer.id, target: created.id });",
     ersatz: "  // auth.log('request.approve', { wer: req.benutzer.id, ziel: angelegt.id });",
     erwartet: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
     nr: '57', name: 'Die Ablehnung entfernt die Zeile nicht',
-    datei: 'server.js',
-    suche: "  auth.removeRequest(a.id);\n  auth.log('request.reject', { actor: req.benutzer.id });",
+    file: 'server.js',
+    search: "  auth.removeRequest(a.id);\n  auth.log('request.reject', { actor: req.benutzer.id });",
     ersatz: "  auth.log('request.reject', { wer: req.benutzer.id });",
     erwartet: 'Die Selbstanmeldung: die Ablehnung'
   },
@@ -515,15 +515,15 @@ const RUECKBAUTEN = [
        Name steht nicht darin": genau so ist "kein Freitext von aussen"
        BAULICH wahr statt durchgesetzt. */
     nr: '58', name: 'Der Name des Abgewiesenen soll ins Protokoll',
-    datei: 'server.js',
-    suche: "  auth.log('request.reject', { actor: req.benutzer.id });",
+    file: 'server.js',
+    search: "  auth.log('request.reject', { actor: req.benutzer.id });",
     ersatz: "  auth.log('request.reject', { wer: req.benutzer.id, merkmal: a.username });",
     erwartet: 'Die Selbstanmeldung: die Ablehnung'
   },
   {
     nr: '59', name: 'Die Anfrage selbst schreibt eine Protokollzeile',
-    datei: 'server.js',
-    suche: "  const plain = an ? auth.createRequest(name, adresse) : null;",
+    file: 'server.js',
+    search: "  const plain = an ? auth.createRequest(name, address) : null;",
     ersatz: "  const plain = an ? auth.createRequest(name, adresse) : null;\n" +
             "  if (klartext) auth.log('request.approve', { wer: 1 });",
     erwartet: 'Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann'
@@ -531,23 +531,23 @@ const RUECKBAUTEN = [
   /* ---- Die Selbstanmeldung: die Bremse ---- */
   {
     nr: '60', name: 'Die Bremse fehlt an der Anfrageroute',
-    datei: 'server.js',
-    suche: "app.post('/api/signup', async (req, res) => {\n  if (!await tokenThrottleFree(req, res)) return;",
+    file: 'server.js',
+    search: "app.post('/api/signup', async (req, res) => {\n  if (!await tokenThrottleFree(req, res)) return;",
     ersatz: "app.post('/api/signup', async (req, res) => {",
     erwartet: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
   },
   {
     nr: '61', name: 'Die Bremse fehlt an der Bestaetigungsroute',
-    datei: 'server.js',
-    suche: "  const ip = auth.clientIp(req);\n  if (!await tokenThrottleFree(req, res)) return;\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
+    file: 'server.js',
+    search: "  const ip = auth.clientIp(req);\n  if (!await tokenThrottleFree(req, res)) return;\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
     ersatz: "  const ip = auth.clientIp(req);\n  if (!auth.confirmRequest((req.body || {}).schluessel)) {",
     erwartet: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
   },
   /* ---- Die Selbstanmeldung in der Oberflaeche ---- */
   {
     nr: '62', name: 'Das Anfrageformular steht auch bei ausgeschaltetem Schalter da',
-    datei: 'public/app.js',
-    suche: "    ${SIGNUP ? `<p class=\"sub login-divider\">${tH('login.noAccountYet')}</p>",
+    file: 'public/app.js',
+    search: "    ${SIGNUP ? `<p class=\"sub login-divider\">${tH('login.noAccountYet')}</p>",
     ersatz: "    ${true ? `<p class=\"sub login-divider\">${tH('login.noAccountYet')}</p>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
@@ -561,8 +561,8 @@ const RUECKBAUTEN = [
        dieselbe geblieben: die Karte traegt den Schalter, mit dem sich die
        Selbstanmeldung ueberhaupt erst einschalten laesst. */
     nr: '63', name: 'Die Karte „Anfragen“ verschwindet, solange der Schalter aus ist',
-    datei: 'public/app.js',
-    suche: "visible: (g) => ADMIN && !!g.anfragen,",
+    file: 'public/app.js',
+    search: "visible: (g) => ADMIN && !!g.requests,",
     ersatz: "sichtbar: (g) => ADMIN && !!g.anfragen && (g.anfragen.an || g.anfragen.anfragen.length),",
     erwartet: 'Die Karten im Systembereich'
   },
@@ -571,8 +571,8 @@ const RUECKBAUTEN = [
        Fusszeile und wurde uebersehen. Er ist jetzt ein Knopf in derselben
        Groesse wie "Anmelden"; der Rueckbau macht wieder einen Verweis daraus. */
     nr: '68', name: 'Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes',
-    datei: 'public/app.js',
-    suche: "      <button class=\"btn login-alt\" id=\"l-request\">${tH('login.requestAccess')}</button>",
+    file: 'public/app.js',
+    search: "      <button class=\"btn login-alt\" id=\"l-request\">${tH('login.requestAccess')}</button>",
     ersatz: "      <a href=\"#\" id=\"l-request\">${tH('login.requestAccess')}</a>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
@@ -580,8 +580,8 @@ const RUECKBAUTEN = [
     /* DIE ANDERE HAELFTE VON 68: der Knopf wird so leise, dass er im
        Ruhezustand keiner mehr ist. Der Rueckbau nimmt ihm die Umrandung. */
     nr: '69', name: 'Der gedaempfte Knopf verliert auch seine Umrandung',
-    datei: 'public/style.css',
-    suche: "  background: var(--accent-dim); border-color: var(--accent-line);",
+    file: 'public/style.css',
+    search: "  background: var(--accent-dim); border-color: var(--accent-line);",
     ersatz: "  background: var(--accent-dim); border-color: transparent;",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
@@ -590,8 +590,8 @@ const RUECKBAUTEN = [
        Karte, die sonst keine kennt. Sie ist weg, der Abstand traegt die
        Trennung. Der Rueckbau holt den Strich zurueck. */
     nr: '73', name: 'Der Strich ueber dem Anfrageknopf kommt zurueck',
-    datei: 'public/style.css',
-    suche: "  margin: 28px 0 0; font-size: .87rem;",
+    file: 'public/style.css',
+    search: "  margin: 28px 0 0; font-size: .87rem;",
     ersatz: "  margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line); font-size: .87rem;",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
@@ -599,8 +599,8 @@ const RUECKBAUTEN = [
     /* UND DIE ANDERE HAELFTE: ohne Strich UND ohne Abstand liefe der Knopf
        mit dem Anmeldeknopf zusammen. */
     nr: '74', name: 'Und der Abstand, der ihn ersetzt, schrumpft auf nichts',
-    datei: 'public/style.css',
-    suche: "  margin: 28px 0 0; font-size: .87rem;",
+    file: 'public/style.css',
+    search: "  margin: 28px 0 0; font-size: .87rem;",
     ersatz: "  margin: 10px 0 0; font-size: .87rem;",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
@@ -608,8 +608,8 @@ const RUECKBAUTEN = [
     /* DIE FAERBUNG FAELLT WEG. Ohne Linie darueber und ohne eigene Farbe
        stuende ein grauer Knopf auf dunkelgrauem Grund. */
     nr: '75', name: 'Der Anfrageknopf verliert seine leichte Faerbung',
-    datei: 'public/style.css',
-    suche: "  background: var(--accent-dim); border-color: var(--accent-line);",
+    file: 'public/style.css',
+    search: "  background: var(--accent-dim); border-color: var(--accent-line);",
     ersatz: "  background: transparent; border-color: var(--line);",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
@@ -618,32 +618,32 @@ const RUECKBAUTEN = [
        Dann saessen zwei gleich laute Knoepfe uebereinander und die Seite
        sagte nicht mehr, welcher der gewoehnliche Weg ist. */
     nr: '76', name: 'Der Anfrageknopf wird so laut wie "Anmelden"',
-    datei: 'public/style.css',
-    suche: "  background: var(--accent-dim); border-color: var(--accent-line);",
+    file: 'public/style.css',
+    search: "  background: var(--accent-dim); border-color: var(--accent-line);",
     ersatz: "  background: var(--accent); border-color: var(--accent);",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
     nr: '64', name: 'Die rote Zeile bei kaputtem Versand faellt weg',
-    datei: 'public/app.js',
-    suche: "        ${anfragen.an && !anfragen.versandBereit ? `<p class=\"warn-box\" id=\"signup-broken\"",
+    file: 'public/app.js',
+    search: "        ${requests.an && !requests.deliveryReady ? `<p class=\"warn-box\" id=\"signup-broken\"",
     ersatz: "        ${false ? `<p class=\"warn-box\" id=\"signup-broken\"",
     erwartet: 'Die Karte „Anfragen“'
   },
   {
     nr: '65', name: 'Die Bestaetigungsseite meldet gleich an',
-    datei: 'public/app.js',
-    suche: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showConfirm(best[1]);",
+    file: 'public/app.js',
+    search: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showConfirm(best[1]);",
     ersatz: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showInvite(best[1]);",
     erwartet: 'Die Bestaetigungsseite in der Oberflaeche'
   },
   {
     nr: '66', name: 'Die gekuerzte Zeile im Mailtext verliert eine Auskunft',
-    datei: 'public/languages/de.json',
+    file: 'public/languages/de.json',
     /* DIE ZEILE STEHT ZWEIMAL -- in der Einladung und in der Ruecksetzung.
        Genommen wird die der EINLADUNG; die naechsten Zeilen machen sie
        eindeutig. */
-    suche: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt herein",
+    search: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt herein",
     ersatz: "\\nWer diesen Link hat, kommt herein",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
@@ -653,8 +653,8 @@ const RUECKBAUTEN = [
        favicon.svg. Der Rueckbau greift jetzt zur verbliebenen Fassung mit
        Kachel, und die saesse auf dunklem Grund als sichtbares Rechteck. */
     nr: '70', name: 'Die Marke folgt dem Schema nicht mehr',
-    datei: 'public/app.js',
-    suche: '<path d="M8 6 V26" stroke="var(--brand-grey)"/>',
+    file: 'public/app.js',
+    search: '<path d="M8 6 V26" stroke="var(--brand-grey)"/>',
     ersatz: '<path d="M8 6 V26" stroke="#838c95"/>',
     erwartet: 'Die Marke der Instanz'
   },
@@ -662,15 +662,15 @@ const RUECKBAUTEN = [
     /* DIE MARKE TRAEGT WIEDER DIE KLASSE DER KOMMENTARKNOEPFE -- und saesse
        damit wieder in einem Kaestchen mit Rahmen und rundem Fuellgrund. */
     nr: '71', name: 'Die Marke heisst wieder wie die Kommentarknoepfe',
-    datei: 'public/app.js',
-    suche: '<svg class="logo" viewBox=',
+    file: 'public/app.js',
+    search: '<svg class="logo" viewBox=',
     ersatz: '<svg class="mark" viewBox=',
     erwartet: 'Die Marke der Instanz'
   },
   {
     nr: '72', name: 'Der Tab bekommt kein Favicon mehr',
-    datei: 'public/index.html',
-    suche: '<link rel="icon" href="favicon.svg" type="image/svg+xml">',
+    file: 'public/index.html',
+    search: '<link rel="icon" href="favicon.svg" type="image/svg+xml">',
     ersatz: '',
     erwartet: 'Die Marke der Instanz'
   },
@@ -680,8 +680,8 @@ const RUECKBAUTEN = [
        Der Helfer legt dann keinen Kasten mehr an, und die beiden stapeln
        sich wieder. */
     nr: '77', name: 'Marke und Name stapeln sich wieder uebereinander',
-    datei: 'public/app.js',
-    suche: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
+    file: 'public/app.js',
+    search: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
     ersatz: '  `${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>`;',
     erwartet: 'Die Markenzeile der Anmeldeseiten'
   },
@@ -689,8 +689,8 @@ const RUECKBAUTEN = [
     /* DIE REIHENFOLGE KIPPT: erst das Wort, dann das Zeichen. Der Kasten
        bleibt, also greift hier nur die Zeile, die die Reihenfolge prueft. */
     nr: '78', name: 'Erst das Wort, dann das Zeichen',
-    datei: 'public/app.js',
-    suche: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
+    file: 'public/app.js',
+    search: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
     ersatz: '  `<div class="login-brand"><h1>${esc(TITLE_PUBLIC)}</h1>${MARK(36)}</div>`;',
     erwartet: 'Die Markenzeile der Anmeldeseiten'
   },
@@ -699,8 +699,8 @@ const RUECKBAUTEN = [
        NEBENEINANDER. Zwei Bloecke untereinander sehen im Baum aus wie eine
        Zeile -- deshalb prueft der Prueflauf beides. */
     nr: '79', name: 'Die Markenzeile ist keine Zeile mehr',
-    datei: 'public/style.css',
-    suche: '  display: flex; align-items: center; gap: 11px; margin: 0 0 5px;',
+    file: 'public/style.css',
+    search: '  display: flex; align-items: center; gap: 11px; margin: 0 0 5px;',
     ersatz: '  display: block; margin: 0 0 5px;',
     erwartet: 'Die Marke der Instanz'
   },
@@ -709,8 +709,8 @@ const RUECKBAUTEN = [
        align-items: center saesse sie damit um die halbe Hoehe zu hoch und
        die Marke stuende schief daneben. */
     nr: '80', name: 'Die Ueberschrift in der Zeile traegt wieder einen Unterrand',
-    datei: 'public/style.css',
-    suche: '.login-card .login-brand h1 { margin: 0; }',
+    file: 'public/style.css',
+    search: '.login-card .login-brand h1 { margin: 0; }',
     ersatz: '.login-card .login-brand h1 { margin: 0 0 5px; }',
     erwartet: 'Die Marke der Instanz'
   },
@@ -718,7 +718,7 @@ const RUECKBAUTEN = [
     /* DIE DOPPELTE DATEI KOMMT ZURUECK: favicon.svg noch einmal unter einem
        zweiten Namen. Genau der Zustand, der aufgeraeumt wurde. */
     nr: '81', name: 'Dieselbe Datei liegt wieder unter zwei Namen in public/',
-    datei: 'public/favicon.svg',
+    file: 'public/favicon.svg',
     kopie: 'public/marke-hell.svg',
     erwartet: 'Die Marke der Instanz'
   },
@@ -729,22 +729,22 @@ const RUECKBAUTEN = [
      an nichts. */
   {
     nr: '82', name: 'Acht Ziffern statt sechs',
-    datei: 'twofactor.js',
-    suche: 'const DIGITS = 6;',
+    file: 'twofactor.js',
+    search: 'const DIGITS = 6;',
     ersatz: 'const DIGITS = 8;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '83', name: 'SHA-256 statt SHA-1',
-    datei: 'twofactor.js',
-    suche: "const ALGORITHM = 'sha1';",
+    file: 'twofactor.js',
+    search: "const ALGORITHM = 'sha1';",
     ersatz: "const ALGORITHM = 'sha256';",
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '84', name: 'Sechzig Sekunden statt dreissig',
-    datei: 'twofactor.js',
-    suche: 'const STEP_SECONDS = 30;',
+    file: 'twofactor.js',
+    search: 'const STEP_SECONDS = 30;',
     ersatz: 'const STEP_SECONDS = 60;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
@@ -754,8 +754,8 @@ const RUECKBAUTEN = [
        andere Codes -- die eine Stelle, an der eine eigene Umsetzung typisch
        danebenliegt. */
     nr: '85', name: 'Der Anfang des Abgreifens steht fest statt aus dem Hash zu kommen',
-    datei: 'twofactor.js',
-    suche: '  const o = h[h.length - 1] & 0x0f;',
+    file: 'twofactor.js',
+    search: '  const o = h[h.length - 1] & 0x0f;',
     ersatz: '  const o = 0;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
@@ -764,23 +764,23 @@ const RUECKBAUTEN = [
        stimmt bis zum Jahr 6053 -- und der Testvektor T = 20 000 000 000 liegt
        darueber. Ohne ihn bliebe genau diese Zeile ungeprueft. */
     nr: '86', name: 'Der Zaehler wird nur in seiner unteren Haelfte geschrieben',
-    datei: 'twofactor.js',
-    suche: "  z.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);",
+    file: 'twofactor.js',
+    search: "  z.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);",
     ersatz: "  z.writeUInt32BE(0, 0);",
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   /* ---- Der zweite Faktor: das Fenster und die Wiederverwendung ---- */
   {
     nr: '87', name: 'Das Fenster wird auf zwei Schritte geweitet',
-    datei: 'twofactor.js',
-    suche: 'const WINDOW = 1;',
+    file: 'twofactor.js',
+    search: 'const WINDOW = 1;',
     ersatz: 'const WINDOW = 2;',
     erwartet: 'Der zweite Faktor: das Zeitfenster'
   },
   {
     nr: '88', name: 'Es gibt gar kein Nachbarfenster mehr',
-    datei: 'twofactor.js',
-    suche: 'const WINDOW = 1;',
+    file: 'twofactor.js',
+    search: 'const WINDOW = 1;',
     ersatz: 'const WINDOW = 0;',
     erwartet: 'Der zweite Faktor: das Zeitfenster'
   },
@@ -794,15 +794,15 @@ const RUECKBAUTEN = [
        Lauf RISS AB, statt eine Pruefung rot zu faerben (Stolperstein 138). So
        bleibt die Zahl der Platzhalter gleich und nur die Wirkung faellt weg. */
     nr: '89', name: 'Der verbrauchte Zaehler wird nicht mehr geprueft',
-    datei: 'auth.js',
-    suche: "    WHERE user_id = ? AND (last_counter IS NULL OR last_counter < ?)`);",
+    file: 'auth.js',
+    search: "    WHERE user_id = ? AND (last_counter IS NULL OR last_counter < ?)`);",
     ersatz: "    WHERE user_id = ? AND (last_counter IS NULL OR ? IS NOT NULL)`);",
     erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
   {
     nr: '90', name: 'Der verbrauchte Zaehler wird gar nicht erst geschrieben',
-    datei: 'auth.js',
-    suche: "    if (!useCounter.run(counter, id, counter).changes) return null;\n    return 'app';",
+    file: 'auth.js',
+    search: "    if (!useCounter.run(counter, id, counter).changes) return null;\n    return 'app';",
     ersatz: "    return 'app';",
     erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
@@ -811,16 +811,16 @@ const RUECKBAUTEN = [
        unmittelbar danach ein zweites Mal -- und "genau einmal" waere an seiner
        ERSTEN Anwendung falsch. */
     nr: '91', name: 'Der bestaetigende Code beim Einschalten zaehlt nicht als verbraucht',
-    datei: 'auth.js',
-    suche: "    `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = ?\n      WHERE user_id = ?`).run(counter, id);",
+    file: 'auth.js',
+    search: "    `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = ?\n      WHERE user_id = ?`).run(counter, id);",
     ersatz: "    `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = NULL\n      WHERE user_id = ?`).run(id);",
     erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
   /* ---- Der zweite Faktor: die Anmeldung ---- */
   {
     nr: '92', name: 'Die Anmeldung meldet auch mit zweitem Faktor gleich an',
-    datei: 'server.js',
-    suche: "  if (auth.twoFactorOn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.createLoginTicket(benutzer.id) });\n  }",
+    file: 'server.js',
+    search: "  if (auth.twoFactorOn(benutzer.id)) {\n    return res.json({ twoFactor: true, ...auth.createLoginTicket(benutzer.id) });\n  }",
     ersatz: "",
     erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
@@ -832,15 +832,15 @@ const RUECKBAUTEN = [
        drehen: so bleibt alles Uebrige stehen, und nur die eine Zusage faellt
        weg (Stolperstein 138). */
     nr: '93', name: 'Die Absage verraet, ob der Zugang einen zweiten Faktor hat',
-    datei: 'server.js',
-    suche: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong')});",
+    file: 'server.js',
+    search: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong')});",
     ersatz: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong'),\n      zweifaktor: auth.twoFactorOn((auth.getUserByName(user) || {}).id) });",
     erwartet: 'Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort'
   },
   {
     nr: '94', name: 'Der Ausweis wird nicht verbraucht',
-    datei: 'auth.js',
-    suche: "  tickets.delete(k);\n  return Date.now() <= a.until ? a.id : null;",
+    file: 'auth.js',
+    search: "  tickets.delete(k);\n  return Date.now() <= a.until ? a.id : null;",
     ersatz: "  return Date.now() <= a.until ? a.id : null;",
     erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
@@ -851,8 +851,8 @@ const RUECKBAUTEN = [
        sind dieselben wie bei der Freigabe der zweiten Bestaetigung. Ein Wert,
        eine Regel, eine Gegenprobe. */
     nr: '95', name: 'Der Ausweis bekommt eine eigene, laengere Frist',
-    datei: 'auth.js',
-    suche: 'const LOGIN_TICKET_MS = RELEASE_MS;',
+    file: 'auth.js',
+    search: 'const LOGIN_TICKET_MS = RELEASE_MS;',
     ersatz: 'const LOGIN_TICKET_MS = 3600 * 1000;',
     erwartet: 'Der zweite Faktor: der Rundlauf'
   },
@@ -861,8 +861,8 @@ const RUECKBAUTEN = [
        sie dort, waere das richtige Passwort EINES Zugangs die Eintrittskarte
        fuer JEDEN anderen. */
     nr: '96', name: 'Die Benutzernummer im zweiten Schritt kommt aus dem Rumpf',
-    datei: 'server.js',
-    suche: "  const id = auth.useLoginTicket(ausweis);",
+    file: 'server.js',
+    search: "  const id = auth.useLoginTicket(ticket);",
     ersatz: "  const id = Number((req.body || {}).id) || auth.useLoginTicket(ausweis);",
     erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
@@ -872,8 +872,8 @@ const RUECKBAUTEN = [
      Bremse -- er ist eine eigene Route. */
   {
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
-    datei: 'server.js',
-    suche: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ausweis);",
+    file: 'server.js',
+    search: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ticket);",
     ersatz: "  const id = auth.useLoginTicket(ausweis);",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
@@ -883,15 +883,15 @@ const RUECKBAUTEN = [
        sie hier ueberhaupt gilt, waere von aussen nicht mehr zu sehen. Genau
        daran ist die erste Fassung der Bremsprobe stumm geblieben. */
     nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
-    datei: 'server.js',
-    suche: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }",
+    file: 'server.js',
+    search: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ticket);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }",
     ersatz: "  const id = auth.useLoginTicket(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }\n  const bremse = auth.checkThrottle(ip, null);\n  if (bremse.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { sekunden: bremse.retryInSec })});\n  }\n  if (bremse.delayMs) await new Promise(r => setTimeout(r, bremse.delayMs));",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
     nr: '98', name: 'Der Fehlversuch am zweiten Schritt wird nicht gezaehlt',
-    datei: 'server.js',
-    suche: "  if (!auth.checkTwoFactor(id, code)) {\n    auth.noteFailure(ip, name);",
+    file: 'server.js',
+    search: "  if (!auth.checkTwoFactor(id, code)) {\n    auth.noteFailure(ip, name);",
     ersatz: "  if (!auth.checkTwoFactor(id, code)) {",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
@@ -900,61 +900,61 @@ const RUECKBAUTEN = [
        der erste Schritt den Zaehler, den der zweite gerade aufbaut -- und die
        Bremse schluege am zweiten Schritt nie zu. */
     nr: '99', name: 'Der erste Schritt setzt den Zaehler der Bremse wieder zurueck',
-    datei: 'server.js',
-    suche: "  if (auth.twoFactorOn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.createLoginTicket(benutzer.id) });\n  }\n  auth.noteSuccess(ip, user);",
+    file: 'server.js',
+    search: "  if (auth.twoFactorOn(benutzer.id)) {\n    return res.json({ twoFactor: true, ...auth.createLoginTicket(benutzer.id) });\n  }\n  auth.noteSuccess(ip, user);",
     ersatz: "  auth.noteSuccess(ip, user);\n  if (auth.twoFactorOn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.createLoginTicket(benutzer.id) });\n  }",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   /* ---- Der zweite Faktor: die Wiederherstellungscodes ---- */
   {
     nr: '100', name: 'Die Wiederherstellungscodes liegen im Klartext in der Tabelle',
-    datei: 'auth.js',
-    suche: "    for (const k of plains) insCode.run(tokenHash(k), id);",
+    file: 'auth.js',
+    search: "    for (const k of plains) insCode.run(tokenHash(k), id);",
     ersatz: "    for (const k of klartexte) insCode.run(k, id);",
     erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
   {
     nr: '101', name: 'Ein Wiederherstellungscode wird nicht verbraucht',
-    datei: 'auth.js',
-    suche: "    WHERE hash = ? AND user_id = ? AND used_at IS NULL`);",
+    file: 'auth.js',
+    search: "    WHERE hash = ? AND user_id = ? AND used_at IS NULL`);",
     ersatz: "    WHERE hash = ? AND user_id = ?`);",
     erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
   {
     nr: '102', name: 'Es entstehen sieben Codes statt acht',
-    datei: 'twofactor.js',
-    suche: 'const RECOVERY_COUNT = 8;',
+    file: 'twofactor.js',
+    search: 'const RECOVERY_COUNT = 8;',
     ersatz: 'const RECOVERY_COUNT = 7;',
     erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
     nr: '103', name: 'Die alten Codes bleiben beim Erneuern stehen',
-    datei: 'auth.js',
-    suche: "    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);\n    // tokenHash() WIRD WIEDERVERWENDET",
+    file: 'auth.js',
+    search: "    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);\n    // tokenHash() WIRD WIEDERVERWENDET",
     ersatz: "    // tokenHash() WIRD WIEDERVERWENDET",
     erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
   /* ---- Der zweite Faktor: das Geheimnis ---- */
   {
     nr: '104', name: 'Das Geheimnis steht auch nach dem Bestaetigen in der Antwort',
-    datei: 'server.js',
-    suche: "    res.json(auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id));",
+    file: 'server.js',
+    search: "    res.json(auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id));",
     ersatz: "    res.json({ ...auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id),\n" +
             "      secret: db.prepare('SELECT secret g FROM two_factor WHERE user_id = ?').get(req.benutzer.id).g });",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
   {
     nr: '105', name: 'Die Karte "Zugang" gibt das Geheimnis mit heraus',
-    datei: 'server.js',
-    suche: "             zweifaktor: auth.twoFactorState(req.benutzer.id) });",
+    file: 'server.js',
+    search: "             twoFactor: auth.twoFactorState(req.benutzer.id) });",
     ersatz: "             zweifaktor: { ...auth.twoFactorState(req.benutzer.id),\n" +
             "               secret: (db.prepare('SELECT secret g FROM two_factor WHERE user_id = ?').get(req.benutzer.id) || {}).g } });",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
   {
     nr: '106', name: 'Ein zweiter Start ueberschreibt einen laufenden zweiten Faktor',
-    datei: 'auth.js',
-    suche: "  if (twoFactorOn(id)) throw new Message('login.twoFactorAlreadyOn');",
+    file: 'auth.js',
+    search: "  if (twoFactorOn(id)) throw new Message('login.twoFactorAlreadyOn');",
     ersatz: "",
     erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
   },
@@ -964,15 +964,15 @@ const RUECKBAUTEN = [
        Admin einen Ruecksetzlink fuer einen fremden Zugang, oeffnet ihn selbst
        und waere angemeldet -- am zweiten Faktor vorbei. */
     nr: '107', name: 'Der Tokenweg meldet wieder gleich an',
-    datei: 'server.js',
-    suche: "  if (auth.twoFactorOn(ergebnis.id)) {\n    return res.json({\n      ok: true, username: ergebnis.username, zweifaktor: true,\n      ...auth.createLoginTicket(ergebnis.id)\n    });\n  }",
+    file: 'server.js',
+    search: "  if (auth.twoFactorOn(result.id)) {\n    return res.json({\n      ok: true, username: result.username, twoFactor: true,\n      ...auth.createLoginTicket(result.id)\n    });\n  }",
     ersatz: "",
     erwartet: 'Der zweite Faktor: der Tokenweg aus 0.8.80 fragt ebenfalls'
   },
   {
     nr: '108', name: 'Ein fremdes Passwort zu setzen raeumt den zweiten Faktor mit weg',
-    datei: 'auth.js',
-    suche: "async function setNewPassword(userId, newPassword, actor) {",
+    file: 'auth.js',
+    search: "async function setNewPassword(userId, newPassword, actor) {",
     ersatz: "async function setNewPassword(userId, newPassword, wer) {\n" +
             "  db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(Number(userId) || 0);",
     erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
@@ -983,30 +983,30 @@ const RUECKBAUTEN = [
        Rueckbau baut genau die Zeile ein, die neben den beiden daneben
        plausibel aussieht. */
     nr: '109', name: 'Sperren raeumt den zweiten Faktor mit weg',
-    datei: 'auth.js',
-    suche: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  log('user.status'",
+    file: 'auth.js',
+    search: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  log('user.status'",
     ersatz: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('user.status'",
     erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
   },
   {
     nr: '110', name: 'Ausschalten geht ohne Code',
-    datei: 'server.js',
-    suche: "  if (!await ownPasswordMatches(req, res, passwort)) return;\n  if (!auth.checkTwoFactor(req.benutzer.id, code))\n    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
+    file: 'server.js',
+    search: "  if (!await ownPasswordMatches(req, res, password)) return;\n  if (!auth.checkTwoFactor(req.benutzer.id, code))\n    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
     ersatz: "  if (!await ownPasswordMatches(req, res, passwort)) return;\n  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);",
     erwartet: 'Der zweite Faktor: der Rundlauf'
   },
   {
     nr: '111', name: 'usertool.js schaltet den zweiten Faktor nicht mehr ab',
-    datei: 'usertool.js',
-    suche: "  auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
+    file: 'usertool.js',
+    search: "  auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
     ersatz: "  // auth.turnTwoFactorOff(u.id, auth.FROM_HOST);",
     erwartet: 'Der zweite Faktor: usertool.js auf dem Wirt'
   },
   /* ---- Der zweite Faktor: die zweite Bestaetigung ---- */
   {
     nr: '112', name: 'Die zweite Bestaetigung fragt den Code nicht mehr',
-    datei: 'server.js',
-    suche: "  if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code)) {",
+    file: 'server.js',
+    search: "  if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code)) {",
     ersatz: "  if (false) {",
     erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
   },
@@ -1025,8 +1025,8 @@ const RUECKBAUTEN = [
        bestaetigt weiterhin mit dem Passwort allein" -- sie wuerde bei genau
        dieser Aenderung rot. */
     nr: '113', name: 'Das Bestaetigungsfenster zeigt sein Codefeld immer',
-    datei: 'public/app.js',
-    suche: "    : ''), TWO_FACTOR);",
+    file: 'public/app.js',
+    search: "    : ''), TWO_FACTOR);",
     ersatz: "    : ''), true);",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1034,11 +1034,11 @@ const RUECKBAUTEN = [
     /* DIE REIHENFOLGE: PASSWORT, DANN CODE. Umgekehrt erfuehre jemand ohne das
        Passwort, ob am Zugang ein Faktor haengt. */
     nr: '114', name: 'Der Code wird VOR dem Passwort geprueft',
-    datei: 'server.js',
-    suche: "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!row || !await auth.checkPassword(String(passwort || ''), row.password_hash)) {",
+    file: 'server.js',
+    search: "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!row || !await auth.checkPassword(String(password || ''), row.password_hash)) {",
     ersatz: "  if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code))\n" +
             "    return res.status(403).json({ error: auth.TWO_FACTOR_DENIAL, zweifaktor: true });\n" +
-            "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!row || !await auth.checkPassword(String(passwort || ''), row.password_hash)) {",
+            "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!row || !await auth.checkPassword(String(password || ''), row.password_hash)) {",
     erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
   },
   /* ---- Der zweite Faktor: die Tabellen und die Oberflaeche ---- */
@@ -1053,22 +1053,22 @@ const RUECKBAUTEN = [
        startet einmal und sieht nach. Der INDEX daneben laesst sich gefahrlos
        zuruecknehmen und traegt dieselbe Aussage ueber CREATE ... IF NOT EXISTS. */
     nr: '115', name: 'Der Index auf zweifaktor_codes wird nicht mehr angelegt',
-    datei: 'db.js',
-    suche: 'CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);',
+    file: 'db.js',
+    search: 'CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);',
     ersatz: '',
     erwartet: 'Der zweite Faktor: die Tabellen legen sich selbst an'
   },
   {
     nr: '116', name: 'Der Zustand faellt aus der Antwort der Karte "Zugang"',
-    datei: 'server.js',
-    suche: "             zweifaktor: auth.twoFactorState(req.benutzer.id) });",
+    file: 'server.js',
+    search: "             twoFactor: auth.twoFactorState(req.benutzer.id) });",
     ersatz: "             });",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '117', name: 'Die Zahl der uebrigen Wiederherstellungscodes faellt weg',
-    datei: 'public/app.js',
-    suche: "          <strong>${tH('card.codesLeft', { codesOffen: status.codesOffen, codesGesamt: status.codesGesamt })}</strong>",
+    file: 'public/app.js',
+    search: "          <strong>${tH('card.codesLeft', { codesOffen: status.codesOpen, codesGesamt: status.codesTotal })}</strong>",
     ersatz: "          <strong>vorhanden</strong>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
@@ -1078,51 +1078,51 @@ const RUECKBAUTEN = [
        naechsten Aufbau der Karte sind sie fort. Derselbe Ernst wie beim
        Einladungslink. */
     nr: '118', name: 'Der Kasten sagt nicht mehr, dass die Codes nicht wiederkommen',
-    datei: 'public/app.js',
-    suche: "    boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>",
+    file: 'public/app.js',
+    search: "    boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>",
     ersatz: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes.</strong>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '122', name: 'Die Liste der Wiederherstellungscodes wird um einen gekuerzt',
-    datei: 'public/app.js',
-    suche: "      <div class=\"two-factor-codes\">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>",
+    file: 'public/app.js',
+    search: "      <div class=\"two-factor-codes\">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>",
     ersatz: "      <div class=\"two-factor-codes\">${codes.slice(1).map(c => `<span>${esc(c)}</span>`).join('')}</div>",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '119', name: 'Das Bestaetigungsfenster zeigt das Codefeld nie',
-    datei: 'public/app.js',
-    suche: "    : ''), TWO_FACTOR);",
+    file: 'public/app.js',
+    search: "    : ''), TWO_FACTOR);",
     ersatz: "    : ''), false);",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '120', name: 'Die Anmeldeseite geht ueber den zweiten Schritt hinweg',
-    datei: 'public/app.js',
-    suche: "      if (j.zweifaktor) return showSecondFactor(j.ausweis);",
+    file: 'public/app.js',
+    search: "      if (j.twoFactor) return showSecondFactor(j.ticket);",
     ersatz: "",
     erwartet: 'Die Anmeldeseite: der zweite Schritt'
   },
   {
     nr: '121', name: 'F_ROUTEN kennt den zweiten Schritt der Anmeldung nicht',
-    datei: 'testbench.js',
-    suche: "    ['POST',   '/api/login/second',                'offen'],",
+    file: 'testbench.js',
+    search: "    ['POST',   '/api/login/second',                'offen'],",
     ersatz: "",
     erwartet: 'Der Waechter ueber den Quelltext'
   },
   /* ---- Die Volltextsuche: der Weg ueberhaupt ---- */
   {
     nr: '124', name: 'Der Parameter q wird nicht mehr gelesen',
-    datei: 'server.js',
-    suche: "  const term = fulltextTerm(req.query.q, localeOf(req));",
+    file: 'server.js',
+    search: "  const term = fulltextTerm(req.query.q, localeOf(req));",
     ersatz: "  const begriff = '';",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '125', name: 'searchText steht wieder in der Antwort',
-    datei: 'server.js',
-    suche: "    delete it.description;",
+    file: 'server.js',
+    search: "    delete it.description;",
     ersatz: "    it.searchText = (it.title || '').toLowerCase();\n    delete it.description;",
     erwartet: 'searchText ist fort, und sonst nichts'
   },
@@ -1134,50 +1134,50 @@ const RUECKBAUTEN = [
      (Stolperstein 138). */
   {
     nr: '126', name: 'Die Suche sieht den Titel nicht mehr an',
-    datei: 'server.js',
-    suche: "instr(kkl(i.title), :q) > 0",
+    file: 'server.js',
+    search: "instr(kkl(i.title), :q) > 0",
     ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '127', name: 'Und die Beschreibung nicht',
-    datei: 'server.js',
-    suche: "instr(kkl(i.description), :q) > 0",
+    file: 'server.js',
+    search: "instr(kkl(i.description), :q) > 0",
     ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '128', name: 'Und den Namen der Kategorie nicht',
-    datei: 'server.js',
-    suche: "instr(kkl(c.name), :q) > 0",
+    file: 'server.js',
+    search: "instr(kkl(c.name), :q) > 0",
     ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '129', name: 'Und die Tags am Eintrag nicht',
-    datei: 'server.js',
-    suche: "instr(kkl(t.name), :q) > 0",
+    file: 'server.js',
+    search: "instr(kkl(t.name), :q) > 0",
     ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '130', name: 'Und die Tags an den Testtagen nicht',
-    datei: 'server.js',
-    suche: "instr(kkl(tt.name), :q) > 0",
+    file: 'server.js',
+    search: "instr(kkl(tt.name), :q) > 0",
     ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '131', name: 'Und die Adressen der Links nicht',
-    datei: 'server.js',
-    suche: "instr(kkl(l.url), :q) > 0",
+    file: 'server.js',
+    search: "instr(kkl(l.url), :q) > 0",
     ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '132', name: 'Und die Kommentartexte nicht',
-    datei: 'server.js',
-    suche: "instr(kkl(k.text), :q) > 0",
+    file: 'server.js',
+    search: "instr(kkl(k.text), :q) > 0",
     ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
@@ -1189,15 +1189,15 @@ const RUECKBAUTEN = [
        toLowerCase() ganz entfernte, machte auch jede ASCII-Suche rot und sagte
        damit nichts mehr ueber die Umlaute. */
     nr: '133', name: 'Die Kleinschreibung faltet nur noch ASCII',
-    datei: 'db.js',
-    suche: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));",
+    file: 'db.js',
+    search: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));",
     ersatz: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).replace(/[A-Z]/g, (c) => c.toLowerCase())));",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '134', name: 'Der Titel wird wieder ueber LIKE gesucht -- Wildcards wirken',
-    datei: 'server.js',
-    suche: "instr(kkl(i.title), :q) > 0",
+    file: 'server.js',
+    search: "instr(kkl(i.title), :q) > 0",
     ersatz: "kkl(i.title) LIKE '%' || :q || '%'",
     erwartet: 'Die Volltextsuche'
   },
@@ -1207,8 +1207,8 @@ const RUECKBAUTEN = [
        erreichbare Lage ist deshalb eine Liste, die weniger zeigt als die
        Suche. */
     nr: '135', name: 'Die Liste ohne Begriff verschweigt die abgelehnten Eintraege',
-    datei: 'server.js',
-    suche: "  let rows = qAllItems.all();",
+    file: 'server.js',
+    search: "  let rows = qAllItems.all();",
     ersatz: "  let rows = qAllItems.all();\n  if (!fulltextTerm(req.query.q)) rows = rows.filter(r => !r.rejected);",
     erwartet: 'Die Volltextsuche'
   },
@@ -1218,52 +1218,52 @@ const RUECKBAUTEN = [
        Runde die schmale Fassung aus einer Karte statt je Eintrag zu fragen.
        Derselbe Fund, andere Zeile. */
     nr: '136', name: 'testDays kommt wieder immer mit',
-    datei: 'server.js',
-    suche: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
+    file: 'server.js',
+    search: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
     ersatz: "    it.testDays = testDaysPerEntry(req.benutzer.id).get(it.id) || [];",
     erwartet: 'testDays haengt an der Zeitleiste'
   },
   {
     /* MITGEGANGEN MIT 0.19.3, wie 136 daneben. */
     nr: '137', name: 'testDays fehlt immer, auch mit eingeschalteter Zeitleiste',
-    datei: 'server.js',
-    suche: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
+    file: 'server.js',
+    search: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
     ersatz: "    if (false) it.testDays = testDaysPer.get(it.id) || [];",
     erwartet: 'testDays haengt an der Zeitleiste'
   },
   /* ---- Die Suche am Bildschirm ---- */
   {
     nr: '138', name: 'Der Debounce faellt weg -- jeder Anschlag fragt',
-    datei: 'public/app.js',
-    suche: "  searchClock = setTimeout(() => { searchClock = null; runSearch(); }, SEARCH_DELAY_MS);",
+    file: 'public/app.js',
+    search: "  searchClock = setTimeout(() => { searchClock = null; runSearch(); }, SEARCH_DELAY_MS);",
     ersatz: "  sucheAusfuehren();",
     erwartet: 'Die Suche fragt den Server'
   },
   {
     nr: '139', name: 'Die Reihenfolge der Antworten wird nicht mehr geachtet',
-    datei: 'public/app.js',
-    suche: "    if (run !== searchRun) return;          // eine neuere Anfrage ist unterwegs",
+    file: 'public/app.js',
+    search: "    if (run !== searchRun) return;          // eine neuere Anfrage ist unterwegs",
     ersatz: "",
     erwartet: 'Die Suche fragt den Server'
   },
   {
     nr: '140', name: 'Bei gescheiterter Suche wird die Liste leer',
-    datei: 'public/app.js',
-    suche: "    state.suchLaeuft = false; state.suchFehler = true;",
+    file: 'public/app.js',
+    search: "    state.suchLaeuft = false; state.suchFehler = true;",
     ersatz: "    state.suchLaeuft = false; state.suchFehler = true; state.items = [];",
     erwartet: 'Die Suche fragt den Server'
   },
   {
     nr: '141', name: 'Die Zaehlzeile nennt die Trefferzahl als Bestand',
-    datei: 'public/app.js',
-    suche: "    let z = `${state.bestand} ${vThing(state.bestand)}`",
+    file: 'public/app.js',
+    search: "    let z = `${state.bestand} ${vThing(state.bestand)}`",
     ersatz: "    let z = `${state.items.length} ${vSache(state.items.length)}`",
     erwartet: 'Die Suche fragt den Server'
   },
   {
     nr: '142', name: 'Das Leeren holt den Bestand neu vom Server',
-    datei: 'public/app.js',
-    suche: "    state.items = state.all;\n    state.suchLaeuft = false; state.suchFehler = false;",
+    file: 'public/app.js',
+    search: "    state.items = state.all;\n    state.suchLaeuft = false; state.suchFehler = false;",
     ersatz: "    state.items = await api('GET', '/api/items');\n    state.suchLaeuft = false; state.suchFehler = false;",
     erwartet: 'Die Suche fragt den Server'
   },
@@ -1273,43 +1273,43 @@ const RUECKBAUTEN = [
        Liste gefallen, und der Suchtext griff damit ins Leere (Stolperstein
        192). Er nimmt weiterhin genau die Ansichten heraus. */
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
-    datei: 'server.js',
-    suche: "                                'bellSeen', 'views', 'strip', 'theme'];",
+    file: 'server.js',
+    search: "                                'bellSeen', 'views', 'strip', 'theme'];",
     ersatz: "                                'bellSeen', 'strip', 'theme'];",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
     nr: '144', name: 'Der Deckel fuer Ansichten faellt weg',
-    datei: 'server.js',
-    suche: "    if (ein.length > VIEWS_CAP)",
+    file: 'server.js',
+    search: "    if (ein.length > VIEWS_CAP)",
     ersatz: "    if (false)",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
     nr: '145', name: 'Zwei Ansichten duerfen wieder denselben Namen tragen',
-    datei: 'server.js',
-    suche: "      if (namen.has(schluessel))",
+    file: 'server.js',
+    search: "      if (namen.has(schluessel))",
     ersatz: "      if (false)",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
     nr: '146', name: 'Die Ansichten werden geprueft, NACHDEM filters geschrieben ist',
-    datei: 'server.js',
-    suche: "  let viewsText = null;",
+    file: 'server.js',
+    search: "  let viewsText = null;",
     ersatz: "  let viewsText = null;\n  if (req.body.filters !== undefined)\n    putUserSetting(req.benutzer.id, 'filters', JSON.stringify(req.body.filters));",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
     nr: '147', name: 'Das Speichern einer Ansicht raeumt die gemerkte Stellung weg',
-    datei: 'server.js',
-    suche: "  if (viewsText !== null)\n    putUserSetting(req.benutzer.id, 'views', viewsText);",
+    file: 'server.js',
+    search: "  if (viewsText !== null)\n    putUserSetting(req.benutzer.id, 'views', viewsText);",
     ersatz: "  if (viewsText !== null) {\n    putUserSetting(req.benutzer.id, 'views', viewsText);\n    putUserSetting(req.benutzer.id, 'filters', 'null');\n  }",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
     nr: '148', name: 'Der Suchbegriff faellt aus der gespeicherten Ansicht',
-    datei: 'public/app.js',
-    suche: "const viewOutState = () => ({ filters: { ...state.filters }, q: state.search.trim() });",
+    file: 'public/app.js',
+    search: "const viewOutState = () => ({ filters: { ...state.filters }, q: state.search.trim() });",
     ersatz: "const viewOutState = () => ({ filters: { ...state.filters }, q: '' });",
     erwartet: 'Gespeicherte Ansichten in der Oberflaeche'
   },
@@ -1318,38 +1318,38 @@ const RUECKBAUTEN = [
        Klemme weg wie vorher: eine Nummer, die es nicht mehr gibt, bliebe
        stehen und filterte auf eine Kategorie, die niemand mehr hat. */
     nr: '149', name: 'Eine geloeschte Kategorie bleibt in der angewandten Ansicht stehen',
-    datei: 'public/app.js',
-    suche: "  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>\n    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
+    file: 'public/app.js',
+    search: "  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>\n    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
     ersatz: "  f.categoryIds = [...new Set(f.categoryIds)];",
     erwartet: 'Gespeicherte Ansichten in der Oberflaeche'
   },
   /* ---- Die Doppelerkennung ---- */
   {
     nr: '150', name: 'Der Titelvergleich achtet wieder auf Gross- und Kleinschreibung',
-    datei: 'public/app.js',
-    suche: "const titleCore = (roh) => String(roh || '').toLocaleLowerCase(LOCALE).replace(",
+    file: 'public/app.js',
+    search: "const titleCore = (raw) => String(raw || '').toLocaleLowerCase(LOCALE).replace(",
     ersatz: "const titleCore = (roh) => String(roh || '').replace(",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
   {
     nr: '151', name: 'Der Hinweis greift erst ab acht Zeichen',
-    datei: 'public/app.js',
-    suche: "const SIMILAR_DIALOG = 4;",
+    file: 'public/app.js',
+    search: "const SIMILAR_DIALOG = 4;",
     ersatz: "const SIMILAR_DIALOG = 8;",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
   {
     nr: '152', name: 'Der Hinweis vergleicht nur die Trefferliste statt des Bestands',
-    datei: 'public/app.js',
-    suche: "  for (const it of state.all) {",
+    file: 'public/app.js',
+    search: "  for (const it of state.all) {",
     ersatz: "  for (const it of state.items) {",
     erwartet: 'Doppelte Eintraege beim Anlegen'
   },
   /* ---- Die Marke ---- */
   {
     nr: '153', name: 'Der Markenstrich traegt wieder Gold',
-    datei: 'public/style.css',
-    suche: '--brand-line: var(--accent-text);',
+    file: 'public/style.css',
+    search: '--brand-line: var(--accent-text);',
     ersatz: '--brand-line: var(--gold);',
     erwartet: 'Die Marke der Instanz'
   },
@@ -1358,29 +1358,29 @@ const RUECKBAUTEN = [
        beiden liegen getrennt, und wer eine anfasst, laesst die andere
        zurueck. Genau dafuer stehen hier zwei Rueckbauten. */
     nr: '154', name: 'Die Fassung mit Kachel traegt wieder Gold',
-    datei: 'public/favicon.svg',
-    suche: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
+    file: 'public/favicon.svg',
+    search: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
     ersatz: '<path d="M8 16 H24" stroke="#ffc531"/>',
     erwartet: 'Die Marke der Instanz'
   },
   {
     nr: '155', name: 'Das viewBox umschliesst wieder die Kachel statt der Farbe',
-    datei: 'public/app.js',
-    suche: 'viewBox="6.5 4.5 19 23" width=',
+    file: 'public/app.js',
+    search: 'viewBox="6.5 4.5 19 23" width=',
     ersatz: 'viewBox="0 0 32 32" width=',
     erwartet: 'Die Marke der Instanz'
   },
   {
     nr: '156', name: 'Die Hoehe der Marke steht wieder in Pixel',
-    datei: 'public/style.css',
-    suche: '.brand .logo { height: 3.1rem; }',
+    file: 'public/style.css',
+    search: '.brand .logo { height: 3.1rem; }',
     ersatz: '.brand .marke { height: 46px; }',
     erwartet: 'Die Marke der Instanz'
   },
   {
     nr: '157', name: 'Das Markup gibt die Marke wieder quadratisch an',
-    datei: 'public/app.js',
-    suche: 'width="${Math.round(s * 19 / 23)}" height="${s}"',
+    file: 'public/app.js',
+    search: 'width="${Math.round(s * 19 / 23)}" height="${s}"',
     ersatz: 'width="${s}" height="${s}"',
     erwartet: 'Die Marke der Instanz'
   },
@@ -1394,36 +1394,36 @@ const RUECKBAUTEN = [
      sich hier belegen laesst -- und mehr behauptet die Pruefung auch nicht. */
   {
     nr: '158', name: 'Die Spalte des Systembereichs darf sich wieder aufblaehen',
-    datei: 'public/style.css',
-    suche: '.sys-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }',
+    file: 'public/style.css',
+    search: '.sys-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }',
     ersatz: '.sys-grid { grid-template-columns: 1fr; gap: 0; }',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
     nr: '159', name: 'Die Bedingung in app.js laeuft von der im Stylesheet weg',
-    datei: 'public/app.js',
-    suche: "const NARROW = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';",
+    file: 'public/app.js',
+    search: "const NARROW = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';",
     ersatz: "const SCHMAL = '(max-width: 640px)';",
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
     nr: '160', name: 'Der Behaelter des Menues steht auch am breiten Schirm im Weg',
-    datei: 'public/style.css',
-    suche: '.mast-rest { display: contents; }',
+    file: 'public/style.css',
+    search: '.mast-rest { display: contents; }',
     ersatz: '.mast-rest { display: flex; }',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
     nr: '161', name: 'Die Seite bekommt die Aussparung nicht mehr',
-    datei: 'public/index.html',
-    suche: '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
+    file: 'public/index.html',
+    search: '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
     ersatz: '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
     nr: '162', name: 'Der Blaetterpfeil verschwindet auf dem Finger wieder',
-    datei: 'public/style.css',
-    suche: '@media (hover: none) { .vnav { opacity: 1; } }',
+    file: 'public/style.css',
+    search: '@media (hover: none) { .vnav { opacity: 1; } }',
     ersatz: '',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1440,8 +1440,8 @@ const RUECKBAUTEN = [
      steht, den sie erklaert. */
   {
     nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
-    datei: 'public/app.js',
-    suche: "        <span class=\"hint who\" id=\"who\">${tH('list.signedInAs', { name: NAME })}</span>\n        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>",
+    file: 'public/app.js',
+    search: "        <span class=\"hint who\" id=\"who\">${tH('list.signedInAs', { name: NAME })}</span>\n        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>",
     ersatz: "        <button class=\"btn btn-ghost btn-sm\" id=\"out\">${tH('list.signOut')}</button>\n        <span class=\"hint who\" id=\"who\">${tH('list.signedInAs', { name: NAME })}</span>",
     erwartet: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
   },
@@ -1452,8 +1452,8 @@ const RUECKBAUTEN = [
      der Rueckbau es zurueckholen koennen. */
   {
     nr: '164', name: 'Das Kreuz kehrt auf die Vorschaukachel zurueck',
-    datei: 'public/style.css',
-    suche: '@media (hover: none) { .thumb .del { display: none; } }',
+    file: 'public/style.css',
+    search: '@media (hover: none) { .thumb .del { display: none; } }',
     ersatz: '',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1462,8 +1462,8 @@ const RUECKBAUTEN = [
      die das Kreuz an der Kachel so gefaehrlich gemacht hat. */
   {
     nr: '165', name: 'Der Papierkorb rueckt an die Einstellknoepfe heran',
-    datei: 'public/style.css',
-    suche: '.vremove { margin-left: 14px; }',
+    file: 'public/style.css',
+    search: '.vremove { margin-left: 14px; }',
     ersatz: '.vweg { margin-left: 0; }',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1475,8 +1475,8 @@ const RUECKBAUTEN = [
      nur das Aussehen und nicht das Verhalten. */
   {
     nr: '166', name: 'Das Kreuz an der Kachel wird nur durchsichtig, nicht herausgenommen',
-    datei: 'public/style.css',
-    suche: '@media (hover: none) { .thumb .del { display: none; } }',
+    file: 'public/style.css',
+    search: '@media (hover: none) { .thumb .del { display: none; } }',
     ersatz: '@media (hover: none) { .thumb .del { opacity: 0; } }',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1485,8 +1485,8 @@ const RUECKBAUTEN = [
      rechts. */
   {
     nr: '167', name: 'Die Vorschaureihe faellt auf den umbrechenden Kasten zurueck',
-    datei: 'public/style.css',
-    suche: ".thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr)); gap: 7px; margin: 10px 0; }",
+    file: 'public/style.css',
+    search: ".thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr)); gap: 7px; margin: 10px 0; }",
     ersatz: ".thumbs { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0; }",
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1495,8 +1495,8 @@ const RUECKBAUTEN = [
      an einem vollen Eintrag nicht sieht -- deshalb steht er hier. */
   {
     nr: '168', name: 'Die leeren Spalten klappen zusammen (auto-fit)',
-    datei: 'public/style.css',
-    suche: "grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));",
+    file: 'public/style.css',
+    search: "grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));",
     ersatz: "grid-template-columns: repeat(auto-fit, minmax(var(--tile-min), 1fr));",
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1505,8 +1505,8 @@ const RUECKBAUTEN = [
      anders. Sieht nicht kaputt aus, ist aber falsch. */
   {
     nr: '169', name: 'Die Kachel behaelt ihre feste Hoehe und wird zum Rechteck',
-    datei: 'public/style.css',
-    suche: "  width: auto; height: auto; aspect-ratio: 1/1; border-radius: 8px; overflow: hidden;",
+    file: 'public/style.css',
+    search: "  width: auto; height: auto; aspect-ratio: 1/1; border-radius: 8px; overflow: hidden;",
     ersatz: "  width: auto; height: 62px; border-radius: 8px; overflow: hidden;",
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1517,8 +1517,8 @@ const RUECKBAUTEN = [
      rot. */
   {
     nr: '170', name: 'Die Grundgroesse der Kachel verrutscht',
-    datei: 'public/style.css',
-    suche: "  --tile-min: 80px;",
+    file: 'public/style.css',
+    search: "  --tile-min: 80px;",
     ersatz: "  --tile-min: 86px;",
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
@@ -1528,8 +1528,8 @@ const RUECKBAUTEN = [
      Bildschirm nicht auf -- sie sieht genauso aus wie eine richtige. */
   {
     nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
-    datei: 'server.js',
-    suche: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder + exchangeEnvelopeBytes(itemId);',
+    file: 'server.js',
+    search: '  return parts.fotos + parts.videos + parts.anhaenge + parts.kommentarbilder + exchangeEnvelopeBytes(itemId);',
     ersatz: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
     erwartet: 'Die Exportgroesse sagt sich an'
   },
@@ -1539,22 +1539,22 @@ const RUECKBAUTEN = [
        Pruefung rot, warnt die Instanz irgendwann zu frueh -- und eine Warnung,
        die zu frueh kommt, wird weggeklickt. */
     nr: '172', name: 'Die Vorschaubilder werden mitgezaehlt, obwohl sie nie mitgehen',
-    datei: 'server.js',
-    suche: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));",
+    file: 'server.js',
+    search: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));",
     ersatz: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE kind != 'video'${und('item_id')}`));",
     erwartet: 'Videos: Kennzahlen und Austausch'
   },
   {
     nr: '173', name: 'Der Export baut erst und sagt danach ab',
-    datei: 'server.js',
-    suche: '  const big = exchangeBytes(null, schalter);\n  if (!asPart && big > EXCHANGE_MAX)',
+    file: 'server.js',
+    search: '  const big = exchangeBytes(null, schalter);\n  if (!asPart && big > EXCHANGE_MAX)',
     ersatz: '  const gross = 0;\n  if (!asPart && gross > EXCHANGE_MAX)',
     erwartet: 'Videos: Kennzahlen und Austausch'
   },
   {
     nr: '174', name: 'Der Warnwert liegt auf der Grenze statt darunter',
-    datei: 'server.js',
-    suche: 'const EXCHANGE_WARN = 300 * 1024 * 1024;',
+    file: 'server.js',
+    search: 'const EXCHANGE_WARN = 300 * 1024 * 1024;',
     ersatz: 'const EXCHANGE_WARN = EXCHANGE_MAX;',
     erwartet: 'Die Exportgroesse sagt sich an'
   },
@@ -1563,16 +1563,16 @@ const RUECKBAUTEN = [
        diese Bindung naennte die Karte eine Groesse, die kein Knopf erzeugen
        kann -- und das faellt an keiner einzelnen Zahl auf. */
     nr: '175', name: 'Die Videos zaehlen auch ohne Fotos mit',
-    datei: 'public/app.js',
-    suche: '    + (s.mitFotos && s.mitVideos ? (ex.videos || 0) : 0)',
+    file: 'public/app.js',
+    search: '    + (s.withPhotos && s.withVideos ? (ex.videos || 0) : 0)',
     ersatz: '    + (s.mitVideos ? (ex.videos || 0) : 0)',
     erwartet: 'Die Exportgroesse sagt sich an'
   },
   /* ---- 0.12.3: die Anzeige zieht nach ---- */
   {
     nr: '176', name: 'Die Kachel zeichnet wieder alles, auch was niemand sieht',
-    datei: 'public/style.css',
-    suche: '  content-visibility: auto;\n  contain-intrinsic-size: auto 400px;',
+    file: 'public/style.css',
+    search: '  content-visibility: auto;\n  contain-intrinsic-size: auto 400px;',
     ersatz: '  contain-intrinsic-size: auto 400px;',
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
@@ -1582,15 +1582,15 @@ const RUECKBAUTEN = [
        Rueckbau nimmt genau dieses Wort weg -- die Regel bleibt sonst stehen
        und saehe von aussen unveraendert aus. */
     nr: '177', name: 'Die geschaetzte Kachelhoehe gilt fuer immer statt nur bis zum ersten Zeichnen',
-    datei: 'public/style.css',
-    suche: '  contain-intrinsic-size: auto 400px;',
+    file: 'public/style.css',
+    search: '  contain-intrinsic-size: auto 400px;',
     ersatz: '  contain-intrinsic-size: 400px;',
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
     nr: '178', name: 'Der angepinnte Bericht traegt wieder zwei Farben',
-    datei: 'public/style.css',
-    suche: '.cmt.pinned.report {\n  border-top-color: var(--accent);',
+    file: 'public/style.css',
+    search: '.cmt.pinned.report {\n  border-top-color: var(--accent);',
     ersatz: '.cmt.pinned.bericht {\n  border-top-color: var(--gold-line);',
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
@@ -1604,8 +1604,8 @@ const RUECKBAUTEN = [
        stimmt die Reihenfolge nicht mehr, und "mehr" stuende vor dem, was es
        aufklappt. */
     nr: '179', name: 'Der Verweis rutscht wieder VOR die Wolke',
-    datei: 'public/app.js',
-    suche: '  if (rechts.childElementCount) r3.appendChild(rechts);',
+    file: 'public/app.js',
+    search: '  if (rechts.childElementCount) r3.appendChild(rechts);',
     ersatz: '  if (rechts.childElementCount) r3.insertBefore(rechts, g3);',
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
@@ -1618,8 +1618,8 @@ const RUECKBAUTEN = [
        Zurueckgebaut wird deshalb die Verschachtelung selbst: die Gesamtzahl
        statt der offenen. */
     nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
-    datei: 'public/app.js',
-    suche: "    + (fertig ? t('list.openCount', { n: tasks - fertig }) : ''));",
+    file: 'public/app.js',
+    search: "    + (fertig ? t('list.openCount', { n: tasks - fertig }) : ''));",
     ersatz: "    + (fertig ? t('list.openCount', { n: aufgaben }) : ''));",
     erwartet: 'Kommentare in der Oberflaeche'
   },
@@ -1628,15 +1628,15 @@ const RUECKBAUTEN = [
        ausschliesst, ist fuer die Haelfte der Faelle falsch -- und sie sieht
        dabei vollkommen unauffaellig aus. */
     nr: '181', name: 'Das Codefeld fragt wieder nach der App statt nach dem Verfahren',
-    datei: 'public/app.js',
-    suche: "<label>${tH('dialog.twoFactorCode')}</label>\n        <input class=\"input\" id=\"confirm-code\"",
+    file: 'public/app.js',
+    search: "<label>${tH('dialog.twoFactorCode')}</label>\n        <input class=\"input\" id=\"confirm-code\"",
     ersatz: "<label>Code aus deiner App</label>\n        <input class=\"input\" id=\"confirm-code\"",
     erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     nr: '182', name: 'Der Sprungknopf springt, klappt den Block aber nicht auf',
-    datei: 'public/app.js',
-    suche: "    if (BLOCKS.zu.includes('kommentare')) {",
+    file: 'public/app.js',
+    search: "    if (BLOCKS.zu.includes('kommentare')) {",
     ersatz: '    if (false) {',
     erwartet: 'Kommentare in der Oberflaeche'
   },
@@ -1646,8 +1646,8 @@ const RUECKBAUTEN = [
      erst beim Einspielen, und dann ist der Bestand schon falsch. */
   {
     nr: '183', name: 'Der Schnitt laesst die Fenster ueberlappen',
-    datei: 'server.js',
-    suche: '    offen.bis = z.id;\n    offen.anzahl++;',
+    file: 'server.js',
+    search: '    offen.bis = z.id;\n    offen.anzahl++;',
     ersatz: '    offen.bis = z.id + 1;\n    offen.anzahl++;',
     erwartet: 'Der Export in Teilen'
   },
@@ -1656,8 +1656,8 @@ const RUECKBAUTEN = [
        Titel, Zeitstempel und die ganze Kriterienliste noch einmal. Bei vielen
        kleinen Teilen ist das kein Rundungsfehler. */
     nr: '184', name: 'Der Umschlag je Teil faellt aus der Rechnung',
-    datei: 'server.js',
-    suche: '      offen = { nr: teile.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: grund };',
+    file: 'server.js',
+    search: '      offen = { nr: parts.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: reason };',
     ersatz: '      offen = { nr: teile.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: 0 };',
     erwartet: 'Der Export in Teilen'
   },
@@ -1666,8 +1666,8 @@ const RUECKBAUTEN = [
        Dieser Rueckbau uebergeht ihn wortlos -- genau der Ausgang, gegen den
        die Message gebaut ist. */
     nr: '185', name: 'Ein zu grosser Eintrag wird still uebergangen',
-    datei: 'server.js',
-    suche: "    if (grund + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: grund + b }); continue; }",
+    file: 'server.js',
+    search: "    if (reason + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: reason + b }); continue; }",
     ersatz: '    if (grund + b > EXCHANGE_MAX) { continue; }',
     erwartet: 'Der Export in Teilen'
   },
@@ -1676,8 +1676,8 @@ const RUECKBAUTEN = [
        `bis` vergisst, bekaeme sonst stillschweigend den ganzen Bestand -- und
        merkte es erst an der Dateigroesse. */
     nr: '186', name: 'Eine halbe Fensterangabe geht als Vollexport durch',
-    datei: 'server.js',
-    suche: '  if (asPart && (von === null || bis === null || teil === null || teile === null))',
+    file: 'server.js',
+    search: '  if (asPart && (von === null || bis === null || part === null || parts === null))',
     ersatz: '  if (false)',
     erwartet: 'Der Export in Teilen'
   },
@@ -1686,8 +1686,8 @@ const RUECKBAUTEN = [
        UND Ziel; faellt das Ziel weg, laesst eine einzige Bestaetigung jeden
        Teil durch. */
     nr: '187', name: 'Eine Freigabe gilt wieder fuer alle Teile',
-    datei: 'server.js',
-    suche: "             : (req.query && req.query.teil !== undefined ? req.query.teil : null);",
+    file: 'server.js',
+    search: "             : (req.query && req.query.teil !== undefined ? req.query.teil : null);",
     ersatz: '             : null;',
     erwartet: 'Der Export in Teilen'
   },
@@ -1696,15 +1696,15 @@ const RUECKBAUTEN = [
        jeder Teil den ganzen Bestand -- fuenf Dateien, jede vollstaendig, und
        der Import legte danach alles fuenfmal an. */
     nr: '188', name: 'Jeder Teil traegt den ganzen Bestand',
-    datei: 'server.js',
-    suche: "    ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(von, bis)",
+    file: 'server.js',
+    search: "    ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(von, bis)",
     ersatz: "    ? db.prepare('SELECT * FROM items ORDER BY id').all()",
     erwartet: 'Der Export in Teilen'
   },
   {
     nr: '189', name: 'Die Teilgroesse laesst sich ueber den Warnwert stellen',
-    datei: 'server.js',
-    suche: '  const zielGroesse = Math.min(EXCHANGE_WARN,',
+    file: 'server.js',
+    search: '  const zielGroesse = Math.min(EXCHANGE_WARN,',
     ersatz: '  const zielGroesse = Math.min(Number.MAX_SAFE_INTEGER,',
     erwartet: 'Der Export in Teilen'
   },
@@ -1713,8 +1713,8 @@ const RUECKBAUTEN = [
        ablesen kann. Fuenf gleichnamige Dateien im Ordner waeren nicht mehr
        auseinanderzuhalten. */
     nr: '190', name: 'Alle Teile heissen gleich',
-    datei: 'server.js',
-    suche: "    `attachment; filename=\"${exportName(asPart ? `-teil-${teil}-von-${teile}` : '')}\"`);",
+    file: 'server.js',
+    search: "    `attachment; filename=\"${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}\"`);",
     ersatz: "    `attachment; filename=\"${exportName('')}\"`);",
     erwartet: 'Der Export in Teilen'
   },
@@ -1727,8 +1727,8 @@ const RUECKBAUTEN = [
        Server OHNE zweiten Faktor harmlos, und genau deshalb muss die neue
        Gruppe rot werden und nicht die alte. */
     nr: '191', name: 'Die Oberflaeche fragt wieder je Teil statt einmal fuer alle',
-    datei: 'public/app.js',
-    suche: "  try { await api('POST', '/api/confirm', { ...input, purpose, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
+    file: 'public/app.js',
+    search: "  try { await api('POST', '/api/confirm', { ...input, purpose, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
     ersatz: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/confirm', { ...eingabe, zweck, ziel }); }\n    catch (e) { toast(e.message, true); return false; }\n  }\n  return true;",
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1737,8 +1737,8 @@ const RUECKBAUTEN = [
        eine Anfrage der Oberflaeche legt genau eine Freigabe an -- Teil 2
        bekaeme 403, und zwar ohne dass irgendwo ein Code falsch gewesen waere. */
     nr: '192', name: 'Die Route nimmt wieder nur ein einzelnes Ziel',
-    datei: 'server.js',
-    suche: '  } else targetList = [target ?? null];',
+    file: 'server.js',
+    search: '  } else targetList = [target ?? null];',
     ersatz: '  }\n  targetList = [ziel ?? null];',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1747,8 +1747,8 @@ const RUECKBAUTEN = [
        Freigaben stillschweigend eine -- die Antwort saehe aus wie ein Erfolg,
        und der zweite Teil bliebe stehen. */
     nr: '193', name: 'Doppelte Zielnummern gehen als halbierte Bestellung durch',
-    datei: 'server.js',
-    suche: '    if (new Set(targetList).size !== targetList.length)',
+    file: 'server.js',
+    search: '    if (new Set(targetList).size !== targetList.length)',
     ersatz: '    if (false)',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1757,8 +1757,8 @@ const RUECKBAUTEN = [
        zehntausend Freigaben im Arbeitsspeicher ab, und nichts raeumt sie vor
        ihrem Ablauf wieder weg. */
     nr: '194', name: 'Eine Anfrage darf beliebig viele Freigaben bestellen',
-    datei: 'server.js',
-    suche: '    if (ziele.length > EXCHANGE_PART_MAX)',
+    file: 'server.js',
+    search: '    if (ziele.length > EXCHANGE_PART_MAX)',
     ersatz: '    if (false)',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1768,8 +1768,8 @@ const RUECKBAUTEN = [
        Bestand, der in fuenf Teilen hinausgeht, stuende im Protokoll nirgends.
        DAS IST DER BEFUND AUS 0.12.4, wortwoertlich zurueckgebaut. */
     nr: '195', name: 'Der Teilexport schreibt wieder "teil 1/5" und faellt damit aus dem Protokoll',
-    datei: 'server.js',
-    suche: "detail: asPart ? 'part' : null });",
+    file: 'server.js',
+    search: "detail: asPart ? 'part' : null });",
     ersatz: 'merkmal: asPart ? `teil ${teil}/${teile}` : null });',
     erwartet: 'Der Teilexport mit zweitem Faktor'
   },
@@ -1779,8 +1779,8 @@ const RUECKBAUTEN = [
        Aufrufer auf Port 3100 einen __Host--Cookie samt HSTS -- und sperrt sich
        damit selbst aus, weil sein Browser den Cookie verwirft. */
     nr: '196', name: 'X-Forwarded-Proto wird auch ohne BEHIND_PROXY geglaubt',
-    datei: 'auth.js',
-    suche: '  if (!BEHIND_PROXY) return false;',
+    file: 'auth.js',
+    search: '  if (!BEHIND_PROXY) return false;',
     ersatz: '  if (false) return false;',
     erwartet: 'Ohne Proxy ist der Kopf nur eine Behauptung'
   },
@@ -1789,8 +1789,8 @@ const RUECKBAUTEN = [
        Eine Zeile, die nur sagt, dass ein Cookie gesetzt wurde, bliebe dabei
        gruen; der NAME ist die Pruefung. */
     nr: '197', name: 'Beide Wege bekommen denselben Cookienamen',
-    datei: 'auth.js',
-    suche: "const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;",
+    file: 'auth.js',
+    search: "const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;",
     ersatz: "const cookieName = (req) => COOKIE_NAME;",
     erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
   },
@@ -1799,8 +1799,8 @@ const RUECKBAUTEN = [
        stillschweigend -- genau der Fehler, gegen den diese Runde gebaut ist,
        nur eine Ebene tiefer. */
     nr: '198', name: 'Auch der Heimnetzcookie traegt Secure',
-    datei: 'auth.js',
-    suche: "  `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;",
+    file: 'auth.js',
+    search: "  `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;",
     ersatz: "  `; Secure; Max-Age=${SESSION_DAYS * 86400}`;",
     erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
   },
@@ -1809,8 +1809,8 @@ const RUECKBAUTEN = [
        offenhalten soll: der Browser bestuende danach auf HTTPS und faende an
        Port 3100 keines. */
     nr: '199', name: 'HSTS geht wieder auf jedem Weg mit',
-    datei: 'server.js',
-    suche: "  if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');",
+    file: 'server.js',
+    search: "  if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');",
     ersatz: "  if (auth.BEHIND_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');",
     erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
   },
@@ -1820,8 +1820,8 @@ const RUECKBAUTEN = [
        juengsten ALLER Arten, und genau darin findet man die gescheiterten
        Anmeldungen nicht. */
     nr: '200', name: 'Die Leseroute uebergeht die gewaehlte Ansicht',
-    datei: 'server.js',
-    suche: '  res.json(auth.readLog(auth.LOG_LIMIT, gruppe));',
+    file: 'server.js',
+    search: '  res.json(auth.readLog(auth.LOG_LIMIT, gruppe));',
     ersatz: '  res.json(auth.readLog(auth.LOG_LIMIT));',
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -1829,8 +1829,8 @@ const RUECKBAUTEN = [
     /* DIE NAMEN WERDEN WIEDER BLOSSER TEXT. Der Sprung zum Zugang faellt damit
        weg -- und mit ihm die zweite Haelfte von Punkt 3a. */
     nr: '201', name: 'Die Namen im Protokoll sind wieder nur Text',
-    datei: 'public/app.js',
-    suche: "    if (id == null) { field.appendChild(doc.createTextNode(text)); return field; }",
+    file: 'public/app.js',
+    search: "    if (id == null) { field.appendChild(doc.createTextNode(text)); return field; }",
     ersatz: "    feld.appendChild(dok.createTextNode(text)); return feld;",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -1838,8 +1838,8 @@ const RUECKBAUTEN = [
     /* "unbekannter Name" WIRD ANKLICKBAR. Er ist der getippte Name eines
        Versuchs, der an keinen Zugang traf -- ein Knopf ins Leere. */
     nr: '202', name: 'Auch "unbekannter Name" wird ein Knopf',
-    datei: 'public/app.js',
-    suche: "      row.appendChild(logNameField(doc, 'log-actor', logActor(z),\n        z.actor != null ? z.actor : null));",
+    file: 'public/app.js',
+    search: "      row.appendChild(logNameField(doc, 'log-actor', logActor(z),\n        z.actor != null ? z.actor : null));",
     ersatz: "      zeile.appendChild(protNamensFeld(dok, 'log-actor', protHandelnder(z), z.wer ?? 0));",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -1847,8 +1847,8 @@ const RUECKBAUTEN = [
     /* DIE FUENF WOERTER FALLEN WIEDER WEG. Die Vorgaenge stehen dann als rohe
        Schluessel am Bildschirm -- "request.approve" statt eines Satzes. */
     nr: '203', name: 'Fuenf Vorgaenge stehen wieder als roher Schluessel da',
-    datei: 'public/app.js',
-    suche: "    'request.approve': 'card.requestApproved',",
+    file: 'public/app.js',
+    search: "    'request.approve': 'card.requestApproved',",
     ersatz: "",
     erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
@@ -1858,16 +1858,16 @@ const RUECKBAUTEN = [
        rueckgaengig zu machen ist -- und verschweigt den Weg, der genau das
        nicht tut. Der billigste Punkt der Runde mit dem groessten Schaden. */
     nr: '204', name: 'Der Loeschdialog verschweigt den umkehrbaren Weg wieder',
-    datei: 'public/app.js',
-    suche: "      <p>${tH('dialog.lockInsteadHint')}</p>",
+    file: 'public/app.js',
+    search: "      <p>${tH('dialog.lockInsteadHint')}</p>",
     ersatz: "",
     erwartet: 'Die zweite Bestaetigung in der Oberflaeche'
   },
   {
     /* DIE GRABSTEINE STEHEN WIEDER ZWISCHEN DEN LEBENDEN. */
     nr: '205', name: 'Grabsteine stehen wieder in der Zugangsliste',
-    datei: 'public/app.js',
-    suche: "    for (const z of data.zugaenge.filter(z => z.status !== 'deleted')) {",
+    file: 'public/app.js',
+    search: "    for (const z of data.users.filter(z => z.status !== 'deleted')) {",
     ersatz: "    for (const z of daten.zugaenge) {",
     erwartet: 'Der Einladungslink in der Karte Zugaenge'
   },
@@ -1877,16 +1877,16 @@ const RUECKBAUTEN = [
        der Zeile, die Wolke rutscht darunter, und die Tagzeile kostet wieder
        zwei Zeilen. */
     nr: '206', name: 'Die selbsttaetige Aussenkante frisst die Zeile wieder',
-    datei: 'public/style.css',
-    suche: '.frow-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }',
+    file: 'public/style.css',
+    search: '.frow-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }',
     ersatz: '.frow-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }',
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
     /* SORTIEREN UND ANSICHTEN FALLEN WIEDER AUSEINANDER. */
     nr: '207', name: 'Sortieren und Ansichten bekommen wieder je eine Zeile',
-    datei: 'public/app.js',
-    suche: "  const r5 = r4;\n  secondLabel(r5, t('list.views'));",
+    file: 'public/app.js',
+    search: "  const r5 = r4;\n  secondLabel(r5, t('list.views'));",
     ersatz: "  const r5 = row(t('list.views'));",
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
@@ -1898,8 +1898,8 @@ const RUECKBAUTEN = [
        zuerst stand. Ohne das Nachziehen waere er stumm geworden
        (Stolperstein 192). */
     nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
-    datei: 'public/app.js',
-    suche: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');",
+    file: 'public/app.js',
+    search: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');",
     ersatz: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '');",
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
@@ -1908,8 +1908,8 @@ const RUECKBAUTEN = [
     /* DIE UEBERSETZUNG DER ALTEN FORM FAELLT WEG. Alle vorhandenen Ansichten
        verloeren ihre Kategorie -- still und ohne Message. */
     nr: '209', name: 'Eine gespeicherte Ansicht in der alten Form verliert ihre Kategorie',
-    datei: 'public/app.js',
-    suche: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = f.categoryId != null ? [f.categoryId] : [];",
+    file: 'public/app.js',
+    search: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = f.categoryId != null ? [f.categoryId] : [];",
     ersatz: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = [];",
     erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
@@ -1917,8 +1917,8 @@ const RUECKBAUTEN = [
     /* AUS DEM ODER WIRD EIN UND. Ein Eintrag traegt genau eine Kategorie --
        zwei gewaehlte ergaeben damit garantiert null Treffer. */
     nr: '210', name: 'Aus der Vereinigung wird ein Schnitt',
-    datei: 'public/app.js',
-    suche: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.includes(i.category ? i.category.id : CATEGORY_NONE));",
+    file: 'public/app.js',
+    search: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.includes(i.category ? i.category.id : CATEGORY_NONE));",
     ersatz: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.every(v => v === (i.category ? i.category.id : CATEGORY_NONE)));",
     erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
@@ -1926,8 +1926,8 @@ const RUECKBAUTEN = [
     /* "OHNE" WIRD BEIM ZURECHTRUECKEN WEGGEWORFEN: es ist kein Kategoriewert,
        und eine Klemme, die nur Nummern durchlaesst, nimmt es mit. */
     nr: '211', name: '"Ohne" ueberlebt das Zurechtruecken nicht',
-    datei: 'public/app.js',
-    suche: "    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
+    file: 'public/app.js',
+    search: "    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
     ersatz: "    state.categories.some(c => c.id === v));",
     erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
@@ -1935,8 +1935,8 @@ const RUECKBAUTEN = [
     /* DIE PILLE "OHNE" FAELLT WEG. Die Eintraege ohne Kategorie waeren wieder
        ueber keine einzelne Kategorie erreichbar -- der Anlass des Punktes. */
     nr: '212', name: 'Die Pille "Ohne" wird gar nicht erst gezeichnet',
-    datei: 'public/app.js',
-    suche: "  if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {",
+    file: 'public/app.js',
+    search: "  if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {",
     ersatz: "  if (false) {",
     erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
@@ -1946,8 +1946,8 @@ const RUECKBAUTEN = [
        sinken Beschriftung, Umschalter und Verweise wieder in die Mitte des
        Blocks. */
     nr: '213', name: 'Die Filterzeile mittelt wieder ueber die ganze Hoehe',
-    datei: 'public/style.css',
-    suche: '.frow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }',
+    file: 'public/style.css',
+    search: '.frow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }',
     ersatz: '.frow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }',
     erwartet: 'Die Beschriftungen stehen oben — 0.13.1'
   },
@@ -1956,8 +1956,8 @@ const RUECKBAUTEN = [
        an der Grundlinie, das eine Element schert aus -- genau der Weg, den die
        Pruefung ueber `align-self` zuhalten soll. */
     nr: '214', name: 'Die Beschriftung schert aus der Grundlinie aus',
-    datei: 'public/style.css',
-    suche: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; }',
+    file: 'public/style.css',
+    search: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; }',
     ersatz: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; align-self: center; }',
     erwartet: 'Die Beschriftungen stehen oben — 0.13.1'
   },
@@ -1966,8 +1966,8 @@ const RUECKBAUTEN = [
     /* DREI KANTEN STATT VIER -- der Befund selbst. Die angepinnte Notiz steht
        wieder in drei goldenen und einer grauen Kante da. */
     nr: '215', name: 'Die angepinnte Notiz bekommt ihre linke Kante nicht',
-    datei: 'public/style.css',
-    suche: '.cmt.pinned { border-color: var(--gold-line); }',
+    file: 'public/style.css',
+    search: '.cmt.pinned { border-color: var(--gold-line); }',
     ersatz: '.cmt.pinned {\n  border-top-color: var(--gold-line);\n' +
       '  border-right-color: var(--gold-line);\n  border-bottom-color: var(--gold-line);\n}',
     erwartet: 'Der angepinnte Rahmen schliesst — 0.13.2'
@@ -1977,8 +1977,8 @@ const RUECKBAUTEN = [
        Anpinnung durch: der angepinnte Bericht bekaeme eine goldene linke
        Kante neben drei orangen -- zwei Farben an einem Kasten. */
     nr: '216', name: 'Der angepinnte Bericht verliert seine orange Kante an das Gold',
-    datei: 'public/style.css',
-    suche: '  border-bottom-color: var(--accent);\n  border-left-color: var(--accent);\n}',
+    file: 'public/style.css',
+    search: '  border-bottom-color: var(--accent);\n  border-left-color: var(--accent);\n}',
     ersatz: '  border-bottom-color: var(--accent);\n}',
     erwartet: 'Der angepinnte Rahmen schliesst — 0.13.2'
   },
@@ -1988,8 +1988,8 @@ const RUECKBAUTEN = [
        Wert, ohne Auffangnetz. Ein fremder Cookie mit einem Prozentzeichen
        sperrt den Browser damit wieder aus. */
     nr: '217', name: 'Ein kaputter Cookiewert bricht wieder den ganzen Kopf ab',
-    datei: 'auth.js',
-    suche: "    let wert;\n    try { wert = decodeURIComponent(part.slice(i + 1).trim()); }\n" +
+    file: 'auth.js',
+    search: "    let wert;\n    try { wert = decodeURIComponent(part.slice(i + 1).trim()); }\n" +
       "    catch { continue; }\n    out[part.slice(0, i).trim()] = wert;",
     ersatz: "    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());",
     erwartet: 'Der kaputte Cookiewert — 0.14.0'
@@ -2000,16 +2000,16 @@ const RUECKBAUTEN = [
        eigene, gueltige Cookie daneben nicht mehr an -- und genau das ist der
        Unterschied, den eine Prueflage mit nur einem Cookie nicht sehen kann. */
     nr: '218', name: 'Ein kaputter Wert nimmt den ganzen Cookiekopf mit',
-    datei: 'auth.js',
-    suche: "    catch { continue; }",
+    file: 'auth.js',
+    search: "    catch { continue; }",
     ersatz: "    catch { return {}; }",
     erwartet: 'Der kaputte Cookiewert — 0.14.0'
   },
   /* ---- 0.14.0: die drei Spalten und der Migrationsblock ---- */
   {
     nr: '219', name: 'Der Migrationsblock laeuft gar nicht mehr',
-    datei: 'db.js',
-    suche: "migration0140();\n// ENDE MIGRATION 0.14.0",
+    file: 'db.js',
+    search: "migration0140();\n// ENDE MIGRATION 0.14.0",
     ersatz: "// migration0140();\n// ENDE MIGRATION 0.14.0",
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
@@ -2019,8 +2019,8 @@ const RUECKBAUTEN = [
        zerrissen -- und genau das ist der Riss, den eine frueher abgebrochene
        Fassung hinterlaesst. */
     nr: '220', name: 'Der Migrationsblock fragt nur noch die erste Spalte ab',
-    datei: 'db.js',
-    suche: "  const fehlend = [];\n  if (!spalten.includes('rejected_at')) fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
+    file: 'db.js',
+    search: "  const fehlend = [];\n  if (!spalten.includes('rejected_at')) fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
     ersatz: "  const fehlend = [];\n  if (spalten.includes('rejected_at')) return 0;\n  fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
@@ -2029,8 +2029,8 @@ const RUECKBAUTEN = [
        am Ergebnis -- der Waechter ueber den Quelltext haelt sie fest, denn
        ohne sie ueberlebt bei einem Abbruch die erste Spalte allein. */
     nr: '221', name: 'Die drei ALTER TABLE laufen nicht mehr in einer Transaktion',
-    datei: 'db.js',
-    suche: "  db.transaction(() => { for (const [, sql] of fehlend) db.exec(sql); })();",
+    file: 'db.js',
+    search: "  db.transaction(() => { for (const [, sql] of fehlend) db.exec(sql); })();",
     ersatz: "  for (const [, sql] of fehlend) db.exec(sql);",
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
@@ -2039,8 +2039,8 @@ const RUECKBAUTEN = [
        Einspielung von dem, der eingespielt hat" ist die schlimmste davon --
        und sie saehe aus wie eine echte. */
     nr: '222', name: 'Die Migration traegt erfundene Angaben in den Bestand',
-    datei: 'db.js',
-    suche: "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
+    file: 'db.js',
+    search: "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
     ersatz: "  db.exec(\"UPDATE items SET rejected_at = datetime('now') WHERE rejected = 1\");\n" +
       "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
@@ -2050,8 +2050,8 @@ const RUECKBAUTEN = [
        Zugang laesst danach eine Nummer stehen, die auf niemanden mehr zeigt --
        und die migrierte Instanz verhaelt sich anders als die frische. */
     nr: '223', name: 'Die nachgeruestete Spalte bekommt keinen Fremdschluessel',
-    datei: 'db.js',
-    suche: "    'ALTER TABLE items ADD COLUMN rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL']);",
+    file: 'db.js',
+    search: "    'ALTER TABLE items ADD COLUMN rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL']);",
     ersatz: "    'ALTER TABLE items ADD COLUMN rejected_by INTEGER']);",
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
@@ -2060,8 +2060,8 @@ const RUECKBAUTEN = [
        ueber den Migrationsblock -- und zu 1.0, wenn er wegfaellt, gar nicht
        mehr. Genau dafuer steht die Gegenlage der frischen Instanz. */
     nr: '224', name: 'Die drei Spalten stehen nicht mehr in der DDL',
-    datei: 'db.js',
-    suche: "  rejected_at TEXT,\n  rejected_reason TEXT,",
+    file: 'db.js',
+    search: "  rejected_at TEXT,\n  rejected_reason TEXT,",
     ersatz: "",
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
@@ -2071,8 +2071,8 @@ const RUECKBAUTEN = [
        gilt wieder darfAendern -- Verfasser ODER Admin. Damit schreibt ein
        Admin eine fremde Aussage unter fremdem Namen um. */
     nr: '225', name: 'An der Begruendung gilt wieder mayChange statt selfOnly',
-    datei: 'server.js',
-    suche: "      it.rejected_by != null && !selfOnly(req, it.rejected_by))",
+    file: 'server.js',
+    search: "      it.rejected_by != null && !selfOnly(req, it.rejected_by))",
     ersatz: "      it.rejected_von != null && !mayChange(req, it.rejected_von))",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2081,8 +2081,8 @@ const RUECKBAUTEN = [
        NUR_VERFASSER_FELDER. Dann setzt jeder Angemeldete eine Begruendung an
        einen Eintrag, dessen Ablehnung noch keinen Verfasser traegt. */
     nr: '226', name: 'Die Begruendung faellt aus den Verfasserfeldern heraus',
-    datei: 'server.js',
-    suche: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected', 'rejectedGrund',\n                              'tested', 'productCategoryId'];",
+    file: 'server.js',
+    search: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected', 'rejectedReason',\n                              'tested', 'productCategoryId'];",
     ersatz: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected',\n                              'tested', 'productCategoryId'];",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2091,8 +2091,8 @@ const RUECKBAUTEN = [
        einer Instanz vor 0.14.0 bekaeme damit NIE eine Begruendung:
        nurSelbst(null) ist fuer jeden falsch. */
     nr: '227', name: 'Eine Ablehnung ohne Verfasser laesst sich nicht mehr begruenden',
-    datei: 'server.js',
-    suche: "  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&\n      it.rejected_by != null && !selfOnly(req, it.rejected_by))",
+    file: 'server.js',
+    search: "  if (b.rejectedReason !== undefined && !turnsOn && !removedReason &&\n      it.rejected_by != null && !selfOnly(req, it.rejected_by))",
     ersatz: "  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&\n      !selfOnly(req, it.rejected_von))",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2101,8 +2101,8 @@ const RUECKBAUTEN = [
        die NEUE Entscheidung den Satz der vorigen Person unter neuem Namen --
        genau das, was die Klemme verhindern soll. */
     nr: '228', name: 'Ein neues Ablehnen uebernimmt den fremden Satz',
-    datei: 'server.js',
-    suche: "    put('rejected_by', req.benutzer.id);\n    put('rejected_reason', reasonText(b.rejectedGrund));",
+    file: 'server.js',
+    search: "    put('rejected_by', req.benutzer.id);\n    put('rejected_reason', reasonText(b.rejectedReason));",
     ersatz: "    put('rejected_von', req.benutzer.id);",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2110,8 +2110,8 @@ const RUECKBAUTEN = [
     /* Das Datum kommt wieder aus dem Rumpf. Dann traegt jede Ablehnung das
        Datum, das der Aufrufende hineinschreibt. */
     nr: '229', name: 'Das Ablehnungsdatum kommt aus dem Rumpf statt vom Server',
-    datei: 'server.js',
-    suche: "    sets.push(`rejected_at = datetime('now')`);",
+    file: 'server.js',
+    search: "    sets.push(`rejected_at = datetime('now')`);",
     ersatz: "    put('rejected_at', b.rejectedAt || new Date().toISOString().slice(0, 19).replace('T', ' '));",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2120,8 +2120,8 @@ const RUECKBAUTEN = [
        Verfasserobjekt entfaellt. Aus einem Grabstein liesse sich der
        freigegebene Name dann nicht mehr fernhalten. */
     nr: '230', name: 'Der Ablehnende geht als nackte Nummer hinaus',
-    datei: 'server.js',
-    suche: "  it.rejectedVerfasser = authorFrom(card, it.rejected_by);\n  delete it.rejected_by;",
+    file: 'server.js',
+    search: "  it.rejectedAuthor = authorFrom(card, it.rejected_by);\n  delete it.rejected_by;",
     ersatz: "",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2130,8 +2130,8 @@ const RUECKBAUTEN = [
        den Eintrag und nicht in eine Kachelreihe -- und rejected_by waere dort
        eine nackte Zugangsnummer in einer Antwort an jeden. */
     nr: '231', name: 'Die Uebersicht schickt Grund und Nummer mit hinaus',
-    datei: 'server.js',
-    suche: "    delete it.rejected_at; delete it.rejected_reason; delete it.rejected_by;",
+    file: 'server.js',
+    search: "    delete it.rejected_at; delete it.rejected_reason; delete it.rejected_by;",
     ersatz: "",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2139,8 +2139,8 @@ const RUECKBAUTEN = [
     /* Der Text wird nicht mehr eingeebnet. Ein eingefuegter Absatz risse die
        Marke in der Oberflaeche, und der Deckel faellt gleich mit. */
     nr: '232', name: 'Die Begruendung wird weder eingeebnet noch gekappt',
-    datei: 'server.js',
-    suche: "const reasonText = (v) =>\n  typeof v === 'string' ? v.replace(/\\s+/g, ' ').trim().slice(0, REASON_LENGTH) : '';",
+    file: 'server.js',
+    search: "const reasonText = (v) =>\n  typeof v === 'string' ? v.replace(/\\s+/g, ' ').trim().slice(0, REASON_LENGTH) : '';",
     ersatz: "const reasonText = (v) => (typeof v === 'string' ? v : '');",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2156,8 +2156,8 @@ const RUECKBAUTEN = [
        zurueck. Was er belegt, ist unveraendert -- dass die Nummer mit dem
        Format steigt und nicht stehen bleibt. */
     nr: '233', name: 'Die Formatnummer bleibt auf 12',
-    datei: 'server.js',
-    suche: "const EXCHANGE_FORMAT = 13;",
+    file: 'server.js',
+    search: "const EXCHANGE_FORMAT = 13;",
     ersatz: "const EXCHANGE_FORMAT = 12;",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2166,8 +2166,8 @@ const RUECKBAUTEN = [
        einer fremden Instanz etwas anderes -- der Rundlauf traefe dort einen
        beliebigen Zugang oder gar keinen. */
     nr: '234', name: 'Der Ablehnende wandert als Nummer statt als Name hinaus',
-    datei: 'server.js',
-    suche: "    rejected_author: authorName(it.rejected_by),",
+    file: 'server.js',
+    search: "    rejected_author: authorName(it.rejected_by),",
     ersatz: "    rejected_author: it.rejected_von,",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2175,8 +2175,8 @@ const RUECKBAUTEN = [
     /* Die drei Felder fallen aus der Datei. Ein Rundlauf machte damit aus
        einer begruendeten Ablehnung wieder ein nacktes Haekchen. */
     nr: '235', name: 'Die drei Angaben gehen gar nicht erst in die Datei',
-    datei: 'server.js',
-    suche: "    rejected_at: it.rejected_at, rejected_reason: it.rejected_reason,\n    rejected_author: authorName(it.rejected_by),",
+    file: 'server.js',
+    search: "    rejected_at: it.rejected_at, rejected_reason: it.rejected_reason,\n    rejected_author: authorName(it.rejected_by),",
     ersatz: "",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2185,8 +2185,8 @@ const RUECKBAUTEN = [
        eingespielte Eintrag von ihm abgelehnt -- auch die, die niemand
        abgelehnt hat. */
     nr: '236', name: 'Ein fehlender Ablehnender faellt an den Einspielenden',
-    datei: 'server.js',
-    suche: "      const rejectedBy = String(it.rejected_author == null ? '' : it.rejected_author).trim()\n        ? verfasser(it.rejected_author) : null;",
+    file: 'server.js',
+    search: "      const rejectedBy = String(it.rejected_author == null ? '' : it.rejected_author).trim()\n        ? verfasser(it.rejected_author) : null;",
     ersatz: "      const rejectedBy = verfasser(it.rejected_author);",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -2195,14 +2195,14 @@ const RUECKBAUTEN = [
     /* DIE FESTE PIXELZAHL KEHRT ZURUECK -- der Befund vom 29. August 2026 in
        Reinform: bei 80 Prozent stimmt es zufaellig, bei 120 klaffen 26 px. */
     nr: '237', name: 'Die Zahlenspalte bekommt ihre feste Mindestbreite zurueck',
-    datei: 'public/style.css',
+    file: 'public/style.css',
     /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): die Regel hat seit dieser
        Runde eine Zeile mehr -- die GEMESSENE Mindestbreite. Der Rueckbau
        ersetzt weiter die ganze Regel durch die alte, geschaetzte Fassung (52
        feste Pixel und text-align statt flex), und er muss weiter rot werden:
        52 px reichen fuer „⌀ 4,2 (9)" nicht, und in Pixeln folgt die Spalte der
        Schriftstufe nicht mehr. */
-    suche: "  white-space: nowrap; padding-left: 9px;\n  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;",
+    search: "  white-space: nowrap; padding-left: 9px;\n  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;",
     ersatz: "  white-space: nowrap; padding-left: 9px;\n  min-width: 52px; text-align: right;",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2216,8 +2216,8 @@ const RUECKBAUTEN = [
        Zeilenhaelfte hat mit 307 ihren eigenen bekommen -- zwei Rueckbauten
        statt einem, und beide zeigen auf eine Zeile, die es wirklich gibt. */
     nr: '238', name: 'Aus dem Raster wird wieder ein gewoehnlicher Kasten',
-    datei: 'public/style.css',
-    suche: ".rlist { display: grid; grid-template-columns: 1fr auto auto auto; }",
+    file: 'public/style.css',
+    search: ".rlist { display: grid; grid-template-columns: 1fr auto auto auto; }",
     ersatz: ".rlist { display: block; }",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2230,8 +2230,8 @@ const RUECKBAUTEN = [
        Rueckbau auf eine Zeile, die es nicht mehr gibt, und waere stumm
        geworden (Stolperstein 192). Er nimmt weiterhin die ganze Klasse. */
     nr: '239', name: 'Die Kriterienliste bekommt ihre Rasterklasse nicht',
-    datei: 'public/app.js',
-    suche: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
+    file: 'public/app.js',
+    search: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
     ersatz: "",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2244,8 +2244,8 @@ const RUECKBAUTEN = [
        die Zahl zurueck in die Sternreihe, wo sie nur so breit waere wie ihr
        eigener Inhalt. */
     nr: '240', name: 'Die Zahl steckt wieder in den Sternen statt im Raster',
-    datei: 'public/app.js',
-    suche: "        row.append(a);",
+    file: 'public/app.js',
+    search: "        row.append(a);",
     ersatz: "        acts.append(a);",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2253,8 +2253,8 @@ const RUECKBAUTEN = [
     /* Die Trennlinie bleibt an der Zeile. Eine Zeile mit display: contents ist
        kein Kasten mehr -- die Linie verschwaende ganz. */
     nr: '241', name: 'Die Trennlinie wird wieder an der Zeile gezogen',
-    datei: 'public/style.css',
-    suche: ".rrow > * { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type > * { border-bottom: none; }",
+    file: 'public/style.css',
+    search: ".rrow > * { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type > * { border-bottom: none; }",
     ersatz: ".rrow { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type { border-bottom: none; }",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2263,8 +2263,8 @@ const RUECKBAUTEN = [
     /* Die Marke wird wieder ein blosses Haekchen: der Satz darunter entfaellt.
        Genau der Zustand vor dieser Runde. */
     nr: '242', name: 'Die Marke sagt wieder nur "Abgelehnt"',
-    datei: 'public/app.js',
-    suche: "    drawRejection();\n  }",
+    file: 'public/app.js',
+    search: "    drawRejection();\n  }",
     ersatz: "  }",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
@@ -2272,9 +2272,9 @@ const RUECKBAUTEN = [
     /* Der Name faellt aus der Aussage. Aussagen tragen in dieser Instanz ihren
        Verfasser -- ohne ihn ist es wieder ein Haekchen mit Datum. */
     nr: '243', name: 'Die Aussage verliert ihren Verfasser',
-    datei: 'public/app.js',
-    suche: "    if (item.rejectedVerfasser && multipleUsers())\n" +
-      "      teile.push(`von ${authorName(item.rejectedVerfasser)}`);",
+    file: 'public/app.js',
+    search: "    if (item.rejectedAuthor && multipleUsers())\n" +
+      "      parts.push(`von ${authorName(item.rejectedAuthor)}`);",
     ersatz: "",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
@@ -2283,9 +2283,9 @@ const RUECKBAUTEN = [
        "von pruefer" nichts -- dieselbe Sache wie an jeder anderen
        Verfasserangabe, und die Prueflage mit EINEM Zugang faengt es. */
     nr: '247', name: 'Der Name steht auch bei einem einzigen Zugang da',
-    datei: 'public/app.js',
-    suche: "    if (item.rejectedVerfasser && multipleUsers())",
-    ersatz: "    if (item.rejectedVerfasser)",
+    file: 'public/app.js',
+    search: "    if (item.rejectedAuthor && multipleUsers())",
+    ersatz: "    if (item.rejectedAuthor)",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
   {
@@ -2293,8 +2293,8 @@ const RUECKBAUTEN = [
        Damit ist die Angabe, die beim Zuruecknehmen ausdruecklich stehen
        geblieben ist, beim naechsten Ablehnen doch weg. */
     nr: '244', name: 'Der Vorschlag zum Ueberschreiben geht verloren',
-    datei: 'public/app.js',
-    suche: "      : { rejected: true, rejectedGrund: item.rejected_reason || '' };",
+    file: 'public/app.js',
+    search: "      : { rejected: true, rejectedReason: item.rejected_reason || '' };",
     ersatz: "      : { rejected: true };",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
@@ -2305,8 +2305,8 @@ const RUECKBAUTEN = [
        Ruhezustand hat es zu, und geoeffnet wird ueber Schalter, Text und
        Stift. Der Rueckbau trifft dieselbe Sache an ihrer neuen Zeile. */
     nr: '245', name: 'Das Feld fuer den Grund erscheint nicht',
-    datei: 'public/app.js',
-    suche: "    row.hidden = !offen;",
+    file: 'public/app.js',
+    search: "    row.hidden = !offen;",
     ersatz: "    zeile.hidden = true;",
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
@@ -2315,8 +2315,8 @@ const RUECKBAUTEN = [
        sie "Abgelehnt", also dasselbe wie der Schalter darueber. Dieselbe
        Aussage zweimal. */
     nr: '246', name: 'Die Aussage steht auch da, wenn sie nichts sagt',
-    datei: 'public/app.js',
-    suche: "    mark.hidden = !item.rejected || offen || (!head && !grund && !showPen);",
+    file: 'public/app.js',
+    search: "    mark.hidden = !item.rejected || offen || (!head && !reason && !showPen);",
     ersatz: "    marke.hidden = !item.rejected;",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
@@ -2326,8 +2326,8 @@ const RUECKBAUTEN = [
     /* Der Filter greift gar nicht mehr: die Menge bleibt, wie sie ist, gleich
        welcher der drei Zustaende gewaehlt ist. */
     nr: '250', name: 'Der Filter „abgelehnt" nimmt nichts weg',
-    datei: 'public/app.js',
-    suche: "  if (f.abgelehnt === 'ja') out = out.filter(i => i.rejected);",
+    file: 'public/app.js',
+    search: "  if (f.abgelehnt === 'ja') out = out.filter(i => i.rejected);",
     ersatz: "  if (false) out = out.filter(i => i.rejected);",
     erwartet: 'Der Filter „abgelehnt" — 0.15.0'
   },
@@ -2336,8 +2336,8 @@ const RUECKBAUTEN = [
        Verworfenen" ist der haeufigere Griff und der Grund, warum es drei
        Zustaende sind und kein Umschalter. */
     nr: '251', name: 'Die Gegenrichtung des Filters faellt weg',
-    datei: 'public/app.js',
-    suche: "  else if (f.abgelehnt === 'nein') out = out.filter(i => !i.rejected);",
+    file: 'public/app.js',
+    search: "  else if (f.abgelehnt === 'nein') out = out.filter(i => !i.rejected);",
     ersatz: "  else if (false) out = out.filter(i => !i.rejected);",
     erwartet: 'Der Filter „abgelehnt" — 0.15.0'
   },
@@ -2350,8 +2350,8 @@ const RUECKBAUTEN = [
        den Ablehnungsfilter heraus; ohne das Nachziehen griffe er ins Leere
        (Stolperstein 192). */
     nr: '252', name: 'Der neue Filter fehlt in der Vorgabe',
-    datei: 'public/app.js',
-    suche: "                         abgelehnt: 'all', favorit: false,",
+    file: 'public/app.js',
+    search: "                         abgelehnt: 'all', favorit: false,",
     ersatz: "                         favorit: false,",
     erwartet: 'Der Filter „abgelehnt" — 0.15.0'
   },
@@ -2359,8 +2359,8 @@ const RUECKBAUTEN = [
     /* Der eingeklappte Filterbereich zaehlt ihn nicht mit und sagt damit die
        Unwahrheit ueber die eine Frage, die er aufwirft. */
     nr: '253', name: 'Der Ablehnungsfilter zaehlt nicht mit',
-    datei: 'public/app.js',
-    suche: "  if (f.abgelehnt !== v.abgelehnt) n++;",
+    file: 'public/app.js',
+    search: "  if (f.abgelehnt !== v.abgelehnt) n++;",
     ersatz: "  if (false) n++;",
     erwartet: 'Der Filter „abgelehnt" — 0.15.0'
   },
@@ -2369,8 +2369,8 @@ const RUECKBAUTEN = [
        Fortsetzung der Reihe davor -- als waeren es sechs Zustaende EINES
        Merkmals. */
     nr: '254', name: 'Die zweite Gruppe ist nicht abgesetzt',
-    datei: 'public/app.js',
-    suche: "  secondLabel(r1, t('list.rejection'));",
+    file: 'public/app.js',
+    search: "  secondLabel(r1, t('list.rejection'));",
     ersatz: "  // zweiteBeschriftung(r1, t('list.rejection'));",
     erwartet: 'Der Filter „abgelehnt" — 0.15.0'
   },
@@ -2379,8 +2379,8 @@ const RUECKBAUTEN = [
        kann es nicht zurueckrechnen -- sie kennt ihren Namen, nicht ihre
        Nummer -- und der Stift verschwindet fuer den, der ihn braucht. */
     nr: '255', name: 'rejectedMine geht nicht mehr hinaus',
-    datei: 'server.js',
-    suche: "  it.rejectedMine = it.rejected_by != null && it.rejected_by === userId;",
+    file: 'server.js',
+    search: "  it.rejectedMine = it.rejected_by != null && it.rejected_by === userId;",
     ersatz: "  it.rejectedMine = false;",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2388,8 +2388,8 @@ const RUECKBAUTEN = [
     /* Dasselbe fuer den Eintrag: ohne `mine` faellt der Papierkorb bei dem
        weg, dem der Eintrag gehoert. */
     nr: '256', name: 'mine geht am Eintrag nicht mehr hinaus',
-    datei: 'server.js',
-    suche: "  it.mine = it.user_id === userId;",
+    file: 'server.js',
+    search: "  it.mine = it.user_id === userId;",
     ersatz: "  it.mine = false;",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2398,8 +2398,8 @@ const RUECKBAUTEN = [
        nurSelbst, und ein Admin kann eine fremde Begruendung weder umschreiben
        noch wegnehmen. Genau die Luecke, die 0.15.0 schliesst. */
     nr: '257', name: 'Entfernen laeuft wieder ueber selfOnly',
-    datei: 'server.js',
-    suche: "  const removedReason = b.rejectedGrund !== undefined && !reasonText(b.rejectedGrund);",
+    file: 'server.js',
+    search: "  const removedReason = b.rejectedReason !== undefined && !reasonText(b.rejectedReason);",
     ersatz: "  const removedReason = false;",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2408,8 +2408,8 @@ const RUECKBAUTEN = [
        einer fremden Begruendung. "Loeschen ja, umschreiben nein" waere damit
        "beides ja". */
     nr: '258', name: 'Auch das Umschreiben kommt durch',
-    datei: 'server.js',
-    suche: "  if (b.rejectedGrund !== undefined && !turnsOn && !removedReason &&",
+    file: 'server.js',
+    search: "  if (b.rejectedReason !== undefined && !turnsOn && !removedReason &&",
     ersatz: "  if (false &&",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2417,8 +2417,8 @@ const RUECKBAUTEN = [
     /* Wer entfernt, wird wieder Verfasser einer Begruendung, die es gar nicht
        gibt -- an einer Ablehnung aus einer Instanz vor 0.14.0. */
     nr: '259', name: 'Wer entfernt, wird Verfasser',
-    datei: 'server.js',
-    suche: "    if (it.rejected_by == null && !removedReason) put('rejected_by', req.benutzer.id);",
+    file: 'server.js',
+    search: "    if (it.rejected_by == null && !removedReason) put('rejected_by', req.benutzer.id);",
     ersatz: "    if (it.rejected_von == null) put('rejected_von', req.benutzer.id);",
     erwartet: 'Entfernen darf auch der Admin — 0.15.0'
   },
@@ -2427,8 +2427,8 @@ const RUECKBAUTEN = [
        Aussage wieder neben einem dauernd offenen Feld -- dieselbe Sache
        zweimal, und genau der Befund aus dem Betrieb. */
     nr: '260', name: 'Das Feld bleibt nach dem Speichern offen',
-    datei: 'public/app.js',
-    suche: "      reasonOpen = false;\n      drawSwitches();\n    };\n    field.onblur = save;",
+    file: 'public/app.js',
+    search: "      reasonOpen = false;\n      drawSwitches();\n    };\n    field.onblur = save;",
     ersatz: "      drawSwitches();\n    };\n    feld.onblur = speichere;",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2440,8 +2440,8 @@ const RUECKBAUTEN = [
        deshalb die Haelfte der Regel weg, die den fehlenden Grund traegt --
        dieselbe Sache an ihrer neuen Zeile. */
     nr: '261', name: 'Beim Einschalten bleibt das Feld zu',
-    datei: 'public/app.js',
-    suche: "    const offen = item.rejected && mine && (!grund || reasonOpen);",
+    file: 'public/app.js',
+    search: "    const offen = item.rejected && mine && (!reason || reasonOpen);",
     ersatz: "    const offen = item.rejected && meins && reasonOpen;",
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
@@ -2449,8 +2449,8 @@ const RUECKBAUTEN = [
     /* Der Stift steht auch dem da, der gar nicht schreiben darf -- und
        oeffnet ein Feld, dessen Inhalt der Server mit 403 abweist. */
     nr: '262', name: 'Der Stift steht jedem da',
-    datei: 'public/app.js',
-    suche: "    const showPen = item.rejected && mine;",
+    file: 'public/app.js',
+    search: "    const showPen = item.rejected && mine;",
     ersatz: "    const showPen = item.rejected;",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2458,8 +2458,8 @@ const RUECKBAUTEN = [
     /* Der Papierkorb steht jedem da -- auch der Fremden, die den Eintrag
        nicht aendern darf. */
     nr: '263', name: 'Der Papierkorb steht jedem da',
-    datei: 'public/app.js',
-    suche: "    const showPath = item.rejected && verwalten && !!grund;",
+    file: 'public/app.js',
+    search: "    const showPath = item.rejected && verwalten && !!reason;",
     ersatz: "    const showPath = item.rejected && !!grund;",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2467,8 +2467,8 @@ const RUECKBAUTEN = [
     /* Der Papierkorb entfernt ohne Rueckfrage. Eine Angabe, die niemand
        wiederherstellen kann, verschwindet auf einen Klick. */
     nr: '264', name: 'Der Papierkorb fragt nicht mehr nach',
-    datei: 'public/app.js',
-    suche: "    if (!await confirmBox(t('entry.reasonDeleteAsk'),",
+    file: 'public/app.js',
+    search: "    if (!await confirmBox(t('entry.reasonDeleteAsk'),",
     ersatz: "    if (false && !await confirmBox(t('entry.reasonDeleteAsk'),",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2477,8 +2477,8 @@ const RUECKBAUTEN = [
        Schliessen nimmt den Zeiger, onblur laeuft, und der verworfene Text
        wird genau von dem Weg gespeichert, der ihn verwerfen sollte. */
     nr: '265', name: 'Escape verwirft nicht mehr, sondern speichert',
-    datei: 'public/app.js',
-    suche: "        field.value = item.rejected_reason || '';\n        reasonOpen = false;\n        drawRejection();",
+    file: 'public/app.js',
+    search: "        field.value = item.rejected_reason || '';\n        reasonOpen = false;\n        drawRejection();",
     ersatz: "        reasonOpen = false;\n        drawAblehnung();",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2487,8 +2487,8 @@ const RUECKBAUTEN = [
        keinen Weg mehr in das Feld. Der Server laesst dort jeden schreiben, der
        den Eintrag aendern darf; die Oberflaeche bietet es nicht mehr an. */
     nr: '266', name: 'An der herrenlosen Ablehnung fehlt der Weg hinein',
-    datei: 'public/app.js',
-    suche: "    const mine = may && (item.rejectedMine === true || !item.rejectedVerfasser);",
+    file: 'public/app.js',
+    search: "    const mine = may && (item.rejectedMine === true || !item.rejectedAuthor);",
     ersatz: "    const meins = darf && item.rejectedMine === true;",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2497,8 +2497,8 @@ const RUECKBAUTEN = [
        "Angelegt von … am …". Eine Entscheidung, die den Eintrag verwirft,
        liest sich wieder wie eine Randnotiz -- der zweite Befund. */
     nr: '267', name: 'Die Hervorhebung des Grundes faellt weg',
-    datei: 'public/style.css',
-    suche: ".rej-note .rej-why { color: var(--red); font-weight: 500; }",
+    file: 'public/style.css',
+    search: ".rej-note .rej-why { color: var(--red); font-weight: 500; }",
     ersatz: ".rej-note .rej-why { font-weight: 500; }",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2509,8 +2509,8 @@ const RUECKBAUTEN = [
        das `!important` -- die Regel bleibt stehen und tut nichts mehr, genau
        die Lage von vor 0.15.1. */
     nr: '268', name: 'Die Regel fuer hidden verliert ihre Kraft',
-    datei: 'public/style.css',
-    suche: "[hidden] { display: none !important; }",
+    file: 'public/style.css',
+    search: "[hidden] { display: none !important; }",
     ersatz: "[hidden] { display: none; }",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2518,8 +2518,8 @@ const RUECKBAUTEN = [
     /* Die Regel verschwindet ganz. Damit stuenden die beiden oertlichen
        Flicken auch nicht mehr da -- niemand versteckt mehr irgendetwas. */
     nr: '269', name: 'Die Regel fuer hidden fehlt ganz',
-    datei: 'public/style.css',
-    suche: "[hidden] { display: none !important; }\n",
+    file: 'public/style.css',
+    search: "[hidden] { display: none !important; }\n",
     ersatz: "",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2527,8 +2527,8 @@ const RUECKBAUTEN = [
     /* Die Aussage steht auch dann da, wenn das Feld offen ist -- also beides
        zugleich. Genau die Doppelung, die 0.15.0 aufloesen sollte. */
     nr: '270', name: 'Aussage und Feld stehen wieder zugleich da',
-    datei: 'public/app.js',
-    suche: "    mark.hidden = !item.rejected || offen || (!head && !grund && !showPen);",
+    file: 'public/app.js',
+    search: "    mark.hidden = !item.rejected || offen || (!head && !reason && !showPen);",
     ersatz: "    marke.hidden = !item.rejected || (!kopf && !grund && !showPen);",
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
@@ -2536,8 +2536,8 @@ const RUECKBAUTEN = [
     /* Das Feld steht auch dem offen, der nicht schreiben darf. Es nimmt dann
        eine Eingabe an, die der Server mit 403 abweist. */
     nr: '271', name: 'Das Feld steht auch dem offen, der nicht schreiben darf',
-    datei: 'public/app.js',
-    suche: "    const offen = item.rejected && mine && (!grund || reasonOpen);",
+    file: 'public/app.js',
+    search: "    const offen = item.rejected && mine && (!reason || reasonOpen);",
     ersatz: "    const offen = item.rejected && (!grund || reasonOpen);",
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
@@ -2545,29 +2545,29 @@ const RUECKBAUTEN = [
   /* ================= 0.16.0 — Abschnitte, Glocke und Auskunft ========== */
   {
     nr: '272', name: 'Der Systembereich zeigt wieder alle Karten auf einmal',
-    datei: 'public/app.js',
-    suche: "  const cards = SYS_CARDS.filter(k => k.abschnitt === offen.schluessel && k.visible(fetched));",
+    file: 'public/app.js',
+    search: "  const cards = SYS_CARDS.filter(k => k.abschnitt === offen.schluessel && k.visible(fetched));",
     ersatz: "  const karten = SYS_KARTEN.filter(k => k.sichtbar(geholt));",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '273', name: 'Ein Abschnitt ohne sichtbare Karte erscheint trotzdem',
-    datei: 'public/app.js',
-    suche: "  return SYS_SECTIONS.filter(a =>\n    SYS_CARDS.some(k => k.abschnitt === a.schluessel && k.visible(fetched)));",
+    file: 'public/app.js',
+    search: "  return SYS_SECTIONS.filter(a =>\n    SYS_CARDS.some(k => k.abschnitt === a.schluessel && k.visible(fetched)));",
     ersatz: "  return SYS_ABSCHNITTE;",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '274', name: 'Die Adresse wird nicht mehr nachgezogen',
-    datei: 'public/app.js',
-    suche: "    history.replaceState(null, '', sysUrl(offen.schluessel));",
+    file: 'public/app.js',
+    search: "    history.replaceState(null, '', sysUrl(offen.schluessel));",
     ersatz: "    void 0;",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '275', name: 'Eine Adresse auf einen unsichtbaren Abschnitt zeigt ins Leere',
-    datei: 'public/app.js',
-    suche: "  const offen = visibleOnes.find(a => a.schluessel === gewuenscht) || visibleOnes[0];",
+    file: 'public/app.js',
+    search: "  const offen = visibleOnes.find(a => a.schluessel === gewuenscht) || visibleOnes[0];",
     ersatz: "  const offen = SYS_ABSCHNITTE.find(a => a.schluessel === gewuenscht) || sichtbare[0];",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -2576,22 +2576,22 @@ const RUECKBAUTEN = [
        einmal getreten sind: ohne Adresse laesst sich keine Einstellung
        verlinken und die Zurueck-Taste bricht. */
     nr: '276', name: 'Die Reiter tragen keine eigene Adresse mehr',
-    datei: 'public/app.js',
-    suche: "      ${visibleOnes.map(a => `<a class=\"sys-tab${a === offen ? ' on' : ''}\"",
+    file: 'public/app.js',
+    search: "      ${visibleOnes.map(a => `<a class=\"sys-tab${a === offen ? ' on' : ''}\"",
     ersatz: "      ${sichtbare.map(a => `<button class=\"sys-tab${a === offen ? ' on' : ''}\"",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '277', name: 'Der Import steht wieder gleichrangig neben dem Export',
-    datei: 'public/app.js',
-    suche: "        <h4 class=\"sys-sub\">${tH('card.import')}</h4>",
+    file: 'public/app.js',
+    search: "        <h4 class=\"sys-sub\">${tH('card.import')}</h4>",
     ersatz: "        <h3>${tH('card.import')}</h3>",
     erwartet: 'Export und Import stehen in einer Karte'
   },
   {
     nr: '278', name: 'Das Ablagefeld des Imports wird wieder gleich laut gezeichnet',
-    datei: 'public/app.js',
-    suche: '        <label class="drop drop-quiet" id="imp-drop">',
+    file: 'public/app.js',
+    search: '        <label class="drop drop-quiet" id="imp-drop">',
     ersatz: '        <label class="drop" id="imp-drop">',
     erwartet: 'Export und Import stehen in einer Karte'
   },
@@ -2600,8 +2600,8 @@ const RUECKBAUTEN = [
        seit dieser Runde den Kasten mit, zu dem er gehoert -- es gibt ihn
        zweimal. Was der Rueckbau tut, ist unveraendert. */
     nr: '279', name: 'Die Kopfzahl ist wieder blosser Text',
-    datei: 'public/app.js',
-    suche: "        b.onclick = () => showCalc(boxId);",
+    file: 'public/app.js',
+    search: "        b.onclick = () => showCalc(boxId);",
     ersatz: "        b.onclick = null;",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -2609,15 +2609,15 @@ const RUECKBAUTEN = [
     /* DER KERN VON PUNKT 4: der Kasten LIEST die Rechnung. Rechnet er nach,
        gibt es zwei Wege zu derselben Zahl -- und sie laufen auseinander. */
     nr: '280', name: 'Der Erklaerkasten rechnet wieder selbst nach',
-    datei: 'public/app.js',
-    suche: "          <span id=\"calc-result\">⌀ ${esc(weightNumber(weg.ergebnis))}</span></div>",
+    file: 'public/app.js',
+    search: "          <span id=\"calc-result\">⌀ ${esc(weightNumber(weg.result))}</span></div>",
     ersatz: "          <span id=\"calc-result\">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '281', name: 'Der Rechenweg faellt aus der Antwort',
-    datei: 'server.js',
-    suche: "  it.rechenweg = { ...calc, ergebnis: it.avgRating };",
+    file: 'server.js',
+    search: "  it.rechenweg = { ...calc, result: it.avgRating };",
     ersatz: "  void rechenweg;",
     erwartet: 'Der Rechenweg reist mit'
   },
@@ -2628,8 +2628,8 @@ const RUECKBAUTEN = [
        stumm geworden (Stolperstein 192). Er rundet weiterhin genau das, was er
        vorher gerundet hat -- Summe und rohen Quotienten. */
     nr: '282', name: 'Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert',
-    datei: 'server.js',
-    suche: "    { zeilen, summe: counter, teiler: nenner, roh: nenner ? counter / nenner : null,",
+    file: 'server.js',
+    search: "    { zeilen, sum: counter, divisor: nenner, raw: nenner ? counter / nenner : null,",
     ersatz: "    { zeilen, summe: Math.round(zaehler * 100) / 100, teiler: nenner,\n      roh: nenner ? Math.round((zaehler / nenner) * 100) / 100 : null,",
     erwartet: 'Der Rechenweg reist mit'
   },
@@ -2637,8 +2637,8 @@ const RUECKBAUTEN = [
     /* GEAENDERT MIT 0.17.0 (Stolperstein 201), derselbe Grund wie bei 143.
        Der Rueckbau nimmt weiterhin genau den Bezugspunkt der Glocke heraus. */
     nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
-    datei: 'server.js',
-    suche: "'searchNames',\n                                'bellSeen', 'views', 'strip', 'theme'];",
+    file: 'server.js',
+    search: "'searchNames',\n                                'bellSeen', 'views', 'strip', 'theme'];",
     ersatz: "'searchNames',\n                                'views', 'strip', 'theme'];",
     erwartet: 'Persoenliche Einstellungen'
   },
@@ -2647,8 +2647,8 @@ const RUECKBAUTEN = [
        „Neu von anderen" -- die Glocke meldet seither von allen. Ohne das
        Nachziehen griffe der Rueckbau ins Leere (Stolperstein 192). */
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
-    datei: 'public/app.js',
-    suche: "        ${BELL_SEEN ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
+    file: 'public/app.js',
+    search: "        ${BELL_SEEN ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
     ersatz: "        ${true ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2659,8 +2659,8 @@ const RUECKBAUTEN = [
        steht nicht auf 0 -- die Oberflaeche unterscheidet „nichts Neues" von
        „es gibt keinen Bezugspunkt". */
     nr: '285', name: 'Die Zahl der Kommentare steht auch ohne Bezugspunkt da',
-    datei: 'server.js',
-    suche: "    if (reference) it.neuKommentare = newCommentsPer.get(it.id) || 0;",
+    file: 'server.js',
+    search: "    if (reference) it.newComments = newCommentsPer.get(it.id) || 0;",
     ersatz: "    it.neuKommentare = newCommentsPer.get(it.id) || 0;",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
@@ -2668,8 +2668,8 @@ const RUECKBAUTEN = [
     /* NEU MIT 0.17.0: die drei Angaben stehen oder fehlen GEMEINSAM. Eine
        Antwort mit nur einer davon waere eine dritte Lage, die niemand kennt. */
     nr: '314', name: 'Die Verfasser stehen auch ohne Bezugspunkt an jedem Eintrag',
-    datei: 'server.js',
-    suche: "    if (reference) it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(card, uid));",
+    file: 'server.js',
+    search: "    if (reference) it.newFrom = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(card, uid));",
     ersatz: "    it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => authorFrom(karte, uid));",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
@@ -2686,22 +2686,22 @@ const RUECKBAUTEN = [
        Gegenteil, und seit 0.17.2 gilt wieder 0.16.0 -- der Anker faehrt die
        Bedingung also wieder HERAUS statt hinein. */
     nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare wieder mit',
-    datei: 'server.js',
-    suche: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
+    file: 'server.js',
+    search: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
     ersatz: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT NULL GROUP BY item_id, user_id`);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
     nr: '287', name: 'Bewertungen ohne Zeitpunkt gelten wieder als neu',
-    datei: 'server.js',
-    suche: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0",
+    file: 'server.js',
+    search: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0",
     ersatz: "    WHERE IFNULL(set_at, '9999-12-31') > ? AND value > 0",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
     nr: '288', name: 'Der Zeitpunkt zieht beim Ueberschreiben nicht mehr mit',
-    datei: 'server.js',
-    suche: "              DO UPDATE SET value = excluded.value, set_at = excluded.set_at`)",
+    file: 'server.js',
+    search: "              DO UPDATE SET value = excluded.value, set_at = excluded.set_at`)",
     ersatz: "              DO UPDATE SET value = excluded.value`)",
     erwartet: 'Die Bewertung traegt ihren Zeitpunkt'
   },
@@ -2709,15 +2709,15 @@ const RUECKBAUTEN = [
     /* EIN PUNKT FUER EIN EREIGNIS, EINE ZAHL FUER EINEN ZUSTAND. Die beiden
        Zeichen werden nirgends vertauscht. */
     nr: '289', name: 'Der Punkt an der Glocke wird wieder eine Zahl',
-    datei: 'public/app.js',
-    suche: "  atElement('bell-dot', el => { el.hidden = !fresh; });",
+    file: 'public/app.js',
+    search: "  atElement('bell-dot', el => { el.hidden = !fresh; });",
     ersatz: "  amElement('bell-dot', el => { el.textContent = String(neu); el.hidden = !neu; });",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
     nr: '290', name: 'Der Zaehler „Offen" zeigt auch die Null',
-    datei: 'public/app.js',
-    suche: "    el.textContent = offen ? String(offen) : '';\n    el.hidden = !offen;",
+    file: 'public/app.js',
+    search: "    el.textContent = offen ? String(offen) : '';\n    el.hidden = !offen;",
     ersatz: "    el.textContent = String(offen);\n    el.hidden = false;",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2728,8 +2728,8 @@ const RUECKBAUTEN = [
        zweimal passt, bricht den Rueckbau ab; die Zeile davor macht ihn wieder
        eindeutig. */
     nr: '291', name: 'Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach',
-    datei: 'public/app.js',
-    suche: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});",
+    file: 'public/app.js',
+    search: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});",
     ersatz: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  void 0;",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2737,51 +2737,51 @@ const RUECKBAUTEN = [
     /* EINE MELDUNG, DIE MAN NICHT ANSPRINGEN KANN, IST EINE MITTEILUNG OHNE
        WEG -- das ist der halbe Gewinn der Tafel. */
     nr: '292', name: 'Die Zeilen der Tafel fuehren nicht mehr zum Eintrag',
-    datei: 'public/app.js',
-    suche: "    a.href = `#/item/${it.id}`;\n    a.dataset.mid = String(it.id);",
+    file: 'public/app.js',
+    search: "    a.href = `#/item/${it.id}`;\n    a.dataset.mid = String(it.id);",
     ersatz: "    a.href = '#/';\n    a.dataset.mid = String(it.id);",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
     nr: '293', name: 'Die Kennzahlen nennen die Verfahren nicht mehr',
-    datei: 'server.js',
-    suche: "    verfahren: { ...verfahren(), passwoerter: 'scrypt' },",
+    file: 'server.js',
+    search: "    method: { ...method(), passwoerter: 'scrypt' },",
     ersatz: "",
     erwartet: 'Der Versions-Fingerprint'
   },
   {
     nr: '294', name: 'Die Kennzahlen nennen zusaetzlich die Paketversion',
-    datei: 'server.js',
-    suche: "    verfahren: { ...verfahren(), passwoerter: 'scrypt' },",
+    file: 'server.js',
+    search: "    method: { ...method(), passwoerter: 'scrypt' },",
     ersatz: "    verfahren: { ...verfahren(), passwoerter: 'scrypt',\n      paket: require('./package.json').dependencies['better-sqlite3-multiple-ciphers'] },",
     erwartet: 'Der Versions-Fingerprint'
   },
   {
     nr: '295', name: 'Das Journal wird behauptet statt abgelesen',
-    datei: 'db.js',
-    suche: "    journal: String(db.pragma('journal_mode', { simple: true }) || '').toUpperCase()",
+    file: 'db.js',
+    search: "    journal: String(db.pragma('journal_mode', { simple: true }) || '').toUpperCase()",
     ersatz: "    journal: 'DELETE'",
     erwartet: 'Der Versions-Fingerprint'
   },
   {
     /* DER GEFAEHRLICHSTE KNOPF DER INSTANZ, wenn er ohne Frage loescht. */
     nr: '296', name: 'Der Papierkorb loescht wieder ohne Rueckfrage',
-    datei: 'public/app.js',
-    suche: "    if (!await confirmBox(t('entry.deleteWordAsk', { wort: wort }), t('entry.deleteHint', { wort: wort }))) return false;",
+    file: 'public/app.js',
+    search: "    if (!await confirmBox(t('entry.deleteWordAsk', { wort: wort }), t('entry.deleteHint', { wort: wort }))) return false;",
     ersatz: "    if (false) return false;",
     erwartet: 'Der Papierkorb im Vollbild'
   },
   {
     nr: '297', name: 'Das Vollbild bekommt seinen Papierkorb nicht',
-    datei: 'public/app.js',
-    suche: "        ${remove ? `<button class=\"lb-btn remove\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
+    file: 'public/app.js',
+    search: "        ${remove ? `<button class=\"lb-btn remove\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
     ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"${esc(t('dialog.delete'))}\">${ICON_TRASH}</button>` : ''}",
     erwartet: 'Der Papierkorb im Vollbild'
   },
   {
     nr: '298', name: 'Der Vorschaustreifen im Vollbild zieht nach dem Loeschen nicht nach',
-    datei: 'public/app.js',
-    suche: "    buildStrip();\n    show();",
+    file: 'public/app.js',
+    search: "    buildStrip();\n    show();",
     ersatz: "    show();",
     erwartet: 'Der Papierkorb im Vollbild'
   },
@@ -2789,15 +2789,15 @@ const RUECKBAUTEN = [
     /* EIN WERKZEUG, DAS SEINEN EIGENEN FUND NICHT SEHEN KANN, IST SCHLIMMER
        ALS KEINES (Stolperstein 213). */
     nr: '299', name: 'Die Groessenmessung findet gar nichts mehr',
-    datei: 'testbench.js',
-    suche: "    return gefunden.sort((a, b) => b.zeilen - a.zeilen || a.name.localeCompare(b.name));",
+    file: 'testbench.js',
+    search: "    return gefunden.sort((a, b) => b.zeilen - a.zeilen || a.name.localeCompare(b.name));",
     ersatz: "    return [];",
     erwartet: 'Die Groesse der Funktionen wird gemessen'
   },
   {
     nr: '300', name: 'Der Nummernfilter der Gegenprobe greift wieder in die Namen',
-    datei: 'counterproof.js',
-    suche: "  if (/^\\d+$/.test(a)) return r.nr.toLowerCase() === a;",
+    file: 'counterproof.js',
+    search: "  if (/^\\d+$/.test(a)) return r.nr.toLowerCase() === a;",
     ersatz: "  if (false) return r.nr.toLowerCase() === a;",
     erwartet: 'Die Gegenproben greifen'
   },
@@ -2807,8 +2807,8 @@ const RUECKBAUTEN = [
     /* DIE SPALTENZAHL STEHT WIEDER FEST -- genau der Fehler aus dem Betrieb:
        zwei Zellen in drei Spalten, und die Liste zerfaellt. */
     nr: '301', name: 'Die Spaltenzahl folgt dem Zustand nicht mehr',
-    datei: 'public/app.js',
-    suche: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
+    file: 'public/app.js',
+    search: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
     ersatz: "    box.className = 'rlist';",
     erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
@@ -2817,8 +2817,8 @@ const RUECKBAUTEN = [
        naehme, liesse eine Pruefung durch, die bloss das Attribut liest
        (Stolperstein 223) -- dieser hier nimmt den Gegenstand weg. */
     nr: '302', name: 'Die Regel fuer den einen Zugang faellt aus dem Stilblatt',
-    datei: 'public/style.css',
-    suche: ".rlist.no-average { grid-template-columns: 1fr auto auto; }",
+    file: 'public/style.css',
+    search: ".rlist.no-average { grid-template-columns: 1fr auto auto; }",
     ersatz: "",
     erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
@@ -2828,8 +2828,8 @@ const RUECKBAUTEN = [
     /* DIE ANMELDESEITE MISST WIEDER IN vh -- der grossen Anzeigeflaeche, die
        man auf dem Telefon gar nicht sieht. */
     nr: '303', name: 'Die Anmeldeseite misst die Hoehe wieder in vh',
-    datei: 'public/style.css',
-    suche: "body.login { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }",
+    file: 'public/style.css',
+    search: "body.login { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }",
     ersatz: "body.login { display: flex; flex-direction: column; min-height: 100vh; }",
     erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
   },
@@ -2837,8 +2837,8 @@ const RUECKBAUTEN = [
     /* DER RUECKFALL STEHT DAHINTER STATT DAVOR: ein Browser ohne `dvh`
        ueberliest die letzte Zeile und behaelt gar keine Hoehe. */
     nr: '304', name: 'Der Rueckfall 100vh steht hinter dem dvh statt davor',
-    datei: 'public/style.css',
-    suche: "  min-height: 100vh; min-height: 100dvh;",
+    file: 'public/style.css',
+    search: "  min-height: 100vh; min-height: 100dvh;",
     ersatz: "  min-height: 100dvh; min-height: 100vh;",
     erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
   },
@@ -2846,7 +2846,7 @@ const RUECKBAUTEN = [
     /* DER UMBRUCH GILT WIEDER NUR UNTERHALB EINES UMBRUCHPUNKTS -- auf dem
        Desktop laeuft die Zeile damit erneut seitlich aus dem Kasten. */
     nr: '305', name: 'Die Anmeldezeile darf wieder breiter werden als ihr Kasten',
-    datei: 'public/style.css',
+    file: 'public/style.css',
     /* AM GEGENSTAND UND NICHT AN EINEM KOMMENTAR DANEBEN: die Regel kommt
        ausserhalb der Medienabfrage genau einmal vor, und wer sie umformuliert,
        aendert die Sache selbst. Ein Suchtext, der an einem Kommentar haengt,
@@ -2854,7 +2854,7 @@ const RUECKBAUTEN = [
        SEIT 0.17.1 ZIELT ER AUFS RASTER. Die Zusage ist dieselbe geblieben --
        der Rahmen der eigenen Anmeldung reicht bis zum Rand --, sie haengt nur
        nicht mehr am Umbruch, sondern an der nachgebenden Namensspalte. */
-    suche: `.mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    search: `.mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; column-gap: 9px; row-gap: 2px; }`,
     ersatz: ".mrow.sitz { display: grid; grid-template-columns: max-content auto; }",
     erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
@@ -2862,8 +2862,8 @@ const RUECKBAUTEN = [
   {
     /* DIE VIERTE KACHEL STEHT WIEDER SCHMAL UNTER DREI BREITEN. */
     nr: '306', name: 'Die Karte „Mailversand" verliert ihre Breite wieder',
-    datei: 'public/app.js',
-    suche: "  return `<div class=\"sys-card wide\">\n        <h3>${tH('card.mailDelivery')}</h3>",
+    file: 'public/app.js',
+    search: "  return `<div class=\"sys-card wide\">\n        <h3>${tH('card.mailDelivery')}</h3>",
     ersatz: "  return `<div class=\"sys-card\">\n        <h3>${tH('card.mailDelivery')}</h3>",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -2873,8 +2873,8 @@ const RUECKBAUTEN = [
        mehr an der breitesten Zelle der ganzen Liste ausrichten -- genau der
        Befund, den 0.14.0 behoben hat. */
     nr: '307', name: 'Aus den Rasterzellen wird wieder eine eigene Zeile',
-    datei: 'public/style.css',
-    suche: ".rrow { display: contents; }",
+    file: 'public/style.css',
+    search: ".rrow { display: contents; }",
     ersatz: ".rrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2884,8 +2884,8 @@ const RUECKBAUTEN = [
     /* DIE VERGLEICHSZAHL REIST NICHT MEHR MIT -- die Formel steht wieder da
        und sagt nicht, wofuer die Gewichte gut sind. */
     nr: '308', name: 'Die Vergleichszahl faellt aus dem Rechenweg',
-    datei: 'server.js',
-    suche: "      gleichSumme: sameCounter, gleichTeiler: zeilen.length,",
+    file: 'server.js',
+    search: "      equalSum: sameCounter, equalDivisor: zeilen.length,",
     ersatz: "      gleichSumme: 0, gleichTeiler: 0,",
     erwartet: 'Der Rechenweg reist mit'
   },
@@ -2893,24 +2893,24 @@ const RUECKBAUTEN = [
     /* SIE RECHNET WIEDER MIT GEWICHTEN -- und ist damit dieselbe Rechnung ein
        zweites Mal, also gar kein Vergleich. */
     nr: '309', name: 'Die Vergleichszahl rechnet die Gewichte doch wieder ein',
-    datei: 'server.js',
-    suche: "    sameCounter += z.schnitt;",
+    file: 'server.js',
+    search: "    sameCounter += z.average;",
     ersatz: "    sameCounter += produkt;",
     erwartet: 'Der Rechenweg reist mit'
   },
   {
     /* GERUNDET WIRD ZWEIMAL: je Kriterium und am Ende. */
     nr: '310', name: 'Die Vergleichszahl wird ungerundet ausgeliefert',
-    datei: 'server.js',
-    suche: "      gleichErgebnis: zeilen.length\n        ? Math.round((sameCounter / zeilen.length) * 10) / 10 : null });",
+    file: 'server.js',
+    search: "      equalResult: zeilen.length\n        ? Math.round((sameCounter / zeilen.length) * 10) / 10 : null });",
     ersatz: "      gleichErgebnis: zeilen.length ? sameCounter / zeilen.length : null });",
     erwartet: 'Der Rechenweg reist mit'
   },
   {
     /* DER KASTEN ZEIGT SIE NICHT MEHR. */
     nr: '311', name: 'Der Erklaerkasten laesst die Vergleichszahl weg',
-    datei: 'public/app.js',
-    suche: "        ${withWeight ? `<div class=\"calc-row calc-same\"><span>${tH('entry.calcNoWeights')}</span>",
+    file: 'public/app.js',
+    search: "        ${withWeight ? `<div class=\"calc-row calc-same\"><span>${tH('entry.calcNoWeights')}</span>",
     ersatz: "        ${false ? `<div class=\"rz calc-same\"><span>${tH('entry.calcNoWeights')}</span>",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -2918,8 +2918,8 @@ const RUECKBAUTEN = [
     /* SIE STEHT AUCH DA, WO ALLE GEWICHTE 1 SIND -- dann steht zweimal
        dieselbe Zahl im Kasten, und das ist eine Auskunft ueber nichts. */
     nr: '312', name: 'Die Vergleichszahl steht auch ohne jede Gewichtung da',
-    datei: 'public/app.js',
-    suche: "    const sameNumber = Number(weg.gleichErgebnis) === Number(weg.ergebnis);",
+    file: 'public/app.js',
+    search: "    const sameNumber = Number(weg.equalResult) === Number(weg.result);",
     ersatz: "    const gleicheZahl = false;",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -2927,8 +2927,8 @@ const RUECKBAUTEN = [
     /* DER KASTEN RECHNET SIE SELBST NACH statt sie zu lesen -- eine zweite
        Rechenstelle im Browser (Stolperstein 217). */
     nr: '313', name: 'Der Kasten rechnet die Vergleichszahl selbst nach',
-    datei: 'public/app.js',
-    suche: "          <span id=\"calc-same\">⌀ ${esc(weightNumber(weg.gleichErgebnis))}</span></div>` : ''}",
+    file: 'public/app.js',
+    search: "          <span id=\"calc-same\">⌀ ${esc(weightNumber(weg.equalResult))}</span></div>` : ''}",
     ersatz: "          <span id=\"calc-same\">⌀ ${esc(gewZahl(Math.round((weg.zeilen.reduce((n, z) => n + z.schnitt, 0) / weg.zeilen.length) * 10) / 10))}</span></div>` : ''}",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -2938,8 +2938,8 @@ const RUECKBAUTEN = [
     /* DIE BEIDEN ZAHLEN WERDEN WIEDER ZU EINER -- genau der Befund: „7 neue
        Beitraege" sagt nicht, WAS auf einen wartet. */
     nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
-    datei: 'public/app.js',
-    suche: "  return [k ? t('list.commentCount', { n: k }) : '',\n          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
+    file: 'public/app.js',
+    search: "  return [k ? t('list.commentCount', { n: k }) : '',\n          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
     ersatz: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2947,16 +2947,16 @@ const RUECKBAUTEN = [
     /* DIE NULL STEHT WIEDER DA. „0 Bewertungen" ist eine Auskunft ueber
        nichts -- dieselbe Regel wie am Knopf „Offen". */
     nr: '316', name: 'Die Tafel schreibt auch die Null hin',
-    datei: 'public/app.js',
-    suche: "b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
+    file: 'public/app.js',
+    search: "b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
     ersatz: "`${b} ${vBewertung(b)}`].join(' · ');",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
     /* EINE FESTE ENDUNG MACHT AUS EINEM KOMMENTAR „1 Kommentare". */
     nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
-    datei: 'public/languages/de.json',
-    suche: "\"list.commentCount\": {\n    \"eins\": \"{n} Kommentar\",",
+    file: 'public/languages/de.json',
+    search: "\"list.commentCount\": {\n    \"eins\": \"{n} Kommentar\",",
     ersatz: "\"list.commentCount\": {\n    \"eins\": \"{n} Kommentare\",",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2964,8 +2964,8 @@ const RUECKBAUTEN = [
     /* DIE ZAHLEN KOMMEN AUS EINER ABFRAGE, DIE SIE NICHT MEHR TRENNT. Der
        Server wirft die Auskunft wieder weg, noch bevor sie hinausgeht. */
     nr: '318', name: 'Der Server legt beide Zahlen wieder in eine Kiste',
-    datei: 'server.js',
-    suche: "      neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);",
+    file: 'server.js',
+    search: "      neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);",
     ersatz: "      newCommentsPer.set(z.item_id, (newCommentsPer.get(z.item_id) || 0) + z.n);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
@@ -2974,8 +2974,8 @@ const RUECKBAUTEN = [
        Eintrag mit vier neuen Bewertungen stuende unter einem mit einem
        Kommentar. */
     nr: '319', name: 'Die Tafel ordnet nach den Kommentaren statt nach der Summe',
-    datei: 'public/app.js',
-    suche: "    .slice().sort((a, b) => (freshCount(b) - freshCount(a)) || String(a.title).localeCompare(String(b.title), LOCALE));",
+    file: 'public/app.js',
+    search: "    .slice().sort((a, b) => (freshCount(b) - freshCount(a)) || String(a.title).localeCompare(String(b.title), LOCALE));",
     ersatz: "    .slice().sort((a, b) => ((b.neuKommentare || 0) - (a.neuKommentare || 0)) || String(a.title).localeCompare(String(b.title), LOCALE));",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2985,8 +2985,8 @@ const RUECKBAUTEN = [
     /* DIE TAFEL SAGT NICHT MEHR, VON WEM. Bei einer Glocke, die auch die
        eigenen Beitraege meldet, ist das die halbe Auskunft. */
     nr: '320', name: 'Die Tafel sagt nicht mehr, von wem etwas kommt',
-    datei: 'public/app.js',
-    suche: "    a.querySelector('.bell-from').textContent = newFromWords(it);",
+    file: 'public/app.js',
+    search: "    a.querySelector('.bell-from').textContent = newFromWords(it);",
     ersatz: "    a.querySelector('.bell-from').textContent = '';",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -2999,8 +2999,8 @@ const RUECKBAUTEN = [
        Rueckbau, der ein zweites Netz wegnimmt, kann nichts zeigen
        (Stolperstein 235). Der Anker gehoert an die tragende Zusage. */
     nr: '321', name: 'Die Abfrage gruppiert nicht mehr nach Verfasser',
-    datei: 'server.js',
-    suche: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
+    file: 'server.js',
+    search: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
     ersatz: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id`);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
@@ -3008,8 +3008,8 @@ const RUECKBAUTEN = [
     /* DIE AUFZAEHLUNG WIRD EINE LISTE MIT KOMMAS BIS ZUM SCHLUSS -- so
        zaehlt man Dinge auf, nicht Menschen. */
     nr: '322', name: 'Die Namen werden mit Kommas bis zum Schluss aufgezaehlt',
-    datei: 'public/app.js',
-    suche: "  const letzter = namen[namen.length - 1], vorne = namen.slice(0, -1).join(', ');\n  return t('list.byNames',\n    { namen: vorne ? t('list.namesAndLast', { vorne: vorne, letzter: letzter }) : letzter });",
+    file: 'public/app.js',
+    search: "  const letzter = namen[namen.length - 1], vorne = namen.slice(0, -1).join(', ');\n  return t('list.byNames',\n    { namen: vorne ? t('list.namesAndLast', { vorne: vorne, letzter: letzter }) : letzter });",
     ersatz: "  return t('list.byNames', { namen: namen.join(', ') });",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -3017,8 +3017,8 @@ const RUECKBAUTEN = [
     /* DIE PILLE „NEU SEIT ..." KOMMT ZURUECK -- zwei Anzeigen fuer dieselbe
        Frage, und die Filterzeile ist wieder eine Pille laenger. */
     nr: '323', name: 'Der Schluessel der gestrichenen Pille bleibt in der Stellung stehen',
-    datei: 'public/app.js',
-    suche: "  delete f.neu;\n  return f;",
+    file: 'public/app.js',
+    search: "  delete f.neu;\n  return f;",
     ersatz: "  return f;",
     erwartet: 'Die gestrichene Pille „Neu seit …" — 0.17.0'
   },
@@ -3027,8 +3027,8 @@ const RUECKBAUTEN = [
        einmal -- dann setzt ein Blick in einen Eintrag die Tafel zurueck, ohne
        dass jemand sie gelesen haette. */
     nr: '324', name: 'Der Bezugspunkt faellt bei jedem Verlassen der Uebersicht',
-    datei: 'public/app.js',
-    suche: "  if (BELL_SEEN) return;\n  BELL_SEEN = true;",
+    file: 'public/app.js',
+    search: "  if (BELL_SEEN) return;\n  BELL_SEEN = true;",
     ersatz: "  BELL_SEEN = true;",
     erwartet: 'Der Bezugspunkt der Glocke in der Oberflaeche'
   },
@@ -3036,16 +3036,16 @@ const RUECKBAUTEN = [
     /* DIE ZEILE DER TAFEL BRICHT NICHT MEHR UM -- der Titel schrumpft zu
        Punkten, damit die Namen Platz haben. */
     nr: '325', name: 'Die Zeile der Glockentafel bricht nicht mehr um',
-    datei: 'public/style.css',
-    suche: ".mrow.bell-row { flex-wrap: wrap; row-gap: 2px; }",
+    file: 'public/style.css',
+    search: ".mrow.bell-row { flex-wrap: wrap; row-gap: 2px; }",
     ersatz: "",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
     /* DIE ANGABE „VON WEM" BEKOMMT KEINE EIGENE ZEILE MEHR. */
     nr: '326', name: 'Die Angabe „von wem" bekommt keine eigene Zeile',
-    datei: 'public/style.css',
-    suche: ".bell-row .bell-from { flex-basis: 100%; font-size: .76rem; color: var(--faint); }",
+    file: 'public/style.css',
+    search: ".bell-row .bell-from { flex-basis: 100%; font-size: .76rem; color: var(--faint); }",
     ersatz: ".bell-row .bell-from { font-size: .76rem; color: var(--faint); }",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -3057,15 +3057,15 @@ const RUECKBAUTEN = [
      festhalten, muessen daran rot werden. */
   {
     nr: '327', name: 'Die Kennzahlen begruenden den Vorbehalt wieder an der Oberflaeche',
-    datei: 'public/app.js',
-    suche: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>` : ''}",
+    file: 'public/app.js',
+    search: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.method.passwoerter || '—')}</span></div>` : ''}",
     ersatz: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>\n        <p class=\"desc\" style=\"margin:10px 0 0\"><strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
     erwartet: 'Der Papierkorb in der Oberflaeche'
   },
   {
     nr: '328', name: 'Die Glockentafel begruendet sich wieder selbst',
-    datei: 'public/app.js',
-    suche: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <div class=\"modal-acts\">",
+    file: 'public/app.js',
+    search: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <div class=\"modal-acts\">",
     ersatz: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <p class=\"hint hint-sm\" style=\"margin:2px 0 0\"><strong>Was die Glocke nicht verspricht:</strong>\n      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.</p>\n    <div class=\"modal-acts\">",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
@@ -3076,8 +3076,8 @@ const RUECKBAUTEN = [
      eine Klasse liest (Stolperstein 223). */
   {
     nr: '329', name: 'Die Durchschnittszelle haengt nicht mehr an derselben Bedingung',
-    datei: 'public/app.js',
-    suche: "      if (withAverage) {",
+    file: 'public/app.js',
+    search: "      if (withAverage) {",
     ersatz: "      if (true) {",
     erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
@@ -3090,8 +3090,8 @@ const RUECKBAUTEN = [
      demselben Satz. */
   {
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
-    datei: 'public/app.js',
-    suche: "${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}",
+    file: 'public/app.js',
+    search: "${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}",
     ersatz: "${tH('entry.calcFirstAvg')}${tH('entry.calcThenAvg')}",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -3102,8 +3102,8 @@ const RUECKBAUTEN = [
      nicht im Stilblatt gelesen; kein Rueckbau konnte sie treffen. */
   {
     nr: '331', name: 'Das Raster des Erklaerkastens verliert eine Spalte',
-    datei: 'public/style.css',
-    suche: ".calc { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }",
+    file: 'public/style.css',
+    search: ".calc { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }",
     ersatz: ".rechnung { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; }",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -3111,15 +3111,15 @@ const RUECKBAUTEN = [
      Zusagen; bis 0.17.0 stand keine davon in einer Pruefung (Stolperstein 199). */
   {
     nr: '332', name: 'Die Vergleichszeile wird dem Ergebnis gleichgestellt',
-    datei: 'public/style.css',
-    suche: ".calc-same > span { color: var(--muted); border-bottom: 0; border-top: 1px solid var(--line-2); }",
+    file: 'public/style.css',
+    search: ".calc-same > span { color: var(--muted); border-bottom: 0; border-top: 1px solid var(--line-2); }",
     ersatz: ".calc-same > span { font-weight: 640; color: #8a8a8a; border-bottom: 0; }",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '333', name: 'Die Vergleichszeile bekommt eine Zelle zu wenig',
-    datei: 'public/app.js',
-    suche: "          <span></span><span></span>\n          <span id=\"calc-same\">",
+    file: 'public/app.js',
+    search: "          <span></span><span></span>\n          <span id=\"calc-same\">",
     ersatz: "          <span></span>\n          <span id=\"calc-same\">",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -3127,65 +3127,65 @@ const RUECKBAUTEN = [
   /* ---- 0.17.1: was der Benutzer sieht ---- */
   {
     nr: '334', name: 'Die Marke am Adressfeld behauptet wieder immer „freiwillig"',
-    datei: 'public/app.js',
-    suche: "        <div class=\"field\"><label>${tH('login.email')} <span class=\"hint\">${\n          SIGNUP ? t('card.required') : t('card.optional')}</span></label>",
+    file: 'public/app.js',
+    search: "        <div class=\"field\"><label>${tH('login.email')} <span class=\"hint\">${\n          SIGNUP ? t('card.required') : t('card.optional')}</span></label>",
     ersatz: "        <div class=\"field\"><label>${tH('login.email')} <span class=\"hint\">${t('card.optional')}</span></label>",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
     nr: '335', name: 'Der Absatz richtet sich nicht mehr nach der Selbstanmeldung',
-    datei: 'public/app.js',
-    suche: "        <p class=\"desc\" style=\"margin:0 0 10px\">${SIGNUP",
+    file: 'public/app.js',
+    search: "        <p class=\"desc\" style=\"margin:0 0 10px\">${SIGNUP",
     ersatz: "        <p class=\"desc\" style=\"margin:0 0 10px\">${false",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
     nr: '336', name: 'Der Merker der Selbstanmeldung bleibt beim Umlegen stehen',
-    datei: 'public/app.js',
-    suche: "      SIGNUP = !!d.an;\n",
+    file: 'public/app.js',
+    search: "      SIGNUP = !!d.an;\n",
     ersatz: "",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
     nr: '337', name: 'Der Wirtsbefehl steht wieder bei jedem',
-    datei: 'public/app.js',
-    suche: "function serverBox(sentence, command) {\n  if (!OWNER) return '';",
+    file: 'public/app.js',
+    search: "function serverBox(sentence, command) {\n  if (!OWNER) return '';",
     ersatz: "function serverKasten(satz, befehl) {\n  if (false) return '';",
     erwartet: 'Der Systembereich nach Rolle'
   },
   {
     nr: '338', name: 'Die Laengenvorgabe faellt vom Passwortfeld weg',
-    datei: 'public/app.js',
-    suche: "        <div class=\"field\"><label>${tH('dialog.newPassword')}\n          <span class=\"hint\">${tH('card.minCharsHint', { minPasswort: MIN_PASSWORD })}</span></label>",
+    file: 'public/app.js',
+    search: "        <div class=\"field\"><label>${tH('dialog.newPassword')}\n          <span class=\"hint\">${tH('card.minCharsHint', { minPasswort: MIN_PASSWORD })}</span></label>",
     ersatz: "        <div class=\"field\"><label>${tH('dialog.newPassword')}</label>",
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
     nr: '339', name: 'Die Liste bekommt ihre feste Hoehe zurueck',
-    datei: 'public/style.css',
-    suche: `.manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;
+    file: 'public/style.css',
+    search: `.manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }`,
     ersatz: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
-    datei: 'public/style.css',
-    suche: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
+    file: 'public/style.css',
+    search: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
     ersatz: ".log-list { flex: 0 1 auto; max-height: 35rem;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '341', name: 'Die Kachel ist wieder keine Spalte',
-    datei: 'public/style.css',
-    suche: "padding: 18px 20px 20px;\n  display: flex; flex-direction: column; }",
+    file: 'public/style.css',
+    search: "padding: 18px 20px 20px;\n  display: flex; flex-direction: column; }",
     ersatz: "padding: 18px 20px 20px; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '342', name: 'Der Knopf in der Kachel wird wieder ueber die volle Breite gezogen',
-    datei: 'public/style.css',
-    suche: ".sys-card > .btn { align-self: flex-start; }",
+    file: 'public/style.css',
+    search: ".sys-card > .btn { align-self: flex-start; }",
     ersatz: "",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
@@ -3193,51 +3193,51 @@ const RUECKBAUTEN = [
     /* MITGEGANGEN IN 0.19.1 (Stolperstein 201): der Abschnitt heisst jetzt
        „Installation", der Rueckbau setzt weiter den aeltesten Namen. */
     nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
-    datei: 'public/app.js',
-    suche: "  { schluessel: 'installation', name: () => t('card.installation') }",
+    file: 'public/app.js',
+    search: "  { schluessel: 'installation', name: () => t('card.installation') }",
     ersatz: "  { schluessel: 'installation', name: () => 'Anlage' }",
     erwartet: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
   {
     nr: '348', name: 'Die Zeitangaben stehen wieder linksbuendig',
-    datei: 'public/style.css',
-    suche: ".mrow.session .session-time { grid-column: 1 / -1; justify-self: end; text-align: right; }",
+    file: 'public/style.css',
+    search: ".mrow.session .session-time { grid-column: 1 / -1; justify-self: end; text-align: right; }",
     ersatz: ".mrow.sitz .session-time { grid-column: 1 / -1; }",
     erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
     nr: '349', name: 'Der Name teilt seine Reihe wieder mit den Zeiten',
-    datei: 'public/style.css',
-    suche: ".mrow.session .mname { grid-column: 1; grid-row: 1; }",
+    file: 'public/style.css',
+    search: ".mrow.session .mname { grid-column: 1; grid-row: 1; }",
     ersatz: ".mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 3; }",
     erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
     nr: '350', name: 'Das Vollbild uebernimmt den inneren Abspieler nicht mehr',
-    datei: 'public/app.js',
-    suche: "      handover = { quelle, stelle: el.currentTime || 0, lief: !el.paused, offen: true };\n" +
+    file: 'public/app.js',
+    search: "      handover = { source, stelle: el.currentTime || 0, lief: !el.paused, offen: true };\n" +
            "      el.pause();\n      el.removeAttribute('src');\n      el.load();",
     ersatz: "      el.pause();",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
   },
   {
     nr: '351', name: 'Die uebernommene Stelle wird nicht gesetzt',
-    datei: 'public/app.js',
-    suche: "        player.currentTime = handover.stelle;\n",
+    file: 'public/app.js',
+    search: "        player.currentTime = handover.stelle;\n",
     ersatz: "",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
   },
   {
     nr: '352', name: 'Der Rueckweg beim Schliessen faellt weg',
-    datei: 'public/app.js',
-    suche: "    hold();\n    restore();\n    lightboxOpen = false;",
+    file: 'public/app.js',
+    search: "    hold();\n    restore();\n    lightboxOpen = false;",
     ersatz: "    halteAn();\n    lightboxOpen = false;",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
   },
   {
     nr: '353', name: 'Die geloeschte Quelle wandert wieder zurueck',
-    datei: 'public/app.js',
-    suche: "    if (handover && imageSource(weg, '') === handover.quelle) handover = null;\n",
+    file: 'public/app.js',
+    search: "    if (handover && imageSource(weg, '') === handover.source) handover = null;\n",
     ersatz: "",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
   },
@@ -3245,72 +3245,72 @@ const RUECKBAUTEN = [
   /* ---- 0.17.2: der Deckel, die Reihen, die Klammer und die Glocke ---- */
   {
     nr: '354', name: 'Das Raster der Sitzungszeile bekommt seine dritte Spalte zurueck',
-    datei: 'public/style.css',
-    suche: ".mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;",
+    file: 'public/style.css',
+    search: ".mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;",
     ersatz: ".mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;",
     erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
     nr: '355', name: 'Die Liste fordert wieder so viele Zeilen, wie sie hat',
-    datei: 'public/style.css',
-    suche: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;",
+    file: 'public/style.css',
+    search: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;",
     ersatz: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: none;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '356', name: 'Das Sicherheitsprotokoll fordert wieder alle seine Zeilen',
-    datei: 'public/style.css',
-    suche: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;\n",
+    file: 'public/style.css',
+    search: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;\n",
     ersatz: ".log-list { flex: 0 1 auto; min-height: 0; max-height: none;\n",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '357', name: 'Auf dem Telefon deckelt nichts mehr am Fenster',
-    datei: 'public/style.css',
-    suche: "  .manage-list, .log-list, .test-scroll, .atext, #ex-part-list {\n" +
+    file: 'public/style.css',
+    search: "  .manage-list, .log-list, .test-scroll, .atext, #ex-part-list {\n" +
            "    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }",
     ersatz: "",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
-    datei: 'public/languages/de.json',
-    suche: "\"card.mailTimeoutHint\": \". Antwortet der Mailserver nicht, bricht der",
+    file: 'public/languages/de.json',
+    search: "\"card.mailTimeoutHint\": \". Antwortet der Mailserver nicht, bricht der",
     ersatz: "\"card.mailTimeoutHint\": \" — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
     nr: '364', name: 'Die Klammer steht wieder auch bei einer einzigen Stimme',
-    datei: 'public/app.js',
-    suche: "          a.textContent = r.count > 1 ? `⌀ ${schnitt} (${r.count})` : `⌀ ${schnitt}`;",
+    file: 'public/app.js',
+    search: "          a.textContent = r.count > 1 ? `⌀ ${average} (${r.count})` : `⌀ ${average}`;",
     ersatz: "          a.textContent = `⌀ ${schnitt} (${r.count})`;",
     erwartet: 'Die Klammer steht erst ab zwei Stimmen — 0.17.2'
   },
   {
     nr: '365', name: 'Die Glocke meldet wieder die eigenen Kommentare',
-    datei: 'server.js',
-    suche: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
+    file: 'server.js',
+    search: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
     ersatz: "    WHERE created_at > ? AND (user_id IS NOT ? OR 1) GROUP BY item_id, user_id`);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
     nr: '366', name: 'Die Glocke meldet wieder die eigenen Bewertungen',
-    datei: 'server.js',
-    suche: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND user_id IS NOT ?",
+    file: 'server.js',
+    search: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND user_id IS NOT ?",
     ersatz: "    WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND (user_id IS NOT ? OR 1)",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
     nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
-    datei: 'public/app.js',
-    suche: "    <p>${tH('list.newCommentsAnd')} <strong>${tH('list.otherUser')}</strong>${tH('list.sinceLastVisit')}</p>",
+    file: 'public/app.js',
+    search: "    <p>${tH('list.newCommentsAnd')} <strong>${tH('list.otherUser')}</strong>${tH('list.sinceLastVisit')}</p>",
     ersatz: "    <p>${tH('list.newCommentsAnd')}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
     nr: '368', name: 'Die README erzaehlt wieder, seit wann etwas gilt',
-    datei: 'README.md',
-    suche: "**Über der Liste steht eine Reihe von Ansichten**",
+    file: 'README.md',
+    search: "**Über der Liste steht eine Reihe von Ansichten**",
     ersatz: "**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**",
     erwartet: 'Der Sprachwaechter'
   },
@@ -3318,142 +3318,142 @@ const RUECKBAUTEN = [
   /* ---- 0.17.3: die Kachel, der Mailversand, der Erklaerkasten, der Filter ---- */
   {
     nr: '369', name: 'Das Kachelraster streckt seine Kinder wieder nicht',
-    datei: 'public/style.css',
-    suche: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; }",
+    file: 'public/style.css',
+    search: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; }",
     ersatz: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; align-items: start; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '370', name: 'Die Liste fordert wieder zwoelf Zeilen',
-    datei: 'public/style.css',
-    suche: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;\n",
+    file: 'public/style.css',
+    search: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;\n",
     ersatz: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 33.5rem;\n",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '371', name: 'Das Sicherheitsprotokoll deckelt wieder bei zehn Zeilen',
-    datei: 'public/style.css',
-    suche: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
+    file: 'public/style.css',
+    search: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
     ersatz: ".log-list { flex: 0 1 auto; min-height: 0; max-height: 23.3rem;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '372', name: 'Die Karte bekommt ihre Passwortzeile zurueck',
-    datei: 'public/app.js',
-    suche: "        <div class=\"kv\"><span class=\"k\">${tH('card.provider')}</span>",
+    file: 'public/app.js',
+    search: "        <div class=\"kv\"><span class=\"k\">${tH('card.provider')}</span>",
     ersatz: "        <div class=\"kv\"><span class=\"k\">Passwort</span><span class=\"v\">${mailstand.passwortGesetzt\n          ? 'gesetzt' : 'nicht gesetzt'}</span></div>\n        <div class=\"kv\"><span class=\"k\">${tH('card.provider')}</span>",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
     nr: '373', name: 'Die Anbieterzeile nennt wieder nur den Namen',
-    datei: 'public/app.js',
-    suche: "  const teile = [esc(m.anbieterName || m.anbieter)];\n  if (m.server && m.port) {",
+    file: 'public/app.js',
+    search: "  const parts = [esc(m.providerName || m.provider)];\n  if (m.server && m.port) {",
     ersatz: "  const teile = [esc(m.anbieterName || m.anbieter)];\n  if (false) {",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
     nr: '374', name: 'Der Knopf heisst wieder „Mailzugang speichern"',
-    datei: 'public/app.js',
-    suche: "id=\"mail-setup\">${tH('card.mailAccount')} ${\n            mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</button>",
+    file: 'public/app.js',
+    search: "id=\"mail-setup\">${tH('card.mailAccount')} ${\n            mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</button>",
     ersatz: "id=\"mail-setup\">${tH('card.mailAccount')} speichern</button>",
     erwartet: 'Die Karte „Mailversand“'
   },
   {
     nr: '375', name: 'Der Anbieterhinweis wechselt nicht mehr mit der Auswahl',
-    datei: 'public/app.js',
-    suche: "      hinweis.textContent = v && v.hinweis ? v.hinweis : '';",
+    file: 'public/app.js',
+    search: "      hint.textContent = v && v.hint ? v.hint : '';",
     ersatz: "      hinweis.textContent = mailstand.hinweis || '';",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '376', name: 'Die gelesene Zeile steht auch bei „Eigener Server"',
-    datei: 'public/app.js',
-    suche: "      fixedField.hidden = !v || eigen;",
+    file: 'public/app.js',
+    search: "      fixedField.hidden = !v || eigen;",
     ersatz: "      fixedField.hidden = !v;",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '377', name: 'Der Dialog kuerzt die zweite Bestaetigung ab',
-    datei: 'public/app.js',
-    suche: "      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),\n        t('card.mailServerHint') +\n        t('card.toSetPassword'))) return;\n",
+    file: 'public/app.js',
+    search: "      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),\n        t('card.mailServerHint') +\n        t('card.toSetPassword'))) return;\n",
     ersatz: "",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '378', name: 'Die Anbieterliste kommt wieder ohne Hinweise und feste Werte',
-    datei: 'server.js',
-    suche: "    anbieterListe: mail.forChoice().map(a =>\n      ({ ...a, hinweis: a.hinweis ? t(localeOf(req), a.hinweis) : '' })),",
+    file: 'server.js',
+    search: "    providerList: mail.forChoice().map(a =>\n      ({ ...a, hint: a.hint ? t(localeOf(req), a.hint) : '' })),",
     ersatz: "    anbieterListe: mail.PROVIDERS.map(a => ({ schluessel: a.schluessel, name: a.name })),",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
     nr: '379', name: 'Der Hinweis rueckt nicht mehr an seine Sache heran',
-    datei: 'public/style.css',
-    suche: ".mail-hint { margin: -7px 0 0; }",
+    file: 'public/style.css',
+    search: ".mail-hint { margin: -7px 0 0; }",
     ersatz: ".mail-hint { margin: 0; }",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '380', name: 'Die Felder im Dialog tragen wieder ihren zweiten Abstand',
-    datei: 'public/style.css',
-    suche: ".mail-dialog .field { margin-bottom: 0; }",
+    file: 'public/style.css',
+    search: ".mail-dialog .field { margin-bottom: 0; }",
     ersatz: ".mail-dialog .field { margin-bottom: 14px; }",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
   {
     nr: '381', name: 'Die Zeilen der Rechnung ruecken wieder auseinander',
-    datei: 'public/style.css',
-    suche: ".calc-row > span { padding: 3px 0;",
+    file: 'public/style.css',
+    search: ".calc-row > span { padding: 3px 0;",
     ersatz: ".rz > span { padding: 6px 0;",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '382', name: 'Der Erklaerkasten wird wieder schmal',
-    datei: 'public/style.css',
-    suche: ".calc-modal { max-width: 620px; }",
+    file: 'public/style.css',
+    search: ".calc-modal { max-width: 620px; }",
     ersatz: ".calc-modal { max-width: 540px; }",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '383', name: 'Die ausgeschriebene Rechnung steht wieder unter der Tabelle',
-    datei: 'public/app.js',
-    suche: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')}",
+    file: 'public/app.js',
+    search: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')}",
     ersatz: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')} ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))}",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
   {
     nr: '384', name: 'Der Filterruecksetzer steht immer da',
-    datei: 'public/app.js',
-    suche: "  const filterGesetzt = filterNumber();\n  if (filterGesetzt) {",
+    file: 'public/app.js',
+    search: "  const filterGesetzt = filterNumber();\n  if (filterGesetzt) {",
     ersatz: "  const filterGesetzt = filterNumber();\n  if (true) {",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
   {
     nr: '385', name: 'Der Filterruecksetzer nennt seine Zahl nicht mehr',
-    datei: 'public/app.js',
-    suche: "    bBack.textContent = t('list.resetFilters', { filterGesetzt: filterGesetzt });",
+    file: 'public/app.js',
+    search: "    bBack.textContent = t('list.resetFilters', { filterGesetzt: filterGesetzt });",
     ersatz: "    bZurueck.textContent = 'Filter zurücksetzen';",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
   {
     nr: '386', name: 'Der Filterruecksetzer raeumt die Sortierung mit',
-    datei: 'public/app.js',
-    suche: "      state.filters = filterNormal({ sort: state.filters.sort });",
+    file: 'public/app.js',
+    search: "      state.filters = filterNormal({ sort: state.filters.sort });",
     ersatz: "      state.filters = filterNormal({});",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
   {
     nr: '387', name: 'Der Filterruecksetzer raeumt die Suche mit',
-    datei: 'public/app.js',
-    suche: "      redraw();\n    };\n    right5.appendChild(bBack);",
+    file: 'public/app.js',
+    search: "      redraw();\n    };\n    right5.appendChild(bBack);",
     ersatz: "      const qf = document.getElementById('q'); if (qf) qf.value = '';\n" +
             "      redraw();\n    };\n    rechts5.appendChild(bZurueck);",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
   {
     nr: '388', name: 'Der Filterruecksetzer steht nicht mehr am rechten Rand',
-    datei: 'public/style.css',
-    suche: ".frow-right-wide { margin-left: auto; }",
+    file: 'public/style.css',
+    search: ".frow-right-wide { margin-left: auto; }",
     ersatz: ".frow-right-wide { margin-right: 0; }",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
@@ -3461,36 +3461,36 @@ const RUECKBAUTEN = [
   /* ---- 0.17.4: fordern und nutzen ---- */
   {
     nr: '389', name: 'Die leere Bedienliste wird wieder eine Zeile hoch',
-    datei: 'public/style.css',
-    suche: ".manage-list > .hint { min-height: 5.59rem; padding: 0 9px; }",
+    file: 'public/style.css',
+    search: ".manage-list > .hint { min-height: 5.59rem; padding: 0 9px; }",
     ersatz: ".manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '392', name: 'Das leere Protokoll wird wieder eine Zeile hoch',
-    datei: 'public/style.css',
-    suche: ".log-list > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }",
+    file: 'public/style.css',
+    search: ".log-list > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }",
     ersatz: ".log-list > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '393', name: 'Die leere Meldung traegt die Vorgabemarge wieder mit',
-    datei: 'public/style.css',
-    suche: "  display: flex; align-items: center; margin: 0; }\n.manage-list > .hint {",
+    file: 'public/style.css',
+    search: "  display: flex; align-items: center; margin: 0; }\n.manage-list > .hint {",
     ersatz: "  display: flex; align-items: center; }\n.manage-list > .hint {",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '390', name: 'Die Liste im Fenster bekommt den Deckel wieder',
-    datei: 'public/style.css',
-    suche: ".modal .manage-list { max-height: none; }",
+    file: 'public/style.css',
+    search: ".modal .manage-list { max-height: none; }",
     ersatz: ".modal .manage-list { max-height: 27.95rem; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '391', name: 'Die Liste haengt wieder am Schluesselwort',
-    datei: 'public/style.css',
-    suche: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;",
+    file: 'public/style.css',
+    search: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;",
     ersatz: ".manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
@@ -3498,29 +3498,29 @@ const RUECKBAUTEN = [
   /* ---- 0.17.5: die Hoehe ohne Schluesselwort, das Raster der Liste ---- */
   {
     nr: '394', name: 'Die Spalten gehoeren wieder der Zeile',
-    datei: 'public/style.css',
-    suche: "  display: grid; grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }",
+    file: 'public/style.css',
+    search: "  display: grid; grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }",
     ersatz: "  grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '395', name: 'Die Zeile wird wieder ein eigener Kasten',
-    datei: 'public/style.css',
-    suche: ".log-row { display: contents; }",
+    file: 'public/style.css',
+    search: ".log-row { display: contents; }",
     ersatz: ".log-row { display: block; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '396', name: 'Die Felder richten sich wieder an der Schriftlinie aus',
-    datei: 'public/style.css',
-    suche: "  font-size: .86rem; align-self: end; }",
+    file: 'public/style.css',
+    search: "  font-size: .86rem; align-self: end; }",
     ersatz: "  font-size: .86rem; align-self: baseline; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '397', name: 'Auf dem Telefon bleibt die Liste ein Raster',
-    datei: 'public/style.css',
-    suche: "  .log-list { display: block; }\n  .log-row { display: grid;",
+    file: 'public/style.css',
+    search: "  .log-list { display: block; }\n  .log-row { display: grid;",
     ersatz: "  .log-row { display: grid;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
@@ -3528,8 +3528,8 @@ const RUECKBAUTEN = [
   /* ---- 0.18.0: die Suche wird nachvollziehbar ---- */
   {
     nr: '398', name: 'Der Trefferkontext faellt ganz aus der Antwort',
-    datei: 'server.js',
-    suche: "    if (term) it.fundstelle = hits.get(it.id);",
+    file: 'server.js',
+    search: "    if (term) it.fundstelle = hits.get(it.id);",
     ersatz: "    if (false) it.fundstelle = fundstellen.get(it.id);",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
@@ -3544,15 +3544,15 @@ const RUECKBAUTEN = [
        ueberhaupt nicht. Ein Rueckbau muss die Stelle treffen, die die Zusage
        traegt, nicht eine daneben. */
     nr: '399', name: 'Der Trefferkontext steht auch ohne Suche in der Antwort',
-    datei: 'server.js',
-    suche: "    if (term) it.fundstelle = hits.get(it.id);",
+    file: 'server.js',
+    search: "    if (term) it.fundstelle = hits.get(it.id);",
     ersatz: "    it.fundstelle = fundstellen.get(it.id) || null;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '400', name: 'Der Ausschnitt wird vorn geschnitten statt an der Fundstelle',
-    datei: 'server.js',
-    suche: "const SNIPPET_LEAD = 4;",
+    file: 'server.js',
+    search: "const SNIPPET_LEAD = 4;",
     ersatz: "const SNIPPET_LEAD = 1000;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
@@ -3561,29 +3561,29 @@ const RUECKBAUTEN = [
        und verschweigt damit, dass sie mitten in einem Wort steht -- der
        Befund, wegen dem es diese Runde ueberhaupt gibt. */
     nr: '401', name: 'Der Ausschnitt beginnt genau bei der Fundstelle',
-    datei: 'server.js',
-    suche: "const SNIPPET_LEAD = 4;",
+    file: 'server.js',
+    search: "const SNIPPET_LEAD = 4;",
     ersatz: "const SNIPPET_LEAD = 0;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '402', name: 'Der Ausschnitt wird nicht mehr eingeebnet',
-    datei: 'server.js',
-    suche: "const oneLine = (s) => String(s ?? '').replace(/\\s+/g, ' ').trim();",
+    file: 'server.js',
+    search: "const oneLine = (s) => String(s ?? '').replace(/\\s+/g, ' ').trim();",
     ersatz: "const oneLine = (s) => String(s ?? '');",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '403', name: 'Der Ausschnitt wird gar nicht mehr gekuerzt',
-    datei: 'server.js',
-    suche: "const SNIPPET_LENGTH = 56;",
+    file: 'server.js',
+    search: "const SNIPPET_LENGTH = 56;",
     ersatz: "const SNIPPET_LENGTH = 100000;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
     nr: '404', name: 'Die Zahl der weiteren Stellen ist immer null',
-    datei: 'server.js',
-    suche: "    weitere: hit.length - 1",
+    file: 'server.js',
+    search: "    weitere: hit.length - 1",
     ersatz: "    weitere: 0",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
@@ -3591,8 +3591,8 @@ const RUECKBAUTEN = [
     /* DIE FESTE FOLGE KEHRT SICH UM: genannt wird der Titel zuerst -- also
        genau das, was die Kachel ohnehin zeigt. */
     nr: '405', name: 'Die Folge der Quellen kehrt sich um',
-    datei: 'server.js',
-    suche: "  const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.schluessel] != null);",
+    file: 'server.js',
+    search: "  const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.schluessel] != null);",
     ersatz: "  const getroffen = [...FULLTEXT_SOURCES].reverse().filter(q => r['f_' + q.schluessel] != null);",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
@@ -3602,8 +3602,8 @@ const RUECKBAUTEN = [
        Abfrageplanung, und der Rueckbau koennte zufaellig dasselbe liefern --
        ein Rueckbau, der nur manchmal greift, ist keiner. */
     nr: '406', name: 'Der genannte Kommentar ist der juengste statt der aeltesten',
-    datei: 'server.js',
-    suche: "             ORDER BY k.id LIMIT 1)",
+    file: 'server.js',
+    search: "             ORDER BY k.id LIMIT 1)",
     ersatz: "             ORDER BY k.id DESC LIMIT 1)",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
@@ -3615,8 +3615,8 @@ const RUECKBAUTEN = [
        ERGEBEN; einer, der die Oberflaeche zerreisst, sagt nichts darueber,
        welche Pruefung ihn bemerkt haette (Stolperstein 138). */
     nr: '407', name: 'Die Kachel baut keine Trefferzeile mehr',
-    datei: 'public/app.js',
-    suche: "  const f = it.fundstelle;",
+    file: 'public/app.js',
+    search: "  const f = it.fundstelle;",
     ersatz: "  const f = null;",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
@@ -3627,29 +3627,29 @@ const RUECKBAUTEN = [
        (Stolperstein 138). So bleibt die Zeile da und steht nur an der
        falschen Stelle. */
     nr: '408', name: 'Die Trefferzeile rutscht ueber den Titel',
-    datei: 'public/app.js',
-    suche: "      <h3 class=\"card-title\">${esc(it.title)}</h3>\n      ${findingRow}",
+    file: 'public/app.js',
+    search: "      <h3 class=\"card-title\">${esc(it.title)}</h3>\n      ${findingRow}",
     ersatz: "      ${findingRow}\n      <h3 class=\"card-title\">${esc(it.title)}</h3>",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '409', name: 'Die Zahl der weiteren Stellen faellt aus der Zeile',
-    datei: 'public/app.js',
-    suche: "class=\"find-text\"></span>${f.weitere ? `<span class=\"find-more\">+${f.weitere}</span>` : ''}",
+    file: 'public/app.js',
+    search: "class=\"find-text\"></span>${f.weitere ? `<span class=\"find-more\">+${f.weitere}</span>` : ''}",
     ersatz: "class=\"find-text\"></span>${''}",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '410', name: 'Der Ueberfahrtext nennt die weiteren Stellen nicht mehr',
-    datei: 'public/app.js',
-    suche: "  f.weitere > 0 ? t('list.moreHits', { n: f.weitere }) : '');",
+    file: 'public/app.js',
+    search: "  f.weitere > 0 ? t('list.moreHits', { n: f.weitere }) : '');",
     ersatz: "  '');",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '411', name: 'Eine unbekannte Quelle faellt aus der Zeile',
-    datei: 'public/app.js',
-    suche: "const findingWord = (quelle) => (FINDING_WORDS[quelle] || (() => t('list.hitPlace')))();",
+    file: 'public/app.js',
+    search: "const findingWord = (source) => (FINDING_WORDS[source] || (() => t('list.hitPlace')))();",
     ersatz: "const findingWord = (quelle) => (FINDING_WORDS[quelle] || (() => ''))();",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
@@ -3658,8 +3658,8 @@ const RUECKBAUTEN = [
        Weg, den 0.5.4 zugemacht hat, auf dem Umweg ueber die Kachel. Er kann
        aus einem Kommentar stammen. */
     nr: '412', name: 'Der Ausschnitt kommt ueber innerHTML in die Kachel',
-    datei: 'public/app.js',
-    suche: "  if (f) a.querySelector('.find-text').replaceChildren(raiseHighlight(f.text, term));",
+    file: 'public/app.js',
+    search: "  if (f) a.querySelector('.find-text').replaceChildren(raiseHighlight(f.text, term));",
     ersatz: "  if (f) a.querySelector('.find-text').innerHTML = f.text;",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
@@ -3668,22 +3668,22 @@ const RUECKBAUTEN = [
        Stueck ein ELEMENT wird -- wenn irgendwo Markup entstehen kann, dann
        hier. */
     nr: '413', name: 'Die Marke wird ueber innerHTML gefuellt',
-    datei: 'public/app.js',
-    suche: "  const m = document.createElement('mark');\n  m.textContent = text;",
+    file: 'public/app.js',
+    search: "  const m = document.createElement('mark');\n  m.textContent = text;",
     ersatz: "  const m = document.createElement('mark');\n  m.innerHTML = text;",
     erwartet: 'Links im Kommentartext'
   },
   {
     nr: '414', name: 'Der Titel der Kachel wird nicht mehr hervorgehoben',
-    datei: 'public/app.js',
-    suche: "  highlightInNode(a.querySelector('.card-title'), it.title, term);",
+    file: 'public/app.js',
+    search: "  highlightInNode(a.querySelector('.card-title'), it.title, term);",
     ersatz: "  hebeImKnoten(a.querySelector('.card-title'), it.title, '');",
     erwartet: 'Die Hervorhebung in der Uebersicht'
   },
   {
     nr: '415', name: 'Nur die erste Fundstelle wird hervorgehoben',
-    datei: 'public/app.js',
-    suche: "    von = i + b.length;\n  }",
+    file: 'public/app.js',
+    search: "    von = i + b.length;\n  }",
     ersatz: "    von = i + b.length;\n    break;\n  }",
     erwartet: 'Die Hervorhebung in der Uebersicht'
   },
@@ -3692,57 +3692,57 @@ const RUECKBAUTEN = [
        instr() im Server, nur im Browser: ein eingegebener Punkt faende jedes
        Zeichen. */
     nr: '416', name: 'Der Begriff wird als Muster gelesen',
-    datei: 'public/app.js',
-    suche: "    const i = lower.indexOf(lowerB, von);",
+    file: 'public/app.js',
+    search: "    const i = lower.indexOf(lowerB, von);",
     ersatz: "    const i = klein.slice(von).search(new RegExp(kleinB, 'i')) < 0 ? -1 : von + klein.slice(von).search(new RegExp(kleinB, 'i'));",
     erwartet: 'Die Hervorhebung in der Uebersicht'
   },
   {
     nr: '417', name: 'Die Hervorhebung erreicht den Kommentartext nicht mehr',
-    datei: 'public/app.js',
-    suche: "        .appendChild(buildCommentNodes(splitCommentText(c.text, term)));",
+    file: 'public/app.js',
+    search: "        .appendChild(buildCommentNodes(splitCommentText(c.text, term)));",
     ersatz: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text)));",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '418', name: 'Eine Adresse mit Begriff zerfaellt in mehrere Anker',
-    datei: 'public/app.js',
-    suche: "      let j = i;\n      while (j < list.length && String(list[j].target ?? '') === String(s.target))\n        a.appendChild(pieceNode(list[j++]));\n      i = j - 1;",
+    file: 'public/app.js',
+    search: "      let j = i;\n      while (j < list.length && String(list[j].target ?? '') === String(s.target))\n        a.appendChild(pieceNode(list[j++]));\n      i = j - 1;",
     ersatz: "      a.appendChild(stueckKnoten(s));",
     erwartet: 'Links im Kommentartext'
   },
   {
     nr: '419', name: 'In der Linkliste wird der Anzeigename hervorgehoben',
-    datei: 'public/app.js',
-    suche: "          nameBox.appendChild(s);",
+    file: 'public/app.js',
+    search: "          nameBox.appendChild(s);",
     ersatz: "          hebeImKnoten(s, a.name, begriff);\n          nameBox.appendChild(s);",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '420', name: 'Die Adresse in der Linkliste wird nicht mehr hervorgehoben',
-    datei: 'public/app.js',
-    suche: "      highlightInNode(row.querySelector('.dom'), oben, term);",
+    file: 'public/app.js',
+    search: "      highlightInNode(row.querySelector('.dom'), oben, term);",
     ersatz: "      hebeImKnoten(row.querySelector('.dom'), oben, '');",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '421', name: 'Das Adressmuster nimmt keinen Begriff mehr an',
-    datei: 'public/app.js',
-    suche: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
+    file: 'public/app.js',
+    search: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
     ersatz: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)$/;",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '422', name: 'Das Adressmuster ist hinten nicht mehr verankert',
-    datei: 'public/app.js',
-    suche: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
+    file: 'public/app.js',
+    search: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
     ersatz: "const ENTRY_PATTERN = /^#\\/item\\/(\\d+)/;",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '423', name: 'Die Detailansicht zieht die Adresse nicht mehr nach',
-    datei: 'public/app.js',
-    suche: "  if (location.hash !== gewollt &&\n      typeof history !== 'undefined' && typeof history.replaceState === 'function')\n    history.replaceState(null, '', gewollt);",
+    file: 'public/app.js',
+    search: "  if (location.hash !== gewollt &&\n      typeof history !== 'undefined' && typeof history.replaceState === 'function')\n    history.replaceState(null, '', gewollt);",
     ersatz: "  void gewollt;",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
@@ -3751,43 +3751,43 @@ const RUECKBAUTEN = [
        Sie steht dann zwar richtig da, aber jeder Aufruf legt einen Eintrag im
        Verlauf an und loest ein zweites Zeichnen aus. */
     nr: '424', name: 'Die Adresse wird ueber location.hash gesetzt',
-    datei: 'public/app.js',
-    suche: "    history.replaceState(null, '', gewollt);",
+    file: 'public/app.js',
+    search: "    history.replaceState(null, '', gewollt);",
     ersatz: "    location.hash = gewollt;",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '425', name: 'Die Kachel haengt den Begriff nicht an ihre Adresse',
-    datei: 'public/app.js',
-    suche: "  a.href = entryAddress(it.id, term);",
+    file: 'public/app.js',
+    search: "  a.href = entryAddress(it.id, term);",
     ersatz: "  a.href = entryAddress(it.id, '');",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
     nr: '426', name: 'Der Begriff aus der Adresse wird nicht entschluesselt',
-    datei: 'public/app.js',
-    suche: "  try { return new URLSearchParams(frage || '').get('q') || ''; }",
+    file: 'public/app.js',
+    search: "  try { return new URLSearchParams(frage || '').get('q') || ''; }",
     ersatz: "  try { return (String(frage || '').match(/(?:^|&)q=([^&]*)/) || [])[1] || ''; }",
     erwartet: 'Der Suchbegriff in der Adresse'
   },
   {
     nr: '427', name: 'Die Marke bringt wieder Schwarz auf Gelb mit',
-    datei: 'public/style.css',
-    suche: "mark {\n  background: var(--accent-dim); color: var(--accent-text-hi);",
+    file: 'public/style.css',
+    search: "mark {\n  background: var(--accent-dim); color: var(--accent-text-hi);",
     ersatz: "mark {\n  border-radius: 3px;",
     erwartet: 'Die Trefferzeile im Stylesheet'
   },
   {
     nr: '428', name: 'Die Trefferzeile darf wieder umbrechen',
-    datei: 'public/style.css',
-    suche: "  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\n}\n/* Die Zahl in der Schreibmaschinenschrift",
+    file: 'public/style.css',
+    search: "  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\n}\n/* Die Zahl in der Schreibmaschinenschrift",
     ersatz: "}\n/* Die Zahl in der Schreibmaschinenschrift",
     erwartet: 'Die Trefferzeile im Stylesheet'
   },
   {
     nr: '429', name: 'Die Quelle gibt in der Trefferzeile nach statt der Ausschnitt',
-    datei: 'public/style.css',
-    suche: ".card-find .find-source { flex-shrink: 0; color: var(--faint); font-weight: 600; }",
+    file: 'public/style.css',
+    search: ".card-find .find-source { flex-shrink: 0; color: var(--faint); font-weight: 600; }",
     ersatz: ".card-find .find-source { color: var(--faint); font-weight: 600; }",
     erwartet: 'Die Trefferzeile im Stylesheet'
   },
@@ -3795,8 +3795,8 @@ const RUECKBAUTEN = [
   /* ---- 0.18.1: der Deckel der Sitzungsliste, die leere Message ---- */
   {
     nr: '430', name: 'Die Sitzungsliste deckelt wieder nach der fremden Zeile',
-    datei: 'public/style.css',
-    suche: "#msessions { max-height: 55.23rem; }",
+    file: 'public/style.css',
+    search: "#msessions { max-height: 55.23rem; }",
     ersatz: "#msitzungen { max-height: 27.95rem; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
@@ -3816,8 +3816,8 @@ const RUECKBAUTEN = [
      greift, ist stumm und verfaelscht die Tabelle (Stolperstein 192). */
   {
     nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
-    datei: 'images.js',
-    suche: "  if (!isPng(buf)) return { data: buf, mime: reportedType, umgewandelt: false };",
+    file: 'images.js',
+    search: "  if (!isPng(buf)) return { data: buf, mime: reportedType, umgewandelt: false };",
     ersatz: "  if (true) return { data: buf, mime: reportedType, umgewandelt: false };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3827,8 +3827,8 @@ const RUECKBAUTEN = [
        aber der naechste Export traegt die Luege weiter. Genau deshalb muss die
        Pruefung an der SPALTE haengen und nicht nur am Kopf der Antwort. */
     nr: '432', name: 'Der mime_type wird nicht mitgezogen',
-    datei: 'images.js',
-    suche: "      return { data: webp, mime: 'image/webp', umgewandelt: true };",
+    file: 'images.js',
+    search: "      return { data: webp, mime: 'image/webp', umgewandelt: true };",
     ersatz: "      return { data: webp, mime: reportedType, umgewandelt: true };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3860,8 +3860,8 @@ const RUECKBAUTEN = [
        Der Rueckbau bewacht damit das Vorhandensein der Regel, auch wo er ihre
        Wirkung nicht zeigen kann. */
     nr: '433', name: 'Auch ein groesseres Ergebnis wird genommen',
-    datei: 'images.js',
-    suche: "    if (webp.length < buf.length)",
+    file: 'images.js',
+    search: "    if (webp.length < buf.length)",
     ersatz: "    if (true)",
     erwartet: '(erwartet STUMM — achtzehn Laborversuche ohne Gegenbeispiel, und am echten Bestand 679 von 679 umgestellt; nur die Kantengrenze laesst PNG liegen, und die ist Rueckbau 458)'
   },
@@ -3870,8 +3870,8 @@ const RUECKBAUTEN = [
        16383 px je Kante. Faengt niemand den Fehler ab, scheitert der ganze
        Upload mit 500, statt das PNG unveraendert abzulegen. */
     nr: '458', name: 'Ein Bild, das WebP nicht fassen kann, reisst den Upload ab',
-    datei: 'images.js',
-    suche: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
+    file: 'images.js',
+    search: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
     ersatz: "    throw e;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3880,8 +3880,8 @@ const RUECKBAUTEN = [
        Bytes. Sie sieht damit richtig aus und glaubt dem Browser aufs Wort --
        ein JPEG, das sich image/png nennt, ginge durch den Kodierer. */
     nr: '434', name: 'Die Erkennung glaubt dem gemeldeten Typ',
-    datei: 'images.js',
-    suche: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);",
+    file: 'images.js',
+    search: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);",
     ersatz: "  Buffer.isBuffer(buf) && buf.length >= 8;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3890,15 +3890,15 @@ const RUECKBAUTEN = [
        und heisst weiterhin WebP -- nur franst sie an harten Kanten aus. Ohne
        eine Pruefung, die PIXEL vergleicht, bliebe dieser Rueckbau stumm. */
     nr: '435', name: 'Der verlustbehaftete Kodierer statt nearLossless',
-    datei: 'images.js',
-    suche: "const WEBP_STORE = { nearLossless: true, quality: 60, effort: 4 };",
+    file: 'images.js',
+    search: "const WEBP_STORE = { nearLossless: true, quality: 60, effort: 4 };",
     ersatz: "const WEBP_STORE = { quality: 60, effort: 4 };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
     nr: '436', name: 'Der Schalter wirkt nicht mehr -- es wird immer umgewandelt',
-    datei: 'server.js',
-    suche: "const convertImages = () => getSetting('convertImages', true) !== false;",
+    file: 'server.js',
+    search: "const convertImages = () => getSetting('convertImages', true) !== false;",
     ersatz: "const convertImages = () => true;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3910,23 +3910,23 @@ const RUECKBAUTEN = [
        Der Rueckbau nimmt weiterhin GENAU `convertImages` heraus und laesst
        die drei neuen stehen -- sonst pruefte er nicht mehr dasselbe. */
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
-    datei: 'server.js',
-    suche: "const OWNER_KEYS = ['convertImages',\n" +
+    file: 'server.js',
+    search: "const OWNER_KEYS = ['convertImages',\n" +
            "                                'backupCleanup', 'backupKeep', 'backupDays'];",
     ersatz: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays'];",
     erwartet: 'Die Bildablage: die Rechte'
   },
   {
     nr: '438', name: 'Die Umstellung laeuft ohne zweite Bestaetigung',
-    datei: 'server.js',
-    suche: "app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, res) => {",
+    file: 'server.js',
+    search: "app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, res) => {",
     ersatz: "app.post('/api/images/convert', ownerOnly, (req, res) => {",
     erwartet: 'Die Bildablage: die Rechte'
   },
   {
     nr: '439', name: 'Zweimal druecken startet zwei Laeufe',
-    datei: 'server.js',
-    suche: "  if (batchStates.umstellung && batchStates.umstellung.laeuft)\n    return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});",
+    file: 'server.js',
+    search: "  if (batchStates.umstellung && batchStates.umstellung.running)\n    return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});",
     ersatz: "  if (false)\n    return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3935,8 +3935,8 @@ const RUECKBAUTEN = [
        nicht mehr sagen, wie weit der Lauf ist -- und die Pruefung, die auf
        sein Ende wartet, laeuft in ihre Grenze. */
     nr: '440', name: 'Der Fortschritt steht nicht mehr in den Kennzahlen',
-    datei: 'server.js',
-    suche: "const batchState = (aufgabe) =>\n  batchStates[aufgabe] && { ...batchStates[aufgabe] };",
+    file: 'server.js',
+    search: "const batchState = (aufgabe) =>\n  batchStates[aufgabe] && { ...batchStates[aufgabe] };",
     ersatz: "const batchState = () => null;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3945,8 +3945,8 @@ const RUECKBAUTEN = [
        bleiben stehen -- der Rueckbau nimmt genau den Nachbarn weg, nicht die
        Zeile daneben. */
     nr: '441', name: 'Die Aufstellung nach Format faellt aus den Kennzahlen',
-    datei: 'server.js',
-    suche: "    bildFormate,\n",
+    file: 'server.js',
+    search: "    bildFormate,\n",
     ersatz: "",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3954,8 +3954,8 @@ const RUECKBAUTEN = [
   /* ---- 0.19.0: der engere Ausschnitt ---- */
   {
     nr: '442', name: 'Der Zoomwert wird gar nicht erst gespeichert',
-    datei: 'server.js',
-    suche: "  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')\n    .run(x, y, z, req.params.id);",
+    file: 'server.js',
+    search: "  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')\n    .run(x, y, z, req.params.id);",
     ersatz: "  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ? WHERE id = ?')\n    .run(x, y, req.params.id);",
     erwartet: 'Fokuspunkt der Vorschau'
   },
@@ -3963,8 +3963,8 @@ const RUECKBAUTEN = [
     /* DIE SPANNE FAELLT WEG. Ein Wert unter 100 zeigte am Rand Leere statt
        Bild, einer ueber 400 die Ableitung statt des Motivs. */
     nr: '443', name: 'Der Zoomwert wird nicht mehr beschnitten',
-    datei: 'server.js',
-    suche: "  zoom:    { min: ZOOM_MIN, max: ZOOM_MAX, vorgabe: ZOOM_MIN, stellen: 0 }",
+    file: 'server.js',
+    search: "  zoom:    { min: ZOOM_MIN, max: ZOOM_MAX, fallback: ZOOM_MIN, digits: 0 }",
     ersatz: "  zoom:    { min: 0, max: 100000, vorgabe: ZOOM_MIN, stellen: 0 }",
     erwartet: 'Fokuspunkt der Vorschau'
   },
@@ -3973,22 +3973,22 @@ const RUECKBAUTEN = [
        `zoom` mit -- der eingestellte Ausschnitt waere bei jedem Zug weg
        (Stolperstein 271). */
     nr: '444', name: 'Ein Ruf ohne Zoomwert setzt ihn auf die Vorgabe zurueck',
-    datei: 'server.js',
-    suche: "  let z = p.zoom;\n  if (req.body.zoom !== undefined) {",
+    file: 'server.js',
+    search: "  let z = p.zoom;\n  if (req.body.zoom !== undefined) {",
     ersatz: "  let z = ANZEIGEWERTE.zoom.vorgabe;\n  if (req.body.zoom !== undefined) {",
     erwartet: 'Fokuspunkt der Vorschau'
   },
   {
     nr: '445', name: 'Der Ausschnitt geht nicht in die Exportdatei',
-    datei: 'server.js',
-    suche: "        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,\n                    zoom: p.zoom, kind: p.kind };",
+    file: 'server.js',
+    search: "        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,\n                    zoom: p.zoom, kind: p.kind };",
     ersatz: "        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,\n                    art: p.art };",
     erwartet: 'Fokuspunkt der Vorschau'
   },
   {
     nr: '446', name: 'Der eingespielte Ausschnitt wird verworfen',
-    datei: 'server.js',
-    suche: "                    fx: crop.fx, fy: crop.fy, zoom: crop.zoom,",
+    file: 'server.js',
+    search: "                    fx: crop.fx, fy: crop.fy, zoom: crop.zoom,",
     ersatz: "                    fx: 50, fy: 50, zoom: ANZEIGEWERTE.zoom.vorgabe,",
     erwartet: 'Fokuspunkt der Vorschau'
   },
@@ -3997,8 +3997,8 @@ const RUECKBAUTEN = [
        danach an jedem Zugriff auf photos.zoom -- die DDL greift nur bei einer
        fehlenden TABELLE, nie bei einer fehlenden SPALTE (Stolperstein 13). */
     nr: '447', name: 'Der achte Migrationsblock ruestet die Spalte nicht nach',
-    datei: 'db.js',
-    suche: "  db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
+    file: 'db.js',
+    search: "  db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
     ersatz: "  // db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
     erwartet: 'MIGRATION 0.19.0 — ENTFAELLT MIT 1.0'
   },
@@ -4006,8 +4006,8 @@ const RUECKBAUTEN = [
     /* MITGEGANGEN MIT 0.21.0, wie 233 -- derselbe Suchtext, eine andere
        Zusage: dort die Entscheidung, hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 12, obwohl der Ausschnitt mitgeht',
-    datei: 'server.js',
-    suche: "const EXCHANGE_FORMAT = 13;",
+    file: 'server.js',
+    search: "const EXCHANGE_FORMAT = 13;",
     ersatz: "const EXCHANGE_FORMAT = 12;",
     erwartet: 'Die Exportdatei'
   },
@@ -4018,19 +4018,19 @@ const RUECKBAUTEN = [
        weiterhin richtig aus und schreibt ihn nirgends hin -- genau der Fall,
        den eine Pruefung an der Funktion allein nicht faende. */
     nr: '449', name: 'Der Zoom kommt nicht in den Zuschnitt (bis 0.19.4: nicht an die Kachel)',
-    datei: 'batchrun.js',
+    file: 'batchrun.js',
     /* MITGEGANGEN MIT 0.19.5, NICHT GELOESCHT (Stolperstein 201). Bis dahin
        nahm dieser Rueckbau der Kachel ihr `--zoom` -- die Eigenschaft gibt es
        nicht mehr, der Zuschnitt steckt im Bild. Die Zusage ist dieselbe
        geblieben: der eingestellte Zoom muss ankommen. */
-    suche: "                               zoom: Number(z.zoom) });",
+    search: "                               zoom: Number(z.zoom) });",
     ersatz: "                               zoom: 100 });",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
     nr: '450', name: 'Der Schieber fuer die Weite steht nicht mehr im Betrachter',
-    datei: 'public/app.js',
-    suche: "      ${cropMode && !showsVideo ? `<div class=\"vzoom\">",
+    file: 'public/app.js',
+    search: "      ${cropMode && !showsVideo ? `<div class=\"vzoom\">",
     ersatz: "      ${false ? `<div class=\"vzoom\">",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
@@ -4038,8 +4038,8 @@ const RUECKBAUTEN = [
     /* JEDER ZWISCHENSCHRITT SCHICKT. Ein Zug ueber die ganze Leiter erzeugte
        damit sechzig Anfragen statt einer. */
     nr: '451', name: 'Der Schieber schickt bei jedem Zwischenschritt',
-    datei: 'public/app.js',
-    suche: "        draw();\n      };\n      slider.onchange = save;",
+    file: 'public/app.js',
+    search: "        draw();\n      };\n      slider.onchange = save;",
     ersatz: "        zeichne();\n        speichere();\n      };\n      schieber.onchange = speichere;",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
@@ -4047,8 +4047,8 @@ const RUECKBAUTEN = [
     /* DER GRIFF AN DEN SCHIEBER SETZT DEN FOKUSPUNKT. Er laege danach dort,
        wo der Schieber steht -- unten in der Mitte, bei jedem Zug aufs Neue. */
     nr: '452', name: 'Der Griff an den Schieber setzt den Fokuspunkt mit',
-    datei: 'public/app.js',
-    suche: "      if (e.target.closest('.vfocus, .vnav, .vzoom')) return;",
+    file: 'public/app.js',
+    search: "      if (e.target.closest('.vfocus, .vnav, .vzoom')) return;",
     ersatz: "      if (e.target.closest('.vfocus, .vnav')) return;",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
@@ -4056,19 +4056,19 @@ const RUECKBAUTEN = [
     /* DAS STILBLATT RECHNET DEN ZOOM NICHT MEHR EIN. Der Wert steht an der
        Kachel, und niemand liest ihn (Stolperstein 272, andersherum). */
     nr: '453', name: 'Die Ueberfahrregel haengt wieder am Ausschnitt',
-    datei: 'public/style.css',
+    file: 'public/style.css',
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). Bis dahin nahm er dem
        Stilblatt sein `scale(var(--zoom))`; das gibt es nicht mehr. Er holt es
        jetzt ZURUECK -- und damit den zweiten Zuschnitt, den diese Runde
        gerade weggeraeumt hat. */
-    suche: ".card:hover .card-img img { transform: scale(1.02); }",
+    search: ".card:hover .card-img img { transform: scale(1.02); }",
     ersatz: ".card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.02)); }",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
-    datei: 'public/app.js',
-    suche: "      const ok = await secondConfirm('images', null, t('card.convertPngWebp'),",
+    file: 'public/app.js',
+    search: "      const ok = await secondConfirm('images', null, t('card.convertPngWebp'),",
     ersatz: "      const ok = true || await secondConfirm('images', null, t('card.convertPngWebp'),",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4076,15 +4076,15 @@ const RUECKBAUTEN = [
     /* DER DIALOG BESCHOENIGT. Er nennt die Zahl nicht mehr und sagt nicht
        mehr, dass die PNG-Fassung danach weg ist. */
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
-    datei: 'public/app.js',
-    suche: "        t('card.pngConverting', { n: png.anzahl, bytes: fmtBytes(png.bytes),\n          danach: fmtBytes(Math.round(png.bytes * 0.37)) }));",
+    file: 'public/app.js',
+    search: "        t('card.pngConverting', { n: png.anzahl, bytes: fmtBytes(png.bytes),\n          danach: fmtBytes(Math.round(png.bytes * 0.37)) }));",
     ersatz: "        `${png.anzahl} PNG-Fotos (${fmtBytes(png.bytes)}) werden umgewandelt. Dauer: Minuten bis Stunden.`);",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
     nr: '456', name: 'Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht',
-    datei: 'public/app.js',
-    suche: "id=\"convert-run\"${png && !laeuft ? '' : ' disabled'}",
+    file: 'public/app.js',
+    search: "id=\"convert-run\"${png && !running ? '' : ' disabled'}",
     ersatz: "id=\"convert-run\"${''}",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4093,8 +4093,8 @@ const RUECKBAUTEN = [
        weist ihn ab -- ein Haken, der zuverlaessig 403 erzeugt, sieht aus wie
        ein Fehler. */
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
-    datei: 'public/app.js',
-    suche: "        ${OWNER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
+    file: 'public/app.js',
+    search: "        ${OWNER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
     ersatz: "        ${true ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4113,8 +4113,8 @@ const RUECKBAUTEN = [
        Namen `image/png` faellt am Inhalt in die JPEG-Spalte und an der Spalte
        in die PNG-Spalte. */
     nr: '460', name: 'Die Aufteilung nach Format liest wieder den Inhalt',
-    datei: 'server.js',
-    suche: "    SELECT mime_type AS m, length(data) AS o FROM photos WHERE kind IS ?)",
+    file: 'server.js',
+    search: "    SELECT mime_type AS m, length(data) AS o FROM photos WHERE kind IS ?)",
     ersatz: "    SELECT CASE\n" +
             "             WHEN hex(substr(data,1,8)) = '89504E470D0A1A0A' THEN 'image/png'\n" +
             "             WHEN hex(substr(data,1,3)) = 'FFD8FF'           THEN 'image/jpeg'\n" +
@@ -4133,8 +4133,8 @@ const RUECKBAUTEN = [
        bleibt richtig und kostet 1338,8 statt 0,1 ms; genau deshalb haengt die
        Zusage am TEXT und nicht am Ergebnis. */
     nr: '461', name: 'Die Arten kommen wieder aus dem Satz statt aus dem Index',
-    datei: 'server.js',
-    suche: "const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1');",
+    file: 'server.js',
+    search: "const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1');",
     ersatz: "const qImageKinds = db.prepare('SELECT DISTINCT kind || \\'\\' AS a FROM photos');",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4143,8 +4143,8 @@ const RUECKBAUTEN = [
        naehme damit genau die Zeilen mit, die die Karte sich verzaehlt -- und
        schriebe eine Datei um, die gar kein PNG ist. */
     nr: '462', name: 'Der Knopf sucht am gemeldeten Typ statt am Inhalt',
-    datei: 'server.js',
-    suche: "  \"SELECT id FROM photos WHERE kind != 'video' AND hex(substr(data,1,8)) = ?\");",
+    file: 'server.js',
+    search: "  \"SELECT id FROM photos WHERE kind != 'video' AND hex(substr(data,1,8)) = ?\");",
     ersatz: "  \"SELECT id FROM photos WHERE kind != 'video' AND mime_type = 'image/png' AND ? IS NOT NULL\");",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4152,8 +4152,8 @@ const RUECKBAUTEN = [
     /* DIE ZUORDNUNG KENNT KEIN FORMAT MEHR -- jede Zeile faellt in 'other'.
        Ohne diese Tafel stuende die Aufstellung leer da. */
     nr: '463', name: 'Die Zuordnung von mime_type auf den Schluessel ist leer',
-    datei: 'server.js',
-    suche: "const IMAGE_MIME_FORMAT = {\n  'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'\n};",
+    file: 'server.js',
+    search: "const IMAGE_MIME_FORMAT = {\n  'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'\n};",
     ersatz: "const IMAGE_MIME_FORMAT = {};",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4162,11 +4162,11 @@ const RUECKBAUTEN = [
        Mitte, und von der eingestellten Bildecke ist nichts zu sehen --
        gemessen 0,0 % in allen vier Richtungen. */
     nr: '464', name: 'Der Zuschnitt verliert eine seiner beiden Achsen (bis 0.19.4: transform-origin)',
-    datei: 'images.js',
+    file: 'images.js',
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). `transform-origin` gibt es
        nicht mehr; die Zusage dahinter -- der Ausschnitt folgt dem Fokuspunkt
        in BEIDEN Richtungen -- gilt unveraendert und steht jetzt hier. */
-    suche: "  return { links: fx / 100 * (width - tight), oben: fy / 100 * (height - tight), edge: tight };",
+    search: "  return { links: fx / 100 * (width - tight), oben: fy / 100 * (height - tight), edge: tight };",
     ersatz: "  return { links: fx / 100 * (breite - eng), oben: 0, kante: eng };",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4175,10 +4175,10 @@ const RUECKBAUTEN = [
        Eigenschaft ist vorhanden, und wer nur nachsieht, OB sie dasteht, findet
        nichts. */
     nr: '465', name: 'Der Zuschnitt sitzt in der Mitte statt auf dem Fokuspunkt',
-    datei: 'images.js',
+    file: 'images.js',
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201): dieselbe Zusage an der
        Stelle, an der der Ausschnitt jetzt entsteht. */
-    suche: "  const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);",
+    search: "  const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);",
     ersatz: "  const k = cropSpecBox(breite, hoehe, 50, 50, zuschnitt.zoom);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4186,8 +4186,8 @@ const RUECKBAUTEN = [
     /* DER DIALOG LIEGT WIEDER UNTER DEM VOLLBILD -- der Zustand bis 0.19.1.
        Die Rueckfrage steht dann erst da, wenn man das Vollbild schliesst. */
     nr: '466', name: 'Der Dialog liegt wieder unter dem Vollbild',
-    datei: 'public/style.css',
-    suche: "  --z-dialog: 100;",
+    file: 'public/style.css',
+    search: "  --z-dialog: 100;",
     ersatz: "  --z-dialog: 60;",
     erwartet: 'Die Stapelordnung — 0.19.1'
   },
@@ -4196,8 +4196,8 @@ const RUECKBAUTEN = [
        und steht doch neben der Ordnung statt in ihr -- die naechste Kachel
        macht sie wieder auf. */
     nr: '467', name: 'Der Dialog traegt seine Stufe wieder als Zahl in der Regel',
-    datei: 'public/style.css',
-    suche: "padding: 22px; z-index: var(--z-dialog);",
+    file: 'public/style.css',
+    search: "padding: 22px; z-index: var(--z-dialog);",
     ersatz: "padding: 22px; z-index: 60;",
     erwartet: 'Die Stapelordnung — 0.19.1'
   },
@@ -4205,8 +4205,8 @@ const RUECKBAUTEN = [
     /* DIE MELDUNG RUTSCHT UNTER DEN DIALOG. Sie ist die Quittung des Dialogs
        und waere von ihm verdeckt. */
     nr: '468', name: 'Die Meldung liegt unter dem Dialog',
-    datei: 'public/style.css',
-    suche: "  --z-toast: 120;",
+    file: 'public/style.css',
+    search: "  --z-toast: 120;",
     ersatz: "  --z-toast: 95;",
     erwartet: 'Die Stapelordnung — 0.19.1'
   },
@@ -4214,8 +4214,8 @@ const RUECKBAUTEN = [
     /* DIE BILDABLAGE HAT KEINE EIGENE KARTE MEHR. Sie steht damit nirgends --
        weder als Karte noch als Abschnitt in „Kennzahlen". */
     nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
-    datei: 'public/app.js',
-    suche: "  { schluessel: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,\n" +
+    file: 'public/app.js',
+    search: "  { schluessel: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,\n" +
            "    markup: cardImageStore,   ausruesten: setUpImageStoreOut },\n",
     ersatz: "",
     erwartet: 'Die Bildablage in der Oberflaeche'
@@ -4224,8 +4224,8 @@ const RUECKBAUTEN = [
     /* SIE STEHT IM FALSCHEN ABSCHNITT. Der Knopf, der die Datenbank umschreibt,
        laege dann bei den Kategorien und Tags. */
     nr: '470', name: 'Die Karte „Bildablage" steht im Abschnitt „Bestand"',
-    datei: 'public/app.js',
-    suche: "  { schluessel: 'bildablage',   abschnitt: 'database',",
+    file: 'public/app.js',
+    search: "  { schluessel: 'bildablage',   abschnitt: 'database',",
     ersatz: "  { schluessel: 'bildablage',   abschnitt: 'inventory',",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4234,8 +4234,8 @@ const RUECKBAUTEN = [
        damit unter der Hand die Gestalt -- achtzehn Karten auf einer frischen
        Installation, neunzehn auf einer benutzten. */
     nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
-    datei: 'public/app.js',
-    suche: "  { schluessel: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,",
+    file: 'public/app.js',
+    search: "  { schluessel: 'bildablage',   abschnitt: 'database', visible: () => ADMIN,",
     ersatz: "  { schluessel: 'bildablage',   abschnitt: 'database',\n" +
             "    sichtbar: (g) => ADMIN && !!Object.keys((g.stats && g.stats.bildFormate) || {}).length,",
     erwartet: 'Die Bildablage in der Oberflaeche'
@@ -4247,8 +4247,8 @@ const RUECKBAUTEN = [
        6. September 2026: die Prueflage zeigt zwoelf Fotos, also die Mehrzahl;
        ein Rueckbau an der Einzahl blieb deshalb STUMM. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
-    datei: 'public/languages/de.json',
-    suche: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
+    file: 'public/languages/de.json',
+    search: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
     ersatz: "werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4257,8 +4257,8 @@ const RUECKBAUTEN = [
        Feld -- Faktor dreizehn: eine Schaetzung waere auf der einen Maschine
        beruhigend falsch und auf der anderen erschreckend falsch. */
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
-    datei: 'public/languages/de.json',
-    suche: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"\n  },",
+    file: 'public/languages/de.json',
+    search: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"\n  },",
     ersatz: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: etwa 20 Minuten.\"\n  },",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4267,8 +4267,8 @@ const RUECKBAUTEN = [
        die den Befund gemeldet hat, aendert das nichts -- auf einem Image mit
        jemalloc oder unter musl nimmt sich libvips die ganze Maschine. */
     nr: '474', name: 'Die Threadzahl von sharp wird nicht mehr gesetzt',
-    datei: 'server.js',
-    suche: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
+    file: 'server.js',
+    search: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
     ersatz: "",
     erwartet: 'Die Threadzahl von sharp — 0.19.1'
   },
@@ -4276,8 +4276,8 @@ const RUECKBAUTEN = [
     /* SIE WIRD AUF DIE VOLLE KERNZAHL GESETZT -- die Zeile steht da und tut
        das Gegenteil dessen, wofuer sie da ist. */
     nr: '475', name: 'Die Threadzahl von sharp ist die volle Kernzahl',
-    datei: 'server.js',
-    suche: "Math.max(1, Math.floor(os.cpus().length / 2))",
+    file: 'server.js',
+    search: "Math.max(1, Math.floor(os.cpus().length / 2))",
     ersatz: "os.cpus().length",
     erwartet: 'Die Threadzahl von sharp — 0.19.1'
   },
@@ -4286,8 +4286,8 @@ const RUECKBAUTEN = [
        benannt hat, liest eine Message ueber ein Wort, das nirgends auf seinem
        Bildschirm steht. */
     nr: '476', name: 'Die Absage nennt wieder „den Eigentümer der Instanz"',
-    datei: 'public/languages/de.json',
-    suche: "\"server.deniedOwner\": \"Das kann nur der Eigentümer dieser Installation.\",",
+    file: 'public/languages/de.json',
+    search: "\"server.deniedOwner\": \"Das kann nur der Eigentümer dieser Installation.\",",
     ersatz: "\"server.deniedOwner\": \"Das kann nur der Eigentümer der Instanz.\",",
     erwartet: 'Die Rechte am Papierkorb'
   },
@@ -4295,8 +4295,8 @@ const RUECKBAUTEN = [
     /* DIE ARBEITSDATEI STEHT WIEDER NICHT IN DER IGNORIERLISTE. Wer das ZIP
        ueber seinen Ordner entpackt, verliert seine angepasste Fassung. */
     nr: '477', name: 'Die docker-compose.yml steht nicht mehr in der .gitignore',
-    datei: '.gitignore',
-    suche: "\ndocker-compose.yml",
+    file: '.gitignore',
+    search: "\ndocker-compose.yml",
     ersatz: "",
     erwartet: 'Die Compose-Datei wird nicht ueberschrieben'
   },
@@ -4305,8 +4305,8 @@ const RUECKBAUTEN = [
        `docker compose up` mit „no configuration file provided" ab -- karg,
        aber es haelt an; die README ist die Stelle, die es vorher sagt. */
     nr: '478', name: 'Die README nennt den Pflichtschritt zur Compose-Datei nicht mehr',
-    datei: 'README.md',
-    suche: "**Der Schritt `cp docker-compose.example.yml docker-compose.yml` ist Pflicht.**",
+    file: 'README.md',
+    search: "**Der Schritt `cp docker-compose.example.yml docker-compose.yml` ist Pflicht.**",
     ersatz: "",
     erwartet: 'Die Compose-Datei wird nicht ueberschrieben'
   },
@@ -4315,8 +4315,8 @@ const RUECKBAUTEN = [
        Ohne die Berichtigung im Quelltext stuende dort wieder ein Satz, der
        gemessen falsch ist. */
     nr: '479', name: 'Die Berichtigung zu substr() faellt aus dem Quelltext',
-    datei: 'server.js',
-    suche: "     -- substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei 205 MB,",
+    file: 'server.js',
+    search: "     -- substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei 205 MB,",
     ersatz: "     -- substr() liest wenig, gemessen 657 ms bei 205 MB,",
     erwartet: 'Die berichtigten Behauptungen stehen nirgends mehr'
   },
@@ -4327,8 +4327,8 @@ const RUECKBAUTEN = [
        den ganzen Satz -- gemessen 1338,8 ms gegen 0,1 ms, und keine Umformung
        der Abfrage hilft dagegen (Stolperstein 279). */
     nr: '480', name: 'Der Index auf photos(art) faellt weg',
-    datei: 'db.js',
-    suche: "db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');",
+    file: 'db.js',
+    search: "db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');",
     ersatz: "",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4338,8 +4338,8 @@ const RUECKBAUTEN = [
        das Oeffnen der Datei scheitert dann mit „no such column: art"
        (Stolperstein 281). */
     nr: '486', name: 'Der Index steht wieder vor seiner Migration',
-    datei: 'db.js',
-    suche: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);",
+    file: 'db.js',
+    search: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);",
     ersatz: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);\n" +
             "CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind);",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -4348,8 +4348,8 @@ const RUECKBAUTEN = [
     /* GEFRAGT WIRD WIEDER MIT EINER UNGLEICHHEIT. Sie sieht richtig aus und
        schlaegt den Index aus: 1334 ms gegen 0,5 ms, dieselbe Antwort. */
     nr: '481', name: 'Die Aufteilung fragt wieder mit einer Ungleichheit',
-    datei: 'server.js',
-    suche: "  'SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE kind IS ?');",
+    file: 'server.js',
+    search: "  'SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE kind IS ?');",
     ersatz: "  \"SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE kind != 'video' AND ? IS NOT NULL\");",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4359,8 +4359,8 @@ const RUECKBAUTEN = [
        zusaetzlich. Die Zahl bleibt dieselbe; nur der Weg dorthin ist ein
        zweiter (Stolperstein 47). */
     nr: '482', name: 'Die Exportgroesse der Bilder wird ein zweites Mal gefragt',
-    datei: 'server.js',
-    suche: "      ...exchangeParts(null, { mitDateien: true }),",
+    file: 'server.js',
+    search: "      ...exchangeParts(null, { withFiles: true }),",
     ersatz: "      ...exchangeParts(null, { mitFotos: true, mitDateien: true, mitVideos: true }),",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4370,8 +4370,8 @@ const RUECKBAUTEN = [
        damit waagerecht gar nicht verschieben, und die eingestellte Ecke ist
        auch mit `transform-origin` nie zu erreichen. */
     nr: '483', name: 'Der Spielraum des Ausschnitts rechnet den Zoom nicht ein',
-    datei: 'public/app.js',
-    suche: "               playX: f.width - k.edge, playY: f.height - k.edge };",
+    file: 'public/app.js',
+    search: "               playX: f.width - k.edge, playY: f.height - k.edge };",
     ersatz: "               playX: f.breite - Math.min(f.breite, f.hoehe), playY: f.hoehe - Math.min(f.breite, f.hoehe) };",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
@@ -4380,8 +4380,8 @@ const RUECKBAUTEN = [
        zieht -- gerechnet wird wieder mit der vollen Seite statt mit dem
        engeren Ausschnitt. Der Sprung ist umso groesser, je enger man zieht. */
     nr: '484', name: 'Der Griff setzt den Punkt neben die Mitte des Rahmens',
-    datei: 'public/app.js',
-    suche: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / playX * 100)) : 50;",
+    file: 'public/app.js',
+    search: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / playX * 100)) : 50;",
     ersatz: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - seite / 2) / playX * 100)) : 50;",
     erwartet: 'Fokuspunkt in der Oberflaeche'
   },
@@ -4389,8 +4389,8 @@ const RUECKBAUTEN = [
     /* DER DIALOG SAGT NICHT MEHR, DASS DIE UMWANDLUNG NAHEZU VERLUSTFREI IST.
        Wer das nicht liest, haelt den Knopf fuer eine Verschlechterung. */
     nr: '485', name: 'Der Dialog sagt nicht mehr, dass es nahezu verlustfrei ist',
-    datei: 'public/languages/de.json',
-    suche: "WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und",
+    file: 'public/languages/de.json',
+    search: "WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und",
     ersatz: "WebP gespeichert — etwa zwei Drittel kleiner. JPEG, GIF und",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4400,8 +4400,8 @@ const RUECKBAUTEN = [
        Fall ab, den es an dieser Anlage nicht gibt -- Aufwand ohne Gegenwert,
        der bei jeder weiteren Umbenennung gepflegt werden will. */
     nr: '487', name: 'Die Uebersetzung der alten Abschnittsadressen kommt zurueck',
-    datei: 'public/app.js',
-    suche: "  const gewuenscht = fromAddress;",
+    file: 'public/app.js',
+    search: "  const gewuenscht = fromAddress;",
     ersatz: "  const gewuenscht = { anlage: 'installation', instanz: 'installation' }[ausDerAdresse] || ausDerAdresse;",
     erwartet: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
@@ -4411,8 +4411,8 @@ const RUECKBAUTEN = [
        Spalten wieder aus dem Satz, und der steht in Overflow-Seiten --
        gemessen 6,3 statt 1,6 ms bei 400 Fotos. */
     nr: '488', name: 'Der deckende Index fuer die Uebersicht faellt weg',
-    datei: 'db.js',
-    suche: "db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile",
+    file: 'db.js',
+    search: "db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile",
     ersatz: "db.exec(`SELECT 1 -- (",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4421,8 +4421,8 @@ const RUECKBAUTEN = [
        idx_photos_item zurueck und liest wieder den Satz. Der Index steht da,
        sieht richtig aus und deckt nichts mehr. */
     nr: '489', name: 'Dem deckenden Index fehlt eine Spalte',
-    datei: 'db.js',
-    suche: "zoom, created_at, kind, duration)`);",
+    file: 'db.js',
+    search: "zoom, created_at, kind, duration)`);",
     ersatz: "zoom, art, dauer)`);",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4430,8 +4430,8 @@ const RUECKBAUTEN = [
     /* DIE UEBERSICHT FRAGT WIEDER JE EINTRAG. Der Index bleibt, der Gewinn
        halbiert sich -- 3,0 statt 1,6 ms. */
     nr: '490', name: 'Die Uebersicht fragt die Fotos wieder je Eintrag',
-    datei: 'server.js',
-    suche: "    const ph = photosPer.get(it.id) || [];",
+    file: 'server.js',
+    search: "    const ph = photosPer.get(it.id) || [];",
     ersatz: "    const ph = qPhotos.all(it.id);",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4449,12 +4449,12 @@ const RUECKBAUTEN = [
        alle 1500 ms und saehe waehrend des ganzen Laufs dieselbe Null -- am
        Ergebnis aendert sich nichts, an der Auskunft alles. */
     nr: '491', name: 'Der Thread meldet seinen Stand erst am Ende',
-    datei: 'batchrun.js',
+    file: 'batchrun.js',
     /* DIE ZEILE DANACH GEHOERT SEIT 0.19.4 ZUM SUCHTEXT: dieselben zwei
        Zeilen stehen jetzt auch in der dritten Schleife, und ein Suchtext, der
        zweimal passt, bricht den Rueckbau ab (Stolperstein 201 -- mitziehen,
        nicht loeschen). Das Nachziehen bekommt seinen eigenen Rueckbau. */
-    suche: "    status.erledigt++;\n    report(status);\n    await new Promise(r => setTimeout(r, 30));",
+    search: "    status.erledigt++;\n    report(status);\n    await new Promise(r => setTimeout(r, 30));",
     ersatz: "    stand.erledigt++;\n    await new Promise(r => setTimeout(r, 30));",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4464,8 +4464,8 @@ const RUECKBAUTEN = [
        vorbei ist, und die Pruefung, die auf sein Ende wartet, laeuft in ihre
        Grenze. */
     nr: '492', name: 'Der Haupt-Thread hoert die Meldungen des Threads nicht mehr',
-    datei: 'server.js',
-    suche: "  w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });",
+    file: 'server.js',
+    search: "  w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });",
     ersatz: "  w.on('message', () => {});",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4475,8 +4475,8 @@ const RUECKBAUTEN = [
        einem zweiten Speicher, und zwar ohne Not: der Thread liest ihn
        denselben Weg wie der Haupt-Thread. */
     nr: '493', name: 'Der Schluessel reist ueber workerData in den Thread',
-    datei: 'server.js',
-    suche: "  const w = new Worker(BATCHRUN, { workerData: { task, rows } });",
+    file: 'server.js',
+    search: "  const w = new Worker(BATCHRUN, { workerData: { task, rows } });",
     ersatz: "  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen, schluessel: keyHex } });",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4485,8 +4485,8 @@ const RUECKBAUTEN = [
        deren WAL gerade gekuerzt wird -- der eine Fall, den diese Runde neu
        einbringt. */
     nr: '494', name: 'SIGTERM kuerzt die WAL, waehrend der Thread noch schreibt',
-    datei: 'server.js',
-    suche: "    for (const w of batchThreads) { try { w.terminate(); } catch {} }",
+    file: 'server.js',
+    search: "    for (const w of batchThreads) { try { w.terminate(); } catch {} }",
     ersatz: "    // die Threads laufen weiter",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4495,8 +4495,8 @@ const RUECKBAUTEN = [
        aber die Karte zeigt fuer immer „laeuft" -- und ein zweiter Druck wird
        mit 409 abgewiesen, obwohl gar nichts mehr laeuft. */
     nr: '495', name: 'Ein Fehler im Thread laesst den Lauf auf „laeuft" stehen',
-    datei: 'server.js',
-    suche: "    if (batchStates[task]) batchStates[task].laeuft = false;",
+    file: 'server.js',
+    search: "    if (batchStates[task]) batchStates[task].running = false;",
     ersatz: "    if (false) batchStates[aufgabe].laeuft = false;",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4505,8 +4505,8 @@ const RUECKBAUTEN = [
        requiret, sondern an `new Worker` gereicht -- ohne diese Zeile steht sie
        in keiner Ableitung, und der Fingerprint ist eine halbe Aussage. */
     nr: '496', name: 'Der Fingerprint kennt die Datei des Threads nicht',
-    datei: 'server.js',
-    suche: "  const list = [...new Set([...ran, BATCHRUN,",
+    file: 'server.js',
+    search: "  const list = [...new Set([...ran, BATCHRUN,",
     ersatz: "  const liste = [...new Set([...ausgefuehrt,",
     erwartet: 'Der Versions-Fingerprint'
   },
@@ -4515,8 +4515,8 @@ const RUECKBAUTEN = [
        geladen; unter musl oder mit jemalloc ist die Vorgabe die Kernzahl, und
        ausgerechnet der Wartungslauf naehme sich dann die ganze Maschine. */
     nr: '497', name: 'Der Thread ueberlaesst sharp seine Vorgabe',
-    datei: 'batchrun.js',
-    suche: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
+    file: 'batchrun.js',
+    search: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
     ersatz: "// sharp nimmt sich, was es will",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4525,8 +4525,8 @@ const RUECKBAUTEN = [
        PROTOKOLL -- ein halber Bildschirm, jedes Mal. Wer ihn einmal gelesen
        hat, liest ihn beim zweiten Mal nicht besser. */
     nr: '498', name: 'Der Schluesselhinweis wiederholt sich in jedem Thread',
-    datei: 'keys.js',
-    suche: "function warnKeyBesideData() {\n  if (!isMainThread) return;",
+    file: 'keys.js',
+    search: "function warnKeyBesideData() {\n  if (!isMainThread) return;",
     ersatz: "function warnKeyBesideData() {",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4539,15 +4539,15 @@ const RUECKBAUTEN = [
      einzelne). */
   {
     nr: '499', name: 'Die gebuendelten Schlagworte verlieren ihre zweite Ordnung',
-    datei: 'server.js',
-    suche: "  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id, t.name COLLATE NOCASE`);",
+    file: 'server.js',
+    search: "  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id, t.name COLLATE NOCASE`);",
     ersatz: "  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id`);",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
     nr: '500', name: 'Die gebuendelten Testtage verlieren ihre zweite Ordnung',
-    datei: 'server.js',
-    suche: "  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC');",
+    file: 'server.js',
+    search: "  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC');",
     ersatz: "  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id');",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
@@ -4556,8 +4556,8 @@ const RUECKBAUTEN = [
        die Kachel eines Eintrags ohne Link gar kein Feld -- und die
        Oberflaeche zeigt dort nichts statt einer Null. */
     nr: '501', name: 'Die Linkzahl fehlt ganz, wo kein Link ist',
-    datei: 'server.js',
-    suche: "    it.linkCount = linkCountPer.get(it.id) || 0;",
+    file: 'server.js',
+    search: "    it.linkCount = linkCountPer.get(it.id) || 0;",
     ersatz: "    it.linkCount = linkCountPer.get(it.id);",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
@@ -4566,8 +4566,8 @@ const RUECKBAUTEN = [
        sehen fuer sich richtig aus, und die Kachel traegt trotzdem etwas
        anderes als der Eintrag (Stolperstein 47). */
     nr: '502', name: 'Die gebuendelte Schlagwortabfrage liest eine Spalte mehr',
-    datei: 'server.js',
-    suche: "const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t",
+    file: 'server.js',
+    search: "const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t",
     ersatz: "const qAllTags = db.prepare(`SELECT it.item_id, t.id, t.name, t.created_at FROM tags t",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
@@ -4576,8 +4576,8 @@ const RUECKBAUTEN = [
        Testtags (bei 400 Eintraegen 1200 Einzelabfragen) und den Verfasser
        dazu. Gelesen hat beides in der Uebersicht nie jemand. */
     nr: '503', name: 'Die Testtage der Liste tragen wieder Schlagworte und Verfasser',
-    datei: 'server.js',
-    suche: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
+    file: 'server.js',
+    search: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
     ersatz: "    if (timeline) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
@@ -4586,8 +4586,8 @@ const RUECKBAUTEN = [
        Oberflaeche nirgends -- und was niemand ansieht, wird zweimal bezahlt:
        beim Holen und beim Senden. */
     nr: '504', name: 'Die Schlagwortabfrage liest wieder alle Spalten',
-    datei: 'server.js',
-    suche: "const TAG_COLUMNS = 't.id, t.name';",
+    file: 'server.js',
+    search: "const TAG_COLUMNS = 't.id, t.name';",
     ersatz: "const TAG_COLUMNS = 't.*';",
     erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
@@ -4597,8 +4597,8 @@ const RUECKBAUTEN = [
     /* EINE DER ACHT STELLEN SAGT WIEDER „Instanz". Der Waechter zaehlt
        Nicht-Kommentarzeilen; eine einzige genuegt, damit er anschlaegt. */
     nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
-    datei: 'public/languages/de.json',
-    suche: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt Kriterion",
+    file: 'public/languages/de.json',
+    search: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt Kriterion",
     ersatz: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt die Instanz",
     erwartet: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
@@ -4612,8 +4612,8 @@ const RUECKBAUTEN = [
     /* DIE KURZE KANTE STEHT WIEDER AUF 400. Der Deckel bleibt, damit genau
        diese eine Zahl gemessen wird und nicht zwei zugleich. */
     nr: '506', name: 'Die kurze Kante des thumb steht wieder auf 400',
-    datei: 'images.js',
-    suche: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
+    file: 'images.js',
+    search: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
     ersatz: "  thumb:  { kurz: 400,  lang: 1280, q: 78, schneidet: true  },",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4622,8 +4622,8 @@ const RUECKBAUTEN = [
        Grenze fuer die lange: ein Bildschirmfoto ueber zwei Monitore wird zur
        groessten Ableitung der Tabelle -- groesser als sein eigenes `medium`. */
     nr: '507', name: 'Der Deckel auf der langen Kante faellt weg',
-    datei: 'images.js',
-    suche: "lang: 1280, q: 78, schneidet: true  }",
+    file: 'images.js',
+    search: "lang: 1280, q: 78, schneidet: true  }",
     ersatz: "lang: 99999, q: 78, schneidet: true  }",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4633,8 +4633,8 @@ const RUECKBAUTEN = [
        Ableitungen „der Ordnung halber" gleich behandelt, macht `medium`
        schlechter und die Datenbank groesser. */
     nr: '508', name: 'medium bekommt dieselbe Kiste wie thumb',
-    datei: 'images.js',
-    suche: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
+    file: 'images.js',
+    search: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
     ersatz: "  medium: { kurz: 512, lang: 1280, q: 84, schneidet: false }",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4644,8 +4644,8 @@ const RUECKBAUTEN = [
        hochkantes Bild mit Ausrichtung 6 bekommt damit die Kiste hochkant und
        kommt quer heraus -- mit 1280 auf der kurzen Kante. */
     nr: '509', name: 'Der EXIF-Vermerk zaehlt bei der Kante nicht mehr mit',
-    datei: 'images.js',
-    suche: "  const rotated = m && m.orientation >= 5;",
+    file: 'images.js',
+    search: "  const rotated = m && m.orientation >= 5;",
     ersatz: "  const gedreht = false;",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4654,8 +4654,8 @@ const RUECKBAUTEN = [
        und jedes hochkante Bild bekommt 512 auf der LANGEN statt auf der
        kurzen Kante. */
     nr: '510', name: 'Der Kopf wird nicht gelesen -- die Kiste liegt immer quer',
-    datei: 'images.js',
-    suche: "  const landscape = size ? isLandscape(size) : true;",
+    file: 'images.js',
+    search: "  const landscape = size ? isLandscape(size) : true;",
     ersatz: "  const quer = true;",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4665,14 +4665,14 @@ const RUECKBAUTEN = [
        und das Panorama mit, und beide kaemen unveraendert heraus -- also bei
        JEDEM Start aufs Neue. Die Abfrage waere kein Festpunkt mehr. */
     nr: '511', name: 'Die Faelligkeit wird wieder an der Zielkante erkannt',
-    datei: 'images.js',
+    file: 'images.js',
     /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). Die alte Frage lautete
        „traegt die lange Kante genau 400?"; sie ist von „ist die Kachel
        quadratisch?" abgeloest. DIESER RUECKBAU SETZT DIE ZIELKANTE ALS
        ZWEITE HAELFTE WIEDER EIN -- und genau daran faellt der Festpunkt: eine
        zugeschnittene Kachel unter 512 (kleines Original, enger Ausschnitt) waere
        damit bei JEDEM Start wieder faellig. */
-    suche: "  return size.width !== size.height;",
+    search: "  return size.width !== size.height;",
     ersatz: "  return masse.width !== masse.height || masse.width !== VARIANTS.thumb.kurz;",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4681,8 +4681,8 @@ const RUECKBAUTEN = [
        fuer immer kaputt: das Nachruesten sucht `thumb IS NULL` und sieht
        einen kaputten `thumb` gar nicht an. */
     nr: '512', name: 'Ein unlesbarer thumb bleibt liegen',
-    datei: 'images.js',
-    suche: "  catch { return true; }",
+    file: 'images.js',
+    search: "  catch { return true; }",
     ersatz: "  catch { return false; }",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4691,8 +4691,8 @@ const RUECKBAUTEN = [
        Zeilen neu ab, die laengst richtig liegen -- bei jedem Start, mit dem
        vollen Preis fuer das Lesen des Originals. */
     nr: '513', name: 'Der Lauf erneuert jede Zeile, nicht nur die faelligen',
-    datei: 'batchrun.js',
-    suche: "        if (await isUncropped(z.thumb)) {",
+    file: 'batchrun.js',
+    search: "        if (await isUncropped(z.thumb)) {",
     ersatz: "        if (true) {",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4701,8 +4701,8 @@ const RUECKBAUTEN = [
        Spalte, die vorher ein Bild trug -- eine Videozeile verliert so ihr
        Standbild, und zwar still. */
     nr: '514', name: 'Der Lauf schreibt auch, wenn die Ableitung leer zurueckkommt',
-    datei: 'batchrun.js',
-    suche: "  if (!v.thumb) return null;",
+    file: 'batchrun.js',
+    search: "  if (!v.thumb) return null;",
     ersatz: "  if (!v.thumb) v.thumb = null;",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4711,8 +4711,8 @@ const RUECKBAUTEN = [
        Schleife weiter. Die Karte im Systembereich fragt alle 1500 ms und
        saehe waehrend des ganzen Laufs dieselbe Null. */
     nr: '515', name: 'Das Nachziehen meldet seinen Stand erst am Ende',
-    datei: 'batchrun.js',
-    suche: "    status.erledigt++;\n    report(status);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
+    file: 'batchrun.js',
+    search: "    status.erledigt++;\n    report(status);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
     ersatz: "    stand.erledigt++;\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4729,8 +4729,8 @@ const RUECKBAUTEN = [
        0.19.3 an der Umstellung; sie ist im Aenderungsprotokoll als
        Offengebliebenes benannt. */
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
-    datei: 'batchrun.js',
-    suche: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Kacheln erneuert:",
+    file: 'batchrun.js',
+    search: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Kacheln erneuert:",
     ersatz: "  melde(stand);\n  console.log(`[Kriterion] Kacheln erneuert:",
     erwartet: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
   },
@@ -4739,8 +4739,8 @@ const RUECKBAUTEN = [
        Start zufaellig ein Vorschaubild fehlt -- also in keiner Instanz nach
        ihrem ersten Start. */
     nr: '517', name: 'Das Nachziehen wird beim Start nicht mehr gerufen',
-    datei: 'server.js',
-    suche: "  if (!offen.length) return refreshTiles();",
+    file: 'server.js',
+    search: "  if (!offen.length) return refreshTiles();",
     ersatz: "  if (!offen.length) return maintainStorage();",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4751,8 +4751,8 @@ const RUECKBAUTEN = [
        Zeilen mit `art = 'foto'` an. Die verengte Abfrage laesst sie still
        liegen. */
     nr: '518', name: 'Die Auswahl der faelligen Zeilen verengt sich auf ein Wort',
-    datei: 'server.js',
-    suche: "const qTileRows = db.prepare('SELECT id FROM photos');",
+    file: 'server.js',
+    search: "const qTileRows = db.prepare('SELECT id FROM photos');",
     ersatz: "const qTileRows = db.prepare(\"SELECT id FROM photos WHERE kind IS 'image'\");",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4761,8 +4761,8 @@ const RUECKBAUTEN = [
        dauert am echten Bestand Minuten und laesst die Datenbank um zig
        Megabyte wachsen -- ohne die Zeile geschieht das ohne jedes Zeichen. */
     nr: '519', name: 'Die Fortschrittszeile des Nachziehens faellt aus der Karte',
-    datei: 'public/app.js',
-    suche: "        ${geometryRow(stats.geometrie)}",
+    file: 'public/app.js',
+    search: "        ${geometryRow(stats.geometry)}",
     ersatz: "",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4772,8 +4772,8 @@ const RUECKBAUTEN = [
        nachgezogen" staende von da an fuer immer in der Karte und erklaerte
        einen Vorgang, den niemand angestossen hat. */
     nr: '520', name: 'Die Zeile des Nachziehens steht auch ohne Fund da',
-    datei: 'public/app.js',
-    suche: "  if (!g.nachgezogen && !g.uebersprungen) return '';",
+    file: 'public/app.js',
+    search: "  if (!g.nachgezogen && !g.uebersprungen) return '';",
     ersatz: "  if (false) return '';",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4782,8 +4782,8 @@ const RUECKBAUTEN = [
        bliebe damit auf ihrem ersten Stand stehen, bis jemand den
        Systembereich neu aufbaut. */
     nr: '521', name: 'Die Uhr verfolgt nur noch die Umstellung',
-    datei: 'public/app.js',
-    suche: "  { field: 'geometrie', id: 'thumbs-running',",
+    file: 'public/app.js',
+    search: "  { field: 'geometry', id: 'thumbs-running',",
     ersatz: "  { feld: 'gibtsnicht', id: 'gibtsnicht',",
     erwartet: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
@@ -4792,8 +4792,8 @@ const RUECKBAUTEN = [
        richtig und ist es seit dieser Runde nicht mehr -- und sie verschweigt
        das, worauf es ankommt: WELCHE Kante die Zahl traegt. */
     nr: '522', name: 'Die Karte nennt wieder 400 px, ohne die Kante zu sagen',
-    datei: 'public/languages/de.json',
-    suche: "(JPEG) sind nicht mitgezählt.\"",
+    file: 'public/languages/de.json',
+    search: "(JPEG) sind nicht mitgezählt.\"",
     ersatz: "(JPEG, 400 px) sind nicht mitgezählt.\"",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4810,8 +4810,8 @@ const RUECKBAUTEN = [
        abgeleitet -- die Kachel ist danach 910 x 512 statt 512 x 512, und der
        Browser, der sie zurechtzoege, ist weg. */
     nr: '523', name: 'Die Kachel wird wieder ungeschnitten abgeleitet',
-    datei: 'images.js',
-    suche: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
+    file: 'images.js',
+    search: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: true  },",
     ersatz: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: false },",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4820,8 +4820,8 @@ const RUECKBAUTEN = [
        gezeigt -- ganz --, und der Editor zeichnet den Rahmen darauf. Ein
        geschnittenes `medium` naehme ihm seine Vorlage. */
     nr: '524', name: 'medium wird mitgeschnitten',
-    datei: 'images.js',
-    suche: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
+    file: 'images.js',
+    search: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: false }",
     ersatz: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: true }",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4831,8 +4831,8 @@ const RUECKBAUTEN = [
        EXIF-Vermerk nicht mitzaehlt, schneidet an der falschen Stelle, und bei
        3024 Breite laege ein `left` von 3500 sogar ausserhalb. */
     nr: '525', name: 'Der Zuschnitt rechnet in den gespeicherten statt in den gedrehten Massen',
-    datei: 'images.js',
-    suche: "  const { width, height } = rotatedSize(size);",
+    file: 'images.js',
+    search: "  const { width, height } = rotatedSize(size);",
     ersatz: "  const breite = masse.width, hoehe = masse.height;",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4842,8 +4842,8 @@ const RUECKBAUTEN = [
        das mit einem Fehler, und die Kachel entsteht gar nicht erst. Trifft
        genau den Ausschnitt in einer Ecke (fx = 100). */
     nr: '526', name: 'Die Zuschnittkiste wird nicht gegen den Rand geklammert',
-    datei: 'images.js',
-    suche: "  return { left:  Math.max(0, Math.min(width - edge, Math.round(k.links))),\n           top:   Math.max(0, Math.min(height  - edge, Math.round(k.oben))),",
+    file: 'images.js',
+    search: "  return { left:  Math.max(0, Math.min(width - edge, Math.round(k.links))),\n           top:   Math.max(0, Math.min(height  - edge, Math.round(k.oben))),",
     ersatz: "  return { left:  Math.round(k.links) + 1,\n           top:   Math.round(k.oben) + 1,",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4852,8 +4852,8 @@ const RUECKBAUTEN = [
        und ein Ausschnitt unter der Zielkante wird auf 512 aufgeblasen. Es
        kostete Bytes und truege keinen einzigen Bildpunkt mehr. */
     nr: '527', name: 'Ein zu kleiner Ausschnitt wird auf die Zielkante hochgerechnet',
-    datei: 'images.js',
-    suche: "withoutEnlargement: true })",
+    file: 'images.js',
+    search: "withoutEnlargement: true })",
     ersatz: "withoutEnlargement: false })",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4863,8 +4863,8 @@ const RUECKBAUTEN = [
        darueberfaehrt -- und der Browser, der sie bis 0.19.4 zurechtzog, ist
        weg. */
     nr: '528', name: 'Beim Hochladen wird die Kachel nicht zugeschnitten',
-    datei: 'server.js',
-    suche: "      const v = await makeVariants(f.buffer, DEFAULT_CROP);",
+    file: 'server.js',
+    search: "      const v = await makeVariants(f.buffer, DEFAULT_CROP);",
     ersatz: "      const v = await makeVariants(f.buffer);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4874,8 +4874,8 @@ const RUECKBAUTEN = [
        nicht -- an einem gerade eingespielten Bestand ist das der ganze
        Bestand. */
     nr: '529', name: 'Beim Einspielen wird die Kachel nicht zugeschnitten',
-    datei: 'server.js',
-    suche: "      const v = vorlage ? await makeVariants(vorlage, crop) : { thumb: null, medium: null };",
+    file: 'server.js',
+    search: "      const v = template ? await makeVariants(template, crop) : { thumb: null, medium: null };",
     ersatz: "      const v = vorlage ? await makeVariants(vorlage) : { thumb: null, medium: null };",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4884,8 +4884,8 @@ const RUECKBAUTEN = [
        Ableitung, die 0.19.4 hinterlassen hat -- und die Zeile bliebe bei
        jedem Start aufs Neue faellig, weil sie nicht quadratisch wird. */
     nr: '530', name: 'Der Bestandslauf erneuert ohne Zuschnitt',
-    datei: 'batchrun.js',
-    suche: "  const v = await makeVariants(source, cropFrom(z));",
+    file: 'batchrun.js',
+    search: "  const v = await makeVariants(source, cropFrom(z));",
     ersatz: "  const v = await makeVariants(vorlage);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4895,8 +4895,8 @@ const RUECKBAUTEN = [
        ungeschnittene Kachel. Der Kernsatz bleibt: der Server oeffnet nie ein
        Video. */
     nr: '531', name: 'Die Videozeile erzeugt aus der Videodatei statt aus ihrem Standbild',
-    datei: 'batchrun.js',
-    suche: "const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);",
+    file: 'batchrun.js',
+    search: "const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);",
     ersatz: "const sourceFrom = (z) => z.data;",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4905,8 +4905,8 @@ const RUECKBAUTEN = [
        „Unbekannte Aufgabe", die Route bekommt ihren Abschluss ueber den
        Fehlerweg -- und die Kachel bleibt, wie sie war. */
     nr: '532', name: 'Der Thread kennt die Aufgabe zuschnitt nicht',
-    datei: 'batchrun.js',
-    suche: "  else if (workerData.task === 'zuschnitt') await refreshOneTile(workerData.rows);\n",
+    file: 'batchrun.js',
+    search: "  else if (workerData.task === 'zuschnitt') await refreshOneTile(workerData.rows);\n",
     ersatz: "",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4915,8 +4915,8 @@ const RUECKBAUTEN = [
        haengt seine Antwort an das Ende des Threads und nicht an diese
        Message -- ohne sie weiss aber niemand, ob wirklich erneuert wurde. */
     nr: '533', name: 'Das Ergebnis der einzelnen Zeile wird nicht gemeldet',
-    datei: 'batchrun.js',
-    suche: "  parentPort.postMessage({ kind: 'refreshed', id, ok });",
+    file: 'batchrun.js',
+    search: "  parentPort.postMessage({ kind: 'refreshed', id, ok });",
     ersatz: "",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4925,8 +4925,8 @@ const RUECKBAUTEN = [
        fertig -- wie bis 0.19.4. Die Uebersicht zeigte danach den alten
        Schnitt, bis irgendwann etwas anderes die Zeile anfasst. */
     nr: '534', name: 'Das Speichern des Ausschnitts erzeugt die Kachel nicht neu',
-    datei: 'server.js',
-    suche: "  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));",
+    file: 'server.js',
+    search: "  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));",
     ersatz: "  res.json(detail(p.item_id, req.benutzer.id));",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4935,8 +4935,8 @@ const RUECKBAUTEN = [
        Antwort geht sofort hinaus -- und traegt die Fassung der ALTEN Kachel.
        Der Browser haelt sie damit bis zu 24 Stunden fest. */
     nr: '535', name: 'Die Antwort kommt, bevor die Kachel steht',
-    datei: 'server.js',
-    suche: "  const clock = setTimeout(once, REFRESH_MS);",
+    file: 'server.js',
+    search: "  const clock = setTimeout(once, REFRESH_MS);",
     ersatz: "  const uhr = setTimeout(einmal, 0);",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4945,8 +4945,8 @@ const RUECKBAUTEN = [
        Adresse kein `?v=`, und `Cache-Control: private, max-age=86400` haelt
        die alte Kachel fest. */
     nr: '536', name: 'Die Fassung faellt aus der Fotoabfrage',
-    datei: 'server.js',
-    suche: "const PHOTO_VERSION = 'length(thumb) AS fassung';",
+    file: 'server.js',
+    search: "const PHOTO_VERSION = 'length(thumb) AS fassung';",
     ersatz: "const PHOTO_VERSION = 'NULL AS fassung';",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4955,8 +4955,8 @@ const RUECKBAUTEN = [
        eine Schicht hoeher -- und ohne diesen Rueckbau bliebe gruen, wer die
        Spalte liefert und sie in der Oberflaeche liegen laesst. */
     nr: '537', name: 'Die Bildadresse traegt die Fassung nicht mehr',
-    datei: 'public/app.js',
-    suche: "  const version = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';",
+    file: 'public/app.js',
+    search: "  const version = groesse === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';",
     ersatz: "  const fassung = '';",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4965,8 +4965,8 @@ const RUECKBAUTEN = [
        geschnitten -- die zugeschnittene Kachel ist schon das sichtbare Quadrat,
        und `scale()` darauf zeigt einen Ausschnitt des Ausschnitts. */
     nr: '538', name: 'Der Zuschnitt im Browser kommt zurueck -- es wird zweimal geschnitten',
-    datei: 'public/style.css',
-    suche: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }",
+    file: 'public/style.css',
+    search: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }",
     ersatz: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; transform: scale(var(--zoom, 1)); }",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4977,8 +4977,8 @@ const RUECKBAUTEN = [
        Gefahr, wegen der die Rechnung auf beiden Seiten in EINER Funktion
        steht und der Pruefstand sie gegeneinander haelt (Stolperstein 293). */
     nr: '539', name: 'Die Rechnung im Browser laeuft der im Server davon',
-    datei: 'public/app.js',
-    suche: "  const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt",
+    file: 'public/app.js',
+    search: "  const eng = seite * 100 / zoom;          // was sie beim eingestellten Zoom zeigt",
     ersatz: "  const eng = seite;                       // was sie beim eingestellten Zoom zeigt",
     erwartet: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
@@ -4989,8 +4989,8 @@ const RUECKBAUTEN = [
        geworden sind -- eine Zahl, die in die falsche Richtung zeigt, ist
        schlechter als keine. */
     nr: '540', name: 'Die Fortschrittszeile kennt nur eine Richtung',
-    datei: 'public/app.js',
-    suche: "${d > 0 ? 'mehr' : 'weniger'}",
+    file: 'public/app.js',
+    search: "${d > 0 ? 'mehr' : 'weniger'}",
     ersatz: "mehr",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -5006,8 +5006,8 @@ const RUECKBAUTEN = [
        bekommt „can't access property innerHTML" als ROTE Message ueber einen
        Vorgang, der geglueckt ist. */
     nr: '541', name: 'Der Bilderstreifen fragt nicht, ob seine Ansicht noch steht',
-    datei: 'public/app.js',
-    suche: "    // erste, die den fehlenden Knoten anfasste.\n    if (!box) return;\n",
+    file: 'public/app.js',
+    search: "    // erste, die den fehlenden Knoten anfasste.\n    if (!box) return;\n",
     ersatz: "    // erste, die den fehlenden Knoten anfasste.\n",
     erwartet: 'Die Ansicht kann fort sein — 0.19.6'
   },
@@ -5016,8 +5016,8 @@ const RUECKBAUTEN = [
        -- beides steht hinter einem await, und das Hochladen wartet laenger
        als jedes Speichern eines Ausschnitts. */
     nr: '542', name: 'Der Betrachter fragt nicht, ob seine Ansicht noch steht',
-    datei: 'public/app.js',
-    suche: "    if (!v) return;\n    // Der Betrachter bleibt bei jedem Neuzeichnen",
+    file: 'public/app.js',
+    search: "    if (!v) return;\n    // Der Betrachter bleibt bei jedem Neuzeichnen",
     ersatz: "    // Der Betrachter bleibt bei jedem Neuzeichnen",
     erwartet: 'Die Ansicht kann fort sein — 0.19.6'
   },
@@ -5026,8 +5026,8 @@ const RUECKBAUTEN = [
        Wer nur „keine rote Message" prueft, bleibt hier gruen -- deshalb steht
        in derselben Gruppe die Gegenprobe an der STEHENDEN Ansicht. */
     nr: '543', name: 'Der Bilderstreifen zeichnet ueberhaupt keine Kacheln mehr',
-    datei: 'public/app.js',
-    suche: "    box.innerHTML = '';\n    item.photos.forEach((p, i) => {",
+    file: 'public/app.js',
+    search: "    box.innerHTML = '';\n    item.photos.forEach((p, i) => {",
     ersatz: "    box.innerHTML = '';\n    [].forEach((p, i) => {",
     erwartet: 'Die Ansicht kann fort sein — 0.19.6'
   },
@@ -5043,8 +5043,8 @@ const RUECKBAUTEN = [
        halbes Jahr nicht gesichert wurde, verliert damit ALLE Kopien auf einen
        Schlag, genau dann, wenn sie die einzigen sind. */
     nr: '544', name: 'Die Regel kennt nur das Alter -- der Boden faellt weg',
-    datei: 'server.js',
-    suche: "  return usable.slice(behalten).filter(d => d.zeit < grenze);",
+    file: 'server.js',
+    search: "  return usable.slice(keep).filter(d => d.time < grenze);",
     ersatz: "  return brauchbar.filter(d => d.zeit < grenze);",
     erwartet: 'Die Aufraeumregel an der Tafel'
   },
@@ -5053,8 +5053,8 @@ const RUECKBAUTEN = [
        viermal auf den Knopf drueckt, wirft damit die Kopie vom Vormonat weg,
        obwohl nichts alt ist. */
     nr: '545', name: 'Die Regel kennt nur die Zahl -- die Schere faellt weg',
-    datei: 'server.js',
-    suche: "  return usable.slice(behalten).filter(d => d.zeit < grenze);",
+    file: 'server.js',
+    search: "  return usable.slice(keep).filter(d => d.time < grenze);",
     ersatz: "  return brauchbar.slice(behalten);",
     erwartet: 'Die Aufraeumregel an der Tafel'
   },
@@ -5065,8 +5065,8 @@ const RUECKBAUTEN = [
        Abfragen: nur so faellt sie an BEIDEN Stellen zugleich, und genau das ist
        die Lage, in der `notizen.txt` wirklich verschwindet. */
     nr: '546', name: 'Die Musterpruefung faellt weg -- die fremde Datei faellt mit',
-    datei: 'server.js',
-    suche: "const BACKUP_PATTERN = /^kriterion-.+\\.sqlite$/;",
+    file: 'server.js',
+    search: "const BACKUP_PATTERN = /^kriterion-.+\\.sqlite$/;",
     ersatz: "const BACKUP_PATTERN = /./;",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5078,8 +5078,8 @@ const RUECKBAUTEN = [
        die Namen kommen heute aus sicherungsListe() und sind laengst geprueft;
        rot wird deshalb der Waechter ueber den Quelltext. */
     nr: '547', name: 'Die zweite Musterpruefung vor dem unlink faellt weg',
-    datei: 'server.js',
-    suche: "    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { geblieben.push(short); continue; }",
+    file: 'server.js',
+    search: "    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { geblieben.push(short); continue; }",
     ersatz: "    if (false) { geblieben.push(kurz); continue; }",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5089,8 +5089,8 @@ const RUECKBAUTEN = [
        selbst. Der Verweis im Prueflauf zeigt aus dem Ordner heraus -- und sein
        Ziel ist eigens alt, sonst deckte ihn der Boden. */
     nr: '548', name: 'Die Liste folgt dem Symlink statt ihn zu sehen',
-    datei: 'server.js',
-    suche: "      const st = fs.lstatSync(path.join(pfad, n));",
+    file: 'server.js',
+    search: "      const st = fs.lstatSync(path.join(pfad, n));",
     ersatz: "      const st = fs.statSync(path.join(pfad, n));",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5100,8 +5100,8 @@ const RUECKBAUTEN = [
        und das ist hier die richtige Stelle: die beiden Fragen stehen
        absichtlich zweimal da. */
     nr: '549', name: 'Das Entfernen folgt dem Symlink',
-    datei: 'server.js',
-    suche: "      const st = fs.lstatSync(full);",
+    file: 'server.js',
+    search: "      const st = fs.lstatSync(full);",
     ersatz: "      const st = fs.statSync(voll);",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5110,8 +5110,8 @@ const RUECKBAUTEN = [
        Kopien, von denen zwei vor dem Schluesselwechsel entstanden sind, sind in
        Wahrheit eine; wer sie mitzaehlt, raeumt die einzige brauchbare weg. */
     nr: '550', name: 'Der Boden zaehlt auch die veralteten Kopien mit',
-    datei: 'server.js',
-    suche: "    .filter(d => changeMs == null || d.zeit >= changeMs)",
+    file: 'server.js',
+    search: "    .filter(d => changeMs == null || d.time >= changeMs)",
     ersatz: "    .filter(() => true)",
     erwartet: 'Die Aufraeumregel an der Tafel'
   },
@@ -5121,8 +5121,8 @@ const RUECKBAUTEN = [
        Runde: sonst raeumt die Installation in dem Augenblick auf, in dem sie
        keine neue Kopie zustande bringt. */
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
-    datei: 'server.js',
-    suche: "  if (fs.existsSync(datei))\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});",
+    file: 'server.js',
+    search: "  if (fs.existsSync(file))\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});",
     ersatz: "  if (fs.existsSync(datei)) {\n    const r = cleanupStatus();\n    if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});\n  }",
     erwartet: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
@@ -5133,8 +5133,8 @@ const RUECKBAUTEN = [
        Ausgang dahinter; einer von beiden allein bliebe stumm, weil im Prueflauf
        nichts wirft. */
     nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
-    datei: 'server.js',
-    suche: "    console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);\n" +
+    file: 'server.js',
+    search: "    console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);\n" +
            "    aufgeraeumt = { weg: 0, nicht: 0, bytes: 0, gescheitert: true };\n" +
            "  }",
     ersatz: "    throw e;\n" +
@@ -5149,8 +5149,8 @@ const RUECKBAUTEN = [
        Knopf in der Gegenrichtung zurueck; eine geloeschte Sicherung holt
        nichts zurueck. */
     nr: '553', name: 'Der Schalter steht bei einer frischen Installation auf AN',
-    datei: 'server.js',
-    suche: "    an: getSetting('backupCleanup', false) === true,",
+    file: 'server.js',
+    search: "    an: getSetting('backupCleanup', false) === true,",
     ersatz: "    an: getSetting('backupCleanup', true) !== false,",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5159,8 +5159,8 @@ const RUECKBAUTEN = [
        stehen -- und ist eine Bitte, keine Klemme: ein Feld, in das jemand 0
        schreiben kann, ist eine Falle. */
     nr: '554', name: 'Die Grenzen der beiden Werte halten nicht mehr am Server',
-    datei: 'server.js',
-    suche: "  if (!Number.isInteger(n) || n < range.min || n > range.max)",
+    file: 'server.js',
+    search: "  if (!Number.isInteger(n) || n < range.min || n > range.max)",
     ersatz: "  if (false)",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5169,8 +5169,8 @@ const RUECKBAUTEN = [
        Wahrheiten darueber, was gleich passiert (Stolperstein 47). Die Vorschau
        verliert damit genau das, wofuer es sie gibt. */
     nr: '555', name: 'Die Vorschau rechnet mit einem anderen Boden als das Loeschen',
-    datei: 'server.js',
-    suche: "  const treffer = ruleHit(dateien, behalten, tage, now, mark ? mark.ms : null);",
+    file: 'server.js',
+    search: "  const treffer = ruleHit(dateien, keep, days, now, mark ? mark.ms : null);",
     ersatz: "  const treffer = ruleHit(dateien, Math.max(1, behalten - 1), tage, jetzt,\n" +
             "                               marke ? marke.ms : null);",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
@@ -5181,8 +5181,8 @@ const RUECKBAUTEN = [
        stuende einen Handgriff davon entfernt, vergessen zu werden
        (Stolperstein 300). */
     nr: '556', name: 'Die Loeschroute nimmt einen Dateinamen aus dem Rumpf',
-    datei: 'server.js',
-    suche: "  const kind = String(req.body?.kind || '');",
+    file: 'server.js',
+    search: "  const kind = String(req.body?.kind || '');",
     ersatz: "  const art = String(req.body?.art || '');\n" +
             "  if (req.body?.datei) {\n" +
             "    const einzeln = removeBackups(ziel.pfad, [req.body.datei]);\n" +
@@ -5193,8 +5193,8 @@ const RUECKBAUTEN = [
   },
   {
     nr: '557', name: 'Das Aufraeumen laeuft ohne zweite Bestaetigung',
-    datei: 'server.js',
-    suche: "app.post('/api/backup/cleanup', ownerOnly,\n" +
+    file: 'server.js',
+    search: "app.post('/api/backup/cleanup', ownerOnly,\n" +
            "         secondConfirmNeeded('backup'), (req, res) => {",
     ersatz: "app.post('/api/backup/cleanup', ownerOnly, (req, res) => {",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
@@ -5204,8 +5204,8 @@ const RUECKBAUTEN = [
        Wirts und liegt damit in derselben Zeile wie Export, Import und
        Sicherung -- beim Eigentuemer. */
     nr: '558', name: 'Ein gewoehnlicher Admin darf alte Sicherungen entfernen',
-    datei: 'server.js',
-    suche: "app.post('/api/backup/cleanup', ownerOnly,\n" +
+    file: 'server.js',
+    search: "app.post('/api/backup/cleanup', ownerOnly,\n" +
            "         secondConfirmNeeded('backup'), (req, res) => {",
     ersatz: "app.post('/api/backup/cleanup', adminOnly,\n" +
             "         secondConfirmNeeded('backup'), (req, res) => {",
@@ -5215,8 +5215,8 @@ const RUECKBAUTEN = [
     /* KEINE ZEILE MEHR IM SICHERHEITSPROTOKOLL. Eine Loeschung, die keine Spur
        hinterlaesst, ist die, nach der hinterher niemand suchen kann. */
     nr: '559', name: 'Die entfernten Kopien stehen in keinem Protokoll mehr',
-    datei: 'server.js',
-    suche: "  for (let i = 0; i < zahl; i++) auth.log('backup.delete', { actor });",
+    file: 'server.js',
+    search: "  for (let i = 0; i < number; i++) auth.log('backup.delete', { actor });",
     ersatz: "  for (let i = 0; i < 0; i++) auth.log('backup.delete', { wer });",
     erwartet: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
@@ -5224,8 +5224,8 @@ const RUECKBAUTEN = [
     /* DER VORGANG FAELLT AUS DER GRUPPE `inventory`. Er stuende dann unter keiner
        Ansicht des Filters -- ausser unter "alle", und dort sucht ihn niemand. */
     nr: '560', name: 'Der Vorgang sicherung.weg steht in keiner Gruppe',
-    datei: 'auth.js',
-    suche: "  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']",
+    file: 'auth.js',
+    search: "  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']",
     ersatz: "  bestand: ['export', 'import', 'backup', 'key']",
     erwartet: 'Das Sicherheitsprotokoll: die Gruppen des Filters'
   },
@@ -5234,8 +5234,8 @@ const RUECKBAUTEN = [
        nicht -- der Schalter, die beiden Felder, die Vorschau und beide
        Knoepfe stehen darauf. */
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
-    datei: 'public/app.js',
-    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,\n" +
+    file: 'public/app.js',
+    search: "  { schluessel: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,\n" +
            "    markup: cardCleanup,   ausruesten: setUpCleanupOut },",
     ersatz: "",
     erwartet: 'Der Systembereich nach Rolle'
@@ -5244,8 +5244,8 @@ const RUECKBAUTEN = [
     /* SIE STEHT BEIM ADMIN STATT BEIM EIGENTUEMER -- dieselbe Klemme wie die
        Karte "Sicherung" daneben faellt damit weg. */
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
-    datei: 'public/app.js',
-    suche: "  { schluessel: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,",
+    file: 'public/app.js',
+    search: "  { schluessel: 'aufraeumen',   abschnitt: 'database', visible: () => OWNER,",
     ersatz: "  { schluessel: 'aufraeumen',   abschnitt: 'database', sichtbar: () => ADMIN,",
     erwartet: 'Der Systembereich nach Rolle'
   },
@@ -5254,8 +5254,8 @@ const RUECKBAUTEN = [
        sieht dann nicht mehr, was das kostet -- und die Karte zeigt eine
        Vorschau zu Werten, die gar nicht mehr dastehen. */
     nr: '563', name: 'Eine Aenderung am Feld rechnet die Vorschau nicht neu',
-    datei: 'public/app.js',
-    suche: "        el.oninput = previewNew;",
+    file: 'public/app.js',
+    search: "        el.oninput = previewNew;",
     ersatz: "        el.oninput = null;",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5264,8 +5264,8 @@ const RUECKBAUTEN = [
        entgegen -- aber eine Oberflaeche, die sie schickt, ist der erste
        Handgriff zu einer Route, die sie liest. */
     nr: '564', name: 'Die Karte schickt die Dateinamen an die Loeschroute mit',
-    datei: 'public/app.js',
-    suche: "      try { r = await api('POST', '/api/backup/cleanup', { kind }); }",
+    file: 'public/app.js',
+    search: "      try { r = await api('POST', '/api/backup/cleanup', { kind }); }",
     ersatz: "      try { r = await api('POST', '/api/backup/cleanup',\n" +
             "        { art, dateien: (a.treffer || []).map(t => t.datei) }); }",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
@@ -5274,10 +5274,10 @@ const RUECKBAUTEN = [
     /* DER KNOPF IST AUCH DANN BEDIENBAR, WENN DIE REGEL NICHTS TRIFFT. Ein
        Knopf, der zuverlaessig nichts tut, sieht aus wie ein Fehler. */
     nr: '565', name: 'Der Knopf ist auch ohne Treffer bedienbar',
-    datei: 'public/app.js',
+    file: 'public/app.js',
     // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
     // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
-    suche: "id=\"cleanup-run\"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
+    search: "id=\"cleanup-run\"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
     ersatz: "id=\"cleanup-run\">${tH('card.deleteNow')}",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5286,13 +5286,13 @@ const RUECKBAUTEN = [
        zieht die Seite auf -- zehn Zeilen sind das Mass jeder Liste im
        Systembereich, seit 0.17.3. */
     nr: '566', name: 'Die Sicherungsliste bekommt keinen Deckel',
-    datei: 'public/style.css',
+    file: 'public/style.css',
     /* MITGEGANGEN mit 0.20.1 (Stolperstein 201) -- UND IN EINE ANDERE DATEI
        GEWANDERT. Bis 0.20.0 nahm er der Liste ihre Klasse in `public/app.js`;
        seit 0.20.1 hat sie ihren EIGENEN Deckel von fuenf Zeilen als Regel im
        Stilblatt, und die ist die Sache. Die Zusage ist dieselbe geblieben:
        eine Liste ohne Deckel zieht die Karte auf. */
-    suche: '#cleanup-list { flex: none; max-height: 13.98rem; }',
+    search: '#cleanup-list { flex: none; max-height: 13.98rem; }',
     ersatz: '#cleanup-list { flex: none; }',
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5302,8 +5302,8 @@ const RUECKBAUTEN = [
        alt und wie gross. Die Zahl in der Ueberschrift bleibt stehen; ohne die
        Zeilen ist sie eine Behauptung. */
     nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
-    datei: 'public/app.js',
-    suche: '           <div class="manage-list" id="cleanup-list">${all.map(row).join(\'\')}</div>`',
+    file: 'public/app.js',
+    search: '           <div class="manage-list" id="cleanup-list">${all.map(row).join(\'\')}</div>`',
     ersatz: '           <div class="manage-list" id="cleanup-list"></div>`',
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5312,8 +5312,8 @@ const RUECKBAUTEN = [
        als letzte Nummer da, und „mindestens 3 behalten" liesse sich an der
        Liste nicht mehr ablesen -- was faellt, stuende dann ganz oben. */
     nr: '568', name: 'Die Nummern laufen von der aeltesten zur juengsten',
-    datei: 'server.js',
-    suche: '      ...cleanupRow(d, now), nr: i + 1,',
+    file: 'server.js',
+    search: '      ...cleanupRow(d, now), nr: i + 1,',
     ersatz: '      ...cleanupRow(d, jetzt), nr: dateien.length - i,',
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5322,8 +5322,8 @@ const RUECKBAUTEN = [
        daliegt, aber nicht mehr, was gleich fehlt -- und die Karte hat ausser
        der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
-    datei: 'public/app.js',
-    suche: "      const mark = z.faellt ? `<span class=\"cleanup-badge remove\">${tH('card.deleteLower')}</span>`",
+    file: 'public/app.js',
+    search: "      const mark = z.faellt ? `<span class=\"cleanup-badge remove\">${tH('card.deleteLower')}</span>`",
     ersatz: "      const marke = z.faellt ? ''",
     erwartet: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
@@ -5347,8 +5347,8 @@ const RUECKBAUTEN = [
        deshalb der Waechter ueber den Quelltext, dieselbe Bauform wie beim
        zweiten Musterwaechter von 0.20.0 (Rueckbau 547). */
     nr: '570', name: 'Der Gesamtschnitt der Uebersicht kennt die Phase nicht mehr',
-    datei: 'server.js',
-    suche: '   GROUP BY r.item_id, r.criterion_id, c.weight, c.phase`);',
+    file: 'server.js',
+    search: '   GROUP BY r.item_id, r.criterion_id, c.weight, c.phase`);',
     ersatz: '   GROUP BY r.item_id, r.criterion_id, c.weight`);',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5359,8 +5359,8 @@ const RUECKBAUTEN = [
        DIESER HIER IST DER, DER STUMM ZURUECKKAM und die Messung ausgeloest
        hat; die Begruendung steht eine Nummer hoeher. */
     nr: '571', name: 'Der Gesamtschnitt des Eintrags kennt die Phase nicht mehr',
-    datei: 'server.js',
-    suche: '   GROUP BY r.criterion_id, c.weight, c.phase`);',
+    file: 'server.js',
+    search: '   GROUP BY r.criterion_id, c.weight, c.phase`);',
     ersatz: '   GROUP BY r.criterion_id, c.weight`);',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5369,8 +5369,8 @@ const RUECKBAUTEN = [
        und wuesste seine eigene Zahl nicht -- und die Kachel eines ungetesteten
        Eintrags zeigte nichts. */
     nr: '572', name: 'potenzialRating faellt aus der Uebersicht',
-    datei: 'server.js',
-    suche: '    it.potenzialRating = totalAverage(boxes.before);',
+    file: 'server.js',
+    search: '    it.potentialRating = totalAverage(boxes.before);',
     ersatz: '    it.potenzialRating = null;',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5379,8 +5379,8 @@ const RUECKBAUTEN = [
        dahinter leer -- genau die Lage, in der eine Zahl dasteht und niemand
        nachsehen kann, wie sie zustande kommt (Stolperstein 217). */
     nr: '573', name: 'Der Rechenweg des Potenzials faellt aus der Antwort',
-    datei: 'server.js',
-    suche: '  it.potenzialRechenweg = { ...potentialCalc, ergebnis: it.potenzialRating };',
+    file: 'server.js',
+    search: '  it.potenzialRechenweg = { ...potentialCalc, result: it.potentialRating };',
     ersatz: '  void potenzialRechenweg;',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5388,8 +5388,8 @@ const RUECKBAUTEN = [
     /* DIE PHASE FAELLT VON DER STERNZEILE. Der Browser koennte dann nicht mehr
        nach Kaesten teilen, und beide Kaesten zeigten alle Zeilen. */
     nr: '574', name: 'Die Sternzeilen des Details tragen ihre Phase nicht mehr',
-    datei: 'server.js',
-    suche: '    SELECT c.id AS criterion_id, c.name, c.weight, c.phase, COALESCE(r.value, 0) AS value',
+    file: 'server.js',
+    search: '    SELECT c.id AS criterion_id, c.name, c.weight, c.phase, COALESCE(r.value, 0) AS value',
     ersatz: '    SELECT c.id AS criterion_id, c.name, c.weight, COALESCE(r.value, 0) AS value',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5398,8 +5398,8 @@ const RUECKBAUTEN = [
        und das Kriterium stuende in KEINEM der beiden Kaesten -- die Sterne
        daran zaehlten nirgends mit, ohne dass es jemand saehe. */
     nr: '575', name: 'POST /api/criteria nimmt jede Phase an',
-    datei: 'server.js',
-    suche: "  if (!PHASES.includes(phase))",
+    file: 'server.js',
+    search: "  if (!PHASES.includes(phase))",
     ersatz: "  if (false)",
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5408,8 +5408,8 @@ const RUECKBAUTEN = [
        Feld. Genau das ist der Fall, den die Absage verhindert: ein
        uebergangenes Feld sieht fuer den Aufrufer aus wie ein gesetztes. */
     nr: '576', name: 'PUT /api/criteria/:id uebergeht die Phase stillschweigend',
-    datei: 'server.js',
-    suche: "  if (req.body.phase !== undefined)",
+    file: 'server.js',
+    search: "  if (req.body.phase !== undefined)",
     ersatz: "  if (false)",
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5418,8 +5418,8 @@ const RUECKBAUTEN = [
        Vorher-Kriterien spielte sich dann als lauter Bewertungskriterien ein --
        und die Sterne landeten im falschen Durchschnitt. */
     nr: '577', name: 'Der Export nennt die Kaesten nicht mehr',
-    datei: 'server.js',
-    suche: "  for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;",
+    file: 'server.js',
+    search: "  for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;",
     ersatz: '  void criteriaPhase;',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5429,8 +5429,8 @@ const RUECKBAUTEN = [
        vorhandenen eingespielt: die Datei sagte etwas anderes als die
        Installation, und niemand saehe es. */
     nr: '578', name: 'Der Import spielt ueber die Kaesten hinweg ein',
-    datei: 'server.js',
-    suche: '  if (conflicts.length) {',
+    file: 'server.js',
+    search: '  if (conflicts.length) {',
     ersatz: '  if (false) {',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5439,8 +5439,8 @@ const RUECKBAUTEN = [
        ihre Zeilen dann nicht mehr, und die Oberflaeche koennte die beiden
        Kaesten nicht auseinanderhalten. */
     nr: '579', name: 'GET /api/criteria liefert die Phase nicht mehr',
-    datei: 'server.js',
-    suche: '  SELECT c.id, c.name, c.sort_order, c.weight, c.phase, c.created_at,',
+    file: 'server.js',
+    search: '  SELECT c.id, c.name, c.sort_order, c.weight, c.phase, c.created_at,',
     ersatz: '  SELECT c.id, c.name, c.sort_order, c.weight, c.created_at,',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5449,8 +5449,8 @@ const RUECKBAUTEN = [
        Einspielen im Kasten „before", und saemtliche Gesamtschnitte waeren
        still weg -- der teuerste denkbare Fehler dieser Runde. */
     nr: '580', name: 'Die Migration stellt den Bestand auf vorher',
-    datei: 'db.js',
-    suche: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'after\'");',
+    file: 'db.js',
+    search: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'after\'");',
     ersatz: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'before\'");',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5460,8 +5460,8 @@ const RUECKBAUTEN = [
        Tabelle nicht an (Stolperstein 13) --, und die Installation kaeme nicht
        hoch. */
     nr: '581', name: 'Der Migrationsblock 0.21.0 wird nicht mehr gerufen',
-    datei: 'db.js',
-    suche: '\nmigration0210();',
+    file: 'db.js',
+    search: '\nmigration0210();',
     ersatz: '\n// migration0210();',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5470,8 +5470,8 @@ const RUECKBAUTEN = [
        Damit gaelte ein Klick an EINEM Eintrag fuer ALLE -- genau die Reichweite,
        die diese Runde ihnen nimmt. */
     nr: '582', name: 'Die Sternkaesten speichern ihren Einklappzustand wieder',
-    datei: 'server.js',
-    suche: "const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_WITHOUT_TO.includes(k));",
+    file: 'server.js',
+    search: "const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_WITHOUT_TO.includes(k));",
     ersatz: "const CLOSED_BLOCKS = ALL_BLOCKS;",
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5482,8 +5482,8 @@ const RUECKBAUTEN = [
        `display: none`; damit rutschten die Sterne beim ERSTEN Stern nach links
        -- genau der Sprung, den dieselbe Runde eine Spalte weiter abschafft. */
     nr: '583', name: 'Das × verschwindet mit seinem Platz statt nur mit seiner Farbe',
-    datei: 'public/app.js',
-    suche: "  z.className = 'rreset' + (value > 0 ? '' : ' blank');",
+    file: 'public/app.js',
+    search: "  z.className = 'rreset' + (value > 0 ? '' : ' blank');",
     ersatz: "  z.className = 'rzurueck'; if (!(value > 0)) z.hidden = true;",
     erwartet: "Die Sternzeile — 0.22.0"
   },
@@ -5492,8 +5492,8 @@ const RUECKBAUTEN = [
        Testtage und jede Lesestelle. Ein Kreuz, das nichts tut, ist schlimmer
        als keins. */
     nr: '584', name: 'Das × steht auch an einer Sternreihe ohne Ruecksetzer',
-    datei: 'public/app.js',
-    suche: "  w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });\n  return w;\n}",
+    file: 'public/app.js',
+    search: "  w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });\n  return w;\n}",
     ersatz: "  w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });\n  w.appendChild(zuruecksetzKnopf(value, () => onPick(0)));\n  return w;\n}",
     erwartet: "Die Sternzeile — 0.22.0"
   },
@@ -5501,8 +5501,8 @@ const RUECKBAUTEN = [
     /* DIE LEERE DURCHSCHNITTSZELLE IST WIEDER LEER. Der Strich faellt, und mit
        ihm die Auskunft „noch niemand". */
     nr: '585', name: 'Die leere Durchschnittszelle zeigt wieder gar nichts',
-    datei: 'public/app.js',
-    suche: "          a.textContent = '–';\n          a.title = t('entry.notRatedYet');",
+    file: 'public/app.js',
+    search: "          a.textContent = '–';\n          a.title = t('entry.notRatedYet');",
     ersatz: "          a.textContent = '';",
     erwartet: 'Die Sternzeile — 0.21.0'
   },
@@ -5511,8 +5511,8 @@ const RUECKBAUTEN = [
        die Spalte null Pixel breit, und der erste Stern laesst sie aufgehen --
        alle Sternzeilen rutschen nach links, unter dem Finger. */
     nr: '586', name: 'Die Durchschnittsspalte verliert ihre Mindestbreite wieder',
-    datei: 'public/style.css',
-    suche: '  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;',
+    file: 'public/style.css',
+    search: '  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;',
     ersatz: '  display: flex; align-items: center; justify-content: flex-end;',
     erwartet: 'Die Sternzeile — 0.21.0'
   },
@@ -5523,8 +5523,8 @@ const RUECKBAUTEN = [
        BEVOR bewertet wird, und die Anordnung sagt es -- an einer neuen Idee
        stuende sonst der leere Bewertungskasten oben. */
     nr: '587', name: 'Der Potenzialblock steht hinter der Bewertung',
-    datei: 'public/app.js',
-    suche: "  seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],",
+    file: 'public/app.js',
+    search: "  seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],",
     ersatz: "  seite: ['kategorie', 'tags', 'bewertung', 'potenzial'],",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5533,8 +5533,8 @@ const RUECKBAUTEN = [
        -- dieselbe Sternzeile zweimal, in zwei Kaesten, mit zwei verschiedenen
        Kopfzahlen darueber. */
     nr: '588', name: 'Der Zeichner zeigt in beiden Kaesten alle Zeilen',
-    datei: 'public/app.js',
-    suche: '    const zeilen = item.ratings.filter(r => r.phase === boxId.phase);',
+    file: 'public/app.js',
+    search: '    const zeilen = item.ratings.filter(r => r.phase === boxId.phase);',
     ersatz: '    const zeilen = item.ratings;',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5543,8 +5543,8 @@ const RUECKBAUTEN = [
        An einer neuen Idee stuende der Bewertungskasten offen und das Potenzial
        zu -- genau verkehrt herum. */
     nr: '589', name: 'Die Sternkaesten folgen wieder der gespeicherten Einstellung',
-    datei: 'public/app.js',
-    suche: '    const afterState = BLOCKS_ALWAYS_OPEN.includes(name);',
+    file: 'public/app.js',
+    search: '    const afterState = BLOCKS_ALWAYS_OPEN.includes(name);',
     ersatz: '    const afterState = false;',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5553,8 +5553,8 @@ const RUECKBAUTEN = [
        aus alten Zeiten mit Bewertungssternen zeigte sie dann nicht -- etwas,
        das jemand eingetragen hat, waere versteckt. */
     nr: '590', name: 'Bewertungssterne an einem ungetesteten Eintrag bleiben zugeklappt',
-    datei: 'public/app.js',
-    suche: "  return !item.tested && !hasStars(item, 'after');",
+    file: 'public/app.js',
+    search: "  return !item.tested && !hasStars(item, 'after');",
     ersatz: '  return !item.tested;',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5563,8 +5563,8 @@ const RUECKBAUTEN = [
        Eintrag fuer ALLE, und beim naechsten Eintrag stuende der falsche Kasten
        offen -- ohne dass jemand wuesste, warum. */
     nr: '591', name: 'Ein Klick auf den Kastenkopf speichert wieder',
-    datei: 'public/app.js',
-    suche: '        if (BLICK.has(name)) BLICK.delete(name); else BLICK.add(name);',
+    file: 'public/app.js',
+    search: '        if (BLICK.has(name)) BLICK.delete(name); else BLICK.add(name);',
     ersatz: "        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];\n        saveBlocks();",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5573,8 +5573,8 @@ const RUECKBAUTEN = [
        stuende der Kasten offen, den man vorher aufgeklappt hatte -- der Klick
        auf den Schalter saehe aus, als haette er nichts getan. */
     nr: '592', name: 'Der Schalter „Getestet" leert den Blick nicht mehr',
-    datei: 'public/app.js',
-    suche: '      BLICK.clear();\n      drawSwitches(); drawTestDays(); drawRatings();',
+    file: 'public/app.js',
+    search: '      BLICK.clear();\n      drawSwitches(); drawTestDays(); drawRatings();',
     ersatz: '      drawSwitches(); drawTestDays(); drawRatings();',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5583,8 +5583,8 @@ const RUECKBAUTEN = [
        Einstellung, nur eine, die niemand speichert -- die schlechteste
        Mischung aus beidem. */
     nr: '593', name: 'Der Blick ueberlebt den Wechsel des Eintrags',
-    datei: 'public/app.js',
-    suche: '  BLICK.clear();\n  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
+    file: 'public/app.js',
+    search: '  BLICK.clear();\n  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
     ersatz: '  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5593,8 +5593,8 @@ const RUECKBAUTEN = [
        Damit stuende dort „★ –" statt „◆ 4,2", und das Sortieren nach Potenzial
        haette keine sichtbare Entsprechung. */
     nr: '594', name: 'Die Kachel zeigt an einer Idee wieder die Bewertung',
-    datei: 'public/app.js',
-    suche: '  const wert = potenzial ? it.potenzialRating : it.avgRating;',
+    file: 'public/app.js',
+    search: '  const wert = potenzial ? it.potentialRating : it.avgRating;',
     ersatz: '  const wert = it.avgRating;',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5603,8 +5603,8 @@ const RUECKBAUTEN = [
        4,2 Qualitaet -- und die Kachel saehe an einer Idee genauso aus wie an
        einem geprueften Eintrag. */
     nr: '595', name: 'Das Potenzial traegt auf der Kachel wieder den Stern',
-    datei: 'public/app.js',
-    suche: "  const char = potenzial ? '◆' : '★';",
+    file: 'public/app.js',
+    search: "  const char = potenzial ? '◆' : '★';",
     ersatz: "  const zeichen = '★';",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5613,8 +5613,8 @@ const RUECKBAUTEN = [
        In der Richtung „niedrig → hoch" stuenden dann lauter Eintraege ohne
        Einschaetzung oben -- die Ansicht „Als Naechstes" waere unbrauchbar. */
     nr: '596', name: 'Eintraege ohne Potenzialzahl stehen in einer Richtung vorn',
-    datei: 'public/app.js',
-    suche: "      case 'potenzial_asc':  return (a.potenzialRating ?? 99) - (b.potenzialRating ?? 99);",
+    file: 'public/app.js',
+    search: "      case 'potenzial_asc':  return (a.potentialRating ?? 99) - (b.potentialRating ?? 99);",
     ersatz: "      case 'potenzial_asc':  return (a.potenzialRating ?? 0) - (b.potenzialRating ?? 0);",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5623,8 +5623,8 @@ const RUECKBAUTEN = [
        Karten zeigten dann dieselbe Liste, und wer im Potenzialkasten anlegt,
        saehe sein Kriterium in beiden. */
     nr: '597', name: 'Die zweite Kriterienkarte filtert nicht nach Phase',
-    datei: 'public/app.js',
-    suche: "  manageList(k.list, fetched.crits.filter(c => c.phase === phase), 'crit', fetched);",
+    file: 'public/app.js',
+    search: "  manageList(k.list, fetched.crits.filter(c => c.phase === phase), 'crit', fetched);",
     ersatz: "  verwaltungsListe(k.liste, geholt.crits, 'crit', geholt);",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5633,8 +5633,8 @@ const RUECKBAUTEN = [
        angelegt wird, landete als Bewertungskriterium -- der Server hat die
        Vorgabe 'after'. */
     nr: '598', name: 'Die zweite Kriterienkarte legt im falschen Kasten an',
-    datei: 'public/app.js',
-    suche: "      try { await api('POST', '/api/criteria', { name, phase }); critField.value = '';",
+    file: 'public/app.js',
+    search: "      try { await api('POST', '/api/criteria', { name, phase }); critField.value = '';",
     ersatz: "      try { await api('POST', '/api/criteria', { name }); critField.value = '';",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5644,8 +5644,8 @@ const RUECKBAUTEN = [
        zweite Rechenstelle im Browser waere genau die, die es nicht geben
        darf. */
     nr: '599', name: 'Der eigene Schnitt im Vergleich mischt die Kaesten',
-    datei: 'public/app.js',
-    suche: "      if (r.phase !== phase) continue;",
+    file: 'public/app.js',
+    search: "      if (r.phase !== phase) continue;",
     ersatz: "      if (false) continue;",
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5654,8 +5654,8 @@ const RUECKBAUTEN = [
        saehe im Blockkopf weiter „Potenzial" -- das Wort stuende wieder im
        Quelltext. */
     nr: '600', name: 'Der Blockkopf traegt das Wort aus dem Quelltext',
-    datei: 'public/app.js',
-    suche: '<div class="block-head"><span class="label">${esc(V.potenzial)}</span>',
+    file: 'public/app.js',
+    search: '<div class="block-head"><span class="label">${esc(V.potenzial)}</span>',
     ersatz: '<div class="block-head"><span class="label">Potenzial</span>',
     erwartet: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5668,8 +5668,8 @@ const RUECKBAUTEN = [
        GENAU DAS IST BEIM BAUEN VON 0.21.0 PASSIERT, und der Pruefstand hat es
        gefunden -- an der Lage mit dem unvollstaendigen eigenen Vokabular. */
     nr: '601', name: 'Die Vorgabe der Oberflaeche kennt das neue Wort nicht',
-    datei: 'public/languages/de.json',
-    suche: "\"vocabulary.potenzial\":",
+    file: 'public/languages/de.json',
+    search: "\"vocabulary.potenzial\":",
     ersatz: "\"vocabulary.potenzialWeg\":",
     erwartet: 'Oberflaeche mit eigenem Vokabular'
   },
@@ -5684,10 +5684,10 @@ const RUECKBAUTEN = [
        (Rueckbauten 570 und 571). Ein Rueckbau, der die Zusage wirklich
        herausnimmt, fehlte -- er steht jetzt hier. */
     nr: '602', name: 'Die gebuendelte Abfrage waehlt die Phase nicht mehr aus',
-    datei: 'server.js',
-    suche: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+    file: 'server.js',
+    search: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS anzahl,\n' +
            '         c.weight, c.phase\n',
-    ersatz: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+    ersatz: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS anzahl,\n' +
             '         c.weight\n',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5697,10 +5697,10 @@ const RUECKBAUTEN = [
        verschiedener Meinung -- und ein Eintrag zeigte in der Liste zwei Zahlen
        und aufgeschlagen keine. */
     nr: '603', name: 'Die Abfrage des Eintrags waehlt die Phase nicht mehr aus',
-    datei: 'server.js',
-    suche: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+    file: 'server.js',
+    search: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS anzahl,\n' +
            '         c.weight, c.phase\n',
-    ersatz: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,\n' +
+    ersatz: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS anzahl,\n' +
             '         c.weight\n',
     erwartet: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
@@ -5711,8 +5711,8 @@ const RUECKBAUTEN = [
        Versatz dagegen, und die Tabelle zeigt einen stummen Rueckbau als
        greifenden. EINE FALSCHE TABELLE IST SCHLIMMER ALS GAR KEINE. */
     nr: '604', name: 'Der Treiber faehrt los, ohne nach fremden Servern zu sehen',
-    datei: 'counterproof.js',
-    suche: '  const fremde = fremdeServer();\n  if (fremde.length) {',
+    file: 'counterproof.js',
+    search: '  const fremde = fremdeServer();\n  if (fremde.length) {',
     ersatz: '  const fremde = [];\n  if (fremde.length) {',
     erwartet: 'Die Gegenproben greifen'
   },
@@ -5721,9 +5721,9 @@ const RUECKBAUTEN = [
        liegengebliebener PRUEFLAUF belegt genauso Ports wie ein liegen-
        gebliebener Server -- er startet ja welche. */
     nr: '605', name: 'Die Suche nach fremden Servern kennt den Prueflauf nicht mehr',
-    datei: 'counterproof.js',
-    suche: "    const skript = teile.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
-    ersatz: "    const skript = teile.find(t => /(^|\\/)server\\.js$/.test(t));",
+    file: 'counterproof.js',
+    search: "    const skript = parts.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
+    ersatz: "    const skript = parts.find(t => /(^|\\/)server\\.js$/.test(t));",
     erwartet: 'Die Gegenproben greifen'
   },
 
@@ -5733,8 +5733,8 @@ const RUECKBAUTEN = [
        mehr etwas ab, und die Runde ist wirkungslos -- die Liste sieht
        aus wie vor 0.21.1. */
     nr: '606', name: 'Keine Sortierung gibt mehr einen Status vor',
-    datei: 'public/app.js',
-    suche: "const SORT_STATUS = {\n" +
+    file: 'public/app.js',
+    search: "const SORT_STATUS = {\n" +
            "  rating_desc: 'tested',      rating_asc: 'tested',\n" +
            "  potenzial_desc: 'untested', potenzial_asc: 'untested'\n" +
            "};",
@@ -5746,8 +5746,8 @@ const RUECKBAUTEN = [
        die Bewertungsseite baut -- die Potenzialseite ist die, aus der der
        Befund ueberhaupt kam. */
     nr: '607', name: 'Nur die Bewertung gibt vor, das Potenzial nicht mehr',
-    datei: 'public/app.js',
-    suche: "  potenzial_desc: 'untested', potenzial_asc: 'untested'\n",
+    file: 'public/app.js',
+    search: "  potenzial_desc: 'untested', potenzial_asc: 'untested'\n",
     ersatz: "",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5755,8 +5755,8 @@ const RUECKBAUTEN = [
     /* UND DIE GEGENRICHTUNG: eine Sortierung, die ausdruecklich NICHT koppeln
        soll, koppelt doch. Ein Titel sagt nichts ueber den Teststatus. */
     nr: '608', name: 'Die Titelsortierung koppelt mit',
-    datei: 'public/app.js',
-    suche: "const SORT_STATUS = {\n",
+    file: 'public/app.js',
+    search: "const SORT_STATUS = {\n",
     ersatz: "const SORT_STATUS = {\n  title_asc: 'tested',\n",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5766,8 +5766,8 @@ const RUECKBAUTEN = [
        eigene Gruppe im Auswahlfeld -- diese Runde fasst zwei Gruppen an, nicht
        drei. Ohne diesen Rueckbau waere das eine Behauptung im Kommentar. */
     nr: '609', name: 'Die Verlaufssortierungen koppeln mit',
-    datei: 'public/app.js',
-    suche: "const SORT_STATUS = {\n  rating_desc:",
+    file: 'public/app.js',
+    search: "const SORT_STATUS = {\n  rating_desc:",
     ersatz: "const SORT_STATUS = {\n  testavg_desc: 'tested', testavg_asc: 'tested',\n  tests_desc: 'tested', tests_asc: 'tested',\n  rating_desc:",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5776,8 +5776,8 @@ const RUECKBAUTEN = [
        Lesestelle faellt damit weg, und die ganze Ableitung wirkt nirgends
        mehr -- der groesste Rueckbau dieser Runde. */
     nr: '610', name: 'Die Liste liest die Ableitung nicht mehr',
-    datei: 'public/app.js',
-    suche: "  const status = statusEffective(f);",
+    file: 'public/app.js',
+    search: "  const status = statusEffective(f);",
     ersatz: "  const status = f.tested;",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5786,8 +5786,8 @@ const RUECKBAUTEN = [
        aber die Ableitung schlaegt ihn beim naechsten Zeichnen sofort wieder --
        genau der Kreis, aus dem niemand mehr herauskaeme (Stolperstein 312). */
     nr: '611', name: 'Ein Klick auf eine Statuspille gilt nicht mehr als Handwahl',
-    datei: 'public/app.js',
-    suche: "    b.onclick = () => { f.tested = v; STATUS_BY_HAND = true; redraw(); };",
+    file: 'public/app.js',
+    search: "    b.onclick = () => { f.tested = v; STATUS_BY_HAND = true; redraw(); };",
     ersatz: "    b.onclick = () => { f.tested = v; redraw(); };",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5796,8 +5796,8 @@ const RUECKBAUTEN = [
        gewaehlt hat, und schlaegt damit JEDE ausdrueckliche Wahl -- die
        Handwahl, die gespeicherte Ansicht und den Ruecksetzer zugleich. */
     nr: '612', name: 'Die Ableitung schlaegt die Handwahl statt umgekehrt',
-    datei: 'public/app.js',
-    suche: "const statusOutSort = (sort) => STATUS_BY_HAND ? null : defaultClosed(sort);",
+    file: 'public/app.js',
+    search: "const statusOutSort = (sort) => STATUS_BY_HAND ? null : defaultClosed(sort);",
     ersatz: "const statusOutSort = (sort) => vorgabeZu(sort);",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5809,8 +5809,8 @@ const RUECKBAUTEN = [
        den niemand gesetzt hat (Stolperstein 304 von der anderen Seite).
        ER MUSS ROT WERDEN, sonst ist Regel 3 nicht baulich, sondern behauptet. */
     nr: '613', name: 'Die Ableitung wird mitgespeichert',
-    datei: 'public/app.js',
-    suche: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
+    file: 'public/app.js',
+    search: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
     ersatz: "  sel.onchange = () => { f.sort = sel.value;\n" +
             "    f.tested = statusOutSort(sel.value) || f.tested; redraw(); };",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
@@ -5821,8 +5821,8 @@ const RUECKBAUTEN = [
        dann schon die neue Menge, waehrend die Pillen darueber die alte
        Stellung behaupten. */
     nr: '614', name: 'Der Wechsel der Sortierung zeichnet nur noch die Liste',
-    datei: 'public/app.js',
-    suche: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
+    file: 'public/app.js',
+    search: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
     ersatz: "  sel.onchange = () => { f.sort = sel.value; saveFilters(); drawBody(); };",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5831,8 +5831,8 @@ const RUECKBAUTEN = [
        „Potenzial" und „alles anzeigen" zusammen gespeichert hat, bekommt sie
        nicht mehr zurueck -- und genau das darf ein PATCH nicht tun. */
     nr: '615', name: 'Eine gespeicherte Ansicht schlaegt die Ableitung nicht mehr',
-    datei: 'public/app.js',
-    suche: "  STATUS_BY_HAND = true;\n  state.search = typeof a.q === 'string' ? a.q : '';",
+    file: 'public/app.js',
+    search: "  STATUS_BY_HAND = true;\n  state.search = typeof a.q === 'string' ? a.q : '';",
     ersatz: "  state.search = typeof a.q === 'string' ? a.q : '';",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5841,8 +5841,8 @@ const RUECKBAUTEN = [
        Filter, aber die Handwahl bleibt stehen -- und es gibt keinen zweiten
        Weg heraus. */
     nr: '616', name: 'Der Ruecksetzer stellt die Automatik nicht wieder her',
-    datei: 'public/app.js',
-    suche: "      STATUS_BY_HAND = false;\n      redraw();",
+    file: 'public/app.js',
+    search: "      STATUS_BY_HAND = false;\n      redraw();",
     ersatz: "      redraw();",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5850,8 +5850,8 @@ const RUECKBAUTEN = [
     /* DAS WORT FAELLT WEG. Ein unsichtbarer Automatismus ist ein Fehler, auch
        wenn er richtig raet -- niemand erfuehre, warum die Liste kuerzer ist. */
     nr: '617', name: 'Neben den Statuspillen steht nicht mehr, woher sie kommen',
-    datei: 'public/app.js',
-    suche: "  if (vorgabe) {\n    const woher = secondLabel(r1, t('list.followsSort'));",
+    file: 'public/app.js',
+    search: "  if (fallback) {\n    const woher = secondLabel(r1, t('list.followsSort'));",
     ersatz: "  if (false) {\n    const woher = zweiteBeschriftung(r1, t('list.followsSort'));",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5859,8 +5859,8 @@ const RUECKBAUTEN = [
     /* DIE ABGELEITETE PILLE SIEHT AUS WIE EINE ANGEKLICKTE. Sie behauptet
        damit eine Einstellung, die niemand vorgenommen hat. */
     nr: '618', name: 'Die abgeleitete Pille zeichnet sich wie eine gewaehlte',
-    datei: 'public/app.js',
-    suche: "    b.className = 'pill' + (vorgabe ? (vorgabe === v ? ' pill-derived' : '')\n" +
+    file: 'public/app.js',
+    search: "    b.className = 'pill' + (fallback ? (fallback === v ? ' pill-derived' : '')\n" +
            "                                    : (f.tested === v ? ' on' : ''));",
     ersatz: "    b.className = 'pill' + ((vorgabe ? vorgabe === v : f.tested === v) ? ' on' : '');",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
@@ -5870,8 +5870,8 @@ const RUECKBAUTEN = [
        wie die gewaehlte. Ein Unterschied, der nur im Markup steht und nicht am
        Bildschirm, ist keiner. */
     nr: '619', name: 'Das Stilblatt gibt der abgeleiteten Pille den Fuellgrund der gewaehlten',
-    datei: 'public/style.css',
-    suche: "  border-color: var(--accent); border-style: dashed;",
+    file: 'public/style.css',
+    search: "  border-color: var(--accent); border-style: dashed;",
     ersatz: "  border-color: var(--accent); background: var(--accent);",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5881,8 +5881,8 @@ const RUECKBAUTEN = [
        gesetzten Filter da, und ein Druck darauf stellte die Ableitung gerade
        wieder her: derselbe Knopf mit derselben Zahl. */
     nr: '620', name: 'Die Ableitung zaehlt als gesetzter Filter mit',
-    datei: 'public/app.js',
-    suche: "  if (statusEffective(f) !== statusIdle(f)) n++;",
+    file: 'public/app.js',
+    search: "  if (statusEffective(f) !== statusIdle(f)) n++;",
     ersatz: "  if (statusEffective(f) !== statusRuhestellung(f)) n++;\n" +
             "  if (statusOutSort(f.sort)) n++;",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
@@ -5900,16 +5900,16 @@ const RUECKBAUTEN = [
        Funktion weder 'tested' noch 'untested' ist, faellt der Statusfilter
        still ganz weg -- samt der gespeicherten Wahl. */
     nr: '623', name: 'Die Vorgabetabelle wird ohne Ruecksicht auf den Prototyp gefragt',
-    datei: 'public/app.js',
-    suche: "  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)\n" +
+    file: 'public/app.js',
+    search: "  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)\n" +
            "    ? SORT_STATUS[sort] : null;",
     ersatz: "  SORT_STATUS[sort] || null;",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
     nr: '622', name: 'Die Ruhestellung der Statuszeile ist wieder fest „alles"',
-    datei: 'public/app.js',
-    suche: "  if (statusEffective(f) !== statusIdle(f)) n++;",
+    file: 'public/app.js',
+    search: "  if (statusEffective(f) !== statusIdle(f)) n++;",
     ersatz: "  if (f.tested !== v.tested) n++;",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5918,8 +5918,8 @@ const RUECKBAUTEN = [
        die zugeklappte Leiste noch spricht -- ohne ihn stuende die Ableitung
        genau dann nirgends dran, wenn man sie am wenigsten sieht. */
     nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
-    datei: 'public/app.js',
-    suche: "  const woher = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';",
+    file: 'public/app.js',
+    search: "  const woher = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';",
     ersatz: "  const woher = '';",
     erwartet: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5932,8 +5932,8 @@ const RUECKBAUTEN = [
        ueber sie schweigt. GENAU DAS IST IN DIESER RUNDE PASSIERT: in
        batchrun.js stand ein Wort aus der Sperrliste, und niemand sah es. */
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
-    datei: 'testbench.js',
-    suche: "                          'images.js', 'batchrun.js'];",
+    file: 'testbench.js',
+    search: "                          'images.js', 'batchrun.js'];",
     ersatz: "                          ];",
     erwartet: 'Der Sprachwaechter'
   },
@@ -5943,8 +5943,8 @@ const RUECKBAUTEN = [
        davon sein wird. Ein Waechter, dem ein Wort fehlt, sieht aus wie einer,
        der nichts zu beanstanden hat. */
     nr: 'W13', name: 'Die Sprachliste verliert ihren juengsten Eintrag',
-    datei: 'testbench.js',
-    suche: "    ['Faden', 'Thread']\n  ];",
+    file: 'testbench.js',
+    search: "    ['Faden', 'Thread']\n  ];",
     ersatz: "  ];",
     erwartet: 'Der Sprachwaechter'
   },
@@ -5964,32 +5964,32 @@ const RUECKBAUTEN = [
        Regel, die im Papier steht und im Stilblatt gebrochen wird, ist keine
        (Stolperstein 314). Der Waechter muss sie kennen. */
     nr: '624', name: 'Das Milchglas kommt an die Kopfzeile zurueck',
-    datei: 'public/style.css',
-    suche: ".masthead.scrolled { box-shadow: var(--sh-sm); }",
+    file: 'public/style.css',
+    search: ".masthead.scrolled { box-shadow: var(--sh-sm); }",
     ersatz: ".masthead.scrolled { box-shadow: var(--sh-sm); backdrop-filter: blur(10px); }",
     erwartet: 'Kein Milchglas im Stilblatt — 0.22.0'
   },
   {
     // Ein Bildschirmtext traegt wieder ein Wort der Verbotsliste (Konzept 4.3).
     nr: '625', name: 'Die Glocke sagt wieder „Blick"',
-    datei: 'public/app.js',
-    suche: "    : t('list.noNews'));",
+    file: 'public/app.js',
+    search: "    : t('list.noNews'));",
     ersatz: "    : 'Nichts Neues seit deinem letzten Blick');",
     erwartet: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
   {
     // Eine Servermeldung nennt wieder den Spaltenwert „Kasten".
     nr: '626', name: 'Die Servermeldung zur Phase eines Kriteriums sagt wieder „Kasten"',
-    datei: 'public/languages/de.json',
-    suche: "\"server.criterionEitherOr\": \"Ein Kriterium gehört entweder zu „{potenzial}“ oder zu „{bewertungEinzahl}“.\",",
+    file: 'public/languages/de.json',
+    search: "\"server.criterionEitherOr\": \"Ein Kriterium gehört entweder zu „{potenzial}“ oder zu „{bewertungEinzahl}“.\",",
     ersatz: "\"server.criterionEitherOr\": \"Der Kasten muss „{potenzial}“ oder „{bewertungEinzahl}“ sein.\",",
     erwartet: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
   {
     // Ein rohes Browserfenster kehrt zurueck -- confirm() statt confirmBox().
     nr: '627', name: 'Das Beenden der anderen Sitzungen fragt wieder ueber confirm()',
-    datei: 'public/app.js',
-    suche: "      if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;",
+    file: 'public/app.js',
+    search: "      if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;",
     ersatz: "      if (!confirm(t('card.endSessionsAsk'))) return;",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
@@ -5998,40 +5998,40 @@ const RUECKBAUTEN = [
        Benutzers, wie bis 0.21.1 an den Wiederherstellungscodes (Stolperstein
        315). Gezaehlt wird, nicht gesucht: die Zeile traegt kein serverKasten(. */
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
-    datei: 'public/languages/de.json',
-    suche: "Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.\"",
+    file: 'public/languages/de.json',
+    search: "Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.\"",
     ersatz: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node usertool.js passwort <name>.\"",
     erwartet: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
     // Der Kasten wird zu einem fuenften Aufruf, den niemand gezaehlt hat.
     nr: '629', name: 'Ein fuenfter Kasten „Auf dem Server" kommt an die Karte Sicherung',
-    datei: 'public/app.js',
-    suche: "        <div id=\"backup-box\"></div>\n      </div>`;",
+    file: 'public/app.js',
+    search: "        <div id=\"backup-box\"></div>\n      </div>`;",
     ersatz: "        <div id=\"backup-box\"></div>\n        ${serverKasten('Die Sicherung von Hand:', 'docker compose exec kriterion node sicherung.js')}\n      </div>`;",
     erwartet: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
     // prompt() kehrt zurueck: das fremde Passwort stuende wieder im Klartext.
     nr: '630', name: 'Das fremde Passwort wird wieder ueber prompt() abgefragt',
-    datei: 'public/app.js',
-    suche: "          const fresh = await newPasswordDialog(t('card.setPasswordFor', { username: z.username }),",
+    file: 'public/app.js',
+    search: "          const fresh = await newPasswordDialog(t('card.setPasswordFor', { username: z.username }),",
     ersatz: "          const neu = prompt(t('card.setPasswordFor', { username: z.username }),",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
   {
     // Die Schranke der Stufen lockert sich: 90 ginge durch.
     nr: '631', name: 'Der Bildstreifen laesst eine ungueltige Stufe durch',
-    datei: 'server.js',
-    suche: "    if (!STRIP_LEVELS.includes(n))",
+    file: 'server.js',
+    search: "    if (!STRIP_LEVELS.includes(n))",
     ersatz: "    if (!Number.isFinite(n))",
     erwartet: 'Die Einstellung strip — 0.22.0'
   },
   {
     // Die Vorgabe vergisst eines der zwei neuen Woerter -- dreizehn statt vierzehn.
     nr: '632', name: 'Die Vorgabe des Vokabulars vergisst die Mehrzahl der Bewertung',
-    datei: 'public/languages/de.json',
-    suche: "\"vocabulary.bewertungMehrzahl\": \"Bewertungen\",",
+    file: 'public/languages/de.json',
+    search: "\"vocabulary.bewertungMehrzahl\": \"Bewertungen\",",
     ersatz: "\"vocabulary.bewertungMehrzahl\": \"\",",
     erwartet: 'Einstellungen: Vokabular und Schriftgroesse'
   },
@@ -6040,24 +6040,24 @@ const RUECKBAUTEN = [
        als × stand. Die Zeile hat dann drei Zellen statt vier, und der Befund
        aus dem Betrieb waere nicht behoben. */
     nr: '633', name: 'Der Ruecksetzknopf steht wieder in der Sternzelle statt in seiner eigenen Spalte',
-    datei: 'public/app.js',
-    suche: "      const zz = document.createElement('span');\n      zz.className = 'rreset-cell';\n      zz.appendChild(back);\n      row.append(zz);",
+    file: 'public/app.js',
+    search: "      const zz = document.createElement('span');\n      zz.className = 'rreset-cell';\n      zz.appendChild(back);\n      row.append(zz);",
     ersatz: "      acts.appendChild(zurueck);",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
   {
     // „Rückgängig" schreibt nicht den alten Wert zurueck, sondern noch einmal die Null.
     nr: '634', name: 'Rueckgaengig schreibt die Null statt des alten Werts',
-    datei: 'public/app.js',
-    suche: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(old) });",
+    file: 'public/app.js',
+    search: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(old) });",
     ersatz: "        toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(0) });",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
   {
     // Bei einem einzigen Zugang stuende der Knopf wieder dicht an den Sternen.
     nr: '635', name: 'Die Zelle des Ruecksetzknopfs verliert ihren Abstand',
-    datei: 'public/style.css',
-    suche: ".rrow .rreset-cell { display: flex; align-items: center; justify-content: flex-end; padding-left: 12px; }",
+    file: 'public/style.css',
+    search: ".rrow .rreset-cell { display: flex; align-items: center; justify-content: flex-end; padding-left: 12px; }",
     ersatz: ".rrow .rzz { display: flex; align-items: center; justify-content: flex-end; padding-left: 4px; }",
     erwartet: 'Die Sternzeile — 0.22.0'
   },
@@ -6067,16 +6067,16 @@ const RUECKBAUTEN = [
        MITGEZOGEN, NICHT GELOESCHT -- 0.24.0 (Stolperstein 201): der Aufklapper
        ist ein Knopf geworden, die Regel dahinter ist dieselbe geblieben. */
     nr: '636', name: 'Die Tagzeile bleibt bei greifendem Tagfilter zugeklappt',
-    datei: 'public/app.js',
-    suche: "    (MORE_FILTERS_OPEN === null ? f.tagIds.length > 0 : MORE_FILTERS_OPEN);",
+    file: 'public/app.js',
+    search: "    (MORE_FILTERS_OPEN === null ? f.tagIds.length > 0 : MORE_FILTERS_OPEN);",
     ersatz: "    (WEITERE_FILTER_OFFEN === null ? false : WEITERE_FILTER_OFFEN);",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
     // filterZahl() vergisst die Tags hinter dem Umschalter.
     nr: '637', name: 'filterNumber() zaehlt die Tags hinter dem Umschalter nicht mehr',
-    datei: 'public/app.js',
-    suche: "  n += f.tagIds.length;",
+    file: 'public/app.js',
+    search: "  n += f.tagIds.length;",
     ersatz: "  n += 0;",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
@@ -6084,8 +6084,8 @@ const RUECKBAUTEN = [
     /* DER UMSCHALTER BELEGT WIEDER EINE EIGENE ZEILE -- 0.24.0. Genau das war
        der Befund: er kostete den Platz, den er sparen sollte. */
     nr: '658', name: 'Der Umschalter der Tagzeile steht nicht in der Kategoriezeile',
-    datei: 'public/app.js',
-    suche: "    r2.appendChild(right2);",
+    file: 'public/app.js',
+    search: "    r2.appendChild(right2);",
     ersatz: "    box.appendChild(rechts2);",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
@@ -6093,8 +6093,8 @@ const RUECKBAUTEN = [
     /* ZUGEKLAPPT WAERE DIE ZEILE NUR VERBORGEN UND NICHT FORT -- sie kostete
        den Platz weiter, und der Befund waere nur zur Haelfte behoben. */
     nr: '659', name: 'Die Tagzeile wird zugeklappt gebaut statt weggelassen',
-    datei: 'public/app.js',
-    suche: "  if (tagsOpen) {\n    const r3 = row(t('list.tags'));",
+    file: 'public/app.js',
+    search: "  if (tagsOpen) {\n    const r3 = row(t('list.tags'));",
     ersatz: "  if (true) {\n    const r3 = row(t('list.tags'));",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
@@ -6102,8 +6102,8 @@ const RUECKBAUTEN = [
     /* EIN UMSCHALTER FUER EINE LEERE ZEILE -- die zweite Haelfte des Befundes
        vom 5. September 2026. */
     nr: '660', name: 'Der Umschalter steht auch da, wenn kein Tag dahinter ist',
-    datei: 'public/app.js',
-    suche: "  const tagsPossible = filterTags.length > 0 || f.tagIds.length > 0;",
+    file: 'public/app.js',
+    search: "  const tagsPossible = filterTags.length > 0 || f.tagIds.length > 0;",
     ersatz: "  const tagsMoeglich = true;",
     erwartet: 'Der Umschalter der Tagzeile — 0.24.0'
   },
@@ -6111,8 +6111,8 @@ const RUECKBAUTEN = [
     /* EIN LITERAL ZURUECK HINTER `error:` -- genau das, was Bauabschnitt 2
        ueberall entfernt hat. */
     nr: '675', name: 'Eine Servermeldung steht wieder als Satz im Quelltext',
-    datei: 'server.js',
-    suche: "  if (!title) return res.status(400).json({ error: t(localeOf(req), 'server.titleMissing')});",
+    file: 'server.js',
+    search: "  if (!title) return res.status(400).json({ error: t(localeOf(req), 'server.titleMissing')});",
     ersatz: "  if (!title) return res.status(400).json({ error: 'Bitte einen Titel eingeben.' });",
     erwartet: 'Der Bildschirmtext-Waechter'
   },
@@ -6120,8 +6120,8 @@ const RUECKBAUTEN = [
     /* EIN DEUTSCHER SATZ ZURUECK IN `throw new Error` IN auth.js -- der blinde
        Fleck des Waechters, den diese Runde geschlossen hat. */
     nr: '676', name: 'auth.js wirft wieder einen deutschen Satz',
-    datei: 'auth.js',
-    suche: "  if (!ROLES.includes(role)) throw new Message('login.roleUnknown');\n  const clean = String(name).trim();",
+    file: 'auth.js',
+    search: "  if (!ROLES.includes(role)) throw new Message('login.roleUnknown');\n  const clean = String(name).trim();",
     ersatz: "  if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');\n  const sauber = String(name).trim();",
     erwartet: 'Der Bildschirmtext-Waechter'
   },
@@ -6129,8 +6129,8 @@ const RUECKBAUTEN = [
     /* EIN PROGRAMMIERFEHLER OHNE BILDSCHIRM VERSCHWINDET. Die Liste ist
        namentlich -- eine Zahl allein liesse offen, welche gemeint sind. */
     nr: '677', name: 'Ein Programmierfehler ohne Bildschirm faellt weg',
-    datei: 'auth.js',
-    suche: "    throw new Error('Eine Sitzung braucht einen Benutzer.');",
+    file: 'auth.js',
+    search: "    throw new Error('Eine Sitzung braucht einen Benutzer.');",
     ersatz: "    return null;",
     erwartet: 'Der Bildschirmtext-Waechter'
   },
@@ -6138,8 +6138,8 @@ const RUECKBAUTEN = [
     /* EINE DER VIER ALTLASTEN VERSCHWINDET AUS DER DATEI, ohne dass jemand die
        Liste im Pruefstand nachzieht. */
     nr: '678', name: 'Eine benannte Altlast verschwindet aus der Sprachdatei',
-    datei: 'public/languages/de.json',
-    suche: '  "login.noUserYet": "Es ist noch kein Zugang eingerichtet.",',
+    file: 'public/languages/de.json',
+    search: '  "login.noUserYet": "Es ist noch kein Zugang eingerichtet.",',
     ersatz: '  "login.noUserYetX": "Es ist noch kein Zugang eingerichtet.",',
     erwartet: 'Der Bildschirmtext-Waechter'
   },
@@ -6147,8 +6147,8 @@ const RUECKBAUTEN = [
     /* UND DIE ANDERE RICHTUNG: eine Altlast wird richtiggestellt, bleibt aber
        auf der Liste stehen. Dann fuehrt die Liste eine Ausnahme fuer nichts. */
     nr: '679', name: 'Eine Altlast ist behoben und steht doch noch auf der Liste',
-    datei: 'public/languages/de.json',
-    suche: '  "server.deniedOwnUser": "Den eigenen Zugang ändert man unter „Zugang“, nicht hier.",',
+    file: 'public/languages/de.json',
+    search: '  "server.deniedOwnUser": "Den eigenen Zugang ändert man unter „Zugang“, nicht hier.",',
     ersatz: '  "server.deniedOwnUser": "Das eigene Konto ändert man an anderer Stelle.",',
     erwartet: 'Der Bildschirmtext-Waechter'
   },
@@ -6156,8 +6156,8 @@ const RUECKBAUTEN = [
     /* DER UEBERSETZER WIRD mail.js NICHT MEHR GEREICHT -- jeder Brief stuende
        dann als Klammerausdruck da, und der Link waere fort. */
     nr: '680', name: 'mail.js bekommt den Uebersetzer nicht mehr gereicht',
-    datei: 'server.js',
-    suche: "mail.setTranslator(t);",
+    file: 'server.js',
+    search: "mail.setTranslator(t);",
     ersatz: "void mail.setTranslator;",
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
@@ -6165,8 +6165,8 @@ const RUECKBAUTEN = [
     /* UND auth.js EBENSO WENIG -- die zwei Antworten von requireAuth() stuenden
        als Klammerausdruck da. */
     nr: '681', name: 'auth.js bekommt den Uebersetzer nicht mehr gereicht',
-    datei: 'server.js',
-    suche: "auth.setTranslator((req, schluessel, values) => t(localeOf(req), schluessel, values));",
+    file: 'server.js',
+    search: "auth.setTranslator((req, schluessel, values) => t(localeOf(req), schluessel, values));",
     ersatz: "void auth.setTranslator;",
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
@@ -6175,8 +6175,8 @@ const RUECKBAUTEN = [
        47 in seiner urspruenglichen Form: doppelt gehaltene Vorgaben pruefen
        sich nur halb. */
     nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
-    datei: 'server.js',
-    suche: "const vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
+    file: 'server.js',
+    search: "const vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
     ersatz: "const VOKABULAR_VORGABE = { sacheEinzahl: 'Eintrag' };\nconst vocabularyDefault = () => Object.fromEntries(\n  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])",
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
@@ -6184,16 +6184,16 @@ const RUECKBAUTEN = [
     /* EINE BETREFFZEILE ZURUECK IN server.js -- der Text gehoert zur Sache, und
        zwei Ausfertigungen liefen auseinander. */
     nr: '683', name: 'Der Betreff eines Briefes verliert seinen Platzhalter',
-    datei: 'public/languages/de.json',
-    suche: '  "mail.invite.subject": "Dein Zugang zu „{titel}“",',
+    file: 'public/languages/de.json',
+    search: '  "mail.invite.subject": "Dein Zugang zu „{titel}“",',
     ersatz: '  "mail.invite.subject": "Dein Zugang",',
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
     /* DIE TESTMAIL BEKOMMT EINEN LINK, DEN SIE NICHT HAT. */
     nr: '684', name: 'Die Testmail traegt ploetzlich einen Link',
-    datei: 'public/languages/de.json',
-    suche: 'das ist die Testmail aus „{titel}“.',
+    file: 'public/languages/de.json',
+    search: 'das ist die Testmail aus „{titel}“.',
     ersatz: 'das ist die Testmail aus „{titel}“: {link}',
     erwartet: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
@@ -6201,8 +6201,8 @@ const RUECKBAUTEN = [
     /* OHNE _locale GAEBE ES WEDER DATUM NOCH MEHRZAHL -- und die Ladung im
        Browser bricht ab, statt eine halbe Sprache zu nehmen. */
     nr: '665', name: 'Die Sprachdatei verliert ihren Kopf _locale',
-    datei: 'public/languages/de.json',
-    suche: '  "_locale": "de-DE",',
+    file: 'public/languages/de.json',
+    search: '  "_locale": "de-DE",',
     ersatz: '  "_hinweis": "de-DE",',
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6211,8 +6211,8 @@ const RUECKBAUTEN = [
        nicht -- er kommt aus der Datei und traegt kein HTML. Traegt er doch
        eines, faellt genau diese Zusage. */
     nr: '666', name: 'Ein Wert der Sprachdatei traegt eine spitze Klammer',
-    datei: 'public/languages/de.json',
-    suche: '"server.errorUnknown": "Unbekannter Fehler"',
+    file: 'public/languages/de.json',
+    search: '"server.errorUnknown": "Unbekannter Fehler"',
     ersatz: '"server.errorUnknown": "<b>Unbekannter Fehler</b>"',
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6220,8 +6220,8 @@ const RUECKBAUTEN = [
     /* tH() MASKIERT NICHT MEHR -- Stolperstein 18 waere damit wieder offen:
        ein Vokabelwort des Admins liefe roh in innerHTML. */
     nr: '667', name: 'tH() maskiert die eingesetzten Werte nicht mehr',
-    datei: 'public/app.js',
-    suche: "    return mask ? esc(String(wert)) : String(wert);",
+    file: 'public/app.js',
+    search: "    return mask ? esc(String(wert)) : String(wert);",
     ersatz: "    return String(wert);",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6229,8 +6229,8 @@ const RUECKBAUTEN = [
     /* EIN UNBEKANNTER PLATZHALTER WIRD GELEERT STATT STEHENZUBLEIBEN. Ein
        leerer Fleck ist kein Fund -- `{sache}` am Bildschirm ist einer. */
     nr: '668', name: 'Ein unbekannter Platzhalter verschwindet still',
-    datei: 'public/app.js',
-    suche: "    if (wert === undefined) return whole;",
+    file: 'public/app.js',
+    search: "    if (wert === undefined) return whole;",
     ersatz: "    if (wert === undefined) return '';",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6239,8 +6239,8 @@ const RUECKBAUTEN = [
        faellt beides zusammen -- die Regel steht trotzdem falsch da, und die
        naechste Sprache bricht daran. */
     nr: '669', name: 'Die Mehrzahl waehlt wieder ueber n === 1',
-    datei: 'public/app.js',
-    suche: "  return PLURAL.select(values.n) === 'one' ? roh.eins : roh.andere;",
+    file: 'public/app.js',
+    search: "  return PLURAL.select(values.n) === 'one' ? raw.eins : raw.andere;",
     ersatz: "  return werte.n === 1 ? roh.eins : roh.andere;",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6249,8 +6249,8 @@ const RUECKBAUTEN = [
        genau deshalb muss er belegt sein, sonst faellt sein Wegfall erst in
        Stufe 2 auf, wo er gebraucht wird. */
     nr: '670', name: 'Der Rueckfall auf Deutsch faellt weg',
-    datei: 'public/app.js',
-    suche: "  const roh = TEXTS[schluessel] !== undefined ? TEXTS[schluessel] : TEXTE_DE[schluessel];",
+    file: 'public/app.js',
+    search: "  const raw = TEXTS[schluessel] !== undefined ? TEXTS[schluessel] : TEXTE_DE[schluessel];",
     ersatz: "  const roh = TEXTE[schluessel];",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6258,8 +6258,8 @@ const RUECKBAUTEN = [
     /* boot() ZEICHNET WEITER, OBWOHL DIE SPRACHDATEI FEHLT -- die Oberflaeche
        stuende dann voller Klammern da (Entscheidung A1). */
     nr: '671', name: 'boot() haelt bei fehlender Sprachdatei nicht an',
-    datei: 'public/app.js',
-    suche: "    app.textContent = 'Die Sprachdatei fehlt.';\n    return;",
+    file: 'public/app.js',
+    search: "    app.textContent = 'Die Sprachdatei fehlt.';\n    return;",
     ersatz: "    app.textContent = 'Die Sprachdatei fehlt.';",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6267,24 +6267,24 @@ const RUECKBAUTEN = [
     /* DER SERVER STARTET AUCH OHNE de.json. Eine Installation ohne Sprache ist
        keine -- jede Message stuende als Klammerausdruck da. */
     nr: '672', name: 'Der Server startet auch ohne de.json',
-    datei: 'server.js',
-    suche: "  if (!out2.de) throw new Error(",
+    file: 'server.js',
+    search: "  if (!out2.de) throw new Error(",
     ersatz: "  if (false) throw new Error(",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
     /* api() SCHREIBT SEINEN RUECKFALLSATZ WIEDER IN DEN QUELLTEXT. */
     nr: '673', name: 'api() traegt seinen Rueckfallsatz wieder im Quelltext',
-    datei: 'public/app.js',
-    suche: "    let m = t('error.serverStatus', { status: res.status });",
+    file: 'public/app.js',
+    search: "    let m = t('error.serverStatus', { status: res.status });",
     ersatz: "    let m = `Der Server meldet einen Fehler (${res.status}).`;",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
     /* DER FEHLER-HANDLER SAGT SEINEN SATZ WIEDER SELBST. */
     nr: '674', name: 'Der Fehler-Handler traegt seinen Satz wieder im Quelltext',
-    datei: 'server.js',
-    suche: "  if (rank >= 500) return res.status(500).json({ error: t(locale, 'server.error') });",
+    file: 'server.js',
+    search: "  if (rank >= 500) return res.status(500).json({ error: t(locale, 'server.error') });",
     ersatz: "  if (rang >= 500) return res.status(500).json({ error: 'Auf dem Server ist ein Fehler aufgetreten.' });",
     erwartet: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
@@ -6292,8 +6292,8 @@ const RUECKBAUTEN = [
     /* DIE HILFSLINIE DER ZEITLEISTE FAELLT ZURUECK AUF DIE ALLGEMEINE
        RANDFARBE -- 1,02 : 1 gegen den hellen Grund, also unsichtbar. */
     nr: '661', name: 'Die Hilfslinie der Zeitleiste ist im hellen Schema wieder unsichtbar',
-    datei: 'public/style.css',
-    suche: "  --timeline-line: var(--line-hover);",
+    file: 'public/style.css',
+    search: "  --timeline-line: var(--line-hover);",
     ersatz: "  --timeline-line: var(--line-2);",
     erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
@@ -6302,8 +6302,8 @@ const RUECKBAUTEN = [
        Festbreite, und das Farbkonzept sagt, dass --faint nie tragender Text
        ist. */
     nr: '662', name: 'Die Jahreszahl der Zeitleiste faellt unter die Latte fuer Text',
-    datei: 'public/style.css',
-    suche: "  --timeline-year: var(--muted);",
+    file: 'public/style.css',
+    search: "  --timeline-year: var(--muted);",
     ersatz: "  --timeline-year: var(--faint);",
     erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
@@ -6311,8 +6311,8 @@ const RUECKBAUTEN = [
     /* DAS DUNKLE SCHEMA AENDERT EINEN BILDPUNKT -- und genau das darf es
        nicht. Die Regel steht in jedem Auftrag seit 0.23.0. */
     nr: '663', name: 'Das dunkle Schema bekommt einen anderen Wert fuer die Zeitleiste',
-    datei: 'public/style.css',
-    suche: "  --timeline-mid: var(--line);\n  --timeline-year: var(--faint);",
+    file: 'public/style.css',
+    search: "  --timeline-mid: var(--line);\n  --timeline-year: var(--faint);",
     ersatz: "  --timeline-mid: var(--line-hover);\n  --timeline-year: var(--faint);",
     erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
@@ -6320,32 +6320,32 @@ const RUECKBAUTEN = [
     /* DIE REGEL LIEST WIEDER DIE ALLGEMEINE RANDFARBE. Die Variable stuende
        tadellos da und faerbte nichts. */
     nr: '664', name: 'Die Hilfslinie liest die allgemeine Randfarbe statt ihrer eigenen',
-    datei: 'public/style.css',
-    suche: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--timeline-line); }",
+    file: 'public/style.css',
+    search: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--timeline-line); }",
     ersatz: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }",
     erwartet: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {
     // Der Loeschknopf steht wieder fuer jeden -- die Fehlermeldung auf Vorrat (E10).
     nr: '638', name: 'Der Knopf „Eintrag löschen" steht wieder fuer jede Rolle',
-    datei: 'public/app.js',
-    suche: "    ${item.mine === true || ADMIN\n      ? `<div class=\"danger-row\">",
+    file: 'public/app.js',
+    search: "    ${item.mine === true || ADMIN\n      ? `<div class=\"danger-row\">",
     ersatz: "    ${true\n      ? `<div class=\"danger-row\">",
     erwartet: 'Die Rollenweichen — 0.22.0'
   },
   {
     // Der Klartextschluessel steht wieder vor jedem Admin (E13).
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
-    datei: 'public/app.js',
-    suche: "          : (OWNER\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
+    file: 'public/app.js',
+    search: "          : (OWNER\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
     ersatz: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
     erwartet: 'Die Rollenweichen — 0.22.0'
   },
   {
     // Der Benutzer liest an „Kategorien" wieder, wie man umbenennt und loescht.
     nr: '640', name: 'Die Karte Kategorien erklaert dem Benutzer wieder die Werkzeuge des Admins',
-    datei: 'public/app.js',
-    suche: "        <p class=\"desc\">${ADMIN\n          ? tH('card.categoriesHint')",
+    file: 'public/app.js',
+    search: "        <p class=\"desc\">${ADMIN\n          ? tH('card.categoriesHint')",
     ersatz: "        <p class=\"desc\">${true\n          ? tH('card.categoriesHint')",
     erwartet: 'Die Rollenweichen — 0.22.0'
   },
@@ -6353,8 +6353,8 @@ const RUECKBAUTEN = [
     /* „ABBRECHEN" BRICHT NICHT AB (Stolperstein 316): der Nein-Knopf des
        Loeschfensters liefert die Stellung der Haekchen wie der Ja-Knopf. */
     nr: '641', name: 'Abbrechen im Loeschfenster fuer einen Benutzer bricht nicht ab',
-    datei: 'public/app.js',
-    suche: "    bd.querySelector('[data-no]').onclick = () => done(null);\n    bd.querySelector('[data-yes]').onclick = nimm;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
+    file: 'public/app.js',
+    search: "    bd.querySelector('[data-no]').onclick = () => done(null);\n    bd.querySelector('[data-yes]').onclick = take;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
     ersatz: "    bd.querySelector('[data-no]').onclick = nimm;\n    bd.querySelector('[data-yes]').onclick = nimm;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
     erwartet: 'Keine Browserfenster mehr — 0.22.0'
   },
@@ -6367,8 +6367,8 @@ const RUECKBAUTEN = [
     /* OHNE GREIFZONE GIBT ES DIE ACHT GRIFFE NICHT MEHR: alles im Rahmen wird
        zum Schieben, und Ecke wie Kante sind unerreichbar. */
     nr: '642', name: 'Der Rahmen verliert seine acht Griffe',
-    datei: 'public/app.js',
-    suche: "const HANDLE = 12;",
+    file: 'public/app.js',
+    search: "const HANDLE = 12;",
     ersatz: "const GRIFF = 0;",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6376,8 +6376,8 @@ const RUECKBAUTEN = [
     /* DIE KANTE GEWINNT GEGEN DIE ECKE -- die Reihenfolge der vier Fragen ist
        die ganze Entscheidung, und sie steht nirgends sonst. */
     nr: '643', name: 'Die Kante gewinnt wieder gegen die Ecke',
-    datei: 'public/app.js',
-    suche: "  if (n && w) return 'links-oben';",
+    file: 'public/app.js',
+    search: "  if (n && w) return 'links-oben';",
     ersatz: "  if (n) return 'oben';\n  if (n && w) return 'links-oben';",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6386,8 +6386,8 @@ const RUECKBAUTEN = [
        decken die acht Zonen die ganze Flaeche ab, und das Schieben faellt
        weg. */
     nr: '644', name: 'Die Greifzone wird am kleinen Rahmen nicht mehr gedeckelt',
-    datei: 'public/app.js',
-    suche: "  const g = Math.min(handle, edge / 4);",
+    file: 'public/app.js',
+    search: "  const g = Math.min(handle, edge / 4);",
     ersatz: "  const g = griff;",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6396,8 +6396,8 @@ const RUECKBAUTEN = [
        Zusage; geht das Schieben durch setzeKiste(), rastet der Zoom bei jedem
        Zug neu. */
     nr: '645', name: 'Das Schieben aendert die Weite wieder mit',
-    datei: 'public/app.js',
-    suche: "      setState(user.crate.links + (p.x - user.p0.x), user.crate.oben + (p.y - user.p0.y));",
+    file: 'public/app.js',
+    search: "      setState(user.crate.links + (p.x - user.p0.x), user.crate.oben + (p.y - user.p0.y));",
     ersatz: "      setBox(zug.kiste.kante * 0.9,\n        () => ({ l: zug.kiste.links + (p.x - zug.p0.x), o: zug.kiste.oben + (p.y - zug.p0.y) }));",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6406,8 +6406,8 @@ const RUECKBAUTEN = [
        UNGERASTETEN Kante, wandert die feste Ecke bei jedem Zug um bis zu eine
        halbe Stufe -- genau die Ecke, die stillstehen soll. */
     nr: '646', name: 'Die feste Ecke wandert wieder mit der Rastung',
-    datei: 'public/app.js',
-    suche: "      const { l, o } = situation(eng);\n      setState(l, o);",
+    file: 'public/app.js',
+    search: "      const { l, o } = situation(eng);\n      setState(l, o);",
     ersatz: "      const { l, o } = lage(k);\n      setState(l, o);",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6416,8 +6416,8 @@ const RUECKBAUTEN = [
        festen Kante zu wachsen, haengt der Rahmen an ihrer oberen Ecke -- er
        rutscht dabei seitlich weg. */
     nr: '647', name: 'Die Kante verschiebt den Mittelpunkt wieder',
-    datei: 'public/app.js',
-    suche: "          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, aroundCenter(mitteY, f.height)));",
+    file: 'public/app.js',
+    search: "          (e) => ({ l: rechts - e, o: mitteY - e / 2 }), Math.min(rechts, aroundCenter(mitteY, f.height)));",
     ersatz: "          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6426,8 +6426,8 @@ const RUECKBAUTEN = [
        (Entscheidung E1): ein misslungener Griff schiebt den Punkt unter den
        Zeiger. */
     nr: '648', name: 'Ein Griff ohne Weg setzt wieder den Punkt',
-    datei: 'public/app.js',
-    suche: "      if (prev.gesture !== 'neu') return;\n      outPoint(e);",
+    file: 'public/app.js',
+    search: "      if (prev.gesture !== 'neu') return;\n      outPoint(e);",
     ersatz: "      outPoint(e);",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6435,8 +6435,8 @@ const RUECKBAUTEN = [
     /* DER ZEIGER SAGT NICHTS MEHR: ueber Rahmen, Ecke und Kante steht wieder
        dasselbe Zeichen (Regel G2 aus 0.22.0). */
     nr: '649', name: 'Der Zeiger sagt wieder nicht, was geschehen wird',
-    datei: 'public/app.js',
-    suche: "      const kl = HANDLE_CURSORS[gesture];\n      if (kl) v.classList.add(kl);",
+    file: 'public/app.js',
+    search: "      const kl = HANDLE_CURSORS[gesture];\n      if (kl) v.classList.add(kl);",
     ersatz: "      const kl = null;\n      if (kl) v.classList.add(kl);",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6445,8 +6445,8 @@ const RUECKBAUTEN = [
        zwoelf Bildpunkten trifft keine Fingerkuppe, und ein Tipp an den Rand
        aendert dann die Weite statt zu schieben. */
     nr: '650', name: 'Der Finger bekommt die acht Griffe doch',
-    datei: 'public/app.js',
-    suche: "      if (e.pointerType === 'touch' && gesture !== 'neu') gesture = 'schieben';",
+    file: 'public/app.js',
+    search: "      if (e.pointerType === 'touch' && gesture !== 'neu') gesture = 'schieben';",
     ersatz: "      if (false && e.pointerType === 'touch' && geste !== 'neu') geste = 'schieben';",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6454,8 +6454,8 @@ const RUECKBAUTEN = [
     /* DIE KURZFASSUNG KOMMT ZURUECK: die Zahl steht wieder zweimal im selben
        Kopf, einmal in Klammern und einmal mit „gewichtet" (Stolperstein 318). */
     nr: '651', name: 'Die Kopfzahl steht wieder zweimal da',
-    datei: 'public/app.js',
-    suche: "    case 'potenzial': return item.potenzialRating ? '' : t('list.notEstimatedYet');",
+    file: 'public/app.js',
+    search: "    case 'potenzial': return item.potentialRating ? '' : t('list.notEstimatedYet');",
     ersatz: "    case 'potenzial': return item.potenzialRating\n      ? '⌀ ' + zahl(item.potenzialRating, 1) : t('list.notEstimatedYet');",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
@@ -6463,8 +6463,8 @@ const RUECKBAUTEN = [
     /* DER BEWERTUNGSKASTEN STEHT WIEDER AN JEDER IDEE -- zugeklappt, aber
        sichtbar, und ein Klick liesse Sterne vergeben. */
     nr: '652', name: 'Der Bewertungskasten steht wieder an jeder Idee',
-    datei: 'public/app.js',
-    suche: "  return name === 'bewertung' && !item.tested && !hasStars(item, 'after');",
+    file: 'public/app.js',
+    search: "  return name === 'bewertung' && !item.tested && !hasStars(item, 'after');",
     ersatz: "  return false && name === 'bewertung' && !item.tested && !hasStars(item, 'after');",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
@@ -6473,8 +6473,8 @@ const RUECKBAUTEN = [
        muss der Server abweisen -- sonst ist es keine Regel, sondern eine
        Gewohnheit. */
     nr: '653', name: 'Der Server nimmt die Bewertung am ungetesteten Eintrag wieder an',
-    datei: 'server.js',
-    suche: "    if (crit && crit.phase === 'after' && entry && !entry.tested)",
+    file: 'server.js',
+    search: "    if (crit && crit.phase === 'after' && entry && !entry.tested)",
     ersatz: "    if (false && krit && krit.phase === 'after' && eintrag && !eintrag.tested)",
     erwartet: 'Rechte und Sichtbarkeit'
   },
@@ -6482,8 +6482,8 @@ const RUECKBAUTEN = [
     /* UND DIE KOPFZAHL SAGT NICHT MEHR, WESSEN ZAHL SIE IST (Entscheidung E5)
        -- die Frage aus dem Betrieb bliebe wieder unbeantwortet. */
     nr: '654', name: 'Die Kopfzahl sagt nicht mehr, wessen Zahl sie ist',
-    datei: 'public/app.js',
-    suche: "        b.title = t('entry.avgAllHint');",
+    file: 'public/app.js',
+    search: "        b.title = t('entry.avgAllHint');",
     ersatz: "        b.title = 'Wie diese Zahl zustande kommt';",
     erwartet: 'Die beiden Sternkaesten — 0.21.0'
   },
@@ -6493,22 +6493,22 @@ const RUECKBAUTEN = [
        den Deckel hinaus, passt der Rahmen nicht mehr an seinen Anker, und die
        Klemme schiebt ihn ins Bild zurueck. */
     nr: '655', name: 'Die Rastung springt wieder ueber den Deckel',
-    datei: 'public/app.js',
-    suche: "      if (eng > hoch + 1e-9 && zoom < 400) {",
+    file: 'public/app.js',
+    search: "      if (eng > hoch + 1e-9 && zoom < 400) {",
     ersatz: "      if (false && eng > hoch + 1e-9 && zoom < 400) {",
     erwartet: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
-    datei: 'testbench.js',
-    suche: '  const B = starteWeiterenServer(frischDir, {}, 5130);',
+    file: 'testbench.js',
+    search: '  const B = starteWeiterenServer(frischDir, {}, 5130);',
     ersatz: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
     erwartet: 'Die Portbasen und der Versatz'
   },
   {
     nr: 'W5', name: 'Der SMTP-Empfaenger wird nicht mehr vermerkt',
-    datei: 'testbench.js',
-    suche: '  SMTP_LAGEN.push(lage);',
+    file: 'testbench.js',
+    search: '  SMTP_LAGEN.push(lage);',
     ersatz: '  // SMTP_LAGEN.push(lage);',
     erwartet: 'Die Portbasen und der Versatz'
   },
@@ -6520,8 +6520,8 @@ const RUECKBAUTEN = [
        (Stolperstein 138). So bleibt der Lauf ganz, die Empfaenger horchen
        weiter, und genau der Waechter faerbt sich, der dafuer da ist. */
     nr: 'W6', name: 'Der SMTP-Empfaenger hoert nicht auf zu horchen',
-    datei: 'testbench.js',
-    suche: '    server.close(() => r());',
+    file: 'testbench.js',
+    search: '    server.close(() => r());',
     ersatz: '    r();',
     erwartet: 'Keine Prueflage laesst ihren Server zurueck'
   },
@@ -6532,15 +6532,15 @@ const RUECKBAUTEN = [
        das Drucken weg, steht der Grund im Ergebnis und niemand sieht ihn --
        genau die Lage, in der Rueckbau 568 seinen Abriss unerklaert liess. */
     nr: 'W15', name: 'Der Bericht druckt die letzten Zeilen eines Abrisses nicht mehr',
-    datei: 'counterproof.js',
-    suche: '      for (const z of e.schwanz || []) console.log(`     \u2502 ${z}`);',
+    file: 'counterproof.js',
+    search: '      for (const z of e.schwanz || []) console.log(`     \u2502 ${z}`);',
     ersatz: '      for (const z of []) console.log(`     \u2502 ${z}`);',
     erwartet: 'Die Gegenproben greifen'
   },
   {
     nr: 'W16', name: 'Der Leser hebt die letzten Zeilen gar nicht erst auf',
-    datei: 'counterproof.js',
-    suche: "    schwanz: ausgabe.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
+    file: 'counterproof.js',
+    search: "    schwanz: ausgabe.split('\\n').map(z => z.trimEnd()).filter(z => z).slice(-20)",
     ersatz: '    schwanz: []',
     erwartet: 'Die Gegenproben greifen'
   },
@@ -6553,7 +6553,7 @@ const RUECKBAUTEN = [
        lesbares JSON und traegt kein einziges `karte.`; die Deckungsprobe muss
        das sehen -- und die Formatprobe die fehlende Locale. */
     nr: '685', name: 'Eine zweite Sprachdatei traegt andere Schluessel',
-    datei: 'package.json',
+    file: 'package.json',
     kopie: 'public/languages/en.json',
     erwartet: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
@@ -6562,8 +6562,8 @@ const RUECKBAUTEN = [
        niemand ruft, und im Code einer, den die Datei nicht kennt -- beide
        Haelften der Verwendungsprobe auf einmal. */
     nr: '686', name: 'Ein Schluessel der Sprachdatei heisst anders als im Code',
-    datei: 'public/languages/de.json',
-    suche: '"list.open": "\u00d6ffnen",',
+    file: 'public/languages/de.json',
+    search: '"list.open": "\u00d6ffnen",',
     ersatz: '"liste.oeffnen2": "\u00d6ffnen",',
     erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
@@ -6572,8 +6572,8 @@ const RUECKBAUTEN = [
        nicht -- es heisst `{sacheEinzahl}`; der Helfer laesst das Unbekannte
        ausdruecklich stehen, und am Bildschirm stuende woertlich „{sache}". */
     nr: '687', name: 'Ein Platzhalter heisst beinahe wie ein Vokabelwort',
-    datei: 'public/languages/de.json',
-    suche: '"list.foundIn": "Gefunden in: {quelle}",',
+    file: 'public/languages/de.json',
+    search: '"list.foundIn": "Gefunden in: {quelle}",',
     ersatz: '"list.foundIn": "Gefunden in: {sache}",',
     erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
@@ -6581,8 +6581,8 @@ const RUECKBAUTEN = [
     /* EINE MEHRZAHLFORM VERLIERT IHRE EINZAHL. Der Helfer waehlt dann
        `undefined` und setzt es am Bildschirm ein. */
     nr: '688', name: 'Einer Mehrzahlform fehlt die Einzahl',
-    datei: 'public/languages/de.json',
-    suche: '"list.commentCount": {\n    "eins": "{n} Kommentar",\n    "andere": "{n} Kommentare"\n  },',
+    file: 'public/languages/de.json',
+    search: '"list.commentCount": {\n    "eins": "{n} Kommentar",\n    "andere": "{n} Kommentare"\n  },',
     ersatz: '"list.commentCount": {\n    "andere": "{n} Kommentare"\n  },',
     erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
@@ -6590,8 +6590,8 @@ const RUECKBAUTEN = [
     /* DIE DEUTSCHE REGEL KEHRT IN DEN CODE ZURUECK: `n === 1 ?` waehlt
        wieder zwei Saetze, statt Intl.PluralRules zu fragen. */
     nr: '689', name: 'Eine Mehrzahl waehlt ihre Form wieder ueber `=== 1 ?`',
-    datei: 'public/app.js',
-    suche: 'const vThing = (n) => plural(n, V.sacheEinzahl, V.sacheMehrzahl);',
+    file: 'public/app.js',
+    search: 'const vThing = (n) => plural(n, V.sacheEinzahl, V.sacheMehrzahl);',
     ersatz: 'const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);',
     erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
@@ -6600,8 +6600,8 @@ const RUECKBAUTEN = [
        den diese ganze Runde gebaut ist -- und die Restliste nennt ihn beim
        Namen, statt bloss eine Zahl zu zeigen. */
     nr: '690', name: 'Ein deutscher Satz bleibt wieder in app.js stehen',
-    datei: 'public/app.js',
-    suche: "      button.textContent = t('entry.showLess');",
+    file: 'public/app.js',
+    search: "      button.textContent = t('entry.showLess');",
     ersatz: "      knopf.textContent = 'Weniger anzeigen, bitte sehr';",
     erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
@@ -6614,8 +6614,8 @@ const RUECKBAUTEN = [
        ROTE ZEILE, nicht der Absturz. `xx-XX` ist wohlgeformt und trotzdem
        keiner Sprache zugeordnet: `supportedLocalesOf` gibt nichts zurueck. */
     nr: '691', name: 'Die Sprachdatei nennt eine Locale, die Intl nicht kennt',
-    datei: 'public/languages/de.json',
-    suche: "\"_locale\": \"de-DE\",",
+    file: 'public/languages/de.json',
+    search: "\"_locale\": \"de-DE\",",
     ersatz: "\"_locale\": \"xx-XX\",",
     erwartet: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
@@ -6623,8 +6623,8 @@ const RUECKBAUTEN = [
     /* UND DIE RUECKFALLPROBE: ein Schluessel, den die Liste ruft, fehlt in
        der Datei -- am Bildschirm steht dann \u27e6liste.laedt\u27e7. */
     nr: '692', name: 'Ein Schluessel der Liste fehlt und steht als \u27e6\u2026\u27e7 am Bildschirm',
-    datei: 'public/languages/de.json',
-    suche: '"list.loading":',
+    file: 'public/languages/de.json',
+    search: '"list.loading":',
     ersatz: '"liste.laedtNicht":',
     erwartet: 'Oberflaeche'
   },
@@ -6632,8 +6632,8 @@ const RUECKBAUTEN = [
     /* DASSELBE IM SYSTEMBEREICH -- er hat seine eigene Gruppe und seinen
        eigenen Durchgang ueber alle fuenf Abschnitte. */
     nr: '693', name: 'Ein Schluessel des Systembereichs fehlt und steht als \u27e6\u2026\u27e7 da',
-    datei: 'public/languages/de.json',
-    suche: '"card.personal":',
+    file: 'public/languages/de.json',
+    search: '"card.personal":',
     ersatz: '"karte.persoenlichNicht":',
     erwartet: 'Der Systembereich nach Rolle'
   }
@@ -6720,13 +6720,13 @@ function fremdeServer() {
   try { eintraege = fs.readdirSync('/proc'); } catch { return raus; }
   for (const e of eintraege) {
     if (!/^\d+$/.test(e) || Number(e) === process.pid) continue;
-    let zeile;
-    try { zeile = fs.readFileSync(`/proc/${e}/cmdline`, 'utf8'); } catch { continue; }
-    const teile = zeile.split('\0').filter(Boolean);
+    let row;
+    try { row = fs.readFileSync(`/proc/${e}/cmdline`, 'utf8'); } catch { continue; }
+    const parts = row.split('\0').filter(Boolean);
     /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. `node testbench.js sterne` endet
        auf dem Filterwort -- wer die Zeile daran erkennen will, bekommt dann
        „sterne" gemeldet und sucht nach etwas, das es nicht gibt. */
-    const skript = teile.find(t => /(^|\/)(server|pruefung)\.js$/.test(t));
+    const skript = parts.find(t => /(^|\/)(server|pruefung)\.js$/.test(t));
     if (!skript) continue;
     /* DER PORT AUS DER UMGEBUNG, wenn er dasteht: ohne ihn muesste der Leser
        raten, welches Fenster belegt ist -- und genau das Raten hat in dieser
@@ -6764,8 +6764,8 @@ function raeumeAuf(pfad) {
 /* ================= Den Rueckbau anbringen ================= */
 
 function baueZurueck(kopie, r) {
-  const datei = path.join(kopie, r.datei);
-  if (!fs.existsSync(datei)) throw new Error(`${r.datei} gibt es in der Kopie nicht.`);
+  const file = path.join(kopie, r.file);
+  if (!fs.existsSync(file)) throw new Error(`${r.file} gibt es in der Kopie nicht.`);
   /* DER ZWEITE RUECKBAUWEG: eine ENTFERNTE DATEI WIEDER HINLEGEN. Er ersetzt
      keinen Text, sondern legt `datei` ein zweites Mal unter dem Namen `kopie`
      ab. Gebraucht wird er fuer die Zeile, die haelt, dass in public/ keine
@@ -6779,18 +6779,18 @@ function baueZurueck(kopie, r) {
     const ziel = path.join(kopie, r.kopie);
     if (fs.existsSync(ziel))
       throw new Error(`${r.kopie} liegt schon da -- der Rueckbau haette nichts zu tun.`);
-    fs.copyFileSync(datei, ziel);
+    fs.copyFileSync(file, ziel);
     return;
   }
-  const text = fs.readFileSync(datei, 'utf8');
-  const teile = text.split(r.suche);
+  const text = fs.readFileSync(file, 'utf8');
+  const parts = text.split(r.search);
   /* GENAU EINMAL. Keinmal heisst: der gesuchte Text steht so nicht mehr da --
      der Rueckbau griffe ins Leere und der Lauf bliebe gruen, ohne dass etwas
      zurueckgebaut worden waere. Mehrfach heisst: es ist nicht entschieden,
      welche Stelle gemeint ist. Beides bricht ab und wird gemeldet. */
-  if (teile.length !== 2)
-    throw new Error(`Der gesuchte Text steht ${teile.length - 1}-mal in ${r.datei}, erwartet ist genau einmal.`);
-  fs.writeFileSync(datei, teile.join(r.ersatz));
+  if (parts.length !== 2)
+    throw new Error(`Der gesuchte Text steht ${parts.length - 1}-mal in ${r.file}, erwartet ist genau einmal.`);
+  fs.writeFileSync(file, parts.join(r.ersatz));
 }
 
 /* ================= Den Prueflauf lesen =================
@@ -6806,14 +6806,14 @@ const SELBSTPROBE = 'Jeder Suchtext kommt in seiner Datei genau einmal vor';
 function leseLauf(ausgabe) {
   const rot = [];
   let gruppe = '(vor der ersten Gruppe)';
-  for (const zeile of ausgabe.split('\n')) {
+  for (const row of ausgabe.split('\n')) {
     // ─* und nicht ─+: eine Ueberschrift, die die Zeile fuellt, traegt gar
     // keinen Strich mehr. Der Pruefstand setzt seit dieser Runde mindestens
     // zwei -- der Leser hier gibt sich trotzdem mit keinem zufrieden, denn er
     // liest auch aeltere Ausgaben.
-    const g = zeile.match(/^── (.+?) ─*\s*$/);
+    const g = row.match(/^── (.+?) ─*\s*$/);
     if (g) { gruppe = g[1]; continue; }
-    const p = zeile.match(/^ {2}✗ (.+)$/);
+    const p = row.match(/^ {2}✗ (.+)$/);
     if (p) rot.push({ gruppe, name: p[1] });
   }
   const schluss = ausgabe.match(/^\s+(\d+) von (\d+) Pruefungen bestanden/m);
@@ -6840,7 +6840,7 @@ function leseLauf(ausgabe) {
       t.name === SELBSTPROBE)),
     durchgelaufen: Boolean(schluss),
     bestanden: schluss ? Number(schluss[1]) : null,
-    gesamt: schluss ? Number(schluss[2]) : null,
+    total: schluss ? Number(schluss[2]) : null,
     abriss: abriss ? abriss[1] : null,
     /* DIE LETZTEN ZEILEN DER AUSGABE -- damit ein ABGERISSENER Lauf sagen
        kann, WARUM er abriss. Der Treiber faengt stdout UND stderr ein und warf
@@ -6866,11 +6866,11 @@ function fahre(r, spur, stufe) {
   return new Promise((fertig) => {
     const kopie = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-gegenprobe-${r.nr}-`));
     const beginn = Date.now();
-    const ende = (ergebnis) => {
-      let aufraeumen = { geraeumt: 0, uebrig: 0 };
-      try { aufraeumen = raeumeAuf(kopie); } catch (e) { ergebnis.raeumFehler = e.message; }
+    const ende = (result) => {
+      let cleanup = { geraeumt: 0, uebrig: 0 };
+      try { cleanup = raeumeAuf(kopie); } catch (e) { result.raeumFehler = e.message; }
       fertig({ ...r, spur, sekunden: Math.round((Date.now() - beginn) / 1000),
-               ...aufraeumen, ...ergebnis });
+               ...cleanup, ...result });
     };
     try {
       legeKopieAn(kopie);
@@ -6948,17 +6948,17 @@ function schreibeTabelle(ergebnisse) {
     else if (e.rot.length <= 3)
       rechts = e.rot.map(p => `„${p.name}"`).join(', ');
     else {
-      const gruppen = [...new Set(e.rot.map(p => p.gruppe))];
+      const groups = [...new Set(e.rot.map(p => p.gruppe))];
       rechts = `${e.rot.length} Prüfungen, darunter „${e.rot[0].name}"` +
-               (gruppen.length === 1 ? ` (Gruppe „${gruppen[0]}")`
-                                     : ` (${gruppen.length} Gruppen)`);
+               (groups.length === 1 ? ` (Gruppe „${groups[0]}")`
+                                     : ` (${groups.length} Gruppen)`);
     }
     console.log(`| ${e.nr} | ${e.name} | ${rechts} |`);
   }
 
   console.log('\n### Im Einzelnen\n');
   for (const e of ergebnisse) {
-    console.log(`**${e.nr} — ${e.name}** (${e.datei}, Spur ${e.spur}, ${e.sekunden}s)`);
+    console.log(`**${e.nr} — ${e.name}** (${e.file}, Spur ${e.spur}, ${e.sekunden}s)`);
     if (e.fehler) { console.log(`  RÜCKBAU GESCHEITERT: ${e.fehler}\n`); continue; }
     if (!e.durchgelaufen) {
       console.log(`  LAUF ABGERISSEN: ${e.abriss || `Rückgabewert ${e.code}`}`);
@@ -6968,12 +6968,12 @@ function schreibeTabelle(ergebnisse) {
          Kopie ist beim Aufraeumen weg. Deshalb steht er hier. */
       for (const z of e.schwanz || []) console.log(`     │ ${z}`);
     } else
-      console.log(`  ${e.bestanden} von ${e.gesamt} bestanden, erwartet in „${e.erwartet}"`);
+      console.log(`  ${e.bestanden} von ${e.total} bestanden, erwartet in „${e.erwartet}"`);
     if (!e.inhaltlichRot?.length && e.durchgelaufen)
       console.log('  STUMM — kein einziger roter Punkt. Das ist ein FUND und gehört untersucht.');
-    let letzte = null;
+    let last = null;
     for (const p of e.rot) {
-      if (p.gruppe !== letzte) { console.log(`  ── ${p.gruppe}`); letzte = p.gruppe; }
+      if (p.gruppe !== last) { console.log(`  ── ${p.gruppe}`); last = p.gruppe; }
       console.log(`     ✗ ${p.name}`);
     }
     if (e.uebrig) console.log(`  ACHTUNG: ${e.uebrig} Prozess(e) haben das Aufräumen überlebt.`);
