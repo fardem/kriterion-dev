@@ -1669,6 +1669,12 @@ const LINK_ROW_LEVELS = [3, 5, 8, 12];
 // kommt ueber /api/settings -- hier gibt es bewusst KEINE zweite Kopie und
 // auch keine eingebaute Vorlage als Rueckfall.
 let SEARCH_PROVIDERS = [];      // alle neun Plaetze, wie der Server sie liefert
+
+/* JEDE SPRACHE, FUER DIE EINE DATEI LIEGT -- 0.24.3. Wie bei den
+   Suchanbietern daneben gibt es hier KEINE zweite Kopie und keine eingebaute
+   Liste als Rueckfall: welche Sprachen es gibt, weiss allein das Verzeichnis
+   auf dem Server. Jeder Eintrag traegt { code, name, isDefault, active }. */
+let LANGUAGES = [];
 let SEARCH_NAMES = 2;          // wie viele Namen unter einer Suchzeile stehen
 const SEARCH_NAME_LEVELS = [1, 2, 3, 4];
 
@@ -2183,6 +2189,7 @@ async function loadSettings() {
   // nachziehen, sonst verschwaende die Menge unter dem Zeiger.
   if (SETTINGS.bellSeen) BELL_SEEN = SETTINGS.bellSeen;
   if (Array.isArray(SETTINGS.searchProviders)) SEARCH_PROVIDERS = SETTINGS.searchProviders;
+  if (Array.isArray(SETTINGS.languages)) LANGUAGES = SETTINGS.languages;
   if (SETTINGS.searchNames) SEARCH_NAMES = SETTINGS.searchNames;
   // Der Server leitet beide beim Lesen ab und liefert sie immer; die Vorgabe
   // hier greift nur, wenn die Antwort das Feld gar nicht kennt.
@@ -7345,11 +7352,13 @@ async function renderDetail(id, termAddress) {
 
 /* DIE FUENF ABSCHNITTE, IN DER REIHENFOLGE DER RECHTELEITER: was jedem
    gehoert, steht vorn; was nur der Eigentuemer sieht, steht hinten.
-   "Installation" traegt heute genau eine Karte. Das ist kein Versehen: der
-   oeffentliche Titel ist die einzige Einstellung, die die INSTALLATION als
-   Ganzes nach aussen beschreibt, und sie gehoert weder zum Bestand noch zu den
-   Zugaengen. Ein Abschnitt mit einer Karte ist ehrlicher als eine Karte am
-   falschen Platz.
+   "Installation" traegt seit 0.24.3 ZWEI Karten -- den Titel und die Sprachen.
+   Bis dahin war es eine, und der Vermerk hier sagte, warum: der oeffentliche
+   Titel war die einzige Einstellung, die die INSTALLATION als Ganzes
+   beschreibt, und ein Abschnitt mit einer Karte ist ehrlicher als eine Karte am
+   falschen Platz. DIE ZWEITE STEHT AUS DEMSELBEN GRUND HIER: welche Sprache
+   die Installation vorgibt und welche zur Wahl stehen, gehoert weder zum
+   Bestand noch zu den Zugaengen.
    ER HEISST SEIT 0.19.1 "Installation" und hiess bis 0.17.0 "Anlage", bis
    0.19.1 "Instanz". EINWORTIG WIE SEINE VIER NACHBARN -- "Kriterion Installation" stuende quer in der Reihe, zumal
    ueberall daneben schon Kriterion draufsteht. Und NICHT "von Kriterion",
@@ -7544,7 +7553,16 @@ const SYS_CARDS = [
     markup: cardExport,       wireUp: setUpExportOut },
 
   { key: 'titel',        section: 'installation', visible: () => ADMIN,
-    markup: cardTitle,        wireUp: setUpTitleOut }
+    markup: cardTitle,        wireUp: setUpTitleOut },
+  /* DIE ZWEITE KARTE DES ABSCHNITTS -- 0.24.3, F9. Bis 0.24.2 trug
+     „Installation" genau eine, und der Vermerk darueber sagte, warum: der
+     oeffentliche Titel war die einzige Einstellung, die die INSTALLATION als
+     Ganzes beschreibt. Die Vorgabesprache und ihr Vorrat sind die zweite --
+     sie gehoeren weder zum Bestand noch zu den Zugaengen.
+     `OWNER` UND NICHT `ADMIN`, anders als die Nachbarkarte: Vorgabe (3) des
+     Betreibers legt beide ausdruecklich zum Eigentuemer. */
+  { key: 'sprachen',     section: 'installation', visible: () => OWNER,
+    markup: cardLanguages,    wireUp: setUpLanguagesOut }
 ];
 
 /* WELCHE ABSCHNITTE FUER DIESEN ZUGANG ETWAS ZU ZEIGEN HABEN. Ein Abschnitt
@@ -7668,6 +7686,88 @@ function setUpTitleOut() {
     } catch (e) { toast(e.message, true); }
   });
 }
+
+
+/* ---- Karte „Sprachen" — Abschnitt „Installation" ---- */
+/* DIESELBE BAUFORM WIE DER VORRAT DER SUCHMASCHINEN, und aus demselben Grund:
+   der Eigentuemer kuratiert, der Benutzer waehlt daraus. Auch dieselben
+   Klassen -- `engine-list` und `engine` -- statt eigener: es ist dieselbe
+   Zeile aus Haekchen, Standardknopf und Namen, und ein zweiter Satz Regeln
+   im Stilblatt liefe irgendwann auseinander.
+   DIE NAMEN STEHEN IN IHRER EIGENEN SPRACHE, und sie kommen als freier Text
+   vom Server (aus `_name` der Datei oder aus Intl) -- textContent statt
+   innerHTML, damit Maskierung nicht vergessbar ist. */
+function cardLanguages() {
+  return `<div class="sys-card">
+        <h3>${tH('card.languages')}</h3>
+        <p class="desc">${tH('card.languagesHint')}</p>
+        ${more(t('card.languagesUsersHint'))}
+        <div class="engine-list" id="langs"></div>
+        ${/* DIE PFADE STEHEN IM QUELLTEXT UND NICHT IN DER SPRACHDATEI: ein
+              Verzeichnisname ist ein technischer Name und in jeder Sprache
+              derselbe (Regel S8). Und die Auszeichnung steht ebenfalls hier --
+              kein HTML in einem Text; wo ein Satz ein <code> braucht, sind es
+              zwei Schluessel. */''}
+        ${more(`${tH('card.languagesFileBefore')} <code>public/languages/</code>
+          ${tH('card.languagesFileAfter')}`)}
+      </div>`;
+}
+function setUpLanguagesOut() {
+  drawLanguages();
+}
+
+  /* --- Die Sprachen der Installation --- */
+  // Zurueck kommt immer der aufgeraeumte Zustand; gezeichnet wird daraus und
+  // nicht aus der eigenen Annahme -- dieselbe Regel wie bei sendProvider().
+  async function sendLanguages(body, message) {
+    try {
+      const s = await api('PUT', '/api/settings', body);
+      if (Array.isArray(s.languages)) LANGUAGES = s.languages;
+      drawLanguages();
+      toast(message);
+    } catch (e) { drawLanguages(); toast(e.message, true); }
+  }
+  // Der Vorrat als Liste von Kennungen -- dieselbe Form, in der der Server
+  // ihn speichert.
+  const languagePool = () => LANGUAGES.filter(a => a.active).map(a => a.code);
+
+  function drawLanguages() {
+    const box = document.getElementById('langs');
+    if (!box) return;
+    box.innerHTML = '';
+    LANGUAGES.forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'engine';
+      row.dataset.k = a.code;
+      const hk = document.createElement('input');
+      hk.type = 'checkbox';
+      hk.checked = !!a.active;
+      /* DIE VORGABESPRACHE LAESST SICH NICHT HERAUSNEHMEN -- die Klemme steht
+         hier UND am Server (writeLanguages). Das Haekchen ist gesetzt und
+         gesperrt: ein Kaestchen, das sich anklicken laesst und nichts tut,
+         waere schlechter als eines, das sagt, dass es nicht geht. */
+      hk.disabled = !!a.isDefault;
+      hk.title = t(a.isDefault ? 'card.languageDefaultTip' : 'card.addToSelection');
+      hk.onchange = () => {
+        const keys = languagePool();
+        sendLanguages({ languageOn: hk.checked ? [...keys, a.code] : keys.filter(k => k !== a.code) },
+          t('card.languagePoolSaved'));
+      };
+      const st = document.createElement('button');
+      st.type = 'button';
+      st.className = 'sdefault' + (a.isDefault ? ' on' : '');
+      st.textContent = t('card.standard');
+      st.title = t('card.languageDefaultTip');
+      // Vorgabe werden nimmt zugleich in den Vorrat auf: eine Vorgabesprache
+      // ausserhalb des Vorrats ist ein Zustand, den es nicht geben darf.
+      st.onclick = () => sendLanguages({ languageDefault: a.code }, t('card.languageDefaultSaved'));
+      const nm = document.createElement('span');
+      nm.className = 'ename';
+      nm.textContent = a.name;
+      row.append(hk, st, nm);
+      box.appendChild(row);
+    });
+  }
 
 
 /* ---- Karte „Zugang" — Abschnitt „Persönlich" ---- */

@@ -3912,8 +3912,10 @@ const REGRESSIONS = [
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     file: 'server.js',
     search: "const OWNER_KEYS = ['convertImages',\n" +
-           "                                'backupCleanup', 'backupKeep', 'backupDays'];",
-    replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays'];",
+           "                                'backupCleanup', 'backupKeep', 'backupDays',\n" +
+           "                                'languageDefault', 'languageOn'];",
+    replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays',\n" +
+           "                                'languageDefault', 'languageOn'];",
     expected: 'Die Bildablage: die Rechte'
   },
   {

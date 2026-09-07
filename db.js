@@ -1081,14 +1081,18 @@ function migration0243Language() {
   // Keine der beiden Tabellen? Dann ist hier nichts gewachsen.
   if (!tables.has('settings') || !tables.has('users')) return 0;
   // Steht schon eine Vorgabe da, ist die Frage beantwortet -- von wem auch immer.
-  if (db.prepare("SELECT 1 FROM settings WHERE key = 'language'").get()) return 0;
+  if (db.prepare("SELECT 1 FROM settings WHERE key = 'languageDefault'").get()) return 0;
   /* GEZAEHLT WERDEN ALLE ZEILEN, AUCH GELOESCHTE ZUGAENGE. Die Frage ist nicht,
      wer sich anmelden kann, sondern ob hier schon einmal jemand gearbeitet hat
      -- und ein geloeschter Zugang beweist genau das. */
   const grown = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0;
   if (!grown) return 0;
+  /* DER SCHLUESSEL HEISST `languageDefault` UND NICHT `language`: `language`
+     ist der PERSOENLICHE Schluessel in user_settings (Bauabschnitt 3), und
+     PUT /api/settings entscheidet ueber den Namen im Rumpf, ob ein Wert dem
+     Benutzer oder der Installation gehoert. Zwei Sachen, zwei Namen. */
   db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
-    .run('language', JSON.stringify(LANGUAGE_BEFORE_0243));
+    .run('languageDefault', JSON.stringify(LANGUAGE_BEFORE_0243));
   console.log(`[Kriterion] Die Vorgabesprache dieser Installation steht jetzt ` +
     `ausdruecklich auf "${LANGUAGE_BEFORE_0243}" (Migration auf 0.24.3) — ` +
     `am Bildschirm aendert sich damit kein Wort.`);

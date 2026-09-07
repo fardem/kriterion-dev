@@ -180,12 +180,106 @@ const localeTag = (locale) => textsOf(locale)._locale || LANGUAGE_FALLBACK;
    EINE SPRACHE, FUER DIE KEINE DATEI (MEHR) LIEGT, ZAEHLT NICHT: wer `de` als
    Vorgabe gesetzt und danach `de.json` entfernt hat, bekommt den Rueckfall und
    keine Instanz voller ⟦…⟧. */
-const qLanguageDefault = db.prepare(`SELECT value FROM settings WHERE key = 'language'`);
+const qLanguageDefault = db.prepare(
+  `SELECT value FROM settings WHERE key = 'languageDefault'`);
 function languageDefault() {
   const row = qLanguageDefault.get();
   let stored = null;
   if (row) { try { stored = JSON.parse(row.value); } catch { stored = row.value; } }
   return typeof stored === 'string' && LANGUAGES[stored] ? stored : languageBase();
+}
+
+/* ---- Der Vorrat der Sprachen -- 0.24.3, Bauabschnitt 2 (F9) --------------
+   ZWEI SCHLUESSEL UND NICHT EINER, anders als beim Vorrat der Suchmaschinen:
+   dort traegt `searchOn` beides in einer Liste, weil der Standard IMMER im
+   Vorrat steht und die Liste damit alles sagt. Hier sagen die beiden
+   Schluessel verschiedene Dinge, und einer koennte den anderen nicht
+   ausdruecken:
+
+     `languageDefault`  die Vorgabe der Installation -- eine Kennung.
+     `languageOn`       der Vorrat -- eine Liste, ODER GAR NICHTS.
+
+   UND „GAR NICHTS" HEISST HIER ALLE, nicht „nur die Vorgabe". Das ist der
+   Unterschied zu den Suchmaschinen, und er hat einen Grund: eine Suchmaschine
+   waehlt der Eigentuemer nach seinem Geschmack aus, eine Sprache liegt im
+   Image, weil sie ausgeliefert wird. Wer Kriterion frisch aufsetzt und Deutsch
+   liest, soll es einstellen koennen, ohne vorher im Systembereich einen
+   Vorrat freizugeben, den er noch gar nicht kennt. Der Eigentuemer ENGT EIN;
+   er muss nicht erst erlauben.
+
+   DIE VORGABESPRACHE IST IMMER IM VORRAT und laesst sich nicht herausnehmen --
+   ein Vorrat ohne die Vorgabe waere eine Installation, deren Vorgabe niemand
+   sehen darf. Erzwungen wird das HIER beim Lesen und noch einmal beim
+   Schreiben; eine Gegenprobe muss beide zugleich zurueckbauen, sonst bleibt
+   sie gruen. Dieselbe Lage wie bei searchPool() und writePool(). */
+function languagePool() {
+  const stored = getSetting('languageOn', null);
+  const kept = Array.isArray(stored)
+    ? stored.filter((c, i, a) => LANGUAGES[c] && a.indexOf(c) === i) : null;
+  // Hier faellt eine Sprache aus dem Vorrat, fuer die keine Datei mehr liegt.
+  const pool = kept && kept.length ? kept : LANGUAGE_CODES.slice();
+  const std = languageDefault();
+  return pool.includes(std) ? pool : [std, ...pool];
+}
+
+/* DER NAME EINER SPRACHE STEHT IN IHRER EIGENEN SPRACHE -- wer die Oberflaeche
+   gerade nicht lesen kann, findet seine trotzdem (Bauabschnitt 3).
+   DREI QUELLEN IN DIESER FOLGE. `_name` im Kopf der Datei ist die erste: die
+   Datei weiss am besten, wie ihre Sprache heisst. Danach Intl.DisplayNames --
+   damit eine hineingelegte Datei OHNE `_name` trotzdem „Türkçe" heisst und
+   nicht „tr". Und zuletzt die Kennung selbst, damit immer etwas dasteht.
+   GEKLAMMERT, wie alles an einer hineingelegten Datei: Intl wirft bei einer
+   Kennung, die es nicht kennt, und der Systembereich darf daran nicht
+   zerbrechen. */
+function languageName(code) {
+  const own = LANGUAGES[code] && LANGUAGES[code]._name;
+  if (typeof own === 'string' && own.trim()) return own.trim();
+  try {
+    const shown = new Intl.DisplayNames([localeTag(code)], { type: 'language' }).of(code);
+    if (shown && shown !== code) return shown;
+  } catch { /* Intl kennt die Kennung nicht -- dann bleibt sie selbst stehen. */ }
+  return code;
+}
+
+/* WAS DIE ANMELDESEITE BRAUCHT: nur der Vorrat, nur Kennung und Name. Sie
+   steht als eigene Funktion da und nicht als Ausdruck IN /api/config -- die
+   Antwort dort ist eine abgeschlossene Liste von Feldern, und der Pruefstand
+   zaehlt sie. Ein eingebettetes zweites Objekt liesse ihn `name` mitzaehlen. */
+const languageChoices = () =>
+  languagePool().map(code => ({ code, name: languageName(code) }));
+
+/* WAS DER SYSTEMBEREICH BRAUCHT: jede Sprache, fuer die eine Datei liegt, mit
+   ihrem Namen und den zwei Kennzeichnungen. In kanonischer Reihenfolge -- der
+   des Verzeichnisses --, damit die Pillenreihe nicht springt, wenn der
+   Eigentuemer den Vorrat aendert.
+   EINMAL GEFRAGT UND NICHT JE ZEILE: languagePool() liest die Datenbank. */
+function languageEntries() {
+  const pool = languagePool();
+  const std = languageDefault();
+  return LANGUAGE_CODES.map(code => ({
+    code, name: languageName(code),
+    isDefault: code === std, active: pool.includes(code)
+  }));
+}
+
+/* SCHREIBT VORGABE UND VORRAT, AUFGERAEUMT -- dieselbe Bauform wie writePool()
+   bei den Suchmaschinen und aus demselben Grund: es soll nur EINE Aussage
+   ueber den Zustand geben und nicht zwei, die sich widersprechen koennen.
+   BEIDE WERTE WERDEN GEMEINSAM GESCHRIEBEN, auch wenn die Karte nur einen
+   geaendert hat: die Klemme „die Vorgabe ist im Vorrat" braucht beide in der
+   Hand. */
+function writeLanguages(isDefault, active) {
+  const known = (c) => !!LANGUAGES[c];
+  let std = known(isDefault) ? isDefault : languageDefault();
+  let set = (Array.isArray(active) ? active : languagePool())
+    .filter((c, i, a) => known(c) && a.indexOf(c) === i);
+  // Zweite Schicht derselben Klemme, siehe den Hinweis in languagePool().
+  if (!set.includes(std)) set.push(std);
+  // In kanonischer Reihenfolge, damit die gespeicherte Liste nicht die
+  // Klickfolge des Eigentuemers festhaelt.
+  const ordered = LANGUAGE_CODES.filter(c => set.includes(c));
+  putSetting.run('languageDefault', JSON.stringify(std));
+  putSetting.run('languageOn', JSON.stringify(ordered));
 }
 
 /* WELCHE SPRACHE EINE ANTWORT TRAEGT. In dieser Runde noch die der
@@ -509,8 +603,17 @@ const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'sea
    hinter `ownerOnly`. Genau dafuer war diese Liste angelegt: "der zweite
    Schluessel dieser Art steht dann daneben und nicht als zweite
    Verzweigung." */
+/* SECHS SEIT 0.24.3: `languageDefault` und `languageOn` -- die Vorgabesprache
+   der Installation und der Vorrat, aus dem der Benutzer waehlen darf. Vorgabe
+   (3) des Betreibers legt beide ausdruecklich zum Eigentuemer, und sie gehen
+   denselben Weg wie die vier darueber: eine eigene schreibende Route liesse
+   F_ROUTES wachsen, ohne dass es etwas Neues zu bewachen gaebe.
+   `language` STEHT NICHT HIER, SONDERN IN PERSONAL_KEYS -- es ist die Sprache
+   des BENUTZERS. Zwei Sachen, zwei Namen: der Rumpf von PUT /api/settings
+   entscheidet ueber den Namen, wem ein Wert gehoert. */
 const OWNER_KEYS = ['convertImages',
-                                'backupCleanup', 'backupKeep', 'backupDays'];
+                                'backupCleanup', 'backupKeep', 'backupDays',
+                                'languageDefault', 'languageOn'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -731,10 +834,21 @@ app.get('/api/config', (req, res) => {
      soll. Der Wert sagt nichts ueber Bestand oder Menschen.
      DIE LISTE BLEIBT ABGESCHLOSSEN -- was hier auftaucht, sieht jeder, der
      die Adresse kennt; der Pruefstand nagelt die Namen fest. */
+  /* DIE ZWEI SPRACHFELDER SEIT 0.24.3. Die Anmeldeseite ist der eine Ort, an
+     dem noch kein Konto dasteht, aus dem sich eine Sprache lesen liesse -- sie
+     braucht den Vorrat, um die Zeile darunter zu zeichnen, und die Vorgabe,
+     um zu wissen, was gilt, wenn das Gedaechtnis leer ist (Bauabschnitt 3).
+     DER VORRAT UND NICHT ALLE SPRACHEN: was der Eigentuemer nicht freigegeben
+     hat, steht auch vor der Anmeldung nicht zur Wahl.
+     NICHTS DAVON IST SCHUETZENSWERT -- es steht in jeder ausgelieferten Datei
+     unter public/languages/, und wer die Adresse kennt, sieht das Verzeichnis
+     ohnehin. */
   res.json({
     title: getSetting('title_public', 'Bewertungskatalog'), version: VERSION,
     setupRequired: !auth.userExists(), minPassword: auth.PASSWORD_MIN,
-    signup: getSetting('signup', false) === true
+    signup: getSetting('signup', false) === true,
+    language: languageDefault(),
+    languages: languageChoices()
   });
 });
 
@@ -2173,6 +2287,11 @@ app.get('/api/settings', (req, res) => res.json({
   search: searchTemplate(),
   searchProviders: searchProviders(),
   searchNames: searchNames(req.user.id),
+  /* JEDE SPRACHE, FUER DIE EINE DATEI LIEGT -- mit Namen, Vorgabe- und
+     Vorratskennzeichnung. Sie steht in DIESER Antwort und nicht nur in
+     /api/config: die Karte „Sprachen" braucht auch die, die NICHT im Vorrat
+     sind, sonst koennte der Eigentuemer keine hinzunehmen. */
+  languages: languageEntries(),
   // Abgeleitet beim Lesen, nicht in der Datenbank nachgetragen. Die Oberflaeche
   // laesst danach die Zeile "+ neu anlegen" weg; die Auswahl aus dem
   // Vorhandenen bleibt in jedem Fall stehen.
@@ -2403,6 +2522,16 @@ app.put('/api/settings', (req, res) => {
   if (req.body.backupCleanup !== undefined)
     putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
   for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
+  /* VORGABESPRACHE UND VORRAT -- 0.24.3, Bauabschnitt 2 (F9). BEIDE IN EINEM
+     GRIFF, auch wenn die Karte nur einen geschickt hat: die Klemme „die
+     Vorgabe ist im Vorrat" braucht beide in der Hand, und zwei getrennte
+     Schreibungen liessen dazwischen einen Zustand stehen, den es nicht geben
+     darf. Was nicht mitkommt, bleibt, wie es ist -- `undefined` heisst
+     „unveraendert" und nicht „leer". */
+  if (req.body.languageDefault !== undefined || req.body.languageOn !== undefined)
+    writeLanguages(
+      req.body.languageDefault !== undefined ? String(req.body.languageDefault) : languageDefault(),
+      req.body.languageOn);
   res.json({ filters: getUserSetting(req.user.id, 'filters', null), vocabulary: vocabulary(),
              views: views(req.user.id), viewsCap: VIEWS_CAP,
              font: fontSize(req.user.id), strip: strip(req.user.id),
@@ -2413,6 +2542,7 @@ app.put('/api/settings', (req, res) => {
              searchNames: searchNames(req.user.id),
              tagsFreeCreate: freeCreate('tagsFreeCreate'),
              categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
+             languages: languageEntries(),
              convertImages: convertImages() });
 });
 

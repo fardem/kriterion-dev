@@ -2261,11 +2261,22 @@ const shareMain = (purpose, target = null) =>
      Instanz Anfragen annimmt, und das erfaehrt ohnehin jeder, der eine stellt.
      Die Liste bleibt abgeschlossen, und ein sechster Name kommt nicht
      stillschweigend dazu (Stolperstein 74: die Pruefung der Vorgaengerversion
-     ist die erste Betroffene). */
+     ist die erste Betroffene).
+     SIEBEN SEIT 0.24.3: `language` und `languages`. Die Anmeldeseite ist der
+     eine Ort, an dem noch kein Konto dasteht, aus dem sich eine Sprache lesen
+     liesse -- sie braucht den Vorrat, um ihre Zeile zu zeichnen, und die
+     Vorgabe, um zu wissen, was ohne Gedaechtnis gilt. Beides steht ohnehin in
+     jeder ausgelieferten Datei unter public/languages/. */
   check('Vor der Anmeldung wird sonst nichts verraten',
     equal(Object.keys(cfg).sort(),
-      ['minPassword', 'setupRequired', 'signup', 'title', 'version']),
+      ['language', 'languages', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
     JSON.stringify(Object.keys(cfg)));
+  /* UND DER VORRAT TRAEGT NUR KENNUNG UND NAMEN -- keine Locale, keine Texte,
+     keine Angabe darueber, welche Dateien sonst noch liegen. */
+  check('Und die Sprachen tragen nur Kennung und Namen',
+    Array.isArray(cfg.languages) && cfg.languages.length >= 1
+      && cfg.languages.every(a => equal(Object.keys(a).sort(), ['code', 'name'])),
+    JSON.stringify(cfg.languages));
   check('Und der Schalter der Selbstanmeldung steht dort als ja/nein',
     cfg.signup === false, JSON.stringify(cfg.signup));
   check('Der interne Titel bleibt draussen',
@@ -12318,11 +12329,11 @@ const shareMain = (purpose, target = null) =>
       JSON.stringify((await gA.S.call('GET', '/api/config')).content?.signup));
     /* DIE LISTE IN /api/config BLEIBT ABGESCHLOSSEN. Sie steht vor der
        Anmeldung; was hier dazukommt, sieht jeder, der die Adresse kennt.
-       FUENF NAMEN SEIT 0.9.1, und ein sechster kommt nicht stillschweigend --
+       SIEBEN NAMEN SEIT 0.24.3, und ein achter kommt nicht stillschweigend --
        dieselbe Bauform wie die Zahl in F_ROUTES. */
     check('Und vor der Anmeldung wird sonst weiterhin nichts verraten',
       equal(Object.keys((await gA.S.call('GET', '/api/config')).content).sort(),
-        ['minPassword', 'setupRequired', 'signup', 'title', 'version']),
+        ['language', 'languages', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
       JSON.stringify(Object.keys((await gA.S.call('GET', '/api/config')).content)));
     const gOut = await gA.S.call('PUT', '/api/signup/toggle', { an: false });
     check('Ausschalten geht immer -- auch mit kaputtem Versand',
@@ -15570,8 +15581,8 @@ const shareMain = (purpose, target = null) =>
       equal(germanKeys.filter(k => !pluralKeys.includes(k) && !vocabularyKeys.includes(k)).sort(),
             KEY_FALSE_FRIENDS),
       germanKeys.filter(k => !pluralKeys.includes(k) && !vocabularyKeys.includes(k)).join(' '));
-    check('Und die Zahlen stehen: 1259 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1259 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
+    check('Und die Zahlen stehen: 1268 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1268 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -15650,13 +15661,36 @@ const shareMain = (purpose, target = null) =>
     check('Die Werte der Abnahme liegen als Datei daneben',
       wordingFile.commit === '0681d42' && Array.isArray(wordingFile.values),
       `${wordingFile.commit} · ${wordingFile.values?.length} Werte`);
+    /* 0.24.3 IST DIE ERSTE RUNDE DIESER REIHE, DIE SAETZE HINZUFUEGT -- und
+       damit die erste, die diesen Waechter anfasst. 0.24.0 hat den Text in die
+       Datei geholt, 0.24.1 die Schluessel umbenannt, 0.24.2 die gespeicherten
+       Formen; keine hat einen Satz angeruehrt, und der Waechter sagte deshalb
+       „gleich viele wie damals".
+       DIE ZUSAGE BLEIBT, SIE WIRD NUR GENAUER: die neuen Schluessel stehen
+       NAMENTLICH hier, und alles Uebrige ist weiterhin Zeichen fuer Zeichen
+       der Stand von 0681d42. Eine Liste von Schluesseln und keine von Saetzen
+       -- ein Satz koennte zufaellig einem alten gleichen, und dann naehme die
+       Rechnung den falschen weg.
+       WER EINEN SCHLUESSEL HINZUFUEGT, TRAEGT IHN HIER EIN. Das ist der ganze
+       Sinn: eine Zeile mehr im Pruefstand gegen einen Satz mehr am Bildschirm,
+       den sonst niemand bemerkt haette. */
+    const WORDING_NEW_0243 = ['_name',
+      'card.languageDefaultSaved', 'card.languageDefaultTip', 'card.languagePoolSaved',
+      'card.languages', 'card.languagesFileAfter', 'card.languagesFileBefore',
+      'card.languagesHint', 'card.languagesUsersHint'];
+    const wordingMissing = WORDING_NEW_0243.filter(k => LANGUAGE_FILE[k] === undefined);
+    check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
+      wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
+    const wordingOld = Object.fromEntries(Object.entries(LANGUAGE_FILE)
+      .filter(([k]) => !WORDING_NEW_0243.includes(k)));
     const wordingThen = [...wordingFile.values].sort();
-    const wordingNow = valuesOf(LANGUAGE_FILE).sort();
+    const wordingNow = valuesOf(wordingOld).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
     const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
     check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme',
       wordingThen.length === wordingNow.length && wordingNow.length === 1225,
-      `${wordingThen.length} damals, ${wordingNow.length} heute`);
+      `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
+      `${WORDING_NEW_0243.length} neuen dieser Runde)`);
     check('Und genau ein Satz ist ein anderer — der, der BACKUP_DIR nennt',
       onlyThen.length === 1 && onlyNow.length === 1 &&
       onlyThen[0].includes('SICHERUNG_DIR') && onlyNow[0].includes('BACKUP_DIR') &&
@@ -30552,18 +30586,22 @@ async function checkUi() {
      „Suchmaschinen" statt „Suchanbieter" (E7), „Benutzer" statt „Zugänge"
      (E2), „Bildformate" statt „Bildablage" (E6). Einundzwanzig bleiben es;
      umgedreht, nicht geloescht (Stolperstein 74). */
+  /* ZWEIUNDZWANZIG SEIT 0.24.3: „Sprachen" kommt dazu und steht UNMITTELBAR
+     HINTER „Titel" -- die zweite Karte des Abschnitts „Installation", der bis
+     dahin genau eine trug. Vorgabesprache und Vorrat gehoeren dem Eigentuemer
+     und beschreiben die Installation als Ganzes, wie der Titel daneben (F9). */
   const ALL_CARDS = [
     'Mein Konto', 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
     'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
     'Kennzahlen', 'Bildformate', 'Sicherung', 'Alte Sicherungen', 'Export und Import',
-    'Titel'];
-  check('Die Eigentuemerin sieht alle einundzwanzig Karten',
+    'Titel', 'Sprachen'];
+  check('Die Eigentuemerin sieht alle zweiundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTES: eine Karte, die still
   // verschwindet, faellt sonst niemandem auf.
-  check('Und es sind wirklich einundzwanzig', ALL_CARDS.length === 21 && kEig.length === 21,
+  check('Und es sind wirklich zweiundzwanzig', ALL_CARDS.length === 22 && kEig.length === 22,
     `${ALL_CARDS.length} erwartet, ${kEig.length} gezeichnet`);
   /* UND DIE ZWEITE KRITERIENKARTE STEHT HINTER DER ERSTEN -- dieselbe
      Nachbarschaftszusage wie bei „Alte Sicherungen" darunter, und aus
@@ -30694,7 +30732,7 @@ async function checkUi() {
   const kOut = (await sysPass(rOut)).cards;
   check('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kOut.includes('Anfragen'), kOut.join(' · '));
-  check('Und es sind auch dann einundzwanzig', kOut.length === 21 && equal(kOut, ALL_CARDS),
+  check('Und es sind auch dann zweiundzwanzig', kOut.length === 22 && equal(kOut, ALL_CARDS),
     `${kOut.length} gezeichnet`);
   // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
   await sysSection(rOut.w, 'users');
@@ -31538,8 +31576,8 @@ async function checkUi() {
      einen zeigt. Waere hier nur der offene gezaehlt, stuende die Zahl drei da
      und die Pruefung belegte nichts ueber die uebrigen sechzehn. */
   const zkAll = (await sysPass(zkOut)).cards;
-  check('Und die Zahl der Karten bleibt bei einundzwanzig',
-    zkAll.length === 21, `${zkAll.length}: ${zkAll.join(' · ')}`);
+  check('Und die Zahl der Karten bleibt bei zweiundzwanzig',
+    zkAll.length === 22, `${zkAll.length}: ${zkAll.join(' · ')}`);
   await sysSection(zkOut.w, 'personal');
   /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
      einem Knopf, den man erst druecken muss. */
@@ -41809,7 +41847,7 @@ async function checkUi() {
       /const LANGUAGE_DEFAULT\s*=/.test("const LANGUAGE_DEFAULT = 'de';"),
       'der Leser sieht die Konstante nicht');
     check('Sie wird aus den Einstellungen gelesen',
-      /SELECT value FROM settings WHERE key = 'language'/.test(spSrv)
+      /SELECT value FROM settings WHERE key = 'languageDefault'/.test(spSrv)
         && /function languageDefault\(\)/.test(spSrv),
       (spSrv.match(/function languageDefault[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
     // Und localeOf() haengt daran und nicht an einem eigenen zweiten Weg.
@@ -42024,7 +42062,13 @@ async function checkUi() {
     const LETTERS = ['confirm', 'invite', 'reset', 'test']
       .flatMap(kind => [`mail.${kind}.subject`, `mail.${kind}.body`]);
     for (const k of LETTERS) called.add(k);
-    const notCalled = deKey.filter(k => k !== '_locale' && !called.has(k));
+    /* `_locale` UND `_name` SIND KEIN TEXT, SONDERN DER KOPF DER DATEI: sie
+       sagen, welche Locale die Sprache hat und wie sie in ihrer eigenen
+       Sprache heisst. Der Server liest sie ueber LANGUAGES[code]._locale bzw.
+       ._name und nie ueber t() -- ein Waechter, der einen Ruf verlangt,
+       verboete den Kopf. */
+    const FILE_HEAD = ['_locale', '_name'];
+    const notCalled = deKey.filter(k => !FILE_HEAD.includes(k) && !called.has(k));
     const withoutSentence = [...called].filter(k => !deKey.includes(k)).sort();
     check('Verwendungsprobe: jeder Schluessel der Datei wird gerufen',
       notCalled.length === 0, notCalled.slice(0, 12).join(' · '));
@@ -42195,7 +42239,7 @@ async function checkUi() {
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
       // Markup um einen technischen Namen herum
       '<code>PUBLIC_ADDRESS</code>', '<code>ENCRYPTION_KEY</code>',
-      '<code>data/</code>', '<code>http://</code>',
+      '<code>data/</code>', '<code>http://</code>', '<code>public/languages/</code>',
       '<code>ENCRYPTION_KEY</code>. <strong><code>.env</code>',
       '</p>\n              <code class="keyline" id="keyline">ENCRYPTION_KEY=',
       '<code>https://</code>).</p>\n        <div class="engine-own" id="engines-own"></div>',
@@ -42206,7 +42250,7 @@ async function checkUi() {
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
     check('Restprobe: weniger als sechzig lesbare Texte in app.js',
       rest.length < 60, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die fuenfundvierzig benannten',
+    check('Und es sind genau die sechsundvierzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
@@ -42255,8 +42299,8 @@ async function checkUi() {
     const cfgCore = ((fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/app\.get\('\/api\/config'[\s\S]*?res\.json\(\{([\s\S]*?)\}\);/) || ['', ''])[1]);
     const cfgFields = (cfgCore.match(/(?:^|[,{\n])\s*(\w+):/g) || []).length;
-    check('Die Zahlen dieser Runde: eine Sprachdatei, fuenf Felder in /api/config',
-      spNames.length === 1 && cfgFields === 5,
+    check('Die Zahlen dieser Runde: eine Sprachdatei, sieben Felder in /api/config',
+      spNames.length === 1 && cfgFields === 7,
       `${spNames.length} Datei(en) · ${cfgFields} Felder`);
   }
 
