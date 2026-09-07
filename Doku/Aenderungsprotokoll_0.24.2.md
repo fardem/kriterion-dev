@@ -1,7 +1,7 @@
 # Änderungsprotokoll 0.24.2 — „Die gespeicherten Formen ziehen mit"
 
 **PATCH, Datenbankstufe · 7. September 2026 · gebaut auf 0.24.1
-(`9988912b`, Stand `4886ae2`).**
+(`9988912b`, Stand `4886ae2`) · Fingerprint dieser Runde `ae0084d8`.**
 
 **0.24.1 hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN
 den gespeicherten Werten.** Für SQLite ist `settings.value` ein String und
@@ -208,6 +208,22 @@ hat, bekommt alles mit dem ersten Start zurück.*
 heißt „unverändert" und fällt auf den alten Wert zurück — der war unter
 0.24.1 nicht lesbar, also wirft `checkInput()` „Passwort fehlt", statt still
 etwas Falsches zu speichern.
+
+---
+
+## Die acht Rückbauten sind gefahren — keiner ist stumm
+
+**702 bis 709, drei Nebenspuren, alle acht namentlich rot.** Jeder nimmt der
+Migration ein Stück weg: einen Schlüssel, ein Paar, die Klammer um die Liste,
+die Regel bei zwei Namen, die Stille des zweiten Laufs — und einer legt ihr
+einen Wert unter, den sie NICHT anfassen darf.
+
+*Drei von ihnen haben nebenbei etwas gezeigt, womit nicht zu rechnen war:*
+**702, 704 und 705 machen auch die Namensprobe rot.** Wer der Liste ein Paar
+wegnimmt, nimmt damit einen deutschen Namen aus dem Quelltext — und dann steht
+er als benannte Ausnahme da, ohne noch irgendwo vorzukommen („keine
+Karteileiche"). *Die Ausnahme und die Migration halten sich damit gegenseitig
+fest, von beiden Seiten.*
 
 ---
 

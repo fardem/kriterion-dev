@@ -1431,7 +1431,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.24.2** | *(gebaut am 7. September 2026; **am Wirt noch nicht gesehen** — der Sollwert steht nach dem Einspielen hier)* | **5920** |
+| **0.24.2** | `ae0084d8` *(gebaut am 7. September 2026; **am Wirt noch nicht gesehen** — der Sollwert ist am Baum des Grundsteins `baebde8` gerechnet und steht hier, damit die laufende Installation sich daran messen lässt. **Der Zeile von 0.24.1 hat genau das gefehlt.**)* | **5920** |
 | 0.24.1 | `9988912b` *(am 7. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; nachgerechnet am Baum des Grundsteins `4886ae2`. **Der Rundlauf hat einen Befund gebracht, und der ist 0.24.2:** die Migration hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN den gespeicherten Werten — die eigenen Suchmaschinen, der Mailzugang und der Beleg der letzten Testmail waren damit unsichtbar. Verloren war nichts.)* | 5890 |
 | 0.24.0 | `795ddc8a` *(am 6. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. **Erst im zweiten Anlauf:** der erste Einspielversuch meldete `92dc6780`, einen Wert, den kein Commit trägt — dieselbe Lage wie bei 0.9.1 (Stolperstein 158). Ein Neubau des Images half nicht; erst das Leeren des Verzeichnisses und das frische Hineinschieben aller Dateien brachte den Sollwert. **Es lag also am Bestand des Bauverzeichnisses, nicht am Commit** — `COPY . .` im Dockerfile nimmt alles, was dort liegt)* | 5862 |
 | 0.23.0 | `92f7a142` *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5744 |
