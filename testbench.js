@@ -14720,7 +14720,7 @@ const shareMain = (purpose, target = null) =>
   })();
   check('Die Fotoroute ist ueberhaupt da', fRawCore.length > 0, 'die Route fehlt im Quelltext');
   check('Und sie ruft die Ableitung aus den Bytes auf',
-    fRawCore.includes('anh.setImageHeader('),
+    fRawCore.includes('attachments.setImageHeader('),
     fRawCore ? 'setImageHeader fehlt im Rumpf' : '(kein Rumpf)');
   check('Der gemeldete Typ kommt in ihrem Rumpf gar nicht mehr vor',
     !fRawCore.includes('mime'), fRawCore ? 'mime steht noch im Rumpf' : '(kein Rumpf)');
@@ -39851,8 +39851,8 @@ async function checkUi() {
        gruen, wer die Tafel durch ein `if` ersetzt -- und genau davor warnt der
        Kommentar dort. */
     check('Und die Adresse wird ohne Umweg gelesen',
-      /const gewuenscht = fromAddress;/.test(source),
-      (source.match(/const gewuenscht = [^\n]*/) || ['(nicht gefunden)'])[0]);
+      /const desired = fromAddress;/.test(source),
+      (source.match(/const desired = [^\n]*/) || ['(nicht gefunden)'])[0]);
   }
   {
     /* DER WAECHTER UEBER DAS WORT SELBST. „Ueberall" laesst sich nur so

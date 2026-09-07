@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
 const { Worker } = require('worker_threads');
-const anh = require('./attachments');
+const attachments = require('./attachments');
 // Eine Quelle fuer die Versionsnummer: die package.json. Die fuehrende Null
 // sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
 const VERSION = require('./package.json').version;
@@ -224,7 +224,7 @@ async function sendTokenLink(target, token) {
    Marke nicht mehr. Eine Funktion und zwei Rufer, nicht zwei Rechnungen
    (Stolperstein 145). */
 const MAILTEST_KEY = 'mailtestOk';
-function mailtestState(raw) {
+function mailTestState(raw) {
   const test = getSetting(MAILTEST_KEY, null);
   return test && test.mark && test.mark === mail.mark(raw) ? test : null;
 }
@@ -238,7 +238,7 @@ function deliveryReady() {
   const raw = getSetting(mail.SETTING_KEY, null);
   if (!mail.configured(raw))
     return { ok: false, reason: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.' };
-  if (!mailtestState(raw))
+  if (!mailTestState(raw))
     return { ok: false, reason: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen. ' +
       'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };
   if (!PUBLIC.address)
@@ -1557,9 +1557,9 @@ app.delete('/api/users/:id', adminOnly, (req, res) => {
    Antwort traegt. mail.js kennt die Sprache nicht; es kennt den Anbieter. */
 function mailCard(req) {
   const raw = getSetting(mail.SETTING_KEY, null);
-  // Der Vergleich steht in mailtestState() weiter oben -- eine
+  // Der Vergleich steht in mailTestState() weiter oben -- eine
   // Rechnung, zwei Rufer (Stolperstein 145).
-  const test = mailtestState(raw);
+  const test = mailTestState(raw);
   const state = mail.state(raw);
   return {
     ...state,
@@ -2995,7 +2995,7 @@ function detail(id, userId) {
   /* WEM DIE BEGRUENDUNG GEHOERT, und es ist eine EIGENE Angabe neben `mine`:
      wer abgelehnt hat, muss nicht der sein, dem der Eintrag gehoert. An
      `rejectedMine` haengt der Stift, an `mine` zusammen mit dem Adminrecht der
-     Papierkorb -- dieselbe Rechnung wie am Kommentar (`meins`, `verwalten`).
+     Papierkorb -- dieselbe Rechnung wie am Kommentar (`meins`, `manage`).
      KEINE RECHTEAUSKUNFT ("darfst du schreiben?"): die Klemme steht im Server,
      und eine zweite Antwort daneben liefe mit ihr auseinander, sobald jemand
      nur eine Seite aendert. Geliefert werden die zwei Tatsachen, gerechnet
@@ -3022,7 +3022,7 @@ function detail(id, userId) {
   it.attachments = qAttachments.all(id).map(a2 => ({
     id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
     sort_order: a2.sort_order, created_at: a2.created_at,
-    preview: anh.previewKind(a2.filename),
+    preview: attachments.previewKind(a2.filename),
     mine: a2.user_id === userId, author: authorFrom(card, a2.user_id)
   }));
   /* Die Linkzeile sagt wie Kommentar, Testtag und Stimme, wem sie gehoert --
@@ -3883,7 +3883,7 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
          Videozeile entstehen, die sich hinterher nicht abspielen laesst.
          AUF DIE VIDEODATEI WIRD gridImage() AUSDRUECKLICH NICHT ANGEWANDT:
          der Server oeffnet nie ein Video. Gelesen werden zwoelf Bytes. */
-      if (!Object.values(anh.VIDEO_TYPES).includes(anh.typeFromBytes(video.buffer)))
+      if (!Object.values(attachments.VIDEO_TYPES).includes(attachments.typeFromBytes(video.buffer)))
         return res.status(400).json({ error: t(localeOf(req), 'server.videosOnly')});
       // Das Standbild geht denselben Weg wie jedes Foto: was sharp nicht als
       // Bild lesen kann, kommt nicht herein.
@@ -3931,10 +3931,10 @@ app.get('/api/photos/:id/raw', (req, res) => {
   let rangeable = p.kind === 'video';
   if (req.query.size === 'thumb' && p.thumb) { blob = p.thumb; rangeable = false; }
   else if (req.query.size === 'medium' && p.medium) { blob = p.medium; rangeable = false; }
-  anh.setImageHeader(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
+  attachments.setImageHeader(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
   if (!rangeable) return res.send(blob);
   res.set('Accept-Ranges', 'bytes');
-  const b = anh.rangeOut(req.headers.range, blob.length);
+  const b = attachments.rangeOut(req.headers.range, blob.length);
   if (!b) return res.send(blob);
   // Ungueltiges wird abgewiesen, nicht zurechtgebogen: ein Abspieler, der
   // etwas anderes bekommt als er verlangt hat, zeigt Bildsalat statt Fehler.
@@ -4122,7 +4122,7 @@ app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMEN
 app.get('/api/attachments/:id/raw', (req, res) => {
   const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).end();
-  anh.setHeader(res, a.filename, { inline: req.query.inline === '1' });
+  attachments.setHeader(res, a.filename, { inline: req.query.inline === '1' });
   res.send(a.data);
 });
 
@@ -4132,10 +4132,10 @@ app.get('/api/attachments/:id/raw', (req, res) => {
 app.get('/api/attachments/:id/preview', (req, res) => {
   const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
-  const kind = anh.previewKind(a.filename);
-  if (kind === 'text') return res.json({ kind, ...anh.textPreview(a.data) });
+  const kind = attachments.previewKind(a.filename);
+  if (kind === 'text') return res.json({ kind, ...attachments.textPreview(a.data) });
   if (kind === 'docx') {
-    const v = anh.docxPreview(a.data);
+    const v = attachments.docxPreview(a.data);
     if (!v) return res.status(422).json({ error: t(localeOf(req), 'server.fileNotText')});
     return res.json({ kind, ...v });
   }
@@ -4608,7 +4608,7 @@ app.delete('/api/comment-images/:id', (req, res) => {
 app.get('/api/comment-images/:id/raw', (req, res) => {
   const b = db.prepare('SELECT * FROM comment_images WHERE id = ?').get(req.params.id);
   if (!b) return res.status(404).end();
-  anh.setHeader(res, 'bild.jpg', { inline: true });
+  attachments.setHeader(res, 'bild.jpg', { inline: true });
   res.send(req.query.size === 'thumb' && b.thumb ? b.thumb : b.data);
 });
 

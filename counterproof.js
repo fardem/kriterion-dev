@@ -411,7 +411,7 @@ const REGRESSIONS = [
   {
     nr: '43', name: 'Der Schalter laesst sich ohne durchgekommene Testmail einschalten',
     file: 'server.js',
-    search: "  if (!mailtestState(raw))",
+    search: "  if (!mailTestState(raw))",
     ersatz: "  if (false)",
     expected: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
@@ -1605,7 +1605,7 @@ const REGRESSIONS = [
        aufklappt. */
     nr: '179', name: 'Der Verweis rutscht wieder VOR die Wolke',
     file: 'public/app.js',
-    search: '  if (rechts.childElementCount) r3.appendChild(rechts);',
+    search: '  if (right.childElementCount) r3.appendChild(right);',
     ersatz: '  if (rechts.childElementCount) r3.insertBefore(rechts, g3);',
     expected: 'Die Anzeige zieht nach — 0.12.3'
   },
@@ -1899,7 +1899,7 @@ const REGRESSIONS = [
        (Stolperstein 192). */
     nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
     file: 'public/app.js',
-    search: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');",
+    search: "    b.className = 'pill pill-tag' + (chosen ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');",
     ersatz: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '');",
     expected: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
@@ -2040,7 +2040,7 @@ const REGRESSIONS = [
        und sie saehe aus wie eine echte. */
     nr: '222', name: 'Die Migration traegt erfundene Angaben in den Bestand',
     file: 'db.js',
-    search: "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
+    search: "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${enumeration} ergaenzt `",
     ersatz: "  db.exec(\"UPDATE items SET rejected_at = datetime('now') WHERE rejected = 1\");\n" +
       "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
     expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
@@ -2459,7 +2459,7 @@ const REGRESSIONS = [
        nicht aendern darf. */
     nr: '263', name: 'Der Papierkorb steht jedem da',
     file: 'public/app.js',
-    search: "    const showPath = item.rejected && verwalten && !!reason;",
+    search: "    const showPath = item.rejected && manage && !!reason;",
     ersatz: "    const showPath = item.rejected && !!grund;",
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
@@ -2567,7 +2567,7 @@ const REGRESSIONS = [
   {
     nr: '275', name: 'Eine Adresse auf einen unsichtbaren Abschnitt zeigt ins Leere',
     file: 'public/app.js',
-    search: "  const offen = visibleOnes.find(a => a.key === gewuenscht) || visibleOnes[0];",
+    search: "  const offen = visibleOnes.find(a => a.key === desired) || visibleOnes[0];",
     ersatz: "  const offen = SYS_ABSCHNITTE.find(a => a.schluessel === gewuenscht) || sichtbare[0];",
     expected: 'Der Systembereich nach Rolle'
   },
@@ -3742,7 +3742,7 @@ const REGRESSIONS = [
   {
     nr: '423', name: 'Die Detailansicht zieht die Adresse nicht mehr nach',
     file: 'public/app.js',
-    search: "  if (location.hash !== gewollt &&\n      typeof history !== 'undefined' && typeof history.replaceState === 'function')\n    history.replaceState(null, '', gewollt);",
+    search: "  if (location.hash !== wanted &&\n      typeof history !== 'undefined' && typeof history.replaceState === 'function')\n    history.replaceState(null, '', wanted);",
     ersatz: "  void gewollt;",
     expected: 'Der Suchbegriff in der Adresse'
   },
@@ -3752,7 +3752,7 @@ const REGRESSIONS = [
        Verlauf an und loest ein zweites Zeichnen aus. */
     nr: '424', name: 'Die Adresse wird ueber location.hash gesetzt',
     file: 'public/app.js',
-    search: "    history.replaceState(null, '', gewollt);",
+    search: "    history.replaceState(null, '', wanted);",
     ersatz: "    location.hash = gewollt;",
     expected: 'Der Suchbegriff in der Adresse'
   },
@@ -4401,7 +4401,7 @@ const REGRESSIONS = [
        der bei jeder weiteren Umbenennung gepflegt werden will. */
     nr: '487', name: 'Die Uebersetzung der alten Abschnittsadressen kommt zurueck',
     file: 'public/app.js',
-    search: "  const gewuenscht = fromAddress;",
+    search: "  const desired = fromAddress;",
     ersatz: "  const gewuenscht = { anlage: 'installation', instanz: 'installation' }[ausDerAdresse] || ausDerAdresse;",
     expected: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
@@ -5564,7 +5564,7 @@ const REGRESSIONS = [
        offen -- ohne dass jemand wuesste, warum. */
     nr: '591', name: 'Ein Klick auf den Kastenkopf speichert wieder',
     file: 'public/app.js',
-    search: '        if (BLICK.has(name)) BLICK.delete(name); else BLICK.add(name);',
+    search: '        if (GLANCE.has(name)) GLANCE.delete(name); else GLANCE.add(name);',
     ersatz: "        BLOECKE.zu = zu ? BLOECKE.zu.filter(k => k !== name) : [...BLOECKE.zu, name];\n        saveBlocks();",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5574,7 +5574,7 @@ const REGRESSIONS = [
        auf den Schalter saehe aus, als haette er nichts getan. */
     nr: '592', name: 'Der Schalter „Getestet" leert den Blick nicht mehr',
     file: 'public/app.js',
-    search: '      BLICK.clear();\n      drawSwitches(); drawTestDays(); drawRatings();',
+    search: '      GLANCE.clear();\n      drawSwitches(); drawTestDays(); drawRatings();',
     ersatz: '      drawSwitches(); drawTestDays(); drawRatings();',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5584,7 +5584,7 @@ const REGRESSIONS = [
        Mischung aus beidem. */
     nr: '593', name: 'Der Blick ueberlebt den Wechsel des Eintrags',
     file: 'public/app.js',
-    search: '  BLICK.clear();\n  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
+    search: '  GLANCE.clear();\n  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
     ersatz: '  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
@@ -5851,7 +5851,7 @@ const REGRESSIONS = [
        wenn er richtig raet -- niemand erfuehre, warum die Liste kuerzer ist. */
     nr: '617', name: 'Neben den Statuspillen steht nicht mehr, woher sie kommen',
     file: 'public/app.js',
-    search: "  if (fallback) {\n    const woher = secondLabel(r1, t('list.followsSort'));",
+    search: "  if (fallback) {\n    const from = secondLabel(r1, t('list.followsSort'));",
     ersatz: "  if (false) {\n    const woher = zweiteBeschriftung(r1, t('list.followsSort'));",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -5919,7 +5919,7 @@ const REGRESSIONS = [
        genau dann nirgends dran, wenn man sie am wenigsten sieht. */
     nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
     file: 'public/app.js',
-    search: "  const woher = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';",
+    search: "  const from = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';",
     ersatz: "  const woher = '';",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
@@ -6407,7 +6407,7 @@ const REGRESSIONS = [
        halbe Stufe -- genau die Ecke, die stillstehen soll. */
     nr: '646', name: 'Die feste Ecke wandert wieder mit der Rastung',
     file: 'public/app.js',
-    search: "      const { l, o } = situation(eng);\n      setState(l, o);",
+    search: "      const { l, o } = situation(narrow);\n      setState(l, o);",
     ersatz: "      const { l, o } = lage(k);\n      setState(l, o);",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6417,7 +6417,7 @@ const REGRESSIONS = [
        rutscht dabei seitlich weg. */
     nr: '647', name: 'Die Kante verschiebt den Mittelpunkt wieder',
     file: 'public/app.js',
-    search: "          (e) => ({ l: rechts - e, o: centerY - e / 2 }), Math.min(rechts, aroundCenter(centerY, f.height)));",
+    search: "          (e) => ({ l: right - e, o: centerY - e / 2 }), Math.min(right, aroundCenter(centerY, f.height)));",
     ersatz: "          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, umMitte(mitteY, f.hoehe)));",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
@@ -6494,7 +6494,7 @@ const REGRESSIONS = [
        Klemme schiebt ihn ins Bild zurueck. */
     nr: '655', name: 'Die Rastung springt wieder ueber den Deckel',
     file: 'public/app.js',
-    search: "      if (eng > hoch + 1e-9 && zoom < 400) {",
+    search: "      if (narrow > up + 1e-9 && zoom < 400) {",
     ersatz: "      if (false && eng > hoch + 1e-9 && zoom < 400) {",
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },

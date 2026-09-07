@@ -785,39 +785,39 @@ db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).
    -- und den gibt es, der Bestandslauf oeffnet dieselbe Datei aus seinem
    Thread -- ist jede Tabelle laengst umbenannt, und der Block kehrt wortlos
    zurueck. */
-const WOERTERBUCH = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
+const DICTIONARY = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
 
 /* DIE INDIZES DER UMBENANNTEN TABELLEN. `ALTER TABLE … RENAME TO` nimmt sie
    mit, laesst ihnen aber ihren alten NAMEN -- und die DDL legt gleich darauf
    denselben Index ein zweites Mal unter dem neuen an. Zwei Indizes ueber
    dieselben Spalten sind kein Fehler, aber doppelte Arbeit bei jedem
    Schreiben. Sie fallen deshalb hier weg; die DDL baut sie neu auf. */
-const ALTE_INDIZES = Object.keys(WOERTERBUCH.indexes);
+const OLD_INDEXES = Object.keys(DICTIONARY.indexes);
 
-function migration0241Tabellen() {
+function migration0241Tables() {
   const da = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
-  const umzug = Object.entries(WOERTERBUCH.tables).filter(([old, fresh]) => da.has(old) && !da.has(fresh));
+  const move = Object.entries(DICTIONARY.tables).filter(([old, fresh]) => da.has(old) && !da.has(fresh));
   /* DIE INDIZES FALLEN IN JEDEM FALL, auch wenn keine Tabelle mehr umzuziehen
      ist: `idx_photos_art` und `idx_photos_kachel` haengen an Tabellen, die
      ihren Namen behalten -- nur die Indizes selbst heissen deutsch. */
-  const alteIndizes = db.prepare("SELECT name FROM sqlite_master WHERE type = 'index'")
-    .all().map(z => z.name).filter(n => ALTE_INDIZES.includes(n));
-  if (!umzug.length && !alteIndizes.length) return 0;
+  const oldIndexes = db.prepare("SELECT name FROM sqlite_master WHERE type = 'index'")
+    .all().map(z => z.name).filter(n => OLD_INDEXES.includes(n));
+  if (!move.length && !oldIndexes.length) return 0;
   db.transaction(() => {
-    for (const old of alteIndizes) db.exec(`DROP INDEX IF EXISTS ${old}`);
-    for (const [old, fresh] of umzug) db.exec(`ALTER TABLE ${old} RENAME TO ${fresh}`);
+    for (const old of oldIndexes) db.exec(`DROP INDEX IF EXISTS ${old}`);
+    for (const [old, fresh] of move) db.exec(`ALTER TABLE ${old} RENAME TO ${fresh}`);
   })();
-  if (!umzug.length) {
-    console.log(`[Kriterion] ${alteIndizes.length} ${alteIndizes.length === 1 ? 'Index' : 'Indizes'} ` +
-      `umbenannt (Migration auf 0.24.1): ${alteIndizes.join(', ')}.`);
-    return alteIndizes.length;
+  if (!move.length) {
+    console.log(`[Kriterion] ${oldIndexes.length} ${oldIndexes.length === 1 ? 'Index' : 'Indizes'} ` +
+      `umbenannt (Migration auf 0.24.1): ${oldIndexes.join(', ')}.`);
+    return oldIndexes.length;
   }
-  console.log(`[Kriterion] ${umzug.length} ${umzug.length === 1 ? 'Tabelle' : 'Tabellen'} umbenannt ` +
-    `(Migration auf 0.24.1): ${umzug.map(([a, b]) => `${a} → ${b}`).join(', ')}.`);
-  return umzug.length;
+  console.log(`[Kriterion] ${move.length} ${move.length === 1 ? 'Tabelle' : 'Tabellen'} umbenannt ` +
+    `(Migration auf 0.24.1): ${move.map(([a, b]) => `${a} → ${b}`).join(', ')}.`);
+  return move.length;
 }
-migration0241Tabellen();
+migration0241Tables();
 
 /* DIE SPALTEN, UNMITTELBAR HINTER DEN TABELLEN UND VOR ALLEM ANDEREN.
    ZWEI GRUENDE FUER GENAU DIESE STELLE:
@@ -836,23 +836,23 @@ migration0241Tabellen();
    `ALTER TABLE … RENAME COLUMN` kann SQLite seit 3.25 und zieht dabei jeden
    Index, jeden Fremdschluessel und jede Sicht mit. */
 function migration0241Columns() {
-  const tabellen = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
-  const umzug = [];
-  for (const [place, fresh] of Object.entries(WOERTERBUCH.columns)) {
-    const [tabelle, old] = place.split('.');
-    if (!tabellen.has(tabelle)) continue;
-    const columns = db.prepare(`PRAGMA table_info(${tabelle})`).all().map(c => c.name);
-    if (columns.includes(old) && !columns.includes(fresh)) umzug.push([tabelle, old, fresh]);
+  const move = [];
+  for (const [place, fresh] of Object.entries(DICTIONARY.columns)) {
+    const [table, old] = place.split('.');
+    if (!tables.has(table)) continue;
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+    if (columns.includes(old) && !columns.includes(fresh)) move.push([table, old, fresh]);
   }
-  if (!umzug.length) return 0;
+  if (!move.length) return 0;
   db.transaction(() => {
-    for (const [tabelle, old, fresh] of umzug)
-      db.exec(`ALTER TABLE ${tabelle} RENAME COLUMN ${old} TO ${fresh}`);
+    for (const [table, old, fresh] of move)
+      db.exec(`ALTER TABLE ${table} RENAME COLUMN ${old} TO ${fresh}`);
   })();
-  console.log(`[Kriterion] ${umzug.length} ${umzug.length === 1 ? 'Spalte' : 'Spalten'} umbenannt ` +
-    `(Migration auf 0.24.1): ${umzug.map(([t, a, b]) => `${t}.${a} → ${b}`).join(', ')}.`);
-  return umzug.length;
+  console.log(`[Kriterion] ${move.length} ${move.length === 1 ? 'Spalte' : 'Spalten'} umbenannt ` +
+    `(Migration auf 0.24.1): ${move.map(([t, a, b]) => `${t}.${a} → ${b}`).join(', ')}.`);
+  return move.length;
 }
 migration0241Columns();
 
@@ -861,7 +861,7 @@ migration0241Columns();
    `art` und `dauer`, weil die Spalten so hiessen. Der Import in server.js
    uebersetzt sie beim Einlesen -- und nimmt die Paare von HIER, nicht aus
    einer zweiten Liste. Zwei Listen laufen auseinander, sobald eine wandert. */
-const COLUMNS_0241 = WOERTERBUCH.columns;
+const COLUMNS_0241 = DICTIONARY.columns;
 
 /* DIE WERTE, ALS DRITTES UND LETZTES. Ein Name im Schema ist Code; ein Wert
    IN einer Zeile ist es genauso, sobald der Quelltext ihn vergleicht --
@@ -891,48 +891,48 @@ const COLUMNS_0241 = WOERTERBUCH.columns;
    WIEDERHOLBAR UND IM NORMALFALL STUMM, wie die beiden Bloecke darueber:
    gefragt wird die Zeile selbst, nicht ein Merker. */
 const VALUE_COLUMNS_0241 = [
-  ['security_log',    'event',    WOERTERBUCH.values.event],
-  ['security_log',    'detail',   WOERTERBUCH.values.detail],
-  ['users',           'role',     WOERTERBUCH.values.role],
-  ['users',           'status',   WOERTERBUCH.values.userStatus],
-  ['rating_criteria', 'phase',    WOERTERBUCH.values.phase],
-  ['photos',          'kind',     WOERTERBUCH.values.photoKind],
-  ['tokens',          'purpose',  WOERTERBUCH.values.tokenPurpose],
-  ['settings',        'key',      WOERTERBUCH.values.setting],
-  ['user_settings',   'key',      WOERTERBUCH.values.userSetting]
+  ['security_log',    'event',    DICTIONARY.values.event],
+  ['security_log',    'detail',   DICTIONARY.values.detail],
+  ['users',           'role',     DICTIONARY.values.role],
+  ['users',           'status',   DICTIONARY.values.userStatus],
+  ['rating_criteria', 'phase',    DICTIONARY.values.phase],
+  ['photos',          'kind',     DICTIONARY.values.photoKind],
+  ['tokens',          'purpose',  DICTIONARY.values.tokenPurpose],
+  ['settings',        'key',      DICTIONARY.values.setting],
+  ['user_settings',   'key',      DICTIONARY.values.userSetting]
 ];
 function migration0241Values() {
-  const tabellen = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
   let n = 0;
-  const gezaehlt = [];
-  for (const [tabelle, column, paare] of VALUE_COLUMNS_0241) {
-    if (!tabellen.has(tabelle)) continue;
-    const columns = db.prepare(`PRAGMA table_info(${tabelle})`).all().map(c => c.name);
+  const counted = [];
+  for (const [table, column, pairs] of VALUE_COLUMNS_0241) {
+    if (!tables.has(table)) continue;
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
     if (!columns.includes(column)) continue;
-    const set = db.prepare(`UPDATE ${tabelle} SET ${column} = ? WHERE ${column} = ?`);
-    for (const [old, fresh] of Object.entries(paare)) {
+    const set = db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`);
+    for (const [old, fresh] of Object.entries(pairs)) {
       const r = set.run(fresh, old);
-      if (r.changes) { n += r.changes; gezaehlt.push(`${tabelle}.${column} ${old} → ${fresh} (${r.changes})`); }
+      if (r.changes) { n += r.changes; counted.push(`${table}.${column} ${old} → ${fresh} (${r.changes})`); }
     }
   }
   // Das Schema steht als JSON-String in user_settings.
-  if (tabellen.has('user_settings')) {
+  if (tables.has('user_settings')) {
     const set = db.prepare(
       "UPDATE user_settings SET value = ? WHERE key = 'theme' AND value = ?");
-    for (const [old, fresh] of Object.entries(WOERTERBUCH.values.theme)) {
+    for (const [old, fresh] of Object.entries(DICTIONARY.values.theme)) {
       const r = set.run(JSON.stringify(fresh), JSON.stringify(old));
-      if (r.changes) { n += r.changes; gezaehlt.push(`user_settings.theme ${old} → ${fresh} (${r.changes})`); }
+      if (r.changes) { n += r.changes; counted.push(`user_settings.theme ${old} → ${fresh} (${r.changes})`); }
     }
   }
   // Der Grabstein: sein Name traegt seine eigene Nummer und wird daraus gebaut.
-  if (tabellen.has('users')) {
+  if (tables.has('users')) {
     const r = db.prepare(
       "UPDATE users SET username = 'deleted-' || id WHERE username = 'geloescht-' || id").run();
-    if (r.changes) { n += r.changes; gezaehlt.push(`users.username geloescht- → deleted- (${r.changes})`); }
+    if (r.changes) { n += r.changes; counted.push(`users.username geloescht- → deleted- (${r.changes})`); }
   }
   if (!n) return 0;
-  console.log(`[Kriterion] ${n} Werte umbenannt (Migration auf 0.24.1): ${gezaehlt.join(', ')}.`);
+  console.log(`[Kriterion] ${n} Werte umbenannt (Migration auf 0.24.1): ${counted.join(', ')}.`);
   return 1;
 }
 migration0241Values();
@@ -941,7 +941,7 @@ migration0241Values();
    darueber: eine Exportdatei von vor 0.24.1 traegt `bild` an ihren Fotos und
    `vorher` an ihren Kriterien, und der Import uebersetzt beides beim
    Einlesen. */
-const VALUES_0241 = WOERTERBUCH.values;
+const VALUES_0241 = DICTIONARY.values;
 // ENDE MIGRATION 0.24.1 (Tabellen, Spalten und Werte)
 
 db.exec(SCHEMA);
@@ -1117,10 +1117,10 @@ function migration0140() {
   // "a, b und c" statt "a und b und c" -- bei drei Namen liest sich das
   // andere wie ein Fehler in der Zeile.
   const namen = missing.map(f => f[0]);
-  const aufzaehlung = namen.length > 1
+  const enumeration = namen.length > 1
     ? `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}` : namen[0];
   const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;
-  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt ` +
+  console.log(`[Kriterion] items um ${enumeration} ergaenzt ` +
     `(Migration auf 0.14.0); ${n} bereits abgelehnte ${n === 1 ? 'Eintrag steht' : 'Eintraege stehen'} ` +
     `ohne Datum, Grund und Verfasser da.`);
   return 1;
@@ -1347,11 +1347,11 @@ function assignInventory() {
   if (owner == null) {
     return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
   }
-  for (const tabelle of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
+  for (const table of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
     const n = db.prepare(
-      `UPDATE OR IGNORE ${tabelle} SET user_id = ? WHERE user_id IS NULL`
+      `UPDATE OR IGNORE ${table} SET user_id = ? WHERE user_id IS NULL`
     ).run(owner).changes;
-    counts[tabelle] = n;
+    counts[table] = n;
     sum += n;
   }
   if (sum) {

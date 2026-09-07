@@ -43,9 +43,9 @@ const SECRET_BYTES = 20;
    trotzdem ein Alphabet verschoben haben. */
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-function base32Encode(puffer) {
+function base32Encode(buffer) {
   let bits = 0, value = 0, out = '';
-  for (const b of puffer) {
+  for (const b of buffer) {
     value = (value << 8) | b;
     bits += 8;
     while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }

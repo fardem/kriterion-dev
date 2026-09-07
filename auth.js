@@ -93,12 +93,12 @@ class Message extends Error {
    LEER ZAEHLT ALS NICHT GESETZT: in der `.env.example` stehen die Zeilen
    auskommentiert oder leer da, und ein leerer neuer Name darf einen gesetzten
    alten nicht verdecken. */
-function fromEnv(name, alterName) {
+function fromEnv(name, oldName) {
   const value = process.env[name];
   if (String(value ?? '').trim() !== '') return value;
-  const old = process.env[alterName];
+  const old = process.env[oldName];
   if (String(old ?? '').trim() !== '') {
-    console.warn(`[Kriterion] ${alterName} heisst jetzt ${name} — der alte Name ` +
+    console.warn(`[Kriterion] ${oldName} heisst jetzt ${name} — der alte Name ` +
       'wird noch gelesen. Bitte in der .env nachziehen.');
     return old;
   }
@@ -509,24 +509,24 @@ function setStatus(userId, status, actor) {
 function countInventory(userId) {
   const id = Number(userId);
   const one = (sql, ...w) => db.prepare(sql).get(...w).n;
-  const seine = 'SELECT id FROM items WHERE user_id = ?';
+  const ownItems = 'SELECT id FROM items WHERE user_id = ?';
   return {
     entries: one('SELECT COUNT(*) n FROM items WHERE user_id = ?', id),
     // an SEINEN Eintraegen, von anderen geschrieben -- faellt mit den Eintraegen
-    foreignComments: one(`SELECT COUNT(*) n FROM comments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    foreignRatings: one(`SELECT COUNT(*) n FROM ratings WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    foreignTestDays: one(`SELECT COUNT(*) n FROM test_days WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    foreignLinks: one(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
-    foreignFiles: one(`SELECT COUNT(*) n FROM attachments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
+    foreignComments: one(`SELECT COUNT(*) n FROM comments WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignRatings: one(`SELECT COUNT(*) n FROM ratings WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignTestDays: one(`SELECT COUNT(*) n FROM test_days WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignLinks: one(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignFiles: one(`SELECT COUNT(*) n FROM attachments WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
     // SEINE Beitraege in FREMDEN Eintraegen -- das zweite Haekchen
-    kommentare: one(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
-    bewertungen: one(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
-    testtage: one(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
+    kommentare: one(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    bewertungen: one(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    testtage: one(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
     // Der fuenfte und der sechste Traeger. Ohne sie saehe ein Zugang, der
     // zwanzig Links und ein Dutzend Dateien in fremden Eintraegen hinterlassen
     // hat, im Dialog leer aus.
-    links: one(`SELECT COUNT(*) n FROM links WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
-    files: one(`SELECT COUNT(*) n FROM attachments WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id)
+    links: one(`SELECT COUNT(*) n FROM links WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    files: one(`SELECT COUNT(*) n FROM attachments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id)
   };
 }
 
@@ -537,7 +537,7 @@ function countInventory(userId) {
    dem Eigentuemer zu: fremde Aussagen unter fremdem Namen.
    Mitgeloescht wird, was rein persoenlich ist: Sitzungen, Favoriten,
    Einstellungen. Inhalte nur auf ausdrueckliche Ansage. */
-function removeUser(userId, optionen = {}, actor) {
+function removeUser(userId, options = {}, actor) {
   const acting = checkActor(actor);
   const u = getUser2(userId);
   if (!u) throw new Message('server.userUnknown');
@@ -548,8 +548,8 @@ function removeUser(userId, optionen = {}, actor) {
   db.transaction(() => {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
     // zweite Haekchen Zeilen mit, die das erste ohnehin mitgenommen haette.
-    if (optionen.entries) db.prepare('DELETE FROM items WHERE user_id = ?').run(u.id);
-    if (optionen.beitraege) {
+    if (options.entries) db.prepare('DELETE FROM items WHERE user_id = ?').run(u.id);
+    if (options.beitraege) {
       db.prepare('DELETE FROM comments WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM ratings WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM test_days WHERE user_id = ?').run(u.id);
@@ -581,7 +581,7 @@ function removeUser(userId, optionen = {}, actor) {
      Zeile bleibt stehen -- der Grabstein traegt seine Nummer weiter, target
      zeigt also weiterhin auf etwas. */
   log('user.delete', { actor: acting, target: u.id });
-  return { id: u.id, name: u.username, tombstone: tombstoneName(u.id), counts, optionen };
+  return { id: u.id, name: u.username, tombstone: tombstoneName(u.id), counts, options };
 }
 
 // --- AUTH_RESET wird abgelehnt ------------------------------------------

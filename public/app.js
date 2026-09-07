@@ -103,7 +103,7 @@ async function loadLanguage(code) {
      dort beim Laden der Datei ausgewertet wird -- da gibt es noch keinen Text.
      Was schon in `V` steht, bleibt: der Satz des Servers wiegt schwerer als
      die Vorgabe. */
-  V = { ...Object.fromEntries(Object.entries(VOCABULARY_DEFAULT).map(([k, ruf]) => [k, ruf()])), ...V };
+  V = { ...Object.fromEntries(Object.entries(VOCABULARY_DEFAULT).map(([k, call]) => [k, call()])), ...V };
   return data;
 }
 
@@ -132,10 +132,10 @@ function weekday(day) {
    ZWEI STELLENZAHLEN: `zahl(x, 1)` schreibt immer eine Nachkommastelle,
    `zahl(x, 0, 2)` hoechstens zwei und keine, wo keine noetig ist -- das ist
    die Form der Gewichte. */
-function number(n, digits = 0, hoechstens = digits) {
+function number(n, digits = 0, atMost = digits) {
   const value = Number(n);
   return new Intl.NumberFormat(LOCALE, { minimumFractionDigits: digits,
-    maximumFractionDigits: hoechstens, useGrouping: false })
+    maximumFractionDigits: atMost, useGrouping: false })
     .format(Number.isFinite(value) ? value : 0);
 }
 
@@ -635,7 +635,7 @@ function newPasswordDialog(title, sentence) {
    Liefert { eintraege, beitraege } oder null bei Abbruch. */
 function userDeleteDialog(name, number, b) {
   return new Promise(resolve => {
-    const countWord = (n, ein, mehr) => (n ? [`${n} ${plural(n, ein, mehr)}`] : []);
+    const countWord = (n, singular, more) => (n ? [`${n} ${plural(n, singular, more)}`] : []);
     const foreignCount = (b.foreignComments || 0) + (b.foreignRatings || 0) + (b.foreignTestDays || 0)
       + (b.foreignLinks || 0) + (b.foreignFiles || 0);
     const beitraege = [
@@ -958,10 +958,10 @@ async function showConfirm(key) {
   location.hash = '#/';
   draw(true, '');
 
-  function draw(gut, message, again) {
+  function draw(good, message, again) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${BRAND_LINE()}
-      ${gut ? `<p class="sub" id="confirm-ok"><strong>${tH('login.confirmed')}</strong>
+      ${good ? `<p class="sub" id="confirm-ok"><strong>${tH('login.confirmed')}</strong>
         ${tH('login.requestPending')}</p>`
         : `<div class="login-error">${esc(message)}</div>
         ${again ? `<p class="sub">${tH('login.yourLinkAffected')} <strong>${tH('login.not')}</strong> ${tH('login.stillValid')}</p><button class="btn btn-accent" id="confirm-again">${tH('login.tryAgain')}</button>`
@@ -1247,7 +1247,7 @@ function blockSummary(name, item) {
    abhaengt, darf nicht in einer Einstellung stehen, die fuer alle gilt.
    NUR DIE BEIDEN STERNKAESTEN. Jeder andere Block behaelt seinen gespeicherten
    Einklappzustand -- der haengt an keinem Merkmal des Eintrags. */
-let BLICK = new Set();
+let GLANCE = new Set();
 
 /* WAS DIE REGEL SAGT, WENN NIEMAND GEKLICKT HAT -- 0.21.0.
    ungetestet -> Potenzial offen, Bewertung zu; getestet -> umgekehrt. Der
@@ -1319,7 +1319,7 @@ function setUpBlocksOut(item) {
        (BLICK), er speichert sie nicht. */
     const afterState = BLOCKS_ALWAYS_OPEN.includes(name);
     const zu = afterState
-      ? (BLICK.has(name) ? !closedByState(name, item) : closedByState(name, item))
+      ? (GLANCE.has(name) ? !closedByState(name, item) : closedByState(name, item))
       : BLOCKS.zu.includes(name);
     /* DER BLOCK WIRD AUSGEBLENDET UND NICHT ENTFERNT -- 0.22.1. `#rhead` und
        `#ratings` bleiben damit im Dokument, und `drawRatings()` braucht keine
@@ -1343,7 +1343,7 @@ function setUpBlocksOut(item) {
         /* KEIN saveBlocks(), KEIN PUT /api/settings -- der Klick ist ein
            Blick. Umgeschaltet wird eine Menge im Speicher der Seite, und die
            gilt bis zum Verlassen des Eintrags. */
-        if (BLICK.has(name)) BLICK.delete(name); else BLICK.add(name);
+        if (GLANCE.has(name)) GLANCE.delete(name); else GLANCE.add(name);
       } else {
         BLOCKS.zu = zu ? BLOCKS.zu.filter(k => k !== name) : [...BLOCKS.zu, name];
         saveBlocks();
@@ -1494,10 +1494,10 @@ function cropSpecBox(width, height, fx, fy, zoom) {
 const HANDLE = 12;
 function cropGesture(frame, px, py, handle = HANDLE) {
   const { links, oben, edge } = frame;
-  const rechts = links + edge, unten = oben + edge;
-  if (px < links || px > rechts || py < oben || py > unten) return 'neu';
+  const right = links + edge, unten = oben + edge;
+  if (px < links || px > right || py < oben || py > unten) return 'neu';
   const g = Math.min(handle, edge / 4);
-  const w = px - links <= g, o = rechts - px <= g;
+  const w = px - links <= g, o = right - px <= g;
   const n = py - oben <= g, s = unten - py <= g;
   if (n && w) return 'links-oben';
   if (n && o) return 'rechts-oben';
@@ -3095,9 +3095,9 @@ function drawFilterSwitch() {
      ausdruecklich nicht mit (die Begruendung steht dort), und `aktiv` bleibt
      deshalb an der Zahl haengen -- die Farbe sagt „du hast etwas eingestellt",
      und eingestellt hat das niemand. */
-  const woher = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';
+  const from = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';
   button.querySelector('.fcount').textContent =
-    [n ? `${n} aktiv` : '', woher].filter(Boolean).map(s => `· ${s}`).join(' ');
+    [n ? `${n} aktiv` : '', from].filter(Boolean).map(s => `· ${s}`).join(' ');
   button.classList.toggle('active', n > 0);
   button.setAttribute('aria-expanded', zu ? 'false' : 'true');
   button.title = zu ? t('list.showFilters') : t('list.hideFilters');
@@ -3190,9 +3190,9 @@ function drawFilters() {
      DER KLARTEXT NENNT AUCH DEN WEG HINAUS. Das Wort allein sagt, woher es
      kommt; wie man es wieder loswird, gehoert daneben. */
   if (fallback) {
-    const woher = secondLabel(r1, t('list.followsSort'));
-    woher.id = 'f-status-woher';
-    woher.title = t('list.pillHint');
+    const from = secondLabel(r1, t('list.followsSort'));
+    from.id = 'f-status-woher';
+    from.title = t('list.pillHint');
   }
 
   /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
@@ -3237,7 +3237,7 @@ function drawFilters() {
   const g2 = document.createElement('div'); g2.className = 'pills';
   // Ein Klick auf einen Wert nimmt ihn dazu oder wieder heraus -- dieselbe
   // Handhabung wie bei den Tags, und die Zeile verhaelt sich damit wie jene.
-  const katUm = (value) => {
+  const switchCategory = (value) => {
     f.categoryIds = f.categoryIds.includes(value)
       ? f.categoryIds.filter(x => x !== value) : [...f.categoryIds, value];
     redraw();
@@ -3251,7 +3251,7 @@ function drawFilters() {
     const b = document.createElement('button');
     b.className = 'pill' + (f.categoryIds.includes(c.id) ? ' on' : '');
     b.innerHTML = `${esc(c.name)}<span class="n">${c.usage_count}</span>`;
-    b.onclick = () => katUm(c.id);
+    b.onclick = () => switchCategory(c.id);
     g2.appendChild(b);
   });
   /* "OHNE" AM ENDE DER ZEILE, mit eigener Zahl. Der Anlass: der Kopf sagte 12
@@ -3273,7 +3273,7 @@ function drawFilters() {
     b.id = 'f-kat-ohne';
     b.innerHTML = `${tH('list.without')}<span class="n">${withoutNumber}</span>`;
     b.title = t('list.noCategory');
-    b.onclick = () => katUm(CATEGORY_NONE);
+    b.onclick = () => switchCategory(CATEGORY_NONE);
     g2.appendChild(b);
   }
   /* ---- DER UMSCHALTER DER TAGZEILE -- 0.24.0, Bauabschnitt 0.2.
@@ -3357,11 +3357,11 @@ function drawFilters() {
     modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' idle');
     [['and', t('list.and'), t('list.allTagsHint')],
      ['or', t('list.or'), t('list.anyTagHint')]]
-      .forEach(([value, text, erklaerung]) => {
+      .forEach(([value, text, explanation]) => {
         const b = document.createElement('button');
         b.className = 'pill pill-mode' + (f.tagMode === value ? ' on' : '');
         b.textContent = text;
-        b.title = erklaerung;
+        b.title = explanation;
         b.dataset.mode = value;
         b.onclick = () => { f.tagMode = value; redraw(); };
         modeBox.appendChild(b);
@@ -3386,12 +3386,12 @@ function drawFilters() {
     }
     sortCloud(filterTags, new Set(f.tagIds)).forEach(tag => {
       const b = document.createElement('button');
-      const gewaehlt = f.tagIds.includes(tag.id);
-      b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');
+      const chosen = f.tagIds.includes(tag.id);
+      b.className = 'pill pill-tag' + (chosen ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');
       b.textContent = tag.name;
       if (idle.has(tag.id)) b.title = t('list.noHitsSelection');
       b.onclick = () => {
-        f.tagIds = gewaehlt ? f.tagIds.filter(x => x !== tag.id) : [...f.tagIds, tag.id];
+        f.tagIds = chosen ? f.tagIds.filter(x => x !== tag.id) : [...f.tagIds, tag.id];
         redraw();
       };
       g3.appendChild(b);
@@ -3421,24 +3421,24 @@ function drawFilters() {
        eine feste Breite daneben ist genau der Fehler, an dem 0.12.1 schon einmal
        hing (`right: 92px`, Befund A). Die Instanz stellt die Schrift von 80 bis
        120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
-    const rechts = document.createElement('div');
-    rechts.className = 'frow-right';
+    const right = document.createElement('div');
+    right.className = 'frow-right';
     if (trimmed || cloudOpen.uebersicht) {
       const m = document.createElement('button');
       m.className = 'link-btn';
       m.textContent = cloudOpen.uebersicht ? t('list.less') : t('list.more');
       m.onclick = () => { cloudOpen.uebersicht = !cloudOpen.uebersicht; drawFilters(); };
-      rechts.appendChild(m);
+      right.appendChild(m);
     }
     if (f.tagIds.length) {
       const c = document.createElement('button');
       c.className = 'link-btn'; c.textContent = t('list.resetTags');
       c.onclick = () => { f.tagIds = []; redraw(); };
-      rechts.appendChild(c);
+      right.appendChild(c);
     }
     // Ein leerer Kasten bliebe als Flex-Element stehen und naehme der Wolke
     // eine Luecke weg.
-    if (rechts.childElementCount) r3.appendChild(rechts);
+    if (right.childElementCount) r3.appendChild(right);
   }
 
   /* SORTIEREN UND ANSICHTEN TEILEN SICH EINE ZEILE -- gemessen brauchen sie
@@ -3535,10 +3535,10 @@ function drawFilters() {
   } else {
     // Der Deckel wird GESAGT und nicht durch einen fehlenden Knopf angedeutet:
     // ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein Fehler.
-    const hin = document.createElement('span');
-    hin.className = 'hint hint-sm';
-    hin.textContent = t('list.viewCapNew', { ansichtenDeckel: VIEWS_CAP });
-    g5.appendChild(hin);
+    const towards = document.createElement('span');
+    towards.className = 'hint hint-sm';
+    towards.textContent = t('list.viewCapNew', { ansichtenDeckel: VIEWS_CAP });
+    g5.appendChild(towards);
   }
   r5.appendChild(g5);
 
@@ -4667,7 +4667,7 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
     let dragging = false;
     // Auf dem Finger erst nach der Haltezeit; mit der Maus sofort.
     let ready = !finger;
-    let halten = null;
+    let keep = null;
 
     // Solange der Browser das Scrollen noch nicht uebernommen hat, laesst es
     // sich abfangen. Deshalb greift dieser Hoerer erst nach der Haltezeit --
@@ -4675,7 +4675,7 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
     const stopFixed = (ev) => { if (dragging) ev.preventDefault(); };
 
     const cleanup = () => {
-      clearTimeout(halten);
+      clearTimeout(keep);
       document.removeEventListener('pointermove', move);
       document.removeEventListener('pointerup', up);
       document.removeEventListener('pointercancel', cancel);
@@ -4713,7 +4713,7 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
     };
 
     if (finger) {
-      halten = setTimeout(() => {
+      keep = setTimeout(() => {
         ready = true;
         // Sichtbare Rueckmeldung: von jetzt an haengt die Zeile am Finger.
         el.classList.add('handle-ready');
@@ -4759,7 +4759,7 @@ async function renderDetail(id, termAddress) {
      getan; an Eintrag 13 gilt wieder die Regel. Genau das unterscheidet den
      Blick von einer Einstellung, und deshalb steht die Leerung hier, am
      Eingang der Ansicht, und nicht an einer der Stellen, die sie verlassen. */
-  BLICK.clear();
+  GLANCE.clear();
   /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND -- und danach
      stehen beide gleich. Aus der Adresse kommt er nach einem Neuladen und aus
      einem weitergegebenen Link; aus dem Zustand kommt er auf jedem Weg in
@@ -4775,10 +4775,10 @@ async function renderDetail(id, termAddress) {
      loeste ein zweites Zeichnen aus. */
   const term = (termAddress || state.search).trim();
   if (term) state.search = term;
-  const gewollt = entryAddress(id, term);
-  if (location.hash !== gewollt &&
+  const wanted = entryAddress(id, term);
+  if (location.hash !== wanted &&
       typeof history !== 'undefined' && typeof history.replaceState === 'function')
-    history.replaceState(null, '', gewollt);
+    history.replaceState(null, '', wanted);
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   let item, cats, allTags;
   try {
@@ -5210,7 +5210,7 @@ async function renderDetail(id, termAddress) {
        noch, was daraus folgt. Die Trennung ist Absicht: die Entscheidung ist
        ohne Zeiger pruefbar, die Ausfuehrung braucht den Betrachter. */
 
-    const begrenzt = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+    const limited = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
     // Der Rahmen im Bildmass -- dasselbe Rechteck, das `draw()` hinlegt.
     const frameBox = () => { const m = dims(); return { links: m.links, oben: m.oben, edge: m.eng }; };
     // Zeigerlage im Bildmass. Jede Geste rechnet darin, keine in Bildschirmpunkten.
@@ -5224,8 +5224,8 @@ async function renderDetail(id, termAddress) {
       const f = rect();
       const eng = Math.min(f.width, f.height) * 100 / zoom;
       const playX = f.width - eng, playY = f.height - eng;
-      fx = playX > 0 ? begrenzt(l / playX * 100, 0, 100) : 50;
-      fy = playY > 0 ? begrenzt(o / playY * 100, 0, 100) : 50;
+      fx = playX > 0 ? limited(l / playX * 100, 0, 100) : 50;
+      fy = playY > 0 ? limited(o / playY * 100, 0, 100) : 50;
       draw();
     };
 
@@ -5244,16 +5244,16 @@ async function renderDetail(id, termAddress) {
        `setState()` den Rahmen zurueck ins Bild -- und damit die feste Ecke. */
     const setBox = (edgeWanted, situation, cap) => {
       const f = rect();
-      const seite = Math.min(f.width, f.height);
-      const hoch = Math.max(seite / 4, Math.min(seite, cap ?? seite));
-      const k = begrenzt(edgeWanted, seite / 4, hoch);
-      zoom = begrenzt(Math.round(seite * 100 / k / 5) * 5, 100, 400);
-      let eng = seite * 100 / zoom;
+      const sideLength = Math.min(f.width, f.height);
+      const up = Math.max(sideLength / 4, Math.min(sideLength, cap ?? sideLength));
+      const k = limited(edgeWanted, sideLength / 4, up);
+      zoom = limited(Math.round(sideLength * 100 / k / 5) * 5, 100, 400);
+      let narrow = sideLength * 100 / zoom;
       /* UND DIE RASTUNG DARF DEN DECKEL NICHT UEBERSPRINGEN -- 0.22.1, und das
          ist ein Fund aus der Gegenprobe.
          WAS GESCHAH: die Kante rastet auf die naechste Fuenferstufe, und die
          kann NACH OBEN gehen -- `eng` wird dann groesser als der Deckel, den
-         `hoch` gerade gesetzt hat. Der Rahmen passt danach nicht mehr an
+         `up` gerade gesetzt hat. Der Rahmen passt danach nicht mehr an
          seinen Anker, die Klemme in `setState()` schiebt ihn ins Bild zurueck
          -- und damit genau die Ecke oder Kante, die stillstehen sollte. In der
          Prueflage waren es 0,217 Bildpunkte am Mittelpunkt einer Kante.
@@ -5262,11 +5262,11 @@ async function renderDetail(id, termAddress) {
          wieder exakt, und die Zahl am Schieber ist weiterhin eine
          Fuenferstufe. Der Preis ist ein halber Schritt Weite an genau der
          Stelle, an der es ohnehin nicht weiterginge. */
-      if (eng > hoch + 1e-9 && zoom < 400) {
+      if (narrow > up + 1e-9 && zoom < 400) {
         zoom = Math.min(400, zoom + 5);
-        eng = seite * 100 / zoom;
+        narrow = sideLength * 100 / zoom;
       }
-      const { l, o } = situation(eng);
+      const { l, o } = situation(narrow);
       setState(l, o);
     };
 
@@ -5278,22 +5278,22 @@ async function renderDetail(id, termAddress) {
        rutscht dabei nicht seitlich weg: sein Mittelpunkt wandert auf der
        festen Kante nicht, er bleibt in ihrer Mitte. */
     const dragHandle = (gesture, k, p, f) => {
-      const rechts = k.links + k.edge, unten = k.oben + k.edge;
+      const right = k.links + k.edge, unten = k.oben + k.edge;
       const centerX = k.links + k.edge / 2, centerY = k.oben + k.edge / 2;
       // Wie weit eine Kante nach beiden Seiten reichen darf, ohne dass die
       // Mitte wandert -- die kleinere Haelfte gibt den Deckel.
       const aroundCenter = (m, whole) => 2 * Math.min(m, whole - m);
       switch (gesture) {
-        case 'links-oben': return setBox(Math.max(rechts - p.x, unten - p.y),
-          (e) => ({ l: rechts - e, o: unten - e }), Math.min(rechts, unten));
+        case 'links-oben': return setBox(Math.max(right - p.x, unten - p.y),
+          (e) => ({ l: right - e, o: unten - e }), Math.min(right, unten));
         case 'rechts-oben': return setBox(Math.max(p.x - k.links, unten - p.y),
           (e) => ({ l: k.links, o: unten - e }), Math.min(f.width - k.links, unten));
-        case 'links-unten': return setBox(Math.max(rechts - p.x, p.y - k.oben),
-          (e) => ({ l: rechts - e, o: k.oben }), Math.min(rechts, f.height - k.oben));
+        case 'links-unten': return setBox(Math.max(right - p.x, p.y - k.oben),
+          (e) => ({ l: right - e, o: k.oben }), Math.min(right, f.height - k.oben));
         case 'rechts-unten': return setBox(Math.max(p.x - k.links, p.y - k.oben),
           (e) => ({ l: k.links, o: k.oben }), Math.min(f.width - k.links, f.height - k.oben));
-        case 'links': return setBox(rechts - p.x,
-          (e) => ({ l: rechts - e, o: centerY - e / 2 }), Math.min(rechts, aroundCenter(centerY, f.height)));
+        case 'links': return setBox(right - p.x,
+          (e) => ({ l: right - e, o: centerY - e / 2 }), Math.min(right, aroundCenter(centerY, f.height)));
         case 'rechts': return setBox(p.x - k.links,
           (e) => ({ l: k.links, o: centerY - e / 2 }), Math.min(f.width - k.links, aroundCenter(centerY, f.height)));
         case 'oben': return setBox(unten - p.y,
@@ -5310,8 +5310,8 @@ async function renderDetail(id, termAddress) {
        AUSSERHALB des Rahmens anfaengt. */
     const outRect = (a, e) => {
       const f = rect();
-      const x1 = begrenzt(a.x - f.links, 0, f.width), y1 = begrenzt(a.y - f.oben, 0, f.height);
-      const x2 = begrenzt(e.clientX - f.links, 0, f.width), y2 = begrenzt(e.clientY - f.oben, 0, f.height);
+      const x1 = limited(a.x - f.links, 0, f.width), y1 = limited(a.y - f.oben, 0, f.height);
+      const x2 = limited(e.clientX - f.links, 0, f.width), y2 = limited(e.clientY - f.oben, 0, f.height);
       setBox(Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)),
         () => ({ l: Math.min(x1, x2), o: Math.min(y1, y2) }));
     };
@@ -5502,18 +5502,18 @@ async function renderDetail(id, termAddress) {
     v.preload = 'metadata'; v.muted = true; v.playsInline = true;
     v.src = URL.createObjectURL(file);
     try {
-      await new Promise((ok, fehl) => {
+      await new Promise((ok, fail) => {
         v.onloadedmetadata = ok;
-        v.onerror = () => fehl(new Error(t('entry.videoUnplayable')));
+        v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
       });
       // Ein Video ohne Bildmasse -- etwa eine reine Tonspur -- ergaebe eine
       // Zeichenflaeche der Groesse null und damit gar kein Standbild.
       if (!v.videoWidth || !v.videoHeight)
         throw new Error(t('entry.videoNoImage'));
       v.currentTime = Math.min(second, (v.duration || 2) / 2);
-      await new Promise((ok, fehl) => {
+      await new Promise((ok, fail) => {
         v.onseeked = ok;
-        v.onerror = () => fehl(new Error(t('entry.videoUnplayable')));
+        v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
       });
       const c = document.createElement('canvas');
       c.width = v.videoWidth; c.height = v.videoHeight;
@@ -5619,7 +5619,7 @@ async function renderDetail(id, termAddress) {
      gemeint, scrollt die Seite weiter, als waere nichts gewesen. */
   const stage = document.getElementById('viewer');
   const SWIPE_DISTANCE = 45;
-  let swipeX = 0, swipeY = 0, wischt = false;
+  let swipeX = 0, swipeY = 0, swipes = false;
   stage.addEventListener('touchstart', e => {
     if (cropMode || e.touches.length !== 1 || item.photos.length < 2) return;
     /* NICHT AUF DEM ABSPIELER. Der steht als Kind im Bildbereich und bringt
@@ -5629,11 +5629,11 @@ async function renderDetail(id, termAddress) {
        im naechsten Bild. Der Wisch gilt dem Blaettern zwischen Bildern, und
        die Steuerung eines Videos ist kein Bild. */
     if (e.target.closest('video')) return;
-    swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; wischt = true;
+    swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; swipes = true;
   }, { passive: true });
   stage.addEventListener('touchend', e => {
-    if (!wischt || cropMode) return;
-    wischt = false;
+    if (!swipes || cropMode) return;
+    swipes = false;
     const dx = e.changedTouches[0].clientX - swipeX;
     const dy = e.changedTouches[0].clientY - swipeY;
     if (Math.abs(dx) > SWIPE_DISTANCE && Math.abs(dx) > Math.abs(dy)) {
@@ -5699,7 +5699,7 @@ async function renderDetail(id, termAddress) {
                      Schreiben an `rejectedReason` durch die erste Klemme.
          `mine`     UMSCHREIBEN -- nur wer die Begruendung getroffen hat, und
                      nur, solange er den Eintrag auch aendern darf.
-         `verwalten` ENTFERNEN -- "Loeschen ja, umschreiben nein": das ist
+         `manage` ENTFERNEN -- "Loeschen ja, umschreiben nein": das ist
                      dieselbe Klemme wie am Eintrag und deshalb `may`.
        HERRENLOS IST EIN EIGENER FALL: eine Ablehnung aus einer Instanz vor
        0.14.0 hat keinen Verfasser. Der Server laesst dort jeden schreiben, der
@@ -5709,7 +5709,7 @@ async function renderDetail(id, termAddress) {
        weiter in der Verfasserkarte und kommt als Objekt ohne Namen. */
     const may = item.mine === true || ADMIN;
     const mine = may && (item.rejectedMine === true || !item.rejectedAuthor);
-    const verwalten = may;
+    const manage = may;
     const reason = (item.rejected_reason || '').trim();
 
     /* WANN DAS FELD DASTEHT -- die Regel aus dem Betrieb, 29. August 2026:
@@ -5740,7 +5740,7 @@ async function renderDetail(id, termAddress) {
        DAS ✕ NUR MIT BEGRUENDUNG: ein Papierkorb an einem leeren Feld boete
        an, nichts zu entfernen. */
     const showPen = item.rejected && mine;
-    const showPath = item.rejected && verwalten && !!reason;
+    const showPath = item.rejected && manage && !!reason;
     /* WAEHREND GESCHRIEBEN WIRD, TRITT DIE AUSSAGE ZURUECK: das Feld IST in
        diesem Augenblick die Aussage, und beides nebeneinander waere genau die
        Doppelung, die dieser Ruhezustand aufloest. Der Kommentar macht es
@@ -5822,7 +5822,7 @@ async function renderDetail(id, termAddress) {
          getan.
          GELOESCHT WIRD NICHTS: die Sterne beider Kaesten bleiben, wo sie sind,
          und die Zahl des zugeklappten steht in seinem Kopf. */
-      BLICK.clear();
+      GLANCE.clear();
       drawSwitches(); drawTestDays(); drawRatings();
     }
     catch (e) { toast(e.message, true); }   // Sperre wird serverseitig begruendet
@@ -6006,20 +6006,20 @@ async function renderDetail(id, termAddress) {
   // Fehlgriff korrigieren gegen gezieltes Aufraeumen.
   function drawCloud() {
     const box = document.getElementById('tagcloud');
-    const mehr = document.getElementById('tagcloud-more');
+    const more = document.getElementById('tagcloud-more');
     if (!box) return;
-    const vergeben = new Set(item.tags.map(tag => tag.id));
-    const list = sortCloud(allTags, vergeben);
+    const assigned = new Set(item.tags.map(tag => tag.id));
+    const list = sortCloud(allTags, assigned);
     box.innerHTML = '';
-    if (!list.length) { box.innerHTML = `<span class="hint">${tH('entry.noTagsCreated')}</span>`; mehr.hidden = true; return; }
+    if (!list.length) { box.innerHTML = `<span class="hint">${tH('entry.noTagsCreated')}</span>`; more.hidden = true; return; }
     list.forEach(tag => {
       const b = document.createElement('button');
-      b.className = 'pill pill-tag' + (vergeben.has(tag.id) ? ' on' : '');
+      b.className = 'pill pill-tag' + (assigned.has(tag.id) ? ' on' : '');
       b.innerHTML = `${esc(tag.name)}<span class="n">${tag.usage_count}</span>`;
-      b.title = vergeben.has(tag.id) ? t('entry.removeTag') : t('entry.setTag');
+      b.title = assigned.has(tag.id) ? t('entry.removeTag') : t('entry.setTag');
       b.onclick = async () => {
         try {
-          item = vergeben.has(tag.id)
+          item = assigned.has(tag.id)
             ? await api('DELETE', `/api/items/${id}/tags/${tag.id}`)
             : await api('POST', `/api/items/${id}/tags`, { name: tag.name });
           await loadTagList();
@@ -6028,9 +6028,9 @@ async function renderDetail(id, termAddress) {
       box.appendChild(b);
     });
     const trimmed = limitCloud(box, cloudOpen.detail ? 0 : 3);
-    mehr.hidden = !trimmed && !cloudOpen.detail;
-    mehr.textContent = cloudOpen.detail ? t('list.less') : t('list.more');
-    mehr.onclick = () => { cloudOpen.detail = !cloudOpen.detail; drawCloud(); };
+    more.hidden = !trimmed && !cloudOpen.detail;
+    more.textContent = cloudOpen.detail ? t('list.less') : t('list.more');
+    more.onclick = () => { cloudOpen.detail = !cloudOpen.detail; drawCloud(); };
   }
 
   async function loadTagList() {
@@ -6466,7 +6466,7 @@ async function renderDetail(id, termAddress) {
       // Reihenfolge und Name kommen aus dem Eintrag: der Endpunkt liefert nur
       // Nummern, Werte und Verfasser. Zwei Quellen für denselben Namen wären
       // zwei Wahrheiten.
-      let etwas = false;
+      let something = false;
       // NUR DIE ZEILEN DIESES KASTENS. Der Abruf kennt keine Phase; das Fenster
       // gehoert aber zu einem der beiden Koepfe, und was darin steht, muss zu
       // dem Kopf passen, aus dem es aufgegangen ist.
@@ -6475,7 +6475,7 @@ async function renderDetail(id, termAddress) {
         // Ein Kriterium ohne Stimme bekommt gar keine Zeile -- eine leere
         // Liste unter einem Namen sagt nichts.
         if (!votes.length) return;
-        etwas = true;
+        something = true;
         const row = document.createElement('div');
         row.className = 'vote-row';
         const n = document.createElement('span');
@@ -6513,7 +6513,7 @@ async function renderDetail(id, termAddress) {
         row.append(n, actor);
         box.appendChild(row);
       });
-      if (!etwas) box.innerHTML = `<span class="hint">${tH('entry.noRatingsYet')}</span>`;
+      if (!something) box.innerHTML = `<span class="hint">${tH('entry.noRatingsYet')}</span>`;
     }
   }
   // Der Knopf steht nur beim Admin ab zwei Zugängen; ohne ihn gibt es hier
@@ -6685,7 +6685,7 @@ async function renderDetail(id, termAddress) {
       const showFrom = multipleUsers() && foreignRow;
       // Das Datum steht im Ueberfahrtext, nicht in der Zeile: die Zeile ist auf
       // dem Handy am Anschlag, und der Name ist die Angabe, um die es geht.
-      const eingetragen = showFrom
+      const entered = showFrom
         ? t('entry.enteredByOn', { verfasser: authorName(l.author), created_at: fmtDate(l.created_at) }) : '';
 
       /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE: der Server laesst
@@ -6702,7 +6702,7 @@ async function renderDetail(id, termAddress) {
       const reasonText = search
         ? (standard ? t('entry.searchForAt', { url: l.url, name: standard.name }) : t('entry.searchFor', { url: l.url }))
         : l.url;
-      row.title = eingetragen ? `${reasonText} · ${eingetragen}` : reasonText;
+      row.title = entered ? `${reasonText} · ${entered}` : reasonText;
       /* Die zweite Zeile traegt den Pfad (bei einer Suchzeile die
          Anbieternamen) und dahinter den Namen. Beides in EINER Zeile, damit die
          Linkzeile nicht auf drei Hoehen waechst; abgeschnitten wird der Pfad,
@@ -7011,7 +7011,7 @@ async function renderDetail(id, termAddress) {
          rechnet das nicht aus dem Verfasserobjekt zurueck. Bei einem
          Grabstein ginge das gar nicht, der hat keinen Namen mehr. */
       const mine = c.mine === true;
-      const verwalten = mine || ADMIN;
+      const manage = mine || ADMIN;
 
       /* DER EINGRIFFSVERMERK NENNT DIE ROLLE, NICHT DIE PERSON -- und dafuer
          braucht es kein Feld in der Antwort: DELETE /api/comment-images/:id
@@ -7021,7 +7021,7 @@ async function renderDetail(id, termAddress) {
          Der Satz ist nur so lange wahr, wie die Klemme dort steht -- eine
          Pruefung am Quelltext bindet die Beschriftung an sie. */
       el.innerHTML = `<div class="cmt-head">
-          ${verwalten ? `<span class="marks">
+          ${manage ? `<span class="marks">
             ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
                  sagt „aufheben", nicht noch einmal „markieren". */''}
             <button class="mark pin${c.pinned ? ' on' : ''}" title="${c.pinned ? t('entry.unpin') : t('entry.pinHint')}">${ICON_PIN}</button>
@@ -7038,7 +7038,7 @@ async function renderDetail(id, termAddress) {
             c.imagesRemoved ? ` · <span class="cmt-edited">${
               tH('entry.imagesRemovedAdmin', { n: c.imagesRemoved })}</span>` : ''}</span>
           <span class="acts">${mine ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''
-            }${verwalten ? `<button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}</span>
+            }${manage ? `<button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}</span>
         </div>
         <div class="cmt-body"></div>
         <div class="cmt-imgs"></div>`;
@@ -7059,7 +7059,7 @@ async function renderDetail(id, termAddress) {
       };
       // Die Knoepfe stehen nur da, wo sie auch gedrueckt werden duerfen --
       // ein Behandler an einem fehlenden Element risse den Aufbau mit.
-      if (verwalten) {
+      if (manage) {
         el.querySelector('.pin').onclick = () => flip('pinned', !c.pinned);
         // Die Art ist ein Wert, keine zwei Merkmale: wer Aufgabe drueckt, waehrend
         // Bericht an ist, waehlt Aufgabe -- ein zweiter Druck auf denselben Knopf
@@ -7075,10 +7075,10 @@ async function renderDetail(id, termAddress) {
         const k = document.createElement('div');
         k.className = 'cmt-img';
         k.innerHTML = `<img src="/api/comment-images/${b.id}/raw?size=thumb" alt="" loading="lazy">
-          ${verwalten ? `<button class="del" title="${esc(t('entry.deleteImage'))}">${ICON_X}</button>` : ''}`;
+          ${manage ? `<button class="del" title="${esc(t('entry.deleteImage'))}">${ICON_X}</button>` : ''}`;
         k.querySelector('img').onclick = () =>
           openLightbox((c.images || []).map(x => ({ id: x.id, source: 'comment' })), i, item.title);
-        if (verwalten) k.querySelector('.del').onclick = async (e) => {
+        if (manage) k.querySelector('.del').onclick = async (e) => {
           e.stopPropagation();
           if (!await confirmBox(t('entry.deleteImageAsk'), t('entry.imageDeleteHint'))) return;
           try { item = await api('DELETE', `/api/comment-images/${b.id}`); drawComments(); }
@@ -7087,7 +7087,7 @@ async function renderDetail(id, termAddress) {
         imgBox.appendChild(k);
       });
 
-      if (verwalten) el.querySelector('.rm').onclick = async () => {
+      if (manage) el.querySelector('.rm').onclick = async () => {
         if (!await confirmBox(t('entry.deleteCommentAsk'),
           t('entry.commentDeleteHint',
             { zusatz: (c.images || []).length ? t('entry.withAllImages') : '' }))) return;
@@ -7251,7 +7251,7 @@ async function renderDetail(id, termAddress) {
     try { b = await api('GET', `/api/items/${id}/inventory`); }
     catch (e) { return toast(e.message, true); }
 
-    const countWord = (n, ein, mehr) => (n ? [`${n} ${plural(n, ein, mehr)}`] : []);
+    const countWord = (n, ein, more) => (n ? [`${n} ${plural(n, ein, more)}`] : []);
     // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
     // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
     const content = [
@@ -7430,7 +7430,7 @@ function serverBox(sentence, command) {
    zu entscheiden. Immer eingeklappt beim Aufbau, keine Einstellung dafuer.
    Kein Tooltip: ein Finger kann nicht ueberfahren. Der Inhalt kommt fertig
    als Markup, wie der Rest der Karte. */
-const mehr = (html) => `<details class="more"><summary>${tH('card.more')}</summary><div class="more-text">${html}</div></details>`;
+const more = (html) => `<details class="more"><summary>${tH('card.more')}</summary><div class="more-text">${html}</div></details>`;
 
 /* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen (Woerterbuch):
    der Toast, und die Karte, in der gespeichert wurde, zeigt es 400 ms lang am
@@ -7585,8 +7585,8 @@ async function renderSystem() {
      sonst eine leere Seite. */
   const visibleOnes = sysVisibleSections(fetched);
   const fromAddress = (SYS_PATTERN.exec(location.hash || '') || [])[1] || '';
-  const gewuenscht = fromAddress;
-  const offen = visibleOnes.find(a => a.key === gewuenscht) || visibleOnes[0];
+  const desired = fromAddress;
+  const offen = visibleOnes.find(a => a.key === desired) || visibleOnes[0];
   const cards = SYS_CARDS.filter(k => k.section === offen.key && k.visible(fetched));
 
   app.innerHTML = `<div class="shell">
@@ -8149,12 +8149,12 @@ function cardCriteria(phase) {
              Benutzer liest nur, was er tun kann (Regel S5). */''}
         ${before ? `<p class="desc">${tH('card.stars')} <strong>${tH('card.before')}</strong> ${tH('card.potentialHint')}
              ${ADMIN ? t('card.criteriaHint') : t('card.listAdminHint')}</p>
-           ${ADMIN ? mehr(`${tH('card.criteriaTip')} <em>${tH('card.wanted')}</em> ${tH('card.weight')}
+           ${ADMIN ? more(`${tH('card.criteriaTip')} <em>${tH('card.wanted')}</em> ${tH('card.weight')}
              <em>${tH('card.use')}</em>, <em>${tH('card.feasibility')}</em>${tH('card.orderAppliesHint')}`) : ''}`
           : `<p class="desc">${ADMIN
           ? t('card.criteriaHintDelete')
           : tH('card.criteriaAdminHint')}</p>
-           ${ADMIN ? mehr(tH('card.orderAppliesNote')) : ''}`}
+           ${ADMIN ? more(tH('card.orderAppliesNote')) : ''}`}
         <div class="manage-list" id="${k.list}"></div>
         <p class="desc" style="margin:10px 0 0">${tH('card.the')} <strong>${tH('entry.weight')}</strong> ${tH('card.weightHint')} ${ADMIN
             ? t('card.weightRangeHint')
@@ -8459,7 +8459,7 @@ function setUpVocabularyOut() {
     const z1 = w.zeitpunktEinzahl.trim() || V.zeitpunktEinzahl;
     const zm = w.zeitpunktMehrzahl.trim() || V.zeitpunktMehrzahl;
     const ja = w.merkmalJa.trim() || V.merkmalJa;
-    const nein = w.merkmalNein.trim() || V.merkmalNein;
+    const no = w.merkmalNein.trim() || V.merkmalNein;
     const b1 = w.berichtEinzahl.trim() || V.berichtEinzahl;
     const bm = w.berichtMehrzahl.trim() || V.berichtMehrzahl;
     const a1 = w.aufgabeEinzahl.trim() || V.aufgabeEinzahl;
@@ -8471,7 +8471,7 @@ function setUpVocabularyOut() {
     document.getElementById('vpreview').innerHTML =
       `<span class="label">${tH('card.preview')}</span>
        <span>+ ${esc(s1)}</span><span>${tH('card.delete', { s1: s1 })}</span><span>7 ${esc(sm)}</span>
-       <span>${esc(ja)} / ${esc(nein)}</span>
+       <span>${esc(ja)} / ${esc(no)}</span>
        <span>1 ${esc(z1)}</span><span>3 ${esc(zm)}</span>
        <span>${tH('card.markAs', { b1: b1 })}</span><span>2 ${esc(bm)}</span>
        <span>${tH('card.markAs', { b1: a1 })}</span><span>4 ${esc(at)}</span>
@@ -8575,13 +8575,13 @@ function cardSearchProvider() {
   return `<div class="sys-card">
         <h3>${tH('card.searchEngines')}</h3>
         <p class="desc">${tH('card.checkboxHint')} <strong>${tH('card.standard')}</strong>${tH('card.opensOnClick')}</p>
-        ${mehr(t('card.searchUsersHint'))}
+        ${more(t('card.searchUsersHint'))}
         <div class="engine-list" id="engines"></div>
 
         <p class="desc sys-part">${tH('card.ownEnginesHint')}
           <code>%s</code> ${tH('card.forSearchText')}<code>http://</code> ${tH('card.or')} <code>https://</code>).</p>
         <div class="engine-own" id="engines-own"></div>
-        ${mehr(`${tH('card.searchDomainTip')}
+        ${more(`${tH('card.searchDomainTip')}
           <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>${tH('card.theDot')}
           <code>%3A</code> ${tH('card.mustReadSo')}`)}
       </div>`;
@@ -8773,7 +8773,7 @@ function cardUsers() {
   return `<div class="sys-card wide">
         <h3>${tH('card.user')}</h3>
         <p class="desc">${tH('card.usersHint')}</p>
-        ${mehr(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${OWNER
+        ${more(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
         <div class="manage-list" id="musers"></div>
@@ -9197,7 +9197,7 @@ function cardRequests(fetched) {
   return `<div class="sys-card wide">
         <h3>${tH('card.requests')}</h3>
         <p class="desc"><strong>${tH('card.signupLabel')}</strong> ${tH('card.signupFlowHint')}${requests.an ? '' : ` <strong>${tH('card.signupOffNow')}</strong>`}</p>
-        ${mehr(`${tH('card.requestExpiryHint', { stunden: requests.stunden })} <strong>${tH('card.approve')}</strong>
+        ${more(`${tH('card.requestExpiryHint', { stunden: requests.stunden })} <strong>${tH('card.approve')}</strong>
           ${tH('card.createsUserLink')} <strong>${tH('card.reject')}</strong> ${tH('card.rejectQuiet')}`)}
         <div class="kv"><span class="k">${tH('card.signup')}</span><span class="v" id="signup-state">${
           requests.an ? `<strong class="mail-on">${tH('card.on')}</strong>`
@@ -9235,8 +9235,8 @@ function setUpRequestsOut(fetched) {
       SIGNUP = !!d.an;
       toast(fresh ? t('card.signupOn') : t('card.signupOff'));
       drawRequests(d);
-      const kaputt = document.getElementById('signup-broken');
-      if (kaputt && (!d.an || d.deliveryReady)) kaputt.remove();
+      const broken = document.getElementById('signup-broken');
+      if (broken && (!d.an || d.deliveryReady)) broken.remove();
     } catch (e) { toast(e.message, true); }
   };
 }
@@ -9552,7 +9552,7 @@ function setUpLogOut(fetched) {
       const row = doc.createElement('div');
       row.className = 'log-row';
       row.dataset.event = z.event;
-      const wen = logTarget(z), merk = detailWord(z);
+      const whom = logTarget(z), markText = detailWord(z);
       const time = doc.createElement('span');
       time.className = 'log-time'; time.textContent = fmtDate(z.at);
       const event = doc.createElement('span');
@@ -9562,19 +9562,19 @@ function setUpLogOut(fetched) {
       // "ueber usertool.js auf dem Wirt" haben keine.
       row.appendChild(logNameField(doc, 'log-actor', logActor(z),
         z.actor != null ? z.actor : null));
-      row.appendChild(logNameField(doc, 'log-target', wen,
+      row.appendChild(logNameField(doc, 'log-target', whom,
         z.target != null ? z.target : null, '→ '));
       const detailEl = doc.createElement('span');
       detailEl.className = 'log-detail';
       /* DIESELBE MARKE WIE IN DER BENUTZERLISTE hinter dem Rollenwort -- 0.22.0
          (Konzept 6.7). Alles andere bleibt Text; die Marke selbst entsteht
          als Knoten und nicht als Vorlage, der Wortlaut geht durch textContent. */
-      if (merk && ROLE_WORD[z.detail]) {
+      if (markText && ROLE_WORD[z.detail]) {
         const mark = doc.createElement('span');
         mark.className = 'role-badge ' + z.detail;
-        mark.textContent = merk;
+        mark.textContent = markText;
         detailEl.appendChild(mark);
-      } else detailEl.textContent = merk || '';
+      } else detailEl.textContent = markText || '';
       row.appendChild(detailEl);
       box.appendChild(row);
     }
@@ -9834,9 +9834,9 @@ function setUpMailDeliveryOut(fetched) {
       if (await mailDialog(mailstand)) renderSystem();
     };
 
-    const mailResult = (text, gut) => {
+    const mailResult = (text, good) => {
       const box = document.getElementById('mail-result');
-      if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-ok' : ''}"
+      if (box) box.innerHTML = `<p class="warn-box ${good ? 'mail-ok' : ''}"
         style="margin:10px 0 0">${esc(text)}</p>`;
     };
 
@@ -10106,7 +10106,7 @@ const BATCH_RUNS = [
    UND SIE HAELT AN, SOBALD KEINE ZEILE MEHR DASTEHT. Ohne diese Frage
    liefe sie als herrenlose Zusage weiter, auch wenn der Systembereich laengst
    verlassen ist (Stolperstein 118).
-   GEMELDET WIRD NUR, WAS DIESE UHR HAT LAUFEN SEHEN. `unterwegs` sammelt die
+   GEMELDET WIRD NUR, WAS DIESE UHR HAT LAUFEN SEHEN. `inFlight` sammelt die
    Laeufe, die sie waehrend ihrer Lebenszeit als laufend gesehen hat; nur
    deren Ende ist eine Nachricht wert. Ohne diese Merkliste truege ein Lauf,
    der schon vor dem Oeffnen der Karte fertig war, bei jedem Takt seine
@@ -10114,7 +10114,7 @@ const BATCH_RUNS = [
 let inventoryClock = null;
 function followBatchRun() {
   if (inventoryClock) return;
-  const unterwegs = new Set();
+  const inFlight = new Set();
   const stop = () => { clearInterval(inventoryClock); inventoryClock = null; };
   inventoryClock = setInterval(async () => {
     if (!BATCH_RUNS.some(l => document.getElementById(l.id))) return stop();
@@ -10126,10 +10126,10 @@ function followBatchRun() {
     for (const l of BATCH_RUNS) {
       const row = document.getElementById(l.id), status = s[l.field];
       if (!row || !status) continue;
-      if (status.running) { row.textContent = l.text(status); unterwegs.add(l.field); }
-      else if (unterwegs.delete(l.field)) fertig.push(l.fertig());
+      if (status.running) { row.textContent = l.text(status); inFlight.add(l.field); }
+      else if (inFlight.delete(l.field)) fertig.push(l.fertig());
     }
-    if (unterwegs.size) return;
+    if (inFlight.size) return;
     stop();
     /* FERTIG HEISST: DIE GANZE KARTE NEU. Die Aufstellung nach Format ist
        jetzt eine andere, und nur die Fortschrittszeile nachzuziehen hiesse,
@@ -10540,9 +10540,9 @@ function setUpCleanupOut(fetched) {
       const w = values();
       if (!Number.isInteger(w.keep) || !Number.isInteger(w.days)) return;
       const run = ++previewRun;
-      let frisch;
+      let fresh;
       try {
-        frisch = await api('GET', `/api/backup?keep=${w.keep}&days=${w.days}`);
+        fresh = await api('GET', `/api/backup?keep=${w.keep}&days=${w.days}`);
       } catch { return; }   // eine Zahl ausserhalb der Grenzen: die Liste bleibt stehen
       /* NUR DIE JUENGSTE ANTWORT ZAEHLT. Wer schnell tippt, hat mehrere
          Abrufe unterwegs, und sie koennen in beliebiger Reihenfolge
@@ -10551,7 +10551,7 @@ function setUpCleanupOut(fetched) {
          0.19.6: die Ansicht kann fort sein). */
       if (run !== previewRun) return;
       if (!document.getElementById('cleanup-box')) return;
-      fetched.backup = frisch;
+      fetched.backup = fresh;
       drawCleanup(fetched);
     };
     for (const [id, key] of [['cleanup-keep', 'backupKeep'],

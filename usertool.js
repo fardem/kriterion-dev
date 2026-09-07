@@ -70,7 +70,7 @@ ${BOLD('Kriterion — Zugangsverwaltung')}
  * gefragt ist. Ohne Terminal wird deshalb alles auf einmal gelesen und
  * zeilenweise ausgegeben. */
 const onTerminal = Boolean(process.stdin.isTTY);
-let pool = null, schlange = null, versteckt = false;
+let pool = null, queue = null, masked = false;
 
 function nextLine() {
   if (pool === null) {
@@ -88,20 +88,20 @@ function ask(text, hidden = false) {
     process.stdout.write('\n');
     return Promise.resolve(a);
   }
-  if (!schlange) {
-    schlange = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-    const write = schlange._writeToOutput.bind(schlange);
-    schlange._writeToOutput = (s) => { if (!versteckt || s.includes('\n')) write(s); };
+  if (!queue) {
+    queue = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    const write = queue._writeToOutput.bind(queue);
+    queue._writeToOutput = (s) => { if (!masked || s.includes('\n')) write(s); };
   }
   return new Promise((done) => {
-    versteckt = hidden;
-    schlange.question(text, (a) => {
-      if (versteckt) { versteckt = false; console.log(); }
+    masked = hidden;
+    queue.question(text, (a) => {
+      if (masked) { masked = false; console.log(); }
       done(a);
     });
   });
 }
-const closeQueue = () => { if (schlange) schlange.close(); };
+const closeQueue = () => { if (queue) queue.close(); };
 
 function findUser(name) {
   const u = db.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').get(String(name || ''));

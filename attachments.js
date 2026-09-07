@@ -315,7 +315,7 @@ function findInZip(buf, wantedName) {
     const packed = buf.readUInt32LE(p + 20);
     const nameLen = buf.readUInt16LE(p + 28);
     const extraLen = buf.readUInt16LE(p + 30);
-    const kommLen = buf.readUInt16LE(p + 32);
+    const commentLen = buf.readUInt16LE(p + 32);
     const offset = buf.readUInt32LE(p + 42);
     const name = buf.slice(p + 46, p + 46 + nameLen).toString('utf8');
     if (name === wantedName) {
@@ -330,7 +330,7 @@ function findInZip(buf, wantedName) {
       if (method === 8) return zlib.inflateRawSync(raw); // deflate
       return null;                                        // anderes Verfahren
     }
-    p += 46 + nameLen + extraLen + kommLen;
+    p += 46 + nameLen + extraLen + commentLen;
   }
   return null;
 }

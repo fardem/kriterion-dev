@@ -71,7 +71,7 @@ ${RED('  VORHER SICHERN — Datenverzeichnis UND .env.')} Bricht der Wechsel ab,
  * Grund: readline liest bei geroehrter Eingabe VORAUS, und die zweite Frage
  * bekaeme dann nie eine Antwort. */
 const onTerminal = Boolean(process.stdin.isTTY);
-let pool = null, schlange = null;
+let pool = null, queue = null;
 
 function ask(text) {
   if (!onTerminal) {
@@ -85,11 +85,11 @@ function ask(text) {
     process.stdout.write('\n');
     return Promise.resolve(a);
   }
-  if (!schlange)
-    schlange = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-  return new Promise((done) => schlange.question(text, done));
+  if (!queue)
+    queue = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+  return new Promise((done) => queue.question(text, done));
 }
-const closeQueue = () => { if (schlange) schlange.close(); };
+const closeQueue = () => { if (queue) queue.close(); };
 
 /* ---- Die Lage, an einer Stelle gerechnet ---------------------------------
    Beide Befehle stellen dieselben Fragen; zwei Rechenwege fuer dieselbe Sache
