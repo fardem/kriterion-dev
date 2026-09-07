@@ -261,22 +261,22 @@ function rangeOut(header, size) {
   if (a === '' && e === '') return null;
   // Eine leere Datei hat keinen Range, den man verlangen koennte.
   if (size <= 0) return { ungueltig: true };
-  let from, bis;
+  let from, to;
   if (a === '') {
     // bytes=-500 -- die letzten 500 Bytes. Null Bytes gibt es nicht.
     const howMany = Number(e);
     if (howMany <= 0) return { ungueltig: true };
     from = Math.max(0, size - howMany);
-    bis = size - 1;
+    to = size - 1;
   } else {
     from = Number(a);
-    bis = e === '' ? size - 1 : Number(e);
+    to = e === '' ? size - 1 : Number(e);
     if (from >= size) return { ungueltig: true };
-    if (bis < from) return { ungueltig: true };
+    if (to < from) return { ungueltig: true };
     // Nur das: ein Ende hinter dem Dateiende meint das Dateiende.
-    if (bis >= size) bis = size - 1;
+    if (to >= size) to = size - 1;
   }
-  return { from, bis };
+  return { from, to };
 }
 
 /* ================= Textvorschau ================= */

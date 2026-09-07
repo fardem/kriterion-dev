@@ -387,8 +387,8 @@ CREATE TABLE IF NOT EXISTS settings (
 --   admin       -- verwaltet den Bestand, sperrt und loescht BENUTZER
 --   owner -- dazu: Rollen vergeben, an Admins ran, Export, Import,
 --                  Schluesselwert
--- status: aktiv | gesperrt | deleted.
---   gesperrt  -- Anmeldung abgewiesen, laufende Sitzung faellt, Inhalte bleiben
+-- status: active | locked | deleted.
+--   locked    -- Anmeldung abgewiesen, laufende Sitzung faellt, Inhalte bleiben
 --   deleted -- der GRABSTEIN: die Zeile bleibt mit ihrer id stehen, damit
 --                user_id weiterhin auf etwas zeigt; der Name ist mit
 --                deleted-<id> ueberschrieben und damit freigegeben. Ein
@@ -839,8 +839,8 @@ function migration0241Spalten() {
   const tabellen = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
   const umzug = [];
-  for (const [ort, neu] of Object.entries(WOERTERBUCH.columns)) {
-    const [tabelle, alt] = ort.split('.');
+  for (const [place, neu] of Object.entries(WOERTERBUCH.columns)) {
+    const [tabelle, alt] = place.split('.');
     if (!tabellen.has(tabelle)) continue;
     const spalten = db.prepare(`PRAGMA table_info(${tabelle})`).all().map(c => c.name);
     if (spalten.includes(alt) && !spalten.includes(neu)) umzug.push([tabelle, alt, neu]);
@@ -928,7 +928,7 @@ function migration0241Werte() {
   // Der Grabstein: sein Name traegt seine eigene Nummer und wird daraus gebaut.
   if (tabellen.has('users')) {
     const r = db.prepare(
-      "UPDATE users SET username = 'deleted-' || id WHERE username = 'deleted-' || id").run();
+      "UPDATE users SET username = 'deleted-' || id WHERE username = 'geloescht-' || id").run();
     if (r.changes) { n += r.changes; gezaehlt.push(`users.username geloescht- → deleted- (${r.changes})`); }
   }
   if (!n) return 0;
@@ -1341,7 +1341,7 @@ function eigentuemerId() {
 // zwei herrenlose Zeilen zum selben Kriterium sind moeglich (NULL gilt im
 // UNIQUE als verschieden); ohne OR IGNORE stuerbe der Start an der Verletzung.
 function assignInventory() {
-  const zahlen = {};
+  const counts = {};
   let sum = 0;
   const owner = eigentuemerId();
   if (owner == null) {
@@ -1351,15 +1351,15 @@ function assignInventory() {
     const n = db.prepare(
       `UPDATE OR IGNORE ${tabelle} SET user_id = ? WHERE user_id IS NULL`
     ).run(owner).changes;
-    zahlen[tabelle] = n;
+    counts[tabelle] = n;
     sum += n;
   }
   if (sum) {
     console.log('[Kriterion] Bestand ohne Benutzer dem Eigentuemer zugeordnet: ' +
-      `${zahlen.items} Eintraege, ${zahlen.comments} Kommentare, ${zahlen.test_days} Testtage, ` +
-      `${zahlen.ratings} Bewertungen, ${zahlen.links} Links, ${zahlen.attachments} Dateien.`);
+      `${counts.items} Eintraege, ${counts.comments} Kommentare, ${counts.test_days} Testtage, ` +
+      `${counts.ratings} Bewertungen, ${counts.links} Links, ${counts.attachments} Dateien.`);
   }
-  return zahlen;
+  return counts;
 }
 assignInventory();
 

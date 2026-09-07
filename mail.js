@@ -109,7 +109,7 @@ const GREETING_MS = 7 * 1000;
    denen ein halb geschriebener Zugang entstehen kann. */
 const SETTING_KEY = 'mailzugang';
 
-const EMPTY = { provider: '', server: '', port: 0, sicher: false, benutzer: '', password: '', sender: '' };
+const EMPTY = { provider: '', server: '', port: 0, sicher: false, user: '', password: '', sender: '' };
 
 // Wie eine Adresse aussehen darf. BEWUSST GROB: eine Adresse laesst sich am
 // Muster ohnehin nicht auf Gueltigkeit pruefen -- den Beweis liefert erst die
@@ -164,7 +164,7 @@ function state(raw) {
   return {
     provider: z.provider, providerName: v ? v.name : '',
     server: z.server, port: z.port, sicher: z.sicher,
-    benutzer: z.benutzer, sender: z.sender,
+    user: z.user, sender: z.sender,
     passwordSet: Boolean(z.password),
     hint: HINTS[z.provider] || '', hintAlways: HINT_ALWAYS
   };
@@ -178,7 +178,7 @@ function configured(raw) {
   const z = resolve(raw);
   if (!providerOf(z.provider)) return false;
   if (!z.server || !z.port) return false;
-  return Boolean(z.benutzer && z.password && isAddress(z.sender));
+  return Boolean(z.user && z.password && isAddress(z.sender));
 }
 
 /* Prueft, was von aussen hereinkommt, und liefert den Wert zum Speichern.
@@ -196,7 +196,7 @@ function checkInput(ein, before) {
   const v = providerOf(provider);
   if (!v) throw message('mail.providerUnknown');
 
-  const benutzer = String(e.benutzer ?? '').trim();
+  const user = String(e.user ?? '').trim();
   const sender = String(e.sender ?? '').trim();
   // Ein neues Passwort wird genommen, wie es ist -- NICHT beschnitten. Ein
   // Leerzeichen am Ende kann Teil des Passworts sein, und ein stillschweigend
@@ -204,11 +204,11 @@ function checkInput(ein, before) {
   const password = typeof e.password === 'string' && e.password !== ''
     ? e.password : String(old.password || '');
 
-  if (!benutzer) throw message('mail.userMissing');
+  if (!user) throw message('mail.userMissing');
   if (!password) throw message('mail.passwordMissing');
   if (!isAddress(sender)) throw message('mail.senderInvalid');
 
-  const out = { provider, benutzer, password, sender, server: '', port: 0, sicher: false };
+  const out = { provider, user, password, sender, server: '', port: 0, sicher: false };
   if (v.key !== 'eigen') return out;
 
   const server = String(e.server || '').trim();
@@ -228,7 +228,7 @@ function checkInput(ein, before) {
 function mark(raw) {
   const z = resolve(raw);
   return crypto.createHash('sha256')
-    .update(JSON.stringify([z.provider, z.server, z.port, z.sicher, z.benutzer, z.password, z.sender]))
+    .update(JSON.stringify([z.provider, z.server, z.port, z.sicher, z.user, z.password, z.sender]))
     .digest('hex').slice(0, 16);
 }
 
@@ -250,7 +250,7 @@ function mark(raw) {
 function buildTransport(z) {
   return nodemailer.createTransport({
     host: z.server, port: z.port, secure: z.sicher === true,
-    auth: { user: z.benutzer, pass: z.password },
+    auth: { user: z.user, pass: z.password },
     connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,
     // Die Instanz schickt eine Handvoll Mails im Monat. Eine offen gehaltene
     // Verbindung waere eine Verbindung nach draussen, die ohne Anlass steht.

@@ -135,7 +135,7 @@ function commandList() {
     console.log(`  ${String(z.id).padStart(3)}  ${z.username.padEnd(width)}  ` +
       `${(ROLE_KEY[z.role] || z.role).padEnd(11)}  ${(STATUS_WORD[z.status] || z.status).padEnd(9)}  ` +
       `${(auth.twoFactorOn(z.id) ? 'an' : 'aus').padEnd(4)}  ` +
-      `${String(z.eintraege).padStart(8)}  ${z.last_login || '—'}`);
+      `${String(z.entries).padStart(8)}  ${z.last_login || '—'}`);
   }
   console.log(`\n  ${lines.length === 1 ? '1 Zugang' : lines.length + ' Zugänge'}, ` +
     `davon ${auth.ownerCount()} mit Eigentümerrecht.\n`);
@@ -166,11 +166,11 @@ async function commandRemove(name, options) {
   const u = findUser(name);
   const z = auth.countInventory(u.id);
   console.log(`\nZugang "${u.username}" (Nummer ${u.id}, ${ROLE_KEY[u.role] || u.role}) entfernen.`);
-  console.log(`  Eigene Einträge: ${z.eintraege}`);
+  console.log(`  Eigene Einträge: ${z.entries}`);
   console.log(`  Eigene Beiträge in fremden Einträgen: ${z.kommentare} Kommentare, ` +
               `${z.bewertungen} Bewertungen, ${z.testtage} Testtage`);
-  if (options.eintraege) {
-    console.log(RED(`  --eintraege: seine ${z.eintraege} Einträge werden gelöscht — mitsamt ` +
+  if (options.entries) {
+    console.log(RED(`  --eintraege: seine ${z.entries} Einträge werden gelöscht — mitsamt ` +
       `${z.foreignComments} fremden Kommentaren, ${z.foreignRatings} fremden Bewertungen ` +
       `und ${z.foreignTestDays} fremden Testtagen daran.`));
   } else {
@@ -232,7 +232,7 @@ function commandOwner(name) {
 
 async function main() {
   const [befehl, name, ...rest] = process.argv.slice(2);
-  const options = { eintraege: rest.includes('--eintraege'), beitraege: rest.includes('--beitraege') };
+  const options = { entries: rest.includes('--eintraege'), beitraege: rest.includes('--beitraege') };
   const needsName = () => {
     if (!name) { console.error(RED('Es fehlt der Benutzername.')); help(); process.exit(1); }
   };

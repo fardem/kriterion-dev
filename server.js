@@ -91,11 +91,11 @@ function localeOf(req) {
 /* DER HELFER -- dieselbe Regel wie im Browser, mit der Sprache davor.
    MASKIERT WIRD HIER NICHTS: eine Servermeldung geht als JSON heraus, und die
    Oberflaeche entscheidet, wie sie sie zeigt. */
-function t(locale, schluessel, values = {}) {
+function t(locale, key, values = {}) {
   const texts = LANGUAGES[locale] || LANGUAGES[LANGUAGE_DEFAULT];
-  const raw = texts[schluessel] !== undefined
-    ? texts[schluessel] : LANGUAGES[LANGUAGE_DEFAULT][schluessel];
-  if (raw === undefined) return `\u27e6${schluessel}\u27e7`;
+  const raw = texts[key] !== undefined
+    ? texts[key] : LANGUAGES[LANGUAGE_DEFAULT][key];
+  if (raw === undefined) return `\u27e6${key}\u27e7`;
   const rule = LANGUAGE_PLURAL[locale] || LANGUAGE_PLURAL[LANGUAGE_DEFAULT];
   const record = typeof raw === 'object'
     ? (rule.select(values.n) === 'one' ? raw.eins : raw.andere) : raw;
@@ -127,7 +127,7 @@ mail.setTranslator(t);
 /* UND auth.js EBENSO -- fuer die zwei Antworten, die requireAuth() selbst gibt.
    Es bekommt die ANFRAGE gereicht und nicht die Sprache: welche Sprache eine
    Antwort traegt, entscheidet diese Datei. */
-auth.setTranslator((req, schluessel, values) => t(localeOf(req), schluessel, values));
+auth.setTranslator((req, key, values) => t(localeOf(req), key, values));
 
 /* WAS EIN GEFANGENER FEHLER SAGT -- 0.24.0, Bauabschnitt 2. Fuenfzehn Stellen
    fingen bis dahin einen Fehler und gaben `e.message` heraus; darin stand ein
@@ -414,10 +414,10 @@ const putUserSettingS = db.prepare(
 // Dieselbe Klemme auch auf dem Schreibweg: ein stilles INSERT mit user_id NULL
 // scheiterte zwar am NOT NULL, aber erst in der Datenbank und mit einer
 // Message, die nicht sagt, wer den Benutzer vergessen hat.
-const putUserSetting = (userId, k, wert) => {
+const putUserSetting = (userId, k, value) => {
   if (userId == null)
     throw new Error(`putUserSetting('${k}') ohne Benutzer aufgerufen`);
-  putUserSettingS.run(userId, k, wert);
+  putUserSettingS.run(userId, k, value);
 };
 
 /* WELCHER SCHLUESSEL AUF DER FORMATZEILE DER KARTE STEHT -- die Zuordnung von
@@ -640,20 +640,24 @@ app.post('/api/setup', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
   const ip = auth.clientIp(req);
-  const { user, password } = req.body || {};
+  /* DER GETIPPTE NAME HEISST HIER `username` UND NICHT `user`: `user` ist
+     seit 0.24.1 der ANGEMELDETE (req.user), und zwei Bedeutungen unter einem
+     Namen in einer Route sind eine zu viel. Das Feld des Rumpfes heisst
+     unveraendert `user` -- die Oberflaeche schickt es so. */
+  const { user: username, password } = req.body || {};
   // Gezaehlt wird je IP UND je Name. Die IP sperrt hart, der Name verzoegert
   // nur -- sonst waere die Bremse ein Werkzeug, um einen bekannten Zugang
   // auszusperren. Die Begruendung steht in auth.js.
-  const throttle = auth.checkThrottle(ip, user);
+  const throttle = auth.checkThrottle(ip, username);
   if (throttle.blocked) {
     return res.status(429).json({
       error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
 
-  const benutzer = await auth.checkLogin(user, password);
-  if (!benutzer) {
-    auth.noteFailure(ip, user);
+  const user = await auth.checkLogin(username, password);
+  if (!user) {
+    auth.noteFailure(ip, username);
     return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong')});
   }
   /* Erste von zwei Stellen: ein gesperrter Zugang kommt nicht herein.
@@ -661,9 +665,9 @@ app.post('/api/login', async (req, res) => {
      erfahren, dass er gesperrt ist. Vor der Pruefung waere dieselbe Message
      ein Werkzeug zum Durchprobieren von Namen.
      Kein noteFailure -- das Passwort war richtig. */
-  if (benutzer.status !== 'active') {
+  if (user.status !== 'active') {
     return res.status(403).json({
-      error: t(localeOf(req), benutzer.status === 'deleted' ? 'server.accountGone' : 'server.accountLocked')});
+      error: t(localeOf(req), user.status === 'deleted' ? 'server.accountGone' : 'server.accountLocked')});
   }
   /* DER ZWEITE FAKTOR -- UND HIER, NACH DER PASSWORTPRUEFUNG.
      DIE AUSKUNFT "DIESER ZUGANG HAT EINEN ZWEITEN FAKTOR" KOMMT ERST NACH
@@ -678,12 +682,12 @@ app.post('/api/login', async (req, res) => {
      Passwort kennt, vor jedem Rateversuch einen frischen Ausweis -- und
      dieser Ruf loeschte den Zaehler, den der zweite Schritt gerade aufbaut.
      ZURUECKGESETZT WIRD ERST, WENN JEMAND WIRKLICH DRIN IST. */
-  if (auth.twoFactorOn(benutzer.id)) {
-    return res.json({ twoFactor: true, ...auth.createLoginTicket(benutzer.id) });
+  if (auth.twoFactorOn(user.id)) {
+    return res.json({ twoFactor: true, ...auth.createLoginTicket(user.id) });
   }
-  auth.noteSuccess(ip, user);
+  auth.noteSuccess(ip, username);
   auth.pruneSessions();
-  res.set('Set-Cookie', auth.sessionCookie(req, auth.createSession(benutzer.id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.createSession(user.id)));
   res.json({ ok: true });
 });
 
@@ -897,7 +901,7 @@ app.post('/api/token/redeem', async (req, res) => {
    zwar ein bequemeres als die Anmeldung: es steht ohne Passwort davor.
    SIE IST WAHR IN JEDEM DIESER FAELLE -- "wir haben dir eine Mail geschickt"
    waere in fuenf von sechs Lagen gelogen. */
-const REQUEST_ANSWER = { ok: true, meldung:
+const REQUEST_ANSWER = { ok: true, message:
   'Danke. Wenn zu diesen Angaben eine Anfrage möglich war, hast du jetzt eine E-Mail ' +
   'bekommen — bitte bestätige darin deine Adresse. Danach entscheidet ein Admin.' };
 
@@ -931,7 +935,7 @@ app.post('/api/signup', async (req, res) => {
 app.post('/api/signup/confirm', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenThrottleFree(req, res)) return;
-  if (!auth.confirmRequest((req.body || {}).schluessel)) {
+  if (!auth.confirmRequest((req.body || {}).key)) {
     auth.noteFailure(ip, null);
     return res.status(400).json({ error:
       t(localeOf(req), 'server.confirmExpired')});
@@ -963,8 +967,8 @@ app.use('/api', auth.requireAuth);
 
    Die Eigentuemerfrage steht ZUERST, weil die Adminfrage sie ruft -- damit
    ist "ein Eigentuemer ist immer auch Admin" baulich wahr. */
-function isOwner(req) { return req.benutzer.role === 'owner'; }
-function isAdmin(req) { return req.benutzer.role === 'admin' || isOwner(req); }
+function isOwner(req) { return req.user.role === 'owner'; }
+function isAdmin(req) { return req.user.role === 'admin' || isOwner(req); }
 
 const DENIED_ADMIN = 'server.deniedAdmin';
 const DENIED_OWNER = 'server.deniedOwner';
@@ -1040,7 +1044,7 @@ const secondConfirmNeeded = (purpose) => (req, res, next) => {
 // assignInventory() raeumt sie beim naechsten Start dem Eigentuemer zu; bis
 // dahin darf sie nicht jedem gehoeren.
 function mayChange(req, authorId) {
-  return isAdmin(req) || (authorId != null && authorId === req.benutzer.id);
+  return isAdmin(req) || (authorId != null && authorId === req.user.id);
 }
 
 // Nur der Verfasser -- und ausdruecklich auch der Admin nicht. Fuer alles, was
@@ -1049,7 +1053,7 @@ function mayChange(req, authorId) {
 // Kommentar. Loeschen ja, umschreiben nein -- eine fremde Aussage unter
 // fremdem Namen zu veraendern ist die Art Funktion, die man spaeter bereut.
 function selfOnly(req, authorId) {
-  return authorId != null && authorId === req.benutzer.id;
+  return authorId != null && authorId === req.user.id;
 }
 
 /* Wer einen NEUEN Namen anlegen darf -- Tag oder Kategorie. Zwei globale
@@ -1059,9 +1063,9 @@ function selfOnly(req, authorId) {
    waere eine Schranke gegen sich selbst.
    DIE KLEMME SITZT HINTER DEM NACHSCHLAGEN DES VORHANDENEN NAMENS -- nur so
    bleibt "Zuweisen darf immer jeder" baulich wahr. */
-const freeCreate = (schluessel) => getSetting(schluessel, true) !== false;
-function mayCreate(req, schluessel) {
-  return isAdmin(req) || freeCreate(schluessel);
+const freeCreate = (key) => getSetting(key, true) !== false;
+function mayCreate(req, key) {
+  return isAdmin(req) || freeCreate(key);
 }
 
 /* Alles, was an einem Eintrag haengt -- Fotos, Dateien, Links, Tags, Kategorie,
@@ -1117,9 +1121,9 @@ app.get('/api/account', (req, res) => {
   /* DER ZUSTAND DES ZWEITEN FAKTORS REIST HIER MIT -- deshalb kommt keine
      lesende Route dazu: die Karte "Zugang" holt diese Antwort ohnehin.
      DAS GEHEIMNIS IST NIE DARIN, auch nicht fuer den Eigentuemer. */
-  res.json({ username: req.benutzer.username, minPassword: auth.PASSWORD_MIN,
-             email: auth.getUser2(req.benutzer.id)?.email || '',
-             twoFactor: auth.twoFactorState(req.benutzer.id) });
+  res.json({ username: req.user.username, minPassword: auth.PASSWORD_MIN,
+             email: auth.getUser2(req.user.id)?.email || '',
+             twoFactor: auth.twoFactorState(req.user.id) });
 });
 
 app.put('/api/account', async (req, res) => {
@@ -1131,14 +1135,14 @@ app.put('/api/account', async (req, res) => {
     // Die Adresse geht denselben Weg wie Name und Passwort -- hinter dem
     // BISHERIGEN Passwort. Sie entscheidet, wohin der naechste Ruecksetzlink
     // geht; eine uebernommene Sitzung soll sie nicht nebenbei umbiegen koennen.
-    result = await auth.changeUser(req.benutzer.id, oldPassword, username, newPassword, email);
+    result = await auth.changeUser(req.user.id, oldPassword, username, newPassword, email);
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
   // Alle anderen Sitzungen DIESES Benutzers fallen. Wer das Passwort wechselt,
   // will meist genau das; die eigene bleibt, sonst wuerde man sich selbst
   // hinauswerfen. Die Zeile selbst steht in auth.js -- der Knopf "alle anderen
   // beenden" ruft dieselbe, und zwei Ausfuehrungen derselben Regel liefen
   // auseinander.
-  auth.endOtherSessions(req.benutzer.id, auth.sessionToken(req));
+  auth.endOtherSessions(req.user.id, auth.sessionToken(req));
   res.json(result);
 });
 
@@ -1149,30 +1153,36 @@ app.put('/api/account', async (req, res) => {
    DIE FESTE ROUTE STEHT VOR DER PLATZHALTERROUTE (Stolperstein 11). */
 app.get('/api/sessions', (req, res) => {
   const ownOne = auth.sessionToken(req);
-  res.json({ sessions: auth.sessionsOf(req.benutzer.id, ownOne), days: auth.SESSION_DAYS });
+  res.json({ sessions: auth.sessionsOf(req.user.id, ownOne), days: auth.SESSION_DAYS });
 });
 
 app.delete('/api/sessions', (req, res) => {
   const ownOne = auth.sessionToken(req);
-  res.json({ beendet: auth.endOtherSessions(req.benutzer.id, ownOne) });
+  res.json({ beendet: auth.endOtherSessions(req.user.id, ownOne) });
 });
 
-app.delete('/api/sessions/:kennung', (req, res) => {
+/* DIE ANGABE HEISST `sessionId` UND NICHT `id`, und das ist kein Geschmack:
+   der Waechter ueber die Routen weist jede Route mit Selbstbezug ab, die eine
+   Nummer AUS DER ADRESSE nimmt -- sonst bliebe eine Route gruen, die die
+   fremde nimmt. Diese hier nimmt keine Benutzernummer, sondern die Kennung
+   EINER EIGENEN Sitzung; sie steht deshalb unter einem eigenen Namen da und
+   ist im Waechter namentlich ausgenommen. */
+app.delete('/api/sessions/:sessionId', (req, res) => {
   const ownOne = auth.sessionToken(req);
   // Die eigene ueber diesen Weg zu beenden waere ein zweiter Abmeldeweg neben
   // POST /api/logout -- und einer, nach dem die Oberflaeche weiterliefe, als
   // waere nichts gewesen.
-  if (auth.sessionIdOf(ownOne || '') === String(req.params.kennung)) {
+  if (auth.sessionIdOf(ownOne || '') === String(req.params.sessionId)) {
     return res.status(400).json({ error: t(localeOf(req), 'server.sessionOwn')});
   }
-  const n = auth.endSession(req.benutzer.id, req.params.kennung);
+  const n = auth.endSession(req.user.id, req.params.sessionId);
   if (!n) return res.status(404).json({ error: t(localeOf(req), 'server.sessionUnknown')});
   res.json({ beendet: n });
 });
 
 /* ---- Der zweite Faktor ----
    VIER SCHREIBENDE ROUTEN, ALLE DER ART 'selbstbezug': die Benutzernummer
-   kommt aus req.benutzer und steht in keinem Pfad. Das ist die ganze
+   kommt aus req.user und steht in keinem Pfad. Das ist die ganze
    Rechtefrage dieses Bereichs -- JEDER SCHALTET IHN FUER SICH SELBST EIN UND
    AUS, und es gibt keine Adresse, unter der ein Fremder gemeint waere.
 
@@ -1196,7 +1206,7 @@ app.delete('/api/sessions/:kennung', (req, res) => {
 // 403 und nicht 401: der Zugang gilt weiter, nur diese eine Handlung nicht --
 // dieselbe Ueberlegung wie bei der zweiten Bestaetigung.
 async function ownPasswordMatches(req, res, password) {
-  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
+  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
   if (row && await auth.checkPassword(String(password || ''), row.password_hash)) return true;
   res.status(403).json({ error: t(localeOf(req), 'server.passwordWrong')});
   return false;
@@ -1208,8 +1218,8 @@ async function ownPasswordMatches(req, res, password) {
 app.post('/api/two-factor/start', async (req, res) => {
   if (!await ownPasswordMatches(req, res, (req.body || {}).password)) return;
   try {
-    res.json(auth.startTwoFactor(req.benutzer.id,
-      getSetting('title_public', 'Bewertungskatalog'), req.benutzer.username));
+    res.json(auth.startTwoFactor(req.user.id,
+      getSetting('title_public', 'Bewertungskatalog'), req.user.username));
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
 
@@ -1221,7 +1231,7 @@ app.post('/api/two-factor/on', async (req, res) => {
   const { password, code } = req.body || {};
   if (!await ownPasswordMatches(req, res, password)) return;
   try {
-    res.json(auth.turnTwoFactorOn(req.benutzer.id, code, req.benutzer.id));
+    res.json(auth.turnTwoFactorOn(req.user.id, code, req.user.id));
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
 
@@ -1233,7 +1243,7 @@ app.post('/api/two-factor/on', async (req, res) => {
 app.post('/api/two-factor/codes', async (req, res) => {
   const { password, code } = req.body || {};
   if (!await ownPasswordMatches(req, res, password)) return;
-  if (!auth.checkTwoFactor(req.benutzer.id, code))
+  if (!auth.checkTwoFactor(req.user.id, code))
     return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});
   try {
     /* ERST DIE CODES, DANN DER STAND -- und die Reihenfolge ist keine
@@ -1241,31 +1251,31 @@ app.post('/api/two-factor/codes', async (req, res) => {
        ausgewertet: stuende twoFactorState() zuerst, meldete die Antwort die
        Zahl von VOR dem Erneuern, und die Karte zeigte "noch 4 von 8" neben
        acht frischen Codes. */
-    const codes = auth.refreshRecoveryCodes(req.benutzer.id);
-    res.json({ ...auth.twoFactorState(req.benutzer.id), codes });
+    const codes = auth.refreshRecoveryCodes(req.user.id);
+    res.json({ ...auth.twoFactorState(req.user.id), codes });
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
 
 /* Ausschalten. PASSWORT UND GUELTIGER CODE -- das Passwort allein genuegte
    nicht: gegen eine uebernommene Sitzung mit mitgelesenem Passwort ist der
    Faktor ja gerade gebaut.
-   EIN ADMIN KOMMT HIER NICHT HEREIN: die Nummer kommt aus req.benutzer. Der
+   EIN ADMIN KOMMT HIER NICHT HEREIN: die Nummer kommt aus req.user. Der
    einzige Weg daneben ist usertool.js auf dem Wirt. */
 app.delete('/api/two-factor', async (req, res) => {
   const { password, code } = req.body || {};
-  if (!auth.twoFactorOn(req.benutzer.id))
+  if (!auth.twoFactorOn(req.user.id))
     return res.status(400).json({ error: t(localeOf(req), 'server.twoFactorOff')});
   if (!await ownPasswordMatches(req, res, password)) return;
-  if (!auth.checkTwoFactor(req.benutzer.id, code))
+  if (!auth.checkTwoFactor(req.user.id, code))
     return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});
-  auth.turnTwoFactorOff(req.benutzer.id, req.benutzer.id);
-  res.json({ ...auth.twoFactorState(req.benutzer.id) });
+  auth.turnTwoFactorOff(req.user.id, req.user.id);
+  res.json({ ...auth.twoFactorState(req.user.id) });
 });
 
 /* ---- Die Freigabe holen ----
    EINE ROUTE FUER ALLE SIEBEN WEGE. Sie prueft DASSELBE Passwort noch einmal,
    nicht ein zweites Geheimnis. Die Art 'selbstbezug': der Benutzer kommt aus
-   req.benutzer und nie aus der Adresse -- wer bestaetigt, bestaetigt fuer sich.
+   req.user und nie aus der Adresse -- wer bestaetigt, bestaetigt fuer sich.
 
    DIE ANMELDEBREMSE GREIFT, dieselbe wie ueberall. Ohne sie waere diese Route
    ein Weg, ein Passwort ungebremst durchzuprobieren -- und zwar HINTER der
@@ -1276,7 +1286,7 @@ app.delete('/api/two-factor', async (req, res) => {
    namentlich bekannt -- eine verschleierte Absage schuetzte niemanden. */
 app.post('/api/confirm', async (req, res) => {
   const ip = auth.clientIp(req);
-  const name = req.benutzer.username;
+  const name = req.user.username;
   const throttle = auth.checkThrottle(ip, name);
   if (throttle.blocked) {
     return res.status(429).json({
@@ -1320,13 +1330,13 @@ app.post('/api/confirm', async (req, res) => {
     if (new Set(targetList).size !== targetList.length)
       return res.status(400).json({ error: t(localeOf(req), 'server.targetTwice')});
   } else targetList = [target ?? null];
-  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
+  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
   if (!row || !await auth.checkPassword(String(password || ''), row.password_hash)) {
     auth.noteFailure(ip, name);
     // Die zweite der beiden Zeilen, bei denen das SCHEITERN der Vorgang ist.
     // Wer hier scheitert, sitzt an einer angemeldeten Sitzung und kennt das
     // Passwort nicht -- genau der Fall, gegen den diese Runde gebaut ist.
-    auth.log('confirm.fail', { actor: req.benutzer.id, target: req.benutzer.id });
+    auth.log('confirm.fail', { actor: req.user.id, target: req.user.id });
     return res.status(403).json({ error: t(localeOf(req), 'server.passwordWrong')});
   }
   /* FRAGT DIESE STELLE ZUSAETZLICH DEN CODE -- aber NUR bei Zugaengen, die
@@ -1340,9 +1350,9 @@ app.post('/api/confirm', async (req, res) => {
      kommt aus einer eigenen Route, nicht von hier.)
      DIE REIHENFOLGE IST PASSWORT, DANN CODE: wer das Passwort nicht hat, soll
      nicht erfahren, ob am Zugang ein Faktor haengt. */
-  if (auth.twoFactorOn(req.benutzer.id) && !auth.checkTwoFactor(req.benutzer.id, code)) {
+  if (auth.twoFactorOn(req.user.id) && !auth.checkTwoFactor(req.user.id, code)) {
     auth.noteFailure(ip, name);
-    auth.log('confirm.fail', { actor: req.benutzer.id, target: req.benutzer.id });
+    auth.log('confirm.fail', { actor: req.user.id, target: req.user.id });
     return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL), twoFactor: true});
   }
   auth.noteSuccess(ip, name);
@@ -1373,10 +1383,10 @@ app.get('/api/security-log', ownerOnly, (req, res) => {
      EIN UNBEKANNTER SCHLUESSEL IST EIN 400 und nicht stillschweigend "alles":
      ein Tippfehler saehe sonst aus wie ein Erfolg.
      LESEND WIE VORHER -- F_ROUTEN bleibt bei 69. */
-  const gruppe = req.query.gruppe;
-  if (gruppe !== undefined && !Object.prototype.hasOwnProperty.call(auth.LOG_GROUPS, gruppe))
+  const group = req.query.group;
+  if (group !== undefined && !Object.prototype.hasOwnProperty.call(auth.LOG_GROUPS, group))
     return res.status(400).json({ error: t(localeOf(req), 'server.viewUnknown')});
-  res.json(auth.readLog(auth.LOG_LIMIT, gruppe));
+  res.json(auth.readLog(auth.LOG_LIMIT, group));
 });
 
 /* ---- Zugaenge verwalten ----
@@ -1394,7 +1404,7 @@ function targetUserFree(req, res, id, selfAllowed = false) {
   if (target.status === 'deleted') {
     res.status(400).json({ error: t(localeOf(req), 'server.userDeleted')}); return null;
   }
-  if (!selfAllowed && target.id === req.benutzer.id) {
+  if (!selfAllowed && target.id === req.user.id) {
     res.status(403).json({ error: t(localeOf(req), DENIED_OWN_USER)}); return null;
   }
   if (!mayTouchUser(req, target)) { res.status(403).json({ error: t(localeOf(req), DENIED_USER)}); return null; }
@@ -1409,7 +1419,7 @@ app.get('/api/users', adminOnly, (req, res) => {
   auth.cleanupTokens();
   res.json({
     users: auth.listUsers(),
-    ich: req.benutzer.id,
+    ich: req.user.id,
     mayRoles: isOwner(req),
     owner: auth.ownerCount()
   });
@@ -1438,9 +1448,9 @@ app.post('/api/users', adminOnly, async (req, res) => {
        denkt. `einladen` muss ausdruecklich true sein -- ein vergessenes
        Passwortfeld scheitert weiter wie bisher. */
     const created = await auth.createUser(username, password, wanted, einladen === true,
-                                             req.benutzer.id, email);
+                                             req.user.id, email);
     if (einladen !== true) return res.json(created);
-    const token = auth.createToken(created.id, 'invite', req.benutzer.id);
+    const token = auth.createToken(created.id, 'invite', req.user.id);
     /* ERST DER TOKEN, DANN DER VERSAND, und die Reihenfolge ist die ganze
        Zusage: der Link steht in der Antwort, egal was der Mailserver sagt. */
     const v = await sendTokenLink({ username: created.username, email: created.email }, token);
@@ -1463,7 +1473,7 @@ app.post('/api/users/:id/token', adminOnly, async (req, res) => {
   if (!secondConfirm(req, res, 'link', target.id)) return;
   const purpose = (req.body || {}).purpose || 'invite';
   try {
-    const token = auth.createToken(target.id, purpose, req.benutzer.id);
+    const token = auth.createToken(target.id, purpose, req.user.id);
     // Erst der Token, dann der Versand -- dieselbe Reihenfolge wie am Anlegen,
     // und aus demselben Grund.
     const v = await sendTokenLink(target, token);
@@ -1499,9 +1509,9 @@ app.put('/api/users/:id', adminOnly, async (req, res) => {
   if (password !== undefined && !secondConfirm(req, res, 'password', target.id)) return;
   try {
     let result = { id: target.id, username: target.username };
-    if (rolle !== undefined) result = { ...result, ...auth.setRole(target.id, rolle, req.benutzer.id) };
-    if (status !== undefined) result = { ...result, ...auth.setStatus(target.id, status, req.benutzer.id) };
-    if (password !== undefined) { await auth.setNewPassword(target.id, password, req.benutzer.id); result.passwordSet = true; }
+    if (rolle !== undefined) result = { ...result, ...auth.setRole(target.id, rolle, req.user.id) };
+    if (status !== undefined) result = { ...result, ...auth.setStatus(target.id, status, req.user.id) };
+    if (password !== undefined) { await auth.setNewPassword(target.id, password, req.user.id); result.passwordSet = true; }
     res.json(result);
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
@@ -1516,9 +1526,9 @@ app.delete('/api/users/:id', adminOnly, (req, res) => {
   if (!secondConfirm(req, res, 'remove', target.id)) return;
   try {
     res.json(auth.removeUser(target.id, {
-      eintraege: req.query.eintraege === '1',
+      entries: req.query.eintraege === '1',
       beitraege: req.query.beitraege === '1'
-    }, req.benutzer.id));
+    }, req.user.id));
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
 
@@ -1596,7 +1606,7 @@ app.put('/api/mail', ownerOnly, secondConfirmNeeded('mail'), (req, res) => {
    hinter einer Anmeldung. ES GIBT DESHALB KEIN ADRESSFELD: der Rumpf wird gar
    nicht angesehen. Ohne Adresse am Zugang wird abgesagt, mit dem Weg dorthin. */
 app.post('/api/mail/test', ownerOnly, async (req, res) => {
-  const ownOne = auth.getUser2(req.benutzer.id);
+  const ownOne = auth.getUser2(req.user.id);
   if (!ownOne || !ownOne.email) {
     return res.status(400).json({ error:
       t(localeOf(req), 'server.ownEmailMissing')});
@@ -1674,15 +1684,15 @@ app.post('/api/requests/:id/approve', adminOnly, async (req, res) => {
     return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});
   let created, token;
   try {
-    created = await auth.createUser(a.username, null, 'user', true, req.benutzer.id, a.email);
-    token = auth.createToken(created.id, 'invite', req.benutzer.id);
+    created = await auth.createUser(a.username, null, 'user', true, req.user.id, a.email);
+    token = auth.createToken(created.id, 'invite', req.user.id);
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
   auth.removeRequest(a.id);
   /* DIE ZEILE NENNT DEN NEUEN ZUGANG UND NICHT DEN NAMEN DES ANFRAGENDEN.
      Sie sagt etwas, was zugang.neu und link.neu daneben nicht sagen: dass
      dieser Zugang aus einer SELBSTANMELDUNG kam und nicht aus der Hand des
      Admins. */
-  auth.log('request.approve', { actor: req.benutzer.id, target: created.id });
+  auth.log('request.approve', { actor: req.user.id, target: created.id });
   const v = await sendTokenLink({ username: created.username, email: created.email }, token);
   res.json({ ...created, token: token.plain, purpose: token.purpose, days: token.days,
              minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v,
@@ -1699,7 +1709,7 @@ app.delete('/api/requests/:id', adminOnly, (req, res) => {
   if (!a || !a.confirmed_at)
     return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});
   auth.removeRequest(a.id);
-  auth.log('request.reject', { actor: req.benutzer.id });
+  auth.log('request.reject', { actor: req.user.id });
   res.json({ ok: true, ...requestCard() });
 });
 
@@ -1789,9 +1799,9 @@ const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_WITHOUT_TO.includes(k));
 // Unbekanntes fliegt raus, Fehlendes haengt sich in der Vorgabereihenfolge
 // hinten an -- ein spaeter hinzugekommener Block taucht so von selbst auf.
 function sortArea(stored, fallback) {
-  const sauber = (Array.isArray(stored) ? stored : [])
+  const clean = (Array.isArray(stored) ? stored : [])
     .filter((k, i, a) => fallback.includes(k) && a.indexOf(k) === i);
-  return [...sauber, ...fallback.filter(k => !sauber.includes(k))];
+  return [...clean, ...fallback.filter(k => !clean.includes(k))];
 }
 
 // Persoenlich. Anordnung und Einklappzustand gelten global ueber alle
@@ -1830,12 +1840,12 @@ const timelineOn = (userId) => getUserSetting(userId, 'timeline', true) !== fals
 // Die Liste steht hier und nicht in app.js: der Server speichert Schluessel,
 // also muss er die Liste kennen.
 const SEARCH_PROVIDERS = [
-  { schluessel: 'google',    name: 'Google',       template: 'https://www.google.com/search?q=%s' },
-  { schluessel: 'bing',      name: 'Bing',         template: 'https://www.bing.com/search?q=%s' },
-  { schluessel: 'ddg',       name: 'DuckDuckGo',   template: 'https://duckduckgo.com/?q=%s' },
-  { schluessel: 'startpage', name: 'Startpage',    template: 'https://www.startpage.com/sp/search?query=%s' },
-  { schluessel: 'brave',     name: 'Brave Search', template: 'https://search.brave.com/search?q=%s' },
-  { schluessel: 'ecosia',    name: 'Ecosia',       template: 'https://www.ecosia.org/search?q=%s' }
+  { key: 'google',    name: 'Google',       template: 'https://www.google.com/search?q=%s' },
+  { key: 'bing',      name: 'Bing',         template: 'https://www.bing.com/search?q=%s' },
+  { key: 'ddg',       name: 'DuckDuckGo',   template: 'https://duckduckgo.com/?q=%s' },
+  { key: 'startpage', name: 'Startpage',    template: 'https://www.startpage.com/sp/search?query=%s' },
+  { key: 'brave',     name: 'Brave Search', template: 'https://search.brave.com/search?q=%s' },
+  { key: 'ecosia',    name: 'Ecosia',       template: 'https://www.ecosia.org/search?q=%s' }
 ];
 const SEARCH_DEFAULT = SEARCH_PROVIDERS[0].template;
 // Drei Plaetze fuer eigene Anbieter. Der Schluessel haengt am Platz, nicht am
@@ -1882,10 +1892,10 @@ function searchOwn() {
 function allProviders() {
   const own = searchOwn();
   return [
-    ...SEARCH_PROVIDERS.map(a => ({ ...a, eigen: false, vorhanden: true })),
+    ...SEARCH_PROVIDERS.map(a => ({ ...a, own: false, vorhanden: true })),
     ...own.map((e, i) => ({
-      schluessel: ownKey(i), name: e ? e.name : '',
-      template: e ? e.template : '', eigen: true, vorhanden: !!e
+      key: ownKey(i), name: e ? e.name : '',
+      template: e ? e.template : '', own: true, vorhanden: !!e
     }))
   ];
 }
@@ -1893,8 +1903,8 @@ function allProviders() {
 // Der Vorrat: Liste der Schluessel, Standard zuerst. sucheAktiv[0] ist die
 // einzige Wahrheit darueber, wer Standard ist.
 function searchPool() {
-  const alle = allProviders();
-  const da = (k) => alle.some(a => a.schluessel === k && a.vorhanden);
+  const all = allProviders();
+  const da = (k) => all.some(a => a.key === k && a.vorhanden);
   const stored = getSetting('searchOn', null);
   // Hier faellt ein weggefallener Anbieter aus dem Vorrat -- war er der
   // Standard, rueckt damit keys[0] nach. ACHTUNG: dieselbe Wirkung hat die
@@ -1905,7 +1915,7 @@ function searchPool() {
     : [];
   // Ein leerer Vorrat macht jede Suchzeile unbenutzbar: mindestens einer
   // bleibt drin, und das ist im Zweifel der eingebaute erste.
-  if (!keys.length) keys = [SEARCH_PROVIDERS[0].schluessel];
+  if (!keys.length) keys = [SEARCH_PROVIDERS[0].key];
   return keys;
 }
 
@@ -1915,17 +1925,17 @@ function searchPool() {
 function searchProviders() {
   const pool = searchPool();
   return allProviders().map(a => ({
-    schluessel: a.schluessel, name: a.name, template: a.template,
-    eigen: a.eigen, vorhanden: a.vorhanden,
-    aktiv: pool.includes(a.schluessel),
-    standard: pool[0] === a.schluessel
+    key: a.key, name: a.name, template: a.template,
+    own: a.own, vorhanden: a.vorhanden,
+    active: pool.includes(a.key),
+    standard: pool[0] === a.key
   }));
 }
 
 // Vorlage des Standardanbieters, nur fuer die Antwort an die Oberflaeche.
 function searchTemplate() {
   const pool = searchPool();
-  const treffer = allProviders().find(a => a.schluessel === pool[0]);
+  const treffer = allProviders().find(a => a.key === pool[0]);
   return treffer && searchTemplateOk(treffer.template) ? treffer.template : SEARCH_DEFAULT;
 }
 
@@ -1933,13 +1943,13 @@ function searchTemplate() {
 // kanonischer Reihenfolge. Damit gibt es nur eine Aussage ueber die
 // Reihenfolge und nicht zwei, die sich widersprechen koennen.
 function writePool(standard, active) {
-  const alle = allProviders();
-  const da = (k) => alle.some(a => a.schluessel === k && a.vorhanden);
+  const all = allProviders();
+  const da = (k) => all.some(a => a.key === k && a.vorhanden);
   let set = active.filter(da);
   // Zweite Schicht des Nachrueckens, siehe den Hinweis in searchPool.
-  if (!da(standard)) standard = set[0] || SEARCH_PROVIDERS[0].schluessel;
+  if (!da(standard)) standard = set[0] || SEARCH_PROVIDERS[0].key;
   if (!set.includes(standard)) set.push(standard);
-  const rest = alle.map(a => a.schluessel)
+  const rest = all.map(a => a.key)
     .filter(k => k !== standard && set.includes(k));
   putSetting.run('searchOn', JSON.stringify([standard, ...rest]));
 }
@@ -2010,7 +2020,7 @@ const views = (userId) => {
 //     Geliefert wird die ZAHL, die Schwelle entscheidet die Oberflaeche.
 //     Gezaehlt werden nur ZUGAENGE, DIE ES NOCH GIBT -- ein Grabstein ist kein
 //     zweiter Bewerter.
-//   Adminfrage: kommt aus req.benutzer, ausdruecklich NICHT aus holeBenutzer()
+//   Adminfrage: kommt aus req.user, ausdruecklich NICHT aus holeBenutzer()
 //     -- das lieferte den ERSTEN Benutzer, nicht den angemeldeten.
 //   Eigentuemerfrage: erspart der Oberflaeche eine zweite Wahrheit darueber,
 //     wem die Instanz gehoert.
@@ -2022,30 +2032,30 @@ app.get('/api/settings', (req, res) => res.json({
   // das ist keine zweite Wahrheit, beide lesen dieselbe angemeldete Zeile.
   // Hier, weil ladeEinstellungen() beim Start ohnehin laeuft und die Kopfzeile
   // ihn damit ohne zweiten Abruf hat.
-  name: req.benutzer.username,
+  name: req.user.username,
   isAdmin: isAdmin(req),
   isOwner: isOwner(req),
-  filters: getUserSetting(req.benutzer.id, 'filters', null),
-  views: views(req.benutzer.id),
+  filters: getUserSetting(req.user.id, 'filters', null),
+  views: views(req.user.id),
   // Der Deckel kommt vom Server, damit die Zahl an einer Stelle steht: die
   // Oberflaeche laesst danach den Knopf zum Speichern weg, und der Server
   // verweigert es ohnehin.
   viewsCap: VIEWS_CAP,
   vocabulary: vocabulary(),
-  font: fontSize(req.benutzer.id),
-  strip: strip(req.benutzer.id),
-  theme: theme(req.benutzer.id),
-  blocks: blocks(req.benutzer.id),
-  linkRows: linkRows(req.benutzer.id),
-  timeline: timelineOn(req.benutzer.id),
+  font: fontSize(req.user.id),
+  strip: strip(req.user.id),
+  theme: theme(req.user.id),
+  blocks: blocks(req.user.id),
+  linkRows: linkRows(req.user.id),
+  timeline: timelineOn(req.user.id),
   /* DER BEZUGSPUNKT DER GLOCKE. Bis einschliesslich 0.16.0 stand
      `zuletztGesehen` daneben, der Merker der Pille „Neu seit ..."; er faellt
      mit ihr weg. Eine Antwort, die ein Feld weniger traegt, ist kein Bruch:
      die Oberflaeche wird im selben Dateisatz ausgeliefert. */
-  bellSeen: bellSeen(req.benutzer.id),
+  bellSeen: bellSeen(req.user.id),
   search: searchTemplate(),
   searchProviders: searchProviders(),
-  searchNames: searchNames(req.benutzer.id),
+  searchNames: searchNames(req.user.id),
   // Abgeleitet beim Lesen, nicht in der Datenbank nachgetragen. Die Oberflaeche
   // laesst danach die Zeile "+ neu anlegen" weg; die Auswahl aus dem
   // Vorhandenen bleibt in jedem Fall stehen.
@@ -2064,7 +2074,7 @@ app.get('/api/settings', (req, res) => res.json({
      Bestaetigungsfenster steht auch vor Export und Import, und ohne die
      Angabe muesste es den ersten Versuch absichtlich scheitern lassen.
      NUR EIN JA/NEIN. */
-  twoFactor: auth.twoFactorOn(req.benutzer.id),
+  twoFactor: auth.twoFactorOn(req.user.id),
   // Die Frist des Papierkorbs. Sie steht HIER und nicht nur in
   // GET /api/trash: den Loeschdialog sieht jeder, die Karte nur der
   // Admin. Eine Zahl, die die Oberflaeche selbst mitbraechte, waere eine
@@ -2102,8 +2112,8 @@ app.put('/api/settings', (req, res) => {
                                   ['backupDays', CLEANUP_DAYS, 'server.ruleDays']]) {
     if (req.body[k] === undefined) continue;
     const g = checkRuleValue(req.body[k], range, event);
-    if (g.fehler) return res.status(400).json({ error: t(localeOf(req), g.fehler, g.values) });
-    ruleValues[k] = g.wert;
+    if (g.error) return res.status(400).json({ error: t(localeOf(req), g.error, g.values) });
+    ruleValues[k] = g.value;
   }
 
   /* DIE ANSICHTEN WERDEN HIER GEPRUEFT UND ERST WEITER UNTEN GESCHRIEBEN --
@@ -2117,7 +2127,7 @@ app.put('/api/settings', (req, res) => {
     if (ein.length > VIEWS_CAP)
       return res.status(400).json({
         error: t(localeOf(req), 'server.viewCap', { deckel: VIEWS_CAP })});
-    const sauber = [];
+    const clean = [];
     const namen = new Set();
     for (const a of ein) {
       const name = a && typeof a.name === 'string'
@@ -2130,46 +2140,46 @@ app.put('/api/settings', (req, res) => {
          das Einzige, woran ein Mensch sie auseinanderhaelt. Verglichen wird
          ohne Ruecksicht auf Gross- und Kleinschreibung -- "Bosch" und "bosch"
          nebeneinander waeren dieselbe Falle mit einem Buchstaben Abstand. */
-      const schluessel = name.toLowerCase();
-      if (namen.has(schluessel))
+      const key = name.toLowerCase();
+      if (namen.has(key))
         return res.status(400).json({ error: t(localeOf(req), 'server.viewExists', { name })});
-      namen.add(schluessel);
-      sauber.push({
+      namen.add(key);
+      clean.push({
         name,
         q: a && typeof a.q === 'string' ? a.q.slice(0, VIEW_TERM_LENGTH) : '',
         filters: a && a.filters && typeof a.filters === 'object' ? a.filters : null
       });
     }
-    viewsText = JSON.stringify(sauber);
+    viewsText = JSON.stringify(clean);
     if (viewsText.length > VIEWS_CHARS)
       return res.status(400).json({ error: t(localeOf(req), 'server.viewsTooBig')});
   }
 
   if (req.body.filters !== undefined)
-    putUserSetting(req.benutzer.id, 'filters', JSON.stringify(req.body.filters));
+    putUserSetting(req.user.id, 'filters', JSON.stringify(req.body.filters));
   if (viewsText !== null)
-    putUserSetting(req.benutzer.id, 'views', viewsText);
+    putUserSetting(req.user.id, 'views', viewsText);
   if (req.body.vocabulary !== undefined) {
     const ein = req.body.vocabulary || {};
-    const sauber = {};
+    const clean = {};
     const fallback = vocabularyDefault();
     for (const k of Object.keys(fallback)) {
       const v = typeof ein[k] === 'string' ? ein[k].trim().slice(0, 40) : '';
-      sauber[k] = v || fallback[k];
+      clean[k] = v || fallback[k];
     }
-    putSetting.run('vocabulary', JSON.stringify(sauber));
+    putSetting.run('vocabulary', JSON.stringify(clean));
   }
   if (req.body.font !== undefined) {
     const n = Number(req.body.font);
     if (!FONT_LEVELS.includes(n))
       return res.status(400).json({ error: t(localeOf(req), 'server.fontUnknown')});
-    putUserSetting(req.benutzer.id, 'font', JSON.stringify(n));
+    putUserSetting(req.user.id, 'font', JSON.stringify(n));
   }
   if (req.body.strip !== undefined) {
     const n = Number(req.body.strip);
     if (!STRIP_LEVELS.includes(n))
       return res.status(400).json({ error: t(localeOf(req), 'server.stripUnknown')});
-    putUserSetting(req.benutzer.id, 'strip', JSON.stringify(n));
+    putUserSetting(req.user.id, 'strip', JSON.stringify(n));
   }
   /* DIE KLEMME STEHT AM SERVER UND NICHT NUR IN DER PILLENREIHE -- dieselbe
      Bauform wie bei der Schrift daruber. Eine Auswahl in der Oberflaeche ist
@@ -2178,11 +2188,11 @@ app.put('/api/settings', (req, res) => {
     const s = String(req.body.theme);
     if (!THEME_LEVELS.includes(s))
       return res.status(400).json({ error: t(localeOf(req), 'server.themeUnknown')});
-    putUserSetting(req.benutzer.id, 'theme', JSON.stringify(s));
+    putUserSetting(req.user.id, 'theme', JSON.stringify(s));
   }
   if (req.body.blocks !== undefined) {
     const ein = req.body.blocks || {};
-    putUserSetting(req.benutzer.id, 'blocks', JSON.stringify({
+    putUserSetting(req.user.id, 'blocks', JSON.stringify({
       seite: sortArea(ein.seite, BLOCK_VORGABE.seite),
       unten: sortArea(ein.unten, BLOCK_VORGABE.unten),
       zu: (Array.isArray(ein.zu) ? ein.zu : []).filter(k => CLOSED_BLOCKS.includes(k))
@@ -2192,10 +2202,10 @@ app.put('/api/settings', (req, res) => {
     const n = Number(req.body.linkRows);
     if (!LINK_ROW_LEVELS.includes(n))
       return res.status(400).json({ error: t(localeOf(req), 'server.linkRowsUnknown')});
-    putUserSetting(req.benutzer.id, 'linkRows', JSON.stringify(n));
+    putUserSetting(req.user.id, 'linkRows', JSON.stringify(n));
   }
   if (req.body.timeline !== undefined)
-    putUserSetting(req.benutzer.id, 'timeline', JSON.stringify(!!req.body.timeline));
+    putUserSetting(req.user.id, 'timeline', JSON.stringify(!!req.body.timeline));
   /* DER MERKZEITPUNKT KOMMT VON DER SERVERUHR, NIE VOM AUFRUFER. Was der
      Aufrufer schickt, ist ein Signal ("ich habe die Tafel geoeffnet") und keine
      Feststellung -- eine mitgeschickte Zeit waere eine Behauptung.
@@ -2212,18 +2222,18 @@ app.put('/api/settings', (req, res) => {
      DER TAFEL -- das entscheidet die Oberflaeche. Der Server nimmt das Signal
      entgegen und setzt seine Uhr. */
   if (req.body.bellSeen !== undefined)
-    putUserSetting(req.benutzer.id, 'bellSeen',
+    putUserSetting(req.user.id, 'bellSeen',
       JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
   // Eigene Anbieter zuerst: ein frisch angelegter muss im selben Zug in den
   // Vorrat aufgenommen werden koennen.
   if (req.body.searchOwn !== undefined) {
     const ein = Array.isArray(req.body.searchOwn) ? req.body.searchOwn : [];
-    const sauber = [];
+    const clean = [];
     for (let i = 0; i < OWN_SLOTS; i++) {
       const e = ein[i] || {};
       const name = searchNameClean(e.name);
       const template = typeof e.template === 'string' ? e.template.trim() : '';
-      if (!name && !template) { sauber.push(null); continue; }   // Platz geraeumt
+      if (!name && !template) { clean.push(null); continue; }   // Platz geraeumt
       // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
       // nicht, sonst sucht man den Anbieter spaeter in der Liste.
       if (!name)
@@ -2231,9 +2241,9 @@ app.put('/api/settings', (req, res) => {
       if (!searchTemplateOk(template))
         return res.status(400).json({
           error: t(localeOf(req), 'server.searchUrlForm')});
-      sauber.push({ name, template });
+      clean.push({ name, template });
     }
-    putSetting.run('searchOwn', JSON.stringify(sauber));
+    putSetting.run('searchOwn', JSON.stringify(clean));
     // Faellt ein Anbieter weg, der im Vorrat oder sogar Standard war, raeumt
     // das Zurueckschreiben das auf: der erste aktive rueckt nach.
     const pool = searchPool();
@@ -2243,9 +2253,9 @@ app.put('/api/settings', (req, res) => {
   // Schluessel und einen Standard ausserhalb des Vorrats richtet
   // writePool gerade.
   if (req.body.searchOn !== undefined) {
-    const alle = allProviders();
+    const all = allProviders();
     const ein = (Array.isArray(req.body.searchOn) ? req.body.searchOn : [])
-      .filter(k => typeof k === 'string' && alle.some(a => a.schluessel === k && a.vorhanden));
+      .filter(k => typeof k === 'string' && all.some(a => a.key === k && a.vorhanden));
     // Den letzten aus dem Vorrat zu nehmen macht jede Suchzeile unbenutzbar.
     // Ersatzweise auf den eingebauten ersten zu wechseln waere schlimmer als
     // eine Absage: es hiesse, ab jetzt wortlos woanders zu suchen.
@@ -2257,7 +2267,7 @@ app.put('/api/settings', (req, res) => {
     const n = Number(req.body.searchNames);
     if (!SEARCH_NAME_LEVELS.includes(n))
       return res.status(400).json({ error: t(localeOf(req), 'server.searchNamesUnknown')});
-    putUserSetting(req.benutzer.id, 'searchNames', JSON.stringify(n));
+    putUserSetting(req.user.id, 'searchNames', JSON.stringify(n));
   }
   // Die beiden Anlegen-Schalter sind global und damit Adminsache -- ueber die
   // Ableitung ganz oben, ohne zweite Liste und ohne eigene Route.
@@ -2276,14 +2286,14 @@ app.put('/api/settings', (req, res) => {
   if (req.body.backupCleanup !== undefined)
     putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
   for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
-  res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vocabulary: vocabulary(),
-             views: views(req.benutzer.id), viewsCap: VIEWS_CAP,
-             font: fontSize(req.benutzer.id), strip: strip(req.benutzer.id),
-             theme: theme(req.benutzer.id),
-             blocks: blocks(req.benutzer.id),
-             linkRows: linkRows(req.benutzer.id), timeline: timelineOn(req.benutzer.id),
+  res.json({ filters: getUserSetting(req.user.id, 'filters', null), vocabulary: vocabulary(),
+             views: views(req.user.id), viewsCap: VIEWS_CAP,
+             font: fontSize(req.user.id), strip: strip(req.user.id),
+             theme: theme(req.user.id),
+             blocks: blocks(req.user.id),
+             linkRows: linkRows(req.user.id), timeline: timelineOn(req.user.id),
              search: searchTemplate(), searchProviders: searchProviders(),
-             searchNames: searchNames(req.benutzer.id),
+             searchNames: searchNames(req.user.id),
              tagsFreeCreate: freeCreate('tagsFreeCreate'),
              categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
              convertImages: convertImages() });
@@ -2546,13 +2556,13 @@ app.post('/api/items/:id/tags', entryAuthorOnly, (req, res) => {
   }
   db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(req.params.id, tag.id);
   touch.run(req.params.id);
-  res.status(201).json(detail(req.params.id, req.benutzer.id));
+  res.status(201).json(detail(req.params.id, req.user.id));
 });
 
 app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
   db.prepare('DELETE FROM item_tags WHERE item_id = ? AND tag_id = ?').run(req.params.id, req.params.tagId);
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.benutzer.id));
+  res.json(detail(req.params.id, req.user.id));
 });
 
 /* ================= Eintraege ================= */
@@ -2613,7 +2623,7 @@ function qComments(itemId, userId, card) {
     c.pinned = !!c.pinned;
     c.images = qCommentImages.all(c.id);
     c.mine = c.user_id === userId;
-    c.verfasser = authorFrom(card, c.user_id);
+    c.author = authorFrom(card, c.user_id);
     // Der Eingriffsvermerk. Eine EIGENE Angabe neben dem Text, nie in ihm --
     // ein Admin, der in ein fremdes Textfeld schriebe, taete genau das, was
     // ihm verwehrt ist.
@@ -2724,7 +2734,7 @@ const qAllCategories = db.prepare('SELECT id, name FROM product_categories');
    Gesamtschnitts gar nicht aus einer anderen Menge entstehen als der Zaehler.
    Gezaehlt wird ueber Werte > 0: eine zurueckgesetzte Zeile ist keine Stimme. */
 const qAveragePerCriterion = db.prepare(`
-  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS anzahl,
+  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,
          c.weight, c.phase
     FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
    WHERE r.item_id = ? AND r.value > 0
@@ -2742,9 +2752,9 @@ const qAveragePerCriterion = db.prepare(`
    EINE ABFRAGE UND NICHT ZWEI: zwei Abfragen mit zwei WHERE-Zusaetzen liefen
    ueber dieselbe Tabelle und koennten auseinanderlaufen; hier faellt jede
    Zeile in genau einen der beiden Kaesten, und zwar an einer Stelle. */
-function cardPerPhase(zeilen) {
+function cardPerPhase(rows) {
   const box = { before: new Map(), after: new Map() };
-  for (const z of zeilen) {
+  for (const z of rows) {
     // Ein unbekannter Wert in der Spalte kaeme nur aus einer Schreibung an
     // PHASEN vorbei. Er faellt in keinen der beiden Kaesten, statt still im
     // falschen zu landen.
@@ -2766,7 +2776,7 @@ function averagesPerCriterion(itemId) {
    waeren zwei Wahrheiten (Stolperstein 47); zwei Abfragen mit demselben
    Ergebnis sind es nicht -- eine Pruefung haelt sie gegeneinander. */
 const qAveragePerCriterionAll = db.prepare(`
-  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS anzahl,
+  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,
          c.weight, c.phase
     FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
    WHERE r.value > 0
@@ -2781,9 +2791,9 @@ function averagesPerEntry() {
     if (!raw.has(z.item_id)) raw.set(z.item_id, []);
     raw.get(z.item_id).push(z);
   }
-  const alle = new Map();
-  for (const [itemId, zeilen] of raw) alle.set(itemId, cardPerPhase(zeilen));
-  return alle;
+  const all = new Map();
+  for (const [itemId, rows] of raw) all.set(itemId, cardPerPhase(rows));
+  return all;
 }
 
 // Was ein Eintrag OHNE eine einzige Sternzeile mitbringt -- zwei leere Kaesten.
@@ -2805,8 +2815,8 @@ function votesPerCriterion(itemId, userId, card) {
   for (const z of qVotesRaw.all(itemId)) {
     if (!m.has(z.criterion_id)) m.set(z.criterion_id, []);
     m.get(z.criterion_id).push({
-      id: z.id, wert: z.value, mine: z.user_id === userId,
-      verfasser: authorFrom(card, z.user_id)
+      id: z.id, value: z.value, mine: z.user_id === userId,
+      author: authorFrom(card, z.user_id)
     });
   }
   return m;
@@ -2853,12 +2863,12 @@ function totalAverage(card, calc) {
      verglichen sich zwei Rechnungen ueber verschiedene Mengen, und der
      Unterschied saehe nach Gewichtung aus, wo er keiner ist. */
   let sameCounter = 0;
-  const zeilen = [];
+  const rows = [];
   for (const z of card.values()) {
     const produkt = z.average * z.weight;
     counter += produkt; nenner += z.weight;
     sameCounter += z.average;
-    zeilen.push({ criterionId: z.criterion_id, average: z.average, weight: z.weight, produkt });
+    rows.push({ criterionId: z.criterion_id, average: z.average, weight: z.weight, produkt });
   }
   // UNGERUNDET, wie hier gerechnet wird. Gerundet wird genau einmal, unten am
   // Ergebnis -- die Oberflaeche rundet nur noch fuer die Anzeige und sagt das
@@ -2868,11 +2878,11 @@ function totalAverage(card, calc) {
   // hat keine Zahl darueber, an der sie sonst haengen koennte. Der ungerundete
   // Quotient reist daneben mit, wie beim gewichteten Ergebnis auch.
   if (calc) Object.assign(calc,
-    { zeilen, sum: counter, divisor: nenner, raw: nenner ? counter / nenner : null,
-      equalSum: sameCounter, equalDivisor: zeilen.length,
-      equalRaw: zeilen.length ? sameCounter / zeilen.length : null,
-      equalResult: zeilen.length
-        ? Math.round((sameCounter / zeilen.length) * 10) / 10 : null });
+    { rows, sum: counter, divisor: nenner, raw: nenner ? counter / nenner : null,
+      equalSum: sameCounter, equalDivisor: rows.length,
+      equalRaw: rows.length ? sameCounter / rows.length : null,
+      equalResult: rows.length
+        ? Math.round((sameCounter / rows.length) * 10) / 10 : null });
   // Kein Nenner heisst: kein bewertetes Kriterium, also keine Zahl. Bei
   // mindestens einer Zeile ist er mindestens WEIGHT_MIN und damit nie null.
   if (!nenner) return null;
@@ -2898,7 +2908,7 @@ function qTestDays(itemId, userId, card) {
     // Der Name steht neben `mine`, er ersetzt es nicht: die Zeitleiste
     // unterscheidet eigene von fremden Punkten ueber die Fuellung und braucht
     // dafuer keinen Namen, die Zeile im Eintrag braucht ihn.
-    tag.verfasser = authorFrom(card, tag.user_id);
+    tag.author = authorFrom(card, tag.user_id);
     delete tag.user_id;
   }
   return days;
@@ -2975,7 +2985,7 @@ function detail(id, userId) {
   // darauf zu.
   const card = authorCard();
   it.rejected = !!it.rejected; it.tested = !!it.tested;
-  it.verfasser = authorFrom(card, it.user_id);
+  it.author = authorFrom(card, it.user_id);
   /* WEM DER EINTRAG GEHOERT, SAGT DER SERVER -- wie am Kommentar, an der
      Linkzeile und am Anhang. Die Oberflaeche kennt nur ihren NAMEN und nicht
      ihre Nummer; aus einem Grabstein liesse sich ohnehin nichts
@@ -3013,7 +3023,7 @@ function detail(id, userId) {
     id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
     sort_order: a2.sort_order, created_at: a2.created_at,
     preview: anh.previewKind(a2.filename),
-    mine: a2.user_id === userId, verfasser: authorFrom(card, a2.user_id)
+    mine: a2.user_id === userId, author: authorFrom(card, a2.user_id)
   }));
   /* Die Linkzeile sagt wie Kommentar, Testtag und Stimme, wem sie gehoert --
      an `mine` haengt das Loeschkreuz, und bei einem Grabstein liesse es sich
@@ -3022,7 +3032,7 @@ function detail(id, userId) {
      WER DEN NAMEN ZEIGT, entscheidet die Oberflaeche. */
   it.links = qLinks.all(id).map(l => ({
     id: l.id, url: l.url, sort_order: l.sort_order, created_at: l.created_at,
-    mine: l.user_id === userId, verfasser: authorFrom(card, l.user_id)
+    mine: l.user_id === userId, author: authorFrom(card, l.user_id)
   }));
   it.tags = qTags.all(id);
   it.testDays = qTestDays(id, userId, card);
@@ -3056,7 +3066,7 @@ function detail(id, userId) {
     const box = averages[r.phase];
     const z = box && box.get(r.criterion_id);
     r.avg = z ? Math.round(z.average * 10) / 10 : null;
-    r.count = z ? z.anzahl : 0;
+    r.count = z ? z.count : 0;
   }
   /* DIE AUFSTELLUNG GEHT NUR AM EINZELNEN EINTRAG MIT -- dort steht die
      Kopfzahl, und dort wird gefragt, wie sie zustande kommt. In der Uebersicht
@@ -3074,10 +3084,10 @@ function detail(id, userId) {
      Kaesten, also braucht sie es auch beide Male. */
   const calc = {};
   it.avgRating = totalAverage(averages.after, calc);
-  it.rechenweg = { ...calc, result: it.avgRating };
+  it.calc = { ...calc, result: it.avgRating };
   const potentialCalc = {};
   it.potentialRating = totalAverage(averages.before, potentialCalc);
-  it.potenzialRechenweg = { ...potentialCalc, result: it.potentialRating };
+  it.potentialCalc = { ...potentialCalc, result: it.potentialRating };
   Object.assign(it, testStats(id));
   return it;
 }
@@ -3166,30 +3176,30 @@ const qAttachmentCounts = db.prepare('SELECT item_id, COUNT(*) n FROM attachment
    Reihenfolge, in der die Oberflaeche die Zeilen ohnehin zeigt -- Links nach
    ihrer Sortierung, Kommentare nach ihrem Alter, Tags nach ihrem Namen. */
 const FULLTEXT_SOURCES = [
-  { schluessel: 'beschreibung',
-    wert: 'CASE WHEN instr(kkl(i.description), :q) > 0 THEN i.description END' },
-  { schluessel: 'comment',
-    wert: `(SELECT k.text FROM comments k
+  { key: 'beschreibung',
+    value: 'CASE WHEN instr(kkl(i.description), :q) > 0 THEN i.description END' },
+  { key: 'comment',
+    value: `(SELECT k.text FROM comments k
              WHERE k.item_id = i.id AND instr(kkl(k.text), :q) > 0
              ORDER BY k.id LIMIT 1)` },
-  { schluessel: 'link',
-    wert: `(SELECT l.url FROM links l
+  { key: 'link',
+    value: `(SELECT l.url FROM links l
              WHERE l.item_id = i.id AND instr(kkl(l.url), :q) > 0
              ORDER BY l.sort_order, l.id LIMIT 1)` },
-  { schluessel: 'testtag',
-    wert: `(SELECT tt.name FROM test_days d
+  { key: 'testtag',
+    value: `(SELECT tt.name FROM test_days d
               JOIN test_day_tags dt ON dt.test_day_id = d.id
               JOIN tags tt ON tt.id = dt.tag_id
              WHERE d.item_id = i.id AND instr(kkl(tt.name), :q) > 0
              ORDER BY tt.name, tt.id LIMIT 1)` },
-  { schluessel: 'tag',
-    wert: `(SELECT t.name FROM item_tags it JOIN tags t ON t.id = it.tag_id
+  { key: 'tag',
+    value: `(SELECT t.name FROM item_tags it JOIN tags t ON t.id = it.tag_id
              WHERE it.item_id = i.id AND instr(kkl(t.name), :q) > 0
              ORDER BY t.name, t.id LIMIT 1)` },
-  { schluessel: 'kategorie',
-    wert: 'CASE WHEN instr(kkl(c.name), :q) > 0 THEN c.name END' },
-  { schluessel: 'titel',
-    wert: 'CASE WHEN instr(kkl(i.title), :q) > 0 THEN i.title END' }
+  { key: 'kategorie',
+    value: 'CASE WHEN instr(kkl(c.name), :q) > 0 THEN c.name END' },
+  { key: 'titel',
+    value: 'CASE WHEN instr(kkl(i.title), :q) > 0 THEN i.title END' }
 ];
 
 /* DER FILTER BLEIBT DIE ODER-KETTE, und das ist keine Formsache: SQLite
@@ -3208,10 +3218,10 @@ const FULLTEXT_SOURCES = [
    gilt nur fuer die Zeilen, die NICHT treffen (Stolperstein 260). */
 const qFulltext = db.prepare(`
   SELECT i.id,
-         ${FULLTEXT_SOURCES.map(q => `${q.wert} AS f_${q.schluessel}`).join(',\n         ')}
+         ${FULLTEXT_SOURCES.map(q => `${q.value} AS f_${q.key}`).join(',\n         ')}
     FROM items i
     LEFT JOIN product_categories c ON c.id = i.product_category_id
-   WHERE ${FULLTEXT_SOURCES.map(q => `(${q.wert}) IS NOT NULL`).join('\n      OR ')}`);
+   WHERE ${FULLTEXT_SOURCES.map(q => `(${q.value}) IS NOT NULL`).join('\n      OR ')}`);
 
 /* WIE LANG EIN AUSSCHNITT IST -- GEMESSEN UND NICHT GESCHAETZT.
    Die schmalste Kachel ist 240 px breit (`.grid`, minmax(240px, 1fr)), davon
@@ -3251,17 +3261,17 @@ function snippet(text, term, locale = LANGUAGE_DEFAULT) {
   const row = oneLine(text);
   const b = String(term ?? '');
   if (!b) return row.slice(0, SNIPPET_LENGTH);
-  const ort = localeTag(locale);
-  const place = row.toLocaleLowerCase(ort).indexOf(b.toLocaleLowerCase(ort));
+  const place = localeTag(locale);
+  const pos = row.toLocaleLowerCase(place).indexOf(b.toLocaleLowerCase(place));
   /* GEFUNDEN WIRD SIE HIER NORMALERWEISE WIEDER -- gesucht hat SQLite auf dem
      Rohtext, geschnitten wird auf dem eingeebneten. Ein Begriff, der selbst
      einen doppelten Leerraum traegt, ist danach nicht mehr zu finden; dann
      steht der Anfang des Textes da statt gar nichts. Ein stiller Fehlgriff
      waere ein Ausschnitt OHNE die Fundstelle -- der Anfang ist wenigstens
      wahr. */
-  const von = place < 0 ? 0 : Math.max(0, place - SNIPPET_LEAD);
-  const bis = von + SNIPPET_LENGTH;
-  return (von > 0 ? '…' : '') + row.slice(von, bis) + (bis < row.length ? '…' : '');
+  const from = pos < 0 ? 0 : Math.max(0, pos - SNIPPET_LEAD);
+  const to = from + SNIPPET_LENGTH;
+  return (from > 0 ? '…' : '') + row.slice(from, to) + (to < row.length ? '…' : '');
 }
 
 /* DER BEGRIFF WIRD GENAU SO ZUGESCHNITTEN WIE VORHER IM BROWSER: aussen
@@ -3283,11 +3293,11 @@ const fulltextTerm = (raw, locale = LANGUAGE_DEFAULT) =>
    Schluessel, kein Wort. „Tag am Testtag" heisst je nach eingestelltem
    Vokabular anders, und das weiss die Oberflaeche. */
 const fulltextHits = (term, locale = LANGUAGE_DEFAULT) => new Map(qFulltext.all({ q: term }).map(r => {
-  const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.schluessel] != null);
+  const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.key] != null);
   const first = hit[0];
   return [r.id, first ? {
-    source: first.schluessel,
-    text: snippet(r['f_' + first.schluessel], term, locale),
+    source: first.key,
+    text: snippet(r['f_' + first.key], term, locale),
     weitere: hit.length - 1
   } : null];
 }));
@@ -3364,12 +3374,12 @@ app.get('/api/items', (req, res) => {
      Ist sie aus, faellt `testDays` aus der Antwort -- gemessen 6 Prozent.
      AUS DER LISTENANTWORT LIEST DAS FELD GENAU EINE STELLE, zeitleistePunkte();
      Kachel und Vergleich rechnen aus anderen Feldern. */
-  const timeline = timelineOn(req.benutzer.id);
+  const timeline = timelineOn(req.user.id);
   // Eine Abfrage fuer die ganze Liste statt einer je Zeile. Die
   // Sortierung bleibt updated_at fuer alle -- die Uebersicht zeigt, wo etwas
   // geschieht, nicht wo ich zuletzt war. Nach vorn zieht der eigene Favorit
   // erst in der Oberflaeche, und nur fuer den, dem er gehoert.
-  const myPins = new Set(qMyPins.all(req.benutzer.id).map(p => p.item_id));
+  const myPins = new Set(qMyPins.all(req.user.id).map(p => p.item_id));
   // Einmal fuer die ganze Liste, nicht je Eintrag -- sonst stuende dieselbe
   // Abfrage bei hundert Eintraegen hundertmal.
   const card = authorCard();
@@ -3392,7 +3402,7 @@ app.get('/api/items', (req, res) => {
      KEINE SUMME AN DER ANTWORT: sie folgt aus den beiden Zahlen, und eine
      Summe neben ihren Teilen waere eine zweite Wahrheit ueber dieselbe Sache
      (Stolperstein 47). Gebildet wird sie in der Oberflaeche, an einer Stelle. */
-  const reference = bellSeen(req.benutzer.id);
+  const reference = bellSeen(req.user.id);
   const newCommentsPer = new Map(), neuBewJe = new Map(), neuVonJe = new Map();
   if (reference) {
     /* WER EINEN KOMMENTAR GESCHRIEBEN HAT -- je Eintrag eine Menge von
@@ -3431,11 +3441,11 @@ app.get('/api/items', (req, res) => {
        `IS NOT` UND NICHT `!=`: eine herrenlose Zeile traegt `user_id = NULL`,
        und `NULL != 1` ist in SQL weder wahr noch falsch, sondern NULL -- die
        Zeile fiele stillschweigend heraus. `IS NOT` vergleicht auch NULL. */
-    for (const z of qNewComments.all(reference, req.benutzer.id)) {
+    for (const z of qNewComments.all(reference, req.user.id)) {
       newCommentsPer.set(z.item_id, (newCommentsPer.get(z.item_id) || 0) + z.n);
       actor(z.item_id, z.user_id);
     }
-    for (const z of qNewRatings.all(reference, req.benutzer.id))
+    for (const z of qNewRatings.all(reference, req.user.id))
       neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);
   }
   /* DIE FOTOS ALLER EINTRAEGE IN EINER ABFRAGE, seit 0.19.2 -- vorher eine je
@@ -3512,10 +3522,10 @@ app.get('/api/items', (req, res) => {
   const averagesPer = averagesPerEntry();
   const catPer = new Map(qAllCategories.all().map(k => [k.id, k]));
   // Die Testtage nur, wenn die Zeitleiste ueberhaupt an ist -- wie bisher.
-  const testDaysPer = timeline ? testDaysPerEntry(req.benutzer.id) : null;
+  const testDaysPer = timeline ? testDaysPerEntry(req.user.id) : null;
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
-    it.verfasser = authorFrom(card, it.user_id);
+    it.author = authorFrom(card, it.user_id);
     delete it.user_id;
     it.favorite = myPins.has(it.id);
     const ph = photosPer.get(it.id) || [];
@@ -3591,7 +3601,7 @@ app.get('/api/items', (req, res) => {
 });
 
 app.get('/api/items/:id', (req, res) => {
-  const it = detail(req.params.id, req.benutzer.id);
+  const it = detail(req.params.id, req.user.id);
   if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
   res.json(it);
 });
@@ -3599,13 +3609,13 @@ app.get('/api/items/:id', (req, res) => {
 app.post('/api/items', (req, res) => {
   const title = (req.body.title || '').trim();
   if (!title) return res.status(400).json({ error: t(localeOf(req), 'server.titleMissing')});
-  // Der Anlegende ist der Verfasser. req.benutzer steht an
+  // Der Anlegende ist der Verfasser. req.user steht an
   // jedem geschuetzten Endpunkt (auth.js, requireAuth). BEWUSST OHNE ?.: fiele
   // es je weg, soll das mit einem Fehler auffallen und nicht als stille Zeile
   // ohne Benutzer, die der naechste Start heimlich nachtraegt.
   const i = db.prepare('INSERT INTO items (title, description, user_id) VALUES (?, ?, ?)')
-    .run(title, req.body.description || '', req.benutzer.id);
-  res.status(201).json(detail(i.lastInsertRowid, req.benutzer.id));
+    .run(title, req.body.description || '', req.user.id);
+  res.status(201).json(detail(i.lastInsertRowid, req.user.id));
 });
 
 /* DIE BEGRUENDUNG EINER ABLEHNUNG -- EINE ZEILE TEXT.
@@ -3703,9 +3713,9 @@ app.put('/api/items/:id', (req, res) => {
   //      macht die eigene Ablage zur Nachricht an alle.
   if (b.favorite !== undefined) {
     if (b.favorite) db.prepare('INSERT OR IGNORE INTO item_pins (user_id, item_id) VALUES (?, ?)')
-      .run(req.benutzer.id, req.params.id);
+      .run(req.user.id, req.params.id);
     else db.prepare('DELETE FROM item_pins WHERE user_id = ? AND item_id = ?')
-      .run(req.benutzer.id, req.params.id);
+      .run(req.user.id, req.params.id);
   }
 
   const sets = [], vals = [];
@@ -3731,7 +3741,7 @@ app.put('/api/items/:id', (req, res) => {
     // kommt aus der Datenbank und nie aus dem Rumpf -- und auch nicht aus
     // einer zweiten Quelle in JS, die um Sekunden danebenlaege.
     sets.push(`rejected_at = datetime('now')`);
-    put('rejected_by', req.benutzer.id);
+    put('rejected_by', req.user.id);
     put('rejected_reason', reasonText(b.rejectedReason));
   } else if (b.rejectedReason !== undefined) {
     put('rejected_reason', reasonText(b.rejectedReason));
@@ -3739,7 +3749,7 @@ app.put('/api/items/:id', (req, res) => {
        nach, wo keiner steht -- das ist der Fall einer Ablehnung aus einer
        Instanz vor 0.14.0, in der jemand einen Text hinschreibt. Ein leeres Feld
        hat keinen Verfasser, und wer es leert, hat nichts geschrieben. */
-    if (it.rejected_by == null && !removedReason) put('rejected_by', req.benutzer.id);
+    if (it.rejected_by == null && !removedReason) put('rejected_by', req.user.id);
   }
   if (b.tested !== undefined) put('tested', b.tested ? 1 : 0);
   if (b.productCategoryId !== undefined) put('product_category_id', b.productCategoryId);
@@ -3747,7 +3757,7 @@ app.put('/api/items/:id', (req, res) => {
     sets.push(`updated_at = datetime('now')`);
     db.prepare(`UPDATE items SET ${sets.join(', ')} WHERE id = ?`).run(...vals, req.params.id);
   }
-  res.json(detail(req.params.id, req.benutzer.id));
+  res.json(detail(req.params.id, req.user.id));
 });
 
 /* Die Zahlen fuer den Loeschdialog am Eintrag. Lesend, deshalb kein Eintrag
@@ -3758,13 +3768,13 @@ app.put('/api/items/:id', (req, res) => {
    Links und Dateien koennen fremd sein.
    value > 0: eine zurueckgesetzte Zeile ist keine Stimme. */
 app.get('/api/items/:id/inventory', entryAuthorOnly, (req, res) => {
-  const id = req.params.id, ich = req.benutzer.id;
+  const id = req.params.id, ich = req.user.id;
   const one = (sql, ...w) => db.prepare(sql).get(...w).n;
   res.json({
     // Zwei Zeilen, nicht eine Summe: ein Dialog, der "3 Fotos" sagt und dabei
     // ein Video mit wegwirft, verschweigt genau die Zeile, um derentwillen er
     // dasteht. `fotos` behaelt seine Bedeutung und bekommt einen Nachbarn.
-    fotos: one("SELECT COUNT(*) n FROM photos WHERE item_id = ? AND kind != 'video'", id),
+    photos: one("SELECT COUNT(*) n FROM photos WHERE item_id = ? AND kind != 'video'", id),
     videos: one("SELECT COUNT(*) n FROM photos WHERE item_id = ? AND kind = 'video'", id),
     ownFiles: one('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id = ?', id, ich),
     foreignFiles: one('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
@@ -3790,7 +3800,7 @@ app.delete('/api/items/:id', entryAuthorOnly, (req, res) => {
   // und der Eintrag ist wirklich weg -- er liegt nur zusaetzlich noch als
   // Paket daneben. Der Dialog in der Oberflaeche sagt es vorher;
   // "unwiderruflich" waere falsch.
-  intoTrash(req.params.id, req.benutzer.id);
+  intoTrash(req.params.id, req.user.id);
   reclaim();
   res.status(204).end();
 });
@@ -3826,7 +3836,7 @@ app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), a
       into.run(req.params.id, ab.mime, ab.data, v.thumb, v.medium, pos++);
     }
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.benutzer.id));
+    res.status(201).json(detail(req.params.id, req.user.id));
   } catch (e) { next(e); }
 });
 
@@ -3904,7 +3914,7 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
                   VALUES (?, ?, ?, ?, ?, ?, 'video', ?)`)
         .run(req.params.id, video.mimetype, video.buffer, v.thumb, v.medium, pos, duration);
       touch.run(req.params.id);
-      res.status(201).json(detail(req.params.id, req.benutzer.id));
+      res.status(201).json(detail(req.params.id, req.user.id));
     } catch (e) { next(e); }
   });
 
@@ -3932,8 +3942,8 @@ app.get('/api/photos/:id/raw', (req, res) => {
     res.set('Content-Range', `bytes */${blob.length}`);
     return res.status(416).end();
   }
-  res.set('Content-Range', `bytes ${b.from}-${b.bis}/${blob.length}`);
-  res.status(206).send(blob.slice(b.from, b.bis + 1));
+  res.set('Content-Range', `bytes ${b.from}-${b.to}/${blob.length}`);
+  res.status(206).send(blob.slice(b.from, b.to + 1));
 });
 
 /* --- Der Ausschnitt der Vorschau: drei Werte, EINE Spanne ----------------
@@ -4068,7 +4078,7 @@ app.put('/api/photos/:id/focus', (req, res) => {
      davor: es liest `length(thumb)` als Fassung mit, und die soll die NEUE
      sein -- sonst zeigte der Browser die alte Kachel unter der alten Adresse
      weiter, und der ganze Schritt waere umsonst. */
-  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.benutzer.id)));
+  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id)));
 });
 
 /* ---- Anhaenge ----
@@ -4101,10 +4111,10 @@ app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMEN
       // nichts weiter sein als ein merkwuerdiger Dateiname.
       const name = path.basename(String(f.originalname || 'datei')).slice(0, 200) || 'datei';
       into.run(req.params.id, name, String(f.mimetype || '').slice(0, 120), f.buffer.length, f.buffer,
-              pos++, req.benutzer.id);
+              pos++, req.user.id);
     }
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.benutzer.id));
+    res.status(201).json(detail(req.params.id, req.user.id));
   } catch (e) { next(e); }
 });
 
@@ -4147,7 +4157,7 @@ app.delete('/api/attachments/:id', (req, res) => {
   rest.forEach((r, i) => s2.run(i, r.id));
   touch.run(a.item_id);
   reclaim();
-  res.json(detail(a.item_id, req.benutzer.id));
+  res.json(detail(a.item_id, req.user.id));
 });
 
 app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
@@ -4155,7 +4165,7 @@ app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
   const s = db.prepare('UPDATE photos SET sort_order = ? WHERE id = ? AND item_id = ?');
   db.transaction(() => ids.forEach((pid, i) => s.run(i, pid, req.params.id)))();
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.benutzer.id));
+  res.json(detail(req.params.id, req.user.id));
 });
 
 app.delete('/api/photos/:id', (req, res) => {
@@ -4213,9 +4223,9 @@ app.post('/api/items/:id/links', (req, res) => {
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM links WHERE item_id = ?')
     .get(req.params.id).m + 1;
   db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
-    .run(req.params.id, url, pos, req.benutzer.id);
+    .run(req.params.id, url, pos, req.user.id);
   touch.run(req.params.id);
-  res.status(201).json(detail(req.params.id, req.benutzer.id));
+  res.status(201).json(detail(req.params.id, req.user.id));
 });
 
 /* SORTIEREN BLEIBT BEIM EINTRAGSVERFASSER UND ADMIN -- ausdruecklich, nicht
@@ -4227,7 +4237,7 @@ app.put('/api/items/:id/link-order', entryAuthorOnly, (req, res) => {
   const s = db.prepare('UPDATE links SET sort_order = ? WHERE id = ? AND item_id = ?');
   db.transaction(() => ids.forEach((lid, i) => s.run(i, lid, req.params.id)))();
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.benutzer.id));
+  res.json(detail(req.params.id, req.user.id));
 });
 
 /* LOESCHEN DARF DER EINTRAGER ODER DER ADMIN. Gefragt wird nach der ZEILE
@@ -4261,7 +4271,7 @@ app.post('/api/items/:id/test-days', (req, res) => {
   // sondern zwei Testtage -- ersetzt wird nur, was einem selbst gehoert, und
   // "replaced" in der Antwort meint dasselbe.
   const existing = db.prepare('SELECT id FROM test_days WHERE item_id = ? AND day = ? AND user_id = ?')
-    .get(req.params.id, day, req.benutzer.id);
+    .get(req.params.id, day, req.user.id);
   // Das Konfliktziel MUSS dem UNIQUE der Tabelle entsprechen; passt es nicht,
   // lehnt SQLite die Anweisung rundheraus ab ("ON CONFLICT clause does not
   // match any PRIMARY KEY or UNIQUE constraint") -- der Eintrag stuerbe mit 500,
@@ -4270,9 +4280,9 @@ app.post('/api/items/:id/test-days', (req, res) => {
   // nie die eines anderen.
   db.prepare(`INSERT INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)
               ON CONFLICT(item_id, day, user_id) DO UPDATE SET rating = excluded.rating`)
-    .run(req.params.id, day, rating, req.benutzer.id);
+    .run(req.params.id, day, rating, req.user.id);
   db.prepare(`UPDATE items SET tested = 1, updated_at = datetime('now') WHERE id = ?`).run(req.params.id);
-  res.status(201).json({ ...detail(req.params.id, req.benutzer.id), replaced: !!existing });
+  res.status(201).json({ ...detail(req.params.id, req.user.id), replaced: !!existing });
 });
 
 // Die NOTE eines fremden Testtags aendert niemand, auch der Admin
@@ -4286,7 +4296,7 @@ app.put('/api/test-days/:id', (req, res) => {
   if (!selfOnly(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('UPDATE test_days SET rating = ? WHERE id = ?').run(rating, req.params.id);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.benutzer.id));
+  res.json(detail(testDay.item_id, req.user.id));
 });
 
 app.delete('/api/test-days/:id', (req, res) => {
@@ -4297,7 +4307,7 @@ app.delete('/api/test-days/:id', (req, res) => {
   if (!mayChange(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM test_days WHERE id = ?').run(req.params.id);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.benutzer.id));
+  res.json(detail(testDay.item_id, req.user.id));
 });
 
 // Tags am Testtag. Derselbe Vorrat wie am Eintrag -- ein hier neu getippter
@@ -4324,7 +4334,7 @@ app.post('/api/test-days/:id/tags', (req, res) => {
   }
   db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(testDay.id, tag.id);
   touch.run(testDay.item_id);
-  res.status(201).json(detail(testDay.item_id, req.benutzer.id));
+  res.status(201).json(detail(testDay.item_id, req.user.id));
 });
 
 app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
@@ -4333,7 +4343,7 @@ app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
   if (!selfOnly(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM test_day_tags WHERE test_day_id = ? AND tag_id = ?').run(testDay.id, req.params.tagId);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.benutzer.id));
+  res.json(detail(testDay.item_id, req.user.id));
 });
 
 /* ---- Bewertungen ---- */
@@ -4380,9 +4390,9 @@ app.put('/api/items/:id/ratings', (req, res) => {
               VALUES (?, ?, ?, ?, datetime('now'))
               ON CONFLICT(item_id, criterion_id, user_id)
               DO UPDATE SET value = excluded.value, set_at = excluded.set_at`)
-    .run(req.params.id, req.body.criterionId, v, req.benutzer.id);
+    .run(req.params.id, req.body.criterionId, v, req.user.id);
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.benutzer.id));
+  res.json(detail(req.params.id, req.user.id));
 });
 
 /* HIER STAND BIS 0.20.1 `DELETE /api/items/:id/ratings` -- das
@@ -4407,7 +4417,7 @@ app.put('/api/items/:id/ratings', (req, res) => {
    vom Bildschirm aus keinen Weg zu einer einzelnen fremden Bewertung.
    Nur Kriterien MIT Stimmen; den Namen hat die Oberflaeche aus dem Eintrag. */
 app.get('/api/items/:id/votes', adminOnly, (req, res) => {
-  const votes = votesPerCriterion(req.params.id, req.benutzer.id, authorCard());
+  const votes = votesPerCriterion(req.params.id, req.user.id, authorCard());
   res.json([...votes].map(([criterion_id, list]) => ({ criterion_id, votes: list })));
 });
 
@@ -4423,7 +4433,7 @@ app.delete('/api/ratings/:id', (req, res) => {
   if (!mayChange(req, r.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM ratings WHERE id = ?').run(r.id);
   touch.run(r.item_id);
-  res.json(detail(r.item_id, req.benutzer.id));
+  res.json(detail(r.item_id, req.user.id));
 });
 
 /* ---- Kommentare ---- */
@@ -4452,23 +4462,23 @@ async function encodeCommentImage(buf) {
   return { big, small };
 }
 
-function saveCommentImages(commentId, dateien) {
+function saveCommentImages(commentId, files) {
   let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM comment_images WHERE comment_id = ?')
     .get(commentId).m + 1;
   const into = db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
                           VALUES (?, ?, ?, ?, ?)`);
-  for (const d of dateien) into.run(commentId, d.name, d.big, d.small, pos++);
+  for (const d of files) into.run(commentId, d.name, d.big, d.small, pos++);
 }
 
 // Aus hochgeladenen Dateien kodierte Bilder machen. Gibt null zurueck, wenn
 // eine Datei kein lesbares Bild ist -- dann wird gar nichts gespeichert.
-async function encodeAll(dateien) {
+async function encodeAll(files) {
   const out = [];
-  for (const f of dateien || []) {
+  for (const f of files || []) {
     try {
       const { big, small } = await encodeCommentImage(f.buffer);
       out.push({ name: path.basename(String(f.originalname || 'bild.jpg')).slice(0, 200), big, small });
-    } catch { return { fehler: 'server.imageUnreadable', values: { name: f.originalname } }; }
+    } catch { return { error: 'server.imageUnreadable', values: { name: f.originalname } }; }
   }
   return { images: out };
 }
@@ -4483,15 +4493,15 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
 
     const k = await encodeAll(req.files);
-    if (k.fehler) return res.status(400).json({ error: t(localeOf(req), k.fehler, k.values) });
+    if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
 
     const pinned = req.body.pinned === '1' || req.body.pinned === true;
     // Der Schreibende ist der Verfasser.
     const neu = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id) VALUES (?, ?, ?, ?, ?)')
-      .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.benutzer.id);
+      .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id);
     if (k.images.length) saveCommentImages(neu.lastInsertRowid, k.images);
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.benutzer.id));
+    res.status(201).json(detail(req.params.id, req.user.id));
   } catch (e) { next(e); }
 });
 
@@ -4526,7 +4536,7 @@ app.put('/api/comments/:id', (req, res) => {
     db.prepare('UPDATE comments SET pinned = ? WHERE id = ?').run(req.body.pinned ? 1 : 0, c.id);
 
   touch.run(c.item_id);
-  res.json(detail(c.item_id, req.benutzer.id));
+  res.json(detail(c.item_id, req.user.id));
 });
 
 // Bilder an einem bestehenden Kommentar nachreichen.
@@ -4543,7 +4553,7 @@ app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_CO
     if (da + (req.files || []).length > IMAGE_COUNT)
       return res.status(400).json({ error: t(localeOf(req), 'server.imageCap', { deckel: IMAGE_COUNT })});
     const k = await encodeAll(req.files);
-    if (k.fehler) return res.status(400).json({ error: t(localeOf(req), k.fehler, k.values) });
+    if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
     /* Anhaengen IST Bearbeiten -- und hierher kommt nach der Klemme oben nur
        der Verfasser. Ein Vermerk kann an diesem Weg deshalb gar nicht
        entstehen: der Admin haengt nichts an.
@@ -4554,7 +4564,7 @@ app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_CO
       commentEdited.run(c.id);
     }
     touch.run(c.item_id);
-    res.status(201).json(detail(c.item_id, req.benutzer.id));
+    res.status(201).json(detail(c.item_id, req.user.id));
   } catch (e) { next(e); }
 });
 
@@ -4579,7 +4589,7 @@ app.delete('/api/comment-images/:id', (req, res) => {
      "BEARBEITET" im anderen Zweig: Entfernen ist Bearbeiten, und es steht nur
      dem Verfasser zu -- sonst saehe die fremde Loeschung aus wie seine eigene
      Bearbeitung. */
-  if (b.user_id !== req.benutzer.id)
+  if (b.user_id !== req.user.id)
     db.prepare('UPDATE comments SET images_removed = images_removed + 1 WHERE id = ?').run(b.comment_id);
   else
     commentEdited.run(b.comment_id);
@@ -4589,7 +4599,7 @@ app.delete('/api/comment-images/:id', (req, res) => {
   rest.forEach((r, i) => u.run(i, r.id));
   touch.run(b.item_id);
   reclaim();
-  res.json(detail(b.item_id, req.benutzer.id));
+  res.json(detail(b.item_id, req.user.id));
 });
 
 // Bild eines Kommentars ausliefern. Dieselben Regeln wie bei den Anhaengen.
@@ -4629,8 +4639,8 @@ app.get('/api/open', (req, res) => {
   res.json(qOpenTasks.all().map(z => ({
     id: z.id, text: z.text, created_at: z.created_at,
     item: { id: z.item_id, title: z.title },
-    mine: z.user_id === req.benutzer.id,
-    verfasser: authorFrom(card, z.user_id)
+    mine: z.user_id === req.user.id,
+    author: authorFrom(card, z.user_id)
   })));
 });
 
@@ -4729,8 +4739,8 @@ app.get('/api/stats', adminOnly, (req, res) => {
        Zahl daneben. */
     for (const g of qPerFormat.all(kind)) {
       const k = formatFromMime(g.m);
-      const f = bildFormate[k] || (bildFormate[k] = { anzahl: 0, bytes: 0 });
-      f.anzahl += g.n; f.bytes += g.o;
+      const f = bildFormate[k] || (bildFormate[k] = { count: 0, bytes: 0 });
+      f.count += g.n; f.bytes += g.o;
     }
   }
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
@@ -4801,7 +4811,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
          und `comment_images` tragen ihre Blobs als LETZTE Spalte und kosten
          gemessen 1,2 und 0,1 ms. */
       ...exchangeParts(null, { withFiles: true }),
-      fotos: Math.round(exportPhotoBytes * 4 / 3),
+      photos: Math.round(exportPhotoBytes * 4 / 3),
       videos: Math.round(exportVideoBytes * 4 / 3),
       /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen:
          `warnAb`  ab hier steht ein Hinweis -- geschaetzt, nimmt nichts weg.
@@ -4810,7 +4820,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
          GENANNT WIRD IN JEDER MELDUNG DIE LETZTE. Die beiden anderen sind
          unsere Entscheidungen; nur `string` ist eine Tatsache, und eine
          Message, die unsere Marge als Tatsache ausgibt, sagt die Unwahrheit. */
-      warnFrom: EXCHANGE_WARN, grenze: EXCHANGE_MAX, string: EXCHANGE_STRING
+      warnFrom: EXCHANGE_WARN, limit: EXCHANGE_MAX, string: EXCHANGE_STRING
     },
     itemCount: db.prepare('SELECT COUNT(*) n FROM items').get().n,
     commentCount: db.prepare('SELECT COUNT(*) n FROM comments').get().n,
@@ -4848,10 +4858,10 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
   if (batchStates.umstellung && batchStates.umstellung.running)
     return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});
-  const zeilen = qOpenPng.all(PNG_MAGIC_HEX);
-  batchStates.umstellung = { running: true, total: zeilen.length, erledigt: 0,
+  const rows = qOpenPng.all(PNG_MAGIC_HEX);
+  batchStates.umstellung = { running: true, total: rows.length, erledigt: 0,
                                  umgestellt: 0, geblieben: 0, gespart: 0 };
-  console.log(`[Kriterion] Bildumstellung gestartet: ${zeilen.length} PNG.`);
+  console.log(`[Kriterion] Bildumstellung gestartet: ${rows.length} PNG.`);
   res.status(202).json(batchState('umstellung'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
      laeuft die Schleife nicht mehr hier, sondern in batchrun.js. Was der
@@ -4861,7 +4871,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      (worker.on('error') in startBatchThread) statt an einem catch: eine
      unbehandelte Zusage naehme in Node den ganzen Server mit, ein Fehler im
      Thread nimmt nur den Lauf. */
-  startBatchThread('umstellung', zeilen);
+  startBatchThread('umstellung', rows);
 });
 
 /* ================= Das Austauschformat =================
@@ -5114,9 +5124,9 @@ function exchangeParts(itemId, schalter) {
   const and = (column) => onlyOne ? ` AND ${column} = ?` : '';
   const wo = (column) => onlyOne ? ` WHERE ${column} = ?` : '';
   const base64 = (n) => Math.round(n * 4 / 3);
-  const parts = { fotos: 0, videos: 0, anhaenge: 0, kommentarbilder: 0 };
+  const parts = { photos: 0, videos: 0, anhaenge: 0, kommentarbilder: 0 };
   if (schalter.withPhotos)
-    parts.fotos = base64(one(
+    parts.photos = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));
   /* Der Videoschalter haengt am Fotoschalter, wie in entryAsBundle(): ohne
      Fotos wird die Liste gar nicht erst gebaut, und der Haken an den Videos
@@ -5265,28 +5275,28 @@ const EXCHANGE_PART_MIN = 1024 * 1024;
 function exchangePlan(schalter, targetWanted) {
   const zielGroesse = Math.min(EXCHANGE_WARN,
     Math.max(EXCHANGE_PART_MIN, Number(targetWanted) > 0 ? Number(targetWanted) : EXCHANGE_WARN));
-  const zeilen = qPartSizes.all();
+  const rows = qPartSizes.all();
   const reason = exchangeEnvelopeFrame();
   const parts = [];
   const tooBig = [];
   let offen = null;
-  for (const z of zeilen) {
+  for (const z of rows) {
     const b = partBytes(z, schalter);
     if (reason + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: reason + b }); continue; }
     // Ein neuer Teil, sobald dieser Eintrag den laufenden ueber den Zielwert
     // hoebe. Der erste Eintrag eroeffnet immer -- sonst entstuende ein leerer.
     if (!offen || offen.bytes + b > zielGroesse) {
-      offen = { nr: parts.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: reason };
+      offen = { nr: parts.length + 1, from: z.id, to: z.id, count: 0, bytes: reason };
       parts.push(offen);
     }
-    offen.bis = z.id;
-    offen.anzahl++;
+    offen.to = z.id;
+    offen.count++;
     offen.bytes += b;
   }
-  return { parts, zuGross: tooBig,
+  return { parts, tooBig: tooBig,
            total: parts.reduce((n, part) => n + part.bytes, 0),
            zielGroesse, fallback: EXCHANGE_WARN, kleinstes: EXCHANGE_PART_MIN,
-           grenze: EXCHANGE_MAX, string: EXCHANGE_STRING };
+           limit: EXCHANGE_MAX, string: EXCHANGE_STRING };
 }
 
 /* Was der Umschlag OHNE Eintraege kostet -- Titel, Zeitstempel, Formatnummer
@@ -5314,7 +5324,7 @@ function exchangeEnvelopeFrame() {
    genau die Datei durch, die am Umschlag zerbricht. */
 function exchangeBytes(itemId, schalter) {
   const parts = exchangeParts(itemId, schalter);
-  return parts.fotos + parts.videos + parts.anhaenge + parts.kommentarbilder + exchangeEnvelopeBytes(itemId);
+  return parts.photos + parts.videos + parts.anhaenge + parts.kommentarbilder + exchangeEnvelopeBytes(itemId);
 }
 
 /* ---- Export ---- */
@@ -5375,32 +5385,32 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
      kein Vollexport: wer `von` schickt und `bis` vergisst, bekaeme sonst
      stillschweigend alles. */
   const number = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
-  const von = number(req.query.von), bis = number(req.query.bis);
+  const from = number(req.query.von), to = number(req.query.bis);
   /* DIE VIER ABFRAGEANGABEN HEISSEN NOCH DEUTSCH, und das ist kein
      Uebersehen: die Oberflaeche baut sie aus `card.partQuery` -- einem WERT
      der Sprachdatei --, und die Werte der Sprachdatei bleiben in dieser Runde
      unangetastet. Sie ziehen mit, sobald der Satz selbst wandert. */
   const part = number(req.query.teil), parts = number(req.query.teile);
-  const asPart = von !== null || bis !== null || part !== null || parts !== null;
-  if (asPart && (von === null || bis === null || part === null || parts === null))
+  const asPart = from !== null || to !== null || part !== null || parts !== null;
+  if (asPart && (from === null || to === null || part === null || parts === null))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportIncomplete')});
-  if (asPart && (von > bis || part > parts || parts > EXCHANGE_PART_MAX))
+  if (asPart && (from > to || part > parts || parts > EXCHANGE_PART_MAX))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportMismatch')});
 
   const big = exchangeBytes(null, schalter);
   if (!asPart && big > EXCHANGE_MAX)
     return res.status(413).json({ error:
       t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
-  const situation = bundleState(req.benutzer.id, schalter);
+  const situation = bundleState(req.user.id, schalter);
   const items = (asPart
-    ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(von, bis)
+    ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(from, to)
     : db.prepare('SELECT * FROM items ORDER BY id').all()).map(it => entryAsBundle(it, situation));
   /* Ein Teil steht als solcher im Protokoll -- sonst saehe ein Bestand, der in
      fuenf Teilen hinausgeht, aus wie fuenf volle Exporte.
      DAS MERKMAL IST DAS WORT UND NICHT DIE NUMMER: merkmal traegt nur Werte
      aus MERKMALE, und "teil 1/5" stand nicht darin -- 0.12.4 hat damit gar
      keine Zeile geschrieben. Die Nummer des Teils steht im Dateinamen. */
-  auth.log('export', { actor: req.benutzer.id, detail: asPart ? 'part' : null });
+  auth.log('export', { actor: req.user.id, detail: asPart ? 'part' : null });
   res.set('Content-Disposition',
     `attachment; filename="${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}"`);
   /* DAS NETZ UNTER DER SCHAETZUNG. Die Absage oben rechnet, sie misst nicht --
@@ -5433,7 +5443,7 @@ app.get('/api/items/:id/export', ownerOnly, (req, res) => {
   const big = exchangeBytes(it.id, schalter);
   if (big > EXCHANGE_MAX)
     return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
-  const bundle = entryAsBundle(it, bundleState(req.benutzer.id, schalter));
+  const bundle = entryAsBundle(it, bundleState(req.user.id, schalter));
   res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
   res.json(exportEnvelope([bundle]));
 });
@@ -5463,8 +5473,8 @@ const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
    ZU 1.0 FAELLT DAS WEG, so wie die Migrationsblöcke -- dann ist keine Datei
    mehr im Umlauf, die die alten Namen traegt. */
 const PHOTO_FIELDS_0240 = Object.entries(COLUMNS_0241)
-  .filter(([ort]) => ort.startsWith('photos.'))
-  .map(([ort, neu]) => [ort.slice('photos.'.length), neu]);
+  .filter(([place]) => place.startsWith('photos.'))
+  .map(([place, neu]) => [place.slice('photos.'.length), neu]);
 /* UND DIE WERTE EBENSO. Eine Datei von vorher traegt `bild` an ihren Fotos
    und `vorher` an ihren Kriterien. Beim Foto waere das Uebergehen still
    folgenlos ('bild' ist ohnehin nicht 'video'); bei der Phase waere es ein
@@ -5472,9 +5482,9 @@ const PHOTO_FIELDS_0240 = Object.entries(COLUMNS_0241)
    aus dem Potenzialkasten landete beim Einspielen im Bewertungskasten. Auch
    hier kommen die Paare aus db.VALUES_0241 und nicht aus einer zweiten
    Liste. */
-const valueFromFile = (gruppe, wert) =>
-  (Object.prototype.hasOwnProperty.call(VALUES_0241[gruppe], wert)
-    ? VALUES_0241[gruppe][wert] : wert);
+const valueFromFile = (group, value) =>
+  (Object.prototype.hasOwnProperty.call(VALUES_0241[group], value)
+    ? VALUES_0241[group][value] : value);
 
 function photoFromFile(p) {
   const z = { ...p };
@@ -5565,7 +5575,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       attachments.push({
         name: path.basename(String(a2.filename || 'datei')).slice(0, 200) || 'datei',
         mime: String(a2.mime_type || '').slice(0, 120), buf,
-        // Roh mitgenommen und erst in der Transaktion aufgeloest: verfasser()
+        // Roh mitgenommen und erst in der Transaktion aufgeloest: authorId()
         // liegt dort und zaehlt mit. `hatAutor` unterscheidet "kein Name
         // genannt" (author: null) von "Feld gibt es nicht" (Format bis 7).
         hasAuthor: 'author' in a2, autor: a2.author
@@ -5606,16 +5616,16 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   const unknownNames = new Set();
   let assigned = 0;
   const qByName = db.prepare('SELECT id FROM users WHERE username = ?');
-  const verfasser = (name) => {
-    const sauber = String(authorFromFile(name == null ? '' : name)).trim();
-    if (!sauber) return userId;
-    let id = nameStore.get(sauber);
+  const authorId = (name) => {
+    const clean = String(authorFromFile(name == null ? '' : name)).trim();
+    if (!clean) return userId;
+    let id = nameStore.get(clean);
     if (id === undefined) {
-      const u = qByName.get(sauber);
+      const u = qByName.get(clean);
       id = u ? u.id : null;
-      nameStore.set(sauber, id);
+      nameStore.set(clean, id);
     }
-    if (id == null) { unknownNames.add(sauber); return userId; }
+    if (id == null) { unknownNames.add(clean); return userId; }
     // Der eigene Name ist kein Fremdverweis: er zaehlt nicht als zugeordnet,
     // sonst meldete jede selbst erzeugte Datei eine Zuordnung, die keine ist.
     if (id !== userId) assigned++;
@@ -5629,15 +5639,15 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      EIN UNGUELTIGES GEWICHT BRICHT NICHT AB, sondern faellt auf 1,0 und wird
      genannt. */
   const dateiGewichte = new Map();
-  const gewichteVerworfen = new Set();
+  const weightsDropped = new Set();
   const rohGewichte = payload.criteriaGewichte;
   if (rohGewichte && typeof rohGewichte === 'object' && !Array.isArray(rohGewichte)) {
     for (const [name, raw] of Object.entries(rohGewichte)) {
-      const sauber = String(name || '').trim();
-      if (!sauber) continue;
+      const clean = String(name || '').trim();
+      if (!clean) continue;
       const g = validWeight(raw);
-      if (g === null) { gewichteVerworfen.add(sauber); continue; }
-      dateiGewichte.set(sauber.toLowerCase(), g);
+      if (g === null) { weightsDropped.add(clean); continue; }
+      dateiGewichte.set(clean.toLowerCase(), g);
     }
   }
 
@@ -5652,10 +5662,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   const rohPhasen = payload.criteriaPhase;
   if (rohPhasen && typeof rohPhasen === 'object' && !Array.isArray(rohPhasen)) {
     for (const [name, raw] of Object.entries(rohPhasen)) {
-      const sauber = String(name || '').trim();
-      const wert = valueFromFile('phase', raw);
-      if (!sauber || !PHASES.includes(wert)) continue;
-      dateiPhasen.set(sauber.toLowerCase(), wert);
+      const clean = String(name || '').trim();
+      const value = valueFromFile('phase', raw);
+      if (!clean || !PHASES.includes(value)) continue;
+      dateiPhasen.set(clean.toLowerCase(), value);
     }
   }
   const phaseFrom = (name) =>
@@ -5750,12 +5760,12 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       // Einspielende.
       // EINMAL ermittelt und festgehalten: die Linkzeilen einer Datei ohne
       // Verfasserangabe brauchen dieselbe Nummer noch einmal, und ein
-      // zweiter Aufruf von verfasser() zaehlte den Fremdverweis doppelt.
-      const itemAuthor = verfasser(it.author);
+      // zweiter Aufruf von authorId() zaehlte den Fremdverweis doppelt.
+      const itemAuthor = authorId(it.author);
       /* WER ABGELEHNT HAT -- ueber dieselbe Abbildung wie jeder andere
          Verfasser, aber mit einem Unterschied, und der ist der Punkt:
          EIN FEHLENDER NAME BLEIBT LEER UND FAELLT NICHT AN DEN EINSPIELENDEN.
-         verfasser() tut das mit gutem Grund -- eine Zeile ohne Verfasser waere
+         authorId() tut das mit gutem Grund -- eine Zeile ohne Verfasser waere
          herrenlos --, doch hier gibt es die Zeile auch ohne: ein Eintrag, den
          niemand abgelehnt hat, hat keinen Ablehnenden. Wer hier zurueckfiele,
          machte aus JEDEM eingespielten Eintrag eine Ablehnung durch den
@@ -5764,7 +5774,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
          und wird in der Antwort genannt -- das ist dieselbe Regel wie ueberall
          sonst in dieser Datei. */
       const rejectedBy = String(it.rejected_author == null ? '' : it.rejected_author).trim()
-        ? verfasser(it.rejected_author) : null;
+        ? authorId(it.rejected_author) : null;
       /* EINE DATEI DER FORMATNUMMER 10 UND AELTER TRAEGT DIE DREI FELDER NICHT.
          Dann bleiben sie leer -- genau wie bei einem Bestand, den der
          Migrationsblock nachgeruestet hat. Entschieden wird ueber das
@@ -5805,16 +5815,16 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
          WEM EIN LINK AUS EINER DATEI DER FORMATNUMMER 6 GEHOERT: dem
          Verfasser DES EINTRAGS. Die Datei sagt nichts anderes; "unbekannter
          Name" traefe es nicht, es steht ja keiner da. Deshalb wird hier
-         verfasser() NICHT gefragt. */
+         authorId() NICHT gefragt. */
       let lpos = 0;
       (it.links || []).forEach((entry) => {
         const raw = (entry && typeof entry === 'object') ? entry.url : entry;
-        const sauber = normalizeLink(raw);
-        if (!sauber) return;
+        const clean = normalizeLink(raw);
+        if (!clean) return;
         const toWhom = (entry && typeof entry === 'object' && 'author' in entry)
-          ? verfasser(entry.author) : itemAuthor;
+          ? authorId(entry.author) : itemAuthor;
         db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
-          .run(id, sauber, lpos++, toWhom);
+          .run(id, clean, lpos++, toWhom);
         stats.links++;
       });
 
@@ -5829,7 +5839,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         // Zeilen. Fallen zwei unbekannte Namen auf den Einspielenden,
         // fallen sie doch zusammen -- deshalb die Protokollzeile unten.
         const simple = db.prepare(`INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)`)
-          .run(id, tag.day, Math.max(1, Math.min(5, Number(tag.rating) || 1)), verfasser(tag.author));
+          .run(id, tag.day, Math.max(1, Math.min(5, Number(tag.rating) || 1)), authorId(tag.author));
         // Aeltere Exportdateien haben hier kein Feld -- dann bleibt der
         // Testtag einfach ohne Tags.
         for (const name of Array.isArray(tag.tags) ? tag.tags : []) {
@@ -5846,7 +5856,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       // Zusammenfallen daher nur den Wert kostet, nicht noch Tags dazu.
       for (const r of it.ratings || [])
         db.prepare(`INSERT OR REPLACE INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)`)
-          .run(id, critByName(r.name), Math.max(0, Math.min(5, Number(r.value) || 0)), verfasser(r.author));
+          .run(id, critByName(r.name), Math.max(0, Math.min(5, Number(r.value) || 0)), authorId(r.author));
 
       for (const c of it.comments || []) {
         // Aeltere Exportdateien kennen kind und pinned nicht -- dann gilt der
@@ -5854,7 +5864,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         const simple = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id)
                       VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?)`)
             .run(id, c.text || '', kindValue(c.kind), c.pinned ? 1 : 0,
-                 c.created_at || null, c.updated_at || null, verfasser(c.author));
+                 c.created_at || null, c.updated_at || null, authorId(c.author));
         stats.comments++;
         (commentImages.get(c) || []).forEach((b2, i) =>
           db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
@@ -5880,7 +5890,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         { db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                       VALUES (?, ?, ?, ?, ?, ?, ?)`)
             .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i,
-                 a2.hasAuthor ? verfasser(a2.autor) : itemAuthor); stats.attachments++; });
+                 a2.hasAuthor ? authorId(a2.autor) : itemAuthor); stats.attachments++; });
     }
   })();
 
@@ -5901,10 +5911,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      verlaesst, bricht nichts ab und verschwindet auch nicht wortlos. Es
      steht in der Antwort UND im Protokoll -- die Antwort fuer den Pruefstand
      und die Abfrage von Hand, das Protokoll fuer den Betrieb. */
-  const weightsDropped = [...gewichteVerworfen].sort();
-  if (weightsDropped.length)
+  const dropped = [...weightsDropped].sort();
+  if (dropped.length)
     console.log(`[Kriterion] Import: ungueltiges Gewicht auf 1,0 zurueckgesetzt ` +
-                `(${weightsDropped.length}): ${weightsDropped.join(', ')}`);
+                `(${dropped.length}): ${dropped.join(', ')}`);
   /* Und dieselbe Bauform ein drittes Mal, an den Videos. Ein Export ohne den
      Videoschalter enthaelt ihre Daten nicht; das darf nicht still bleiben,
      denn stand ein Video an erster Stelle, wird jetzt das naechste Foto zum
@@ -5918,7 +5928,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
                 `uebergangen.`);
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
-           gewichteVerworfen: weightsDropped, videosOhneDatei, videosUnlesbar, newIds };
+           weightsDropped: dropped, videosOhneDatei, videosUnlesbar, newIds };
 }
 
 /* Nur der Eigentuemer. EINE EXPORTDATEI KANN UNTER FREMDEM NAMEN SCHREIBEN:
@@ -5946,8 +5956,8 @@ app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
       return res.status(400).json({ error: t(localeOf(req), 'server.exportEmpty')});
     // newIds bleibt hier liegen: eine Datei mit hundert Eintraegen liefert
     // hundert Nummern, mit denen die Oberflaeche nichts anfaengt.
-    const { newIds, ...response } = await importInto(payload, req.benutzer.id, mode);
-    auth.log('import', { actor: req.benutzer.id, detail: mode });
+    const { newIds, ...response } = await importInto(payload, req.user.id, mode);
+    auth.log('import', { actor: req.user.id, detail: mode });
     res.json(response);
   } catch (e) {
     /* EINE ABSAGE AUS importInto() IST KEIN FEHLER DER INSTANZ, sondern eine
@@ -6047,7 +6057,7 @@ function intoTrash(itemId, actor) {
    unter FREMDEM Namen an -- das ist naeher am Import als am Loeschen, und der
    steht hinter ownerOnly. */
 const qTrash = db.prepare(`SELECT p.id, p.title, p.deleted_at, p.deleted_by,
-    (SELECT COUNT(*) FROM trash_bytes b WHERE b.trash_id = p.id) AS dateien,
+    (SELECT COUNT(*) FROM trash_bytes b WHERE b.trash_id = p.id) AS files,
     length(p.content) + COALESCE(
       (SELECT SUM(length(b.data)) FROM trash_bytes b WHERE b.trash_id = p.id), 0) AS bytes
   FROM trash p ORDER BY p.deleted_at DESC, p.id DESC`);
@@ -6060,13 +6070,13 @@ app.get('/api/trash', adminOnly, (req, res) => {
     // Karte nennt sie auch dann, wenn sie die Liste noch gar nicht gezeichnet
     // hat.
     days: TRASH_DAYS,
-    zeilen: qTrash.all().map(z => ({
+    rows: qTrash.all().map(z => ({
       id: z.id, title: z.title, deleted_at: z.deleted_at,
       // Wer geloescht hat, in derselben Form wie jeder Verfasser -- damit die
       // Oberflaeche denselben einen Weg von der Nummer zum Namen geht und ein
       // Grabstein "Gelöschter Benutzer 7" heisst.
       loeschender: authorFrom(card, z.deleted_by),
-      dateien: z.dateien, bytes: z.bytes,
+      files: z.files, bytes: z.bytes,
       // Die Frist rechnet der Server: die Zahl TRASH_DAYS steht an einer
       // Stelle, und die Oberflaeche baut sie nicht nach.
       daysOpen: Math.max(0, TRASH_DAYS - Math.floor(
@@ -6097,7 +6107,7 @@ app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
       const b = qTrashBytes.get(z.id, nr);
       return b ? b.data : null;
     };
-    const result = await importInto(envelope, req.benutzer.id, 'merge', source);
+    const result = await importInto(envelope, req.user.id, 'merge', source);
     // Erst nach dem Einspielen: scheitert es, bleibt die Zeile liegen.
     db.prepare('DELETE FROM trash WHERE id = ?').run(z.id);
     reclaim();
@@ -6246,28 +6256,28 @@ function backupState() {
    "ungueltig". */
 function checkPlace(raw) {
   const situation = backupState();
-  if (!situation.ein) return { fehler: situation.reason, values: situation.values };
+  if (!situation.ein) return { error: situation.reason, values: situation.values };
   const s = String(raw == null ? '' : raw).trim();
-  if (!s) return { ort: '', pfad: situation.wurzel };
+  if (!s) return { place: '', pfad: situation.wurzel };
   // `deckel` ist ein Platzhalter der Sprachdatei und kein Bezeichner.
-  if (s.length > 200) return { fehler: 'server.subDirTooLong', values: { deckel: 200 } };
+  if (s.length > 200) return { error: 'server.subDirTooLong', values: { deckel: 200 } };
   if (!PLACE_PATTERN.test(s))
-    return { fehler: 'server.subDirForm', values: {} };
+    return { error: 'server.subDirForm', values: {} };
   let real;
   try { real = fs.realpathSync(path.resolve(situation.wurzel, s)); }
-  catch { return { fehler: 'server.subDirGone', values: { ordner: s } }; }
+  catch { return { error: 'server.subDirGone', values: { ordner: s } }; }
   try { if (!fs.statSync(real).isDirectory())
-    return { fehler: 'server.subDirNotDir', values: { ordner: s } }; }
-  catch { return { fehler: 'server.subDirUnreadable', values: { ordner: s } }; }
+    return { error: 'server.subDirNotDir', values: { ordner: s } }; }
+  catch { return { error: 'server.subDirUnreadable', values: { ordner: s } }; }
   // DIE PRUEFUNG HAENGT AM AUFGELOESTEN PFAD. Erst hier faellt ein Symlink
   // auf, der aus der Wurzel herausfuehrt -- am String saehe er harmlos aus.
   if (!liesIn(real, situation.wurzel))
-    return { fehler: 'server.subDirOutside', values: { ordner: s } };
+    return { error: 'server.subDirOutside', values: { ordner: s } };
   let data;
   try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
   if (liesIn(real, data))
-    return { fehler: 'server.backupInDataDir', values: {} };
-  return { ort: s, pfad: real };
+    return { error: 'server.backupInDataDir', values: {} };
+  return { place: s, pfad: real };
 }
 
 /* "Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
@@ -6318,32 +6328,32 @@ function backupList(pfad) {
   let namen;
   try { namen = fs.readdirSync(pfad); }
   catch { return null; }
-  const dateien = [];
+  const files = [];
   for (const n of namen) {
     if (!BACKUP_PATTERN.test(n)) continue;
     try {
       const st = fs.lstatSync(path.join(pfad, n));
-      if (st.isFile()) dateien.push({ name: n, time: st.mtimeMs, bytes: st.size });
+      if (st.isFile()) files.push({ name: n, time: st.mtimeMs, bytes: st.size });
     } catch { /* eine Datei, die zwischen readdir und stat verschwindet */ }
   }
-  dateien.sort((a, b) => b.time - a.time);
-  return dateien;
+  files.sort((a, b) => b.time - a.time);
+  return files;
 }
 
 function lastBackup(pfad) {
   const mark = changeMark();
   const gewechseltAm = mark ? mark.at : null;
-  const dateien = backupList(pfad);
-  if (dateien === null)
+  const files = backupList(pfad);
+  if (files === null)
     return { erreichbar: false, last: null, number: 0, gewechseltAm, veraltet: 0 };
   // Ohne Wechsel ist KEINE Kopie veraltet -- und nicht etwa jede. Der
   // Unterschied zwischen "es gab keinen Wechsel" und "alle sind veraltet" ist
   // genau der, den diese Zeile haelt.
-  const veraltet = mark ? dateien.filter(d => d.time < mark.ms).length : 0;
-  if (!dateien.length)
+  const veraltet = mark ? files.filter(d => d.time < mark.ms).length : 0;
+  if (!files.length)
     return { erreichbar: true, last: null, number: 0, gewechseltAm, veraltet: 0 };
-  const j = dateien[0];
-  return { erreichbar: true, number: dateien.length, gewechseltAm, veraltet, last: {
+  const j = files[0];
+  return { erreichbar: true, number: files.length, gewechseltAm, veraltet, last: {
     file: j.name, bytes: j.bytes,
     // Dieselbe Schreibweise wie jeder Zeitstempel der Instanz
     // ("2026-08-23 19:56:01", UTC): die Oberflaeche hat genau einen Weg, aus
@@ -6378,13 +6388,13 @@ function lastBackup(pfad) {
    OHNE WECHSEL ZAEHLEN ALLE: `changeMs` ist dann null, und die Filterzeile
    laesst jede Kopie durch. Der Unterschied zwischen "es gab keinen Wechsel"
    und "alle sind veraltet" ist derselbe wie in lastBackup() darueber. */
-function ruleHit(dateien, keep, days, now, changeMs) {
-  const usable = dateien
+function ruleHit(files, keep, days, now, changeMs) {
+  const usable = files
     .filter(d => changeMs == null || d.time >= changeMs)
     .sort((a, b) => b.time - a.time);
-  const grenze = now - days * DAY_MS;
+  const limit = now - days * DAY_MS;
   //          der Boden                    die Schere
-  return usable.slice(keep).filter(d => d.time < grenze);
+  return usable.slice(keep).filter(d => d.time < limit);
 }
 
 /* Die beiden Werte, geprueft. EINE Stelle fuer beide Wege -- den Schreibweg
@@ -6399,11 +6409,11 @@ function ruleHit(dateien, keep, days, now, changeMs) {
    uebersetzen (Konzept, Abschnitt 0, Satz 2): auf Englisch stuende das Wort
    woanders. Jetzt bringt der Rufer den SCHLUESSEL des ganzen Satzes mit, und
    die Spanne reist als Werte. */
-function checkRuleValue(raw, range, schluessel) {
+function checkRuleValue(raw, range, key) {
   const n = Number(raw);
   if (!Number.isInteger(n) || n < range.min || n > range.max)
-    return { fehler: schluessel, values: { min: range.min, max: range.max } };
-  return { wert: n };
+    return { error: key, values: { min: range.min, max: range.max } };
+  return { value: n };
 }
 
 /* Der eingestellte Stand der Regel. ABGELEITET BEIM LESEN, ohne
@@ -6419,8 +6429,8 @@ function cleanupStatus() {
                             CLEANUP_DAYS, 'server.ruleDays');
   return {
     an: getSetting('backupCleanup', false) === true,
-    keep: b.fehler ? CLEANUP_KEEP.fallback : b.wert,
-    days: rule.fehler ? CLEANUP_DAYS.fallback : rule.wert
+    keep: b.error ? CLEANUP_KEEP.fallback : b.value,
+    days: rule.error ? CLEANUP_DAYS.fallback : rule.value
   };
 }
 
@@ -6444,18 +6454,18 @@ const cleanupRow = (d, now) => ({
    DIE KOPIEN VON VOR DEM WECHSEL STEHEN GETRENNT, mit eigener Zahl und
    Summe: sie sind nicht entbehrlich, sondern etwas anderes. */
 function cleanupPreview(pfad, keep, days) {
-  const dateien = backupList(pfad);
-  if (dateien === null) return { erreichbar: false, dateien: [], treffer: [], bytes: 0, reason: '' };
+  const files = backupList(pfad);
+  if (files === null) return { erreichbar: false, files: [], treffer: [], bytes: 0, reason: '' };
   const mark = changeMark();
   const now = Date.now();
-  const alt = mark ? dateien.filter(d => d.time < mark.ms) : [];
-  const usable = mark ? dateien.filter(d => d.time >= mark.ms) : dateien;
-  const treffer = ruleHit(dateien, keep, days, now, mark ? mark.ms : null);
+  const alt = mark ? files.filter(d => d.time < mark.ms) : [];
+  const usable = mark ? files.filter(d => d.time >= mark.ms) : files;
+  const treffer = ruleHit(files, keep, days, now, mark ? mark.ms : null);
   let reason = '';
   if (!treffer.length) {
-    if (!dateien.length) reason = 'Hier gibt es noch keine Sicherung.';
+    if (!files.length) reason = 'Hier gibt es noch keine Sicherung.';
     else if (!usable.length)
-      reason = `Keine der ${dateien.length} ${dateien.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
+      reason = `Keine der ${files.length} ${files.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
               'stammt von nach dem Schlüsselwechsel.';
     else if (usable.length <= keep)
       reason = `Alle ${usable.length} ${usable.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
@@ -6486,7 +6496,7 @@ function cleanupPreview(pfad, keep, days) {
   const oldMs = mark ? mark.ms : null;
   return {
     erreichbar: true,
-    dateien: dateien.map((d, i) => ({
+    files: files.map((d, i) => ({
       ...cleanupRow(d, now), nr: i + 1,
       faellt: hitNames.has(d.name),
       veraltet: oldMs != null && d.time < oldMs
@@ -6553,7 +6563,7 @@ function removeBackups(ordner, namen) {
 // davor, und zwar der des Exports: die Antwort nennt einen Pfad des Wirts.
 app.get('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
-  const ort = getSetting('backupPlace', '');
+  const place = getSetting('backupPlace', '');
   let dbBytes = 0;
   // MIT wal_checkpoint, wie bei den Kennzahlen: ohne ihn steht der frisch
   // geschriebene Bestand noch in der WAL, die Datei sieht winzig aus, und die
@@ -6582,13 +6592,13 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   let keep = status2.keep, days = status2.days;
   if (req.query.keep !== undefined) {
     const g = checkRuleValue(req.query.keep, CLEANUP_KEEP, 'server.ruleKeep');
-    if (g.fehler) return res.status(400).json({ error: t(localeOf(req), g.fehler, g.values) });
-    keep = g.wert;
+    if (g.error) return res.status(400).json({ error: t(localeOf(req), g.error, g.values) });
+    keep = g.value;
   }
   if (req.query.days !== undefined) {
     const g = checkRuleValue(req.query.days, CLEANUP_DAYS, 'server.ruleDays');
-    if (g.fehler) return res.status(400).json({ error: t(localeOf(req), g.fehler, g.values) });
-    days = g.wert;
+    if (g.error) return res.status(400).json({ error: t(localeOf(req), g.error, g.values) });
+    days = g.value;
   }
   /* DIE GRENZEN GEHEN MIT HINAUS. Die Karte schreibt sie an ihre beiden
      Felder, statt sie ein zweites Mal zu kennen -- eine Zahl, die an zwei
@@ -6599,19 +6609,19 @@ app.get('/api/backup', ownerOnly, (req, res) => {
      seit dieser Runde einen Schluessel samt Werten; welche Sprache die Antwort
      traegt, weiss erst die Route. */
   if (!situation.ein) return res.json({ eingerichtet: false,
-                                   reason: t(localeOf(req), situation.reason, situation.values), ort,
+                                   reason: t(localeOf(req), situation.reason, situation.values), place,
                                    dbBytes, durationSeconds: duration, erreichbar: false, last: null,
                                    gewechseltAm, veraltet: 0, cleanup: rule });
-  const target = checkPlace(ort);
-  if (target.fehler) return res.json({ eingerichtet: true, wurzel: situation.wurzel, ort,
+  const target = checkPlace(place);
+  if (target.error) return res.json({ eingerichtet: true, wurzel: situation.wurzel, place,
                                      imArbeitsverzeichnis: situation.imArbeitsverzeichnis,
-                                     fehler: t(localeOf(req), target.fehler, target.values),
+                                     error: t(localeOf(req), target.error, target.values),
                                      dbBytes, durationSeconds: duration,
                                      erreichbar: false, last: null,
                                      gewechseltAm, veraltet: 0, cleanup: rule });
   // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
   // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
-  res.json({ eingerichtet: true, wurzel: situation.wurzel, ort, pfad: target.pfad,
+  res.json({ eingerichtet: true, wurzel: situation.wurzel, place, pfad: target.pfad,
              imArbeitsverzeichnis: situation.imArbeitsverzeichnis,
              dbBytes, durationSeconds: duration, ...lastBackup(target.pfad),
              cleanup: { ...rule, ...cleanupPreview(target.pfad, keep, days) } });
@@ -6624,17 +6634,17 @@ app.get('/api/backup', ownerOnly, (req, res) => {
    PERSONAL_KEYS ab -- was nicht persoenlich ist, ist dort Adminsache.
    Der Sicherungsort gehoert aber in dieselbe Zeile wie Export und Import. */
 app.put('/api/backup/dir', ownerOnly, (req, res) => {
-  const geprueft = checkPlace(req.body?.ort);
-  if (geprueft.fehler) return res.status(400).json({ error: t(localeOf(req), geprueft.fehler, geprueft.values) });
-  putSetting.run('backupPlace', JSON.stringify(geprueft.ort));
-  res.json({ ok: true, ort: geprueft.ort, pfad: geprueft.pfad, ...lastBackup(geprueft.pfad) });
+  const geprueft = checkPlace(req.body?.place);
+  if (geprueft.error) return res.status(400).json({ error: t(localeOf(req), geprueft.error, geprueft.values) });
+  putSetting.run('backupPlace', JSON.stringify(geprueft.place));
+  res.json({ ok: true, place: geprueft.place, pfad: geprueft.pfad, ...lastBackup(geprueft.pfad) });
 });
 
 app.post('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
   if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
-  if (target.fehler) return res.status(400).json({ error: t(localeOf(req), target.fehler, target.values) });
+  if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
   /* NAME MIT DATUM UND UHRZEIT. Ueberschreiben waere die schlechteste Antwort:
      eine Sicherung, die die vorige frisst, ist keine. VACUUM INTO scheitert an
      einer vorhandenen Zieldatei ohnehin ("output file already exists") --
@@ -6674,7 +6684,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie der
   // Export. Der Pfad steht NICHT in der Zeile: das Protokoll haelt Vorgaenge
   // fest, keine Orte auf dem Wirt.
-  auth.log('backup', { actor: req.benutzer.id });
+  auth.log('backup', { actor: req.user.id });
   /* ---- DAS AUFRAEUMEN, UND ZWAR HIER UND NIRGENDS SONST ----
      DER AUFRUF STEHT AM ENDE DIESER ROUTE, NACH dem `rename` und nach
      `statSync` -- an dem einen Augenblick, in dem feststeht, dass eine
@@ -6706,7 +6716,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
           console.log(`[Kriterion] Alte Sicherungen entfernt: ${out2.weg} ` +
             `(${out2.bytes} Bytes frei)` +
             `${out2.geblieben.length ? `, ${out2.geblieben.length} nicht` : ''}.`);
-          logRemoved(req.benutzer.id, out2.weg);
+          logRemoved(req.user.id, out2.weg);
         }
       }
     }
@@ -6753,12 +6763,12 @@ app.post('/api/backup/cleanup', ownerOnly,
   const situation = backupState();
   if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
-  if (target.fehler) return res.status(400).json({ error: t(localeOf(req), target.fehler, target.values) });
+  if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
   const kind = String(req.body?.kind || '');
   if (kind !== 'rule' && kind !== 'outdated')
     return res.status(400).json({ error: t(localeOf(req), 'server.cleanupUnknown')});
-  const dateien = backupList(target.pfad);
-  if (dateien === null)
+  const files = backupList(target.pfad);
+  if (files === null)
     return res.status(400).json({ error: t(localeOf(req), 'server.backupDirUnreachable')});
   const mark = changeMark();
   /* DIE GRENZEN HALTEN, BEVOR IRGENDETWAS GELOESCHT WIRD. Die Werte kommen aus
@@ -6768,15 +6778,15 @@ app.post('/api/backup/cleanup', ownerOnly,
   if (kind === 'outdated') {
     if (!mark) return res.status(400).json({
       error: t(localeOf(req), 'server.keyNeverChanged')});
-    treffer = dateien.filter(d => d.time < mark.ms);
+    treffer = files.filter(d => d.time < mark.ms);
   } else {
     const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
                               CLEANUP_KEEP, 'server.ruleKeep');
-    if (b.fehler) return res.status(400).json({ error: t(localeOf(req), b.fehler, b.values) });
+    if (b.error) return res.status(400).json({ error: t(localeOf(req), b.error, b.values) });
     const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.fallback),
                               CLEANUP_DAYS, 'server.ruleDays');
-    if (rule.fehler) return res.status(400).json({ error: t(localeOf(req), rule.fehler, rule.values) });
-    treffer = ruleHit(dateien, b.wert, rule.wert, Date.now(), mark ? mark.ms : null);
+    if (rule.error) return res.status(400).json({ error: t(localeOf(req), rule.error, rule.values) });
+    treffer = ruleHit(files, b.value, rule.value, Date.now(), mark ? mark.ms : null);
   }
   const out2 = removeBackups(target.pfad, treffer.map(d => d.name));
   if (out2.weg) {
@@ -6788,7 +6798,7 @@ app.post('/api/backup/cleanup', ownerOnly,
        FREIGEGEBENEN BYTES GEHOEREN NICHT IN DIE TABELLE, sondern in die
        Antwort und in die Zeile darueber: MERKMALE ist eine geschlossene Liste
        und bleibt bei vierzehn. */
-    logRemoved(req.benutzer.id, out2.weg);
+    logRemoved(req.user.id, out2.weg);
   }
   /* DIE ANTWORT NENNT, WAS WIRKLICH GELOESCHT WURDE, und traegt die Vorschau
      frisch daneben: die Karte zeichnet sich daraus neu, statt ihren alten
@@ -6880,9 +6890,9 @@ function ruesteVorschaubilderNach() {
    der Preis dafuer, dass kein Merker in der Datenbank steht -- und der
    Merker waere eine Schemaaenderung. */
 function refreshTiles() {
-  const zeilen = qTileRows.all();
-  if (!zeilen.length) return maintainStorage();
-  startBatchThread('geometrie', zeilen, maintainStorage);
+  const rows = qTileRows.all();
+  if (!rows.length) return maintainStorage();
+  startBatchThread('geometrie', rows, maintainStorage);
 }
 
 /* NICHT MEHR `async` SEIT 0.19.3, und das ist keine Kosmetik: nichts darin ist
@@ -7000,8 +7010,8 @@ app.listen(PORT, () => {
   /* Die oeffentliche Adresse gehoert ins Protokoll: an ihr haengt, welchen
      Link ein Empfaenger bekommt. Wer sie falsch stehen hat, sieht es hier und
      nicht erst am toten Link beim Empfaenger. */
-  if (PUBLIC.fehler) {
-    console.warn(`[Kriterion] PUBLIC_ADDRESS ist unbrauchbar: ${PUBLIC.fehler} ` +
+  if (PUBLIC.problem) {
+    console.warn(`[Kriterion] PUBLIC_ADDRESS ist unbrauchbar: ${PUBLIC.problem} ` +
       'Die Instanz laeuft weiter; den Einladungslink baut wie bisher der Browser des Admins.');
   } else if (PUBLIC.address) {
     console.log(`[Kriterion] Oeffentliche Adresse: ${PUBLIC.address} — ` +

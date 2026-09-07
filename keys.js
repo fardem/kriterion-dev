@@ -102,7 +102,7 @@ function findEnvLine(lines) {
   const hit = [];
   lines.forEach((z, i) => {
     const m = z.match(/^\s*ENCRYPTION_KEY\s*=\s*(.*?)\s*$/);
-    if (m) hit.push({ nr: i, wert: m[1] });
+    if (m) hit.push({ nr: i, value: m[1] });
   });
   return hit;
 }
@@ -143,7 +143,7 @@ function writeEnvLine(file, oldHex, newHex, who, stamp) {
   if (hit.length > 1)
     throw new Error(`In ${file} stehen ${hit.length} aktive Zeilen ENCRYPTION_KEY=. ` +
       'Welche gemeint ist, entscheidet dieser Befehl nicht.');
-  const old = hit[0].wert.trim();
+  const old = hit[0].value.trim();
   /* DIE .ENV MUSS ZU DIESER INSTANZ GEHOEREN. Steht dort ein anderer Wert als
      der, mit dem die Datenbank gerade offen ist, ist es die falsche Datei --
      und sie zu ueberschreiben naehme jemandem den Schluessel zu einer anderen

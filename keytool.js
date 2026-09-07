@@ -172,7 +172,7 @@ async function commandChange(options) {
       console.error('Erwartet ist genau eine. Welche gemeint ist, entscheidet dieser Befehl nicht.');
       process.exit(1);
     }
-    if (hit[0].wert.trim().toLowerCase() !== keyHex.toLowerCase()) {
+    if (hit[0].value.trim().toLowerCase() !== keyHex.toLowerCase()) {
       console.error(RED(`Die Zeile ENCRYPTION_KEY in ${options.env} trägt einen anderen Wert`));
       console.error('als den, mit dem diese Datenbank gerade offen ist. Das ist nicht die .env');
       console.error('dieser Instanz — und sie zu überschreiben nähme jemandem einen Schlüssel weg.');

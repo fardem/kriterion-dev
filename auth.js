@@ -34,7 +34,7 @@ const zf = require('./twofactor');
    ER NIMMT DIE ANFRAGE UND NICHT DIE SPRACHE: welche Sprache eine Antwort
    traegt, entscheidet server.js -- hier ist nur bekannt, WELCHE Anfrage es
    ist. */
-let translate = (req, schluessel) => `\u27e6${schluessel}\u27e7`;
+let translate = (req, key) => `\u27e6${key}\u27e7`;
 function setTranslator(fn) { translate = fn; }
 
 class Message extends Error {
@@ -94,15 +94,15 @@ class Message extends Error {
    auskommentiert oder leer da, und ein leerer neuer Name darf einen gesetzten
    alten nicht verdecken. */
 function fromEnv(name, alterName) {
-  const wert = process.env[name];
-  if (String(wert ?? '').trim() !== '') return wert;
+  const value = process.env[name];
+  if (String(value ?? '').trim() !== '') return value;
   const alt = process.env[alterName];
   if (String(alt ?? '').trim() !== '') {
     console.warn(`[Kriterion] ${alterName} heisst jetzt ${name} — der alte Name ` +
       'wird noch gelesen. Bitte in der .env nachziehen.');
     return alt;
   }
-  return wert;
+  return value;
 }
 
 const BEHIND_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(fromEnv('BEHIND_PROXY', 'HINTER_PROXY') || '').trim());
@@ -163,20 +163,26 @@ const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;
    und faellt auf den Browserweg zurueck. Ein Start, der an einem Tippfehler
    in einer OPTIONALEN Einstellung abbricht, ist schlimmer als der
    Tippfehler. */
+/* DAS FELD HEISST `problem` UND NICHT WIE DIE ABSAGE EINER ROUTE: der Satz
+   darin ist der eine Text dieser Datei, der auf dem BILDSCHIRM DES WIRTS
+   landet und nicht am Bildschirm des Benutzers -- er hat keinen Schluessel in
+   der Sprachdatei und soll auch keinen bekommen. Der Waechter ueber die drei
+   Serverdateien verlangt hinter dem Absagefeld einen Schluessel; hier stuende
+   einer falsch. */
 function checkPublicAddress(raw) {
-  const wert = String(raw || '').trim();
-  if (!wert) return { address: '', set: false };
+  const value = String(raw || '').trim();
+  if (!value) return { address: '', set: false };
   let u;
-  try { u = new URL(wert); }
-  catch { return { address: '', set: true, fehler: 'Das ist keine vollständige Adresse.' }; }
+  try { u = new URL(value); }
+  catch { return { address: '', set: true, problem: 'Das ist keine vollständige Adresse.' }; }
   if (u.protocol !== 'http:' && u.protocol !== 'https:')
-    return { address: '', set: true, fehler: 'Nur http:// und https:// sind möglich.' };
+    return { address: '', set: true, problem: 'Nur http:// und https:// sind möglich.' };
   if (!u.hostname)
-    return { address: '', set: true, fehler: 'Es fehlt der Rechnername.' };
+    return { address: '', set: true, problem: 'Es fehlt der Rechnername.' };
   if (u.username || u.password)
-    return { address: '', set: true, fehler: 'Zugangsdaten gehören nicht in die Adresse.' };
-  if (u.search) return { address: '', set: true, fehler: 'Eine Abfrage (?) ist nicht erlaubt.' };
-  if (u.hash) return { address: '', set: true, fehler: 'Ein Fragment (#) ist nicht erlaubt.' };
+    return { address: '', set: true, problem: 'Zugangsdaten gehören nicht in die Adresse.' };
+  if (u.search) return { address: '', set: true, problem: 'Eine Abfrage (?) ist nicht erlaubt.' };
+  if (u.hash) return { address: '', set: true, problem: 'Ein Fragment (#) ist nicht erlaubt.' };
   // Ohne abschliessenden Schraegstrich, damit der Link genau eine Form hat.
   const address = (u.origin + u.pathname).replace(/\/+$/, '');
   return { address, set: true };
@@ -193,9 +199,9 @@ const PASSWORD_MIN = 10;
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
 
 function scryptCompute(password, salt, k) {
-  return new Promise((done, fehler) => {
+  return new Promise((done, error) => {
     crypto.scrypt(password, salt, k.keylen, { N: k.N, r: k.r, p: k.p },
-      (e, buf) => e ? fehler(e) : done(buf));
+      (e, buf) => e ? error(e) : done(buf));
   });
 }
 
@@ -389,7 +395,7 @@ const getUser2 = (id) =>
 const listUsers = () => db.prepare(
   `SELECT u.id, u.username, u.role, u.status, u.last_login, u.created_at,
           (u.password_hash = '') AS withoutPassword,
-          (SELECT COUNT(*) FROM items i WHERE i.user_id = u.id) AS eintraege
+          (SELECT COUNT(*) FROM items i WHERE i.user_id = u.id) AS entries
      FROM users u ORDER BY u.id`
 ).all().map(z => ({ ...z, withoutPassword: Boolean(z.withoutPassword) }));
 
@@ -505,7 +511,7 @@ function countInventory(userId) {
   const one = (sql, ...w) => db.prepare(sql).get(...w).n;
   const seine = 'SELECT id FROM items WHERE user_id = ?';
   return {
-    eintraege: one('SELECT COUNT(*) n FROM items WHERE user_id = ?', id),
+    entries: one('SELECT COUNT(*) n FROM items WHERE user_id = ?', id),
     // an SEINEN Eintraegen, von anderen geschrieben -- faellt mit den Eintraegen
     foreignComments: one(`SELECT COUNT(*) n FROM comments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
     foreignRatings: one(`SELECT COUNT(*) n FROM ratings WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
@@ -520,7 +526,7 @@ function countInventory(userId) {
     // zwanzig Links und ein Dutzend Dateien in fremden Eintraegen hinterlassen
     // hat, im Dialog leer aus.
     links: one(`SELECT COUNT(*) n FROM links WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
-    dateien: one(`SELECT COUNT(*) n FROM attachments WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id)
+    files: one(`SELECT COUNT(*) n FROM attachments WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id)
   };
 }
 
@@ -538,11 +544,11 @@ function removeUser(userId, optionen = {}, actor) {
   if (u.status === 'deleted') throw new Message('login.userDeleted');
   if (u.role === 'owner' && ownerCount() <= 1)
     throw new Message('login.lastOwner');
-  const zahlen = countInventory(u.id);
+  const counts = countInventory(u.id);
   db.transaction(() => {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
     // zweite Haekchen Zeilen mit, die das erste ohnehin mitgenommen haette.
-    if (optionen.eintraege) db.prepare('DELETE FROM items WHERE user_id = ?').run(u.id);
+    if (optionen.entries) db.prepare('DELETE FROM items WHERE user_id = ?').run(u.id);
     if (optionen.beitraege) {
       db.prepare('DELETE FROM comments WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM ratings WHERE user_id = ?').run(u.id);
@@ -575,7 +581,7 @@ function removeUser(userId, optionen = {}, actor) {
      Zeile bleibt stehen -- der Grabstein traegt seine Nummer weiter, target
      zeigt also weiterhin auf etwas. */
   log('user.delete', { actor: acting, target: u.id });
-  return { id: u.id, name: u.username, tombstone: tombstoneName(u.id), zahlen, optionen };
+  return { id: u.id, name: u.username, tombstone: tombstoneName(u.id), counts, optionen };
 }
 
 // --- AUTH_RESET wird abgelehnt ------------------------------------------
@@ -697,10 +703,10 @@ function parseCookies(req) {
   for (const part of h.split(';')) {
     const i = part.indexOf('=');
     if (i === -1) continue;
-    let wert;
-    try { wert = decodeURIComponent(part.slice(i + 1).trim()); }
+    let value;
+    try { value = decodeURIComponent(part.slice(i + 1).trim()); }
     catch { continue; }
-    out[part.slice(0, i).trim()] = wert;
+    out[part.slice(0, i).trim()] = value;
   }
   return out;
 }
@@ -796,7 +802,7 @@ function sessionsOf(userId, ownToken) {
       WHERE user_id = ? AND last_seen >= datetime('now', '-${SESSION_DAYS} days')
       ORDER BY last_seen DESC, created_at DESC`
   ).all(id).map(z => ({
-    kennung: sessionIdOf(z.token),
+    id: sessionIdOf(z.token),
     loggedInAt: z.created_at,
     lastSeen: z.last_seen,
     // Die eigene ist markiert, damit die Karte sie nicht mit "alle anderen"
@@ -1317,10 +1323,10 @@ const qLogPerKind = db.prepare('SELECT event, COUNT(*) n FROM security_log GROUP
    von ihr wissen will. */
 function logCounts() {
   const perKind = Object.fromEntries(qLogPerKind.all().map(z => [z.event, z.n]));
-  const out = { alle: 0 };
+  const out = { all: 0 };
   for (const [k, arten] of Object.entries(LOG_GROUPS))
     out[k] = arten.reduce((n, a) => n + (perKind[a] || 0), 0);
-  out.alle = Object.values(perKind).reduce((n, x) => n + x, 0);
+  out.all = Object.values(perKind).reduce((n, x) => n + x, 0);
   return out;
 }
 
@@ -1331,18 +1337,18 @@ function readLog(limit = LOG_LIMIT, group = null) {
   const rows = group
     ? qLogGroup[group].all(...LOG_GROUPS[group], limit)
     : qLog.all(limit);
-  const zahlen = logCounts();
+  const counts = logCounts();
   /* DIE FELDNAMEN DIESER ANTWORT SIND NOCH DEUTSCH -- sie ziehen mit
      public/app.js in Bauabschnitt 4 um, wo ihr einziger Leser steht. */
   return {
-    zeilen: rows,
+    rows: rows,
     // Die Zahl der Zeilen DIESER Ansicht -- sonst stuende unter einer
     // gefilterten Liste die Gesamtzahl aller Vorgaenge und widerspraeche ihr.
-    total: group ? zahlen[group] : qLogCount.get().n,
-    zahlen,
-    gruppe: group || null,
+    total: group ? counts[group] : qLogCount.get().n,
+    counts,
+    group: group || null,
     days: LOG_DAYS,
-    grenze: limit
+    limit: limit
   };
 }
 
@@ -1655,9 +1661,9 @@ function createLoginTicket(userId) {
   // sie fuellen will, braucht dafuer jedes Mal das richtige Passwort.
   const now = Date.now();
   for (const [k, a] of tickets) if (a.until <= now) tickets.delete(k);
-  const schluessel = crypto.randomBytes(32).toString('hex');
-  tickets.set(schluessel, { id, until: now + LOGIN_TICKET_MS });
-  return { ticket: schluessel, sekunden: LOGIN_TICKET_MS / 1000 };
+  const key = crypto.randomBytes(32).toString('hex');
+  tickets.set(key, { id, until: now + LOGIN_TICKET_MS });
+  return { ticket: key, sekunden: LOGIN_TICKET_MS / 1000 };
 }
 
 /* Prueft UND verbraucht in einem, wie useRelease. Zwei Funktionen --
@@ -1665,8 +1671,8 @@ function createLoginTicket(userId) {
    Route, die die zweite vergisst, saehe von aussen genauso aus wie die richtige.
    VERBRAUCHT WIRD AUCH DER ABGELAUFENE: sonst bliebe er liegen und ein zweiter
    Versuch sagte dasselbe. */
-function useLoginTicket(schluessel) {
-  const k = String(schluessel || '');
+function useLoginTicket(key) {
+  const k = String(key || '');
   if (!k) return null;
   const a = tickets.get(k);
   if (a === undefined) return null;
@@ -1723,18 +1729,18 @@ const sessionToken = (req) => parseCookies(req)[cookieName(req)];
 // seines Cookies drin. 401 und nicht 403: der Zugang gilt nicht mehr.
 function requireAuth(req, res, next) {
   const token = sessionToken(req);
-  const benutzer = sessionUser(token);
-  if (!benutzer) {
+  const user = sessionUser(token);
+  if (!user) {
     return res.status(401).json({ error: translate(req, 'login.notSignedIn') });
   }
-  if (benutzer.status !== 'active') {
+  if (user.status !== 'active') {
     destroySession(token);
     return res.status(401).json({
-      error: translate(req, benutzer.status === 'deleted'
+      error: translate(req, user.status === 'deleted'
         ? 'server.accountGone' : 'login.accountLocked')
     });
   }
-  req.benutzer = benutzer;
+  req.user = user;
   next();
 }
 
