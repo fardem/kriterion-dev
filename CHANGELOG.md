@@ -29,6 +29,37 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.24.1] - 2026-09-07
+
+> **VOR DEM EINSPIELEN EINE SICHERUNG ZIEHEN.** Diese Runde benennt Tabellen,
+> Spalten und gespeicherte Werte der Datenbank um. Die Migration läuft beim
+> ersten Start von selbst und ist geprüft — an einem echten Altbestand, 21
+> Zusagen grün. **Es gibt trotzdem keinen Weg zurück:** eine ältere Fassung
+> kann die umbenannte Datenbank nicht mehr lesen.
+>
+> **UND EINE ZEILE IN DER `.env` LESEN.** Fünf Umgebungsvariablen heißen anders.
+> **Die alten Namen werden weiter gelesen** und schreiben beim Start eine Zeile
+> ins Containerprotokoll — nichts bricht, aber wer sie umstellt, hat es hinter
+> sich: `OEFFENTLICHE_ADRESSE` → `PUBLIC_ADDRESS`, `HINTER_PROXY` →
+> `BEHIND_PROXY`, `PORT_VERSATZ` → `PORT_OFFSET`, `SICHERUNG_DIR` →
+> `BACKUP_DIR`, `NEUER_SCHLUESSEL` → `NEW_KEY`.
+
+*Was ein Betreiber merkt: am Bildschirm kein Wort — und drei Dinge, die wieder
+gehen. Unter der Haube spricht der ganze Quelltext Englisch: Namen, Adressen,
+Dateinamen, die Datenbank. Ein Lesezeichen auf eine alte Adresse führt weiter
+ans Ziel; ein Einladungslink aus einer verschickten Mail auch.*
+
+- Fixed: **Die Vorschaubilder im Eintrag sind wieder anklickbar** — mit der Maus und mit dem Finger; mit den Pfeiltasten ging es die ganze Zeit
+- Fixed: **Ein Tag am Testtag zeigt wieder seinen Namen** statt eines „t" — und sein Kreuz entfernt wieder das richtige Tag
+- Fixed: **Der zugeklappte Block „Links" zeigt wieder die ersten Zeilen** statt der letzten; „alle N anzeigen" bleibt der Weg zum Rest
+- Fixed: Das Abzeichen des Eigentümers und der grüne Punkt am aktiven Zugang sind wieder gefärbt
+- Changed: **Jeder Name im Quelltext ist englisch** — Bezeichner, Schlüssel der Sprachdatei, ids, Klassen, Stilblattvariablen, Dateinamen, Umgebungsvariablen
+- Changed: **Tabellen, Spalten und gespeicherte Werte der Datenbank heißen englisch** — die Migration läuft beim ersten Start
+- Changed: Die Adressen heißen englisch (`#/offen` → `#/open`, `#/einladung/` → `#/invite/`, `#/bestaetigung/` → `#/confirm/`) — **jede alte Adresse wird übersetzt**
+- Changed: Die API-Wurzeln heißen englisch (`/api/sicherung` → `/api/backup` und acht weitere) — sie werden nur von der eigenen Oberfläche gerufen
+- Changed: Die Sprachdatei liegt jetzt unter `public/languages/` statt `public/sprachen/`
+- Changed: Ältere Exportdateien werden beim Einlesen übersetzt — ein Export aus 0.24.0 spielt sich unverändert ein
+
 ## [0.24.0] - 2026-09-06
 
 *Was ein Betreiber merkt: nichts — und genau das ist der Punkt. Jeder Satz der Oberfläche ist aus dem Programm in eine eigene Datei gezogen (`public/sprachen/de.json`); Kriterion sieht danach Zeichen für Zeichen aus wie vorher. Zwei Dinge sind trotzdem anders: die Zeitleiste ist im hellen Schema wieder zu sehen, und die Tags im Filter stecken hinter einem Umschalter statt hinter „Weitere Filter". Keine Datenbankstufe; nach dem Einspielen im Browser einmal hart neu laden.*

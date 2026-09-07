@@ -15587,12 +15587,23 @@ const shareMain = (purpose, target = null) =>
        Umgebungsvariable, und die heisst seit Bauabschnitt 5.2 anders. Der
        Satz musste mitziehen, weil er sonst auf etwas zeigte, das es nicht
        mehr gibt. */
-    const oldLanguage = JSON.parse(execFileSync('git',
-      ['-C', __dirname, 'show', '0681d42:public/sprachen/de.json'],
-      { encoding: 'utf8', maxBuffer: 1 << 28 }));
+    /* DIE WERTE VON DAMALS STEHEN ALS DATEI DA und werden nicht aus git
+       geholt. EINE GEGENPROBENKOPIE ENTSTEHT AUS `git archive` UND HAT KEIN
+       `.git`: ein `git show` bricht dort ab, und ein abgerissener Lauf belegt
+       nichts (Stolpersteine 138, 161 und 170). Der erste Anlauf dieses
+       Waechters hat genau das getan -- acht Gegenproben meldeten ABGERISSEN
+       statt einer roten Zeile.
+       DIE DATEI IST ERZEUGT UND NICHT GESCHRIEBEN: `git show
+       0681d42:public/sprachen/de.json` ist die Quelle, und der Commit steht
+       in ihr. */
+    const wordingFile = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'tools', 'wording-0681d42.json'), 'utf8'));
     const valuesOf = (o) => { const out = []; for (const v of Object.values(o))
       if (v && typeof v === 'object') out.push(...Object.values(v)); else out.push(v); return out; };
-    const wordingThen = valuesOf(oldLanguage).sort();
+    check('Die Werte der Abnahme liegen als Datei daneben',
+      wordingFile.commit === '0681d42' && Array.isArray(wordingFile.values),
+      `${wordingFile.commit} · ${wordingFile.values?.length} Werte`);
+    const wordingThen = [...wordingFile.values].sort();
     const wordingNow = valuesOf(LANGUAGE_FILE).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
     const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
