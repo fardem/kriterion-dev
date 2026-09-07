@@ -29,6 +29,27 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.24.2] - 2026-09-07
+
+> **VOR DEM EINSPIELEN EINE SICHERUNG ZIEHEN.** Diese Runde schreibt
+> gespeicherte Werte um. Die Migration läuft beim ersten Start von selbst und
+> ist an einem echten 0.24.0er Bestand geprüft; wer von 0.24.0 kommt, fährt
+> beide Migrationen in einem einzigen Start.
+>
+> **WER 0.24.1 SCHON LAUFEN HAT UND DIE KARTE „SUCHMASCHINEN" GESPEICHERT
+> HAT**, trägt seine eigenen Suchmaschinen neu ein: die Karte stand leer da,
+> und „Übernehmen" hat die leeren Felder übernommen. **Wer sie nicht angefasst
+> hat, bekommt sie mit dieser Runde zurück** — verloren war nichts.
+
+*Was ein Betreiber merkt: drei Dinge sind wieder da, die 0.24.1 unsichtbar
+gemacht hat. 0.24.1 hat die Schlüssel der Einstellungen umbenannt, aber nicht
+die Feldnamen in den gespeicherten Werten darin; die Zeilen lagen unverändert
+in der Datenbank, und Kriterion las an ihnen vorbei.*
+
+- Fixed: **Die eigenen Suchmaschinen stehen wieder in der Karte** — und wieder im Vorrat der Suchzeile
+- Fixed: **Der Mailzugang gilt wieder als eingerichtet** — Einladung, Rücksetzung und Bestätigung gehen wieder hinaus, und die Selbstanmeldung lässt sich wieder einschalten
+- Fixed: **„Zuletzt getestet" steht wieder am Mailversand** — eine neue Testmail ist nicht nötig, der alte Beleg gilt weiter
+
 ## [0.24.1] - 2026-09-07
 
 > **VOR DEM EINSPIELEN EINE SICHERUNG ZIEHEN.** Diese Runde benennt Tabellen,

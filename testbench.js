@@ -241,6 +241,19 @@ function shortRun(code, dataDirectory) {
   }).trim().split('\n').pop();
 }
 
+/* DERSELBE LAUF, ABER MIT DER GANZEN AUSGABE -- seit 0.24.2. shortRun()
+   liefert die LETZTE Zeile; das ist richtig, wo eine Antwort geholt wird, und
+   falsch, wo die MELDUNGEN die Sache sind. Ein Migrationsblock meldet sich
+   VOR der Antwort, und die letzte Zeile saehe davon nichts -- eine Probe auf
+   „der zweite Start ist stumm" waere damit immer gruen. */
+function shortRunAll(code, dataDirectory) {
+  const { execFileSync } = require('child_process');
+  return execFileSync(process.execPath, ['-e', code], {
+    cwd: __dirname, encoding: 'utf8',
+    env: { ...process.env, DATA_DIR: dataDirectory, ENCRYPTION_KEY: KEY }
+  }).trim();
+}
+
 /* Setzt einem von Hand angelegten Zugang ein ECHTES Passwort. Gebraucht wird
    das seit 0.8.90 in jeder Prueflage, deren Zugaenge eine zweite Bestaetigung
    holen muessen: ein Zugang mit password_hash = 'x' kommt daran nicht vorbei,
@@ -15487,16 +15500,50 @@ const shareMain = (purpose, target = null) =>
       'umgestellt', 'umstellung', 'unten', 'veraltet', 'verfasser', 'von', 'vorne', 'wer',
       'wort', 'zeit', 'zeitpunktEinzahl', 'zeitpunktMehrzahl', 'zielGroesse', 'ziffern',
       'zugang', 'zugenommen', 'zuletzt', 'zuletztGesehen', 'zusatz'];
-    const NAMED = [...FALSE_FRIENDS, ...WAITING_FOR_STAGE_TWO].sort();
+    /* DIE ALTEN NAMEN DES BESTANDS -- seit 0.24.2. Sechs Feldnamen, die in
+       0.24.0 IN einem gespeicherten Wert standen: `vorlage` an den eigenen
+       Suchmaschinen, die vier Felder des Mailzugangs, `marke` am Beleg der
+       Testmail. Sie sind KEINE Benennung dieser Fassung, sondern der
+       GEGENSTAND einer Migration -- dieselbe Lage wie bei den drei alten
+       Adressen in OLD_ADDRESSES: eine Uebersetzungstafel muss sagen duerfen,
+       was sie uebersetzt.
+       `am` UND `name` STEHEN NICHT DABEI: `am` ist im Woerterbuch kein Wort,
+       und `name` heisst in beiden Sprachen so. */
+    const OLD_STORED_NAMES = ['absender', 'anbieter', 'benutzer', 'marke', 'passwort', 'vorlage'];
+    const NAMED = [...FALSE_FRIENDS, ...OLD_STORED_NAMES, ...WAITING_FOR_STAGE_TWO].sort();
     const germanNames = [...identifiers].filter(isGerman).sort();
     check('Namensprobe: kein deutscher Bezeichner ausser den benannten',
       equal(germanNames, NAMED),
       `zu viel: ${germanNames.filter(n => !NAMED.includes(n)).join(' ') || '—'} · fehlt: ${NAMED.filter(n => !germanNames.includes(n)).join(' ') || '—'}`);
     /* DIE ZAHL STEHT AUSDRUECKLICH DA. Ohne sie waere die Liste oben eine
        Selbstbestaetigung: wer einen Namen hinzufuegt, macht sie wieder gruen. */
-    check('Und es sind genau 110 — sechs falsche Freunde und 104 Grenzen',
-      germanNames.length === 110 && FALSE_FRIENDS.length === 6 && WAITING_FOR_STAGE_TWO.length === 104,
-      `${germanNames.length} deutsch, ${FALSE_FRIENDS.length} falsche Freunde, ${WAITING_FOR_STAGE_TWO.length} Grenzen`);
+    check('Und es sind genau 116 — sechs falsche Freunde, sechs alte Feldnamen und 104 Grenzen',
+      germanNames.length === 116 && FALSE_FRIENDS.length === 6 &&
+      OLD_STORED_NAMES.length === 6 && WAITING_FOR_STAGE_TWO.length === 104,
+      `${germanNames.length} deutsch, ${FALSE_FRIENDS.length} falsche Freunde, ` +
+      `${OLD_STORED_NAMES.length} alte Feldnamen, ${WAITING_FOR_STAGE_TWO.length} Grenzen`);
+    /* UND DIE SECHS STEHEN NUR AN EINER STELLE. Ohne diese Zeile waere die
+       Ausnahme ein Freibrief: wer morgen eine Veraenderliche `vorlage` nennt,
+       waere gruen, weil der Name schon einmal erlaubt wurde. Gesucht wird je
+       Datei und in db.js OHNE die Liste der Formen -- was dann noch uebrig
+       ist, ist eine Benennung und keine Uebersetzung. */
+    const oldElsewhere = [];
+    for (const f of SHIPPED) {
+      const code = zerlege(readShipped(f), f).filter(p => p.art === CODE)
+        .map(p => p.wert).join('\n');
+      const rest = f === 'db.js'
+        ? code.replace(/const SHAPES_0242 = \[[\s\S]*?\n\];/, '') : code;
+      for (const n of OLD_STORED_NAMES)
+        if (new RegExp(`(^|[^A-Za-z0-9_$])${n}(?![A-Za-z0-9_$])`).test(rest))
+          oldElsewhere.push(`${f}: ${n}`);
+    }
+    check('Und die sechs alten Feldnamen stehen nur in SHAPES_0242',
+      oldElsewhere.length === 0, oldElsewhere.join(' · '));
+    // Und der Leser wuerde sie anderswo wirklich finden -- an einem gestellten Fall.
+    check('Der Leser wuerde einen alten Feldnamen anderswo melden',
+      /(^|[^A-Za-z0-9_$])vorlage(?![A-Za-z0-9_$])/.test('const vorlage = 1;') &&
+      !/(^|[^A-Za-z0-9_$])vorlage(?![A-Za-z0-9_$])/.test('const searchTemplate = 1;'),
+      'der Leser trennt Benennung und Namensteil nicht');
     check('Und jeder benannte steht wirklich im Code — keine Karteileiche',
       NAMED.every(n => identifiers.has(n)),
       NAMED.filter(n => !identifiers.has(n)).join(' '));
@@ -15697,6 +15744,232 @@ const shareMain = (purpose, target = null) =>
     check('Der Leser wuerde eine fehlende Stellung wirklich melden',
       !/box\.scrollTop = 0;/.test("box.style.overflowY = 'hidden';\n    button.hidden = false;"),
       'der Leser sieht die gestellte Luecke nicht');
+  }
+
+  /* ================= Die gespeicherten Formen ziehen mit — 0.24.2 =========
+     DIE LUECKE, DIE 0.24.1 GELASSEN HAT, UND DIE PROBE, DIE SIE NICHT FAND.
+     Der Bestandslauf der Runde 0.24.1 hat die Tabelle `settings` NIE GEFUELLT
+     -- und was nicht dasteht, kann keine Migration verlieren. Der Lauf war
+     gruen und hat ueber diese Klasse nichts ausgesagt.
+
+     GEPRUEFT WIRD AN EINEM ECHTEN BESTAND UND NICHT AM QUELLTEXT. Ein Waechter,
+     der nur nachliest, ob SHAPES_0242 dasteht, waere gruen, sobald die Liste
+     dasteht -- und sagte nichts darueber, ob sie greift. Deshalb: eine
+     Datenbank, von Hand auf den Stand 0.24.0 gesetzt (ALTE Schluessel, ALTE
+     Feldnamen darin), EIN Start, und danach liest der Quelltext selbst.
+
+     UND DIE GEGENLAGE STEHT DANEBEN: vier Werte, die sich NICHT aendern
+     duerfen. Ein Block, der alles anfasst, waere schlimmer als einer, der
+     nichts tut. */
+  group('Die gespeicherten Formen ziehen mit — 0.24.2');
+  {
+    const gfDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-formen-'));
+    const gfFile = path.join(gfDirectory, 'katalog.sqlite');
+    shortRun(`require('./db'); console.log('angelegt');`, gfDirectory);
+
+    /* DIE MARKE WIRD HIER GERECHNET WIE 0.24.0 SIE GERECHNET HAT: ein Hash
+       ueber die WERTE des Zugangs in fester Reihenfolge. Genau deshalb muss
+       mail.mark() nach dem Umbenennen dieselbe Zahl liefern -- und genau das
+       haelt die Probe „Die Marke des Mailtests gilt weiter" fest. */
+    const gfAccess = { anbieter: 'eigen', server: 'mail.beispiel.de', port: 465, sicher: true,
+                       benutzer: 'anna@beispiel.de', passwort: 'geheim',
+                       absender: 'anna@beispiel.de' };
+    const gfMark = crypto.createHash('sha256').update(JSON.stringify(
+      [gfAccess.anbieter, gfAccess.server, gfAccess.port, gfAccess.sicher,
+       gfAccess.benutzer, gfAccess.passwort, gfAccess.absender])).digest('hex').slice(0, 16);
+    const gfOwn = [{ name: 'Ladies-Forum', vorlage: 'https://ladies.forum/suche?q=%s' }, null,
+                   { name: 'Zweites Forum', vorlage: 'https://zwei.beispiel.de/?q=%s' }];
+    const gfPool = ['startpage', 'eigen1', 'ddg', 'eigen3'];
+    const gfVocabulary = { sacheEinzahl: 'Modell', sacheMehrzahl: 'Modelle' };
+    const gfBlocks = { seite: ['tags', 'kategorie'], unten: [], zu: ['links'] };
+    {
+      const d = open(gfFile);
+      const put = d.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+      put.run('sucheEigene', JSON.stringify(gfOwn));
+      put.run('sucheAktiv', JSON.stringify(gfPool));
+      put.run('mailzugang', JSON.stringify(gfAccess));
+      put.run('mailtestOk', JSON.stringify({ marke: gfMark, am: '2026-09-01 10:00:00' }));
+      put.run('vokabular', JSON.stringify(gfVocabulary));
+      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
+        .run('formanna', 'x', 'owner', 'active');
+      d.prepare('INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?,?,?)')
+        .run(d.prepare("SELECT id FROM users WHERE username = 'formanna'").get().id,
+             'bloecke', JSON.stringify(gfBlocks));
+      d.close();
+    }
+    const gfSetting = (k) => {
+      const d = open(gfFile);
+      const r = d.prepare('SELECT value FROM settings WHERE key = ?').get(k);
+      d.close();
+      return r ? JSON.parse(r.value) : null;
+    };
+    /* ERST DER GEGENSTAND SELBST. Ohne diese Zeile belegte alles Weitere nur,
+       dass eine Datenbank dasteht -- und nicht, dass sie den Stand traegt, um
+       den es geht. */
+    check('Der gestellte Bestand traegt die alten Feldnamen',
+      (gfSetting('sucheEigene') || [])[0]?.vorlage === 'https://ladies.forum/suche?q=%s' &&
+      gfSetting('mailzugang')?.anbieter === 'eigen' && gfSetting('mailtestOk')?.marke === gfMark,
+      JSON.stringify(gfSetting('mailzugang')));
+
+    // EIN Start -- und in ihm laufen beide Bloecke hintereinander.
+    shortRun(`require('./db'); console.log('gelaufen');`, gfDirectory);
+
+    const gfOwnAfter = gfSetting('searchOwn');
+    check('Die eigenen Suchmaschinen tragen danach `template`',
+      Array.isArray(gfOwnAfter) && gfOwnAfter.length === 3 &&
+      gfOwnAfter[0].template === 'https://ladies.forum/suche?q=%s' &&
+      gfOwnAfter[2].template === 'https://zwei.beispiel.de/?q=%s',
+      JSON.stringify(gfOwnAfter));
+    check('Und `vorlage` steht an keinem der drei Plaetze mehr',
+      (gfOwnAfter || []).every(e => !e || !('vorlage' in e)), JSON.stringify(gfOwnAfter));
+    /* DER GERAEUMTE PLATZ BLEIBT GERAEUMT. `null` ist kein Objekt, und ein
+       Block, der daraus `{}` machte, ergaebe einen halben Anbieter -- den
+       weist der Schreibweg mit 400 ab, aber gelesen wird er trotzdem. */
+    check('Und der geraeumte zweite Platz bleibt null',
+      gfOwnAfter[1] === null, JSON.stringify(gfOwnAfter[1]));
+    check('Und die Namen stehen unveraendert daneben',
+      gfOwnAfter[0].name === 'Ladies-Forum' && gfOwnAfter[2].name === 'Zweites Forum',
+      JSON.stringify(gfOwnAfter.map(e => e && e.name)));
+
+    const gfAccessAfter = gfSetting('mailzugang');
+    check('Der Mailzugang traegt danach die vier englischen Felder',
+      gfAccessAfter.provider === 'eigen' && gfAccessAfter.user === 'anna@beispiel.de' &&
+      gfAccessAfter.password === 'geheim' && gfAccessAfter.sender === 'anna@beispiel.de',
+      JSON.stringify({ ...gfAccessAfter, password: '***' }));
+    check('Und keines der vier deutschen steht mehr da',
+      !['anbieter', 'benutzer', 'passwort', 'absender'].some(k => k in gfAccessAfter),
+      Object.keys(gfAccessAfter).join(' · '));
+    /* DREI FELDER HIESSEN SCHON VORHER SO und duerfen deshalb nicht angefasst
+       werden. Stuenden sie in der Liste, waere die Liste eine Behauptung
+       ueber 0.24.1, die nicht stimmt. */
+    check('Und server, port und sicher stehen unveraendert',
+      gfAccessAfter.server === 'mail.beispiel.de' && gfAccessAfter.port === 465 &&
+      gfAccessAfter.sicher === true, JSON.stringify(gfAccessAfter));
+
+    const gfTestAfter = gfSetting('mailtestOk');
+    check('Der Beleg der Testmail traegt danach `mark` und `at`',
+      gfTestAfter.mark === gfMark && gfTestAfter.at === '2026-09-01 10:00:00',
+      JSON.stringify(gfTestAfter));
+    check('Und weder `marke` noch `am` stehen mehr da',
+      !('marke' in gfTestAfter) && !('am' in gfTestAfter),
+      Object.keys(gfTestAfter).join(' · '));
+
+    /* JETZT LIEST DER QUELLTEXT SELBST -- und das ist die eigentliche Probe.
+       Alles darueber belegt, was in der Zeile STEHT; diese hier belegt, dass
+       der Server es auch SIEHT. Gefragt wird im Kind, weil db.js beim Laden
+       eine Datenbank oeffnet. */
+    const gfSeen = JSON.parse(shortRun(
+      `const { db } = require('./db'); const mail = require('./mail');` +
+      `const get = (k) => { const r = db.prepare('SELECT value FROM settings WHERE key = ?').get(k);` +
+      ` return r ? JSON.parse(r.value) : null; };` +
+      `const access = get('mailzugang'), test = get('mailtestOk');` +
+      `const own = get('searchOwn') || [];` +
+      `const ok = (v) => typeof v === 'string' && /^https?:\\/\\/[^\\s]+$/i.test(v) && v.includes('%s');` +
+      `console.log(JSON.stringify({` +
+      ` slots: own.map(e => (e && e.name && ok(e.template)) ? e.name : null),` +
+      ` configured: mail.configured(access),` +
+      ` markMatches: Boolean(test && test.mark && test.mark === mail.mark(access)),` +
+      ` testedAt: test ? (test.at ?? null) : null }));`,
+      gfDirectory));
+    check('Der Quelltext sieht die beiden eigenen Suchmaschinen wieder',
+      equal(gfSeen.slots, ['Ladies-Forum', null, 'Zweites Forum']), JSON.stringify(gfSeen.slots));
+    check('Und der Mailzugang gilt wieder als eingerichtet',
+      gfSeen.configured === true, JSON.stringify(gfSeen.configured));
+    /* DIE MARKE DES MAILTESTS GILT WEITER. Sie haengt an den WERTEN und nicht
+       an den Namen -- deshalb wird sie umbenannt und nicht geloescht. Eine
+       geloeschte Marke hiesse „teste noch einmal", und dazu gibt es keinen
+       Anlass: es hat sich am Zugang nichts geaendert. */
+    check('Die Marke des Mailtests gilt weiter',
+      gfSeen.markMatches === true, `gespeichert ${gfMark}`);
+    check('Und „zuletzt getestet" steht wieder da',
+      gfSeen.testedAt === '2026-09-01 10:00:00', JSON.stringify(gfSeen.testedAt));
+
+    /* DIE GEGENLAGE: VIER WERTE, DIE SICH NICHT AENDERN DUERFEN. `searchOn`
+       ist eine flache Liste von Schluesseln, `vocabulary` traegt die vierzehn
+       Vokabelnamen, die deutsch bleiben, und `blocks` traegt seite/unten/zu --
+       alle drei sind in 0.24.1 ausdruecklich nicht umgezogen. */
+    check('Der Vorrat der Suchmaschinen bleibt Zeichen fuer Zeichen stehen',
+      equal(gfSetting('searchOn'), gfPool), JSON.stringify(gfSetting('searchOn')));
+    check('Das Vokabular bleibt Zeichen fuer Zeichen stehen',
+      JSON.stringify(gfSetting('vocabulary')) === JSON.stringify(gfVocabulary),
+      JSON.stringify(gfSetting('vocabulary')));
+    check('Und die Bloecke des Benutzers bleiben Zeichen fuer Zeichen stehen',
+      (() => { const d = open(gfFile);
+        const r = d.prepare("SELECT value FROM user_settings WHERE key = 'blocks'").get();
+        d.close(); return r && r.value === JSON.stringify(gfBlocks); })(),
+      'die Bloecke sind angefasst worden');
+
+    /* WIEDERHOLBAR UND STUMM. Gefragt wird die Zeile selbst und nicht ein
+       Merker -- ein zweiter Start findet nichts mehr. */
+    const gfSecond = shortRunAll(`require('./db'); console.log('fertig');`, gfDirectory);
+    check('Der zweite Start sagt nichts mehr ueber Feldnamen',
+      !/Migration auf 0\.24\.2/.test(gfSecond), gfSecond.replace(/\n/g, ' · '));
+    check('Und er laesst die Werte, wie sie sind',
+      JSON.stringify(gfSetting('searchOwn')) === JSON.stringify(gfOwnAfter) &&
+      JSON.stringify(gfSetting('mailtestOk')) === JSON.stringify(gfTestAfter),
+      JSON.stringify(gfSetting('searchOwn')));
+
+    /* DER HALBE FALL: eine Zeile, die BEIDE Namen traegt. Sie kann nur von
+       Hand entstehen -- aber ein Migrationsblock trifft im Feld genau das,
+       was er fuer unmoeglich haelt. DER NEUE NAME GEWINNT, weil der Quelltext
+       ihn liest; der alte faellt weg, damit nicht zwei Wahrheiten
+       nebeneinander liegenbleiben. */
+    {
+      const d = open(gfFile);
+      d.prepare("UPDATE settings SET value = ? WHERE key = 'mailtestOk'")
+        .run(JSON.stringify({ marke: 'alt', mark: 'neu', am: 'gestern' }));
+      d.close();
+    }
+    shortRun(`require('./db'); console.log('gelaufen');`, gfDirectory);
+    const gfBoth = gfSetting('mailtestOk');
+    check('Traegt eine Zeile beide Namen, gewinnt der neue',
+      gfBoth.mark === 'neu' && !('marke' in gfBoth), JSON.stringify(gfBoth));
+    check('Und der alleinstehende alte Name zieht trotzdem um',
+      gfBoth.at === 'gestern' && !('am' in gfBoth), JSON.stringify(gfBoth));
+
+    /* UND EINE FRISCHE INSTANZ SAGT NICHTS. Sie traegt keine dieser Zeilen,
+       also gibt es nichts umzubenennen -- eine Meldung waere dort eine
+       Behauptung ueber einen Bestand, den es nicht gibt. */
+    {
+      const gfFresh = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch-'));
+      const gfFirst = shortRunAll(`require('./db'); console.log('fertig');`, gfFresh);
+      check('Eine frische Instanz meldet keine Feldnamen',
+        !/Migration auf 0\.24\.2/.test(gfFirst), gfFirst.replace(/\n/g, ' · '));
+      fs.rmSync(gfFresh, { recursive: true, force: true });
+    }
+
+    /* ZULETZT DIE LISTE GEGEN DEN QUELLTEXT, DER SIE LIEST. Bis hierher steht
+       fest, dass die Migration tut, was sie sagt. Offen bleibt, ob sie das
+       Richtige sagt: ein Ziel, das der Quelltext gar nicht liest, waere ein
+       Umbenennen ins Leere. Genau daran ist 0.24.1 gescheitert. */
+    const gfDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const gfList = (gfDb.match(/const SHAPES_0242 = \[[\s\S]*?\n\];/) || [''])[0];
+    check('Es gibt die Liste der Formen ueberhaupt', gfList.length > 200,
+      `${gfList.length} Zeichen`);
+    check('Und sie nennt genau die drei Schluessel',
+      equal((gfList.match(/key: '([A-Za-z]+)'/g) || []).map(x => x.slice(6, -1)),
+        ['searchOwn', 'mailzugang', 'mailtestOk']),
+      (gfList.match(/key: '([A-Za-z]+)'/g) || []).join(' · '));
+    const gfMail = fs.readFileSync(path.join(__dirname, 'mail.js'), 'utf8');
+    const gfServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const gfEmpty = (gfMail.match(/const EMPTY = \{[^}]*\}/) || [''])[0];
+    check('Die vier Ziele des Mailzugangs stehen wirklich in mail.js',
+      ['provider', 'user', 'password', 'sender'].every(n =>
+        new RegExp(`(^|[^A-Za-z])${n}:`).test(gfEmpty)), gfEmpty);
+    check('Und das Ziel der Suchvorlage steht wirklich in searchOwn()',
+      /typeof e\.template === 'string'/.test(gfServer), 'server.js liest e.template nicht');
+    check('Und die beiden Ziele des Mailtests stehen wirklich in server.js',
+      /test\.mark === mail\.mark\(raw\)/.test(gfServer) && /test \? test\.at : null/.test(gfServer),
+      'server.js liest test.mark/test.at nicht');
+    /* UND DER LESER WUERDE EIN FALSCHES ZIEL WIRKLICH MELDEN -- an einem
+       gestellten Fall, damit die vier Zeilen darueber nicht bloss deshalb
+       gruen sind, weil der Ausdruck ueberall passt. */
+    check('Der Leser wuerde ein Ziel melden, das nirgends gelesen wird',
+      !new RegExp(`(^|[^A-Za-z])vorlage:`).test(gfEmpty) &&
+      !/typeof e\.muster === 'string'/.test(gfServer),
+      'der Leser trifft auch Namen, die nicht dastehen');
+
+    fs.rmSync(gfDirectory, { recursive: true, force: true });
   }
 
   /* ================= Der Bildschirmtext-Waechter — 0.22.0 =================
@@ -22266,8 +22539,16 @@ const shareMain = (purpose, target = null) =>
      7. September 2026 fest -- die Vorschaukachel im Eintrag, die den
      Sprachhelfer nach ihrem Vater fragte, und das achte (701) einen zweiten
      vom selben Tag: den zugeklappten Linkblock, der die letzten Zeilen zeigte
-     statt der ersten. */
-  check('Es sind genau 693 Rueckbauten', gpList.length === 693, `${gpList.length}`);
+     statt der ersten.
+     UND 701 SEIT 0.24.2: acht neue (702 bis 709) fuer die eine Gruppe, die
+     die gespeicherten Formen prueft. Sie nehmen der Migration je ein Stueck
+     weg -- einen Schluessel, ein Paar, die Klammer um die Liste, die Regel
+     bei zwei Namen, die Stille des zweiten Laufs -- und einer legt ihr einen
+     Wert unter, den sie NICHT anfassen darf. Acht Rueckbauten fuer eine
+     Gruppe sind viel; sie ist auch die einzige der Runde, und ein
+     Migrationsblock, den nichts rot macht, ist eine Behauptung ueber einen
+     Bestand, den man nicht mehr zurueckholt. */
+  check('Es sind genau 701 Rueckbauten', gpList.length === 701, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
