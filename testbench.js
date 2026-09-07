@@ -3068,19 +3068,25 @@ const shareMain = (purpose, target = null) =>
      sonst als Aufrufstellen gezaehlt. Der leere Fall detail() aus der
      Fehlermeldung faellt durch das + im Muster heraus. */
   const withoutComment = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  /* DIE SIGNATUR TRAEGT SEIT 0.24.3 EINE DRITTE ANGABE -- die Sprache des
+     Lesers (Bauabschnitt 6a). Sie wird hier herausgenommen wie die Signatur
+     selbst: gefragt ist, ob der BENUTZER an jeder Aufrufstelle steht.
+     DAS MUSTER ENDET AN DER ERSTEN KLAMMER, und `localeOf(req)` traegt eine
+     eigene -- die Aufrufstelle steht damit als `..., localeOf(req` da. Genau
+     danach wird unten gefragt. */
   const calls = [...withoutComment.matchAll(/detail\(([^)]+)\)/g)]
-    .map(m => m[1]).filter(a => a !== 'id, userId');
+    .map(m => m[1]).filter(a => a !== 'id, userId, locale');
   /* VIERUNDZWANZIG SEIT 0.21.0, vorher fuenfundzwanzig: DELETE
      /api/items/:id/ratings ist weggefallen und mit ihm seine Aufrufstelle.
      DIE ZAHL STEHT AUSDRUECKLICH DA und wird nicht abgeleitet -- sie ist der
      Grund, warum eine NEUE Aufrufstelle ohne Benutzer hier auffaellt und nicht
      erst im Betrieb (Stolperstein 137). */
-  check('Keine Aufrufstelle von detail() ohne Benutzer',
-    calls.length === 24 && calls.every(a => /,\s*req\.user\.id\s*$/.test(a)),
-    `${calls.length} Aufrufe, ohne Benutzer: ` +
-    JSON.stringify(calls.filter(a => !/,\s*req\.user\.id\s*$/.test(a))));
+  const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
+  check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
+    calls.length === 24 && withoutUser.length === 0,
+    `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
   check('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
-    /function detail\(id, userId\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
+    /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
     'ohne die Klemme bindet better-sqlite3 das fehlende Argument als NULL');
 
   /* ---------------------------------------------------------------- */

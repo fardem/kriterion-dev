@@ -275,6 +275,45 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
 );
 
 -- Jeder Benutzer hat seine eigene Zeile je Kriterium.
+/* ======== DIE NAMEN JE SPRACHE — 0.24.3, Bauabschnitt 6a (F8, F8a, F8b) ====
+
+   ZWEI TABELLEN DANEBEN UND KEINE SPALTE AN DEN VORHANDENEN, und das ist die
+   Bedingung der ganzen Runde: ratings.criterion_id mit
+   UNIQUE(item_id, criterion_id, user_id) und items.product_category_id
+   zeigen auf die Zeilen von rating_criteria und product_categories. Eine
+   ZWEITE ZEILE je Sprache traefe damit jede Bewertung im Bestand -- sie hinge
+   danach an der Sprachfassung statt am Kriterium.
+
+   EIN KRITERIUM BLEIBT EIN KRITERIUM, in wie vielen Sprachen es auch heisst.
+   Was hier steht, ist sein NAME in einer weiteren Sprache und nicht ein
+   zweites Kriterium.
+
+   UNIQUE(name) IN rating_criteria BLEIBT UNANGETASTET. Es zu aendern hiesse
+   Tabellenneubau -- SQLite kennt kein ALTER CONSTRAINT --, und der Nutzen
+   waere keiner: der Name in der Grundtabelle ist der der zuerst angelegten
+   Sprache, und der ist weiterhin einmalig.
+
+   KEIN UNIQUE UEBER (language, name): dass zwei Kriterien in einer zweiten
+   Sprache gleich heissen, ist ein Fehler des Eigentuemers und keiner der
+   Ablage -- und eine Klemme in der Datenbank saehe aus wie ein Absturz. Die
+   Absage steht im Schreibweg, mit Satz.
+
+   OHNE ZEILE GILT DER NAME DER GRUNDTABELLE. Der Rueckfall ist damit kein
+   Zustand, sondern eine Lage: er gilt genau so lange, wie fuer eine Sprache
+   noch nichts dasteht (Nachtrag zu E9/E11, Punkt 4). */
+CREATE TABLE IF NOT EXISTS criterion_names (
+  criterion_id INTEGER NOT NULL REFERENCES rating_criteria(id) ON DELETE CASCADE,
+  language TEXT NOT NULL,
+  name TEXT NOT NULL,
+  UNIQUE(criterion_id, language)
+);
+CREATE TABLE IF NOT EXISTS category_names (
+  category_id INTEGER NOT NULL REFERENCES product_categories(id) ON DELETE CASCADE,
+  language TEXT NOT NULL,
+  name TEXT NOT NULL,
+  UNIQUE(category_id, language)
+);
+
 CREATE TABLE IF NOT EXISTS ratings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,

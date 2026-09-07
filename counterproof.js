@@ -4928,8 +4928,8 @@ const REGRESSIONS = [
        Schnitt, bis irgendwann etwas anderes die Zeile anfasst. */
     nr: '534', name: 'Das Speichern des Ausschnitts erzeugt die Kachel nicht neu',
     file: 'server.js',
-    search: "  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id)));",
-    replacement: "  res.json(detail(p.item_id, req.user.id));",
+    search: "  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id, localeOf(req))));",
+    replacement: "  res.json(detail(p.item_id, req.user.id, localeOf(req)));",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {

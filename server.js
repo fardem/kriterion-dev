@@ -2805,6 +2805,8 @@ const qCriteria = db.prepare(`
          (SELECT COUNT(DISTINCT r.item_id) FROM ratings r
            WHERE r.criterion_id = c.id AND r.value > 0) AS usage_count
   FROM rating_criteria c ORDER BY c.sort_order, c.id`);
+// Und dieselbe Liste mit den Namen der gelesenen Sprache -- 0.24.3.
+const criteriaFor = (locale) => named(qCriteria.all(), criterionNames(locale));
 
 /* --- Die Kriterien gehoeren dem Admin -------------------------------------
    Was an allen Eintraegen aller Benutzer erscheint, gehoert dem Admin: ein
@@ -2814,7 +2816,7 @@ const qCriteria = db.prepare(`
    EIN benannter Waechter fuer vier Routen, nicht vier Abfragen; er deckt von
    oben aus auch Titel, Tags und Kategorien mit ab. */
 
-app.get('/api/criteria', (req, res) => res.json(qCriteria.all()));
+app.get('/api/criteria', (req, res) => res.json(criteriaFor(localeOf(req))));
 
 // KEIN Gewicht beim Anlegen. Ein neues Kriterium startet auf 1,0 -- der Wert
 // steht in der DDL -- und wird danach in der Zeile eingestellt. Ein Feld
@@ -2838,7 +2840,10 @@ app.post('/api/criteria', adminOnly, (req, res) => {
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
   const i = db.prepare('INSERT INTO rating_criteria (name, sort_order, phase) VALUES (?, ?, ?)')
     .run(name, pos, phase);
-  res.status(201).json(db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(i.lastInsertRowid));
+  /* DIE ANTWORT TRAEGT DEN NAMEN DER GELESENEN SPRACHE -- hier ist das der
+     eben eingetragene: ein frisches Kriterium hat noch keine Uebersetzung. */
+  res.status(201).json(named([db.prepare('SELECT * FROM rating_criteria WHERE id = ?')
+    .get(i.lastInsertRowid)], criterionNames(localeOf(req)))[0]);
 });
 
 // Muss vor '/api/criteria/:id' stehen, sonst faengt der Platzhalter das Wort
@@ -2848,7 +2853,7 @@ app.put('/api/criteria/order', adminOnly, (req, res) => {
   const s = db.prepare('UPDATE rating_criteria SET sort_order = ? WHERE id = ?');
   db.transaction(() => ids.forEach((cid, i) => s.run(i, cid)))();
   renumberCriteria();   // schliesst Luecken, falls nicht alle Ids mitkamen
-  res.json(qCriteria.all());
+  res.json(criteriaFor(localeOf(req)));
 });
 
 app.put('/api/criteria/:id', adminOnly, (req, res) => {
@@ -2867,8 +2872,19 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
     return res.status(400).json({ error: t(localeOf(req), 'server.criterionKindFixed')});
   if (!db.prepare('SELECT 1 FROM rating_criteria WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: t(localeOf(req), 'server.criterionGone')});
-  const clash = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
-    .get(name, req.params.id);
+  const critLanguage = namedLanguage(req);
+  if (critLanguage === null)
+    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+  /* DER NAMENSSTREIT GILT JE SPRACHE. In der Grundtabelle haelt ihn
+     UNIQUE(name); in einer zweiten Sprache wird er hier gefragt -- zwei
+     Kriterien, die auf Englisch gleich heissen, waeren am Bildschirm nicht
+     auseinanderzuhalten. */
+  const clash = critLanguage === baseLanguage()
+    ? db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
+        .get(name, req.params.id)
+    : db.prepare(`SELECT criterion_id AS id FROM criterion_names
+                  WHERE language = ? AND name = ? COLLATE NOCASE AND criterion_id != ?`)
+        .get(critLanguage, name, req.params.id);
   if (clash) return res.status(409).json({ error: t(localeOf(req), 'server.nameExists')});
   // Das Gewicht ist FREIWILLIG: das Umbenennen schickt nur den Namen und darf
   // das Gewicht nicht mit anfassen. Ohne diese Unterscheidung setzte jedes ✎
@@ -2880,11 +2896,17 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
       error: t(localeOf(req), 'server.weightRange',
         { min: number(WEIGHT_MIN, localeOf(req)), max: number(WEIGHT_MAX, localeOf(req)) })});
   }
-  // Name und Gewicht in EINEM UPDATE: zwei Anweisungen hintereinander koennten
-  // halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
+  /* NAME UND GEWICHT IN EINEM UPDATE: zwei Anweisungen hintereinander koennten
+     halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
+     DER NAME EINER ZWEITEN SPRACHE RUEHRT DIE GRUNDZEILE NICHT AN -- dort
+     aendert sich dann nur das Gewicht, und das gilt fuer alle Sprachen. */
+  const critBase = db.prepare('SELECT name FROM rating_criteria WHERE id = ?').get(req.params.id).name;
+  const critRenameBase = writeName('criterion_names', 'criterion_id',
+    req.params.id, critLanguage, name, critBase);
   db.prepare('UPDATE rating_criteria SET name = ?, weight = COALESCE(?, weight) WHERE id = ?')
-    .run(name, weight, req.params.id);
-  res.json(db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(req.params.id));
+    .run(critRenameBase ? name : critBase, weight, req.params.id);
+  res.json(named([db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(req.params.id)],
+    criterionNames(localeOf(req)))[0]);
 });
 
 app.delete('/api/criteria/:id', adminOnly, (req, res) => {
@@ -2893,10 +2915,99 @@ app.delete('/api/criteria/:id', adminOnly, (req, res) => {
   res.status(204).end();
 });
 
+/* ======== DIE NAMEN JE SPRACHE — 0.24.3, Bauabschnitt 6a ==================
+   EIN LESER FUER BEIDE TABELLEN, und er gibt eine Tafel statt einer Zeile:
+   die Namen werden immer fuer eine ganze LISTE gebraucht -- alle Kriterien
+   eines Eintrags, alle Kategorien der Karte --, und eine Abfrage je Zeile
+   waere ein N+1 an einer Stelle, die jeder Seitenaufbau anfasst.
+
+   DER RUECKFALL IST DIE ABWESENHEIT EINER ZEILE. Wer keine Uebersetzung
+   eingetragen hat, bekommt den Namen der Grundtabelle -- den der zuerst
+   angelegten Sprache. Deshalb steht hier kein COALESCE und kein zweiter
+   Zweig: `named()` setzt ein, was es findet, und laesst stehen, was es nicht
+   findet.
+
+   ANGEWANDT WIRD AM AUSGANG UND NICHT IN JEDER ABFRAGE. Die Abfragen holen
+   weiterhin `c.name`; wer sie liest, sieht den Namen der Grundtabelle und
+   damit die Wahrheit ueber die Zeile. Erst was HINAUSGEHT, traegt die Sprache
+   des Lesers. Eine Uebersetzung mitten in einem JOIN waere an sechs Stellen
+   zu wiederholen -- und die siebte vergisst jemand. */
+const qCriterionNames = db.prepare(
+  'SELECT criterion_id AS id, name FROM criterion_names WHERE language = ?');
+const qCategoryNames = db.prepare(
+  'SELECT category_id AS id, name FROM category_names WHERE language = ?');
+const criterionNames = (locale) => new Map(qCriterionNames.all(locale).map(z => [z.id, z.name]));
+const categoryNames = (locale) => new Map(qCategoryNames.all(locale).map(z => [z.id, z.name]));
+
+/* SETZT DIE NAMEN EINER TAFEL IN EINE LISTE EIN. `key` sagt, welches Feld die
+   Kennung traegt -- an den Kriterien heisst es mal `id` und mal
+   `criterion_id`, je nachdem, wessen Zeile es ist.
+   EINE NEUE ZEILE UND KEINE VERAENDERTE: die Abfrageergebnisse werden an
+   mehreren Stellen weiterverwendet, und eine stillschweigend umbenannte Zeile
+   waere ein Fund in einer Woche. */
+const named = (rows, table, key = 'id') => rows.map(z =>
+  table.has(z[key]) ? { ...z, name: table.get(z[key]) } : z);
+
+/* WELCHE SPRACHE IN DER GRUNDTABELLE STEHT -- 0.24.3, Bauabschnitt 6a. Die
+   Vorgabe der Installation, und das ist eine Entscheidung mit Folgen:
+
+   Wer den Namen DIESER Sprache aendert, benennt die GRUNDZEILE um -- damit
+   bleibt UNIQUE(name) eine Aussage, der Export traegt weiterhin einen Namen
+   je Kriterium, und wer nie eine zweite Sprache anlegt, merkt von der ganzen
+   Maschine nichts. Jede ANDERE Sprache bekommt eine Zeile in der
+   Namenstabelle.
+
+   DER RUECKFALL ZEIGT DAMIT IMMER AUF DIE VORGABESPRACHE, und das ist
+   dieselbe Regel wie beim Vokabular und bei den Texten. */
+const baseLanguage = () => languageDefault();
+
+/* SCHREIBT EINEN NAMEN JE SPRACHE. Gibt `true` zurueck, wenn die Grundzeile
+   gemeint war -- dann muss der Rufer sie umbenennen.
+   EIN NAME, DER DEM DER GRUNDZEILE GLEICHT, WIRD GELOESCHT statt gespeichert:
+   eine Uebersetzung, die dasselbe sagt, ist keine, und sie stuende dem
+   Rueckfall im Weg, sobald die Grundzeile sich aendert. */
+function writeName(table, column, id, language, name, baseName) {
+  if (language === baseLanguage()) return true;
+  const del = db.prepare(`DELETE FROM ${table} WHERE ${column} = ? AND language = ?`);
+  if (!name || name === baseName) { del.run(id, language); return false; }
+  db.prepare(`INSERT INTO ${table} (${column}, language, name) VALUES (?, ?, ?)
+              ON CONFLICT(${column}, language) DO UPDATE SET name = excluded.name`)
+    .run(id, language, name);
+  return false;
+}
+
+/* WELCHE SPRACHE EIN SCHREIBWEG MEINT. OHNE ANGABE DIE GRUNDZEILE -- und das
+   ist die wichtigste Zeile dieses Bauabschnitts.
+
+   Die naechstliegende Wahl waere „die Sprache des Lesers": wer umbenennt,
+   sieht ja den Namen, den er umbenennt. Sie traegt nicht. Ein Admin, der die
+   Oberflaeche auf Deutsch liest, waehrend die Installation Englisch vorgibt,
+   legte damit bei JEDEM Umbenennen eine deutsche UEBERSETZUNG an und liesse
+   den englischen Namen stehen -- im Export, in der Sortierung und fuer jeden
+   anderen Leser. Er haette umbenannt und nichts geaendert.
+
+   EINE UEBERSETZUNG IST EINE ABSICHT UND KEIN NEBENPRODUKT. Wer eine anlegen
+   will, sagt es: die Karte schickt die Sprache mit, weil sie einen Umschalter
+   hat. Jeder andere Rufer meint die Zeile selbst.
+
+   EINE SPRACHE OHNE DATEI WIRD ABGEWIESEN und nicht stillschweigend auf die
+   Vorgabe gedreht: sonst schriebe der Eigentuemer in eine Sprache, die
+   niemand je zu sehen bekaeme, und hielte sie fuer gespeichert. */
+const namedLanguage = (req) => {
+  const wanted = req.body && req.body.language;
+  if (wanted === undefined) return baseLanguage();
+  return typeof wanted === 'string' && LANGUAGES[wanted] ? wanted : null;
+};
+
 /* ---- Kategorien ---- */
-app.get('/api/product-categories', (req, res) => res.json(db.prepare(`
+/* SORTIERT WIRD NACH DEM NAMEN DER GRUNDTABELLE UND NICHT NACH DEM
+   UEBERSETZTEN -- 0.24.3. Zwei Leser saehen sonst zwei Reihenfolgen, und die
+   Karte des Admins spraenge beim Umschalten der Sprache. Wer das aendern will,
+   aendert es fuer alle: die Ordnung ist eine Aussage ueber den Bestand. */
+app.get('/api/product-categories', (req, res) => res.json(named(db.prepare(`
   SELECT c.*, (SELECT COUNT(*) FROM items i WHERE i.product_category_id = c.id) AS usage_count
-  FROM product_categories c ORDER BY c.name COLLATE NOCASE`).all()));
+  FROM product_categories c ORDER BY c.name COLLATE NOCASE`).all(),
+  categoryNames(localeOf(req)))));
 
 app.post('/api/product-categories', (req, res) => {
   const name = (req.body.name || '').trim();
@@ -2909,7 +3020,8 @@ app.post('/api/product-categories', (req, res) => {
   if (!mayCreate(req, 'categoriesFreeCreate'))
     return res.status(403).json({ error: t(localeOf(req), DENIED_CATEGORY_NEW)});
   const i = db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name);
-  res.status(201).json(db.prepare('SELECT * FROM product_categories WHERE id = ?').get(i.lastInsertRowid));
+  res.status(201).json(named([db.prepare('SELECT * FROM product_categories WHERE id = ?')
+    .get(i.lastInsertRowid)], categoryNames(localeOf(req)))[0]);
 });
 
 // Umbenennen und loeschen wirkt auf JEDEN Eintrag, der die Kategorie
@@ -2920,11 +3032,22 @@ app.put('/api/product-categories/:id', adminOnly, (req, res) => {
   if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
   if (!db.prepare('SELECT 1 FROM product_categories WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: t(localeOf(req), 'server.categoryGone')});
-  const clash = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE AND id != ?')
-    .get(name, req.params.id);
+  const catLanguage = namedLanguage(req);
+  if (catLanguage === null)
+    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+  // Der Namensstreit gilt je Sprache -- dieselbe Ueberlegung wie am Kriterium.
+  const clash = catLanguage === baseLanguage()
+    ? db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE AND id != ?')
+        .get(name, req.params.id)
+    : db.prepare(`SELECT category_id AS id FROM category_names
+                  WHERE language = ? AND name = ? COLLATE NOCASE AND category_id != ?`)
+        .get(catLanguage, name, req.params.id);
   if (clash) return res.status(409).json({ error: t(localeOf(req), 'server.nameExists')});
-  db.prepare('UPDATE product_categories SET name = ? WHERE id = ?').run(name, req.params.id);
-  res.json(db.prepare('SELECT * FROM product_categories WHERE id = ?').get(req.params.id));
+  const catBase = db.prepare('SELECT name FROM product_categories WHERE id = ?').get(req.params.id).name;
+  if (writeName('category_names', 'category_id', req.params.id, catLanguage, name, catBase))
+    db.prepare('UPDATE product_categories SET name = ? WHERE id = ?').run(name, req.params.id);
+  res.json(named([db.prepare('SELECT * FROM product_categories WHERE id = ?').get(req.params.id)],
+    categoryNames(localeOf(req)))[0]);
 });
 
 app.delete('/api/product-categories/:id', adminOnly, (req, res) => {
@@ -2990,13 +3113,13 @@ app.post('/api/items/:id/tags', entryAuthorOnly, (req, res) => {
   }
   db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(req.params.id, tag.id);
   touch.run(req.params.id);
-  res.status(201).json(detail(req.params.id, req.user.id));
+  res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
   db.prepare('DELETE FROM item_tags WHERE item_id = ? AND tag_id = ?').run(req.params.id, req.params.tagId);
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* ================= Eintraege ================= */
@@ -3411,7 +3534,10 @@ const qMyPin = db.prepare('SELECT 1 FROM item_pins WHERE user_id = ? AND item_id
 // KEIN VORGABEWERT: better-sqlite3 bindet ein FEHLENDES Argument still als
 // NULL (nur zu WENIGE werfen). Ein Aufruf ohne Benutzer lieferte ueberall
 // wortlos favorite: false. Die Klemme ist die EINZIGE Schicht darunter.
-function detail(id, userId) {
+/* DIE SPRACHE STEHT IN DER SIGNATUR UND WIRD NICHT INNEN GEHOLT -- 0.24.3,
+   Bauabschnitt 6a. detail() kennt die Anfrage nicht, und ein localeOf() ohne
+   sie waere eine Erfindung. Wer den Eintrag holt, weiss, fuer wen. */
+function detail(id, userId, locale) {
   if (userId == null) throw new Error('detail() ohne Benutzer aufgerufen');
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(id);
   if (!it) return null;
@@ -3446,7 +3572,8 @@ function detail(id, userId) {
   it.rejectedAuthor = authorFrom(card, it.rejected_by);
   delete it.rejected_by;
   it.favorite = !!qMyPin.get(userId, id);
-  it.category = it.product_category_id ? qCat.get(it.product_category_id) : null;
+  it.category = it.product_category_id
+    ? named([qCat.get(it.product_category_id)], categoryNames(locale))[0] : null;
   it.photos = qPhotos.all(id);
   /* Nur die Angaben, nie die Bytes. Die Art der Vorschau entscheidet der
      Server anhand der Endung -- die Oberflaeche soll das nicht selbst raten.
@@ -3481,11 +3608,12 @@ function detail(id, userId) {
   // danach in seine beiden Kaesten; RECHNEN tut er damit nichts (die beiden
   // Kopfzahlen stehen unten). Eine zweite Abfrage je Kasten waere zweimal
   // derselbe LEFT JOIN ueber dieselbe Tabelle.
-  it.ratings = db.prepare(`
+  it.ratings = named(db.prepare(`
     SELECT c.id AS criterion_id, c.name, c.weight, c.phase, COALESCE(r.value, 0) AS value
     FROM rating_criteria c LEFT JOIN ratings r
       ON r.criterion_id = c.id AND r.item_id = ? AND r.user_id = ?
-    ORDER BY c.sort_order, c.id`).all(id, userId);
+    ORDER BY c.sort_order, c.id`).all(id, userId),
+    criterionNames(locale), 'criterion_id');
   // Neben der eigenen Zeile stehen Schnitt und Zahl der Bewerter ueber alle
   // -- angehaengt aus der gruppierten Abfrage, nicht aus einem zweiten JOIN.
   // Ein Kriterium, das niemand bewertet hat, bekommt avg: null und count: 0.
@@ -3954,7 +4082,10 @@ app.get('/api/items', (req, res) => {
   const linkCountPer = new Map(qLinkCounts.all().map(z => [z.item_id, z.n]));
   const attachmentCountPer = new Map(qAttachmentCounts.all().map(z => [z.item_id, z.n]));
   const averagesPer = averagesPerEntry();
-  const catPer = new Map(qAllCategories.all().map(k => [k.id, k]));
+  /* DIE KATEGORIEN DER UEBERSICHT, mit den Namen der gelesenen Sprache --
+     0.24.3. Einmal gebaut und nicht je Kachel: die Uebersicht zeigt Hunderte. */
+  const catPer = new Map(named(qAllCategories.all(), categoryNames(localeOf(req)))
+    .map(k => [k.id, k]));
   // Die Testtage nur, wenn die Zeitleiste ueberhaupt an ist -- wie bisher.
   const testDaysPer = timeline ? testDaysPerEntry(req.user.id) : null;
   for (const it of rows) {
@@ -4035,7 +4166,7 @@ app.get('/api/items', (req, res) => {
 });
 
 app.get('/api/items/:id', (req, res) => {
-  const it = detail(req.params.id, req.user.id);
+  const it = detail(req.params.id, req.user.id, localeOf(req));
   if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
   res.json(it);
 });
@@ -4049,7 +4180,7 @@ app.post('/api/items', (req, res) => {
   // ohne Benutzer, die der naechste Start heimlich nachtraegt.
   const i = db.prepare('INSERT INTO items (title, description, user_id) VALUES (?, ?, ?)')
     .run(title, req.body.description || '', req.user.id);
-  res.status(201).json(detail(i.lastInsertRowid, req.user.id));
+  res.status(201).json(detail(i.lastInsertRowid, req.user.id, localeOf(req)));
 });
 
 /* DIE BEGRUENDUNG EINER ABLEHNUNG -- EINE ZEILE TEXT.
@@ -4191,7 +4322,7 @@ app.put('/api/items/:id', (req, res) => {
     sets.push(`updated_at = datetime('now')`);
     db.prepare(`UPDATE items SET ${sets.join(', ')} WHERE id = ?`).run(...vals, req.params.id);
   }
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* Die Zahlen fuer den Loeschdialog am Eintrag. Lesend, deshalb kein Eintrag
@@ -4270,7 +4401,7 @@ app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), a
       into.run(req.params.id, start.mime, start.data, v.thumb, v.medium, pos++);
     }
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.user.id));
+    res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
 
@@ -4348,7 +4479,7 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
                   VALUES (?, ?, ?, ?, ?, ?, 'video', ?)`)
         .run(req.params.id, video.mimetype, video.buffer, v.thumb, v.medium, pos, duration);
       touch.run(req.params.id);
-      res.status(201).json(detail(req.params.id, req.user.id));
+      res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
     } catch (e) { next(e); }
   });
 
@@ -4512,7 +4643,7 @@ app.put('/api/photos/:id/focus', (req, res) => {
      davor: es liest `length(thumb)` als Fassung mit, und die soll die NEUE
      sein -- sonst zeigte der Browser die alte Kachel unter der alten Adresse
      weiter, und der ganze Schritt waere umsonst. */
-  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id)));
+  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id, localeOf(req))));
 });
 
 /* ---- Anhaenge ----
@@ -4548,7 +4679,7 @@ app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMEN
               pos++, req.user.id);
     }
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.user.id));
+    res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
 
@@ -4591,7 +4722,7 @@ app.delete('/api/attachments/:id', (req, res) => {
   rest.forEach((r, i) => s2.run(i, r.id));
   touch.run(a.item_id);
   reclaim();
-  res.json(detail(a.item_id, req.user.id));
+  res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
 
 app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
@@ -4599,7 +4730,7 @@ app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
   const s = db.prepare('UPDATE photos SET sort_order = ? WHERE id = ? AND item_id = ?');
   db.transaction(() => ids.forEach((pid, i) => s.run(i, pid, req.params.id)))();
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 app.delete('/api/photos/:id', (req, res) => {
@@ -4659,7 +4790,7 @@ app.post('/api/items/:id/links', (req, res) => {
   db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
     .run(req.params.id, url, pos, req.user.id);
   touch.run(req.params.id);
-  res.status(201).json(detail(req.params.id, req.user.id));
+  res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* SORTIEREN BLEIBT BEIM EINTRAGSVERFASSER UND ADMIN -- ausdruecklich, nicht
@@ -4671,7 +4802,7 @@ app.put('/api/items/:id/link-order', entryAuthorOnly, (req, res) => {
   const s = db.prepare('UPDATE links SET sort_order = ? WHERE id = ? AND item_id = ?');
   db.transaction(() => ids.forEach((lid, i) => s.run(i, lid, req.params.id)))();
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* LOESCHEN DARF DER EINTRAGER ODER DER ADMIN. Gefragt wird nach der ZEILE
@@ -4716,7 +4847,7 @@ app.post('/api/items/:id/test-days', (req, res) => {
               ON CONFLICT(item_id, day, user_id) DO UPDATE SET rating = excluded.rating`)
     .run(req.params.id, day, rating, req.user.id);
   db.prepare(`UPDATE items SET tested = 1, updated_at = datetime('now') WHERE id = ?`).run(req.params.id);
-  res.status(201).json({ ...detail(req.params.id, req.user.id), replaced: !!existing });
+  res.status(201).json({ ...detail(req.params.id, req.user.id, localeOf(req)), replaced: !!existing });
 });
 
 // Die NOTE eines fremden Testtags aendert niemand, auch der Admin
@@ -4730,7 +4861,7 @@ app.put('/api/test-days/:id', (req, res) => {
   if (!selfOnly(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('UPDATE test_days SET rating = ? WHERE id = ?').run(rating, req.params.id);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.user.id));
+  res.json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
 
 app.delete('/api/test-days/:id', (req, res) => {
@@ -4741,7 +4872,7 @@ app.delete('/api/test-days/:id', (req, res) => {
   if (!mayChange(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM test_days WHERE id = ?').run(req.params.id);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.user.id));
+  res.json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
 
 // Tags am Testtag. Derselbe Vorrat wie am Eintrag -- ein hier neu getippter
@@ -4768,7 +4899,7 @@ app.post('/api/test-days/:id/tags', (req, res) => {
   }
   db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(testDay.id, tag.id);
   touch.run(testDay.item_id);
-  res.status(201).json(detail(testDay.item_id, req.user.id));
+  res.status(201).json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
 
 app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
@@ -4777,7 +4908,7 @@ app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
   if (!selfOnly(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM test_day_tags WHERE test_day_id = ? AND tag_id = ?').run(testDay.id, req.params.tagId);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.user.id));
+  res.json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
 
 /* ---- Bewertungen ---- */
@@ -4826,7 +4957,7 @@ app.put('/api/items/:id/ratings', (req, res) => {
               DO UPDATE SET value = excluded.value, set_at = excluded.set_at`)
     .run(req.params.id, req.body.criterionId, v, req.user.id);
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* HIER STAND BIS 0.20.1 `DELETE /api/items/:id/ratings` -- das
@@ -4867,7 +4998,7 @@ app.delete('/api/ratings/:id', (req, res) => {
   if (!mayChange(req, r.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM ratings WHERE id = ?').run(r.id);
   touch.run(r.item_id);
-  res.json(detail(r.item_id, req.user.id));
+  res.json(detail(r.item_id, req.user.id, localeOf(req)));
 });
 
 /* ---- Kommentare ---- */
@@ -4935,7 +5066,7 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
       .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id);
     if (k.images.length) saveCommentImages(fresh.lastInsertRowid, k.images);
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.user.id));
+    res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
 
@@ -4970,7 +5101,7 @@ app.put('/api/comments/:id', (req, res) => {
     db.prepare('UPDATE comments SET pinned = ? WHERE id = ?').run(req.body.pinned ? 1 : 0, c.id);
 
   touch.run(c.item_id);
-  res.json(detail(c.item_id, req.user.id));
+  res.json(detail(c.item_id, req.user.id, localeOf(req)));
 });
 
 // Bilder an einem bestehenden Kommentar nachreichen.
@@ -4998,7 +5129,7 @@ app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_CO
       commentEdited.run(c.id);
     }
     touch.run(c.item_id);
-    res.status(201).json(detail(c.item_id, req.user.id));
+    res.status(201).json(detail(c.item_id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
 
@@ -5033,7 +5164,7 @@ app.delete('/api/comment-images/:id', (req, res) => {
   rest.forEach((r, i) => u.run(i, r.id));
   touch.run(b.item_id);
   reclaim();
-  res.json(detail(b.item_id, req.user.id));
+  res.json(detail(b.item_id, req.user.id, localeOf(req)));
 });
 
 // Bild eines Kommentars ausliefern. Dieselben Regeln wie bei den Anhaengen.
