@@ -6703,6 +6703,70 @@ const REGRESSIONS = [
     search: '    box.scrollTop = 0;',
     replacement: '    box.scrollTop = 1;',
     expected: 'Zugeklappt heisst: die ersten Zeilen — 0.24.1'
+  },
+
+  /* ---- Die gespeicherten Formen — 0.24.2 -------------------------------
+     Der Befund aus dem Betrieb vom 7. September 2026: 0.24.1 hat die
+     SCHLUESSEL in `settings` umbenannt, aber nicht die Feldnamen IN den
+     gespeicherten Werten. Diese sieben Rueckbauten nehmen der Migration je
+     ein Stueck weg -- und jeder muss die Gruppe rot machen, sonst belegt sie
+     nichts. */
+  {
+    nr: '702', name: 'Die eigenen Suchmaschinen stehen nicht mehr in der Liste der Formen',
+    file: 'db.js',
+    search: "  { key: 'searchOwn',  each: true,  pairs: { vorlage: 'template' } },\n",
+    replacement: '',
+    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
+  },
+  {
+    nr: '703', name: 'Die Liste der eigenen Suchmaschinen gilt wieder als ein einzelnes Gebilde',
+    file: 'db.js',
+    search: "{ key: 'searchOwn',  each: true,",
+    replacement: "{ key: 'searchOwn',  each: false,",
+    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
+  },
+  {
+    nr: '704', name: 'Der Absender des Mailzugangs zieht nicht mit',
+    file: 'db.js',
+    search: "passwort: 'password', absender: 'sender' } },",
+    replacement: "passwort: 'password' } },",
+    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
+  },
+  {
+    nr: '705', name: 'Die Marke des Mailtests zieht nicht mit',
+    file: 'db.js',
+    search: "pairs: { marke: 'mark', am: 'at' } }",
+    replacement: "pairs: { am: 'at' } }",
+    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
+  },
+  {
+    nr: '706', name: 'Der Block meldet sich auch, wenn er nichts getan hat',
+    file: 'db.js',
+    search: '  if (!counted.length) return 0;',
+    replacement: "  if (!counted.length) counted.push('(nichts)');",
+    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
+  },
+  {
+    nr: '707', name: 'Bei zwei Namen gewinnt wieder der alte',
+    file: 'db.js',
+    search: '        if (!Object.prototype.hasOwnProperty.call(out, fresh)) out[fresh] = out[old];',
+    replacement: '        out[fresh] = out[old];',
+    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
+  },
+  {
+    nr: '708', name: 'Der Block greift nach dem Vokabular, das deutsch bleiben soll',
+    file: 'db.js',
+    search: "  { key: 'mailtestOk', each: false, pairs: { marke: 'mark', am: 'at' } }",
+    replacement: "  { key: 'mailtestOk', each: false, pairs: { marke: 'mark', am: 'at' } },\n" +
+      "  { key: 'vocabulary', each: false, pairs: { sacheEinzahl: 'thingSingular' } }",
+    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
+  },
+  {
+    nr: '709', name: 'Der Schluessel des Mailzugangs ist verschrieben',
+    file: 'db.js',
+    search: "{ key: 'mailzugang', each: false,",
+    replacement: "{ key: 'mailZugang', each: false,",
+    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
   }
 ];
 

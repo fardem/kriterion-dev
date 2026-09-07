@@ -944,6 +944,101 @@ migration0241Values();
 const VALUES_0241 = DICTIONARY.values;
 // ENDE MIGRATION 0.24.1 (Tabellen, Spalten und Werte)
 
+/* ================= MIGRATION 0.24.2 — DIE GESPEICHERTEN FORMEN ===========
+   DER BLOCK DARUEBER HAT DIE SCHLUESSEL UMBENANNT, NICHT DIE NAMEN DARIN.
+   `settings.value` ist fuer die Datenbank ein String; was in ihm steht, ist
+   fuer sie ohne Form. Fuer den Quelltext ist es aber sehr wohl eine Form: er
+   liest `e.template`, `z.provider`, `test.mark`. Ein Bestand aus 0.24.0 traegt
+   dort `vorlage`, `anbieter`, `marke` -- die ZEILE war nach 0.24.1 richtig
+   benannt, ihr INHALT nicht.
+
+   DER BEFUND AUS DEM BETRIEB vom 7. September 2026, drei Sachen an einem Tag:
+   die eigenen Suchmaschinen des Eigentuemers standen nicht mehr in der Karte,
+   der Mailzugang galt als nicht eingerichtet, und der Beleg der letzten
+   Testmail zaehlte nicht mehr. Verloren war nichts -- die Zeilen lagen
+   unveraendert da, und der Quelltext las an ihnen vorbei.
+
+   DREI GEBILDE UND KEIN VIERTES. Nachgezaehlt wurden alle dreizehn
+   Schreibstellen nach `settings` und `user_settings` in 0.24.0: was dort als
+   Zahl, Wahrheitswert oder Zeichenfolge liegt, hat keine Feldnamen; `blocks`
+   (seite/unten/zu), `views` ({name, q, filters}), `filters` und `vocabulary`
+   tragen Namen, die in 0.24.1 ausdruecklich deutsch geblieben sind; `searchOn`
+   ist eine flache Liste von Schluesseln, und die heissen unveraendert
+   `google` bis `ecosia` und `eigen1` bis `eigen3`. Bleiben diese drei.
+
+   DIE MARKE DES MAILTESTS BLEIBT GUELTIG. Sie ist ein Hash ueber die WERTE
+   des Zugangs in fester Reihenfolge, nicht ueber ihre Namen -- nach dem
+   Umbenennen rechnet mail.mark() dieselbe Zahl wie mail.marke() davor. Deshalb
+   wird hier umbenannt und nicht geloescht: eine geloeschte Marke hiesse "teste
+   noch einmal", und das waere eine Aufforderung, die niemand verdient hat.
+
+   NACH DEM BLOCK DARUEBER UND VOR db.exec(SCHEMA). Die Reihenfolge ist keine
+   Geschmacksfrage: gesucht wird die Zeile unter ihrem NEUEN Schluessel
+   (`searchOwn`), und den gibt es erst, nachdem migration0241Values() gelaufen
+   ist. Ein Bestand aus 0.24.0 durchlaeuft beide Bloecke in einem einzigen
+   Start.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block davor: gefragt wird
+   die Zeile selbst -- traegt sie den alten Namen? --, nicht ein Merker. Ein
+   zweiter Lauf findet nichts mehr und sagt nichts. */
+const SHAPES_0242 = [
+  // Drei Plaetze, jeder entweder null oder { name, vorlage }.
+  { key: 'searchOwn',  each: true,  pairs: { vorlage: 'template' } },
+  /* Der Schluessel HEISST weiter `mailzugang` -- mail.js traegt ihn als
+     SETTING_KEY unveraendert, weil ein Schluessel in der Ablage kein Name im
+     Quelltext ist. Umbenannt werden nur die vier Felder, die 0.24.1 angefasst
+     hat; `server`, `port` und `sicher` hiessen schon vorher so. */
+  { key: 'mailzugang', each: false, pairs: { anbieter: 'provider', benutzer: 'user',
+                                             passwort: 'password', absender: 'sender' } },
+  { key: 'mailtestOk', each: false, pairs: { marke: 'mark', am: 'at' } }
+];
+function migration0242Shapes() {
+  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  if (!tables.has('settings')) return 0;
+  const read = db.prepare('SELECT value FROM settings WHERE key = ?');
+  const write = db.prepare('UPDATE settings SET value = ? WHERE key = ?');
+  const counted = [];
+  for (const { key, each, pairs } of SHAPES_0242) {
+    const row = read.get(key);
+    if (!row) continue;
+    let value;
+    /* EINE UNLESBARE ZEILE WIRD UEBERGANGEN UND NICHT VERWORFEN. Sie ist der
+       einzige Ort, an dem der Zugang noch stehen koennte; ein Migrationsblock,
+       der sie wegwirft, weil er sie nicht versteht, richtet den Schaden an,
+       den er verhindern soll. */
+    try { value = JSON.parse(row.value); } catch { continue; }
+    const touched = [];
+    const rename = (o) => {
+      if (!o || typeof o !== 'object' || Array.isArray(o)) return o;
+      const out = { ...o };
+      for (const [old, fresh] of Object.entries(pairs)) {
+        if (!Object.prototype.hasOwnProperty.call(out, old)) continue;
+        /* TRAEGT DIE ZEILE SCHON DEN NEUEN NAMEN, GILT DER. Der Quelltext
+           liest ihn, also ist er der Wert, der in Kraft ist -- der alte faellt
+           weg, damit nicht zwei Wahrheiten nebeneinander liegenbleiben. */
+        if (!Object.prototype.hasOwnProperty.call(out, fresh)) out[fresh] = out[old];
+        delete out[old];
+        touched.push(`${key}.${old} → ${fresh}`);
+      }
+      return out;
+    };
+    const fresh = each
+      ? (Array.isArray(value) ? value.map(rename) : value)
+      : rename(value);
+    if (!touched.length) continue;
+    write.run(JSON.stringify(fresh), key);
+    counted.push(...new Set(touched));
+  }
+  if (!counted.length) return 0;
+  console.log(`[Kriterion] ${counted.length} Feldnamen in gespeicherten Werten ` +
+    `umbenannt (Migration auf 0.24.2): ${counted.join(', ')}.`);
+  return 1;
+}
+migration0242Shapes();
+// ENDE MIGRATION 0.24.2 (die Feldnamen in gespeicherten Werten)
+
+
 db.exec(SCHEMA);
 
 // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
