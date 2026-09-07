@@ -773,7 +773,7 @@ app.post('/api/login/second', async (req, res) => {
    deshalb das, was diese eine Anfrage mitbringt, und nicht eine Vermutung. */
 app.post('/api/logout', (req, res) => {
   const cookies = auth.parseCookies(req);
-  for (const cookie of new Set([cookies[auth.COOKIE_SICHER], cookies[auth.COOKIE_NAME]].filter(Boolean)))
+  for (const cookie of new Set([cookies[auth.COOKIE_SECURE], cookies[auth.COOKIE_NAME]].filter(Boolean)))
     auth.destroySession(cookie);
   res.set('Set-Cookie', auth.clearCookie());
   res.json({ ok: true });
@@ -1571,13 +1571,13 @@ function mailCard(req) {
        zwei Ausfertigungen liefen auseinander (Stolperstein 102). */
     providerList: mail.forChoice().map(a =>
       ({ ...a, hint: a.hint ? t(localeOf(req), a.hint) : '' })),
-    eingerichtet: mail.configured(raw),
+    configured: mail.configured(raw),
     // Der ZUSTAND der oeffentlichen Adresse, nicht die Adresse selbst -- die
     // steht in der Karte "Zugaenge", wo der Link entsteht.
     addressSet: Boolean(PUBLIC.address),
     address: PUBLIC.address,
     deadlineMinutes: auth.TOKEN_DEADLINE_MINUTES,
-    getestetAm: test ? test.at : null,
+    testedAt: test ? test.at : null,
     sekunden: Math.round(mail.SEND_MS / 1000),
     /* Die Folge der Testmarke fuer die Selbstanmeldung, : der
        Eigentuemer soll an DIESER Karte sehen, was er dem Schalter des Admins
@@ -1935,8 +1935,8 @@ function searchProviders() {
 // Vorlage des Standardanbieters, nur fuer die Antwort an die Oberflaeche.
 function searchTemplate() {
   const pool = searchPool();
-  const treffer = allProviders().find(a => a.key === pool[0]);
-  return treffer && searchTemplateOk(treffer.template) ? treffer.template : SEARCH_DEFAULT;
+  const matched = allProviders().find(a => a.key === pool[0]);
+  return matched && searchTemplateOk(matched.template) ? matched.template : SEARCH_DEFAULT;
 }
 
 // Schreibt den Vorrat, normalisiert: Standard zuerst, die uebrigen in
@@ -4768,11 +4768,11 @@ app.get('/api/stats', adminOnly, (req, res) => {
     /* WAS UNTER DER HAUBE LAEUFT -- abgelesen in db.js, hier nur
        durchgereicht. Die Karte nennt Verfahren und keine Paketversionen: das
        eine sagt, WIE gerechnet wird, das andere, WELCHE Luecke passt.
-       `passwoerter` steht hier und nicht in db.js, weil es dort nichts zu
+       `passwords` steht hier und nicht in db.js, weil es dort nichts zu
        lesen gaebe -- die Kennwerte des Verfahrens stehen in auth.js und in
        jedem gespeicherten Wert. Der Name ist derselbe, den baueWert() vorn
        hineinschreibt. */
-    method: { ...method(), passwoerter: 'scrypt' },
+    method: { ...method(), passwords: 'scrypt' },
     dbBytes, photoCount: p.n, photoBytes: p.o,
     videoCount: vi.n, videoBytes: vi.o,
     attachmentCount: an.n, attachmentBytes: an.o,
@@ -5094,10 +5094,10 @@ function exportEnvelope(items) {
 
 // Der Dateiname einer Exportdatei. Aus dem Titel der Instanz, damit zwei
 // Instanzen nicht zwei gleichnamige Dateien im Ordner ablegen.
-function exportName(zusatz) {
+function exportName(suffix) {
   const title = getSetting('title_app', 'Kriterion');
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kriterion';
-  return `${slug}-export${zusatz}-${new Date().toISOString().slice(0, 10)}.json`;
+  return `${slug}-export${suffix}-${new Date().toISOString().slice(0, 10)}.json`;
 }
 
 /* WAS DER EXPORT AN BYTES WIRKLICH SCHREIBT -- je Art getrennt und vor dem
@@ -5124,7 +5124,7 @@ function exchangeParts(itemId, switches) {
   const and = (column) => onlyOne ? ` AND ${column} = ?` : '';
   const wo = (column) => onlyOne ? ` WHERE ${column} = ?` : '';
   const base64 = (n) => Math.round(n * 4 / 3);
-  const parts = { photos: 0, videos: 0, anhaenge: 0, kommentarbilder: 0 };
+  const parts = { photos: 0, videos: 0, attachments: 0, commentImages: 0 };
   if (switches.withPhotos)
     parts.photos = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));
@@ -5136,10 +5136,10 @@ function exchangeParts(itemId, switches) {
       `SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) n
          FROM photos WHERE kind = 'video'${and('item_id')}`));
   if (switches.withFiles) {
-    parts.anhaenge = base64(one(
+    parts.attachments = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM attachments${wo('item_id')}`));
     // Kommentarbilder folgen dem Schalter der Dateien -- dort und hier.
-    parts.kommentarbilder = base64(one(
+    parts.commentImages = base64(one(
       `SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
          JOIN comments c ON c.id = ci.comment_id${wo('c.item_id')}`));
   }
@@ -5324,7 +5324,7 @@ function exchangeEnvelopeFrame() {
    genau die Datei durch, die am Umschlag zerbricht. */
 function exchangeBytes(itemId, switches) {
   const parts = exchangeParts(itemId, switches);
-  return parts.photos + parts.videos + parts.anhaenge + parts.kommentarbilder + exchangeEnvelopeBytes(itemId);
+  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes(itemId);
 }
 
 /* ---- Export ---- */
@@ -5513,7 +5513,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   const commentImages = new Map();
   /* Die laute Haelfte der Videos: nicht abbrechen, melden -- dieselbe Haltung
      wie bei unbekannten Verfassernamen und ungueltigen Gewichten. */
-  let videosWithoutFile = 0, videosUnlesbar = 0;
+  let videosWithoutFile = 0, videosUnreadable = 0;
   for (const it of payload.items) {
     const photos = [];
     for (const pRaw of it.photos || []) {
@@ -5551,7 +5551,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       // Dieselbe Schaerfe wie beim Hochladen: fehlt EINE der beiden
       // Varianten, wird die Zeile nicht angelegt. Das Nachruesten beim Start
       // holt sie an einer Videozeile nicht nach.
-      if (isVideo && (!v.thumb || !v.medium)) { videosUnlesbar++; continue; }
+      if (isVideo && (!v.thumb || !v.medium)) { videosUnreadable++; continue; }
       /* DEN AUSSCHNITT AUS DER DATEI UEBERNEHMEN -- alle drei Werte, ueber
          DIESELBE Tafel, die auch die Route benutzt. Fehlt ein Feld (Datei der
          Formatnummer 11 oder aelter, oder ein Export ohne Fokuspunkt), gilt
@@ -5923,12 +5923,12 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   if (videosWithoutFile)
     console.log(`[Kriterion] Import: ${videosWithoutFile} Video(s) waren nicht in der Datei ` +
                 `enthalten und wurden uebergangen.`);
-  if (videosUnlesbar)
-    console.log(`[Kriterion] Import: ${videosUnlesbar} Video(s) ohne lesbares Standbild ` +
+  if (videosUnreadable)
+    console.log(`[Kriterion] Import: ${videosUnreadable} Video(s) ohne lesbares Standbild ` +
                 `uebergangen.`);
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
-           weightsDropped: dropped, videosWithoutFile, videosUnlesbar, newIds };
+           weightsDropped: dropped, videosWithoutFile, videosUnreadable, newIds };
 }
 
 /* Nur der Eigentuemer. EINE EXPORTDATEI KANN UNTER FREMDEM NAMEN SCHREIBEN:
@@ -6455,14 +6455,14 @@ const cleanupRow = (d, now) => ({
    Summe: sie sind nicht entbehrlich, sondern etwas anderes. */
 function cleanupPreview(pfad, keep, days) {
   const files = backupList(pfad);
-  if (files === null) return { erreichbar: false, files: [], treffer: [], bytes: 0, reason: '' };
+  if (files === null) return { erreichbar: false, files: [], matched: [], bytes: 0, reason: '' };
   const mark = changeMark();
   const now = Date.now();
   const old = mark ? files.filter(d => d.time < mark.ms) : [];
   const usable = mark ? files.filter(d => d.time >= mark.ms) : files;
-  const treffer = ruleHit(files, keep, days, now, mark ? mark.ms : null);
+  const matched = ruleHit(files, keep, days, now, mark ? mark.ms : null);
   let reason = '';
-  if (!treffer.length) {
+  if (!matched.length) {
     if (!files.length) reason = 'Hier gibt es noch keine Sicherung.';
     else if (!usable.length)
       reason = `Keine der ${files.length} ${files.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
@@ -6492,7 +6492,7 @@ function cleanupPreview(pfad, keep, days) {
      BEIDE KOENNEN NICHT ZUGLEICH GELTEN -- ruleHit() laesst die veralteten
      gar nicht erst durch. Die Karte darf sich darauf verlassen, und der
      Pruefstand haelt es fest. */
-  const hitNames = new Set(treffer.map(d => d.name));
+  const hitNames = new Set(matched.map(d => d.name));
   const oldMs = mark ? mark.ms : null;
   return {
     erreichbar: true,
@@ -6501,8 +6501,8 @@ function cleanupPreview(pfad, keep, days) {
       faellt: hitNames.has(d.name),
       veraltet: oldMs != null && d.time < oldMs
     })),
-    treffer: treffer.map(d => cleanupRow(d, now)),
-    bytes: treffer.reduce((n, d) => n + d.bytes, 0),
+    matched: matched.map(d => cleanupRow(d, now)),
+    bytes: matched.reduce((n, d) => n + d.bytes, 0),
     reason,
     oldCount: old.length,
     oldBytes: old.reduce((n, d) => n + d.bytes, 0),
@@ -6608,12 +6608,12 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   /* UEBERSETZT WIRD HIER -- 0.24.0. backupState() und checkPlace() liefern
      seit dieser Runde einen Schluessel samt Werten; welche Sprache die Antwort
      traegt, weiss erst die Route. */
-  if (!situation.ein) return res.json({ eingerichtet: false,
+  if (!situation.ein) return res.json({ configured: false,
                                    reason: t(localeOf(req), situation.reason, situation.values), place,
                                    dbBytes, durationSeconds: duration, erreichbar: false, last: null,
                                    gewechseltAm, veraltet: 0, cleanup: rule });
   const target = checkPlace(place);
-  if (target.error) return res.json({ eingerichtet: true, wurzel: situation.wurzel, place,
+  if (target.error) return res.json({ configured: true, wurzel: situation.wurzel, place,
                                      imArbeitsverzeichnis: situation.imArbeitsverzeichnis,
                                      error: t(localeOf(req), target.error, target.values),
                                      dbBytes, durationSeconds: duration,
@@ -6621,7 +6621,7 @@ app.get('/api/backup', ownerOnly, (req, res) => {
                                      gewechseltAm, veraltet: 0, cleanup: rule });
   // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
   // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
-  res.json({ eingerichtet: true, wurzel: situation.wurzel, place, pfad: target.pfad,
+  res.json({ configured: true, wurzel: situation.wurzel, place, pfad: target.pfad,
              imArbeitsverzeichnis: situation.imArbeitsverzeichnis,
              dbBytes, durationSeconds: duration, ...lastBackup(target.pfad),
              cleanup: { ...rule, ...cleanupPreview(target.pfad, keep, days) } });
@@ -6707,10 +6707,10 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   try {
     const rule = cleanupStatus();
     if (rule.an) {
-      const treffer = ruleHit(backupList(target.pfad) || [], rule.keep, rule.days,
+      const matched = ruleHit(backupList(target.pfad) || [], rule.keep, rule.days,
                                    Date.now(), (changeMark() || {}).ms ?? null);
-      if (treffer.length) {
-        const out2 = removeBackups(target.pfad, treffer.map(d => d.name));
+      if (matched.length) {
+        const out2 = removeBackups(target.pfad, matched.map(d => d.name));
         aufgeraeumt = { weg: out2.weg, nicht: out2.geblieben.length, bytes: out2.bytes };
         if (out2.weg) {
           console.log(`[Kriterion] Alte Sicherungen entfernt: ${out2.weg} ` +
@@ -6774,11 +6774,11 @@ app.post('/api/backup/cleanup', ownerOnly,
   /* DIE GRENZEN HALTEN, BEVOR IRGENDETWAS GELOESCHT WIRD. Die Werte kommen aus
      settings und nicht aus dem Rumpf; steht dort einer ausserhalb der Spanne,
      ist das eine Absage und keine stille Rundung. */
-  let treffer;
+  let matched;
   if (kind === 'outdated') {
     if (!mark) return res.status(400).json({
       error: t(localeOf(req), 'server.keyNeverChanged')});
-    treffer = files.filter(d => d.time < mark.ms);
+    matched = files.filter(d => d.time < mark.ms);
   } else {
     const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
                               CLEANUP_KEEP, 'server.ruleKeep');
@@ -6786,9 +6786,9 @@ app.post('/api/backup/cleanup', ownerOnly,
     const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.fallback),
                               CLEANUP_DAYS, 'server.ruleDays');
     if (rule.error) return res.status(400).json({ error: t(localeOf(req), rule.error, rule.values) });
-    treffer = ruleHit(files, b.value, rule.value, Date.now(), mark ? mark.ms : null);
+    matched = ruleHit(files, b.value, rule.value, Date.now(), mark ? mark.ms : null);
   }
-  const out2 = removeBackups(target.pfad, treffer.map(d => d.name));
+  const out2 = removeBackups(target.pfad, matched.map(d => d.name));
   if (out2.weg) {
     console.log(`[Kriterion] Alte Sicherungen entfernt (${kind}): ${out2.weg} ` +
       `(${out2.bytes} Bytes frei)${out2.geblieben.length ? `, ${out2.geblieben.length} nicht` : ''}.`);
@@ -7005,7 +7005,7 @@ app.listen(PORT, () => {
   console.log(`[Kriterion] Hinter Proxy: ${auth.BEHIND_PROXY ? 'an' : 'aus'} — ` +
     (auth.BEHIND_PROXY
       ? 'X-Forwarded-For und X-Forwarded-Proto werden gelesen; über HTTPS gilt ' +
-        `${auth.COOKIE_SICHER} mit Secure und HSTS, über das Heimnetz ${auth.COOKIE_NAME}`
+        `${auth.COOKIE_SECURE} mit Secure und HSTS, über das Heimnetz ${auth.COOKIE_NAME}`
       : `kein Kopf wird gelesen, jede Anfrage gilt als Klartext: ${auth.COOKIE_NAME} ohne Secure`));
   /* Die oeffentliche Adresse gehoert ins Protokoll: an ihr haengt, welchen
      Link ein Empfaenger bekommt. Wer sie falsch stehen hat, sieht es hier und

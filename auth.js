@@ -145,8 +145,8 @@ function viaProxy(req) {
    Literal daneben liefe auseinander, und ein Waechter im Pruefstand haelt
    genau das fest. */
 const COOKIE_NAME = 'kriterion_session';
-const COOKIE_SICHER = `__Host-${COOKIE_NAME}`;
-const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;
+const COOKIE_SECURE = `__Host-${COOKIE_NAME}`;
+const cookieName = (req) => viaProxy(req) ? COOKIE_SECURE : COOKIE_NAME;
 
 /* --- Die oeffentliche Adresse -------------------------------------------
    SIE STEHT HIER UND NICHT IN server.js, weil sie dieselbe Sorte Einstellung
@@ -1711,7 +1711,7 @@ const sessionCookie = (req, token) =>
    Secure-Loeschzeile ueber http laesst er liegen, und dort gibt es diesen
    Cookie ohnehin nicht. */
 const clearCookie = () => [
-  `${COOKIE_SICHER}=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0`,
+  `${COOKIE_SECURE}=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0`,
   `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`
 ];
 
@@ -1747,7 +1747,7 @@ function requireAuth(req, res, next) {
 module.exports = {
   // Die Fehlerklasse; Rufer sind server.js (uebersetzt) und diese Datei.
   Message, setTranslator,
-  COOKIE_NAME, COOKIE_SICHER, cookieName, sessionToken, viaProxy,
+  COOKIE_NAME, COOKIE_SECURE, cookieName, sessionToken, viaProxy,
   BEHIND_PROXY, PASSWORD_MIN, SESSION_DAYS, fromEnv,
   PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
   sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,

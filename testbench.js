@@ -407,13 +407,13 @@ function smtpEmpfaenger(kind = 'ok') {
 // Ein weiterer Server mit eigenem Datenverzeichnis, eigener Umgebung und
 // eigenem Cookie. Gebraucht fuer alle Prueflagen, die eine eigene Instanz
 // brauchen: frische Einrichtung, Rechte mit mehreren Zugaengen, Sperren.
-function startFurtherServer(dataDirectory, zusatz, portBase) {
+function startFurtherServer(dataDirectory, extraEnv, portBase) {
   const port = portBase + PORT_OFFSET + Math.floor(Math.random() * PORT_WIDTH);
   const base = `http://127.0.0.1:${port}`;
   let log = '', cookieB = '';
   const environment = { ...process.env, PORT: String(port), DATA_DIR: dataDirectory, ENCRYPTION_KEY: KEY };
   delete environment.AUTH_RESET;
-  Object.assign(environment, zusatz);
+  Object.assign(environment, extraEnv);
   const kindB = spawn(process.execPath, ['server.js'], { cwd: __dirname, env: environment });
   CASES.push({ base: portBase, port, kind: kindB, directory: dataDirectory });
   kindB.stdout.on('data', d => { log += d; });
@@ -2277,7 +2277,7 @@ const shareMain = (purpose, target = null) =>
     JSON.stringify(statsVerf));
   check('Und zwar genau vier Angaben und keine weitere',
     equal(Object.keys(statsVerf || {}).sort(),
-      ['cipher', 'journal', 'passwoerter', 'schluesselBits']),
+      ['cipher', 'journal', 'passwords', 'schluesselBits']),
     JSON.stringify(Object.keys(statsVerf || {})));
   check('Die Chiffre ist die, die db.js wirklich setzt',
     statsVerf?.cipher === 'sqlcipher', JSON.stringify(statsVerf?.cipher));
@@ -2286,7 +2286,7 @@ const shareMain = (purpose, target = null) =>
   check('Das Journal steht auf WAL',
     statsVerf?.journal === 'WAL', JSON.stringify(statsVerf?.journal));
   check('Und die Passwoerter rechnen mit scrypt',
-    statsVerf?.passwoerter === 'scrypt', JSON.stringify(statsVerf?.passwoerter));
+    statsVerf?.passwords === 'scrypt', JSON.stringify(statsVerf?.passwords));
   /* DIE GEGENPROBE AN DER INSTANZ SELBST, sonst waeren die vier Zeilen darueber
      nur vier Behauptungen gegen vier andere Behauptungen: db.js muss die
      Chiffre wirklich setzen, und auth.js muss wirklich scrypt schreiben. */
@@ -4842,8 +4842,8 @@ const shareMain = (purpose, target = null) =>
   check('Ein unlesbares Standbild bricht den Import nicht ab',
     e2VidBroken.status === 200, JSON.stringify(e2VidBroken.content));
   check('Es wird uebergangen und genannt',
-    e2VidBroken.content?.videosUnlesbar === 1 && e2VidBroken.content?.videos === 0,
-    JSON.stringify({ unreadable: e2VidBroken.content?.videosUnlesbar, videos: e2VidBroken.content?.videos }));
+    e2VidBroken.content?.videosUnreadable === 1 && e2VidBroken.content?.videos === 0,
+    JSON.stringify({ unreadable: e2VidBroken.content?.videosUnreadable, videos: e2VidBroken.content?.videos }));
 
   /* EINE AELTERE DATEI OHNE art AN IHREN FOTOS: alles darin ist ein Bild.
      Entschieden wird ueber das Vorhandensein der Felder, nicht ueber die
@@ -5750,7 +5750,7 @@ const shareMain = (purpose, target = null) =>
 
   const siStatus = await siCall('cookie-si-anna', 'GET', '/api/backup');
   check('Die Karte ist eingerichtet',
-    siStatus.content?.eingerichtet === true, JSON.stringify(siStatus.content));
+    siStatus.content?.configured === true, JSON.stringify(siStatus.content));
   check('Sie nennt die eingerichtete Wurzel',
     siStatus.content?.wurzel === fs.realpathSync(siRoot), JSON.stringify(siStatus.content?.wurzel));
   check('Und die erwartete Dauer aus der Groesse der Datenbank',
@@ -5793,8 +5793,8 @@ const shareMain = (purpose, target = null) =>
       check('Ein Ort IM Arbeitsverzeichnis meldet sich als solcher',
         inside?.imArbeitsverzeichnis === true, JSON.stringify(inside?.imArbeitsverzeichnis));
       check('Und er ist trotzdem eingerichtet -- benannt, nicht abgewiesen',
-        inside?.eingerichtet === true && !inside?.error,
-        JSON.stringify([inside?.eingerichtet, inside?.reason, inside?.error]));
+        inside?.configured === true && !inside?.error,
+        JSON.stringify([inside?.configured, inside?.reason, inside?.error]));
       check('Und es laesst sich dort wirklich sichern',
         (await (await fetch(SI2.base + '/api/backup',
           { method: 'POST', headers: { cookie: 'kriterion_session=cookie-si-innen' } })).json())?.file
@@ -6163,7 +6163,7 @@ const shareMain = (purpose, target = null) =>
       { headers: { cookie: 'kriterion_session=cookie-sd-anna' } });
     const content = await a.json().catch(() => null);
     check('Ein Sicherungsort IM Datenverzeichnis bleibt aus',
-      content?.eingerichtet === false, JSON.stringify(content));
+      content?.configured === false, JSON.stringify(content));
     check('Und sagt, warum',
       /nicht im Datenverzeichnis/.test(content?.reason || ''), content?.reason);
     check('Der Knopf sagt dort ebenfalls ab',
@@ -6190,7 +6190,7 @@ const shareMain = (purpose, target = null) =>
     const content = await (await fetch(SO.base + '/api/backup',
       { headers: { cookie: 'kriterion_session=cookie-so-anna' } })).json().catch(() => null);
     check('Ohne eingerichteten Ort bleibt die Karte aus',
-      content?.eingerichtet === false, JSON.stringify(content));
+      content?.configured === false, JSON.stringify(content));
     check('Und nennt den Weg dorthin',
       /docker-compose\.yml/.test(content?.reason || ''), content?.reason);
     await SO.stop();
@@ -6510,14 +6510,14 @@ const shareMain = (purpose, target = null) =>
       a.grenzen?.days?.min === 7 && a.grenzen?.days?.max === 365,
       JSON.stringify(a.grenzen));
     check('Die Vorschau nennt genau die drei Kopien, die die Regel trifft',
-      equal((a.treffer || []).map(t => t.file).sort(), AU_CASES),
-      (a.treffer || []).map(t => t.file).join(' · '));
+      equal((a.matched || []).map(t => t.file).sort(), AU_CASES),
+      (a.matched || []).map(t => t.file).join(' · '));
     check('Und sie nennt zu jeder Datum, Alter und Groesse',
-      (a.treffer || []).every(t => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(t.at) &&
+      (a.matched || []).every(t => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(t.at) &&
         Number.isInteger(t.daysAgo) && t.daysAgo > 30 && t.bytes > 0),
-      JSON.stringify(a.treffer));
+      JSON.stringify(a.matched));
     check('Und die Summe der Bytes, die frei wuerden',
-      a.bytes === (a.treffer || []).reduce((n, t) => n + t.bytes, 0) && a.bytes > 0,
+      a.bytes === (a.matched || []).reduce((n, t) => n + t.bytes, 0) && a.bytes > 0,
       JSON.stringify(a.bytes));
     /* DIE VORSCHAU HAT NICHTS GELOESCHT. Ohne diese Zeile belegte die Gruppe
        nichts ueber den Satz, der sie traegt: sehen, bevor etwas geschieht. */
@@ -6585,9 +6585,9 @@ const shareMain = (purpose, target = null) =>
     const eng = await auCall('cookie-au-anna', 'GET', '/api/backup?keep=5&days=30');
     const a = eng.content?.cleanup || {};
     check('Mit Boden 5 treffen es nur noch zwei Kopien',
-      equal((a.treffer || []).map(t => t.file).sort(),
+      equal((a.matched || []).map(t => t.file).sort(),
              ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-09-03-23-59-59.sqlite']),
-      (a.treffer || []).map(t => t.file).join(' · '));
+      (a.matched || []).map(t => t.file).join(' · '));
     /* UND GESPEICHERT WURDE DABEI NICHTS -- der naechste Abruf ohne Abfrage
        steht wieder auf 3 und 30. Eine Vorschau, die nebenbei die Einstellung
        verstellt, waere die schlimmste Ueberraschung dieser Karte. */
@@ -6604,12 +6604,12 @@ const shareMain = (purpose, target = null) =>
   {
     const wide = await auCall('cookie-au-anna', 'GET', '/api/backup?keep=20&days=30');
     check('Deckt der Boden alles, sagt der Grund genau das',
-      (wide.content?.cleanup?.treffer || []).length === 0 &&
+      (wide.content?.cleanup?.matched || []).length === 0 &&
       /unter den jüngsten 20/.test(wide.content?.cleanup?.reason || ''),
       wide.content?.cleanup?.reason);
     const late = await auCall('cookie-au-anna', 'GET', '/api/backup?keep=3&days=365');
     check('Ist nichts alt genug, nennt der Grund das Alter der aeltesten',
-      (late.content?.cleanup?.treffer || []).length === 0 &&
+      (late.content?.cleanup?.matched || []).length === 0 &&
       /^Die älteste ist 20[01] Tage alt\.$/.test(late.content?.cleanup?.reason || ''),
       late.content?.cleanup?.reason);
   }
@@ -6722,7 +6722,7 @@ const shareMain = (purpose, target = null) =>
        daraus neu; stuende dort der alte Stand, zeigte sie Dateien, die es
        nicht mehr gibt. */
     check('Und die frische Vorschau daneben ist leer',
-      (r.content?.cleanup?.treffer || []).length === 0 &&
+      (r.content?.cleanup?.matched || []).length === 0 &&
       !!r.content?.cleanup?.reason, JSON.stringify(r.content?.cleanup?.reason));
     /* EIN ZWEITER LAUF FINDET NICHTS MEHR und sagt das mit 0 statt mit einem
        Fehler -- ein Aufraeumen, das nichts zu tun hat, ist kein Fehlschlag. */
@@ -6779,9 +6779,9 @@ const shareMain = (purpose, target = null) =>
        ist eine davon veraltet, und die Regel nennt nur noch die beiden
        anderen -- der Boden zaehlt nur die brauchbaren (Entscheidung 5). */
     check('Und die Regel nennt sie nicht mehr',
-      equal((a.treffer || []).map(x => x.file).sort(),
+      equal((a.matched || []).map(x => x.file).sort(),
              ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-07-25-10-00-00.sqlite']),
-      (a.treffer || []).map(x => x.file).join(' · '));
+      (a.matched || []).map(x => x.file).join(' · '));
     await auFree();
     const weg = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'outdated' });
     check('Der zweite Weg entfernt genau die veraltete Kopie',
@@ -9412,18 +9412,18 @@ const shareMain = (purpose, target = null) =>
   {
     const d = open(path.join(tkDir, 'katalog.sqlite'));
     const tables = d.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(z => z.name);
-    const treffer = [];
+    const matched = [];
     for (const t of tables) {
       if (t.startsWith('sqlite_')) continue;
       for (const c of d.prepare(`PRAGMA table_info("${t}")`).all()) {
         const n = d.prepare(`SELECT COUNT(*) n FROM "${t}" WHERE CAST("${c.name}" AS TEXT) LIKE ?`)
           .get(`%${tkSecret}%`).n;
-        if (n) treffer.push(`${t}.${c.name}`);
+        if (n) matched.push(`${t}.${c.name}`);
       }
     }
     d.close();
     check('Der Klartext steht in KEINER Spalte KEINER Tabelle',
-      treffer.length === 0, treffer.join(' · '));
+      matched.length === 0, matched.join(' · '));
     // Und die Gegenprobe zur Nachschau selbst: sie findet etwas, wenn es da
     // ist -- sonst belegte eine leere Trefferliste gar nichts.
     const d2 = open(path.join(tkDir, 'katalog.sqlite'));
@@ -11301,9 +11301,9 @@ const shareMain = (purpose, target = null) =>
      jedem der beiden gehoert die Nachschau, dass der ANDERE gerade nicht
      dasteht. */
   {
-    const oaMake = async (zusatz, portBase) => {
+    const oaMake = async (extraEnv, portBase) => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-oeffsrv-'));
-      const S = startFurtherServer(dir, zusatz, portBase);
+      const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
       const fresh = await S.call('POST', '/api/users', { username: 'bert', einladen: true });
@@ -11433,9 +11433,9 @@ const shareMain = (purpose, target = null) =>
   });
 
   {
-    const mailInstance = async (zusatz, portBase) => {
+    const mailInstance = async (extraEnv, portBase) => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-mail-'));
-      const S = startFurtherServer(dir, zusatz, portBase);
+      const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: MAIL_PASSWORD_ANNA });
       return { dir, S };
@@ -11459,7 +11459,7 @@ const shareMain = (purpose, target = null) =>
     const set = await mailSet(A.S, E);
     check('Der Mailzugang laesst sich setzen', set.status === 200, `Status ${set.status}`);
     check('Und die Karte sagt danach "eingerichtet"',
-      set.content?.eingerichtet === true, JSON.stringify(set.content?.eingerichtet));
+      set.content?.configured === true, JSON.stringify(set.content?.configured));
     /* DAS PASSWORT STEHT IN KEINER ANTWORT -- geprueft am VOLLSTAENDIGEN
        Antwortkoerper und nicht an einem einzelnen Feld: eines, das nur das
        Feld `passwort` ansieht, bliebe gruen, wenn es woanders wieder
@@ -11484,8 +11484,8 @@ const shareMain = (purpose, target = null) =>
     const emptyA = await mailInstance({}, 5260);
     const emptyCard = await emptyA.S.call('GET', '/api/mail');
     check('Ohne Zugang sagt die Karte "nicht gesetzt"',
-      emptyCard.content?.passwordSet === false && emptyCard.content?.eingerichtet === false,
-      JSON.stringify([emptyCard.content?.passwordSet, emptyCard.content?.eingerichtet]));
+      emptyCard.content?.passwordSet === false && emptyCard.content?.configured === false,
+      JSON.stringify([emptyCard.content?.passwordSet, emptyCard.content?.configured]));
 
     const fresh = await A.S.call('POST', '/api/users',
       { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
@@ -11894,7 +11894,7 @@ const shareMain = (purpose, target = null) =>
       `${T.letters().length} Briefe, fremde Adressen: ` +
       T.letters().filter(b => /boese\.net/.test(b.raw)).length);
     check('Und die Marke steht danach in der Karte',
-      Boolean(tIncluding.content?.getestetAm), JSON.stringify(tIncluding.content?.getestetAm));
+      Boolean(tIncluding.content?.testedAt), JSON.stringify(tIncluding.content?.testedAt));
     /* DIE MARKE GILT NUR ZU DEN WERTEN, MIT DENEN SIE ENTSTANDEN IST, und das
        ist der Kern ihrer Aussage: sie belegt "mit DIESEN Werten ist einmal
        wirklich eine Mail hinausgegangen". Bliebe sie stehen, hiesse "zuletzt
@@ -11917,15 +11917,15 @@ const shareMain = (purpose, target = null) =>
     check('Die Aenderung geht durch', tAfterChange.status === 200,
       `Status ${tAfterChange.status}`);
     check('Und die Marke ist danach weg',
-      tAfterChange.content?.getestetAm === null, JSON.stringify(tAfterChange.content?.getestetAm));
+      tAfterChange.content?.testedAt === null, JSON.stringify(tAfterChange.content?.testedAt));
     check('Auch die gelesene Karte sagt jetzt "noch nie"',
-      (await TA.S.call('GET', '/api/mail')).content?.getestetAm === null,
-      JSON.stringify((await TA.S.call('GET', '/api/mail')).content?.getestetAm));
+      (await TA.S.call('GET', '/api/mail')).content?.testedAt === null,
+      JSON.stringify((await TA.S.call('GET', '/api/mail')).content?.testedAt));
     // Und der Zugang steht trotzdem: das leere Passwortfeld hat ihn nicht
     // geleert, sondern unveraendert gelassen.
     check('Der Zugang ist dabei erhalten geblieben',
-      tAfterChange.content?.eingerichtet === true && tAfterChange.content?.passwordSet === true,
-      JSON.stringify([tAfterChange.content?.eingerichtet, tAfterChange.content?.passwordSet]));
+      tAfterChange.content?.configured === true && tAfterChange.content?.passwordSet === true,
+      JSON.stringify([tAfterChange.content?.configured, tAfterChange.content?.passwordSet]));
 
     group('Der Mailzugang: wer ihn setzen darf');
 
@@ -11966,8 +11966,8 @@ const shareMain = (purpose, target = null) =>
       rWithoutFree.status === 403 && rWithoutFree.content?.confirm === 'mail',
       `${rWithoutFree.status} · ${JSON.stringify(rWithoutFree.content?.confirm)}`);
     check('Und dabei wurde nichts geschrieben',
-      (await RA.S.call('GET', '/api/mail')).content?.eingerichtet === false,
-      JSON.stringify((await RA.S.call('GET', '/api/mail')).content?.eingerichtet));
+      (await RA.S.call('GET', '/api/mail')).content?.configured === false,
+      JSON.stringify((await RA.S.call('GET', '/api/mail')).content?.configured));
     await mailFree(RA.S);
     const rIncludingFree = await RA.S.call('PUT', '/api/mail',
       { provider: 'gmx', user: 'a@gmx.de', password: MAIL_SECRET, sender: 'a@gmx.de' });
@@ -12082,9 +12082,9 @@ const shareMain = (purpose, target = null) =>
   {
     const REG_PASSWORD = 'annas-langes-wort-91';
     const REG_MAILWORT = 'erfundenes-mailwort-' + crypto.randomBytes(4).toString('hex');
-    const regInstance = async (zusatz, portBase) => {
+    const regInstance = async (extraEnv, portBase) => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-reg-'));
-      const S = startFurtherServer(dir, zusatz, portBase);
+      const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: REG_PASSWORD });
       return { dir, S };
@@ -17138,7 +17138,7 @@ const shareMain = (purpose, target = null) =>
      laesst sich belegen, dass jede EINZELN nachgeruestet wird. */
   const u50Regression = (directory, which) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
-    const zusatz = [
+    const extraEnv = [
       which.includes('kind') ? '' : "kind TEXT NOT NULL DEFAULT 'image',",
       which.includes('duration') ? '' : 'duration INTEGER,'
     ].join(' ');
@@ -17151,7 +17151,7 @@ const shareMain = (purpose, target = null) =>
         data BLOB NOT NULL,
         thumb BLOB,
         medium BLOB,
-        ${zusatz}
+        ${extraEnv}
         focus_x REAL NOT NULL DEFAULT 50,
         focus_y REAL NOT NULL DEFAULT 50,
         sort_order INTEGER NOT NULL DEFAULT 0,
@@ -17385,7 +17385,7 @@ const shareMain = (purpose, target = null) =>
      laesst sich belegen, dass jede EINZELN nachgeruestet wird. */
   const u14Regression = (directory, which) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
-    const zusatz = [
+    const extraEnv = [
       which.includes('rejected_at') ? '' : 'rejected_at TEXT,',
       which.includes('rejected_reason') ? '' : 'rejected_reason TEXT,',
       which.includes('rejected_by') ? '' : 'rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL,'
@@ -17397,7 +17397,7 @@ const shareMain = (purpose, target = null) =>
         title TEXT NOT NULL,
         description TEXT NOT NULL DEFAULT '',
         rejected INTEGER NOT NULL DEFAULT 0,
-        ${zusatz}
+        ${extraEnv}
         tested INTEGER NOT NULL DEFAULT 0,
         favorite INTEGER NOT NULL DEFAULT 0,
         product_category_id INTEGER REFERENCES product_categories(id) ON DELETE SET NULL,
@@ -19711,7 +19711,7 @@ const shareMain = (purpose, target = null) =>
   // ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
   // dieses Feld blieben alle Pruefungen darunter auf undefined stehen.
   check('Die Kennzahlen nennen die Teile der Exportgroesse',
-    exStats?.export && ['envelope', 'photos', 'videos', 'anhaenge', 'kommentarbilder']
+    exStats?.export && ['envelope', 'photos', 'videos', 'attachments', 'commentImages']
       .every(k => typeof exStats.export[k] === 'number'),
     JSON.stringify(exStats?.export));
   /* DIE GRENZEN GEHEN MIT. Ohne sie muesste die Oberflaeche 300 MB und die
@@ -19761,8 +19761,8 @@ const shareMain = (purpose, target = null) =>
       exStats?.export?.photos < b64(photoRaw + thumbRaw),
       `${exStats?.export?.photos} gegen ${b64(photoRaw + thumbRaw)}`);
     check('Die Kommentarbilder zaehlen zu den Dateien und nicht zu den Fotos',
-      exStats?.export?.kommentarbilder === b64(kbRaw),
-      `${exStats?.export?.kommentarbilder} gegen ${b64(kbRaw)}`);
+      exStats?.export?.commentImages === b64(kbRaw),
+      `${exStats?.export?.commentImages} gegen ${b64(kbRaw)}`);
     check('Und sie stehen jetzt auch als eigene Zeile in den Kennzahlen',
       typeof exStats?.commentImageCount === 'number' && typeof exStats?.commentImageBytes === 'number',
       JSON.stringify({ n: exStats?.commentImageCount, o: exStats?.commentImageBytes }));
@@ -19807,7 +19807,7 @@ const shareMain = (purpose, target = null) =>
        gehoert seither dem Sprachhelfer, und eine lokale Bindung verdeckte ihn
        (Bauabschnitt 1). Der Waechter zieht mit, die Rechnung bleibt dieselbe. */
     check('Und die Absage rechnet den Umschlag mit',
-      /return parts\.photos \+ parts\.videos \+ parts\.anhaenge \+ parts\.kommentarbilder \+ exchangeEnvelopeBytes\(itemId\);/
+      /return parts\.photos \+ parts\.videos \+ parts\.attachments \+ parts\.commentImages \+ exchangeEnvelopeBytes\(itemId\);/
         .test(fSource),
       (fSource.match(/return parts\.photos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
     /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
@@ -22386,13 +22386,13 @@ const shareMain = (purpose, target = null) =>
     ];
     const searched = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
                         'CHANGELOG.md', 'Doku/Aenderungsprotokoll_0.19.0.md'];
-    const treffer = [];
+    const matched = [];
     for (const file of searched) {
       const full = path.join(__dirname, ...file.split('/'));
-      if (!fs.existsSync(full)) { treffer.push(`${file}: gibt es nicht`); continue; }
+      if (!fs.existsSync(full)) { matched.push(`${file}: gibt es nicht`); continue; }
       const text = fs.readFileSync(full, 'utf8');
       for (const [sentence, event] of corrected)
-        if (text.includes(sentence)) treffer.push(`${file}: ${event} („${sentence}")`);
+        if (text.includes(sentence)) matched.push(`${file}: ${event} („${sentence}")`);
     }
     /* ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): ein Waechter,
        der auf null Dateien laeuft, ist gruen und belegt nichts. */
@@ -22400,7 +22400,7 @@ const shareMain = (purpose, target = null) =>
       searched.every(d => fs.existsSync(path.join(__dirname, ...d.split('/')))),
       searched.filter(d => !fs.existsSync(path.join(__dirname, ...d.split('/')))).join(' · '));
     check('Keine der drei berichtigten Behauptungen steht noch irgendwo',
-      treffer.length === 0, treffer.join(' · '));
+      matched.length === 0, matched.join(' · '));
     /* UND DIE BERICHTIGUNGEN STEHEN WIRKLICH DA. Ein Satz, der bloss
        verschwindet, ist geloescht und nicht berichtigt (Stolperstein 201) --
        gesucht wird deshalb nach dem, was an seine Stelle getreten ist. */
@@ -22600,8 +22600,8 @@ async function checkFirstLogin() {
   check('Ein abgewiesener Versuch legt nichts an',
     (await B.call('GET', '/api/config')).content.setupRequired === true);
 
-  const eingerichtet = await B.call('POST', '/api/setup', { user: 'chef', password: 'zehn-zeichen-und-mehr' });
-  check('Einrichtung gelingt', eingerichtet.status === 200, JSON.stringify(eingerichtet.content));
+  const configured = await B.call('POST', '/api/setup', { user: 'chef', password: 'zehn-zeichen-und-mehr' });
+  check('Einrichtung gelingt', configured.status === 200, JSON.stringify(configured.content));
   check('Danach ist man angemeldet', (await B.call('GET', '/api/criteria')).status === 200);
   check('/api/config meldet keinen Einrichtungsbedarf mehr',
     (await B.call('GET', '/api/config')).content.setupRequired === false);
@@ -23268,7 +23268,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   ];
   mailStatus = mailStatus || { provider: 'gmx', server: 'mail.gmx.net', port: 587, sicher: false,
     user: 'instanz@gmx.de', sender: 'instanz@gmx.de', passwordSet: true,
-    getestetAm: '2026-08-20 08:30:00' };
+    testedAt: '2026-08-20 08:30:00' };
   const mailCardMock = () => ({
     provider: mailStatus.provider || '',
     providerName: (MAIL_PROVIDER_MOCK.find(a => a.key === mailStatus.provider) || {}).name || '',
@@ -23283,10 +23283,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     hintAlways: 'Die Absenderadresse muss zum Konto gehören — über GMX lässt sich nicht ' +
                   'als fremde Adresse senden.',
     providerList: MAIL_PROVIDER_MOCK,
-    eingerichtet: Boolean(mailStatus.provider && mailStatus.user &&
+    configured: Boolean(mailStatus.provider && mailStatus.user &&
                           mailStatus.passwordSet && mailStatus.sender),
     addressSet: Boolean(publicAddress), address: publicAddress,
-    deadlineMinutes: 15, getestetAm: mailStatus.getestetAm || null, sekunden: 20
+    deadlineMinutes: 15, testedAt: mailStatus.testedAt || null, sekunden: 20
   });
   /* Was der Server ueber den Versand sagt -- NACHGERECHNET, nicht gesetzt.
      Drei Zustaende, und die Reihenfolge ist dieselbe wie in server.js: kein
@@ -23294,7 +23294,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      Fehlschlag kommt ueber mailError. */
   const deliveryState = (empfaenger) => {
     const k = mailCardMock();
-    if (!k.eingerichtet) return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };
+    if (!k.configured) return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };
     if (!k.addressSet) return { delivery: 'aus', deliveryReason:
       'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, ' +
       'worauf der Link zeigen soll.' };
@@ -23332,7 +23332,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      hat drei Zustaende (nicht eingerichtet, Zielort mit Fehler, in Ordnung),
      und jeder braucht seinen eigenen Aufbau. */
   const backup = backupStatus || {
-    eingerichtet: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
+    configured: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
     // Die Vorgabe ist die EMPFOHLENE Lage -- ausserhalb. Die Gegenlage steht
     // als eigener Aufbau in der Gruppe darunter.
     imArbeitsverzeichnis: false,
@@ -23353,7 +23353,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       an: false, keep: 3, days: 30,
       grenzen: { keep: { fallback: 3, min: 1, max: 20 },
                  days: { fallback: 30, min: 7, max: 365 } },
-      erreichbar: true, treffer: [], bytes: 0,
+      erreichbar: true, matched: [], bytes: 0,
       reason: 'Alle 2 Kopien sind unter den jüngsten 3.',
       /* DIE VOLLSTAENDIGE LISTE -- in der Vorgabelage die beiden Kopien, die
          `zahl: 2` daneben behauptet. Eine leere Liste neben einer Zahl waeren
@@ -23867,7 +23867,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        die Haelfte der Karte unpruefbar -- der Fehlschlagszweig waere nie
        gelaufen (Stolperstein 90). Ueber mailError stellt eine Prueflage den
        anderen Zustand.
-       UND ER ZIEHT MIT: nach einem erfolgreichen Test steht getestetAm da,
+       UND ER ZIEHT MIT: nach einem erfolgreichen Test steht testedAt da,
        nach dem Speichern faellt es weg -- genau wie beim echten Server, wo die
        Marke an den Werten haengt. */
     if (url === '/api/mail' && (opt.method || 'GET') === 'GET') {
@@ -23952,7 +23952,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
          echten Server, der sie ueber den Hash ueber den Zugang verwirft und
          nicht ueber ein ausdrueckliches Loeschen. Ein Mock, der sie stehen liesse,
          zeigte einen Zustand, den es nicht gibt (Stolperstein 90). */
-      mailStatus.getestetAm = null;
+      mailStatus.testedAt = null;
       return give(mailCardMock());
     }
     if (url === '/api/mail/test' && opt.method === 'POST') {
@@ -23964,7 +23964,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (mailError)
         return give({ ok: false, reason: 'Message failed: 550 abgelehnt',
                      an: ownAddress, ...mailCardMock() });
-      mailStatus.getestetAm = '2026-08-25 12:00:00';
+      mailStatus.testedAt = '2026-08-25 12:00:00';
       return give({ ok: true, reason: '', an: ownAddress, ...mailCardMock() });
     }
     if (url === '/api/titles') return give({ publicTitle: 'Oeffentlich', appTitle: 'Intern' });
@@ -24044,18 +24044,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const keep = b === null ? backup.cleanup.keep : b;
       const days = t === null ? backup.cleanup.days : t;
       //          die Mindestzahl                  das Alter
-      const treffer = cleanupCopies.slice(keep).filter(z => z.daysAgo > days);
+      const matched = cleanupCopies.slice(keep).filter(z => z.daysAgo > days);
       /* DIE VOLLSTAENDIGE LISTE MIT NUMMER UND MARKEN, wie der echte Server sie
          liefert -- juengste zuerst. Ohne sie zeichnete die Karte hier eine
          leere Liste, und jede Zusage darauf waere trivial wahr
          (Stolperstein 81). */
-      const namen = new Set(treffer.map(z => z.file));
+      const namen = new Set(matched.map(z => z.file));
       const oldNames = new Set((backup.cleanup.oldFiles || []).map(z => z.file));
       return give({ ...backup, cleanup: { ...backup.cleanup, keep, days,
         files: cleanupCopies.map((z, i) => ({ ...z, nr: i + 1,
           faellt: namen.has(z.file), veraltet: oldNames.has(z.file) })),
-        treffer, bytes: treffer.reduce((n, z) => n + z.bytes, 0),
-        reason: treffer.length ? '' : (cleanupCopies.length <= keep
+        matched, bytes: matched.reduce((n, z) => n + z.bytes, 0),
+        reason: matched.length ? '' : (cleanupCopies.length <= keep
           ? `Alle ${cleanupCopies.length} Kopien sind unter den jüngsten ${keep}.`
           : `Die älteste ist ${cleanupCopies[cleanupCopies.length - 1].daysAgo} Tage alt.`) } });
     }
@@ -24082,7 +24082,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       backup.number = Math.max(0, (backup.number || 0) - outdatedFiles.length);
       if (k.kind === 'outdated') { backup.veraltet = 0; a.oldCount = 0; a.oldBytes = 0;
                                   a.oldFiles = []; }
-      backup.cleanup = { ...a, treffer: [], bytes: 0,
+      backup.cleanup = { ...a, matched: [], bytes: 0,
                                reason: 'Alle Kopien sind unter den jüngsten ' + a.keep + '.' };
       return give({ ok: true, kind: k.kind, weg: outdatedFiles.length, nicht: 0, bytes,
                    erreichbar: true, number: backup.number, last: backup.last,
@@ -24493,7 +24493,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         trashCount: 2, trashBytes: 2560,
         commentImageCount: 3, commentImageBytes: 1536,
         export: statsExport || { envelope: 4096, photos: 65536, videos: 32768,
-          anhaenge: 8192, kommentarbilder: 2048,
+          attachments: 8192, commentImages: 2048,
           warnFrom: 300 * 1024 * 1024, limit: 483183799 },
         version: require('./package.json').version, fingerprint: 'a1b2c3d4',
         /* DIE AUFTEILUNG NACH FORMAT und der Stand eines Laufs. Der Mock
@@ -24511,7 +24511,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
            darf. Ohne diesen Fall waere „er steht da" nicht von „er steht
            immer da" zu unterscheiden (Stolperstein 81). */
         method: statsMethod === undefined
-          ? { cipher: 'sqlcipher', schluesselBits: 256, journal: 'WAL', passwoerter: 'scrypt' }
+          ? { cipher: 'sqlcipher', schluesselBits: 256, journal: 'WAL', passwords: 'scrypt' }
           : statsMethod,
         keyFromEnv: false, keyHex: 'ab'.repeat(32) });
     }
@@ -25220,8 +25220,8 @@ async function checkUi() {
     const rfText = () => rf.w.document.body.textContent || '';
     const rfFinding = [];
     const rfLook = (wo) => {
-      const treffer = (rfText().match(/\u27e6[^\u27e7]*\u27e7/g) || []);
-      if (treffer.length) rfFinding.push(`${wo}: ${[...new Set(treffer)].slice(0, 4).join(' ')}`);
+      const matched = (rfText().match(/\u27e6[^\u27e7]*\u27e7/g) || []);
+      if (matched.length) rfFinding.push(`${wo}: ${[...new Set(matched)].slice(0, 4).join(' ')}`);
     };
     rfLook('Liste');
     const rfList = rfText().length;
@@ -28546,7 +28546,7 @@ async function checkUi() {
   const badHit = wb.splitAtTerm('<img src=x onerror=alert(1)>', 'onerror');
   const badNode = build(badHit);
   check('Der Aufbau steht: der Begriff trifft wirklich mitten im Angriffstext',
-    badHit.some(s => s.treffer && s.text === 'onerror'), JSON.stringify(badHit));
+    badHit.some(s => s.matched && s.text === 'onerror'), JSON.stringify(badHit));
   check('Auch mit Hervorhebung erzeugt der Knotenbauer aus Markup niemals Markup',
     badNode.querySelector('img') === null && badNode.querySelector('*:not(mark)') === null,
     badNode.querySelector('img') ? 'ein img' : 'ein fremdes Element');
@@ -28605,7 +28605,7 @@ async function checkUi() {
   // Und ohne Begriff bleibt sie Stueck fuer Stueck die von vorher.
   check('Ohne Begriff entsteht kein einziges drittes Stueck',
     wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')
-      .every(s => !s.treffer),
+      .every(s => !s.matched),
     JSON.stringify(wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')));
 
   // Aussehen laesst sich hier nur am Stylesheet pruefen (Abschnitt 7).
@@ -33428,7 +33428,7 @@ async function checkUi() {
 
   {
     const siInn = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { eingerichtet: true, wurzel: '/app/sicherung', place: '',
+      { backupStatus: { configured: true, wurzel: '/app/sicherung', place: '',
         pfad: '/app/sicherung', imArbeitsverzeichnis: true, dbBytes: 1048576,
         durationSeconds: 1, erreichbar: true, number: 0, last: null } });
     const box = siState(siInn);
@@ -33460,13 +33460,13 @@ async function checkUi() {
      (Stolperstein 102): gewechseltAm, veraltet und letzte.veraltet stehen in
      der Gruppe "Die Sicherung: zwei Schluessel im Umlauf". */
   {
-    const siStatusIncluding = (zusatz) => ({
-      eingerichtet: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
+    const siStatusIncluding = (extraEnv) => ({
+      configured: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
       imArbeitsverzeichnis: false, dbBytes: 52428800, durationSeconds: 1,
       erreichbar: true, number: 3,
       last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
                 at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: false },
-      gewechseltAm: null, veraltet: 0, ...zusatz
+      gewechseltAm: null, veraltet: 0, ...extraEnv
     });
     /* GESUCHT WIRD IM GEFALTETEN TEXT. textContent traegt die Zeilenumbrueche
        und die Einrueckung der Vorlage mit; ein Waechter, der auf ein einzelnes
@@ -33602,7 +33602,7 @@ async function checkUi() {
   /* DER NICHT EINGERICHTETE FALL. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { eingerichtet: false, reason: 'Es ist kein Sicherungsort eingerichtet. ' +
+      { backupStatus: { configured: false, reason: 'Es ist kein Sicherungsort eingerichtet. ' +
         'Die docker-compose.yml hängt ihn ein.', place: '', dbBytes: 1, durationSeconds: 1,
         erreichbar: false, last: null } });
     check('Ohne eingerichteten Ort steht die Karte trotzdem da', !!siCard(d));
@@ -33619,7 +33619,7 @@ async function checkUi() {
      behaupten -- das ist der Preis der Entscheidung fuer das Dateisystem. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { eingerichtet: true, wurzel: '/sicherung', place: 'weg',
+      { backupStatus: { configured: true, wurzel: '/sicherung', place: 'weg',
         error: 'Das Verzeichnis „weg“ gibt es unter dem Sicherungsort nicht.',
         dbBytes: 1024, durationSeconds: 1, erreichbar: false, last: null } });
     check('Ein Zielort mit Fehler bekommt keine Zahl, sondern die Begruendung',
@@ -33631,7 +33631,7 @@ async function checkUi() {
   }
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { eingerichtet: true, wurzel: '/sicherung', place: '',
+      { backupStatus: { configured: true, wurzel: '/sicherung', place: '',
         pfad: '/sicherung', dbBytes: 1024, durationSeconds: 1, erreichbar: true,
         last: null, number: 0 } });
     check('Ein leerer Ort sagt, dass dort noch keine Sicherung liegt',
@@ -33725,13 +33725,13 @@ async function checkUi() {
      die Regel laesst die veralteten gar nicht erst durch. */
   const afFiles = (keep = 3, days = 30, oldNames = []) => {
     const old = new Set(oldNames);
-    const treffer = new Set(AF_COPIES.slice(keep)
+    const matched = new Set(AF_COPIES.slice(keep)
       .filter(z => z.daysAgo > days && !old.has(z.file)).map(z => z.file));
     return AF_COPIES.map((z, i) => ({ ...z, nr: i + 1,
-      faellt: treffer.has(z.file), veraltet: old.has(z.file) }));
+      faellt: matched.has(z.file), veraltet: old.has(z.file) }));
   };
-  const afStatus = (zusatz = {}, cleanupExtra = {}) => ({
-    eingerichtet: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
+  const afStatus = (extraEnv = {}, cleanupExtra = {}) => ({
+    configured: true, wurzel: '/sicherung', place: 'taeglich', pfad: '/sicherung/taeglich',
     imArbeitsverzeichnis: false, dbBytes: 52428800, durationSeconds: 1, erreichbar: true, number: 5,
     last: { file: AF_COPIES[0].file, bytes: 52428800, at: AF_COPIES[0].at,
               daysAgo: 0, veraltet: false },
@@ -33740,15 +33740,15 @@ async function checkUi() {
       an: false, keep: 3, days: 30,
       grenzen: { keep: { fallback: 3, min: 1, max: 20 },
                  days: { fallback: 30, min: 7, max: 365 } },
-      erreichbar: true, files: afFiles(), treffer: AF_COPIES.slice(3),
+      erreichbar: true, files: afFiles(), matched: AF_COPIES.slice(3),
       bytes: AF_COPIES.slice(3).reduce((n, k) => n + k.bytes, 0),
       reason: '', oldCount: 0, oldBytes: 0, oldFiles: [], ...cleanupExtra
     },
-    ...zusatz
+    ...extraEnv
   });
-  const afSystem = (zusatz = {}, cleanupExtra = {}) =>
+  const afSystem = (extraEnv = {}, cleanupExtra = {}) =>
     siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: afStatus(zusatz, cleanupExtra), backupCopies: AF_COPIES });
+      { backupStatus: afStatus(extraEnv, cleanupExtra), backupCopies: AF_COPIES });
 
   const afEig = await afSystem();
   check('Die Karte steht da', !!afCard(afEig), afEig.w.document.body.innerHTML.slice(0, 200));
@@ -33868,7 +33868,7 @@ async function checkUi() {
   /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
      Erklaerung sieht aus wie ein Fehler. Und der Knopf ist dann tot. */
   {
-    const d = await afSystem({}, { treffer: [], bytes: 0, files: afFiles(20, 30),
+    const d = await afSystem({}, { matched: [], bytes: 0, files: afFiles(20, 30),
       reason: 'Alle 5 Kopien sind unter den jüngsten 20.' });
     check('Trifft die Regel nichts, sagt die Karte das mit dem Grund',
       /Es wird nichts gelöscht\. Alle 5 Kopien sind unter den jüngsten 20\./.test(afText(d)),
@@ -33885,7 +33885,7 @@ async function checkUi() {
   /* LIEGT NICHTS DA, SAGT DIE KARTE GENAU DAS -- statt einer leeren Liste. */
   {
     const d = await afSystem({ number: 0, last: null },
-      { files: [], treffer: [], bytes: 0, reason: 'An diesem Ort liegt noch keine Sicherung.' });
+      { files: [], matched: [], bytes: 0, reason: 'An diesem Ort liegt noch keine Sicherung.' });
     check('Ohne eine einzige Sicherung sagt die Karte das',
       /Im Sicherungsordner gibt es noch keine Sicherung\./.test(afText(d)), afText(d).slice(0, 400));
     check('Und es steht keine leere Liste da',
@@ -33897,7 +33897,7 @@ async function checkUi() {
     const oldNames = AF_COPIES.slice(3).map(z => z.file);
     const d = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 2 },
       { oldCount: 2, oldBytes: 104857600, oldFiles: AF_COPIES.slice(3),
-        treffer: [], bytes: 0, files: afFiles(3, 30, oldNames),
+        matched: [], bytes: 0, files: afFiles(3, 30, oldNames),
         reason: 'Keine der 5 Kopien stammt von nach dem Schlüsselwechsel.' });
     check('Die veralteten Kopien bekommen ihre eigene Marke in der Liste',
       equal(afRows(d).filter(z => /ALTER SCHLÜSSEL|alter Schlüssel/i.test(z))
@@ -33928,7 +33928,7 @@ async function checkUi() {
   /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS: ein
      Schalter, der nie greifen kann, verspricht etwas und haelt es nie. */
   {
-    const d = await afSystem({ eingerichtet: false,
+    const d = await afSystem({ configured: false,
       reason: 'Es ist kein Sicherungsort eingerichtet.' });
     check('Ohne eingerichteten Ort steht die Karte trotzdem da', !!afCard(d));
     check('Und sagt, warum sie nichts zu tun hat',
@@ -35433,7 +35433,7 @@ async function checkUi() {
   };
   const MB = 1024 * 1024;
   const exLower = { envelope: 1 * MB, photos: 10 * MB, videos: 4 * MB,
-                    anhaenge: 2 * MB, kommentarbilder: 1 * MB,
+                    attachments: 2 * MB, commentImages: 1 * MB,
                     warnFrom: 300 * MB, limit: 483183799, string: 536870888 };
   const dEx = await exBuild(exLower);
   const exW = dEx.w;
@@ -35508,7 +35508,7 @@ async function checkUi() {
   /* Die Lage darueber -- und ohne sie belegte die Zeile „keine Warnung"
      nichts: eine Warnung, die es gar nicht gibt, faellt auch nicht auf. */
   const exBig = { envelope: 20 * MB, photos: 900 * MB, videos: 200 * MB,
-                    anhaenge: 400 * MB, kommentarbilder: 10 * MB,
+                    attachments: 400 * MB, commentImages: 10 * MB,
                     warnFrom: 300 * MB, limit: 483183799, string: 536870888 };
   const dExG = await exBuild(exBig);
   const exG = dExG.w;
@@ -35631,7 +35631,7 @@ async function checkUi() {
 
   /* --- Der Plan --- */
   const tlToggle = 'photos=1&files=1&videos=1';
-  const tlPlanCall = (zusatz = '') => tlA.call('GET', `/api/export/plan?${tlToggle}${zusatz}`);
+  const tlPlanCall = (extraEnv = '') => tlA.call('GET', `/api/export/plan?${tlToggle}${extraEnv}`);
   const tlPlan = (await tlPlanCall('&target=1048576')).content;
   check('Der Plan schneidet den Bestand in mehrere Teile',
     (tlPlan?.parts || []).length > 1, JSON.stringify((tlPlan?.parts || []).map(t => t.count)));

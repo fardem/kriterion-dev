@@ -1529,7 +1529,7 @@ const REGRESSIONS = [
   {
     nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
     file: 'server.js',
-    search: '  return parts.photos + parts.videos + parts.anhaenge + parts.kommentarbilder + exchangeEnvelopeBytes(itemId);',
+    search: '  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes(itemId);',
     replacement: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
     expected: 'Die Exportgroesse sagt sich an'
   },
@@ -1790,7 +1790,7 @@ const REGRESSIONS = [
        gruen; der NAME ist die Pruefung. */
     nr: '197', name: 'Beide Wege bekommen denselben Cookienamen',
     file: 'auth.js',
-    search: "const cookieName = (req) => viaProxy(req) ? COOKIE_SICHER : COOKIE_NAME;",
+    search: "const cookieName = (req) => viaProxy(req) ? COOKIE_SECURE : COOKIE_NAME;",
     replacement: "const cookieName = (req) => COOKIE_NAME;",
     expected: 'Zwei Netze, ein Zugang — 0.13.0'
   },
@@ -2745,14 +2745,14 @@ const REGRESSIONS = [
   {
     nr: '293', name: 'Die Kennzahlen nennen die Verfahren nicht mehr',
     file: 'server.js',
-    search: "    method: { ...method(), passwoerter: 'scrypt' },",
+    search: "    method: { ...method(), passwords: 'scrypt' },",
     replacement: "",
     expected: 'Der Versions-Fingerprint'
   },
   {
     nr: '294', name: 'Die Kennzahlen nennen zusaetzlich die Paketversion',
     file: 'server.js',
-    search: "    method: { ...method(), passwoerter: 'scrypt' },",
+    search: "    method: { ...method(), passwords: 'scrypt' },",
     replacement: "    verfahren: { ...verfahren(), passwoerter: 'scrypt',\n      paket: require('./package.json').dependencies['better-sqlite3-multiple-ciphers'] },",
     expected: 'Der Versions-Fingerprint'
   },
@@ -3058,7 +3058,7 @@ const REGRESSIONS = [
   {
     nr: '327', name: 'Die Kennzahlen begruenden den Vorbehalt wieder an der Oberflaeche',
     file: 'public/app.js',
-    search: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.method.passwoerter || '—')}</span></div>` : ''}",
+    search: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.method.passwords || '—')}</span></div>` : ''}",
     replacement: "        <div class=\"kv\"><span class=\"k\">${tH('card.passwords')}</span><span class=\"v\">${esc(stats.verfahren.passwoerter || '—')}</span></div>\n        <p class=\"desc\" style=\"margin:10px 0 0\"><strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
     expected: 'Der Papierkorb in der Oberflaeche'
   },
@@ -3354,7 +3354,7 @@ const REGRESSIONS = [
   {
     nr: '374', name: 'Der Knopf heisst wieder „Mailzugang speichern"',
     file: 'public/app.js',
-    search: "id=\"mail-setup\">${tH('card.mailAccount')} ${\n            mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</button>",
+    search: "id=\"mail-setup\">${tH('card.mailAccount')} ${\n            mailStatus.configured ? tH('card.change') : tH('card.setUp')}</button>",
     replacement: "id=\"mail-setup\">${tH('card.mailAccount')} speichern</button>",
     expected: 'Die Karte „Mailversand“'
   },
@@ -5170,7 +5170,7 @@ const REGRESSIONS = [
        verliert damit genau das, wofuer es sie gibt. */
     nr: '555', name: 'Die Vorschau rechnet mit einem anderen Boden als das Loeschen',
     file: 'server.js',
-    search: "  const treffer = ruleHit(files, keep, days, now, mark ? mark.ms : null);",
+    search: "  const matched = ruleHit(files, keep, days, now, mark ? mark.ms : null);",
     replacement: "  const treffer = ruleHit(dateien, Math.max(1, behalten - 1), tage, jetzt,\n" +
             "                               marke ? marke.ms : null);",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
@@ -5277,7 +5277,7 @@ const REGRESSIONS = [
     file: 'public/app.js',
     // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
     // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
-    search: "id=\"cleanup-run\"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
+    search: "id=\"cleanup-run\"${matched.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
     replacement: "id=\"cleanup-run\">${tH('card.deleteNow')}",
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },

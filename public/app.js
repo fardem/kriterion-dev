@@ -159,7 +159,7 @@ function exportSum(ex, s) {
   return (ex.envelope || 0)
     + (s.withPhotos ? (ex.photos || 0) : 0)
     + (s.withPhotos && s.withVideos ? (ex.videos || 0) : 0)
-    + (s.withFiles ? (ex.anhaenge || 0) + (ex.kommentarbilder || 0) : 0);
+    + (s.withFiles ? (ex.attachments || 0) + (ex.commentImages || 0) : 0);
 }
 // Alles eingeschaltet -- die Zahl fuer die Kennzahlen, wo kein Schalter steht.
 const exportTotal = (stats) => exportSum(stats && stats.export,
@@ -1768,7 +1768,7 @@ function splitAtTerm(text, term, rest = {}) {
     const i = lower.indexOf(lowerB, from);
     if (i < 0) break;
     if (i > from) pieces.push({ text: content.slice(from, i), ...rest });
-    pieces.push({ text: content.slice(i, i + b.length), ...rest, treffer: true });
+    pieces.push({ text: content.slice(i, i + b.length), ...rest, matched: true });
     from = i + b.length;
   }
   if (from < content.length) pieces.push({ text: content.slice(from), ...rest });
@@ -1785,20 +1785,20 @@ function splitCommentText(raw, term) {
   const text = String(raw ?? '');
   const pieces = [];
   const take = (raw2, rest) => { for (const s of splitAtTerm(raw2, term, rest)) pieces.push(s); };
-  let last = 0, treffer;
+  let last = 0, matched;
   COMMENT_LINK.lastIndex = 0;
-  while ((treffer = COMMENT_LINK.exec(text)) !== null) {
-    const address = trimLinkEnd(treffer[0]);
+  while ((matched = COMMENT_LINK.exec(text)) !== null) {
+    const address = trimLinkEnd(matched[0]);
     // Nach dem Abschneiden kann ein nacktes "https://" uebrigbleiben. Das ist
     // keine Adresse und wird wieder zu Text. Gefragt wird allein, ob nach dem
     // Anfang noch etwas steht -- ueber das Schema entscheidet das Muster.
-    if (address.length <= treffer[1].length) continue;
-    if (treffer.index > last) take(text.slice(last, treffer.index), {});
+    if (address.length <= matched[1].length) continue;
+    if (matched.index > last) take(text.slice(last, matched.index), {});
     take(address, {
       // angezeigt wird die Adresse, wie geschrieben
       target: /^www\./i.test(address) ? 'https://' + address : address
     });
-    last = treffer.index + address.length;
+    last = matched.index + address.length;
   }
   if (last < text.length) take(text.slice(last), {});
   return pieces;
@@ -1810,7 +1810,7 @@ function splitCommentText(raw, term) {
    0.5.4 haengt nicht daran, dass jemand das Maskieren nicht vergisst. */
 function pieceNode(s) {
   const text = String(s?.text ?? '');
-  if (!s?.treffer) return document.createTextNode(text);
+  if (!s?.matched) return document.createTextNode(text);
   const m = document.createElement('mark');
   m.textContent = text;
   return m;
@@ -2347,9 +2347,9 @@ async function runSearch() {
   state.searchRunning = true;
   drawBody();
   try {
-    const treffer = await api('GET', `/api/items?q=${encodeURIComponent(term)}`);
+    const matched = await api('GET', `/api/items?q=${encodeURIComponent(term)}`);
     if (run !== searchRun) return;          // eine neuere Anfrage ist unterwegs
-    state.items = treffer;
+    state.items = matched;
     state.searchRunning = false; state.searchError = false;
   } catch (e) {
     if (run !== searchRun) return;
@@ -3968,14 +3968,14 @@ function similarEntries(title) {
   const dialog = [];
   for (let i = 0; i + SIMILAR_DIALOG <= core.length; i++)
     dialog.push(core.slice(i, i + SIMILAR_DIALOG));
-  const treffer = [];
+  const matched = [];
   for (const it of state.all) {
     const k = titleCore(it.title);
     if (k.length < SIMILAR_DIALOG) continue;
-    if (dialog.some(f => k.includes(f))) treffer.push(it);
-    if (treffer.length >= SIMILAR_SHOW) break;
+    if (dialog.some(f => k.includes(f))) matched.push(it);
+    if (matched.length >= SIMILAR_SHOW) break;
   }
-  return treffer;
+  return matched;
 }
 
 function openCreate() {
@@ -3997,11 +3997,11 @@ function openCreate() {
   // braucht deshalb keinen Debounce -- bei dreihundert Titeln sind es
   // dreihundert includes() auf einer Handvoll Vierergruppen.
   const drawSimilar = () => {
-    const treffer = similarEntries(nt.value);
-    if (!treffer.length) { row.innerHTML = ''; return; }
+    const matched = similarEntries(nt.value);
+    if (!matched.length) { row.innerHTML = ''; return; }
     // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
     // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
-    row.innerHTML = t('list.similarTitles') + treffer
+    row.innerHTML = t('list.similarTitles') + matched
       .map(it => `<a href="#/item/${it.id}" data-close>${esc(it.title)}</a>`).join(', ');
     row.querySelectorAll('[data-close]').forEach(a => { a.onclick = () => close(); });
   };
@@ -7503,7 +7503,7 @@ const SYS_CARDS = [
     markup: cardRequests,     ausruesten: setUpRequestsOut },
   { key: 'protokoll',    section: 'users', visible: (g) => OWNER && !!g.log,
     markup: cardLog,    ausruesten: setUpLogOut },
-  { key: 'mailversand',  section: 'users', visible: (g) => OWNER && !!g.mailstand,
+  { key: 'mailversand',  section: 'users', visible: (g) => OWNER && !!g.mailStatus,
     markup: cardMailDelivery,  ausruesten: setUpMailDeliveryOut },
 
   { key: 'kennzahlen',   section: 'database', visible: () => ADMIN,
@@ -7565,7 +7565,7 @@ async function renderSystem() {
        Es sind elf Abrufe. */
     [fetched.stats, fetched.titles, fetched.cats, fetched.tags, fetched.crits, fetched.zugang,
      fetched.trash, fetched.backup, fetched.sessions, fetched.log,
-     fetched.mailstand, fetched.requests] = await Promise.all([
+     fetched.mailStatus, fetched.requests] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/trash') : null,
@@ -9590,7 +9590,7 @@ function setUpLogOut(fetched) {
 
 /* ---- Karte „Mailversand" — Abschnitt „Zugänge" ---- */
 function cardMailDelivery(fetched) {
-  const { mailstand } = fetched;
+  const { mailStatus } = fetched;
   /* `.breit` WIE DIE DREI NACHBARN. Seit 0.16.0 stehen „Zugaenge",
      „Anfragen", „Sicherheitsprotokoll" und „Mailversand" im selben Abschnitt;
      die ersten drei nehmen die volle Breite, und die vierte wirkte daneben wie
@@ -9614,7 +9614,7 @@ function cardMailDelivery(fetched) {
               wie „Zustand" — der Dialog sagt es jetzt am Feld selbst. */''}
         <p class="desc"><strong>${tH('card.emailOptionalHint')}</strong> ${tH('card.noMailAccountHint')}
           <em>${tH('card.additionally')}</em> ${tH('card.sent')}</p>
-        <div class="kv"><span class="k">${tH('card.state')}</span><span class="v">${mailstand.eingerichtet
+        <div class="kv"><span class="k">${tH('card.state')}</span><span class="v">${mailStatus.configured
           ? '<strong class="mail-on">eingerichtet</strong>'
           : `<strong class="mail-off">${tH('card.notConfigured')}</strong>`}</span></div>
         ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
@@ -9633,16 +9633,16 @@ function cardMailDelivery(fetched) {
               am Feld selbst. DASS DAS PASSWORT NIE DASTEHT, gilt unverändert:
               nie der Wert, nie die Länge, nie Sternchen mit der richtigen
               Zahl. */''}
-        <div class="kv"><span class="k">${tH('card.provider')}</span><span class="v">${mailProviderRow(mailstand)}</span></div>
-        <div class="kv"><span class="k">${tH('card.sender')}</span><span class="v">${mailstand.sender
-          ? esc(mailstand.sender)
+        <div class="kv"><span class="k">${tH('card.provider')}</span><span class="v">${mailProviderRow(mailStatus)}</span></div>
+        <div class="kv"><span class="k">${tH('card.sender')}</span><span class="v">${mailStatus.sender
+          ? esc(mailStatus.sender)
           : `<strong class="mail-off">${tH('card.notSet')}</strong>`}</span></div>
-        <div class="kv"><span class="k">${tH('card.publicAddress')}</span><span class="v">${mailstand.addressSet
-          ? esc(mailstand.address)
+        <div class="kv"><span class="k">${tH('card.publicAddress')}</span><span class="v">${mailStatus.addressSet
+          ? esc(mailStatus.address)
           : `<strong class="mail-off">${tH('card.notSetNoSend')}</strong>`}</span></div>
-        <div class="kv"><span class="k">${tH('card.lastTestedOk')}</span><span class="v">${mailstand.getestetAm
-          ? esc(mailstand.getestetAm) : tH('card.never')}</span></div>
-        ${mailstand.addressSet ? '' : `<p class="warn-box" style="margin:10px 0 0">
+        <div class="kv"><span class="k">${tH('card.lastTestedOk')}</span><span class="v">${mailStatus.testedAt
+          ? esc(mailStatus.testedAt) : tH('card.never')}</span></div>
+        ${mailStatus.addressSet ? '' : `<p class="warn-box" style="margin:10px 0 0">
           <strong>${tH('card.withoutServerSetting')} <code>PUBLIC_ADDRESS</code> ${tH('card.nothingSent')}</strong> ${tH('card.addressNeededHint')}</p>`}
         ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn noch
               nichts steht, ändern, wenn etwas steht. „Speichern" hieß er bis
@@ -9653,10 +9653,10 @@ function cardMailDelivery(fetched) {
               eine Folge, die man kennen muss, bevor man drückt. */''}
         <div class="row-in" style="margin-top:14px">
           <button class="btn btn-accent btn-sm" id="mail-setup">${tH('card.mailAccount')} ${
-            mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</button>
+            mailStatus.configured ? tH('card.change') : tH('card.setUp')}</button>
           <button class="btn btn-sm" id="mail-test">${tH('card.testMailToMe')}</button>
         </div>
-        <p class="desc" style="margin:10px 0 0">${tH('card.testMailGoes')} <strong>${tH('card.ownAddressOnly')}</strong>${tH('card.mailTimeoutHint', { sekunden: mailstand.sekunden })}</p>
+        <p class="desc" style="margin:10px 0 0">${tH('card.testMailGoes')} <strong>${tH('card.ownAddressOnly')}</strong>${tH('card.mailTimeoutHint', { sekunden: mailStatus.sekunden })}</p>
         <div id="mail-result"></div>
       </div>`;
 }
@@ -9696,19 +9696,19 @@ function mailProviderRow(m) {
    BRICHT DIE BESTÄTIGUNG AB, BLEIBT DER DIALOG STEHEN: sonst wäre das
    Eingetippte weg, und ein Anbieterpasswort tippt niemand gern zweimal.
    LIEFERT true, wenn wirklich gespeichert wurde — der Rufer zeichnet dann neu. */
-function mailDialog(mailstand) {
+function mailDialog(mailStatus) {
   return new Promise(resolve => {
-    const list = Array.isArray(mailstand.providerList) ? mailstand.providerList : [];
+    const list = Array.isArray(mailStatus.providerList) ? mailStatus.providerList : [];
     const template = (key) => list.find(a => a.key === key) || null;
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal mail-dialog" id="mail-dialog">
-      <h2>${tH('card.mailAccount')} ${mailstand.eingerichtet ? tH('card.change') : tH('card.setUp')}</h2>
+      <h2>${tH('card.mailAccount')} ${mailStatus.configured ? tH('card.change') : tH('card.setUp')}</h2>
       <div class="field"><label for="mail-provider">${tH('card.provider')}</label>
         <select class="input" id="mail-provider">
-          <option value=""${mailstand.provider ? '' : ' selected'}>${tH('card.noDelivery')}</option>
+          <option value=""${mailStatus.provider ? '' : ' selected'}>${tH('card.noDelivery')}</option>
           ${list.map(a => `<option value="${esc(a.key)}"${
-            a.key === mailstand.provider ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
+            a.key === mailStatus.provider ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
         </select></div>
       ${/* DER HINWEIS ZUM GEWÄHLTEN ANBIETER — DARUNTER, NICHT DANEBEN, und er
             wechselt mit der Auswahl. Er kommt vom Server: zwei Ausfertigungen
@@ -9723,29 +9723,29 @@ function mailDialog(mailstand) {
         <div class="mail-fixed" id="mail-fixed"></div></div>
       <div id="mail-custom">
         <div class="field"><label for="mail-server">${tH('card.server')}</label>
-          <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
+          <input class="input" id="mail-server" value="${esc(mailStatus.server || '')}"
             autocapitalize="off" spellcheck="false"></div>
         <div class="field"><label for="mail-port">${tH('card.port')}</label>
           <input class="input" id="mail-port" type="number" min="1" max="65535"
-            value="${mailstand.port || ''}"></div>
+            value="${mailStatus.port || ''}"></div>
         <div class="field"><label for="mail-secure">${tH('card.encryption')}</label>
           <select class="input" id="mail-secure">
-            <option value="starttls"${mailstand.sicher ? '' : ' selected'}>${tH('card.startTls')}</option>
-            <option value="tls"${mailstand.sicher ? ' selected' : ''}>${tH('card.sslTls')}</option>
+            <option value="starttls"${mailStatus.sicher ? '' : ' selected'}>${tH('card.startTls')}</option>
+            <option value="tls"${mailStatus.sicher ? ' selected' : ''}>${tH('card.sslTls')}</option>
           </select></div>
         <p class="desc mail-hint">${tH('card.smtpOnlyHint')}</p>
       </div>
       <div class="field"><label for="mail-user">${tH('card.providerUsername')}</label>
-        <input class="input" id="mail-user" value="${esc(mailstand.user || '')}"
+        <input class="input" id="mail-user" value="${esc(mailStatus.user || '')}"
           autocomplete="off" autocapitalize="off" spellcheck="false"></div>
       <div class="field"><label for="mail-pass">${tH('card.providerPassword')}</label>
         <input class="input" id="mail-pass" type="password" autocomplete="new-password"
-          placeholder="${mailstand.passwordSet
+          placeholder="${mailStatus.passwordSet
             ? esc(t('card.leaveEmptyHint')) : esc(t('card.notSet'))}"></div>
       <div class="field"><label for="mail-sender">${tH('card.senderAddress')}</label>
-        <input class="input" id="mail-sender" type="email" value="${esc(mailstand.sender || '')}"
+        <input class="input" id="mail-sender" type="email" value="${esc(mailStatus.sender || '')}"
           autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-      <p class="desc mail-hint" id="mail-sender-hint">${esc(mailstand.hintAlways)}</p>
+      <p class="desc mail-hint" id="mail-sender-hint">${esc(mailStatus.hintAlways)}</p>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
         <button class="btn btn-accent" id="mail-save">${tH('dialog.save')}</button></div></div>`;
     document.body.appendChild(bd);
@@ -9823,15 +9823,15 @@ function setUpMailDeliveryOut(fetched) {
      Element bleibt trotzdem stehen: sie ist der Schutz davor, dass ein
      Behandler ins Leere greift, wenn die Karte einmal woanders steht
      (Stolperstein 211). */
-  const { mailstand } = fetched;
+  const { mailStatus } = fetched;
   const mailButton = document.getElementById('mail-setup');
-  if (mailButton && mailstand) {
+  if (mailButton && mailStatus) {
     /* DER DIALOG BEKOMMT DEN ZUSTAND MIT, den die Karte ohnehin schon hat --
        kein zweiter Ruf an den Server fuer dieselbe Auskunft (Stolperstein 145).
        NEU GEZEICHNET WIRD NUR, WENN WIRKLICH GESPEICHERT WURDE. renderSystem()
        nach einem Abbruch waere ein Neuaufbau fuer nichts. */
     mailButton.onclick = async () => {
-      if (await mailDialog(mailstand)) renderSystem();
+      if (await mailDialog(mailStatus)) renderSystem();
     };
 
     const mailResult = (text, good) => {
@@ -10011,7 +10011,7 @@ function cardStats(fetched) {
         <div class="kv"><span class="k">${tH('card.key')}</span><span class="v">${
           stats.method.schluesselBits ? t('card.keyBits', { schluesselBits: stats.method.schluesselBits }) : '—'}</span></div>
         <div class="kv"><span class="k">${tH('card.journal')}</span><span class="v">${esc(stats.method.journal || '—')}</span></div>
-        <div class="kv"><span class="k">${tH('card.passwords')}</span><span class="v">${esc(stats.method.passwoerter || '—')}</span></div>` : ''}
+        <div class="kv"><span class="k">${tH('card.passwords')}</span><span class="v">${esc(stats.method.passwords || '—')}</span></div>` : ''}
       </div>`;
 }
 
@@ -10225,7 +10225,7 @@ function setUpBackupOut(fetched) {
     const box = document.getElementById('backup-box');
     if (!box) return;
     const d = fetched.backup || {};
-    if (!d.eingerichtet) {
+    if (!d.configured) {
       box.innerHTML = `<div class="warn-box">${esc(d.reason || t('card.noBackupDir'))}</div>`;
       return;
     }
@@ -10408,7 +10408,7 @@ function setUpCleanupOut(fetched) {
     /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS. Ein
        Schalter, der nie greifen kann, verspricht etwas und haelt es nie -- und
        die Karte darueber nennt den Weg zum Einhaengepunkt ohnehin schon. */
-    if (!d.eingerichtet) {
+    if (!d.configured) {
       box.innerHTML = `<div class="warn-box">${tH('card.noBackupDirCard')}
         <strong>${tH('card.backup')}</strong>).</div>`;
       return;
@@ -10446,7 +10446,7 @@ function setUpCleanupOut(fetched) {
           esc(fmtBytes(z.bytes))}</span></div>`;
     };
     const all = Array.isArray(a.files) ? a.files : [];
-    const treffer = Array.isArray(a.treffer) ? a.treffer : [];
+    const matched = Array.isArray(a.matched) ? a.matched : [];
     const oldCount = Number(a.oldCount) || 0;
 
     const list = !a.erreichbar
@@ -10463,9 +10463,9 @@ function setUpCleanupOut(fetched) {
        aufzuzaehlen waere dieselbe Auskunft an zwei Stellen.
        TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
        Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server. */
-    const status = !a.erreichbar ? '' : (treffer.length
+    const status = !a.erreichbar ? '' : (matched.length
       ? `<p class="desc" style="margin:10px 0 6px"><strong>${
-           tH('card.backupsDeleteHint', { n: treffer.length })}</strong> —
+           tH('card.backupsDeleteHint', { n: matched.length })}</strong> —
            ${esc(fmtBytes(a.bytes || 0))} ${tH('card.free')}</p>`
       : `<p class="desc" style="margin:10px 0 6px">${tH('card.nothingDeleted')} ${
            esc(a.reason || '')}</p>`);
@@ -10502,7 +10502,7 @@ function setUpCleanupOut(fetched) {
       ${list}
       ${status}
       <div class="row-in">
-        <button class="btn btn-accent btn-sm" id="cleanup-run"${treffer.length ? '' : ' disabled'}>${tH('card.deleteNow')}</button>
+        <button class="btn btn-accent btn-sm" id="cleanup-run"${matched.length ? '' : ' disabled'}>${tH('card.deleteNow')}</button>
       </div>
       ${veraltet}`;
 
@@ -10597,7 +10597,7 @@ function setUpCleanupOut(fetched) {
     atElement('cleanup-run', (button) => {
       button.onclick = () => clear('rule', t('card.deleteBackups'),
         t('card.backupsPurgeHint',
-          { n: treffer.length, bytes: fmtBytes(a.bytes || 0) }));
+          { n: matched.length, bytes: fmtBytes(a.bytes || 0) }));
     });
     atElement('cleanup-old', (button) => {
       button.onclick = () => clear('outdated', t('card.deleteOldKeyBackups'),
@@ -10629,7 +10629,7 @@ function cardExport(fetched) {
           <button class="btn btn-sm" id="ex-no">${tH('card.withoutPhotos')}<span id="ex-gr-no">…</span>)</button>
         </div>
         <label class="ex-files"><input type="checkbox" id="ex-files">
-          ${tH('card.includeFiles')}${fmtBytes((stats.export?.anhaenge || 0) + (stats.export?.kommentarbilder || 0))})</label>
+          ${tH('card.includeFiles')}${fmtBytes((stats.export?.attachments || 0) + (stats.export?.commentImages || 0))})</label>
         ${/* Eigener Schalter, Vorgabe aus. Ohne ihn bleibt der Platz des Videos
              in der Datei vermerkt, die Datei selbst fehlt -- der Import sagt
              dann, wie viele es waren. Stand ein Video an erster Stelle, wird
@@ -10929,7 +10929,7 @@ function askImport(file, grenzen) {
           photos: r.photos, videos: r.videos || 0, attachments: r.attachments }));
         /* Nicht abbrechen, melden -- und laut genug, dass es auffaellt: fehlt
            ein Video, kann das naechste Foto zum Hauptbild geworden sein. */
-        const missing = (r.videosWithoutFile || 0) + (r.videosUnlesbar || 0);
+        const missing = (r.videosWithoutFile || 0) + (r.videosUnreadable || 0);
         if (missing) toast(t('card.videosMissing', { n: missing }), true);
         location.hash = '#/';
         if (location.hash === '#/') renderList();
