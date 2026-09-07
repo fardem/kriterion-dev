@@ -41310,19 +41310,33 @@ async function checkUi() {
        eine Eigenschaft `name`, und `undefined` faellt erst beim Ausbreiten
        auf -- im Rumpf eines Hoerers, den niemand ruft, wenn er kaputt ist.
        DER LESER SIEHT NUR CODE: ein `t.` in einem Satz oder einem Kommentar
-       ist keine Benennung. */
+       ist keine Benennung.
+       UND EIN AUSBREITEN IST KEIN EIGENTUMSZUGRIFF: vor dem `t` in
+       `[...t.parentElement]` steht ein Punkt, aber davor noch einer. Der
+       erste Anlauf dieses Waechters hat ihn deshalb uebersehen -- und die
+       Gegenprobe 700, die genau diese Stelle zurueckbaut, meldete STUMM.
+       Ausgeschlossen wird deshalb nur ein EINZELNER Punkt davor: `obj.t.name`
+       meint eine Eigenschaft namens `t` und nicht den Helfer. Dieselbe
+       Unterscheidung trifft der Umbenenner in tools/rename.js. */
+    const HELPER_REACH = /(?<![A-Za-z0-9_$])(?<!(?<!\.)\.)t\.([A-Za-z_$][\w$]*)/g;
     const spAppCode = zerlege(
       fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'), 'public/app.js')
       .filter(z => z.art === CODE).map(z => z.wert).join('\n');
-    const spReach = [...spAppCode.matchAll(/(?<![A-Za-z0-9_$.])t\.([A-Za-z_$][\w$]*)/g)]
-      .map(m => 't.' + m[1]);
+    const spReach = [...spAppCode.matchAll(HELPER_REACH)].map(m => 't.' + m[1]);
     check('Der Sprachhelfer wird nie nach einer Eigenschaft gefragt',
       spReach.length === 0, spReach.join(' ') || '(keine)');
     /* UND DER LESER FINDET SO ETWAS WIRKLICH -- sonst waere die Zeile darueber
-       gruen, weil sie nichts sieht. */
+       gruen, weil sie nichts sieht. DREI GESTELLTE FAELLE: der blanke Zugriff,
+       der im Ausbreiten (der Fall aus dem Betrieb) -- und `obj.t.name`, das
+       KEINER sein darf. */
+    const spProbe = (text) => [...text.matchAll(HELPER_REACH)].length;
     check('Und der Leser wuerde eine solche Stelle finden',
-      [...'const x = t.parentElement;'.matchAll(/(?<![A-Za-z0-9_$.])t\.([A-Za-z_$][\w$]*)/g)].length === 1,
-      'der Leser sieht die gestellte Stelle nicht');
+      spProbe('const x = t.parentElement;') === 1 &&
+      spProbe('idx = [...t.parentElement.children].indexOf(tile);') === 1 &&
+      spProbe('const y = obj.t.name;') === 0,
+      `blank ${spProbe('const x = t.parentElement;')}, ` +
+      `ausgebreitet ${spProbe('idx = [...t.parentElement.children].indexOf(tile);')}, ` +
+      `Eigenschaft ${spProbe('const y = obj.t.name;')}`);
 
     const spFile = path.join(__dirname, 'public', 'languages', 'de.json');
     check('Die Sprachdatei liegt unter public/languages/ und heisst de.json',

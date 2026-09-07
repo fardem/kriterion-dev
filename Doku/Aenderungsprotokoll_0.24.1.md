@@ -296,7 +296,32 @@ und die an ihrer Stelle englisch sind: `MAILTEST_KEY`, `cleanNote`,
 
 ---
 
-## 9. Die Dateien
+## 9. Abweichungen vom Auftrag — namentlich
+
+**Der Auftrag nagelt in Bauabschnitt 7.3 vier Zahlen auf NULL fest. Drei
+davon stehen nicht auf null, und das ist eine Abweichung und kein
+Versehen.**
+
+| der Auftrag sagt | gemessen | warum |
+|---|---|---|
+| deutsche Bezeichner im ausgelieferten Code = **0** | **110** | Keiner davon ist eine Benennung. 104 sind GRENZEN — Platzhalter der Sprachdatei, Vokabelnamen, gespeicherte Werte —, sechs sind falsche Freunde. *Sie ziehen mit ihrer Sache um, und die Sache fasst Stufe 2 an.* |
+| deutsche Schlüssel = **0** | **87** | 68 Mehrzahlformen (`eins`/`andere`), 14 Vokabelnamen, 5 falsche Freunde. *Die Mehrzahlformen und das Vokabular sind INHALT: sie stehen als Werte in der Datenbank.* |
+| Schlüssel mit angehängter Ziffer **66 → 0** | **8** | Bei allen achten ist die Ziffer die SACHE: 50 MB, 100 MB, 200 MB, 300 MB, Schritt 1, Schritt 2, 10 px, 20 px. *Die Regel zielt auf `hinweis2` — eine Nummerierung, die nicht sagt, WAS der Satz ist.* |
+| deutsche Wege = **0** | **3** | `#/offen`, `#/einladung/`, `#/bestaetigung/` — **die ALTEN Adressen**, und der Auftrag verlangt im selben Satz, dass jede von ihnen übersetzt wird. Sie stehen in der Tafel, und ein Wächter prüft es. |
+
+**Die zwei Zahlen, die der Auftrag nennt und die unverändert geblieben
+sind, sind es auch:** `F_ROUTES` steht bei **70**, `PERSONAL_KEYS`
+(vormals `PERSOENLICHE_SCHLUESSEL`) bei **10**. *Beide werden im Prüfstand
+gezählt, nicht behauptet.*
+
+**Die Zahlen der Kürze, gegen die von heute gestellt:** Schlüssel mit fünf
+und mehr Wörtern **261 → 1** (`card.passLinkByHandEnd`), längster
+Schlüsselname **37 → 20** (`backupUnopenableHint`), Namen über der Latte
+**4**, jeder mit seinem Satz im Wörterbuch.
+
+---
+
+## 10. Die Dateien
 
 | war | heißt |
 |---|---|
@@ -320,7 +345,7 @@ Prüfstand liest dieselbe Datei für seine Wächter.*
 
 ---
 
-## 10. Was diese Runde ausdrücklich NICHT tut
+## 11. Was diese Runde ausdrücklich NICHT tut
 
 * **Keine Übersetzung der Oberfläche.** `en.json` kommt mit Stufe 2.
 * **Kein Kommentar wird angefasst** — weder übersetzt noch gekürzt. *Wo ein
