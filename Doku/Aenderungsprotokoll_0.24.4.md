@@ -453,9 +453,14 @@ an denen es richtig steht.
 
 ## Bauabschnitt 4 — der Prüfstand
 
-**Vierzehn neue Wächter, jeder mit gefahrener Gegenprobe** — elf aus der
-Tafel des Auftrags, dazu die Sprachprobe des Lesers (B9), die Deckungsprobe in
-ihrer T2-Hälfte und der Beleg, dass ein Bestand aus 0.24.3 anläuft.
+**Siebzehn neue Wächter, jeder mit gefahrener Gegenprobe** — die elf aus der
+Tafel des Auftrags, dazu die Sprachprobe des Lesers (B9), der Beleg, dass ein
+Bestand aus 0.24.3 anläuft, der Export über alle drei Sprachfassungen, die
+T2-Probe, die Probe auf drei gleichzeitige Zugänge und die Faltung am
+laufenden Server neben der am Quelltext.
+
+**Zehn stehen in einer eigenen Servergruppe, drei am Quelltext, vier am DOM.**
+*Einundsechzig Prüfungen mehr: 6019 werden 6080.*
 
 | Wächter | wo | Zusicherung |
 |---|---|---|
@@ -467,12 +472,31 @@ ihrer T2-Hälfte und der Beleg, dass ein Bestand aus 0.24.3 anläuft.
 | **Deckungsprobe** | Datei | `tr.json` trägt dieselben Schlüssel wie `de.json`, in derselben Folge |
 | **T1-Probe** | Datei | drei Vokabelwörter, drei Vokale, derselbe Satz bleibt richtig |
 | **T2-Probe** | Datei | beide Mehrzahlformen gefüllt, kein -ler/-lar hinter einem Zähler |
+| **Bestandslauf** | Server | eine Ablage aus 0.24.3 läuft an — die vierzehn Wörter stehen danach da |
+| **Exportprobe** | Server | ein Export trägt alle drei Sprachfassungen und spielt sie wieder ein |
 | **Sprachprobe des Lesers** | DOM | wer seine eigene Sprache wechselt, wechselt auch die vierzehn Wörter |
 | **Umschalterprobe** | DOM | die Kachel zeigt die Sprache, auf der sie steht — **an allen vier Kacheln** |
 | **Vorgabeprobe** | DOM | der Hinweis „(Vorgabe: …)" folgt der Kachel |
 | **Stellungsprobe** | DOM | die Bildlaufstellung überlebt das Umschalten — *und ein gewöhnliches Neuzeichnen fängt weiter oben an* |
 | **Zeichenprobe** | Quelltext | kein `ICON_` geht durch `t()` oder `tH()` |
 | **Restprobe, verschärft** | Quelltext | kein übriger Text in `app.js` trägt ein deutsches Wortstück |
+
+> **DIE GEGENPROBEN SIND GEFAHREN, NICHT NUR GESCHRIEBEN — und eine hat eine
+> Erwartung berichtigt.** Drei neue Rückbauten, keiner stumm:
+>
+> | Rückbau | was rot wird |
+> |---|---|
+> | **734** die Nadel faltet wieder mit einer Locale | T3-Probe, Faltungsprobe (Server **und** Quelltext) |
+> | **735** die vier i fallen auseinander | T3-Probe, Faltungsprobe, „die vier i fallen wirklich auf eines" |
+> | **736** der Sprachwechsel wirft die Antwort weg | genau die zweite Hälfte der Sprachprobe |
+>
+> ***Die berichtigte Erwartung:*** *dieses Papier nahm an, Rückbau 734 mache
+> auch die **Zwei-Leser-Probe** rot. Er tut es nicht.* **Der Grund ist die
+> Rufstelle:** sie reicht seit dieser Runde gar keine Sprache mehr herein, und
+> die zurückgebaute Zeile nimmt deshalb die Locale der **Installation** statt
+> der des Lesers — für alle dieselbe, nur die falsche. ***Der Wächter für
+> „zwei Leser, eine Antwort" hängt damit an der Rufstelle und nicht an der
+> Funktion*** — eine Auskunft, die vor dem Fahren kein Papier hatte.
 
 **Die Zahlen, die festgenagelt sind:**
 

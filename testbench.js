@@ -23868,12 +23868,16 @@ const shareMain = (purpose, target = null) =>
      greifen, die deutsch bleiben sollen. Ein Block, der zu viel tut,
      richtet denselben Schaden an wie einer, der zu wenig tut. */
   /* 728 SEIT 0.24.4: drei kommen dazu, und zwei davon zielen auf die beiden Haelften
-     desselben Befunds (B8). Der eine haengt die NADEL wieder an die Sprache
-     des Lesers -- daraufhin muessen die Zwei-Leser-Probe UND die T3-Probe rot
-     werden. Der andere laesst die vier i wieder auseinanderfallen -- dann
-     wird die T3-Probe rot und die Zwei-Leser-Probe NICHT, denn beide Haelften
-     falten weiter gleich, nur falsch. **Ein Rueckbau, der beide Proben
-     zugleich traefe, koennte nicht sagen, welche von ihnen etwas belegt.**
+     desselben Befunds (B8). Der eine haengt die NADEL wieder an eine Locale,
+     der andere laesst die vier i wieder auseinanderfallen.
+     GEMESSEN, NICHT BEHAUPTET -- und die Messung hat eine Erwartung
+     berichtigt: bei BEIDEN werden die T3-Probe und die Faltungsprobe rot, die
+     Zwei-Leser-Probe bei KEINEM. Der Grund ist die Rufstelle: sie reicht seit
+     0.24.4 gar keine Sprache mehr herein, und die zurueckgebaute Zeile nimmt
+     deshalb die Locale der INSTALLATION statt der des Lesers -- fuer alle
+     dieselbe, nur die falsche. **Der Waechter fuer „zwei Leser, eine
+     Antwort" haengt damit an der Rufstelle und nicht an der Funktion**, und
+     das ist eine Auskunft, die kein Papier hatte.
      UND EIN DRITTER FUER B9: der Sprachwechsel des Lesers wirft die Antwort
      wieder weg. Er trifft nur die ZWEITE Haelfte der Sprachprobe -- die
      Oberflaeche wechselt weiter, die vierzehn Woerter nicht. */
@@ -27174,6 +27178,13 @@ async function checkUi() {
   fields[0].dispatchEvent(new w3.Event('input'));
   check('Probe folgt der Eingabe sofort',
     w3.document.getElementById('vpreview').textContent.includes('+ Objekt'));
+
+  /* ============ Die Kacheln und der Leser — 0.24.4 =====================
+     VIER PRUEFLAGEN UNTER EINER UEBERSCHRIFT, und sie bekommen eine eigene:
+     die drei Bloecke unten stehen sonst unter „Favorit: der Knopf im
+     Eintrag", und ein Gegenprobenbericht schriebe ihre roten Punkte dieser
+     Gruppe zu. */
+  group('Die Kacheln und der Leser — 0.24.4');
 
   /* ============ Die vier Umschalter — 0.24.4 (B1, B3, B4) ==============
      DREI PROBEN AN EINER LAGE, und die Lage ist die des Befunds: der Leser

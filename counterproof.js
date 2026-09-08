@@ -1214,7 +1214,7 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "          takeVocabulary((await api('PUT', '/api/settings', { language: a.code })));",
     replacement: "          await api('PUT', '/api/settings', { language: a.code });",
-    expected: 'Systembereich: Vokabular pflegen'
+    expected: 'Die Kacheln und der Leser — 0.24.4'
   },
   {
     /* UND DIE VIER i FALLEN WIEDER AUSEINANDER: dieselbe Funktion, nur ohne
