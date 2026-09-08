@@ -253,7 +253,7 @@ entschieden und hat seinen Ort.*
 
 | Art | Punkte in Teil I |
 |---|---|
-| **Fehler** | **11**, **12**, **16 A** *(16 A: das Wiederherstellen-Zeichen steht als Quelltext in der Zeile, neu am 8. September 2026 — verursacht von 0.24.0. 11: drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden. 12: die Ladezeit der Übersicht, ebenfalls 5. September 2026 — **der Server ist darin ausgemessen und ausgeschlossen**)* |
+| **Fehler** | **11**, **12**, **16 A**, **18** *(18: `ß` und `ss` sind für die Suche zwei Dinge — neu am 8. September 2026, beim Nachmessen für 0.24.4 aufgefallen und nicht aus dem Betrieb gemeldet; so alt wie `kkl()`. 16 A: das Wiederherstellen-Zeichen steht als Quelltext in der Zeile, neu am 8. September 2026 — verursacht von 0.24.0. 11: drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden. 12: die Ladezeit der Übersicht, ebenfalls 5. September 2026 — **der Server ist darin ausgemessen und ausgeschlossen**)* |
 | **Verbesserung** | **17** *(neu am 8. September 2026 — anlegen in den Karten „Kategorien" und „Tags")* |
 | **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
 | **Design** | **15** *(neu am 8. September 2026 — der leere Kasten mit dem Bildzeichen; der Punkt davor, der Bildstreifen, ist 0.22.0 geworden)* |
@@ -263,7 +263,7 @@ entschieden und hat seinen Ort.*
 |---|---|
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
-| **empfohlen** | **11**, **15** |
+| **empfohlen** | **11**, **15**, **17**, **18** *(18 mit ausdrücklichem Preis: siehe den Punkt)* |
 | **empfohlen, aber eine Beobachtung fehlt** | **12** |
 | **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
 | **eingetragen als 0.26.0** *(bis zum 5. September 2026: 0.24.0)* | **5, 6** |
@@ -1712,9 +1712,24 @@ steht ein Feld, und der Schalter „Neue Kategorien darf jeder anlegen"
 entscheidet, wer es sieht. *Der Weg existiert also; er ist nur nicht dort, wo
 man ihn beim Verwalten sucht.*
 
-**Und es ist kein Rechtethema.** `POST /api/product-categories` und
-`POST /api/tags` gibt es längst, samt Klemme am Schalter. **Die Karte müsste
-nichts können, was der Server nicht schon kann.**
+**Und es ist kein Rechtethema.** Die Klemme am Schalter steht, und die Karte
+müsste nichts DÜRFEN, was der Server nicht schon erlaubt.
+
+> **NACHGEZÄHLT AM 8. SEPTEMBER 2026, und die erste Fassung dieses Punktes lag
+> daneben:** hier stand, `POST /api/product-categories` und `POST /api/tags`
+> gäbe es beide längst. **Für Kategorien stimmt es. Für Tags nicht.**
+>
+> | | was dasteht |
+> |---|---|
+> | Kategorien | **`POST /api/product-categories`** — der Weg steht, es fehlt allein das Feld |
+> | Tags | `/api/tags` kennt **GET, PUT, DELETE** und sonst nichts. Angelegt wird ein Tag heute **nur am Eintrag** (`POST /api/items/:id/tags`) oder beim Import |
+>
+> **Für Tags ist also eine Route mehr zu bauen als ein Eingabefeld** — und sie
+> trägt dieselbe Klemme, die am Eintrag schon hängt
+> (`mayCreate(req, 'tagsFreeCreate')`). *Die Begründung dafür steht im
+> Quelltext und gilt unverändert: Nachschlagen und Anlegen sind zwei Schritte,
+> weil die Klemme dazwischen gehört — „ein gemeinsamer Helfer trüge die Klemme
+> in seinem eigenen Rumpf, und dann ließe sie sich nirgends gegenprüfen".*
 
 ### Was gebaut werden könnte
 
@@ -1738,9 +1753,81 @@ nichts können, was der Server nicht schon kann.**
 ### Was es anfasst
 
 `public/app.js` — `cardCategories()`, `cardTags()`, `MANAGE_KIND` und
-`manageList()`. **Kein Server, kein Schema, keine neue Route** *(die beiden
-POST-Wege stehen).* Die Sprachdatei bekommt zwei Platzhaltertexte für die
-Felder.
+`manageList()`. **Kein Schema.** *Für Kategorien auch kein Server: der Weg
+steht.* **Für Tags eine Route mehr** — `POST /api/tags`, hinter `ADMIN`, über
+die vorhandenen `findTag()` und `createTag()` und mit der Klemme aus dem
+Kasten oben. Die Sprachdatei bekommt zwei Platzhaltertexte für die Felder.
+
+---
+
+## 18. Die Suche findet „übergroß" nicht, wenn man „ÜBERGROSS" eingibt
+
+**Art: Fehler** · **Einschätzung: empfohlen** — *aber nicht kostenlos: die
+Gleichsetzung trifft in der Gegenrichtung „Masse" und „Maße" mit* · **Draußen
+üblich: ja, so gut wie überall**
+
+### Woher
+
+**Beim Nachmessen für 0.24.4 aufgefallen**, am 8. September 2026, als die
+Faltung der Suche für Türkisch durchgerechnet wurde. **Niemand hat es
+gemeldet** — es ist über all die Runden nur niemandem aufgefallen, weil man
+selten in Großbuchstaben sucht. *Herkunft: so alt wie `kkl()`.*
+
+### Was auffiel
+
+**`ß` und `ss` sind für die Suche zwei verschiedene Dinge.**
+
+| im Bestand steht | gesucht wird | heute |
+|---|---|---|
+| `Stichsäge übergroß` | `übergroß` | **Treffer** |
+| `Stichsäge übergroß` | `ÜBERGROSS` | **kein Treffer** |
+| `Grüße` | `GRÜSSE` | **kein Treffer** |
+| `Grüße` | `GRÜßE` | Treffer |
+
+**Der Grund ist keine Nachlässigkeit, sondern Unicode:** `'ÜBERGROSS'
+.toLowerCase()` ist `'übergross'` — mit zwei s. Im Bestand steht `übergroß`
+mit `ß`. **Die Faltung ist richtig; es gibt nur kein Kleinbuchstaben-`ß`, das
+aus `SS` zurückkäme.** *Und aus `ß` ein `ss` zu machen ginge — dann fände man
+aber „Maße" auch bei der Eingabe „Masse", und das sind zwei Wörter.*
+
+### Was es nicht ist
+
+**Kein Türkisch-Thema.** Es betrifft Deutsch, es betrifft nur Deutsch, und es
+ist beim Messen für einen ganz anderen Befund mitgefallen.
+
+**Und keine Folge von 0.24.3.** *Die Runde hat an der Faltung nichts geändert;
+der Fall ist genauso alt wie die Suche selbst.*
+
+### Was gebaut werden könnte
+
+> **Vorschlag von Claude:** **`ß` und `ss` in der Faltung gleichsetzen** — auf
+> beiden Seiten, in derselben Funktion, in der die Groß- und Kleinschreibung
+> schon fällt.
+>
+> **Der Preis steht sofort daneben und gehört genannt:** damit findet
+> „Masse" auch „Maße", „Busse" auch „Buße" und „Rasse" auch „Raße". *Das ist
+> kein Nebeneffekt, sondern genau dieselbe Gleichsetzung, nur in der anderen
+> Richtung gelesen.*
+>
+> **Für eine SUCHE ist das die richtige Seite des Irrtums:** wer sucht, will
+> lieber eine Zeile zu viel sehen als eine zu wenig. **Für einen VERGLEICH
+> wäre es falsch** — zwei Kategorien „Masse" und „Maße" wären danach dieselbe.
+> *Die Faltung der Suche und der Vergleich der Namen sind zwei Funktionen und
+> müssen es bleiben; heute sind sie es auch.*
+>
+> **Wer das nicht will, lässt es** — und dann steht hier wenigstens, dass es
+> bekannt ist und warum es so bleibt.
+
+### Was es anfasst
+
+**Eine Zeile in einer Funktion** — dieselbe, die 0.24.4 für die vier i ohnehin
+anfasst *(Befund B8 im Auftrag 0.24.4)*. **Kein Schema, keine Route, keine
+Sprachdatei.** *Wenn es je gebaut wird, dann in derselben Runde wie B8 oder gar
+nicht — zwei Runden hintereinander an derselben Zeile sind eine zu viel.*
+
+> **AUSDRÜCKLICH NICHT TEIL VON 0.24.4.** Der Auftrag nennt ihn und grenzt ihn
+> ab. *Nach Regel 1 dieses Blatts trägt er trotzdem keine Nummer: er ist
+> gesammelt, nicht zugeordnet.*
 
 ---
 
