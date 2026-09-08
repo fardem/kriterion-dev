@@ -23,7 +23,8 @@ für jedes leere Feld eine Vorgabe in die Ablage. Hier liegt es am
 **Leseweg**: die Karte fragt den Server nach einer Sprache, und der Server
 hört die Frage gar nicht.
 
-Aufsetzend auf **0.24.4** *(Fingerprint wird beim Einspielen nachgetragen)*.
+Aufsetzend auf **0.24.4, Fingerprint `5c762c71`** — *am 8. September 2026
+eingespielt und vom Betreiber aus der laufenden Installation gemeldet.*
 
 > ## DIE FRAGEN WERDEN VOR DEM BAUEN MIT DEM BETREIBER DURCHGEGANGEN
 >
@@ -36,6 +37,10 @@ Aufsetzend auf **0.24.4** *(Fingerprint wird beim Einspielen nachgetragen)*.
 > **Die Spalte „Vorschlag von Claude" unten ist ein Vorschlag und keine
 > Antwort.** Gebaut wird erst, wenn jede Zeile eine Antwort des Betreibers
 > trägt und diese hier eingetragen ist.
+>
+> **STAND: eine beantwortet (F1 — die Nummer), eine gegenstandslos (F2 — das
+> Zeitfenster ist zu), SECHS OFFEN.** *Jede Antwort wird hier eingetragen,
+> sobald sie da ist — so wie F1 es am 8. September 2026 geworden ist.*
 
 ---
 
@@ -43,8 +48,8 @@ Aufsetzend auf **0.24.4** *(Fingerprint wird beim Einspielen nachgetragen)*.
 
 | # | Frage | Vorschlag von Claude |
 |---|---|---|
-| **F1** | **Welche Nummer — 0.25.0 oder 0.24.5?** *Der Betreiber: „ich würde gerne das in den 0.25.0 falls Platz ist aufnehmen. Wenn nicht, müssen wir das mit 0.24.5 beheben."* | **0.24.5.** *Drei Gründe: (1) es ist ein Fehler in dem, was 0.24.3 und 0.24.4 gebaut haben — er gehört in dieselbe Reihe wie die Sache, die er kaputt macht; (2) 0.25.0 ist ausdrücklich die Runde der **kleinen** Fehler (fünf Einzeiler und eine Messung) — dieser Befund ist der größte Einzelposten weit und breit und würde den Zuschnitt der Runde sprengen; (3) 0.25.0 hat eine **Messung** vor sich (die Sekunde in der Übersicht), und eine Runde mit Messung ist keine, auf die ein Feldfehler wartet.* **Eine PATCH-Nummer für eine Reparatur ist gewöhnliches SemVer** — sie öffnet die benannte Abweichung von 5.1 nicht wieder, die mit 0.24.4 endet |
-| **F2** | **Oder doch noch in 0.24.4 hinein?** *0.24.4 ist gebaut, aber **noch nicht am Wirt** — der Antrag liegt offen.* | **Nein** *(so hat der Betreiber es auch gestellt)*. **Aber der Preis gehört gesagt:** dann geht 0.24.4 mit einer Pillenreihe heraus, die für einen angemeldeten Leser nie etwas anderes zeigt als seine eigene Sprache. *Wer das nicht will, hat genau diese eine Gelegenheit* |
+| **F1** ✅ | **Welche Nummer — 0.25.0 oder 0.24.5?** *Der Betreiber: „ich würde gerne das in den 0.25.0 falls Platz ist aufnehmen. Wenn nicht, müssen wir das mit 0.24.5 beheben."* | **BEANTWORTET am 8. September 2026: 0.24.5.** *„Auftrag für 0.24.5."* — **Der Vorschlag lautete ebenso, und die Begründung bleibt stehen:** *Drei Gründe: (1) es ist ein Fehler in dem, was 0.24.3 und 0.24.4 gebaut haben — er gehört in dieselbe Reihe wie die Sache, die er kaputt macht; (2) 0.25.0 ist ausdrücklich die Runde der **kleinen** Fehler (fünf Einzeiler und eine Messung) — dieser Befund ist der größte Einzelposten weit und breit und würde den Zuschnitt der Runde sprengen; (3) 0.25.0 hat eine **Messung** vor sich (die Sekunde in der Übersicht), und eine Runde mit Messung ist keine, auf die ein Feldfehler wartet.* **Eine PATCH-Nummer für eine Reparatur ist gewöhnliches SemVer** — sie öffnet die benannte Abweichung von 5.1 nicht wieder, die mit 0.24.4 endet |
+| **F2** ⛔ | **Oder doch noch in 0.24.4 hinein?** | **GEGENSTANDSLOS seit dem 8. September 2026** — *0.24.4 ist gemergt und am Wirt* (`5c762c71`). **Die Frage hatte genau ein Zeitfenster, und es ist zu.** *Was daraus folgt und im Papier bleiben soll: die Installation läuft bis 0.24.5 mit einer Pillenreihe, die einem angemeldeten Leser nie etwas anderes zeigt als seine eigene Sprache — **das gehört in das CHANGELOG von 0.24.5 als bekannter Stand und nicht nur in die Reparatur*** |
 | **F3** | **Wie kommt eine Karte an eine FREMDE Sprache?** *Heute holt sie sie nach und schickt `Accept-Language: <code>` — und `localeOf(req)` fragt zuerst den **persönlichen Schlüssel**, der den Kopf schlägt. Die Reihenfolge ist für **Meldungen** richtig und darf nicht fallen.* | **Wie die Kachel „Vokabular" es tut: gar nicht nachholen.** *Der Server liefert dem Systembereich die Namen **aller freigegebenen Sprachen auf einmal**, die Pille schaltet **örtlich** um — genau wie `vocabulariesOwn` seit 0.24.4. **Damit fallen D1, D2 und D3 zusammen weg:** kein zweiter Abruf, kein Zwischenspeicher, kein Zustand „wird gerade geholt", und die Karte kann gar nicht mehr etwas anderes zeigen als das, wonach gefragt ist.* **Der kleinere Weg wäre ein ausdrücklicher Parameter** (`?language=tr`), gegen den Vorrat geklemmt — *er repariert D1, lässt D2 und D3 aber stehen und ist damit die halbe Antwort* |
 | **F4** | **Was zeigt die Pille, wenn für ihre Sprache NICHTS eingetragen ist?** *Heute steht der Name der Grundzeile da, und niemand sieht, dass er ein Rückfall ist.* | **Der Rückfall steht da UND sagt, dass er einer ist** — dieselbe Antwort wie bei den vierzehn Vokabelwörtern in 0.24.4 (B2/B4): *ein Feld, in dem der Rückfall wie ein Eintrag aussieht, macht beim nächsten Speichern einen daraus.* **Wie er es sagt, ist die Unterfrage:** gedämpft, mit Vermerk „(Vorgabe: …)", oder als eigene Spalte |
 | **F5** | **Der Zwischenspeicher `NAMES_FETCHED`: reparieren oder abschaffen?** *Er wird beim Umbenennen und beim Anlegen geleert — beim **Wechsel der eigenen Sprache** nicht.* | **Abschaffen** — *wenn F3 den Weg der Kachel „Vokabular" nimmt, hat er keinen Zweck mehr: was schon da ist, muss man nicht merken.* **Bleibt es beim Parameter,** dann reparieren und schärfen: leeren bei jedem Wechsel der Lesersprache, und solange der Abruf läuft, **nicht** die Liste des Lesers zeigen — sie sieht aus wie eine Antwort und ist keine |
@@ -288,8 +293,9 @@ falsche Sprache in die Karte kommt.**
 
 ## Bauregeln
 
-* **Zuerst die acht Fragen — mit dem Betreiber durchgegangen, nicht aus der
-  Vorschlagsspalte übernommen** *(Projektstand, Abschnitt 11)*.
+* **Zuerst die sechs offenen Fragen (F3 bis F8) — mit dem Betreiber
+  durchgegangen, nicht aus der Vorschlagsspalte übernommen** *(Projektstand,
+  Abschnitt 11)*. *F1 ist beantwortet, F2 gegenstandslos.*
 * **Nachstellen vor Reparieren**, und zwar alle achtzehn Zellen.
 * **Die Bauabschnitte in dieser Reihenfolge**, jeder ein eigener Commit mit
   grünem Prüfstand.
