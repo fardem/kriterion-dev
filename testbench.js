@@ -3858,6 +3858,189 @@ const shareMain = (purpose, target = null) =>
   await call('DELETE', `/api/items/${rnItem.id}`);
   await call('DELETE', `/api/product-categories/${rnCategory.id}`);
 
+  /* ========= Die Namenstafeln je Sprache — 0.24.5 =======================
+     DIE REPARATUR VON D1, AM LAUFENDEN SERVER UND AM QUELLTEXT.
+
+     DIE ZUSICHERUNG IN EINEM SATZ: die Namenstafeln sind fuer jeden Leser
+     DIESELBEN. Sie tragen, was fuer jede Sprache EINGETRAGEN ist, und sie
+     haengen an keinem Kopf, an keinem persoenlichen Schluessel und an keiner
+     Vorgabe -- sie sind eine Aussage ueber den BESTAND und nicht ueber den
+     Fragenden.
+
+     GEPRUEFT AN EINEM EIGENEN SERVER, und zwar aus einem Grund, der zum Befund
+     gehoert: die Probe muss den PERSOENLICHEN SCHLUESSEL des Rufers setzen --
+     genau die Quelle, die den Kopf schlaegt. Am Hauptserver waere er danach
+     gesetzt, und jede spaetere Prueflage, die mit einem Kopf eine andere
+     Sprache verlangt, laese in Wahrheit die persoenliche. Ein Bestand, der aus
+     einer Prueflage in die naechste laeuft, ist kein Bestand. */
+  group('Die Namenstafeln je Sprache — 0.24.5');
+
+  const NT_WORD = 'nadines-langes-wort';
+  const ntDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-namen-'));
+  const NT = startFurtherServer(ntDirectory, {}, 5000);
+  await NT.ready;
+  await NT.call('POST', '/api/setup', { user: 'nadine', password: NT_WORD });
+  /* DIE LAGE DES BETREIBERS: alle drei Sprachen im Vorrat, DEUTSCH vorgegeben.
+     Damit ist die Grundzeile deutsch, und der Rueckfall einer Sprache ohne
+     Eintrag ist ein deutscher Name -- genau die letzte Zelle der zweiten Karte
+     im Befund. */
+  await NT.call('PUT', '/api/settings',
+    { languageDefault: 'de', languageOn: ['de', 'en', 'tr'] });
+
+  /* DER BESTAND: ein Kriterium in ALLEN DREI Sprachen, eine Kategorie OHNE
+     Tuerkisch. Ohne die zweite belegte die Gruppe den Rueckfall nicht. */
+  const ntCriterion = (await NT.call('POST', '/api/criteria', { name: 'Grundkriterium' })).content;
+  await NT.call('PUT', `/api/criteria/${ntCriterion.id}`,
+    { name: 'English criterion', language: 'en' });
+  await NT.call('PUT', `/api/criteria/${ntCriterion.id}`, { name: 'Türkçe ölçüt', language: 'tr' });
+  const ntCategory = (await NT.call('POST', '/api/product-categories',
+    { name: 'Grundkategorie' })).content;
+  await NT.call('PUT', `/api/product-categories/${ntCategory.id}`,
+    { name: 'English category', language: 'en' });
+
+  const ntRead = async (language, cookieValue = NT.cookieValue()) =>
+    (await fetch(`${NT.base}/api/settings`,
+      { headers: { cookie: cookieValue, 'accept-language': language } })).json();
+
+  const ntDe = await ntRead('de'), ntEn = await ntRead('en'), ntTr = await ntRead('tr');
+  check('Der Aufbau steht: die Antwort traegt beide Namenstafeln',
+    !!ntDe.categoryNames && !!ntDe.criterionNames,
+    JSON.stringify(Object.keys(ntDe).filter(k => /Names$/.test(k))));
+  check('Und jede traegt eine Spalte je Sprachdatei',
+    equal(Object.keys(ntDe.criterionNames || {}).sort(), ['de', 'en', 'tr']) &&
+    equal(Object.keys(ntDe.categoryNames || {}).sort(), ['de', 'en', 'tr']),
+    JSON.stringify(Object.keys(ntDe.criterionNames || {})));
+  /* DIE TAFEL DER VORGABESPRACHE KOMMT AUS DER GRUNDZEILE -- `writeName()`
+     legt fuer sie gar keine Zeile in die Namenstabelle. Ohne diesen Griff
+     stuende die Vorgabesprache leer da, und die Karte fiele fuer sie auf den
+     Rueckfall zurueck, den es dort gar nicht gibt. */
+  check('Die Tafel der Vorgabesprache kommt aus der Grundzeile',
+    ntDe.criterionNames.de[ntCriterion.id] === 'Grundkriterium' &&
+    ntDe.categoryNames.de[ntCategory.id] === 'Grundkategorie',
+    JSON.stringify([ntDe.criterionNames.de[ntCriterion.id],
+                    ntDe.categoryNames.de[ntCategory.id]]));
+  check('Und jede andere Sprache traegt, was fuer sie eingetragen ist',
+    ntDe.criterionNames.en[ntCriterion.id] === 'English criterion' &&
+    ntDe.criterionNames.tr[ntCriterion.id] === 'Türkçe ölçüt',
+    JSON.stringify([ntDe.criterionNames.en[ntCriterion.id],
+                    ntDe.criterionNames.tr[ntCriterion.id]]));
+  /* UND WO NICHTS EINGETRAGEN IST, STEHT AUCH NICHTS -- kein eingesetzter
+     Rueckfall. Genau daran haengt der Vermerk in der Karte (F4): eine Tafel
+     mit eingesetztem Rueckfall waere von einer mit Eintraegen nicht zu
+     unterscheiden, und die Karte koennte den Rueckfall nicht mehr kennzeichnen.
+     Dieselbe Unterscheidung wie zwischen `vocabularies` und `vocabulariesOwn`
+     (0.24.4, B1/B2). */
+  check('Und wo nichts eingetragen ist, steht auch nichts — kein eingesetzter Rueckfall',
+    ntDe.categoryNames.tr[ntCategory.id] === undefined &&
+    ntDe.categoryNames.en[ntCategory.id] === 'English category',
+    JSON.stringify(ntDe.categoryNames));
+
+  /* ---- DIE KERNZUSICHERUNG: DER LESER AENDERT DIE TAFEL NICHT ---------- */
+  check('Tafelprobe: drei Leser, dieselbe Tafel — der Kopf aendert sie nicht',
+    equal(ntDe.criterionNames, ntEn.criterionNames) &&
+    equal(ntDe.criterionNames, ntTr.criterionNames) &&
+    equal(ntDe.categoryNames, ntEn.categoryNames) &&
+    equal(ntDe.categoryNames, ntTr.categoryNames),
+    JSON.stringify([ntEn.criterionNames.de[ntCriterion.id],
+                    ntTr.criterionNames.de[ntCriterion.id]]));
+  /* UND DER PERSOENLICHE SCHLUESSEL AENDERT SIE AUCH NICHT. Das ist die
+     eigentliche Quelle des Befunds: er SCHLAEGT den Kopf in `localeOf(req)`,
+     und bis 0.24.4 entschied er damit, welche Namen die Karte bekam. */
+  await NT.call('PUT', '/api/settings', { language: 'tr' });
+  const ntChosen = await ntRead('de');
+  check('Und der persoenliche Schluessel aendert sie auch nicht',
+    equal(ntChosen.criterionNames, ntDe.criterionNames) &&
+    equal(ntChosen.categoryNames, ntDe.categoryNames),
+    JSON.stringify(ntChosen.criterionNames.de[ntCriterion.id]));
+  /* UND DIE ANDERE HAELFTE BLEIBT, WIE SIE IST: `localeOf(req)` wird nicht
+     angefasst, und der LISTENWEG folgt weiterhin dem Leser. Ohne diese Zeile
+     waere die Tafelprobe darueber auch dann gruen, wenn die Runde die
+     Reihenfolge der drei Quellen umgedreht haette -- und das haette sie fuer
+     jede Meldung der Installation mitgedreht. */
+  const ntList = await (await fetch(`${NT.base}/api/criteria`,
+    { headers: { cookie: NT.cookieValue(), 'accept-language': 'de' } })).json();
+  check('Und der Listenweg folgt weiter dem Leser — localeOf bleibt, wie es ist',
+    (ntList.find(c => c.id === ntCriterion.id) || {}).name === 'Türkçe ölçüt',
+    JSON.stringify((ntList.find(c => c.id === ntCriterion.id) || {}).name));
+  await NT.call('PUT', '/api/settings', { language: 'de' });
+
+  /* ---- UND SIE STEHT NUR DEM ADMIN OFFEN (F3) -------------------------- */
+  await NT.call('POST', '/api/users', { username: 'norbert', password: 'norberts-langes-wort' });
+  const ntUserLogin = await fetch(`${NT.base}/api/login`, { method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ user: 'norbert', password: 'norberts-langes-wort' }) });
+  const ntUserCookie = (ntUserLogin.headers.get('set-cookie') || '').split(';')[0];
+  const ntUser = await ntRead('de', ntUserCookie);
+  check('Der Aufbau steht: der gewoehnliche Zugang ist angemeldet und kein Admin',
+    ntUser.isAdmin === false && ntUser.name === 'norbert',
+    JSON.stringify([ntUser.isAdmin, ntUser.name]));
+  check('Rollenprobe: der gewoehnliche Zugang bekommt keine Namenstafel',
+    ntUser.categoryNames === undefined && ntUser.criterionNames === undefined,
+    JSON.stringify(Object.keys(ntUser).filter(k => /Names$/.test(k))));
+  /* UND ER SIEHT DIE LISTE TROTZDEM, in SEINER Sprache. Ohne diese Zeile waere
+     die darueber auch dann gruen, wenn ein gewoehnlicher Zugang gar nichts
+     mehr bekaeme. */
+  const ntUserList = await (await fetch(`${NT.base}/api/criteria`,
+    { headers: { cookie: ntUserCookie, 'accept-language': 'en' } })).json();
+  check('Und die Liste bekommt er trotzdem — in der Sprache, die er liest',
+    (ntUserList.find(c => c.id === ntCriterion.id) || {}).name === 'English criterion',
+    JSON.stringify((ntUserList.find(c => c.id === ntCriterion.id) || {}).name));
+
+  /* ---- DIE WAECHTER AM QUELLTEXT — 0.24.5 ------------------------------
+     DREI STELLEN, UND ALLE DREI SIND EINE ABWESENHEIT. Deshalb stehen sie am
+     Quelltext und nicht am Bildschirm: „es gibt diesen Weg nicht mehr" laesst
+     sich nicht klicken.
+     GELESEN WIRD OHNE KOMMENTARE. Die Absaetze in app.js ERZAEHLEN von
+     `fetchNames` und `NAMES_FETCHED` -- das ist die Buchfuehrung dieser Runde
+     und keine Zeile Code. Ein Waechter, der Kommentare mitliest, waere von der
+     eigenen Erklaerung rot (0.24.1, derselbe Zerleger). */
+  const ntCode = zerlege(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'),
+    'public/app.js').filter(part => part.kind === CODE).map(part => part.wert).join('\n');
+  check('Der Zwischenspeicher der nachgeholten Abrufe steht in keiner Zeile mehr',
+    !/NAMES_FETCHED/.test(ntCode), (ntCode.match(/.{0,60}NAMES_FETCHED.{0,20}/) || [''])[0]);
+  check('Und fetchNames() gibt es nicht mehr',
+    !/fetchNames/.test(ntCode), (ntCode.match(/.{0,60}fetchNames.{0,20}/) || [''])[0]);
+  /* UND api() KANN EINE FREMDE SPRACHE GAR NICHT MEHR VERLANGEN. Nicht „sie
+     tut es nicht mehr", sondern „sie kann es nicht": der fuenfte Wert ist weg,
+     und `Accept-Language` traegt ausnahmslos die Sprache des Lesers. Ein Weg,
+     den es nicht gibt, wird auch von der naechsten Runde nicht wieder
+     benutzt. */
+  check('api() nimmt keine fremde Sprache mehr an — der fuenfte Wert ist weg',
+    /async function api\(method, url, body, isForm = false\) \{/.test(ntCode),
+    (ntCode.match(/async function api\([^)]*\)/) || ['(nicht gefunden)'])[0]);
+  /* DIESE EINE ZEILE WIRD AM ROHEN QUELLTEXT GELESEN, und zwar mit Grund: der
+     Kopfname ist ein STRING und liegt damit in einem Textstueck, nicht im Code
+     -- die Sicht ohne Kommentare sieht ihn gar nicht. In den Kommentaren steht
+     er in Schraegstrichen (`Accept-Language`) und nie in Anfuehrungszeichen;
+     das Muster trifft deshalb genau die eine Zeile, die den Kopf setzt. */
+  const ntRaw = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  check('Und Accept-Language traegt ausnahmslos die Sprache des Lesers',
+    /'Accept-Language': LANGUAGE/.test(ntRaw) &&
+    (ntRaw.match(/'Accept-Language'/g) || []).length === 1,
+    `${(ntRaw.match(/'Accept-Language'/g) || []).length} Stellen`);
+  /* UND DIE TAFEL WIRD OHNE localeOf GEBAUT. Der Auftrag verlangt: kein
+     lesender Weg, der eine Namenstafel ausliefert, entscheidet die Sprache
+     allein ueber `localeOf(req)`. Am Quelltext heisst das: die beiden Bauer
+     nehmen ueberhaupt keine Sprache an -- sie liefern ALLE. Ein Argument dort
+     waere die alte Frage in neuer Form. */
+  const ntServer = zerlege(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8'), 'server.js')
+    .filter(part => part.kind === CODE).map(part => part.wert).join('\n');
+  check('Die beiden Bauer der Namenstafeln nehmen keine Sprache an',
+    !/(categoryNamesAll|criterionNamesAll)\(\s*[^)\s]/.test(ntServer) &&
+    /const categoryNamesAll = \(\) =>/.test(ntServer) &&
+    /const criterionNamesAll = \(\) =>/.test(ntServer),
+    (ntServer.match(/(categoryNamesAll|criterionNamesAll)\([^)]*\)/g) || []).join(' '));
+  /* UND SIE STEHEN HINTER isAdmin(req). Die Rollenprobe am Server darueber
+     zeigt die Wirkung; diese Zeile zeigt, dass sie an EINER Klemme haengt und
+     nicht an zwei, die auseinanderlaufen koennen. */
+  check('Und sie stehen an genau einer Klemme: isAdmin(req)',
+    /\.\.\.\(isAdmin\(req\)\s*\?\s*\{ categoryNames: categoryNamesAll\(\), criterionNames: criterionNamesAll\(\) \}/
+      .test(ntServer.replace(/\s*\n\s*/g, ' ')),
+    (ntServer.match(/.{0,40}categoryNames: categoryNamesAll.{0,40}/) || ['(nicht gefunden)'])[0]);
+
+  NT.stop();
+  fs.rmSync(ntDirectory, { recursive: true, force: true });
+
   /* ================= Die Befunde der Runde 0.24.4 =======================
      ELF WAECHTER, und jeder haelt eine Zusicherung aus dem Auftrag fest. Fuenf
      davon stehen hier, weil sie einen laufenden Server brauchen; die uebrigen
@@ -16401,9 +16584,14 @@ const shareMain = (purpose, target = null) =>
        Schluessel NEBEN ihrem Traeger --, und das sind 1209 + 68 = 1277. Der
        Auftrag nennt die oberste Zahl, der Pruefstand nagelt die flache fest;
        wer die beiden verwechselt, sucht eine Stunde nach 68 fehlenden
-       Saetzen. */
-    check('Und die Zahlen stehen: 1277 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1277 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
+       Saetzen.
+       1277 WURDEN 1278 -- 0.24.5. EIN Satz ist dazugekommen, der Vermerk am
+       Rueckfall (`card.nameFallback`, F4): wo fuer die gezeigte Sprache nichts
+       eingetragen ist, sagt die Zeile es. Die oberste Zahl steht damit auf
+       1210. Die Zahl der Mehrzahlformen und der Vokabelnamen bewegt sich
+       nicht -- der Vermerk hat keine Mehrzahl und ist kein Vokabelwort. */
+    check('Und die Zahlen stehen: 1278 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1278 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -16516,7 +16704,15 @@ const shareMain = (purpose, target = null) =>
       'entry.showAllLinks', 'list.filtersActive',
       'card.newCategory', 'card.newTag',
       'card.categoryCreated', 'card.tagCreated'];
-    const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244];
+    /* UND EINER MIT 0.24.5 -- dieselbe Regel, eine Runde spaeter, und wieder in
+       einer EIGENEN Liste: die Listen sind die Buchfuehrung darueber, welche
+       Runde welchen Satz hinzugefuegt hat.
+         F4   der Vermerk am Rueckfall. Wo fuer die gezeigte Sprache kein Name
+              eingetragen ist, steht der der Vorgabesprache da -- und diese
+              Zeile sagt, dass er ein Rueckfall ist und welche Sprache er
+              traegt. Bis 0.24.4 sah der Rueckfall aus wie ein Eintrag. */
+    const WORDING_NEW_0245 = ['card.nameFallback'];
+    const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244, ...WORDING_NEW_0245];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -23511,9 +23707,24 @@ const shareMain = (purpose, target = null) =>
      dort ist dann eine Luecke weiter unten zu nehmen. */
   /* ZWEIUNDSECHZIG SEIT 0.24.0: die Lage „Server ohne de.json" (Bauabschnitt
      1) bringt ihre eigene Basis mit -- sie startet einen Server, der gerade
-     NICHT hochkommen soll, und braucht dafuer genau eine Nummer. */
+     NICHT hochkommen soll, und braucht dafuer genau eine Nummer.
+     DREIUNDSECHZIG SEIT 0.24.5: die Gruppe „Die Namenstafeln je Sprache"
+     braucht einen eigenen Server, weil sie den PERSOENLICHEN SCHLUESSEL des
+     Rufers setzt -- am Hauptserver blieb er danach stehen und jede spaetere
+     Prueflage mit einem Sprachkopf laese in Wahrheit ihn.
+     IHRE BASIS IST 5000 UND NICHT DIE NAECHSTE FREIE OBEN. 7360 haette die
+     Spanne aller Basen auf 3520 gebracht und damit ueber den Versatz von 3500
+     -- der Absatz darueber sagt genau das voraus und nennt den Ausweg: eine
+     Luecke weiter unten. Die Luecke zwischen 4950 und 5070 ist die einzige, die
+     bleibt, und sie ist knapp: 5010 haette 5060 und 5061 gedeckt, und die
+     stehen auf der Sperrliste von fetch() -- der Server liefe dort und waere
+     nicht anzuwaehlen (Stolperstein 127). 5000 deckt 5000 bis 5059, keine
+     gesperrte Nummer, und die Spanne bleibt 3460. Es kostet zehn Nummern
+     Ueberschneidung mit dem Fenster von 4950; das ist die kleinste, die zu
+     haben war, und rund ein Fuenftel dessen, was die dicht gepackten Basen
+     zwischen 4380 und 4440 sich seit je teilen. */
   check('Der Lauf hat seine Portbasen vermerkt',
-    pbBases.length === 62 && CASES.length >= 60,
+    pbBases.length === 63 && CASES.length >= 60,
     `${pbBases.length} Basen aus ${CASES.length} Prueflagen: ${pbBases.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
@@ -25174,6 +25385,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       settings.vocabularies = Object.fromEntries(
         codes.map(c => [c, { ...settings.vocabularyDefaults[c], ...entered }]));
   }
+  /* DIE ZWEI NAMENSTAFELN WERDEN KOPIERT -- 0.24.5. Der Mock SCHREIBT in sie
+     (writeNameMock), und eine Prueflage, die dieselbe Tafel an zwei Fenster
+     gibt, saehe im zweiten die Umbenennung des ersten. Ein Bestand, der
+     zwischen zwei Prueflagen wandert, ist kein Bestand.
+     WER SIE VON AUSSEN ANSEHEN WILL, bekommt die Kopie im Rueckgabewert. */
+  categoryNames = categoryNames ? JSON.parse(JSON.stringify(categoryNames)) : null;
+  criterionNames = criterionNames ? JSON.parse(JSON.stringify(criterionNames)) : null;
   /* Vier Zugaenge, und jeder steht fuer eine andere Lage --
      die Eigentuemerin (die Fragende selbst), ein zweiter Admin, ein
      gewoehnlicher Benutzer und ein Grabstein. Waeren sie gleichartig, liesse
@@ -26001,10 +26219,40 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        DER RUECKFALL IST DIE ABWESENHEIT EINER ZEILE, wie in `named()`: wo die
        Tafel nichts hat, bleibt der Name der Grundzeile stehen. */
     const personalLanguage = () => settings.language || 'de';
+    /* WELCHE SPRACHE DIE GRUNDZEILE TRAEGT. Sie steht in `languages` und wird
+       nicht ein zweites Mal gesetzt: eine zweite Wahrheit darueber liefe von
+       der ersten weg. Ohne Angabe ist es `de` -- die Vorgabe dieses Mocks. */
+    const baseLanguageMock = () =>
+      ((settings.languages || []).find(a => a.isDefault) || {}).code || 'de';
     const withNames = (rows, table) => {
       if (!table) return rows;
       const per = table[personalLanguage()] || {};
       return rows.map(z => (per[z.id] !== undefined ? { ...z, name: per[z.id] } : z));
+    };
+    /* SCHREIBEN AUF EINEN NAMEN -- 0.24.5, und der Mock macht `writeName()`
+       nach: OHNE Sprachangabe (oder mit der Vorgabesprache) wird die
+       GRUNDZEILE umbenannt, mit einer anderen eine UEBERSETZUNG geschrieben --
+       und eine Uebersetzung, die dem Grundnamen gleicht, wird GELOESCHT.
+       ER ZIEHT WIRKLICH MIT (Stolperstein 90): einer, der den Rumpf annimmt und
+       seinen Bestand stehen laesst, machte „die Karte zeigt danach den neuen
+       Namen" von „die Karte ist in die Sprache des Lesers zurueckgefallen"
+       ununterscheidbar -- und genau das war der zweite Weg, auf dem die falsche
+       Sprache in die Liste kam (drawAdmin las bis 0.24.4 an namesFrom vorbei).
+       DIE ANTWORT TRAEGT DEN NAMEN DER GELESENEN SPRACHE, wie am echten
+       Server. */
+    const writeNameMock = (rows, table, id, body) => {
+      const row = rows.find(z => z.id === id);
+      if (!row) return null;
+      const name = String((body && body.name) || '').trim();
+      if (!name) return row;
+      const base = baseLanguageMock();
+      const language = !body || body.language === undefined ? base : String(body.language);
+      if (language === base) { row.name = name; return row; }
+      if (!table) return row;
+      if (!table[language]) table[language] = {};
+      if (name === row.name) delete table[language][id];
+      else table[language][id] = name;
+      return row;
     };
     if (url === '/api/criteria') return give(withNames(criteria, criterionNames));
     if (url === '/api/criteria/order') return give(withNames(criteria, criterionNames));
@@ -26021,9 +26269,35 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     /* zweifaktor SEIT 0.10.0: daran haengt, ob das Bestaetigungsfenster ein
        zweites Feld zeigt. Es kommt aus DEMSELBEN Stand wie die Karte -- eine
        zweite Wahrheit im Mock waere genau der Fehler, den er finden soll. */
+    /* DIE NAMENSTAFELN JE SPRACHE -- 0.24.5, und NUR FUER DEN ADMIN, wie am
+       echten Server (`namesAll()` in server.js). Sie tragen das EINGETRAGENE:
+       die Tafel der Vorgabesprache kommt aus den Grundzeilen, jede andere aus
+       der Namenstabelle. Was dort nichts hat, hat hier auch nichts -- den
+       Rueckfall bildet die Karte und kennzeichnet ihn.
+       WELCHE SPRACHE DIE VORGABE IST, SAGT DIE PRUEFLAGE und nicht diese
+       Zeile: `languages` traegt `isDefault`, und eine zweite Wahrheit darueber
+       liefe von der ersten weg. Ohne Angabe ist es `de` -- die Vorgabe dieses
+       Mocks seit 0.24.3.
+       SIE STEHEN VOR `...settings`, damit eine Prueflage sie ueberschreiben
+       kann. */
+    const namesTableMock = (rows, per) => {
+      const base = baseLanguageMock();
+      const codes = fs.readdirSync(path.join(__dirname, 'public', 'languages'))
+        .filter(f => f.endsWith('.json')).map(f => f.slice(0, -5));
+      const out = Object.fromEntries(codes.map(c => [c, {}]));
+      if (out[base]) for (const z of rows) out[base][z.id] = z.name;
+      for (const [code, table] of Object.entries(per || {}))
+        for (const [id, name] of Object.entries(table))
+          if (out[code] && code !== base) out[code][id] = name;
+      return out;
+    };
     if (url === '/api/settings' && (opt.method || 'GET') === 'GET')
       return give({ name: 'chefin', trashDays: 30, convertImages,
-        twoFactor: zfStatusMock.an === true, ...settings });
+        twoFactor: zfStatusMock.an === true,
+        ...(settings.isAdmin === false ? {} : {
+          categoryNames: namesTableMock(categories, categoryNames),
+          criterionNames: namesTableMock(criteria, criterionNames) }),
+        ...settings });
     /* SCHREIBEND, seit 0.19.0 -- und der Mock AENDERT SEINE ANTWORT WIRKLICH
        (Stolperstein 90): sonst waere „der Haken ist gesetzt" von „der Haken
        springt zurueck" nicht zu unterscheiden. */
@@ -26459,8 +26733,22 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           return give({ error: 'Das Gewicht muss eine Zahl zwischen 0,2 und 2 sein.' }, 400);
         k.weight = Math.round(g * 100) / 100;
       }
-      if (body.name) k.name = body.name;
-      return give({ ...k });
+      /* DER NAME GEHT SEIT 0.24.5 DURCH writeNameMock -- bis 0.24.4 stand hier
+         `k.name = body.name`, und damit landete eine UEBERSETZUNG in der
+         Grundzeile: der Mock kannte die Sprachangabe des Rumpfes nicht, obwohl
+         die Karte sie seit 0.24.3 mitschickt. */
+      if (body.name) writeNameMock(criteria, criterionNames, k.id, body);
+      return give(withNames([{ ...k }], criterionNames)[0]);
+    }
+    /* UND DASSELBE AN DER KATEGORIE -- 0.24.5. Bis 0.24.4 gab es dafuer gar
+       keinen Weg im Mock: der Ruf fiel auf `give({})` durch, und die Karte
+       zeichnete danach neu, ohne dass sich etwas geaendert haette. Damit war
+       „Umbenennen auf einer fremden Pille" nicht pruefbar. */
+    if (/^\/api\/product-categories\/\d+$/.test(url) && opt.method === 'PUT') {
+      const body = JSON.parse(opt.body || '{}');
+      const row = writeNameMock(categories, categoryNames, Number(url.split('/').pop()), body);
+      if (!row) return give({ error: 'Diese Kategorie gibt es nicht mehr.' }, 404);
+      return give(withNames([{ ...row }], categoryNames)[0]);
     }
     /* Die Ansicht "Offen". Gefiltert wird HIER, wie im echten Server: nur die
        Art 'task' geht hinaus, und `kind` selbst steht nicht in der Antwort --
@@ -26590,7 +26878,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   // document.body.textContent und jede Textpruefung findet dort Woerter,
   // die auf dem Bildschirm gar nicht stehen.
   w.document.head.appendChild(script);
-  return { w, sent, criteria, example, matchResponse };
+  return { w, sent, criteria, example, matchResponse, categoryNames, criterionNames };
 }
 /* DIE TAGZEILE AUFKLAPPEN -- 0.24.0 (Bauabschnitt 0.2). Sie steht seither
    zugeklappt, solange kein Tagfilter greift; wer prueft, was IN ihr steht,
@@ -27499,6 +27787,14 @@ async function checkUi() {
                               tr: { entryOne: 'Makine' } };
     const NP_CARDS = [['mcats', 'Kategorien'], ['mcrits', 'Bewertungen: Kriterien'],
                       ['mpcrits', 'Potenzial: Kriterien']];
+    /* GEZAEHLT WIRD MITGELAUFEN, und die Zahl wird hinterher festgenagelt. Die
+       Tafel entsteht in einer Schleife: wer eine Sprache aus `npLanguages`
+       nimmt, eine Karte aus `NP_CARDS` streicht oder die Vergleichszelle
+       herausnimmt, macht die Gruppe damit KLEINER, ohne dass ein einziger
+       Punkt rot wuerde -- und ein Prueflauf, der ungefragt weniger prueft,
+       meldet Erfolg fuer nichts (Stolperstein 81). Die zwei Zeilen am Ende der
+       Schleife sind der Beleg, dass es siebenundzwanzig und neun waren. */
+    let npCells = 0, npComparisons = 0;
     const npRows = (w, boxId) => [...w.document.querySelectorAll(`#${boxId} .mname`)]
       .map(z => z.textContent.trim());
     const npPill = (w, boxId, name) => [...(w.document.getElementById(boxId) || { children: [] }).children]
@@ -27547,14 +27843,17 @@ async function checkUi() {
            ganzen Abschnitt, und wer ihn an einer Karte umlegt, sieht ihn an
            den anderen mitgehen (0.24.3). Deshalb wird nach EINEM Klick an
            ALLEN DREI Listen nachgesehen -- und nicht dreimal geklickt. */
-        for (const [box, cardName] of NP_CARDS)
+        for (const [box, cardName] of NP_CARDS) {
+          npCells++;
           check(`Zelle: Leser ${readerName}, Pille ${pillName}, Karte „${cardName}"`,
             equal(npRows(wNp, box), npWant[pill][box]),
             `steht: ${JSON.stringify(npRows(wNp, box))} — soll: ${JSON.stringify(npWant[pill][box])}`);
+        }
         /* UND DIE VERGLEICHSZELLE DANEBEN, an derselben Pille und im
            demselben Augenblick: die Kachel „Vokabular" steht im selben
            Abschnitt, hat dieselbe Bauform und ist heute richtig. */
         await npPress(wNp, 'vlang', pillName);
+        npComparisons++;
         check(`Vergleichszelle: Leser ${readerName}, Pille ${pillName}, Kachel „Vokabular"`,
           (wNp.document.getElementById('v1') || {}).value === npVocabularyOwn[pill].entryOne,
           `steht: ${JSON.stringify((wNp.document.getElementById('v1') || {}).value)} — ` +
@@ -27573,6 +27872,12 @@ async function checkUi() {
         [...wNp.document.querySelectorAll('.sys-card h3')].map(z => z.textContent.trim()).join(' | '));
       wNp.close();
     }
+    /* UND DIE TAFEL WAR WIRKLICH VOLLSTAENDIG. Drei Lesersprachen x drei
+       Pillen x drei Karten sind 27, und die Vergleichsgruppe hat neun. */
+    check('Die Tafel hat wirklich 27 Zellen — drei Sprachen, drei Pillen, drei Karten',
+      npCells === 27, `${npCells} Zellen`);
+    check('Und die Vergleichsgruppe der Kachel „Vokabular" wirklich neun',
+      npComparisons === 9, `${npComparisons} Zellen`);
 
     /* ---- DIE FOLGE IN EINER SITZUNG — 0.24.5 (D2) ---------------------
        PILLE DRUECKEN, EIGENE SPRACHE WECHSELN, DIESELBE PILLE NOCH EINMAL.
@@ -27692,6 +27997,77 @@ async function checkUi() {
       check('Und an einer uebersetzten Zeile steht das Eingetragene im Feld',
         !!fbField2 && fbField2.value === 'Substance', fbField2 && fbField2.value);
       wFb.close();
+    }
+
+    /* ---- DAS UMBENENNEN AUF EINER FREMDEN PILLE — 0.24.5 --------------
+       WER AUF DER PILLE „Türkçe" UMBENENNT, LIEST DANACH WEITER TUERKISCH.
+
+       DAS IST DER ZWEITE WEG, AUF DEM DIE FALSCHE SPRACHE IN DIE LISTE KAM,
+       und er stand nicht im Auftrag: `drawAdmin()` las bis 0.24.4
+       `fetched.cats` und `fetched.crits` -- die Namen in der Sprache des
+       LESERS -- waehrend `setUpCategoriesOut()` daneben durch `namesFrom()`
+       ging. Zwei Wege in dieselbe Liste, und der eine kannte den Umschalter
+       nicht. Nach jedem Umbenennen, Anlegen, Loeschen und Sortieren zeichnete
+       dieser Weg, und die Pille stand danach auf Türkçe ueber einer deutschen
+       Liste.
+       GEPRUEFT WIRD MIT DEM ✎ UND NICHT MIT EINEM GESETZTEN ZUSTAND: der
+       ganze Weg -- Feld, Rumpf mit Sprachangabe, Antwort, Neuzeichnen -- ist
+       der Gegenstand. */
+    {
+      const rnDom = buildDom(JSDOM, {
+        settings: { filters: null, language: 'de', languages: npLanguages },
+        categoryNames: npCategoryNames, criterionNames: npCriterionNames,
+        criteriaPhases: ['after', 'after', 'before']
+      });
+      const wRn = rnDom.w;
+      await new Promise(r => setTimeout(r, 80));
+      await sysSection(wRn, 'inventory');
+      await npPress(wRn, 'ncatlang', 'Türkçe');
+      const rnRow = [...wRn.document.querySelectorAll('#mcats .mrow')]
+        .find(z => (z.querySelector('.mname') || {}).textContent.trim() === 'Alet');
+      const rnPen = rnRow && rnRow.querySelector('.ed');
+      check('Aufbau: die tuerkische Zeile steht da und traegt ihr ✎', !!rnPen,
+        rnRow ? 'kein ✎ an der Zeile' : `Zeilen: ${JSON.stringify(npRows(wRn, 'mcats'))}`);
+      if (rnPen) {
+        rnPen.dispatchEvent(new wRn.Event('click', { bubbles: true }));
+        const rnField = wRn.document.querySelector('#mcats .medit');
+        if (rnField) {
+          rnField.value = 'Takım';
+          rnField.dispatchEvent(new wRn.Event('blur', { bubbles: true }));
+        }
+        await new Promise(r => setTimeout(r, 200));
+        /* DER RUMPF NENNT DIE SPRACHE DER PILLE -- 0.24.3, Bauabschnitt 6a.
+           Ohne sie benennte der Server die GRUNDZEILE um, und der deutsche
+           Leser haette danach eine tuerkische Kategorie. */
+        const rnPut = rnDom.sent.filter(g => g.method === 'PUT' &&
+          g.url === '/api/product-categories/21').pop();
+        check('Umbenennprobe: der Rumpf nennt die Sprache der Pille',
+          !!rnPut && rnPut.body && rnPut.body.name === 'Takım' && rnPut.body.language === 'tr',
+          JSON.stringify(rnPut && rnPut.body));
+        /* UND DIE LISTE BLEIBT DANACH TUERKISCH. Bis 0.24.4 stand hier wieder
+           „Werkzeug", „Material" -- die deutsche Liste unter einer tuerkischen
+           Pille. */
+        check('Und die Liste bleibt danach in der Sprache der Pille',
+          equal(npRows(wRn, 'mcats'), ['Takım', 'Material']),
+          `steht: ${JSON.stringify(npRows(wRn, 'mcats'))} — soll: ["Takım","Material"]`);
+        /* UND DER VERMERK STEHT WEITER AN DER ZEILE OHNE EINTRAG. Ohne diese
+           Zeile bliebe die darueber auch dann gruen, wenn das Neuzeichnen den
+           Rueckfall stillschweigend als Eintrag zeigte. */
+        const rnMark = [...wRn.document.querySelectorAll('#mcats .mrow')]
+          .find(z => (z.querySelector('.mname') || {}).textContent.trim() === 'Material');
+        check('Und der Vermerk steht weiter an der Zeile ohne tuerkischen Namen',
+          !!rnMark && !!rnMark.querySelector('.mfallback'),
+          rnMark ? 'kein Vermerk' : 'keine Zeile „Material"');
+        /* UND DIE PILLE STEHT NOCH AUF Türkçe. Eine Liste in der richtigen
+           Sprache unter einer Pille, die auf eine andere zeigt, waere derselbe
+           Widerspruch andersherum. */
+        check('Und die Pille steht danach immer noch auf Türkçe',
+          [...(wRn.document.getElementById('ncatlang') || { children: [] }).children]
+            .filter(b => b.className.includes('on')).map(b => b.textContent).join('') === 'Türkçe',
+          [...(wRn.document.getElementById('ncatlang') || { children: [] }).children]
+            .map(b => b.textContent + (b.className.includes('on') ? '*' : '')).join('|'));
+      }
+      wRn.close();
     }
 
     /* ---- WER NICHT VERWALTEN DARF, SIEHT DIE PILLENREIHE GAR NICHT ----

@@ -334,6 +334,7 @@
   "card.myAccount": "Hesabım",
   "card.mySessions": "Oturumlarım",
   "card.name": "Ad",
+  "card.nameFallback": "(kayıt yok — {language} görünüyor)",
   "card.nameFreedHint": "Ad yeniden serbest kalır ve saklanmaz; katkıları „Silinen kullanıcı &lt;numara&gt;“ altında görünür. Silinen bir kullanıcı geri getirilemez — yalnızca dışarıda tutmak isteyen,",
   "card.names": {
     "one": "1 ad",

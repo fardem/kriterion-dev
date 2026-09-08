@@ -240,11 +240,26 @@ function exportSum(ex, s) {
 const exportTotal = (stats) => exportSum(stats && stats.export,
   { withPhotos: true, withFiles: true, withVideos: true });
 
-/* `language` SEIT 0.24.3: eine Anfrage darf ausdruecklich eine ANDERE Sprache
-   verlangen als die, die der Leser gerade liest. Gebraucht wird das an genau
-   einer Stelle -- der Eigentuemer pflegt in den Adminkarten die Namen einer
-   Sprache, die er selbst nicht liest (Bauabschnitt 6a). */
-async function api(method, url, body, isForm = false, language = LANGUAGE) {
+/* DER FUENFTE WERT IST MIT 0.24.5 WEGGEFALLEN, und das ist die Reparatur von
+   D1 an ihrer Wurzel.
+
+   SEIT 0.24.3 STAND HIER `language = LANGUAGE`: eine Anfrage durfte
+   ausdruecklich eine ANDERE Sprache verlangen als die, die der Leser liest.
+   Gebraucht wurde das an genau EINER Stelle -- `fetchNames()` holte damit die
+   Namen einer Sprache nach, die der Eigentuemer selbst nicht liest.
+
+   ES HAT NIE FUNKTIONIERT. `localeOf(req)` am Server fragt ZUERST den
+   persoenlichen Schluessel, und der schlaegt den Kopf (Konzept 5.3): wer eine
+   Sprache eingestellt hat, bekam auf jede Frage die Antwort in SEINER. Der Kopf
+   ist die Antwort auf „in welcher Sprache sprichst du mit mir" und nicht auf
+   „welche Namenstafel meinst du" -- er taugt fuer die zweite Frage nicht, und
+   deshalb wird sie nicht mehr gestellt: die Namen aller Sprachen kommen auf
+   einmal mit `GET /api/settings`.
+
+   DAMIT KANN DIE OBERFLAECHE EINE FREMDE SPRACHE GAR NICHT MEHR VERLANGEN.
+   Nicht „sie tut es nicht mehr", sondern „sie kann es nicht" -- ein Weg, den es
+   nicht gibt, wird auch von der naechsten Runde nicht wieder benutzt. */
+async function api(method, url, body, isForm = false) {
   /* `Accept-Language` AN JEDER ANFRAGE -- 0.24.3, Bauabschnitt 4. Er ist die
      zweite der drei Quellen von localeOf(req) und traegt die Sprache, die
      DIESES GERAET gewaehlt hat: der persoenliche Schluessel schlaegt ihn am
@@ -252,9 +267,11 @@ async function api(method, url, body, isForm = false, language = LANGUAGE) {
      ist, bekommt seine Servermeldungen ueber diesen Kopf.
      AUSDRUECKLICH GESETZT UND NICHT DEM BROWSER UEBERLASSEN: der Browser
      schickte die Sprache des Betriebssystems, und die hat mit der Wahl in der
-     Karte „Darstellung" nichts zu tun. */
+     Karte „Darstellung" nichts zu tun.
+     UND ER TRAEGT SEIT 0.24.5 IMMER `LANGUAGE`, ohne Ausnahme -- siehe den
+     Absatz ueber den weggefallenen fuenften Wert darueber. */
   const opts = { method, credentials: 'same-origin',
-                 headers: { 'Accept-Language': language } };
+                 headers: { 'Accept-Language': LANGUAGE } };
   if (body !== undefined) {
     if (isForm) opts.body = body;
     else { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
@@ -1835,12 +1852,44 @@ function takeVocabulary(r) {
    des Lesers an, steht als Zustand der Karte und nicht in der Adresse, und
    faellt beim Neuzeichnen des Systembereichs auf die des Lesers zurueck. */
 let NAMES_SHOWN = null;
-/* WAS DER SERVER FUER DIESE SPRACHE LIEFERT, je Kennung gemerkt. Der
-   Umschalter braucht die Listen in einer Sprache, die der Leser NICHT liest --
-   also einen zweiten Abruf. Gemerkt wird er, damit ein Hin und Her nicht bei
-   jedem Klick zwei Umlaeufe kostet; geleert wird er, sobald sich etwas
-   aendert. */
-let NAMES_FETCHED = {};
+/* DIE NAMEN JE SPRACHE, ALS TAFEL UND AUF EINMAL -- 0.24.5, und damit faellt
+   der Zwischenspeicher der Runde 0.24.3 weg.
+
+   BIS 0.24.4 STAND HIER `NAMES_FETCHED`, ein Gedaechtnis fuer nachgeholte
+   Abrufe: der Umschalter brauchte die Listen in einer Sprache, die der Leser
+   nicht liest, also einen zweiten Abruf je Sprache. Der Abruf schickte
+   `Accept-Language: <code>`, und der Server hoerte die Frage nicht -- er
+   antwortete in der Sprache des LESERS (Befund D1). Der Speicher machte es
+   schlimmer: geleert wurde er beim Umbenennen und beim Anlegen, beim WECHSEL
+   DER EIGENEN SPRACHE nicht. Was unter dem Schluessel `tr` lag, war in
+   Wahrheit die Liste der Sprache, die der Leser las, als er die Pille das
+   erste Mal drueckte -- und die konnte eine dritte sein. Genau so kam
+   Englisch in eine Zelle, in der es weder Leser- noch Pillen- noch
+   Vorgabesprache war (Befund D2).
+
+   JETZT LIEGT ALLES SCHON DA. `GET /api/settings` liefert dem Admin die Namen
+   ALLER Sprachen auf einmal, und die Pille schaltet OERTLICH um -- dieselbe
+   Bauform wie `VOCABULARIES_OWN` bei den vierzehn Vokabelwoertern. Ein Abruf,
+   den es nicht gibt, kann die falsche Sprache nicht mitbringen; ein
+   Zwischenspeicher, den es nicht gibt, kann nicht veralten.
+
+   ES IST DAS EINGETRAGENE UND NICHT DER RUECKFALL -- wie `VOCABULARIES_OWN`.
+   Wo fuer die gezeigte Sprache nichts eingetragen ist, bildet namesFrom() den
+   Rueckfall und KENNZEICHNET ihn (F4). */
+let NAMES_ALL = { cats: {}, crits: {} };
+/* DIE ZWEI TAFELN AUS EINER ANTWORT UEBERNEHMEN. Sie stehen unter den Namen,
+   die der Server ihnen gibt, und werden hier EINMAL auf die Kennungen der
+   Oberflaeche gelegt -- `cats` und `crits`, dieselben wie in `fetched`. Zwei
+   Namen fuer dieselbe Sache an zwei Stellen liefen auseinander.
+   EIN GEWOEHNLICHER BENUTZER BEKOMMT SIE NICHT (F3), und dann bleiben die
+   Tafeln leer: namesFrom() laesst die Liste in diesem Fall, wie sie
+   hereinkam -- in der Sprache des Lesers, und die ist die einzige, die er
+   sehen kann. */
+function takeNames(r) {
+  if (!r || typeof r !== 'object') return;
+  if (r.categoryNames && typeof r.categoryNames === 'object') NAMES_ALL.cats = r.categoryNames;
+  if (r.criterionNames && typeof r.criterionNames === 'object') NAMES_ALL.crits = r.criterionNames;
+}
 let SEARCH_NAMES = 2;          // wie viele Namen unter einer Suchzeile stehen
 const SEARCH_NAME_LEVELS = [1, 2, 3, 4];
 
@@ -2364,6 +2413,9 @@ async function loadSettings() {
     VOCABULARIES_OWN = SETTINGS.vocabulariesOwn;
   if (SETTINGS.vocabularyDefaults && typeof SETTINGS.vocabularyDefaults === 'object')
     VOCABULARY_DEFAULTS = SETTINGS.vocabularyDefaults;
+  /* UND DIE NAMEN JE SPRACHE, 0.24.5 -- nur die drei Verwaltungskarten lesen
+     sie, und nur der Admin bekommt sie ueberhaupt geschickt. */
+  takeNames(SETTINGS);
   /* DIE ERSTE DER DREI QUELLEN (Konzept 5.3), und sie schlaegt die beiden
      anderen: was am ZUGANG steht, gilt -- auf jedem Geraet, an dem er sich
      anmeldet. Der Server hat den Wert schon gegen den Vorrat geklemmt.
@@ -8735,9 +8787,10 @@ function setUpCriteriaOut(fetched, phase) {
         await api('POST', MANAGE_KIND[kind].url, { name });
         field.value = '';
         toast(t(spec.done));
-        // Die gemerkten Abrufe der anderen Sprachen sind damit veraltet --
-        // dieselbe Zeile wie beim Umbenennen.
-        NAMES_FETCHED = {};
+        /* DIE NAMENSTAFELN ZIEHT adminNew() NACH -- 0.24.5. Bis 0.24.4 stand
+           hier ein `NAMES_FETCHED = {}`: der Zwischenspeicher der nachgeholten
+           Abrufe war mit dem neuen Namen veraltet. Der Speicher ist weg, und
+           mit ihm die Frage, wer ihn leert. */
         adminNew(fetched);
       } catch (e) { toast(e.message, true); }
     };
@@ -8780,8 +8833,22 @@ function setUpCriteriaOut(fetched, phase) {
                value="${esc(weightText(entry.weight))}"></span>`
           : `<span class="mweight mweight-fixed" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.weight))}</span>`)
         : '';
+      /* DER VERMERK AM RUECKFALL -- 0.24.5 (F4). Wo fuer die GEZEIGTE Sprache
+         nichts eingetragen ist, steht der Name der Vorgabesprache da, und
+         dieser Vermerk sagt beides: dass nichts eingetragen ist, und welche
+         Sprache stattdessen dasteht.
+         ER STEHT NEBEN DEM NAMEN UND NICHT DARIN: `.mname` traegt weiterhin
+         genau den Namen -- der Pruefstand liest ihn, und ein angehaengter Satz
+         waere dort ein zweiter Wert im selben Feld.
+         GEDAEMPFT WIE DER VERWENDUNGSZAEHLER daneben: er ist eine Auskunft
+         ueber die Zeile und keine Aktion. */
+      const fallbackMark = entry.nameFallback
+        ? `<span class="mfallback">${tH('card.nameFallback',
+            { language: languageNameOf(entry.nameFallback) })}</span>`
+        : '';
       row.innerHTML = `${spec.sortable && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="mname">${esc(entry.name)}</span>
+        ${fallbackMark}
         ${weightField}
         <span class="mcount">${esc(spec.counter ? spec.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}</span>
         ${may ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_PEN}</button>
@@ -8834,11 +8901,29 @@ function setUpCriteriaOut(fetched, phase) {
       };
       row.querySelector('.ed').onclick = () => {
         const inp = document.createElement('input');
-        inp.className = 'medit'; inp.value = entry.name;
+        inp.className = 'medit';
+        /* IM FELD STEHT NUR DAS EINGETRAGENE -- 0.24.5, und das ist dieselbe
+           Entscheidung wie an den vierzehn Vokabelfeldern (0.24.4, B1/B2). Ein
+           Feld, das den RUECKFALL als Wert traegt, ist von einem Feld, in das
+           jemand den Rueckfall getippt hat, nicht zu unterscheiden -- und ein
+           Speichern machte aus dem einen das andere: „Material" stuende danach
+           als tuerkischer Eintrag da, obwohl niemand ihn tuerkisch gemeint hat.
+           DER RUECKFALL STEHT ALS PLATZHALTER: das Feld ist damit leer und sagt
+           trotzdem, was dasteht, solange nichts eingetragen ist. */
+        inp.value = entry.nameFallback ? '' : entry.name;
+        if (entry.nameFallback) inp.placeholder = entry.name;
         row.querySelector('.mname').replaceWith(inp);
+        const mark = row.querySelector('.mfallback');
+        if (mark) mark.remove();
         inp.focus(); inp.select();
         const save = async () => {
           const name = inp.value.trim();
+          /* EIN LEERES FELD SCHICKT GAR NICHTS, und seit 0.24.5 ist das an
+             einer Zeile OHNE Eintrag der gewoehnliche Fall: wer das ✎ oeffnet
+             und wieder wegklickt, hat es sich anders ueberlegt. Und wer den
+             Rueckfall abtippt, schickt auch nichts -- der Server loeschte die
+             Uebersetzung ohnehin, sobald sie dem Grundnamen gleicht
+             (`writeName()`), und ein Umlauf fuer nichts ist einer zu viel. */
           if (!name || name === entry.name) return adminNew(fetched);
           /* DIE SPRACHE GEHT MIT -- 0.24.3, Bauabschnitt 6a, und NUR an den
              beiden Listen, die eine haben. An den Tags gibt es keine: sie sind
@@ -8849,7 +8934,7 @@ function setUpCriteriaOut(fetched, phase) {
              Grundzeile ist. */
           const body = spec.perLanguage ? { name, language: namesLanguage() } : { name };
           try { await api('PUT', `${url}/${entry.id}`, body); toast(t('card.renamed'));
-                NAMES_FETCHED = {}; adminNew(fetched); }
+                adminNew(fetched); }
           catch (e) { toast(e.message, true); adminNew(fetched); }
         };
         inp.onblur = save;
@@ -8864,19 +8949,39 @@ function setUpCriteriaOut(fetched, phase) {
     });
   }
   function drawAdmin(fetched) {
-    manageList('mcats', fetched.cats, 'cat', fetched);
+    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. Bis 0.24.4 stand
+       hier `fetched.cats` und `fetched.crits`, also die Namen in der Sprache
+       des LESERS: wer auf der Pille „Türkçe" umbenannte, sah danach wieder die
+       deutsche Liste, waehrend die Pille weiter auf Türkçe stand. Zwei Wege in
+       dieselbe Liste, und der eine kannte den Umschalter nicht.
+       DIE TAGS GEHEN NICHT DURCH: sie tragen bewusst keinen Namen je Sprache
+       (Nachtrag zu E9/E11, Punkt 2), und ueber ihrer Karte steht deshalb auch
+       keine Pillenreihe. */
+    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
     manageList('mtags', fetched.tags, 'tag', fetched);
     // BEIDE KRITERIENLISTEN, aus DERSELBEN Antwort. manageList() haengt
     // sich an einen Kasten, den es nicht gibt, gar nicht erst an -- wer nur
     // eine der beiden Karten offen hat, bekommt nur diese gezeichnet.
     for (const phase of Object.keys(CRIT_CARD))
       manageList(CRIT_CARD[phase].list,
-        fetched.crits.filter(c => c.phase === phase), 'crit', fetched);
+        namesFrom(fetched, 'crits').filter(c => c.phase === phase), 'crit', fetched);
   }
   async function adminNew(fetched) {
-    [fetched.cats, fetched.tags, fetched.crits] = await Promise.all([
-      api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria')
+    /* UND DIE NAMENSTAFELN MIT -- 0.24.5. Anlegen, Umbenennen und Loeschen
+       aendern die Namen; die Tafeln aller Sprachen kommen aus
+       `GET /api/settings`, und ohne diesen vierten Abruf zeigte die Karte nach
+       einem Umbenennen den alten Namen. Bis 0.24.4 stand an denselben Stellen
+       ein `NAMES_FETCHED = {}` -- ein Zwischenspeicher, den jemand leeren
+       musste, und beim Wechsel der Lesersprache hat es niemand getan (D2).
+       ES IST DERSELBE UMLAUF WIE DIE DREI DANEBEN und kein neuer Weg. Er
+       laeuft nur hier: die drei Verwaltungswerkzeuge stehen ausschliesslich
+       dem Admin offen, und nur der bekommt die Tafeln ueberhaupt. */
+    const [cats, tags, crits, settings] = await Promise.all([
+      api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
+      api('GET', '/api/settings')
     ]);
+    [fetched.cats, fetched.tags, fetched.crits] = [cats, tags, crits];
+    takeNames(settings);
     drawAdmin(fetched);
   }
 
@@ -8959,32 +9064,55 @@ const namesLanguage = () => {
   const ok = LANGUAGES.some(a => a.active && a.code === NAMES_SHOWN);
   return ok ? NAMES_SHOWN : LANGUAGE;
 };
-/* DIE LISTE IN DER GEZEIGTEN SPRACHE. Fuer die des Lesers ist das, was
-   renderSystem() ohnehin geholt hat; fuer jede andere der gemerkte Abruf.
-   IST ER NOCH NICHT DA, STEHT DIE LISTE DES LESERS -- und der Abruf laeuft
-   los. Eine leere Liste waere schlechter: sie saehe aus wie „nichts
-   angelegt". */
+/* WELCHE SPRACHE DIE GRUNDZEILE TRAEGT -- die Vorgabe der Installation. Sie
+   steht in LANGUAGES und wird nicht ein zweites Mal gemerkt: der Eigentuemer
+   kann sie in der Karte „Sprachen" wechseln, und zwei Aussagen darueber liefen
+   auseinander. */
+const baseNamesLanguage = () => (LANGUAGES.find(a => a.isDefault) || {}).code || LANGUAGE;
+/* WIE EINE SPRACHE HEISST -- in ihrer EIGENEN Sprache, wie ueberall in dieser
+   Oberflaeche: der Server schickt den Namen mit (`languageName()` dort), und
+   die Kennung bleibt stehen, wenn keiner ankommt. Sie steht nie allein da: „tr"
+   sagt einem Betreiber nichts, „Türkçe" alles. */
+const languageNameOf = (code) =>
+  ((LANGUAGES.find(a => a.code === code) || {}).name) || code;
+/* DIE LISTE IN DER GEZEIGTEN SPRACHE -- 0.24.5, und sie wird nicht mehr geholt.
+
+   DREI SCHRITTE, UND DIE REIHENFOLGE IST DIE ENTSCHEIDUNG DES BETREIBERS ZU
+   F4 (8. September 2026): *„Wenn die Felder von Defaultsprache gefüllt sind,
+   werden sie vorgezogen. Ist da auch nicht, wird die Vorgabe genommen. Und
+   gerne gedämpft der Hinweis, dass dies ein Fallback ist und für die
+   ausgewählte Sprache keine Eingabe existiert."*
+
+     1. was fuer die GEZEIGTE Sprache eingetragen ist,
+     2. sonst der Name der GRUNDZEILE -- und der ist der Eintrag der
+        Vorgabesprache,
+     3. und sonst, was hereinkam.
+
+   SCHRITT 3 IST DIE KLAMMER UND KEIN WEG: die Grundzeile TRAEGT einen Namen
+   (`NOT NULL`), Schritt 2 greift also immer. Ohne die Klammer stuende bei einer
+   Tafel, die eine Zeile nicht kennt, gar nichts da -- und ein leerer Name saehe
+   aus wie „nichts angelegt".
+
+   DER RUECKFALL WIRD GEKENNZEICHNET (`nameFallback`) und nicht stillschweigend
+   eingesetzt. Dieselbe Ueberlegung wie bei den vierzehn Vokabelwoertern
+   (0.24.4, B2): ein Rueckfall, der wie ein Eintrag aussieht, wird beim
+   naechsten Speichern zu einem.
+
+   OHNE TAFEL BLEIBT DIE LISTE, WIE SIE HEREINKAM. Der gewoehnliche Benutzer
+   bekommt keine (F3) -- er sieht die Liste in seiner eigenen Sprache, und
+   einen Umschalter hat er nicht. */
 function namesFrom(fetched, key) {
-  const code = namesLanguage();
-  if (code === LANGUAGE) return fetched[key];
-  const got = NAMES_FETCHED[code];
-  if (got) return got[key];
-  fetchNames(code);
-  return fetched[key];
-}
-/* HOLT BEIDE LISTEN IN EINER SPRACHE UND ZEICHNET DANN NEU. Beide zugleich:
-   die zwei Karten stehen im selben Abschnitt, und wer eine umschaltet, sieht
-   die andere im selben Augenblick. */
-async function fetchNames(code) {
-  if (NAMES_FETCHED[code]) return;
-  try {
-    const [cats, crits] = await Promise.all([
-      api('GET', '/api/product-categories', undefined, false, code),
-      api('GET', '/api/criteria', undefined, false, code)
-    ]);
-    NAMES_FETCHED[code] = { cats, crits };
-    if (namesLanguage() === code) renderSystem({ keepScroll: true });
-  } catch { /* dann bleibt die Liste des Lesers stehen */ }
+  const rows = fetched[key] || [];
+  const table = NAMES_ALL[key] || {};
+  const shown = table[namesLanguage()];
+  if (!shown) return rows;
+  const base = baseNamesLanguage();
+  const fallback = (base === namesLanguage() ? null : table[base]) || {};
+  return rows.map(z => {
+    if (z && z.id !== undefined && shown[z.id] !== undefined) return { ...z, name: shown[z.id] };
+    const back = z && z.id !== undefined ? fallback[z.id] : undefined;
+    return { ...z, name: back !== undefined ? back : z.name, nameFallback: base };
+  });
 }
 /* DIE PILLENREIHE UEBER EINER ADMINLISTE. Sie steht nur da, wenn es etwas zu
    wechseln gibt, und zeichnet nach dem Klick den ganzen Systembereich neu --

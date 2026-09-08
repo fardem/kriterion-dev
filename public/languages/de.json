@@ -334,6 +334,7 @@
   "card.myAccount": "Mein Konto",
   "card.mySessions": "Meine Sitzungen",
   "card.name": "Name",
+  "card.nameFallback": "(nicht eingetragen — es steht {language})",
   "card.nameFreedHint": "Der Name ist wieder frei und wird nicht gespeichert; ihre Beiträge stehen unter\n      „Gelöschter Benutzer &lt;Nummer&gt;“. Ein gelöschter Benutzer lässt sich nicht\n      wiederherstellen — wer nur aussperren will,",
   "card.names": {
     "one": "1 Name",

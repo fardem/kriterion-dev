@@ -2490,6 +2490,16 @@ app.get('/api/settings', (req, res) => res.json({
      Satz, den ein Leser DIESER Sprache saehe. */
   vocabulariesOwn: vocabularyOwnAll(),
   vocabularyDefaults: vocabularyDefaultsAll(),
+  /* UND DIE NAMEN DER KATEGORIEN UND KRITERIEN JE SPRACHE -- 0.24.5, die
+     Reparatur von D1. Sie stehen HIER und nicht an den beiden Listenwegen: die
+     Wege `/api/product-categories` und `/api/criteria` werden von der
+     Uebersicht und von jedem Eintrag gelesen, und dort braucht niemand eine
+     Tafel aller Sprachen. `F_ROUTES` steigt dabei nicht -- es ist ein Feld
+     mehr in einer Antwort, die es laengst gibt, und kein neuer Weg.
+     NUR FUER DEN ADMIN (F3): wer den Umschalter nicht sieht, bekommt auch die
+     Tafel nicht. Siehe `namesAll()` weiter unten. */
+  ...(isAdmin(req)
+    ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
   font: fontSize(req.user.id),
   strip: strip(req.user.id),
   theme: theme(req.user.id),
@@ -3030,6 +3040,64 @@ const qCategoryNames = db.prepare(
   'SELECT category_id AS id, name FROM category_names WHERE language = ?');
 const criterionNames = (locale) => new Map(qCriterionNames.all(locale).map(z => [z.id, z.name]));
 const categoryNames = (locale) => new Map(qCategoryNames.all(locale).map(z => [z.id, z.name]));
+
+/* ======== DIESELBEN NAMEN ALS TAFEL JE SPRACHE — 0.24.5 ==================
+   DIE REPARATUR VON D1, UND SIE IST ABGESCHAUT UND NICHT ERFUNDEN. Bis 0.24.4
+   holte die Karte die Namen einer FREMDEN Sprache nach und schickte dafuer
+   `Accept-Language: <code>`. Der Server hoerte die Frage nicht: `localeOf(req)`
+   fragt ZUERST den persoenlichen Schluessel, und der schlaegt den Kopf (0.24.3,
+   Konzept 5.3). Wer eine Sprache eingestellt hat -- und das hat in dieser Karte
+   jeder --, bekam auf JEDE Pille die Liste seiner EIGENEN Sprache.
+
+   `localeOf` IST NICHT FALSCH. Fuer Meldungen ist die Reihenfolge genau
+   richtig, und sie bleibt unangetastet. Falsch war, diesen Kopf als Frage nach
+   einer FREMDEN Namenstafel zu benutzen: er ist die Antwort auf „in welcher
+   Sprache sprichst du mit mir", nicht auf „welche Namenstafel meinst du".
+
+   DESHALB WIRD NICHTS MEHR GEFRAGT. Die Karte bekommt alle Sprachen auf
+   einmal -- genau wie `vocabulariesOwn` seit 0.24.4 --, und die Pille schaltet
+   OERTLICH um. Eine Karte, die fuer eine fremde Sprache einen Server fragen
+   muss, hat drei Wege, sich zu irren; eine, die alles schon hat, hat keinen.
+
+   ES STEHT DAS EINGETRAGENE DA UND NICHT DER RUECKFALL -- dieselbe
+   Unterscheidung wie zwischen `vocabularies` und `vocabulariesOwn`: was fuer
+   eine Sprache NICHTS traegt, traegt hier auch nichts, und die Karte sagt es
+   (der Rueckfall wird in der Karte gebildet und ist dort als Rueckfall
+   gekennzeichnet). Eine Tafel mit eingesetztem Rueckfall waere von einer mit
+   Eintraegen nicht zu unterscheiden -- genau der Weg, auf dem B2 der Runde
+   0.24.4 entstanden ist.
+
+   DIE GRUNDZEILE IST DER EINTRAG DER VORGABESPRACHE. `product_categories.name`
+   und `rating_criteria.name` TRAGEN sie, und `writeName()` legt fuer die
+   Vorgabesprache gar keine Zeile in die Namenstabelle (es loescht sie sogar,
+   sobald eine Uebersetzung dem Grundnamen gleicht). Deshalb wird die Tafel der
+   Vorgabesprache aus den Grundzeilen gebaut und nicht aus der Nebentabelle.
+
+   NUR FUER DEN ADMIN, und das ist die Entscheidung des Betreibers zu F3
+   (8. September 2026): *„Der normale User soll nicht mal die Pille über der
+   Kachel sehen können. Er sieht nur die Bezeichnungen der Sprache, den er im
+   persönlichen Bereich eingestellt hat."* Wer nicht umschalten kann, braucht
+   die Tafel nicht -- und eine Antwort, die etwas traegt, das ihr Leser nicht
+   lesen darf, ist eine Antwort auf eine Frage, die er nicht gestellt hat. */
+const qCategoryRows = db.prepare('SELECT id, name FROM product_categories');
+const qCriterionRows = db.prepare('SELECT id, name FROM rating_criteria');
+const qCategoryNamesAll = db.prepare(
+  'SELECT category_id AS id, language, name FROM category_names');
+const qCriterionNamesAll = db.prepare(
+  'SELECT criterion_id AS id, language, name FROM criterion_names');
+/* EINE TAFEL JE SPRACHE, FUER DIE EINE DATEI LIEGT -- und nicht nur je Sprache
+   im Vorrat. Dieselbe Wahl wie bei `vocabularyOwnAll()`, und aus demselben
+   Grund: geklemmt wird in der Karte gegen LANGUAGES, und zwei Klemmen ueber
+   dieselbe Frage laufen auseinander. */
+const namesAll = (rows, translated) => {
+  const base = baseLanguage();
+  const perLanguage = Object.fromEntries(LANGUAGE_CODES.map(code => [code, {}]));
+  if (perLanguage[base]) for (const z of rows) perLanguage[base][z.id] = z.name;
+  for (const z of translated) if (perLanguage[z.language]) perLanguage[z.language][z.id] = z.name;
+  return perLanguage;
+};
+const categoryNamesAll = () => namesAll(qCategoryRows.all(), qCategoryNamesAll.all());
+const criterionNamesAll = () => namesAll(qCriterionRows.all(), qCriterionNamesAll.all());
 
 /* SETZT DIE NAMEN EINER TAFEL IN EINE LISTE EIN. `key` sagt, welches Feld die
    Kennung traegt -- an den Kriterien heisst es mal `id` und mal
