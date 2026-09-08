@@ -3573,6 +3573,49 @@ const shareMain = (purpose, target = null) =>
     pvInventedDefault.content.languages.some(a => a.isDefault),
     JSON.stringify(pvInventedDefault.content.languages));
 
+
+  /* DIE KLEMME STEHT AN ZWEI STELLEN, UND JEDE WIRD EINZELN GEPRUEFT.
+     writeLanguages() legt die Vorgabe beim SCHREIBEN in den Vorrat zurueck,
+     languagePool() beim LESEN. Die Zeile darueber sieht beide zugleich und
+     kann deshalb nicht sagen, welche gegriffen hat -- **und genau daran ist
+     die erste Fassung der Gegenprobe 715 STUMM geblieben:** wer eine der
+     beiden wegnimmt, wird von der anderen aufgefangen, und der Waechter
+     bleibt gruen. Ein Waechter, der eine Doppelung nur als Ganzes sieht,
+     belegt keine ihrer Haelften.
+     WARUM ES ZWEI SIND UND NICHT EINE: die Ablage kann aelter sein als das
+     Verzeichnis. Ein Vorrat, der vor drei Runden geschrieben wurde, kennt die
+     heutige Vorgabesprache vielleicht nicht -- und ein Eigentuemer, der sich
+     selbst aussperrt, kommt an keine Karte mehr, ueber die er es richten
+     wuerde. */
+  const pvStored = () => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare("SELECT value FROM settings WHERE key = 'languageOn'").get();
+    d.close();
+    return r ? JSON.parse(r.value) : null;
+  };
+  check('Die schreibende Haelfte: schon in der Ablage steht die Vorgabe im Vorrat',
+    (pvStored() || []).includes('en'), JSON.stringify(pvStored()));
+  /* UND DIE LESENDE HAELFTE, an einem Vorrat, der am Schreibweg VORBEI in die
+     Ablage gelegt wird -- genau die Lage, die ein alter Bestand mitbringt. */
+  {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('languageOn', ?)")
+      .run(JSON.stringify(['de']));
+    d.close();
+  }
+  check('Der Aufbau steht: in der Ablage steht die Vorgabe jetzt NICHT im Vorrat',
+    !(pvStored() || []).includes('en'), JSON.stringify(pvStored()));
+  const pvRead = (await call('GET', '/api/settings')).content;
+  check('Die lesende Haelfte: beim Lesen kommt die Vorgabe trotzdem zurueck',
+    pvRead.languages.filter(a => a.active).map(a => a.code).includes('en'),
+    JSON.stringify(pvRead.languages));
+  /* UND SIE STEHT AN ERSTER STELLE ODER IN DER FOLGE DES VERZEICHNISSES --
+     nicht irgendwo: die Pillenreihe soll in jeder Ansicht dieselbe
+     Reihenfolge haben. */
+  check('Und der Vorrat traegt danach beide Sprachen',
+    equal(pvRead.languages.filter(a => a.active).map(a => a.code).sort(), ['de', 'en']),
+    JSON.stringify(pvRead.languages));
+
   // Und zurueck auf den Anfangszustand -- alles im Vorrat, Englisch vorgegeben.
   await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en'] });
   check('Der Aufraeumschritt stellt den Anfangszustand wieder her',
@@ -23389,10 +23432,11 @@ const shareMain = (purpose, target = null) =>
      Gruppe sind viel; sie ist auch die einzige der Runde, und ein
      Migrationsblock, den nichts rot macht, ist eine Behauptung ueber einen
      Bestand, den man nicht mehr zurueckholt.
-     UND 724 SEIT 0.24.3: DREIUNDZWANZIG neue (710 bis 732) fuer die fuenf
+     UND 725 SEIT 0.24.3: VIERUNDZWANZIG neue (710 bis 733) fuer die fuenf
      Gruppen dieser Runde -- vier an den Klammern am Sprachverzeichnis
      (kaputtes JSON, unbrauchbare Locale, der Dateiname, die Meldung selbst),
-     zwei am Vorrat (die Wahl je Benutzer, die Vorgabe darin), sechs am
+     drei am Vorrat (die Wahl je Benutzer, und die Vorgabe darin ZWEIMAL --
+     einmal je Haelfte der doppelten Klemme), sechs am
      Rueckfall der Namen (die Sprache ohne Angabe, die geraeumte gleiche
      Uebersetzung, die Namenstabelle, der Leseweg der Kategorien und die
      beiden Wege der Datei), acht am zweiten Migrationsblock und drei an der
@@ -23401,7 +23445,7 @@ const shareMain = (purpose, target = null) =>
      davon ist die Gegenlage: er laesst den Block nach den BLOCKNAMEN
      greifen, die deutsch bleiben sollen. Ein Block, der zu viel tut,
      richtet denselben Schaden an wie einer, der zu wenig tut. */
-  check('Es sind genau 724 Rueckbauten', gpList.length === 724, `${gpList.length}`);
+  check('Es sind genau 725 Rueckbauten', gpList.length === 725, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

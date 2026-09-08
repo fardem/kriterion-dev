@@ -6816,13 +6816,24 @@ const REGRESSIONS = [
     expected: 'Der Vorrat der Sprachen — 0.24.3'
   },
   {
-    /* DIE KLEMME STEHT AN ZWEI STELLEN, und deshalb greift dieser Rueckbau
-       BEIDE: writeLanguages() legt die Vorgabe beim Schreiben zurueck,
-       languagePool() beim Lesen. Ein Rueckbau, der nur eine wegnimmt, bleibt
-       STUMM -- die andere faengt ihn auf. Das ist keine Schwaeche des
-       Waechters, sondern eine Doppelung im Bau; die Gegenprobe muss sie
-       kennen, sonst belegt sie nichts. */
-    nr: '715', name: 'Die Vorgabesprache faellt aus dem Vorrat heraus',
+    /* DIE KLEMME STEHT AN ZWEI STELLEN, UND DESHALB SIND ES ZWEI RUECKBAUTEN.
+       writeLanguages() legt die Vorgabe beim SCHREIBEN in den Vorrat zurueck,
+       languagePool() beim LESEN. Die erste Fassung dieser Gegenprobe nahm nur
+       eine der beiden weg und blieb STUMM: die andere hat sie aufgefangen,
+       und der Waechter sah nichts. Das war keine Schwaeche des Baus, sondern
+       eine des Waechters -- er hat die Doppelung nur als Ganzes gesehen.
+       SEIT 0.24.3 PRUEFT DER WAECHTER JEDE HAELFTE EINZELN: die schreibende
+       an der Zeile in der Ablage, die lesende an einem Vorrat, der am
+       Schreibweg vorbei hineingelegt wird. Erst damit hat jede Haelfte ihre
+       eigene Gegenprobe. */
+    nr: '715', name: 'Die Vorgabesprache faellt beim SCHREIBEN aus dem Vorrat',
+    file: 'server.js',
+    search: "  if (!set.includes(std)) set.push(std);",
+    replacement: "  if (false) set.push(std);",
+    expected: 'Der Vorrat der Sprachen — 0.24.3'
+  },
+  {
+    nr: '733', name: 'Die Vorgabesprache faellt beim LESEN aus dem Vorrat',
     file: 'server.js',
     search: "  return pool.includes(std) ? pool : [std, ...pool];",
     replacement: "  return pool;",

@@ -263,7 +263,7 @@ beide gesehen.* Beide sind jetzt Schlüssel.
 
 ## Die Gegenproben sind gefahren — und drei waren ein Fund
 
-**Dreiundzwanzig Rückbauten, 710 bis 732**, je einer für ein Stück der neuen
+**Vierundzwanzig Rückbauten, 710 bis 733**, je einer für ein Stück der neuen
 Wächter. *Eine Prüfung, die grün ist, belegt nichts, solange niemand gezeigt
 hat, dass sie auch rot werden kann.*
 
@@ -274,7 +274,7 @@ hat, dass sie auch rot werden kann.*
 | 712 | der Dateiname wird nicht mehr geprüft | 3 |
 | 713 | die übergangene Datei wird nicht mehr genannt | **STUMM — ein Fund** |
 | 714 | ein Benutzer darf wieder jede Sprache setzen | **6** |
-| 715 | die Vorgabesprache fällt aus dem Vorrat | **STUMM — ein Fund** |
+| 715 | die Vorgabesprache fällt beim SCHREIBEN aus dem Vorrat | **ZWEIMAL STUMM — ein Fund**, neu gestellt |
 | 716 | ohne Angabe gilt wieder die Sprache des Lesers | **5** |
 | 717 | eine Übersetzung, die der Grundzeile gleicht, bleibt stehen | 1 |
 | 718 | die Namenstabelle hängt nicht mehr an ihrer Grundzeile | 1 |
@@ -286,6 +286,13 @@ hat, dass sie auch rot werden kann.*
 | 724 | der Einklappzustand der Blöcke bleibt liegen | 3 |
 | 725 | der Block meldet sich auch beim zweiten Start | 1 |
 | 726 | bei zwei Namen gewinnt wieder der alte | 1 |
+| 727 | der Block greift nach den Blocknamen, die deutsch bleiben sollen | 1 |
+| 728 | der Bestand bekommt keine Vorgabesprache geschrieben | **4** |
+| 729 | auch eine frische Installation bekommt sie geschrieben | 2 |
+| 730 | der Block schreibt bei jedem Start neu | 2 |
+| 731 | der Export nimmt die Sprachfassungen nicht mit | **4** |
+| 732 | der Import legt sie nicht wieder hinein | 3 |
+| 733 | die Vorgabesprache fällt beim LESEN aus dem Vorrat | *neu, wird nachgefahren* |
 
 **Die drei Funde sagen drei verschiedene Dinge, und keiner davon ist „der
 Wächter taugt nichts":**
@@ -296,13 +303,24 @@ Seite aus, sobald die linke falsch ist. **Die Meldung lief weiter.** *Ein
 Rückbau, der ins Leere greift, sieht aus wie ein Wächter, der nichts hält, und
 ist das Gegenteil davon.*
 
-**715 war stumm aus einem Grund im BAU und nicht in der Prüfung: die Klemme
-steht zweimal.** `writeLanguages()` legt die Vorgabesprache beim Schreiben in
-den Vorrat zurück, `languagePool()` beim Lesen. **Wer eine wegnimmt, wird von
-der anderen aufgefangen.** *Das ist keine Schwäche — es ist eine Doppelung mit
-Absicht, und die gespeicherte Ablage kann älter sein als das Verzeichnis. Die
-Gegenprobe muss sie aber KENNEN: sie greift jetzt die lesende, die
-tatsächlich entscheidet.*
+**715 war ZWEIMAL stumm, und der zweite Anlauf hat den eigentlichen Befund
+gebracht.** Die Klemme „die Vorgabesprache ist im Vorrat" steht an **zwei**
+Stellen: `writeLanguages()` legt sie beim SCHREIBEN zurück, `languagePool()`
+beim LESEN. **Wer eine wegnimmt, wird von der anderen aufgefangen.** Der
+erste Anlauf nahm die schreibende weg — stumm. Der zweite nahm die lesende
+weg — **wieder stumm.**
+
+*Die Doppelung ist mit Absicht gebaut und richtig: die gespeicherte Ablage
+kann älter sein als das Verzeichnis, und ein Eigentümer, der sich selbst
+aussperrt, kommt an keine Karte mehr, über die er es richten würde.* **Der
+Fehler lag im Wächter, nicht im Bau:** er sah die Doppelung nur als Ganzes
+und konnte deshalb über keine ihrer Hälften etwas sagen.
+
+**Seit dieser Runde prüft er jede Hälfte einzeln** — die schreibende an der
+Zeile in der Ablage, die lesende an einem Vorrat, der am Schreibweg vorbei
+hineingelegt wird, genau so wie ein alter Bestand ihn mitbringt. *Erst damit
+hat jede Hälfte ihre eigene Gegenprobe: 715 für die schreibende, 733 für die
+lesende.*
 
 **719 riss den Lauf ab, statt rot zu werden.** Der Rückbau nahm die Tabelle
 `category_names` weg — und eine vorbereitete Abfrage auf eine Tabelle, die es
@@ -311,12 +329,18 @@ einer Sekunde und sagte über den Wächter nichts.** *Ein Rückbau muss die Sach
 brechen, nicht den Lauf; er zielt jetzt auf den LESEWEG der Kategorienamen und
 lässt den Server stehen.*
 
-**Alle drei sind repariert, und mit ihnen sind sechs weitere dazugekommen** —
-drei an der Vorgabesprache des Bestands (728 bis 730) und zwei an den
-Sprachfassungen in der Exportdatei (731, 732), dazu 727 als Gegenlage: er
-lässt den Migrationsblock nach den Blocknamen greifen, die deutsch bleiben
-sollen. *Ein Block, der zu viel tut, richtet denselben Schaden an wie einer,
-der zu wenig tut.*
+**Alle drei sind repariert und nachgefahren, und jeder ist jetzt namentlich
+rot.** Dazu sind sieben weitere dazugekommen: drei an der Vorgabesprache des
+Bestands (728 bis 730), zwei an den Sprachfassungen in der Exportdatei (731,
+732), einer an der zweiten Hälfte der doppelten Klemme (733) — und 727 als
+Gegenlage: er lässt den Migrationsblock nach den Blocknamen greifen, die
+deutsch bleiben sollen. *Ein Block, der zu viel tut, richtet denselben
+Schaden an wie einer, der zu wenig tut.*
+
+**Zweiundzwanzig der vierundzwanzig sind gefahren und namentlich rot.** Die
+beiden Hälften der doppelten Klemme (715 und 733) sind nach dem Umbau des
+Wächters neu gestellt und werden nachgefahren; *bis dahin steht in dieser
+Zeile, was gefahren ist, und nicht, was gelten soll.*
 
 ---
 
@@ -358,8 +382,8 @@ Abnahme zu elf Neunteln erfüllt ist, sagt das — er rechnet nicht auf.*
 |---|---|---|
 | Sprachdateien | 1 | **2** *(`de.json`, `en.json`)* |
 | Schlüssel je Datei | 1191 | **1204** *(+13, davon 2 für die beiden deutschen Wörter im Quelltext)* |
-| Prüfungen | 5920 | **6012** (+92) |
-| Rückbauten | 701 | **724** *(dreiundzwanzig neue, 710 bis 732)* |
+| Prüfungen | 5920 | **6016** (+96) |
+| Rückbauten | 701 | **725** *(vierundzwanzig neue, 710 bis 733)* |
 | Tabellen | 25 | **27** *(`criterion_names`, `category_names`)* |
 | Austauschformat | 13 | **14** |
 | `PERSONAL_KEYS` | 10 | **11** *(`language`)* |
@@ -397,7 +421,7 @@ Abnahme zu elf Neunteln erfüllt ist, sagt das — er rechnet nicht auf.*
   letzten deutschen Feldnamen der Werkzeuge (`grund` → `reason`, `art` → `kind`).
 * **`testbench.js`** — drei neue Gruppen, die Namensprobe ohne
   `WAITING_FOR_STAGE_TWO`, ein `Accept-Language`-Umschlag um `fetch()`.
-* **`counterproof.js`** — dreiundzwanzig Rückbauten, 710 bis 732.
+* **`counterproof.js`** — vierundzwanzig Rückbauten, 710 bis 733.
 * **`Doku/Woerterbuch_Englisch_0_24_3.md`** — neu: die englische Fassung des
   Namenswörterbuchs, eingecheckt vor dem ersten übersetzten Satz.
 * **`Doku/Auftrag_0.24.3.md`** — die zwölf Fragen mit ihren Antworten.

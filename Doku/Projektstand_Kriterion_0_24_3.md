@@ -476,8 +476,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.24.3** — Fingerprint **`80f90ee5`**, **6012
-Prüfungen**, **724 Rückbauten in der Liste** (Abschnitt 8). *Im Feld noch
+**Gebaut ist 0.24.3** — Fingerprint **`80f90ee5`**, **6016
+Prüfungen**, **725 Rückbauten in der Liste** (Abschnitt 8). *Im Feld noch
 nicht bestätigt.*
 *0.24.3 bringt die zweite Sprache: `en.json` neben `de.json`, 1204 Schlüssel
 je Datei, und **jeder Zugang wählt selbst, welche er liest** — der Wechsel
@@ -1453,7 +1453,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.24.3** | `80f90ee5` *(gebaut am 8. September 2026; **am Wirt noch nicht gesehen**. Er ist vor dem Einspielen gerechnet und steht hier, damit die Installation sich daran messen lässt.)* | **6012** |
+| **0.24.3** | `80f90ee5` *(gebaut am 8. September 2026; **am Wirt noch nicht gesehen**. Er ist vor dem Einspielen gerechnet und steht hier, damit die Installation sich daran messen lässt.)* | **6016** |
 | 0.24.2 | `ae0084d8` *(am 7. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. Er war vor dem Einspielen gerechnet und stand hier, damit die Installation sich daran messen lässt; **der Zeile von 0.24.1 hat genau das gefehlt** — dort ließ sich die Meldung aus dem Feld erst nachträglich einordnen.)* | **5920** |
 | 0.24.1 | `9988912b` *(am 7. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; nachgerechnet am Baum des Grundsteins `4886ae2`. **Der Rundlauf hat einen Befund gebracht, und der ist 0.24.2:** die Migration hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN den gespeicherten Werten — die eigenen Suchmaschinen, der Mailzugang und der Beleg der letzten Testmail waren damit unsichtbar. Verloren war nichts.)* | 5890 |
 | 0.24.0 | `795ddc8a` *(am 6. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. **Erst im zweiten Anlauf:** der erste Einspielversuch meldete `92dc6780`, einen Wert, den kein Commit trägt — dieselbe Lage wie bei 0.9.1 (Stolperstein 158). Ein Neubau des Images half nicht; erst das Leeren des Verzeichnisses und das frische Hineinschieben aller Dateien brachte den Sollwert. **Es lag also am Bestand des Bauverzeichnisses, nicht am Commit** — `COPY . .` im Dockerfile nimmt alles, was dort liegt)* | 5862 |
@@ -10637,13 +10637,13 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
 - **DER VOLLE GEGENPROBENLAUF STEHT SEIT FÜNFUNDZWANZIG RUNDEN AUS.**
-  **724** Rückbauten zu je einem vollen Prüflauf sind bei rund
+  **725** Rückbauten zu je einem vollen Prüflauf sind bei rund
   siebeneinhalb Minuten je Lauf etwa **neunzig Stunden** hintereinander, in
   vier Nebenspuren rund dreiundzwanzig. *Die Zahl der Rückbauten ist seit
-  0.17.2 von 497 auf 724 gewachsen, die Länge eines Laufs von fünfeinhalb auf
+  0.17.2 von 497 auf 725 gewachsen, die Länge eines Laufs von fünfeinhalb auf
   siebeneinhalb Minuten — der Rückstand wächst mit jeder Runde schneller, als
   ein Lauf ihn abtragen könnte.* **Was jede Runde stattdessen tut: sie fährt
-  ihre EIGENEN neuen Rückbauten** *(0.24.3: die dreiundzwanzig von 710 bis 732)*,
+  ihre EIGENEN neuen Rückbauten** *(0.24.3: die vierundzwanzig von 710 bis 733)*,
   und der Prüfstand hält an jedem Lauf fest, dass jeder Suchtext seine Datei
   noch genau einmal trifft. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
@@ -11098,7 +11098,7 @@ stand.* **Und zwei deutsche Wörter, die seit 0.24.0 fest im Quelltext saßen:**
 
 **Austauschformat 14** *(alle Sprachfassungen der Namen)*, `F_ROUTEN` **70**,
 **zweiundzwanzig Karten**, **27 Tabellen**, **elf persönliche Schlüssel**,
-**sieben Felder in `/api/config`**. **6012 Prüfungen, 724 Rückbauten.**
+**sieben Felder in `/api/config`**. **6016 Prüfungen, 725 Rückbauten.**
 *Was gebaut wurde, steht im Änderungsprotokoll 0.24.3.*
 
 ### 0.24.0 — „Das Deutsche wandert in eine eigene Datei"
