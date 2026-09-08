@@ -1136,6 +1136,17 @@ gingen fünf ins Leere.**
 > *Wer beide zusammenlegt, bekommt entweder eine Suche, die vom Leser abhängt,
 > oder eine Sortierung, die keine ist.*
 
+**T2 stimmt — und eine Stelle kann sie trotzdem nicht halten.** Die vierzehn
+Vokabelwörter haben je **einen** Mehrzahlplatz; Türkisch braucht **zwei** —
+die Einzahl hinter einer Zahl („3 öğe") und die Mehrzahl im Satz („bütün
+öğeler için"). *Gemessen am 8. September 2026: 21 Stellen lesen das Wort
+hinter einem Zähler, 36 ohne.* **Die Datei trägt die Mehrzahl**, weil damit
+die Mehrheit richtig wird; „3 Öğeler" bleibt stehen. ***Das ist genau die
+Probe aufs Exempel, von der dieses Papier spricht*** — Deutsch und Englisch
+brauchen für beide Orte dasselbe Wort, Türkisch nicht. **Die Lösung ist ein
+fünfzehnter Vokabelplatz** und keine Regel im Quelltext: Punkt 19 im
+Sammelblatt.
+
 **T2 stand hier richtig und wurde anderswo falsch abgeschrieben.** Dieses
 Papier sagt „`one` / `other` — gleich" (S3.3); im Fahrplan stand dagegen bis
 zum 8. September 2026, Türkisch kenne nur `other`. *Nachgemessen:
@@ -1156,9 +1167,11 @@ geht keine Sprachdatei heraus** — sie ist mit 0.24.4 zum ersten Mal gebrochen
 worden, und zwar benannt: die Abweichung steht im Änderungsprotokoll, im
 Wörterbuch und im Projektstand.
 
-**T4 — die Länge am Telefon.** Der Augenschein an den zwanzig dichtesten
-Stellen ist in drei Sprachen nicht gefahren. *Er ist schon in 0.24.3 offen
-geblieben und gehört zum Leser aus E14.*
+**T4 ist gefahren** — Übersicht, Eintrag und der Abschnitt „Bestand", je in
+drei Sprachen, auf 390 × 844 und auf 1280 × 900, am 8. September 2026.
+*Nichts läuft über, `ğ ş ç ı İ` liegen in der Schriftkette, T1 hält am
+lebenden Beispiel.* **Was er nicht sagt, bleibt beim Leser aus E14: ob ein
+Satz sich türkisch LIEST.**
 
 **Rechts-nach-links.** Türkisch braucht es nicht; die Frage bleibt offen und
 steht hier, damit sie niemand für erledigt hält.

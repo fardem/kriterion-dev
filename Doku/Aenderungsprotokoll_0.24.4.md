@@ -512,6 +512,58 @@ laufenden Server neben der am Quelltext.
 
 ---
 
+## Der Augenschein — gefahren, in drei Sprachen, am Telefon
+
+**Der Punkt, der in 0.24.3 offen geblieben ist, ist mit dieser Runde
+gefahren.** Übersicht, Eintrag und der Abschnitt „Bestand" der Einstellungen,
+je in Deutsch, Englisch und Türkisch, auf **390 × 844** (Telefon) und auf
+**1280 × 900** — achtzehn Bilder, mit Chromium an einer laufenden Instanz.
+
+**Was er bestätigt:**
+
+* **Nichts läuft über und nichts wird abgeschnitten.** Die türkischen Sätze
+  sind länger, und die Stellen, an denen es eng wird, sind dieselben wie auf
+  Deutsch (der Titel in der Kopfzeile, die Kachelüberschrift) — sie brechen um
+  oder kürzen, wie sie es sollen.
+* **`ğ ş ç ı İ` liegen in der Schriftkette**, wie das Konzept sagt (S3.3).
+  „TEST EDİLDİ" steht mit gepunktetem großem İ da.
+* **T1 hält am lebenden Beispiel:** „Öğe sil", „Öğe silinsin mi?" — keine
+  Endung, an keiner Stelle.
+* **Die Reparaturen dieser Runde sind zu sehen:** die vierzehn Felder stehen
+  leer, darunter „(varsayılan: Öğe)"; die Sprachzeile steht über allen vier
+  Karten; „+ Oluştur" steht unter „Kategoriler" und unter „Etiketler"; über
+  „Henüz yorum yok." steht kein Bildzeichen mehr.
+
+### Und ein Befund, den erst der Augenschein gebracht hat
+
+**„3 Öğeler" steht am Bildschirm, und türkisch wäre „3 öğe".** *Nach einer
+Zahl steht im Türkischen die Einzahl — das ist Regel T2, und sie gilt hier
+nicht.*
+
+**Die Ursache ist nicht die Übersetzung, sondern der Mechanismus.** Die
+vierzehn Vokabelwörter haben je **einen** Mehrzahlplatz, und der wird an zwei
+Orten gelesen:
+
+| wo | was Türkisch will | gemessen |
+|---|---|---|
+| hinter einem Zähler — `3 {entryMany}` | die **Einzahl**: „3 öğe" | **21 Stellen** |
+| in einem Satz oder an einer Beschriftung — `bütün {entryMany} için`, „TEST GÜNLERİ" | die **Mehrzahl**: „öğeler" | **36 Stellen** (31 Sätze, 5 Beschriftungen) |
+
+**Die Datei trägt die Mehrzahl**, weil damit die Mehrheit der Stellen richtig
+wird. *Die Minderheit liest sich als „3 Öğeler".*
+
+> **DAS IST DIE PROBE AUFS EXEMPEL, VON DER DAS KONZEPT SPRICHT.** Deutsch und
+> Englisch brauchen für beide Orte dasselbe Wort; Türkisch braucht zwei. **Der
+> Vokabularmechanismus hat dafür keinen Platz** — und die Lösung wäre kein
+> besseres Wort, sondern ein **fünfzehnter Vokabelplatz** („Mehrzahl nach
+> einer Zahl"). *Das ist eine eigene Runde und keine Zeile in `tr.json`; der
+> Punkt steht im Fahrplan.*
+
+**Was der Augenschein NICHT sagt:** ob ein Satz sich türkisch **liest**. Das
+bleibt beim Leser aus F2.
+
+---
+
 ## Stolpersteine dieser Runde
 
 **Ein Verdacht im Auftrag ist eine Vermutung und keine Ursache.** *B1 war am
@@ -544,6 +596,8 @@ keiner von ihnen nach der Sprache gefragt hat.*
 * **Rechts-nach-links** — die Bauform lässt es zu, geprüft ist es nicht.
 * **Die Region je Sprache** (`de-AT` neben `de-DE`).
 * **`ß` gegen `ss` in der Suche** — Punkt 18 im Fahrplan.
+* **Der fünfzehnte Vokabelplatz** — „Mehrzahl nach einer Zahl", die Grenze,
+  die der Augenschein an Türkisch gezeigt hat.
 * **Die 42 Stellen im Projektstand, die noch `pruefung.js` und `gegenprobe.js`
   nennen** — Papierarbeit aus 0.24.1, seit vier Runden offen.
 * **`0.25.0` ist frei** und die erste Nummer nach dem Ende der Abweichung.

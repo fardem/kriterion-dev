@@ -301,10 +301,78 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 
 ## Teil I nimmt wieder auf, sobald etwas dazukommt
 
-**Er ist leer und bleibt der Ort für den nächsten ausgearbeiteten Punkt** — mit
-den sechs Überschriften aus „Die Form eines Punktes" und **ohne Versionsnummer**
-(Regel 1). *Die nächste Nummer, die frei ist, entscheidet der Betreiber, wenn
-genug beieinander ist.*
+**Er ist leer gewesen und trägt seit dem 8. September 2026 wieder einen
+Punkt** — mit den sechs Überschriften aus „Die Form eines Punktes" und **ohne
+Versionsnummer** (Regel 1). *Die nächste Nummer, die frei ist, entscheidet der
+Betreiber, wenn genug beieinander ist.*
+
+---
+
+## 19. Der fünfzehnte Vokabelplatz — „Mehrzahl nach einer Zahl"
+
+**Art: Fehler** *(in einer Sprache; in Deutsch und Englisch fällt er nicht
+an)* · **Einschätzung: empfohlen, aber nicht dringend** — *ein Wort mehr in
+der Karte, ein Schlüssel mehr je Sprachdatei, ein Ruf mehr im Quelltext* ·
+**Draußen üblich: ja** — *jede Bibliothek für Mehrsprachigkeit trennt die
+Zählform von der Wortform*
+
+### Woher
+
+**Aus dem Augenschein zu 0.24.4**, am 8. September 2026, an der türkischen
+Oberfläche auf dem Telefon. *Nicht gemeldet, sondern gesehen — und Türkisch
+ist die erste Sprache, an der es überhaupt auffällt.*
+
+### Was auffiel
+
+**„3 Öğeler" steht in der Kopfzeile der Übersicht.** Türkisch setzt nach einer
+Zahl die **Einzahl**: „3 öğe". *Das ist Regel **T2** des Konzepts (S3.1), und
+sie gilt an dieser Stelle nicht.*
+
+### Warum es keine Übersetzungsfrage ist
+
+**Die vierzehn Vokabelwörter haben je EINEN Mehrzahlplatz** (`entryMany`,
+`dayMany`, `reportMany`, `taskMany`, `ratingMany`), und der wird an **zwei**
+Orten gelesen:
+
+| wo | was Türkisch will | gemessen |
+|---|---|---|
+| hinter einem Zähler — `3 {entryMany}`, `vThing(n)` | die **Einzahl** | **21 Stellen** |
+| in einem Satz oder an einer Beschriftung — `bütün {entryMany} için`, „TEST GÜNLERİ" als Blockkopf | die **Mehrzahl** | **36 Stellen** *(31 Sätze, 5 Beschriftungen)* |
+
+**`tr.json` trägt die Mehrzahl**, weil damit die Mehrheit richtig wird; die
+Minderheit liest sich als „3 Öğeler". *Kein Wort dieser Welt macht beides
+richtig.*
+
+### Was zu bauen wäre
+
+**Ein fünfzehnter Platz je Vokabelwort — „Mehrzahl nach einer Zahl".** In
+Deutsch und Englisch trüge er dasselbe wie der vorhandene Mehrzahlplatz; in
+Türkisch dasselbe wie der Einzahlplatz. *Dann ruft `vThing(n)` ihn, und alles
+Übrige bleibt, wie es ist.*
+
+**Was daran hängt:** die Karte „Vokabular" bekommt eine Spalte mehr (aus
+vierzehn Feldern werden einundzwanzig — fünf Paare bekommen einen dritten),
+der Server einen Schlüssel mehr je Wort, die Sprachdateien fünf Schlüssel
+mehr, und der Prüfstand seine Zahl.
+
+**Was NICHT daran hängt:** das Datenbankschema *(das Vokabular liegt als
+Gebilde unter `settings.vocabulary`)*, das Austauschformat und die
+Rechtezeilen.
+
+### Einschätzung von Claude
+
+**Empfohlen, aber es hat Zeit.** *Der Fehler steht an 21 Stellen einer
+Sprache, die es seit einem Tag gibt, und er ist ein Schönheitsfehler und kein
+Missverständnis — „3 Öğeler" liest sich falsch, aber niemand versteht etwas
+Falsches.* **Wer ihn baut, sollte ihn zusammen mit der nächsten Sprache
+bauen**, die eine eigene Zählform braucht — und nicht für sich allein.
+
+> **UND EINE ALTERNATIVE, DIE AUSDRÜCKLICH VERWORFEN IST:** die Regel im
+> Quelltext festzuschreiben („bei `tr` nimm die Einzahl"). *Damit stünde eine
+> Sprachregel im Code statt in der Datei — genau das, was das ganze Vorhaben
+> 0.24.0 bis 0.24.4 abgebaut hat.*
+
+---
 
 
 # Teil II — Gesammelt, ohne Ausarbeitung

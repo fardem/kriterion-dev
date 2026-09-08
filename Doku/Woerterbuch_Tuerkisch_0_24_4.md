@@ -25,12 +25,16 @@ Stellen.
 > fünf Regeln; ob ein Satz sich türkisch LIEST, sagt nur jemand, der die
 > Sprache spricht.***
 >
-> **Drei Stellen gehören dabei zuerst angesehen:**
+> **Vier Stellen gehören dabei zuerst angesehen:**
 > 1. **`Parola` oder `Şifre`** für „Passwort" *(F3)* — es steht an der
 >    Anmeldemaske, und das ist der erste Satz, den ein Mensch liest.
 > 2. **`Öğe` für „Eintrag"** — der Zusammenstoß aus S3.2, unten begründet.
-> 3. **Die zwanzig dichtesten Stellen am Telefon** *(T4)* — Länge ist keine
->    Sache des Wörterbuchs, sondern des Augenscheins.
+> 3. **Die Mehrzahl hinter einer Zahl** — „3 Öğeler" steht am Bildschirm, und
+>    türkisch wäre „3 öğe". *Der Kasten unter TR-S4 sagt, warum es so ist und
+>    was die Alternative kostet.*
+> 4. **Der Wortlaut am Telefon** — der Augenschein ist gefahren *(die Bilder
+>    liegen der Runde bei)*, aber ob ein Satz sich türkisch **liest**, sagt
+>    dieser Blick nicht.
 
 ---
 
@@ -75,6 +79,27 @@ repariert.*
   >
   > **Die Mehrzahl mit -ler/-lar steht nur als Titel:** „Yorumlar" über der
   > Liste, „3 yorum" an der Zahl.
+  >
+  > ## UND EINE STELLE HÄLT DIE REGEL NICHT — sie kann es nicht.
+  > **Die vierzehn Vokabelwörter haben je EINEN Mehrzahlplatz**, und der wird
+  > an zwei Orten gelesen: **hinter einem Zähler** (`3 {entryMany}`) und **als
+  > Wort in einem Satz oder an einer Beschriftung** (`bütün {entryMany} için`,
+  > „TEST GÜNLERİ" als Blocküberschrift). *Türkisch will dort zwei
+  > verschiedene Wörter — `öğe` nach der Zahl, `öğeler` im Satz.*
+  >
+  > **Gemessen am 8. September 2026:** **21 Stellen** lesen das Wort hinter
+  > einer Zahl, **36** ohne (31 in Sätzen, 5 als Beschriftung).
+  >
+  > **Die Datei trägt deshalb die Mehrzahl** (`Öğeler`, `Test günleri`, …) —
+  > die Mehrheit der Stellen wird damit richtig, und die Minderheit liest sich
+  > als „3 Öğeler" statt „3 öğe". ***Das ist keine Übersetzungsfrage, sondern
+  > eine Grenze des Vokabularmechanismus***, und Türkisch ist die erste
+  > Sprache, an der sie auffällt.
+  >
+  > **Für den Leser aus F2 ist das die vierte Stelle, die eine Entscheidung
+  > braucht** — und die Alternative wäre kein besseres Wort, sondern ein
+  > **fünfzehnter Vokabelplatz** („Mehrzahl nach einer Zahl"). *Das ist eine
+  > eigene Runde und keine Zeile in dieser Datei.*
 - **TR-S5 · Der Apostroph steht in der Datei, nie im Code** *(T5)*. Endungen
   an Eigennamen, Zahlen und zitierten Wörtern trennt das Türkische mit
   Apostroph: „Kriterion'a", „3'te". **Die Sätze sind so gebaut, dass weder

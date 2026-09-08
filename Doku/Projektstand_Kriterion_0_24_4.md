@@ -5306,7 +5306,7 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   | **T1** | **Keine Endung an einem Platzhalter.** Das Vokabelwort steht im Nominativ, die Endung trägt ein festes Wort daneben — oder der Satz wird passiv gebaut und braucht gar keine | ob die Endung `-yi`, `-yı`, `-yu` oder `-yü` hieße, entscheidet der letzte Vokal des Wortes, **das der Admin frei wählt**. Das ist S6, wörtlich angewandt: die Regel, die das Deutsche für Artikel und Fälle braucht, trägt das Türkische für seine Endungen |
   | **T2** | **Nach einer Zahl steht die Einzahl.** „3 yorum", nicht „3 yorumlar" — beide Mehrzahlformen der Datei tragen dasselbe Nomen | die Klasse entscheidet `Intl.PluralRules`, das Wort entscheidet die Datei. **Beide Formen werden gefüllt**: `select(1)` ist `one`, `select(3)` ist `other`, und wer nur eine schriebe, ließe ein `⟦…⟧` stehen |
   | **T3** | **İ und ı.** Suche, Vergleich und Sortierung folgen einer Regel für alle | das Lateinische kennt zwei i, Unicode kennt vier. **Die Faltung der Suche nimmt keine Sprache entgegen** und lässt `I i İ ı` auf `i` fallen; **die Sortierung dagegen folgt der Locale** (`Intl.Collator`) — zwei verschiedene Fragen, zwei verschiedene Antworten |
-  | **T4** | **Länge.** Türkische Sätze sind länger bei weniger Wörtern | die Maße aus S4 zählen Wörter; für Türkisch gilt zusätzlich die Breite am Bildschirm. **Das entscheidet der Augenschein und kein Wächter** |
+  | **T4** | **Länge.** Türkische Sätze sind länger bei weniger Wörtern | die Maße aus S4 zählen Wörter; für Türkisch gilt zusätzlich die Breite am Bildschirm. **Das entscheidet der Augenschein und kein Wächter** — gefahren am 8. September 2026, in drei Sprachen, auf Telefon und Schirm |
   | **T5** | **Der Apostroph steht in der Datei, nie im Code.** „Kriterion'a", „3'te" | die Sätze sind so gebaut, dass weder der Titel noch eine Zahl eine Endung braucht — der Titel als Beifügung in Anführungszeichen, die Zahl vor einem Nomen (T2) |
 
   **UND DIE ZWEITE HÄLFTE DER REGEL, aus den Befunden B1 und B2:** *was für
@@ -5319,8 +5319,16 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   Sprache.* **Eine Karte, die eine Sprache pflegt, zeigt deshalb in ihren
   Feldern das Eingetragene und nicht den Rückfall** — sonst macht ein Klick
   auf „Speichern" aus dem Rückfall einen Eintrag.
-  *Elf Wächter im Prüfstand halten die Regel; die vollständige Liste steht im
-  Änderungsprotokoll 0.24.4.*
+  *Siebzehn Wächter im Prüfstand halten die Regel; die vollständige Liste steht
+  im Änderungsprotokoll 0.24.4.*
+
+  > **UND EINE STELLE HÄLT SIE NICHT — sie kann es nicht.** Die vierzehn
+  > Vokabelwörter haben je **einen** Mehrzahlplatz, und Türkisch braucht
+  > **zwei**: die Einzahl hinter einer Zahl („3 öğe", 21 Stellen), die
+  > Mehrzahl im Satz und an der Beschriftung („bütün öğeler için", 36
+  > Stellen). *`tr.json` trägt die Mehrzahl, weil damit die Mehrheit richtig
+  > wird.* **Die Lösung wäre ein fünfzehnter Vokabelplatz** — Punkt 19 im
+  > Sammelblatt, und ausdrücklich keine Regel im Quelltext.
 
   > **DAS TÜRKISCHE WÖRTERBUCH IST NOCH NICHT GEGENGELESEN.** Die Regel des
   > Konzepts — *ohne Leser geht keine Sprachdatei heraus* — ist am
@@ -11188,6 +11196,16 @@ nicht sagen, welche von ihnen etwas belegt.*
 *(unverändert)*, **drei Sprachdateien** *(vorher zwei)*, **1211 Schlüssel je
 Datei** *(flach 1279)*. **6080 Prüfungen, 728 Rückbauten.**
 *Was gebaut wurde, steht im Änderungsprotokoll 0.24.4.*
+
+**(8) Der Augenschein ist gefahren** — Übersicht, Eintrag und der Abschnitt
+„Bestand", je in drei Sprachen, auf 390 × 844 und auf 1280 × 900. *Nichts
+läuft über, `ğ ş ç ı İ` liegen in der Schriftkette, T1 hält am lebenden
+Beispiel.* **Und er hat einen Befund gebracht, den kein Wächter sieht:** „3
+Öğeler" statt „3 öğe". Der Vokabularmechanismus hat **einen** Mehrzahlplatz,
+und Türkisch braucht **zwei** — die Einzahl hinter einer Zahl (21 Stellen),
+die Mehrzahl im Satz (36 Stellen). *Die Datei trägt die Mehrzahl, weil damit
+die Mehrheit richtig wird; die Lösung wäre ein fünfzehnter Vokabelplatz und
+ist **Punkt 19** im Sammelblatt.*
 
 > **OFFEN BLEIBT DER LESER (F2).** `tr.json` ist gebaut, geprüft und liegt
 > vollständig da — **gegengelesen ist sie nicht.** Die Regel des Konzepts
