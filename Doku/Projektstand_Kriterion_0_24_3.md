@@ -445,10 +445,10 @@ Node.js/Express, verschlüsselte SQLite-Datenbank (SQLCipher über
 `better-sqlite3-multiple-ciphers`), `sharp` für die Bildvarianten, Frontend
 ohne Framework, Auslieferung per Docker.
 
-**20 Dateien.** Darin `pruefung.js` — der Prüfstand, läuft über `npm test` —,
+**20 Dateien.** Darin `testbench.js` — der Prüfstand, läuft über `npm test` —,
 `anhaenge.js` mit sämtlichen Auslieferungsregeln für angehängte Dateien
 (Abschnitt 5a) und `zugang.js`, der Befehl auf dem Wirt für Passwort und
-Zugänge. Dazu `gegenprobe.js` (der Gegenprobentreiber, läuft eigens und nicht
+Zugänge. Dazu `counterproof.js` (der Gegenprobentreiber, läuft eigens und nicht
 über `npm test`) sowie `schluessel.sh` und `schluessel.js` — der
 Schlüsselwechsel, ebenfalls auf dem Wirt. **Keine dieser drei steht im
 Fingerprint**: der Server lädt sie nicht und liefert sie nicht aus.
@@ -6090,7 +6090,7 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   Übersetzung, sondern eine Wahl zwischen zwei deutschen Wendungen —, sondern
   ein eigener, enger Wächter.
 - **Gegenproben laufen über einen Treiber, nicht von Hand** (seit 0.8.91).
-  `gegenprobe.js` kennt seine Rückbauten als Liste ganz oben — dieselbe Bauform
+  `counterproof.js` kennt seine Rückbauten als Liste ganz oben — dieselbe Bauform
   wie `F_ROUTEN`: **die Liste ist die Entscheidung.** Jeder Rückbau läuft in
   einer eigenen Kopie aus `git archive HEAD` (atomar gegen den Arbeitsbaum,
   Stolperstein 100), aufgeräumt wird über `/proc/<pid>/cwd` (Stolperstein 133),
@@ -7016,7 +7016,7 @@ Version, in der sie entstanden sind.*
     immer.** Zwei Rückbauten dieser Runde taten es — der eine nahm die Frist
     über dem Mailversand weg, der andere das Abräumen der Verbindungen des
     SMTP-Empfängers. Ohne CPU, ohne Meldung, und in der Laufzeile des Treibers
-    von einem stummen nicht zu unterscheiden. `gegenprobe.js` hat seitdem eine
+    von einem stummen nicht zu unterscheiden. `counterproof.js` hat seitdem eine
     **Zeitgrenze je Rückbau** und ein eigenes Wort dafür. *Ein Treiber, der
     einen Rückbau fährt, rechnet damit, dass der Rückbau ihn aufhält.* Und die
     Kehrseite: **beide Rückbauten waren schlecht gezielt** — einer, der die
@@ -7335,7 +7335,7 @@ Version, in der sie entstanden sind.*
     dieser Runde sollten bei 123 fortsetzen — die höchste Nummer im Papier war
     122. Im Quelltext lag aber schon eine **123**: die Liste ist nicht
     monoton, spätere Runden haben Nummern zwischen älteren eingefügt.
-    `node gegenprobe.js 2 123 …` fuhr daraufhin **zwei verschiedene**
+    `node counterproof.js 2 123 …` fuhr daraufhin **zwei verschiedene**
     Rückbauten unter demselben Wort, und die Tabelle hätte zwei Zeilen mit
     derselben Nummer getragen.
     *Die höchste Nummer steht nicht am Ende der Liste.* Vor dem Nummerieren
@@ -7808,7 +7808,7 @@ Version, in der sie entstanden sind.*
     ausgelöst**, sonst belegt sie die Hälfte und liest sich wie das Ganze.
 
 213. **Ein Werkzeug, dessen Erfolgsmeldung den eigenen Fund nicht sehen kann,
-    ist schlimmer als keines.** `gegenprobe.js` nannte einen Rückbau „STUMM",
+    ist schlimmer als keines.** `counterproof.js` nannte einen Rückbau „STUMM",
     wenn **kein** Punkt rot wurde — aber die Selbstprobe *„Jeder Suchtext kommt
     in seiner Datei genau einmal vor"* wird bei **jedem** gefahrenen Rückbau
     rot, denn er hat seinen Suchtext gerade ersetzt. **Damit war `rot.length`
@@ -8010,7 +8010,7 @@ Version, in der sie entstanden sind.*
     Spur 0 fährt ohne Versatz, also auf **denselben Portbasen wie `npm test`**.
     Ein Lauf daneben nimmt ihr die Ports, ihre Server enden sofort, und der
     Rückbau sieht aus wie einer, der die Instanz zerstört. **Schlimmer ist das
-    Aufräumen über ein Namensmuster:** `pkill -f "node pruefung.js"` trifft die
+    Aufräumen über ein Namensmuster:** `pkill -f "node testbench.js"` trifft die
     Läufe **aller** Spuren, weil sie genauso heißen — vier Rückbauten auf einen
     Schlag, alle mit demselben falschen Befund, und die verwaisten Server
     bleiben stehen und nehmen der nächsten Runde die Ports. *Solange eine
@@ -8244,7 +8244,7 @@ Version, in der sie entstanden sind.*
     nicht an den beiden grünen.*
 
 250. **Im Prüfstand ist eine Konstante, die weiter unten steht, eine tote Zone —
-    und der Lauf reißt ab, statt rot zu werden.** `pruefung.js` ist EIN langer
+    und der Lauf reißt ab, statt rot zu werden.** `testbench.js` ist EIN langer
     Ablauf, und `pruefeOberflaeche()` ist eine einzige Funktion über mehrere
     tausend Zeilen. Wer eine Prüfung oben einfügt, die `css123` liest, bekommt
     kein rotes Kreuz, sondern *„Cannot access 'css123' before initialization"* —
@@ -8447,7 +8447,7 @@ Version, in der sie entstanden sind.*
     damit wieder das, was die Runden 0.17.3 bis 0.17.5 beschäftigt hat.*
 
 269. **Die ZAHL der Rückbauten und die HÖCHSTE Rückbaunummer sind nicht
-    dasselbe.** In `gegenprobe.js` standen zu 0.18.1 **422 Einträge**, die
+    dasselbe.** In `counterproof.js` standen zu 0.18.1 **422 Einträge**, die
     höchste Nummer war aber **430** — Runden, die Rückbauten haben fallen
     lassen, hinterlassen Lücken (0.17.3 acht auf einmal). **Wer die nächste
     Nummer aus der Anzahl ableitet, vergibt eine, die es schon gibt.** *Der
@@ -9226,13 +9226,13 @@ Version, in der sie entstanden sind.*
 
 ## 7. Prüfstand
 
-Der Prüfstand liegt als `pruefung.js` im Quelltext und läuft über `npm test`. Er
+Der Prüfstand liegt als `testbench.js` im Quelltext und läuft über `npm test`. Er
 legt **echte Server mit echten, verschlüsselten Datenbanken** in
 Wegwerfverzeichnissen an — `data/` bleibt unangetastet, und **alle Instanzen
 entstehen frisch** über Einrichtungsseite und Verwaltung; einen präparierten
 Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
-außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
+außerhalb des Docker-Images). **`testbench.js` und `counterproof.js` landen nicht
 im Image.**
 
 > **ZWEI PRÜFLÄUFE ZUGLEICH AUF DERSELBEN MASCHINE BRAUCHEN VERSCHIEDENE
@@ -9867,7 +9867,7 @@ Rückbauten.*
 > nichts über den Zustand mit Schalter.*
 
 > **„DIE GEGENPROBEN GREIFEN" IST EINE PRÜFUNG ÜBER DEN GEGENPROBENTREIBER.**
-> Sie liest `RUECKBAUTEN` aus `gegenprobe.js` und sieht nach, ob jeder Suchtext
+> Sie liest `RUECKBAUTEN` aus `counterproof.js` und sieht nach, ob jeder Suchtext
 > in seiner Datei genau einmal vorkommt. **Sie ersetzt den vollen Lauf nicht** —
 > sie sagt nichts darüber, ob ein Rückbau eine Prüfung *rot* macht. Sie sagt
 > nur, dass er überhaupt noch etwas anfasst. *Drei taten es fünf Runden lang
@@ -10653,7 +10653,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   ihre EIGENEN neuen Rückbauten** *(0.24.3: die vierundzwanzig von 710 bis 733)*,
   und der Prüfstand hält an jedem Lauf fest, dass jeder Suchtext seine Datei
   noch genau einmal trifft. **Er lässt
-  sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
+  sich nicht neben dem Bauen fahren** — `counterproof.js` zieht seine Kopie aus
   `git archive HEAD`, und ein Commit mitten im Lauf verschiebt die Grundlage.
   *Was in 0.17.2 gefahren wurde, steht im Änderungsprotokoll dieser Runde;
   was in den Runden davor gefahren wurde, in jenen.*
@@ -10808,7 +10808,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   **26,7 Stunden** hintereinander, in vier Nebenspuren rund sieben. **Auch in
   0.16.0 ist er nicht gefahren, und das ist keine Zusage mehr.** *Die Gründe
   stehen im Änderungsprotokoll 0.14.0, Abschnitt 16; der wichtigste ist
-  baulich: `gegenprobe.js` zieht seine Kopie aus `git archive HEAD`, ein Commit
+  baulich: `counterproof.js` zieht seine Kopie aus `git archive HEAD`, ein Commit
   mitten im Lauf verschöbe die Grundlage.* **Gefahren sind die 29 neuen
   Rückbauten dieser Runde und die zwei reparierten, vollständig und in vier
   Nebenspuren — 31 Stück, rund 51 Minuten.**
@@ -10821,7 +10821,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   **Vor dem Lauf stand in diesem Blatt „keiner blieb stumm" — geschrieben,
   bevor er gefahren war** (Stolperstein 225).
   **UND DAS WERKZEUG SELBST WAR VOR DEM ERSTEN LAUF ZU REPARIEREN:** sein
-  Nummernfilter griff auch als Namensteil, `node gegenprobe.js 256` fuhr
+  Nummernfilter griff auch als Namensteil, `node counterproof.js 256` fuhr
   deshalb zwei Rückbauten statt einem. *Eine Zahl in der Gegenprobentabelle,
   die einen anderen Umfang hat als ihr Aufruf, ist schlimmer als keine — das
   war die Auflage im Auftrag, und sie stand vor jeder Gegenprobe dieser
@@ -11000,7 +11000,7 @@ curl -s -b cookies.txt localhost:3100/api/stats | head -c 60
 ```
 
 Erwartet für 0.12.2: `{"version":"0.12.2","fingerprint":"e30a19c1",…`.
-**Was er nicht abdeckt:** `zugang.js`, `schluessel.js` und `gegenprobe.js` — sie
+**Was er nicht abdeckt:** `zugang.js`, `schluessel.js` und `counterproof.js` — sie
 liegen im Image, laufen aber nie im Server.
 
 **3. Die Datenbank von innen.** Sie ist verschlüsselt, `sqlite3` von außen
@@ -11112,8 +11112,8 @@ stand.* **Und zwei deutsche Wörter, die seit 0.24.0 fest im Quelltext saßen:**
 
 **MINOR · 6. September 2026 · Stufe 1 der Mehrsprachigkeit** *(gebaut auf
 0.23.0, Fingerprint `92f7a142`).* *Angefasst sind `public/app.js`,
-`server.js`, `auth.js`, `mail.js`, `public/style.css`, `pruefung.js`,
-`gegenprobe.js` — und neu: `public/sprachen/de.json`.*
+`server.js`, `auth.js`, `mail.js`, `public/style.css`, `testbench.js`,
+`counterproof.js` — und neu: `public/sprachen/de.json`.*
 
 **Jeder Satz, den ein Mensch am Bildschirm oder in einer Mail liest, ist aus
 dem Quelltext heraus und in EINE Datei gezogen** — 1190 Schlüssel, deutsch,
@@ -11218,7 +11218,7 @@ mitgezählt und ist verworfen worden.*
 **MINOR · 4. September 2026 · aus dem Betrieb (30. August 2026), im Gespräch
 mit dem Betreiber zu sechzehn Entscheidungen ausgearbeitet** *(0.21.1 mit
 Fingerprint `2295870b` ist im Feld bestätigt).* *Angefasst sind `public/app.js`,
-`public/style.css`, `server.js`, `auth.js`, `pruefung.js`, `gegenprobe.js`,
+`public/style.css`, `server.js`, `auth.js`, `testbench.js`, `counterproof.js`,
 `package.json`, `package-lock.json` und die Papiere — **`db.js` und `mail.js`
 nicht**.* **KEINE DATENBANKSTUFE, KEIN BESTANDSLAUF, KEINE NEUE ROUTE.**
 Austauschformat **13**, `F_ROUTEN` **70**, einundzwanzig Karten, neun
@@ -11268,7 +11268,7 @@ stehen im Änderungsprotokoll 0.22.0.*
 
 **PATCH · 4. September 2026 · aus dem Rundlauf von Hand nach 0.21.0**
 *(0.21.0 mit Fingerprint `85f4348b` ist im Feld bestätigt).* *Angefasst sind
-`public/app.js`, `public/style.css`, `pruefung.js`, `gegenprobe.js`,
+`public/app.js`, `public/style.css`, `testbench.js`, `counterproof.js`,
 `package.json`, `package-lock.json` und die Papiere — **`server.js` und `db.js`
 nicht**.* **KEINE DATENBANKSTUFE, KEIN BESTANDSLAUF, KEINE NEUE ROUTE.**
 Austauschformat **13**, `F_ROUTEN` **70**, einundzwanzig Karten, neun
@@ -11304,8 +11304,8 @@ kein Schalter zum Abschalten.
 
 **MINOR · 4. September 2026 · eine eingeschobene Runde aus dem Betrieb**
 *(0.20.1 mit Fingerprint `c67a13f9` ist im Feld bestätigt).* *Angefasst sind
-`db.js`, `server.js`, `public/app.js`, `public/style.css`, `pruefung.js`,
-`gegenprobe.js`, `package.json`, `package-lock.json` und die Papiere.*
+`db.js`, `server.js`, `public/app.js`, `public/style.css`, `testbench.js`,
+`counterproof.js`, `package.json`, `package-lock.json` und die Papiere.*
 **DATENBANKSTUFE — SICHERUNG VOR DEM EINSPIELEN.** Austauschformat **13**,
 `F_ROUTEN` **70**, neun Zwecke der zweiten Bestätigung, einundzwanzig Vorgänge,
 **einundzwanzig Karten**, **neun Migrationsblöcke**, neun ausgelieferte Module,
@@ -11344,8 +11344,8 @@ keine zweite Rechnung im Browser.
 **PATCH · 3. September 2026 · drei Befunde aus dem Betrieb, unmittelbar nach
 dem Einspielen von 0.20.0** *(Fingerprint `12421721`, im Feld bestätigt;
 0.20.1 selbst ist am 3. September 2026 mit `c67a13f9` bestätigt worden).*
-*Angefasst sind `server.js`, `public/app.js`, `public/style.css`, `pruefung.js`,
-`gegenprobe.js`, `package.json`, `package-lock.json` und die Papiere.* **KEINE
+*Angefasst sind `server.js`, `public/app.js`, `public/style.css`, `testbench.js`,
+`counterproof.js`, `package.json`, `package-lock.json` und die Papiere.* **KEINE
 DATENBANKSTUFE, KEIN BESTANDSLAUF, KEINE NEUE ROUTE, KEINE NEUE KARTE.**
 Austauschformat **12**, `F_ROUTEN` **71**, neun Zwecke der zweiten Bestätigung,
 einundzwanzig Vorgänge, zwanzig Karten, neun ausgelieferte Module.
@@ -11389,7 +11389,7 @@ Grund in der Tabelle.**
 
 **MINOR · 3. September 2026 · ein Wunsch aus dem Betrieb vom 2. September,
 Punkt 8 des Sammelblatts.** *Angefasst sind `server.js`, `auth.js`,
-`public/app.js`, `pruefung.js`, `gegenprobe.js`, `package.json`,
+`public/app.js`, `testbench.js`, `counterproof.js`, `package.json`,
 `package-lock.json` und die Papiere.* **KEINE DATENBANKSTUFE UND KEIN
 BESTANDSLAUF** — kein Migrationsblock, keine Schemaänderung, kein neuer Index,
 Austauschformat **12**, acht Migrationsblöcke, neun ausgelieferte Module, keine
@@ -11441,7 +11441,7 @@ Abschnitt 8.
 **PATCH · 3. September 2026 · ein Feldbefund aus 0.19.5 und eine
 Sprachentscheidung fürs ganze Projekt.** *Angefasst sind `public/app.js`,
 `bilder.js`, `bestandslauf.js`, `server.js`, `db.js`, `public/style.css`,
-`pruefung.js`, `gegenprobe.js`, `package.json`, `package-lock.json` und die
+`testbench.js`, `counterproof.js`, `package.json`, `package-lock.json` und die
 Papiere.* **KEINE DATENBANKSTUFE, und diesmal auch kein Lauf, der etwas
 überschreibt.** Austauschformat **12**, `F_ROUTEN` **70**, acht
 Migrationsblöcke, neunzehn Karten, neun ausgelieferte Module.
@@ -11466,7 +11466,7 @@ Wettlauf eine Fassung zu alt sein kann — beides in Abschnitt 8.
 **PATCH · 3. September 2026 · eine Entscheidung aus 0.19.4 wird umgekehrt, und
 zwar in beiden Hälften zugleich.** *Angefasst sind `bilder.js`,
 `bestandslauf.js`, `server.js`, `public/app.js`, `public/style.css`,
-`pruefung.js`, `gegenprobe.js`, `package.json` und die Papiere.* **KEINE
+`testbench.js`, `counterproof.js`, `package.json` und die Papiere.* **KEINE
 DATENBANKSTUFE** — kein Migrationsblock, keine Schemaänderung, kein neuer
 Index, Austauschformat **12**, `F_ROUTEN` **70**, neun ausgelieferte Module.
 **ABER: der Lauf überschreibt jede `thumb`-Spalte — zum zweiten Mal nach
@@ -11511,7 +11511,7 @@ Index, Austauschformat **12**, `F_ROUTEN` **70**, neun ausgelieferte Module.
 **PATCH · 3. September 2026 · ein Fehler, der seit dem ersten Tag da war,
 und der erste Bestandslauf, der eine gültige Ableitung ersetzt.** *Angefasst
 sind `bilder.js`, `bestandslauf.js`, `server.js`, `public/app.js`,
-`pruefung.js`, `gegenprobe.js`, `package.json` und die Papiere.* **KEINE
+`testbench.js`, `counterproof.js`, `package.json` und die Papiere.* **KEINE
 DATENBANKSTUFE** — kein Migrationsblock, keine Schemaänderung, kein neuer
 Index, Austauschformat **12**, `F_ROUTEN` **70**, neun ausgelieferte Module.
 **ABER: der Lauf überschreibt jede `thumb`-Spalte.**
@@ -11550,7 +11550,7 @@ Index, Austauschformat **12**, `F_ROUTEN` **70**, neun ausgelieferte Module.
 
 **PATCH · 2. September 2026 · zwei Arbeiten verlassen den Anfrageweg, nichts
 Neues kommt dazu.** *Angefasst sind `server.js`, `db.js`, `keys.js`,
-`public/app.js`, `pruefung.js`, `gegenprobe.js`, `README.md`, `CHANGELOG.md`
+`public/app.js`, `testbench.js`, `counterproof.js`, `README.md`, `CHANGELOG.md`
 und die Papiere — dazu **zwei neue ausgelieferte Dateien**, `bilder.js` und
 `bestandslauf.js`.* **KEINE DATENBANKSTUFE** — kein Migrationsblock, keine
 Schemaänderung, **kein neuer Index**, Austauschformat **12**.
@@ -11578,7 +11578,7 @@ Schemaänderung, **kein neuer Index**, Austauschformat **12**.
 
 **PATCH · 2. September 2026 · vier Befunde aus dem Rundlauf mit 0.19.1, zwei
 davon Nacharbeit an ihr selbst.** *Angefasst sind `db.js`, `server.js`,
-`public/app.js`, `pruefung.js`, `gegenprobe.js`, `CHANGELOG.md` und die
+`public/app.js`, `testbench.js`, `counterproof.js`, `CHANGELOG.md` und die
 Papiere.* **KEINE DATENBANKSTUFE** — der neue Index `idx_photos_art` ist keine
 Stufe: kein Migrationsblock, keine Spalte, keine neue Formatnummer.
 
@@ -11602,7 +11602,7 @@ Stufe: kein Migrationsblock, keine Spalte, keine neue Formatnummer.
 
 **PATCH · 2. September 2026 · aus dem Rundlauf mit 0.19.0 und aus dem Messen
 danach.** *Angefasst sind `server.js`, `auth.js`, `public/app.js`,
-`public/style.css`, `pruefung.js`, `gegenprobe.js`, `.gitignore`,
+`public/style.css`, `testbench.js`, `counterproof.js`, `.gitignore`,
 `docker-compose.yml` → `docker-compose.example.yml`, `README.md`,
 `CHANGELOG.md` und die Papiere.* **KEINE DATENBANKSTUFE:** acht markierte
 Blöcke, Austauschformat **12**, `F_ROUTEN` **70**, acht Zwecke der zweiten
@@ -11643,7 +11643,7 @@ denselben Lauf noch einmal fahren.*
 28. August 2026 aus der Frage nach der Größe der Datenbank; am 30. August um
 den engeren Ausschnitt und das Bildformat erweitert.** *Angefasst sind
 `server.js`, `db.js`, `auth.js`, `public/app.js`, `public/style.css`,
-`pruefung.js` und `gegenprobe.js`.* **DIES IST EINE DATENBANKSTUFE:** der
+`testbench.js` und `counterproof.js`.* **DIES IST EINE DATENBANKSTUFE:** der
 **achte** markierte Migrationsblock (`photos.zoom`) und **Austauschformat 11 →
 12**. **Die Sicherung des Datenverzeichnisses ist Pflicht.**
 
@@ -12529,7 +12529,7 @@ statt gelöscht.*
 
 **Kein Schema, kein Migrationsblock, keine Formatnummer, keine `.env`-Zeile,
 keine Abhängigkeit, `F_ROUTEN` unverändert bei 69.** Nur `public/style.css`,
-`pruefung.js` und `gegenprobe.js` sind angefasst; Breiten und Abstände bleiben,
+`testbench.js` und `counterproof.js` sind angefasst; Breiten und Abstände bleiben,
 wie sie waren. 4123 → **4131 Prüfungen**, 216 → **218 Rückbauten**.
 
 ### 0.13.1 — „Die Beschriftungen stehen oben"
@@ -12564,7 +12564,7 @@ eingeklappte Wolke eine Zeile hoch ist. *Steht in `Doku/Fehler_und_Ideen.md`.*
 
 **Kein Schema, kein Migrationsblock, keine Formatnummer, keine `.env`-Zeile,
 keine Abhängigkeit, `F_ROUTEN` unverändert bei 69.** Nur `public/style.css`,
-`pruefung.js` und `gegenprobe.js` sind angefasst. 4115 → **4123 Prüfungen**,
+`testbench.js` und `counterproof.js` sind angefasst. 4115 → **4123 Prüfungen**,
 214 → **216 Rückbauten**.
 
 ### 0.13.0 — „Zwei Netze, ein Zugang"
@@ -12838,7 +12838,7 @@ angehaltener Instanz, mit der `.env` in einem Zug — **ausdrücklich nicht als
 Knopf** (Abschnitt 5). `PRAGMA rekey` läuft nur mit `journal_mode = DELETE`
 davor (Stolperstein 128). Neu: der fünfzehnte Vorgang `schluessel`, die Marke
 `schluesselGewechseltAm` und die **rote Markierung jeder älteren Sicherung**.
-Dazu drei Werkzeuge, die keine ausgelieferte Datei anfassen: **`gegenprobe.js`**,
+Dazu drei Werkzeuge, die keine ausgelieferte Datei anfassen: **`counterproof.js`**,
 **`PORT_VERSATZ`** und zwei Wächter über die eigenen Prüflagen. **Berichtigt:**
 es sind sechs Wege über fünf Routen hinter der zweiten Bestätigung, nicht sieben
 über sechs (Stolperstein 137).
@@ -12957,7 +12957,23 @@ Auftrag annahm.
 
 ### Der Fahrplan bis 1.0
 
-**Hier steht der Plan, und sonst nirgends.** *Der Stufenplan des
+> **DER PLAN IST AM 8. SEPTEMBER 2026 AUSGEZOGEN — er steht ab jetzt in
+> `Doku/Fahrplan.md`.** *Entschieden vom Betreiber am selben Tag: „ab jetzt gibt
+> es nur ein Fehlersammelpapier und einen Fahrplan."*
+>
+> **Was hier bleibt, ist die GESCHICHTE des Plans** — welche Runde gebaut ist
+> und was darin steckte, und warum der Plan seit 0.12.0 neunmal gerückt ist,
+> jedes Mal mit seinem Preis. *Das ist Stand und Herleitung; der Plan ist es
+> nicht.* **Die Zeilen der noch nicht gebauten Runden stehen unten weiter im
+> Wortlaut, damit kein Verweis der letzten zwölf Runden ins Leere zeigt — aber
+> was gilt, sagt der Fahrplan.**
+>
+> **DREI DINGE SIND DORT ANDERS ALS HIER:** der Bruch liegt auf **0.30.0** statt
+> auf 0.28.0 *(„damit der Bruch auch ein Bruch in der Zahl ist")*; die freien
+> Zwischenräume sind aufgehoben, weil die letzten vier Einschübe alle vier eine
+> PATCH-Zahl genommen haben; und **0.25.0 bis 0.29.0 sind belegt.**
+
+**Hier stand der Plan, und sonst nirgends.** *Der Stufenplan des
 Mehrbenutzerbetriebs ist mit 0.9.1 abgearbeitet; seine Nummern stehen in der
 Tabelle mit drin, seine Herleitung im Konzeptpapier.*
 
@@ -12979,7 +12995,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.8.71** | *(keine Stufe)* Der Sicherungsort zieht um | in das Projektverzeichnis, dazu die rot/grüne Anzeige | nein | — |
 | **0.8.80** | **Stufe H** — Tokens | Einladung und Rücksetzung über einen Link, „Meine Sitzungen" | ja, **ohne Block** | — |
 | **0.8.90** | Schwere Eingriffe | zweite Bestätigung, Sicherheitsprotokoll, öffentliche Adresse | ja, **ohne Block** | — |
-| **0.8.91** | *(keine Stufe)* Der Schlüssel lässt sich wechseln | `./schluessel.sh` auf dem Wirt, dazu `gegenprobe.js` und `PORT_VERSATZ` | nein | — |
+| **0.8.91** | *(keine Stufe)* Der Schlüssel lässt sich wechseln | `./schluessel.sh` auf dem Wirt, dazu `counterproof.js` und `PORT_VERSATZ` | nein | — |
 | **0.9.0** | **Stufe I₁** — Mailversand | `nodemailer`, Anbietervorlagen, Testmail, Adresse am Zugang, zweite Frist | nein | — |
 | **0.9.1** | **Stufe I₂** — Selbstanmeldung | Formular, Bestätigungsmail, Warteschlange. **Damit ist der Stufenplan abgearbeitet.** | ja, **ohne Block** | — |
 | | | ***ab hier SemVer*** | | |
@@ -13017,7 +13033,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.22.1** | **„Der Ausschnitt bedient sich wie ein Ausschnitt, und die Kopfzahl steht einmal da"** | **GEBAUT am 5. September 2026.** *(Aus dem Rundlauf von Hand nach 0.22.0 — dieselbe Herkunft wie 0.21.1 nach 0.21.0, 0.20.1 nach 0.20.0 und 0.17.1 nach 0.17.0. Drei Befunde, keiner davon aus dem Sammelblatt und keiner aus dem Fahrplan; sieben Entscheidungen E1 bis E7 hat der Betreiber am 5. September 2026 vor dem Bauen getroffen — Auftrag `Doku/Auftrag_0.22.1.md`, mit dem Auftrag zu 0.23.0 weggefallen.)* **Erstens:** das Rechteck aus 0.22.0 legte Lage und Weite auf EINEN Griff, und wer den Rahmen anfasste, warf ihn weg. Ab jetzt entscheidet der ORT der Berührung — fünf Gesten, acht Griffe, Regel **G9**. **Zweitens:** der Kopf eines zugeklappten Sternkastens trug dieselbe Zahl zweimal; die Kurzfassung fällt, und die Kopfzahl sagt jetzt, dass sie über ALLE Benutzer geht — Regel **G10**. **Drittens:** an einem ungetesteten Eintrag gibt es den Bewertungskasten nicht mehr, und der Server weist eine Bewertung dort ab — Regel **G11**. *Der Fahrplan rückt dadurch nicht: 0.22.1 ist eine PATCH-Zahl hinter einer gebauten Runde und nimmt niemandem seinen Platz.* *PATCH* | nein | — |
 | **0.23.0** | **„Die Oberfläche wird hell"** | **GEBAUT am 5. September 2026.** *(Neu am 4. September 2026 aus der Besprechung zu 0.22.0, dort als Idee **N6**; am 5. September 2026 im Gespräch mit dem Betreiber zu sieben Entscheidungen ausgearbeitet — Konzept `Doku/Farbkonzept_0_23_0.md`, wie 0.22.0 ihres hat.)* **Ein zweites Farbschema — hell, umschaltbar je Zugang, und die Vorgabe bleibt dunkel.** Vier Bauabschnitte: 67 feste Farben verlassen das Regelwerk (die Menge, die hier als „heute unbekannt" stand), ein zweiter Block mit 42 Werten, die Maschine mit drei Stufen samt Vorgriff gegen das Blitzen, und Marke, Dämpfung und Augenschein. **Die Gestaltungsregel G12 steht seither in Abschnitt 5.6**; was gebaut wurde, im Änderungsprotokoll 0.23.0. *Die Ausarbeitung aus 10a ist mit dem Bau herausgefallen.* *MINOR* | nein | — |
 | **0.24.0** | **„Das Deutsche wandert in eine eigene Datei“** | **GEBAUT am 6. September 2026.** *(Neu am 2. September 2026 als 0.23.0, am 3. September 2026 auf 0.24.0 gerückt und noch am selben Tag auf 0.28.0; **am 5. September 2026 auf Entscheidung des Betreibers zurück auf 0.24.0** — das neunte Rücken, das erste nach vorn; der Rest rückt so, dass zwischen zwei geplanten Runden weiter eine Nummer frei bleibt. Am selben Tag ausgearbeitet — Konzept `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`, wie 0.22.0 und 0.23.0 ihres haben.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Drei Stufen:** das Deutsche, das schon da ist, wandert in eine eigene Datei (Stufe 1); dann kommt Englisch (Stufe 2); dann Türkisch (Stufe 3). **Entschieden am 5. September 2026: Stufe 1 geht zuerst und allein heraus, als 0.24.0** — Auftrag `Doku/Auftrag_0.24.0.md`; *zunächst 0.24.1 genannt, noch am selben Tag auf 0.24.0 entschieden, weil eine PATCH-Zahl ihre MINOR-Zahl voraussetzt (Abschnitt 5.1); die Nummern für Stufe 2 und 3 sind offen.* **Dazu fahren zwei Befunde aus dem Betrieb am 5. September 2026 am hellen Schema mit**, als Bauabschnitt 0 des Auftrags: die Zeitleiste ohne sichtbare Linien und Jahreszahlen (`--line-2` misst gegen den hellen Grund 1,02 : 1 — eine Paarung, die das Farbkonzept nicht gemessen hat) und der Aufklapper „Weitere Filter", der als eigene Zeile Platz kostet statt spart. *Keiner der beiden stand im Sammelblatt oder im Fahrplan.* **Nach der Oberfläche** — die ist gebaut — **und vor der Bereinigung.** *Bis zum 5. September 2026 stand hier „nach der Bereinigung"; was das Vorziehen kostet und warum es wenig ist, steht im Kasten zum neunten Rücken unter dieser Tafel.* **GEBAUT IST STUFE 1:** sechs Bauabschnitte — die zwei Befunde am hellen Schema, der Helfer `t()`/`tH()` samt Ladung, die Serverseite mit der Klasse `Meldung`, `public/app.js` Ansicht für Ansicht, die Format-Helfer über `Intl` und `<html lang>`, und die sieben Wächter im Prüfstand. **1190 Schlüssel in `public/sprachen/de.json`, 45 lesbare Texte in `app.js` — namentlich, und keiner davon ein Satz.** *Kein Wort anders: das war die Abnahme, und sie ist eingehalten.* **Die Regel steht als S8 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.0. *Stufe 2 (Englisch und die Wahl der Sprache) und Stufe 3 (Türkisch) haben weiter keine Nummer.* *MINOR* | nein | — |
-| **0.24.1** | **„Der Quelltext spricht Englisch"** | **GEBAUT am 7. September 2026.** *(Neu am 6. September 2026, vom Betreiber eingeschoben — unmittelbar nach dem Einspielen von 0.24.0. Auftrag `Doku/Auftrag_0.24.1.md`, neun Fragen am Kopf, noch unbeantwortet.)* **Jeder Name im Code wird englisch, ausnahmslos:** 808 von 2148 Bezeichnern im ausgelieferten Code, 678 in `pruefung.js`, alle 1190 Schlüssel der Sprachdatei, neun API-Wurzeln, die Adressen (`#/system/datenbank`), 48 ids, 49 Stilblattklassen, elf Stilblattvariablen, acht Dateinamen und drei Umgebungsvariablen. **Kommentare und Papiere bleiben deutsch** — ausdrücklich und dauerhaft. **Am Bildschirm ändert sich kein Zeichen:** die WERTE von `de.json` sind hinterher Byte für Byte dieselben, nur ihre Schlüssel heißen anders, und genau das ist die Abnahme. *Zwei Fragen entscheiden über Aufwand und Risiko: ob das Datenbankschema mitgeht (F1) und ob die gespeicherten Werte mitgehen (F2) — nur dann ist es eine Datenbankstufe.* **WARUM VOR STUFE 2 UND NICHT DANACH:** Stufe 2 fasst genau die Stellen an, die diese Runde umbenennt; wer erst übersetzt, macht dieselbe Arbeit zweimal und müsste `en.json` gegen 1190 umbenannte Schlüssel von Hand nachziehen. *PATCH nach 5.1 — die Installation kann danach nichts, was sie vorher nicht konnte.* **GEBAUT IN ACHT BAUABSCHNITTEN:** das Wörterbuch (1186 Wortpaare), der Umbenenner samt Zerleger und Probe, die Sprachdatei, die Serverseite, die Oberfläche in acht Teilen, Datei- und Umgebungsnamen, die Datenbank in fünf Teilen, der Prüfstand in sechs. **F1 und F2 sind mit JA beantwortet — es ist eine Datenbankstufe:** sechs Tabellen, sechsundzwanzig Spalten, fünfundsiebzig gespeicherte Werte, geprüft an einem echten Altbestand (21 Zusagen grün). **Sechs Wächter halten die Regel** (Namens-, Schlüssel-, Adress-, Gestalt-, Wortlaut-, Kürzeprobe), jeder mit seiner Gegenprobe. **110 deutsche Bezeichner bleiben — alle benannt**, und keiner ist eine Benennung: Platzhalter, Vokabelnamen, gespeicherte Werte, sechs falsche Freunde. *Sie ziehen mit Stufe 2 um.* **Drei Befunde aus dem Betrieb sind mitgefahren** (7. September 2026): die Vorschaukachel im Eintrag war nicht anzuklicken, ein Tag am Testtag hieß „t", der zugeklappte Block „Links" zeigte die letzten Zeilen statt der ersten — die ersten beiden gehen auf 0.24.0 zurück, der dritte ist älter. **Die Regel steht als S9 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.1. *Ein Befund aus dem Bauen: die Restzahlen der Abschnitte 3 bis 6 waren zu gut — gemessen wurde gegen ein Wörterbuch, das die Wörter nicht kannte, die es finden sollte; es ist von 716 auf 1186 Paare gewachsen.* *PATCH* | ja | — |
+| **0.24.1** | **„Der Quelltext spricht Englisch"** | **GEBAUT am 7. September 2026.** *(Neu am 6. September 2026, vom Betreiber eingeschoben — unmittelbar nach dem Einspielen von 0.24.0. Auftrag `Doku/Auftrag_0.24.1.md`, neun Fragen am Kopf, noch unbeantwortet.)* **Jeder Name im Code wird englisch, ausnahmslos:** 808 von 2148 Bezeichnern im ausgelieferten Code, 678 in `testbench.js`, alle 1190 Schlüssel der Sprachdatei, neun API-Wurzeln, die Adressen (`#/system/datenbank`), 48 ids, 49 Stilblattklassen, elf Stilblattvariablen, acht Dateinamen und drei Umgebungsvariablen. **Kommentare und Papiere bleiben deutsch** — ausdrücklich und dauerhaft. **Am Bildschirm ändert sich kein Zeichen:** die WERTE von `de.json` sind hinterher Byte für Byte dieselben, nur ihre Schlüssel heißen anders, und genau das ist die Abnahme. *Zwei Fragen entscheiden über Aufwand und Risiko: ob das Datenbankschema mitgeht (F1) und ob die gespeicherten Werte mitgehen (F2) — nur dann ist es eine Datenbankstufe.* **WARUM VOR STUFE 2 UND NICHT DANACH:** Stufe 2 fasst genau die Stellen an, die diese Runde umbenennt; wer erst übersetzt, macht dieselbe Arbeit zweimal und müsste `en.json` gegen 1190 umbenannte Schlüssel von Hand nachziehen. *PATCH nach 5.1 — die Installation kann danach nichts, was sie vorher nicht konnte.* **GEBAUT IN ACHT BAUABSCHNITTEN:** das Wörterbuch (1186 Wortpaare), der Umbenenner samt Zerleger und Probe, die Sprachdatei, die Serverseite, die Oberfläche in acht Teilen, Datei- und Umgebungsnamen, die Datenbank in fünf Teilen, der Prüfstand in sechs. **F1 und F2 sind mit JA beantwortet — es ist eine Datenbankstufe:** sechs Tabellen, sechsundzwanzig Spalten, fünfundsiebzig gespeicherte Werte, geprüft an einem echten Altbestand (21 Zusagen grün). **Sechs Wächter halten die Regel** (Namens-, Schlüssel-, Adress-, Gestalt-, Wortlaut-, Kürzeprobe), jeder mit seiner Gegenprobe. **110 deutsche Bezeichner bleiben — alle benannt**, und keiner ist eine Benennung: Platzhalter, Vokabelnamen, gespeicherte Werte, sechs falsche Freunde. *Sie ziehen mit Stufe 2 um.* **Drei Befunde aus dem Betrieb sind mitgefahren** (7. September 2026): die Vorschaukachel im Eintrag war nicht anzuklicken, ein Tag am Testtag hieß „t", der zugeklappte Block „Links" zeigte die letzten Zeilen statt der ersten — die ersten beiden gehen auf 0.24.0 zurück, der dritte ist älter. **Die Regel steht als S9 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.1. *Ein Befund aus dem Bauen: die Restzahlen der Abschnitte 3 bis 6 waren zu gut — gemessen wurde gegen ein Wörterbuch, das die Wörter nicht kannte, die es finden sollte; es ist von 716 auf 1186 Paare gewachsen.* *PATCH* | ja | — |
 | **0.24.2** | **„Die gespeicherten Formen ziehen mit"** | **GEBAUT am 7. September 2026.** *(Neu am 7. September 2026 aus dem Rundlauf mit 0.24.1 — dieselbe Herkunft wie 0.22.1 nach 0.22.0 und 0.21.1 nach 0.21.0. Vom Betreiber am selben Tag als eigene Runde angesetzt; die beiden Sprachstufen sind dafür je eine Nummer nach hinten gerückt.)* **0.24.1 hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN den gespeicherten Werten.** Für die Datenbank ist `settings.value` ein String ohne Form; für den Quelltext ist es sehr wohl eine Form. **Drei Gebilde waren betroffen und kein viertes:** die eigenen Suchmaschinen (`{name, vorlage}` gegen `e.template`), der Mailzugang (`{anbieter, benutzer, passwort, absender}` gegen `{provider, user, password, sender}`) und der Beleg der letzten Testmail (`{marke, am}` gegen `{mark, at}`). **Am Bildschirm hieß das:** die eigenen Suchmaschinen standen nicht mehr in der Karte, der Mailzugang galt als nicht eingerichtet — also gingen Einladung, Rücksetzung und Bestätigung nicht mehr hinaus, und die Selbstanmeldung ließ sich nicht mehr einschalten —, und „zuletzt getestet" war leer. **Verloren war nichts:** die Zeilen lagen unverändert da, der Quelltext las an ihnen vorbei. `migration0242Shapes()` benennt die Feldnamen um, läuft hinter dem Block aus 0.24.1 und heilt einen 0.24.0er Bestand in einem einzigen Start; **die Marke des Mailtests bleibt dabei gültig**, weil sie an den WERTEN hängt und nicht an den Namen — eine gelöschte Marke hieße „teste noch einmal", und dazu gibt es keinen Anlass. *Die Lücke war eine der Prüfung, nicht des Wörterbuchs: der Bestandslauf zu 0.24.1 hat die Tabelle `settings` nie gefüllt — und was nicht dasteht, kann keine Migration verlieren.* *PATCH* | ja | — |
 | **0.24.3** | **Mehrsprachigkeit, Stufe 2 — Englisch und die Wahl der Sprache** | **GEBAUT am 8. September 2026.** *(Am 6. und am 7. September 2026 je um eine Nummer nach hinten gerückt, weil 0.24.1 und 0.24.2 dazwischenkamen. Auftrag `Doku/Auftrag_0.24.3.md`, neun Fragen am Kopf; drei kamen im Gespräch dazu, und alle zwölf sind vom Betreiber am 7. September 2026 entschieden worden, bevor eine Zeile Code entstand.)* **`en.json` neben `de.json`, 1204 Schlüssel je Datei.** Jeder Zugang wählt seine Sprache; der Wechsel wirkt ohne Neuladen, und der andere am selben Bildschirm merkt nichts davon. `localeOf(req)` fragt in dieser Folge: der persönliche Schlüssel, `Accept-Language`, die Vorgabe der Installation — **und jede der drei wird gegen den VORRAT gehalten.** **ZWEI ENTSCHEIDUNGEN GINGEN GEGEN DEN VORSCHLAG DES AUFTRAGS:** **F1 — die Nummer bleibt 0.24.3** statt 0.25.0, weil die 24er-Reihe EIN Vorhaben in vier Schritten ist; die Abweichung steht benannt in Abschnitt 5.1 und endet mit dieser Reihe. **F7 — der deutsche Rest aus 0.24.1 fällt GANZ,** auch was in der Datenbank steht: die Platzhalternamen, die Mehrzahlformen, die vierzehn Vokabelnamen, `sicher` im Mailzugang, die drei Bereiche der Blöcke, der Filterschlüssel `favorit`, die beiden Sortierwerte und die sechs Abfrageangaben. *`WAITING_FOR_STAGE_TWO` fällt damit weg, und mit ihr die Zahl 104.* **DIE ÜBRIGEN ZEHN FOLGTEN DEM VORSCHLAG:** der Bestand behält Deutsch (F2), das Vokabular liegt je Sprache mit zwei Rückfällen (F3), `en-GB` ist die Locale (F4), der Betreiber liest selbst gegen (F5), geprüft wird der DATEINAME und nicht der Inhalt (F6), Kriterien und Kategorien bekommen eine Namenstabelle daneben (F8, F8a, F8b), der Export trägt alle Sprachfassungen und steigt auf Format 14 (F8c), und der Systembereich bekommt eine neue Karte „Sprachen" (F9). **GEBAUT IN NEUN BAUABSCHNITTEN:** das englische Wörterbuch, das Verzeichnis als Liste, die Karte „Sprachen", die Wahl je Benutzer, der Server in der Sprache des Anfragenden, `en.json`, das Vokabular je Sprache, die Namen je Sprache, die Reste aus 0.24.1 und der Prüfstand. **DREI MIGRATIONSBLÖCKE, zwei davon in dieser Runde neu** — die Vorgabesprache des Bestands und die deutschen Reste in gespeicherten Werten. *Ohne den zweiten fiele jedes der vierzehn selbst eingetragenen Vokabelwörter still auf die Vorgabe zurück.* **SIEBEN FUNDE, die der Umbau aufgedeckt hat** — alle seit 0.24.1 stumm im Quelltext, darunter `<html lang>`, das seither auf gar nichts stand. **Die Regel steht als S10 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.3. *PATCH — benannte Abweichung nach 5.1* | ja | — |
 | **0.24.4** | **Mehrsprachigkeit, Stufe 3 — Türkisch** | *(Am 6. und am 7. September 2026 je um eine Nummer gerückt.)* `tr.json`, gegengelesen von einem Leser, den der Betreiber benennt (E14). **Die Maschine steht seit 0.24.3 vollständig:** eine dritte Datei ins Verzeichnis legen genügt, damit sie überall zur Wahl steht — Karte „Sprachen", Karte „Darstellung", Anmeldeseite, Vokabular, Kriterien und Kategorien. **Was Türkisch mitbringt und Englisch nicht hatte:** das punktlose `ı`. `'I'.toLocaleLowerCase('tr')` ist `'ı'` und nicht `'i'` — der Vergleich beim Umbenennen läuft deshalb seit 0.24.3 über die Vorgabesprache der Installation und nicht über die des Lesers. ***ZWEI ANGABEN, DIE HIER BIS ZUM 8. SEPTEMBER 2026 FALSCH STANDEN, sind beim Schreiben des Auftrags nachgemessen worden:*** *hier stand, `Intl.PluralRules('tr')` kenne **nur** `other` — es kennt `one` und `other`, und `select(1)` ist `one`; wer nur eine Form schriebe, risse ein Loch in die Deckungsprobe. Und `'I'.toLowerCase()` **ohne** Locale ist auch auf einer türkischen Installation `'i'` — genau darin liegt Befund B8.* **Die Nummer folgt derselben benannten Abweichung wie 0.24.3** (Abschnitt 5.1); mit ihr endet die 24er-Reihe **DAZU FÜNF BEFUNDE AUS DEM BETRIEB, gemeldet vom Betreiber am 8. September 2026, unmittelbar nach dem Einspielen von 0.24.3** *(Fingerprint `ceb8d26a`, im Feld bestätigt)*: **(1) Der Umschalter in den Karten „Vokabular", „Kategorien" und „Kriterien" greift nicht.** Wer auf Deutsch liest und die englischen Wörter pflegen will, sieht nach dem Umschalten weiter die deutschen; erst ein Hin- und Herschalten zeigt sie richtig. **Wer auf Englisch liest, kommt mit dem Umschalter gar nicht mehr auf Deutsch** — eingeben und speichern funktioniert, man sieht es aber erst, wenn man die eigene Sprache umstellt. *Der Verdacht liegt an `vocabularyLanguage()` und `namesLanguage()`: beide fallen still auf die Sprache des Lesers zurück, sobald die Tafel der anderen Sprache noch nicht dasteht — und dann sieht ein Klick aus wie ein Knopf, der nichts tut. **Nicht nachgestellt**; die Runde 0.24.4 stellt ihn zuerst nach und baut dann.* **(2) Der Hinweis „Vorgabe: …" unter den vierzehn Vokabelfeldern zeigt immer die Vorgabe des LESERS**, auch wenn die Karte auf eine andere Sprache geschaltet ist. *Am Quelltext gesehen: `vocabularyDefault()` liest `TEXTS`, und das ist die Datei des Lesers.* **(3) Zwei deutsche Wörter stehen fest im Quelltext** und sind damit auch auf Englisch deutsch: „alle N anzeigen" am zugeklappten Linkkasten *(`public/app.js`, `drawLinks()`)* und „N aktiv" an der Filterzeile *(`drawFilters()`)*. *Beide sind keine Sätze und deshalb durch jeden Wächter dieser Runde gefallen — der Bildschirmtext-Wächter prüft die Verbotsliste, nicht die Sprache.* **(4) EIN EINGETRAGENES WORT KOMMT IN SEINER SPRACHE NICHT AN — und das ist der schwerste der fünf.** Der Betreiber schaltet die Kachel auf Englisch, trägt ein englisches Wort ein und speichert; **stellt er Kriterion danach selbst auf Englisch, steht dort trotzdem nicht, was er eingetragen hat** (im Überblick etwa „+ Eintrag" statt seines Wortes). ***Die Zusage, um die es geht, ist einfach:*** *egal, wie der Schalter der Oberfläche steht — **was für eine Sprache eingetragen worden ist, muss in dieser Sprache erscheinen.** Es geht ausdrücklich NICHT um die Wörter, für die nichts eingetragen ist; dort ist der Rückfall aus F3 gewollt und bleibt.* **Der Verdacht hängt an Befund (1):** greift der Umschalter der Kachel nicht, dann meint `vocabularyBody()` beim Speichern die Sprache des LESERS und nicht die eingestellte — das englische Wort landete dann im deutschen Satz, und die englische Oberfläche fände unter `en` entweder nichts oder einen älteren Wert, der den Rückfall schlägt. **Beide Befunde könnten derselbe sein**, und 0.24.4 stellt deshalb ZUERST nach und baut dann. **AM 8. SEPTEMBER 2026 MIT BILD BELEGT — und das Bild sagt mehr als der Satz:** die Kachel „Vokabular" steht auf **Deutsch** (die Pille ist orange), die Beschriftungen nennen die deutschen Vorgaben *(„Sache, Einzahl (Vorgabe: Eintrag)")* — **und in den Feldern stehen die ENGLISCHEN Werte** (`Entry_eng`, `Entries_eng`, `Tested_eng` …), samt der Vorschau darunter. ***Schalterstellung und Inhalt widersprechen sich also sichtbar an EINER Karte*** — die Kachel weiß, welche Sprache sie zeigt, und zeigt eine andere. **Und es betrifft nicht nur das Vokabular:** derselbe Umschalter steht über den Kategorien und über beiden Kriterienlisten. **(4a) UND DIE STELLE SPRINGT.** Wer den Umschalter drückt, landet oben auf der Seite statt dort, wo er war — `renderSystem()` baut `app.innerHTML` neu, und damit ist die Bildlaufstellung weg. *Bei der Kachel „Vokabular" mit ihren vierzehn Feldern heißt das: nach jedem Umschalten erst wieder hinunterrollen.* **Das gehört in dieselbe Reparatur**: wer den Umschalter anfasst, fasst ohnehin den Weg an, auf dem die Karte neu entsteht — entweder bleibt die Stellung stehen, oder sie wird nach dem Zeichnen wiederhergestellt. *Nachgestellt ist keiner von ihnen; der Betreiber prüft weiter, es kann mehr dazukommen.* **(5) Die Sprachzeile unter der Anmeldemaske ist gestrichen** — noch in 0.24.3 erledigt, siehe dort. **DER AUFTRAG STEHT SEIT DEM 8. SEPTEMBER 2026:** `Doku/Auftrag_0.24.4.md`, zehn Fragen am Kopf, noch unbeantwortet. *Aus den fünf Befunden sind dort **acht** geworden: drei kamen beim Weitertesten dazu (der Papierkorb, das leere Zeichen, das Anlegen in den Karten „Kategorien" und „Tags"), und **einer ist beim Schreiben des Auftrags am Quelltext gemessen worden** — **B8: die Suche faltet ihre beiden Hälften verschieden.** Die Nadel faltet `fulltextTerm()` mit der Sprache des LESERS, der Heuhaufen `kkl()` mit gar keiner; mit Deutsch und Englisch fällt das nicht auf, mit Türkisch gibt dieselbe Suche zwei Lesern zwei Antworten. Die zweite Hälfte schlägt schon heute zu: von neun gewöhnlichen türkischen Suchfällen gehen fünf ins Leere.* **Und eine Annahme aus dem Sammelblatt ist dabei gefallen:** `POST /api/tags` gibt es nicht — für die Karte „Tags" ist eine Route mehr zu bauen | nein | — |
@@ -13321,7 +13337,7 @@ und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an.*
   sein späterer Rückbau leichtfällt (Abschnitt 12).
 - **Die fünf markierten Blöcke in `db.js`**, alle mit der Marke
   `// MIGRATION 0.8.x — ENTFAELLT MIT 1.0`, samt ihren Prüfabschnitten in
-  `pruefung.js` und ihrem Export in `module.exports`:
+  `testbench.js` und ihrem Export in `module.exports`:
 
   | Block | ergänzt | Prüfungen | was ausdrücklich NICHT mitfällt |
   |---|---|---|---|
@@ -13568,8 +13584,8 @@ in den Kennzahlen, die Adressliste aus `X-Forwarded-For`, ein Fließsatz an der
 Tagwolke, eine Bildablage. *Diese Grenzen sind Teil des Auftrags gewesen und
 nicht sein Rest — sie stehen deshalb hier und nicht nur dort.*
 
-**DER WERKZEUGBEFUND AUS TEIL II IST MITGEFAHREN:** `gegenprobe.js` nahm eine
-Nummer auch als Namensteil, und `node gegenprobe.js 256` fuhr damit **zwei**
+**DER WERKZEUGBEFUND AUS TEIL II IST MITGEFAHREN:** `counterproof.js` nahm eine
+Nummer auch als Namensteil, und `node counterproof.js 256` fuhr damit **zwei**
 Rückbauten statt einem — neben der 256 auch die **83**, weil sie „SHA-256 statt
 SHA-1" heißt. **Der Beifang war stumm** und verfälschte damit die
 Gegenprobentabelle. *Ein Werkzeug, das mehr tut, als sein Aufruf sagt, wird
@@ -13838,7 +13854,7 @@ aus derselben Frage: *sagt der Text, was ist, oder erzählt er?*
 | `public/app.js` | 8.562 | 2.344 | 27 % |
 | `auth.js` | 1.677 | 773 | **46 %** |
 | `zweifaktor.js` | 224 | 116 | **52 %** |
-| `pruefung.js` | 32.964 | 9.071 | 28 % |
+| `testbench.js` | 32.964 | 9.071 | 28 % |
 | *(alle zwölf)* | **54.822** | **16.281** | **30 %** |
 
 **DIE REGEL, UND SIE IST DIESELBE WIE BEI DER README UND BEIM CHANGELOG:**
@@ -13878,7 +13894,7 @@ repoweiter Kommentarschnitt daneben machte sie unlesbar.
 - **Wie tief wird je Datei geschnitten?** *Ein Vorschlag als Anhaltspunkt und
   nicht als Zusage: die ausgelieferten Dateien zuerst und am gründlichsten
   (`server.js` mit 44 Prozent, `auth.js` mit 46, `zweifaktor.js` mit 52).*
-- **Wird `pruefung.js` überhaupt angefasst?** *Dort ist der Kommentar oft die
+- **Wird `testbench.js` überhaupt angefasst?** *Dort ist der Kommentar oft die
   einzige Stelle, an der steht, **wofür** eine Prüflage gestellt ist — und eine
   Prüfung, deren Grund niemand mehr kennt, wird beim ersten roten Punkt
   gelöscht statt verstanden.* **Meine Neigung: zuletzt, mit der schärfsten

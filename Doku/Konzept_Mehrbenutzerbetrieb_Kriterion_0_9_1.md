@@ -175,7 +175,7 @@ Wahrheit", Stolperstein 47 in Reinform) und ist gestrichen. **Es bleibt allein
 **Ein Schritt mehr als hier entworfen: eine Bestätigungsmail VOR der
 Freischaltung** (Double Opt-in). Sie schließt eine Lücke, die der Entwurf offen
 ließ: **ohne sie kann jeder eine fremde Adresse in die Liste des Admins
-schreiben**, und beim Freischalten schickte die Anlage einer Person, die nie
+schreiben**, und beim Freischalten schickte die Instanz einer Person, die nie
 gefragt hat, eine Mail mit Passwortkraft.
 
 **Zwei Betriebsarten wird es NICHT geben.** Eine Lage, in der der geklickte

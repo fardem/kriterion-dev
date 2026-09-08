@@ -748,6 +748,15 @@ dass ihr Link keinen Zugang öffnet und kein Passwort setzt.
 Aus dem Betrieb heraus, ohne neue Versionsnummer — **wer 0.9.1 schon fährt,
 holt sich das mit dem nächsten Einspielen**:
 
+> **ZWEI DATEISÄTZE TRAGEN DAMIT DIE NUMMER 0.9.1, und hier steht, welcher
+> welcher ist.** Das zuerst veröffentlichte 0.9.1 hat den Fingerprint
+> **`cb73399d`**; der nachgezogene Satz — der mit allem, was unter dieser
+> Überschrift steht — hat **`3cf1b093`**, und **das ist der Stand, der gilt.**
+> *Eine eigene Nummer bekommt er nicht: 0.9.2 käme heute hinter 0.10.0 und
+> 0.11.0 zu liegen, und eine Zahl, die älter ist als das Laufende, spielt
+> niemand mehr ein.* **Wer heute nachsieht und `cb73399d` findet, fährt den
+> Satz von vor der Nacharbeit.**
+
 - **Die Karte „Anfragen" steht dem Admin jetzt immer.** Sie war an die
   Bedingung geknüpft, dass die Selbstanmeldung an ist oder Anfragen vorliegen —
   und der Schalter sitzt in ihr. Frisch eingespielt war sie damit nicht zu

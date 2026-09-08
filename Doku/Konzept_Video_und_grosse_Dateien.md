@@ -109,7 +109,7 @@ wären es nicht.** Das wäre ein Loch mitten durch das Kernversprechen.
 
 Also bekommen sie eine **eigene Verschlüsselung**. Der Schlüssel wird aus dem
 Datenbankschlüssel abgeleitet (`hkdf`, eingebaut in Node) — **ein Schlüssel für
-die Anlage bleibt wahr**, es gibt nichts zusätzlich zu verwahren, und der Satz
+die Instanz bleibt wahr**, es gibt nichts zusätzlich zu verwahren, und der Satz
 „ohne den Schlüssel ist alles verloren" gilt unverändert.
 
 ### Der Kern: Verschlüsselung, in der man springen kann
