@@ -25096,6 +25096,16 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   convertImages = true,
   twoFactorCodes = null, loginFactor = false, searchError = false, searchThrottles = null,
   categories = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }],
+  /* DIE NAMEN JE SPRACHE, seit 0.24.5 -- `{ en: { 21: 'Tool' }, tr: { … } }`.
+     NUR DIE UEBERSETZUNGEN, NICHT DIE GRUNDZEILE: am echten Server steht der
+     Name der Vorgabesprache in `product_categories.name` beziehungsweise
+     `rating_criteria.name`, und `category_names`/`criterion_names` tragen
+     ausschliesslich die ANDEREN Sprachen (`writeName()` loescht die Zeile
+     sogar, sobald sie dem Grundnamen gleicht). Ein Mock mit einer Zeile fuer
+     die Vorgabesprache stellte eine Ablage nach, die es nicht gibt.
+     VORGABE IST „keine Uebersetzung": jede Prueflage von vor dieser Runde
+     behaelt damit ihren Gegenstand. */
+  categoryNames = null, criterionNames = null,
   /* Die Ablehnung am Beispieleintrag, seit 0.14.0. Vorgabe ist "nicht
      abgelehnt" -- so, wie der Eintrag bis dahin dastand; wer die Marke
      braucht, reicht die drei Felder herein. Ausdruecklich EINZELN und nicht
@@ -25700,7 +25710,17 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     { runScripts: 'dangerously', url: `${BASE}/${hash}`, virtualConsole: silenceConsole });
   const w = dom.window;
   w.fetch = async (url, opt = {}) => {
-    sent.push({ method: opt.method || 'GET', url, body: opt.body ? JSON.parse(opt.body) : null });
+    /* DER KOPF WIRD MITGESCHRIEBEN -- 0.24.5. `api()` setzt `Accept-Language`
+       an JEDER Anfrage (0.24.3), und seit 0.24.3 durfte eine Anfrage darueber
+       ausdruecklich eine ANDERE Sprache verlangen als die des Lesers. Genau
+       daran hing der Befund dieser Runde: die Karte fragte, der Server hoerte
+       nicht. Ohne den Kopf im Protokoll liesse sich weder belegen, dass er
+       nicht mehr als Frage nach einer fremden Namenstafel benutzt wird, noch,
+       dass er weiterhin an jeder Anfrage steht. */
+    const askedLanguage = Object.entries((opt && opt.headers) || {})
+      .find(([h]) => h.toLowerCase() === 'accept-language');
+    sent.push({ method: opt.method || 'GET', url, body: opt.body ? JSON.parse(opt.body) : null,
+                language: askedLanguage ? askedLanguage[1] : null });
     const give = (o, status = 200) => ({ ok: status < 400, status, json: async () => o });
     /* DIE SPRACHDATEI KOMMT AUS DER ECHTEN DATEI -- 0.24.0, Bauabschnitt 1.
        Kein Mock: die 312 Zusicherungen mit deutschem Text bleiben damit
@@ -25968,14 +25988,32 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       return give({ ok: true, reason: '', sentTo: ownAddress, ...mailCardMock() });
     }
     if (url === '/api/titles') return give({ publicTitle: 'Oeffentlich', appTitle: 'Intern' });
-    if (url === '/api/criteria') return give(criteria);
-    if (url === '/api/criteria/order') return give(criteria);
+    /* ---- DIE NAMEN JE SPRACHE, WIE localeOf(req) SIE ENTSCHEIDET -- 0.24.5 ----
+       DER MOCK ANTWORTET WIE DER ECHTE SERVER, und das heisst hier vor allem:
+       ER HOERT DEN KOPF NICHT. `localeOf(req)` fragt ZUERST den persoenlichen
+       Schluessel des angemeldeten Zugangs und erst danach `Accept-Language`
+       (0.24.3, Konzept 5.3) -- wer eine Sprache eingestellt hat, bekommt auf
+       JEDE Anfrage die Namen SEINER Sprache, gleichgueltig was im Kopf steht.
+       GENAU DAS IST DER BEFUND DIESER RUNDE (D1), und ohne diese Zeilen waere
+       er im Mock nicht nachstellbar: einer, der den Kopf beantwortet, zeigte
+       eine Klempnerei, die es nicht gibt, und die achtzehn gemeldeten Zellen
+       waeren von selbst gruen (Stolperstein 90).
+       DER RUECKFALL IST DIE ABWESENHEIT EINER ZEILE, wie in `named()`: wo die
+       Tafel nichts hat, bleibt der Name der Grundzeile stehen. */
+    const personalLanguage = () => settings.language || 'de';
+    const withNames = (rows, table) => {
+      if (!table) return rows;
+      const per = table[personalLanguage()] || {};
+      return rows.map(z => (per[z.id] !== undefined ? { ...z, name: per[z.id] } : z));
+    };
+    if (url === '/api/criteria') return give(withNames(criteria, criterionNames));
+    if (url === '/api/criteria/order') return give(withNames(criteria, criterionNames));
     if (url === '/api/tags') return give(tags);
     /* NICHT LEER. Eine leere Karte hat keine Zeilen, und eine Pruefung darauf,
        dass an ihren Zeilen etwas NICHT steht, bliebe auf null Zeilen gruen und
        belegte nichts (Stolperstein 81). Genau das ist beim Bau von 0.8.40 an
        der Gegenprobe zum Gewichtsfeld aufgefallen. */
-    if (url === '/api/product-categories') return give(categories);
+    if (url === '/api/product-categories') return give(withNames(categories, categoryNames));
     /* Der eigene Name steht seit 0.8.6 in dieser Antwort, und der
        Mock liefert ihn mit -- sonst bliebe die Kopfzeile leer und
        jede Pruefung darauf blind. Als Vorgabe DERSELBE Name wie unter
@@ -26003,6 +26041,14 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (typeof sentBody.language === 'string' && sentBody.language) {
         const file = path.join(__dirname, 'public', 'languages', `${sentBody.language}.json`);
         if (fs.existsSync(file)) {
+          /* DER PERSOENLICHE SCHLUESSEL ZIEHT WIRKLICH MIT -- 0.24.5, und der
+             echte Server tut nichts anderes: `PUT /api/settings` schreibt ihn,
+             und JEDE weitere Anfrage liest ihn in `localeOf(req)`. Ein Mock,
+             der ihn nur zurueckmeldet und nicht setzt, antwortete danach
+             weiter in der ALTEN Sprache -- und Befund D2 (der Zwischenspeicher
+             ueberlebt den Sprachwechsel) waere in EINER Sitzung gar nicht
+             nachstellbar (Stolperstein 90). */
+          settings.language = sentBody.language;
           const words = Object.fromEntries(
             Object.entries(JSON.parse(fs.readFileSync(file, 'utf8')))
               .filter(([k]) => k.startsWith('vocabulary.'))
@@ -27394,6 +27440,292 @@ async function checkUi() {
     check('Und ein gewoehnliches Neuzeichnen holt sie nicht zurueck',
       stSide.scrollTop === 0, `${stSide.scrollTop} statt 0`);
     wSt.close();
+  }
+
+  /* ====== Die Tafel der Sprachpillen — 0.24.5 ==========================
+     SIEBENUNDZWANZIG ZELLEN UND NEUN DANEBEN, und sie sind KEINE Stichprobe.
+
+     DER BEFUND IST ALS TAFEL GEMELDET WORDEN und wird als Tafel nachgestellt:
+     drei Lesersprachen × drei Pillen × drei Verwaltungskarten. Der Betreiber
+     hat am 8. September 2026 achtzehn Zellen an zwei Karten durchprobiert,
+     zwoelf davon falsch, und danach nachgetragen, dass es die DRITTE Karte
+     genauso trifft — „Kategorien, Bewertungen: Kriterien, Potenzial:
+     Kriterien". Beide Kriterienkarten lesen dieselbe Antwort von
+     `/api/criteria`; es ist EIN Fehler an DREI Karten, und deshalb stehen
+     alle drei in der Tafel.
+
+     UND DIE KACHEL „VOKABULAR" LAEUFT ALS VERGLEICHSGRUPPE MIT (F7): dieselben
+     neun Kombinationen, gruen VOR der Reparatur und gruen danach. Sie ist der
+     Maßstab dieser Runde -- der Betreiber hat sie ausdruecklich fuer richtig
+     befunden. Eine Prueflage, die ueberall rot ist, hat womoeglich nur den
+     Pruefstand falsch aufgesetzt; eine, die genau dort rot ist, wo der Befund
+     es sagt, und genau dort gruen, wo er es fuer richtig haelt, misst die
+     Sache. WER DIE NEUN ZELLEN SPAETER LOESCHT, weil sie „immer gruen" sind,
+     nimmt der Tafel daneben ihren Maßstab.
+
+     DER BESTAND IST DER DES BEFUNDS -- mit und ohne Uebersetzung:
+       Kategorie 21 „Werkzeug" → en „Tool",      tr „Alet"
+       Kategorie 22 „Material" → en „Substance", KEIN tr   ← Rueckfall
+       Kriterium 7 „Zuerst"    → en „First",     tr „Birinci"   (Kasten nachher)
+       Kriterium 8 „Dann"      → en „Then",      KEIN tr   ← Rueckfall
+       Kriterium 9 „Zuletzt"   → en „Last",      tr „Sonuncu"   (Kasten vorher)
+     OHNE DIE ZWEI ZEILEN OHNE tr belegte die Tafel die Haelfte nicht: der
+     Rueckfall auf die Grundzeile ist die letzte Zelle der zweiten Karte im
+     Befund, und sie ist die einzige, die der Betreiber dort fuer richtig
+     befunden hat. */
+  group('Die Sprachpillen der Namenskarten — 0.24.5');
+  {
+    const npLanguages = [
+      { code: 'de', name: 'Deutsch', isDefault: true, active: true },
+      { code: 'en', name: 'English', isDefault: false, active: true },
+      { code: 'tr', name: 'Türkçe', isDefault: false, active: true }
+    ];
+    const npCategoryNames = { en: { 21: 'Tool', 22: 'Substance' }, tr: { 21: 'Alet' } };
+    const npCriterionNames = { en: { 7: 'First', 8: 'Then', 9: 'Last' },
+                               tr: { 7: 'Birinci', 9: 'Sonuncu' } };
+    /* WAS IN DEN DREI LISTEN STEHEN MUSS, je Pille -- der SOLLWERT neben jeder
+       Zelle. Unter `tr` stehen „Material" und „Dann" als Rueckfall auf die
+       Grundzeile: fuer sie ist auf Tuerkisch nichts eingetragen, und ein leerer
+       Name waere schlimmer als ein deutscher. */
+    const npWant = {
+      de: { mcats: ['Werkzeug', 'Material'], mcrits: ['Zuerst', 'Dann'], mpcrits: ['Zuletzt'] },
+      en: { mcats: ['Tool', 'Substance'], mcrits: ['First', 'Then'], mpcrits: ['Last'] },
+      tr: { mcats: ['Alet', 'Material'], mcrits: ['Birinci', 'Dann'], mpcrits: ['Sonuncu'] }
+    };
+    /* DIE VIERZEHN WOERTER DER VERGLEICHSGRUPPE. Fuer jede der drei Sprachen
+       ist etwas ANDERES eingetragen -- nur dann sagt die Zelle etwas: waeren
+       sie gleich, waere jede Pille von jeder anderen ununterscheidbar. */
+    const npVocabularyOwn = { de: { entryOne: 'Maschine' }, en: { entryOne: 'Machine' },
+                              tr: { entryOne: 'Makine' } };
+    const NP_CARDS = [['mcats', 'Kategorien'], ['mcrits', 'Bewertungen: Kriterien'],
+                      ['mpcrits', 'Potenzial: Kriterien']];
+    const npRows = (w, boxId) => [...w.document.querySelectorAll(`#${boxId} .mname`)]
+      .map(z => z.textContent.trim());
+    const npPill = (w, boxId, name) => [...(w.document.getElementById(boxId) || { children: [] }).children]
+      .find(b => b.textContent === name);
+    /* DRUECKT EINE PILLE UND SAGT, OB SIE DA WAR -- geklammert wie setField()
+       und aus demselben Grund (Stolperstein 161): ein Rueckbau, der die
+       Pillenreihe wegnimmt, muss die Zusagen darunter ROT machen und nicht den
+       ganzen Lauf abreissen. */
+    const npPress = async (w, boxId, name) => {
+      const knob = npPill(w, boxId, name);
+      if (!knob) return false;
+      knob.dispatchEvent(new w.Event('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 140));
+      return true;
+    };
+
+    for (const reader of ['de', 'en', 'tr']) {
+      const npDom = buildDom(JSDOM, {
+        settings: { filters: null, language: reader, languages: npLanguages,
+                    vocabulariesOwn: npVocabularyOwn },
+        categoryNames: npCategoryNames, criterionNames: npCriterionNames,
+        criteriaPhases: ['after', 'after', 'before']
+      });
+      const wNp = npDom.w;
+      await new Promise(r => setTimeout(r, 80));
+      await sysSection(wNp, 'inventory');
+      const readerName = npLanguages.find(a => a.code === reader).name;
+      /* DER AUFBAU ZUERST: ohne die drei Pillenreihen und die drei Listen
+         belegten die neun Zellen darunter nichts -- eine Liste, die es nicht
+         gibt, ist in jeder Sprache leer und damit in jeder gleich falsch. */
+      check(`Aufbau (Leser ${readerName}): alle drei Karten tragen ihre Sprachzeile`,
+        ['ncatlang', 'mcrits-lang', 'mpcrits-lang'].every(id => wNp.document.getElementById(id)),
+        ['ncatlang', 'mcrits-lang', 'mpcrits-lang']
+          .map(id => `${id}=${!!wNp.document.getElementById(id)}`).join(' '));
+      check(`Aufbau (Leser ${readerName}): und alle drei Listen haben Zeilen`,
+        NP_CARDS.every(([box]) => npRows(wNp, box).length === npWant[reader][box].length),
+        NP_CARDS.map(([box]) => `${box}=${npRows(wNp, box).length}`).join(' '));
+      for (const pill of ['de', 'en', 'tr']) {
+        const pillName = npLanguages.find(a => a.code === pill).name;
+        if (!await npPress(wNp, 'ncatlang', pillName)) {
+          check(`Die Pille ${pillName} steht da (Leser ${readerName})`, false,
+            'keine Pillenreihe an der Karte „Kategorien"');
+          continue;
+        }
+        /* EIN KLICK, DREI ZELLEN: die Pillenreihe ist EIN Umschalter fuer den
+           ganzen Abschnitt, und wer ihn an einer Karte umlegt, sieht ihn an
+           den anderen mitgehen (0.24.3). Deshalb wird nach EINEM Klick an
+           ALLEN DREI Listen nachgesehen -- und nicht dreimal geklickt. */
+        for (const [box, cardName] of NP_CARDS)
+          check(`Zelle: Leser ${readerName}, Pille ${pillName}, Karte „${cardName}"`,
+            equal(npRows(wNp, box), npWant[pill][box]),
+            `steht: ${JSON.stringify(npRows(wNp, box))} — soll: ${JSON.stringify(npWant[pill][box])}`);
+        /* UND DIE VERGLEICHSZELLE DANEBEN, an derselben Pille und im
+           demselben Augenblick: die Kachel „Vokabular" steht im selben
+           Abschnitt, hat dieselbe Bauform und ist heute richtig. */
+        await npPress(wNp, 'vlang', pillName);
+        check(`Vergleichszelle: Leser ${readerName}, Pille ${pillName}, Kachel „Vokabular"`,
+          (wNp.document.getElementById('v1') || {}).value === npVocabularyOwn[pill].entryOne,
+          `steht: ${JSON.stringify((wNp.document.getElementById('v1') || {}).value)} — ` +
+          `soll: ${JSON.stringify(npVocabularyOwn[pill].entryOne)}`);
+      }
+      /* ---- DER KOPF DER KARTE STIMMT IMMER, und das gehoert in die Tafel ----
+         Der Betreiber hat es ausdruecklich gemeldet: „Kategorien",
+         „Categories", „Kategoriler" folgen dem LESER, wie sie sollen -- falsch
+         ist allein die Liste darunter. Ohne diese Zeile liesse sich eine
+         Reparatur nicht von einer unterscheiden, die die ganze Karte in die
+         Sprache der Pille dreht. */
+      const npHeads = { de: 'Kategorien', en: 'Categories', tr: 'Kategoriler' };
+      check(`Und der Kopf der Karte bleibt beim Leser (${readerName})`,
+        [...wNp.document.querySelectorAll('.sys-card h3')]
+          .some(z => z.textContent.trim() === npHeads[reader]),
+        [...wNp.document.querySelectorAll('.sys-card h3')].map(z => z.textContent.trim()).join(' | '));
+      wNp.close();
+    }
+
+    /* ---- DIE FOLGE IN EINER SITZUNG — 0.24.5 (D2) ---------------------
+       PILLE DRUECKEN, EIGENE SPRACHE WECHSELN, DIESELBE PILLE NOCH EINMAL.
+
+       DAS IST DIE ZELLE, DIE DEN GANZEN BEFUND ERKLAERT: Karte 1, Leser
+       Deutsch, Pille Tuerkisch → englisch. Englisch ist dort weder die
+       Sprache des Lesers noch die der Pille noch die Vorgabe der Installation
+       -- eine Liste, die aus keiner dieser drei stammen kann, stammt nicht aus
+       der Anfrage, sondern aus einem Zwischenspeicher.
+       EIN PRUEFSTAND, DER JEDE ZELLE FRISCH AUFSETZT, SIEHT DAS NIE. Der
+       Zwischenspeicher haengt an der Reihenfolge INNERHALB einer Sitzung: was
+       unter dem Schluessel `tr` liegt, ist die Liste der Sprache, die der
+       Leser las, als er die Pille das erste Mal druckte. Diese Prueflage
+       stellt genau diese Reihenfolge her. */
+    {
+      const seqDom = buildDom(JSDOM, {
+        settings: { filters: null, language: 'en', languages: npLanguages,
+                    vocabulariesOwn: npVocabularyOwn },
+        categoryNames: npCategoryNames, criterionNames: npCriterionNames,
+        criteriaPhases: ['after', 'after', 'before']
+      });
+      const wSeq = seqDom.w;
+      await new Promise(r => setTimeout(r, 80));
+      await sysSection(wSeq, 'inventory');
+      await npPress(wSeq, 'ncatlang', 'Türkçe');
+      check('Folgeprobe, Schritt 1: der englische Leser drueckt Türkçe und liest Tuerkisch',
+        equal(npRows(wSeq, 'mcats'), npWant.tr.mcats),
+        JSON.stringify(npRows(wSeq, 'mcats')));
+      /* SCHRITT 2: DIE EIGENE SPRACHE WECHSELN. Die Pillenreihe des Lesers
+         steht in „Darstellung" -- ein anderer Abschnitt, und der Wechsel
+         zeichnet den ganzen Systembereich neu. */
+      await sysSection(wSeq, 'personal');
+      const seqOwn = [...(wSeq.document.getElementById('lang') || { children: [] }).children]
+        .find(b => b.textContent === 'Deutsch');
+      check('Folgeprobe, Schritt 2: die Sprachzeile des Lesers steht da', !!seqOwn,
+        'keine Sprachzeile in der Karte „Darstellung"');
+      if (seqOwn) {
+        seqOwn.dispatchEvent(new wSeq.Event('click', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 260));
+      }
+      /* UND SCHRITT 3: DIESELBE PILLE NOCH EINMAL. Sie muss dasselbe zeigen
+         wie beim ersten Mal -- die Namen der Sprache, die auf ihr steht. Bis
+         0.24.5 stand hier die Liste der Sprache, die der Leser VORHER las. */
+      await sysSection(wSeq, 'inventory');
+      await npPress(wSeq, 'ncatlang', 'Türkçe');
+      check('Folgeprobe, Schritt 3: dieselbe Pille zeigt dieselbe Liste wie beim ersten Mal',
+        equal(npRows(wSeq, 'mcats'), npWant.tr.mcats),
+        `steht: ${JSON.stringify(npRows(wSeq, 'mcats'))} — soll: ${JSON.stringify(npWant.tr.mcats)}`);
+      wSeq.close();
+    }
+
+    /* ---- DER RUECKFALL SAGT, DASS ER EINER IST — 0.24.5 (F4) ----------
+       WO FUER DIE GEZEIGTE SPRACHE NICHTS EINGETRAGEN IST, steht der Name der
+       Vorgabesprache da UND ein gedaempfter Vermerk daneben. Die Entscheidung
+       des Betreibers vom 8. September 2026: *„Wenn die Felder von
+       Defaultsprache gefuellt sind, werden sie vorgezogen. Ist da auch nicht,
+       wird die Vorgabe genommen. Und gerne gedaempft der Hinweis, dass dies
+       ein Fallback ist und fuer die ausgewaehlte Sprache keine Eingabe
+       existiert."*
+       DIESELBE UEBERLEGUNG WIE BEI DEN VIERZEHN VOKABELWOERTERN (0.24.4,
+       B2/B4): ein Rueckfall, der wie ein Eintrag aussieht, wird beim naechsten
+       Speichern zu einem. */
+    {
+      const fbDom = buildDom(JSDOM, {
+        settings: { filters: null, language: 'de', languages: npLanguages },
+        categoryNames: npCategoryNames, criterionNames: npCriterionNames,
+        criteriaPhases: ['after', 'after', 'before']
+      });
+      const wFb = fbDom.w;
+      await new Promise(r => setTimeout(r, 80));
+      await sysSection(wFb, 'inventory');
+      await npPress(wFb, 'ncatlang', 'Türkçe');
+      const fbRowOf = (boxId, name) => [...wFb.document.querySelectorAll(`#${boxId} .mrow`)]
+        .find(z => (z.querySelector('.mname') || {}).textContent.trim() === name);
+      const fbMark = (boxId, name) => {
+        const row = fbRowOf(boxId, name);
+        return row ? (row.querySelector('.mfallback') || {}).textContent || '' : '(Zeile fehlt)';
+      };
+      check('Rueckfallprobe: die Zeile ohne tuerkischen Namen traegt den Vermerk',
+        /Deutsch/.test(fbMark('mcats', 'Material')), fbMark('mcats', 'Material'));
+      check('Und dasselbe an der Kriterienkarte',
+        /Deutsch/.test(fbMark('mcrits', 'Dann')), fbMark('mcrits', 'Dann'));
+      /* UND DIE UEBERSETZTE ZEILE TRAEGT IHN NICHT. Ohne diese Zeile bliebe
+         die darueber auch dann gruen, wenn der Vermerk an JEDER Zeile stuende
+         -- und dann sagte er nichts mehr. */
+      check('Und die uebersetzte Zeile daneben traegt ihn nicht',
+        fbMark('mcats', 'Alet') === '' && fbMark('mcrits', 'Birinci') === '',
+        `Alet=${JSON.stringify(fbMark('mcats', 'Alet'))} ` +
+        `Birinci=${JSON.stringify(fbMark('mcrits', 'Birinci'))}`);
+      /* UND DAS UMBENENNFELD ZEIGT DEN RUECKFALL NICHT ALS WERT (B2 der Runde
+         0.24.4, hier am Namen): wer das ✎ an einer Zeile ohne tuerkischen
+         Namen oeffnet, findet ein LEERES Feld mit dem Rueckfall als
+         Platzhalter. Stuende „Material" darin, machte ein Klick auf Speichern
+         daraus einen tuerkischen Eintrag „Material". */
+      const fbOpenPen = (boxId, name) => {
+        /* GEKLAMMERT, UND ZWAR AUSDRUECKLICH: solange die Reparatur nicht
+           steht, zeigt die Karte auf der Pille „Türkçe" die deutschen Namen --
+           die gesuchte Zeile ist dann gar nicht da. Ein ungeschuetztes
+           `.querySelector` an einer fehlenden Zeile RISSE DEN GANZEN LAUF AB,
+           statt die Zusage darunter rot zu machen (Stolperstein 161), und eine
+           abgerissene Prueflage belegt nichts. */
+        const row = fbRowOf(boxId, name);
+        const pen = row && row.querySelector('.ed');
+        if (pen) pen.dispatchEvent(new wFb.Event('click', { bubbles: true }));
+        return wFb.document.querySelector(`#${boxId} .medit`);
+      };
+      const fbField = fbOpenPen('mcats', 'Material');
+      check('Und das Umbenennfeld steht leer, mit dem Rueckfall als Platzhalter',
+        !!fbField && fbField.value === '' && fbField.placeholder === 'Material',
+        fbField ? `Wert=${JSON.stringify(fbField.value)} Platzhalter=${JSON.stringify(fbField.placeholder)}`
+                : 'kein Eingabefeld');
+      /* UND AN DER UEBERSETZTEN ZEILE STEHT DAS EINGETRAGENE DARIN -- sonst
+         waere die Zeile darueber auch mit einem Feld gruen, das IMMER leer
+         ist, und das Umbenennen waere ein Neutippen. */
+      await npPress(wFb, 'ncatlang', 'English');
+      const fbField2 = fbOpenPen('mcats', 'Substance');
+      check('Und an einer uebersetzten Zeile steht das Eingetragene im Feld',
+        !!fbField2 && fbField2.value === 'Substance', fbField2 && fbField2.value);
+      wFb.close();
+    }
+
+    /* ---- WER NICHT VERWALTEN DARF, SIEHT DIE PILLENREIHE GAR NICHT ----
+       DIE ENTSCHEIDUNG DES BETREIBERS ZU F3, 8. September 2026: *„Der normale
+       User soll nicht mal die Pille über der Kachel sehen können. Er sieht nur
+       die Bezeichnungen der Sprache, den er im persönlichen Bereich
+       eingestellt hat."*
+       DIE KARTEN BLEIBEN STEHEN, alle drei: wer nicht verwalten darf, darf
+       trotzdem nachsehen, was es gibt -- die Namen sind die Auswahl, aus der
+       jeder am Eintrag schoepft. Nur der Umschalter ist weg, und mit ihm die
+       Tafel: eine Namenstafel aller Sprachen an einen Leser zu schicken, der
+       keine davon umschalten kann, waere eine Antwort auf eine Frage, die er
+       nicht stellt. */
+    {
+      const roDom = buildDom(JSDOM, {
+        settings: { filters: null, language: 'tr', languages: npLanguages,
+                    isAdmin: false, isOwner: false },
+        categoryNames: npCategoryNames, criterionNames: npCriterionNames,
+        criteriaPhases: ['after', 'after', 'before']
+      });
+      const wRo = roDom.w;
+      await new Promise(r => setTimeout(r, 80));
+      await sysSection(wRo, 'inventory');
+      check('Rollenprobe: der gewoehnliche Benutzer sieht keine Sprachzeile',
+        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+          .every(id => !wRo.document.getElementById(id)),
+        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+          .filter(id => wRo.document.getElementById(id)).join(' '));
+      /* UND ER SIEHT DIE LISTE TROTZDEM, in SEINER Sprache. Ohne diese Zeile
+         waere die darueber auch dann gruen, wenn die ganze Karte fehlte. */
+      check('Und er sieht die Liste trotzdem — in seiner eigenen Sprache',
+        equal(npRows(wRo, 'mcats'), npWant.tr.mcats), JSON.stringify(npRows(wRo, 'mcats')));
+      wRo.close();
+    }
   }
 
   /* DIE SCHRIFTGROESSE STEHT IN „Darstellung" UND DAMIT IN EINEM ANDEREN
