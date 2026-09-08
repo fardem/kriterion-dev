@@ -6803,8 +6803,8 @@ const REGRESSIONS = [
   {
     nr: '713', name: 'Die uebergangene Datei wird nicht mehr genannt',
     file: 'server.js',
-    search: "const languageSkip = (file, why) =>",
-    replacement: "const languageSkip = (file, why) => why && false ||",
+    search: "const languageSkip = (file, why) => console.error(\n  `[languages] ${file} zaehlt nicht als Sprache: ${why}`);",
+    replacement: "const languageSkip = (file, why) => file && why;",
     expected: 'Die Fremddatei und der Dateiname — 0.24.3'
   },
   /* DER VORRAT (F9). Zwei Klammern: die Wahl je Benutzer und die Vorgabe. */
@@ -6816,10 +6816,16 @@ const REGRESSIONS = [
     expected: 'Der Vorrat der Sprachen — 0.24.3'
   },
   {
+    /* DIE KLEMME STEHT AN ZWEI STELLEN, und deshalb greift dieser Rueckbau
+       BEIDE: writeLanguages() legt die Vorgabe beim Schreiben zurueck,
+       languagePool() beim Lesen. Ein Rueckbau, der nur eine wegnimmt, bleibt
+       STUMM -- die andere faengt ihn auf. Das ist keine Schwaeche des
+       Waechters, sondern eine Doppelung im Bau; die Gegenprobe muss sie
+       kennen, sonst belegt sie nichts. */
     nr: '715', name: 'Die Vorgabesprache faellt aus dem Vorrat heraus',
     file: 'server.js',
-    search: "  if (!set.includes(std)) set.push(std);",
-    replacement: "  if (false) set.push(std);",
+    search: "  return pool.includes(std) ? pool : [std, ...pool];",
+    replacement: "  return pool;",
     expected: 'Der Vorrat der Sprachen — 0.24.3'
   },
   /* DER RUECKFALL DER NAMEN (F8a, F8b). Der erste ist der Befund aus
@@ -6846,10 +6852,14 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    nr: '719', name: 'Die zweite Namenstabelle gibt es gar nicht mehr',
-    file: 'db.js',
-    search: "CREATE TABLE IF NOT EXISTS category_names (",
-    replacement: "CREATE TABLE IF NOT EXISTS category_names_alt (",
+    /* NICHT DIE TABELLE WEGNEHMEN: eine Abfrage auf eine Tabelle, die es
+       nicht gibt, nimmt den Server beim Vorbereiten mit, und der Lauf reisst
+       ab statt namentlich rot zu werden. Zurueckgebaut wird deshalb der
+       LESEWEG -- die Liste kommt dann in jeder Sprache in der Grundfassung. */
+    nr: '719', name: 'Die Kategorienamen werden nicht mehr je Sprache gelesen',
+    file: 'server.js',
+    search: "const categoryNames = (locale) => new Map(qCategoryNames.all(locale).map(z => [z.id, z.name]));",
+    replacement: "const categoryNames = () => new Map();",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   /* DIE GESPEICHERTEN WERTE (F7). Der zweite Migrationsblock dieser Runde --
@@ -6912,6 +6922,49 @@ const REGRESSIONS = [
     search: "const FILTER_FIELDS_0243 = [['favorit', 'favorite']];",
     replacement: "const FILTER_FIELDS_0243 = [['favorit', 'favorite'], ['kategorie', 'category']];",
     expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
+  },
+  /* UND DIE VORGABESPRACHE DES BESTANDS (F2). Drei Rueckbauten, weil drei
+     Dinge zusammen die Zusage tragen: dass der Block ueberhaupt schreibt,
+     dass er die richtige Sprache schreibt, und dass er eine FRISCHE
+     Installation nicht anfasst. */
+  {
+    nr: '728', name: 'Der Bestand bekommt keine Vorgabesprache mehr geschrieben',
+    file: 'db.js',
+    search: "  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')\n    .run('languageDefault', JSON.stringify(LANGUAGE_BEFORE_0243));",
+    replacement: "  if (false) db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')\n    .run('languageDefault', JSON.stringify(LANGUAGE_BEFORE_0243));",
+    expected: 'Der Bestand behaelt Deutsch — 0.24.3'
+  },
+  {
+    nr: '729', name: 'Auch eine frische Installation bekommt die Vorgabesprache geschrieben',
+    file: 'db.js',
+    search: "  const grown = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0;\n  if (!grown) return 0;",
+    replacement: "  const grown = true;\n  if (!grown) return 0;",
+    expected: 'Der Bestand behaelt Deutsch — 0.24.3'
+  },
+  {
+    nr: '730', name: 'Der Block schreibt bei jedem Start neu und ueberfaehrt die Wahl',
+    file: 'db.js',
+    search: "  if (db.prepare(\"SELECT 1 FROM settings WHERE key = 'languageDefault'\").get()) return 0;",
+    replacement: "  db.prepare(\"DELETE FROM settings WHERE key = 'languageDefault'\").run();",
+    expected: 'Der Bestand behaelt Deutsch — 0.24.3'
+  },
+  /* UND DIE SPRACHFASSUNGEN IN DER DATEI (F8c). Zwei Rueckbauten: einer
+     nimmt sie dem Export weg, der andere dem Import. Ein Export, der etwas
+     mitnimmt, das der Import nicht wieder hineinlegt, ist ein halber Weg --
+     und ein Import ohne Export haette nie etwas zu tun. */
+  {
+    nr: '731', name: 'Der Export nimmt die Sprachfassungen der Namen nicht mit',
+    file: 'server.js',
+    search: "           criteriaNames: exchangeCriterionNames(),\n           categoryNames: exchangeCategoryNames(), items };",
+    replacement: "           items };",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  {
+    nr: '732', name: 'Der Import legt die Sprachfassungen nicht wieder hinein',
+    file: 'server.js',
+    search: "      ['criterion_names', 'criterion_id', critByName, payload.criteriaNames],",
+    replacement: "      ['criterion_names', 'criterion_id', critByName, null],",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
   }
 ];
 

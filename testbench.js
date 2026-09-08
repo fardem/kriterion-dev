@@ -3664,6 +3664,72 @@ const shareMain = (purpose, target = null) =>
     (await call('GET', `/api/items/${rnItem.id}`)).content.category?.id === rnCategory.id,
     JSON.stringify((await call('GET', `/api/items/${rnItem.id}`)).content.category));
 
+
+  /* --- DIE SPRACHFASSUNGEN REISEN MIT DER DATEI — F8c -------------------
+     ALLE, NICHT NUR DIE DES EXPORTIERENDEN. Wer eine Zweitinstanz aufsetzt,
+     nimmt seinen Bestand mit -- und die Sprachen dieser Instanz sind andere
+     als die der ersten. Eine Datei, die nur die Fassung des Ausfuehrenden
+     traegt, verloere die uebrigen still.
+     LEER HEISST LEER: hat niemand etwas uebersetzt, steht ein leeres Objekt
+     in der Datei. Das ist eine Angabe und kein fehlendes Feld. */
+  const rnFile = (await callF('GET', '/api/export?photos=0')).content;
+  check('Die Exportdatei traegt die Formatnummer 14',
+    rnFile?.version === 14, JSON.stringify(rnFile?.version));
+  check('Und sie traegt beide Namenstafeln, je Sprache geordnet',
+    rnFile?.criteriaNames?.de?.['Rueckfallkriterium'] === 'Deutscher Name' &&
+    rnFile?.categoryNames?.de?.['Rueckfallkategorie'] === 'Deutsche Kategorie',
+    JSON.stringify([rnFile?.criteriaNames, rnFile?.categoryNames]));
+  /* UND SIE STEHEN UNTER DEM NAMEN DER GRUNDZEILE UND NICHT UNTER EINER
+     NUMMER. Die Nummern einer Zweitinstanz sind andere; ein Export, der
+     Nummern traegt, ist nur in der Instanz lesbar, aus der er kommt --
+     dieselbe Bauform wie bei den Gewichten und der Phase daneben. */
+  check('Und die Tafel steht unter dem Namen der Grundzeile, nicht unter einer Nummer',
+    Object.keys(rnFile?.criteriaNames?.de || {}).every(k => Number.isNaN(Number(k))),
+    JSON.stringify(Object.keys(rnFile?.criteriaNames?.de || {})));
+
+  /* JETZT DIE GEGENRICHTUNG: die Uebersetzungen von Hand wegnehmen und die
+     Datei zusammenfuehrend wieder einspielen. Ein Export, der etwas mitnimmt,
+     das der Import nicht wieder hineinlegt, ist ein halber Weg. */
+  await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Rueckfallkriterium', language: 'de' });
+  await call('PUT', `/api/product-categories/${rnCategory.id}`,
+    { name: 'Rueckfallkategorie', language: 'de' });
+  check('Der Aufbau steht: die beiden Uebersetzungen sind weg',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium' &&
+    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+  /* EINGESPIELT WIRD EINE DATEI MIT DEN BEIDEN TAFELN UND OHNE EINTRAEGE.
+     Die volle Exportdatei zusammenfuehrend einzuspielen legte den ganzen
+     Bestand ein zweites Mal an -- und jede Zahl, die eine spaetere Gruppe
+     nachzaehlt, waere danach eine andere. Geprueft wird der WEG der Tafeln,
+     und dafuer braucht es keinen Eintrag. */
+  const rnBack = await sendImport({ exported_at: rnFile.exported_at, title: rnFile.title,
+    version: rnFile.version, items: [],
+    criteriaNames: rnFile.criteriaNames, categoryNames: rnFile.categoryNames }, 'merge');
+  check('Die Datei laesst sich zusammenfuehrend einspielen',
+    rnBack.status === 200, `Status ${rnBack.status}: ${JSON.stringify(rnBack.content)}`);
+  check('Und die Uebersetzungen sind danach wieder da',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name' &&
+    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Deutsche Kategorie',
+    JSON.stringify([rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name,
+                    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name]));
+  /* UND DIE GRUNDZEILE HAT SICH DABEI NICHT GEAENDERT. Ein Import, der die
+     Uebersetzung in die Grundzeile schriebe, machte aus einer zweiten Fassung
+     die erste -- und jeder andere Leser saehe ab dann Deutsch. */
+  check('Und der englische Leser sieht weiter die Grundzeile',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
+    JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
+
+  /* EINE DATEI AUS FORMAT 13 LAESST SICH WEITERHIN EINSPIELEN -- sie kennt
+     die beiden Tafeln gar nicht, und ein fehlendes Feld ist kein Fehler. */
+  const rnOld = await sendImport({ exported_at: new Date().toISOString(), title: 'Dreizehn',
+    version: 13, items: [] }, 'merge');
+  check('Eine Datei aus Format 13 spielt sich weiterhin ein',
+    rnOld.status === 200, `Status ${rnOld.status}: ${JSON.stringify(rnOld.content)}`);
+  check('Und die vorhandene Uebersetzung bleibt dabei stehen',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+
   /* OHNE SPRACHANGABE MEINT DER SCHREIBWEG DIE GRUNDZEILE -- und nicht die
      Sprache des Lesers. Geprueft mit einem deutschen Kopf: der Ruf liest
      Deutsch und schreibt trotzdem die Grundzeile. */
@@ -16637,6 +16703,112 @@ const shareMain = (purpose, target = null) =>
     fs.rmSync(drDirectory, { recursive: true, force: true });
   }
 
+  /* ========= Der Bestand behaelt Deutsch — 0.24.3, F2 ====================
+     EINE FRISCHE INSTALLATION STARTET AUF ENGLISCH, EIN BESTAND NICHT. Bis
+     0.24.2 stand die Vorgabesprache als Konstante im Quelltext; ab dieser
+     Runde steht sie in `settings`, und die Auslieferung gibt Englisch vor.
+     Ohne diesen Block spraeche eine laufende Instanz nach dem Einspielen
+     ploetzlich Englisch -- und „am Bildschirm aendert sich kein Wort" waere
+     zum ersten Mal in dieser Reihe gebrochen, ohne dass es jemand bestellt
+     haette.
+
+     UND ES MUSS EIN GESCHRIEBENER WERT SEIN, KEIN ABGELEITETER. „Kein
+     Eintrag UND es gibt Zugaenge, also Deutsch" traegt nicht: eine FRISCH auf
+     Englisch eingerichtete Installation hat im Augenblick der Einrichtung
+     noch keinen Zugang und danach einen -- sie kippte in genau dem
+     Augenblick auf Deutsch, in dem der erste Mensch sein Konto anlegt.
+     DIE FRAGE LAESST SICH NUR BEIM HOCHKOMMEN STELLEN, und genau das prueft
+     diese Gruppe: an drei Datenbanken, die sich in EINER Sache
+     unterscheiden. */
+  group('Der Bestand behaelt Deutsch — 0.24.3');
+  {
+    const bdSetting = (directory, k) => {
+      const d = open(path.join(directory, 'katalog.sqlite'));
+      const r = d.prepare('SELECT value FROM settings WHERE key = ?').get(k);
+      d.close();
+      return r ? JSON.parse(r.value) : null;
+    };
+
+    /* ERSTENS: EIN BESTAND. Eine Datenbank mit einem Zugang darin -- so sieht
+       jede Installation aus, in der schon einmal jemand gearbeitet hat. */
+    const bdOld = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-bestand-'));
+    shortRun(`require('./db'); console.log('angelegt');`, bdOld);
+    {
+      const d = open(path.join(bdOld, 'katalog.sqlite'));
+      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
+        .run('bestandsanna', 'x', 'owner', 'active');
+      d.prepare("DELETE FROM settings WHERE key = 'languageDefault'").run();
+      d.close();
+    }
+    check('Der gestellte Bestand traegt einen Zugang und keine Vorgabesprache',
+      bdSetting(bdOld, 'languageDefault') === null,
+      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
+    const bdRun = shortRunAll(`require('./db'); console.log('gelaufen');`, bdOld);
+    check('Der Bestand bekommt Deutsch ausdruecklich in die Ablage geschrieben',
+      bdSetting(bdOld, 'languageDefault') === 'de',
+      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
+    /* UND ER SAGT ES. Ein Migrationsblock, der eine Vorgabe setzt, ohne es zu
+       melden, laesst den Betreiber im Ungewissen, warum seine Installation
+       weiter Deutsch spricht -- und ob das Absicht war. */
+    check('Und er sagt es, samt der Zusage, dass sich nichts aendert',
+      /Vorgabesprache/.test(bdRun) && /kein Wort/.test(bdRun),
+      bdRun.replace(/\n/g, ' · '));
+
+    /* ZWEITENS: EINE FRISCHE INSTALLATION. Dieselbe Fassung, dieselbe
+       Migration -- nur ohne Zugang. Sie darf nichts geschrieben bekommen und
+       spricht damit Englisch. */
+    const bdFresh = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch-de-'));
+    const bdFirst = shortRunAll(`require('./db'); console.log('fertig');`, bdFresh);
+    check('Eine frische Installation bekommt keine Vorgabesprache geschrieben',
+      bdSetting(bdFresh, 'languageDefault') === null,
+      JSON.stringify(bdSetting(bdFresh, 'languageDefault')));
+    check('Und sie sagt auch nichts darueber',
+      !/Vorgabesprache/.test(bdFirst), bdFirst.replace(/\n/g, ' · '));
+    /* UND DER QUELLTEXT LIEST DARAUS WIRKLICH ENGLISCH. Bis hierher steht
+       fest, was in der Zeile STEHT -- diese Zeile belegt, was daraus wird. */
+    const bdSeen = shortRun(
+      `const { db } = require('./db');` +
+      `const r = db.prepare("SELECT value FROM settings WHERE key = 'languageDefault'").get();` +
+      `console.log(r ? r.value : 'nichts');`, bdFresh);
+    check('Und der Quelltext findet dort nichts, faellt also auf Englisch',
+      bdSeen.trim() === 'nichts', bdSeen.trim());
+
+    /* DRITTENS: WER SIE SCHON GESETZT HAT, BEHAELT SIE. Ein zweiter Lauf ist
+       stumm, und wer spaeter auf Englisch stellt, bekommt sie beim naechsten
+       Start nicht zurueck auf Deutsch. */
+    const bdSecond = shortRunAll(`require('./db'); console.log('fertig');`, bdOld);
+    check('Der zweite Start sagt nichts mehr ueber die Vorgabesprache',
+      !/Vorgabesprache/.test(bdSecond), bdSecond.replace(/\n/g, ' · '));
+    {
+      const d = open(path.join(bdOld, 'katalog.sqlite'));
+      d.prepare("UPDATE settings SET value = ? WHERE key = 'languageDefault'").run('"en"');
+      d.close();
+    }
+    shortRun(`require('./db'); console.log('gelaufen');`, bdOld);
+    check('Und eine ausdrueckliche Umstellung auf Englisch haelt',
+      bdSetting(bdOld, 'languageDefault') === 'en',
+      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
+
+    /* UND DIE GEGENLAGE ZUM GEZAEHLTEN: GELOESCHTE ZUGAENGE ZAEHLEN MIT. Die
+       Frage ist nicht, wer sich anmelden kann, sondern ob hier schon einmal
+       jemand gearbeitet hat -- und ein Grabstein beweist genau das. */
+    const bdTomb = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-grabstein-'));
+    shortRun(`require('./db'); console.log('angelegt');`, bdTomb);
+    {
+      const d = open(path.join(bdTomb, 'katalog.sqlite'));
+      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
+        .run('deleted-7', 'x', 'user', 'deleted');
+      d.prepare("DELETE FROM settings WHERE key = 'languageDefault'").run();
+      d.close();
+    }
+    shortRun(`require('./db'); console.log('gelaufen');`, bdTomb);
+    check('Auch ein Bestand, in dem nur noch ein Grabstein steht, behaelt Deutsch',
+      bdSetting(bdTomb, 'languageDefault') === 'de',
+      JSON.stringify(bdSetting(bdTomb, 'languageDefault')));
+
+    for (const d of [bdOld, bdFresh, bdTomb]) fs.rmSync(d, { recursive: true, force: true });
+  }
+
   /* ================= Der Bildschirmtext-Waechter — 0.22.0 =================
      Der zweite Durchgang: die Texte in Anfuehrungszeichen und Backticks von
      public/app.js und die error:-Texte der Serverdateien gegen die
@@ -23217,17 +23389,19 @@ const shareMain = (purpose, target = null) =>
      Gruppe sind viel; sie ist auch die einzige der Runde, und ein
      Migrationsblock, den nichts rot macht, ist eine Behauptung ueber einen
      Bestand, den man nicht mehr zurueckholt.
-     UND 719 SEIT 0.24.3: ACHTZEHN neue (710 bis 727) fuer die vier Gruppen
-     dieser Runde -- vier an den Klammern am Sprachverzeichnis (kaputtes
-     JSON, unbrauchbare Locale, der Dateiname, die Meldung selbst), zwei am
-     Vorrat (die Wahl je Benutzer, die Vorgabe darin), vier am Rueckfall der
-     Namen (die Sprache ohne Angabe, die geraeumte gleiche Uebersetzung und
-     die beiden Namenstabellen) und acht am zweiten Migrationsblock.
+     UND 724 SEIT 0.24.3: DREIUNDZWANZIG neue (710 bis 732) fuer die fuenf
+     Gruppen dieser Runde -- vier an den Klammern am Sprachverzeichnis
+     (kaputtes JSON, unbrauchbare Locale, der Dateiname, die Meldung selbst),
+     zwei am Vorrat (die Wahl je Benutzer, die Vorgabe darin), sechs am
+     Rueckfall der Namen (die Sprache ohne Angabe, die geraeumte gleiche
+     Uebersetzung, die Namenstabelle, der Leseweg der Kategorien und die
+     beiden Wege der Datei), acht am zweiten Migrationsblock und drei an der
+     Vorgabesprache des Bestands.
      ACHT FUER EINEN MIGRATIONSBLOCK, WIE EINE RUNDE ZUVOR, und der letzte
      davon ist die Gegenlage: er laesst den Block nach den BLOCKNAMEN
      greifen, die deutsch bleiben sollen. Ein Block, der zu viel tut,
      richtet denselben Schaden an wie einer, der zu wenig tut. */
-  check('Es sind genau 719 Rueckbauten', gpList.length === 719, `${gpList.length}`);
+  check('Es sind genau 724 Rueckbauten', gpList.length === 724, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

@@ -48,22 +48,30 @@ in `en.json` unter `vocabulary.` — das, womit eine frische englische
 Installation beschriftet ist, bevor jemand etwas eingetragen hat. *Was der
 Eigentümer stattdessen einträgt, steht in der Datenbank (Nachtrag zu E9/E11).*
 
+> **DIE SCHLÜSSEL HEISSEN SEIT BAUABSCHNITT 7 ENGLISCH.** Als dieses Blatt
+> geschrieben wurde — vor der ersten übersetzten Zeile —, standen dort noch
+> `vocabulary.sacheEinzahl` und die dreizehn anderen. **Frage F7 ist am
+> 7. September 2026 gegen den Vorschlag des Auftrags entschieden worden**, und
+> damit sind auch die vierzehn Vokabelnamen umgezogen; die Tafel unten trägt
+> die Namen von heute. *Die alten stehen in der Übersetzungstafel des
+> Migrationsblocks in `db.js` — dort und sonst nirgends.*
+
 | Schlüssel | Deutsch | **Englisch** | warum |
 |---|---|---|---|
-| `vocabulary.sacheEinzahl` | Eintrag | **Entry** | *nicht `Item`* — das ist das Wort der Warenkörbe |
-| `vocabulary.sacheMehrzahl` | Einträge | **Entries** | |
-| `vocabulary.merkmalJa` | Getestet | **Tested** | |
-| `vocabulary.merkmalNein` | Ungetestet | **Untested** | *nicht `Not tested`* — ein Wort, wie im Deutschen |
-| `vocabulary.zeitpunktEinzahl` | Testtag | **Test day** | zwei Wörter; **E-S4** verbietet das Zusammensetzen |
-| `vocabulary.zeitpunktMehrzahl` | Testtage | **Test days** | |
-| `vocabulary.berichtEinzahl` | Bericht | **Report** | |
-| `vocabulary.berichtMehrzahl` | Berichte | **Reports** | |
-| `vocabulary.aufgabeEinzahl` | Aufgabe | **Task** | |
-| `vocabulary.aufgabeMehrzahl` | Aufgaben | **Tasks** | |
-| `vocabulary.aufgabeErledigt` | Erledigt | **Done** | ein Wort, ein Abzeichen |
-| `vocabulary.potenzial` | Potenzial | **Potential** | |
-| `vocabulary.bewertungEinzahl` | Bewertung | **Rating** | *nicht `Review`* — das wäre der Bericht |
-| `vocabulary.bewertungMehrzahl` | Bewertungen | **Ratings** | |
+| `vocabulary.entryOne` | Eintrag | **Entry** | *nicht `Item`* — das ist das Wort der Warenkörbe |
+| `vocabulary.entryMany` | Einträge | **Entries** | |
+| `vocabulary.testedYes` | Getestet | **Tested** | |
+| `vocabulary.testedNo` | Ungetestet | **Untested** | *nicht `Not tested`* — ein Wort, wie im Deutschen |
+| `vocabulary.dayOne` | Testtag | **Test day** | zwei Wörter; **E-S4** verbietet das Zusammensetzen |
+| `vocabulary.dayMany` | Testtage | **Test days** | |
+| `vocabulary.reportOne` | Bericht | **Report** | |
+| `vocabulary.reportMany` | Berichte | **Reports** | |
+| `vocabulary.taskOne` | Aufgabe | **Task** | |
+| `vocabulary.taskMany` | Aufgaben | **Tasks** | |
+| `vocabulary.taskDone` | Erledigt | **Done** | ein Wort, ein Abzeichen |
+| `vocabulary.potential` | Potenzial | **Potential** | |
+| `vocabulary.ratingOne` | Bewertung | **Rating** | *nicht `Review`* — das wäre der Bericht |
+| `vocabulary.ratingMany` | Bewertungen | **Ratings** | |
 
 > **E-S4 · Kein Vokabelwort wird in ein zusammengesetztes Wort verbaut** —
 > die englische Fassung von S6. **„Rating: criteria", nicht „Rating

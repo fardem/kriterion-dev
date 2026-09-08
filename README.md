@@ -2034,6 +2034,54 @@ Doppeltipp zum Vergrößern werden könnte — auf einer Seite mit `width=device
 gibt es den nicht mehr, die Wartezeit bliebe trotzdem. **Im Vollbild ist der
 zweite Tipp ausgenommen**: dort *ist* er eine Bedeutung, er zoomt aufs Original.
 
+## Sprache
+
+**Kriterion spricht Deutsch und Englisch, und jeder stellt für sich ein,
+welche Sprache er liest** — in „Einstellungen → Persönlich → Darstellung".
+Der Wechsel wirkt sofort, ohne Neuladen, und wer gleichzeitig am selben
+Bestand arbeitet, merkt nichts davon: die Sprache gehört dem Zugang und nicht
+der Installation.
+
+**Auch die Anmeldeseite hat eine Sprachzeile.** Dort steht noch kein Konto, aus
+dem sich etwas lesen ließe; der Browser merkt sich die Wahl, und beim nächsten
+Öffnen steht sie wieder da.
+
+**Wer nichts einstellt, bekommt, was sein Browser verlangt.** Kriterion sieht
+sich `Accept-Language` an — steht die Sprache nicht zur Wahl, gilt die Vorgabe
+der Installation.
+
+**Der Eigentümer bestimmt beides** in „Einstellungen → Installation →
+Sprachen": **die Vorgabesprache** der Installation und **den Vorrat**, aus dem
+ein Benutzer überhaupt wählen darf. *Was nicht freigegeben ist, taucht
+nirgends auf — auch nicht vor der Anmeldung.* **Die Vorgabesprache ist immer im
+Vorrat**; sie lässt sich nicht herausnehmen.
+
+**Ein bestehender Bestand spricht weiter Deutsch.** Nur eine frisch
+eingerichtete Installation startet auf Englisch.
+
+### Eine eigene Sprache dazulegen
+
+**Das Verzeichnis ist die Liste.** Unter `public/languages/` liegt je Sprache
+eine Datei — `de.json`, `en.json`. Wer eine dritte hineinlegt und den Container
+neu startet, hat eine dritte Sprache: sie steht dann in der Karte „Sprachen"
+zur Freigabe.
+
+| | |
+|---|---|
+| **Der Dateiname** | die Sprachkennung nach BCP 47 und `.json` — `tr.json`, `pt-BR.json`. Ein anderer Name wird übergangen |
+| **Der Kopf der Datei** | `"_locale"` (etwa `"tr-TR"`, für Datum, Zahl und Mehrzahl) und `"_name"` (der Eigenname, den die Pille zeigt — „Türkçe") |
+| **Der Inhalt** | dieselben Schlüssel wie `de.json`. **Fehlende sind erlaubt** — sie fallen auf die Vorgabesprache zurück |
+
+**Eine unbrauchbare Datei bringt Kriterion nicht um.** Kaputtes JSON, eine
+`_locale`, die niemand kennt, ein Dateiname, der keine Sprachkennung ist: die
+Datei zählt nicht, der Grund steht im Protokoll des Containers, und die
+Installation läuft weiter. *Wenn eine Sprache nicht auftaucht, steht dort,
+warum:*
+
+```
+docker compose logs kriterion | grep '\[languages\]'
+```
+
 ## Vokabular
 
 Kriterion nennt seine Gegenstände von Haus aus „Eintrag", das Merkmal
@@ -2067,9 +2115,21 @@ hält sich an dieselbe Regel:
 - **Unsicher:** jede Einzahl mit Artikel oder Beiwort — „ein neuer Eintrag"
   wird zu „ein neuer Maschine".
 
-Leere Felder fallen auf die Vorgabe zurück, ein Knopf stellt alle zwölf
+Leere Felder fallen auf die Vorgabe zurück, ein Knopf stellt alle vierzehn
 zurück. Eine Probe unter den Feldern zeigt vor dem Speichern, wie die Wörter in
 echten Textbausteinen aussehen.
+
+**Die vierzehn Wörter gibt es je Sprache.** Über den Feldern steht eine
+Sprachzeile, sobald mehr als eine Sprache freigegeben ist; der Eigentümer
+pflegt die englischen Wörter, während seine eigene Oberfläche deutsch bleibt.
+**Wo für eine Sprache nichts eingetragen ist, gilt der zuerst angelegte Satz** —
+lieber ein Wort in der falschen Sprache als gar keines; und wo überhaupt nichts
+steht, die Vorgabe der jeweiligen Sprachdatei.
+
+**Dasselbe gilt für die Namen der Kategorien und der Kriterien.** Über beiden
+Listen steht dieselbe Sprachzeile. **Übersetzt wird nichts von selbst:** wer
+keine zweite Fassung einträgt, dessen Leser sehen die erste — und die
+Bewertungen hängen unverändert an ihrem Kriterium, in jeder Sprache.
 
 ## Hell oder dunkel
 
