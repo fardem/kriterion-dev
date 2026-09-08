@@ -1199,18 +1199,29 @@ const REGRESSIONS = [
     /* DIE NADEL FAELLT WIEDER AN DIE SPRACHE DES LESERS -- der Zustand von
        0.24.3. Die Zwei-Leser-Probe und die T3-Probe muessen daraufhin rot
        werden; wird nur eine rot, ist die andere stumm. */
-    nr: '726', name: 'Die Nadel faltet wieder mit der Sprache des Lesers',
+    nr: '734', name: 'Die Nadel faltet wieder mit der Sprache des Lesers',
     file: 'server.js',
     search: "const fulltextTerm = (raw) => (typeof raw === 'string' ? searchFold(raw.trim()) : '');",
     replacement: "const fulltextTerm = (raw, locale = languageDefault()) => (typeof raw === 'string' ? raw.trim().toLocaleLowerCase(localeTag(locale)) : '');",
     expected: 'Die Befunde der Runde 0.24.4'
   },
   {
+    /* DER SPRACHWECHSEL DES LESERS WIRFT DIE ANTWORT WIEDER WEG -- der Zustand
+       von 0.24.3. Die Sprachprobe des Lesers muss daraufhin rot werden, und
+       zwar NUR ihre zweite Haelfte: die Oberflaeche wechselt weiter, die
+       vierzehn Woerter nicht. */
+    nr: '736', name: 'Der Sprachwechsel nimmt das Vokabular nicht mit',
+    file: 'public/app.js',
+    search: "          takeVocabulary((await api('PUT', '/api/settings', { language: a.code })));",
+    replacement: "          await api('PUT', '/api/settings', { language: a.code });",
+    expected: 'Systembereich: Vokabular pflegen'
+  },
+  {
     /* UND DIE VIER i FALLEN WIEDER AUSEINANDER: dieselbe Funktion, nur ohne
        den Schritt, der `İ` und `ı` auf `i` bringt. Die T3-Probe wird rot,
        die Zwei-Leser-Probe NICHT -- beide Haelften falten ja weiter gleich.
        Genau diese Trennung ist der Grund fuer zwei Rueckbauten statt einem. */
-    nr: '727', name: 'Die vier i fallen nicht mehr auf eines',
+    nr: '735', name: 'Die vier i fallen nicht mehr auf eines',
     file: 'db.js',
     search: "  : String(s).toLowerCase().replace(/\\u0307/g, '').replace(/\\u0131/g, 'i'));",
     replacement: "  : String(s).toLowerCase());",

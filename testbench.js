@@ -23867,14 +23867,17 @@ const shareMain = (purpose, target = null) =>
      davon ist die Gegenlage: er laesst den Block nach den BLOCKNAMEN
      greifen, die deutsch bleiben sollen. Ein Block, der zu viel tut,
      richtet denselben Schaden an wie einer, der zu wenig tut. */
-  /* 727 SEIT 0.24.4: zwei kommen dazu, und sie zielen auf die beiden Haelften
+  /* 728 SEIT 0.24.4: drei kommen dazu, und zwei davon zielen auf die beiden Haelften
      desselben Befunds (B8). Der eine haengt die NADEL wieder an die Sprache
      des Lesers -- daraufhin muessen die Zwei-Leser-Probe UND die T3-Probe rot
      werden. Der andere laesst die vier i wieder auseinanderfallen -- dann
      wird die T3-Probe rot und die Zwei-Leser-Probe NICHT, denn beide Haelften
      falten weiter gleich, nur falsch. **Ein Rueckbau, der beide Proben
-     zugleich traefe, koennte nicht sagen, welche von ihnen etwas belegt.** */
-  check('Es sind genau 727 Rueckbauten', gpList.length === 727, `${gpList.length}`);
+     zugleich traefe, koennte nicht sagen, welche von ihnen etwas belegt.**
+     UND EIN DRITTER FUER B9: der Sprachwechsel des Lesers wirft die Antwort
+     wieder weg. Er trifft nur die ZWEITE Haelfte der Sprachprobe -- die
+     Oberflaeche wechselt weiter, die vierzehn Woerter nicht. */
+  check('Es sind genau 728 Rueckbauten', gpList.length === 728, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -25957,6 +25960,27 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (url === '/api/settings' && opt.method === 'PUT') {
       const sentBody = opt.body ? JSON.parse(opt.body) : {};
       if (sentBody.convertImages !== undefined) convertImages = !!sentBody.convertImages;
+      /* EIN SPRACHWECHSEL ANTWORTET MIT DEM SATZ DER NEUEN SPRACHE -- 0.24.4,
+         und der echte Server tut genau das (nachgemessen: `localeOf(req)`
+         liest den persoenlichen Schluessel, der in derselben Anfrage
+         geschrieben wurde). **Ohne diese Zeile waere Befund B9 im Mock gar
+         nicht nachstellbar**: die Oberflaeche wechselte die Sprache, und die
+         vierzehn Vokabelwoerter blieben in der alten -- ein Mock, der
+         `{ convertImages }` zurueckgibt, sieht davon nichts (Stolperstein 90).
+         DIE VORGABEN KOMMEN AUS DER ECHTEN DATEI, wie ueberall hier. */
+      if (typeof sentBody.language === 'string' && sentBody.language) {
+        const file = path.join(__dirname, 'public', 'languages', `${sentBody.language}.json`);
+        if (fs.existsSync(file)) {
+          const words = Object.fromEntries(
+            Object.entries(JSON.parse(fs.readFileSync(file, 'utf8')))
+              .filter(([k]) => k.startsWith('vocabulary.'))
+              .map(([k, v]) => [k.slice('vocabulary.'.length), v]));
+          return give({ language: sentBody.language, vocabulary: words,
+                        vocabularies: { ...settings.vocabularies, [sentBody.language]: words },
+                        vocabulariesOwn: settings.vocabulariesOwn,
+                        vocabularyDefaults: settings.vocabularyDefaults });
+        }
+      }
       /* NUR DER GEAENDERTE WERT ZURUECK, nicht die ganze Antwort: bis 0.18.1
          fiel dieser Weg auf `give({})` durch, und mehrere Karten lesen aus dem
          Ergebnis. Wer hier die volle Antwort einsetzt, aendert still das
@@ -27240,6 +27264,48 @@ async function checkUi() {
       !!usPut && Object.values(usPut.vocabulary.en).filter(v => String(v).trim()).length === 1,
       JSON.stringify(usPut && usPut.vocabulary.en));
     w4.close();
+  }
+
+  /* ============ Die Sprachprobe des Lesers — 0.24.4 (B9) ===============
+     WER SEINE EIGENE SPRACHE WECHSELT, WECHSELT AUCH DIE VIERZEHN WOERTER.
+
+     DER BEFUND IST BEIM BAUEN DIESER RUNDE GEFUNDEN WORDEN, nicht im Feld:
+     bis 0.24.3 warf die Pillenreihe die Antwort des Servers weg. Die Seite
+     wechselte die Sprache, `V` blieb der Satz der alten -- auf einer
+     englischen Oberflaeche stand danach „applies to all Einträge".
+     WARUM loadLanguages() DAS NICHT RICHTET, gehoert dazu: loadLanguage()
+     legt die Vorgaben der neuen Datei UNTER `V`, und `V` traegt zu diesem
+     Zeitpunkt schon alle vierzehn Woerter der alten Sprache. Ein Rueckfall
+     greift nur, wo etwas fehlt -- und hier fehlte nichts.
+     GEPRUEFT WIRD AN EINEM SATZ, DER EIN VOKABELWORT TRAEGT: `card.blocksHint`
+     nennt `{entryMany}`. Ein Satz ohne Vokabelwort saehe den Fehler nicht. */
+  {
+    const spDom = buildDom(JSDOM, { settings: { filters: null, language: 'de',
+      languages: [{ code: 'de', name: 'Deutsch', isDefault: true, active: true },
+                  { code: 'en', name: 'English', isDefault: false, active: true }] } });
+    const wSp = spDom.w;
+    await new Promise(r => setTimeout(r, 80));
+    await sysSection(wSp, 'personal');
+    const spHint = () => ([...wSp.document.querySelectorAll('.desc')]
+      .map(z => z.textContent.replace(/\s+/g, ' ').trim())
+      .find(z => /Blöcke|blocks/i.test(z)) || '(nicht gefunden)');
+    check('Der Aufbau steht: der Satz nennt das Vokabelwort auf Deutsch',
+      /Blöcke/.test(spHint()) && /Einträge/.test(spHint()), spHint());
+    const spPill = [...(wSp.document.getElementById('lang') || { children: [] }).children]
+      .find(b => b.textContent === 'English');
+    check('Und die Pillenreihe des Lesers steht da', !!spPill,
+      'keine Sprachzeile in der Karte „Darstellung"');
+    if (spPill) {
+      spPill.dispatchEvent(new wSp.Event('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 250));
+      check('Sprachprobe: der Wechsel nimmt die Oberflaeche mit',
+        /blocks/i.test(spHint()), spHint());
+      /* UND DIE VIERZEHN WOERTER GEHEN MIT. Das ist der Befund: bis 0.24.3
+         war die Zeile darueber gruen und diese hier rot. */
+      check('Und die vierzehn Vokabelwoerter gehen mit — 0.24.4 (B9)',
+        /Entries/.test(spHint()) && !/Einträge/.test(spHint()), spHint());
+    }
+    wSp.close();
   }
 
   /* ============ Die Stellungsprobe — 0.24.4 (B3) =======================
@@ -44020,8 +44086,8 @@ async function checkUi() {
       const flDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
       const flServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
       /* ALLES AUSSER DEN KOMMENTAREN, und nicht nur CODE: `zerlege` schneidet
-         auch die Zeichenketten heraus, und `db.function('kkl', …)` traegt
-         eine mitten im Ruf -- eine Probe nur auf CODE saehe davon
+         auch die Strings heraus, und `db.function('kkl', …)` traegt
+         einen mitten im Ruf -- eine Probe nur auf CODE saehe davon
          `db.function(` und den Rest getrennt. Was hier stoeren wuerde, sind
          allein die Kommentare: sie nennen `searchFold` und `fulltextTerm`
          mehrfach, und ein Waechter, der sich an seinem eigenen Warnschild

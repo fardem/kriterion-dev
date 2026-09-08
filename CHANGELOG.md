@@ -61,6 +61,7 @@ bleiben in der Form ihrer Zeit.*
 - Added: **Ein Anlegefeld in den Karten „Kategorien" und „Tags"** — bisher ging das nur am Eintrag
 - Added: **Der Papierkorb nennt, wer den Eintrag angelegt hat** — die Frage vor dem Zurückholen
 - Fixed: **Was für eine Sprache eingetragen wurde, steht jetzt in dieser Sprache da.** Leere Felder wurden bisher als Eintrag gespeichert und in jede andere Sprache weitergereicht
+- Fixed: **Wer seine eigene Sprache wechselt, wechselt auch die vierzehn Vokabelwörter** — bisher blieben sie in der alten stehen
 - Fixed: **Der Hinweis „Vorgabe: …" folgt der gewählten Sprache** und nicht mehr der des Lesers
 - Fixed: **Die Bildlaufstellung bleibt beim Umschalten der Sprache stehen**
 - Fixed: **Die Suche gibt zwei Lesern verschiedener Sprache dieselbe Antwort** — die beiden Hälften falteten unterschiedlich

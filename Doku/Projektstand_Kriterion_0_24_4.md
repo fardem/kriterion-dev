@@ -478,7 +478,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.24.4** — **727 Rückbauten in der Liste** (Abschnitt 8). *Am
+**Gebaut ist 0.24.4** — **728 Rückbauten in der Liste** (Abschnitt 8). *Am
 Wirt noch nicht gesehen.*
 *0.24.4 bringt die dritte Sprache — `tr.json` neben `de.json` und `en.json`,
 **1211 Schlüssel je Datei**, und mehr war dafür nicht zu tun als die Datei
@@ -10701,10 +10701,10 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
 - **DER VOLLE GEGENPROBENLAUF STEHT SEIT FÜNFUNDZWANZIG RUNDEN AUS.**
-  **727** Rückbauten zu je einem vollen Prüflauf sind bei rund
+  **728** Rückbauten zu je einem vollen Prüflauf sind bei rund
   siebeneinhalb Minuten je Lauf etwa **neunzig Stunden** hintereinander, in
   vier Nebenspuren rund dreiundzwanzig. *Die Zahl der Rückbauten ist seit
-  0.17.2 von 497 auf 727 gewachsen, die Länge eines Laufs von fünfeinhalb auf
+  0.17.2 von 497 auf 728 gewachsen, die Länge eines Laufs von fünfeinhalb auf
   siebeneinhalb Minuten — der Rückstand wächst mit jeder Runde schneller, als
   ein Lauf ihn abtragen könnte.* **Was jede Runde stattdessen tut: sie fährt
   ihre EIGENEN neuen Rückbauten** *(0.24.3: die vierundzwanzig von 710 bis 733)*,
@@ -11113,8 +11113,8 @@ Fingerprint `ceb8d26a`).* *Angefasst sind `server.js`, `db.js`,
 `public/app.js`, `public/style.css`, `testbench.js`, `counterproof.js` — und
 neu: `public/languages/tr.json`.*
 
-**Die dritte Sprachdatei — und acht Befunde aus dem ersten Rundlauf mit
-zweien.** Die Befunde standen **vor** Türkisch, und nicht aus Ordnungsliebe:
+**Die dritte Sprachdatei — und neun Befunde: acht aus dem ersten Rundlauf mit
+zweien, und einer, der beim Bauen dieser Runde aufgefallen ist.** Die Befunde standen **vor** Türkisch, und nicht aus Ordnungsliebe:
 solange die Kachel „Vokabular" beim Umschalten die falsche Sprache zeigt und
 in die falsche schreibt, ließen sich vierzehn türkische Wörter gar nicht
 pflegen.
@@ -11165,16 +11165,26 @@ Rollenfrage im Kopf, mit der Klemme `tagsFreeCreate` im Rumpf, Zeile für Zeile
 wie `POST /api/product-categories`. *Eine Klemme hinter `adminOnly` wäre totes
 Holz.*
 
-**(6) Elf neue Wächter**, jeder mit gefahrener Gegenprobe — fünf am laufenden
-Server, drei am Quelltext, drei am DOM. **Zwei neue Rückbauten** zielen auf
-die beiden Hälften von B8 getrennt: der eine hängt die Nadel wieder an den
-Leser, der andere lässt die vier i auseinanderfallen. *Ein Rückbau, der beide
-Proben zugleich träfe, könnte nicht sagen, welche von ihnen etwas belegt.*
+**(6) B9 — der neunte, beim Bauen gefunden.** Wer in „Darstellung" seine
+eigene Sprache wechselte, bekam die Oberfläche in der neuen und die vierzehn
+Vokabelwörter in der alten: die Pillenreihe warf die Antwort des Servers weg,
+und `loadLanguages()` richtet es nicht — es legt die Vorgaben der neuen Datei
+**unter** `V`, und `V` trug da schon alle vierzehn Wörter der alten Sprache.
+*Ein Rückfall greift nur, wo etwas fehlt.* **Und der Mock musste mitziehen:**
+bis zu dieser Runde antwortete `PUT /api/settings` im Prüfstand mit
+`{ convertImages }` — der Befund war darin gar nicht nachstellbar.
+
+**(7) Vierzehn neue Wächter**, jeder mit gefahrener Gegenprobe — sieben am
+laufenden Server, vier am Quelltext, vier am DOM. **Drei neue Rückbauten**,
+und zwei davon zielen auf die beiden Hälften von B8 getrennt: der eine hängt
+die Nadel wieder an den Leser, der andere lässt die vier i
+auseinanderfallen. *Ein Rückbau, der beide Proben zugleich träfe, könnte
+nicht sagen, welche von ihnen etwas belegt.*
 
 **Austauschformat 14** *(unverändert)*, `F_ROUTES` **71** *(vorher 70)*,
 **27 Tabellen** *(unverändert)*, **sechs Felder in `/api/config`**
 *(unverändert)*, **drei Sprachdateien** *(vorher zwei)*, **1211 Schlüssel je
-Datei** *(flach 1279)*, **727 Rückbauten**.
+Datei** *(flach 1279)*, **728 Rückbauten**.
 *Was gebaut wurde, steht im Änderungsprotokoll 0.24.4.*
 
 > **OFFEN BLEIBT DER LESER (F2).** `tr.json` ist gebaut, geprüft und liegt

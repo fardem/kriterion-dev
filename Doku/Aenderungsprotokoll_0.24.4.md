@@ -3,11 +3,12 @@
 **Stufe 3 der Mehrsprachigkeit und das Ende der 24er-Reihe · 8. September 2026
 · gebaut auf 0.24.3 (`ceb8d26a`).**
 
-**Diese Runde bringt die dritte Sprachdatei — und repariert acht Befunde, die
-der erste Rundlauf mit zwei Sprachen zutage gefördert hat.** Der schwerste
-heißt: *was für eine Sprache eingetragen worden ist, erscheint in dieser
-Sprache nicht.* Der achte hat niemand gemeldet; er ist beim Messen für die
-türkische Suche aufgefallen und steht seit 0.24.3 in der Auslieferung.
+**Diese Runde bringt die dritte Sprachdatei — und repariert neun Befunde: die
+acht aus dem Auftrag und einen neunten, der beim Bauen aufgefallen ist.** Der
+schwerste heißt: *was für eine Sprache eingetragen worden ist, erscheint in
+dieser Sprache nicht.* **Zwei hat niemand gemeldet** — der achte ist beim
+Messen für die türkische Suche aufgefallen und steht seit 0.24.3 in der
+Auslieferung, der neunte beim Bauen dieser Runde.
 
 ***Die Befunde standen vor Türkisch, und zwar nicht aus Ordnungsliebe:*** solange
 die Kachel „Vokabular" beim Umschalten die falsche Sprache zeigt und in die
@@ -53,7 +54,7 @@ in der Ursache:
 | **F7** | Papierkorb: Kachel oder Detailansicht? | **erst die Zeile** *(Schritt 1)* |
 | **F8** | Leeres Zeichen: eigenes oder gar keines? | **gar keines** |
 | **F9** | Anlegen in „Kategorien"/„Tags": welche Sprache? | **immer die Grundzeile** |
-| **F10** | Alle acht Befunde? | **alle acht** |
+| **F10** | Alle acht Befunde? | **alle acht** — *und ein neunter, der beim Bauen dazukam* |
 
 > ## DIE EINE OFFENE STELLE: DER LESER (F2)
 >
@@ -100,6 +101,9 @@ in der Ursache:
 * **Zwei deutsche Wörter sind aus dem Quelltext verschwunden** — „alle N
   anzeigen" und „N aktiv" standen auf jeder Oberfläche deutsch da.
 * **Über „Noch keine Kommentare." steht kein Bildzeichen mehr.**
+* **Wer seine eigene Sprache wechselt, wechselt auch die vierzehn Wörter.**
+  *Bisher blieben sie in der alten stehen — auf einer englischen Oberfläche
+  las man „applies to all Einträge".*
 
 ---
 
@@ -195,6 +199,44 @@ Für eine Sprache, die der Leser gar nicht liest, liegt im Browser keine Datei.
 **Die Vorgaben kommen deshalb vom Server**, je Sprache, aus derselben
 Ableitung wie dort (`vocabulary.`-Vorsatz). *Wer auf Deutsch liest und
 Türkisch pflegt, bekam vorher deutsche Vorgaben unter türkische Felder.*
+
+### B9 — der Sprachwechsel des Lesers nahm das Vokabular nicht mit
+
+> **NICHT AUS DEM AUFTRAG UND NICHT AUS DEM FELD — beim Bauen dieser Runde
+> gefunden.** *Ein Befund aus dem Bauen zählt genauso wie einer aus dem
+> Betrieb; das sagt der Auftrag über B8, und es gilt hier genauso.*
+
+**Wer in „Darstellung" seine eigene Sprache wechselt, bekam die Oberfläche in
+der neuen Sprache und die vierzehn Vokabelwörter in der alten.** Auf einer
+englischen Oberfläche stand danach:
+
+```
+The order of the blocks and whether they are collapsed applies to all Einträge.
+```
+
+**Die Ursache: die Pillenreihe warf die Antwort des Servers weg.**
+
+```js
+await api('PUT', '/api/settings', { language: a.code });   // bis 0.24.3
+```
+
+*Die Antwort trägt den Satz des Lesers in seiner NEUEN Sprache — sie kommt aus
+derselben Anfrage, die die Sprache gesetzt hat.*
+
+**Und `loadLanguages()` richtet es nicht**, obwohl es unmittelbar danach
+läuft: `loadLanguage()` legt die Vorgaben der neuen Datei **unter** `V`
+(`{ ...vocabularyDefault(), ...V }`), und `V` trägt zu diesem Zeitpunkt schon
+alle vierzehn Wörter der alten Sprache. **Ein Rückfall greift nur, wo etwas
+fehlt — und hier fehlte nichts.**
+
+**Repariert** durch `takeVocabulary()`, den Helfer, den das Speichern der
+Wörter ohnehin brauchte; er steht seither auf Modulebene und hat zwei Rufer.
+
+> **UND DER MOCK MUSSTE MITZIEHEN.** Bis zu dieser Runde antwortete
+> `PUT /api/settings` im Prüfstand mit `{ convertImages }` — **damit war der
+> Befund im Mock gar nicht nachstellbar** (Stolperstein 90: ein Mock antwortet
+> wie der echte Server). Er liefert jetzt für einen Sprachwechsel den Satz der
+> neuen Sprache, aus der echten Sprachdatei.
 
 ### B8 — eine Faltung für Nadel und Heuhaufen
 
@@ -411,7 +453,9 @@ an denen es richtig steht.
 
 ## Bauabschnitt 4 — der Prüfstand
 
-**Elf neue Wächter, jeder mit gefahrener Gegenprobe.**
+**Vierzehn neue Wächter, jeder mit gefahrener Gegenprobe** — elf aus der
+Tafel des Auftrags, dazu die Sprachprobe des Lesers (B9), die Deckungsprobe in
+ihrer T2-Hälfte und der Beleg, dass ein Bestand aus 0.24.3 anläuft.
 
 | Wächter | wo | Zusicherung |
 |---|---|---|
@@ -423,6 +467,7 @@ an denen es richtig steht.
 | **Deckungsprobe** | Datei | `tr.json` trägt dieselben Schlüssel wie `de.json`, in derselben Folge |
 | **T1-Probe** | Datei | drei Vokabelwörter, drei Vokale, derselbe Satz bleibt richtig |
 | **T2-Probe** | Datei | beide Mehrzahlformen gefüllt, kein -ler/-lar hinter einem Zähler |
+| **Sprachprobe des Lesers** | DOM | wer seine eigene Sprache wechselt, wechselt auch die vierzehn Wörter |
 | **Umschalterprobe** | DOM | die Kachel zeigt die Sprache, auf der sie steht — **an allen vier Kacheln** |
 | **Vorgabeprobe** | DOM | der Hinweis „(Vorgabe: …)" folgt der Kachel |
 | **Stellungsprobe** | DOM | die Bildlaufstellung überlebt das Umschalten — *und ein gewöhnliches Neuzeichnen fängt weiter oben an* |
@@ -439,6 +484,7 @@ an denen es richtig steht.
 | Tabellen | **27** *(unverändert)* |
 | `F_ROUTES` | **71** *(vorher 70)* |
 | Wege unter `/api/tags` | **vier** *(vorher drei)* |
+| Rückbauten | **728** *(vorher 725)* |
 
 ---
 

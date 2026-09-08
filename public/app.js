@@ -1816,6 +1816,20 @@ let VOCABULARIES = {};
    schrieb sie als eigenen Eintrag fest. Genau so ist B2 entstanden. */
 let VOCABULARIES_OWN = {};
 let VOCABULARY_DEFAULTS = {};
+/* DIE VIER SAETZE AUS EINER ANTWORT UEBERNEHMEN -- 0.24.4. `r.vocabulary` ist
+   der Satz des LESERS und beschriftet die Oberflaeche; die drei Tafeln daneben
+   gehoeren der Karte „Vokabular".
+   SIE STEHT AUF MODULEBENE UND NICHT IN DER KARTE, seit sie ZWEI Rufer hat:
+   das Speichern der Woerter und der Wechsel der eigenen Sprache. Zwei
+   Ausfertigungen liefen auseinander -- und die zweite fehlte bis 0.24.3 ganz
+   (Befund B9, siehe drawLanguagePills). */
+function takeVocabulary(r) {
+  if (!r || typeof r !== 'object') return;
+  if (r.vocabularies) VOCABULARIES = r.vocabularies;
+  if (r.vocabulariesOwn) VOCABULARIES_OWN = r.vocabulariesOwn;
+  if (r.vocabularyDefaults) VOCABULARY_DEFAULTS = r.vocabularyDefaults;
+  if (r.vocabulary) V = { ...V, ...r.vocabulary };
+}
 /* WELCHE SPRACHE DIE ADMINLISTEN ZEIGEN -- 0.24.3, Bauabschnitt 6a. Dieselbe
    Bauform wie VOCABULARY_SHOWN bei den vierzehn Woertern: sie faengt bei der
    des Lesers an, steht als Zustand der Karte und nicht in der Adresse, und
@@ -8373,7 +8387,20 @@ function setUpAppearanceOut() {
       b.onclick = async () => {
         if (LANGUAGE === a.code) return;
         try {
-          await api('PUT', '/api/settings', { language: a.code });
+          /* DIE ANTWORT WIRD ANGENOMMEN UND NICHT WEGGEWORFEN -- 0.24.4
+             (Befund B9, beim Bauen der Runde gefunden). Bis 0.24.3 stand hier
+             ein blosses `await api(...)`: die Seite wechselte die Sprache,
+             die VIERZEHN VOKABELWOERTER aber nicht. Auf einer englischen
+             Oberflaeche stand danach „applies to all Einträge".
+             WARUM loadLanguages() DAS NICHT RICHTET: loadLanguage() legt die
+             Vorgaben der neuen Datei UNTER `V` (`{ ...vocabularyDefault(),
+             ...V }`) -- und `V` traegt zu diesem Zeitpunkt schon alle
+             vierzehn Woerter der ALTEN Sprache. Der Rueckfall greift nur, wo
+             etwas fehlt, und hier fehlt nichts.
+             DIE ANTWORT WEISS ES BESSER: sie kommt aus derselben Anfrage, die
+             die Sprache gesetzt hat, und traegt den Satz des Lesers in seiner
+             NEUEN Sprache -- samt Rueckfall auf das, was eingetragen ist. */
+          takeVocabulary((await api('PUT', '/api/settings', { language: a.code })));
           await loadLanguages(a.code);
           applyLanguage();
           // Die ganze Ansicht neu -- die Karte selbst steht mitten darin.
@@ -9101,16 +9128,9 @@ function setUpVocabularyOut() {
      wie die Ablage: ein Objekt je Sprachkennung, und die Karte schickt genau
      die eine, die gerade offen ist. Die uebrigen bleiben am Server stehen. */
   const vocabularyBody = (words) => ({ [vocabularyLanguage()]: words });
-  /* DIE DREI TAFELN ZIEHEN MIT -- 0.24.4. `r.vocabulary` ist der Satz des
-     LESERS und beschriftet die Oberflaeche; die drei Tafeln daneben gehoeren
-     der Karte. Wer nur `vocabularies` nachzoege, saehe nach dem Speichern in
-     den Feldern noch den Stand von vorhin. */
-  const takeVocabulary = (r) => {
-    if (r.vocabularies) VOCABULARIES = r.vocabularies;
-    if (r.vocabulariesOwn) VOCABULARIES_OWN = r.vocabulariesOwn;
-    if (r.vocabularyDefaults) VOCABULARY_DEFAULTS = r.vocabularyDefaults;
-    V = { ...V, ...r.vocabulary };
-  };
+  /* DIE DREI TAFELN ZIEHEN MIT -- 0.24.4, ueber takeVocabulary() weiter oben.
+     Wer nur `vocabularies` nachzoege, saehe nach dem Speichern in den Feldern
+     noch den Stand von vorhin. */
   atElement('vsave', vsave => vsave.onclick = async () => {
     try {
       const r = await api('PUT', '/api/settings', { vocabulary: vocabularyBody(vFields()) });
