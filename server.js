@@ -2657,7 +2657,15 @@ app.put('/api/settings', (req, res) => {
         const v = typeof words[k] === 'string' ? words[k].trim().slice(0, 40) : '';
         if (v) clean[k] = v;
       }
-      next[code] = clean;
+      /* UND EINE SPRACHE OHNE EIN EINZIGES WORT FAELLT GANZ HERAUS -- 0.24.4.
+         Ein leeres Objekt in der Ablage waere ein Eintrag ueber „nichts
+         eingetragen", und das ist keine Auskunft, sondern Raunen: es stuende
+         in der Ablage, waere aber von „diese Sprache gab es noch nie" nicht
+         zu unterscheiden. Was hier liegt, ist genau das Eingetragene.
+         AUF DEN RUECKFALL WIRKT ES NICHT: vocabulary() sucht ohnehin den
+         ersten Satz, der ein Wort traegt. */
+      if (Object.keys(clean).length) next[code] = clean;
+      else delete next[code];
     }
     putSetting.run('vocabulary', JSON.stringify(next));
   }

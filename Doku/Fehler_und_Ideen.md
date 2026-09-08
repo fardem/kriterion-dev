@@ -250,6 +250,13 @@ entschieden und hat seinen Ort.*
 
 ---
 
+> **NACHTRAG VOM 8. SEPTEMBER 2026, ABENDS: DREI DIESER PUNKTE SIND GEBAUT.**
+> Die Punkte **15**, **16** und **17** sind mit **0.24.4** herausgegangen — als
+> Befunde B4, B6 und B7 des Auftrags. *Nach Regel 3 tragen sie damit eine
+> Nummer und stehen im Fahrplan; die Zeilen unten sagen nur noch, wohin sie
+> gegangen sind.* **Von Punkt 16 bleibt Schritt 2 offen** (die Detailansicht im
+> Papierkorb) — er steht im Fahrplan und nicht mehr hier.
+
 ## Teil I ist am 8. September 2026 leer geworden — und hier steht, wohin
 
 **Alle fünfzehn ausgearbeiteten Punkte sind an diesem Tag entschieden worden**
@@ -264,13 +271,13 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 | **11** | Drei kleine Anzeigefehler aus dem Augenschein zu 0.22.0 | **0.25.0** |
 | **12** | Die Übersicht braucht beim Betreten rund eine Sekunde | **0.25.0** *(mit einer Messung davor)* |
 | **13** | Zwei Fehler aus dem Rundlauf mit 0.24.2 | **0.25.0** |
-| **18** | `ß` und `ss` sind für die Suche zwei Dinge | **0.25.0** *(oder 0.24.4, wenn die Faltung dort ohnehin fällt)* |
+| **18** | `ß` und `ss` sind für die Suche zwei Dinge | **0.25.0** — *0.24.4 hat die Faltung angefasst und diesen Fall AUSDRÜCKLICH ausgenommen: er betrifft Deutsch und nicht Türkisch, und eine Runde, die schon zwei Fehler an derselben Funktion repariert, nimmt keinen dritten mit* |
 | **5** | Die Ableitungen auf WebP | **0.26.0** |
 | **6** | Fotos aus der Zwischenablage — die Ablage wird wählbar | **0.26.0** |
 | **14** | Blättern im Eintrag, vor und zurück | **0.27.0** — *die Form ist am 8. September 2026 entschieden: Pfeile in der Kopfzeile, `Bild auf`/`Bild ab`, keine Wischgeste* |
-| **15** | Der leere Kasten zeigt ein Bildzeichen | **0.24.4**, dort Befund **B4** |
-| **16** | Der Papierkorb — ein Zeichen als Quelltext, eine Zeile ohne Ordnung | **0.24.4**, dort Befund **B6** |
-| **17** | Kategorien und Tags lassen sich in ihrer Karte nicht anlegen | **0.24.4**, dort Befund **B7** |
+| **15** | Der leere Kasten zeigt ein Bildzeichen | **GEBAUT mit 0.24.4** *(Befund B4)* |
+| **16** | Der Papierkorb — ein Zeichen als Quelltext, eine Zeile ohne Ordnung | **GEBAUT mit 0.24.4** *(Befund B6, Teil A und B — Schritt 2 bleibt offen)* |
+| **17** | Kategorien und Tags lassen sich in ihrer Karte nicht anlegen | **GEBAUT mit 0.24.4** *(Befund B7, samt `POST /api/tags`)* |
 | **1** | „Entfällt" am einzelnen Kriterium | **abgelehnt** |
 | **2** | Zwei Einträge zu einem machen | **abgelehnt** |
 | **3** | Der QR-Encoder für den zweiten Faktor | **abgelehnt** |

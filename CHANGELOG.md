@@ -29,6 +29,46 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.24.4] - 2026-09-08
+
+> **KEINE SICHERUNG NÖTIG.** Diese Runde legt keine Tabelle an, ändert kein
+> Schema und lässt keinen Migrationsblock laufen. Einspielen und fertig.
+>
+> **DIE VERSIONSNUMMER IST DIESELBE BENANNTE ABWEICHUNG WIE 0.24.3** — und mit
+> dieser Runde endet sie. Nach SemVer gehörte die dritte Sprache auf 0.25.0;
+> sie trägt 0.24.4, weil die 24er-Reihe ein Vorhaben ist. **Ab 0.25.0 gilt die
+> Regel wieder ohne Ausnahme** (Projektstand, Abschnitt 5.1).
+>
+> **EIN EINGETRAGENES VOKABELWORT KANN IN DER FALSCHEN SPRACHE STEHEN** — wenn
+> es unter 0.24.3 eingetragen wurde. Der Fehler ist repariert; was er in die
+> Datenbank geschrieben hat, bleibt dort stehen. **Sieh in „Einstellungen →
+> Bestand → Vokabular" nach:** Felder, die du nie ausgefüllt hast, tragen
+> womöglich die Vorgaben einer anderen Sprache. Leeren und speichern setzt sie
+> wieder auf die Vorgabe.
+>
+> **DIE SUCHE FINDET AB JETZT MEHR.** `İ`, `I`, `ı` und `i` gelten als
+> dasselbe Zeichen — ein türkischer Name in einem deutschen Bestand wird
+> dadurch gefunden. Am deutschen und englischen Bestand ändert sich nichts.
+>
+> **`tr.json` IST NICHT GEGENGELESEN.** Die Datei ist vollständig und geprüft;
+> ob die Sätze sich türkisch lesen, hat noch niemand bestätigt, der die
+> Sprache spricht.
+
+*Was ein Betreiber merkt: Kriterion spricht Türkisch. Und die Karte
+„Vokabular" zeigt endlich das, was wirklich eingetragen ist.*
+
+- Added: **Türkisch** — `public/languages/tr.json`, dieselben 1211 Schlüssel wie die deutsche Datei
+- Added: **Ein Anlegefeld in den Karten „Kategorien" und „Tags"** — bisher ging das nur am Eintrag
+- Added: **Der Papierkorb nennt, wer den Eintrag angelegt hat** — die Frage vor dem Zurückholen
+- Fixed: **Was für eine Sprache eingetragen wurde, steht jetzt in dieser Sprache da.** Leere Felder wurden bisher als Eintrag gespeichert und in jede andere Sprache weitergereicht
+- Fixed: **Der Hinweis „Vorgabe: …" folgt der gewählten Sprache** und nicht mehr der des Lesers
+- Fixed: **Die Bildlaufstellung bleibt beim Umschalten der Sprache stehen**
+- Fixed: **Die Suche gibt zwei Lesern verschiedener Sprache dieselbe Antwort** — die beiden Hälften falteten unterschiedlich
+- Fixed: **„İstanbul" wird als „istanbul" und als „ISTANBUL" gefunden**, „Iğdır" als „ığdır"
+- Fixed: **Der Wiederherstellen-Knopf im Papierkorb zeigte seinen Bildcode als Text**
+- Fixed: **Zwei deutsche Wörter standen auf jeder Oberfläche** — „alle N anzeigen" und „N aktiv"
+- Changed: **Leere Kästen zeigen kein Bildzeichen mehr** — der Satz „Noch keine Kommentare." steht für sich
+
 ## [0.24.3] - 2026-09-08
 
 > **VOR DEM EINSPIELEN EINE SICHERUNG ZIEHEN.** Diese Runde legt zwei Tabellen

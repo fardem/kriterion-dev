@@ -1,6 +1,7 @@
 # Fahrplan
 
-**Der Plan von 0.24.4 bis 1.0 · Stand 8. September 2026, nach dem Rundlauf mit
+**Der Plan von 0.25.0 bis 1.0 · Stand 8. September 2026, nach dem Bau von 0.24.4
+und dem Rundlauf mit
 0.24.3**
 
 **HIER STEHT, WAS EINE NUMMER HAT. SONST NIRGENDS.** *Was noch keine hat, steht
@@ -83,7 +84,6 @@ hintereinander nicht eingetreten ist.*
 
 | Version | Name | Was | Schema | Format |
 |---|---|---|---|---|
-| **0.24.4** | **Türkisch, und die Kacheln sagen die Wahrheit** | `tr.json` und acht Befunde. **Der Auftrag steht** — `Doku/Auftrag_0.24.4.md`, zehn Fragen unbeantwortet | nein | — |
 | **0.25.0** | **Die kleinen Fehler fallen** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht | nein | — |
 | **0.26.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
 | **0.27.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
@@ -124,10 +124,13 @@ gemeldet oder beim Durchsehen gefunden; keiner ist eine neue Funktion.*
 > ist die Reparatur eine ganz andere.** Der Server ist bereits ausgemessen und
 > ausgeschlossen.
 
-> **BEFUND 6 KANN VORHER WEG SEIN.** Fasst 0.24.4 die Faltung der Suche an
-> (Befund B8 dort), **dann fährt `ß`/`ss` in derselben Zeile mit** und fällt
-> hier heraus. *Zwei Runden hintereinander an derselben Funktion sind eine zu
-> viel.*
+> **BEFUND 6 IST NICHT VORHER WEGGEFALLEN — und das ist entschieden worden.**
+> 0.24.4 hat die Faltung der Suche angefasst (Befund B8 dort) und `ß`/`ss`
+> **ausdrücklich ausgenommen**: es betrifft Deutsch und nicht Türkisch, und
+> eine Runde, die schon zwei Fehler an derselben Funktion repariert, nimmt
+> keinen dritten mit. *Der Befund bleibt hier — und er ist jetzt billiger:
+> die Faltung steht seit 0.24.4 an EINER Stelle (`searchFold()` in `db.js`),
+> und beide Hälften der Suche rufen sie.*
 
 ---
 
@@ -533,11 +536,24 @@ gelegt:
 
 ## Ausarbeitungen zu 0.24.4 — Türkisch und die Befunde
 
-Diese drei stehen im Auftrag `Doku/Auftrag_0.24.4.md` als **B4**, **B6** und **B7**.
+Diese drei standen im Auftrag `Doku/Auftrag_0.24.4.md` als **B4**, **B6** und
+**B7**.
+
+> ## SIE SIND AM 8. SEPTEMBER 2026 GEBAUT WORDEN.
+> **Alle drei sind mit 0.24.4 herausgegangen** — was gebaut wurde, steht im
+> Änderungsprotokoll 0.24.4. **Die Ausarbeitungen bleiben hier stehen**, weil
+> sie die Herleitung tragen und weil ein gelöschter Punkt beim nächsten Mal
+> neu aufgeschrieben wird (Stolperstein 201).
+>
+> **Von Punkt 16 bleibt EINE Hälfte offen:** die **Detailansicht** im
+> Papierkorb (Schritt 2 aus Frage F7 des Auftrags). *Gebaut ist Schritt 1 —
+> die Zeile nennt jetzt Name, Anleger, Löschdatum und Löschenden.* Ein
+> Vorschaubild ist teurer als es aussieht: die Zeilen liegen im Papierkorb als
+> Gebilde und nicht mehr in `photos`.
 
 ## 15. Der leere Kasten zeigt ein Bildzeichen und sieht aus wie ein Fehler
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.24.4, dort Befund B4.** *Die Einschätzung unten ist die von vor der Entscheidung und bleibt als Herleitung stehen.*
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.24.4, dort Befund B4. GEBAUT AM SELBEN TAG.** **`emptyState()` setzt kein Zeichen mehr; `ICON_PH` bleibt an seinen drei richtigen Rufern.** *Die Einschätzung unten ist die von vor der Entscheidung und bleibt als Herleitung stehen.*
 
 **Art: Design** · **Einschätzung: empfohlen** — *eine Konstante und vier
 Aufrufstellen; die Sache selbst ist eine Zeile* · **Draußen üblich: ja**
@@ -617,7 +633,7 @@ Sprachdatei** *(der Satz bleibt, wie er ist).*
 
 ## 16. Der Papierkorb — ein Zeichen als Quelltext, und eine Zeile ohne Ordnung
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.24.4, dort Befund B6.** *Teil A (das Zeichen im Satz) als Fehler, Teil B (die Zeile des Papierkorbs) als Schritt 1.* *Die Detailansicht ist ausdrücklich eine eigene Runde.*
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.24.4, dort Befund B6. TEIL A UND SCHRITT 1 VON TEIL B SIND AM SELBEN TAG GEBAUT.** **Die Detailansicht bleibt offen.** *Teil A (das Zeichen im Satz) als Fehler, Teil B (die Zeile des Papierkorbs) als Schritt 1.* *Die Detailansicht ist ausdrücklich eine eigene Runde.*
 
 **Art: Fehler (A) und Design (B)** · **Einschätzung: A empfohlen** — *eine
 Zeile, und sie nimmt einen sichtbaren Schaden weg* · **B: am Auftrag zu
@@ -719,7 +735,7 @@ auch eine neue Route.**
 
 ## 17. Kategorien und Tags lassen sich in ihrer Karte nicht anlegen
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.24.4, dort Befund B7.** *Und eine Annahme unten ist inzwischen widerlegt: `POST /api/tags` gibt es NICHT — für die Karte „Tags" ist eine Route mehr zu bauen. Der Text ist an der Stelle richtiggestellt.*
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.24.4, dort Befund B7. GEBAUT AM SELBEN TAG — samt `POST /api/tags`, ohne Rollenfrage im Kopf und mit der Klemme im Rumpf; `F_ROUTES` steht seither auf 71.** *Und eine Annahme unten ist inzwischen widerlegt: `POST /api/tags` gibt es NICHT — für die Karte „Tags" ist eine Route mehr zu bauen. Der Text ist an der Stelle richtiggestellt.*
 
 **Art: Verbesserung** · **Einschätzung: empfohlen** — *die Bauform steht schon,
 zweimal, in der Karte daneben* · **Draußen üblich: ja**
@@ -1068,7 +1084,7 @@ so alt wie die Fortschrittsmeldung im Ablagefeld.*
 
 ## 18. Die Suche findet „übergroß" nicht, wenn man „ÜBERGROSS" eingibt
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.25.0, oder 0.24.4, falls die Faltung der Suche dort ohnehin fällt (Befund B8 des Auftrags).** *Zwei Runden hintereinander an derselben Funktion sind eine zu viel.*
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.25.0.** *0.24.4 hat die Faltung angefasst und diesen Fall ausdrücklich ausgenommen: er betrifft Deutsch und nicht Türkisch.* **Er ist seither billiger:** die Faltung steht an EINER Stelle (`searchFold()` in `db.js`), beide Hälften der Suche rufen sie, und sie nimmt keine Sprache entgegen — *eine Zeile mehr darin, und der Fall ist erledigt.*
 
 **Art: Fehler** · **Einschätzung: empfohlen** — *aber nicht kostenlos: die
 Gleichsetzung trifft in der Gegenrichtung „Masse" und „Maße" mit* · **Draußen

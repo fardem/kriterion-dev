@@ -1115,8 +1115,8 @@ const REGRESSIONS = [
   {
     nr: '124', name: 'Der Parameter q wird nicht mehr gelesen',
     file: 'server.js',
-    search: "  const term = fulltextTerm(req.query.q, localeOf(req));",
-    replacement: "  const begriff = '';",
+    search: "  const term = fulltextTerm(req.query.q);",
+    replacement: "  const term = '';",
     expected: 'Die Volltextsuche'
   },
   {
@@ -1190,9 +1190,31 @@ const REGRESSIONS = [
        damit nichts mehr ueber die Umlaute. */
     nr: '133', name: 'Die Kleinschreibung faltet nur noch ASCII',
     file: 'db.js',
-    search: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));",
+    search: "db.function('kkl', { deterministic: true }, searchFold);",
     replacement: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).replace(/[A-Z]/g, (c) => c.toLowerCase())));",
     expected: 'Die Volltextsuche'
+  },
+  /* ---- Die eine Faltung der Suche -- 0.24.4 (B8) ---- */
+  {
+    /* DIE NADEL FAELLT WIEDER AN DIE SPRACHE DES LESERS -- der Zustand von
+       0.24.3. Die Zwei-Leser-Probe und die T3-Probe muessen daraufhin rot
+       werden; wird nur eine rot, ist die andere stumm. */
+    nr: '726', name: 'Die Nadel faltet wieder mit der Sprache des Lesers',
+    file: 'server.js',
+    search: "const fulltextTerm = (raw) => (typeof raw === 'string' ? searchFold(raw.trim()) : '');",
+    replacement: "const fulltextTerm = (raw, locale = languageDefault()) => (typeof raw === 'string' ? raw.trim().toLocaleLowerCase(localeTag(locale)) : '');",
+    expected: 'Die Befunde der Runde 0.24.4'
+  },
+  {
+    /* UND DIE VIER i FALLEN WIEDER AUSEINANDER: dieselbe Funktion, nur ohne
+       den Schritt, der `İ` und `ı` auf `i` bringt. Die T3-Probe wird rot,
+       die Zwei-Leser-Probe NICHT -- beide Haelften falten ja weiter gleich.
+       Genau diese Trennung ist der Grund fuer zwei Rueckbauten statt einem. */
+    nr: '727', name: 'Die vier i fallen nicht mehr auf eines',
+    file: 'db.js',
+    search: "  : String(s).toLowerCase().replace(/\\u0307/g, '').replace(/\\u0131/g, 'i'));",
+    replacement: "  : String(s).toLowerCase());",
+    expected: 'Die Befunde der Runde 0.24.4'
   },
   {
     nr: '134', name: 'Der Titel wird wieder ueber LIKE gesucht -- Wildcards wirken',

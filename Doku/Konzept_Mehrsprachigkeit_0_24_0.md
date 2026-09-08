@@ -1086,3 +1086,82 @@ Prüfstands (`bildschirmtexteVon`, `servertexteVon`) und mit `grep` über den
 Quelltext; wo eine Zahl „rund" heißt, ist sie eine Schätzung aus einem
 Muster über Umlaute und wird beim Bauen nachgezählt. Was hier als Regel
 steht, gehört in den Prüfstand und nicht in ein Papier.*
+
+---
+
+# NACHTRAG VOM 8. SEPTEMBER 2026 — STUFE 3 IST GEBAUT
+
+**Türkisch ist als 0.24.4 herausgegangen** — Auftrag `Doku/Auftrag_0.24.4.md`,
+Wörterbuch `Doku/Woerterbuch_Tuerkisch_0_24_4.md`, gebaut im
+Änderungsprotokoll 0.24.4. **Damit sind alle drei Stufen dieses Papiers
+gebaut**, und was hier als Plan stand, steht ab jetzt als Zustand im
+Projektstand (Regeln **S10** und **S11**, Abschnitt 5.6).
+
+## Was Stufe 3 bestätigt hat
+
+**Die Zusage aus Stufe 1 trägt.** *Eine Datei ins Verzeichnis legen genügt* —
+für `tr.json` war nichts weiter zu tun. Karte „Sprachen", Karte „Darstellung",
+Anmeldeseite, Vokabular, Kriterien und Kategorien kennen die dritte Sprache,
+ohne dass irgendwo eine Liste gepflegt worden wäre.
+
+**S3.3 stimmt: Türkisch kostet nichts Zusätzliches.** Datum, Uhrzeit,
+Dezimalzeichen und Schriftkette sind dieselben wie auf Deutsch; `ğ ş ç ı İ`
+liegen in jeder Schrift der Kette. Die Locale ist `tr-TR`, und sonst hat sich
+nichts geändert.
+
+## Was dieses Papier falsch hatte — und was daraus geworden ist
+
+**T3 stand hier falsch, und der Fehler war teuer.** Das Papier schreibt:
+
+> *„Suche, Vergleich und Sortierung laufen über die Locale
+> (`toLocaleLowerCase('tr')`, `localeCompare(…, 'tr')`)"*
+
+**Das ist für die SORTIERUNG richtig und für die SUCHE falsch.** Eine Suche,
+deren Faltung an der Sprache des Lesers hängt, gibt zwei Lesern derselben
+Installation zwei Antworten — und ein Index darüber wäre falsch, sobald jemand
+umschaltet. **Die Suche faltet seit 0.24.4 ohne jede Sprache**, mit *einer*
+Funktion für beide Hälften (`searchFold()` in `db.js`), und die vier i des
+Lateinischen fallen dabei auf eines: `I i İ ı` → `i`.
+
+*Der Fehler stand seit Stufe 1 hier und ist in Stufe 2 gebaut worden; er ist
+als **Befund B8** des Auftrags 0.24.4 aufgefallen — nicht im Betrieb, sondern
+beim Messen für T3.* **Gemessen: von neun gewöhnlichen türkischen Suchfällen
+gingen fünf ins Leere.**
+
+> **DIE UNTERSCHEIDUNG, DIE HIER GEFEHLT HAT:** *Falten* und *Sortieren* sind
+> zwei Fragen. **Falten heißt „sind das dieselben Zeichen?"** — das ist eine
+> Frage der Installation, und die Antwort muss für alle dieselbe sein.
+> **Sortieren heißt „was kommt zuerst?"** — das ist eine Frage der Sprache,
+> und `Intl.Collator` beantwortet sie: `ılık < irmik < İzmir`.
+> *Wer beide zusammenlegt, bekommt entweder eine Suche, die vom Leser abhängt,
+> oder eine Sortierung, die keine ist.*
+
+**T2 stand hier richtig und wurde anderswo falsch abgeschrieben.** Dieses
+Papier sagt „`one` / `other` — gleich" (S3.3); im Fahrplan stand dagegen bis
+zum 8. September 2026, Türkisch kenne nur `other`. *Nachgemessen:
+`Intl.PluralRules('tr').select(1)` ist `one`.* **In `tr.json` tragen beide
+Formen dasselbe Nomen** — das ist T2, und die Datei sagt es, nicht der Code.
+
+**T1 ist in der Datei strenger gelöst als hier vorgeschlagen.** Das Papier
+nennt `„{sache}" öğesi silinsin mi?` — die Endung sitzt an *öğe*. **`tr.json`
+baut die Sätze passiv:** `{entryOne} silinsin mi?` — dort braucht überhaupt
+niemand eine Endung. *Beide Formen halten T1; die zweite ist kürzer.*
+
+## Was offen bleibt
+
+**Der Leser (E14).** *`tr.json` ist gebaut, geprüft und liegt vollständig da —
+gegengelesen ist sie nicht.* Der Betreiber hat für Türkisch niemanden benannt
+(Frage F2 des Auftrags 0.24.4). **Die Regel dieses Papiers bleibt: ohne Leser
+geht keine Sprachdatei heraus** — sie ist mit 0.24.4 zum ersten Mal gebrochen
+worden, und zwar benannt: die Abweichung steht im Änderungsprotokoll, im
+Wörterbuch und im Projektstand.
+
+**T4 — die Länge am Telefon.** Der Augenschein an den zwanzig dichtesten
+Stellen ist in drei Sprachen nicht gefahren. *Er ist schon in 0.24.3 offen
+geblieben und gehört zum Leser aus E14.*
+
+**Rechts-nach-links.** Türkisch braucht es nicht; die Frage bleibt offen und
+steht hier, damit sie niemand für erledigt hält.
+
+**Die Region je Sprache** (`de-AT` neben `de-DE`). `tr-TR` ist die Locale in
+der Datei, nicht ein zweiter Dateiname.

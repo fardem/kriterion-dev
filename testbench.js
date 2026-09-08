@@ -40,7 +40,7 @@ const sharp = require('sharp');
    Kommentar ist keine Benennung, und ein Weg in einer Erzaehlung ist keine
    Adresse. Er ist WERKZEUG und wird nicht ausgeliefert -- deshalb steht er
    hier und nicht in einer Serverdatei. */
-const { zerlege, CODE, TEXT } = require('./tools/segments.js');
+const { zerlege, CODE, TEXT, KOMMENTAR } = require('./tools/segments.js');
 
 /* DIE README ALS EIN LANGER STRING, EINMAL GELESEN. Gebraucht wird sie
    ueberall dort, wo ein Text die Oberflaeche VERLAESST: was aus der Instanz
@@ -3521,10 +3521,21 @@ const shareMain = (purpose, target = null) =>
   const pvBefore = (await call('GET', '/api/settings')).content;
   /* ERST DER GEGENSTAND (Stolperstein 81): ohne zwei Sprachen im Haus liesse
      sich ueber einen Vorrat gar nichts sagen. */
-  check('Der Aufbau steht: es liegen zwei Sprachdateien',
-    Array.isArray(pvBefore.languages) && pvBefore.languages.length === 2 &&
-    equal(pvBefore.languages.map(a => a.code).sort(), ['de', 'en']),
+  /* DREI SEIT 0.24.4 -- und die Zahl steht ausdruecklich da, wie bei F_ROUTES:
+     eine Sprachdatei, die still dazukommt oder verschwindet, faellt sonst
+     niemandem auf. Sie ist zugleich der Beleg fuer die Zusage aus 0.24.3:
+     eine Datei ins Verzeichnis legen genuegt, damit sie ueberall zur Wahl
+     steht -- niemand hat dafuer eine Liste gepflegt. */
+  check('Der Aufbau steht: es liegen drei Sprachdateien — 0.24.4',
+    Array.isArray(pvBefore.languages) && pvBefore.languages.length === 3 &&
+    equal(pvBefore.languages.map(a => a.code).sort(), ['de', 'en', 'tr']),
     JSON.stringify(pvBefore.languages));
+  /* UND DIE DRITTE HEISST, WIE SIE SICH SELBST NENNT. Der Name kommt aus
+     `_name` in der Datei und nicht aus einer Tafel im Server -- wer eine
+     vierte hinlegte, bekaeme ihren Namen genauso. */
+  check('Und die dritte nennt sich Türkçe',
+    (pvBefore.languages.find(a => a.code === 'tr') || {}).name === 'Türkçe',
+    JSON.stringify(pvBefore.languages.find(a => a.code === 'tr')));
   /* OHNE EINTRAG IST ALLES IM VORRAT. Anders als bei den Suchmaschinen, wo
      ein leerer Vorrat abgewiesen wird: Sprachen kommen mit dem Programm, und
      eine frische Installation soll alle anbieten, die dastehen. */
@@ -3621,9 +3632,9 @@ const shareMain = (purpose, target = null) =>
      `languagePool()` und `writeLanguages()` filtern beide gegen das
      Verzeichnis -- zwei Schichten derselben Klemme, weil die Ablage aelter
      sein kann als das Verzeichnis. */
-  const pvInvented = await call('PUT', '/api/settings', { languageOn: ['de', 'en', 'xx'] });
+  const pvInvented = await call('PUT', '/api/settings', { languageOn: ['de', 'en', 'tr', 'xx'] });
   check('Eine Sprache ohne Datei kommt gar nicht erst in den Vorrat',
-    equal(pvInvented.content.languages.map(a => a.code).sort(), ['de', 'en']),
+    equal(pvInvented.content.languages.map(a => a.code).sort(), ['de', 'en', 'tr']),
     JSON.stringify(pvInvented.content.languages));
   /* UND EINE ERFUNDENE VORGABE WIRD UEBERGANGEN. Sie darf die Installation
      nicht auf eine Sprache stellen, die es nicht gibt -- dann spraeche sie
@@ -3635,7 +3646,7 @@ const shareMain = (purpose, target = null) =>
 
 
   // Und zurueck auf den Anfangszustand -- alles im Vorrat, Englisch vorgegeben.
-  await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en'] });
+  await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en', 'tr'] });
   check('Der Aufraeumschritt stellt den Anfangszustand wieder her',
     (await call('GET', '/api/settings')).content.languages.every(a => a.active),
     JSON.stringify((await call('GET', '/api/settings')).content.languages));
@@ -3846,6 +3857,330 @@ const shareMain = (purpose, target = null) =>
     rnOrphan === 0, `${rnOrphan} herrenlose Zeilen`);
   await call('DELETE', `/api/items/${rnItem.id}`);
   await call('DELETE', `/api/product-categories/${rnCategory.id}`);
+
+  /* ================= Die Befunde der Runde 0.24.4 =======================
+     ELF WAECHTER, und jeder haelt eine Zusicherung aus dem Auftrag fest. Fuenf
+     davon stehen hier, weil sie einen laufenden Server brauchen; die uebrigen
+     stehen am Quelltext (Faltung, Zeichen, Rest) und am DOM (Umschalter,
+     Stellung, Vorgabe).
+     GEPRUEFT WIRD AM SERVER UND NICHT AM QUELLTEXT -- der Auftrag sagt es
+     ausdruecklich fuer die Eintragsprobe, und der Grund ist der Befund
+     selbst: B2 war an keiner Zeile zu sehen, sondern erst am Zusammenspiel
+     von Schreibweg, Ablage und Rueckfall. */
+  group('Die Befunde der Runde 0.24.4 — am laufenden Server');
+
+  /* --- DIE EINTRAGSPROBE (B2) ------------------------------------------
+     Die Zusicherung in einem Satz: egal, wie die Oberflaeche steht -- was
+     fuer eine Sprache eingetragen wurde, steht in dieser Sprache da.
+     DER AUFBAU IST DIE LAGE DES BEFUNDS: der Rufer liest DEUTSCH und traegt
+     ein ENGLISCHES Wort ein, so wie die Karte es tut, wenn der Eigentuemer
+     auf Englisch umschaltet. */
+  await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en', 'tr'] });
+  const bfClear = async () => {
+    for (const code of ['de', 'en', 'tr'])
+      await call('PUT', '/api/settings', { vocabulary: { [code]: {} } });
+  };
+  const bfRead = async (language) => {
+    const a = await fetch(`${BASE}/api/settings`, { headers: { cookie, 'accept-language': language } });
+    return a.json();
+  };
+  await bfClear();
+  const bfDefaults = await bfRead('de');
+  check('Der Aufbau steht: ohne Eintrag steht die Vorgabe der gelesenen Sprache',
+    bfDefaults.vocabulary.entryOne === 'Eintrag',
+    JSON.stringify(bfDefaults.vocabulary.entryOne));
+  await call('PUT', '/api/settings', { vocabulary: { en: { entryOne: 'Widget' } } });
+  const bfEnglish = await bfRead('en');
+  check('Eintragsprobe: was fuer Englisch eingetragen wurde, steht auf Englisch da',
+    bfEnglish.vocabulary.entryOne === 'Widget', JSON.stringify(bfEnglish.vocabulary.entryOne));
+  /* UND DIE ANDEREN DREIZEHN WOERTER BLEIBEN, WAS SIE SIND. Genau hier lag
+     B1: bis 0.24.3 schrieb der Server fuer jedes leere Feld die Vorgabe
+     SEINER Sprache in die Ablage, und der Rueckfall reichte den ganzen
+     englischen Satz an den deutschen Leser weiter. */
+  const bfGerman = await bfRead('de');
+  check('Und der deutsche Leser bekommt nur DIESES eine Wort auf Englisch',
+    bfGerman.vocabulary.entryOne === 'Widget' && bfGerman.vocabulary.dayOne === 'Testtag' &&
+    bfGerman.vocabulary.reportMany === 'Berichte',
+    JSON.stringify([bfGerman.vocabulary.entryOne, bfGerman.vocabulary.dayOne,
+                    bfGerman.vocabulary.reportMany]));
+  /* UND IN DER ABLAGE STEHT NUR DAS EINGETRAGENE. Die Zeile darueber sieht
+     das Ergebnis; diese sieht die Ursache. Ohne sie bliebe der Waechter
+     gruen, wenn jemand die Vorgaben wieder mitschriebe und den Rueckfall
+     dafuer anders klemmte -- zwei Fehler, die einander aufheben. */
+  const bfStored = () => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare("SELECT value FROM settings WHERE key = 'vocabulary'").get();
+    d.close();
+    return r ? JSON.parse(r.value) : null;
+  };
+  check('Und in der Ablage steht genau ein Wort, nicht vierzehn',
+    equal(bfStored(), { en: { entryOne: 'Widget' } }), JSON.stringify(bfStored()));
+  /* UND EINE SPRACHE OHNE EIN EINZIGES WORT LIEGT GAR NICHT ERST DA. Ein
+     leeres Objekt waere ein Eintrag ueber „nichts eingetragen" -- und von
+     „diese Sprache gab es noch nie" nicht zu unterscheiden. */
+  check('Und eine geraeumte Sprache faellt ganz aus der Ablage',
+    !('de' in (bfStored() || {})) && !('tr' in (bfStored() || {})),
+    JSON.stringify(bfStored()));
+  /* DER RUECKFALL AUS 0.24.3 BLEIBT -- er ist ausdruecklich NICHT der Befund.
+     Fuer ein Wort, das es in der gelesenen Sprache nicht gibt, steht lieber
+     eines in der falschen Sprache als gar keines. */
+  const bfTurkish = await bfRead('tr');
+  check('Und der Rueckfall aus 0.24.3 gilt weiter — auch fuer den tuerkischen Leser',
+    bfTurkish.vocabulary.entryOne === 'Widget' && bfTurkish.vocabulary.dayOne === 'Test günü',
+    JSON.stringify([bfTurkish.vocabulary.entryOne, bfTurkish.vocabulary.dayOne]));
+  /* UND DIE DREI TAFELN, DIE DIE KARTE BRAUCHT. Sie beantworten je eine
+     andere Frage, und keine laesst sich aus den anderen ausrechnen. */
+  check('Die Karte bekommt drei Tafeln: eingetragen, wirksam, Vorgabe',
+    equal(bfGerman.vocabulariesOwn.en, { entryOne: 'Widget' }) &&
+    equal(bfGerman.vocabulariesOwn.de, {}) &&
+    bfGerman.vocabularies.de.entryOne === 'Widget' &&
+    bfGerman.vocabularyDefaults.de.entryOne === 'Eintrag' &&
+    bfGerman.vocabularyDefaults.tr.entryOne === 'Öğe',
+    JSON.stringify([bfGerman.vocabulariesOwn.en, bfGerman.vocabulariesOwn.de,
+                    bfGerman.vocabularies.de.entryOne, bfGerman.vocabularyDefaults.tr.entryOne]));
+  /* UND JEDE SPRACHE BEHAELT IHREN EIGENEN SATZ. Der Schreibweg geht ueber
+     das vorhandene Objekt und nicht daneben -- wer Deutsch pflegt, loescht
+     Englisch nicht. */
+  await call('PUT', '/api/settings', { vocabulary: { de: { entryOne: 'Gerät' } } });
+  const bfBoth = await bfRead('de');
+  check('Und jede Sprache behaelt ihren eigenen Satz',
+    bfBoth.vocabulary.entryOne === 'Gerät' &&
+    (await bfRead('en')).vocabulary.entryOne === 'Widget',
+    JSON.stringify([bfBoth.vocabulary.entryOne, (await bfRead('en')).vocabulary.entryOne]));
+  /* UND EIN GERAEUMTES FELD BLEIBT GERAEUMT. „Leer heisst Vorgabe" gilt
+     weiter -- nur wird die Vorgabe beim LESEN eingesetzt. */
+  await call('PUT', '/api/settings', { vocabulary: { de: { entryOne: '  ' } } });
+  check('Ein geraeumtes Feld faellt auf die Vorgabe zurueck und liegt nicht in der Ablage',
+    (await bfRead('de')).vocabulary.entryOne === 'Widget' &&
+    equal(bfStored(), { en: { entryOne: 'Widget' } }),
+    JSON.stringify(bfStored()));
+  await bfClear();
+
+  /* --- DREI ZUGAENGE, DREI SPRACHEN, GLEICHZEITIG ----------------------
+     Die Sprache steht am ZUGANG und nicht an der Installation. Drei Leser
+     zugleich, und keiner sieht etwas vom anderen. */
+  {
+    await call('PUT', '/api/settings', { vocabulary: { tr: { entryOne: 'Model' } } });
+    const drRead = async (language) => (await bfRead(language));
+    const [drDe, drEn, drTr] = await Promise.all([drRead('de'), drRead('en'), drRead('tr')]);
+    check('Drei Zugaenge, drei Sprachen, gleichzeitig — jeder bekommt seine Saetze',
+      drDe.vocabulary.dayOne === 'Testtag' && drEn.vocabulary.dayOne === 'Test day' &&
+      drTr.vocabulary.dayOne === 'Test günü',
+      JSON.stringify([drDe.vocabulary.dayOne, drEn.vocabulary.dayOne, drTr.vocabulary.dayOne]));
+    check('Und das eine eingetragene Wort steht bei allen dreien',
+      drDe.vocabulary.entryOne === 'Model' && drEn.vocabulary.entryOne === 'Model' &&
+      drTr.vocabulary.entryOne === 'Model',
+      JSON.stringify([drDe.vocabulary.entryOne, drEn.vocabulary.entryOne, drTr.vocabulary.entryOne]));
+    await bfClear();
+  }
+
+  /* --- DIE FALTUNGSPROBE UND DIE ZWEI-LESER-PROBE (B8) -----------------
+     Der Bestand traegt die vier i des Lateinischen in Unicode. Gesucht wird
+     von zwei Lesern verschiedener Sprache, und beide bekommen dieselbe
+     Antwort -- das ist die Zusicherung, an der 0.24.3 gescheitert waere,
+     sobald jemand auf Tuerkisch stand. */
+  {
+    const bfIds = [];
+    for (const title of ['İstanbul', 'Istanbul', 'Işık', 'ışık', 'Iğdır', 'ığdır'])
+      bfIds.push((await call('POST', '/api/items', { title })).content.id);
+    const bfSearch = async (q, language) => {
+      const a = await fetch(`${BASE}/api/items?q=${encodeURIComponent(q)}`,
+        { headers: { cookie, 'accept-language': language } });
+      const list = await a.json();
+      return (Array.isArray(list) ? list : list.items || [])
+        .filter(z => bfIds.includes(z.id)).map(z => z.title).sort();
+    };
+    /* NEUN GEWOEHNLICHE FAELLE, und keiner darf ins Leere gehen. Bis 0.24.3
+       gingen fuenf davon ins Leere -- gemessen, nicht vermutet. */
+    const bfCases = [
+      ['istanbul', ['Istanbul', 'İstanbul']], ['ISTANBUL', ['Istanbul', 'İstanbul']],
+      ['Istanbul', ['Istanbul', 'İstanbul']], ['İSTANBUL', ['Istanbul', 'İstanbul']],
+      ['ışık', ['Işık', 'ışık']], ['IŞIK', ['Işık', 'ışık']], ['Işık', ['Işık', 'ışık']],
+      ['ığdır', ['Iğdır', 'ığdır']], ['Iğdır', ['Iğdır', 'ığdır']]
+    ];
+    const bfEmpty = [];
+    for (const [q, want] of bfCases)
+      if (!equal(await bfSearch(q, 'de'), want.slice().sort())) bfEmpty.push(q);
+    check('T3-Probe: neun tuerkische Suchfaelle, keiner geht ins Leere',
+      bfEmpty.length === 0, `ins Leere: ${bfEmpty.join(' · ') || '—'}`);
+    /* UND ZWEI LESER BEKOMMEN DIESELBE ANTWORT. Das ist die eigentliche
+       Zusicherung: die Faltung haengt an der Installation und nicht am
+       Leser. Ohne diese Zeile bliebe der Waechter gruen, wenn beide Haelften
+       wieder an der Sprache haengen -- nur eben an derselben. */
+    const bfDiffer = [];
+    for (const [q] of bfCases) {
+      const [a, b, c] = [await bfSearch(q, 'de'), await bfSearch(q, 'en'), await bfSearch(q, 'tr')];
+      if (!equal(a, b) || !equal(a, c)) bfDiffer.push(`${q}: ${JSON.stringify([a, b, c])}`);
+    }
+    check('Zwei-Leser-Probe: derselbe Bestand, dieselbe Eingabe, dieselbe Trefferliste',
+      bfDiffer.length === 0, bfDiffer.slice(0, 3).join(' · ') || 'alle gleich');
+    /* UND DIE FALTUNG AM LAUFENDEN SERVER, nicht nur am Quelltext: dieselbe
+       Funktion faltet beide Haelften, also findet ein GROSS geschriebener
+       Begriff einen klein geschriebenen Bestand und umgekehrt. */
+    check('Faltungsprobe am laufenden Server: Nadel und Heuhaufen falten gleich',
+      equal(await bfSearch('IŞIK', 'de'), await bfSearch('ışık', 'de')),
+      JSON.stringify([await bfSearch('IŞIK', 'de'), await bfSearch('ışık', 'de')]));
+    /* DIE SORTIERUNG LAEUFT UEBER Intl.Collator UND NICHT UEBER DIE FALTUNG
+       -- die beiden beantworten verschiedene Fragen, und wer sie zusammenlegt,
+       bekommt „İzmir" vor „irmik". */
+    check('Und die Sortierung folgt der Locale, nicht der Faltung',
+      equal(['İzmir', 'ılık', 'irmik'].sort((a, b) => a.localeCompare(b, 'tr-TR')),
+            ['ılık', 'irmik', 'İzmir']),
+      JSON.stringify(['İzmir', 'ılık', 'irmik'].sort((a, b) => a.localeCompare(b, 'tr-TR'))));
+    for (const id of bfIds) await call('DELETE', `/api/items/${id}`);
+  }
+
+  /* --- EIN BESTAND AUS 0.24.3 LAEUFT AN ---------------------------------
+     Die Ablage einer 0.24.3-Instanz traegt je Sprache VIERZEHN Woerter --
+     der Schreibweg von damals hat fuer jedes leere Feld die Vorgabe
+     eingesetzt. Sie wird hier am Schreibweg VORBEI in die Ablage gelegt,
+     genau wie ein Altbestand sie mitbringt.
+     DIE ZUSICHERUNG: die vierzehn stehen danach da, in ihrer Sprache -- der
+     reparierte Leseweg deutet sie unveraendert als das, was sie sind, naemlich
+     als eingetragen. **Es gibt keinen Migrationsblock**, und das ist eine
+     Entscheidung: welche der vierzehn ein Mensch getippt hat und welche der
+     Server eingesetzt hat, steht nirgends mehr; ein Block, der raet, naehme
+     dem Eigentuemer Woerter weg, die er wirklich eingetragen hat. */
+  {
+    const abOld = {
+      de: Object.fromEntries(Object.entries(JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
+        .filter(([k]) => k.startsWith('vocabulary.'))
+        .map(([k, v]) => [k.slice('vocabulary.'.length), v]))
+    };
+    abOld.de.entryOne = 'Maschine';
+    abOld.de.entryMany = 'Maschinen';
+    {
+      const d = open(path.join(DATA, 'katalog.sqlite'));
+      d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('vocabulary', ?)")
+        .run(JSON.stringify(abOld));
+      d.close();
+    }
+    const abRead = await bfRead('de');
+    check('Ein Bestand aus 0.24.3 laeuft an — die vierzehn Woerter stehen danach da',
+      abRead.vocabulary.entryOne === 'Maschine' && abRead.vocabulary.entryMany === 'Maschinen' &&
+      abRead.vocabulary.dayOne === 'Testtag' && abRead.vocabulary.ratingMany === 'Bewertungen' &&
+      Object.keys(abRead.vocabulary).length === 14,
+      JSON.stringify(abRead.vocabulary));
+    /* UND DIE KARTE ZEIGT SIE ALS EINGETRAGEN -- weil sie es aus Sicht der
+       Ablage sind. Das ist die Kehrseite der Entscheidung oben, und sie
+       gehoert benannt: wer einen 0.24.3-Bestand einspielt, findet die vierzehn
+       Felder gefuellt vor und raeumt sie von Hand, wenn er die Vorgabe will. */
+    check('Und die Karte zeigt sie als eingetragen — die Kehrseite, benannt',
+      abRead.vocabulariesOwn.de.dayOne === 'Testtag',
+      JSON.stringify(abRead.vocabulariesOwn.de.dayOne));
+    await bfClear();
+  }
+
+  /* --- EIN EXPORT TRAEGT ALLE DREI SPRACHFASSUNGEN ----------------------
+     Austauschformat 14 seit 0.24.3, unveraendert. Die Zusicherung ist nicht
+     „das Format kennt Sprachen", sondern „die DRITTE faehrt mit" -- eine
+     Tafel, die nur zwei Sprachen kennt, faellt sonst erst dem naechsten
+     Einspielenden auf. */
+  {
+    const exCrit = (await call('POST', '/api/criteria', { name: 'Dreisprachig' })).content;
+    await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Dreisprachig DE', language: 'de' });
+    await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Üç dilli', language: 'tr' });
+    const exFile = (await callF('GET', '/api/export?photos=0')).content;
+    check('Ein Export traegt alle drei Sprachfassungen',
+      exFile?.version === 14 &&
+      exFile?.criteriaNames?.de?.['Dreisprachig'] === 'Dreisprachig DE' &&
+      exFile?.criteriaNames?.tr?.['Dreisprachig'] === 'Üç dilli',
+      JSON.stringify([exFile?.version, exFile?.criteriaNames?.de?.['Dreisprachig'],
+                      exFile?.criteriaNames?.tr?.['Dreisprachig']]));
+    /* UND WIEDER EINGESPIELT STEHEN SIE DA. Ein Export, dessen Tafel beim
+       Einspielen liegen bleibt, ist eine halbe Datei -- und der Verlust faellt
+       erst dem naechsten Leser auf, der die dritte Sprache liest. */
+    await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Dreisprachig', language: 'de' });
+    await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Dreisprachig', language: 'tr' });
+    const exGone = await (await fetch(`${BASE}/api/criteria`,
+      { headers: { cookie, 'accept-language': 'tr' } })).json();
+    check('Der Aufbau steht: die tuerkische Fassung ist weg',
+      (exGone.find(c => c.id === exCrit.id) || {}).name === 'Dreisprachig',
+      JSON.stringify(exGone.find(c => c.id === exCrit.id)));
+    const exBack = await sendImport({ exported_at: exFile.exported_at, title: exFile.title,
+      version: exFile.version, items: [], criteriaNames: exFile.criteriaNames,
+      categoryNames: exFile.categoryNames }, 'merge');
+    check('Und die Datei laesst sich zusammenfuehrend einspielen',
+      exBack.status === 200, `Status ${exBack.status}: ${JSON.stringify(exBack.content)}`);
+    const exReadTr = await (await fetch(`${BASE}/api/criteria`,
+      { headers: { cookie, 'accept-language': 'tr' } })).json();
+    check('Und der tuerkische Leser sieht danach wieder die tuerkische Fassung',
+      (exReadTr.find(c => c.id === exCrit.id) || {}).name === 'Üç dilli',
+      JSON.stringify(exReadTr.find(c => c.id === exCrit.id)));
+    await call('DELETE', `/api/criteria/${exCrit.id}`);
+  }
+
+  /* --- DIE DECKUNGSPROBE FUER tr.json ---------------------------------
+     Dieselben Schluessel, dieselbe Reihenfolge, und beide Mehrzahlformen
+     gefuellt. Eine dritte Datei mit einem fehlenden Schluessel faellt sonst
+     erst am Bildschirm auf, als ⟦…⟧. */
+  {
+    const dgRead = (code) => JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+    const dgDe = dgRead('de'), dgTr = dgRead('tr');
+    check('Deckungsprobe: tr.json traegt dieselben Schluessel wie de.json — in derselben Folge',
+      equal(Object.keys(dgDe), Object.keys(dgTr)),
+      `${Object.keys(dgTr).length} statt ${Object.keys(dgDe).length}`);
+    check('Und ihr Kopf nennt Locale und Namen',
+      dgTr._locale === 'tr-TR' && dgTr._name === 'Türkçe',
+      `${dgTr._locale} · ${dgTr._name}`);
+    /* T2: BEIDE FORMEN SIND GEFUELLT. `Intl.PluralRules('tr')` kennt `one`
+       UND `other` -- nachgemessen, nicht angenommen. Wer nur `other`
+       schriebe, liesse bei n = 1 ein ⟦…⟧ stehen. */
+    check('Der Aufbau steht: Tuerkisch kennt beide Mehrzahlklassen',
+      new Intl.PluralRules('tr-TR').select(1) === 'one' &&
+      new Intl.PluralRules('tr-TR').select(3) === 'other',
+      `${new Intl.PluralRules('tr-TR').select(1)} / ${new Intl.PluralRules('tr-TR').select(3)}`);
+    const dgHalf = Object.entries(dgTr).filter(([k, v]) =>
+      dgDe[k] && typeof dgDe[k] === 'object' &&
+      (!v || typeof v !== 'object' || !String(v.one || '').trim() || !String(v.other || '').trim()));
+    check('T2: beide Mehrzahlformen sind gefuellt — alle vierunddreissig',
+      dgHalf.length === 0, dgHalf.map(([k]) => k).join(' '));
+    /* UND NACH EINER ZAHL STEHT DIE EINZAHL. Die Mehrzahl mit -ler/-lar
+       steht nur da, wo kein Zaehler davorsteht („Yorumlar" als Titel). */
+    const TR_WORD = 'A-Za-zÇĞİÖŞÜçğıöşü';
+    const dgCounted = new RegExp(
+      `(?:\\{n\\}|(?:^|[^${TR_WORD}0-9])[0-9]+)\\s+[${TR_WORD}]*(?:ler|lar)(?![${TR_WORD}])`);
+    const dgPlural = [];
+    for (const [k, v] of Object.entries(dgTr))
+      for (const one of (v && typeof v === 'object' ? Object.values(v) : [v]))
+        if (dgCounted.test(String(one))) dgPlural.push(k);
+    check('T2: nach einer Zahl steht die Einzahl — kein -ler/-lar hinter einem Zaehler',
+      dgPlural.length === 0, dgPlural.join(' '));
+    check('Und der Leser wuerde einen Verstoss finden',
+      dgCounted.test('3 yorumlar') && !dgCounted.test('3 yorum'),
+      'der Leser trennt Einzahl und Mehrzahl nicht');
+    /* T1: KEINE ENDUNG AN EINEM PLATZHALTER -- weder angeklebt noch mit
+       Apostroph. Die Endung traegt ein festes Wort daneben. */
+    const dgSuffix = new RegExp(`\\{[a-zA-Z_]+\\}['’]?[${TR_WORD}]`);
+    const dgStuck = [];
+    for (const [k, v] of Object.entries(dgTr))
+      for (const one of (v && typeof v === 'object' ? Object.values(v) : [v]))
+        if (dgSuffix.test(String(one))) dgStuck.push(k);
+    check('T1: an keinem Platzhalter haengt eine Endung',
+      dgStuck.length === 0, dgStuck.slice(0, 6).join(' '));
+    check('Und der Leser wuerde eine finden',
+      dgSuffix.test("{entryOne}'yi sil?") && !dgSuffix.test('{entryOne} silinsin mi?'),
+      'der Leser sieht die Endung nicht');
+    /* UND DIE PROBE AM LEBENDEN BEISPIEL: dasselbe Vokabelwort auf drei
+       Vokale, derselbe Satz bleibt richtig. DREI WOERTER, DREI VOKALE, EINE
+       PRUEFUNG -- das ist die Gegenprobe zu T1 und nicht ihre Wiederholung:
+       die Regel darueber liest den Satz, diese hier setzt ihn ein. */
+    const dgFill = (text, values) =>
+      String(text).replace(/\{(\w+)\}/g, (whole, name) =>
+        (values[name] !== undefined ? values[name] : whole));
+    const dgSentences = ['entry.deleteEntryAsk', 'card.delete', 'list.createEntry'];
+    const dgWrong = [];
+    for (const word of ['Model', 'Kutu', 'Kayıt'])
+      for (const key of dgSentences) {
+        const out = dgFill(dgTr[key], { entryOne: word, entryWord: word });
+        if (!out.includes(word) || new RegExp(`${word}['’]?[a-zçğıöşü]`).test(out))
+          dgWrong.push(`${key}/${word}: ${out}`);
+      }
+    check('T1-Probe: drei Vokabelwoerter, drei Vokale, derselbe Satz bleibt richtig',
+      dgWrong.length === 0, dgWrong.slice(0, 3).join(' · '));
+  }
 
   /* ================= Die Zahl der Tabellen — 0.24.3 =====================
      SIEBENUNDZWANZIG SEIT DIESER RUNDE, vorher fuenfundzwanzig:
@@ -23532,7 +23867,14 @@ const shareMain = (purpose, target = null) =>
      davon ist die Gegenlage: er laesst den Block nach den BLOCKNAMEN
      greifen, die deutsch bleiben sollen. Ein Block, der zu viel tut,
      richtet denselben Schaden an wie einer, der zu wenig tut. */
-  check('Es sind genau 725 Rueckbauten', gpList.length === 725, `${gpList.length}`);
+  /* 727 SEIT 0.24.4: zwei kommen dazu, und sie zielen auf die beiden Haelften
+     desselben Befunds (B8). Der eine haengt die NADEL wieder an die Sprache
+     des Lesers -- daraufhin muessen die Zwei-Leser-Probe UND die T3-Probe rot
+     werden. Der andere laesst die vier i wieder auseinanderfallen -- dann
+     wird die T3-Probe rot und die Zwei-Leser-Probe NICHT, denn beide Haelften
+     falten weiter gleich, nur falsch. **Ein Rueckbau, der beide Proben
+     zugleich traefe, koennte nicht sagen, welche von ihnen etwas belegt.** */
+  check('Es sind genau 727 Rueckbauten', gpList.length === 727, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -26808,6 +27150,146 @@ async function checkUi() {
   fields[0].dispatchEvent(new w3.Event('input'));
   check('Probe folgt der Eingabe sofort',
     w3.document.getElementById('vpreview').textContent.includes('+ Objekt'));
+
+  /* ============ Die vier Umschalter — 0.24.4 (B1, B3, B4) ==============
+     DREI PROBEN AN EINER LAGE, und die Lage ist die des Befunds: der Leser
+     steht auf DEUTSCH, fuer ENGLISCH ist etwas eingetragen, fuer Deutsch
+     nichts. Genau so sah der Bildschirm aus, den der Betreiber am
+     8. September 2026 mit Bild gemeldet hat.
+     EIN EIGENES DOM: die Lage braucht zwei Sprachen im Vorrat und drei
+     Vokabeltafeln, und die Prueflage darueber stellt eine andere Frage. */
+  {
+    const usLanguages = [
+      { code: 'de', name: 'Deutsch', isDefault: true, active: true },
+      { code: 'en', name: 'English', isDefault: false, active: true },
+      { code: 'tr', name: 'Türkçe', isDefault: false, active: true }
+    ];
+    const usDefaults = Object.fromEntries(['de', 'en', 'tr'].map(code => [code,
+      Object.fromEntries(Object.entries(JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8')))
+        .filter(([k]) => k.startsWith('vocabulary.'))
+        .map(([k, v]) => [k.slice('vocabulary.'.length), v]))]));
+    /* FUER ENGLISCH IST ETWAS EINGETRAGEN, FUER DEUTSCH NICHTS -- und der
+       Rueckfall traegt das englische Wort in den deutschen Satz. Bis 0.24.3
+       stand es damit auch im FELD der deutschen Kachel. */
+    const usOwn = { de: {}, en: { entryOne: 'Widget' }, tr: {} };
+    const usEffective = Object.fromEntries(['de', 'en', 'tr'].map(code =>
+      [code, { ...usDefaults[code], entryOne: 'Widget' }]));
+    const four = buildDom(JSDOM, { settings: {
+      filters: null, language: 'de', languages: usLanguages,
+      vocabulary: usEffective.de, vocabularies: usEffective,
+      vocabulariesOwn: usOwn, vocabularyDefaults: usDefaults } });
+    const w4 = four.w;
+    await new Promise(r => setTimeout(r, 80));
+    await sysSection(w4, 'inventory');
+    const usPills = (boxId) => [...(w4.document.getElementById(boxId) || { children: [] }).children]
+      .map(b => b.textContent + (b.className.includes('on') ? '*' : ''));
+    /* --- DIE UMSCHALTERPROBE, AN ALLEN VIER KACHELN ------------------
+       Vokabular, Kategorien und die beiden Kriterienlisten. Vier Kaesten,
+       ein Umschalter je Kasten -- und jeder steht anfangs auf der Sprache
+       des Lesers. */
+    const US_BOXES = ['vlang', 'ncatlang', 'mcrits-lang', 'mpcrits-lang'];
+    check('Umschalterprobe: alle vier Kacheln tragen ihre Sprachzeile',
+      US_BOXES.every(id => usPills(id).length === 3),
+      US_BOXES.map(id => `${id}=${usPills(id).length}`).join(' '));
+    check('Und jede steht auf der Sprache des Lesers',
+      US_BOXES.every(id => usPills(id)[0] === 'Deutsch*'),
+      US_BOXES.map(id => usPills(id).join('|')).join(' · '));
+    /* --- DIE VORGABEPROBE (B4) UND DER FELDINHALT (B1) --------------- */
+    const usField = (n) => (w4.document.getElementById(`v${n}`) || {}).value;
+    const usHint = (n) => ((w4.document.querySelector(`label[for=v${n}] .hint`) || {}).textContent || '').trim();
+    check('Und die deutsche Kachel zeigt in den Feldern NICHT das englische Wort',
+      usField(1) === '', JSON.stringify(usField(1)));
+    check('Vorgabeprobe: der Hinweis nennt die deutsche Vorgabe',
+      /Eintrag/.test(usHint(1)) && !/Entry/.test(usHint(1)), usHint(1));
+    /* --- DAS UMSCHALTEN SELBST ---------------------------------------
+       Ein Klick auf „English": die Pille wandert, das Feld zeigt das
+       EINGETRAGENE Wort, und der Hinweis nennt die ENGLISCHE Vorgabe.
+       Bis 0.24.3 blieb der Hinweis deutsch -- das war B4. */
+    const usEnglish = [...w4.document.getElementById('vlang').children]
+      .find(b => b.textContent === 'English');
+    usEnglish.dispatchEvent(new w4.Event('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 120));
+    check('Ein Klick schaltet die Kachel um — und die Pille zeigt es',
+      usPills('vlang')[1] === 'English*', usPills('vlang').join('|'));
+    check('Und das Feld zeigt danach das fuer Englisch eingetragene Wort',
+      usField(1) === 'Widget', JSON.stringify(usField(1)));
+    check('Vorgabeprobe: und der Hinweis folgt der Kachel, nicht dem Leser',
+      /Entries/.test(usHint(2)) && !/Einträge/.test(usHint(2)), usHint(2));
+    /* UND DIE UEBRIGE OBERFLAECHE BLEIBT DEUTSCH. Der Umschalter ist der
+       Zustand EINER Karte und nicht die Sprache des Lesers -- „der
+       Eigentuemer schaltet im Adminbereich kurz um". */
+    check('Und die Oberflaeche daneben bleibt in der Sprache ihres Lesers',
+      w4.document.body.textContent.includes('Vokabular'),
+      'die Seite hat die Sprache gewechselt');
+    /* --- DER RUMPF DES PUT (B2) -------------------------------------- */
+    setField(w4.document, 'v1', 'Widget2');
+    w4.document.getElementById('vsave').dispatchEvent(new w4.Event('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 120));
+    const usPut = four.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings')
+      .map(g => g.body).filter(b => b && b.vocabulary).pop();
+    check('Und der Rumpf des PUT nennt die Sprache der Kachel',
+      !!usPut && Object.keys(usPut.vocabulary).length === 1 &&
+      usPut.vocabulary.en && usPut.vocabulary.en.entryOne === 'Widget2',
+      JSON.stringify(usPut && usPut.vocabulary));
+    /* UND DIE UEBRIGEN DREIZEHN FELDER GEHEN LEER HINAUS -- sie sind leer,
+       weil fuer sie nichts eingetragen ist, und der Server macht daraus
+       kein „eingetragen". Bis 0.24.3 trug die Karte hier die Vorgaben ein,
+       und genau das hat B2 verursacht. */
+    check('Und die uebrigen dreizehn Felder gehen leer hinaus',
+      !!usPut && Object.values(usPut.vocabulary.en).filter(v => String(v).trim()).length === 1,
+      JSON.stringify(usPut && usPut.vocabulary.en));
+    w4.close();
+  }
+
+  /* ============ Die Stellungsprobe — 0.24.4 (B3) =======================
+     DIE BILDLAUFSTELLUNG UEBERLEBT DAS UMSCHALTEN.
+
+     WIE MAN DAS IN jsdom UEBERHAUPT SIEHT, gehoert dazugesagt: jsdom rechnet
+     kein Layout, also faellt die Stellung beim Neubau von `app.innerHTML`
+     GAR NICHT von selbst auf null -- im Browser tut sie es, weil die Seite
+     auf die Hoehe der Ladezeile zusammenfaellt. **Eine Probe, die nur
+     nachsieht, ob 640 noch dasteht, waere deshalb gruen, ohne dass
+     irgendetwas wiederhergestellt worden waere** (Stolperstein 81).
+
+     DIE PROBE RAEUMT SIE DESHALB SELBST WEG, und zwar im richtigen
+     Augenblick: renderSystem() liest die Stellung SYNCHRON, bevor der erste
+     Abruf laeuft, und setzt sie GANZ AM ENDE zurueck. Wer unmittelbar nach
+     dem Klick auf null stellt, steht damit zwischen den beiden -- genau da,
+     wo im Browser der Zusammenfall liegt. Was danach dasteht, hat die
+     Reparatur dorthin geschrieben und sonst niemand. */
+  {
+    const stDom = buildDom(JSDOM, { settings: { filters: null, language: 'de',
+      languages: [{ code: 'de', name: 'Deutsch', isDefault: true, active: true },
+                  { code: 'en', name: 'English', isDefault: false, active: true }] } });
+    const wSt = stDom.w;
+    await new Promise(r => setTimeout(r, 80));
+    await sysSection(wSt, 'inventory');
+    const stSide = wSt.document.scrollingElement || wSt.document.documentElement;
+    stSide.scrollTop = 640;
+    check('Der Aufbau steht: die Seite ist heruntergerollt',
+      stSide.scrollTop === 640, `${stSide.scrollTop}`);
+    const stPill = [...wSt.document.getElementById('vlang').children]
+      .find(b => b.textContent === 'English');
+    stPill.dispatchEvent(new wSt.Event('click', { bubbles: true }));
+    stSide.scrollTop = 0;                 // der Zusammenfall, den jsdom nicht hat
+    await new Promise(r => setTimeout(r, 200));
+    check('Stellungsprobe: die Bildlaufstellung ueberlebt das Umschalten',
+      stSide.scrollTop === 640, `${stSide.scrollTop} statt 640`);
+    /* UND SIE UEBERLEBT NUR DORT. Wer aus der Uebersicht in den Systembereich
+       geht, soll oben anfangen -- eine gemerkte Stellung waere dort ein
+       Sprung ins Nichts. Ohne diese Zeile bliebe die darueber auch dann
+       gruen, wenn renderSystem() die Stellung IMMER hielte, und das waere
+       ein zweiter Fehler. */
+    stSide.scrollTop = 500;
+    const stPlain = wSt.renderSystem();
+    stSide.scrollTop = 0;
+    await stPlain;
+    await new Promise(r => setTimeout(r, 40));
+    check('Und ein gewoehnliches Neuzeichnen holt sie nicht zurueck',
+      stSide.scrollTop === 0, `${stSide.scrollTop} statt 0`);
+    wSt.close();
+  }
 
   /* DIE SCHRIFTGROESSE STEHT IN „Darstellung" UND DAMIT IN EINEM ANDEREN
      ABSCHNITT ALS DAS VOKABULAR (Stolperstein 201): die Karte ist dieselbe
@@ -43014,13 +43496,14 @@ async function checkUi() {
     check('Und eine Instanz mit drei unbrauchbaren Dateien laesst sich einrichten',
       ffSetup.status === 200 || ffSetup.status === 201, `Status ${ffSetup.status}`);
     const ffSettings = ffUp ? (await ffCall('GET', '/api/settings')).content : {};
-    /* UND ER FUEHRT GENAU DIE BEIDEN BRAUCHBAREN. Ohne diese Zeile bliebe
-       offen, ob er die drei uebergangen oder alle fuenf angenommen hat. */
-    check('Und er fuehrt genau die beiden brauchbaren Sprachen',
-      equal(((ffSettings && ffSettings.languages) || []).map(a => a.code).sort(), ['de', 'en']),
+    /* UND ER FUEHRT GENAU DIE BRAUCHBAREN. Ohne diese Zeile bliebe offen, ob
+       er die drei uebergangen oder alle sechs angenommen hat.
+       DREI SEIT 0.24.4 -- Tuerkisch ist dazugekommen. */
+    check('Und er fuehrt genau die drei brauchbaren Sprachen',
+      equal(((ffSettings && ffSettings.languages) || []).map(a => a.code).sort(), ['de', 'en', 'tr']),
       JSON.stringify(ffSettings && ffSettings.languages));
     check('Und die Vorgabesprache ist eine davon',
-      ['de', 'en'].includes(ffConfig.language), JSON.stringify(ffConfig.language));
+      ['de', 'en', 'tr'].includes(ffConfig.language), JSON.stringify(ffConfig.language));
     /* JEDE DER DREI WIRD NAMENTLICH GEMELDET, mit dem Grund daneben. Ein
        „irgendetwas stimmt nicht" liesse den Eigentuemer die Datei suchen. */
     check('Die Datei mit kaputtem JSON wird namentlich gemeldet',
@@ -43145,12 +43628,13 @@ async function checkUi() {
         fs.readFileSync(path.join(spVerz, name), 'utf8')); }
       catch { spBroken.push(name); }
     }
-    /* ERST DER GEGENSTAND: zwei Dateien, de.json und en.json -- 0.24.3,
-       Bauabschnitt 5. Die Zahl steht ausdruecklich da; mit Tuerkisch (0.24.4)
-       aendert sie sich wieder, und dann soll jemand hinsehen und nicht bloss
-       zustimmen. */
-    check('Zwei Sprachdateien: de.json und en.json',
-      equal(spNames, ['de.json', 'en.json']), spNames.join(' · '));
+    /* ERST DER GEGENSTAND: DREI Dateien seit 0.24.4 -- de.json, en.json,
+       tr.json. Die Zahl steht ausdruecklich da; sie hat sich mit dieser Runde
+       geaendert, und jemand hat hingesehen und nicht bloss zugestimmt.
+       SIE IST ZUGLEICH DER BELEG FUER DIE ZUSAGE AUS 0.24.3: eine Datei
+       hineinlegen genuegt -- niemand hat dafuer eine Liste gepflegt. */
+    check('Drei Sprachdateien: de.json, en.json und tr.json — 0.24.4',
+      equal(spNames, ['de.json', 'en.json', 'tr.json']), spNames.join(' · '));
     check('Und jede Sprachdatei ist lesbares JSON',
       spBroken.length === 0, spBroken.join(' · ') || 'alle lesbar');
 
@@ -43432,6 +43916,157 @@ async function checkUi() {
         && !readableText('list.open') && !readableText('#/system'),
       'der Filter trennt Satz und Bezeichner nicht');
 
+    /* ---- 5a. Die Restprobe, VERSCHAERFT -- 0.24.4 (B5) -------------------
+       DIE NAMENSLISTE DARUEBER PRUEFT DIE VERBOTSLISTE, NICHT DIE SPRACHE --
+       und genau daran sind zwei feste deutsche Woerter durchgerutscht:
+       `alle ${rows.length} anzeigen` am Linkkasten und `${n} aktiv` an der
+       Filterzeile. Beide sind keine SAETZE, und beide standen auf Englisch
+       deutsch am Bildschirm. Ein Waechter, der nur eine Liste vergleicht,
+       haette den dritten im naechsten Jahr genauso durchgelassen.
+       DIESE PROBE FRAGT NACH DER SPRACHE: kein uebriggebliebener Text in
+       app.js traegt ein deutsches Wortstueck. Gelesen wird dieselbe Liste
+       wie oben -- also nur, was ohnehin AUSSERHALB von t()/tH() steht.
+       DIE WORTTAFEL IST `tools/dictionary.json` UND NUR DIE: dieselbe Datei,
+       aus der die sechs Waechter des Quelltextes lesen. Eine zweite Liste
+       daneben liefe von der ersten weg.
+       DREI AUSNAHMEN, UND JEDE HAT EINEN GRUND -- sie stehen namentlich da
+       und nicht als Muster: der eine feste Satz aus Bauabschnitt 1 (er
+       erscheint, BEVOR eine Sprachdatei geladen ist, und kann deshalb aus
+       keiner kommen) und die beiden Serverbefehle (sie sind Befehle und keine
+       Saetze; ihre Woerter stehen so auf der Kommandozeile). */
+    const restWords = (() => {
+      const book = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
+      const table = Object.create(null);
+      for (const [word, english] of Object.entries(book.words))
+        if (word !== english) table[word] = english;
+      return table;
+    })();
+    const restGerman = (text) => String(text)
+      .split(/[^A-Za-zÄÖÜäöüß]+/).filter(Boolean)
+      .filter(w => restWords[w.toLowerCase()]);
+    const REST_GERMAN_NAMED = [
+      // Der eine feste Satz: er steht, bevor es eine Sprachdatei gibt.
+      'Die Sprachdatei fehlt.',
+      // Die beiden Serverbefehle -- Befehle, keine Saetze.
+      'docker compose exec kriterion node usertool.js passwort <name>',
+      'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      /* UND DREI ADRESSEN. Sie tragen deutsche Wortstuecke und sind trotzdem
+         keine Bildschirmtexte: `?gruppe=` ist eine Abfrageangabe (ein Name im
+         Netzverkehr, wie `?entries=` daneben), die beiden anderen sind
+         BEISPIELADRESSEN in der Karte „Suchmaschinen" -- sie zeigen, wie eine
+         eigene Such-URL aussieht, und `beispiel.de` ist der reservierte Name
+         dafuer. **Uebersetzen liesse sich keine der drei**: eine Adresse ist
+         in jeder Sprache dieselbe. */
+      '?gruppe=',
+      '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
+      'https://forum.beispiel.de/suche?q=%s'
+    ];
+    const restLeft = rest
+      .filter(t => !REST_GERMAN_NAMED.includes(t))
+      .map(t => [t, restGerman(t)]).filter(([, w]) => w.length);
+    check('Restprobe, verschaerft: kein uebriger Text in app.js traegt ein deutsches Wortstueck',
+      restLeft.length === 0,
+      restLeft.slice(0, 6).map(([t, w]) => `${JSON.stringify(t.slice(0, 40))} → ${w.join(',')}`).join(' · '));
+    /* UND DER LESER FINDET WIRKLICH ETWAS. Ohne diese Zeile waere die
+       darueber auch dann gruen, wenn die Worttafel leer ankaeme. */
+    check('Und der Leser erkennt genau die beiden Woerter, die 0.24.3 durchgelassen hat',
+      restGerman('alle 5 anzeigen').length > 0 && restGerman('3 aktiv').length > 0 &&
+      restGerman('show all 5').length === 0 && restGerman('GET').length === 0,
+      `${JSON.stringify(restGerman('alle 5 anzeigen'))} · ${JSON.stringify(restGerman('3 aktiv'))}`);
+    /* UND DIE DREI AUSNAHMEN ZEIGEN WIRKLICH AUF ETWAS. Eine Ausnahme fuer
+       einen Text, den es nicht mehr gibt, ist eine Karteileiche -- und deckt
+       beim naechsten Mal etwas anderes mit ab. */
+    check('Und jede der drei Ausnahmen steht wirklich in der Datei',
+      REST_GERMAN_NAMED.every(t => rest.includes(t)),
+      REST_GERMAN_NAMED.filter(t => !rest.includes(t)).join(' · '));
+
+    /* ---- 5b. Die Zeichenprobe -- 0.24.4 (B6 A) --------------------------
+       KEIN `ICON_` GEHT DURCH t() ODER tH(). tH() maskiert jeden eingesetzten
+       Wert, mit Absicht (Stolperstein 18 in Dateiform) -- ein Zeichen als
+       Platzhalter kommt deshalb als SVG-Quelltext am Bildschirm an, und genau
+       so sah der Wiederherstellen-Knopf des Papierkorbs seit 0.24.0 aus.
+       EIN ZEICHEN IST KEIN WORT und gehoert nicht in einen Satz, den jemand
+       uebersetzt: der Knopf setzt es selbst und schreibt das Wort daneben.
+       GELESEN WIRD DER GANZE RUF, ueber mehrere Zeilen hinweg -- die
+       Aufrufstelle, an der es passiert ist, stand ueber zwei. */
+    const iconCalls = [...appRawM.matchAll(/\bt[H]?\(([^;]{0,400}?)\)\s*\}/g)]
+      .map(m => m[1]).filter(a => /\bICON_[A-Z_]+\b/.test(a));
+    check('Zeichenprobe: kein ICON_ geht durch t() oder tH()',
+      iconCalls.length === 0, iconCalls.slice(0, 3).map(a => a.slice(0, 60)).join(' · '));
+    /* UND DER LESER WUERDE EINEN FINDEN -- sonst bliebe die Zeile darueber
+       auch dann gruen, wenn das Muster gar nichts traefe. Gestellt wird die
+       Zeile, die es in 0.24.3 wirklich gab. */
+    const iconProbe = (text) => [...text.matchAll(/\bt[H]?\(([^;]{0,400}?)\)\s*\}/g)]
+      .map(m => m[1]).filter(a => /\bICON_[A-Z_]+\b/.test(a));
+    check('Und der Leser wuerde die Zeile aus 0.24.3 finden',
+      iconProbe("`${tH('card.restoreIcon', { restoreIcon: ICON_RESTORE })}`").length === 1 &&
+      iconProbe("`${ICON_RESTORE} ${tH('card.restore')}`").length === 0,
+      'der Leser trennt Zeichen im Satz und Zeichen daneben nicht');
+    /* UND DER SCHLUESSEL SELBST IST WEG. Ein Satz mit einem Zeichen darin,
+       den niemand mehr ruft, waere eine Falle fuer die naechste Runde. */
+    check('Und der Schluessel card.restoreIcon steht in keiner Sprachdatei mehr',
+      ['de', 'en', 'tr'].every(code => JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))['card.restoreIcon'] === undefined),
+      'der Schluessel liegt noch da');
+
+    /* ---- 5c. Die Faltungsprobe am QUELLTEXT -- 0.24.4 (B8) --------------
+       NADEL UND HEUHAUFEN RUFEN DIESELBE FUNKTION, und sie nimmt keine
+       Sprache entgegen. Am laufenden Server steht die Gegenprobe dazu; hier
+       steht die Bauform, denn zwei Funktionen, die dasselbe tun, laufen beim
+       naechsten Griff auseinander -- und genau das war der Befund.
+       GELESEN WIRD DER AUSGELIEFERTE QUELLTEXT und nicht ein Kommentar
+       darueber: `zerlege` trennt Code von Erzaehlung. */
+    {
+      const flDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+      const flServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+      /* ALLES AUSSER DEN KOMMENTAREN, und nicht nur CODE: `zerlege` schneidet
+         auch die Zeichenketten heraus, und `db.function('kkl', …)` traegt
+         eine mitten im Ruf -- eine Probe nur auf CODE saehe davon
+         `db.function(` und den Rest getrennt. Was hier stoeren wuerde, sind
+         allein die Kommentare: sie nennen `searchFold` und `fulltextTerm`
+         mehrfach, und ein Waechter, der sich an seinem eigenen Warnschild
+         faerbt, belegt nichts (Stolperstein 106). */
+      const withoutTalk = (raw, name) => zerlege(raw, name)
+        .filter(t => t.kind !== KOMMENTAR).map(t => t.wert).join('');
+      const flDbCode = withoutTalk(flDb, 'db.js');
+      const flServerCode = withoutTalk(flServer, 'server.js');
+      check('Faltungsprobe: die Faltung steht EINMAL, in db.js, und nimmt keine Sprache',
+        /const searchFold = \(s\) =>/.test(flDbCode) &&
+        !/searchFold\s*=\s*\([^)]*locale/.test(flDbCode),
+        (flDbCode.match(/const searchFold[^\n]*/) || ['(nicht gefunden)'])[0]);
+      check('Und der Heuhaufen faltet mit ihr — kkl() ruft searchFold',
+        /db\.function\('kkl', \{ deterministic: true \}, searchFold\);/.test(flDbCode),
+        (flDbCode.match(/db\.function\('kkl'[^\n]*/) || ['(nicht gefunden)'])[0]);
+      check('Und die Nadel ebenfalls — fulltextTerm() ruft searchFold und kennt keine Locale',
+        /const fulltextTerm = \(raw\) =>[^\n]*searchFold\(raw\.trim\(\)\)/.test(flServerCode) &&
+        !/fulltextTerm\s*=\s*\([^)]*locale/.test(flServerCode),
+        (flServerCode.match(/const fulltextTerm[^\n]*/) || ['(nicht gefunden)'])[0]);
+      /* UND KEINE HAELFTE DER SUCHE FRAGT MEHR NACH DER SPRACHE DES LESERS.
+         `toLocaleLowerCase` darf in der Suche gar nicht mehr vorkommen --
+         der Namensvergleich daneben benutzt es weiter, und der ist eine
+         andere Sache (compareLocale, 0.24.3). */
+      const flLocale = [...flServerCode.matchAll(/[^\n]*toLocaleLowerCase[^\n]*/g)].map(m => m[0].trim());
+      check('Und keine Zeile der Suche faltet noch mit einer Locale',
+        flLocale.every(z => /compareLocale/.test(z)),
+        flLocale.filter(z => !/compareLocale/.test(z)).slice(0, 3).join(' · '));
+      /* UND DIE VIER i FALLEN AUF EINES -- gerechnet, nicht gelesen, und
+         zwar mit der AUSGELIEFERTEN Funktion. Sie laeuft in einem eigenen
+         Prozess mit eigenem Verzeichnis: db.js oeffnet beim Laden die
+         Datenbank, und die hier waere die falsche. */
+      const flDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-faltung-'));
+      const flOut = JSON.parse(shortRun(
+        `const { searchFold } = require('./db');` +
+        `console.log(JSON.stringify(['I','i','İ','ı','Übergroß','STICHSÄGE',null]` +
+        `.map(z => searchFold(z))));`, flDirectory));
+      fs.rmSync(flDirectory, { recursive: true, force: true });
+      check('Und die vier i fallen wirklich auf eines',
+        equal(flOut.slice(0, 4), ['i', 'i', 'i', 'i']), JSON.stringify(flOut.slice(0, 4)));
+      check('Und deutscher Bestand aendert sich dabei um kein Zeichen',
+        flOut[4] === 'übergroß' && flOut[5] === 'stichsäge', `${flOut[4]} · ${flOut[5]}`);
+      check('Und NULL wird zum leeren String, nicht zu NULL',
+        flOut[6] === '', JSON.stringify(flOut[6]));
+    }
+
     /* ---- 7. Formatprobe -------------------------------------------------
        (Die Rueckfallprobe steht bei der Oberflaeche -- sie braucht das DOM.)
        JEDE DATEI NENNT IHRE LOCALE, UND Intl KENNT SIE. Ohne sie gaebe es
@@ -43475,8 +44110,8 @@ async function checkUi() {
     /* SECHS FELDER SEIT DEM 8. SEPTEMBER 2026, davor sieben: der Vorrat der
        Sprachen ist aus `/api/config` gefallen, als die Pillenreihe unter der
        Anmeldemaske gestrichen wurde. Er hatte dort genau einen Leser. */
-    check('Die Zahlen dieser Runde: zwei Sprachdateien, sechs Felder in /api/config',
-      spNames.length === 2 && cfgFields === 6,
+    check('Die Zahlen dieser Runde: drei Sprachdateien, sechs Felder in /api/config',
+      spNames.length === 3 && cfgFields === 6,
       `${spNames.length} Datei(en) · ${cfgFields} Felder`);
   }
 

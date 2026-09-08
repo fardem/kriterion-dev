@@ -1135,6 +1135,12 @@ es zwei, beide in den Einstellungen einstellbar:
   Groß- und Kleinschreibung spielt keine Rolle, auch bei Umlauten; ein
   einzelnes Zeichen findet bereits. **Prozentzeichen und Unterstrich sind
   gewöhnliche Zeichen** — man kann nach ihnen suchen.
+  **Die Suche folgt einer Regel für alle und nicht der Sprache des Lesers**:
+  zwei Zugänge in zwei Sprachen bekommen auf dieselbe Eingabe dieselbe
+  Trefferliste. *Die vier i des Lateinischen — `I i İ ı` — gelten dabei als
+  eines: „İstanbul" findet sich als „istanbul" wie als „ISTANBUL", „Iğdır"
+  als „ığdır".* **Nicht dasselbe sind `ß` und `ss`** — „ÜBERGROSS" findet
+  „übergroß" nicht.
   *Gesucht wird im Server.* Gefragt wird kurz nach dem letzten Anschlag, damit
   nicht jeder Tastendruck über das Netz geht. Ist der Server einmal nicht
   erreichbar, bleibt die zuletzt gezeigte Liste stehen und sagt es.
@@ -1719,8 +1725,11 @@ Listen.
   Schlüsselwechsel fasst die Regel gar nicht an**; für sie gibt es einen
   eigenen, ausdrücklichen Knopf.
 - **Papierkorb** *(Admin sieht, Eigentümer handelt;)*: was in den
-  letzten dreißig Tagen gelöscht wurde, mit Titel, Datum, Löschendem, der
-  verbleibenden Frist und der Größe. **„Zurückholen"** legt einen **neuen**
+  letzten dreißig Tagen gelöscht wurde, mit Titel, **wer den Eintrag angelegt
+  hat**, Löschdatum, Löschendem, der verbleibenden Frist und der Größe. *Wann
+  er angelegt wurde, steht im Titel der Zeile.* **Die Zeile beantwortet damit
+  die Frage vor dem Zurückholen** — „ist das der Eintrag, den ich meine?"; bei
+  zwei ähnlichen Titeln sagt es der Anleger. **„Zurückholen"** legt einen **neuen**
   Eintrag mit demselben Inhalt an — Fotos, Videos, Dateien, Kommentare,
   Bewertungen und Testtage samt ihren Verfassern; ein Verfasser, dessen Zugang
   inzwischen entfernt wurde, bleibt „Gelöschter Benutzer N". **„Endgültig
@@ -1748,11 +1757,14 @@ Listen.
   macht sie zum Ziel des Zeilenklicks. Beides gilt für alle — der Admin kuratiert,
   die Dichte bestimmt jeder für sich.
 - **Vokabular**: wie die Dinge heißen sollen (siehe unten) *(Admin)*
-- **Kategorien und Tags** umbenennen oder löschen, mit Angabe der betroffenen
-  Einträge *(Admin)*. Dazu je ein Häkchen, **wer einen neuen Namen anlegen
-  darf**: mit Haken jeder unmittelbar am Eintrag, ohne Haken nur der Admin.
-  Zuweisen und Auswählen aus dem Vorhandenen bleibt in jedem Fall für alle
-  offen — abgeschaltet verschwindet nur die Zeile „+ neu anlegen".
+- **Kategorien und Tags** anlegen, umbenennen oder löschen, mit Angabe der
+  betroffenen Einträge *(Admin)*. **Unter der Liste steht ein Feld mit
+  „Erzeugen"** — dort legt der Admin einen Namen an, ohne den Umweg über einen
+  Eintrag; angelegt wird immer die Grundzeile, und der Sprachumschalter
+  darüber fasst sie nicht an. Dazu je ein Häkchen, **wer einen neuen Namen
+  anlegen darf**: mit Haken jeder unmittelbar am Eintrag, ohne Haken nur der
+  Admin. Zuweisen und Auswählen aus dem Vorhandenen bleibt in jedem Fall für
+  alle offen — abgeschaltet verschwindet nur die Zeile „+ neu anlegen".
 - **Bewertungskriterien** umbenennen, löschen, **per Ziehen sortieren** und
   **gewichten** *(Admin)*. Die
   Reihenfolge gilt für Detailansicht und Vergleich gleichermaßen — im Vergleich
@@ -2036,8 +2048,8 @@ zweite Tipp ausgenommen**: dort *ist* er eine Bedeutung, er zoomt aufs Original.
 
 ## Sprache
 
-**Kriterion spricht Deutsch und Englisch, und jeder stellt für sich ein,
-welche Sprache er liest** — in „Einstellungen → Persönlich → Darstellung".
+**Kriterion spricht Deutsch, Englisch und Türkisch, und jeder stellt für sich
+ein, welche Sprache er liest** — in „Einstellungen → Persönlich → Darstellung".
 Der Wechsel wirkt sofort, ohne Neuladen, und wer gleichzeitig am selben
 Bestand arbeitet, merkt nichts davon: die Sprache gehört dem Zugang und nicht
 der Installation.
@@ -2061,9 +2073,10 @@ eingerichtete Installation startet auf Englisch.
 ### Eine eigene Sprache dazulegen
 
 **Das Verzeichnis ist die Liste.** Unter `public/languages/` liegt je Sprache
-eine Datei — `de.json`, `en.json`. Wer eine dritte hineinlegt und den Container
-neu startet, hat eine dritte Sprache: sie steht dann in der Karte „Sprachen"
-zur Freigabe.
+eine Datei — `de.json`, `en.json`, `tr.json`. Wer eine vierte hineinlegt und
+den Container neu startet, hat eine vierte Sprache: sie steht dann in der Karte
+„Sprachen" zur Freigabe. *Türkisch ist genau so hinzugekommen — eine Datei,
+sonst nichts.*
 
 | | |
 |---|---|
@@ -2121,6 +2134,10 @@ echten Textbausteinen aussehen.
 **Die vierzehn Wörter gibt es je Sprache.** Über den Feldern steht eine
 Sprachzeile, sobald mehr als eine Sprache freigegeben ist; der Eigentümer
 pflegt die englischen Wörter, während seine eigene Oberfläche deutsch bleibt.
+**In den Feldern steht, was für diese Sprache eingetragen ist — und sonst
+nichts.** Ein leeres Feld heißt „hier ist nichts eingetragen"; was stattdessen
+am Bildschirm steht, sagt der Hinweis darunter („Vorgabe: Eintrag") und die
+Probe.
 **Wo für eine Sprache nichts eingetragen ist, gilt der zuerst angelegte Satz** —
 lieber ein Wort in der falschen Sprache als gar keines; und wo überhaupt nichts
 steht, die Vorgabe der jeweiligen Sprachdatei.
