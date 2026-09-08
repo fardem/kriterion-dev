@@ -52,7 +52,8 @@ selbst, welche Sprache er liest — der Wechsel wirkt sofort, ohne Neuladen, und
 der andere am selben Bildschirm merkt nichts davon.*
 
 - Added: **Englisch** — `public/languages/en.json`, dieselben 1204 Schlüssel wie die deutsche Datei
-- Added: **Jeder Zugang wählt seine Sprache** in der Karte „Darstellung" — und die Anmeldeseite hat eine eigene Zeile dafür, die sich der Browser merkt
+- Added: **Jeder Zugang wählt seine Sprache** in der Karte „Darstellung" — sie gilt auf jedem Gerät, an dem er sich anmeldet
+- Added: **Die Anmeldeseite spricht die Vorgabesprache der Installation** — dort gibt es nichts umzuschalten
 - Added: **Neue Karte „Sprachen"** im Abschnitt „Installation" (Eigentümer): die Vorgabesprache und der Vorrat, aus dem gewählt werden darf
 - Added: **Wer nichts einstellt, bekommt, was sein Browser verlangt** — `Accept-Language` gilt, sofern die Sprache im Vorrat steht
 - Added: **Das Vokabular je Sprache** — mit Rückfall: wo für eine Sprache nichts eingetragen ist, steht der zuerst angelegte Satz, sonst die Vorgabe

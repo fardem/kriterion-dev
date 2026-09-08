@@ -1,7 +1,9 @@
 # Änderungsprotokoll 0.24.3 — „Die zweite Sprache"
 
 **Stufe 2 der Mehrsprachigkeit · 8. September 2026 · gebaut auf 0.24.2
-(`0d5bcbd`) · Fingerprint dieser Runde `80f90ee5`.**
+(`0d5bcbd`) · Fingerprint dieser Runde `ceb8d26a`.**
+
+*Der erste Stand dieser Runde trug `80f90ee5` und ist am 8. September 2026 im Feld angesehen worden — genau der Sollwert. Er hat fünf Befunde gebracht; vier davon sind 0.24.4, der fünfte steht als Nachtrag weiter unten und hat den Fingerprint noch einmal bewegt.*
 
 **Bis 0.24.2 sprach Kriterion Deutsch aus einer Datei. Ab 0.24.3 spricht es
 Englisch aus einer zweiten — und jeder Zugang wählt selbst, welche er liest.**
@@ -239,6 +241,39 @@ beide gesehen.* Beide sind jetzt Schlüssel.
 
 ---
 
+## Nachtrag vom 8. September 2026 — die Sprachzeile unter der Anmeldemaske ist gestrichen
+
+**Der Betreiber hat die Runde eingespielt, angesehen und entschieden: unter
+der Anmeldemaske braucht es keinen Umschalter.** *„Nur Defaultsprache als
+Anzeige im Login reicht. Keine Umschaltung."*
+
+**Gebaut war sie in Bauabschnitt 3**, nach E6 des Konzepts: eine Pillenreihe
+unter der Maske, die nur das Gedächtnis des Geräts schreibt. **Sie fällt
+ganz** — und mit ihr zwei Dinge, die nur für sie da waren:
+
+| | war | ist |
+|---|---|---|
+| `kriterion.language` im Gedächtnis des Browsers | wurde bei jeder Sprachwahl geschrieben und vor der Anmeldung gelesen | **fällt weg** — es hatte genau einen Leser |
+| `languages` in `GET /api/config` | der Vorrat, gegen den das Gedächtnis geklemmt wurde | **fällt weg** — sechs Felder statt sieben |
+
+*Ein gespeicherter Wert ohne Leser ist eine zweite Wahrheit über etwas, das
+niemand mehr fragt, und eine Antwort trägt kein Feld, das niemand liest.
+Deshalb fällt beides ganz und nicht nur sein Leseweg.*
+
+**Was die Anmeldeseite jetzt spricht: die Vorgabesprache der Installation, und
+sonst nichts.** *Wer angemeldet ist, liest in seiner Sprache — sie steht am
+Zugang und gilt auf jedem Gerät, an dem er sich anmeldet.*
+
+**Der Wächter über `/api/config` hat dabei etwas dazugelernt.** Er las den
+Vorrat aus der Antwort vor der Anmeldung; die gibt es nicht mehr. **Er
+richtet die Instanz mit den drei unbrauchbaren Dateien jetzt ein und fragt
+dahinter** — und belegt damit nebenbei etwas, wonach vorher niemand gefragt
+hatte: *dass eine Installation mit kaputtem JSON, unbrauchbarer `_locale` und
+einem falschen Dateinamen im Sprachverzeichnis sich überhaupt einrichten
+lässt.*
+
+---
+
 ## Was diese Runde ausdrücklich NICHT tut
 
 * **Kein Türkisch.** `tr.json` ist 0.24.4.
@@ -274,7 +309,7 @@ hat, dass sie auch rot werden kann.*
 | 712 | der Dateiname wird nicht mehr geprüft | 3 |
 | 713 | die übergangene Datei wird nicht mehr genannt | **STUMM — ein Fund** |
 | 714 | ein Benutzer darf wieder jede Sprache setzen | **6** |
-| 715 | die Vorgabesprache fällt beim SCHREIBEN aus dem Vorrat | **DREIMAL STUMM — drei Funde** |
+| 715 | die Vorgabesprache fällt beim SCHREIBEN aus dem Vorrat | **DREIMAL STUMM — drei Funde**, dann **2** |
 | 716 | ohne Angabe gilt wieder die Sprache des Lesers | **5** |
 | 717 | eine Übersetzung, die der Grundzeile gleicht, bleibt stehen | 1 |
 | 718 | die Namenstabelle hängt nicht mehr an ihrer Grundzeile | 1 |
@@ -325,8 +360,8 @@ späteren `PUT`, der `en` ausdrücklich mitschickte. **Sie war grün, ohne dass
 die Klemme irgendetwas getan hätte.** *Ein Wächter über eine Klemme muss dort
 stehen, wo sie greift; eine Zeile, die dieselbe Sache prüft, sagt an zwei
 verschiedenen Stellen zwei verschiedene Dinge.* Sie steht jetzt unmittelbar
-hinter dem `PUT`, das die Vorgabe weglässt — und **715 ist damit namentlich
-rot.**
+hinter dem `PUT`, das die Vorgabe weglässt — **und im vierten Lauf ist 715
+namentlich rot: zwei Zeilen, beide in ihrer Gruppe.**
 
 *Drei Läufe zu je siebeneinhalb Minuten für einen Wächter, der von Anfang an
 grün war. Genau dafür ist die Regel da: **eine stumme Gegenprobe ist ein
@@ -347,10 +382,8 @@ Gegenlage: er lässt den Migrationsblock nach den Blocknamen greifen, die
 deutsch bleiben sollen. *Ein Block, der zu viel tut, richtet denselben
 Schaden an wie einer, der zu wenig tut.*
 
-**Dreiundzwanzig der vierundzwanzig sind gefahren und namentlich rot.** Die
-letzte — 715, die schreibende Hälfte der doppelten Klemme — ist nach dem
-dritten Umbau des Wächters neu gestellt und wird nachgefahren; *bis dahin
-steht in dieser Zeile, was gefahren ist, und nicht, was gelten soll.*
+**Alle vierundzwanzig sind gefahren, und jede ist namentlich rot.** *Keine
+Prüfung dieser Runde steht als Behauptung da.*
 
 ---
 
@@ -392,13 +425,13 @@ Abnahme zu elf Neunteln erfüllt ist, sagt das — er rechnet nicht auf.*
 |---|---|---|
 | Sprachdateien | 1 | **2** *(`de.json`, `en.json`)* |
 | Schlüssel je Datei | 1191 | **1204** *(+13, davon 2 für die beiden deutschen Wörter im Quelltext)* |
-| Prüfungen | 5920 | **6017** (+97) |
+| Prüfungen | 5920 | **6019** (+99) |
 | Rückbauten | 701 | **725** *(vierundzwanzig neue, 710 bis 733)* |
 | Tabellen | 25 | **27** *(`criterion_names`, `category_names`)* |
 | Austauschformat | 13 | **14** |
 | `PERSONAL_KEYS` | 10 | **11** *(`language`)* |
 | `OWNER_KEYS` | 4 | **6** *(`languageDefault`, `languageOn`)* |
-| Felder in `/api/config` | 5 | **7** |
+| Felder in `/api/config` | 5 | **6** |
 | Karten im Systembereich | 21 | **22** *(„Sprachen")* |
 | Deutsche Bezeichner im Code | 116, alle benannt | **12, alle benannt** |
 | `WAITING_FOR_STAGE_TWO` | 104 | **fällt weg** |

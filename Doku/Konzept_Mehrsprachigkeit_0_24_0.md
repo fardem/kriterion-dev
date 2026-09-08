@@ -1011,6 +1011,15 @@ und endet mit dieser Reihe.* **Stufe 3 ist 0.24.4.**
 *Der Betreiber hat ausdrücklich nach der Verbreitung gefragt und die Wahl an
 der Antwort ausgerichtet, nicht an einer Vorliebe.*
 
+**E6 — was die Anmeldeseite sieht.** Dieses Papier verlangt „eine Sprachzeile
+unter der Maske, die nur das Gedächtnis schreibt". **Sie ist gebaut und am
+8. September 2026 wieder gestrichen worden** — der Betreiber hat sie im Feld
+gesehen und entschieden: *„nur Defaultsprache als Anzeige im Login reicht,
+keine Umschaltung."* **Mit ihr sind das Gedächtnis des Geräts
+(`kriterion.language`) und der Vorrat in `/api/config` gefallen**; beide hatten
+genau einen Leser, und das war diese Zeile. *Die übrigen zwei Quellen aus 5.3
+bleiben unverändert: `Accept-Language` und die Vorgabe der Installation.*
+
 **E14 — der Gegenleser.** Der Betreiber liest Englisch selbst gegen (F5).
 *Für Türkisch bleibt die Regel: ohne Leser geht keine Datei heraus.*
 

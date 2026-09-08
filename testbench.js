@@ -2292,19 +2292,28 @@ const shareMain = (purpose, target = null) =>
      ist die erste Betroffene).
      SIEBEN SEIT 0.24.3: `language` und `languages`. Die Anmeldeseite ist der
      eine Ort, an dem noch kein Konto dasteht, aus dem sich eine Sprache lesen
-     liesse -- sie braucht den Vorrat, um ihre Zeile zu zeichnen, und die
-     Vorgabe, um zu wissen, was ohne Gedaechtnis gilt. Beides steht ohnehin in
-     jeder ausgelieferten Datei unter public/languages/. */
+     liesse -- sie spricht die VORGABE der Installation und sonst nichts. Die
+     steht ohnehin in jedem ausgelieferten Satz.
+     DER VORRAT STAND HIER BIS ZUM 8. SEPTEMBER 2026 DANEBEN, fuer eine
+     Pillenreihe unter der Maske. Der Betreiber hat sie nach dem ersten Blick
+     ins Feld gestrichen, und mit ihr ist das Feld gefallen: eine Antwort
+     traegt kein Feld, das niemand liest (Stolperstein 47). */
   check('Vor der Anmeldung wird sonst nichts verraten',
     equal(Object.keys(cfg).sort(),
-      ['language', 'languages', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
+      ['language', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
     JSON.stringify(Object.keys(cfg)));
-  /* UND DER VORRAT TRAEGT NUR KENNUNG UND NAMEN -- keine Locale, keine Texte,
-     keine Angabe darueber, welche Dateien sonst noch liegen. */
-  check('Und die Sprachen tragen nur Kennung und Namen',
-    Array.isArray(cfg.languages) && cfg.languages.length >= 1
-      && cfg.languages.every(a => equal(Object.keys(a).sort(), ['code', 'name'])),
-    JSON.stringify(cfg.languages));
+  /* UND DIE VORGABE IST EINE KENNUNG UND KEIN GEBILDE -- kein Vorrat, keine
+     Locale, keine Angabe darueber, welche Dateien sonst noch liegen. */
+  check('Und die Vorgabesprache ist eine blosse Kennung',
+    typeof cfg.language === 'string' && /^[a-z]{2,3}(-[A-Za-z]+)*$/.test(cfg.language),
+    JSON.stringify(cfg.language));
+  /* UND DER VORRAT STEHT DORT NICHT MEHR. Ohne diese Zeile bliebe die
+     Aufzaehlung darueber gruen, waehrend das Feld unter anderem Namen
+     zurueckkaeme (Stolperstein 201). */
+  check('Und der Vorrat der Sprachen steht vor der Anmeldung nirgends',
+    cfg.languages === undefined &&
+    !Object.values(cfg).some(v => Array.isArray(v)),
+    JSON.stringify(cfg));
   check('Und der Schalter der Selbstanmeldung steht dort als ja/nein',
     cfg.signup === false, JSON.stringify(cfg.signup));
   check('Der interne Titel bleibt draussen',
@@ -12751,7 +12760,7 @@ const shareMain = (purpose, target = null) =>
        dieselbe Bauform wie die Zahl in F_ROUTES. */
     check('Und vor der Anmeldung wird sonst weiterhin nichts verraten',
       equal(Object.keys((await gA.S.call('GET', '/api/config')).content).sort(),
-        ['language', 'languages', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
+        ['language', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
       JSON.stringify(Object.keys((await gA.S.call('GET', '/api/config')).content)));
     const gOut = await gA.S.call('PUT', '/api/signup/toggle', { an: false });
     check('Ausschalten geht immer -- auch mit kaputtem Versand',
@@ -42855,11 +42864,36 @@ async function checkUi() {
     check('Mit drei unbrauchbaren Dateien im Verzeichnis startet der Server trotzdem',
       ffUp === true, ffLog.split('\n').slice(-6).join(' · '));
     const ffConfig = ffUp ? await (await fetch(`${ffBase}/api/config`)).json() : {};
-    /* UND ER BIETET GENAU DIE BEIDEN BRAUCHBAREN AN. Ohne diese Zeile bliebe
+    /* GEFRAGT WIRD HINTER DER ANMELDUNG. Bis zum 8. September 2026 stand der
+       Vorrat in `/api/config`, und diese Zeile konnte ihn dort ablesen; seit
+       die Pillenreihe unter der Maske gestrichen ist, steht er nur noch in
+       `GET /api/settings`. Die Lage wird deshalb EINGERICHTET -- was nebenbei
+       belegt, dass eine Instanz mit drei unbrauchbaren Dateien im Verzeichnis
+       sich ueberhaupt einrichten laesst. */
+    let ffCookie = '';
+    const ffCall = async (method, filePath, body) => {
+      const opt = { method, headers: {} };
+      if (ffCookie) opt.headers.cookie = ffCookie;
+      if (body !== undefined) {
+        opt.headers['content-type'] = 'application/json';
+        opt.body = JSON.stringify(body);
+      }
+      const a = await fetch(ffBase + filePath, opt);
+      const setCookie = a.headers.get('set-cookie');
+      if (setCookie) ffCookie = setCookie.split(';')[0];
+      return { status: a.status, content: await a.json().catch(() => null) };
+    };
+    const ffSetup = ffUp
+      ? await ffCall('POST', '/api/setup', { user: 'fremdanna', password: PASSWORD })
+      : { status: 0 };
+    check('Und eine Instanz mit drei unbrauchbaren Dateien laesst sich einrichten',
+      ffSetup.status === 200 || ffSetup.status === 201, `Status ${ffSetup.status}`);
+    const ffSettings = ffUp ? (await ffCall('GET', '/api/settings')).content : {};
+    /* UND ER FUEHRT GENAU DIE BEIDEN BRAUCHBAREN. Ohne diese Zeile bliebe
        offen, ob er die drei uebergangen oder alle fuenf angenommen hat. */
-    check('Und er bietet genau die beiden brauchbaren Sprachen an',
-      equal((ffConfig.languages || []).map(a => a.code).sort(), ['de', 'en']),
-      JSON.stringify(ffConfig.languages));
+    check('Und er fuehrt genau die beiden brauchbaren Sprachen',
+      equal(((ffSettings && ffSettings.languages) || []).map(a => a.code).sort(), ['de', 'en']),
+      JSON.stringify(ffSettings && ffSettings.languages));
     check('Und die Vorgabesprache ist eine davon',
       ['de', 'en'].includes(ffConfig.language), JSON.stringify(ffConfig.language));
     /* JEDE DER DREI WIRD NAMENTLICH GEMELDET, mit dem Grund daneben. Ein
@@ -43313,8 +43347,11 @@ async function checkUi() {
     const cfgCore = ((fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/app\.get\('\/api\/config'[\s\S]*?res\.json\(\{([\s\S]*?)\}\);/) || ['', ''])[1]);
     const cfgFields = (cfgCore.match(/(?:^|[,{\n])\s*(\w+):/g) || []).length;
-    check('Die Zahlen dieser Runde: zwei Sprachdateien, sieben Felder in /api/config',
-      spNames.length === 2 && cfgFields === 7,
+    /* SECHS FELDER SEIT DEM 8. SEPTEMBER 2026, davor sieben: der Vorrat der
+       Sprachen ist aus `/api/config` gefallen, als die Pillenreihe unter der
+       Anmeldemaske gestrichen wurde. Er hatte dort genau einen Leser. */
+    check('Die Zahlen dieser Runde: zwei Sprachdateien, sechs Felder in /api/config',
+      spNames.length === 2 && cfgFields === 6,
       `${spNames.length} Datei(en) · ${cfgFields} Felder`);
   }
 
