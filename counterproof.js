@@ -6773,6 +6773,145 @@ const REGRESSIONS = [
     search: "{ key: 'mailzugang', each: false,",
     replacement: "{ key: 'mailZugang', each: false,",
     expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
+  },
+  /* ---- 0.24.3: die zweite Sprache ---- */
+  /* DIE DREI KLAMMERN AM VERZEICHNIS (F6). Jede einzeln zurueckgebaut: eine
+     Klammer, die nur gemeinsam mit den anderen greift, ist keine. */
+  {
+    nr: '710', name: 'Eine Datei mit kaputtem JSON nimmt den Server wieder mit',
+    file: 'server.js',
+    search: "    } catch (e) {\n      languageSkip(file, `sie laesst sich nicht lesen (${e.message})`);\n      continue;\n    }",
+    replacement: "    } catch (e) { throw e; }",
+    expected: 'Die Fremddatei und der Dateiname — 0.24.3'
+  },
+  {
+    nr: '711', name: 'Eine unbrauchbare _locale nimmt den Server wieder mit',
+    file: 'server.js',
+    search: "    try { new Intl.PluralRules(texts._locale); }\n    catch {\n      languageSkip(file, `Intl kennt die Locale \"${texts._locale}\" nicht`);\n      continue;\n    }",
+    replacement: "    new Intl.PluralRules(texts._locale);",
+    expected: 'Die Fremddatei und der Dateiname — 0.24.3'
+  },
+  {
+    nr: '712', name: 'Der Dateiname wird nicht mehr geprueft',
+    file: 'server.js',
+    search: "    if (!LANGUAGE_NAME.test(code)) {",
+    replacement: "    if (false) {",
+    expected: 'Die Fremddatei und der Dateiname — 0.24.3'
+  },
+  /* UND DIE MELDUNG SELBST. Eine still uebergangene Datei sieht fuer den
+     Eigentuemer aus wie eine, die gar nicht ankommt. */
+  {
+    nr: '713', name: 'Die uebergangene Datei wird nicht mehr genannt',
+    file: 'server.js',
+    search: "const languageSkip = (file, why) =>",
+    replacement: "const languageSkip = (file, why) => why && false ||",
+    expected: 'Die Fremddatei und der Dateiname — 0.24.3'
+  },
+  /* DER VORRAT (F9). Zwei Klammern: die Wahl je Benutzer und die Vorgabe. */
+  {
+    nr: '714', name: 'Ein Benutzer darf wieder jede Sprache setzen, auch eine gesperrte',
+    file: 'server.js',
+    search: "    if (!languagePool().includes(wanted))",
+    replacement: "    if (!LANGUAGES[wanted])",
+    expected: 'Der Vorrat der Sprachen — 0.24.3'
+  },
+  {
+    nr: '715', name: 'Die Vorgabesprache faellt aus dem Vorrat heraus',
+    file: 'server.js',
+    search: "  if (!set.includes(std)) set.push(std);",
+    replacement: "  if (false) set.push(std);",
+    expected: 'Der Vorrat der Sprachen — 0.24.3'
+  },
+  /* DER RUECKFALL DER NAMEN (F8a, F8b). Der erste ist der Befund aus
+     Bauabschnitt 6a: ein Admin, der Deutsch liest, benennt sonst nie um. */
+  {
+    nr: '716', name: 'Ohne Sprachangabe meint der Schreibweg wieder die Sprache des Lesers',
+    file: 'server.js',
+    search: "  if (wanted === undefined) return baseLanguage();",
+    replacement: "  if (wanted === undefined) return localeOf(req);",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  {
+    nr: '717', name: 'Eine Uebersetzung, die der Grundzeile gleicht, bleibt stehen',
+    file: 'server.js',
+    search: "  if (!name || name === baseName) { del.run(id, language); return false; }",
+    replacement: "  if (!name) { del.run(id, language); return false; }",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  {
+    nr: '718', name: 'Die Namenstabelle haengt nicht mehr an ihrer Grundzeile',
+    file: 'db.js',
+    search: "CREATE TABLE IF NOT EXISTS criterion_names (\n  criterion_id INTEGER NOT NULL REFERENCES rating_criteria(id) ON DELETE CASCADE,",
+    replacement: "CREATE TABLE IF NOT EXISTS criterion_names (\n  criterion_id INTEGER NOT NULL,",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  {
+    nr: '719', name: 'Die zweite Namenstabelle gibt es gar nicht mehr',
+    file: 'db.js',
+    search: "CREATE TABLE IF NOT EXISTS category_names (",
+    replacement: "CREATE TABLE IF NOT EXISTS category_names_alt (",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  /* DIE GESPEICHERTEN WERTE (F7). Der zweite Migrationsblock dieser Runde --
+     und die vier Faelle, an denen ein Bestand etwas verloere. */
+  {
+    nr: '720', name: 'Das Vokabular steht nicht mehr in der Tafel der gespeicherten Namen',
+    file: 'db.js',
+    search: "  { table: 'settings', key: 'vocabulary',",
+    replacement: "  { table: 'settings', key: 'vocabularyNichtMehr',",
+    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
+  },
+  {
+    nr: '721', name: 'Der Block sieht das Vokabular nur auf der oberen Stufe an',
+    file: 'db.js',
+    search: "    reach: (v) => [v, ...Object.values(v || {})],",
+    replacement: "    reach: (v) => [v],",
+    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
+  },
+  {
+    nr: '722', name: 'Die gespeicherten Ansichten tragen ihren Filter weiter deutsch',
+    file: 'db.js',
+    search: "    reach: (v) => (Array.isArray(v) ? v.map(a => a && a.filters) : []),",
+    replacement: "    reach: () => [],",
+    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
+  },
+  {
+    nr: '723', name: 'Die beiden Sortierwerte ziehen nicht mit',
+    file: 'db.js',
+    search: "const FILTER_VALUES_0243 = [['sort', 'potenzial_desc', 'potential_desc'],",
+    replacement: "const FILTER_VALUES_0243 = [['sort', 'potenzial_desc', 'potenzial_desc'],",
+    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
+  },
+  {
+    nr: '724', name: 'Der Einklappzustand der Bloecke bleibt liegen',
+    file: 'db.js',
+    search: "    fields: [['seite', 'side'], ['unten', 'bottom'], ['zu', 'closed']], values: [] },",
+    replacement: "    fields: [['seite', 'side'], ['unten', 'bottom']], values: [] },",
+    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
+  },
+  {
+    nr: '725', name: 'Der Block meldet sich auch beim zweiten Start',
+    file: 'db.js',
+    search: "      if (!touched.length) continue;",
+    replacement: "      if (!touched.length) touched.push('(nichts)');",
+    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
+  },
+  {
+    nr: '726', name: 'Bei zwei Namen gewinnt wieder der alte -- in den gespeicherten Werten',
+    file: 'db.js',
+    search: "          if (!Object.prototype.hasOwnProperty.call(o, fresh)) o[fresh] = o[old];",
+    replacement: "          o[fresh] = o[old];",
+    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
+  },
+  /* UND DER BLOCK, DER MEHR ANFASST ALS BESCHLOSSEN. Er ist die Gegenlage zu
+     allen sechs darueber: ein Migrationsblock, der zu viel tut, richtet
+     denselben Schaden an wie einer, der zu wenig tut. */
+  {
+    nr: '727', name: 'Der Block greift nach den Blocknamen, die deutsch bleiben sollen',
+    file: 'db.js',
+    search: "const FILTER_FIELDS_0243 = [['favorit', 'favorite']];",
+    replacement: "const FILTER_FIELDS_0243 = [['favorit', 'favorite'], ['kategorie', 'category']];",
+    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
   }
 ];
 

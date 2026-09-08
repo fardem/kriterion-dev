@@ -3497,6 +3497,248 @@ const shareMain = (purpose, target = null) =>
   drDb.close();
   fs.rmSync(dDir, { recursive: true, force: true });
 
+
+  /* ================= Der Vorrat der Sprachen — 0.24.3, F9 =================
+     ZWEI SCHLUESSEL UND NICHT EINER: `languageDefault` traegt die Vorgabe der
+     Installation, `languageOn` den Vorrat, aus dem ein Benutzer waehlen darf.
+     Eine einzelne Liste koennte „Vorgabe Deutsch, Vorrat alles" gar nicht
+     ausdruecken.
+
+     DIE KLEMME, UM DIE ES GEHT: die Vorgabe ist IMMER im Vorrat. Sonst
+     stuende die Installation auf einer Sprache, die niemand waehlen kann --
+     und der Eigentuemer haette sich selbst ausgesperrt. */
+  group('Der Vorrat der Sprachen — 0.24.3');
+
+  const pvBefore = (await call('GET', '/api/settings')).content;
+  /* ERST DER GEGENSTAND (Stolperstein 81): ohne zwei Sprachen im Haus liesse
+     sich ueber einen Vorrat gar nichts sagen. */
+  check('Der Aufbau steht: es liegen zwei Sprachdateien',
+    Array.isArray(pvBefore.languages) && pvBefore.languages.length === 2 &&
+    equal(pvBefore.languages.map(a => a.code).sort(), ['de', 'en']),
+    JSON.stringify(pvBefore.languages));
+  /* OHNE EINTRAG IST ALLES IM VORRAT. Anders als bei den Suchmaschinen, wo
+     ein leerer Vorrat abgewiesen wird: Sprachen kommen mit dem Programm, und
+     eine frische Installation soll alle anbieten, die dastehen. */
+  check('Ohne Eintrag stehen alle Sprachen im Vorrat',
+    pvBefore.languages.every(a => a.active === true),
+    JSON.stringify(pvBefore.languages));
+
+  // Der Eigentuemer nimmt Deutsch aus dem Vorrat -- Englisch ist die Vorgabe.
+  const pvOnlyEnglish = await call('PUT', '/api/settings', { languageOn: ['en'] });
+  check('Der Eigentuemer kann den Vorrat einschraenken',
+    pvOnlyEnglish.status === 200 &&
+    equal(pvOnlyEnglish.content.languages.filter(a => a.active).map(a => a.code), ['en']),
+    JSON.stringify(pvOnlyEnglish.content.languages));
+  /* UND EIN BENUTZER KANN NICHT MEHR AUF DEUTSCH STELLEN. Das ist die
+     eigentliche Zusicherung: der Vorrat ist keine Zierde der Karte, sondern
+     eine Klemme am Schreibweg. */
+  const pvDenied = await call('PUT', '/api/settings', { language: 'de' });
+  check('Und niemand kann eine Sprache setzen, die nicht im Vorrat steht',
+    pvDenied.status === 400, `Status ${pvDenied.status}: ${JSON.stringify(pvDenied.content)}`);
+  /* DIE ABSAGE KOMMT AUF ENGLISCH, und das ist richtig: der Vorrat traegt in
+     diesem Augenblick nur Englisch, also faellt localeOf() vom Kopf `de` auf
+     die Vorgabe zurueck -- die zweite Quelle darf nur nennen, was im Vorrat
+     steht. Geprueft wird deshalb in beiden Sprachen. */
+  check('Und die Absage nennt den Grund',
+    /(Sprache|language)/i.test(pvDenied.content?.error || ''), JSON.stringify(pvDenied.content));
+  check('Und die eigene Sprache steht danach unveraendert',
+    (await call('GET', '/api/settings')).content.language !== 'de',
+    JSON.stringify((await call('GET', '/api/settings')).content.language));
+
+  /* DIE VORGABE LAESST SICH NICHT AUS DEM VORRAT NEHMEN. Sie wird nicht
+     abgewiesen, sondern WIEDER HINEINGELEGT: der Eigentuemer hat eine
+     Absicht geaeussert („nur Deutsch"), und die laesst sich erfuellen, ohne
+     die Klemme zu brechen -- die Vorgabe zieht mit. */
+  const pvWithout = await call('PUT', '/api/settings',
+    { languageDefault: 'en', languageOn: ['de'] });
+  check('Die Vorgabe bleibt im Vorrat, auch wenn sie nicht mitgeschickt wird',
+    pvWithout.content.languages.filter(a => a.active).map(a => a.code).includes('en'),
+    JSON.stringify(pvWithout.content.languages));
+  check('Und die mitgeschickte Sprache steht ebenfalls darin',
+    pvWithout.content.languages.filter(a => a.active).map(a => a.code).includes('de'),
+    JSON.stringify(pvWithout.content.languages));
+  /* EINE SPRACHE OHNE DATEI FAELLT AUS DEM VORRAT, statt ihn zu vergiften:
+     `languagePool()` und `writeLanguages()` filtern beide gegen das
+     Verzeichnis -- zwei Schichten derselben Klemme, weil die Ablage aelter
+     sein kann als das Verzeichnis. */
+  const pvInvented = await call('PUT', '/api/settings', { languageOn: ['de', 'en', 'xx'] });
+  check('Eine Sprache ohne Datei kommt gar nicht erst in den Vorrat',
+    equal(pvInvented.content.languages.map(a => a.code).sort(), ['de', 'en']),
+    JSON.stringify(pvInvented.content.languages));
+  /* UND EINE ERFUNDENE VORGABE WIRD UEBERGANGEN. Sie darf die Installation
+     nicht auf eine Sprache stellen, die es nicht gibt -- dann spraeche sie
+     nur noch Schluessel. */
+  const pvInventedDefault = await call('PUT', '/api/settings', { languageDefault: 'xx' });
+  check('Und eine erfundene Vorgabe laesst die alte stehen',
+    pvInventedDefault.content.languages.some(a => a.isDefault),
+    JSON.stringify(pvInventedDefault.content.languages));
+
+  // Und zurueck auf den Anfangszustand -- alles im Vorrat, Englisch vorgegeben.
+  await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en'] });
+  check('Der Aufraeumschritt stellt den Anfangszustand wieder her',
+    (await call('GET', '/api/settings')).content.languages.every(a => a.active),
+    JSON.stringify((await call('GET', '/api/settings')).content.languages));
+
+  /* =========== Der Rueckfall der Namen — 0.24.3, F8a und F8b =============
+     KRITERIEN UND KATEGORIEN TRAGEN EINE FASSUNG JE SPRACHE, und zwar in
+     EINER TABELLE DANEBEN (`criterion_names`, `category_names`). Die
+     Grundzeile bleibt, wie sie ist -- `ratings.criterion_id` und
+     `items.product_category_id` werden nicht angefasst.
+
+     DIE ZUSICHERUNG, UM DIE ES GEHT: wo der Eigentuemer nichts eingetragen
+     hat, steht der Name der VORGABESPRACHE -- und die Bewertungen haengen
+     unveraendert daran. Ein Rueckfall, der die Sterne verliert, waere
+     schlimmer als ein leerer Name. */
+  group('Der Rueckfall der Namen — 0.24.3');
+
+  /* Der Aufbau: ein Kriterium mit Sternen daran, in der Vorgabesprache
+     benannt. Ohne die Sterne sagte der Rueckfall nichts ueber sie. */
+  const rnCriterion = (await call('POST', '/api/criteria', { name: 'Rueckfallkriterium' })).content;
+  const rnItem = (await call('POST', '/api/items', { title: 'Rueckfalleintrag' })).content;
+  await call('PUT', `/api/items/${rnItem.id}`, { tested: true });
+  await call('PUT', `/api/items/${rnItem.id}/ratings`,
+    { criterionId: rnCriterion.id, value: 4 });
+  const rnCategory = (await call('POST', '/api/product-categories',
+    { name: 'Rueckfallkategorie' })).content;
+  await call('PUT', `/api/items/${rnItem.id}`, { productCategoryId: rnCategory.id });
+
+  const rnRead = async (language, filePath) => {
+    const a = await fetch(BASE + filePath,
+      { headers: { cookie, 'accept-language': language } });
+    return a.json();
+  };
+  const rnFind = (list, id) => list.find(c => c.id === id);
+
+  check('Der Aufbau steht: das Kriterium traegt einen Stern',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.usage_count === 1,
+    JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
+
+  /* OHNE ZEILE IN DER NAMENSTABELLE STEHT DIE GRUNDZEILE -- in JEDER Sprache.
+     Ein leerer Name waere hier das Naheliegende und das Falsche: der
+     Eigentuemer traegt die zweite Fassung von Hand ein, und bis dahin soll
+     jeder etwas lesen koennen. */
+  check('Ohne Uebersetzung steht der Name der Vorgabesprache — auch auf Deutsch',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium' &&
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+  check('Und dasselbe an der Kategorie',
+    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
+    JSON.stringify(rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)));
+
+  /* JETZT DIE UEBERSETZUNG. Sie wird AUSDRUECKLICH bestellt -- der Rumpf
+     nennt die Sprache. Ohne Angabe meint jeder Schreibweg die GRUNDZEILE,
+     und das ist die wichtigste Zeile des Bauabschnitts: ein Admin, der die
+     Oberflaeche auf Deutsch liest, waehrend die Installation Englisch
+     vorgibt, benennte sonst nie um, sondern legte immer nur Uebersetzungen
+     an. */
+  const rnTranslated = await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Deutscher Name', language: 'de' });
+  check('Eine Uebersetzung laesst sich anlegen', rnTranslated.status === 200,
+    `Status ${rnTranslated.status}: ${JSON.stringify(rnTranslated.content)}`);
+  check('Und der deutsche Leser sieht sie',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+  check('Und der englische weiterhin die Grundzeile',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
+    JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
+  /* UND DIE STERNE HAENGEN UNVERAENDERT DARAN. Das ist der Grund fuer die
+     Tabelle daneben: `ratings.criterion_id` zeigt weiter auf dieselbe Zeile,
+     und keine Uebersetzung kann daran etwas aendern. */
+  check('Und die Bewertung haengt unveraendert daran',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.usage_count === 1 &&
+    (await call('GET', `/api/items/${rnItem.id}`)).content.ratings
+      .some(z => z.criterion_id === rnCriterion.id && z.value === 4),
+    JSON.stringify((await call('GET', `/api/items/${rnItem.id}`)).content.ratings));
+
+  // Dasselbe an der Kategorie -- gleiche Bauform, eigene Tabelle.
+  await call('PUT', `/api/product-categories/${rnCategory.id}`,
+    { name: 'Deutsche Kategorie', language: 'de' });
+  check('Die Kategorie traegt ihre Uebersetzung ebenso',
+    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Deutsche Kategorie' &&
+    rnFind(await rnRead('en', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
+    JSON.stringify(rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)));
+  /* UND DER EINTRAG HAENGT WEITER AN DERSELBEN KATEGORIE. `product_category_id`
+     ist eine Nummer und keine Zeichenfolge -- eine Uebersetzung kann sie gar
+     nicht treffen, und genau deshalb liegt sie daneben. */
+  check('Und der Eintrag haengt weiter an derselben Kategorie',
+    (await call('GET', `/api/items/${rnItem.id}`)).content.category?.id === rnCategory.id,
+    JSON.stringify((await call('GET', `/api/items/${rnItem.id}`)).content.category));
+
+  /* OHNE SPRACHANGABE MEINT DER SCHREIBWEG DIE GRUNDZEILE -- und nicht die
+     Sprache des Lesers. Geprueft mit einem deutschen Kopf: der Ruf liest
+     Deutsch und schreibt trotzdem die Grundzeile. */
+  await call('PUT', `/api/criteria/${rnCriterion.id}`, { name: 'Umbenannt' });
+  check('Ohne Sprachangabe wird die Grundzeile umbenannt, nicht uebersetzt',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt' &&
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name',
+    JSON.stringify([rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name,
+                    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name]));
+
+  /* EINE SPRACHE OHNE DATEI WIRD ABGEWIESEN und nicht still auf die Vorgabe
+     gedreht: sonst schriebe der Eigentuemer in eine Sprache, die niemand je
+     zu sehen bekaeme, und hielte sie fuer gespeichert. */
+  const rnInvented = await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Egal', language: 'xx' });
+  check('Eine Sprache ohne Datei wird beim Umbenennen abgewiesen',
+    rnInvented.status === 400, `Status ${rnInvented.status}`);
+  check('Und der Name steht danach unveraendert',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt',
+    JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
+
+  /* EINE UEBERSETZUNG, DIE DER GRUNDZEILE GLEICHT, WIRD GELOESCHT UND NICHT
+     GESPEICHERT. Zwei gleiche Namen in zwei Tabellen waeren zwei Wahrheiten
+     ueber dasselbe Wort -- und die eine wanderte beim naechsten Umbenennen
+     der Grundzeile weg, die andere nicht. */
+  await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Umbenannt', language: 'de' });
+  const rnNamesTable = (() => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare('SELECT COUNT(*) AS n FROM criterion_names WHERE criterion_id = ?')
+      .get(rnCriterion.id).n;
+    d.close(); return r;
+  })();
+  check('Eine Uebersetzung, die der Grundzeile gleicht, wird geraeumt',
+    rnNamesTable === 0, `${rnNamesTable} Zeilen in criterion_names`);
+  check('Und der deutsche Leser faellt wieder auf die Grundzeile zurueck',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+
+  /* UND DIE BEIDEN TABELLEN HAENGEN AN IHRER GRUNDZEILE. Ein geloeschtes
+     Kriterium darf keine herrenlose Uebersetzung hinterlassen -- sie taeuchte
+     am naechsten Kriterium mit derselben Nummer wieder auf. */
+  await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Nochmal deutsch', language: 'de' });
+  await call('DELETE', `/api/criteria/${rnCriterion.id}`);
+  const rnOrphan = (() => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare('SELECT COUNT(*) AS n FROM criterion_names WHERE criterion_id = ?')
+      .get(rnCriterion.id).n;
+    d.close(); return r;
+  })();
+  check('Ein geloeschtes Kriterium nimmt seine Uebersetzungen mit',
+    rnOrphan === 0, `${rnOrphan} herrenlose Zeilen`);
+  await call('DELETE', `/api/items/${rnItem.id}`);
+  await call('DELETE', `/api/product-categories/${rnCategory.id}`);
+
+  /* ================= Die Zahl der Tabellen — 0.24.3 =====================
+     SIEBENUNDZWANZIG SEIT DIESER RUNDE, vorher fuenfundzwanzig:
+     `criterion_names` und `category_names` sind dazugekommen. Die ZAHL steht
+     ausdruecklich da -- eine Tabelle, die still dazukommt oder verschwindet,
+     faellt sonst niemandem auf (dieselbe Ueberlegung wie bei F_ROUTES). */
+  {
+    const tzDb = open(path.join(DATA, 'katalog.sqlite'));
+    const tzTables = tzDb.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+      .all().map(z => z.name).sort();
+    tzDb.close();
+    check('Die Datenbank traegt genau siebenundzwanzig Tabellen',
+      tzTables.length === 27, `${tzTables.length}: ${tzTables.join(' ')}`);
+    check('Und die beiden neuen dieser Runde stehen darunter',
+      tzTables.includes('criterion_names') && tzTables.includes('category_names'),
+      tzTables.join(' '));
+  }
+
+  /* ---------------------------------------------------------------- */
   group('Schnitt und Anzahl je Kriterium');
 
   function putThreeUserAn() {
@@ -22629,10 +22871,14 @@ const shareMain = (purpose, target = null) =>
      vorbei, und genau daran sind zwei Gegenproben haengengeblieben. */
   const pbStarts = (fs.readFileSync(path.join(__dirname, 'testbench.js'), 'utf8')
     .match(/spawn\(process\.execPath, \['server\.js'\]/g) || []).length;
-  /* VIER SEIT 0.24.0: dazu die Lage, die einen Server OHNE de.json startet und
-     festhaelt, dass er nicht hochkommt (Bauabschnitt 1). */
-  check('Es gibt genau vier Stellen, die einen Server starten',
-    pbStarts === 4, `${pbStarts} Stellen`);
+  /* VIER SEIT 0.24.0: dazu die Lage, die einen Server OHNE Sprachdatei
+     startet und festhaelt, dass er trotzdem hochkommt (Bauabschnitt 1).
+     FUENF SEIT 0.24.3: die Fremddateilage (F6) startet einen Server, in
+     dessen Sprachverzeichnis drei unbrauchbare Dateien liegen. Sie teilt
+     sich das Fenster von LANGUAGE_BASE mit der Lage darueber -- zwei
+     Nummern, zwei Lagen, und beide vermerkt. */
+  check('Es gibt genau fuenf Stellen, die einen Server starten',
+    pbStarts === 5, `${pbStarts} Stellen`);
 
   const pbToday = pbBases
     .map(b => [b, pbLocked(b, pbWidth(b))])
@@ -22970,8 +23216,18 @@ const shareMain = (purpose, target = null) =>
      Wert unter, den sie NICHT anfassen darf. Acht Rueckbauten fuer eine
      Gruppe sind viel; sie ist auch die einzige der Runde, und ein
      Migrationsblock, den nichts rot macht, ist eine Behauptung ueber einen
-     Bestand, den man nicht mehr zurueckholt. */
-  check('Es sind genau 701 Rueckbauten', gpList.length === 701, `${gpList.length}`);
+     Bestand, den man nicht mehr zurueckholt.
+     UND 719 SEIT 0.24.3: ACHTZEHN neue (710 bis 727) fuer die vier Gruppen
+     dieser Runde -- vier an den Klammern am Sprachverzeichnis (kaputtes
+     JSON, unbrauchbare Locale, der Dateiname, die Meldung selbst), zwei am
+     Vorrat (die Wahl je Benutzer, die Vorgabe darin), vier am Rueckfall der
+     Namen (die Sprache ohne Angabe, die geraeumte gleiche Uebersetzung und
+     die beiden Namenstabellen) und acht am zweiten Migrationsblock.
+     ACHT FUER EINEN MIGRATIONSBLOCK, WIE EINE RUNDE ZUVOR, und der letzte
+     davon ist die Gegenlage: er laesst den Block nach den BLOCKNAMEN
+     greifen, die deutsch bleiben sollen. Ein Block, der zu viel tut,
+     richtet denselben Schaden an wie einer, der zu wenig tut. */
+  check('Es sind genau 719 Rueckbauten', gpList.length === 719, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -42306,6 +42562,106 @@ async function checkUi() {
       /\[languages\][^\n]*en\.json fehlt/.test(spStart.prot),
       spStart.prot.split('\n').find(z => /\[languages\]/.test(z)) || '(kein Wort davon)');
     fs.rmSync(spCopy, { recursive: true, force: true });
+  }
+
+
+  /* ====== Die Fremddatei und der Dateiname — 0.24.3, F6 ==================
+     SEIT DIESER RUNDE IST DAS VERZEICHNIS DIE LISTE. Damit kann eine Datei
+     vom EIGENTUEMER kommen und nicht mehr nur aus dem Image -- und dann
+     traegt sie vielleicht kaputtes JSON, eine erfundene `_locale` oder einen
+     Namen, der keine Sprachkennung ist.
+
+     DREI KLAMMERN, UND KEINE WIRFT. Eine Instanz, die wegen einer
+     hineingelegten Datei nicht hochkommt, kann niemand mehr richten -- das
+     Verzeichnis liegt hinter derselben Tuer, die man nur ueber die laufende
+     Oberflaeche aufbekommt. GEMELDET WIRD JEDE, namentlich: eine still
+     uebergangene Datei sieht fuer den Eigentuemer aus wie eine, die nicht
+     ankommt.
+
+     GEFAHREN AN EINEM LAUFENDEN SERVER aus einer KOPIE des Quelltextes -- der
+     Prueflauf darf sich dabei nicht selbst veraendern, und ein Waechter, der
+     nur readLanguages() nachliest, sagte nichts darueber, ob der Server
+     hochkommt. */
+  group('Die Fremddatei und der Dateiname — 0.24.3');
+  {
+    const ffCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fremd-'));
+    for (const e of fs.readdirSync(__dirname, { withFileTypes: true })) {
+      if (['node_modules', 'data', '.git'].includes(e.name)) continue;
+      const target = path.join(ffCopy, e.name);
+      if (e.isDirectory()) fs.cpSync(path.join(__dirname, e.name), target, { recursive: true });
+      else if (e.isFile()) fs.copyFileSync(path.join(__dirname, e.name), target);
+    }
+    fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(ffCopy, 'node_modules'));
+    const ffLanguages = path.join(ffCopy, 'public', 'languages');
+    /* DREI FREMDDATEIEN, jede fuer eine Klammer. Sie tragen ABSICHTLICH
+       gueltige Sprachkennungen als Namen (ausser der vierten): sonst fiele
+       schon der Dateiname sie ab, und die drei Klammern dahinter blieben
+       ungeprueft. */
+    fs.writeFileSync(path.join(ffLanguages, 'fr.json'), '{ "card.active": ', 'utf8');
+    /* `de_DE` MIT UNTERSTRICH UND NICHT „erfunden": eine Locale wird an Intl
+       gehalten und nicht an einem Muster gemessen -- und Intl nimmt jedes
+       STRUKTURELL gueltige Kuerzel an, auch ein ausgedachtes. Der Unterstrich
+       ist die Schreibweise, die aus POSIX kommt und die ein Uebersetzer
+       tatsaechlich hinschreibt; sie ist kein BCP 47 und faellt durch. */
+    fs.writeFileSync(path.join(ffLanguages, 'it.json'),
+      JSON.stringify({ _locale: 'de_DE', _name: 'Erfunden' }), 'utf8');
+    // Und der falsche Dateiname -- ein Wort, keine Sprachkennung.
+    fs.writeFileSync(path.join(ffLanguages, 'Meine Sprache.json'),
+      JSON.stringify({ _locale: 'de-DE', _name: 'Meine' }), 'utf8');
+
+    const ffPort = LANGUAGE_BASE + 1 + PORT_OFFSET;
+    const ffData = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fremddaten-'));
+    const ffKind = spawn(process.execPath, ['server.js'], { cwd: ffCopy,
+      env: { ...process.env, PORT: String(ffPort), DATA_DIR: ffData, ENCRYPTION_KEY: KEY } });
+    CASES.push({ base: LANGUAGE_BASE, port: ffPort, kind: ffKind, directory: ffData });
+    let ffLog = '';
+    ffKind.stdout.on('data', d => { ffLog += d; });
+    ffKind.stderr.on('data', d => { ffLog += d; });
+    const ffBase = `http://127.0.0.1:${ffPort}`;
+    let ffUp = false;
+    for (let i = 0; i < 120 && !ffUp; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      try { ffUp = (await fetch(`${ffBase}/api/config`)).ok; } catch {}
+    }
+    /* DIE ERSTE UND WICHTIGSTE ZUSICHERUNG: er kommt hoch. Alles Weitere
+       waere ohne sie eine Aussage ueber einen Server, den es nicht gibt. */
+    check('Mit drei unbrauchbaren Dateien im Verzeichnis startet der Server trotzdem',
+      ffUp === true, ffLog.split('\n').slice(-6).join(' · '));
+    const ffConfig = ffUp ? await (await fetch(`${ffBase}/api/config`)).json() : {};
+    /* UND ER BIETET GENAU DIE BEIDEN BRAUCHBAREN AN. Ohne diese Zeile bliebe
+       offen, ob er die drei uebergangen oder alle fuenf angenommen hat. */
+    check('Und er bietet genau die beiden brauchbaren Sprachen an',
+      equal((ffConfig.languages || []).map(a => a.code).sort(), ['de', 'en']),
+      JSON.stringify(ffConfig.languages));
+    check('Und die Vorgabesprache ist eine davon',
+      ['de', 'en'].includes(ffConfig.language), JSON.stringify(ffConfig.language));
+    /* JEDE DER DREI WIRD NAMENTLICH GEMELDET, mit dem Grund daneben. Ein
+       „irgendetwas stimmt nicht" liesse den Eigentuemer die Datei suchen. */
+    check('Die Datei mit kaputtem JSON wird namentlich gemeldet',
+      /\[languages\][^\n]*fr\.json/.test(ffLog),
+      ffLog.split('\n').filter(z => /\[languages\]/.test(z)).join(' · ') || '(kein Wort davon)');
+    check('Die Datei mit unbrauchbarer _locale ebenso',
+      /\[languages\][^\n]*it\.json/.test(ffLog),
+      ffLog.split('\n').filter(z => /\[languages\]/.test(z)).join(' · ') || '(kein Wort davon)');
+    check('Und die Datei mit dem falschen Namen ebenso',
+      /\[languages\][^\n]*Meine Sprache\.json/.test(ffLog),
+      ffLog.split('\n').filter(z => /\[languages\]/.test(z)).join(' · ') || '(kein Wort davon)');
+    /* UND JEDE MELDUNG SAGT, WORAN ES LAG. Drei gleichlautende Zeilen
+       naennten zwar die Datei, aber nicht den Fehler -- und der Eigentuemer
+       suchte an der falschen Stelle. */
+    check('Und jede Meldung nennt ihren Grund',
+      new Set(ffLog.split('\n').filter(z => /\[languages\]/.test(z))
+        .map(z => z.replace(/^.*zaehlt nicht als Sprache: /, ''))).size === 3,
+      ffLog.split('\n').filter(z => /\[languages\]/.test(z)).join(' · '));
+    /* UND DIE OBERFLAECHE LAEUFT: ein Server, der zwar horcht, aber bei der
+       ersten Anfrage an einer halben Sprachtafel stirbt, waere nichts wert. */
+    const ffPage = ffUp ? await (await fetch(`${ffBase}/`)).text() : '';
+    check('Und die Seite kommt heraus',
+      ffPage.includes('<div id="app"'), `${ffPage.length} Zeichen`);
+
+    endKind(ffKind);
+    fs.rmSync(ffData, { recursive: true, force: true });
+    fs.rmSync(ffCopy, { recursive: true, force: true });
   }
 
   /* ================= Die Serverseite spricht aus der Datei — 0.24.0 ==========
