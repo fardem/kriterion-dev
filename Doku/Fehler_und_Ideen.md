@@ -254,7 +254,7 @@ entschieden und hat seinen Ort.*
 | Art | Punkte in Teil I |
 |---|---|
 | **Fehler** | **11**, **12**, **16 A** *(16 A: das Wiederherstellen-Zeichen steht als Quelltext in der Zeile, neu am 8. September 2026 — verursacht von 0.24.0. 11: drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden. 12: die Ladezeit der Übersicht, ebenfalls 5. September 2026 — **der Server ist darin ausgemessen und ausgeschlossen**)* |
-| **Verbesserung** | — |
+| **Verbesserung** | **17** *(neu am 8. September 2026 — anlegen in den Karten „Kategorien" und „Tags")* |
 | **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
 | **Design** | **15** *(neu am 8. September 2026 — der leere Kasten mit dem Bildzeichen; der Punkt davor, der Bildstreifen, ist 0.22.0 geworden)* |
 | **Verbesserung** *(nachgetragen)* | 5 |
@@ -1673,6 +1673,74 @@ Frage.*
 **B:** `server.js` (`GET /api/trash` wächst), `public/app.js`,
 `public/style.css` — **und je nach Antwort auf „Kachel oder Detailansicht"
 auch eine neue Route.**
+
+---
+
+## 17. Kategorien und Tags lassen sich in ihrer Karte nicht anlegen
+
+**Art: Verbesserung** · **Einschätzung: empfohlen** — *die Bauform steht schon,
+zweimal, in der Karte daneben* · **Draußen üblich: ja**
+
+### Woher
+
+**Aus dem Betrieb, 8. September 2026**, beim Durchsehen von 0.24.3, mit Bild
+gemeldet. *Älter als 0.24.3 — die Runde hat die Karte nur um eine Sprachzeile
+erweitert.*
+
+### Was auffiel
+
+**Die Karte „Kategorien" kann umbenennen und löschen — aber nichts anlegen.**
+Ihr Satz sagt es selbst: *„Umbenennen oder löschen. Beim Löschen bleiben die
+Einträge erhalten und haben nur keine Kategorie mehr."* **Die Karte „Tags"
+ebenso.**
+
+**Die beiden Kriterienkarten daneben können es:** ein Feld, ein Knopf
+„Anlegen", fertig.
+
+```js
+<input class="input input-sm" id="${k.field}" placeholder="…">
+<button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
+```
+
+**Was der Betreiber will:** *„Der Admin sollte hier jederzeit was anlegen
+können, ähnlich wie bei Bewertung: Kriterien und Potenzial: Kriterien."*
+
+### Was es nicht ist
+
+**Kein Fehler.** Kategorien und Tags entstehen heute **am Eintrag** — dort
+steht ein Feld, und der Schalter „Neue Kategorien darf jeder anlegen"
+entscheidet, wer es sieht. *Der Weg existiert also; er ist nur nicht dort, wo
+man ihn beim Verwalten sucht.*
+
+**Und es ist kein Rechtethema.** `POST /api/product-categories` und
+`POST /api/tags` gibt es längst, samt Klemme am Schalter. **Die Karte müsste
+nichts können, was der Server nicht schon kann.**
+
+### Was gebaut werden könnte
+
+> **Vorschlag von Claude:** dieselbe Zeile wie an den Kriterienkarten, unter
+> die Liste. **`manageList()` zeichnet ohnehin alle drei Karten**, und
+> `MANAGE_KIND` trägt schon die Unterschiede je Karte (`sortable`, `counter`,
+> `weight`, `perLanguage`) — *ein Eintrag `create` daneben, und das Feld steht
+> an allen dreien oder an keiner, ohne eine Abfrage auf den Kartennamen.*
+>
+> **Zwei Fragen gehören an den Auftrag und nicht hierher:**
+> * **In welcher Sprache legt man an?** Die Karte hat seit 0.24.3 einen
+>   Umschalter. *Ein neues Kategorie in einer zweiten Sprache anzulegen ergibt
+>   keinen Sinn — die Grundzeile ist die erste Fassung.* Naheliegend: das Feld
+>   legt IMMER die Grundzeile an, und der Umschalter fasst es nicht an. **Das
+>   ist dieselbe Regel wie beim Umbenennen ohne Sprachangabe** (0.24.3,
+>   Bauabschnitt 6a) und sollte deshalb auch so heißen.
+> * **Was ist mit dem Schalter „darf jeder anlegen"?** Er entscheidet über den
+>   Weg AM EINTRAG. *Ein Admin darf ohnehin; das Feld in der Karte hängt an
+>   `ADMIN` und nicht am Schalter.*
+
+### Was es anfasst
+
+`public/app.js` — `cardCategories()`, `cardTags()`, `MANAGE_KIND` und
+`manageList()`. **Kein Server, kein Schema, keine neue Route** *(die beiden
+POST-Wege stehen).* Die Sprachdatei bekommt zwei Platzhaltertexte für die
+Felder.
 
 ---
 

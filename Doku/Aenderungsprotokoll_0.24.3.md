@@ -302,6 +302,18 @@ eingetragen ist — dort ist der Rückfall aus F3 gewollt und bleibt.*
 > nicht die eingestellte — das englische Wort landete dann im deutschen Satz.
 > *0.24.4 stellt deshalb zuerst nach und baut dann; zwei Reparaturen an einer
 > Ursache wären eine zu viel.*
+>
+> **AM SELBEN TAG MIT BILD BELEGT, und das Bild sagt mehr als der Satz:** die
+> Kachel steht auf **Deutsch**, die Beschriftungen nennen die deutschen
+> Vorgaben — **und in den Feldern stehen die englischen Werte.**
+> ***Schalterstellung und Inhalt widersprechen sich sichtbar an einer Karte.***
+
+**(2a) Und die Stelle springt.** Wer den Umschalter drückt, landet oben auf der
+Seite statt dort, wo er war: `renderSystem()` baut `app.innerHTML` neu, und
+damit ist die Bildlaufstellung weg. *Bei vierzehn Vokabelfeldern heißt das:
+nach jedem Umschalten erst wieder hinunterrollen.* **Es gehört in dieselbe
+Reparatur** — wer den Umschalter anfasst, fasst ohnehin den Weg an, auf dem die
+Karte neu entsteht.
 
 **(3) Zwei deutsche Wörter stehen fest im Quelltext** und sind damit auch auf
 Englisch deutsch: „alle N anzeigen" am zugeklappten Linkkasten und „N aktiv"
@@ -313,6 +325,8 @@ nicht die Sprache.*
 die Vorgabe des Lesers**, auch wenn die Karte auf eine andere Sprache
 geschaltet ist. *Am Quelltext gesehen: `vocabularyDefault()` liest `TEXTS`,
 und das ist die Datei des Lesers.*
+
+**Dazu zwei Punkte, die keine Fehler sind und deshalb ins Sammelblatt gehören:** der leere Kasten mit dem Bildzeichen (Punkt 15), die Zeile des Papierkorbs samt ihrem Zeichen-als-Quelltext (Punkt 16) und das fehlende Anlegen in den Karten „Kategorien" und „Tags" (Punkt 17).
 
 *Der Betreiber prüft weiter; es kann mehr dazukommen.*
 
