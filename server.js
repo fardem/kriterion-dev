@@ -299,16 +299,16 @@ function acceptedLanguage(req, pool) {
   const header = String((req && req.headers && req.headers['accept-language']) || '');
   if (!header) return null;
   const wishes = header.split(',').map(part => {
-    const [tag, ...rest] = part.split(';');
+    const [date, ...rest] = part.split(';');
     const q = rest.map(x => /^\s*q\s*=\s*([0-9.]+)\s*$/.exec(x))
       .filter(Boolean).map(m => Number(m[1]))[0];
-    return { tag: tag.trim(), q: Number.isFinite(q) ? q : 1 };
-  }).filter(w => w.tag && w.tag !== '*');
+    return { date: date.trim(), q: Number.isFinite(q) ? q : 1 };
+  }).filter(w => w.date && w.date !== '*');
   // Stabil sortiert: bei gleichem Gewicht bleibt die Reihenfolge des Kopfes.
   wishes.sort((a, b) => b.q - a.q);
-  for (const { tag } of wishes) {
-    if (pool.includes(tag)) return tag;
-    const base = tag.split('-')[0];
+  for (const { date } of wishes) {
+    if (pool.includes(date)) return date;
+    const base = date.split('-')[0];
     if (pool.includes(base)) return base;
   }
   return null;
@@ -361,7 +361,7 @@ function t(locale, key, values = {}) {
   if (raw === undefined) return `⟦${key}⟧`;
   const rule = pluralOf(locale);
   const record = typeof raw === 'object'
-    ? (rule.select(values.n) === 'one' ? raw.eins : raw.andere) : raw;
+    ? (rule.select(values.n) === 'one' ? raw.one : raw.other) : raw;
   /* DAS VOKABULAR WIRD ERST GEHOLT, WENN EIN PLATZHALTER ES BRAUCHT -- es
      kommt aus der Datenbank, und die meisten Meldungen tragen kein
      Vokabelwort. Einmal je Message, nicht einmal je Platzhalter. */
@@ -463,8 +463,8 @@ const linkInfo = (plain) => PUBLIC.address
    nicht verschickt, die Karte sagt warum, und der Browser des Admins baut den
    Link beim Kopieren weiter selbst. */
 async function sendTokenLink(target, token) {
-  const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
-  if (!mail.configured(zugang))
+  const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
+  if (!mail.configured(account))
     return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };
   if (!PUBLIC.address)
     return { delivery: 'aus', deliveryReason:
@@ -476,7 +476,7 @@ async function sendTokenLink(target, token) {
     username: target.username, link: `${PUBLIC.address}/#/invite/${token.plain}`,
     // `tage` und `minuten` sind PLATZHALTER der Sprachdatei und keine
     // Bezeichner -- sie heissen so, wie der Satz sie ruft.
-    tage: auth.TOKEN_DAYS, minuten: auth.TOKEN_DEADLINE_MINUTES
+    days: auth.TOKEN_DAYS, minutes: auth.TOKEN_DEADLINE_MINUTES
   };
   const invite = token.purpose === 'invite';
   /* DIE SPRACHE DES EMPFAENGERS UND NICHT DIE DES ABSENDERS (Konzept 4.6).
@@ -490,7 +490,7 @@ async function sendTokenLink(target, token) {
   const locale = languageOf(token.id);
   const letter = invite ? mail.mailInvite(locale, values2)
                           : mail.mailReset(locale, values2);
-  const e = await mail.send(locale, zugang, target.email, letter.subject, letter.text);
+  const e = await mail.send(locale, account, target.email, letter.subject, letter.text);
   return e.ok ? { delivery: 'ok', deliveryReason: '' }
               : { delivery: 'fehlgeschlagen', deliveryReason: e.reason };
 }
@@ -538,8 +538,8 @@ function deliveryReady() {
    Server: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
    die Seite und bestaetigt damit gerade NICHT. */
 async function sendConfirm(name, address, plain, locale) {
-  const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
-  if (!mail.configured(zugang) || !PUBLIC.address) return { ok: false, reason: 'aus' };
+  const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
+  if (!mail.configured(account) || !PUBLIC.address) return { ok: false, reason: 'aus' };
   const title = getSetting('title_public', 'Bewertungskatalog');
   /* HIER GIBT ES NOCH KEINEN ZUGANG, an dem eine Sprache haengen koennte --
      der Brief geht an jemanden, der sich gerade erst anmeldet. Genommen wird
@@ -547,8 +547,8 @@ async function sendConfirm(name, address, plain, locale) {
      reicht sie herein, weil nur er die Anfrage in der Hand hat. */
   const letter = mail.mailConfirm(locale, { title, username: name,
     link: `${PUBLIC.address}/#/confirm/${plain}`,
-    stunden: auth.REQUEST_HOURS });
-  return mail.send(locale, zugang, address, letter.subject, letter.text);
+    hours: auth.REQUEST_HOURS });
+  return mail.send(locale, account, address, letter.subject, letter.text);
 }
 
 const app = express();
@@ -771,7 +771,7 @@ const convertImages = () => getSetting('convertImages', true) !== false;
    DER SCHLUESSEL IST DIE AUFGABE, mit der der Thread erzeugt wird -- dieselbe
    Zeichenfolge, die batchrun.js unten in seiner Verzweigung liest. Eine
    zweite Liste der Aufgabennamen liefe auseinander. */
-const batchStates = { umstellung: null, geometry: null };
+const batchStates = { conversion: null, geometry: null };
 
 /* Der Stand fuer /api/stats -- oder null, solange in dieser Laufzeit nie einer
    lief. ER BLEIBT NACH DEM ENDE STEHEN, mit `laeuft: false`: die Karte fragt
@@ -779,8 +779,8 @@ const batchStates = { umstellung: null, geometry: null };
    herauskam. Ein Stand, der im Augenblick des Fertigwerdens auf null
    zurueckspringt, liesse die Karte im Ungewissen -- sie saehe nicht den
    Abschluss, sondern nur das Verschwinden. */
-const batchState = (aufgabe) =>
-  batchStates[aufgabe] && { ...batchStates[aufgabe] };
+const batchState = (task) =>
+  batchStates[task] && { ...batchStates[task] };
 
 /* WELCHE ZEILEN UEBERHAUPT IN FRAGE KOMMEN -- am INHALT erkannt, mit derselben
    Byte-Folge wie isPng(). AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die
@@ -959,7 +959,7 @@ app.post('/api/login', async (req, res) => {
   const throttle = auth.checkThrottle(ip, username);
   if (throttle.blocked) {
     return res.status(429).json({
-      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
 
@@ -1032,7 +1032,7 @@ app.post('/api/login/second', async (req, res) => {
   const throttle = auth.checkThrottle(ip, null);
   if (throttle.blocked) {
     return res.status(429).json({
-      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
   const id = auth.useLoginTicket(ticket);
@@ -1040,13 +1040,13 @@ app.post('/api/login/second', async (req, res) => {
     auth.noteFailure(ip, null);
     return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});
   }
-  const zugang = auth.getUser2(id);
-  const name = zugang ? zugang.username : null;
+  const account = auth.getUser2(id);
+  const name = account ? account.username : null;
   /* ZWEITE NACHSCHAU AUF DEN STATUS. Zwischen den beiden Schritten liegen bis
      zu zwei Minuten, und in denen kann ein Admin gesperrt haben. Dieselbe
      Message wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
      belegt und darf deshalb erfahren, woran es liegt. */
-  if (!zugang || zugang.status !== 'active') {
+  if (!account || account.status !== 'active') {
     return res.status(403).json({ error: t(localeOf(req), 'server.accountLocked')});
   }
   if (!auth.checkTwoFactor(id, code)) {
@@ -1113,7 +1113,7 @@ async function tokenThrottleFree(req, res) {
   const throttle = auth.checkThrottle(auth.clientIp(req), null);
   if (throttle.blocked) {
     res.status(429).json({
-      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
     return false;
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
@@ -1342,7 +1342,7 @@ function secondConfirm(req, res, purpose, target = null) {
    EINGABE und nicht die Pruefung. */
 const secondConfirmNeeded = (purpose) => (req, res, next) => {
   const target = req.params.id !== undefined ? req.params.id
-             : (req.query && req.query.teil !== undefined ? req.query.teil : null);
+             : (req.query && req.query.part !== undefined ? req.query.part : null);
   if (secondConfirm(req, res, purpose, target)) next();
 };
 
@@ -1598,7 +1598,7 @@ app.post('/api/confirm', async (req, res) => {
   const throttle = auth.checkThrottle(ip, name);
   if (throttle.blocked) {
     return res.status(429).json({
-      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
   const { password, purpose, target, targets, code } = req.body || {};
@@ -1628,7 +1628,7 @@ app.post('/api/confirm', async (req, res) => {
        auseinander. Zur Laufzeit ist sie laengst gesetzt: diese Zeile laeuft in
        einem Routenrumpf, nicht bei der Modulauswertung. */
     if (targets.length > EXCHANGE_PART_MAX)
-      return res.status(400).json({ error: t(localeOf(req), 'server.targetsTooMany', { deckel: EXCHANGE_PART_MAX })});
+      return res.status(400).json({ error: t(localeOf(req), 'server.targetsTooMany', { cap: EXCHANGE_PART_MAX })});
     targetList = targets.map(z => Number(z));
     if (!targetList.every(n => Number.isInteger(n) && n > 0))
       return res.status(400).json({ error: t(localeOf(req), 'server.targetNotNumber')});
@@ -1745,8 +1745,8 @@ app.get('/api/users/:id/inventory', adminOnly, (req, res) => {
 // Admin offen, ohne dass irgendwo "Rolle" steht. Dieselbe Ueberlegung wie beim
 // Import, den eine Exportdatei sonst unter fremdem Namen schreiben liesse.
 app.post('/api/users', adminOnly, async (req, res) => {
-  const { username, password, rolle, sendInvite, email } = req.body || {};
-  const wanted = rolle || 'user';
+  const { username, password, role, sendInvite, email } = req.body || {};
+  const wanted = role || 'user';
   if (wanted !== 'user' && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ROLE)});
   try {
@@ -1801,11 +1801,11 @@ app.post('/api/users/:id/token', adminOnly, async (req, res) => {
 //   Passwort -- dieselbe Regel wie Status; das EIGENE laeuft ueber
 //               PUT /api/account.
 app.put('/api/users/:id', adminOnly, async (req, res) => {
-  const { rolle, status, password } = req.body || {};
-  const roleOnly = rolle !== undefined && status === undefined && password === undefined;
+  const { role, status, password } = req.body || {};
+  const roleOnly = role !== undefined && status === undefined && password === undefined;
   const target = targetUserFree(req, res, req.params.id, roleOnly);
   if (!target) return;
-  if (rolle !== undefined && !isOwner(req))
+  if (role !== undefined && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ROLE)});
   /* DIE ZWEITE BESTAETIGUNG STEHT HIER IM RUMPF UND NICHT IN DER ROUTENZEILE,
      weil erst der Rumpf sagt, WELCHE der drei Rechteklassen gemeint ist:
@@ -1813,11 +1813,11 @@ app.put('/api/users/:id', adminOnly, async (req, res) => {
      das ist umkehrbar und uebergibt nichts. Beide vor dem ersten Schreiben:
      eine Absage, die die halbe Aenderung schon geschrieben hat, waere
      schlimmer als keine. */
-  if (rolle !== undefined && !secondConfirm(req, res, 'role', target.id)) return;
+  if (role !== undefined && !secondConfirm(req, res, 'role', target.id)) return;
   if (password !== undefined && !secondConfirm(req, res, 'password', target.id)) return;
   try {
     let result = { id: target.id, username: target.username };
-    if (rolle !== undefined) result = { ...result, ...auth.setRole(target.id, rolle, req.user.id) };
+    if (role !== undefined) result = { ...result, ...auth.setRole(target.id, role, req.user.id) };
     if (status !== undefined) result = { ...result, ...auth.setStatus(target.id, status, req.user.id) };
     if (password !== undefined) { await auth.setNewPassword(target.id, password, req.user.id); result.passwordSet = true; }
     res.json(result);
@@ -1834,8 +1834,8 @@ app.delete('/api/users/:id', adminOnly, (req, res) => {
   if (!secondConfirm(req, res, 'remove', target.id)) return;
   try {
     res.json(auth.removeUser(target.id, {
-      entries: req.query.eintraege === '1',
-      beitraege: req.query.beitraege === '1'
+      entries: req.query.entries === '1',
+      posts: req.query.posts === '1'
     }, req.user.id));
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
@@ -1886,7 +1886,7 @@ function mailCard(req) {
     address: PUBLIC.address,
     deadlineMinutes: auth.TOKEN_DEADLINE_MINUTES,
     testedAt: test ? test.at : null,
-    sekunden: Math.round(mail.SEND_MS / 1000),
+    seconds: Math.round(mail.SEND_MS / 1000),
     /* Die Folge der Testmarke fuer die Selbstanmeldung, : der
        Eigentuemer soll an DIESER Karte sehen, was er dem Schalter des Admins
        antut, wenn er den Mailzugang aendert. Es ist dieselbe Rechnung wie in
@@ -1933,7 +1933,18 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
   // 200 AUCH BEIM FEHLSCHLAG: der Versuch ist gelaufen, und sein Ergebnis ist
   // die Antwort. Ein 500 hiesse, die Instanz haette einen Fehler -- den hat der
   // Mailserver. Die Oberflaeche liest `ok` und nicht den Statuscode.
-  res.json({ ok: e.ok, reason: e.reason, an: ownOne.email, ...mailCard(req) });
+  /* `address` UND NICHT `an` -- 0.24.3, Bauabschnitt 7. Es ist die einzige
+     Stelle, an der `an` ein PLATZHALTER war (card.testMailHint: „Testmail an
+     {address} gesendet"). An jeder anderen Stelle heisst `an` „eingeschaltet"
+     -- der zweite Faktor, die Selbstanmeldung, das Aufraeumen --, und der
+     Umbenenner kann das nicht auseinanderhalten. Deshalb von Hand. */
+  /* `sentTo` UND NICHT `address` -- 0.24.3, Bauabschnitt 7. Es war `an` und
+     ist die einzige Stelle, an der `an` ein PLATZHALTER war (card.testMailHint).
+     `address` waere der naechstliegende Name gewesen und ist der falsche: die
+     Karte darunter bringt ueber `...mailCard(req)` ihr EIGENES `address` mit
+     -- die oeffentliche Adresse der Installation --, und die Ausbreitung steht
+     hinten und gewaenne. Der Prueflauf hat genau das gemeldet. */
+  res.json({ ok: e.ok, reason: e.reason, sentTo: ownOne.email, ...mailCard(req) });
 });
 
 /* ---- Die Selbstanmeldung hinter der Anmeldung ---------------------------
@@ -1953,8 +1964,8 @@ function requestCard() {
     an: getSetting('signup', false) === true,
     deliveryReady: b.ok, deliveryReason: b.reason,
     requests: auth.listRequests(),
-    cap: auth.REQUEST_CAP, belegt: auth.countRequests(),
-    stunden: auth.REQUEST_HOURS
+    cap: auth.REQUEST_CAP, used: auth.countRequests(),
+    hours: auth.REQUEST_HOURS
   };
 }
 
@@ -1975,7 +1986,7 @@ app.put('/api/signup/toggle', adminOnly, (req, res) => {
   if (an) {
     const b = deliveryReady();
     if (!b.ok) return res.status(400).json({ error:
-      t(localeOf(req), 'server.signupNeedsMail', { grund: b.reason })});
+      t(localeOf(req), 'server.signupNeedsMail', { reason: b.reason })});
   }
   putSetting.run('signup', JSON.stringify(an));
   res.json(requestCard());
@@ -2087,10 +2098,10 @@ const BLOCK_DEFAULT = {
   // Anordnung sagt es. Wer eine gespeicherte Reihenfolge hat, bekommt den
   // neuen Block ueber sortArea() hinten angehaengt -- die vorhandene
   // Regel, und sie bleibt. Ziehen laesst er sich wie jeder andere.
-  seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
-  unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
+  side: ['kategorie', 'tags', 'potenzial', 'bewertung'],
+  bottom: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
 };
-const ALL_BLOCKS = [...BLOCK_DEFAULT.seite, ...BLOCK_DEFAULT.unten];
+const ALL_BLOCKS = [...BLOCK_DEFAULT.side, ...BLOCK_DEFAULT.bottom];
 
 /* WELCHE BLOECKE IHREN EINKLAPPZUSTAND NICHT MEHR SPEICHERN -- 0.21.0.
    Fuer die beiden Sternkaesten entscheidet ab jetzt der ZUSTAND DES EINTRAGS,
@@ -2106,8 +2117,8 @@ const ALL_BLOCKS = [...BLOCK_DEFAULT.seite, ...BLOCK_DEFAULT.unten];
    HERAUS -- gewollt: es ist eine Verhaltensaenderung, sie steht im
    Aenderungsprotokoll, und wer den Bewertungsblock heute dauerhaft zugeklappt
    hat, sieht ihn an getesteten Eintraegen wieder offen. */
-const BLOCKS_WITHOUT_TO = ['potenzial', 'bewertung'];
-const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_WITHOUT_TO.includes(k));
+const BLOCKS_ALWAYS_OPEN = ['potenzial', 'bewertung'];
+const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_ALWAYS_OPEN.includes(k));
 
 // Unbekanntes fliegt raus, Fehlendes haengt sich in der Vorgabereihenfolge
 // hinten an -- ein spaeter hinzugekommener Block taucht so von selbst auf.
@@ -2122,9 +2133,9 @@ function sortArea(stored, fallback) {
 function blocks(userId) {
   const g = getUserSetting(userId, 'blocks', null) || {};
   return {
-    seite: sortArea(g.seite, BLOCK_DEFAULT.seite),
-    unten: sortArea(g.unten, BLOCK_DEFAULT.unten),
-    zu: (Array.isArray(g.zu) ? g.zu : []).filter(k => CLOSED_BLOCKS.includes(k))
+    side: sortArea(g.side, BLOCK_DEFAULT.side),
+    bottom: sortArea(g.bottom, BLOCK_DEFAULT.bottom),
+    closed: (Array.isArray(g.closed) ? g.closed : []).filter(k => CLOSED_BLOCKS.includes(k))
   };
 }
 
@@ -2512,13 +2523,13 @@ app.put('/api/settings', (req, res) => {
      EINEM Wert. */
   let viewsText = null;
   if (req.body.views !== undefined) {
-    const ein = Array.isArray(req.body.views) ? req.body.views : [];
-    if (ein.length > VIEWS_CAP)
+    const input = Array.isArray(req.body.views) ? req.body.views : [];
+    if (input.length > VIEWS_CAP)
       return res.status(400).json({
-        error: t(localeOf(req), 'server.viewCap', { deckel: VIEWS_CAP })});
+        error: t(localeOf(req), 'server.viewCap', { cap: VIEWS_CAP })});
     const clean = [];
-    const namen = new Set();
-    for (const a of ein) {
+    const names = new Set();
+    for (const a of input) {
       const name = a && typeof a.name === 'string'
         ? a.name.trim().slice(0, VIEW_NAME_LENGTH) : '';
       // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
@@ -2530,9 +2541,9 @@ app.put('/api/settings', (req, res) => {
          ohne Ruecksicht auf Gross- und Kleinschreibung -- "Bosch" und "bosch"
          nebeneinander waeren dieselbe Falle mit einem Buchstaben Abstand. */
       const key = name.toLocaleLowerCase(compareLocale());
-      if (namen.has(key))
+      if (names.has(key))
         return res.status(400).json({ error: t(localeOf(req), 'server.viewExists', { name })});
-      namen.add(key);
+      names.add(key);
       clean.push({
         name,
         q: a && typeof a.q === 'string' ? a.q.slice(0, VIEW_TERM_LENGTH) : '',
@@ -2601,11 +2612,11 @@ app.put('/api/settings', (req, res) => {
     putUserSetting(req.user.id, 'theme', JSON.stringify(s));
   }
   if (req.body.blocks !== undefined) {
-    const ein = req.body.blocks || {};
+    const input = req.body.blocks || {};
     putUserSetting(req.user.id, 'blocks', JSON.stringify({
-      seite: sortArea(ein.seite, BLOCK_DEFAULT.seite),
-      unten: sortArea(ein.unten, BLOCK_DEFAULT.unten),
-      zu: (Array.isArray(ein.zu) ? ein.zu : []).filter(k => CLOSED_BLOCKS.includes(k))
+      side: sortArea(input.side, BLOCK_DEFAULT.side),
+      bottom: sortArea(input.bottom, BLOCK_DEFAULT.bottom),
+      closed: (Array.isArray(input.closed) ? input.closed : []).filter(k => CLOSED_BLOCKS.includes(k))
     }));
   }
   if (req.body.linkRows !== undefined) {
@@ -2637,10 +2648,10 @@ app.put('/api/settings', (req, res) => {
   // Eigene Anbieter zuerst: ein frisch angelegter muss im selben Zug in den
   // Vorrat aufgenommen werden koennen.
   if (req.body.searchOwn !== undefined) {
-    const ein = Array.isArray(req.body.searchOwn) ? req.body.searchOwn : [];
+    const input = Array.isArray(req.body.searchOwn) ? req.body.searchOwn : [];
     const clean = [];
     for (let i = 0; i < OWN_SLOTS; i++) {
-      const e = ein[i] || {};
+      const e = input[i] || {};
       const name = searchNameClean(e.name);
       const template = typeof e.template === 'string' ? e.template.trim() : '';
       if (!name && !template) { clean.push(null); continue; }   // Platz geraeumt
@@ -2664,14 +2675,14 @@ app.put('/api/settings', (req, res) => {
   // writePool gerade.
   if (req.body.searchOn !== undefined) {
     const all = allProviders();
-    const ein = (Array.isArray(req.body.searchOn) ? req.body.searchOn : [])
+    const input = (Array.isArray(req.body.searchOn) ? req.body.searchOn : [])
       .filter(k => typeof k === 'string' && all.some(a => a.key === k && a.present));
     // Den letzten aus dem Vorrat zu nehmen macht jede Suchzeile unbenutzbar.
     // Ersatzweise auf den eingebauten ersten zu wechseln waere schlimmer als
     // eine Absage: es hiesse, ab jetzt wortlos woanders zu suchen.
-    if (!ein.length)
+    if (!input.length)
       return res.status(400).json({ error: t(localeOf(req), 'server.searchEngineLast')});
-    writePool(ein[0], ein);
+    writePool(input[0], input);
   }
   /* DIE SPRACHE GEGEN DEN VORRAT -- 0.24.3, Bauabschnitt 3. GEPRUEFT UND
      ABGESAGT statt still auf die Vorgabe gedreht: wer eine Sprache setzt, die
@@ -3106,12 +3117,12 @@ app.post('/api/items/:id/tags', entryAuthorOnly, (req, res) => {
   // Erst nachschlagen, dann die Klemme: einen vorhandenen Tag vergibt auch
   // hier jeder, der an den Eintrag darf. Die Wolke im Block bleibt deshalb
   // bedienbar, wenn der Schalter aus ist -- nur die Eingabezeile verschwindet.
-  let tag = findTag(name);
-  if (!tag) {
+  let date = findTag(name);
+  if (!date) {
     if (!mayCreate(req, 'tagsFreeCreate')) return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
-    tag = createTag(name);
+    date = createTag(name);
   }
-  db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(req.params.id, tag.id);
+  db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(req.params.id, date.id);
   touch.run(req.params.id);
   res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
 });
@@ -3240,7 +3251,12 @@ const PHOTO_COLUMNS = 'id, item_id, mime_type, focus_x, focus_y, zoom, sort_orde
    sonst nichts. Dass DIESELBE Zeile nach einem Neuschnitt exakt dieselbe
    Laenge traegt, ist unwahrscheinlich genug -- und wenn doch, zeigt der
    Browser eine Kachel, die er ohnehin schon hatte. */
-const PHOTO_VERSION = 'length(thumb) AS fassung';
+/* DER ALIAS HEISST SEIT 0.24.3 `thumbLength` und nicht mehr `fassung` -- er
+   reist an der Zeile bis in den Browser, und dort las ihn `p.fassung`. Der
+   Umbenenner fasst nur Code an; ein Name IN einem String bleibt stehen,
+   und genau das ist hier eine SQL-Spalte. Von Hand nachgezogen, und die
+   Zeilen, die ihn lesen, mit ihm. */
+const PHOTO_VERSION = 'length(thumb) AS thumbLength';
 const qPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 /* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- die Uebersicht ruft sie,
    detail() ruft die Zeile darueber. DIE SPALTENLISTE STEHT AN EINER STELLE:
@@ -3459,14 +3475,14 @@ const qTestDayTags = db.prepare(`SELECT t.id, t.name FROM tags t
 function qTestDays(itemId, userId, card) {
   if (userId == null) throw new Error('qTestDays() ohne Benutzer aufgerufen');
   const days = qTestDaysRaw.all(itemId);
-  for (const tag of days) {
-    tag.tags = qTestDayTags.all(tag.id);
-    tag.mine = tag.user_id === userId;
+  for (const date of days) {
+    date.tags = qTestDayTags.all(date.id);
+    date.mine = date.user_id === userId;
     // Der Name steht neben `mine`, er ersetzt es nicht: die Zeitleiste
     // unterscheidet eigene von fremden Punkten ueber die Fuellung und braucht
     // dafuer keinen Namen, die Zeile im Eintrag braucht ihn.
-    tag.author = authorFrom(card, tag.user_id);
-    delete tag.user_id;
+    date.author = authorFrom(card, date.user_id);
+    delete date.user_id;
   }
   return days;
 }
@@ -3502,13 +3518,13 @@ const qAllTestDaysNarrow = db.prepare(
 function testDaysPerEntry(userId) {
   if (userId == null) throw new Error('testTageJeEintrag() ohne Benutzer aufgerufen');
   const per = new Map();
-  for (const tag of qAllTestDaysNarrow.all()) {
-    if (!per.has(tag.item_id)) per.set(tag.item_id, []);
+  for (const date of qAllTestDaysNarrow.all()) {
+    if (!per.has(date.item_id)) per.set(date.item_id, []);
     // mine kommt vom Server, wie in qTestDays(): die Zeitleiste zeichnet die
     // eigenen Punkte gefuellt und fremde als Ring. Die Verfassernummer geht
     // nicht hinaus -- hier so wenig wie dort.
-    per.get(tag.item_id).push({ id: tag.id, day: tag.day, rating: tag.rating,
-                             mine: tag.user_id === userId });
+    per.get(date.item_id).push({ id: date.id, day: date.day, rating: date.rating,
+                             mine: date.user_id === userId });
   }
   return per;
 }
@@ -3738,7 +3754,7 @@ const qAttachmentCounts = db.prepare('SELECT item_id, COUNT(*) n FROM attachment
    Reihenfolge, in der die Oberflaeche die Zeilen ohnehin zeigt -- Links nach
    ihrer Sortierung, Kommentare nach ihrem Alter, Tags nach ihrem Namen. */
 const FULLTEXT_SOURCES = [
-  { key: 'beschreibung',
+  { key: 'description',
     value: 'CASE WHEN instr(kkl(i.description), :q) > 0 THEN i.description END' },
   { key: 'comment',
     value: `(SELECT k.text FROM comments k
@@ -3748,7 +3764,7 @@ const FULLTEXT_SOURCES = [
     value: `(SELECT l.url FROM links l
              WHERE l.item_id = i.id AND instr(kkl(l.url), :q) > 0
              ORDER BY l.sort_order, l.id LIMIT 1)` },
-  { key: 'testtag',
+  { key: 'testDay',
     value: `(SELECT tt.name FROM test_days d
               JOIN test_day_tags dt ON dt.test_day_id = d.id
               JOIN tags tt ON tt.id = dt.tag_id
@@ -3758,9 +3774,9 @@ const FULLTEXT_SOURCES = [
     value: `(SELECT t.name FROM item_tags it JOIN tags t ON t.id = it.tag_id
              WHERE it.item_id = i.id AND instr(kkl(t.name), :q) > 0
              ORDER BY t.name, t.id LIMIT 1)` },
-  { key: 'kategorie',
+  { key: 'category',
     value: 'CASE WHEN instr(kkl(c.name), :q) > 0 THEN c.name END' },
-  { key: 'titel',
+  { key: 'title',
     value: 'CASE WHEN instr(kkl(i.title), :q) > 0 THEN i.title END' }
 ];
 
@@ -4600,7 +4616,7 @@ function refreshTile(id, done) {
   /* DIE UHR DARF DEN PROZESS NICHT AM LEBEN HALTEN: sie ist eine Schranke und
      kein Termin. Ohne unref() haengt ein Herunterfahren bis zu 15 Sekunden. */
   clock.unref?.();
-  try { startBatchThread('zuschnitt', [{ id: Number(id) }], once); }
+  try { startBatchThread('crop', [{ id: Number(id) }], once); }
   catch (e) { console.error('[Kriterion] Kachel nicht erneuert:', e.message); once(); }
 }
 
@@ -4666,7 +4682,7 @@ app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMEN
     const da = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(req.params.id).n;
     const fresh = (req.files || []).length;
     if (da + fresh > ATTACHMENT_COUNT)
-      return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { deckel: ATTACHMENT_COUNT })});
+      return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { cap: ATTACHMENT_COUNT })});
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
       .get(req.params.id).m + 1;
     const into = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
@@ -4892,12 +4908,12 @@ app.post('/api/test-days/:id/tags', (req, res) => {
      unbekannter Name faellt hier mit sprechender Message durch, statt dass die
      Zeile verschwaende: sonst naehme der Schalter das Zuweisen mit, und
      "Zuweisen darf immer jeder" gilt. */
-  let tag = findTag(name);
-  if (!tag) {
+  let date = findTag(name);
+  if (!date) {
     if (!mayCreate(req, 'tagsFreeCreate')) return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
-    tag = createTag(name);
+    date = createTag(name);
   }
-  db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(testDay.id, tag.id);
+  db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(testDay.id, date.id);
   touch.run(testDay.item_id);
   res.status(201).json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
@@ -5116,7 +5132,7 @@ app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_CO
     if (!selfOnly(req, c.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
     const da = db.prepare('SELECT COUNT(*) n FROM comment_images WHERE comment_id = ?').get(c.id).n;
     if (da + (req.files || []).length > IMAGE_COUNT)
-      return res.status(400).json({ error: t(localeOf(req), 'server.imageCap', { deckel: IMAGE_COUNT })});
+      return res.status(400).json({ error: t(localeOf(req), 'server.imageCap', { cap: IMAGE_COUNT })});
     const k = await encodeAll(req.files);
     if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
     /* Anhaengen IST Bearbeiten -- und hierher kommt nach der Klemme oben nur
@@ -5352,11 +5368,11 @@ app.get('/api/stats', adminOnly, (req, res) => {
     /* WIE WEIT DIE UMSTELLUNG IST -- ODER null. KEINE ZWEITE ROUTE dafuer:
        die Karte fragt ohnehin die Kennzahlen ab, und ein eigener Endpunkt fuer
        drei Zahlen liefe als zweite Wahrheit ueber denselben Lauf mit. */
-    umstellung: batchState('umstellung'),
+    conversion: batchState('conversion'),
     /* DER ZWEITE LAUF SEIT 0.19.4, und er steht als EIGENES Feld daneben und
        nicht im selben: die Karte muss auseinanderhalten koennen, was gerade
        laeuft. */
-    geometry: batchState('geometrie'),
+    geometry: batchState('geometry'),
     /* DIE ERWARTETE EXPORTGROESSE, je Schalter getrennt. Sie steht hier als
        AUFTEILUNG und nicht als eine Summe: die Karte darunter hat drei
        Schalter, und wer nur eine Gesamtzahl bekaeme, koennte an keinem
@@ -5421,13 +5437,13 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      Zeilen taeten der zweiten nichts (nach der ersten ist kein PNG mehr da),
      aber sie liefen doppelt, und der gemeldete Fortschritt waere der der
      zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
-  if (batchStates.umstellung && batchStates.umstellung.running)
+  if (batchStates.conversion && batchStates.conversion.running)
     return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});
   const rows = qOpenPng.all(PNG_MAGIC_HEX);
-  batchStates.umstellung = { running: true, total: rows.length, erledigt: 0,
-                                 umgestellt: 0, geblieben: 0, gespart: 0 };
+  batchStates.conversion = { running: true, total: rows.length, done: 0,
+                                 converted: 0, stayed: 0, freed: 0 };
   console.log(`[Kriterion] Bildumstellung gestartet: ${rows.length} PNG.`);
-  res.status(202).json(batchState('umstellung'));
+  res.status(202).json(batchState('conversion'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
      laeuft die Schleife nicht mehr hier, sondern in batchrun.js. Was der
      Aufrufer bekommt, ist unveraendert: 202 mit dem Anfangsstand, und der
@@ -5436,7 +5452,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      (worker.on('error') in startBatchThread) statt an einem catch: eine
      unbehandelte Zusage naehme in Node den ganzen Server mit, ein Fehler im
      Thread nimmt nur den Lauf. */
-  startBatchThread('umstellung', rows);
+  startBatchThread('conversion', rows);
 });
 
 /* ================= Das Austauschformat =================
@@ -5543,8 +5559,8 @@ function bytesOf(o, name, source) {
    die das Haus verlaesst, eine Angabe ueber eine Person ohne jeden Nutzen.
    Eine herrenlose Zeile steht ausdruecklich als null da. */
 function authorNames() {
-  const namen = new Map(db.prepare('SELECT id, username FROM users').all().map(u => [u.id, u.username]));
-  return (id) => (id == null ? null : (namen.get(id) || null));
+  const names = new Map(db.prepare('SELECT id, username FROM users').all().map(u => [u.id, u.username]));
+  return (id) => (id == null ? null : (names.get(id) || null));
 }
 
 /* Die Lage, in der ein Paket entsteht: wessen Favoriten gelten, wie die
@@ -5676,8 +5692,8 @@ function exportEnvelope(items) {
      und bekaeme ein Kriterium namens "[object Object]". Ein zusaetzliches
      Feld ignoriert sie dagegen wortlos.
      NUR ABWEICHUNGEN -- ein Kriterium mit Gewicht 1 taucht gar nicht auf. */
-  const criteriaGewichte = {};
-  for (const c of critRows) if (c.weight !== 1) criteriaGewichte[c.name] = c.weight;
+  const criteriaWeights = {};
+  for (const c of critRows) if (c.weight !== 1) criteriaWeights[c.name] = c.weight;
   /* UND DIE PHASE IM SELBEN MUSTER -- 0.21.0, ein drittes Feld neben den
      beiden. NUR ABWEICHUNGEN: ein Kriterium des Kastens „after" taucht gar
      nicht auf, so wie ein Gewicht von 1 nicht auftaucht.
@@ -5687,7 +5703,7 @@ function exportEnvelope(items) {
   const criteriaPhase = {};
   for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;
   return { exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
-           criteria: critRows.map(c => c.name), criteriaGewichte, criteriaPhase,
+           criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,
            criteriaNames: exchangeCriterionNames(),
            categoryNames: exchangeCategoryNames(), items };
 }
@@ -5873,29 +5889,29 @@ function partBytes(z, switches) {
    tausend Handgriffe. */
 const EXCHANGE_PART_MIN = 1024 * 1024;
 function exchangePlan(switches, targetWanted) {
-  const zielGroesse = Math.min(EXCHANGE_WARN,
+  const targetSize = Math.min(EXCHANGE_WARN,
     Math.max(EXCHANGE_PART_MIN, Number(targetWanted) > 0 ? Number(targetWanted) : EXCHANGE_WARN));
   const rows = qPartSizes.all();
   const reason = exchangeEnvelopeFrame();
   const parts = [];
   const tooBig = [];
-  let offen = null;
+  let open = null;
   for (const z of rows) {
     const b = partBytes(z, switches);
     if (reason + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: reason + b }); continue; }
     // Ein neuer Teil, sobald dieser Eintrag den laufenden ueber den Zielwert
     // hoebe. Der erste Eintrag eroeffnet immer -- sonst entstuende ein leerer.
-    if (!offen || offen.bytes + b > zielGroesse) {
-      offen = { nr: parts.length + 1, from: z.id, to: z.id, count: 0, bytes: reason };
-      parts.push(offen);
+    if (!open || open.bytes + b > targetSize) {
+      open = { nr: parts.length + 1, from: z.id, to: z.id, count: 0, bytes: reason };
+      parts.push(open);
     }
-    offen.to = z.id;
-    offen.count++;
-    offen.bytes += b;
+    open.to = z.id;
+    open.count++;
+    open.bytes += b;
   }
   return { parts, tooBig: tooBig,
            total: parts.reduce((n, part) => n + part.bytes, 0),
-           zielGroesse, fallback: EXCHANGE_WARN, smallest: EXCHANGE_PART_MIN,
+           targetSize, fallback: EXCHANGE_WARN, smallest: EXCHANGE_PART_MIN,
            limit: EXCHANGE_MAX, string: EXCHANGE_STRING };
 }
 
@@ -5908,7 +5924,7 @@ function exchangeEnvelopeFrame() {
   const critRows = db.prepare('SELECT name, weight, phase FROM rating_criteria ORDER BY sort_order, id').all();
   return JSON.stringify({ exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
                           criteria: critRows.map(c => c.name),
-                          criteriaGewichte: Object.fromEntries(
+                          criteriaWeights: Object.fromEntries(
                             critRows.filter(c => c.weight !== 1).map(c => [c.name, c.weight])),
                           criteriaNames: exchangeCriterionNames(),
                           categoryNames: exchangeCategoryNames(),
@@ -5987,12 +6003,12 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
      kein Vollexport: wer `von` schickt und `bis` vergisst, bekaeme sonst
      stillschweigend alles. */
   const number = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
-  const from = number(req.query.von), to = number(req.query.bis);
+  const from = number(req.query.from), to = number(req.query.to);
   /* DIE VIER ABFRAGEANGABEN HEISSEN NOCH DEUTSCH, und das ist kein
      Uebersehen: die Oberflaeche baut sie aus `card.partQuery` -- einem WERT
      der Sprachdatei --, und die Werte der Sprachdatei bleiben in dieser Runde
      unangetastet. Sie ziehen mit, sobald der Satz selbst wandert. */
-  const part = number(req.query.teil), parts = number(req.query.teile);
+  const part = number(req.query.part), parts = number(req.query.parts);
   const asPart = from !== null || to !== null || part !== null || parts !== null;
   if (asPart && (from === null || to === null || part === null || parts === null))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportIncomplete')});
@@ -6002,7 +6018,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   const big = exchangeBytes(null, switches);
   if (!asPart && big > EXCHANGE_MAX)
     return res.status(413).json({ error:
-      t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
+      t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
   const situation = bundleState(req.user.id, switches);
   const items = (asPart
     ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(from, to)
@@ -6026,7 +6042,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
     if (!(e instanceof RangeError)) throw e;
     res.removeHeader('Content-Disposition');
     res.status(413).json({ error:
-      t(localeOf(req), 'server.exportGrew', { grenze: Math.round(EXCHANGE_STRING / 1048576) })});
+      t(localeOf(req), 'server.exportGrew', { limit: Math.round(EXCHANGE_STRING / 1048576) })});
   }
 });
 
@@ -6044,7 +6060,7 @@ app.get('/api/items/:id/export', ownerOnly, (req, res) => {
   const switches = { withPhotos: true, withFiles: true, withVideos: true };
   const big = exchangeBytes(it.id, switches);
   if (big > EXCHANGE_MAX)
-    return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
+    return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
   const bundle = entryAsBundle(it, bundleState(req.user.id, switches));
   res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
   res.json(exportEnvelope([bundle]));
@@ -6245,7 +6261,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      genannt. */
   const fileWeights = new Map();
   const weightsDropped = new Set();
-  const rawWeights = payload.criteriaGewichte;
+  const rawWeights = payload.criteriaWeights;
   if (rawWeights && typeof rawWeights === 'object' && !Array.isArray(rawWeights)) {
     for (const [name, raw] of Object.entries(rawWeights)) {
       const clean = String(name || '').trim();
@@ -6308,7 +6324,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
        dahin waehlte der Code zwischen „steht" und „stehen"; das ist Satzbau im
        Quelltext, und er faellt (Konzept, Abschnitt 0, Satz 2). */
     const e = new Message('server.criteriaConflict',
-                          { n: conflicts.length, namen: conflicts.join(', ') });
+                          { n: conflicts.length, names: conflicts.join(', ') });
     e.denial = true;
     throw e;
   }
@@ -6435,8 +6451,8 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         stats.links++;
       });
 
-      for (const tag of it.testDays || []) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(tag.day || '')) continue;
+      for (const date of it.testDays || []) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date.day || '')) continue;
         // OR REPLACE bleibt: die Datei ist die Wahrheit, der spaetere Wert
         // gewinnt. Das tut mehr, als es aussieht: REPLACE LOESCHT die
         // getroffene Zeile, und ueber ON DELETE CASCADE gehen deren
@@ -6446,10 +6462,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         // Zeilen. Fallen zwei unbekannte Namen auf den Einspielenden,
         // fallen sie doch zusammen -- deshalb die Protokollzeile unten.
         const simple = db.prepare(`INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)`)
-          .run(id, tag.day, Math.max(1, Math.min(5, Number(tag.rating) || 1)), authorId(tag.author));
+          .run(id, date.day, Math.max(1, Math.min(5, Number(date.rating) || 1)), authorId(date.author));
         // Aeltere Exportdateien haben hier kein Feld -- dann bleibt der
         // Testtag einfach ohne Tags.
-        for (const name of Array.isArray(tag.tags) ? tag.tags : []) {
+        for (const name of Array.isArray(date.tags) ? date.tags : []) {
           const clean = String(name || '').trim();
           if (clean) db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)')
             .run(simple.lastInsertRowid, tagByName(clean));
@@ -6715,7 +6731,7 @@ app.get('/api/trash', adminOnly, (req, res) => {
       // Wer geloescht hat, in derselben Form wie jeder Verfasser -- damit die
       // Oberflaeche denselben einen Weg von der Nummer zum Namen geht und ein
       // Grabstein "Gelöschter Benutzer 7" heisst.
-      loeschender: authorFrom(card, z.deleted_by),
+      deletedBy: authorFrom(card, z.deleted_by),
       files: z.files, bytes: z.bytes,
       // Die Frist rechnet der Server: die Zahl TRASH_DAYS steht an einer
       // Stelle, und die Oberflaeche baut sie nicht nach.
@@ -6875,20 +6891,20 @@ function backupState() {
      Er reist mit seinen Werten -- wer ihn zeigt, uebersetzt ihn dort, wo die
      Anfrage in der Hand liegt. */
   if (!BACKUP_DIR)
-    return { ein: false, reason: 'server.backupDirNotSet', values: {} };
+    return { input: false, reason: 'server.backupDirNotSet', values: {} };
   let root;
   try { root = fs.realpathSync(BACKUP_DIR); }
-  catch { return { ein: false, reason: 'server.backupDirGone', values: { ordner: BACKUP_DIR } }; }
+  catch { return { input: false, reason: 'server.backupDirGone', values: { folder: BACKUP_DIR } }; }
   try { if (!fs.statSync(root).isDirectory())
-    return { ein: false, reason: 'server.backupDirNotDir', values: { ordner: BACKUP_DIR } }; }
-  catch { return { ein: false, reason: 'server.backupDirUnreadable', values: { ordner: BACKUP_DIR } }; }
+    return { input: false, reason: 'server.backupDirNotDir', values: { folder: BACKUP_DIR } }; }
+  catch { return { input: false, reason: 'server.backupDirUnreadable', values: { folder: BACKUP_DIR } }; }
   let data;
   try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
   // EINE SICHERUNG NEBEN DEM ORIGINAL IST KEINE. Beide Richtungen, denn beide
   // sind falsch: der Sicherungsort im Datenverzeichnis und umgekehrt.
   if (liesIn(root, data) || liesIn(data, root))
-    return { ein: false, reason: 'server.backupInDataDir', values: {} };
-  return { ein: true, root, inWorkDir: liesIn(root, APP_DIR) };
+    return { input: false, reason: 'server.backupInDataDir', values: {} };
+  return { input: true, root, inWorkDir: liesIn(root, APP_DIR) };
 }
 
 /* Der eingestellte Ort, geprueft. Liefert entweder { ort, pfad } oder
@@ -6896,23 +6912,23 @@ function backupState() {
    "ungueltig". */
 function checkPlace(raw) {
   const situation = backupState();
-  if (!situation.ein) return { error: situation.reason, values: situation.values };
+  if (!situation.input) return { error: situation.reason, values: situation.values };
   const s = String(raw == null ? '' : raw).trim();
   if (!s) return { place: '', filePath: situation.root };
   // `deckel` ist ein Platzhalter der Sprachdatei und kein Bezeichner.
-  if (s.length > 200) return { error: 'server.subDirTooLong', values: { deckel: 200 } };
+  if (s.length > 200) return { error: 'server.subDirTooLong', values: { cap: 200 } };
   if (!PLACE_PATTERN.test(s))
     return { error: 'server.subDirForm', values: {} };
   let real;
   try { real = fs.realpathSync(path.resolve(situation.root, s)); }
-  catch { return { error: 'server.subDirGone', values: { ordner: s } }; }
+  catch { return { error: 'server.subDirGone', values: { folder: s } }; }
   try { if (!fs.statSync(real).isDirectory())
-    return { error: 'server.subDirNotDir', values: { ordner: s } }; }
-  catch { return { error: 'server.subDirUnreadable', values: { ordner: s } }; }
+    return { error: 'server.subDirNotDir', values: { folder: s } }; }
+  catch { return { error: 'server.subDirUnreadable', values: { folder: s } }; }
   // DIE PRUEFUNG HAENGT AM AUFGELOESTEN PFAD. Erst hier faellt ein Symlink
   // auf, der aus der Wurzel herausfuehrt -- am String saehe er harmlos aus.
   if (!liesIn(real, situation.root))
-    return { error: 'server.subDirOutside', values: { ordner: s } };
+    return { error: 'server.subDirOutside', values: { folder: s } };
   let data;
   try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
   if (liesIn(real, data))
@@ -6965,11 +6981,11 @@ function changeMark() {
    zwar eine Zeitmarke, aber er ist von aussen gestaltbar; die Angabe des
    Dateisystems ist es nicht. */
 function backupList(filePath) {
-  let namen;
-  try { namen = fs.readdirSync(filePath); }
+  let names;
+  try { names = fs.readdirSync(filePath); }
   catch { return null; }
   const files = [];
-  for (const n of namen) {
+  for (const n of names) {
     if (!BACKUP_PATTERN.test(n)) continue;
     try {
       const st = fs.lstatSync(path.join(filePath, n));
@@ -6982,18 +6998,18 @@ function backupList(filePath) {
 
 function lastBackup(filePath) {
   const mark = changeMark();
-  const gewechseltAm = mark ? mark.at : null;
+  const changedAt = mark ? mark.at : null;
   const files = backupList(filePath);
   if (files === null)
-    return { reachable: false, last: null, number: 0, gewechseltAm, veraltet: 0 };
+    return { reachable: false, last: null, number: 0, changedAt, outdated: 0 };
   // Ohne Wechsel ist KEINE Kopie veraltet -- und nicht etwa jede. Der
   // Unterschied zwischen "es gab keinen Wechsel" und "alle sind veraltet" ist
   // genau der, den diese Zeile haelt.
-  const veraltet = mark ? files.filter(d => d.time < mark.ms).length : 0;
+  const outdated = mark ? files.filter(d => d.time < mark.ms).length : 0;
   if (!files.length)
-    return { reachable: true, last: null, number: 0, gewechseltAm, veraltet: 0 };
+    return { reachable: true, last: null, number: 0, changedAt, outdated: 0 };
   const j = files[0];
-  return { reachable: true, number: files.length, gewechseltAm, veraltet, last: {
+  return { reachable: true, number: files.length, changedAt, outdated, last: {
     file: j.name, bytes: j.bytes,
     // Dieselbe Schreibweise wie jeder Zeitstempel der Instanz
     // ("2026-08-23 19:56:01", UTC): die Oberflaeche hat genau einen Weg, aus
@@ -7002,7 +7018,7 @@ function lastBackup(filePath) {
     daysAgo: Math.max(0, Math.floor((Date.now() - j.time) / 86400000)),
     // Auch die JUENGSTE Kopie kann aelter sein als der Wechsel -- dann ist
     // ueberhaupt keine brauchbare da, und das ist die schaerfste Lage.
-    veraltet: Boolean(mark && j.time < mark.ms)
+    outdated: Boolean(mark && j.time < mark.ms)
   } };
 }
 
@@ -7139,7 +7155,7 @@ function cleanupPreview(filePath, keep, days) {
     files: files.map((d, i) => ({
       ...cleanupRow(d, now), nr: i + 1,
       affected: hitNames.has(d.name),
-      veraltet: oldMs != null && d.time < oldMs
+      outdated: oldMs != null && d.time < oldMs
     })),
     matched: matched.map(d => cleanupRow(d, now)),
     bytes: matched.reduce((n, d) => n + d.bytes, 0),
@@ -7179,24 +7195,24 @@ const logRemoved = (actor, number) => {
   for (let i = 0; i < number; i++) auth.log('backup.delete', { actor });
 };
 
-function removeBackups(ordner, namen) {
+function removeBackups(folder, names) {
   let removed = 0, bytes = 0;
-  const geblieben = [];
-  for (const n of namen) {
+  const stayed = [];
+  for (const n of names) {
     const short = path.basename(String(n));
-    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { geblieben.push(short); continue; }
-    const full = path.join(ordner, short);
+    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { stayed.push(short); continue; }
+    const full = path.join(folder, short);
     try {
       const st = fs.lstatSync(full);
-      if (!st.isFile()) { geblieben.push(short); continue; }
+      if (!st.isFile()) { stayed.push(short); continue; }
       fs.unlinkSync(full);
       removed++; bytes += st.size;
     } catch (e) {
-      geblieben.push(short);
+      stayed.push(short);
       console.error(`[Kriterion] Sicherung ${short} nicht entfernt: ${e.message}`);
     }
   }
-  return { removed, bytes, geblieben };
+  return { removed, bytes, stayed };
 }
 
 // Lesend, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht trotzdem
@@ -7217,7 +7233,7 @@ app.get('/api/backup', ownerOnly, (req, res) => {
      nicht am Sicherungsort. Nur die ZAHL der veralteten Kopien haengt daran,
      und die ist dann ehrlich null statt geraten. */
   const mark = changeMark();
-  const gewechseltAm = mark ? mark.at : null;
+  const changedAt = mark ? mark.at : null;
   /* DIE VORSCHAU RECHNET MIT DEN WERTEN AUS DER ABFRAGE, WENN WELCHE
      DASTEHEN, und sonst mit den eingestellten. So rechnet jede Aenderung an
      einem der beiden Felder die Vorschau neu, OHNE dass etwas gespeichert oder
@@ -7248,17 +7264,17 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   /* UEBERSETZT WIRD HIER -- 0.24.0. backupState() und checkPlace() liefern
      seit dieser Runde einen Schluessel samt Werten; welche Sprache die Antwort
      traegt, weiss erst die Route. */
-  if (!situation.ein) return res.json({ configured: false,
+  if (!situation.input) return res.json({ configured: false,
                                    reason: t(localeOf(req), situation.reason, situation.values), place,
                                    dbBytes, durationSeconds: duration, reachable: false, last: null,
-                                   gewechseltAm, veraltet: 0, cleanup: rule });
+                                   changedAt, outdated: 0, cleanup: rule });
   const target = checkPlace(place);
   if (target.error) return res.json({ configured: true, root: situation.root, place,
                                      inWorkDir: situation.inWorkDir,
                                      error: t(localeOf(req), target.error, target.values),
                                      dbBytes, durationSeconds: duration,
                                      reachable: false, last: null,
-                                     gewechseltAm, veraltet: 0, cleanup: rule });
+                                     changedAt, outdated: 0, cleanup: rule });
   // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
   // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
   res.json({ configured: true, root: situation.root, place, filePath: target.filePath,
@@ -7274,15 +7290,15 @@ app.get('/api/backup', ownerOnly, (req, res) => {
    PERSONAL_KEYS ab -- was nicht persoenlich ist, ist dort Adminsache.
    Der Sicherungsort gehoert aber in dieselbe Zeile wie Export und Import. */
 app.put('/api/backup/dir', ownerOnly, (req, res) => {
-  const geprueft = checkPlace(req.body?.place);
-  if (geprueft.error) return res.status(400).json({ error: t(localeOf(req), geprueft.error, geprueft.values) });
-  putSetting.run('backupPlace', JSON.stringify(geprueft.place));
-  res.json({ ok: true, place: geprueft.place, filePath: geprueft.filePath, ...lastBackup(geprueft.filePath) });
+  const checked = checkPlace(req.body?.place);
+  if (checked.error) return res.status(400).json({ error: t(localeOf(req), checked.error, checked.values) });
+  putSetting.run('backupPlace', JSON.stringify(checked.place));
+  res.json({ ok: true, place: checked.place, filePath: checked.filePath, ...lastBackup(checked.filePath) });
 });
 
 app.post('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
-  if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
+  if (!situation.input) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
   /* NAME MIT DATUM UND UHRZEIT. Ueberschreiben waere die schlechteste Antwort:
@@ -7351,11 +7367,11 @@ app.post('/api/backup', ownerOnly, (req, res) => {
                                    Date.now(), (changeMark() || {}).ms ?? null);
       if (matched.length) {
         const out2 = removeBackups(target.filePath, matched.map(d => d.name));
-        cleaned = { removed: out2.removed, nicht: out2.geblieben.length, bytes: out2.bytes };
+        cleaned = { removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes };
         if (out2.removed) {
           console.log(`[Kriterion] Alte Sicherungen entfernt: ${out2.removed} ` +
             `(${out2.bytes} Bytes frei)` +
-            `${out2.geblieben.length ? `, ${out2.geblieben.length} nicht` : ''}.`);
+            `${out2.stayed.length ? `, ${out2.stayed.length} nicht` : ''}.`);
           logRemoved(req.user.id, out2.removed);
         }
       }
@@ -7364,7 +7380,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
     // Die Sicherung ist gelungen; dieser Fehler ist eine Angabe daneben und
     // darf die Antwort nicht in eine Absage verwandeln.
     console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);
-    cleaned = { removed: 0, nicht: 0, bytes: 0, gescheitert: true };
+    cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };
   }
   res.json({ ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
              ...lastBackup(target.filePath), cleaned });
@@ -7401,7 +7417,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
 app.post('/api/backup/cleanup', ownerOnly,
          secondConfirmNeeded('backup'), (req, res) => {
   const situation = backupState();
-  if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
+  if (!situation.input) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
   const kind = String(req.body?.kind || '');
@@ -7431,7 +7447,7 @@ app.post('/api/backup/cleanup', ownerOnly,
   const out2 = removeBackups(target.filePath, matched.map(d => d.name));
   if (out2.removed) {
     console.log(`[Kriterion] Alte Sicherungen entfernt (${kind}): ${out2.removed} ` +
-      `(${out2.bytes} Bytes frei)${out2.geblieben.length ? `, ${out2.geblieben.length} nicht` : ''}.`);
+      `(${out2.bytes} Bytes frei)${out2.stayed.length ? `, ${out2.stayed.length} nicht` : ''}.`);
     /* NUR DIE ZAHL INS SICHERHEITSPROTOKOLL. Kein Freitext, kein Dateiname,
        kein Pfad -- das Protokoll haelt Vorgaenge fest, keine Orte auf dem Wirt
        (dieselbe Regel wie beim `backup`-Eintrag daneben). DIE
@@ -7444,7 +7460,7 @@ app.post('/api/backup/cleanup', ownerOnly,
      frisch daneben: die Karte zeichnet sich daraus neu, statt ihren alten
      Stand fortzuschreiben. */
   const after = cleanupStatus();
-  res.json({ ok: true, kind, removed: out2.removed, nicht: out2.geblieben.length, bytes: out2.bytes,
+  res.json({ ok: true, kind, removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes,
              ...lastBackup(target.filePath),
              cleanup: { ...after,
                            limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
@@ -7455,7 +7471,7 @@ app.post('/api/backup/cleanup', ownerOnly,
 // hier und nicht erst am Knopf.
 {
   const situation = backupState();
-  console.log('[Kriterion] Sicherungsort: ' + (situation.ein ? situation.root : `aus — ${situation.reason}`));
+  console.log('[Kriterion] Sicherungsort: ' + (situation.input ? situation.root : `aus — ${situation.reason}`));
 }
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
@@ -7499,9 +7515,9 @@ app.use((err, req, res, next) => {
    jedem Start ein Thread fuer eine leere Liste -- 19 ms fuer die Verbindung
    und 76 ms fuer sharp, fuer nichts. */
 function backfillThumbnails() {
-  const offen = db.prepare(
+  const open = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND kind != 'video'").all();
-  if (!offen.length) return refreshTiles();
+  if (!open.length) return refreshTiles();
   /* maintainStorage() ERST DANACH, und deshalb steht es hier im Abschluss und
      nicht in einer Kette daneben: es fasst die ganze Datei an (beim ersten Mal
      ein VACUUM) und darf nicht neben der Schleife laufen.
@@ -7510,7 +7526,7 @@ function backfillThumbnails() {
      schrieben beide in `photos`, und der Stand fuer die Karte ist EINE
      Variable -- der zweite ueberschriebe den ersten, und die Karte zeigte
      abwechselnd zwei Laeufe (Stolperstein 47). */
-  startBatchThread('vorschaubilder', offen, refreshTiles);
+  startBatchThread('thumbnails', open, refreshTiles);
 }
 
 /* DIE KACHELN ERNEUERN -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt.
@@ -7532,7 +7548,7 @@ function backfillThumbnails() {
 function refreshTiles() {
   const rows = qTileRows.all();
   if (!rows.length) return maintainStorage();
-  startBatchThread('geometrie', rows, maintainStorage);
+  startBatchThread('geometry', rows, maintainStorage);
 }
 
 /* NICHT MEHR `async` SEIT 0.19.3, und das ist keine Kosmetik: nichts darin ist
@@ -7677,7 +7693,7 @@ app.listen(PORT, () => {
     const z = mail.state(raw);
     if (mail.configured(raw)) {
       console.log(`[Kriterion] Mailversand: ${z.providerName} über ${z.server}:${z.port} ` +
-        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +
+        `(${z.secure ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +
         (PUBLIC.address ? '' : ' Ohne PUBLIC_ADDRESS wird trotzdem nicht verschickt.'));
     } else {
       console.log('[Kriterion] Mailversand: nicht eingerichtet — Einladungs- und ' +

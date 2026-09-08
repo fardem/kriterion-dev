@@ -157,7 +157,7 @@ const VARIANTS = {
 function cropSpecBox(width, height, fx, fy, zoom) {
   const side = Math.min(width, height);   // was die Kachel bei zoom 100 zeigt
   const tight = side * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
-  return { links: fx / 100 * (width - tight), oben: fy / 100 * (height - tight), edge: tight };
+  return { links: fx / 100 * (width - tight), top: fy / 100 * (height - tight), edge: tight };
 }
 
 /* WELCHE KANTE DIE KURZE IST, SAGT NUR DAS BILD SELBST -- und der Kopf sagt
@@ -218,10 +218,10 @@ function cropRectOf(size, cropSpec) {
   const { width, height } = rotatedSize(size);
   if (!width || !height) return null;
   const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);
-  if (!Number.isFinite(k.edge) || !Number.isFinite(k.links) || !Number.isFinite(k.oben)) return null;
+  if (!Number.isFinite(k.edge) || !Number.isFinite(k.links) || !Number.isFinite(k.top)) return null;
   const edge = Math.max(1, Math.min(width, height, Math.round(k.edge)));
   return { left:  Math.max(0, Math.min(width - edge, Math.round(k.links))),
-           top:   Math.max(0, Math.min(height  - edge, Math.round(k.oben))),
+           top:   Math.max(0, Math.min(height  - edge, Math.round(k.top))),
            width: edge, height: edge };
 }
 

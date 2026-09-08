@@ -562,7 +562,7 @@ function removeUser(userId, options = {}, actor) {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
     // zweite Haekchen Zeilen mit, die das erste ohnehin mitgenommen haette.
     if (options.entries) db.prepare('DELETE FROM items WHERE user_id = ?').run(u.id);
-    if (options.beitraege) {
+    if (options.posts) {
       db.prepare('DELETE FROM comments WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM ratings WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM test_days WHERE user_id = ?').run(u.id);
@@ -1426,7 +1426,7 @@ function createRelease(token, purpose, target) {
   if (!token) throw new Error('Eine Freigabe braucht die Sitzung.');
   if (!CONFIRM_PURPOSES.includes(purpose)) throw new Message('server.purposeUnknown');
   releases.set(releaseKey(token, purpose, target), Date.now() + RELEASE_MS);
-  return { purpose, sekunden: RELEASE_MS / 1000 };
+  return { purpose, seconds: RELEASE_MS / 1000 };
 }
 
 /* Prueft UND verbraucht in einem. Zwei Funktionen -- eine, die nachsieht, und
@@ -1494,9 +1494,9 @@ const qCodesTotal = db.prepare('SELECT COUNT(*) n FROM two_factor_codes WHERE us
 function twoFactorState(userId) {
   const id = Number(userId) || 0;
   const z = getTwoFactor(id);
-  if (!z || !z.confirmed_at) return { an: false, seit: null, codesOpen: 0, codesTotal: 0 };
+  if (!z || !z.confirmed_at) return { an: false, since: null, codesOpen: 0, codesTotal: 0 };
   return {
-    an: true, seit: z.confirmed_at,
+    an: true, since: z.confirmed_at,
     codesOpen: qCodesLeft.get(id).n, codesTotal: qCodesTotal.get(id).n
   };
 }
@@ -1534,7 +1534,7 @@ function startTwoFactor(userId, instanceName, username) {
     // Der Feldname bleibt deutsch, bis app.js in Bauabschnitt 4 mitzieht.
     secret: secret, groups: zf.groupsOfFour(secret),
     row: zf.otpauthLine(instanceName, username, secret),
-    ziffern: zf.DIGITS, sekunden: zf.STEP_SECONDS
+    digits: zf.DIGITS, seconds: zf.STEP_SECONDS
   };
 }
 
@@ -1677,7 +1677,7 @@ function createLoginTicket(userId) {
   for (const [k, a] of tickets) if (a.until <= now) tickets.delete(k);
   const key = crypto.randomBytes(32).toString('hex');
   tickets.set(key, { id, until: now + LOGIN_TICKET_MS });
-  return { ticket: key, sekunden: LOGIN_TICKET_MS / 1000 };
+  return { ticket: key, seconds: LOGIN_TICKET_MS / 1000 };
 }
 
 /* Prueft UND verbraucht in einem, wie useRelease. Zwei Funktionen --

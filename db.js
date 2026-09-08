@@ -62,7 +62,7 @@ function changeKey(newHex) {
 function method() {
   return {
     cipher: String(db.pragma('cipher', { simple: true }) || ''),
-    schluesselBits: key.hex.length * 4,
+    keyBits: key.hex.length * 4,
     journal: String(db.pragma('journal_mode', { simple: true }) || '').toUpperCase()
   };
 }
@@ -1140,6 +1140,164 @@ function migration0243Language() {
 migration0243Language();
 // ENDE MIGRATION 0.24.3 (die Vorgabesprache des Bestands)
 
+/* ====== MIGRATION 0.24.3 — DIE DEUTSCHEN RESTE IN GESPEICHERTEN WERTEN =====
+
+   DER ZWEITE BLOCK DIESER RUNDE, und das ist keine Nachlaessigkeit, sondern
+   die Frage F7: der Betreiber hat am 7. September 2026 GEGEN den Vorschlag
+   des Auftrags entschieden. Der deutsche Rest aus 0.24.1 faellt ganz -- auch
+   das, was in der Datenbank steht. Der Vorschlag lautete "nur, was mit einem
+   WERT der Sprachdatei umzieht"; die Entscheidung lautet "alles".
+
+   WAS 0.24.1 LIEGEN LIESS UND WARUM. Der Umbenenner von 0.24.1 fasst
+   ausschliesslich CODE-Abschnitte an -- Zeichenfolgen und Kommentare bleiben
+   unberuehrt, und das ist richtig so: eine Zeichenfolge kann ein Satz an der
+   Oberflaeche sein. Die fuenf Namen hier standen aber BEIDES: als Bezeichner
+   im Quelltext (dort wurden sie uebersetzt) und als Schluessel in einem
+   gespeicherten JSON-Objekt (dort nicht). Seit dem Umbenennen liest der
+   Quelltext `side` und in der Ablage steht `seite` -- die Einstellung ist
+   damit nicht falsch, sie ist UNSICHTBAR. Das ist Stolperstein 324 mit
+   umgekehrtem Vorzeichen: nicht die Form hat sich geaendert, sondern der
+   Name darin.
+
+   FUENF FELDNAMEN UND ZWEI WERTE:
+     `sicher`   im Mailzugang            -> `secure`
+     `seite`    in den Bloecken          -> `side`
+     `unten`    in den Bloecken          -> `bottom`
+     `zu`       in den Bloecken          -> `closed`
+     `favorit`  im Filter                -> `favorite`
+     die VIERZEHN Vokabelnamen           -> `sacheEinzahl` -> `entryOne` und so
+                                            fort; die Tafel steht unten
+     `potenzial_desc` / `potenzial_asc`  -> `potential_desc` / `potential_asc`
+                (die beiden Sortierwerte, und sie stehen als WERT und nicht
+                als Name -- deshalb die zweite Spalte der Tafel)
+
+   DAS VOKABULAR IST DER TEURE FALL. Die vierzehn Woerter, die der Eigentuemer
+   selbst eingetragen hat, liegen unter denselben Namen, die 0.24.1 im
+   Quelltext uebersetzt hat -- und `vocabulary()` in server.js laeuft ueber
+   die VORGABEN und liest zu jedem Namen den gespeicherten Wert. Traegt die
+   Ablage `sacheEinzahl` und der Quelltext fragt nach `entryOne`, faellt JEDES
+   der vierzehn Woerter auf die Vorgabe zurueck: aus „Maschine" wird wieder
+   „Eintrag", stumm, an jeder Beschriftung zugleich. Kein Fehler, keine
+   Meldung -- nur ein Bestand, der ueber Nacht wieder Vorgabe spricht.
+
+   ES WIRD ZWEIMAL HINGESEHEN: EINE STUFE TIEF UND EINE TIEFER. Bis 0.24.2 lag
+   unter `vocabulary` ein FLACHES Objekt mit den vierzehn Woertern; seit
+   Bauabschnitt 6 dieser Runde liegt dort ein Objekt JE SPRACHE, und die
+   vierzehn stehen eine Stufe tiefer. Beide Formen koennen dastehen -- die
+   flache wird beim LESEN gedeutet und nicht umgeschrieben --, also fasst die
+   Tafel beide an. Was auf der falschen Stufe steht, traegt die Namen nicht
+   und bleibt unberuehrt.
+
+   DIE ANSICHTEN TRAGEN DENSELBEN FILTER NOCH EINMAL. `views` ist eine LISTE
+   von { name, q, filters }, und jedes `filters` darin ist dasselbe Objekt wie
+   unter `filters`. Wer das vergisst, hat den laufenden Filter umgestellt und
+   die acht gespeicherten Ansichten stehen gelassen -- und genau die sind der
+   Grund, warum jemand sie gespeichert hat.
+
+   DIE TAFEL STEHT ALS ZEICHENFOLGEN-PAARE UND NICHT ALS EIGENSCHAFTSNAMEN.
+   SHAPES_0242 eine Runde davor schreibt `{ vorlage: 'template' }` -- und
+   genau dafuer braucht der Pruefstand seither eine Ausnahmeliste
+   (OLD_STORED_NAMES), weil `vorlage` dort ein deutscher BEZEICHNER ist. Ein
+   Paar `['seite', 'side']` sagt dasselbe und ist eine Zeichenfolge; eine
+   Uebersetzungstafel muss nennen duerfen, was sie uebersetzt, ohne es zu
+   HEISSEN. Die Ausnahmeliste waechst dadurch nicht.
+
+   VOR db.exec(SCHEMA), wie jeder Block hier. Und NACH migration0241Values():
+   gesucht werden die Zeilen unter ihren NEUEN Schluesseln (`blocks`, `views`,
+   `filters`), und die gibt es erst, nachdem 0.24.1 die Schluesselnamen selbst
+   uebersetzt hat. Ein Bestand aus 0.24.0 durchlaeuft beide in einem Start.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Zeile selbst --
+   traegt sie den alten Namen? --, nicht ein Merker. Ein zweiter Lauf findet
+   nichts mehr und sagt nichts.
+
+   EINE UNLESBARE ZEILE WIRD UEBERGANGEN UND NICHT VERWORFEN -- dieselbe Regel
+   wie in SHAPES_0242, und aus demselben Grund.
+
+   TRAEGT DIE ZEILE SCHON DEN NEUEN NAMEN, GILT DER: der Quelltext liest ihn,
+   also ist er der Wert, der in Kraft ist. Der alte faellt weg, damit nicht
+   zwei Wahrheiten nebeneinander liegenbleiben. */
+const FILTER_FIELDS_0243 = [['favorit', 'favorite']];
+// Feld, alter Wert, neuer Wert. Der einzige Platz, an dem 0.24.3 einen WERT
+// und nicht einen Namen umschreibt.
+const FILTER_VALUES_0243 = [['sort', 'potenzial_desc', 'potential_desc'],
+                            ['sort', 'potenzial_asc',  'potential_asc']];
+/* DIE VIERZEHN VOKABELNAMEN. Dieselbe Reihenfolge wie VOCABULARY_FIELDS in
+   app.js -- v1 bis v14 --, damit sich beide Listen nebeneinander lesen. */
+const VOCABULARY_FIELDS_0243 = [
+  ['sacheEinzahl', 'entryOne'],       ['sacheMehrzahl', 'entryMany'],
+  ['merkmalJa', 'testedYes'],         ['merkmalNein', 'testedNo'],
+  ['zeitpunktEinzahl', 'dayOne'],     ['zeitpunktMehrzahl', 'dayMany'],
+  ['berichtEinzahl', 'reportOne'],    ['berichtMehrzahl', 'reportMany'],
+  ['aufgabeEinzahl', 'taskOne'],      ['aufgabeMehrzahl', 'taskMany'],
+  ['aufgabeErledigt', 'taskDone'],    ['potenzial', 'potential'],
+  ['bewertungEinzahl', 'ratingOne'],  ['bewertungMehrzahl', 'ratingMany']
+];
+const STORED_0243 = [
+  /* `reach` sagt, WO in dem geparsten Wert die Objekte liegen, die die Tafel
+     anfasst. Zwei Formen kommen vor: der Wert selbst ist das Objekt, oder er
+     ist eine Liste, und in jedem Glied steckt eines. */
+  { table: 'settings',      key: 'mailzugang', reach: (v) => [v],
+    fields: [['sicher', 'secure']], values: [] },
+  { table: 'user_settings', key: 'blocks',     reach: (v) => [v],
+    fields: [['seite', 'side'], ['unten', 'bottom'], ['zu', 'closed']], values: [] },
+  { table: 'user_settings', key: 'filters',    reach: (v) => [v],
+    fields: FILTER_FIELDS_0243, values: FILTER_VALUES_0243 },
+  { table: 'user_settings', key: 'views',
+    reach: (v) => (Array.isArray(v) ? v.map(a => a && a.filters) : []),
+    fields: FILTER_FIELDS_0243, values: FILTER_VALUES_0243 },
+  /* Beide Stufen zugleich: das Objekt selbst (die flache Form bis 0.24.2) und
+     jedes Objekt darin (ein Satz je Sprache seit Bauabschnitt 6). */
+  { table: 'settings', key: 'vocabulary',
+    reach: (v) => [v, ...Object.values(v || {})],
+    fields: VOCABULARY_FIELDS_0243, values: [] }
+];
+function migration0243Stored() {
+  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  let n = 0;
+  const counted = [];
+  for (const { table, key, reach, fields, values } of STORED_0243) {
+    if (!tables.has(table)) continue;
+    /* GELESEN WIRD ZEILENWEISE UND NICHT EINMAL: `settings` traegt einen Wert
+       je Schluessel, `user_settings` einen JE BENUTZER. Ein UPDATE ueber alle
+       Zeilen zugleich schriebe jedem denselben Filter. */
+    const rows = db.prepare(`SELECT rowid AS at, value FROM ${table} WHERE key = ?`).all(key);
+    if (!rows.length) continue;
+    const write = db.prepare(`UPDATE ${table} SET value = ? WHERE rowid = ?`);
+    for (const row of rows) {
+      let value;
+      try { value = JSON.parse(row.value); } catch { continue; }
+      const touched = [];
+      for (const o of reach(value)) {
+        if (!o || typeof o !== 'object' || Array.isArray(o)) continue;
+        for (const [old, fresh] of fields) {
+          if (!Object.prototype.hasOwnProperty.call(o, old)) continue;
+          if (!Object.prototype.hasOwnProperty.call(o, fresh)) o[fresh] = o[old];
+          delete o[old];
+          touched.push(`${old} → ${fresh}`);
+        }
+        for (const [field, old, fresh] of values) {
+          if (o[field] !== old) continue;
+          o[field] = fresh;
+          touched.push(`${field}: ${old} → ${fresh}`);
+        }
+      }
+      if (!touched.length) continue;
+      write.run(JSON.stringify(value), row.at);
+      n += touched.length;
+      counted.push(`${table}.${key} ${touched.join(', ')}`);
+    }
+  }
+  if (!n) return 0;
+  console.log(`[Kriterion] ${n} gespeicherte Namen umbenannt (Migration auf 0.24.3): ` +
+    `${counted.join(' · ')}.`);
+  return 1;
+}
+migration0243Stored();
+// ENDE MIGRATION 0.24.3 (die deutschen Reste in gespeicherten Werten)
+
+
 
 db.exec(SCHEMA);
 
@@ -1313,9 +1471,9 @@ function migration0140() {
   db.transaction(() => { for (const [, sql] of missing) db.exec(sql); })();
   // "a, b und c" statt "a und b und c" -- bei drei Namen liest sich das
   // andere wie ein Fehler in der Zeile.
-  const namen = missing.map(f => f[0]);
-  const enumeration = namen.length > 1
-    ? `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}` : namen[0];
+  const names = missing.map(f => f[0]);
+  const enumeration = names.length > 1
+    ? `${names.slice(0, -1).join(', ')} und ${names[names.length - 1]}` : names[0];
   const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;
   console.log(`[Kriterion] items um ${enumeration} ergaenzt ` +
     `(Migration auf 0.14.0); ${n} bereits abgelehnte ${n === 1 ? 'Eintrag steht' : 'Eintraege stehen'} ` +

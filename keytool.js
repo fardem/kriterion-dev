@@ -113,8 +113,8 @@ function state() {
     // Ein unbekannter freier Platz ist KEINE Absage: statfs kann auf einem
     // ungewoehnlichen Dateisystem scheitern, und eine Absage ohne Grundlage
     // waere schlimmer als der Versuch. Gesagt wird es trotzdem.
-    reicht: free === null ? null : free >= needed,
-    sekunden: Math.max(1, Math.round(bytes / 1048576 * MS_PER_MB / 1000)),
+    enough: free === null ? null : free >= needed,
+    seconds: Math.max(1, Math.round(bytes / 1048576 * MS_PER_MB / 1000)),
     changed
   };
 }
@@ -128,9 +128,9 @@ function commandShow() {
   console.log(`  Datenbank           ${mb(l.bytes)}`);
   console.log(`  Freier Platz        ${mb(l.free)}${l.free === null ? ' (nicht ermittelbar)' : ''}`);
   console.log(`  Für den Wechsel     ${mb(l.needed)} — das Journal wächst auf die Größe der Datenbank`);
-  console.log(`  Erwartete Dauer     rund ${l.sekunden} Sekunden`);
+  console.log(`  Erwartete Dauer     rund ${l.seconds} Sekunden`);
   console.log(`  Zuletzt gewechselt  ${l.changed || 'nie'}`);
-  if (l.reicht === false) console.log(RED('\n  Der Platz reicht nicht. Ein Wechsel wird abgelehnt.'));
+  if (l.enough === false) console.log(RED('\n  Der Platz reicht nicht. Ein Wechsel wird abgelehnt.'));
   if (keyFromEnv)
     console.log('\n  Der Wechsel braucht die .env des Wirts:  --env /pfad/zur/.env');
   console.log('');
@@ -179,7 +179,7 @@ async function commandChange(options) {
       process.exit(1);
     }
   }
-  if (l.reicht === false) {
+  if (l.enough === false) {
     console.error(RED('Zu wenig Platz auf dem Datenträger.'));
     console.error(`Das Rollback-Journal wächst auf die Größe der Datenbank: gebraucht werden`);
     console.error(`${mb(l.needed)}, frei sind ${mb(l.free)}. Nichts geändert.`);
@@ -196,7 +196,7 @@ async function commandChange(options) {
 
   /* ---- Die Ansage, und sie nennt beim Namen, was danach anders ist ---- */
   console.log(`\n${BOLD('Der Schlüssel dieser Datenbank wird gewechselt.')}\n`);
-  console.log(`  Datenbank        ${mb(l.bytes)}, erwartete Dauer rund ${l.sekunden} Sekunden`);
+  console.log(`  Datenbank        ${mb(l.bytes)}, erwartete Dauer rund ${l.seconds} Sekunden`);
   console.log(`  Freier Platz     ${mb(l.free)} — gebraucht werden ${mb(l.needed)}`);
   console.log(`  Ablage danach    ${options.env || path.join(DATA_DIR, 'encryption.key')}`);
   console.log(RED('\n  WAS DANACH GILT:'));
@@ -248,7 +248,7 @@ async function commandChange(options) {
   const stamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
   let old = null;
   try {
-    if (options.env) old = keys.writeEnvLine(options.env, keyHex, fresh, options.wer, stamp);
+    if (options.env) old = keys.writeEnvLine(options.env, keyHex, fresh, options.who, stamp);
     else keys.writeKeyFile(DATA_DIR, fresh);
   } catch (e) {
     console.error(RED(`\nDER WECHSEL IST GELUNGEN, DIE ABLAGE NICHT: ${e.message}`));
@@ -306,7 +306,7 @@ async function main() {
   };
   const options = {
     env: get('--env'),
-    wer: get('--wer') || 'unbekannt',
+    who: get('--wer') || 'unbekannt',
     ja: args.includes('--ja')
   };
   switch (command) {
