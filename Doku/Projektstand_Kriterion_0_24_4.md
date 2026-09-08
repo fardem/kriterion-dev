@@ -479,7 +479,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 ## 2. Betriebsstand
 
 **Gebaut ist 0.24.4** — **6082 Prüfungen**, **728 Rückbauten in der Liste**
-(Abschnitt 8). *Am Wirt noch nicht gesehen.*
+(Abschnitt 8). **Am Wirt eingespielt am 8. September 2026, Fingerprint
+`5c762c71`** *(Abschnitt 8)*.
 *0.24.4 bringt die dritte Sprache — `tr.json` neben `de.json` und `en.json`,
 **1209 Schlüssel je Datei**, und mehr war dafür nicht zu tun als die Datei
 hineinzulegen: das ist die Probe auf die Zusage aus 0.24.3.* **Und sie räumt
@@ -1470,7 +1471,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.24.4** | *(gebaut am 8. September 2026; **am Wirt noch nicht gesehen**. Der Fingerprint wird beim Einspielen nachgetragen — er steht erst fest, wenn der Stand als Commit liegt.)* | **6082** |
+| **0.24.4** | `5c762c71` *(am 8. September 2026 eingespielt und **von der laufenden Installation gemeldet**. **Zwei Quellen, ein Wert:** derselbe Fingerprint ist am gemergten Stand `a20475e` nachgerechnet worden — mit der Regel aus `buildFingerprint()`, geprüft daran, dass sie für 0.24.3 `ceb8d26a` ergibt. **Damit ist er im Feld bestätigt**, obwohl es zu ihm keinen vorher angesagten Sollwert gab: die Zeile davor sagte, er stehe erst fest, wenn der Stand als Commit liegt.)* | **6082** |
 | 0.24.3 | `ceb8d26a` *(gebaut am 8. September 2026; **am Wirt nicht gesehen** — er gilt für den Stand NACH dem Streichen der Sprachzeile. 0.24.4 ist noch am selben Tag darauf gebaut worden.)* | 6019 |
 | 0.24.3 *(erster Stand)* | `80f90ee5` *(am 8. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. **Der Rundlauf hat fünf Befunde gebracht:** vier davon sind 0.24.4, der fünfte ist noch in dieser Runde erledigt worden — die Sprachzeile unter der Anmeldemaske ist gestrichen, und damit trägt 0.24.3 einen zweiten Fingerprint. **Eine veröffentlichte Version wird nie verändert** (5.1); dieser Stand war noch keine, er lag als Zweig da und ist im Feld nur angesehen worden.)* | 6017 |
 | 0.24.2 | `ae0084d8` *(am 7. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. Er war vor dem Einspielen gerechnet und stand hier, damit die Installation sich daran messen lässt; **der Zeile von 0.24.1 hat genau das gefehlt** — dort ließ sich die Meldung aus dem Feld erst nachträglich einordnen.)* | **5920** |
