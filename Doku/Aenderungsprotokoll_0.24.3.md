@@ -274,6 +274,50 @@ lässt.*
 
 ---
 
+## Fünf Befunde aus dem ersten Rundlauf — vier davon sind 0.24.4
+
+**Der Betreiber hat den Stand `80f90ee5` am 8. September 2026 eingespielt und
+angesehen.** Der fünfte Befund ist noch in dieser Runde erledigt (die
+Sprachzeile unter der Anmeldemaske, siehe den Nachtrag darüber); **die
+übrigen vier stehen im Fahrplan bei 0.24.4** und sind hier genannt, damit sie
+nicht zwischen den Papieren verlorengehen. *Keiner von ihnen ist
+nachgestellt.*
+
+**(1) Der Umschalter in den Karten „Vokabular", „Kategorien" und „Kriterien"
+greift nicht.** Wer auf Deutsch liest und die englischen Wörter pflegen will,
+sieht nach dem Umschalten weiter die deutschen — erst ein Hin- und
+Herschalten zeigt sie richtig. **Wer auf Englisch liest, kommt mit dem
+Umschalter gar nicht mehr auf Deutsch.**
+
+**(2) Ein eingetragenes Wort kommt in seiner Sprache nicht an — der schwerste
+der vier.** Kachel auf Englisch, ein englisches Wort eingetragen, gespeichert
+— und danach steht auf einer englischen Oberfläche trotzdem nicht das
+eingetragene Wort da. ***Die Zusage ist einfach: egal, wie der Schalter der
+Oberfläche steht, muss in einer Sprache erscheinen, was für sie eingetragen
+worden ist.*** *Es geht ausdrücklich nicht um die Wörter, für die nichts
+eingetragen ist — dort ist der Rückfall aus F3 gewollt und bleibt.*
+
+> **(1) UND (2) KÖNNTEN DERSELBE BEFUND SEIN.** Greift der Umschalter nicht,
+> dann meint `vocabularyBody()` beim Speichern die Sprache des **Lesers** und
+> nicht die eingestellte — das englische Wort landete dann im deutschen Satz.
+> *0.24.4 stellt deshalb zuerst nach und baut dann; zwei Reparaturen an einer
+> Ursache wären eine zu viel.*
+
+**(3) Zwei deutsche Wörter stehen fest im Quelltext** und sind damit auch auf
+Englisch deutsch: „alle N anzeigen" am zugeklappten Linkkasten und „N aktiv"
+an der Filterzeile. *Beide sind keine Sätze und deshalb durch jeden Wächter
+dieser Runde gefallen — der Bildschirmtext-Wächter prüft die Verbotsliste und
+nicht die Sprache.*
+
+**(4) Der Hinweis „Vorgabe: …" unter den vierzehn Vokabelfeldern zeigt immer
+die Vorgabe des Lesers**, auch wenn die Karte auf eine andere Sprache
+geschaltet ist. *Am Quelltext gesehen: `vocabularyDefault()` liest `TEXTS`,
+und das ist die Datei des Lesers.*
+
+*Der Betreiber prüft weiter; es kann mehr dazukommen.*
+
+---
+
 ## Was diese Runde ausdrücklich NICHT tut
 
 * **Kein Türkisch.** `tr.json` ist 0.24.4.
