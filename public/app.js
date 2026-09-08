@@ -35,12 +35,10 @@ let TEXTS_FALLBACK = {};
 let LANGUAGE_DEFAULT = 'en';
 /* DER VORRAT, aus dem gewaehlt werden darf: [{ code, name }]. Vor der
    Anmeldung aus /api/config, danach aus /api/settings -- dieselbe Liste. */
-let LANGUAGE_CHOICES = [];
 /* DAS GEDAECHTNIS DES GERAETS -- die zweite Quelle. Es traegt die Wahl von der
    Anmeldeseite in die Sitzung und ueber das Abmelden hinaus; der persoenliche
    Schluessel schlaegt es, sobald es einen gibt. Derselbe Namensraum wie
    THEME_KEY. */
-const LANGUAGE_KEY = 'kriterion.language';
 /* EINMAL GEBAUT UND NICHT JE AUFRUF. `new Intl.PluralRules(...)` je Text waere
    bei 46 Mehrzahlstellen und jedem Neuzeichnen eine gut sichtbare Rechnung. */
 let PLURAL = new Intl.PluralRules(LOCALE);
@@ -144,16 +142,13 @@ async function loadLanguages(wanted) {
   catch (e) { console.error(`languages/${wanted}.json`, e); }
 }
 
-/* WELCHE SPRACHE DIESES GERAET ZULETZT GEWAEHLT HAT. Nur lesen; geschrieben
-   wird an genau zwei Stellen (die Pillenreihe und die Zeile unter der
-   Anmeldemaske). GEKLAMMERT, weil localStorage in einem privaten Fenster
-   werfen kann -- dieselbe Klammer wie bei THEME_KEY. */
-function rememberedLanguage() {
-  try { return localStorage.getItem(LANGUAGE_KEY) || null; } catch { return null; }
-}
-function rememberLanguage(code) {
-  try { localStorage.setItem(LANGUAGE_KEY, code); } catch { /* dann eben nicht */ }
-}
+/* HIER STAND BIS 0.24.3 DAS GEDAECHTNIS DES GERAETS (`kriterion.language`).
+   Es hatte genau einen Leser -- die Anmeldeseite --, und die spricht seit dem
+   8. September 2026 die Vorgabesprache der Installation und sonst nichts.
+   Ein gespeicherter Wert ohne Leser ist eine zweite Wahrheit ueber etwas, das
+   niemand mehr fragt; er faellt deshalb ganz und nicht nur sein Leseweg.
+   WER ANGEMELDET IST, LIEST WEITER IN SEINER SPRACHE: sie steht am Zugang
+   (`user_settings.language`) und gilt auf jedem Geraet. */
 /* WAS AM WURZELELEMENT STEHT -- daran haengen Silbentrennung und Vorleser.
    ES HIESS BIS 0.24.2 `document.documentElement.long`, und das war ein Fund
    dieser Runde: der Umbenenner aus 0.24.1 hat das deutsch aussehende `lang`
@@ -833,33 +828,6 @@ function showSetup(errMsg) {
   u.focus();
 }
 
-/* DIE PILLEN UNTER DER ANMELDEMASKE -- 0.24.3, Bauabschnitt 3.
-   SIE SCHREIBEN NUR DAS GEDAECHTNIS DES GERAETS: es gibt hier keinen Zugang,
-   an dem eine Wahl haengen koennte, und keine Sitzung, in der sie stuende.
-   GEZEICHNET WIRD DIE SEITE DANACH NEU -- ein Klick, der die Sprache wechselt
-   und die Maske stehen laesst, waere ein Knopf, der nichts tut.
-   `showLogin()` OHNE MELDUNG: eine Fehlermeldung von vorhin stuende sonst in
-   der neuen Sprache als alter Satz da -- sie kommt aus dem Server und nicht
-   aus der Datei. Wer die Sprache wechselt, faengt die Anmeldung neu an. */
-async function drawLoginLanguages() {
-  const box = document.getElementById('login-langs');
-  if (!box) return;
-  box.innerHTML = '';
-  LANGUAGE_CHOICES.forEach(a => {
-    const b = document.createElement('button');
-    b.className = 'pill' + (LANGUAGE === a.code ? ' on' : '');
-    b.textContent = a.name;
-    b.onclick = async () => {
-      if (LANGUAGE === a.code) return;
-      rememberLanguage(a.code);
-      try { await loadLanguages(a.code); } catch { return; }
-      applyLanguage();
-      showLogin();
-    };
-    box.appendChild(b);
-  });
-}
-
 function showLogin(errMsg) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
@@ -887,18 +855,23 @@ function showLogin(errMsg) {
           zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
     ${SIGNUP ? `<p class="sub login-divider">${tH('login.noAccountYet')}</p>
       <button class="btn login-alt" id="l-request">${tH('login.requestAccess')}</button>` : ''}
-    ${/* DIE SPRACHZEILE — 0.24.3, Bauabschnitt 3. Der eine Ort, an dem noch
-          kein Konto dasteht, aus dem sich eine Sprache lesen ließe. Ein Klick
-          schreibt NUR das Gedächtnis des Geräts; sobald sich jemand anmeldet,
-          schlägt sein persönlicher Schlüssel es wieder.
-          SIE STEHT NUR DA, WENN ES ETWAS ZU WÄHLEN GIBT — eine Reihe mit einer
-          Pille wäre eine Frage ohne Antwortmöglichkeit. */''}
-    ${LANGUAGE_CHOICES.length > 1
-        ? `<div class="pills" id="login-langs" style="margin-top:18px"></div>` : ''}
+    ${/* KEINE SPRACHZEILE UNTER DER MASKE — vom Betreiber am 8. September 2026
+          entschieden, nachdem er 0.24.3 im Feld gesehen hat. Bauabschnitt 3
+          hatte sie gebaut (E6 des Konzepts).
+          WAS DIE ANMELDESEITE STATTDESSEN SPRICHT, bleibt unverändert: das
+          Gedächtnis des Geräts, sonst was der Browser verlangt, sonst die
+          Vorgabe der Installation. Wer sich hier schon einmal angemeldet hat,
+          DIE ANMELDESEITE SPRICHT DIE VORGABESPRACHE DER INSTALLATION —
+          und sonst nichts. Kein Umschalter, kein Gedächtnis des Geräts: wer
+          angemeldet ist, liest in seiner Sprache, und wer es nicht ist, liest
+          in der des Hauses.
+          DAMIT IST AUCH DAS GEDÄCHTNIS GEFALLEN. `kriterion.language` hatte
+          genau einen Leser, und das war diese Seite; ein gespeicherter Wert
+          ohne Leser ist eine zweite Wahrheit über etwas, das niemand mehr
+          fragt. */''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
   if (SIGNUP) document.getElementById('l-request').onclick = () => showRequest();
-  drawLoginLanguages();
 
   const u = document.getElementById('lu'), p = document.getElementById('lp'), b = document.getElementById('lb');
   const submit = async () => {
@@ -2354,7 +2327,6 @@ async function loadSettings() {
      UND DAS GEDAECHTNIS ZIEHT MIT: wer sich anmeldet, sieht danach auch die
      Anmeldeseite in seiner Sprache. */
   if (typeof SETTINGS.language === 'string' && SETTINGS.language) {
-    rememberLanguage(SETTINGS.language);
     if (SETTINGS.language !== LANGUAGE) {
       await loadLanguages(SETTINGS.language);
       applyLanguage();
@@ -8342,7 +8314,6 @@ function setUpAppearanceOut() {
         if (LANGUAGE === a.code) return;
         try {
           await api('PUT', '/api/settings', { language: a.code });
-          rememberLanguage(a.code);
           await loadLanguages(a.code);
           applyLanguage();
           // Die ganze Ansicht neu -- die Karte selbst steht mitten darin.
@@ -11434,11 +11405,8 @@ let setupNeeded = false;
      DAS GEDAECHTNIS WIRD GEGEN DEN VORRAT GEHALTEN: was der Eigentuemer nicht
      freigegeben hat, gilt auch dann nicht, wenn es einmal darin stand. */
   if (cfg && cfg.language) LANGUAGE_DEFAULT = cfg.language;
-  if (Array.isArray(cfg && cfg.languages)) LANGUAGE_CHOICES = cfg.languages;
-  const remembered = rememberedLanguage();
-  const allowed = LANGUAGE_CHOICES.some(a => a.code === remembered);
   try {
-    await loadLanguages(allowed ? remembered : LANGUAGE_DEFAULT);
+    await loadLanguages(LANGUAGE_DEFAULT);
   } catch (e) {
     /* DER EINE FESTE SATZ IM QUELLTEXT -- Entscheidung A1 des Auftrags. Ohne
        die Datei gibt es keinen Schluessel, mit dem sich sagen liesse, dass sie

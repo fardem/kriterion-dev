@@ -2042,13 +2042,12 @@ Der Wechsel wirkt sofort, ohne Neuladen, und wer gleichzeitig am selben
 Bestand arbeitet, merkt nichts davon: die Sprache gehört dem Zugang und nicht
 der Installation.
 
-**Auch die Anmeldeseite hat eine Sprachzeile.** Dort steht noch kein Konto, aus
-dem sich etwas lesen ließe; der Browser merkt sich die Wahl, und beim nächsten
-Öffnen steht sie wieder da.
+**Die Anmeldeseite spricht die Vorgabesprache der Installation** — dort gibt es
+nichts umzuschalten. Wer angemeldet ist, liest in seiner eigenen.
 
-**Wer nichts einstellt, bekommt, was sein Browser verlangt.** Kriterion sieht
-sich `Accept-Language` an — steht die Sprache nicht zur Wahl, gilt die Vorgabe
-der Installation.
+**Wer angemeldet ist und nichts eingestellt hat, bekommt, was sein Browser
+verlangt.** Kriterion sieht sich `Accept-Language` an — steht die Sprache
+nicht zur Wahl, gilt die Vorgabe der Installation.
 
 **Der Eigentümer bestimmt beides** in „Einstellungen → Installation →
 Sprachen": **die Vorgabesprache** der Installation und **den Vorrat**, aus dem

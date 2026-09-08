@@ -241,13 +241,6 @@ function languageName(code) {
   return code;
 }
 
-/* WAS DIE ANMELDESEITE BRAUCHT: nur der Vorrat, nur Kennung und Name. Sie
-   steht als eigene Funktion da und nicht als Ausdruck IN /api/config -- die
-   Antwort dort ist eine abgeschlossene Liste von Feldern, und der Pruefstand
-   zaehlt sie. Ein eingebettetes zweites Objekt liesse ihn `name` mitzaehlen. */
-const languageChoices = () =>
-  languagePool().map(code => ({ code, name: languageName(code) }));
-
 /* WAS DER SYSTEMBEREICH BRAUCHT: jede Sprache, fuer die eine Datei liegt, mit
    ihrem Namen und den zwei Kennzeichnungen. In kanonischer Reihenfolge -- der
    des Verzeichnisses --, damit die Pillenreihe nicht springt, wenn der
@@ -911,21 +904,23 @@ app.get('/api/config', (req, res) => {
      soll. Der Wert sagt nichts ueber Bestand oder Menschen.
      DIE LISTE BLEIBT ABGESCHLOSSEN -- was hier auftaucht, sieht jeder, der
      die Adresse kennt; der Pruefstand nagelt die Namen fest. */
-  /* DIE ZWEI SPRACHFELDER SEIT 0.24.3. Die Anmeldeseite ist der eine Ort, an
-     dem noch kein Konto dasteht, aus dem sich eine Sprache lesen liesse -- sie
-     braucht den Vorrat, um die Zeile darunter zu zeichnen, und die Vorgabe,
-     um zu wissen, was gilt, wenn das Gedaechtnis leer ist (Bauabschnitt 3).
-     DER VORRAT UND NICHT ALLE SPRACHEN: was der Eigentuemer nicht freigegeben
-     hat, steht auch vor der Anmeldung nicht zur Wahl.
-     NICHTS DAVON IST SCHUETZENSWERT -- es steht in jeder ausgelieferten Datei
-     unter public/languages/, und wer die Adresse kennt, sieht das Verzeichnis
-     ohnehin. */
+  /* DAS EINE SPRACHFELD SEIT 0.24.3. Die Anmeldeseite spricht die
+     VORGABESPRACHE der Installation und sonst nichts -- vom Betreiber am
+     8. September 2026 entschieden, nachdem er die Runde im Feld gesehen hat.
+     KEIN VORRAT DANEBEN: bis dahin stand hier auch `languages`, damit die
+     Seite eine Pillenreihe zeichnen und das Geraetegedaechtnis dagegen halten
+     konnte. Beides ist gefallen, und ein Feld ohne Leser bleibt nicht stehen
+     (Stolperstein 47) -- die Liste hier ist abgeschlossen, und was darin
+     steht, sieht jeder, der die Adresse kennt.
+     WER ANGEMELDET IST, LIEST IN SEINER SPRACHE: sie steht am Zugang und
+     kommt mit `GET /api/settings`, nicht hier.
+     NICHTS DAVON IST SCHUETZENSWERT -- die Vorgabesprache steht ohnehin in
+     jedem ausgelieferten Satz. */
   res.json({
     title: getSetting('title_public', 'Bewertungskatalog'), version: VERSION,
     setupRequired: !auth.userExists(), minPassword: auth.PASSWORD_MIN,
     signup: getSetting('signup', false) === true,
-    language: languageDefault(),
-    languages: languageChoices()
+    language: languageDefault()
   });
 });
 
