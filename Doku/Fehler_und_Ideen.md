@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 8. September 2026, nach 0.24.3**
+**Das Sammelblatt · Stand 8. September 2026, nach dem Rundlauf mit 0.24.3**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -253,17 +253,17 @@ entschieden und hat seinen Ort.*
 
 | Art | Punkte in Teil I |
 |---|---|
-| **Fehler** | **11**, **12** *(11: drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden. 12: die Ladezeit der Übersicht, ebenfalls 5. September 2026 — **der Server ist darin ausgemessen und ausgeschlossen**)* |
+| **Fehler** | **11**, **12**, **16 A** *(16 A: das Wiederherstellen-Zeichen steht als Quelltext in der Zeile, neu am 8. September 2026 — verursacht von 0.24.0. 11: drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden. 12: die Ladezeit der Übersicht, ebenfalls 5. September 2026 — **der Server ist darin ausgemessen und ausgeschlossen**)* |
 | **Verbesserung** | — |
 | **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
-| **Design** | — *(der einzige, der Bildstreifen, ist 0.22.0 geworden)* |
+| **Design** | **15** *(neu am 8. September 2026 — der leere Kasten mit dem Bildzeichen; der Punkt davor, der Bildstreifen, ist 0.22.0 geworden)* |
 | **Verbesserung** *(nachgetragen)* | 5 |
 
 | Einschätzung | Punkte |
 |---|---|
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
-| **empfohlen** | **11** |
+| **empfohlen** | **11**, **15** |
 | **empfohlen, aber eine Beobachtung fehlt** | **12** |
 | **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
 | **eingetragen als 0.26.0** *(bis zum 5. September 2026: 0.24.0)* | **5, 6** |
@@ -1495,6 +1495,184 @@ Umstellungslauf, die zweite Bestätigung. **Kein Schema.**
 > **EINGETRAGEN ALS 0.22.0** *(bis zum 3. September 2026 als 0.21.0 geführt;
 > gerückt, weil Punkt 8 die 0.20.0 bekommen hat)*, zusammen mit den Ableitungen
 > aus Punkt 5.
+
+---
+
+## 15. Der leere Kasten zeigt ein Bildzeichen und sieht aus wie ein Fehler
+
+**Art: Design** · **Einschätzung: empfohlen** — *eine Konstante und vier
+Aufrufstellen; die Sache selbst ist eine Zeile* · **Draußen üblich: ja**
+
+### Woher
+
+**Aus dem Betrieb, 8. September 2026**, beim Durchsehen von 0.24.3. Mit zwei
+Bildern gemeldet — dem leeren Kommentarkasten und dem leeren Dateikasten.
+
+*Der Punkt ist ÄLTER als 0.24.3 und geht auf **0.22.0** zurück* (Commit
+`94689ca`, „Oberfläche 0.22.0"). Die Runde hat ihn weder verursacht noch
+angefasst; er ist beim Ansehen der zweiten Sprache aufgefallen.
+
+### Was auffiel
+
+**Ein Eintrag ohne Kommentare zeigt über dem Satz „Noch keine Kommentare." ein
+Bildzeichen** — ein Rechteck mit Sonne und Bergen, das übliche Zeichen für
+„hier steht ein Bild". **Das liest sich wie ein Bild, das nicht geladen
+werden konnte**, und nicht wie ein Kasten, in dem noch nichts steht.
+
+**Dasselbe im Dateikasten** („Noch keine Dateien…"), und aus demselben Grund:
+
+```js
+const ICON_PH = `<svg …><rect …/><circle …/><path d="M3.5 17l5-4.5 …"/></svg>`;
+const emptyState = (sentence) =>
+  `<div class="empty-state">${ICON_PH}<span class="hint">${esc(sentence)}</span></div>`;
+```
+
+**`ICON_PH` ist ein BILDPLATZHALTER, und als solcher ist er auch richtig** —
+er steht an der Kachel ohne Foto (`drawCards()`) und im Bildstreifen ohne
+Bilder (`drawStrip()`). *Dort meint er, was er zeigt.*
+
+**`emptyState()` benutzt ihn für vier Kästen, die mit Bildern nichts zu tun
+haben:** Testtage, Links, Dateien und Kommentare. **Ein Zeichen, das an zwei
+Stellen etwas anderes bedeutet, ist an einer von beiden falsch** — und hier
+bedeutet es „hier fehlt etwas, das da sein sollte" statt „hier ist noch
+nichts".
+
+*Die leere Übersicht (`list.nothingYet`, `list.noHits`) benutzt es ebenfalls;
+sie ist im Bild nicht gemeldet, hängt aber an derselben Konstante.*
+
+### Was es nicht ist
+
+**Kein Fehler im Sinne von „etwas funktioniert nicht".** Der Kasten ist in
+Ordnung, der Satz darunter stimmt, und nichts ist kaputt. **Es ist eine
+Falschaussage des Zeichens** — und genau deshalb ein Punkt der Art *Design*
+und nicht *Fehler*.
+
+**Auch keine Frage der Sprache.** Er sieht auf Deutsch genauso aus wie auf
+Englisch; er ist beim Durchsehen der zweiten Sprache nur aufgefallen, weil man
+dabei jede Ansicht einmal ansieht.
+
+### Was gebaut werden könnte
+
+> **Vorschlag von Claude:** `emptyState()` bekommt **sein eigenes Zeichen** und
+> lässt `ICON_PH` dort, wo er hingehört. *Naheliegend ist ein leerer Kasten mit
+> gestrichelter Kante oder ein Blatt mit Umriss — was „hier ist Platz" sagt und
+> nicht „hier fehlt ein Bild".*
+>
+> **Oder gar kein Zeichen.** Der Satz „Noch keine Kommentare." sagt alles, was
+> zu sagen ist; ein Zeichen darüber fügt nichts hinzu und kostet Höhe in einem
+> Kasten, der ohnehin nur wartet. *Das ist die kleinere Änderung und die
+> ehrlichere: ein Bild, das nichts erklärt, ist Zierde.*
+>
+> **Zu entscheiden ist das am Auftrag der Runde und nicht hier** — es ist eine
+> Geschmacksfrage mit zwei vertretbaren Antworten, und der Betreiber sieht die
+> Kästen jeden Tag.
+
+### Was es anfasst
+
+`public/app.js` — die Konstante `emptyState()` und, falls ein eigenes Zeichen
+kommt, eine neue Konstante daneben. `public/style.css` — die Klasse
+`.empty-state`, falls die Höhe sich ändert. **Kein Server, kein Schema, keine
+Sprachdatei** *(der Satz bleibt, wie er ist).*
+
+---
+
+## 16. Der Papierkorb — ein Zeichen als Quelltext, und eine Zeile ohne Ordnung
+
+**Art: Fehler (A) und Design (B)** · **Einschätzung: A empfohlen** — *eine
+Zeile, und sie nimmt einen sichtbaren Schaden weg* · **B: am Auftrag zu
+entscheiden** · **Draußen üblich: ja**
+
+### Woher
+
+**Aus dem Betrieb, 8. September 2026**, beim Durchsehen von 0.24.3, mit Bild
+gemeldet. *Beide Teile sind ÄLTER als 0.24.3 — die Runde hat sie weder
+verursacht noch angefasst.*
+
+---
+
+### A · Das Wiederherstellen-Zeichen steht als Quelltext in der Zeile
+
+**Was zu sehen ist:** in der Karte „Papierkorb" steht unter dem Namen des
+Eintrags eine Zeile
+
+```
+<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="current…
+```
+
+— **der Quelltext des Zeichens, abgeschnitten am Kastenrand.** Das Zeichen
+selbst fehlt, und die Zeile sieht aus, als sei etwas kaputt.
+
+**Die Ursache steht in einer Zeile und ist eine Regel, die richtig ist:**
+
+```js
+${tH('card.restoreIcon', { restoreIcon: ICON_RESTORE })}
+```
+
+**`tH()` maskiert die eingesetzten Werte — ausdrücklich und mit Absicht.** Der
+SATZ kommt aus der Sprachdatei und trägt kein HTML; der WERT kommt vom
+Benutzer oder aus dem Vokabular und wird maskiert (Stolperstein 18 in
+Dateiform, Konzept 4.2). **Ein Zeichen durch diesen Weg zu schicken heißt, es
+als Text auszugeben** — und genau das geschieht.
+
+**Verursacht hat es 0.24.0**, beim Umzug der Sätze in die Sprachdatei: aus dem
+gebauten `${ICON} Wiederherstellen` wurde ein Satz mit Platzhalter
+(`"{restoreIcon} Wiederherstellen"`), und der Platzhalter ist ein Wert.
+*0.24.1 hat die Stelle nur umbenannt, 0.24.3 sie nicht angefasst.*
+
+**ES IST DIE EINZIGE STELLE.** Nachgezählt am Quelltext: kein zweites `ICON_`
+geht durch `t()` oder `tH()`.
+
+> **Vorschlag von Claude:** das Zeichen aus dem Satz herausnehmen und daneben
+> stellen — `${ICON_RESTORE} ${tH('card.restore')}`. **Der Schlüssel
+> `card.restoreIcon` fällt damit weg**, und die Sprachdatei verliert einen
+> Platzhalter, den kein Übersetzer je füllen könnte. *Ein Zeichen ist kein
+> Wort und gehört nicht in einen Satz, den man übersetzt.*
+>
+> **Und ein Wächter gehört dazu:** kein `ICON_` durch `t()` oder `tH()`. Er
+> ist eine Zeile über den Quelltext und hätte diesen Fund seit 0.24.0
+> gehalten.
+
+---
+
+### B · Die Zeile sagt zu wenig, um etwas entscheiden zu können
+
+**Was der Betreiber sagt:** *„Darstellung von Papierkorb komisch. Besser wäre
+Eintragsname, Eintrags-Einträger und Datum, vielleicht ein kleiner Thumb vom
+Hauptbild wenn noch Platz da ist — oder wenn man drauf klickt als
+Detailansicht. Da muss ein sinnvoller Workflow her."*
+
+**Was heute dasteht:** der Titel, zwei Knöpfe und eine graue Zeile
+*„gelöscht 08.09.2026, 10:36 von faruk · noch 30 Tage · 12,2 MB"*.
+
+**Woran das hakt:** die Zeile beantwortet „**wann** ist es weg" und „**wie
+groß**" — aber nicht die Frage, die vor dem Wiederherstellen steht: **„ist das
+der Eintrag, den ich meine?"** *Bei einem Eintrag namens „Testeintrag" ist das
+egal; bei zwanzig gelöschten Einträgen mit ähnlichen Namen ist es die einzige
+Frage.*
+
+**Was fehlt, in der Reihenfolge des Betreibers:** wer den Eintrag ANGELEGT hat
+(heute steht nur, wer ihn gelöscht hat), sein Datum — und ein Bild.
+
+> **Zu klären am Auftrag der Runde, nicht hier:**
+> * **Kachel oder Detailansicht?** Ein kleines Vorschaubild je Zeile ist die
+>   kleinere Änderung; eine Detailansicht auf Klick ist der „sinnvolle
+>   Workflow", nach dem der Betreiber fragt — und sie ist eine neue Ansicht.
+> * **Was liefert der Server?** `GET /api/trash` gibt heute Titel, Zeitpunkt,
+>   Löschenden, Frist und Bytes. **Anleger und Hauptbild sind nicht dabei** —
+>   *und ein Vorschaubild aus dem Papierkorb ist keine Kleinigkeit: die Zeilen
+>   liegen im Papierkorb als Gebilde und nicht mehr in `photos`.*
+> * **Wie viel Papierkorb will man sehen?** Die Karte ist eine Liste zum
+>   Aufräumen und keine zweite Übersicht. *Wer sie zur Übersicht ausbaut, baut
+>   die Übersicht ein zweites Mal — und zwei Orte für dieselbe Frage sind einer
+>   zu viel (Stolperstein 47).*
+
+### Was es anfasst
+
+**A:** `public/app.js` (eine Zeile), `public/languages/de.json` und `en.json`
+(ein Schlüssel fällt), `testbench.js` (ein Wächter dazu). **Kein Server.**
+**B:** `server.js` (`GET /api/trash` wächst), `public/app.js`,
+`public/style.css` — **und je nach Antwort auf „Kachel oder Detailansicht"
+auch eine neue Route.**
 
 ---
 
