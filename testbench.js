@@ -14648,6 +14648,14 @@ const shareMain = (purpose, target = null) =>
     ['POST',   '/api/product-categories',        'im Rumpf'],
     ['PUT',    '/api/product-categories/:id',    'adminOnly'],
     ['DELETE', '/api/product-categories/:id',    'adminOnly'],
+    /* DER WEG, EINEN TAG FUER SICH ANZULEGEN -- 0.24.4 (B7). Dieselbe
+       Rechtezeile wie POST /api/product-categories drei Zeilen darueber, und
+       aus demselben Grund: einen VORHANDENEN Tag zu benennen darf jeder, nur
+       ein NEUER Name haengt am Schalter `tagsFreeCreate`. Stuende adminOnly
+       im Kopf, waere die Klemme darunter totes Holz -- mayCreate() ist fuer
+       einen Admin immer wahr, und eine Klemme, die nie greift, laesst sich
+       nicht gegenpruefen. */
+    ['POST',   '/api/tags',                      'im Rumpf'],
     ['PUT',    '/api/tags/:id',                  'adminOnly'],
     ['DELETE', '/api/tags/:id',                  'adminOnly'],
     ['POST',   '/api/items/:id/tags',            'entryAuthorOnly, im Rumpf'],
@@ -14822,8 +14830,20 @@ const shareMain = (purpose, target = null) =>
      NICHT: die Phase am Kriterium geht ueber POST/PUT /api/criteria, die es
      laengst gibt, und die zweite Kriterienkarte benutzt dieselben vier Wege
      wie die erste. */
-  check('Und es sind jetzt genau 70 schreibende Routen',
-    F_ROUTES.length === 70 && fFound.length === 70,
+  /* 0.24.4 bewegt sie um EINE: 70 werden 71 -- POST /api/tags. Bis 0.24.3
+     gab es keinen Weg, einen Tag FUER SICH anzulegen: `/api/tags` kannte GET,
+     PUT und DELETE, und angelegt wurde ein Tag nur AM EINTRAG oder beim
+     Import. Die Karte „Tags" im Systembereich konnte deshalb umbenennen und
+     loeschen, aber nicht anlegen (Befund B7).
+     UND DREI DINGE DIESER RUNDE BEWEGEN SIE AUSDRUECKLICH NICHT: das
+     Anlegefeld in der Karte „Kategorien" geht ueber POST
+     /api/product-categories, das es laengst gibt; Anleger und Anlagedatum im
+     Papierkorb sind zwei Felder mehr in GET /api/trash und damit lesend wie
+     eh und je; und die drei Vokabeltafeln gehen ueber GET und PUT
+     /api/settings, die es beide gibt. Wer aus einem davon eine eigene
+     schreibende Route machte, wird hier namentlich rot. */
+  check('Und es sind jetzt genau 71 schreibende Routen',
+    F_ROUTES.length === 71 && fFound.length === 71,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
      dieselbe Bauform wie F_ROUTES und aus demselben Grund (Stolperstein 137):
@@ -16007,8 +16027,19 @@ const shareMain = (purpose, target = null) =>
       'card.standard', 'list.saveViewNote'];
     check('Schluesselprobe: deutsch sind nur noch die benannten fuenf',
       equal(germanKeys.sort(), KEY_FALSE_FRIENDS), germanKeys.join(' '));
-    check('Und die Zahlen stehen: 1272 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1272 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
+    /* 1272 WURDEN 1279 -- 0.24.4. Acht Saetze sind dazugekommen (die beiden
+       festen deutschen Woerter aus B5, der Anleger im Papierkorb aus B6 B in
+       zwei Fassungen, und die vier Saetze der beiden Anlegefelder aus B7),
+       einer ist weggefallen (`card.restoreIcon`, B6 A). Die Zahl der
+       Mehrzahlformen und der Vokabelnamen bewegt sich nicht.
+       ZWEI ZAHLEN, UND BEIDE SIND WAHR: die Datei traegt 1211 OBERSTE
+       Eintraege; hier gezaehlt wird flach -- jede Mehrzahlform als eigener
+       Schluessel NEBEN ihrem Traeger --, und das sind 1211 + 68 = 1279. Der
+       Auftrag nennt die oberste Zahl, der Pruefstand nagelt die flache fest;
+       wer die beiden verwechselt, sucht eine Stunde nach 68 fehlenden
+       Saetzen. */
+    check('Und die Zahlen stehen: 1279 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1279 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -16107,11 +16138,40 @@ const shareMain = (purpose, target = null) =>
       'card.onDate', 'card.partLoaded',
       'card.languagesHint', 'card.languagesUsersHint',
       'server.languageUnknown'];
-    const wordingMissing = WORDING_NEW_0243.filter(k => LANGUAGE_FILE[k] === undefined);
+    /* UND ACHT WEITERE MIT 0.24.4 -- dieselbe Regel, eine Runde spaeter. Sie
+       stehen in einer EIGENEN Liste und nicht hinten an der von 0.24.3: die
+       Listen sind die Buchfuehrung darueber, welche Runde welchen Satz
+       hinzugefuegt hat, und eine gemeinsame Liste verloere genau diese
+       Auskunft.
+         B5   die beiden festen deutschen Woerter, die durch jeden Waechter
+              der Runde 0.24.3 gefallen sind
+         B6 B der Anleger im Papierkorb -- in der Zeile ohne Datum, im Titel
+              der Zeile mit
+         B7   die beiden Platzhalter und die beiden Meldungen der Anlegefelder */
+    const WORDING_NEW_0244 = [
+      'entry.showAllLinks', 'list.filtersActive',
+      'card.createdBy', 'card.createdByOn',
+      'card.newCategory', 'card.newTag',
+      'card.categoryCreated', 'card.tagCreated'];
+    const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244];
+    const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
+    /* UND EINER IST WEGGEFALLEN -- `card.restoreIcon`, 0.24.4 (B6 A). Ein
+       Zeichen ist kein Wort und gehoert nicht in einen Satz, den jemand
+       uebersetzt; der Knopf setzt es selbst und schreibt „Wiederherstellen"
+       daneben. SEIN WORTLAUT WIRD HIER NAMENTLICH ABGEZOGEN und nicht
+       stillschweigend: eine Wegnahme, die keiner sieht, ist genau die Sorte
+       Aenderung, fuer die dieser Waechter gebaut wurde.
+       DER SCHLUESSEL DARF NICHT MEHR DASTEHEN -- sonst zoege die Zeile
+       darunter einen Satz ab, den es noch gibt, und die Rechnung ginge
+       zufaellig auf. */
+    const WORDING_GONE_0244 = ['{iconWiederher} Wiederherstellen'];
+    check('Und der Schluessel, den diese Runde wegnimmt, steht wirklich nicht mehr da',
+      LANGUAGE_FILE['card.restoreIcon'] === undefined,
+      JSON.stringify(LANGUAGE_FILE['card.restoreIcon']));
     const wordingOld = Object.fromEntries(Object.entries(LANGUAGE_FILE)
-      .filter(([k]) => !WORDING_NEW_0243.includes(k)));
+      .filter(([k]) => !WORDING_NEW.includes(k)));
     /* DIE PLATZHALTERNAMEN ZIEHEN MIT IHREM SATZ UM -- 0.24.3, F7. Aus
        „{tage} Tagen" ist „{days} Tagen" geworden: der SATZ ist Zeichen fuer
        Zeichen derselbe, nur der Name in den Klammern ist englisch. Genau
@@ -16131,14 +16191,27 @@ const shareMain = (purpose, target = null) =>
     check('Die Tafel der Platzhalternamen liegt als Datei daneben',
       Object.keys(PLACEHOLDERS_0243).length === 89,
       `${Object.keys(PLACEHOLDERS_0243).length} Namen`);
-    const wordingThen = [...wordingFile.values].sort();
+    /* EINEN Satz aus einer Liste nehmen, und zwar genau EINMAL. Zwei
+       Schluessel duerfen denselben Wortlaut tragen; ein filter() naehme beide.
+       ER STEHT HIER UND NICHT WEITER UNTEN -- seit 0.24.4 braucht ihn schon
+       die Rechnung „damals ohne den weggenommenen Satz". */
+    const withoutOne = (list, sentence) => {
+      const at = list.indexOf(sentence);
+      return at < 0 ? list : list.slice(0, at).concat(list.slice(at + 1));
+    };
+    /* DER WEGGENOMMENE SATZ WIRD AUS DEM STAND VON DAMALS ABGEZOGEN, nicht
+       aus dem von heute -- dort steht er ja gerade nicht mehr. Was danach
+       verglichen wird, ist der Stand von 0681d42 OHNE ihn gegen den Stand von
+       heute ohne die dreizehn plus acht neuen. */
+    const wordingThen = WORDING_GONE_0244
+      .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values]).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
     const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
     check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme',
-      wordingThen.length === wordingNow.length && wordingNow.length === 1225,
+      wordingThen.length === wordingNow.length && wordingNow.length === 1224,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
-      `${WORDING_NEW_0243.length} neuen dieser Runde)`);
+      `${WORDING_NEW.length} neuen und den einen weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
        `server.backupDirNotSet` NENNT die Umgebungsvariable, und die heisst
        seit 0.24.1 anders -- der Satz musste mitziehen, weil er sonst auf etwas
@@ -16159,14 +16232,10 @@ const shareMain = (purpose, target = null) =>
     /* UND SONST KEIN ZEICHEN. Die eine Ausnahme wird aus BEIDEN Listen
        genommen, und was bleibt, muss Satz fuer Satz dasselbe sein -- nicht
        „ungefaehr gleich viele", sondern derselbe Wortlaut. */
-    const withoutOne = (list, sentence) => {
-      const at = list.indexOf(sentence);
-      return at < 0 ? list : list.slice(0, at).concat(list.slice(at + 1));
-    };
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
     const restNow = onlyNow.reduce(withoutOne, wordingNow);
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1223,
+      equal(restThen, restNow) && restNow.length === 1222,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -24681,6 +24750,43 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   // Die Anbieter kommen ueber /api/settings. Wer eigene Einstellungen
   // mitgibt, ueberschreibt gezielt -- alles Uebrige bleibt bei der Vorgabe.
   settings = { searchProviders: DOM_PROVIDER, searchNames: 3, ...settings };
+  /* DIE DREI VOKABELTAFELN, WIE SIE DER ECHTE SERVER SCHICKT -- 0.24.4.
+     Seit dieser Runde traegt /api/settings neben `vocabulary` (dem Satz des
+     LESERS) drei Tafeln je Sprache: was EINGETRAGEN ist, was ein Leser dieser
+     Sprache SAEHE, und die VORGABE aus der Sprachdatei. Die Karte „Vokabular"
+     liest alle drei -- ein Mock ohne sie zeigte vierzehn leere Felder und
+     belegte damit etwas, das der Server nicht tut (Stolperstein 90).
+     ABGELEITET AUS DEM, WAS DIE PRUEFLAGE MITGIBT, und nicht als vierte
+     Liste daneben: was eine Prueflage unter `vocabulary` hereinreicht, ist
+     genau das, was der Eigentuemer eingetragen hat. Die Vorgaben kommen aus
+     den ECHTEN Sprachdateien, wie ueberall in diesem Mock.
+     WER DIE TAFELN SELBST MITGIBT, BEHAELT SIE -- die Prueflagen der Runde
+     0.24.4 stellen damit Lagen her, die sich aus `vocabulary` allein nicht
+     ableiten lassen (etwa: fuer Englisch ist etwas eingetragen, fuer Deutsch
+     nichts). */
+  {
+    const languageDirectory = path.join(__dirname, 'public', 'languages');
+    const codes = fs.readdirSync(languageDirectory)
+      .filter(f => f.endsWith('.json')).map(f => f.slice(0, -5)).sort();
+    const defaultsOf = (code) => Object.fromEntries(
+      Object.entries(JSON.parse(fs.readFileSync(path.join(languageDirectory, `${code}.json`), 'utf8')))
+        .filter(([k]) => k.startsWith('vocabulary.'))
+        .map(([k, v]) => [k.slice('vocabulary.'.length), v]));
+    const entered = Object.fromEntries(Object.entries(settings.vocabulary || {})
+      .filter(([, v]) => typeof v === 'string' && v.trim()).map(([k, v]) => [k, v.trim()]));
+    const readerLanguage = settings.language || 'de';
+    if (!settings.vocabularyDefaults)
+      settings.vocabularyDefaults = Object.fromEntries(codes.map(c => [c, defaultsOf(c)]));
+    if (!settings.vocabulariesOwn)
+      settings.vocabulariesOwn = Object.fromEntries(
+        codes.map(c => [c, c === readerLanguage ? { ...entered } : {}]));
+    /* UND DER RUECKFALL WIE AM SERVER: was fuer EINE Sprache eingetragen ist,
+       steht in jeder anderen, fuer die nichts dasteht -- „lieber ein Wort in
+       der falschen Sprache als gar keines" (0.24.3, F3). */
+    if (!settings.vocabularies)
+      settings.vocabularies = Object.fromEntries(
+        codes.map(c => [c, { ...settings.vocabularyDefaults[c], ...entered }]));
+  }
   /* Vier Zugaenge, und jeder steht fuer eine andere Lage --
      die Eigentuemerin (die Fragende selbst), ein zweiter Admin, ein
      gewoehnlicher Benutzer und ein Grabstein. Waeren sie gleichartig, liesse
@@ -26654,21 +26760,40 @@ async function checkUi() {
   check('Vierzehn Vokabelfelder stehen bereit — 0.22.0', fields.every(Boolean),
     fields.map((f, n) => f ? '' : `v${n + 1} fehlt`).filter(Boolean).join(' '));
   check('Felder sind vorbelegt', fields[0].value === 'Maschine' && fields[5].value === 'Sitzungen');
-  check('Die Berichtsfelder haben ihre Vorgabe',
-    fields[6].value === 'Bericht' && fields[7].value === 'Berichte',
-    `${fields[6].value} / ${fields[7].value}`);
-  check('Die Aufgabenfelder ebenso',
-    fields[8].value === 'Aufgabe' && fields[9].value === 'Aufgaben',
-    `${fields[8].value} / ${fields[9].value}`);
-  check('Das Wort für erledigt hat seine Vorgabe', fields[10].value === 'Erledigt', fields[10].value);
+  /* WAS NICHT EINGETRAGEN IST, STEHT ALS LEERES FELD DA -- 0.24.4, und das
+     ist eine ANDERE Zusicherung als bis 0.24.3. Dort trugen diese acht Felder
+     die VORGABE als Wert, und das sah richtig aus: „Bericht" stand da, also
+     hiess es so. Es war der Fehler. Ein Feld, das die Vorgabe als Wert
+     traegt, ist von einem Feld, in das jemand die Vorgabe getippt hat, nicht
+     zu unterscheiden -- und ein Klick auf „Speichern" machte aus dem einen
+     das andere. Mit zwei Sprachen wurde daraus der schwerste Befund der
+     Runde: die Karte zeigte auf Englisch den deutschen Rueckfall, schrieb ihn
+     beim Speichern als englischen Eintrag fest, und der deutsche Leser las
+     danach „Entry" (B1 und B2).
+     WAS DAS FELD BEDEUTET, SAGT DER HINWEIS DARUNTER -- „(Vorgabe: Bericht)",
+     und der wird zwei Zeilen weiter geprueft. Ein leeres Feld ist damit keine
+     Auslassung, sondern eine Aussage: „fuer diese Sprache ist nichts
+     eingetragen". */
+  const empties = [6, 7, 8, 9, 10, 11, 12, 13];
+  check('Und was nicht eingetragen ist, steht leer da — 0.24.4',
+    empties.every(n => fields[n].value === ''),
+    empties.map(n => `v${n + 1}=${JSON.stringify(fields[n].value)}`).join(' '));
+  /* UND DIE VORGABE STEHT TROTZDEM DA, nur eben als Hinweis und nicht als
+     Wert. Ohne diese Zeile bliebe die daruber auch dann gruen, wenn die Karte
+     die Vorgabe gar nicht mehr naennte -- und dann wuesste niemand mehr, was
+     ein leeres Feld bedeutet. */
+  const hintOf = (n) => (w3.document.querySelector(`label[for=v${n + 1}] .hint`) || {}).textContent || '';
+  check('Und der Hinweis darunter nennt die Vorgabe der Kachel',
+    /Bericht/.test(hintOf(6)) && /Berichte/.test(hintOf(7)) &&
+    /Aufgabe/.test(hintOf(8)) && /Erledigt/.test(hintOf(10)) &&
+    /Potenzial/.test(hintOf(11)) &&
+    /Bewertung/.test(hintOf(12)) && /Bewertungen/.test(hintOf(13)),
+    [6, 7, 8, 10, 11, 12, 13].map(n => hintOf(n).trim()).join(' | '));
   /* DAS ZWOELFTE FELD SEIT 0.21.0 -- das Wort fuer den ersten Sternkasten.
-     Es steht in der Karte und traegt seine Vorgabe; die Grenze rueckt damit
-     eine Kennung weiter. */
-  check('Das Wort für den Potenzialkasten steht da und hat seine Vorgabe',
-    fields[11]?.value === 'Potenzial', fields[11]?.value);
-  check('Das Paar für die Bewertung steht da und hat seine Vorgabe — 0.22.0',
-    fields[12]?.value === 'Bewertung' && fields[13]?.value === 'Bewertungen',
-    `${fields[12]?.value} / ${fields[13]?.value}`);
+     Es steht in der Karte; die Grenze rueckt damit eine Kennung weiter. */
+  check('Das Wort für den Potenzialkasten steht da', !!fields[11], 'v12 fehlt');
+  check('Das Paar für die Bewertung steht da — 0.22.0',
+    !!fields[12] && !!fields[13], 'v13/v14 fehlt');
   /* JEDES FELD NENNT SEINE VORGABE -- 0.22.0: „Sache, Einzahl" allein sagte
      nicht, was dort steht, wenn man das Feld leert. */
   check('Und jede Beschriftung nennt die Vorgabe',

@@ -355,9 +355,20 @@ const ICON_LOCK = char('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>'
 const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
 
 /* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT -- 0.22.0 (Ideentafel
-   N3): das vorhandene Platzhalterzeichen ueber dem Satz. Der Satz geht durch
-   esc() -- er ist fest, aber innerHTML ist innerHTML. */
-const emptyState = (sentence) => `<div class="empty-state">${ICON_PH}<span class="hint">${esc(sentence)}</span></div>`;
+   N3). Der Satz geht durch esc() -- er ist fest, aber innerHTML ist innerHTML.
+
+   UND SEIT 0.24.4 STEHT KEIN ZEICHEN MEHR DARUEBER (Befund B4 der Runde
+   0.24.3, Frage F8). Bis dahin stand hier ICON_PH -- ein BILDPLATZHALTER,
+   ein Rechteck mit Sonne und Bergen. An der Kachel ohne Foto und im
+   Bildstreifen ohne Bilder meint er, was er zeigt; ueber „Noch keine
+   Kommentare." meinte er „hier fehlt ein Bild, das nicht geladen werden
+   konnte". Ein Zeichen, das an zwei Stellen etwas anderes bedeutet, ist an
+   einer von beiden falsch -- und die vier Kaesten (Testtage, Links, Dateien,
+   Kommentare) haben mit Bildern nichts zu tun.
+   GAR KEINES UND NICHT EIN ZWEITES: der Satz sagt alles, ein Bild darueber
+   erklaert nichts und kostet Hoehe. ICON_PH selbst bleibt -- es hat drei
+   Rufer, an denen es richtig steht. */
+const emptyState = (sentence) => `<div class="empty-state"><span class="hint">${esc(sentence)}</span></div>`;
 
 /* Die Marke der Instanz — EIN EINGEBAUTES SVG, seit 0.23.0 wieder.
 
@@ -1790,6 +1801,21 @@ let LANGUAGES = [];
    die Oberflaeche sich beschriftet, und der gehoert dem Leser. Diese Tafel
    braucht allein die Karte „Vokabular", um umschalten zu koennen. */
 let VOCABULARIES = {};
+/* UND ZWEI TAFELN DANEBEN -- 0.24.4, die Reparatur von B1, B2 und B4. Drei
+   Tafeln, drei Fragen, und keine beantwortet die der anderen:
+     VOCABULARIES          was ein Leser dieser Sprache SAEHE (samt Rueckfall)
+                           -- damit rechnet die Vorschau unter den Feldern.
+     VOCABULARIES_OWN      was fuer diese Sprache EINGETRAGEN ist. Die
+                           vierzehn Felder zeigen genau das, und ein leeres
+                           Feld heisst „nichts eingetragen".
+     VOCABULARY_DEFAULTS   die Vorgabe aus der Sprachdatei je Sprache -- der
+                           Hinweis „(Vorgabe: …)" unter jedem Feld.
+   BIS 0.24.3 STANDEN IN DEN FELDERN DIE WERTE AUS `VOCABULARIES`, also samt
+   Rueckfall. Wer die Karte auf eine Sprache schaltete, fuer die noch nichts
+   dastand, sah die Woerter der Nachbarsprache -- und der Knopf „Speichern"
+   schrieb sie als eigenen Eintrag fest. Genau so ist B2 entstanden. */
+let VOCABULARIES_OWN = {};
+let VOCABULARY_DEFAULTS = {};
 /* WELCHE SPRACHE DIE ADMINLISTEN ZEIGEN -- 0.24.3, Bauabschnitt 6a. Dieselbe
    Bauform wie VOCABULARY_SHOWN bei den vierzehn Woertern: sie faengt bei der
    des Lesers an, steht als Zustand der Karte und nicht in der Adresse, und
@@ -2319,6 +2345,11 @@ async function loadSettings() {
   // Die vierzehn Woerter JE SPRACHE -- nur die Karte „Vokabular" liest sie.
   if (SETTINGS.vocabularies && typeof SETTINGS.vocabularies === 'object')
     VOCABULARIES = SETTINGS.vocabularies;
+  // Und die beiden Tafeln daneben, 0.24.4: das Eingetragene und die Vorgaben.
+  if (SETTINGS.vocabulariesOwn && typeof SETTINGS.vocabulariesOwn === 'object')
+    VOCABULARIES_OWN = SETTINGS.vocabulariesOwn;
+  if (SETTINGS.vocabularyDefaults && typeof SETTINGS.vocabularyDefaults === 'object')
+    VOCABULARY_DEFAULTS = SETTINGS.vocabularyDefaults;
   /* DIE ERSTE DER DREI QUELLEN (Konzept 5.3), und sie schlaegt die beiden
      anderen: was am ZUGANG steht, gilt -- auf jedem Geraet, an dem er sich
      anmeldet. Der Server hat den Wert schon gegen den Vorrat geklemmt.
@@ -3246,8 +3277,13 @@ function drawFilterSwitch() {
      deshalb an der Zahl haengen -- die Farbe sagt „du hast etwas eingestellt",
      und eingestellt hat das niemand. */
   const from = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';
+  /* AUS DER SPRACHDATEI UND NICHT AUS DEM QUELLTEXT -- 0.24.4 (B5). Bis
+     0.24.3 stand hier `${n} aktiv` fest verdrahtet: kein Satz, sondern ein
+     Wort neben einer Zahl, und deshalb durch jeden Waechter der Runde 0.24.3
+     gefallen -- der Bildschirmtext-Waechter prueft die Verbotsliste und nicht
+     die Sprache. Auf Englisch stand es deutsch da. */
   button.querySelector('.fcount').textContent =
-    [n ? `${n} aktiv` : '', from].filter(Boolean).map(s => `· ${s}`).join(' ');
+    [n ? t('list.filtersActive', { n }) : '', from].filter(Boolean).map(s => `· ${s}`).join(' ');
   button.classList.toggle('active', n > 0);
   button.setAttribute('aria-expanded', zu ? 'false' : 'true');
   button.title = zu ? t('list.showFilters') : t('list.hideFilters');
@@ -6984,7 +7020,10 @@ async function renderDetail(id, termAddress) {
        bleibt, bis jemand aufklappt. */
     box.scrollTop = 0;
     button.hidden = false;
-    button.textContent = `alle ${rows.length} anzeigen`;
+    // Aus der Sprachdatei -- 0.24.4 (B5), aus demselben Grund wie die
+    // Filterzahl: ein Wort neben einer Zahl ist kein Satz und ist deshalb
+    // beim Umzug der Texte in 0.24.0 liegengeblieben.
+    button.textContent = t('entry.showAllLinks', { n: rows.length });
     button.onclick = () => { linksOpen = true; drawLinks(); };
   }
 
@@ -7720,7 +7759,23 @@ function sysVisibleSections(fetched) {
 }
 
 
-async function renderSystem() {
+/* `keepScroll`: DIE BILDLAUFSTELLUNG UEBERLEBT DAS NEUZEICHNEN -- 0.24.4 (B3).
+   renderSystem() baut `app.innerHTML` neu, und dabei ist die Stellung weg:
+   die Seite faellt auf die Hoehe der Ladezeile zusammen, der Browser zieht
+   auf null nach und gibt sie nicht von selbst zurueck. Bei vierzehn
+   Vokabelfeldern hiess das bis 0.24.3: nach jedem Umschalten erst wieder
+   hinunterrollen.
+   ALS AUSDRUECKLICHER SCHALTER UND NICHT IMMER. Wer aus der Uebersicht in den
+   Systembereich geht, will oben anfangen -- eine gemerkte Stellung waere dort
+   ein Sprung ins Nichts. Gesetzt wird er von den Rufern, die IN DERSELBEN
+   ANSICHT neu zeichnen: die beiden Sprachumschalter und das Speichern des
+   Vokabulars.
+   DIESELBE BAUFORM WIE IN autoHeight() weiter oben: Stellung merken, neu
+   bauen, Stellung zuruecksetzen. Ein zweiter Weg ueber scrollIntoView waere
+   eine zweite Wahrheit darueber, wo die Seite steht. */
+async function renderSystem({ keepScroll = false } = {}) {
+  const side = document.scrollingElement || document.documentElement;
+  const scrollBefore = keepScroll && side ? side.scrollTop : 0;
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   const fetched = {};
   try {
@@ -7801,6 +7856,11 @@ async function renderSystem() {
   if (location.hash !== sysUrl(open.key) &&
       typeof history !== 'undefined' && typeof history.replaceState === 'function')
     history.replaceState(null, '', sysUrl(open.key));
+
+  /* UND ZULETZT DIE BILDLAUFSTELLUNG -- 0.24.4 (B3), nach dem Zeichnen und
+     nach dem Verdrahten: vorher waere die Seite noch die Ladezeile hoch, und
+     ein gesetzter scrollTop verpuffte an einer Seite ohne Hoehe. */
+  if (keepScroll && side && scrollBefore) side.scrollTop = scrollBefore;
 }
 
 
@@ -8404,6 +8464,12 @@ function cardCategories() {
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="ncatlang" style="margin-bottom:12px"></div>` : ''}
         <div class="manage-list" id="mcats"></div>
+        ${/* DAS ANLEGEFELD -- 0.24.4 (B7). `POST /api/product-categories`
+              stand laengst; der Weg war nur nicht dort, wo man ihn beim
+              Verwalten sucht. Es steht UNTER der Liste und ueber dem
+              Schalter: erst was es gibt, dann was dazukommt, dann die Regel
+              darueber, wer dazutun darf. */''}
+        ${manageCreate('cat')}
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
         <label class="ex-files"><input type="checkbox" id="cat-free">
           ${tH('card.anyoneNewCategory')}</label>` : ''}
@@ -8412,6 +8478,7 @@ function cardCategories() {
 function setUpCategoriesOut(fetched) {
   drawNameLanguages('ncatlang');
   manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
+  setUpManageCreate('cat', fetched);
   createToggle('cat-free', 'categoriesFreeCreate', () => CATEGORIES_FREE, v => { CATEGORIES_FREE = v; });
 }
 
@@ -8423,6 +8490,11 @@ function cardTags() {
           ? tH('card.tagsHint')
           : t('card.tagsAdminHint')}</p>
         <div class="manage-list" id="mtags"></div>
+        ${/* DAS ANLEGEFELD -- 0.24.4 (B7), und fuer die Tags war dafuer eine
+              Zeile mehr zu bauen als ein Eingabefeld: bis 0.24.3 gab es
+              ueberhaupt keinen Weg, einen Tag FUER SICH anzulegen. `POST
+              /api/tags` ist mit dieser Runde dazugekommen. */''}
+        ${manageCreate('tag')}
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyTag')}</p>
         <label class="ex-files"><input type="checkbox" id="tag-free">
           ${tH('card.anyoneNewTag')}</label>` : ''}
@@ -8430,6 +8502,7 @@ function cardTags() {
 }
 function setUpTagsOut(fetched) {
   manageList('mtags', fetched.tags, 'tag', fetched);
+  setUpManageCreate('tag', fetched);
   createToggle('tag-free', 'tagsFreeCreate', () => TAGS_FREE, v => { TAGS_FREE = v; });
 }
 
@@ -8549,6 +8622,20 @@ function setUpCriteriaOut(fetched, phase) {
      fuer immer als ⟦…⟧. */
   const MANAGE_KIND = {
     cat: {
+      /* `create` SEIT 0.24.4 (B7): die Karte kann anlegen, und WIE sie es
+         tut, steht hier -- Kennung des Feldes, Kennung des Knopfes, der
+         Platzhalter und die Meldung danach. Die beiden Kriterienkarten
+         konnten es laengst; „Kategorien" und „Tags" fehlte allein das Feld.
+         UEBER DIESEN EINTRAG UND NICHT UEBER EINE ABFRAGE AUF DEN
+         KARTENNAMEN, wie schon bei `sortable`, `counter`, `weight` und
+         `perLanguage`. Wer eine vierte Liste dazustellt, traegt sie hier ein
+         und nicht in eine Weiche.
+         DIE KRITERIEN TRAGEN KEINEN: sie schicken die PHASE mit, und ihre
+         zwei Karten haben dafuer ihre eigene Zeile (CRIT_CARD). Ein
+         gemeinsamer Eintrag muesste die Phase kennen, und dann stuende in
+         dieser Tabelle etwas, das nur eine der drei Listen angeht. */
+      create: { field: 'newmcat', button: 'newmcat-b',
+                hint: 'card.newCategory', done: 'card.categoryCreated' },
       /* `perLanguage` SEIT 0.24.3: diese Liste traegt einen Namen JE SPRACHE,
          und das Umbenennen sagt deshalb, welche gemeint ist. Die Tags tragen
          keinen -- sie sind fuer alle Sprachen dieselben (Nachtrag zu E9/E11,
@@ -8560,6 +8647,8 @@ function setUpCriteriaOut(fetched, phase) {
       warning: e => t('card.categoryDeleteHint', { name: e.name, usage_count: e.usage_count, thing: vThing(e.usage_count) })
     },
     tag: {
+      create: { field: 'newmtag', button: 'newmtag-b',
+                hint: 'card.newTag', done: 'card.tagCreated' },
       url: '/api/tags', askKey: 'card.deleteTagAsk',
       // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
       // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
@@ -8581,6 +8670,53 @@ function setUpCriteriaOut(fetched, phase) {
       warning: e => t('card.criterionDeleteHint', { name: e.name })
     }
   };
+
+  /* DIE ANLEGEZEILE EINER VERWALTUNGSKARTE -- 0.24.4 (B7). Zwei Rufe, einer
+     fuers Markup und einer fuers Verdrahten, wie ueberall in diesem Bereich:
+     die Karte wird als String gebaut und danach verdrahtet.
+     SIE STEHT NUR BEIM ADMIN, wie die Umbenenn- und Loeschwerkzeuge daneben:
+     der Server verweigert das Anlegen einem gewoehnlichen Benutzer nur, wenn
+     der Schalter aus ist -- ein Feld, das je nach Schalter eine Absage
+     erzeugt, saehe aus wie ein Fehler. Wer am EINTRAG anlegen darf, tut es
+     dort; diese Karte ist die Verwaltung.
+     EINE VORHANDENE ZEILE IST KEIN FEHLER: der Server gibt sie mit 200
+     zurueck, und die Karte zeichnet danach neu. Wer einen Namen zweimal
+     eintippt, sieht ihn einmal -- und keine Fehlermeldung fuer etwas, das
+     schon in Ordnung ist. */
+  const manageCreate = (kind) => {
+    const spec = MANAGE_KIND[kind].create;
+    if (!spec || !ADMIN) return '';
+    return `<div class="row-in" style="margin-top:12px">
+          <input class="input input-sm" id="${spec.field}" placeholder="${esc(t(spec.hint))}" style="padding:8px 11px">
+          <button class="btn btn-sm" id="${spec.button}">${tH('entry.create')}</button>
+        </div>`;
+  };
+  function setUpManageCreate(kind, fetched) {
+    const spec = MANAGE_KIND[kind].create;
+    if (!spec) return;
+    const field = document.getElementById(spec.field);
+    if (!field) return;
+    const add = async () => {
+      const name = field.value.trim();
+      if (!name) return;
+      /* OHNE SPRACHANGABE -- 0.24.4, Frage F9, und dieselbe Regel wie beim
+         Umbenennen ohne Sprachangabe (0.24.3, Bauabschnitt 6a): angelegt wird
+         IMMER die Grundzeile, und der Umschalter darueber fasst sie nicht an.
+         Eine Kategorie, die es nur auf Tuerkisch gaebe, waere eine Kategorie,
+         die der Rest der Installation nicht kennt. */
+      try {
+        await api('POST', MANAGE_KIND[kind].url, { name });
+        field.value = '';
+        toast(t(spec.done));
+        // Die gemerkten Abrufe der anderen Sprachen sind damit veraltet --
+        // dieselbe Zeile wie beim Umbenennen.
+        NAMES_FETCHED = {};
+        adminNew(fetched);
+      } catch (e) { toast(e.message, true); }
+    };
+    document.getElementById(spec.button).onclick = add;
+    field.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+  }
 
   function manageList(boxId, list, kind, fetched) {
     const box = document.getElementById(boxId);
@@ -8739,9 +8875,17 @@ function cardVocabulary() {
         ${LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="vlang" style="margin-bottom:12px"></div>` : ''}
         <div class="vocabulary-grid">
+        ${/* DER HINWEIS FOLGT DER KACHEL UND NICHT DEM LESER -- 0.24.4 (B4).
+              vocabularyDefaultShown() liest die Vorgabe der Sprache, auf der
+              die Karte gerade steht; bis 0.24.3 stand hier die des Lesers,
+              und wer auf Deutsch las und Tuerkisch pflegte, bekam „(Vorgabe:
+              Eintrag)" unter ein tuerkisches Feld.
+              UND IM FELD STEHT NUR DAS EINGETRAGENE: ein leeres Feld heisst
+              „fuer diese Sprache ist nichts eingetragen", und was dann am
+              Bildschirm stuende, sagen Hinweis und Vorschau. */''}
           ${VOCABULARY_FIELDS.map(([id, key, name]) => `<div class="field"><label for="${id}">${esc(name())}
-            <span class="hint">${tH('card.defaultValue', { defaultWord: vocabularyDefault()[key] })}</span></label>
-            <input class="input input-sm" id="${id}" maxlength="40" value="${esc(vocabularyShown()[key])}"></div>`).join('')}
+            <span class="hint">${tH('card.defaultValue', { defaultWord: vocabularyDefaultShown()[key] })}</span></label>
+            <input class="input input-sm" id="${id}" maxlength="40" value="${esc(vocabularyShown()[key] || '')}"></div>`).join('')}
         </div>
         <div class="vocabulary-preview" id="vpreview"></div>
         <div class="row-in" style="margin-top:12px">
@@ -8812,7 +8956,7 @@ async function fetchNames(code) {
       api('GET', '/api/criteria', undefined, false, code)
     ]);
     NAMES_FETCHED[code] = { cats, crits };
-    if (namesLanguage() === code) renderSystem();
+    if (namesLanguage() === code) renderSystem({ keepScroll: true });
   } catch { /* dann bleibt die Liste des Lesers stehen */ }
 }
 /* DIE PILLENREIHE UEBER EINER ADMINLISTE. Sie steht nur da, wenn es etwas zu
@@ -8826,7 +8970,7 @@ function drawNameLanguages(boxId) {
     const b = document.createElement('button');
     b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');
     b.textContent = a.name;
-    b.onclick = () => { NAMES_SHOWN = a.code; renderSystem(); };
+    b.onclick = () => { NAMES_SHOWN = a.code; renderSystem({ keepScroll: true }); };
     box.appendChild(b);
   });
 }
@@ -8840,17 +8984,46 @@ function drawNameLanguages(boxId) {
    Lesers zurueck -- das ist gewollt: eine gemerkte Sprache, die niemand sieht,
    waere eine zweite Wahrheit ueber „was steht da gerade". */
 let VOCABULARY_SHOWN = null;
-const vocabularyLanguage = () =>
-  (VOCABULARY_SHOWN && VOCABULARIES[VOCABULARY_SHOWN]) ? VOCABULARY_SHOWN : LANGUAGE;
-/* DIE VIERZEHN WOERTER, DIE IN DEN FELDERN STEHEN. Fuer die Sprache des Lesers
-   ist das `V` -- der Satz, mit dem sich die Oberflaeche gerade beschriftet.
-   Fuer jede andere kommt er aus der Tafel, die der Server mitgeschickt hat;
-   dort steht schon der Rueckfall drin. */
-const vocabularyShown = () => {
+/* GEKLEMMT WIRD GEGEN DEN VORRAT UND NICHT GEGEN EINE TAFEL -- 0.24.4, und es
+   ist dieselbe Zeile wie bei namesLanguage() darueber. Bis 0.24.3 stand hier
+   `VOCABULARIES[VOCABULARY_SHOWN]`: die Karte haette auf jede Sprache
+   umschalten koennen, fuer die eine Tafel ankam, und auf keine, fuer die
+   keine kam. Was gewaehlt werden darf, sagt aber der VORRAT -- und der steht
+   in LANGUAGES. Zwei Klemmen ueber dieselbe Frage laufen auseinander. */
+const vocabularyLanguage = () => {
+  const ok = LANGUAGES.some(a => a.active && a.code === VOCABULARY_SHOWN);
+  return ok ? VOCABULARY_SHOWN : LANGUAGE;
+};
+/* DIE VIERZEHN WOERTER, DIE IN DEN FELDERN STEHEN -- 0.24.4: das, was fuer
+   diese Sprache EINGETRAGEN ist, und sonst nichts.
+   BIS 0.24.3 STAND HIER DER SATZ MIT RUECKFALL (`V` beziehungsweise
+   `VOCABULARIES[code]`). Das sah richtig aus und war der Fehler: wer die
+   Karte auf eine Sprache schaltete, fuer die noch nichts eingetragen war, sah
+   die Woerter der Nachbarsprache in den Feldern stehen -- und ein Klick auf
+   „Speichern" machte aus dem Rueckfall einen Eintrag. Vierzehn englische
+   Woerter landeten so im deutschen Satz (B2).
+   EIN LEERES FELD IST JETZT EINE AUSSAGE: „fuer diese Sprache ist nichts
+   eingetragen". Was stattdessen dasteht, sagt der Hinweis darunter
+   (vocabularyDefaultShown) und die Vorschau. */
+const vocabularyShown = () => VOCABULARIES_OWN[vocabularyLanguage()] || {};
+/* WAS EIN LESER DIESER SPRACHE SAEHE -- mit Rueckfall, und genau dafuer gibt
+   es die Tafel des Servers. Die Vorschau rechnet damit: ein leeres Feld zeigt
+   dort nicht die Vorgabe, sondern das, was wirklich am Bildschirm stuende. */
+const vocabularyEffective = () => {
   const code = vocabularyLanguage();
   if (code === LANGUAGE) return V;
   return VOCABULARIES[code] || V;
 };
+/* UND DIE VORGABE DER GEZEIGTEN SPRACHE -- 0.24.4, die Reparatur von B4. Bis
+   0.24.3 las der Hinweis „(Vorgabe: …)" die Datei des LESERS: wer auf Deutsch
+   liest und Tuerkisch pflegt, bekam deutsche Vorgaben unter tuerkische
+   Felder. Die Tafel kommt vom Server und wird nicht aus TEXTS abgeleitet --
+   fuer eine Sprache, die der Leser nicht liest, liegt gar keine Datei im
+   Browser.
+   DER RUECKFALL AUF DIE DATEI DES LESERS gilt die Millisekunden vor der
+   ersten Antwort und fuer eine Sprache, die der Server nicht kennt. */
+const vocabularyDefaultShown = () =>
+  VOCABULARY_DEFAULTS[vocabularyLanguage()] || vocabularyDefault();
 
 function setUpVocabularyOut() {
   drawVocabularyLanguages();
@@ -8860,20 +9033,27 @@ function setUpVocabularyOut() {
     [key, document.getElementById(id).value]));
   function drawPreview() {
     const w = vFields();
-    const entryWord = w.entryOne.trim() || V.entryOne;
-    const sm = w.entryMany.trim() || V.entryMany;
-    const z1 = w.dayOne.trim() || V.dayOne;
-    const zm = w.dayMany.trim() || V.dayMany;
-    const ja = w.testedYes.trim() || V.testedYes;
-    const no = w.testedNo.trim() || V.testedNo;
-    const reportWord = w.reportOne.trim() || V.reportOne;
-    const bm = w.reportMany.trim() || V.reportMany;
-    const a1 = w.taskOne.trim() || V.taskOne;
-    const at = w.taskMany.trim() || V.taskMany;
-    const doneWord = w.taskDone.trim() || V.taskDone;
-    const potentialWord = w.potential.trim() || V.potential;
-    const rateOne = w.ratingOne.trim() || V.ratingOne;
-    const rateMany = w.ratingMany.trim() || V.ratingMany;
+    /* DER RUECKFALL DER VORSCHAU IST DER SATZ DER GEZEIGTEN SPRACHE -- 0.24.4,
+       und nicht mehr `V`, der Satz des Lesers. Ein leeres Feld zeigt hier
+       das, was ein Leser DIESER Sprache wirklich saehe: die Vorgabe, oder
+       nach Rueckfall 2 ein eingetragenes Wort einer anderen Sprache. Bis
+       0.24.3 stand in der Vorschau der Karte auf Englisch das deutsche Wort,
+       sobald der Leser Deutsch las. */
+    const e = vocabularyEffective();
+    const entryWord = w.entryOne.trim() || e.entryOne;
+    const sm = w.entryMany.trim() || e.entryMany;
+    const z1 = w.dayOne.trim() || e.dayOne;
+    const zm = w.dayMany.trim() || e.dayMany;
+    const ja = w.testedYes.trim() || e.testedYes;
+    const no = w.testedNo.trim() || e.testedNo;
+    const reportWord = w.reportOne.trim() || e.reportOne;
+    const bm = w.reportMany.trim() || e.reportMany;
+    const a1 = w.taskOne.trim() || e.taskOne;
+    const at = w.taskMany.trim() || e.taskMany;
+    const doneWord = w.taskDone.trim() || e.taskDone;
+    const potentialWord = w.potential.trim() || e.potential;
+    const rateOne = w.ratingOne.trim() || e.ratingOne;
+    const rateMany = w.ratingMany.trim() || e.ratingMany;
     document.getElementById('vpreview').innerHTML =
       `<span class="label">${tH('card.preview')}</span>
        <span>+ ${esc(entryWord)}</span><span>${tH('card.delete', { entryWord: entryWord })}</span><span>7 ${esc(sm)}</span>
@@ -8902,7 +9082,10 @@ function setUpVocabularyOut() {
       b.textContent = a.name;
       b.onclick = () => {
         VOCABULARY_SHOWN = a.code;
-        renderSystem();
+        /* MIT DER BILDLAUFSTELLUNG -- 0.24.4 (B3). Die Karte steht weit unten
+           im Abschnitt „Bestand"; wer umschaltet, will die vierzehn Felder
+           vor sich behalten und nicht den Seitenkopf. */
+        renderSystem({ keepScroll: true });
       };
       box.appendChild(b);
     });
@@ -8918,13 +9101,24 @@ function setUpVocabularyOut() {
      wie die Ablage: ein Objekt je Sprachkennung, und die Karte schickt genau
      die eine, die gerade offen ist. Die uebrigen bleiben am Server stehen. */
   const vocabularyBody = (words) => ({ [vocabularyLanguage()]: words });
+  /* DIE DREI TAFELN ZIEHEN MIT -- 0.24.4. `r.vocabulary` ist der Satz des
+     LESERS und beschriftet die Oberflaeche; die drei Tafeln daneben gehoeren
+     der Karte. Wer nur `vocabularies` nachzoege, saehe nach dem Speichern in
+     den Feldern noch den Stand von vorhin. */
+  const takeVocabulary = (r) => {
+    if (r.vocabularies) VOCABULARIES = r.vocabularies;
+    if (r.vocabulariesOwn) VOCABULARIES_OWN = r.vocabulariesOwn;
+    if (r.vocabularyDefaults) VOCABULARY_DEFAULTS = r.vocabularyDefaults;
+    V = { ...V, ...r.vocabulary };
+  };
   atElement('vsave', vsave => vsave.onclick = async () => {
     try {
       const r = await api('PUT', '/api/settings', { vocabulary: vocabularyBody(vFields()) });
-      if (r.vocabularies) VOCABULARIES = r.vocabularies;
-      V = { ...V, ...r.vocabulary };
+      takeVocabulary(r);
       toast(t('card.vocabularySaved'));
-      renderSystem();          // leere Felder kommen mit der Vorgabe zurück
+      // Leere Felder bleiben leer, der Hinweis sagt die Vorgabe -- und die
+      // Bildlaufstellung bleibt, wo sie war (B3).
+      renderSystem({ keepScroll: true });
     } catch (e) { toast(e.message, true); }
   });
   atElement('vreset', vreset => vreset.onclick = async () => {
@@ -8935,10 +9129,9 @@ function setUpVocabularyOut() {
       // Leer heisst Vorgabe: der Server setzt fuer jedes leere Feld sein Wort ein.
       const empty = Object.fromEntries(VOCABULARY_FIELDS.map(([, k]) => [k, '']));
       const r = await api('PUT', '/api/settings', { vocabulary: vocabularyBody(empty) });
-      if (r.vocabularies) VOCABULARIES = r.vocabularies;
-      V = { ...V, ...r.vocabulary };
+      takeVocabulary(r);
       toast(t('card.defaultsRestored'));
-      renderSystem();
+      renderSystem({ keepScroll: true });
     } catch (e) { toast(e.message, true); }
   });
 }
@@ -9159,16 +9352,50 @@ function setUpTrashOut(fetched) {
       row.className = 'mrow trash';
       row.dataset.pkid = z.id;
       const open = Number(z.daysOpen);
+      /* NAME, ANLEGER, DATUM -- 0.24.4 (B6 B, Schritt 1 aus F7). Die Zeile
+         beantwortete „wann ist es weg" und „wie gross", aber nicht die Frage
+         VOR dem Wiederherstellen: „ist das der Eintrag, den ich meine?" Der
+         Titel allein sagt es bei zwei aehnlichen nicht -- der ANLEGER schon.
+
+         UND DAS DATUM IN DER ZEILE IST DAS LOESCHDATUM und nicht der Tag,
+         an dem der Eintrag entstanden ist. Beide gehen ueber /api/trash
+         hinaus, aber nur eines gehoert sichtbar in eine Zeile, die ohnehin
+         fuenf Angaben traegt: gefragt wird hier „welchen Eintrag habe ich
+         wann weggeworfen", und die Frist darunter zaehlt von genau diesem
+         Tag. Der Tag der Entstehung steht im Titel der Zeile -- er ist da,
+         wo ihn jemand sucht, und kostet keine Breite.
+         DER ANLEGER STEHT VOR DEM LOESCHVERMERK: angelegt kommt vor
+         geloescht, und die Zeile liest sich in der Reihenfolge, in der es
+         geschehen ist.
+         BEIDE ANGABEN DUERFEN FEHLEN: der Papierkorb traegt den Eintrag als
+         Gebilde, und ein Paket aus einer aelteren Fassung muss die Felder
+         nicht haben. Dann steht die Zeile so da wie bisher -- eine leere
+         Klammer waere schlechter als keine. */
       const meta = [
+        z.createdBy ? t('card.createdBy', { createdBy: authorName(z.createdBy) }) : '',
         t('card.deletedByOn', { deletedAt: fmtDate(z.deleted_at), deletedBy: authorName(z.deletedBy) }),
         t('card.daysLeft', { n: open }),
         fmtBytes(z.bytes)
-      ];
+      ].filter(Boolean);
+      // Wann er entstanden ist, ausgeschrieben, im Titel der Zeile.
+      if (z.created_at)
+        row.title = t('card.createdByOn',
+          { createdAt: fmtDate(z.created_at), createdBy: authorName(z.createdBy) });
       // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.
+      /* DAS ZEICHEN STEHT NEBEN DEM SATZ UND NICHT IN IHM -- 0.24.4 (B6 A).
+         Bis 0.24.3 stand hier `tH('card.restoreIcon', { restoreIcon:
+         ICON_RESTORE })`, und der Knopf zeigte seinen SVG-Quelltext als Text:
+         tH() maskiert jeden eingesetzten Wert, mit Absicht (Stolperstein 18
+         in Dateiform). Verursacht hat es 0.24.0 beim Umzug der Saetze -- aus
+         `${ICON} Wiederherstellen` wurde ein Satz mit Platzhalter, und ein
+         Platzhalter ist ein Wert.
+         DER SCHLUESSEL `card.restoreIcon` IST DAMIT WEGGEFALLEN: ein Zeichen
+         ist kein Wort und gehoert nicht in einen Satz, den jemand uebersetzt.
+         Der Knopf setzt das Zeichen selbst und schreibt das Wort daneben. */
       row.innerHTML = `<span class="mname">${esc(z.title)}</span>
-        ${OWNER ? `<button class="mact trash-back" title="${esc(t('card.restore'))}">${tH('card.restoreIcon', { restoreIcon: ICON_RESTORE })}</button>
+        ${OWNER ? `<button class="mact trash-back" title="${esc(t('card.restore'))}">${ICON_RESTORE} ${tH('card.restore')}</button>
         <button class="mact rm trash-remove" title="${esc(t('card.deleteForGood'))}">${ICON_X}</button>` : ''}
         <span class="trash-meta">${esc(meta.join(' · '))}</span>`;
       box.appendChild(row);
