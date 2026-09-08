@@ -3557,22 +3557,6 @@ const shareMain = (purpose, target = null) =>
   check('Und die mitgeschickte Sprache steht ebenfalls darin',
     pvWithout.content.languages.filter(a => a.active).map(a => a.code).includes('de'),
     JSON.stringify(pvWithout.content.languages));
-  /* EINE SPRACHE OHNE DATEI FAELLT AUS DEM VORRAT, statt ihn zu vergiften:
-     `languagePool()` und `writeLanguages()` filtern beide gegen das
-     Verzeichnis -- zwei Schichten derselben Klemme, weil die Ablage aelter
-     sein kann als das Verzeichnis. */
-  const pvInvented = await call('PUT', '/api/settings', { languageOn: ['de', 'en', 'xx'] });
-  check('Eine Sprache ohne Datei kommt gar nicht erst in den Vorrat',
-    equal(pvInvented.content.languages.map(a => a.code).sort(), ['de', 'en']),
-    JSON.stringify(pvInvented.content.languages));
-  /* UND EINE ERFUNDENE VORGABE WIRD UEBERGANGEN. Sie darf die Installation
-     nicht auf eine Sprache stellen, die es nicht gibt -- dann spraeche sie
-     nur noch Schluessel. */
-  const pvInventedDefault = await call('PUT', '/api/settings', { languageDefault: 'xx' });
-  check('Und eine erfundene Vorgabe laesst die alte stehen',
-    pvInventedDefault.content.languages.some(a => a.isDefault),
-    JSON.stringify(pvInventedDefault.content.languages));
-
 
   /* DIE KLEMME STEHT AN ZWEI STELLEN, UND JEDE WIRD EINZELN GEPRUEFT.
      writeLanguages() legt die Vorgabe beim SCHREIBEN in den Vorrat zurueck,
@@ -3593,8 +3577,16 @@ const shareMain = (purpose, target = null) =>
     d.close();
     return r ? JSON.parse(r.value) : null;
   };
+  /* UNMITTELBAR HINTER DEM PUT, DER DIE VORGABE WEGLAESST -- und nicht
+     irgendwo spaeter in der Gruppe. **Daran ist der zweite Anlauf dieser
+     Gegenprobe gescheitert:** die Zeile stand hinter einem spaeteren PUT, der
+     `en` AUSDRUECKLICH mitschickte, und war damit gruen, ohne dass die Klemme
+     irgendetwas getan haette. Ein Waechter ueber eine Klemme muss an der
+     Stelle stehen, an der sie greift. */
   check('Die schreibende Haelfte: schon in der Ablage steht die Vorgabe im Vorrat',
     (pvStored() || []).includes('en'), JSON.stringify(pvStored()));
+  check('Und in der Ablage steht genau das, was der Rumpf gesagt hat -- plus die Vorgabe',
+    equal((pvStored() || []).sort(), ['de', 'en']), JSON.stringify(pvStored()));
   /* UND DIE LESENDE HAELFTE, an einem Vorrat, der am Schreibweg VORBEI in die
      Ablage gelegt wird -- genau die Lage, die ein alter Bestand mitbringt. */
   {
@@ -3615,6 +3607,23 @@ const shareMain = (purpose, target = null) =>
   check('Und der Vorrat traegt danach beide Sprachen',
     equal(pvRead.languages.filter(a => a.active).map(a => a.code).sort(), ['de', 'en']),
     JSON.stringify(pvRead.languages));
+
+  /* EINE SPRACHE OHNE DATEI FAELLT AUS DEM VORRAT, statt ihn zu vergiften:
+     `languagePool()` und `writeLanguages()` filtern beide gegen das
+     Verzeichnis -- zwei Schichten derselben Klemme, weil die Ablage aelter
+     sein kann als das Verzeichnis. */
+  const pvInvented = await call('PUT', '/api/settings', { languageOn: ['de', 'en', 'xx'] });
+  check('Eine Sprache ohne Datei kommt gar nicht erst in den Vorrat',
+    equal(pvInvented.content.languages.map(a => a.code).sort(), ['de', 'en']),
+    JSON.stringify(pvInvented.content.languages));
+  /* UND EINE ERFUNDENE VORGABE WIRD UEBERGANGEN. Sie darf die Installation
+     nicht auf eine Sprache stellen, die es nicht gibt -- dann spraeche sie
+     nur noch Schluessel. */
+  const pvInventedDefault = await call('PUT', '/api/settings', { languageDefault: 'xx' });
+  check('Und eine erfundene Vorgabe laesst die alte stehen',
+    pvInventedDefault.content.languages.some(a => a.isDefault),
+    JSON.stringify(pvInventedDefault.content.languages));
+
 
   // Und zurueck auf den Anfangszustand -- alles im Vorrat, Englisch vorgegeben.
   await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en'] });

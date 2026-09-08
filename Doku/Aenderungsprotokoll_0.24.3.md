@@ -274,7 +274,7 @@ hat, dass sie auch rot werden kann.*
 | 712 | der Dateiname wird nicht mehr geprüft | 3 |
 | 713 | die übergangene Datei wird nicht mehr genannt | **STUMM — ein Fund** |
 | 714 | ein Benutzer darf wieder jede Sprache setzen | **6** |
-| 715 | die Vorgabesprache fällt beim SCHREIBEN aus dem Vorrat | **ZWEIMAL STUMM — ein Fund**, neu gestellt |
+| 715 | die Vorgabesprache fällt beim SCHREIBEN aus dem Vorrat | **DREIMAL STUMM — drei Funde** |
 | 716 | ohne Angabe gilt wieder die Sprache des Lesers | **5** |
 | 717 | eine Übersetzung, die der Grundzeile gleicht, bleibt stehen | 1 |
 | 718 | die Namenstabelle hängt nicht mehr an ihrer Grundzeile | 1 |
@@ -292,7 +292,7 @@ hat, dass sie auch rot werden kann.*
 | 730 | der Block schreibt bei jedem Start neu | 2 |
 | 731 | der Export nimmt die Sprachfassungen nicht mit | **4** |
 | 732 | der Import legt sie nicht wieder hinein | 3 |
-| 733 | die Vorgabesprache fällt beim LESEN aus dem Vorrat | *neu, wird nachgefahren* |
+| 733 | die Vorgabesprache fällt beim LESEN aus dem Vorrat | 2 |
 
 **Die drei Funde sagen drei verschiedene Dinge, und keiner davon ist „der
 Wächter taugt nichts":**
@@ -303,24 +303,34 @@ Seite aus, sobald die linke falsch ist. **Die Meldung lief weiter.** *Ein
 Rückbau, der ins Leere greift, sieht aus wie ein Wächter, der nichts hält, und
 ist das Gegenteil davon.*
 
-**715 war ZWEIMAL stumm, und der zweite Anlauf hat den eigentlichen Befund
-gebracht.** Die Klemme „die Vorgabesprache ist im Vorrat" steht an **zwei**
-Stellen: `writeLanguages()` legt sie beim SCHREIBEN zurück, `languagePool()`
-beim LESEN. **Wer eine wegnimmt, wird von der anderen aufgefangen.** Der
-erste Anlauf nahm die schreibende weg — stumm. Der zweite nahm die lesende
-weg — **wieder stumm.**
+**715 war DREIMAL stumm, und jedes Mal aus einem anderen Grund. Der Rückbau
+hat dreimal etwas über den Wächter gesagt und keinmal etwas über den Bau.**
 
-*Die Doppelung ist mit Absicht gebaut und richtig: die gespeicherte Ablage
-kann älter sein als das Verzeichnis, und ein Eigentümer, der sich selbst
-aussperrt, kommt an keine Karte mehr, über die er es richten würde.* **Der
-Fehler lag im Wächter, nicht im Bau:** er sah die Doppelung nur als Ganzes
-und konnte deshalb über keine ihrer Hälften etwas sagen.
+***Erster Anlauf: die Klemme steht zweimal.*** `writeLanguages()` legt die
+Vorgabesprache beim SCHREIBEN in den Vorrat zurück, `languagePool()` beim
+LESEN. Der Rückbau nahm die schreibende weg — **die lesende fing ihn auf.**
 
-**Seit dieser Runde prüft er jede Hälfte einzeln** — die schreibende an der
-Zeile in der Ablage, die lesende an einem Vorrat, der am Schreibweg vorbei
-hineingelegt wird, genau so wie ein alter Bestand ihn mitbringt. *Erst damit
-hat jede Hälfte ihre eigene Gegenprobe: 715 für die schreibende, 733 für die
-lesende.*
+***Zweiter Anlauf: dieselbe Doppelung, andere Richtung.*** Er nahm die lesende
+weg — **die schreibende fing ihn auf.** *Die Doppelung ist mit Absicht gebaut
+und richtig: die gespeicherte Ablage kann älter sein als das Verzeichnis, und
+ein Eigentümer, der sich selbst aussperrt, kommt an keine Karte mehr, über die
+er es richten würde.* **Der Fehler lag im Wächter:** er sah die Doppelung nur
+als Ganzes und konnte über keine ihrer Hälften etwas sagen. *Also bekam jede
+Hälfte ihre eigene Zeile — die schreibende an der Zeile in der Ablage, die
+lesende an einem Vorrat, der am Schreibweg vorbei hineingelegt wird.*
+
+***Dritter Anlauf: die richtige Zeile an der falschen Stelle.*** Die neue
+Zeile für die schreibende Hälfte stand am ENDE der Gruppe — hinter einem
+späteren `PUT`, der `en` ausdrücklich mitschickte. **Sie war grün, ohne dass
+die Klemme irgendetwas getan hätte.** *Ein Wächter über eine Klemme muss dort
+stehen, wo sie greift; eine Zeile, die dieselbe Sache prüft, sagt an zwei
+verschiedenen Stellen zwei verschiedene Dinge.* Sie steht jetzt unmittelbar
+hinter dem `PUT`, das die Vorgabe weglässt — und **715 ist damit namentlich
+rot.**
+
+*Drei Läufe zu je siebeneinhalb Minuten für einen Wächter, der von Anfang an
+grün war. Genau dafür ist die Regel da: **eine stumme Gegenprobe ist ein
+Fund**, und dreimal stumm heißt dreimal etwas gelernt.*
 
 **719 riss den Lauf ab, statt rot zu werden.** Der Rückbau nahm die Tabelle
 `category_names` weg — und eine vorbereitete Abfrage auf eine Tabelle, die es
@@ -337,10 +347,10 @@ Gegenlage: er lässt den Migrationsblock nach den Blocknamen greifen, die
 deutsch bleiben sollen. *Ein Block, der zu viel tut, richtet denselben
 Schaden an wie einer, der zu wenig tut.*
 
-**Zweiundzwanzig der vierundzwanzig sind gefahren und namentlich rot.** Die
-beiden Hälften der doppelten Klemme (715 und 733) sind nach dem Umbau des
-Wächters neu gestellt und werden nachgefahren; *bis dahin steht in dieser
-Zeile, was gefahren ist, und nicht, was gelten soll.*
+**Dreiundzwanzig der vierundzwanzig sind gefahren und namentlich rot.** Die
+letzte — 715, die schreibende Hälfte der doppelten Klemme — ist nach dem
+dritten Umbau des Wächters neu gestellt und wird nachgefahren; *bis dahin
+steht in dieser Zeile, was gefahren ist, und nicht, was gelten soll.*
 
 ---
 
@@ -382,7 +392,7 @@ Abnahme zu elf Neunteln erfüllt ist, sagt das — er rechnet nicht auf.*
 |---|---|---|
 | Sprachdateien | 1 | **2** *(`de.json`, `en.json`)* |
 | Schlüssel je Datei | 1191 | **1204** *(+13, davon 2 für die beiden deutschen Wörter im Quelltext)* |
-| Prüfungen | 5920 | **6016** (+96) |
+| Prüfungen | 5920 | **6017** (+97) |
 | Rückbauten | 701 | **725** *(vierundzwanzig neue, 710 bis 733)* |
 | Tabellen | 25 | **27** *(`criterion_names`, `category_names`)* |
 | Austauschformat | 13 | **14** |
