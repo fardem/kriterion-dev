@@ -1084,18 +1084,25 @@ so alt wie die Fortschrittsmeldung im Ablagefeld.*
 
 ## 19. Der fünfzehnte Vokabelplatz — „Mehrzahl nach einer Zahl"
 
-> **NEU AM 8. SEPTEMBER 2026, aus dem Augenschein zu 0.24.4 — noch ohne
-> Nummer.** Die Ausarbeitung steht in `Doku/Fehler_und_Ideen.md`, Teil I; hier
-> steht sie, sobald der Betreiber ihr eine Runde gibt.
+> **ABGELEHNT AM 8. SEPTEMBER 2026 — er bekommt keine Nummer.** *„Nein, es
+> wird keine Felder für mehrzahlige Angaben auf Türkisch geben. 1 Öğe, 4 Öğe,
+> beides geht. Dann ist die Vorgabe für beides halt zwei mal das gleiche."*
+> **Der Punkt hat einen halben Tag hier gestanden und ist am selben Tag
+> entschieden worden.** *Die Herleitung samt Messung bleibt in
+> `Doku/Fehler_und_Ideen.md`, Teil I, Punkt 19 — mit demselben Kasten.*
 
-**„3 Öğeler" steht in der türkischen Kopfzeile, und türkisch wäre „3 öğe".**
-Die vierzehn Vokabelwörter haben je **einen** Mehrzahlplatz; Türkisch braucht
-**zwei** — die Einzahl hinter einer Zahl (21 Stellen), die Mehrzahl im Satz
-und an der Beschriftung (36 Stellen). *Kein Wort macht beides richtig.*
-**Zu bauen wäre ein fünfzehnter Platz je Wort**; in Deutsch und Englisch trüge
-er dasselbe wie der vorhandene, in Türkisch dasselbe wie die Einzahl.
+**„3 Öğeler" stand in der türkischen Kopfzeile, und türkisch ist „3 öğe".**
+Die vierzehn Vokabelwörter haben je **einen** Mehrzahlplatz; Türkisch bräuchte
+**zwei** — die Einzahl hinter einer Zahl (30 Stellen), die Mehrzahl im Satz
+(27 Schlüssel) und an der Beschriftung (5 Stellen). *Kein Wort macht beides
+richtig.*
+
+**GEBAUT IST STATTDESSEN, NOCH IN 0.24.4: beide Formen tragen dasselbe Wort.**
+Die Zählerstellen stehen damit richtig, **zwölf Sätze in `tr.json` sind dafür
+umgeschrieben**, und der Preis steht benannt an fünf Beschriftungen.
 ***Ausdrücklich keine Regel im Quelltext*** — das wäre genau das, was 0.24.0
-bis 0.24.4 abgebaut haben.
+bis 0.24.4 abgebaut haben; **die Datei sagt es, und der Code weiß von Türkisch
+nichts.** *Die Regel dazu steht als TR-S4 im türkischen Wörterbuch.*
 
 ---
 

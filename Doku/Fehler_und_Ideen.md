@@ -301,20 +301,41 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 
 ## Teil I nimmt wieder auf, sobald etwas dazukommt
 
-**Er ist leer gewesen und trägt seit dem 8. September 2026 wieder einen
-Punkt** — mit den sechs Überschriften aus „Die Form eines Punktes" und **ohne
-Versionsnummer** (Regel 1). *Die nächste Nummer, die frei ist, entscheidet der
-Betreiber, wenn genug beieinander ist.*
+**Er ist leer gewesen, hat am 8. September 2026 einen Punkt bekommen — und
+derselbe Tag hat ihn auch entschieden: abgelehnt.** *Er steht unten weiter im
+Wortlaut, als **Herleitung**: dort ist gemessen und überlegt worden, und eine
+verworfene Idee ohne aufgeschriebene Begründung kommt in einem halben Jahr als
+neue Idee zurück.* **Der Kasten am Kopf des Punktes sagt, was aus ihm geworden
+ist** — dieselbe Form, in der der Fahrplan seine abgelehnten Punkte trägt.
 
 ---
 
 ## 19. Der fünfzehnte Vokabelplatz — „Mehrzahl nach einer Zahl"
 
+> **ABGELEHNT AM 8. SEPTEMBER 2026.** *„Nein, es wird keine Felder für
+> mehrzahlige Angaben auf Türkisch geben. 1 Öğe, 4 Öğe, beides geht. Dann ist
+> die Vorgabe für beides halt zwei mal das gleiche."* **Der Betreiber hat die
+> Frage im selben Zug beantwortet, in dem sie gestellt worden ist.**
+>
+> **WAS STATTDESSEN GEBAUT IST — und zwar noch in 0.24.4:** die fünf
+> türkischen Vokabelpaare tragen **in beiden Formen dasselbe Wort** (`Öğe`,
+> `Test günü`, `Rapor`, `Görev`, `Değerlendirme`). *Damit stehen die 30
+> Zählerstellen richtig — „3 öğe", „15 öğe görünüyor" —, und das war die
+> Mehrheit.* **Zwölf der 27 Sätze in `tr.json` sind dafür umgeschrieben
+> worden**, damit sie sich mit der Einzahl lesen; die übrigen fünfzehn taten
+> es schon. **Der Preis steht an fünf bloßen Beschriftungen** und ist benannt:
+> „TEST GÜNÜ" über der Liste, wo türkisch „TEST GÜNLERİ" lieber stünde.
+>
+> **DIE REGEL DARAUS steht als TR-S4 im türkischen Wörterbuch** und gilt für
+> jede weitere Sprache dieser Art: *eine Sprache, die nach einer Zahl die
+> Einzahl will, löst es über die SÄTZE ihrer Datei und nicht über einen
+> zweiten Mehrzahlplatz.* **Der Mechanismus bekommt keinen fünfzehnten Platz —
+> nicht jetzt und nicht mit der nächsten Sprache.**
+
 **Art: Fehler** *(in einer Sprache; in Deutsch und Englisch fällt er nicht
-an)* · **Einschätzung: empfohlen, aber nicht dringend** — *ein Wort mehr in
-der Karte, ein Schlüssel mehr je Sprachdatei, ein Ruf mehr im Quelltext* ·
-**Draußen üblich: ja** — *jede Bibliothek für Mehrsprachigkeit trennt die
-Zählform von der Wortform*
+an)* · **Einschätzung von Claude war: empfohlen, aber nicht dringend** —
+*abgelehnt vom Betreiber, siehe Kasten* · **Draußen üblich: ja** — *jede
+Bibliothek für Mehrsprachigkeit trennt die Zählform von der Wortform*
 
 ### Woher
 
@@ -331,17 +352,19 @@ sie gilt an dieser Stelle nicht.*
 ### Warum es keine Übersetzungsfrage ist
 
 **Die vierzehn Vokabelwörter haben je EINEN Mehrzahlplatz** (`entryMany`,
-`dayMany`, `reportMany`, `taskMany`, `ratingMany`), und der wird an **zwei**
+`dayMany`, `reportMany`, `taskMany`, `ratingMany`), und der wird an **drei**
 Orten gelesen:
 
-| wo | was Türkisch will | gemessen |
+| wo | was Türkisch will | gemessen am 8. September 2026 |
 |---|---|---|
-| hinter einem Zähler — `3 {entryMany}`, `vThing(n)` | die **Einzahl** | **21 Stellen** |
-| in einem Satz oder an einer Beschriftung — `bütün {entryMany} için`, „TEST GÜNLERİ" als Blockkopf | die **Mehrzahl** | **36 Stellen** *(31 Sätze, 5 Beschriftungen)* |
+| hinter einem Zähler — `3 {entryMany}`, `vThing(n)` | die **Einzahl** | **30 Stellen** *(27 über die fünf Zähler-Helfer, drei über `countWord`)* |
+| in einem Satz — `bütün {entryMany} için` | eher die **Mehrzahl** | **27 Schlüssel**, 30 Vorkommen |
+| als bloße Beschriftung — „TEST GÜNLERİ" als Blockkopf | die **Mehrzahl** | **5 Stellen** im Code |
 
-**`tr.json` trägt die Mehrzahl**, weil damit die Mehrheit richtig wird; die
-Minderheit liest sich als „3 Öğeler". *Kein Wort dieser Welt macht beides
-richtig.*
+*Kein Wort dieser Welt macht beides richtig* — **und genau deshalb ist die
+Antwort nicht ein besseres Wort, sondern eine Entscheidung darüber, welche der
+drei Stellen die Datei bedient.* **Der Betreiber hat sie getroffen** (Kasten
+oben): die Zählerstellen, und die Sätze werden ihr nachgeschrieben.
 
 ### Was zu bauen wäre
 
@@ -359,18 +382,26 @@ mehr, und der Prüfstand seine Zahl.
 Gebilde unter `settings.vocabulary`)*, das Austauschformat und die
 Rechtezeilen.
 
-### Einschätzung von Claude
+### Einschätzung von Claude — und warum sie nicht getragen hat
 
-**Empfohlen, aber es hat Zeit.** *Der Fehler steht an 21 Stellen einer
-Sprache, die es seit einem Tag gibt, und er ist ein Schönheitsfehler und kein
-Missverständnis — „3 Öğeler" liest sich falsch, aber niemand versteht etwas
-Falsches.* **Wer ihn baut, sollte ihn zusammen mit der nächsten Sprache
-bauen**, die eine eigene Zählform braucht — und nicht für sich allein.
+**Sie lautete: empfohlen, aber es hat Zeit.** *Der Fehler stand an 30 Stellen
+einer Sprache, die es seit einem Tag gibt, und er war ein Schönheitsfehler und
+kein Missverständnis — „3 Öğeler" liest sich falsch, aber niemand versteht
+etwas Falsches.*
 
-> **UND EINE ALTERNATIVE, DIE AUSDRÜCKLICH VERWORFEN IST:** die Regel im
+> **WAS SIE ÜBERSEHEN HAT:** dass die 30 Zählerstellen sich **ohne** neues
+> Feld richtig machen lassen — indem die Datei in beiden Formen dasselbe Wort
+> trägt und die wenigen Sätze umgeschrieben werden, die dann falsch klängen.
+> *Der Vorschlag rechnete mit einem Feld, weil der Mechanismus zwei Plätze
+> anbietet; die Sprache braucht aber gar keine zwei Wörter, sondern nur einen
+> Satzbau, der ohne das zweite auskommt.* **Der Betreiber hat genau das
+> gesehen und die billigere Lösung genommen.**
+
+> **UND EINE ALTERNATIVE, DIE AUSDRÜCKLICH VERWORFEN BLEIBT:** die Regel im
 > Quelltext festzuschreiben („bei `tr` nimm die Einzahl"). *Damit stünde eine
 > Sprachregel im Code statt in der Datei — genau das, was das ganze Vorhaben
-> 0.24.0 bis 0.24.4 abgebaut hat.*
+> 0.24.0 bis 0.24.4 abgebaut hat.* **Die gebaute Lösung tut das Gegenteil:**
+> die Datei sagt es, und der Code weiß von Türkisch nichts.
 
 ---
 

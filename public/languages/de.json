@@ -105,8 +105,6 @@
   "card.copyByHandLink": "Bitte von Hand kopieren — der Link ist markiert.",
   "card.copyKey": "Schlüssel kopieren",
   "card.create": "Erzeugen",
-  "card.createdBy": "angelegt von {createdBy}",
-  "card.createdByOn": "angelegt {createdAt} von {createdBy}",
   "card.createdFrom": ", erstellt aus „{title}\"",
   "card.createInviteLink": "Einladungslink erzeugen",
   "card.createResetLink": "Link zum Zurücksetzen erzeugen",

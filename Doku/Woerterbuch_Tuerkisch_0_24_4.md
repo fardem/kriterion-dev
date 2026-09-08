@@ -2,7 +2,7 @@
 
 **Bauabschnitt 2 des Auftrags 0.24.4, und er steht vor jedem übersetzten
 Satz.** *Wer mittendrin merkt, dass „Eintrag" mal `Öğe` und mal `Kayıt` heißt,
-hat 1211 Schlüssel zu prüfen statt eine Liste.*
+hat 1209 Schlüssel zu prüfen statt eine Liste.*
 
 **Die Regel aus 0.22.0 gilt je Sprache: eine Sache, ein Wort** — Regel **S3**
 im Projektstand, Abschnitt 5.6. Dieses Papier ist die türkische Fassung
@@ -10,31 +10,33 @@ derselben Regel. **Es ist verbindlich für `tr.json`**, und wer ein zweites
 Wort für dieselbe Sache braucht, ändert erst dieses Papier und dann alle
 Stellen.
 
-> ## OFFEN: DER LESER (F2)
+> ## DER LESER: DER BETREIBER SELBST (F2, entschieden)
 >
 > **Die Regel aus dem Konzept lautet: ohne einen Leser, der Türkisch als
 > Sprache und nicht als Wörterbuch kennt, geht `tr.json` nicht heraus**
-> (S3.4, E14). *Für Englisch hat der Betreiber selbst gegengelesen; für
-> Türkisch ist am Tag dieser Runde niemand benannt.*
+> (S3.4, E14). **Am 8. September 2026 hat der Betreiber die Frage F2 des
+> Auftrags beantwortet: *„das bin ich"*.** *Damit steht Türkisch, wie
+> Englisch bei 0.24.3 (dort Frage F5), auf demselben Leser — und die Regel
+> ist erfüllt, nicht umgangen.*
 >
-> **Die Datei ist gebaut und liegt vollständig da; gegengelesen ist sie
-> nicht.** Das ist eine **benannte Abweichung** und keine Erledigung: sie
-> steht im Änderungsprotokoll 0.24.4 und im Projektstand, Abschnitt 5, und
-> sie bleibt offen, bis der Betreiber eine Person benennt und diese die Datei
-> durchgesehen hat. ***Was Claude leisten kann, ist das Wörterbuch und die
-> fünf Regeln; ob ein Satz sich türkisch LIEST, sagt nur jemand, der die
-> Sprache spricht.***
+> **Was das für dieses Papier heißt:** die Wörterliste unten ist der
+> **Vorschlag**, den der Leser durchgeht, und keine beschlossene Sache. Wo
+> unten *„offen"* steht, entscheidet der Betreiber; wo nichts steht, gilt der
+> Vorschlag, bis er widerspricht. ***Was Claude leisten kann, ist das
+> Wörterbuch und die fünf Regeln; ob ein Satz sich türkisch LIEST, sagt nur
+> jemand, der die Sprache spricht.***
 >
-> **Vier Stellen gehören dabei zuerst angesehen:**
+> **Drei Stellen gehören dabei zuerst angesehen:**
 > 1. **`Parola` oder `Şifre`** für „Passwort" *(F3)* — es steht an der
 >    Anmeldemaske, und das ist der erste Satz, den ein Mensch liest.
 > 2. **`Öğe` für „Eintrag"** — der Zusammenstoß aus S3.2, unten begründet.
-> 3. **Die Mehrzahl hinter einer Zahl** — „3 Öğeler" steht am Bildschirm, und
->    türkisch wäre „3 öğe". *Der Kasten unter TR-S4 sagt, warum es so ist und
->    was die Alternative kostet.*
-> 4. **Der Wortlaut am Telefon** — der Augenschein ist gefahren *(die Bilder
+> 3. **Der Wortlaut am Telefon** — der Augenschein ist gefahren *(die Bilder
 >    liegen der Runde bei)*, aber ob ein Satz sich türkisch **liest**, sagt
 >    dieser Blick nicht.
+>
+> **Eine vierte Stelle stand hier und ist entschieden:** die Mehrzahl hinter
+> einer Zahl. *Der Kasten unter TR-S4 trägt die Entscheidung des Betreibers
+> vom 8. September 2026 und das, was sie gekostet hat.*
 
 ---
 
@@ -77,29 +79,51 @@ repariert.*
   > *Nachgemessen, nicht angenommen.* **Wer nur `other` schriebe, risse ein
   > Loch in die Deckungsprobe** — und bei `n = 1` stünde `⟦…⟧` am Bildschirm.
   >
-  > **Die Mehrzahl mit -ler/-lar steht nur als Titel:** „Yorumlar" über der
-  > Liste, „3 yorum" an der Zahl.
+  > **Die Mehrzahl mit -ler/-lar steht nur in den FESTEN Sätzen der Datei:**
+  > „Yorumlar" über der Kommentarliste, „3 yorum" an der Zahl. ***An einem
+  > Vokabelwort steht sie gar nicht mehr*** — warum, sagt der Kasten darunter.
   >
-  > ## UND EINE STELLE HÄLT DIE REGEL NICHT — sie kann es nicht.
+  > ## DIE EINE STELLE, DIE DIE REGEL NICHT VON SELBST HÄLT — und wie sie entschieden ist
   > **Die vierzehn Vokabelwörter haben je EINEN Mehrzahlplatz**, und der wird
-  > an zwei Orten gelesen: **hinter einem Zähler** (`3 {entryMany}`) und **als
-  > Wort in einem Satz oder an einer Beschriftung** (`bütün {entryMany} için`,
-  > „TEST GÜNLERİ" als Blocküberschrift). *Türkisch will dort zwei
-  > verschiedene Wörter — `öğe` nach der Zahl, `öğeler` im Satz.*
+  > an drei Orten gelesen: **hinter einem Zähler** (`3 {entryMany}`), **als
+  > Wort in einem Satz** (`bütün {entryMany} için`) und **als bloße
+  > Beschriftung** („TEST GÜNLERİ" als Blocküberschrift). *Türkisch will dort
+  > nicht dasselbe Wort — `öğe` nach der Zahl, `öğeler` im Satz.*
   >
-  > **Gemessen am 8. September 2026:** **21 Stellen** lesen das Wort hinter
-  > einer Zahl, **36** ohne (31 in Sätzen, 5 als Beschriftung).
+  > **Gemessen am 8. September 2026, an der ausgelieferten Fassung:**
+  > **30 Stellen** lesen das Wort hinter einer Zahl *(27 über die fünf
+  > Zähler-Helfer `vThing`, `vTime`, `vReport`, `vTask`, `vRating`, drei über
+  > `countWord`)*, **27 Schlüssel** *(30 Vorkommen)* lesen es in einem Satz,
+  > **5 Stellen** im Code als bloße Beschriftung. *Gezählt, nicht geschätzt.*
   >
-  > **Die Datei trägt deshalb die Mehrzahl** (`Öğeler`, `Test günleri`, …) —
-  > die Mehrheit der Stellen wird damit richtig, und die Minderheit liest sich
-  > als „3 Öğeler" statt „3 öğe". ***Das ist keine Übersetzungsfrage, sondern
-  > eine Grenze des Vokabularmechanismus***, und Türkisch ist die erste
-  > Sprache, an der sie auffällt.
+  > ### DIE ENTSCHEIDUNG DES BETREIBERS, 8. September 2026
+  > **Es gibt keinen fünfzehnten Vokabelplatz, und beide Formen tragen
+  > dasselbe Wort.** Der Betreiber hat die Frage im Wortlaut entschieden:
+  > *„1 Öğe, 4 Öğe, beides geht. Dann ist die Vorgabe für beides halt zwei mal
+  > das gleiche."* **`Öğe`, `Test günü`, `Rapor`, `Görev`, `Değerlendirme` —
+  > in `one` wie in `other`.**
   >
-  > **Für den Leser aus F2 ist das die vierte Stelle, die eine Entscheidung
-  > braucht** — und die Alternative wäre kein besseres Wort, sondern ein
-  > **fünfzehnter Vokabelplatz** („Mehrzahl nach einer Zahl"). *Das ist eine
-  > eigene Runde und keine Zeile in dieser Datei.*
+  > **Damit sind die 30 Zählerstellen richtig** („3 öğe", „15 öğe
+  > görünüyor") — und das war die Mehrheit, die vorher falsch stand.
+  >
+  > **Was es gekostet hat, steht Satz für Satz in der Datei:** von den 27
+  > Satzschlüsseln haben **12 einen neuen Wortlaut bekommen**, damit sie sich
+  > mit der Einzahl lesen — *„bütün {entryMany} öğelerini göster" wurde
+  > „Bütün {entryMany} listesini göster", „kaç {entryMany} öğesinde" wurde
+  > „yıldız verilen {entryMany} sayısını"*. **Die übrigen 15 lasen sich mit
+  > der Einzahl schon richtig**, weil das Türkische das bloße Nomen ohnehin
+  > allgemein gebraucht: „Silinmiş öğe yok.", „Henüz Test günü yok."
+  >
+  > **Was bleibt, ist benannt:** an den **5 bloßen Beschriftungen** stünde
+  > türkisch lieber die Mehrzahl — „TEST GÜNLERİ" über der Liste der Testtage
+  > statt „TEST GÜNÜ". *Der Betreiber kennt den Preis und hat so entschieden;
+  > die Mehrheit der Stellen wiegt schwerer als fünf Überschriften.*
+  >
+  > ***Die Alternative wäre kein besseres Wort gewesen, sondern ein
+  > fünfzehnter Vokabelplatz*** („Mehrzahl nach einer Zahl") — eine eigene
+  > Runde, ein Feld mehr in jeder Sprache, ein Wanderungsschritt für jeden
+  > Bestand. **Sie ist abgelehnt, nicht vertagt** *(Fehler und Ideen,
+  > Punkt 19)*.
 - **TR-S5 · Der Apostroph steht in der Datei, nie im Code** *(T5)*. Endungen
   an Eigennamen, Zahlen und zitierten Wörtern trennt das Türkische mit
   Apostroph: „Kriterion'a", „3'te". **Die Sätze sind so gebaut, dass weder
@@ -126,19 +150,19 @@ Eigentümer stattdessen einträgt, steht in der Datenbank.*
 | Schlüssel | Deutsch | Englisch | **Türkisch** | warum |
 |---|---|---|---|---|
 | `vocabulary.entryOne` | Eintrag | Entry | **Öğe** | ***nicht `Kayıt`*** — der Zusammenstoß, siehe unten |
-| `vocabulary.entryMany` | Einträge | Entries | **Öğeler** | |
+| `vocabulary.entryMany` | Einträge | Entries | **Öğe** | ***dasselbe Wort wie die Einzahl*** — TR-S4, entschieden am 8. September 2026 |
 | `vocabulary.testedYes` | Getestet | Tested | **Test edildi** | |
 | `vocabulary.testedNo` | Ungetestet | Untested | **Test edilmedi** | *die verneinte Form desselben Verbs — wie im Deutschen ein Wort* |
 | `vocabulary.dayOne` | Testtag | Test day | **Test günü** | zwei Wörter; **TR-S3** verbietet das Zusammensetzen |
-| `vocabulary.dayMany` | Testtage | Test days | **Test günleri** | |
+| `vocabulary.dayMany` | Testtage | Test days | **Test günü** | dasselbe Wort wie die Einzahl *(TR-S4)* |
 | `vocabulary.reportOne` | Bericht | Report | **Rapor** | |
-| `vocabulary.reportMany` | Berichte | Reports | **Raporlar** | |
+| `vocabulary.reportMany` | Berichte | Reports | **Rapor** | dasselbe Wort wie die Einzahl *(TR-S4)* |
 | `vocabulary.taskOne` | Aufgabe | Task | **Görev** | |
-| `vocabulary.taskMany` | Aufgaben | Tasks | **Görevler** | |
+| `vocabulary.taskMany` | Aufgaben | Tasks | **Görev** | dasselbe Wort wie die Einzahl *(TR-S4)* |
 | `vocabulary.taskDone` | Erledigt | Done | **Tamamlandı** | ein Wort, ein Abzeichen |
 | `vocabulary.potential` | Potenzial | Potential | **Potansiyel** | |
 | `vocabulary.ratingOne` | Bewertung | Rating | **Değerlendirme** | *nicht `İnceleme`* — das wäre der Bericht |
-| `vocabulary.ratingMany` | Bewertungen | Ratings | **Değerlendirmeler** | |
+| `vocabulary.ratingMany` | Bewertungen | Ratings | **Değerlendirme** | dasselbe Wort wie die Einzahl *(TR-S4)* |
 
 > **DER ZUSAMMENSTOSS, UND ER BELEGT DIE REGEL.** Das nächstliegende Wort für
 > „Eintrag" wäre **`Kayıt`** — und `Kayıt` heißt zugleich „Registrierung"
@@ -171,7 +195,7 @@ Eigentümer stattdessen einträgt, steht in der Datenbank.*
 | Mein Konto | My account | **Hesabım** | |
 | Benutzer | User | **Kullanıcı** | |
 | Sitzung | Session | **Oturum** | |
-| Passwort | Password | **Parola** | ***offen (F3)***: `Parola` (Microsoft, Apple) oder `Şifre` (Google) — beide üblich; **mit dem Leser aus F2 zu bestätigen** |
+| Passwort | Password | **Parola** | ***offen (F3)***: `Parola` (Microsoft, Apple) oder `Şifre` (Google) — beide üblich; **der Betreiber entscheidet — er ist der Leser (F2)** |
 | Zweiter Faktor · Code | Two-factor · Code | **İki adımlı doğrulama · Kod** | `2FA` bleibt `2FA` |
 | Registrierung / Anfrage / beantragen | Registration / Request / request | **Kayıt olma / Başvuru / başvur** | *dieselbe Dreiheit wie im Deutschen: das Verfahren, die einzelne Anfrage, die Handlung* |
 | Einladungslink | Invitation link | **Davet bağlantısı** | |
@@ -267,7 +291,8 @@ Rechts-nach-links, keine zweite Schrift, keine eigene Zahlformatierung.*
 ## 4. Was dieses Papier nicht entscheidet
 
 * **`Parola` gegen `Şifre`** *(F3)* — der Vorschlag steht, die Entscheidung
-  gehört dem Leser aus F2.
+  gehört dem Betreiber, und der ist seit dem 8. September 2026 auch der Leser
+  *(F2)*.
 * **Die Länge am Telefon** *(T4)* — Wörterbuchfragen sind Wortfragen; ob ein
   Satz in eine Pille passt, sagt der Augenschein.
 * **Regionen.** `tr-TR` ist die Locale in der Datei, nicht ein zweiter

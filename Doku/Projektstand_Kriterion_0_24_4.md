@@ -478,10 +478,10 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.24.4** — **6080 Prüfungen**, **728 Rückbauten in der Liste**
+**Gebaut ist 0.24.4** — **6082 Prüfungen**, **728 Rückbauten in der Liste**
 (Abschnitt 8). *Am Wirt noch nicht gesehen.*
 *0.24.4 bringt die dritte Sprache — `tr.json` neben `de.json` und `en.json`,
-**1211 Schlüssel je Datei**, und mehr war dafür nicht zu tun als die Datei
+**1209 Schlüssel je Datei**, und mehr war dafür nicht zu tun als die Datei
 hineinzulegen: das ist die Probe auf die Zusage aus 0.24.3.* **Und sie räumt
 acht Befunde aus dem ersten Rundlauf mit zwei Sprachen weg.** *Der schwerste:
 was für eine Sprache eingetragen war, erschien in dieser Sprache nicht — der
@@ -491,8 +491,9 @@ Der achte hat niemand gemeldet: die beiden Hälften der Suche falteten
 verschieden, und dieselbe Suche gab zwei Lesern zwei Antworten.* **Regel S11
 in Abschnitt 5.6**, Einzelheiten im Änderungsprotokoll 0.24.4. **`F_ROUTES`
 steigt auf 71** (`POST /api/tags`), die Tabellen bleiben bei 27, das
-Austauschformat bei 14. ***Offen bleibt der Leser für Türkisch (F2) — eine
-benannte Abweichung.***
+Austauschformat bei 14. ***Der Leser für Türkisch ist der Betreiber selbst
+(F2, entschieden am 8. September 2026) — die Regel des Konzepts ist damit
+erfüllt; das Durchgehen der Wörterliste steht noch aus.***
 
 *0.24.3 davor* — Fingerprint `ceb8d26a`, 6019 Prüfungen, 725 Rückbauten.
 *0.24.3 bringt die zweite Sprache: `en.json` neben `de.json`, 1204 Schlüssel
@@ -1469,7 +1470,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.24.4** | *(gebaut am 8. September 2026; **am Wirt noch nicht gesehen**. Der Fingerprint wird beim Einspielen nachgetragen — er steht erst fest, wenn der Stand als Commit liegt.)* | **6080** |
+| **0.24.4** | *(gebaut am 8. September 2026; **am Wirt noch nicht gesehen**. Der Fingerprint wird beim Einspielen nachgetragen — er steht erst fest, wenn der Stand als Commit liegt.)* | **6082** |
 | 0.24.3 | `ceb8d26a` *(gebaut am 8. September 2026; **am Wirt nicht gesehen** — er gilt für den Stand NACH dem Streichen der Sprachzeile. 0.24.4 ist noch am selben Tag darauf gebaut worden.)* | 6019 |
 | 0.24.3 *(erster Stand)* | `80f90ee5` *(am 8. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. **Der Rundlauf hat fünf Befunde gebracht:** vier davon sind 0.24.4, der fünfte ist noch in dieser Runde erledigt worden — die Sprachzeile unter der Anmeldemaske ist gestrichen, und damit trägt 0.24.3 einen zweiten Fingerprint. **Eine veröffentlichte Version wird nie verändert** (5.1); dieser Stand war noch keine, er lag als Zweig da und ist im Feld nur angesehen worden.)* | 6017 |
 | 0.24.2 | `ae0084d8` *(am 7. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. Er war vor dem Einspielen gerechnet und stand hier, damit die Installation sich daran messen lässt; **der Zeile von 0.24.1 hat genau das gefehlt** — dort ließ sich die Meldung aus dem Feld erst nachträglich einordnen.)* | **5920** |
@@ -5319,23 +5320,30 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   Sprache.* **Eine Karte, die eine Sprache pflegt, zeigt deshalb in ihren
   Feldern das Eingetragene und nicht den Rückfall** — sonst macht ein Klick
   auf „Speichern" aus dem Rückfall einen Eintrag.
-  *Siebzehn Wächter im Prüfstand halten die Regel; die vollständige Liste steht
+  *Achtzehn Wächter im Prüfstand halten die Regel; die vollständige Liste steht
   im Änderungsprotokoll 0.24.4.*
 
-  > **UND EINE STELLE HÄLT SIE NICHT — sie kann es nicht.** Die vierzehn
-  > Vokabelwörter haben je **einen** Mehrzahlplatz, und Türkisch braucht
-  > **zwei**: die Einzahl hinter einer Zahl („3 öğe", 21 Stellen), die
-  > Mehrzahl im Satz und an der Beschriftung („bütün öğeler için", 36
-  > Stellen). *`tr.json` trägt die Mehrzahl, weil damit die Mehrheit richtig
-  > wird.* **Die Lösung wäre ein fünfzehnter Vokabelplatz** — Punkt 19 im
-  > Sammelblatt, und ausdrücklich keine Regel im Quelltext.
+  > **UND EINE STELLE HÄLT SIE NICHT VON SELBST.** Die vierzehn
+  > Vokabelwörter haben je **einen** Mehrzahlplatz, und Türkisch bräuchte
+  > **zwei**: die Einzahl hinter einer Zahl („3 öğe", 30 Stellen), die
+  > Mehrzahl im Satz und an der Beschriftung („bütün öğeler için", 27
+  > Satzschlüssel und 5 Beschriftungen).
+  > **DER BETREIBER HAT SIE AM 8. SEPTEMBER 2026 ENTSCHIEDEN, und die
+  > Entscheidung gehört zu S11:** *für Türkisch tragen beide Formen dasselbe
+  > Wort* — `Öğe`, `Test günü`, `Rapor`, `Görev`, `Değerlendirme` in `one`
+  > wie in `other`. **Die Zählerstellen sind damit richtig; zwölf Sätze in
+  > `tr.json` sind dafür umgeschrieben worden**, und an fünf bloßen
+  > Beschriftungen bleibt die Einzahl stehen, wo türkisch die Mehrzahl
+  > lieber stünde. *Ein fünfzehnter Vokabelplatz ist **abgelehnt** und nicht
+  > vertagt — Punkt 19 im Sammelblatt.*
 
-  > **DAS TÜRKISCHE WÖRTERBUCH IST NOCH NICHT GEGENGELESEN.** Die Regel des
-  > Konzepts — *ohne Leser geht keine Sprachdatei heraus* — ist am
-  > 8. September 2026 **nicht erfüllt**: der Betreiber hat für Türkisch
-  > niemanden benannt (Frage F2 des Auftrags 0.24.4). `tr.json` liegt
-  > vollständig da, die fünf Regeln sind gefahren, der Wortlaut ist es nicht.
-  > **Das ist eine benannte Abweichung und bleibt offen.**
+  > **DER LESER FÜR TÜRKISCH IST DER BETREIBER SELBST.** Die Regel des
+  > Konzepts — *ohne Leser geht keine Sprachdatei heraus* — ist erfüllt: auf
+  > die Frage F2 des Auftrags 0.24.4 hat der Betreiber am 8. September 2026
+  > geantwortet *„das bin ich"*, wie schon bei Englisch (0.24.3, dort F5).
+  > `tr.json` liegt vollständig da, die fünf Regeln sind gefahren, der
+  > Augenschein ist gefahren. **Was aussteht, ist das Durchgehen der
+  > Wörterliste** — allen voran `Parola` gegen `Şifre` (F3).
 
 #### Farbe und Marke
 
@@ -11128,7 +11136,7 @@ solange die Kachel „Vokabular" beim Umschalten die falsche Sprache zeigt und
 in die falsche schreibt, ließen sich vierzehn türkische Wörter gar nicht
 pflegen.
 
-**(1) `tr.json`** — 1211 oberste Schlüssel, dieselbe Liste und dieselbe
+**(1) `tr.json`** — 1209 oberste Schlüssel, dieselbe Liste und dieselbe
 Reihenfolge wie `de.json` und `en.json`; `_locale: "tr-TR"`, `_name:
 "Türkçe"`. **Mehr war dafür nicht zu tun, als die Datei hineinzulegen** — das
 ist die Probe auf die Zusage aus 0.24.3, und sie ist bestanden. *Das
@@ -11164,8 +11172,12 @@ Automatismus), **B4** der Hinweis „(Vorgabe: …)" folgt der Kachel, **B5** di
 beiden festen deutschen Wörter (`alle N anzeigen`, `N aktiv`) ziehen in die
 Sprachdatei, **B6 A** `card.restoreIcon` fällt weg — *ein Zeichen ist kein
 Wort und gehört nicht in einen Satz, den jemand übersetzt* —, **B6 B** die
-Papierkorbzeile nennt Name, Anleger, Löschdatum und Löschenden. *Dazu B4 der
-Runde 0.24.3: über „Noch keine Kommentare." steht kein Bildplatzhalter mehr.*
+Papierkorbzeile bleibt bei Titel, Löschvermerk, Frist und Größe — **der
+Betreiber hat gegen den Vorschlag des Auftrags entschieden** *(8. September
+2026: „Ich glaube Löschdatum reicht doch")*, und `GET /api/trash` trägt
+Anleger und Anlagezeit trotzdem, weil die Detailansicht sie in Schritt 2
+liest. *Dazu B4 der Runde 0.24.3: über „Noch keine Kommentare." steht kein
+Bildplatzhalter mehr.*
 
 **(5) B7 und die einzige neue Route.** „Kategorien" und „Tags" bekommen ihr
 Anlegefeld, über `MANAGE_KIND` und nicht über eine Abfrage auf den
@@ -11183,9 +11195,12 @@ und `loadLanguages()` richtet es nicht — es legt die Vorgaben der neuen Datei
 bis zu dieser Runde antwortete `PUT /api/settings` im Prüfstand mit
 `{ convertImages }` — der Befund war darin gar nicht nachstellbar.
 
-**(7) Siebzehn neue Wächter**, jeder mit gefahrener Gegenprobe — zehn in
-einer eigenen Servergruppe, drei am Quelltext, vier am DOM; **einundsechzig
-Prüfungen mehr, 6019 werden 6080**. **Drei neue Rückbauten**,
+**(7) Achtzehn neue Wächter**, jeder mit gefahrener Gegenprobe — zehn in
+einer eigenen Servergruppe, drei am Quelltext, vier am DOM, eine an der Datei;
+**dreiundsechzig Prüfungen mehr, 6019 werden 6082**. *Die achtzehnte ist erst
+durch die Entscheidung des Betreibers zur Mehrzahl entstanden: die fünf
+türkischen Vokabelpaare tragen dasselbe Wort — und in `de.json` und `en.json`
+tun sie es ausdrücklich nicht.* **Drei neue Rückbauten**,
 und zwei davon zielen auf die beiden Hälften von B8 getrennt: der eine hängt
 die Nadel wieder an den Leser, der andere lässt die vier i
 auseinanderfallen. *Ein Rückbau, der beide Proben zugleich träfe, könnte
@@ -11193,8 +11208,8 @@ nicht sagen, welche von ihnen etwas belegt.*
 
 **Austauschformat 14** *(unverändert)*, `F_ROUTES` **71** *(vorher 70)*,
 **27 Tabellen** *(unverändert)*, **sechs Felder in `/api/config`**
-*(unverändert)*, **drei Sprachdateien** *(vorher zwei)*, **1211 Schlüssel je
-Datei** *(flach 1279)*. **6080 Prüfungen, 728 Rückbauten.**
+*(unverändert)*, **drei Sprachdateien** *(vorher zwei)*, **1209 Schlüssel je
+Datei** *(flach 1277)*. **6082 Prüfungen, 728 Rückbauten.**
 *Was gebaut wurde, steht im Änderungsprotokoll 0.24.4.*
 
 **(8) Der Augenschein ist gefahren** — Übersicht, Eintrag und der Abschnitt
@@ -11202,16 +11217,26 @@ Datei** *(flach 1279)*. **6080 Prüfungen, 728 Rückbauten.**
 läuft über, `ğ ş ç ı İ` liegen in der Schriftkette, T1 hält am lebenden
 Beispiel.* **Und er hat einen Befund gebracht, den kein Wächter sieht:** „3
 Öğeler" statt „3 öğe". Der Vokabularmechanismus hat **einen** Mehrzahlplatz,
-und Türkisch braucht **zwei** — die Einzahl hinter einer Zahl (21 Stellen),
-die Mehrzahl im Satz (36 Stellen). *Die Datei trägt die Mehrzahl, weil damit
-die Mehrheit richtig wird; die Lösung wäre ein fünfzehnter Vokabelplatz und
-ist **Punkt 19** im Sammelblatt.*
+und Türkisch bräuchte **zwei** — die Einzahl hinter einer Zahl (30 Stellen),
+die Mehrzahl im Satz (27 Satzschlüssel) und an der Beschriftung (5 Stellen).
 
-> **OFFEN BLEIBT DER LESER (F2).** `tr.json` ist gebaut, geprüft und liegt
-> vollständig da — **gegengelesen ist sie nicht.** Die Regel des Konzepts
-> („ohne Leser geht keine Sprachdatei heraus") ist damit zum ersten Mal
-> gebrochen, und zwar benannt. *Regel **S11** in Abschnitt 5.6 sagt es an
-> ihrer Stelle noch einmal.*
+> **DER BETREIBER HAT ENTSCHIEDEN, am 8. September 2026:** *„Es wird keine
+> Felder für mehrzahlige Angaben auf Türkisch geben. 1 Öğe, 4 Öğe, beides
+> geht. Dann ist die Vorgabe für beides halt zwei mal das gleiche."*
+> **`tr.json` trägt seither in beiden Formen dasselbe Wort** — `Öğe`,
+> `Test günü`, `Rapor`, `Görev`, `Değerlendirme`. Damit stehen die 30
+> Zählerstellen richtig; **zwölf der 27 Sätze sind dafür umgeschrieben
+> worden**, die übrigen fünfzehn lasen sich mit der Einzahl schon richtig.
+> *Der Preis steht an fünf bloßen Beschriftungen und ist benannt.* **Ein
+> fünfzehnter Vokabelplatz ist damit abgelehnt und nicht vertagt** —
+> **Punkt 19** im Sammelblatt trägt die Absage samt Begründung.
+
+> **DER LESER FÜR TÜRKISCH IST DER BETREIBER (F2).** Auf die Frage des
+> Auftrags hat er am 8. September 2026 geantwortet: *„das bin ich"* — wie bei
+> Englisch in 0.24.3. **Die Regel des Konzepts („ohne Leser geht keine
+> Sprachdatei heraus") ist damit erfüllt.** *Was aussteht, ist das Durchgehen
+> der Wörterliste; `Parola` gegen `Şifre` (F3) ist ihr erster Punkt. Regel
+> **S11** in Abschnitt 5.6 sagt es an ihrer Stelle noch einmal.*
 
 ### 0.24.3 — „Die zweite Sprache"
 
@@ -13201,7 +13226,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.24.1** | **„Der Quelltext spricht Englisch"** | **GEBAUT am 7. September 2026.** *(Neu am 6. September 2026, vom Betreiber eingeschoben — unmittelbar nach dem Einspielen von 0.24.0. Auftrag `Doku/Auftrag_0.24.1.md`, neun Fragen am Kopf, noch unbeantwortet.)* **Jeder Name im Code wird englisch, ausnahmslos:** 808 von 2148 Bezeichnern im ausgelieferten Code, 678 in `testbench.js`, alle 1190 Schlüssel der Sprachdatei, neun API-Wurzeln, die Adressen (`#/system/datenbank`), 48 ids, 49 Stilblattklassen, elf Stilblattvariablen, acht Dateinamen und drei Umgebungsvariablen. **Kommentare und Papiere bleiben deutsch** — ausdrücklich und dauerhaft. **Am Bildschirm ändert sich kein Zeichen:** die WERTE von `de.json` sind hinterher Byte für Byte dieselben, nur ihre Schlüssel heißen anders, und genau das ist die Abnahme. *Zwei Fragen entscheiden über Aufwand und Risiko: ob das Datenbankschema mitgeht (F1) und ob die gespeicherten Werte mitgehen (F2) — nur dann ist es eine Datenbankstufe.* **WARUM VOR STUFE 2 UND NICHT DANACH:** Stufe 2 fasst genau die Stellen an, die diese Runde umbenennt; wer erst übersetzt, macht dieselbe Arbeit zweimal und müsste `en.json` gegen 1190 umbenannte Schlüssel von Hand nachziehen. *PATCH nach 5.1 — die Installation kann danach nichts, was sie vorher nicht konnte.* **GEBAUT IN ACHT BAUABSCHNITTEN:** das Wörterbuch (1186 Wortpaare), der Umbenenner samt Zerleger und Probe, die Sprachdatei, die Serverseite, die Oberfläche in acht Teilen, Datei- und Umgebungsnamen, die Datenbank in fünf Teilen, der Prüfstand in sechs. **F1 und F2 sind mit JA beantwortet — es ist eine Datenbankstufe:** sechs Tabellen, sechsundzwanzig Spalten, fünfundsiebzig gespeicherte Werte, geprüft an einem echten Altbestand (21 Zusagen grün). **Sechs Wächter halten die Regel** (Namens-, Schlüssel-, Adress-, Gestalt-, Wortlaut-, Kürzeprobe), jeder mit seiner Gegenprobe. **110 deutsche Bezeichner bleiben — alle benannt**, und keiner ist eine Benennung: Platzhalter, Vokabelnamen, gespeicherte Werte, sechs falsche Freunde. *Sie ziehen mit Stufe 2 um.* **Drei Befunde aus dem Betrieb sind mitgefahren** (7. September 2026): die Vorschaukachel im Eintrag war nicht anzuklicken, ein Tag am Testtag hieß „t", der zugeklappte Block „Links" zeigte die letzten Zeilen statt der ersten — die ersten beiden gehen auf 0.24.0 zurück, der dritte ist älter. **Die Regel steht als S9 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.1. *Ein Befund aus dem Bauen: die Restzahlen der Abschnitte 3 bis 6 waren zu gut — gemessen wurde gegen ein Wörterbuch, das die Wörter nicht kannte, die es finden sollte; es ist von 716 auf 1186 Paare gewachsen.* *PATCH* | ja | — |
 | **0.24.2** | **„Die gespeicherten Formen ziehen mit"** | **GEBAUT am 7. September 2026.** *(Neu am 7. September 2026 aus dem Rundlauf mit 0.24.1 — dieselbe Herkunft wie 0.22.1 nach 0.22.0 und 0.21.1 nach 0.21.0. Vom Betreiber am selben Tag als eigene Runde angesetzt; die beiden Sprachstufen sind dafür je eine Nummer nach hinten gerückt.)* **0.24.1 hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN den gespeicherten Werten.** Für die Datenbank ist `settings.value` ein String ohne Form; für den Quelltext ist es sehr wohl eine Form. **Drei Gebilde waren betroffen und kein viertes:** die eigenen Suchmaschinen (`{name, vorlage}` gegen `e.template`), der Mailzugang (`{anbieter, benutzer, passwort, absender}` gegen `{provider, user, password, sender}`) und der Beleg der letzten Testmail (`{marke, am}` gegen `{mark, at}`). **Am Bildschirm hieß das:** die eigenen Suchmaschinen standen nicht mehr in der Karte, der Mailzugang galt als nicht eingerichtet — also gingen Einladung, Rücksetzung und Bestätigung nicht mehr hinaus, und die Selbstanmeldung ließ sich nicht mehr einschalten —, und „zuletzt getestet" war leer. **Verloren war nichts:** die Zeilen lagen unverändert da, der Quelltext las an ihnen vorbei. `migration0242Shapes()` benennt die Feldnamen um, läuft hinter dem Block aus 0.24.1 und heilt einen 0.24.0er Bestand in einem einzigen Start; **die Marke des Mailtests bleibt dabei gültig**, weil sie an den WERTEN hängt und nicht an den Namen — eine gelöschte Marke hieße „teste noch einmal", und dazu gibt es keinen Anlass. *Die Lücke war eine der Prüfung, nicht des Wörterbuchs: der Bestandslauf zu 0.24.1 hat die Tabelle `settings` nie gefüllt — und was nicht dasteht, kann keine Migration verlieren.* *PATCH* | ja | — |
 | **0.24.3** | **Mehrsprachigkeit, Stufe 2 — Englisch und die Wahl der Sprache** | **GEBAUT am 8. September 2026.** *(Am 6. und am 7. September 2026 je um eine Nummer nach hinten gerückt, weil 0.24.1 und 0.24.2 dazwischenkamen. Auftrag `Doku/Auftrag_0.24.3.md`, neun Fragen am Kopf; drei kamen im Gespräch dazu, und alle zwölf sind vom Betreiber am 7. September 2026 entschieden worden, bevor eine Zeile Code entstand.)* **`en.json` neben `de.json`, 1204 Schlüssel je Datei.** Jeder Zugang wählt seine Sprache; der Wechsel wirkt ohne Neuladen, und der andere am selben Bildschirm merkt nichts davon. `localeOf(req)` fragt in dieser Folge: der persönliche Schlüssel, `Accept-Language`, die Vorgabe der Installation — **und jede der drei wird gegen den VORRAT gehalten.** **ZWEI ENTSCHEIDUNGEN GINGEN GEGEN DEN VORSCHLAG DES AUFTRAGS:** **F1 — die Nummer bleibt 0.24.3** statt 0.25.0, weil die 24er-Reihe EIN Vorhaben in vier Schritten ist; die Abweichung steht benannt in Abschnitt 5.1 und endet mit dieser Reihe. **F7 — der deutsche Rest aus 0.24.1 fällt GANZ,** auch was in der Datenbank steht: die Platzhalternamen, die Mehrzahlformen, die vierzehn Vokabelnamen, `sicher` im Mailzugang, die drei Bereiche der Blöcke, der Filterschlüssel `favorit`, die beiden Sortierwerte und die sechs Abfrageangaben. *`WAITING_FOR_STAGE_TWO` fällt damit weg, und mit ihr die Zahl 104.* **DIE ÜBRIGEN ZEHN FOLGTEN DEM VORSCHLAG:** der Bestand behält Deutsch (F2), das Vokabular liegt je Sprache mit zwei Rückfällen (F3), `en-GB` ist die Locale (F4), der Betreiber liest selbst gegen (F5), geprüft wird der DATEINAME und nicht der Inhalt (F6), Kriterien und Kategorien bekommen eine Namenstabelle daneben (F8, F8a, F8b), der Export trägt alle Sprachfassungen und steigt auf Format 14 (F8c), und der Systembereich bekommt eine neue Karte „Sprachen" (F9). **GEBAUT IN NEUN BAUABSCHNITTEN:** das englische Wörterbuch, das Verzeichnis als Liste, die Karte „Sprachen", die Wahl je Benutzer, der Server in der Sprache des Anfragenden, `en.json`, das Vokabular je Sprache, die Namen je Sprache, die Reste aus 0.24.1 und der Prüfstand. **DREI MIGRATIONSBLÖCKE, zwei davon in dieser Runde neu** — die Vorgabesprache des Bestands und die deutschen Reste in gespeicherten Werten. *Ohne den zweiten fiele jedes der vierzehn selbst eingetragenen Vokabelwörter still auf die Vorgabe zurück.* **SIEBEN FUNDE, die der Umbau aufgedeckt hat** — alle seit 0.24.1 stumm im Quelltext, darunter `<html lang>`, das seither auf gar nichts stand. **Die Regel steht als S10 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.3. *PATCH — benannte Abweichung nach 5.1* | ja | — |
-| **0.24.4** | **Mehrsprachigkeit, Stufe 3 — Türkisch, und die Kacheln sagen die Wahrheit** | **GEBAUT am 8. September 2026.** *(Am 6. und am 7. September 2026 je um eine Nummer gerückt. Auftrag `Doku/Auftrag_0.24.4.md`, zehn Fragen am Kopf — alle vor der ersten Zeile beantwortet.)* **`tr.json` neben `de.json` und `en.json`, 1211 Schlüssel je Datei**, `_locale: tr-TR`, `_name: Türkçe`. **Und mehr war dafür nicht zu tun, als die Datei hineinzulegen** — das ist die Probe auf die Zusage aus 0.24.3, und sie ist bestanden: Karte „Sprachen", Karte „Darstellung", Anmeldeseite, Vokabular, Kriterien und Kategorien kennen die dritte Sprache, ohne dass jemand eine Liste gepflegt hätte. **Das Wörterbuch steht als eigenes Papier daneben** (`Doku/Woerterbuch_Tuerkisch_0_24_4.md`), geschrieben **vor** dem ersten übersetzten Satz. **ACHT BEFUNDE SIND MIT DERSELBEN RUNDE ERLEDIGT**, und sie standen VOR Türkisch: **B1/B2 — der schwerste.** Der Auftrag vermutete die Ursache am Umschalter; nachgestellt in jsdom greift der Umschalter sehr wohl. **Die Ursache lag am Schreibweg:** `PUT /api/settings` setzte für jedes leere Feld die Vorgabe SEINER Sprache in die Ablage, und der Rückfall aus 0.24.3 trug diesen vollen Satz an jeden anderen Leser weiter — nach einem einzigen Speichern auf Englisch las ein deutscher Leser „Entry" und „Test day". *Seither liegt in der Ablage nur das Eingetragene; „leer heißt Vorgabe" wird beim LESEN eingesetzt.* Die Karte bekommt dafür **drei Tafeln statt einer** (eingetragen, wirksam, Vorgabe). **B3** die Bildlaufstellung überlebt das Umschalten (`renderSystem({ keepScroll })`), **B4** der Hinweis „(Vorgabe: …)" folgt der Kachel, **B5** die beiden festen deutschen Wörter ziehen in die Sprachdatei, **B6 A** `card.restoreIcon` fällt weg (ein Zeichen ist kein Wort), **B6 B** die Papierkorbzeile nennt den Anleger, **B7** „Kategorien" und „Tags" bekommen ihr Anlegefeld — samt `POST /api/tags`, `F_ROUTES` steigt von 70 auf 71. **B8 — der achte, den niemand gemeldet hat:** die beiden Hälften der Suche falteten verschieden, die Nadel mit der Sprache des Lesers, der Heuhaufen mit gar keiner. **Eine Faltung, `searchFold()` in `db.js`, ohne Sprache, und die vier i fallen auf eines** — von neun türkischen Suchfällen ging vorher die Hälfte ins Leere, danach keiner, und zwei Leser bekommen dieselbe Antwort. *Damit ist `deterministic` an `kkl()` auch verdient.* **Dazu B4 der Runde 0.24.3:** über „Noch keine Kommentare." steht kein Bildplatzhalter mehr. **Elf neue Wächter**, jeder mit gefahrener Gegenprobe. **Die Regel steht als S11 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.4. ***OFFEN BLEIBT DER LESER (F2):*** *`tr.json` ist nicht gegengelesen — der Betreiber hat niemanden benannt, und das ist eine benannte Abweichung, keine Erledigung.* *PATCH — benannte Abweichung nach 5.1, und mit dieser Runde endet sie* | ja | — |
+| **0.24.4** | **Mehrsprachigkeit, Stufe 3 — Türkisch, und die Kacheln sagen die Wahrheit** | **GEBAUT am 8. September 2026.** *(Am 6. und am 7. September 2026 je um eine Nummer gerückt. Auftrag `Doku/Auftrag_0.24.4.md`, zehn Fragen am Kopf; **der Betreiber hat sie erst NACH dem Bauen beantwortet, und zwei fielen gegen den Vorschlag aus** — daraus die Regel am Kopf von Abschnitt 11.)* **`tr.json` neben `de.json` und `en.json`, 1209 Schlüssel je Datei**, `_locale: tr-TR`, `_name: Türkçe`. **Und mehr war dafür nicht zu tun, als die Datei hineinzulegen** — das ist die Probe auf die Zusage aus 0.24.3, und sie ist bestanden: Karte „Sprachen", Karte „Darstellung", Anmeldeseite, Vokabular, Kriterien und Kategorien kennen die dritte Sprache, ohne dass jemand eine Liste gepflegt hätte. **Das Wörterbuch steht als eigenes Papier daneben** (`Doku/Woerterbuch_Tuerkisch_0_24_4.md`), geschrieben **vor** dem ersten übersetzten Satz. **ACHT BEFUNDE SIND MIT DERSELBEN RUNDE ERLEDIGT**, und sie standen VOR Türkisch: **B1/B2 — der schwerste.** Der Auftrag vermutete die Ursache am Umschalter; nachgestellt in jsdom greift der Umschalter sehr wohl. **Die Ursache lag am Schreibweg:** `PUT /api/settings` setzte für jedes leere Feld die Vorgabe SEINER Sprache in die Ablage, und der Rückfall aus 0.24.3 trug diesen vollen Satz an jeden anderen Leser weiter — nach einem einzigen Speichern auf Englisch las ein deutscher Leser „Entry" und „Test day". *Seither liegt in der Ablage nur das Eingetragene; „leer heißt Vorgabe" wird beim LESEN eingesetzt.* Die Karte bekommt dafür **drei Tafeln statt einer** (eingetragen, wirksam, Vorgabe). **B3** die Bildlaufstellung überlebt das Umschalten (`renderSystem({ keepScroll })`), **B4** der Hinweis „(Vorgabe: …)" folgt der Kachel, **B5** die beiden festen deutschen Wörter ziehen in die Sprachdatei, **B6 A** `card.restoreIcon` fällt weg (ein Zeichen ist kein Wort), **B6 B** die Papierkorbzeile bleibt beim Löschdatum — *der Betreiber hat gegen den Vorschlag entschieden; `GET /api/trash` trägt Anleger und Anlagezeit trotzdem, für die Detailansicht in Schritt 2*, **B7** „Kategorien" und „Tags" bekommen ihr Anlegefeld — samt `POST /api/tags`, `F_ROUTES` steigt von 70 auf 71. **B8 — der achte, den niemand gemeldet hat:** die beiden Hälften der Suche falteten verschieden, die Nadel mit der Sprache des Lesers, der Heuhaufen mit gar keiner. **Eine Faltung, `searchFold()` in `db.js`, ohne Sprache, und die vier i fallen auf eines** — von neun türkischen Suchfällen ging vorher die Hälfte ins Leere, danach keiner, und zwei Leser bekommen dieselbe Antwort. *Damit ist `deterministic` an `kkl()` auch verdient.* **Dazu B4 der Runde 0.24.3:** über „Noch keine Kommentare." steht kein Bildplatzhalter mehr. **Achtzehn neue Wächter**, jeder mit gefahrener Gegenprobe — elf davon standen in der Tafel des Auftrags. **Die Regel steht als S11 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.4. ***ZWEI ANTWORTEN GINGEN GEGEN DEN VORSCHLAG:*** **F2 — der Leser für Türkisch ist der Betreiber selbst** *(„das bin ich")*, womit die Regel des Konzepts erfüllt ist und die benannte Abweichung entfällt; **die türkische Mehrzahl bekommt keinen fünfzehnten Vokabelplatz**, sondern in beiden Formen dasselbe Wort — *„3 öğe" steht damit richtig da, zwölf Sätze in `tr.json` sind dafür umgeschrieben, und der Preis steht benannt an fünf Beschriftungen.* *PATCH — benannte Abweichung nach 5.1, und mit dieser Runde endet sie* | ja | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
 | **0.26.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und noch am selben Tag auf 0.24.0; **am 5. September 2026 auf 0.26.0, weil die Mehrsprachigkeit vor sie gezogen wurde** — das neunte Rücken, siehe den Kasten unter dieser Tafel.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.27.0** | *frei* | Dritter Zwischenraum nach derselben Regel | — | — |
@@ -14470,6 +14495,28 @@ Telefon** — gefahren ist er am Schreibtisch.
 ---
 
 ## 11. Auflagen für alles, was noch gebaut wird
+
+### Am Anfang einer Runde
+
+- **DIE FRAGEN DES AUFTRAGS WERDEN MIT DEM BETREIBER DURCHGEGANGEN — nicht aus
+  der Vorschlagsspalte übernommen.** *(Seit 0.24.4, und zwar aus einem Befund
+  an genau dieser Runde.)* Jeder Auftrag seit 0.24.0 trägt am Kopf eine Tafel
+  mit Fragen und einer Spalte „Vorschlag von Claude"; die Bauregel darunter
+  lautet seit jeher **„Zuerst die Fragen — gestellt, beantwortet,
+  eingetragen"**.
+  **In 0.24.4 ist das nicht geschehen:** die zehn Antworten sind aus der
+  Vorschlagsspalte in das Papier gewandert, und gebaut wurde darauf. *Drei
+  Entscheidungen fielen hinterher anders aus, als gebaut war* — der Leser für
+  Türkisch **(F2: „das bin ich")**, die Zeile des Papierkorbs **(B6 B, im
+  Rahmen von F7)** und, aus dem Bauen heraus, die türkische Mehrzahl **(kein
+  fünfzehnter Vokabelplatz)**. **Alle drei sind hinterher nachgezogen worden,
+  und das ist die teure Reihenfolge:** die Papierkorbzeile war zweimal zu
+  bauen, zwei Schlüssel der Sprachdatei waren anzulegen und wieder
+  wegzunehmen, und zwölf türkische Sätze waren ein zweites Mal zu schreiben.
+  > **DIE REGEL IN EINEM SATZ: ein Vorschlag ist keine Antwort.** Gebaut wird
+  > erst, wenn die Fragen im Gespräch beantwortet und im Papier eingetragen
+  > sind — und wo eine Frage nur Claude betrifft (eine Bauform, eine
+  > Reihenfolge), sagt der Auftrag das ausdrücklich dazu.
 
 **Hier steht nur, was BINDET.** Eingelöste Merkposten fallen mit der Version
 heraus, in der sie gebaut sind; was von ihnen als Regel weitergilt, steht in

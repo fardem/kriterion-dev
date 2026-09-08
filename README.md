@@ -1725,11 +1725,11 @@ Listen.
   Schlüsselwechsel fasst die Regel gar nicht an**; für sie gibt es einen
   eigenen, ausdrücklichen Knopf.
 - **Papierkorb** *(Admin sieht, Eigentümer handelt;)*: was in den
-  letzten dreißig Tagen gelöscht wurde, mit Titel, **wer den Eintrag angelegt
-  hat**, Löschdatum, Löschendem, der verbleibenden Frist und der Größe. *Wann
-  er angelegt wurde, steht im Titel der Zeile.* **Die Zeile beantwortet damit
-  die Frage vor dem Zurückholen** — „ist das der Eintrag, den ich meine?"; bei
-  zwei ähnlichen Titeln sagt es der Anleger. **„Zurückholen"** legt einen **neuen**
+  letzten dreißig Tagen gelöscht wurde, mit Titel, **Löschdatum**, Löschendem,
+  der verbleibenden Frist und der Größe. *Das Datum ist das Löschdatum, und
+  die Frist darunter zählt von genau diesem Tag.* **Wer den Eintrag angelegt
+  hat und wann, kommt in die Detailansicht** — eine eigene Runde; die
+  Auskunft geht schon über die Route. **„Zurückholen"** legt einen **neuen**
   Eintrag mit demselben Inhalt an — Fotos, Videos, Dateien, Kommentare,
   Bewertungen und Testtage samt ihren Verfassern; ein Verfasser, dessen Zugang
   inzwischen entfernt wurde, bleibt „Gelöschter Benutzer N". **„Endgültig

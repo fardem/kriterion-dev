@@ -9372,35 +9372,37 @@ function setUpTrashOut(fetched) {
       row.className = 'mrow trash';
       row.dataset.pkid = z.id;
       const open = Number(z.daysOpen);
-      /* NAME, ANLEGER, DATUM -- 0.24.4 (B6 B, Schritt 1 aus F7). Die Zeile
-         beantwortete „wann ist es weg" und „wie gross", aber nicht die Frage
-         VOR dem Wiederherstellen: „ist das der Eintrag, den ich meine?" Der
-         Titel allein sagt es bei zwei aehnlichen nicht -- der ANLEGER schon.
+      /* DIE ZEILE NENNT DAS LOESCHDATUM UND NICHT DEN ANLEGER -- 0.24.4
+         (B6 B), entschieden vom Betreiber am 8. September 2026.
 
-         UND DAS DATUM IN DER ZEILE IST DAS LOESCHDATUM und nicht der Tag,
-         an dem der Eintrag entstanden ist. Beide gehen ueber /api/trash
-         hinaus, aber nur eines gehoert sichtbar in eine Zeile, die ohnehin
-         fuenf Angaben traegt: gefragt wird hier „welchen Eintrag habe ich
-         wann weggeworfen", und die Frist darunter zaehlt von genau diesem
-         Tag. Der Tag der Entstehung steht im Titel der Zeile -- er ist da,
-         wo ihn jemand sucht, und kostet keine Breite.
-         DER ANLEGER STEHT VOR DEM LOESCHVERMERK: angelegt kommt vor
-         geloescht, und die Zeile liest sich in der Reihenfolge, in der es
-         geschehen ist.
-         BEIDE ANGABEN DUERFEN FEHLEN: der Papierkorb traegt den Eintrag als
-         Gebilde, und ein Paket aus einer aelteren Fassung muss die Felder
-         nicht haben. Dann steht die Zeile so da wie bisher -- eine leere
-         Klammer waere schlechter als keine. */
+         DER AUFTRAG WOLLTE DEN ANLEGER IN DER ZEILE (B6 B, im Rahmen von F7,
+         Schritt 1), und gebaut war er auch schon. Der Betreiber hat anders
+         entschieden: gefragt wird hier „welchen Eintrag habe ich wann
+         weggeworfen", und die Frist darunter zaehlt von genau diesem Tag.
+         Wer ihn angelegt hat und wann, gehoert in die DETAILANSICHT --
+         Schritt 2, eine eigene Runde.
+         DIE ZEILE BLEIBT DAMIT, WAS SIE WAR: Titel, Loeschvermerk, Frist,
+         Groesse. Das ist auch das, was ein Papierkorb draussen fuehrt:
+         Windows Name, Ort, Loeschdatum, Groesse; der Mac Name, Loeschdatum,
+         Groesse. Den Anleger fuehrt nur, wo eine Ablage vielen gehoert
+         (Google Drive).
+         GELIEFERT WIRD BEIDES TROTZDEM -- `GET /api/trash` traegt
+         `createdBy` und `created_at`, und die Detailansicht liest sie ohne
+         einen zweiten Weg. Sie stehen dort als HALBE Reparatur und nicht als
+         herrenloses Feld: der Auftrag hat den Schritt geteilt, und dies ist
+         seine erste Haelfte.
+         DAS NAHELIEGENDE HAUPTWORT DAFUER STEHT HIER ABSICHTLICH NICHT: es
+         ist dasselbe, ueber das der Waechter aus 0.19.1 wacht (Abschnitt 4
+         des Pruefstands). Dort meint es die INSTALLATION, hier meinte es den
+         EINTRAG -- ein falscher Freund im Quelltext ist genau das, was jener
+         Waechter verhindert, und er hat diese Zeile beim ersten Lauf auch
+         wirklich gefunden. In den Papieren steht das Wort; dort deutet es
+         niemand auf die Installation. */
       const meta = [
-        z.createdBy ? t('card.createdBy', { createdBy: authorName(z.createdBy) }) : '',
         t('card.deletedByOn', { deletedAt: fmtDate(z.deleted_at), deletedBy: authorName(z.deletedBy) }),
         t('card.daysLeft', { n: open }),
         fmtBytes(z.bytes)
-      ].filter(Boolean);
-      // Wann er entstanden ist, ausgeschrieben, im Titel der Zeile.
-      if (z.created_at)
-        row.title = t('card.createdByOn',
-          { createdAt: fmtDate(z.created_at), createdBy: authorName(z.createdBy) });
+      ];
       // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.

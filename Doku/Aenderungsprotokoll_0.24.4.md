@@ -36,18 +36,24 @@ zusammenhält.*
 
 ---
 
-## Die zehn Fragen sind vor der ersten Zeile beantwortet
+## Die zehn Fragen — und was ihre Antworten gekostet haben
 
 **Alle zehn Fragen des Auftrags standen im Papier, bevor eine Zeile Code
-entstand.** Neun sind dem Vorschlag gefolgt; **eine ist im Bauen anders
-ausgefallen als vermutet**, und zwar F6 — nicht in der Entscheidung, sondern
-in der Ursache:
+entstand — beantwortet hat sie aber erst der Betreiber, und zwar am
+8. September 2026, nachdem gebaut war.** *Das ist ein Befund an dieser Runde
+und keine Nebensache: **zwei der zehn Antworten fielen anders aus als der
+Vorschlag**, und beide haben Arbeit gekostet, die vorher nicht nötig gewesen
+wäre. Die Regel dazu steht seit dieser Runde im Projektstand, Abschnitt 11:
+**die Fragen werden mit dem Betreiber durchgegangen, bevor gebaut wird — ein
+Vorschlag ist keine Antwort.*** **Dazu eine dritte, die im Bauen anders
+ausfiel als vermutet**, und zwar F6 — nicht in der Entscheidung, sondern in
+der Ursache:
 
 | | Frage | Entscheidung |
 |---|---|---|
 | **F1** | Bleibt es bei 0.24.4? | **Ja** — und die Abweichung endet mit dieser Runde |
-| **F2** | Wer liest Türkisch gegen? | **offen** — siehe den Kasten unten |
-| **F3** | `Parola` oder `Şifre`? | **`Parola`**, zu bestätigen mit dem Leser aus F2 |
+| **F2** | Wer liest Türkisch gegen? | **der Betreiber selbst** — *„das bin ich", 8. September 2026*; siehe den Kasten unten |
+| **F3** | `Parola` oder `Şifre`? | **`Parola`** als Vorschlag — die Entscheidung gehört dem Betreiber, und der ist der Leser *(F2)* |
 | **F4** | Türkisch in den Vorrat? | **alles im Vorrat**, wie bisher |
 | **F5** | Welche Faltung gilt für die Suche? | **eine, ohne Sprache, auf beiden Seiten** |
 | **F6** | Umschalter reparieren oder umbauen? | **reparieren** — *und die Ursache lag woanders, siehe B1* |
@@ -56,24 +62,27 @@ in der Ursache:
 | **F9** | Anlegen in „Kategorien"/„Tags": welche Sprache? | **immer die Grundzeile** |
 | **F10** | Alle acht Befunde? | **alle acht** — *und ein neunter, der beim Bauen dazukam* |
 
-> ## DIE EINE OFFENE STELLE: DER LESER (F2)
+> ## DER LESER IST DER BETREIBER (F2, entschieden am 8. September 2026)
 >
-> **`tr.json` ist gebaut, geprüft und liegt vollständig da — gegengelesen ist
-> sie nicht.** Die Regel des Konzepts lautet: *ohne einen Leser, der Türkisch
-> als Sprache und nicht als Wörterbuch kennt, geht die Datei nicht heraus*
-> (S3.4, E14). Für Englisch hat der Betreiber selbst gegengelesen; für
-> Türkisch ist am Tag dieser Runde niemand benannt.
+> **Die Regel des Konzepts lautet: *ohne einen Leser, der Türkisch als Sprache
+> und nicht als Wörterbuch kennt, geht die Datei nicht heraus*** (S3.4, E14).
+> **Auf die Frage F2 des Auftrags hat der Betreiber geantwortet: *„das bin
+> ich".*** *Damit steht Türkisch auf demselben Leser wie Englisch bei 0.24.3
+> (dort Frage F5) — die Regel ist erfüllt, und die benannte Abweichung, die in
+> der ersten Fassung dieses Papiers stand, gibt es nicht.*
 >
-> **Das ist eine benannte Abweichung und keine Erledigung.** Sie steht hier,
-> im Wörterbuch und im Projektstand, und sie bleibt offen, bis der Betreiber
-> eine Person benennt und diese die Datei durchgesehen hat. ***Was Claude
-> leisten kann, ist das Wörterbuch, die fünf Regeln und ihre Proben; ob ein
-> Satz sich türkisch LIEST, sagt nur jemand, der die Sprache spricht.***
+> **Was das für die Datei heißt:** `tr.json` ist gebaut, geprüft, gefahren und
+> am Bildschirm gesehen; das Wörterbuch daneben ist der **Vorschlag**, den der
+> Leser durchgeht. ***Was Claude leisten kann, ist das Wörterbuch, die fünf
+> Regeln und ihre Proben; ob ein Satz sich türkisch LIEST, sagt nur jemand,
+> der die Sprache spricht.***
 >
-> **Drei Stellen gehören dabei zuerst angesehen:** `Parola` gegen `Şifre` an
-> der Anmeldemaske *(F3)*, `Öğe` für „Eintrag" *(der Zusammenstoß mit `Kayıt`,
-> S3.2)*, und die zwanzig dichtesten Stellen am Telefon *(T4 — Länge ist keine
-> Sache des Wörterbuchs, sondern des Augenscheins)*.
+> **Zwei Stellen gehören dabei zuerst angesehen:** `Parola` gegen `Şifre` an
+> der Anmeldemaske *(F3)* und `Öğe` für „Eintrag" *(der Zusammenstoß mit
+> `Kayıt`, S3.2)*. **Eine dritte stand hier und ist gefahren** — die Länge am
+> Telefon *(T4)*, achtzehn Bilder, unten im Abschnitt „Der Augenschein".
+> **Eine vierte stand hier und ist entschieden** — die Mehrzahl hinter einer
+> Zahl, unten im selben Abschnitt.
 
 ---
 
@@ -93,8 +102,10 @@ in der Ursache:
 * **Die Suche findet, was sie finden soll** — `İstanbul` als `istanbul` wie als
   `ISTANBUL`, `Iğdır` als `ığdır`. **Und zwei Leser verschiedener Sprache
   bekommen auf dieselbe Eingabe dieselbe Trefferliste.**
-* **Der Papierkorb sagt, wer den Eintrag angelegt hat.** Die Zeile beantwortet
-  damit die Frage vor dem Zurückholen: *ist das der Eintrag, den ich meine?*
+* **Am Papierkorb ändert sich am Bildschirm nichts** — die Zeile bleibt bei
+  Titel, Löschvermerk, Frist und Größe. *Der Anleger war gebaut und ist auf
+  Entscheidung des Betreibers wieder herausgenommen worden; er kommt mit der
+  Detailansicht, und die Route trägt ihn schon.*
 * **Der Wiederherstellen-Knopf zeigt kein SVG mehr als Text.**
 * **„Kategorien" und „Tags" lassen sich in ihrer Karte anlegen** — ein Feld,
   ein Knopf, wie bei den Kriterien daneben.
@@ -300,26 +311,32 @@ auf Türkisch.**
 und eingecheckt, **bevor der erste Satz übersetzt wurde**. Die Tafel aus dem
 Konzept (S3.2) war der Entwurf; das Papier ist das Ergebnis.
 
-**Die Datei: 1211 oberste Schlüssel, dieselbe Liste und dieselbe Reihenfolge
+**Die Datei: 1209 oberste Schlüssel, dieselbe Liste und dieselbe Reihenfolge
 wie `de.json` und `en.json`.** Der Kopf trägt `_locale: "tr-TR"` und
 `_name: "Türkçe"`.
 
 > **ZWEI ZAHLEN, UND BEIDE SIND WAHR — und die eine ist eine andere als im
-> Auftrag.** Die Datei trägt **1211 oberste Einträge**; flach gerechnet — jede
-> Mehrzahlform als eigener Schlüssel *neben* ihrem Träger — sind es **1279**.
+> Auftrag.** Die Datei trägt **1209 oberste Einträge**; flach gerechnet — jede
+> Mehrzahlform als eigener Schlüssel *neben* ihrem Träger — sind es **1277**.
 > **Der Auftrag nannte 1204 und 1272**, und beide Zahlen waren der Stand von
-> 0.24.3: *diese Runde legt sieben Schlüssel dazu (B5, B6 B, B7) und nimmt
-> einen weg (B6 A).* `1204 − 1 + 8 = 1211`, und `1211 + 68 = 1279`. **Der
+> 0.24.3: *diese Runde legt **sechs** Schlüssel dazu (B5, B7) und nimmt
+> **einen** weg (B6 A).* `1204 + 6 − 1 = 1209`, und `1209 + 68 = 1277`. **Der
 > Prüfstand nagelt die flache Zahl fest, das Papier nennt die oberste.**
+>
+> **Die sechs sind:** `entry.showAllLinks` und `list.filtersActive` *(B5 —
+> die beiden festen deutschen Wörter)*, `card.newCategory`, `card.newTag`,
+> `card.categoryCreated` und `card.tagCreated` *(B7 — das Anlegefeld)*. **Der
+> eine ist `card.restoreIcon`** *(B6 A)*. ***B6 B legt keinen Schlüssel an***
+> — die Zeile des Papierkorbs behält ihren Wortlaut, siehe dort.
 
 **Die fünf Regeln und ihre Proben:**
 
 | | Regel | wie sie in der Datei steht | Probe |
 |---|---|---|---|
 | **T1** | keine Endung an einem Platzhalter | die Sätze sind **passiv** gebaut: `{entryOne} silinsin mi?` — der Nominativ braucht gar keine Endung | drei Vokabelwörter (**Model**, **Kutu**, **Kayıt**), drei Vokale, derselbe Satz bleibt richtig |
-| **T2** | nach einer Zahl steht die Einzahl | beide Mehrzahlformen sind gefüllt und tragen dasselbe Nomen | „1 yorum" und „3 yorum" — **kein -ler/-lar hinter einem Zähler** |
+| **T2** | nach einer Zahl steht die Einzahl | beide Mehrzahlformen sind gefüllt und tragen dasselbe Nomen — **auch die fünf Vokabelwörter, seit der Entscheidung des Betreibers** | „1 yorum" und „3 yorum" — **kein -ler/-lar hinter einem Zähler**; dazu ein zweiter Wächter auf die fünf Vokabelpaare |
 | **T3** | İ und ı | **setzt B8 voraus** | neun Suchfälle, zwei Leser, dieselbe Antwort; Sortierung über `Intl.Collator`: `ılık < irmik < İzmir` |
-| **T4** | Länge | *offen* — der Augenschein am Telefon gehört zum Leser aus F2 | — |
+| **T4** | Länge | **gefahren** — achtzehn Bilder auf 390 × 844 und 1280 × 900, siehe unten | Augenschein, kein Wächter: *ob ein Satz in eine Pille passt, sagt kein Wächter, der Strings vergleicht* |
 | **T5** | der Apostroph | die Sätze sind so gebaut, dass weder Titel noch Zahl eine Endung braucht | im Prüfstand als Teil von T1 |
 
 > **T1 STEHT IN DER DATEI ANDERS ALS IM AUFTRAG — und erfüllt dieselbe Regel
@@ -378,30 +395,49 @@ durch `t()` oder `tH()`, mit gefahrener Gegenprobe an der Zeile von 0.24.3.
 
 ### B6 B — die Zeile des Papierkorbs
 
-**Sie beantwortete „wann ist es weg" und „wie groß", aber nicht die Frage vor
-dem Zurückholen: *ist das der Eintrag, den ich meine?*** Bei zwei ähnlichen
-Titeln sagt es der Anleger.
+**Der Befund fragte: *ist das der Eintrag, den ich meine?*** Der Auftrag
+schlug vor, dafür den **Anleger** in die Zeile zu setzen; im Bauen kam der
+Name des Eintrags dazu, dann der Anlagetag.
 
-**`GET /api/trash` trägt jetzt Anleger und Anlagezeit.** Beide stehen seit
-jeher im Paket, das der Papierkorb ablegt (`author` und `created_at` am
-Eintrag im Austauschformat) — **deshalb bekommt die Tabelle weder eine Spalte
-noch einen Migrationsblock.** *Zwei Spalten wären der teurere Weg und dazu der
-schlechtere: sie blieben für jede Zeile leer, die heute schon im Papierkorb
-liegt — die Auskunft gäbe es also gerade dort nicht, wo sie gebraucht wird.*
-Gelesen wird mit `json_extract()` in SQLite und nicht mit `JSON.parse()` in JS:
-das Paket trägt den ganzen Eintrag, und es je Zeile in den Arbeitsspeicher zu
-holen, nur um zwei Felder zu lesen, wäre bei dreißig Tagen Papierkorb eine
-sichtbare Rechnung.
+> ## DIE ENTSCHEIDUNG DES BETREIBERS, 8. September 2026
+> **Die Zeile bleibt, was sie war: Titel · gelöscht am … von … · noch N Tage ·
+> Größe.** Im Wortlaut: *„Ich glaube Löschdatum reicht doch. Wie es ist
+> draußen? Höchstens wenn man auf Details klickt, dass dann mehr zu sehen
+> ist."*
+>
+> **UND DRAUSSEN, auf die Frage des Betreibers:** der Windows-Papierkorb
+> führt Name, ursprünglichen Ort, Löschdatum und Größe; der Mac-Papierkorb
+> Name, Löschdatum und Größe; Nextcloud Name, Ort und „vor … gelöscht".
+> **Den ANLEGER führt von diesen keiner** — er steht nur dort, wo eine Ablage
+> vielen gehört (Google Drive nennt ihn aus genau diesem Grund).
+> ***Der gemeinsame Nenner ist: Name, Löschdatum, Größe*** — und genau das
+> steht in der Zeile. *Das ist aus der Kenntnis dieser Papierkörbe gesagt und
+> nicht an ihnen nachgemessen; wo dieses Papier misst, sagt es „gemessen".*
+>
+> **Was mehr will, klickt auf Details** — Schritt 2 aus F7, eine eigene Runde.
 
-**Die Zeile zeigt: Name · angelegt von X · gelöscht am … von Y · noch N Tage ·
-Größe.** *Das Datum in der Zeile ist das **Löschdatum** und nicht der Tag der
-Anlage — gefragt wird hier „welchen Eintrag habe ich wann weggeworfen", und
-die Frist darunter zählt von genau diesem Tag. Der Tag der Anlage steht im
-Titel der Zeile: er ist da, wo ihn jemand sucht, und kostet keine Breite.*
+**`GET /api/trash` trägt trotzdem Anleger und Anlagezeit.** *Das ist kein
+herrenloses Feld, sondern die halbe Reparatur:* der Auftrag hat den Schritt in
+zwei geteilt, die Detailansicht ist Schritt 2, und sie liest die beiden dann
+ohne einen zweiten Weg. Beide stehen seit jeher im Paket, das der Papierkorb
+ablegt (`author` und `created_at` am Eintrag im Austauschformat) — **deshalb
+bekommt die Tabelle weder eine Spalte noch einen Migrationsblock.** *Zwei
+Spalten wären der teurere Weg und dazu der schlechtere: sie blieben für jede
+Zeile leer, die heute schon im Papierkorb liegt — die Auskunft gäbe es also
+gerade dort nicht, wo sie gebraucht wird.* Gelesen wird mit `json_extract()`
+in SQLite und nicht mit `JSON.parse()` in JS: das Paket trägt den ganzen
+Eintrag, und es je Zeile in den Arbeitsspeicher zu holen, nur um zwei Felder
+zu lesen, wäre bei dreißig Tagen Papierkorb eine sichtbare Rechnung.
+
+**Die Sprachdatei bekommt für B6 B keinen Schlüssel.** *`card.createdBy` und
+`card.createdByOn` sind im Bauen entstanden und mit der Entscheidung wieder
+gefallen — ein Schlüssel ohne Leser ist ein Schlüssel, den irgendwann jemand
+übersetzt, ohne zu wissen wofür.*
 
 > **DIE DETAILANSICHT IST SCHRITT 2 UND EINE EIGENE RUNDE** *(F7)*. Ein
 > Vorschaubild ist teurer als es aussieht — die Zeilen liegen im Papierkorb
-> als Gebilde und nicht mehr in `photos`.
+> als Gebilde und nicht mehr in `photos`. **Dort stehen dann Anleger und
+> Anlagetag**, und die Route trägt sie schon.
 
 ### B7 — Kategorien und Tags ließen sich in ihrer Karte nicht anlegen
 
@@ -453,14 +489,15 @@ an denen es richtig steht.
 
 ## Bauabschnitt 4 — der Prüfstand
 
-**Siebzehn neue Wächter, jeder mit gefahrener Gegenprobe** — die elf aus der
+**Achtzehn neue Wächter, jeder mit gefahrener Gegenprobe** — die elf aus der
 Tafel des Auftrags, dazu die Sprachprobe des Lesers (B9), der Beleg, dass ein
 Bestand aus 0.24.3 anläuft, der Export über alle drei Sprachfassungen, die
-T2-Probe, die Probe auf drei gleichzeitige Zugänge und die Faltung am
-laufenden Server neben der am Quelltext.
+T2-Probe, die Probe auf drei gleichzeitige Zugänge, die Faltung am
+laufenden Server neben der am Quelltext — **und die Vokabelprobe zu T2, die
+erst die Entscheidung des Betreibers nötig gemacht hat.**
 
-**Zehn stehen in einer eigenen Servergruppe, drei am Quelltext, vier am DOM.**
-*Einundsechzig Prüfungen mehr: 6019 werden 6080.*
+**Zehn stehen in einer eigenen Servergruppe, drei am Quelltext, vier am DOM,
+eine an der Datei.** *Dreiundsechzig Prüfungen mehr: 6019 werden 6082.*
 
 | Wächter | wo | Zusicherung |
 |---|---|---|
@@ -472,6 +509,7 @@ laufenden Server neben der am Quelltext.
 | **Deckungsprobe** | Datei | `tr.json` trägt dieselben Schlüssel wie `de.json`, in derselben Folge |
 | **T1-Probe** | Datei | drei Vokabelwörter, drei Vokale, derselbe Satz bleibt richtig |
 | **T2-Probe** | Datei | beide Mehrzahlformen gefüllt, kein -ler/-lar hinter einem Zähler |
+| **Vokabelprobe zu T2** | Datei | die fünf türkischen Vokabelpaare tragen **dasselbe** Wort in `one` und `other` — *und in `de.json` und `en.json` sind sie verschieden, damit die Zeile belegt, dass die Regel JE SPRACHE gilt und nicht überall* |
 | **Bestandslauf** | Server | eine Ablage aus 0.24.3 läuft an — die vierzehn Wörter stehen danach da |
 | **Exportprobe** | Server | ein Export trägt alle drei Sprachfassungen und spielt sie wieder ein |
 | **Sprachprobe des Lesers** | DOM | wer seine eigene Sprache wechselt, wechselt auch die vierzehn Wörter |
@@ -503,7 +541,7 @@ laufenden Server neben der am Quelltext.
 | | |
 |---|---|
 | Sprachdateien | **drei** *(vorher zwei)* |
-| Schlüssel je Datei | **1211** oberste, **1279** flach, davon **68** Mehrzahlformen und **14** Vokabelnamen |
+| Schlüssel je Datei | **1209** oberste, **1277** flach, davon **68** Mehrzahlformen und **14** Vokabelnamen |
 | `EXCHANGE_FORMAT` | **14** *(unverändert)* |
 | Tabellen | **27** *(unverändert)* |
 | `F_ROUTES` | **71** *(vorher 70)* |
@@ -534,37 +572,78 @@ je in Deutsch, Englisch und Türkisch, auf **390 × 844** (Telefon) und auf
   Karten; „+ Oluştur" steht unter „Kategoriler" und unter „Etiketler"; über
   „Henüz yorum yok." steht kein Bildzeichen mehr.
 
-### Und ein Befund, den erst der Augenschein gebracht hat
+### Und ein Befund, den erst der Augenschein gebracht hat — samt seiner Entscheidung
 
-**„3 Öğeler" steht am Bildschirm, und türkisch wäre „3 öğe".** *Nach einer
-Zahl steht im Türkischen die Einzahl — das ist Regel T2, und sie gilt hier
-nicht.*
+**„3 Öğeler" stand am Bildschirm, und türkisch ist „3 öğe".** *Nach einer Zahl
+steht im Türkischen die Einzahl — das ist Regel T2, und die erste Fassung
+dieser Runde hielt sie an genau dieser Stelle nicht.*
 
 **Die Ursache ist nicht die Übersetzung, sondern der Mechanismus.** Die
-vierzehn Vokabelwörter haben je **einen** Mehrzahlplatz, und der wird an zwei
+vierzehn Vokabelwörter haben je **einen** Mehrzahlplatz, und der wird an drei
 Orten gelesen:
 
-| wo | was Türkisch will | gemessen |
+| wo | was Türkisch will | gemessen am 8. September 2026 |
 |---|---|---|
-| hinter einem Zähler — `3 {entryMany}` | die **Einzahl**: „3 öğe" | **21 Stellen** |
-| in einem Satz oder an einer Beschriftung — `bütün {entryMany} için`, „TEST GÜNLERİ" | die **Mehrzahl**: „öğeler" | **36 Stellen** (31 Sätze, 5 Beschriftungen) |
+| hinter einem Zähler — `3 {entryMany}` | die **Einzahl**: „3 öğe" | **30 Stellen** *(27 über `vThing`/`vTime`/`vReport`/`vTask`/`vRating`, drei über `countWord`)* |
+| in einem Satz — `bütün {entryMany} için` | eher die **Mehrzahl**: „öğeler" | **27 Schlüssel**, 30 Vorkommen |
+| als bloße Beschriftung — „TEST GÜNLERİ" über der Liste | die **Mehrzahl** | **5 Stellen** im Code |
 
-**Die Datei trägt die Mehrzahl**, weil damit die Mehrheit der Stellen richtig
-wird. *Die Minderheit liest sich als „3 Öğeler".*
+> ## DIE ENTSCHEIDUNG DES BETREIBERS, 8. September 2026
+> **Kein fünfzehnter Vokabelplatz. Beide Formen tragen dasselbe Wort.** Im
+> Wortlaut: *„Nein, es wird keine Felder für mehrzahlige Angaben auf Türkisch
+> geben. 1 Öğe, 4 Öğe, beides geht. Dann ist die Vorgabe für beides halt zwei
+> mal das gleiche. Öğeler ist ja eher ‚öğelere baktım'. Silinecek 3 öğe var.
+> 15 öğe görünüyor. Öğeler görünüyor ist eher, wenn man die Zahl nicht
+> gibt."*
+>
+> **`tr.json` trägt seither `Öğe`, `Test günü`, `Rapor`, `Görev`,
+> `Değerlendirme` in `one` wie in `other`.** Damit stehen die **30
+> Zählerstellen** richtig — und das war die Mehrheit.
+>
+> **Bezahlt ist es an den Sätzen, und zwar gemessen:** von den **27
+> Satzschlüsseln** haben **12 einen neuen Wortlaut** bekommen, damit sie sich
+> mit der Einzahl lesen — *„bütün {entryMany} öğelerini göster" wurde „Bütün
+> {entryMany} listesini göster"; „kaç {entryMany} öğesinde yıldız verildiğini"
+> wurde „yıldız verilen {entryMany} sayısını".* **Die übrigen 15 lasen sich
+> mit der Einzahl schon richtig**, weil das Türkische das bloße Nomen ohnehin
+> allgemein gebraucht: „Silinmiş öğe yok.", „Henüz Test günü yok."
+>
+> **Dazu ein dreizehnter Schlüssel, der kein Satz ist:** `card.vocabularyResetHint`
+> zählt die vierzehn Vorgabewörter auf und musste die neuen Paare nennen —
+> *„Öğe/Öğe, …, Test günü/Test günü"*. **Er sieht doppelt aus und ist es
+> nicht:** die Karte hat zwei Felder, und der Hinweis sagt, was in beide
+> zurückgeschrieben wird.
+>
+> **Was bleibt, ist benannt und nicht verschwiegen:** an den **fünf bloßen
+> Beschriftungen** stünde türkisch lieber die Mehrzahl — „TEST GÜNLERİ" über
+> der Liste der Testtage statt „TEST GÜNÜ". *Der Betreiber kennt den Preis
+> und hat so entschieden.*
 
-> **DAS IST DIE PROBE AUFS EXEMPEL, VON DER DAS KONZEPT SPRICHT.** Deutsch und
-> Englisch brauchen für beide Orte dasselbe Wort; Türkisch braucht zwei. **Der
-> Vokabularmechanismus hat dafür keinen Platz** — und die Lösung wäre kein
-> besseres Wort, sondern ein **fünfzehnter Vokabelplatz** („Mehrzahl nach
-> einer Zahl"). *Das ist eine eigene Runde und keine Zeile in `tr.json`; der
-> Punkt steht im Fahrplan.*
+> **UND DAS IST DIE PROBE AUFS EXEMPEL, VON DER DAS KONZEPT SPRICHT.** Deutsch
+> und Englisch brauchen für beide Orte dasselbe Wort; Türkisch bräuchte zwei.
+> **Der Vokabularmechanismus hat dafür keinen Platz** — die Alternative wäre
+> kein besseres Wort gewesen, sondern ein **fünfzehnter Vokabelplatz**
+> („Mehrzahl nach einer Zahl"): ein Feld mehr in jeder Sprache, ein
+> Wanderungsschritt für jeden Bestand, eine eigene Runde. ***Er ist abgelehnt,
+> nicht vertagt*** — Punkt 19 in „Fehler und Ideen", und die Regel dazu steht
+> als TR-S4 im Wörterbuch.
 
 **Was der Augenschein NICHT sagt:** ob ein Satz sich türkisch **liest**. Das
-bleibt beim Leser aus F2.
+bleibt beim Betreiber, und der ist seit dieser Runde auch der Leser *(F2)*.
 
 ---
 
 ## Stolpersteine dieser Runde
+
+**EIN VORSCHLAG IST KEINE ANTWORT — und dieser Stolperstein ist der teuerste
+der Runde.** *Die zehn Fragen des Auftrags standen mit einer Vorschlagsspalte
+im Papier, und gebaut wurde nach der Vorschlagsspalte. Der Betreiber hat sie
+danach beantwortet, und **zwei von zehn fielen anders aus**: der Leser für
+Türkisch war nicht „niemand", sondern er selbst (F2), und die Mehrzahl bekam
+keinen fünfzehnten Platz, sondern zwei mal dasselbe Wort.* **Beides war
+danach zu bauen, statt vorher.** Die Regel steht seit dieser Runde im
+Projektstand, Abschnitt 11, ganz oben: **die Fragen werden vor dem Bauen mit
+dem Betreiber durchgegangen.**
 
 **Ein Verdacht im Auftrag ist eine Vermutung und keine Ursache.** *B1 war am
 Quelltext plausibel begründet und am laufenden Programm falsch. Hätte die
@@ -578,10 +657,11 @@ er der ganze Befund.* **Wo ein Rückfall gilt, muss „nichts eingetragen"
 unterscheidbar bleiben** — sonst füttert man den Rückfall mit dem, was er
 ersetzen sollte.
 
-**Eine Zahl in einem Auftrag ist eine Behauptung.** *Der Auftrag nannte 1272
-flache Schlüssel; die gelieferte Datei trug 1272 — und `1204 + 68` ist eben
-nicht dieselbe Rechnung wie „jede Mehrzahlform als eigener Schlüssel". Beide
-Lesarten stehen jetzt nebeneinander im Prüfstand, mit ihrer Rechnung daneben.*
+**Eine Zahl in einem Auftrag ist eine Behauptung.** *Der Auftrag nannte 1204
+oberste und 1272 flache Schlüssel; beide waren der Stand von 0.24.3, und
+`1204 + 68` ist eben nicht dieselbe Rechnung wie „jede Mehrzahlform als
+eigener Schlüssel neben ihrem Träger". Beide Lesarten stehen jetzt
+nebeneinander im Prüfstand — 1209 und 1277 —, mit ihrer Rechnung daneben.*
 
 **Ein Wächter, der eine Liste vergleicht, prüft die Liste und nicht die
 Sache.** *Zwei deutsche Wörter sind durch fünf Sprachwächter gefallen, weil
@@ -591,13 +671,19 @@ keiner von ihnen nach der Sprache gefragt hat.*
 
 ## Was danach offen bleibt
 
-* **Der Leser für Türkisch** *(F2)* — die eine offene Stelle dieser Runde.
-* **Die Detailansicht im Papierkorb** *(Schritt 2 aus F7)*.
+* **Das Gegenlesen von `tr.json`** — der Leser ist benannt *(F2: der Betreiber
+  selbst)*, das Durchgehen der Wörterliste steht noch aus. **`Parola` gegen
+  `Şifre`** *(F3)* ist der erste Punkt dieser Liste.
+* **Die Detailansicht im Papierkorb** *(Schritt 2 aus F7)* — dort stehen dann
+  Anleger und Anlagetag; die Route trägt sie schon.
 * **Rechts-nach-links** — die Bauform lässt es zu, geprüft ist es nicht.
 * **Die Region je Sprache** (`de-AT` neben `de-DE`).
 * **`ß` gegen `ss` in der Suche** — Punkt 18 im Fahrplan.
-* **Der fünfzehnte Vokabelplatz** — „Mehrzahl nach einer Zahl", die Grenze,
-  die der Augenschein an Türkisch gezeigt hat.
+**Und einer ist ausdrücklich NICHT offen:** *der **fünfzehnte Vokabelplatz**
+(„Mehrzahl nach einer Zahl") ist am 8. September 2026 **abgelehnt** worden und
+nicht vertagt. Er steht als Punkt 19 in „Fehler und Ideen" — als entschiedene
+Absage mit ihrer Begründung, damit ihn niemand in zwei Runden noch einmal
+vorschlägt.*
 * **Die 42 Stellen im Projektstand, die noch `pruefung.js` und `gegenprobe.js`
   nennen** — Papierarbeit aus 0.24.1, seit vier Runden offen.
 * **`0.25.0` ist frei** und die erste Nummer nach dem Ende der Abweichung.

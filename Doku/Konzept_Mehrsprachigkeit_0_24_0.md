@@ -755,7 +755,16 @@ Kriterion oft ein Vokabelwort, das der Admin frei wählt.**
 
 ### S3.2 Das türkische Wörterbuch — und ein Zusammenstoß, der die Regel belegt
 
-| Sache | Deutsch | **Türkisch — Vorschlag** | Bemerkung |
+> **DIESE TAFEL IST DER ENTWURF VOM 6. SEPTEMBER 2026 UND NICHT DIE GEBAUTE
+> DATEI.** Das Ergebnis steht in `Doku/Woerterbuch_Tuerkisch_0_24_4.md`, und es
+> weicht an **fünf Zeilen** ab: die Mehrzahlspalten von `sache`, `zeitpunkt`,
+> `bericht`, `aufgabe` und `bewertung` tragen in `tr.json` **dasselbe Wort wie
+> die Einzahl** — `Öğe`, `Test günü`, `Rapor`, `Görev`, `Değerlendirme`.
+> *Entschieden vom Betreiber am 8. September 2026; der Grund steht oben unter
+> T2 und ausführlich als TR-S4 im Wörterbuch.* **Die Tafel bleibt stehen, weil
+> sie zeigt, was der Entwurf angenommen hat — und woran er sich geirrt hat.**
+
+| Sache | Deutsch | **Türkisch — Entwurf vom 6. September 2026** | Bemerkung |
 |---|---|---|---|
 | `sacheEinzahl` / `-Mehrzahl` | Eintrag / Einträge | **Öğe / Öğeler** | **nicht *Kayıt*** — siehe unten |
 | `merkmalJa` / `merkmalNein` | Getestet / Ungetestet | **Test edildi / Test edilmedi** | |
@@ -775,7 +784,7 @@ Kriterion oft ein Vokabelwort, das der Admin frei wählt.**
 | Foto · Video · Vorschaubild · Bildausschnitt | | **Fotoğraf · Video · Küçük resim · Kırpma** | |
 | Sicherung · Export / Import | | **Yedek · Dışa aktar / İçe aktar** | |
 | Darstellung · Farbschema · Schriftgröße · Sprache | | **Görünüm · Renk şeması · Yazı boyutu · Dil** | |
-| Anmelden / Abmelden · Passwort | | **Giriş yap / Çıkış yap · Parola** | *Parola* oder *Şifre* — beide üblich (Microsoft und Apple sagen *Parola*, Google sagt *Şifre*); Vorschlag *Parola*, zu entscheiden mit dem Leser aus E14 |
+| Anmelden / Abmelden · Passwort | | **Giriş yap / Çıkış yap · Parola** | *Parola* oder *Şifre* — beide üblich (Microsoft und Apple sagen *Parola*, Google sagt *Şifre*); Vorschlag *Parola*, zu entscheiden mit dem Leser aus E14 — **und der ist seit dem 8. September 2026 der Betreiber selbst** |
 | Eigentümer · Admin · Benutzer | | **Sahip · Yönetici · Kullanıcı** | |
 | Kommentar · Kategorie · Tag · Neuigkeiten | | **Yorum · Kategori · Etiket · Yenilikler** | |
 | Alle · Vorschau · Auf Vorgaben zurücksetzen | | **Tümü · Önizleme · Varsayılanlara dön** | |
@@ -1136,16 +1145,29 @@ gingen fünf ins Leere.**
 > *Wer beide zusammenlegt, bekommt entweder eine Suche, die vom Leser abhängt,
 > oder eine Sortierung, die keine ist.*
 
-**T2 stimmt — und eine Stelle kann sie trotzdem nicht halten.** Die vierzehn
-Vokabelwörter haben je **einen** Mehrzahlplatz; Türkisch braucht **zwei** —
+**T2 stimmt — und eine Stelle hält sie nicht von selbst.** Die vierzehn
+Vokabelwörter haben je **einen** Mehrzahlplatz; Türkisch bräuchte **zwei** —
 die Einzahl hinter einer Zahl („3 öğe") und die Mehrzahl im Satz („bütün
-öğeler için"). *Gemessen am 8. September 2026: 21 Stellen lesen das Wort
-hinter einem Zähler, 36 ohne.* **Die Datei trägt die Mehrzahl**, weil damit
-die Mehrheit richtig wird; „3 Öğeler" bleibt stehen. ***Das ist genau die
-Probe aufs Exempel, von der dieses Papier spricht*** — Deutsch und Englisch
-brauchen für beide Orte dasselbe Wort, Türkisch nicht. **Die Lösung ist ein
-fünfzehnter Vokabelplatz** und keine Regel im Quelltext: Punkt 19 im
-Sammelblatt.
+öğeler için"). *Gemessen am 8. September 2026: **30 Stellen** im Code lesen
+das Wort hinter einem Zähler, **27 Schlüssel** der Sprachdatei lesen es in
+einem Satz, **5 Stellen** als bloße Beschriftung.* ***Das ist genau die Probe
+aufs Exempel, von der dieses Papier spricht*** — Deutsch und Englisch
+brauchen für beide Orte dasselbe Wort, Türkisch nicht.
+
+> **UND SIE IST ENTSCHIEDEN, nicht offen.** Der Betreiber hat am 8. September
+> 2026 gegen einen **fünfzehnten Vokabelplatz** entschieden: *„1 Öğe, 4 Öğe,
+> beides geht. Dann ist die Vorgabe für beides halt zwei mal das gleiche."*
+> **`tr.json` trägt in `one` wie in `other` dasselbe Wort**, die 30
+> Zählerstellen stehen damit richtig, **zwölf der 27 Sätze sind dafür
+> umgeschrieben** worden, und an fünf bloßen Beschriftungen bleibt die
+> Einzahl stehen, wo türkisch die Mehrzahl lieber stünde. *Der Preis ist
+> benannt und angenommen; Punkt 19 im Sammelblatt trägt die Absage.*
+>
+> **FÜR DAS KONZEPT HEISST DAS:** *der Mechanismus bekommt keinen zweiten
+> Mehrzahlplatz, und eine Sprache, die nach einer Zahl die Einzahl will,
+> löst es über die SÄTZE ihrer Datei.* **Das ist die Regel, die aus dieser
+> Stufe folgt** — sie steht als TR-S4 im türkischen Wörterbuch und wird für
+> jede weitere Sprache dieser Art dort nachgeschlagen.
 
 **T2 stand hier richtig und wurde anderswo falsch abgeschrieben.** Dieses
 Papier sagt „`one` / `other` — gleich" (S3.3); im Fahrplan stand dagegen bis
@@ -1160,18 +1182,18 @@ niemand eine Endung. *Beide Formen halten T1; die zweite ist kürzer.*
 
 ## Was offen bleibt
 
-**Der Leser (E14).** *`tr.json` ist gebaut, geprüft und liegt vollständig da —
-gegengelesen ist sie nicht.* Der Betreiber hat für Türkisch niemanden benannt
-(Frage F2 des Auftrags 0.24.4). **Die Regel dieses Papiers bleibt: ohne Leser
-geht keine Sprachdatei heraus** — sie ist mit 0.24.4 zum ersten Mal gebrochen
-worden, und zwar benannt: die Abweichung steht im Änderungsprotokoll, im
-Wörterbuch und im Projektstand.
+**Der Leser (E14) ist benannt: der Betreiber selbst.** Auf die Frage F2 des
+Auftrags 0.24.4 hat er am 8. September 2026 geantwortet *„das bin ich"* — wie
+schon für Englisch in 0.24.3. **Die Regel dieses Papiers ist damit gehalten:
+ohne Leser geht keine Sprachdatei heraus**, und sie ist bis heute nicht
+gebrochen worden. *Was aussteht, ist nicht der Leser, sondern das Durchgehen
+der Wörterliste — `Parola` gegen `Şifre` (F3) ist ihr erster Punkt.*
 
 **T4 ist gefahren** — Übersicht, Eintrag und der Abschnitt „Bestand", je in
 drei Sprachen, auf 390 × 844 und auf 1280 × 900, am 8. September 2026.
 *Nichts läuft über, `ğ ş ç ı İ` liegen in der Schriftkette, T1 hält am
-lebenden Beispiel.* **Was er nicht sagt, bleibt beim Leser aus E14: ob ein
-Satz sich türkisch LIEST.**
+lebenden Beispiel.* **Was er nicht sagt, bleibt beim Leser aus E14 — also beim
+Betreiber: ob ein Satz sich türkisch LIEST.**
 
 **Rechts-nach-links.** Türkisch braucht es nicht; die Frage bleibt offen und
 steht hier, damit sie niemand für erledigt hält.

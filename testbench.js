@@ -4148,6 +4148,31 @@ const shareMain = (purpose, target = null) =>
         if (dgCounted.test(String(one))) dgPlural.push(k);
     check('T2: nach einer Zahl steht die Einzahl — kein -ler/-lar hinter einem Zaehler',
       dgPlural.length === 0, dgPlural.join(' '));
+    /* UND DIE FUENF VOKABELPAARE TRAGEN DASSELBE WORT -- entschieden vom
+       Betreiber am 8. September 2026, und es ist T2 auf die vierzehn
+       Vokabelwoerter angewandt.
+       DER GRUND, IN EINEM SATZ: „1 öğe" und „4 öğe" sind beide richtig, „4
+       öğeler" ist es nicht. Das Vokabular hat je EINEN Mehrzahlplatz, und der
+       wird an zwei Orten gelesen -- hinter einer Zahl und im Satz. Auf
+       Tuerkisch gewinnt die Zahl: `öğeler` steht dort, wo KEINE Zahl davor
+       steht („Öğeler görünüyor"), und die Saetze von `tr.json` sind so
+       gebaut, dass sie mit der Einzahl aufgehen.
+       ES IST EINE ENTSCHEIDUNG UND KEINE MESSUNG, und deshalb steht sie hier
+       fest: wer eines der fuenf Woerter auf eine Mehrzahlform aendert, aendert
+       eine Sprachentscheidung und wird namentlich rot.
+       DEUTSCH UND ENGLISCH SIND AUSDRUECKLICH NICHT GEMEINT -- dort sind die
+       beiden Woerter verschieden, und die Zeile darunter haelt das fest. */
+    const dgPairs = [['entryOne', 'entryMany'], ['dayOne', 'dayMany'],
+      ['reportOne', 'reportMany'], ['taskOne', 'taskMany'], ['ratingOne', 'ratingMany']];
+    const dgApart = dgPairs.filter(([one, many]) =>
+      dgTr['vocabulary.' + one] !== dgTr['vocabulary.' + many]);
+    check('T2: die fuenf Vokabelpaare tragen auf Tuerkisch dasselbe Wort',
+      dgApart.length === 0,
+      dgApart.map(([o, m]) => `${dgTr['vocabulary.' + o]} / ${dgTr['vocabulary.' + m]}`).join(' · '));
+    check('Und in de.json und en.json sind sie verschieden — die Regel gilt je Sprache',
+      dgPairs.every(([one, many]) => dgDe['vocabulary.' + one] !== dgDe['vocabulary.' + many]),
+      dgPairs.filter(([o, m]) => dgDe['vocabulary.' + o] === dgDe['vocabulary.' + m])
+        .map(([o]) => o).join(' '));
     check('Und der Leser wuerde einen Verstoss finden',
       dgCounted.test('3 yorumlar') && !dgCounted.test('3 yorum'),
       'der Leser trennt Einzahl und Mehrzahl nicht');
@@ -16362,19 +16387,23 @@ const shareMain = (purpose, target = null) =>
       'card.standard', 'list.saveViewNote'];
     check('Schluesselprobe: deutsch sind nur noch die benannten fuenf',
       equal(germanKeys.sort(), KEY_FALSE_FRIENDS), germanKeys.join(' '));
-    /* 1272 WURDEN 1279 -- 0.24.4. Acht Saetze sind dazugekommen (die beiden
-       festen deutschen Woerter aus B5, der Anleger im Papierkorb aus B6 B in
-       zwei Fassungen, und die vier Saetze der beiden Anlegefelder aus B7),
-       einer ist weggefallen (`card.restoreIcon`, B6 A). Die Zahl der
+    /* 1272 WURDEN 1277 -- 0.24.4. Sechs Saetze sind dazugekommen (die beiden
+       festen deutschen Woerter aus B5 und die vier der beiden Anlegefelder
+       aus B7), einer ist weggefallen (`card.restoreIcon`, B6 A). Die Zahl der
        Mehrzahlformen und der Vokabelnamen bewegt sich nicht.
-       ZWEI ZAHLEN, UND BEIDE SIND WAHR: die Datei traegt 1211 OBERSTE
+       ZWEI SAETZE HAT DIE RUNDE ANGELEGT UND WIEDER GENOMMEN: der Anleger im
+       Papierkorb stand kurz in zwei Fassungen da. **Der Betreiber hat am
+       8. September 2026 entschieden, dass die Zeile beim Loeschdatum bleibt**
+       -- damit hatten die beiden keinen Leser mehr, und ein Satz ohne Leser
+       ist eine zweite Wahrheit. Sie kommen mit der Detailansicht wieder.
+       ZWEI ZAHLEN, UND BEIDE SIND WAHR: die Datei traegt 1209 OBERSTE
        Eintraege; hier gezaehlt wird flach -- jede Mehrzahlform als eigener
-       Schluessel NEBEN ihrem Traeger --, und das sind 1211 + 68 = 1279. Der
+       Schluessel NEBEN ihrem Traeger --, und das sind 1209 + 68 = 1277. Der
        Auftrag nennt die oberste Zahl, der Pruefstand nagelt die flache fest;
        wer die beiden verwechselt, sucht eine Stunde nach 68 fehlenden
        Saetzen. */
-    check('Und die Zahlen stehen: 1279 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1279 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
+    check('Und die Zahlen stehen: 1277 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1277 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -16485,7 +16514,6 @@ const shareMain = (purpose, target = null) =>
          B7   die beiden Platzhalter und die beiden Meldungen der Anlegefelder */
     const WORDING_NEW_0244 = [
       'entry.showAllLinks', 'list.filtersActive',
-      'card.createdBy', 'card.createdByOn',
       'card.newCategory', 'card.newTag',
       'card.categoryCreated', 'card.tagCreated'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244];
