@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 8. September 2026, nach 0.24.3**
+**Das Sammelblatt · Stand 8. September 2026, nach dem Rundlauf mit 0.24.3**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -253,17 +253,17 @@ entschieden und hat seinen Ort.*
 
 | Art | Punkte in Teil I |
 |---|---|
-| **Fehler** | **11**, **12** *(11: drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden. 12: die Ladezeit der Übersicht, ebenfalls 5. September 2026 — **der Server ist darin ausgemessen und ausgeschlossen**)* |
-| **Verbesserung** | — |
+| **Fehler** | **11**, **12**, **16 A**, **18** *(18: `ß` und `ss` sind für die Suche zwei Dinge — neu am 8. September 2026, beim Nachmessen für 0.24.4 aufgefallen und nicht aus dem Betrieb gemeldet; so alt wie `kkl()`. 16 A: das Wiederherstellen-Zeichen steht als Quelltext in der Zeile, neu am 8. September 2026 — verursacht von 0.24.0. 11: drei kleine Anzeigefehler, neu am 5. September 2026 — der vorige, die zu klein gerechneten Vorschaubilder, ist 0.19.4 geworden. 12: die Ladezeit der Übersicht, ebenfalls 5. September 2026 — **der Server ist darin ausgemessen und ausgeschlossen**)* |
+| **Verbesserung** | **17** *(neu am 8. September 2026 — anlegen in den Karten „Kategorien" und „Tags")* |
 | **Neue Funktion** | 1, 2, 3, 4, **6**, **9** |
-| **Design** | — *(der einzige, der Bildstreifen, ist 0.22.0 geworden)* |
+| **Design** | **15** *(neu am 8. September 2026 — der leere Kasten mit dem Bildzeichen; der Punkt davor, der Bildstreifen, ist 0.22.0 geworden)* |
 | **Verbesserung** *(nachgetragen)* | 5 |
 
 | Einschätzung | Punkte |
 |---|---|
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
-| **empfohlen** | **11** |
+| **empfohlen** | **11**, **15**, **17**, **18** *(18 mit ausdrücklichem Preis: siehe den Punkt)* |
 | **empfohlen, aber eine Beobachtung fehlt** | **12** |
 | **nicht empfohlen in der gewünschten Form** | **9** *(gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — **Teil (c) ist mit 0.20.1 gebaut**, (a) und (b) bleiben liegen)* |
 | **eingetragen als 0.26.0** *(bis zum 5. September 2026: 0.24.0)* | **5, 6** |
@@ -1495,6 +1495,339 @@ Umstellungslauf, die zweite Bestätigung. **Kein Schema.**
 > **EINGETRAGEN ALS 0.22.0** *(bis zum 3. September 2026 als 0.21.0 geführt;
 > gerückt, weil Punkt 8 die 0.20.0 bekommen hat)*, zusammen mit den Ableitungen
 > aus Punkt 5.
+
+---
+
+## 15. Der leere Kasten zeigt ein Bildzeichen und sieht aus wie ein Fehler
+
+**Art: Design** · **Einschätzung: empfohlen** — *eine Konstante und vier
+Aufrufstellen; die Sache selbst ist eine Zeile* · **Draußen üblich: ja**
+
+### Woher
+
+**Aus dem Betrieb, 8. September 2026**, beim Durchsehen von 0.24.3. Mit zwei
+Bildern gemeldet — dem leeren Kommentarkasten und dem leeren Dateikasten.
+
+*Der Punkt ist ÄLTER als 0.24.3 und geht auf **0.22.0** zurück* (Commit
+`94689ca`, „Oberfläche 0.22.0"). Die Runde hat ihn weder verursacht noch
+angefasst; er ist beim Ansehen der zweiten Sprache aufgefallen.
+
+### Was auffiel
+
+**Ein Eintrag ohne Kommentare zeigt über dem Satz „Noch keine Kommentare." ein
+Bildzeichen** — ein Rechteck mit Sonne und Bergen, das übliche Zeichen für
+„hier steht ein Bild". **Das liest sich wie ein Bild, das nicht geladen
+werden konnte**, und nicht wie ein Kasten, in dem noch nichts steht.
+
+**Dasselbe im Dateikasten** („Noch keine Dateien…"), und aus demselben Grund:
+
+```js
+const ICON_PH = `<svg …><rect …/><circle …/><path d="M3.5 17l5-4.5 …"/></svg>`;
+const emptyState = (sentence) =>
+  `<div class="empty-state">${ICON_PH}<span class="hint">${esc(sentence)}</span></div>`;
+```
+
+**`ICON_PH` ist ein BILDPLATZHALTER, und als solcher ist er auch richtig** —
+er steht an der Kachel ohne Foto (`drawCards()`) und im Bildstreifen ohne
+Bilder (`drawStrip()`). *Dort meint er, was er zeigt.*
+
+**`emptyState()` benutzt ihn für vier Kästen, die mit Bildern nichts zu tun
+haben:** Testtage, Links, Dateien und Kommentare. **Ein Zeichen, das an zwei
+Stellen etwas anderes bedeutet, ist an einer von beiden falsch** — und hier
+bedeutet es „hier fehlt etwas, das da sein sollte" statt „hier ist noch
+nichts".
+
+*Die leere Übersicht (`list.nothingYet`, `list.noHits`) benutzt es ebenfalls;
+sie ist im Bild nicht gemeldet, hängt aber an derselben Konstante.*
+
+### Was es nicht ist
+
+**Kein Fehler im Sinne von „etwas funktioniert nicht".** Der Kasten ist in
+Ordnung, der Satz darunter stimmt, und nichts ist kaputt. **Es ist eine
+Falschaussage des Zeichens** — und genau deshalb ein Punkt der Art *Design*
+und nicht *Fehler*.
+
+**Auch keine Frage der Sprache.** Er sieht auf Deutsch genauso aus wie auf
+Englisch; er ist beim Durchsehen der zweiten Sprache nur aufgefallen, weil man
+dabei jede Ansicht einmal ansieht.
+
+### Was gebaut werden könnte
+
+> **Vorschlag von Claude:** `emptyState()` bekommt **sein eigenes Zeichen** und
+> lässt `ICON_PH` dort, wo er hingehört. *Naheliegend ist ein leerer Kasten mit
+> gestrichelter Kante oder ein Blatt mit Umriss — was „hier ist Platz" sagt und
+> nicht „hier fehlt ein Bild".*
+>
+> **Oder gar kein Zeichen.** Der Satz „Noch keine Kommentare." sagt alles, was
+> zu sagen ist; ein Zeichen darüber fügt nichts hinzu und kostet Höhe in einem
+> Kasten, der ohnehin nur wartet. *Das ist die kleinere Änderung und die
+> ehrlichere: ein Bild, das nichts erklärt, ist Zierde.*
+>
+> **Zu entscheiden ist das am Auftrag der Runde und nicht hier** — es ist eine
+> Geschmacksfrage mit zwei vertretbaren Antworten, und der Betreiber sieht die
+> Kästen jeden Tag.
+
+### Was es anfasst
+
+`public/app.js` — die Konstante `emptyState()` und, falls ein eigenes Zeichen
+kommt, eine neue Konstante daneben. `public/style.css` — die Klasse
+`.empty-state`, falls die Höhe sich ändert. **Kein Server, kein Schema, keine
+Sprachdatei** *(der Satz bleibt, wie er ist).*
+
+---
+
+## 16. Der Papierkorb — ein Zeichen als Quelltext, und eine Zeile ohne Ordnung
+
+**Art: Fehler (A) und Design (B)** · **Einschätzung: A empfohlen** — *eine
+Zeile, und sie nimmt einen sichtbaren Schaden weg* · **B: am Auftrag zu
+entscheiden** · **Draußen üblich: ja**
+
+### Woher
+
+**Aus dem Betrieb, 8. September 2026**, beim Durchsehen von 0.24.3, mit Bild
+gemeldet. *Beide Teile sind ÄLTER als 0.24.3 — die Runde hat sie weder
+verursacht noch angefasst.*
+
+---
+
+### A · Das Wiederherstellen-Zeichen steht als Quelltext in der Zeile
+
+**Was zu sehen ist:** in der Karte „Papierkorb" steht unter dem Namen des
+Eintrags eine Zeile
+
+```
+<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="current…
+```
+
+— **der Quelltext des Zeichens, abgeschnitten am Kastenrand.** Das Zeichen
+selbst fehlt, und die Zeile sieht aus, als sei etwas kaputt.
+
+**Die Ursache steht in einer Zeile und ist eine Regel, die richtig ist:**
+
+```js
+${tH('card.restoreIcon', { restoreIcon: ICON_RESTORE })}
+```
+
+**`tH()` maskiert die eingesetzten Werte — ausdrücklich und mit Absicht.** Der
+SATZ kommt aus der Sprachdatei und trägt kein HTML; der WERT kommt vom
+Benutzer oder aus dem Vokabular und wird maskiert (Stolperstein 18 in
+Dateiform, Konzept 4.2). **Ein Zeichen durch diesen Weg zu schicken heißt, es
+als Text auszugeben** — und genau das geschieht.
+
+**Verursacht hat es 0.24.0**, beim Umzug der Sätze in die Sprachdatei: aus dem
+gebauten `${ICON} Wiederherstellen` wurde ein Satz mit Platzhalter
+(`"{restoreIcon} Wiederherstellen"`), und der Platzhalter ist ein Wert.
+*0.24.1 hat die Stelle nur umbenannt, 0.24.3 sie nicht angefasst.*
+
+**ES IST DIE EINZIGE STELLE.** Nachgezählt am Quelltext: kein zweites `ICON_`
+geht durch `t()` oder `tH()`.
+
+> **Vorschlag von Claude:** das Zeichen aus dem Satz herausnehmen und daneben
+> stellen — `${ICON_RESTORE} ${tH('card.restore')}`. **Der Schlüssel
+> `card.restoreIcon` fällt damit weg**, und die Sprachdatei verliert einen
+> Platzhalter, den kein Übersetzer je füllen könnte. *Ein Zeichen ist kein
+> Wort und gehört nicht in einen Satz, den man übersetzt.*
+>
+> **Und ein Wächter gehört dazu:** kein `ICON_` durch `t()` oder `tH()`. Er
+> ist eine Zeile über den Quelltext und hätte diesen Fund seit 0.24.0
+> gehalten.
+
+---
+
+### B · Die Zeile sagt zu wenig, um etwas entscheiden zu können
+
+**Was der Betreiber sagt:** *„Darstellung von Papierkorb komisch. Besser wäre
+Eintragsname, Eintrags-Einträger und Datum, vielleicht ein kleiner Thumb vom
+Hauptbild wenn noch Platz da ist — oder wenn man drauf klickt als
+Detailansicht. Da muss ein sinnvoller Workflow her."*
+
+**Was heute dasteht:** der Titel, zwei Knöpfe und eine graue Zeile
+*„gelöscht 08.09.2026, 10:36 von faruk · noch 30 Tage · 12,2 MB"*.
+
+**Woran das hakt:** die Zeile beantwortet „**wann** ist es weg" und „**wie
+groß**" — aber nicht die Frage, die vor dem Wiederherstellen steht: **„ist das
+der Eintrag, den ich meine?"** *Bei einem Eintrag namens „Testeintrag" ist das
+egal; bei zwanzig gelöschten Einträgen mit ähnlichen Namen ist es die einzige
+Frage.*
+
+**Was fehlt, in der Reihenfolge des Betreibers:** wer den Eintrag ANGELEGT hat
+(heute steht nur, wer ihn gelöscht hat), sein Datum — und ein Bild.
+
+> **Zu klären am Auftrag der Runde, nicht hier:**
+> * **Kachel oder Detailansicht?** Ein kleines Vorschaubild je Zeile ist die
+>   kleinere Änderung; eine Detailansicht auf Klick ist der „sinnvolle
+>   Workflow", nach dem der Betreiber fragt — und sie ist eine neue Ansicht.
+> * **Was liefert der Server?** `GET /api/trash` gibt heute Titel, Zeitpunkt,
+>   Löschenden, Frist und Bytes. **Anleger und Hauptbild sind nicht dabei** —
+>   *und ein Vorschaubild aus dem Papierkorb ist keine Kleinigkeit: die Zeilen
+>   liegen im Papierkorb als Gebilde und nicht mehr in `photos`.*
+> * **Wie viel Papierkorb will man sehen?** Die Karte ist eine Liste zum
+>   Aufräumen und keine zweite Übersicht. *Wer sie zur Übersicht ausbaut, baut
+>   die Übersicht ein zweites Mal — und zwei Orte für dieselbe Frage sind einer
+>   zu viel (Stolperstein 47).*
+
+### Was es anfasst
+
+**A:** `public/app.js` (eine Zeile), `public/languages/de.json` und `en.json`
+(ein Schlüssel fällt), `testbench.js` (ein Wächter dazu). **Kein Server.**
+**B:** `server.js` (`GET /api/trash` wächst), `public/app.js`,
+`public/style.css` — **und je nach Antwort auf „Kachel oder Detailansicht"
+auch eine neue Route.**
+
+---
+
+## 17. Kategorien und Tags lassen sich in ihrer Karte nicht anlegen
+
+**Art: Verbesserung** · **Einschätzung: empfohlen** — *die Bauform steht schon,
+zweimal, in der Karte daneben* · **Draußen üblich: ja**
+
+### Woher
+
+**Aus dem Betrieb, 8. September 2026**, beim Durchsehen von 0.24.3, mit Bild
+gemeldet. *Älter als 0.24.3 — die Runde hat die Karte nur um eine Sprachzeile
+erweitert.*
+
+### Was auffiel
+
+**Die Karte „Kategorien" kann umbenennen und löschen — aber nichts anlegen.**
+Ihr Satz sagt es selbst: *„Umbenennen oder löschen. Beim Löschen bleiben die
+Einträge erhalten und haben nur keine Kategorie mehr."* **Die Karte „Tags"
+ebenso.**
+
+**Die beiden Kriterienkarten daneben können es:** ein Feld, ein Knopf
+„Anlegen", fertig.
+
+```js
+<input class="input input-sm" id="${k.field}" placeholder="…">
+<button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
+```
+
+**Was der Betreiber will:** *„Der Admin sollte hier jederzeit was anlegen
+können, ähnlich wie bei Bewertung: Kriterien und Potenzial: Kriterien."*
+
+### Was es nicht ist
+
+**Kein Fehler.** Kategorien und Tags entstehen heute **am Eintrag** — dort
+steht ein Feld, und der Schalter „Neue Kategorien darf jeder anlegen"
+entscheidet, wer es sieht. *Der Weg existiert also; er ist nur nicht dort, wo
+man ihn beim Verwalten sucht.*
+
+**Und es ist kein Rechtethema.** Die Klemme am Schalter steht, und die Karte
+müsste nichts DÜRFEN, was der Server nicht schon erlaubt.
+
+> **NACHGEZÄHLT AM 8. SEPTEMBER 2026, und die erste Fassung dieses Punktes lag
+> daneben:** hier stand, `POST /api/product-categories` und `POST /api/tags`
+> gäbe es beide längst. **Für Kategorien stimmt es. Für Tags nicht.**
+>
+> | | was dasteht |
+> |---|---|
+> | Kategorien | **`POST /api/product-categories`** — der Weg steht, es fehlt allein das Feld |
+> | Tags | `/api/tags` kennt **GET, PUT, DELETE** und sonst nichts. Angelegt wird ein Tag heute **nur am Eintrag** (`POST /api/items/:id/tags`) oder beim Import |
+>
+> **Für Tags ist also eine Route mehr zu bauen als ein Eingabefeld** — und sie
+> trägt dieselbe Klemme, die am Eintrag schon hängt
+> (`mayCreate(req, 'tagsFreeCreate')`). *Die Begründung dafür steht im
+> Quelltext und gilt unverändert: Nachschlagen und Anlegen sind zwei Schritte,
+> weil die Klemme dazwischen gehört — „ein gemeinsamer Helfer trüge die Klemme
+> in seinem eigenen Rumpf, und dann ließe sie sich nirgends gegenprüfen".*
+
+### Was gebaut werden könnte
+
+> **Vorschlag von Claude:** dieselbe Zeile wie an den Kriterienkarten, unter
+> die Liste. **`manageList()` zeichnet ohnehin alle drei Karten**, und
+> `MANAGE_KIND` trägt schon die Unterschiede je Karte (`sortable`, `counter`,
+> `weight`, `perLanguage`) — *ein Eintrag `create` daneben, und das Feld steht
+> an allen dreien oder an keiner, ohne eine Abfrage auf den Kartennamen.*
+>
+> **Zwei Fragen gehören an den Auftrag und nicht hierher:**
+> * **In welcher Sprache legt man an?** Die Karte hat seit 0.24.3 einen
+>   Umschalter. *Ein neues Kategorie in einer zweiten Sprache anzulegen ergibt
+>   keinen Sinn — die Grundzeile ist die erste Fassung.* Naheliegend: das Feld
+>   legt IMMER die Grundzeile an, und der Umschalter fasst es nicht an. **Das
+>   ist dieselbe Regel wie beim Umbenennen ohne Sprachangabe** (0.24.3,
+>   Bauabschnitt 6a) und sollte deshalb auch so heißen.
+> * **Was ist mit dem Schalter „darf jeder anlegen"?** Er entscheidet über den
+>   Weg AM EINTRAG. *Ein Admin darf ohnehin; das Feld in der Karte hängt an
+>   `ADMIN` und nicht am Schalter.*
+
+### Was es anfasst
+
+`public/app.js` — `cardCategories()`, `cardTags()`, `MANAGE_KIND` und
+`manageList()`. **Kein Schema.** *Für Kategorien auch kein Server: der Weg
+steht.* **Für Tags eine Route mehr** — `POST /api/tags`, hinter `ADMIN`, über
+die vorhandenen `findTag()` und `createTag()` und mit der Klemme aus dem
+Kasten oben. Die Sprachdatei bekommt zwei Platzhaltertexte für die Felder.
+
+---
+
+## 18. Die Suche findet „übergroß" nicht, wenn man „ÜBERGROSS" eingibt
+
+**Art: Fehler** · **Einschätzung: empfohlen** — *aber nicht kostenlos: die
+Gleichsetzung trifft in der Gegenrichtung „Masse" und „Maße" mit* · **Draußen
+üblich: ja, so gut wie überall**
+
+### Woher
+
+**Beim Nachmessen für 0.24.4 aufgefallen**, am 8. September 2026, als die
+Faltung der Suche für Türkisch durchgerechnet wurde. **Niemand hat es
+gemeldet** — es ist über all die Runden nur niemandem aufgefallen, weil man
+selten in Großbuchstaben sucht. *Herkunft: so alt wie `kkl()`.*
+
+### Was auffiel
+
+**`ß` und `ss` sind für die Suche zwei verschiedene Dinge.**
+
+| im Bestand steht | gesucht wird | heute |
+|---|---|---|
+| `Stichsäge übergroß` | `übergroß` | **Treffer** |
+| `Stichsäge übergroß` | `ÜBERGROSS` | **kein Treffer** |
+| `Grüße` | `GRÜSSE` | **kein Treffer** |
+| `Grüße` | `GRÜßE` | Treffer |
+
+**Der Grund ist keine Nachlässigkeit, sondern Unicode:** `'ÜBERGROSS'
+.toLowerCase()` ist `'übergross'` — mit zwei s. Im Bestand steht `übergroß`
+mit `ß`. **Die Faltung ist richtig; es gibt nur kein Kleinbuchstaben-`ß`, das
+aus `SS` zurückkäme.** *Und aus `ß` ein `ss` zu machen ginge — dann fände man
+aber „Maße" auch bei der Eingabe „Masse", und das sind zwei Wörter.*
+
+### Was es nicht ist
+
+**Kein Türkisch-Thema.** Es betrifft Deutsch, es betrifft nur Deutsch, und es
+ist beim Messen für einen ganz anderen Befund mitgefallen.
+
+**Und keine Folge von 0.24.3.** *Die Runde hat an der Faltung nichts geändert;
+der Fall ist genauso alt wie die Suche selbst.*
+
+### Was gebaut werden könnte
+
+> **Vorschlag von Claude:** **`ß` und `ss` in der Faltung gleichsetzen** — auf
+> beiden Seiten, in derselben Funktion, in der die Groß- und Kleinschreibung
+> schon fällt.
+>
+> **Der Preis steht sofort daneben und gehört genannt:** damit findet
+> „Masse" auch „Maße", „Busse" auch „Buße" und „Rasse" auch „Raße". *Das ist
+> kein Nebeneffekt, sondern genau dieselbe Gleichsetzung, nur in der anderen
+> Richtung gelesen.*
+>
+> **Für eine SUCHE ist das die richtige Seite des Irrtums:** wer sucht, will
+> lieber eine Zeile zu viel sehen als eine zu wenig. **Für einen VERGLEICH
+> wäre es falsch** — zwei Kategorien „Masse" und „Maße" wären danach dieselbe.
+> *Die Faltung der Suche und der Vergleich der Namen sind zwei Funktionen und
+> müssen es bleiben; heute sind sie es auch.*
+>
+> **Wer das nicht will, lässt es** — und dann steht hier wenigstens, dass es
+> bekannt ist und warum es so bleibt.
+
+### Was es anfasst
+
+**Eine Zeile in einer Funktion** — dieselbe, die 0.24.4 für die vier i ohnehin
+anfasst *(Befund B8 im Auftrag 0.24.4)*. **Kein Schema, keine Route, keine
+Sprachdatei.** *Wenn es je gebaut wird, dann in derselben Runde wie B8 oder gar
+nicht — zwei Runden hintereinander an derselben Zeile sind eine zu viel.*
+
+> **AUSDRÜCKLICH NICHT TEIL VON 0.24.4.** Der Auftrag nennt ihn und grenzt ihn
+> ab. *Nach Regel 1 dieses Blatts trägt er trotzdem keine Nummer: er ist
+> gesammelt, nicht zugeordnet.*
 
 ---
 
