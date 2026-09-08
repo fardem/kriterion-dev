@@ -250,6 +250,13 @@ entschieden und hat seinen Ort.*
 
 ---
 
+> **NACHTRAG VOM 8. SEPTEMBER 2026, ABENDS: DREI DIESER PUNKTE SIND GEBAUT.**
+> Die Punkte **15**, **16** und **17** sind mit **0.24.4** herausgegangen — als
+> Befunde B4, B6 und B7 des Auftrags. *Nach Regel 3 tragen sie damit eine
+> Nummer und stehen im Fahrplan; die Zeilen unten sagen nur noch, wohin sie
+> gegangen sind.* **Von Punkt 16 bleibt Schritt 2 offen** (die Detailansicht im
+> Papierkorb) — er steht im Fahrplan und nicht mehr hier.
+
 ## Teil I ist am 8. September 2026 leer geworden — und hier steht, wohin
 
 **Alle fünfzehn ausgearbeiteten Punkte sind an diesem Tag entschieden worden**
@@ -264,13 +271,13 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 | **11** | Drei kleine Anzeigefehler aus dem Augenschein zu 0.22.0 | **0.25.0** |
 | **12** | Die Übersicht braucht beim Betreten rund eine Sekunde | **0.25.0** *(mit einer Messung davor)* |
 | **13** | Zwei Fehler aus dem Rundlauf mit 0.24.2 | **0.25.0** |
-| **18** | `ß` und `ss` sind für die Suche zwei Dinge | **0.25.0** *(oder 0.24.4, wenn die Faltung dort ohnehin fällt)* |
+| **18** | `ß` und `ss` sind für die Suche zwei Dinge | **0.25.0** — *0.24.4 hat die Faltung angefasst und diesen Fall AUSDRÜCKLICH ausgenommen: er betrifft Deutsch und nicht Türkisch, und eine Runde, die schon zwei Fehler an derselben Funktion repariert, nimmt keinen dritten mit* |
 | **5** | Die Ableitungen auf WebP | **0.26.0** |
 | **6** | Fotos aus der Zwischenablage — die Ablage wird wählbar | **0.26.0** |
 | **14** | Blättern im Eintrag, vor und zurück | **0.27.0** — *die Form ist am 8. September 2026 entschieden: Pfeile in der Kopfzeile, `Bild auf`/`Bild ab`, keine Wischgeste* |
-| **15** | Der leere Kasten zeigt ein Bildzeichen | **0.24.4**, dort Befund **B4** |
-| **16** | Der Papierkorb — ein Zeichen als Quelltext, eine Zeile ohne Ordnung | **0.24.4**, dort Befund **B6** |
-| **17** | Kategorien und Tags lassen sich in ihrer Karte nicht anlegen | **0.24.4**, dort Befund **B7** |
+| **15** | Der leere Kasten zeigt ein Bildzeichen | **GEBAUT mit 0.24.4** *(Befund B4)* |
+| **16** | Der Papierkorb — ein Zeichen als Quelltext, eine Zeile ohne Ordnung | **GEBAUT mit 0.24.4** *(Befund B6, Teil A und B — Schritt 2 bleibt offen)* |
+| **17** | Kategorien und Tags lassen sich in ihrer Karte nicht anlegen | **GEBAUT mit 0.24.4** *(Befund B7, samt `POST /api/tags`)* |
 | **1** | „Entfällt" am einzelnen Kriterium | **abgelehnt** |
 | **2** | Zwei Einträge zu einem machen | **abgelehnt** |
 | **3** | Der QR-Encoder für den zweiten Faktor | **abgelehnt** |
@@ -294,10 +301,109 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 
 ## Teil I nimmt wieder auf, sobald etwas dazukommt
 
-**Er ist leer und bleibt der Ort für den nächsten ausgearbeiteten Punkt** — mit
-den sechs Überschriften aus „Die Form eines Punktes" und **ohne Versionsnummer**
-(Regel 1). *Die nächste Nummer, die frei ist, entscheidet der Betreiber, wenn
-genug beieinander ist.*
+**Er ist leer gewesen, hat am 8. September 2026 einen Punkt bekommen — und
+derselbe Tag hat ihn auch entschieden: abgelehnt.** *Er steht unten weiter im
+Wortlaut, als **Herleitung**: dort ist gemessen und überlegt worden, und eine
+verworfene Idee ohne aufgeschriebene Begründung kommt in einem halben Jahr als
+neue Idee zurück.* **Der Kasten am Kopf des Punktes sagt, was aus ihm geworden
+ist** — dieselbe Form, in der der Fahrplan seine abgelehnten Punkte trägt.
+
+---
+
+## 19. Der fünfzehnte Vokabelplatz — „Mehrzahl nach einer Zahl"
+
+> **ABGELEHNT AM 8. SEPTEMBER 2026.** *„Nein, es wird keine Felder für
+> mehrzahlige Angaben auf Türkisch geben. 1 Öğe, 4 Öğe, beides geht. Dann ist
+> die Vorgabe für beides halt zwei mal das gleiche."* **Der Betreiber hat die
+> Frage im selben Zug beantwortet, in dem sie gestellt worden ist.**
+>
+> **WAS STATTDESSEN GEBAUT IST — und zwar noch in 0.24.4:** die fünf
+> türkischen Vokabelpaare tragen **in beiden Formen dasselbe Wort** (`Öğe`,
+> `Test günü`, `Rapor`, `Görev`, `Değerlendirme`). *Damit stehen die 30
+> Zählerstellen richtig — „3 öğe", „15 öğe görünüyor" —, und das war die
+> Mehrheit.* **Zwölf der 27 Sätze in `tr.json` sind dafür umgeschrieben
+> worden**, damit sie sich mit der Einzahl lesen; die übrigen fünfzehn taten
+> es schon. **Der Preis steht an fünf bloßen Beschriftungen** und ist benannt:
+> „TEST GÜNÜ" über der Liste, wo türkisch „TEST GÜNLERİ" lieber stünde.
+>
+> **DIE REGEL DARAUS steht als TR-S4 im türkischen Wörterbuch** und gilt für
+> jede weitere Sprache dieser Art: *eine Sprache, die nach einer Zahl die
+> Einzahl will, löst es über die SÄTZE ihrer Datei und nicht über einen
+> zweiten Mehrzahlplatz.* **Der Mechanismus bekommt keinen fünfzehnten Platz —
+> nicht jetzt und nicht mit der nächsten Sprache.**
+
+**Art: Fehler** *(in einer Sprache; in Deutsch und Englisch fällt er nicht
+an)* · **Einschätzung von Claude war: empfohlen, aber nicht dringend** —
+*abgelehnt vom Betreiber, siehe Kasten* · **Draußen üblich: ja** — *jede
+Bibliothek für Mehrsprachigkeit trennt die Zählform von der Wortform*
+
+### Woher
+
+**Aus dem Augenschein zu 0.24.4**, am 8. September 2026, an der türkischen
+Oberfläche auf dem Telefon. *Nicht gemeldet, sondern gesehen — und Türkisch
+ist die erste Sprache, an der es überhaupt auffällt.*
+
+### Was auffiel
+
+**„3 Öğeler" steht in der Kopfzeile der Übersicht.** Türkisch setzt nach einer
+Zahl die **Einzahl**: „3 öğe". *Das ist Regel **T2** des Konzepts (S3.1), und
+sie gilt an dieser Stelle nicht.*
+
+### Warum es keine Übersetzungsfrage ist
+
+**Die vierzehn Vokabelwörter haben je EINEN Mehrzahlplatz** (`entryMany`,
+`dayMany`, `reportMany`, `taskMany`, `ratingMany`), und der wird an **drei**
+Orten gelesen:
+
+| wo | was Türkisch will | gemessen am 8. September 2026 |
+|---|---|---|
+| hinter einem Zähler — `3 {entryMany}`, `vThing(n)` | die **Einzahl** | **30 Stellen** *(27 über die fünf Zähler-Helfer, drei über `countWord`)* |
+| in einem Satz — `bütün {entryMany} için` | eher die **Mehrzahl** | **27 Schlüssel**, 30 Vorkommen |
+| als bloße Beschriftung — „TEST GÜNLERİ" als Blockkopf | die **Mehrzahl** | **5 Stellen** im Code |
+
+*Kein Wort dieser Welt macht beides richtig* — **und genau deshalb ist die
+Antwort nicht ein besseres Wort, sondern eine Entscheidung darüber, welche der
+drei Stellen die Datei bedient.* **Der Betreiber hat sie getroffen** (Kasten
+oben): die Zählerstellen, und die Sätze werden ihr nachgeschrieben.
+
+### Was zu bauen wäre
+
+**Ein fünfzehnter Platz je Vokabelwort — „Mehrzahl nach einer Zahl".** In
+Deutsch und Englisch trüge er dasselbe wie der vorhandene Mehrzahlplatz; in
+Türkisch dasselbe wie der Einzahlplatz. *Dann ruft `vThing(n)` ihn, und alles
+Übrige bleibt, wie es ist.*
+
+**Was daran hängt:** die Karte „Vokabular" bekommt eine Spalte mehr (aus
+vierzehn Feldern werden einundzwanzig — fünf Paare bekommen einen dritten),
+der Server einen Schlüssel mehr je Wort, die Sprachdateien fünf Schlüssel
+mehr, und der Prüfstand seine Zahl.
+
+**Was NICHT daran hängt:** das Datenbankschema *(das Vokabular liegt als
+Gebilde unter `settings.vocabulary`)*, das Austauschformat und die
+Rechtezeilen.
+
+### Einschätzung von Claude — und warum sie nicht getragen hat
+
+**Sie lautete: empfohlen, aber es hat Zeit.** *Der Fehler stand an 30 Stellen
+einer Sprache, die es seit einem Tag gibt, und er war ein Schönheitsfehler und
+kein Missverständnis — „3 Öğeler" liest sich falsch, aber niemand versteht
+etwas Falsches.*
+
+> **WAS SIE ÜBERSEHEN HAT:** dass die 30 Zählerstellen sich **ohne** neues
+> Feld richtig machen lassen — indem die Datei in beiden Formen dasselbe Wort
+> trägt und die wenigen Sätze umgeschrieben werden, die dann falsch klängen.
+> *Der Vorschlag rechnete mit einem Feld, weil der Mechanismus zwei Plätze
+> anbietet; die Sprache braucht aber gar keine zwei Wörter, sondern nur einen
+> Satzbau, der ohne das zweite auskommt.* **Der Betreiber hat genau das
+> gesehen und die billigere Lösung genommen.**
+
+> **UND EINE ALTERNATIVE, DIE AUSDRÜCKLICH VERWORFEN BLEIBT:** die Regel im
+> Quelltext festzuschreiben („bei `tr` nimm die Einzahl"). *Damit stünde eine
+> Sprachregel im Code statt in der Datei — genau das, was das ganze Vorhaben
+> 0.24.0 bis 0.24.4 abgebaut hat.* **Die gebaute Lösung tut das Gegenteil:**
+> die Datei sagt es, und der Code weiß von Türkisch nichts.
+
+---
 
 
 # Teil II — Gesammelt, ohne Ausarbeitung

@@ -783,22 +783,59 @@ CREATE TABLE IF NOT EXISTS trash_bytes (
    dem Bestandslauf zur Last, und der laeuft still im Hintergrund. */
 const db = open(DB_FILE);
 
-/* kkl() -- KLEINSCHREIBUNG NACH UNICODE, IN SQL EINGEHAENGT.
-   SQLites lower() faltet AUSSCHLIESSLICH ASCII: lower('Ü') bleibt
-   'Ü', und dasselbe gilt fuer LIKE. Eine Suche darauf faende
+/* searchFold() -- DIE EINE FALTUNG DER SUCHE. 0.24.4, Bauabschnitt 1 (B8).
+
+   SIE NIMMT KEINE SPRACHE ENTGEGEN, und das ist ihre ganze Zusicherung. Bis
+   0.24.3 falteten die beiden Haelften der Suche verschieden: die NADEL
+   (`fulltextTerm()` in server.js) mit `toLocaleLowerCase()` und der Sprache
+   des LESERS, der HEUHAUFEN (kkl(), hier) mit blankem `toLowerCase()`. Mit
+   Deutsch und Englisch faellt das nicht auf -- beide falten `I` nach `i`. Auf
+   Tuerkisch faellt es sofort auf: `'I'.toLocaleLowerCase('tr')` ist das
+   punktlose `ı`, und im Bestand steht das gepunktete `i`. Dieselbe Suche gab
+   damit zwei Lesern zwei Antworten.
+
+   UND DIE VIER i FALLEN AUF EINES. Das Lateinische kennt zwei i, Unicode
+   kennt vier: `I` `i` `İ` `ı`. Sie alle fallen hier auf `i`:
+     `toLowerCase()`      macht aus `I` ein `i` und aus `İ` ein `i` mit
+                          angehaengtem U+0307 (kombinierender Punkt).
+     U+0307 faellt weg    damit aus `İ` ein blankes `i` wird.
+     `ı` wird `i`         das punktlose i des Tuerkischen.
+   DEUTSCHER UND ENGLISCHER BESTAND AENDERT SICH DABEI UM KEIN ZEICHEN --
+   `ı` und `İ` kommen dort nicht vor. Gemessen: von neun gewoehnlichen
+   tuerkischen Suchfaellen gingen vorher fuenf ins Leere, danach keiner.
+
+   `ß` GEGEN `ss` STEHT AUSDRUECKLICH NICHT HIER. „UEBERGROSS" findet
+   „uebergroß" heute nicht und nachher auch nicht; das ist ein eigener Fall,
+   er betrifft Deutsch und nicht Tuerkisch, und er steht in
+   Doku/Fehler_und_Ideen.md.
+
+   SIE GEHOERT HIERHER UND NICHT IN server.js: SQLite ruft sie ueber kkl() bei
+   jeder Zeile, und die Nadel muss DIESELBE Funktion rufen -- nicht eine, die
+   dasselbe tut. Zwei Funktionen ueber dieselbe Sache laufen auseinander, und
+   genau das ist der Befund, der hier repariert wird.
+
+   NULL UND undefined WERDEN ZUM LEEREN STRING und nicht zu NULL:
+   instr(NULL, 'x') ist NULL, und `NULL > 0` ist in SQL nie wahr -- eine
+   fehlende Beschreibung waere damit kein "kein Treffer", sondern ein Wert,
+   mit dem sich nicht rechnen laesst. */
+const searchFold = (s) => (s === null || s === undefined ? ''
+  : String(s).toLowerCase().replace(/\u0307/g, '').replace(/\u0131/g, 'i'));
+
+/* kkl() -- DIE FALTUNG, IN SQL EINGEHAENGT.
+   SQLites lower() faltet AUSSCHLIESSLICH ASCII: lower('Ü') bleibt
+   'Ü', und dasselbe gilt fuer LIKE. Eine Suche darauf faende
    "STICHSAEGE UEBERGROSS" bei der Eingabe "uebergross" nicht -- unauffaellig,
-   und mit Umlauten faellt der Treffer wirklich weg. toLowerCase() aus JS
-   faltet nach Unicode; die Klemme, die aus dem Suchtext Kleinbuchstaben
-   macht, gibt es damit genau einmal.
+   und mit Umlauten faellt der Treffer wirklich weg. searchFold() faltet nach
+   Unicode; die Klemme, die aus dem Suchtext Kleinbuchstaben macht, gibt es
+   damit genau einmal.
 
    deterministic: gleicher Wert, gleiches Ergebnis, immer. Ohne die Angabe
    verbietet SQLite den Aufruf in einem Index oder einer erzeugten Spalte.
-
-   NULL WIRD ZUM LEEREN STRING und nicht zu NULL: instr(NULL, 'x') ist NULL,
-   und `NULL > 0` ist in SQL nie wahr -- eine fehlende Beschreibung waere
-   damit kein "kein Treffer", sondern ein Wert, mit dem sich nicht rechnen
-   laesst. */
-db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));
+   SEIT 0.24.4 IST DIE ANGABE AUCH VERDIENT: bis dahin stand sie an dieser
+   Zeile, waehrend die andere Haelfte der Suche an der Sprache des Lesers
+   hing -- ein Index darueber waere falsch geworden, sobald jemand
+   umschaltet. */
+db.function('kkl', { deterministic: true }, searchFold);
 
 /* ================= MIGRATION 0.24.1 — DIE NAMEN DES BESTANDS ==============
    ENTFAELLT MIT 1.0.
@@ -1746,6 +1783,10 @@ renumberCriteria();
 // Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
+                   // Die eine Faltung der Suche -- 0.24.4 (B8). Sie geht hinaus,
+                   // damit die NADEL dieselbe Funktion ruft wie der Heuhaufen und
+                   // nicht eine zweite, die dasselbe tut.
+                   searchFold,
                    COLUMNS_0241, VALUES_0241,
                    changeKey, method,
                    renumberCriteria, assignInventory, ownerId,

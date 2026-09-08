@@ -40,7 +40,7 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    Lesen erklaert werden muss. Der KOMMENTAR ueber qOpenPng nennt es
    weiterhin, und das ist richtig: die Byte-Folge dort ist dieselbe. */
 const { makeVariants, PNG_MAGIC_HEX, storeImage } = require('./images');
-const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, COLUMNS_0241, VALUES_0241 } = require('./db');
+const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, COLUMNS_0241, VALUES_0241 } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
 
@@ -2170,14 +2170,31 @@ function vocabularyStored(raw, code) {
 
    DER RUECKFALL IST KEIN ZUSTAND, SONDERN EINE LAGE: er gilt genau so lange,
    wie fuer eine Sprache noch nichts dasteht. Sobald der Eigentuemer sie einmal
-   speichert, hat sie ihren eigenen Satz. */
+   speichert, hat sie ihren eigenen Satz.
+
+   SEIT 0.24.4 IST „NICHTS EINGETRAGEN" WIEDER UNTERSCHEIDBAR -- und das ist
+   die Reparatur von B1/B2. Bis 0.24.3 schrieb der Schreibweg fuer JEDES leere
+   Feld die Vorgabe SEINER Sprache in die Ablage; damit stand nach einem
+   einzigen Speichern auf Englisch ein voller englischer Satz da, den es
+   niemand eingetragen hatte -- und Rueckfall 2 trug ihn in jede andere
+   Sprache. Ein deutscher Leser las danach „Entry" und „Test day", waehrend
+   die Karte „Vorgabe: Eintrag" darunterschrieb (der Befund mit Bild).
+   Jetzt liegt in der Ablage NUR, was jemand eingetragen hat; ein leeres Feld
+   faellt heraus. Rueckfall 2 greift damit genau dort, wofuer er gedacht war:
+   fuer ein EINGETRAGENES Wort, das es in der gelesenen Sprache noch nicht
+   gibt. */
 function vocabulary(locale) {
   const read = locale || languageDefault();
   /* DIE GESPEICHERTE flache Form ist die der VORGABESPRACHE -- sie stammt aus
      einer Zeit, in der es nur eine gab, und das war beim Bestand Deutsch. */
   const perLanguage = vocabularyStored(getSetting('vocabulary', null), languageDefault());
   const own = perLanguage[read] || {};
-  const first = perLanguage[Object.keys(perLanguage)[0]] || {};
+  /* DER ZUERST ANGELEGTE Satz -- und LEERE werden dabei uebergangen. Seit ein
+     Satz nur noch traegt, was eingetragen wurde, kann der erste leer sein
+     (alle vierzehn Felder geraeumt). Ein leerer erster Satz naehme Rueckfall 2
+     jede Wirkung, obwohl daneben ein voller zweiter steht. */
+  const first = Object.values(perLanguage).find(
+    w => w && typeof w === 'object' && Object.values(w).some(v => typeof v === 'string' && v.trim())) || {};
   const out = {};
   for (const [k, fallback] of Object.entries(vocabularyDefault(read))) {
     const mine = typeof own[k] === 'string' ? own[k].trim() : '';
@@ -2193,6 +2210,41 @@ function vocabulary(locale) {
    samt Rueckfall. */
 const vocabularyAll = () =>
   Object.fromEntries(LANGUAGE_CODES.map(code => [code, vocabulary(code)]));
+
+/* UND ZWEI TAFELN DANEBEN -- 0.24.4, die Reparatur von B1 und B4. Sie
+   ersetzen `vocabularies` nicht, sie beantworten je eine andere Frage; die
+   Karte braucht alle drei, und keine laesst sich aus den anderen ausrechnen:
+
+     vocabularies        was ein Leser DIESER Sprache saehe -- samt Rueckfall.
+                         Die Vorschau unter den Feldern rechnet damit.
+     vocabulariesOwn     was fuer diese Sprache EINGETRAGEN ist, und sonst
+                         nichts. Die vierzehn Felder zeigen genau das; ein
+                         leeres Feld heisst „nichts eingetragen" und wird
+                         beim Speichern auch als nichts zurueckgeschrieben.
+                         OHNE DIESE TAFEL schriebe die Karte den Rueckfall der
+                         Nachbarsprache als eigenen Eintrag fest -- genau der
+                         Weg, auf dem B2 entstanden ist.
+     vocabularyDefaults  die Vorgabe aus der SPRACHDATEI je Sprache. Der
+                         Hinweis „(Vorgabe: …)" unter jedem Feld liest sie und
+                         nicht mehr die Datei des Lesers (B4).
+
+   ES SIND DREI FLACHE TAFELN UND NICHT EINE MIT DREI FELDERN JE WORT: jede
+   hat einen Leser, und drei Antworten in einem Gebilde liessen sich an der
+   Karte nicht mehr auseinanderhalten. */
+const vocabularyOwnAll = () => {
+  const perLanguage = vocabularyStored(getSetting('vocabulary', null), languageDefault());
+  return Object.fromEntries(LANGUAGE_CODES.map(code => {
+    const own = perLanguage[code] || {};
+    const out = {};
+    for (const k of Object.keys(vocabularyDefault(code))) {
+      const word = typeof own[k] === 'string' ? own[k].trim() : '';
+      if (word) out[k] = word;
+    }
+    return [code, out];
+  }));
+};
+const vocabularyDefaultsAll = () =>
+  Object.fromEntries(LANGUAGE_CODES.map(code => [code, vocabularyDefault(code)]));
 // Sichtbare Zeilen der Linkliste, bevor aufgeklappt werden muss.
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
 // Persoenlich.
@@ -2431,6 +2483,13 @@ app.get('/api/settings', (req, res) => res.json({
      Oberflaeche beschriftet sich aus dem einen Satz ihres Lesers, und nur die
      Karte braucht alle. */
   vocabularies: vocabularyAll(),
+  /* UND ZWEI TAFELN DANEBEN -- 0.24.4. `vocabulariesOwn` traegt, was
+     EINGETRAGEN ist (die vierzehn Felder zeigen genau das), `vocabularyDefaults`
+     die Vorgabe je Sprachdatei (der Hinweis darunter). Beide stehen neben
+     `vocabularies` und ersetzen es nicht: die Vorschau rechnet weiter mit dem
+     Satz, den ein Leser DIESER Sprache saehe. */
+  vocabulariesOwn: vocabularyOwnAll(),
+  vocabularyDefaults: vocabularyDefaultsAll(),
   font: fontSize(req.user.id),
   strip: strip(req.user.id),
   theme: theme(req.user.id),
@@ -2575,13 +2634,38 @@ app.put('/api/settings', (req, res) => {
     const next = { ...vocabularyStored(getSetting('vocabulary', null), languageDefault()) };
     for (const [code, words] of Object.entries(incoming)) {
       if (!LANGUAGES[code] || !words || typeof words !== 'object') continue;
-      const fallback = vocabularyDefault(code);
       const clean = {};
-      for (const k of Object.keys(fallback)) {
+      /* EIN LEERES FELD FAELLT HERAUS UND WIRD NICHT ZUR VORGABE -- 0.24.4,
+         die Reparatur von B2, und es ist die eine Zeile, an der sie haengt.
+         Bis 0.24.3 stand hier `clean[k] = v || fallback[k]`: ein leeres Feld
+         bekam die Vorgabe SEINER Sprache, und die lag danach als EINTRAG in
+         der Ablage. Fuer eine Installation mit einer Sprache war das
+         gleichgueltig -- die Vorgabe stand ohnehin da. Mit zweien war es der
+         Fehler: nach einem einzigen Speichern auf Englisch trug die Ablage
+         vierzehn englische Woerter, die niemand eingetragen hatte, und
+         Rueckfall 2 („lieber ein Wort in der falschen Sprache als gar
+         keines") reichte sie an jeden deutschen Leser weiter.
+         „LEER HEISST VORGABE" GILT WEITER -- nur wird die Vorgabe jetzt beim
+         LESEN eingesetzt (vocabulary()) und nicht beim Schreiben festgelegt.
+         Eine Vorgabe in der Ablage ist ein Wort ohne Absender.
+         DIE UEBRIGEN SPRACHEN BLEIBEN STEHEN: geschrieben wird ueber das
+         vorhandene Objekt, und die Karte schickt immer nur die eine, die
+         gerade offen ist. Innerhalb DIESER Sprache ersetzt der Rumpf den
+         ganzen Satz -- die Karte schickt alle vierzehn Felder, und ein
+         geraeumtes Feld soll geraeumt bleiben. */
+      for (const k of Object.keys(vocabularyDefault(code))) {
         const v = typeof words[k] === 'string' ? words[k].trim().slice(0, 40) : '';
-        clean[k] = v || fallback[k];
+        if (v) clean[k] = v;
       }
-      next[code] = clean;
+      /* UND EINE SPRACHE OHNE EIN EINZIGES WORT FAELLT GANZ HERAUS -- 0.24.4.
+         Ein leeres Objekt in der Ablage waere ein Eintrag ueber „nichts
+         eingetragen", und das ist keine Auskunft, sondern Raunen: es stuende
+         in der Ablage, waere aber von „diese Sprache gab es noch nie" nicht
+         zu unterscheiden. Was hier liegt, ist genau das Eingetragene.
+         AUF DEN RUECKFALL WIRKT ES NICHT: vocabulary() sucht ohnehin den
+         ersten Satz, der ein Wort traegt. */
+      if (Object.keys(clean).length) next[code] = clean;
+      else delete next[code];
     }
     putSetting.run('vocabulary', JSON.stringify(next));
   }
@@ -2725,6 +2809,8 @@ app.put('/api/settings', (req, res) => {
       req.body.languageOn);
   res.json({ filters: getUserSetting(req.user.id, 'filters', null),
              vocabulary: vocabulary(localeOf(req)), vocabularies: vocabularyAll(),
+             vocabulariesOwn: vocabularyOwnAll(),
+             vocabularyDefaults: vocabularyDefaultsAll(),
              views: views(req.user.id), viewsCap: VIEWS_CAP,
              font: fontSize(req.user.id), strip: strip(req.user.id),
              theme: theme(req.user.id),
@@ -3071,6 +3157,36 @@ app.get('/api/tags', (req, res) => res.json(db.prepare(`
          (SELECT COUNT(*) FROM test_day_tags dt WHERE dt.tag_id = t.id) AS test_usage_count
   FROM tags t ORDER BY t.name COLLATE NOCASE`).all()));
 
+/* EINEN TAG FUER SICH ANLEGEN -- 0.24.4 (B7). Bis 0.24.3 gab es dafuer
+   keinen Weg: `/api/tags` kannte GET, PUT und DELETE, und angelegt wurde ein
+   Tag allein AM EINTRAG (POST /api/items/:id/tags) oder beim Import. Die
+   Karte „Tags" im Systembereich konnte deshalb umbenennen und loeschen, aber
+   nicht anlegen -- die beiden Kriterienkarten daneben konnten es laengst.
+
+   DIESELBE BAUFORM WIE POST /api/product-categories, Zeile fuer Zeile, und
+   das ist Absicht: es sind dieselbe Frage und dieselbe Antwort.
+     * KEINE ROLLENFRAGE IM KOPF. Stuende hier adminOnly, waere die Klemme
+       darunter totes Holz -- mayCreate() ist fuer einen Admin immer wahr, und
+       eine Klemme, die nie greift, laesst sich nicht gegenpruefen.
+     * ERST NACHSCHLAGEN, DANN DIE KLEMME. Einen VORHANDENEN Tag zu benennen
+       darf jeder; nur ein NEUER Name haengt am Schalter `tagsFreeCreate`.
+       Stuende die Klemme davor, naehme sie das Nachschlagen mit.
+     * UND ER RUFT findTag() UND createTag() und legt sich nicht daneben eine
+       dritte Art, einen Tag anzulegen. Die beiden stehen schon da, samt der
+       Begruendung, warum sie zwei sind und nicht einer.
+   EIN VORHANDENER TAG KOMMT MIT 200 ZURUECK, ein neuer mit 201 -- wie bei den
+   Kategorien. Die Karte unterscheidet das nicht; der Unterschied steht
+   trotzdem da, weil er wahr ist. */
+app.post('/api/tags', (req, res) => {
+  const name = (req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
+  const found = findTag(name);
+  if (found) return res.json(found);
+  if (!mayCreate(req, 'tagsFreeCreate'))
+    return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
+  res.status(201).json(createTag(name));
+});
+
 app.put('/api/tags/:id', adminOnly, (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
@@ -3172,6 +3288,28 @@ function authorCard() {
   return m;
 }
 const authorFrom = (card, id) => (id == null ? null : (card.get(id) || null));
+
+/* UND DIE GEGENRICHTUNG -- 0.24.4 (B6 B). Aus einem NAMEN wird ein Verfasser.
+   Gebraucht wird sie genau dort, wo kein Zugangsschluessel mehr dasteht: im
+   Papierkorb. Die Zeile liegt dort als Paket im Austauschformat, und dieses
+   Format traegt den Verfasser als NAMEN -- eine Zugangsnummer bedeutet in
+   einer fremden Instanz etwas anderes (die Begruendung steht am Export).
+   DER GRABSTEIN WIRD AM NAMEN ERKANNT und nicht in der Karte gesucht: sein
+   Name geht dort ausdruecklich nicht hinaus (siehe authorCard()), und
+   `deleted-7` ist ohnehin die Auskunft selbst. `geloescht-7` aus einer
+   aelteren Datei geht ueber denselben Uebersetzer wie beim Import.
+   WER NICHT MEHR ZU FINDEN IST, BEKOMMT null -- dieselbe Antwort wie eine
+   herrenlose Zeile, und die Oberflaeche schreibt „kein Verfasser". Ein
+   erfundenes Objekt mit dem Rohnamen waere eine Behauptung ueber einen
+   Zugang, den es nicht gibt. */
+function authorByName(card, name) {
+  const clean = String(authorFromFile(name) ?? '').trim();
+  if (!clean) return null;
+  const tomb = /^deleted-(\d+)$/i.exec(clean);
+  if (tomb) return { id: Number(tomb[1]), name: null, deleted: true };
+  for (const a of card.values()) if (a.name === clean) return a;
+  return null;
+}
 
 /* Jeder Kommentar sagt, ob er MIR gehoert -- daran haengen fuenf
    Bedienelemente. Ohne die Angabe muesste die Oberflaeche aus dem
@@ -3827,15 +3965,24 @@ const SNIPPET_LEAD = 4;
    muss, haette eine dritte Lesart. */
 const oneLine = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
-/* DIE SPRACHE STEHT DABEI -- 0.24.0, Bauabschnitt 4. Kleinschreibung ist
-   keine feste Rechnung: das tuerkische I wird zu ı und nicht zu i. Verglichen
-   wird hier Sprache, also fragt der Vergleich die Sprache. */
-function snippet(text, term, locale = languageDefault()) {
+/* KEINE SPRACHE MEHR -- 0.24.4, Bauabschnitt 1 (B8). Bis 0.24.3 stand hier
+   `toLocaleLowerCase()` mit der Sprache des Lesers, und der Ausschnitt fiel
+   damit fuer zwei Leser derselben Instanz verschieden aus: wer auf Tuerkisch
+   las, bekam die Fundstelle in „ISTANBUL" nicht gezeigt, wer auf Deutsch las,
+   schon. Der Ausschnitt gehoert zur ANTWORT, und die Antwort soll fuer beide
+   dieselbe sein.
+   GEFALTET WIRD ZEICHEN FUER ZEICHEN, und das ist keine Zierde: `İ` faellt
+   ueber searchFold() auf EIN Zeichen, `toLowerCase()` allein machte zwei
+   daraus (i + U+0307), und jede Stelle dahinter waere um eins verschoben --
+   der Ausschnitt schnitte mitten ins Wort. Stimmt die Laenge trotzdem nicht
+   ueberein, wird gar nicht erst gesucht; dann steht der Anfang des Textes da,
+   und das ist die Regel, die es hier schon gibt. */
+function snippet(text, term) {
   const row = oneLine(text);
   const b = String(term ?? '');
   if (!b) return row.slice(0, SNIPPET_LENGTH);
-  const place = localeTag(locale);
-  const pos = row.toLocaleLowerCase(place).indexOf(b.toLocaleLowerCase(place));
+  const flat = [...row].map(c => searchFold(c)).join('');
+  const pos = flat.length === row.length ? flat.indexOf(searchFold(b)) : -1;
   /* GEFUNDEN WIRD SIE HIER NORMALERWEISE WIEDER -- gesucht hat SQLite auf dem
      Rohtext, geschnitten wird auf dem eingeebneten. Ein Begriff, der selbst
      einen doppelten Leerraum traegt, ist danach nicht mehr zu finden; dann
@@ -3852,8 +3999,16 @@ function snippet(text, term, locale = languageDefault()) {
    ist KEINE Suche und keine Suche ohne Treffer -- die Liste bleibt dann die
    ganze Liste. Zurueck kommt eine Abbildung Nummer -> Trefferkontext und
    keine Reihenfolge: sortiert wird die Liste selbst, an einer Stelle. */
-const fulltextTerm = (raw, locale = languageDefault()) =>
-  (typeof raw === 'string' ? raw.trim().toLocaleLowerCase(localeTag(locale)) : '');
+/* DIE NADEL FAELLT DURCH DIESELBE FALTUNG WIE DER HEUHAUFEN -- 0.24.4,
+   Bauabschnitt 1 (B8), und sie nimmt KEINE Sprache mehr entgegen. Bis 0.24.3
+   stand hier `toLocaleLowerCase(localeTag(locale))` mit der Sprache des
+   LESERS, waehrend kkl() in db.js blank faltete. Zwei Regeln fuer dieselbe
+   Suche: derselbe Bestand gab zwei Lesern zwei Antworten, und `deterministic`
+   an kkl() war unverdient.
+   ES IST DIESELBE FUNKTION UND NICHT EINE ZWEITE, DIE DASSELBE TUT -- sie
+   kommt aus db.js, wo SQLite sie ohnehin ruft. Zwei Ausfertigungen liefen
+   auseinander, sobald jemand eine der beiden anfasst. */
+const fulltextTerm = (raw) => (typeof raw === 'string' ? searchFold(raw.trim()) : '');
 
 /* WAS JE EINTRAG HERAUSKOMMT: die erste getroffene Quelle der festen Folge,
    ihr Ausschnitt und die Zahl der WEITEREN getroffenen Quellen.
@@ -3865,12 +4020,14 @@ const fulltextTerm = (raw, locale = languageDefault()) =>
    DIE BENENNUNG DER QUELLE BLEIBT DER OBERFLAECHE UEBERLASSEN: hier steht ein
    Schluessel, kein Wort. „Tag am Testtag" heisst je nach eingestelltem
    Vokabular anders, und das weiss die Oberflaeche. */
-const fulltextHits = (term, locale = languageDefault()) => new Map(qFulltext.all({ q: term }).map(r => {
+/* OHNE SPRACHE -- 0.24.4 (B8). Sie wurde nur an snippet() weitergereicht,
+   und der Ausschnitt haengt seit dieser Runde an keiner mehr. */
+const fulltextHits = (term) => new Map(qFulltext.all({ q: term }).map(r => {
   const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.key] != null);
   const first = hit[0];
   return [r.id, first ? {
     source: first.key,
-    text: snippet(r['f_' + first.key], term, locale),
+    text: snippet(r['f_' + first.key], term),
     others: hit.length - 1
   } : null];
 }));
@@ -3936,11 +4093,11 @@ const qNewRatings = db.prepare(
 
 app.get('/api/items', (req, res) => {
   let rows = qAllItems.all();
-  const term = fulltextTerm(req.query.q, localeOf(req));
+  const term = fulltextTerm(req.query.q);
   /* DIE FUNDSTELLEN KOMMEN AUS DERSELBEN ABFRAGE WIE DER FILTER -- kein
      zweiter Weg und keine Abfrage je Eintrag. Ohne Begriff bleibt die
      Abbildung leer, und weiter unten faellt das Feld damit aus der Antwort. */
-  const hits = term ? fulltextHits(term, localeOf(req)) : new Map();
+  const hits = term ? fulltextHits(term) : new Map();
   if (term) rows = rows.filter(r => hits.has(r.id));
   /* DIE ZEITLEISTE EINMAL FUER DIE GANZE LISTE GEFRAGT, nicht je Eintrag:
      eine persoenliche Einstellung aendert sich innerhalb einer Antwort nicht.
@@ -6707,7 +6864,26 @@ function intoTrash(itemId, actor) {
    GEHANDELT WIRD TROTZDEM NUR VOM EIGENTUEMER: Wiederherstellen legt Zeilen
    unter FREMDEM Namen an -- das ist naeher am Import als am Loeschen, und der
    steht hinter ownerOnly. */
+/* ANLEGER UND ANLAGEDATUM KOMMEN AUS DEM PAKET -- 0.24.4 (B6 B, Schritt 1 aus
+   F7). Die Zeile im Papierkorb ist ein GEBILDE im Austauschformat und keine
+   Zeile in `items` mehr; beide Angaben stehen dort seit jeher (`author` und
+   `created_at` am Eintrag), und deshalb bekommt der Papierkorb dafuer weder
+   eine Spalte noch einen Migrationsblock.
+   ZWEI SPALTEN WAEREN DER TEURERE WEG UND DAZU DER SCHLECHTERE: sie blieben
+   fuer jede Zeile leer, die heute schon im Papierkorb liegt -- die Auskunft
+   gaebe es also gerade dort nicht, wo sie gebraucht wird.
+   json_extract() UND NICHT JSON.parse() IN JS: das Paket traegt den ganzen
+   Eintrag samt Kommentaren und Verweisen auf die Bytes; es je Zeile in den
+   Arbeitsspeicher zu holen, nur um zwei Felder zu lesen, waere bei dreissig
+   Tagen Papierkorb eine sichtbare Rechnung. SQLite liest sie an Ort und
+   Stelle heraus. Fehlt eines der beiden -- ein Paket aus einer aelteren
+   Fassung --, kommt NULL zurueck, und die Zeile laesst die Angabe weg.
+   DER ANLEGER STEHT ALS NAME IN DER DATEI und nicht als Zugangsnummer: so
+   traegt ihn das Austauschformat, und so geht er hinaus. Die Oberflaeche
+   zeigt ihn ueber denselben Weg wie jeden Verfasser. */
 const qTrash = db.prepare(`SELECT p.id, p.title, p.deleted_at, p.deleted_by,
+    json_extract(p.content, '$.items[0].author') AS created_by,
+    json_extract(p.content, '$.items[0].created_at') AS created_at,
     (SELECT COUNT(*) FROM trash_bytes b WHERE b.trash_id = p.id) AS files,
     length(p.content) + COALESCE(
       (SELECT SUM(length(b.data)) FROM trash_bytes b WHERE b.trash_id = p.id), 0) AS bytes
@@ -6727,6 +6903,14 @@ app.get('/api/trash', adminOnly, (req, res) => {
       // Oberflaeche denselben einen Weg von der Nummer zum Namen geht und ein
       // Grabstein "Gelöschter Benutzer 7" heisst.
       deletedBy: authorFrom(card, z.deleted_by),
+      /* UND WER IHN ANGELEGT HAT, WANN -- 0.24.4 (B6 B). Der Name steht so im
+         Paket, wie ihn der Export hinausgeschrieben hat; er geht deshalb als
+         NAME durch dieselbe Karte wie jeder Verfasser und nicht als Nummer.
+         BEIDE DUERFEN FEHLEN: ein Paket aus einer aelteren Fassung traegt sie
+         womoeglich nicht, und dann laesst die Zeile die Angabe weg statt eine
+         leere Klammer zu zeigen. */
+      createdBy: z.created_by ? authorByName(card, z.created_by) : null,
+      created_at: z.created_at || null,
       files: z.files, bytes: z.bytes,
       // Die Frist rechnet der Server: die Zahl TRASH_DAYS steht an einer
       // Stelle, und die Oberflaeche baut sie nicht nach.
