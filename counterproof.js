@@ -7093,7 +7093,8 @@ const REGRESSIONS = [
     nr: '745', name: 'Der Vermerk am Rueckfall faellt weg',
     file: 'public/app.js',
     search: "      const fallbackMark = entry.nameFallback\n" +
-      "        ? `<span class=\"mfallback\">${tH('card.nameFallback',\n" +
+      "        ? `<span class=\"mfallback\" title=\"${esc(t('card.nameFallback',\n" +
+      "            { language: languageNameOf(entry.nameFallback) }))}\">${tH('card.nameFallback',\n" +
       "            { language: languageNameOf(entry.nameFallback) })}</span>`\n" +
       "        : '';",
     replacement: "      const fallbackMark = '';",

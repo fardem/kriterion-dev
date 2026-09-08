@@ -29,6 +29,38 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.24.5] - 2026-09-08
+
+> **KEINE SICHERUNG NÖTIG.** Diese Runde legt keine Tabelle an, ändert kein
+> Schema und lässt keinen Migrationsblock laufen. Einspielen und fertig.
+>
+> **DIE VERSIONSNUMMER IST GEWÖHNLICHES SemVer** — eine Reparatur bekommt eine
+> PATCH-Nummer. Die benannte Abweichung von 0.24.3 und 0.24.4 ist mit 0.24.4
+> zu Ende und wird hier nicht wieder geöffnet.
+>
+> **BIS ZU DIESER VERSION HAT DIE SPRACHZEILE ÜBER „KATEGORIEN" UND ÜBER DEN
+> BEIDEN KRITERIENKARTEN NICHT GETAN, WAS SIE VERSPRICHT.** Wer angemeldet war
+> — und das ist dort jeder —, bekam auf jede Pille die Liste seiner **eigenen**
+> Sprache; nach einem Wechsel der eigenen Sprache sogar die einer dritten. **An
+> deinem Bestand hat das nichts geändert**: es war ein Fehler beim Lesen, nicht
+> beim Schreiben. Was du in dieser Zeit *umbenannt* hast, ist trotzdem in der
+> Sprache gelandet, auf die die Pille zeigte — der Schreibweg war richtig.
+> **Sieh die drei Karten einmal durch**, jetzt zeigen sie die Wahrheit.
+>
+> **DIE KACHEL „VOKABULAR" WAR NIE BETROFFEN** und ist in dieser Runde nicht
+> angefasst worden.
+
+*Was ein Betreiber merkt: die Sprachpille über den drei Verwaltungskarten zeigt
+endlich die Sprache, auf der sie steht — und eine Zeile ohne eigene Übersetzung
+sagt jetzt, dass sie eine fremde zeigt.*
+
+- Fixed: **Die Sprachpille über „Kategorien", „Bewertung: Kriterien" und „Potenzial: Kriterien" zeigt die Namen der Sprache, auf der sie steht** — bisher immer die des Lesers
+- Fixed: **Nach einem Wechsel der eigenen Sprache zeigt dieselbe Pille dasselbe wie vorher** — bisher die Liste der zuvor gelesenen Sprache
+- Fixed: **Nach dem Umbenennen, Anlegen, Löschen und Sortieren bleibt die Liste in der Sprache der Pille** — bisher fiel sie auf die des Lesers zurück
+- Added: **Eine Zeile ohne eigene Übersetzung sagt es** — unter dem Namen steht gedämpft, dass nichts eingetragen ist und welche Sprache stattdessen dasteht
+- Changed: **Das Umbenennfeld zeigt nur, was für die gewählte Sprache eingetragen ist** — der Rückfall steht als Platzhalter darin und wird beim Speichern nicht mehr zum Eintrag
+- Changed: **Wer nicht verwalten darf, sieht die Sprachzeile nicht** — er sieht die Namen in der Sprache, die er eingestellt hat
+
 ## [0.24.4] - 2026-09-08
 
 > **KEINE SICHERUNG NÖTIG.** Diese Runde legt keine Tabelle an, ändert kein

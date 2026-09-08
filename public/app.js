@@ -8840,15 +8840,29 @@ function setUpCriteriaOut(fetched, phase) {
          ER STEHT NEBEN DEM NAMEN UND NICHT DARIN: `.mname` traegt weiterhin
          genau den Namen -- der Pruefstand liest ihn, und ein angehaengter Satz
          waere dort ein zweiter Wert im selben Feld.
+         UND ER STEHT DARUNTER, NICHT DANEBEN -- das hat der Augenschein
+         entschieden und nicht der Entwurf. Nebeneinander in EINER Zeile hat
+         der Vermerk den Namen verdraengt: `.mname` traegt `flex: 1`, und das
+         heisst `flex-basis: 0` -- in einer engen Spalte bekommt der Name damit
+         null Grundbreite, waehrend der laengere Vermerk seine volle behaelt.
+         Am Bildschirm stand „(nicht eingetragen — es steht De…" und KEIN
+         Name. Jetzt liegt beides in einem Kasten uebereinander: der Name in
+         voller Breite, der Vermerk als zweite Zeile darunter -- dieselbe
+         Bauform wie „(Vorgabe: …)" unter einem Vokabelfeld.
          GEDAEMPFT WIE DER VERWENDUNGSZAEHLER daneben: er ist eine Auskunft
-         ueber die Zeile und keine Aktion. */
+         ueber die Zeile und keine Aktion.
+         UND DERSELBE SATZ NOCH EINMAL ALS `title`: in der Kriterienkarte steht
+         neben dem Namen auch noch das Gewicht, und dann bleibt fuer die zweite
+         Zeile so wenig Platz, dass sie mit Auslassung kuerzt. Der Zeiger
+         darueber zeigt den ganzen Satz -- wie beim Zaehler und beim Gewicht
+         daneben, die es seit je so halten. */
       const fallbackMark = entry.nameFallback
-        ? `<span class="mfallback">${tH('card.nameFallback',
+        ? `<span class="mfallback" title="${esc(t('card.nameFallback',
+            { language: languageNameOf(entry.nameFallback) }))}">${tH('card.nameFallback',
             { language: languageNameOf(entry.nameFallback) })}</span>`
         : '';
       row.innerHTML = `${spec.sortable && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
-        <span class="mname">${esc(entry.name)}</span>
-        ${fallbackMark}
+        <span class="mnamebox"><span class="mname">${esc(entry.name)}</span>${fallbackMark}</span>
         ${weightField}
         <span class="mcount">${esc(spec.counter ? spec.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}</span>
         ${may ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_PEN}</button>

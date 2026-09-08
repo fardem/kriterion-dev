@@ -1,8 +1,8 @@
 # Fahrplan
 
-**Der Plan von 0.25.0 bis 1.0 · Stand 8. September 2026, nach dem Bau von 0.24.4
+**Der Plan von 0.25.0 bis 1.0 · Stand 8. September 2026, nach dem Bau von 0.24.5
 und dem Rundlauf mit
-0.24.3**
+0.24.4**
 
 **HIER STEHT, WAS EINE NUMMER HAT. SONST NIRGENDS.** *Was noch keine hat, steht
 im Sammelblatt `Doku/Fehler_und_Ideen.md`; was gebaut ist, steht im Projektstand
@@ -77,6 +77,27 @@ eine **PATCH**-Zahl genommen und keinen freien MINOR-Platz.* **Ein Befund aus
 dem Rundlauf ist eine Reparatur, und eine Reparatur hängt an ihrer Runde.**
 *Die freien MINOR-Plätze standen für einen Fall bereit, der viermal
 hintereinander nicht eingetreten ist.*
+
+> **UND EIN FÜNFTES MAL: 0.24.5.** Der Rundlauf mit 0.24.4 hat einen Befund
+> gebracht — *die Sprachpille über den drei Verwaltungskarten zeigte nie die
+> Sprache, auf die sie zeigt* —, und er hat wieder eine **PATCH**-Zahl genommen.
+> **Er hätte in 0.25.0 gepasst und gehört trotzdem nicht dorthin:** er ist ein
+> Fehler in dem, was 0.24.3 und 0.24.4 gebaut haben, und 0.25.0 ist die Runde
+> der *kleinen* Fehler mit einer Messung davor. *Was gebaut wurde, steht im
+> Änderungsprotokoll 0.24.5.*
+
+---
+
+## Was 0.24.5 an diesem Plan geändert hat — nichts
+
+**Die sechs Befunde von 0.25.0 stehen unverändert.** *Keiner von ihnen ist in
+0.24.5 mit weggefallen, und keiner ist dazugekommen:* die Runde hat den
+Leseweg der drei Namenskarten repariert und sonst nichts angefasst.
+
+**Was sie mitbringt, ist eine Auskunft und keine Aufgabe:** die Reparatur ist
+dem Weg der Kachel „Vokabular" nachgebaut — *alles auf einmal holen, örtlich
+umschalten*. **Wer in einer späteren Runde eine weitere Karte mit einem
+Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 
 ---
 

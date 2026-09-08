@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 8. September 2026, nach dem Rundlauf mit 0.24.3**
+**Das Sammelblatt · Stand 8. September 2026, nach dem Rundlauf mit 0.24.4**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -932,3 +932,34 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
 
 
 ---
+
+---
+
+## 20. Der vierte Abruf nach jedem Umbenennen
+
+**Art: Idee** *(Sparsamkeit, kein Fehler)* · **Einschätzung von Claude: nicht
+dringend** · **Herkunft: 0.24.5**
+
+**`adminNew()` holt seit 0.24.5 vier Antworten statt drei** — Kategorien, Tags,
+Kriterien **und `GET /api/settings`**, weil dort die Namenstafeln je Sprache
+liegen und ein Umbenennen sie veraltet.
+
+**Es ist ein Umlauf und kein Fehler**, und er läuft nur beim Admin und nur nach
+einem Umbenennen, Anlegen, Löschen oder Sortieren. *Die Antwort ist allerdings
+die größte, die die Installation kennt: sie trägt die Vokabeltafeln, die
+Sprachen, die Suchanbieter und alles Übrige, und gebraucht werden davon zwei
+Felder.*
+
+**Zwei Wege wären denkbar, und beide haben einen Haken:**
+
+* **Die Schreibwege könnten die Tafeln in ihrer Antwort mitliefern** (`PUT
+  /api/criteria/:id` und die drei daneben). *Dann wäre der Umlauf weg — aber
+  fünf Antworten trügen dieselbe Tafel, und wer eine sechste Route baut, muss
+  daran denken.*
+* **Die Karte könnte die Tafel örtlich nachziehen** — sie weiß ja, was sie
+  geschrieben hat. *Das ist genau die Bauform, aus der D2 entstanden ist: ein
+  Zustand im Browser, den jemand pflegen muss.* **Nicht ohne Not.**
+
+> **WARUM ER TROTZDEM NICHT SOFORT WEGGEBAUT WORDEN IST:** die Antwort des
+> Servers ist die eine Wahrheit über die Namen, und ein Umlauf, der sie holt,
+> kann nicht veralten. *Erst messen, ob er stört — dann bauen.*

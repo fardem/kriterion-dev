@@ -3903,27 +3903,36 @@ const shareMain = (purpose, target = null) =>
       { headers: { cookie: cookieValue, 'accept-language': language } })).json();
 
   const ntDe = await ntRead('de'), ntEn = await ntRead('en'), ntTr = await ntRead('tr');
+  /* JEDER GRIFF IN DIE TAFEL IST GEKLAMMERT, und das hat die Gegenprobe
+     entschieden und nicht der Entwurf: Rueckbau 737 nimmt die Tafeln aus der
+     Antwort, und `ntDe.criterionNames.de[...]` warf daraufhin -- der ganze Lauf
+     riss ab und faerbte keine einzige Zeile rot (Stolperstein 161). Eine
+     abgerissene Gegenprobe belegt nichts. Jetzt bleibt jeder Griff ein
+     `undefined`, und die Zusage darunter wird rot. Genau so soll es sein. */
+  const ntAt = (answer, which, code, id) =>
+    (((answer || {})[which] || {})[code] || {})[id];
+  const ntSpalten = (answer, which) => Object.keys((answer || {})[which] || {});
   check('Der Aufbau steht: die Antwort traegt beide Namenstafeln',
     !!ntDe.categoryNames && !!ntDe.criterionNames,
     JSON.stringify(Object.keys(ntDe).filter(k => /Names$/.test(k))));
   check('Und jede traegt eine Spalte je Sprachdatei',
-    equal(Object.keys(ntDe.criterionNames || {}).sort(), ['de', 'en', 'tr']) &&
-    equal(Object.keys(ntDe.categoryNames || {}).sort(), ['de', 'en', 'tr']),
-    JSON.stringify(Object.keys(ntDe.criterionNames || {})));
+    equal(ntSpalten(ntDe, 'criterionNames').sort(), ['de', 'en', 'tr']) &&
+    equal(ntSpalten(ntDe, 'categoryNames').sort(), ['de', 'en', 'tr']),
+    JSON.stringify(ntSpalten(ntDe, 'criterionNames')));
   /* DIE TAFEL DER VORGABESPRACHE KOMMT AUS DER GRUNDZEILE -- `writeName()`
      legt fuer sie gar keine Zeile in die Namenstabelle. Ohne diesen Griff
      stuende die Vorgabesprache leer da, und die Karte fiele fuer sie auf den
      Rueckfall zurueck, den es dort gar nicht gibt. */
   check('Die Tafel der Vorgabesprache kommt aus der Grundzeile',
-    ntDe.criterionNames.de[ntCriterion.id] === 'Grundkriterium' &&
-    ntDe.categoryNames.de[ntCategory.id] === 'Grundkategorie',
-    JSON.stringify([ntDe.criterionNames.de[ntCriterion.id],
-                    ntDe.categoryNames.de[ntCategory.id]]));
+    ntAt(ntDe, 'criterionNames', 'de', ntCriterion.id) === 'Grundkriterium' &&
+    ntAt(ntDe, 'categoryNames', 'de', ntCategory.id) === 'Grundkategorie',
+    JSON.stringify([ntAt(ntDe, 'criterionNames', 'de', ntCriterion.id),
+                    ntAt(ntDe, 'categoryNames', 'de', ntCategory.id)]));
   check('Und jede andere Sprache traegt, was fuer sie eingetragen ist',
-    ntDe.criterionNames.en[ntCriterion.id] === 'English criterion' &&
-    ntDe.criterionNames.tr[ntCriterion.id] === 'Türkçe ölçüt',
-    JSON.stringify([ntDe.criterionNames.en[ntCriterion.id],
-                    ntDe.criterionNames.tr[ntCriterion.id]]));
+    ntAt(ntDe, 'criterionNames', 'en', ntCriterion.id) === 'English criterion' &&
+    ntAt(ntDe, 'criterionNames', 'tr', ntCriterion.id) === 'Türkçe ölçüt',
+    JSON.stringify([ntAt(ntDe, 'criterionNames', 'en', ntCriterion.id),
+                    ntAt(ntDe, 'criterionNames', 'tr', ntCriterion.id)]));
   /* UND WO NICHTS EINGETRAGEN IST, STEHT AUCH NICHTS -- kein eingesetzter
      Rueckfall. Genau daran haengt der Vermerk in der Karte (F4): eine Tafel
      mit eingesetztem Rueckfall waere von einer mit Eintraegen nicht zu
@@ -3931,27 +3940,30 @@ const shareMain = (purpose, target = null) =>
      Dieselbe Unterscheidung wie zwischen `vocabularies` und `vocabulariesOwn`
      (0.24.4, B1/B2). */
   check('Und wo nichts eingetragen ist, steht auch nichts — kein eingesetzter Rueckfall',
-    ntDe.categoryNames.tr[ntCategory.id] === undefined &&
-    ntDe.categoryNames.en[ntCategory.id] === 'English category',
-    JSON.stringify(ntDe.categoryNames));
+    ntSpalten(ntDe, 'categoryNames').length === 3 &&
+    ntAt(ntDe, 'categoryNames', 'tr', ntCategory.id) === undefined &&
+    ntAt(ntDe, 'categoryNames', 'en', ntCategory.id) === 'English category',
+    JSON.stringify((ntDe || {}).categoryNames));
 
   /* ---- DIE KERNZUSICHERUNG: DER LESER AENDERT DIE TAFEL NICHT ---------- */
   check('Tafelprobe: drei Leser, dieselbe Tafel — der Kopf aendert sie nicht',
+    ntSpalten(ntDe, 'criterionNames').length === 3 &&
     equal(ntDe.criterionNames, ntEn.criterionNames) &&
     equal(ntDe.criterionNames, ntTr.criterionNames) &&
     equal(ntDe.categoryNames, ntEn.categoryNames) &&
     equal(ntDe.categoryNames, ntTr.categoryNames),
-    JSON.stringify([ntEn.criterionNames.de[ntCriterion.id],
-                    ntTr.criterionNames.de[ntCriterion.id]]));
+    JSON.stringify([ntAt(ntEn, 'criterionNames', 'de', ntCriterion.id),
+                    ntAt(ntTr, 'criterionNames', 'de', ntCriterion.id)]));
   /* UND DER PERSOENLICHE SCHLUESSEL AENDERT SIE AUCH NICHT. Das ist die
      eigentliche Quelle des Befunds: er SCHLAEGT den Kopf in `localeOf(req)`,
      und bis 0.24.4 entschied er damit, welche Namen die Karte bekam. */
   await NT.call('PUT', '/api/settings', { language: 'tr' });
   const ntChosen = await ntRead('de');
   check('Und der persoenliche Schluessel aendert sie auch nicht',
+    ntSpalten(ntChosen, 'criterionNames').length === 3 &&
     equal(ntChosen.criterionNames, ntDe.criterionNames) &&
     equal(ntChosen.categoryNames, ntDe.categoryNames),
-    JSON.stringify(ntChosen.criterionNames.de[ntCriterion.id]));
+    JSON.stringify(ntAt(ntChosen, 'criterionNames', 'de', ntCriterion.id)));
   /* UND DIE ANDERE HAELFTE BLEIBT, WIE SIE IST: `localeOf(req)` wird nicht
      angefasst, und der LISTENWEG folgt weiterhin dem Leser. Ohne diese Zeile
      waere die Tafelprobe darueber auch dann gruen, wenn die Runde die
@@ -3972,11 +3984,11 @@ const shareMain = (purpose, target = null) =>
   const ntUserCookie = (ntUserLogin.headers.get('set-cookie') || '').split(';')[0];
   const ntUser = await ntRead('de', ntUserCookie);
   check('Der Aufbau steht: der gewoehnliche Zugang ist angemeldet und kein Admin',
-    ntUser.isAdmin === false && ntUser.name === 'norbert',
-    JSON.stringify([ntUser.isAdmin, ntUser.name]));
+    (ntUser || {}).isAdmin === false && (ntUser || {}).name === 'norbert',
+    JSON.stringify([(ntUser || {}).isAdmin, (ntUser || {}).name]));
   check('Rollenprobe: der gewoehnliche Zugang bekommt keine Namenstafel',
-    ntUser.categoryNames === undefined && ntUser.criterionNames === undefined,
-    JSON.stringify(Object.keys(ntUser).filter(k => /Names$/.test(k))));
+    (ntUser || {}).categoryNames === undefined && (ntUser || {}).criterionNames === undefined,
+    JSON.stringify(Object.keys(ntUser || {}).filter(k => /Names$/.test(k))));
   /* UND ER SIEHT DIE LISTE TROTZDEM, in SEINER Sprache. Ohne diese Zeile waere
      die darueber auch dann gruen, wenn ein gewoehnlicher Zugang gar nichts
      mehr bekaeme. */
@@ -24119,8 +24131,19 @@ const shareMain = (purpose, target = null) =>
      das ist eine Auskunft, die kein Papier hatte.
      UND EIN DRITTER FUER B9: der Sprachwechsel des Lesers wirft die Antwort
      wieder weg. Er trifft nur die ZWEITE Haelfte der Sprachprobe -- die
-     Oberflaeche wechselt weiter, die vierzehn Woerter nicht. */
-  check('Es sind genau 728 Rueckbauten', gpList.length === 728, `${gpList.length}`);
+     Oberflaeche wechselt weiter, die vierzehn Woerter nicht.
+     740 SEIT 0.24.5: zwoelf fuer EINE Reparatur, und das ist keine
+     Uebertreibung. Der Befund hatte drei Wege (D1, D2, D3), die Reparatur hat
+     zwei Enden -- Server und Karte --, und die Haelfte der neuen Zusagen ist
+     eine ABWESENHEIT: kein Zwischenspeicher, kein Nachholen, kein fuenfter
+     Wert an api(). Eine Abwesenheit laesst sich nur belegen, indem man sie
+     probeweise zurueckholt.
+     IHRE NUMMERN SIND 737 BIS 748 UND NICHT 733 BIS 744: 733 bis 736 sind mit
+     0.24.4 vergeben und stehen in der Liste bei ihrer Sache, nicht hinten. Wer
+     am Ende der Liste weiterzaehlt, ohne die hoechste Nummer zu suchen, vergibt
+     eine zweimal -- und zwei Rueckbauten mit derselben Nummer sind in der
+     Tafel des Treibers nicht mehr auseinanderzuhalten. */
+  check('Es sind genau 740 Rueckbauten', gpList.length === 740, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
