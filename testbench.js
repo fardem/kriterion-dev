@@ -73,7 +73,7 @@ const readmeFlat = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8')
    Ein Filter, auf den KEINE Gruppe passt, ist dagegen rot -- sonst meldete
    ein Tippfehler im Namen wortlos Erfolg. */
 const FILTER = (process.argv[2] || '').trim();
-let passedCount = 0, gescheitert = 0, uebersprungen = 0;
+let passedCount = 0, failed = 0, skipped = 0;
 let stillPassed = 0, stillFailed = 0;
 let groupsShown = 0, groupsStill = 0;
 let silent = false;
@@ -94,19 +94,19 @@ function check(name, condition, hint = '') {
   // Schlussblock sagen kann, ob im Uebergangenen etwas rot war.
   if (silent) { if (condition) stillPassed++; else stillFailed++; return; }
   if (condition) { passedCount++; console.log(`  ✓ ${name}`); }
-  else { gescheitert++; console.log(`  ✗ ${name}${hint ? `\n      ${hint}` : ''}`); }
+  else { failed++; console.log(`  ✗ ${name}${hint ? `\n      ${hint}` : ''}`); }
 }
 // EINE Stelle fuer den Schlussblock: der gefilterte und der volle Lauf enden
 // gleich, und die Selbstprobe weiter unten pruefT genau diese Stelle.
 function endBlock() {
   console.log(`\n${'═'.repeat(62)}`);
-  const sum = passedCount + gescheitert;
+  const sum = passedCount + failed;
   // "0 von 0 bestanden -- alles in Ordnung" waere die schlimmste Zeile des
   // ganzen Prueflaufs: sie meldet Erfolg fuer nichts.
   if (!sum) console.log('  KEINE PRUEFUNG GEZEIGT — nichts belegt.');
   else console.log(`  ${passedCount} von ${sum} Pruefungen bestanden` +
-              (uebersprungen ? `, ${uebersprungen} uebersprungen` : '') +
-              (gescheitert ? `  —  ${gescheitert} GESCHEITERT` : '  —  alles in Ordnung'));
+              (skipped ? `, ${skipped} uebersprungen` : '') +
+              (failed ? `  —  ${failed} GESCHEITERT` : '  —  alles in Ordnung'));
   if (FILTER) {
     console.log(`\n  GEFILTERTER LAUF nach "${FILTER}" — KEIN VOLLSTAENDIGER BELEG.`);
     if (!groupsShown)
@@ -120,7 +120,7 @@ function endBlock() {
   }
   console.log(`${'═'.repeat(62)}\n`);
 }
-const returnValue = () => (gescheitert || (FILTER && !groupsShown)) ? 1 : 0;
+const returnValue = () => (failed || (FILTER && !groupsShown)) ? 1 : 0;
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 /* SETZT EIN FELD UND SAGT, OB ES DA WAR. `field?.value = wert` gibt es nicht --
    optional chaining kann kein Zuweisungsziel sein, und genau deshalb standen
@@ -465,6 +465,34 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
            stop: () => endKind(kindB) };
 }
 
+/* ================= DIESER PRUEFLAUF LIEST DEUTSCH -- 0.24.3 ==============
+   Bis 0.24.2 sprach eine frische Installation Deutsch, weil die
+   Vorgabesprache eine Konstante im Quelltext war. Seit F2 startet eine
+   FRISCHE Installation auf Englisch, und nur ein BESTAND behaelt Deutsch --
+   die Prueflagen legen aber alle frische an.
+
+   DAMIT WAEREN 46 ZUSICHERUNGEN MIT DEUTSCHEM WORTLAUT ROT GEWORDEN, und
+   keine davon haette etwas Falsches gemeldet: der Server antwortet richtig,
+   nur eben auf Englisch.
+
+   DER EHRLICHE WEG IST DER, DEN EIN DEUTSCHER BROWSER AUCH GEHT: er sagt im
+   Kopf, welche Sprache er liest. `Accept-Language` ist die zweite der drei
+   Quellen von localeOf(req) -- damit pruefen die 46 Zeilen weiterhin ihren
+   Gegenstand, UND sie fahren nebenbei den neuen Weg ab.
+
+   AN EINER STELLE UND NICHT IN ACHT HELFERN: der Lauf hat mehrere Rufer, und
+   acht Stellen liefen auseinander. Wer den Kopf ausdruecklich setzt, behaelt
+   ihn -- so pruefen die englischen Zeilen dieser Runde ihre eigene Sprache.
+   DER MOCK IN buildDom() IST NICHT BETROFFEN: er ersetzt `w.fetch` im
+   JSDOM-Fenster und geht hier gar nicht vorbei. */
+const RAW_FETCH = globalThis.fetch;
+globalThis.fetch = (url, opt = {}) => {
+  const headers = { ...(opt.headers || {}) };
+  if (!Object.keys(headers).some(h => h.toLowerCase() === 'accept-language'))
+    headers['accept-language'] = 'de';
+  return RAW_FETCH(url, { ...opt, headers });
+};
+
 let cookie = '';
 async function call(method, filePath, body) {
   const opt = { method: method, headers: {} };
@@ -477,7 +505,7 @@ async function call(method, filePath, body) {
   try { content = await a.json(); } catch {}
   return { status: a.status, content };
 }
-const namen = (list) => list.map(c => c.name);
+const names = (list) => list.map(c => c.name);
 
 /* ================= Die zweite Bestaetigung im Prueflauf =================
    SEIT 0.8.90 VERLANGEN SECHS WEGE UEBER FUENF ROUTEN EINE FREIGABE: Export,
@@ -509,7 +537,7 @@ function confirmNeeded(method, filePath, body) {
     if (method === 'DELETE') return [['remove', id]];
     if (method === 'PUT') {
       const outcome = [];
-      if (body && body.rolle !== undefined) outcome.push(['role', id]);
+      if (body && body.role !== undefined) outcome.push(['role', id]);
       if (body && body.password !== undefined) outcome.push(['password', id]);
       return outcome;
     }
@@ -1200,7 +1228,7 @@ const shareMain = (purpose, target = null) =>
   group('Kriterien: lesen, umbenennen, anlegen');
 
   let criterion = (await call('GET', '/api/criteria')).content;
-  check('Reihenfolge wie in der Datenbank', equal(namen(criterion), ['Optik', 'Haptik', 'Preis']));
+  check('Reihenfolge wie in der Datenbank', equal(names(criterion), ['Optik', 'Haptik', 'Preis']));
   check('Zaehler nennt nur vergebene Sterne',
     criterion[0].usage_count === 1 && criterion[1].usage_count === 0,
     `Optik=${criterion[0].usage_count}, Haptik=${criterion[1].usage_count} (Haptik steht auf 0 Sternen und zaehlt nicht)`);
@@ -1249,7 +1277,7 @@ const shareMain = (purpose, target = null) =>
   /* ---------------------------------------------------------------- */
   group('Wirkung auf den Eintrag');
 
-  const order = namen((await call('GET', '/api/criteria')).content);
+  const order = names((await call('GET', '/api/criteria')).content);
   const entry = (await call('GET', '/api/items/1')).content;
   check('Detailansicht folgt der eingestellten Reihenfolge',
     equal(entry.ratings.map(r => r.name), order), JSON.stringify(entry.ratings.map(r => r.name)));
@@ -1283,7 +1311,7 @@ const shareMain = (purpose, target = null) =>
 
   const exported = await callF('GET', '/api/export?photos=0');
   check('Export nennt die Kriterienreihenfolge',
-    equal(exported.content.criteria, namen(after)), JSON.stringify(exported.content.criteria));
+    equal(exported.content.criteria, names(after)), JSON.stringify(exported.content.criteria));
   check('Bestehende Felder unveraendert',
     Array.isArray(exported.content.items) && 'ratings' in exported.content.items[0] && 'testDays' in exported.content.items[0]);
 
@@ -1294,7 +1322,7 @@ const shareMain = (purpose, target = null) =>
   const imOld = await sendImport(oldFile, 'merge');
   check('Aeltere Exportdatei laesst sich einspielen', imOld.status === 200 && imOld.content.items === 1);
   const afterOld = (await call('GET', '/api/criteria')).content;
-  check('Unbekanntes Kriterium haengt sich hinten an', namen(afterOld)[afterOld.length - 1] === 'Nur hier');
+  check('Unbekanntes Kriterium haengt sich hinten an', names(afterOld)[afterOld.length - 1] === 'Nur hier');
   check('Nummerierung nach dem Import lueckenlos', equal(afterOld.map(c => c.sort_order), [0, 1, 2, 3]));
 
   // Neue Exportdatei mit Reihenfolge, ersetzend eingespielt.
@@ -1303,7 +1331,7 @@ const shareMain = (purpose, target = null) =>
     items: [{ title: 'Eingespielt', ratings: [{ name: 'Zuletzt', value: 5 }] }] };
   const imFresh = await sendImport(newFile, 'replace');
   check('Ersetzender Import gelingt', imFresh.status === 200);
-  const afterFresh = namen((await call('GET', '/api/criteria')).content);
+  const afterFresh = names((await call('GET', '/api/criteria')).content);
   check('Reihenfolge der Datei wird uebernommen',
     equal(afterFresh.slice(-3), ['Zuerst', 'Dann', 'Zuletzt']), JSON.stringify(afterFresh));
   const imported = (await call('GET', '/api/items')).content;
@@ -1327,7 +1355,7 @@ const shareMain = (purpose, target = null) =>
   await call('PUT', `/api/criteria/${gewTarget.id}`, { name: 'Zuerst', weight: 1.5 });
   const gewFile = { exported_at: new Date().toISOString(), title: 'Mit Gewichten', version: 9,
     criteria: ['Zuerst', 'Ganz neu'],
-    criteriaGewichte: { 'Zuerst': 0.5, 'Ganz neu': 1.8 },
+    criteriaWeights: { 'Zuerst': 0.5, 'Ganz neu': 1.8 },
     items: [{ title: 'Mit Gewichten', ratings: [] }] };
   const gewIm = await sendImport(gewFile, 'merge');
   check('Ein Import mit Gewichten gelingt', gewIm.status === 200, JSON.stringify(gewIm.content));
@@ -1345,7 +1373,7 @@ const shareMain = (purpose, target = null) =>
      etwas ankommt. */
   const gewCrooked = { exported_at: new Date().toISOString(), title: 'Krumm', version: 9,
     criteria: ['Zu schwer', 'Negativ', 'Kein Wert', 'Sauber'],
-    criteriaGewichte: { 'Zu schwer': 9, 'Negativ': -1, 'Kein Wert': 'viel', 'Sauber': 1.2 },
+    criteriaWeights: { 'Zu schwer': 9, 'Negativ': -1, 'Kein Wert': 'viel', 'Sauber': 1.2 },
     items: [{ title: 'Krumme Datei', ratings: [] }] };
   const gewImCrooked = await sendImport(gewCrooked, 'merge');
   check('Ein ungueltiges Gewicht bricht die Einspielung nicht ab',
@@ -1382,7 +1410,7 @@ const shareMain = (purpose, target = null) =>
   // Und die Datei traegt sie ueberhaupt -- sonst belegte der Rundlauf oben nur,
   // dass der Import nichts anfasst.
   check('Und die Exportdatei traegt sie',
-    gewOut?.criteriaGewichte?.[gewRound[0].name] === 0.6, JSON.stringify(gewOut?.criteriaGewichte));
+    gewOut?.criteriaWeights?.[gewRound[0].name] === 0.6, JSON.stringify(gewOut?.criteriaWeights));
 
   /* ---------------------------------------------------------------- */
   group('Die Marke der Instanz');
@@ -1951,11 +1979,11 @@ const shareMain = (purpose, target = null) =>
 
   const fallback = (await call('GET', '/api/settings')).content;
   check('Vorgabevokabular wird geliefert',
-    fallback.vocabulary.sacheEinzahl === 'Eintrag' && fallback.vocabulary.zeitpunktMehrzahl === 'Testtage',
+    fallback.vocabulary.entryOne === 'Eintrag' && fallback.vocabulary.dayMany === 'Testtage',
     JSON.stringify(fallback.vocabulary));
   check('Vorgabe der Schriftgroesse ist 100', fallback.font === 100);
-  /* Die Liste steht seit 0.22.0 bei VIERZEHN Woertern -- `bewertungEinzahl` und
-     `bewertungMehrzahl` sind dazugekommen (E14), das Paar fuer den zweiten
+  /* Die Liste steht seit 0.22.0 bei VIERZEHN Woertern -- `ratingOne` und
+     `ratingMany` sind dazugekommen (E14), das Paar fuer den zweiten
      Sternkasten; 0.21.0 hatte ihn bewusst ausgelassen, und die Schieflage
      (das eine Kastenwort umbenennbar, das andere nicht) war bei jedem
      Umbenennen sichtbar. Nichts sonst bekommt ein neues Vokabelwort, nur weil
@@ -1969,83 +1997,83 @@ const shareMain = (purpose, target = null) =>
     Object.keys(fallback.vocabulary).length === 14,
     `${Object.keys(fallback.vocabulary).length}: ${Object.keys(fallback.vocabulary).join(', ')}`);
   check('Und das zwoelfte ist das Wort fuer den Potenzialkasten',
-    fallback.vocabulary.potenzial === 'Potenzial', JSON.stringify(fallback.vocabulary.potenzial));
+    fallback.vocabulary.potential === 'Potenzial', JSON.stringify(fallback.vocabulary.potential));
   check('Und das dreizehnte und vierzehnte sind das Paar fuer die Bewertung — 0.22.0',
-    fallback.vocabulary.bewertungEinzahl === 'Bewertung' && fallback.vocabulary.bewertungMehrzahl === 'Bewertungen',
-    JSON.stringify([fallback.vocabulary.bewertungEinzahl, fallback.vocabulary.bewertungMehrzahl]));
+    fallback.vocabulary.ratingOne === 'Bewertung' && fallback.vocabulary.ratingMany === 'Bewertungen',
+    JSON.stringify([fallback.vocabulary.ratingOne, fallback.vocabulary.ratingMany]));
 
   const set = await call('PUT', '/api/settings', { vocabulary: {
-    sacheEinzahl: '  Maschine  ', sacheMehrzahl: 'Maschinen',
-    merkmalJa: 'Geprüft', merkmalNein: 'Ungeprüft',
-    zeitpunktEinzahl: 'Sitzung', zeitpunktMehrzahl: 'Sitzungen'
+    entryOne: '  Maschine  ', entryMany: 'Maschinen',
+    testedYes: 'Geprüft', testedNo: 'Ungeprüft',
+    dayOne: 'Sitzung', dayMany: 'Sitzungen'
   }});
-  check('Vokabular wird gespeichert', set.content.vocabulary.sacheMehrzahl === 'Maschinen');
-  check('Leerzeichen werden abgeschnitten', set.content.vocabulary.sacheEinzahl === 'Maschine');
+  check('Vokabular wird gespeichert', set.content.vocabulary.entryMany === 'Maschinen');
+  check('Leerzeichen werden abgeschnitten', set.content.vocabulary.entryOne === 'Maschine');
   check('Vokabular ueberlebt den naechsten Abruf',
-    (await call('GET', '/api/settings')).content.vocabulary.zeitpunktEinzahl === 'Sitzung');
+    (await call('GET', '/api/settings')).content.vocabulary.dayOne === 'Sitzung');
 
-  const half = await call('PUT', '/api/settings', { vocabulary: { sacheEinzahl: '   ' } });
-  check('Leeres Feld faellt auf die Vorgabe zurueck', half.content.vocabulary.sacheEinzahl === 'Eintrag');
+  const half = await call('PUT', '/api/settings', { vocabulary: { entryOne: '   ' } });
+  check('Leeres Feld faellt auf die Vorgabe zurueck', half.content.vocabulary.entryOne === 'Eintrag');
   check('Nicht gesendete Felder fallen ebenfalls zurueck',
-    half.content.vocabulary.sacheMehrzahl === 'Einträge');
-  const long = await call('PUT', '/api/settings', { vocabulary: { sacheEinzahl: 'x'.repeat(120) } });
-  check('Ueberlanges Wort wird gekuerzt', long.content.vocabulary.sacheEinzahl.length === 40);
+    half.content.vocabulary.entryMany === 'Einträge');
+  const long = await call('PUT', '/api/settings', { vocabulary: { entryOne: 'x'.repeat(120) } });
+  check('Ueberlanges Wort wird gekuerzt', long.content.vocabulary.entryOne.length === 40);
 
   // Geprueft wird am SERVER, nicht gegen die clientseitige Vorgabe: ein
   // Wort, das der Server nicht kennt, taucht in der Karte trotzdem auf,
   // laesst sich aber nicht speichern -- und nur diese Pruefung saehe es.
   check('Der Server kennt alle vierzehn Vokabeln',
-    ['sacheEinzahl', 'sacheMehrzahl', 'merkmalJa', 'merkmalNein',
-     'zeitpunktEinzahl', 'zeitpunktMehrzahl', 'berichtEinzahl', 'berichtMehrzahl',
-     'aufgabeEinzahl', 'aufgabeMehrzahl', 'aufgabeErledigt',
-     'potenzial', 'bewertungEinzahl', 'bewertungMehrzahl'].every(k => k in fallback.vocabulary) &&
+    ['entryOne', 'entryMany', 'testedYes', 'testedNo',
+     'dayOne', 'dayMany', 'reportOne', 'reportMany',
+     'taskOne', 'taskMany', 'taskDone',
+     'potential', 'ratingOne', 'ratingMany'].every(k => k in fallback.vocabulary) &&
     Object.keys(fallback.vocabulary).length === 14,
     JSON.stringify(Object.keys(fallback.vocabulary)));
   /* UND DAS ZWOELFTE LAESST SICH SETZEN -- 0.21.0. Die Zeile darueber sagt
      nur, dass der Schluessel BEKANNT ist; ohne diese bliebe sie auch dann
      gruen, wenn PUT ihn wegwuerfe (Stolperstein 81). */
   check('Und das Wort fuer den Potenzialkasten laesst sich setzen',
-    (await call('PUT', '/api/settings', { vocabulary: { potenzial: ' Erwartung ' } }))
-      .content.vocabulary.potenzial === 'Erwartung');
-  await call('PUT', '/api/settings', { vocabulary: { potenzial: '' } });
+    (await call('PUT', '/api/settings', { vocabulary: { potential: ' Erwartung ' } }))
+      .content.vocabulary.potential === 'Erwartung');
+  await call('PUT', '/api/settings', { vocabulary: { potential: '' } });
   check('Und ein leeres Feld faellt auf die Vorgabe zurueck',
-    (await call('GET', '/api/settings')).content.vocabulary.potenzial === 'Potenzial',
-    JSON.stringify((await call('GET', '/api/settings')).content.vocabulary.potenzial));
+    (await call('GET', '/api/settings')).content.vocabulary.potential === 'Potenzial',
+    JSON.stringify((await call('GET', '/api/settings')).content.vocabulary.potential));
   /* DAS PAAR FUER DIE BEWERTUNG LAESST SICH SETZEN -- 0.22.0 (E14), beide
      Haelften, und das leere Feld faellt wie bei jedem anderen Wort auf die
      Vorgabe zurueck. Ein Rueckbau, der eines der beiden Woerter aus der
      Vorgabe vergisst, wird hier rot (Gegenprobe 632). */
   const bwSet = await call('PUT', '/api/settings', { vocabulary: {
-    bewertungEinzahl: ' Urteil ', bewertungMehrzahl: 'Urteile' } });
+    ratingOne: ' Urteil ', ratingMany: 'Urteile' } });
   check('Das Paar fuer die Bewertung laesst sich setzen — 0.22.0',
-    bwSet.content.vocabulary.bewertungEinzahl === 'Urteil' &&
-    bwSet.content.vocabulary.bewertungMehrzahl === 'Urteile',
-    JSON.stringify([bwSet.content.vocabulary.bewertungEinzahl, bwSet.content.vocabulary.bewertungMehrzahl]));
-  await call('PUT', '/api/settings', { vocabulary: { bewertungEinzahl: '', bewertungMehrzahl: ' ' } });
+    bwSet.content.vocabulary.ratingOne === 'Urteil' &&
+    bwSet.content.vocabulary.ratingMany === 'Urteile',
+    JSON.stringify([bwSet.content.vocabulary.ratingOne, bwSet.content.vocabulary.ratingMany]));
+  await call('PUT', '/api/settings', { vocabulary: { ratingOne: '', ratingMany: ' ' } });
   const bwBack = (await call('GET', '/api/settings')).content.vocabulary;
   check('Und leer faellt jede Haelfte auf ihre Vorgabe zurueck',
-    bwBack.bewertungEinzahl === 'Bewertung' && bwBack.bewertungMehrzahl === 'Bewertungen',
-    JSON.stringify([bwBack.bewertungEinzahl, bwBack.bewertungMehrzahl]));
+    bwBack.ratingOne === 'Bewertung' && bwBack.ratingMany === 'Bewertungen',
+    JSON.stringify([bwBack.ratingOne, bwBack.ratingMany]));
   check('Auch das Wort fuer erledigt liegt am Server',
-    fallback.vocabulary.aufgabeErledigt === 'Erledigt' &&
-    (await call('PUT', '/api/settings', { vocabulary: { aufgabeErledigt: ' Fertig ' } }))
-      .content.vocabulary.aufgabeErledigt === 'Fertig');
+    fallback.vocabulary.taskDone === 'Erledigt' &&
+    (await call('PUT', '/api/settings', { vocabulary: { taskDone: ' Fertig ' } }))
+      .content.vocabulary.taskDone === 'Fertig');
   check('Die Aufgabe hat ihre Vorgabe',
-    fallback.vocabulary.aufgabeEinzahl === 'Aufgabe' &&
-    fallback.vocabulary.aufgabeMehrzahl === 'Aufgaben',
-    JSON.stringify([fallback.vocabulary.aufgabeEinzahl, fallback.vocabulary.aufgabeMehrzahl]));
+    fallback.vocabulary.taskOne === 'Aufgabe' &&
+    fallback.vocabulary.taskMany === 'Aufgaben',
+    JSON.stringify([fallback.vocabulary.taskOne, fallback.vocabulary.taskMany]));
   const onV = await call('PUT', '/api/settings', {
-    vocabulary: { aufgabeEinzahl: '  Todo  ', aufgabeMehrzahl: 'Todos' } });
+    vocabulary: { taskOne: '  Todo  ', taskMany: 'Todos' } });
   check('Ein eigenes Wort fuer die Aufgabe wird gespeichert',
-    onV.content.vocabulary.aufgabeEinzahl === 'Todo' &&
-    onV.content.vocabulary.aufgabeMehrzahl === 'Todos',
-    JSON.stringify([onV.content.vocabulary.aufgabeEinzahl, onV.content.vocabulary.aufgabeMehrzahl]));
+    onV.content.vocabulary.taskOne === 'Todo' &&
+    onV.content.vocabulary.taskMany === 'Todos',
+    JSON.stringify([onV.content.vocabulary.taskOne, onV.content.vocabulary.taskMany]));
   check('Und ueberlebt den naechsten Abruf',
-    (await call('GET', '/api/settings')).content.vocabulary.aufgabeEinzahl === 'Todo');
-  const onEmpty = await call('PUT', '/api/settings', { vocabulary: { aufgabeEinzahl: '  ' } });
+    (await call('GET', '/api/settings')).content.vocabulary.taskOne === 'Todo');
+  const onEmpty = await call('PUT', '/api/settings', { vocabulary: { taskOne: '  ' } });
   check('Leer faellt auch bei der Aufgabe auf die Vorgabe zurueck',
-    onEmpty.content.vocabulary.aufgabeEinzahl === 'Aufgabe',
-    onEmpty.content.vocabulary.aufgabeEinzahl);
+    onEmpty.content.vocabulary.taskOne === 'Aufgabe',
+    onEmpty.content.vocabulary.taskOne);
 
   check('Unbekannte Schriftstufe wird abgewiesen',
     (await call('PUT', '/api/settings', { font: 400 })).status === 400);
@@ -2120,9 +2148,9 @@ const shareMain = (purpose, target = null) =>
   group('Vokabular in den Servermeldungen');
 
   await call('PUT', '/api/settings', { vocabulary: {
-    sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen',
-    merkmalJa: 'Geprüft', merkmalNein: 'Ungeprüft',
-    zeitpunktEinzahl: 'Sitzung', zeitpunktMehrzahl: 'Sitzungen'
+    entryOne: 'Maschine', entryMany: 'Maschinen',
+    testedYes: 'Geprüft', testedNo: 'Ungeprüft',
+    dayOne: 'Sitzung', dayMany: 'Sitzungen'
   }});
   const object = (await call('POST', '/api/items', { title: 'Sperrprobe' })).content;
   await call('POST', `/api/items/${object.id}/test-days`, { day: '2026-08-01', rating: 4 });
@@ -2261,11 +2289,22 @@ const shareMain = (purpose, target = null) =>
      Instanz Anfragen annimmt, und das erfaehrt ohnehin jeder, der eine stellt.
      Die Liste bleibt abgeschlossen, und ein sechster Name kommt nicht
      stillschweigend dazu (Stolperstein 74: die Pruefung der Vorgaengerversion
-     ist die erste Betroffene). */
+     ist die erste Betroffene).
+     SIEBEN SEIT 0.24.3: `language` und `languages`. Die Anmeldeseite ist der
+     eine Ort, an dem noch kein Konto dasteht, aus dem sich eine Sprache lesen
+     liesse -- sie braucht den Vorrat, um ihre Zeile zu zeichnen, und die
+     Vorgabe, um zu wissen, was ohne Gedaechtnis gilt. Beides steht ohnehin in
+     jeder ausgelieferten Datei unter public/languages/. */
   check('Vor der Anmeldung wird sonst nichts verraten',
     equal(Object.keys(cfg).sort(),
-      ['minPassword', 'setupRequired', 'signup', 'title', 'version']),
+      ['language', 'languages', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
     JSON.stringify(Object.keys(cfg)));
+  /* UND DER VORRAT TRAEGT NUR KENNUNG UND NAMEN -- keine Locale, keine Texte,
+     keine Angabe darueber, welche Dateien sonst noch liegen. */
+  check('Und die Sprachen tragen nur Kennung und Namen',
+    Array.isArray(cfg.languages) && cfg.languages.length >= 1
+      && cfg.languages.every(a => equal(Object.keys(a).sort(), ['code', 'name'])),
+    JSON.stringify(cfg.languages));
   check('Und der Schalter der Selbstanmeldung steht dort als ja/nein',
     cfg.signup === false, JSON.stringify(cfg.signup));
   check('Der interne Titel bleibt draussen',
@@ -2296,12 +2335,12 @@ const shareMain = (purpose, target = null) =>
     JSON.stringify(statsVerf));
   check('Und zwar genau vier Angaben und keine weitere',
     equal(Object.keys(statsVerf || {}).sort(),
-      ['cipher', 'journal', 'passwords', 'schluesselBits']),
+      ['cipher', 'journal', 'keyBits', 'passwords']),
     JSON.stringify(Object.keys(statsVerf || {})));
   check('Die Chiffre ist die, die db.js wirklich setzt',
     statsVerf?.cipher === 'sqlcipher', JSON.stringify(statsVerf?.cipher));
   check('Der Schluessel ist 256 Bit roh',
-    statsVerf?.schluesselBits === 256, JSON.stringify(statsVerf?.schluesselBits));
+    statsVerf?.keyBits === 256, JSON.stringify(statsVerf?.keyBits));
   check('Das Journal steht auf WAL',
     statsVerf?.journal === 'WAL', JSON.stringify(statsVerf?.journal));
   check('Und die Passwoerter rechnen mit scrypt',
@@ -3029,19 +3068,25 @@ const shareMain = (purpose, target = null) =>
      sonst als Aufrufstellen gezaehlt. Der leere Fall detail() aus der
      Fehlermeldung faellt durch das + im Muster heraus. */
   const withoutComment = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  /* DIE SIGNATUR TRAEGT SEIT 0.24.3 EINE DRITTE ANGABE -- die Sprache des
+     Lesers (Bauabschnitt 6a). Sie wird hier herausgenommen wie die Signatur
+     selbst: gefragt ist, ob der BENUTZER an jeder Aufrufstelle steht.
+     DAS MUSTER ENDET AN DER ERSTEN KLAMMER, und `localeOf(req)` traegt eine
+     eigene -- die Aufrufstelle steht damit als `..., localeOf(req` da. Genau
+     danach wird unten gefragt. */
   const calls = [...withoutComment.matchAll(/detail\(([^)]+)\)/g)]
-    .map(m => m[1]).filter(a => a !== 'id, userId');
+    .map(m => m[1]).filter(a => a !== 'id, userId, locale');
   /* VIERUNDZWANZIG SEIT 0.21.0, vorher fuenfundzwanzig: DELETE
      /api/items/:id/ratings ist weggefallen und mit ihm seine Aufrufstelle.
      DIE ZAHL STEHT AUSDRUECKLICH DA und wird nicht abgeleitet -- sie ist der
      Grund, warum eine NEUE Aufrufstelle ohne Benutzer hier auffaellt und nicht
      erst im Betrieb (Stolperstein 137). */
-  check('Keine Aufrufstelle von detail() ohne Benutzer',
-    calls.length === 24 && calls.every(a => /,\s*req\.user\.id\s*$/.test(a)),
-    `${calls.length} Aufrufe, ohne Benutzer: ` +
-    JSON.stringify(calls.filter(a => !/,\s*req\.user\.id\s*$/.test(a))));
+  const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
+  check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
+    calls.length === 24 && withoutUser.length === 0,
+    `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
   check('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
-    /function detail\(id, userId\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
+    /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
     'ohne die Klemme bindet better-sqlite3 das fehlende Argument als NULL');
 
   /* ---------------------------------------------------------------- */
@@ -3105,9 +3150,14 @@ const shareMain = (purpose, target = null) =>
      Maschine wie `font` und `strip`, und aus demselben Grund
      persoenlich: es ist eine Aussage ueber die Augen dessen, der hinsieht,
      und nicht ueber den Bestand. */
-  const dExpected = ['bellSeen', 'blocks', 'filters', 'font', 'linkRows',
+  /* ELF SEIT 0.24.3: `language` -- die Sprache, in der DIESER Zugang liest.
+     Dieselbe Maschine wie `theme` daneben und aus demselben Grund persoenlich:
+     zwei Leute an derselben Installation duerfen gleichzeitig verschiedene
+     Sprachen lesen. NICHT ZU VERWECHSELN MIT `languageDefault` in OWNER_KEYS
+     -- das ist die Vorgabe der Installation, und die gehoert dem Eigentuemer. */
+  const dExpected = ['bellSeen', 'blocks', 'filters', 'font', 'language', 'linkRows',
                  'searchNames', 'strip', 'theme', 'timeline', 'views'];
-  check('server.js kennt genau die zehn persoenlichen Schluessel — 0.23.0',
+  check('server.js kennt genau die elf persoenlichen Schluessel — 0.24.3',
     equal(dListSrv, dExpected), JSON.stringify(dListSrv));
   /* UND `zuletztGesehen` STEHT WIRKLICH NIRGENDS MEHR IN server.js -- ausser
      als Vermerk in einem Kommentar. Ohne diese Zeile bliebe die Aufzaehlung
@@ -3205,8 +3255,11 @@ const shareMain = (purpose, target = null) =>
     return { status: a.status, content };
   };
 
+  /* `language` STEHT MIT DABEI, seit 0.24.3. Der Wert ist `de` und nicht `en`:
+     es muss eine Sprache aus dem VORRAT sein, sonst sagt die Klemme ab -- und
+     der Vorrat einer frischen Installation ist alles, was an Dateien liegt. */
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
-    { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100 });
+    { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100, language: 'de' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings',
     { font: 80, linkRows: 3, searchNames: 1 });
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
@@ -3319,7 +3372,7 @@ const shareMain = (purpose, target = null) =>
   // Und die Blockanordnung, die eine eigene Bauform hat (verschachteltes
   // Objekt statt Zahl) und deshalb eigens geprueft wird.
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
-    { blocks: { seite: ['bewertung', 'tags', 'kategorie', 'potenzial'], unten: [], zu: ['links'] } });
+    { blocks: { side: ['bewertung', 'tags', 'kategorie', 'potenzial'], bottom: [], closed: ['links'] } });
   // 0.23.0: das Farbschema gehoert demselben Rang wie Schrift und Bildstreifen.
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { theme: 'light' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings', { theme: 'device' });
@@ -3331,12 +3384,12 @@ const shareMain = (purpose, target = null) =>
   const dBlOne = (await dCall('cookie-d-eins', 'GET', '/api/settings')).content.blocks;
   const dBlTwo = (await dCall('cookie-d-zwei', 'GET', '/api/settings')).content.blocks;
   check('Die Blockanordnung gehoert dem Benutzer',
-    equal(dBlOne.seite, ['bewertung', 'tags', 'kategorie', 'potenzial']) &&
-    equal(dBlTwo.seite, ['kategorie', 'tags', 'potenzial', 'bewertung']),
-    JSON.stringify([dBlOne.seite, dBlTwo.seite]));
+    equal(dBlOne.side, ['bewertung', 'tags', 'kategorie', 'potenzial']) &&
+    equal(dBlTwo.side, ['kategorie', 'tags', 'potenzial', 'bewertung']),
+    JSON.stringify([dBlOne.side, dBlTwo.side]));
   check('Und der Einklappzustand mit ihr',
-    equal(dBlOne.zu, ['links']) && equal(dBlTwo.zu, []),
-    JSON.stringify([dBlOne.zu, dBlTwo.zu]));
+    equal(dBlOne.closed, ['links']) && equal(dBlTwo.closed, []),
+    JSON.stringify([dBlOne.closed, dBlTwo.closed]));
 
   /* Die andere Haelfte, und sie ist der eigentliche Gegenbeweis: was global
      bleibt, MUSS fuer beide gleich aussehen. Ohne diese Pruefungen belegte die
@@ -3345,7 +3398,7 @@ const shareMain = (purpose, target = null) =>
      eigene Anbieter gehoeren dem Admin. */
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { searchOn: ['ddg', 'bing'] });
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
-    { vocabulary: { sacheEinzahl: 'Maschine' } });
+    { vocabulary: { entryOne: 'Maschine' } });
   const dGlobOne = (await dCall('cookie-d-eins', 'GET', '/api/settings')).content;
   const dGlobTwo = (await dCall('cookie-d-zwei', 'GET', '/api/settings')).content;
   // defaultFrom und imPool stehen weiter oben in dieser Datei --
@@ -3363,9 +3416,9 @@ const shareMain = (purpose, target = null) =>
     equal(imPool(dGlobTwo.searchProviders), ['bing', 'ddg']),
     JSON.stringify([imPool(dGlobOne.searchProviders), imPool(dGlobTwo.searchProviders)]));
   check('Das Vokabular bleibt global -- es ist die Sprache, keine Ansichtssache',
-    dGlobOne.vocabulary?.sacheEinzahl === 'Maschine' &&
-    dGlobTwo.vocabulary?.sacheEinzahl === 'Maschine',
-    JSON.stringify([dGlobOne.vocabulary?.sacheEinzahl, dGlobTwo.vocabulary?.sacheEinzahl]));
+    dGlobOne.vocabulary?.entryOne === 'Maschine' &&
+    dGlobTwo.vocabulary?.entryOne === 'Maschine',
+    JSON.stringify([dGlobOne.vocabulary?.entryOne, dGlobTwo.vocabulary?.entryOne]));
 
   /* Und jetzt die Trennung dort, wo sie stattfindet: in den beiden Tabellen.
      Ein Schluessel, der in der falschen Haelfte landet, faellt in der Antwort
@@ -3378,7 +3431,7 @@ const shareMain = (purpose, target = null) =>
   const dMissing = dExpected.filter(k => !personalDa(k, 1));
   check('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dWrongGlobal.length === 0, `global gefunden: ${JSON.stringify(dWrongGlobal)}`);
-  check('Alle zehn stehen beim Benutzer, der sie gesetzt hat — 0.23.0',
+  check('Alle elf stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
     dMissing.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dMissing)}`);
   check('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('searchOn') && !personalDa('searchOn', 1),
@@ -3444,6 +3497,366 @@ const shareMain = (purpose, target = null) =>
   drDb.close();
   fs.rmSync(dDir, { recursive: true, force: true });
 
+
+  /* ================= Der Vorrat der Sprachen — 0.24.3, F9 =================
+     ZWEI SCHLUESSEL UND NICHT EINER: `languageDefault` traegt die Vorgabe der
+     Installation, `languageOn` den Vorrat, aus dem ein Benutzer waehlen darf.
+     Eine einzelne Liste koennte „Vorgabe Deutsch, Vorrat alles" gar nicht
+     ausdruecken.
+
+     DIE KLEMME, UM DIE ES GEHT: die Vorgabe ist IMMER im Vorrat. Sonst
+     stuende die Installation auf einer Sprache, die niemand waehlen kann --
+     und der Eigentuemer haette sich selbst ausgesperrt. */
+  group('Der Vorrat der Sprachen — 0.24.3');
+
+  const pvBefore = (await call('GET', '/api/settings')).content;
+  /* ERST DER GEGENSTAND (Stolperstein 81): ohne zwei Sprachen im Haus liesse
+     sich ueber einen Vorrat gar nichts sagen. */
+  check('Der Aufbau steht: es liegen zwei Sprachdateien',
+    Array.isArray(pvBefore.languages) && pvBefore.languages.length === 2 &&
+    equal(pvBefore.languages.map(a => a.code).sort(), ['de', 'en']),
+    JSON.stringify(pvBefore.languages));
+  /* OHNE EINTRAG IST ALLES IM VORRAT. Anders als bei den Suchmaschinen, wo
+     ein leerer Vorrat abgewiesen wird: Sprachen kommen mit dem Programm, und
+     eine frische Installation soll alle anbieten, die dastehen. */
+  check('Ohne Eintrag stehen alle Sprachen im Vorrat',
+    pvBefore.languages.every(a => a.active === true),
+    JSON.stringify(pvBefore.languages));
+
+  // Der Eigentuemer nimmt Deutsch aus dem Vorrat -- Englisch ist die Vorgabe.
+  const pvOnlyEnglish = await call('PUT', '/api/settings', { languageOn: ['en'] });
+  check('Der Eigentuemer kann den Vorrat einschraenken',
+    pvOnlyEnglish.status === 200 &&
+    equal(pvOnlyEnglish.content.languages.filter(a => a.active).map(a => a.code), ['en']),
+    JSON.stringify(pvOnlyEnglish.content.languages));
+  /* UND EIN BENUTZER KANN NICHT MEHR AUF DEUTSCH STELLEN. Das ist die
+     eigentliche Zusicherung: der Vorrat ist keine Zierde der Karte, sondern
+     eine Klemme am Schreibweg. */
+  const pvDenied = await call('PUT', '/api/settings', { language: 'de' });
+  check('Und niemand kann eine Sprache setzen, die nicht im Vorrat steht',
+    pvDenied.status === 400, `Status ${pvDenied.status}: ${JSON.stringify(pvDenied.content)}`);
+  /* DIE ABSAGE KOMMT AUF ENGLISCH, und das ist richtig: der Vorrat traegt in
+     diesem Augenblick nur Englisch, also faellt localeOf() vom Kopf `de` auf
+     die Vorgabe zurueck -- die zweite Quelle darf nur nennen, was im Vorrat
+     steht. Geprueft wird deshalb in beiden Sprachen. */
+  check('Und die Absage nennt den Grund',
+    /(Sprache|language)/i.test(pvDenied.content?.error || ''), JSON.stringify(pvDenied.content));
+  check('Und die eigene Sprache steht danach unveraendert',
+    (await call('GET', '/api/settings')).content.language !== 'de',
+    JSON.stringify((await call('GET', '/api/settings')).content.language));
+
+  /* DIE VORGABE LAESST SICH NICHT AUS DEM VORRAT NEHMEN. Sie wird nicht
+     abgewiesen, sondern WIEDER HINEINGELEGT: der Eigentuemer hat eine
+     Absicht geaeussert („nur Deutsch"), und die laesst sich erfuellen, ohne
+     die Klemme zu brechen -- die Vorgabe zieht mit. */
+  const pvWithout = await call('PUT', '/api/settings',
+    { languageDefault: 'en', languageOn: ['de'] });
+  check('Die Vorgabe bleibt im Vorrat, auch wenn sie nicht mitgeschickt wird',
+    pvWithout.content.languages.filter(a => a.active).map(a => a.code).includes('en'),
+    JSON.stringify(pvWithout.content.languages));
+  check('Und die mitgeschickte Sprache steht ebenfalls darin',
+    pvWithout.content.languages.filter(a => a.active).map(a => a.code).includes('de'),
+    JSON.stringify(pvWithout.content.languages));
+
+  /* DIE KLEMME STEHT AN ZWEI STELLEN, UND JEDE WIRD EINZELN GEPRUEFT.
+     writeLanguages() legt die Vorgabe beim SCHREIBEN in den Vorrat zurueck,
+     languagePool() beim LESEN. Die Zeile darueber sieht beide zugleich und
+     kann deshalb nicht sagen, welche gegriffen hat -- **und genau daran ist
+     die erste Fassung der Gegenprobe 715 STUMM geblieben:** wer eine der
+     beiden wegnimmt, wird von der anderen aufgefangen, und der Waechter
+     bleibt gruen. Ein Waechter, der eine Doppelung nur als Ganzes sieht,
+     belegt keine ihrer Haelften.
+     WARUM ES ZWEI SIND UND NICHT EINE: die Ablage kann aelter sein als das
+     Verzeichnis. Ein Vorrat, der vor drei Runden geschrieben wurde, kennt die
+     heutige Vorgabesprache vielleicht nicht -- und ein Eigentuemer, der sich
+     selbst aussperrt, kommt an keine Karte mehr, ueber die er es richten
+     wuerde. */
+  const pvStored = () => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare("SELECT value FROM settings WHERE key = 'languageOn'").get();
+    d.close();
+    return r ? JSON.parse(r.value) : null;
+  };
+  /* UNMITTELBAR HINTER DEM PUT, DER DIE VORGABE WEGLAESST -- und nicht
+     irgendwo spaeter in der Gruppe. **Daran ist der zweite Anlauf dieser
+     Gegenprobe gescheitert:** die Zeile stand hinter einem spaeteren PUT, der
+     `en` AUSDRUECKLICH mitschickte, und war damit gruen, ohne dass die Klemme
+     irgendetwas getan haette. Ein Waechter ueber eine Klemme muss an der
+     Stelle stehen, an der sie greift. */
+  check('Die schreibende Haelfte: schon in der Ablage steht die Vorgabe im Vorrat',
+    (pvStored() || []).includes('en'), JSON.stringify(pvStored()));
+  check('Und in der Ablage steht genau das, was der Rumpf gesagt hat -- plus die Vorgabe',
+    equal((pvStored() || []).sort(), ['de', 'en']), JSON.stringify(pvStored()));
+  /* UND DIE LESENDE HAELFTE, an einem Vorrat, der am Schreibweg VORBEI in die
+     Ablage gelegt wird -- genau die Lage, die ein alter Bestand mitbringt. */
+  {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('languageOn', ?)")
+      .run(JSON.stringify(['de']));
+    d.close();
+  }
+  check('Der Aufbau steht: in der Ablage steht die Vorgabe jetzt NICHT im Vorrat',
+    !(pvStored() || []).includes('en'), JSON.stringify(pvStored()));
+  const pvRead = (await call('GET', '/api/settings')).content;
+  check('Die lesende Haelfte: beim Lesen kommt die Vorgabe trotzdem zurueck',
+    pvRead.languages.filter(a => a.active).map(a => a.code).includes('en'),
+    JSON.stringify(pvRead.languages));
+  /* UND SIE STEHT AN ERSTER STELLE ODER IN DER FOLGE DES VERZEICHNISSES --
+     nicht irgendwo: die Pillenreihe soll in jeder Ansicht dieselbe
+     Reihenfolge haben. */
+  check('Und der Vorrat traegt danach beide Sprachen',
+    equal(pvRead.languages.filter(a => a.active).map(a => a.code).sort(), ['de', 'en']),
+    JSON.stringify(pvRead.languages));
+
+  /* EINE SPRACHE OHNE DATEI FAELLT AUS DEM VORRAT, statt ihn zu vergiften:
+     `languagePool()` und `writeLanguages()` filtern beide gegen das
+     Verzeichnis -- zwei Schichten derselben Klemme, weil die Ablage aelter
+     sein kann als das Verzeichnis. */
+  const pvInvented = await call('PUT', '/api/settings', { languageOn: ['de', 'en', 'xx'] });
+  check('Eine Sprache ohne Datei kommt gar nicht erst in den Vorrat',
+    equal(pvInvented.content.languages.map(a => a.code).sort(), ['de', 'en']),
+    JSON.stringify(pvInvented.content.languages));
+  /* UND EINE ERFUNDENE VORGABE WIRD UEBERGANGEN. Sie darf die Installation
+     nicht auf eine Sprache stellen, die es nicht gibt -- dann spraeche sie
+     nur noch Schluessel. */
+  const pvInventedDefault = await call('PUT', '/api/settings', { languageDefault: 'xx' });
+  check('Und eine erfundene Vorgabe laesst die alte stehen',
+    pvInventedDefault.content.languages.some(a => a.isDefault),
+    JSON.stringify(pvInventedDefault.content.languages));
+
+
+  // Und zurueck auf den Anfangszustand -- alles im Vorrat, Englisch vorgegeben.
+  await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en'] });
+  check('Der Aufraeumschritt stellt den Anfangszustand wieder her',
+    (await call('GET', '/api/settings')).content.languages.every(a => a.active),
+    JSON.stringify((await call('GET', '/api/settings')).content.languages));
+
+  /* =========== Der Rueckfall der Namen — 0.24.3, F8a und F8b =============
+     KRITERIEN UND KATEGORIEN TRAGEN EINE FASSUNG JE SPRACHE, und zwar in
+     EINER TABELLE DANEBEN (`criterion_names`, `category_names`). Die
+     Grundzeile bleibt, wie sie ist -- `ratings.criterion_id` und
+     `items.product_category_id` werden nicht angefasst.
+
+     DIE ZUSICHERUNG, UM DIE ES GEHT: wo der Eigentuemer nichts eingetragen
+     hat, steht der Name der VORGABESPRACHE -- und die Bewertungen haengen
+     unveraendert daran. Ein Rueckfall, der die Sterne verliert, waere
+     schlimmer als ein leerer Name. */
+  group('Der Rueckfall der Namen — 0.24.3');
+
+  /* Der Aufbau: ein Kriterium mit Sternen daran, in der Vorgabesprache
+     benannt. Ohne die Sterne sagte der Rueckfall nichts ueber sie. */
+  const rnCriterion = (await call('POST', '/api/criteria', { name: 'Rueckfallkriterium' })).content;
+  const rnItem = (await call('POST', '/api/items', { title: 'Rueckfalleintrag' })).content;
+  await call('PUT', `/api/items/${rnItem.id}`, { tested: true });
+  await call('PUT', `/api/items/${rnItem.id}/ratings`,
+    { criterionId: rnCriterion.id, value: 4 });
+  const rnCategory = (await call('POST', '/api/product-categories',
+    { name: 'Rueckfallkategorie' })).content;
+  await call('PUT', `/api/items/${rnItem.id}`, { productCategoryId: rnCategory.id });
+
+  const rnRead = async (language, filePath) => {
+    const a = await fetch(BASE + filePath,
+      { headers: { cookie, 'accept-language': language } });
+    return a.json();
+  };
+  const rnFind = (list, id) => list.find(c => c.id === id);
+
+  check('Der Aufbau steht: das Kriterium traegt einen Stern',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.usage_count === 1,
+    JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
+
+  /* OHNE ZEILE IN DER NAMENSTABELLE STEHT DIE GRUNDZEILE -- in JEDER Sprache.
+     Ein leerer Name waere hier das Naheliegende und das Falsche: der
+     Eigentuemer traegt die zweite Fassung von Hand ein, und bis dahin soll
+     jeder etwas lesen koennen. */
+  check('Ohne Uebersetzung steht der Name der Vorgabesprache — auch auf Deutsch',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium' &&
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+  check('Und dasselbe an der Kategorie',
+    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
+    JSON.stringify(rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)));
+
+  /* JETZT DIE UEBERSETZUNG. Sie wird AUSDRUECKLICH bestellt -- der Rumpf
+     nennt die Sprache. Ohne Angabe meint jeder Schreibweg die GRUNDZEILE,
+     und das ist die wichtigste Zeile des Bauabschnitts: ein Admin, der die
+     Oberflaeche auf Deutsch liest, waehrend die Installation Englisch
+     vorgibt, benennte sonst nie um, sondern legte immer nur Uebersetzungen
+     an. */
+  const rnTranslated = await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Deutscher Name', language: 'de' });
+  check('Eine Uebersetzung laesst sich anlegen', rnTranslated.status === 200,
+    `Status ${rnTranslated.status}: ${JSON.stringify(rnTranslated.content)}`);
+  check('Und der deutsche Leser sieht sie',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+  check('Und der englische weiterhin die Grundzeile',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
+    JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
+  /* UND DIE STERNE HAENGEN UNVERAENDERT DARAN. Das ist der Grund fuer die
+     Tabelle daneben: `ratings.criterion_id` zeigt weiter auf dieselbe Zeile,
+     und keine Uebersetzung kann daran etwas aendern. */
+  check('Und die Bewertung haengt unveraendert daran',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.usage_count === 1 &&
+    (await call('GET', `/api/items/${rnItem.id}`)).content.ratings
+      .some(z => z.criterion_id === rnCriterion.id && z.value === 4),
+    JSON.stringify((await call('GET', `/api/items/${rnItem.id}`)).content.ratings));
+
+  // Dasselbe an der Kategorie -- gleiche Bauform, eigene Tabelle.
+  await call('PUT', `/api/product-categories/${rnCategory.id}`,
+    { name: 'Deutsche Kategorie', language: 'de' });
+  check('Die Kategorie traegt ihre Uebersetzung ebenso',
+    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Deutsche Kategorie' &&
+    rnFind(await rnRead('en', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
+    JSON.stringify(rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)));
+  /* UND DER EINTRAG HAENGT WEITER AN DERSELBEN KATEGORIE. `product_category_id`
+     ist eine Nummer und keine Zeichenfolge -- eine Uebersetzung kann sie gar
+     nicht treffen, und genau deshalb liegt sie daneben. */
+  check('Und der Eintrag haengt weiter an derselben Kategorie',
+    (await call('GET', `/api/items/${rnItem.id}`)).content.category?.id === rnCategory.id,
+    JSON.stringify((await call('GET', `/api/items/${rnItem.id}`)).content.category));
+
+
+  /* --- DIE SPRACHFASSUNGEN REISEN MIT DER DATEI — F8c -------------------
+     ALLE, NICHT NUR DIE DES EXPORTIERENDEN. Wer eine Zweitinstanz aufsetzt,
+     nimmt seinen Bestand mit -- und die Sprachen dieser Instanz sind andere
+     als die der ersten. Eine Datei, die nur die Fassung des Ausfuehrenden
+     traegt, verloere die uebrigen still.
+     LEER HEISST LEER: hat niemand etwas uebersetzt, steht ein leeres Objekt
+     in der Datei. Das ist eine Angabe und kein fehlendes Feld. */
+  const rnFile = (await callF('GET', '/api/export?photos=0')).content;
+  check('Die Exportdatei traegt die Formatnummer 14',
+    rnFile?.version === 14, JSON.stringify(rnFile?.version));
+  check('Und sie traegt beide Namenstafeln, je Sprache geordnet',
+    rnFile?.criteriaNames?.de?.['Rueckfallkriterium'] === 'Deutscher Name' &&
+    rnFile?.categoryNames?.de?.['Rueckfallkategorie'] === 'Deutsche Kategorie',
+    JSON.stringify([rnFile?.criteriaNames, rnFile?.categoryNames]));
+  /* UND SIE STEHEN UNTER DEM NAMEN DER GRUNDZEILE UND NICHT UNTER EINER
+     NUMMER. Die Nummern einer Zweitinstanz sind andere; ein Export, der
+     Nummern traegt, ist nur in der Instanz lesbar, aus der er kommt --
+     dieselbe Bauform wie bei den Gewichten und der Phase daneben. */
+  check('Und die Tafel steht unter dem Namen der Grundzeile, nicht unter einer Nummer',
+    Object.keys(rnFile?.criteriaNames?.de || {}).every(k => Number.isNaN(Number(k))),
+    JSON.stringify(Object.keys(rnFile?.criteriaNames?.de || {})));
+
+  /* JETZT DIE GEGENRICHTUNG: die Uebersetzungen von Hand wegnehmen und die
+     Datei zusammenfuehrend wieder einspielen. Ein Export, der etwas mitnimmt,
+     das der Import nicht wieder hineinlegt, ist ein halber Weg. */
+  await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Rueckfallkriterium', language: 'de' });
+  await call('PUT', `/api/product-categories/${rnCategory.id}`,
+    { name: 'Rueckfallkategorie', language: 'de' });
+  check('Der Aufbau steht: die beiden Uebersetzungen sind weg',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium' &&
+    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+  /* EINGESPIELT WIRD EINE DATEI MIT DEN BEIDEN TAFELN UND OHNE EINTRAEGE.
+     Die volle Exportdatei zusammenfuehrend einzuspielen legte den ganzen
+     Bestand ein zweites Mal an -- und jede Zahl, die eine spaetere Gruppe
+     nachzaehlt, waere danach eine andere. Geprueft wird der WEG der Tafeln,
+     und dafuer braucht es keinen Eintrag. */
+  const rnBack = await sendImport({ exported_at: rnFile.exported_at, title: rnFile.title,
+    version: rnFile.version, items: [],
+    criteriaNames: rnFile.criteriaNames, categoryNames: rnFile.categoryNames }, 'merge');
+  check('Die Datei laesst sich zusammenfuehrend einspielen',
+    rnBack.status === 200, `Status ${rnBack.status}: ${JSON.stringify(rnBack.content)}`);
+  check('Und die Uebersetzungen sind danach wieder da',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name' &&
+    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Deutsche Kategorie',
+    JSON.stringify([rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name,
+                    rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name]));
+  /* UND DIE GRUNDZEILE HAT SICH DABEI NICHT GEAENDERT. Ein Import, der die
+     Uebersetzung in die Grundzeile schriebe, machte aus einer zweiten Fassung
+     die erste -- und jeder andere Leser saehe ab dann Deutsch. */
+  check('Und der englische Leser sieht weiter die Grundzeile',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
+    JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
+
+  /* EINE DATEI AUS FORMAT 13 LAESST SICH WEITERHIN EINSPIELEN -- sie kennt
+     die beiden Tafeln gar nicht, und ein fehlendes Feld ist kein Fehler. */
+  const rnOld = await sendImport({ exported_at: new Date().toISOString(), title: 'Dreizehn',
+    version: 13, items: [] }, 'merge');
+  check('Eine Datei aus Format 13 spielt sich weiterhin ein',
+    rnOld.status === 200, `Status ${rnOld.status}: ${JSON.stringify(rnOld.content)}`);
+  check('Und die vorhandene Uebersetzung bleibt dabei stehen',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+
+  /* OHNE SPRACHANGABE MEINT DER SCHREIBWEG DIE GRUNDZEILE -- und nicht die
+     Sprache des Lesers. Geprueft mit einem deutschen Kopf: der Ruf liest
+     Deutsch und schreibt trotzdem die Grundzeile. */
+  await call('PUT', `/api/criteria/${rnCriterion.id}`, { name: 'Umbenannt' });
+  check('Ohne Sprachangabe wird die Grundzeile umbenannt, nicht uebersetzt',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt' &&
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name',
+    JSON.stringify([rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name,
+                    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name]));
+
+  /* EINE SPRACHE OHNE DATEI WIRD ABGEWIESEN und nicht still auf die Vorgabe
+     gedreht: sonst schriebe der Eigentuemer in eine Sprache, die niemand je
+     zu sehen bekaeme, und hielte sie fuer gespeichert. */
+  const rnInvented = await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Egal', language: 'xx' });
+  check('Eine Sprache ohne Datei wird beim Umbenennen abgewiesen',
+    rnInvented.status === 400, `Status ${rnInvented.status}`);
+  check('Und der Name steht danach unveraendert',
+    rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt',
+    JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
+
+  /* EINE UEBERSETZUNG, DIE DER GRUNDZEILE GLEICHT, WIRD GELOESCHT UND NICHT
+     GESPEICHERT. Zwei gleiche Namen in zwei Tabellen waeren zwei Wahrheiten
+     ueber dasselbe Wort -- und die eine wanderte beim naechsten Umbenennen
+     der Grundzeile weg, die andere nicht. */
+  await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Umbenannt', language: 'de' });
+  const rnNamesTable = (() => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare('SELECT COUNT(*) AS n FROM criterion_names WHERE criterion_id = ?')
+      .get(rnCriterion.id).n;
+    d.close(); return r;
+  })();
+  check('Eine Uebersetzung, die der Grundzeile gleicht, wird geraeumt',
+    rnNamesTable === 0, `${rnNamesTable} Zeilen in criterion_names`);
+  check('Und der deutsche Leser faellt wieder auf die Grundzeile zurueck',
+    rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt',
+    JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+
+  /* UND DIE BEIDEN TABELLEN HAENGEN AN IHRER GRUNDZEILE. Ein geloeschtes
+     Kriterium darf keine herrenlose Uebersetzung hinterlassen -- sie taeuchte
+     am naechsten Kriterium mit derselben Nummer wieder auf. */
+  await call('PUT', `/api/criteria/${rnCriterion.id}`,
+    { name: 'Nochmal deutsch', language: 'de' });
+  await call('DELETE', `/api/criteria/${rnCriterion.id}`);
+  const rnOrphan = (() => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare('SELECT COUNT(*) AS n FROM criterion_names WHERE criterion_id = ?')
+      .get(rnCriterion.id).n;
+    d.close(); return r;
+  })();
+  check('Ein geloeschtes Kriterium nimmt seine Uebersetzungen mit',
+    rnOrphan === 0, `${rnOrphan} herrenlose Zeilen`);
+  await call('DELETE', `/api/items/${rnItem.id}`);
+  await call('DELETE', `/api/product-categories/${rnCategory.id}`);
+
+  /* ================= Die Zahl der Tabellen — 0.24.3 =====================
+     SIEBENUNDZWANZIG SEIT DIESER RUNDE, vorher fuenfundzwanzig:
+     `criterion_names` und `category_names` sind dazugekommen. Die ZAHL steht
+     ausdruecklich da -- eine Tabelle, die still dazukommt oder verschwindet,
+     faellt sonst niemandem auf (dieselbe Ueberlegung wie bei F_ROUTES). */
+  {
+    const tzDb = open(path.join(DATA, 'katalog.sqlite'));
+    const tzTables = tzDb.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+      .all().map(z => z.name).sort();
+    tzDb.close();
+    check('Die Datenbank traegt genau siebenundzwanzig Tabellen',
+      tzTables.length === 27, `${tzTables.length}: ${tzTables.join(' ')}`);
+    check('Und die beiden neuen dieser Runde stehen darunter',
+      tzTables.includes('criterion_names') && tzTables.includes('category_names'),
+      tzTables.join(' '));
+  }
+
+  /* ---------------------------------------------------------------- */
   group('Schnitt und Anzahl je Kriterium');
 
   function putThreeUserAn() {
@@ -3486,9 +3899,9 @@ const shareMain = (purpose, target = null) =>
         .run(it, kId[kr], w, u);
     // Zwei Leute am selben Datum sind zwei Testtage, der dritte
     // liegt spaeter. Fuer die Zeitleiste: einer eigen, zwei fremd.
-    for (const [tag, note, u] of [['2024-03-01', 4, 1], ['2024-03-01', 2, 2], ['2024-04-01', 5, 3]])
+    for (const [date, score, u] of [['2024-03-01', 4, 1], ['2024-03-01', 2, 2], ['2024-04-01', 5, 3]])
       d.prepare('INSERT INTO test_days (item_id, day, rating, user_id) VALUES (1, ?, ?, ?)')
-        .run(tag, note, u);
+        .run(date, score, u);
     /* BEIDE EINTRAEGE STEHEN AUF „getestet" -- Eintrag 2 seit 0.22.1.
        Er traegt eine Optik-Bewertung, und seit dieser Runde weist die Route
        eine Bewertung an einem UNGETESTETEN Eintrag ab. Ein Eintrag, der in
@@ -3867,22 +4280,22 @@ const shareMain = (purpose, target = null) =>
   await gSet('Preis', 1); await gSet('Kundendienst', 1);
   const eOneF = includingShare((m, p, k) => eCall('cookie-e-eins', m, p, k), eWord);
   const gOut = (await eOneF('GET', '/api/export?photos=0')).content;
-  check('Die Formatnummer steht auf 13', gOut?.version === 13, JSON.stringify(gOut?.version));
+  check('Die Formatnummer steht auf 14', gOut?.version === 14, JSON.stringify(gOut?.version));
   check('criteria bleibt eine Liste von Namen',
     Array.isArray(gOut?.criteria) && gOut.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gOut?.criteria));
   check('Der Export nennt die Gewichte in einem eigenen Feld',
-    gOut?.criteriaGewichte?.Haptik === 1.5, JSON.stringify(gOut?.criteriaGewichte));
+    gOut?.criteriaWeights?.Haptik === 1.5, JSON.stringify(gOut?.criteriaWeights));
   /* NUR ABWEICHUNGEN. Stuenden die Einsen mit drin, waere die Datei eines
      ungewichteten Bestands nicht mehr zeichengleich zu der von vorher. */
   check('Und nur die Abweichungen -- ein Kriterium mit Gewicht 1 fehlt darin',
-    equal(Object.keys(gOut?.criteriaGewichte || {}), ['Haptik']),
-    JSON.stringify(gOut?.criteriaGewichte));
+    equal(Object.keys(gOut?.criteriaWeights || {}), ['Haptik']),
+    JSON.stringify(gOut?.criteriaWeights));
   await gSet('Haptik', 1);
   const gOutEqual = (await eOneF('GET', '/api/export?photos=0')).content;
   check('Ein ungewichteter Bestand ergibt ein leeres Feld',
-    gOutEqual?.criteriaGewichte && Object.keys(gOutEqual.criteriaGewichte).length === 0,
-    JSON.stringify(gOutEqual?.criteriaGewichte));
+    gOutEqual?.criteriaWeights && Object.keys(gOutEqual.criteriaWeights).length === 0,
+    JSON.stringify(gOutEqual?.criteriaWeights));
 
   /* ================= Der Rechenweg reist mit — 0.16.0 ==================
      DER KASTEN AM EINTRAG LIEST DIE VORHANDENE RECHNUNG. Damit er das kann,
@@ -4302,9 +4715,9 @@ const shareMain = (purpose, target = null) =>
         .run(kId[kr], w, u);
     for (const [n] of [['Regen'], ['Sonne']]) d.prepare('INSERT INTO tags (name) VALUES (?)').run(n);
     const tg = (n) => d.prepare('SELECT id FROM tags WHERE name = ?').get(n).id;
-    for (const [tag, note, u, mark] of [['2024-03-01', 4, 1, 'Regen'], ['2024-03-01', 2, 2, 'Sonne']]) {
+    for (const [date, score, u, mark] of [['2024-03-01', 4, 1, 'Regen'], ['2024-03-01', 2, 2, 'Sonne']]) {
       const td = d.prepare('INSERT INTO test_days (item_id, day, rating, user_id) VALUES (1, ?, ?, ?)')
-        .run(tag, note, u).lastInsertRowid;
+        .run(date, score, u).lastInsertRowid;
       d.prepare('INSERT INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(td, tg(mark));
     }
     d.prepare('UPDATE items SET tested = 1 WHERE id = 1').run();
@@ -4438,7 +4851,7 @@ const shareMain = (purpose, target = null) =>
     e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  check('Die Formatnummer der Datei steht auf 13', e2Out?.version === 13, JSON.stringify(e2Out?.version));
+  check('Die Formatnummer der Datei steht auf 14', e2Out?.version === 14, JSON.stringify(e2Out?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -4845,7 +5258,7 @@ const shareMain = (purpose, target = null) =>
     e2VidWithout.status === 200, JSON.stringify(e2VidWithout.content));
   check('Und sie nennt in der Antwort, wie viele Videos gefehlt haben',
     e2VidWithout.content?.videosWithoutFile === 1 && e2VidWithout.content?.videos === 0,
-    JSON.stringify({ ohne: e2VidWithout.content?.videosWithoutFile, videos: e2VidWithout.content?.videos }));
+    JSON.stringify({ withoutPhotos: e2VidWithout.content?.videosWithoutFile, videos: e2VidWithout.content?.videos }));
   check('In der Datenbank steht danach keine Videozeile',
     e2Names("SELECT COUNT(*) n FROM photos WHERE kind = 'video'")[0].n === 0,
     JSON.stringify(e2Names('SELECT kind FROM photos')));
@@ -4925,9 +5338,9 @@ const shareMain = (purpose, target = null) =>
       d.exec('DROP TABLE trash');
       d.close();
     }
-    const ohne = tTables();
+    const withoutPhotos = tTables();
     check('Von Hand entfernt sind sie wirklich weg',
-      !ohne.includes('trash') && !ohne.includes('trash_bytes'), JSON.stringify(ohne));
+      !withoutPhotos.includes('trash') && !withoutPhotos.includes('trash_bytes'), JSON.stringify(withoutPhotos));
 
     shortRun(`require('./db'); console.log('da');`, tDir);
     const again = tTables();
@@ -5261,7 +5674,7 @@ const shareMain = (purpose, target = null) =>
   check('Und eine Zeile mit Titel, Datum und Loeschendem',
     pkList.rows?.length === 1 && pkFirst.title === 'Vollständig' &&
     /^\d{4}-\d{2}-\d{2} /.test(pkFirst.deleted_at || '') &&
-    pkFirst.loeschender?.name === 'carla',
+    pkFirst.deletedBy?.name === 'carla',
     JSON.stringify(pkFirst));
   check('Sie nennt die verbleibenden Tage',
     pkFirst.daysOpen === 30, JSON.stringify(pkFirst.daysOpen));
@@ -5668,15 +6081,15 @@ const shareMain = (purpose, target = null) =>
     // Dieselbe Nummer wie beim vollen Export: ein Einzelexport ist ein
     // vollstaendiges Paket mit einem Eintrag darin, kein halbes.
     check('Die Formatnummer ist dieselbe wie beim vollen Export',
-      singleExport.content?.version === 13 && full.content?.version === 13,
+      singleExport.content?.version === 14 && full.content?.version === 14,
       JSON.stringify([singleExport.content?.version, full.content?.version]));
     check('Der Umschlag traegt dieselben Felder wie beim vollen Export',
       equal(Object.keys(singleExport.content || {}).sort(), Object.keys(full.content || {}).sort()),
       JSON.stringify(Object.keys(singleExport.content || {})));
     check('Und die Kriterien samt Gewichten',
       equal(singleExport.content?.criteria, full.content?.criteria) &&
-      equal(singleExport.content?.criteriaGewichte, full.content?.criteriaGewichte),
-      JSON.stringify([singleExport.content?.criteria, singleExport.content?.criteriaGewichte]));
+      equal(singleExport.content?.criteriaWeights, full.content?.criteriaWeights),
+      JSON.stringify([singleExport.content?.criteria, singleExport.content?.criteriaWeights]));
     const outFull = (full.content?.items || []).find(i => i.title === 'Vollständig');
     check('Der Eintrag selbst ist Zeichen fuer Zeichen derselbe wie im vollen Export',
       JSON.stringify(singleExport.content?.items?.[0]) === JSON.stringify(outFull) && !!outFull,
@@ -6053,34 +6466,34 @@ const shareMain = (purpose, target = null) =>
     // Die beiden Dateien liegen aus der Gruppe darueber auf 9 und 4 Tagen.
     const now = Date.now();
 
-    const ohne = await siCall('cookie-si-anna', 'GET', '/api/backup');
+    const withoutPhotos = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Ohne Wechsel steht keine Marke in der Antwort',
-      ohne.content?.gewechseltAm === null, JSON.stringify(ohne.content?.gewechseltAm));
+      withoutPhotos.content?.changedAt === null, JSON.stringify(withoutPhotos.content?.changedAt));
     check('Und dann ist KEINE Kopie veraltet -- nicht etwa jede',
-      ohne.content?.veraltet === 0 && ohne.content?.last?.veraltet === false,
-      JSON.stringify([ohne.content?.veraltet, ohne.content?.last?.veraltet]));
+      withoutPhotos.content?.outdated === 0 && withoutPhotos.content?.last?.outdated === false,
+      JSON.stringify([withoutPhotos.content?.outdated, withoutPhotos.content?.last?.outdated]));
 
     // Zwischen die beiden gelegt: die von vor 9 Tagen ist veraltet, die von
     // vor 4 Tagen nicht.
     siSetMark(asMark(now - 6 * 86400000));
     const half = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Die Marke steht in der Antwort',
-      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(half.content?.gewechseltAm)),
-      JSON.stringify(half.content?.gewechseltAm));
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(half.content?.changedAt)),
+      JSON.stringify(half.content?.changedAt));
     check('Von zwei Kopien ist genau die aeltere veraltet',
-      half.content?.veraltet === 1 && half.content?.number === 2,
-      JSON.stringify([half.content?.veraltet, half.content?.number]));
+      half.content?.outdated === 1 && half.content?.number === 2,
+      JSON.stringify([half.content?.outdated, half.content?.number]));
     check('Und die juengste ist es NICHT -- sie passt zum heutigen Schluessel',
-      half.content?.last?.veraltet === false, JSON.stringify(half.content?.last));
+      half.content?.last?.outdated === false, JSON.stringify(half.content?.last));
 
     // Hinter beide gelegt: dann passt keine einzige mehr, und das ist die
     // schaerfste Lage -- es gibt ueberhaupt keine brauchbare Kopie.
     siSetMark(asMark(now - 3600000));
     const whole = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Liegt der Wechsel hinter allen, sind alle veraltet',
-      whole.content?.veraltet === 2, JSON.stringify(whole.content?.veraltet));
+      whole.content?.outdated === 2, JSON.stringify(whole.content?.outdated));
     check('Und auch die juengste ist dann veraltet',
-      whole.content?.last?.veraltet === true, JSON.stringify(whole.content?.last));
+      whole.content?.last?.outdated === true, JSON.stringify(whole.content?.last));
 
     /* DIE MARKE WIRD IN UTC GELESEN. Ohne das Z am Ende lese der Rechner die
        Schreibweise der Instanz als ORTSZEIT, und die Grenze verschoebe sich um
@@ -6089,14 +6502,14 @@ const shareMain = (purpose, target = null) =>
     siSetMark(asMark(now - 5 * 86400000));
     const utc = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Die Grenze liegt genau am Zeitpunkt der Marke, in UTC gerechnet',
-      utc.content?.veraltet === 1, JSON.stringify([utc.content?.gewechseltAm, utc.content?.veraltet]));
+      utc.content?.outdated === 1, JSON.stringify([utc.content?.changedAt, utc.content?.outdated]));
 
     // Ein unbrauchbarer Wert ist keine Marke -- und macht auch keine Kopie alt.
     siSetMark('das ist kein Zeitpunkt');
     const broken = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Ein unlesbarer Wert gilt als keine Marke',
-      broken.content?.gewechseltAm === null && broken.content?.veraltet === 0,
-      JSON.stringify([broken.content?.gewechseltAm, broken.content?.veraltet]));
+      broken.content?.changedAt === null && broken.content?.outdated === 0,
+      JSON.stringify([broken.content?.changedAt, broken.content?.outdated]));
     siSetMark(null);
   }
 
@@ -6582,7 +6995,7 @@ const shareMain = (purpose, target = null) =>
       equal(list.filter(z => z.affected).map(z => z.file).sort(), AU_CASES),
       list.filter(z => z.affected).map(z => z.file).join(' · '));
     check('Und ohne Schluesselwechsel traegt keine die Marke `veraltet`',
-      list.every(z => z.veraltet === false), JSON.stringify(list.map(z => z.veraltet)));
+      list.every(z => z.outdated === false), JSON.stringify(list.map(z => z.outdated)));
     /* UND KEIN DATEINAME FEHLT IN DER ANTWORT: die Karte zeigt ihn nicht mehr,
        die Antwort traegt ihn trotzdem -- er ist die einzige Angabe, an der sich
        ein Eintrag ueber zwei Abrufe hinweg wiedererkennen laesst. */
@@ -6675,11 +7088,11 @@ const shareMain = (purpose, target = null) =>
      Nachschau, dass wirklich nichts geloescht wurde. --- */
   {
     const before = auDa();
-    const ohne = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'rule' });
+    const withoutPhotos = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'rule' });
     check('Ohne zweite Bestaetigung antwortet die Route mit 403',
-      ohne.status === 403, `Status ${ohne.status} · ${JSON.stringify(ohne.content)}`);
+      withoutPhotos.status === 403, `Status ${withoutPhotos.status} · ${JSON.stringify(withoutPhotos.content)}`);
     check('Und der Zweck heisst in der Absage beim Namen',
-      ohne.content?.confirm === 'backup', JSON.stringify(ohne.content));
+      withoutPhotos.content?.confirm === 'backup', JSON.stringify(withoutPhotos.content));
     for (const [actor, name] of [['cookie-au-carla', 'Ein gewoehnlicher Benutzer'],
                                ['cookie-au-bert', 'Ein Admin ohne Eigentuemerrolle']]) {
       const r = await auCall(actor, 'POST', '/api/backup/cleanup', { kind: 'rule' });
@@ -6704,7 +7117,7 @@ const shareMain = (purpose, target = null) =>
     await auFree();
     const r = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup',
       { kind: 'rule', file: '../../etc/passwd', files: ['notizen.txt'],
-        ordner: '/etc', name: 'kriterion-2026-09-03-10-00-00.sqlite' });
+        folder: '/etc', name: 'kriterion-2026-09-03-10-00-00.sqlite' });
     check('Ein Rumpf mit Dateinamen aendert am Ergebnis nichts',
       r.status === 200 && r.content?.removed === 3,
       `Status ${r.status} · ${JSON.stringify(r.content?.removed)}`);
@@ -6735,8 +7148,8 @@ const shareMain = (purpose, target = null) =>
       r.content?.removed === AU_CASES.length,
       `${r.content?.removed} entfernt, ${AU_CASES.length} angekuendigt`);
     check('Und die Antwort nennt die freigegebenen Bytes',
-      Number.isInteger(r.content?.bytes) && r.content.bytes > 0 && r.content?.nicht === 0,
-      JSON.stringify([r.content?.bytes, r.content?.nicht]));
+      Number.isInteger(r.content?.bytes) && r.content.bytes > 0 && r.content?.notDeleted === 0,
+      JSON.stringify([r.content?.bytes, r.content?.notDeleted]));
     /* UND DIE ANTWORT TRAEGT DIE FRISCHE VORSCHAU. Die Karte zeichnet sich
        daraus neu; stuende dort der alte Stand, zeigte sie Dateien, die es
        nicht mehr gibt. */
@@ -7627,26 +8040,26 @@ const shareMain = (purpose, target = null) =>
   check('Seine persoenlichen Einstellungen schreibt jeder selbst',
     fOwn.status === 200 && fOwn.content?.font === 110, JSON.stringify(fOwn.content?.font));
   const fVocable = await fCall('cookie-f-bert', 'PUT', '/api/settings',
-    { vocabulary: { sacheEinzahl: 'Ding' } });
+    { vocabulary: { entryOne: 'Ding' } });
   check('Das Vokabular aendert er nicht', fVocable.status === 403, `Status ${fVocable.status}`);
   const fProvider = await fCall('cookie-f-bert', 'PUT', '/api/settings', { searchOn: ['ddg'] });
   check('Und den Suchanbietervorrat auch nicht', fProvider.status === 403, `Status ${fProvider.status}`);
   check('Das Vokabular steht unveraendert',
-    (await fCall('cookie-f-anna', 'GET', '/api/settings')).content?.vocabulary?.sacheEinzahl === 'Eintrag');
+    (await fCall('cookie-f-anna', 'GET', '/api/settings')).content?.vocabulary?.entryOne === 'Eintrag');
   /* Gemischt: die persoenliche Haelfte darf NICHT geschrieben sein, wenn die
      globale abgewiesen wird. Deshalb steht die Frage vor dem ersten Schreiben. */
   const fMixed = await fCall('cookie-f-bert', 'PUT', '/api/settings',
-    { font: 80, vocabulary: { sacheEinzahl: 'Ding' } });
+    { font: 80, vocabulary: { entryOne: 'Ding' } });
   check('Persoenlich und global zusammen wird abgewiesen', fMixed.status === 403,
     `Status ${fMixed.status}`);
   check('Und die persoenliche Haelfte ist dabei NICHT geschrieben worden',
     (await fCall('cookie-f-bert', 'GET', '/api/settings')).content?.font === 110,
     JSON.stringify((await fCall('cookie-f-bert', 'GET', '/api/settings')).content?.font));
   const fVocableAdmin = await fCall('cookie-f-anna', 'PUT', '/api/settings',
-    { vocabulary: { sacheEinzahl: 'Ding', sacheMehrzahl: 'Dinge' } });
+    { vocabulary: { entryOne: 'Ding', entryMany: 'Dinge' } });
   check('Der Admin aendert das Vokabular',
-    fVocableAdmin.status === 200 && fVocableAdmin.content?.vocabulary?.sacheEinzahl === 'Ding',
-    JSON.stringify(fVocableAdmin.content?.vocabulary?.sacheEinzahl));
+    fVocableAdmin.status === 200 && fVocableAdmin.content?.vocabulary?.entryOne === 'Ding',
+    JSON.stringify(fVocableAdmin.content?.vocabulary?.entryOne));
 
   /* ---------------------------------------------------------------- */
   group('Was dem Eigentuemer gehoert');
@@ -8795,7 +9208,7 @@ const shareMain = (purpose, target = null) =>
   const agCallF = includingShare((m, p, k) => agCall('cookie-ag-anna', m, p, k), AG_WORD);
   const agFile = (await agCallF('GET', '/api/export?fotos=0')).content;
   const agPackage = agFile?.items?.find(i => i.title === 'Berts Saege');
-  check('Die Formatnummer der Datei steht auf 13', agFile?.version === 13,
+  check('Die Formatnummer der Datei steht auf 14', agFile?.version === 14,
     JSON.stringify(agFile?.version));
   check('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPackage?.rejected_at === agBefore.rejected_at &&
@@ -9295,9 +9708,9 @@ const shareMain = (purpose, target = null) =>
       `require('./auth').hashPassword(${JSON.stringify(TK_PASSWORD)}).then(h => console.log(h));`, tkDir);
     shortRun(`require('./db'); console.log('da');`, tkDir);
     const d = open(path.join(tkDir, 'katalog.sqlite'));
-    const insert = (name, rolle, status, hash) =>
+    const insert = (name, role, status, hash) =>
       d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, ?, ?)')
-        .run(name, hash, rolle, status);
+        .run(name, hash, role, status);
     /* anna und bert tragen seit 0.8.90 ein ECHTES Passwort: das Erzeugen
        eines Links und das Entfernen eines Zugangs verlangen eine zweite
        Bestaetigung, und ein Hash 'x' kommt daran nicht vorbei. carla behaelt
@@ -10015,7 +10428,7 @@ const shareMain = (purpose, target = null) =>
     `${tkBertPutsAn.status} ${tkBertPutsAn.raw}`);
   const tkVorAdmin = tkOpen();
   const tkBertAdmin = await tkCall('cookie-tk-bert', 'POST', '/api/users',
-    { username: 'berts-admin', rolle: 'admin', sendInvite: true });
+    { username: 'berts-admin', role: 'admin', sendInvite: true });
   check('Aber keinen Admin -- Rollen vergibt der Eigentuemer',
     tkBertAdmin.status === 403, `${tkBertAdmin.status} ${tkBertAdmin.raw}`);
   check('Und dabei entsteht weder Zugang noch Link',
@@ -10023,7 +10436,7 @@ const shareMain = (purpose, target = null) =>
     tkRows("SELECT id FROM users WHERE username = 'berts-admin'").length === 0,
     JSON.stringify(tkRows("SELECT username FROM users WHERE username = 'berts-admin'")));
   const tkAnnaAdmin = await tkCall('cookie-tk-anna', 'POST', '/api/users',
-    { username: 'annas-admin', rolle: 'admin', sendInvite: true });
+    { username: 'annas-admin', role: 'admin', sendInvite: true });
   check('Die Eigentuemerin darf es',
     tkAnnaAdmin.status === 200 && tkAnnaAdmin.content?.role === 'admin',
     `${tkAnnaAdmin.status} ${tkAnnaAdmin.raw}`);
@@ -10486,7 +10899,7 @@ const shareMain = (purpose, target = null) =>
   check('Ein angelegter Zugang schreibt genau eine Zeile, mit der Rolle',
     equal(prSince(m).map(z => [z.event, z.actor, z.target, z.detail]),
            [['user.new', 1, prBertId, 'user']]), JSON.stringify(prSince(m)));
-  await prCall(prAnna, 'POST', '/api/users', { username: 'carla', password: PR_CARLA, rolle: 'admin' });
+  await prCall(prAnna, 'POST', '/api/users', { username: 'carla', password: PR_CARLA, role: 'admin' });
   await prCall(prAnna, 'POST', '/api/users', { username: 'dora', password: PR_DORA });
   const prCarlaId = prRows("SELECT id FROM users WHERE username='carla'")[0].id;
   const prDoraId = prRows("SELECT id FROM users WHERE username='dora'")[0].id;
@@ -10512,11 +10925,11 @@ const shareMain = (purpose, target = null) =>
   /* DIE VIER SCHWEREN WEGE AN EINEM FREMDEN ZUGANG, jeder einzeln und jeder
      mit seiner Zeile. Gepruefte Reihenfolge: Rolle, Status, Passwort, Link. */
   m = prMark();
-  await prAnnaF('PUT', `/api/users/${prDoraId}`, { rolle: 'admin' });
+  await prAnnaF('PUT', `/api/users/${prDoraId}`, { role: 'admin' });
   check('Eine vergebene Rolle schreibt eine Zeile mit der neuen Rolle',
     equal(prSince(m).map(z => [z.event, z.actor, z.target, z.detail]),
            [['user.role', 1, prDoraId, 'admin']]), JSON.stringify(prSince(m)));
-  await prAnnaF('PUT', `/api/users/${prDoraId}`, { rolle: 'user' });
+  await prAnnaF('PUT', `/api/users/${prDoraId}`, { role: 'user' });
 
   m = prMark();
   await prCall(prAnna, 'PUT', `/api/users/${prDoraId}`, { status: 'locked' });
@@ -10628,8 +11041,8 @@ const shareMain = (purpose, target = null) =>
      Zugang, den es nicht gibt. */
   m = prMark();
   await prAnnaF('PUT', `/api/users/${prCarlaId}`, { password: 'kurz' });
-  await prAnnaF('PUT', `/api/users/${prCarlaId}`, { rolle: 'kaiserin' });
-  await prAnnaF('PUT', '/api/users/9999', { rolle: 'admin' });
+  await prAnnaF('PUT', `/api/users/${prCarlaId}`, { role: 'kaiserin' });
+  await prAnnaF('PUT', '/api/users/9999', { role: 'admin' });
   check('Drei gescheiterte Vorgaenge schreiben zusammen keine einzige Zeile',
     prSince(m).length === 0, JSON.stringify(prSince(m)));
 
@@ -10662,9 +11075,9 @@ const shareMain = (purpose, target = null) =>
   check('Die Nachschau sieht ueberhaupt etwas: in tokens steht der Hash',
     JSON.stringify(prRows('SELECT * FROM tokens')).includes(prFreshHash),
     'die Nachschau findet den Hash auch dort nicht');
-  for (const [name, wort] of [['der Eigentuemerin', PR_ANNA], ['eines Benutzers', PR_BERT],
+  for (const [name, word] of [['der Eigentuemerin', PR_ANNA], ['eines Benutzers', PR_BERT],
                               ['das ueber einen Link gesetzte', 'doras-linkwort-neu']]) {
-    check(`Kein Passwort steht darin: ${name}`, !prEverything().includes(wort),
+    check(`Kein Passwort steht darin: ${name}`, !prEverything().includes(word),
       'ein Passwort steht im Protokoll');
   }
   check('Und kein scrypt-Hash steht darin',
@@ -10856,7 +11269,7 @@ const shareMain = (purpose, target = null) =>
   const ZB_ANNA = 'annas-langes-wort', ZB_CARLA = 'carlas-langes-wort';
   await ZB.call('POST', '/api/setup', { user: 'anna', password: ZB_ANNA });
   let zbAnna = await zbLogin('anna', ZB_ANNA);
-  await zbCall(zbAnna, 'POST', '/api/users', { username: 'carla', password: ZB_CARLA, rolle: 'admin' });
+  await zbCall(zbAnna, 'POST', '/api/users', { username: 'carla', password: ZB_CARLA, role: 'admin' });
   for (const n of ['emil', 'frida', 'gustav'])
     await zbCall(zbAnna, 'POST', '/api/users', { username: n, password: `${n}s-langes-wort` });
   const zbId = (n) => zbRows('SELECT id FROM users WHERE username = ?', n)[0]?.id;
@@ -10891,14 +11304,14 @@ const shareMain = (purpose, target = null) =>
   check('Mit dem richtigen Passwort gibt es eine Freigabe',
     zbGood.status === 200 && zbGood.content?.ok === true, `${zbGood.status} ${zbGood.raw}`);
   check('Und die Antwort nennt Zweck und Frist',
-    zbGood.content?.purpose === 'export' && zbGood.content?.sekunden === 120,
+    zbGood.content?.purpose === 'export' && zbGood.content?.seconds === 120,
     JSON.stringify(zbGood.content));
 
   /* GEBUNDEN AN DEN ZWECK: eine Freigabe fuer den Export entfernt keinen
      Zugang. Ohne diese Bindung waere eine einzige Bestaetigung ein Freibrief
      fuer alle sechs Wege. */
   const zbVorRole = zbRows('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role;
-  const zbForeignPurpose = await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' });
+  const zbForeignPurpose = await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { role: 'admin' });
   check('Eine Freigabe fuer den Export vergibt keine Rolle',
     zbForeignPurpose.status === 403, `Status ${zbForeignPurpose.status}`);
   check('Und die Rolle steht unveraendert da',
@@ -10940,7 +11353,7 @@ const shareMain = (purpose, target = null) =>
       a.status === 403, `Status ${a.status}`);
   }
   await zbFree(zbAnna, ZB_ANNA, 'password', zbEmil);
-  const zbPasswordAgainstRole = await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' });
+  const zbPasswordAgainstRole = await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { role: 'admin' });
   check('Eine Freigabe fuer das Passwort traegt die Rolle NICHT -- gleiches Ziel',
     zbPasswordAgainstRole.status === 403, `Status ${zbPasswordAgainstRole.status}`);
   check('Und die Rolle steht weiterhin unveraendert da',
@@ -10951,10 +11364,10 @@ const shareMain = (purpose, target = null) =>
      keine Freigabe mehr traegt (Stolperstein 81). */
   await zbFree(zbAnna, ZB_ANNA, 'role', zbEmil);
   check('Mit dem richtigen Zweck kommt er durch',
-    (await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' })).status === 200,
+    (await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { role: 'admin' })).status === 200,
     'der richtige Zweck traegt nicht');
   await zbFree(zbAnna, ZB_ANNA, 'role', zbEmil);
-  await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'user' });
+  await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { role: 'user' });
 
   /* GEBUNDEN AN DAS ZIEL: eine Freigabe fuer Zugang A entfernt nicht Zugang B.
      Der Dialog nennt den Menschen; die Freigabe muss ihn deshalb auch nennen. */
@@ -11105,12 +11518,12 @@ const shareMain = (purpose, target = null) =>
 
   // 3. Die Rolle.
   const zbRole = () => zbRows('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role;
-  await zbWithout('Rolle vergeben', 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' }, zbRole, 'user');
+  await zbWithout('Rolle vergeben', 'PUT', `/api/users/${zbEmil}`, { role: 'admin' }, zbRole, 'user');
   await zbIncludingWrong('Rolle vergeben', 'role', zbEmil, 'PUT', `/api/users/${zbEmil}`,
-    { rolle: 'admin' }, zbRole, 'user');
+    { role: 'admin' }, zbRole, 'user');
   await zbFree(zbAnna, ZB_ANNA, 'role', zbEmil);
   check('Mit Bestaetigung wird die Rolle vergeben',
-    (await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' })).status === 200 &&
+    (await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { role: 'admin' })).status === 200 &&
     zbRole() === 'admin', zbRole());
 
   // 4. Das fremde Passwort.
@@ -11325,38 +11738,46 @@ const shareMain = (purpose, target = null) =>
       const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
+      /* DIESE INSTALLATION GIBT DEUTSCH VOR -- 0.24.3, F2. Eine MAIL geht in
+         der Sprache des EMPFAENGERS (Konzept 4.6), und `bert` hat noch keine
+         gewaehlt: fuer ihn gilt die Vorgabe der Installation. Ein
+         `Accept-Language` des Ausloesenden hilft hier ausdruecklich NICHT --
+         der Brief geht an jemand anderen.
+         DAMIT IST DIE LAGE EIN BESTAND und keine frische Installation, und
+         genau den beschreiben die deutschen Zusicherungen darunter. */
+      await S.call('PUT', '/api/settings', { languageDefault: 'de' });
       const fresh = await S.call('POST', '/api/users', { username: 'bert', sendInvite: true });
       return { dir, S, fresh };
     };
 
-    const ohne = await oaMake({}, 4700);
+    const withoutPhotos = await oaMake({}, 4700);
     check('Ohne die Einstellung gibt der Server KEINEN fertigen Link heraus',
-      ohne.fresh.content?.link === null, JSON.stringify(ohne.fresh.content?.link));
+      withoutPhotos.fresh.content?.link === null, JSON.stringify(withoutPhotos.fresh.content?.link));
     check('Und sagt ausdruecklich, dass der Browser ihn baut',
-      ohne.fresh.content?.linkSource === 'browser', JSON.stringify(ohne.fresh.content?.linkSource));
+      withoutPhotos.fresh.content?.linkSource === 'browser', JSON.stringify(withoutPhotos.fresh.content?.linkSource));
     check('Der Schluessel steht trotzdem in der Antwort -- daraus baut der Browser',
-      /^[0-9a-f]{64}$/.test(ohne.fresh.content?.token || ''), JSON.stringify(ohne.fresh.content?.token));
+      /^[0-9a-f]{64}$/.test(withoutPhotos.fresh.content?.token || ''), JSON.stringify(withoutPhotos.fresh.content?.token));
     check('Der Start sagt, dass sie nicht gesetzt ist',
-      /Oeffentliche Adresse: nicht gesetzt/.test(ohne.S.log()),
-      ohne.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
+      /Oeffentliche Adresse: nicht gesetzt/.test(withoutPhotos.S.log()),
+      withoutPhotos.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
     /* DIE ADRESSE STEHT NICHT IN /api/config, und das gehoert geprueft: der
        Endpunkt liegt VOR der Anmeldung und darf ueber die Instanz nichts
        verraten, was nicht ohnehin dasteht. */
-    const withoutCfg = await ohne.S.call('GET', '/api/config');
+    const withoutCfg = await withoutPhotos.S.call('GET', '/api/config');
     check('Und /api/config nennt hier ohnehin nichts',
       !JSON.stringify(withoutCfg.content).toLowerCase().includes('address'),
       JSON.stringify(withoutCfg.content));
 
-    const mit = await oaMake({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de/' }, 4760);
+    const withPhotos = await oaMake({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de/' }, 4760);
     check('Mit der Einstellung gibt der Server den fertigen Link heraus',
-      mit.fresh.content?.link === `https://kriterion.beispiel.de/#/invite/${mit.fresh.content?.token}`,
-      JSON.stringify(mit.fresh.content?.link));
+      withPhotos.fresh.content?.link === `https://kriterion.beispiel.de/#/invite/${withPhotos.fresh.content?.token}`,
+      JSON.stringify(withPhotos.fresh.content?.link));
     check('Und sagt, woher die Adresse kam',
-      mit.fresh.content?.linkSource === 'einstellung', JSON.stringify(mit.fresh.content?.linkSource));
+      withPhotos.fresh.content?.linkSource === 'einstellung', JSON.stringify(withPhotos.fresh.content?.linkSource));
     check('Der Start nennt die Adresse im Protokoll des Containers',
-      /Oeffentliche Adresse: https:\/\/kriterion\.beispiel\.de —/.test(mit.S.log()),
-      mit.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
-    const includingCfg = await mit.S.call('GET', '/api/config');
+      /Oeffentliche Adresse: https:\/\/kriterion\.beispiel\.de —/.test(withPhotos.S.log()),
+      withPhotos.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
+    const includingCfg = await withPhotos.S.call('GET', '/api/config');
     check('Die Adresse steht NICHT in /api/config',
       !JSON.stringify(includingCfg.content).includes('kriterion.beispiel.de'),
       JSON.stringify(includingCfg.content));
@@ -11399,7 +11820,7 @@ const shareMain = (purpose, target = null) =>
       contradiction.fresh.content?.linkSource === 'einstellung',
       JSON.stringify(contradiction.fresh.content?.linkSource));
 
-    for (const x of [ohne, mit, broken, contradiction]) {
+    for (const x of [withoutPhotos, withPhotos, broken, contradiction]) {
       await x.S.stop();
       fs.rmSync(x.dir, { recursive: true, force: true });
     }
@@ -11457,6 +11878,14 @@ const shareMain = (purpose, target = null) =>
       const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: MAIL_PASSWORD_ANNA });
+      /* DIESE INSTALLATION GIBT DEUTSCH VOR -- 0.24.3, F2. Ein Brief geht in
+         der Sprache des EMPFAENGERS (Konzept 4.6), und der hat hier noch keine
+         gewaehlt: fuer ihn gilt die Vorgabe der Installation. Das
+         `Accept-Language` des Ausloesenden hilft ausdruecklich NICHT -- der
+         Brief geht an jemand anderen.
+         DAMIT IST DIE LAGE EIN BESTAND und keine frische Installation, und
+         genau den beschreiben die deutschen Zusicherungen an den Briefen. */
+      await S.call('PUT', '/api/settings', { languageDefault: 'de' });
       return { dir, S };
     };
     // Die Freigabe fuer die zweite Bestaetigung. Sie steht hier als eigener
@@ -11466,7 +11895,7 @@ const shareMain = (purpose, target = null) =>
     const mailSet = async (S, empf) => {
       await mailFree(S);
       return S.call('PUT', '/api/mail', {
-        provider: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
+        provider: 'eigen', server: '127.0.0.1', port: empf.port, secure: false,
         user: MAIL_USER, password: MAIL_SECRET, sender: 'instanz@beispiel.de'
       });
     };
@@ -11515,28 +11944,28 @@ const shareMain = (purpose, target = null) =>
     check('Der Empfaenger hat genau EINEN Brief bekommen', letters.length === 1,
       `${letters.length} Briefe`);
     // (Ein zweiter kommt weiter unten dazu, an der zweiten Tokenroute.)
-    const b1 = letters[0] || { head: '', core: '', raw: '' };
-    check('Der Empfaenger stimmt', /^To: bert@beispiel\.de$/m.test(b1.head), b1.head.slice(0, 200));
-    check('Der Absender stimmt', /^From: instanz@beispiel\.de$/m.test(b1.head), b1.head.slice(0, 200));
+    const reportWord = letters[0] || { head: '', core: '', raw: '' };
+    check('Der Empfaenger stimmt', /^To: bert@beispiel\.de$/m.test(reportWord.head), reportWord.head.slice(0, 200));
+    check('Der Absender stimmt', /^From: instanz@beispiel\.de$/m.test(reportWord.head), reportWord.head.slice(0, 200));
     /* DER LINK IM RUMPF, und er wird DEKODIERT gesucht: quoted-printable
        bricht die Adresse nach 76 Zeichen weich um, und wer im rohen Text
        sucht, findet sie nicht. Genau das haette hier fast zu dem Schluss
        gefuehrt, der Link fehle. */
     check('Der Link steht vollstaendig im Rumpf',
-      b1.core.includes(`https://kriterion.beispiel.de/#/invite/${fresh.content?.token}`),
-      b1.core.slice(0, 300));
+      reportWord.core.includes(`https://kriterion.beispiel.de/#/invite/${fresh.content?.token}`),
+      reportWord.core.slice(0, 300));
     // Und die Gegenlage zum Empfaenger selbst: im ROHEN Brief steht er wegen
     // des weichen Umbruchs eben NICHT. Ohne diese Zeile waere nicht belegt,
     // dass die Dekodierung ueberhaupt etwas tut (Stolperstein 81).
     check('Im rohen Brief steht er umbrochen -- die Dekodierung tut wirklich etwas',
-      !b1.raw.includes(fresh.content?.token) && /quoted-printable/i.test(b1.head),
+      !reportWord.raw.includes(fresh.content?.token) && /quoted-printable/i.test(reportWord.head),
       'der rohe Brief traegt den Schluessel unumbrochen');
     check('Die Mail ist reiner Text -- kein HTML',
-      /Content-Type: text\/plain/i.test(b1.head) && !/<html/i.test(b1.core), b1.head.slice(0, 200));
+      /Content-Type: text\/plain/i.test(reportWord.head) && !/<html/i.test(reportWord.core), reportWord.head.slice(0, 200));
     check('Sie nennt die Frist ab dem ersten Oeffnen',
-      /15 Minuten/.test(b1.core), b1.core.slice(0, 400));
+      /15 Minuten/.test(reportWord.core), reportWord.core.slice(0, 400));
     check('Sie nennt die sieben Tage',
-      /7 Tage/.test(b1.core), b1.core.slice(0, 400));
+      /7 Tage/.test(reportWord.core), reportWord.core.slice(0, 400));
     /* GEKUERZT MIT 0.9.1 -- EIN SATZ WENIGER, NICHT EINE AUSKUNFT WENIGER.
        Aus vier Zeilen werden drei; alle DREI Auskuenfte bleiben darin: die
        Frist, dass Neuladen unschaedlich ist, und was danach zu tun ist.
@@ -11545,19 +11974,19 @@ const shareMain = (purpose, target = null) =>
        UMGEDREHT MIT 0.22.0 (Anlage H): der Brief nennt die Frist ab dem
        ersten Oeffnen als „bleiben dir N Minuten" und sagt „Link" dazu. */
     check('Sie sagt, dass Neuladen in der Frist unschaedlich ist',
-      /bleiben dir \d+ Minuten — neu laden darfst du darin beliebig oft/.test(b1.core), b1.core.slice(0, 400));
+      /bleiben dir \d+ Minuten — neu laden darfst du darin beliebig oft/.test(reportWord.core), reportWord.core.slice(0, 400));
     check('Und was danach zu tun ist',
-      /einen neuen Link vom Admin/.test(b1.core), b1.core.slice(0, 400));
+      /einen neuen Link vom Admin/.test(reportWord.core), reportWord.core.slice(0, 400));
     /* UND SIE IST WIRKLICH KUERZER: der Satz, der dasselbe ein zweites Mal
        sagte, steht nicht mehr da. Ohne diese Zeile bliebe die Kuerzung eine
        Behauptung -- die drei Auskuenfte stuenden auch in der alten Fassung. */
     check('Der Satz, der dasselbe zweimal sagte, steht nicht mehr da',
-      !/Innerhalb dieser Zeit darfst du die Seite so oft neu laden/.test(b1.core),
-      b1.core.slice(0, 400));
+      !/Innerhalb dieser Zeit darfst du die Seite so oft neu laden/.test(reportWord.core),
+      reportWord.core.slice(0, 400));
     /* DAS PASSWORT STEHT IN KEINER MAIL. Der Mailserver sieht jede Zeile, die
        durch ihn geht -- ausgerechnet dort duerfte es am wenigsten stehen. */
     check('Und das Mailpasswort steht in keinem Brief',
-      !b1.raw.includes(MAIL_SECRET), 'das Geheimnis steht im Brief');
+      !reportWord.raw.includes(MAIL_SECRET), 'das Geheimnis steht im Brief');
 
     /* Der Link steht ZUSAETZLICH in der Antwort, und das ist der Kern des
        ganzen Entwurfs: die Mail ersetzt ihn nicht. */
@@ -11890,8 +12319,8 @@ const shareMain = (purpose, target = null) =>
       { an: 'fremd@boese.net', email: 'fremd@boese.net', to: 'fremd@boese.net' });
     check('Die Testmail geht hinaus', tIncluding.content?.ok === true,
       `${tIncluding.content?.ok} · ${tIncluding.content?.reason}`);
-    check('Und zwar an die eigene Adresse', tIncluding.content?.an === 'anna@beispiel.de',
-      JSON.stringify(tIncluding.content?.an));
+    check('Und zwar an die eigene Adresse', tIncluding.content?.sentTo === 'anna@beispiel.de',
+      JSON.stringify(tIncluding.content?.sentTo));
     await new Promise(r => setTimeout(r, 300));
     const tLetters = T.letters();
     check('Der Empfaenger sah genau die eigene Adresse',
@@ -11902,11 +12331,11 @@ const shareMain = (purpose, target = null) =>
     // Dieselbe Frage ueber die Abfrage und ueber einen Kopf.
     const tQuery = await TA.S.call('POST', '/api/mail/test?an=fremd2@boese.net', {});
     check('Auch ein Adressfeld in der Abfrage aendert nichts',
-      tQuery.content?.an === 'anna@beispiel.de', JSON.stringify(tQuery.content?.an));
+      tQuery.content?.sentTo === 'anna@beispiel.de', JSON.stringify(tQuery.content?.sentTo));
     const tHeadContent = (await mailRawCall(TA.S, '/api/mail/test',
       { 'x-mail-to': 'fremd3@boese.net' }, {})).content;
-    check('Und ein Kopf ebenso wenig', tHeadContent.an === 'anna@beispiel.de',
-      JSON.stringify(tHeadContent.an));
+    check('Und ein Kopf ebenso wenig', tHeadContent.sentTo === 'anna@beispiel.de',
+      JSON.stringify(tHeadContent.sentTo));
     await new Promise(r => setTimeout(r, 300));
     check('Keiner der drei Versuche hat eine fremde Adresse erreicht',
       T.letters().every(b => !/boese\.net/.test(b.raw)) && T.letters().length === 3,
@@ -11930,7 +12359,7 @@ const shareMain = (purpose, target = null) =>
        oder weil nichts mehr geht. */
     await mailFree(TA.S);
     const tAfterChange = await TA.S.call('PUT', '/api/mail', {
-      provider: 'eigen', server: '127.0.0.1', port: T.port, sicher: false,
+      provider: 'eigen', server: '127.0.0.1', port: T.port, secure: false,
       user: MAIL_USER, password: '', sender: 'anders@beispiel.de'
     });
     check('Die Aenderung geht durch', tAfterChange.status === 200,
@@ -11957,7 +12386,7 @@ const shareMain = (purpose, target = null) =>
     const rCarla = rList.find(z => z.username === 'carla');
     await RA.S.call('POST', '/api/confirm',
       { password: MAIL_PASSWORD_ANNA, purpose: 'role', target: rCarla.id });
-    await RA.S.call('PUT', `/api/users/${rCarla.id}`, { rolle: 'admin' });
+    await RA.S.call('PUT', `/api/users/${rCarla.id}`, { role: 'admin' });
     RA.S.cookieRemove();
     const rLogin = await RA.S.call('POST', '/api/login',
       { user: 'carla', password: MAIL_PASSWORD_CARLA });
@@ -11999,7 +12428,7 @@ const shareMain = (purpose, target = null) =>
       JSON.stringify([rIncludingFree.content?.server, rIncludingFree.content?.port]));
     await mailFree(RA.S);
     const rSmuggled = await RA.S.call('PUT', '/api/mail',
-      { provider: 'gmx', server: 'boeser.beispiel.net', port: 2525, sicher: true,
+      { provider: 'gmx', server: 'boeser.beispiel.net', port: 2525, secure: true,
         user: 'a@gmx.de', password: MAIL_SECRET, sender: 'a@gmx.de' });
     check('Ein mitgeschickter Server wird bei einer Vorlage nicht uebernommen',
       rSmuggled.content?.server === 'mail.gmx.net' && rSmuggled.content?.port === 587,
@@ -12017,14 +12446,14 @@ const shareMain = (purpose, target = null) =>
       try {
         const raw = JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'mailzugang'").get().value);
         d.prepare("UPDATE settings SET value = ? WHERE key = 'mailzugang'")
-          .run(JSON.stringify({ ...raw, server: 'boeser.beispiel.net', port: 2525, sicher: true }));
+          .run(JSON.stringify({ ...raw, server: 'boeser.beispiel.net', port: 2525, secure: true }));
       } finally { d.close(); }   // Stolperstein 134
     }
     const rSaved = await RA.S.call('GET', '/api/mail');
     check('Und auch ein GESPEICHERTER Wert verliert gegen die Vorlage',
       rSaved.content?.server === 'mail.gmx.net' && rSaved.content?.port === 587 &&
-      rSaved.content?.sicher === false,
-      JSON.stringify([rSaved.content?.server, rSaved.content?.port, rSaved.content?.sicher]));
+      rSaved.content?.secure === false,
+      JSON.stringify([rSaved.content?.server, rSaved.content?.port, rSaved.content?.secure]));
     /* DIE BENANNTE ABSAGE, nicht irgendein 400. Eine Gegenprobe, die die
        Klemme entfernte, blieb stumm: der naechste Griff lief dann in einen
        TypeError, den die Route ebenfalls als 400 herausgab -- abgewiesen war
@@ -12062,10 +12491,10 @@ const shareMain = (purpose, target = null) =>
     const rAnbGmx = rAnbList.find(a => a.key === 'gmx');
     check('Jeder Eintrag traegt Server, Port und Verschluesselung',
       rAnbList.every(a => typeof a.server === 'string' && typeof a.port === 'number'
-                     && typeof a.sicher === 'boolean'),
+                     && typeof a.secure === 'boolean'),
       JSON.stringify(rAnbList[0]));
     check('Und die Werte sind die der Vorlage',
-      rAnbGmx?.server === 'mail.gmx.net' && rAnbGmx?.port === 587 && rAnbGmx?.sicher === false,
+      rAnbGmx?.server === 'mail.gmx.net' && rAnbGmx?.port === 587 && rAnbGmx?.secure === false,
       JSON.stringify(rAnbGmx));
     /* DER HINWEIS HAENGT JETZT AM EINTRAG UND NICHT MEHR NUR AM GESPEICHERTEN
        ANBIETER. Beide Richtungen: wo einer gehoert, steht er; wo keiner
@@ -12113,7 +12542,7 @@ const shareMain = (purpose, target = null) =>
     const regMailSet = async (S, empf) => {
       await regFree(S);
       return S.call('PUT', '/api/mail', {
-        provider: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
+        provider: 'eigen', server: '127.0.0.1', port: empf.port, secure: false,
         user: 'kriterion@beispiel.de', password: REG_MAILWORT, sender: 'instanz@beispiel.de'
       });
     };
@@ -12318,11 +12747,11 @@ const shareMain = (purpose, target = null) =>
       JSON.stringify((await gA.S.call('GET', '/api/config')).content?.signup));
     /* DIE LISTE IN /api/config BLEIBT ABGESCHLOSSEN. Sie steht vor der
        Anmeldung; was hier dazukommt, sieht jeder, der die Adresse kennt.
-       FUENF NAMEN SEIT 0.9.1, und ein sechster kommt nicht stillschweigend --
+       SIEBEN NAMEN SEIT 0.24.3, und ein achter kommt nicht stillschweigend --
        dieselbe Bauform wie die Zahl in F_ROUTES. */
     check('Und vor der Anmeldung wird sonst weiterhin nichts verraten',
       equal(Object.keys((await gA.S.call('GET', '/api/config')).content).sort(),
-        ['minPassword', 'setupRequired', 'signup', 'title', 'version']),
+        ['language', 'languages', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
       JSON.stringify(Object.keys((await gA.S.call('GET', '/api/config')).content)));
     const gOut = await gA.S.call('PUT', '/api/signup/toggle', { an: false });
     check('Ausschalten geht immer -- auch mit kaputtem Versand',
@@ -12514,7 +12943,7 @@ const shareMain = (purpose, target = null) =>
       ((hCard.requests || [])[0] || {}).username === 'clara',
       JSON.stringify((hCard.requests || []).map(a => a.username)));
     check('Der Deckel zaehlt trotzdem beide',
-      hCard.belegt === 2, `${hCard.belegt} von ${hCard.cap}`);
+      hCard.used === 2, `${hCard.used} von ${hCard.cap}`);
     /* UND SIE LAESST SICH AUCH NICHT UEBER IHRE NUMMER FREISCHALTEN. Die Karte
        zeigt sie nicht, aber eine Nummer laesst sich tippen -- die Route
        verlaesst sich deshalb nicht auf die Karte. */
@@ -12537,10 +12966,10 @@ const shareMain = (purpose, target = null) =>
        verlangt war.
        GESTELLT WIRD DER ZUSTAND UEBER DIE DATENBANK, wie bei den Token: eine
        Prueflage, die 24 Stunden wartet, ist keine. */
-    const hOld = (stunden) => shortRun(
+    const hOld = (hours) => shortRun(
       `const { db } = require('./db');` +
       `db.prepare("UPDATE requests SET created_at = datetime('now', ?) WHERE username = 'dora'")` +
-      `.run('-${stunden} hours'); console.log('gesetzt');`, hA.dir);
+      `.run('-${hours} hours'); console.log('gesetzt');`, hA.dir);
     hOld(23);
     check('Die unbestaetigte Zeile liegt fuer die Fristprobe ueberhaupt vor',
       regSql(hA.dir, "SELECT created_at FROM requests WHERE username = 'dora'").length === 1,
@@ -12626,8 +13055,8 @@ const shareMain = (purpose, target = null) =>
       'der Name steht doch da');
     const hCapCard = (await hA.S.call('GET', '/api/requests')).content || {};
     check('Die Karte nennt den Stand gegen den Deckel',
-      hCapCard.belegt === 20 && hCapCard.cap === 20,
-      `${hCapCard.belegt} von ${hCapCard.cap}`);
+      hCapCard.used === 20 && hCapCard.cap === 20,
+      `${hCapCard.used} von ${hCapCard.cap}`);
     // Platz schaffen, und die naechste geht wieder durch -- sonst belegte die
     // Pruefung nur, dass gar nichts mehr geht.
     shortRun(`const { db } = require('./db');` +
@@ -12791,7 +13220,7 @@ const shareMain = (purpose, target = null) =>
     };
     const rCoreId = await rolesState('gustav', 'gustav@beispiel.de');
     const rCore = await hA.S.call('POST', `/api/requests/${rCoreId}/approve`,
-      { rolle: 'owner', role: 'admin' });
+      { role: 'owner', role: 'admin' });
     check('Eine Rolle im Rumpf aendert nichts', rCore.content?.role === 'user',
       JSON.stringify(rCore.content?.role));
     const rQueryId = await rolesState('heidi', 'heidi@beispiel.de');
@@ -13245,13 +13674,13 @@ const shareMain = (purpose, target = null) =>
        ordentlich rot. */
     const zfLogin = async (z, counter, raw) => {
       await zfS.cookieRemove();
-      const eins = await zfS.call('POST', '/api/login', { user: z.name, password: z.password });
+      const one = await zfS.call('POST', '/api/login', { user: z.name, password: z.password });
       const empty = { status: 0, content: { missing: 'Schritt 1 gab keinen Ausweis her' } };
-      if (!eins.content || !eins.content.ticket) return { eins, two: empty };
+      if (!one.content || !one.content.ticket) return { one, two: empty };
       const code = raw !== undefined ? raw : ZF.code(z.secret, counter);
       const two = await zfS.call('POST', '/api/login/second',
-        { ticket: eins.content.ticket, code });
-      return { eins, two };
+        { ticket: one.content.ticket, code });
+      return { one, two };
     };
 
     /* ---------------------------------------------------------------- */
@@ -13280,7 +13709,7 @@ const shareMain = (purpose, target = null) =>
     const zfCard = await zfS.call('GET', '/api/account');
     check('Die Karte "Zugang" sieht den Zustand ohne einen zweiten Abruf',
       zfCard.content.twoFactor?.an === true &&
-      typeof zfCard.content.twoFactor.seit === 'string' &&
+      typeof zfCard.content.twoFactor.since === 'string' &&
       zfCard.content.twoFactor.codesOpen === 8, JSON.stringify(zfCard.content.twoFactor));
     const zfEinst = await zfS.call('GET', '/api/settings');
     check('Und GET /api/settings sagt dem Bestaetigungsfenster, dass ein Code dazugehoert',
@@ -13289,15 +13718,15 @@ const shareMain = (purpose, target = null) =>
     await zfQuiet();
     const zfRound = await zfLogin(zfA, ZF.nowStep() + 1);
     check('Abmelden und mit Code wieder anmelden: Schritt 1 gibt keinen Cookie, sondern einen Ausweis',
-      zfRound.eins.status === 200 && zfRound.eins.content.twoFactor === true &&
-      typeof zfRound.eins.content.ticket === 'string' && !zfRound.eins.content.ok,
-      JSON.stringify(zfRound.eins.content));
+      zfRound.one.status === 200 && zfRound.one.content.twoFactor === true &&
+      typeof zfRound.one.content.ticket === 'string' && !zfRound.one.content.ok,
+      JSON.stringify(zfRound.one.content));
     /* DIE FRIST DES AUSWEISES WIRD UEBER DIE ZAHL GEHALTEN und nicht gemessen:
        zwei Minuten zu warten waere eine Prueflage, die jeder Lauf bezahlt.
        Sie ist DIESELBE wie die der Freigabe aus 0.8.90 -- ein Wert, eine
        Regel, eine Gegenprobe. Zwei Zahlen an zwei Orten liefen auseinander. */
     check('Der Ausweis nennt seine Frist, und sie ist die der zweiten Bestaetigung',
-      zfRound.eins.content.sekunden === 120, String(zfRound.eins.content.sekunden));
+      zfRound.one.content.seconds === 120, String(zfRound.one.content.seconds));
     check('Und Schritt 2 meldet an',
       zfRound.two.status === 200 && zfRound.two.content.ok === true,
       JSON.stringify(zfRound.two.content));
@@ -13309,14 +13738,14 @@ const shareMain = (purpose, target = null) =>
     {
       await zfS.cookieRemove();
       const before = zfSql('SELECT COUNT(*) n FROM sessions')[0].n;
-      const eins = await zfS.call('POST', '/api/login',
+      const one = await zfS.call('POST', '/api/login',
         { user: zfA.name, password: zfA.password });
       const between = zfSql('SELECT COUNT(*) n FROM sessions')[0].n;
       check('Zwischen den beiden Schritten entsteht KEINE Sitzung',
-        between === before && Boolean(eins.content.ticket), `${before} → ${between}`);
+        between === before && Boolean(one.content.ticket), `${before} → ${between}`);
       check('Und der Ausweis steht in keiner Tabelle -- er liegt im Arbeitsspeicher',
-        !JSON.stringify(zfSql('SELECT * FROM sessions')).includes(eins.content.ticket) &&
-        !JSON.stringify(zfSql('SELECT * FROM two_factor')).includes(eins.content.ticket));
+        !JSON.stringify(zfSql('SELECT * FROM sessions')).includes(one.content.ticket) &&
+        !JSON.stringify(zfSql('SELECT * FROM two_factor')).includes(one.content.ticket));
     }
     // Ausschalten: hinter Passwort UND Code, und danach ist der Zugang wieder
     // einstufig. Der letzte Wiederherstellungscode belegt hier den Faktor.
@@ -13773,13 +14202,13 @@ const shareMain = (purpose, target = null) =>
     const zfH = await zfUserIncludingFactor('ida');
     await zfS.cookieRemove();
     await zfS.call('POST', '/api/login', { user: 'anna', password: ZF_PASSWORD });
-    await zfS.call('PUT', `/api/users/${zfH.id}`, { rolle: 'owner' });
+    await zfS.call('PUT', `/api/users/${zfH.id}`, { role: 'owner' });
     const zfRoleFree = await zfS.call('POST', '/api/confirm',
       { password: ZF_PASSWORD, purpose: 'role', target: zfH.id });
     check('Ein Zugang OHNE zweiten Faktor bestaetigt weiterhin mit dem Passwort allein',
       zfRoleFree.status === 200 && zfRoleFree.content.ok === true,
       JSON.stringify(zfRoleFree.content));
-    await zfS.call('PUT', `/api/users/${zfH.id}`, { rolle: 'owner' });
+    await zfS.call('PUT', `/api/users/${zfH.id}`, { role: 'owner' });
     await zfLogin(zfH, 0, zfH.codes[0]);
     const zfBestWithout = await zfS.call('POST', '/api/confirm',
       { password: zfH.password, purpose: 'export', target: null });
@@ -13843,11 +14272,11 @@ const shareMain = (purpose, target = null) =>
     const zfThrottle = [];
     for (let i = 0; i < 9; i++) {
       await zfS.cookieRemove();
-      const eins = await zfS.call('POST', '/api/login',
+      const one = await zfS.call('POST', '/api/login',
         { user: zfI.name, password: zfI.password });
-      if (!eins.content || !eins.content.ticket) { zfThrottle.push({ step: 1, status: eins.status }); continue; }
+      if (!one.content || !one.content.ticket) { zfThrottle.push({ step: 1, status: one.status }); continue; }
       const two = await zfS.call('POST', '/api/login/second',
-        { ticket: eins.content.ticket, code: '000000' });
+        { ticket: one.content.ticket, code: '000000' });
       zfThrottle.push({ step: 2, status: two.status });
     }
     check('Bis zur zehnten Fehleingabe wird abgewiesen, aber nicht gesperrt',
@@ -14667,8 +15096,8 @@ const shareMain = (purpose, target = null) =>
      liefen sie irgendwann auseinander. Dieselbe Bauform wie bei der
      Adminfrage darueber: den vorhandenen Waechter erweitern, die Regel nicht
      ein zweites Mal hinschreiben. */
-  for (const [wort, wo] of [['WEIGHT_MIN = ', 'die Untergrenze'], ['WEIGHT_MAX = ', 'die Obergrenze']]) {
-    const n = fSource.split(wort).length - 1;
+  for (const [word, wo] of [['WEIGHT_MIN = ', 'die Untergrenze'], ['WEIGHT_MAX = ', 'die Obergrenze']]) {
+    const n = fSource.split(word).length - 1;
     check(`${wo[0].toUpperCase()}${wo.slice(1)} des Gewichts steht genau einmal im Quelltext`,
       n === 1, `${n} Vorkommen`);
   }
@@ -15106,8 +15535,8 @@ const shareMain = (purpose, target = null) =>
   const protHeadings = [...fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')
     .matchAll(/<h3>([\s\S]*?)<\/h3>/g)].map(m => {
       const call = /^\$\{tH?\('([^']+)'\)\}$/.exec(m[1].trim());
-      const wort = call ? protDe[call[1]] : m[1];
-      return typeof wort === 'string' ? wort.trim() : m[1].trim();
+      const word = call ? protDe[call[1]] : m[1];
+      return typeof word === 'string' ? word.trim() : m[1].trim();
     });
   check('Und das Wort Sicherheitsprotokoll steht am Bildschirm wirklich',
     protHeadings.includes('Sicherheitsprotokoll'),
@@ -15469,7 +15898,7 @@ const shareMain = (purpose, target = null) =>
     const identifiers = new Set();
     for (const f of SHIPPED)
       for (const part of zerlege(readShipped(f), f))
-        if (part.art === CODE)
+        if (part.kind === CODE)
           for (const m of part.wert.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen ausgelieferten Code',
       identifiers.size > 2000 && SHIPPED.length === 13, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
@@ -15484,22 +15913,15 @@ const shareMain = (purpose, target = null) =>
        Vokabulars, gespeicherte Werte (Bloecke, Filter, Sortierungen) und die
        Felder, deren Satz erst mit `en.json` umzieht. Sie ziehen mit ihrer
        Sache um und nicht vor ihr. */
-    const WAITING_FOR_STAGE_TWO = ['abgelehnt', 'andere', 'angemeldetAm', 'ansichtenDeckel',
-      'anzahl', 'art', 'aufgabe', 'aufgabeEinzahl', 'aufgabeErledigt', 'aufgabeMehrzahl',
-      'behalten', 'beitraege', 'belegt', 'berichtEinzahl', 'berichtMehrzahl', 'beschreibung',
-      'bestaetigt_am', 'bewertungEinzahl', 'bewertungMehrzahl', 'bis', 'codesGesamt',
-      'codesOffen', 'criteriaGewichte', 'danach', 'datei', 'dauerSekunden', 'deckel', 'ein',
-      'eins', 'eintraege', 'erledigt', 'fassung', 'filterGesetzt', 'geblieben', 'geloescht_am',
-      'geprueft', 'gesamt', 'gescheitert', 'gespart', 'gewechseltAm', 'grenze', 'groesse',
-      'grund', 'iconWiederher', 'kategorie', 'letzter', 'loeschender', 'merkmalJa',
-      'merkmalNein', 'minPasswort', 'minuten', 'mit', 'nachgezogen', 'namen', 'nicht',
-      'nummer', 'oben', 'offen', 'ohne', 'ordner', 'papierkorbTage', 'persoenlich', 'potenzial',
-      'potenzial_asc', 'potenzial_desc', 'quelle', 'reicht', 'rolle', 'sache', 'sacheEinzahl',
-      'sacheMehrzahl', 'schluesselBits', 'schnitt', 'seit', 'seite', 'sekunden', 'sicher',
-      'stimmen', 'stunden', 'tage', 'teil', 'teile', 'testtag', 'titel', 'uebersprungen',
-      'umgestellt', 'umstellung', 'unten', 'veraltet', 'verfasser', 'von', 'vorne', 'wer',
-      'wort', 'zeit', 'zeitpunktEinzahl', 'zeitpunktMehrzahl', 'zielGroesse', 'ziffern',
-      'zugang', 'zugenommen', 'zuletzt', 'zuletztGesehen', 'zusatz'];
+    /* HIER STAND BIS 0.24.2 `WAITING_FOR_STAGE_TWO` MIT 104 NAMEN -- die
+       Grenzen, die 0.24.1 liegen liess, weil sie an einem WERT der
+       Sprachdatei, an einer gespeicherten Form oder an einer Adresse hingen.
+       SIE IST MIT 0.24.3 GEFALLEN, ganz und nicht in Teilen: Frage F7 ist vom
+       Betreiber am 7. September 2026 gegen den Vorschlag entschieden worden --
+       ALLES zieht mit, auch was in der Datenbank steht.
+       EINE AUSNAHME, DIE NIEMAND MEHR BRAUCHT, IST EINE KARTEILEICHE, und der
+       Waechter sagt es: die Zeile „jeder benannte steht wirklich im Code"
+       weiter unten wuerde jeden uebriggebliebenen Namen melden. */
     /* DIE ALTEN NAMEN DES BESTANDS -- seit 0.24.2. Sechs Feldnamen, die in
        0.24.0 IN einem gespeicherten Wert standen: `vorlage` an den eigenen
        Suchmaschinen, die vier Felder des Mailzugangs, `marke` am Beleg der
@@ -15510,18 +15932,22 @@ const shareMain = (purpose, target = null) =>
        `am` UND `name` STEHEN NICHT DABEI: `am` ist im Woerterbuch kein Wort,
        und `name` heisst in beiden Sprachen so. */
     const OLD_STORED_NAMES = ['absender', 'anbieter', 'benutzer', 'marke', 'passwort', 'vorlage'];
-    const NAMED = [...FALSE_FRIENDS, ...OLD_STORED_NAMES, ...WAITING_FOR_STAGE_TWO].sort();
+    const NAMED = [...FALSE_FRIENDS, ...OLD_STORED_NAMES].sort();
     const germanNames = [...identifiers].filter(isGerman).sort();
     check('Namensprobe: kein deutscher Bezeichner ausser den benannten',
       equal(germanNames, NAMED),
       `zu viel: ${germanNames.filter(n => !NAMED.includes(n)).join(' ') || '—'} · fehlt: ${NAMED.filter(n => !germanNames.includes(n)).join(' ') || '—'}`);
     /* DIE ZAHL STEHT AUSDRUECKLICH DA. Ohne sie waere die Liste oben eine
        Selbstbestaetigung: wer einen Namen hinzufuegt, macht sie wieder gruen. */
-    check('Und es sind genau 116 — sechs falsche Freunde, sechs alte Feldnamen und 104 Grenzen',
-      germanNames.length === 116 && FALSE_FRIENDS.length === 6 &&
-      OLD_STORED_NAMES.length === 6 && WAITING_FOR_STAGE_TWO.length === 104,
+    /* ZWOELF SEIT 0.24.3, vorher 116. Die 104 Grenzen sind gefallen (F7); was
+       bleibt, sind die sechs falschen Freunde -- englische Woerter, die das
+       Woerterbuch als deutsche kennt -- und die sechs alten Feldnamen, die
+       eine Uebersetzungstafel NENNEN muss, um sie zu uebersetzen. */
+    check('Und es sind genau zwoelf — sechs falsche Freunde und sechs alte Feldnamen',
+      germanNames.length === 12 && FALSE_FRIENDS.length === 6 &&
+      OLD_STORED_NAMES.length === 6,
       `${germanNames.length} deutsch, ${FALSE_FRIENDS.length} falsche Freunde, ` +
-      `${OLD_STORED_NAMES.length} alte Feldnamen, ${WAITING_FOR_STAGE_TWO.length} Grenzen`);
+      `${OLD_STORED_NAMES.length} alte Feldnamen`);
     /* UND DIE SECHS STEHEN NUR AN EINER STELLE. Ohne diese Zeile waere die
        Ausnahme ein Freibrief: wer morgen eine Veraenderliche `vorlage` nennt,
        waere gruen, weil der Name schon einmal erlaubt wurde. Gesucht wird je
@@ -15529,7 +15955,7 @@ const shareMain = (purpose, target = null) =>
        ist, ist eine Benennung und keine Uebersetzung. */
     const oldElsewhere = [];
     for (const f of SHIPPED) {
-      const code = zerlege(readShipped(f), f).filter(p => p.art === CODE)
+      const code = zerlege(readShipped(f), f).filter(p => p.kind === CODE)
         .map(p => p.wert).join('\n');
       const rest = f === 'db.js'
         ? code.replace(/const SHAPES_0242 = \[[\s\S]*?\n\];/, '') : code;
@@ -15560,18 +15986,20 @@ const shareMain = (purpose, target = null) =>
       if (v && typeof v === 'object') for (const x of Object.keys(v)) languageKeys.push(k + '.' + x);
     }
     const germanKeys = languageKeys.filter(k => k.split('.').some(isGerman));
-    const pluralKeys = germanKeys.filter(k => /\.(eins|andere)$/.test(k));
-    const vocabularyKeys = germanKeys.filter(k => k.startsWith('vocabulary.'));
+    /* SIE SIND SEIT 0.24.3 ENGLISCH (F7) und werden deshalb nicht mehr aus den
+       DEUTSCHEN Schluesseln gefiltert, sondern aus allen: `one`/`other` statt
+       `eins`/`andere`, `entryOne` statt `sacheEinzahl`. Gezaehlt werden sie
+       weiter -- eine Zahl, die unveraendert bleiben soll, muss dastehen. */
+    const pluralKeys = languageKeys.filter(k => /\.(one|other)$/.test(k));
+    const vocabularyKeys = languageKeys.filter(k => k.startsWith('vocabulary.'));
     /* Drei falsche Freunde: `Note` heisst hier Vermerk, `standard` ist das
        englische Wort und steht so am Bildschirm. */
     const KEY_FALSE_FRIENDS = ['card.heWill', 'card.keepAtLeastNote', 'card.orderAppliesNote',
       'card.standard', 'list.saveViewNote'];
-    check('Schluesselprobe: deutsch sind nur Mehrzahl, Vokabular und die benannten fuenf',
-      equal(germanKeys.filter(k => !pluralKeys.includes(k) && !vocabularyKeys.includes(k)).sort(),
-            KEY_FALSE_FRIENDS),
-      germanKeys.filter(k => !pluralKeys.includes(k) && !vocabularyKeys.includes(k)).join(' '));
-    check('Und die Zahlen stehen: 1259 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1259 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
+    check('Schluesselprobe: deutsch sind nur noch die benannten fuenf',
+      equal(germanKeys.sort(), KEY_FALSE_FRIENDS), germanKeys.join(' '));
+    check('Und die Zahlen stehen: 1272 Schluessel, 68 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1272 && pluralKeys.length === 68 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -15584,7 +16012,7 @@ const shareMain = (purpose, target = null) =>
         /* NUR DIE STRINGS. Ein Weg in einem Kommentar ist eine Erzaehlung
            ueber frueher -- `#/system/datenbank` steht dort als Beispiel fuer
            ein altes Lesezeichen und nicht als Adresse dieser Fassung. */
-        if (part.art !== TEXT) continue;
+        if (part.kind !== TEXT) continue;
         for (const m of part.wert.matchAll(/(\/api\/[A-Za-z0-9/:_-]+)/g)) addresses.add(m[1]);
         for (const m of part.wert.matchAll(/(#\/[A-Za-z0-9/:_-]*)/g)) addresses.add(m[1]);
       }
@@ -15650,18 +16078,75 @@ const shareMain = (purpose, target = null) =>
     check('Die Werte der Abnahme liegen als Datei daneben',
       wordingFile.commit === '0681d42' && Array.isArray(wordingFile.values),
       `${wordingFile.commit} · ${wordingFile.values?.length} Werte`);
+    /* 0.24.3 IST DIE ERSTE RUNDE DIESER REIHE, DIE SAETZE HINZUFUEGT -- und
+       damit die erste, die diesen Waechter anfasst. 0.24.0 hat den Text in die
+       Datei geholt, 0.24.1 die Schluessel umbenannt, 0.24.2 die gespeicherten
+       Formen; keine hat einen Satz angeruehrt, und der Waechter sagte deshalb
+       „gleich viele wie damals".
+       DIE ZUSAGE BLEIBT, SIE WIRD NUR GENAUER: die neuen Schluessel stehen
+       NAMENTLICH hier, und alles Uebrige ist weiterhin Zeichen fuer Zeichen
+       der Stand von 0681d42. Eine Liste von Schluesseln und keine von Saetzen
+       -- ein Satz koennte zufaellig einem alten gleichen, und dann naehme die
+       Rechnung den falschen weg.
+       WER EINEN SCHLUESSEL HINZUFUEGT, TRAEGT IHN HIER EIN. Das ist der ganze
+       Sinn: eine Zeile mehr im Pruefstand gegen einen Satz mehr am Bildschirm,
+       den sonst niemand bemerkt haette. */
+    const WORDING_NEW_0243 = ['_name',
+      'card.languageDefaultSaved', 'card.languageDefaultTip', 'card.languageHint',
+      'card.languagePoolSaved',
+      'card.languages', 'card.languagesFileAfter', 'card.languagesFileBefore',
+      'card.onDate', 'card.partLoaded',
+      'card.languagesHint', 'card.languagesUsersHint',
+      'server.languageUnknown'];
+    const wordingMissing = WORDING_NEW_0243.filter(k => LANGUAGE_FILE[k] === undefined);
+    check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
+      wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
+    const wordingOld = Object.fromEntries(Object.entries(LANGUAGE_FILE)
+      .filter(([k]) => !WORDING_NEW_0243.includes(k)));
+    /* DIE PLATZHALTERNAMEN ZIEHEN MIT IHREM SATZ UM -- 0.24.3, F7. Aus
+       „{tage} Tagen" ist „{days} Tagen" geworden: der SATZ ist Zeichen fuer
+       Zeichen derselbe, nur der Name in den Klammern ist englisch. Genau
+       deshalb hat 0.24.1 sie liegen gelassen -- ein Umbenennen dort haette
+       damals einen Wert der Datei geaendert und die Zusage „kein Wort anders"
+       gebrochen.
+       VERGLICHEN WIRD DESHALB MIT ZURUECKGEDREHTEN NAMEN. Die Tafel ist
+       dieselbe, die den Umbau gefahren hat, nur andersherum gelesen -- eine
+       zweite Liste hier liefe von der ersten weg.
+       WAS DAMIT WEITERHIN AUFFAELLT: jede Aenderung am SATZ. Wer ein Wort
+       austauscht, sieht diese Zeile rot; wer einen Platzhalter umbenennt und
+       die Tafel pflegt, nicht. */
+    const PLACEHOLDERS_0243 = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'tools', 'placeholders-0243.json'), 'utf8'));
+    const BACK = Object.fromEntries(Object.entries(PLACEHOLDERS_0243).map(([de, en]) => [en, de]));
+    const asBefore = (v) => String(v).replace(/\{(\w+)\}/g, (whole, n) => BACK[n] ? `{${BACK[n]}}` : whole);
+    check('Die Tafel der Platzhalternamen liegt als Datei daneben',
+      Object.keys(PLACEHOLDERS_0243).length === 89,
+      `${Object.keys(PLACEHOLDERS_0243).length} Namen`);
     const wordingThen = [...wordingFile.values].sort();
-    const wordingNow = valuesOf(LANGUAGE_FILE).sort();
+    const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
     const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
     check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme',
       wordingThen.length === wordingNow.length && wordingNow.length === 1225,
-      `${wordingThen.length} damals, ${wordingNow.length} heute`);
-    check('Und genau ein Satz ist ein anderer — der, der BACKUP_DIR nennt',
-      onlyThen.length === 1 && onlyNow.length === 1 &&
-      onlyThen[0].includes('SICHERUNG_DIR') && onlyNow[0].includes('BACKUP_DIR') &&
-      LANGUAGE_FILE['server.backupDirNotSet'] === onlyNow[0],
-      `${onlyThen.length} damals / ${onlyNow.length} heute: ${JSON.stringify(onlyNow[0] || '').slice(0, 80)}`);
+      `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
+      `${WORDING_NEW_0243.length} neuen dieser Runde)`);
+    /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
+       `server.backupDirNotSet` NENNT die Umgebungsvariable, und die heisst
+       seit 0.24.1 anders -- der Satz musste mitziehen, weil er sonst auf etwas
+       zeigte, das es nicht mehr gibt.
+       `card.partQuery` IST KEIN SATZ, SONDERN EIN WEG: „&von=…&bis=…&teil=…"
+       ist die Abfrage, die die Oberflaeche baut. Seit 0.24.3 heissen die vier
+       Angaben englisch (F7), und der Wert der Datei ist damit ein anderer.
+       Ein Wert, den kein Mensch liest, ist keine Ausnahme von „am Bildschirm
+       aendert sich kein Wort" -- er steht hier trotzdem, weil er in derselben
+       Datei liegt und sonst stillschweigend durchginge. */
+    const WORDING_CHANGED_0243 = ['server.backupDirNotSet', 'card.partQuery'];
+    check('Und genau zwei Saetze sind andere — BACKUP_DIR und die Teilabfrage',
+      onlyThen.length === 2 && onlyNow.length === 2 &&
+      WORDING_CHANGED_0243.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
+      onlyThen.some(x => x.includes('SICHERUNG_DIR')) &&
+      onlyThen.some(x => x.includes('&von=')),
+      `${onlyThen.length} damals / ${onlyNow.length} heute: ${JSON.stringify(onlyNow).slice(0, 160)}`);
     /* UND SONST KEIN ZEICHEN. Die eine Ausnahme wird aus BEIDEN Listen
        genommen, und was bleibt, muss Satz fuer Satz dasselbe sein -- nicht
        „ungefaehr gleich viele", sondern derselbe Wortlaut. */
@@ -15669,10 +16154,10 @@ const shareMain = (purpose, target = null) =>
       const at = list.indexOf(sentence);
       return at < 0 ? list : list.slice(0, at).concat(list.slice(at + 1));
     };
-    const restThen = withoutOne(wordingThen, onlyThen[0]);
-    const restNow = withoutOne(wordingNow, onlyNow[0]);
+    const restThen = onlyThen.reduce(withoutOne, wordingThen);
+    const restNow = onlyNow.reduce(withoutOne, wordingNow);
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1224,
+      equal(restThen, restNow) && restNow.length === 1223,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -15706,8 +16191,8 @@ const shareMain = (purpose, target = null) =>
       equal(overTheBar, NAMED_EXCEPTIONS), overTheBar.join(' '));
     check('Und jede der vier traegt ihren Satz im Woerterbuch',
       DICTIONARY.exceptions.length === 4 &&
-      DICTIONARY.exceptions.every(e => typeof e.grund === 'string' && e.grund.length > 40),
-      DICTIONARY.exceptions.map(e => `${e.name}: ${e.grund.length}`).join(' · '));
+      DICTIONARY.exceptions.every(e => typeof e.reason === 'string' && e.reason.length > 40),
+      DICTIONARY.exceptions.map(e => `${e.name}: ${e.reason.length}`).join(' · '));
     const longestKey = languageKeys.map(k => k.split('.').pop())
       .reduce((a, b) => (b.length > a.length ? b : a), '');
     check('Und der laengste Schluesselname bleibt unter der Latte',
@@ -15771,17 +16256,17 @@ const shareMain = (purpose, target = null) =>
        ueber die WERTE des Zugangs in fester Reihenfolge. Genau deshalb muss
        mail.mark() nach dem Umbenennen dieselbe Zahl liefern -- und genau das
        haelt die Probe „Die Marke des Mailtests gilt weiter" fest. */
-    const gfAccess = { anbieter: 'eigen', server: 'mail.beispiel.de', port: 465, sicher: true,
+    const gfAccess = { anbieter: 'eigen', server: 'mail.beispiel.de', port: 465, secure: true,
                        benutzer: 'anna@beispiel.de', passwort: 'geheim',
                        absender: 'anna@beispiel.de' };
     const gfMark = crypto.createHash('sha256').update(JSON.stringify(
-      [gfAccess.anbieter, gfAccess.server, gfAccess.port, gfAccess.sicher,
+      [gfAccess.anbieter, gfAccess.server, gfAccess.port, gfAccess.secure,
        gfAccess.benutzer, gfAccess.passwort, gfAccess.absender])).digest('hex').slice(0, 16);
     const gfOwn = [{ name: 'Ladies-Forum', vorlage: 'https://ladies.forum/suche?q=%s' }, null,
                    { name: 'Zweites Forum', vorlage: 'https://zwei.beispiel.de/?q=%s' }];
     const gfPool = ['startpage', 'eigen1', 'ddg', 'eigen3'];
-    const gfVocabulary = { sacheEinzahl: 'Modell', sacheMehrzahl: 'Modelle' };
-    const gfBlocks = { seite: ['tags', 'kategorie'], unten: [], zu: ['links'] };
+    const gfVocabulary = { entryOne: 'Modell', entryMany: 'Modelle' };
+    const gfBlocks = { side: ['tags', 'kategorie'], bottom: [], closed: ['links'] };
     {
       const d = open(gfFile);
       const put = d.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
@@ -15844,7 +16329,7 @@ const shareMain = (purpose, target = null) =>
        ueber 0.24.1, die nicht stimmt. */
     check('Und server, port und sicher stehen unveraendert',
       gfAccessAfter.server === 'mail.beispiel.de' && gfAccessAfter.port === 465 &&
-      gfAccessAfter.sicher === true, JSON.stringify(gfAccessAfter));
+      gfAccessAfter.secure === true, JSON.stringify(gfAccessAfter));
 
     const gfTestAfter = gfSetting('mailtestOk');
     check('Der Beleg der Testmail traegt danach `mark` und `at`',
@@ -15884,10 +16369,13 @@ const shareMain = (purpose, target = null) =>
     check('Und „zuletzt getestet" steht wieder da',
       gfSeen.testedAt === '2026-09-01 10:00:00', JSON.stringify(gfSeen.testedAt));
 
-    /* DIE GEGENLAGE: VIER WERTE, DIE SICH NICHT AENDERN DUERFEN. `searchOn`
-       ist eine flache Liste von Schluesseln, `vocabulary` traegt die vierzehn
-       Vokabelnamen, die deutsch bleiben, und `blocks` traegt seite/unten/zu --
-       alle drei sind in 0.24.1 ausdruecklich nicht umgezogen. */
+    /* DIE GEGENLAGE: DREI WERTE, DIE SICH IN DIESEM BLOCK NICHT AENDERN
+       DUERFEN. `searchOn` ist eine flache Liste von Schluesseln und war schon
+       0.24.1 kein Fall; `vocabulary` und `blocks` stehen hier ABSICHTLICH
+       schon mit englischen Namen da -- der Block 0.24.3 eine Gruppe weiter
+       unten nimmt sie sich vor, und was dort schon englisch heisst, darf auch
+       er nicht mehr anfassen. Ein Block, der alles anfasst, waere schlimmer
+       als einer, der nichts tut. */
     check('Der Vorrat der Suchmaschinen bleibt Zeichen fuer Zeichen stehen',
       equal(gfSetting('searchOn'), gfPool), JSON.stringify(gfSetting('searchOn')));
     check('Das Vokabular bleibt Zeichen fuer Zeichen stehen',
@@ -15970,6 +16458,407 @@ const shareMain = (purpose, target = null) =>
       'der Leser trifft auch Namen, die nicht dastehen');
 
     fs.rmSync(gfDirectory, { recursive: true, force: true });
+  }
+
+  /* ========= Die deutschen Reste in gespeicherten Werten — 0.24.3 =========
+     DIE ZWEITE MIGRATION DIESER RUNDE, und sie steht hier, weil Frage F7 vom
+     Betreiber GEGEN den Vorschlag des Auftrags entschieden worden ist: der
+     deutsche Rest aus 0.24.1 faellt ganz, auch was in der Datenbank steht.
+
+     DIESELBE BAUFORM WIE DIE GRUPPE DARUEBER, und aus demselben Grund: an
+     einem ECHTEN Bestand und nicht am Quelltext. Ein Waechter, der nachliest,
+     ob STORED_0243 dasteht, waere gruen, sobald die Liste dasteht -- und
+     sagte nichts darueber, ob sie greift (Stolperstein 325).
+
+     DER TEUERSTE FALL STEHT ZUERST: das Vokabular. Vierzehn Woerter, die der
+     Eigentuemer eingetragen hat, liegen unter Namen, die 0.24.1 im Quelltext
+     uebersetzt hat -- und vocabulary() laeuft ueber die VORGABEN und liest zu
+     jedem Namen den gespeicherten Wert. Ohne diesen Block faellt jedes der
+     vierzehn Woerter still auf die Vorgabe zurueck.
+
+     UND DIE GEGENLAGE STEHT DANEBEN: die BLOCKNAMEN (`kategorie`, `bewertung`,
+     `potenzial` und die uebrigen) sind ausdruecklich NICHT Gegenstand dieser
+     Runde -- die Entscheidung nennt die BEREICHE (`seite`, `unten`, `zu`) und
+     nicht die Bloecke darin. Ein Block, der mehr anfasst als beschlossen,
+     waere schlimmer als einer, der nichts tut. */
+  group('Die deutschen Reste in gespeicherten Werten — 0.24.3');
+  {
+    const drDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-reste-'));
+    const drFile = path.join(drDirectory, 'katalog.sqlite');
+    shortRun(`require('./db'); console.log('angelegt');`, drDirectory);
+
+    /* DER GESTELLTE BESTAND: eine Installation auf dem Stand 0.24.2, in der
+       jemand gearbeitet hat. Vierzehn eigene Vokabeln, ein Mailzugang mit
+       `sicher`, geschobene Bloecke, ein Filter mit `favorit` und einer
+       Potenzialsortierung, und zwei gespeicherte Ansichten, die denselben
+       Filter noch einmal tragen. */
+    const drVocabulary = {
+      sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen',
+      merkmalJa: 'Geprüft', merkmalNein: 'Ungeprüft',
+      zeitpunktEinzahl: 'Prüftag', zeitpunktMehrzahl: 'Prüftage',
+      berichtEinzahl: 'Protokoll', berichtMehrzahl: 'Protokolle',
+      aufgabeEinzahl: 'Auftrag', aufgabeMehrzahl: 'Aufträge',
+      aufgabeErledigt: 'Abgearbeitet', potenzial: 'Erwartung',
+      bewertungEinzahl: 'Wertung', bewertungMehrzahl: 'Wertungen'
+    };
+    const drAccess = { provider: 'eigen', server: 'mail.beispiel.de', port: 465,
+                       sicher: true, user: 'olaf@beispiel.de', password: 'geheim',
+                       sender: 'olaf@beispiel.de' };
+    const drBlocks = { seite: ['bewertung', 'kategorie', 'tags', 'potenzial'],
+                       unten: ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien'],
+                       zu: ['links', 'dateien'] };
+    const drFilters = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
+                        rejected: 'all', favorit: true, sort: 'potenzial_desc' };
+    const drViews = [{ name: 'Meine Favoriten', q: '',
+                       filters: { ...drFilters, sort: 'potenzial_asc' } },
+                     { name: 'Alles', q: 'bohr', filters: null }];
+    {
+      const d = open(drFile);
+      d.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
+        .run('vocabulary', JSON.stringify(drVocabulary));
+      d.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
+        .run('mailzugang', JSON.stringify(drAccess));
+      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
+        .run('restolaf', 'x', 'owner', 'active');
+      const drId = d.prepare("SELECT id FROM users WHERE username = 'restolaf'").get().id;
+      const put = d.prepare('INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?,?,?)');
+      put.run(drId, 'blocks', JSON.stringify(drBlocks));
+      put.run(drId, 'filters', JSON.stringify(drFilters));
+      put.run(drId, 'views', JSON.stringify(drViews));
+      d.close();
+    }
+    const drSetting = (k) => {
+      const d = open(drFile);
+      const r = d.prepare('SELECT value FROM settings WHERE key = ?').get(k);
+      d.close();
+      return r ? JSON.parse(r.value) : null;
+    };
+    const drOwn = (k) => {
+      const d = open(drFile);
+      const r = d.prepare('SELECT value FROM user_settings WHERE key = ?').get(k);
+      d.close();
+      return r ? JSON.parse(r.value) : null;
+    };
+    /* ERST DER GEGENSTAND SELBST -- sonst belegte alles Weitere nur, dass eine
+       Datenbank dasteht, und nicht, dass sie den Stand traegt, um den es geht. */
+    check('Der gestellte Bestand traegt die deutschen Namen',
+      drSetting('vocabulary')?.sacheEinzahl === 'Maschine' &&
+      drSetting('mailzugang')?.sicher === true &&
+      equal(drOwn('blocks')?.zu, ['links', 'dateien']) &&
+      drOwn('filters')?.favorit === true && drOwn('filters')?.sort === 'potenzial_desc',
+      JSON.stringify(drOwn('filters')));
+
+    // EIN Start -- und in ihm laufen alle drei Bloecke hintereinander.
+    shortRun(`require('./db'); console.log('gelaufen');`, drDirectory);
+
+    const drVocabularyAfter = drSetting('vocabulary');
+    check('Die vierzehn Vokabeln tragen danach englische Namen',
+      drVocabularyAfter.entryOne === 'Maschine' && drVocabularyAfter.entryMany === 'Maschinen' &&
+      drVocabularyAfter.testedYes === 'Geprüft' && drVocabularyAfter.testedNo === 'Ungeprüft' &&
+      drVocabularyAfter.dayOne === 'Prüftag' && drVocabularyAfter.dayMany === 'Prüftage' &&
+      drVocabularyAfter.reportOne === 'Protokoll' && drVocabularyAfter.reportMany === 'Protokolle' &&
+      drVocabularyAfter.taskOne === 'Auftrag' && drVocabularyAfter.taskMany === 'Aufträge' &&
+      drVocabularyAfter.taskDone === 'Abgearbeitet' && drVocabularyAfter.potential === 'Erwartung' &&
+      drVocabularyAfter.ratingOne === 'Wertung' && drVocabularyAfter.ratingMany === 'Wertungen',
+      JSON.stringify(drVocabularyAfter));
+    check('Und keiner der vierzehn deutschen steht mehr da',
+      Object.keys(drVocabularyAfter).every(k => !(k in drVocabulary)),
+      Object.keys(drVocabularyAfter).join(' · '));
+    /* UND ES SIND WIRKLICH VIERZEHN. Ohne diese Zeile bliebe offen, ob der
+       Block dreizehn umbenannt und einen liegen gelassen hat. */
+    check('Und es sind genau vierzehn',
+      Object.keys(drVocabularyAfter).length === 14,
+      `${Object.keys(drVocabularyAfter).length}`);
+
+    const drAccessAfter = drSetting('mailzugang');
+    check('Der Mailzugang traegt danach `secure`',
+      drAccessAfter.secure === true && !('sicher' in drAccessAfter),
+      Object.keys(drAccessAfter).join(' · '));
+    check('Und die uebrigen sechs Felder stehen unveraendert',
+      drAccessAfter.provider === 'eigen' && drAccessAfter.server === 'mail.beispiel.de' &&
+      drAccessAfter.port === 465 && drAccessAfter.user === 'olaf@beispiel.de' &&
+      drAccessAfter.password === 'geheim' && drAccessAfter.sender === 'olaf@beispiel.de',
+      JSON.stringify({ ...drAccessAfter, password: '***' }));
+
+    const drBlocksAfter = drOwn('blocks');
+    check('Die drei Bereiche der Bloecke heissen danach side, bottom und closed',
+      equal(drBlocksAfter.side, drBlocks.seite) &&
+      equal(drBlocksAfter.bottom, drBlocks.unten) &&
+      equal(drBlocksAfter.closed, drBlocks.zu),
+      JSON.stringify(drBlocksAfter));
+    check('Und keiner der drei deutschen Bereiche steht mehr da',
+      !['seite', 'unten', 'zu'].some(k => k in drBlocksAfter),
+      Object.keys(drBlocksAfter).join(' · '));
+    /* DIE BLOCKNAMEN DARIN BLEIBEN DEUTSCH. Die Entscheidung nennt die
+       BEREICHE, nicht die Bloecke -- und `kategorie` als Blockname steht auch
+       in BLOCK_DEFAULT, im Markup als data-block und in der Vorgabeliste des
+       Servers. Ein Umbenennen dort waere eine vierte Baustelle. */
+    check('Die Blocknamen darin bleiben, wie sie sind',
+      drBlocksAfter.side.includes('kategorie') && drBlocksAfter.side.includes('potenzial') &&
+      drBlocksAfter.bottom.includes('testtage'), JSON.stringify(drBlocksAfter.side));
+
+    const drFiltersAfter = drOwn('filters');
+    check('Der Filter traegt danach `favorite`',
+      drFiltersAfter.favorite === true && !('favorit' in drFiltersAfter),
+      JSON.stringify(drFiltersAfter));
+    check('Und die Sortierung heisst `potential_desc`',
+      drFiltersAfter.sort === 'potential_desc', JSON.stringify(drFiltersAfter.sort));
+    check('Und die uebrigen Felder des Filters stehen unveraendert',
+      drFiltersAfter.tagMode === 'and' && drFiltersAfter.tested === 'all' &&
+      drFiltersAfter.rejected === 'all', JSON.stringify(drFiltersAfter));
+
+    /* DIE GESPEICHERTEN ANSICHTEN TRAGEN DENSELBEN FILTER NOCH EINMAL. Wer
+       sie vergisst, hat den laufenden Filter umgestellt und die Ansichten
+       stehen gelassen -- und genau die sind der Grund, warum jemand sie
+       gespeichert hat. */
+    const drViewsAfter = drOwn('views');
+    check('Auch der Filter in den gespeicherten Ansichten zieht mit',
+      drViewsAfter[0].filters.favorite === true &&
+      !('favorit' in drViewsAfter[0].filters) &&
+      drViewsAfter[0].filters.sort === 'potential_asc',
+      JSON.stringify(drViewsAfter[0].filters));
+    check('Und Name und Suchbegriff der Ansicht bleiben stehen',
+      drViewsAfter[0].name === 'Meine Favoriten' && drViewsAfter[1].q === 'bohr',
+      JSON.stringify(drViewsAfter.map(a => [a.name, a.q])));
+    /* EINE ANSICHT OHNE FILTER IST KEIN FEHLER: `filters: null` heisst „nur
+       der Suchbegriff". Ein Block, der daraus `{}` machte, gaebe ihr einen
+       leeren Filter, und der ist etwas anderes als keiner. */
+    check('Und eine Ansicht ohne Filter bleibt ohne Filter',
+      drViewsAfter[1].filters === null, JSON.stringify(drViewsAfter[1]));
+
+    /* JETZT LIEST DER QUELLTEXT SELBST -- und das ist die eigentliche Probe.
+       Alles darueber belegt, was in der Zeile STEHT; diese hier belegt, dass
+       der Server es auch SIEHT. Ohne sie waere ein Umbenennen ins Leere
+       moeglich, und genau daran ist 0.24.1 gescheitert. */
+    const drSeen = JSON.parse(shortRun(
+      `const { db } = require('./db'); const mail = require('./mail');` +
+      `const get = (k) => { const r = db.prepare('SELECT value FROM settings WHERE key = ?').get(k);` +
+      ` return r ? JSON.parse(r.value) : null; };` +
+      `console.log(JSON.stringify({ words: get('vocabulary'),` +
+      ` configured: mail.configured(get('mailzugang')),` +
+      ` secure: mail.state(get('mailzugang')).secure }));`,
+      drDirectory));
+    check('Der Quelltext sieht die vierzehn eigenen Woerter wieder',
+      drSeen.words.entryOne === 'Maschine' && drSeen.words.potential === 'Erwartung' &&
+      drSeen.words.ratingMany === 'Wertungen', JSON.stringify(drSeen.words));
+    check('Und der Mailzugang gilt weiter als eingerichtet und verschluesselt',
+      drSeen.configured === true && drSeen.secure === true, JSON.stringify(drSeen));
+
+    /* WIEDERHOLBAR UND STUMM. Gefragt wird die Zeile selbst und nicht ein
+       Merker -- ein zweiter Start findet nichts mehr. */
+    const drSecond = shortRunAll(`require('./db'); console.log('fertig');`, drDirectory);
+    check('Der zweite Start sagt nichts mehr ueber gespeicherte Namen',
+      !/gespeicherte Namen umbenannt/.test(drSecond), drSecond.replace(/\n/g, ' · '));
+    check('Und er laesst die Werte, wie sie sind',
+      JSON.stringify(drSetting('vocabulary')) === JSON.stringify(drVocabularyAfter) &&
+      JSON.stringify(drOwn('filters')) === JSON.stringify(drFiltersAfter),
+      JSON.stringify(drOwn('filters')));
+
+    /* DIE NEUE FORM DES VOKABULARS -- ein Satz JE SPRACHE, seit Bauabschnitt 6
+       dieser Runde. Die Namen stehen dort eine Stufe tiefer, und der Block
+       muss beide Stufen ansehen. Ohne diese Zeilen zoege ein Bestand mit, der
+       nie gespeichert hat, und einer, der einmal gespeichert hat, nicht. */
+    {
+      const d = open(drFile);
+      d.prepare("UPDATE settings SET value = ? WHERE key = 'vocabulary'")
+        .run(JSON.stringify({ de: { sacheEinzahl: 'Anlage', potenzial: 'Aussicht' },
+                              en: { entryOne: 'Machine' } }));
+      d.close();
+    }
+    shortRun(`require('./db'); console.log('gelaufen');`, drDirectory);
+    const drDeep = drSetting('vocabulary');
+    check('Auch in der Form je Sprache ziehen die Namen mit',
+      drDeep.de.entryOne === 'Anlage' && drDeep.de.potential === 'Aussicht' &&
+      !('sacheEinzahl' in drDeep.de), JSON.stringify(drDeep));
+    check('Und die Sprachkennungen darueber bleiben unangetastet',
+      equal(Object.keys(drDeep), ['de', 'en']) && drDeep.en.entryOne === 'Machine',
+      JSON.stringify(Object.keys(drDeep)));
+
+    /* DER HALBE FALL: eine Zeile, die BEIDE Namen traegt. DER NEUE GEWINNT,
+       weil der Quelltext ihn liest -- dieselbe Regel wie in SHAPES_0242, und
+       aus demselben Grund. */
+    {
+      const d = open(drFile);
+      d.prepare("UPDATE user_settings SET value = ? WHERE key = 'filters'")
+        .run(JSON.stringify({ favorit: false, favorite: true, sort: 'potenzial_asc' }));
+      d.close();
+    }
+    shortRun(`require('./db'); console.log('gelaufen');`, drDirectory);
+    const drBoth = drOwn('filters');
+    check('Traegt ein Filter beide Namen, gewinnt der neue',
+      drBoth.favorite === true && !('favorit' in drBoth), JSON.stringify(drBoth));
+    check('Und der Sortierwert zieht dabei trotzdem um',
+      drBoth.sort === 'potential_asc', JSON.stringify(drBoth.sort));
+
+    /* UND EINE FRISCHE INSTANZ SAGT NICHTS. Sie traegt keine dieser Zeilen --
+       eine Meldung waere dort eine Behauptung ueber einen Bestand, den es
+       nicht gibt. */
+    {
+      const drFresh = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-reste-frisch-'));
+      const drFirst = shortRunAll(`require('./db'); console.log('fertig');`, drFresh);
+      check('Eine frische Instanz meldet keine gespeicherten Namen',
+        !/gespeicherte Namen umbenannt/.test(drFirst), drFirst.replace(/\n/g, ' · '));
+      fs.rmSync(drFresh, { recursive: true, force: true });
+    }
+
+    /* ZULETZT DIE LISTE GEGEN DEN QUELLTEXT, DER SIE LIEST. Bis hierher steht
+       fest, dass die Migration tut, was sie sagt. Offen bleibt, ob sie das
+       Richtige sagt: ein Ziel, das der Quelltext gar nicht liest, waere ein
+       Umbenennen ins Leere. */
+    const drDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const drList = (drDb.match(/const STORED_0243 = \[[\s\S]*?\n\];/) || [''])[0];
+    check('Es gibt die Liste der gespeicherten Namen ueberhaupt',
+      drList.length > 200, `${drList.length} Zeichen`);
+    check('Und sie nennt genau die fuenf Schluessel',
+      equal((drList.match(/key: '([A-Za-z]+)'/g) || []).map(x => x.slice(6, -1)),
+        ['mailzugang', 'blocks', 'filters', 'views', 'vocabulary']),
+      (drList.match(/key: '([A-Za-z]+)'/g) || []).join(' · '));
+    /* UND DIE TAFEL STEHT ALS ZEICHENFOLGEN-PAARE. SHAPES_0242 eine Runde
+       davor schreibt Eigenschaftsnamen -- und braucht deshalb bis heute eine
+       Ausnahmeliste im Waechter (OLD_STORED_NAMES). Diese hier nicht: gesucht
+       wird ueber die Tafel UND die beiden Listen daneben, auf die sie zeigt. */
+    const drTables = drList +
+      (drDb.match(/const FILTER_FIELDS_0243 = \[[\s\S]*?\];/) || [''])[0] +
+      (drDb.match(/const FILTER_VALUES_0243 = \[[\s\S]*?\];/) || [''])[0] +
+      (drDb.match(/const VOCABULARY_FIELDS_0243 = \[[\s\S]*?\n\];/) || [''])[0];
+    check('Und die Tafel nennt ihre alten Namen als Zeichenfolgen',
+      /\['sicher', 'secure'\]/.test(drTables) && /\['seite', 'side'\]/.test(drTables) &&
+      /\['favorit', 'favorite'\]/.test(drTables) &&
+      /\['sacheEinzahl', 'entryOne'\]/.test(drTables) &&
+      !/\bsicher:/.test(drTables) && !/\bfavorit:/.test(drTables),
+      (drTables.match(/\['[a-zA-Z_]+', '[a-zA-Z_]+'\]/g) || []).slice(0, 4).join(' · '));
+    /* UND ES SIND WIRKLICH FUENF FELDNAMEN UND ZWEI WERTE PLUS DIE VIERZEHN
+       VOKABELN. Ohne die Zahl waere die Liste eine Selbstbestaetigung. */
+    check('Und es sind fuenf Feldnamen, zwei Sortierwerte und vierzehn Vokabeln',
+      (drTables.match(/\['[a-zA-Z_]+', '[a-zA-Z_]+'\]/g) || []).length === 19 &&
+      (drTables.match(/\['sort',\s*'[a-z_]+',\s*'[a-z_]+'\]/g) || []).length === 2,
+      `${(drTables.match(/\['[a-zA-Z_]+', '[a-zA-Z_]+'\]/g) || []).length} Paare`);
+    const drServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const drApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    check('Die drei Ziele der Bereiche stehen wirklich in server.js',
+      /side: sortArea\(g\.side, BLOCK_DEFAULT\.side\)/.test(drServer) &&
+      /bottom: sortArea\(g\.bottom, BLOCK_DEFAULT\.bottom\)/.test(drServer) &&
+      /closed: \(Array\.isArray\(g\.closed\)/.test(drServer),
+      'server.js liest side/bottom/closed nicht');
+    check('Und die Ziele des Filters wirklich in app.js',
+      /f\.favorite = f\.favorite === true;/.test(drApp) &&
+      /case 'potential_desc':/.test(drApp) && /case 'potential_asc':/.test(drApp),
+      'app.js liest favorite/potential_* nicht');
+    /* UND DER LESER WUERDE EIN FALSCHES ZIEL WIRKLICH MELDEN -- an einem
+       gestellten Fall, damit die Zeilen darueber nicht bloss deshalb gruen
+       sind, weil der Ausdruck ueberall passt. */
+    check('Der Leser wuerde ein Ziel melden, das nirgends gelesen wird',
+      !/f\.favorit = f\.favorit === true;/.test(drApp) &&
+      !/case 'potenzial_desc':/.test(drApp),
+      'der Leser trifft auch Namen, die nicht dastehen');
+
+    fs.rmSync(drDirectory, { recursive: true, force: true });
+  }
+
+  /* ========= Der Bestand behaelt Deutsch — 0.24.3, F2 ====================
+     EINE FRISCHE INSTALLATION STARTET AUF ENGLISCH, EIN BESTAND NICHT. Bis
+     0.24.2 stand die Vorgabesprache als Konstante im Quelltext; ab dieser
+     Runde steht sie in `settings`, und die Auslieferung gibt Englisch vor.
+     Ohne diesen Block spraeche eine laufende Instanz nach dem Einspielen
+     ploetzlich Englisch -- und „am Bildschirm aendert sich kein Wort" waere
+     zum ersten Mal in dieser Reihe gebrochen, ohne dass es jemand bestellt
+     haette.
+
+     UND ES MUSS EIN GESCHRIEBENER WERT SEIN, KEIN ABGELEITETER. „Kein
+     Eintrag UND es gibt Zugaenge, also Deutsch" traegt nicht: eine FRISCH auf
+     Englisch eingerichtete Installation hat im Augenblick der Einrichtung
+     noch keinen Zugang und danach einen -- sie kippte in genau dem
+     Augenblick auf Deutsch, in dem der erste Mensch sein Konto anlegt.
+     DIE FRAGE LAESST SICH NUR BEIM HOCHKOMMEN STELLEN, und genau das prueft
+     diese Gruppe: an drei Datenbanken, die sich in EINER Sache
+     unterscheiden. */
+  group('Der Bestand behaelt Deutsch — 0.24.3');
+  {
+    const bdSetting = (directory, k) => {
+      const d = open(path.join(directory, 'katalog.sqlite'));
+      const r = d.prepare('SELECT value FROM settings WHERE key = ?').get(k);
+      d.close();
+      return r ? JSON.parse(r.value) : null;
+    };
+
+    /* ERSTENS: EIN BESTAND. Eine Datenbank mit einem Zugang darin -- so sieht
+       jede Installation aus, in der schon einmal jemand gearbeitet hat. */
+    const bdOld = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-bestand-'));
+    shortRun(`require('./db'); console.log('angelegt');`, bdOld);
+    {
+      const d = open(path.join(bdOld, 'katalog.sqlite'));
+      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
+        .run('bestandsanna', 'x', 'owner', 'active');
+      d.prepare("DELETE FROM settings WHERE key = 'languageDefault'").run();
+      d.close();
+    }
+    check('Der gestellte Bestand traegt einen Zugang und keine Vorgabesprache',
+      bdSetting(bdOld, 'languageDefault') === null,
+      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
+    const bdRun = shortRunAll(`require('./db'); console.log('gelaufen');`, bdOld);
+    check('Der Bestand bekommt Deutsch ausdruecklich in die Ablage geschrieben',
+      bdSetting(bdOld, 'languageDefault') === 'de',
+      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
+    /* UND ER SAGT ES. Ein Migrationsblock, der eine Vorgabe setzt, ohne es zu
+       melden, laesst den Betreiber im Ungewissen, warum seine Installation
+       weiter Deutsch spricht -- und ob das Absicht war. */
+    check('Und er sagt es, samt der Zusage, dass sich nichts aendert',
+      /Vorgabesprache/.test(bdRun) && /kein Wort/.test(bdRun),
+      bdRun.replace(/\n/g, ' · '));
+
+    /* ZWEITENS: EINE FRISCHE INSTALLATION. Dieselbe Fassung, dieselbe
+       Migration -- nur ohne Zugang. Sie darf nichts geschrieben bekommen und
+       spricht damit Englisch. */
+    const bdFresh = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch-de-'));
+    const bdFirst = shortRunAll(`require('./db'); console.log('fertig');`, bdFresh);
+    check('Eine frische Installation bekommt keine Vorgabesprache geschrieben',
+      bdSetting(bdFresh, 'languageDefault') === null,
+      JSON.stringify(bdSetting(bdFresh, 'languageDefault')));
+    check('Und sie sagt auch nichts darueber',
+      !/Vorgabesprache/.test(bdFirst), bdFirst.replace(/\n/g, ' · '));
+    /* UND DER QUELLTEXT LIEST DARAUS WIRKLICH ENGLISCH. Bis hierher steht
+       fest, was in der Zeile STEHT -- diese Zeile belegt, was daraus wird. */
+    const bdSeen = shortRun(
+      `const { db } = require('./db');` +
+      `const r = db.prepare("SELECT value FROM settings WHERE key = 'languageDefault'").get();` +
+      `console.log(r ? r.value : 'nichts');`, bdFresh);
+    check('Und der Quelltext findet dort nichts, faellt also auf Englisch',
+      bdSeen.trim() === 'nichts', bdSeen.trim());
+
+    /* DRITTENS: WER SIE SCHON GESETZT HAT, BEHAELT SIE. Ein zweiter Lauf ist
+       stumm, und wer spaeter auf Englisch stellt, bekommt sie beim naechsten
+       Start nicht zurueck auf Deutsch. */
+    const bdSecond = shortRunAll(`require('./db'); console.log('fertig');`, bdOld);
+    check('Der zweite Start sagt nichts mehr ueber die Vorgabesprache',
+      !/Vorgabesprache/.test(bdSecond), bdSecond.replace(/\n/g, ' · '));
+    {
+      const d = open(path.join(bdOld, 'katalog.sqlite'));
+      d.prepare("UPDATE settings SET value = ? WHERE key = 'languageDefault'").run('"en"');
+      d.close();
+    }
+    shortRun(`require('./db'); console.log('gelaufen');`, bdOld);
+    check('Und eine ausdrueckliche Umstellung auf Englisch haelt',
+      bdSetting(bdOld, 'languageDefault') === 'en',
+      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
+
+    /* UND DIE GEGENLAGE ZUM GEZAEHLTEN: GELOESCHTE ZUGAENGE ZAEHLEN MIT. Die
+       Frage ist nicht, wer sich anmelden kann, sondern ob hier schon einmal
+       jemand gearbeitet hat -- und ein Grabstein beweist genau das. */
+    const bdTomb = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-grabstein-'));
+    shortRun(`require('./db'); console.log('angelegt');`, bdTomb);
+    {
+      const d = open(path.join(bdTomb, 'katalog.sqlite'));
+      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
+        .run('deleted-7', 'x', 'user', 'deleted');
+      d.prepare("DELETE FROM settings WHERE key = 'languageDefault'").run();
+      d.close();
+    }
+    shortRun(`require('./db'); console.log('gelaufen');`, bdTomb);
+    check('Auch ein Bestand, in dem nur noch ein Grabstein steht, behaelt Deutsch',
+      bdSetting(bdTomb, 'languageDefault') === 'de',
+      JSON.stringify(bdSetting(bdTomb, 'languageDefault')));
+
+    for (const d of [bdOld, bdFresh, bdTomb]) fs.rmSync(d, { recursive: true, force: true });
   }
 
   /* ================= Der Bildschirmtext-Waechter — 0.22.0 =================
@@ -16234,7 +17123,7 @@ const shareMain = (purpose, target = null) =>
   check('Der Eigentuemer legt einen Zugang an', gBertAn.status === 200, JSON.stringify(gBertAn.content));
   check('Ein neuer Zugang ist gewoehnlicher Benutzer', gRole('bert') === 'user', gRole('bert'));
   const gCarlaAn = await gCall(gAnna, 'POST', '/api/users',
-    { username: 'carla', password: 'carlas-langes-wort', rolle: 'admin' });
+    { username: 'carla', password: 'carlas-langes-wort', role: 'admin' });
   check('Und mit ausdruecklicher Rolle auch einen Admin',
     gCarlaAn.status === 200 && gRole('carla') === 'admin', gRole('carla'));
 
@@ -16279,7 +17168,7 @@ const shareMain = (purpose, target = null) =>
   check('Ein Admin legt einen Benutzer an', gCreateCarla.status === 200,
     JSON.stringify(gCreateCarla.content));
   const gAdminCreate = await gCall(gCarla, 'POST', '/api/users',
-    { username: 'emil', password: 'emils-langes-wort', rolle: 'admin' });
+    { username: 'emil', password: 'emils-langes-wort', role: 'admin' });
   check('Aber keinen zweiten Admin', gAdminCreate.status === 403,
     `Status ${gAdminCreate.status}`);
   check('Und dieser Zugang entsteht gar nicht erst',
@@ -16329,7 +17218,7 @@ const shareMain = (purpose, target = null) =>
     `Status ${gLocksOwn.status}`);
   check('Und der Eigentuemer steht unveraendert auf aktiv', gStatus('anna') === 'active', gStatus('anna'));
   const gCarlaAdmin2 = await gCall(gAnna, 'POST', '/api/users',
-    { username: 'frida', password: 'fridas-langes-wort', rolle: 'admin' });
+    { username: 'frida', password: 'fridas-langes-wort', role: 'admin' });
   const gFridaId = gCarlaAdmin2.content?.id;
   const gLocksAdmin = await gCall(gCarla, 'PUT', `/api/users/${gFridaId}`, { status: 'locked' });
   check('Ein Admin sperrt auch keinen anderen Admin', gLocksAdmin.status === 403,
@@ -16340,13 +17229,13 @@ const shareMain = (purpose, target = null) =>
     gLocksAdminEig.status === 200 && gStatus('frida') === 'locked', gStatus('frida'));
   await gCall(gAnna, 'PUT', `/api/users/${gFridaId}`, { status: 'active' });
 
-  const gRoleCarla = await gF(gCarla, 'carla')('PUT', `/api/users/${gBertId}`, { rolle: 'admin' });
+  const gRoleCarla = await gF(gCarla, 'carla')('PUT', `/api/users/${gBertId}`, { role: 'admin' });
   check('Ein Admin vergibt keine Rolle', gRoleCarla.status === 403, `Status ${gRoleCarla.status}`);
   check('Und die Rolle steht unveraendert da', gRole('bert') === 'user', gRole('bert'));
-  const gRoleAnna = await gF(gAnna, 'anna')('PUT', `/api/users/${gBertId}`, { rolle: 'admin' });
+  const gRoleAnna = await gF(gAnna, 'anna')('PUT', `/api/users/${gBertId}`, { role: 'admin' });
   check('Der Eigentuemer vergibt sie', gRoleAnna.status === 200 && gRole('bert') === 'admin',
     gRole('bert'));
-  await gF(gAnna, 'anna')('PUT', `/api/users/${gBertId}`, { rolle: 'user' });
+  await gF(gAnna, 'anna')('PUT', `/api/users/${gBertId}`, { role: 'user' });
 
   /* Die Selbstsperre. ACHTUNG, die naheliegende Prueflage ist BLIND: laesst
      man carla (Admin) sich selbst sperren, kommt das 403 gar nicht von der
@@ -16365,12 +17254,12 @@ const shareMain = (purpose, target = null) =>
   /* Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
      noch durch Sperren noch durch Loeschen. Ohne diese Klemme koennte sich die
      Instanz verriegeln, und der einzige Ausweg waere usertool.js auf dem Wirt. */
-  const gLastPath = await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' });
+  const gLastPath = await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { role: 'admin' });
   check('Der letzte Eigentuemer stuft sich nicht selbst herab',
     gLastPath.status === 400 && /letzte Eigentümer/.test(gLastPath.content?.error || ''),
     JSON.stringify(gLastPath.content));
   check('Und bleibt Eigentuemer', gRole('anna') === 'owner', gRole('anna'));
-  await gF(gAnna, 'anna')('PUT', `/api/users/${gCarlaId}`, { rolle: 'owner' });
+  await gF(gAnna, 'anna')('PUT', `/api/users/${gCarlaId}`, { role: 'owner' });
   /* Jetzt gibt es zwei Eigentuemer -- und erst jetzt laesst sich die
      Selbstklemme belegen. anna kommt ueber darfAnZugang an ihre eigene Zeile
      (sie IST Eigentuemerin), und "der letzte Eigentuemer bleibt" greift nicht
@@ -16381,12 +17270,12 @@ const shareMain = (purpose, target = null) =>
     gSelfOwn.status === 403, `Status ${gSelfOwn.status}`);
   check('Und steht danach unveraendert auf aktiv', gStatus('anna') === 'active', gStatus('anna'));
   check('Mit einem zweiten Eigentuemer geht die Herabstufung',
-    (await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' })).status === 200 &&
+    (await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { role: 'admin' })).status === 200 &&
     gRole('anna') === 'admin', gRole('anna'));
   // Und zurueck, damit die folgenden Gruppen auf der gewohnten Lage stehen.
   const gCarlaCookie2 = (await gLogin('carla', 'carlas-langes-wort')).cookie;
-  await gF(gCarlaCookie2, 'carla')('PUT', `/api/users/${gAnnaId}`, { rolle: 'owner' });
-  await gF(gCarlaCookie2, 'carla')('PUT', `/api/users/${gCarlaId}`, { rolle: 'admin' });
+  await gF(gCarlaCookie2, 'carla')('PUT', `/api/users/${gAnnaId}`, { role: 'owner' });
+  await gF(gCarlaCookie2, 'carla')('PUT', `/api/users/${gCarlaId}`, { role: 'admin' });
   check('Danach steht die Ausgangslage wieder',
     gRole('anna') === 'owner' && gRole('carla') === 'admin',
     JSON.stringify(gRows('SELECT username, role FROM users')));
@@ -16591,7 +17480,7 @@ const shareMain = (purpose, target = null) =>
     gAnnaItem.id)[0].n;
   const gAnnaFilesBefore = gRows('SELECT COUNT(*) n FROM attachments WHERE item_id = ?',
     gAnnaItem.id)[0].n;
-  await gF(gAnna, 'anna')('DELETE', `/api/users/${gEmilId}?eintraege=1&beitraege=1`);
+  await gF(gAnna, 'anna')('DELETE', `/api/users/${gEmilId}?entries=1&posts=1`);
   check('Mit dem ersten Haekchen sind seine Eintraege weg',
     gRows('SELECT id FROM items WHERE id = ?', gEmilItem.id).length === 0);
   check('Und der fremde Kommentar daran ueber die Kaskade mit',
@@ -18517,53 +19406,53 @@ const shareMain = (purpose, target = null) =>
   /* VIER BLOECKE IN DER SEITENSPALTE SEIT 0.21.0 -- `potenzial` ist
      dazugekommen und steht VOR `bewertung`: geschaetzt wird, bevor bewertet
      wird. Wer eine gespeicherte Reihenfolge aus einer aelteren Fassung hat,
-     bekommt ihn ueber ordneBereich() hinten angehaengt; das ist die vorhandene
+     bekommt ihn ueber sortArea() hinten angehaengt; das ist die vorhandene
      Regel und steht drei Pruefungen tiefer. */
   check('Vorgabeanordnung wird geliefert',
-    equal(bl.seite, ['kategorie', 'tags', 'potenzial', 'bewertung']) &&
-    equal(bl.unten, ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']) &&
-    equal(bl.zu, []), JSON.stringify(bl));
+    equal(bl.side, ['kategorie', 'tags', 'potenzial', 'bewertung']) &&
+    equal(bl.bottom, ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']) &&
+    equal(bl.closed, []), JSON.stringify(bl));
 
   const rotated = await call('PUT', '/api/settings', { blocks: {
-    seite: ['bewertung', 'kategorie', 'potenzial', 'tags'],
-    unten: ['links', 'beschreibung', 'testtage', 'dateien', 'kommentare'],
-    zu: ['links']
+    side: ['bewertung', 'kategorie', 'potenzial', 'tags'],
+    bottom: ['links', 'beschreibung', 'testtage', 'dateien', 'kommentare'],
+    closed: ['links']
   }});
   check('Neue Anordnung wird gespeichert',
-    equal(rotated.content.blocks.seite, ['bewertung', 'kategorie', 'potenzial', 'tags']) &&
-    equal(rotated.content.blocks.zu, ['links']));
+    equal(rotated.content.blocks.side, ['bewertung', 'kategorie', 'potenzial', 'tags']) &&
+    equal(rotated.content.blocks.closed, ['links']));
   check('Anordnung überlebt den nächsten Abruf',
-    equal((await call('GET', '/api/settings')).content.blocks.unten,
+    equal((await call('GET', '/api/settings')).content.blocks.bottom,
            ['links', 'beschreibung', 'testtage', 'dateien', 'kommentare']));
 
   const dirt = await call('PUT', '/api/settings', { blocks: {
-    seite: ['bewertung', 'kommentare', 'bewertung', 'quatsch'],
-    unten: ['kommentare'], zu: ['links', 'gibtsnicht']
+    side: ['bewertung', 'kommentare', 'bewertung', 'quatsch'],
+    bottom: ['kommentare'], closed: ['links', 'gibtsnicht']
   }});
   const sb = dirt.content.blocks;
-  check('Fremde Namen fliegen raus', !sb.seite.includes('kommentare') && !sb.seite.includes('quatsch'));
-  check('Doppelte Namen fliegen raus', sb.seite.filter(k => k === 'bewertung').length === 1);
+  check('Fremde Namen fliegen raus', !sb.side.includes('kommentare') && !sb.side.includes('quatsch'));
+  check('Doppelte Namen fliegen raus', sb.side.filter(k => k === 'bewertung').length === 1);
   /* UND `potenzial` HAENGT SICH HINTEN AN -- die Liste, die hineingeht, kennt
      ihn gar nicht. Genau das ist die Regel, die einen spaeter hinzugekommenen
      Block von selbst auftauchen laesst, und diese Runde ist ihr erster
      Anwendungsfall seit langem. */
   check('Fehlende Blöcke hängen sich hinten an',
-    equal(sb.seite, ['bewertung', 'kategorie', 'tags', 'potenzial']) &&
-    equal(sb.unten, ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien']), JSON.stringify(sb));
-  check('Unbekannter Einklappzustand wird verworfen', equal(sb.zu, ['links']));
+    equal(sb.side, ['bewertung', 'kategorie', 'tags', 'potenzial']) &&
+    equal(sb.bottom, ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien']), JSON.stringify(sb));
+  check('Unbekannter Einklappzustand wird verworfen', equal(sb.closed, ['links']));
   /* UND DIE BEIDEN STERNKAESTEN FALLEN AUS `zu` HERAUS -- 0.21.0. Fuer sie
      entscheidet der Zustand des Eintrags, nicht die Einstellung; ein
      gespeichertes `bewertung` aus einer aelteren Fassung faellt still
      heraus, und das ist gewollt. */
   const blZu = await call('PUT', '/api/settings', { blocks: {
-    seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
-    unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare'],
-    zu: ['bewertung', 'potenzial', 'links'] } });
+    side: ['kategorie', 'tags', 'potenzial', 'bewertung'],
+    bottom: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare'],
+    closed: ['bewertung', 'potenzial', 'links'] } });
   check('Die beiden Sternkaesten fuehren ihren Einklappzustand nicht mehr',
-    equal(blZu.content.blocks.zu, ['links']), JSON.stringify(blZu.content.blocks.zu));
+    equal(blZu.content.blocks.closed, ['links']), JSON.stringify(blZu.content.blocks.closed));
   await call('PUT', '/api/settings', { blocks: {
-    seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
-    unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare'], zu: [] } });
+    side: ['kategorie', 'tags', 'potenzial', 'bewertung'],
+    bottom: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare'], closed: [] } });
 
   /* ---------------------------------------------------------------- */
   group('Fokuspunkt der Vorschau');
@@ -18909,7 +19798,7 @@ const shareMain = (purpose, target = null) =>
   let baStatus = null;
   for (let i = 0; i < 400; i++) {
     const st = (await call('GET', '/api/stats')).content;
-    baStatus = (st && st.umstellung) || null;
+    baStatus = (st && st.conversion) || null;
     if (baStatus && !baStatus.running) break;
     await new Promise(r => setTimeout(r, 50));
   }
@@ -18917,17 +19806,17 @@ const shareMain = (purpose, target = null) =>
   check('Der Fortschritt steht in den Kennzahlen und läuft aus',
     baStatus && baStatus.running === false, JSON.stringify(baStatus));
   check('Und am Ende ist jedes vorgesehene Bild erledigt',
-    baStatus && baStatus.erledigt === baStatus.total, JSON.stringify(baStatus));
+    baStatus && baStatus.done === baStatus.total, JSON.stringify(baStatus));
   const afterStats = (await call('GET', '/api/stats')).content;
   /* DAS ZU BREITE PNG BLEIBT LIEGEN -- WebP kann es nicht fassen. Der Lauf
      zaehlt es als „geblieben" und laesst es in Ruhe; „kein PNG mehr da" waere
      an dieser Instanz also die FALSCHE Zusage. */
   check('Nach dem Lauf bleibt genau das PNG liegen, das WebP nicht fassen kann',
-    formatNumber(afterStats, 'png') === status.geblieben,
-    `${formatNumber(afterStats, 'png')} gegen ${status.geblieben}`);
-  check('Und der Lauf hat wirklich etwas umgestellt', status.umgestellt > 0,
+    formatNumber(afterStats, 'png') === status.stayed,
+    `${formatNumber(afterStats, 'png')} gegen ${status.stayed}`);
+  check('Und der Lauf hat wirklich etwas umgestellt', status.converted > 0,
     JSON.stringify(status));
-  check('Und dabei Platz gespart', status.gespart > 0, JSON.stringify(status));
+  check('Und dabei Platz gespart', status.freed > 0, JSON.stringify(status));
   const baImpAfter = ((await call('GET', '/api/items')).content || [])
     .find(i => i.title === 'Eingespieltes PNG');
   const afterPhoto = (baImpAfter && baImpAfter.mainPhoto) || {};
@@ -18992,11 +19881,11 @@ const shareMain = (purpose, target = null) =>
        kann und das jeder Lauf wieder liegen laesst. */
     const lauf2 = await callF('POST', '/api/images/convert', {});
     check('Der Knopf nimmt es dagegen nicht mit — er sucht am Inhalt',
-      lauf2.status === 202 && lauf2.content && lauf2.content.total === status.geblieben,
-      `${JSON.stringify(lauf2.content)} gegen geblieben ${status.geblieben}`);
+      lauf2.status === 202 && lauf2.content && lauf2.content.total === status.stayed,
+      `${JSON.stringify(lauf2.content)} gegen geblieben ${status.stayed}`);
     for (let i = 0; i < 400; i++) {
       const st = (await call('GET', '/api/stats')).content;
-      if (st && st.umstellung && !st.umstellung.running) break;
+      if (st && st.conversion && !st.conversion.running) break;
       await new Promise(r => setTimeout(r, 50));
     }
     check('Und die falsch benannte Zeile liegt danach unverändert da',
@@ -19111,7 +20000,7 @@ const shareMain = (purpose, target = null) =>
        zwei verschiedene Fassungsangaben waeren zwei Wahrheiten ueber
        denselben Zwischenspeicher (Stolperstein 47). */
     check('Die Fassung steht neben der Spaltenliste und nicht in ihr',
-      oneLine.includes("const PHOTO_VERSION = 'length(thumb) AS fassung'") &&
+      oneLine.includes("const PHOTO_VERSION = 'length(thumb) AS thumbLength'") &&
       !/PHOTO_COLUMNS = '[^']*thumb/.test(oneLine) &&
       oneLine.includes('const qAllPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
       (oneLine.match(/const PHOTO_VERSION = [^;]*/) || ['(nicht gefunden)'])[0]);
@@ -19264,7 +20153,7 @@ const shareMain = (purpose, target = null) =>
     const quGeoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     check('Die Uhr verfolgt beide Läufe und nicht nur die Umstellung',
       /const BATCH_RUNS = \[/.test(quGeoApp) &&
-      /field: 'umstellung', id: 'convert-running'/.test(quGeoApp) &&
+      /field: 'conversion', id: 'convert-running'/.test(quGeoApp) &&
       /field: 'geometry', id: 'thumbs-running'/.test(quGeoApp) &&
       /BATCH_RUNS\.some\(l => fetched\.stats\[l\.field\] && fetched\.stats\[l\.field\]\.running\)/
         .test(quGeoApp),
@@ -19292,7 +20181,7 @@ const shareMain = (purpose, target = null) =>
     /* EINE UEBERGANGENE PRUEFUNG WIRD GEZAEHLT UND GENANNT, nicht verschwiegen:
        ein Lauf, der stillschweigend weniger prueft, meldet am Ende zu viel. */
     const skip = (name, reason) => {
-      uebersprungen++; console.log(`  … uebersprungen: ${name} (${reason})`);
+      skipped++; console.log(`  … uebersprungen: ${name} (${reason})`);
     };
     /* VIER VIERTEL, VIER FARBEN: links oben rot, rechts oben gruen, links
        unten blau, rechts unten weiss. Aus dem Mittelwert der Kachel laesst
@@ -19300,8 +20189,8 @@ const shareMain = (purpose, target = null) =>
     const quartered = async (b, h) => {
       const px = Buffer.alloc(b * h * 3);
       for (let y = 0; y < h; y++) for (let x = 0; x < b; x++) {
-        const i = (y * b + x) * 3, right = x >= b / 2, unten = y >= h / 2;
-        const f = unten ? (right ? [255, 255, 255] : [0, 0, 255])
+        const i = (y * b + x) * 3, right = x >= b / 2, bottom = y >= h / 2;
+        const f = bottom ? (right ? [255, 255, 255] : [0, 0, 255])
                         : (right ? [0, 255, 0] : [255, 0, 0]);
         px[i] = f[0]; px[i + 1] = f[1]; px[i + 2] = f[2];
       }
@@ -19351,13 +20240,13 @@ const shareMain = (purpose, target = null) =>
        Zwischenspeicher des Browsers stehen (`max-age=86400`), und der
        Betreiber saehe seinen neuen Ausschnitt nicht. */
     check('Die Fassung der Kachel steht an der Fotozeile',
-      photo.fassung === k0.bytes, `${photo.fassung} gegen ${k0.bytes} Bytes`);
+      photo.thumbLength === k0.bytes, `${photo.thumbLength} gegen ${k0.bytes} Bytes`);
     {
       const list = (await call('GET', '/api/items')).content || [];
       const card = list.find(i => i.id === zu.id);
       check('Und auch am Hauptbild der Übersicht',
-        card && card.mainPhoto && card.mainPhoto.fassung === k0.bytes,
-        JSON.stringify(card && card.mainPhoto && card.mainPhoto.fassung));
+        card && card.mainPhoto && card.mainPhoto.thumbLength === k0.bytes,
+        JSON.stringify(card && card.mainPhoto && card.mainPhoto.thumbLength));
     }
 
     /* 3. DAS SPEICHERN DES AUSSCHNITTS ERZEUGT DIE KACHEL NEU, UND DIE ANTWORT
@@ -19373,8 +20262,8 @@ const shareMain = (purpose, target = null) =>
     check('Nach dem Speichern zeigt die Kachel die gewählte Ecke',
       corner(lo.tile.color) === 'links oben', corner(lo.tile.color));
     check('Und die Fassung in der Antwort ist die der NEUEN Kachel',
-      lo.row.fassung === lo.tile.bytes && lo.row.fassung !== photo.fassung,
-      `${lo.row.fassung} gegen ${lo.tile.bytes} · vorher ${photo.fassung}`);
+      lo.row.thumbLength === lo.tile.bytes && lo.row.thumbLength !== photo.thumbLength,
+      `${lo.row.thumbLength} gegen ${lo.tile.bytes} · vorher ${photo.thumbLength}`);
     const ru = await afterCorner(100, 100, 400);
     check('Die gegenüberliegende Ecke ebenso',
       corner(ru.tile.color) === 'rechts unten', corner(ru.tile.color));
@@ -19464,7 +20353,7 @@ const shareMain = (purpose, target = null) =>
         const outside = caseList.filter(([b, h, fx, fy, z]) => {
           const a2 = amServer(b, h, fx, fy, z), b2 = imBrowser(b, h, fx, fy, z);
           return Math.abs(a2.links - b2.links) > 1e-9 ||
-                 Math.abs(a2.oben - b2.oben) > 1e-9 ||
+                 Math.abs(a2.top - b2.top) > 1e-9 ||
                  Math.abs(a2.edge - b2.edge) > 1e-9;
         });
         check(`Beide Rechnungen kommen auf denselben Ausschnitt — ${caseList.length} Fälle`,
@@ -19534,7 +20423,7 @@ const shareMain = (purpose, target = null) =>
       const appZ = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
       check('Die Kachel-Adresse entsteht nur in imageSource()',
         (appZ.match(/\/api\/photos\/\$\{[^}]*\}\/raw\?size=thumb/g) || []).length === 0 &&
-        /const version = groesse === 'thumb' && Number\.isFinite\(f\) \? `&v=\$\{f\}` : '';/.test(appZ),
+        /const version = filesize === 'thumb' && Number\.isFinite\(f\) \? `&v=\$\{f\}` : '';/.test(appZ),
         (appZ.match(/\/api\/photos\/[^\n]*raw\?size=thumb[^\n]*/) || ['(nur in imageSource)'])[0]);
       /* UND DIE AUSLIEFERUNG SETZT WEITER max-age -- das ist der Grund fuer
          die ganze Uebung. Faellt sie weg, ist die Fassung ueberfluessig; sie
@@ -19610,7 +20499,7 @@ const shareMain = (purpose, target = null) =>
           ki.size === '225x225' && corner(ki.color) === 'links oben',
           `${ki.size} · ${corner(ki.color)}`);
         check('Und die Fassung steht auch an der eingespielten Zeile',
-          foto2.fassung === ki.bytes, `${foto2.fassung} gegen ${ki.bytes} Bytes`);
+          foto2.thumbLength === ki.bytes, `${foto2.thumbLength} gegen ${ki.bytes} Bytes`);
       }
       if (imported) await call('DELETE', `/api/items/${imported.id}`);
     }
@@ -20312,11 +21201,11 @@ const shareMain = (purpose, target = null) =>
        hier und rechnet aus der Datenbank nach. */
     const d = open(path.join(DATA, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
-    const eins = (sql) => d.prepare(sql).get().n || 0;
+    const one = (sql) => d.prepare(sql).get().n || 0;
     const b64 = (n) => Math.round(n * 4 / 3);
-    const photoRaw = eins("SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'");
-    const thumbRaw = eins("SELECT COALESCE(SUM(length(thumb)),0) n FROM photos WHERE kind != 'video'");
-    const kbRaw = eins('SELECT COALESCE(SUM(length(data)),0) n FROM comment_images');
+    const photoRaw = one("SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'");
+    const thumbRaw = one("SELECT COALESCE(SUM(length(thumb)),0) n FROM photos WHERE kind != 'video'");
+    const kbRaw = one('SELECT COALESCE(SUM(length(data)),0) n FROM comment_images');
     d.close();
     check('Die Fotogroesse ist die Base64-Groesse der Daten, nicht der Bytes',
       exStats?.export?.photos === b64(photoRaw),
@@ -20444,11 +21333,11 @@ const shareMain = (purpose, target = null) =>
   /* MIT GROESSE DAS STANDBILD, OHNE GROESSE DIE VIDEODATEI. Dieselbe Zeile,
      zwei verschiedene Blobs -- und der Erkenner sieht das den Bytes an, ohne
      dass die Route etwas unterscheiden muesste. */
-  for (const groesse of ['thumb', 'medium']) {
-    const s2 = vMp4Id ? await vResponse(vMp4Id, `?size=${groesse}`) : vEmpty;
-    check(`size=${groesse} an einer Videozeile liefert ein Bild`,
+  for (const filesize of ['thumb', 'medium']) {
+    const s2 = vMp4Id ? await vResponse(vMp4Id, `?size=${filesize}`) : vEmpty;
+    check(`size=${filesize} an einer Videozeile liefert ein Bild`,
       s2.h['content-type'] === 'image/jpeg', s2.h['content-type']);
-    check(`Und es sind wirklich JPEG-Bytes (${groesse})`,
+    check(`Und es sind wirklich JPEG-Bytes (${filesize})`,
       s2.bytes.slice(0, 2).toString('hex') === 'ffd8', s2.bytes.slice(0, 4).toString('hex'));
   }
 
@@ -20850,7 +21739,7 @@ const shareMain = (purpose, target = null) =>
     return { ok: t.length === 1 && t[0] === id, how: `${t.length} Treffer: ${t.join(' ')}` };
   };
 
-  for (const [event, wort, target] of [
+  for (const [event, word, target] of [
     ['den Titel', 'stichsäge', () => vsTitle.id],
     ['die Beschreibung', 'münchenquelle', () => vsBeschr.id],
     ['den Namen der Kategorie', 'vollkategorie', () => vsCategoryE.id],
@@ -20859,7 +21748,7 @@ const shareMain = (purpose, target = null) =>
     ['die Adresse eines Links', 'xyzzyquux', () => vsLink.id],
     ['den Text eines Kommentars', 'quastenflosser', () => vsComment.id]
   ]) {
-    const r = await vsOnly(wort, target());
+    const r = await vsOnly(word, target());
     check(`Die Suche findet über ${event}`, r.ok, r.how);
   }
 
@@ -20981,20 +21870,20 @@ const shareMain = (purpose, target = null) =>
     fkAllHit.every(i => i.foundAt && typeof i.foundAt.source === 'string'),
     JSON.stringify(fkAllHit.filter(i => !i.foundAt).map(i => i.id)));
 
-  for (const [event, wort, target, source] of [
-    ['den Titel', 'stichsäge', () => vsTitle.id, 'titel'],
-    ['die Beschreibung', 'münchenquelle', () => vsBeschr.id, 'beschreibung'],
-    ['den Namen der Kategorie', 'vollkategorie', () => vsCategoryE.id, 'kategorie'],
+  for (const [event, word, target, source] of [
+    ['den Titel', 'stichsäge', () => vsTitle.id, 'title'],
+    ['die Beschreibung', 'münchenquelle', () => vsBeschr.id, 'description'],
+    ['den Namen der Kategorie', 'vollkategorie', () => vsCategoryE.id, 'category'],
     ['einen Tag am Eintrag', 'grünspanig', () => vsTag.id, 'tag'],
-    ['einen Tag am Testtag', 'nebelfeucht', () => vsTagTag.id, 'testtag'],
+    ['einen Tag am Testtag', 'nebelfeucht', () => vsTagTag.id, 'testDay'],
     ['die Adresse eines Links', 'xyzzyquux', () => vsLink.id, 'link'],
     ['den Text eines Kommentars', 'quastenflosser', () => vsComment.id, 'comment']
   ]) {
-    const f = await fkFinding(wort, target());
+    const f = await fkFinding(word, target());
     check(`Und sie sagt bei einem Treffer ueber ${event}, dass es ${source} war`,
       f?.source === source, JSON.stringify(f));
     check(`Und der Ausschnitt dazu traegt den Begriff`,
-      !!f && f.text.toLowerCase().includes(wort), JSON.stringify(f?.text));
+      !!f && f.text.toLowerCase().includes(word), JSON.stringify(f?.text));
   }
 
   /* DER AUSSCHNITT IST EINE ZEILE. Ein Kommentar traegt Absaetze; die
@@ -21060,7 +21949,7 @@ const shareMain = (purpose, target = null) =>
   await sendComment(fkSeven.id, { text: 'siebenfach auch im Kommentar' });
   const fkS = await fkFinding('siebenfach', fkSeven.id);
   check('Trifft der Begriff alle sieben Quellen, nennt die Antwort die Beschreibung',
-    fkS?.source === 'beschreibung', JSON.stringify(fkS));
+    fkS?.source === 'description', JSON.stringify(fkS));
   check('Und zaehlt die uebrigen sechs als weitere Stellen',
     fkS?.others === 6, `${fkS?.others}`);
 
@@ -21085,7 +21974,7 @@ const shareMain = (purpose, target = null) =>
   await call('PUT', `/api/items/${fkSeven.id}`, { productCategoryId: null });
   fkFollow.push((await fkFinding('siebenfach', fkSeven.id))?.source);
   check('Die Folge ist Kommentar, Link, Tag am Testtag, Tag, Kategorie, Titel',
-    equal(fkFollow, ['comment', 'link', 'testtag', 'tag', 'kategorie', 'titel']),
+    equal(fkFollow, ['comment', 'link', 'testDay', 'tag', 'category', 'title']),
     JSON.stringify(fkFollow));
   /* TRIFFT NUR DER TITEL, STEHT DIE ZEILE TROTZDEM DA -- eine Regel und keine
      Ausnahme. Sie wiederholt dort, was ohnehin zu sehen ist, und genau das ist
@@ -21093,7 +21982,7 @@ const shareMain = (purpose, target = null) =>
      Quellen, die die Kachel nicht zeigt. */
   const fkOnlyTitle = await fkFinding('siebenfach', fkSeven.id);
   check('Trifft nur der Titel, steht die Zeile trotzdem da',
-    fkOnlyTitle?.source === 'titel' && fkOnlyTitle?.others === 0,
+    fkOnlyTitle?.source === 'title' && fkOnlyTitle?.others === 0,
     JSON.stringify(fkOnlyTitle));
 
   /* WELCHER KOMMENTAR GENANNT WIRD, IST BESTIMMT UND NICHT ZUFAELLIG. Ohne
@@ -21259,8 +22148,8 @@ const shareMain = (purpose, target = null) =>
      andere ist. ZWEI AM SELBEN TAG GINGEN HIER NICHT -- ein Zugang darf einen
      Tag nur einmal eintragen; dass bei Gleichstand die id entscheidet, haelt
      die Zeile am Quelltext weiter unten fest. */
-  for (const [tag, note] of [['2026-05-03', 5], ['2026-05-01', 3], ['2026-05-07', 1]])
-    await call('POST', `/api/items/${ueA.id}/test-days`, { day: tag, rating: note });
+  for (const [date, score] of [['2026-05-03', 5], ['2026-05-01', 3], ['2026-05-07', 1]])
+    await call('POST', `/api/items/${ueA.id}/test-days`, { day: date, rating: score });
   await call('POST', `/api/items/${ueB.id}/test-days`, { day: '2026-04-04', rating: 2 });
   const ueCriterion = (await call('GET', '/api/criteria')).content;
   await call('PUT', `/api/items/${ueA.id}/ratings`, { criterionId: ueCriterion[0].id, value: 4 });
@@ -21444,7 +22333,7 @@ const shareMain = (purpose, target = null) =>
      die Uebersetzung in die Liste steht in der Oberflaeche (filterNormal), und
      genau das belegt diese Gruppe. */
   const vaSetting = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'untested',
-                       favorit: false, fresh: false, sort: 'title_asc' };
+                       favorite: false, fresh: false, sort: 'title_asc' };
   await call('PUT', '/api/settings', { filters: vaSetting });
   const vaBefore = (await call('GET', '/api/settings')).content;
   check('Der Aufbau steht: eine gemerkte Filterstellung liegt vor',
@@ -21541,7 +22430,7 @@ const shareMain = (purpose, target = null) =>
      PERSOENLICHE_SCHLUESSEL und damit in user_settings. */
   await call('PUT', '/api/settings', { views: [{ name: 'Nur meine', q: 'secret', filters: {} }] });
   const vaSecond = await call('POST', '/api/users',
-    { username: 'ansichtsleser', password: 'ansichts-wort-1234', rolle: 'user' });
+    { username: 'ansichtsleser', password: 'ansichts-wort-1234', role: 'user' });
   check('Der Aufbau steht: ein zweiter Zugang ist angelegt',
     vaSecond.status === 200, `${vaSecond.status} ${JSON.stringify(vaSecond.content).slice(0, 120)}`);
   let vaCookie = '';
@@ -21949,7 +22838,7 @@ const shareMain = (purpose, target = null) =>
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
-  check('Die Formatnummer steht auf 13', phEx.version === 13, `${phEx.version}`);
+  check('Die Formatnummer steht auf 14', phEx.version === 14, `${phEx.version}`);
   /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
      criteriaPhase gar nicht auf. Eine Datei ohne Vorher-Kriterien sieht damit
      aus wie bisher, plus einer Formatnummer. */
@@ -22021,13 +22910,13 @@ const shareMain = (purpose, target = null) =>
      Ein gespeichertes `bewertung` aus einer aelteren Fassung faellt still
      heraus -- gewollt, und die Verhaltensaenderung steht im Protokoll. */
   const phBl = await PH.call('PUT', '/api/settings', { blocks: {
-    seite: ['kategorie', 'tags', 'potenzial', 'bewertung'], unten: [],
-    zu: ['bewertung', 'potenzial', 'links'] } });
+    side: ['kategorie', 'tags', 'potenzial', 'bewertung'], bottom: [],
+    closed: ['bewertung', 'potenzial', 'links'] } });
   check('Ein gespeichertes „bewertung" in zu faellt heraus',
-    equal(phBl.content.blocks.zu, ['links']), JSON.stringify(phBl.content.blocks.zu));
+    equal(phBl.content.blocks.closed, ['links']), JSON.stringify(phBl.content.blocks.closed));
   check('Der Potenzialblock steht in der Vorgabereihenfolge vor der Bewertung',
-    equal(phBl.content.blocks.seite, ['kategorie', 'tags', 'potenzial', 'bewertung']),
-    JSON.stringify(phBl.content.blocks.seite));
+    equal(phBl.content.blocks.side, ['kategorie', 'tags', 'potenzial', 'bewertung']),
+    JSON.stringify(phBl.content.blocks.side));
 
   PH.stop(); PHA.stop(); PHN.stop();
   fs.rmSync(phDir, { recursive: true, force: true });
@@ -22097,9 +22986,9 @@ const shareMain = (purpose, target = null) =>
   const endNumber = {};
   for (const t of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
     endNumber[t] = end.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n;
-    const ohne = end.prepare(`SELECT COUNT(*) n FROM ${t} WHERE user_id IS NULL`).get().n;
-    check(`${t}: keine der ${endNumber[t]} Zeilen ist ohne Benutzer`, ohne === 0,
-      `${ohne} von ${endNumber[t]} ohne user_id`);
+    const withoutPhotos = end.prepare(`SELECT COUNT(*) n FROM ${t} WHERE user_id IS NULL`).get().n;
+    check(`${t}: keine der ${endNumber[t]} Zeilen ist ohne Benutzer`, withoutPhotos === 0,
+      `${withoutPhotos} von ${endNumber[t]} ohne user_id`);
   }
   check('Der Durchlauf laeuft ueber einen belastbaren Bestand',
     endNumber.items >= 5 && endNumber.comments >= 4 && endNumber.test_days >= 4 &&
@@ -22206,10 +23095,14 @@ const shareMain = (purpose, target = null) =>
      vorbei, und genau daran sind zwei Gegenproben haengengeblieben. */
   const pbStarts = (fs.readFileSync(path.join(__dirname, 'testbench.js'), 'utf8')
     .match(/spawn\(process\.execPath, \['server\.js'\]/g) || []).length;
-  /* VIER SEIT 0.24.0: dazu die Lage, die einen Server OHNE de.json startet und
-     festhaelt, dass er nicht hochkommt (Bauabschnitt 1). */
-  check('Es gibt genau vier Stellen, die einen Server starten',
-    pbStarts === 4, `${pbStarts} Stellen`);
+  /* VIER SEIT 0.24.0: dazu die Lage, die einen Server OHNE Sprachdatei
+     startet und festhaelt, dass er trotzdem hochkommt (Bauabschnitt 1).
+     FUENF SEIT 0.24.3: die Fremddateilage (F6) startet einen Server, in
+     dessen Sprachverzeichnis drei unbrauchbare Dateien liegen. Sie teilt
+     sich das Fenster von LANGUAGE_BASE mit der Lage darueber -- zwei
+     Nummern, zwei Lagen, und beide vermerkt. */
+  check('Es gibt genau fuenf Stellen, die einen Server starten',
+    pbStarts === 5, `${pbStarts} Stellen`);
 
   const pbToday = pbBases
     .map(b => [b, pbLocked(b, pbWidth(b))])
@@ -22547,8 +23440,21 @@ const shareMain = (purpose, target = null) =>
      Wert unter, den sie NICHT anfassen darf. Acht Rueckbauten fuer eine
      Gruppe sind viel; sie ist auch die einzige der Runde, und ein
      Migrationsblock, den nichts rot macht, ist eine Behauptung ueber einen
-     Bestand, den man nicht mehr zurueckholt. */
-  check('Es sind genau 701 Rueckbauten', gpList.length === 701, `${gpList.length}`);
+     Bestand, den man nicht mehr zurueckholt.
+     UND 725 SEIT 0.24.3: VIERUNDZWANZIG neue (710 bis 733) fuer die fuenf
+     Gruppen dieser Runde -- vier an den Klammern am Sprachverzeichnis
+     (kaputtes JSON, unbrauchbare Locale, der Dateiname, die Meldung selbst),
+     drei am Vorrat (die Wahl je Benutzer, und die Vorgabe darin ZWEIMAL --
+     einmal je Haelfte der doppelten Klemme), sechs am
+     Rueckfall der Namen (die Sprache ohne Angabe, die geraeumte gleiche
+     Uebersetzung, die Namenstabelle, der Leseweg der Kategorien und die
+     beiden Wege der Datei), acht am zweiten Migrationsblock und drei an der
+     Vorgabesprache des Bestands.
+     ACHT FUER EINEN MIGRATIONSBLOCK, WIE EINE RUNDE ZUVOR, und der letzte
+     davon ist die Gegenlage: er laesst den Block nach den BLOCKNAMEN
+     greifen, die deutsch bleiben sollen. Ein Block, der zu viel tut,
+     richtet denselben Schaden an wie einer, der zu wenig tut. */
+  check('Es sind genau 725 Rueckbauten', gpList.length === 725, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -22671,7 +23577,7 @@ const shareMain = (purpose, target = null) =>
   console.log = (...parts) => printed.push(parts.join(' '));
   try {
     gpTable([{ nr: '568', name: 'Ein Rueckbau', file: 'server.js', trace: 0,
-                 sekunden: 79, code: 1, ...gpTeardown }]);
+                 seconds: 79, code: 1, ...gpTeardown }]);
   } finally { console.log = realLog; }
   check('Und der Bericht druckt sie unter den Abriss',
     printed.some(z => z.includes('LAUF ABGERISSEN')) &&
@@ -22806,18 +23712,18 @@ const shareMain = (purpose, target = null) =>
   function functionLengths(source) {
     const rows = String(source).split('\n');
     const found = [];
-    let offen = null;
+    let open = null;
     for (let i = 0; i < rows.length; i++) {
       const z = rows[i];
-      if (!offen) {
+      if (!open) {
         const m = z.match(/^(?:async\s+)?function\s+([A-Za-z0-9_$]+)\s*\(/);
-        if (m) { offen = { name: m[1], from: i }; continue; }
+        if (m) { open = { name: m[1], from: i }; continue; }
         // Auch die Pfeilform am linken Rand, solange ihr Rumpf geklammert ist.
         const a = z.match(/^const\s+([A-Za-z0-9_$]+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>\s*\{$/);
-        if (a) { offen = { name: a[1], from: i }; continue; }
+        if (a) { open = { name: a[1], from: i }; continue; }
       } else if (z === '}' || z === '};') {
-        found.push({ name: offen.name, from: offen.from + 1, rows: i - offen.from + 1 });
-        offen = null;
+        found.push({ name: open.name, from: open.from + 1, rows: i - open.from + 1 });
+        open = null;
       }
     }
     return found.sort((a, b) => b.rows - a.rows || a.name.localeCompare(b.name));
@@ -23376,11 +24282,11 @@ const GIF_BASE64 = 'R0lGODlhCAAIAIAAAAD/AP8AACH5BAQAAAAALAAAAAAIAAgAAAIMDIxwi5nM
    ERZEUGT UND NICHT MITGELIEFERT: als Base64 waeren es 33 kB Quelltext, und
    fuer die Zusage „verlustfrei" braucht es keine echte Aufnahme -- nur ein
    Bild, dessen Pixel man vorher kennt. */
-async function makePruefPNG(seite = 96) {
-  const raw = Buffer.alloc(seite * seite * 3);
-  for (let y = 0; y < seite; y++) {
-    for (let x = 0; x < seite; x++) {
-      const i = (y * seite + x) * 3;
+async function makePruefPNG(side = 96) {
+  const raw = Buffer.alloc(side * side * 3);
+  for (let y = 0; y < side; y++) {
+    for (let x = 0; x < side; x++) {
+      const i = (y * side + x) * 3;
       raw[i]     = Math.round(120 + 90 * Math.sin(x / 7) * Math.cos(y / 5)) & 255;
       raw[i + 1] = Math.round(110 + 80 * Math.sin((x + y) / 6)) & 255;
       raw[i + 2] = Math.round(140 + 70 * Math.cos(x / 4)) & 255;
@@ -23389,7 +24295,7 @@ async function makePruefPNG(seite = 96) {
     }
   }
   // Mit Alphakanal, wie ein Bildschirmfoto aus der Zwischenablage.
-  return sharp(raw, { raw: { width: seite, height: seite, channels: 3 } })
+  return sharp(raw, { raw: { width: side, height: side, channels: 3 } })
     .ensureAlpha().png({ compressionLevel: 9 }).toBuffer();
 }
 
@@ -23806,7 +24712,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      kaputtem Versand stellt eine Prueflage ueber requestsStatus -- ohne beide
      bliebe die halbe Karte ungeprueft (Stolperstein 81). */
   requestsStatus = requestsStatus || {
-    an: true, deliveryReady: true, deliveryReason: '', cap: 20, stunden: 24,
+    an: true, deliveryReady: true, deliveryReason: '', cap: 20, hours: 24,
     requests: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' },
@@ -23816,7 +24722,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   };
   // belegt wird GERECHNET und nicht gestellt -- am echten Server zaehlt es die
   // Zeilen, und ein Mock mit eigener Zahl deckte genau das zu.
-  const requestsMock = () => ({ ...requestsStatus, belegt: requestsStatus.requests.length });
+  const requestsMock = () => ({ ...requestsStatus, used: requestsStatus.requests.length });
   /* ---- Der zweite Faktor im Mock, 0.10.0 ----
      FESTE, ERFUNDENE WERTE. Der Prueflauf arbeitet nie mit einem echten
      Geheimnis, und ein Code, der aus der Uhr entstuende, machte die Prueflage
@@ -23829,7 +24735,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   const ZF_MOCK_ROW = 'otpauth://totp/Kriterion%3Achefin?secret=' + ZF_MOCK_SECRET +
     '&issuer=Kriterion&algorithm=SHA1&digits=6&period=30';
   const ZF_MOCK_CODE = '123456';
-  let zfStatusMock = twoFactorState || { an: false, seit: null, codesOpen: 0, codesTotal: 0 };
+  let zfStatusMock = twoFactorState || { an: false, since: null, codesOpen: 0, codesTotal: 0 };
   let zfTicketMock = 'ausweis-1', zfTicketCounter = 1;
   let zfCodesMock = twoFactorCodes ||
     ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
@@ -23842,23 +24748,23 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      DIESELBEN WERTE WIE IN mail.js -- dass sie es wirklich sind, prueft die
      Gruppe „Der Mailversand: das echte SMTP-Gespraech" am laufenden Server. */
   const MAIL_PROVIDER_MOCK = [
-    { key: 'gmx', name: 'GMX', server: 'mail.gmx.net', port: 587, sicher: false,
+    { key: 'gmx', name: 'GMX', server: 'mail.gmx.net', port: 587, secure: false,
       hint: 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
-    { key: 'web', name: 'Web.de', server: 'smtp.web.de', port: 587, sicher: false,
+    { key: 'web', name: 'Web.de', server: 'smtp.web.de', port: 587, secure: false,
       hint: 'Web.de verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
-    { key: 'gmail', name: 'Gmail', server: 'smtp.gmail.com', port: 465, sicher: true,
+    { key: 'gmail', name: 'Gmail', server: 'smtp.gmail.com', port: 465, secure: true,
       hint: 'Gmail verlangt Zwei-Faktor und ein App-Passwort — das Kontopasswort wird abgewiesen.' },
-    { key: 'strato', name: 'Strato', server: 'smtp.strato.de', port: 465, sicher: true, hint: '' },
-    { key: 'ionos', name: 'IONOS', server: 'smtp.ionos.de', port: 587, sicher: false, hint: '' },
-    { key: 'eigen', name: 'Eigener Server', server: '', port: 587, sicher: false, hint: '' }
+    { key: 'strato', name: 'Strato', server: 'smtp.strato.de', port: 465, secure: true, hint: '' },
+    { key: 'ionos', name: 'IONOS', server: 'smtp.ionos.de', port: 587, secure: false, hint: '' },
+    { key: 'eigen', name: 'Eigener Server', server: '', port: 587, secure: false, hint: '' }
   ];
-  mailStatus = mailStatus || { provider: 'gmx', server: 'mail.gmx.net', port: 587, sicher: false,
+  mailStatus = mailStatus || { provider: 'gmx', server: 'mail.gmx.net', port: 587, secure: false,
     user: 'instanz@gmx.de', sender: 'instanz@gmx.de', passwordSet: true,
     testedAt: '2026-08-20 08:30:00' };
   const mailCardMock = () => ({
     provider: mailStatus.provider || '',
     providerName: (MAIL_PROVIDER_MOCK.find(a => a.key === mailStatus.provider) || {}).name || '',
-    server: mailStatus.server || '', port: mailStatus.port || 0, sicher: mailStatus.sicher === true,
+    server: mailStatus.server || '', port: mailStatus.port || 0, secure: mailStatus.secure === true,
     user: mailStatus.user || '', sender: mailStatus.sender || '',
     passwordSet: Boolean(mailStatus.passwordSet),
     hint: mailStatus.provider === 'gmx'
@@ -23872,7 +24778,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     configured: Boolean(mailStatus.provider && mailStatus.user &&
                           mailStatus.passwordSet && mailStatus.sender),
     addressSet: Boolean(publicAddress), address: publicAddress,
-    deadlineMinutes: 15, testedAt: mailStatus.testedAt || null, sekunden: 20
+    deadlineMinutes: 15, testedAt: mailStatus.testedAt || null, seconds: 20
   });
   /* Was der Server ueber den Versand sagt -- NACHGERECHNET, nicht gesetzt.
      Drei Zustaende, und die Reihenfolge ist dieselbe wie in server.js: kein
@@ -23907,10 +24813,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
 
   const trash = trashInventory || [
     { id: 501, title: 'Weggeworfenes', deleted_at: '2026-08-01 09:00:00',
-      loeschender: { id: 1, name: 'chefin', deleted: false },
+      deletedBy: { id: 1, name: 'chefin', deleted: false },
       files: 3, bytes: 2048, daysOpen: 12 },
     { id: 502, title: 'Von einem Grabstein', deleted_at: '2026-08-10 11:30:00',
-      loeschender: { id: 4, name: null, deleted: true },
+      deletedBy: { id: 4, name: null, deleted: true },
       files: 0, bytes: 512, daysOpen: 27 }
   ];
   /* Die Sicherung der Prueflage. Vorgabe: eingerichtet, mit einer Sicherung
@@ -23924,10 +24830,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     inWorkDir: false,
     dbBytes: 52428800, durationSeconds: 1, reachable: true, number: 2,
     last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
-              at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: false },
+              at: '2026-08-20 03:00:00', daysAgo: 3, outdated: false },
     // Seit 0.8.91: die Vorgabe ist "nie gewechselt". Die drei Lagen des
     // Wechsels bekommen ihre eigenen Aufbauten in der Gruppe darunter.
-    gewechseltAm: null, veraltet: 0,
+    changedAt: null, outdated: 0,
     /* DIE AUFRAEUMREGEL, seit 0.20.0. VORGABE: Schalter AUS, 3 und 30, und die
        Regel trifft nichts -- genau die Lage einer frischen Installation. Die
        Lagen mit Treffern und mit veralteten Kopien bekommen ihre eigenen
@@ -23946,9 +24852,9 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
          zwei Wahrheiten ueber denselben Ort. */
       files: [
         { nr: 1, file: 'kriterion-2026-08-20-03-00-00.sqlite', at: '2026-08-20 03:00:00',
-          daysAgo: 3, bytes: 52428800, affected: false, veraltet: false },
+          daysAgo: 3, bytes: 52428800, affected: false, outdated: false },
         { nr: 2, file: 'kriterion-2026-08-13-03-00-00.sqlite', at: '2026-08-13 03:00:00',
-          daysAgo: 10, bytes: 52428800, affected: false, veraltet: false }
+          daysAgo: 10, bytes: 52428800, affected: false, outdated: false }
       ],
       oldCount: 0, oldBytes: 0, oldFiles: []
     }
@@ -24266,7 +25172,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      andere Antwort zu geben. Gaebe er stur dieselbe Liste zurueck, waere "die
      Ansicht hat den Haken gesetzt" von "nichts ist passiert" nicht zu
      unterscheiden. */
-  const offen = openInventory || [
+  const open = openInventory || [
     { id: 65, kind: 'task', text: 'Eine Aufgabe', created_at: '2026-07-30 09:00:00',
       item: { id: 1, title: 'Beispiel' }, mine: true, author: vChefin },
     { id: 66, kind: 'done', text: 'Schon erledigt', created_at: '2026-07-29 09:00:00',
@@ -24309,7 +25215,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        gueltig, wie sie sind, und laufen weiter auf Deutsch. Ein nachgebauter
        Satz waere eine zweite Wahrheit -- und die Pruefung liefe gruen, waehrend
        die ausgelieferte Datei etwas anderes sagt (Stolperstein 47). */
-    const languageFile = /^\/languages\/([a-z]{2})\.json$/.exec(String(url));
+    /* DASSELBE MUSTER WIE readLanguages() IM SERVER -- BCP 47 und nicht „zwei
+       Kleinbuchstaben". Ein engeres Muster hier liesse eine Datei `pt-BR.json`
+       im Mock ins Leere laufen, waehrend der Server sie laedt. */
+    const languageFile = /^\/languages\/([a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?)\.json$/
+      .exec(String(url));
     if (languageFile) {
       // `withoutLanguage`: die Lage, in der die Datei fehlt (Entscheidung A1).
       if (withoutLanguage) return give({}, 404);
@@ -24317,8 +25227,20 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (!fs.existsSync(file)) return give({}, 404);
       return give(JSON.parse(fs.readFileSync(file, 'utf8')));
     }
+    /* DIE ZWEI SPRACHFELDER SEIT 0.24.3. DIE VORGABE IST `de` UND NICHT `en`:
+       dieser Mock stellt eine Installation dar, deren Eigentuemer Deutsch
+       vorgibt -- also genau die Lage des BESTANDS nach der Migration (F2). Die
+       312 Zusicherungen mit deutschem Text bleiben damit gueltig, wie sie sind.
+       DER VORRAT KOMMT AUS DEM ECHTEN VERZEICHNIS und ist keine Liste hier:
+       wer eine Sprachdatei dazulegt, soll sie im Mock vorfinden, ohne diese
+       Zeile zu suchen -- dieselbe Ueberlegung wie bei der Datei selbst
+       darueber. */
     if (url === '/api/config') return give({ title: 'Oeffentlich', version: require('./package.json').version,
-      setupRequired: setup, minPassword: 10, signup });
+      setupRequired: setup, minPassword: 10, signup,
+      language: 'de',
+      languages: fs.readdirSync(path.join(__dirname, 'public', 'languages'))
+        .filter(f => f.endsWith('.json')).sort()
+        .map(f => ({ code: f.slice(0, -5), name: f.slice(0, -5) })) });
     if (url === '/api/session') return give({ authenticated: loggedIn });
     /* Der Weg VOR der Anmeldung. Zwei gueltige Schluessel, damit sich beide
        Anlaesse unterscheiden lassen -- einer zu einem Zugang OHNE Passwort
@@ -24393,7 +25315,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (k.password !== 'chefins-wort-100')
         return give({ error: 'Benutzername oder Passwort stimmt nicht.' }, 401);
       if (!loginFactor) return give({ ok: true });
-      return give({ twoFactor: true, ticket: zfTicketMock, sekunden: 120 });
+      return give({ twoFactor: true, ticket: zfTicketMock, seconds: 120 });
     }
     if (url === '/api/login/second' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
@@ -24404,7 +25326,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         // DER ALTE AUSWEIS IST VERBRAUCHT, ein frischer liegt der Absage bei --
         // sonst kostete ein Tippfehler das ganze Passwort noch einmal.
         zfTicketMock = 'ausweis-' + (++zfTicketCounter);
-        return give({ error: 'Der Code stimmt nicht.', ticket: zfTicketMock, sekunden: 120 }, 401);
+        return give({ error: 'Der Code stimmt nicht.', ticket: zfTicketMock, seconds: 120 }, 401);
       }
       zfTicketMock = 'ausweis-' + (++zfTicketCounter);
       return give({ ok: true });
@@ -24422,13 +25344,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (k.password !== 'chefins-wort-100') return give({ error: 'Das Passwort stimmt nicht.' }, 403);
       if (zfStatusMock.an) return give({ error: 'Der zweite Faktor ist bereits eingeschaltet.' }, 400);
       return give({ secret: ZF_MOCK_SECRET, groups: ZF_MOCK_GROUPS,
-                   row: ZF_MOCK_ROW, ziffern: 6, sekunden: 30 });
+                   row: ZF_MOCK_ROW, digits: 6, seconds: 30 });
     }
     if (url === '/api/two-factor/on' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
       if (k.password !== 'chefins-wort-100') return give({ error: 'Das Passwort stimmt nicht.' }, 403);
       if (String(k.code) !== ZF_MOCK_CODE) return give({ error: 'Der Code stimmt nicht.' }, 400);
-      zfStatusMock = { an: true, seit: '2026-08-26 10:00:00', codesOpen: 8, codesTotal: 8 };
+      zfStatusMock = { an: true, since: '2026-08-26 10:00:00', codesOpen: 8, codesTotal: 8 };
       return give({ ...zfStatusMock, codes: zfCodesMock });
     }
     if (url === '/api/two-factor/codes' && opt.method === 'POST') {
@@ -24444,7 +25366,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (!zfStatusMock.an) return give({ error: 'Der zweite Faktor ist nicht eingeschaltet.' }, 400);
       if (k.password !== 'chefins-wort-100') return give({ error: 'Das Passwort stimmt nicht.' }, 403);
       if (String(k.code) !== ZF_MOCK_CODE) return give({ error: 'Der Code stimmt nicht.' }, 403);
-      zfStatusMock = { an: false, seit: null, codesOpen: 0, codesTotal: 0 };
+      zfStatusMock = { an: false, since: null, codesOpen: 0, codesTotal: 0 };
       return give({ ...zfStatusMock });
     }
     /* ---- Der Mailversand, 0.9.0 ----
@@ -24528,7 +25450,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       mailStatus.provider = String(k.provider || '');
       if (mailStatus.provider === 'eigen') {
         mailStatus.server = String(k.server || ''); mailStatus.port = Number(k.port) || 0;
-        mailStatus.sicher = k.sicher === true;
+        mailStatus.secure = k.secure === true;
       }
       mailStatus.user = String(k.user || '');
       mailStatus.sender = String(k.sender || '');
@@ -24549,9 +25471,9 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           'ausschließlich an die eigene Adresse.' }, 400);
       if (mailError)
         return give({ ok: false, reason: 'Message failed: 550 abgelehnt',
-                     an: ownAddress, ...mailCardMock() });
+                     sentTo: ownAddress, ...mailCardMock() });
       mailStatus.testedAt = '2026-08-25 12:00:00';
-      return give({ ok: true, reason: '', an: ownAddress, ...mailCardMock() });
+      return give({ ok: true, reason: '', sentTo: ownAddress, ...mailCardMock() });
     }
     if (url === '/api/titles') return give({ publicTitle: 'Oeffentlich', appTitle: 'Intern' });
     if (url === '/api/criteria') return give(criteria);
@@ -24635,11 +25557,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
          liefert -- juengste zuerst. Ohne sie zeichnete die Karte hier eine
          leere Liste, und jede Zusage darauf waere trivial wahr
          (Stolperstein 81). */
-      const namen = new Set(matched.map(z => z.file));
+      const names = new Set(matched.map(z => z.file));
       const oldNames = new Set((backup.cleanup.oldFiles || []).map(z => z.file));
       return give({ ...backup, cleanup: { ...backup.cleanup, keep, days,
         files: cleanupCopies.map((z, i) => ({ ...z, nr: i + 1,
-          affected: namen.has(z.file), veraltet: oldNames.has(z.file) })),
+          affected: names.has(z.file), outdated: oldNames.has(z.file) })),
         matched, bytes: matched.reduce((n, z) => n + z.bytes, 0),
         reason: matched.length ? '' : (cleanupCopies.length <= keep
           ? `Alle ${cleanupCopies.length} Kopien sind unter den jüngsten ${keep}.`
@@ -24661,19 +25583,19 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const outdatedFiles = k.kind === 'outdated'
         ? (a.oldFiles || [])
         : cleanupCopies.slice(a.keep).filter(z => z.daysAgo > a.days);
-      const namen = new Set(outdatedFiles.map(z => z.file));
+      const names = new Set(outdatedFiles.map(z => z.file));
       for (let i = cleanupCopies.length - 1; i >= 0; i--)
-        if (namen.has(cleanupCopies[i].file)) cleanupCopies.splice(i, 1);
+        if (names.has(cleanupCopies[i].file)) cleanupCopies.splice(i, 1);
       const bytes = outdatedFiles.reduce((n, z) => n + z.bytes, 0);
       backup.number = Math.max(0, (backup.number || 0) - outdatedFiles.length);
-      if (k.kind === 'outdated') { backup.veraltet = 0; a.oldCount = 0; a.oldBytes = 0;
+      if (k.kind === 'outdated') { backup.outdated = 0; a.oldCount = 0; a.oldBytes = 0;
                                   a.oldFiles = []; }
       backup.cleanup = { ...a, matched: [], bytes: 0,
                                reason: 'Alle Kopien sind unter den jüngsten ' + a.keep + '.' };
-      return give({ ok: true, kind: k.kind, removed: outdatedFiles.length, nicht: 0, bytes,
+      return give({ ok: true, kind: k.kind, removed: outdatedFiles.length, notDeleted: 0, bytes,
                    reachable: true, number: backup.number, last: backup.last,
-                   gewechseltAm: backup.gewechseltAm ?? null,
-                   veraltet: backup.veraltet ?? 0,
+                   changedAt: backup.changedAt ?? null,
+                   outdated: backup.outdated ?? 0,
                    cleanup: backup.cleanup });
     }
     /* Und die beiden Schreibwege, die ihren Stand WIRKLICH aendern
@@ -24692,8 +25614,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       // liesse die Karte nach dem Speichern harmloser aussehen als die Lage.
       return give({ ok: true, place, filePath: backup.filePath, reachable: true,
                    number: backup.number, last: backup.last,
-                   gewechseltAm: backup.gewechseltAm ?? null,
-                   veraltet: backup.veraltet ?? 0 });
+                   changedAt: backup.changedAt ?? null,
+                   outdated: backup.outdated ?? 0 });
     }
     if (url === '/api/backup' && opt.method === 'POST') {
       const file = 'kriterion-2026-08-23-19-00-00.sqlite';
@@ -24706,8 +25628,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
          entscheidet daran, ob sie den ganzen Bereich neu zeichnet. */
       return give({ ok: true, file, filePath: backup.filePath, bytes: 52428800, ms: 512,
                    reachable: true, number: backup.number, last: backup.last,
-                   gewechseltAm: backup.gewechseltAm ?? null,
-                   veraltet: backup.veraltet ?? 0, cleaned: null });
+                   changedAt: backup.changedAt ?? null,
+                   outdated: backup.outdated ?? 0, cleaned: null });
     }
     /* Und die beiden Wege, die den Bestand WIRKLICH aendern (Stolperstein 90):
        ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe Liste
@@ -24750,7 +25672,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     }
     if (url === '/api/users' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
-      const newerUser = { id: 9, username: k.username, role: k.rolle || 'user',
+      const newerUser = { id: 9, username: k.username, role: k.role || 'user',
                             status: 'active', withoutPassword: k.sendInvite === true };
       // Auch hier zieht der Mock wirklich mit: die Liste danach ist eine andere.
       users.users.push({ ...newerUser, last_login: null,
@@ -24798,7 +25720,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (k.password !== DOM_PASSWORD)
         return Promise.resolve({ ok: false, status: 403,
           json: () => Promise.resolve({ error: 'Das Passwort stimmt nicht.' }) });
-      return give({ ok: true, purpose: k.purpose, sekunden: 120 });
+      return give({ ok: true, purpose: k.purpose, seconds: 120 });
     }
     /* SEIT 0.13.0 KENNT DIE ROUTE EINE AUSWAHL. Der Mock antwortet wie der
        echte Server (Stolperstein 90): er filtert wirklich und liefert `gruppe`
@@ -24844,7 +25766,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        gewinnt -- deshalb steht `...i` HINTER der gerechneten Zahl. */
     const includingHeadCounts = (list, wasSearch) => list.map(i => {
       const row = {
-        openTasks: offen.filter(z => z.kind === 'task' && z.item?.id === i.id).length,
+        openTasks: open.filter(z => z.kind === 'task' && z.item?.id === i.id).length,
         ...i
       };
       if (!settings.bellSeen)
@@ -24986,7 +25908,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        der echte Endpunkt liefert es nicht, und ein Mock, der mehr
        mitschickt, machte jede Pruefung darauf wertlos. */
     if (url === '/api/open')
-      return give(offen.filter(z => z.kind === 'task').map(z => ({
+      return give(open.filter(z => z.kind === 'task').map(z => ({
         id: z.id, text: z.text, created_at: z.created_at,
         item: z.item, mine: z.mine, author: z.author })));
     /* PUT auf einen Kommentar: der echte Server schreibt die Art und antwortet
@@ -24999,7 +25921,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const nr = Number(url.split('/').pop());
       const body = JSON.parse(opt.body || '{}');
       if (body.kind !== undefined) {
-        const row = offen.find(z => z.id === nr);
+        const row = open.find(z => z.id === nr);
         if (row) row.kind = body.kind;
         const k = example.comments.find(c => c.id === nr);
         if (k) k.kind = body.kind;
@@ -25089,7 +26011,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           ? { png: { count: 12, bytes: 6291456 }, jpeg: { count: 5, bytes: 524288 },
               webp: { count: 2, bytes: 65536 } }
           : statsImageFormats,
-        umstellung: statsSwitch,
+        conversion: statsSwitch,
         geometry: statsGeometry,
         /* DIE ALGORITHM, seit 0.16.0 -- dieselben Werte, die db.js aus der
            geoeffneten Datei abliest. STELLBAR AUF null: eine Antwort ohne sie
@@ -25097,7 +26019,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
            darf. Ohne diesen Fall waere „er steht da" nicht von „er steht
            immer da" zu unterscheiden (Stolperstein 81). */
         method: statsMethod === undefined
-          ? { cipher: 'sqlcipher', schluesselBits: 256, journal: 'WAL', passwords: 'scrypt' }
+          ? { cipher: 'sqlcipher', keyBits: 256, journal: 'WAL', passwords: 'scrypt' }
           : statsMethod,
         keyFromEnv: false, keyHex: 'ab'.repeat(32) });
     }
@@ -25337,7 +26259,7 @@ async function checkUi() {
   let JSDOM;
   try { ({ JSDOM } = require('jsdom')); }
   catch {
-    uebersprungen += 38;
+    skipped += 38;
     console.log('  … uebersprungen: jsdom fehlt (npm install)');
     return;
   }
@@ -25438,10 +26360,10 @@ async function checkUi() {
 
   /* --- Detailansicht --- */
   await w.renderDetail(1);
-  const beschreibung = w.document.getElementById('desc');
-  check('Beschreibungsfeld waechst mit', beschreibung.classList.contains('ta-auto'));
+  const description = w.document.getElementById('desc');
+  check('Beschreibungsfeld waechst mit', description.classList.contains('ta-auto'));
   check('Kommentarfeld waechst mit', w.document.getElementById('ctext').classList.contains('ta-auto'));
-  check('Beschreibung steht unveraendert im Feld', beschreibung.value === example.description);
+  check('Beschreibung steht unveraendert im Feld', description.value === example.description);
   // firstChild, nicht textContent: hinter dem Namen kann die Gewichtsmarke
   // stehen, und die gehoert nicht zum Namen.
   const rows = [...w.document.querySelectorAll('#ratings .rname')]
@@ -25560,9 +26482,9 @@ async function checkUi() {
   const own = {
     filters: null, font: 120,
     vocabulary: {
-      sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen',
-      merkmalJa: 'Geprüft', merkmalNein: 'Ungeprüft',
-      zeitpunktEinzahl: 'Sitzung', zeitpunktMehrzahl: 'Sitzungen'
+      entryOne: 'Maschine', entryMany: 'Maschinen',
+      testedYes: 'Geprüft', testedNo: 'Ungeprüft',
+      dayOne: 'Sitzung', dayMany: 'Sitzungen'
     }
   };
   /* Ein ZWEITER Satz, diesmal vollstaendig -- er traegt auch die Woerter fuer
@@ -25571,8 +26493,8 @@ async function checkUi() {
      das Vokabular nicht nennt, die Vorgabe zeigt. Beides in einem Satz ginge
      nicht, ohne eine der beiden Aussagen zu verlieren. */
   const ownFull = { filters: null, vocabulary: { ...own.vocabulary,
-    berichtEinzahl: 'Notat', berichtMehrzahl: 'Notate',
-    aufgabeEinzahl: 'ToDo', aufgabeMehrzahl: 'ToDo’s', aufgabeErledigt: 'Done' } };
+    reportOne: 'Notat', reportMany: 'Notate',
+    taskOne: 'ToDo', taskMany: 'ToDo’s', taskDone: 'Done' } };
 
   // Direkteinstieg auf einen Eintrag: hier lief loadAll() frueher nie, das
   // Vokabular waere also nicht geladen gewesen.
@@ -25774,9 +26696,9 @@ async function checkUi() {
   /* --- Spitze Klammern im Vokabular duerfen kein HTML werden --- */
   w3.close();
   const four = buildDom(JSDOM, { settings: { filters: null, vocabulary: {
-    sacheEinzahl: '<b id="boese">X</b>', sacheMehrzahl: '<i id="boese2">Y</i>',
-    merkmalJa: 'Ja', merkmalNein: 'Nein',
-    zeitpunktEinzahl: 'Z', zeitpunktMehrzahl: '<u id="boese3">Zs</u>'
+    entryOne: '<b id="boese">X</b>', entryMany: '<i id="boese2">Y</i>',
+    testedYes: 'Ja', testedNo: 'Nein',
+    dayOne: 'Z', dayMany: '<u id="boese3">Zs</u>'
   }}});
   const w4 = four.w;
   await new Promise(r => setTimeout(r, 80));
@@ -25866,7 +26788,7 @@ async function checkUi() {
   check('Punkte werden aus allen sichtbaren Einträgen gesammelt',
     wz.timelinePoints(buildItems(3, 2)).length === 6);
   check('Punkte sind nach Datum sortiert', (() => {
-    const p = wz.timelinePoints(buildItems(4, 2)).map(x => x.tag);
+    const p = wz.timelinePoints(buildItems(4, 2)).map(x => x.date);
     return equal(p, [...p].sort());
   })());
   check('Einträge ohne Testtage stören nicht',
@@ -25886,8 +26808,8 @@ async function checkUi() {
   const points = [...zlBox().querySelectorAll('.timeline-dot')];
   check('Je Testtag ein Punkt', points.length === 6, `${points.length}`);
   check('Höhe folgt der Tagesnote', points.every(p => {
-    const note = Number(p.getAttribute('aria-label').match(/Note (\d)/)[1]);
-    return p.style.bottom === ((note - 1) / 4 * 100) + '%';
+    const score = Number(p.getAttribute('aria-label').match(/Note (\d)/)[1]);
+    return p.style.bottom === ((score - 1) / 4 * 100) + '%';
   }), points.map(p => p.style.bottom).join(' '));
   check('Punkte sitzen waagerecht nach Datum',
     points[0].style.left === '0%' && points[points.length - 1].style.left === '100%',
@@ -25995,8 +26917,8 @@ async function checkUi() {
   check('Klick auf einen freien Tag vergibt ihn',
     assigns && assigns.body.name === free.textContent.replace(/\d+$/, ''),
     JSON.stringify(assigns));
-  const belegt = [...ww.document.querySelectorAll('#tagcloud .pill')].find(b2 => b2.classList.contains('on'));
-  belegt.onclick();
+  const used = [...ww.document.querySelectorAll('#tagcloud .pill')].find(b2 => b2.classList.contains('on'));
+  used.onclick();
   await new Promise(r => setTimeout(r, 30));
   const takes = cloudsDom.sent.filter(x => x.method === 'DELETE' && /\/tags\//.test(x.url)).pop();
   check('Erneuter Klick nimmt ihn zurück', !!takes, JSON.stringify(takes));
@@ -26022,7 +26944,7 @@ async function checkUi() {
      eigene Pruefung rot machen (Stolperstein 52).
      Nachgestellt wird der gemeldete Weg: Block "Tags" eingeklappt betreten. */
   const zuDom = buildDom(JSDOM, { tags: pool, hash: '#/item/1',
-    settings: { filters: null, blocks: { zu: ['tags'] } } });
+    settings: { filters: null, blocks: { closed: ['tags'] } } });
   const zw = zuDom.w;
   await new Promise(r => setTimeout(r, 80));
   const tagBlock = zw.document.querySelector('.block[data-block="tags"]');
@@ -26191,8 +27113,8 @@ async function checkUi() {
      Der Anlass fuer diese Gruppe: der Rueckbau einer solchen Zeile bliebe an
      allen uebrigen Pruefungen unbemerkt -- keine der Favoriten-Pruefungen
      deckt ab, WO ein Favorit in der Liste steht. */
-  const favEntry = (id, title, favorit, ratingValue) => ({
-    id, title: title, rejected: false, tested: id % 2 === 0, favorite: favorit,
+  const favEntry = (id, title, favorite, ratingValue) => ({
+    id, title: title, rejected: false, tested: id % 2 === 0, favorite: favorite,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: ratingValue, testCount: null, testAvg: null, testLast: null, testDays: [],
     updated_at: '2026-08-01 10:00:00'
@@ -26219,7 +27141,7 @@ async function checkUi() {
     return d;
   };
 
-  const favTitleSort = await favBuild({ tested: 'all', favorit: false, sort: 'title_asc' });
+  const favTitleSort = await favBuild({ tested: 'all', favorite: false, sort: 'title_asc' });
   check('Bei Titelsortierung stehen Favoriten an ihrem alphabetischen Platz',
     equal(favTitleFrom(favTitleSort),
       ['Alpha mit Wertung', 'Beta mit Wertung', 'Gamma mit Wertung', 'Zeta ohne Wertung']),
@@ -26239,7 +27161,7 @@ async function checkUi() {
      UND DIE VORGABE SELBST WIRD DABEI MITBELEGT: vor dem Klick zeigt dieselbe
      Lage nur die getesteten. Ohne diese Zeile bliebe unbelegt, dass der Klick
      ueberhaupt etwas zu schlagen hatte (Stolperstein 224). */
-  const favValue = await favBuild({ tested: 'all', favorit: false, sort: 'rating_desc' });
+  const favValue = await favBuild({ tested: 'all', favorite: false, sort: 'rating_desc' });
   const favVorClickable = favTitleFrom(favValue);
   check('Bei Bewertungssortierung steht ohne Handwahl nur Getestetes da — 0.21.1',
     equal(favVorClickable, ['Gamma mit Wertung', 'Beta mit Wertung']),
@@ -26264,7 +27186,7 @@ async function checkUi() {
      Genau das ist unten die dritte Pruefung, und sie ist der Beleg fuer die
      Bauform: als vierter Knopf in der Statusreihe waere sie nicht zu
      erfuellen. */
-  const favOnly = await favBuild({ tested: 'all', favorit: true, sort: 'title_asc' });
+  const favOnly = await favBuild({ tested: 'all', favorite: true, sort: 'title_asc' });
   check('Der Filter zeigt nur Favoriten',
     equal(favTitleFrom(favOnly), ['Beta mit Wertung', 'Zeta ohne Wertung']),
     JSON.stringify(favTitleFrom(favOnly)));
@@ -26272,7 +27194,7 @@ async function checkUi() {
     favTitleFrom(favOnly)[0] === 'Beta mit Wertung', JSON.stringify(favTitleFrom(favOnly)));
   favOnly.w.close();
 
-  const favAndTest = await favBuild({ tested: 'tested', favorit: true, sort: 'title_asc' });
+  const favAndTest = await favBuild({ tested: 'tested', favorite: true, sort: 'title_asc' });
   check('Favorit und Teststatus sind kombinierbar, nicht ausschliessend',
     equal(favTitleFrom(favAndTest), ['Beta mit Wertung']),
     JSON.stringify(favTitleFrom(favAndTest)));
@@ -26282,7 +27204,7 @@ async function checkUi() {
      der Behandler von Hand gerufen
      genuegen nicht. Geprueft wird am sichtbaren Ergebnis und
      nicht am Zustandsobjekt, das von aussen ohnehin nicht erreichbar ist. */
-  const favClickable = await favBuild({ tested: 'all', favorit: false, sort: 'title_asc' });
+  const favClickable = await favBuild({ tested: 'all', favorite: false, sort: 'title_asc' });
   const wv = favClickable.w;
   const favButton = wv.document.getElementById('f-fav');
   check('Der Filterknopf steht in der Statuszeile', !!favButton);
@@ -26308,7 +27230,7 @@ async function checkUi() {
     JSON.stringify(favTitleFrom(favClickable)));
   wv.close();
 
-  /* Ein aelterer gespeicherter Filter kennt das Feld `favorit` nicht. Er darf
+  /* Ein aelterer gespeicherter Filter kennt das Feld `favorite` nicht. Er darf
      nicht dazu fuehren, dass der Filter als eingeschaltet gilt. Geprueft am
      Beobachtbaren: alle vier Eintraege sichtbar UND der Knopf ungesetzt --
      ein `undefined` wuerde sich am Knopf zeigen, nicht an der Liste. */
@@ -26687,7 +27609,7 @@ async function checkUi() {
     return d;
   };
   const nsDefault = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                      favorit: false, sort: 'title_asc' };
+                      favorite: false, sort: 'title_asc' };
 
   /* ERST DER GEGENSTAND: die Filterzeile steht ueberhaupt da. Ohne diese Zeile
      bliebe jede Verneinung darunter auch bei einer gar nicht gezeichneten
@@ -26749,7 +27671,7 @@ async function checkUi() {
   check('Der Teststatus filtert weiter',
     equal(nsTitle(nsRest), ['Alpha alt', 'Delta neu']), JSON.stringify(nsTitle(nsRest)));
   nsRest.w.close();
-  const nsFav = await nsBuild({ ...nsDefault, favorit: true });
+  const nsFav = await nsBuild({ ...nsDefault, favorite: true });
   check('Der Favoritenknopf steht weiter da und filtert',
     !!nsFav.w.document.getElementById('f-fav') && nsTitle(nsFav).length === 0,
     JSON.stringify(nsTitle(nsFav)));
@@ -26853,12 +27775,12 @@ async function checkUi() {
 
   /* DIE GESPEICHERTE ORDNUNG KENNT `potenzial` NICHT -- so, wie sie bei jedem
      aussieht, der vor 0.21.0 einmal geschoben hat. Genau das ist der Fall, den
-     ordneBereich() traegt: der neue Block haengt sich HINTEN an, und die drei
+     sortArea() traegt: der neue Block haengt sich HINTEN an, und die drei
      geschobenen behalten ihre Reihenfolge. */
   const ownOrder = { filters: null, blocks: {
-    seite: ['bewertung', 'kategorie', 'tags'],
-    unten: ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien'],
-    zu: ['links']
+    side: ['bewertung', 'kategorie', 'tags'],
+    bottom: ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien'],
+    closed: ['links']
   }};
   const bd = buildDom(JSDOM, { settings: ownOrder, hash: '#/item/1' });
   const wb = bd.w;
@@ -26893,7 +27815,7 @@ async function checkUi() {
   check('Klick auf die Kopfzeile klappt auf', !links.classList.contains('closed'));
   const savedB = bd.sent.filter(x => x.body && x.body.blocks).pop();
   check('Einklappzustand wird serverseitig gespeichert',
-    savedB && equal(savedB.body.blocks.zu, []), JSON.stringify(savedB && savedB.body.blocks));
+    savedB && equal(savedB.body.blocks.closed, []), JSON.stringify(savedB && savedB.body.blocks));
 
   /* Knoepfe in der Kopfzeile duerfen nicht einklappen.
      GENOMMEN WIRD SEIT 0.21.0 „Stimmen" und nicht mehr „Meine Bewertung
@@ -26986,11 +27908,11 @@ async function checkUi() {
     JSON.stringify(namen2('#blocks-side')));
   const afterUser = bd.sent.filter(x => x.body && x.body.blocks).pop();
   check('Neue Reihenfolge wird serverseitig gespeichert',
-    afterUser && equal(afterUser.body.blocks.seite, ['kategorie', 'tags', 'bewertung', 'potenzial']),
-    JSON.stringify(afterUser && afterUser.body.blocks.seite));
+    afterUser && equal(afterUser.body.blocks.side, ['kategorie', 'tags', 'bewertung', 'potenzial']),
+    JSON.stringify(afterUser && afterUser.body.blocks.side));
   check('Bereiche bleiben getrennt',
-    !afterUser.body.blocks.seite.includes('kommentare') &&
-    !afterUser.body.blocks.unten.includes('bewertung'));
+    !afterUser.body.blocks.side.includes('kommentare') &&
+    !afterUser.body.blocks.bottom.includes('bewertung'));
 
   /* ================= Dateien in der Oberflaeche ================= */
   group('Dateien in der Oberflaeche');
@@ -27765,7 +28687,7 @@ async function checkUi() {
   await new Promise(r => setTimeout(r, 40));
   const gvCreated = gvEig.sent.filter(x => x.method === 'POST' && x.url === '/api/users').pop();
   check('Der Klick legt den Zugang wirklich an',
-    gvCreated?.body?.username === 'neuer' && gvCreated?.body?.rolle === 'user',
+    gvCreated?.body?.username === 'neuer' && gvCreated?.body?.role === 'user',
     JSON.stringify(gvCreated));
   check('Und die Felder sind danach wieder leer',
     gvEig.w.document.getElementById('user-name').value === '' &&
@@ -28477,8 +29399,8 @@ async function checkUi() {
     (el || wb.document).dispatchEvent(e);
     return e;
   };
-  const seite = () => [...wb.document.querySelectorAll('#blocks-side > .block')].map(b => b.dataset.block);
-  const exit = seite();
+  const side = () => [...wb.document.querySelectorAll('#blocks-side > .block')].map(b => b.dataset.block);
+  const exit = side();
 
   // Mit der Maus: sofort, ohne zu warten.
   const firstBlock = wb.document.querySelector('#blocks-side > .block');
@@ -28487,17 +29409,17 @@ async function checkUi() {
   cursorOn(null, 'pointermove', 0, 200, 'mouse');
   cursorOn(null, 'pointerup', 0, 200, 'mouse');
   await new Promise(r => setTimeout(r, 20));
-  check('Mit der Maus wird sofort gezogen', !equal(seite(), exit), JSON.stringify(seite()));
+  check('Mit der Maus wird sofort gezogen', !equal(side(), exit), JSON.stringify(side()));
 
   // Auf dem Finger: sofortiges Wischen ist Scrollen, kein Sortieren.
-  const now = seite();
+  const now = side();
   const b2 = wb.document.querySelector('#blocks-side > .block');
   cursorOn(b2.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
   cursorOn(null, 'pointermove', 0, 200, 'touch');
   cursorOn(null, 'pointerup', 0, 200, 'touch');
   await new Promise(r => setTimeout(r, 20));
   check('Sofortiges Wischen sortiert nichts — das ist Scrollen',
-    equal(seite(), now), JSON.stringify(seite()));
+    equal(side(), now), JSON.stringify(side()));
   check('Und hinterlässt keinen Ziehzustand',
     !wb.document.querySelector('.dragging, .handle-ready'));
 
@@ -28512,7 +29434,7 @@ async function checkUi() {
     !wb.document.querySelector('.handle-ready'));
   cursorOn(null, 'pointerup', 0, 120, 'touch');
   await new Promise(r => setTimeout(r, 20));
-  check('Und sortiert nichts um', equal(seite(), now), JSON.stringify(seite()));
+  check('Und sortiert nichts um', equal(side(), now), JSON.stringify(side()));
 
   // Dasselbe an einer Linkzeile: der Wisch darf den Link nicht oeffnen.
   let opened = 0;
@@ -28542,7 +29464,7 @@ async function checkUi() {
   cursorOn(null, 'pointermove', 0, 200, 'touch');
   cursorOn(null, 'pointerup', 0, 200, 'touch');
   await new Promise(r => setTimeout(r, 20));
-  check('Nach dem Halten wird gezogen', !equal(seite(), now), JSON.stringify(seite()));
+  check('Nach dem Halten wird gezogen', !equal(side(), now), JSON.stringify(side()));
   check('Danach bleibt kein Ziehzustand übrig',
     !wb.document.querySelector('.dragging, .handle-ready'));
 
@@ -28724,11 +29646,11 @@ async function checkUi() {
   // unbemerkt die halbe Oberflaeche um -- --green gibt es laengst fuer die
   // Getestet-Marke und den besten Wert im Vergleich.
   const root = (cssM.match(/:root \{[^}]*\}/) || [''])[0];
-  const namen = (root.match(/--[a-z0-9-]+(?=:)/g) || []);
-  const twice = namen.filter((n, i) => namen.indexOf(n) !== i);
+  const names = (root.match(/--[a-z0-9-]+(?=:)/g) || []);
+  const twice = names.filter((n, i) => names.indexOf(n) !== i);
   check('Keine Farbe wird zweimal erklärt',
-    twice.length === 0 && namen.length > 20,
-    twice.length ? `doppelt: ${[...new Set(twice)].join(', ')}` : `${namen.length} Variablen`);
+    twice.length === 0 && names.length > 20,
+    twice.length ? `doppelt: ${[...new Set(twice)].join(', ')}` : `${names.length} Variablen`);
   check('Auch erledigt färbt keine Fläche',
     !/background/.test(ruleM('.cmt.done')), ruleM('.cmt.done'));
   check('Die vier Arten haben vier verschiedene Kanten',
@@ -29648,7 +30570,7 @@ async function checkUi() {
     check('Der Ausschnitt bei zoom 250 ist 432 breit und sitzt auf dem Punkt',
       Math.abs(k.edge - 432) < 1e-9 &&
       Math.abs(k.links - 0.10 * (1920 - 432)) < 1e-9 &&
-      Math.abs(k.oben - 0.90 * (1080 - 432)) < 1e-9,
+      Math.abs(k.top - 0.90 * (1080 - 432)) < 1e-9,
       JSON.stringify(k));
     const w = wb.cropSpecBox(1920, 1080, 50, 50, 100);
     check('Und bei zoom 100 ist er die kurze Seite',
@@ -29659,7 +30581,7 @@ async function checkUi() {
     overviewItems: [{ id: 1, title: 'Mit Fokus', rejected: false, tested: false, favorite: false,
       category: null, tags: [], photoCount: 1, linkCount: 0, avgRating: null, testCount: null,
       testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', testDays: [],
-      mainPhoto: { id: 5, focus_x: 10, focus_y: 90, zoom: 250, fassung: 20481 } }]
+      mainPhoto: { id: 5, focus_x: 10, focus_y: 90, zoom: 250, thumbLength: 20481 } }]
   });
   await new Promise(r => setTimeout(r, 80));
   const cardsImage = focusDom.w.document.querySelector('.card-img img');
@@ -29681,17 +30603,17 @@ async function checkUi() {
   /* UND OHNE FASSUNG STEHT SIE NICHT DA -- eine aeltere Antwort ohne das Feld
      bekommt die Adresse wie bis 0.19.4 und nicht `?v=undefined`. */
   {
-    const ohne = buildDom(JSDOM, {
+    const withoutPhotos = buildDom(JSDOM, {
       overviewItems: [{ id: 2, title: 'Ohne Fassung', rejected: false, tested: false, favorite: false,
         category: null, tags: [], photoCount: 1, linkCount: 0, avgRating: null, testCount: null,
         testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', testDays: [],
         mainPhoto: { id: 7, focus_x: 50, focus_y: 50, zoom: 100 } }]
     });
     await new Promise(r => setTimeout(r, 80));
-    const b2 = ohne.w.document.querySelector('.card-img img');
+    const b2 = withoutPhotos.w.document.querySelector('.card-img img');
     check('Fehlt die Fassung, steht sie nicht in der Adresse',
       b2.getAttribute('src') === '/api/photos/7/raw?size=thumb', b2.getAttribute('src'));
-    ohne.w.close();
+    withoutPhotos.w.close();
   }
 
   /* UND DAS STILBLATT RECHNET IHN AUCH NICHT MEHR EIN. Bis 0.19.4 musste hier
@@ -29837,7 +30759,7 @@ async function checkUi() {
   check('Die Gestenentscheidung steht als eigene Funktion da',
     typeof wb.cropGesture === 'function', typeof wb.cropGesture);
   {
-    const gK = { links: 100, oben: 50, edge: 200 };   // 100..300 / 50..250
+    const gK = { links: 100, top: 50, edge: 200 };   // 100..300 / 50..250
     const g = (x, y) => wb.cropGesture(gK, x, y);
     check('Ausserhalb des Rahmens wird neu aufgezogen',
       g(50, 150) === 'neu' && g(200, 20) === 'neu' && g(400, 150) === 'neu' && g(200, 400) === 'neu',
@@ -29863,7 +30785,7 @@ async function checkUi() {
     /* UND SIE WIRD AM RAHMEN GEDECKELT (kante / 4). Ohne den Deckel deckten
        die acht Zonen einen kleinen Rahmen vollstaendig ab, und das Schieben --
        die haeufigste Geste -- haette keine Flaeche mehr. */
-    const lower = { links: 0, oben: 0, edge: 20 };
+    const lower = { links: 0, top: 0, edge: 20 };
     check('An einem kleinen Rahmen bleibt Flaeche zum Schieben',
       wb.cropGesture(lower, 10, 10) === 'schieben' &&
       wb.cropGesture(lower, 2, 2) === 'links-oben',
@@ -29901,9 +30823,9 @@ async function checkUi() {
     const frame = () => {
       const el = wb.document.querySelector('.focus-frame');
       const z = (n) => parseFloat(el.style[n]) || 0;
-      return { links: z('left'), oben: z('top'), edge: z('width') };
+      return { links: z('left'), top: z('top'), edge: z('width') };
     };
-    const center = (r) => [r.links + r.edge / 2, r.oben + r.edge / 2];
+    const center = (r) => [r.links + r.edge / 2, r.top + r.edge / 2];
     /* EIN FRISCHER, MITTLERER RAHMEN -- und zwar ueber die Bedienung selbst.
        DER ZUG MUSS AUSSERHALB ANFANGEN, sonst schoebe er den Rahmen oder zoege
        an einem seiner Griffe. WO das ist, haengt vom Rahmen ab, den die vorige
@@ -29913,7 +30835,7 @@ async function checkUi() {
        immer einen Punkt draussen. */
     const outsidePoints = (r) => [[10, 10], [590, 10], [10, 390], [590, 390]]
       .find(([x, y]) => x < r.links || x > r.links + r.edge ||
-                        y < r.oben || y > r.oben + r.edge) || [10, 10];
+                        y < r.top || y > r.top + r.edge) || [10, 10];
     const fresherFrame = async () => {
       pull(400); pull(400, 'change');
       await new Promise(r => setTimeout(r, 30));
@@ -29935,8 +30857,8 @@ async function checkUi() {
     /* SEINE LINKE OBERE ECKE SITZT, WO DER ZUG ANFING. Die Kante rastet auf die
        Fuenferstufen des Schiebers (0.22.0, E9) -- die Ecke tut es nicht. */
     check('Und seine linke obere Ecke sitzt, wo der Zug anfing',
-      Math.abs(r0.links - 60) < 0.5 && Math.abs(r0.oben - 60) < 0.5,
-      `${r0.links} / ${r0.oben}`);
+      Math.abs(r0.links - 60) < 0.5 && Math.abs(r0.top - 60) < 0.5,
+      `${r0.links} / ${r0.top}`);
 
     /* --- SCHIEBEN: die Lage geht, die Weite bleibt.
        GEPRUEFT AM GESENDETEN RUMPF UND NICHT AN DER ANZEIGE: eine Zahl, die
@@ -29961,8 +30883,8 @@ async function checkUi() {
     /* --- DIE ECKE: die gegenueberliegende bleibt liegen. */
     const vorCorner = frame();
     const cornerCore = await drag(
-      [vorCorner.links + vorCorner.edge - 4, vorCorner.oben + vorCorner.edge - 4],
-      [vorCorner.links + 60, vorCorner.oben + 60]);
+      [vorCorner.links + vorCorner.edge - 4, vorCorner.top + vorCorner.edge - 4],
+      [vorCorner.links + 60, vorCorner.top + 60]);
     const afterCorner = frame();
     check('Ein Zug an der Ecke aendert die Weite',
       !!cornerCore && afterCorner.edge < vorCorner.edge,
@@ -29976,8 +30898,8 @@ async function checkUi() {
     const EXACTLY = 0.01;
     check('Und die gegenueberliegende Ecke bleibt liegen',
       Math.abs(afterCorner.links - vorCorner.links) < EXACTLY &&
-      Math.abs(afterCorner.oben - vorCorner.oben) < EXACTLY,
-      `${vorCorner.links}/${vorCorner.oben} → ${afterCorner.links}/${afterCorner.oben}`);
+      Math.abs(afterCorner.top - vorCorner.top) < EXACTLY,
+      `${vorCorner.links}/${vorCorner.top} → ${afterCorner.links}/${afterCorner.top}`);
 
     /* UND DIE ANDERE DIAGONALE -- die Zeile darueber allein belegt zu wenig,
        und das ist ein Fund aus der Gegenprobe und keine Vorsicht.
@@ -29992,18 +30914,18 @@ async function checkUi() {
     await fresherFrame();
     const vorCornerTwo = frame();
     const fixedRight = vorCornerTwo.links + vorCornerTwo.edge;
-    const fixedBottom = vorCornerTwo.oben + vorCornerTwo.edge;
-    const cornerTwoCore = await drag([vorCornerTwo.links + 4, vorCornerTwo.oben + 4],
-      [vorCornerTwo.links - 37, vorCornerTwo.oben - 37]);
+    const fixedBottom = vorCornerTwo.top + vorCornerTwo.edge;
+    const cornerTwoCore = await drag([vorCornerTwo.links + 4, vorCornerTwo.top + 4],
+      [vorCornerTwo.links - 37, vorCornerTwo.top - 37]);
     const afterCornerTwo = frame();
     check('Ein Zug an der oberen linken Ecke aendert die Weite ebenfalls',
       !!cornerTwoCore && afterCornerTwo.edge > vorCornerTwo.edge,
       `${vorCornerTwo.edge} → ${afterCornerTwo.edge}`);
     check('Und die rechte untere Ecke bleibt dabei liegen',
       Math.abs((afterCornerTwo.links + afterCornerTwo.edge) - fixedRight) < EXACTLY &&
-      Math.abs((afterCornerTwo.oben + afterCornerTwo.edge) - fixedBottom) < EXACTLY,
+      Math.abs((afterCornerTwo.top + afterCornerTwo.edge) - fixedBottom) < EXACTLY,
       `${fixedRight}/${fixedBottom} → ` +
-      `${afterCornerTwo.links + afterCornerTwo.edge}/${afterCornerTwo.oben + afterCornerTwo.edge}`);
+      `${afterCornerTwo.links + afterCornerTwo.edge}/${afterCornerTwo.top + afterCornerTwo.edge}`);
 
     /* --- DIE KANTE: die gegenueberliegende bleibt liegen, und die andere
        Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). Der Rahmen
@@ -30015,7 +30937,7 @@ async function checkUi() {
     await fresherFrame();
     const vorEdge = frame();
     const rightVor = vorEdge.links + vorEdge.edge;
-    const centerYvor = vorEdge.oben + vorEdge.edge / 2;
+    const centerYvor = vorEdge.top + vorEdge.edge / 2;
     // Die linke Kante nach LINKS: der Rahmen wird dabei groesser, und die
     // rechte Kante muss trotzdem stehenbleiben.
     const edgeCore = await drag([vorEdge.links + 4, centerYvor],
@@ -30028,15 +30950,15 @@ async function checkUi() {
       Math.abs((afterEdge.links + afterEdge.edge) - rightVor) < EXACTLY,
       `${rightVor} → ${afterEdge.links + afterEdge.edge}`);
     check('Und der Mittelpunkt wandert auf ihr nicht',
-      Math.abs((afterEdge.oben + afterEdge.edge / 2) - centerYvor) < EXACTLY,
-      `${centerYvor} → ${afterEdge.oben + afterEdge.edge / 2}`);
+      Math.abs((afterEdge.top + afterEdge.edge / 2) - centerYvor) < EXACTLY,
+      `${centerYvor} → ${afterEdge.top + afterEdge.edge / 2}`);
 
     /* --- NICHTS VERLAESST DAS BILD. Ein Zug weit ueber den Rand hinaus. */
     const wideCore = await drag(center(frame()), [5000, 5000]);
     const afterWide = frame();
     check('Keine Geste bringt den Rahmen aus dem Bild',
-      afterWide.links >= -0.5 && afterWide.oben >= -0.5 &&
-      afterWide.links + afterWide.edge <= 600.5 && afterWide.oben + afterWide.edge <= 400.5,
+      afterWide.links >= -0.5 && afterWide.top >= -0.5 &&
+      afterWide.links + afterWide.edge <= 600.5 && afterWide.top + afterWide.edge <= 400.5,
       JSON.stringify(afterWide));
     check('Und die gespeicherten Werte bleiben in ihrer Spanne',
       !!wideCore && wideCore.x >= 0 && wideCore.x <= 100 &&
@@ -30071,11 +30993,11 @@ async function checkUi() {
     check('Ueber dem Rahmen zeigt der Zeiger das Schieben an',
       /handle-move/.test(cls(...center(r1))), cls(...center(r1)));
     check('An der Ecke zeigt er die Diagonale',
-      /handle-nwse/.test(cls(r1.links + 4, r1.oben + 4)),
-      cls(r1.links + 4, r1.oben + 4));
+      /handle-nwse/.test(cls(r1.links + 4, r1.top + 4)),
+      cls(r1.links + 4, r1.top + 4));
     check('An der Kante zeigt er die Achse',
-      /handle-ew/.test(cls(r1.links + 4, r1.oben + r1.edge / 2)),
-      cls(r1.links + 4, r1.oben + r1.edge / 2));
+      /handle-ew/.test(cls(r1.links + 4, r1.top + r1.edge / 2)),
+      cls(r1.links + 4, r1.top + r1.edge / 2));
     /* DER PUNKT AUSSERHALB WIRD AM AKTUELLEN RAHMEN BESTIMMT. Ein Punkt, der
        vor drei Gesten ausserhalb lag, kann inzwischen darin liegen -- und die
        Zusage praefte dann das Gegenteil dessen, was sie behauptet. */
@@ -30088,17 +31010,17 @@ async function checkUi() {
        antippt, SCHIEBT ihn -- die Weite bleibt beim Schieber (0.22.0, E9). */
     const r2 = frame();
     bd.sent.length = 0;
-    cursor('pointerdown', r2.links + 4, r2.oben + 4, { });
+    cursor('pointerdown', r2.links + 4, r2.top + 4, { });
     // pointerType laesst sich am MouseEvent nicht setzen; er wird gestellt.
     const tapEvent = new wb.MouseEvent('pointerdown',
-      { bubbles: true, clientX: r2.links + 4, clientY: r2.oben + 4 });
+      { bubbles: true, clientX: r2.links + 4, clientY: r2.top + 4 });
     Object.defineProperty(tapEvent, 'pointerType', { value: 'touch' });
-    cursor('pointerup', r2.links + 4, r2.oben + 4);
+    cursor('pointerup', r2.links + 4, r2.top + 4);
     await new Promise(r => setTimeout(r, 20));
     const r3 = frame();
     betr.dispatchEvent(tapEvent);
-    cursor('pointermove', r3.links + 44, r3.oben + 4);
-    cursor('pointerup', r3.links + 44, r3.oben + 4);
+    cursor('pointermove', r3.links + 44, r3.top + 4);
+    cursor('pointerup', r3.links + 44, r3.top + 4);
     await new Promise(r => setTimeout(r, 30));
     const r4 = frame();
     check('Ein Finger an der Ecke schiebt, statt die Weite zu aendern',
@@ -30552,18 +31474,22 @@ async function checkUi() {
      „Suchmaschinen" statt „Suchanbieter" (E7), „Benutzer" statt „Zugänge"
      (E2), „Bildformate" statt „Bildablage" (E6). Einundzwanzig bleiben es;
      umgedreht, nicht geloescht (Stolperstein 74). */
+  /* ZWEIUNDZWANZIG SEIT 0.24.3: „Sprachen" kommt dazu und steht UNMITTELBAR
+     HINTER „Titel" -- die zweite Karte des Abschnitts „Installation", der bis
+     dahin genau eine trug. Vorgabesprache und Vorrat gehoeren dem Eigentuemer
+     und beschreiben die Installation als Ganzes, wie der Titel daneben (F9). */
   const ALL_CARDS = [
     'Mein Konto', 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
     'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
     'Kennzahlen', 'Bildformate', 'Sicherung', 'Alte Sicherungen', 'Export und Import',
-    'Titel'];
-  check('Die Eigentuemerin sieht alle einundzwanzig Karten',
+    'Titel', 'Sprachen'];
+  check('Die Eigentuemerin sieht alle zweiundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTES: eine Karte, die still
   // verschwindet, faellt sonst niemandem auf.
-  check('Und es sind wirklich einundzwanzig', ALL_CARDS.length === 21 && kEig.length === 21,
+  check('Und es sind wirklich zweiundzwanzig', ALL_CARDS.length === 22 && kEig.length === 22,
     `${ALL_CARDS.length} erwartet, ${kEig.length} gezeichnet`);
   /* UND DIE ZWEITE KRITERIENKARTE STEHT HINTER DER ERSTEN -- dieselbe
      Nachbarschaftszusage wie bei „Alte Sicherungen" darunter, und aus
@@ -30690,11 +31616,11 @@ async function checkUi() {
      erste Betroffene, und sie wird umgedreht statt geloescht). */
   const rOut = await buildSystem({ isAdmin: true, isOwner: true },
     { an: false, deliveryReady: false, deliveryReason: 'Es ist kein Mailzugang eingerichtet.',
-      cap: 20, stunden: 24, requests: [] });
+      cap: 20, hours: 24, requests: [] });
   const kOut = (await sysPass(rOut)).cards;
   check('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kOut.includes('Anfragen'), kOut.join(' · '));
-  check('Und es sind auch dann einundzwanzig', kOut.length === 21 && equal(kOut, ALL_CARDS),
+  check('Und es sind auch dann zweiundzwanzig', kOut.length === 22 && equal(kOut, ALL_CARDS),
     `${kOut.length} gezeichnet`);
   // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
   await sysSection(rOut.w, 'users');
@@ -30714,7 +31640,7 @@ async function checkUi() {
      Sonst verschwaende ein Ausschalten die Warteschlange aus dem Blick, ohne
      sie zu leeren -- und niemand koennte die offenen Anfragen mehr bescheiden. */
   const rOutIncludingRows = await buildSystem({ isAdmin: true, isOwner: true },
-    { an: false, deliveryReady: true, deliveryReason: '', cap: 20, stunden: 24,
+    { an: false, deliveryReady: true, deliveryReason: '', cap: 20, hours: 24,
       requests: [{ id: 11, username: 'neuling', email: 'neuling@beispiel.de',
                    created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' }] });
   await sysSection(rOutIncludingRows.w, 'users');
@@ -30774,7 +31700,7 @@ async function checkUi() {
      Bildschirm ohne Woerter. Geprueft wird an einer Beschriftung, die aus dem
      Vokabular kommt und nicht aus dem Quelltext. */
   const rVok = await buildSystem({ isAdmin: false, isOwner: false,
-    vocabulary: { sacheMehrzahl: 'Geräte' } });
+    vocabulary: { entryMany: 'Geräte' } });
   /* Die Karte „Vokabular" steht im Abschnitt „Bestand", und die Beschriftung,
      an der das Vokabular abzulesen ist, ebenso -- die Karte „Kategorien" nennt
      dort die Mehrzahl. Ohne diesen Wechsel belegte die Zeile darunter nur,
@@ -31538,8 +32464,8 @@ async function checkUi() {
      einen zeigt. Waere hier nur der offene gezaehlt, stuende die Zahl drei da
      und die Pruefung belegte nichts ueber die uebrigen sechzehn. */
   const zkAll = (await sysPass(zkOut)).cards;
-  check('Und die Zahl der Karten bleibt bei einundzwanzig',
-    zkAll.length === 21, `${zkAll.length}: ${zkAll.join(' · ')}`);
+  check('Und die Zahl der Karten bleibt bei zweiundzwanzig',
+    zkAll.length === 22, `${zkAll.length}: ${zkAll.join(' · ')}`);
   await sysSection(zkOut.w, 'personal');
   /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
      einem Knopf, den man erst druecken muss. */
@@ -31656,7 +32582,7 @@ async function checkUi() {
      hat -- dieselbe Ueberlegung wie bei den drei Abstufungen der Karte
      "Sicherung": eine Warnung, die immer dasteht, liest niemand mehr. */
   const zkTight = buildDom(JSDOM, { hash: '#/system',
-    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOpen: 1, codesTotal: 8 } });
+    twoFactorState: { an: true, since: '2026-08-14 10:00:00', codesOpen: 1, codesTotal: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkTight.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31668,7 +32594,7 @@ async function checkUi() {
   check('Und nennt den Tag, an dem er eingeschaltet wurde',
     /14\.08\.2026/.test(zkTightText) && !/2026-08-14/.test(zkTightText), zkTightText.slice(0, 120));
   const zkFull = buildDom(JSDOM, { hash: '#/system',
-    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
+    twoFactorState: { an: true, since: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkFull.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31681,7 +32607,7 @@ async function checkUi() {
      BEIDEN Zustaenden -- eine Karte, die nur den einen kennt, belegt den
      anderen nicht (Stolperstein 81). */
   const zkBest = buildDom(JSDOM, { hash: '#/system',
-    twoFactorState: { an: true, seit: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
+    twoFactorState: { an: true, since: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
   await new Promise(r => setTimeout(r, 60));
   await zkBest.w.renderSystem();
   await new Promise(r => setTimeout(r, 60));
@@ -31822,7 +32748,7 @@ async function checkUi() {
     return d;
   };
   const sCardStatus = () => ({ an: true, deliveryReady: true, deliveryReason: '', cap: 20,
-    stunden: 24, requests: [
+    hours: 24, requests: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' },
       { id: 12, username: 'zweiter', email: 'zweiter@beispiel.de',
@@ -31943,7 +32869,7 @@ async function checkUi() {
      anzubieten, der nur absagt. */
   const kNotReady = await sCardBuild({ an: false, deliveryReady: false,
     deliveryReason: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.',
-    cap: 20, stunden: 24, requests: [
+    cap: 20, hours: 24, requests: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' }] });
   check('Ohne Versand ist der Einschaltknopf gesperrt',
@@ -33488,8 +34414,8 @@ async function checkUi() {
      "Gelöschte Maschinen" -- eine Karte, die den Bestand mit einem anderen
      Wort benennt als der Rest der Oberflaeche, ist falsch beschriftet. */
   const pkuVok = await pkSystem({ isAdmin: true, isOwner: true,
-    vocabulary: { sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen',
-                 zeitpunktEinzahl: 'Prüfung', zeitpunktMehrzahl: 'Prüfungen' } });
+    vocabulary: { entryOne: 'Maschine', entryMany: 'Maschinen',
+                 dayOne: 'Prüfung', dayMany: 'Prüfungen' } });
   check('Die Karte benutzt das Vokabular',
     /Gelöschte Maschinen/.test(pkCard(pkuVok)?.querySelector('.desc')?.textContent || ''),
     pkCard(pkuVok)?.querySelector('.desc')?.textContent);
@@ -33508,7 +34434,7 @@ async function checkUi() {
     pkCard(pkuEmpty)?.textContent?.slice(0, 200));
   check('Ohne eine einzige Zeile', pkTrashRows(pkuEmpty).length === 0);
   const pkuEmptyVok = await pkSystem({ isAdmin: true, isOwner: true,
-    vocabulary: { sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen' } }, { trashInventory: [] });
+    vocabulary: { entryOne: 'Maschine', entryMany: 'Maschinen' } }, { trashInventory: [] });
   check('Auch der leere Fall benutzt das Vokabular',
     /Keine gelöschten Maschinen/.test(pkCard(pkuEmptyVok)?.textContent || ''),
     pkCard(pkuEmptyVok)?.textContent?.slice(0, 200));
@@ -33639,11 +34565,11 @@ async function checkUi() {
       new Set([...(card?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim())).size ===
         (card?.querySelectorAll('.kv .k') || []).length,
       [...(card?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
-    for (const [wort, value] of [['Verschlüsselung', 'sqlcipher'], ['Schlüssel', '256 Bit (Zufallsschlüssel)'],
+    for (const [word, value] of [['Verschlüsselung', 'sqlcipher'], ['Schlüssel', '256 Bit (Zufallsschlüssel)'],
                                 ['Journal (SQLite)', 'WAL'], ['Passwörter', 'scrypt']]) {
-      check(`Die Zeile „${wort}" steht darin und nennt ${value}`,
-        kvRow(wort)?.querySelector('.v')?.textContent.trim() === value,
-        kvRow(wort)?.querySelector('.v')?.textContent);
+      check(`Die Zeile „${word}" steht darin und nennt ${value}`,
+        kvRow(word)?.querySelector('.v')?.textContent.trim() === value,
+        kvRow(word)?.querySelector('.v')?.textContent);
     }
     /* UND KEINE PAKETVERSION IN DER GANZEN KARTE. Die Version der INSTANZ steht
        darin und ist erwuenscht; gesucht wird deshalb nach den Paketnamen. */
@@ -33721,12 +34647,12 @@ async function checkUi() {
     check('Und der Knopf steht wirklich in DIESER Karte',
       !!kEig?.querySelector('#convert-run'),
       kEig ? '(kein Knopf in der Karte)' : '(keine Karte)');
-    for (const [wort, value] of [['PNG', '12 · 6,0 MB'], ['JPEG', '5 · 512,0 KB'], ['WebP', '2 · 64,0 KB']]) {
+    for (const [word, value] of [['PNG', '12 · 6,0 MB'], ['JPEG', '5 · 512,0 KB'], ['WebP', '2 · 64,0 KB']]) {
       const row = [...(kEig?.querySelectorAll('.kv') || [])]
-        .find(z => z.querySelector('.k')?.textContent.trim().startsWith(wort));
-      check(`Die Zeile „${wort}" steht darin und nennt Zahl und Groesse`,
+        .find(z => z.querySelector('.k')?.textContent.trim().startsWith(word));
+      check(`Die Zeile „${word}" steht darin und nennt Zahl und Groesse`,
         row?.querySelector('.v')?.textContent.trim() === value,
-        `${wort}: ${row?.querySelector('.v')?.textContent}`);
+        `${word}: ${row?.querySelector('.v')?.textContent}`);
     }
     /* EIN FORMAT OHNE BILDER BEKOMMT KEINE ZEILE MIT EINER NULL. Eine Null ist
        eine Aussage, und sie lenkt von den beiden Zahlen ab, um die es geht. */
@@ -33850,7 +34776,7 @@ async function checkUi() {
 
     // Ein Lauf ist unterwegs: die Zeile zaehlt mit, der Knopf ist tot.
     const baRun = await pkSystem({ isAdmin: true, isOwner: true },
-      { statsSwitch: { running: true, total: 12, erledigt: 5, umgestellt: 4, geblieben: 1, gespart: 100 } });
+      { statsSwitch: { running: true, total: 12, done: 5, converted: 4, stayed: 1, freed: 100 } });
     await sysSection(baRun.w, 'database');
     check('Waehrend eines Laufs zeigt die Karte den Fortschritt',
       /5 von 12/.test(baRun.w.document.getElementById('convert-running')?.textContent || ''),
@@ -33861,7 +34787,7 @@ async function checkUi() {
 
     // Ein Lauf ist durch: die Zeile sagt, was herauskam.
     const baDone = await pkSystem({ isAdmin: true, isOwner: true },
-      { statsSwitch: { running: false, total: 12, erledigt: 12, umgestellt: 11, geblieben: 1, gespart: 4194304 } });
+      { statsSwitch: { running: false, total: 12, done: 12, converted: 11, stayed: 1, freed: 4194304 } });
     await sysSection(baDone.w, 'database');
     const doneRow = baDone.w.document.getElementById('convert-running')?.textContent || '';
     check('Nach einem Lauf sagt die Zeile, was herauskam',
@@ -33880,8 +34806,8 @@ async function checkUi() {
        die Umstellung auf Knopfdruck. Stuenden beide in einem Feld, saehe die
        Karte bei jedem Start „Umstellung laeuft" und der Knopf waere tot. */
     const geoRun = await pkSystem({ isAdmin: true, isOwner: true },
-      { statsGeometry: { running: true, total: 1032, erledigt: 40, geprueft: 40,
-                          nachgezogen: 31, uebersprungen: 0, zugenommen: 1000 } });
+      { statsGeometry: { running: true, total: 1032, done: 40, checked: 40,
+                          renewed: 31, skipped: 0, grown: 1000 } });
     await sysSection(geoRun.w, 'database');
     check('Waehrend des Nachziehens zeigt die Karte seinen Fortschritt',
       /40 von 1032/.test(geoRun.w.document.getElementById('thumbs-running')?.textContent || ''),
@@ -33895,8 +34821,8 @@ async function checkUi() {
 
     // Und durch: die Zeile sagt, was herauskam.
     const geoDone = await pkSystem({ isAdmin: true, isOwner: true },
-      { statsGeometry: { running: false, total: 1032, erledigt: 1032, geprueft: 1032,
-                          nachgezogen: 825, uebersprungen: 2, zugenommen: 61341696 } });
+      { statsGeometry: { running: false, total: 1032, done: 1032, checked: 1032,
+                          renewed: 825, skipped: 2, grown: 61341696 } });
     await sysSection(geoDone.w, 'database');
     const geoRow = geoDone.w.document.getElementById('thumbs-running')?.textContent || '';
     check('Nach dem Erneuern sagt die Zeile, was herauskam',
@@ -33912,8 +34838,8 @@ async function checkUi() {
        der Zahl, an der der Betreiber ablesen will, was der Lauf gebracht
        hat. */
     const geoSmaller = await pkSystem({ isAdmin: true, isOwner: true },
-      { statsGeometry: { running: false, total: 1032, erledigt: 1032, geprueft: 1032,
-                          nachgezogen: 825, uebersprungen: 0, zugenommen: -20971520 } });
+      { statsGeometry: { running: false, total: 1032, done: 1032, checked: 1032,
+                          renewed: 825, skipped: 0, grown: -20971520 } });
     await sysSection(geoSmaller.w, 'database');
     const geoSmallerRow = geoSmaller.w.document.getElementById('thumbs-running')?.textContent || '';
     check('Und wenn die Kacheln kleiner geworden sind, sagt sie „weniger"',
@@ -33925,8 +34851,8 @@ async function checkUi() {
        bei JEDEM Start und findet nach dem ersten Durchgang nichts mehr; eine
        Zeile „0 nachgezogen" staende von da an fuer immer in der Karte. */
     const geoEmpty = await pkSystem({ isAdmin: true, isOwner: true },
-      { statsGeometry: { running: false, total: 1032, erledigt: 1032, geprueft: 1032,
-                          nachgezogen: 0, uebersprungen: 0, zugenommen: 0 } });
+      { statsGeometry: { running: false, total: 1032, done: 1032, checked: 1032,
+                          renewed: 0, skipped: 0, grown: 0 } });
     await sysSection(geoEmpty.w, 'database');
     check('Ein Lauf ohne Fund hinterlaesst keine Zeile',
       !geoEmpty.w.document.getElementById('thumbs-running'),
@@ -34051,8 +34977,8 @@ async function checkUi() {
       inWorkDir: false, dbBytes: 52428800, durationSeconds: 1,
       reachable: true, number: 3,
       last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
-                at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: false },
-      gewechseltAm: null, veraltet: 0, ...extraEnv
+                at: '2026-08-20 03:00:00', daysAgo: 3, outdated: false },
+      changedAt: null, outdated: 0, ...extraEnv
     });
     /* GESUCHT WIRD IM GEFALTETEN TEXT. textContent traegt die Zeilenumbrueche
        und die Einrueckung der Vorlage mit; ein Waechter, der auf ein einzelnes
@@ -34064,16 +34990,16 @@ async function checkUi() {
       [...(siCard(d)?.querySelectorAll('.' + cls) || [])].map(k => fold(k.textContent));
 
     // Ohne Wechsel: kein Kasten, kein Wort davon.
-    const ohne = await siSystem({ isAdmin: true, isOwner: true },
+    const withoutPhotos = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({}) });
     check('Ohne Wechsel steht nichts von zwei Schluesseln auf der Karte',
-      !/Schlüsselwechsel|alten Schlüssel|gewechselt/.test(siText(ohne)),
-      siText(ohne).slice(0, 300));
+      !/Schlüsselwechsel|alten Schlüssel|gewechselt/.test(siText(withoutPhotos)),
+      siText(withoutPhotos).slice(0, 300));
 
     // Ein Teil veraltet: roter Kasten mit der Zahl und dem Verbleib des alten
     // Werts.
     const partly = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: siStatusIncluding({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 2 }) });
+      { backupStatus: siStatusIncluding({ changedAt: '2026-08-21 08:00:00', outdated: 2 }) });
     const partlyRed = siBoxes(partly, 'warn-box').join(' ');
     check('Nach einem Wechsel nennt ein roter Kasten die Zahl der alten Kopien',
       /2 Sicherungen stammen von vor dem Schlüsselwechsel/.test(partlyRed), partlyRed.slice(0, 300));
@@ -34100,7 +35026,7 @@ async function checkUi() {
     // Genau eine alte Kopie -- die Einzahl gehoert geprueft, sonst steht dort
     // "1 Kopien stammen".
     const one = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: siStatusIncluding({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 1 }) });
+      { backupStatus: siStatusIncluding({ changedAt: '2026-08-21 08:00:00', outdated: 1 }) });
     check('Bei genau einer alten Kopie steht die Einzahl da',
       /1 Sicherung stammt von vor dem Schlüsselwechsel/.test(siBoxes(one, 'warn-box').join(' ')),
       siBoxes(one, 'warn-box').join(' ').slice(0, 300));
@@ -34110,9 +35036,9 @@ async function checkUi() {
     // liegen daneben".
     const everything = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({
-        gewechseltAm: '2026-08-22 08:00:00', veraltet: 3,
+        changedAt: '2026-08-22 08:00:00', outdated: 3,
         last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
-                  at: '2026-08-20 03:00:00', daysAgo: 3, veraltet: true } }) });
+                  at: '2026-08-20 03:00:00', daysAgo: 3, outdated: true } }) });
     const everythingRed = siBoxes(everything, 'warn-box').join(' ');
     check('Ist auch die juengste Kopie aelter, sagt die Karte GENAU DAS',
       /Keine Sicherung passt zum aktuellen Schlüssel/.test(everythingRed), everythingRed.slice(0, 300));
@@ -34124,7 +35050,7 @@ async function checkUi() {
     // Und die Gegenlage: alle Kopien juenger als der Wechsel -> gruen, mit
     // dem Grund daneben statt eines blossen "alles gut".
     const green = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: siStatusIncluding({ gewechseltAm: '2026-08-19 08:00:00', veraltet: 0 }) });
+      { backupStatus: siStatusIncluding({ changedAt: '2026-08-19 08:00:00', outdated: 0 }) });
     const greenBox = siBoxes(green, 'ok-box').join(' ');
     check('Sind alle Kopien juenger als der Wechsel, ist der Kasten gruen',
       /Alle Sicherungen hier sind jünger/.test(greenBox), greenBox.slice(0, 400));
@@ -34314,14 +35240,14 @@ async function checkUi() {
     const matched = new Set(AF_COPIES.slice(keep)
       .filter(z => z.daysAgo > days && !old.has(z.file)).map(z => z.file));
     return AF_COPIES.map((z, i) => ({ ...z, nr: i + 1,
-      affected: matched.has(z.file), veraltet: old.has(z.file) }));
+      affected: matched.has(z.file), outdated: old.has(z.file) }));
   };
   const afStatus = (extraEnv = {}, cleanupExtra = {}) => ({
     configured: true, root: '/sicherung', place: 'taeglich', filePath: '/sicherung/taeglich',
     inWorkDir: false, dbBytes: 52428800, durationSeconds: 1, reachable: true, number: 5,
     last: { file: AF_COPIES[0].file, bytes: 52428800, at: AF_COPIES[0].at,
-              daysAgo: 0, veraltet: false },
-    gewechseltAm: null, veraltet: 0,
+              daysAgo: 0, outdated: false },
+    changedAt: null, outdated: 0,
     cleanup: {
       an: false, keep: 3, days: 30,
       limits: { keep: { fallback: 3, min: 1, max: 20 },
@@ -34481,7 +35407,7 @@ async function checkUi() {
      eigener Zahl, eigener Summe und eigenem Knopf darunter. */
   {
     const oldNames = AF_COPIES.slice(3).map(z => z.file);
-    const d = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 2 },
+    const d = await afSystem({ changedAt: '2026-08-01 08:00:00', outdated: 2 },
       { oldCount: 2, oldBytes: 104857600, oldFiles: AF_COPIES.slice(3),
         matched: [], bytes: 0, files: afFiles(3, 30, oldNames),
         reason: 'Keine der 5 Kopien stammt von nach dem Schlüsselwechsel.' });
@@ -34502,7 +35428,7 @@ async function checkUi() {
         d.w.document.getElementById('cleanup-old')?.textContent || ''),
       d.w.document.getElementById('cleanup-old')?.textContent);
     // Die Einzahl gehoert geprueft, sonst steht dort "1 Sicherungen oeffnen".
-    const one = await afSystem({ gewechseltAm: '2026-08-01 08:00:00', veraltet: 1 },
+    const one = await afSystem({ changedAt: '2026-08-01 08:00:00', outdated: 1 },
       { oldCount: 1, oldBytes: 52428800, oldFiles: AF_COPIES.slice(4),
         files: afFiles(3, 30, [AF_COPIES[4].file]) });
     check('Bei genau einer steht die Einzahl da',
@@ -34774,19 +35700,19 @@ async function checkUi() {
     field.value = text;
     field.dispatchEvent(new gwSys.w.Event('change', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
-    return { fresh: gwPuts().length - before, letzter: gwPuts().pop() };
+    return { fresh: gwPuts().length - before, last: gwPuts().pop() };
   };
 
   const gwComma = await gwWrite(gwFields()[1], '1,2');
   check('Ein change-Ereignis am Feld loest den Schreibweg aus', gwComma.fresh === 1,
     `${gwComma.fresh} Aufrufe`);
   check('Deutsches Komma kommt als Zahl 1.2 am Server an',
-    gwComma.letzter?.body?.weight === 1.2, JSON.stringify(gwComma.letzter?.body));
+    gwComma.last?.body?.weight === 1.2, JSON.stringify(gwComma.last?.body));
   /* Ein eingefuegter Wert aus einer Tabelle kann "1.2" heissen und soll nicht
      scheitern. Gelesen wird beides, geschrieben wird immer mit Komma. */
   const gwPoint = await gwWrite(gwFields()[1], '1.8');
   check('Ein Punkt statt des Kommas wird ebenso gelesen',
-    gwPoint.letzter?.body?.weight === 1.8, JSON.stringify(gwPoint.letzter?.body));
+    gwPoint.last?.body?.weight === 1.8, JSON.stringify(gwPoint.last?.body));
   check('Und das Feld zeigt danach wieder ein Komma',
     gwFields()[1].value === '1,8', JSON.stringify(gwFields()[1].value));
 
@@ -34794,7 +35720,7 @@ async function checkUi() {
      Feld zeigt danach, was gespeichert wurde. */
   const gwRound = await gwWrite(gwFields()[1], '1,234');
   check('Feiner als ein Hundertstel geht so hinaus, wie es getippt wurde',
-    gwRound.letzter?.body?.weight === 1.234, JSON.stringify(gwRound.letzter?.body));
+    gwRound.last?.body?.weight === 1.234, JSON.stringify(gwRound.last?.body));
   check('Und das Feld zeigt danach den gespeicherten Wert 1,23',
     gwFields()[1].value === '1,23', JSON.stringify(gwFields()[1].value));
 
@@ -34813,8 +35739,8 @@ async function checkUi() {
      nicht gespeichert ist. */
   const gwDenial = await gwWrite(gwFields()[1], '2,5');
   check('Ein Wert ueber der Grenze geht hinaus und wird abgewiesen',
-    gwDenial.fresh === 1 && gwDenial.letzter?.body?.weight === 2.5,
-    JSON.stringify(gwDenial.letzter?.body));
+    gwDenial.fresh === 1 && gwDenial.last?.body?.weight === 2.5,
+    JSON.stringify(gwDenial.last?.body));
   check('Und das Feld steht danach wieder auf dem gespeicherten Wert',
     gwFields()[1].value === '1,23', JSON.stringify(gwFields()[1].value));
 
@@ -35228,8 +36154,8 @@ async function checkUi() {
      ohne ihn waeren es drei, und auf einem Raspberry Pi ueber WLAN merkt man
      jede einzelne. */
   const suBefore = suSearchQueries().length;
-  for (const wort of ['mak', 'maki', 'makita']) {
-    suField.value = wort;
+  for (const word of ['mak', 'maki', 'makita']) {
+    suField.value = word;
     suField.dispatchEvent(new su.Event('input'));
     await new Promise(r => setTimeout(r, 25));
   }
@@ -35748,7 +36674,7 @@ async function checkUi() {
   check('Und zwar samt Namen, Filterstellung UND Suchbegriff',
     ansSent && ansSent.body.views[0].name === 'Favoriten, Makita'
       && ansSent.body.views[0].q === 'makita'
-      && ansSent.body.views[0].filters.favorit === true,
+      && ansSent.body.views[0].filters.favorite === true,
     JSON.stringify(ansSent && ansSent.body.views));
   check('Und die Zeile zeigt sie danach',
     ansPills().some(t => t === 'Favoriten, Makita'), JSON.stringify(ansPills()));
@@ -35761,7 +36687,7 @@ async function checkUi() {
     overviewItems: ansInventory,
     settings: { filters: null, viewsCap: 8, views: [
       { name: 'Nur Bosch', q: 'bosch', filters: { categoryIds: [], tagIds: [], tagMode: 'and',
-        tested: 'all', favorit: false, fresh: false, sort: 'title_asc' } }
+        tested: 'all', favorite: false, fresh: false, sort: 'title_asc' } }
     ] }
   });
   const aw = awDom.w;
@@ -35837,7 +36763,7 @@ async function checkUi() {
          Uebersetzung in filterNormal -- die Lage prueft seit 0.13.0 beides in
          einem, die alte Form und die uebergangene Nummer. */
       { name: 'Mit Fremdnummern', q: '', filters: { categoryId: 999, tagIds: [998],
-        tagMode: 'and', tested: 'all', favorit: false, fresh: false, sort: 'title_asc' } }
+        tagMode: 'and', tested: 'all', favorite: false, fresh: false, sort: 'title_asc' } }
     ] }
   });
   const ag = agDom.w;
@@ -36238,13 +37164,13 @@ async function checkUi() {
      des Warnwerts baute die Instanz Teile, vor denen sie im selben Atemzug
      warnt. Beide Richtungen einzeln, sonst belegte die eine die andere nicht. */
   check('Ein zu grosser Zielwert wird auf den Warnwert gedeckelt',
-    (await tlPlanCall('&target=999999999')).content.zielGroesse === tlPlan.fallback,
-    JSON.stringify((await tlPlanCall('&target=999999999')).content.zielGroesse));
+    (await tlPlanCall('&target=999999999')).content.targetSize === tlPlan.fallback,
+    JSON.stringify((await tlPlanCall('&target=999999999')).content.targetSize));
   check('Und ein zu kleiner auf das kleinste zulaessige Mass',
-    (await tlPlanCall('&target=1')).content.zielGroesse === tlPlan.smallest,
-    JSON.stringify((await tlPlanCall('&target=1')).content.zielGroesse));
+    (await tlPlanCall('&target=1')).content.targetSize === tlPlan.smallest,
+    JSON.stringify((await tlPlanCall('&target=1')).content.targetSize));
   check('Ohne Angabe gilt der Warnwert',
-    (await tlPlanCall()).content.zielGroesse === tlPlan.fallback);
+    (await tlPlanCall()).content.targetSize === tlPlan.fallback);
   // Ein groesserer Zielwert ergibt weniger Teile -- sonst schnitte der Plan
   // nach etwas anderem als der Groesse.
   check('Ein groesserer Zielwert ergibt weniger Teile',
@@ -36259,16 +37185,16 @@ async function checkUi() {
   /* --- Das Fenster am Export --- */
   const tlN = tlPlan.parts.length;
   const tlAddress = (t) =>
-    `/api/export?${tlToggle}&von=${t.from}&bis=${t.to}&teil=${t.nr}&teile=${tlN}`;
+    `/api/export?${tlToggle}&from=${t.from}&to=${t.to}&part=${t.nr}&parts=${tlN}`;
   /* EINE HALBE ANGABE IST EIN FEHLER UND KEIN VOLLEXPORT: wer `von` schickt
      und `bis` vergisst, bekaeme sonst stillschweigend alles -- und merkte es
      erst an der Dateigroesse. */
   await tlFree(tlA, 'export', 1);
   check('Eine halbe Angabe wird abgewiesen und nicht als Vollexport gelesen',
-    (await tlA.call('GET', `/api/export?${tlToggle}&von=1&teil=1&teile=2`)).status === 400);
+    (await tlA.call('GET', `/api/export?${tlToggle}&from=1&part=1&parts=2`)).status === 400);
   await tlFree(tlA, 'export', 1);
   check('Und ein Fenster, dessen Ende vor dem Anfang liegt, ebenso',
-    (await tlA.call('GET', `/api/export?${tlToggle}&von=9&bis=2&teil=1&teile=2`)).status === 400);
+    (await tlA.call('GET', `/api/export?${tlToggle}&from=9&to=2&part=1&parts=2`)).status === 400);
 
   /* --- Die Freigabe je Teil --- */
   /* EINE ABFRAGE, MEHRERE FREIGABEN -- aber jede fuer sich. Eine Freigabe fuer
@@ -36307,7 +37233,7 @@ async function checkUi() {
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
   // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p.version === 13), JSON.stringify(tlPackages.map(p => p.version)));
+    tlPackages.every(p => p.version === 14), JSON.stringify(tlPackages.map(p => p.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPackages.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPackages.flatMap(p => p.items.map(i => i.title))).size === 6,
@@ -36557,7 +37483,7 @@ async function checkUi() {
     const tzLoaded = [];
     for (const t of tzParts) {
       const a = await fetch(`${tzS.base}/api/export?${tzToggle}` +
-        `&von=${t.from}&bis=${t.to}&teil=${t.nr}&teile=${tzParts.length}`,
+        `&from=${t.from}&to=${t.to}&part=${t.nr}&parts=${tzParts.length}`,
         { headers: { cookie: tzS.cookieValue() } });
       tzLoaded.push(a.status);
     }
@@ -36565,7 +37491,7 @@ async function checkUi() {
       tzLoaded.length > 1 && tzLoaded.every(s => s === 200), tzLoaded.join(' '));
     check('Und jede Freigabe ist danach verbraucht — ein zweiter Griff geht nicht',
       (await tzS.call('GET', `/api/export?${tzToggle}` +
-        `&von=${tzParts[0].from}&bis=${tzParts[0].to}&teil=${tzParts[0].nr}&teile=${tzParts.length}`))
+        `&from=${tzParts[0].from}&to=${tzParts[0].to}&part=${tzParts[0].nr}&parts=${tzParts.length}`))
         .status === 403);
 
     /* --- KEINE ZEILE 'confirm.fail' ---
@@ -36895,7 +37821,7 @@ async function checkUi() {
                         tags: [{ id: 1, name: 'Grün' }] }],
     tags: flTagPool,
     settings: { filters: { categoryIds: [], tagIds: [1], tagMode: 'and', tested: 'all',
-                                abgelehnt: 'all', favorit: false, sort: 'title_asc' } } });
+                                rejected: 'all', favorite: false, sort: 'title_asc' } } });
   const flOldW = flOldDom.w;
   await new Promise(r => setTimeout(r, 80));
   const flPill = (w, name) => [...w.document.querySelectorAll('#filters .pill-tag')]
@@ -36928,7 +37854,7 @@ async function checkUi() {
                         tags: [{ id: 1, name: 'Grün' }, { id: 2, name: 'Blau' }] }],
     tags: flTagPool,
     settings: { filters: { categoryIds: [], tagIds: [1], tagMode: 'and', tested: 'all',
-                                abgelehnt: 'all', favorit: false, sort: 'title_asc' } } });
+                                rejected: 'all', favorite: false, sort: 'title_asc' } } });
   const flFreshW = flFreshDom.w;
   await new Promise(r => setTimeout(r, 80));
   const flFullPill = flPill(flFreshW, 'Blau');
@@ -37023,7 +37949,7 @@ async function checkUi() {
      Vor 0.13.0 stand dort EIN Kategoriewert. Ohne Uebersetzung verloeren alle
      vorhandenen Ansichten ihre Kategorie, still und ohne Message. */
   const kmOld = kmW.filterNormal({ categoryId: 21, tagIds: [], tagMode: 'and',
-    tested: 'all', favorit: false, fresh: false, sort: 'updated_desc' });
+    tested: 'all', favorite: false, fresh: false, sort: 'updated_desc' });
   check('Eine Ansicht in der ALTEN Form wird uebersetzt',
     Array.isArray(kmOld.categoryIds) && kmOld.categoryIds.join() === '21',
     JSON.stringify(kmOld.categoryIds));
@@ -37038,7 +37964,7 @@ async function checkUi() {
   /* "OHNE" MUSS STEHENBLEIBEN: es ist kein Kategoriewert und trotzdem
      gueltig. Eine Klemme, die nur Kategorienummern durchlaesst, wuerfe ihn weg. */
   const kmWithout = kmW.filterNormal({ categoryIds: ['ohne'], tagIds: [], tagMode: 'and',
-    tested: 'all', favorit: false, fresh: false, sort: 'updated_desc' });
+    tested: 'all', favorite: false, fresh: false, sort: 'updated_desc' });
   check('"Ohne" ueberlebt das Zurechtruecken',
     kmWithout.categoryIds.join() === 'ohne', JSON.stringify(kmWithout.categoryIds));
   check('Und filtert auf die Eintraege ohne Kategorie',
@@ -37047,7 +37973,7 @@ async function checkUi() {
      die Ansicht ganz auf "Alle" zurueck; mit einer Liste faellt sie auf den
      REST zurueck, und das ist der bessere Ausgang. */
   const kmRest = kmW.filterNormal({ categoryIds: [21, 999, 'ohne'], tagIds: [], tagMode: 'and',
-    tested: 'all', favorit: false, fresh: false, sort: 'updated_desc' });
+    tested: 'all', favorite: false, fresh: false, sort: 'updated_desc' });
   check('Eine geloeschte Nummer faellt weg, der Rest bleibt stehen',
     kmRest.categoryIds.join() === '21,ohne', JSON.stringify(kmRest.categoryIds));
   check('Eine Ansicht, in der NUR die geloeschte stand, faellt auf Alle zurueck',
@@ -38147,7 +39073,7 @@ async function checkUi() {
        Betreiber, der es umstellt, stellt es vermutlich genau darauf um. */
     const zkWord = buildDom(JSDOM, { hash: '#/item/1', criteriaPhases: zkPhases,
       settings: { filters: null, userCount: 3, isAdmin: true,
-                       vocabulary: { potenzial: 'Erwartung' } } });
+                       vocabulary: { potential: 'Erwartung' } } });
     await new Promise(r => setTimeout(r, 80));
     const zkHead = zkWord.w.document
       .querySelector('.block[data-block="potenzial"] .block-head .label');
@@ -38208,16 +39134,16 @@ async function checkUi() {
     const zkSort = zkUeb.w.document.getElementById('f-sort');
     const zkValues = [...zkSort.options].map(o => o.value);
     check('Das Auswahlfeld traegt die beiden neuen Eintraege',
-      zkValues.includes('potenzial_desc') && zkValues.includes('potenzial_asc'),
+      zkValues.includes('potential_desc') && zkValues.includes('potential_asc'),
       JSON.stringify(zkValues));
     check('Und sie stehen direkt hinter den beiden Bewertungseintraegen',
-      zkValues.indexOf('potenzial_desc') === zkValues.indexOf('rating_asc') + 1 &&
-      zkValues.indexOf('potenzial_asc') === zkValues.indexOf('potenzial_desc') + 1,
+      zkValues.indexOf('potential_desc') === zkValues.indexOf('rating_asc') + 1 &&
+      zkValues.indexOf('potential_asc') === zkValues.indexOf('potential_desc') + 1,
       JSON.stringify(zkValues));
     check('Und sie tragen das Wort aus dem Vokabular',
-      [...zkSort.options].find(o => o.value === 'potenzial_desc')?.textContent
+      [...zkSort.options].find(o => o.value === 'potential_desc')?.textContent
         === 'Potenzial (hoch → niedrig)',
-      JSON.stringify([...zkSort.options].find(o => o.value === 'potenzial_desc')?.textContent));
+      JSON.stringify([...zkSort.options].find(o => o.value === 'potential_desc')?.textContent));
     const zkTitle = () => [...zkUeb.w.document.querySelectorAll('.card-title')].map(t => t.textContent);
     /* UMGEDREHT MIT 0.21.1 UND NICHT GELOESCHT (Stolperstein 74). Die
        Potenzialsortierung gibt seit dieser Runde „Ungetestet" vor: „Geprueft"
@@ -38228,13 +39154,13 @@ async function checkUi() {
        DIE VORGABE SELBST BEKOMMT DABEI IHRE EIGENE ZEILE, sonst bliebe die
        gekuerzte Liste unerklaert und ein Fehler in der Ableitung saehe aus wie
        eine Sortierung. */
-    zkSort.value = 'potenzial_desc'; zkSort.onchange();
+    zkSort.value = 'potential_desc'; zkSort.onchange();
     await new Promise(r => setTimeout(r, 60));
     check('Nach Potenzial sortiert stehen nur noch die Ungetesteten da — 0.21.1',
       equal(zkTitle(), ['Idee', 'Blanko']), JSON.stringify(zkTitle()));
     check('Nach Potenzial absteigend stehen Eintraege ohne Zahl hinten',
       zkTitle()[zkTitle().length - 1] === 'Blanko', JSON.stringify(zkTitle()));
-    zkSort.value = 'potenzial_asc'; zkSort.onchange();
+    zkSort.value = 'potential_asc'; zkSort.onchange();
     await new Promise(r => setTimeout(r, 60));
     check('Und aufsteigend ebenfalls',
       zkTitle()[zkTitle().length - 1] === 'Blanko', JSON.stringify(zkTitle()));
@@ -38261,15 +39187,15 @@ async function checkUi() {
        Ausdruck mit einem Anker DAVOR frisst die schliessende Klammer der
        vorigen Regel auf und ueberspringt damit jede zweite. Klammer zu Klammer
        schneiden ist langweiliger und deshalb richtig. */
-    const ohne = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const withoutPhotos = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
     let found = 0, best = -1, i = 0;
     for (;;) {
-      const on = ohne.indexOf('{', i);
+      const on = withoutPhotos.indexOf('{', i);
       if (on < 0) break;
-      const zu = ohne.indexOf('}', on);
+      const zu = withoutPhotos.indexOf('}', on);
       if (zu < 0) break;
-      const choice = ohne.slice(i, on).trim();
-      const core = ohne.slice(on + 1, zu);
+      const choice = withoutPhotos.slice(i, on).trim();
+      const core = withoutPhotos.slice(on + 1, zu);
       i = zu + 1;
       // Nur reine Klassenwaehler; alles andere geht diese Frage nichts an.
       if (!/^(?:\.[a-z0-9-]+)+$/i.test(choice)) continue;
@@ -38309,7 +39235,7 @@ async function checkUi() {
     rzWithoutColumns > 0 && gridColumns(['rlist', 'no-average']) === rzWithoutColumns,
     `${gridColumns(['rlist', 'no-average'])} gegen ${rzWithoutColumns} in ${rzWithoutRule || '(keine Regel)'}`);
 
-  for (const [howMany, wort] of [[3, 'mehreren Zugaengen'], [1, 'einem einzigen Zugang']]) {
+  for (const [howMany, word] of [[3, 'mehreren Zugaengen'], [1, 'einem einzigen Zugang']]) {
     const rz = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: howMany, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
@@ -38317,21 +39243,21 @@ async function checkUi() {
     const rzRows = [...(rzBox?.querySelectorAll('.rrow') || [])];
     /* ERST DER GEGENSTAND: ohne Zeilen traegt keine Zusage darunter einen
        Fall, auf den sie zutraefe. */
-    check(`Bei ${wort} stehen drei Kriterienzeilen da`,
+    check(`Bei ${word} stehen drei Kriterienzeilen da`,
       rzRows.length === 3, `${rzRows.length}`);
     const rzClasses = [...(rzBox?.classList || [])];
-    check(`Und der Kasten bei ${wort} traegt das Raster`,
+    check(`Und der Kasten bei ${word} traegt das Raster`,
       rzClasses.includes('rlist'), JSON.stringify(rzClasses));
     const rzColumns = gridColumns(rzClasses);
     /* DIE ZELLEN SIND ECHTE KINDKNOTEN und keine Behauptung: gezaehlt wird,
        was der Aufbau wirklich angehaengt hat. */
     const rzCells = rzRows.map(z => z.children.length);
-    check(`Bei ${wort} traegt jede Zeile gleich viele Zellen`,
+    check(`Bei ${word} traegt jede Zeile gleich viele Zellen`,
       rzCells.length > 0 && rzCells.every(n => n === rzCells[0]),
       JSON.stringify(rzCells));
     /* DER KERN DIESER GRUPPE. Bei einem Zugang waren es zwei Zellen in drei
        Spalten -- und genau daran zerfiel die Liste. */
-    check(`Und bei ${wort} passen Zellen und Spalten zusammen`,
+    check(`Und bei ${word} passen Zellen und Spalten zusammen`,
       rzColumns > 0 && rzCells.every(n => n === rzColumns),
       `${JSON.stringify(rzCells)} Zellen gegen ${rzColumns} Spalten`);
     /* UND DIE ZAHL SELBST, ausdruecklich: sonst bliebe die Zeile darueber
@@ -38339,12 +39265,12 @@ async function checkUi() {
        faellen -- die Durchschnittsspalte waere dann wortlos verschwunden. */
     /* VIER UND DREI SEIT 0.22.0 (E15): die Zelle des Ruecksetzers kommt in
        beiden Lagen dazu. Umgedreht, nicht geloescht (Stolperstein 74). */
-    check(`Bei ${wort} sind es ${howMany > 1 ? 'vier' : 'drei'} Zellen — 0.22.0`,
+    check(`Bei ${word} sind es ${howMany > 1 ? 'vier' : 'drei'} Zellen — 0.22.0`,
       rzCells[0] === (howMany > 1 ? 4 : 3), `${rzCells[0]}`);
     /* UND DIE KLASSE STEHT NUR DA, WO SIE HINGEHOERT. Ohne diese Zeile bliebe
        „passen zusammen" auch dann gruen, wenn sie immer stuende und die
        Durchschnittszelle mit ihr. */
-    check(`Die Klasse „no-average" steht bei ${wort} ${howMany > 1 ? 'nicht' : ''} da`.replace('  ', ' '),
+    check(`Die Klasse „no-average" steht bei ${word} ${howMany > 1 ? 'nicht' : ''} da`.replace('  ', ' '),
       rzClasses.includes('no-average') === (howMany === 1), JSON.stringify(rzClasses));
     rz.w.close();
   }
@@ -38533,9 +39459,9 @@ async function checkUi() {
      nichts ueber die anderen drei (Stolperstein 189). */
   group('Das Feld steht nur, wo etwas fehlt — 0.15.1');
 
-  const fsBuild = async (abgelehnt, reason) => {
+  const fsBuild = async (rejected, reason) => {
     const d = buildDom(JSDOM, { hash: '#/item/1',
-      rejection: abgelehnt ? { at: '2026-03-14 09:12:00', reason,
+      rejection: rejected ? { at: '2026-03-14 09:12:00', reason,
         author: { id: 1, name: 'chefin', deleted: false } } : null,
       settings: { filters: null, userCount: 3, isAdmin: true } });
     await new Promise(r => setTimeout(r, 80));
@@ -38641,8 +39567,8 @@ async function checkUi() {
      VIER Kombinationen vor. */
   group('Der Filter „abgelehnt" — 0.15.0');
 
-  const fromEntry = (id, title, tested, abgelehnt) => ({
-    id, title: title, rejected: abgelehnt, tested: tested, favorite: false,
+  const fromEntry = (id, title, tested, rejected) => ({
+    id, title: title, rejected: rejected, tested: tested, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: null, testCount: 0, testAvg: null, testLast: null, testDays: [],
     updated_at: '2026-08-01 10:00:00'
@@ -38701,25 +39627,25 @@ async function checkUi() {
     JSON.stringify(fromTitle(fromAll)));
 
   // --- Jeder der drei Zustaende einzeln ---
-  const fromJa = await fromBuild({ abgelehnt: 'ja' });
+  const fromJa = await fromBuild({ rejected: 'ja' });
   check('„Abgelehnt" zeigt genau die abgelehnten',
     equal(fromTitle(fromJa), ['Getestet und abgelehnt', 'Ungetestet und abgelehnt']),
     JSON.stringify(fromTitle(fromJa)));
-  const fromNo = await fromBuild({ abgelehnt: 'nein' });
+  const fromNo = await fromBuild({ rejected: 'nein' });
   check('„Nicht abgelehnt" zeigt genau die uebrigen',
     equal(fromTitle(fromNo), ['Getestet und nicht abgelehnt', 'Ungetestet und nicht abgelehnt']),
     JSON.stringify(fromTitle(fromNo)));
-  const fromNone = await fromBuild({ abgelehnt: 'all' });
+  const fromNone = await fromBuild({ rejected: 'all' });
   check('Und „Alle" nimmt nichts weg', fromTitle(fromNone).length === 4,
     JSON.stringify(fromTitle(fromNone)));
 
   /* ---- DIE KOMBINATION, IN BEIDEN RICHTUNGEN. Das ist der eigentliche
      Beleg der Bauform: als vierter Wert von `tested` waere keine der beiden
      Mengen zu erreichen. ---- */
-  const fromBoth = await fromBuild({ tested: 'tested', abgelehnt: 'ja' });
+  const fromBoth = await fromBuild({ tested: 'tested', rejected: 'ja' });
   check('„Getestet UND abgelehnt" ist einstellbar und trifft genau einen',
     equal(fromTitle(fromBoth), ['Getestet und abgelehnt']), JSON.stringify(fromTitle(fromBoth)));
-  const fromAgainst = await fromBuild({ tested: 'untested', abgelehnt: 'nein' });
+  const fromAgainst = await fromBuild({ tested: 'untested', rejected: 'nein' });
   check('„Ungetestet UND nicht abgelehnt" ebenso',
     equal(fromTitle(fromAgainst), ['Ungetestet und nicht abgelehnt']), JSON.stringify(fromTitle(fromAgainst)));
   /* UND DIE GEGENPROBE ZUR PRUEFLAGE SELBST: die beiden Filter liefern
@@ -38748,7 +39674,7 @@ async function checkUi() {
   const fromSaved = fromAll.sent
     .filter(g => g.method === 'PUT' && g.url === '/api/settings').pop();
   check('Und sie faehrt in der gespeicherten Filterstellung mit',
-    fromSaved?.body?.filters?.abgelehnt === 'ja',
+    fromSaved?.body?.filters?.rejected === 'ja',
     JSON.stringify(fromSaved?.body?.filters));
 
   /* ---- filterZahl() ZAEHLT IHN MIT. Sonst sagte der eingeklappte
@@ -38770,7 +39696,7 @@ async function checkUi() {
      Schluessel. Sie bleibt lesbar und faellt auf „Alle" zurueck. Das ist die
      Zusage von filterNormal(), und sie wird geprueft und nicht geglaubt. ---- */
   const fromOld = await fromBuild({ categoryIds: [], tagIds: [], tagMode: 'and', tested: 'tested',
-                               favorit: false, fresh: false, sort: 'updated_desc' });
+                               favorite: false, fresh: false, sort: 'updated_desc' });
   check('Eine Ansicht ohne den neuen Schluessel bleibt lesbar',
     equal(fromTitle(fromOld), ['Getestet und abgelehnt', 'Getestet und nicht abgelehnt']),
     JSON.stringify(fromTitle(fromOld)));
@@ -38782,7 +39708,7 @@ async function checkUi() {
   /* UND EIN UNBEKANNTER WERT NIMMT NICHTS WEG. Eine Ansicht aus einer
      spaeteren Fassung -- oder eine von Hand verbogene Ablage -- darf die
      Liste nicht leeren. */
-  const fromCrooked = await fromBuild({ abgelehnt: 'vielleicht' });
+  const fromCrooked = await fromBuild({ rejected: 'vielleicht' });
   check('Ein unbekannter Wert nimmt nichts weg', fromTitle(fromCrooked).length === 4,
     JSON.stringify(fromTitle(fromCrooked)));
 
@@ -39600,15 +40526,15 @@ async function checkUi() {
     /* OHNE BEZUGSPUNKT GIBT ES KEINE GLOCKE. Der Mock nimmt die drei Angaben
        dann aus der Antwort -- wie der echte Server, der sie gar nicht erst
        bildet. */
-    const ohne = await glBuild([[3, 0, [glFrom.bert]], [1, 0, [glFrom.carla]]],
+    const withoutPhotos = await glBuild([[3, 0, [glFrom.bert]], [1, 0, [glFrom.carla]]],
       { bellSeen: undefined });
     check('Ohne gespeicherten Bezugspunkt gibt es keine Glocke',
-      !ohne.w.document.getElementById('bell'), 'die Glocke steht trotzdem da');
+      !withoutPhotos.w.document.getElementById('bell'), 'die Glocke steht trotzdem da');
     /* UND SIE ENTSTEHT BEIM VERLASSEN DER UEBERSICHT -- sonst gaebe es keinen
        Weg, sie je zu bekommen. */
-    ohne.w.location.hash = '#/item/1';
+    withoutPhotos.w.location.hash = '#/item/1';
     await new Promise(r => setTimeout(r, 90));
-    const withoutPut = ohne.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings').pop();
+    const withoutPut = withoutPhotos.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings').pop();
     check('Der Bezugspunkt wird beim Verlassen der Uebersicht gesetzt',
       withoutPut?.body?.bellSeen !== undefined, JSON.stringify(withoutPut?.body));
     // Als SIGNAL, nicht als Uhrzeit des Aufrufers: die Uhr des Aufrufers ist
@@ -39616,7 +40542,7 @@ async function checkUi() {
     check('Und zwar als Signal, nicht als Zeitangabe des Aufrufers',
       !/\d{4}-\d{2}-\d{2}/.test(String(withoutPut?.body?.bellSeen ?? '')),
       JSON.stringify(withoutPut?.body));
-    ohne.w.close();
+    withoutPhotos.w.close();
   }
 
   {
@@ -40099,7 +41025,7 @@ async function checkUi() {
        Merker eine Behauptung im Kommentar (Stolperstein 199). */
     const d = buildDom(JSDOM, { signup: false,
       requestsStatus: { an: false, deliveryReady: true, deliveryReason: '', cap: 20,
-                       stunden: 24, requests: [] },
+                       hours: 24, requests: [] },
       settings: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     await sysSection(d.w, 'personal');
@@ -40876,7 +41802,7 @@ async function checkUi() {
        Filter belegte ueber diese Regeln nichts. */
     const d = buildDom(JSDOM, { tags: frTags,
       settings: { filters: { categoryIds: [21, 22], tagIds: [41, 42], tagMode: 'and',
-                                  tested: 'tested', abgelehnt: 'all', favorit: false,
+                                  tested: 'tested', rejected: 'all', favorite: false,
                                   sort: 'title_asc' } } });
     await new Promise(r => setTimeout(r, 80));
     const button = frButton(d.w);
@@ -40922,11 +41848,11 @@ async function checkUi() {
     // (Stolperstein 311) -- an einer Null soll der Lauf nicht abreissen.
     button?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
-    const danach = d.sent.slice(vorDemClickable);
+    const after = d.sent.slice(vorDemClickable);
     /* GELESEN WIRD DIE STELLUNG DORT, WO SIE HINAUSGEHT -- im Rumpf des
        letzten PUT. `state` ist ein `const` im Modul und steht am Fenster gar
        nicht; eine Pruefung, die dorthin greift, pruefte `undefined`. */
-    const put = danach.filter(x => x.method === 'PUT' && x.url === '/api/settings');
+    const put = after.filter(x => x.method === 'PUT' && x.url === '/api/settings');
     const now = put[put.length - 1]?.body?.filters || {};
     check('Danach ist der Teststatus zurueckgesetzt', now.tested === 'all', String(now.tested));
     check('Und die Kategorien sind leer',
@@ -40935,7 +41861,7 @@ async function checkUi() {
     check('Und die Tags ebenso',
       Array.isArray(now.tagIds) && now.tagIds.length === 0, JSON.stringify(now.tagIds));
     check('Auch die uebrigen Merkmale stehen wieder auf der Vorgabe',
-      now.abgelehnt === 'all' && now.favorit === false && now.tagMode === 'and',
+      now.rejected === 'all' && now.favorite === false && now.tagMode === 'and',
       JSON.stringify(now));
     // UND DIE LEISTE ZEIGT ES AUCH: die Pille „Alles anzeigen" steht wieder an.
     const everythingPill = [...d.w.document.querySelectorAll('#filters .pill')]
@@ -40957,8 +41883,8 @@ async function checkUi() {
     check('Der neue Stand geht ueber die vorhandene Route hinaus',
       put.length > 0, `${put.length} Schreibvorgaenge`);
     check('Und keine andere Route wird dafuer geschrieben',
-      !danach.some(x => x.method !== 'GET' && x.url !== '/api/settings'),
-      danach.filter(x => x.method !== 'GET').map(x => `${x.method} ${x.url}`).join(' · ') || '(keine)');
+      !after.some(x => x.method !== 'GET' && x.url !== '/api/settings'),
+      after.filter(x => x.method !== 'GET').map(x => `${x.method} ${x.url}`).join(' · ') || '(keine)');
     // EIN KNOPF, DER NICHTS MEHR ZU TUN HAT, STEHT NICHT MEHR DA.
     check('Und danach ist der Ruecksetzer selbst wieder weg',
       !frButton(d.w), frButton(d.w)?.textContent);
@@ -40970,7 +41896,7 @@ async function checkUi() {
     const d = buildDom(JSDOM, { tags: frTags,
       settings: { views: [{ name: 'Meine Sicht', q: 'eins', filters: { tested: 'tested' } }],
                        filters: { categoryIds: [], tagIds: [41], tagMode: 'and',
-                                  tested: 'all', abgelehnt: 'all', favorit: false,
+                                  tested: 'all', rejected: 'all', favorite: false,
                                   sort: 'updated_desc' } } });
     await new Promise(r => setTimeout(r, 80));
     const pills = () => [...d.w.document.querySelectorAll('#filters .pill')]
@@ -41059,17 +41985,17 @@ async function checkUi() {
     return put[put.length - 1]?.body?.filters || null;
   };
   const ksDefault = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                      abgelehnt: 'all', favorit: false, sort: 'updated_desc' };
+                      rejected: 'all', favorite: false, sort: 'updated_desc' };
 
   /* ---- 1. DIE VORGABE GREIFT ---- */
   {
-    const d = await ksBuild({ ...ksDefault, sort: 'potenzial_desc' });
+    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
     check('Nach Potenzial absteigend stehen nur die ungetesteten Eintraege da',
       equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
     d.w.close();
   }
   {
-    const d = await ksBuild({ ...ksDefault, sort: 'potenzial_asc' });
+    const d = await ksBuild({ ...ksDefault, sort: 'potential_asc' });
     check('Und aufsteigend ebenso — beide Richtungen fragen dasselbe',
       equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
     d.w.close();
@@ -41139,7 +42065,7 @@ async function checkUi() {
   /* ---- 3. DIE HANDWAHL SCHLAEGT SIE ----
      DAS IST DIE ZEILE, AN DER DIE GANZE RUNDE HAENGT. */
   {
-    const d = await ksBuild({ ...ksDefault, sort: 'potenzial_desc' });
+    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
     check('Der Aufbau steht: vor dem Klick greift die Vorgabe',
       ksTitle(d).length === 2, JSON.stringify(ksTitle(d)));
     await ksClickable(d, ksPill(d, 'Alle'));
@@ -41150,7 +42076,7 @@ async function checkUi() {
     check('Der Wechsel der Sortierung geht ueberhaupt', await ksSort(d, 'rating_desc'));
     check('Und danach zeigt die Liste weiter alles',
       equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
-    await ksSort(d, 'potenzial_asc');
+    await ksSort(d, 'potential_asc');
     check('Auch beim naechsten Wechsel',
       equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
     /* UND DIE GEGENRICHTUNG DER HANDWAHL: sie muss auch eine ENGERE Stellung
@@ -41163,7 +42089,7 @@ async function checkUi() {
        stellt die Sortierung NICHT um. Zwei Bedienelemente, die sich gegenseitig
        verstellen, sind ein Kreis (Stolperstein 312). */
     check('Ein Klick auf eine Statuspille laesst die Sortierung stehen',
-      d.w.document.getElementById('f-sort')?.value === 'potenzial_asc',
+      d.w.document.getElementById('f-sort')?.value === 'potential_asc',
       d.w.document.getElementById('f-sort')?.value);
     d.w.close();
   }
@@ -41175,14 +42101,14 @@ async function checkUi() {
   {
     const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
     const start = d.sent.length;
-    await ksSort(d, 'potenzial_desc');
+    await ksSort(d, 'potential_desc');
     const outcome = ksSetting(d, start);
     check('Der Wechsel der Sortierung schreibt ueberhaupt etwas', !!outcome,
       JSON.stringify(d.sent.slice(start).map(x => `${x.method} ${x.url}`)));
     check('Und der gesendete Rumpf traegt die gewaehlte Stellung, nicht die abgeleitete',
       outcome?.tested === 'all', JSON.stringify(outcome));
     check('Die neue Sortierung faehrt dabei mit',
-      outcome?.sort === 'potenzial_desc', JSON.stringify(outcome?.sort));
+      outcome?.sort === 'potential_desc', JSON.stringify(outcome?.sort));
     /* UND NACH EINER HANDWAHL STEHT DER GEWAEHLTE WERT DA -- ohne diese Zeile
        bliebe gruen, wer `tested` gar nicht mehr hinausschickt. */
     const ab2 = d.sent.length;
@@ -41203,13 +42129,13 @@ async function checkUi() {
        daraufhin gespeichert wurde. Ohne das erste Fenster belegte das zweite
        nur, dass die Vorgabe greift -- und nicht, dass sie eine ueberlebende
        Handwahl gerade NICHT vorfindet (Stolperstein 224). */
-    const before = await ksBuild({ ...ksDefault, sort: 'potenzial_desc' });
+    const before = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
     await ksClickable(before, ksPill(before, 'Alle'));
     check('Der Aufbau steht: im ersten Fenster gilt die Handwahl',
       equal(ksTitle(before), ksAll), JSON.stringify(ksTitle(before)));
     const saved = ksSetting(before);
     check('Und die gespeicherte Stellung traegt genau dieses „alles"',
-      saved?.tested === 'all' && saved?.sort === 'potenzial_desc',
+      saved?.tested === 'all' && saved?.sort === 'potential_desc',
       JSON.stringify(saved));
     before.w.close();
     // DAS ZWEITE WINDOW IST DAS NEULADEN. Der Merker faengt wieder bei
@@ -41231,7 +42157,7 @@ async function checkUi() {
   {
     const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' },
       { views: [{ name: 'Alle Ideen', q: '',
-                      filters: { ...ksDefault, tested: 'all', sort: 'potenzial_desc' } }] });
+                      filters: { ...ksDefault, tested: 'all', sort: 'potential_desc' } }] });
     // Die Pille traegt ihr Loeschkreuz IM Knopf -- der Name steht davor.
     const ksViewPill = () => [...d.w.document.querySelectorAll('#filters .pill')]
       .find(b => b.textContent.replace('✕', '').trim() === 'Alle Ideen');
@@ -41240,7 +42166,7 @@ async function checkUi() {
       JSON.stringify([...d.w.document.querySelectorAll('#filters .pill')].map(b => b.textContent)));
     await ksClickable(d, view);
     check('Sie stellt ihre Sortierung wirklich ein',
-      d.w.document.getElementById('f-sort')?.value === 'potenzial_desc',
+      d.w.document.getElementById('f-sort')?.value === 'potential_desc',
       d.w.document.getElementById('f-sort')?.value);
     check('Und ihr „alles anzeigen" schlaegt die Vorgabe der Sortierung',
       equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
@@ -41255,7 +42181,7 @@ async function checkUi() {
      Er heisst „Filter zuruecksetzen", und die Handwahl ist eine
      Filterstellung. Es ist der einzige Weg zurueck in die Vorgabe. */
   {
-    const d = await ksBuild({ ...ksDefault, sort: 'potenzial_desc' });
+    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
     await ksClickable(d, ksPill(d, 'Alle'));
     check('Der Aufbau steht: nach der Handwahl ist die Vorgabe aus',
       equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
@@ -41271,7 +42197,7 @@ async function checkUi() {
     check('Nach dem Zuruecksetzen folgt der Status wieder der Sortierung',
       equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
     check('Und die Sortierung selbst bleibt dabei stehen',
-      d.w.document.getElementById('f-sort')?.value === 'potenzial_desc',
+      d.w.document.getElementById('f-sort')?.value === 'potential_desc',
       d.w.document.getElementById('f-sort')?.value);
     // UND DER KNOPF IST DANACH WEG: die Ruhestellung ist wieder erreicht, und
     // ein Knopf, der nichts mehr zu tun hat, steht nicht da.
@@ -41286,15 +42212,15 @@ async function checkUi() {
   /* ---- 8. ES STEHT DRAN ----
      Ein unsichtbarer Automatismus ist ein Fehler, auch wenn er richtig raet. */
   {
-    const d = await ksBuild({ ...ksDefault, sort: 'potenzial_desc' });
-    const wort = d.w.document.getElementById('f-status-woher');
+    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
+    const word = d.w.document.getElementById('f-status-woher');
     check('Neben den Statuspillen steht, woher die Stellung kommt',
-      wort?.textContent === 'folgt der Sortierung', JSON.stringify(wort?.textContent));
+      word?.textContent === 'folgt der Sortierung', JSON.stringify(word?.textContent));
     check('Und es ist eine zweite Beschriftung ohne eigene Spalte',
-      wort?.classList.contains('eyebrow-with'), wort?.className);
+      word?.classList.contains('eyebrow-with'), word?.className);
     check('Es steht in derselben Zeile wie die Statuspillen',
-      wort?.closest('.frow') === ksPill(d, 'Alle')?.closest('.frow'),
-      wort?.closest('.frow')?.querySelector('.eyebrow')?.textContent);
+      word?.closest('.frow') === ksPill(d, 'Alle')?.closest('.frow'),
+      word?.closest('.frow')?.querySelector('.eyebrow')?.textContent);
     /* DIE ABGELEITETE PILLE IST VON EINER GEWAEHLTEN ZU UNTERSCHEIDEN -- und
        zwar an einer EIGENEN Klasse und nicht an derselben mit Zusatz. */
     const derived = ksPill(d, 'Ungetestet');
@@ -41358,7 +42284,7 @@ async function checkUi() {
     const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
     check('Der Aufbau steht: vorher steht kein Wort da',
       !d.w.document.getElementById('f-status-woher'), '(das Wort steht schon da)');
-    await ksSort(d, 'potenzial_desc');
+    await ksSort(d, 'potential_desc');
     check('Nach dem Wechsel der Sortierung steht das Wort da',
       !!d.w.document.getElementById('f-status-woher'), '(kein Wort)');
     check('Und die abgeleitete Pille ist mitgezogen',
@@ -41379,7 +42305,7 @@ async function checkUi() {
      und niemand kaeme heraus.
      GEPRUEFT IN BEIDE RICHTUNGEN, sonst belegt die Zahl nichts. */
   {
-    const d = await ksBuild({ ...ksDefault, sort: 'potenzial_desc' });
+    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
     check('Der Aufbau steht: die Ableitung greift wirklich',
       ksTitle(d).length === 2, JSON.stringify(ksTitle(d)));
     check('Sie zaehlt trotzdem nicht als gesetzter Filter',
@@ -41400,7 +42326,7 @@ async function checkUi() {
     /* UND DIE ANDERE RICHTUNG: ein WIRKLICH gesetzter Filter zaehlt weiter,
        und zwar EINS und nicht zwei -- die Ableitung steht daneben und schiebt
        die Zahl nicht hoch. */
-    const d = await ksBuild({ ...ksDefault, favorit: true, sort: 'potenzial_desc' });
+    const d = await ksBuild({ ...ksDefault, favorite: true, sort: 'potential_desc' });
     check('Ein wirklich gesetzter Filter zaehlt weiter',
       d.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)',
       JSON.stringify(d.w.document.getElementById('filter-zurueck')?.textContent));
@@ -41602,7 +42528,7 @@ async function checkUi() {
     const HELPER_REACH = /(?<![A-Za-z0-9_$])(?<!(?<!\.)\.)t\.([A-Za-z_$][\w$]*)/g;
     const spAppCode = zerlege(
       fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'), 'public/app.js')
-      .filter(z => z.art === CODE).map(z => z.wert).join('\n');
+      .filter(z => z.kind === CODE).map(z => z.wert).join('\n');
     const spReach = [...spAppCode.matchAll(HELPER_REACH)].map(m => 't.' + m[1]);
     check('Der Sprachhelfer wird nie nach einer Eigenschaft gefragt',
       spReach.length === 0, spReach.join(' ') || '(keine)');
@@ -41634,18 +42560,18 @@ async function checkUi() {
     check('Und Intl kennt diese Locale',
       Intl.DateTimeFormat.supportedLocalesOf([spTexts?._locale || 'xx-XX']).length === 1,
       String(spTexts?._locale));
-    /* EIN TEXT IST EIN STRING ODER EIN OBJEKT { eins, andere } -- SONST NICHTS.
+    /* EIN TEXT IST EIN STRING ODER EIN OBJEKT { one, other } -- SONST NICHTS.
        Kein Feld, das der Helfer nicht kennt: es stuende still da und faerbte
        nichts. */
     const spCrooked = Object.entries(spTexts || {}).filter(([k, v]) => {
       if (k === '_locale') return typeof v !== 'string';
       if (typeof v === 'string') return false;
       if (v && typeof v === 'object')
-        return Object.keys(v).sort().join() !== 'andere,eins'
-          || typeof v.eins !== 'string' || typeof v.andere !== 'string';
+        return Object.keys(v).sort().join() !== 'one,other'
+          || typeof v.one !== 'string' || typeof v.other !== 'string';
       return true;
     }).map(([k]) => k);
-    check('Jeder Wert ist ein String oder ein Objekt { eins, andere }',
+    check('Jeder Wert ist ein String oder ein Objekt { one, other }',
       spCrooked.length === 0, spCrooked.join(' · ') || 'alle in Ordnung');
     /* KEIN HTML IN EINEM TEXT (Konzept 4.2). Der Helfer maskiert den Text
        ausdruecklich NICHT -- er maskiert nur die eingesetzten Werte. Traegt
@@ -41669,14 +42595,14 @@ async function checkUi() {
        Eigenschaft, sondern als Bindung -- w.eval() ist der Weg dorthin.
        ZURUECKGESETZT WIRD DANACH, damit die uebrigen Zeilen dieser Gruppe die
        echte Datei sehen. */
-    const spSet = (obj) => spW.eval(`TEXTS = ${JSON.stringify(obj)}; TEXTS_DE = TEXTS;`);
-    const spReal = () => spW.eval(`TEXTS = ${spRaw}; TEXTS_DE = TEXTS;`);
+    const spSet = (obj) => spW.eval(`TEXTS = ${JSON.stringify(obj)}; TEXTS_FALLBACK = TEXTS;`);
+    const spReal = () => spW.eval(`TEXTS = ${spRaw}; TEXTS_FALLBACK = TEXTS;`);
     spSet({
       _locale: 'de-DE',
       'probe.einfach': 'Ein fester Satz.',
       'probe.platzhalter': 'Es sind {n} von {total}.',
-      'probe.vokabel': 'Der Knopf heißt „{sacheEinzahl}".',
-      'probe.plural': { eins: '{n} Kommentar', andere: '{n} Kommentare' },
+      'probe.vokabel': 'Der Knopf heißt „{entryOne}".',
+      'probe.plural': { one: '{n} Kommentar', other: '{n} Kommentare' },
       'probe.unbekannt': 'Hier fehlt {niemand}.'
     });
     check('t() gibt einen festen Satz unverändert zurück',
@@ -41713,19 +42639,21 @@ async function checkUi() {
       spW.t('probe.platzhalter', spBad));
     /* AUCH DAS VOKABELWORT WIRD IN tH() MASKIERT. Es kommt vom Admin und ist
        damit Benutzertext -- genau der Fall, den Stolperstein 18 nennt. */
-    spW.eval("V = { ...V, sacheEinzahl: '<i>Modell</i>' };");
+    spW.eval("V = { ...V, entryOne: '<i>Modell</i>' };");
     check('tH() maskiert auch das Vokabelwort',
       spW.tH('probe.vokabel') === 'Der Knopf heißt „&lt;i&gt;Modell&lt;/i&gt;".',
       spW.tH('probe.vokabel'));
-    spW.eval("V = { ...V, sacheEinzahl: 'Eintrag' };");
+    spW.eval("V = { ...V, entryOne: 'Eintrag' };");
     /* EIN FEHLENDER SCHLUESSEL IST SICHTBAR UND NIE STILL. */
     check('Ein fehlender Schlüssel liefert ⟦schluessel⟧',
       spW.t('gibt.es.nicht') === '⟦gibt.es.nicht⟧', spW.t('gibt.es.nicht'));
-    /* DER RUECKFALL AUF DEUTSCH. In dieser Runde ist er leer -- es gibt nur
-       Deutsch --, und er wird trotzdem jetzt gebaut und belegt: eine Regel,
-       die man erst dann baut, wenn sie gebraucht wird, ist ungeprueft. */
+    /* DER RUECKFALL AUF DIE VORGABESPRACHE. Bis 0.24.2 hiess die Tafel
+       `TEXTS_DE` und war fest auf Deutsch verdrahtet; seit 0.24.3 heisst sie
+       `TEXTS_FALLBACK` und traegt, was die Installation vorgibt. Die Regel
+       dahinter ist unveraendert die von 0.24.0 -- sie hat jetzt nur einen
+       Gegenstand. */
     spW.eval("TEXTS = { _locale: 'de-DE' };");
-    check('Fehlt ein Schlüssel in der gewählten Sprache, greift Deutsch',
+    check('Fehlt ein Schlüssel in der gewählten Sprache, greift die Vorgabesprache',
       spW.t('probe.einfach') === 'Ein fester Satz.', spW.t('probe.einfach'));
     check('Und fehlt er auch dort, steht ⟦…⟧ da',
       spW.t('probe.nichtda') === '⟦probe.nichtda⟧', spW.t('probe.nichtda'));
@@ -41789,19 +42717,42 @@ async function checkUi() {
     // ausgibt, sieht einen Schluessel und keinen halben Satz.
     check('Und ihre Meldung ist der Schlüssel selbst',
       spM.message === 'probe.schluessel', spM.message);
-    /* spracheVon() LIEFERT IN DIESER RUNDE IMMER `de` -- kein
-       Accept-Language, kein Benutzerschluessel, kein Feld in /api/config. */
-    /* GESUCHT WIRD DIE BENUTZUNG UND NICHT DAS WORT: „Accept-Language" steht im
-       Kommentar daneben, weil dort steht, was Stufe 2 einhaengt. Ein Waechter
-       ueber das Wort verboete, die Absicht aufzuschreiben. */
-    check('localeOf(req) kennt in dieser Runde keine Quelle',
-      /function localeOf\(req\) \{\s*return LANGUAGE_DEFAULT;\s*\}/.test(spSrv)
-        && !/headers\[[^\]]*accept-language/i.test(spSrv)
-        && !/getUserSetting\([^)]*'sprache'/.test(spSrv),
-      (spSrv.match(/function localeOf[\s\S]{0,80}/) || ['(nicht gefunden)'])[0]);
-    /* FEHLT de.json, STARTET DER SERVER NICHT. Gefahren aus einer KOPIE des
-       Quelltextes -- der laufende Prueflauf darf sich dabei nicht selbst
-       veraendern. */
+    /* DIE VORGABESPRACHE STEHT NICHT MEHR IM QUELLTEXT -- 0.24.3,
+       Bauabschnitt 1. Bis 0.24.2 war sie `const LANGUAGE_DEFAULT = 'de'`; sie
+       gehoert dem Eigentuemer und steht in `settings` (F9).
+       GEPRUEFT WIRD DIE ABWESENHEIT DER KONSTANTE UND DIE ANWESENHEIT DER
+       ABFRAGE -- nicht der Wortlaut von localeOf(): Bauabschnitt 4 haengt dort
+       zwei weitere Quellen ein, und ein Waechter ueber den Wortlaut verboete
+       genau das, was die Runde bauen soll. */
+    /* GELESEN WIRD DER CODE UND NICHT DIE DATEI: der Kommentar an dieser
+       Stelle ZITIERT die alte Konstante, weil dort steht, was sie ersetzt hat
+       -- und ein Waechter, der ein Zitat fuer eine Benennung haelt, verboete
+       das Aufschreiben. Dieselbe Trennung wie in der Namensprobe. */
+    const spSrvCode = zerlege(spSrv, 'server.js')
+      .filter(z => z.kind === CODE).map(z => z.wert).join('\n');
+    check('Die Vorgabesprache steht nicht mehr als Konstante im Quelltext',
+      !/const LANGUAGE_DEFAULT\s*=/.test(spSrvCode), 'const LANGUAGE_DEFAULT steht noch da');
+    // Und der Leser wuerde sie wirklich finden -- an einem gestellten Fall.
+    check('Und der Leser wuerde eine solche Konstante melden',
+      /const LANGUAGE_DEFAULT\s*=/.test("const LANGUAGE_DEFAULT = 'de';"),
+      'der Leser sieht die Konstante nicht');
+    check('Sie wird aus den Einstellungen gelesen',
+      /SELECT value FROM settings WHERE key = 'languageDefault'/.test(spSrv)
+        && /function languageDefault\(\)/.test(spSrv),
+      (spSrv.match(/function languageDefault[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+    // Und localeOf() haengt daran und nicht an einem eigenen zweiten Weg.
+    check('Und localeOf(req) haengt an ihr',
+      /function localeOf\(req\)[\s\S]{0,400}?languageDefault\(\)/.test(spSrv),
+      (spSrv.match(/function localeOf[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+    /* FEHLT DIE PFLICHTDATEI, STARTET DER SERVER TROTZDEM -- 0.24.3, F6.
+       Bis 0.24.2 warf readLanguages() an dieser Stelle, und das war
+       vertretbar, solange die Dateien aus dem Image kamen. Seit das
+       VERZEICHNIS die Liste ist, kommt eine davon vielleicht vom Eigentuemer
+       -- und eine Instanz, die nicht hochkommt, kann niemand mehr richten.
+       GEFAHREN AUS EINER KOPIE des Quelltextes: der laufende Prueflauf darf
+       sich dabei nicht selbst veraendern.
+       ENTFERNT WERDEN BEIDE DATEIEN, nicht nur eine: mit en.json daneben faele
+       der Rueckfall auf sie, und die Lage waere gar keine. */
     const spCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sprache-'));
     for (const e of fs.readdirSync(__dirname, { withFileTypes: true })) {
       if (['node_modules', 'data', '.git'].includes(e.name)) continue;
@@ -41810,7 +42761,8 @@ async function checkUi() {
       else if (e.isFile()) fs.copyFileSync(path.join(__dirname, e.name), target);
     }
     fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(spCopy, 'node_modules'));
-    fs.rmSync(path.join(spCopy, 'public', 'languages', 'de.json'));
+    for (const f of fs.readdirSync(path.join(spCopy, 'public', 'languages')))
+      fs.rmSync(path.join(spCopy, 'public', 'languages', f));
     const spStart = await new Promise((done) => {
       const dataVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sprachdaten-'));
       const spPort = LANGUAGE_BASE + PORT_OFFSET;
@@ -41826,11 +42778,117 @@ async function checkUi() {
                                    done({ code, prot }); });
       setTimeout(() => { kindS.kill('SIGKILL'); }, 20000);
     });
-    check('Ohne de.json startet der Server nicht',
-      spStart.code !== 0, `Rueckgabe ${spStart.code}`);
-    check('Und er sagt, warum',
-      /de\.json fehlt/.test(spStart.prot), spStart.prot.split('\n').find(z => /de\.json/.test(z)) || '(kein Wort davon)');
+    /* code === null HEISST: er lief noch, als der SIGKILL nach 20 Sekunden
+       kam. GENAU DAS ist hier die Zusage -- und deshalb wird gegen null
+       geprueft und nicht gegen `!== 0`: ein abgestuerzter Server haette
+       ebenfalls einen Code ungleich null, und die Zeile waere gruen, ohne
+       etwas zu sagen. */
+    check('Ohne eine einzige Sprachdatei startet der Server trotzdem',
+      spStart.code === null, `Rueckgabe ${spStart.code}`);
+    check('Und er sagt namentlich, welche fehlt',
+      /\[languages\][^\n]*en\.json fehlt/.test(spStart.prot),
+      spStart.prot.split('\n').find(z => /\[languages\]/.test(z)) || '(kein Wort davon)');
     fs.rmSync(spCopy, { recursive: true, force: true });
+  }
+
+
+  /* ====== Die Fremddatei und der Dateiname — 0.24.3, F6 ==================
+     SEIT DIESER RUNDE IST DAS VERZEICHNIS DIE LISTE. Damit kann eine Datei
+     vom EIGENTUEMER kommen und nicht mehr nur aus dem Image -- und dann
+     traegt sie vielleicht kaputtes JSON, eine erfundene `_locale` oder einen
+     Namen, der keine Sprachkennung ist.
+
+     DREI KLAMMERN, UND KEINE WIRFT. Eine Instanz, die wegen einer
+     hineingelegten Datei nicht hochkommt, kann niemand mehr richten -- das
+     Verzeichnis liegt hinter derselben Tuer, die man nur ueber die laufende
+     Oberflaeche aufbekommt. GEMELDET WIRD JEDE, namentlich: eine still
+     uebergangene Datei sieht fuer den Eigentuemer aus wie eine, die nicht
+     ankommt.
+
+     GEFAHREN AN EINEM LAUFENDEN SERVER aus einer KOPIE des Quelltextes -- der
+     Prueflauf darf sich dabei nicht selbst veraendern, und ein Waechter, der
+     nur readLanguages() nachliest, sagte nichts darueber, ob der Server
+     hochkommt. */
+  group('Die Fremddatei und der Dateiname — 0.24.3');
+  {
+    const ffCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fremd-'));
+    for (const e of fs.readdirSync(__dirname, { withFileTypes: true })) {
+      if (['node_modules', 'data', '.git'].includes(e.name)) continue;
+      const target = path.join(ffCopy, e.name);
+      if (e.isDirectory()) fs.cpSync(path.join(__dirname, e.name), target, { recursive: true });
+      else if (e.isFile()) fs.copyFileSync(path.join(__dirname, e.name), target);
+    }
+    fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(ffCopy, 'node_modules'));
+    const ffLanguages = path.join(ffCopy, 'public', 'languages');
+    /* DREI FREMDDATEIEN, jede fuer eine Klammer. Sie tragen ABSICHTLICH
+       gueltige Sprachkennungen als Namen (ausser der vierten): sonst fiele
+       schon der Dateiname sie ab, und die drei Klammern dahinter blieben
+       ungeprueft. */
+    fs.writeFileSync(path.join(ffLanguages, 'fr.json'), '{ "card.active": ', 'utf8');
+    /* `de_DE` MIT UNTERSTRICH UND NICHT „erfunden": eine Locale wird an Intl
+       gehalten und nicht an einem Muster gemessen -- und Intl nimmt jedes
+       STRUKTURELL gueltige Kuerzel an, auch ein ausgedachtes. Der Unterstrich
+       ist die Schreibweise, die aus POSIX kommt und die ein Uebersetzer
+       tatsaechlich hinschreibt; sie ist kein BCP 47 und faellt durch. */
+    fs.writeFileSync(path.join(ffLanguages, 'it.json'),
+      JSON.stringify({ _locale: 'de_DE', _name: 'Erfunden' }), 'utf8');
+    // Und der falsche Dateiname -- ein Wort, keine Sprachkennung.
+    fs.writeFileSync(path.join(ffLanguages, 'Meine Sprache.json'),
+      JSON.stringify({ _locale: 'de-DE', _name: 'Meine' }), 'utf8');
+
+    const ffPort = LANGUAGE_BASE + 1 + PORT_OFFSET;
+    const ffData = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fremddaten-'));
+    const ffKind = spawn(process.execPath, ['server.js'], { cwd: ffCopy,
+      env: { ...process.env, PORT: String(ffPort), DATA_DIR: ffData, ENCRYPTION_KEY: KEY } });
+    CASES.push({ base: LANGUAGE_BASE, port: ffPort, kind: ffKind, directory: ffData });
+    let ffLog = '';
+    ffKind.stdout.on('data', d => { ffLog += d; });
+    ffKind.stderr.on('data', d => { ffLog += d; });
+    const ffBase = `http://127.0.0.1:${ffPort}`;
+    let ffUp = false;
+    for (let i = 0; i < 120 && !ffUp; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      try { ffUp = (await fetch(`${ffBase}/api/config`)).ok; } catch {}
+    }
+    /* DIE ERSTE UND WICHTIGSTE ZUSICHERUNG: er kommt hoch. Alles Weitere
+       waere ohne sie eine Aussage ueber einen Server, den es nicht gibt. */
+    check('Mit drei unbrauchbaren Dateien im Verzeichnis startet der Server trotzdem',
+      ffUp === true, ffLog.split('\n').slice(-6).join(' · '));
+    const ffConfig = ffUp ? await (await fetch(`${ffBase}/api/config`)).json() : {};
+    /* UND ER BIETET GENAU DIE BEIDEN BRAUCHBAREN AN. Ohne diese Zeile bliebe
+       offen, ob er die drei uebergangen oder alle fuenf angenommen hat. */
+    check('Und er bietet genau die beiden brauchbaren Sprachen an',
+      equal((ffConfig.languages || []).map(a => a.code).sort(), ['de', 'en']),
+      JSON.stringify(ffConfig.languages));
+    check('Und die Vorgabesprache ist eine davon',
+      ['de', 'en'].includes(ffConfig.language), JSON.stringify(ffConfig.language));
+    /* JEDE DER DREI WIRD NAMENTLICH GEMELDET, mit dem Grund daneben. Ein
+       „irgendetwas stimmt nicht" liesse den Eigentuemer die Datei suchen. */
+    check('Die Datei mit kaputtem JSON wird namentlich gemeldet',
+      /\[languages\][^\n]*fr\.json/.test(ffLog),
+      ffLog.split('\n').filter(z => /\[languages\]/.test(z)).join(' · ') || '(kein Wort davon)');
+    check('Die Datei mit unbrauchbarer _locale ebenso',
+      /\[languages\][^\n]*it\.json/.test(ffLog),
+      ffLog.split('\n').filter(z => /\[languages\]/.test(z)).join(' · ') || '(kein Wort davon)');
+    check('Und die Datei mit dem falschen Namen ebenso',
+      /\[languages\][^\n]*Meine Sprache\.json/.test(ffLog),
+      ffLog.split('\n').filter(z => /\[languages\]/.test(z)).join(' · ') || '(kein Wort davon)');
+    /* UND JEDE MELDUNG SAGT, WORAN ES LAG. Drei gleichlautende Zeilen
+       naennten zwar die Datei, aber nicht den Fehler -- und der Eigentuemer
+       suchte an der falschen Stelle. */
+    check('Und jede Meldung nennt ihren Grund',
+      new Set(ffLog.split('\n').filter(z => /\[languages\]/.test(z))
+        .map(z => z.replace(/^.*zaehlt nicht als Sprache: /, ''))).size === 3,
+      ffLog.split('\n').filter(z => /\[languages\]/.test(z)).join(' · '));
+    /* UND DIE OBERFLAECHE LAEUFT: ein Server, der zwar horcht, aber bei der
+       ersten Anfrage an einer halben Sprachtafel stirbt, waere nichts wert. */
+    const ffPage = ffUp ? await (await fetch(`${ffBase}/`)).text() : '';
+    check('Und die Seite kommt heraus',
+      ffPage.includes('<div id="app"'), `${ffPage.length} Zeichen`);
+
+    endKind(ffKind);
+    fs.rmSync(ffData, { recursive: true, force: true });
+    fs.rmSync(ffCopy, { recursive: true, force: true });
   }
 
   /* ================= Die Serverseite spricht aus der Datei — 0.24.0 ==========
@@ -41878,7 +42936,7 @@ async function checkUi() {
         typeof subject === 'string' && typeof text === 'string' && text.includes('\n'),
         `${JSON.stringify(subject)} · ${String(text).length} Zeichen`);
       check(`Und beide tragen den Titel der Installation als Platzhalter`,
-        subject.includes('{titel}') && text.includes('{titel}') && text.includes('{username}'),
+        subject.includes('{instanceTitle}') && text.includes('{instanceTitle}') && text.includes('{username}'),
         `${subject} · ${String(text).slice(0, 60)}`);
     }
     /* DIE DREI LINKBRIEFE TRAGEN DEN LINK, DER TESTBRIEF NICHT -- er ist der
@@ -41902,7 +42960,7 @@ async function checkUi() {
        Quelltext. */
     const sdVok = Object.keys(sdDe).filter(k => k.startsWith('vocabulary.'));
     check('Die vierzehn Vokabelvorgaben stehen in der Sprachdatei',
-      sdVok.length === 14 && sdDe['vocabulary.sacheEinzahl'] === 'Eintrag',
+      sdVok.length === 14 && sdDe['vocabulary.entryOne'] === 'Eintrag',
       `${sdVok.length} Wörter: ${sdVok.map(k => k.slice(10)).join(' ')}`);
     // Im Server steht sie nicht mehr; die zweite Ausfertigung in app.js faellt
     // mit Bauabschnitt 3, und die Zeile dazu steht in dessen Gruppe.
@@ -41928,11 +42986,12 @@ async function checkUi() {
         fs.readFileSync(path.join(spVerz, name), 'utf8')); }
       catch { spBroken.push(name); }
     }
-    /* ERST DER GEGENSTAND: eine Datei, und sie heisst de.json. Die Zahl steht
-       ausdruecklich da -- mit der zweiten Sprache aendert sie sich, und dann
-       soll jemand hinsehen und nicht bloss zustimmen. */
-    check('Eine Sprachdatei, und sie heisst de.json',
-      equal(spNames, ['de.json']), spNames.join(' · '));
+    /* ERST DER GEGENSTAND: zwei Dateien, de.json und en.json -- 0.24.3,
+       Bauabschnitt 5. Die Zahl steht ausdruecklich da; mit Tuerkisch (0.24.4)
+       aendert sie sich wieder, und dann soll jemand hinsehen und nicht bloss
+       zustimmen. */
+    check('Zwei Sprachdateien: de.json und en.json',
+      equal(spNames, ['de.json', 'en.json']), spNames.join(' · '));
     check('Und jede Sprachdatei ist lesbares JSON',
       spBroken.length === 0, spBroken.join(' · ') || 'alle lesbar');
 
@@ -41994,7 +43053,28 @@ async function checkUi() {
     const LETTERS = ['confirm', 'invite', 'reset', 'test']
       .flatMap(kind => [`mail.${kind}.subject`, `mail.${kind}.body`]);
     for (const k of LETTERS) called.add(k);
-    const notCalled = deKey.filter(k => k !== '_locale' && !called.has(k));
+    /* DIE VIERZEHN VOKABELVORGABEN WERDEN AUS DEM VORSATZ ABGELEITET und nicht
+       einzeln gerufen -- 0.24.3, Bauabschnitt 6. server.js und app.js filtern
+       beide `vocabulary.` aus der geladenen Datei; eine zweite Aufzaehlung im
+       Quelltext gaebe es nur, damit dieser Waechter sie findet, und genau die
+       war bis 0.24.2 der Stolperstein 47 in app.js.
+       ALS VORSATZ UND NICHT ALS REGEL „alles unter vocabulary. ist in
+       Ordnung": geprueft wird, dass BEIDE Seiten wirklich so ableiten -- sonst
+       liesse diese Ausnahme eine Karteileiche durch. */
+    const VOCABULARY_DERIVED = deKey.filter(k => k.startsWith('vocabulary.'));
+    for (const k of VOCABULARY_DERIVED) called.add(k);
+    const derivesBoth = ["public/app.js", "server.js"].every(f =>
+      /startsWith\(VOCABULARY_PREFIX\)/.test(fs.readFileSync(path.join(__dirname, f), 'utf8')));
+    check('Beide Seiten leiten die Vokabelvorgaben aus dem Vorsatz ab',
+      derivesBoth && VOCABULARY_DERIVED.length === 14,
+      `${VOCABULARY_DERIVED.length} Schluessel · beide Seiten: ${derivesBoth}`);
+    /* `_locale` UND `_name` SIND KEIN TEXT, SONDERN DER KOPF DER DATEI: sie
+       sagen, welche Locale die Sprache hat und wie sie in ihrer eigenen
+       Sprache heisst. Der Server liest sie ueber LANGUAGES[code]._locale bzw.
+       ._name und nie ueber t() -- ein Waechter, der einen Ruf verlangt,
+       verboete den Kopf. */
+    const FILE_HEAD = ['_locale', '_name'];
+    const notCalled = deKey.filter(k => !FILE_HEAD.includes(k) && !called.has(k));
     const withoutSentence = [...called].filter(k => !deKey.includes(k)).sort();
     check('Verwendungsprobe: jeder Schluessel der Datei wird gerufen',
       notCalled.length === 0, notCalled.slice(0, 12).join(' · '));
@@ -42012,7 +43092,7 @@ async function checkUi() {
        Uebersetzer, der `{n}` weglaesst, nimmt dem Satz seine Zahl; einer, der
        `{x}` erfindet, laesst sie am Bildschirm stehen.
        UND EIN VOKABELPLATZHALTER IST EINER DER VIERZEHN. `{sache}` gibt es
-       nicht -- es heisst `{sacheEinzahl}`; der Fehler faellt sonst erst am
+       nicht -- es heisst `{entryOne}`; der Fehler faellt sonst erst am
        Bildschirm auf, wo `{sache}` woertlich steht (der Helfer laesst
        Unbekanntes ausdruecklich stehen). */
     const VOCABLES = Object.keys(spContent.de || {})
@@ -42083,20 +43163,20 @@ async function checkUi() {
       VOCABLES.length === 14, `${VOCABLES.length}: ${VOCABLES.join(' ')}`);
 
     /* ---- 4. Mehrzahlprobe ----------------------------------------------
-       WAS EIN OBJEKT IST, IST EINE MEHRZAHLFORM -- und traegt genau `eins`
-       und `andere`. Ein drittes Feld waere eine Form, die der Helfer nie
+       WAS EIN OBJEKT IST, IST EINE MEHRZAHLFORM -- und traegt genau `one`
+       und `other`. Ein drittes Feld waere eine Form, die der Helfer nie
        waehlt; ein fehlendes waere ein `undefined` am Bildschirm.
        UND IM CODE STEHT KEIN `=== 1 ?` MEHR, das zwei Saetze waehlt: die
        Regel gehoert der Sprache (Intl.PluralRules) und nicht dem Vergleich.
-       Fuer Vokabelwoerter tut das mehrzahl() -- an EINER Stelle. */
+       Fuer Vokabelwoerter tut das plural() -- an EINER Stelle. */
     const objects = deKey.filter(k => k !== '_locale' && typeof spContent.de[k] === 'object');
     const formError = objects.filter(k => {
       const fields = Object.keys(spContent.de[k]).sort();
-      return !equal(fields, ['andere', 'eins']);
+      return !equal(fields, ['one', 'other']);
     });
     const appRawM = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const forks = [...withoutComment(appRawM).matchAll(/===\s*1\s*\?/g)].length;
-    check('Mehrzahlprobe: jede Mehrzahlform traegt eins und andere',
+    check('Mehrzahlprobe: jede Mehrzahlform traegt one und other',
       objects.length > 20 && formError.length === 0,
       formError.join(' · ') || `${objects.length} Mehrzahlformen`);
     check('Und keine waehlt ihre Form ueber `=== 1 ?`',
@@ -42159,13 +43239,21 @@ async function checkUi() {
       '(prefers-color-scheme: light)',
       '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
       // Stuecke einer Adresse
-      '?eintraege=', '&beitraege=', '?gruppe=', '&days=', '&target=',
+      '?entries=', '&posts=', '?gruppe=', '&days=', '&target=',
+      /* DER NAME EINES HTTP-KOPFES -- 0.24.3, Bauabschnitt 4. Er ist ein
+         technischer Name wie ein MIME-Typ und in jeder Sprache derselbe;
+         gelesen wird er von keinem Menschen. */
+      'Accept-Language',
+      /* DER VORSATZ DER VOKABELSCHLUESSEL -- 0.24.3, Bauabschnitt 6. Ein
+         Namensraum der Sprachdatei und kein Satz; er steht in server.js
+         genauso. */
+      'vocabulary.',
       // Die vier Serverbefehle -- in jeder Sprache dieselben
       'docker compose exec kriterion node usertool.js passwort <name>',
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
       // Markup um einen technischen Namen herum
       '<code>PUBLIC_ADDRESS</code>', '<code>ENCRYPTION_KEY</code>',
-      '<code>data/</code>', '<code>http://</code>',
+      '<code>data/</code>', '<code>http://</code>', '<code>public/languages/</code>',
       '<code>ENCRYPTION_KEY</code>. <strong><code>.env</code>',
       '</p>\n              <code class="keyline" id="keyline">ENCRYPTION_KEY=',
       '<code>https://</code>).</p>\n        <div class="engine-own" id="engines-own"></div>',
@@ -42176,7 +43264,7 @@ async function checkUi() {
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
     check('Restprobe: weniger als sechzig lesbare Texte in app.js',
       rest.length < 60, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die fuenfundvierzig benannten',
+    check('Und es sind genau die achtundvierzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
@@ -42204,7 +43292,7 @@ async function checkUi() {
     const numberProbe = (n, digits = 0, atMost = digits) => new Intl.NumberFormat(place,
       { minimumFractionDigits: digits, maximumFractionDigits: atMost, useGrouping: false })
       .format(Number(n));
-    const tagProbe = (tag) => new Date(tag + 'T12:00:00').toLocaleDateString(place, { weekday: 'long' });
+    const tagProbe = (date) => new Date(date + 'T12:00:00').toLocaleDateString(place, { weekday: 'long' });
     check('Und fmtDate liefert fuer de-DE den Ausdruck von 0.23.0',
       fmtProbe('2026-09-05 14:02:11') === '05.09.2026, 14:02'
       && fmtProbe('2026-01-01 00:00:00') === '01.01.2026, 00:00'
@@ -42225,8 +43313,8 @@ async function checkUi() {
     const cfgCore = ((fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/app\.get\('\/api\/config'[\s\S]*?res\.json\(\{([\s\S]*?)\}\);/) || ['', ''])[1]);
     const cfgFields = (cfgCore.match(/(?:^|[,{\n])\s*(\w+):/g) || []).length;
-    check('Die Zahlen dieser Runde: eine Sprachdatei, fuenf Felder in /api/config',
-      spNames.length === 1 && cfgFields === 5,
+    check('Die Zahlen dieser Runde: zwei Sprachdateien, sieben Felder in /api/config',
+      spNames.length === 2 && cfgFields === 7,
       `${spNames.length} Datei(en) · ${cfgFields} Felder`);
   }
 
@@ -42458,7 +43546,7 @@ async function checkUi() {
     blF2.querySelector('#bl-entries').checked = true;
     blF2.querySelector('[data-yes]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
     check('„Benutzer löschen" liefert die Stellung der beiden Haekchen',
-      equal(await blP2, { entries: true, beitraege: false }), JSON.stringify(await blP2));
+      equal(await blP2, { entries: true, posts: false }), JSON.stringify(await blP2));
     /* DAS FREMDE PASSWORT KOMMT AUS EINEM PASSWORTFELD und nicht aus prompt():
        dort stand es im Klartext auf dem Bildschirm. */
     const npP = blW.newPasswordDialog('Passwort für „bert" setzen', 'Mindestens 10 Zeichen.');
@@ -42667,7 +43755,7 @@ async function checkUi() {
     const wfTags = [{ id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
                     { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 }];
     const wfFilter = (tagIds) => ({ categoryIds: [], tagIds, tagMode: 'and', tested: 'all',
-                                    abgelehnt: 'all', favorit: false, sort: 'title_asc' });
+                                    rejected: 'all', favorite: false, sort: 'title_asc' });
     const wfRows = (d) => [...d.querySelectorAll('#filters .frow')]
       .map(z => z.querySelector('.eyebrow')?.textContent);
     const wfWithout = buildDom(JSDOM, { tags: wfTags, settings: { filters: wfFilter([]) } });
@@ -42939,11 +44027,11 @@ function checkKeyChange() {
      so beabsichtigt ist. Geprueft werden sie eigens, in ihrer eigenen Gruppe.
      Beim ABBRUCH steht die Liste leer: dort darf sich nichts geaendert haben,
      auch keine Marke. */
-  const swPrint = (d, ohne = []) => {
+  const swPrint = (d, withoutPhotos = []) => {
     const parts = [];
     const tables = d.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
-      .all().filter(t => !ohne.includes(t.name));
+      .all().filter(t => !withoutPhotos.includes(t.name));
     for (const t of tables) {
       const rows = d.prepare(`SELECT * FROM "${t.name}" ORDER BY rowid`).all();
       parts.push(t.name + '=' + JSON.stringify(rows));
@@ -42997,8 +44085,8 @@ function checkKeyChange() {
     a1.journal === 'wal',
     `Schluessel ${a1.hex.length} Zeichen, journal ${a1.journal}`);
 
-  const w1 = swCall(['wechseln', '--ja'], a1.dir, null);
-  check('Der Wechsel laeuft durch', w1.code === 0, `Rueckgabe ${w1.code}\n${w1.stdout.slice(-400)}`);
+  const defaultWord = swCall(['wechseln', '--ja'], a1.dir, null);
+  check('Der Wechsel laeuft durch', defaultWord.code === 0, `Rueckgabe ${defaultWord.code}\n${defaultWord.stdout.slice(-400)}`);
   const a1neu = swAttempt(
     () => fs.readFileSync(path.join(a1.dir, 'encryption.key'), 'utf8').trim(), '');
   check('Die Schluesseldatei traegt einen NEUEN 64-stelligen Wert',
@@ -43028,7 +44116,7 @@ function checkKeyChange() {
     swAttempt(() => d1.pragma('journal_mode', { simple: true })) === 'wal',
     String(swAttempt(() => d1.pragma('journal_mode', { simple: true }))));
   check('Und der Wechsel nennt beide Richtungen in seiner Meldung',
-    /journal stand auf wal .* DELETE .* wal/i.test(w1.stdout), w1.stdout.slice(-300));
+    /journal stand auf wal .* DELETE .* wal/i.test(defaultWord.stdout), defaultWord.stdout.slice(-300));
   swAttempt(() => d1.close());
 
   /* DIE GEGENLAGE, und sie ist die wichtigste dieser Gruppe: OHNE die
@@ -43196,7 +44284,7 @@ function checkKeyChange() {
   check('Den NEUEN nennt sie nicht',
     !w4.stdout.includes(envFresh), w4.stdout.slice(-300));
   check('Und im Dateifall ebenso: der alte ja, der neue nein',
-    w1.stdout.includes(a1.hex) && !w1.stdout.includes(a1neu), w1.stdout.slice(-300));
+    defaultWord.stdout.includes(a1.hex) && !defaultWord.stdout.includes(a1neu), defaultWord.stdout.slice(-300));
 
   /* WAS DER START INS CONTAINERPROTOKOLL SCHREIBT, wird angesehen. Das ist die
      Ausgabe, die dauerhaft stehen bleibt -- anders als die eines Befehls, den
@@ -43308,7 +44396,7 @@ function checkKeyChange() {
   const mounted = spawnSync('mount', ['-t', 'tmpfs', '-o', 'size=16M', 'tmpfs', eng],
     { encoding: 'utf8' }).status === 0;
   if (!mounted) {
-    uebersprungen += 6;
+    skipped += 6;
     console.log('  ... uebersprungen: kein tmpfs einhaengbar (die Absage bei zu wenig Platz ' +
                 'und der gescheiterte rekey brauchen ein volles Dateisystem)');
   } else {
@@ -43457,9 +44545,9 @@ async function checkBatchRun() {
      server.js an `new Worker` reicht. `env` traegt DATA_DIR und
      ENCRYPTION_KEY -- der Schluessel kommt damit AUS DER UMGEBUNG und nicht
      ueber workerData, genau wie im Betrieb. */
-  const drive = (aufgabe, rows, outside) => new Promise((done) => {
+  const drive = (task, rows, outside) => new Promise((done) => {
     const w = new Worker(path.join(__dirname, 'batchrun.js'),
-      { workerData: { task: aufgabe, rows: rows }, env: environment, stdout: true, stderr: true });
+      { workerData: { task: task, rows: rows }, env: environment, stdout: true, stderr: true });
     const states = [];
     let error = null;
     w.on('message', (m) => states.push(m));
@@ -43474,7 +44562,11 @@ async function checkBatchRun() {
   });
 
   /* ---- Die Vorschaubilder, aus dem Thread ---- */
-  const offen = (() => {
+  /* `pending` UND NICHT `open` -- 0.24.3, Bauabschnitt 7: der Name
+     `offen` ist zu `open` geworden und stiess mit dem Oeffner der
+     Datenbank zwei Zeilen weiter zusammen. Es sind die Zeilen, an
+     denen noch ein Vorschaubild offen ist. */
+  const pending = (() => {
     const d = open();
     const r = d.prepare(
       "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND kind != 'video'").all();
@@ -43482,8 +44574,8 @@ async function checkBatchRun() {
     return r;
   })();
   check('Der Aufbau steht: sechs Zeilen ohne Vorschaubild',
-    offen.length === ROWS, `${offen.length}`);
-  const vor = await drive('vorschaubilder', offen);
+    pending.length === ROWS, `${pending.length}`);
+  const vor = await drive('thumbnails', pending);
   check('Der Thread ruestet die Vorschaubilder nach und endet sauber',
     vor.code === 0 && vor.error === null, `Rueckgabe ${vor.code}: ${vor.error && vor.error.message}`);
   {
@@ -43528,7 +44620,7 @@ async function checkBatchRun() {
       alongside.result = { written, refused, slowest };
     });
   };
-  const um = await drive('umstellung', pngs, alongside);
+  const um = await drive('conversion', pngs, alongside);
   check('Der Thread stellt um und endet sauber',
     um.code === 0 && um.error === null,
     `Rueckgabe ${um.code}: ${um.error && um.error.message}`);
@@ -43540,21 +44632,21 @@ async function checkBatchRun() {
   /* SIE TRAEGT DEN STAND UND KEINE ZUNAHME: der Haupt-Thread ERSETZT damit,
      statt zu addieren. Eine Zunahme haengt an der Vollstaendigkeit der
      Meldungsfolge, ein voller Stand kann gar nicht auseinanderlaufen. */
-  const letzter = um.states[um.states.length - 1] || {};
+  const last = um.states[um.states.length - 1] || {};
   check('Jede Meldung traegt den ganzen Stand und nicht eine Zunahme',
     um.states.every(m => m && m.kind === 'status' && m.status &&
-      typeof m.status.erledigt === 'number' && typeof m.status.total === 'number'),
+      typeof m.status.done === 'number' && typeof m.status.total === 'number'),
     JSON.stringify(um.states[0]));
   /* AUCH HIER GEHT JEDER ZUGRIFF DURCH EINE KLAMMER: Rueckbau 491 nimmt der
      Schleife ihre Message, und eine Zeile, die dann auf `m.status.erledigt`
      greift, riesse den Lauf ab statt rot zu werden (Stolperstein 161). */
-  const ueDone = um.states.map(m => (m && m.status && m.status.erledigt));
+  const ueDone = um.states.map(m => (m && m.status && m.status.done));
   check('Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind',
     equal(ueDone, [1, 2, 3, 4, 5, 6, 6]), JSON.stringify(ueDone));
   check('Am Ende steht laeuft: false und jede Zeile umgestellt',
-    letzter.status && letzter.status.running === false &&
-    letzter.status.umgestellt === ROWS && letzter.status.gespart > 0,
-    JSON.stringify(letzter.status));
+    last.status && last.status.running === false &&
+    last.status.converted === ROWS && last.status.freed > 0,
+    JSON.stringify(last.status));
   {
     const d = open();
     const webp = d.prepare("SELECT COUNT(*) n FROM photos WHERE mime_type = 'image/webp'").get().n;
@@ -43644,7 +44736,7 @@ async function checkBatchRun() {
     check('Und die Zeilen mit einem dritten Wort in `kind` stehen darin',
       imageRows.length === ROWS + OLD + 1, `${imageRows.length} statt ${ROWS + OLD + 1}`);
 
-    const geo = await drive('geometrie', imageRows);
+    const geo = await drive('geometry', imageRows);
     check('Der Thread erneuert die Kacheln und endet sauber',
       geo.code === 0 && geo.error === null,
       `Rueckgabe ${geo.code}: ${geo.error && geo.error.message}`);
@@ -43662,20 +44754,20 @@ async function checkBatchRun() {
        kleinen sind durchs Nachruesten gelaufen und tragen laengst eine
        quadratische Kachel. */
     check('Und erneuert genau die vier alten Zeilen und die Videozeile',
-      gState.running === false && gState.nachgezogen === OLD + 1 &&
-      gState.geprueft === ROWS + OLD + 1,
+      gState.running === false && gState.renewed === OLD + 1 &&
+      gState.checked === ROWS + OLD + 1,
       JSON.stringify(gState));
     /* DIE SECHS ZEILEN VON OBEN SIND GEPRUEFT UND NICHT ANGEFASST WORDEN.
        Ohne diese Zeile bliebe gruen, wer sie mitzieht und dabei nichts
        aendert ausser der Rechenzeit. */
     check('Und laesst die sechs kleinen Bilder in Ruhe',
-      gState.geprueft - gState.nachgezogen - gState.uebersprungen === ROWS,
+      gState.checked - gState.renewed - gState.skipped === ROWS,
       JSON.stringify(gState));
     /* UND KEINE EINZIGE ZEILE IST UEBERSPRUNGEN WORDEN. Bis 0.19.4 war es
        genau eine -- die Videozeile, deren `data` die Videodatei traegt. Seit
        0.19.5 ist ihre Vorlage `medium`, und damit kommt sie durch. */
     check('Und keine Zeile wurde uebersprungen',
-      gState.uebersprungen === 0, JSON.stringify(gState));
+      gState.skipped === 0, JSON.stringify(gState));
     {
       const d = open();
       const rows = d.prepare("SELECT id, thumb, medium FROM photos WHERE kind IS 'image' " +
@@ -43722,13 +44814,13 @@ async function checkBatchRun() {
           .run(item, big, 'image/jpeg', Buffer.from('kein Bild, nur Text'), oldMedium).lastInsertRowid;
         d.close();
       }
-      const rep = await drive('geometrie', [{ id: brokenId }]);
+      const rep = await drive('geometry', [{ id: brokenId }]);
       const rStatus = (rep.states[rep.states.length - 1] || {}).status || {};
       const d = open();
       const fresh = d.prepare('SELECT thumb FROM photos WHERE id = ?').get(brokenId);
       d.close();
       check('Ein unlesbarer thumb wird aus dem Original ersetzt',
-        rStatus.nachgezogen === 1 && fresh && fresh.thumb &&
+        rStatus.renewed === 1 && fresh && fresh.thumb &&
         (await size(fresh.thumb)) === '512x512',
         `${JSON.stringify(rStatus)} · ${fresh && fresh.thumb ? await size(fresh.thumb).catch(() => '(unlesbar)') : '(leer)'}`);
     }
@@ -43738,12 +44830,12 @@ async function checkBatchRun() {
        jedes Mal neu -- und die Datenbank waechst bei jedem Neustart.
        GEPRUEFT WIRD EINE ZEILE MEHR ALS BEIM ERSTEN MAL: die Zeile mit dem
        kaputten `thumb` ist inzwischen dazugekommen. */
-    const repeatCall = await drive('geometrie', (() => {
+    const repeatCall = await drive('geometry', (() => {
       const d = open(); const r = d.prepare(SELECTION).all(); d.close(); return r;
     })());
     const nStatus = (repeatCall.states[repeatCall.states.length - 1] || {}).status || {};
     check('Ein zweiter Lauf erneuert nichts mehr — die Frage ist ein Festpunkt',
-      nStatus.nachgezogen === 0 && nStatus.geprueft === ROWS + OLD + 2,
+      nStatus.renewed === 0 && nStatus.checked === ROWS + OLD + 2,
       JSON.stringify(nStatus));
 
     /* ---- Die vierte Aufgabe: EINE Zeile, auf ausdruecklichen Knopfdruck ----
@@ -43757,7 +44849,7 @@ async function checkBatchRun() {
       d0.prepare('UPDATE photos SET focus_x = 0, focus_y = 0, zoom = 400 WHERE id = ?').run(one.id);
       const before = d0.prepare('SELECT thumb FROM photos WHERE id = ?').get(one.id).thumb;
       d0.close();
-      const singleExport = await drive('zuschnitt', [{ id: one.id }]);
+      const singleExport = await drive('crop', [{ id: one.id }]);
       const d1 = open();
       const after = d1.prepare('SELECT thumb FROM photos WHERE id = ?').get(one.id).thumb;
       d1.close();
@@ -43770,7 +44862,7 @@ async function checkBatchRun() {
       /* EINE ZEILE, DIE ES NICHT GIBT, MELDET `ok: false` UND WIRFT NICHT.
          Der Haupt-Thread antwortet dann mit der alten Fassung -- eine
          Ableitung, die schlechter ist als die alte, gibt es nicht. */
-      const empty = await drive('zuschnitt', [{ id: 999999 }]);
+      const empty = await drive('crop', [{ id: 999999 }]);
       const lm = empty.states.find(m => m && m.kind === 'refreshed') || {};
       check('Eine Zeile, die es nicht gibt, meldet ok:false und wirft nicht',
         empty.code === 0 && empty.error === null && lm.ok === false,
@@ -43822,16 +44914,16 @@ async function checkBatchRun() {
        an einem Knopfdruck und nicht am Start, und ihr Abschluss ist die
        Antwort an den Browser. */
     check('Und der Server startet fuer alle vier Aufgaben einen Thread',
-      oneLine(blServer).includes("startBatchThread('umstellung', rows)") &&
-      oneLine(blServer).includes("startBatchThread('vorschaubilder', offen, refreshTiles)") &&
-      oneLine(blServer).includes("startBatchThread('geometrie', rows, maintainStorage)") &&
-      oneLine(blServer).includes("startBatchThread('zuschnitt', [{ id: Number(id) }], once)"),
+      oneLine(blServer).includes("startBatchThread('conversion', rows)") &&
+      oneLine(blServer).includes("startBatchThread('thumbnails', open, refreshTiles)") &&
+      oneLine(blServer).includes("startBatchThread('geometry', rows, maintainStorage)") &&
+      oneLine(blServer).includes("startBatchThread('crop', [{ id: Number(id) }], once)"),
       (blServer.match(/startBatchThread\([^)]*\)/g) || []).join(' · ') || '(nicht gefunden)');
     /* UND DIE KETTE HAELT AUCH, WENN EIN GLIED NICHTS ZU TUN HAT. Ohne diese
        beiden Zeilen bliebe das Erneuern aus, sobald kein Vorschaubild fehlt --
        also in jeder Instanz nach dem ersten Start. */
     check('Und jedes Glied ruft das naechste selbst, wenn es nichts zu tun gibt',
-      /if \(!offen\.length\) return refreshTiles\(\);/.test(blServer) &&
+      /if \(!open\.length\) return refreshTiles\(\);/.test(blServer) &&
       /if \(!rows\.length\) return maintainStorage\(\);/.test(blServer),
       (blServer.match(/if \(!offen\.length\)[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 3. DER PFAD STEHT AN EINER STELLE, und der Fingerprint liest dieselbe.
@@ -43916,7 +45008,7 @@ async function checkBatchRun() {
        -- beim ersten Mal ein VACUUM -- und gehoert nicht neben die Schleife. */
     check('maintainStorage bleibt im Haupt-Thread',
       /db\.exec\('VACUUM'\);/.test(blServer) && !/db\.exec\('VACUUM'\)/.test(blRun) &&
-      /startBatchThread\('geometrie', rows, maintainStorage\);/.test(blServer),
+      /startBatchThread\('geometry', rows, maintainStorage\);/.test(blServer),
       (blRun.match(/db\.exec\('VACUUM'\)/) || ['(kein VACUUM im Thread — richtig)'])[0]);
     /* 11. UND db.js FUEHRT BEIM OEFFNEN NICHTS AUS, WAS ZWEIMAL SCHADET. Der
        Thread requiret es ein zweites Mal; ein VACUUM oder ein CREATE TABLE

@@ -101,8 +101,8 @@ const report = (status) => parentPort.postMessage({ kind: 'status', status });
    gerechnet. Sie sind aus demselben Bild entstanden und bleiben gueltig; ein
    Neurechnen kostete Zeit und aenderte nichts. */
 async function convertInventory(rows) {
-  const status = { running: true, total: rows.length, erledigt: 0,
-                  umgestellt: 0, geblieben: 0, gespart: 0 };
+  const status = { running: true, total: rows.length, done: 0,
+                  converted: 0, stayed: 0, freed: 0 };
   const get = db.prepare('SELECT data FROM photos WHERE id = ?');
   const write = db.prepare('UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');
   for (const { id } of rows) {
@@ -114,18 +114,18 @@ async function convertInventory(rows) {
         const start = await storeImage(z.data, 'image/png');
         if (start.converted) {
           write.run(start.mime, start.data, id);
-          status.umgestellt++;
-          status.gespart += z.data.length - start.data.length;
-        } else status.geblieben++;
+          status.converted++;
+          status.freed += z.data.length - start.data.length;
+        } else status.stayed++;
       }
     } catch (e) {
       // EINE ZEILE REISST DEN LAUF NICHT AB. Sie bleibt, wie sie ist, wird
       // gezaehlt und genannt -- dieselbe Regel wie beim Nachruesten der
       // Vorschaubilder.
-      status.geblieben++;
+      status.stayed++;
       console.error(`[Kriterion] Foto ${id} nicht umgestellt:`, e.message);
     }
-    status.erledigt++;
+    status.done++;
     report(status);
     await new Promise(r => setTimeout(r, 30));
   }
@@ -144,9 +144,9 @@ async function convertInventory(rows) {
      uebertragen waere. */
   reclaim();
   report(status);
-  console.log(`[Kriterion] Bildumstellung fertig: ${status.umgestellt} von ` +
-    `${status.total} umgestellt, ${status.geblieben} blieben PNG, ` +
-    `${status.gespart} Bytes gespart.`);
+  console.log(`[Kriterion] Bildumstellung fertig: ${status.converted} von ` +
+    `${status.total} umgestellt, ${status.stayed} blieben PNG, ` +
+    `${status.freed} Bytes gespart.`);
 }
 
 /* ---- WORAUS EINE ZEILE IHRE KACHEL ENTSTEHT -- 0.19.5 ----
@@ -271,8 +271,8 @@ async function backfillThumbnails(rows) {
    sourceFrom(): dort IST `medium` die Vorlage, und es aus sich selbst neu zu
    kodieren machte es nur schlechter. */
 async function refreshTiles(rows) {
-  const status = { running: true, total: rows.length, erledigt: 0,
-                  geprueft: 0, nachgezogen: 0, uebersprungen: 0, zugenommen: 0 };
+  const status = { running: true, total: rows.length, done: 0,
+                  checked: 0, renewed: 0, skipped: 0, grown: 0 };
   const get = db.prepare(
     'SELECT data, thumb, medium, kind, focus_x, focus_y, zoom FROM photos WHERE id = ?');
   for (const { id } of rows) {
@@ -282,18 +282,18 @@ async function refreshTiles(rows) {
          verloren haben. Beides ist kein Fehler -- ohne `thumb` ist sie Sache
          des Nachruestens und nicht dieses Laufs. */
       if (z && z.thumb) {
-        status.geprueft++;
+        status.checked++;
         if (await isUncropped(z.thumb)) {
           const grown = await refreshRow(id, z);
-          if (grown === null) status.uebersprungen++;
-          else { status.nachgezogen++; status.zugenommen += grown; }
+          if (grown === null) status.skipped++;
+          else { status.renewed++; status.grown += grown; }
         }
       }
     } catch (e) {
-      status.uebersprungen++;
+      status.skipped++;
       console.error(`[Kriterion] Foto ${id} nicht nachgezogen:`, e.message);
     }
-    status.erledigt++;
+    status.done++;
     report(status);
     /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN. Sie sind im Thread
        nicht mehr noetig, um den Haupt-Thread zu schonen -- sie halten aber
@@ -308,9 +308,9 @@ async function refreshTiles(rows) {
      oder schrumpft dann eben um die Differenz und nicht um die Summe. */
   reclaim();
   report(status);
-  console.log(`[Kriterion] Kacheln erneuert: ${status.nachgezogen} von ` +
-    `${status.geprueft} geprüften Zeilen, ${status.uebersprungen} übersprungen, ` +
-    `${status.zugenommen} Bytes mehr.`);
+  console.log(`[Kriterion] Kacheln erneuert: ${status.renewed} von ` +
+    `${status.checked} geprüften Zeilen, ${status.skipped} übersprungen, ` +
+    `${status.grown} Bytes mehr.`);
 }
 
 /* ---- EINE ZEILE ERNEUERN -- die Stelle, an der beide Rufer zusammenkommen ---
@@ -428,10 +428,10 @@ function reclaim() {
    parentPort.close() DANACH -- ohne ihn haelt der offene Kanal den Thread am
    Leben, und der Haupt-Thread bekaeme sein 'exit' nie. */
 (async () => {
-  if (workerData.task === 'umstellung') await convertInventory(workerData.rows);
-  else if (workerData.task === 'vorschaubilder') await backfillThumbnails(workerData.rows);
-  else if (workerData.task === 'geometrie') await refreshTiles(workerData.rows);
-  else if (workerData.task === 'zuschnitt') await refreshOneTile(workerData.rows);
+  if (workerData.task === 'conversion') await convertInventory(workerData.rows);
+  else if (workerData.task === 'thumbnails') await backfillThumbnails(workerData.rows);
+  else if (workerData.task === 'geometry') await refreshTiles(workerData.rows);
+  else if (workerData.task === 'crop') await refreshOneTile(workerData.rows);
   else throw new Error(`Unbekannte Aufgabe: ${workerData.task}`);
   db.close();
   parentPort.close();

@@ -27,9 +27,9 @@ function wertDavor(code) {
    ihre festen Stuecke sind Text, ihre Ausdruecke sind Code. */
 function zerlegeJs(src) {
   const teile = [];
-  let i = 0, art = CODE, start = 0;
+  let i = 0, kind = CODE, start = 0;
   const stapel = [];               // offene ${…} in Vorlagen
-  const schiebe = (bis, a) => { if (bis > start) teile.push({ art: a, wert: src.slice(start, bis) }); start = bis; };
+  const schiebe = (bis, a) => { if (bis > start) teile.push({ kind: a, wert: src.slice(start, bis) }); start = bis; };
   while (i < src.length) {
     const c = src[i], d = src[i + 1];
     if (c === '/' && d === '/') {
@@ -89,7 +89,7 @@ function zerlegeJs(src) {
     }
     i++;
   }
-  schiebe(src.length, art);
+  schiebe(src.length, kind);
   return teile;
 }
 
@@ -138,14 +138,14 @@ function leseAusdruck(src, i, tiefe) {
   }
   const stueck = src.slice(anfang, i);
   const teile = zerlegeJs(stueck);
-  teile.push({ art: CODE, wert: '}' });
+  teile.push({ kind: CODE, wert: '}' });
   return { teile, ende: i + 1 };
 }
 
 /* Die Zerlegung einer CSS-Datei: Kommentar und Zeichenkette, sonst Code. */
 function zerlegeCss(src) {
   const teile = []; let i = 0, start = 0;
-  const schiebe = (bis, a) => { if (bis > start) teile.push({ art: a, wert: src.slice(start, bis) }); start = bis; };
+  const schiebe = (bis, a) => { if (bis > start) teile.push({ kind: a, wert: src.slice(start, bis) }); start = bis; };
   while (i < src.length) {
     const c = src[i];
     if (c === '/' && src[i + 1] === '*') {
@@ -168,7 +168,7 @@ function zerlegeCss(src) {
    bleiben Code -- eine Klasse steht dort und will umbenannt werden. */
 function zerlegeHtml(src) {
   const teile = []; let i = 0, start = 0;
-  const schiebe = (bis, a) => { if (bis > start) teile.push({ art: a, wert: src.slice(start, bis) }); start = bis; };
+  const schiebe = (bis, a) => { if (bis > start) teile.push({ kind: a, wert: src.slice(start, bis) }); start = bis; };
   while (i < src.length) {
     if (src.startsWith('<!--', i)) {
       schiebe(i, CODE); i += 4;
@@ -192,7 +192,7 @@ const zusammen = (teile) => teile.map(t => t.wert).join('');
 // Die Vielfachmenge aller Texte -- die Probe des Umbenenners.
 function texte(teile) {
   const m = new Map();
-  for (const t of teile) if (t.art === TEXT) m.set(t.wert, (m.get(t.wert) || 0) + 1);
+  for (const t of teile) if (t.kind === TEXT) m.set(t.wert, (m.get(t.wert) || 0) + 1);
   return m;
 }
 

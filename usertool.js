@@ -177,7 +177,7 @@ async function commandRemove(name, options) {
     console.log('  Ohne --eintraege bleiben sie stehen und tragen künftig ' +
       `"Gelöschter Benutzer ${u.id}".`);
   }
-  if (options.beitraege) {
+  if (options.posts) {
     console.log(RED('  --beitraege: seine Kommentare, Bewertungen und Testtage in fremden ' +
       'Einträgen werden gelöscht.'));
   }
@@ -208,7 +208,7 @@ async function commandTwoFactor(name) {
   }
   console.log(`\nZweiten Faktor von "${u.username}" (Nummer ${u.id}, ` +
     `${ROLE_KEY[u.role] || u.role}) ausschalten.`);
-  console.log(`  Eingeschaltet seit: ${status.seit}`);
+  console.log(`  Eingeschaltet seit: ${status.since}`);
   console.log(`  Wiederherstellungscodes: ${status.codesOpen} von ${status.codesTotal} noch offen`);
   console.log('  Danach genügt zum Anmelden wieder das Passwort allein.');
   console.log('  Einschalten kann ihn nur der Betroffene selbst, in der Karte „Zugang“.');
@@ -232,7 +232,7 @@ function commandOwner(name) {
 
 async function main() {
   const [command, name, ...rest] = process.argv.slice(2);
-  const options = { entries: rest.includes('--eintraege'), beitraege: rest.includes('--beitraege') };
+  const options = { entries: rest.includes('--eintraege'), posts: rest.includes('--beitraege') };
   const needsName = () => {
     if (!name) { console.error(RED('Es fehlt der Benutzername.')); help(); process.exit(1); }
   };

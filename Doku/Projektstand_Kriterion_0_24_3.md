@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 68 · Stand 7. September 2026 · gebaut: Version 0.24.2**
+**Kompakte Übergabe · Revision 69 · Stand 8. September 2026 · gebaut: Version 0.24.3**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -476,17 +476,39 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.24.0** — Fingerprint **`795ddc8a`**, **5862
-Prüfungen**, **685 Rückbauten in der Liste** (Abschnitt 8). **Am 6. September
-2026 im Feld bestätigt** — nach einem ersten Einspielversuch, der `92dc6780`
-meldete: eine Datei zu viel im Bauverzeichnis, Stolperstein 158 zum zweiten
-Mal.
+**Gebaut ist 0.24.3** — Fingerprint **`80f90ee5`**, **6017
+Prüfungen**, **725 Rückbauten in der Liste** (Abschnitt 8). *Im Feld noch
+nicht bestätigt.*
+*0.24.3 bringt die zweite Sprache: `en.json` neben `de.json`, 1204 Schlüssel
+je Datei, und **jeder Zugang wählt selbst, welche er liest** — der Wechsel
+wirkt ohne Neuladen, und der andere am selben Bildschirm merkt nichts davon.
+**Ein Bestand behält Deutsch, eine frische Installation startet auf
+Englisch** (F2). Dazu das Vokabular und die Namen der Kriterien und
+Kategorien je Sprache, mit Rückfall auf die Vorgabesprache, und eine neue
+Karte „Sprachen" beim Eigentümer. **Der deutsche Rest aus 0.24.1 fällt ganz,
+auch in der Datenbank** (F7) — drei Migrationsblöcke laufen beim ersten
+Start. Regel **S10** in Abschnitt 5.6, Einzelheiten im Änderungsprotokoll
+0.24.3.*
+
+*0.24.2 davor* — Fingerprint `ae0084d8`, 5920 Prüfungen, 701 Rückbauten.
+*0.24.2 zieht die Feldnamen IN gespeicherten Werten nach: die eigenen
+Suchmaschinen, der Mailzugang und der Beleg der letzten Testmail waren nach
+0.24.1 unsichtbar. Verloren war nichts.*
+
+*0.24.1 davor* — Fingerprint `9988912b`, 5890 Prüfungen, 693 Rückbauten.
+*0.24.1 macht jeden Namen im Code englisch — Bezeichner, Schlüssel, ids,
+Klassen, Adressen, Tabellen, Spalten und gespeicherte Werte. **Am Bildschirm
+ändert sich kein Zeichen.** Regel **S9** in Abschnitt 5.6.*
+
+*0.24.0 davor* — Fingerprint `795ddc8a`, 5862 Prüfungen, 685 Rückbauten.
 *0.24.0 zieht jeden Satz der Oberfläche in eine eigene Datei —
 `public/sprachen/de.json`, 1190 Schlüssel. **Die Anwendung sieht danach aus
-wie vorher**; das war die Abnahme. Regel **S8** in Abschnitt 5.6, Einzelheiten
-im Änderungsprotokoll 0.24.0. Dazu zwei Befunde aus dem Betrieb am hellen
-Schema: die Zeitleiste ist wieder zu sehen, und „Weitere Filter" ist ein
-Umschalter „Tags" mit Zahl geworden.*
+wie vorher**; das war die Abnahme. Regel **S8** in Abschnitt 5.6. Dazu zwei
+Befunde aus dem Betrieb am hellen Schema: die Zeitleiste ist wieder zu sehen,
+und „Weitere Filter" ist ein Umschalter „Tags" mit Zahl geworden. **Am 6.
+September 2026 im Feld bestätigt** — nach einem ersten Einspielversuch, der
+`92dc6780` meldete: eine Datei zu viel im Bauverzeichnis, Stolperstein 158 zum
+zweiten Mal.*
 
 *0.23.0 davor* — Fingerprint `92f7a142`, 5744 Prüfungen, 649 Rückbauten.
 *0.23.0 bringt das helle Farbschema: umschaltbar in der Karte „Darstellung",
@@ -1431,7 +1453,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.24.2** | `ae0084d8` *(am 7. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. Er war vor dem Einspielen gerechnet und stand hier, damit die Installation sich daran messen lässt; **der Zeile von 0.24.1 hat genau das gefehlt** — dort ließ sich die Meldung aus dem Feld erst nachträglich einordnen.)* | **5920** |
+| **0.24.3** | `80f90ee5` *(gebaut am 8. September 2026; **am Wirt noch nicht gesehen**. Er ist vor dem Einspielen gerechnet und steht hier, damit die Installation sich daran messen lässt.)* | **6017** |
+| 0.24.2 | `ae0084d8` *(am 7. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. Er war vor dem Einspielen gerechnet und stand hier, damit die Installation sich daran messen lässt; **der Zeile von 0.24.1 hat genau das gefehlt** — dort ließ sich die Meldung aus dem Feld erst nachträglich einordnen.)* | **5920** |
 | 0.24.1 | `9988912b` *(am 7. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; nachgerechnet am Baum des Grundsteins `4886ae2`. **Der Rundlauf hat einen Befund gebracht, und der ist 0.24.2:** die Migration hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN den gespeicherten Werten — die eigenen Suchmaschinen, der Mailzugang und der Beleg der letzten Testmail waren damit unsichtbar. Verloren war nichts.)* | 5890 |
 | 0.24.0 | `795ddc8a` *(am 6. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert. **Erst im zweiten Anlauf:** der erste Einspielversuch meldete `92dc6780`, einen Wert, den kein Commit trägt — dieselbe Lage wie bei 0.9.1 (Stolperstein 158). Ein Neubau des Images half nicht; erst das Leeren des Verzeichnisses und das frische Hineinschieben aller Dateien brachte den Sollwert. **Es lag also am Bestand des Bauverzeichnisses, nicht am Commit** — `COPY . .` im Dockerfile nimmt alles, was dort liegt)* | 5862 |
 | 0.23.0 | `92f7a142` *(gebaut am 5. September 2026; **am Wirt noch nicht gesehen**)* | 5744 |
@@ -1524,6 +1547,10 @@ Datenbankstufe ist ein Downgrade **keine reine Dateikopie mehr**.
 | 0.14.0 | Spalten `items.rejected_at`, `items.rejected_grund`, `items.rejected_von` | `migration0140()` | Pflicht |
 | 0.16.0 | Spalte `ratings.gesetzt_am` | `migration0160()` | Pflicht |
 | **0.19.0** | **Spalte `photos.zoom`** | **`migration0190()`** | **Pflicht** |
+| 0.21.0 | Spalte `rating_criteria.phase` | `migration0210()` | Pflicht |
+| 0.24.1 | **sechs Tabellen, sechsundzwanzig Spalten, fünfundsiebzig Werte umbenannt** | `migration0241Tables()` · `migration0241Columns()` · `migration0241Values()` | Pflicht |
+| 0.24.2 | **die Feldnamen IN gespeicherten Werten** *(kein Schema, aber Inhalt)* | `migration0242Shapes()` | Pflicht |
+| **0.24.3** | **Tabellen `criterion_names`, `category_names`** *(dazu: die Vorgabesprache und die deutschen Reste in gespeicherten Werten)* | **`migration0243Language()` · `migration0243Stored()`** | **Pflicht** |
 | 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · 0.12.0 · 0.12.1 · 0.12.2 · 0.12.3 · 0.12.4 · 0.13.0 · 0.13.1 · 0.13.2 · 0.15.0 · 0.15.1 · 0.17.0 · 0.17.1 · 0.17.2 · 0.17.3 · 0.17.4 · 0.17.5 · 0.18.0 · **0.18.1** | — | — | Empfehlung |
 
 *Die Spalte „Sicherung" ist eine rückblickende Einordnung. **Als Regel steht sie
@@ -1533,11 +1560,21 @@ noch das Zurückkopieren des alten Dateisatzes.*
 **Eine neue SPALTE braucht die DDL UND einen Migrationsblock, eine neue TABELLE
 nicht.** `CREATE TABLE IF NOT EXISTS` legt eine fehlende **Tabelle** bei jedem
 Start an, eine fehlende **Spalte** in einer vorhandenen Tabelle dagegen nie
-(Stolperstein 13). Deshalb bleibt es trotz **dreizehn** Datenbankstufen bei
-**acht** markierten Blöcken; nachgestellt statt abgeschrieben, an jeder neuen
-Tabelle erneut, samt der Gegenlage an einer Spalte. *Der Prüfstand zählt die
-acht ausdrücklich — wer einen neunten anlegt, wird dort namentlich rot und muss
-sagen, welche SPALTE er nachrüstet.*
+(Stolperstein 13). Deshalb tragen die beiden neuen Tabellen aus
+0.24.3 **keinen eigenen Block**; nachgestellt statt abgeschrieben, an jeder
+neuen Tabelle erneut, samt der Gegenlage an einer Spalte. *Der Prüfstand fährt jeden Block an
+einem gestellten Altbestand — wer einen anlegt, der nichts nachrüstet, wird
+dort namentlich rot und muss sagen, was er tut.*
+
+> **DREI BLÖCKE IN EINER RUNDE — 0.24.3.** Zwei davon fassen kein Schema an
+> und stehen trotzdem hier: `migration0243Language()` schreibt einem BESTAND
+> die Vorgabesprache `de` ausdrücklich in die Ablage (F2), und
+> `migration0243Stored()` benennt die deutschen Reste in `settings` und
+> `user_settings` um (F7). **Ein Wert IN einer gespeicherten Zeile ist für
+> SQLite ein String und für den Quelltext ein Gebilde** — Stolperstein 324,
+> und diese Runde ist sein zweiter Anwendungsfall. *Das Vokabular ist dabei
+> der teure Fall: ohne den Block fiele jedes der vierzehn selbst
+> eingetragenen Wörter still auf die Vorgabe zurück.*
 
 **`migration0850()` und `migration0140()` fragen jede ihrer Spalten EINZELN
 ab.** Zwei `ALTER TABLE` sind zwei Anweisungen: scheitert die zweite, bleibt die
@@ -3058,7 +3095,7 @@ wirklich von selbst, drei mussten gebaut werden — und an der neuen Route
 andere, was der Browser nicht abspielt. **Die ehrliche Antwort darauf ist der
 Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 
-### Einstellungen — einundzwanzig Karten in fünf Abschnitten, und sie hängen an der Rolle
+### Einstellungen — zweiundzwanzig Karten in fünf Abschnitten, und sie hängen an der Rolle
 
 > **SEIT 0.22.0 HEISST DER BEREICH HINTER DEM ZAHNRAD „EINSTELLUNGEN"** (E1).
 > Der Reiter und die Karte der Verwaltung heißen „Benutzer", die eigene Karte
@@ -3080,7 +3117,7 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 > | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertung: Kriterien, **Potenzial: Kriterien**, Vokabular, Links, Suchmaschinen, Papierkorb |
 > | **Benutzer** | `#/system/zugaenge` | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
 > | **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildformate, Sicherung, **Alte Sicherungen**, Export und Import |
-> | **Installation** | `#/system/installation` | Titel |
+> | **Installation** | `#/system/installation` | Titel, **Sprachen** *(seit 0.24.3, nur der Eigentümer)* |
 >
 > **SEIT 0.19.1 HEISST DER FÜNFTE ABSCHNITT „INSTALLATION".** Er hieß bis
 > 0.17.0 „Anlage" und bis 0.19.1 „Instanz".
@@ -3463,6 +3500,24 @@ genau solche Runden; unter SemVer hätte keine davon eine freie Nummer gebraucht
   **Ab 0.10.0 gibt es das nicht mehr.**
 - **Nummern, die einmal draußen waren, werden nicht umgeschrieben.** 0.8.31
   bleibt 0.8.31. Umnummeriert wird nur der **Plan**.
+
+> **DIE EINE BENANNTE ABWEICHUNG — 0.24.3, entschieden am 7. September 2026.**
+> Nach den Regeln darüber gehörte die zweite Sprache auf **0.25.0**: sie bringt
+> eine Funktion, die es vorher nicht gab, erweitert das Austauschformat auf 14,
+> legt zwei Tabellen an und ändert das Verhalten einer frischen Installation.
+> *Eine neue Route ist nicht dabei — `F_ROUTEN` steht unverändert auf 70.* **Der Betreiber hat
+> sie auf 0.24.3 entschieden** *(Frage F1 des Auftrags)*, und der Grund steht
+> hier, damit er später niemanden ratlos lässt: **die 24er-Reihe ist EIN
+> Vorhaben in vier Schritten** — 0.24.0 die Maschine, 0.24.1 die englischen
+> Namen, 0.24.2 die gespeicherten Formen, 0.24.3 die zweite Sprache, 0.24.4
+> die dritte. *Eine Nummer, die dieses Vorhaben mitten im Satz teilt, sagt
+> weniger über die Runde aus als eine, die es zusammenhält.*
+> **Sie ist eine Abweichung und keine neue Regel.** Die Regel bleibt SemVer;
+> die nächste Runde, die eine Funktion bringt, hebt MINOR. *Was sie
+> ausdrücklich nicht ist: ein Freibrief, künftig jede Funktion unter PATCH
+> herauszugeben, weil sie „zu einem Vorhaben gehört" — jedes Vorhaben gehört
+> zu einem Vorhaben.*
+> **Sie endet mit der 24er-Reihe.** Ab 0.25.0 gilt 5.1 wieder ohne Ausnahme.
 
 **WAS BEI KRITERION DIE ÖFFENTLICHE SCHNITTSTELLE IST.** SemVer verlangt das
 ausdrücklich als Erstes: ohne sie ist „abwärtskompatibel" ein Wort ohne
@@ -5089,7 +5144,7 @@ G3 hat das mit dem Milchglas vorgeführt, Stolperstein 314.)*
   — sie ist strenger als AA, und sie stand schon
   (`Doku/Farbkonzept_0_23_0.md`).*
 
-#### Sprachregeln S1 bis S9 — seit 0.22.0 geschriebene Regel, S8 seit 0.24.0, S9 seit 0.24.1
+#### Sprachregeln S1 bis S10 — seit 0.22.0 geschriebene Regel, S8 seit 0.24.0, S9 seit 0.24.1, S10 seit 0.24.3
 
 *(Konzept, Abschnitt 4.2 und 4.3. Das Wörterbuch mit den sechzehn
 Entscheidungen E1 bis E16 steht im Änderungsprotokoll 0.22.0; die Verbotsliste
@@ -5186,6 +5241,28 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   halten die Regel: Namens-, Schlüssel-, Adress-, Gestalt-, Wortlaut- und
   Kürzeprobe — sie weisen nichts ab, sie ZÄHLEN, und jede Ausnahme steht
   namentlich da.*
+
+- **S10 · Das Verzeichnis ist die Liste der Sprachen, und keine Datei darin
+  bringt den Server um.** *(seit 0.24.3.)* Jede `.json` unter
+  `public/languages/` ist eine Sprache; es gibt **keine zweite Liste daneben**,
+  die man pflegen müsste. **Geprüft wird der DATEINAME, nicht der Inhalt**
+  (Frage F6, entschieden am 7. September 2026): trägt der vordere Teil keine
+  Sprachkennung nach BCP 47, zählt die Datei nicht — *eine Datei mit einem
+  fehlenden Schlüssel ist eine halbe Übersetzung und keine kaputte, und der
+  Rückfall trägt sie.* **Drei Klammern, und keine wirft:** kaputtes JSON, eine
+  `_locale`, die `Intl` nicht kennt, und ein Dateiname, der keiner ist —
+  **jede wird namentlich gemeldet und die Datei übergangen.** Auch die fehlende
+  Pflichtdatei `en.json` bringt den Server nicht mehr um; er sagt, worauf der
+  Rückfall stattdessen zeigt. *Der Grund ist die Erreichbarkeit: seit das
+  Verzeichnis die Liste ist, kann eine Datei vom Betreiber kommen — und eine
+  Instanz, die daran stirbt, lässt sich nicht mehr über die Oberfläche
+  richten, hinter der die Datei liegt.* **Was ein Mensch liest, bestimmt er
+  selbst:** `localeOf(req)` fragt den persönlichen Schlüssel, dann
+  `Accept-Language`, dann die Vorgabe der Installation — **und jede der drei
+  wird gegen den VORRAT gehalten**, nicht gegen das Verzeichnis. **Die Vorgabe
+  ist immer im Vorrat**; wer sie herausnimmt, bekommt sie zurückgelegt.
+  *Zwei Wächter im Prüfstand halten die Regel — die Fremddateiprobe und die
+  Vorratsprobe, jede mit ihrer gefahrenen Gegenprobe.*
 
 #### Farbe und Marke
 
@@ -9111,6 +9188,33 @@ Version, in der sie entstanden sind.*
     ist, sondern danach, WAS DIE RUNDE ANFASST. Vor dem Lauf steht die Frage:
     welche Tabelle rührt diese Runde an — und liegt in ihr eine Zeile?*
 
+326. **EIN NAME, DER ZUGLEICH BEZEICHNER UND ZEICHENFOLGE IST, LÄUFT BEIM
+    UMBENENNEN AUSEINANDER — UND NICHTS WIRD ROT.** *Der Umbenenner aus
+    0.24.1 fasst ausschließlich CODE-Abschnitte an, und das ist richtig: eine
+    Zeichenfolge kann ein Satz am Bildschirm sein. Sieben Namen standen aber
+    BEIDES.* `BLOCK_DEFAULT.seite` wurde `.side`, das Literal `'seite'` in
+    `sortBlocks()` blieb — und die Detailansicht warf beim Zeichnen.
+    `SORT_STATUS` las `potential_desc`, die Auswahlliste schrieb weiter
+    `potenzial_desc` — und die Statusvorgabe griff ein Jahr lang nicht.
+    `batchState('umstellung')` traf die Abbildung `{ conversion, geometry }`
+    nicht mehr. **Und `document.documentElement.lang` wurde zu `.long`:**
+    `<html lang>` stand seit 0.24.1 auf gar nichts, und daran hängen Vorleser,
+    Silbentrennung und Rechtschreibprüfung. ***Die Regel:*** *nach einem
+    Umbenennen wird nach dem ALTEN Namen gesucht — in Zeichenfolgen, nicht nur
+    im Code. Wo er noch steht, ist entweder ein Satz oder eine Fundstelle, die
+    der Umbenenner nicht sehen konnte.* **Und der teuerste Fall ist der, den
+    niemand meldet:** vier der sieben haben nichts geworfen, sondern still das
+    Falsche getan.
+
+327. **EIN FALSCHER FREUND IM WÖRTERBUCH ÜBERSETZT, WAS SCHON ENGLISCH IST.**
+    *`tag` steht bei Kriterion für „Schlagwort" und ist englisch; das
+    Wörterbuch kennt „Tag" als Tageszeit. Der Umbenenner machte daraus `date`
+    — an acht Stellen der Tagwolke und in `MANAGE_KIND`, und die Karte „Tags"
+    warf beim Zeichnen.* ***Die Regel:*** *ein Wortpaar im Wörterbuch gilt
+    nicht überall, wo das Wort steht — es gilt dort, wo es die SACHE meint.
+    Wer ein solches Wort umbenennt, sieht sich jede Fundstelle einzeln an,
+    oder er nimmt es in die Liste der falschen Freunde.*
+
 ---
 
 ## 7. Prüfstand
@@ -10532,10 +10636,16 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT EINUNDZWANZIG RUNDEN AUS.**
-  497 Rückbauten zu je einem vollen Prüflauf sind bei rund
-  fünfeinhalb Minuten je Lauf etwa **vierzig Stunden** hintereinander, in vier
-  Nebenspuren rund elf. **Er lässt
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT FÜNFUNDZWANZIG RUNDEN AUS.**
+  **725** Rückbauten zu je einem vollen Prüflauf sind bei rund
+  siebeneinhalb Minuten je Lauf etwa **neunzig Stunden** hintereinander, in
+  vier Nebenspuren rund dreiundzwanzig. *Die Zahl der Rückbauten ist seit
+  0.17.2 von 497 auf 725 gewachsen, die Länge eines Laufs von fünfeinhalb auf
+  siebeneinhalb Minuten — der Rückstand wächst mit jeder Runde schneller, als
+  ein Lauf ihn abtragen könnte.* **Was jede Runde stattdessen tut: sie fährt
+  ihre EIGENEN neuen Rückbauten** *(0.24.3: die vierundzwanzig von 710 bis 733)*,
+  und der Prüfstand hält an jedem Lauf fest, dass jeder Suchtext seine Datei
+  noch genau einmal trifft. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
   `git archive HEAD`, und ein Commit mitten im Lauf verschiebt die Grundlage.
   *Was in 0.17.2 gefahren wurde, steht im Änderungsprotokoll dieser Runde;
@@ -10930,6 +11040,66 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.24.3 — „Die zweite Sprache"
+
+**PATCH — benannte Abweichung von 5.1 · 8. September 2026 · Stufe 2 der
+Mehrsprachigkeit** *(gebaut auf 0.24.2, Fingerprint `ae0084d8`).* *Angefasst
+sind `server.js`, `public/app.js`, `db.js`, `auth.js`, `testbench.js`,
+`counterproof.js`, die Werkzeuge — und neu: `public/languages/en.json`,
+`tools/placeholders-0243.json`.*
+
+**Kriterion spricht Englisch, und jeder Zugang wählt selbst, welche Sprache er
+liest.** Der Wechsel wirkt ohne Neuladen, und der andere am selben Bildschirm
+merkt nichts davon. **Ein Bestand behält Deutsch; eine frisch eingerichtete
+Installation startet auf Englisch.**
+
+**(1) Das Verzeichnis ist die Liste** — jede `.json` unter
+`public/languages/` ist eine Sprache, und keine von ihnen bringt den Server
+mehr um: kaputtes JSON, eine unbrauchbare `_locale` und ein Dateiname, der
+keine Sprachkennung ist, werden namentlich gemeldet und übergangen. *Geprüft
+wird der DATEINAME und nicht der Inhalt: eine Datei mit fehlenden Schlüsseln
+ist eine halbe Übersetzung und keine kaputte.* **Regel S10 in Abschnitt 5.6.**
+
+**(2) Drei Quellen, eine Reihenfolge.** `localeOf(req)` fragt den persönlichen
+Schlüssel, dann `Accept-Language` samt q-Gewichten, dann die Vorgabe der
+Installation — **und jede der drei wird gegen den VORRAT gehalten.**
+
+**(3) Zwei Schlüssel und nicht einer.** `languageDefault` trägt die Vorgabe,
+`languageOn` den Vorrat; ohne Eintrag sind ALLE Sprachen im Vorrat, und die
+Vorgabe ist immer darin. *Der Eigentümer pflegt beides in der neuen Karte
+„Sprachen" im Abschnitt „Installation".*
+
+**(4) Das Vokabular und die Namen je Sprache.** Die vierzehn Wörter liegen je
+Sprache, mit zwei Rückfällen: was für DIESE Sprache eingetragen ist, sonst der
+ZUERST angelegte Satz, sonst die Vorgabe der Sprachdatei. **Kriterien und
+Kategorien bekommen eine Tabelle daneben** (`criterion_names`,
+`category_names`) — die Grundzeile bleibt unangetastet, und
+`ratings.criterion_id` wird nie zu einer Zeichenfolge. **Ohne Sprachangabe
+meint jeder Schreibweg die GRUNDZEILE**, nicht die Sprache des Lesers: sonst
+legte ein Admin, der Deutsch liest, bei jedem Umbenennen eine Übersetzung an
+und hätte nichts geändert.
+
+**(5) Der deutsche Rest aus 0.24.1 fällt ganz** (F7, gegen den Vorschlag des
+Auftrags entschieden) — auch in der Datenbank: `sicher` im Mailzugang, die
+drei Bereiche der Blöcke, `favorit`, die beiden Sortierwerte und die vierzehn
+Vokabelnamen. **`WAITING_FOR_STAGE_TWO` fällt weg**, und mit ihr die Zahl 104;
+zwölf deutsche Bezeichner bleiben, alle benannt.
+
+**(6) Drei Migrationsblöcke**, zwei davon neu in dieser Runde. *Ohne den
+zweiten fiele jedes der vierzehn selbst eingetragenen Vokabelwörter still auf
+die Vorgabe zurück — kein Fehler, keine Meldung.*
+
+**(7) Sieben Funde, die der Umbau aufgedeckt hat** — alle seit 0.24.1 stumm,
+weil derselbe Name im Code übersetzt wurde und in einer Zeichenfolge stehen
+blieb (Stolperstein 326). *Darunter `<html lang>`, das seither auf gar nichts
+stand.* **Und zwei deutsche Wörter, die seit 0.24.0 fest im Quelltext saßen:**
+„geladen" und „ am".
+
+**Austauschformat 14** *(alle Sprachfassungen der Namen)*, `F_ROUTEN` **70**,
+**zweiundzwanzig Karten**, **27 Tabellen**, **elf persönliche Schlüssel**,
+**sieben Felder in `/api/config`**. **6017 Prüfungen, 725 Rückbauten.**
+*Was gebaut wurde, steht im Änderungsprotokoll 0.24.3.*
 
 ### 0.24.0 — „Das Deutsche wandert in eine eigene Datei"
 
@@ -12842,8 +13012,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.24.0** | **„Das Deutsche wandert in eine eigene Datei“** | **GEBAUT am 6. September 2026.** *(Neu am 2. September 2026 als 0.23.0, am 3. September 2026 auf 0.24.0 gerückt und noch am selben Tag auf 0.28.0; **am 5. September 2026 auf Entscheidung des Betreibers zurück auf 0.24.0** — das neunte Rücken, das erste nach vorn; der Rest rückt so, dass zwischen zwei geplanten Runden weiter eine Nummer frei bleibt. Am selben Tag ausgearbeitet — Konzept `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`, wie 0.22.0 und 0.23.0 ihres haben.)* Sprachdateien für `de`, `en`, `tr` und weitere. **Alles, was in der Oberfläche zu sehen ist, verlässt den Quelltext** und wird austauschbar. **Drei Stufen:** das Deutsche, das schon da ist, wandert in eine eigene Datei (Stufe 1); dann kommt Englisch (Stufe 2); dann Türkisch (Stufe 3). **Entschieden am 5. September 2026: Stufe 1 geht zuerst und allein heraus, als 0.24.0** — Auftrag `Doku/Auftrag_0.24.0.md`; *zunächst 0.24.1 genannt, noch am selben Tag auf 0.24.0 entschieden, weil eine PATCH-Zahl ihre MINOR-Zahl voraussetzt (Abschnitt 5.1); die Nummern für Stufe 2 und 3 sind offen.* **Dazu fahren zwei Befunde aus dem Betrieb am 5. September 2026 am hellen Schema mit**, als Bauabschnitt 0 des Auftrags: die Zeitleiste ohne sichtbare Linien und Jahreszahlen (`--line-2` misst gegen den hellen Grund 1,02 : 1 — eine Paarung, die das Farbkonzept nicht gemessen hat) und der Aufklapper „Weitere Filter", der als eigene Zeile Platz kostet statt spart. *Keiner der beiden stand im Sammelblatt oder im Fahrplan.* **Nach der Oberfläche** — die ist gebaut — **und vor der Bereinigung.** *Bis zum 5. September 2026 stand hier „nach der Bereinigung"; was das Vorziehen kostet und warum es wenig ist, steht im Kasten zum neunten Rücken unter dieser Tafel.* **GEBAUT IST STUFE 1:** sechs Bauabschnitte — die zwei Befunde am hellen Schema, der Helfer `t()`/`tH()` samt Ladung, die Serverseite mit der Klasse `Meldung`, `public/app.js` Ansicht für Ansicht, die Format-Helfer über `Intl` und `<html lang>`, und die sieben Wächter im Prüfstand. **1190 Schlüssel in `public/sprachen/de.json`, 45 lesbare Texte in `app.js` — namentlich, und keiner davon ein Satz.** *Kein Wort anders: das war die Abnahme, und sie ist eingehalten.* **Die Regel steht als S8 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.0. *Stufe 2 (Englisch und die Wahl der Sprache) und Stufe 3 (Türkisch) haben weiter keine Nummer.* *MINOR* | nein | — |
 | **0.24.1** | **„Der Quelltext spricht Englisch"** | **GEBAUT am 7. September 2026.** *(Neu am 6. September 2026, vom Betreiber eingeschoben — unmittelbar nach dem Einspielen von 0.24.0. Auftrag `Doku/Auftrag_0.24.1.md`, neun Fragen am Kopf, noch unbeantwortet.)* **Jeder Name im Code wird englisch, ausnahmslos:** 808 von 2148 Bezeichnern im ausgelieferten Code, 678 in `pruefung.js`, alle 1190 Schlüssel der Sprachdatei, neun API-Wurzeln, die Adressen (`#/system/datenbank`), 48 ids, 49 Stilblattklassen, elf Stilblattvariablen, acht Dateinamen und drei Umgebungsvariablen. **Kommentare und Papiere bleiben deutsch** — ausdrücklich und dauerhaft. **Am Bildschirm ändert sich kein Zeichen:** die WERTE von `de.json` sind hinterher Byte für Byte dieselben, nur ihre Schlüssel heißen anders, und genau das ist die Abnahme. *Zwei Fragen entscheiden über Aufwand und Risiko: ob das Datenbankschema mitgeht (F1) und ob die gespeicherten Werte mitgehen (F2) — nur dann ist es eine Datenbankstufe.* **WARUM VOR STUFE 2 UND NICHT DANACH:** Stufe 2 fasst genau die Stellen an, die diese Runde umbenennt; wer erst übersetzt, macht dieselbe Arbeit zweimal und müsste `en.json` gegen 1190 umbenannte Schlüssel von Hand nachziehen. *PATCH nach 5.1 — die Installation kann danach nichts, was sie vorher nicht konnte.* **GEBAUT IN ACHT BAUABSCHNITTEN:** das Wörterbuch (1186 Wortpaare), der Umbenenner samt Zerleger und Probe, die Sprachdatei, die Serverseite, die Oberfläche in acht Teilen, Datei- und Umgebungsnamen, die Datenbank in fünf Teilen, der Prüfstand in sechs. **F1 und F2 sind mit JA beantwortet — es ist eine Datenbankstufe:** sechs Tabellen, sechsundzwanzig Spalten, fünfundsiebzig gespeicherte Werte, geprüft an einem echten Altbestand (21 Zusagen grün). **Sechs Wächter halten die Regel** (Namens-, Schlüssel-, Adress-, Gestalt-, Wortlaut-, Kürzeprobe), jeder mit seiner Gegenprobe. **110 deutsche Bezeichner bleiben — alle benannt**, und keiner ist eine Benennung: Platzhalter, Vokabelnamen, gespeicherte Werte, sechs falsche Freunde. *Sie ziehen mit Stufe 2 um.* **Drei Befunde aus dem Betrieb sind mitgefahren** (7. September 2026): die Vorschaukachel im Eintrag war nicht anzuklicken, ein Tag am Testtag hieß „t", der zugeklappte Block „Links" zeigte die letzten Zeilen statt der ersten — die ersten beiden gehen auf 0.24.0 zurück, der dritte ist älter. **Die Regel steht als S9 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.1. *Ein Befund aus dem Bauen: die Restzahlen der Abschnitte 3 bis 6 waren zu gut — gemessen wurde gegen ein Wörterbuch, das die Wörter nicht kannte, die es finden sollte; es ist von 716 auf 1186 Paare gewachsen.* *PATCH* | ja | — |
 | **0.24.2** | **„Die gespeicherten Formen ziehen mit"** | **GEBAUT am 7. September 2026.** *(Neu am 7. September 2026 aus dem Rundlauf mit 0.24.1 — dieselbe Herkunft wie 0.22.1 nach 0.22.0 und 0.21.1 nach 0.21.0. Vom Betreiber am selben Tag als eigene Runde angesetzt; die beiden Sprachstufen sind dafür je eine Nummer nach hinten gerückt.)* **0.24.1 hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN den gespeicherten Werten.** Für die Datenbank ist `settings.value` ein String ohne Form; für den Quelltext ist es sehr wohl eine Form. **Drei Gebilde waren betroffen und kein viertes:** die eigenen Suchmaschinen (`{name, vorlage}` gegen `e.template`), der Mailzugang (`{anbieter, benutzer, passwort, absender}` gegen `{provider, user, password, sender}`) und der Beleg der letzten Testmail (`{marke, am}` gegen `{mark, at}`). **Am Bildschirm hieß das:** die eigenen Suchmaschinen standen nicht mehr in der Karte, der Mailzugang galt als nicht eingerichtet — also gingen Einladung, Rücksetzung und Bestätigung nicht mehr hinaus, und die Selbstanmeldung ließ sich nicht mehr einschalten —, und „zuletzt getestet" war leer. **Verloren war nichts:** die Zeilen lagen unverändert da, der Quelltext las an ihnen vorbei. `migration0242Shapes()` benennt die Feldnamen um, läuft hinter dem Block aus 0.24.1 und heilt einen 0.24.0er Bestand in einem einzigen Start; **die Marke des Mailtests bleibt dabei gültig**, weil sie an den WERTEN hängt und nicht an den Namen — eine gelöschte Marke hieße „teste noch einmal", und dazu gibt es keinen Anlass. *Die Lücke war eine der Prüfung, nicht des Wörterbuchs: der Bestandslauf zu 0.24.1 hat die Tabelle `settings` nie gefüllt — und was nicht dasteht, kann keine Migration verlieren.* *PATCH* | ja | — |
-| **0.24.3** | **Mehrsprachigkeit, Stufe 2 — Englisch und die Wahl der Sprache** | *(Am 6. September 2026 vom Betreiber um eine Nummer nach hinten gerückt, weil 0.24.1 dazwischenkam, und am 7. September 2026 um eine zweite, weil 0.24.2 dazwischenkam. Konzept `Doku/Konzept_Mehrsprachigkeit_0_24_0.md`, Abschnitte 5 bis 8; die Nummer war bis dahin offen — E12 des Konzepts hat sie ausdrücklich dem Auftrag der Stufe überlassen.)* **AUFTRAG GESCHRIEBEN am 7. September 2026: `Doku/Auftrag_0.24.3.md`** — neun Fragen am Kopf, noch unbeantwortet; sie werden beim Start der Runde im Gespräch entschieden. *Er misst nach, was 0.24.0 bereits vorbereitet hat, und das ist mehr, als das Konzept für diese Stufe vorsieht: das Verzeichnis ist schon die Liste, `localeOf(req)` steht als Haken mit 125 Aufrufstellen da, und Abschnitt 6 des Konzepts — Datum, Zahl, Sortierung über `_locale` — ist fertig gebaut.* `en.json` neben `de.json`, die Wahl je Zugang, `spracheVon(req)` liest sie, das Vokabular je angelegter Sprache in der Datenbank mit Rückfall auf den zuerst angelegten Satz (Nachtrag zu E9/E11). **ACHTUNG BEI DER NUMMER:** die Runde bringt eine Funktion, die es vorher nicht gab — *nach 5.1 wäre das MINOR und nicht PATCH.* **Am Auftrag der Runde zu entscheiden**, ob sie 0.24.2 bleibt oder die nächste freie MINOR-Zahl nimmt. **VOM BETREIBER AM 7. SEPTEMBER 2026 FESTGELEGT — drei Punkte, und sie sind entschieden, nicht zur Diskussion gestellt:** **(1) Englisch ist die Vorgabesprache.** **(2) Eine Sprache wird an der ANWESENHEIT ihrer Datei erkannt** — `<sprachbezeichnung>.json` in `public/languages/`; keine Liste im Quelltext, das Verzeichnis ist die Liste. Der vordere Teil des Dateinamens trägt eine **international anerkannte Sprachbezeichnung** (`de.json`, `tr.json`) — **und das gilt auch für Englisch.** **(3) Der Eigentümer wählt im Abschnitt „Installation" eine andere Vorgabesprache**, wenn deren Datei liegt — Deutsch, Türkisch oder eine weitere. **Im selben Einsteller legt er fest, welche Sprachen der Benutzer in seinem persönlichen Bereich überhaupt zur Wahl bekommt** und dort als seine eigene Kriterion-Sprache setzt. *Zwei Ebenen, ein Ort: die Vorgabe der Installation und der Vorrat, aus dem der Benutzer wählt.* *Empfehlung von Claude zu (2), am selben Tag: **BCP 47** — der zweibuchstabige ISO-639-1-Code als Regelfall (`de.json`, `en.json`, `tr.json`), und wo eine Sprache sich nach Region unterscheidet, Sprache und Region mit Bindestrich (`pt-BR.json`, `zh-Hans.json`). **Der Grund ist kein Geschmack:** genau diese Zeichenfolge steht schon heute in `<html lang>`, und `Intl` erwartet sie für Datum, Zahl und Sortierung — ein eigener Schlüssel daneben wäre eine zweite Liste über dieselbe Sache. Die Datei heißt heute bereits `de.json`, also ist nichts umzubenennen.* **DREI PUNKTE DES KONZEPTS SIND DAMIT ÜBERHOLT und werden am Auftrag nachgezogen:** Abschnitt 5.2 setzt die Vorgabe auf `de` *(jetzt Englisch)* und legt den Einsteller in die Karte „Vokabular" *(jetzt Abschnitt „Installation")*; ein Vorrat, aus dem der Eigentümer die wählbaren Sprachen bestimmt, steht dort gar nicht — 5.1 zeigt jede Sprache, für die eine Datei liegt. **DIE ÜBRIGEN FRAGEN — die Nummer (MINOR statt PATCH), das Vokabular je Sprache (E9/F3), E13 und der Gegenleser (E14) — werden beim Auftrag 0.24.3 entschieden, in einem eigenen Chat.** *Ausdrücklich nicht hier: dieser Fahrplan trägt die Entscheidung, nicht ihre Herleitung.* | ja | — |
-| **0.24.4** | **Mehrsprachigkeit, Stufe 3 — Türkisch** | *(Ebenfalls am 6. September 2026 um eine Nummer gerückt und am 7. September 2026 um eine zweite.)* `tr.json`, gegengelesen von einem Leser, den der Betreiber benennt (E14). **Dieselbe Frage zur Nummer wie bei 0.24.3** | nein | — |
+| **0.24.3** | **Mehrsprachigkeit, Stufe 2 — Englisch und die Wahl der Sprache** | **GEBAUT am 8. September 2026.** *(Am 6. und am 7. September 2026 je um eine Nummer nach hinten gerückt, weil 0.24.1 und 0.24.2 dazwischenkamen. Auftrag `Doku/Auftrag_0.24.3.md`, neun Fragen am Kopf; drei kamen im Gespräch dazu, und alle zwölf sind vom Betreiber am 7. September 2026 entschieden worden, bevor eine Zeile Code entstand.)* **`en.json` neben `de.json`, 1204 Schlüssel je Datei.** Jeder Zugang wählt seine Sprache; der Wechsel wirkt ohne Neuladen, und der andere am selben Bildschirm merkt nichts davon. `localeOf(req)` fragt in dieser Folge: der persönliche Schlüssel, `Accept-Language`, die Vorgabe der Installation — **und jede der drei wird gegen den VORRAT gehalten.** **ZWEI ENTSCHEIDUNGEN GINGEN GEGEN DEN VORSCHLAG DES AUFTRAGS:** **F1 — die Nummer bleibt 0.24.3** statt 0.25.0, weil die 24er-Reihe EIN Vorhaben in vier Schritten ist; die Abweichung steht benannt in Abschnitt 5.1 und endet mit dieser Reihe. **F7 — der deutsche Rest aus 0.24.1 fällt GANZ,** auch was in der Datenbank steht: die Platzhalternamen, die Mehrzahlformen, die vierzehn Vokabelnamen, `sicher` im Mailzugang, die drei Bereiche der Blöcke, der Filterschlüssel `favorit`, die beiden Sortierwerte und die sechs Abfrageangaben. *`WAITING_FOR_STAGE_TWO` fällt damit weg, und mit ihr die Zahl 104.* **DIE ÜBRIGEN ZEHN FOLGTEN DEM VORSCHLAG:** der Bestand behält Deutsch (F2), das Vokabular liegt je Sprache mit zwei Rückfällen (F3), `en-GB` ist die Locale (F4), der Betreiber liest selbst gegen (F5), geprüft wird der DATEINAME und nicht der Inhalt (F6), Kriterien und Kategorien bekommen eine Namenstabelle daneben (F8, F8a, F8b), der Export trägt alle Sprachfassungen und steigt auf Format 14 (F8c), und der Systembereich bekommt eine neue Karte „Sprachen" (F9). **GEBAUT IN NEUN BAUABSCHNITTEN:** das englische Wörterbuch, das Verzeichnis als Liste, die Karte „Sprachen", die Wahl je Benutzer, der Server in der Sprache des Anfragenden, `en.json`, das Vokabular je Sprache, die Namen je Sprache, die Reste aus 0.24.1 und der Prüfstand. **DREI MIGRATIONSBLÖCKE, zwei davon in dieser Runde neu** — die Vorgabesprache des Bestands und die deutschen Reste in gespeicherten Werten. *Ohne den zweiten fiele jedes der vierzehn selbst eingetragenen Vokabelwörter still auf die Vorgabe zurück.* **SIEBEN FUNDE, die der Umbau aufgedeckt hat** — alle seit 0.24.1 stumm im Quelltext, darunter `<html lang>`, das seither auf gar nichts stand. **Die Regel steht als S10 in Abschnitt 5.6**, was gebaut wurde im Änderungsprotokoll 0.24.3. *PATCH — benannte Abweichung nach 5.1* | ja | — |
+| **0.24.4** | **Mehrsprachigkeit, Stufe 3 — Türkisch** | *(Am 6. und am 7. September 2026 je um eine Nummer gerückt.)* `tr.json`, gegengelesen von einem Leser, den der Betreiber benennt (E14). **Die Maschine steht seit 0.24.3 vollständig:** eine dritte Datei ins Verzeichnis legen genügt, damit sie überall zur Wahl steht — Karte „Sprachen", Karte „Darstellung", Anmeldeseite, Vokabular, Kriterien und Kategorien. **Was Türkisch mitbringt und Englisch nicht hatte:** `Intl.PluralRules('tr')` kennt nur `other`, und `'I'.toLowerCase()` ist auf Türkisch `'ı'` — der Vergleich beim Umbenennen läuft deshalb seit 0.24.3 über die Vorgabesprache der Installation und nicht über die des Lesers. **Die Nummer folgt derselben benannten Abweichung wie 0.24.3** (Abschnitt 5.1); mit ihr endet die 24er-Reihe | nein | — |
 | **0.25.0** | *frei* | Zweiter Zwischenraum nach derselben Regel | — | — |
 | **0.26.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026 als 0.21.0, am 3. September 2026 auf 0.22.0 gerückt und noch am selben Tag auf 0.24.0; **am 5. September 2026 auf 0.26.0, weil die Mehrsprachigkeit vor sie gezogen wurde** — das neunte Rücken, siehe den Kasten unter dieser Tafel.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.27.0** | *frei* | Dritter Zwischenraum nach derselben Regel | — | — |

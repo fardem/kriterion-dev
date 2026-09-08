@@ -50,62 +50,329 @@ const mail = require('./mail');
    Browser holt sich die eine, die er braucht, ueber express.static. Eine
    Wahrheit, zwei Leser (Konzept 3.3).
 
-   FEHLT de.json, STARTET DER SERVER NICHT. Eine Installation ohne Sprache ist
-   keine: jede Message stuende als ⟦…⟧ da, und das faellt beim ersten Fehler
-   auf und nicht beim Start. Lieber gleich.
+   DAS VERZEICHNIS IST DIE LISTE -- 0.24.3, Vorgabe (2) des Betreibers. Wer
+   <sprachbezeichnung>.json hier hineinlegt, hat eine Sprache mehr: kein
+   Eintrag im Quelltext, kein Neubau, keine Liste, die daneben gepflegt werden
+   muesste und auseinanderlaufen koennte.
+
+   UND GENAU DESHALB STIRBT DER SERVER AN KEINER DIESER DATEIEN MEHR (F6).
+   Bis 0.24.2 gab es DREI Wege, ihn mit einer Datei umzubringen, und alle drei
+   standen nackt da: JSON.parse an kaputtem JSON, new Intl.PluralRules an einer
+   erfundenen Locale, und der harte Wurf bei fehlender Pflichtdatei. Solange
+   die Liste im Quelltext stand, war das vertretbar -- die Dateien kamen aus
+   dem Image. Seit das Verzeichnis die Liste IST, kommt eine davon vielleicht
+   vom Eigentuemer, und eine Instanz, die nicht hochkommt, kann niemand mehr
+   richten. Jede der drei Stellen meldet jetzt und wirft nicht.
+
+   GEPRUEFT WIRD DER NAME, NICHT DER INHALT (F6). Was nicht wie eine
+   Sprachkennung aussieht, zaehlt nicht und steht namentlich im
+   Containerprotokoll -- eine Datei, die STILLSCHWEIGEND nicht zaehlt, sucht
+   der Eigentuemer eine Stunde. Ein fehlender SCHLUESSEL dagegen faellt auf die
+   Vorgabesprache zurueck und ist kein Grund, die ganze Datei zu verwerfen: wer
+   eine Sprache anfaengt, soll sehen koennen, wie weit er ist. Der
+   Deckungswaechter gilt fuer die Dateien IM REPO; eine hineingelegte kann er
+   nicht pruefen.
 
    IM SPEICHER UND NICHT JE ANFRAGE VON DER PLATTE: die Datei aendert sich zur
    Laufzeit nicht, und wer sie tauscht, tauscht damit den Fingerprint -- also
    den Server. */
 const LANGUAGE_DIR = path.join(__dirname, 'public', 'languages');
+
+/* DIE SPRACHE DER AUSLIEFERUNG -- 0.24.3, Vorgabe (1) des Betreibers.
+   Sie ist zweierlei und beides steht hier: die Vorgabe einer FRISCHEN
+   Installation, und die Datei, die dasein MUSS, weil jeder Rueckfall auf sie
+   zeigt. Ein Bestand liest stattdessen `language` aus den Einstellungen -- der
+   Migrationsblock hat es ihm einmalig hineingeschrieben (F2). */
+const LANGUAGE_FALLBACK = 'en';
+
+/* WIE EINE SPRACHKENNUNG AUSSIEHT -- BCP 47, und nicht aus Geschmack:
+   GENAU DIESE Zeichenfolge steht in <html lang>, und Intl erwartet sie fuer
+   Datum, Zahl und Sortierung. Der zweibuchstabige ISO-639-1-Code ist der
+   Regelfall (`de`, `en`, `tr`); wo eine Sprache sich nach Region oder Schrift
+   unterscheidet, kommt sie mit Bindestrich dazu (`pt-BR`, `zh-Hans`,
+   `zh-Hans-CN`). Drei Buchstaben stehen fuer die Sprachen, die ISO 639-1 nicht
+   fuehrt. */
+const LANGUAGE_NAME = /^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?$/;
+
+/* EINE ZEILE INS CONTAINERPROTOKOLL, und die Datei zaehlt nicht. Sie geht auf
+   stderr und nicht auf stdout: es ist eine Lage, die jemand richten muss, und
+   kein Betriebsvermerk. */
+const languageSkip = (file, why) => console.error(
+  `[languages] ${file} zaehlt nicht als Sprache: ${why}`);
+
 function readLanguages() {
-  const out2 = {};
-  for (const name of fs.readdirSync(LANGUAGE_DIR).sort()) {
-    if (!name.endsWith('.json')) continue;
-    out2[name.slice(0, -'.json'.length)] =
-      JSON.parse(fs.readFileSync(path.join(LANGUAGE_DIR, name), 'utf8'));
+  const out = {};
+  for (const file of fs.readdirSync(LANGUAGE_DIR).sort()) {
+    if (!file.endsWith('.json')) continue;
+    const code = file.slice(0, -'.json'.length);
+    if (!LANGUAGE_NAME.test(code)) {
+      languageSkip(file, 'der vordere Teil ist keine Sprachkennung nach BCP 47');
+      continue;
+    }
+    let texts;
+    try {
+      texts = JSON.parse(fs.readFileSync(path.join(LANGUAGE_DIR, file), 'utf8'));
+    } catch (e) {
+      languageSkip(file, `sie laesst sich nicht lesen (${e.message})`);
+      continue;
+    }
+    // Ein Array ist auch ein Objekt -- und traegt trotzdem keine Schluessel.
+    if (!texts || typeof texts !== 'object' || Array.isArray(texts)) {
+      languageSkip(file, 'sie traegt kein Objekt');
+      continue;
+    }
+    if (typeof texts._locale !== 'string') {
+      languageSkip(file, '_locale fehlt im Kopf der Datei');
+      continue;
+    }
+    /* DIE LOCALE WIRD AN Intl GEHALTEN UND NICHT AN EINEM MUSTER GEMESSEN:
+       wer entscheidet, ob eine Locale brauchbar ist, ist der, der sie
+       benutzt. Genau dieser Aufruf stand bis 0.24.2 ungeklammert weiter
+       unten und nahm den Server mit. */
+    try { new Intl.PluralRules(texts._locale); }
+    catch {
+      languageSkip(file, `Intl kennt die Locale "${texts._locale}" nicht`);
+      continue;
+    }
+    out[code] = texts;
   }
-  if (!out2.de) throw new Error(
-    'public/languages/de.json fehlt -- ohne sie hat die Oberflaeche keine Texte.');
-  return out2;
+  return out;
 }
 const LANGUAGES = readLanguages();
-const LANGUAGE_DEFAULT = 'de';
+/* IN DER FOLGE DES VERZEICHNISSES, und die ist sortiert gelesen -- damit die
+   Pillenreihe in jeder Ansicht dieselbe Reihenfolge hat. */
+const LANGUAGE_CODES = Object.keys(LANGUAGES);
+if (!LANGUAGES[LANGUAGE_FALLBACK]) console.error(
+  `[languages] ${LANGUAGE_FALLBACK}.json fehlt oder zaehlt nicht -- der ` +
+  `Rueckfall zeigt stattdessen auf ${LANGUAGE_CODES[0] || '(keine Sprache)'}.`);
+
+/* WORAUF JEDER RUECKFALL ZEIGT. Im Normalfall die Auslieferungssprache; fehlt
+   sie, die erste Datei, die es gibt. GIBT ES GAR KEINE, ist das Ergebnis
+   `undefined`, und textsOf() faengt es auf: dann steht jeder Satz als ⟦…⟧ da
+   -- sichtbar, benannt und zu richten, statt eines Servers, der nicht kommt. */
+const languageBase = () =>
+  LANGUAGES[LANGUAGE_FALLBACK] ? LANGUAGE_FALLBACK : LANGUAGE_CODES[0];
+const NO_TEXTS = {};
+const textsOf = (locale) =>
+  LANGUAGES[locale] || LANGUAGES[languageBase()] || NO_TEXTS;
+
 // Eine Mehrzahlregel je Sprache, einmal gebaut. Sie kommt aus der Locale IM
 // KOPF DER DATEI und nicht aus dem Dateinamen: welche Locale eine Sprache
 // hat, entscheidet die Datei (Konzept 6).
 const LANGUAGE_PLURAL = Object.fromEntries(Object.entries(LANGUAGES)
   .map(([code, texts]) => [code, new Intl.PluralRules(texts._locale)]));
+const PLURAL_LAST_RESORT = new Intl.PluralRules(LANGUAGE_FALLBACK);
+const pluralOf = (locale) =>
+  LANGUAGE_PLURAL[locale] || LANGUAGE_PLURAL[languageBase()] || PLURAL_LAST_RESORT;
 // Und dieselbe Locale fuer Zahlen und Daten -- aus derselben einen Quelle.
-const localeTag = (locale) =>
-  (LANGUAGES[locale] || LANGUAGES[LANGUAGE_DEFAULT])._locale;
+const localeTag = (locale) => textsOf(locale)._locale || LANGUAGE_FALLBACK;
 
-/* WELCHE SPRACHE EINE ANTWORT TRAEGT. In dieser Runde immer Deutsch -- die
-   Funktion steht trotzdem schon da, damit Stufe 2 nur ihre drei Quellen
-   einhaengt (Benutzerschluessel, Accept-Language aus api(), Vorgabe der
-   Installation) und keine 125 Aufrufstellen anfassen muss. */
-function localeOf(req) {
-  return LANGUAGE_DEFAULT;
+/* DIE VORGABESPRACHE DER INSTALLATION -- GELESEN UND NICHT GESCHRIEBEN.
+   Bis 0.24.2 stand hier `const LANGUAGE_DEFAULT = 'de'`, eine Konstante im
+   Quelltext. Sie gehoert dem Eigentuemer und steht deshalb in `settings`
+   (F9, Karte „Sprachen").
+
+   GEFRAGT WIRD BEI JEDEM RUF UND NICHT EINMAL BEIM START: der Eigentuemer
+   stellt sie im laufenden Betrieb um, und ein gemerkter Wert daneben waere
+   eine zweite Wahrheit -- dieselbe Ueberlegung wie bei `searchPool()` und
+   `theme()`. Die Abfrage ist ein Schluesselzugriff auf eine winzige Tabelle.
+
+   EINE SPRACHE, FUER DIE KEINE DATEI (MEHR) LIEGT, ZAEHLT NICHT: wer `de` als
+   Vorgabe gesetzt und danach `de.json` entfernt hat, bekommt den Rueckfall und
+   keine Instanz voller ⟦…⟧. */
+const qLanguageDefault = db.prepare(
+  `SELECT value FROM settings WHERE key = 'languageDefault'`);
+function languageDefault() {
+  const row = qLanguageDefault.get();
+  let stored = null;
+  if (row) { try { stored = JSON.parse(row.value); } catch { stored = row.value; } }
+  return typeof stored === 'string' && LANGUAGES[stored] ? stored : languageBase();
 }
+
+/* ---- Der Vorrat der Sprachen -- 0.24.3, Bauabschnitt 2 (F9) --------------
+   ZWEI SCHLUESSEL UND NICHT EINER, anders als beim Vorrat der Suchmaschinen:
+   dort traegt `searchOn` beides in einer Liste, weil der Standard IMMER im
+   Vorrat steht und die Liste damit alles sagt. Hier sagen die beiden
+   Schluessel verschiedene Dinge, und einer koennte den anderen nicht
+   ausdruecken:
+
+     `languageDefault`  die Vorgabe der Installation -- eine Kennung.
+     `languageOn`       der Vorrat -- eine Liste, ODER GAR NICHTS.
+
+   UND „GAR NICHTS" HEISST HIER ALLE, nicht „nur die Vorgabe". Das ist der
+   Unterschied zu den Suchmaschinen, und er hat einen Grund: eine Suchmaschine
+   waehlt der Eigentuemer nach seinem Geschmack aus, eine Sprache liegt im
+   Image, weil sie ausgeliefert wird. Wer Kriterion frisch aufsetzt und Deutsch
+   liest, soll es einstellen koennen, ohne vorher im Systembereich einen
+   Vorrat freizugeben, den er noch gar nicht kennt. Der Eigentuemer ENGT EIN;
+   er muss nicht erst erlauben.
+
+   DIE VORGABESPRACHE IST IMMER IM VORRAT und laesst sich nicht herausnehmen --
+   ein Vorrat ohne die Vorgabe waere eine Installation, deren Vorgabe niemand
+   sehen darf. Erzwungen wird das HIER beim Lesen und noch einmal beim
+   Schreiben; eine Gegenprobe muss beide zugleich zurueckbauen, sonst bleibt
+   sie gruen. Dieselbe Lage wie bei searchPool() und writePool(). */
+function languagePool() {
+  const stored = getSetting('languageOn', null);
+  const kept = Array.isArray(stored)
+    ? stored.filter((c, i, a) => LANGUAGES[c] && a.indexOf(c) === i) : null;
+  // Hier faellt eine Sprache aus dem Vorrat, fuer die keine Datei mehr liegt.
+  const pool = kept && kept.length ? kept : LANGUAGE_CODES.slice();
+  const std = languageDefault();
+  return pool.includes(std) ? pool : [std, ...pool];
+}
+
+/* DER NAME EINER SPRACHE STEHT IN IHRER EIGENEN SPRACHE -- wer die Oberflaeche
+   gerade nicht lesen kann, findet seine trotzdem (Bauabschnitt 3).
+   DREI QUELLEN IN DIESER FOLGE. `_name` im Kopf der Datei ist die erste: die
+   Datei weiss am besten, wie ihre Sprache heisst. Danach Intl.DisplayNames --
+   damit eine hineingelegte Datei OHNE `_name` trotzdem „Türkçe" heisst und
+   nicht „tr". Und zuletzt die Kennung selbst, damit immer etwas dasteht.
+   GEKLAMMERT, wie alles an einer hineingelegten Datei: Intl wirft bei einer
+   Kennung, die es nicht kennt, und der Systembereich darf daran nicht
+   zerbrechen. */
+function languageName(code) {
+  const own = LANGUAGES[code] && LANGUAGES[code]._name;
+  if (typeof own === 'string' && own.trim()) return own.trim();
+  try {
+    const shown = new Intl.DisplayNames([localeTag(code)], { type: 'language' }).of(code);
+    if (shown && shown !== code) return shown;
+  } catch { /* Intl kennt die Kennung nicht -- dann bleibt sie selbst stehen. */ }
+  return code;
+}
+
+/* WAS DIE ANMELDESEITE BRAUCHT: nur der Vorrat, nur Kennung und Name. Sie
+   steht als eigene Funktion da und nicht als Ausdruck IN /api/config -- die
+   Antwort dort ist eine abgeschlossene Liste von Feldern, und der Pruefstand
+   zaehlt sie. Ein eingebettetes zweites Objekt liesse ihn `name` mitzaehlen. */
+const languageChoices = () =>
+  languagePool().map(code => ({ code, name: languageName(code) }));
+
+/* WAS DER SYSTEMBEREICH BRAUCHT: jede Sprache, fuer die eine Datei liegt, mit
+   ihrem Namen und den zwei Kennzeichnungen. In kanonischer Reihenfolge -- der
+   des Verzeichnisses --, damit die Pillenreihe nicht springt, wenn der
+   Eigentuemer den Vorrat aendert.
+   EINMAL GEFRAGT UND NICHT JE ZEILE: languagePool() liest die Datenbank. */
+function languageEntries() {
+  const pool = languagePool();
+  const std = languageDefault();
+  return LANGUAGE_CODES.map(code => ({
+    code, name: languageName(code),
+    isDefault: code === std, active: pool.includes(code)
+  }));
+}
+
+/* SCHREIBT VORGABE UND VORRAT, AUFGERAEUMT -- dieselbe Bauform wie writePool()
+   bei den Suchmaschinen und aus demselben Grund: es soll nur EINE Aussage
+   ueber den Zustand geben und nicht zwei, die sich widersprechen koennen.
+   BEIDE WERTE WERDEN GEMEINSAM GESCHRIEBEN, auch wenn die Karte nur einen
+   geaendert hat: die Klemme „die Vorgabe ist im Vorrat" braucht beide in der
+   Hand. */
+function writeLanguages(isDefault, active) {
+  const known = (c) => !!LANGUAGES[c];
+  let std = known(isDefault) ? isDefault : languageDefault();
+  let set = (Array.isArray(active) ? active : languagePool())
+    .filter((c, i, a) => known(c) && a.indexOf(c) === i);
+  // Zweite Schicht derselben Klemme, siehe den Hinweis in languagePool().
+  if (!set.includes(std)) set.push(std);
+  // In kanonischer Reihenfolge, damit die gespeicherte Liste nicht die
+  // Klickfolge des Eigentuemers festhaelt.
+  const ordered = LANGUAGE_CODES.filter(c => set.includes(c));
+  putSetting.run('languageDefault', JSON.stringify(std));
+  putSetting.run('languageOn', JSON.stringify(ordered));
+}
+
+/* WAS DER BROWSER VERLANGT -- der Kopf `Accept-Language`. Er ist die ZWEITE
+   Quelle und traegt zweierlei: von der eigenen Oberflaeche die Sprache, die
+   das Geraet sich gemerkt hat (api() setzt sie ausdruecklich), und von jedem
+   anderen Aufrufer das, was sein Browser eingestellt hat.
+   DIE GEWICHTE ZAEHLEN. `de;q=0.9, en;q=1.0` ist nicht dasselbe wie die
+   Reihenfolge im Kopf -- ein Browser darf sie beliebig schreiben. Ohne `q`
+   gilt 1.
+   `de-AT` ZAEHLT ALS `de`: wer eine Region verlangt, fuer die es keine Datei
+   gibt, bekommt die Sprache. Der umgekehrte Weg gilt nicht -- wer `de`
+   verlangt, bekommt kein `de-AT`, denn eine Region ist eine Aussage und keine
+   Ungenauigkeit.
+   NUR AUS DEM VORRAT: was der Eigentuemer nicht freigegeben hat, bekommt auch
+   niemand ueber einen Kopf, den er selbst schreibt. */
+function acceptedLanguage(req, pool) {
+  const header = String((req && req.headers && req.headers['accept-language']) || '');
+  if (!header) return null;
+  const wishes = header.split(',').map(part => {
+    const [date, ...rest] = part.split(';');
+    const q = rest.map(x => /^\s*q\s*=\s*([0-9.]+)\s*$/.exec(x))
+      .filter(Boolean).map(m => Number(m[1]))[0];
+    return { date: date.trim(), q: Number.isFinite(q) ? q : 1 };
+  }).filter(w => w.date && w.date !== '*');
+  // Stabil sortiert: bei gleichem Gewicht bleibt die Reihenfolge des Kopfes.
+  wishes.sort((a, b) => b.q - a.q);
+  for (const { date } of wishes) {
+    if (pool.includes(date)) return date;
+    const base = date.split('-')[0];
+    if (pool.includes(base)) return base;
+  }
+  return null;
+}
+
+/* WELCHE SPRACHE EINE ANTWORT TRAEGT -- 0.24.3, Bauabschnitt 4. DREI QUELLEN,
+   UND DIE REIHENFOLGE STEHT (Konzept 5.3):
+
+     1. der persoenliche Schluessel des angemeldeten Zugangs,
+     2. `Accept-Language` -- von der eigenen Oberflaeche das Gedaechtnis des
+        Geraets, von jedem anderen Aufrufer sein Browser,
+     3. die Vorgabe der Installation.
+
+   KEINE DER 179 AUFRUFSTELLEN AENDERT SICH DABEI. Genau dafuer stand die
+   Funktion seit 0.24.0 da und gab die Konstante zurueck.
+   GEKLEMMT WIRD IN JEDER QUELLE GEGEN DEN VORRAT -- auch beim persoenlichen
+   Schluessel: der Eigentuemer kann eine Sprache herausnehmen, nachdem jemand
+   sie gewaehlt hat. */
+function localeOf(req) {
+  const pool = languagePool();
+  const chosen = req && req.user ? getUserSetting(req.user.id, 'language', null) : null;
+  if (typeof chosen === 'string' && pool.includes(chosen)) return chosen;
+  return acceptedLanguage(req, pool) || languageDefault();
+}
+
+/* DIE LOCALE DES VERGLEICHS -- 0.24.3, Bauabschnitt 4, und sie ist NICHT die
+   des Lesers. Wo getippter Text ohne Ruecksicht auf Gross- und
+   Kleinschreibung verglichen wird, muss die Regel fuer ALLE dieselbe sein:
+   sonst waeren „İstanbul" und „istanbul" fuer den einen derselbe Name und
+   fuer den anderen zwei (T3 -- `'I'.toLowerCase()` ist auf Tuerkisch `'ı'`
+   und nicht `'i'`). Ein Vergleich, dessen Ergebnis vom Leser abhaengt, ist
+   keiner.
+   DIE VORGABESPRACHE DER INSTALLATION ist die eine Regel: sie gilt fuer alle
+   zugleich und ist die Sprache, in der der Bestand ueberwiegend eingetragen
+   ist. Der Browser hat dieselbe Funktion mit demselben Namen. */
+const compareLocale = () => localeTag(languageDefault());
 
 /* DER HELFER -- dieselbe Regel wie im Browser, mit der Sprache davor.
    MASKIERT WIRD HIER NICHTS: eine Servermeldung geht als JSON heraus, und die
-   Oberflaeche entscheidet, wie sie sie zeigt. */
+   Oberflaeche entscheidet, wie sie sie zeigt.
+   DER RUECKFALL GEHT AUF DIE VORGABESPRACHE DER INSTALLATION und nicht auf die
+   Auslieferungssprache (F6): wer `de` vorgibt und `tr.json` mit Loechern
+   hineinlegt, soll die Loecher auf Deutsch lesen und nicht auf Englisch.
+   GEFRAGT WIRD DIE VORGABE ERST BEIM FEHLSCHLAG -- der Normalfall ist ein
+   Treffer in der ersten Zeile und kostet keine Abfrage. */
 function t(locale, key, values = {}) {
-  const texts = LANGUAGES[locale] || LANGUAGES[LANGUAGE_DEFAULT];
+  const texts = textsOf(locale);
   const raw = texts[key] !== undefined
-    ? texts[key] : LANGUAGES[LANGUAGE_DEFAULT][key];
-  if (raw === undefined) return `\u27e6${key}\u27e7`;
-  const rule = LANGUAGE_PLURAL[locale] || LANGUAGE_PLURAL[LANGUAGE_DEFAULT];
+    ? texts[key] : textsOf(languageDefault())[key];
+  if (raw === undefined) return `⟦${key}⟧`;
+  const rule = pluralOf(locale);
   const record = typeof raw === 'object'
-    ? (rule.select(values.n) === 'one' ? raw.eins : raw.andere) : raw;
+    ? (rule.select(values.n) === 'one' ? raw.one : raw.other) : raw;
   /* DAS VOKABULAR WIRD ERST GEHOLT, WENN EIN PLATZHALTER ES BRAUCHT -- es
      kommt aus der Datenbank, und die meisten Meldungen tragen kein
      Vokabelwort. Einmal je Message, nicht einmal je Platzhalter. */
   let vocab = null;
   return String(record).replace(/\{(\w+)\}/g, (whole, name) => {
     if (values[name] !== undefined) return String(values[name]);
-    if (vocab === null) vocab = vocabulary();
+    /* IN DER SPRACHE DES SATZES UND NICHT IN DER DER INSTALLATION -- 0.24.3,
+       Bauabschnitt 6. Ein deutscher Satz mit englischen Vokabelwoertern waere
+       ein halb uebersetzter Satz, und genau den bekaeme ein deutscher Leser
+       auf einer englischen Installation. */
+    if (vocab === null) vocab = vocabulary(locale);
     return vocab[name] !== undefined ? String(vocab[name]) : whole;
   });
 }
@@ -128,6 +395,11 @@ mail.setTranslator(t);
    Es bekommt die ANFRAGE gereicht und nicht die Sprache: welche Sprache eine
    Antwort traegt, entscheidet diese Datei. */
 auth.setTranslator((req, key, values) => t(localeOf(req), key, values));
+/* UND DIE LOCALE DES VERGLEICHS DAZU -- aus demselben Grund und auf demselben
+   Weg: auth.js darf server.js nicht requiren, braucht die Regel aber fuer den
+   Schluessel seiner Anmeldebremse. Gereicht wird die FUNKTION und nicht der
+   Wert: die Vorgabesprache aendert sich im laufenden Betrieb. */
+auth.setCompareLocale(compareLocale);
 
 /* WAS EIN GEFANGENER FEHLER SAGT -- 0.24.0, Bauabschnitt 2. Fuenfzehn Stellen
    fingen bis dahin einen Fehler und gaben `e.message` heraus; darin stand ein
@@ -191,8 +463,8 @@ const linkInfo = (plain) => PUBLIC.address
    nicht verschickt, die Karte sagt warum, und der Browser des Admins baut den
    Link beim Kopieren weiter selbst. */
 async function sendTokenLink(target, token) {
-  const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
-  if (!mail.configured(zugang))
+  const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
+  if (!mail.configured(account))
     return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };
   if (!PUBLIC.address)
     return { delivery: 'aus', deliveryReason:
@@ -204,16 +476,21 @@ async function sendTokenLink(target, token) {
     username: target.username, link: `${PUBLIC.address}/#/invite/${token.plain}`,
     // `tage` und `minuten` sind PLATZHALTER der Sprachdatei und keine
     // Bezeichner -- sie heissen so, wie der Satz sie ruft.
-    tage: auth.TOKEN_DAYS, minuten: auth.TOKEN_DEADLINE_MINUTES
+    days: auth.TOKEN_DAYS, minutes: auth.TOKEN_DEADLINE_MINUTES
   };
   const invite = token.purpose === 'invite';
-  /* DIE SPRACHE DES EMPFAENGERS -- in dieser Runde immer die der Installation.
-     localeOf() steht schon da (Bauabschnitt 1); Stufe 2 haengt hier die
-     Sprache des Zugangs ein, und diese Zeile bleibt, wie sie ist. */
-  const locale = LANGUAGE_DEFAULT;
+  /* DIE SPRACHE DES EMPFAENGERS UND NICHT DIE DES ABSENDERS (Konzept 4.6).
+     Ein Admin, der auf Englisch arbeitet, laedt damit einen Kollegen auf
+     Deutsch ein, wenn dessen Zugang auf Deutsch steht. `token.id` IST die
+     Kennung des Zugangs, an den der Brief geht -- createToken() gibt sie
+     zurueck, und sie ist die des EMPFAENGERS und nicht die des Ausloesenden.
+     EIN FRISCH ANGELEGTER ZUGANG HAT NOCH KEINE WAHL GETROFFEN: languageOf()
+     gibt dann die Vorgabe der Installation, und genau die ist richtig -- der
+     Empfaenger kann noch gar nichts eingestellt haben. */
+  const locale = languageOf(token.id);
   const letter = invite ? mail.mailInvite(locale, values2)
                           : mail.mailReset(locale, values2);
-  const e = await mail.send(locale, zugang, target.email, letter.subject, letter.text);
+  const e = await mail.send(locale, account, target.email, letter.subject, letter.text);
   return e.ok ? { delivery: 'ok', deliveryReason: '' }
               : { delivery: 'fehlgeschlagen', deliveryReason: e.reason };
 }
@@ -260,15 +537,18 @@ function deliveryReady() {
    DER SCHLUESSEL STEHT IM FRAGMENT (#/confirm/…) und geht nie an den
    Server: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
    die Seite und bestaetigt damit gerade NICHT. */
-async function sendConfirm(name, address, plain) {
-  const zugang = mail.resolve(getSetting(mail.SETTING_KEY, null));
-  if (!mail.configured(zugang) || !PUBLIC.address) return { ok: false, reason: 'aus' };
+async function sendConfirm(name, address, plain, locale) {
+  const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
+  if (!mail.configured(account) || !PUBLIC.address) return { ok: false, reason: 'aus' };
   const title = getSetting('title_public', 'Bewertungskatalog');
-  const locale = LANGUAGE_DEFAULT;
+  /* HIER GIBT ES NOCH KEINEN ZUGANG, an dem eine Sprache haengen koennte --
+     der Brief geht an jemanden, der sich gerade erst anmeldet. Genommen wird
+     deshalb die Sprache des FORMULARS (Konzept S2.4, Punkt 2): der Aufrufer
+     reicht sie herein, weil nur er die Anfrage in der Hand hat. */
   const letter = mail.mailConfirm(locale, { title, username: name,
     link: `${PUBLIC.address}/#/confirm/${plain}`,
-    stunden: auth.REQUEST_HOURS });
-  return mail.send(locale, zugang, address, letter.subject, letter.text);
+    hours: auth.REQUEST_HOURS });
+  return mail.send(locale, account, address, letter.subject, letter.text);
 }
 
 const app = express();
@@ -373,8 +653,16 @@ const putSetting = { run: (k, v) => {
    Maschine wie die beiden davor, und aus demselben Grund persoenlich: es ist
    eine Aussage ueber die Augen dessen, der hinsieht, und nicht ueber den
    Bestand. Keine neue Route -- die Karte „Darstellung" schickt sie mit. */
+/* ELF SEIT 0.24.3: `language` -- die Sprache, in der DIESER Zugang die
+   Oberflaeche, die Meldungen und seine Mails liest. Dieselbe Maschine wie
+   `theme` daneben und aus demselben Grund persoenlich: zwei Leute an
+   derselben Installation duerfen gleichzeitig verschiedene Sprachen lesen,
+   und keiner sieht etwas von der Wahl des anderen.
+   NICHT ZU VERWECHSELN MIT `languageDefault` IN OWNER_KEYS: das ist die
+   Vorgabe der INSTALLATION. Zwei Sachen, zwei Namen -- der Rumpf dieser Route
+   entscheidet ueber den Namen, wem ein Wert gehoert. */
 const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
-                                'bellSeen', 'views', 'strip', 'theme'];
+                                'bellSeen', 'views', 'strip', 'theme', 'language'];
 
 /* DER DRITTE RANG IN DERSELBEN ROUTE, seit 0.19.0. Bis dahin kannte
    PUT /api/settings zwei Haelften: was in dieser Liste steht, ist persoenlich,
@@ -392,8 +680,17 @@ const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'sea
    hinter `ownerOnly`. Genau dafuer war diese Liste angelegt: "der zweite
    Schluessel dieser Art steht dann daneben und nicht als zweite
    Verzweigung." */
+/* SECHS SEIT 0.24.3: `languageDefault` und `languageOn` -- die Vorgabesprache
+   der Installation und der Vorrat, aus dem der Benutzer waehlen darf. Vorgabe
+   (3) des Betreibers legt beide ausdruecklich zum Eigentuemer, und sie gehen
+   denselben Weg wie die vier darueber: eine eigene schreibende Route liesse
+   F_ROUTES wachsen, ohne dass es etwas Neues zu bewachen gaebe.
+   `language` STEHT NICHT HIER, SONDERN IN PERSONAL_KEYS -- es ist die Sprache
+   des BENUTZERS. Zwei Sachen, zwei Namen: der Rumpf von PUT /api/settings
+   entscheidet ueber den Namen, wem ein Wert gehoert. */
 const OWNER_KEYS = ['convertImages',
-                                'backupCleanup', 'backupKeep', 'backupDays'];
+                                'backupCleanup', 'backupKeep', 'backupDays',
+                                'languageDefault', 'languageOn'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -474,7 +771,7 @@ const convertImages = () => getSetting('convertImages', true) !== false;
    DER SCHLUESSEL IST DIE AUFGABE, mit der der Thread erzeugt wird -- dieselbe
    Zeichenfolge, die batchrun.js unten in seiner Verzweigung liest. Eine
    zweite Liste der Aufgabennamen liefe auseinander. */
-const batchStates = { umstellung: null, geometry: null };
+const batchStates = { conversion: null, geometry: null };
 
 /* Der Stand fuer /api/stats -- oder null, solange in dieser Laufzeit nie einer
    lief. ER BLEIBT NACH DEM ENDE STEHEN, mit `laeuft: false`: die Karte fragt
@@ -482,8 +779,8 @@ const batchStates = { umstellung: null, geometry: null };
    herauskam. Ein Stand, der im Augenblick des Fertigwerdens auf null
    zurueckspringt, liesse die Karte im Ungewissen -- sie saehe nicht den
    Abschluss, sondern nur das Verschwinden. */
-const batchState = (aufgabe) =>
-  batchStates[aufgabe] && { ...batchStates[aufgabe] };
+const batchState = (task) =>
+  batchStates[task] && { ...batchStates[task] };
 
 /* WELCHE ZEILEN UEBERHAUPT IN FRAGE KOMMEN -- am INHALT erkannt, mit derselben
    Byte-Folge wie isPng(). AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die
@@ -614,10 +911,21 @@ app.get('/api/config', (req, res) => {
      soll. Der Wert sagt nichts ueber Bestand oder Menschen.
      DIE LISTE BLEIBT ABGESCHLOSSEN -- was hier auftaucht, sieht jeder, der
      die Adresse kennt; der Pruefstand nagelt die Namen fest. */
+  /* DIE ZWEI SPRACHFELDER SEIT 0.24.3. Die Anmeldeseite ist der eine Ort, an
+     dem noch kein Konto dasteht, aus dem sich eine Sprache lesen liesse -- sie
+     braucht den Vorrat, um die Zeile darunter zu zeichnen, und die Vorgabe,
+     um zu wissen, was gilt, wenn das Gedaechtnis leer ist (Bauabschnitt 3).
+     DER VORRAT UND NICHT ALLE SPRACHEN: was der Eigentuemer nicht freigegeben
+     hat, steht auch vor der Anmeldung nicht zur Wahl.
+     NICHTS DAVON IST SCHUETZENSWERT -- es steht in jeder ausgelieferten Datei
+     unter public/languages/, und wer die Adresse kennt, sieht das Verzeichnis
+     ohnehin. */
   res.json({
     title: getSetting('title_public', 'Bewertungskatalog'), version: VERSION,
     setupRequired: !auth.userExists(), minPassword: auth.PASSWORD_MIN,
-    signup: getSetting('signup', false) === true
+    signup: getSetting('signup', false) === true,
+    language: languageDefault(),
+    languages: languageChoices()
   });
 });
 
@@ -651,7 +959,7 @@ app.post('/api/login', async (req, res) => {
   const throttle = auth.checkThrottle(ip, username);
   if (throttle.blocked) {
     return res.status(429).json({
-      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
 
@@ -724,7 +1032,7 @@ app.post('/api/login/second', async (req, res) => {
   const throttle = auth.checkThrottle(ip, null);
   if (throttle.blocked) {
     return res.status(429).json({
-      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
   const id = auth.useLoginTicket(ticket);
@@ -732,13 +1040,13 @@ app.post('/api/login/second', async (req, res) => {
     auth.noteFailure(ip, null);
     return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});
   }
-  const zugang = auth.getUser2(id);
-  const name = zugang ? zugang.username : null;
+  const account = auth.getUser2(id);
+  const name = account ? account.username : null;
   /* ZWEITE NACHSCHAU AUF DEN STATUS. Zwischen den beiden Schritten liegen bis
      zu zwei Minuten, und in denen kann ein Admin gesperrt haben. Dieselbe
      Message wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
      belegt und darf deshalb erfahren, woran es liegt. */
-  if (!zugang || zugang.status !== 'active') {
+  if (!account || account.status !== 'active') {
     return res.status(403).json({ error: t(localeOf(req), 'server.accountLocked')});
   }
   if (!auth.checkTwoFactor(id, code)) {
@@ -805,7 +1113,7 @@ async function tokenThrottleFree(req, res) {
   const throttle = auth.checkThrottle(auth.clientIp(req), null);
   if (throttle.blocked) {
     res.status(429).json({
-      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
     return false;
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
@@ -922,7 +1230,7 @@ app.post('/api/signup', async (req, res) => {
      DAS AUFFANGNETZ IST KEINE ZIERDE -- hier haengt kein Aufrufer mehr an der
      Zusage. */
   if (plain) {
-    sendConfirm(String(name).trim(), String(address).trim(), plain)
+    sendConfirm(String(name).trim(), String(address).trim(), plain, localeOf(req))
       .catch(e => console.error('[Kriterion] Bestaetigungsmail:', e && e.message));
   }
 });
@@ -1034,7 +1342,7 @@ function secondConfirm(req, res, purpose, target = null) {
    EINGABE und nicht die Pruefung. */
 const secondConfirmNeeded = (purpose) => (req, res, next) => {
   const target = req.params.id !== undefined ? req.params.id
-             : (req.query && req.query.teil !== undefined ? req.query.teil : null);
+             : (req.query && req.query.part !== undefined ? req.query.part : null);
   if (secondConfirm(req, res, purpose, target)) next();
 };
 
@@ -1290,7 +1598,7 @@ app.post('/api/confirm', async (req, res) => {
   const throttle = auth.checkThrottle(ip, name);
   if (throttle.blocked) {
     return res.status(429).json({
-      error: t(localeOf(req), 'server.throttled', { sekunden: throttle.retryInSec })});
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
   }
   if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
   const { password, purpose, target, targets, code } = req.body || {};
@@ -1320,7 +1628,7 @@ app.post('/api/confirm', async (req, res) => {
        auseinander. Zur Laufzeit ist sie laengst gesetzt: diese Zeile laeuft in
        einem Routenrumpf, nicht bei der Modulauswertung. */
     if (targets.length > EXCHANGE_PART_MAX)
-      return res.status(400).json({ error: t(localeOf(req), 'server.targetsTooMany', { deckel: EXCHANGE_PART_MAX })});
+      return res.status(400).json({ error: t(localeOf(req), 'server.targetsTooMany', { cap: EXCHANGE_PART_MAX })});
     targetList = targets.map(z => Number(z));
     if (!targetList.every(n => Number.isInteger(n) && n > 0))
       return res.status(400).json({ error: t(localeOf(req), 'server.targetNotNumber')});
@@ -1437,8 +1745,8 @@ app.get('/api/users/:id/inventory', adminOnly, (req, res) => {
 // Admin offen, ohne dass irgendwo "Rolle" steht. Dieselbe Ueberlegung wie beim
 // Import, den eine Exportdatei sonst unter fremdem Namen schreiben liesse.
 app.post('/api/users', adminOnly, async (req, res) => {
-  const { username, password, rolle, sendInvite, email } = req.body || {};
-  const wanted = rolle || 'user';
+  const { username, password, role, sendInvite, email } = req.body || {};
+  const wanted = role || 'user';
   if (wanted !== 'user' && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ROLE)});
   try {
@@ -1493,11 +1801,11 @@ app.post('/api/users/:id/token', adminOnly, async (req, res) => {
 //   Passwort -- dieselbe Regel wie Status; das EIGENE laeuft ueber
 //               PUT /api/account.
 app.put('/api/users/:id', adminOnly, async (req, res) => {
-  const { rolle, status, password } = req.body || {};
-  const roleOnly = rolle !== undefined && status === undefined && password === undefined;
+  const { role, status, password } = req.body || {};
+  const roleOnly = role !== undefined && status === undefined && password === undefined;
   const target = targetUserFree(req, res, req.params.id, roleOnly);
   if (!target) return;
-  if (rolle !== undefined && !isOwner(req))
+  if (role !== undefined && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ROLE)});
   /* DIE ZWEITE BESTAETIGUNG STEHT HIER IM RUMPF UND NICHT IN DER ROUTENZEILE,
      weil erst der Rumpf sagt, WELCHE der drei Rechteklassen gemeint ist:
@@ -1505,11 +1813,11 @@ app.put('/api/users/:id', adminOnly, async (req, res) => {
      das ist umkehrbar und uebergibt nichts. Beide vor dem ersten Schreiben:
      eine Absage, die die halbe Aenderung schon geschrieben hat, waere
      schlimmer als keine. */
-  if (rolle !== undefined && !secondConfirm(req, res, 'role', target.id)) return;
+  if (role !== undefined && !secondConfirm(req, res, 'role', target.id)) return;
   if (password !== undefined && !secondConfirm(req, res, 'password', target.id)) return;
   try {
     let result = { id: target.id, username: target.username };
-    if (rolle !== undefined) result = { ...result, ...auth.setRole(target.id, rolle, req.user.id) };
+    if (role !== undefined) result = { ...result, ...auth.setRole(target.id, role, req.user.id) };
     if (status !== undefined) result = { ...result, ...auth.setStatus(target.id, status, req.user.id) };
     if (password !== undefined) { await auth.setNewPassword(target.id, password, req.user.id); result.passwordSet = true; }
     res.json(result);
@@ -1526,8 +1834,8 @@ app.delete('/api/users/:id', adminOnly, (req, res) => {
   if (!secondConfirm(req, res, 'remove', target.id)) return;
   try {
     res.json(auth.removeUser(target.id, {
-      entries: req.query.eintraege === '1',
-      beitraege: req.query.beitraege === '1'
+      entries: req.query.entries === '1',
+      posts: req.query.posts === '1'
     }, req.user.id));
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
 });
@@ -1578,7 +1886,7 @@ function mailCard(req) {
     address: PUBLIC.address,
     deadlineMinutes: auth.TOKEN_DEADLINE_MINUTES,
     testedAt: test ? test.at : null,
-    sekunden: Math.round(mail.SEND_MS / 1000),
+    seconds: Math.round(mail.SEND_MS / 1000),
     /* Die Folge der Testmarke fuer die Selbstanmeldung, : der
        Eigentuemer soll an DIESER Karte sehen, was er dem Schalter des Admins
        antut, wenn er den Mailzugang aendert. Es ist dieselbe Rechnung wie in
@@ -1625,7 +1933,18 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
   // 200 AUCH BEIM FEHLSCHLAG: der Versuch ist gelaufen, und sein Ergebnis ist
   // die Antwort. Ein 500 hiesse, die Instanz haette einen Fehler -- den hat der
   // Mailserver. Die Oberflaeche liest `ok` und nicht den Statuscode.
-  res.json({ ok: e.ok, reason: e.reason, an: ownOne.email, ...mailCard(req) });
+  /* `address` UND NICHT `an` -- 0.24.3, Bauabschnitt 7. Es ist die einzige
+     Stelle, an der `an` ein PLATZHALTER war (card.testMailHint: „Testmail an
+     {address} gesendet"). An jeder anderen Stelle heisst `an` „eingeschaltet"
+     -- der zweite Faktor, die Selbstanmeldung, das Aufraeumen --, und der
+     Umbenenner kann das nicht auseinanderhalten. Deshalb von Hand. */
+  /* `sentTo` UND NICHT `address` -- 0.24.3, Bauabschnitt 7. Es war `an` und
+     ist die einzige Stelle, an der `an` ein PLATZHALTER war (card.testMailHint).
+     `address` waere der naechstliegende Name gewesen und ist der falsche: die
+     Karte darunter bringt ueber `...mailCard(req)` ihr EIGENES `address` mit
+     -- die oeffentliche Adresse der Installation --, und die Ausbreitung steht
+     hinten und gewaenne. Der Prueflauf hat genau das gemeldet. */
+  res.json({ ok: e.ok, reason: e.reason, sentTo: ownOne.email, ...mailCard(req) });
 });
 
 /* ---- Die Selbstanmeldung hinter der Anmeldung ---------------------------
@@ -1645,8 +1964,8 @@ function requestCard() {
     an: getSetting('signup', false) === true,
     deliveryReady: b.ok, deliveryReason: b.reason,
     requests: auth.listRequests(),
-    cap: auth.REQUEST_CAP, belegt: auth.countRequests(),
-    stunden: auth.REQUEST_HOURS
+    cap: auth.REQUEST_CAP, used: auth.countRequests(),
+    hours: auth.REQUEST_HOURS
   };
 }
 
@@ -1667,7 +1986,7 @@ app.put('/api/signup/toggle', adminOnly, (req, res) => {
   if (an) {
     const b = deliveryReady();
     if (!b.ok) return res.status(400).json({ error:
-      t(localeOf(req), 'server.signupNeedsMail', { grund: b.reason })});
+      t(localeOf(req), 'server.signupNeedsMail', { reason: b.reason })});
   }
   putSetting.run('signup', JSON.stringify(an));
   res.json(requestCard());
@@ -1739,14 +2058,19 @@ app.put('/api/titles', adminOnly, (req, res) => {
    ABGELEITET AUS DEM VORSATZ `vokabular.` und nicht als zweite Liste daneben:
    wer ein Wort hinzufuegt, fuegt es in der Datei hinzu, und beide Seiten
    sehen es.
-   AUS DER SPRACHE DER INSTALLATION UND NICHT DER DES BENUTZERS -- Frage F3 des
-   Auftrags, vom Betreiber am 5. September 2026 entschieden: es gibt EINEN Satz
-   von vierzehn Woertern je Installation, wie den Titel. In dieser Runde ist
-   das Deutsch; in Stufe 2 bleibt es die Sprache der Installation, auch wenn
-   ein Benutzer die Oberflaeche umschaltet. */
+   JE SPRACHE UND NICHT JE INSTALLATION -- Frage F3 des Auftrags 0.24.3, vom
+   Betreiber am 7. September 2026 entschieden. Die Entscheidung vom
+   5. September („EIN Satz je Installation, wie der Titel") war fuer eine Runde
+   MIT EINER Sprache richtig; mit zweien stellt sich die Frage neu, und der
+   Nachtrag zu E9 beantwortet sie: der Eigentuemer pflegt seine Woerter je
+   Sprache, und wer eine Sprache dazulegt, ohne Woerter zu pflegen, sieht die
+   des Bestands statt Loecher.
+   DIE VORGABEN KOMMEN AUS DER SPRACHDATEI DES LESERS: wer die Oberflaeche auf
+   Deutsch liest, bekommt „Eintrag", wer sie auf Englisch liest, „Entry" -- und
+   zwar ohne dass jemand ein Wort eingetragen haette. */
 const VOCABULARY_PREFIX = 'vocabulary.';
-const vocabularyDefault = () => Object.fromEntries(
-  Object.entries(LANGUAGES[LANGUAGE_DEFAULT])
+const vocabularyDefault = (locale) => Object.fromEntries(
+  Object.entries(textsOf(locale || languageDefault()))
     .filter(([k]) => k.startsWith(VOCABULARY_PREFIX))
     .map(([k, v]) => [k.slice(VOCABULARY_PREFIX.length), v]));
 
@@ -1774,10 +2098,10 @@ const BLOCK_DEFAULT = {
   // Anordnung sagt es. Wer eine gespeicherte Reihenfolge hat, bekommt den
   // neuen Block ueber sortArea() hinten angehaengt -- die vorhandene
   // Regel, und sie bleibt. Ziehen laesst er sich wie jeder andere.
-  seite: ['kategorie', 'tags', 'potenzial', 'bewertung'],
-  unten: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
+  side: ['kategorie', 'tags', 'potenzial', 'bewertung'],
+  bottom: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
 };
-const ALL_BLOCKS = [...BLOCK_DEFAULT.seite, ...BLOCK_DEFAULT.unten];
+const ALL_BLOCKS = [...BLOCK_DEFAULT.side, ...BLOCK_DEFAULT.bottom];
 
 /* WELCHE BLOECKE IHREN EINKLAPPZUSTAND NICHT MEHR SPEICHERN -- 0.21.0.
    Fuer die beiden Sternkaesten entscheidet ab jetzt der ZUSTAND DES EINTRAGS,
@@ -1793,8 +2117,8 @@ const ALL_BLOCKS = [...BLOCK_DEFAULT.seite, ...BLOCK_DEFAULT.unten];
    HERAUS -- gewollt: es ist eine Verhaltensaenderung, sie steht im
    Aenderungsprotokoll, und wer den Bewertungsblock heute dauerhaft zugeklappt
    hat, sieht ihn an getesteten Eintraegen wieder offen. */
-const BLOCKS_WITHOUT_TO = ['potenzial', 'bewertung'];
-const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_WITHOUT_TO.includes(k));
+const BLOCKS_ALWAYS_OPEN = ['potenzial', 'bewertung'];
+const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_ALWAYS_OPEN.includes(k));
 
 // Unbekanntes fliegt raus, Fehlendes haengt sich in der Vorgabereihenfolge
 // hinten an -- ein spaeter hinzugekommener Block taucht so von selbst auf.
@@ -1809,21 +2133,71 @@ function sortArea(stored, fallback) {
 function blocks(userId) {
   const g = getUserSetting(userId, 'blocks', null) || {};
   return {
-    seite: sortArea(g.seite, BLOCK_DEFAULT.seite),
-    unten: sortArea(g.unten, BLOCK_DEFAULT.unten),
-    zu: (Array.isArray(g.zu) ? g.zu : []).filter(k => CLOSED_BLOCKS.includes(k))
+    side: sortArea(g.side, BLOCK_DEFAULT.side),
+    bottom: sortArea(g.bottom, BLOCK_DEFAULT.bottom),
+    closed: (Array.isArray(g.closed) ? g.closed : []).filter(k => CLOSED_BLOCKS.includes(k))
   };
 }
 
-function vocabulary() {
-  const stored = getSetting('vocabulary', null) || {};
+/* DIE GESPEICHERTE FORM -- 0.24.3, Bauabschnitt 6, und sie ist die EINE
+   gespeicherte Form dieses Abschnitts. Bis 0.24.2 lag unter `vocabulary` ein
+   FLACHES Objekt mit vierzehn Woertern; seit dieser Runde liegt dort ein
+   Objekt JE SPRACHE.
+
+   DER ALTE WERT WIRD BEIM LESEN GEDEUTET UND NICHT MIGRIERT -- eine Zeile
+   hier statt eines Blocks in db.js. Er gilt als der Satz der VORGABESPRACHE,
+   und das ist beim Bestand Deutsch (F2). Erkannt wird er an der Form und
+   nicht an einem Merker: die alte traegt Zeichenfolgen als Werte, die neue
+   Objekte. Stolperstein 324 in seiner freundlichen Fassung -- ein
+   gespeicherter Wert hat eine Form, auch wenn die Datenbank sie nicht kennt.
+
+   GESCHRIEBEN WIRD ER ERST BEIM NAECHSTEN SPEICHERN in der neuen Form. Bis
+   dahin liegt er unveraendert da und wird bei jedem Lesen gedeutet -- wer die
+   Fassung zurueckdreht, findet seine Woerter vor. */
+function vocabularyStored(raw, code) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const flat = Object.values(raw).some(v => typeof v === 'string');
+  return flat ? { [code]: raw } : raw;
+}
+
+/* DAS VOKABULAR IN DER SPRACHE DES LESERS, mit zwei Rueckfaellen in dieser
+   Folge (Nachtrag zu E9, Punkt 4):
+
+     1. was fuer DIESE Sprache eingetragen ist,
+     2. sonst der ZUERST ANGELEGTE Satz -- lieber ein Wort in der falschen
+        Sprache als gar keines,
+     3. sonst die Vorgabe aus der Sprachdatei des Lesers.
+
+   „ZUERST ANGELEGT" IST DIE ERSTE SPRACHE IM GESPEICHERTEN OBJEKT. JSON
+   behaelt die Einfuegereihenfolge von Zeichenfolgenschluesseln, und geschrieben
+   wird immer ueber das vorhandene Objekt -- die erste bleibt damit die erste.
+   Ein zweiter Merker daneben („welche war zuerst") waere eine zweite Wahrheit.
+
+   DER RUECKFALL IST KEIN ZUSTAND, SONDERN EINE LAGE: er gilt genau so lange,
+   wie fuer eine Sprache noch nichts dasteht. Sobald der Eigentuemer sie einmal
+   speichert, hat sie ihren eigenen Satz. */
+function vocabulary(locale) {
+  const read = locale || languageDefault();
+  /* DIE GESPEICHERTE flache Form ist die der VORGABESPRACHE -- sie stammt aus
+     einer Zeit, in der es nur eine gab, und das war beim Bestand Deutsch. */
+  const perLanguage = vocabularyStored(getSetting('vocabulary', null), languageDefault());
+  const own = perLanguage[read] || {};
+  const first = perLanguage[Object.keys(perLanguage)[0]] || {};
   const out = {};
-  for (const [k, fallback] of Object.entries(vocabularyDefault())) {
-    const v = typeof stored[k] === 'string' ? stored[k].trim() : '';
-    out[k] = v || fallback;   // leeres Feld faellt auf die Vorgabe zurueck
+  for (const [k, fallback] of Object.entries(vocabularyDefault(read))) {
+    const mine = typeof own[k] === 'string' ? own[k].trim() : '';
+    const earliest = typeof first[k] === 'string' ? first[k].trim() : '';
+    out[k] = mine || earliest || fallback;   // leeres Feld faellt zurueck
   }
   return out;
 }
+
+/* WAS DIE KARTE „VOKABULAR" BRAUCHT: je Sprache, fuer die eine Datei liegt,
+   der Satz, den ein Leser DIESER Sprache saehe. Damit steht der Umschalter
+   ohne einen zweiten Umlauf da, und was er zeigt, ist genau das, was gilt --
+   samt Rueckfall. */
+const vocabularyAll = () =>
+  Object.fromEntries(LANGUAGE_CODES.map(code => [code, vocabulary(code)]));
 // Sichtbare Zeilen der Linkliste, bevor aufgeklappt werden muss.
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
 // Persoenlich.
@@ -1973,6 +2347,21 @@ const theme = (userId) => {
   const s = String(getUserSetting(userId, 'theme', THEME_DEFAULT));
   return THEME_LEVELS.includes(s) ? s : THEME_DEFAULT;
 };
+/* DIE SPRACHE DIESES ZUGANGS -- 0.24.3, Bauabschnitt 3. Dieselbe Bauform wie
+   `theme()` darueber: gelesen, gegen eine Liste geklemmt, im Zweifel die
+   Vorgabe. Die Liste ist hier der VORRAT und keine Konstante.
+   GEKLEMMT WIRD AUCH BEIM LESEN UND NICHT NUR BEIM SCHREIBEN: der Eigentuemer
+   kann eine Sprache aus dem Vorrat nehmen, nachdem jemand sie gewaehlt hat --
+   und eine Datei kann verschwinden. Beides darf keinen Zugang auf einer
+   Sprache stehen lassen, die es nicht mehr gibt.
+   DER GESPEICHERTE WERT BLEIBT DABEI STEHEN: wer die Sprache spaeter wieder
+   freigibt, findet seine Wahl vor. Eine Klemme, die loescht, verliert eine
+   Angabe, die niemand mehr wiederherstellen kann. */
+const languageOf = (userId) => {
+  const chosen = getUserSetting(userId, 'language', null);
+  return typeof chosen === 'string' && languagePool().includes(chosen)
+    ? chosen : languageDefault();
+};
 // Persoenlich, wie die Schrift: die Kachelgroesse im Bildstreifen (0.22.0).
 const strip = (userId) => {
   const n = Number(getUserSetting(userId, 'strip', 80));
@@ -2041,10 +2430,16 @@ app.get('/api/settings', (req, res) => res.json({
   // Oberflaeche laesst danach den Knopf zum Speichern weg, und der Server
   // verweigert es ohnehin.
   viewsCap: VIEWS_CAP,
-  vocabulary: vocabulary(),
+  vocabulary: vocabulary(localeOf(req)),
+  /* UND DIE VIERZEHN WOERTER JE SPRACHE -- fuer den Umschalter in der Karte
+     „Vokabular". Sie stehen neben `vocabulary` und ersetzen es nicht: die
+     Oberflaeche beschriftet sich aus dem einen Satz ihres Lesers, und nur die
+     Karte braucht alle. */
+  vocabularies: vocabularyAll(),
   font: fontSize(req.user.id),
   strip: strip(req.user.id),
   theme: theme(req.user.id),
+  language: languageOf(req.user.id),
   blocks: blocks(req.user.id),
   linkRows: linkRows(req.user.id),
   timeline: timelineOn(req.user.id),
@@ -2056,6 +2451,11 @@ app.get('/api/settings', (req, res) => res.json({
   search: searchTemplate(),
   searchProviders: searchProviders(),
   searchNames: searchNames(req.user.id),
+  /* JEDE SPRACHE, FUER DIE EINE DATEI LIEGT -- mit Namen, Vorgabe- und
+     Vorratskennzeichnung. Sie steht in DIESER Antwort und nicht nur in
+     /api/config: die Karte „Sprachen" braucht auch die, die NICHT im Vorrat
+     sind, sonst koennte der Eigentuemer keine hinzunehmen. */
+  languages: languageEntries(),
   // Abgeleitet beim Lesen, nicht in der Datenbank nachgetragen. Die Oberflaeche
   // laesst danach die Zeile "+ neu anlegen" weg; die Auswahl aus dem
   // Vorhandenen bleibt in jedem Fall stehen.
@@ -2123,13 +2523,13 @@ app.put('/api/settings', (req, res) => {
      EINEM Wert. */
   let viewsText = null;
   if (req.body.views !== undefined) {
-    const ein = Array.isArray(req.body.views) ? req.body.views : [];
-    if (ein.length > VIEWS_CAP)
+    const input = Array.isArray(req.body.views) ? req.body.views : [];
+    if (input.length > VIEWS_CAP)
       return res.status(400).json({
-        error: t(localeOf(req), 'server.viewCap', { deckel: VIEWS_CAP })});
+        error: t(localeOf(req), 'server.viewCap', { cap: VIEWS_CAP })});
     const clean = [];
-    const namen = new Set();
-    for (const a of ein) {
+    const names = new Set();
+    for (const a of input) {
       const name = a && typeof a.name === 'string'
         ? a.name.trim().slice(0, VIEW_NAME_LENGTH) : '';
       // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
@@ -2140,10 +2540,10 @@ app.put('/api/settings', (req, res) => {
          das Einzige, woran ein Mensch sie auseinanderhaelt. Verglichen wird
          ohne Ruecksicht auf Gross- und Kleinschreibung -- "Bosch" und "bosch"
          nebeneinander waeren dieselbe Falle mit einem Buchstaben Abstand. */
-      const key = name.toLowerCase();
-      if (namen.has(key))
+      const key = name.toLocaleLowerCase(compareLocale());
+      if (names.has(key))
         return res.status(400).json({ error: t(localeOf(req), 'server.viewExists', { name })});
-      namen.add(key);
+      names.add(key);
       clean.push({
         name,
         q: a && typeof a.q === 'string' ? a.q.slice(0, VIEW_TERM_LENGTH) : '',
@@ -2159,15 +2559,36 @@ app.put('/api/settings', (req, res) => {
     putUserSetting(req.user.id, 'filters', JSON.stringify(req.body.filters));
   if (viewsText !== null)
     putUserSetting(req.user.id, 'views', viewsText);
+  /* DAS VOKABULAR JE SPRACHE -- 0.24.3, Bauabschnitt 6. Der Rumpf traegt
+     dieselbe Form wie die Ablage: ein Objekt je Sprachkennung. Wer die alte,
+     FLACHE Form schickt, meint die Vorgabesprache -- dieselbe Deutung wie beim
+     Lesen, und damit an einer Stelle statt an zweien.
+     GESCHRIEBEN WIRD UEBER DAS VORHANDENE und nicht daneben: die Karte
+     schickt immer nur die Sprache, die gerade offen ist, und die uebrigen
+     sollen dabei stehen bleiben. Dadurch bleibt auch die REIHENFOLGE erhalten,
+     und die ist die Antwort auf „welche war zuerst".
+     EINE SPRACHE OHNE DATEI WIRD UEBERGANGEN: sonst wuechse die Ablage um
+     Saetze, die niemand je zu sehen bekaeme. */
   if (req.body.vocabulary !== undefined) {
-    const ein = req.body.vocabulary || {};
-    const clean = {};
-    const fallback = vocabularyDefault();
-    for (const k of Object.keys(fallback)) {
-      const v = typeof ein[k] === 'string' ? ein[k].trim().slice(0, 40) : '';
-      clean[k] = v || fallback[k];
+    /* EINE FLACHE FORM IM RUMPF MEINT DIE SPRACHE DES RUFERS und nicht die
+       der Installation: wer vierzehn Woerter ohne Sprachkennung schickt, meint
+       den Satz, den er gerade vor sich hat. Beim gespeicherten Wert ist es
+       umgekehrt -- der stammt aus einer Zeit, in der es nur eine Sprache gab,
+       und die war die der Installation. Zwei Deutungen, zwei Stellen, und
+       beide stehen ausdruecklich da. */
+    const incoming = vocabularyStored(req.body.vocabulary, localeOf(req));
+    const next = { ...vocabularyStored(getSetting('vocabulary', null), languageDefault()) };
+    for (const [code, words] of Object.entries(incoming)) {
+      if (!LANGUAGES[code] || !words || typeof words !== 'object') continue;
+      const fallback = vocabularyDefault(code);
+      const clean = {};
+      for (const k of Object.keys(fallback)) {
+        const v = typeof words[k] === 'string' ? words[k].trim().slice(0, 40) : '';
+        clean[k] = v || fallback[k];
+      }
+      next[code] = clean;
     }
-    putSetting.run('vocabulary', JSON.stringify(clean));
+    putSetting.run('vocabulary', JSON.stringify(next));
   }
   if (req.body.font !== undefined) {
     const n = Number(req.body.font);
@@ -2191,11 +2612,11 @@ app.put('/api/settings', (req, res) => {
     putUserSetting(req.user.id, 'theme', JSON.stringify(s));
   }
   if (req.body.blocks !== undefined) {
-    const ein = req.body.blocks || {};
+    const input = req.body.blocks || {};
     putUserSetting(req.user.id, 'blocks', JSON.stringify({
-      seite: sortArea(ein.seite, BLOCK_DEFAULT.seite),
-      unten: sortArea(ein.unten, BLOCK_DEFAULT.unten),
-      zu: (Array.isArray(ein.zu) ? ein.zu : []).filter(k => CLOSED_BLOCKS.includes(k))
+      side: sortArea(input.side, BLOCK_DEFAULT.side),
+      bottom: sortArea(input.bottom, BLOCK_DEFAULT.bottom),
+      closed: (Array.isArray(input.closed) ? input.closed : []).filter(k => CLOSED_BLOCKS.includes(k))
     }));
   }
   if (req.body.linkRows !== undefined) {
@@ -2227,10 +2648,10 @@ app.put('/api/settings', (req, res) => {
   // Eigene Anbieter zuerst: ein frisch angelegter muss im selben Zug in den
   // Vorrat aufgenommen werden koennen.
   if (req.body.searchOwn !== undefined) {
-    const ein = Array.isArray(req.body.searchOwn) ? req.body.searchOwn : [];
+    const input = Array.isArray(req.body.searchOwn) ? req.body.searchOwn : [];
     const clean = [];
     for (let i = 0; i < OWN_SLOTS; i++) {
-      const e = ein[i] || {};
+      const e = input[i] || {};
       const name = searchNameClean(e.name);
       const template = typeof e.template === 'string' ? e.template.trim() : '';
       if (!name && !template) { clean.push(null); continue; }   // Platz geraeumt
@@ -2254,14 +2675,25 @@ app.put('/api/settings', (req, res) => {
   // writePool gerade.
   if (req.body.searchOn !== undefined) {
     const all = allProviders();
-    const ein = (Array.isArray(req.body.searchOn) ? req.body.searchOn : [])
+    const input = (Array.isArray(req.body.searchOn) ? req.body.searchOn : [])
       .filter(k => typeof k === 'string' && all.some(a => a.key === k && a.present));
     // Den letzten aus dem Vorrat zu nehmen macht jede Suchzeile unbenutzbar.
     // Ersatzweise auf den eingebauten ersten zu wechseln waere schlimmer als
     // eine Absage: es hiesse, ab jetzt wortlos woanders zu suchen.
-    if (!ein.length)
+    if (!input.length)
       return res.status(400).json({ error: t(localeOf(req), 'server.searchEngineLast')});
-    writePool(ein[0], ein);
+    writePool(input[0], input);
+  }
+  /* DIE SPRACHE GEGEN DEN VORRAT -- 0.24.3, Bauabschnitt 3. GEPRUEFT UND
+     ABGESAGT statt still auf die Vorgabe gedreht: wer eine Sprache setzt, die
+     der Eigentuemer nicht freigegeben hat, soll es erfahren. Dieselbe Bauform
+     wie die Klemme an `searchNames` darunter.
+     VOR DEM ERSTEN SCHREIBEN, wie alle Klemmen dieser Route. */
+  if (req.body.language !== undefined) {
+    const wanted = String(req.body.language);
+    if (!languagePool().includes(wanted))
+      return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+    putUserSetting(req.user.id, 'language', JSON.stringify(wanted));
   }
   if (req.body.searchNames !== undefined) {
     const n = Number(req.body.searchNames);
@@ -2286,16 +2718,29 @@ app.put('/api/settings', (req, res) => {
   if (req.body.backupCleanup !== undefined)
     putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
   for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
-  res.json({ filters: getUserSetting(req.user.id, 'filters', null), vocabulary: vocabulary(),
+  /* VORGABESPRACHE UND VORRAT -- 0.24.3, Bauabschnitt 2 (F9). BEIDE IN EINEM
+     GRIFF, auch wenn die Karte nur einen geschickt hat: die Klemme „die
+     Vorgabe ist im Vorrat" braucht beide in der Hand, und zwei getrennte
+     Schreibungen liessen dazwischen einen Zustand stehen, den es nicht geben
+     darf. Was nicht mitkommt, bleibt, wie es ist -- `undefined` heisst
+     „unveraendert" und nicht „leer". */
+  if (req.body.languageDefault !== undefined || req.body.languageOn !== undefined)
+    writeLanguages(
+      req.body.languageDefault !== undefined ? String(req.body.languageDefault) : languageDefault(),
+      req.body.languageOn);
+  res.json({ filters: getUserSetting(req.user.id, 'filters', null),
+             vocabulary: vocabulary(localeOf(req)), vocabularies: vocabularyAll(),
              views: views(req.user.id), viewsCap: VIEWS_CAP,
              font: fontSize(req.user.id), strip: strip(req.user.id),
              theme: theme(req.user.id),
+             language: languageOf(req.user.id),
              blocks: blocks(req.user.id),
              linkRows: linkRows(req.user.id), timeline: timelineOn(req.user.id),
              search: searchTemplate(), searchProviders: searchProviders(),
              searchNames: searchNames(req.user.id),
              tagsFreeCreate: freeCreate('tagsFreeCreate'),
              categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
+             languages: languageEntries(),
              convertImages: convertImages() });
 });
 
@@ -2349,7 +2794,7 @@ function validWeight(raw) {
    OHNE GRUPPIERUNG, wie in der Oberflaeche: aus "1234" darf nicht "1.234"
    werden. Hoechstens zwei Nachkommastellen, mindestens keine -- die Gewichte
    dieser Meldungen haben genau diese Form. */
-const number = (n, locale = LANGUAGE_DEFAULT) => new Intl.NumberFormat(
+const number = (n, locale = languageDefault()) => new Intl.NumberFormat(
   localeTag(locale), { maximumFractionDigits: 2, useGrouping: false })
   .format(Number(n) || 0);
 
@@ -2371,6 +2816,8 @@ const qCriteria = db.prepare(`
          (SELECT COUNT(DISTINCT r.item_id) FROM ratings r
            WHERE r.criterion_id = c.id AND r.value > 0) AS usage_count
   FROM rating_criteria c ORDER BY c.sort_order, c.id`);
+// Und dieselbe Liste mit den Namen der gelesenen Sprache -- 0.24.3.
+const criteriaFor = (locale) => named(qCriteria.all(), criterionNames(locale));
 
 /* --- Die Kriterien gehoeren dem Admin -------------------------------------
    Was an allen Eintraegen aller Benutzer erscheint, gehoert dem Admin: ein
@@ -2380,7 +2827,7 @@ const qCriteria = db.prepare(`
    EIN benannter Waechter fuer vier Routen, nicht vier Abfragen; er deckt von
    oben aus auch Titel, Tags und Kategorien mit ab. */
 
-app.get('/api/criteria', (req, res) => res.json(qCriteria.all()));
+app.get('/api/criteria', (req, res) => res.json(criteriaFor(localeOf(req))));
 
 // KEIN Gewicht beim Anlegen. Ein neues Kriterium startet auf 1,0 -- der Wert
 // steht in der DDL -- und wird danach in der Zeile eingestellt. Ein Feld
@@ -2404,7 +2851,10 @@ app.post('/api/criteria', adminOnly, (req, res) => {
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
   const i = db.prepare('INSERT INTO rating_criteria (name, sort_order, phase) VALUES (?, ?, ?)')
     .run(name, pos, phase);
-  res.status(201).json(db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(i.lastInsertRowid));
+  /* DIE ANTWORT TRAEGT DEN NAMEN DER GELESENEN SPRACHE -- hier ist das der
+     eben eingetragene: ein frisches Kriterium hat noch keine Uebersetzung. */
+  res.status(201).json(named([db.prepare('SELECT * FROM rating_criteria WHERE id = ?')
+    .get(i.lastInsertRowid)], criterionNames(localeOf(req)))[0]);
 });
 
 // Muss vor '/api/criteria/:id' stehen, sonst faengt der Platzhalter das Wort
@@ -2414,7 +2864,7 @@ app.put('/api/criteria/order', adminOnly, (req, res) => {
   const s = db.prepare('UPDATE rating_criteria SET sort_order = ? WHERE id = ?');
   db.transaction(() => ids.forEach((cid, i) => s.run(i, cid)))();
   renumberCriteria();   // schliesst Luecken, falls nicht alle Ids mitkamen
-  res.json(qCriteria.all());
+  res.json(criteriaFor(localeOf(req)));
 });
 
 app.put('/api/criteria/:id', adminOnly, (req, res) => {
@@ -2433,8 +2883,19 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
     return res.status(400).json({ error: t(localeOf(req), 'server.criterionKindFixed')});
   if (!db.prepare('SELECT 1 FROM rating_criteria WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: t(localeOf(req), 'server.criterionGone')});
-  const clash = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
-    .get(name, req.params.id);
+  const critLanguage = namedLanguage(req);
+  if (critLanguage === null)
+    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+  /* DER NAMENSSTREIT GILT JE SPRACHE. In der Grundtabelle haelt ihn
+     UNIQUE(name); in einer zweiten Sprache wird er hier gefragt -- zwei
+     Kriterien, die auf Englisch gleich heissen, waeren am Bildschirm nicht
+     auseinanderzuhalten. */
+  const clash = critLanguage === baseLanguage()
+    ? db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
+        .get(name, req.params.id)
+    : db.prepare(`SELECT criterion_id AS id FROM criterion_names
+                  WHERE language = ? AND name = ? COLLATE NOCASE AND criterion_id != ?`)
+        .get(critLanguage, name, req.params.id);
   if (clash) return res.status(409).json({ error: t(localeOf(req), 'server.nameExists')});
   // Das Gewicht ist FREIWILLIG: das Umbenennen schickt nur den Namen und darf
   // das Gewicht nicht mit anfassen. Ohne diese Unterscheidung setzte jedes ✎
@@ -2446,11 +2907,17 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
       error: t(localeOf(req), 'server.weightRange',
         { min: number(WEIGHT_MIN, localeOf(req)), max: number(WEIGHT_MAX, localeOf(req)) })});
   }
-  // Name und Gewicht in EINEM UPDATE: zwei Anweisungen hintereinander koennten
-  // halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
+  /* NAME UND GEWICHT IN EINEM UPDATE: zwei Anweisungen hintereinander koennten
+     halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
+     DER NAME EINER ZWEITEN SPRACHE RUEHRT DIE GRUNDZEILE NICHT AN -- dort
+     aendert sich dann nur das Gewicht, und das gilt fuer alle Sprachen. */
+  const critBase = db.prepare('SELECT name FROM rating_criteria WHERE id = ?').get(req.params.id).name;
+  const critRenameBase = writeName('criterion_names', 'criterion_id',
+    req.params.id, critLanguage, name, critBase);
   db.prepare('UPDATE rating_criteria SET name = ?, weight = COALESCE(?, weight) WHERE id = ?')
-    .run(name, weight, req.params.id);
-  res.json(db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(req.params.id));
+    .run(critRenameBase ? name : critBase, weight, req.params.id);
+  res.json(named([db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(req.params.id)],
+    criterionNames(localeOf(req)))[0]);
 });
 
 app.delete('/api/criteria/:id', adminOnly, (req, res) => {
@@ -2459,10 +2926,99 @@ app.delete('/api/criteria/:id', adminOnly, (req, res) => {
   res.status(204).end();
 });
 
+/* ======== DIE NAMEN JE SPRACHE — 0.24.3, Bauabschnitt 6a ==================
+   EIN LESER FUER BEIDE TABELLEN, und er gibt eine Tafel statt einer Zeile:
+   die Namen werden immer fuer eine ganze LISTE gebraucht -- alle Kriterien
+   eines Eintrags, alle Kategorien der Karte --, und eine Abfrage je Zeile
+   waere ein N+1 an einer Stelle, die jeder Seitenaufbau anfasst.
+
+   DER RUECKFALL IST DIE ABWESENHEIT EINER ZEILE. Wer keine Uebersetzung
+   eingetragen hat, bekommt den Namen der Grundtabelle -- den der zuerst
+   angelegten Sprache. Deshalb steht hier kein COALESCE und kein zweiter
+   Zweig: `named()` setzt ein, was es findet, und laesst stehen, was es nicht
+   findet.
+
+   ANGEWANDT WIRD AM AUSGANG UND NICHT IN JEDER ABFRAGE. Die Abfragen holen
+   weiterhin `c.name`; wer sie liest, sieht den Namen der Grundtabelle und
+   damit die Wahrheit ueber die Zeile. Erst was HINAUSGEHT, traegt die Sprache
+   des Lesers. Eine Uebersetzung mitten in einem JOIN waere an sechs Stellen
+   zu wiederholen -- und die siebte vergisst jemand. */
+const qCriterionNames = db.prepare(
+  'SELECT criterion_id AS id, name FROM criterion_names WHERE language = ?');
+const qCategoryNames = db.prepare(
+  'SELECT category_id AS id, name FROM category_names WHERE language = ?');
+const criterionNames = (locale) => new Map(qCriterionNames.all(locale).map(z => [z.id, z.name]));
+const categoryNames = (locale) => new Map(qCategoryNames.all(locale).map(z => [z.id, z.name]));
+
+/* SETZT DIE NAMEN EINER TAFEL IN EINE LISTE EIN. `key` sagt, welches Feld die
+   Kennung traegt -- an den Kriterien heisst es mal `id` und mal
+   `criterion_id`, je nachdem, wessen Zeile es ist.
+   EINE NEUE ZEILE UND KEINE VERAENDERTE: die Abfrageergebnisse werden an
+   mehreren Stellen weiterverwendet, und eine stillschweigend umbenannte Zeile
+   waere ein Fund in einer Woche. */
+const named = (rows, table, key = 'id') => rows.map(z =>
+  table.has(z[key]) ? { ...z, name: table.get(z[key]) } : z);
+
+/* WELCHE SPRACHE IN DER GRUNDTABELLE STEHT -- 0.24.3, Bauabschnitt 6a. Die
+   Vorgabe der Installation, und das ist eine Entscheidung mit Folgen:
+
+   Wer den Namen DIESER Sprache aendert, benennt die GRUNDZEILE um -- damit
+   bleibt UNIQUE(name) eine Aussage, der Export traegt weiterhin einen Namen
+   je Kriterium, und wer nie eine zweite Sprache anlegt, merkt von der ganzen
+   Maschine nichts. Jede ANDERE Sprache bekommt eine Zeile in der
+   Namenstabelle.
+
+   DER RUECKFALL ZEIGT DAMIT IMMER AUF DIE VORGABESPRACHE, und das ist
+   dieselbe Regel wie beim Vokabular und bei den Texten. */
+const baseLanguage = () => languageDefault();
+
+/* SCHREIBT EINEN NAMEN JE SPRACHE. Gibt `true` zurueck, wenn die Grundzeile
+   gemeint war -- dann muss der Rufer sie umbenennen.
+   EIN NAME, DER DEM DER GRUNDZEILE GLEICHT, WIRD GELOESCHT statt gespeichert:
+   eine Uebersetzung, die dasselbe sagt, ist keine, und sie stuende dem
+   Rueckfall im Weg, sobald die Grundzeile sich aendert. */
+function writeName(table, column, id, language, name, baseName) {
+  if (language === baseLanguage()) return true;
+  const del = db.prepare(`DELETE FROM ${table} WHERE ${column} = ? AND language = ?`);
+  if (!name || name === baseName) { del.run(id, language); return false; }
+  db.prepare(`INSERT INTO ${table} (${column}, language, name) VALUES (?, ?, ?)
+              ON CONFLICT(${column}, language) DO UPDATE SET name = excluded.name`)
+    .run(id, language, name);
+  return false;
+}
+
+/* WELCHE SPRACHE EIN SCHREIBWEG MEINT. OHNE ANGABE DIE GRUNDZEILE -- und das
+   ist die wichtigste Zeile dieses Bauabschnitts.
+
+   Die naechstliegende Wahl waere „die Sprache des Lesers": wer umbenennt,
+   sieht ja den Namen, den er umbenennt. Sie traegt nicht. Ein Admin, der die
+   Oberflaeche auf Deutsch liest, waehrend die Installation Englisch vorgibt,
+   legte damit bei JEDEM Umbenennen eine deutsche UEBERSETZUNG an und liesse
+   den englischen Namen stehen -- im Export, in der Sortierung und fuer jeden
+   anderen Leser. Er haette umbenannt und nichts geaendert.
+
+   EINE UEBERSETZUNG IST EINE ABSICHT UND KEIN NEBENPRODUKT. Wer eine anlegen
+   will, sagt es: die Karte schickt die Sprache mit, weil sie einen Umschalter
+   hat. Jeder andere Rufer meint die Zeile selbst.
+
+   EINE SPRACHE OHNE DATEI WIRD ABGEWIESEN und nicht stillschweigend auf die
+   Vorgabe gedreht: sonst schriebe der Eigentuemer in eine Sprache, die
+   niemand je zu sehen bekaeme, und hielte sie fuer gespeichert. */
+const namedLanguage = (req) => {
+  const wanted = req.body && req.body.language;
+  if (wanted === undefined) return baseLanguage();
+  return typeof wanted === 'string' && LANGUAGES[wanted] ? wanted : null;
+};
+
 /* ---- Kategorien ---- */
-app.get('/api/product-categories', (req, res) => res.json(db.prepare(`
+/* SORTIERT WIRD NACH DEM NAMEN DER GRUNDTABELLE UND NICHT NACH DEM
+   UEBERSETZTEN -- 0.24.3. Zwei Leser saehen sonst zwei Reihenfolgen, und die
+   Karte des Admins spraenge beim Umschalten der Sprache. Wer das aendern will,
+   aendert es fuer alle: die Ordnung ist eine Aussage ueber den Bestand. */
+app.get('/api/product-categories', (req, res) => res.json(named(db.prepare(`
   SELECT c.*, (SELECT COUNT(*) FROM items i WHERE i.product_category_id = c.id) AS usage_count
-  FROM product_categories c ORDER BY c.name COLLATE NOCASE`).all()));
+  FROM product_categories c ORDER BY c.name COLLATE NOCASE`).all(),
+  categoryNames(localeOf(req)))));
 
 app.post('/api/product-categories', (req, res) => {
   const name = (req.body.name || '').trim();
@@ -2475,7 +3031,8 @@ app.post('/api/product-categories', (req, res) => {
   if (!mayCreate(req, 'categoriesFreeCreate'))
     return res.status(403).json({ error: t(localeOf(req), DENIED_CATEGORY_NEW)});
   const i = db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name);
-  res.status(201).json(db.prepare('SELECT * FROM product_categories WHERE id = ?').get(i.lastInsertRowid));
+  res.status(201).json(named([db.prepare('SELECT * FROM product_categories WHERE id = ?')
+    .get(i.lastInsertRowid)], categoryNames(localeOf(req)))[0]);
 });
 
 // Umbenennen und loeschen wirkt auf JEDEN Eintrag, der die Kategorie
@@ -2486,11 +3043,22 @@ app.put('/api/product-categories/:id', adminOnly, (req, res) => {
   if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
   if (!db.prepare('SELECT 1 FROM product_categories WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: t(localeOf(req), 'server.categoryGone')});
-  const clash = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE AND id != ?')
-    .get(name, req.params.id);
+  const catLanguage = namedLanguage(req);
+  if (catLanguage === null)
+    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+  // Der Namensstreit gilt je Sprache -- dieselbe Ueberlegung wie am Kriterium.
+  const clash = catLanguage === baseLanguage()
+    ? db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE AND id != ?')
+        .get(name, req.params.id)
+    : db.prepare(`SELECT category_id AS id FROM category_names
+                  WHERE language = ? AND name = ? COLLATE NOCASE AND category_id != ?`)
+        .get(catLanguage, name, req.params.id);
   if (clash) return res.status(409).json({ error: t(localeOf(req), 'server.nameExists')});
-  db.prepare('UPDATE product_categories SET name = ? WHERE id = ?').run(name, req.params.id);
-  res.json(db.prepare('SELECT * FROM product_categories WHERE id = ?').get(req.params.id));
+  const catBase = db.prepare('SELECT name FROM product_categories WHERE id = ?').get(req.params.id).name;
+  if (writeName('category_names', 'category_id', req.params.id, catLanguage, name, catBase))
+    db.prepare('UPDATE product_categories SET name = ? WHERE id = ?').run(name, req.params.id);
+  res.json(named([db.prepare('SELECT * FROM product_categories WHERE id = ?').get(req.params.id)],
+    categoryNames(localeOf(req)))[0]);
 });
 
 app.delete('/api/product-categories/:id', adminOnly, (req, res) => {
@@ -2549,20 +3117,20 @@ app.post('/api/items/:id/tags', entryAuthorOnly, (req, res) => {
   // Erst nachschlagen, dann die Klemme: einen vorhandenen Tag vergibt auch
   // hier jeder, der an den Eintrag darf. Die Wolke im Block bleibt deshalb
   // bedienbar, wenn der Schalter aus ist -- nur die Eingabezeile verschwindet.
-  let tag = findTag(name);
-  if (!tag) {
+  let date = findTag(name);
+  if (!date) {
     if (!mayCreate(req, 'tagsFreeCreate')) return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
-    tag = createTag(name);
+    date = createTag(name);
   }
-  db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(req.params.id, tag.id);
+  db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(req.params.id, date.id);
   touch.run(req.params.id);
-  res.status(201).json(detail(req.params.id, req.user.id));
+  res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
   db.prepare('DELETE FROM item_tags WHERE item_id = ? AND tag_id = ?').run(req.params.id, req.params.tagId);
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* ================= Eintraege ================= */
@@ -2683,7 +3251,12 @@ const PHOTO_COLUMNS = 'id, item_id, mime_type, focus_x, focus_y, zoom, sort_orde
    sonst nichts. Dass DIESELBE Zeile nach einem Neuschnitt exakt dieselbe
    Laenge traegt, ist unwahrscheinlich genug -- und wenn doch, zeigt der
    Browser eine Kachel, die er ohnehin schon hatte. */
-const PHOTO_VERSION = 'length(thumb) AS fassung';
+/* DER ALIAS HEISST SEIT 0.24.3 `thumbLength` und nicht mehr `fassung` -- er
+   reist an der Zeile bis in den Browser, und dort las ihn `p.fassung`. Der
+   Umbenenner fasst nur Code an; ein Name IN einem String bleibt stehen,
+   und genau das ist hier eine SQL-Spalte. Von Hand nachgezogen, und die
+   Zeilen, die ihn lesen, mit ihm. */
+const PHOTO_VERSION = 'length(thumb) AS thumbLength';
 const qPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 /* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- die Uebersicht ruft sie,
    detail() ruft die Zeile darueber. DIE SPALTENLISTE STEHT AN EINER STELLE:
@@ -2902,14 +3475,14 @@ const qTestDayTags = db.prepare(`SELECT t.id, t.name FROM tags t
 function qTestDays(itemId, userId, card) {
   if (userId == null) throw new Error('qTestDays() ohne Benutzer aufgerufen');
   const days = qTestDaysRaw.all(itemId);
-  for (const tag of days) {
-    tag.tags = qTestDayTags.all(tag.id);
-    tag.mine = tag.user_id === userId;
+  for (const date of days) {
+    date.tags = qTestDayTags.all(date.id);
+    date.mine = date.user_id === userId;
     // Der Name steht neben `mine`, er ersetzt es nicht: die Zeitleiste
     // unterscheidet eigene von fremden Punkten ueber die Fuellung und braucht
     // dafuer keinen Namen, die Zeile im Eintrag braucht ihn.
-    tag.author = authorFrom(card, tag.user_id);
-    delete tag.user_id;
+    date.author = authorFrom(card, date.user_id);
+    delete date.user_id;
   }
   return days;
 }
@@ -2945,13 +3518,13 @@ const qAllTestDaysNarrow = db.prepare(
 function testDaysPerEntry(userId) {
   if (userId == null) throw new Error('testTageJeEintrag() ohne Benutzer aufgerufen');
   const per = new Map();
-  for (const tag of qAllTestDaysNarrow.all()) {
-    if (!per.has(tag.item_id)) per.set(tag.item_id, []);
+  for (const date of qAllTestDaysNarrow.all()) {
+    if (!per.has(date.item_id)) per.set(date.item_id, []);
     // mine kommt vom Server, wie in qTestDays(): die Zeitleiste zeichnet die
     // eigenen Punkte gefuellt und fremde als Ring. Die Verfassernummer geht
     // nicht hinaus -- hier so wenig wie dort.
-    per.get(tag.item_id).push({ id: tag.id, day: tag.day, rating: tag.rating,
-                             mine: tag.user_id === userId });
+    per.get(date.item_id).push({ id: date.id, day: date.day, rating: date.rating,
+                             mine: date.user_id === userId });
   }
   return per;
 }
@@ -2977,7 +3550,10 @@ const qMyPin = db.prepare('SELECT 1 FROM item_pins WHERE user_id = ? AND item_id
 // KEIN VORGABEWERT: better-sqlite3 bindet ein FEHLENDES Argument still als
 // NULL (nur zu WENIGE werfen). Ein Aufruf ohne Benutzer lieferte ueberall
 // wortlos favorite: false. Die Klemme ist die EINZIGE Schicht darunter.
-function detail(id, userId) {
+/* DIE SPRACHE STEHT IN DER SIGNATUR UND WIRD NICHT INNEN GEHOLT -- 0.24.3,
+   Bauabschnitt 6a. detail() kennt die Anfrage nicht, und ein localeOf() ohne
+   sie waere eine Erfindung. Wer den Eintrag holt, weiss, fuer wen. */
+function detail(id, userId, locale) {
   if (userId == null) throw new Error('detail() ohne Benutzer aufgerufen');
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(id);
   if (!it) return null;
@@ -3012,7 +3588,8 @@ function detail(id, userId) {
   it.rejectedAuthor = authorFrom(card, it.rejected_by);
   delete it.rejected_by;
   it.favorite = !!qMyPin.get(userId, id);
-  it.category = it.product_category_id ? qCat.get(it.product_category_id) : null;
+  it.category = it.product_category_id
+    ? named([qCat.get(it.product_category_id)], categoryNames(locale))[0] : null;
   it.photos = qPhotos.all(id);
   /* Nur die Angaben, nie die Bytes. Die Art der Vorschau entscheidet der
      Server anhand der Endung -- die Oberflaeche soll das nicht selbst raten.
@@ -3047,11 +3624,12 @@ function detail(id, userId) {
   // danach in seine beiden Kaesten; RECHNEN tut er damit nichts (die beiden
   // Kopfzahlen stehen unten). Eine zweite Abfrage je Kasten waere zweimal
   // derselbe LEFT JOIN ueber dieselbe Tabelle.
-  it.ratings = db.prepare(`
+  it.ratings = named(db.prepare(`
     SELECT c.id AS criterion_id, c.name, c.weight, c.phase, COALESCE(r.value, 0) AS value
     FROM rating_criteria c LEFT JOIN ratings r
       ON r.criterion_id = c.id AND r.item_id = ? AND r.user_id = ?
-    ORDER BY c.sort_order, c.id`).all(id, userId);
+    ORDER BY c.sort_order, c.id`).all(id, userId),
+    criterionNames(locale), 'criterion_id');
   // Neben der eigenen Zeile stehen Schnitt und Zahl der Bewerter ueber alle
   // -- angehaengt aus der gruppierten Abfrage, nicht aus einem zweiten JOIN.
   // Ein Kriterium, das niemand bewertet hat, bekommt avg: null und count: 0.
@@ -3176,7 +3754,7 @@ const qAttachmentCounts = db.prepare('SELECT item_id, COUNT(*) n FROM attachment
    Reihenfolge, in der die Oberflaeche die Zeilen ohnehin zeigt -- Links nach
    ihrer Sortierung, Kommentare nach ihrem Alter, Tags nach ihrem Namen. */
 const FULLTEXT_SOURCES = [
-  { key: 'beschreibung',
+  { key: 'description',
     value: 'CASE WHEN instr(kkl(i.description), :q) > 0 THEN i.description END' },
   { key: 'comment',
     value: `(SELECT k.text FROM comments k
@@ -3186,7 +3764,7 @@ const FULLTEXT_SOURCES = [
     value: `(SELECT l.url FROM links l
              WHERE l.item_id = i.id AND instr(kkl(l.url), :q) > 0
              ORDER BY l.sort_order, l.id LIMIT 1)` },
-  { key: 'testtag',
+  { key: 'testDay',
     value: `(SELECT tt.name FROM test_days d
               JOIN test_day_tags dt ON dt.test_day_id = d.id
               JOIN tags tt ON tt.id = dt.tag_id
@@ -3196,9 +3774,9 @@ const FULLTEXT_SOURCES = [
     value: `(SELECT t.name FROM item_tags it JOIN tags t ON t.id = it.tag_id
              WHERE it.item_id = i.id AND instr(kkl(t.name), :q) > 0
              ORDER BY t.name, t.id LIMIT 1)` },
-  { key: 'kategorie',
+  { key: 'category',
     value: 'CASE WHEN instr(kkl(c.name), :q) > 0 THEN c.name END' },
-  { key: 'titel',
+  { key: 'title',
     value: 'CASE WHEN instr(kkl(i.title), :q) > 0 THEN i.title END' }
 ];
 
@@ -3257,7 +3835,7 @@ const oneLine = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 /* DIE SPRACHE STEHT DABEI -- 0.24.0, Bauabschnitt 4. Kleinschreibung ist
    keine feste Rechnung: das tuerkische I wird zu ı und nicht zu i. Verglichen
    wird hier Sprache, also fragt der Vergleich die Sprache. */
-function snippet(text, term, locale = LANGUAGE_DEFAULT) {
+function snippet(text, term, locale = languageDefault()) {
   const row = oneLine(text);
   const b = String(term ?? '');
   if (!b) return row.slice(0, SNIPPET_LENGTH);
@@ -3279,7 +3857,7 @@ function snippet(text, term, locale = LANGUAGE_DEFAULT) {
    ist KEINE Suche und keine Suche ohne Treffer -- die Liste bleibt dann die
    ganze Liste. Zurueck kommt eine Abbildung Nummer -> Trefferkontext und
    keine Reihenfolge: sortiert wird die Liste selbst, an einer Stelle. */
-const fulltextTerm = (raw, locale = LANGUAGE_DEFAULT) =>
+const fulltextTerm = (raw, locale = languageDefault()) =>
   (typeof raw === 'string' ? raw.trim().toLocaleLowerCase(localeTag(locale)) : '');
 
 /* WAS JE EINTRAG HERAUSKOMMT: die erste getroffene Quelle der festen Folge,
@@ -3292,7 +3870,7 @@ const fulltextTerm = (raw, locale = LANGUAGE_DEFAULT) =>
    DIE BENENNUNG DER QUELLE BLEIBT DER OBERFLAECHE UEBERLASSEN: hier steht ein
    Schluessel, kein Wort. „Tag am Testtag" heisst je nach eingestelltem
    Vokabular anders, und das weiss die Oberflaeche. */
-const fulltextHits = (term, locale = LANGUAGE_DEFAULT) => new Map(qFulltext.all({ q: term }).map(r => {
+const fulltextHits = (term, locale = languageDefault()) => new Map(qFulltext.all({ q: term }).map(r => {
   const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.key] != null);
   const first = hit[0];
   return [r.id, first ? {
@@ -3520,7 +4098,10 @@ app.get('/api/items', (req, res) => {
   const linkCountPer = new Map(qLinkCounts.all().map(z => [z.item_id, z.n]));
   const attachmentCountPer = new Map(qAttachmentCounts.all().map(z => [z.item_id, z.n]));
   const averagesPer = averagesPerEntry();
-  const catPer = new Map(qAllCategories.all().map(k => [k.id, k]));
+  /* DIE KATEGORIEN DER UEBERSICHT, mit den Namen der gelesenen Sprache --
+     0.24.3. Einmal gebaut und nicht je Kachel: die Uebersicht zeigt Hunderte. */
+  const catPer = new Map(named(qAllCategories.all(), categoryNames(localeOf(req)))
+    .map(k => [k.id, k]));
   // Die Testtage nur, wenn die Zeitleiste ueberhaupt an ist -- wie bisher.
   const testDaysPer = timeline ? testDaysPerEntry(req.user.id) : null;
   for (const it of rows) {
@@ -3601,7 +4182,7 @@ app.get('/api/items', (req, res) => {
 });
 
 app.get('/api/items/:id', (req, res) => {
-  const it = detail(req.params.id, req.user.id);
+  const it = detail(req.params.id, req.user.id, localeOf(req));
   if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
   res.json(it);
 });
@@ -3615,7 +4196,7 @@ app.post('/api/items', (req, res) => {
   // ohne Benutzer, die der naechste Start heimlich nachtraegt.
   const i = db.prepare('INSERT INTO items (title, description, user_id) VALUES (?, ?, ?)')
     .run(title, req.body.description || '', req.user.id);
-  res.status(201).json(detail(i.lastInsertRowid, req.user.id));
+  res.status(201).json(detail(i.lastInsertRowid, req.user.id, localeOf(req)));
 });
 
 /* DIE BEGRUENDUNG EINER ABLEHNUNG -- EINE ZEILE TEXT.
@@ -3696,7 +4277,7 @@ app.put('/api/items/:id', (req, res) => {
   if (b.tested === false) {
     const n = db.prepare('SELECT COUNT(*) n FROM test_days WHERE item_id = ?').get(req.params.id).n;
     if (n > 0) {
-      const v = vocabulary();
+      const v = vocabulary(localeOf(req));
       // Vokabelwoerter stehen ohne Artikel und ohne Fall da: nach einer Zahl
       // im Nominativ und in Anfuehrungszeichen. Beides bleibt bei jedem Wort
       // richtig, gleich welches Geschlecht.
@@ -3757,7 +4338,7 @@ app.put('/api/items/:id', (req, res) => {
     sets.push(`updated_at = datetime('now')`);
     db.prepare(`UPDATE items SET ${sets.join(', ')} WHERE id = ?`).run(...vals, req.params.id);
   }
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* Die Zahlen fuer den Loeschdialog am Eintrag. Lesend, deshalb kein Eintrag
@@ -3836,7 +4417,7 @@ app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), a
       into.run(req.params.id, start.mime, start.data, v.thumb, v.medium, pos++);
     }
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.user.id));
+    res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
 
@@ -3914,7 +4495,7 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
                   VALUES (?, ?, ?, ?, ?, ?, 'video', ?)`)
         .run(req.params.id, video.mimetype, video.buffer, v.thumb, v.medium, pos, duration);
       touch.run(req.params.id);
-      res.status(201).json(detail(req.params.id, req.user.id));
+      res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
     } catch (e) { next(e); }
   });
 
@@ -4035,7 +4616,7 @@ function refreshTile(id, done) {
   /* DIE UHR DARF DEN PROZESS NICHT AM LEBEN HALTEN: sie ist eine Schranke und
      kein Termin. Ohne unref() haengt ein Herunterfahren bis zu 15 Sekunden. */
   clock.unref?.();
-  try { startBatchThread('zuschnitt', [{ id: Number(id) }], once); }
+  try { startBatchThread('crop', [{ id: Number(id) }], once); }
   catch (e) { console.error('[Kriterion] Kachel nicht erneuert:', e.message); once(); }
 }
 
@@ -4078,7 +4659,7 @@ app.put('/api/photos/:id/focus', (req, res) => {
      davor: es liest `length(thumb)` als Fassung mit, und die soll die NEUE
      sein -- sonst zeigte der Browser die alte Kachel unter der alten Adresse
      weiter, und der ganze Schritt waere umsonst. */
-  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id)));
+  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id, localeOf(req))));
 });
 
 /* ---- Anhaenge ----
@@ -4101,7 +4682,7 @@ app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMEN
     const da = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(req.params.id).n;
     const fresh = (req.files || []).length;
     if (da + fresh > ATTACHMENT_COUNT)
-      return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { deckel: ATTACHMENT_COUNT })});
+      return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { cap: ATTACHMENT_COUNT })});
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
       .get(req.params.id).m + 1;
     const into = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
@@ -4114,7 +4695,7 @@ app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMEN
               pos++, req.user.id);
     }
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.user.id));
+    res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
 
@@ -4157,7 +4738,7 @@ app.delete('/api/attachments/:id', (req, res) => {
   rest.forEach((r, i) => s2.run(i, r.id));
   touch.run(a.item_id);
   reclaim();
-  res.json(detail(a.item_id, req.user.id));
+  res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
 
 app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
@@ -4165,7 +4746,7 @@ app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
   const s = db.prepare('UPDATE photos SET sort_order = ? WHERE id = ? AND item_id = ?');
   db.transaction(() => ids.forEach((pid, i) => s.run(i, pid, req.params.id)))();
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 app.delete('/api/photos/:id', (req, res) => {
@@ -4225,7 +4806,7 @@ app.post('/api/items/:id/links', (req, res) => {
   db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
     .run(req.params.id, url, pos, req.user.id);
   touch.run(req.params.id);
-  res.status(201).json(detail(req.params.id, req.user.id));
+  res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* SORTIEREN BLEIBT BEIM EINTRAGSVERFASSER UND ADMIN -- ausdruecklich, nicht
@@ -4237,7 +4818,7 @@ app.put('/api/items/:id/link-order', entryAuthorOnly, (req, res) => {
   const s = db.prepare('UPDATE links SET sort_order = ? WHERE id = ? AND item_id = ?');
   db.transaction(() => ids.forEach((lid, i) => s.run(i, lid, req.params.id)))();
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* LOESCHEN DARF DER EINTRAGER ODER DER ADMIN. Gefragt wird nach der ZEILE
@@ -4282,7 +4863,7 @@ app.post('/api/items/:id/test-days', (req, res) => {
               ON CONFLICT(item_id, day, user_id) DO UPDATE SET rating = excluded.rating`)
     .run(req.params.id, day, rating, req.user.id);
   db.prepare(`UPDATE items SET tested = 1, updated_at = datetime('now') WHERE id = ?`).run(req.params.id);
-  res.status(201).json({ ...detail(req.params.id, req.user.id), replaced: !!existing });
+  res.status(201).json({ ...detail(req.params.id, req.user.id, localeOf(req)), replaced: !!existing });
 });
 
 // Die NOTE eines fremden Testtags aendert niemand, auch der Admin
@@ -4296,7 +4877,7 @@ app.put('/api/test-days/:id', (req, res) => {
   if (!selfOnly(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('UPDATE test_days SET rating = ? WHERE id = ?').run(rating, req.params.id);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.user.id));
+  res.json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
 
 app.delete('/api/test-days/:id', (req, res) => {
@@ -4307,7 +4888,7 @@ app.delete('/api/test-days/:id', (req, res) => {
   if (!mayChange(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM test_days WHERE id = ?').run(req.params.id);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.user.id));
+  res.json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
 
 // Tags am Testtag. Derselbe Vorrat wie am Eintrag -- ein hier neu getippter
@@ -4327,14 +4908,14 @@ app.post('/api/test-days/:id/tags', (req, res) => {
      unbekannter Name faellt hier mit sprechender Message durch, statt dass die
      Zeile verschwaende: sonst naehme der Schalter das Zuweisen mit, und
      "Zuweisen darf immer jeder" gilt. */
-  let tag = findTag(name);
-  if (!tag) {
+  let date = findTag(name);
+  if (!date) {
     if (!mayCreate(req, 'tagsFreeCreate')) return res.status(403).json({ error: t(localeOf(req), DENIED_TAG_NEW)});
-    tag = createTag(name);
+    date = createTag(name);
   }
-  db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(testDay.id, tag.id);
+  db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(testDay.id, date.id);
   touch.run(testDay.item_id);
-  res.status(201).json(detail(testDay.item_id, req.user.id));
+  res.status(201).json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
 
 app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
@@ -4343,7 +4924,7 @@ app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
   if (!selfOnly(req, testDay.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM test_day_tags WHERE test_day_id = ? AND tag_id = ?').run(testDay.id, req.params.tagId);
   touch.run(testDay.item_id);
-  res.json(detail(testDay.item_id, req.user.id));
+  res.json(detail(testDay.item_id, req.user.id, localeOf(req)));
 });
 
 /* ---- Bewertungen ---- */
@@ -4392,7 +4973,7 @@ app.put('/api/items/:id/ratings', (req, res) => {
               DO UPDATE SET value = excluded.value, set_at = excluded.set_at`)
     .run(req.params.id, req.body.criterionId, v, req.user.id);
   touch.run(req.params.id);
-  res.json(detail(req.params.id, req.user.id));
+  res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
 /* HIER STAND BIS 0.20.1 `DELETE /api/items/:id/ratings` -- das
@@ -4433,7 +5014,7 @@ app.delete('/api/ratings/:id', (req, res) => {
   if (!mayChange(req, r.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
   db.prepare('DELETE FROM ratings WHERE id = ?').run(r.id);
   touch.run(r.item_id);
-  res.json(detail(r.item_id, req.user.id));
+  res.json(detail(r.item_id, req.user.id, localeOf(req)));
 });
 
 /* ---- Kommentare ---- */
@@ -4501,7 +5082,7 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
       .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id);
     if (k.images.length) saveCommentImages(fresh.lastInsertRowid, k.images);
     touch.run(req.params.id);
-    res.status(201).json(detail(req.params.id, req.user.id));
+    res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
 
@@ -4536,7 +5117,7 @@ app.put('/api/comments/:id', (req, res) => {
     db.prepare('UPDATE comments SET pinned = ? WHERE id = ?').run(req.body.pinned ? 1 : 0, c.id);
 
   touch.run(c.item_id);
-  res.json(detail(c.item_id, req.user.id));
+  res.json(detail(c.item_id, req.user.id, localeOf(req)));
 });
 
 // Bilder an einem bestehenden Kommentar nachreichen.
@@ -4551,7 +5132,7 @@ app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_CO
     if (!selfOnly(req, c.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
     const da = db.prepare('SELECT COUNT(*) n FROM comment_images WHERE comment_id = ?').get(c.id).n;
     if (da + (req.files || []).length > IMAGE_COUNT)
-      return res.status(400).json({ error: t(localeOf(req), 'server.imageCap', { deckel: IMAGE_COUNT })});
+      return res.status(400).json({ error: t(localeOf(req), 'server.imageCap', { cap: IMAGE_COUNT })});
     const k = await encodeAll(req.files);
     if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
     /* Anhaengen IST Bearbeiten -- und hierher kommt nach der Klemme oben nur
@@ -4564,7 +5145,7 @@ app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_CO
       commentEdited.run(c.id);
     }
     touch.run(c.item_id);
-    res.status(201).json(detail(c.item_id, req.user.id));
+    res.status(201).json(detail(c.item_id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
 
@@ -4599,7 +5180,7 @@ app.delete('/api/comment-images/:id', (req, res) => {
   rest.forEach((r, i) => u.run(i, r.id));
   touch.run(b.item_id);
   reclaim();
-  res.json(detail(b.item_id, req.user.id));
+  res.json(detail(b.item_id, req.user.id, localeOf(req)));
 });
 
 // Bild eines Kommentars ausliefern. Dieselben Regeln wie bei den Anhaengen.
@@ -4787,11 +5368,11 @@ app.get('/api/stats', adminOnly, (req, res) => {
     /* WIE WEIT DIE UMSTELLUNG IST -- ODER null. KEINE ZWEITE ROUTE dafuer:
        die Karte fragt ohnehin die Kennzahlen ab, und ein eigener Endpunkt fuer
        drei Zahlen liefe als zweite Wahrheit ueber denselben Lauf mit. */
-    umstellung: batchState('umstellung'),
+    conversion: batchState('conversion'),
     /* DER ZWEITE LAUF SEIT 0.19.4, und er steht als EIGENES Feld daneben und
        nicht im selben: die Karte muss auseinanderhalten koennen, was gerade
        laeuft. */
-    geometry: batchState('geometrie'),
+    geometry: batchState('geometry'),
     /* DIE ERWARTETE EXPORTGROESSE, je Schalter getrennt. Sie steht hier als
        AUFTEILUNG und nicht als eine Summe: die Karte darunter hat drei
        Schalter, und wer nur eine Gesamtzahl bekaeme, koennte an keinem
@@ -4856,13 +5437,13 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      Zeilen taeten der zweiten nichts (nach der ersten ist kein PNG mehr da),
      aber sie liefen doppelt, und der gemeldete Fortschritt waere der der
      zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
-  if (batchStates.umstellung && batchStates.umstellung.running)
+  if (batchStates.conversion && batchStates.conversion.running)
     return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});
   const rows = qOpenPng.all(PNG_MAGIC_HEX);
-  batchStates.umstellung = { running: true, total: rows.length, erledigt: 0,
-                                 umgestellt: 0, geblieben: 0, gespart: 0 };
+  batchStates.conversion = { running: true, total: rows.length, done: 0,
+                                 converted: 0, stayed: 0, freed: 0 };
   console.log(`[Kriterion] Bildumstellung gestartet: ${rows.length} PNG.`);
-  res.status(202).json(batchState('umstellung'));
+  res.status(202).json(batchState('conversion'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
      laeuft die Schleife nicht mehr hier, sondern in batchrun.js. Was der
      Aufrufer bekommt, ist unveraendert: 202 mit dem Anfangsstand, und der
@@ -4871,7 +5452,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      (worker.on('error') in startBatchThread) statt an einem catch: eine
      unbehandelte Zusage naehme in Node den ganzen Server mit, ein Fehler im
      Thread nimmt nur den Lauf. */
-  startBatchThread('umstellung', rows);
+  startBatchThread('conversion', rows);
 });
 
 /* ================= Das Austauschformat =================
@@ -4896,7 +5477,40 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
 // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
 // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
 // Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle.
-const EXCHANGE_FORMAT = 13;
+/* VIERZEHN SEIT 0.24.3 (F8c): die Namen der Kriterien und Kategorien JE
+   SPRACHE gehen mit hinaus. Ohne sie verloere ein Rundlauf ueber Export und
+   Import genau die Arbeit, die der Eigentuemer gerade von Hand eingetragen hat
+   -- und eine Sicherung ueber den Export waere keine vollstaendige.
+   AELTERE DATEIEN BLEIBEN LESBAR, und das ist keine Zusage, die hier neu
+   getroffen wird: der Import entscheidet ueber das VORHANDENSEIN der Felder
+   und nie ueber die Nummer. Eine Datei mit Format 13 traegt die beiden Felder
+   nicht, und dann gibt es eben keine Uebersetzungen einzuspielen. */
+const EXCHANGE_FORMAT = 14;
+
+/* DIE NAMEN JE SPRACHE, WIE SIE IN DIE DATEI GEHEN -- 0.24.3, Bauabschnitt 6a.
+   { <sprachkennung>: { <name der grundzeile>: <name in dieser sprache> } }
+
+   UEBER DEN NAMEN DER GRUNDZEILE UND NICHT UEBER DIE KENNUNG: der Import
+   findet ein Kriterium ueber seinen NAMEN wieder -- die Kennungen einer
+   Zweitinstanz sind andere. Dieselbe Bauform wie criteriaGewichte und
+   criteriaPhase daneben, und aus demselben Grund.
+   LEER HEISST LEER: hat niemand etwas uebersetzt, steht ein leeres Objekt in
+   der Datei. Das ist eine Angabe und kein fehlendes Feld -- wer die Datei
+   liest, sieht, dass die Instanz die Sache kennt. */
+function exchangeNames(sql) {
+  const out = {};
+  for (const z of db.prepare(sql).all())
+    (out[z.language] || (out[z.language] = {}))[z.base] = z.name;
+  return out;
+}
+const exchangeCriterionNames = () => exchangeNames(`
+  SELECT n.language, c.name AS base, n.name FROM criterion_names n
+  JOIN rating_criteria c ON c.id = n.criterion_id
+  ORDER BY n.language, c.sort_order, c.id`);
+const exchangeCategoryNames = () => exchangeNames(`
+  SELECT n.language, c.name AS base, n.name FROM category_names n
+  JOIN product_categories c ON c.id = n.category_id
+  ORDER BY n.language, c.name COLLATE NOCASE`);
 
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
 // hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
@@ -4945,8 +5559,8 @@ function bytesOf(o, name, source) {
    die das Haus verlaesst, eine Angabe ueber eine Person ohne jeden Nutzen.
    Eine herrenlose Zeile steht ausdruecklich als null da. */
 function authorNames() {
-  const namen = new Map(db.prepare('SELECT id, username FROM users').all().map(u => [u.id, u.username]));
-  return (id) => (id == null ? null : (namen.get(id) || null));
+  const names = new Map(db.prepare('SELECT id, username FROM users').all().map(u => [u.id, u.username]));
+  return (id) => (id == null ? null : (names.get(id) || null));
 }
 
 /* Die Lage, in der ein Paket entsteht: wessen Favoriten gelten, wie die
@@ -5078,8 +5692,8 @@ function exportEnvelope(items) {
      und bekaeme ein Kriterium namens "[object Object]". Ein zusaetzliches
      Feld ignoriert sie dagegen wortlos.
      NUR ABWEICHUNGEN -- ein Kriterium mit Gewicht 1 taucht gar nicht auf. */
-  const criteriaGewichte = {};
-  for (const c of critRows) if (c.weight !== 1) criteriaGewichte[c.name] = c.weight;
+  const criteriaWeights = {};
+  for (const c of critRows) if (c.weight !== 1) criteriaWeights[c.name] = c.weight;
   /* UND DIE PHASE IM SELBEN MUSTER -- 0.21.0, ein drittes Feld neben den
      beiden. NUR ABWEICHUNGEN: ein Kriterium des Kastens „after" taucht gar
      nicht auf, so wie ein Gewicht von 1 nicht auftaucht.
@@ -5089,7 +5703,9 @@ function exportEnvelope(items) {
   const criteriaPhase = {};
   for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;
   return { exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
-           criteria: critRows.map(c => c.name), criteriaGewichte, criteriaPhase, items };
+           criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,
+           criteriaNames: exchangeCriterionNames(),
+           categoryNames: exchangeCategoryNames(), items };
 }
 
 // Der Dateiname einer Exportdatei. Aus dem Titel der Instanz, damit zwei
@@ -5273,29 +5889,29 @@ function partBytes(z, switches) {
    tausend Handgriffe. */
 const EXCHANGE_PART_MIN = 1024 * 1024;
 function exchangePlan(switches, targetWanted) {
-  const zielGroesse = Math.min(EXCHANGE_WARN,
+  const targetSize = Math.min(EXCHANGE_WARN,
     Math.max(EXCHANGE_PART_MIN, Number(targetWanted) > 0 ? Number(targetWanted) : EXCHANGE_WARN));
   const rows = qPartSizes.all();
   const reason = exchangeEnvelopeFrame();
   const parts = [];
   const tooBig = [];
-  let offen = null;
+  let open = null;
   for (const z of rows) {
     const b = partBytes(z, switches);
     if (reason + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: reason + b }); continue; }
     // Ein neuer Teil, sobald dieser Eintrag den laufenden ueber den Zielwert
     // hoebe. Der erste Eintrag eroeffnet immer -- sonst entstuende ein leerer.
-    if (!offen || offen.bytes + b > zielGroesse) {
-      offen = { nr: parts.length + 1, from: z.id, to: z.id, count: 0, bytes: reason };
-      parts.push(offen);
+    if (!open || open.bytes + b > targetSize) {
+      open = { nr: parts.length + 1, from: z.id, to: z.id, count: 0, bytes: reason };
+      parts.push(open);
     }
-    offen.to = z.id;
-    offen.count++;
-    offen.bytes += b;
+    open.to = z.id;
+    open.count++;
+    open.bytes += b;
   }
   return { parts, tooBig: tooBig,
            total: parts.reduce((n, part) => n + part.bytes, 0),
-           zielGroesse, fallback: EXCHANGE_WARN, smallest: EXCHANGE_PART_MIN,
+           targetSize, fallback: EXCHANGE_WARN, smallest: EXCHANGE_PART_MIN,
            limit: EXCHANGE_MAX, string: EXCHANGE_STRING };
 }
 
@@ -5308,8 +5924,10 @@ function exchangeEnvelopeFrame() {
   const critRows = db.prepare('SELECT name, weight, phase FROM rating_criteria ORDER BY sort_order, id').all();
   return JSON.stringify({ exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
                           criteria: critRows.map(c => c.name),
-                          criteriaGewichte: Object.fromEntries(
+                          criteriaWeights: Object.fromEntries(
                             critRows.filter(c => c.weight !== 1).map(c => [c.name, c.weight])),
+                          criteriaNames: exchangeCriterionNames(),
+                          categoryNames: exchangeCategoryNames(),
                           // Der Rahmen misst, was der Umschlag KOSTET -- also
                           // gehoert das dritte Feld hier genauso hinein wie in
                           // die Datei. Ohne es faellt die Messung je Teil um
@@ -5385,12 +6003,12 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
      kein Vollexport: wer `von` schickt und `bis` vergisst, bekaeme sonst
      stillschweigend alles. */
   const number = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
-  const from = number(req.query.von), to = number(req.query.bis);
+  const from = number(req.query.from), to = number(req.query.to);
   /* DIE VIER ABFRAGEANGABEN HEISSEN NOCH DEUTSCH, und das ist kein
      Uebersehen: die Oberflaeche baut sie aus `card.partQuery` -- einem WERT
      der Sprachdatei --, und die Werte der Sprachdatei bleiben in dieser Runde
      unangetastet. Sie ziehen mit, sobald der Satz selbst wandert. */
-  const part = number(req.query.teil), parts = number(req.query.teile);
+  const part = number(req.query.part), parts = number(req.query.parts);
   const asPart = from !== null || to !== null || part !== null || parts !== null;
   if (asPart && (from === null || to === null || part === null || parts === null))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportIncomplete')});
@@ -5400,7 +6018,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   const big = exchangeBytes(null, switches);
   if (!asPart && big > EXCHANGE_MAX)
     return res.status(413).json({ error:
-      t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
+      t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
   const situation = bundleState(req.user.id, switches);
   const items = (asPart
     ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(from, to)
@@ -5424,7 +6042,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
     if (!(e instanceof RangeError)) throw e;
     res.removeHeader('Content-Disposition');
     res.status(413).json({ error:
-      t(localeOf(req), 'server.exportGrew', { grenze: Math.round(EXCHANGE_STRING / 1048576) })});
+      t(localeOf(req), 'server.exportGrew', { limit: Math.round(EXCHANGE_STRING / 1048576) })});
   }
 });
 
@@ -5442,7 +6060,7 @@ app.get('/api/items/:id/export', ownerOnly, (req, res) => {
   const switches = { withPhotos: true, withFiles: true, withVideos: true };
   const big = exchangeBytes(it.id, switches);
   if (big > EXCHANGE_MAX)
-    return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), grenze: Math.round(EXCHANGE_STRING / 1048576) })});
+    return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
   const bundle = entryAsBundle(it, bundleState(req.user.id, switches));
   res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
   res.json(exportEnvelope([bundle]));
@@ -5598,7 +6216,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     prepared.push({ it, photos, attachments });
   }
 
-  const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0, attachments: 0 };
+  /* `names` SEIT 0.24.3: die eingespielten Namen je Sprache. Sie stehen in
+     derselben Zaehlung wie alles andere -- was der Import anlegt, zaehlt er. */
+  const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0,
+                  attachments: 0, names: 0 };
   // Die Nummern der neu angelegten Eintraege. Der Papierkorb braucht sie, um
   // nach dem Wiederherstellen in den Eintrag springen zu koennen; die
   // Dateieinspielung laesst sie liegen.
@@ -5640,14 +6261,14 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      genannt. */
   const fileWeights = new Map();
   const weightsDropped = new Set();
-  const rawWeights = payload.criteriaGewichte;
+  const rawWeights = payload.criteriaWeights;
   if (rawWeights && typeof rawWeights === 'object' && !Array.isArray(rawWeights)) {
     for (const [name, raw] of Object.entries(rawWeights)) {
       const clean = String(name || '').trim();
       if (!clean) continue;
       const g = validWeight(raw);
       if (g === null) { weightsDropped.add(clean); continue; }
-      fileWeights.set(clean.toLowerCase(), g);
+      fileWeights.set(clean.toLocaleLowerCase(compareLocale()), g);
     }
   }
 
@@ -5665,11 +6286,13 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       const clean = String(name || '').trim();
       const value = valueFromFile('phase', raw);
       if (!clean || !PHASES.includes(value)) continue;
-      filePhases.set(clean.toLowerCase(), value);
+      filePhases.set(clean.toLocaleLowerCase(compareLocale()), value);
     }
   }
+  /* DIESELBE LOCALE WIE BEIM SCHREIBEN DER TAFEL DARUEBER -- zwei
+     verschiedene Regeln fuer denselben Schluessel faenden einander nie. */
   const phaseFrom = (name) =>
-    filePhases.get(String(name).trim().toLowerCase()) || PHASE_DEFAULT;
+    filePhases.get(String(name).trim().toLocaleLowerCase(compareLocale())) || PHASE_DEFAULT;
 
   /* DER KONFLIKT UEBER DIE KAESTEN HINWEG, UND ER WIRD VOR DEM ERSTEN
      SCHREIBEN ABGEWIESEN -- 0.21.0.
@@ -5701,7 +6324,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
        dahin waehlte der Code zwischen „steht" und „stehen"; das ist Satzbau im
        Quelltext, und er faellt (Konzept, Abschnitt 0, Satz 2). */
     const e = new Message('server.criteriaConflict',
-                          { n: conflicts.length, namen: conflicts.join(', ') });
+                          { n: conflicts.length, names: conflicts.join(', ') });
     e.denial = true;
     throw e;
   }
@@ -5737,7 +6360,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       if (f) return f.id;
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
       // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
-      const g = fileWeights.get(String(name).trim().toLowerCase());
+      const g = fileWeights.get(String(name).trim().toLocaleLowerCase(compareLocale()));
       /* UND SEINEN KASTEN AUS DER DATEI, sonst 'after'. Ein VORHANDENES
          behaelt den seinen -- so wie es sein Gewicht behaelt; anders als beim
          Gewicht kann es hier aber gar nicht abweichen, denn die Absage
@@ -5828,8 +6451,8 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         stats.links++;
       });
 
-      for (const tag of it.testDays || []) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(tag.day || '')) continue;
+      for (const date of it.testDays || []) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date.day || '')) continue;
         // OR REPLACE bleibt: die Datei ist die Wahrheit, der spaetere Wert
         // gewinnt. Das tut mehr, als es aussieht: REPLACE LOESCHT die
         // getroffene Zeile, und ueber ON DELETE CASCADE gehen deren
@@ -5839,10 +6462,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         // Zeilen. Fallen zwei unbekannte Namen auf den Einspielenden,
         // fallen sie doch zusammen -- deshalb die Protokollzeile unten.
         const simple = db.prepare(`INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)`)
-          .run(id, tag.day, Math.max(1, Math.min(5, Number(tag.rating) || 1)), authorId(tag.author));
+          .run(id, date.day, Math.max(1, Math.min(5, Number(date.rating) || 1)), authorId(date.author));
         // Aeltere Exportdateien haben hier kein Feld -- dann bleibt der
         // Testtag einfach ohne Tags.
-        for (const name of Array.isArray(tag.tags) ? tag.tags : []) {
+        for (const name of Array.isArray(date.tags) ? date.tags : []) {
           const clean = String(name || '').trim();
           if (clean) db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)')
             .run(simple.lastInsertRowid, tagByName(clean));
@@ -5891,6 +6514,39 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
                       VALUES (?, ?, ?, ?, ?, ?, ?)`)
             .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i,
                  a2.hasAuthor ? authorId(a2.author) : itemAuthor); stats.attachments++; });
+    }
+    /* DIE NAMEN JE SPRACHE -- 0.24.3, Formatnummer 14 (F8c). ZULETZT und
+       INNERHALB derselben Transaktion: die Kriterien und Kategorien entstehen
+       oben in der Schleife, und vorher gibt es nichts, woran ein zweiter Name
+       haengen koennte.
+
+       AELTERE DATEIEN TRAGEN DIE FELDER NICHT -- dann laeuft die Schleife
+       leer, und es gibt nichts einzuspielen. Genau so bleibt Format 13
+       lesbar, ohne dass irgendwo nach der Nummer gefragt wird.
+
+       EINE SPRACHE, FUER DIE HIER KEINE DATEI LIEGT, WIRD UEBERGANGEN: die
+       Zweitinstanz hat vielleicht weniger Sprachen als die erste, und ein
+       Name, den niemand je zu sehen bekaeme, waere nur Ballast in der
+       Ablage. Ein Name, der dem der Grundzeile gleicht, ebenso -- er ist
+       keine Uebersetzung, sondern der Rueckfall selbst.
+
+       OR REPLACE UND NICHT OR IGNORE: beim ZUSAMMENFUEHRENDEN Import gilt,
+       was die Datei sagt -- dieselbe Regel wie bei den Bewertungen darueber. */
+    for (const [table, column, byName, raw] of [
+      ['criterion_names', 'criterion_id', critByName, payload.criteriaNames],
+      ['category_names', 'category_id', catByName, payload.categoryNames]]) {
+      if (!raw || typeof raw !== 'object') continue;
+      for (const [language, words] of Object.entries(raw)) {
+        if (!LANGUAGES[language] || !words || typeof words !== 'object') continue;
+        for (const [base, name] of Object.entries(words)) {
+          const clean = String(name || '').trim();
+          const id = clean && base ? byName(base) : null;
+          if (!id || clean === base) continue;
+          db.prepare(`INSERT OR REPLACE INTO ${table} (${column}, language, name)
+                      VALUES (?, ?, ?)`).run(id, language, clean);
+          stats.names++;
+        }
+      }
     }
   })();
 
@@ -6075,7 +6731,7 @@ app.get('/api/trash', adminOnly, (req, res) => {
       // Wer geloescht hat, in derselben Form wie jeder Verfasser -- damit die
       // Oberflaeche denselben einen Weg von der Nummer zum Namen geht und ein
       // Grabstein "Gelöschter Benutzer 7" heisst.
-      loeschender: authorFrom(card, z.deleted_by),
+      deletedBy: authorFrom(card, z.deleted_by),
       files: z.files, bytes: z.bytes,
       // Die Frist rechnet der Server: die Zahl TRASH_DAYS steht an einer
       // Stelle, und die Oberflaeche baut sie nicht nach.
@@ -6235,20 +6891,20 @@ function backupState() {
      Er reist mit seinen Werten -- wer ihn zeigt, uebersetzt ihn dort, wo die
      Anfrage in der Hand liegt. */
   if (!BACKUP_DIR)
-    return { ein: false, reason: 'server.backupDirNotSet', values: {} };
+    return { input: false, reason: 'server.backupDirNotSet', values: {} };
   let root;
   try { root = fs.realpathSync(BACKUP_DIR); }
-  catch { return { ein: false, reason: 'server.backupDirGone', values: { ordner: BACKUP_DIR } }; }
+  catch { return { input: false, reason: 'server.backupDirGone', values: { folder: BACKUP_DIR } }; }
   try { if (!fs.statSync(root).isDirectory())
-    return { ein: false, reason: 'server.backupDirNotDir', values: { ordner: BACKUP_DIR } }; }
-  catch { return { ein: false, reason: 'server.backupDirUnreadable', values: { ordner: BACKUP_DIR } }; }
+    return { input: false, reason: 'server.backupDirNotDir', values: { folder: BACKUP_DIR } }; }
+  catch { return { input: false, reason: 'server.backupDirUnreadable', values: { folder: BACKUP_DIR } }; }
   let data;
   try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
   // EINE SICHERUNG NEBEN DEM ORIGINAL IST KEINE. Beide Richtungen, denn beide
   // sind falsch: der Sicherungsort im Datenverzeichnis und umgekehrt.
   if (liesIn(root, data) || liesIn(data, root))
-    return { ein: false, reason: 'server.backupInDataDir', values: {} };
-  return { ein: true, root, inWorkDir: liesIn(root, APP_DIR) };
+    return { input: false, reason: 'server.backupInDataDir', values: {} };
+  return { input: true, root, inWorkDir: liesIn(root, APP_DIR) };
 }
 
 /* Der eingestellte Ort, geprueft. Liefert entweder { ort, pfad } oder
@@ -6256,23 +6912,23 @@ function backupState() {
    "ungueltig". */
 function checkPlace(raw) {
   const situation = backupState();
-  if (!situation.ein) return { error: situation.reason, values: situation.values };
+  if (!situation.input) return { error: situation.reason, values: situation.values };
   const s = String(raw == null ? '' : raw).trim();
   if (!s) return { place: '', filePath: situation.root };
   // `deckel` ist ein Platzhalter der Sprachdatei und kein Bezeichner.
-  if (s.length > 200) return { error: 'server.subDirTooLong', values: { deckel: 200 } };
+  if (s.length > 200) return { error: 'server.subDirTooLong', values: { cap: 200 } };
   if (!PLACE_PATTERN.test(s))
     return { error: 'server.subDirForm', values: {} };
   let real;
   try { real = fs.realpathSync(path.resolve(situation.root, s)); }
-  catch { return { error: 'server.subDirGone', values: { ordner: s } }; }
+  catch { return { error: 'server.subDirGone', values: { folder: s } }; }
   try { if (!fs.statSync(real).isDirectory())
-    return { error: 'server.subDirNotDir', values: { ordner: s } }; }
-  catch { return { error: 'server.subDirUnreadable', values: { ordner: s } }; }
+    return { error: 'server.subDirNotDir', values: { folder: s } }; }
+  catch { return { error: 'server.subDirUnreadable', values: { folder: s } }; }
   // DIE PRUEFUNG HAENGT AM AUFGELOESTEN PFAD. Erst hier faellt ein Symlink
   // auf, der aus der Wurzel herausfuehrt -- am String saehe er harmlos aus.
   if (!liesIn(real, situation.root))
-    return { error: 'server.subDirOutside', values: { ordner: s } };
+    return { error: 'server.subDirOutside', values: { folder: s } };
   let data;
   try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
   if (liesIn(real, data))
@@ -6325,11 +6981,11 @@ function changeMark() {
    zwar eine Zeitmarke, aber er ist von aussen gestaltbar; die Angabe des
    Dateisystems ist es nicht. */
 function backupList(filePath) {
-  let namen;
-  try { namen = fs.readdirSync(filePath); }
+  let names;
+  try { names = fs.readdirSync(filePath); }
   catch { return null; }
   const files = [];
-  for (const n of namen) {
+  for (const n of names) {
     if (!BACKUP_PATTERN.test(n)) continue;
     try {
       const st = fs.lstatSync(path.join(filePath, n));
@@ -6342,18 +6998,18 @@ function backupList(filePath) {
 
 function lastBackup(filePath) {
   const mark = changeMark();
-  const gewechseltAm = mark ? mark.at : null;
+  const changedAt = mark ? mark.at : null;
   const files = backupList(filePath);
   if (files === null)
-    return { reachable: false, last: null, number: 0, gewechseltAm, veraltet: 0 };
+    return { reachable: false, last: null, number: 0, changedAt, outdated: 0 };
   // Ohne Wechsel ist KEINE Kopie veraltet -- und nicht etwa jede. Der
   // Unterschied zwischen "es gab keinen Wechsel" und "alle sind veraltet" ist
   // genau der, den diese Zeile haelt.
-  const veraltet = mark ? files.filter(d => d.time < mark.ms).length : 0;
+  const outdated = mark ? files.filter(d => d.time < mark.ms).length : 0;
   if (!files.length)
-    return { reachable: true, last: null, number: 0, gewechseltAm, veraltet: 0 };
+    return { reachable: true, last: null, number: 0, changedAt, outdated: 0 };
   const j = files[0];
-  return { reachable: true, number: files.length, gewechseltAm, veraltet, last: {
+  return { reachable: true, number: files.length, changedAt, outdated, last: {
     file: j.name, bytes: j.bytes,
     // Dieselbe Schreibweise wie jeder Zeitstempel der Instanz
     // ("2026-08-23 19:56:01", UTC): die Oberflaeche hat genau einen Weg, aus
@@ -6362,7 +7018,7 @@ function lastBackup(filePath) {
     daysAgo: Math.max(0, Math.floor((Date.now() - j.time) / 86400000)),
     // Auch die JUENGSTE Kopie kann aelter sein als der Wechsel -- dann ist
     // ueberhaupt keine brauchbare da, und das ist die schaerfste Lage.
-    veraltet: Boolean(mark && j.time < mark.ms)
+    outdated: Boolean(mark && j.time < mark.ms)
   } };
 }
 
@@ -6499,7 +7155,7 @@ function cleanupPreview(filePath, keep, days) {
     files: files.map((d, i) => ({
       ...cleanupRow(d, now), nr: i + 1,
       affected: hitNames.has(d.name),
-      veraltet: oldMs != null && d.time < oldMs
+      outdated: oldMs != null && d.time < oldMs
     })),
     matched: matched.map(d => cleanupRow(d, now)),
     bytes: matched.reduce((n, d) => n + d.bytes, 0),
@@ -6539,24 +7195,24 @@ const logRemoved = (actor, number) => {
   for (let i = 0; i < number; i++) auth.log('backup.delete', { actor });
 };
 
-function removeBackups(ordner, namen) {
+function removeBackups(folder, names) {
   let removed = 0, bytes = 0;
-  const geblieben = [];
-  for (const n of namen) {
+  const stayed = [];
+  for (const n of names) {
     const short = path.basename(String(n));
-    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { geblieben.push(short); continue; }
-    const full = path.join(ordner, short);
+    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { stayed.push(short); continue; }
+    const full = path.join(folder, short);
     try {
       const st = fs.lstatSync(full);
-      if (!st.isFile()) { geblieben.push(short); continue; }
+      if (!st.isFile()) { stayed.push(short); continue; }
       fs.unlinkSync(full);
       removed++; bytes += st.size;
     } catch (e) {
-      geblieben.push(short);
+      stayed.push(short);
       console.error(`[Kriterion] Sicherung ${short} nicht entfernt: ${e.message}`);
     }
   }
-  return { removed, bytes, geblieben };
+  return { removed, bytes, stayed };
 }
 
 // Lesend, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht trotzdem
@@ -6577,7 +7233,7 @@ app.get('/api/backup', ownerOnly, (req, res) => {
      nicht am Sicherungsort. Nur die ZAHL der veralteten Kopien haengt daran,
      und die ist dann ehrlich null statt geraten. */
   const mark = changeMark();
-  const gewechseltAm = mark ? mark.at : null;
+  const changedAt = mark ? mark.at : null;
   /* DIE VORSCHAU RECHNET MIT DEN WERTEN AUS DER ABFRAGE, WENN WELCHE
      DASTEHEN, und sonst mit den eingestellten. So rechnet jede Aenderung an
      einem der beiden Felder die Vorschau neu, OHNE dass etwas gespeichert oder
@@ -6608,17 +7264,17 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   /* UEBERSETZT WIRD HIER -- 0.24.0. backupState() und checkPlace() liefern
      seit dieser Runde einen Schluessel samt Werten; welche Sprache die Antwort
      traegt, weiss erst die Route. */
-  if (!situation.ein) return res.json({ configured: false,
+  if (!situation.input) return res.json({ configured: false,
                                    reason: t(localeOf(req), situation.reason, situation.values), place,
                                    dbBytes, durationSeconds: duration, reachable: false, last: null,
-                                   gewechseltAm, veraltet: 0, cleanup: rule });
+                                   changedAt, outdated: 0, cleanup: rule });
   const target = checkPlace(place);
   if (target.error) return res.json({ configured: true, root: situation.root, place,
                                      inWorkDir: situation.inWorkDir,
                                      error: t(localeOf(req), target.error, target.values),
                                      dbBytes, durationSeconds: duration,
                                      reachable: false, last: null,
-                                     gewechseltAm, veraltet: 0, cleanup: rule });
+                                     changedAt, outdated: 0, cleanup: rule });
   // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
   // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
   res.json({ configured: true, root: situation.root, place, filePath: target.filePath,
@@ -6634,15 +7290,15 @@ app.get('/api/backup', ownerOnly, (req, res) => {
    PERSONAL_KEYS ab -- was nicht persoenlich ist, ist dort Adminsache.
    Der Sicherungsort gehoert aber in dieselbe Zeile wie Export und Import. */
 app.put('/api/backup/dir', ownerOnly, (req, res) => {
-  const geprueft = checkPlace(req.body?.place);
-  if (geprueft.error) return res.status(400).json({ error: t(localeOf(req), geprueft.error, geprueft.values) });
-  putSetting.run('backupPlace', JSON.stringify(geprueft.place));
-  res.json({ ok: true, place: geprueft.place, filePath: geprueft.filePath, ...lastBackup(geprueft.filePath) });
+  const checked = checkPlace(req.body?.place);
+  if (checked.error) return res.status(400).json({ error: t(localeOf(req), checked.error, checked.values) });
+  putSetting.run('backupPlace', JSON.stringify(checked.place));
+  res.json({ ok: true, place: checked.place, filePath: checked.filePath, ...lastBackup(checked.filePath) });
 });
 
 app.post('/api/backup', ownerOnly, (req, res) => {
   const situation = backupState();
-  if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
+  if (!situation.input) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
   /* NAME MIT DATUM UND UHRZEIT. Ueberschreiben waere die schlechteste Antwort:
@@ -6711,11 +7367,11 @@ app.post('/api/backup', ownerOnly, (req, res) => {
                                    Date.now(), (changeMark() || {}).ms ?? null);
       if (matched.length) {
         const out2 = removeBackups(target.filePath, matched.map(d => d.name));
-        cleaned = { removed: out2.removed, nicht: out2.geblieben.length, bytes: out2.bytes };
+        cleaned = { removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes };
         if (out2.removed) {
           console.log(`[Kriterion] Alte Sicherungen entfernt: ${out2.removed} ` +
             `(${out2.bytes} Bytes frei)` +
-            `${out2.geblieben.length ? `, ${out2.geblieben.length} nicht` : ''}.`);
+            `${out2.stayed.length ? `, ${out2.stayed.length} nicht` : ''}.`);
           logRemoved(req.user.id, out2.removed);
         }
       }
@@ -6724,7 +7380,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
     // Die Sicherung ist gelungen; dieser Fehler ist eine Angabe daneben und
     // darf die Antwort nicht in eine Absage verwandeln.
     console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);
-    cleaned = { removed: 0, nicht: 0, bytes: 0, gescheitert: true };
+    cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };
   }
   res.json({ ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
              ...lastBackup(target.filePath), cleaned });
@@ -6761,7 +7417,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
 app.post('/api/backup/cleanup', ownerOnly,
          secondConfirmNeeded('backup'), (req, res) => {
   const situation = backupState();
-  if (!situation.ein) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
+  if (!situation.input) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
   const kind = String(req.body?.kind || '');
@@ -6791,7 +7447,7 @@ app.post('/api/backup/cleanup', ownerOnly,
   const out2 = removeBackups(target.filePath, matched.map(d => d.name));
   if (out2.removed) {
     console.log(`[Kriterion] Alte Sicherungen entfernt (${kind}): ${out2.removed} ` +
-      `(${out2.bytes} Bytes frei)${out2.geblieben.length ? `, ${out2.geblieben.length} nicht` : ''}.`);
+      `(${out2.bytes} Bytes frei)${out2.stayed.length ? `, ${out2.stayed.length} nicht` : ''}.`);
     /* NUR DIE ZAHL INS SICHERHEITSPROTOKOLL. Kein Freitext, kein Dateiname,
        kein Pfad -- das Protokoll haelt Vorgaenge fest, keine Orte auf dem Wirt
        (dieselbe Regel wie beim `backup`-Eintrag daneben). DIE
@@ -6804,7 +7460,7 @@ app.post('/api/backup/cleanup', ownerOnly,
      frisch daneben: die Karte zeichnet sich daraus neu, statt ihren alten
      Stand fortzuschreiben. */
   const after = cleanupStatus();
-  res.json({ ok: true, kind, removed: out2.removed, nicht: out2.geblieben.length, bytes: out2.bytes,
+  res.json({ ok: true, kind, removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes,
              ...lastBackup(target.filePath),
              cleanup: { ...after,
                            limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
@@ -6815,7 +7471,7 @@ app.post('/api/backup/cleanup', ownerOnly,
 // hier und nicht erst am Knopf.
 {
   const situation = backupState();
-  console.log('[Kriterion] Sicherungsort: ' + (situation.ein ? situation.root : `aus — ${situation.reason}`));
+  console.log('[Kriterion] Sicherungsort: ' + (situation.input ? situation.root : `aus — ${situation.reason}`));
 }
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
@@ -6859,9 +7515,9 @@ app.use((err, req, res, next) => {
    jedem Start ein Thread fuer eine leere Liste -- 19 ms fuer die Verbindung
    und 76 ms fuer sharp, fuer nichts. */
 function backfillThumbnails() {
-  const offen = db.prepare(
+  const open = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND kind != 'video'").all();
-  if (!offen.length) return refreshTiles();
+  if (!open.length) return refreshTiles();
   /* maintainStorage() ERST DANACH, und deshalb steht es hier im Abschluss und
      nicht in einer Kette daneben: es fasst die ganze Datei an (beim ersten Mal
      ein VACUUM) und darf nicht neben der Schleife laufen.
@@ -6870,7 +7526,7 @@ function backfillThumbnails() {
      schrieben beide in `photos`, und der Stand fuer die Karte ist EINE
      Variable -- der zweite ueberschriebe den ersten, und die Karte zeigte
      abwechselnd zwei Laeufe (Stolperstein 47). */
-  startBatchThread('vorschaubilder', offen, refreshTiles);
+  startBatchThread('thumbnails', open, refreshTiles);
 }
 
 /* DIE KACHELN ERNEUERN -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt.
@@ -6892,7 +7548,7 @@ function backfillThumbnails() {
 function refreshTiles() {
   const rows = qTileRows.all();
   if (!rows.length) return maintainStorage();
-  startBatchThread('geometrie', rows, maintainStorage);
+  startBatchThread('geometry', rows, maintainStorage);
 }
 
 /* NICHT MEHR `async` SEIT 0.19.3, und das ist keine Kosmetik: nichts darin ist
@@ -7037,7 +7693,7 @@ app.listen(PORT, () => {
     const z = mail.state(raw);
     if (mail.configured(raw)) {
       console.log(`[Kriterion] Mailversand: ${z.providerName} über ${z.server}:${z.port} ` +
-        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +
+        `(${z.secure ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +
         (PUBLIC.address ? '' : ' Ohne PUBLIC_ADDRESS wird trotzdem nicht verschickt.'));
     } else {
       console.log('[Kriterion] Mailversand: nicht eingerichtet — Einladungs- und ' +

@@ -992,6 +992,70 @@ abschreiben).
 
 ---
 
+## Nachtrag vom 8. September 2026 — was Stufe 2 an diesem Papier berichtigt
+
+*Stufe 2 ist als **0.24.3** gebaut worden. Dieses Papier bleibt, wie es
+geschrieben wurde; was die Runde anders entschieden hat, steht hier — an einer
+Stelle und nicht verteilt über die Abschnitte, damit ein Leser in einem halben
+Jahr Herleitung und Ergebnis auseinanderhalten kann. **Die zwölf Fragen samt
+Antworten stehen im Auftrag `Doku/Auftrag_0.24.3.md`, was gebaut wurde im
+Änderungsprotokoll 0.24.3.**
+
+**E12 — die Nummer.** Dieses Papier warnte: Stufe 2 bringt eine Funktion und
+wäre nach 5.1 MINOR. **Der Betreiber hat sie am 7. September 2026 auf 0.24.3
+entschieden** (F1 des Auftrags), weil die 24er-Reihe EIN Vorhaben in vier
+Schritten ist. *Die Abweichung steht benannt im Projektstand, Abschnitt 5.1,
+und endet mit dieser Reihe.* **Stufe 3 ist 0.24.4.**
+
+**E13 — welches Englisch.** Die Empfehlung `en-GB` ist übernommen worden (F4).
+*Der Betreiber hat ausdrücklich nach der Verbreitung gefragt und die Wahl an
+der Antwort ausgerichtet, nicht an einer Vorliebe.*
+
+**E14 — der Gegenleser.** Der Betreiber liest Englisch selbst gegen (F5).
+*Für Türkisch bleibt die Regel: ohne Leser geht keine Datei heraus.*
+
+**E9 — das Vokabular.** Die Entscheidung vom 5. September 2026 („EIN Satz je
+Installation, wie der Titel") war für eine Runde MIT EINER Sprache richtig; mit
+zweien stellte sich die Frage neu, und der Betreiber hat sie am 7. September
+2026 zugunsten der ursprünglichen Empfehlung dieses Papiers entschieden (F3):
+**je Sprache, mit Rückfall.** *Die Reihenfolge der Rückfälle ist dabei
+geschärft worden: was für DIESE Sprache eingetragen ist, sonst der ZUERST
+angelegte Satz, sonst die Vorgabe aus der Sprachdatei des Lesers.*
+
+**E11 — was nicht übersetzt wird.** Die Schärfung vom 5. September 2026 nannte
+die **Kriterien** als Ausnahme und die **Kategorien** ausdrücklich nicht. **Der
+Betreiber hat am 7. September 2026 beide gleich behandelt** (F8, F8a, F8b):
+eine Tabelle daneben, `criterion_names` und `category_names`, gleiche Bauform,
+gleicher Rückfall. *Die Tags bleiben, wie dieses Papier sie sieht: eine Wolke
+für alle, ohne Sprache.*
+
+**Abschnitt 5.1 und 5.2 sind überholt.** Dieses Papier zeigt in der Karte
+„Darstellung" jede Sprache, für die eine Datei liegt, und legt den Einsteller
+der Installation in die Karte „Vokabular". **Gebaut ist beides anders** (F9):
+es gibt einen **VORRAT**, aus dem der Eigentümer die wählbaren Sprachen
+bestimmt, und er steht in einer eigenen Karte **„Sprachen"** im Abschnitt
+„Installation". *Zwei Schlüssel und nicht einer: `languageDefault` trägt die
+Vorgabe, `languageOn` den Vorrat — eine einzelne Liste könnte „Vorgabe Deutsch,
+Vorrat alles" gar nicht ausdrücken.*
+
+**Abschnitt 3.3 ist gewachsen.** „Das Verzeichnis ist die Liste" stand hier
+schon; **was hier nicht stand, ist die Folge davon**: seit eine Datei vom
+Betreiber kommen kann, darf keine von ihnen den Server umbringen. **Drei
+Klammern, jede mit einer namentlichen Meldung** — kaputtes JSON, eine
+`_locale`, die `Intl` nicht kennt, und ein Dateiname, der keine Sprachkennung
+ist (F6). *Die Regel steht als S10 im Projektstand, Abschnitt 5.6.*
+
+**Und ein Punkt, den dieses Papier gar nicht hatte:** der Vergleich beim
+Umbenennen läuft seit 0.24.3 über die **Vorgabesprache der Installation** und
+nicht über die des Lesers. *Abschnitt 6 sagt „`toLocaleLowerCase`" und lässt
+offen, mit WELCHER Locale — und das ist keine Kleinigkeit: `'I'.toLowerCase()`
+ist auf Türkisch `'ı'`, und dann wären „İstanbul" und „istanbul" für den einen
+derselbe Name und für den anderen zwei. **Ein Vergleich, dessen Ergebnis vom
+Leser abhängt, ist keiner.** Stufe 3 hätte den Fall gebracht; er ist in Stufe 2
+gebaut worden, weil die Frage dort schon zu beantworten war.*
+
+---
+
 ## 13. Was dieses Papier NICHT entscheidet
 
 **Ob die Runde kommt und wann.** Das steht im Fahrplan — 0.24.0, seit dem

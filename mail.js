@@ -53,12 +53,12 @@ const message = (key, values = {}) =>
    STARTTLS um. Ein Port ohne die passende Angabe ergibt eine Verbindung, die
    entweder haengt oder im Klartext bleibt. */
 const PROVIDERS = [
-  { key: 'gmx',    name: 'GMX',           server: 'mail.gmx.net',       port: 587, sicher: false },
-  { key: 'web',    name: 'Web.de',        server: 'smtp.web.de',        port: 587, sicher: false },
-  { key: 'gmail',  name: 'Gmail',         server: 'smtp.gmail.com',     port: 465, sicher: true },
-  { key: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, sicher: true },
-  { key: 'ionos',  name: 'IONOS',         server: 'smtp.ionos.de',      port: 587, sicher: false },
-  { key: 'eigen',  name: 'Eigener Server', server: '',                  port: 587, sicher: false }
+  { key: 'gmx',    name: 'GMX',           server: 'mail.gmx.net',       port: 587, secure: false },
+  { key: 'web',    name: 'Web.de',        server: 'smtp.web.de',        port: 587, secure: false },
+  { key: 'gmail',  name: 'Gmail',         server: 'smtp.gmail.com',     port: 465, secure: true },
+  { key: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, secure: true },
+  { key: 'ionos',  name: 'IONOS',         server: 'smtp.ionos.de',      port: 587, secure: false },
+  { key: 'eigen',  name: 'Eigener Server', server: '',                  port: 587, secure: false }
 ];
 
 /* DREI HINWEISE GEHOEREN AN DEN BILDSCHIRM, und sie stehen hier statt in
@@ -109,7 +109,7 @@ const GREETING_MS = 7 * 1000;
    denen ein halb geschriebener Zugang entstehen kann. */
 const SETTING_KEY = 'mailzugang';
 
-const EMPTY = { provider: '', server: '', port: 0, sicher: false, user: '', password: '', sender: '' };
+const EMPTY = { provider: '', server: '', port: 0, secure: false, user: '', password: '', sender: '' };
 
 // Wie eine Adresse aussehen darf. BEWUSST GROB: eine Adresse laesst sich am
 // Muster ohnehin nicht auf Gueltigkeit pruefen -- den Beweis liefert erst die
@@ -134,7 +134,7 @@ const providerOf = (key) => PROVIDERS.find(a => a.key === key) || null;
    state(). */
 const forChoice = () => PROVIDERS.map(a => ({
   key: a.key, name: a.name,
-  server: a.server, port: a.port, sicher: a.sicher,
+  server: a.server, port: a.port, secure: a.secure,
   hint: HINTS[a.key] || ''
 }));
 
@@ -149,9 +149,9 @@ function resolve(raw) {
   if (!v) return { ...EMPTY };
   if (v.key === 'eigen') {
     return { ...z, server: String(z.server || '').trim(),
-             port: Number(z.port) || 0, sicher: z.sicher === true };
+             port: Number(z.port) || 0, secure: z.secure === true };
   }
-  return { ...z, server: v.server, port: v.port, sicher: v.sicher };
+  return { ...z, server: v.server, port: v.port, secure: v.secure };
 }
 
 /* Der Zustand fuer den Bildschirm. DAS PASSWORT KOMMT HIER NIE HERAUS -- nur
@@ -163,7 +163,7 @@ function state(raw) {
   const v = providerOf(z.provider);
   return {
     provider: z.provider, providerName: v ? v.name : '',
-    server: z.server, port: z.port, sicher: z.sicher,
+    server: z.server, port: z.port, secure: z.secure,
     user: z.user, sender: z.sender,
     passwordSet: Boolean(z.password),
     hint: HINTS[z.provider] || '', hintAlways: HINT_ALWAYS
@@ -188,8 +188,8 @@ function configured(raw) {
    Formular, das ein Geheimnis zum Aendern einer Nebensache verlangt, wird
    irgendwann mit einem falschen Wert gespeichert. Ein leerer Zugang wird
    ausdruecklich zugelassen: so wird der Versand wieder abgeschaltet. */
-function checkInput(ein, before) {
-  const e = ein && typeof ein === 'object' ? ein : {};
+function checkInput(input, before) {
+  const e = input && typeof input === 'object' ? input : {};
   const old = resolve(before);
   const provider = String(e.provider || '').trim();
   if (!provider) return { ...EMPTY };
@@ -208,7 +208,7 @@ function checkInput(ein, before) {
   if (!password) throw message('mail.passwordMissing');
   if (!isAddress(sender)) throw message('mail.senderInvalid');
 
-  const out = { provider, user, password, sender, server: '', port: 0, sicher: false };
+  const out = { provider, user, password, sender, server: '', port: 0, secure: false };
   if (v.key !== 'eigen') return out;
 
   const server = String(e.server || '').trim();
@@ -216,7 +216,7 @@ function checkInput(ein, before) {
   if (!server) throw message('mail.serverMissing');
   if (!Number.isInteger(port) || port < 1 || port > 65535)
     throw message('mail.portRange', { min: 1, max: 65535 });
-  return { ...out, server, port, sicher: e.sicher === true };
+  return { ...out, server, port, secure: e.secure === true };
 }
 
 /* Eine Marke ueber den Zugang, mit der sich "seit dem Test hat sich nichts
@@ -228,7 +228,7 @@ function checkInput(ein, before) {
 function mark(raw) {
   const z = resolve(raw);
   return crypto.createHash('sha256')
-    .update(JSON.stringify([z.provider, z.server, z.port, z.sicher, z.user, z.password, z.sender]))
+    .update(JSON.stringify([z.provider, z.server, z.port, z.secure, z.user, z.password, z.sender]))
     .digest('hex').slice(0, 16);
 }
 
@@ -249,7 +249,7 @@ function mark(raw) {
    dekodiert, wie ein Empfaenger es auch tut (Stolperstein 90). */
 function buildTransport(z) {
   return nodemailer.createTransport({
-    host: z.server, port: z.port, secure: z.sicher === true,
+    host: z.server, port: z.port, secure: z.secure === true,
     auth: { user: z.user, pass: z.password },
     connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,
     // Die Instanz schickt eine Handvoll Mails im Monat. Eine offen gehaltene

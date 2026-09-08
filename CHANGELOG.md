@@ -29,6 +29,42 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.24.3] - 2026-09-08
+
+> **VOR DEM EINSPIELEN EINE SICHERUNG ZIEHEN.** Diese Runde legt zwei Tabellen
+> an und schreibt gespeicherte Werte um — drei Migrationsblöcke laufen beim
+> ersten Start von selbst und sind an einem gestellten Altbestand geprüft.
+>
+> **DEIN BESTAND SPRICHT WEITER DEUTSCH.** Nur eine FRISCH eingerichtete
+> Installation startet auf Englisch. Am Bildschirm ändert sich für dich damit
+> kein Wort, solange du nichts umstellst.
+>
+> **DIE VERSIONSNUMMER IST EINE BENANNTE ABWEICHUNG.** Nach SemVer gehörte
+> diese Runde auf 0.25.0; sie trägt 0.24.3, weil sie zur 24er-Reihe gehört —
+> entschieden am 7. September 2026, nachzulesen im Projektstand, Abschnitt 5.1.
+>
+> **EINE EXPORTDATEI AUS 0.24.2 SPIELT SICH WEITER EIN.** Das Austauschformat
+> steigt auf 14 und trägt jetzt alle Sprachfassungen der Kriterien- und
+> Kategorienamen mit; ältere Dateien laufen unverändert durch.
+
+*Was ein Betreiber merkt: Kriterion spricht Englisch. Jeder Zugang wählt
+selbst, welche Sprache er liest — der Wechsel wirkt sofort, ohne Neuladen, und
+der andere am selben Bildschirm merkt nichts davon.*
+
+- Added: **Englisch** — `public/languages/en.json`, dieselben 1204 Schlüssel wie die deutsche Datei
+- Added: **Jeder Zugang wählt seine Sprache** in der Karte „Darstellung" — und die Anmeldeseite hat eine eigene Zeile dafür, die sich der Browser merkt
+- Added: **Neue Karte „Sprachen"** im Abschnitt „Installation" (Eigentümer): die Vorgabesprache und der Vorrat, aus dem gewählt werden darf
+- Added: **Wer nichts einstellt, bekommt, was sein Browser verlangt** — `Accept-Language` gilt, sofern die Sprache im Vorrat steht
+- Added: **Das Vokabular je Sprache** — mit Rückfall: wo für eine Sprache nichts eingetragen ist, steht der zuerst angelegte Satz, sonst die Vorgabe
+- Added: **Kriterien und Kategorien je Sprache** — der Eigentümer trägt die zweite Fassung ein, wo keine steht, gilt die der Vorgabesprache; die Bewertungen hängen unverändert daran
+- Added: **Eine Sprachdatei lässt sich hineinlegen** — jede `.json` unter `public/languages/` zählt; eine unbrauchbare wird namentlich gemeldet und übergangen, statt den Server umzubringen
+- Changed: **Das Austauschformat steigt auf 14** — der Export trägt alle Sprachfassungen der Namen mit
+- Fixed: **`<html lang>` steht wieder** — es war seit 0.24.1 leer, weil das Attribut beim Umbenennen für ein Wort gehalten wurde
+- Fixed: **Die Statusvorgabe der Potenzialsortierung greift wieder** — sie war seit 0.24.1 stumm
+- Fixed: **Die Bildumstellung meldet ihren Stand wieder** — sie stand seit 0.24.1 auf „null"
+- Fixed: **Die Trefferzeile an der Kachel nennt die Quelle wieder** — fünf von sieben hießen seit 0.24.1 „Fundstelle"
+- Fixed: **Zwei deutsche Wörter im Quelltext** — „geladen" am Teil-Knopf und „ am" vor dem Datum der Exportdatei stehen jetzt in der Sprachdatei
+
 ## [0.24.2] - 2026-09-07
 
 > **VOR DEM EINSPIELEN EINE SICHERUNG ZIEHEN.** Diese Runde schreibt

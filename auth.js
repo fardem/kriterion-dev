@@ -37,6 +37,19 @@ const zf = require('./twofactor');
 let translate = (req, key) => `\u27e6${key}\u27e7`;
 function setTranslator(fn) { translate = fn; }
 
+/* DIE LOCALE DES VERGLEICHS -- 0.24.3, Bauabschnitt 4. Gereicht wird sie beim
+   Start wie der Uebersetzer daneben und aus demselben Grund: sie haengt an der
+   Vorgabesprache der Installation, und die kennt server.js.
+   GEBRAUCHT WIRD SIE AN GENAU EINER STELLE -- dem Schluessel der Anmeldebremse
+   (keyName). `'I'.toLowerCase()` ist auf Tuerkisch `'ı'` und nicht `'i'`, und
+   ohne eine Regel FUER ALLE braemste „İSTANBUL" einen anderen Zaehler als
+   „istanbul" (T3).
+   DER RUECKFALL IST `undefined` UND DAMIT DIE LOCALE DES WIRTS -- genau das,
+   was toLowerCase() vorher tat. Wer diese Datei ohne server.js benutzt,
+   bekommt das bisherige Verhalten und keinen Wurf. */
+let comparisonLocale = () => undefined;
+function setCompareLocale(fn) { comparisonLocale = fn; }
+
 class Message extends Error {
   constructor(key, values = {}, status = 400) {
     super(key);
@@ -549,7 +562,7 @@ function removeUser(userId, options = {}, actor) {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
     // zweite Haekchen Zeilen mit, die das erste ohnehin mitgenommen haette.
     if (options.entries) db.prepare('DELETE FROM items WHERE user_id = ?').run(u.id);
-    if (options.beitraege) {
+    if (options.posts) {
       db.prepare('DELETE FROM comments WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM ratings WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM test_days WHERE user_id = ?').run(u.id);
@@ -621,7 +634,8 @@ const HARD_LIMIT = 10;   // ab hier gesperrt -- NUR bei der IP
 const BLOCK_MS = 5 * 60 * 1000;
 
 const keyIp = (ip) => `ip:${ip}`;
-const keyName = (name) => `name:${String(name || '').trim().toLowerCase()}`;
+const keyName = (name) =>
+  `name:${String(name || '').trim().toLocaleLowerCase(comparisonLocale())}`;
 
 // Dieselbe Kurve fuer beide Zaehler: eine zweite Rechnung daneben waere eine
 // zweite Wahrheit darueber, wie stark gebremst wird.
@@ -1412,7 +1426,7 @@ function createRelease(token, purpose, target) {
   if (!token) throw new Error('Eine Freigabe braucht die Sitzung.');
   if (!CONFIRM_PURPOSES.includes(purpose)) throw new Message('server.purposeUnknown');
   releases.set(releaseKey(token, purpose, target), Date.now() + RELEASE_MS);
-  return { purpose, sekunden: RELEASE_MS / 1000 };
+  return { purpose, seconds: RELEASE_MS / 1000 };
 }
 
 /* Prueft UND verbraucht in einem. Zwei Funktionen -- eine, die nachsieht, und
@@ -1480,9 +1494,9 @@ const qCodesTotal = db.prepare('SELECT COUNT(*) n FROM two_factor_codes WHERE us
 function twoFactorState(userId) {
   const id = Number(userId) || 0;
   const z = getTwoFactor(id);
-  if (!z || !z.confirmed_at) return { an: false, seit: null, codesOpen: 0, codesTotal: 0 };
+  if (!z || !z.confirmed_at) return { an: false, since: null, codesOpen: 0, codesTotal: 0 };
   return {
-    an: true, seit: z.confirmed_at,
+    an: true, since: z.confirmed_at,
     codesOpen: qCodesLeft.get(id).n, codesTotal: qCodesTotal.get(id).n
   };
 }
@@ -1520,7 +1534,7 @@ function startTwoFactor(userId, instanceName, username) {
     // Der Feldname bleibt deutsch, bis app.js in Bauabschnitt 4 mitzieht.
     secret: secret, groups: zf.groupsOfFour(secret),
     row: zf.otpauthLine(instanceName, username, secret),
-    ziffern: zf.DIGITS, sekunden: zf.STEP_SECONDS
+    digits: zf.DIGITS, seconds: zf.STEP_SECONDS
   };
 }
 
@@ -1663,7 +1677,7 @@ function createLoginTicket(userId) {
   for (const [k, a] of tickets) if (a.until <= now) tickets.delete(k);
   const key = crypto.randomBytes(32).toString('hex');
   tickets.set(key, { id, until: now + LOGIN_TICKET_MS });
-  return { ticket: key, sekunden: LOGIN_TICKET_MS / 1000 };
+  return { ticket: key, seconds: LOGIN_TICKET_MS / 1000 };
 }
 
 /* Prueft UND verbraucht in einem, wie useRelease. Zwei Funktionen --
@@ -1745,6 +1759,7 @@ function requireAuth(req, res, next) {
 }
 
 module.exports = {
+  setCompareLocale,
   // Die Fehlerklasse; Rufer sind server.js (uebersetzt) und diese Datei.
   Message, setTranslator,
   COOKIE_NAME, COOKIE_SECURE, cookieName, sessionToken, viaProxy,
